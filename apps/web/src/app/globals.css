@@ -261,5 +261,47 @@
     border-radius: var(--nexus-radius-md); background: color-mix(in srgb, var(--nexus-color-warn) 6%, var(--nexus-color-bg-1));
     padding: var(--nexus-space-4);
   }
+
+  /* ─────────────────────────────────────────────────────────────────────────     §FE-2 创作者市场（/marketplace）：与 /discover 同一套纪律——     渐变墨字标题 + brand 压边 + 类型收成 pill 胶囊（当前态同 discover 语义）。     卡片 bg-1 渐变 + brand 左边 accent-2 2px 压边（同 dv-card），hover 抬升 2px。     零新增颜色 token；`accent-1` 胶囊用于"购买/保存"主按钮，elevation 另议。     ───────────────────────────────────────────────────────────────────────── */
+  .mk-header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--nexus-space-4); position: relative; padding-bottom: var(--nexus-space-5); border-bottom: 1px solid var(--nexus-color-border-subtle); }
+  .mk-header::after {
+    content: ''; position: absolute; left: 0; bottom: -1px; height: 2px; width: min(360px, 60%);
+    background: linear-gradient(90deg, var(--nexus-color-brand), var(--nexus-color-accent-1), transparent);
+    border-radius: var(--nexus-radius-full);
+  }
+  .mk-title {
+    font-size: var(--nexus-font-size-28); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15;
+    background: linear-gradient(120deg, var(--nexus-color-fg-1) 30%, var(--nexus-color-accent-1) 80%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .mk-subtitle { color: var(--nexus-color-fg-3); font-size: var(--nexus-font-size-12); letter-spacing: .02em; }
+  .mk-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-2); }
+  .mk-typeRow {
+    display: flex; flex-wrap: wrap; gap: var(--nexus-space-1); width: max-content; max-width: 100%;
+    padding: var(--nexus-space-1); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-full); background: var(--nexus-color-bg-2);
+    margin-top: var(--nexus-space-2);
+  }
+  .mk-type {
+    text-decoration: none; border-radius: var(--nexus-radius-full); padding: var(--nexus-space-1) var(--nexus-space-3);
+    color: var(--nexus-color-fg-3); font-size: var(--nexus-font-size-12); font-family: var(--nexus-font-sans);
+    transition: color var(--nexus-motion-base) var(--nexus-motion-ease), background var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .mk-type:hover { color: var(--nexus-color-fg-1); }
+  .mk-typeActive {
+    background: linear-gradient(135deg, var(--nexus-color-brand), var(--nexus-color-accent-1));
+    color: var(--nexus-color-accent-fg);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--nexus-color-brand) 40%, transparent), 0 6px 20px rgb(91 108 255 / 0.3);
+  }
+  .mk-card {
+    display: flex; align-items: center; gap: var(--nexus-space-3);
+    border: 1px solid var(--nexus-color-border-subtle); border-left: 2px solid var(--nexus-color-accent-2);
+    border-radius: var(--nexus-radius-md);
+    background: linear-gradient(155deg, var(--nexus-color-bg-1), var(--nexus-color-bg-2));
+    padding: var(--nexus-space-3) var(--nexus-space-4);
+    box-shadow: var(--nexus-shadow-sm);
+    transition: transform var(--nexus-motion-base) var(--nexus-motion-ease), border-color var(--nexus-motion-base) var(--nexus-motion-ease), box-shadow var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .mk-card:hover { transform: translateX(2px); border-left-color: var(--nexus-color-brand); box-shadow: var(--nexus-shadow-md); }
+  @media (prefers-reduced-motion: reduce) { .mk-card, .mk-type { transition: none; } }
   @media (prefers-reduced-motion: reduce) { .dv-card, .dv-cover, .dv-searchPill, .dv-tab { transition: none; } }
 }

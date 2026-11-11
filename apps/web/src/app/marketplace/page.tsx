@@ -62,41 +62,43 @@ export default async function MarketplacePage({
   const reportedIds = user ? await listReportedItemIds(user.id, items.map((item) => item.id)) : new Set<string>();
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-[980px] flex-col gap-[var(--nexus-space-5)] p-[var(--nexus-space-6)] font-mono">
-      <header className="flex items-center justify-between">
+    <main className="mx-auto flex min-h-screen w-full max-w-[1080px] flex-col gap-[var(--nexus-space-5)] p-[var(--nexus-space-6)] font-mono">
+      <header className="mk-header">
         <div>
-          <h1 className="text-[var(--nexus-font-size-28)] font-semibold tracking-tight">创作者市场</h1>
-          <p className="text-[var(--nexus-font-size-12)] text-fg-2">
+          <h1 className="mk-title" data-marketplace-title>创作者市场</h1>
+          <p className="mk-subtitle">
             组件 / 模板 / 设计系统 / 素材 / 世界 / 游戏 / AI 角色。列表只显示公开在售与免费的物品。
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="mk-actions">
           {user ? (
-            <Link href="/marketplace/earnings" className="inline-flex min-h-6 items-center whitespace-nowrap rounded px-1 text-accent-2-ink underline" data-marketplace-earnings>
+            <Link href="/marketplace/earnings" className="dv-searchPill" data-marketplace-earnings>
               我的收入
             </Link>
           ) : null}
           {user ? (
-            <Link href="/marketplace/purchases" className="inline-flex min-h-6 items-center whitespace-nowrap rounded px-1 text-accent-2-ink underline" data-marketplace-purchases>
+            <Link href="/marketplace/purchases" className="dv-searchPill" data-marketplace-purchases>
               我的购买
             </Link>
           ) : null}
           {user ? (
-            <Link href="/marketplace/reports" className="inline-flex min-h-6 items-center whitespace-nowrap rounded px-1 text-accent-2-ink underline" data-marketplace-reports>
+            <Link href="/marketplace/reports" className="dv-searchPill" data-marketplace-reports>
               我的举报
             </Link>
           ) : null}
-          <Link href="/" className="inline-flex min-h-6 items-center whitespace-nowrap rounded px-1 text-accent-2-ink underline" data-marketplace-back>
+          <Link href="/" className="dv-searchPill" data-marketplace-back>
             回首页
           </Link>
         </div>
       </header>
 
-      <nav className="flex flex-wrap items-center gap-2 text-12" data-marketplace-type-nav>
+      <nav className="mk-typeRow" data-marketplace-type-nav aria-label="市场类型">
         <Link
           href="/marketplace"
           data-marketplace-type="all"
-          className="rounded bg-bg-2 px-2 py-1 hover:bg-bg-3"
+          data-current={itemType === undefined ? 'true' : 'false'}
+          className={`mk-type ${itemType === undefined ? 'mk-typeActive' : ''}`}
+          aria-current={itemType === undefined ? 'page' : undefined}
         >
           全部
         </Link>
@@ -105,7 +107,9 @@ export default async function MarketplacePage({
             key={t}
             href={`/marketplace?type=${t}`}
             data-marketplace-type={t}
-            className="rounded bg-bg-2 px-2 py-1 hover:bg-bg-3"
+            data-current={itemType === t ? 'true' : 'false'}
+            className={`mk-type ${itemType === t ? 'mk-typeActive' : ''}`}
+            aria-current={itemType === t ? 'page' : undefined}
           >
             {TYPE_LABELS[t]}
           </Link>
@@ -115,11 +119,11 @@ export default async function MarketplacePage({
       <section className="flex flex-col gap-2" data-marketplace-list>
         <h2 className="text-[var(--nexus-font-size-16)] font-medium">在售（{items.length}）</h2>
         {items.length === 0 ? (
-          <p className="text-12 text-fg-3" data-marketplace-empty>
-            还没有这一类的物品在售。
-          </p>
+          <div className="dv-empty" data-marketplace-empty>
+            <p>还没有这一类的物品在售。</p>
+          </div>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <ul className="grid grid-cols-1 gap-[var(--nexus-space-3)]">
             {items.map((item) => (
               <MarketplaceItemRow
                 key={item.id}

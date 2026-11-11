@@ -169,7 +169,7 @@ export function MarketplaceItemRow({
 
   return (
     <li
-      className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-3"
+      className="mk-card"
       data-marketplace-item={item.id}
     >
       <div className="flex flex-wrap items-center gap-2">
