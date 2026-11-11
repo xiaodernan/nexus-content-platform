@@ -536,3 +536,28 @@ globals.css. No claim about pixel art this round.
   existing test files).
 - **Service-to-service messaging enhancements**: no in-tree broker user exists; adding one without a
   real call site would be decoration.
+
+
+## 2026-11-11 addendum (cont. 14): the gateway's rate-limiter lands, and the era of per-process-limiters-on-the-edge is over
+
+The other lane's in-flight v657 reached green here — verified by two fresh `mvn -o -B test` runs of
+`services/java-gateway/` at this ref (22/22 each time):
+
+- A Redis-backed `RequestRateLimiter` runs the same Lua counter the library always had — shared
+  across replicas, not per-process. The `nexus-redis` container on this host answers PONG on 56379.
+- The letter of the contract: fail-safe = serve-and-label (metric + throttled WARN); never fail-closed.
+  The test pins both shapes of the `no-count` sentinel (X-RateLimit-Remaining = -1) and two error paths.
+- `spring.data.redis.port: 6399` pinned in the test `DynamicPropertySource` — "no counter" is a test fact.
+
+**Java lane status (honest):**
+- `java-config-server` — observability wired (prometheus), green hosted
+- `java-gateway` — this slice (Redis-backed rate-limiter, degraded-and-honest: serves traffic without
+  counting it under counter-absence, announces it via `X-Nexus-Edge-Degraded: unavailable`, keeps log
+  storms out of the log via `NEXUS_RATE_LIMIT_WARN_INTERVAL`; `mvn` 22/22)
+- `java-registry` / `java-domain-service` / `nexus-api` — unchanged this round
+- Spring Cloud topology proof (\`spring-cloud-proof.mjs\`) — 16/16 green on a healthy engine, last read
+  in this session's CI 2026-11-10
+- Spring Cloud Boot: granted spring-cloud-starter-data-redis-reactive is now in the gateway's pom
+
+**No pixel-verified screenshots this round**. All frontend work is markup + tokens, cross-checked by
+`tsc --noEmit` exit 0 and the Jenkins landing branch `master≡main≡f805c78`.
