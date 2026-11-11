@@ -604,12 +604,13 @@ export function WorldWalk({
             onClick={() => setTalkOpen((open) => !open)}
             data-world-talk-toggle
             aria-expanded={talkOpen}
+            aria-controls={talkOpen ? 'world-talk' : undefined}
             className="mt-2 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-11 text-fg-2 hover:bg-bg-3"
           >
             {talkOpen ? '收起对话' : '跟角色说话'}
           </button>
           {talkOpen ? (
-            <div className="mt-2" data-world-talk>
+            <div id="world-talk" className="mt-2" data-world-talk>
               {characters.length ? (
                 <>
                   <select

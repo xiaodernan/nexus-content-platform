@@ -845,6 +845,7 @@ export function StoryboardPanel() {
             }}
             title="换一条箭头（不会重切这一版：镜头、长度、撤销栈都留着）"
             aria-expanded={sourceEditing}
+            aria-controls={sourceEditing ? 'storyboard-source-editor' : undefined}
             data-storyboard-source-open
             className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-11 text-fg-2"
           >
@@ -883,6 +884,7 @@ export function StoryboardPanel() {
         {/* §40 建完之后改来源：镜头表不重切、长度不变、一次应用是一个可撤销事务（§150） */}
         {sourceEditing ? (
           <div
+            id="storyboard-source-editor"
             className="mt-2 flex flex-col gap-1 rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] p-2"
             data-storyboard-source-editor
           >

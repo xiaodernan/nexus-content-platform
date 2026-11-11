@@ -41,6 +41,10 @@ export function MarketplaceItemRow({
   visibilityLabel: string;
 }) {
   const router = useRouter();
+  // §A11Y-2：disclosure 契约——触发键的 aria-controls 与受控面板的 id 共用同一份，
+  // 派生自 item.id 让列表里多行实例互不串味；只在展开态引用、收起不留悬空引用。
+  const editPanelId = `marketplace-edit-${item.id}`;
+  const reportPanelId = `marketplace-report-${item.id}`;
   const [message, setMessage] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [price, setPrice] = useState(item.priceCredits);
@@ -209,6 +213,7 @@ export function MarketplaceItemRow({
             onClick={() => setEditing((on) => !on)}
             data-marketplace-edit={item.id}
             aria-expanded={editing}
+            aria-controls={editing ? editPanelId : undefined}
             className="rounded bg-bg-3 px-2 py-1 text-11 text-fg-2 hover:bg-bg-1"
           >
             {editing ? '收起' : '改价格/可见性'}
@@ -230,6 +235,7 @@ export function MarketplaceItemRow({
             type="button"
             onClick={() => setReportOpen((on) => !on)}
             aria-expanded={reportOpen}
+            aria-controls={reportOpen ? reportPanelId : undefined}
             data-marketplace-report={item.id}
             className="rounded px-2 py-1 text-11 text-fg-3 hover:text-danger-ink"
           >
@@ -257,7 +263,7 @@ export function MarketplaceItemRow({
         ) : null}
       </div>
       {editing ? (
-        <div className="mt-2 flex flex-wrap items-center gap-2" data-marketplace-edit-panel={item.id}>
+        <div id={editPanelId} className="mt-2 flex flex-wrap items-center gap-2" data-marketplace-edit-panel={item.id}>
           <label className="flex items-center gap-1 text-11 text-fg-2">
             价格
             <input
@@ -293,7 +299,7 @@ export function MarketplaceItemRow({
         </div>
       ) : null}
       {reportOpen ? (
-        <div className="mt-2 flex flex-wrap items-center gap-2" data-marketplace-report-panel={item.id}>
+        <div id={reportPanelId} className="mt-2 flex flex-wrap items-center gap-2" data-marketplace-report-panel={item.id}>
           <label className="flex items-center gap-1 text-11 text-fg-2">
             原因
             <select

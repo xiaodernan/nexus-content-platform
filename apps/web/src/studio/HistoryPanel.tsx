@@ -269,6 +269,7 @@ function SnapshotSection() {
                 onClick={() => void studio.compareSnapshot(snapshot.id)}
                 disabled={state.snapshotBusy}
                 aria-expanded={comparing}
+                aria-controls={comparing ? `snapshot-diff-${snapshot.id}` : undefined}
                 className={cn(
                   'shrink-0 rounded border px-1 text-11 disabled:opacity-50',
                   comparing
@@ -296,6 +297,7 @@ function SnapshotSection() {
             </span>
             {comparing && state.compare ? (
               <ul
+                id={`snapshot-diff-${snapshot.id}`}
                 className="mt-[2px] space-y-[2px] border-t border-[var(--nexus-color-border-subtle)] bg-bg-0 pt-[var(--nexus-space-1)]"
                 data-snapshot-diff-list={snapshot.id}
               >
@@ -381,6 +383,7 @@ export function HistoryPanel() {
                 type="button"
                 onClick={() => setOpen(open === entry.id ? null : entry.id)}
                 aria-expanded={open === entry.id}
+                aria-controls={open === entry.id ? `history-diff-${entry.id}` : undefined}
                 data-history-toggle={entry.label}
                 className="w-[26px] shrink-0 border-l border-[var(--nexus-color-border-subtle)] text-12 text-fg-3 hover:bg-bg-2"
                 title="查看变更明细"
@@ -390,6 +393,7 @@ export function HistoryPanel() {
             </div>
             {open === entry.id ? (
               <ul
+                id={`history-diff-${entry.id}`}
                 className={cn(
                   'space-y-[2px] border-t border-[var(--nexus-color-border-subtle)] bg-bg-0 pb-[var(--nexus-space-2)] pt-[var(--nexus-space-1)]',
                   entry.diff.length ? 'max-h-[240px] overflow-auto' : '',
