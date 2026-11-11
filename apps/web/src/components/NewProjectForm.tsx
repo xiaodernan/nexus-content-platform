@@ -72,12 +72,26 @@ export function NewProjectForm() {
       <button
         type="submit"
         disabled={busy || !name.trim()}
-        className="rounded-[var(--nexus-radius-sm)] bg-brand px-[var(--nexus-space-4)] py-2 text-14 font-medium text-accent-fg disabled:opacity-40"
+        className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[var(--nexus-color-brand)] px-5 py-2 text-14 font-semibold text-[var(--nexus-color-accent-fg)] transition-all duration-150 hover:shadow-[0_0_30px_rgb(91_108_255/0.45)] disabled:opacity-40 disabled:hover:shadow-none"
         data-create-project
       >
-        {busy ? '创建中…' : '新建项目'}
+        {busy ? (
+          <>
+            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[var(--nexus-color-accent-fg)] border-t-transparent" aria-hidden="true" />
+            创建中…
+          </>
+        ) : (
+          <>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+            新建项目
+          </>
+        )}
       </button>
-      {error ? <p className="w-full text-12 text-danger-ink">{error}</p> : null}
+      {error ? (
+        <p className="w-full rounded-lg border border-[var(--nexus-color-danger)]/30 bg-danger/10 px-3 py-2 text-12 text-danger-ink" data-create-project-error>
+          {error}
+        </p>
+      ) : null}
     </form>
   );
 }
