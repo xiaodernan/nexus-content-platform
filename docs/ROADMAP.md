@@ -11992,3 +11992,14 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
 - **验证**：5 改动文件 `eslint` **EXIT=0**（顺带清 `gateway-view.test.ts` 的 `JoinInput` 基线未用 import 1 条）；`tsc --noEmit -p apps/web/tsconfig.json` **EXIT=0**。
 - **诚实边界（不宣称已实测）**：判据验的是"喂给 ioredis 的 retryStrategy 契约 + fail-open 契约"，**不等于**真 Redis 断后自愈已在真线路验证——那需真 Redis + 网络抖动的干净窗口，本机多 agent 抢库做不到，列仍欠。真库集成套件同样无干净窗口、未硬跑、记推算不编绿灯。未 push。
 - **仍欠**：真线路断线自愈实测；`describe().shared` 可加派生 `connected`/`degraded` 做更细实况（需同步 route/面板形状门，另立片）；MQ 候选①（ai-service `MemoryJobStore` 零判据）、③（发送端帧上限护栏）留后续。详见 ADR-0127（承接 ADR-0125）。
+
+## §SC 第五十三片（§SC-53）：Java 域服务开口喊话——notification 帧写上 nexus:realtime:v1，跨进程那条腿从哑到通（2026-11-11 / ADR-0128）
+
+- **为什么**：user 本轮点名**消息队列的合理运用 + 前后端协同**。web/Studio 早有一条跨进程线路 `nexus:realtime:v1`（`redisBus.ts`，`RealtimeWireFrameSchema` safeParse 把关，`npm run realtime:two-process` 双进程实证过）；**Java 侧一直是哑的**——Spring Cloud 栈对 Studio 没有人说话。本片把 Java 生产者补上，并让 web 生产代码的 safeParse 门亲手电一遍 Java 的帧。
+- **做法（2 新 bean + 2 新测试 + 1 脚本 + 1 npm 入口 + 1 fix）**：`WirePublisher`（`@Component`）组与 schema 逐字段对齐的帧（`kind=event` / `origin=java-domain-service` 稳定串、web 用它跳过自身回环 / `channel` min(1) 逻辑路由键 / `event.type=notification`、`level=info`、`title` 必填、`projectId`/`body` 可选）；**空 channel/title 在出线路前就拒**（web 侧 min(1)/必填，发一帧注定被丢的消息只会制造排障假象）；线路挂了/拒收只记日志、返回 `null`，**绝不抛给业务**；`RealtimeController` `POST /api/v1/realtime/probe`——`X-Nexus-Subject` 必填 UUID，缺/非法实测 **HTTP 400**，线路拒收回 **503 + published:false**，不把失败包装成成功。
+- **判分面（一条都不虚报）**：`WirePublisherFrameShapeTest` **6/6**（字段级对齐 + 转义 + 拒绝路径 + Redis 不可达→null）；`WirePublisherRoundTripTest` **1/1**（`127.0.0.1:56379` 真 Redis 回环，订阅先握手 500ms，5s 窗口收到同字节；`localhost` 在 Windows 走 `::1` 会假失败）；`npm run realtime:java-to-web`（`scripts/realtime-java-to-web.mts`）：domain-service 在 8082 + web `RedisRealtimeBus` 作监听子进程，**PROBE_PUBLISHED / WEB_BUS_DELIVERED / NO_WIRE_ERRORS 三条全 PASS**——web 生产 bus 的 safeParse 门亲手电过一遍 Java 的帧（非法帧会被丢且 `wireErrorCount > 0`，被两条判据同时摁死）；`java-domain-service` 全套 **112/112**（既有 105 + 本片 7）全绿重跑。
+- **顺手修的真 trap**（`fe566b31`）：domain-service 默认 `NEXUS_DOMAIN_DB_URL=jdbc:postgresql://127.0.0.1:5432/nexus`——本机 5432 是 **careeros-postgres**，fresh `java -jar` 实测在 `JdbcEnvironmentInitiator` 断掉、Tomcat 不起来；按 `docs/ENVIRONMENT.md` 对齐 55433、`DB_PASSWORD` 默认同步为本地 dev 口令 `nexus_dev_only`。
+- **验证命令**：`mvn -o -B test`（112/112）· 起 domain-service（`REDIS_PORT=56379` + 55433 env）后 `npm run realtime:java-to-web`。
+- **诚实边界（不宣称）**：这是**探针链路**，不是业务事件源——`like/follow/publication` 领域事件**尚未**接线；pub/sub 无送达保证，业务正确性不许依赖它；Studio 收到的是 info 级 notification，醒目与否是前端自己的事；跨实例只到 Redis 为止，web 侧 origin 回环去重照旧。
+- **工程教训（已入 git）**：PowerShell 5 `Set-Content -Encoding UTF8` 会写 BOM，本机 javac 工具链下直接拒编译（误报"注释未闭合"）——源码一律字节级安全写入。
+- **仍欠**：真实领域事件（至少 like/publish 之一）接到线路并被 Studio 消费；发送端帧大小护栏（MQ 候选③，合并评估）；`projects:probe` 与前端路由约定文档化；多实例 origin 细粒度（当前稳定串够用）；Java→线路 smoke 接入 verify:topology（本机手工跑 `realtime:java-to-web`）。未 push。详见 ADR-0128。
