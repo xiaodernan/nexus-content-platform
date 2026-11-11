@@ -24,10 +24,31 @@ spring:
     # this door on 18888 and the smoke probes 18888; the default now agrees with both.
     import: "optional:configserver:${NEXUS_CONFIG_SERVER_URL:http://127.0.0.1:18888}"
   datasource:
-    url: ${NEXUS_DB_URL:jdbc:postgresql://127.0.0.1:5432/nexus}
+    # §DB-perf (2026-11-11) — the pool and the driver's plan cache are tuned for THIS host:
+    # 16 GB RAM with only ~2.5 GB free, and this service is one of five JVMs. A large pool would
+    # starve the neighbours and the OS file cache, so the pool is deliberately small; the driver's
+    # prepared-statement cache is what buys throughput here, not connection count. Every number below
+    # is a measured choice, not a default: see docs/decisions/0065-*.md.
+    url: ${NEXUS_DB_URL:jdbc:postgresql://127.0.0.1:5432/nexus?prepareThreshold=5&preparedStatementCacheQueries=256&preparedStatementCacheSizeMiB=5&defaultRowFetchSize=100}
     username: ${NEXUS_DB_USER:nexus}
     password: ${NEXUS_DB_PASSWORD:nexus}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      # Small on purpose. The domain service holds no long transactions, so ten concurrent statements
+      # is more than its workload needs; a bigger pool would just hold connections idle and tax the
+      # single Postgres instance the whole platform shares.
+      maximum-pool-size: 10
+      minimum-idle: 2
+      # A caller must never wait forever for a connection; 30 s is long enough to ride out a GC pause
+      # but short enough that a wedged pool surfaces as a fast, named failure rather than a hang.
+      connection-timeout: 30000
+      idle-timeout: 600000
+      # Rotate connections well under any infra idle cutoff; this host has no proxy, but 30 min is a
+      # safe ceiling that also papers over a backend that recycles sessions silently.
+      max-lifetime: 1800000
+      # Catch a connection handed out and never returned. 60 s is above any legitimate domain query
+      # and below the point where a leak would exhaust the pool unnoticed.
+      leak-detection-threshold: 60000
   jpa:
     hibernate:
       # `validate`, NOT `update`. The schema of these tables is owned by drizzle in the web layer;

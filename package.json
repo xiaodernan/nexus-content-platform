@@ -41,6 +41,7 @@
     "verify:png": "node docs/evidence/studio/png-baseline-proof.mjs",
     "verify:spring-cloud": "node docs/evidence/java/spring-cloud-proof.mjs",
     "verify:gateway-tests": "node docs/evidence/java/gateway-suite-proof.mjs",
+    "verify:db-index": "node docs/evidence/java/db-index-proof.mjs",
     "verify:service": "node docs/evidence/m7/service-suite-proof.mjs",
     "verify:credits": "node docs/evidence/studio/credits-proof.mjs",
     "verify:mutation": "node docs/evidence/studio/mutation-probe.mjs",
