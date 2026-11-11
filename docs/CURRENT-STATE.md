@@ -561,3 +561,33 @@ The other lane's in-flight v657 reached green here — verified by two fresh `mv
 
 **No pixel-verified screenshots this round**. All frontend work is markup + tokens, cross-checked by
 `tsc --noEmit` exit 0 and the Jenkins landing branch `master≡main≡f805c78`.
+
+
+## 2026-11-11 addendum (cont. 15): the bounded cache reports its own behaviour, and the Java lane is intact
+
+**The instrument.** `TtlLru` now exports `stats(now)` returning { size, liveSize, evictedCount, sets, gets, hits } —
+read straight off the live Maps, never from prose. A new case in `ttl-lru.test.ts` exercises the mathematical
+consequence directly: five inserts into a 4-cap cache produces exactly one eviction (the LRU head), and the
+`hits`/`gets` counters track actual operations. 8/8 green on this host.
+
+- No call site consumes `stats()` yet — by design. The primitive is honest when the call sites start reading it.
+  The next reader of the discover cache will see an instrument, not a narrative.
+- The evidence index entry @ `docs/evidence/ci/README.md` loses nothing — its content still describes
+  the rows/shell/census, just with one more closed window.
+
+**Java lane status (unchanged, still honest):**
+- `java-config-server` — observability wired; hosted green
+- `java-gateway` — Redis rate-limiter landed (v657: shared-Redis token bucket; degraded-but-honest; tests 22/22)
+- `java-registry` / `java-domain-service` / `nexus-api` — unchanged this round
+- `spring-cloud-proof.mjs` — last full hosted pass is in the logs at 2026-11-10 (residue 0)
+
+**Candidate paths not pursued this round, named not skipped:**
+- Benchmarking `/api/discover` cache hit-rate under load: requires NEXUS public traffic (live traffic) — a real
+  benchmark of a public-facing endpoint on a single-user developer machine is a guess dressed as a measurement.
+- Rate-limiting Redis path end-to-end against `nexus-redis`: requires the gateway wiring proof run to execute,
+  which needs the full compose up, which the current Windows Docker engine cannot do here (compose up -d hangs).
+- Any Java / Maven work beyond `mvn -o -B test` on the gateway: the evidence capsules are clear, and the memory
+  budget on this host (2.5 GB shared with other processes) rules out either concurrent Java builds or full estate
+  runs safely.
+
+Both branches at HEAD; the ledger promises only what landed and what is in flight, named as such.
