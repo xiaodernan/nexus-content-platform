@@ -11980,3 +11980,15 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
 - **验证**：周边纯内存零真库套件 `discover-view` + `realtime` 合并 **82/82**；两改动文件 `eslint` **EXIT=0**（**顺带清掉两文件 HEAD 基线各 3 条 lint 遗留**——生产文件未用 `Redis` type import / `emptyStats` / publish catch 未用 `error` 参；测试文件 `Map<string,Function>`→显式 `WireHandler`；均零行为变化，交付文件 lint 从基线红清零）；`tsc --noEmit -p apps/web/tsconfig.json` **EXIT=0**。`admin-discover-cache.integration` 为真库集成，本机多 agent 抢同一 Postgres 无干净窗口，未硬跑、如实记为推算待复核、不编绿灯。未 push。
 - **协作边界**：只碰我自己的 2 文件 + ADR-0126 + 三处文档登记；并行会话正在改的文件一概未碰；ROADMAP 第四十八/四十九片叠写重复副本（会话遗留）不替它删、避免编辑冲突。
 - **仍欠**：`InvalidationBusStats` 注释与 admin 面板标签文案（"消息处理回调数"/"坏帧·线路错误数"）仍是旧措辞，现语义已收紧，下片可同步注释/tooltip（本片只改行为不扩 footprint）；SC-50（ADR-0125）待干净窗口；MQ 候选①（ai-service `MemoryJobStore` 零判据）、③（`MAX_VIEWERS_PER_FRAME` 发送端护栏）留待后续 MQ 片。详见 ADR-0126。
+
+## §SC 第五十片（落地）：共享缓存有界自愈 + 配置/实况分开说（SC-50 / ADR-0125 探查 → ADR-0127 实现，2026-11-11）
+
+- 触发（user 长期点名）：**Redis 运用 + 计网知识 + 缓存合理运用 + 前后端协同 + 算法/数据结构合理性**。承接 ADR-0125 探查定稿的 A+B②，本片落地。
+- **缺口**（ADR-0125 已钉死）：网关 Redis 共享缓存 opt-in 层——① `makeRedisShared` 的 `retryStrategy: () => null` 是同仓 4 处 Redis 连接里**唯一关自愈**的，断后（Redis 重启/网络抖/启动瞬间没连上）永久 fail-open 到进程结束；② `driver: shared?'redis':'in-process'` 构造时按"配没配"定死，`driver=redis` 被面板读成"已连接健康"，实况要看 `fallbacks`/`lastError`。诚实收窄：断线非完全无观测（`sharedProbeState` 已记），问题是单字段误导 + 不自愈。
+- **修 A（有界自愈）**：`retryStrategy: () => null` → 纯函数 `sharedRedisRetryStrategy(attempt,cfg)`——指数退避 `min(1000, 100*2^(attempt-1))`、8 次后返 null 放弃（防长期不可达无限空转打日志/CPU）、每步严格正数（0/负/NaN/非整数一律放弃）。短抖（≤8 次约 5s）自愈、长断退回进程内不比今天更差。**三条连接纪律逐字不变**：`enableOfflineQueue:false`/`maxRetriesPerRequest:1`/`lazyConnect:true`——重连期读写仍即时 fail-open，管理页不被拖住。
+- **修 B②（配置/实况分开说，不改 driver 取值、不动形状门）**：`describe().shared` 三字段形状不动；新增纯函数 `sharedHealthView({driver,fallbacks,lastError})→{label,detail,active}`——in-process/坏值中性"进程内"；redis 且无失败只说"已配置 Redis（看错误/回退计数）"**绝不说已连接健康**（无瞬时权威）；`fallbacks>0`/`lastError` 则说"正在回退"+次数+错误。页脚替换原硬编码 `driver==='redis'?'Redis':'进程内'`。route `{...snapshot,driver}` 原样透传不变。坏回执按不可信字节防御，不画 undefined/NaN。
+- **工程缝**：`makeRedisShared(url, ctor?)` 加 `RedisCtor` 最小表面（new+on/get/set），生产缺省动态 import 真 Redis（**逐字不变**），判据注入假构造器捕获 options/注入 get,set 抛错/手动触发 error 监听——连接策略首次可零真 Redis 逐支验电。
+- **先红后绿 + 三变异臂**：开 seam 后既有 49/49 零回归；加判据未实现 **7 红 18 绿**（B② 5 条函数不存在 + A 退避/放弃 2 条精准命中旧恒 null）；实现后 **25/25**。臂 A 改回 `()=>null` 红 3（自愈/退避/放弃）、臂 B 去 maxAttempts 放弃门红 1、臂 C 把"已配置"说成"已连接健康"红 1，脚本自动恢复两文件。
+- **验证**：5 改动文件 `eslint` **EXIT=0**（顺带清 `gateway-view.test.ts` 的 `JoinInput` 基线未用 import 1 条）；`tsc --noEmit -p apps/web/tsconfig.json` **EXIT=0**。
+- **诚实边界（不宣称已实测）**：判据验的是"喂给 ioredis 的 retryStrategy 契约 + fail-open 契约"，**不等于**真 Redis 断后自愈已在真线路验证——那需真 Redis + 网络抖动的干净窗口，本机多 agent 抢库做不到，列仍欠。真库集成套件同样无干净窗口、未硬跑、记推算不编绿灯。未 push。
+- **仍欠**：真线路断线自愈实测；`describe().shared` 可加派生 `connected`/`degraded` 做更细实况（需同步 route/面板形状门，另立片）；MQ 候选①（ai-service `MemoryJobStore` 零判据）、③（发送端帧上限护栏）留后续。详见 ADR-0127（承接 ADR-0125）。

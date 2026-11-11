@@ -20,6 +20,53 @@ export interface HealthBadge {
   readonly text: string;
 }
 
+/**
+ * 共享缓存的诚实读数（§SC-50 / ADR-0125）：`driver='redis'` 只表示**配了** `NEXUS_REDIS_URL`，
+ * 不代表**此刻连着**。连接实况要看 `fallbacks`（>0 = 发生过 fail-open 回退）与 `lastError`。
+ * 把这两件事分开说，才不会让"配了却断了"在面板上看着像"跨实例共享健康"。
+ *
+ * 纯函数、坏回执不崩（线路/API 的字节不可信）：driver 非两种已知值按中性处理，
+ * fallbacks 非数当 0、lastError 非串当 null，返回值绝不出现 `undefined` / `NaN`。
+ */
+export interface SharedHealthView {
+  /** 页脚那句主文案。 */
+  readonly label: string;
+  /** 回退次数 + 最近错误，没发生回退时为空串。 */
+  readonly detail: string;
+  /** 是否确实在 fail-open 回退（给圆点/强调用；没接上过不亮"生效"灯）。 */
+  readonly active: boolean;
+}
+
+export function sharedHealthView(input: {
+  driver: unknown;
+  fallbacks: unknown;
+  lastError: unknown;
+}): SharedHealthView {
+  const fallbacks = typeof input.fallbacks === 'number' && Number.isFinite(input.fallbacks) && input.fallbacks > 0 ? input.fallbacks : 0;
+  const lastError = typeof input.lastError === 'string' && input.lastError.length > 0 ? input.lastError : null;
+  const configured = input.driver === 'redis';
+
+  if (!configured) {
+    // in-process 与任何未知/坏值都按中性说法：单实例进程内，不提 Redis、不亮生效灯。
+    return { label: '共享缓存：进程内（单实例）', detail: '', active: false };
+  }
+
+  if (fallbacks > 0 || lastError !== null) {
+    const parts: string[] = [];
+    if (fallbacks > 0) parts.push(`已回退 ${fallbacks} 次到进程内`);
+    if (lastError !== null) parts.push(`最近错误：${lastError}`);
+    return { label: '共享缓存：Redis 已配置，正在回退', detail: parts.join(' · '), active: true };
+  }
+
+  // 配了、但还没观察到失败：只能说"已配置"，不能说"已连接健康"——此刻可能正断着、
+  // 也可能 lazyConnect 还没发过第一条命令，面板没有瞬时权威去断言连着。
+  return {
+    label: '共享缓存：已配置 Redis（连接实况看错误/回退计数）',
+    detail: '',
+    active: false,
+  };
+}
+
 export function numberOrDash(value: number | null): string {
   return value === null ? '—（未测）' : String(value);
 }

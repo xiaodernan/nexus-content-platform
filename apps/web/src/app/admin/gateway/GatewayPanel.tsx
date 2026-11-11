@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { GatewaySnapshot } from '@/server/gateway/snapshot';
 import type { ReadoutState } from '@/server/gateway/types';
-import { CLASS_LABEL, healthView, numberOrDash, pollAllowed, STATE_LABEL } from './gateway-view';
+import { CLASS_LABEL, healthView, numberOrDash, pollAllowed, sharedHealthView, STATE_LABEL } from './gateway-view';
 
 /**
  * §SC-40 面板：把 join 后的态势图渲染出来，并每 4 秒问一次 `/api/admin/gateway`。
@@ -193,8 +193,17 @@ export function GatewayPanel({
 
       <footer className="text-11 text-fg-3" data-gateway-footer>
         更新于 {updatedAt ?? '—'} · 每 {POLL_MS / 1000} 秒问一次 · 后台标签暂停 · 问的是 {driver.baseUrl} ·
-        共享缓存 {driver.shared.driver === 'redis' ? 'Redis' : '进程内'}
-        {driver.shared.lastError ? `（线路最近报错：${driver.shared.lastError}）` : ''} ·
+        {(() => {
+          // §SC-50 / ADR-0125：driver=redis 只表示「已配置」，不等于「此刻连着」。
+          // 把配置意图与 fail-open 实况分开说，坏回执也由纯函数兜成中性说法。
+          const shared = sharedHealthView(driver.shared);
+          return (
+            <>
+              {shared.label}
+              {shared.detail ? `（${shared.detail}）` : ''} ·
+            </>
+          );
+        })()}
         三列 measuredAt 不同，这是三张带各自日期的事实拼成的图，不是同一瞬间的原子快照
       </footer>
     </div>

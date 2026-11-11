@@ -19,6 +19,30 @@ import { joinSnapshot, type GatewaySnapshot } from './snapshot';
 export const GATEWAY_URL_ENV = 'NEXUS_GATEWAY_URL';
 export const SHARED_CACHE_URL_ENV = 'NEXUS_REDIS_URL';
 
+/**
+ * 共享缓存的**有界重连退避**（§SC-50 / ADR-0125）。替代旧的 `retryStrategy: () => null`
+ * （那让这条连接一旦断开——Redis 重启 / 网络抖 / 启动瞬间没连上——就**永久 fail-open 到进程结束**，
+ * 是同仓 4 处 Redis 连接里唯一关掉自愈的）。
+ *
+ * 三条边界各有理由，且全部可纯函数验电（零真 Redis / 零 sleep）：
+ * - **指数退避、封顶 capMs**：短暂抖动能自愈，又不让重连间隔无限增长；
+ * - **maxAttempts 次后返回 `null` 放弃**：ADR-0125 明列的风险——Redis 长期不可达时不能无限空转
+ *   打日志/CPU；放弃后保持既有 fail-open（退回进程内缓存），不比今天更差；
+ * - **每步严格正数**：ioredis 把返回值当毫秒，0/负数/NaN 都是错误配置。
+ *
+ * 注意这是**契约**，不是"已验证真线路断后自愈"：真自愈需真 Redis + 网络抖动的窗口实测（见 ADR-0125）。
+ */
+export const SHARED_RETRY = { baseMs: 100, capMs: 1000, maxAttempts: 8 } as const;
+export function sharedRedisRetryStrategy(
+  attempt: number,
+  cfg: { baseMs: number; capMs: number; maxAttempts: number } = SHARED_RETRY,
+): number | null {
+  // 线路字节/attempt 不可信：非正数或非有限值一律放弃，绝不把坏输入变成 0ms 重连风暴。
+  if (!Number.isFinite(attempt) || !Number.isInteger(attempt) || attempt < 1 || attempt > cfg.maxAttempts) return null;
+  const exponential = cfg.baseMs * 2 ** (attempt - 1);
+  return Math.min(cfg.capMs, exponential);
+}
+
 interface GlobalStore {
   [key: string]: unknown;
 }
@@ -26,18 +50,39 @@ interface GlobalStore {
 const STORE_KEY = '__nexus_gateway_client_v1__';
 const store = globalThis as GlobalStore;
 
+/**
+ * ioredis 构造缝的最小表面（§SC-50 / ADR-0125）：判据注入假构造器，逐支验喂给它的
+ * 连接策略（尤其 `retryStrategy`），**不连真 Redis、不连真库、不 sleep**。
+ * 生产缺省走动态 `import('ioredis')` 的真 `Redis`；形状只需 get/set/on，与 ioredis 版本解耦。
+ */
+export interface RedisCtor {
+  new (
+    url: string,
+    options: Record<string, unknown>,
+  ): {
+    on(event: string, listener: (...args: any[]) => void): unknown;
+    get(key: string): Promise<string | null>;
+    set(key: string, value: string, mode: string, ms: number): Promise<unknown>;
+  };
+}
+
 /** 极薄的 Redis 共享缓存实现：只用到 get/set with TTL，失败交给 client 的 fail-open 兜。 */
-async function makeRedisShared(url: string): Promise<{
+export async function makeRedisShared(
+  url: string,
+  ctor?: RedisCtor,
+): Promise<{
   get(key: string): Promise<{ value: string; storedAtMs: number; storedAt: string } | null>;
   set(key: string, value: string, ttlMs: number): Promise<void>;
 } | null> {
   try {
-    const { Redis } = await import('ioredis');
+    const Redis = ctor ?? ((await import('ioredis')).Redis as unknown as RedisCtor);
     const client = new Redis(url, {
       lazyConnect: true,
       maxRetriesPerRequest: 1,
       enableOfflineQueue: false, // 线路不在时立即失败 → client fail-open，不排队拖住管理页
-      retryStrategy: () => null, // 不在这里无限重连；连接层的自愈不是这一片的职责
+      // §SC-50：有界自愈（短暂抖动自动重连、长期不可达放弃不再空转），替代旧的恒 null 永不自愈。
+      // 重连期读写仍即时 fail-open（离线队列关着），管理页不被拖住——原设计不变。
+      retryStrategy: sharedRedisRetryStrategy,
     });
     client.on('error', () => {
       /* 只记不抛：client 的 readShared/writeShared 已各自记 lastError，这里不重复记账 */

@@ -6,10 +6,11 @@ import {
   keepPreviousOnError,
   numberOrDash,
   pollAllowed,
+  sharedHealthView,
   shouldShowNonAtomicNote,
   STATE_LABEL,
 } from '../src/app/admin/gateway/gateway-view';
-import { joinSnapshot, type JoinInput } from '../src/server/gateway/snapshot';
+import { joinSnapshot } from '../src/server/gateway/snapshot';
 import type { Readout } from '../src/server/gateway/types';
 
 /**
@@ -83,6 +84,43 @@ describe('轮询与降级的诚实', () => {
     expect(isDatedSnapshot('stale')).toBe(true);
     expect(isDatedSnapshot('fresh')).toBe(false);
     expect(isDatedSnapshot('unavailable')).toBe(false);
+  });
+});
+
+describe('共享缓存诚实读数（§SC-50 / ADR-0125：配了 ≠ 连着）', () => {
+  it('driver=redis 只说「已配置」，绝不声称「此刻连接健康」', () => {
+    const v = sharedHealthView({ driver: 'redis', fallbacks: 0, lastError: null });
+    expect(v.label).toContain('已配置');
+    expect(v.label).not.toMatch(/健康|已连接|正常/);
+    expect(v.active).toBe(false); // 没接上过，不亮"生效"灯
+  });
+
+  it('driver=in-process 明说单实例进程内，不提 Redis', () => {
+    const v = sharedHealthView({ driver: 'in-process', fallbacks: 0, lastError: null });
+    expect(v.label).toContain('进程内');
+    expect(v.label).not.toContain('Redis');
+    expect(v.active).toBe(false);
+  });
+
+  it('fallbacks>0 时摆出实况：回退次数 + 最近错误，且 label 明说正在回退', () => {
+    const v = sharedHealthView({ driver: 'redis', fallbacks: 3, lastError: 'ECONNREFUSED' });
+    expect(v.label).toContain('回退');
+    expect(v.detail).toContain('3');
+    expect(v.detail).toContain('ECONNREFUSED');
+    expect(v.active).toBe(true); // 确实在 fail-open，这一个可见
+  });
+
+  it('配了 redis 但只有 lastError 没有回退计数（例：订阅/握手失败）：也如实点出错误', () => {
+    const v = sharedHealthView({ driver: 'redis', fallbacks: 0, lastError: 'handshake timeout' });
+    expect(v.detail).toContain('handshake timeout');
+    expect(v.label).not.toMatch(/健康|已连接/);
+  });
+
+  it('坏回执（driver 不是两种已知值 / fallbacks 非数 / lastError 非串）不崩、不画 undefined', () => {
+    const bad = sharedHealthView({ driver: 'mystery' as never, fallbacks: 'x' as never, lastError: 42 as never });
+    expect(JSON.stringify(bad)).not.toContain('undefined');
+    expect(JSON.stringify(bad)).not.toContain('NaN');
+    expect(typeof bad.label).toBe('string');
   });
 });
 
