@@ -1363,3 +1363,65 @@ Studio CI for refs at this ref: as carried backlogged on the hosted process runn
   (`docs/evidence/**/*.mjs`), while `scripts/**/*.mts` is in `tsconfig.tools.json`. No parallel-lane file
   was staged; `git add` was exact, never `git add -A`. base for this cont.31 = current HEAD; re-fetch +
   ff check before commit; no force.
+
+## 2026-11-12 addendum (cont. 32): one Map instead of two — and the 7× speedup that was ONLY host noise — v672, ADR 0105
+
+- **The gap this repays.** cont.31 / ADR 0104 MEASURED a "double-Map tax" and honestly left it unfixed:
+  `TtlLru` split `{value, expiresAt}` across `store: Map<K,V>` and `expiry: Map<K,number>` ⇒ **6 hash
+  ops per hit**, every key hashed/stored twice, LRU order maintained in two tables, and an `expiresAt!`
+  non-null assertion leaning on an invariant ("the two maps always share keys") that NO structure
+  expressed — one missed delete on any path would read an undefined expiry as "never expires" and the
+  cache would silently stop expiring. v671's gate deliberately pinned the SHAPE, not the literal "6",
+  explicitly so this optimization would stay green. v672 cashes that exemption.
+- **Decision — one `Map<K, TtlEntry<V>>`.** Value + expiry bound in ONE entry: hit **3** hash ops (was
+  6), set **2** (was 3), one hash/store per key, LRU order same-sourced, invariant gone BY CONSTRUCTION.
+  EVERY semantic preserved: hit refresh via delete+set; an expired read deletes itself WITHOUT
+  refreshing LRU order; writes do not eagerly sweep; one head eviction at cap; ttl=0⇒Infinity;
+  stats / liveSize / clear unchanged. `set` of an EXISTING key still deletes first, because `Map.set`
+  on a live key does not move insertion order — this keeps the old "overwrite = most recently touched"
+  LRU semantic, now a documented choice rather than an accident. Public API (including the already-
+  exported `TtlEntry`) unchanged; sole production caller `discoverRedis.ts` uses only
+  new/set/get/clear/liveSize ⇒ zero regression.
+- **Gates that pin the structure.** `ds-complexity-contract.test.ts` +2 ⇒ **6/6**: a single-Map SHAPE gate
+  hit==3 / set==2 at UNBOUNDED maxEntries (isolating the eviction's extra delete — first attempt at a
+  full table measured 3 for set and FAILED until maxEntries was raised, an honest gate-vs-fixture fix),
+  plus a source STATIC gate (exactly one `new Map<`, `Map<K, TtlEntry<V>>`, no independent `expiry`
+  table). Mutation arm M4 (inlined double-Map, hit=6) RED against the want-3 gate ⇒ arms **3/3 RED as
+  expected** (M1/M3/M4).
+- **⚠️ The headline result is a RETRACTED one — a method discipline, not a 7× bugfix.** Cross-process
+  before/after with v671's harness (JSON archived in `docs/evidence/ds/before-single-map-v672.json` /
+  `after-single-map-v672.json`) showed hit cap=8 **+695% (≈8×)**. It was NOT put into the gain column:
+  ① hash ops only HALVED with fixed cost unchanged — physically cannot yield 8×; ② pre p99 **49us** vs
+  post **1.4us** (35×) is host contention / GC, not storage shape; ③ the SAME post code reruns at
+  **1.69M / 2.57M / 2.88M ops/s (±40%)** — this shared host's wall-clock is not comparable between
+  two runs (v671's own first round was 483k for the same line). VERDICT from `docs/evidence/ds/single-
+  map-ab.mjs`: both implementations inlined side-by-side in ONE process, **9 alternating rounds** (order
+  reversed each round to cancel one-way JIT warmup), p50 MEDIAN (not noise-polluted ops/s): hit cap=8
+  **1.39×**, cap=8192 **1.46×**, set cap=8 **1.31×**; set cap=8192 1.07× is GC long-tail, not a claim.
+  Credible conclusion: hit ≈1.4×, small-table set ≈1.3× — exactly "halved hash ops, unchanged fixed
+  cost". **The real product**: on this host a cross-process before/after wall-clock can be drowned in
+  noise (even fabricate 7×); ONLY same-process alternating A/B + p50 median can adjudicate a constant-
+  factor storage change. `ds-benchmark.mts` keeps its role — archive single readings + read ADJACENT-
+  SCALE ratios (catch O(n) collapse), never adjudicate 1.x× optimizations.
+- **Zero regression / gates.** `ttl-lru.test.ts` semantics **8/8**; full 7-file suite **71/71**
+  (contract 6 + semantics 8 + discover three suites 30 + rateLimit / readout). stderr cap-warn and bad-
+  frame logs are intentionally triggered by existing gates. Narrow tsc (ttlLru + discoverRedis + both
+  gates + import graph) **exit 0**; eslint changed files + evidence scripts each heap-fed **exit 0**
+  (full-project tsc/eslint still SIGTERM on ~0.3GB-free host — resource, not red).
+- **Ledger written (nothing to redo).** `docs/adr/0105-ttlru-single-map-and-the-host-noise-that-faked-a-
+  7x-speedup.md` accepted; `docs/PERFORMANCE.md` v672 section records BOTH the retracted +695% and the
+  A/B verdict; ROADMAP v672; this cont.32; ADR 0104's hardware-fit leave-weight + still-owed ④ marked
+  REPAID; memory. New evidence files: `single-map-ab.mjs` (plain node, non-type lint rule set), the two
+  before/after JSONs, and M4 added to `complexity-arms.mjs`.
+- **Honest gaps (ADR 0105).** ① A/B is single-host 9 rounds, no fixed CI runner / multi-session mean —
+  1.4× is this win32/node22 reading, not a cross-machine SLA. ② the A/B probe's double-Map `set` did not
+  literally reproduce the old same-key LRU-refresh delete (both `set` paths are symmetric; the HIT path
+  IS verbatim, so hit 1.4× is most credible, set 1.3× directional only). ③ negative-TTL boundary not
+  newly gated (ttl=0 already covered by semantics; negative TTL ⇒ past instant ⇒ immediate expiry,
+  unchanged behavior). ④ `TtlEntry<V>` is now both an exported type and the internal storage shape —
+  adding a field later should get a separate internal type, not grow the public contract.
+- **Shared-tree note.** v672 advanced in the SAME worktree as parallel lanes. Resume-time recon
+  (`git status --short -uall` + per-ref `git rev-parse`) found exactly my 8 files, HEAD=master=
+  origin/master=origin/main=b9d6578, no local `main` branch (normal). ADR number re-checked before
+  commit (`ls docs/adr/ | grep 01xx`) to avoid the v671-style collision — 0105 was free. Only my files
+  were touched; `git add` exact, never `git add -A`; re-fetch + ff check before push; no force.

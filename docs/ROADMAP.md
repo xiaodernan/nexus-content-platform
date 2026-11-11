@@ -356,6 +356,48 @@ family README section) and a door that reddens the sentence it repairs:
         gated; two-Map→one-Map gain is structural reasoning + op count (6→3), no before/after wall-clock
         yet (that comes with the slice that actually changes it).]
 
+  v672  TtlLru becomes ONE Map — and a +695% "speedup" that turned out to be host noise (ADR 0105).
+        This REPAYS the hardware-fit leave-weight ADR 0104 measured but deliberately did NOT change:
+        [LANDED 2026-11-12 — § 数据结构 × 操作系统/硬件适配 × 算法. `TtlLru` previously split
+        `{value,expiresAt}` across `store: Map<K,V>` and `expiry: Map<K,number>`: 6 hash ops/hit, keys
+        hashed AND stored twice, LRU order kept in two tables, and the `expiresAt!` assertion leaning
+        on an inexpressible "both maps always share keys" invariant (one missed delete on any path ⇒
+        cached entries silently NEVER expire). Now a single `store: Map<K, TtlEntry<V>>` binds
+        value+expiry in one entry: hit **3** hash ops, set **2**, key hashed/stored once, LRU order
+        same-sourced, invariant removed BY CONSTRUCTION. EVERY semantic preserved: hit refresh via
+        delete+set; an expired read deletes itself WITHOUT refreshing LRU order; no eager sweep on
+        write; one head eviction at cap; ttl=0⇒Infinity; stats / liveSize / clear unchanged. `set` of
+        an EXISTING key still deletes first — `Map.set` on a live key does NOT move insertion order,
+        so this keeps the old "overwrite = most recently touched" LRU semantic (a stated choice, not
+        inertia). Public API incl. the exported `TtlEntry` unchanged; sole production caller
+        `discoverRedis.ts` uses only new/set/get/clear/liveSize ⇒ zero regression.
+        NEW GATES: single-Map shape gate (unbounded maxEntries isolates the eviction's extra delete)
+        pins hit==3 / set==2; static source gate pins exactly one `new Map<`, `Map<K, TtlEntry<V>>`,
+        no separate `expiry` table; mutation arm M4 (inlined double-Map, hit=6) RED ⇒ 3/3 red as
+        expected (M1/M3/M4). THE DURABLE PRODUCT IS A METHOD DISCIPLINE: cross-process before/after
+        with the v671 harness (JSON archived in `docs/evidence/ds/*-single-map-v672.json`) showed
+        **+695% (≈8×)** — REJECTED, never put in the gain column. Three self-refutations: halving hash
+        ops (fixed cost unchanged) cannot yield 8×; pre p99 49us vs post 1.4us (35×) is host/GC, not
+        storage; the SAME post code reruns at 1.69M / 2.57M / 2.88M ops/s (±40%), so two cross-process
+        runs are not comparable. Verdict comes ONLY from `docs/evidence/ds/single-map-ab.mjs`: old and
+        new implementations inlined side-by-side in ONE process, 9 alternating rounds (order reversed
+        each round to cancel one-way JIT warmup), p50 MEDIAN ⇒ hit cap8 **1.39×**, cap8192 **1.46×**,
+        set cap8 **1.31×**; set cap8192 1.07× (GC long-tail, not a claim) — matches "halved hash ops,
+        unchanged fixed cost". `ds-benchmark.mts` keeps its honest role: archive single readings and
+        read ADJACENT-SCALE ratios (catch O(n) order-of-magnitude collapse), NEVER adjudicate a 1.x×
+        constant-factor win.
+        ZERO REGRESSION: contract **6/6** + semantics `ttl-lru` **8/8** + full 7-file suite **71/71**;
+        narrow tsc (ttlLru + discoverRedis + both gates + import graph) exit 0; eslint changed files +
+        evidence scripts each heap-fed exit 0 (full-project still SIGTERM on ~0.3GB host = resource,
+        not red). HONEST GAPS (ADR 0105): ① A/B single-host 9 rounds, no fixed CI runner / multi-session
+        mean (1.4× is this win32/node22, not a cross-machine SLA); ② A/B probe's double-Map `set` did
+        not literally reproduce the old same-key LRU-refresh delete (the HIT path IS verbatim, so hit
+        1.4× is the credible number, set 1.3× directional only); ③ negative-TTL boundary not newly
+        gated (ttl=0 covered by existing semantics; negative TTL ⇒ past instant ⇒ immediate expiry,
+        unchanged); ④ `TtlEntry<V>` is now both an exported type and the internal storage shape — a
+        future added field should get a separate internal type, not grow the public contract. Ledger:
+        ADR 0105; ADR 0104 leave-weight + still-owed ④ marked REPAID.]
+
 Standing constraints (measured, not assumed): this host keeps ~0.3 GB physical memory
 free and its Docker engine currently refuses to start containers (`docker start` hangs;
 `docker info` still answers) — live m9/spring-cloud legs run on the hosted runner and

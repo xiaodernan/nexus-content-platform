@@ -3,7 +3,8 @@
  * "退化实现"，门不是碰巧绿。三条臂都内联一个故意写坏的同类结构，用与契约门相同的 Map 计数，
  * 断言判据会拒绝它。跑法：`node docs/evidence/ds/complexity-arms.mjs`。
  *
- * 臂 1/3 RED as expected；臂 2 曾设计成"固定上界下每次扫全表"，实测门判绿——**门是对的**：
+ * 臂 M1/M3/M4 RED as expected；M4 是 v672 新增的"改回双 Map ⇒ 单 Map 形状门红"。
+ * 臂 M2 曾设计成"固定上界下每次扫全表"，实测门判绿——**门是对的**：
  * 上界固定时 bucketCount 恒定，"扫固定 8 只"就是 O(1)（只是常数大），逐笔零方差。真能红的退化
  * 是"成本随 max 涨"（臂 3），门4 抓住了。这段诚实记录见 ADR 0103，不伪造有牙的臂自欺。
  */
@@ -79,6 +80,30 @@ class DegenerateLimiter {
   }
 }
 
+/** 退化 TtlLru（v672 前的双 Map 形状）：值与过期时刻分两张表 ⇒ 命中 6 次哈希（而非单 Map 的 3）。 */
+class DoubleMapLru {
+  constructor(cap) {
+    this.cap = cap;
+    this.store = new Map();
+    this.expiry = new Map();
+  }
+  set(k, v) {
+    this.store.set(k, v);
+    this.expiry.set(k, Number.POSITIVE_INFINITY);
+  }
+  get(k) {
+    const exp = this.expiry.get(k);
+    if (exp !== undefined && Date.now() >= exp) return undefined;
+    const v = this.store.get(k);
+    if (v === undefined) return undefined;
+    this.store.delete(k);
+    this.expiry.delete(k);
+    this.store.set(k, v);
+    this.expiry.set(k, exp);
+    return v;
+  }
+}
+
 const arms = [
   {
     name: 'M1 TtlLru 命中混入 O(n) 全表扫描 ⇒ 门1（成本与容量无关）必须红',
@@ -116,6 +141,24 @@ const arms = [
         }
         assert.notEqual(costs[0], costs[1], `M3 应红(两档成本不等),却相等:${costs.join(' vs ')}`);
         process.stdout.write(`  M3 RED as expected (max8=${costs[0]} vs max4096=${costs[1]})\n`);
+      } finally {
+        c.restore();
+      }
+    },
+  },
+  {
+    name: 'M4 TtlLru 改回双 Map ⇒ v672 单 Map 形状门（命中恰 3 次）必须红',
+    run: () => {
+      const c = mapOpCounter();
+      try {
+        const cache = new DoubleMapLru(64);
+        for (let i = 0; i < 64; i += 1) cache.set(i, i);
+        c.reset();
+        for (let i = 0; i < 64; i += 1) cache.get(i % 64);
+        const perHit = c.value() / 64;
+        // v672 门判据:单 Map 命中恰 3 次。双 Map 是 6 ⇒ 红。
+        assert.notEqual(perHit, 3, `M4 应红(双 Map 命中≠3),却等于 3:${perHit}`);
+        process.stdout.write(`  M4 RED as expected (double-Map hit=${perHit} ops, single-Map gate wants 3)\n`);
       } finally {
         c.restore();
       }

@@ -1,9 +1,11 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TtlLru } from '@/server/cache/ttlLru';
 import { MemoryRateLimiter } from '@/server/security/rateLimitMemory';
 
 /**
- * v671 / ADR 0103：两张热路径数据结构的**复杂度契约**——量的是"每操作花几次哈希/迭代"，
+ * v671 / ADR 0104（+ v672 / ADR 0105 的单 Map 形状门）：两张热路径数据结构的**复杂度契约**——量的是"每操作花几次哈希/迭代"，
  * 不是墙钟毫秒。
  *
  * 为什么不用时间断言（docs/PERFORMANCE.md 那一支 `scripts/ds-benchmark.mts` 才报时间）：
@@ -92,6 +94,34 @@ describe('TtlLru 命中的摊还成本与容量无关（O(1) 形状门）', () =
     expect(setAtCap, '顶到上界后每次只踢一条——成本不得随 256 条的表变大').toBeLessThanOrEqual(8);
     expect(Math.abs(setAtCap - setBeforeCap), '踢除必须 O(1)，不是每次扫全表').toBeLessThanOrEqual(3);
     expect(cache.stats().size).toBe(256);
+  });
+
+  it('单 Map 形状门（v672）：命中恰 3 次、写入恰 2 次哈希操作——改回双 Map 会红', () => {
+    // 这一条比上面的"常数上界"更紧，专门固化 v672 的结构决策：TtlLru 把 {value,expiresAt}
+    // 收进一张 Map，命中从 6 次哈希降到 3（get+delete+set）、写入从 3 降到 2（delete+set）。
+    // 若有人无意改回 store/expiry 双表，命中会回到 6、写入回到 3，这里立刻红——顺带守住
+    // 那个由结构消掉的"两表始终同键"不变量（旧版 get 里的 expiresAt! 曾靠它）。
+    const counter = mapOpCounter();
+    // maxEntries 留足余量（1000），让下面的写入**不触发 evictIfNeeded**——否则每次 set 会多一次
+    // 淘汰用的 delete（那属踢除成本，上一条门已单独量过），把这个"纯存储形状"的读数从 2 抬到 3。
+    const cache = new TtlLru<number, number>({ maxEntries: 1000, defaultTtlMs: 0 });
+    for (let i = 0; i < 64; i += 1) cache.set(i, i);
+
+    counter.reset();
+    for (let i = 0; i < 64; i += 1) cache.get(i % 64);
+    expect(counter.value() / 64, '单 Map 命中应恰为 3 次哈希操作（get + delete + set）').toBe(3);
+
+    counter.reset();
+    for (let i = 64; i < 128; i += 1) cache.set(i, i);
+    expect(counter.value() / 64, '单 Map 写入应恰为 2 次哈希操作（delete + set）').toBe(2);
+  });
+
+  it('源码静态门：TtlLru 只有一张表，不再有独立的 expiry Map', () => {
+    const text = readFileSync(join(process.cwd(), 'apps/web/src/server/cache/ttlLru.ts'), 'utf8').replace(/\r\n/g, '\n');
+    const newMaps = text.match(/new Map</g) ?? [];
+    expect(newMaps.length, '两张 Map 会重新引入"两表同键"的隐式不变量与双份键内存').toBe(1);
+    expect(text, '值与过期时刻应绑在同一个 TtlEntry 条目里').toMatch(/Map<K, TtlEntry<V>>/);
+    expect(text, '不该再有独立的 expiry 表').not.toMatch(/expiry\s*=\s*new Map/);
   });
 });
 
