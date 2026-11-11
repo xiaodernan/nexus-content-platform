@@ -19,7 +19,7 @@
  */
 
 import { fullJitter, type BackoffOptions } from './backoff';
-import { BoundedCache, type CachedEntry } from './cache';
+import { BoundedCache } from './cache';
 import {
   normalizeHealth,
   normalizeRoutes,
@@ -51,6 +51,14 @@ interface Payload<T> {
   readonly value: T;
   readonly measuredAt: string;
 }
+
+/**
+ * §SHARED-1（ADR-0156）：缓存条目的**来源**，随值一起穿过 singleflight。
+ * 为什么塞进值里而不是用闭包变量/边带 Map：同键并发时 follower 不执行 loader、只 await leader 的
+ * 同一个 promise；把 source 放进 value，leader/follower 拿到的是同一份、同一个来源标记，零边带状态、
+ * clear 时无需额外清理。'shared' = 命中另一实例早先写入的共享缓存（没问上游），'upstream' = 这次真问了。
+ */
+type Loaded<T> = Payload<T> & { readonly source: 'shared' | 'upstream' };
 
 type Normalizer<T> = (raw: unknown) => T | null;
 
@@ -118,7 +126,7 @@ export function createGatewayClient(options: GatewayClientOptions): GatewayClien
       status: number;
       json(): Promise<unknown>;
     }>);
-  const cache = new BoundedCache<Payload<unknown>>({
+  const cache = new BoundedCache<Loaded<unknown>>({
     maxEntries: options.maxCacheEntries ?? DEFAULTS.maxCacheEntries,
     ttlMs: cacheTtlMs,
     now,
@@ -215,21 +223,41 @@ export function createGatewayClient(options: GatewayClientOptions): GatewayClien
     }
 
     try {
-      // singleflight：同键并发只让第一发真正加载，后来者等同一个 promise
-      const entry = await cache.getOrLoad(key, async () => {
+      // singleflight：同键并发只让第一发真正加载，后来者等同一个 promise。
+      // §SHARED-1：来源（shared/upstream）随 value 一起穿过这个 promise——follower 不跑 loader，
+      // 但 await 到的是 leader 同一份带 source 的值，所以所有人都能如实标注，无需边带状态。
+      const entry = await cache.getOrLoad(key, async (): Promise<Loaded<unknown>> => {
         const fromShared = await readShared<Payload<T>>(key);
-        if (fromShared && normalize(fromShared.value as unknown)) return fromShared as Payload<unknown>;
+        if (fromShared && normalize(fromShared.value as unknown)) {
+          // 命中另一实例早先写入的共享缓存：没问上游，measuredAt 是它当初测的时刻。
+          return { ...fromShared, source: 'shared' } as Loaded<unknown>;
+        }
         const freshPayload = await fetchOnce(path, normalize);
+        // 共享里只存 Payload（不含 source）——source 是本进程对"这次怎么拿到"的描述，不是数据本身；
+        // 下次别的实例读出来会据实标 shared，不把本实例的 upstream 记忆带过去。
         await writeShared(key, freshPayload as Payload<unknown>);
-        return freshPayload as Payload<unknown>;
+        return { ...freshPayload, source: 'upstream' } as Loaded<unknown>;
       });
+
+      if (entry.value.source === 'shared') {
+        // 账本诚实（types.ts:21 'cached'）：这是共享缓存里带 measuredAt 的旧事实，不是这次问上游的结果。
+        // ageMs 仍是"本进程持有这份值的时长"（entry 是本进程缓存条目），measuredAt 如实透传上游当初的时刻。
+        return {
+          state: 'cached',
+          value: entry.value.value as T,
+          measuredAt: entry.value.measuredAt,
+          fetchedAt: entry.storedAt,
+          ageMs: entry.ageMs,
+          note: `命中别的实例早先写入共享缓存的快照（测量于 ${entry.value.measuredAt}，本进程持有 ${entry.ageMs}ms），并非本次向网关请求所得`,
+        };
+      }
       return {
         state: 'fresh',
         value: entry.value.value as T,
         measuredAt: entry.value.measuredAt,
         fetchedAt: entry.storedAt,
         ageMs: entry.ageMs,
-        note: '这次从上游读到的快照（缓存/共享命中时由 state 区分）',
+        note: '这次从上游读到的快照',
       };
     } catch (error) {
       // 上游没答上：端出旧值并标 stale；连旧值都没有就 unavailable，绝不画 0。

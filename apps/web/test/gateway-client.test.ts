@@ -76,11 +76,7 @@ describe('取数客户端 · 计网分类', () => {
   });
 
   it('5xx 退避重试到上限，全失败 → unavailable（value=null，不是空表）', async () => {
-    let n = 0;
-    const f = fakeFetch(() => {
-      n += 1;
-      return { ok: false, status: 503, body: null };
-    });
+    const f = fakeFetch(() => ({ ok: false, status: 503, body: null }));
     const client = createGatewayClient(base({ fetchImpl: f.fetch, maxAttempts: 3 }));
     const { routes } = await client.loadAll();
     expect(routes.state).toBe('unavailable');
@@ -188,18 +184,24 @@ describe('取数客户端 · 缓存与降级', () => {
 });
 
 describe('共享缓存 · opt-in 与 fail-open（Redis）', () => {
-  it('共享缓存命中且形状对 → fresh，不打网络', async () => {
+  it('共享缓存命中且形状对 → cached（不谎称这次问了上游），不打网络', async () => {
+    // §SHARED-1 / ADR-0156：旧判据把"共享命中标 fresh"写成了规范，与 types.ts:21
+    // 契约（cached=命中进程内/共享缓存）直接冲突——是把账本说谎固化了，故连同理由一并修正。
     const f = fakeFetch(() => ({ ok: true, status: 200, body: ROUTES }));
     const shared: SharedCache = {
-      async get(key) {
+      async get() {
         return { value: JSON.stringify({ value: ROUTES, measuredAt: 'shared-t' }), storedAtMs: 1, storedAt: 'S' };
       },
       async set() {},
     };
     const client = createGatewayClient(base({ fetchImpl: f.fetch, shared }));
     const { routes } = await client.loadAll();
-    expect(routes.state).toBe('fresh');
+    expect(routes.state).toBe('cached'); // 没问上游，不能标 fresh
     expect(routes.measuredAt).toBe('shared-t');
+    // 注：loadAll 三列并发，这条夹具 shared 只回 ROUTES 形状，services/health 列会形状不符而回退真问网关，
+    // 故不能断言全局 f.calls===0。"命中即不打该列网关"由 gateway-shared-hit-honesty.test.ts 的按 key 夹具精确覆盖。
+    expect(routes.note, 'note 没说清是共享旧事实').toMatch(/共享|缓存|并非本次|不是这次/);
+    // "不得肯定地声称本次问了上游"的精确反向门在 gateway-shared-hit-honesty.test.ts（含否定前缀排除），不在此重复正则。
   });
 
   it('共享缓存里是坏形状 → 当没命中，回退到直接问网关', async () => {
