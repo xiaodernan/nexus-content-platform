@@ -74,7 +74,7 @@ describe('dispatchJob — 两类新 poison 汇入 sink（纯内存行为腿）',
   it('合法 payload：handler 正常完成，不进 sink，emit 被调', async () => {
     emit.mockClear();
     const { ctx, letters } = capture();
-    const stats = { running: false, driver: 'none' as const, handlers: [], processed: {}, failed: 0, startedAt: null };
+    const stats: import('@/server/queue/worker').JobWorkerStats = { running: false, driver: 'none', handlers: [], processed: {}, failed: 0, startedAt: null };
     await dispatchJob(job('build.complete', goodPayload), ctx, JOB_HANDLERS, stats);
     expect(emit).toHaveBeenCalledTimes(1);
     expect(letters).toEqual([]);
@@ -84,7 +84,7 @@ describe('dispatchJob — 两类新 poison 汇入 sink（纯内存行为腿）',
 
   it('handler 抛错：rethrow 给驱动重试，不误报成 poison（保住 v661 retry 语义）', async () => {
     const { ctx, letters } = capture();
-    const stats = { running: false, driver: 'none' as const, handlers: [], processed: {}, failed: 0, startedAt: null };
+    const stats: import('@/server/queue/worker').JobWorkerStats = { running: false, driver: 'none', handlers: [], processed: {}, failed: 0, startedAt: null };
     const flaky = { flaky: async () => { throw new Error('transient'); } };
     await expect(dispatchJob(job('flaky', {}), ctx, flaky, stats)).rejects.toThrow('transient');
     expect(letters).toEqual([]); // 只有终态才进账本，抛错仍是可恢复的
