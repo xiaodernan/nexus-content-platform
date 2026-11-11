@@ -11947,3 +11947,4 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
   - 不动 schema/card 内容/链接目标（§159：观感升级不是信息架构升级）；
   - 空态不伪造推荐位；`unavailable` 那格严格照旧渲染（如实说明平台没做什么）。
 - **仍欠**：`/discover` 没有 e2e 截图门（视觉变化本页所有用例同构、无独立断言；后续要有"公开面改版必带截图前后"的规约，另立片）。
+- **FE-1 补片（2026-11-11）**：新增 `e2e/discover.spec.ts`（§FE-1 的浏览器那一寸）——匿名冷启动测：标题/四个排序标签/搜索入口可见、卡片 data-* 属性与 `/<handle>/<slug>` href 或空态 `data-discover-empty` 二选一、切到"最近最热"必看到 `aria-current=page` 且 `data-discover-method` 口径写在页上、全程零 console error。tsc exit 0。**未跑**——机器当前约 700MB 空闲、全仓 vitest 正在争资源，下一窗口专跑一次 `npx playwright test e2e/discover.spec.ts`。
