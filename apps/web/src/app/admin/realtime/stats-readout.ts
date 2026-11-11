@@ -6,6 +6,8 @@
  * 一句合成话的写法在界面上看不出任何毛病，只能把逐档措辞变成可判定的纯函数来钉。
  */
 
+import type { JavaWireStats } from '@/server/realtime/java-wire';
+
 /** 跨实例线路的档位：`na` 与 `down` 是两句话——没有这回事 ≠ 有一根断了的线 */
 export type WireLive = 'up' | 'pending' | 'down' | 'na';
 
@@ -25,6 +27,8 @@ export type RealtimeStatsReadout = {
    * 词表一旦改动界面不该跟着改（改了就会漂），所以这一格对 UI 只是 `Record<string, number>`。
    */
   wireErrorByReason: Record<string, number> | null;
+  /** §SC-58：Java 生产者（domain-service）那一侧的读数。`undefined`（老回执没带）/`null`（这次没拿到）= 没接上，**不是**"接了但都是 0" */
+  javaWire?: JavaWireStats | null;
 };
 
 /**
@@ -118,4 +122,50 @@ export function isKnownStats(body: unknown): body is RealtimeStatsReadout {
   const ledger = value.wireErrorByReason;
   if (!(ledger === null || (typeof ledger === 'object' && !Array.isArray(ledger)))) return false;
   return (value.wireErrorCount === null) === (ledger === null);
+}
+
+/** §SC-58 · Java 生产者那一侧（`/admin/realtime` 里轮询同一份回执）。 */
+export function kb(bytes: number): string {
+  return `${Math.round(bytes / 1024)} KiB`;
+}
+
+function isJavaWirePanelShape(v: JavaWireStats): boolean {
+  if (typeof v.wireChannel !== 'string' || v.wireChannel.trim().length === 0) return false;
+  if (typeof v.maxFrameBytes !== 'number' || !Number.isFinite(v.maxFrameBytes) || v.maxFrameBytes <= 0) return false;
+  for (const n of [v.publishedTotal, v.tooLargeDropped, v.redisFailures]) {
+    if (typeof n !== 'number' || !Number.isFinite(n) || n < 0) return false;
+  }
+  return true;
+}
+
+/**
+ * Java 生产者五格行数据。`undefined`（老回执）/`null`（这次没拿到）→ `null` ——
+ * 面板画一行"没拿到"，绝不画五个 0。形状不认识（NaN/空 channel/上限≤0）同样给 null。
+ */
+export function javaWirePanelRows(
+  javaWire: JavaWireStats | null | undefined,
+): Array<[label: string, value: string]> | null {
+  if (!javaWire || !isJavaWirePanelShape(javaWire)) return null;
+  return [
+    ['线路', javaWire.wireChannel],
+    ['帧上限', kb(javaWire.maxFrameBytes)],
+    ['已发', String(javaWire.publishedTotal)],
+    ['超限丢', String(javaWire.tooLargeDropped)],
+    ['线路异常', String(javaWire.redisFailures)],
+  ];
+}
+
+/**
+ * Java 一侧的一句话。缺省/null 与 `fetchJavaWireStats` 的 null 同义——这页说话的频道只有一个：
+ * **没拿到 ≠ 全 0**。有值的时候数字照原样印，不翻译成模糊的"正常/异常"（避免又写一重读不准的语义）。
+ */
+export function javaWireNote(javaWire: JavaWireStats | null | undefined): string {
+  if (javaWire == null || !isJavaWirePanelShape(javaWire)) {
+    return '没拿到 Java 生产者的读数——domain-service 没在跑、连不上 /api/v1/realtime/stats，或回执形状不认识（这不是"接了但都是 0"）';
+  }
+  const parts: string[] = [`Java 生产者在线：已发 ${javaWire.publishedTotal} 帧`, `帧上限 ${kb(javaWire.maxFrameBytes)}`];
+  if (javaWire.tooLargeDropped > 0) parts.push(`超限丢 ${javaWire.tooLargeDropped}（发帧的那段代码值得看一眼）`);
+  if (javaWire.redisFailures > 0) parts.push(`线路异常 ${javaWire.redisFailures}（去看线路侧，不是 web 侧）`);
+  if (javaWire.tooLargeDropped === 0 && javaWire.redisFailures === 0) parts.push('零超限 · 零线路异常');
+  return parts.join(' · ');
 }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { currentUserOrNull } from '@/server/domain/session';
 import { jsonError } from '@/server/http';
 import { getRealtimeBus } from '@/server/realtime/bus';
+import { fetchJavaWireStats } from '@/server/realtime/java-wire';
 
 /**
  * §163 诊断入口：`wireErrorCount` / `ready` 在此之前只住在 stderr 与测试里，
@@ -19,5 +20,7 @@ export async function GET(): Promise<NextResponse> {
   if (user.role !== 'admin') {
     return jsonError(403, 'forbidden', { message: '实时总线状态只对审核员（role=admin）开放' });
   }
-  return NextResponse.json(getRealtimeBus().stats());
+  const javaWire = await fetchJavaWireStats();
+  // javaWire 加一格为 additive：panel 形状门只认老字段，不认识的新字段原样保留、不判形状
+  return NextResponse.json({ ...getRealtimeBus().stats(), javaWire }, { headers: { 'cache-control': 'no-store' } });
 }

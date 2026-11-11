@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import {
   BOOT_LABEL,
   LIVE_LABEL,
@@ -8,6 +8,8 @@ import {
   errorCountText,
   errorReasonList,
   isKnownStats,
+  javaWireNote,
+  javaWirePanelRows,
   liveTag,
   type RealtimeStatsReadout,
 } from './stats-readout';
@@ -83,6 +85,7 @@ export function RealtimeStatsPanel() {
   // 上面那行读的是服务端的现读值，这里不做二次推断：把不认识的 `wire` 当成 `down` 或 `up`
   // 都会让"这台现在通不通"这一格说得出一句没根据的话，所以只认四档、其余归 `na`
   const live = liveTag(stats.wire);
+  const javaRows = javaWirePanelRows(stats.javaWire);
 
   return (
     <div className="flex flex-col gap-2 text-13" data-realtime-stats="ready">
@@ -106,6 +109,23 @@ export function RealtimeStatsPanel() {
           {stats.subscriberCount} 人（不是全平台的数——线路查不到远端有谁在订）
         </dd>
       </dl>
+      <section data-java-wire className="flex flex-col gap-1 border-t border-[var(--nexus-color-border-subtle)] pt-2">
+        <p className="text-11 font-medium text-fg-3" data-java-wire-title>Java 生产者（domain-service）</p>
+        {javaRows ? (
+          <dl className="grid grid-cols-[9rem_1fr] gap-x-3 gap-y-1">
+            {javaRows.map(([label, value]) => (
+              <Fragment key={label}>
+                <dt className="text-fg-3">{label}</dt>
+                <dd data-java-wire-row={label}>{value}</dd>
+              </Fragment>
+            ))}
+          </dl>
+        ) : (
+          <p className="text-13 text-fg-2" data-java-wire="missing">
+            {javaWireNote(stats.javaWire)}
+          </p>
+        )}
+      </section>
       {stats.wireErrorCount !== null && stats.wireErrorCount > 0 ? (
         <p className="text-11 text-fg-3" data-realtime-error-note>
           失败的帧不补发：实时是加速器，权威状态永远在库里——这个数只是"刚才有几帧没过去"的账。

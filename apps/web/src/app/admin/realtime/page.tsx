@@ -49,6 +49,7 @@ export default async function AdminRealtimePage() {
       <p className="text-11 text-fg-3" data-realtime-scope>
         这里记的是<strong>这台实例</strong>的线路：多实例部署下每台各算各的，回答这次请求的那台会说话，别台不会。
         实时通道是加速器不是权威来源——失败的帧不补发，界面上每个数字都按这个口径读。
+        下半区是 <strong>Java 生产者</strong>（domain-service）那一侧的计数：没接上时明写"没拿到"，不画成零。
       </p>
 
       <RealtimeStatsPanel />

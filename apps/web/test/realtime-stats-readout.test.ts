@@ -6,6 +6,9 @@ import {
   errorCountText,
   errorReasonList,
   isKnownStats,
+  javaWireNote,
+  javaWirePanelRows,
+  kb,
   liveTag,
   type RealtimeStatsReadout,
 } from '@/app/admin/realtime/stats-readout';
@@ -187,5 +190,81 @@ describe('isKnownStats：面板只画它认得的自报家门', () => {
     // 陌生驱动名不拦的话，对着一台真有线路的机器宣布它没有线路——是最难看出来的一种读反
     expect(isKnownStats({ ...stats({}), driver: 'kafka' as unknown as RealtimeStatsReadout['driver'] })).toBe(false);
     expect(isKnownStats({ ...stats({}), driver: 'Redis' as unknown as RealtimeStatsReadout['driver'] })).toBe(false);
+  });
+});
+
+const javaOk = (overrides: Partial<{
+  wireChannel: string;
+  maxFrameBytes: number;
+  publishedTotal: number;
+  tooLargeDropped: number;
+  redisFailures: number;
+}> = {}) => ({
+  wireChannel: 'nexus:realtime:v1',
+  maxFrameBytes: 65_536,
+  publishedTotal: 0,
+  tooLargeDropped: 0,
+  redisFailures: 0,
+  ...overrides,
+});
+
+describe('kb', () => {
+  it('字节换成 KiB 并取整', () => {
+    expect(kb(65_536)).toBe('64 KiB');
+    expect(kb(65_537)).toBe('64 KiB');
+    expect(kb(1024)).toBe('1 KiB');
+  });
+});
+
+describe('javaWirePanelRows：没拿到一行不画五个 0', () => {
+  it('undefined / null → null，绝不画假零', () => {
+    expect(javaWirePanelRows(undefined)).toBeNull();
+    expect(javaWirePanelRows(null)).toBeNull();
+  });
+
+  it('形状不认识 → null（NaN / 空 channel / 上限 ≤ 0）', () => {
+    expect(javaWirePanelRows(javaOk({ publishedTotal: Number.NaN }))).toBeNull();
+    expect(javaWirePanelRows(javaOk({ wireChannel: ' ' }))).toBeNull();
+    expect(javaWirePanelRows(javaOk({ maxFrameBytes: 0 }))).toBeNull();
+    expect(javaWirePanelRows(javaOk({ tooLargeDropped: -1 }))).toBeNull();
+  });
+
+  it('完整回执 → 五格，顺序固定（运维看的顺序就是这行）', () => {
+    const rows = javaWirePanelRows(javaOk({ publishedTotal: 7, tooLargeDropped: 2, redisFailures: 1 }));
+    expect(rows).toEqual([
+      ['线路', 'nexus:realtime:v1'],
+      ['帧上限', '64 KiB'],
+      ['已发', '7'],
+      ['超限丢', '2'],
+      ['线路异常', '1'],
+    ]);
+  });
+});
+
+describe('javaWireNote：这页只许说一句话', () => {
+  it('没拿到 → 明说，不冒出 0 / 正常 等词', () => {
+    const note = javaWireNote(undefined);
+    expect(note).toContain('没拿到 Java 生产者');
+    expect(note).not.toContain('已发 0');
+    expect(note).not.toContain('正常');
+    expect(javaWireNote(null)).toBe(note);
+  });
+
+  it('在线且零异常 → 如实说零超限/零线路异常', () => {
+    const note = javaWireNote(javaOk({ publishedTotal: 0 }));
+    expect(note).toContain('Java 生产者在线：已发 0 帧');
+    expect(note).toContain('零超限 · 零线路异常');
+  });
+
+  it('有异常计数 → 把数说出去，不模糊', () => {
+    const note = javaWireNote(javaOk({ publishedTotal: 9, tooLargeDropped: 3, redisFailures: 2 }));
+    expect(note).toContain('已发 9 帧');
+    expect(note).toContain('超限丢 3');
+    expect(note).toContain('线路异常 2');
+    expect(note).not.toContain('零超限');
+  });
+
+  it('形状不认识 → 按没拿到处理，不画半截', () => {
+    expect(javaWireNote(javaOk({ publishedTotal: Number.NaN }))).toContain('没拿到 Java 生产者');
   });
 });
