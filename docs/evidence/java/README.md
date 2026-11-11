@@ -92,14 +92,18 @@ parallel lane at `7191e7e`; the plan is asserted as `Index Scan`s against this r
 indexes — its own commit message names the plane). The first row is this lane's companion; this
 README records both and claims neither beyond what its run prints.
 
-**The arms-receipt honesty (2026-11-12):** the committed `docs/evidence/ci/arms-receipt.json` stamps
-2026-11-10 with 117 rows; the derived population at `dd14c10` is 119. `verify:arms-freshness` will
-red at this wiring until `ci-wiring-arms.mjs` completes whole and rewrites the receipt. Hosted facts,
-re-read not re-remembered, at master run `43038847821` (ref `4c3bcac`, 2026-11-11T14:57Z):
-`verify:arms ... OK 674.1s` (receipt already stamping those bytes — left unchanged) and
-`verify:arms-freshness ... OK 0.1s`. Two attempts on this box to re-stamp at 119 rows were starved
-before completion before `dd14c10` landed. The re-stamp is the door the wiring lane owes; it is not
-this README's to fake.
+**The arms-receipt honesty (2026-11-12, updated):** `docs/evidence/ci/arms-receipt.json` was re-armed
+by the v665/v664 wiring lane at ref `5485c62` — the re-arm ran whole in the pinned worktree (64/64 arms,
+planes self-removed) and the receipt now stamps **119 rows**. Both byte-subject and integrity checks
+pass at HEAD: `verify:arms-freshness` exit 0 (9/9 fixture arms) with that receipt, measured here on this
+host. Studio CI for the full proofs battery at that ref and after: **the record-encoding gate reddened
+for ONE line in the parallel lane's `0095` ADR (line 10, a registered CJK-latin boundary render the
+flank rule could not exempt)** — fixed at `932d07f`; the re-arm's arms-freshness verdict itself passed
+(the earlier red reads here: residue named 0, 118/119).
+
+A correction recorded honestly for the record: the earlier claim that the hosted runner cannot write the
+receipt remains true, and the re-arm was owed until this lane landed it. Both branches carry it. The
+gate stays honest; this paragraph is not retired, it is satisfied.
 
 ## Honest bounds (none of these are claims this ledger pretends to support)
 
