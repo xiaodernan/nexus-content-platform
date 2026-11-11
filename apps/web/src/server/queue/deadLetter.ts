@@ -39,15 +39,18 @@ interface MakeArgs {
   err?: unknown;
   body?: unknown;
   at?: number;
+  /** 自定义 reason。给"body 是合法 JSON、但语义不合规"的 poison 用（schema 不符 / 未知 type）——
+   *  它们不是 unparseable body，也不值得为传一句话造一个 Error。不传时沿用下面的默认分流。 */
+  reason?: string;
 }
 
-/** 造一条终态记录。纯函数（时间可注入），两驱共用同一形状，杜绝形状漂移。 */
-export function makeDeadLetter({ kind, type, attempts, err, body, at }: MakeArgs): DeadLetterEntry {
+/** 造一条终态记录。纯函数（时间可注入），两驱 + worker/handler 共用同一形状，杜绝形状漂移。 */
+export function makeDeadLetter({ kind, type, attempts, err, body, at, reason }: MakeArgs): DeadLetterEntry {
   return {
     kind,
     type,
     attempts,
-    reason: err === undefined ? (kind === 'poison' ? 'unparseable job body' : 'handler failed') : errorReason(err),
+    reason: reason ?? (err === undefined ? (kind === 'poison' ? 'unparseable job body' : 'handler failed') : errorReason(err)),
     at: at ?? Date.now(),
     bodyPreview: bodyPreview(body),
   };

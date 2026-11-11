@@ -1127,22 +1127,35 @@ Open honest notes:
   keeps现场 lines verbatim; both drivers' conditional ctx construction), 4 static wiring doors
   (start→dispatch→handler ctx透传, both drivers `await handler(job, this.ctx)`, all three poison判定点
   converge into one report channel, old inline dispatch gone), 3 `makeDeadLetter({reason})` doors.
+  **Mutation + reverse-control 14/14** on real-source string copies (never writes production files,
+  shared-tree-safe): 9 break-arms all caught — including ctx-unconditional (default-behavior drift,
+  the subtlest arm), v667 transport sink severed, and JobHandler back to single-param; 4 legit controls
+  stay green (comment-only, reason文案 edit, log文案 edit, add `at` field). Doors grade the wiring契约,
+  not harmless spelling.
   Regression **4 files 35/35**: v667's 11+8 plus `job-worker.test.ts` 9 and `job-queue.test.ts` 7 —
   the latter's **5 real-Redis legs ran on this host** (XREADGROUP delivery, bounded retry, XAUTOCLAIM
   reclaim→XACK, MAXLEN trim, driver selection), proving the dispatch refactor did not break the real
   transport. `tsc -p apps/web/tsconfig.json --noEmit` **exit 0** (also verifies the two structurally-
   identical双参 `JobHandler` definitions compile).
-- **Honest gaps (ADR 0100).** ① This host's physical memory was saturated by a parallel lane's heavy
-  task — even `node -e` and single-file `npx eslint` were SIGTERM'd (v667 had 3+3 batches pass; this
-  slice tighter). SIGTERM = resource peak, NOT lint red; tsc + 48 vitest assertions green under the
-  same host show the source compiles & runs. Single-file eslint + census pending a re-run on a relieved
-  host — recorded, not claimed green. ② No real-Redis POISON→ledger end-to-end leg: the three-class
+- **Honest gaps (ADR 0100).** ① **An environment attribution, corrected mid-slice**: SIGTERMs on
+  `npx eslint` were first blamed on host physical memory, but `node --max-old-space-size=384 eslint`
+  surfaced a true **JS heap OOM** — the real cause was node's DEFAULT heap ceiling being too low to load
+  the TS type graph (independent of file count). With `--max-old-space-size=1536` and a direct call to
+  `node_modules/eslint/bin/eslint.js`, single-file AND **all 7 v668 files exit 0**. So the upstream fix
+  over v667's "split 3+3 batches" is: **give enough heap, not fewer files**, for type-graph-loading gates.
+  census STILL SIGTERM'd even at 1536 MB (it spawns child processes for a 30s specifier scan the host
+  can't take) — recorded as still-owed, statically non-drifting (population = `git ls-files docs/evidence`
+  + `verify:*`, none touched; last measured 132/119/132-arms), NOT claimed green. ② No real-Redis
+  POISON→ledger end-to-end leg: the three-class
   convergence is graded by pure in-memory behavior + static同源 wiring, not a真 Redis条目→一条账本
   record chain (same root as ADR 0099 gap①). ③ sink still has no durable implementation — a deployer
   hook whose default is a console line; this slice does not silently add a table to an advisory lane.
   ④ XACK-failure duplicate-record boundary carries over from ADR 0099 gap④ (幂等 sink is a deployer
   contract).
-- **Shared-tree note.** Base at commit time: re-fetch + ff check before committing; this slice's files
-  are `apps/web/src/server/queue/*` + `apps/web/test/dead-letter-convergence.test.ts` + ADR 0100 +
-  ROADMAP/CURRENT-STATE. The parallel lane kept landing前端 page.tsx and evidence docs; no overlap with
-  the queue lane. No `git add -A`, no force.
+- **Shared-tree note.** This slice's own ref landed as `91686df` (v667); base for THIS cont.28 commit is
+  `fecbe71` — during v668 the parallel lane landed `aaaaf27` + `fecbe71` (record-encoding evidence
+  revision), both touching `docs/CURRENT-STATE.md`. Verified the relative diff is ONLY this cont.28 block
+  (the 5 deleted lines are this slice's own superseded honest-gaps draft, reworded in-place), that both
+  cont.23 and cont.28 are present, and that no parallel content was removed. Files: `apps/web/src/server/
+  queue/*` + `apps/web/test/dead-letter-convergence.test.ts` + ADR 0100 + ROADMAP/CURRENT-STATE. Re-fetch
+  + ff check before commit; no `git add -A`, no force.

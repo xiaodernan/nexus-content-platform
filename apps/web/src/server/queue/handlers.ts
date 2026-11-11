@@ -1,5 +1,6 @@
 import { emit } from '@/server/domain/notifications';
-import type { JobEnvelope } from './jobQueue';
+import type { JobEnvelope, JobHandlerContext } from './jobQueue';
+import { makeDeadLetter } from './deadLetter';
 
 /**
  * The registry of jobs this platform actually performs. A Redis Stream is only a transport; without
@@ -65,13 +66,19 @@ function parseBuildComplete(raw: unknown): BuildCompletePayload | null {
   };
 }
 
-export type JobHandler = (job: JobEnvelope) => Promise<void>;
+export type JobHandler = (job: JobEnvelope, ctx?: JobHandlerContext) => Promise<void>;
 
 /** `build.complete` → the real notification emitter. No behaviour is reimplemented here. */
-const buildComplete: JobHandler = async (job) => {
+const buildComplete: JobHandler = async (job, ctx) => {
   const payload = parseBuildComplete(job.payload);
   if (!payload) {
+    // v661 现场日志逐字保留；v668 注入了 sink 时，把这条 schema poison 也汇入部署方账本。
+    // 返回（不抛）仍让驱动 XACK 掉它——ACK 语义一字未动。
     console.error(`[job-queue] poison build.complete entry ${job.id}: payload did not match the contract; acking away`);
+    ctx?.reportDeadLetter(makeDeadLetter({
+      kind: 'poison', type: job.type, attempts: job.attempts,
+      reason: 'schema validation failed', body: job.payload,
+    }));
     return; // Returning (not throwing) lets the worker XACK it out of the pending set.
   }
   await emit({

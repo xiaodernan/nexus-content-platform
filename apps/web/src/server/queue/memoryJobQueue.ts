@@ -17,6 +17,8 @@ export class MemoryJobQueue implements JobQueue {
   private readonly pending: JobEnvelope[] = [];
   private readonly maxAttempts: number;
   private readonly sink: DeadLetterSink;
+  /** 只有部署方注入了 sink 才把账本通道透传给 handler；缺省 undefined ⇒ 默认行为逐字不变。 */
+  private readonly ctx: { reportDeadLetter: DeadLetterSink } | undefined;
   private running = false;
   private loop: Promise<void> | null = null;
   private wakeDrain: (() => void) | null = null;
@@ -25,6 +27,8 @@ export class MemoryJobQueue implements JobQueue {
   constructor(options?: JobQueueOptions) {
     this.maxAttempts = options?.maxAttempts ?? 5;
     this.sink = options?.onDeadLetter ?? consoleDeadLetterSink;
+    const custom = options?.onDeadLetter;
+    this.ctx = custom ? { reportDeadLetter: custom } : undefined;
   }
 
   async enqueue<T>(type: string, payload: T): Promise<string> {
@@ -64,7 +68,7 @@ export class MemoryJobQueue implements JobQueue {
       }
       job.attempts += 1;
       try {
-        await handler(job);
+        await handler(job, this.ctx);
       } catch (err) {
         // At-least-once: a failed handler is put back for another attempt until the ceiling, then
         // dropped. Terminal jobs go to the same sink as the Redis driver (shape parity, v667).

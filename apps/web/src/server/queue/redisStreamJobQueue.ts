@@ -28,6 +28,8 @@ export class RedisStreamJobQueue implements JobQueue {
   private readonly reclaimMs: number;
   private readonly maxLen: number;
   private readonly sink: DeadLetterSink;
+  /** 只有部署方注入了 sink 才把账本通道透传给 handler；缺省 undefined ⇒ 默认行为逐字不变。 */
+  private readonly ctx: { reportDeadLetter: DeadLetterSink } | undefined;
 
   private readonly reader: Redis;
   private readonly writer: Redis;
@@ -48,6 +50,8 @@ export class RedisStreamJobQueue implements JobQueue {
     // stated trade in ADR 0066 for advisory side-effects.
     this.maxLen = options?.maxLen ?? RedisStreamJobQueue.DEFAULT_MAX_LEN;
     this.sink = options?.onDeadLetter ?? consoleDeadLetterSink;
+    const custom = options?.onDeadLetter;
+    this.ctx = custom ? { reportDeadLetter: custom } : undefined;
     // Reader: blocking reads must not queue offline; writer: a send that cannot go should not hang a request.
     this.reader = new Redis(url, { maxRetriesPerRequest: null, enableOfflineQueue: false } as never);
     this.writer = new Redis(url, { maxRetriesPerRequest: 2, enableOfflineQueue: true } as never);
@@ -174,7 +178,7 @@ export class RedisStreamJobQueue implements JobQueue {
 
   private async process(job: JobEnvelope, handler: JobHandler): Promise<void> {
     try {
-      await handler(job);
+      await handler(job, this.ctx);
       await this.writer.xack(this.streamKey, this.group, job.id);
     } catch (err) {
       console.error(`[job-queue] handler failed for ${job.type} (attempt ${job.attempts}):`, err);

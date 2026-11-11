@@ -23,7 +23,18 @@ export interface JobEnvelope<T = unknown> {
   createdAt: number;
 }
 
-export type JobHandler = (job: JobEnvelope) => Promise<void>;
+/**
+ * 处理一个作业时可拿到的可选上下文（v668）。只有部署方显式注入了 `onDeadLetter` 时驱动才会传它——
+ * 缺省时 `ctx` 恒为 undefined，handler / worker 的毒条目判定点只记 v661 原有的那行 console.error，
+ * 行为逐字不变；默认热路径也不为"不会发生的账本"构造 `DeadLetterEntry`（advisory lane 不擅自多存状态，
+ * 同时对每次派发的分配零开销）。
+ */
+export interface JobHandlerContext {
+  /** 把一条终态记录交给部署方账本，与驱动自己的 poison / exhausted 共用一个 sink。 */
+  reportDeadLetter(entry: DeadLetterEntry): void;
+}
+
+export type JobHandler = (job: JobEnvelope, ctx?: JobHandlerContext) => Promise<void>;
 
 export type JobQueueDriver = 'redis' | 'memory';
 

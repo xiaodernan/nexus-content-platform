@@ -1,6 +1,7 @@
-import type { JobEnvelope, JobQueue } from './jobQueue';
+import type { JobEnvelope, JobHandler, JobHandlerContext, JobQueue } from './jobQueue';
 import { createJobQueue } from './redisStreamJobQueue';
 import { JOB_HANDLERS } from './handlers';
+import { makeDeadLetter } from './deadLetter';
 
 /**
  * The in-process job worker (ADR 0065). One consumer loop per Next server instance, held on globalThis
@@ -78,6 +79,37 @@ export function getJobQueue(): JobQueue | null {
  * Start consuming. Idempotent and non-blocking: multiple calls share one in-flight start promise, so
  * `register()` may call it without awaiting and hot reloads cannot double-start the loop.
  */
+/**
+ * v668: 单个作业的分派，从 start() 的闭包里提出来成为**可用纯内存行为腿验证的导出函数**。
+ * 三类 poison 汇入同一个 sink：transport 层（body 解析失败）在驱动内、schema 校验失败在 handler 内、
+ * 未知 type 在这里。三处都保留 v661 现场日志逐字原样，且只在 `ctx` 存在（部署方注入 sink）时
+ * 额外报告一次；`ctx` 为 undefined 时连 DeadLetterEntry 都不构造。返回（不抛）即让驱动 XACK，
+ * 所以 poison 绝不重试、绝不卡 PENDING——ACK 语义相对 v661/v667 一字未动。
+ */
+export async function dispatchJob(
+  job: JobEnvelope,
+  ctx: JobHandlerContext | undefined,
+  handlers: Record<string, JobHandler>,
+  stats?: JobWorkerStats,
+): Promise<void> {
+  const handler = handlers[job.type];
+  if (!handler) {
+    console.error(`[job-queue] no handler for job type ${JSON.stringify(job.type)}; acking away entry ${job.id}`);
+    ctx?.reportDeadLetter(makeDeadLetter({
+      kind: 'poison', type: job.type, attempts: job.attempts,
+      reason: `no registered handler for job type ${JSON.stringify(job.type)}`, body: job.payload,
+    }));
+    return;
+  }
+  try {
+    await handler(job, ctx); // 透传 ctx：让 handler 内的 schema poison 也进同一账本
+    if (stats) stats.processed[job.type] = (stats.processed[job.type] ?? 0) + 1;
+  } catch (err) {
+    if (stats) stats.failed += 1;
+    throw err; // rethrow so the driver keeps it pending for retry/reclaim
+  }
+}
+
 export function startJobWorker(): Promise<void> {
   const s = state();
   if (s.stats.running || s.startPromise) return s.startPromise ?? Promise.resolve();
@@ -85,21 +117,7 @@ export function startJobWorker(): Promise<void> {
   if (!queue) return Promise.resolve(); // lane is off — a true no-op, no connection opened
 
   s.startPromise = queue
-    .start(async (job: JobEnvelope) => {
-      const handler = JOB_HANDLERS[job.type];
-      if (!handler) {
-        // Unknown type: log and return so the worker ACKs it away instead of retrying it forever.
-        console.error(`[job-queue] no handler for job type ${JSON.stringify(job.type)}; acking away entry ${job.id}`);
-        return;
-      }
-      try {
-        await handler(job);
-        s.stats.processed[job.type] = (s.stats.processed[job.type] ?? 0) + 1;
-      } catch (err) {
-        s.stats.failed += 1;
-        throw err; // rethrow so the driver keeps it pending for retry/reclaim
-      }
-    })
+    .start((job, ctx) => dispatchJob(job, ctx, JOB_HANDLERS, s.stats))
     .then(() => {
       s.stats.running = true;
       s.stats.startedAt = Date.now();

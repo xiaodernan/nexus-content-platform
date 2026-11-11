@@ -196,6 +196,27 @@ family README section) and a door that reddens the sentence it repairs:
         NOT reach the sink, so an injected ledger is incomplete; that convergence is named for a
         separate slice, not smuggled into verified doors.]
 
+  v668  the dead-letter ledger closes its last two blind spots — worker unknown-type and handler
+        schema failures now reach the same sink (ADR 0100): v667's honest gap③ was that a deployer
+        injecting `onDeadLetter` still got an INCOMPLETE ledger. Two poison classes ACKed correctly
+        but wrote only a现场 log line.
+        [LANDED 2026-11-12 — § 消息队列 × 数据结构 × 操作系统/硬件. `JobHandler` → `(job, ctx?)` with
+        `JobHandlerContext.reportDeadLetter`; both drivers build ctx CONDITIONALLY (`custom ? {...} :
+        undefined`), so with no sink injected `ctx` is undefined and the two判定点 don't even CONSTRUCT
+        a `DeadLetterEntry` — v661现场日志逐字不变 AND the hot path pays zero extra allocation. Added
+        optional `makeDeadLetter({ reason })` for the two schema/unknown cases (no fabricated Error).
+        Pulled worker dispatch out of the start() closure into exported pure `dispatchJob(job, ctx,
+        handlers, stats?)` — production and behavior legs now share ONE code path, no copied double.
+        Behavior legs 4 (pure in-memory, no Redis: unknown-type / schema / happy / handler-throws-stays-retryable),
+        default-behavior 2, static wiring 4, reason-param 3 = 13/13; regression 4 files 35/35 (incl.
+        5 REAL-Redis legs that happened to run — XREADGROUP/XAUTOCLAIM/MAXLEN all intact); tsc exit 0.
+        HONEST GAP: eslint SIGTERMs were first blamed on host RAM, but a 384MB run surfaced a TRUE heap
+        OOM — node's DEFAULT heap can't load the TS type graph; `--max-old-space-size=1536` + direct
+        eslint.js call gives **7 files exit 0** (upstream fix over v667's 3+3 split: give heap, not fewer
+        files). census still SIGTERM (spawns a 30s child scan) — recorded still-owed, statically
+        non-drifting, NOT claimed green. No real-Redis POISON→ledger end-to-end (static wiring同源 only);
+        sink still has no durable implementation. Closes ADR 0099 gap③ without touching shape/ACK/retry.]
+
 Standing constraints (measured, not assumed): this host keeps ~0.3 GB physical memory
 free and its Docker engine currently refuses to start containers (`docker start` hangs;
 `docker info` still answers) — live m9/spring-cloud legs run on the hosted runner and
