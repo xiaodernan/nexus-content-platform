@@ -690,3 +690,22 @@ runs back-to-back, plus the spring-cloud topology proof booted the rebuilt edge 
   (a second route consumer, or upstream fixing the WebFlux registration).
 - The 22/22 green under this host's memory pressure is not a CI guarantee; the Java suite is not yet a CI row.
 - Current branches: master == main, to be recorded at push time; CI verdicts pending for this ref.
+
+
+## 2026-11-11 addendum (cont. 19): the hosted row that reddened by geometry — `verify:door-kill` at main @ b707989
+
+Studio CI for ref b707989 (the ADR 0064 push): master SUCCESS, main RED at row `verify:door-kill` —
+`AssertionError [ERR_ASSERTION]: git.log: a killed read is not an answer`, 116/117, residue 0 named doors.
+Same commit, opposite branches → scheduler, not code semantics: `§1` drives five faces through a REAL 1 ms
+budget with a REAL SIGTERM, and `git.log` over a one-commit, 300-file repository is **sub-millisecond** —
+the child was dead before the host's SIGKILL reached the OS; kill() on a zombie is a no-op; the exit event
+said `code 0`, and per the v544(b) fix the host honestly answered ok:true. The witness had no witness.
+
+Fix (this ref): the tmp repository's seed now carries **200 deliberately empty pad commits**
+(`git.log -n 100` walks 100 trees) and a **~4 MB blob** committed as `big.txt` (the git.show face must
+decompress and stream it). The 1 ms budget is unchanged; every assertion is unchanged; the setup cost is
+~10 s. Local runs: 3/3 green, every face driven to a real kill. The CI verdict for this ref is pending and
+will be recorded when the hosted runner speaks — master and main will not be pre-claimed.
+
+Also honest to note: Studio CI for 196e624 (timelimiter + gateway-dead-door ADR push) was still in-flight
+when this entry was written; cont. 18 stands as the pending-verification record for that ref.
