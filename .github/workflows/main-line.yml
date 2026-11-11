@@ -26,6 +26,11 @@ name: main-line
 #      with the gateway's own refusal reason; wrong-secret/expired/garbage → 401; valid token → 200 with
 #      X-Nexus-Subject round-tripping to the backend verbatim; /platform/health whitelisted; the
 #      gateway's OWN diagnostic surface (/platform/services) requires a token.
+#   6. `verify:actuator` (the `topology` job, fourth step) — the §SC-68..§SC-72 branch of work: five JVMs,
+#      one per service, each asserted for `/actuator/health` 200 UP with details hidden (the JPA pair
+#      genuinely SELECTs against Postgres) plus `/actuator/info` carrying maven build-info artifact +
+#      component, plus domain-service's ai-service circuit-breaker surface. Same stale-jar-class defence
+#      as the three steps above.
 #
 # WHAT IT DELIBERATELY DOES NOT GRADE:
 #   - the studio line's gates — they run in ci.yml and are re-earned by `npm run verify:proofs`;
@@ -165,3 +170,18 @@ jobs:
           NEXUS_GATEWAY_PORT: 8093
           NEXUS_REGISTRY_PORT: 8774
           NEXUS_DOMAIN_PORT: 8087
+      - name: verify:actuator (five JVMs, one per service — health 200 UP + build.component pinned)
+        # Lineage: the §SC-68..§SC-72 branch of work. This step is what makes the five-service
+        # actuator honesty contract CI-enforced: health must be genuinely UP (selector 1 against
+        # Postgres on the JPA pair) with details hidden, /actuator/info must carry the maven
+        # build-info artifact+component, and domain-service must expose ai-service circuit
+        # breaker. Distinct ports (8775/8886/8089/8083/8094) shadow none of the other steps.
+        # HONEST NOTE: never run by a real CI executor yet — a red here is real signal.
+        run: npm run verify:actuator
+        env:
+          NEXUS_ACTUATOR_REGISTRY_PORT: 8775
+          NEXUS_ACTUATOR_CONFIG_PORT: 8886
+          NEXUS_ACTUATOR_DOMAIN_PORT: 8089
+          NEXUS_ACTUATOR_API_PORT: 8083
+          NEXUS_ACTUATOR_GATEWAY_PORT: 8094
+          NEXUS_API_DB_URL: jdbc:postgresql://localhost:55433/nexus_api_smoke
