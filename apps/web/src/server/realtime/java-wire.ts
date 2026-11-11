@@ -16,15 +16,20 @@
  * 网关侧不受本页信任边界保护的另一层是 `SecurityConfig`——那边仍然是默认拒绝，
  * 本端点在 web 的 admin 门后（role=admin）再挡一次。
  */
+export type BreakerState = 'CLOSED' | 'OPEN' | 'HALF_OPEN' | null;
+
 export interface JavaWireStats {
   wireChannel: string;
   maxFrameBytes: number;
   publishedTotal: number;
   tooLargeDropped: number;
   redisFailures: number;
+  breakerState?: BreakerState;
 }
 
 const DEFAULT_URL = 'http://127.0.0.1:8082/api/v1/realtime/stats';
+
+const BREAKER_STRINGS = new Set(['CLOSED', 'OPEN', 'HALF_OPEN']);
 
 export function isJavaWireStats(value: unknown): value is JavaWireStats {
   if (typeof value !== 'object' || value === null) return false;
@@ -35,6 +40,15 @@ export function isJavaWireStats(value: unknown): value is JavaWireStats {
     if (typeof n !== 'number' || !Number.isFinite(n) || n < 0) return false;
   }
   if ((v.maxFrameBytes as number) <= 0) return false;
+  if (v.breakerState !== undefined) {
+    if (v.breakerState === null) {
+      // 部署把断路器关了（NEXUS_FEIGN_BREAKER=false）：合法值，如实报 null
+      return true;
+    }
+    if (typeof v.breakerState !== 'string' || !BREAKER_STRINGS.has(v.breakerState)) {
+      return false;
+    }
+  }
   return true;
 }
 
@@ -54,6 +68,7 @@ export async function fetchJavaWireStats(): Promise<JavaWireStats | null> {
       publishedTotal: data.publishedTotal,
       tooLargeDropped: data.tooLargeDropped,
       redisFailures: data.redisFailures,
+      ...(data.breakerState === undefined ? {} : { breakerState: data.breakerState }),
     };
   } catch {
     return null;

@@ -5,8 +5,11 @@ import java.util.Map;
 import java.util.concurrent.atomic.LongAdder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 
 /**
  * Java 侧实时总线的生产者（§SC-53）。
@@ -46,8 +49,18 @@ public class WirePublisher {
 
     private final StringRedisTemplate redis;
 
+    private final CircuitBreakerRegistry breakerRegistry;
+
+    /** Standard constructor — for production callers. */
     public WirePublisher(StringRedisTemplate redis) {
+        this(redis, null);
+    }
+
+    /** With an optional breaker-registry bean (dependency-injection edge). */
+    @Autowired(required = false)
+    public WirePublisher(StringRedisTemplate redis, CircuitBreakerRegistry breakerRegistry) {
         this.redis = redis;
+        this.breakerRegistry = breakerRegistry;
     }
 
     /**
@@ -79,12 +92,28 @@ public class WirePublisher {
 
     /** 计数读数（{@code /api/v1/realtime/stats} 用）：这进程进出的帧，一目了然。 */
     public Map<String, Object> stats() {
-        return Map.of(
-                "wireChannel", WIRE_CHANNEL,
-                "maxFrameBytes", MAX_FRAME_BYTES,
-                "publishedTotal", publishedTotal.sum(),
-                "tooLargeDropped", tooLargeDropped.sum(),
-                "redisFailures", redisFailures.sum());
+        Map<String, Object> out = new java.util.LinkedHashMap<>();   // Map.of 不接受 null，要用普通 map
+        out.put("wireChannel", WIRE_CHANNEL);
+        out.put("maxFrameBytes", MAX_FRAME_BYTES);
+        out.put("publishedTotal", publishedTotal.sum());
+        out.put("tooLargeDropped", tooLargeDropped.sum());
+        out.put("redisFailures", redisFailures.sum());
+        out.put("breakerState", currentBreakerState());   // null 即"这次部署没开 Feign breaker"，如实
+        return out;
+    }
+
+    /** null → 此次部署没开 Feign breaker；如实报"不知道"，绝不编 CLOSED。 */
+    private String currentBreakerState() {
+        if (breakerRegistry == null) {
+            return null;
+        }
+        return breakerRegistry.getAllCircuitBreakers().stream()
+                .filter(c -> "ai-service".equals(c.getName())
+                        || c.getName().contains("AiServiceClient"))   // Feign resolver output (§SC-60)
+                .max(java.util.Comparator.comparingLong(c -> c.getMetrics().getNumberOfBufferedCalls()))
+                .map(CircuitBreaker::getState)
+                .map(Enum::name)
+                .orElse("unknown");
     }
 
     /** 组线路帧 JSON。参数不合法直接抛——web 侧 min(1) 把这条帧丢掉只会让排障更难。 */

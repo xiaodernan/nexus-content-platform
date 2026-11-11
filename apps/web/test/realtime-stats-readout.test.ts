@@ -12,6 +12,7 @@ import {
   liveTag,
   type RealtimeStatsReadout,
 } from '@/app/admin/realtime/stats-readout';
+import type { BreakerState } from '@/server/realtime/java-wire';
 import { WIRE_ERROR_REASONS } from '@/server/realtime/wireErrors';
 
 /**
@@ -199,6 +200,7 @@ const javaOk = (overrides: Partial<{
   publishedTotal: number;
   tooLargeDropped: number;
   redisFailures: number;
+  breakerState?: BreakerState;
 }> = {}) => ({
   wireChannel: 'nexus:realtime:v1',
   maxFrameBytes: 65_536,
@@ -229,15 +231,29 @@ describe('javaWirePanelRows：没拿到一行不画五个 0', () => {
     expect(javaWirePanelRows(javaOk({ tooLargeDropped: -1 }))).toBeNull();
   });
 
-  it('完整回执 → 五格，顺序固定（运维看的顺序就是这行）', () => {
-    const rows = javaWirePanelRows(javaOk({ publishedTotal: 7, tooLargeDropped: 2, redisFailures: 1 }));
+  it('完整回执 → 六格，顺序固定（breaker 行尾，断开时说 OPEN 不画\u201cok\u201d）', () => {
+    const rows = javaWirePanelRows(javaOk({ publishedTotal: 7, tooLargeDropped: 2, redisFailures: 1, breakerState: 'OPEN' }));
     expect(rows).toEqual([
       ['线路', 'nexus:realtime:v1'],
       ['帧上限', '64 KiB'],
       ['已发', '7'],
       ['超限丢', '2'],
       ['线路异常', '1'],
+      ['breaker', 'OPEN'],
     ]);
+  });
+
+  it('breaker 字段缺省 / null → 如实画状态字串，不假装 CLOSED', () => {
+    expect(javaWirePanelRows(javaOk())!.at(-1)![0]).toBe('breaker');
+    expect(javaWirePanelRows(javaOk())!.at(-1)![1]).toBe('—（本次 wire 份响应不带此格）');
+    expect(javaWirePanelRows(javaOk({ breakerState: null }))!.at(-1)![1]).toBe('—（本次部署 break 关）');
+    expect(javaWirePanelRows(javaOk({ breakerState: 'CLOSED' }))!.at(-1)![1]).toBe('CLOSED');
+    expect(javaWirePanelRows(javaOk({ breakerState: 'HALF_OPEN' }))!.at(-1)![1]).toBe('HALF_OPEN');
+  });
+
+  it('breaker 形状只认三态 — 不认的一律按缺回执处理', () => {
+    expect(javaWirePanelRows(javaOk({ breakerState: '???' as unknown as BreakerState }))).toBeNull();
+    expect(javaWirePanelRows(javaOk({ breakerState: '???' as unknown as BreakerState }))).toBeNull();
   });
 });
 

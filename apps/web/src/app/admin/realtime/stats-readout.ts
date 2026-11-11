@@ -6,7 +6,7 @@
  * 一句合成话的写法在界面上看不出任何毛病，只能把逐档措辞变成可判定的纯函数来钉。
  */
 
-import type { JavaWireStats } from '@/server/realtime/java-wire';
+import type { BreakerState, JavaWireStats } from '@/server/realtime/java-wire';
 
 /** 跨实例线路的档位：`na` 与 `down` 是两句话——没有这回事 ≠ 有一根断了的线 */
 export type WireLive = 'up' | 'pending' | 'down' | 'na';
@@ -124,6 +124,26 @@ export function isKnownStats(body: unknown): body is RealtimeStatsReadout {
   return (value.wireErrorCount === null) === (ledger === null);
 }
 
+/**
+ * 断路器 break 状态（可选）：`CLOSED`（闭合，正常走）、`OPEN`（断，拒后续调用/回退 fallback）、
+ * `HALF_OPEN`（半开——放行少量请求试回路，仍是测试中的过渡状态）、`null`（部署关了 breaker）
+ * `undefined`（老回执不带此格——如实报"未见过"）。
+ */
+export function breakerStateText(state: BreakerState | undefined): string {
+  switch (state) {
+    case 'CLOSED':
+      return 'CLOSED';
+    case 'OPEN':
+      return 'OPEN';
+    case 'HALF_OPEN':
+      return 'HALF_OPEN';
+    case null:
+      return '—（本次部署 break 关）';
+    case undefined:
+      return '—（本次 wire 份响应不带此格）';
+  }
+}
+
 /** §SC-58 · Java 生产者那一侧（`/admin/realtime` 里轮询同一份回执）。 */
 export function kb(bytes: number): string {
   return `${Math.round(bytes / 1024)} KiB`;
@@ -134,6 +154,10 @@ function isJavaWirePanelShape(v: JavaWireStats): boolean {
   if (typeof v.maxFrameBytes !== 'number' || !Number.isFinite(v.maxFrameBytes) || v.maxFrameBytes <= 0) return false;
   for (const n of [v.publishedTotal, v.tooLargeDropped, v.redisFailures]) {
     if (typeof n !== 'number' || !Number.isFinite(n) || n < 0) return false;
+  }
+  if (v.breakerState !== undefined) {
+    if (v.breakerState === null) return true;   // 部署关了断路器
+    if (v.breakerState !== 'CLOSED' && v.breakerState !== 'OPEN' && v.breakerState !== 'HALF_OPEN') return false;
   }
   return true;
 }
@@ -152,6 +176,7 @@ export function javaWirePanelRows(
     ['已发', String(javaWire.publishedTotal)],
     ['超限丢', String(javaWire.tooLargeDropped)],
     ['线路异常', String(javaWire.redisFailures)],
+    ['breaker', breakerStateText(javaWire.breakerState)],
   ];
 }
 
