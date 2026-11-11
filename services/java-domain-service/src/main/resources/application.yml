@@ -23,9 +23,13 @@ spring:
     # The schema is owned by the WEB layer (apps/web/src/server/db/schema.ts + its Drizzle migrations).
     # This service reads and writes the tables that already exist; it never runs DDL (ddl-auto: none) and
     # carries no migration tool, because a second writer of DDL is how two systems disagree about a table.
-    url: ${NEXUS_DOMAIN_DB_URL:jdbc:postgresql://127.0.0.1:5432/nexus}
+    # Default targets THIS project's Postgres (55433, docs/ENVIRONMENT.md). The previous default
+    # (5432) is this machine's careeros-postgres — connecting to somebody else's database by accident
+    # is not a convenience default, it is a trap; and on a machine where 5432 is simply not ours, the
+    # service could not boot at all. A stand-alone `java -jar` must reach the project's own database.
+    url: ${NEXUS_DOMAIN_DB_URL:jdbc:postgresql://127.0.0.1:55433/nexus}
     username: ${DB_USERNAME:nexus}
-    password: ${DB_PASSWORD:nexus_password}
+    password: ${DB_PASSWORD:nexus_dev_only}
     driver-class-name: org.postgresql.Driver
     hikari:
       # `stringtype=unspecified` lets PostgreSQL infer the type of a bound String instead of assuming
