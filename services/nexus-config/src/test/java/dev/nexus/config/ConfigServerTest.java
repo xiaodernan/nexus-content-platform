@@ -46,7 +46,7 @@ class ConfigServerTest {
                 .jsonPath("$.propertySources[0].source['nexus.gateway.rate-limit.rate-per-second']")
                 .isEqualTo(50)
                 .jsonPath("$.propertySources[1].source['management.endpoints.web.exposure.include']")
-                .isEqualTo("health");
+                .isEqualTo("health,info");
     }
 
     @Test

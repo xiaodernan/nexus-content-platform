@@ -11,6 +11,11 @@
 - **Smoke 实线** — `verify:topology` 验证 `/actuator/info`，断言 `build.artifact=domain-service`、`runtime.java=25.0.1`，并**加入**`/actuator/circuitbreakers` 双重断言；两次都 PASS。
 - **§SC-68**：nexus-api / nexus-gateway / nexus-registry / nexus-config ALL gain maven `build-info` goal + `NEXUS_...YML-file/management.info.build.enabled:true`——`curl :port/actuator/info` returns `build` payloads identical shape: artifact/group/version/time/component。
   - verified on registry ({"artifact":"nexus-registry",…}), gateway (…"nexus-gateway"…), config (…"nexus-config"…) — nexus-api 通过 verify:topology /api/health 200 确证 jar can fly, and maven plugin 执行模式与其它四个同型。
+- **§SC-68（续）**：五个家族 pom 的 `<buildInfo><additionalProperties>` 是**静默吞掉"unknown parameter"警告**——真正生效的参数名是 `<additionalProperties>`，jar 里从未出现 `build.component` 坐标。已统一改为 `<additionalProperties>` 扁平写法；续后五个 jar 皆真带 `build.component=<service>`。
+- **§SC-69 / §SC-69b**：JPA 服务（domain-service + nexus-api）都装 `SharedSchemaHealthIndicator`——`JdbcTemplate("SELECT 1")`，失败→`DOWN` + `probe: <ExceptionShortName>`，**不漏** stacktrace / host / password；`show-details: never` 恒守着。
+- **§SC-70**：gateway（无 JPA）的 `GatewayRateLimitHealthIndicator` —— `memory` backend 如实报 `probe: not_applicable`；`redis` backend `ReactiveStringRedisTemplate.ping()` 实跑 PING，两秒 deadline。
+- **§SC-71**：nexus-registry（无 DB 的 Eureka standalone）装 `RegistryStandaloneHealthIndicator` —— 直接读 `PeerAwareInstanceRegistry` 真值：`mode: in-memory-standalone`、`applications`/`instances` 内存计数、`renewsLastMinute`、`selfPreservation`。加 `spring-boot-starter-actuator`（之前完全没有 /actuator/health）。live `MANAGEMENT_ENDPOINT_HEALTH_SHOWDETAILS=always` 抛出 `registryStandalone:{…applications:0,…}` 确证是内存 truth、不是 stub。
+- **§SC-71c**：nexus-config 装 `ConfigServedDefaultsHealthIndicator` —— `native` classpath 下必须含 `management.endpoints.web.exposure.include: health,info`（2026-11-11 那次共享默认被放宽导致 domain-service 继承 + /actuator/circuitbreakers 404 的事故箭靶），不符→DOWN。配一条单测 `ConfigServedDefaultsHealthIndicatorTest` 锁死。另：nexus-config 的 `ConfigServerTest` 里 `health` → `health,info` 断言已随共享默认收窄同步修正（§SC-64 遗留 stale）。
 
 ## 端口（只在本机有效）
 
