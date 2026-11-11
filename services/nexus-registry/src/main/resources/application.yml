@@ -38,3 +38,17 @@ logging:
   level:
     root: warn
     dev.nexus.registry: info
+
+# Spring Boot Actuator: only health (for /platform/health by the gateway) and info.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+info:
+  app:
+    name: nexus-registry
+    description: standalone Eureka registry for the NEXUS topology

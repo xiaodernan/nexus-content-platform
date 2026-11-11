@@ -65,7 +65,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,info
   endpoint:
     health:
       show-details: never
@@ -82,3 +82,8 @@ logging:
 # answered from the caller's side and must not be answered by parsing a log whose level someone may change.
 nexus:
   port-file: ${NEXUS_PORT_FILE:}
+
+info:
+  app:
+    name: nexus-api
+    description: NEXUS Java-side service (nexus-api)

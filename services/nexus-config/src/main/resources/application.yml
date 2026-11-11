@@ -22,7 +22,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,info
   endpoint:
     health:
       show-details: never
@@ -31,3 +31,8 @@ logging:
   level:
     root: warn
     org.springframework.cloud.config: info
+
+info:
+  app:
+    name: nexus-config
+    description: NEXUS Java-side service (nexus-config)

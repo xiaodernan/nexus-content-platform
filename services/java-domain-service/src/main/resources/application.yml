@@ -71,7 +71,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,info
   endpoint:
     health:
       show-details: never
@@ -80,3 +80,8 @@ logging:
   level:
     com.nexus: INFO
     org.springframework.web: WARN
+
+info:
+  app:
+    name: java-domain-service
+    description: NEXUS Java-side service (java-domain-service)

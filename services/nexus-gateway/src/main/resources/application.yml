@@ -154,7 +154,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,circuitbreakers,bulkheads
+        include: health,info,circuitbreakers,bulkheads
   endpoint:
     health:
       show-details: never
@@ -163,3 +163,7 @@ logging:
   level:
     root: warn
     dev.nexus.gateway: info
+info:
+  app:
+    name: nexus-gateway
+    description: NEXUS edge router with Spring Cloud Gateway + rate limit + circuit breakers
