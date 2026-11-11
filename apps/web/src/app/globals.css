@@ -675,4 +675,76 @@
     .pb-variant, .pb-playLink, .pb-storyboardLink, .pb-playLink::after, .pb-storyboardLink::after { transition: none; }
     .pb-variant:hover, .pb-playLink:hover, .pb-storyboardLink:hover { transform: none; }
   }
+
+  /* ── §FE-7 / ADR-0141 公开试玩页 `/n/[handle]/[slug]/play` 门面化 ───────────
+   * 与 .dv-/.mk-/.hp-/.se-/.pf-/.pb- 同一套 token 语言（守 ADR-0123 六红线）：
+   * 零新增颜色 token（全锚双主题 token + color-mix、无写死 hex）；双主题 AA；
+   * 只做视觉——三态分支、文案、data-play 钩子、读路径、PublicPlay/VisitMeter 交互组件、
+   * 钉住版说明一字未改，本段只给公开试玩页的 chrome 上妆，不碰游戏运行时本体。 */
+  .pp-root { position: relative; isolation: isolate; }
+  /* 可玩态门面：header 渐变底 + 顶部微光，视线落到游戏本体；游戏本体由 PublicPlay 自渲染 */
+  .pp-live { gap: var(--nexus-space-4); }
+  .pp-header {
+    position: relative;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--nexus-color-bg-2) 72%, var(--nexus-color-brand) 6%), var(--nexus-color-bg-1));
+    border: 1px solid var(--nexus-color-border-subtle);
+    border-radius: var(--nexus-radius-lg);
+    padding: var(--nexus-space-4);
+    box-shadow: var(--nexus-shadow-sm);
+  }
+  .pp-header::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
+    border-radius: var(--nexus-radius-full);
+    background: linear-gradient(90deg, var(--nexus-color-brand), var(--nexus-color-accent-1) 45%, transparent 85%);
+    opacity: .55; pointer-events: none;
+  }
+  .pp-heading { min-width: 0; }
+  /* 渐变墨字：浅色主题下 fg-1 端保证可读，不是白字写白底；绝不再挂 text-fg-* utility */
+  .pp-title {
+    font-weight: 650; letter-spacing: -0.01em;
+    background: linear-gradient(115deg, var(--nexus-color-fg-1) 28%, var(--nexus-color-brand) 92%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .pp-subtitle { margin-top: var(--nexus-space-1); line-height: 1.5; }
+  /* 钉住版说明：弱化但可读的虚线隔离条，强调"分享链接不随工作稿变" */
+  .pp-pinned {
+    margin-top: var(--nexus-space-2); padding-top: var(--nexus-space-2);
+    border-top: 1px dashed var(--nexus-color-border-subtle); line-height: 1.55;
+  }
+  /* 回到作品页：门面胶囊 + hover 抬升辉光 + 键盘 focus 描边 */
+  .pp-back {
+    position: relative; overflow: hidden; min-height: 1.75rem;
+    padding: var(--nexus-space-1) var(--nexus-space-3);
+    border: 1px solid var(--nexus-color-border-subtle);
+    border-radius: var(--nexus-radius-full);
+    background: color-mix(in srgb, var(--nexus-color-bg-2) 65%, transparent);
+    box-shadow: var(--nexus-shadow-sm); font-weight: 600; text-decoration: none;
+    transition: transform var(--nexus-motion-base) var(--nexus-motion-ease), box-shadow var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .pp-back:hover { transform: translateY(-2px); box-shadow: 0 6px 18px color-mix(in srgb, var(--nexus-color-brand) 22%, transparent); }
+  .pp-back:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  /* 空态 / 错误态：柔和径向辉光门面，居中不空旷，但不冒充"有游戏" */
+  .pp-empty {
+    position: relative;
+    background:
+      radial-gradient(110% 70% at 50% 0%, color-mix(in srgb, var(--nexus-color-brand) 7%, transparent), transparent 68%),
+      color-mix(in srgb, var(--nexus-color-bg-1) 60%, var(--nexus-color-bg-2) 40%);
+    border: 1px solid var(--nexus-color-border-subtle);
+    border-radius: var(--nexus-radius-lg);
+    box-shadow: var(--nexus-shadow-sm);
+  }
+  .pp-emptyTitle { font-weight: 650; letter-spacing: -0.01em; }
+  /* 读不出来态：warn 左竖线 + 中性说明，强调是诚实读不出来而非悄悄空关卡 */
+  .pp-broken { border-left: 3px solid var(--nexus-color-warn); }
+  /* 校验问题条：warn 左竖线的克制提示，不是错误页 */
+  .pp-issues {
+    position: relative; padding: var(--nexus-space-2) var(--nexus-space-3);
+    border-left: 3px solid var(--nexus-color-warn);
+    background: color-mix(in srgb, var(--nexus-color-warn) 5%, var(--nexus-color-bg-1));
+    border-radius: 0 var(--nexus-radius-md) var(--nexus-radius-md) 0; line-height: 1.55;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pp-back { transition: none; }
+    .pp-back:hover { transform: none; }
+  }
 }
