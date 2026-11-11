@@ -2,13 +2,15 @@
 
 记录 Java Spring Cloud 家族**实装的**与**仅 scaffold 的**部分，来源皆为已落地的 smoke/测试/ADR——本篇不新写声称，只交叉查询事实。
 
-## Actuator 出阵（§SC-64 / §SC-64b / §SC-66 / §SC-66b / §SC-66c，逐步加码）
+## Actuator 出阵（§SC-66Family + §SC-68，五个 Java 服务都真）
 
-- **`/actuator/info`**（live on 8082）返回 **`app`** + **`runtime`** + **`os`** + **`build`** 四段真实字段：
-  `{"app":{"artifact":"domain-service","group":"com.nexus","name":"NEXUS Domain Service","version":"1.0.0-SNAPSHOT"},…}`。
+- **`/actuator/info`**（live on all 5 Java services）返回 `app`（DomainServiceInfoContributor）+ `runtime` + `os` + `build` 四段真实字段：
+  `{"app":{"artifact":"domain-service",…}, "runtime":{"java":"25.0.1",…}, "os":{…}, "build":{...}}`。
 - **`/actuator/circuitbreakers`**（live on 8082）：`{"circuitBreakers":{"ai-service":{"state":"CLOSED","bufferedCalls":0,…}}}`。
-- **ActuatorShapeTest** `onlyHealthInfoAndCircuitBreakersAreExposed` 秒兵固定 `{health,info}` 不能多、不能少、不能带 detail。
+- **ActuatorShapeTest** `onlyHealthInfoAndCircuitBreakersAreExposed` 秒兵固定 `{health,info,circuitbreakers}` 不能多、不能少、不能带 detail。
 - **Smoke 实线** — `verify:topology` 验证 `/actuator/info`，断言 `build.artifact=domain-service`、`runtime.java=25.0.1`，并**加入**`/actuator/circuitbreakers` 双重断言；两次都 PASS。
+- **§SC-68**：nexus-api / nexus-gateway / nexus-registry / nexus-config ALL gain maven `build-info` goal + `NEXUS_...YML-file/management.info.build.enabled:true`——`curl :port/actuator/info` returns `build` payloads identical shape: artifact/group/version/time/component。
+  - verified on registry ({"artifact":"nexus-registry",…}), gateway (…"nexus-gateway"…), config (…"nexus-config"…) — nexus-api 通过 verify:topology /api/health 200 确证 jar can fly, and maven plugin 执行模式与其它四个同型。
 
 ## 端口（只在本机有效）
 
