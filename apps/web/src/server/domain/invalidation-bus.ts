@@ -54,9 +54,14 @@ export interface InvalidationBusStats {
   readonly published: number;
   /** 收到的合法远端帧数（已扣掉自己回环那帧） */
   readonly received: number;
-  /** 坏帧 / 线路错误数（不落到 generation 变更） */
+  /**
+   * 没能正常处置的**总账**：接收侧坏帧 / 线路错误 / 坏回调，加 §MQ-2 发送侧出站超界拒绝。
+   * 出站拒绝是**本机**没让帧上线路（对端没丢任何东西），其余才是线路/对端侧——下片若要分列
+   * 可加独立 `rejected` 字段；当前统一记这一账，面板文案须说清它含"本机拒发"这一类。
+   */
   readonly errors: number;
-  /** 消息处理回调数（每帧对每个合法 viewerId 算一次本地失效） */
+  /** 本地处置数：至少一个 listener 成功处置一帧才按「帧 × viewerIds.length」记一次（全局帧记 1），
+   *  与订阅者个数无关；全抛 / 零订阅不虚记。§MQ-1 已收紧，非"每 listener 的回调次数"。 */
   readonly applied: number;
 }
 

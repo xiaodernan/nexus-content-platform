@@ -120,12 +120,18 @@ export function DiscoverPanel({ initial, initialError }: { initial: DiscoverCach
         </div>
         <p className="dc-busDetail">{tag.detail}</p>
         {busAttached && stats.bus ? (
-          <div className="dc-ledgerGrid" data-discover-bus-ledger>
-            <LedgerRow label="发出帧 published" value={dashOr(stats.bus.published)} />
-            <LedgerRow label="收到帧 received" value={dashOr(stats.bus.received)} />
-            <LedgerRow label="线路错误 errors" value={dashOr(stats.bus.errors)} />
-            <LedgerRow label="本地处置 applied" value={dashOr(stats.bus.applied)} />
-          </div>
+          <>
+            <div className="dc-ledgerGrid" data-discover-bus-ledger>
+              <LedgerRow label="发出帧 published" value={dashOr(stats.bus.published)} />
+              <LedgerRow label="收到帧 received" value={dashOr(stats.bus.received)} />
+              <LedgerRow label="错误合计 errors" value={dashOr(stats.bus.errors)} />
+              <LedgerRow label="本地处置 applied" value={dashOr(stats.bus.applied)} />
+            </div>
+            <p className="dc-note" data-discover-errors-note>
+              错误合计含本机出站拒发（超界/坏 id 帧没让上线路、对端没丢）、坏帧、线路错误与坏回调；
+              出站拒发不是线路故障。细分拒发次数留待将来真有批量失效调用方时另立分列读数。
+            </p>
+          </>
         ) : (
           <p className="dc-busHint" data-discover-bus-null>
             四账此刻不是 0，是"没有这条线路"——本机屏蔽/关注的即时失效仍照旧工作。

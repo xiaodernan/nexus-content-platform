@@ -6,8 +6,9 @@
  *     "总线为什么不收发"这个不存在的事故——**没接 ≠ 接了但全 0**（null≠0，这一片最重要的一句）；
  *   - `hitRate(0,0)` 若画成 "0%"，就把"这台实例还没人读过"说成了"缓存一个都没命中"；
  *   - `pollAllowed('hidden')` 若返回 true，面板就在没人看的后台标签里给本实例制造轮询流量；
- *   - `busTag(bus)` 若把 `errors>0` 画成绿，就把"线路丢过帧/连不上"藏了起来——而那正是
- *     ADR-0114 诚实边界的落点（跨实例最终一致、丢帧退回 TTL）；
+ *   - `busTag(bus)` 若把 `errors>0` 画成绿，就把"错误"藏了起来——而那正是 ADR-0114 诚实边界的
+ *     落点（跨实例最终一致、丢帧退回 TTL）；反过来也不许甩锅：`errors` 含 §MQ-2 的**本机出站拒发**
+ *     （帧没上线路、对端没丢），把它说成"线路有过错误/丢帧的那几台"是一句读反的谎（ADR-0150）；
  *   - `wavesHeadline([])` 若把"还没有失效波"画成"没有惊群"，就把"还没发布过 public 作品"
  *     说成"压测过且很平稳"——空榜是"没触发采样"，不是"测过没事"（§SC-45 同一家族的诚实）；
  *   - `waveRow` 把 `firstFillMs:null`（窗口内无人读）画成 0ms，会谎称"失效瞬间就有人重填"；
@@ -45,7 +46,17 @@ export interface BusTag {
   readonly connected: boolean;
 }
 
-/** 总线状态三档：没接（null，中性）/ 已接且无错（success）/ 已接但丢过帧（warn 呼吸）。 */
+/**
+ * `errors` 那句旁注抽成纯函数（判据测返回值、不测文件文本）：说清这一账**含本机出站拒发**——
+ * 超界/坏 id 的帧根本没让上线路、对端没丢任何东西；其余（坏帧/线路错误/坏回调）才可能涉及对端。
+ * `errors=0` 的反向支刻意不说"拒发过/丢过帧"，防"文案写了词、0 时也谎称有错"那类假绿。
+ */
+export function busErrorsNote(errors: number): string {
+  if (errors === 0) return '错误 0 · 还没发生过需要记的错误（0 是"还没发生"，不是"测过都健康"）；跨实例仍可能丢帧退回 TTL。';
+  return `错误 ${errors}（含本机出站拒发 / 坏帧 / 线路错误 / 坏回调）；本机拒发是没让帧上线路、对端没丢，其余真丢帧的对端则退回 TTL（15s）自愈。`;
+}
+
+/** 总线状态三档：没接（null，中性）/ 已接且有错（warn）/ 已接且账上无错（success）。 */
 export function busTag(bus: InvalidationBusStats | null): BusTag {
   if (bus === null) {
     return {
@@ -58,15 +69,16 @@ export function busTag(bus: InvalidationBusStats | null): BusTag {
   if (bus.errors > 0) {
     return {
       dot: 'gw-dotUnknown',
-      headline: '已接 · 线路有过错误',
-      detail: `发出 ${bus.published} · 收到 ${bus.received} · 错误 ${bus.errors} · 处置 ${bus.applied}；丢帧的那几台会退回 TTL（15s）自愈。`,
+      // 出站拒发是本机没让帧上线路，不能甩锅"线路"或"那几台对端"——只说账上有错。
+      headline: '已接 · 账上有错误',
+      detail: `发出 ${bus.published} · 收到 ${bus.received} · ${busErrorsNote(bus.errors)} 处置 ${bus.applied}。`,
       connected: true,
     };
   }
   return {
     dot: 'gw-dotUp',
     headline: '已接 · 线路正常',
-    detail: `发出 ${bus.published} · 收到 ${bus.received} · 错误 0 · 处置 ${bus.applied}；跨实例是最终一致，不是瞬时强一致。`,
+    detail: `发出 ${bus.published} · 收到 ${bus.received} · ${busErrorsNote(0)} 处置 ${bus.applied}；跨实例是最终一致，不是瞬时强一致。`,
     connected: true,
   };
 }
