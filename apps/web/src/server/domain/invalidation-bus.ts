@@ -17,6 +17,9 @@
  *    收到自己那帧就丢掉——否则本地那次失效会被广播再通知一遍（幂等但冗余且难读）。
  * 3. **线路字节不可信**：`viewerIds` 过校验（字符串数组 + 长度/条数上限），坏帧记账丢弃，
  *    绝不把线路上的字节直接当成要 bump 的 viewer 集合。
+ * 4. **出站也守同一界**（§MQ-2 / ADR-0149）：`publish` 用 `isValidOutboundFrame` 在序列化前自检
+ *    定向帧条数/长度，超界就地记 error 拒绝——否则发布侧记了 `published`，对端却按坏帧丢，
+ *    账本与线路对不上。两种驱动共用这一个纯函数，不各写一份（防漂移）。
  *
  * **热读零网络**：本模块只在 `invalidateDiscoverFor`（写路径）与 message handler（后台）运行，
  * `loadDiscoverCached` 一行都不碰。写路径 `publish` 是 fire-and-forget 同步 void，连不上线路
@@ -107,6 +110,21 @@ export function parseInvalidationFrame(payload: string): InvalidationFrame | nul
   if (ids.length === 0 || ids.length > MAX_VIEWERS_PER_FRAME) return null;
   if (ids.some((id) => typeof id !== 'string' || id.length === 0 || id.length > MAX_VIEWER_ID_LENGTH)) return null;
   return { v: 1, origin: candidate['origin'], viewerIds: ids as string[] };
+}
+
+/**
+ * §MQ-2 / ADR-0149：出站定向帧守界——与 `parseInvalidationFrame` 的定向帧护栏逐字同构。
+ * 发送侧必须在 `published += 1` 之前过这一关，否则会记出"发布成功、对端按坏帧丢"的谎账。
+ *
+ * - 全局帧（`global === true`）由 `publish` 固定序列化成 `viewerIds: []`，形状恒合法，放行；
+ * - 定向帧：空集是 no-op（调用方已早退，这里也拒绝），条数 1..MAX_VIEWERS_PER_FRAME，
+ *   每个 id 长度 1..MAX_VIEWER_ID_LENGTH；
+ * - **纯函数**：只判形状、返回 boolean，不碰 counters（记账统一在 publish 的拒绝分支）。
+ */
+export function isValidOutboundFrame(viewerIds: string[], global?: boolean): boolean {
+  if (global === true) return true;
+  if (viewerIds.length === 0 || viewerIds.length > MAX_VIEWERS_PER_FRAME) return false;
+  return viewerIds.every((id) => id.length > 0 && id.length <= MAX_VIEWER_ID_LENGTH);
 }
 
 /** 帧序列化：包 try，坏数据（不该发生）也只让这一帧不发出去，不带崩写路径。 */
@@ -229,6 +247,12 @@ export class MemoryInvalidationBus implements InvalidationBus {
     if (this.disposed) return;
     // global 帧必须空 viewerIds；定向帧空集是 no-op（与生产 Redis 驱动同一口径）。
     if (global !== true && viewerIds.length === 0) return;
+    // §MQ-2 / ADR-0149：出站守界——超界/坏 id 就地拒绝，记 error、不记 published、不上线路。
+    // 与 Redis 生产驱动共用同一纯函数，防两边护栏漂移；对端永远只收得到自己会认的合法帧。
+    if (!isValidOutboundFrame(viewerIds, global)) {
+      this.counters.errors += 1;
+      return;
+    }
     const payload = serializeFrame(
       global === true
         ? { v: 1, origin: this.origin, viewerIds: [], global: true }
@@ -355,6 +379,12 @@ export class RedisInvalidationBus implements InvalidationBus {
     if (this.disposed) return;
     // §SC-44：全局帧（viewerIds 空）不再被这条早退挡掉；定向帧空集仍是 no-op。
     if (global !== true && viewerIds.length === 0) return;
+    // §MQ-2 / ADR-0149：出站守界——超界/坏 id 就地拒绝，帧不挨 ioredis、不记 published、只记 error。
+    // 与 ADR-0132 的 64 KiB 帧护栏同一纪律（发送端自律：pub/sub 没有背压，坏帧只能自己不上线路）。
+    if (!isValidOutboundFrame(viewerIds, global)) {
+      this.counters.errors += 1;
+      return;
+    }
     const payload = serializeFrame(
       global === true
         ? { v: 1, origin: this.origin, viewerIds: [], global: true }
