@@ -20,6 +20,26 @@ spring:
     # proof service a FOREIGN `eureka.client.service-url` (ADR 0057 amendment 658). Compose publishes
     # this door on 18888 and the smoke probes 18888; the default now agrees with both.
     import: "optional:configserver:${NEXUS_CONFIG_SERVER_URL:http://127.0.0.1:18888}"
+  # v657 — the rate limiter's COUNTER lives here. Spring Cloud Gateway's `RequestRateLimiter` runs a
+  # token bucket as a Lua script INSIDE Redis, so "how many tokens are left" is one round trip and the
+  # numbers are shared by every edge instance — an in-process map would give each replica its own
+  # private limit, which multiplies the real limit by the replica count and is invisible until a
+  # deployment scales.
+  #
+  # The 300 ms timeouts are a decision, not a default: this is a GUARD, and a guard that waits a full
+  # second for its own counter is a guard that has become the outage. Measured consequence of the
+  # timeout being short — a slow Redis turns into the degraded path (see ResilientRateLimiter), which
+  # serves the request and labels it, rather than into p99 latency for every caller.
+  data:
+    redis:
+      host: ${NEXUS_REDIS_HOST:127.0.0.1}
+      port: ${NEXUS_REDIS_PORT:6379}
+      # A separate database index, so the edge's counters cannot collide with whatever else shares a
+      # Redis. Compose publishes this instance on 56379 and the proof points here; a deployment sets
+      # NEXUS_REDIS_DB to a free index.
+      database: ${NEXUS_REDIS_DB:0}
+      timeout: ${NEXUS_REDIS_TIMEOUT:300ms}
+      connect-timeout: ${NEXUS_REDIS_CONNECT_TIMEOUT:300ms}
   cloud:
     gateway:
       server:
@@ -37,6 +57,30 @@ spring:
                 - Path=/api/**
               filters:
                 - StripPrefix=1
+                # v657 — the limit comes BEFORE the breaker, on purpose. A caller who is over the
+                # limit is over it whether or not the upstream is healthy; counted after the breaker,
+                # an open circuit would answer 503 and the edge would stop counting exactly when the
+                # traffic it is supposed to protect against is the traffic it cannot see.
+                #
+                # `key-resolver`/`rate-limiter` are bean NAMES on purpose (`#{}` is SpEL, not a
+                # placeholder): the next reader can see WHICH limiter this route means without
+                # knowing what `@Primary` happened to resolve to. Both are `@Primary` as well, because
+                # the filter factory injects its defaults by type.
+                #
+                # The numbers are per CALLER, not global: the key is the caller's address and the
+                # bucket is per (route, key). 50/s sustained with a 100 burst is a generous ceiling for
+                # one address — the point of the default is that a runaway client hits a wall before
+                # the upstream does; the proof lowers it to 3/3 through the same knobs.
+                - name: RequestRateLimiter
+                  args:
+                    key-resolver: "#{@edgeKeyResolver}"
+                    rate-limiter: "#{@nexusRateLimiter}"
+                    redis-rate-limiter.replenishRate: ${NEXUS_RATE_LIMIT_RPS:50}
+                    redis-rate-limiter.burstCapacity: ${NEXUS_RATE_LIMIT_BURST:100}
+                    redis-rate-limiter.requestedTokens: 1
+                    # 429, named rather than left to the library's default: this is the status the
+                    # proof reads, and the one RFC 9110 defines for "the caller sent too many".
+                    statusCode: TOO_MANY_REQUESTS
                 - name: CircuitBreaker
                   args:
                     name: nexusApiCircuitBreaker
@@ -117,3 +161,9 @@ logging:
 # (no file, no behaviour change) — same rule the other Java services follow.
 nexus:
   port-file: ${NEXUS_PORT_FILE:}
+  edge:
+    rate-limit:
+      # How often the "I could not count this request and served it anyway" WARN may reach the log.
+      # During a counter outage every request takes that path; the metric is per request, the line is
+      # not. Ten seconds is a line per ten seconds per route rather than a few hundred per second.
+      warn-interval: ${NEXUS_RATE_LIMIT_WARN_INTERVAL:10s}

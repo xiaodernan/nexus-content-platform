@@ -69,6 +69,16 @@
       <artifactId>spring-cloud-starter-circuitbreaker-reactor-resilience4j</artifactId>
     </dependency>
 
+    <!-- v657 — the rate limiter's COUNTER. `RedisRateLimiter` (Spring Cloud Gateway) runs a Lua
+         token-bucket script against a Redis, so without this starter the class is on the classpath
+         (gateway-server carries it) and has no `ReactiveStringRedisTemplate` to count with: the
+         limiter would exist, be named by the route, and fail on every request. `reactive` on purpose —
+         the gateway runs on Reactor and a blocking template would hold an event-loop thread. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
+    </dependency>
+
     <!-- Discovery: with a registry running, a route may name `lb://<service>` and the gateway
          resolves it to a live instance instead of a hard-coded address. -->
     <dependency>

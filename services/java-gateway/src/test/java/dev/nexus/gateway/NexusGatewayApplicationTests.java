@@ -49,6 +49,13 @@ class NexusGatewayApplicationTests {
     @DynamicPropertySource
     static void edgeProperties(DynamicPropertyRegistry registry) {
         registry.add("NEXUS_GATEWAY_NEXUS_API_URI", () -> "http://127.0.0.1:" + STUB.port());
+        // v657 — this class is about FORWARDING and about an absent UPSTREAM. The rate limiter's
+        // counter is pinned to a port nothing listens on so that "no counter" is a fact of the test
+        // rather than a fact of the machine: the decorated limiter admits under a labelled
+        // degradation, and the two legs below keep asserting exactly what they asserted before.
+        // Without this, the same test would pass on a host with a Redis and fail on one without —
+        // or worse, pass for a different reason on each.
+        registry.add("spring.data.redis.port", () -> 6399);
     }
 
     @Test
