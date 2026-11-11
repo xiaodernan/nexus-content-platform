@@ -86,6 +86,7 @@ export function RealtimeStatsPanel() {
   // 都会让"这台现在通不通"这一格说得出一句没根据的话，所以只认四档、其余归 `na`
   const live = liveTag(stats.wire);
   const javaRows = javaWirePanelRows(stats.javaWire);
+  const breakers = stats.javaBreakers;
 
   return (
     <div className="flex flex-col gap-2 text-13" data-realtime-stats="ready">
@@ -124,6 +125,37 @@ export function RealtimeStatsPanel() {
           <p className="text-13 text-fg-2" data-java-wire="missing">
             {javaWireNote(stats.javaWire)}
           </p>
+        )}
+      </section>
+      <section data-java-breakers className="flex flex-col gap-1 border-t border-[var(--nexus-color-border-subtle)] pt-2">
+        <p className="text-11 font-medium text-fg-3" data-java-breakers-title>actuator circuitbreakers（Java 自己报）</p>
+        {breakers === null && (
+          <p className="text-13 text-fg-2" data-java-breakers="missing">
+            没拿到 actuator 读数——没有在这份回执里看到 circuitBreakers 这格（不是"闭合"，是这台 instance 没接）。
+          </p>
+        )}
+        {Array.isArray(breakers) && breakers.length === 0 && (
+          <p className="text-13 text-fg-2" data-java-breakers="empty">
+            actuator 有，breaker 0 个——这台 domain-service 没装 resilience4j。
+          </p>
+        )}
+        {Array.isArray(breakers) && breakers.length > 0 && (
+          <dl className="grid grid-cols-[10rem_1fr_1fr_1fr] gap-x-3 gap-y-1 text-12">
+            <dt className="text-fg-3">name / state</dt>
+            <dt className="text-fg-3">bufferedCalls</dt>
+            <dt className="text-fg-3">failedCalls</dt>
+            <dt className="text-fg-3">failureRate</dt>
+            {breakers.map((b) => (
+              <Fragment key={b.name}>
+                <dt className="font-medium" data-java-breaker-name={b.name}>
+                  {b.name} <span className="text-fg-3 text-11">· {b.state}</span>
+                </dt>
+                <dd data-java-breaker-buffered={b.name} className="tabular-nums text-fg-1">{b.bufferedCalls}</dd>
+                <dd data-java-breaker-failed={b.name} className="tabular-nums text-fg-1">{b.failedCalls}</dd>
+                <dd data-java-breaker-rate={b.name} className="tabular-nums text-fg-1">{b.failureRate}</dd>
+              </Fragment>
+            ))}
+          </dl>
         )}
       </section>
       {stats.wireErrorCount !== null && stats.wireErrorCount > 0 ? (

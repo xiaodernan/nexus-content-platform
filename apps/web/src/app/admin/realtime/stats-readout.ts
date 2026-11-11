@@ -6,7 +6,7 @@
  * 一句合成话的写法在界面上看不出任何毛病，只能把逐档措辞变成可判定的纯函数来钉。
  */
 
-import type { BreakerState, JavaWireStats } from '@/server/realtime/java-wire';
+import type { BreakerState, JavaWireStats, JavaActuatorBreakerEntry } from '@/server/realtime/java-wire';
 
 /** 跨实例线路的档位：`na` 与 `down` 是两句话——没有这回事 ≠ 有一根断了的线 */
 export type WireLive = 'up' | 'pending' | 'down' | 'na';
@@ -29,6 +29,8 @@ export type RealtimeStatsReadout = {
   wireErrorByReason: Record<string, number> | null;
   /** §SC-58：Java 生产者（domain-service）那一侧的读数。`undefined`（老回执没带）/`null`（这次没拿到）= 没接上，**不是**"接了但都是 0" */
   javaWire?: JavaWireStats | null;
+  /** §SC-64：/actuator/circuitbreakers 原样端出"name → entry"的清单；`null` = 没拿到，`[]` = 拿到但空。 */
+  javaBreakers?: JavaActuatorBreakerEntry[] | null;
 };
 
 /**

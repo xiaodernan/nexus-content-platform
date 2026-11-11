@@ -83,7 +83,9 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        # circuitbreakers 是运维 smoke 读数（SC-64）——Feign 的中断器计这次如何，
+        # 开放**只读**，无内容无载荷，不泄漏；bug_rate/计数只在 .send/stats 里体现。
+        include: health,info,circuitbreakers
   endpoint:
     health:
       show-details: never

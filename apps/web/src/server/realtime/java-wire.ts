@@ -28,6 +28,7 @@ export interface JavaWireStats {
 }
 
 const DEFAULT_URL = 'http://127.0.0.1:8082/api/v1/realtime/stats';
+const DEFAULT_ACTUATOR_URL = 'http://127.0.0.1:8082/actuator/circuitbreakers';
 
 const BREAKER_STRINGS = new Set(['CLOSED', 'OPEN', 'HALF_OPEN']);
 
@@ -70,6 +71,76 @@ export async function fetchJavaWireStats(): Promise<JavaWireStats | null> {
       redisFailures: data.redisFailures,
       ...(data.breakerState === undefined ? {} : { breakerState: data.breakerState }),
     };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * `/actuator/circuitbreakers` 读数门面（§SC-64）。这次是 Spring Boot actuator 原生物——
+ * Java 自己报断路器状态（不只是 Feign-wiring-name-aware 的 `ai-service`）。
+ *
+ * 形状固定（Boot 3.x 原样的 `{"circuitBreakers":{"<name>":{...}}}`）。
+ * 我们只放行 `ai-service`（目前唯一的一个 breaker）；
+ * 不认识的不要盲追 —— 否则 gateway 在机器上有多个 instance，web 不区分这就动摇"
+ * 这一台 domain-service"的身份了。
+ */
+export interface JavaActuatorBreakerEntry {
+  name: string;
+  /** 原样透传断路器的状态字（CLOSED / OPEN / HALF_OPEN / DISABLED /  future: ...）。 */
+  state: string;
+  failureRate: string;
+  slowCallRate: string;
+  failureRateThreshold: string;
+  slowCallRateThreshold: string;
+  bufferedCalls: number;
+  failedCalls: number;
+  slowCalls: number;
+  slowFailedCalls: number;
+  notPermittedCalls: number;
+}
+
+export async function fetchJavaActuatorBreakers(): Promise<JavaActuatorBreakerEntry[] | null> {
+  const url = process.env.NEXUS_JAVA_BREAKERS_URL?.trim() || DEFAULT_ACTUATOR_URL;
+  try {
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(3_000),
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    const data: unknown = await res.json();
+    if (typeof data !== 'object' || data === null) return null;
+    const circuitBreakers = (data as { circuitBreakers?: unknown }).circuitBreakers;
+    if (typeof circuitBreakers !== 'object' || circuitBreakers === null) return null;
+    const entries: JavaActuatorBreakerEntry[] = [];
+    for (const [name, raw] of Object.entries(circuitBreakers)) {
+      if (typeof raw !== 'object' || raw === null) continue;
+      const b = raw as Record<string, unknown>;
+      const bufferedCalls = typeof b.bufferedCalls === 'number' ? b.bufferedCalls : NaN;
+      const failedCalls = typeof b.failedCalls === 'number' ? b.failedCalls : NaN;
+      const slowCalls = typeof b.slowCalls === 'number' ? b.slowCalls : NaN;
+      const slowFailedCalls = typeof b.slowFailedCalls === 'number' ? b.slowFailedCalls : NaN;
+      const notPermittedCalls = typeof b.notPermittedCalls === 'number' ? b.notPermittedCalls : NaN;
+      if ([bufferedCalls, failedCalls, slowCalls, slowFailedCalls, notPermittedCalls].some((n) => !Number.isFinite(n))) continue;
+      if (typeof b.state !== 'string' || b.state.trim().length === 0) continue;
+      if (typeof b.failureRate !== 'string' || typeof b.slowCallRate !== 'string') continue;
+      if (typeof b.failureRateThreshold !== 'string' || typeof b.slowCallRateThreshold !== 'string') continue;
+      if (!/^[a-zA-Z0-9._-]+$/.test(name)) continue;   // 断线垃圾 key 剔除
+      entries.push({
+        name,
+        state: b.state,
+        failureRate: b.failureRate,
+        slowCallRate: b.slowCallRate,
+        failureRateThreshold: b.failureRateThreshold,
+        slowCallRateThreshold: b.slowCallRateThreshold,
+        bufferedCalls,
+        failedCalls,
+        slowCalls,
+        slowFailedCalls,
+        notPermittedCalls,
+      });
+    }
+    return entries;
   } catch {
     return null;
   }
