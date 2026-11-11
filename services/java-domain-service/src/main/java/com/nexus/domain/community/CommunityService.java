@@ -2,11 +2,13 @@ package com.nexus.domain.community;
 
 import com.nexus.domain.project.Project;
 import com.nexus.domain.project.ProjectRepository;
+import com.nexus.domain.user.User;
 import com.nexus.domain.user.UserRepository;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
 
 /**
  * Community interactions for the JVM write path (SC-17). This replaces five TODO bodies with the two
@@ -21,8 +23,11 @@ import org.springframework.transaction.annotation.Transactional;
  *   <li><b>Block / mute writes.</b> Creating a block also tears down both follow edges and suppresses
  *       notifications on the web side; a second writer of just the row would leave the hole open. This
  *       service reads the relation and never changes it.</li>
- *   <li><b>Notifications.</b> The web layer emits them after a successful action. Two emitters would double
- *       every inbox row, so the JVM path stays silent and the README names that as a known limit.</li>
+ *   <li><b>Inbox notifications.</b> The web layer writes the inbox row after a successful action; the JVM
+ *       path writes nothing there (two writers of one table = two facts). But since §SC-54 the JVM path
+ *       <b>does</b> speak on the realtime wire ({@code nexus:realtime:v1}, channel {@code user:<userId>})
+ *       with an AFTER_COMMIT frame — see {@code WireCommunityEventListener} and ADR-0129.
+ *       Wire frames never write inbox rows, so the double-inbox hazard stays closed.</li>
  * </ul>
  *
  * <p>Every rule that decides an outcome comes from {@link CommunityPolicy}, which reads the web layer's
@@ -41,6 +46,7 @@ public class CommunityService {
     private final LikeRepository likes;
     private final FollowRepository follows;
     private final UserBlockRepository blocks;
+    private final ApplicationEventPublisher events;
 
     public CommunityService(
             CommunityPolicy policy,
@@ -49,7 +55,8 @@ public class CommunityService {
             UserRepository users,
             LikeRepository likes,
             FollowRepository follows,
-            UserBlockRepository blocks) {
+            UserBlockRepository blocks,
+            ApplicationEventPublisher events) {
         this.policy = policy;
         this.publications = publications;
         this.projects = projects;
@@ -57,6 +64,7 @@ public class CommunityService {
         this.likes = likes;
         this.follows = follows;
         this.blocks = blocks;
+        this.events = events;
     }
 
     /** The wire shape is the contract's: packages/schemas → community-like-state.schema.json. */
@@ -95,6 +103,9 @@ public class CommunityService {
             likes.deleteRow(actorId, projectId);
         } else {
             likes.insertIgnoringConflict(actorId, projectId);
+            // 局部事件——AFTER_COMMIT 才上线路（§SC-54）；取消点赞不发。
+            events.publishEvent(new CommunityEvents.LikeAdded(
+                    actorId, project.getOwnerId(), projectId, project.getName(), displayNameOf(actorId)));
         }
         return new LikeState(!existed, likes.countByProjectId(projectId), null, null);
     }
@@ -117,6 +128,7 @@ public class CommunityService {
             follows.deleteRow(actorId, targetUserId);
         } else {
             follows.insertIgnoringConflict(actorId, targetUserId);
+            events.publishEvent(new CommunityEvents.FollowAdded(actorId, targetUserId, displayNameOf(actorId)));
         }
         return new FollowState(!existed, follows.countByFolloweeId(targetUserId), null, null);
     }
@@ -147,6 +159,15 @@ public class CommunityService {
         // An unrecognised kind is "no relation", never "block": refusing somebody's normal interaction on
         // the strength of a row we cannot interpret is worse than letting it through.
         return kind.filter(policy.blockKinds()::contains).orElse(null);
+    }
+
+    /** Actor's display name for the wire frame; null tolerated — the listener falls back to "有人". */
+    private String displayNameOf(UUID userId) {
+        try {
+            return users.findById(userId).map(User::getDisplayName).orElse(null);
+        } catch (RuntimeException ignored) {
+            return null;
+        }
     }
 
     public long likeCount(UUID projectId) {

@@ -177,6 +177,7 @@
     "two:instance": "tsx scripts/two-instance-roundtrip.mts",
     "realtime:two-process": "tsx scripts/realtime-two-process.mts",
     "realtime:java-to-web": "tsx --tsconfig apps/web/tsconfig.json scripts/realtime-java-to-web.mts",
+    "realtime:java-community": "tsx --tsconfig apps/web/tsconfig.json scripts/realtime-java-community.mts",
     "ratelimit:two-process": "tsx scripts/rate-limit-two-process.mts",
     "ratelimit:gateway-lua": "tsx scripts/gateway-rate-lua-live.mts",
     "probe:413": "tsx scripts/import-413-probe.mts",

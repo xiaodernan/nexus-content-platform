@@ -11,7 +11,9 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.nexus.domain.project.Project;
+import org.springframework.context.ApplicationEventPublisher;
 import com.nexus.domain.project.ProjectRepository;
+import com.nexus.domain.user.User;
 import com.nexus.domain.user.UserRepository;
 import java.time.Instant;
 import java.util.Optional;
@@ -47,6 +49,7 @@ class CommunityServiceTest {
     @Mock private LikeRepository likes;
     @Mock private FollowRepository follows;
     @Mock private UserBlockRepository blocks;
+    @Mock private ApplicationEventPublisher events;
 
     private CommunityPolicy policy;
     private CommunityService service;
@@ -54,7 +57,7 @@ class CommunityServiceTest {
     @BeforeEach
     void setUp() {
         policy = new CommunityPolicy();
-        service = new CommunityService(policy, publications, projects, users, likes, follows, blocks);
+        service = new CommunityService(policy, publications, projects, users, likes, follows, blocks, events);
     }
 
     // ---- like ----
@@ -282,6 +285,91 @@ class CommunityServiceTest {
 
         assertThat(service.toggleFollow(ACTOR, OWNER).following()).isTrue();
         verify(follows).insertIgnoringConflict(ACTOR, OWNER);
+    }
+
+    // ---- §SC-54 domain events ----
+
+    @Test
+    void aFirstLikeAlsoFiresLikeAdded_withOwnerProjectAndActorName() {
+        givenPublication("public", "pending", false);
+        when(likes.existsByUserIdAndProjectId(ACTOR, PROJECT)).thenReturn(false);
+        when(likes.countByProjectId(PROJECT)).thenReturn(1L);
+        User actor = mock(User.class);
+        when(actor.getDisplayName()).thenReturn("阿南");
+        when(users.findById(ACTOR)).thenReturn(Optional.of(actor));
+
+        service.toggleLike(ACTOR, PUBLICATION);
+
+        org.mockito.ArgumentCaptor<CommunityEvents.LikeAdded> captor =
+                org.mockito.ArgumentCaptor.forClass(CommunityEvents.LikeAdded.class);
+        verify(events).publishEvent(captor.capture());
+        CommunityEvents.LikeAdded e = captor.getValue();
+        assertThat(e.ownerId()).isEqualTo(OWNER);
+        assertThat(e.projectId()).isEqualTo(PROJECT);
+        assertThat(e.actorName()).isEqualTo("阿南");
+    }
+
+    @Test
+    void aSecondLikeRemovesItAndFiresNoEvent() {
+        givenPublication("public", "approved", false);
+        when(likes.existsByUserIdAndProjectId(ACTOR, PROJECT)).thenReturn(true);
+        when(likes.countByProjectId(PROJECT)).thenReturn(0L);
+
+        service.toggleLike(ACTOR, PUBLICATION);
+
+        verify(events, never()).publishEvent(any());
+    }
+
+    @Test
+    void aBlockedLikeFiresNoEvent() {
+        givenPublication("public", "pending", false);
+        when(blocks.kindOf(OWNER, ACTOR)).thenReturn(Optional.of("block"));
+        when(likes.countByProjectId(PROJECT)).thenReturn(7L);
+
+        service.toggleLike(ACTOR, PUBLICATION);
+
+        verify(events, never()).publishEvent(any());
+    }
+
+    @Test
+    void aFirstFollowFiresFollowAdded_withActorName() {
+        when(users.existsById(OWNER)).thenReturn(true);
+        when(follows.existsByFollowerIdAndFolloweeId(ACTOR, OWNER)).thenReturn(false);
+        when(follows.countByFolloweeId(OWNER)).thenReturn(4L);
+        User actor = mock(User.class);
+        when(actor.getDisplayName()).thenReturn("阿南");
+        when(users.findById(ACTOR)).thenReturn(Optional.of(actor));
+
+        service.toggleFollow(ACTOR, OWNER);
+
+        org.mockito.ArgumentCaptor<CommunityEvents.FollowAdded> captor =
+                org.mockito.ArgumentCaptor.forClass(CommunityEvents.FollowAdded.class);
+        verify(events).publishEvent(captor.capture());
+        CommunityEvents.FollowAdded e = captor.getValue();
+        assertThat(e.targetUserId()).isEqualTo(OWNER);
+        assertThat(e.actorName()).isEqualTo("阿南");
+    }
+
+    @Test
+    void aSecondFollowRemovesTheEdgeAndFiresNoEvent() {
+        when(users.existsById(OWNER)).thenReturn(true);
+        when(follows.existsByFollowerIdAndFolloweeId(ACTOR, OWNER)).thenReturn(true);
+        when(follows.countByFolloweeId(OWNER)).thenReturn(3L);
+
+        service.toggleFollow(ACTOR, OWNER);
+
+        verify(events, never()).publishEvent(any());
+    }
+
+    @Test
+    void aBlockedFollowFiresNoEvent() {
+        when(users.existsById(OWNER)).thenReturn(true);
+        when(blocks.kindOf(OWNER, ACTOR)).thenReturn(Optional.of("block"));
+        when(follows.countByFolloweeId(OWNER)).thenReturn(9L);
+
+        service.toggleFollow(ACTOR, OWNER);
+
+        verify(events, never()).publishEvent(any());
     }
 
     // ---- helpers ----
