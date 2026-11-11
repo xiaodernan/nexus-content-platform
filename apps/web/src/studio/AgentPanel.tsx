@@ -368,7 +368,13 @@ function StepRow({
   const [open, setOpen] = useState(false);
   return (
     <li className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1" data-agent-step={step.id} data-agent-step-status={step.status}>
-      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="flex w-full items-baseline gap-[6px] text-left">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-controls={open ? `agent-step-detail-${step.id}` : undefined}
+        className="flex w-full items-baseline gap-[6px] text-left"
+      >
         <span className={cn('w-[12px] shrink-0 font-mono text-12', STATUS_TONE[step.status] ?? 'text-fg-3')}>
           {STATUS_MARK[step.status] ?? '?'}
         </span>
@@ -408,7 +414,7 @@ function StepRow({
         </div>
       ) : null}
       {open ? (
-        <div className="mt-1 flex flex-col gap-[2px]">
+        <div id={`agent-step-detail-${step.id}`} className="mt-1 flex flex-col gap-[2px]">
           {Object.entries(step.counts).map(([key, value]) => (
             <p key={key} className="font-mono text-11 text-fg-3">
               {key} {value}

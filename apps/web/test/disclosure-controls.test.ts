@@ -26,13 +26,14 @@ import { describe, expect, it } from 'vitest';
  *   - 收起时不该留悬空引用：`aria-controls={open ? id : undefined}` 这种条件写法认，
  *     因为面板 id 只在展开态存在，与 HealthPanel:148 的纪律一致。
  *
- * 豁免清单（带理由，不能一刀切）：
- *   - `studio/AgentPanel.tsx`：折叠区展开的是 `<p data-agent-step-summary>` 与 draft 区两块，
- *     **没有单一受控面板**、无明确单一 id；它是常驻内联展开、非浮层/disclosure 弹层。
- *     强加 aria-controls 得先重构成包裹容器、动结构，超出"零行为变化"边界。
- *     若要收口，正确做法是先给 step 详情一个真实 id（另立片），而不是硬塞。
- *   - `studio/StudioShell.tsx` 的两颗：已带 `aria-controls="nexus-inspector"` 指向 `:382` 真实 id，
- *     是合规范式（一颗 `aria-expanded={false}` 折叠态、一颗裸 `aria-expanded` 展开态），本判据正常放行。
+ * 豁免清单（带理由，不能一刀切）：**当前为空——全库零豁免、13 颗触发键全合规**。
+ *   - 曾有一条 `studio/AgentPanel.tsx` 豁免，理由"折叠区展开的是摘要 `<p>` 与 draft 两块、
+ *     无单一受控面板与 id"。§A11Y-2 收官（ADR-0152）读码证伪：summary `<p>` 与 draft 区
+ *     都**常驻**、不受 `open` 控制；`open` 只控制唯一一块条件渲染的 step 详情面板，
+ *     且 `step.id` 是天然单一键。故给它补 `id={...step.id}` + 条件式 aria-controls 后删除本豁免，
+ *     零行为（只加两个静态属性、不动 open 状态机/渲染分支）。豁免机制本身仍保留并由验电守住。
+ *   - `studio/StudioShell.tsx` 的两颗本就合规（带 `aria-controls="nexus-inspector"` 指向真实 id），
+ *     不需要豁免，本判据正常放行。
  *
  * 已有合规范式（本门守它们零回归）：HealthPanel:189-190 / PublishPanel:95-96 /
  * ExportPanel:129-130 / SearchBox:171-172 / StudioShell:362-363,390-391。
@@ -43,13 +44,12 @@ import { describe, expect, it } from 'vitest';
  */
 const SRC = join(process.cwd(), 'apps/web/src');
 
-/** 带理由的豁免：相对项目根的文件路径（与 scanAll 的 rel 同口径）+ 理由（不许静默塞豁免）。 */
-const EXEMPTIONS: Array<{ file: string; reason: string }> = [
-  {
-    file: 'apps/web/src/studio/AgentPanel.tsx',
-    reason: '折叠区展开的是摘要 <p> 与 draft 两块、无单一受控面板与 id；常驻内联展开非浮层，强加要动结构（另立片先给详情真实 id）',
-  },
-];
+/**
+ * 带理由的豁免：相对项目根的文件路径（与 scanAll 的 rel 同口径）+ 理由（不许静默塞豁免）。
+ * §A11Y-2 收官后**清零**：原 AgentPanel 一条已按 ADR-0152 补真实 id 收口。保留空数组与
+ * 下方"每条豁免须命中真违规"的自卫门——将来真有无法收口的浮层才准带理由加回来，不许静默塞。
+ */
+const EXEMPTIONS: Array<{ file: string; reason: string }> = [];
 
 function tsxFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -247,9 +247,15 @@ describe('§A11Y-2 disclosure 契约（aria-expanded ⇒ aria-controls 指向真
   const unexempt = all.filter((v) => !v.exempt);
 
   it('全库确实扫到了成规模的 aria-expanded 触发键，否则这道门是空的', () => {
-    // 满库合规后仍有 13 颗（Health/Publish/Export/Search/StudioShell×2 + 本片补的 6 + AgentPanel 豁免），
+    // 全库零豁免后仍有 13 颗（Health/Publish/Export/Search/StudioShell×2 + A11Y-2 补的 6 + AgentPanel 1），
     // 下界 12 防"写法一变就静默扫不到"的空转门（FE-5 I=1 假绿教训）
     expect(triggerTotal, `只扫到 ${triggerTotal} 颗 aria-expanded，判据可能失效了`).toBeGreaterThanOrEqual(12);
+  });
+
+  it('全库零豁免：豁免清单已清空，且所有触发键都合规（A11Y-2 收官）', () => {
+    expect(EXEMPTIONS, 'A11Y-2 收官后不该再有豁免；若确需豁免必须带理由且命中真违规').toEqual([]);
+    // 扫全与合规分别由 250 门（triggerTotal≥12）与 255 门（unexempt 无 bad）守；
+    // 这里只钉"零豁免"这一件——全合规时 unexempt 本就该为空，绝不能拿它当"扫到了键"的证据（FE-9 code 纪律）。
   });
 
   it('所有非豁免的 aria-expanded 触发键都有 aria-controls 指向同文件真实 id', () => {
