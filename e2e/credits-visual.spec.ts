@@ -162,3 +162,48 @@ test('@smoke §FE-16 credits 键盘可达：回首页链接的 :focus-visible �
   expect(outline.style, '键盘 focus 无描边样式').toBe('solid');
   expect(parseFloat(outline.width), '描边宽度应大于 0').toBeGreaterThan(0);
 });
+
+const PAGE_SRC = readFileSync(join(process.cwd(), 'apps/web/src/app/credits/page.tsx'), 'utf8');
+
+test('@smoke §FE-16 样本锚真实产物：SAMPLE 的 cr- 类 / data 钩子 / 静态文案逐字出自 credits/page.tsx', async ({ page }) => {
+  test.setTimeout(60_000);
+  // 样本用的每个门面类必须真在产物里（不许喂产物里不存在的伪类给门）
+  const usedClasses = [...new Set([...SAMPLE.matchAll(/class="([^"]+)"/g)].flatMap((m) => m[1]!.split(/\s+/)))].filter((c) => c.startsWith('cr-'));
+  expect(usedClasses.length, '样本没用到任何 cr- 类').toBeGreaterThan(15);
+  for (const c of usedClasses) {
+    expect(PAGE_SRC, `样本用了产物里没有的伪类 ${c}`).toContain(c);
+  }
+  // 关键 data 钩子与静态文案逐字锚产物（动态假数据不锚）
+  for (const hook of ['data-credits-whose', 'data-credit-balance', 'data-credit-cost', 'data-credit-empty',
+    'data-credit-window', 'data-credit-entry', 'data-credit-kind', 'data-credit-delta', 'data-plan-row']) {
+    expect(PAGE_SRC, `样本 data 钩子 ${hook} 产物里没有`).toContain(hook);
+  }
+  for (const copy of ['额度与消费', '四类余额', '最近消费与发放', '档位与上限（§133）',
+    '这里只列最近 20 行；余额是按全部流水算的，不是这 20 行的和。',
+    '一行流水都没有。刚注册完的话，刷新一次这一页就会把本月的额度发下来。']) {
+    expect(PAGE_SRC, `样本静态文案「${copy.slice(0, 16)}…」产物里没有`).toContain(copy);
+  }
+  await page.setContent(htmlFor('dark'), { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('[data-credit-balance]')).toHaveCount(4);
+  await expect(page.locator('[data-credit-delta]')).toHaveCount(2);
+});
+
+test('@smoke §FE-16 字号不串档真渲染：whose 13px / storage 12px / 余额 24px（原 text-13/12/24 逐像素守恒）', async ({ page }) => {
+  test.setTimeout(60_000);
+  // 本版 SAMPLE 没直接放 data-credits-storage/publish-slots，用最小注入样本验三档字号的计算值。
+  // whose 原 text-13、storage/slots 原 text-12、余额数字原 text-24——并进同一类必有一组失真（本轮修实的陷阱②）。
+  await page.setContent(`<!doctype html><html data-nexus-theme="dark"><head><meta charset="utf-8" />
+    <style>${tokensCss}</style><style>${crCss}</style></head><body>
+    <p class="cr-lede" data-credits-whose>档位 · 本月</p>
+    <p class="cr-body" data-credits-storage>你的存储：已用 1 MB / 500 MB</p>
+    <p class="cr-body" data-credits-publish-slots>你的发布名额：已公开 1 / 2 个</p>
+    <p class="cr-balanceValue" data-credit-balance="ai">42</p>
+    <p class="cr-empty" data-credit-empty>一行流水都没有。</p>
+  </body></html>`, { waitUntil: 'domcontentloaded' });
+  const fs = async (sel: string): Promise<string> => page.locator(sel).first().evaluate((el) => getComputedStyle(el).fontSize);
+  expect(await fs('[data-credits-whose]'), 'whose 原 text-13 须 13px').toBe('13px');
+  expect(await fs('[data-credits-storage]'), 'storage 原 text-12 须 12px（串成 13 会失真）').toBe('12px');
+  expect(await fs('[data-credits-publish-slots]'), 'slots 原 text-12 须 12px').toBe('12px');
+  expect(await fs('[data-credit-balance]'), '余额数字原 text-24 须 24px').toBe('24px');
+  expect(await fs('[data-credit-empty]'), 'empty 原 text-13 须 13px').toBe('13px');
+});
