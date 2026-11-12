@@ -55,6 +55,7 @@ class Registry:
                 max_attempts=settings.llm_max_attempts,
                 base_s=settings.llm_retry_base_s,
                 cap_s=settings.llm_retry_cap_s,
+                jitter_strategy=settings.llm_jitter_strategy,
                 breaker=breaker,
             )
             if settings.has_llm

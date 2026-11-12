@@ -31,6 +31,7 @@ from typing import Any, Callable
 import httpx
 import pytest
 
+from ai_service.jitter import bounds
 from ai_service.providers.base import ProviderFailed
 from ai_service.providers.openai_compatible import OpenAICompatibleProvider
 
@@ -53,25 +54,28 @@ def _judge_not_retried(obs: dict[str, Any]) -> None:
     assert obs["requests"] == 1, f"确定性失败被重试了（发了 {obs['requests']} 次）——浪费且放大攻击面"
 
 
-def _judge_backoff_shape(obs: dict[str, Any], *, base: float, cap: float) -> None:
-    """退避每次 >= 指数基线 base·2^i、封顶 cap、尊重 Retry-After（若给出）。钉形状不钉字面。
+def _judge_backoff_shape(obs: dict[str, Any], *, base: float, cap: float, strategy: str = "none") -> None:
+    """退避落在 `bounds()` 算出的区间内（单一真值，ADR 0095），封顶 cap、尊重 Retry-After。
 
-    刻意**不钉单调不减**：429 的 Retry-After 会打破单调（如 [0.05, 0.02, 0.03] 完全正确——
-    第 0 次服务端要求等 0.05，后续回到指数退避）。钉单调会惩罚正当的 Retry-After 尊重。
+    `strategy` 默认 "none" = 确定性退避（与 v681 字节级一致，零回归）。v685 接 v684 抖动后，
+    本判据直接复用同一份 `bounds()`——真值只有一份，生产/门/臂共读，不各写一份区间逻辑。
+
+    **Retry-After 语义（与 v681 一致）**：只有"带头的那一拍"（首拍）响应带 Retry-After，
+    后续拍回指数退避，所以标量 `retry_after` 视为仅第 0 拍生效；RA 校验前置，不钉单调不减
+    （[0.05, 0.02, 0.03] 完全正确——首拍尊重服务端，后续回指数）。钉单调会惩罚正当 RA 尊重。
     """
     waits = obs["waits"]
+    ra0 = obs.get("retry_after")
     assert len(waits) >= 2, "至少两次退避可比较"
     assert all(w > 0 for w in waits), f"退避必须为正，实测 {waits}"
-    for i, w in enumerate(waits):
-        lower = min(base * (2 ** i), cap)
-        assert w >= lower - 1e-9, f"第 {i} 次退避 {w} 低于指数基线 {lower}"
-        assert w <= max(cap, obs.get("retry_after") or 0) + 1e-9, (
-            f"第 {i} 次退避 {w} 超过封顶（cap={cap}, Retry-After={obs.get('retry_after')}）"
-        )
-    if obs.get("retry_after") is not None:
+    if ra0 is not None:
         # 服务端明确给了 Retry-After：第一次等待必须 >= 它（不早于服务端允许）
-        assert waits[0] >= obs["retry_after"], (
-            f"没尊重 Retry-After={obs['retry_after']}，第一次只等了 {waits[0]}"
+        assert waits[0] >= ra0 - 1e-9, f"没尊重 Retry-After={ra0}，第一次只等了 {waits[0]}"
+    for i, w in enumerate(waits):
+        ra_here = ra0 if i == 0 else None  # 只有首拍响应带 RA（真实场景）
+        lo, hi = bounds(i, base=base, cap=cap, strategy=strategy, retry_after=ra_here)
+        assert lo - 1e-9 <= w <= hi + 1e-9, (
+            f"第 {i} 次退避 {w} 不在区间 [{lo},{hi}] 内（strategy={strategy}）"
         )
 
 
@@ -262,12 +266,12 @@ def test_arm_client_error_retried_goes_red():
 
 
 def test_arm_backoff_below_exponential_floor_goes_red():
-    with pytest.raises(AssertionError, match="指数基线"):
+    with pytest.raises(AssertionError, match="区间"):
         _judge_backoff_shape({"waits": [0.01, 0.005], "retry_after": None}, base=0.01, cap=0.05)
 
 
 def test_arm_backoff_over_cap_goes_red():
-    with pytest.raises(AssertionError, match="封顶"):
+    with pytest.raises(AssertionError, match="区间"):
         _judge_backoff_shape({"waits": [0.01, 0.09], "retry_after": None}, base=0.01, cap=0.05)
 
 
@@ -287,6 +291,57 @@ def test_arm_correct_observations_are_green():
     _judge_passthrough_byte_identical({"requests": 1, "waits": [], "final_ok": True})
     # 正向对照：Retry-After 打破单调是正当的，判据不该惩罚它（ADR 0094 X4）
     _judge_backoff_shape({"waits": [0.05, 0.02, 0.03], "retry_after": 0.05}, base=0.01, cap=0.03)
+
+
+# ── v685：把 v684 抖动组件接进生产重试路径（默认 none 零回归）────────────────
+
+def test_jitter_none_is_byte_identical_to_v681_deterministic():
+    """显式 jitter_strategy="none" + 离谱 rng：退避仍 == max(指数, Retry-After)——不引入随机源。"""
+    waits: list[float] = []
+    seq = _Seq(
+        httpx.Response(429, text="slow", headers={"Retry-After": "0.05"}),
+        httpx.Response(503, text="busy"),
+        httpx.Response(503, text="busy"),
+        _ok(),
+    )
+    provider = _make(seq, max_attempts=4, base_s=0.01, cap_s=0.03,
+                    sleep=waits.append, jitter_strategy="none",
+                    rng=(lambda lo, hi: 999.0))  # 故意离谱：证明 none 零宽区间直接返回、根本不采样
+    provider.complete(model="gpt-x", system="s", user="u")
+    assert waits == [0.05, 0.02, 0.03], f"none 策略必须字节级等于 v681，实测 {waits}"
+
+
+def test_jitter_full_scatter_uses_bounds_interval():
+    """full 策略：每次退避落在 bounds() 的 [0, exp] 区间；用 midpoint rng 精确验证接线传参。"""
+    waits: list[float] = []
+    seq = _Seq(httpx.Response(503, text="a"), httpx.Response(503, text="b"),
+              httpx.Response(503, text="c"), _ok())
+    provider = _make(seq, max_attempts=4, base_s=0.01, cap_s=0.03,
+                    sleep=waits.append, jitter_strategy="full",
+                    rng=(lambda lo, hi: (lo + hi) / 2))
+    provider.complete(model="gpt-x", system="s", user="u")
+    for i, w in enumerate(waits):
+        lo, hi = bounds(i, base=0.01, cap=0.03, strategy="full")
+        assert abs(w - (lo + hi) / 2) < 1e-9, f"第 {i} 次退避 {w} 不是区间中点"
+    _judge_backoff_shape({"waits": waits, "retry_after": None}, base=0.01, cap=0.03, strategy="full")
+
+
+def test_jitter_decorrelated_tracks_prev_sleep():
+    """decorrelated：跨 attempt 跟踪上次 sleep（prev·3 上限），打破同拍但波动自然。"""
+    waits: list[float] = []
+    seq = _Seq(httpx.Response(503, text="a"), httpx.Response(503, text="b"),
+              httpx.Response(503, text="c"), _ok())
+    provider = _make(seq, max_attempts=4, base_s=0.01, cap_s=8.0,
+                    sleep=waits.append, jitter_strategy="decorrelated",
+                    rng=(lambda lo, hi: hi))  # 取上界使序列完全确定
+    provider.complete(model="gpt-x", system="s", user="u")
+    assert waits == [0.03, 0.09, 0.27], f"decorrelated 跟踪 prev 序列不符，实测 {waits}"
+
+
+def test_arm_jitter_full_out_of_bounds_goes_red():
+    with pytest.raises(AssertionError, match="区间"):
+        _judge_backoff_shape({"waits": [0.05, 0.05], "retry_after": None},
+                             base=0.01, cap=0.03, strategy="full")
 
 
 # ── 真线路 opt-in 腿（无 key 则 skip）───────────────────────────────────────
@@ -332,5 +387,37 @@ def test_live_retry_wiring_does_not_break_a_healthy_gateway_call():
         assert json.loads(c.text).get("pong") is True
         assert c.tokens_in > 0 and c.tokens_out > 0, "真调用 usage 应双向 > 0"
         assert waits == [], "健康网关不该触发任何退避（幂等接线不该凭空多调）"
+    finally:
+        provider.close()
+
+
+@_LIVE_SKIP
+def test_live_jitter_enabled_still_completes_healthy_call():
+    """真 gpt-6-sol + 开启 full jitter：证实抖动接线不破坏健康路径，偶发退避也落在区间内。"""
+    from dotenv import load_dotenv
+    load_dotenv(_ENV_FILE, override=False)
+    waits: list[float] = []
+    provider = OpenAICompatibleProvider(
+        api_key=os.environ["NEXUS_OPENAI_API_KEY"].strip(),
+        base_url=os.environ["NEXUS_OPENAI_BASE_URL"].strip(),
+        models={"balanced": "gpt-6-sol"},
+        max_attempts=3,
+        base_s=0.05,
+        cap_s=0.2,
+        jitter_strategy="full",
+        sleep=waits.append,
+    )
+    try:
+        c = provider.complete(
+            model="gpt-6-sol",
+            system="You are a JSON oracle. Reply with a single JSON object only, no prose.",
+            user='Reply with exactly {"pong": true}. No markdown, no explanation.',
+        )
+        assert json.loads(c.text).get("pong") is True
+        assert c.tokens_in > 0 and c.tokens_out > 0, "真调用 usage 应双向 > 0"
+        # 健康路径本不该退避；若抖动触发了一次（未来限流），必须落在 full 区间而非越界
+        for i, w in enumerate(waits):
+            lo, hi = bounds(i, base=0.05, cap=0.2, strategy="full")
+            assert lo - 1e-9 <= w <= hi + 1e-9, f"真线路退避 {w} 越界 [{lo},{hi}]"
     finally:
         provider.close()

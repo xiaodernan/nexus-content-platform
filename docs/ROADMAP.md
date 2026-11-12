@@ -835,6 +835,15 @@ family README section) and a door that reddens the sentence it repairs:
           worktree HEAD all align; no stray branches/stash/worktrees — the user's "merge all branches into
           one main line / 集大成" is satisfied at the global level.
 
+## v685 — 把 v684 抖动组件接进生产重试路径（ADR 0118，2026-11-12）
+- **做了**：`jittered_backoff` 接进 `OpenAICompatibleProvider._backoff`；`NEXUS_LLM_JITTER_STRATEGY`
+  旋钮经 `Settings`→`Registry`→provider 真注入；`none` 默认字节级零回归、opt-in 开 full/equal/
+  decorrelated；decorrelated 跨 attempt 跟踪 prev；`_judge_backoff_shape` 升级复用 `bounds()`
+  单一真值且严格保留"只有首拍响应带 Retry-After"语义。
+- **验证**：CI 209/9（零回归）、opt-in 217/1（含真 gpt-6-sol 抖动腿）、record-encoding 0 收费、
+  census 零漂移。
+- **仍欠**：生产默认仍 none（需压测再开）；embedding provider 未接抖动；v683 跨实例半开探测仍欠。
+
 Standing constraints (measured, not assumed): this host keeps ~0.3 GB physical memory
 free and its Docker engine currently refuses to start containers (`docker start` hangs;
 `docker info` still answers) — live m9/spring-cloud legs run on the hosted runner and

@@ -50,6 +50,9 @@ class Settings:
     llm_max_attempts: int = 1
     llm_retry_base_s: float = 0.5
     llm_retry_cap_s: float = 8.0
+    # 退避抖动（v685，接 v684 组件，ADR 0117）：默认 "none" = 与 v681 字节级一致（零回归）。
+    # 可选 "full"/"equal"/"decorrelated" 打破多实例同拍重试的 thundering herd；"none" 不引入随机源。
+    llm_jitter_strategy: str = "none"
     # 出站断路器（v682，镜像 Java Spring Cloud DomainCircuitBreaker，ADR 0115）：
     # 默认 disabled（零回归），显式开启才在 complete() 门卫处拒门。旋钮与 Resilience4j 同名同义。
     llm_circuit_breaker_enabled: bool = False
@@ -94,6 +97,7 @@ class Settings:
             "llm_max_attempts": self.llm_max_attempts,
             "llm_retry_base_s": self.llm_retry_base_s,
             "llm_retry_cap_s": self.llm_retry_cap_s,
+            "llm_jitter_strategy": self.llm_jitter_strategy,
             "llm_circuit_breaker_enabled": self.llm_circuit_breaker_enabled,
             "llm_cb_sliding_window": self.llm_cb_sliding_window,
             "llm_cb_minimum_calls": self.llm_cb_minimum_calls,
@@ -141,6 +145,7 @@ def load_settings(environ: Mapping[str, str] | None = None) -> Settings:
         llm_max_attempts=max(1, int(get("NEXUS_LLM_MAX_ATTEMPTS", "1") or "1")),
         llm_retry_base_s=float(get("NEXUS_LLM_RETRY_BASE_S", "0.5") or "0.5"),
         llm_retry_cap_s=float(get("NEXUS_LLM_RETRY_CAP_S", "8") or "8"),
+        llm_jitter_strategy=(get("NEXUS_LLM_JITTER_STRATEGY", "none") or "none").strip().lower(),
         llm_circuit_breaker_enabled=(get("NEXUS_LLM_CIRCUIT_BREAKER_ENABLED", "0") or "0") == "1",
         llm_cb_sliding_window=int(get("NEXUS_LLM_CB_SLIDING_WINDOW", "20") or "20"),
         llm_cb_minimum_calls=int(get("NEXUS_LLM_CB_MIN_CALLS", "20") or "20"),

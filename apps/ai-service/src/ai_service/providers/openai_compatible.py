@@ -6,11 +6,13 @@
 
 from __future__ import annotations
 
+import random
 import time
 from typing import Callable, Mapping
 
 import httpx
 
+from ..jitter import jittered_backoff
 from .base import Completion, EmbeddingResult, ProviderFailed
 
 # 有界重试（v681，镜像 Java v669a DomainServiceRetry）：只有这些**瞬时**状态值得再问一次。
@@ -58,6 +60,8 @@ class OpenAICompatibleProvider:
         sleep: Callable[[float], None] | None = None,
         clock: Callable[[], float] | None = None,
         breaker=None,
+        jitter_strategy: str = "none",
+        rng: Callable[[float, float], float] | None = None,
     ) -> None:
         """`max_attempts=1`（默认）= pass-through，与 v681 前字节级一致（零回归）。
         >1 时启用有界指数退避：`base_s·2^i` 封顶 `cap_s`，429 的 `Retry-After` 优先。
@@ -66,6 +70,11 @@ class OpenAICompatibleProvider:
         `breaker`（v682，可选）：注入 `CircuitBreaker` 才启用拒门；默认 `None` 时
         `complete()` 与 v681 字节级一致（不建门、不上报、不改变异常类型）——零回归。
         用鸭子类型而非 import 以避免 providers↔resilience 的循环依赖。
+
+        `jitter_strategy`（v685，接 v684 组件，ADR 0117）：默认 `"none"` = 确定性退避，
+        与 v681 字节级一致（不引入随机源）；`"full"/"equal"/"decorrelated"` 把退避时刻打散，
+        打破多实例同拍重试的 thundering herd。`rng` 可注入（签名 `(lo,hi)->float`）以确定性
+        验证；生产传 `None` 用 `random.uniform`。`decorrelated` 跨 attempt 跟踪上次 sleep。
         """
         if max_attempts < 1:
             raise ValueError("max_attempts 必须 >= 1（1=不重试，pass-through）")
@@ -77,6 +86,9 @@ class OpenAICompatibleProvider:
         self._sleep = sleep or time.sleep
         self._clock = clock or time.monotonic
         self._breaker = breaker
+        self._jitter_strategy = jitter_strategy
+        self._rng = rng
+        self._last_sleep = None
         self._client = httpx.Client(
             base_url=base_url,
             timeout=timeout_s,
@@ -94,12 +106,29 @@ class OpenAICompatibleProvider:
         return model
 
     def _backoff(self, attempt: int, retry_after: str | None) -> float:
-        """第 attempt 次失败后的等待：指数退避封顶；429 的 Retry-After 优先（取较大者）。"""
-        exponential = min(self._base_s * (2 ** attempt), self._cap_s)
+        """第 attempt 次失败后的等待：指数退避封顶；429 的 Retry-After 优先（取较大者）。
+
+        v685：改走 v684 的 `jittered_backoff` 单一真值——`jitter_strategy="none"` 时返回
+        `max(指数, Retry-After)`（与 v681 字节级一致，零回归）；其余策略把区间按 bounds()
+        抬到 `[lo,hi]` 并随机采样，打散同拍重试。`decorrelated` 需要上次 sleep 作为 prev，
+        故每次采样后存 `self._last_sleep`，下一拍复用（一个 `complete()` 是一次逻辑请求，
+        故 `complete()` 开头重置）。
+        """
         server = _retry_after_seconds(retry_after)
-        return max(exponential, server) if server is not None else exponential
+        value = jittered_backoff(
+            attempt,
+            base=self._base_s,
+            cap=self._cap_s,
+            strategy=self._jitter_strategy,
+            rng=self._rng or random.uniform,
+            prev_sleep=self._last_sleep,
+            retry_after=server,
+        )
+        self._last_sleep = value
+        return value
 
     def complete(self, *, model: str, system: str, user: str) -> Completion:
+        self._last_sleep = None  # 一次逻辑请求：decorrelated 的 prev 从 base 重新起步
         body: dict = {
             "model": model,
             "messages": [
