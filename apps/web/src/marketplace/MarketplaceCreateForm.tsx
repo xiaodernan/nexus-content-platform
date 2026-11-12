@@ -87,12 +87,12 @@ export function MarketplaceCreateForm({ projects }: { projects: { id: string; na
   };
 
   return (
-    <div className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] p-3" data-marketplace-create>
-      <h2 className="text-[var(--nexus-font-size-16)] font-medium">上架新物品</h2>
-      <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <label className="flex items-center gap-2 text-12">
+    <div className="mfc-card" data-marketplace-create>
+      <h2 className="mk-h16">上架新物品</h2>
+      <div className="mfc-grid">
+        <label className="mfc-label">
           类型
-          <select value={itemType} onChange={(e) => setItemType(e.target.value)} data-marketplace-create-type className="rounded bg-bg-2 px-1 py-1">
+          <select value={itemType} onChange={(e) => setItemType(e.target.value)} data-marketplace-create-type className="mfc-select">
             {TYPES.map((t) => (
               <option key={t.value} value={t.value}>
                 {t.label}
@@ -100,9 +100,9 @@ export function MarketplaceCreateForm({ projects }: { projects: { id: string; na
             ))}
           </select>
         </label>
-        <label className="flex items-center gap-2 text-12">
+        <label className="mfc-label">
           可见性
-          <select value={visibility} onChange={(e) => setVisibility(e.target.value as typeof visibility)} data-marketplace-create-visibility className="rounded bg-bg-2 px-1 py-1">
+          <select value={visibility} onChange={(e) => setVisibility(e.target.value as typeof visibility)} data-marketplace-create-visibility className="mfc-select">
             <option value="public">公开在售（要花 credits 买）</option>
             <option value="free">免费（谁都能下）</option>
             <option value="private">私密（只给自己看）</option>
@@ -113,7 +113,7 @@ export function MarketplaceCreateForm({ projects }: { projects: { id: string; na
           onChange={(e) => setTitle(e.target.value)}
           placeholder="标题（必填）"
           data-marketplace-create-title
-          className="rounded bg-bg-2 px-2 py-1 text-12"
+          className="mfc-input"
         />
         <input
           value={priceCredits}
@@ -122,21 +122,21 @@ export function MarketplaceCreateForm({ projects }: { projects: { id: string; na
           min={0}
           aria-label="价格（credits）"
           data-marketplace-create-price
-          className="rounded bg-bg-2 px-2 py-1 text-12"
+          className="mfc-input"
         />
         <input aria-label="简介"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="描述"
           data-marketplace-create-description
-          className="rounded bg-bg-2 px-2 py-1 text-12 sm:col-span-2"
+          className="mfc-input mfc-fullRow"
         />
         <input aria-label="标签（用逗号分隔）"
           value={tags}
           onChange={(e) => setTags(e.target.value)}
           placeholder="标签，用逗号隔开"
           data-marketplace-create-tags
-          className="rounded bg-bg-2 px-2 py-1 text-12 sm:col-span-2"
+          className="mfc-input mfc-fullRow"
         />
         {projects.length ? (
           <>
@@ -145,7 +145,7 @@ export function MarketplaceCreateForm({ projects }: { projects: { id: string; na
               onChange={(e) => void pickProject(e.target.value)}
               aria-label="来源项目"
               data-marketplace-create-project
-              className="rounded bg-bg-2 px-1 py-1 text-12"
+              className="mfc-select mfc-selectSm"
             >
               <option value="">来源项目（可选）</option>
               {projects.map((p) => (
@@ -159,7 +159,7 @@ export function MarketplaceCreateForm({ projects }: { projects: { id: string; na
               onChange={(e) => setPreviewAssetId(e.target.value)}
               aria-label="预览素材"
               data-marketplace-create-preview
-              className="rounded bg-bg-2 px-1 py-1 text-12"
+              className="mfc-select mfc-selectSm"
               disabled={!projectId}
             >
               <option value="">预览素材（可选，先选项目）</option>
@@ -177,12 +177,12 @@ export function MarketplaceCreateForm({ projects }: { projects: { id: string; na
         onClick={() => void submit()}
         disabled={busy || !title.trim()}
         data-marketplace-create-submit
-        className="mt-2 rounded bg-accent-1 px-3 py-1 text-12 text-accent-fg disabled:opacity-50"
+        className="mfc-submit"
       >
         {busy ? '上架中…' : '上架'}
       </button>
       {message ? (
-        <p className="mt-1 text-11 text-fg-2" data-marketplace-create-message>
+        <p className="mfc-message" data-marketplace-create-message>
           {message}
         </p>
       ) : null}

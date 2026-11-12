@@ -2368,6 +2368,19 @@
   .mk-hint11 { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
   .mk-hint12 { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
 
+  /* ── §FE-84 / ADR-0237 `MarketplaceCreateForm.tsx` `.mfc-` 门面化——§127 上架表单 ──
+   * 两档可见性/资产选择/无项目挂牌语义不动；sm:grid-cols-2 → auto-fit minmax(15rem,1fr)（无 @media）。 */
+  .mfc-card { border-radius: var(--nexus-radius-sm); border: 1px solid var(--nexus-color-border-subtle); padding: var(--nexus-space-3); }
+  .mfc-grid { margin-top: var(--nexus-space-2); display: grid; gap: var(--nexus-space-2); grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); }
+  .mfc-fullRow { grid-column: 1 / -1; }
+  .mfc-label { display: flex; align-items: center; gap: var(--nexus-space-2); font-size: var(--nexus-font-size-12); }
+  .mfc-select { border-radius: var(--nexus-radius-sm); border: none; background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-1); font-size: inherit; cursor: pointer; }
+  .mfc-selectSm { font-size: var(--nexus-font-size-12); }
+  .mfc-input { border-radius: var(--nexus-radius-sm); border: none; background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); font-family: inherit; min-width: 0; }
+  .mfc-submit { margin-top: var(--nexus-space-2); border-radius: var(--nexus-radius-sm); border: none; background: var(--nexus-color-accent-1); padding: var(--nexus-space-1) var(--nexus-space-3); font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-fg); cursor: pointer; }
+  .mfc-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+  .mfc-message { margin-top: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); }
+
   /* ── §FE-81 / ADR-0234 `FollowButton.tsx` `.fw-` 门面化——§60 关注按钮 ──
    * 只发请求并显示真实回话；csrfHeaders/error 路径一字不动。 */
   .fw-wrap { display: inline-flex; align-items: center; gap: var(--nexus-space-2); }
