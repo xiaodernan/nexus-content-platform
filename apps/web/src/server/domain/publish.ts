@@ -101,8 +101,9 @@ export type PublishResult =
   | { ok: true; publication: Publication; gate: GateReport; scan: ModerationScan; snapshotId: string }
   | { ok: false; reason: string; gate: GateReport; scan: ModerationScan };
 
-/** 公开页引用到的资产出处（§130：机检判断不了画面，只能知道它是从外面进来的） */
-async function assetProvenance(projectId: string): Promise<AssetProvenance[]> {
+/** 公开页引用到的资产出处（§130：机检判断不了画面，只能知道它是从外面进来的）。
+ *  导出给 publishPreflight 复用同一份出处查询 -- 导出而不是复制粘贴 */
+export async function assetProvenance(projectId: string): Promise<AssetProvenance[]> {
   const rows = await getDb()
     .select({ id: assets.id, name: assets.name, kind: assets.kind, source: assets.source })
     .from(assets)

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/cn';
 import type { HealthJob } from '@/lib/health-job';
 import { useRealtime } from '@/lib/useRealtime';
@@ -46,6 +46,30 @@ export function PublishPanel() {
   const [visibility, setVisibility] = useState<Visibility>('public');
   const { rootRef, triggerRef } = usePopoverDismiss(open, setOpen);
   const publication = state.publication;
+  /**
+   * 发布预检（§56）：向服务器要回 "按下发布会发生什么"——名额 / 门禁 / 机检，
+   * 与真的 publishProject 共用同一批判定函数；本地 HealthReport 只够画门禁，
+   * 这个回执补齐名额与机检两格。只读；面板关着不发请求（与门禁同一条纪律）。
+   */
+  const [preflight, setPreflight] = useState<{ ok: boolean; blockers: string[]; warnings: string[] } | null>(null);
+  const projectIdForPreflight = state.document?.id ?? null;
+  useEffect(() => {
+    if (!open || !projectIdForPreflight) return undefined;
+    let cancelled = false;
+    setPreflight(null);
+    fetch(`/api/projects/${projectIdForPreflight}/publish-preflight?visibility=${visibility}`)
+      .then(async (r) => (r.ok ? ((await r.json()) as { ok: boolean; blockers: string[]; warnings: string[] }) : null))
+      .then((v) => {
+        if (!cancelled) setPreflight(v);
+      })
+      .catch(() => {
+        // 预检没跑成就老实说"没跑成"——空白比假绿（§159）好
+        if (!cancelled) setPreflight(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, projectIdForPreflight, visibility]);
   /**
    * §147：弹层合着时不算——打开才需要门禁读数。每次按键都重算 10k 节点的全量体检，
    * 而用户根本没在看它，是纯浪费。打开后的那次计算仍是全量（门禁不能读旧数），
@@ -288,6 +312,29 @@ export function PublishPanel() {
               收起
             </button>
           </div>
+          {open && preflight ? (
+            <p
+              className={
+                preflight.blockers.length > 0
+                  ? 'text-12 text-danger-ink'
+                  : preflight.warnings.length > 0
+                    ? 'text-12 text-warn-ink'
+                    : 'text-12 text-fg-3'
+              }
+              data-publish-preflight-ok={preflight.ok ? 'true' : 'false'}
+              data-publish-preflight-outcome={preflight.blockers.length > 0 ? 'blocked' : preflight.warnings.length > 0 ? 'warn' : 'all-clear'}
+            >
+              {preflight.blockers.length > 0
+                ? `预检挡下：${preflight.blockers[0]}${preflight.blockers.length > 1 ? `（另 ${preflight.blockers.length - 1} 项）` : ''}`
+                : preflight.warnings.length > 0
+                  ? `预检：可以发布，但 ${preflight.warnings[0]}`
+                  : '预检全绿：名额、门禁、机检都放行了'}
+            </p>
+          ) : open && projectIdForPreflight ? (
+            <p className="text-12 text-fg-3" data-publish-preflight-outcome="unknown">
+              预检还没跑完（或跑不成）——这不是绿灯，是还没有答案
+            </p>
+          ) : null}
         </div>
       ) : null}
     </div>
