@@ -96,7 +96,7 @@ management:
       exposure:
         # circuitbreakers 是运维 smoke 读数（SC-64）——Feign 的中断器计这次如何，
         # 开放**只读**，无内容无载荷，不泄漏；bug_rate/计数只在 .send/stats 里体现。
-        include: health,info,circuitbreakers
+        include: health,info,circuitbreakers,prometheus
   # §SC-66 — 启用 build 注入（spring-boot-maven-plugin 的 `build-info` goal 产出的 properties 会被
   # BuildInfoContributor 自动收录； env/build/git 都不从外部拿路径以避免落 pwd 到 HTTP 响应里）
   info:

@@ -78,6 +78,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
+        <!-- §SC-77: Prometheus 抓数端点——不是"先装上看看戏"，而是让运维有一个可以直接面向 scraping 的真端点（SC-8 只说了 health）。随 SC-66（暴露面按服务单独签发，绝不入共享默认）一起落。 -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
 
         <!-- PostgreSQL Driver -->
         <dependency>
