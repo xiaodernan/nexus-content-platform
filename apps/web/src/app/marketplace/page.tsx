@@ -62,7 +62,7 @@ export default async function MarketplacePage({
   const reportedIds = user ? await listReportedItemIds(user.id, items.map((item) => item.id)) : new Set<string>();
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-[1080px] flex-col gap-[var(--nexus-space-5)] p-[var(--nexus-space-6)] font-mono">
+    <main className="mk-pageRoot">
       <header className="mk-header">
         <div>
           <h1 className="mk-title" data-marketplace-title>创作者市场</h1>
@@ -116,14 +116,14 @@ export default async function MarketplacePage({
         ))}
       </nav>
 
-      <section className="flex flex-col gap-2" data-marketplace-list>
-        <h2 className="text-[var(--nexus-font-size-16)] font-medium">在售（{items.length}）</h2>
+      <section className="mk-col2" data-marketplace-list>
+        <h2 className="mk-h16">在售（{items.length}）</h2>
         {items.length === 0 ? (
           <div className="dv-empty" data-marketplace-empty>
             <p>还没有这一类的物品在售。</p>
           </div>
         ) : (
-          <ul className="grid grid-cols-1 gap-[var(--nexus-space-3)]">
+          <ul className="mk-grid">
             {items.map((item) => (
               <MarketplaceItemRow
                 key={item.id}
@@ -150,14 +150,14 @@ export default async function MarketplacePage({
       </section>
 
       {user ? (
-        <section className="border-t border-[var(--nexus-color-border-subtle)] pt-[var(--nexus-space-4)]">
+        <section className="mk-sectionTop">
           <MarketplaceCreateForm
             projects={projects.map((p) => ({ id: p.id, name: p.name }))}
           />
           {mine.length ? (
-            <div className="mt-[var(--nexus-space-4)]" data-marketplace-mine>
-              <h2 className="text-[var(--nexus-font-size-16)] font-medium">我的物品（{mine.length}）</h2>
-              <ul className="mt-2 flex flex-col gap-2">
+            <div className="mk-mt4" data-marketplace-mine>
+              <h2 className="mk-h16">我的物品（{mine.length}）</h2>
+              <ul className="mk-mineList">
                 {mine.map((item) => (
                   <MarketplaceItemRow
                     key={item.id}
@@ -184,12 +184,12 @@ export default async function MarketplacePage({
           ) : null}
         </section>
       ) : (
-        <p className="border-t border-[var(--nexus-color-border-subtle)] pt-[var(--nexus-space-4)] text-12 text-fg-3" data-marketplace-signin-hint>
+        <p className="mk-sectionTop mk-hint12" data-marketplace-signin-hint>
           上架与举报需要先登录（顶栏「账号」）。
         </p>
       )}
 
-      <p className="text-11 text-fg-3" data-marketplace-limits>
+      <p className="mk-hint11" data-marketplace-limits>
         交付已经接上了，这一格的边界是这些：下载拿到的是条目源项目的<strong>设计文档 + 代码</strong>两档
         （§144 导出包的形状），不含素材字节；条目没挂源项目就下不出来。「下载（N）」里的 N 是
         <strong>成功交付的次数</strong>——包没建成不计数，同一个人对同一个条目一小时最多拿
