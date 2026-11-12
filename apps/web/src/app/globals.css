@@ -2233,6 +2233,14 @@
   .nb-faint { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
   .nb-row { display: flex; align-items: center; gap: var(--nexus-space-2); }
   .nb-link { color: var(--nexus-color-accent-2-ink); text-decoration: underline; }
+
+  /* ── §FE-69 / ADR-0222 `components/NotificationActions.tsx` `.nd-` 门面化——§164 标记已读 ──
+   * 只报"已标记 N 条"原样显示——0 也是一个真数字。本片只换皮：CSRF/POST/busy/result/refreshing 全部一字不动。 */
+  .nd-readBtn { border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); background: transparent; padding: 2px var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); cursor: pointer; }
+  .nd-readBtn:hover:not(:disabled) { background: var(--nexus-color-bg-2); }
+  .nd-readBtn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .nd-readBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .nb-resultInk { margin-left: var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
   .pb-mirrorLink { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); text-decoration: underline; }
 
   /* ── §FE-55 / ADR-0207 `MemoryPanel.tsx` `.mm-` 门面化——§48 角色记忆 ──
