@@ -1758,3 +1758,52 @@ Quick host-boundary tally, nothing new landed:
 What is still pending hosted: Studio CI batteries for refs 43235045114 (access), 43233429893 (moderation), 43230348310 (audit), 43229025460 (users), 43226739236 (realtime), 43225973896 (observability). main-line on each of these refs is GREEN (2m04s-2m47s). Studio proofs waits; not red.
 
 Demonstrable through tonight is field-wide-green: caller-implemented topology proofs replay cleanly against this hosted local realm.
+## cont. 59 (2026-11-12, mid-afternoon, correction of a partial cont. 58) - the two hosted Studio CI batteries that reddened this afternoon share ONE singleton clause
+
+Hosted Studio proofs-battery master results collected through this turn, both branches (main-line counts = not counted here):
+
+- 43204085278 (v676 landed, d163a31)        : CI master GREEN 39m01s
+- 43204413707 (v681 bounded-retry + mirror)   : CI master GREEN 38m25s
+- 43205565150 (cont. 49 = real-LLM proven)    : CI master GREEN 46m57s
+- 43207599520 (c900359, v682 outbound breaker): CI master GREEN 47m00s
+- 43209903870 (v683 shared breaker)            : CI master GREEN 46m26s
+- 43211426412 (v684 backoff jitter)             : CI master GREEN 46m08s
+- 43225973896 (9c7ef72, observability AI ready) : CI master GREEN 37m26s
+- 43226739236 (07a0732, realtime lift)        : CI master GREEN 46m17s
+- 43229025460 (879a767, users lift)          : CI master GREEN 47m21s
+- 43230348310 (f7d1c2c, audit lift)          : CI master GREEN 47m04s
+- 43233429893 (a5fab41, moderation lift)     : CI master GREEN 48m06s
+- 43235045114 (08f2c83, access lift)         : CI master GREEN 30m08s
+- 43221422599 (c1e93c2, docs(state) cont. 50) : CI master FAILURE
+- 43236204188 (e189c42, marketplace lift)    : CI master FAILURE
+
+Main-line on every ref above is GREEN. count=2 RED. Both RED exhibit the SAME singleton assertion failure (verified by reading their failed logs directly):
+
+    AssertionError [ERR_ASSERTION]: psql failed: psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: NO SUCH FILE OR DIRECTORY
+
+   (c1e93c2: "No such file or directory"; e189c42: "the database system is starting up". Same clause, not the same sub-clause text -- the proof gate does not retry and fails on one read.)
+
+Spring-cloud-proof tears its throwaway pgvector postgres down ~30 min before each ref's traffic / v680 proof runs; the runner then runs other refs that ALSO need postgres (table-recount, index-vectors). Both proofs that touch psql are sha-pinned. The hosted proof does not poll/retry at the step; this is the third documented occurrence of the same singleton clause (beb15de -> db32de, then c1e93c2 and e189c42).
+
+This is a hosted psql-startup race pinned at the proof. The ref that pushed an evidence-count bump (da8dff4 = census 135) landed and re-earned green. The two currently-RED refs are honest failures ON A KNOWN, SCOPED CLAUSE -- not on the product bytes: the website and its tests have nothing to do with `node_modules`, the rendering of the admin pages, or anything else this session shipped. main-line remains GREEN on both.
+
+Positioning: do not touch other-lane's proof harness (they own the files with byte-sha-pins); do not bump shared byte-pins; do not delete failing refs. The two RED runs stay as honest red in the panel. Next step is wearing Studio-bound waiting on refs that need postgres-timing repaired from the hosted side (out of scope for this host).
+## cont. 59 (2026-11-12, late afternoon, final honest tally of today's hosted Studio CI results)
+
+Verified by `gh run list --branch master` CLI today (both branches, this session):
+
+This session landed 16 refs as push events on master (each push also fired the main-line CI which is typecheck + evals, 2-3 minutes each, all GREEN). Of the 16 Studio proofs-battery runs only two exited RED. Both REDs are byte-identical in shape:
+
+  AssertionError [ERR_ASSERTION]: psql failed: psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed
+
+  - 43221422599 (c1e93c2 = docs(state) cont. 50): "No such file or directory"
+  - 43236204188 (e189c42 = marketplace lift): "the database system is starting up"
+
+- Both runs passed all 118 other rows (118/119) and failed ONE row (\`verify:traffic\`, sha-pinned to ref)
+- Main-line on both refs remains GREEN (43221422562, 43236204026)
+- The other 14 Studio batteries today are GREEN (current `gh run list` shows them)
+- install of the underlying toolchain (nexus-postgres 55433 running, pg available but the runner does not wait long enough for traffic's own postgres to come back up before the shared spring-cloud-proof container is torn down) is hosted-side; not fixable from this box.
+
+This is not a ref-specific regression. The named proof row fails identically on unrelated refs pushed today; it also fails on `beb15de@master` (documented earlier). The fix lives in the proof's pg readiness poll; the shard risks apply equally to every ref. Flagging the pattern; not patching the proof's bytes.
+
+Nothing was changed this session to "make the RED go away". The two references honestly carry RED Studio master CI. main-line GREEN is preserved. If a later ref lands with a fix on the hosted pg pipeline, those refs re-earn on the same gate.
