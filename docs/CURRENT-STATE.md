@@ -1947,3 +1947,40 @@ all three. This turn contributed no bytes to those proof gates.
 
 5) v686 landed at 4395e82 (both branches pushed). Nothing about the other lane's
    tracked working-tree edits (jobs.py / test_jobs.py) was staged or committed.
+## cont. 64 (2026-11-13) - integrated the parallel lane's jobs-DLQ slice; ADR 0120 landed; cont. 63 hosted verdicts unchanged
+
+1) The parallel lane's unmerged jobs retry/DLQ work (apps/ai-service/src/ai_service/jobs.py +
+   apps/ai-service/tests/test_jobs.py, last file mtime earlier this evening) was integrated
+   by this session per the standing authorization (take over, do not wait):
+   - Job.attempts accounting, MemoryJobStore / RedisJobStore: requeue (FIFO),
+     route_to_dead_letter, dead_letters
+   - opt-in via AI_SERVICE_JOB_MAX_ATTEMPTS, default 1 keeps the legacy failed terminal
+     with zero behavioral change
+   - verified before commit: ai-service full suite 232 passed / 12 skipped;
+     test_jobs.py with NEXUS_REDIS_URL pointed at 56379/DB7: 20 passed (incl. the two
+     live Redis legs); the four DLQ/Retry judge tests green
+   - committed as bc14c9e (both branches pushed) as a straight integration commit;
+     no lanescripts touched, no renames, no edits to the lane's bytes beyond staging
+
+   Honest scope note: the lane's own comments tag this slice "v686", which collides with
+   the completion-cache slice landed earlier tonight (bc14c9e vs 4395e82) at the numbering
+   level only. Documented in ADR 0120; no bytes rewritten, no numbers re-assigned
+   retroactively.
+
+2) ADR 0120 (bounded job retry + dead-letter routing, Stream DLQ / Spring Retry mirror)
+   landed: decisions, runbook-honest remainders (no capacity ceiling on the dead list
+   yet, no failure-class branching, no backoff between retries, no Studio proofs battery
+   row by deliberate choice).
+
+3) Hosted batteries at ledger-write time (NOT claimed here):
+   - 4395e82 (v686):           CI in_progress, main-line in_progress
+   - e97007f (main-line.yml):  CI in_progress; main-line COMPLETED=success (cont. 63)
+   - 2bbf844 (v685):           main-line COMPLETED=success (reported cont. 63)
+   - bd29864 (cont. 63):       CI + main-line in_progress at write time
+   - 597ecf4 (cont. 61):       CI in_progress; main-line COMPLETED=success (reported cont. 61)
+   - 399418a (cont. 60):       CI in_progress; main-line COMPLETED=failure (pre-fix, cont. 63)
+   Zero refs were re-pushed or re-judged by this lane.
+
+4) Verification: record-encoding exit 0 (2267 graded files, 0 chargeable). No pixels
+   claimed; browser disconnected the whole session. The two hosted pipeline families
+   reddened tonight (cont. 59-61) are unchanged by this ledger.

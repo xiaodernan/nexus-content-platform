@@ -11752,3 +11752,16 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   232 passed / 12 skipped；`NEXUS_LIVE_LLM=1` 真 wkapi.pro / gpt-6-sol +
   `NEXUS_LLMC_REDIS_LIVE=1 NEXUS_LLMC_REDIS_URL=redis://localhost:56379/7` 真 Redis 两独立
   client（两"进程"）字节往返 15 条 live 腿全绿；record-encoding exit 0；evidence-census 135 零漂移。
+
+## v687 — 作业队列的有界重试 + 死信路由（Stream DLQ / Spring Retry 镜像）（ADR 0120，2026-11-13）
+- **并轨集成**：本片是并轨作业平面（apps/ai-service 的 jobs.py + test_jobs.py）的未落 commit，
+  由本次会话在并轨暂停时按既有授权直接接手集成，不是新造（jobs.py 的原注释把自己叫 v686，
+  与 completion-cache v686 同号——本条不改其它 lane 的字节）。
+- **做了**：Job.attempts 计数（worker 真正跑过的次数）；`AI_SERVICE_JOB_MAX_ATTEMPTS`（默认 1，
+  字节级零回归）opt-in 开启后：4xx/5xx/网络失败 → attempts+=1 → 未耗尽 requeue（内存=pending 尾插；
+  Redis=RPUSH 先进先出）→ 耗尽 route_to_dead_letter（内存=进程内死信列表；Redis=`nexus:ai:dead`
+  LPUSH + 随 TTL 保留），毒消息隔离而非无限重试或静默丢。
+- **专门不做**：不区分失败种类（4xx 与 5xx 同走有界重试）、不加退避、死信无容量上限——
+  这些是仍欠项，不为它们造门（ADR 0120 明示）。
+- **验证**：全 ai-service 套 232 passed / 12 skipped；`NEXUS_REDIS_URL=redis://localhost:56379/7`
+  时 test_jobs.py 20 passed（含两条 live Redis 腿）；4 条 DLQ/Retry 判据绿；record-encoding 0 chargeable。
