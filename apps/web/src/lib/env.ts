@@ -1,5 +1,5 @@
 import type { CapabilityStatus, HealthResponse } from '@nexus/schemas';
-import { fetchAiServiceHealth } from '@/server/ai/client';
+import { getCachedAiHealth } from '@/server/ai/health-cache';
 
 /**
  * Provider 能力判定（§160 DEMO MODE 标识的真值来源）。
@@ -10,6 +10,10 @@ import { fetchAiServiceHealth } from '@/server/ai/client';
  * 询问它自己的 provider 就绪状态——key 只活在 ai-service 进程里。
  *
  * 拿不到 ai-service（未启动 / 不可达）时如实回落到 'demo'，绝不编造真实状态（§159）。
+ *
+ * §CACHE-1（ADR-0171）：无参数调用走 `getCachedAiHealth` 的 5s 短 TTL 缓存 + 并发去重，
+ * 省掉每次 AI 请求都发一次 `/healthz` 的跨服务往返（真机 P95 曾达 1374ms）；失败不缓存、
+ * 下次立即重试，provider 故障仍秒级可见。调用方已 prefetched 时走快路径，不经过缓存。
  */
 export interface AiCapabilities {
   text: CapabilityStatus;
@@ -24,7 +28,9 @@ export interface AiCapabilities {
  *   传 null 表示"探测过但不可达"，与"没探测（undefined）"区分开。
  */
 export async function getAiCapabilities(prefetched?: HealthResponse | null): Promise<AiCapabilities> {
-  const health = prefetched === undefined ? await fetchAiServiceHealth() : prefetched;
+  // 已 prefetched（含显式 null=探测过但不可达）走快路径，不重复探测、也不污染缓存；
+  // 只有"没探测（undefined）"才经短 TTL 缓存拿 health（热路径 /api/ai/run 等）。
+  const health = prefetched === undefined ? await getCachedAiHealth() : prefetched;
   const statusOf = (kind: string): CapabilityStatus =>
     health?.providers.find((p) => p.kind === kind)?.status === 'real' ? 'real' : 'demo';
   // 文本链路以 ai-service 汇总的 capability 为准（llm provider 就绪即 real）。

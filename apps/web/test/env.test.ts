@@ -1,6 +1,14 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { HealthResponse } from '@nexus/schemas';
 import { getAiCapabilities, isDemoMode } from '../src/lib/env';
+import { resetHealthCache } from '../src/server/ai/health-cache';
+
+/**
+ * §CACHE-1：`getAiCapabilities()` 无参数路径现在经进程级 5s 缓存，用例间会互相污染
+ * （前例写入 real、后例想验不可达却命中陈旧缓存）。每个用例后清空，隔离单例状态。
+ * 缓存模块本就为测试导出这个钩子，生产路径不调用。
+ */
+afterEach(() => resetHealthCache());
 
 function health(over: Partial<HealthResponse> = {}): HealthResponse {
   return {
