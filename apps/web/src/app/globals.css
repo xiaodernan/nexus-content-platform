@@ -1796,6 +1796,82 @@
   .pp-grow { display: flex; flex: 1 1 0%; gap: var(--nexus-space-1); }
   .pp-dim { opacity: 0.4; }
 
+  /* ── §FE-46 / ADR-0198 `StoryboardPanel.tsx` `.sb-` 门面化——§40-42 分镜面板首片 ──
+   * Prompt → Storyboard → Shot list → Timeline 的界面入口；data 钩子不动。
+   * 时间线段的三态（moving/dropTarget/border）合并到 .sb-timeSeg 族；
+   * hover/focus 变体逐枚，字面量 0.625rem 只出现在 text-10 位，0.3125rem 只出现在 px-[5px] 位。*/
+  .sb-root { display: flex; height: 100%; min-height: 0; flex-direction: column; gap: var(--nexus-space-3); overflow: auto; padding: var(--nexus-space-3); }
+  .sb-rootCol { display: flex; height: 100%; min-height: 0; flex-direction: column; }
+  .sb-scroll { min-height: 0; flex: 1 1 0%; overflow: auto; }
+  .sb-sectionBorderT { flex-shrink: 0; border-top: 1px solid var(--nexus-color-border-subtle); padding: var(--nexus-space-3); }
+  .sb-sectionBorderB { flex-shrink: 0; border-bottom: 1px solid var(--nexus-color-border-subtle); padding: var(--nexus-space-3); }
+  .sb-col1 { display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+  .sb-col1ink { display: flex; flex-direction: column; gap: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); }
+  .sb-colMt1 { margin-top: var(--nexus-space-1); display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+  .sb-colMt2 { margin-top: var(--nexus-space-2); display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+  .sb-col2 { display: flex; flex-direction: column; gap: var(--nexus-space-2); }
+  .sb-colPad3 { display: flex; flex-direction: column; gap: var(--nexus-space-2); padding: var(--nexus-space-3); }
+  .sb-boxMt2 { margin-top: var(--nexus-space-2); display: flex; flex-direction: column; gap: var(--nexus-space-1); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-2); }
+  .sb-row1 { display: flex; align-items: center; gap: var(--nexus-space-1); }
+  .sb-row2 { display: flex; align-items: center; gap: var(--nexus-space-2); }
+  .sb-rowMt2 { margin-top: var(--nexus-space-2); display: flex; align-items: center; gap: var(--nexus-space-1); }
+  .sb-rowEnd { margin-left: auto; display: flex; align-items: center; gap: var(--nexus-space-1); }
+  .sb-wrap2 { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-2); }
+  .sb-label { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); text-transform: uppercase; letter-spacing: 0.05em; color: var(--nexus-color-fg-3); }
+  .sb-label12 { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); text-transform: uppercase; letter-spacing: 0.05em; color: var(--nexus-color-fg-3); }
+  .sb-mono11 { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .sb-monoFaint { font-family: var(--nexus-font-mono); color: var(--nexus-color-fg-3); }
+  .sb-faint11 { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .sb-ink11 { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); }
+  .sb-warn11 { font-size: var(--nexus-font-size-11); color: var(--nexus-color-warn-ink); }
+  .sb-danger11 { font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); }
+  .sb-faintMt1 { margin-top: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .sb-faintMt2 { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .sb-inkMt1 { margin-top: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); }
+  .sb-inkMt1-12 { margin-top: var(--nexus-space-1); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  .sb-dangerMt1 { margin-top: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); }
+  .sb-dangerMt2 { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); }
+  .sb-accent2inkMt1 { margin-top: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-2-ink); }
+  .sb-body11 { font-size: var(--nexus-font-size-11); line-height: 1.6; color: var(--nexus-color-fg-3); }
+  .sb-body12 { font-size: var(--nexus-font-size-12); line-height: 1.6; color: var(--nexus-color-fg-2); }
+  .sb-chip { border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-3); padding: 2px var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); }
+  .sb-fg1 { color: var(--nexus-color-fg-1); }
+  .sb-cap64 { width: 4rem; }
+  .sb-max110 { max-width: 6.875rem; }
+  .sb-dis40:disabled { opacity: 0.4; cursor: not-allowed; }
+  .sb-dis50:disabled { opacity: 0.5; cursor: not-allowed; }
+  .sb-btn2 { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); cursor: pointer; }
+  .sb-btn2faint { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .sb-btn2dis { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); cursor: pointer; }
+  .sb-btn2dis:disabled { opacity: 0.5; cursor: not-allowed; }
+  .sb-inputBox { border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); }
+  .sb-inputBoxResize { resize: vertical; border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); }
+  .sb-inputMtResize { margin-top: var(--nexus-space-1); resize: vertical; width: 100%; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-3); padding: 0.25rem; font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
+  .sb-btnDis { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-3); padding: var(--nexus-space-2) var(--nexus-space-3); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); cursor: pointer; }
+  .sb-btnDis:disabled { opacity: 0.4; cursor: not-allowed; }
+  .sb-accentBtn { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-accent-2); padding: var(--nexus-space-1) var(--nexus-space-3); font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-fg); cursor: pointer; }
+  .sb-accentBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .sb-demoChip { border-radius: var(--nexus-radius-sm); background: var(--nexus-color-accent-2); padding: 1px var(--nexus-space-1); font-size: 0.625rem; color: var(--nexus-color-accent-fg); }
+  .sb-track { width: 100%; max-width: 30rem; overflow: hidden; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-3); }
+  .sb-trackMt { margin-top: var(--nexus-space-1); width: 100%; max-width: 30rem; overflow: hidden; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-3); }
+  .sb-timeBar { margin-top: var(--nexus-space-2); display: flex; height: 2.25rem; width: 100%; min-width: 0; overflow: hidden; border-radius: var(--nexus-radius-sm); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-2); }
+  .sb-indexChip { position: absolute; left: 2px; top: 2px; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-1); padding: 0 3px; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); line-height: 1.25; color: var(--nexus-color-fg-3); }
+  .sb-cornerNote { pointer-events: none; position: absolute; right: 10px; top: 2px; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .sb-footNote { pointer-events: none; position: absolute; bottom: 3px; left: 0; right: 0; text-align: center; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); }
+  .sb-resizeHandle { position: absolute; right: 0; top: 0; height: 100%; width: 8px; cursor: col-resize; background: transparent; border: 0; }
+  .sb-resizeHandle:hover { background: color-mix(in srgb, var(--nexus-color-accent-2) 40%, transparent); }
+  .sb-resizeHandle:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; width: 12px; background: color-mix(in srgb, var(--nexus-color-accent-2) 50%, transparent); }
+  .sb-srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+  .sb-saveBadge { margin-left: auto; border-radius: var(--nexus-radius-sm); background: transparent; padding: 2px var(--nexus-space-2); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .sb-saveBadgeError { background: var(--nexus-color-warn); color: var(--nexus-color-accent-fg); }
+  .sb-shotCard { border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-2); }
+  .sb-shotLinked { border-color: var(--nexus-color-accent-2); }
+  .sb-timeSeg { position: relative; display: flex; min-width: 0; flex-shrink: 0; cursor: grab; align-items: center; justify-content: center; gap: var(--nexus-space-1); border: 0; border-right: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-3); padding: 0; }
+  .sb-timeSeg:last-child { border-right: 0; }
+  .sb-timeSegMoving { z-index: 10; opacity: 0.6; }
+  .sb-timeSegDropTarget { background: var(--nexus-color-bg-1); }
+  .sb-selfStart { align-self: flex-start; }
+
   /* ── §FE-40 / ADR-0192 `/admin/health` 管理台健康总览 `.hd-` 门面化——五层快照一次成 ──
    * 运维只在这一页看到五层（ai/java/gateway/redis/postgres）的真相：
    * 拿不到 = "未测到"（而不是 down），和 web 静默降级纪律一致；每层独立超时。

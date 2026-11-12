@@ -112,8 +112,8 @@ function SourceFields({
   const gaps = arrowSourceGaps(value);
   const attr = (name: string): Record<string, string> => ({ [name]: 'true' });
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-11 text-fg-3" htmlFor={`${idPrefix}-arrow`}>
+    <div className="sb-col1">
+      <label className="sb-faint11" htmlFor={`${idPrefix}-arrow`}>
         这条片子的来源
       </label>
       <select
@@ -121,7 +121,7 @@ function SourceFields({
         value={value.arrow}
         onChange={(e) => onChange({ ...value, arrow: e.target.value as StoryboardArrow })}
         {...attr(dataAttr.arrow)}
-        className="w-full rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2 text-12 text-fg-1"
+        className="sb-inputBox"
       >
         {STORYBOARD_ARROWS.map((option) => (
           <option key={option} value={option}>
@@ -135,7 +135,7 @@ function SourceFields({
           value={value.referenceAssetId}
           onChange={(e) => onChange({ ...value, referenceAssetId: e.target.value })}
           {...attr(dataAttr.asset)}
-          className="w-full rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2 text-12 text-fg-1"
+          className="sb-inputBox"
         >
           <option value="">挑一张已定格的参考图（资产库里的）…</option>
           {roster.assets.map((asset) => (
@@ -151,7 +151,7 @@ function SourceFields({
           value={value.characterId}
           onChange={(e) => onChange({ ...value, characterId: e.target.value })}
           {...attr(dataAttr.character)}
-          className="w-full rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2 text-12 text-fg-1"
+          className="sb-inputBox"
         >
           <option value="">挑一位本项目的角色…</option>
           {roster.characters.map((character) => (
@@ -162,7 +162,7 @@ function SourceFields({
         </select>
       ) : null}
       {gaps.length ? (
-        <p className="text-11 text-fg-3" {...attr(dataAttr.missing)}>
+        <p className="sb-faint11" {...attr(dataAttr.missing)}>
           {gaps.join(' ')}
         </p>
       ) : null}
@@ -661,9 +661,9 @@ export function StoryboardPanel() {
 
   if (!sb) {
     return (
-      <div className="flex h-full min-h-0 flex-col gap-3 overflow-auto p-[var(--nexus-space-3)]" data-storyboard-panel>
-        <h2 className="font-mono text-12 uppercase tracking-wide text-fg-3">分镜</h2>
-        <p className="text-12 leading-relaxed text-fg-2" data-storyboard-empty>
+      <div className="sb-root" data-storyboard-panel>
+        <h2 className="sb-label12">分镜</h2>
+        <p className="sb-body12" data-storyboard-empty>
           {snapshot.saveState === 'loading'
             ? '读取分镜…'
             : snapshot.error
@@ -671,7 +671,7 @@ export function StoryboardPanel() {
               : '这个项目还没有分镜。写一句话，下面按标点把它切成镜头表——这是本地确定性断句，不是 AI 分镜（provider 未接入前不做假生成）。'}
         </p>
         {snapshot.error ? (
-          <p className="text-11 text-danger-ink" data-storyboard-error>
+          <p className="sb-danger11" data-storyboard-error>
             {snapshot.error}
           </p>
         ) : null}
@@ -681,7 +681,7 @@ export function StoryboardPanel() {
           rows={3}
           placeholder="夜色里的港口，一台旧起重机慢慢转身，猫跳上缆绳，它跑起来了"
           data-storyboard-prompt-input
-          className="w-full resize-y rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2 text-12 text-fg-1"
+          className="sb-inputBoxResize"
         />
         {/* §40 的四条箭头：它决定这一版分镜从什么出发，也是界面上唯一能表达这件事的地方 */}
         <SourceFields
@@ -700,7 +700,7 @@ export function StoryboardPanel() {
             missing: 'data-storyboard-source-missing',
           }}
         />
-        {rosterNote ? <p className="text-11 text-fg-3">{rosterNote}</p> : null}
+        {rosterNote ? <p className="sb-faint11">{rosterNote}</p> : null}
         <button
           type="button"
           disabled={!prompt.trim() || snapshot.saveState === 'saving' || sourceGaps.length > 0}
@@ -712,12 +712,12 @@ export function StoryboardPanel() {
             })
           }
           data-storyboard-create
-          className="self-start rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg disabled:opacity-50"
+          className="sb-accentBtn sb-selfStart"
         >
           切一版分镜
         </button>
         {snapshot.notice ? (
-          <p className="text-11 text-fg-3" data-storyboard-notice>
+          <p className="sb-faint11" data-storyboard-notice>
             {snapshot.notice}
           </p>
         ) : null}
@@ -809,29 +809,26 @@ export function StoryboardPanel() {
     (sb.source.characterId || undefined) === draftAfter.characterId;
 
   return (
-    <div className="flex h-full min-h-0 flex-col" data-storyboard-panel>
-      <header className="shrink-0 border-b border-[var(--nexus-color-border-subtle)] p-[var(--nexus-space-3)]">
-        <div className="flex items-center gap-2">
-          <h2 className="font-mono text-12 uppercase tracking-wide text-fg-3">分镜</h2>
+    <div className="sb-rootCol" data-storyboard-panel>
+      <header className="sb-sectionBorderB">
+        <div className="sb-row2">
+          <h2 className="sb-label12">分镜</h2>
           <span
-            className={cn(
-              'ml-auto rounded-[var(--nexus-radius-sm)] px-2 py-[2px] font-mono text-11',
-              snapshot.saveState === 'error' ? 'bg-warn text-accent-fg' : 'text-fg-3',
-            )}
+            className={cn('sb-saveBadge', snapshot.saveState === 'error' && 'sb-saveBadgeError')}
             data-storyboard-save-state
           >
             {STATE_TEXT[snapshot.saveState] ?? ''}
           </span>
         </div>
-        <p className="mt-1 text-12 text-fg-2" data-storyboard-summary>
+        <p className="sb-inkMt1-12" data-storyboard-summary>
           {`${total} 镜 · 共 ${(timeline?.totalMs ?? 0) / 1000} 秒 · 来源：${ARROW_LABELS[sb.source.arrow]}${
             sourceRefName ? `｜${sourceRefName}` : ''
           }`}
         </p>
-        <p className="mt-1 text-11 text-fg-3" data-storyboard-source-prompt>
+        <p className="sb-faintMt1" data-storyboard-source-prompt>
           原句：{sb.source.prompt || '（没有原句）'}
         </p>
-        <div className="mt-2 flex items-center gap-1">
+        <div className="sb-rowMt2">
           <button
             type="button"
             onClick={() => {
@@ -847,7 +844,7 @@ export function StoryboardPanel() {
             aria-expanded={sourceEditing}
             aria-controls={sourceEditing ? 'storyboard-source-editor' : undefined}
             data-storyboard-source-open
-            className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-11 text-fg-2"
+            className="sb-btn2"
           >
             改来源
           </button>
@@ -857,7 +854,7 @@ export function StoryboardPanel() {
             disabled={!snapshot.canUndo || snapshot.saveState === 'saving'}
             title="撤销上一次镜头改动（走 patch 的逆补丁，不是重打一遍）"
             data-storyboard-undo
-            className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-11 text-fg-2 disabled:opacity-50"
+            className="sb-btn2dis"
           >
             撤销
           </button>
@@ -867,14 +864,14 @@ export function StoryboardPanel() {
             disabled={!snapshot.canRedo || snapshot.saveState === 'saving'}
             title="重做"
             data-storyboard-redo
-            className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-11 text-fg-2 disabled:opacity-50"
+            className="sb-btn2dis"
           >
             重做
           </button>
           <button
             type="button"
             onClick={() => storyboardStore.reload()}
-            className="ml-auto rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-11 text-fg-3"
+            className="sb-btn2faint"
             title="重新读库里那一份（未保存的本地编辑会被覆盖）"
             data-storyboard-reload
           >
@@ -885,7 +882,7 @@ export function StoryboardPanel() {
         {sourceEditing ? (
           <div
             id="storyboard-source-editor"
-            className="mt-2 flex flex-col gap-1 rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] p-2"
+            className="sb-boxMt2"
             data-storyboard-source-editor
           >
             <SourceFields
@@ -900,8 +897,8 @@ export function StoryboardPanel() {
                 missing: 'data-storyboard-source-edit-missing',
               }}
             />
-            <p className="text-11 text-fg-3">换来源不重切一版：镜头、长度、撤销栈都留着。</p>
-            <div className="flex items-center gap-1">
+            <p className="sb-faint11">换来源不重切一版：镜头、长度、撤销栈都留着。</p>
+            <div className="sb-row1">
               <button
                 type="button"
                 disabled={draftGaps.length > 0 || sourceUnchanged || snapshot.saveState === 'saving'}
@@ -917,7 +914,7 @@ export function StoryboardPanel() {
                   }
                 }}
                 data-storyboard-source-apply
-                className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg disabled:opacity-50"
+                className="sb-accentBtn"
               >
                 应用来源
               </button>
@@ -925,7 +922,7 @@ export function StoryboardPanel() {
                 type="button"
                 onClick={() => setSourceEditing(false)}
                 data-storyboard-source-cancel
-                className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-11 text-fg-3"
+                className="sb-btn2faint"
               >
                 取消
               </button>
@@ -933,44 +930,40 @@ export function StoryboardPanel() {
           </div>
         ) : null}
         {snapshot.error ? (
-          <p className="mt-1 text-11 text-danger-ink" data-storyboard-error>
+          <p className="sb-dangerMt1" data-storyboard-error>
             {snapshot.error}
           </p>
         ) : null}
         {snapshot.notice ? (
-          <p className="mt-1 text-11 text-fg-3" data-storyboard-notice>
+          <p className="sb-faintMt1" data-storyboard-notice>
             {snapshot.notice}
           </p>
         ) : null}
         {rosterNote ? (
-          <p className="mt-1 text-11 text-fg-3" data-storyboard-roster-note>
+          <p className="sb-faintMt1" data-storyboard-roster-note>
             {rosterNote}
           </p>
         ) : null}
         {imageError ? (
-          <p className="mt-1 text-11 text-danger-ink" data-storyboard-image-error>
+          <p className="sb-dangerMt1" data-storyboard-image-error>
             参考图没生成：{imageError}
           </p>
         ) : null}
       </header>
 
-      <div className="min-h-0 flex-1 overflow-auto">
-        <ul className="flex flex-col gap-2 p-[var(--nexus-space-3)]">
+      <div className="sb-scroll">
+        <ul className="sb-colPad3">
           {sb.shots.map((shot, index) => (
             <li
               key={shot.id}
-              className={cn(
-                'rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2',
-                // 时间线上点过的那一格：列表里这一镜高亮——联动是取景框，不进撤销栈
-                linkedShotId === shot.id ? 'border-accent-2' : null,
-              )}
+              className={cn('sb-shotCard', linkedShotId === shot.id && 'sb-shotLinked')}
               data-storyboard-shot={shot.id}
               data-storyboard-shot-linked={linkedShotId === shot.id ? 'true' : undefined}
             >
               {/* 换行是必要的：面板只有 264px 宽，机位+转场+时长已经占满一行，
                   不换行时 ↑↓＋✕ 四个动作会被裁到面板外面——点得到但看不见，等于没有 */}
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-11 text-fg-3">
+              <div className="sb-wrap2">
+                <span className="sb-mono11">
                   {String(index + 1).padStart(2, '0')}
                 </span>
                 <button
@@ -979,7 +972,7 @@ export function StoryboardPanel() {
                   title="在时间线上找到这一镜"
                   aria-label={`在时间线上定位第 ${index + 1} 镜`}
                   data-storyboard-locate={shot.id}
-                  className="rounded-[var(--nexus-radius-sm)] bg-bg-3 px-1 py-[2px] text-11 text-fg-2"
+                  className="sb-chip"
                 >
                   定位
                 </button>
@@ -997,7 +990,7 @@ export function StoryboardPanel() {
                   }
                   aria-label="机位"
                   data-storyboard-camera={shot.id}
-                  className="rounded-[var(--nexus-radius-sm)] bg-bg-3 px-1 py-[2px] text-11 text-fg-1"
+                  className="sb-chip sb-fg1"
                 >
                   {SHOT_CAMERAS.map((c) => (
                     <option key={c} value={c}>
@@ -1019,7 +1012,7 @@ export function StoryboardPanel() {
                   }
                   aria-label="转场"
                   data-storyboard-transition={shot.id}
-                  className="rounded-[var(--nexus-radius-sm)] bg-bg-3 px-1 py-[2px] text-11 text-fg-1"
+                  className="sb-chip sb-fg1"
                 >
                   {SHOT_TRANSITIONS.map((t) => (
                     <option key={t} value={t}>
@@ -1033,7 +1026,7 @@ export function StoryboardPanel() {
                   onBlur={() => flushDuration(shot)}
                   aria-label="时长（毫秒）"
                   data-storyboard-duration={shot.id}
-                  className="w-[64px] rounded-[var(--nexus-radius-sm)] bg-bg-3 px-1 py-[2px] text-11 text-fg-1"
+                  className="sb-chip sb-fg1 sb-cap64"
                 />
                 {/* 挂角色 / 挂参考图：一次改动 = 一个可撤销事务（§150），选项只来自服务端名册，
                     所以这里给不出一个"会被 firstForeignRef 挡下"的 id */}
@@ -1051,7 +1044,7 @@ export function StoryboardPanel() {
                   }
                   aria-label="这一镜里的角色"
                   data-storyboard-character={shot.id}
-                  className="max-w-[110px] rounded-[var(--nexus-radius-sm)] bg-bg-3 px-1 py-[2px] text-11 text-fg-1"
+                  className="sb-chip sb-fg1 sb-max110"
                 >
                   <option value="">不挂角色</option>
                   {roster.characters.map((c) => (
@@ -1074,7 +1067,7 @@ export function StoryboardPanel() {
                   }
                   aria-label="这一镜的参考图"
                   data-storyboard-reference={shot.id}
-                  className="max-w-[110px] rounded-[var(--nexus-radius-sm)] bg-bg-3 px-1 py-[2px] text-11 text-fg-1"
+                  className="sb-chip sb-fg1 sb-max110"
                 >
                   <option value="">不用参考图</option>
                   {roster.assets.map((item) => (
@@ -1090,18 +1083,18 @@ export function StoryboardPanel() {
                   title="本地确定性合成（DEMO），不是 AI 出图；撤销只断开引用，不删除已生成的资产"
                   aria-label="为本镜生成参考图"
                   data-storyboard-image-gen={shot.id}
-                  className="rounded-[var(--nexus-radius-sm)] bg-bg-3 px-1 py-[2px] text-11 text-fg-2 disabled:opacity-40"
+                  className="sb-chip sb-dis40"
                 >
                   {imageBusy === shot.id ? '合成中…' : 'DEMO 参考图'}
                 </button>
-                <span className="ml-auto flex items-center gap-1">
+                <span className="sb-rowEnd">
                   <button
                     type="button"
                     onClick={() => storyboardStore.applyOps([{ op: 'moveShot', from: index, to: index - 1 }])}
                     disabled={index === 0}
                     title="上一位"
                     data-storyboard-move-up={shot.id}
-                    className="rounded-[var(--nexus-radius-sm)] bg-bg-3 px-1 text-11 text-fg-2 disabled:opacity-40"
+                    className="sb-chip sb-dis40"
                   >
                     ↑
                   </button>
@@ -1111,7 +1104,7 @@ export function StoryboardPanel() {
                     disabled={index === total - 1}
                     title="下一位"
                     data-storyboard-move-down={shot.id}
-                    className="rounded-[var(--nexus-radius-sm)] bg-bg-3 px-1 text-11 text-fg-2 disabled:opacity-40"
+                    className="sb-chip sb-dis40"
                   >
                     ↓
                   </button>
@@ -1134,7 +1127,7 @@ export function StoryboardPanel() {
                     }
                     title="在这一镜之后插一镜"
                     data-storyboard-add={shot.id}
-                    className="rounded-[var(--nexus-radius-sm)] bg-bg-3 px-1 text-11 text-fg-2"
+                    className="sb-chip"
                   >
                     ＋
                   </button>
@@ -1145,7 +1138,7 @@ export function StoryboardPanel() {
                     disabled={shot.durationMs < MIN_SHOT_MS * 2}
                     title={shot.durationMs < MIN_SHOT_MS * 2 ? `这一镜不足两格步长（${MIN_SHOT_MS * 2} 毫秒），切不出第二镜` : '在这一镜的中点切成两镜（可撤销）'}
                     data-storyboard-split={shot.id}
-                    className="rounded-[var(--nexus-radius-sm)] bg-bg-3 px-1 text-11 text-fg-2 disabled:opacity-40"
+                    className="sb-chip sb-dis40"
                   >
                     ✂
                   </button>
@@ -1155,7 +1148,7 @@ export function StoryboardPanel() {
                     disabled={total <= 1}
                     title={total <= 1 ? '最后一镜不能删：0 镜的时间线没什么可编辑的' : '删掉这一镜（可撤销）'}
                     data-storyboard-remove={shot.id}
-                    className="rounded-[var(--nexus-radius-sm)] bg-bg-3 px-1 text-11 text-fg-2 disabled:opacity-40"
+                    className="sb-chip sb-dis40"
                   >
                     ✕
                   </button>
@@ -1168,15 +1161,15 @@ export function StoryboardPanel() {
                 rows={2}
                 aria-label="这一镜要拍什么"
                 data-storyboard-prompt={shot.id}
-                className="mt-1 w-full resize-y rounded-[var(--nexus-radius-sm)] bg-bg-3 p-1 text-12 text-fg-1"
+                className="sb-inputMtResize"
               />
             </li>
           ))}
         </ul>
 
-        <section className="border-t border-[var(--nexus-color-border-subtle)] p-[var(--nexus-space-3)]" data-storyboard-render-panel>
-          <h3 className="font-mono text-11 uppercase tracking-wide text-fg-3">渲染（§40 最后一格 · DEMO）</h3>
-          <p className="mt-1 text-11 text-fg-2">
+        <section className="sb-sectionBorderT" data-storyboard-render-panel>
+          <h3 className="sb-label">渲染（§40 最后一格 · DEMO）</h3>
+          <p className="sb-inkMt1">
             真 ffmpeg、真链路：额度门在任务之前，参考帧按 id 取字节（带归属校验），成片过视频摄入门，只有成功才扣点。
             但像素是<strong>本地确定性推演，不是 AI 生成</strong>——这一条明码标注，不假装有视频 provider（§159/§160）。
           </p>
@@ -1186,26 +1179,26 @@ export function StoryboardPanel() {
             onClick={() => void renderDemo()}
             data-storyboard-render
             title="把整条分镜渲成一条 mp4（DEMO：本地 ffmpeg 确定性推演，非 AI 生成）。成片挂回第一镜的 videoAssetId"
-            className="mt-2 rounded-[var(--nexus-radius-sm)] bg-bg-3 px-3 py-1 text-12 text-fg-1 disabled:opacity-40"
+            className="sb-btnDis"
           >
             {renderBusy ? '渲染中…' : 'DEMO 渲染整条分镜'}
           </button>
           {quota ? (
-            <p className="mt-2 text-11 text-fg-3" data-storyboard-render-quota>
+            <p className="sb-faintMt2" data-storyboard-render-quota>
               {quota.planLabel} 档：每月 {quota.monthlyGrant} 次成片渲染 · 每次 {quota.costPerRender} 点 ·
               本月还可渲 {quota.rendersLeft} 次（Video credits 余额 {quota.balance} 点）
               {quota.rendersLeft === 0 ? '——额度用尽时服务端会拒（429），这里先置灰' : ''}
             </p>
           ) : null}
           {renderError ? (
-            <p className="mt-2 text-11 text-danger-ink" data-storyboard-render-error>
+            <p className="sb-dangerMt2" data-storyboard-render-error>
               {renderError}
             </p>
           ) : null}
           {renderNote ? (
-            <div className="mt-2 flex flex-col gap-1" data-storyboard-render-result>
-              <p className="text-11 text-fg-2">
-                <span className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-1 py-[1px] text-10 text-accent-fg">DEMO</span>
+            <div className="sb-colMt2" data-storyboard-render-result>
+              <p className="sb-ink11">
+                <span className="sb-demoChip">DEMO</span>
                 {' '}成片已挂到第一镜（整条分镜一条片子），耗时 {renderNote.renderMs} 毫秒
               </p>
               <video
@@ -1213,22 +1206,22 @@ export function StoryboardPanel() {
                 preload="metadata"
                 src={apiAssetUrl(renderNote.assetId)}
                 data-storyboard-render-video
-                className="mt-1 w-full max-w-[480px] rounded-[var(--nexus-radius-sm)] bg-bg-3"
+                className="sb-trackMt"
                 title="DEMO 成片预览：真 ffmpeg 渲出来的字节，像素是本地确定性推演、不是 AI 生成（§160）"
               />
               {renderNote.warnings.length ? (
-                <ul className="flex flex-col gap-1" data-storyboard-render-warnings>
+                <ul className="sb-col1" data-storyboard-render-warnings>
                   {renderNote.warnings.map((w) => (
-                    <li key={w} className="text-11 text-warn-ink">
+                    <li key={w} className="sb-warn11">
                       {w}
                     </li>
                   ))}
                 </ul>
               ) : null}
               {renderNote.segments.length ? (
-                <ul className="flex flex-col gap-1" data-storyboard-render-provenance>
+                <ul className="sb-col1" data-storyboard-render-provenance>
                   {renderNote.segments.map((segment) => (
-                    <li key={`${segment.shotId}-${segment.index}`} className="text-11 text-fg-3">
+                    <li key={`${segment.shotId}-${segment.index}`} className="sb-faint11">
                       {`第 ${segment.index + 1} 镜：${
                         segment.frame === 'own'
                           ? '画面来自这一镜自己挂的参考帧'
@@ -1240,9 +1233,9 @@ export function StoryboardPanel() {
                   ))}
                 </ul>
               ) : null}
-              <ul className="flex flex-col gap-1">
+              <ul className="sb-col1">
                 {renderNote.notes.map((n) => (
-                  <li key={n} className="text-11 text-fg-3">
+                  <li key={n} className="sb-faint11">
                     {n}
                   </li>
                 ))}
@@ -1250,13 +1243,13 @@ export function StoryboardPanel() {
             </div>
           ) : null}
           {renders.length ? (
-            <div className="mt-2 flex flex-col gap-1" data-storyboard-render-history>
-              <span className="text-11 text-fg-3">这条分镜渲过 {renders.length} 版（都是 DEMO，新的在前）：</span>
-              <ul className="flex flex-col gap-1">
+            <div className="sb-colMt2" data-storyboard-render-history>
+              <span className="sb-faint11">这条分镜渲过 {renders.length} 版（都是 DEMO，新的在前）：</span>
+              <ul className="sb-col1">
                 {renders.map((r) => (
-                  <li key={r.assetId} className="flex flex-col gap-1 text-11 text-fg-2">
+                  <li key={r.assetId} className="sb-col1ink">
                     <span>
-                      <span className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-1 py-[1px] text-10 text-accent-fg">DEMO</span>
+                      <span className="sb-demoChip">DEMO</span>
                       {' '}
                       {new Date(r.createdAt).toLocaleString('zh-CN')} · {r.renderMs} 毫秒
                       {r.warnings.length ? ` · ${r.warnings.length} 条没做到的` : ''}
@@ -1267,7 +1260,7 @@ export function StoryboardPanel() {
                       preload="metadata"
                       src={apiAssetUrl(r.assetId)}
                       data-storyboard-render-video
-                      className="w-full max-w-[480px] rounded-[var(--nexus-radius-sm)] bg-bg-3"
+                      className="sb-track"
                     />
                   </li>
                 ))}
@@ -1276,28 +1269,28 @@ export function StoryboardPanel() {
           ) : null}
         </section>
 
-        <section className="border-t border-[var(--nexus-color-border-subtle)] p-[var(--nexus-space-3)]" data-storyboard-timeline-doc>
-          <h3 className="font-mono text-11 uppercase tracking-wide text-fg-3">时间线（§41）· 说明与轨道</h3>
-          <p className="mt-1 text-11 text-fg-3">
+        <section className="sb-sectionBorderT" data-storyboard-timeline-doc>
+          <h3 className="sb-label">时间线（§41）· 说明与轨道</h3>
+          <p className="sb-faintMt1">
             拖右边缘改长度（吸附 {SHOT_MS_STEP} 毫秒，下限 {MIN_SHOT_MS} 毫秒）、拖整块换位、点左上角的转场标记换衔接、
             点条上任意一格在镜头列表里定位那一镜（反向用镜头行里的「定位」）、
             <span data-timeline-split-hint>双击一格在点击处切成两镜</span>（两半共享同一张参考帧——切的是时间线，不是像素）；
             松手才写库，每一步都可撤销。键盘：Tab 到格子的右边缘，左右方向键调长度（Shift 一格 {SHOT_MS_COARSE_STEP} 毫秒），
             Enter 落库、Esc 取消；换位用镜头表里的 ↑ ↓，精确毫秒用那个数字框——四条路改的是同一份模型。
           </p>
-          <ul className="mt-2 flex flex-col gap-1">
+          <ul className="sb-colMt2">
             {(timeline?.tracks ?? []).map((track) => (
-              <li key={track.kind} className="text-11 text-fg-2" data-storyboard-track={track.kind}>
-                <span className="font-mono text-fg-3">{track.kind}</span>
+              <li key={track.kind} className="sb-ink11" data-storyboard-track={track.kind}>
+                <span className="sb-monoFaint">{track.kind}</span>
                 {'：'}
                 {track.clips.length ? `${track.clips.length} 格` : `空——${track.emptyReason ?? '这一版没有内容'}`}
               </li>
             ))}
           </ul>
           {timeline?.blockers.length ? (
-            <ul className="mt-2 flex flex-col gap-1">
+            <ul className="sb-colMt2">
               {timeline.blockers.map((b) => (
-                <li key={b} className="text-11 text-fg-3" data-storyboard-blocker>
+                <li key={b} className="sb-faint11" data-storyboard-blocker>
                   {b}
                 </li>
               ))}
@@ -1306,11 +1299,11 @@ export function StoryboardPanel() {
         </section>
 
 
-        <section className="border-t border-[var(--nexus-color-border-subtle)] p-[var(--nexus-space-3)]">
-          <h3 className="font-mono text-11 uppercase tracking-wide text-fg-3">这一版分镜是怎么来的</h3>
-          <ul className="mt-1 flex flex-col gap-1">
+        <section className="sb-sectionBorderT">
+          <h3 className="sb-label">这一版分镜是怎么来的</h3>
+          <ul className="sb-colMt1">
             {sb.notes.map((note) => (
-              <li key={note} className="text-11 leading-relaxed text-fg-3" data-storyboard-note>
+              <li key={note} className="sb-body11" data-storyboard-note>
                 {note}
               </li>
             ))}
@@ -1318,9 +1311,9 @@ export function StoryboardPanel() {
         </section>
       </div>
 
-        <section className="shrink-0 border-t border-[var(--nexus-color-border-subtle)] p-[var(--nexus-space-3)]" data-storyboard-timeline>
-          <h3 className="font-mono text-11 uppercase tracking-wide text-fg-3">时间线（§41）</h3>
-          <p className="mt-1 text-11 text-fg-2">
+        <section className="sb-sectionBorderT" data-storyboard-timeline>
+          <h3 className="sb-label">时间线（§41）</h3>
+          <p className="sb-inkMt1">
             总长 {String((timeline?.totalMs ?? 0) / 1000)} 秒 ·
             <span data-storyboard-playable={String(timeline?.playable)}>
               {timeline?.playable
@@ -1338,7 +1331,7 @@ export function StoryboardPanel() {
             role="list"
             onClick={locateFromStrip}
             aria-label={`时间线：${sb.shots.length} 个镜头按顺序排开。拖格子右边缘改长度、拖整块换位置；点任意一格在镜头列表里定位那一镜；键盘按 Tab 到右边缘用方向键改`}
-            className="mt-2 flex h-9 w-full min-w-0 overflow-hidden rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2"
+            className="sb-timeBar"
             data-timeline-strip
             data-timeline-total-ms={String(timeline?.totalMs ?? 0)}
           >
@@ -1365,11 +1358,7 @@ export function StoryboardPanel() {
                   onPointerUp={endReorder}
                   onPointerCancel={endReorder}
                   onDoubleClick={(event) => splitAtClick(event, shot)}
-                  className={cn(
-                    'relative flex min-w-0 shrink-0 cursor-grab items-center justify-center gap-1 border-r border-[var(--nexus-color-border-subtle)] bg-bg-3 last:border-r-0',
-                    moving ? 'z-10 opacity-60' : null,
-                    dropTarget ? 'bg-bg-1' : null,
-                  )}
+                  className={cn('sb-timeSeg', moving && 'sb-timeSegMoving', dropTarget && 'sb-timeSegDropTarget')}
                   style={{
                     width: `${pct}%`,
                     // 一格 100 毫秒在 9 秒的时间线上只有 2.6 像素：不给下限的话它看上去根本"没有"
@@ -1383,12 +1372,12 @@ export function StoryboardPanel() {
                     这是截图里看出来的（面板只有 239 像素，47 像素的一格放不下三段居中文字）。
                   */}
                   {px >= 40 ? (
-                    <span className="pointer-events-none absolute right-[10px] top-[2px] font-mono text-11 text-fg-3">
+                    <span className="sb-cornerNote">
                       {String(index + 1).padStart(2, '0')}
                     </span>
                   ) : null}
                   {px >= 34 ? (
-                    <span className="pointer-events-none absolute bottom-[3px] left-0 right-0 text-center font-mono text-11 text-fg-2">
+                    <span className="sb-footNote">
                       {(shownMs / 1000).toFixed(1)}s
                     </span>
                   ) : null}
@@ -1400,7 +1389,7 @@ export function StoryboardPanel() {
                       aria-label={`换这一镜的转场（现在是${TRANSITION_LABELS[shot.transition]}）`}
                       title={`这一镜的衔接是${TRANSITION_LABELS[shot.transition]}，点一下换下一种（可撤销）`}
                       data-timeline-transition={shot.id}
-                      className="absolute left-[2px] top-[2px] rounded-[var(--nexus-radius-sm)] bg-bg-1 px-[3px] font-mono text-11 leading-tight text-fg-3"
+                      className="sb-indexChip"
                     >
                       {TRANSITION_LABELS[shot.transition]}
                     </button>
@@ -1422,21 +1411,21 @@ export function StoryboardPanel() {
                     onKeyDown={(event) => nudgeTrim(event, shot, index)}
                     // 焦点离开 = 提交（等价于松手）：预览过的长度不能因为 Tab 走开就悄悄消失
                     onBlur={() => endTrim(shot)}
-                    className="absolute right-0 top-0 h-full w-[8px] cursor-col-resize bg-transparent hover:bg-accent-2/40 focus-visible:w-[12px] focus-visible:bg-accent-2/50"
+                    className="sb-resizeHandle"
                   />
                 </div>
               );
             })}
           </div>
           {drag ? (
-            <p className="mt-1 text-11 text-accent-2-ink" data-timeline-readout>
+            <p className="sb-accent2inkMt1" data-timeline-readout>
               {drag.kind === 'trim'
                 ? `第 ${sb.shots.findIndex((candidate) => candidate.id === drag.shotId) + 1} 镜：${(drag.startMs / 1000).toFixed(1)} 秒 → ${(drag.previewMs / 1000).toFixed(1)} 秒`
                 : `把第 ${drag.fromIndex + 1} 镜拖到第 ${drag.previewIndex + 1} 位`}
             </p>
           ) : null}
           {/* 读屏那一句：视觉上藏起来，但与上面那行读数说的是同一件事（§90 的键盘路要能听见结果） */}
-          <p className="sr-only" role="status" data-timeline-announce>
+          <p className="sb-srOnly" role="status" data-timeline-announce>
             {announce}
           </p>
         </section>
