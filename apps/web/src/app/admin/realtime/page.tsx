@@ -17,17 +17,17 @@ export default async function AdminRealtimePage() {
   const user = await currentUserOrNull();
   if (!user) {
     return (
-      <main className="mx-auto max-w-[860px] px-6 py-16" data-admin-denied="anonymous">
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">实时总线状态</h1>
-        <p className="mt-2 text-13 text-fg-2">需要先登录才能看。</p>
+      <main className="adm-denied" data-admin-denied="anonymous">
+        <h1 className="adm-deniedTitle">实时总线状态</h1>
+        <p className="adm-deniedText">需要先登录才能看。</p>
       </main>
     );
   }
   if (user.role !== 'admin') {
     return (
-      <main className="mx-auto max-w-[860px] px-6 py-16" data-admin-denied="not-admin">
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">实时总线状态</h1>
-        <p className="mt-2 text-13 text-fg-2">
+      <main className="adm-denied" data-admin-denied="not-admin">
+        <h1 className="adm-deniedTitle">实时总线状态</h1>
+        <p className="adm-deniedText">
           这个页面对 {user.displayName}（role={user.role}）不开放：实时总线状态只对 role=admin 可见。
         </p>
       </main>
@@ -35,18 +35,18 @@ export default async function AdminRealtimePage() {
   }
 
   return (
-    <main className="mx-auto flex max-w-[860px] flex-col gap-4 px-6 py-10" data-realtime-admin-root>
-      <header className="flex flex-wrap items-baseline justify-between gap-3">
+    <main className="adm-shellNarrow" data-realtime-admin-root>
+      <header className="adm-headBaseline">
         <div>
-          <h1 className="text-[var(--nexus-font-size-21)] font-semibold">实时总线状态</h1>
-          <p className="text-11 text-fg-3" data-realtime-summary>
+          <h1 className="adm-deniedTitle">实时总线状态</h1>
+          <p className="adm-capNote" data-realtime-summary>
             驱动是谁、跨实例线路接上没有、这台实例断过几帧、本进程有几个人在听（§163 诊断入口）
           </p>
         </div>
         <AdminNav current="realtime" />
       </header>
 
-      <p className="text-11 text-fg-3" data-realtime-scope>
+      <p className="adm-capNote" data-realtime-scope>
         这里记的是<strong>这台实例</strong>的线路：多实例部署下每台各算各的，回答这次请求的那台会说话，别台不会。
         实时通道是加速器不是权威来源——失败的帧不补发，界面上每个数字都按这个口径读。
         下半区是 <strong>Java 生产者</strong>（domain-service）那一侧的计数：没接上时明写"没拿到"，不画成零。
