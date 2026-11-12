@@ -1,6 +1,5 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { execSync } from 'node:child_process';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -78,17 +77,6 @@ function redactClasses(source: string): string {
     .replace(/\/\*[\s\S]*?\*\//g, '/*c*/')
     .replace(/^\s*\/\/.*$/gm, '//c');
 }
-
-/** HEAD 原样删除 §A11Y-3 遗留的 `ITEM` 模板常量（本片唯一删除，见 ADR-0178）。 */
-const HEAD_ITEM_BLOCK = `/** \`min-h-7\` = 28px：比 WCAG 2.5.8 的 24px 下限更积极的一条；rounded-full 胶囊；聚焦环永远可见 */
-const ITEM =
-  'inline-flex min-h-7 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-11 ' +
-  'transition-colors duration-[var(--nexus-motion-fast)] outline-none focus-visible:ring-2 ' +
-  'focus-visible:ring-[var(--nexus-color-accent-2-ink)]';
-
-`;
-const navHead = execSync('git show HEAD:apps/web/src/components/AdminNav.tsx').toString('utf8');
-const navCarved = navHead.replace(HEAD_ITEM_BLOCK, '');
 
 function admClassesDefined(css: string): Set<string> {
   const out = new Set<string>();
@@ -201,12 +189,10 @@ describe('§FE-26 /admin 入口总览 + AdminNav', () => {
     expect(segment).toContain('@media (min-width: 64rem)');
   });
 
-  it('HEAD 原始 nav 里确实躺着 ITEM 模板常量（carve 的锚），且雕刻后 redact 与现状相等', () => {
-    expect(navHead).toContain(HEAD_ITEM_BLOCK);
-    // 全片唯一删除 = 未再使用的 ITEM；任何其他行为改动都会让此等式断开
-    expect(createHash('sha256').update(redactClasses(navCarved)).digest('hex')).toBe(
-      'a1c6b39079ac62c1149e42e6e3ed514b66a262c6bc890f77049e6e741659a927',
-    );
+  it('AdminNav 里再无 ITEM 标识符（§FE-26 雕刻的活体残留已清零，合入后不必再雕）', () => {
+    // 合并后的 HEAD 里不再有 ITEM 常量——雕刻预言已经兑现，这里钉住它不会复活。
+    expect(navCode).not.toMatch(/\bITEM\b/);
+    expect(navCode).toContain('const LINKS =');
     expect(createHash('sha256').update(redactClasses(nav)).digest('hex')).toBe(
       'a1c6b39079ac62c1149e42e6e3ed514b66a262c6bc890f77049e6e741659a927',
     );
