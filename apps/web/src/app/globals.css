@@ -2362,6 +2362,16 @@
   .fw-btn { border-radius: var(--nexus-radius-sm); border: none; background: var(--nexus-color-accent-2); padding: var(--nexus-space-1) var(--nexus-space-3); font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-fg); cursor: pointer; }
   .fw-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .fw-error { font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); }
+
+  /* ── §FE-82 / ADR-0235 `BlockControl.tsx` `.bc-` 门面化——§132 自助治理 ──
+   * 两个动作摆明面上：屏蔽（他还能不能碰到你）/ 拉黑——藏起来就等于让人凭感觉选动作。 */
+  .bc-root { display: flex; flex-direction: column; align-items: flex-end; gap: var(--nexus-space-1); }
+  .bc-row { display: flex; align-items: center; gap: var(--nexus-space-2); }
+  .bc-btn { border-radius: var(--nexus-radius-sm); border: none; background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-1); cursor: pointer; }
+  .bc-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .bc-hint11 { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .bc-note { max-width: 22rem; text-align: right; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .bc-error { font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); }
   .pb-mirrorLink { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); text-decoration: underline; }
 
   /* ── §FE-55 / ADR-0207 `MemoryPanel.tsx` `.mm-` 门面化——§48 角色记忆 ──
