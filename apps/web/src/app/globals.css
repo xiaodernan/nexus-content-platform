@@ -1574,6 +1574,67 @@
   .np-removeBtn:hover { color: var(--nexus-color-danger-ink); }
   .np-removeBtn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
 
+  /* ── §FE-42 / ADR-0194 `ContextPanel.tsx` `.cx-` 门面化——§66-71 Context Engine ──
+   * 整面白底低 alpha 眼线 atom 从 White-on-dark 换成双主题 token；所有两层色彩偏好折拆开（行/卡/note/num）。
+   * 薄弱点：`--nexus-color-success`/`--nexus-color-warn` 纯色相，文字全走 fg-1 + tint 混底，AA 棘守。
+   * 零动效、零 @media；agent 请求预算/渲染路径都不动。 */
+  .cx-root { display: flex; flex-direction: column; gap: var(--nexus-space-3); padding: var(--nexus-space-3); font-size: var(--nexus-font-size-12); }
+  .cx-headRow { display: flex; align-items: center; justify-content: space-between; }
+  .cx-h2 { font-size: var(--nexus-font-size-13); font-weight: 600; color: var(--nexus-color-fg-1); }
+  .cx-btn { border: 1px solid var(--nexus-color-border-strong); border-radius: var(--nexus-radius-sm); background: transparent; padding: 2px var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); cursor: pointer; }
+  .cx-btn:hover:not(:disabled) { background: var(--nexus-color-bg-2); }
+  .cx-btn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .cx-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .cx-lede { margin-top: var(--nexus-space-1); font-size: var(--nexus-font-size-11); line-height: 1.6; color: var(--nexus-color-fg-3); }
+  .cx-error { border: 1px solid var(--nexus-color-danger); border-radius: var(--nexus-radius-sm); background: color-mix(in srgb, var(--nexus-color-danger) 15%, transparent); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); }
+  .cx-card { display: flex; flex-direction: column; gap: var(--nexus-space-1); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-1); padding: var(--nexus-space-2); }
+  .cx-note { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .cx-num { font-variant-numeric: tabular-nums; line-height: 1.4; color: var(--nexus-color-fg-2); }
+  .cx-codeLine { font-variant-numeric: tabular-nums; line-height: 1.4; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); }
+  .cx-budgetRow { display: flex; align-items: center; gap: var(--nexus-space-2); }
+  .cx-budgetInput { max-width: 5rem; width: 5rem; }
+  .cx-input { min-width: 0; flex: 1; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-1); outline: none; font-variant-numeric: tabular-nums; }
+  .cx-input:focus { background: var(--nexus-color-bg-3); }
+  .cx-input:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .cx-ghost { border: 1px solid var(--nexus-color-border-strong); border-radius: var(--nexus-radius-sm); background: transparent; padding: 2px var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .cx-ghost:hover:not(:disabled) { background: var(--nexus-color-bg-2); }
+  .cx-ghost:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .cx-ghost:disabled { opacity: 0.5; cursor: not-allowed; }
+  .cx-trimmed { display: flex; flex-direction: column; gap: 2px; margin-top: var(--nexus-space-1); font-size: var(--nexus-font-size-11); line-height: 1.4; color: var(--nexus-color-warn-ink); list-style: none; padding: 0; }
+  .cx-echo { font-size: var(--nexus-font-size-11); line-height: 1.4; color: var(--nexus-color-fg-3); }
+  .cx-totals { display: flex; flex-direction: column; gap: 2px; margin-top: var(--nexus-space-1); font-size: var(--nexus-font-size-11); }
+  .cx-row { display: flex; align-items: baseline; gap: var(--nexus-space-2); }
+  .cx-rowKey { width: 72px; flex-shrink: 0; color: var(--nexus-color-fg-3); }
+  .cx-rowVal { min-width: 0; flex: 1; line-height: 1.4; }
+  .cx-warnBox { margin-top: var(--nexus-space-1); border: 1px solid color-mix(in srgb, var(--nexus-color-warn) 40%, transparent); border-radius: var(--nexus-radius-sm); background: color-mix(in srgb, var(--nexus-color-warn) 15%, transparent); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); line-height: 1.4; color: var(--nexus-color-warn-ink); }
+  .cx-sectionTitle { display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+  .cx-pageCard { display: flex; flex-direction: column; gap: 2px; border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-1); padding: var(--nexus-space-1) var(--nexus-space-2); }
+  .cx-pageCard:hover { background: var(--nexus-color-bg-2); }
+  .cx-pageName { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--nexus-font-size-11); }
+  .cx-pageRoute { color: var(--nexus-color-fg-3); }
+  .cx-pageMeta { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); font-variant-numeric: tabular-nums; line-height: 1.4; }
+  .cx-corpus { margin-top: var(--nexus-space-1); display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+  .cx-corpusRow { display: flex; align-items: center; gap: var(--nexus-space-1); }
+  .cx-corpusSummary { font-size: var(--nexus-font-size-11); line-height: 1.6; color: var(--nexus-color-fg-3); }
+  .cx-corpusItem { display: flex; flex-direction: column; gap: 2px; }
+  .cx-corpusExcerpt { font-size: var(--nexus-font-size-11); line-height: 1.6; color: var(--nexus-color-fg-2); }
+  .cx-mono { font-family: var(--nexus-font-mono); font-size: 0.625rem; color: var(--nexus-color-fg-3); }
+  .cx-miniBtn { align-self: flex-start; border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); background: transparent; padding: 2px var(--nexus-space-1); font-size: 0.625rem; color: var(--nexus-color-fg-3); cursor: pointer; }
+  .cx-miniBtn:hover:not(:disabled) { background: var(--nexus-color-bg-2); }
+  .cx-miniBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .cx-block { margin-top: var(--nexus-space-1); border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-2); display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+  .cx-blockText { font-size: var(--nexus-font-size-11); line-height: 1.6; white-space: pre-line; color: var(--nexus-color-fg-1); }
+  .cx-dangerText { color: var(--nexus-color-danger-ink); }
+  .cx-branch { display: flex; flex-direction: column; gap: 2px; }
+  .cx-branchRow { display: flex; align-items: center; gap: var(--nexus-space-2); }
+  .cx-branchName { width: 4.5rem; flex-shrink: 0; }
+  .cx-pill { border-radius: var(--nexus-radius-sm); padding: 0 var(--nexus-space-1); font-size: 0.625rem; cursor: default; }
+  .cx-pillIndexed { background: color-mix(in srgb, var(--nexus-color-success) 15%, transparent); color: var(--nexus-color-fg-1); }
+  .cx-pillPartial { background: color-mix(in srgb, var(--nexus-color-warn) 15%, transparent); color: var(--nexus-color-warn-ink); }
+  .cx-pillUnset { background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-3); }
+  .cx-branchNote { padding-left: calc(4.5rem + var(--nexus-space-2)); font-size: var(--nexus-font-size-11); line-height: 1.4; color: var(--nexus-color-fg-3); }
+  .cx-muted { display: flex; flex-direction: column; gap: 3px; font-size: var(--nexus-font-size-11); line-height: 1.4; color: var(--nexus-color-fg-3); list-style: none; padding: 0; }
+
   /* ── §FE-40 / ADR-0192 `/admin/health` 管理台健康总览 `.hd-` 门面化——五层快照一次成 ──
    * 运维只在这一页看到五层（ai/java/gateway/redis/postgres）的真相：
    * 拿不到 = "未测到"（而不是 down），和 web 静默降级纪律一致；每层独立超时。
