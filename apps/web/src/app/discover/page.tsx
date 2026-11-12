@@ -31,7 +31,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
   return (
     <main className="mx-auto flex max-w-[1080px] flex-col gap-[var(--nexus-space-6)] px-6 py-10" data-discover-root>
       <header className="flex flex-wrap items-baseline gap-3">
-        <h1 className="relative inline-block bg-gradient-to-br from-[#eef1f6] via-[#8b9cf8] to-[var(--nexus-color-accent-1)] bg-clip-text pb-2 text-[var(--nexus-font-size-28)] font-bold tracking-tight text-transparent" data-discover-title>
+        <h1 className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight" data-discover-title>
           发现
           <span
             aria-hidden="true"
@@ -114,7 +114,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
                 </div>
               )}
               <div className="flex flex-col gap-1 p-3">
-                <span className="text-13 font-semibold text-fg-1 transition-colors group-hover:text-[#eef1f6]" data-discover-name>
+                <span className="text-13 font-semibold text-fg-1 transition-colors group-hover:text-fg-1" data-discover-name>
                   {card.name}
                 </span>
                 <span className="text-11 text-fg-3">
@@ -123,7 +123,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
                 <span className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-0.5 text-11 text-fg-2" data-discover-counts>
                   <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--nexus-color-accent-2-ink)]" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z" /><circle cx="12" cy="12" r="2.75" /></svg>
                   {card.views}
-                  <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" className="text-[#f47b8f]" aria-hidden="true"><path d="M12 20s-6.8-4.7-9-9.3C1.8 7.3 4.1 5 7 5c2 0 3.9 1.1 5 2.9C13.1 6.1 15 5 17 5c2.9 0 5.2 2.3 4 5.7C18.9 15.3 12 20 12 20z" /></svg>
+                  <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" className="text-like" aria-hidden="true"><path d="M12 20s-6.8-4.7-9-9.3C1.8 7.3 4.1 5 7 5c2 0 3.9 1.1 5 2.9C13.1 6.1 15 5 17 5c2.9 0 5.2 2.3 4 5.7C18.9 15.3 12 20 12 20z" /></svg>
                   {card.likes}
                   <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="text-fg-2" aria-hidden="true"><path d="M21 11.5a7.5 7.5 0 0 1-7.5 7.5 8 8 0 0 1-3.2-.7L4 20l1.7-6.2A7.5 7.5 0 1 1 21 11.5z" /></svg>
                   {card.comments}

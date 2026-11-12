@@ -21,7 +21,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   return (
     <main className="mx-auto flex min-h-screen max-w-[820px] flex-col gap-6 px-6 py-10" data-search-root>
       <header className="flex flex-wrap items-baseline gap-3">
-        <h1 className="relative inline-block bg-gradient-to-br from-[#eef1f6] via-[#8b9cf8] to-[var(--nexus-color-accent-1)] bg-clip-text pb-2 text-[var(--nexus-font-size-28)] font-bold tracking-tight text-transparent">
+        <h1 className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight">
           全平台搜索
           <span
             aria-hidden="true"

@@ -145,7 +145,7 @@ export default async function NotificationsPage({ searchParams }: { searchParams
         <p className="relative text-13 text-fg-3">
           {user.displayName} · 共 {page.total} 条 · 未读 {page.unread} 条 · 只有你能看到这一份
         </p>
-        <h1 className="relative mt-2 inline-block bg-gradient-to-br from-[#eef1f6] via-[#8b9cf8] to-[var(--nexus-color-accent-1)] bg-clip-text pb-2 text-28 font-bold tracking-tight text-transparent">
+        <h1 className="relative mt-2 inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight">
           通知
           <span
             aria-hidden="true"

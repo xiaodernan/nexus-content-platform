@@ -20,7 +20,7 @@ export default async function ApiTokensPage(): Promise<ReactElement> {
           TOKENS
         </span>
         <h1
-          className="relative inline-block bg-gradient-to-br from-[#eef1f6] via-[#8b9cf8] to-[var(--nexus-color-accent-1)] bg-clip-text pb-2 text-[var(--nexus-font-size-28)] font-bold tracking-tight text-transparent"
+          className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight"
           data-api-tokens-title
         >
           公开 API 凭据

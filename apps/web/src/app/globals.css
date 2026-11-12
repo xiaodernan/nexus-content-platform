@@ -16,6 +16,8 @@
   --color-accent-1: var(--nexus-color-accent-1);
   --color-accent-2: var(--nexus-color-accent-2);
   --color-accent-2-ink: var(--nexus-color-accent-2-ink);
+  --color-accent-mix: var(--nexus-color-accent-mix);
+  --color-like: var(--nexus-color-like);
   --color-accent-fg: var(--nexus-color-accent-fg);
   --color-danger: var(--nexus-color-danger);
   --color-danger-ink: var(--nexus-color-danger-ink);
@@ -113,5 +115,17 @@
     html {
       scroll-behavior: auto !important;
     }
+  }
+}
+
+/* v687 / cont. 68: single source for the brand title gradient (fg-1 -> accent-mix -> accent-1).
+   Previously copy-pasted in 15 places as from-[#eef1f6] via-[#8b9cf8]; add one bridge token instead. */
+@layer utilities {
+  .text-gradient-brand {
+    background-image: linear-gradient(125deg, var(--nexus-color-fg-1) 12%, var(--nexus-color-accent-mix) 55%, var(--nexus-color-accent-1) 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    display: inline-block;
   }
 }

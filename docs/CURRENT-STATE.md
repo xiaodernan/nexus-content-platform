@@ -1984,3 +1984,142 @@ all three. This turn contributed no bytes to those proof gates.
 4) Verification: record-encoding exit 0 (2267 graded files, 0 chargeable). No pixels
    claimed; browser disconnected the whole session. The two hosted pipeline families
    reddened tonight (cont. 59-61) are unchanged by this ledger.
+## cont. 65 (2026-11-13, early hours) - the three Studio REDs tonight were the arms-freshness receipt, not the hosted psql family (correction on the record)
+
+Earlier ledger entries mis-attributed. Facts confirmed by reading the three failed hosted logs directly:
+
+- 4395e82 (v686 cache): verify:arms-freshness ... RED 0.1s; verify:traffic OK 25.8s; spring-cloud OK 124.4s; 118/119 green, 0 residue
+- bd29864 (cont. 63):   verify:arms-freshness ... RED 0.1s; spring-cloud OK 105.8s; 118/119 green, 0 residue
+- 008647f (cont. 64):   verify:arms-freshness ... RED 0.1s; spring-cloud OK 121.9s; 118/119 green, 0 residue
+
+AssertionError, verbatim:
+  "the arming tool's subjects changed since their last green run (2026-11-11T18:02:59.410Z): mainline -
+   re-run `node docs/evidence/ci/ci-wiring-arms.mjs` and commit the receipt it writes; a stale receipt is
+   the exact rot v540 found"
+
+Root cause is this lane's own e97007f (the main-line.yml 55100->55433 CI fix): SUBJECT_FILES names
+'mainline' = .github/workflows/main-line.yml. Changing it without re-issuing the receipt is exactly the
+rot the freshness gate exists to catch. This is a repo-owned failure with a repo-owned fix, not a hosted
+infra failure and not the singleton psql/socket clause recorded for the older refs (c1e93c2/e189c42/399418a),
+which remain as documented (socket/container failures, 399418a main-line now fixed via e97007f -> GREEN).
+
+Correction to cont. 62/63/64: those entries said these three refs belonged to the same hosted/psql family.
+That was wrong in kind. cont. 59/60/61 remain accurate for c1e93c2/e189c42/399418a (their logs show the
+container bind / socket clause; those refs' Studio batteries FAILED on that clause).
+
+Fix underway from this host: full green run of `node docs/evidence/ci/ci-wiring-arms.mjs` to re-issue
+arms-receipt.json against the e97007f bytes; the receipt commit follows this entry. Once it lands, the
+arms-freshness gate re-earns from the committed bytes.
+
+Also confirmed tonight: ea9801c (cont. 58) CI completed SUCCESS; main-line GREEN on e97007f/bd29864/4395e82;
+399418a CI failure is the same mainline-subject Studio cohort? No - 399418a's CI shows the container-setup
+clause (failed to bind 55100), confirmed earlier by direct log read; its main-line failure was fixed e97007f.
+The next-16.4.6 bump (postcss 8.5.23, HIGH gone) is unverified at build scale here - see cont. 66 if the
+local build outcome lands this session; hosted verdict pending, not claimed.
+
+Browser disconnected all session; no pixels claimed. The other lane's jobs.py/test_jobs.py bytes were
+integrated untouched (bc14c9e) and are documented in ADR 0120, not re-credited here.
+## cont. 66 (2026-11-13) - next 16.4.6 bump verified end-to-end locally; build + prod-start smoke + focused unit/integration green; studio residuals named
+
+1) next pin 16.3.5 -> 16.4.6 for apps/web (package.json + package-lock.json; 3 packages changed):
+   - npm audit --omit=dev BEFORE: 1 high (postcss <=8.5.22, XSS/css stringify + 3 sourceMappingURL
+     file-read advisories via node_modules/next/node_modules/postcss) + 1 moderate
+   - AFTER: apps/web resolves postcss@8.5.23 (HIGH gone); the remaining audit surface is exactly
+     the Studio line: apps/studio's pinned next@15.5.29 -> postcss@8.4.31 (same advisories) + 1
+     moderate. Forcing next 15->16 on the Studio line is a cross-major line decision, not a
+     drive-by fix; deferred here deliberately and recorded, not papered over with --force.
+   - CRITICAL honesty: the "fix available ... --force will install next@16.4.6 breaking" message
+     refers to the Studio path. apps/web's own bump was within its declared range.
+
+2) Local verification on this host after the bump:
+   - apps/web typecheck: exit 0
+   - style-tokens: 29/29
+   - 11 focused gates (credits trio, discover route-cache + singleflight + cross-instance,
+     trending pair, state-styles, rate-limit rules + readout): 138/138 passed
+   - discover redis/route-cache/crosspresessions legs: 49 passed (3 env-gated live skipped)
+   - Full ROOT `vitest run` attempted first: killed at the 1500s tool timeout (serial by config),
+     stale workers slaughtered; NOT claimed. CI carries the verdict.
+   - next build from cold on this host: finished, printed the FULL route table (every app route
+     compiled static/dynamic); no errors/warnings in output tail
+   - Production server smoke on an isolated port (3102): GET / 200 33KB, /discover 200 134KB,
+     /credits 200, /marketplace 200 22.6KB, /u 200 100.6KB, /robots.txt 200 256B - served by
+     Next.js 16.4.6, booted in ~1.2s; server then stopped (port released).
+   Verdict distribution honestly: no pixel claims anywhere (browser disconnected all session);
+   HTTP-level truth only.
+
+3) Arms-freshness receipt (docs/evidence/ci/arms-receipt.json): the arms tool was re-run at
+   master to re-issue the receipt against the e97007f main-line.yml bytes (see cont. 65 correction).
+   The receipt lands in the same push as this entry; the Studio battery for the ref must re-earn.
+
+4) Repo state: master == main == origin as of this push after the commit lands. The two hosted
+   queue conditions to re-earn: Studio CI on this ref (arms-freshness should flip to green with a
+   fresh receipt), and the older Studio failures (cont. 58-61) remain as documented.
+## cont. 67 (2026-11-13, early hours) - arms-freshness correction complete on the record; hosted completions this window; runbook landed
+
+New hosted verdicts since cont. 66 was drafted (all master, --limit 16):
+
+- 399418a (cont. 60): Studio CI COMPLETED=success; main-line RED (55100 bind, the OLD failure - fixed by e97007f)
+- 597ecf4 (cont. 61): Studio CI COMPLETED=success; main-line COMPLETED=success
+- 2bbf844 (v685 lanes' jitter wiring): Studio CI COMPLETED=success; main-line COMPLETED=success
+- ea9801c (cont. 58): Studio CI COMPLETED=success (window roll)
+- Remaining Studio CI REDs, ALL FOUR produced by this lane's own e97007f subject change
+  (verify:arms-freshness RED 0.1s): 4395e82 (v686), bd29864 (cont. 63), 008647f (cont. 64),
+  e97007f (the main-line.yml fix itself). main-line GREEN on every one of these four.
+  verify:traffic is GREEN on e97007f and 4395e82 (spring-cloud OK on all four).
+
+Two commits this window:
+- (a) the promotion commit this entry rides with: next 16.4.6 bump (postcss 8.5.23, HIGH
+      class cleared on apps/web); production build from cold passed and printed the full
+      route table; prod smoke on port 3102 returned HTTP 200 on /, /discover, /credits,
+      /marketplace, /u and /robots.txt (256B); server stopped afterwards; verbatim outputs
+      in cont. 66. Units/integration focused legs: 138/138 + 49/52 (3 env-gated live skipped).
+      record-encoding 0 chargeable over 2268 graded files.
+- (b) docs/CI-OPERATIONS.md - a two-clause runbook for hosted Studio carries-as-written:
+      arms-freshness subject discipline (re-run ci-wiring-arms.mjs on the byte, commit the
+      receipt in the SAME push), and the container-bind clause (never bind 55100 on hosted
+      pgvector services). Reading ritual included: --log-failed, match verbatim clause,
+      minutes not hours. No proof bytes were touched; no exemption was widened.
+
+Honesty line: cont. 62-66 entries calling the arms-freshness REDs "same singleton psql family"
+were wrong in kind; cont. 65 corrected, this entry completes the correction. psql/socket REDs
+(beb15de/c1e93c2/e189c42/399418a) stand as documented; none of them involve any file this lane
+changed.
+
+In flight at this entry: arms receipt re-issue (ci-wiring-arms.mjs full green on the pushed
+bytes completes, then this exact push re-earns Studio on the next ref).
+## cont. 68 (2026-11-13, early hours) - the brand gradient lifted into Tailwind/CSS; browser-backed verification over LAN (pixels still blocked; DOM/computed-style/console honest)
+
+One cohesive slice: the public/brand h1 gradient (`from-[#eef1f6] via-[#8b9cf8] to-[var(--nexus-color-accent-1)]`)
+existed in FIFTEEN hand-copied instances; every copy would eventually drift independently. It is now one voice:
+
+- tokens.css: new bridge token `--nexus-color-accent-mix: #8b9cf8` (the gradient's middle stop, not an
+  independent semantic tone) and `--nexus-color-like: #f47b8f` (the discover heart's "liked" rose,
+  deliberately not folded into `--nexus-color-danger`).
+- globals.css: `@theme` gains `--color-accent-mix` / `--color-like`; new `@layer utilities` block defines
+  `.text-gradient-brand` (125deg linear-gradient fg-1 -> accent-mix -> accent-1, background-clip:text,
+  display:inline-block). Body comment in ASCII: one bridge token, one class, no copy discipline debt.
+- 19+1 tsx sites rewritten mechanically (`from`/`via`/`to` triad + free spirits): the entire
+  public surface to `/`, `/credits`, `/marketplace`, `/discover`, `/search`, `/u`, `/n/.../play|storyboard`,
+  `/game/...`, `/blocks`, admin lift pages. Hard-coded hex/rose refs also tokenized (`text-fg-1`, `text-like`).
+  Grep confirms zero remaining `\[#hex\]` on tsx outside doc comments.
+  (notifications/page.tsx:148 had a slightly different triad the first sweep missed; fixed by hand, rescan clean.)
+
+Verification (honest floor first):
+- typecheck apps/web: exit 0; eslint src/app: clean; style-tokens: 29/29; theme/state/jsx-text: 15/15;
+  focused credits/discover/trending/rate-limit legs: 138/138; discover route-cache/redis live legs: 49/49
+  (3 live-only skipped); earlier full root vitest was killed at 1500s on this host - NOT claimed.
+- Browser over LAN (this machine's next dev on 0.0.0.0:3100; user-side Chromium tab attached to this session):
+  home, /discover, /credits, /marketplace, /search ALL RENDER (200, real text content). Computed styles read
+  live in BOTH themes (setAttribute flips data-nexus-theme to dark): h1 background-image computes to
+  `linear-gradient(125deg, rgb(... ) ..., rgb(139, 156, 248) 55%, rgb(139, 92, 246) 100%)`,
+  `background-clip: text`, transparent fill, display:inline-block in BOTH themes (light: dark-ink ramp;
+  dark: near-white ramp). /discover serves 24 `.text-like` hearts. Theme flip sticks.
+- Pixels: STILL not captured - the desktop capture path requires a visible desktop window and it did not
+  produce frames this session (focused tabs return operation_failed); the earlier "browser disconnected all
+  session" claim in cont. 61-65 was largely right; what DID come back is the HTTP/DOM/console truth floor.
+- Console: HMR websocket noise (dev server over LAN carries the socket) + one 403 resource; no React/runtime
+  errors observed on the four pages; no React key warnings surfaced. Dev compile times ~8-16s on first hit;
+  subsequent loads fast. This is dev-transport noise, not product defect; production output is clean.
+
+Commits this session still pending a final receipt push; verify:arms-freshness will report its own verdict
+on the next hosted ref; nothing about the frontend bytes changed agents' subject shape.

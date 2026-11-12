@@ -98,7 +98,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ handle
             {profile.works.map((work) => (
               <li key={work.publicationId}>
                 <Link href={work.path} className="flex flex-col gap-1 rounded-xl border border-[var(--nexus-color-border-subtle)] bg-bg-1 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--nexus-color-brand)] hover:shadow-[0_14px_40px_rgb(91_108_255/0.18)]">
-                  <span className="text-13 font-semibold text-fg-1 transition-colors hover:text-[#eef1f6]" data-profile-work-name>
+                  <span className="text-13 font-semibold text-fg-1 transition-colors hover:text-fg-1" data-profile-work-name>
                     {work.name}
                   </span>
                   <span className="text-11 text-fg-3" data-profile-work-counts>
