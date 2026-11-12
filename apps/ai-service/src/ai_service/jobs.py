@@ -23,6 +23,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Mapping, Protocol
 
+from .dead_letter import DEFAULT_MAX_DEAD_LETTERS, parse_max_dead_letters, trim_command, trim_list
 from .execution import error, execute_ai_request
 from .providers.registry import Registry
 
@@ -71,6 +72,7 @@ class JobStore(Protocol):
     backend: str
     note: str
     max_attempts: int  # 每件作业允许的总尝试次数；<=1 表示不重试（默认，零回归）
+    max_dead_letters: int  # 死信上限（ADR 0121）；0 = 不限（回到 ADR 0120 的旧行为）
 
     async def enqueue(self, payload: dict[str, Any]) -> Job: ...
     async def claim(self) -> Job | None: ...
@@ -96,12 +98,13 @@ class MemoryJobStore:
     backend = "memory"
     note = "作业只存在当前 ai-service 进程里：重启即失，多副本部署时轮询可能打到另一台查不到。"
 
-    def __init__(self, *, max_jobs: int = 200, max_attempts: int = 1) -> None:
+    def __init__(self, *, max_jobs: int = 200, max_attempts: int = 1, max_dead_letters: int = DEFAULT_MAX_DEAD_LETTERS) -> None:
         self._jobs: dict[str, Job] = {}
         self._pending: list[str] = []
         self._lock = asyncio.Lock()
         self._max_jobs = max_jobs
         self.max_attempts = max(1, max_attempts)  # <=1 表示不重试（默认零回归）
+        self.max_dead_letters = max(0, max_dead_letters)  # 0 = 不限（ADR 0121）
         # 取消标志与作业本体分开存：作业本体各处都会整份写回，
         # 把标志塞进去就会出现"worker 的一次 save 把取消请求抹掉"这种竞态
         self._cancel_requested: set[str] = set()
@@ -187,6 +190,7 @@ class MemoryJobStore:
         """毒消息归档：耗尽重试仍失败，落死信而不是无限重试（也不静默丢）。"""
         async with self._lock:
             self._dead.append({"job": job.public(), "attempts": job.attempts, "reason": reason})
+            trim_list(self._dead, self.max_dead_letters)
             # 作业本体保留一份终态 failed，方便按 jobId 仍能查到（与死信的归档互为冗余，不冲突）
             job.status = "failed"
             job.finishedAt = utc_now()
@@ -226,19 +230,20 @@ class RedisJobStore:
     backend = "redis"
     note = "作业存在 Redis 里（带 TTL）：重启不丢，多副本部署时轮询打到任何一台都能查到。"
 
-    def __init__(self, client: Any, *, prefix: str = "nexus:ai", ttl_s: int = 3600, max_attempts: int = 1) -> None:
+    def __init__(self, client: Any, *, prefix: str = "nexus:ai", ttl_s: int = 3600, max_attempts: int = 1, max_dead_letters: int = DEFAULT_MAX_DEAD_LETTERS) -> None:
         self._r = client
         self._prefix = prefix
         self._ttl = ttl_s
         self.max_attempts = max(1, max_attempts)  # <=1 表示不重试（默认零回归）
+        self.max_dead_letters = max(0, max_dead_letters)  # 0 = 不限（ADR 0121）
 
     @classmethod
-    async def connect(cls, url: str, *, prefix: str = "nexus:ai", ttl_s: int = 3600, max_attempts: int = 1) -> "RedisJobStore":
+    async def connect(cls, url: str, *, prefix: str = "nexus:ai", ttl_s: int = 3600, max_attempts: int = 1, max_dead_letters: int = DEFAULT_MAX_DEAD_LETTERS) -> "RedisJobStore":
         import redis.asyncio as aioredis  # 惰性导入：没配 Redis 时不需要这个依赖
 
         client = aioredis.from_url(url, decode_responses=True)
         await client.ping()
-        return cls(client, prefix=prefix, ttl_s=ttl_s, max_attempts=max_attempts)
+        return cls(client, prefix=prefix, ttl_s=ttl_s, max_attempts=max_attempts, max_dead_letters=max_dead_letters)
 
     def _key(self, job_id: str) -> str:
         return f"{self._prefix}:job:{job_id}"
@@ -334,6 +339,10 @@ class RedisJobStore:
             json.dumps({"job": job.public(), "attempts": job.attempts, "reason": reason}, ensure_ascii=False),
         )
         await self._r.expire(self._dead_key, self._ttl)
+        try:
+            await trim_command(self._r, self._dead_key, self.max_dead_letters)
+        except Exception:
+            pass  # 容量裁剪是 guardrail 不是主路径；失败不能拖垮死信归档
 
     async def dead_letters(self) -> list[dict[str, Any]]:
         raws = await self._r.lrange(self._dead_key, 0, -1)
@@ -494,6 +503,6 @@ async def build_store(env: Mapping[str, str] | None = None, *, prefix: str = "ne
     source = env if env is not None else os.environ
     url = (source.get("NEXUS_REDIS_URL") or "").strip()
     if not url:
-        return MemoryJobStore(max_attempts=_max_attempts(source))
+        return MemoryJobStore(max_attempts=_max_attempts(source), max_dead_letters=parse_max_dead_letters(source))
     ttl = int(source.get("AI_SERVICE_JOB_TTL_S", "3600") or "3600")
-    return await RedisJobStore.connect(url, prefix=prefix, ttl_s=max(60, ttl), max_attempts=_max_attempts(source))
+    return await RedisJobStore.connect(url, prefix=prefix, ttl_s=max(60, ttl), max_attempts=_max_attempts(source), max_dead_letters=parse_max_dead_letters(source))

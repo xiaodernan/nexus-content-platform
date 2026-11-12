@@ -11765,3 +11765,14 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   这些是仍欠项，不为它们造门（ADR 0120 明示）。
 - **验证**：全 ai-service 套 232 passed / 12 skipped；`NEXUS_REDIS_URL=redis://localhost:56379/7`
   时 test_jobs.py 20 passed（含两条 live Redis 腿）；4 条 DLQ/Retry 判据绿；record-encoding 0 chargeable。
+
+## v688 — 有界死信（ADR 0121）（2026-11-13）
+- **做了**：`dead_letter.py`（trim_list 原地裁左侧最老 / trim_command LTRIM 的 async 薄封装、
+  inspect.isawaitable 区分 sync fake 与 redis-py asyncio / parse_max_dead_letters 读
+  AI_SERVICE_DEAD_LETTER_MAX，默认 500，0=不限，非法值回落 500）。两后端接线：
+  MemoryJobStore append 后锁内 trim；RedisJobStore LPUSH+EXPIRE 后 LTRIM 0 N-1；裁剪失败不拖垮归档。
+- **零判定路径变化**：不动 attempts、不动 4xx/5xx 分支、不引入新 keyspace。
+- **验证（本机）**：17 新门（parse×5、trim_list×3、判据臂×2、memory×2、fake-redis LTRIM×4）；
+  live 腿 `NEXUS_DL_REDIS_LIVE=1 NEXUS_DL_REDIS_URL=redis://localhost:56379/7` 真腿 4 毒消息→留最新 2；
+  全套 254 passed（设置了真 Redis env）；record-encoding exit 0。
+- **仍欠**：死信导出工具缺、cap≠quota 无反压传播、LPUSH+LTRIM 非事务（极端并发最坏多裁 1 条）。
