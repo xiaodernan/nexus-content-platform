@@ -1338,6 +1338,24 @@
   .tl-retryBtn:disabled { opacity: 0.5; cursor: not-allowed; }
   .tl-retryNote { color: var(--nexus-color-fg-3); }
 
+  /* ── §FE-24 / ADR-0176 `/game` 与 `/world` 运行时壳 `.rt-` 门面化 ──
+   * §50/§140：非发布链、只有作者本人可进的两个运行时载体，共享三态门（none/broken/ok）。
+   * /game 渲染 §54 游戏设计文档的可玩投影（PlayByKind）；/world 渲染 §「世界」文档的 3D 投影（WorldWalk）。
+   * 全裸 Tailwind → .rt- 门面族；鉴权/判 kind/编译/文案/data 钩子一字不改。零动效、零 @media。 */
+  .rt-shell { margin-inline: auto; max-width: 45rem; padding: 4rem var(--nexus-space-6); display: flex; flex-direction: column; gap: var(--nexus-space-3); }
+  .rt-shellWide { margin-inline: auto; max-width: 73.75rem; padding: var(--nexus-space-8) var(--nexus-space-6); display: flex; flex-direction: column; gap: var(--nexus-space-4); }
+  .rt-title { font-size: var(--nexus-font-size-21); font-weight: 600; color: var(--nexus-color-fg-1); }
+  .rt-lede { font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-2); }
+  .rt-error { font-size: var(--nexus-font-size-13); color: var(--nexus-color-danger-ink); }
+  .rt-note { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .rt-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--nexus-space-3); }
+  .rt-subtitle { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .rt-link { font-size: var(--nexus-font-size-13); color: var(--nexus-color-accent-2-ink); text-decoration: underline; text-underline-offset: 0.15em; border-radius: 2px; }
+  .rt-link:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .rt-linkSub { font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-2-ink); text-decoration: underline; text-underline-offset: 0.15em; border-radius: 2px; }
+  .rt-linkSub:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .rt-stage { height: 100dvh; width: 100%; }
+
   /* ── §FE-15 / ADR-0163 创作数据页按天曲线 `TrendChart.tsx` `.tc-` 门面化（FE 首个 SVG 图表片） ──
    * analytics 分析页最后一块裸 Tailwind：8 处 className（含 SVG 专属 fill-[...]/text-[9px] 两个
    * 任意值原子类）。本片的灵魂是**三轴语义色守恒**——opens/visitors/playTimeMs 各有专属纵轴与

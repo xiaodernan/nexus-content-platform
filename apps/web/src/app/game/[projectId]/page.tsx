@@ -29,12 +29,12 @@ export default async function GameRuntimePage({ params }: { params: Promise<{ pr
   const game = await loadGame(projectId);
   if (!game) {
     return (
-      <main className="mx-auto flex max-w-[720px] flex-col gap-3 px-6 py-16" data-game-runtime="none">
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">这个项目还没有游戏设计</h1>
-        <p className="text-13 text-fg-2">
+      <main className="rt-shell" data-game-runtime="none">
+        <h1 className="rt-title">这个项目还没有游戏设计</h1>
+        <p className="rt-lede">
           可玩投影读的是 §54 的游戏设计文档（11 类实体、数值与引用）。先去 Studio 的「游戏」面板建骨架、填几个数。
         </p>
-        <Link href={`/studio/${projectId}`} className="text-13 text-accent-2-ink underline">
+        <Link href={`/studio/${projectId}`} className="rt-link">
           回到 Studio 的游戏面板
         </Link>
       </main>
@@ -42,12 +42,12 @@ export default async function GameRuntimePage({ params }: { params: Promise<{ pr
   }
   if (!game.ok) {
     return (
-      <main className="mx-auto flex max-w-[720px] flex-col gap-3 px-6 py-16" data-game-runtime="broken">
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">库里的游戏设计读不出来</h1>
-        <p className="text-13 text-danger-ink" data-game-error>
+      <main className="rt-shell" data-game-runtime="broken">
+        <h1 className="rt-title">库里的游戏设计读不出来</h1>
+        <p className="rt-error" data-game-error>
           {game.reason}
         </p>
-        <p className="text-11 text-fg-3">
+        <p className="rt-note">
           这里不会拿一份演示关卡代替它：那看起来像"你的设计跑不起来"，而实际是读不出来，两件事差很远。
         </p>
       </main>
@@ -56,17 +56,17 @@ export default async function GameRuntimePage({ params }: { params: Promise<{ pr
 
   const projection = compileForKind(game.document);
   return (
-    <main className="mx-auto flex max-w-[1180px] flex-col gap-4 px-6 py-8" data-game-page>
-      <header className="flex flex-wrap items-baseline justify-between gap-3">
+    <main className="rt-shellWide" data-game-page>
+      <header className="rt-head">
         <div>
-          <h1 className="text-[var(--nexus-font-size-21)] font-semibold" data-game-title>
+          <h1 className="rt-title" data-game-title>
             {game.document.name}
           </h1>
-          <p className="text-11 text-fg-3" data-game-subtitle>
+          <p className="rt-subtitle" data-game-subtitle>
             {describeProjection(game.document, projection)}
           </p>
         </div>
-        <Link href={`/studio/${projectId}`} className="text-11 text-accent-2-ink underline" data-game-back>
+        <Link href={`/studio/${projectId}`} className="rt-linkSub" data-game-back>
           回 Studio 改设计
         </Link>
       </header>

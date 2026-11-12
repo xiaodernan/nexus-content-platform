@@ -27,12 +27,12 @@ export default async function WorldRuntimePage({ params }: { params: Promise<{ p
 
   if (!world) {
     return (
-      <main className="mx-auto flex max-w-[720px] flex-col gap-3 px-6 py-16" data-world3d="none">
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">这个项目还没有世界</h1>
-        <p className="text-13 text-fg-2">
+      <main className="rt-shell" data-world3d="none">
+        <h1 className="rt-title">这个项目还没有世界</h1>
+        <p className="rt-lede">
           3D 运行时读的是世界文档（§44）与你在世界图（§45）上摆过的位置。先去 Studio 建骨架、填几条内容。
         </p>
-        <Link href={`/studio/${projectId}`} className="text-13 text-accent-2-ink underline">
+        <Link href={`/studio/${projectId}`} className="rt-link">
           回到 Studio 的世界面板
         </Link>
       </main>
@@ -40,12 +40,12 @@ export default async function WorldRuntimePage({ params }: { params: Promise<{ p
   }
   if (!world.ok) {
     return (
-      <main className="mx-auto flex max-w-[720px] flex-col gap-3 px-6 py-16" data-world3d="broken">
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">库里的世界读不出来</h1>
-        <p className="text-13 text-danger-ink" data-world-error>
+      <main className="rt-shell" data-world3d="broken">
+        <h1 className="rt-title">库里的世界读不出来</h1>
+        <p className="rt-error" data-world-error>
           {world.reason}
         </p>
-        <p className="text-11 text-fg-3">这里不会用一份空场景代替它：那看起来像"世界是空的"，而实际是读不出来。</p>
+        <p className="rt-note">这里不会用一份空场景代替它：那看起来像"世界是空的"，而实际是读不出来。</p>
       </main>
     );
   }
@@ -54,7 +54,7 @@ export default async function WorldRuntimePage({ params }: { params: Promise<{ p
   // §140 的 talk 目标是 §46 角色档案：名册在服务端取好传下去，客户端不自己再拉一份
   const roster = await listCharacters(projectId);
   return (
-    <div className="h-dvh w-full">
+    <div className="rt-stage">
       <WorldWalk
         scene={scene}
         projectName={project.name}
