@@ -41,7 +41,7 @@ export function ThemeToggle() {
       data-theme-toggle-ready={ready ? '1' : undefined}
       aria-label={label}
       title={label}
-      className="fixed bottom-3 right-3 z-40 inline-flex h-9 w-9 items-center justify-center rounded-full border border-border-subtle bg-bg-2/90 text-fg-2 shadow-sm backdrop-blur hover:text-fg-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-2-ink"
+      className="tt-fab"
     >
       {theme === 'dark' ? <Sun size={16} aria-hidden /> : <Moon size={16} aria-hidden />}
     </button>

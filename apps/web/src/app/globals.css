@@ -2381,6 +2381,12 @@
   .mfc-submit:disabled { opacity: 0.5; cursor: not-allowed; }
   .mfc-message { margin-top: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); }
 
+  /* ── §FE-85 / ADR-0238 `ThemeToggle.tsx` `.tt-` 门面化——§120 主题 FAB ──
+   * data-theme-toggle-ready 是 e2e 水合屏障——不动；fixed/z-40/backdrop-blur 原样入门面。 */
+  .tt-fab { position: fixed; right: var(--nexus-space-3); bottom: var(--nexus-space-3); z-index: 40; display: inline-flex; height: 2.25rem; width: 2.25rem; align-items: center; justify-content: center; border-radius: 9999px; border: 1px solid var(--nexus-color-border-subtle); background: color-mix(in srgb, var(--nexus-color-bg-2) 90%, transparent); color: var(--nexus-color-fg-2); box-shadow: var(--nexus-shadow-sm); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); cursor: pointer; }
+  .tt-fab:hover { color: var(--nexus-color-fg-1); }
+  .tt-fab:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+
   /* ── §FE-81 / ADR-0234 `FollowButton.tsx` `.fw-` 门面化——§60 关注按钮 ──
    * 只发请求并显示真实回话；csrfHeaders/error 路径一字不动。 */
   .fw-wrap { display: inline-flex; align-items: center; gap: var(--nexus-space-2); }
