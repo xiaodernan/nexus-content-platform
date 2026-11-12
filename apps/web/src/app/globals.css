@@ -2259,6 +2259,15 @@
   /* ── §FE-71 / ADR-0224 `app/layout.tsx` `.rx-` 门面化——根布局 ──
    * ThemeScript 必须是同步内联（先于首屏读取 theme）——本片一字不动；`min-h-screen` → `100vh`。 */
   .rx-body { min-height: 100vh; background: var(--nexus-color-bg-0); color: var(--nexus-color-fg-1); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+  /* ── §FE-72 / ADR-0225 `InteractiveSurface.tsx` `.is-` 门面化——§167/§168 互动运行时 ──
+   * hotspot 用 box-shadow 模拟 ring（focus-visible 2px 外环，hover 2px 内环）——与 Tailwind ring-2 字节级等。 */
+  .is-hotspot { border-radius: var(--nexus-radius-sm); }
+  .is-hotspot:focus { outline: none; }
+  .is-hotspot:focus-visible { box-shadow: 0 0 0 2px var(--nexus-color-accent-2-ink); }
+  .is-hotspot:hover { box-shadow: inset 0 0 0 2px var(--nexus-color-accent-2-ink); }
+  .is-endNote { padding: var(--nexus-space-3) var(--nexus-space-4) 0; font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  .is-endStrong { color: var(--nexus-color-fg-1); }
   .pb-mirrorLink { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); text-decoration: underline; }
 
   /* ── §FE-55 / ADR-0207 `MemoryPanel.tsx` `.mm-` 门面化——§48 角色记忆 ──
