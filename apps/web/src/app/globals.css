@@ -1635,6 +1635,45 @@
   .cx-branchNote { padding-left: calc(4.5rem + var(--nexus-space-2)); font-size: var(--nexus-font-size-11); line-height: 1.4; color: var(--nexus-color-fg-3); }
   .cx-muted { display: flex; flex-direction: column; gap: 3px; font-size: var(--nexus-font-size-11); line-height: 1.4; color: var(--nexus-color-fg-3); list-style: none; padding: 0; }
 
+  /* ── §FE-43 / ADR-0195 `LayersPanel.tsx` `.ly-` 门面化——§5 图层树首片 ──
+   * 行高固定（ROW_H）、窗口化、滚动监听 → 可见行派生、Type Filter/Search/添加/solo/拖拽全部不动。 */
+  .ly-root { display: flex; height: 100%; min-height: 0; flex-direction: column; }
+  .ly-rel { position: relative; }
+  .ly-header { display: flex; align-items: center; gap: var(--nexus-space-1); border-bottom: 1px solid var(--nexus-color-border-subtle); padding: var(--nexus-space-2); }
+  .ly-search { min-width: 0; flex: 1; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); }
+  .ly-search::placeholder { color: var(--nexus-color-fg-3); }
+  .ly-search:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .ly-filter { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); cursor: pointer; }
+  .ly-filter:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .ly-addBtn { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-brand); padding: 2px var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-fg); cursor: pointer; }
+  .ly-addBtn:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+  .ly-drop { position: absolute; right: 0; top: 1.75rem; z-index: 50; width: 140px; border-radius: var(--nexus-radius-md); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); padding: var(--nexus-space-1); box-shadow: var(--nexus-shadow-lg); }
+  .ly-dropItem { display: block; width: 100%; border: 0; background: transparent; border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-1) var(--nexus-space-2); text-align: left; font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); cursor: pointer; }
+  .ly-dropItem:hover { background: var(--nexus-color-bg-2); }
+  .ly-pageTabs { display: flex; gap: var(--nexus-space-1); overflow-x: auto; border-bottom: 1px solid var(--nexus-color-border-subtle); padding: var(--nexus-space-1) var(--nexus-space-2); }
+  .ly-pageBtn { flex-shrink: 0; border: 0; background: transparent; border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .ly-pageBtn:hover { background: var(--nexus-color-bg-2); }
+  .ly-pageBtn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .ly-pageBtnActive { background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-1); }
+  .ly-pageAdd { flex-shrink: 0; border: 0; background: transparent; border-radius: var(--nexus-radius-sm); padding: 2px var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .ly-pageAdd:hover { background: var(--nexus-color-bg-2); }
+  .ly-scroller { min-height: 0; flex: 1 1 0%; overflow: auto; padding-block: var(--nexus-space-1); }
+  .ly-spacer { position: relative; }
+  .ly-rowShell { position: absolute; inset-inline: 0; }
+  .ly-row { display: flex; height: 100%; cursor: default; align-items: center; gap: var(--nexus-space-1); padding: 0 var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  .ly-row:hover { background: var(--nexus-color-bg-2); }
+  .ly-rowSelected { color: var(--nexus-color-fg-1); background: var(--nexus-color-bg-3); }
+  .ly-rename { min-width: 0; flex: 1; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: 0 var(--nexus-space-1); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); }
+  .ly-rename:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .ly-typeChip { width: 52px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .ly-name { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ly-iconBtn { display: inline-flex; min-height: 1.5rem; width: 1.5rem; flex-shrink: 0; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: var(--nexus-radius-sm); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .ly-iconBtn:hover { background: var(--nexus-color-bg-2); }
+  .ly-iconBtn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .ly-danger { color: var(--nexus-color-danger-ink); }
+  .ly-warn { color: var(--nexus-color-warn-ink); }
+  .ly-empty { padding: var(--nexus-space-2) var(--nexus-space-3); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+
   /* ── §FE-40 / ADR-0192 `/admin/health` 管理台健康总览 `.hd-` 门面化——五层快照一次成 ──
    * 运维只在这一页看到五层（ai/java/gateway/redis/postgres）的真相：
    * 拿不到 = "未测到"（而不是 down），和 web 静默降级纪律一致；每层独立超时。
