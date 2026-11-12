@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
-from typing import Mapping
+from typing import Mapping, MutableMapping
 
 MODEL_CLASS_ENV = {
     "fast": "NEXUS_MODEL_FAST",
@@ -62,8 +62,37 @@ class Settings:
         return f"Settings({inner})"
 
 
+def sanitize_no_proxy(env: MutableMapping[str, str]) -> list[tuple[str, str, str]]:
+    """把 NO_PROXY / no_proxy 里带方括号的 IPv6 字面量改成裸地址，返回被改动的项。
+
+    为什么要在建 provider 之前动它：httpx 会把 NO_PROXY 的每一项拼成 `all://<项>` 的挂载模式，
+    而 `all://*[::1]` 解析出来的"端口"是 `:1]`——`httpx.InvalidURL: Invalid port` 在
+    `httpx.Client(...)` 构造时就抛，也就是服务一启动就死在导入期，跟 provider 通不通没关系。
+    常见来源是 Windows/代理工具写的 `NO_PROXY=localhost,127.0.0.1,[::1]`。
+    只改方括号这一个语法形式，不改语义：条目还是同一些主机，绕过代理的范围一模一样。
+    """
+    changed: list[tuple[str, str, str]] = []
+    for name in list(env):
+        if name.upper() != "NO_PROXY":
+            continue
+        raw = env.get(name) or ""
+        if "[" not in raw and "]" not in raw:
+            continue
+        cleaned = ",".join(
+            part.strip().removeprefix("[").removesuffix("]") if part.strip() else part
+            for part in raw.split(",")
+        )
+        if cleaned != raw:
+            env[name] = cleaned
+            changed.append((name, raw, cleaned))
+    return changed
+
+
 def load_settings(environ: Mapping[str, str] | None = None) -> Settings:
     env = os.environ if environ is None else environ
+    if environ is None:
+        # 真进程环境才需要清洗：传进来的 environ 是测试的只读快照，改它等于改测试现场。
+        sanitize_no_proxy(env)  # type: ignore[arg-type]
 
     def get(name: str, default: str | None = None) -> str | None:
         value = env.get(name)

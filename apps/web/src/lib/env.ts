@@ -33,8 +33,12 @@ export async function getAiCapabilities(prefetched?: HealthResponse | null): Pro
   const health = prefetched === undefined ? await getCachedAiHealth() : prefetched;
   const statusOf = (kind: string): CapabilityStatus =>
     health?.providers.find((p) => p.kind === kind)?.status === 'real' ? 'real' : 'demo';
-  // 文本链路以 ai-service 汇总的 capability 为准（llm provider 就绪即 real）。
-  const text: CapabilityStatus = health?.capability === 'real' ? 'real' : 'demo';
+  // 文本链路读 providers 里 kind='llm' 那一行，不读顶层 capability。
+  // 顶层 capability 是 ai-service 的**汇总**（registry.capability()：任一 provider real 即 real），
+  // 拿它当"文本能不能用"会在 embedding 就绪而 llm 没就绪时判成真——于是 web 把请求发给
+  // 一条根本没有文本 provider 的链路，用户看到的是一句错误而不是一句诚实的 DEMO MODE。
+  // 与下面 image/video 同一口径：每个能力各读各的那一行。
+  const text: CapabilityStatus = statusOf('llm');
   // 图像 / 视频 provider 属于 M2 / M5，本里程碑恒为 demo（health 里若出现 real 才升级）。
   const image = statusOf('image');
   const video = statusOf('video');

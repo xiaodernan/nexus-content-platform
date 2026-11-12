@@ -24,9 +24,31 @@ function health(over: Partial<HealthResponse> = {}): HealthResponse {
 
 /** §160 的判定真值：web 只信 ai-service /healthz，不再看自己进程有没有 key */
 describe('getAiCapabilities（由 /healthz 推导）', () => {
-  it('health 汇总为 real → text/live real', async () => {
-    const caps = await getAiCapabilities(health({ capability: 'real' }));
+  it('providers 里 llm 那行 real → text/live real', async () => {
+    const caps = await getAiCapabilities(
+      health({ capability: 'real', providers: [{ kind: 'llm', name: 'openai-compatible', status: 'real', models: ['gpt-6-sol'], reason: '' }] }),
+    );
     expect(caps).toMatchObject({ text: 'real', image: 'demo', video: 'demo', live: true });
+  });
+
+  it('§AILIVE-3：顶层汇总 real 而 llm 行没就绪时，文本必须是 demo（嵌入就绪冒充文本就绪）', async () => {
+    // registry.capability() 是"任一 provider real 即 real"的汇总；拿它当文本能力，
+    // 在 llm=unavailable + embedding=real 这种部署下就会把请求发给一条没有文本 provider 的链路。
+    const caps = await getAiCapabilities(
+      health({
+        capability: 'real',
+        providers: [
+          { kind: 'llm', name: 'openai-compatible', status: 'unavailable', models: [], reason: '缺少 NEXUS_OPENAI_API_KEY' },
+          { kind: 'embedding', name: 'openai-compatible', status: 'real', models: ['text-embedding-3-small'], reason: '' },
+        ],
+      }),
+    );
+    expect(caps).toMatchObject({ text: 'demo', live: false });
+  });
+
+  it('llm 行整个缺席（老 contract / 半挂的 healthz）也必须是 demo', async () => {
+    const caps = await getAiCapabilities(health({ capability: 'real' }));
+    expect(caps).toMatchObject({ text: 'demo', live: false });
   });
 
   it('prefetched 为 null（探测过但不可达）→ 回落 demo，绝不编造', async () => {
@@ -50,7 +72,7 @@ describe('getAiCapabilities（由 /healthz 推导）', () => {
 
   it('未探测（undefined）时会去拉 /healthz', async () => {
     const spy = vi.spyOn(await import('../src/server/ai/client'), 'fetchAiServiceHealth').mockResolvedValue(
-      health({ capability: 'real' }),
+      health({ capability: 'real', providers: [{ kind: 'llm', name: 'openai-compatible', status: 'real', models: ['gpt-6-sol'], reason: '' }] }),
     );
     const caps = await getAiCapabilities();
     expect(spy).toHaveBeenCalledTimes(1);

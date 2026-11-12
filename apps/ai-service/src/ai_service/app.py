@@ -19,6 +19,8 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from .providers.liveness import refresh_in_background
+
 # 加载 .env 文件（开发环境），生产环境由环境变量注入
 _env_file = Path(__file__).resolve().parent.parent.parent / ".env"
 if _env_file.exists():
@@ -61,6 +63,12 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
         worker = Worker(store, registry, capacity=job_capacity())
         await worker.start()
         app.state.nexus = _State(store, worker)
+        # 启动就起一次 embeddings 探测，但不在启动路径上等它：provider 慢的时候
+        # 把服务拉起来的代价变成 60s 等待，不值得。第一次 /healthz 可能仍写"未验证"，
+        # 那是一句实话；探测落地后下一次读到的就是网关的真答复（见 providers/liveness.py）。
+        prober = registry.embedding_prober()
+        if prober is not None:
+            refresh_in_background(registry.liveness, prober)
         try:
             yield
         finally:
@@ -103,6 +111,11 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
 
     @app.get("/healthz")
     async def healthz() -> dict[str, Any]:
+        # 结论过期就后台补一次，本次仍返回上一次已知结论：healthz 的预算是毫秒，
+        # 而 web 侧探测它的超时只有 1.5s（把网络等待放进健康检查，provider 一慢就整条链路变 DEMO）。
+        prober = registry.embedding_prober()
+        if prober is not None:
+            refresh_in_background(registry.liveness, prober)
         providers = registry.providers()
         state = runtime()
         pending, running = await state.store.counts() if state else (0, 0)
