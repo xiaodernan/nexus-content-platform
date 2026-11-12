@@ -111,18 +111,18 @@ export function GuestReclaimPanel({ scan }: { scan: GuestReclaimScan }) {
 
   return (
     <section
-      className="flex flex-col gap-[var(--nexus-space-2)] rounded-[var(--nexus-radius-sm)] bg-bg-1 px-[var(--nexus-space-3)] py-[var(--nexus-space-2)]"
+      className="au-reclaimRoot"
       data-reclaim-root
       aria-label="过期访客回收"
     >
-      <h2 className="text-13 font-semibold text-fg-1">过期访客回收</h2>
-      <p className="text-11 text-fg-3" data-reclaim-rule>
+      <h2 className="au-sectionTitle">过期访客回收</h2>
+      <p className="adm-capNote" data-reclaim-rule>
         判据是沉默：最后一条会话过期之后<strong>再过 {live.graceDays} 天</strong>——会话本身活 {live.graceDays} 天，
         所以从这个人最后一次打开页面算，大约是两个月。认领过（注册）的、名下有已发布作品的、还带着有效 API 令牌的，
         都不在这一轮。收走走的是注销那六件事：草稿进回收站、会话与凭据吊销，不是把行从库里抹掉（ADR-0025／ADR-0072）。
       </p>
 
-      <p className="text-11 text-fg-2" data-reclaim-counts>
+      <p className="au-counts" data-reclaim-counts>
         沉默到线 {live.stale} 个 · 够格 {totalEligible} 个 · 发布过不碰 {live.skippedPublished} 个 ·
         带令牌不碰 {live.skippedLiveToken} 个 · 一次最多 {live.batch} 个
         {scanCaveats(live).map((s) => (
@@ -132,7 +132,7 @@ export function GuestReclaimPanel({ scan }: { scan: GuestReclaimScan }) {
 
       {shown.length > 0 ? (
         <>
-          <label className="flex items-center gap-2 text-11 text-fg-3">
+          <label className="au-pickAll">
             <input
               type="checkbox"
               checked={allChecked}
@@ -150,12 +150,12 @@ export function GuestReclaimPanel({ scan }: { scan: GuestReclaimScan }) {
           {pages > 1 ? (
             // 屏号单独一行，是因为「全选（8/8）」这句光看像"全部"：够格的一共几个、这一屏几个，
             // 得并排说出来人才知道自己在第几屏上（ADR-0072 决定九）
-            <div className="flex flex-wrap items-center gap-2 text-11 text-fg-3" data-reclaim-page>
+            <div className="au-pageRow" data-reclaim-page>
               <button
                 type="button"
                 onClick={() => goPage(current - 1)}
                 disabled={busy !== null || current === 0}
-                className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-0.5 text-11 text-fg-2 hover:bg-bg-2 disabled:opacity-40"
+                className="au-navBtn"
                 data-reclaim-prev
               >
                 ← 上一屏
@@ -165,16 +165,16 @@ export function GuestReclaimPanel({ scan }: { scan: GuestReclaimScan }) {
                 type="button"
                 onClick={() => goPage(current + 1)}
                 disabled={busy !== null || current >= pages - 1}
-                className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-0.5 text-11 text-fg-2 hover:bg-bg-2 disabled:opacity-40"
+                className="au-navBtn"
                 data-reclaim-next
               >
                 下一屏 →
               </button>
             </div>
           ) : null}
-          <ul className="flex flex-col gap-1" data-reclaim-list>
+          <ul className="am-findingsList" data-reclaim-list>
             {shown.map((c) => (
-              <li key={c.id} className="flex flex-wrap items-center gap-2 text-11 text-fg-3" data-reclaim-row={c.id}>
+              <li key={c.id} className="au-reclaimRow" data-reclaim-row={c.id}>
                 <input
                   type="checkbox"
                   checked={selected.includes(c.id)}
@@ -182,14 +182,14 @@ export function GuestReclaimPanel({ scan }: { scan: GuestReclaimScan }) {
                   data-reclaim-pick={c.id}
                   aria-label={`收走 ${c.name}`}
                 />
-                <span className="text-fg-2">{c.name}</span>
+                <span className="au-counts">{c.name}</span>
                 <span>{c.reason === 'orphan' ? '从来没有过会话' : `会话止于 ${dayOf(c.lastExpiry!)}`}</span>
                 <span>注册于 {dayOf(c.createdAt)}</span>
                 <span>{c.drafts > 0 ? `${c.drafts} 个草稿一起收起` : '没有草稿'}</span>
               </li>
             ))}
             {live.moreThanBatch ? (
-              <li className="text-11 text-fg-3" data-reclaim-truncated>
+              <li className="adm-capNote" data-reclaim-truncated>
                 这份清单一次装 {live.batch} 个，够格的比这多——翻完这几屏也看不到剩下的那些，
                 它们这一轮进不了清单，也就点不到。
               </li>
@@ -197,17 +197,17 @@ export function GuestReclaimPanel({ scan }: { scan: GuestReclaimScan }) {
           </ul>
         </>
       ) : (
-        <p className="text-11 text-fg-3" data-reclaim-empty>
+        <p className="adm-capNote" data-reclaim-empty>
           此刻没有够格的访客——这是好消息，不是这个入口坏了。
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="au-pageRow">
         <button
           type="button"
           disabled={busy !== null}
           onClick={() => void call(true)}
-          className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-3 py-1 text-12 text-fg-2 hover:bg-bg-2 disabled:opacity-40"
+          className="au-ghostBtn"
           data-recount-button
         >
           {busy === 'count' ? '数中…' : '重新数一遍'}
@@ -216,7 +216,7 @@ export function GuestReclaimPanel({ scan }: { scan: GuestReclaimScan }) {
           type="button"
           disabled={busy !== null || selected.length === 0}
           onClick={() => void call(false)}
-          className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg disabled:opacity-40"
+          className="au-applyBtn"
           data-reclaim-apply
         >
           {busy === 'apply' ? '回收中…' : `收走这 ${selected.length} 个`}
@@ -226,7 +226,7 @@ export function GuestReclaimPanel({ scan }: { scan: GuestReclaimScan }) {
       {notice ? (
         // 这一行是那次批量动作的回执。刻意不做成带边框的一小块——那一长看就像颗还能点的按钮，
         // 而它什么都不做；要它显眼，靠的是这一屏里唯一加粗的一行字
-        <p className="text-11 font-medium text-fg-1" data-reclaim-notice aria-live="polite">
+        <p className="au-notice" data-reclaim-notice aria-live="polite">
           {notice}
         </p>
       ) : null}

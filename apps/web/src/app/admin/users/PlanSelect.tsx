@@ -65,13 +65,13 @@ export function PlanSelect({
   };
 
   return (
-    <span className="flex items-center gap-2">
+    <span className="am-triageRow">
       <select
         value={choice}
         disabled={busy}
         onChange={(event) => setChoice(event.target.value as Plan)}
         aria-label="该用户的订阅档位"
-        className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-1 disabled:opacity-50"
+        className="au-select"
         data-plan-select={handle ?? userId}
       >
         {PLANS.map((key) => (
@@ -84,14 +84,14 @@ export function PlanSelect({
         type="button"
         disabled={busy}
         onClick={() => void submit()}
-        className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-1 disabled:opacity-50"
+        className="am-btn"
         data-plan-set={handle ?? userId}
       >
         改档位
       </button>
-      {self ? <span className="text-11 text-fg-3">（你自己）</span> : null}
+      {self ? <span className="adm-capNote">（你自己）</span> : null}
       {notice ? (
-        <span className="text-11 text-danger-ink" data-plan-notice>
+        <span className="am-triageError" data-plan-notice>
           {notice}
         </span>
       ) : null}
