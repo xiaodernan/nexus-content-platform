@@ -1019,6 +1019,38 @@
     .nf-discover:hover, .nf-home:hover { transform: none; }
   }
 
+  /* ── §FE-15 / ADR-0163 创作数据页按天曲线 `TrendChart.tsx` `.tc-` 门面化（FE 首个 SVG 图表片） ──
+   * analytics 分析页最后一块裸 Tailwind：8 处 className（含 SVG 专属 fill-[...]/text-[9px] 两个
+   * 任意值原子类）。本片的灵魂是**三轴语义色守恒**——opens/visitors/playTimeMs 各有专属纵轴与
+   * 专属色（--nexus-color-accent-2 / brand / success），缺数据日画成"基线上一小段虚线短柱"而非
+   * 0 或满高（§168 别把图画成谎话）。那些是 SVG presentation attributes（fill/stroke/
+   * strokeDasharray/strokeOpacity）与 spec.color 里的 token 字符串，**不是 className**，一字未动——
+   * 只把 8 处布局/文字 className 换成 .tc- 门面类，剥类后全文哈希 e4ee0bb8… 恒等为铁证。
+   * 守 ADR-0123 六红线：零新增颜色 token、全锚既有双主题 token+color-mix、无写死 hex。坐标轴
+   * 日期标签原 text-[9px] 是全库唯一 9px，为守恒又不写死 px，补 --nexus-font-size-9（10 档）。
+   * SVG 里 fill 用 CSS `fill` 属性（非 color）。本片纯展示 SVG、无焦点控件/无 hover 交互，
+   * 故不设 :focus-visible / reduced 动效门（无控件无动效则不设，沿用 FE-12 诚实纪律）。 */
+
+  /* 三图容器（原 mt-3） */
+  .tc-root { margin-top: var(--nexus-space-3); }
+  /* 单张图（原 mt-2） */
+  .tc-chart { margin-top: var(--nexus-space-2); }
+  /* 图头标题行（原 flex flex-wrap items-baseline justify-between gap-x-2 text-11） */
+  .tc-head {
+    display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between;
+    column-gap: var(--nexus-space-2); font-size: var(--nexus-font-size-11);
+  }
+  /* 图标题（原 text-fg-2） */
+  .tc-title { color: var(--nexus-color-fg-2); }
+  /* 纵轴上限说明（原 text-fg-3） */
+  .tc-max { color: var(--nexus-color-fg-3); }
+  /* SVG 画布（原 w-full，严格等价：只给宽度、不擅加 display） */
+  .tc-svg { width: 100%; }
+  /* 坐标轴日期标签（原 fill-[var(--nexus-color-fg-3)] text-[9px]，SVG 用 fill 属性） */
+  .tc-axisLabel { fill: var(--nexus-color-fg-3); font-size: var(--nexus-font-size-9); }
+  /* 无数据旁注（原 mt-2 text-11 text-fg-3） */
+  .tc-empty { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+
   /* ── §FE-14 / ADR-0162 创作数据页 `/analytics` 门面化（全库裸 Tailwind 密度最高片） ──
    * FE 序列最大的 server 门面页 + 首个三元动态 className（range option 选中态）。改造前
    * 58 个去重原子类 / 88 处 className 全裸——denied、双层口径（窗口/累计）、12 条 DEFINITIONS
