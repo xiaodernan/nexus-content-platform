@@ -51,16 +51,30 @@ export function PublishPanel() {
    * 与真的 publishProject 共用同一批判定函数；本地 HealthReport 只够画门禁，
    * 这个回执补齐名额与机检两格。只读；面板关着不发请求（与门禁同一条纪律）。
    */
-  const [preflight, setPreflight] = useState<{ ok: boolean; blockers: string[]; warnings: string[] } | null>(null);
+  const [preflight, setPreflight] = useState<{
+    ok: boolean;
+    blockers: string[];
+    warnings: string[];
+    aiReadiness?: { text: string; image: string; video: string; live: boolean };
+  } | null>(null);
   const projectIdForPreflight = state.document?.id ?? null;
   useEffect(() => {
     if (!open || !projectIdForPreflight) return undefined;
     let cancelled = false;
     setPreflight(null);
     fetch(`/api/projects/${projectIdForPreflight}/publish-preflight?visibility=${visibility}`)
-      .then(async (r) => (r.ok ? ((await r.json()) as { ok: boolean; blockers: string[]; warnings: string[] }) : null))
+      .then(async (r) =>
+        r.ok
+          ? ((await r.json()) as {
+              ok: boolean;
+              blockers: string[];
+              warnings: string[];
+              facts?: { aiReadiness?: { text: string; image: string; video: string; live: boolean } };
+            })
+          : null,
+      )
       .then((v) => {
-        if (!cancelled) setPreflight(v);
+        if (!cancelled && v) setPreflight({ ...v, aiReadiness: v.facts?.aiReadiness });
       })
       .catch(() => {
         // 预检没跑成就老实说"没跑成"——空白比假绿（§159）好
@@ -333,6 +347,16 @@ export function PublishPanel() {
           ) : open && projectIdForPreflight ? (
             <p className="text-12 text-fg-3" data-publish-preflight-outcome="unknown">
               预检还没跑完（或跑不成）——这不是绿灯，是还没有答案
+            </p>
+          ) : null}
+          {open && preflight?.aiReadiness ? (
+            <p
+              className={preflight.aiReadiness.live ? 'text-12 text-fg-2' : 'text-12 text-warn-ink'}
+              data-publish-ai-ready={preflight.aiReadiness.live ? 'real' : 'demo'}
+            >
+              {preflight.aiReadiness.live
+                ? `文本链路：真实生成就绪（image=${preflight.aiReadiness.image} · video=${preflight.aiReadiness.video}）`
+                : '文本链路：DEMO（ai-service 未就绪；内容仍由本地确定性 Mock 组合装）'}
             </p>
           ) : null}
         </div>

@@ -3,6 +3,7 @@ import { eq, sql as rawSql } from 'drizzle-orm';
 import { createNode, findPage } from '@nexus/creative-model';
 import { checkPublishPreflight } from '../src/server/domain/publishPreflight';
 import { createProject, loadDocument, saveDocument } from '../src/server/domain/projects';
+import type { AiCapabilities } from '../src/lib/env';
 import { getDb } from '../src/server/db/client';
 import { projects, users } from '../src/server/db/schema';
 
@@ -12,6 +13,10 @@ import { projects, users } from '../src/server/db/schema';
  */
 
 let ownerId: string;
+
+/** 确定性能力钉住：预检只读，不调真 ai-service——喂一份写定的好处，便于判定不抖 */
+const READONLY_CAPS: AiCapabilities = { text: 'demo', image: 'demo', video: 'demo', live: false };
+const LIVE_CAPS: AiCapabilities = { text: 'real', image: 'demo', video: 'demo', live: true };
 
 beforeAll(async () => {
   const db = getDb();
@@ -48,21 +53,30 @@ async function addText(projectId: string, text: string): Promise<void> {
 describe('发布预检 · 真库', () => {
   it('干净项目：预检全绿，且 facts 如实回显各检查都跑过', async () => {
     const projectId = await newProject('preflight-clean');
-    const report = await checkPublishPreflight(projectId, 'public');
+    const report = await checkPublishPreflight(projectId, 'public', READONLY_CAPS);
     expect(report).not.toBeNull();
     expect(report!.ok).toBe(true);
     expect(report!.blockers).toEqual([]);
     expect(report!.facts.gatePassed).toBe(true);
     expect(report!.facts.slotRefusal).toBeNull();
     expect(['clear', 'review']).toContain(report!.facts.scanDecision);
+    expect(report!.facts.aiReadiness.live).toBe(false);
     expect(report!.facts.existingModeration).toBeNull();
     expect(typeof report!.ranAt).toBe('string');
+  });
+
+  it('ai-service 就绪是 real：facts.aiReadiness 原样回显 live=true（预检不发明引用）', async () => {
+    const projectId = await newProject('preflight-live-caps');
+    const report = await checkPublishPreflight(projectId, 'public', LIVE_CAPS);
+    expect(report).not.toBeNull();
+    expect(report!.facts.aiReadiness).toEqual(LIVE_CAPS);
+    expect(report!.facts.aiReadiness.live).toBe(true);
   });
 
   it('命中 §129 硬红线：ok=false，blockers 点名机检挡下（与真发布一字同源）', async () => {
     const projectId = await newProject('preflight-blocked');
     await addText(projectId, 'child porn content planted for the preflight gate');
-    const report = await checkPublishPreflight(projectId, 'public');
+    const report = await checkPublishPreflight(projectId, 'public', READONLY_CAPS);
     expect(report).not.toBeNull();
     expect(report!.ok).toBe(false);
     expect(report!.facts.scanDecision).toBe('blocked');
@@ -74,7 +88,7 @@ describe('发布预检 · 真库', () => {
 
   it('切到 private 是收回链接，门禁与机检对该方向不拦 === ok=true', async () => {
     const projectId = await newProject('preflight-private');
-    const report = await checkPublishPreflight(projectId, 'private');
+    const report = await checkPublishPreflight(projectId, 'private', READONLY_CAPS);
     expect(report).not.toBeNull();
     expect(report!.ok).toBe(true);
     expect(report!.warnings.length).toBeGreaterThan(0);

@@ -5,6 +5,7 @@ import { loadDocument } from './projects';
 import { assetProvenance, runPublishGate, type Visibility } from './publish';
 import { publishSlotRefusalFor } from './credit-ledger';
 import { scanPublication } from './moderation';
+import { getAiCapabilities, type AiCapabilities } from '@/lib/env';
 
 /**
  * §56 发布预检：把"按下发布会发生什么"的回执提前、只读地算一遍。
@@ -28,6 +29,8 @@ export interface PublishPreflightReport {
     slotRefusal: string | null;
     /** 现有发布行的 moderation 回显（信息而已，§131 只升级不认证——它不是发布的答案）。 */
     existingModeration: string | null;
+    /** §160：web 对 ai-service /healthz 自己的问话结果——「发布这篇作品前，文本创作链路是 DEMO 还是真的」。绝不自造答案。 */
+    aiReadiness: AiCapabilities;
   };
   ranAt: string;
 }
@@ -35,6 +38,7 @@ export interface PublishPreflightReport {
 export async function checkPublishPreflight(
   projectId: string,
   visibility: Visibility = 'public',
+  aiCapabilities?: AiCapabilities,
 ): Promise<PublishPreflightReport | null> {
   const db = getDb();
   const [project] = await db
@@ -43,6 +47,8 @@ export async function checkPublishPreflight(
     .where(and(eq(projects.id, projectId), isNull(projects.deletedAt)))
     .limit(1);
   if (!project) return null;
+  // 能力探测放在装配之后：项目不存在时不白打一趟 ai-service
+  const readiness = aiCapabilities ?? (await getAiCapabilities());
 
   const blockers: string[] = [];
   const warnings: string[] = [];
@@ -62,6 +68,7 @@ export async function checkPublishPreflight(
         scanDecision: 'clear',
         slotRefusal: null,
         existingModeration: null,
+        aiReadiness: readiness,
       },
       ranAt: new Date().toISOString(),
     };
@@ -116,6 +123,7 @@ export async function checkPublishPreflight(
       scanDecision,
       slotRefusal: slotRefusal ?? null,
       existingModeration: existing?.moderation ?? null,
+      aiReadiness: readiness,
     },
     ranAt: new Date().toISOString(),
   };
