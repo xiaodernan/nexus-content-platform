@@ -1716,3 +1716,14 @@ Same brand-language lift extended to the /admin/audit page (the last plain admin
 - 'detail' field is unknown in the type; now JSON.stringified inline when not a string (fixed an earlier TS2322 mismatch I caught)
 
 Build-time checks: narrow tsc exit 0, eslint exit 0, record-encoding exit 0 (2643 graded files unaffected).
+## cont. 55 (2026-11-12, late night) - /admin/moderation redesigned to the brand language
+
+Same lift extended to the /admin/moderation page:
+- Ambient orb hero + gradient wordmark; eyebrow + 28px tracking-tight h1; action bar carrying AdminNav and an Audit jump link
+- Anonymous/notAdmin branches get an eyebrow + 24px shape now (same pattern as the other admin pages)
+- Decision chip on each card is now a rounded-pill bg-bg-2 (normal) / danger-bg-2 (machine-blocked) instead of plain text
+- WHO found in the case queue is now bordered sub-cards with fg-3 rule + a -mark from each finding item
+- The 'what the machine check does not reach' box is elevated to bordered section with a warn-ink leading remark to draw the eye
+- data-* hooks preserved exactly (data-admin-queue, data-rules-version, data-queue-limits, data-queue-limit, data-queue-empty, data-queue-case, data-case-project, data-case-decision, data-case-reports, data-case-finding, data-case-open, ResolveButtons)
+
+Build-time checks: narrow tsc exit 0, eslint exit 0, record-encoding exit 0 (0 chargeable lines). No pixel/screenshot proof claimed (browser tool disconnected this session).
