@@ -672,6 +672,53 @@ family README section) and a door that reddens the sentence it repairs:
           ADR 0114 + this ROADMAP. v681 commits on top of `d163a31`, single ff push, no force, nothing
           dropped. State note self-contained here + ADR 0114 (CURRENT-STATE worktree had lane bytes).
 
+  v682  outbound circuit breaker: the other half of the Spring Cloud resilience pair lands (ADR 0115).
+        - v681's HONEST GAP #1 was "no circuit breaker": a persistent 503 on wkapi.pro/v1 made every
+          request burn a full bounded-retry round before failing — amplifying pressure on a sick upstream.
+          Java nexus-api already solves this with Spring Cloud/Resilience4j DomainCircuitBreaker and had
+          MEASURED three silent-failure traps (ADR 0057/0101); this slice mirrors them into ai-service
+          WITH the traps, not just the state machine:
+          ① name/config same-source ("configured but nobody uses it"): Settings gains 6 NEXUS_LLM_CB_*
+          knobs -> Registry constructs BreakerConfig/CircuitBreaker -> injected into complete()'s
+          before_call() gate for REAL. Doors read BEHAVIOR (OPEN => 0 HTTP; Registry knobs byte-equal),
+          not "the config block looks right".
+          ② "404 is an answer": record_ignored() keeps deterministic failures (401/403/400/404/422,
+          malformed payload) OUT of the window; only transient (429/5xx/network, same source as v681's
+          _RETRYABLE_STATUS) record_failure(). A TransientProviderFailed(ProviderFailed) subclass makes
+          the category a TYPE (door + arms share the judge, no error-text parsing). A healthy service is
+          never tripped by its own 404. CircuitOpen inherits ProviderFailed => execution.py's
+          `except ProviderFailed` maps denial to an honest 502 retryable with ZERO change (zero regression).
+          ③ OPEN must auto-return to HALF_OPEN: no thread; state/before_call() lazily transitions on the
+          injected clock (equivalent to Java's automaticTransitionFromOpenToHalfOpenEnabled). All probes
+          succeed -> CLOSED; any failure -> OPEN and restart the wait (no ping-pong, no permanent outage).
+        - BreakerConfig.__post_init__ explicitly REJECTS invalid policy (>=1 window/min, min<=window,
+          threshold in [0,100], non-negative wait, >=1 half-open calls) — Java v669a's "no silent
+          ofDefaults() degradation" mirrored. Default disabled = byte-identical to v681 (zero regression).
+        - DATA-STRUCTURE OPTIMIZATION: the sliding window is the per-call hot path. deque(maxlen=N) +
+          incremental _failure_count => amortized O(1) record/rate query (NOT sum(window) O(n)). Per
+          ADR 0112 the O(1) claim carries THREE doors: positive anchor (record_ops == m > 0, linear),
+          two-size equality (window 20 vs 200 same ops), and static premise coupling (source stays
+          deque+incremental, no sum() traversal) — an arm reddens on a list-rewrite so the dynamic door
+          cannot silently go false-green.
+        - FIRST-RED then GREEN: before resilience.py landed, 18 real gates RED / 11 always-on arms GREEN
+          / 1 live leg skip. After: gate file 30 passed/1 skipped. Full ai-service CI 166 passed/7 skipped
+          (baseline v681 135/6 -> +31, zero regression); opt-in real-gateway 172 passed/1 skipped (all 6
+          live legs hit real gpt-6-sol, breaker live leg: 2 healthy calls stay CLOSED, 2 real networks).
+          verify:record-encoding exit 0 (0 chargeable / 2254 files).
+        - THREE "red"s were MY gate bugs, not prod bugs (triaged "red => impl/assumption/undefined"):
+          two arms fed observations violating multiple asserts at once / a match keyword not equal to the
+          assert that actually fired — fixed in the gate only. Judges shared by gates and arms (ADR 0095);
+          judges pin properties not literals (threshold/window/wait/name rename stays green, ADR 0094 X4).
+        - HONEST GAPS (ADR 0115): ① process-local, non-durable, non-cross-instance (Redis is another
+          slice, akin ADR 0102); ② embedding path not breaker-wired (gateway has no embedding model);
+          ③ stats() not yet on /healthz /metrics wire (web/prd touch, another slice); ④ count-based window
+          not time-based; ⑤ no jitter / no fine half-open concurrency cap.
+        - SHARED-TREE: HEAD `2f1970c` (lane's cont.49 docs/CURRENT-STATE commit) at slice start and at
+          commit — no lane landing during this slice. Only my 5 files (3 modified: config/registry/
+          openai_compatible, 2 new: resilience.py + test_provider_breaker.py) + ADR 0115 + this ROADMAP
+          segment; exact `git add`, ff-checked before push, no force. State note self-contained here + ADR
+          0115 (CURRENT-STATE is lane territory, not edited). ADR number re-checked before commit (0115 free).
+
 Standing constraints (measured, not assumed): this host keeps ~0.3 GB physical memory
 free and its Docker engine currently refuses to start containers (`docker start` hangs;
 `docker info` still answers) — live m9/spring-cloud legs run on the hosted runner and

@@ -19,6 +19,15 @@ from .base import Completion, EmbeddingResult, ProviderFailed
 _RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
 
 
+class TransientProviderFailed(ProviderFailed):
+    """**瞬时**失败（重试耗尽的 429/5xx/网络）——断路器据此 `record_failure`（v682）。
+
+    确定性失败（401/403/400/404/422、畸形 payload）仍抛基类 `ProviderFailed`，
+    断路器走 `record_ignored`——"404 is an answer"，健康服务不该被自己的答案熔断。
+    子类让"哪类失败算熔断"由**类型**表达，门与臂共用同一个判别，不靠解析错误文本。
+    """
+
+
 def _retry_after_seconds(value: str | None) -> float | None:
     """解析 Retry-After（秒）；无效/缺省返回 None，交给指数退避，不因坏头崩掉。"""
     if not value:
@@ -48,10 +57,15 @@ class OpenAICompatibleProvider:
         cap_s: float = 8.0,
         sleep: Callable[[float], None] | None = None,
         clock: Callable[[], float] | None = None,
+        breaker=None,
     ) -> None:
         """`max_attempts=1`（默认）= pass-through，与 v681 前字节级一致（零回归）。
         >1 时启用有界指数退避：`base_s·2^i` 封顶 `cap_s`，429 的 `Retry-After` 优先。
         `sleep`/`clock` 可注入，供门确定性验证退避与总墙钟，生产不传。
+
+        `breaker`（v682，可选）：注入 `CircuitBreaker` 才启用拒门；默认 `None` 时
+        `complete()` 与 v681 字节级一致（不建门、不上报、不改变异常类型）——零回归。
+        用鸭子类型而非 import 以避免 providers↔resilience 的循环依赖。
         """
         if max_attempts < 1:
             raise ValueError("max_attempts 必须 >= 1（1=不重试，pass-through）")
@@ -62,6 +76,7 @@ class OpenAICompatibleProvider:
         self._cap_s = cap_s
         self._sleep = sleep or time.sleep
         self._clock = clock or time.monotonic
+        self._breaker = breaker
         self._client = httpx.Client(
             base_url=base_url,
             timeout=timeout_s,
@@ -96,6 +111,11 @@ class OpenAICompatibleProvider:
         if self._json_mode:
             body["response_format"] = {"type": "json_object"}
 
+        # v682 断路器门卫（坑①：真接进调用链）：OPEN 时抛 CircuitOpen，一次 HTTP 都不发。
+        # 默认 breaker=None 时整段跳过，与 v681 字节级一致（零回归）。
+        if self._breaker is not None:
+            self._breaker.before_call()
+
         # 有界重试：总墙钟（含退避）如实计入 latency_ms，不把重试等待藏起来（§159 计量诚实）。
         started = self._clock()
         response: httpx.Response | None = None
@@ -105,7 +125,11 @@ class OpenAICompatibleProvider:
             except httpx.HTTPError as exc:
                 # 网络抖动（ConnectError/TimeoutException/...）属瞬时，可重试；耗尽后统一抛。
                 if attempt + 1 >= self._max_attempts:
-                    raise ProviderFailed(f"provider 网络失败：{exc.__class__.__name__}") from exc
+                    if self._breaker is not None:
+                        self._breaker.record_failure()
+                    raise TransientProviderFailed(
+                        f"provider 网络失败：{exc.__class__.__name__}"
+                    ) from exc
                 self._sleep(self._backoff(attempt, None))
                 continue
 
@@ -119,16 +143,33 @@ class OpenAICompatibleProvider:
         latency_ms = (self._clock() - started) * 1000
 
         if response.status_code in (401, 403):
+            if self._breaker is not None:
+                self._breaker.record_ignored()
             raise ProviderFailed("provider 拒绝了凭据（401/403），检查 NEXUS_OPENAI_API_KEY")
         if response.status_code >= 400:
             detail = response.text[:400].replace("\n", " ")
+            if response.status_code in _RETRYABLE_STATUS:
+                # 瞬时（429/5xx）重试耗尽 = 上游此刻不健康 → 计失败（与网络耗尽同口径）
+                if self._breaker is not None:
+                    self._breaker.record_failure()
+                raise TransientProviderFailed(f"provider 返回 {response.status_code}：{detail}")
+            # 400/404/422 等确定性答案 = 请求本身错，豁免（坑②：404 is an answer）
+            if self._breaker is not None:
+                self._breaker.record_ignored()
             raise ProviderFailed(f"provider 返回 {response.status_code}：{detail}")
 
         try:
             payload = response.json()
             choice = payload["choices"][0]["message"]["content"]
         except (ValueError, KeyError, IndexError, TypeError) as exc:
+            # 200 但 payload 畸形 = 确定性解析错，豁免（重试/熔断都不会让它变好）
+            if self._breaker is not None:
+                self._breaker.record_ignored()
             raise ProviderFailed("provider 响应缺少 choices[0].message.content") from exc
+
+        # 一条逻辑请求一条 success：重试的物理多次 attempt 只算一次逻辑结果（组合语义）
+        if self._breaker is not None:
+            self._breaker.record_success()
 
         usage = payload.get("usage") or {}
         return Completion(

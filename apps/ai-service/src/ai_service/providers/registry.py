@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from ..config import Settings
+from ..resilience import BreakerConfig, CircuitBreaker
 from .openai_compatible import OpenAICompatibleProvider, OpenAICompatibleEmbeddingProvider
 
 
@@ -26,6 +27,24 @@ class Registry:
         embedding: OpenAICompatibleEmbeddingProvider | None = None,
     ) -> None:
         self._settings = settings
+        # v682 断路器：默认 disabled（不构造、零回归）；显式开启才建实例并真注入 provider，
+        # 让 complete() 的门卫真的读它——避开 Java 坑①"配了 YAML 却没人取用、静默跑默认值"。
+        # Settings 旋钮经 BreakerConfig 真变成运行实例，不是摆设（ADR 0095 声称必须有门读）。
+        breaker = (
+            CircuitBreaker(
+                BreakerConfig(
+                    name="llm-upstream",
+                    sliding_window_size=settings.llm_cb_sliding_window,
+                    minimum_number_of_calls=settings.llm_cb_minimum_calls,
+                    failure_rate_threshold=settings.llm_cb_failure_rate_threshold,
+                    wait_duration_in_open_state_s=settings.llm_cb_wait_s,
+                    permitted_calls_in_half_open=settings.llm_cb_half_open_calls,
+                )
+            )
+            if settings.llm_circuit_breaker_enabled
+            else None
+        )
+        self._breaker = breaker
         self._llm = llm or (
             OpenAICompatibleProvider(
                 api_key=settings.openai_api_key or "",
@@ -36,6 +55,7 @@ class Registry:
                 max_attempts=settings.llm_max_attempts,
                 base_s=settings.llm_retry_base_s,
                 cap_s=settings.llm_retry_cap_s,
+                breaker=breaker,
             )
             if settings.has_llm
             else None

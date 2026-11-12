@@ -50,6 +50,14 @@ class Settings:
     llm_max_attempts: int = 1
     llm_retry_base_s: float = 0.5
     llm_retry_cap_s: float = 8.0
+    # 出站断路器（v682，镜像 Java Spring Cloud DomainCircuitBreaker，ADR 0115）：
+    # 默认 disabled（零回归），显式开启才在 complete() 门卫处拒门。旋钮与 Resilience4j 同名同义。
+    llm_circuit_breaker_enabled: bool = False
+    llm_cb_sliding_window: int = 20
+    llm_cb_minimum_calls: int = 20
+    llm_cb_failure_rate_threshold: float = 50.0
+    llm_cb_wait_s: float = 10.0
+    llm_cb_half_open_calls: int = 2
     # 检测到但尚未实现适配器的 key：如实报告为 unavailable，不假装能调用（§159）
     unsupported_text_keys: tuple[str, ...] = ()
 
@@ -86,6 +94,12 @@ class Settings:
             "llm_max_attempts": self.llm_max_attempts,
             "llm_retry_base_s": self.llm_retry_base_s,
             "llm_retry_cap_s": self.llm_retry_cap_s,
+            "llm_circuit_breaker_enabled": self.llm_circuit_breaker_enabled,
+            "llm_cb_sliding_window": self.llm_cb_sliding_window,
+            "llm_cb_minimum_calls": self.llm_cb_minimum_calls,
+            "llm_cb_failure_rate_threshold": self.llm_cb_failure_rate_threshold,
+            "llm_cb_wait_s": self.llm_cb_wait_s,
+            "llm_cb_half_open_calls": self.llm_cb_half_open_calls,
         }
         inner = ", ".join(f"{key}={value!r}" for key, value in fields.items())
         return f"Settings({inner})"
@@ -127,4 +141,10 @@ def load_settings(environ: Mapping[str, str] | None = None) -> Settings:
         llm_max_attempts=max(1, int(get("NEXUS_LLM_MAX_ATTEMPTS", "1") or "1")),
         llm_retry_base_s=float(get("NEXUS_LLM_RETRY_BASE_S", "0.5") or "0.5"),
         llm_retry_cap_s=float(get("NEXUS_LLM_RETRY_CAP_S", "8") or "8"),
+        llm_circuit_breaker_enabled=(get("NEXUS_LLM_CIRCUIT_BREAKER_ENABLED", "0") or "0") == "1",
+        llm_cb_sliding_window=int(get("NEXUS_LLM_CB_SLIDING_WINDOW", "20") or "20"),
+        llm_cb_minimum_calls=int(get("NEXUS_LLM_CB_MIN_CALLS", "20") or "20"),
+        llm_cb_failure_rate_threshold=float(get("NEXUS_LLM_CB_FAILURE_RATE", "50") or "50"),
+        llm_cb_wait_s=float(get("NEXUS_LLM_CB_WAIT_S", "10") or "10"),
+        llm_cb_half_open_calls=int(get("NEXUS_LLM_CB_HALF_OPEN_CALLS", "2") or "2"),
     )
