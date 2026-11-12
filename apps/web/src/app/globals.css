@@ -1019,6 +1019,132 @@
     .nf-discover:hover, .nf-home:hover { transform: none; }
   }
 
+  /* ── §FE-14 / ADR-0162 创作数据页 `/analytics` 门面化（全库裸 Tailwind 密度最高片） ──
+   * FE 序列最大的 server 门面页 + 首个三元动态 className（range option 选中态）。改造前
+   * 58 个去重原子类 / 88 处 className 全裸——denied、双层口径（窗口/累计）、12 条 DEFINITIONS
+   * 口径说明、agent 规则分析区、12 列作品表、7 类告警/爬虫/截断旁注、CSV 导出、按天趋势区。
+   * 沿用 .mp-/.mi-/.me-/.mr- 同一套 token 语言（守 ADR-0123 六红线）：零新增颜色 token、全锚
+   * 双主题 token + color-mix、无写死 hex；只换 className（含三元两分支→an-rangeOn/an-rangeOff），
+   * 零行为——两段 JS 逻辑 SHA256（段A imports/常量/duration/12 条定义、段B 8 项取数链）+ **剥
+   * className 后全文哈希** + 27 data-* 钩子 + a11y 契约（横滚 region/CSV download/外链 noreferrer）
+   * 钉死。裸 `text-amber-300` 告警换 `--nexus-color-warn-ink`（暗 #f5a623 / 亮 #7a4f00 双主题 AA）。
+   * 本片有多个 <Link>/<a>，补 :focus-visible；表格行 hover + 链接/徽标过渡由 reduced 真收口。
+   * 与之同页的 TrendChart.tsx（SVG 三轴语义色守恒）另立 FE-15。不加渐变墨字。 */
+  .an-denied, .an-page {
+    max-width: 61.25rem; margin: 0 auto; padding: var(--nexus-space-6);
+    font-family: var(--nexus-font-mono);
+    animation: an-fade-in var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .an-denied { max-width: 56.25rem; padding-block: var(--nexus-space-10); display: flex; flex-direction: column; gap: var(--nexus-space-2); }
+  .an-page { max-width: 68.75rem; padding-block: var(--nexus-space-8); display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+  .an-title { font-size: var(--nexus-font-size-21); font-weight: 600; color: var(--nexus-color-fg-1); }
+  .an-deniedCopy { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-2); }
+  .an-subtitle { margin-top: var(--nexus-space-1); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .an-muted { margin-left: var(--nexus-space-2); color: var(--nexus-color-fg-3); }
+  .an-mono { font-family: var(--nexus-font-mono); font-variant-numeric: tabular-nums; color: var(--nexus-color-fg-1); }
+  .an-homeLink, .an-back, .an-close, .an-ask {
+    display: inline-block; width: max-content; color: var(--nexus-color-accent-2-ink);
+    text-decoration: underline; text-underline-offset: 3px;
+    transition: color var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .an-homeLink { margin-top: var(--nexus-space-4); font-size: var(--nexus-font-size-12); }
+  .an-back { margin-top: var(--nexus-space-3); font-size: var(--nexus-font-size-12); }
+  .an-close { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-11); }
+  .an-ask { margin-left: var(--nexus-space-1); font-size: var(--nexus-font-size-11); }
+  .an-export {
+    color: var(--nexus-color-accent-2-ink); text-decoration: underline;
+    text-decoration-style: dotted; text-underline-offset: 3px;
+    transition: color var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .an-homeLink:hover, .an-back:hover, .an-close:hover, .an-ask:hover, .an-export:hover { color: var(--nexus-color-brand); }
+  .an-homeLink:focus-visible, .an-back:focus-visible, .an-close:focus-visible, .an-ask:focus-visible, .an-export:focus-visible {
+    outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; border-radius: var(--nexus-radius-sm);
+  }
+  .an-exportNote { margin-left: var(--nexus-space-2); color: var(--nexus-color-fg-3); }
+  .an-defs {
+    margin-top: var(--nexus-space-4); padding: var(--nexus-space-3);
+    display: grid; gap: var(--nexus-space-1);
+    border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md);
+    background: var(--nexus-color-bg-1);
+    font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3);
+  }
+  @media (min-width: 40rem) { .an-defs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .an-defLabel { color: var(--nexus-color-fg-2); font-weight: 600; }
+  .an-defMeaning { margin-left: var(--nexus-space-1); }
+  .an-panel {
+    margin-top: var(--nexus-space-4); padding: var(--nexus-space-3);
+    border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md);
+    background: var(--nexus-color-bg-1);
+  }
+  .an-panelTitle { font-size: var(--nexus-font-size-13); font-weight: 600; color: var(--nexus-color-fg-1); }
+  .an-panelNote { margin-left: var(--nexus-space-2); font-size: var(--nexus-font-size-11); font-weight: 400; color: var(--nexus-color-fg-3); }
+  .an-agentNote { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); line-height: 1.6; }
+  .an-findings { margin-top: var(--nexus-space-2); display: flex; flex-direction: column; gap: var(--nexus-space-2); }
+  .an-finding { font-size: var(--nexus-font-size-12); }
+  .an-findingFact, .an-findingAction { color: var(--nexus-color-fg-3); }
+  .an-findingConclusion { color: var(--nexus-color-fg-1); }
+  .an-findingLabel { color: var(--nexus-color-fg-2); font-weight: 600; }
+  .an-projectTrend {
+    margin-top: var(--nexus-space-3); padding-top: var(--nexus-space-2);
+    border-top: 1px solid var(--nexus-color-border-subtle);
+    font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); line-height: 1.7;
+  }
+  .an-trendHead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--nexus-space-2); }
+  .an-rangeNav { display: flex; gap: var(--nexus-space-3); font-size: var(--nexus-font-size-11); }
+  .an-rangeLink { text-decoration: underline; text-underline-offset: 3px; transition: color var(--nexus-motion-base) var(--nexus-motion-ease); }
+  /* 三元动态类：选中档更强（fg-1 + 实线），未选中档 accent-2-ink；两档视觉可分 */
+  .an-rangeOn { color: var(--nexus-color-fg-1); text-decoration-style: solid; }
+  .an-rangeOff { color: var(--nexus-color-accent-2-ink); text-decoration-style: dotted; }
+  .an-rangeOn:hover, .an-rangeOff:hover { color: var(--nexus-color-brand); }
+  .an-rangeOn:focus-visible, .an-rangeOff:focus-visible {
+    outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; border-radius: var(--nexus-radius-sm);
+  }
+  .an-windowTotals {
+    margin-top: var(--nexus-space-2); display: flex; flex-wrap: wrap;
+    gap: var(--nexus-space-1) var(--nexus-space-4);
+    font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3);
+  }
+  .an-trendNote { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); line-height: 1.7; }
+  .an-empty { margin-top: var(--nexus-space-6); font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-2); line-height: 1.7; }
+  .an-tableScroll { margin-top: var(--nexus-space-5); overflow-x: auto; }
+  .an-tableScroll:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .an-table { width: 100%; min-width: 62.5rem; border-collapse: collapse; font-size: var(--nexus-font-size-12); }
+  .an-thead {
+    border-bottom: 1px solid var(--nexus-color-border-subtle); text-align: left;
+    font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3);
+  }
+  .an-th { padding: var(--nexus-space-1) var(--nexus-space-2); font-weight: 400; }
+  .an-thRight { padding: var(--nexus-space-1) var(--nexus-space-2); font-weight: 400; text-align: right; }
+  .an-row {
+    border-bottom: 1px solid var(--nexus-color-border-subtle);
+    transition: background-color var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .an-row:hover { background: color-mix(in srgb, var(--nexus-color-brand) 6%, var(--nexus-color-bg-1)); }
+  .an-td { padding: var(--nexus-space-1) var(--nexus-space-2); }
+  .an-tdRight { padding: var(--nexus-space-1) var(--nexus-space-2); text-align: right; }
+  .an-cell {
+    padding: var(--nexus-space-1) var(--nexus-space-2); text-align: right;
+    font-family: var(--nexus-font-mono); font-variant-numeric: tabular-nums;
+    font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1);
+  }
+  .an-cellMuted { color: var(--nexus-color-fg-3); }
+  .an-cellNote { margin-left: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .an-workLink { color: var(--nexus-color-fg-1); text-decoration: underline; text-underline-offset: 3px; transition: color var(--nexus-motion-base) var(--nexus-motion-ease); }
+  .an-workLink:hover { color: var(--nexus-color-brand); }
+  .an-workLink:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; border-radius: var(--nexus-radius-sm); }
+  .an-version { margin-left: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .an-visibility { padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  /* 告警徽标：裸 text-amber-300 → warn-ink token，暗亮双主题都过 AA */
+  .an-flagWarn { margin-left: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-warn-ink); font-weight: 600; }
+  .an-flagMuted { margin-left: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .an-footer { margin-top: var(--nexus-space-4); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); line-height: 1.7; }
+  @keyframes an-fade-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .an-denied, .an-page { animation: none; }
+    .an-homeLink, .an-back, .an-close, .an-ask, .an-export, .an-rangeLink, .an-workLink, .an-row { transition: none; }
+    .an-row:hover { background: var(--nexus-color-bg-1); }
+  }
+
   /* ── §FE-13 / ADR-0161 我的举报页 `/marketplace/reports` 门面化（三兄弟收官） ──
    * FE 序列首个 server 组件 + 首个数据驱动状态色映射。三兄弟（purchases/earnings/reports）的
    * 最后一个：此前全裸 Tailwind——denied/empty/list 三态 + 四状态徽标 + 工单行全无门面。
