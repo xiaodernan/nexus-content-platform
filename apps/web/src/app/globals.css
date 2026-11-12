@@ -2141,6 +2141,42 @@
   .ap-headCol { display: flex; flex-shrink: 0; flex-direction: column; gap: var(--nexus-space-1); border-bottom: 1px solid var(--nexus-color-border-subtle); padding: var(--nexus-space-2) var(--nexus-space-3); }
   .ap-mono10uppercase { font-family: var(--nexus-font-mono); font-size: 0.625rem; text-transform: uppercase; color: var(--nexus-color-fg-3); }
   .ap-bannerWarn { flex-shrink: 0; background: color-mix(in srgb, var(--nexus-color-warn) 15%, transparent); padding: var(--nexus-space-2) var(--nexus-space-3); font-size: var(--nexus-font-size-12); color: var(--nexus-color-warn-ink); }
+
+  /* ── §FE-54 / ADR-0206 `PublishPanel.tsx` `.pb-` 门面化——§57 Publish 发布面板 ──
+   * §179 的门禁和 §163 项目频道 build/preview status 两行；两行只在真的收到过事件时出现。
+     本片只换皮：发布 dispatch / popover-dismiss / HealthWatch 的派生全部、ARIA/钩子不动。
+   * **唯一一段带 @media**（520px）——Tailwind 的 `max-[520px]:` 逐字节播进来（对照 §FE-35 的 48rem 口径）；
+     box-shadow 复用 @theme shadow-2xl→var(--nexus-shadow-lg)。 */
+  .pb-faint11m2 { margin-bottom: var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .pb-dangerMb2 { margin-bottom: var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); }
+  .pb-faintMb3 { margin-bottom: var(--nexus-space-3); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .pb-faintBlock { display: block; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .pb-ink1 { color: var(--nexus-color-fg-1); }
+  .pb-rel { position: relative; }
+  .pb-mt3px { margin-top: 3px; }
+  .pb-popPanel { position: absolute; right: 0; top: calc(100% + 6px); z-index: 70; display: block; max-height: 72vh; width: min(440px, calc(100vw - 24px)); overflow: auto; border-radius: var(--nexus-radius-md); border: 1px solid var(--nexus-color-border-strong); background: var(--nexus-color-bg-1); padding: var(--nexus-space-3); box-shadow: var(--nexus-shadow-lg); }
+  .pb-closeBtn { margin-left: auto; display: inline-flex; height: 1.5rem; min-width: 1.5rem; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: var(--nexus-radius-sm); padding: 0 var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .pb-closeBtn:hover { color: var(--nexus-color-fg-1); background: var(--nexus-color-bg-2); }
+  .pb-closeBtn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .pb-ghostBig { border: 0; border-radius: var(--nexus-radius-sm); background: transparent; padding: var(--nexus-space-1) var(--nexus-space-3); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .pb-ghostBig:hover { background: var(--nexus-color-bg-2); }
+  .pb-ghostBig:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .pb-publishBtn { border: 1px solid transparent; border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-1) var(--nexus-space-3); font-size: var(--nexus-font-size-13); cursor: pointer; }
+  .pb-publishBtn.pb-publishLive { background: var(--nexus-color-brand); color: var(--nexus-color-accent-fg); }
+  .pb-publishBtn.pb-publishLive:hover { opacity: 0.92; }
+  .pb-publishBtn.pb-publishIdle { border-color: var(--nexus-color-border-strong); background: transparent; color: var(--nexus-color-fg-2); }
+  .pb-publishBtn.pb-publishIdle:hover { background: var(--nexus-color-bg-2); }
+  .pb-publishBtn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  @media (max-width: 520px) {
+    .pb-popPanel { position: fixed; left: 12px; right: 12px; top: 52px; width: auto; }
+  }
+  .pb-block { margin-bottom: var(--nexus-space-3); display: block; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-2); }
+  .pb-blockBordered { margin-bottom: var(--nexus-space-3); display: block; border-radius: var(--nexus-radius-sm); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-2); padding: var(--nexus-space-2); }
+  .pb-col { margin-bottom: var(--nexus-space-3); display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+  .pb-listMt1 { margin-top: var(--nexus-space-1); display: flex; flex-direction: column; gap: 2px; list-style: none; padding: 0; }
+  .pb-monoMt2 { margin-bottom: var(--nexus-space-2); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .pb-pickRow { display: flex; cursor: pointer; align-items: flex-start; gap: var(--nexus-space-2); font-size: var(--nexus-font-size-12); }
+  .pb-mirrorLink { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); text-decoration: underline; }
   .cp-inputShared { width: 100%; resize: vertical; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
   .cp-inputShared:focus { background: var(--nexus-color-bg-3); }
   .cp-grow { min-width: 0; flex: 1 1 0%; }
