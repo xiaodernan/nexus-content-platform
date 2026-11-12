@@ -2089,6 +2089,22 @@
   .cp-block { display: block; }
   .cp-noticeRow { margin-top: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
   .cp-noticeError { color: var(--nexus-color-danger-ink); }
+  /* ── §FE-52 / ADR-0204 `SketchPad.tsx` `.sk-` 门面化——§38 Sketch → Image 绘制面 ──
+   * 白纸是内容色：canvas 底 fillStyle 就是 '#ffffff'，.sk-paper 的 #fff 与之一致（§38 边界），不随主题翻转；
+     撤销一笔/清空/提交仍是本地原料采集（不进设计文档 Command 撤销栈，与分镜、世界面板同口径）。
+     零动效、零 @media、零 hex（除白纸 #fff 一处，有意为之）。 */
+  .sk-root { display: flex; flex-direction: column; align-items: flex-start; gap: var(--nexus-space-1); }
+  .sk-paper { width: 100%; max-width: 15rem; cursor: crosshair; border-radius: var(--nexus-radius-sm); background: #fff; border: 0; }
+  .sk-row1 { display: flex; align-items: center; gap: var(--nexus-space-1); }
+  .sk-selfStart { align-self: flex-start; }
+  .sk-btn { border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); background: transparent; padding: 2px var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); cursor: pointer; }
+  .sk-btn:hover { background: var(--nexus-color-bg-2); }
+  .sk-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .sk-primary { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-3); padding: var(--nexus-space-1) var(--nexus-space-2); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); cursor: pointer; }
+  .sk-primary:hover:not(:disabled) { background: var(--nexus-color-bg-0); }
+  .sk-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .sk-monoFaint { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .sk-warn12 { font-size: var(--nexus-font-size-12); color: var(--nexus-color-warn-ink); }
   .cp-inputShared { width: 100%; resize: vertical; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
   .cp-inputShared:focus { background: var(--nexus-color-bg-3); }
   .cp-grow { min-width: 0; flex: 1 1 0%; }

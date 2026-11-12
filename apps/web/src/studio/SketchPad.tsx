@@ -110,7 +110,7 @@ export function SketchPad({
   }, [onGenerate, submitting]);
 
   return (
-    <div className="flex flex-col items-start gap-1">
+    <div className="sk-root">
       <canvas
         ref={canvasRef}
         width={PAD_SIZE}
@@ -121,16 +121,16 @@ export function SketchPad({
         onPointerCancel={onPointerUp}
         aria-label="草图绘制区"
         data-sketch-pad
-        className="w-full max-w-[240px] cursor-crosshair rounded-[var(--nexus-radius-sm)] bg-white"
+        className="sk-paper"
         style={{ touchAction: 'none' }}
       />
-      <div className="flex items-center gap-1">
+      <div className="sk-row1">
         <button
           type="button"
           disabled={busy || strokes.length === 0}
           onClick={() => setStrokes((prev) => prev.slice(0, -1))}
           data-sketch-undo
-          className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] px-2 py-[2px] text-11 text-fg-2 hover:bg-bg-2 disabled:opacity-50"
+          className="sk-btn"
         >
           撤销一笔
         </button>
@@ -139,11 +139,11 @@ export function SketchPad({
           disabled={busy || strokes.length === 0}
           onClick={() => setStrokes([])}
           data-sketch-clear
-          className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] px-2 py-[2px] text-11 text-fg-2 hover:bg-bg-2 disabled:opacity-50"
+          className="sk-btn"
         >
           清空
         </button>
-        <span className="font-mono text-11 text-fg-3" data-sketch-strokes>
+        <span className="sk-monoFaint" data-sketch-strokes>
           {strokes.length} 笔
         </span>
       </div>
@@ -152,26 +152,26 @@ export function SketchPad({
         disabled={busy || submitting || !canGenerate || strokes.length === 0}
         onClick={() => void submit()}
         data-sketch-generate
-        className="self-start rounded-[var(--nexus-radius-sm)] bg-bg-3 px-2 py-1 font-mono text-11 text-fg-2 hover:bg-bg-0 disabled:opacity-50"
+        className="sk-primary sk-selfStart"
       >
         {busy || submitting ? '生成中…' : '从草图生成（DEMO · 扣 2 点）'}
       </button>
       {exportError ? (
-        <p className="text-12 text-warn-ink" data-sketch-export-error>
+        <p className="sk-warn12" data-sketch-export-error>
           {exportError}
         </p>
       ) : null}
       {strokes.length > 0 && !canGenerate ? (
-        <p className="text-11 text-warn-ink" data-sketch-need-prompt>
+        <p className="cp-warn11" data-sketch-need-prompt>
           上面的描述文字还空着——草图管构图，文字管画什么，缺一样都生成不了。
         </p>
       ) : null}
       {strokes.length === 0 ? (
-        <p className="text-11 text-fg-3" data-sketch-empty>
+        <p className="wd-faint11" data-sketch-empty>
           先在白纸上画几笔——空白纸不算草图，这颗按钮也不该点得动。
         </p>
       ) : (
-        <p className="text-11 leading-relaxed text-fg-3">
+        <p className="wd-body11">
           落墨越重画面越暗，线越碎元素越多。边界说清：草图管<strong>构图密度与明暗</strong>，不管形状本身——
           "照草图的轮廓画"要真 provider 的图生图，接上之前不做假变换。
         </p>
