@@ -2300,6 +2300,17 @@
   .rc-note { width: 100%; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
   .rc-error { font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); }
   .rc-hint { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+
+  /* ── §FE-75 / ADR-0228 公开分镜/可玩页 `play/page.tsx` 原子清零——叠加于 §FE-7 `.pp-*` 之上（不动基建段）。 */
+  .pp-h1xi { font-size: var(--nexus-font-size-21); font-weight: 600; }
+  .pp-narrow { margin-inline: auto; display: flex; max-width: 720px; flex-direction: column; gap: var(--nexus-space-3); padding: 64px var(--nexus-space-6); }
+  .pp-wide { margin-inline: auto; display: flex; max-width: 1180px; flex-direction: column; gap: var(--nexus-space-4); padding: var(--nexus-space-8) var(--nexus-space-6); }
+  .pp-headerRow { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--nexus-space-3); }
+  .pp-backInk { font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-2-ink); text-decoration: underline; }
+  .pp-body13 { font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-2); }
+  .pp-list { display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+  .pp-danger12 { font-size: var(--nexus-font-size-12); color: var(--nexus-color-danger-ink); }
+  .pp-hint11 { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
   .pb-mirrorLink { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); text-decoration: underline; }
 
   /* ── §FE-55 / ADR-0207 `MemoryPanel.tsx` `.mm-` 门面化——§48 角色记忆 ──
