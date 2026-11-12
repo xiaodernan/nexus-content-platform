@@ -2188,6 +2188,16 @@
   .ge-listDanger { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-11); line-height: 1.6; color: var(--nexus-color-danger-ink); }
   .ge-wrapMt2 { margin-top: var(--nexus-space-2); display: flex; flex-wrap: wrap; gap: var(--nexus-space-1); }
   .ge-faintMt2ink { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-11); line-height: 1.6; color: var(--nexus-color-fg-2); }
+
+  /* ── §FE-65 / ADR-0217 `ViewerControls.tsx` `.vc-` 门面化——§14 查看器控件行 ──
+   * file 原注释：查看器控件行 —— 公开页与预览页同一排、同一套参数名；全是服务端渲染的 `<a>`。
+     行内盒 + 24px 下限：这一排是给手机上的拇指点的（WCAG 2.5.8 下限 24×24）。
+     `min-h-[24px]` → 字面量 `1.5rem`；`flex … pt-[space-2] px-[space-4]` → `--nexus-space-*`。 */
+  .vc-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-2); padding-inline: var(--nexus-space-4); padding-top: var(--nexus-space-2); font-size: var(--nexus-font-size-12); }
+  .vc-pill { display: inline-flex; min-height: 1.5rem; align-items: center; border-radius: var(--nexus-radius-sm); border: 0; background: transparent; padding: 2px var(--nexus-space-2); font-size: var(--nexus-font-size-12); cursor: pointer; }
+  .vc-pillOn { background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-1); }
+  .vc-pillIdle { color: var(--nexus-color-fg-3); }
+  .vc-pillIdle:hover { background: var(--nexus-color-bg-2); }
   .pb-mirrorLink { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); text-decoration: underline; }
 
   /* ── §FE-55 / ADR-0207 `MemoryPanel.tsx` `.mm-` 门面化——§48 角色记忆 ──
