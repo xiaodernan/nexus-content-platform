@@ -1487,6 +1487,8 @@
   .am-dangerNote { font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); }
   .am-linkTargetSub { display: inline-flex; min-height: 1.5rem; align-items: center; border-radius: 2px; padding-inline: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-2-ink); text-decoration: underline; text-underline-offset: 0.15em; }
   .am-linkTargetSub:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .am-shellWide { margin-inline: auto; max-width: 67.5rem; padding: var(--nexus-space-10) var(--nexus-space-6); display: flex; flex-direction: column; gap: var(--nexus-space-4); }
+  .am-detailMin { min-width: 16rem; max-width: 24rem; word-break: break-all; color: var(--nexus-color-fg-3); }
 
   /* ── §FE-30 / ADR-0182 `/admin/users` 账号与角色 + 客人回收 `.au-` 门面化 ──
    * §131 自助提权收口页 + ADR-0072 过期访客回收。四条硬规则的判定全在服务端（domain/roles.ts），
