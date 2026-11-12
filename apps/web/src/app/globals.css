@@ -130,6 +130,7 @@
     border-radius: var(--nexus-radius-md);
     background: linear-gradient(90deg, var(--nexus-color-bg-2), color-mix(in srgb, var(--nexus-color-brand) 14%, var(--nexus-color-bg-2)), var(--nexus-color-bg-2));
     background-size: 200% 100%; animation: gw-shimmer 1.4s linear infinite;
+    height: 5.75rem;
   }
 
   /* ─────────────────────────────────────────────────────────────────────────
@@ -1489,6 +1490,18 @@
   .am-linkTargetSub:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
   .am-shellWide { margin-inline: auto; max-width: 67.5rem; padding: var(--nexus-space-10) var(--nexus-space-6); display: flex; flex-direction: column; gap: var(--nexus-space-4); }
   .am-detailMin { min-width: 16rem; max-width: 24rem; word-break: break-all; color: var(--nexus-color-fg-3); }
+  .am-shellXl { margin-inline: auto; max-width: 73.75rem; padding: var(--nexus-space-10) var(--nexus-space-6); display: flex; flex-direction: column; gap: var(--nexus-space-5); }
+  .am-titleLg { font-size: var(--nexus-font-size-24); font-weight: 600; color: var(--nexus-color-fg-1); letter-spacing: -0.025em; }
+  .am-chipRow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-2); }
+  .am-warnNote { font-size: var(--nexus-font-size-12); color: var(--nexus-color-warn-ink); }
+  .am-stack { display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+  .am-stackSm { display: flex; flex-direction: column; gap: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .am-stackXl { display: flex; flex-direction: column; gap: var(--nexus-space-5); }
+  .am-sectionHeadSm { font-size: var(--nexus-font-size-13); font-weight: 600; color: var(--nexus-color-fg-2); }
+  .am-rowHead { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .am-mutedText { color: var(--nexus-color-fg-2); }
+  .gw-ident { font-family: var(--nexus-font-mono); font-variant-numeric: tabular-nums; color: var(--nexus-color-fg-1); }
+  .gw-ident2 { font-family: var(--nexus-font-mono); font-variant-numeric: tabular-nums; color: var(--nexus-color-fg-2); }
 
   /* ── §FE-30 / ADR-0182 `/admin/users` 账号与角色 + 客人回收 `.au-` 门面化 ──
    * §131 自助提权收口页 + ADR-0072 过期访客回收。四条硬规则的判定全在服务端（domain/roles.ts），

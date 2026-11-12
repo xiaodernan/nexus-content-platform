@@ -34,17 +34,17 @@ export default async function AdminGatewayPage() {
   const user = await currentUserOrNull();
   if (!user) {
     return (
-      <main className="mx-auto max-w-[860px] px-6 py-16" data-admin-denied="anonymous">
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">网关态势</h1>
-        <p className="mt-2 text-13 text-fg-2">需要先登录才能看。</p>
+      <main className="adm-denied" data-admin-denied="anonymous">
+        <h1 className="adm-deniedTitle">网关态势</h1>
+        <p className="adm-deniedText">需要先登录才能看。</p>
       </main>
     );
   }
   if (user.role !== 'admin') {
     return (
-      <main className="mx-auto max-w-[860px] px-6 py-16" data-admin-denied="not-admin">
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">网关态势</h1>
-        <p className="mt-2 text-13 text-fg-2">
+      <main className="adm-denied" data-admin-denied="not-admin">
+        <h1 className="adm-deniedTitle">网关态势</h1>
+        <p className="adm-deniedText">
           这个页面对 {user.displayName}（role={user.role}）不开放：网关拓扑只对 role=admin 可见。
         </p>
       </main>
@@ -54,11 +54,11 @@ export default async function AdminGatewayPage() {
   const [{ snapshot, error }, driver] = await Promise.all([initialSnapshot(), Promise.resolve(getGatewayClient().describe())]);
 
   return (
-    <main className="gw-root mx-auto flex max-w-[1180px] flex-col gap-5 px-6 py-10" data-gateway-root>
-      <header className="flex flex-wrap items-baseline justify-between gap-3">
+    <main className="am-shellXl" data-gateway-root>
+      <header className="adm-headBaseline">
         <div>
-          <h1 className="text-[var(--nexus-font-size-24)] font-semibold tracking-tight">网关态势</h1>
-          <p className="text-11 text-fg-3" data-gateway-scope>
+          <h1 className="am-titleLg">网关态势</h1>
+          <p className="adm-capNote" data-gateway-scope>
             路由 × 注册 × 健康 · 问的是网关此刻读到的真值 · 每 4 秒刷新 · 地址 {driver.baseUrl}
           </p>
         </div>

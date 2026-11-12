@@ -106,10 +106,10 @@ export function GatewayPanel({
     return (
       <section data-gateway-loading aria-label="正在读取网关态势">
         {error ? (
-          <p className="text-13 text-danger-ink" data-gateway-error>{error}</p>
+          <p className="ar-errorNote" data-gateway-error>{error}</p>
         ) : (
           <div className="gw-grid">
-            {[0, 1, 2, 3].map((i) => <div key={i} className={`gw-skeleton h-[92px]`} />)}
+            {[0, 1, 2, 3].map((i) => <div key={i} className="gw-skeleton" />)}
           </div>
         )}
       </section>
@@ -119,7 +119,7 @@ export function GatewayPanel({
   const { totals, columns, gaps, services: rows, notes } = snapshot;
 
   return (
-    <div className="flex flex-col gap-5" data-gateway-ready>
+    <div className="am-stackXl" data-gateway-ready>
       {/* KPI：null 一律"—（未测）"，不显示 0 */}
       <section className="gw-grid" aria-label="网关概览">
         <Kpi label="生效路由" value={numberOrDash(totals.routes)} />
@@ -130,28 +130,28 @@ export function GatewayPanel({
       </section>
 
       {/* 三列各自的时间与可信状态：这一屏最要紧的诚实 */}
-      <section className="flex flex-wrap items-center gap-2" data-gateway-columns aria-label="三份读数各自的时刻">
+      <section className="am-chipRow" data-gateway-columns aria-label="三份读数各自的时刻">
         <ColumnState label="routes" state={columns.routes.state} measuredAt={columns.routes.measuredAt} ageMs={columns.routes.ageMs} />
         <ColumnState label="services" state={columns.services.state} measuredAt={columns.services.measuredAt} ageMs={columns.services.ageMs} />
         <ColumnState label="health" state={columns.health.state} measuredAt={columns.health.measuredAt} ageMs={columns.health.ageMs} />
       </section>
 
       {error ? (
-        <p className="text-12 text-warn-ink" data-gateway-refresh-error>
+        <p className="am-warnNote" data-gateway-refresh-error>
           最近一次刷新失败（{error}）；下面仍是 {updatedAt ?? '上一次'} 读到的图，未清空。
         </p>
       ) : null}
 
       {/* 错处才是价值：三列对齐后的逐服务视图 */}
-      <section className="flex flex-col gap-1" aria-label="逐服务态势">
-        <div className={`gw-row text-11 text-fg-3`} aria-hidden="true">
+      <section className="am-stack" aria-label="逐服务态势">
+        <div className="gw-row am-rowHead" aria-hidden="true">
           <span>服务 id</span>
           <span>健康</span>
           <span>注册实例</span>
           <span>归类</span>
         </div>
         {rows.length === 0 ? (
-          <p className="text-13 text-fg-2" data-gateway-empty>
+          <p className="am-empty" data-gateway-empty>
             三列都没给出服务名——先看上面哪一列是「未测到」，别把空表读成"平台没有服务"。
           </p>
         ) : (
@@ -159,13 +159,13 @@ export function GatewayPanel({
             const h = healthView(row.health);
             return (
               <div className="gw-row" key={row.id} data-gateway-service={row.id} data-classification={row.classification}>
-                <span className={`gw-mono text-fg-1`} title={row.routeIds.join(', ')}>{row.id}</span>
+                <span className="gw-ident" title={row.routeIds.join(', ')}>{row.id}</span>
                 <span className="gw-status">
                   <span className={`gw-dot ${h.dot}`} />
                   <span>{h.text}</span>
                 </span>
-                <span className={`gw-mono text-fg-2`}>{numberOrDash(row.registeredInstances)}</span>
-                <span className="text-fg-2">{CLASS_LABEL[row.classification]}</span>
+                <span className="gw-ident2">{numberOrDash(row.registeredInstances)}</span>
+                <span className="am-mutedText">{CLASS_LABEL[row.classification]}</span>
               </div>
             );
           })
@@ -174,8 +174,8 @@ export function GatewayPanel({
 
       {/* 诚实边界与错处：一条条上屏，不藏在注释里 */}
       {gaps.length > 0 ? (
-        <section className="flex flex-col gap-2" aria-label="读数的限度与错配">
-          <h2 className="text-13 font-semibold text-fg-2">读数的限度（不是报错，是事实的边界）</h2>
+        <section className="am-audit" aria-label="读数的限度与错配">
+          <h2 className="am-sectionHeadSm">读数的限度（不是报错，是事实的边界）</h2>
           {gaps.map((gap, i) => (
             <p className="gw-gapItem" key={`${gap.kind}-${i}`} data-gateway-gap={gap.kind}>
               {gap.note}
@@ -185,13 +185,13 @@ export function GatewayPanel({
       ) : null}
 
       {/* 三份上游各自的 note 原样端出 */}
-      <section className="flex flex-col gap-1 text-11 text-fg-3" aria-label="上游原话">
+      <section className="am-stackSm" aria-label="上游原话">
         {notes.routes ? <p data-gateway-note="routes">routes：{notes.routes}</p> : null}
         {notes.services ? <p data-gateway-note="services">services：{notes.services}</p> : null}
         {notes.health ? <p data-gateway-note="health">health：{notes.health}</p> : null}
       </section>
 
-      <footer className="text-11 text-fg-3" data-gateway-footer>
+      <footer className="adm-capNote" data-gateway-footer>
         更新于 {updatedAt ?? '—'} · 每 {POLL_MS / 1000} 秒问一次 · 后台标签暂停 · 问的是 {driver.baseUrl} ·
         {(() => {
           // §SC-50 / ADR-0125：driver=redis 只表示「已配置」，不等于「此刻连着」。
