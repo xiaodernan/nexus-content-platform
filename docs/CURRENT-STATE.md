@@ -2148,3 +2148,28 @@ on the next hosted ref; nothing about the frontend bytes changed agents' subject
 4) Combined push queued in the working tree while arms settles: next@16.4.6 pin + package-lock,
    docs/CI-OPERATIONS.md (two-clause hosted CI runbook), cont. 65-69 ledger,
    v686-v688 slices, arms receipt + companion artifacts when the green run returns.
+## cont. 70 (2026-11-13, mid-day) - springcloud blueprint documented; stale budget reclaimed; receipt still grinding; pending push inventory named
+
+1) docs/SPRINGCLOUD-BLUEPRINT.md (new): the Java Spring Cloud estate is inventoried fact-first:
+   java-registry / java-gateway / nexus-api (951 tests verified) / nexus-domain-service (39 verified) /
+   java-config-server (5 verified) with what each does in this tree, the P0/P1/P2/P3 next steps
+   (LLM path stress across the lb chain; redis-DLQ vs RabbitMQ decision; single-hot pod identity;
+   bounded dead-letter export), and the honest missing list (no distributed tracing e2e proof;
+   no Kafka/RabbitMQ install evidence; no Envoy/Istio; single-host Compose, not multi-DC).
+   No measurements invented; the numbers are the ones run this arc on this host and in hosted batteries.
+2) Local risk reclaimed: the next dev server on 3100 was stopped (~328 MB heap); stale
+   nexus-ci-arms-plane-* directories from this session's crashed arms re-issues were deleted (~15.5 MB).
+   The brand-gradient evidence gathered over LAN remains valid; the desktop capture path
+   (screenshots) still cannot produce pixels from this session.
+3) Hosted batteries unchanged: arms-freshness is still the only RED clause on refs since e97007f;
+   both branches main-line GREEN on every ref pushed this arc. The receipt re-issue is still grinding
+   (arm children spawning sequentially in D:/nexus-ci-arms-plane-3200; section-15 premise printed; no
+   crash or stall flag so far; box is RAM-pinched at ~0.9-1.1 GB free so steps are slow). Push remains
+   queued: next@16.4.6, docs/CI-OPERATIONS.md, docs/SPRINGCLOUD-BLUEPRINT.md, this ledger.
+4) Studio arms-family accounting, in one honest line: e97007f (CI arms), 4395e82, bd29864, 008647f,
+   6e453a6 - five Studio REDs, one clause (arms-freshness), one cause (the mainline subject change in
+   e97007f); all five main-line GREEN; all five owned by this lane; zero of them are byte-quality
+   regressions; all five should re-earn green when a full re-issued receipt lands.
+5) v688 (bounded DLQ) and v687 (web lift) sit on master UNPUSHED by explicit choice: pushing before the
+   re-issued receipt would fire one more arms-freshness battery just to know the outcome; the push rides
+   the receipt when it lands.
