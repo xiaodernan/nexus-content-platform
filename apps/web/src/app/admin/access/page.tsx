@@ -26,17 +26,17 @@ export default async function AdminAccessPage({
   const user = await currentUserOrNull();
   if (!user) {
     return (
-      <main className="mx-auto max-w-[860px] px-6 py-16" data-admin-denied="anonymous">
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">访问账（全局）</h1>
-        <p className="mt-2 text-13 text-fg-2">需要先登录才能看。</p>
+      <main className="adm-denied" data-admin-denied="anonymous">
+        <h1 className="adm-deniedTitle">访问账（全局）</h1>
+        <p className="adm-deniedText">需要先登录才能看。</p>
       </main>
     );
   }
   if (user.role !== 'admin') {
     return (
-      <main className="mx-auto max-w-[860px] px-6 py-16" data-admin-denied="not-admin">
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">访问账（全局）</h1>
-        <p className="mt-2 text-13 text-fg-2">
+      <main className="adm-denied" data-admin-denied="not-admin">
+        <h1 className="adm-deniedTitle">访问账（全局）</h1>
+        <p className="adm-deniedText">
           这个页面对 {user.displayName}（role={user.role}）不开放：访问账全局视图只对 role=admin 可见。
         </p>
       </main>
@@ -49,11 +49,11 @@ export default async function AdminAccessPage({
   const summary = await listApiAccessGlobal(days);
 
   return (
-    <main className="mx-auto flex max-w-[1080px] flex-col gap-4 px-6 py-10" data-access-admin-root>
-      <header className="flex flex-wrap items-baseline justify-between gap-3">
+    <main className="am-shellWide" data-access-admin-root>
+      <header className="adm-headBaseline">
         <div>
-          <h1 className="text-[var(--nexus-font-size-21)] font-semibold">访问账（全局）</h1>
-          <p className="text-11 text-fg-3" data-access-summary>
+          <h1 className="adm-deniedTitle">访问账（全局）</h1>
+          <p className="adm-capNote" data-access-summary>
             最近 {days} 天：总调用 {summary.totalCalls} · 活跃凭据 {summary.activeTokens} 枚 ·
             涉及主人 {summary.activeOwners} 人（分钟合并，只留 30 天；只有读成功才记）
           </p>
@@ -61,29 +61,29 @@ export default async function AdminAccessPage({
         <AdminNav current="access" />
       </header>
 
-      <nav className="flex gap-2 text-11" aria-label="时间窗口">
+      <nav className="am-windowNav" aria-label="时间窗口">
         {API_ACCESS_GLOBAL_WINDOWS_DAYS.map((option) => (
           <Link
             key={option}
             href={`/admin/access?days=${option}`}
             aria-current={option === days ? 'page' : undefined}
-            className={`rounded px-2 py-1 ${option === days ? 'bg-bg-2 text-fg-1' : 'text-fg-3 underline'}`}
+            className={option === days ? 'am-windowChipActive' : 'am-windowChipIdle'}
             data-access-window={option}
           >
             {option} 天
           </Link>
         ))}
-        <span className="ml-auto flex gap-2">
+        <span className="am-windowNavPush">
           <a
             href={`/api/admin/access/export?days=${days}&kind=tokens`}
-            className="rounded bg-bg-2 px-2 py-1 text-fg-1"
+            className="am-btn"
             data-access-export="tokens"
           >
             导出凭据榜 CSV（不截断）
           </a>
           <a
             href={`/api/admin/access/export?days=${days}&kind=endpoints`}
-            className="rounded bg-bg-2 px-2 py-1 text-fg-1"
+            className="am-btn"
             data-access-export="endpoints"
           >
             导出端点榜 CSV（不截断）
@@ -91,17 +91,17 @@ export default async function AdminAccessPage({
         </span>
       </nav>
 
-      <section className="flex flex-col gap-2" data-access-tokens>
-        <h2 className="text-[var(--nexus-font-size-16)] font-semibold">
+      <section className="am-audit" data-access-tokens>
+        <h2 className="am-auditTitle">
           热点凭据（前 {Math.min(summary.tokens.length, API_ACCESS_GLOBAL_TOP_N)} / 窗口内共 {summary.activeTokens} 枚）
         </h2>
         {summary.tokens.length === 0 ? (
-          <p className="text-13 text-fg-2" data-access-tokens-empty>
+          <p className="am-empty" data-access-tokens-empty>
             这个窗口里没有任何读成功的调用。
           </p>
         ) : (
-          <table className="w-full text-11">
-            <thead className="text-left text-fg-3">
+          <table className="tl-table">
+            <thead className="tl-thRow">
               <tr>
                 <th>凭据</th>
                 <th>主人</th>
@@ -115,14 +115,14 @@ export default async function AdminAccessPage({
               {summary.tokens.map((token) => (
                 <tr key={token.tokenId} data-access-token={token.tokenId}>
                   <td>
-                    <span className="text-fg-1">{token.tokenName}</span>{' '}
-                    <span className="text-fg-3">…{token.tokenHint}</span>
+                    <span className="am-strongText">{token.tokenName}</span>{' '}
+                    <span className="am-mutedText">…{token.tokenHint}</span>
                   </td>
                   <td data-access-token-owner>{token.ownerName}</td>
                   <td data-access-token-calls>{token.calls}</td>
                   <td data-access-token-endpoints>{token.endpoints}</td>
                   <td data-access-token-projects>{token.projects}</td>
-                  <td className="text-fg-3">
+                  <td className="am-note">
                     {new Date(token.lastSeen).toLocaleString('zh-CN', { hour12: false })}
                   </td>
                 </tr>
@@ -132,18 +132,18 @@ export default async function AdminAccessPage({
         )}
       </section>
 
-      <section className="flex flex-col gap-2" data-access-endpoints>
-        <h2 className="text-[var(--nexus-font-size-16)] font-semibold">
+      <section className="am-audit" data-access-endpoints>
+        <h2 className="am-auditTitle">
           热点端点（前 {Math.min(summary.endpoints.length, API_ACCESS_GLOBAL_TOP_N)} / 窗口内共{' '}
           {summary.endpoints.length >= API_ACCESS_GLOBAL_TOP_N ? `${API_ACCESS_GLOBAL_TOP_N}+` : summary.endpoints.length} 个）
         </h2>
         {summary.endpoints.length === 0 ? (
-          <p className="text-13 text-fg-2" data-access-endpoints-empty>
+          <p className="am-empty" data-access-endpoints-empty>
             这个窗口里没有任何读成功的调用。
           </p>
         ) : (
-          <table className="w-full text-11">
-            <thead className="text-left text-fg-3">
+          <table className="tl-table">
+            <thead className="tl-thRow">
               <tr>
                 <th>端点</th>
                 <th>调用</th>
@@ -163,8 +163,8 @@ export default async function AdminAccessPage({
         )}
       </section>
 
-      <p className="text-11 text-fg-3" data-access-scope>
-        与 <Link href="/api-tokens" className="inline-flex min-h-6 items-center rounded px-1 underline">/api-tokens</Link> 那一格是同一本账的两面：那边是"我自己名下最近读过什么"，
+      <p className="adm-capNote" data-access-scope>
+        与 <Link href="/api-tokens" className="am-linkImplicit">/api-tokens</Link> 那一格是同一本账的两面：那边是"我自己名下最近读过什么"，
         这边是全平台的"谁在扫库、哪一枚是热点"。计数按分钟合并、只留 30 天；
         一次 401 / 403 不在这里（那是裁决，记在审计里）。榜单显示前 {API_ACCESS_GLOBAL_TOP_N}，导出不截断。
       </p>
