@@ -476,8 +476,8 @@ export function CanvasStage() {
 
   if (!layout || !page) {
     return (
-      <div className="flex h-full items-center justify-center bg-bg-0">
-        <p className="font-mono text-13 text-fg-3">{state.loadError ?? '载入画布…'}</p>
+      <div className="cs-loader">
+        <p className="cs-mono13">{state.loadError ?? '载入画布…'}</p>
       </div>
     );
   }
@@ -509,7 +509,7 @@ export function CanvasStage() {
       data-canvas-surface
       // overflow-clip 而不是 hidden：hidden 仍是滚动容器，聚焦/scrollIntoView 会把它滚出偏移，
       // 而画布的 屏幕→模型 映射只认 pan/zoom，滚过之后每次点选都落在别的节点上
-      className="relative h-full w-full touch-none overflow-clip bg-bg-0"
+      className="cs-stage"
       style={{ cursor: preview.marquee ? 'crosshair' : spaceRef.current ? 'grab' : 'default' }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -525,7 +525,7 @@ export function CanvasStage() {
         title="适应窗口（Shift+1）"
         onPointerDown={(e) => e.stopPropagation()}
         onClick={fitToWindow}
-        className="absolute right-2 top-2 z-10 inline-flex min-h-6 items-center rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-1 px-2 font-mono text-11 text-fg-2 hover:text-fg-1"
+        className="cs-fitBtn"
       >
         适应窗口
       </button>
@@ -613,7 +613,7 @@ export function CanvasStage() {
         </div>
         {visible.virtualized ? (
           <span
-            className="absolute right-3 top-3 rounded bg-bg-1/90 px-2 py-1 font-mono text-11 text-fg-3"
+            className="cs-virtualized"
             data-canvas-virtualized
           >
             画布按视口裁剪：显示 {visible.ids.length} / {layout.paintOrder.length}
@@ -691,7 +691,7 @@ export function CanvasStage() {
         ) : null}
         {Object.keys(page.nodes).length <= 1 ? (
           <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>
-            <p className="max-w-[420px] rounded-[var(--nexus-radius-md)] border border-dashed border-border-subtle bg-bg-1 px-[var(--nexus-space-5)] py-[var(--nexus-space-4)] text-center text-13 text-fg-3">
+            <p className="cs-emptyState">
               空页面：用左侧 Layers 面板的“+”添加元素。画布上的每次修改都会写回设计模型，再投影成渲染与代码。
             </p>
           </div>

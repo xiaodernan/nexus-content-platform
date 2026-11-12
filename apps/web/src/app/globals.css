@@ -2198,6 +2198,17 @@
   .vc-pillOn { background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-1); }
   .vc-pillIdle { color: var(--nexus-color-fg-3); }
   .vc-pillIdle:hover { background: var(--nexus-color-bg-2); }
+
+  /* ── §FE-66 / ADR-0218 `CanvasStage.tsx` `.cs-` 门面化——§8 画布外壳 ──
+   * 所有戏都在 style={{}}：tokens 已经在画布里了。文本原子化（适应窗口、裁剪标记等）。 */
+  .cs-loader { display: flex; height: 100%; align-items: center; justify-content: center; background: var(--nexus-color-bg-0); }
+  .cs-mono13 { font-family: var(--nexus-font-mono); font-size: 0.8125rem; color: var(--nexus-color-fg-3); }
+  .cs-stage { position: relative; height: 100%; width: 100%; touch-action: none; overflow: clip; background: var(--nexus-color-bg-0); }
+  .cs-fitBtn { position: absolute; right: var(--nexus-space-2); top: var(--nexus-space-2); z-index: 10; display: inline-flex; min-height: 1.5rem; align-items: center; border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-1); padding: 0 var(--nexus-space-2); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); cursor: pointer; }
+  .cs-fitBtn:hover { color: var(--nexus-color-fg-1); }
+  .cs-fitBtn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .cs-virtualized { position: absolute; right: var(--nexus-space-3); top: var(--nexus-space-3); display: inline-block; border-radius: var(--nexus-radius-sm); background: color-mix(in srgb, var(--nexus-color-bg-1) 90%, transparent); padding: var(--nexus-space-1) var(--nexus-space-2); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .cs-emptyState { max-width: 26.25rem; border-radius: var(--nexus-radius-md); border: 1px dashed var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); padding: var(--nexus-space-4) var(--nexus-space-5); text-align: center; font-size: 0.8125rem; color: var(--nexus-color-fg-3); line-height: 1.6; }
   .pb-mirrorLink { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); text-decoration: underline; }
 
   /* ── §FE-55 / ADR-0207 `MemoryPanel.tsx` `.mm-` 门面化——§48 角色记忆 ──
