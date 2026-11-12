@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { cn } from '@/lib/cn';
 import { saveBlob } from '@/lib/download';
 import { useStudioReady } from './store';
 import { usePopoverDismiss } from './use-popover-dismiss';
@@ -121,7 +120,7 @@ export function ExportPanel() {
   };
 
   return (
-    <div ref={rootRef} className="relative" data-export-root>
+    <div ref={rootRef} className="pb-rel" data-export-root>
       <button
         ref={triggerRef}
         type="button"
@@ -129,7 +128,7 @@ export function ExportPanel() {
         aria-expanded={open}
         aria-controls={open ? EXPORT_PANEL_ID : undefined}
         data-export-open
-        className="rounded-[var(--nexus-radius-sm)] px-[var(--nexus-space-3)] py-1 text-13 text-fg-2 hover:bg-bg-2"
+        className="pb-ghostBig"
       >
         导出
       </button>
@@ -140,21 +139,21 @@ export function ExportPanel() {
           role="region"
           aria-label="导出与下载"
           data-export-panel
-          className="absolute right-0 top-[calc(100%+6px)] z-[70] max-h-[72vh] w-[min(360px,calc(100vw_-_24px))] overflow-auto rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-strong)] bg-bg-1 p-[var(--nexus-space-3)] shadow-2xl max-[520px]:fixed max-[520px]:left-3 max-[520px]:right-3 max-[520px]:top-[52px] max-[520px]:w-auto"
+          className="pb-popPanel360"
         >
-          <p className="mb-2 font-mono text-12 text-fg-3">§144 导出这个项目</p>
-          <div className="mb-[var(--nexus-space-3)] flex flex-col gap-1">
+          <p className="pb-monoMt2">§144 导出这个项目</p>
+          <div className="pb-col">
             {PARTS.map((part) => (
-              <label key={part.id} className="flex cursor-pointer items-start gap-2 text-12" data-export-part={part.id}>
+              <label key={part.id} className="pb-pickRow" data-export-part={part.id}>
                 <input
                   type="checkbox"
                   checked={picked[part.id]}
                   onChange={() => setPicked((prev) => ({ ...prev, [part.id]: !prev[part.id] }))}
-                  className="mt-[3px]"
+                  className="pb-mt3px"
                 />
                 <span>
-                  <span className="text-fg-1">{part.label}</span>
-                  <span className="block text-11 text-fg-3">{part.hint}</span>
+                  <span className="pb-ink1">{part.label}</span>
+                  <span className="pb-faintBlock">{part.hint}</span>
                 </span>
               </label>
             ))}
@@ -165,23 +164,23 @@ export function ExportPanel() {
           {receipt ? (
             <div
               role="status"
-              className="mb-[var(--nexus-space-3)] rounded-[var(--nexus-radius-sm)] bg-bg-2 p-2"
+              className="pb-block"
               data-export-receipt
             >
-              <p className="text-11 text-fg-1">
+              <p className="pb-ink1">
                 已下载 {receipt.filename}（{kilobytes(receipt.bytes)}）
               </p>
               {receipt.counts ? (
-                <p className="mt-1 text-11 text-fg-3" data-export-composition>
+                <p className="sb-faintMt1" data-export-composition>
                   包内：{composition(receipt.counts) ?? '一个文件也没有（README 之外是空的）'}
                 </p>
               ) : (
-                <p className="mt-1 text-11 text-fg-3" data-export-composition>
+                <p className="sb-faintMt1" data-export-composition>
                   服务端没给构成回执，这里只报字节数。
                 </p>
               )}
               {receipt.missing ? (
-                <p className="mt-1 text-11 text-warn-ink" data-export-missing>
+                <p className="cp-warnMt1" data-export-missing>
                   有 {receipt.missing} 个资产在存储里取不回来了，它们没进包，包里的 README.txt 写了名字。
                 </p>
               ) : null}
@@ -190,35 +189,33 @@ export function ExportPanel() {
 
           {/* 失败是"动作没成"：`alert` 会打断当前朗读，这正是这条消息该有的重量 */}
           {error ? (
-            <p role="alert" className="mb-2 text-11 text-danger-ink" data-export-error>
+            <p role="alert" className="pb-dangerMb2" data-export-error>
               {error}
             </p>
           ) : null}
 
-          <ul className="mb-[var(--nexus-space-3)] space-y-[2px]">
-            <li className="text-11 text-fg-3" data-export-limit>
+          <ul className="pb-listMt1">
+            <li className="sb-faint11" data-export-limit>
               · 导的是当前这一版：历史快照、分支、撤销栈、知识索引与对话都不在这份包里，它们还在项目里。
             </li>
-            <li className="text-11 text-fg-3" data-export-limit>
+            <li className="sb-faint11" data-export-limit>
               · 包里的 README.txt 会写清有什么、按什么生成的、以及哪些资产没取回来。
             </li>
           </ul>
 
-          <div className="flex items-center gap-2">
+          <div className="wd-row2">
             <button
               type="button"
               disabled={busy || !chosen.length}
               onClick={() => void run()}
               data-export-run
-              className={cn(
-                'min-w-0 flex-1 rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-left text-12 leading-tight text-accent-fg disabled:opacity-50',
-              )}
+              className="pb-runBtn"
             >
               {busy
                 ? '打包中…'
                 : `导出 ${chosen.map((id) => PARTS.find((p) => p.id === id)!.label).join('+') || '（没勾东西）'}`}
             </button>
-            <button type="button" onClick={() => setOpen(false)} className="ml-auto inline-flex h-6 min-w-6 shrink-0 items-center justify-center px-1 text-11 text-fg-3 hover:text-fg-1">
+            <button type="button" onClick={() => setOpen(false)} className="pb-closeBtn">
               收起
             </button>
           </div>

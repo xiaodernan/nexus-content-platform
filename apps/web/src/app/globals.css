@@ -2176,6 +2176,12 @@
   .pb-listMt1 { margin-top: var(--nexus-space-1); display: flex; flex-direction: column; gap: 2px; list-style: none; padding: 0; }
   .pb-monoMt2 { margin-bottom: var(--nexus-space-2); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
   .pb-pickRow { display: flex; cursor: pointer; align-items: flex-start; gap: var(--nexus-space-2); font-size: var(--nexus-font-size-12); }
+  .pb-runBtn { min-width: 0; flex: 1 1 0%; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-accent-2); padding: var(--nexus-space-1) var(--nexus-space-3); text-align: left; font-size: var(--nexus-font-size-12); line-height: 1.25; color: var(--nexus-color-accent-fg); cursor: pointer; }
+  .pb-runBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .pb-popPanel360 { position: absolute; right: 0; top: calc(100% + 6px); z-index: 70; display: block; max-height: 72vh; width: min(360px, calc(100vw - 24px)); overflow: auto; border-radius: var(--nexus-radius-md); border: 1px solid var(--nexus-color-border-strong); background: var(--nexus-color-bg-1); padding: var(--nexus-space-3); box-shadow: var(--nexus-shadow-lg); }
+  @media (max-width: 520px) {
+    .pb-popPanel360 { position: fixed; left: 12px; right: 12px; top: 52px; width: auto; }
+  }
   .pb-mirrorLink { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); text-decoration: underline; }
 
   /* ── §FE-55 / ADR-0207 `MemoryPanel.tsx` `.mm-` 门面化——§48 角色记忆 ──
