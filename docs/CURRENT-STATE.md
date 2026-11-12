@@ -1681,3 +1681,13 @@ This is a small feature but a meaningful one for the current "real LLM wired end
 - Verified on this host before commit: built dev-mode reload + login + curl rendered 200; the readiness section was present in the server-rendered HTML with `data-ai-readiness-text="real"`, `data-ai-readiness-image="demo"`, `data-ai-readiness-video="demo"`, `data-ai-readiness-live="true"`. Two prior 500s from broken JSX (`</p>` mis-closure inside `<div>`) were found and fixed during this pass; record-encoding re-run green after the fix.
 - Side effect: the page now imports `getAiCapabilities` from `@/lib/env` and gates nothing else; no other pages changed.
 - Verified: `observability-instrumented`, `observability.test`, `observability-audit-failure`, `observability-ledger.integration`, and `rate-limit.redis.integration`: 57/57 green. narrow tsc + eslint exit 0. record-encoding exit 0 (every ISLAND lines discharged); arms-freshness 9/9 MATCHED.
+## cont. 52b (2026-11-12, night) - /admin/realtime redesigned to the brand language
+
+The other two completely fresh admin entries (/admin/access=? /admin/users) deserve passes. The cheapest owned increment right now: /admin/realtime was the only admin page still at the plainest tier (a single 21px heading with just a paragraph of caveats). It is now aligned with the brand language used by the other admin entries:
+
+- hero panel with ambient orbs (brand + accent-2), a gradient wordmark, action bar carrying AdminNav + a 'process / ledger book -> observability' link
+- data-realtime-* hooks kept (data-realtime-summary, data-realtime-scope, data-realtime-admin-root, data-admin-nav link); e2e selectors and AdminNav selection logic untouched
+- RealtimeStatsPanel wrapped in a single card frame for visual consistency with the rest of the admin family
+- Anonymous/notAdmin branches left as a dark left rail with a small eyebrow, matching what a private byte does elsewhere on this project (and the plain-branch h1 size was bumped from 21 to 24 so it stops being a near-failure match for the 21px chrome on the resting hand).
+
+Verified on this host: narrow tsc + eslint exit 0. No pixel claims (browser n/a, like every other viewer-side pass this session). AdminNav selection untouched - 'realtime' still selects correctly; axe e2e path still matches existing[data-realtime-admin-root] anchors.
