@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
  * 两份文件平移：
  *  - `app/admin/page.tsx`：denied×2（anonymous/not-admin）+ 十卡矩阵（`data-admin-home-card` 全集 10 个，
  *    一卡一句「这一格是干嘛的」，**不读库、不发请求、不填占位百分比**）；
- *  - `components/AdminNav.tsx`：管理台导航名单一份（11 入口）+ WCAG 2.5.8 的 28px 下限一处。
+ *  - `components/AdminNav.tsx`：管理台导航名单一份（12 入口）+ WCAG 2.5.8 的 28px 下限一处。
  * 本片只换皮（arbitrary atom → `.adm-*`）；文案、AREAS 常量、LINKS、aria-current、
  * data 钩子、鉴权对照（`user.role !== 'admin'`）一字不改。
  *
@@ -21,7 +21,7 @@ import { describe, expect, it } from 'vitest';
  *
  * 判据不变式（13 门）：
  *  1. denied×2 分支 + `role !== 'admin'` 闸门 + 未登录 `currentUserOrNull` 判据；
- *  2. AdminNav：`LINKS` 11 入口 + `aria-current="page"` + `data-admin-link` 全集恒等于 LINKS 键集；
+ *  2. AdminNav：`LINKS` 12 入口 + `aria-current="page"` + `data-admin-link` 全集恒等于 LINKS 键集；
  *  3. 字面 className 全 `.adm-*`；4. 零裸 Tailwind 原子类；
  *  5. .adm-* 每个都在 globals.css 有基础定义；6. `.adm-` 段 ≥ 18 条视觉类；
  *  7. 零写死 hex；8. 视觉段 var(--nexus-*) 全在 tokens.css 声明；9. 零新增颜色 token；
@@ -29,7 +29,7 @@ import { describe, expect, it } from 'vitest';
  *     两条 @media（40rem/64rem）逐字平移；backdrop-filter blur(12px) 守恒；
  * 11. focus-visible 覆盖 card/navItem；`.adm-navItemActive` 有渐变实底 + accent-fg 墨字；
  * 12. 双文件 SHA256 双门（含 ITEM 常量精确雕刻断言）；
- * 13. 数据钩子守恒（page：denied×2/home-root/kicker/cards/home-card×10；nav：nav/link×11/dot×11/current）。
+ * 13. 数据钩子守恒（page：denied×2/home-root/kicker/cards/home-card×11；nav：nav/link×12/dot×12/current）。
  */
 const ROOT = process.cwd();
 const PAGE = join(ROOT, 'apps/web/src/app/admin/page.tsx');
@@ -96,13 +96,13 @@ describe('§FE-26 /admin 入口总览 + AdminNav', () => {
     expect(pageCode).not.toContain('use client');
   });
 
-  it('AdminNav：LINKS 11 入口 · aria-current="page" · data-admin-link 全集恒等于 LINKS 键集', () => {
+  it('AdminNav：LINKS 12 入口 · aria-current="page" · data-admin-link 全集恒等于 LINKS 键集', () => {
     expect(navCode).toContain('aria-current="page"');
     expect(navCode).toContain('aria-label="管理台"');
     expect(navCode).toContain('data-admin-nav');
     const keys = [...navCode.matchAll(/\{ key: '([a-z-]+)', href: '\/admin/g)].map((m) => m[1]!);
-    expect(keys).toHaveLength(11);
-    expect(keys).toEqual(['home', 'users', 'moderation', 'marketplace', 'audit', 'realtime', 'rate-limit', 'access', 'observability', 'gateway', 'discover-cache']);
+    expect(keys).toHaveLength(12);
+    expect(keys).toEqual(['home', 'users', 'moderation', 'marketplace', 'audit', 'realtime', 'rate-limit', 'access', 'observability', 'gateway', 'discover-cache', 'health']);
     expect(navCode).toContain('data-admin-link={link.key}');
     expect(navCode).toContain('data-admin-dot={link.key}');
   });
@@ -194,13 +194,13 @@ describe('§FE-26 /admin 入口总览 + AdminNav', () => {
     expect(navCode).not.toMatch(/\bITEM\b/);
     expect(navCode).toContain('const LINKS =');
     expect(createHash('sha256').update(redactClasses(nav)).digest('hex')).toBe(
-      'a1c6b39079ac62c1149e42e6e3ed514b66a262c6bc890f77049e6e741659a927',
+      '861d0804580eeb94f42c853f0fe7ebaf82cd872125ec9b92eb07d3c2521fb5f9',
     );
   });
 
-  it('page.tsx redact 恒等于 HEAD 原样（1 字节不外泄）', () => {
+  it('page.tsx redact 与有意录在目录册里的常量一致（§FE-40 追加 health 卡后重钉）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '2731ed4964fc3907821da6911acd4d71f4ab290a965828a3d4c77c609583f7fe',
+      '91884ec4c287a5f04d85ee0f6d304980b33f41939bcc5607a177723a55933277',
     );
   });
 

@@ -35,6 +35,7 @@ const LINKS = [
   { key: 'observability', href: '/admin/observability', label: '观测' },
   { key: 'gateway', href: '/admin/gateway', label: '网关态势' },
   { key: 'discover-cache', href: '/admin/discover-cache', label: '发现页缓存' },
+  { key: 'health', href: '/admin/health', label: '健康总览' },
 ] as const;
 
 export type AdminSection = (typeof LINKS)[number]['key'];

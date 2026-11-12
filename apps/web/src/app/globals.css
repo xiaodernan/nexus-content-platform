@@ -1574,6 +1574,24 @@
   .np-removeBtn:hover { color: var(--nexus-color-danger-ink); }
   .np-removeBtn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
 
+  /* ── §FE-40 / ADR-0192 `/admin/health` 管理台健康总览 `.hd-` 门面化——五层快照一次成 ──
+   * 运维只在这一页看到五层（ai/java/gateway/redis/postgres）的真相：
+   * 拿不到 = "未测到"（而不是 down），和 web 静默降级纪律一致；每层独立超时。
+   * 只换皮 + 聚合端点拼装，不动鉴权（role=admin）、不动六红线（状态点旁文字中性 AA）。 */
+  .hd-overallOk, .hd-overallBad { display: flex; align-items: baseline; justify-content: space-between; gap: var(--nexus-space-3); border-radius: var(--nexus-radius-md); border: 1px solid var(--nexus-color-border-subtle); padding: var(--nexus-space-2) var(--nexus-space-3); font-size: var(--nexus-font-size-12); font-weight: 600; }
+  .hd-overallOk { color: var(--nexus-color-fg-1); border-color: color-mix(in srgb, var(--nexus-color-success) 40%, transparent); background: color-mix(in srgb, var(--nexus-color-success) 8%, transparent); }
+  .hd-overallBad { color: var(--nexus-color-fg-1); border-color: color-mix(in srgb, var(--nexus-color-warn) 50%, transparent); background: color-mix(in srgb, var(--nexus-color-warn) 8%, transparent); }
+  .hd-list { display: flex; flex-direction: column; gap: var(--nexus-space-2); list-style: none; padding: 0; margin: 0; }
+  .hd-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--nexus-space-3); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md); background: var(--nexus-color-bg-1); padding: var(--nexus-space-2) var(--nexus-space-3); }
+  .hd-left { display: flex; align-items: center; gap: var(--nexus-space-2); min-width: 0; }
+  .hd-name { font-weight: 600; font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-1); }
+  .hd-dot { display: inline-block; width: 0.5rem; height: 0.5rem; border-radius: 9999px; flex: none; }
+  .hd-dotOk { background: var(--nexus-color-success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--nexus-color-success) 22%, transparent); }
+  .hd-dotBad { background: var(--nexus-color-warn); box-shadow: 0 0 0 3px color-mix(in srgb, var(--nexus-color-warn) 22%, transparent); }
+  .hd-verdict { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .hd-detail { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); font-variant-numeric: tabular-nums; max-width: 42rem; overflow-wrap: anywhere; }
+  .hd-measured { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); font-variant-numeric: tabular-nums; }
+
   /* ── §FE-39 / ADR-0191 `CodePanel.tsx` `.cd-` 门面化——§19 Code 视图 ──
    * 画布旁边的第二块投影：设计模型→代码投影/受限 JSX 解析器反向编辑/一次应用 = 一个可撤销事务。
    * 解析器吃不下的片段如实报告，不回写、不假装回写成功。只换皮，行为/文案/data 钩子/CSRF 不动。零动效。 */

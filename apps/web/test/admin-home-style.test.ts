@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 /**
  * §A11Y-4 `/admin` 管理台首页——静态那一寸（零浏览器、零真库、零时钟）。
  *
- * 这一页补的是"访客打开 /admin 被根 not-found 打回"的缺口——十处真实入口此前没有任何一张脸。
+ * 这一页补的是"访客打开 /admin 被根 not-found 打回"的缺口——十一处真实入口此前没有任何一张脸。
  * 全是纯导航：没有任何数据读取、没有 fetch、没有 mutation，每个钩子都是锚点给人看的。
  * 浏览器那一寸（真的渲染、深/浅主题、focus 环、forced-colors）靠 `scripts/capture-admin-home.mts`
  * 的头less-Chrome 截图 + 人工读图；axe 归既有 `a11y-internal.spec.ts` 体系。
@@ -61,17 +61,17 @@ describe('§A11Y-4 admin home', () => {
     expect(nav).toContain("export type AdminSection = (typeof LINKS)[number]['key']");
   });
 
-  it('十张卡全在且唯一：href 与 slug 一一对齐，没有多出第十一处 phantom 入口', () => {
+  it('十一张卡全在且唯一：href 与 slug 一一对齐，没有多出第十二处 phantom 入口', () => {
     // 来源于 page.tsx 的 AREAS 常量；写下计数而不是"包含这些字串"，杜绝静默多加了一处
     const slugs = [...code.matchAll(/slug: '([a-z-]+)'/g)].map((m) => m[1]);
     expect(slugs).toEqual([
       'users', 'moderation', 'marketplace', 'audit', 'realtime',
-      'rate-limit', 'access', 'observability', 'gateway', 'discover-cache',
+      'rate-limit', 'access', 'observability', 'gateway', 'discover-cache', 'health',
     ]);
     const hrefs = [...code.matchAll(/href: '(\/admin\/[a-z-]+)'/g)].map((m) => m[1]);
     expect(hrefs).toEqual([
       '/admin/users', '/admin/moderation', '/admin/marketplace', '/admin/audit', '/admin/realtime',
-      '/admin/rate-limit', '/admin/access', '/admin/observability', '/admin/gateway', '/admin/discover-cache',
+      '/admin/rate-limit', '/admin/access', '/admin/observability', '/admin/gateway', '/admin/discover-cache', '/admin/health',
     ]);
     expect([...code.matchAll(/data-admin-home-card=/g)].length).toBeGreaterThanOrEqual(1);
   });

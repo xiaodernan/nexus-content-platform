@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
  *
  * `/admin` 之前没有 index route：访客或管理员打开 /admin 会拿到的是根 not-found
  * （内容平台里每一处门面都言之有物，唯独这一格说自己是 404）——不是"没人告诉你哪里能去"，而是
- * 十个真实入口摆在手边却没有任何一张脸。本页补这一张脸。
+ * 十一处真实入口摆在手边却没有任何一张脸。本页补这一张脸。
  *
  * 零行为：本页只导航，不读库、不发请求、不递 box、不写审计——每张卡一句话说清
  * "这一格是干什么的"，卡内没有假数据、没有百分比占位、没有"loading…"。测试锚
@@ -26,6 +26,7 @@ const AREAS = [
   { slug: 'observability', href: '/admin/observability', title: '观测', note: '进程计数器（本实例）+ 库里三账（跨重启）——两半，别合并。' },
   { slug: 'gateway', href: '/admin/gateway', title: '网关态势', note: '网关此刻给谁路由、注册中心记着谁、每实例还活不活——错处自现。' },
   { slug: 'discover-cache', href: '/admin/discover-cache', title: '发现页缓存', note: '/discover 缓存的命中/水位/失效总线心跳——读缓存，不动缓存。' },
+  { slug: 'health', href: '/admin/health', title: '健康总览', note: 'ai/java/gateway/redis/postgres 五层一致性——拿不到就是“未测到”，不是down；每层独立超时。' },
 ] as const;
 
 export default async function AdminHomePage() {
@@ -60,7 +61,7 @@ export default async function AdminHomePage() {
             管理台
           </h1>
           <p className="adm-lede">
-            控制面上你能做的每一件事，今安静地摆在十张卡里；单击进入前，先读卡的一句话。
+            控制面上你能做的每一件事，今安静地摆在十一张卡里；单击进入前，先读卡的一句话。
             先看读数（观测 / 审计 / 访问账），再动手（删 / 复核 / 拉黑 / 轮换凭据）——
             本页不为任何人决定该不该点，只说清那一格是干什么的。
           </p>
@@ -69,7 +70,7 @@ export default async function AdminHomePage() {
       </header>
 
       <section
-        aria-label="管理台十处入口"
+        aria-label="管理台十一处入口"
         className="adm-cards"
         data-admin-home-cards
       >
