@@ -1,13 +1,35 @@
 /**
- * §AILIVE-3 · 用真 provider 跑一轮「真的设计生成」流程——create project → ask model to set the root width →
- * 确认响应含真补丁且 provider/capability 真。
+ * §AILIVE-3 · 用真 provider 跑一轮 **design-edit 真链路**：
+ *   GET / 拿 cookie → login/register → create project → GET 权威 document →
+ *   POST /api/ai/run（design-edit 诉求，点名一个真实节点要改的字号）→
+ *   拿真模型的响应，用 `verifyDesignPatches` 在内存里 dry-run 判定（ADR-0170）。
  *
- * 与 live-ai-smoke 不同：后者走 freeform 单问回答（单向验证整条链路），本片走 **design-edit**——
- * 模型要真的产出 patches 并应用到文档（applyPatch 真改 id 真节），终态可被 codegen 真读出。
+ * ## 它证明什么、不证明什么（接手 8d6e1384 的半成品后据实正名）
  *
- *   npm run tsx -- scripts/live-design-smoke.mts --confirm-real
+ * 证明：HTTP 层真走通——`capability=real`、`demoMode=false`、`model=gpt-6-sol`、
+ * usage 是真 token；且真模型给出的 patches 经**与 Studio client 同一份** `applyPatch`
+ * 内存 dry-run 后，每个 op 生效、点名的目标节点真被 touch、字号真变成诉求值。
+ *
+ * **不证明**补丁已落库。`POST /api/ai/run` 只把 patches 交回客户端（route.ts 的 `deliver`），
+ * 落库是 Studio client 拿 patches 调 `applyPatch` 再发 `/design` 的活。本脚本是纯 HTTP、
+ * 不走浏览器，所以库里 `design_nodes` 不变是 gate 的正常表现，不是 bug，也不是本片的判据。
+ * 旧版在此处去读 `Eyebrow.fontSize` 谎称"persisted to DB"——请求改的却是 `Headline`，
+ * 得到名不副实的 `[verify-FAIL]`。现在这段已被内存 dry-run 判据取代。
+ *
+ * 三态退出码（详见 `scripts/design-patch-verdict.mts`）：
+ * - `applied`         → exit 0：真 · 设计生成走通，patches 合法且达成诉求。
+ * - `honest-refusal`  → exit 0：0 patches 但 explanation 说清了为什么做不了（模型诚实边界，
+ *                       `design_prompt.py` 规则 1/5 允许）。如实打印，**不谎报走通 ✓**。
+ * - `invalid`         → exit 8：patches 造 id / 错页 / 没碰目标 / 字号不对 / 沉默失败 → 真红。
+ *
+ *   npx tsx --tsconfig apps/web/tsconfig.json scripts/live-design-smoke.mts --confirm-real
+ * 默认拒绝执行（防意外计费），必须显式带 `--confirm-real`。
  */
+import { verifyDesignPatches } from './design-patch-verdict.mjs';
+import type { DesignDocument, DesignPatch } from '@nexus/creative-model';
+
 const BASE = process.env.NEXUS_WEB_URL ?? 'http://localhost:3100';
+const WANTED_FONT_SIZE = 28;
 if (!process.argv.includes('--confirm-real')) { console.error('requires --confirm-real'); process.exit(2); }
 
 async function run() {
@@ -57,31 +79,31 @@ async function run() {
   let projectId = '';
   { const { r, text } = await post('/api/projects', { name: 'design-smoke ' + Date.now(), kind: 'website' }); console.error(`[project ${r.status}]`); collect('project', r); if (!r.ok) process.exit(4); const json = JSON.parse(text) as { projectId?: string }; projectId = json.projectId ?? ''; if (!projectId) throw new Error('projectId missing'); }
 
-  // 4. 拿当前文档（看根 frame 实际 id）
-  let doc: { pages?: Array<{ id?: string; name?: string; nodes?: Record<string, unknown> }> } = {};
-  { const h: Record<string, string> = { cookie: [...session].map(([k, v]) => `${k}=${v}`).join('; ') }; const r = await fetch(`${BASE}/api/projects/${projectId}`, { headers: h }); const text = await r.text(); console.error('[doc GET] http', r.status); if (!r.ok) { console.error(text.slice(0,300)); process.exit(5); } doc = JSON.parse(text).document; }
-  const activePage = doc.pages?.[0];
+  // 4. 拿当前文档（看根 frame 实际 id）——这份就是内存 dry-run 的权威输入
+  let document: DesignDocument;
+  { const h: Record<string, string> = { cookie: [...session].map(([k, v]) => `${k}=${v}`).join('; ') }; const r = await fetch(`${BASE}/api/projects/${projectId}`, { headers: h }); const text = await r.text(); console.error('[doc GET] http', r.status); if (!r.ok) { console.error(text.slice(0,300)); process.exit(5); } document = (JSON.parse(text).document) as DesignDocument; }
+  const activePage = document.pages?.[0];
   console.error(`[design doc] activePage=${activePage?.name} nodes=${activePage?.nodes ? Object.keys(activePage.nodes).length : 0}`);
   if (activePage?.nodes) {
     for (const [id, n] of Object.entries(activePage.nodes)) {
-      const node = n as Record<string, unknown>;
-      console.error(`  node=${id} type=${node.type} name=${node.name}`);
+      console.error(`  node=${id} type=${n.type} name=${n.name}`);
     }
   }
 
-  // 5. 请求一条真正的修改指令——要求改 Hero 标题字号
+  // 5. 请求一条真正的修改指令——点名一个真实文字节点，要求改它的字号。
+  //    targetNodeId 同时是"请求点名"与"dry-run 验证"的唯一目标，杜绝旧版"改 Headline 验 Eyebrow"的错位。
   const heroEntry = activePage?.nodes ? Object.entries(activePage.nodes).find(([, n]) => {
-    const node = n as Record<string, unknown>;
-    return node.name === 'Headline' || node.type === 'text';
-  }) : null;
+    return n.type === 'text' && n.name === 'Headline';
+  }) ?? Object.entries(activePage.nodes).find(([, n]) => n.type === 'text') : null;
   const targetNodeId = heroEntry ? heroEntry[0] : null;
-  console.error(`[ai/run submit; targetNode=${targetNodeId}]`);
+  const targetFontSizeBefore = targetNodeId ? activePage?.nodes?.[targetNodeId]?.typography?.fontSize ?? null : null;
+  console.error(`[ai/run submit; targetNode=${targetNodeId} fontSizeBefore=${targetFontSizeBefore}]`);
   const { r, text } = await post('/api/ai/run', {
     requestId: `design-smoke-${Date.now()}`,
     intent: 'design-edit',
     prompt: targetNodeId
-      ? `把 id 为 ${targetNodeId} 的节点字号改为 28px（用 set op，fontSize 28）`
-      : '把页面第一个文字节点的 fontSize 改为 28',
+      ? `把 id 为 ${targetNodeId} 的节点字号改为 ${WANTED_FONT_SIZE}px（用 set op 改 typography.fontSize）`
+      : `把页面第一个文字节点的 fontSize 改为 ${WANTED_FONT_SIZE}`,
     modelClass: 'balanced',
     context: { projectId, pageId: activePage?.id, selection: targetNodeId ? [targetNodeId] : [] },
   });
@@ -91,23 +113,29 @@ async function run() {
   console.log('capability:', j.capability, 'provider:', j.provider, 'model:', j.model, 'patches:', (j.patches ?? []).length, 'demoMode:', j.usage?.demoMode);
   console.log('explanation:', j.explanation);
   console.log('usage:', JSON.stringify(j.usage ?? {}));
-  if (j.capability !== 'real') process.exit(7);
-  if ((j.patches ?? []).length === 0) console.error('[warn] 0 patches — may be legitimate for critique-of-home');
-  if (j.usage?.demoMode !== false) process.exit(7);
-  console.error('[design-smoke] 真实生成走通 ✓ capability=real + demoMode=false patches=' + (j.patches ?? []).length);
-  // 校验补丁真落库：重新拉取文档，读 Eyebrow 的 fontSize
-  { const h: Record<string, string> = { cookie: [...session].map(([k, v]) => `${k}=${v}`).join('; ') };
-    const r = await fetch(`${BASE}/api/projects/${projectId}`, { headers: h });
-    const doc2 = JSON.parse(await r.text()).document as any;
-    const eyebrow = doc2?.pages?.flatMap((p: any) => Object.values(p.nodes ?? {})).find((n: any) => n?.name === 'Eyebrow');
-    console.error(`[verify] Eyebrow.fontSize = ${eyebrow?.typography?.fontSize}`);
-    if (eyebrow && String(eyebrow.typography?.fontSize) !== '28' && eyebrow.typography?.fontSize !== 28) {
-      console.error('[verify-FAIL] fontSize not persisted to DB');
-      process.exit(8);
-    }
-    console.error('[verify] patches persisted to DB ✓');
+  // 契约门：不是真 provider 就直接判红，别拿假绿糊弄
+  if (j.capability !== 'real' || j.usage?.demoMode !== false) process.exit(7);
+
+  // 6. 内存 dry-run 判据（取代旧版"查库看落库"那段）——与 Studio client 同一份 applyPatch
+  const verdict = verifyDesignPatches(document, (j.patches ?? []) as DesignPatch[], targetNodeId, j.explanation ?? '', {
+    expectedFontSize: WANTED_FONT_SIZE,
+  });
+  console.error('[verdict]', JSON.stringify(verdict));
+
+  if (verdict.kind === 'applied') {
+    console.error(`[design-smoke] 真 · design-edit 走通 ✓ capability=real + demoMode=false + ${verdict.patchCount} patches 内存 dry-run 生效（touched=${verdict.touchedNodeIds.join(',')} fontSize=${verdict.targetFontSize}）`);
+    process.exit(0);
   }
-  process.exit(0);
+  if (verdict.kind === 'honest-refusal') {
+    // 0 patches 且说清了原因：模型诚实拒改，是合法终态。如实打印，绝不谎报"走通 ✓"。
+    console.error(`[design-smoke] 链路真通但模型诚实拒改（0 patches）：${verdict.explanation}`);
+    process.exit(0);
+  }
+  // invalid：造 id / 错页 / 没碰目标 / 字号不对 / 沉默失败 —— 真红
+  console.error('[design-smoke-FAIL] patches 内存 dry-run 未过判据：');
+  for (const reason of verdict.reasons) console.error(`  · ${reason}`);
+  console.error('[boundary] 本片只验 HTTP 层 + 内存 dry-run；Studio client applyPatch→/design 落库、浏览器 Run→Screenshot 仍欠（ADR-0170 诚实边界）。');
+  process.exit(8);
 }
 
 run().catch((e) => { console.error('[live] fatal:', e instanceof Error ? e.message : e); process.exit(1); });
