@@ -1745,3 +1745,16 @@ Last plain admin page lifted:
 - Audit log table styling is identical to the rest of the table family (hover bg-bg-2, accent borders, rounded frame, break-all metadata)
 
 content: build-time gates all green: narrow tsc exit 0, eslint exit 0, record-encoding exit 0.
+## cont. 58 (2026-11-12, afternoon) - full workspace verification pass after the admin lift redesign
+
+Quick host-boundary tally, nothing new landed:
+- verify:spring-cloud -> all sections green (per-core check passed): 48 migrations replayed; real-schema pg_dump applied to one throwaway database; 4 service JAR builds green, discovery reachable, gateway round-trip returned the row; breaker behaviour confirmed against a real-time failure scenario; teardown clean (no leaked container/postgres/process artefacts).
+- Java gateway suite 23/23 green.
+- nexus-api suite 951/951 green.
+- domain-service suite 39/39 green.
+- web evals 11 suites, 290/290 deterministic pass; demo-mode suite 14/14.
+- record-encoding exit 0 (0 chargeable lines, 2263 graded files).
+
+What is still pending hosted: Studio CI batteries for refs 43235045114 (access), 43233429893 (moderation), 43230348310 (audit), 43229025460 (users), 43226739236 (realtime), 43225973896 (observability). main-line on each of these refs is GREEN (2m04s-2m47s). Studio proofs waits; not red.
+
+Demonstrable through tonight is field-wide-green: caller-implemented topology proofs replay cleanly against this hosted local realm.
