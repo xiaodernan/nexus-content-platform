@@ -7,7 +7,6 @@
 from __future__ import annotations
 
 import json
-import re
 from typing import Any
 
 MAX_TOKENS_IN_PROMPT = 120
@@ -229,7 +228,38 @@ def build_prompt(request: dict[str, Any]) -> tuple[str, str]:
     return f"{SYSTEM_PROMPT}\n{_agent_note(request)}", encoded
 
 
-_JSON_BLOCK = re.compile(r"\{.*\}", re.S)
+def _balanced_object(text: str) -> str | None:
+    """挑出第一段**平衡的 JSON 对象**（字符串感知）。
+
+    模型夹了前后说明文字的常见情形：`{...} tail prose with } braces`。
+    只裁边，不猜结构；取第一段平衡块——前后多余的括号内容不是想要的对象。
+    """
+    start = text.find("{")
+    if start < 0:
+        return None
+    depth = 0
+    in_str = False
+    esc = False
+    for i in range(start, len(text)):
+        ch = text[i]
+        if esc:
+            esc = False
+            continue
+        if ch == "\\":
+            esc = True
+            continue
+        if ch == '"':
+            in_str = not in_str
+            continue
+        if in_str:
+            continue
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : i + 1]
+    return None
 
 
 def parse_reply(text: str) -> dict[str, Any]:
@@ -242,7 +272,7 @@ def parse_reply(text: str) -> dict[str, Any]:
     try:
         return json.loads(raw)
     except ValueError:
-        match = _JSON_BLOCK.search(raw)
-        if not match:
+        block = _balanced_object(raw)
+        if block is None:
             raise ValueError("provider 未返回 JSON 对象")
-        return json.loads(match.group(0))
+        return json.loads(block)
