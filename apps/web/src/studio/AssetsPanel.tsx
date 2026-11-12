@@ -3,7 +3,6 @@
 import { useMemo, useState } from 'react';
 import type { AssetRef, DesignDocument } from '@nexus/creative-model';
 import type { VisualBenchmarkResponse } from '@nexus/schemas';
-import { cn } from '@/lib/cn';
 import { apiAssetUrl } from './assets';
 import { SketchPad } from './SketchPad';
 import { studio, useStudioReady } from './store';
@@ -58,11 +57,11 @@ const pct = (v: number): string => `${Math.round(v * 100)}%`;
 function VisualBenchmarkResult({ r }: { r: VisualBenchmarkResponse }) {
   const m = r.metrics;
   return (
-    <div className="mt-2 flex flex-col gap-1 rounded-[var(--nexus-radius-sm)] bg-bg-2 p-2 text-12" data-vbench-result>
-      <p className="font-mono text-11 text-fg-3">
+    <div className="ap-infoBox" data-vbench-result>
+      <p className="ap-mono11faint">
         {r.reference.width}×{r.reference.height} × {r.candidate.width}×{r.candidate.height}
       </p>
-      <ul className="flex flex-col gap-[2px]">
+      <ul className="cp-colGap2">
         <li data-vbench-layout title={m.layout.meaning}>
           布局 {pct(m.layout.score)}
         </li>
@@ -76,15 +75,15 @@ function VisualBenchmarkResult({ r }: { r: VisualBenchmarkResponse }) {
           颜色 {pct(m.color.score)}
         </li>
       </ul>
-      <p className="text-fg-3" title={m.pixel.meaning} data-vbench-pixel>
+      <p className="ap-faint" title={m.pixel.meaning} data-vbench-pixel>
         像素亮度平均差 {m.pixel.meanAbsLuminanceDiff.toFixed(3)}（原始读数，不是分数）
       </p>
       {r.shapeMismatch ? (
-        <p className="text-warn-ink" data-vbench-shape-mismatch>
+        <p className="hi-warnInk" data-vbench-shape-mismatch>
           两图宽高比差超过 5%，下面的分数要在这个前提下读。
         </p>
       ) : null}
-      <ul className="flex flex-col gap-[2px] text-fg-3">
+      <ul className="ap-colGap2Faint">
         {r.notMeasured.map((n) => (
           <li key={n.area} data-vbench-notmeasured={n.area}>
             测不出 {n.area}：{n.reason}
@@ -108,15 +107,15 @@ export function AssetsPanel() {
   const imageAssets = useMemo(() => assets.filter((a) => a.kind === 'image'), [assets]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col" data-assets-panel>
-      <header className="flex shrink-0 items-center justify-between border-b border-[var(--nexus-color-border-subtle)] px-[var(--nexus-space-3)] py-2">
-        <h2 className="font-mono text-12 uppercase tracking-wide text-fg-3">资产库</h2>
-        <span className="font-mono text-12 text-fg-3">{assets.length}</span>
+    <div className="wd-rootCol" data-assets-panel>
+      <header className="ap-headBetween">
+        <h2 className="wd-label">资产库</h2>
+        <span className="ap-mono12faint">{assets.length}</span>
       </header>
 
       {/* §38 Text → Image 的入口。本机没有图像 provider，所以按钮上直接写着 DEMO（§160），
           生成的资产在卡片上带 DEMO 角标——两者说的是同一件事：这不是模型给的图。 */}
-      <div className="flex shrink-0 flex-col gap-1 border-b border-[var(--nexus-color-border-subtle)] px-[var(--nexus-space-3)] py-2">
+      <div className="ap-headCol">
         <input
           type="text"
           value={prompt}
@@ -124,7 +123,7 @@ export function AssetsPanel() {
           placeholder="描述一张图，例如：一只在月球上弹吉他的猫"
           aria-label="图像生成的描述文字"
           data-image-prompt
-          className="w-full rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 px-2 py-1 text-12 text-fg-1 placeholder:text-fg-3"
+          className="ap-wfullInput"
         />
         <button
           type="button"
@@ -135,7 +134,7 @@ export function AssetsPanel() {
             });
           }}
           data-image-generate
-          className="self-start rounded-[var(--nexus-radius-sm)] bg-bg-3 px-2 py-1 font-mono text-11 text-fg-2 hover:bg-bg-0 disabled:opacity-50"
+          className="sk-selfStart ap-primary"
         >
           {state.assetBusy ? '生成中…' : '生成图片（DEMO · 扣 2 点）'}
         </button>
@@ -143,9 +142,9 @@ export function AssetsPanel() {
 
       {/* §38 Sketch → Image 的入口：同一句 prompt，构图来源从"随机"换成"你画的这张"。
           折叠着放——绘制面 240px 见方，常驻会把资产列表挤出可视区。 */}
-      <details className="shrink-0 border-b border-[var(--nexus-color-border-subtle)] px-[var(--nexus-space-3)] py-2" data-sketch-section>
-        <summary className="cursor-pointer font-mono text-11 text-fg-3">从草图生成（DEMO）</summary>
-        <div className="mt-2">
+      <details className="wd-headBordered" data-sketch-section>
+        <summary className="ap-uploadTrigger">从草图生成（DEMO）</summary>
+        <div className="wd-mt2">
           <SketchPad
             busy={state.assetBusy}
             canGenerate={prompt.trim().length > 0}
@@ -161,22 +160,22 @@ export function AssetsPanel() {
           确定性结构比较。这一格是**真数**，不是 DEMO——不借任何 provider。
           两份下拉不筛 mime：JPEG/WebP 选进去会让路由用 415 把"只支持 PNG、是哪张"
           讲清楚，比面板自己猜一份 mime 白名单诚实（§159）。 */}
-      <details className="shrink-0 border-b border-[var(--nexus-color-border-subtle)] px-[var(--nexus-space-3)] py-2" data-vbench-section>
-        <summary className="cursor-pointer font-mono text-11 text-fg-3">视觉基准（比较两张 PNG）</summary>
+      <details className="wd-headBordered" data-vbench-section>
+        <summary className="ap-uploadTrigger">视觉基准（比较两张 PNG）</summary>
         {imageAssets.length < 2 ? (
-          <p className="mt-2 text-12 text-fg-3">
+          <p className="ap-topfaint">
             需要至少两张位图资产：一张当参考图，一张当生成结果。先上传或生成图片。
           </p>
         ) : (
-          <div className="mt-2 flex flex-col gap-1">
-            <label className="flex items-center gap-2 text-12 text-fg-2">
+          <div className="sb-colMt2">
+            <label className="ap-row2ink">
               参考图
               <select
                 value={vrefId}
                 onChange={(e) => setVrefId(e.target.value)}
                 disabled={state.assetBusy}
                 data-vbench-reference
-                className="min-w-0 flex-1 rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 px-1 py-1 text-12 text-fg-1"
+                className="ap-searchField"
               >
                 <option value="">选一张…</option>
                 {imageAssets.map((a) => (
@@ -186,14 +185,14 @@ export function AssetsPanel() {
                 ))}
               </select>
             </label>
-            <label className="flex items-center gap-2 text-12 text-fg-2">
+            <label className="ap-row2ink">
               生成图
               <select
                 value={vcandId}
                 onChange={(e) => setVcandId(e.target.value)}
                 disabled={state.assetBusy}
                 data-vbench-candidate
-                className="min-w-0 flex-1 rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 px-1 py-1 text-12 text-fg-1"
+                className="ap-searchField"
               >
                 <option value="">选一张…</option>
                 {imageAssets.map((a) => (
@@ -208,7 +207,7 @@ export function AssetsPanel() {
               disabled={state.assetBusy || !vrefId || !vcandId}
               onClick={() => void studio.compareVisualBenchmark(vrefId, vcandId)}
               data-vbench-run
-              className="self-start rounded-[var(--nexus-radius-sm)] bg-bg-3 px-2 py-1 font-mono text-11 text-fg-2 hover:bg-bg-0 disabled:opacity-50"
+              className="sk-selfStart ap-primary"
             >
               {state.assetBusy ? '比较中…' : '比较结构'}
             </button>
@@ -218,56 +217,56 @@ export function AssetsPanel() {
       </details>
 
       {state.assetError ? (
-        <p className="shrink-0 bg-warn/15 px-[var(--nexus-space-3)] py-2 text-12 text-warn-ink" data-asset-error>
+        <p className="ap-bannerWarn" data-asset-error>
           {state.assetError}
         </p>
       ) : null}
       {state.assetNotice && !state.assetError ? (
-        <p className="shrink-0 bg-bg-2 px-[var(--nexus-space-3)] py-2 text-12 text-fg-3" data-asset-notice>
+        <p className="ap-footnote" data-asset-notice>
           {state.assetNotice}
         </p>
       ) : null}
 
-      <div className="min-h-0 flex-1 overflow-auto p-[var(--nexus-space-2)]">
+      <div className="wd-scrollP2">
         {assets.length === 0 ? (
-          <p className="m-auto max-w-[220px] px-3 py-8 text-center text-12 text-fg-3">
+          <p className="ap-emptyState">
             还没有资产。在画布上选中元素，用属性面板上传一张图片，它就会出现在这里。
           </p>
         ) : (
-          <ul className="flex flex-col gap-[var(--nexus-space-2)]">
+          <ul className="wd-col2">
             {assets.map((asset) => {
               const refs = counts.get(asset.id) ?? 0;
               const previewable = asset.kind === 'image' || asset.kind === 'svg';
               return (
                 <li
                   key={asset.id}
-                  className="flex items-stretch gap-2 overflow-hidden rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2"
+                  className="ap-assetRow"
                   data-asset-card={asset.id}
                 >
-                  <div className="flex h-[56px] w-[56px] shrink-0 items-center justify-center overflow-hidden rounded-[var(--nexus-radius-sm)] bg-bg-3">
+                  <div className="ap-thumb">
                     {previewable ? (
                       // 走鉴权 API 路由；缺失/无权限会 404，浏览器显示空白而非破图占位（§159 不假渲染）
-                      <img src={apiAssetUrl(asset.id)} alt={asset.name} className="h-full w-full object-cover" />
+                      <img src={apiAssetUrl(asset.id)} alt={asset.name} className="pp-cover" />
                     ) : (
-                      <span className="font-mono text-10 uppercase text-fg-3">{asset.kind}</span>
+                      <span className="ap-mono10uppercase">{asset.kind}</span>
                     )}
                   </div>
-                  <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
-                    <span className="truncate text-12 text-fg-1" title={asset.name}>
+                  <div className="ap-metaCol">
+                    <span className="ds-trunc12" title={asset.name}>
                       {asset.name}
                     </span>
                     <span
-                      className="truncate font-mono text-11 text-fg-3"
+                      className="hi-monoTruncFaint"
                       title={`${asset.width && asset.height ? `${asset.width}×${asset.height} · ` : ''}${formatBytes(asset.sizeBytes)} · 引用 ${refs}`}
                     >
                       {formatBytes(asset.sizeBytes)} · 引用 {refs}
                     </span>
                     {/* flex-wrap 是修"一字一行"的：这一排是角标 + 三个按钮，窄面板下不换行时
                         每个按钮都被压到自己的最小内容宽度以下，中文就一个字占一行 */}
-                    <div className="flex flex-wrap items-center gap-1">
+                    <div className="ap-wrapCenter">
                       {asset.generatedBy?.demoMode ? (
                         <span
-                          className={cn('rounded px-1 font-mono text-10 text-bg-0', 'bg-warn')}
+                          className="ap-badgeWarn"
                           title="这张图不是真模型给的：本机没有图像 provider，像素来自本地确定性合成器（§160）"
                           data-asset-demo-badge
                         >
@@ -279,7 +278,7 @@ export function AssetsPanel() {
                         // 猜出来的名字是界面上的一句谎。而肖像与场景也不能一律叫场景：
                         // 那一格真值在 `characterPortrait` 里，读得到就要说得出
                         <span
-                          className="rounded bg-bg-3 px-1 font-mono text-10 text-fg-2"
+                          className="ap-codeChipSm"
                           title={
                             asset.characterPortrait
                               ? `这是角色 ${asset.characterId} 自己的参考图：由档案驱动，后续场景可以拿它当参考`
@@ -297,7 +296,7 @@ export function AssetsPanel() {
                         disabled={state.assetBusy || asset.kind !== 'image'}
                         title={asset.kind === 'image' ? '把这张图当作参考图，提取项目的 Visual DNA（§30）' : '目前只有位图可提取'}
                         data-asset-dna={asset.id}
-                        className="ml-auto rounded-[var(--nexus-radius-sm)] px-2 py-[2px] font-mono text-11 text-fg-3 hover:bg-bg-3 disabled:opacity-50"
+                        className="ap-chipDisEnd"
                       >
                         提取视觉语言
                       </button>
@@ -311,7 +310,7 @@ export function AssetsPanel() {
                             : '目前只有位图可以做参考'
                         }
                         data-asset-variant={asset.id}
-                        className="rounded-[var(--nexus-radius-sm)] px-2 py-[2px] font-mono text-11 text-fg-3 hover:bg-bg-3 disabled:opacity-50"
+                        className="ap-chipDis"
                       >
                         生成变体
                       </button>
@@ -329,7 +328,7 @@ export function AssetsPanel() {
                           disabled={state.assetBusy}
                           title="拿这张肖像当参考，为同一个角色再生成一个场景：色调取的是这张图量出来的主色（DEMO 本地合成 · 扣 image 额度 2 点）"
                           data-asset-scene-from-portrait={asset.id}
-                          className="rounded-[var(--nexus-radius-sm)] px-2 py-[2px] font-mono text-11 text-fg-3 hover:bg-bg-3 disabled:opacity-50"
+                          className="ap-chipDis"
                         >
                           以此生成场景
                         </button>
@@ -339,7 +338,7 @@ export function AssetsPanel() {
                         onClick={() => void studio.deleteAssetFromLibrary(asset.id)}
                         disabled={state.assetBusy}
                         data-asset-delete={asset.id}
-                        className="rounded-[var(--nexus-radius-sm)] px-2 py-[2px] font-mono text-11 text-fg-3 hover:bg-bg-3 disabled:opacity-50"
+                        className="ap-chipDis"
                       >
                         删除
                       </button>

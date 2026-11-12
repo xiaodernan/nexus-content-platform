@@ -2105,6 +2105,42 @@
   .sk-primary:disabled { opacity: 0.5; cursor: not-allowed; }
   .sk-monoFaint { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
   .sk-warn12 { font-size: var(--nexus-font-size-12); color: var(--nexus-color-warn-ink); }
+
+  /* ── §FE-53 / ADR-0205 `AssetsPanel.tsx` `.ap-` 门面化——M2 Asset Library ──
+   * 项目资产清单是设计模型的一部分（§16）——删除一次可撤销事务 + 尽力而为删除字节（§159 不假装万能）。
+   * 引用计数成 Map（节点数+资产数，不重复全扫）；真 provider 图片生成时才出现「从草图生成」入口。 */
+  .ap-chipDis { border: 0; border-radius: var(--nexus-radius-sm); background: transparent; padding: 2px var(--nexus-space-2); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .ap-chipDis:hover { background: var(--nexus-color-bg-3); }
+  .ap-chipDis:disabled { opacity: 0.5; cursor: not-allowed; }
+  .ap-chipDisEnd { margin-left: auto; border: 0; border-radius: var(--nexus-radius-sm); background: transparent; padding: 2px var(--nexus-space-2); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .ap-chipDisEnd:hover { background: var(--nexus-color-bg-3); }
+  .ap-chipDisEnd:disabled { opacity: 0.5; cursor: not-allowed; }
+  .ap-primary { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-3); padding: var(--nexus-space-1) var(--nexus-space-2); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); cursor: pointer; }
+  .ap-primary:hover:not(:disabled) { background: var(--nexus-color-bg-0); }
+  .ap-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .ap-uploadTrigger { display: inline-flex; align-items: center; cursor: pointer; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .ap-searchField { min-width: 0; flex: 1 1 0%; border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
+  .ap-row2ink { display: flex; align-items: center; gap: var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  .ap-wrapCenter { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-1); }
+  .ap-topfaint { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .ap-mono12faint { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .ap-mono11faint { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .ap-emptyState { margin: auto; max-width: 13.75rem; padding: var(--nexus-space-8) var(--nexus-space-3); text-align: center; font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .ap-assetRow { display: flex; align-items: stretch; gap: var(--nexus-space-2); overflow: hidden; border-radius: var(--nexus-radius-sm); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-2); padding: var(--nexus-space-2); }
+  .ap-thumb { display: flex; height: 3.5rem; width: 3.5rem; flex-shrink: 0; align-items: center; justify-content: center; overflow: hidden; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-3); }
+  .ap-metaCol { display: flex; min-width: 0; flex: 1 1 0%; flex-direction: column; justify-content: center; gap: var(--nexus-space-1); }
+  .ap-colGap2Faint { display: flex; flex-direction: column; gap: 2px; color: var(--nexus-color-fg-3); }
+  .ap-faint { color: var(--nexus-color-fg-3); }
+  .ap-footnote { flex-shrink: 0; border-top: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-2); padding: var(--nexus-space-2) var(--nexus-space-3); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .ap-infoBox { margin-top: var(--nexus-space-2); display: flex; flex-direction: column; gap: var(--nexus-space-1); border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-2); font-size: var(--nexus-font-size-12); }
+  .ap-codeChipSm { border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-3); padding: 0 var(--nexus-space-1); font-family: var(--nexus-font-mono); font-size: 0.625rem; color: var(--nexus-color-fg-2); }
+  .ap-badgeWarn { display: inline-block; border-radius: var(--nexus-radius-sm); padding: 0 var(--nexus-space-1); font-family: var(--nexus-font-mono); font-size: 0.625rem; color: var(--nexus-color-bg-0); background: var(--nexus-color-warn); }
+  .ap-wfullInput { width: 100%; border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
+  .ap-wfullInput::placeholder { color: var(--nexus-color-fg-3); }
+  .ap-headBetween { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--nexus-color-border-subtle); padding: var(--nexus-space-2) var(--nexus-space-3); }
+  .ap-headCol { display: flex; flex-shrink: 0; flex-direction: column; gap: var(--nexus-space-1); border-bottom: 1px solid var(--nexus-color-border-subtle); padding: var(--nexus-space-2) var(--nexus-space-3); }
+  .ap-mono10uppercase { font-family: var(--nexus-font-mono); font-size: 0.625rem; text-transform: uppercase; color: var(--nexus-color-fg-3); }
+  .ap-bannerWarn { flex-shrink: 0; background: color-mix(in srgb, var(--nexus-color-warn) 15%, transparent); padding: var(--nexus-space-2) var(--nexus-space-3); font-size: var(--nexus-font-size-12); color: var(--nexus-color-warn-ink); }
   .cp-inputShared { width: 100%; resize: vertical; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
   .cp-inputShared:focus { background: var(--nexus-color-bg-3); }
   .cp-grow { min-width: 0; flex: 1 1 0%; }
