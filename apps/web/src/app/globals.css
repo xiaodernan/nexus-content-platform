@@ -2241,6 +2241,20 @@
   .nd-readBtn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
   .nd-readBtn:disabled { opacity: 0.5; cursor: not-allowed; }
   .nb-resultInk { margin-left: var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+
+  /* ── §FE-70 / ADR-0223 `NotificationSettings.tsx` `.ns-` 门面化——§164 通知偏好面板 ──
+   * 只切割皮：fetch/PUT/csrfHeaders/toggle 一字不动。*/
+  .ns-loading { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .ns-card { margin-top: var(--nexus-space-6); border-radius: var(--nexus-radius-md); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); padding: var(--nexus-space-4); }
+  .ns-title { font-size: var(--nexus-font-size-12); font-weight: 600; color: var(--nexus-color-fg-1); }
+  .ns-desc { margin-top: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .ns-list { margin-top: var(--nexus-space-3); display: flex; flex-direction: column; gap: var(--nexus-space-2); padding: 0; list-style: none; }
+  .ns-row { display: flex; align-items: center; justify-content: space-between; }
+  .ns-kindLabel { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  .ns-toggle { border-radius: var(--nexus-radius-sm); border: none; padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); cursor: pointer; }
+  .ns-toggleOn { background: var(--nexus-color-accent-2); color: var(--nexus-color-accent-fg); }
+  .ns-toggleOff { background: var(--nexus-color-bg-2); color: var(--nexus-color-fg-3); }
+  .ns-toggle:disabled { opacity: 0.5; cursor: not-allowed; }
   .pb-mirrorLink { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); text-decoration: underline; }
 
   /* ── §FE-55 / ADR-0207 `MemoryPanel.tsx` `.mm-` 门面化——§48 角色记忆 ──
