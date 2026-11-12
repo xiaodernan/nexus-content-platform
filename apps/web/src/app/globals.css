@@ -2205,6 +2205,25 @@
   .mm-xshrink { flex-shrink: 0; border: 0; background: transparent; padding: 0 var(--nexus-space-1); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); cursor: pointer; }
   .mm-xshrink:hover { color: var(--nexus-color-danger-ink); }
   .mm-semi90 { opacity: 0.9; }
+  .wd-rowMt2 { margin-top: var(--nexus-space-2); display: flex; align-items: center; gap: var(--nexus-space-1); }
+
+  /* ── §FE-56 / ADR-0208 `RetrievePanel.tsx` `.rp-` 门面化——§49 语料检索面板 ──
+   * 结果里带着"怎么命中的"（全文 / 子串）和三个加数；向量检索没有 provider 时界面不假装（§159）。
+     本片只换皮；查询/fetch/csrfHeaders/匹配项 score—全部一字不动。 */
+  .rp-lead11 { min-width: 0; flex: 1 1 0%; font-size: var(--nexus-font-size-11); line-height: 1.6; color: var(--nexus-color-fg-3); }
+  .rp-lead11ink { margin-top: var(--nexus-space-1); font-size: var(--nexus-font-size-11); line-height: 1.6; color: var(--nexus-color-fg-2); }
+  .rp-row2Mt { margin-top: var(--nexus-space-2); display: flex; align-items: flex-start; gap: var(--nexus-space-2); }
+  .rp-wrap2Mt { margin-top: var(--nexus-space-2); display: flex; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-2); }
+  .rp-ghostBtnFaint { flex-shrink: 0; border: 1px solid var(--nexus-color-border-strong); border-radius: var(--nexus-radius-sm); background: transparent; padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .rp-ghostBtnFaint:hover:not(:disabled) { background: var(--nexus-color-bg-2); }
+  .rp-ghostBtnFaint:disabled { opacity: 0.5; cursor: not-allowed; }
+  .rp-ghostBtnFaintSm { border: 1px solid var(--nexus-color-border-strong); border-radius: var(--nexus-radius-sm); background: transparent; padding: 2px var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .rp-ghostBtnFaintSm:hover:not(:disabled) { background: var(--nexus-color-bg-2); }
+  .rp-ghostBtnFaintSm:disabled { opacity: 0.5; cursor: not-allowed; }
+  .rp-chipSm { border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: 2px 6px; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .rp-sourceChip { flex-shrink: 0; border-radius: 3px; border: 1px solid var(--nexus-color-border-subtle); background: transparent; padding: 0 var(--nexus-space-1); font-family: var(--nexus-font-mono); font-size: 0.625rem; color: var(--nexus-color-fg-3); }
+  .rp-dangerMono11 { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); }
+  .rp-ink11shrink { flex-shrink: 0; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); }
   .cp-inputShared { width: 100%; resize: vertical; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
   .cp-inputShared:focus { background: var(--nexus-color-bg-3); }
   .cp-grow { min-width: 0; flex: 1 1 0%; }
