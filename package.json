@@ -191,7 +191,8 @@
     "format": "prettier --write \"apps/**/*.{ts,tsx,css,md}\" \"packages/**/*.{ts,tsx}\"",
     "live:ai-smoke": "tsx --tsconfig apps/web/tsconfig.json scripts/live-ai-smoke.mts",
     "live:design-edit": "tsx --tsconfig apps/web/tsconfig.json scripts/live-design-edit.mts",
-    "live:design-apply": "tsx --tsconfig apps/web/tsconfig.json scripts/live-design-apply.mts"
+    "live:design-apply": "tsx --tsconfig apps/web/tsconfig.json scripts/live-design-apply.mts",
+    "live:all": "tsx --tsconfig apps/web/tsconfig.json scripts/live-all.mts"
   },
   "devDependencies": {
     "turbo": "^2.3.3",
