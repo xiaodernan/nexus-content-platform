@@ -12,12 +12,33 @@ import os
 import sys
 import time
 
+# 显式环境变量优先；缺省回落到 apps/ai-service/.env（被 .gitignore 隔离的本地开发文件）。
+_here = os.path.dirname(os.path.abspath(__file__))
+_dot_env = os.path.normpath(os.path.join(_here, "..", "apps", "ai-service", ".env"))
+
+
+def _load_dotenv(path: str) -> None:
+    if not os.path.isfile(path):
+        return
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            key, sep, value = line.partition("=")
+            if sep and key.strip().startswith(("NEXUS_", "AI_SERVICE_")):
+                os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+_load_dotenv(_dot_env)
+
 KEY = os.environ.get("NEXUS_OPENAI_API_KEY")
 BASE = os.environ.get("NEXUS_OPENAI_BASE_URL", "https://wkapi.pro/v1")
 MODEL = os.environ.get("NEXUS_MODEL_BALANCED", "gpt-6-sol")
 
 if not KEY:
-    print("NEXUS_OPENAI_API_KEY not set", file=sys.stderr)
+    print("NEXUS_OPENAI_API_KEY not found in env or apps/ai-service/.env", file=sys.stderr)
+    print("Fill apps/ai-service/.env (see apps/ai-service/.env.example) or export the variable.", file=sys.stderr)
     sys.exit(2)
 
 import httpx

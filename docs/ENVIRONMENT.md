@@ -36,6 +36,20 @@
 > **Playwright 约束**：本机网络无法下载 Playwright 自带的 Chromium/headless-shell（`npx playwright install` 失败）。
 > 截图与 e2e 一律用系统 Chrome：`chromium.launch({ channel: 'chrome' })`。已实测可渲染并截图成功。
 
+### 2026-11-12 真实 LLM provider 接入（§AILIVE-1）
+
+本机开发从此日期起默认接入真实 LLM provider（wkapi.pro 的 `gpt-6-sol`）：`apps/ai-service/.env`
+含 key（gitignored，详见 `apps/ai-service/.env.example`），`NEXUS_OPENAI_BASE_URL`、`NEXUS_MODEL_*`、`NEXUS_LLM_JSON_MODE` 亦同。
+因此核心 AI 依赖不再是纯 mock（§160 §AGENTS）；
+
+- `/healthz` capability 现为 `real`（providers: `llm`/`embedding` openai-compatible REAL；
+  `image`/`video`/`speech` 仍如实 `unavailable`）。
+- web 的 Provider 就绪页盖 `在线 · real` 布尔真，不再是 `未配置`。
+- `scripts/probe-provider.py` 一次请求验证 endpoint（无需手动导环境变量，读 apps/ai-service/.env）。
+- 真实调用产生真实费用：每个真实 generation 请求都向 endpoint 计费；`demoMode=false`。
+  开发时不想产生费用就别触开发 AI 路径（或删 .env 里的 key）；healthz 会退回 mock，
+  `DEMO MODE` 标志真显示，§AGENTS 纪律仍有效。
+
 ## 已有容器（不属于本项目，禁止复用/删除）
 
 `careeros-postgres`(5432), `careeros-redis`, `careeros-minio`(19000), `nexus-seed-verify`(55432)。
