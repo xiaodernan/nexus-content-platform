@@ -19,7 +19,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="zh-CN" data-nexus-theme="dark" suppressHydrationWarning>
-      <body className="min-h-screen bg-bg-0 text-fg-1 antialiased">
+      <body className="rx-body">
         <ThemeScript />
         {children}
         <ThemeToggle />

@@ -2255,6 +2255,10 @@
   .ns-toggleOn { background: var(--nexus-color-accent-2); color: var(--nexus-color-accent-fg); }
   .ns-toggleOff { background: var(--nexus-color-bg-2); color: var(--nexus-color-fg-3); }
   .ns-toggle:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── §FE-71 / ADR-0224 `app/layout.tsx` `.rx-` 门面化——根布局 ──
+   * ThemeScript 必须是同步内联（先于首屏读取 theme）——本片一字不动；`min-h-screen` → `100vh`。 */
+  .rx-body { min-height: 100vh; background: var(--nexus-color-bg-0); color: var(--nexus-color-fg-1); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
   .pb-mirrorLink { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); text-decoration: underline; }
 
   /* ── §FE-55 / ADR-0207 `MemoryPanel.tsx` `.mm-` 门面化——§48 角色记忆 ──
