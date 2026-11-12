@@ -2182,6 +2182,12 @@
   @media (max-width: 520px) {
     .pb-popPanel360 { position: fixed; left: 12px; right: 12px; top: 52px; width: auto; }
   }
+  .ge-warnBanner { margin-top: var(--nexus-space-1); display: block; border-radius: var(--nexus-radius-sm); border: 1px solid color-mix(in srgb, var(--nexus-color-warn) 30%, transparent); background: color-mix(in srgb, var(--nexus-color-warn) 10%, transparent); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); line-height: 1.6; color: var(--nexus-color-warn-ink); }
+  .ge-listFaint { margin-top: var(--nexus-space-1); display: block; padding-left: 1.25rem; font-size: var(--nexus-font-size-11); line-height: 1.6; color: var(--nexus-color-fg-3); list-style: disc outside; }
+  .ge-listFaintMt2 { margin-top: var(--nexus-space-2); display: block; padding-left: 1.25rem; font-size: var(--nexus-font-size-11); line-height: 1.6; color: var(--nexus-color-fg-3); list-style: disc outside; }
+  .ge-listDanger { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-11); line-height: 1.6; color: var(--nexus-color-danger-ink); }
+  .ge-wrapMt2 { margin-top: var(--nexus-space-2); display: flex; flex-wrap: wrap; gap: var(--nexus-space-1); }
+  .ge-faintMt2ink { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-11); line-height: 1.6; color: var(--nexus-color-fg-2); }
   .pb-mirrorLink { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); text-decoration: underline; }
 
   /* ── §FE-55 / ADR-0207 `MemoryPanel.tsx` `.mm-` 门面化——§48 角色记忆 ──
