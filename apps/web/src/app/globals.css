@@ -2448,6 +2448,16 @@
   .ip-error { font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); }
   .ip-issuesList { margin-top: var(--nexus-space-1); padding: 0; list-style: none; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
 
+  /* ── §FE-90 / ADR-0243 `NewProjectForm.tsx` `.npf-` 门面化——§2 新建项目 ──
+   * 只有名称与类型；不生成任何"看起来像 AI 结果"的内容（§159）。 */
+  .npf-root { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-2); }
+  .npf-input { min-width: 180px; flex: 1 1 0%; border-radius: var(--nexus-radius-sm); border: none; background: var(--nexus-color-bg-2); padding: var(--nexus-space-2) var(--nexus-space-3); font-size: var(--nexus-font-size-14); color: var(--nexus-color-fg-1); font-family: inherit; }
+  .npf-input::placeholder { color: var(--nexus-color-fg-3); }
+  .npf-select { border-radius: var(--nexus-radius-sm); border: none; background: var(--nexus-color-bg-2); padding: var(--nexus-space-2) var(--nexus-space-2); font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-1); cursor: pointer; }
+  .npf-submit { border-radius: var(--nexus-radius-sm); border: none; background: var(--nexus-color-brand); padding: var(--nexus-space-2) var(--nexus-space-4); font-size: var(--nexus-font-size-14); font-weight: 500; color: var(--nexus-color-accent-fg); cursor: pointer; }
+  .npf-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+  .npf-error { width: 100%; font-size: var(--nexus-font-size-12); color: var(--nexus-color-danger-ink); }
+
   /* ── §FE-88 / ADR-0241 `AccountPanel.tsx` `.ac-` 门面化（`.ap-` 已为 AssetsPanel 占用）——§188 账号面板 ──
    * 游客也记账（100 点/次生成）——游客可进/可注册认领——不动。 */
   .ac-root { display: flex; flex-direction: column; gap: var(--nexus-space-3); }

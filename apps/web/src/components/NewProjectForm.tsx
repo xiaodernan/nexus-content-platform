@@ -47,20 +47,20 @@ export function NewProjectForm() {
   };
 
   return (
-    <form onSubmit={(event) => void submit(event)} className="flex flex-wrap items-center gap-[var(--nexus-space-2)]">
+    <form onSubmit={(event) => void submit(event)} className="npf-root">
       <input aria-label="项目名称"
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="项目名称"
         maxLength={80}
-        className="min-w-[180px] flex-1 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-[var(--nexus-space-3)] py-2 text-14 placeholder:text-fg-3"
+        className="npf-input"
         data-project-name-input
       />
       <select
         value={kind}
         onChange={(e) => setKind(e.target.value)}
         aria-label="项目类型"
-        className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-2 text-13"
+        className="npf-select"
         data-project-kind-select
       >
         {KINDS.map((item) => (
@@ -72,12 +72,12 @@ export function NewProjectForm() {
       <button
         type="submit"
         disabled={busy || !name.trim()}
-        className="rounded-[var(--nexus-radius-sm)] bg-brand px-[var(--nexus-space-4)] py-2 text-14 font-medium text-accent-fg disabled:opacity-40"
+        className="npf-submit"
         data-create-project
       >
         {busy ? '创建中…' : '新建项目'}
       </button>
-      {error ? <p className="w-full text-12 text-danger-ink">{error}</p> : null}
+      {error ? <p className="npf-error">{error}</p> : null}
     </form>
   );
 }
