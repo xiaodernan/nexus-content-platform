@@ -6,6 +6,7 @@ import {
   errorCountText,
   errorReasonList,
   isKnownStats,
+  aiCapabilityPanelRows,
   javaWireNote,
   javaWirePanelRows,
   kb,
@@ -282,5 +283,56 @@ describe('javaWireNote：这页只许说一句话', () => {
 
   it('形状不认识 → 按没拿到处理，不画半截', () => {
     expect(javaWireNote(javaOk({ publishedTotal: Number.NaN }))).toContain('没拿到 Java 生产者');
+  });
+});
+
+describe('aiCapability: §SC-79 additive 自报', () => {
+  it('缺省/null/真形状均通过：isKnownStats 不会嫌弃这三档', () => {
+    const base = {
+      driver: 'redis' as const,
+      instance: 'ai-wire-test',
+      subscriberCount: 1,
+      wireReady: true,
+      wire: 'up' as const,
+      wireErrorCount: 0,
+      wireErrorByReason: {},
+    };
+    expect(isKnownStats({ ...base })).toBe(true);
+    expect(isKnownStats({ ...base, aiCapability: null })).toBe(true);
+    expect(isKnownStats({ ...base, aiCapability: { service: 'nexus-ai-service', version: '0.1.0', capability: 'real', providers: [{ kind: 'llm', name: 'openai-compatible', status: 'real', models: ['gpt-6-sol'], reason: '' }], queue: { backend: 'redis', pending: 0, running: 0, capacity: 1, note: '' } } })).toBe(true);
+    expect(isKnownStats({ ...base, aiCapability: { service: 'nexus-ai-service', version: '0.1.0', capability: 'mock', providers: [], queue: { backend: 'redis', pending: 0, running: 0, capacity: 1, note: '' } } })).toBe(true);
+  });
+  it('形状非法 → false，绝不让坏回执当正常渲染', () => {
+    const base = {
+      driver: 'redis' as const,
+      instance: 'ai-wire-test',
+      subscriberCount: 1,
+      wireReady: true,
+      wire: 'up' as const,
+      wireErrorCount: 0,
+      wireErrorByReason: {},
+    };
+    expect(isKnownStats({ ...base, aiCapability: 'not-an-object' as any })).toBe(false);
+    expect(isKnownStats({ ...base, aiCapability: { service: '', version: '0.1', capability: 'real', providers: [], queue: { backend: 'redis', pending: 0, running: 0, capacity: 1, note: '' } } as any })).toBe(false);
+  });
+  it('aiCapabilityPanelRows: null / undefined → null；valid → 四个 row', () => {
+    expect(aiCapabilityPanelRows(null)).toBeNull();
+    expect(aiCapabilityPanelRows(undefined)).toBeNull();
+    const cap = {
+      service: 'nexus-ai-service',
+      version: '0.1.0',
+      capability: 'real' as const,
+      providers: [
+        { kind: 'llm', name: 'openai-compatible', status: 'real' as const, models: ['gpt-6-sol'], reason: '' },
+      ],
+      queue: { backend: 'redis', pending: 0, running: 0, capacity: 1, note: '' },
+    };
+    const rows = aiCapabilityPanelRows(cap);
+    expect(rows).not.toBeNull();
+    expect(rows!.length).toBe(4);
+    const map = Object.fromEntries(rows!);
+    expect(map.capability).toBe('real');
+    expect(map.providers).toContain('gpt-6-sol');
+    expect(map.queue).toContain('redis');
   });
 });

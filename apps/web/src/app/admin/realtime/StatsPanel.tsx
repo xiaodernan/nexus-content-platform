@@ -12,6 +12,8 @@ import {
   javaActuatorPanelRows,
   javaWireNote,
   javaWirePanelRows,
+  aiCapabilityNote,
+  aiCapabilityPanelRows,
   liveTag,
   type RealtimeStatsReadout,
 } from './stats-readout';
@@ -90,6 +92,8 @@ export function RealtimeStatsPanel() {
   const javaRows = javaWirePanelRows(stats.javaWire);
   const breakers = stats.javaBreakers;
   const javaActuatorRows = javaActuatorPanelRows(stats.javaActuator);
+  const aiCapability = stats.aiCapability;
+  const aiCapabilityRows = aiCapabilityPanelRows(aiCapability);
 
   return (
     <div className="flex flex-col gap-2 text-13" data-realtime-stats="ready">
@@ -178,6 +182,24 @@ export function RealtimeStatsPanel() {
           </p>
         )}
       </section>
+      <section data-ai-capability className="flex flex-col gap-1 border-t border-[var(--nexus-color-border-subtle)] pt-2">
+        <p className="text-11 font-medium text-fg-3" data-ai-capability-title>ai-service capability（/v1/capabilities 自报）</p>
+        {aiCapabilityRows ? (
+          <dl className="grid grid-cols-[9rem_1fr] gap-x-3 gap-y-1 text-12">
+            {aiCapabilityRows.map(([label, value]) => (
+              <Fragment key={label}>
+                <dt className="text-fg-3">{label}</dt>
+                <dd data-ai-capability-row={label} className={label === 'capability' && value === 'real' ? 'text-success' : ''}>{value}</dd>
+              </Fragment>
+            ))}
+          </dl>
+        ) : (
+          <p className="text-13 text-fg-2" data-ai-capability="missing">
+            {aiCapabilityNote(aiCapability)}
+          </p>
+        )}
+      </section>
+
       {stats.wireErrorCount !== null && stats.wireErrorCount > 0 ? (
         <p className="text-11 text-fg-3" data-realtime-error-note>
           失败的帧不补发：实时是加速器，权威状态永远在库里——这个数只是"刚才有几帧没过去"的账。

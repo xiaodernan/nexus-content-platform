@@ -7,6 +7,7 @@
  */
 
 import type { BreakerState, JavaWireStats, JavaActuatorBreakerEntry, JavaActuatorInfo } from '@/server/realtime/java-wire';
+import type { AiServiceCapability } from '@/server/realtime/ai-wire';
 
 /** 跨实例线路的档位：`na` 与 `down` 是两句话——没有这回事 ≠ 有一根断了的线 */
 export type WireLive = 'up' | 'pending' | 'down' | 'na';
@@ -33,6 +34,8 @@ export type RealtimeStatsReadout = {
   javaBreakers?: JavaActuatorBreakerEntry[] | null;
   /** §SC-66：/actuator/info 原样端出 app/runtime/os 三组；`null` = 没拿到。 */
   javaActuator?: JavaActuatorInfo | null;
+  /** §SC-79：AI service 的 capability 读数；`undefined`/`null` = fail-open 这次没拿到，不是"mock 正在工作" */
+  aiCapability?: AiServiceCapability | null;
 };
 
 /**
@@ -125,7 +128,21 @@ export function isKnownStats(body: unknown): body is RealtimeStatsReadout {
   if (value.wireErrorByReason === undefined) return false;
   const ledger = value.wireErrorByReason;
   if (!(ledger === null || (typeof ledger === 'object' && !Array.isArray(ledger)))) return false;
-  return (value.wireErrorCount === null) === (ledger === null);
+  if ((value.wireErrorCount === null) !== (ledger === null)) return false;
+  // §SC-79 aiCapability additive：未带→通过，null（明确“这次没拿到）→通过，非空须合法形状
+  const cap = value.aiCapability;
+  if (cap !== undefined && cap !== null && !isAiWireShape(cap)) return false;
+  return true;
+}
+
+function isAiWireShape(v: unknown): v is AiServiceCapability {
+  if (typeof v !== 'object' || v === null) return false;
+  const cap = v as Record<string, unknown>;
+  if (typeof cap.service !== 'string' || !cap.service.trim()) return false;
+  if (typeof cap.version !== 'string' || !cap.version.trim()) return false;
+  if (cap.capability !== 'mock' && cap.capability !== 'real' && cap.capability !== 'unavailable') return false;
+  if (!Array.isArray(cap.providers)) return false;
+  return true;
 }
 
 /**
@@ -166,7 +183,26 @@ export function javaActuatorNote(info: JavaActuatorInfo | null | undefined): str
   return `Java 生产者 · ${info.app.name} ${info.app.version} · 编译 ${info.runtime.java} · ${info.runtime.vendor} · ${info.os.name} on ${info.os.arch}`;
 }
 
-/** §SC-58 · Java 生产者那一侧（`/admin/realtime` 里轮询同一份回执）。 */
+export function aiCapabilityPanelRows(
+  cap: AiServiceCapability | null | undefined,
+): Array<[label: string, value: string]> | null {
+  if (!cap || !isAiWireShape(cap)) return null;
+  return [
+    ['service', `${cap.service} ${cap.version}`],
+    ['capability', cap.capability],
+    ['providers', cap.providers.map((p) => `${p.kind}:${p.status}[${p.models.join('/')}]`).join(' · ')],
+    ['queue', `${cap.queue.backend ?? 'none'} (capacity=${cap.queue.capacity}, pending=${cap.queue.pending}, running=${cap.queue.running})`],
+  ];
+}
+
+export function aiCapabilityNote(cap: AiServiceCapability | null | undefined): string {
+  if (cap == null) return 'no /v1/capabilities — ai-service 未连接（或端口/capability 未配，不画零）';
+  if (!isAiWireShape(cap)) return '回执形状不认识——ai-service 未连接，或回执不是 capability 格式';
+  if (cap.capability === 'real') return `capability=real · ${cap.providers.map((p) => `${p.kind}:${p.status}`).join(' / ')}`;
+  if (cap.capability === 'mock') return 'capability=mock（DEMO，真调用会返回模拟回答，不是正式输出）';
+  return 'capability=unavailable（未接入真 provider 或 provider 不可用——任何真实调用走 mock）';
+}
+
 export function kb(bytes: number): string {
   return `${Math.round(bytes / 1024)} KiB`;
 }
