@@ -719,6 +719,62 @@ family README section) and a door that reddens the sentence it repairs:
           segment; exact `git add`, ff-checked before push, no force. State note self-contained here + ADR
           0115 (CURRENT-STATE is lane territory, not edited). ADR number re-checked before commit (0115 free).
 
+  v683  cross-instance shared circuit breaker: the distributed completion of the resilience pair (ADR 0116).
+        - v682's breaker is process-local: multi-replica deployments make EVERY instance accumulate its own
+          failure sample before tripping, so a dead upstream keeps getting hit by the replicas that have not
+          caught up. venv already has redis==5.2.1 (§162 jobs) and real Redis 56379 is OPEN with a SYNC
+          redis-py client PINGing True — so cross-process shared breaker state is now feasible with no
+          async/sync impedance mismatch. New apps/ai-service/src/ai_service/shared_breaker.py: pure
+          should_open(failures,total,*,minimum,threshold) + SharedCircuitBreaker (Redis shared count-based
+          window + three states), REUSING v682's BreakerConfig/CircuitOpen.
+        - NO-LUA BY DESIGN (ADR 0095 single truth): the trip JUDGEMENT is a pure function shared by prod
+          record AND the door/arms — a Lua copy would be a second judge that drifts. Atomicity comes from
+          Redis semantics: INCR (atomic) + pipeline transaction (consistent total/fail snapshot) + IDEMPOTENT
+          SET phase=open EX wait (concurrent over-threshold only re-sets the same phase, harmless; no misses).
+        - THREE Java lessons carried across instances: ① name/config visible (namespace + fixed key suffixes
+          inspectable; stats() reports namespace/shared/degraded truth); ② 404 is an answer — record_ignored()
+          INCRs NOTHING, a healthy service is not tripped by its own/another instance's 404; ③ OPEN must
+          auto-return to HALF_OPEN — Redis TTL does it natively (SET phase EX wait; on expiry the next
+          before_call of ANY instance probes), no thread, cross-process visible.
+        - ZERO PROD WIRING (v680/ADR 0113 discipline): when a SYNC complete() should switch to the shared
+          backend is a CROSS-CONTRACT semantic (degraded fail-open/closed/local, fixed-window boundary burst,
+          per-request Redis latency/availability coupling) — UNDEFINED, so no door pins it, no wiring, gaps
+          in ADR. degraded strategy is an INJECTED ctor param ("local"|"open"|"closed"); the door pins only
+          "stats() honestly marks shared=False/degraded=True, never claims sharing", not which strategy.
+        - O(1) HOT PATH (ADR 0112): record emits a FIXED number of atomic Redis commands regardless of
+          window size/failure count; record_ops self-reports the logical step. No KEYS/SCAN full scans —
+          _delete_all deletes only the 5 fixed keys in its namespace. Three doors: positive anchor
+          (record_ops==m>0, linear), window 3 vs 300 equal cost, static premise coupling (source still calls
+          should_open + INCR + pipeline, no keys(/scan_iter(/smembers(); an arm reddens on a keys() rewrite.
+        - FIRST-RED then GREEN: before the component landed 9 real gates RED / 7 always-on arms GREEN / 1
+          real-Redis leg skip. After: gate file 16 passed/1 skipped (CI). Real-Redis single leg 17 passed
+          (16 offline + 1 real leg, two INDEPENDENT redis-py clients over real 56379: A's failures seen by B,
+          B denied by the shared OPEN, real TTL expiry then auto-probe). Full ai-service CI 182 passed/
+          8 skipped (baseline v682 166/7 -> +16, zero regression); opt-in real-gateway + real-Redis both
+          legs 189 passed/1 skipped (v682 opt-in 172/1 -> +17, all live legs hit real gpt-6-sol AND 56379).
+          verify:record-encoding exit 0 (0 chargeable / 2257 files). census population ZERO drift: only
+          tests/* + src/* + ADR + ROADMAP, no docs/evidence/*, no new verify:*.
+        - THREE "red"s were MY door/fixture bugs, not prod bugs: ① door read stats()["redis_ops"] but impl
+          reports "record_ops" (unified to record_ops); ② FakeRedis's two instances shared the store `s` but
+          NOT the ttl dict, so cross-instance TTL expiry faked RED (real Redis clients share ONE server —
+          fixture now shares store + ttl); ③ the in-wait before_call() was not catching CircuitOpen so the
+          test crashed instead of reaching the judge (added catch + tightened assert). Gates only.
+          ADDITIONALLY one ENVIRONMENT false-red: full suite reported "Settings has no attribute
+          llm_circuit_breaker_enabled"; `git show HEAD:config.py` + empty `git diff` proved v682's field is
+          intact and the tree clean => stale __pycache__ bytecode (repeated Write/Edit on one file); clearing
+          __pycache__ made `hasattr(Settings(), ...)` true and the full suite green. NOT a code/shared-tree
+          regression. Judges shared by gates and arms (ADR 0095), pin properties not literals (ADR 0094 X4).
+        - HONEST GAPS (ADR 0116): ① ZERO prod wiring (complete() still uses v682 process-local breaker;
+          switching to shared is a cross-contract semantic needing owner coordination); ② cross-process
+          HALF_OPEN probe coordination (cumulative N probes / concurrency cap) still owed; ③ fixed-window
+          boundary burst (sliding-log/multi-level window is another, higher-Redis-cost slice); ④ Redis
+          availability coupling once wired; ⑤ TTL relies on Redis server clock (fine single-host);
+          ⑥ hosted Studio CI has no Redis URL => live leg skips, only gates+arms (no false green).
+        - SHARED-TREE: HEAD `c900359` (my v682) at slice start and at commit — no lane landing during this
+          slice. Only my 2 new files (shared_breaker.py + test_shared_breaker.py) + ADR 0116 + this ROADMAP
+          segment; exact `git add`, ff-checked before push, no force. State note self-contained here + ADR
+          0116 (CURRENT-STATE is lane territory, not edited). ADR number re-checked before commit (0116 free).
+
 Standing constraints (measured, not assumed): this host keeps ~0.3 GB physical memory
 free and its Docker engine currently refuses to start containers (`docker start` hangs;
 `docker info` still answers) — live m9/spring-cloud legs run on the hosted runner and
