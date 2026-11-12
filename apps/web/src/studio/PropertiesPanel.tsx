@@ -46,17 +46,14 @@ function ImageUploadButton({ nodeId, label }: { nodeId: string; label: string })
   const { assetBusy } = useStudio();
   return (
     <label
-      className={cn(
-        'shrink-0 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12 text-fg-2',
-        assetBusy ? 'cursor-wait opacity-50' : 'cursor-pointer hover:bg-bg-3',
-      )}
+      className={cn('pp-uploadLabel', assetBusy && 'pp-busy')}
       data-asset-upload={nodeId}
     >
       {assetBusy ? '上传中…' : label}
       <input
         type="file"
         accept="image/png,image/jpeg,image/webp,image/gif"
-        className="hidden"
+        className="pp-hidden"
         disabled={assetBusy}
         onChange={(event) => {
           const file = event.target.files?.[0];
@@ -103,16 +100,16 @@ export function PropertiesPanel() {
   const tokensOfType = (types: Token['type'][]) => state.document.tokens.filter((t) => types.includes(t.type));
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-auto">
-      <div className="border-b border-[var(--nexus-color-border-subtle)] px-[var(--nexus-space-3)] py-[var(--nexus-space-2)]">
-        <p className="text-12 text-fg-3">{nodes.length > 1 ? `${nodes.length} 个元素（属性写入将广播到全部选中）` : `${nodes[0]!.type} · ${nodes[0]!.name}`}</p>
+    <div className="pp-scrollCol">
+      <div className="pp-headBordered">
+        <p className="pp-faint12">{nodes.length > 1 ? `${nodes.length} 个元素（属性写入将广播到全部选中）` : `${nodes[0]!.type} · ${nodes[0]!.name}`}</p>
         {nodes.length === 1 ? (
           <NodeNameField key={nodes[0]!.id} node={nodes[0]!} />
         ) : null}
       </div>
 
       <Section title="尺寸与位置">
-        <div className="grid grid-cols-2 gap-[var(--nexus-space-2)]">
+        <div className="pp-grid2">
           <SizeField label="宽" axis="width" value={read<number | 'hug' | 'fill'>('size.width')} mixed={read('size.width') === MIXED} onSet={(v) => write('size.width', v)} />
           <SizeField label="高" axis="height" value={read<number | 'hug' | 'fill'>('size.height')} mixed={read('size.height') === MIXED} onSet={(v) => write('size.height', v)} />
           <NumberField label="X" value={read<number>('position.x')} onSet={(v) => write('position.x', v)} disabled={!nodes.every((n) => studio.canFreeMove(n.id))} hint="父级为自动布局时位置由布局决定" />
@@ -127,14 +124,14 @@ export function PropertiesPanel() {
           options={LAYOUT_MODES.map((m) => ({ value: m.value, label: m.label }))}
           onSet={(v) => write('layout.mode', v)}
         />
-        <div className="grid grid-cols-2 gap-[var(--nexus-space-2)]">
+        <div className="pp-grid2">
           <NumberField label="间距" value={read<number>('layout.gap')} onSet={(v) => write('layout.gap', v)} bind={{ types: ['dimension', 'number'], path: 'layout.gap', write }} read={read} tokens={tokensOfType(['dimension', 'number'])} />
           {read<string>('layout.mode') === 'grid' ? (
             <NumberField label="列数" value={read<number>('layout.columns')} onSet={(v) => write('layout.columns', Math.max(1, Math.round(v)))} />
           ) : null}
         </div>
         <PaddingGrid read={read} write={write} tokens={tokensOfType(['dimension', 'number'])} />
-        <div className="grid grid-cols-2 gap-[var(--nexus-space-2)]">
+        <div className="pp-grid2">
           <SelectField
             label="主轴"
             value={read<string>('layout.justify')}
@@ -154,7 +151,7 @@ export function PropertiesPanel() {
       {nodes.some((n) => n.typography) ? (
         <Section title="文字">
           <TextField label="内容" value={read<string>('text')} onSet={(v) => write('text', v)} textarea />
-          <div className="grid grid-cols-2 gap-[var(--nexus-space-2)]">
+          <div className="pp-grid2">
             <NumberField label="字号" value={read<number>('typography.fontSize')} onSet={(v) => write('typography.fontSize', v)} bind={{ types: ['dimension', 'number'], path: 'typography.fontSize', write }} read={read} tokens={tokensOfType(['dimension', 'number'])} />
             <NumberField label="字重" value={read<number>('typography.fontWeight')} onSet={(v) => write('typography.fontWeight', v)} />
             <NumberField label="行高" value={read<number>('typography.lineHeight')} step={0.1} onSet={(v) => write('typography.lineHeight', v)} />
@@ -191,14 +188,14 @@ export function PropertiesPanel() {
 
       <Section title="填充与描边">
         <FillList nodes={nodes} read={read} write={write} tokens={state.tokens} mode={state.activeMode} colorTokens={tokensOfType(['color'])} />
-        <div className="grid grid-cols-2 gap-[var(--nexus-space-2)]">
+        <div className="pp-grid2">
           <NumberField label="圆角" value={read<number>('style.cornerRadius.topLeft')} onSet={(v) => studio.setProps(ids, 'style.cornerRadius', { topLeft: v, topRight: v, bottomRight: v, bottomLeft: v })} bind={{ types: ['dimension', 'number'], path: 'style.cornerRadius.topLeft', write }} read={read} tokens={tokensOfType(['dimension', 'number'])} />
           <NumberField label="描边" value={read<number>('style.strokes.0.width')} onSet={(v) => write('style.strokes.0.width', v)} />
         </div>
       </Section>
 
       <Section title="效果">
-        <div className="grid grid-cols-2 gap-[var(--nexus-space-2)]">
+        <div className="pp-grid2">
           <NumberField label="透明度" value={read<number>('style.opacity')} step={0.05} onSet={(v) => write('style.opacity', Math.min(1, Math.max(0, v)))} />
           <NumberField label="旋转" value={read<number>('style.rotation')} onSet={(v) => write('style.rotation', v)} />
         </div>
@@ -214,16 +211,16 @@ export function PropertiesPanel() {
         {nodes.length === 1 ? (
           <StateEditor node={nodes[0]!} write={write} tokens={state.tokens} mode={state.activeMode} colorTokens={tokensOfType(['color'])} />
         ) : (
-          <div className="flex flex-col gap-[var(--nexus-space-2)]">
-            <p className="text-12 text-fg-3">
+          <div className="pp-col2">
+            <p className="pp-faint12">
               多选时不做逐通道编辑：在一个元素上复制状态补丁，再整份贴给选中的 {nodes.length} 个元素（一次事务，撤销一次全回去）。
             </p>
             {state.statesClipboard ? (
-              <p className="text-11 text-fg-3" data-states-clipboard-note>
+              <p className="pp-faint11" data-states-clipboard-note>
                 剪贴板：{state.statesClipboard.sourceName} 的「{STATE_LABELS[state.statesClipboard.state]}」补丁
               </p>
             ) : (
-              <p className="text-11 text-fg-3" data-states-clipboard-empty>
+              <p className="pp-faint11" data-states-clipboard-empty>
                 剪贴板为空：先单选一个已有状态补丁的元素，点「复制」。
               </p>
             )}
@@ -233,10 +230,7 @@ export function PropertiesPanel() {
               onClick={() => {
                 if (state.statesClipboard) studio.pasteStates(nodes.map((n) => n.id));
               }}
-              className={cn(
-                'rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-12',
-                state.statesClipboard ? 'text-fg-2 hover:bg-bg-2' : 'cursor-not-allowed text-fg-3 opacity-50',
-              )}
+              className={cn('pp-ghostBtn', state.statesClipboard ? 'pp-ghostReady' : 'pp-ghostIdle')}
               data-state-paste-batch={nodes.length}
             >
               {state.statesClipboard
@@ -252,7 +246,7 @@ export function PropertiesPanel() {
       </Section>
 
       <Section title="状态">
-        <div className="grid grid-cols-2 gap-[var(--nexus-space-2)]">
+        <div className="pp-grid2">
           {nodes.length === 1 ? (
             <>
               <CheckField label="可见" checked={nodes[0]!.visible} onSet={(v) => studio.setVisible(nodes[0]!.id, v)} />
@@ -260,8 +254,8 @@ export function PropertiesPanel() {
             </>
           ) : null}
         </div>
-        <div className="mt-[var(--nexus-space-2)] flex gap-[var(--nexus-space-2)]">
-          <button type="button" onClick={() => studio.deleteSelection()} className="flex-1 rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-12 text-danger-ink">
+        <div className="pp-rowMt2">
+          <button type="button" onClick={() => studio.deleteSelection()} className="pp-dangerGhost">
             删除
           </button>
           <AlignMenu onAlign={(edge) => studio.alignSelection(edge)} disabled={nodes.length < 2} />
@@ -386,8 +380,8 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
     const draft = drafts[spec.id];
     const numeric = typeof value === 'number' ? String(value) : '';
     return (
-      <div key={spec.id} className="flex items-center gap-2">
-        <span className="w-14 shrink-0 text-12 text-fg-2">{spec.label}</span>
+      <div key={spec.id} className="pp-flex2">
+        <span className="pp-rowKey14">{spec.label}</span>
 
         {spec.widget === 'choice'
           ? choicesOf(spec)?.map((choice) => (
@@ -396,10 +390,7 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
                 type="button"
                 title={`这一档排成${choice.label}`}
                 onClick={() => studio.setResponsiveValue(ids, bp, spec.id, choice.value)}
-                className={cn(
-                  'rounded-[var(--nexus-radius-sm)] px-[5px] py-1 text-11',
-                  value === choice.value ? 'bg-brand text-accent-fg' : 'bg-bg-2 text-fg-3 hover:text-fg-1',
-                )}
+                className={cn('pp-segBtn', value === choice.value ? 'pp-segOn' : 'pp-segOff')}
                 data-responsive-choice={`${spec.id}:${choice.value}`}
               >
                 {choice.label}
@@ -413,10 +404,7 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
                 key={String(want)}
                 type="button"
                 onClick={() => studio.setResponsiveValue(ids, bp, spec.id, want)}
-                className={cn(
-                  'rounded-[var(--nexus-radius-sm)] px-2 py-1 text-11',
-                  value === want ? 'bg-brand text-accent-fg' : 'bg-bg-2 text-fg-3 hover:text-fg-1',
-                )}
+                className={cn('pp-segWide', value === want ? 'pp-segOn' : 'pp-segOff')}
                 data-responsive-toggle={`${spec.id}:${want}`}
               >
                 {boolLabels(spec)[want ? 1 : 0]}
@@ -440,7 +428,7 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
               e.stopPropagation();
               if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
             }}
-            className="w-20 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12"
+            className="pp-w20Input"
             data-responsive-input={spec.id}
           />
         ) : null}
@@ -452,10 +440,7 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
                 type="button"
                 title={kind === 'hug' ? 'hug：贴合内容' : 'fill：填满父级'}
                 onClick={() => studio.setResponsiveValue(ids, bp, spec.id, kind)}
-                className={cn(
-                  'rounded-[var(--nexus-radius-sm)] px-[5px] py-1 text-11',
-                  value === kind ? 'bg-brand text-accent-fg' : 'bg-bg-2 text-fg-3',
-                )}
+                className={cn('pp-segBtn', value === kind ? 'pp-segOn' : 'pp-segOffQuiet')}
                 data-responsive-size-kind={`${spec.id}:${kind}`}
               >
                 {kind === 'hug' ? 'H' : 'F'}
@@ -463,7 +448,7 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
             ))
           : null}
 
-        <span className="min-w-0 flex-1 truncate font-mono text-11 text-fg-3" data-responsive-channel={spec.id}>
+        <span className="pp-mono11truncate" data-responsive-channel={spec.id}>
           这一档 {labelOf(spec, value)} · 设计 {designOf(spec)}
           {spec.group === 'size' ? ` (${spec.key})` : ''}
         </span>
@@ -472,7 +457,7 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
           <button
             type="button"
             onClick={() => studio.clearResponsiveChannel(ids, bp, spec.id)}
-            className="px-1 text-12 text-fg-3 hover:text-danger-ink"
+            className="pp-linkDanger"
             title={`清除这一档的${spec.label}覆盖`}
             data-responsive-clear={spec.id}
           >
@@ -484,13 +469,13 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
   };
 
   return (
-    <div className="flex flex-col gap-[var(--nexus-space-2)]" data-responsive-editor data-responsive-breakpoint={bp}>
-      <p className="text-11 text-fg-3">
+    <div className="pp-col2" data-responsive-editor data-responsive-breakpoint={bp}>
+      <p className="pp-faint11">
         窄一档的规则会带到更宽的档（手机→全部、平板→桌面与宽屏）。写下去的每一个键都会真的改变那一档的投影：
         等于原值的写入会被剪掉，不占撤销栈。
       </p>
 
-      <div className="flex flex-wrap gap-1" data-responsive-breakpoints>
+      <div className="pp-wrap1" data-responsive-breakpoints>
         {VIEWPORT_OPTIONS.map((option) => {
           const optionImpact = impactOf(option.id);
           const on = option.id === bp;
@@ -499,7 +484,7 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
               key={option.id}
               type="button"
               onClick={() => pickBreakpoint(option.id)}
-              className={cn('rounded-[var(--nexus-radius-sm)] px-2 py-1 text-11', on ? 'bg-brand text-accent-fg' : 'bg-bg-2 text-fg-3 hover:text-fg-1')}
+              className={cn('pp-segWide', on ? 'pp-segOn' : 'pp-segOff')}
               data-breakpoint-tab={option.id}
               data-breakpoint-impact={optionImpact === MIXED ? 'mixed' : optionImpact}
               aria-pressed={on}
@@ -513,7 +498,7 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
           <button
             type="button"
             onClick={() => studio.setViewport('design')}
-            className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-11 text-fg-3 hover:text-fg-1"
+            className="pp-chip11hover"
             data-responsive-back-to-design
           >
             回设计尺寸
@@ -521,7 +506,7 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
         ) : null}
       </div>
 
-      <p className="text-12 text-fg-2" data-responsive-reading>
+      <p className="pp-ink12" data-responsive-reading>
         {VIEWPORT_OPTIONS.find((o) => o.id === bp)?.label} 这一档：
         {impact === MIXED
           ? `选中的 ${nodes.length} 个元素改的通道数不一致`
@@ -536,12 +521,12 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
       </p>
 
       {outsideOf === MIXED ? (
-        <p className="text-11 text-fg-3" data-responsive-outside="mixed">
+        <p className="pp-faint11" data-responsive-outside="mixed">
           徽标里还有几个键在这一格摆不出输入口（代码视图或 AI 配方写进来的，或者这个元素改不了它），各元素不同——
           按下面那颗「清掉这一档」会连着它们一起删。
         </p>
       ) : outsideOf.length ? (
-        <p className="font-mono text-11 text-fg-3" data-responsive-outside={String(outsideOf.length)}>
+        <p className="pp-mono11" data-responsive-outside={String(outsideOf.length)}>
           其中 {outsideOf.length} 处面板没有输入口：{outsideOf.join(' · ')}——它们由「代码」那一节或 AI
           配方写进来（或这个元素改不了它），「清掉这一档」会连着它们一起删。
         </p>
@@ -553,10 +538,7 @@ function ResponsiveSection({ nodes }: { nodes: DesignNode[] }) {
         type="button"
         disabled={!hasAnyRule}
         onClick={() => studio.dropResponsiveRule(ids, bp)}
-        className={cn(
-          'rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-12',
-          hasAnyRule ? 'text-danger-ink hover:bg-bg-2' : 'cursor-not-allowed text-fg-3 opacity-50',
-        )}
+        className={cn('pp-ghostBtn', hasAnyRule ? 'pp-ghostDangerReady' : 'pp-ghostIdle')}
         data-responsive-drop-rule={bp}
       >
         清掉{VIEWPORT_OPTIONS.find((o) => o.id === bp)?.label.split(' ')[0]}这一档的全部覆盖
@@ -623,8 +605,8 @@ function StateEditor({
   };
 
   return (
-    <div className="flex flex-col gap-[var(--nexus-space-2)]">
-      <div className="flex flex-wrap gap-1">
+    <div className="pp-col2">
+      <div className="pp-wrap1">
         {NODE_STATES.map((s) => (
           <button
             key={s}
@@ -633,25 +615,22 @@ function StateEditor({
               setActive(s);
               setDrafts({});
             }}
-            className={cn('rounded-[var(--nexus-radius-sm)] px-2 py-1 text-11', s === active ? 'bg-brand text-accent-fg' : 'bg-bg-2 text-fg-3 hover:text-fg-1')}
+            className={cn('pp-segWide', s === active ? 'pp-segOn' : 'pp-segOff')}
             data-state-tab={s}
           >
             {STATE_LABELS[s]}
           </button>
         ))}
       </div>
-      <p className="text-11 text-fg-3">画布不预览状态（避免干扰选择与拖拽）；移上指针的效果去预览或发布页看（ADR-0062）。</p>
+      <p className="pp-faint11">画布不预览状态（避免干扰选择与拖拽）；移上指针的效果去预览或发布页看（ADR-0062）。</p>
 
-      <div className="flex flex-wrap items-center gap-1">
+      <div className="pp-wrapCenter1">
         <button
           type="button"
           onClick={() => studio.copyStates(node.id, active)}
           disabled={!patch || !Object.keys(patch).length}
           title={patch && Object.keys(patch).length ? `复制「${STATE_LABELS[active]}」的整份补丁` : `「${STATE_LABELS[active]}」还没有补丁，没有可复制的通道`}
-          className={cn(
-            'rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11',
-            patch && Object.keys(patch).length ? 'text-fg-2 hover:bg-bg-2' : 'cursor-not-allowed text-fg-3 opacity-50',
-          )}
+          className={cn('pp-ghostBtnSm', patch && Object.keys(patch).length ? 'pp-ghostReady' : 'pp-ghostIdle')}
           data-state-copy={active}
         >
           复制「{STATE_LABELS[active]}」补丁
@@ -670,23 +649,20 @@ function StateEditor({
               ? `粘贴 ${statesClipboard.sourceName} 的「${STATE_LABELS[statesClipboard.state]}」补丁（整通道覆盖）`
               : '剪贴板为空：先选一个已有状态补丁的元素复制'
           }
-          className={cn(
-            'rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11',
-            statesClipboard ? 'text-fg-2 hover:bg-bg-2' : 'cursor-not-allowed text-fg-3 opacity-50',
-          )}
+          className={cn('pp-ghostBtnSm', statesClipboard ? 'pp-ghostReady' : 'pp-ghostIdle')}
           data-state-paste="single"
         >
           粘贴{statesClipboard ? `「${STATE_LABELS[statesClipboard.state]}」` : ''}补丁
         </button>
       </div>
       {statesClipboard ? (
-        <p className="text-11 text-fg-3" data-states-clipboard-note>
+        <p className="pp-faint11" data-states-clipboard-note>
           剪贴板：{statesClipboard.sourceName} 的「{STATE_LABELS[statesClipboard.state]}」补丁（粘贴会整份覆盖目标这个状态的通道）
         </p>
       ) : null}
 
-      <div className="flex items-center gap-2">
-        <span className="w-14 shrink-0 text-12 text-fg-2">{isText ? '字色' : '背景'}</span>
+      <div className="pp-flex2">
+        <span className="pp-rowKey14">{isText ? '字色' : '背景'}</span>
         <input
           type="color"
           value={drafts.fill ?? hexOf(fillColor)}
@@ -695,21 +671,21 @@ function StateEditor({
             if (drafts.fill) setFills(drafts.fill);
             setDrafts({ ...drafts, fill: undefined });
           }}
-          className="h-7 w-8 shrink-0 cursor-pointer rounded-[var(--nexus-radius-sm)] bg-transparent p-0"
+          className="pp-swatchBtn"
           aria-label={`${STATE_LABELS[active]}状态·背景颜色`}
           data-state-fill={active}
         />
-        <span className="min-w-0 flex-1 truncate font-mono text-11 text-fg-3">{fillColor === undefined ? '未设置' : typeof fillColor === 'string' ? fillColor : resolveColor(fillColor, tokens, mode)}</span>
+        <span className="pp-mono11truncate">{fillColor === undefined ? '未设置' : typeof fillColor === 'string' ? fillColor : resolveColor(fillColor, tokens, mode)}</span>
         <span data-state-fill-bind={active}>
           <TokenBindButton active={isTokenRef(fillColor)} tokens={colorTokens} onPick={(key) => setFills(makeTokenRef(key))} />
         </span>
-        <button type="button" onClick={() => write(`states.${active}.fills`, [])} className="px-1 text-12 text-fg-3 hover:text-danger-ink" title="清除该通道（生成器发射重置类）" data-state-fill-clear={active}>
+        <button type="button" onClick={() => write(`states.${active}.fills`, [])} className="pp-linkDanger" title="清除该通道（生成器发射重置类）" data-state-fill-clear={active}>
           ×
         </button>
       </div>
 
-      <div className="flex items-center gap-2">
-        <span className="w-14 shrink-0 text-12 text-fg-2">描边</span>
+      <div className="pp-flex2">
+        <span className="pp-rowKey14">描边</span>
         <input
           type="number"
           min={0}
@@ -717,7 +693,7 @@ function StateEditor({
           value={stroke?.width ?? 1}
           onChange={(e) => setStroke(Number(e.target.value), (strokeColor ?? '#ffffff') as ColorValue)}
           onKeyDown={(e) => e.stopPropagation()}
-          className="w-16 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12"
+          className="pp-w16Input"
           aria-label={`${STATE_LABELS[active]}状态·描边宽度`}
           data-state-stroke-width={active}
         />
@@ -729,16 +705,16 @@ function StateEditor({
             if (drafts.stroke) setStroke(stroke?.width ?? 1, drafts.stroke);
             setDrafts({ ...drafts, stroke: undefined });
           }}
-          className="h-7 w-8 shrink-0 cursor-pointer rounded-[var(--nexus-radius-sm)] bg-transparent p-0"
+          className="pp-swatchBtn"
           aria-label={`${STATE_LABELS[active]}状态·描边颜色`}
           data-state-stroke-color={active}
         />
-        <button type="button" onClick={() => write(`states.${active}.strokes`, [])} className="px-1 text-12 text-fg-3 hover:text-danger-ink" title="清除描边通道" data-state-stroke-clear={active}>
+        <button type="button" onClick={() => write(`states.${active}.strokes`, [])} className="pp-linkDanger" title="清除描边通道" data-state-stroke-clear={active}>
           ×
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-1">
+      <div className="pp-grid2gap1">
         <NumberField
           label="阴影 X"
           value={shadow && 'offsetX' in shadow ? shadow.offsetX ?? 0 : 0}
@@ -760,8 +736,8 @@ function StateEditor({
           onSet={(v) => setShadow({ offsetX: shadow && 'offsetX' in shadow ? shadow.offsetX ?? 0 : 0, offsetY: shadow && 'offsetY' in shadow ? shadow.offsetY ?? 0 : 0, blur: shadow && 'blur' in shadow ? shadow.blur ?? 0 : 0, spread: v, color: (shadowColor ?? '#000000') as ColorValue })}
         />
       </div>
-      <div className="flex items-center gap-2">
-        <span className="w-14 shrink-0 text-12 text-fg-2">阴影色</span>
+      <div className="pp-flex2">
+        <span className="pp-rowKey14">阴影色</span>
         <input
           type="color"
           value={drafts.shadow ?? hexOf(shadowColor)}
@@ -770,17 +746,17 @@ function StateEditor({
             if (drafts.shadow) setShadow({ offsetX: shadow && 'offsetX' in shadow ? shadow.offsetX ?? 0 : 0, offsetY: shadow && 'offsetY' in shadow ? shadow.offsetY ?? 0 : 0, blur: shadow && 'blur' in shadow ? shadow.blur ?? 0 : 0, spread: shadow && 'spread' in shadow ? shadow.spread ?? 0 : 0, color: drafts.shadow });
             setDrafts({ ...drafts, shadow: undefined });
           }}
-          className="h-7 w-8 shrink-0 cursor-pointer rounded-[var(--nexus-radius-sm)] bg-transparent p-0"
+          className="pp-swatchBtn"
           aria-label={`${STATE_LABELS[active]}状态·阴影颜色`}
           data-state-shadow-color={active}
         />
-        <button type="button" onClick={() => write(`states.${active}.effects`, [])} className="px-1 text-12 text-fg-3 hover:text-danger-ink" title="清除效果通道" data-state-effects-clear={active}>
+        <button type="button" onClick={() => write(`states.${active}.effects`, [])} className="pp-linkDanger" title="清除效果通道" data-state-effects-clear={active}>
           ×
         </button>
       </div>
 
-      <div className="flex items-center gap-2">
-        <span className="w-14 shrink-0 text-12 text-fg-2">透明度</span>
+      <div className="pp-flex2">
+        <span className="pp-rowKey14">透明度</span>
         <input
           type="number"
           min={0}
@@ -792,11 +768,11 @@ function StateEditor({
             if (Number.isFinite(next)) write(`states.${active}.opacity`, Math.min(1, Math.max(0, next)));
           }}
           onKeyDown={(e) => e.stopPropagation()}
-          className="w-20 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12"
+          className="pp-w20Input"
           aria-label={`${STATE_LABELS[active]}状态·透明度`}
           data-state-opacity={active}
         />
-        <button type="button" onClick={clearOpacity} className="px-1 text-12 text-fg-3 hover:text-danger-ink" title="清除透明度覆盖" data-state-opacity-clear={active}>
+        <button type="button" onClick={clearOpacity} className="pp-linkDanger" title="清除透明度覆盖" data-state-opacity-clear={active}>
           ×
         </button>
       </div>
@@ -804,7 +780,7 @@ function StateEditor({
       <button
         type="button"
         onClick={dropState}
-        className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-12 text-danger-ink"
+        className="pp-dangerOutline"
         data-state-drop={active}
       >
         删除{STATE_LABELS[active]}状态补丁
@@ -824,7 +800,7 @@ function NodeNameField({ node }: { node: DesignNode }) {
         e.stopPropagation();
         if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
       }}
-      className="mt-1 w-full rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-13"
+      className="pp-mt1Input13"
       aria-label="元素名称"
       data-prop="name"
     />
@@ -841,29 +817,29 @@ function PageProperties() {
   const rh = root ? Math.round(root.height) : page.height;
   const responsive = rw !== page.width || rh !== page.height;
   return (
-    <div className="flex h-full min-h-0 flex-col gap-[var(--nexus-space-4)] overflow-auto p-[var(--nexus-space-3)]">
+    <div className="pp-emptyCol">
       <Section title="页面">
-        <p className="text-12 text-fg-2">{page.name}</p>
-        <p className="mt-1 text-12 text-fg-3">
+        <p className="pp-ink12">{page.name}</p>
+        <p className="pp-faintTop12">
           {page.width} × {page.height} · {Object.keys(page.nodes).length} 个节点
         </p>
         {responsive ? (
-          <p className="mt-1 text-12 text-fg-3" data-page-resolved-size>
+          <p className="pp-faintTop12" data-page-resolved-size>
             {state.viewport} 下为 {rw} × {rh}
           </p>
         ) : null}
         {state.viewport !== 'design' ? (
-          <p className="mt-1 text-12 text-fg-3" data-page-root-width-from-breakpoint>
+          <p className="pp-faintTop12" data-page-root-width-from-breakpoint>
             这一档的根宽由断点给出（{rw}px），不是模型里的那个数——换视口只改投影，
             模型仍是 {page.width} × {page.height}。所以断点面板编辑的是元素，根画框不在其中。
           </p>
         ) : null}
       </Section>
       <Section title="Design System 概览">
-        <p className="text-12 text-fg-3">
+        <p className="pp-faint12">
           {usedTokens} 个 token · {state.document.components.length} 个组件 · {state.document.assets.length} 个资产
         </p>
-        <p className="mt-2 text-12 text-fg-3">选中画布元素后，这里会切换成属性编辑器。</p>
+        <p className="pp-faintMt2">选中画布元素后，这里会切换成属性编辑器。</p>
       </Section>
     </div>
   );
@@ -871,9 +847,9 @@ function PageProperties() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="border-b border-[var(--nexus-color-border-subtle)] px-[var(--nexus-space-3)] py-[var(--nexus-space-3)]">
-      <h3 className="mb-[var(--nexus-space-2)] font-mono text-12 uppercase tracking-[.12em] text-fg-3">{title}</h3>
-      <div className="flex flex-col gap-[var(--nexus-space-2)]">{children}</div>
+    <section className="pp-headBorderedRoomy">
+      <h3 className="pp-sectionTitle">{title}</h3>
+      <div className="pp-col2">{children}</div>
     </section>
   );
 }
@@ -898,12 +874,12 @@ function NumberField(
   const path = bind?.path;
   const boundKey = path && read ? (isTokenRef(read(path)) ? tokenRefKey(read(path)) : null) : null;
   return (
-    <label className="flex flex-col gap-1" title={hint}>
-      <span className="flex items-center gap-1 text-12 text-fg-3">
+    <label className="pp-col1" title={hint}>
+      <span className="pp-row1faint">
         {label}
-        {boundKey ? <span className="rounded bg-bg-3 px-1 font-mono text-11 text-fg-2">{boundKey}</span> : null}
+        {boundKey ? <span className="pp-codeChip">{boundKey}</span> : null}
       </span>
-      <span className="flex items-center gap-1">
+      <span className="pp-row1">
         <input
           type="number"
           step={step}
@@ -915,7 +891,7 @@ function NumberField(
             if (Number.isFinite(next)) onSet(next);
           }}
           onKeyDown={(e) => e.stopPropagation()}
-          className="w-full min-w-0 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12 disabled:opacity-40"
+          className="pp-wfullInput12"
           data-prop={path ?? label}
         />
         {bind && tokens ? <TokenBindButton active={Boolean(boundKey)} tokens={tokens} onPick={(key) => bind.write(bind.path, makeTokenRef(key))} /> : null}
@@ -926,10 +902,10 @@ function NumberField(
 
 function TextField(props: FieldProps<string> & { textarea?: boolean }) {
   const { label, value, onSet, textarea, disabled } = props;
-  const cls = 'w-full rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12';
+  const cls = 'pp-wfullInput12';
   return (
-    <label className="flex flex-col gap-1">
-      <span className="text-12 text-fg-3">{label}</span>
+    <label className="pp-col1">
+      <span className="pp-faint12">{label}</span>
       {textarea ? (
         <textarea
           rows={3}
@@ -937,7 +913,7 @@ function TextField(props: FieldProps<string> & { textarea?: boolean }) {
           value={value === MIXED ? '' : (value ?? '')}
           onChange={(e) => onSet(e.target.value)}
           onKeyDown={(e) => e.stopPropagation()}
-          className={cn(cls, 'resize-none')}
+          className={cn(cls, 'pp-resizeNone')}
           data-prop="text"
         />
       ) : (
@@ -956,13 +932,13 @@ function TextField(props: FieldProps<string> & { textarea?: boolean }) {
 function SelectField(props: FieldProps<string> & { options: { value: string; label: string }[] }) {
   const { label, value, options, onSet, disabled } = props;
   return (
-    <label className="flex flex-col gap-1">
-      <span className="text-12 text-fg-3">{label}</span>
+    <label className="pp-col1">
+      <span className="pp-faint12">{label}</span>
       <select
         disabled={disabled}
         value={value === MIXED ? '' : value}
         onChange={(e) => onSet(e.target.value)}
-        className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12"
+        className="pp-chip12"
         data-prop={label}
       >
         {value === MIXED ? <option value="">混合</option> : null}
@@ -986,9 +962,9 @@ function SizeField(props: {
   const { label, value, onSet, axis } = props;
   const numeric = typeof value === 'number';
   return (
-    <label className="flex flex-col gap-1">
-      <span className="text-12 text-fg-3">{label}</span>
-      <span className="flex items-center gap-1">
+    <label className="pp-col1">
+      <span className="pp-faint12">{label}</span>
+      <span className="pp-row1">
         <input
           type="number"
           value={numeric ? value : ''}
@@ -998,13 +974,13 @@ function SizeField(props: {
             if (Number.isFinite(next)) onSet(next);
           }}
           onKeyDown={(e) => e.stopPropagation()}
-          className="w-full min-w-0 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12"
+          className="pp-wfullInput12"
           data-prop={`size.${axis}`}
         />
-        <button type="button" title="hug：贴合内容" onClick={() => onSet('hug')} className={cn('rounded-[var(--nexus-radius-sm)] px-[5px] py-1 text-11', value === 'hug' ? 'bg-brand text-accent-fg' : 'bg-bg-2 text-fg-3')}>
+        <button type="button" title="hug：贴合内容" onClick={() => onSet('hug')} className={cn('pp-segBtn', value === 'hug' ? 'pp-segOn' : 'pp-segOffQuiet')}>
           H
         </button>
-        <button type="button" title="fill：填满父级" onClick={() => onSet('fill')} className={cn('rounded-[var(--nexus-radius-sm)] px-[5px] py-1 text-11', value === 'fill' ? 'bg-brand text-accent-fg' : 'bg-bg-2 text-fg-3')}>
+        <button type="button" title="fill：填满父级" onClick={() => onSet('fill')} className={cn('pp-segBtn', value === 'fill' ? 'pp-segOn' : 'pp-segOffQuiet')}>
           F
         </button>
       </span>
@@ -1014,12 +990,12 @@ function SizeField(props: {
 
 function CheckField({ label, checked, onSet }: { label: string; checked: boolean; onSet: (v: boolean) => void }) {
   return (
-    <label className="flex items-center gap-2 text-12 text-fg-2">
+    <label className="pp-row2ink">
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onSet(e.target.checked)}
-        className="h-3.5 w-3.5 accent-[var(--nexus-color-brand)]"
+        className="pp-checkBrand"
       />
       {label}
     </label>
@@ -1033,7 +1009,7 @@ function PaddingGrid(props: {
 }) {
   const sides = ['top', 'right', 'bottom', 'left'] as const;
   return (
-    <div className="grid grid-cols-4 gap-1">
+    <div className="pp-grid4">
       {sides.map((side) => (
         <NumberField
           key={side}
@@ -1065,29 +1041,29 @@ function FillList(props: {
     write('style.fills', nodes[0]!.style.fills.filter((_, i) => i !== index));
 
   const body = !fills.length ? (
-    <span className="text-12 text-fg-3">无填充</span>
+    <span className="pp-faint12">无填充</span>
   ) : (
     fills.map((paint, index) => {
       if (paint.kind === 'image') {
         const url = assetContext.assetUrl(paint.assetId);
         return (
-          <div key={index} className="flex flex-col gap-1" data-fill-image={index}>
-            <div className="flex items-center gap-2">
-              <span className="grid h-7 w-8 shrink-0 place-items-center overflow-hidden rounded-[var(--nexus-radius-sm)] bg-bg-2">
+          <div key={index} className="pp-col1" data-fill-image={index}>
+            <div className="pp-flex2">
+              <span className="pp-swatchSlot">
                 {url ? (
-                  <img src={url} alt="" className="h-full w-full object-cover" />
+                  <img src={url} alt="" className="pp-cover" />
                 ) : (
-                  <span className="text-9 text-fg-3">?</span>
+                  <span className="pp-micro">?</span>
                 )}
               </span>
-              <span className="min-w-0 flex-1 truncate font-mono text-11 text-fg-3">
+              <span className="pp-mono11truncate">
                 {url ? `图片 ${paint.assetId.slice(0, 8)}` : '图片资产不在本项目清单'}
               </span>
               <select
                 value={paint.fit ?? 'cover'}
                 onChange={(e) => write(`style.fills.${index}.fit`, e.target.value)}
                 aria-label="图片填充方式"
-                className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1 py-1 text-11 text-fg-2"
+                className="pp-smallChipPlain"
                 data-fill-fit={index}
               >
                 {FITS.map((f) => (
@@ -1096,11 +1072,11 @@ function FillList(props: {
                   </option>
                 ))}
               </select>
-              <button type="button" onClick={() => removeAt(index)} className="px-1 text-12 text-fg-3 hover:text-danger-ink" title="移除该填充层">
+              <button type="button" onClick={() => removeAt(index)} className="pp-linkDanger" title="移除该填充层">
                 ×
               </button>
             </div>
-            <div className="pl-10">
+            <div className="pp-padL10">
               <ImageUploadButton nodeId={nodes[0]!.id} label="换一张图" />
             </div>
           </div>
@@ -1114,7 +1090,7 @@ function FillList(props: {
       const hex = resolveColor(current as ColorValue | undefined, props.tokens, props.mode);
       const value = draft[index] ?? (typeof current === 'string' ? current : hex);
       return (
-        <div key={index} className="flex items-center gap-2">
+        <div key={index} className="pp-flex2">
           <input
             type="color"
             value={/^#[0-9a-f]{6}$/i.test(hex) ? hex : '#000000'}
@@ -1126,16 +1102,16 @@ function FillList(props: {
               if (next) write(path, next);
               setDraft({ ...draft, [index]: '' });
             }}
-            className="h-7 w-8 shrink-0 cursor-pointer rounded-[var(--nexus-radius-sm)] bg-transparent p-0"
+            className="pp-swatchBtn"
             aria-label={`第 ${index + 1} 层填充颜色`}
             data-prop={path}
           />
-          <span className="min-w-0 flex-1 truncate font-mono text-11 text-fg-3">{bound ? `{${bound}}` : value}</span>
+          <span className="pp-mono11truncate">{bound ? `{${bound}}` : value}</span>
           <TokenBindButton active={Boolean(bound)} tokens={colorTokens} onPick={(key) => write(path, makeTokenRef(key))} />
           <button
             type="button"
             onClick={() => removeAt(index)}
-            className="px-1 text-12 text-fg-3 hover:text-danger-ink"
+            className="pp-linkDanger"
             title="移除该填充层"
           >
             ×
@@ -1146,25 +1122,25 @@ function FillList(props: {
   );
 
   return (
-    <div className="flex flex-col gap-[var(--nexus-space-2)]">
+    <div className="pp-col2">
       {body}
-      <div className="flex items-center gap-2">
+      <div className="pp-flex2">
         <button
           type="button"
           onClick={() => write('style.fills', [{ kind: 'solid', color: '#8b5cf6' }, ...((nodes[0]?.style.fills as unknown[]) ?? [])])}
-          className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12 text-fg-2"
+          className="pp-chip12ink"
         >
           + 颜色
         </button>
         <ImageUploadButton nodeId={nodes[0]!.id} label="+ 图片" />
       </div>
       {assetError ? (
-        <p className="rounded-[var(--nexus-radius-sm)] bg-danger/10 px-2 py-1 text-11 text-danger-ink" data-asset-error>
+        <p className="pp-chipDanger" data-asset-error>
           {assetError}
         </p>
       ) : null}
       {assetNotice && !assetError ? (
-        <p className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-11 text-fg-3" data-asset-notice>
+        <p className="pp-chip11" data-asset-notice>
           {assetNotice}
         </p>
       ) : null}
@@ -1175,18 +1151,18 @@ function FillList(props: {
 function TokenBindButton({ active, tokens, onPick }: { active: boolean; tokens: Token[]; onPick: (key: string) => void }) {
   const [open, setOpen] = useState(false);
   return (
-    <span className="relative">
+    <span className="pp-rel">
       <button
         type="button"
         title="绑定 token"
         onClick={() => setOpen((v) => !v)}
-        className={cn('rounded-[var(--nexus-radius-sm)] px-[5px] py-1 text-11', active ? 'bg-brand text-accent-fg' : 'bg-bg-2 text-fg-3 hover:text-fg-1')}
+        className={cn('pp-segBtn', active ? 'pp-segOn' : 'pp-segOff')}
         data-token-bind
       >
        链
       </button>
       {open ? (
-        <span className="absolute right-0 top-6 z-50 block max-h-[220px] w-[180px] overflow-auto rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-subtle)] bg-bg-1 p-1 shadow-panel">
+        <span className="pp-popMenu">
           {tokens.length ? (
             tokens.map((token) => (
               <button
@@ -1196,13 +1172,13 @@ function TokenBindButton({ active, tokens, onPick }: { active: boolean; tokens: 
                   onPick(token.key);
                   setOpen(false);
                 }}
-                className="block w-full truncate rounded-[var(--nexus-radius-sm)] px-2 py-1 text-left text-12 text-fg-1 hover:bg-bg-2"
+                className="pp-menuItemFull"
               >
                 {token.key}
               </button>
             ))
           ) : (
-            <span className="block px-2 py-1 text-12 text-fg-3">没有匹配类型的 token</span>
+            <span className="pp-menuItem12">没有匹配类型的 token</span>
           )}
         </span>
       ) : null}
@@ -1220,7 +1196,7 @@ function AlignMenu({ onAlign, disabled }: { onAlign: (edge: 'left' | 'hcenter' |
     { id: 'bottom', label: '下' },
   ];
   return (
-    <span className={cn('flex flex-1 gap-1', disabled && 'opacity-40')}>
+    <span className={cn('pp-grow', disabled && 'pp-dim')}>
       {items.map((item) => (
         <button
           key={item.id}
@@ -1228,7 +1204,7 @@ function AlignMenu({ onAlign, disabled }: { onAlign: (edge: 'left' | 'hcenter' |
           disabled={disabled}
           title={`对齐：${item.label}（仅绝对定位父级生效）`}
           onClick={() => onAlign(item.id)}
-          className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-[5px] py-1 text-11 text-fg-2 hover:bg-bg-3"
+          className="pp-smallChip"
         >
           {item.label[0]}
         </button>

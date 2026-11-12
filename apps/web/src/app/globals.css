@@ -1714,6 +1714,88 @@
   .hp-faint { color: var(--nexus-color-fg-3); }
   .hp-railTide { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); }
 
+  /* ── §FE-45 / ADR-0197 `PropertiesPanel.tsx` `.pp-` 门面化——§6 属性面板首片 ──
+   * 选中元素的属性分区（尺寸/布局/文字/填充/描边/效果/响应式四档/状态补丁）；每个字段可绑定 token。
+   * 原子逐枚平移（含 hover/disabled 变体）：cn ternary 拆成 base + 双态 class；零动效、零 @media、零 hex。
+   * shimmer/三态切换（.pp-segOn/.pp-segOffQuiet）显式区分 hover 行为。 */
+  .pp-flex2 { display: flex; align-items: center; gap: var(--nexus-space-2); }
+  .pp-faint12 { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .pp-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--nexus-space-2); }
+  .pp-grid2gap1 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--nexus-space-1); }
+  .pp-grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--nexus-space-1); }
+  .pp-linkDanger { display: inline-flex; padding: 0 var(--nexus-space-1); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); background: transparent; border: 0; cursor: pointer; }
+  .pp-linkDanger:hover { color: var(--nexus-color-danger-ink); }
+  .pp-linkDanger:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .pp-faint11 { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .pp-faintTop12 { margin-top: var(--nexus-space-1); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .pp-faintMt2 { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .pp-rowKey14 { width: 3.5rem; flex-shrink: 0; font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  .pp-col1 { display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+  .pp-col2 { display: flex; flex-direction: column; gap: var(--nexus-space-2); }
+  .pp-swatchBtn { display: inline-flex; height: 1.75rem; width: 2rem; flex-shrink: 0; border: 0; border-radius: var(--nexus-radius-sm); background: transparent; padding: 0; cursor: pointer; }
+  .pp-swatchBtn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .pp-swatchSlot { display: grid; height: 1.75rem; width: 2rem; place-items: center; overflow: hidden; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: 0; }
+  .pp-mono11truncate { min-width: 0; flex: 1 1 0%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .pp-mono11 { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .pp-cover { height: 100%; width: 100%; object-fit: cover; }
+  .pp-row1 { display: flex; align-items: center; gap: var(--nexus-space-1); }
+  .pp-row1faint { display: flex; align-items: center; gap: var(--nexus-space-1); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .pp-row2ink { display: flex; align-items: center; gap: var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  .pp-wrap1 { display: flex; flex-wrap: wrap; gap: var(--nexus-space-1); }
+  .pp-wrapCenter1 { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-1); }
+  .pp-ink12 { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  .pp-w16Input { width: 4rem; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
+  .pp-w20Input { width: 5rem; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
+  .pp-wfullInput12 { width: 100%; min-width: 0; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
+  .pp-wfullInput12:disabled { opacity: 0.4; }
+  .pp-mt1Input13 { margin-top: var(--nexus-space-1); width: 100%; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-1); outline: none; }
+  .pp-checkBrand { height: 0.875rem; width: 0.875rem; accent-color: var(--nexus-color-brand); }
+  .pp-chip12 { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); cursor: pointer; }
+  .pp-chip12ink { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); cursor: pointer; }
+  .pp-chip11 { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .pp-chip11hover { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .pp-chip11hover:hover { color: var(--nexus-color-fg-1); }
+  .pp-chipDanger { border: 0; border-radius: var(--nexus-radius-sm); background: color-mix(in srgb, var(--nexus-color-danger) 10%, transparent); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); cursor: pointer; }
+  .pp-smallChip { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: 0.25rem 0.3125rem; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); cursor: pointer; }
+  .pp-smallChip:hover { background: var(--nexus-color-bg-3); }
+  .pp-smallChipPlain { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: 0.25rem; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); cursor: pointer; }
+  .pp-micro { font-size: 0.5625rem; color: var(--nexus-color-fg-3); }
+  .pp-rel { position: relative; }
+  .pp-popMenu { position: absolute; right: 0; top: 1.5rem; z-index: 50; display: block; max-height: 13.75rem; width: 11.25rem; overflow: auto; border-radius: var(--nexus-radius-md); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); padding: var(--nexus-space-1); box-shadow: var(--nexus-shadow-md); }
+  .pp-menuItem12 { display: block; width: 100%; border: 0; background: transparent; padding: var(--nexus-space-1) var(--nexus-space-2); text-align: left; font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .pp-menuItemFull { display: block; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 0; background: transparent; border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-1) var(--nexus-space-2); text-align: left; font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); cursor: pointer; }
+  .pp-menuItemFull:hover { background: var(--nexus-color-bg-2); }
+  .pp-padL10 { padding-left: 2.5rem; }
+  .pp-headBordered { border-bottom: 1px solid var(--nexus-color-border-subtle); padding: var(--nexus-space-2) var(--nexus-space-3); }
+  .pp-headBorderedRoomy { border-bottom: 1px solid var(--nexus-color-border-subtle); padding: var(--nexus-space-3); }
+  .pp-scrollCol { display: flex; height: 100%; min-height: 0; flex-direction: column; overflow: auto; }
+  .pp-dangerGhost { flex: 1 1 0%; border: 1px solid var(--nexus-color-border-strong); border-radius: var(--nexus-radius-sm); background: transparent; padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-danger-ink); cursor: pointer; }
+  .pp-rowMt2 { margin-top: var(--nexus-space-2); display: flex; gap: var(--nexus-space-2); }
+  .pp-sectionTitle { margin-bottom: var(--nexus-space-2); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); text-transform: uppercase; letter-spacing: 0.12em; color: var(--nexus-color-fg-3); }
+  .pp-codeChip { display: inline-block; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-3); padding: 0 var(--nexus-space-1); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); }
+  .pp-dangerOutline { border: 1px solid var(--nexus-color-border-strong); border-radius: var(--nexus-radius-sm); background: transparent; padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-danger-ink); cursor: pointer; }
+  .pp-hidden { display: none; }
+  .pp-emptyCol { display: flex; height: 100%; min-height: 0; flex-direction: column; gap: var(--nexus-space-4); overflow: auto; padding: var(--nexus-space-3); }
+  .pp-uploadLabel { display: inline-flex; flex-shrink: 0; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); cursor: pointer; }
+  .pp-uploadLabel:hover { background: var(--nexus-color-bg-3); }
+  .pp-busy { cursor: wait; opacity: 0.5; }
+  .pp-ghostBtn { border: 1px solid var(--nexus-color-border-strong); border-radius: var(--nexus-radius-sm); background: transparent; padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); }
+  .pp-ghostBtnSm { border: 1px solid var(--nexus-color-border-strong); border-radius: var(--nexus-radius-sm); background: transparent; padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); }
+  .pp-ghostReady { color: var(--nexus-color-fg-2); cursor: pointer; }
+  .pp-ghostReady:hover { background: var(--nexus-color-bg-2); }
+  .pp-ghostDangerReady { color: var(--nexus-color-danger-ink); cursor: pointer; }
+  .pp-ghostDangerReady:hover { background: var(--nexus-color-bg-2); }
+  .pp-ghostIdle { color: var(--nexus-color-fg-3); cursor: not-allowed; opacity: 0.5; }
+  .pp-segBtn { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: 0.25rem 0.3125rem; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .pp-segOn { background: var(--nexus-color-brand); color: var(--nexus-color-accent-fg); }
+  .pp-segOff { background: var(--nexus-color-bg-2); color: var(--nexus-color-fg-3); }
+  .pp-segOff:hover { color: var(--nexus-color-fg-1); }
+  .pp-segOffQuiet { background: var(--nexus-color-bg-2); color: var(--nexus-color-fg-3); }
+  .pp-segWide { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .pp-resizeNone { resize: none; }
+  .pp-grow { display: flex; flex: 1 1 0%; gap: var(--nexus-space-1); }
+  .pp-dim { opacity: 0.4; }
+
   /* ── §FE-40 / ADR-0192 `/admin/health` 管理台健康总览 `.hd-` 门面化——五层快照一次成 ──
    * 运维只在这一页看到五层（ai/java/gateway/redis/postgres）的真相：
    * 拿不到 = "未测到"（而不是 down），和 web 静默降级纪律一致；每层独立超时。
