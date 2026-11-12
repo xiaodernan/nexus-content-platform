@@ -1727,3 +1727,12 @@ Same lift extended to the /admin/moderation page:
 - data-* hooks preserved exactly (data-admin-queue, data-rules-version, data-queue-limits, data-queue-limit, data-queue-empty, data-queue-case, data-case-project, data-case-decision, data-case-reports, data-case-finding, data-case-open, ResolveButtons)
 
 Build-time checks: narrow tsc exit 0, eslint exit 0, record-encoding exit 0 (0 chargeable lines). No pixel/screenshot proof claimed (browser tool disconnected this session).
+## cont. 56 (2026-11-12, noon) - /admin/access lifted to the brand language
+
+Another admin family page lifted; data tables reused intact:
+- Ambient orb hero with full brand treatment (mono tracked eyebrow, gradient wordmark + gradient line flourish); AdminNav in action bar next to two upgraded CSV export buttons.
+- Window-day selector pills upgraded from bare underlined text to the rounded-border pattern matching the rest of the family.
+- Tables restyled: hover bg-bg-2, accent strand for hot token calls, rounded corners for the outer table frame, consistent paddings, no column overflow.
+- data-* hooks preserved exactly (data-access-admin-root, data-access-summary, data-access-window, data-access-export, data-access-tokens, data-access-token, data-access-token-owner/calls/endpoints/projects, data-access-endpoints, data-access-endpoint, data-access-endpoint-calls, data-access-endpoint-tokens, data-access-scope).
+
+Build-time checks: narrow tsc exit 0, eslint exit 0, record-encoding exit 0.
