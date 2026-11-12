@@ -2426,6 +2426,28 @@
   .adp-cancelBtn:hover { color: var(--nexus-color-fg-2); }
   .adp-cancelBtn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+  /* ── §FE-89 / ADR-0242 `ImportPanel.tsx` `.ip-` 门面化——§144 NO LOCK-IN 反向那一寸 ──
+   * 装回来必须零改：包不里有任何「推断值」；拒收逐条列 issues——不动。 */
+  .ip-root { margin-top: var(--nexus-space-4); border-radius: var(--nexus-radius-sm); border: 1px solid var(--nexus-color-border-subtle); padding: var(--nexus-space-4); }
+  .ip-title { margin-bottom: var(--nexus-space-1); font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-2); }
+  .ip-hint { margin-bottom: var(--nexus-space-3); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .ip-mono { font-family: var(--nexus-font-mono); }
+  .ip-strongInk { color: var(--nexus-color-fg-2); }
+  .ip-file { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  .ip-file::file-selector-button { margin-right: var(--nexus-space-2); border-radius: var(--nexus-radius-sm); border: none; background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); cursor: pointer; }
+  .ip-file:disabled { opacity: 0.4; cursor: not-allowed; }
+  .ip-busyNote { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .ip-receipt { margin-top: var(--nexus-space-3); border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-2); }
+  .ip-strongNote { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-1); }
+  .ip-inlineLink { color: var(--nexus-color-accent-2-ink); text-decoration: underline; }
+  .ip-metaMono { margin-left: var(--nexus-space-2); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .ip-note { margin-top: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .ip-warnList { margin-top: var(--nexus-space-1); padding: 0; list-style: none; font-size: var(--nexus-font-size-11); color: var(--nexus-color-warn-ink); }
+  .ip-mono11 { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); }
+  .ip-hintList { margin-top: var(--nexus-space-1); padding: 0; list-style: none; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .ip-error { font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); }
+  .ip-issuesList { margin-top: var(--nexus-space-1); padding: 0; list-style: none; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+
   /* ── §FE-88 / ADR-0241 `AccountPanel.tsx` `.ac-` 门面化（`.ap-` 已为 AssetsPanel 占用）——§188 账号面板 ──
    * 游客也记账（100 点/次生成）——游客可进/可注册认领——不动。 */
   .ac-root { display: flex; flex-direction: column; gap: var(--nexus-space-3); }
