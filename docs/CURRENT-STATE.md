@@ -1691,3 +1691,18 @@ The other two completely fresh admin entries (/admin/access=? /admin/users) dese
 - Anonymous/notAdmin branches left as a dark left rail with a small eyebrow, matching what a private byte does elsewhere on this project (and the plain-branch h1 size was bumped from 21 to 24 so it stops being a near-failure match for the 21px chrome on the resting hand).
 
 Verified on this host: narrow tsc + eslint exit 0. No pixel claims (browser n/a, like every other viewer-side pass this session). AdminNav selection untouched - 'realtime' still selects correctly; axe e2e path still matches existing[data-realtime-admin-root] anchors.
+## cont. 53 (2026-11-12, night) - /admin/users redesigned to the brand language
+
+Last completely-unstyled page in the admin family. Brought in line with the other pages:
+
+- Ambient orb + gradient wordmark hero matching the rest of the admin family (observability, realtime
+  lifts); eyebrow mono text + 28px tracking-tight gradient h1 + accounts\|role split counts row;
+  action bar carrying AdminNav and a jump link to /admin/audit (the audit log that records every enum
+  change); denial-of-service anonymous/not-admin branches tightened to the same eyebrow + 24px shape.
+- data-* hooks preserved: data-users-root, data-users-summary, data-users-rules, data-users-plan-rules,
+  data-account-row, data-account-name, data-account-plan - e2e and keyboard-navigation selectors stay
+  stable. GuestReclaimPanel, PlanSelect and RoleButton got no surface rewrites (still the label-inbox).
+- Self-design guardrails kept verbatim: never let an admin grant/revoke their role (current-user vs
+  target). Per-line decline logic is untouched - only the format channel changed.
+- Verified on this host: narrow tsc + eslint exit 0. record-encoding exit 0 (every line clean, 0 chargeable
+  lines). No pixel-cap passes claimed (browser n/a this session).
