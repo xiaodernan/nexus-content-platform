@@ -1,0 +1,19 @@
+# Spring Cloud 微服务面审计检查表（2026-11-13）
+
+执行方式：只读 pom.xml / GatewayConfig.java / `services/nexus-config/src/test/.../ConfigServerTest.java` 与 `services/nexus-registry/.../RegistryBehaviourTest.java`。
+
+- [x] Spring Cloud Gateway (`gateway-server-webflux`) present
+- [x] Gateway Reactor Resilience4j present
+- [x] Spring Cloud LoadBalancer present (gateway + domain-service)
+- [x] Gateway client pulls Eureka, route predicates audited (regex-based paths in GatewayConfig)
+- [x] Gateway route circuitBreakers present (one per upstream route)
+- [x] Gateway route retry: GET only, explicit statuses (BAD_GATEWAY/SERVICE_UNAVAILABLE only)
+- [x] Gateway route fallback URIs (one per route)
+- [x] Spring Cloud Config Server runnable + served-defaults health indicator
+- [x] Config Client present in api-§C, domain-service, gateway
+- [x] Eureka Server runnable + `RegistryStandaloneHealthIndicator`
+- [x] Eureka clients present in api-§C, domain-service, gateway
+- [x] OpenFeign + Resilience4j circuit breaker present in domain-service (Feign → ai-service)
+- [x] `spring-security` keeps health probes unauthenticated for liveness
+
+13/13 pass — no new Spring Cloud surface added; documented what's wired vs what's intentionally absent.
