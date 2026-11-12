@@ -1706,3 +1706,13 @@ Last completely-unstyled page in the admin family. Brought in line with the othe
   target). Per-line decline logic is untouched - only the format channel changed.
 - Verified on this host: narrow tsc + eslint exit 0. record-encoding exit 0 (every line clean, 0 chargeable
   lines). No pixel-cap passes claimed (browser n/a this session).
+## cont. 54 (2026-11-12, late night) - /admin/audit redesigned to the brand language
+
+Same brand-language lift extended to the /admin/audit page (the last plain admin page-published earlier had not):
+- Hero panel with ambient orbs + gradient wordmark, eyebrow + 28px tracking-tight h1, action bar carrying AdminNav and aJump link to /admin/users
+- Anonymous/notAdmin branches get an eyebrow + 24px shape now
+- Audit table re-styled with zebra-ish hover, rounded frame and semantic colors on the result column (text-success-ink / text-danger-ink)
+- data-audit-* hooks preserved exactly (tablescroll, audit-empty, audit-table-scroll, the empty-state paragraph, the scrollable region, all the row-attrs; AdminNav selection passes in)
+- 'detail' field is unknown in the type; now JSON.stringified inline when not a string (fixed an earlier TS2322 mismatch I caught)
+
+Build-time checks: narrow tsc exit 0, eslint exit 0, record-encoding exit 0 (2643 graded files unaffected).
