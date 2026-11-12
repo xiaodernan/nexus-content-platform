@@ -1090,6 +1090,54 @@
   .cr-youBadge { margin-left: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-2-ink); }
   .cr-enforced { font-size: var(--nexus-font-size-12); color: var(--nexus-color-warn-ink); }
 
+  /* ── §FE-17 / ADR-0165 收件箱通知页 `/notifications` `.notif-` 门面化 ──
+   * 通知中心是有登录才看得到、且在 N+1 处都要对得上注册表的一页（§164）。它当初用的是裸 Tailwind
+   * 全套原子类 + 六个行内自定义样式片（items-baseline gap-x/y、border-b last:border-b-0、w-full 换行
+   * 消息体、mt-2 bellrow、mt-3 flex-between 页脚、mt-8 sm:grid-cols-2）——门面化只换 className，
+   * 文案/data 钩子/注册表渲染一字不改。
+   * 响应式小节对账：Tailwind v4 默认 sm=40rem（640px）、md=48rem（768px）。两列 footer 原
+   * `sm:grid-cols-2` 真编译为 @media (min-width: 40rem)，不是 .cr- 的 48rem——照抄 48rem 会让
+   * 640px 上下不同宽。故 .notif-grid2 用 40rem。
+   * **语义色纪律**：title 已读/未读分别锚 fg-3（沉没）与 fg-1（亮起）；链接锚 accent-2-ink（双主题 AA）；
+   * 不可跳转锚 warn-ink（提示黄不是红——"没法去"不是"错"）；kind 徽锚 fg-3 + bg-2（石板底）。
+   * 本页无 hover 动效，无 :focus-visible 之外的任何动画（reduced 不需要专门门——零动效）。
+   * 守 ADR-0123 六红线：零新增颜色 token、全锚既有 token、无 hex、无渐变墨字。 */
+  .notif-page { margin-inline: auto; max-width: 56.25rem; padding: var(--nexus-space-10) var(--nexus-space-6); display: flex; flex-direction: column; gap: var(--nexus-space-6); }
+  .notif-anonymous { margin-inline: auto; max-width: 56.25rem; padding: var(--nexus-space-10) var(--nexus-space-6); display: flex; flex-direction: column; gap: var(--nexus-space-3); }
+  .notif-h1 { font-size: var(--nexus-font-size-21); font-weight: 600; color: var(--nexus-color-fg-1); }
+  .notif-lede { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .notif-anonymousLede { font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-2); margin-top: var(--nexus-space-2); }
+  .notif-anonymousLink { margin-top: var(--nexus-space-4); font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-2-ink); text-decoration: underline; text-underline-offset: 0.15em; }
+  .notif-bellrow { margin-top: var(--nexus-space-2); display: flex; align-items: center; }
+  .notif-markreadAll { margin-left: var(--nexus-space-3); display: inline-flex; }
+  .notif-empty { margin-top: var(--nexus-space-6); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); border-radius: var(--nexus-radius-md); padding: var(--nexus-space-4); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .notif-list { margin-top: var(--nexus-space-4); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); border-radius: var(--nexus-radius-md); padding: var(--nexus-space-1) var(--nexus-space-4); }
+  .notif-row { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--nexus-space-3); row-gap: var(--nexus-space-1); border-bottom: 1px solid var(--nexus-color-border-subtle); padding-block: var(--nexus-space-2); }
+  .notif-row:last-of-type { border-bottom: 0; }
+  .notif-kind { border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding-inline: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .notif-title { font-size: var(--nexus-font-size-13); }
+  .notif-titleMuted { color: var(--nexus-color-fg-3); }
+  .notif-titleLive { color: var(--nexus-color-fg-1); }
+  .notif-body { display: block; width: 100%; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .notif-time { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .notif-link { font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-2-ink); text-decoration: underline; text-underline-offset: 0.15em; }
+  .notif-unavail { font-size: var(--nexus-font-size-11); color: var(--nexus-color-warn-ink); }
+  .notif-pagination { margin-top: var(--nexus-space-3); display: flex; align-items: center; justify-content: space-between; }
+  .notif-paginationNote { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .notif-paginationPair { display: flex; gap: var(--nexus-space-2); }
+  .notif-prev { border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-2) var(--nexus-space-3); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); text-decoration: none; }
+  .notif-prev:hover { background: var(--nexus-color-bg-3); }
+  .notif-next { border-radius: var(--nexus-radius-sm); background: var(--nexus-color-accent-1); padding: var(--nexus-space-2) var(--nexus-space-3); font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-fg); text-decoration: none; }
+  .notif-next:hover { background: var(--nexus-color-accent-2); }
+  .notif-grid2 { display: grid; gap: var(--nexus-space-4); margin-top: var(--nexus-space-8); }
+  @media (min-width: 40rem) { .notif-grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .notif-h2 { font-size: var(--nexus-font-size-12); font-weight: 600; color: var(--nexus-color-fg-1); }
+  .notif-bulletList { margin-top: var(--nexus-space-1); list-style: disc; padding-left: var(--nexus-space-4); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .notif-kindName { color: var(--nexus-color-fg-2); }
+  .notif-panel { margin-top: var(--nexus-space-6); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); border-radius: var(--nexus-radius-md); padding: var(--nexus-space-4); }
+  .notif-panelNote { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .notif-foot { margin-top: var(--nexus-space-8); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+
   /* ── §FE-15 / ADR-0163 创作数据页按天曲线 `TrendChart.tsx` `.tc-` 门面化（FE 首个 SVG 图表片） ──
    * analytics 分析页最后一块裸 Tailwind：8 处 className（含 SVG 专属 fill-[...]/text-[9px] 两个
    * 任意值原子类）。本片的灵魂是**三轴语义色守恒**——opens/visitors/playTimeMs 各有专属纵轴与

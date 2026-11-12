@@ -49,23 +49,23 @@ const NOT_NOTIFIED = [
 function Row({ item }: { item: InboxItem }): ReactElement {
   return (
     <li
-      className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-[var(--nexus-color-border-subtle)] py-2 last:border-b-0"
+      className="notif-row"
       data-notification-item={item.id}
       data-notification-kind={item.kind}
       data-notification-read={item.read ? 'yes' : 'no'}
     >
-      <span className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1.5 py-0.5 text-11 text-fg-3">{KIND_LABEL[item.kind]}</span>
-      <span className={item.read ? 'text-13 text-fg-3' : 'text-13 text-fg-1'} data-notification-title>
+      <span className="notif-kind">{KIND_LABEL[item.kind]}</span>
+      <span className={item.read ? 'notif-title notif-titleMuted' : 'notif-title notif-titleLive'} data-notification-title>
         {item.title}
       </span>
-      {item.body ? <span className="w-full text-11 text-fg-3">「{item.body}」</span> : null}
-      <span className="text-11 text-fg-3">{stamp(item.createdAt)}</span>
+      {item.body ? <span className="notif-body">「{item.body}」</span> : null}
+      <span className="notif-time">{stamp(item.createdAt)}</span>
       {item.link ? (
-        <Link href={item.link} className="text-11 text-accent-2-ink underline" data-notification-link>
+        <Link href={item.link} className="notif-link" data-notification-link>
           打开
         </Link>
       ) : (
-        <span className="text-11 text-warn-ink" data-notification-unavailable={item.unavailable ?? '未知'}>
+        <span className="notif-unavail" data-notification-unavailable={item.unavailable ?? '未知'}>
           {item.unavailable ?? '没有可跳转的页面'}
         </span>
       )}
@@ -84,10 +84,10 @@ export default async function NotificationsPage({ searchParams }: { searchParams
   const user = await currentUserOrNull();
   if (!user) {
     return (
-      <main className="mx-auto max-w-[900px] px-6 py-16" data-notification-denied="anonymous">
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">通知</h1>
-        <p className="mt-2 text-13 text-fg-2">需要先登录：收件箱按人存放，没有身份就没有可归属的那一份。</p>
-        <Link href="/" className="mt-4 inline-block text-12 text-accent-2-ink underline">
+      <main className="notif-anonymous" data-notification-denied="anonymous">
+        <h1 className="notif-h1">通知</h1>
+        <p className="notif-anonymousLede">需要先登录：收件箱按人存放，没有身份就没有可归属的那一份。</p>
+        <Link href="/" className="notif-anonymousLink">
           回到首页
         </Link>
       </main>
@@ -102,38 +102,38 @@ export default async function NotificationsPage({ searchParams }: { searchParams
   const unreadIds = page.items.filter((item) => !item.read).map((item) => item.id);
 
   return (
-    <main className="mx-auto max-w-[900px] px-6 py-10" data-notification-page>
-      <h1 className="text-[var(--nexus-font-size-21)] font-semibold text-fg-1">通知</h1>
-      <p className="mt-1 text-12 text-fg-3">
+    <main className="notif-page" data-notification-page>
+      <h1 className="notif-h1">通知</h1>
+      <p className="notif-lede">
         {user.displayName} · 共 {page.total} 条 · 未读 {page.unread} 条 · 只有你能看到这一页
       </p>
-      <div className="mt-2">
+      <div className="notif-bellrow">
         <NotificationBell />
-        {unreadIds.length > 0 ? <span className="ml-3 inline-flex"><MarkRead all label="全部标记已读" /></span> : null}
+        {unreadIds.length > 0 ? <span className="notif-markreadAll"><MarkRead all label="全部标记已读" /></span> : null}
       </div>
 
       {page.items.length === 0 ? (
-        <p className="mt-6 rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-subtle)] bg-bg-1 p-4 text-12 text-fg-3" data-notification-empty>
+        <p className="notif-empty" data-notification-empty>
           还没有通知。这不是"系统没有产生消息"，而是还没有人做过与你有关的事：
           只有真到了终态、而且收件人是你的一件事才会写到这里，下面"会通知的"逐类列了各自挂在哪一次收尾上。
         </p>
       ) : (
         <>
-          <ul className="mt-4 rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-subtle)] bg-bg-1 px-4 py-1">
+          <ul className="notif-list">
             {page.items.map((item) => (
               <Row key={item.id} item={item} />
             ))}
           </ul>
           {page.pagination ? (
-            <div className="mt-3 flex items-center justify-between">
-              <p className="text-11 text-fg-3">
+            <div className="notif-pagination">
+              <p className="notif-paginationNote">
                 第 {page.pagination.page} 页 · 每页 {page.pagination.limit} 条 · 共 {page.total} 条
               </p>
-              <div className="flex gap-2">
+              <div className="notif-paginationPair">
                 {page.pagination.page > 1 ? (
                   <Link
                     href={`/notifications?page=${page.pagination.page - 1}`}
-                    className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-3 py-1.5 text-12 text-fg-2 hover:bg-bg-3"
+                    className="notif-prev"
                     data-pagination-prev
                   >
                     ← 上一页
@@ -142,7 +142,7 @@ export default async function NotificationsPage({ searchParams }: { searchParams
                 {page.pagination.hasMore ? (
                   <Link
                     href={`/notifications?page=${page.pagination.page + 1}`}
-                    className="rounded-[var(--nexus-radius-sm)] bg-accent-1 px-3 py-1.5 text-12 text-accent-fg hover:bg-accent-2"
+                    className="notif-next"
                     data-pagination-next
                   >
                     下一页 →
@@ -154,22 +154,22 @@ export default async function NotificationsPage({ searchParams }: { searchParams
         </>
       )}
 
-      <section className="mt-8 grid gap-4 sm:grid-cols-2">
+      <section className="notif-grid2">
         <div>
-          <h2 className="text-12 font-semibold text-fg-1" data-notification-backed-count={KIND_ORDER.length}>
+          <h2 className="notif-h2" data-notification-backed-count={KIND_ORDER.length}>
             会通知的（登记了 {KIND_ORDER.length} 类，逐类从注册表现算）
           </h2>
-          <ul className="mt-1 list-disc pl-4 text-11 text-fg-3">
+          <ul className="notif-bulletList">
             {KIND_ORDER.map((kind) => (
               <li key={kind} data-notification-backing={kind}>
-                <span className="text-fg-2">{KIND_LABEL[kind]}</span>：{NOTIFICATION_TERMINAL_STATE[kind]}
+                <span className="notif-kindName">{KIND_LABEL[kind]}</span>：{NOTIFICATION_TERMINAL_STATE[kind]}
               </li>
             ))}
           </ul>
         </div>
         <div>
-          <h2 className="text-12 font-semibold text-fg-1">不通知的，以及为什么</h2>
-          <ul className="mt-1 list-disc pl-4 text-11 text-fg-3">
+          <h2 className="notif-h2">不通知的，以及为什么</h2>
+          <ul className="notif-bulletList">
             {NOT_NOTIFIED.map((line) => (
               <li key={line}>{line}</li>
             ))}
@@ -177,20 +177,20 @@ export default async function NotificationsPage({ searchParams }: { searchParams
         </div>
       </section>
 
-      <section className="mt-6 rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-subtle)] bg-bg-1 p-4">
-        <h2 className="text-12 font-semibold text-fg-1" data-notification-unbacked-count={page.unbacked.length}>
+      <section className="notif-panel">
+        <h2 className="notif-h2" data-notification-unbacked-count={page.unbacked.length}>
           {page.unbacked.length === 0
             ? `§164 登记的 ${KIND_ORDER.length} 类，今天都有真实来源了`
             : `§164 登记的 ${KIND_ORDER.length} 类里，这 ${page.unbacked.length} 类还没有真实来源`}
         </h2>
-        <ul className="mt-1 space-y-1 text-11 text-fg-3">
+        <ul className="notif-bulletList">
           {page.unbacked.map((entry) => (
             <li key={entry.spec} data-notification-unbacked={entry.spec}>
-              <span className="text-fg-2">{entry.spec}</span>：{entry.reason}
+              <span className="notif-kindName">{entry.spec}</span>：{entry.reason}
             </li>
           ))}
         </ul>
-        <p className="mt-2 text-11 text-fg-3">
+        <p className="notif-panelNote">
           没有真终态可挂的那一类不往收件箱里插行；上面"会通知的"逐类写明了各自挂在哪一次收尾上，
           那张表与生产者普查（`apps/web/test/notify-producers.test.ts`）用的是同一份注册表，
           所以页面这句不会再和代码里的类数对不上。
@@ -199,8 +199,8 @@ export default async function NotificationsPage({ searchParams }: { searchParams
 
       <NotificationSettings />
 
-      <p className="mt-8 text-11 text-fg-3">
-        <Link href="/" className="text-accent-2-ink underline">
+      <p className="notif-foot">
+        <Link href="/" className="notif-link">
           回到首页
         </Link>
       </p>
