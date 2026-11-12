@@ -32,18 +32,18 @@ export function FollowButton({ handle, initialFollowing, initialFollowers }: { h
   };
 
   return (
-    <span className="flex items-center gap-2">
+    <span className="fw-wrap">
       <button
         type="button"
         disabled={busy}
         onClick={() => void click()}
         data-follow-button={following ? 'on' : 'off'}
-        className="rounded bg-accent-2 px-3 py-1 text-12 text-accent-fg disabled:opacity-50"
+        className="fw-btn"
       >
         {following ? '已关注' : '关注'} · {followers}
       </button>
       {error ? (
-        <span className="text-11 text-danger-ink" data-follow-error>
+        <span className="fw-error" data-follow-error>
           {error}
         </span>
       ) : null}
