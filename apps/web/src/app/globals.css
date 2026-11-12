@@ -2291,6 +2291,27 @@
   .vb-adoptLive { background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-1); }
   .vb-adoptLive:hover { background: var(--nexus-color-bg-2); }
   .vb-adoptCurrent { cursor: not-allowed; color: var(--nexus-color-fg-3); }
+
+  /* ── §FE-60 / ADR-0212 `TeamPanel.tsx` `.tp-` 门面化——§133 teamCollaboration ──
+   * 项目名册与邀请的界面① 满员时邀请按钮照旧能点——服务端会拒，界面先说清为什么（§159）。
+     本片只换皮；角色/邀请派发全部一字不动。 */
+  .tp-colFaint { display: flex; flex-direction: column; gap: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .tp-rowBetween { display: flex; align-items: center; justify-content: space-between; gap: var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  .tp-breakAll { word-break: break-all; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-1); }
+  .tp-cardFaint { display: flex; flex-direction: column; gap: var(--nexus-space-1); border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-2); }
+  .tp-accent2Ink { font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-2-ink); }
+  .tp-chipWarn { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-3); padding: 1px var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-warn-ink); cursor: pointer; }
+  .tp-chipWarn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .tp-chipDanger { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-3); padding: 1px var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); cursor: pointer; }
+  .tp-chipDanger:disabled { opacity: 0.4; cursor: not-allowed; }
+  .tp-chipPrimary { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-3); padding: var(--nexus-space-1); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); }
+  .tp-chipPrimarySm { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-3); padding: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-1); cursor: pointer; }
+  .tp-chipPrimarySm:disabled { opacity: 0.4; cursor: not-allowed; }
+  .tp-btnPrimary { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-3); padding: var(--nexus-space-1) var(--nexus-space-3); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); cursor: pointer; }
+  .tp-btnPrimary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .tp-w220 { width: 13.75rem; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-3); padding: var(--nexus-space-1); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
+  .tp-rowEnd { display: flex; align-items: flex-end; gap: var(--nexus-space-2); }
+  .tp-rootPad { display: flex; height: 100%; min-height: 0; flex-direction: column; gap: var(--nexus-space-3); overflow: auto; padding: var(--nexus-space-3); }
   .cp-inputShared { width: 100%; resize: vertical; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
   .cp-inputShared:focus { background: var(--nexus-color-bg-3); }
   .cp-grow { min-width: 0; flex: 1 1 0%; }
