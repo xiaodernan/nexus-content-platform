@@ -1905,3 +1905,45 @@ Older honest remainder: the hosted Studio proofs battery singleton family
 (spring-cloud-proof pgvector teardown / traffic-proof socket) reddened three refs
 tonight (c1e93c2, e189c42, 399418a) on an identical clause; main-line stayed green on
 all three. This turn contributed no bytes to those proof gates.
+## cont. 63 (2026-11-13) - hosted main-line verdict for the 55100 fix landed GREEN; repo-wide consolidation verified
+
+1) .github/workflows/main-line.yml (fix(ci), e97007f) hosted verdict:
+   - 4.3250996624e+10  main-line  e97007f  completed=success
+   The same battery for the pre-fix sha 399418a (still binding 55100) was:
+   - 4.324859043e+10   main-line  399418a  completed=failure
+     (container setup: failed to bind host port 0.0.0.0:55100/tcp: address already in use)
+   That is a before/after on the same job, same runner family: the dual-mapping was the
+   defect, the 55433-only binding is the fix. Both branches pushed; not claimed beyond
+   what the runner reported.
+
+2) Repo-wide consolidation check (the standing directive): no worktrees exist
+   (git worktree list shows only the main checkout D:/repo-root on master), no non-origin
+   branches, no stashes; master == main == origin == 4395e82 after the v686 push.
+   Nothing else was left in any lane-side place on this host.
+
+3) Hosted Studio batteries at ledger-write time (NOT claimed, all in progress unless
+   listed as completed):
+   - 4.3254271342e+10  CI        4395e82 (v686)         in_progress
+   - 4.3254271475e+10  main-line 4395e82                in_progress
+   - 4.3250996578e+10  CI        e97007f (main-line.yml) in_progress
+   - 4.3249724069e+10  CI        597ecf4 (cont. 61)     in_progress
+   - 4.3248589848e+10  CI        399418a (cont. 60)     in_progress
+   - 4.3248137679e+10  CI        2bbf844 (v685)         in_progress
+   - 4.3248138077e+10  main-line 2bbf844                completed=success
+   - 4.3249723537e+10  main-line 597ecf4                completed=success
+   - 4.3250996624e+10  main-line e97007f                completed=success (see 1)
+   - 4.324859043e+10   main-line 399418a                completed=failure (pre-fix, see 1)
+   Previous completions reconfirmed: ea9801c (cont. 58) CI GREEN (long-in-flight cell
+   resolved), 399418a CI FAILURE (cont. 61 pattern), c8f06cd CI success,
+   43221422599 c1e93c2 / 43236204188 e189c42 FAILURE (cont. 59) unchanged.
+   Zero refs were re-pushed, force-promoted, or marked green by anything other than the
+   hosted runner itself.
+
+4) What remains honestly unproven: pixels (browser has been disconnected the whole
+   session); production wiring of the v686 cache (deliberately unjudged, ADR 0113/0119
+   seam); Studio CI verdict on e97007f and 4395e82 (in flight at write time); the
+   singleton psql-family clause that reddened three refs tonight (documented cont. 59-61)
+   is a hosted-plane issue unchanged by this ledger.
+
+5) v686 landed at 4395e82 (both branches pushed). Nothing about the other lane's
+   tracked working-tree edits (jobs.py / test_jobs.py) was staged or committed.
