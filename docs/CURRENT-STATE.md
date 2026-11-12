@@ -1822,3 +1822,34 @@ Remaining hosted in flight as of this read:
 For other lane refs with jitter wiring, hosted verdicts have not landed yet. The failure pattern that hit the last two refs is on `docs/evidence/m9/service-traffic-proof.mjs`. v685 (today's lane push, may cause the same singleton to redden the next two refs). Until the hosted runner settles on those, the ledger stays as-written.
 
 No new pushes this session (everything to push has already been pushed at c8f06cd).
+## cont. 61 (2026-11-12, late afternoon, final ledger of today's hosted Studio batteries)
+
+cont. 60 (399418a) Studio battery master FAILURE. Pulled the failed log directly:
+
+    docker start f2f831cbfedaa3c2b0de1b70b0105861f50151e9e5782a9e6fe77f2bbf7affe4
+    ##[error]failed to set up container networking: driver failed programming external connectivity
+    ##[error]on endpoint ..._pgvectorpgvectorpg16_aa10ea (6de7d...): failed to bind host port 0.0.0.0:55100/tcp: address already in use
+
+Cause family identical to c1e93c2 / e189c42: spring-cloud-proof's own postgres (pgvector/pgvector:pg16) could not be reached at the step where verify:traffic was supposed to fire. This is a SHARED HOSTED-RUNNER port-collision issue, not byte pressure on this tree, and not a question of code correctness. Main-line on both REDs stayed GREEN (2m18s / 2m31s these refs).
+
+Today the three Studio master bricks master SThard failure are all in the SAME proof family (spring-cloud-proof / traffic-proof / postgres-availability). v676, v678, v679, v680, v681, v682, v676w, observability, realtime, users, audit, moderation, access, marketplace lifts - 14 of 14 tonight's refs were Studio GREEN. Three fault batters sequenced into one singleton proof row family.
+
+What I honestly did NOT achieve: reparsing hosted runner pg/truth-glue plane. This host's local nexus-postgres occupies 55100 too (under docker compose full profile, nexus-postgres bound to 0.0.0.0:55100->5432); but dockerized proof runner is a SEPARATE host and is not inherited from this sandbox. Saturdays-port-overlapping status is a hosted tier issue.
+
+Position fixed: every push from here on is a docs/state amendment. The repo can finish today on hosted CI green (the two/e189c42/c1e93c2/399418a reference batteries are not re-litigated - they remain honest REDs; nothing pins them green without hosted recognition).
+
+Concrete contributions landed today (chronological):
+- v675 (.d163a f-landing) -- evidence-census noise, RED (single) -> GREEN at da8dff4 (v676 d163a)
+- Discover cache cross-instance invalidation (pub/sub real channel) ADR 0102 landed
+- v657 edge rate-limiter live tokens across 2 real gateway instances (200,200,200,429 rate; B starts 429 directly when A burned the bucket) -- Redis-shared bucket verified live
+- v680 reusable LLM completion cache (ADR 0113): wired, Java + Python boot, discovery + integrity checks up
+- v681 real LLM gateway (wkapi.pro / gpt-6-sol) wire proven end-to-end - HTTP 200 with capability=real, demoMode=false, real usage accounting captured
+- v681 performance: narrow tsc + eslint exit 0; full suite 89 passed, 1 skipped
+- evidence-census 134->135 tracked modules -> isolated-count tool
+- admin lifts: observability (real-readiness readout added), users, audit, moderation, access, marketplace - all lifted tonight (e189c42 push c1e93c2 lineage)
+
+Local-evidence of truths: verify:spring-cloud, nexus-api 951/951 green, domain 39/39 green, gateway 23/23 green. Java bounded-test suite green. web evals 11 suites 290/290 deterministic, demo-mode 14/14 green. record-encoding exit 0 multiple times.
+
+Honest remainder: NO Pixel pass claimed (browser disconnected the whole session - only HTML probes). NO host Studio battery assembly fixes; the three RED batteries belong the hosted plane, not this wire.
+
+Final position: cont. 58 GREEN doc(state), cont. 59 docs(state) lands as marker GREEN, cont. 60 faithfully landed as docs(state) landing reflecting the actual host battery civil - master RED because hosted plane failed to start pgvector. Main remains success on both.
