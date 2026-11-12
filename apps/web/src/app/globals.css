@@ -2256,6 +2256,41 @@
   .wg-clickable { cursor: pointer; }
   .wg-grab { cursor: grab; }
   .wg-grabbing { cursor: grabbing; }
+
+  /* ── §FE-59 / ADR-0211 `VariantsBoard.tsx` `.vb-` 门面化——§29 多方案的并排比较板 ──
+   * AI 规划方案的 4 条线：分片生成 + 人工挑选；候选不动工作区，点「切到这个方向」才走 §28 分支切换。
+     真 provider 才启动（task 锁）；DEMO 不假装出现。分支切换只对真 studio 走；不虚造"并排为空"。 */
+  .vb-fieldSm { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: 2px var(--nexus-space-1); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
+  .vb-dangerMt2 { margin-bottom: var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-danger-ink); }
+  .vb-warnMt2 { margin-bottom: var(--nexus-space-2); display: flex; flex-direction: column; gap: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-warn-ink); line-height: 1.5; }
+  .vb-warnBadge { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-warn); padding: 2px var(--nexus-space-2); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-fg); }
+  .vb-accent { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-accent-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-fg); cursor: pointer; }
+  .vb-accent:disabled { opacity: 0.5; cursor: not-allowed; }
+  .vb-grid { display: grid; gap: var(--nexus-space-3); grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); }
+  .vb-w160 { width: 10rem; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: 3px var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
+  .vb-primary { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-3); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); cursor: pointer; }
+  .vb-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .vb-toolbar { margin-bottom: var(--nexus-space-3); display: flex; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-2); border-radius: var(--nexus-radius-md); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); padding: var(--nexus-space-2) var(--nexus-space-3); }
+  .vb-thead2 { margin-bottom: var(--nexus-space-3); display: flex; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-2); }
+  .vb-row1 { display: flex; align-items: center; gap: var(--nexus-space-1); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .vb-row2pad { display: flex; align-items: center; gap: var(--nexus-space-2); padding: var(--nexus-space-2) var(--nexus-space-3); }
+  .vb-rowEnd { margin-left: auto; display: flex; align-items: center; gap: var(--nexus-space-1); }
+  .vb-mono12 { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); }
+  .vb-mono12ink { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  .vb-accentPill { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-accent-2); padding: 1px 5px; font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-fg); }
+  .vb-cardPreview { display: flex; height: 16.25rem; align-items: center; justify-content: center; background: var(--nexus-color-bg-0); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .vb-relOverflow { position: relative; overflow: hidden; background: var(--nexus-color-bg-0); }
+  .vb-cardWrap { display: flex; flex-direction: column; overflow: hidden; border-radius: var(--nexus-radius-md); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); }
+  .vb-scroll { min-height: 0; flex: 1 1 0%; overflow: auto; background: var(--nexus-color-bg-0); padding: var(--nexus-space-3) var(--nexus-space-4); }
+  .vb-cardBody { display: flex; flex-direction: column; gap: var(--nexus-space-2); padding: var(--nexus-space-2) var(--nexus-space-3); }
+  .vb-pickBtn { border: 0; border-radius: var(--nexus-radius-sm); background: transparent; padding: 2px var(--nexus-space-2); font-size: var(--nexus-font-size-11); cursor: pointer; }
+  .vb-pickOn { background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-1); }
+  .vb-pickIdle { color: var(--nexus-color-fg-3); }
+  .vb-pickIdle:hover { background: var(--nexus-color-bg-2); }
+  .vb-adoptBtn { border: 0; border-radius: var(--nexus-radius-sm); background: transparent; padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); cursor: pointer; }
+  .vb-adoptLive { background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-1); }
+  .vb-adoptLive:hover { background: var(--nexus-color-bg-2); }
+  .vb-adoptCurrent { cursor: not-allowed; color: var(--nexus-color-fg-3); }
   .cp-inputShared { width: 100%; resize: vertical; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
   .cp-inputShared:focus { background: var(--nexus-color-bg-3); }
   .cp-grow { min-width: 0; flex: 1 1 0%; }
