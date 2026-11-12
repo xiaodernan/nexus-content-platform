@@ -39,9 +39,9 @@ export function InviteAcceptPanel({ token }: { token: string }) {
 
   if (joinedProjectId) {
     return (
-      <div className="flex flex-col gap-2" data-invite-accepted>
-        <p className="text-13 text-accent-2-ink">已加入项目。</p>
-        <Link href={`/studio/${joinedProjectId}`} className="text-13 text-accent-2-ink underline">
+      <div className="iv-panel" data-invite-accepted>
+        <p className="iv-success">已加入项目。</p>
+        <Link href={`/studio/${joinedProjectId}`} className="iv-successLink">
           打开这个项目
         </Link>
       </div>
@@ -49,18 +49,18 @@ export function InviteAcceptPanel({ token }: { token: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="iv-panel">
       <button
         type="button"
         disabled={busy}
         onClick={() => void accept()}
         data-invite-accept
-        className="self-start rounded-[var(--nexus-radius-sm)] bg-bg-3 px-3 py-1 text-13 text-fg-1 disabled:opacity-40"
+        className="iv-btn"
       >
         {busy ? '处理中…' : '接受邀请，加入这个项目'}
       </button>
       {error ? (
-        <p className="text-12 text-danger-ink" data-invite-error>
+        <p className="iv-error" data-invite-error>
           {error}
         </p>
       ) : null}

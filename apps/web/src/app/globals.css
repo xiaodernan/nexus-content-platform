@@ -1291,6 +1291,26 @@
   .bk-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .bk-error { font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); }
 
+  /* ── §FE-22 / ADR-0174 `/invites/[token]` 邀请兑现落地页 `.iv-` 门面化 ──
+   * §133（#201-203）：token 证明邀请真、邮箱证明"这封是发给我的"。未登录只说一句话+一个回首页链接。
+   * 全裸 Tailwind → .iv- 门面族；行为/文案/data 钩子/CSRF 一字不改。零动效、零 @media。 */
+  .iv-page { margin-inline: auto; width: 100%; max-width: 35rem; padding: var(--nexus-space-4) var(--nexus-space-4) var(--nexus-space-6); display: flex; flex-direction: column; gap: var(--nexus-space-4); }
+  .iv-head { display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+  .iv-title { font-size: var(--nexus-font-size-14); font-weight: 500; color: var(--nexus-color-fg-1); }
+  .iv-lede { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .iv-ledeStrong { color: var(--nexus-color-fg-1); }
+  .iv-backlink { font-size: var(--nexus-font-size-13); color: var(--nexus-color-accent-2-ink); text-decoration: underline; text-underline-offset: 0.15em; border-radius: 2px; }
+  .iv-backlink:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .iv-panel { display: flex; flex-direction: column; gap: var(--nexus-space-2); }
+  .iv-btn { align-self: flex-start; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-3); padding: var(--nexus-space-1) var(--nexus-space-3); font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-1); cursor: pointer; }
+  .iv-btn:hover:not(:disabled) { filter: brightness(1.1); }
+  .iv-btn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .iv-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .iv-error { font-size: var(--nexus-font-size-12); color: var(--nexus-color-danger-ink); }
+  .iv-success { font-size: var(--nexus-font-size-13); color: var(--nexus-color-accent-2-ink); }
+  .iv-successLink { font-size: var(--nexus-font-size-13); color: var(--nexus-color-accent-2-ink); text-decoration: underline; text-underline-offset: 0.15em; border-radius: 2px; }
+  .iv-successLink:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+
   /* ── §FE-15 / ADR-0163 创作数据页按天曲线 `TrendChart.tsx` `.tc-` 门面化（FE 首个 SVG 图表片） ──
    * analytics 分析页最后一块裸 Tailwind：8 处 className（含 SVG 专属 fill-[...]/text-[9px] 两个
    * 任意值原子类）。本片的灵魂是**三轴语义色守恒**——opens/visitors/playTimeMs 各有专属纵轴与
