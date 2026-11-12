@@ -96,14 +96,14 @@ export function RateLimitStatsPanel() {
 
   if (error) {
     return (
-      <p className="text-13 text-danger-ink" data-ratelimit-stats="error" data-ratelimit-error>
+      <p className="ar-errorNote" data-ratelimit-stats="error" data-ratelimit-error>
         {error}
       </p>
     );
   }
   if (!stats) {
     return (
-      <p className="text-13 text-fg-2" data-ratelimit-stats="loading">
+      <p className="ar-muted" data-ratelimit-stats="loading">
         正在问这台实例…
       </p>
     );
@@ -112,42 +112,42 @@ export function RateLimitStatsPanel() {
   const sharedWindowIsLive = stats.driver === 'redis' && stats.wire === 'up';
 
   return (
-    <div className="flex flex-col gap-2 text-13" data-ratelimit-stats="ready">
-      <dl className="grid grid-cols-[11rem_1fr] gap-x-3 gap-y-1">
-        <dt className="text-fg-3">驱动</dt>
+    <div className="ar-root" data-ratelimit-stats="ready">
+      <dl className="rl-dl">
+        <dt className="ar-dt">驱动</dt>
         <dd data-ratelimit-driver={stats.driver}>
           {stats.driver === 'redis' ? 'Redis 有序集滑动窗口' : '进程内（单实例默认）'}
         </dd>
-        <dt className="text-fg-3">那份窗口住在</dt>
+        <dt className="ar-dt">那份窗口住在</dt>
         <dd data-ratelimit-window-scope={stats.windowScope}>
           {stats.windowScope === 'shared-across-instances'
             ? '那台 Redis（所有实例同一份数）'
             : '这台进程的内存（每台各数各的）'}
         </dd>
-        <dt className="text-fg-3">跨实例线路</dt>
+        <dt className="ar-dt">跨实例线路</dt>
         <dd data-ratelimit-wire={stats.wire}>{WIRE_LABEL[stats.wire]}</dd>
-        <dt className="text-fg-3">桶的上界</dt>
+        <dt className="ar-dt">桶的上界</dt>
         <dd data-ratelimit-ceiling>{stats.bucketCeiling} 只</dd>
-        <dt className="text-fg-3">驱动数到的桶</dt>
+        <dt className="ar-dt">驱动数到的桶</dt>
         <dd data-ratelimit-tracked>
           {stats.bucketsTracked} 只
-          <span className="ml-1 text-11 text-fg-3">
+          <span className="rl-trackedNote">
             {stats.driver === 'redis'
               ? '（这台最近一次判定带回的名册条数；权威是那台 Redis 的 ZCARD，长时间没流量时它是旧的）'
               : '（这张表里的条数，就是权威）'}
           </span>
         </dd>
-        <dt className="text-fg-3">键前缀</dt>
+        <dt className="ar-dt">键前缀</dt>
         <dd data-ratelimit-prefix>{stats.keyPrefix ?? '—（这个驱动没有键空间）'}</dd>
-        <dt className="text-fg-3">交给本机窗口判</dt>
+        <dt className="ar-dt">交给本机窗口判</dt>
         <dd data-ratelimit-fallback={stats.fallbackCount === null ? 'na' : String(stats.fallbackCount)}>
           {stats.fallbackCount === null
             ? '—（进程内驱动没有"本该共享却退回"这回事）'
             : `${stats.fallbackCount} 次：${reasonList(stats.fallbackByReason)}`}
         </dd>
-        <dt className="text-fg-3">桶被回收</dt>
+        <dt className="ar-dt">桶被回收</dt>
         <dd data-ratelimit-pruned>{reasonList(stats.bucketsPrunedByReason)}</dd>
-        <dt className="text-fg-3">部署那句</dt>
+        <dt className="ar-dt">部署那句</dt>
         <dd data-ratelimit-deployment={stats.deployment.redisUrlConfigured ? 'configured' : 'unset'}>
           {stats.deployment.envVar}{' '}
           {stats.deployment.redisUrlConfigured ? '已设' : '未设——限额那句话现在是"每台各数各的"'}（这台 pid=
@@ -155,21 +155,21 @@ export function RateLimitStatsPanel() {
         </dd>
         {stats.lastConnectionError ? (
           <>
-            <dt className="text-fg-3">最近一次连接报错</dt>
+            <dt className="ar-dt">最近一次连接报错</dt>
             <dd data-ratelimit-connection-error>{stats.lastConnectionError}</dd>
           </>
         ) : null}
       </dl>
       {/* 静态装法：唯一真值端上来，不重新算、不抄第二遍 */}
-      <section className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] p-2 flex flex-col gap-1" aria-label="IP 窗口闸怎么装的">
-        <p className="text-11 text-fg-3">IP 窗口闸怎么装的（改动 IP_RATE_RULES 才算改数）</p>
-        <ul className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5 text-11" data-ratelimit-rules>
+      <section className="rl-rulesBox" aria-label="IP 窗口闸怎么装的">
+        <p className="adm-capNote">IP 窗口闸怎么装的（改动 IP_RATE_RULES 才算改数）</p>
+        <ul className="rl-rulesList" data-ratelimit-rules>
           {Object.entries(stats.rules)
             .sort(([a], [b]) => a.localeCompare(b, 'zh-CN'))
             .map(([route, rule]) => (
-              <li key={route} className="contents">
-                <span className="font-mono text-fg-2">{route}</span>
-                <span className="tabular-nums text-fg-1">
+              <li key={route} className="rl-rulesItem">
+                <span className="rl-ruleRoute">{route}</span>
+                <span className="ar-num">
                   {rule.limit} 次 / {windowText(rule.windowMs)}
                 </span>
               </li>
@@ -177,12 +177,12 @@ export function RateLimitStatsPanel() {
         </ul>
       </section>
       {stats.driver === 'redis' && !sharedWindowIsLive ? (
-        <p className="text-11 text-warn-ink" data-ratelimit-scope-warning>
+        <p className="am-warnNote" data-ratelimit-scope-warning>
           这台装的是共享窗口，但此刻线路不在：这期间这一台的额度是它自己看到的次数。
           闸还在挡，只是"多少次"那句暂时是每台各算的。
         </p>
       ) : null}
-      <p className="text-11 text-fg-3" data-ratelimit-updated>
+      <p className="adm-capNote" data-ratelimit-updated>
         {updatedAt ? `更新于 ${updatedAt}` : '还没更新过'} · 每 4 秒问一次 ·
         这只回答<strong>这台实例</strong>（多实例部署下每台各算各的，回答这次请求的那台会说话，别台不会）
       </p>

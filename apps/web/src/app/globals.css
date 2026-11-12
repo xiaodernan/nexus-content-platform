@@ -1503,6 +1503,17 @@
   .gw-ident { font-family: var(--nexus-font-mono); font-variant-numeric: tabular-nums; color: var(--nexus-color-fg-1); }
   .gw-ident2 { font-family: var(--nexus-font-mono); font-variant-numeric: tabular-nums; color: var(--nexus-color-fg-2); }
 
+  /* ── §FE-33 / ADR-0185 `/admin/rate-limit` 限流闸诊断 `.rl-` 门面化 ──
+   * §SEC 第三十五片：装的是哪个驱动/共享窗口还是每台各数/退回本机窗口的次数——镜表、
+   * 三类退回原因、IP_RATE_RULES 原样端出。全裸布局 atom 迁入 .rl- 族（dl 11rem），
+   * 表格体与语义判据（driver/windowScope/wire/fallback*）一字不改。零动效、零 @media。 */
+  .rl-dl { display: grid; grid-template-columns: 11rem 1fr; column-gap: var(--nexus-space-3); row-gap: var(--nexus-space-1); }
+  .rl-trackedNote { margin-left: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .rl-rulesBox { border-radius: var(--nexus-radius-sm); border: 1px solid var(--nexus-color-border-subtle); padding: var(--nexus-space-2); display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+  .rl-rulesList { display: grid; grid-template-columns: 1fr auto; gap: 2px var(--nexus-space-3); font-size: var(--nexus-font-size-11); }
+  .rl-ruleRoute { font-family: var(--nexus-font-mono); color: var(--nexus-color-fg-2); }
+  .rl-rulesItem { display: contents; }
+
   /* ── §FE-30 / ADR-0182 `/admin/users` 账号与角色 + 客人回收 `.au-` 门面化 ──
    * §131 自助提权收口页 + ADR-0072 过期访客回收。四条硬规则的判定全在服务端（domain/roles.ts），
    * 界面只是把被拒的原因显示出来、把「我的档位」和「角色」刻意分行。denied×2 复用 `.adm-*`。 */
