@@ -344,7 +344,63 @@
     background: radial-gradient(120% 130% at 50% 0%, color-mix(in srgb, var(--nexus-color-brand) 12%, var(--nexus-color-bg-1)) 0%, var(--nexus-color-bg-1) 62%);
     color: var(--nexus-color-fg-2); font-size: var(--nexus-font-size-13); line-height: 1.55;
   }
-  @media (prefers-reduced-motion: reduce) { .hp-demoChip, .hp-navlink { transition: none; } }
+  /* FE-18 / ADR-0167 首页正文门面化收尾（承 FE-3 同一 `.hp-` 段、非独立段头）：
+     把 FE-3 只覆盖 Hero/nav/demoChip/emptySection 的 `.hp-` 家族延伸到
+     账号/项目/回收站/我的主页/Provider 五个 section（共 42 类）。
+     视觉纪律：一整串裸类 → 一个门面类（逐类对齐原计算样式，零视觉失真）；把 FE-3 已立的
+     精致语言（行卡柔光底 + hover 抬升辉光 + brand focus 环 + 语义色徽标）从 Hero 一贯到正文；
+     全锚既有 --nexus-* + color-mix、零 hex、零新增颜色 token、双主题、reduced 真收口。
+     max-w-[820px] 锚 51.25rem（820/16）等价；text-12 简写与 text-[font-size-12] 本就同值
+     （globals.css 顶部 --text-12 映射），统一锚 --nexus-font-size-12。
+     不新增渐变墨字（保留 FE-3 唯一 .hp-heroTitle，不扩 A11Y-1 forced-colors 面）。 ── */
+  .hp-page { margin-inline: auto; display: flex; min-height: 100vh; max-width: 51.25rem; flex-direction: column; gap: var(--nexus-space-8); padding: var(--nexus-space-12) var(--nexus-space-6); }
+  .hp-nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-2); }
+  .hp-navNote { color: var(--nexus-color-fg-3); font-size: var(--nexus-font-size-11); }
+  .hp-section { border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-6); }
+  .hp-sectionTitle { margin-bottom: var(--nexus-space-3); font-size: var(--nexus-font-size-16); font-weight: 500; }
+  .hp-sectionTitleTight { margin-bottom: var(--nexus-space-2); font-size: var(--nexus-font-size-16); font-weight: 500; }
+  .hp-sectionGap { margin-top: var(--nexus-space-4); }
+  .hp-listLoose { margin-top: var(--nexus-space-4); display: grid; gap: var(--nexus-space-3); }
+  .hp-listItem { display: grid; gap: var(--nexus-space-2); }
+  .hp-list { display: grid; gap: var(--nexus-space-2); }
+  .hp-healthList { margin-top: var(--nexus-space-2); display: grid; gap: var(--nexus-space-1); }
+  /* 行卡族：原 flex justify-between + rounded-sm + bg-1 + px-4 py-3。
+     FE-3 精致语言延伸：柔光边 + hover 抬升辉光（interactive）/ 沉没底（muted）/ 静态底（static）。 */
+  .hp-rowCardInteractive, .hp-rowCard, .hp-rowCardStatic, .hp-rowCardMuted {
+    display: flex; align-items: center; justify-content: space-between;
+    border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-1);
+    padding: var(--nexus-space-3) var(--nexus-space-4);
+  }
+  .hp-rowCardInteractive { border: 1px solid transparent; transition: background var(--nexus-motion-base) var(--nexus-motion-ease), border-color var(--nexus-motion-base) var(--nexus-motion-ease), box-shadow var(--nexus-motion-base) var(--nexus-motion-ease); text-decoration: none; }
+  .hp-rowCardInteractive:hover { background: var(--nexus-color-bg-2); border-color: var(--nexus-color-border-subtle); box-shadow: 0 0 0 1px color-mix(in srgb, var(--nexus-color-brand) 18%, transparent), 0 4px 16px color-mix(in srgb, var(--nexus-color-brand) 10%, transparent); }
+  .hp-rowCardStatic { gap: var(--nexus-space-3); }
+  .hp-rowCardMuted { color: var(--nexus-color-fg-3); }
+  /* 6 个 <a>（5 nav + profile + 项目行 + 收藏行）：FE-3 navlink 同款 brand focus 环。 */
+  .hp-rowCardInteractive:focus-visible, .hp-profileLink:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .hp-rowName { font-size: var(--nexus-font-size-14); color: var(--nexus-color-fg-1); }
+  .hp-rowNameMuted { font-size: var(--nexus-font-size-14); color: var(--nexus-color-fg-2); }
+  .hp-rowInset { padding-inline: var(--nexus-space-4); }
+  /* mono 徽标族：原 font-mono text-12/fg-3，Indent 变体多 ml-2。 */
+  .hp-rowMeta, .hp-rowMetaIndent { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .hp-rowMetaIndent { margin-left: var(--nexus-space-2); }
+  .hp-monoReason { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); }
+  .hp-statusBadge { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); text-transform: uppercase; color: var(--nexus-color-fg-2); }
+  .hp-byline { margin-left: var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .hp-sectionNote { margin-bottom: var(--nexus-space-3); font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-3); }
+  .hp-sectionNoteLoose { margin-bottom: var(--nexus-space-4); font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-3); }
+  .hp-profileLede { margin-bottom: var(--nexus-space-3); font-size: var(--nexus-font-size-13); }
+  .hp-profileLedeMuted { margin-bottom: var(--nexus-space-3); font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-3); }
+  .hp-profileLink { color: var(--nexus-color-accent-2-ink); text-decoration: underline; }
+  .hp-inlineNote { margin-left: var(--nexus-space-2); color: var(--nexus-color-fg-3); }
+  .hp-subTitle { margin-bottom: var(--nexus-space-2); margin-top: var(--nexus-space-5); font-size: var(--nexus-font-size-14); font-weight: 500; }
+  .hp-emptyNote { font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-3); }
+  .hp-healthRow { display: flex; align-items: center; justify-content: space-between; padding-inline: var(--nexus-space-4); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); }
+  .hp-healthKind { color: var(--nexus-color-fg-3); }
+  .hp-healthStatus { text-transform: uppercase; color: var(--nexus-color-fg-2); }
+  @media (prefers-reduced-motion: reduce) {
+    .hp-demoChip, .hp-navlink, .hp-rowCardInteractive { transition: none; }
+    .hp-rowCardInteractive:hover { transform: none; }
+  }
 
   /* ─────────────────────────────────────────────────────────────────────────     §FE-4 全平台搜索（/search）：发现链路的第二个公开入口，此前最朴素的一页。
      与 /discover /marketplace / 同一套 token 语言，零新增颜色 token、双主题都成立：
