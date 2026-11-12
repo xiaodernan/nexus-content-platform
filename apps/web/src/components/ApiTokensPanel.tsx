@@ -245,27 +245,27 @@ export function ApiTokensPanel() {
   };
 
   return (
-    <section className="flex flex-col gap-[var(--nexus-space-3)]">
-      <div className="flex flex-wrap items-end gap-2">
-        <label className="flex flex-col gap-1 text-11 text-fg-3">
+    <section className="at-panel">
+      <div className="at-formRow">
+        <label className="at-label">
           名称（认哪一把用）
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={60}
             placeholder="例如：CI 拉取设计文档"
-            className="h-[30px] w-[220px] rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 text-12 text-fg-1"
+            className="at-input"
             data-token-name
           />
         </label>
-        <label className="flex flex-col gap-1 text-11 text-fg-3" title="留空 = 不过期。到期时间由发的人自己定，服务端不替你设一个你不知道的期限">
+        <label className="at-label" title="留空 = 不过期。到期时间由发的人自己定，服务端不替你设一个你不知道的期限">
           有效天数（可选）
           <input
             value={days}
             onChange={(e) => setDays(e.target.value)}
             inputMode="numeric"
             placeholder="不过期"
-            className="h-[30px] w-[90px] rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 text-12 text-fg-1"
+            className="at-inputNarrow"
             data-token-days
           />
         </label>
@@ -273,16 +273,16 @@ export function ApiTokensPanel() {
           type="button"
           onClick={() => void create()}
           disabled={busy || !name.trim() || scopes.length === 0}
-          className="h-[30px] rounded-[var(--nexus-radius-sm)] bg-brand px-3 text-12 text-accent-fg disabled:opacity-40"
+          className="at-btnPrimary"
           data-token-create
         >
           签发凭据
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-3 text-12 text-fg-2">
+      <div className="at-scopesRow">
         {API_TOKEN_SCOPES.map((scope) => (
-          <label key={scope} className="flex items-center gap-1" title={SCOPE_LABELS[scope]}>
+          <label key={scope} className="at-scopeItem" title={SCOPE_LABELS[scope]}>
             <input
               type="checkbox"
               checked={scopes.includes(scope)}
@@ -292,25 +292,25 @@ export function ApiTokensPanel() {
               data-token-scope={scope}
             />
             {scope}
-            <span className="text-fg-3">· {SCOPE_LABELS[scope]}</span>
+            <span className="at-scopeNote">· {SCOPE_LABELS[scope]}</span>
           </label>
         ))}
       </div>
 
       {issued ? (
-        <div className="flex flex-col gap-2 rounded-[var(--nexus-radius-md)] border border-warn/50 bg-bg-2 p-[var(--nexus-space-3)]" data-token-issued>
-          <p className="text-12 text-fg-1">
+        <div className="at-issued" data-token-issued>
+          <p className="at-issuedHint">
             这是这个平台唯一一次把明文给你。关掉这一页就再也拿不回来了——库里存的是哈希，服务端自己也算不出来。
           </p>
-          <code className="break-all rounded bg-bg-3 p-2 text-11 text-fg-1" data-token-plain>
+          <code className="at-issuedBox" data-token-plain>
             {issued.plaintext}
           </code>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="at-issuedActions">
             <button
               type="button"
               onClick={() => void tryV1('list')}
               disabled={trying !== null}
-              className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11 text-fg-2 disabled:opacity-40"
+              className="at-btnGhostSm"
               data-try-list
             >
               试一下 GET /api/v1/projects
@@ -320,7 +320,7 @@ export function ApiTokensPanel() {
               onClick={() => void tryV1('design')}
               disabled={trying !== null || !triedProjectId}
               title={triedProjectId ? '用刚才读到的第一个项目' : '先试上面那条，拿到一个项目 id'}
-              className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11 text-fg-2 disabled:opacity-40"
+              className="at-btnGhostSm"
               data-try-design
             >
               试一下 GET /api/v1/projects/&lt;id&gt;/design
@@ -334,13 +334,13 @@ export function ApiTokensPanel() {
                   ? '真的往这个项目插一个文本节点——不是模拟，撤销要去 Studio 的历史面板'
                   : '先试上面那条，拿到一个项目 id'
               }
-              className="rounded-[var(--nexus-radius-sm)] border border-warn/60 px-2 py-1 text-11 text-fg-2 disabled:opacity-40"
+              className="at-btnGhostSmWarn"
               data-try-patch
             >
               试一下 PATCH …/design（会真的加一个节点）
             </button>
             {tryResult ? (
-              <span className="text-11 text-fg-2" data-try-status={tryResult.status}>
+              <span className="at-tryRow" data-try-status={tryResult.status}>
                 HTTP {tryResult.status} · {tryResult.detail}
               </span>
             ) : null}
@@ -349,48 +349,48 @@ export function ApiTokensPanel() {
       ) : null}
 
       {error ? (
-        <p className="text-12 text-danger-ink" data-token-error>
+        <p className="at-error" data-token-error>
           {error}
         </p>
       ) : null}
       {note ? (
-        <p className="text-12 text-fg-2" data-token-note>
+        <p className="at-note" data-token-note>
           {note}
         </p>
       ) : null}
 
       {listError ? (
-        <p className="text-12 text-warn-ink" data-token-list-failed>
+        <p className="at-warnNote" data-token-list-failed>
           凭据列表读不到：{listError}（这不等于你名下没有凭据）
-          <button type="button" className="ml-2 underline" onClick={() => void load()} data-token-retry>
+          <button type="button" className="at-textLink at-textLinkTight" onClick={() => void load()} data-token-retry>
             再读一次
           </button>
         </p>
       ) : tokens === null ? (
-        <p className="text-12 text-fg-3">正在读取凭据列表…</p>
+        <p className="at-loading">正在读取凭据列表…</p>
       ) : tokens.length === 0 ? (
-        <p className="text-12 text-fg-3" data-token-empty>
+        <p className="at-empty" data-token-empty>
           这个账号还没有发过凭据。
         </p>
       ) : (
-        <table className="w-full border-collapse text-12">
-          <thead className="text-left text-11 text-fg-3">
+        <table className="at-table">
+          <thead className="at-thRow">
             <tr>
-              <th className="py-1 pr-3 font-normal">名称</th>
-              <th className="py-1 pr-3 font-normal">前缀</th>
-              <th className="py-1 pr-3 font-normal">scope</th>
-              <th className="py-1 pr-3 font-normal">签发</th>
-              <th className="py-1 pr-3 font-normal" title="写入有分钟级节流，所以这一列不精确到秒">
+              <th className="at-th">名称</th>
+              <th className="at-th">前缀</th>
+              <th className="at-th">scope</th>
+              <th className="at-th">签发</th>
+              <th className="at-th" title="写入有分钟级节流，所以这一列不精确到秒">
                 最近使用（分钟级）
               </th>
               <th
-                className="py-1 pr-3 font-normal"
+                className="at-th"
                 title={`同一（端点, 项目）在一分钟里合成一行计数，只留最近 ${API_ACCESS_RETENTION_DAYS} 天`}
               >
                 最近读过（按分钟合并，留 {API_ACCESS_RETENTION_DAYS} 天）
               </th>
-              <th className="py-1 pr-3 font-normal">状态</th>
-              <th className="py-1 font-normal" />
+              <th className="at-th">状态</th>
+              <th className="at-thLast" />
             </tr>
           </thead>
           <tbody>
@@ -398,14 +398,14 @@ export function ApiTokensPanel() {
               const status = statusOf(record);
               return (
                 <tr key={record.id} data-token-row={record.id}>
-                  <td className="py-1 pr-3 text-fg-1">{record.name}</td>
-                  <td className="py-1 pr-3 font-mono text-11 text-fg-3" data-token-hint={record.hint}>
+                  <td className="at-td">{record.name}</td>
+                  <td className="at-td at-tdMono" data-token-hint={record.hint}>
                     {record.hint}
                   </td>
-                  <td className="py-1 pr-3 text-11">{record.scopes.join(' / ')}</td>
-                  <td className="py-1 pr-3 text-11 text-fg-3">{stamp(record.createdAt)}</td>
-                  <td className="py-1 pr-3 text-11 text-fg-3">{stamp(record.lastUsedAt)}</td>
-                  <td className="py-1 pr-3 text-11 text-fg-3" data-token-access={record.id}>
+                  <td className="at-td at-tdMono">{record.scopes.join(' / ')}</td>
+                  <td className="at-td at-tdSecondary">{stamp(record.createdAt)}</td>
+                  <td className="at-td at-tdSecondary">{stamp(record.lastUsedAt)}</td>
+                  <td className="at-td at-tdSecondary" data-token-access={record.id}>
                     {(() => {
                       // 读不到就说读不到：把“没读到”渲染成“没读过”，是在替一次故障编造结论
                       if (access === null) return '—';
@@ -420,18 +420,18 @@ export function ApiTokensPanel() {
                     })()}
                   </td>
                   <td
-                    className={`py-1 pr-3 text-11 ${status.tone === 'bad' ? 'text-danger-ink' : status.tone === 'warn' ? 'text-warn-ink' : 'text-fg-2'}`}
+                    className={'at-td ' + (status.tone === 'bad' ? 'at-statusBad' : status.tone === 'warn' ? 'at-statusWarn' : 'at-statusOk')}
                     data-token-status={record.revokedAt ? 'revoked' : 'active'}
                   >
                     {status.text}
                   </td>
-                  <td className="py-1">
+                  <td className="at-tdTight">
                     {record.revokedAt ? null : (
                       <button
                         type="button"
                         onClick={() => void revoke(record)}
                         disabled={busy}
-                        className="underline disabled:opacity-40"
+                        className="at-textLink"
                         data-token-revoke={record.id}
                       >
                         吊销
@@ -445,11 +445,11 @@ export function ApiTokensPanel() {
         </table>
       )}
 
-      <p className="text-11 text-fg-3" data-api-limits>
-        v1 今天是三个读端点加一个写端点：<code className="text-fg-2">GET /api/v1/projects</code>、
-        <code className="text-fg-2">GET /api/v1/projects/&lt;id&gt;</code>、
-        <code className="text-fg-2">GET /api/v1/projects/&lt;id&gt;/design</code>（后两条要 design:read），
-        与 <code className="text-fg-2">PATCH /api/v1/projects/&lt;id&gt;/design</code>（要 design:write）。
+      <p className="at-foot" data-api-limits>
+        v1 今天是三个读端点加一个写端点：<code className="at-codeInline">GET /api/v1/projects</code>、
+        <code className="at-codeInline">GET /api/v1/projects/&lt;id&gt;</code>、
+        <code className="at-codeInline">GET /api/v1/projects/&lt;id&gt;/design</code>（后两条要 design:read），
+        与 <code className="at-codeInline">PATCH /api/v1/projects/&lt;id&gt;/design</code>（要 design:write）。
         写发的是补丁不是整份文档：一次调用是一个事务，op 打不到就一条都不写；
         删除类 op（remove / removePage / removeToken / removeAsset / removeComponent）一律
         409 approval_required——公网这一侧没有人能批准它，请回 Studio 做。读每分钟 {LIMITS.read} 次、
