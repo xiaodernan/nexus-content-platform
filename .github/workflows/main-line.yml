@@ -47,7 +47,6 @@ jobs:
           POSTGRES_DB: nexus
         ports:
           - 55433:5432
-          - 55100:5432
         options: >-
           --health-cmd "pg_isready -U nexus -d nexus"
           --health-interval 5s
@@ -66,13 +65,13 @@ jobs:
       - name: Migrate the database (evals need the `users` table)
         run: npm run db:migrate
         env:
-          NEXUS_DATABASE_URL: postgres://nexus:nexus_dev_only@localhost:55100/nexus
+          NEXUS_DATABASE_URL: postgres://nexus:nexus_dev_only@localhost:55433/nexus
       - name: Typecheck main line
         run: npm run typecheck:main
       - name: Evals (invariants in CI, ADR-0093)
         run: npm run evals
         env:
-          NEXUS_DATABASE_URL: postgres://nexus:nexus_dev_only@localhost:55100/nexus
+          NEXUS_DATABASE_URL: postgres://nexus:nexus_dev_only@localhost:55433/nexus
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
