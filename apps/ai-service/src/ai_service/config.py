@@ -35,6 +35,9 @@ class Settings:
     openai_base_url: str = "https://api.openai.com/v1"
     json_mode: bool = True
     models: Mapping[str, str] = field(default_factory=lambda: dict(DEFAULT_MODELS))
+    # embedding 独立门：有些 provider 网关只有 chat 没有 embedding 模型（§159 不谎称能用）。
+    # NEXUS_MODEL_EMBEDDING=none 时如实报 unavailable，不创建 embedding 客户端、不给出假的 "real" 就绪。
+    embedding_enabled: bool = True
     # 检测到但尚未实现适配器的 key：如实报告为 unavailable，不假装能调用（§159）
     unsupported_text_keys: tuple[str, ...] = ()
 
@@ -57,6 +60,7 @@ class Settings:
             "models": dict(self.models),
             "unsupported_text_keys": self.unsupported_text_keys,
             "openai_api_key": masked,
+            "embedding_enabled": self.embedding_enabled,
         }
         inner = ", ".join(f"{key}={value!r}" for key, value in fields.items())
         return f"Settings({inner})"
@@ -79,6 +83,11 @@ def load_settings(environ: Mapping[str, str] | None = None) -> Settings:
         name for name in ("NEXUS_ANTHROPIC_API_KEY", "NEXUS_GOOGLE_GEMINI_API_KEY") if get(name)
     )
 
+    # embedding 单独的旋钮：NEXUS_MODEL_EMBEDDING=none（或 skip）= 该 provider 网关没有 embedding 模型。
+    # 这不是"默认关闭"——默认（含 DEFAULT_MODELS 里的 text-embedding-3-small）保持原样。
+    embedding_env = (get("NEXUS_MODEL_EMBEDDING", "") or "").strip().lower()
+    embedding_enabled = embedding_env not in ("none", "skip")
+
     return Settings(
         host=get("AI_SERVICE_HOST", "127.0.0.1") or "127.0.0.1",
         port=int(get("AI_SERVICE_PORT", "3200") or "3200"),
@@ -89,4 +98,5 @@ def load_settings(environ: Mapping[str, str] | None = None) -> Settings:
         json_mode=(get("NEXUS_LLM_JSON_MODE", "1") or "1") != "0",
         models=models,
         unsupported_text_keys=unsupported,
+        embedding_enabled=embedding_enabled,
     )

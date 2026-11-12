@@ -44,8 +44,13 @@ class Registry:
                 models=settings.models,
                 timeout_s=settings.request_timeout_s,
             )
-            if settings.has_llm
+            if settings.has_llm and settings.embedding_enabled
             else None
+        )
+        self._embedding_disabled_reason = (
+            "NEXUS_MODEL_EMBEDDING=none -- 该 provider 网关没有 embedding 模型（§159 不谎称可用）"
+            if not settings.embedding_enabled
+            else "缺少 NEXUS_OPENAI_API_KEY"
         )
 
     @property
@@ -77,7 +82,7 @@ class Registry:
         if self._embedding:
             infos.append(ProviderInfo("embedding", self._embedding.name, "real", self._embedding.models(), ""))
         else:
-            infos.append(ProviderInfo("embedding", "openai-compatible", "unavailable", [], "缺少 NEXUS_OPENAI_API_KEY"))
+            infos.append(ProviderInfo("embedding", "openai-compatible", "unavailable", [], self._embedding_disabled_reason))
         infos.append(ProviderInfo("image", "none", "unavailable", [], "M2 图像切片未实现"))
         infos.append(ProviderInfo("video", "none", "unavailable", [], "M5 视频切片未实现"))
         infos.append(ProviderInfo("speech", "none", "unavailable", [], "未实现"))
