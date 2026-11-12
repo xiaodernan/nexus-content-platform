@@ -36,21 +36,24 @@
 - **静态门 14/14**（`apps/web/test/credits-visual-style.test.ts`，去注释代码判据）
 - **`tsc -p apps/web --noEmit` exit 0**
 - globals.css 注释段含配对的 `§FE-16 / ADR-0164` 标记、断点说明与账本色守恒段（本 ADR 与之一致）
+- **`npx playwright test --config e2e/pw-fe16.config.ts` → 4 passed**（`e2e/credits-visual.spec.ts`）：
+  双主题语义色真上屏（`.cr-deltaNeg`=danger-ink、`.cr-deltaPos`=accent-2-ink ≠ 混用、两两不同）、
+  48rem 真分档（≤767px 2 列 / ≥768px 4 列实测 gridTemplateColumns 拆数）、`.cr-backlink` 键盘 `:focus-visible` 真生效、
+  `bg-0` ≠ 卡片 `bg-2`、零 console error——全部在真 Chrome 里实测。
 
 ## 诚实边界（接手切片，不是原作者）
 
-- **本片由并行会话起写（代码 + 静态门 + 71 行 `.cr-` CSS），于中途状态停下**（E2E 与 Mutation arms
-  落地前）；本提交完成的是收尾：静态门全绿确认、tsc 0、补本 ADR、落 Git——**不自建其未完成的
-  e2e 或变异臂证据**：切片注释提到规划了 `e2e/credits-visual.spec.ts`（配置 `e2e/pw-fe16.config.ts`
-  已写：setContent 离线注入真实字节，避开主 config 对后端探活的 180s 等待），**该 spec 不存在、未跑**；
-  `.cr-*` / `.fe16-scan*` 等是原作者的 working notes，留在工作区、不上 Git。
-- 剥 className 全文哈希 **本提交会话未自行独立重算**，信测试绿灯、不信变异臂宣称。
-- 无 dev server 常亮、无真 Chrome 截图、无 axe；视觉侧确认留给干净窗口 + `a11y-internal.spec.ts` 一类套件。
-- **Cron / 每日 `npx playwright test e2e/pw-fe16.config.ts`** 没人跑：除非有人补 `credits-visual.spec.ts`。
+- **本片由并行会话起写（代码 + 静态门 + 71 行 `.cr-` CSS），于中途状态停下**；本次接手完成收尾：
+  静态门全绿确认、tsc 0、补本 ADR、**补 `e2e/credits-visual.spec.ts` 并跑通 4/4（48rem 断点 + 语义色 + focus ring）**——
+  **不自建其未完成的变异臂证据**；`.fe16-scan.mjs` 的 `.cr-*` 仍是原作者的 working notes，
+   保留在工作区、不上 Git（`pw-fe16.config.ts` 因 spec 落地而转为永久入口——其初稿标注的"提交前删"已被复核废止）。
+- 剥 className 全文哈希（正文 `735592fb…` 来自切片自己的注释）**本提交会话未自行独立重算**。
+- 无 dev server 常亮、无生产构建截图；视觉侧确认除 e2e 的断点/语义色断言外，记为待干净窗口。
+- axe 级判定仍归 `a11y-internal.spec.ts`；本片不重复那扇门。
 
 ## 后果
 
 - credits 页（全库裸 Tailwind 密度最高的 server 纯展示页）className 归 `.cr-` 家族，与 FE-10~15 的 `.mp-/.mi-/.me-/.mr-/.an-/.tc-` 同级——§FE 家族的"门面化"序列至此**覆盖全部公开/账号内 server 展示页**。
 - 双主题 AA、账本正负色不可互传同一人的色温——两种读屏用户与打印黑白同款 AA。
 - admin 系统侧（已于 §A11Y-3/§A11Y-4 升级导航与首页）与 §FE 家族回归剩余裸页到零。
-- ADR-0165+：credits-visual.spec.ts 缺口与变异臂复算，由后续干净窗口认领。
+- ADR-0165+：变异臂独立复算、以及 spec 与真 dx SAMPLE 从逆向反推的**治理级**对账（SAMPLE 是手写镜像，非产物 JSX 的机械转译——drift 仍靠剥 className SHA256 兜底）。
