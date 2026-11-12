@@ -2043,6 +2043,76 @@
   .gp-warnMt2 { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-warn-ink); }
   .gp-faintMt1 { margin-top: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
 
+  /* ── §FE-50 / ADR-0202 `HistoryPanel.tsx` `.hi-` 门面化——§107 历史与快照 ──
+   * 快照列表 + diff 派发 + compare/restore 双键 + 分支切换；行可带 ≤500 节点diff。
+   * cn 三元统一映射：record badge(removed=warn/added=success) · entry source chip(ai→accent-2 else bg-2) ·
+     compare/restore 共用 .hi-chipSm(border on/off 双态)  · entry current row → .hi-entryCurrent。
+   * 零动效、零 @media、零 hex；字面量只出现在 6px/1px/3px 位（原 atom px-[6px]/py-[1px]/gap-[3px]）。 */
+  .hi-rootCol { display: flex; height: 100%; min-height: 0; flex-direction: column; }
+  .hi-sideHeader { display: flex; flex-shrink: 0; flex-direction: column; gap: var(--nexus-space-1); border-bottom: 1px solid var(--nexus-color-border-subtle); padding: var(--nexus-space-2) var(--nexus-space-3); }
+  .hi-headRow { display: flex; flex-shrink: 0; align-items: center; gap: var(--nexus-space-2); border-bottom: 1px solid var(--nexus-color-border-subtle); padding: var(--nexus-space-2) var(--nexus-space-3); }
+  .hi-headRowTight { display: flex; flex-shrink: 0; align-items: center; gap: var(--nexus-space-2); border-bottom: 1px solid var(--nexus-color-border-subtle); padding: var(--nexus-space-1) var(--nexus-space-3); }
+  .hi-headBordered { border-bottom: 1px solid var(--nexus-color-border-subtle); padding: var(--nexus-space-2) var(--nexus-space-3); }
+  .hi-listScroll { min-height: 0; flex: 1 1 0%; overflow: auto; padding-block: var(--nexus-space-1); }
+  .hi-listMeta { display: flex; flex-direction: column; gap: 2px; padding: 3px var(--nexus-space-3); }
+  .hi-diffRow { display: flex; flex-direction: column; gap: 1px; padding-block: 2px; padding-left: var(--nexus-space-3); }
+  .hi-diffHead { display: flex; align-items: center; gap: var(--nexus-space-1); font-size: var(--nexus-font-size-11); }
+  .hi-cellFaint { padding: 0 var(--nexus-space-3); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .hi-cellFaintB { padding: 0 var(--nexus-space-3) 2px; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .hi-cellPad { padding: var(--nexus-space-2) var(--nexus-space-3); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .hi-cellPad12 { padding: var(--nexus-space-2) var(--nexus-space-3); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .hi-cellWarn { padding: 0 var(--nexus-space-3); font-size: var(--nexus-font-size-11); color: var(--nexus-color-warn-ink); }
+  .hi-warnCell { flex-shrink: 0; padding-inline: var(--nexus-space-3); padding-bottom: var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-warn-ink); }
+  .hi-warnInk { color: var(--nexus-color-warn-ink); }
+  .hi-railToggle { width: 1.625rem; flex-shrink: 0; border-left: 1px solid var(--nexus-color-border-subtle); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .hi-railToggle:hover { background: var(--nexus-color-bg-2); }
+  .hi-search84 { display: inline-flex; width: 5.25rem; min-width: 0; border: 0; background: transparent; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-1); outline: none; }
+  .hi-search84::placeholder { color: var(--nexus-color-fg-3); }
+  .hi-growSearch { min-width: 0; flex: 1 1 0%; border: 0; background: transparent; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-1); outline: none; }
+  .hi-growSearch::placeholder { color: var(--nexus-color-fg-3); }
+  .hi-growSearch12 { min-width: 0; flex: 1 1 0%; border: 0; background: transparent; font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
+  .hi-growSearch12::placeholder { color: var(--nexus-color-fg-3); }
+  .hi-wrapCenter1 { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-1); }
+  .hi-flex2Scroll { min-height: 0; flex: 2 1 0%; overflow: auto; }
+  .hi-flex3Col { display: flex; min-height: 0; flex: 3 1 0%; flex-direction: column; border-top: 1px solid var(--nexus-color-border-subtle); }
+  .hi-row2gap { display: flex; align-items: center; gap: var(--nexus-space-2); }
+  .hi-row2mono { display: flex; align-items: center; gap: var(--nexus-space-2); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .hi-entryRow { display: flex; min-width: 0; flex: 1 1 0%; flex-direction: column; gap: 2px; padding: var(--nexus-space-2) var(--nexus-space-3); text-align: left; border: 0; background: transparent; cursor: pointer; }
+  .hi-entryRow:hover { background: var(--nexus-color-bg-2); }
+  .hi-entryCurrent { background: var(--nexus-color-bg-3); }
+  .hi-stretch { display: flex; align-items: stretch; }
+  .hi-monoBreak { word-break: break-all; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .hi-monoTrunc { min-width: 0; flex: 1 1 0%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .hi-monoFaintShrink { flex-shrink: 0; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .hi-monoTruncFaint { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .hi-truncFaint { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .hi-trunc12 { min-width: 0; flex: 1 1 0%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  .hi-trunc12color { min-width: 0; flex: 1 1 0%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--nexus-font-size-12); }
+  .hi-faint12 { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .hi-ink { color: var(--nexus-color-fg-2); }
+  .hi-chipSm { flex-shrink: 0; border-style: solid; border-width: 1px; border-radius: var(--nexus-radius-sm); padding: 2px var(--nexus-space-1); font-size: var(--nexus-font-size-11); cursor: pointer; background: transparent; }
+  .hi-chipSm:disabled { opacity: 0.5; cursor: not-allowed; }
+  .hi-antOn { border-color: transparent; background: var(--nexus-color-accent-2); color: var(--nexus-color-accent-fg); }
+  .hi-antOff { border-color: var(--nexus-color-border-subtle); color: var(--nexus-color-fg-3); }
+  .hi-antOff:hover { background: var(--nexus-color-bg-2); }
+  .hi-restoreWarn { border-color: transparent; background: var(--nexus-color-warn); color: var(--nexus-color-accent-fg); }
+  .hi-branchTab { border-style: solid; border-width: 1px; border-radius: var(--nexus-radius-sm); padding: 1px 6px; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); cursor: pointer; background: transparent; }
+  .hi-branchTab:disabled { cursor: default; }
+  .hi-diffBadge { flex-shrink: 0; border-radius: var(--nexus-radius-sm); padding: 0 var(--nexus-space-1); font-family: var(--nexus-font-mono); }
+  .hi-badgeRemoved { background: var(--nexus-color-warn); color: var(--nexus-color-accent-fg); }
+  .hi-badgeAdded { background: var(--nexus-color-success); color: var(--nexus-color-accent-fg); }
+  .hi-badgeIdle { background: var(--nexus-color-bg-2); color: var(--nexus-color-fg-3); }
+  .hi-sourceChip { flex-shrink: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: 0 var(--nexus-space-1); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); text-transform: uppercase; color: var(--nexus-color-fg-3); }
+  .hi-sourceChip2 { flex-shrink: 0; border-radius: var(--nexus-radius-sm); padding: 0 var(--nexus-space-1); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); text-transform: uppercase; }
+  .hi-sourceAi { background: var(--nexus-color-accent-2); color: var(--nexus-color-accent-fg); }
+  .hi-sourceIdle { background: var(--nexus-color-bg-2); color: var(--nexus-color-fg-3); }
+  .hi-chipGhost { flex-shrink: 0; border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); background: transparent; padding: 1px 6px; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .hi-chipGhost:hover { background: var(--nexus-color-bg-2); }
+  .hi-chipGhost:disabled { opacity: 0.5; cursor: not-allowed; }
+  .hi-cursorRow { display: flex; min-width: 0; cursor: pointer; align-items: center; gap: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); border: 0; background: transparent; padding: 0; text-align: left; }
+  .hi-diffList { margin-top: 2px; display: flex; flex-direction: column; gap: 2px; border-top: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-0); padding-top: var(--nexus-space-1); padding-bottom: var(--nexus-space-2); }
+  .hi-diffListCapped { max-height: 15rem; overflow: auto; }
+
   /* ── §FE-40 / ADR-0192 `/admin/health` 管理台健康总览 `.hd-` 门面化——五层快照一次成 ──
    * 运维只在这一页看到五层（ai/java/gateway/redis/postgres）的真相：
    * 拿不到 = "未测到"（而不是 down），和 web 静默降级纪律一致；每层独立超时。
