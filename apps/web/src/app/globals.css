@@ -2312,6 +2312,51 @@
   .tp-w220 { width: 13.75rem; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-3); padding: var(--nexus-space-1); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
   .tp-rowEnd { display: flex; align-items: flex-end; gap: var(--nexus-space-2); }
   .tp-rootPad { display: flex; height: 100%; min-height: 0; flex-direction: column; gap: var(--nexus-space-3); overflow: auto; padding: var(--nexus-space-3); }
+
+  /* ── §FE-61 / ADR-0213 `CommandBar.tsx` `.cb-` 门面化——§7 底部 AI 命令栏 ──
+   * 输入 → Agent Plan → 执行 → Activity → 一次事务落地 → AI Diff → 可整体撤销。
+     DEMO MODE / LIVE PROVIDER 两 chip 只 toggle 两色板（§160）——DEMO→warn / LIVE→success；真 provider 才从 studio.live 切；
+     真 provider 才启动；未接时显示离线面板——不假装 AI。 */
+  .cb-mtHint { margin-top: 2px; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .cb-sendBar { display: flex; height: 2.125rem; flex-shrink: 0; align-items: center; gap: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .cb-suggestionChip { overflow: hidden; border-radius: 9999px; border: 1px solid var(--nexus-color-border-subtle); background: transparent; padding: 2px var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); text-overflow: ellipsis; white-space: nowrap; text-align: left; cursor: pointer; }
+  .cb-suggestionChip:hover { color: var(--nexus-color-fg-1); }
+  .cb-intentBox { margin-bottom: var(--nexus-space-2); border-radius: var(--nexus-radius-md); background: var(--nexus-color-bg-2); padding: var(--nexus-space-2); }
+  .cb-wrap2Mt1 { margin-top: var(--nexus-space-1); display: flex; flex-wrap: wrap; gap: var(--nexus-space-2); }
+  .cb-textarea { min-height: 2.125rem; max-height: 7.5rem; flex: 1 1 0%; resize: none; border: 0; border-radius: var(--nexus-radius-md); background: var(--nexus-color-bg-2); padding: var(--nexus-space-2) var(--nexus-space-3); font-size: 0.8125rem; color: var(--nexus-color-fg-1); outline: none; }
+  .cb-textarea::placeholder { color: var(--nexus-color-fg-3); }
+  .cb-mono11 { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); }
+  .cb-footBadge { height: 1.5rem; width: 1.5rem; flex-shrink: 0; }
+  .cb-primary { display: inline-flex; height: 2.125rem; flex-shrink: 0; align-items: center; justify-content: center; border: 0; border-radius: var(--nexus-radius-md); background: var(--nexus-color-brand); padding: 0 var(--nexus-space-4); font-size: 0.8125rem; font-weight: 500; color: var(--nexus-color-accent-fg); cursor: pointer; }
+  .cb-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .cb-row2 { display: flex; align-items: center; gap: var(--nexus-space-2); font-size: var(--nexus-font-size-12); }
+  .cb-row2Faint { display: flex; align-items: center; gap: var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .cb-rowFull { display: flex; width: 100%; align-items: center; gap: var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  .cb-stackPad { margin-top: var(--nexus-space-1); display: flex; flex-direction: column; gap: var(--nexus-space-1); padding-left: var(--nexus-space-5); }
+  .cb-trunc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cb-w150Input { height: 1.625rem; max-width: 9.375rem; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: 0 var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-1); outline: none; }
+  .cb-ink12 { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); }
+  .cb-wrapCenter2 { margin-top: var(--nexus-space-1); display: flex; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-2); }
+  .cb-warnChip { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-warn); padding: 2px var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-fg); cursor: pointer; }
+  .cb-warnChip:disabled { opacity: 0.5; cursor: not-allowed; }
+  .cb-warningBanner { margin-bottom: var(--nexus-space-1); border-radius: var(--nexus-radius-sm); border: 1px solid color-mix(in srgb, var(--nexus-color-warn) 50%, transparent); background: var(--nexus-color-bg-2); padding: 6px var(--nexus-space-2); }
+  .cb-infoChip { margin-bottom: var(--nexus-space-1); border-radius: var(--nexus-radius-sm); border: 1px solid var(--nexus-color-border-subtle); background: transparent; padding: 2px var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); cursor: pointer; }
+  .cb-infoChip:disabled { opacity: 0.5; cursor: not-allowed; }
+  .cb-accentInk2 { margin-left: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-2-ink); text-decoration: underline; }
+  .cb-underLink { border: 0; background: transparent; padding: 2px var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); text-decoration: underline; cursor: pointer; }
+  .cb-underLink:disabled { opacity: 0.5; cursor: not-allowed; }
+  .cb-under { text-decoration: underline; }
+  .cb-rowEnd2 { display: flex; align-items: flex-end; gap: var(--nexus-space-2); }
+  .cb-rowFrozen { display: flex; flex-shrink: 0; align-items: center; gap: var(--nexus-space-1); }
+  .cb-wrapCenter { margin-bottom: var(--nexus-space-1); display: flex; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  .cb-dangerMb1 { margin-bottom: var(--nexus-space-1); font-size: var(--nexus-font-size-12); color: var(--nexus-color-danger-ink); }
+  .cb-demoFlag { border: 0; border-radius: var(--nexus-radius-sm); padding: 1px 5px; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-fg); }
+  .cb-flagWarn { background: var(--nexus-color-warn); }
+  .cb-flagLive { background: var(--nexus-color-success); }
+  .cb-segPill { border: 0; border-radius: var(--nexus-radius-sm); background: transparent; padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); cursor: pointer; }
+  .cb-segOn { background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-1); }
+  .cb-segIdle { color: var(--nexus-color-fg-3); cursor: pointer; }
+  .cb-segIdle:hover { background: var(--nexus-color-bg-2); }
   .cp-inputShared { width: 100%; resize: vertical; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
   .cp-inputShared:focus { background: var(--nexus-color-bg-3); }
   .cp-grow { min-width: 0; flex: 1 1 0%; }
