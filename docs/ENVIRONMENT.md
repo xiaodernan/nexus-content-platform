@@ -29,7 +29,7 @@
 | Java | Temurin 25.0.1 | OK |
 | Maven | 3.9.15 | OK |
 | Python | 3.11.1 + pip 25.3 | OK |
-| Docker Desktop | 29.1.3（daemon 运行中） | OK |
+| Docker Desktop | 29.9.3（2026-11-12 重启后实测；2026-09-22 勘察为 29.1.3） | OK |
 | Chrome | 已安装 | Playwright 复用系统 Chrome（`channel: 'chrome'`） |
 | psql / redis-cli | — | 本机无，仅通过容器访问 |
 
@@ -39,6 +39,18 @@
 ## 已有容器（不属于本项目，禁止复用/删除）
 
 `careeros-postgres`(5432), `careeros-redis`, `careeros-minio`(19000), `nexus-seed-verify`(55432)。
+
+### 2026-11-12 重启后清点（实测）
+
+OpenCode/Docker 一次同机重启让全部容器掉线。重启 Docker Desktop 后：
+- **`nexus-postgres`**（55433）和 **`nexus-redis`**（56379）自动回到 Healthy（其 compose restart 策略把它们拉回）；
+- `nexus-admin`, `nexus-gateway`, `nexus-java-pg`, `nexus-eureka`, `nexus-config`、
+  若干 `nexus-health-db-*` / `caesura-*` 仍是 **`Created`（从未 start）**——本机没有常驻 Spring Cloud
+  五件套，Java 侧一律由 `npm run verify:topology` / `verify:lb` / `verify:actuator` 按需拉起；
+- `specproof-*`、careeros-\*、football_os-\* 保持原状（其中 careeros-\* 掉线前后一视同仁、未动）；
+- **根因/症状**：网页当时 `GET /` 的 500 是 "the database system is starting up"（Postgres 57P03），
+  不是前端、不是后端逻辑坏了——startDockerDesktop 后分钟级自愈；重启前看日志必须先分清这是
+  "容器没起来"还是"服务代码病了"。
 
 因此 NEXUS 使用**独立端口段**避免冲突：Postgres `55433`、Redis `56379`、MinIO `59000/59001`、AI Service `3200`、Web `3100`。
 容器统一前缀 `nexus-`，compose project name 为 `nexus`。
