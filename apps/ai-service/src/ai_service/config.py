@@ -14,6 +14,13 @@ MODEL_CLASS_ENV = {
     "embedding": "NEXUS_MODEL_EMBEDDING",
 }
 
+# Provider 职责分档（§159）：文本四档归 llm，embedding 档归 embedding provider。
+# 两个 provider 各拿自己那一档的表，不再把整张 models 无差别塞给对方——否则
+# NEXUS_MODEL_EMBEDDING=none 这个 opt-out 哨兵会被 llm 当成"模型"上报到 /healthz，
+# 用户可见的就绪块就会显示一个不存在的模型名。判据钉职责边界，不钉具体模型名。
+LLM_MODEL_CLASSES = ("fast", "balanced", "reasoning", "vision")
+EMBEDDING_MODEL_CLASSES = ("embedding",)
+
 DEFAULT_MODELS = {
     "fast": "gpt-4o-mini",
     "balanced": "gpt-4o",
@@ -44,6 +51,16 @@ class Settings:
     @property
     def has_llm(self) -> bool:
         return bool(self.openai_api_key)
+
+    @property
+    def llm_models(self) -> dict[str, str]:
+        """只给 llm provider 的文本四档表；embedding 档不进 llm 的模型清单。"""
+        return {c: self.models[c] for c in LLM_MODEL_CLASSES if c in self.models}
+
+    @property
+    def embedding_models(self) -> dict[str, str]:
+        """只给 embedding provider 的档位表；文本四档不进 embedding 的模型清单。"""
+        return {c: self.models[c] for c in EMBEDDING_MODEL_CLASSES if c in self.models}
 
     def __repr__(self) -> str:
         # 配置可能被写进日志：key 一律脱敏（docs/SECURITY.md）

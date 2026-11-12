@@ -519,6 +519,45 @@ family README section) and a door that reddens the sentence it repairs:
           semantics undecided, no door would punish a future tier split (ADR 0094 X4), production untouched;
           ⑤ hosted Studio CI verdict for this push PENDING.
 
+  v678  the `none` opt-out sentinel that ADR 0110 observed leaking into the llm model list is
+        RESOLVED — the semantics are now decided and gated (ADR 0111). One production fix (3 small
+        edits) + one new 7-leg gate, zero cross-module coupling.
+        - WHY IT BECAME REAL: `apps/web/src/app/page.tsx:239` renders `p.models.join(' / ')` into the
+          "Provider readiness" block, so `/healthz` reporting `llm.models = ['gpt-6-sol','none']` shows
+          the user a nonexistent model as if available (§159). The harm is BIDIRECTIONAL: the same full
+          table was also handed to the embedding provider, which listed all chat models back.
+        - PROBE: capability judgement (`lib/env.ts`) reads only status/capability, NOT models — so this
+          is a display-honesty defect, not a broken function; `execution.py` calls `llm.model_for()` with
+          only the text four classes {fast,balanced,reasoning,vision}, never embedding ⇒ llm never needs
+          the embedding tier. `HealthResponseSchema.models` validates string-array only, so `none` sailed
+          through to the UI. NO existing test asserted any `models()` content — hence the long blind spot.
+        - FIX (single truth): `config.py` gains `LLM_MODEL_CLASSES` / `EMBEDDING_MODEL_CLASSES` constants;
+          `Settings` gains `llm_models` / `embedding_models` views; `Registry` passes each provider ONLY
+          its own tier's table. NOT a `models()` string filter — that would pin the sentinel literal and
+          break when the opt-out word changes or the gateway later really supports embedding. `execution.py`'s
+          identically-named set is API-input validation (a different semantic) and is deliberately left alone.
+        - GATE (7 legs, `test_provider_model_inventory.py`): judges pin the RESPONSIBILITY INVARIANT, not
+          literals — no opt-out sentinel (`none`/`skip`, case-insensitive) in any real provider list;
+          llm's reported models ⊆ text-tier actual config; embedding's ⊆ embedding tier (inventories read
+          from `Settings`, never hardcoded). Real legs drive the project's actual `/healthz`; 3 always-on
+          offline arms: sentinel injected -> RED, cross-tier model -> RED, legitimate chat-model rename ->
+          GREEN (door does not punish a正当 rename). Single-truth `_judge_*` shared by legs and arms.
+        - VERIFIED: BEFORE the fix the 4 real legs were RED (`['none']`, `['skip']`, llm listed
+          `['embedding-model-y']`, embedding listed all chat models) + 3 arms green — teeth measured.
+          AFTER: `test_provider_model_inventory.py` 7/7; full ai-service CI **96 passed/4 skipped**
+          (baseline 89/4 -> +7, zero regression); opt-in real-wiring mode **99 passed/1 skipped**;
+          real `Registry` probe on the live gateway: `llm models=['gpt-6-sol']`, `embedding models=[]`,
+          `capability=real`. `verify:record-encoding` exit 0, 0 chargeable lines / 2245 graded files.
+        - HONEST GAPS (ADR 0111): ① no browser/pixel confirmation that the readiness block actually stops
+          showing `none` (hosted Review pane); ② `embedding_models` has no real consumer yet (M2/M5), this
+          tiers it correctly for when embedding becomes real, does not claim embedding works; ③ hosted
+          Studio CI verdict for this push PENDING.
+        - SHARED-TREE: HEAD was `1e9b4ed` (lane's parser fix, 3 refs aligned) at slice start; v676 front-end
+          + ADR 0109 + the lane's uncommitted cont.46 in CURRENT-STATE are lane bytes, not touched, not
+          staged. This slice's state note is self-contained in ADR 0111 + this ROADMAP row (CURRENT-STATE
+          left alone because its worktree copy carries lane's uncommitted bytes). `git add` exact to my 5
+          files, never `add -A`, ff-checked, no force.
+
 Standing constraints (measured, not assumed): this host keeps ~0.3 GB physical memory
 free and its Docker engine currently refuses to start containers (`docker start` hangs;
 `docker info` still answers) — live m9/spring-cloud legs run on the hosted runner and

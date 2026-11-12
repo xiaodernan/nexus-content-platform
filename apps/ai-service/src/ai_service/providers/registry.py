@@ -30,7 +30,7 @@ class Registry:
             OpenAICompatibleProvider(
                 api_key=settings.openai_api_key or "",
                 base_url=settings.openai_base_url,
-                models=settings.models,
+                models=settings.llm_models,
                 timeout_s=settings.request_timeout_s,
                 json_mode=settings.json_mode,
             )
@@ -41,7 +41,7 @@ class Registry:
             OpenAICompatibleEmbeddingProvider(
                 api_key=settings.openai_api_key or "",
                 base_url=settings.openai_base_url,
-                models=settings.models,
+                models=settings.embedding_models,
                 timeout_s=settings.request_timeout_s,
             )
             if settings.has_llm and settings.embedding_enabled
