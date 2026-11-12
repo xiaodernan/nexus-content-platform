@@ -29,7 +29,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
   const result = await discoverCached({ sort, viewerId: viewer?.id ?? null });
 
   return (
-    <main className="mx-auto flex w-full max-w-[1080px] flex-col gap-[var(--nexus-space-6)] px-6 py-10" data-discover-root>
+    <main className="dv-root" data-discover-root>
       <header className="dv-header">
         <h1 className="dv-title" data-discover-title>发现</h1>
         <p className="dv-subtitle">平台上正在放出的真实作品——每一张都来自一个创作者的公开橱窗，没有人替你点选。</p>
@@ -54,7 +54,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
 
       {result.cards.length === 0 ? (
         <div className="dv-empty" data-discover-empty>
-          <p className="mx-auto max-w-md">
+          <p className="dv-narrow">
             {result.sort === 'following'
               ? '你关注的作者还没有公开作品。'
               : '还没有公开的作品。这个列表只收真正放出去、且没被人工拒绝的页面。'}
@@ -112,19 +112,19 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
       </ul>
 
       {result.hiddenAuthors > 0 ? (
-        <p className="text-11 text-fg-3" data-discover-hidden={result.hiddenAuthors}>
+        <p className="dv-hint11" data-discover-hidden={result.hiddenAuthors}>
           这次按你的屏蔽名单过滤掉了 {result.hiddenAuthors} 个人的作品 ·
-          <a href="/blocks" className="ml-1 text-accent-2-ink underline">
+          <a href="/blocks" className="dv-inlineLink">
             看看是谁
           </a>
         </p>
       ) : null}
 
       <section className="dv-unavailable" data-discover-unavailable>
-        <p className="text-12 text-fg-2">这些排序我们做不出来，不是忘了：</p>
-        <ul className="mt-2 space-y-1">
+        <p className="dv-bodyInk">这些排序我们做不出来，不是忘了：</p>
+        <ul className="dv-gapList">
           {result.unavailable.map((item) => (
-            <li className="text-11 text-fg-3" data-discover-gap={item.key} key={item.key}>
+            <li className="dv-hint11" data-discover-gap={item.key} key={item.key}>
               · {item.key}：{item.reason}
             </li>
           ))}
