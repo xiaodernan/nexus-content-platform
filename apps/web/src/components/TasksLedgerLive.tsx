@@ -126,33 +126,33 @@ export function TasksLedgerLive({ projectId, initial }: { projectId: string; ini
   );
 
   return (
-    <main className="mx-auto flex max-w-[1080px] flex-col gap-4 px-6 py-10" data-tasks-root>
-      <header className="flex flex-wrap items-baseline justify-between gap-3">
+    <main className="tl-page" data-tasks-root>
+      <header className="tl-head">
         <div>
-          <h1 className="text-[var(--nexus-font-size-21)] font-semibold" data-tasks-title>
+          <h1 className="tl-title" data-tasks-title>
             {payload.projectName} 的任务
           </h1>
-          <p className="text-11 text-fg-3" data-tasks-summary>
+          <p className="tl-summary" data-tasks-summary>
             共 {payload.tasks.length} 行 ·{' '}
             {Object.entries(counts)
               .map(([status, n]) => `${STATUS_TEXT[status] ?? status} ${n}`)
               .join(' · ') || '还没有跑过一次'}
           </p>
           {payload.tasks.length > 0 ? (
-            <p className="text-11 text-fg-3" data-tasks-usage-summary>
+            <p className="tl-summary" data-tasks-usage-summary>
               用量：真模型 {usages.real} 行 · DEMO 规则版 {usages.demo} 行 · 未记录 {usages.missing} 行
             </p>
           ) : null}
         </div>
-        <div className="flex items-baseline gap-3">
-          <span className="text-11 text-fg-3" data-tasks-realtime={realtime.state}>
+        <div className="tl-tools">
+          <span className="tl-realtime" data-tasks-realtime={realtime.state}>
             实时：{REALTIME_TEXT[realtime.state]}
           </span>
           {/* 第四十九片：这一颗是页面上唯一的返回口，原来 61×21——高度比 24 少 3px 也是低于下限。
               文字不换行也不该靠行高凑尺寸，直接给盒高（WCAG 2.5.8）。 */}
           <Link
             href={`/studio/${projectId}`}
-            className="inline-flex min-h-6 items-center text-11 text-accent-2-ink underline"
+            className="tl-back"
             data-tasks-back
           >
             回 Studio
@@ -161,12 +161,12 @@ export function TasksLedgerLive({ projectId, initial }: { projectId: string; ini
       </header>
 
       {note ? (
-        <p className="text-11 text-danger-ink" data-tasks-live-note>
+        <p className="tl-note" data-tasks-live-note>
           {note}
         </p>
       ) : null}
 
-      <p className="text-11 text-fg-3" data-tasks-scope>
+      <p className="tl-scope" data-tasks-scope>
         每一行对应一次 AI 请求（§7 命令栏发起的那种）。§112 那种多步 Agent 任务——Goal、子任务、依赖、验收——
         还没有执行方，所以这张表里不会出现"一个任务带六个步骤"的东西。
         能力那一列区分 real（真 provider）与 demo（DEMO 模板），两者不混写（§160）。
@@ -181,7 +181,7 @@ export function TasksLedgerLive({ projectId, initial }: { projectId: string; ini
       </p>
 
       {payload.tasks.length === 0 ? (
-        <p className="text-13 text-fg-2" data-tasks-empty>
+        <p className="tl-empty" data-tasks-empty>
           这个项目还没有跑过任何一次 AI 请求。
         </p>
       ) : (
@@ -189,7 +189,7 @@ export function TasksLedgerLive({ projectId, initial }: { projectId: string; ini
         // 宽度不该靠压缩列来换：给表格一个可读的下限，让它自己横滚，
         // 而不是把每一列挤成只剩一个字符宽（表格不承担"把布局视口撑宽"的后果）。
         <div
-          className="overflow-x-auto"
+          className="tl-tableScroll"
           data-tasks-table-scroll
           // 横滚区自己必须是键盘停得下来的（axe: scrollable-region-focusable）。
           // 没有这一颗 tabindex，键盘用户看得到表格却滚不到右边那几列。
@@ -197,8 +197,8 @@ export function TasksLedgerLive({ projectId, initial }: { projectId: string; ini
           aria-label="任务账本表格（可横向滚动）"
           tabIndex={0}
         >
-        <table className="w-full min-w-[880px] text-11">
-          <thead className="text-left text-fg-3">
+        <table className="tl-table">
+          <thead className="tl-thRow">
             <tr>
               <th>时间</th>
               <th>意图</th>
@@ -216,7 +216,7 @@ export function TasksLedgerLive({ projectId, initial }: { projectId: string; ini
               <tr key={task.id} data-task-row={task.id}>
                 <td
                   data-task-time={new Date(task.createdAt).toLocaleString('zh-CN', { hour12: false })}
-                  className="whitespace-nowrap"
+                  className="tl-tdNowrap"
                   // 时间戳两套 ICU（Node 渲染 vs 浏览器）逐字节可能差一个字符，
                   // 这一格本来就随重读更新，不值得为它报一次 hydration 警告
                   suppressHydrationWarning
@@ -230,10 +230,10 @@ export function TasksLedgerLive({ projectId, initial }: { projectId: string; ini
                 </td>
                 <td data-task-status={task.status}>{STATUS_TEXT[task.status] ?? task.status}</td>
                 <td>{task.durationMs === null ? '—' : `${Math.round(task.durationMs / 100) / 10} 秒`}</td>
-                <td data-task-usage={usageKind(task.usage)} className="text-fg-2">
+                <td data-task-usage={usageKind(task.usage)} className="tl-tdMuted">
                   {usageText(task.usage)}
                 </td>
-                <td className="text-fg-2">{task.error ?? '—'}</td>
+                <td className="tl-tdMuted">{task.error ?? '—'}</td>
                 <td>
                   {/* 只有自己的失败/取消行才有按钮：别人行上的按钮点了也只会 404，
                       与其让人点了才知道，不如不挂出来 */}

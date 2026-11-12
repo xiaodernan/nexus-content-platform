@@ -1311,6 +1311,33 @@
   .iv-successLink { font-size: var(--nexus-font-size-13); color: var(--nexus-color-accent-2-ink); text-decoration: underline; text-underline-offset: 0.15em; border-radius: 2px; }
   .iv-successLink:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
 
+  /* ── §FE-23 / ADR-0175 `/tasks/[projectId]` 任务账本活半页 `.tl-` 门面化 ──
+   * §112 账本视图：「服务端给第一屏 + client 订阅 generation.progress 重读」。
+   * 有 hinted 滚动区（角色 region/tabindex，横滚键盘可达）、实时状态 chip、重试按钮。
+   * 全裸 Tailwind → .tl- 门面族；行为/文案/data 钩子/useRealtime 订阅一字不改。
+   * 表格不补 padding/border——与基线的 border-separate 默认间距 1:1 守恒。零动效、零 @media。 */
+  .tl-page { margin-inline: auto; max-width: 67.5rem; padding: var(--nexus-space-10) var(--nexus-space-6); display: flex; flex-direction: column; gap: var(--nexus-space-4); }
+  .tl-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--nexus-space-3); }
+  .tl-title { font-size: var(--nexus-font-size-21); font-weight: 600; color: var(--nexus-color-fg-1); }
+  .tl-summary { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .tl-tools { display: flex; align-items: baseline; gap: var(--nexus-space-3); }
+  .tl-realtime { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .tl-back { display: inline-flex; min-height: 1.5rem; align-items: center; font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-2-ink); text-decoration: underline; text-underline-offset: 0.15em; border-radius: 2px; }
+  .tl-back:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .tl-note { font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); }
+  .tl-scope { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .tl-empty { font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-2); }
+  .tl-tableScroll { overflow-x: auto; }
+  .tl-table { width: 100%; min-width: 55rem; font-size: var(--nexus-font-size-11); }
+  .tl-thRow { text-align: left; color: var(--nexus-color-fg-3); }
+  .tl-tdMuted { color: var(--nexus-color-fg-2); }
+  .tl-tdNowrap { white-space: nowrap; }
+  .tl-retryWrap { display: inline-flex; align-items: center; gap: var(--nexus-space-2); }
+  .tl-retryBtn { border-radius: var(--nexus-radius-sm); border: 1px solid var(--nexus-color-border-subtle); background: transparent; padding: 2px var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); cursor: pointer; }
+  .tl-retryBtn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .tl-retryBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .tl-retryNote { color: var(--nexus-color-fg-3); }
+
   /* ── §FE-15 / ADR-0163 创作数据页按天曲线 `TrendChart.tsx` `.tc-` 门面化（FE 首个 SVG 图表片） ──
    * analytics 分析页最后一块裸 Tailwind：8 处 className（含 SVG 专属 fill-[...]/text-[9px] 两个
    * 任意值原子类）。本片的灵魂是**三轴语义色守恒**——opens/visitors/playTimeMs 各有专属纵轴与
