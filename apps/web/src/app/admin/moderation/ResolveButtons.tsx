@@ -40,27 +40,27 @@ export function ResolveButtons({ caseId }: { caseId: string }) {
 
   if (outcome) {
     return (
-      <p className="text-11 text-fg-3" data-resolve-done={caseId}>
+      <p className="am-triageDone" data-resolve-done={caseId}>
         {outcome}
       </p>
     );
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="am-triageRow">
       <input aria-label="结论依据（可选）"
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="结论依据（可选，会记在案子上）"
         maxLength={2000}
-        className="min-w-[14rem] flex-1 rounded bg-bg-1 px-2 py-1 text-11 text-fg-1"
+        className="am-noteInput"
         data-resolve-note
       />
       <button
         type="button"
         disabled={busy}
         onClick={() => void resolve('approved')}
-        className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-1 disabled:opacity-50"
+        className="am-btn"
         data-resolve="approved"
       >
         放行
@@ -69,13 +69,13 @@ export function ResolveButtons({ caseId }: { caseId: string }) {
         type="button"
         disabled={busy}
         onClick={() => void resolve('rejected')}
-        className="rounded bg-danger px-2 py-1 text-11 text-accent-fg disabled:opacity-50"
+        className="am-btnDanger"
         data-resolve="rejected"
       >
         拒绝并撤下
       </button>
       {error ? (
-        <span className="text-11 text-danger-ink" data-resolve-error>
+        <span className="am-triageError" data-resolve-error>
           {error}
         </span>
       ) : null}

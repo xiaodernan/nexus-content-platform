@@ -1477,6 +1477,16 @@
   .am-btnDanger:focus-visible { outline: 2px solid var(--nexus-color-danger-ink); outline-offset: 2px; }
   .am-btnDanger:disabled { opacity: 0.5; cursor: not-allowed; }
   .am-triageError { font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); }
+  .am-shellDenied { margin-inline: auto; max-width: 45rem; padding: 4rem var(--nexus-space-6); }
+  .am-shellMid { margin-inline: auto; max-width: 61.25rem; padding: var(--nexus-space-10) var(--nexus-space-6); display: flex; flex-direction: column; gap: var(--nexus-space-6); }
+  .am-limitsList { margin-top: var(--nexus-space-1); display: flex; flex-direction: column; gap: 2px; }
+  .am-findingsList { display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+  .am-findingText { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); }
+  .am-ruleMono { font-family: var(--nexus-font-mono); color: var(--nexus-color-fg-3); }
+  .am-findingWhere { display: block; color: var(--nexus-color-fg-3); }
+  .am-dangerNote { font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); }
+  .am-linkTargetSub { display: inline-flex; min-height: 1.5rem; align-items: center; border-radius: 2px; padding-inline: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-2-ink); text-decoration: underline; text-underline-offset: 0.15em; }
+  .am-linkTargetSub:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
 
   /* ── §FE-15 / ADR-0163 创作数据页按天曲线 `TrendChart.tsx` `.tc-` 门面化（FE 首个 SVG 图表片） ──
    * analytics 分析页最后一块裸 Tailwind：8 处 className（含 SVG 专属 fill-[...]/text-[9px] 两个
