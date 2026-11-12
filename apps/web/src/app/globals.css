@@ -30,6 +30,7 @@
   --font-sans: var(--nexus-font-sans);
   --font-mono: var(--nexus-font-mono);
 
+  --text-11: var(--nexus-font-size-11);
   --text-12: var(--nexus-font-size-12);
   --text-13: var(--nexus-font-size-13);
   --text-14: var(--nexus-font-size-14);
@@ -74,6 +75,26 @@
     color: var(--nexus-color-fg-1);
   }
 
+  /* v676 / ADR 0109：让设计系统承诺的 motion token 真正有一个全站消费者。
+   * 在此之前 --nexus-motion-fast/base/slow/ease 四个 token 全站 0 处 var() 引用（孤儿）——
+   * 节奏写进了 tokens.css，屏幕上却一次都没兑现，reduced-motion 兜底也因此几乎空转。
+   *
+   * 这里只做一层**零特异性**（:where）的交互过渡基底，不碰任何页面自己的颜色/布局/渐变，
+   * 所以并行 lane 逐页的品牌语言不受影响：它只决定"状态切换花多久"，不决定"长什么样"。
+   * transition 覆盖色/描边/阴影/位移四类最常见的交互态；:active 的 1 档 scale 是克制的
+   * 触觉反馈（不是装饰动画），同样走 fast 档。所有时间都来自 token，组件不许再写死毫秒。
+   */
+  :where(a, button, [role='button']) {
+    transition-property: color, background-color, border-color, box-shadow, transform;
+    transition-duration: var(--nexus-motion-base);
+    transition-timing-function: var(--nexus-motion-ease);
+  }
+
+  :where(a, button, [role='button']):active {
+    transform: scale(0.98);
+    transition-duration: var(--nexus-motion-fast);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -81,6 +102,13 @@
       transition-duration: 0.01ms !important;
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
+      /* v676：补上原先漏掉的 delay——否则一个带延迟的动画仍会在"减少动态"下迟滞出现。 */
+      animation-delay: 0ms !important;
+      transition-delay: 0ms !important;
+    }
+    /* 把上面 :active 的 scale 也一并消掉：减少动态不只是"变快"，而是不做位移。 */
+    :where(a, button, [role='button']):active {
+      transform: none !important;
     }
     html {
       scroll-behavior: auto !important;
