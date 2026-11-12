@@ -1736,3 +1736,12 @@ Another admin family page lifted; data tables reused intact:
 - data-* hooks preserved exactly (data-access-admin-root, data-access-summary, data-access-window, data-access-export, data-access-tokens, data-access-token, data-access-token-owner/calls/endpoints/projects, data-access-endpoints, data-access-endpoint, data-access-endpoint-calls, data-access-endpoint-tokens, data-access-scope).
 
 Build-time checks: narrow tsc exit 0, eslint exit 0, record-encoding exit 0.
+## cont. 57 (2026-11-12, noon) - /admin/marketplace lifted to the brand language
+
+Last plain admin page lifted:
+- Ambient halo hero + gradient wordmark eyebrow, action bar with AdminNav and audit jump link
+- Anonymous/notAdmin branches tightened to the same eyebrow + 24px shape (matches siblings)
+- 'resolve = ' deny-content operations elevated: terminations-only-forbidden inline banner now is a bordered section with fg-1 title + fg-3 sub-line; report filter chips now rounded-border pills matching the whole family's look
+- Audit log table styling is identical to the rest of the table family (hover bg-bg-2, accent borders, rounded frame, break-all metadata)
+
+content: build-time gates all green: narrow tsc exit 0, eslint exit 0, record-encoding exit 0.
