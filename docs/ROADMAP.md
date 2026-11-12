@@ -597,6 +597,43 @@ family README section) and a door that reddens the sentence it repairs:
           AI readiness, 3 refs aligned) mid-slice; v676 front-end + ADR 0109 are lane's uncommitted bytes,
           not touched. State note self-contained here + ADR 0112 (CURRENT-STATE worktree carries lane bytes).
 
+  v680  a reusable completion-cache component lands with its honesty boundary drawn before wiring (ADR 0113).
+        - User gave a real LLM gateway (wkapi.pro/v1, gpt-6-sol): billed per token (~4159 prompt tokens
+          measured), 2–10 s latency. Repeating the same (model,system,user) burns money twice. Asked for
+          "caches used well" + "must test/improve with the real API". No completion cache existed (only
+          contract.py's schema lru_cache and jobs.py's Redis queue).
+        - DECISION (the point of this slice): deliver the component + gate + REAL-GATEWAY proof, but DO
+          NOT wire it into registry/execution/usage. A cache hit makes `usage.toolCalls/tokens/latency`
+          semantically ambiguous; contracts/ai-*-response.schema.json is additionalProperties=false,
+          web TaskUsageSchema is an exact zod shape, and §159 forbids reporting a replay as a fresh
+          billed real call. Usage semantics undecided => no gate, no production wiring (ADR 0090/94 X4).
+          Deliverable: `completion_cache.py` (LlmCompletionCache TTL+LRU + CachedLlm decorator, full
+          LLMProvider surface, failures never cached) + `test_completion_cache.py`. `stats()` honestly
+          counts hits = calls saved. Wiring checklist is ADR 0113 "still owed".
+        - Door shape (ADR 0110 three-part): ① real component gates (hit skips re-send, model/system/user
+          three-way independence, no poison on failure, TTL expiry via injected clock, LRU not FIFO,
+          stats arithmetic, invalid config rejected, decorator transparent); ② always-on arms (missing
+          user dim / cached failure / re-sent 2nd call / wrong replay all RED, correct obs GREEN, plus a
+          monkeypatch arm that degrades the real key() and proves the gate reads the component, ADR 0095);
+          ③ opt-in real leg: _CountingTransport wraps real HTTPTransport, same prompt twice on real
+          gpt-6-sol => gateway sees exactly 1 request, 2nd is a 0-network cache hit, replay is valid JSON.
+          Judges pin invariants (no-re-send / replayed content / honest stats), NOT the undecided
+          tokens/latency/identity of a hit (ADR 0094 X4).
+        - VERIFIED: offline CI-safe 18 passed / 1 skipped (no key, live leg skips, no fake green);
+          opt-in real 19 passed (live leg truly sends 1 request); full ai-service CI 114/5, opt-in 118/1
+          (baseline 96/4, zero regression); verify:record-encoding exit 0 (0 chargeable / 2248 files).
+          Zero production-source edits, zero lane-file edits, no real key in either new file.
+        - HONEST GAPS (ADR 0113): ① usage semantics for a hit (toolCalls/tokens/latency) + whether to add
+          cacheHit to contract+web zod — must be decided with web ledger owner; ② opt-in knob
+          NEXUS_LLM_CACHE_TTL_S default-off + Registry wrapping; ③ temperature is hardcoded 0.2 today,
+          must enter the key if opened; ④ no single-flight (concurrent same-key may double-spend, by design);
+          ⑤ process-local only (restart loses it; cross-instance needs Redis, another slice);
+          ⑥ hosted Studio CI verdict PENDING (no key => live leg skips there).
+        - SHARED-TREE: HEAD `b299c28` at slice start, still `b299c28` at commit (lane's v676 front-end
+          3 files + ADR 0109 remain uncommitted, not touched). My 2 new files + ADR 0113 + this ROADMAP
+          segment, exact `git add`, ff-checked, no force. State note self-contained here + ADR 0113
+          (CURRENT-STATE worktree carries lane bytes, not edited).
+
 Standing constraints (measured, not assumed): this host keeps ~0.3 GB physical memory
 free and its Docker engine currently refuses to start containers (`docker start` hangs;
 `docker info` still answers) — live m9/spring-cloud legs run on the hosted runner and
