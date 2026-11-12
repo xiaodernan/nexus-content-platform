@@ -175,6 +175,8 @@
     border-top: 1px solid var(--nexus-color-border-subtle);
     padding-top: var(--nexus-space-2); font-size: var(--nexus-font-size-13);
   }
+  .dc-ledgerLabel { color: var(--nexus-color-fg-3); }
+  .dc-busHeadline { font-size: var(--nexus-font-size-14); font-weight: 600; color: var(--nexus-color-fg-1); }
 
   @keyframes gw-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes gw-breathe { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
@@ -1499,6 +1501,7 @@
   .am-stackXl { display: flex; flex-direction: column; gap: var(--nexus-space-5); }
   .am-sectionHeadSm { font-size: var(--nexus-font-size-13); font-weight: 600; color: var(--nexus-color-fg-2); }
   .am-rowHead { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .am-subNote { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
   .am-mutedText { color: var(--nexus-color-fg-2); }
   .am-windowNav { display: flex; gap: var(--nexus-space-2); font-size: var(--nexus-font-size-11); }
   .am-windowNavPush { margin-left: auto; display: flex; gap: var(--nexus-space-2); }

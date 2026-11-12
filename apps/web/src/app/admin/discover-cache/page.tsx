@@ -29,17 +29,17 @@ export default async function AdminDiscoverCachePage() {
   const user = await currentUserOrNull();
   if (!user) {
     return (
-      <main className="mx-auto max-w-[860px] px-6 py-16" data-admin-denied="anonymous">
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">发现页缓存</h1>
-        <p className="mt-2 text-13 text-fg-2">需要先登录才能看。</p>
+      <main className="adm-denied" data-admin-denied="anonymous">
+        <h1 className="adm-deniedTitle">发现页缓存</h1>
+        <p className="adm-deniedText">需要先登录才能看。</p>
       </main>
     );
   }
   if (user.role !== 'admin') {
     return (
-      <main className="mx-auto max-w-[860px] px-6 py-16" data-admin-denied="not-admin">
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">发现页缓存</h1>
-        <p className="mt-2 text-13 text-fg-2">
+      <main className="adm-denied" data-admin-denied="not-admin">
+        <h1 className="adm-deniedTitle">发现页缓存</h1>
+        <p className="adm-deniedText">
           这个页面对 {user.displayName}（role={user.role}）不开放：缓存读数只对 role=admin 可见。
         </p>
       </main>
@@ -49,11 +49,11 @@ export default async function AdminDiscoverCachePage() {
   const { readout, error } = initialReadout();
 
   return (
-    <main className="gw-root mx-auto flex max-w-[1180px] flex-col gap-5 px-6 py-10" data-discover-cache-root>
-      <header className="flex flex-wrap items-baseline justify-between gap-3">
+    <main className="am-shellXl" data-discover-cache-root>
+      <header className="adm-headBaseline">
         <div>
-          <h1 className="text-[var(--nexus-font-size-24)] font-semibold tracking-tight">发现页缓存 · 跨实例失效</h1>
-          <p className="text-11 text-fg-3" data-discover-cache-scope>
+          <h1 className="am-titleLg">发现页缓存 · 跨实例失效</h1>
+          <p className="adm-capNote" data-discover-cache-scope>
             按 viewer 分键 · 本机隐私即时失效 · 跨实例经 Redis 最终一致 · 每 4 秒刷新
           </p>
         </div>

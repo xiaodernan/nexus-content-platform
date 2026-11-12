@@ -33,8 +33,8 @@ function Kpi({ label, value, hint }: { label: string; value: string; hint?: stri
 function LedgerRow({ label, value, mono = true }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="dc-ledgerRow" data-discover-ledger={label}>
-      <span className="text-fg-3">{label}</span>
-      <span className={mono ? 'gw-mono text-fg-1' : 'text-fg-2'}>{value}</span>
+      <span className="dc-ledgerLabel">{label}</span>
+      <span className={mono ? 'gw-ident' : 'am-mutedText'}>{value}</span>
     </div>
   );
 }
@@ -84,10 +84,10 @@ export function DiscoverPanel({ initial, initialError }: { initial: DiscoverCach
     return (
       <section data-discover-cache-loading aria-label="正在读取发现页缓存读数">
         {error ? (
-          <p className="text-13 text-danger-ink" data-discover-cache-error>{error}</p>
+          <p className="ar-errorNote" data-discover-cache-error>{error}</p>
         ) : (
           <div className="gw-grid">
-            {[0, 1, 2, 3].map((i) => <div key={i} className="gw-skeleton h-[92px]" />)}
+            {[0, 1, 2, 3].map((i) => <div key={i} className="gw-skeleton" />)}
           </div>
         )}
       </section>
@@ -100,7 +100,7 @@ export function DiscoverPanel({ initial, initialError }: { initial: DiscoverCach
   const cfg = stats.config;
 
   return (
-    <div className="flex flex-col gap-5" data-discover-cache-ready>
+    <div className="am-stackXl" data-discover-cache-ready>
       {/* KPI：命中率 + 缓存六账；分母为 0 说"还没有读"，不画 0% */}
       <section className="gw-grid" aria-label="缓存概览">
         <Kpi label="命中率" value={rate} hint={`${stats.hits} 命中 / ${stats.misses} 未命中`} />
@@ -113,7 +113,7 @@ export function DiscoverPanel({ initial, initialError }: { initial: DiscoverCach
       <section className="dc-busCard" data-discover-bus={busAttached ? 'attached' : 'detached'} aria-label="跨实例失效总线">
         <div className="dc-busHead">
           <span className={`gw-dot ${tag.dot}`} style={{ verticalAlign: 'middle', marginRight: 10 }} />
-          <span className="text-14 font-semibold text-fg-1">{tag.headline}</span>
+          <span className="dc-busHeadline">{tag.headline}</span>
           <span className="gw-pill" data-discover-bus-attached={busAttached ? 'true' : 'false'}>
             {busAttached ? 'bus 在线' : '单机语义'}
           </span>
@@ -140,14 +140,14 @@ export function DiscoverPanel({ initial, initialError }: { initial: DiscoverCach
       </section>
 
       {error ? (
-        <p className="text-12 text-warn-ink" data-discover-cache-refresh-error>
+        <p className="am-warnNote" data-discover-cache-refresh-error>
           最近一次刷新失败（{error}）；下面仍是 {updatedAt ?? '上一次'} 读到的账，未清空。
         </p>
       ) : null}
 
       {/* 单调水位线：把 ADR-0113 的方法论结论第一次放到运维眼前 */}
-      <section className="flex flex-col gap-2" aria-label="generation 水位线">
-        <h2 className="text-13 font-semibold text-fg-2">隐私失效的内存账</h2>
+      <section className="am-audit" aria-label="generation 水位线">
+        <h2 className="am-sectionHeadSm">隐私失效的内存账</h2>
         <div className="dc-ledgerGrid" data-discover-generation>
           <LedgerRow label="单调水位线 globalGen" value={dashOr(stats.globalGen)} />
           <LedgerRow label="generation 表 viewer 数" value={`${stats.viewerGenerations}/${cfg.maxViewers}`} />
@@ -160,8 +160,8 @@ export function DiscoverPanel({ initial, initialError }: { initial: DiscoverCach
       </section>
 
       {/* §SC-44 全局世代：把"新作品即时可见"的收益与冷启动代价一起放到运维眼前 */}
-      <section className="flex flex-col gap-2" aria-label="全局世代">
-        <h2 className="text-13 font-semibold text-fg-2">内容新鲜度的内存账</h2>
+      <section className="am-audit" aria-label="全局世代">
+        <h2 className="am-sectionHeadSm">内容新鲜度的内存账</h2>
         <div className="dc-ledgerGrid" data-discover-epoch>
           <LedgerRow label="全局世代 globalEpoch" value={dashOr(stats.globalEpoch)} />
           <LedgerRow label="每次 +1 作废" value="所有 sort · 所有 viewer · 含匿名" mono={false} />
@@ -172,9 +172,9 @@ export function DiscoverPanel({ initial, initialError }: { initial: DiscoverCach
       </section>
 
       {/* §SC-45 发布冷启动波：把 ADR-0116 诚实留下的"预期尖峰"从猜测变成可观测数字，只记不拦 */}
-      <section className="flex flex-col gap-2" aria-label="发布冷启动波">
-        <h2 className="text-13 font-semibold text-fg-2">发布冷启动波 · 只记不拦</h2>
-        <p className="text-12 text-fg-2" data-discover-waves-headline>
+      <section className="am-audit" aria-label="发布冷启动波">
+        <h2 className="am-sectionHeadSm">发布冷启动波 · 只记不拦</h2>
+        <p className="am-subNote" data-discover-waves-headline>
           {wavesHeadline(stats.waves)}
         </p>
         {stats.waves.length ? (
@@ -195,8 +195,8 @@ export function DiscoverPanel({ initial, initialError }: { initial: DiscoverCach
       </section>
 
       {/* §SC-46 上游故障降级：DB 抖动时端过几次旧页，0 只表示还没抖过、不是功能没开 */}
-      <section className="flex flex-col gap-2" aria-label="上游故障降级">
-        <h2 className="text-13 font-semibold text-fg-2">上游故障降级 · 只记不声张</h2>
+      <section className="am-audit" aria-label="上游故障降级">
+        <h2 className="am-sectionHeadSm">上游故障降级 · 只记不声张</h2>
         <div className="dc-ledgerGrid" data-discover-stale>
           <LedgerRow label="端出旧页次数 staleServed" value={dashOr(stats.staleServed)} />
           <LedgerRow label="旧值上界 staleMaxMs" value={`${Math.round(cfg.staleMaxMs / 1000)}s`} />
@@ -207,9 +207,9 @@ export function DiscoverPanel({ initial, initialError }: { initial: DiscoverCach
       </section>
 
       {/* §SC-47 加载耗时观测：先量再治，只记真实打库的墙钟、不设闸；0 = 没量到，不是都很快 */}
-      <section className="flex flex-col gap-2" aria-label="加载耗时观测">
-        <h2 className="text-13 font-semibold text-fg-2">加载耗时观测 · 只记不设闸</h2>
-        <p className="text-12 text-fg-2" data-discover-load-headline>
+      <section className="am-audit" aria-label="加载耗时观测">
+        <h2 className="am-sectionHeadSm">加载耗时观测 · 只记不设闸</h2>
+        <p className="am-subNote" data-discover-load-headline>
           {loadTimingHeadline(stats.loadsTimed, stats.maxLoadMs, stats.slowLoads)}
         </p>
         <div className="dc-ledgerGrid" data-discover-load-timing>
@@ -232,7 +232,7 @@ export function DiscoverPanel({ initial, initialError }: { initial: DiscoverCach
         </p>
       </section>
 
-      <footer className="text-11 text-fg-3" data-discover-cache-footer>
+      <footer className="adm-capNote" data-discover-cache-footer>
         更新于 {updatedAt ?? '—'} · 上游测量时刻 {new Date(measuredAt).toLocaleTimeString('zh-CN', { hour12: false })} ·{' '}
         {footNote(busAttached, busUrlConfigured, POLL_MS)}
       </footer>
