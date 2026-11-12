@@ -1356,6 +1356,25 @@
   .rt-linkSub:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
   .rt-stage { height: 100dvh; width: 100%; }
 
+  /* ── §FE-25 / ADR-0177 `/preview/[projectId]` 只读模型投影 `.pv-` 门面化 ──
+   * §124 / ADR-0063：与公开页同一渲染管线的作者视角只读投影（无选择框、无编辑控件；
+   * 只有靠 data-state 兑现的三态能当场演示，hover/active/focus 不假装能预览）。
+   * 全裸 Tailwind → .pv- 门面族；鉴权/断点/缩放/状态层/paintOrder 一字不改。
+   * bg-1/95 与 bg-1/70 的 95%/70% 不透明度用 color-mix 落到 bg-1 token 上；零新增 token。零动效。 */
+  .pv-page { min-height: 100vh; width: 100%; overflow: auto; background: var(--nexus-color-bg-0); padding-bottom: var(--nexus-space-10); }
+  .pv-bar { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: var(--nexus-space-3); border-bottom: 1px solid var(--nexus-color-border-subtle); background: color-mix(in srgb, var(--nexus-color-bg-1) 95%, transparent); padding: var(--nexus-space-2) var(--nexus-space-4); backdrop-filter: blur(8px); }
+  .pv-back { font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-2); text-decoration: underline; text-decoration-style: dotted; border-radius: 2px; }
+  .pv-back:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .pv-meta { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .pv-statebar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-2); border-bottom: 1px solid var(--nexus-color-border-subtle); background: color-mix(in srgb, var(--nexus-color-bg-1) 70%, transparent); padding: var(--nexus-space-1) var(--nexus-space-4); font-size: var(--nexus-font-size-12); }
+  .pv-stateNote { color: var(--nexus-color-fg-3); }
+  .pv-stateOption { border-radius: var(--nexus-radius-sm); padding: 0.125rem var(--nexus-space-2); color: var(--nexus-color-fg-3); text-decoration: none; }
+  .pv-stateOption:hover { background: var(--nexus-color-bg-2); }
+  .pv-stateOption:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .pv-stateOptionActive { border-radius: var(--nexus-radius-sm); padding: 0.125rem var(--nexus-space-2); background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-1); text-decoration: none; }
+  .pv-stateOptionActive:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .pv-canvas { width: 100%; overflow-x: auto; padding: var(--nexus-space-6); }
+
   /* ── §FE-15 / ADR-0163 创作数据页按天曲线 `TrendChart.tsx` `.tc-` 门面化（FE 首个 SVG 图表片） ──
    * analytics 分析页最后一块裸 Tailwind：8 处 className（含 SVG 专属 fill-[...]/text-[9px] 两个
    * 任意值原子类）。本片的灵魂是**三轴语义色守恒**——opens/visitors/playTimeMs 各有专属纵轴与
