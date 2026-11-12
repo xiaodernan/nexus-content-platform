@@ -9,10 +9,21 @@ import type { AiChatRequest, AiChatResponse, AiError, AiJobAccepted, AiJobStatus
 const RUN_TIMEOUT_MS = Number(process.env.NEXUS_AI_SERVICE_TIMEOUT_MS ?? 60_000);
 const HEALTH_TIMEOUT_MS = 1_500;
 
+/**
+ * 开发模式下的缺省地址：端口约定在三处（infra/dev-ai.sh 的 AI_SERVICE_PORT、
+ * ai-service config.py 的 port=3200、这里）。少配一处，整条真链路就安静退回确定性 Mock，
+ * 而界面只会显示 DEMO MODE——看不出 provider 其实活着。所以开发模式按约定补一个值。
+ * 生产不补：没配就是没配，要诚实报未配置（§160），而不是去连一个必然连不上的 127.0.0.1。
+ */
+const DEV_DEFAULT_PORT = '3200';
+
 export function aiServiceUrl(): string | null {
   const raw = process.env.NEXUS_AI_SERVICE_URL;
   const trimmed = typeof raw === 'string' ? raw.trim() : '';
-  return trimmed ? trimmed.replace(/\/+$/, '') : null;
+  if (trimmed) return trimmed.replace(/\/+$/, '');
+  if (process.env.NODE_ENV !== 'development') return null;
+  const port = (process.env.AI_SERVICE_PORT ?? '').trim() || DEV_DEFAULT_PORT;
+  return `http://127.0.0.1:${port}`;
 }
 
 function localError(code: AiError['code'], message: string, hint?: string, retryable = false): AiError {
