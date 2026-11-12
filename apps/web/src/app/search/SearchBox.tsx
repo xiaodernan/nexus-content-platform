@@ -158,7 +158,7 @@ export function SearchBox({ initialQuery }: { initialQuery: string }) {
   const pauseSeconds = remainingSeconds(pausedUntil, nowTick);
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="se-boxRoot">
       <form action="/search" method="get" className="se-form" data-search-form onSubmit={() => remember(value)}>
         <input
           name="q"
@@ -183,7 +183,7 @@ export function SearchBox({ initialQuery }: { initialQuery: string }) {
       </form>
 
       {pauseSeconds > 0 ? (
-        <p data-search-suggest-pause role="status" className="text-12 text-fg-3">
+        <p data-search-suggest-pause role="status" className="se-pauseNote">
           建议暂停 {pauseSeconds} 秒——打字太快被限流；结果页照常能搜。
         </p>
       ) : null}
@@ -205,7 +205,7 @@ export function SearchBox({ initialQuery }: { initialQuery: string }) {
                 data-search-suggestion={hit.id}
                 className={`se-suggestion ${index === active ? 'se-suggestionActive' : ''}`}
               >
-                <span className="truncate text-13 text-fg-1">{hit.title}</span>
+                <span className="se-suggestTitle">{hit.title}</span>
                 <span className="se-suggestionLabel">{hit.label}</span>
               </button>
             </li>
@@ -214,8 +214,8 @@ export function SearchBox({ initialQuery }: { initialQuery: string }) {
       ) : null}
 
       {showHistory ? (
-        <div className="flex flex-wrap items-center gap-2" data-search-history>
-          <span className="text-11 text-fg-3">最近的搜索（只存在这台设备上）</span>
+        <div className="se-historyRow" data-search-history>
+          <span className="se-hint11">最近的搜索（只存在这台设备上）</span>
           {history.map((query) => (
             <span key={query} className="se-historyChip">
               <a
@@ -247,7 +247,7 @@ export function SearchBox({ initialQuery }: { initialQuery: string }) {
               writeSearchHistory(window.localStorage, []);
               setHistory([]);
             }}
-            className="text-11 text-fg-3 underline hover:text-fg-1"
+            className="se-clearBtn"
           >
             清空
           </button>
