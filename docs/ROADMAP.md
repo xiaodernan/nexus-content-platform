@@ -775,6 +775,66 @@ family README section) and a door that reddens the sentence it repairs:
           segment; exact `git add`, ff-checked before push, no force. State note self-contained here + ADR
           0116 (CURRENT-STATE is lane territory, not edited). ADR number re-checked before commit (0116 free).
 
+  v684  backoff jitter: the LAST shared gap of all three resilience pillars closes (ADR 0117).
+        - v681 retry / v682 breaker / v683 shared breaker all recorded HONEST GAP "no jitter": the
+          exponential backoff min(base*2^i, cap) is DETERMINISTIC, so every replica (and every
+          instance probing a shared HALF_OPEN breaker) wakes at the SAME instant and re-hits the
+          barely-recovered upstream — thundering herd. New apps/ai-service/src/ai_service/jitter.py:
+          STRATEGIES + pure bounds(...) + thin jittered_backoff(...) sampling layer.
+        - FOUR strategies: full [0,exp] (max spread), equal [exp/2,exp] (half floor), decorrelated
+          [base,min(cap,prev*3)] (stateful, prev=None -> base first beat), and none [exp,exp] (= v681
+          status quo, ZERO-REGRESSION CONTROL proving the door doesn't punish a legitimate no-jitter
+          deployment, ADR 0094 X4). exp = min(base*2^attempt, cap).
+        - RETRY-AFTER unified post-process (server指令 over local policy, ADR 0114): jitter strategies
+          raise the interval to [max(lo,ra), max(hi,ra*(1+_SPREAD))] — never earlier than the server's
+          hard floor, yet never zero-width (else same-beat again). none adds NO spread and returns
+          exactly max(exp,ra) = v681 byte-identical (door pins this precise semantic, not a loose OR).
+          _SPREAD literal NOT pinned (ADR 0094 X4): change it >0 and gates stay green.
+        - SINGLE TRUTH (ADR 0095): all interval math in pure bounds(); jittered_backoff only does the
+          final rng(lo,hi) sample; door + arms share bounds, no second implementation. rng injected
+          ((low,high)->float): prod random.uniform, door random.Random(seed).uniform — no global state,
+          same seed -> same sequence, A/B-able. Invalid config (unknown strategy/base<0/cap<0/cap<base/
+          retry_after<0/attempt<0) -> ValueError, no silent degrade.
+        - ZERO PROD WIRING (v680/v683 / ADR 0113): wiring into v681 _backoff is cross-contract
+          (strategy choice, decorrelated prev across attempts, RNG source) — UNDEFINED, no door pins it,
+          gaps in ADR. Pure-function component + door + same-process A/B only.
+        - SAME-PROCESS A/B (ADR 0105 methodology, NOT wall-clock): metric is DISPERSION (time-bucket
+          occupancy / collision pairs), a JIT/GC-independent deterministic statistic, so no alternating
+          A/B to cancel warmup noise needed — but 9 rounds x p50 median to damp single-sample variance.
+          NEVER cross-process before/after wall-clock (host once faked +695%/8x, ADR 0105). Archived
+          single read (M=64, K=16, attempt=3, base=0.5, cap=8): no-jitter unique=1/16 collisions=2016
+          (=C(64,2)); full-jitter unique=8/16 collisions=269 (13.3% of no-jitter). Door pins
+          "jitter occupies >= half buckets & collisions <35% of no-jitter", NOT any 1.x× perf factor;
+          POSITIVE ANCHOR (ADR 0112): no-jitter collisions must be >0 else the verdict is meaningless.
+        - FIRST-RED then GREEN: before the component landed 16 real gates RED / 7 always-on arms GREEN.
+          After: gate file 23 passed (CI). Full ai-service CI 205 passed/8 skipped (baseline v683 182/8
+          -> +23, zero regression); opt-in real-gateway + real-Redis both legs 212 passed/1 skipped
+          (v683 opt-in 189/1 -> +23, all live legs hit real gpt-6-sol AND 56379, no interference with
+          jitter's pure-function gates). verify:record-encoding exit 0 (0 chargeable / 2260 files).
+          census population ZERO drift: only +src/jitter.py +tests/test_jitter.py, no docs/evidence/*,
+          no new verify:*.
+        - TWO "red"s were MY gate bugs, not prod bugs (red => impl/assumption/undefined): one arm fed
+          an observation violating two asserts at once and hit the wrong-keyword assert first (fixed to
+          violate only the target property); the none+RA truth gate's first draft was an over-loose
+          `abs(x-0.5)<eps or x>=3.0` (near-tautology, toothless) -> pinned exact =max(exp,ra)=3.0.
+          Gates only. Judges shared by gates and arms (ADR 0095), pin properties not literals.
+        - HONEST GAPS (ADR 0117): ① ZERO prod wiring (v681 _backoff still deterministic; wiring needs
+          strategy choice + decorrelated prev propagation + RNG source, owner coordination); ② herd
+          reduction not measured AFTER wiring into real retry/breaker (needs slice + load test);
+          ③ decorrelated first-beat initial value differs slightly from AWS original; ④ prod random.uniform
+          is module-global RNG (GIL-safe but per-process seeding undecided); ⑤ A/B single read not roomy
+          (13.3% vs theory ~9%; 9-round p50 stable, larger M/scale ratios unmeasured — archived single
+          read, no 1.x× verdict); ⑥ hosted Studio CI has no key/Redis => live legs skip (no false green).
+        - SHARED-TREE: HEAD `01842fa` (my v683) at slice start and at commit — no lane landing during
+          this slice. Only my 2 new files (jitter.py + test_jitter.py) + ADR 0117 + this ROADMAP segment;
+          exact `git add`, ff-checked before push, no force. State note self-contained here + ADR 0117
+          (CURRENT-STATE is lane territory, not edited). ADR number re-checked before commit (0117 free).
+        - BRANCH HYGIENE: local `main` was found 1 behind (v683 push updates origin/main but not local
+          main); ff'd it with `git branch -f main master` after `merge-base --is-ancestor main master`=0
+          (pointer-only, no checkout, no force). Now local main/master + origin/main/master + the single
+          worktree HEAD all align; no stray branches/stash/worktrees — the user's "merge all branches into
+          one main line / 集大成" is satisfied at the global level.
+
 Standing constraints (measured, not assumed): this host keeps ~0.3 GB physical memory
 free and its Docker engine currently refuses to start containers (`docker start` hangs;
 `docker info` still answers) — live m9/spring-cloud legs run on the hosted runner and
