@@ -1019,6 +1019,77 @@
     .nf-discover:hover, .nf-home:hover { transform: none; }
   }
 
+  /* ── §FE-16 / ADR-0164 额度与消费页 `/credits` `.cr-` 门面化（首个含响应式断点 + 账本语义色片） ──
+   * FE-10~15 之后全库剩余裸 Tailwind 密度最高的 server 纯展示页：58 处 className / 38 去重原子类
+   * / 525 次出现。本页是"账号—额度—账本"链路上最讲诚实的一页（余额由流水加出来、无消耗方的
+   * 类别不报单价、最近 20 行不等于全部余额），门面化只换 className，文案/data 钩子/业务分支一字不动。
+   * 剥 className 全文哈希 735592fb… 恒等为铁证（含两处三元：模板串 `${delta<0?…:…}` 与
+   * `plan===view.plan?…:…`——条件表达式/标识符/分支位置全保留，只归一字面值）。
+   *
+   * **两个先量再治抓出的真实陷阱**：
+   *  ① 响应式断点：原 `md:grid-cols-4` 经 Tailwind 4.3.5 真编译 = `(width >= 48rem)`（768px），
+   *     不是 FE-14 `.an-defs` 的 40rem。若照抄 40rem，4 列会在 640px 提前 128px 触发——真实失真。
+   *     故 cr-balanceGrid 基础 2 列、48rem 切 4 列。
+   *  ② 字号串档：whose/anonymous/empty 原 `text-13`(13px)，storage/publish-slots 原 `text-12`(12px)，
+   *     两组不可并进同一个类，否则必有一组失真。故 13px 组 cr-lede/cr-empty、12px 组 cr-body/cr-limits。
+   *
+   * **账本正负语义色守恒**：负=消耗→cr-deltaNeg 锚 --nexus-color-danger-ink（暗 #f2555a/亮 #b42318），
+   * 正=发放→cr-deltaPos 锚 --nexus-color-accent-2-ink（暗 #22d3ee/亮 #0f6b7a），双主题均 AA、两两
+   * 不同（别把账记成谎话，§168）。守 ADR-0123 六红线：零新增颜色 token、全锚既有双主题 token +
+   * color-mix、无写死 hex。本片有 1 个 <Link>（回首页登录），补 :focus-visible；纯展示无 hover 动效，
+   * 故不设 reduced 动效门（沿用 FE-12/FE-15 诚实纪律）。不加渐变墨字，不触发 A11Y-1 联动。 */
+  .cr-page, .cr-pageAnon {
+    margin-inline: auto; display: flex; flex-direction: column;
+    padding: var(--nexus-space-10) var(--nexus-space-6);
+  }
+  .cr-page { max-width: 61.25rem; gap: var(--nexus-space-6); }        /* 980px / gap-6 */
+  .cr-pageAnon { max-width: 55rem; gap: var(--nexus-space-3); }        /* 880px / gap-3 */
+  .cr-head { display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+  .cr-section { display: flex; flex-direction: column; gap: var(--nexus-space-2); }
+  .cr-title { font-size: var(--nexus-font-size-24); font-weight: 600; color: var(--nexus-color-fg-1); } /* 原 text-2xl = 1.5rem = 24px */
+  .cr-h2 { font-size: var(--nexus-font-size-14); font-weight: 500; color: var(--nexus-color-fg-1); }
+  .cr-lede { font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-2); }
+  .cr-empty { font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-2); }
+  .cr-body { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  .cr-limits { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  .cr-note { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .cr-window { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .cr-backlink {
+    font-size: var(--nexus-font-size-13); color: var(--nexus-color-accent-2-ink); text-decoration: underline;
+    text-underline-offset: 0.15em;
+  }
+  .cr-backlink:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 3px; border-radius: 2px; }
+
+  /* 四类余额网格：基础 2 列（原 grid-cols-2），48rem 切 4 列（原 md:grid-cols-4 真编译值） */
+  .cr-balanceGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--nexus-space-3); }
+  @media (min-width: 48rem) {
+    .cr-balanceGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+  .cr-balanceCard { border-radius: var(--nexus-radius-md); background: var(--nexus-color-bg-2); padding: var(--nexus-space-3); }
+  .cr-balanceLabel { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .cr-balanceValue { font-size: var(--nexus-font-size-24); font-weight: 600; color: var(--nexus-color-fg-1); }
+  .cr-balanceFoot { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+
+  /* 表格族：w-full border-collapse text-left + py-1 pr-3 行距 */
+  .cr-table { width: 100%; border-collapse: collapse; text-align: left; }
+  .cr-theadRow { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .cr-th { padding: var(--nexus-space-1) var(--nexus-space-3) var(--nexus-space-1) 0; font-weight: 400; }
+  .cr-thLast { padding-block: var(--nexus-space-1); font-weight: 400; }
+  .cr-tdTs { padding: var(--nexus-space-1) var(--nexus-space-3) var(--nexus-space-1) 0; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .cr-tdKind { padding: var(--nexus-space-1) var(--nexus-space-3) var(--nexus-space-1) 0; font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  .cr-tdDelta { padding: var(--nexus-space-1) var(--nexus-space-3) var(--nexus-space-1) 0; font-size: var(--nexus-font-size-12); font-weight: 500; }
+  /* 账本正负语义色：负=消耗红、正=发放青，双主题 tokens.css 各声明一次，两两不同 */
+  .cr-deltaNeg { color: var(--nexus-color-danger-ink); }
+  .cr-deltaPos { color: var(--nexus-color-accent-2-ink); }
+  .cr-tdReason { padding: var(--nexus-space-1) var(--nexus-space-3) var(--nexus-space-1) 0; font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); }
+  .cr-tdTask { padding-block: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .cr-td { padding: var(--nexus-space-1) var(--nexus-space-3) var(--nexus-space-1) 0; font-size: var(--nexus-font-size-12); }
+  .cr-tdLast { padding-block: var(--nexus-space-1); font-size: var(--nexus-font-size-12); }
+  .cr-planCurrent { color: var(--nexus-color-fg-1); }
+  .cr-planOther { color: var(--nexus-color-fg-2); }
+  .cr-youBadge { margin-left: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-2-ink); }
+  .cr-enforced { font-size: var(--nexus-font-size-12); color: var(--nexus-color-warn-ink); }
+
   /* ── §FE-15 / ADR-0163 创作数据页按天曲线 `TrendChart.tsx` `.tc-` 门面化（FE 首个 SVG 图表片） ──
    * analytics 分析页最后一块裸 Tailwind：8 处 className（含 SVG 专属 fill-[...]/text-[9px] 两个
    * 任意值原子类）。本片的灵魂是**三轴语义色守恒**——opens/visitors/playTimeMs 各有专属纵轴与
