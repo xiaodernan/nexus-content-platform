@@ -2043,6 +2043,57 @@
   .gp-warnMt2 { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-warn-ink); }
   .gp-faintMt1 { margin-top: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
 
+  /* ── §FE-51 / ADR-0203 `CharacterPanel.tsx` `.cp-` 门面化——§46-47 角色面板 ──
+   * 角色档案四栏（身份/穿着/画风/特征）列表 + 选中查看/编辑 + 与 CharacterChat 的界面分家；
+     AI 生成肖像要真 provider——文件只有「跟角色说话」和「档案 CRUD」两个入口。
+   * 与 §47 角色对话框（CharacterChat）链路正交；零动效、零 @media、零 hex。 */
+  .cp-root { display: flex; height: 100%; min-height: 0; flex-direction: column; }
+  .cp-rowChip { display: flex; align-items: center; gap: var(--nexus-space-1); border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); }
+  .cp-growInput { min-width: 0; flex: 1 1 0%; border-radius: var(--nexus-radius-sm); border: 0; background: var(--nexus-color-bg-2); padding: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-1); outline: none; }
+  .cp-growField { min-width: 0; flex: 1 1 0%; border-radius: var(--nexus-radius-sm); border: 0; background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
+  .cp-growField:focus { background: var(--nexus-color-bg-3); }
+  .cp-growInput:focus { background: var(--nexus-color-bg-3); font-size: var(--nexus-font-size-11); }
+  .cp-mode80 { width: 5rem; border-radius: var(--nexus-radius-sm); border: 0; background: var(--nexus-color-bg-2); padding: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-1); outline: none; }
+  .cp-mode80:focus { background: var(--nexus-color-bg-3); }
+  .cp-charTab { border: 0; border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); cursor: pointer; background: transparent; }
+  .cp-tabOn { background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-1); }
+  .cp-tabIdle { color: var(--nexus-color-fg-3); }
+  .cp-tabIdle:hover { background: var(--nexus-color-bg-2); }
+  .cp-saveBtn { border: 0; border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-1) var(--nexus-space-3); font-size: var(--nexus-font-size-12); cursor: pointer; }
+  .cp-saveReady { background: var(--nexus-color-accent-2); color: var(--nexus-color-accent-fg); }
+  .cp-saveIdle { background: var(--nexus-color-bg-2); color: var(--nexus-color-fg-3); }
+  .cp-accentBtnSm { flex-shrink: 0; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-accent-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-fg); cursor: pointer; }
+  .cp-accentBtnSm:disabled { opacity: 0.5; cursor: not-allowed; }
+  .cp-btnHover { flex-shrink: 0; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); cursor: pointer; }
+  .cp-btnHover:hover { background: var(--nexus-color-bg-3); }
+  .cp-btnHover:disabled { opacity: 0.5; cursor: not-allowed; }
+  .cp-dangerGhost { flex-shrink: 0; border: 0; border-radius: var(--nexus-radius-sm); background: transparent; padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .cp-dangerGhost:hover { color: var(--nexus-color-danger-ink); }
+  .cp-dangerGhost:disabled { opacity: 0.5; cursor: not-allowed; }
+  .cp-stickyBar { position: sticky; bottom: 0; display: flex; align-items: center; gap: var(--nexus-space-2); background: var(--nexus-color-bg-1); padding-top: var(--nexus-space-2); }
+  .cp-empty { padding: var(--nexus-space-3); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .cp-faintMb1 { margin-bottom: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .cp-faintPx1 { padding: 0 var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .cp-microFaint { font-size: 0.625rem; color: var(--nexus-color-fg-3); }
+  .cp-warn11 { font-size: var(--nexus-font-size-11); color: var(--nexus-color-warn-ink); }
+  .cp-warnMt1 { margin-top: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-warn-ink); }
+  .cp-warnMt2 { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-warn-ink); }
+  .cp-labelSmall { margin-bottom: 2px; display: block; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .cp-rowMt2 { margin-top: var(--nexus-space-2); display: flex; align-items: center; gap: var(--nexus-space-1); }
+  .cp-row2Mt2 { margin-top: var(--nexus-space-2); display: flex; align-items: center; gap: var(--nexus-space-2); }
+  .cp-wrapMb3 { margin-bottom: var(--nexus-space-3); display: flex; flex-wrap: wrap; gap: var(--nexus-space-1); }
+  .cp-wrap { display: flex; gap: var(--nexus-space-1); }
+  .cp-colGap2 { display: flex; flex-direction: column; gap: 2px; }
+  .cp-trunc12ink { min-width: 0; flex: 1 1 0%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); }
+  .cp-ml1 { margin-left: var(--nexus-space-1); }
+  .cp-block { display: block; }
+  .cp-noticeRow { margin-top: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .cp-noticeError { color: var(--nexus-color-danger-ink); }
+  .cp-inputShared { width: 100%; resize: vertical; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
+  .cp-inputShared:focus { background: var(--nexus-color-bg-3); }
+  .cp-grow { min-width: 0; flex: 1 1 0%; }
+  .cp-mono { font-family: var(--nexus-font-mono); }
+
   /* ── §FE-50 / ADR-0202 `HistoryPanel.tsx` `.hi-` 门面化——§107 历史与快照 ──
    * 快照列表 + diff 派发 + compare/restore 双键 + 分支切换；行可带 ≤500 节点diff。
    * cn 三元统一映射：record badge(removed=warn/added=success) · entry source chip(ai→accent-2 else bg-2) ·
