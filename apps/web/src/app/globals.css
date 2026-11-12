@@ -1821,4 +1821,125 @@
       color: CanvasText;
     }
   }
+
+  /* ── §FE-19 / ADR-0169 Studio 顶栏 TopBar 门面基建（sp- 命名空间开篇，承 FE-18 纪律）──
+   * 全库唯一未门面化的核心创作台大陆：apps/web/src/studio/ 下 30+ 面板此前全是裸 Tailwind
+   * 平铺（TopBar 改前 14 处 className / 83 处裸原子类 / 46 去重）。本片只把顶栏收进 sp-
+   * 语义门面，为后续 StudioShell / CommandBar / ContextPanel 等 30+ 面板立住判据范式与视觉
+   * 语言，机械推广边际成本递减。剥 className 全文哈希 3f6bcdd8… 改前改后恒等为铁证。
+   * 守 ADR-0123 六红线：零新增颜色 token、全锚既有双主题 token + color-mix、无写死 hex；
+   * 逐像素等价（h=space-10 / w=220px / max-w=280px / min-h=space-6 / h-divider=space-4 /
+   * w-divider=1px / py=space-1 / z=60 / lg:hidden→64rem）；2 个 <a> + 全控件 focus-visible
+   * 环；disabled 语义；新增的克制 hover 过渡由 prefers-reduced-motion 真收口。不加渐变墨字
+   * （TopBar 无标题），不触发 A11Y-1 联动。本段是 @layer components 内最后一个 §FE 段，
+   * 段内注释不用段头格式（承 FE-18 教训，否则截断自身 spSegment 切片）。
+   */
+  .sp-topbar {
+    position: relative; z-index: 60; display: flex; height: var(--nexus-space-10);
+    flex-shrink: 0; align-items: center; gap: var(--nexus-space-3);
+    padding-inline: var(--nexus-space-3);
+    border-bottom: 1px solid var(--nexus-color-border-subtle);
+    background: var(--nexus-color-bg-1);
+  }
+  .sp-railToggle {
+    padding: var(--nexus-space-1) var(--nexus-space-2);
+    border-radius: var(--nexus-radius-sm);
+    font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-2);
+    transition: background-color var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .sp-railToggle:hover { background: var(--nexus-color-bg-2); }
+  .sp-wordmark {
+    display: inline-flex; min-height: var(--nexus-space-6); align-items: center;
+    font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-13);
+    letter-spacing: .18em; color: var(--nexus-color-fg-2); text-decoration: none;
+    transition: color var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .sp-wordmark:hover { color: var(--nexus-color-brand); }
+  .sp-divider {
+    height: var(--nexus-space-4); width: 1px;
+    background: var(--nexus-color-border-subtle);
+  }
+  .sp-nameInput {
+    width: 220px; padding: var(--nexus-space-1) var(--nexus-space-2);
+    border-radius: var(--nexus-radius-sm);
+    background: var(--nexus-color-bg-2); color: var(--nexus-color-fg-1);
+    font-size: var(--nexus-font-size-14);
+  }
+  .sp-nameBtn {
+    display: inline-flex; min-height: var(--nexus-space-6); max-width: 280px;
+    align-items: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-size: var(--nexus-font-size-14); font-weight: 500;
+    transition: color var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .sp-nameBtn:hover { color: var(--nexus-color-brand); }
+  .sp-toolGroup { display: flex; align-items: center; gap: var(--nexus-space-1); }
+  .sp-actions {
+    display: flex; align-items: center; gap: var(--nexus-space-2); margin-left: auto;
+  }
+  .sp-saveState {
+    font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12);
+  }
+  .sp-saveErr { color: var(--nexus-color-danger-ink); }
+  .sp-saveIdle { color: var(--nexus-color-fg-3); }
+  .sp-viewportBtn {
+    padding: var(--nexus-space-1) var(--nexus-space-2);
+    border-radius: var(--nexus-radius-sm); font-size: var(--nexus-font-size-12);
+    transition: background-color var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .sp-viewportOn {
+    background: var(--nexus-color-brand); color: var(--nexus-color-accent-fg);
+  }
+  .sp-viewportOff { color: var(--nexus-color-fg-3); }
+  .sp-viewportOff:hover { background: var(--nexus-color-bg-2); }
+  .sp-modeSelect {
+    padding: var(--nexus-space-1) var(--nexus-space-2);
+    border-radius: var(--nexus-radius-sm);
+    background: var(--nexus-color-bg-2); color: var(--nexus-color-fg-2);
+    font-size: var(--nexus-font-size-12);
+  }
+  .sp-previewLink {
+    padding: var(--nexus-space-1) var(--nexus-space-3);
+    border: 1px solid var(--nexus-color-border-strong);
+    border-radius: var(--nexus-radius-sm);
+    color: var(--nexus-color-fg-2); font-size: var(--nexus-font-size-13);
+    text-decoration: none;
+    transition: background-color var(--nexus-motion-base) var(--nexus-motion-ease),
+                color var(--nexus-motion-base) var(--nexus-motion-ease),
+                border-color var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .sp-previewLink:hover {
+    background: var(--nexus-color-bg-2); color: var(--nexus-color-fg-1);
+    border-color: var(--nexus-color-brand);
+  }
+  .sp-topBtn {
+    padding: var(--nexus-space-1) var(--nexus-space-2);
+    border-radius: var(--nexus-radius-sm); font-size: var(--nexus-font-size-12);
+    transition: background-color var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .sp-topBtnOn {
+    background: var(--nexus-color-brand); color: var(--nexus-color-accent-fg);
+  }
+  .sp-topBtnOff { color: var(--nexus-color-fg-2); }
+  .sp-topBtnOff:hover { background: var(--nexus-color-bg-2); }
+  .sp-topBtnDisabled { cursor: not-allowed; opacity: 0.4; }
+  .sp-topBtnDisabled:hover { background: transparent; }
+
+  /* focus 环：2 个 <a> + 全控件（承全局 :focus-visible，门面段自带确保不脱节） */
+  .sp-wordmark:focus-visible, .sp-previewLink:focus-visible, .sp-railToggle:focus-visible,
+  .sp-nameBtn:focus-visible, .sp-nameInput:focus-visible, .sp-viewportBtn:focus-visible,
+  .sp-modeSelect:focus-visible, .sp-topBtn:focus-visible {
+    outline: 2px solid var(--nexus-color-brand);
+    outline-offset: 2px;
+  }
+
+  /* 响应式：原 lg:hidden（railToggle）经 Tailwind 4 真编译 = 64rem（1024px） */
+  @media (min-width: 64rem) {
+    .sp-railToggle { display: none; }
+  }
+
+  /* 动效收口：新增的克制 hover 过渡在 reduced 下真关掉 */
+  @media (prefers-reduced-motion: reduce) {
+    .sp-railToggle, .sp-wordmark, .sp-nameBtn, .sp-viewportBtn,
+    .sp-previewLink, .sp-topBtn { transition: none; }
+  }
 }

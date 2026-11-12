@@ -70,18 +70,18 @@ export function TopBar({ onOpenRail }: { onOpenRail: () => void }) {
             : '已同步';
 
   return (
-    <header className="relative z-[60] flex h-[var(--nexus-space-10)] shrink-0 items-center gap-[var(--nexus-space-3)] border-b border-[var(--nexus-color-border-subtle)] bg-bg-1 px-[var(--nexus-space-3)]">
+    <header className="sp-topbar">
       <button
         type="button"
         onClick={onOpenRail}
-        className="rounded-[var(--nexus-radius-sm)] px-[var(--nexus-space-2)] py-1 text-13 text-fg-2 hover:bg-bg-2 lg:hidden"
+        className="sp-railToggle"
       >
         面板
       </button>
-      <a href="/" className="inline-flex min-h-6 items-center font-mono text-13 tracking-[.18em] text-fg-2">
+      <a href="/" className="sp-wordmark">
         NEXUS
       </a>
-      <span className="h-4 w-px bg-[var(--nexus-color-border-subtle)]" />
+      <span className="sp-divider" />
       {editingName ? (
         <input aria-label="项目名"
           ref={nameRef}
@@ -93,30 +93,30 @@ export function TopBar({ onOpenRail }: { onOpenRail: () => void }) {
             if (e.key === 'Escape') setEditingName(false);
             e.stopPropagation();
           }}
-          className="w-[220px] rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-14"
+          className="sp-nameInput"
         />
       ) : (
         <button
           type="button"
           onClick={() => setEditingName(true)}
           title="重命名项目"
-          className="inline-flex min-h-6 max-w-[280px] items-center truncate text-14 font-medium"
+          className="sp-nameBtn"
           data-project-name
         >
           {documentName || '未命名项目'}
         </button>
       )}
 
-      <div className="flex items-center gap-1">
+      <div className="sp-toolGroup">
         <TopButton label="撤销" shortcut="Ctrl+Z" disabled={!canUndo} title={undoLabel ?? undefined} onClick={() => studio.undo()} />
         <TopButton label="重做" shortcut="Ctrl+Shift+Z" disabled={!canRedo} title={redoLabel ?? undefined} onClick={() => studio.redo()} />
       </div>
 
-      <div className="ml-auto flex items-center gap-[var(--nexus-space-2)]">
-        <span className={cn('font-mono text-12', saveState === 'error' ? 'text-danger-ink' : 'text-fg-3')} data-save-state>
+      <div className="sp-actions">
+        <span className={cn('sp-saveState', saveState === 'error' ? 'sp-saveErr' : 'sp-saveIdle')} data-save-state>
           {saveLabel}
         </span>
-        <div className="flex items-center gap-1">
+        <div className="sp-toolGroup">
           {VIEWPORTS.map((v) => (
             <button
               key={v.id}
@@ -125,8 +125,8 @@ export function TopBar({ onOpenRail }: { onOpenRail: () => void }) {
               onClick={() => studio.setViewport(v.id)}
               data-viewport={v.id}
               className={cn(
-                'rounded-[var(--nexus-radius-sm)] px-[var(--nexus-space-2)] py-1 text-12',
-                viewport === v.id ? 'bg-brand text-accent-fg' : 'text-fg-3 hover:bg-bg-2',
+                'sp-viewportBtn',
+                viewport === v.id ? 'sp-viewportOn' : 'sp-viewportOff',
               )}
             >
               {v.label}
@@ -137,7 +137,7 @@ export function TopBar({ onOpenRail }: { onOpenRail: () => void }) {
           value={activeMode ?? 'default'}
           onChange={(e) => studio.setMode(e.target.value === 'default' ? null : e.target.value)}
           data-theme-mode
-          className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12 text-fg-2"
+          className="sp-modeSelect"
           title="Token 主题 mode"
         >
           <option value="default">默认主题</option>
@@ -152,7 +152,7 @@ export function TopBar({ onOpenRail }: { onOpenRail: () => void }) {
         <PublishPanel />
         <a
           href={`/preview/${projectId}`}
-          className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-[var(--nexus-space-3)] py-1 text-13 text-fg-2"
+          className="sp-previewLink"
           title="只读运行预览（任务 #7 接入运行态投影）"
         >
           预览
@@ -171,9 +171,9 @@ function TopButton(props: { label: string; shortcut?: string; disabled?: boolean
       title={props.shortcut ? `${props.label}（${props.shortcut}）` : props.label}
       aria-pressed={props.active}
       className={cn(
-        'rounded-[var(--nexus-radius-sm)] px-[var(--nexus-space-2)] py-1 text-12',
-        props.active ? 'bg-brand text-accent-fg' : 'text-fg-2 hover:bg-bg-2',
-        props.disabled && 'cursor-not-allowed opacity-40 hover:bg-transparent',
+        'sp-topBtn',
+        props.active ? 'sp-topBtnOn' : 'sp-topBtnOff',
+        props.disabled && 'sp-topBtnDisabled',
       )}
     >
       {props.label}

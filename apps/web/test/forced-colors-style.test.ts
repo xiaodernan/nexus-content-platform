@@ -86,8 +86,33 @@ function forcedColorsRules(css: string): Array<{ selector: string; decls: string
   return blocks;
 }
 
+/**
+ * 按**括号深度**取出第一个 `@media (forced-colors: active)` 块的完整文本（含首尾 `{` `}`）。
+ * 修实（FE-19 / §CRIT-4）：本门原来的"回退块零 hex / 零 token / 常规视觉不变"三处判定用的是
+ * `clean.slice(块起点)`（裸取到 EOF）与非贪婪 `\n\s*\}`（会在内层规则闭合处提前截断）——
+ * 前者把后续新插的段（FE-19 `.sp-` 段的 `var(--nexus-*)`）误算进 forced-colors 块触发假红，
+ * 后者删不干净整块。正确范式是按深度配平取**块本身**，段头/后续插段怎么变都不误吞
+ * （承 forcedColorsRules 已在用的深度扫描、FE-16 §CRIT-1 段边界修实纪律）。
+ */
+function forcedColorsBlock(css: string): string {
+  const start = css.search(/@media\s*\(forced-colors:\s*active\)/);
+  if (start < 0) return '';
+  const braceStart = css.indexOf('{', start);
+  if (braceStart < 0) return '';
+  let depth = 0;
+  for (let end = braceStart; end < css.length; end++) {
+    if (css[end] === '{') depth++;
+    else if (css[end] === '}') {
+      depth--;
+      if (depth === 0) return css.slice(start, end + 1);
+    }
+  }
+  return ''; // 括号不配平：宁可判空让"缺 forced 块"的门去红，也不把后续段误吞进来
+}
+
 const inkClasses = gradientInkClasses(clean);
 const fcRules = forcedColorsRules(clean);
+const forcedBlock = forcedColorsBlock(clean);
 
 /** 某个类在 forced-colors 块里的合并声明（支持多类共用一个选择器组）。 */
 function declsFor(cssClass: string): string {
@@ -139,16 +164,14 @@ describe('§A11Y-1 渐变墨字高对比度回退（静态不变式）', () => {
   });
 
   it('回退块零写死 hex（CSS 系统色关键字，不是新颜色）', () => {
-    // 锚去注释的 clean（顶部已算）：注释里引用的示例 hex 不是生产颜色，不该喂红；
-    // 生产声明里真出现 hex 仍会被抓（变异臂验过）。ADR-0154 把 code/clean 纪律推广到本门。
-    const forced = clean.slice(clean.search(/@media\s*\(forced-colors:\s*active\)/));
-    const hex = [...forced.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((m) => m[0]);
+    // 锚按深度配平的 forcedBlock 本身（FE-19/§CRIT-4 修实）：注释里的示例 hex 不算，
+    // 后续新插段（FE-19 .sp-）也不再被误算进来；块内真出现 hex 仍会抓（变异臂验过）。
+    const hex = [...forcedBlock.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((m) => m[0]);
     expect(hex, `forced-colors 块出现写死 hex：${hex.join(', ')}`).toEqual([]);
   });
 
   it('回退块零 var(--nexus-*) token（用 CSS 系统色自动适配用户对比度偏好）', () => {
-    const forced = clean.slice(clean.search(/@media\s*\(forced-colors:\s*active\)/));
-    const vars = [...forced.matchAll(/var\(--nexus-[a-z0-9-]+/g)].map((m) => m[0]);
+    const vars = [...forcedBlock.matchAll(/var\(--nexus-[a-z0-9-]+/g)].map((m) => m[0]);
     expect(vars, `forced-colors 块引用了 nexus token（双主题 token 不覆盖用户自定义高对比度主题）：${[...new Set(vars)].join(', ')}`).toEqual([]);
   });
 
@@ -158,7 +181,9 @@ describe('§A11Y-1 渐变墨字高对比度回退（静态不变式）', () => {
   });
 
   it('常规（非 forced）渐变墨字视觉一字未动：仍是 transparent 字 + clip（本片只加高对比度兜底）', () => {
-    const prod = clean.replace(/@media\s*\(forced-colors:\s*active\)[\s\S]*?\n\s*\}/g, '');
+    // 用深度配平的 forcedBlock 精确剔除整块（FE-19/§CRIT-4 修实）：原非贪婪 `\n\s*\}` 会在
+    // 内层规则 `    }` 处提前截断、删不干净，且依赖缩进猜测；换成块本身做字面替换更稳。
+    const prod = forcedBlock ? clean.replace(forcedBlock, '') : clean;
     const inkInProd = gradientInkClasses(prod);
     expect(inkInProd.sort(), '常规态渐变墨字被改动了（A11Y-1 只应加 forced 回退，不碰常规视觉）').toEqual(inkClasses);
   });
