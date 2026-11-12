@@ -1520,6 +1520,28 @@
   .gw-ident { font-family: var(--nexus-font-mono); font-variant-numeric: tabular-nums; color: var(--nexus-color-fg-1); }
   .gw-ident2 { font-family: var(--nexus-font-mono); font-variant-numeric: tabular-nums; color: var(--nexus-color-fg-2); }
 
+  /* ── §FE-37 / ADR-0189 `CharacterChat.tsx` `.ch-` 门面化——§47 角色对话框 ──
+   * 跟角色说话的共用一块（CharacterPanel 编辑器与 /world 的 3D HUD 都渲染它）；
+   * 回复只有一种来源：ai-service 背后的真模型。409(DEMO)/429/429 外的失败都把服务器的原话亮出来，绝不编一句顶上。
+   * 无会话线程——真实回复落 §48 角色记忆，界面刷新即不在了。只换皮，不动行为/文案/data 钩子/CSRF。
+   * `.ch-speaker` 的 10px 用字面量 0.625rem——token 尺度没有 10px（最近档 11px），写 11px 会失真（§FE-37）。 */
+  .ch-title { margin-bottom: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .ch-lede { margin-bottom: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .ch-log { margin-bottom: var(--nexus-space-1); display: flex; flex-direction: column; gap: var(--nexus-space-1); list-style: none; padding: 0; }
+  .ch-msg { border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); }
+  .ch-msgUser { background: var(--nexus-color-bg-2); color: var(--nexus-color-fg-1); }
+  .ch-msgCharacter { background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-1); }
+  .ch-speaker { margin-right: var(--nexus-space-1); font-family: var(--nexus-font-mono); font-size: 0.625rem; color: var(--nexus-color-fg-3); }
+  .ch-error { margin-bottom: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-warn-ink); }
+  .ch-row { display: flex; align-items: center; gap: var(--nexus-space-1); }
+  .ch-input { min-width: 0; flex: 1 1 0%; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
+  .ch-input:focus { background: var(--nexus-color-bg-3); }
+  .ch-input:disabled { opacity: 0.5; cursor: not-allowed; }
+  .ch-send { flex-shrink: 0; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); cursor: pointer; }
+  .ch-send:hover:not(:disabled) { background: var(--nexus-color-bg-3); }
+  .ch-send:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .ch-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
   /* ── §FE-33 / ADR-0185 `/admin/rate-limit` 限流闸诊断 `.rl-` 门面化 ──
    * §SEC 第三十五片：装的是哪个驱动/共享窗口还是每台各数/退回本机窗口的次数——镜表、
    * 三类退回原因、IP_RATE_RULES 原样端出。全裸布局 atom 迁入 .rl- 族（dl 11rem），

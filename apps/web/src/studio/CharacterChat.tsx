@@ -1,7 +1,6 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { cn } from '@/lib/cn';
 import { csrfHeaders } from '@/lib/csrf';
 
 /**
@@ -52,22 +51,19 @@ export function CharacterChat({
 
   return (
     <section data-character-chat>
-      <h3 className="mb-1 text-11 text-fg-3">跟角色说话</h3>
-      <p className="mb-1 text-11 text-fg-3">
+      <h3 className="ch-title">跟角色说话</h3>
+      <p className="ch-lede">
         对话没有会话线程：真实回复会进 §48 的角色记忆，界面这段刷新就不在了。
       </p>
       {log.length ? (
-        <ul className="mb-1 flex flex-col gap-1" data-character-chat-log>
+        <ul className="ch-log" data-character-chat-log>
           {log.map((entry, index) => (
             <li
               key={`${entry.role}-${index}`}
               data-character-chat-msg={entry.role}
-              className={cn(
-                'rounded-[var(--nexus-radius-sm)] px-2 py-1 text-12',
-                entry.role === 'user' ? 'bg-bg-2 text-fg-1' : 'bg-bg-3 text-fg-1',
-              )}
+              className={'ch-msg ' + (entry.role === 'user' ? 'ch-msgUser' : 'ch-msgCharacter')}
             >
-              <span className="mr-1 font-mono text-10 text-fg-3">
+              <span className="ch-speaker">
                 {entry.role === 'user' ? '你' : characterName || '角色'}：
               </span>
               {entry.text}
@@ -76,11 +72,11 @@ export function CharacterChat({
         </ul>
       ) : null}
       {error ? (
-        <p className="mb-1 text-11 text-warn-ink" data-character-chat-error>
+        <p className="ch-error" data-character-chat-error>
           {error}
         </p>
       ) : null}
-      <div className="flex items-center gap-1">
+      <div className="ch-row">
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -91,14 +87,14 @@ export function CharacterChat({
           aria-label="给角色的话"
           data-character-chat-input
           disabled={busy}
-          className="min-w-0 flex-1 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12 text-fg-1 outline-none focus:bg-bg-3 disabled:opacity-50"
+          className="ch-input"
         />
         <button
           type="button"
           disabled={busy || !draft.trim()}
           onClick={() => void send()}
           data-character-chat-send
-          className="shrink-0 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-11 text-fg-2 hover:bg-bg-3 disabled:opacity-50"
+          className="ch-send"
         >
           {busy ? '在想…' : '说'}
         </button>
