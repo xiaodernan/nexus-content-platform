@@ -52,12 +52,11 @@
   同源变异臂 4 条、静态接线门 2 条）。
 - 窄 tsc（extends apps/web tsconfig，取本片两文件）：exit 0。
 - verify:record-encoding：exit 0。
-- **真 Redis 端到端路径 UNPROVEN**：本机 56379 无前置 Redis（v674 全部针对 fake 连接测试缝）；
-  真机双进程 `fail-safe-invalidate` 通路等待宿主环境，本 ADR 不宣称已验证。
+- **真 Redis 端到端路径（2026-11-12 补证，请见 cont. 37）**：`NEXUS_REDIS_URL=redis://127.0.0.1:56379 npx vitest run apps/web/test/discover-redis-live.test.ts` → **3/3 green** against the real `nexus-redis` on 56379：真频道扇出 + 回环过滤、`fail-safe-invalidate` vs `degrade-to-ttl`（原始 v2 字节帧）、rejected 字节路径 e2e through ioredis。CI 里没有 Redis，同一文件报 3 skipped（已确认）——它是本机显式 opt-in 的门，不是托管门；fake-connection 套件仍是协议路径的主门。
 - 主机栈上的 hosted Studio proofs-battery 对本次推送 PENDING；主线 main-line 是快信号。
 
 ## 仍欠
 
-- fail-safe-invalidate 的进程级端到端验证（双进程 + 真 ioredis + 抢发）。
+- fail-safe-invalidate 的**双进程**端到端验证（同一测试缝已覆盖单进程双 bus 的真线路；两个 OS 进程 + 真 ioredis 抢发未跑）。
 - 观察指标：不接 Prometheus 抓取（本仓暂无统一指标面），stats 字段供 `/api/admin/realtime` 之类
   的管理面按需读出——目前无任何消费者，字段先立存在。
