@@ -170,7 +170,7 @@ export function StudioShell({
   }, [projectId]);
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-bg-0 text-fg-1" data-studio-root data-project-id={projectId}>
+    <div className="se-root" data-studio-root data-project-id={projectId}>
       {documentPromise ? (
         <Suspense fallback={null}>
           <DocumentStream documentPromise={documentPromise} />
@@ -179,7 +179,7 @@ export function StudioShell({
       {readOnly ? (
         <p
           data-studio-read-only
-          className="shrink-0 border-b border-[var(--nexus-color-border-subtle)] bg-bg-2 px-[var(--nexus-space-3)] py-1 text-11 text-warn-ink"
+          className="se-readOnly"
         >
           你是这个项目的查看者（viewer）：文档可以看，编辑不会落到文档上——服务端会拒绝写请求（403）。
           要改内容，让所有者把角色改成可编辑。
@@ -190,7 +190,7 @@ export function StudioShell({
           <StudioWorkspace zoom={zoom} demoMode={demoMode} />
         </Profiler>
       ) : (
-        <p className="m-auto font-mono text-13 text-fg-3" data-studio-status>
+        <p className="se-status" data-studio-status>
           {loadError ?? '载入项目…'}
         </p>
       )}
@@ -224,8 +224,8 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
       <Profiler id="topbar" onRender={recordRender('topbar')}>
         <TopBar onOpenRail={() => setRailOpen((v) => !v)} />
       </Profiler>
-      <div className="relative flex min-h-0 flex-1">
-        <nav className="flex w-[44px] shrink-0 flex-col items-center gap-1 border-r border-[var(--nexus-color-border-subtle)] bg-bg-1 py-[var(--nexus-space-2)]">
+      <div className="se-frame">
+        <nav className="se-rail">
           {TABS.map((item) => (
             <button
               key={item.id}
@@ -238,8 +238,8 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
               }}
               data-panel-tab={item.id}
               className={cn(
-                'flex h-8 w-8 items-center justify-center rounded-[var(--nexus-radius-sm)] text-12',
-                tab === item.id && railOpen ? 'bg-bg-3 text-fg-1' : 'text-fg-3 hover:bg-bg-2',
+                'se-tab',
+                tab === item.id && railOpen && 'se-tabActive',
               )}
             >
               {item.label[0]}
@@ -251,9 +251,8 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
         <aside
           className={cn(
             // 小屏浮层：面板盖在画布上而不是挤窄它（`left-[44px]` 让出图标栏）；lg 起回到内联三栏
-            'min-h-0 w-[264px] shrink-0 border-r border-[var(--nexus-color-border-subtle)] bg-bg-1',
-            'absolute inset-y-0 left-[44px] z-30 shadow-2xl lg:static lg:z-auto lg:shadow-none',
-            railOpen ? 'block' : 'hidden',
+            'se-panel',
+            railOpen ? 'se-panel-visible' : 'se-panel-hidden',
           )}
           data-left-panel
         >
@@ -290,11 +289,11 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
       </Profiler>
 
         <Profiler id="main" onRender={recordRender('main')}>
-        <main className="flex min-w-0 flex-1 flex-col">
-          <div className="relative flex min-h-0 flex-1 flex-col">
+        <main className="se-workArea">
+          <div className="se-workCol">
             {/* 视图切换与 DEMO 标识常驻在同一行：浮层会盖住代码视图的文件标签（§160） */}
-            <div className="flex shrink-0 items-center gap-2 border-b border-[var(--nexus-color-border-subtle)] bg-bg-1 px-[var(--nexus-space-2)] py-1">
-              <span className="flex items-center gap-1" data-view-switch>
+            <div className="se-viewBar">
+              <span className="se-viewSwitch" data-view-switch>
                 {VIEWS.map((id) => (
                   <button
                     key={id}
@@ -302,31 +301,28 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
                     onClick={() => setView(id)}
                     data-view={id}
                     aria-pressed={view === id}
-                    className={cn(
-                      'rounded-[var(--nexus-radius-sm)] px-2 py-[2px] font-mono text-12',
-                      view === id ? 'bg-bg-3 text-fg-1' : 'text-fg-3 hover:bg-bg-2',
-                    )}
+              className={cn('se-viewBtn', view === id && 'se-viewBtnActive')}
                   >
                     {VIEW_LABELS[id]}
                   </button>
                 ))}
               </span>
               {view === 'canvas' ? (
-                <span className="font-mono text-12 text-fg-3" data-zoom>
+                <span className="se-zoomX" data-zoom>
                   {Math.round(zoom * 100)}%
                 </span>
               ) : null}
               <span
                 data-demo-mode={demoMode ? 'on' : 'off'}
                 className={cn(
-                  'ml-auto rounded-[var(--nexus-radius-sm)] px-2 py-1 font-mono text-12',
-                  demoMode ? 'bg-warn text-accent-fg' : 'bg-success text-accent-fg',
+                  'se-demoChipBase',
+                  demoMode ? 'se-demoChipWarn' : 'se-demoChipLive',
                 )}
               >
                 {demoMode ? 'DEMO MODE' : 'LIVE PROVIDER'}
               </span>
             </div>
-            <div className="relative min-h-0 flex-1">
+            <div className="se-canvasWrap">
               {view === 'canvas' ? (
                 <CanvasStage />
               ) : view === 'variants' ? (
@@ -351,7 +347,7 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
             type="button"
             aria-label="关闭属性面板"
             onClick={() => setInspectorOpen(false)}
-            className="fixed inset-0 z-40 bg-black/40 xl:hidden"
+            className="se-scrim"
           />
         ) : null}
         {inspectorFolded ? (
@@ -366,7 +362,7 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
               window.requestAnimationFrame(() => foldRef.current?.focus());
             }}
             data-inspector-unfold
-            className="fixed right-0 top-1/2 z-40 inline-flex min-h-8 min-w-8 -translate-y-1/2 items-center justify-center rounded-l-[var(--nexus-radius-sm)] border border-r-0 border-[var(--nexus-color-border-strong)] bg-bg-2 px-2 py-3 text-12 text-fg-2 hover:bg-bg-3 [writing-mode:vertical-rl]"
+            className="se-unfoldBtn"
           >
             属性
           </button>
@@ -374,15 +370,15 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
         <Profiler id="properties" onRender={recordRender('properties')}>
         <aside
           className={cn(
-            'z-50 min-h-0 w-[300px] shrink-0 border-l border-[var(--nexus-color-border-subtle)] bg-bg-1',
-            inspectorOpen ? 'fixed bottom-0 left-0 right-0 top-auto h-[52vh] max-xl:block' : 'max-xl:hidden',
-            'xl:static xl:h-auto',
-            inspectorFolded ? 'xl:hidden' : 'xl:block',
+            'se-inspector',
+            inspectorOpen ? 'se-inspectorShowMobile' : 'se-inspectorHideMobile',
+            
+            inspectorFolded ? 'se-inspectorHideXL' : 'se-inspectorShowXL',
           )}
           id="nexus-inspector"
           data-right-panel
         >
-          <div className="relative flex h-full min-h-0 flex-col">
+          <div className="se-inspectorBody">
             <button
               ref={foldRef}
               type="button"
@@ -394,14 +390,14 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
                 window.requestAnimationFrame(() => unfoldRef.current?.focus());
               }}
               data-inspector-fold
-              className="absolute right-2 top-2 z-50 hidden h-6 min-w-6 items-center justify-center rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 text-11 text-fg-3 hover:bg-bg-3 xl:inline-flex"
+              className="se-foldBtn"
             >
               折起
             </button>
             <button
               type="button"
               onClick={() => setInspectorOpen((v) => !v)}
-              className="absolute bottom-2 right-2 z-50 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12 text-fg-3 xl:hidden"
+              className="se-inspectorToggle"
             >
               {inspectorOpen ? '收起属性' : '属性面板'}
             </button>

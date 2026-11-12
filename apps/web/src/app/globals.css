@@ -1592,6 +1592,58 @@
   .hd-detail { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); font-variant-numeric: tabular-nums; max-width: 42rem; overflow-wrap: anywhere; }
   .hd-measured { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); font-variant-numeric: tabular-nums; }
 
+  /* ── §FE-41 / ADR-0193 `StudioShell.tsx` `.se-` 门面化——Studio 外壳首片 ──
+   * 外壳 frame（rail + left aside + main + inspector + fold/unfold/zip）——唯一行为面只有
+   * `railOpen`/`inspectorOpen`/`inspectorFolded` 三个 boolean。零新增颜色 token、零 hex、零 @media 逐字平移 md/lg 断点。 */
+  .se-root { display: flex; height: 100vh; width: 100%; flex-direction: column; overflow: hidden; background: var(--nexus-color-bg-0); color: var(--nexus-color-fg-1); }
+  .se-readOnly { flex-shrink: 0; border-bottom: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-3); font-size: var(--nexus-font-size-11); color: var(--nexus-color-warn-ink); }
+  .se-status { margin: auto; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-3); }
+  .se-frame { position: relative; display: flex; min-height: 0; flex: 1 1 0%; }
+  .se-rail { display: flex; width: 2.75rem; flex-shrink: 0; flex-direction: column; align-items: center; gap: var(--nexus-space-1); border-right: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); padding-block: var(--nexus-space-2); }
+  .se-tab { display: flex; height: 2rem; width: 2rem; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: var(--nexus-radius-sm); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .se-tab:hover { background: var(--nexus-color-bg-2); }
+  .se-tab:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .se-tabActive { background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-1); }
+  .se-workArea { display: flex; min-width: 0; flex: 1 1 0%; flex-direction: column; }
+  .se-workCol { position: relative; min-height: 0; flex: 1 1 0%; display: flex; flex-direction: column; }
+  .se-viewBar { display: flex; flex-shrink: 0; align-items: center; gap: var(--nexus-space-2); border-bottom: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); padding: var(--nexus-space-1) var(--nexus-space-2); }
+  .se-viewBtn { border: 0; background: transparent; border-radius: var(--nexus-radius-sm); padding: 2px var(--nexus-space-2); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .se-viewBtn:hover { background: var(--nexus-color-bg-2); }
+  .se-viewBtn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .se-viewBtnActive { background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-1); }
+  .se-zoomX { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .se-demoChipBase { margin-left: auto; border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-1) var(--nexus-space-2); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-fg); }
+  .se-demoChipWarn { background: var(--nexus-color-warn); }
+  .se-demoChipLive { background: var(--nexus-color-success); }
+  .se-panel { min-height: 0; width: 16.5rem; flex-shrink: 0; position: absolute; inset-block: 0; left: 2.75rem; z-index: 30; border-right: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); box-shadow: var(--nexus-shadow-lg); }
+  @media (min-width: 64rem) { .se-panel { position: static; z-index: auto; box-shadow: none; inset-block: auto; left: auto; } }
+  .se-panel-hidden { display: none; }
+  .se-panel-visible { display: block; }
+  .se-scrim { position: fixed; inset: 0; z-index: 40; border: 0; background: rgba(0, 0, 0, 0.4); cursor: default; }
+  .se-inspector { z-index: 50; min-height: 0; width: 18.75rem; flex-shrink: 0; border-left: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); }
+  @media (max-width: 63.99rem) {
+    .se-inspectorShowMobile { display: block; position: fixed; bottom: 0; left: 0; right: 0; top: auto; height: 52vh; }
+    .se-inspectorHideMobile { display: none; }
+  }
+  @media (min-width: 64rem) {
+    .se-inspector { position: static; height: auto; }
+    .se-inspectorHideXL { display: none; }
+    .se-inspectorShowXL { display: block; }
+  }
+  .se-inspectorToggle { position: absolute; bottom: var(--nexus-space-2); right: var(--nexus-space-2); z-index: 50; display: inline-flex; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); cursor: pointer; }
+  @media (min-width: 64rem) { .se-inspectorToggle { display: none; } }
+  .se-foldBtn { position: absolute; right: var(--nexus-space-2); top: var(--nexus-space-2); z-index: 50; display: none; min-height: 1.5rem; min-width: 1.5rem; align-items: center; justify-content: center; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: 0 var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .se-foldBtn:hover { background: var(--nexus-color-bg-3); }
+  .se-foldBtn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  @media (min-width: 64rem) { .se-foldBtn { display: inline-flex; } }
+  .se-unfoldBtn { position: fixed; right: 0; top: 50%; z-index: 40; display: inline-flex; min-height: 2rem; min-width: 2rem; transform: translateY(-50%); align-items: center; justify-content: center; border: 1px solid var(--nexus-color-border-strong); border-right: 0; border-radius: var(--nexus-radius-sm) 0 0 var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-3) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); cursor: pointer; writing-mode: vertical-rl; }
+  .se-unfoldBtn:hover { background: var(--nexus-color-bg-3); }
+  .se-unfoldBtn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .se-shadow2xl { box-shadow: var(--nexus-shadow-lg); }
+  .se-canvasWrap { position: relative; min-height: 0; flex: 1 1 0%; }
+  .se-viewSwitch { display: inline-flex; align-items: center; gap: var(--nexus-space-1); }
+  .se-inspectorBody { position: relative; display: flex; height: 100%; min-height: 0; flex-direction: column; }
+
   /* ── §FE-39 / ADR-0191 `CodePanel.tsx` `.cd-` 门面化——§19 Code 视图 ──
    * 画布旁边的第二块投影：设计模型→代码投影/受限 JSX 解析器反向编辑/一次应用 = 一个可撤销事务。
    * 解析器吃不下的片段如实报告，不回写、不假装回写成功。只换皮，行为/文案/data 钩子/CSRF 不动。零动效。 */

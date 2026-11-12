@@ -189,19 +189,20 @@ describe('aiServiceUrl 的模式相关缺省', () => {
   const previousPort = process.env.AI_SERVICE_PORT;
 
   function withEnv(nodeEnv: string | undefined, port: string | undefined, url: string | undefined, run: () => void) {
-    if (nodeEnv === undefined) delete process.env.NODE_ENV;
-    else process.env.NODE_ENV = nodeEnv;
-    if (port === undefined) delete process.env.AI_SERVICE_PORT;
-    else process.env.AI_SERVICE_PORT = port;
-    if (url === undefined) delete process.env[ENV_KEY];
-    else process.env[ENV_KEY] = url;
+    const env = process.env as Record<string, string | undefined>;
+    if (nodeEnv === undefined) delete env.NODE_ENV;
+    else env.NODE_ENV = nodeEnv;
+    if (port === undefined) delete env.AI_SERVICE_PORT;
+    else env.AI_SERVICE_PORT = port;
+    if (url === undefined) delete env[ENV_KEY];
+    else env[ENV_KEY] = url;
     try {
       run();
     } finally {
-      if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
-      else process.env.NODE_ENV = previousNodeEnv;
-      if (previousPort === undefined) delete process.env.AI_SERVICE_PORT;
-      else process.env.AI_SERVICE_PORT = previousPort;
+      if (previousNodeEnv === undefined) delete env.NODE_ENV;
+      else env.NODE_ENV = previousNodeEnv;
+      if (previousPort === undefined) delete env.AI_SERVICE_PORT;
+      else env.AI_SERVICE_PORT = previousPort;
     }
   }
 
