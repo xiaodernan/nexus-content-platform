@@ -1432,6 +1432,52 @@
   .ar-capabilityReal { color: var(--nexus-color-success); }
   .ar-note { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
 
+  /* ── §FE-28 / ADR-0180 `/admin/marketplace` 市场工单 + TriageButtons `.am-` 门面化 ──
+   * §123/#158/#159 举报工单与交易审计：结案/驳回只落工单结论、不撤内容（页上明写）。
+   * denied×2 复用 `.adm-*`（§FE-26），成功/空态/closed 行/审计表为本片专有。零动效、零 @media。 */
+  .am-scopeBox { border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-3); }
+  .am-shell { margin-inline: auto; max-width: 67.5rem; padding: var(--nexus-space-10) var(--nexus-space-6); display: flex; flex-direction: column; gap: var(--nexus-space-6); }
+  .am-summary { margin-top: var(--nexus-space-1); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .am-lede { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  .am-note { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .am-note2 { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); }
+  .am-linkInline { color: var(--nexus-color-accent-2-ink); text-decoration: underline; text-underline-offset: 0.15em; border-radius: 2px; }
+  .am-linkInline:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .am-linkTarget { display: inline-flex; min-height: 1.5rem; align-items: center; border-radius: 2px; padding-inline: var(--nexus-space-1); color: var(--nexus-color-accent-2-ink); text-decoration: underline; text-underline-offset: 0.15em; }
+  .am-linkTarget:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .am-backlink { display: inline-block; margin-top: var(--nexus-space-4); font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-2-ink); text-decoration: underline; text-underline-offset: 0.15em; border-radius: 2px; }
+  .am-backlink:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .am-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-2); font-size: var(--nexus-font-size-12); }
+  .am-filterChip { border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); color: var(--nexus-color-fg-1); text-decoration: none; }
+  .am-filterChip:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .am-filterIdle { border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); color: var(--nexus-color-fg-2); text-decoration: none; }
+  .am-filterIdle:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .am-empty { font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-2); }
+  .am-reportCard { display: flex; flex-direction: column; gap: var(--nexus-space-2); border-radius: var(--nexus-radius-sm); border: 1px solid var(--nexus-color-border-subtle); padding: var(--nexus-space-3); }
+  .am-reportHead { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--nexus-space-2); }
+  .am-reportReason { font-size: var(--nexus-font-size-13); font-weight: 600; color: var(--nexus-color-fg-1); }
+  .am-metaMono { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .am-statusLabel { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); }
+  .am-closed { display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+  .am-audit { display: flex; flex-direction: column; gap: var(--nexus-space-2); }
+  .am-auditTitle { font-size: var(--nexus-font-size-16); font-weight: 600; color: var(--nexus-color-fg-1); }
+  .am-table { width: 100%; font-size: var(--nexus-font-size-11); }
+  .am-thRow { text-align: left; color: var(--nexus-color-fg-3); }
+  .am-monoCell { font-family: var(--nexus-font-mono); }
+  .am-detailCell { word-break: break-all; color: var(--nexus-color-fg-3); }
+  .am-triageWrap { display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+  .am-triageDone { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .am-triageRow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-2); }
+  .am-noteInput { min-width: 14rem; flex: 1 1 0%; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-1); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-1); }
+  .am-noteInput:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .am-btn { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-1); cursor: pointer; }
+  .am-btn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .am-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .am-btnDanger { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-danger); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-fg); cursor: pointer; }
+  .am-btnDanger:focus-visible { outline: 2px solid var(--nexus-color-danger-ink); outline-offset: 2px; }
+  .am-btnDanger:disabled { opacity: 0.5; cursor: not-allowed; }
+  .am-triageError { font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); }
+
   /* ── §FE-15 / ADR-0163 创作数据页按天曲线 `TrendChart.tsx` `.tc-` 门面化（FE 首个 SVG 图表片） ──
    * analytics 分析页最后一块裸 Tailwind：8 处 className（含 SVG 专属 fill-[...]/text-[9px] 两个
    * 任意值原子类）。本片的灵魂是**三轴语义色守恒**——opens/visitors/playTimeMs 各有专属纵轴与

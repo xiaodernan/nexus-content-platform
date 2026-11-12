@@ -45,26 +45,26 @@ export function TriageButtons({ reportId }: { reportId: string }) {
   // 成功提示与按钮并排，而不是把按钮换掉：受理之后工单还在页面上，
   // router.refresh() 会复用这个组件的状态，换掉按钮就等于逼审核员刷新才能接着结案。
   return (
-    <div className="flex flex-col gap-1">
+    <div className="am-triageWrap">
       {outcome ? (
-        <p className="text-11 text-fg-3" data-triage-done={reportId}>
+        <p className="am-triageDone" data-triage-done={reportId}>
           {outcome}
         </p>
       ) : null}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="am-triageRow">
         <input aria-label="处置依据（可选）"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="处置依据（可选，会记在工单上）"
           maxLength={2000}
-          className="min-w-[14rem] flex-1 rounded bg-bg-1 px-2 py-1 text-11 text-fg-1"
+          className="am-noteInput"
           data-triage-note
         />
         <button
           type="button"
           disabled={busy}
           onClick={() => void send('reviewing')}
-          className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-1 disabled:opacity-50"
+          className="am-btn"
           data-triage="reviewing"
         >
           受理（复核中）
@@ -73,7 +73,7 @@ export function TriageButtons({ reportId }: { reportId: string }) {
           type="button"
           disabled={busy}
           onClick={() => void send('resolved')}
-          className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-1 disabled:opacity-50"
+          className="am-btn"
           data-triage="resolved"
         >
           结案（举报成立）
@@ -82,13 +82,13 @@ export function TriageButtons({ reportId }: { reportId: string }) {
           type="button"
           disabled={busy}
           onClick={() => void send('dismissed')}
-          className="rounded bg-danger px-2 py-1 text-11 text-accent-fg disabled:opacity-50"
+          className="am-btnDanger"
           data-triage="dismissed"
         >
           驳回（举报不成立）
         </button>
         {error ? (
-          <span className="text-11 text-danger-ink" data-triage-error>
+          <span className="am-triageError" data-triage-error>
             {error}
           </span>
         ) : null}
