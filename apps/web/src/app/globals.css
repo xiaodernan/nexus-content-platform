@@ -1019,6 +1019,86 @@
     .nf-discover:hover, .nf-home:hover { transform: none; }
   }
 
+  /* ── §FE-12 / ADR-0160 创作者收入页 `/marketplace/earnings` 门面化 ────────────
+   * 三兄弟（purchases / earnings / reports）的第二个。FE-2 只上市场列表外壳 .mk-、FE-10 给
+   * purchases 上了 .mp-，earnings 却仍是全裸 Tailwind——loading/error/empty/data 四态 +
+   * 汇总卡 + 每日明细表格全无门面语言。这里补 .me- 门面，沿用 .mp-/.mi- 同一套 token 语言
+   * （守 ADR-0123 六红线）：零新增颜色 token、全锚双主题 token + color-mix、无写死 hex；
+   * 只换 className、零行为——useEffect/fetch 端点/401 跳转/3 useState/四态分支/data-* 钩子/
+   * 插值由静态判据的 JS 逻辑段 SHA256 + 契约门逐字节钉死。纯色标题、不加渐变墨字，
+   * 故不触发 A11Y-1 forced-colors 联动。本页纯展示、无交互控件，门面收益在四态与表格层次。 */
+  .me-root {
+    max-width: 56rem; margin: 0 auto;
+    display: flex; flex-direction: column; gap: var(--nexus-space-5);
+    padding: var(--nexus-space-6);
+    font-family: var(--nexus-font-mono);
+  }
+  .me-title {
+    margin-bottom: var(--nexus-space-4);
+    font-size: var(--nexus-font-size-24); font-weight: 600; color: var(--nexus-color-fg-1);
+  }
+  .me-summary {
+    margin-bottom: var(--nexus-space-6); padding: var(--nexus-space-4);
+    border: 1px solid var(--nexus-color-border-subtle);
+    border-left: 3px solid var(--nexus-color-accent-2);
+    border-radius: var(--nexus-radius-sm);
+    background: linear-gradient(150deg, var(--nexus-color-bg-1), var(--nexus-color-bg-2));
+    box-shadow: var(--nexus-shadow-sm);
+    transition: border-color var(--nexus-motion-base) var(--nexus-motion-ease), box-shadow var(--nexus-motion-base) var(--nexus-motion-ease);
+  }
+  .me-summary:hover { border-left-color: var(--nexus-color-brand); box-shadow: var(--nexus-shadow-md); }
+  .me-summaryGrid { display: flex; flex-wrap: wrap; gap: var(--nexus-space-10); }
+  .me-stat { display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+  .me-statLabel { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .me-statValue { font-size: var(--nexus-font-size-21); font-weight: 600; color: var(--nexus-color-fg-1); }
+  .me-statValueAccent { color: var(--nexus-color-accent-2-ink); }
+  .me-section { display: flex; flex-direction: column; gap: var(--nexus-space-2); }
+  .me-sectionTitle { font-size: var(--nexus-font-size-16); font-weight: 500; color: var(--nexus-color-fg-1); }
+  .me-table { width: 100%; font-size: var(--nexus-font-size-13); border-collapse: collapse; }
+  .me-tr { border-bottom: 1px solid var(--nexus-color-border-subtle); transition: background var(--nexus-motion-base) var(--nexus-motion-ease); }
+  tbody .me-tr:hover { background: color-mix(in srgb, var(--nexus-color-brand) 6%, transparent); }
+  .me-th {
+    padding: var(--nexus-space-2) 0; text-align: left; font-weight: 500;
+    color: var(--nexus-color-fg-2);
+  }
+  .me-thRight { text-align: right; }
+  .me-td { padding: var(--nexus-space-2) 0; color: var(--nexus-color-fg-1); }
+  .me-tdRight { text-align: right; }
+  .me-tdAccent { color: var(--nexus-color-accent-2-ink); }
+  /* 四态分档：loading 呼吸点 / error 危险左边框 / empty 柔提示 / emptyDetail 空明细卡 */
+  .me-loading, .me-error, .me-empty {
+    max-width: 56rem; margin: 0 auto; padding: var(--nexus-space-6);
+    font-size: var(--nexus-font-size-13);
+    animation: me-fade-in var(--nexus-motion-slow) var(--nexus-motion-ease);
+  }
+  .me-loading { color: var(--nexus-color-fg-2); }
+  .me-loading::before {
+    content: ''; display: inline-block; width: .5rem; height: .5rem; margin-right: var(--nexus-space-2);
+    border-radius: var(--nexus-radius-full); background: var(--nexus-color-brand); vertical-align: middle;
+    animation: me-pulse 1.4s ease-in-out infinite;
+  }
+  .me-error {
+    color: var(--nexus-color-danger-ink);
+    border-left: 3px solid var(--nexus-color-danger);
+    background: color-mix(in srgb, var(--nexus-color-danger) 6%, var(--nexus-color-bg-1));
+    border-radius: var(--nexus-radius-sm);
+  }
+  .me-empty { color: var(--nexus-color-fg-2); }
+  .me-emptyDetail {
+    padding: var(--nexus-space-4);
+    border: 1px dashed var(--nexus-color-border-strong); border-radius: var(--nexus-radius-sm);
+    background: var(--nexus-color-bg-2); color: var(--nexus-color-fg-2);
+    font-size: var(--nexus-font-size-13);
+  }
+  @keyframes me-fade-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+  @keyframes me-pulse { 0%, 100% { opacity: .4; } 50% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    .me-summary, .me-tr { transition: none; }
+    tbody .me-tr:hover { background: none; }
+    .me-loading, .me-error, .me-empty { animation: none; }
+    .me-loading::before { animation: none; }
+  }
+
   /* ── §FE-11 / ADR-0159 市场交互原子 `MarketplaceItemRow` 门面化 ──────────────
    * 外壳 `.mk-card`（FE-2）已精致：渐变卡片 + accent-2 压边 + hover 抬升。这里补的是它
    * 内部的交互控件——此前购买/下载/举报/编辑/下架 5 类按钮、3 处 disabled busy、2 个
