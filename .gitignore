@@ -92,3 +92,10 @@ commit_msg.txt
 run-result.txt
 test_output.txt
 test-output.txt
+
+# machine-local verification/backup scratch from 2026-11 multi-session runs (pre-restore snapshots,
+# proof dumps, playwright pre-e2e archives). Reference-only; not part of the product. Not deleted,
+# just not tracked.
+.next-dev-archives/
+test-results-mine/
+test-results-mine*/
