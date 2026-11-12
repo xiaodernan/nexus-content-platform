@@ -558,6 +558,45 @@ family README section) and a door that reddens the sentence it repairs:
           left alone because its worktree copy carries lane's uncommitted bytes). `git add` exact to my 5
           files, never `add -A`, ff-checked, no force.
 
+  v679  the Map-operation-count complexity gate's blind spot is measured and anchored (ADR 0112).
+        ZERO production edits — only `ds-complexity-contract.test.ts` (+2 gates) + ADR 0112 + this row.
+        - HOLE (the ADR 0108 general discipline, applied to v671's OWN gate for the first time): if
+          `TtlLru`/`MemoryRateLimiter` move off `Map` to ANY non-Map O(1) structure (open-addressed flat
+          array, plain Object — exactly the "hardware-fit data structure" class of legitimate opt),
+          `mapOpCounter`'s `Map.prototype.*` count goes IDENTICALLY 0, and the 3 numeric judges
+          (`isInteger(0)` / `0≤8` / `cap8===cap8192`) are ALL GREEN — the gate reads no cost at all
+          (same ADR 0095 inverse as v673 filter -> v675 head = 0).
+        - MEASURED (read-only Node, no production mutation): 现状(命中3) green; 恒0 input green = real
+          false-green; contrast `MemoryRateLimiter` gates are RELATIVELY IMMUNE because line 146's
+          `atCap[0] > perHit[1]` positive assertion fails on `0 > 0`.
+        - UNWRITTEN PREMISE COUPLING surfaced: v671's dynamic count gate is only trustworthy because
+          v672's SOURCE STATIC gate (`new Map<` exactly 1, `Map<K,TtlEntry<V>>`, no expiry table) pins
+          "the implementation MUST be a Map". Never stated together before; if someone relaxes the static
+          gate AND swaps the impl in the name of a legit opt, the dynamic gate silently goes blind and CI
+          stays green.
+        - FIX (2 gates, no production change): ① NONZERO ANCHOR (the missing positive assertion on
+          TtlLru): a real TtlLru's 32 hits must use `>0` and `>16` Map ops, and 64 hits must be EXACTLY
+          2x the 32-hit count (proxy量 anchored to the real code path & linear in cost). Pins "nonzero +
+          tracks cost", NOT "exactly 3" (reverting to the double Map's 6 still green = ADR 0094 X4);
+          only identically-0 or decoupled-constant reddens. Same shape as MemoryRateLimiter's `>` anchor.
+          ② HONEST DIAGNOSTIC arm: replays the 3 judges on `perHit=[0,0]`, asserts "they really are all
+          green" (the false-green is a repeatable fact, not hidden), and asserts `ttlLru.ts` still has
+          `new Map<` (the premise that keeps it honest).
+        - TEETH (pure-logic contrast, no shared-tree mutate-and-restore): anchor(96,192)=GREEN,
+          anchor(0,0)=RED, anchor(3,3 decoupled)=RED.
+        - VERIFIED: `ds-complexity-contract.test.ts` **11/11** (9 old + 2 new, zero regression);
+          eslint single-file heap-fed exit 0; `verify:record-encoding` exit 0 (0 chargeable lines / 2247
+          graded files). census no drift: no new `docs/evidence/*`, no `verify:*`, `complexity-arms.mjs`
+          M-count untouched, 132 arms / disposition unchanged (gate lives in `apps/web/test/*`).
+        - HONEST GAPS (ADR 0112): ① the nonzero anchor is only added to TtlLru (MemoryRateLimiter already
+          immune via its `>` line; that line's own presence is unguarded — noted, no gate pre-built for a
+          hypothetical removal); ② a real open-addressed LRU would still hit v672's static gate by design —
+          the migration path is change ADR 0105 + swap static gate AND anchor together, not bypass;
+          ③ hosted Studio CI verdict for this push PENDING.
+        - SHARED-TREE: HEAD `c7a4bb9` (my v678) at slice start -> lane pushed `de812b8` (publish preflight
+          AI readiness, 3 refs aligned) mid-slice; v676 front-end + ADR 0109 are lane's uncommitted bytes,
+          not touched. State note self-contained here + ADR 0112 (CURRENT-STATE worktree carries lane bytes).
+
 Standing constraints (measured, not assumed): this host keeps ~0.3 GB physical memory
 free and its Docker engine currently refuses to start containers (`docker start` hangs;
 `docker info` still answers) — live m9/spring-cloud legs run on the hosted runner and

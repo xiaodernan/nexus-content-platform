@@ -123,6 +123,60 @@ describe('TtlLru 命中的摊还成本与容量无关（O(1) 形状门）', () =
     expect(text, '值与过期时刻应绑在同一个 TtlEntry 条目里').toMatch(/Map<K, TtlEntry<V>>/);
     expect(text, '不该再有独立的 expiry 表').not.toMatch(/expiry\s*=\s*new Map/);
   });
+
+  /**
+   * v679 / ADR 0112：动态 Map 计数门的"代理量恒 0 静默假绿"缺口，与一条非零锚。
+   *
+   * 上面那条 6/8 的命中门数的是 `Map.prototype.*` 调用次数这个**代理量**。ADR 0104/0108 记过
+   * 它"抓得住混进 O(n) 扫描、抓不住常数因子退化"，但漏了一位同构失效：**若实现从 Map 换成
+   * 任意非 Map 的 O(1) 结构（扁平数组 + 开放寻址、plain Object 等，可能是正当的缓存局部性优化），
+   * `mapOpCounter` 会恒 0**，而"0 是整数 / 0≤8 / 容量 8 与 8192 都是 0"三句**全绿**——门不再读
+   * 任何成本（与 v673 数 filter 回调、v675 换 head 后恒 0 是同一个 ADR 0095 反面）。
+   *
+   * 当前为什么没出事：上一条源码静态门钉死了"实现必须是单 Map"这个前提，换非 Map 会先撞它红。
+   * 但这是一条**门间隐含前提耦合**——两条门从没被摆在一起说过，将来若有人以"正当优化"名义
+   * 同时改实现与静态门，动态门就静默失明。本条门把耦合显式化并上锁：
+   *   ① 非零锚（真正有牙）：真 TtlLru 的一次命中**必须动用 >0 次 Map 操作、且随命中数线性增长**。
+   *      它钉"代理量锚在生产真走的那条路上"，不是"恰 3 次"（换回双 Map 的 6 次仍绿，不惩罚
+   *      正当结构变化；只有"代理量恒 0 / 与命中数脱钩"才红）。这正是 MemoryRateLimiter 门靠
+   *      `atCap[0] > perHit[1]`（第 146 行）免疫恒 0 的同一手法，补到 TtlLru 门上。
+   *   ② 诚实诊断（如实记录，不伪装有牙）：复刻三条数值判据喂恒 0，断言"确实全绿"——把
+   *      "这是真的假绿、靠静态门兜底"钉成可复跑的事实，不藏起来。
+   */
+  it('非零锚门：真实现的命中代理量必须 >0 且随命中线性——堵住"换非 Map 实现⇒恒 0 静默假绿"', () => {
+    const cache = new TtlLru<number, number>({ maxEntries: 64, defaultTtlMs: 0 });
+    for (let i = 0; i < 64; i += 1) cache.set(i, i);
+
+    const counter = mapOpCounter();
+    // 一批 32 次命中：代理量必须随命中数线性增长（N 次命中 > N/2 次操作）。
+    counter.reset();
+    for (let i = 0; i < 32; i += 1) cache.get(i % 64);
+    const opsFor32 = counter.value();
+    expect(opsFor32, '代理量恒 0 = 实现不再走 Map，动态门会静默假绿').toBeGreaterThan(0);
+    expect(opsFor32, '代理量应与命中数同阶，不是与命中脱钩的常数').toBeGreaterThan(16);
+
+    // 换一个命中数：操作总数必须同比放大（线性），若成本与命中脱钩（恒 0 / 恒定）则红。
+    counter.reset();
+    for (let i = 0; i < 64; i += 1) cache.get(i % 64);
+    const opsFor64 = counter.value();
+    expect(opsFor64, '命中数翻倍、代理量必须翻倍——恒 0 或脱钩都会在这里红').toBeGreaterThan(opsFor32);
+    expect(opsFor64).toBe(opsFor32 * 2);
+  });
+
+  it('诚实诊断：恒 0 代理量下三条数值判据确实全绿（假绿存在，靠源码静态门兜底）', () => {
+    // 复刻门1（61-77 行）的三条判据，喂"实现换非 Map ⇒ 计数恒 0"的输入。
+    const perHit = [0, 0]; // 容量 8 与 8192 的 opsPerHit 都是 0
+    const integer = perHit.every((o) => Number.isInteger(o));
+    const bounded = perHit.every((o) => o <= 8);
+    const capacityInvariant = perHit[0] === perHit[1];
+    // 前提事实：三条**单独**看确实全绿——这就是假绿的机制，如实钉住，不假装门自己能抓。
+    expect(integer && bounded && capacityInvariant, '诊断前提：恒 0 会让三条数值判据全绿').toBe(true);
+
+    // 真正兜底的是上一条非零锚 + 源码静态门：二者至少有一个在场，恒 0 就不可能悄悄过关。
+    const text = readFileSync(join(process.cwd(), 'apps/web/src/server/cache/ttlLru.ts'), 'utf8');
+    expect(text, '前提耦合：动态计数门可信 ⟺ 实现仍走 Map（静态门钉死单 Map + 非零锚）')
+      .toMatch(/new Map</);
+  });
 });
 
 describe('MemoryRateLimiter 顶到上界后每次只淘汰一只（摊还 O(1) 形状门）', () => {
