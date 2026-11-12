@@ -433,6 +433,18 @@ export const ROSTER = [
     run: 'node docs/evidence/studio/style-override-probe.mjs',
     why: 'ADR 0015\'s mutation probe: six arms each mutate one line of the style-override path and run the smallest suite that can see it, restoring every file in `finally`; a build row that edits the tree under test is not a verdict, so the arm log lives in its own header',
   },
+  {
+    file: 'docs/evidence/ds/complexity-arms.mjs',
+    class: 'tool',
+    run: 'node docs/evidence/ds/complexity-arms.mjs',
+    why: 'v671/v673 mutation arms for the DS complexity contract (ADR 0104/0106): each arm inlines a deliberately degenerate Map/filter implementation in-process and asserts the op-count predicate refuses it. Measured 7/7 as-expected (5 RED + 2 GREEN, docs/PERFORMANCE.md); the arms re-run after the contract changes, not per commit, so CI does not re-run them',
+  },
+  {
+    file: 'docs/evidence/ds/single-map-ab.mjs',
+    class: 'tool',
+    run: 'node docs/evidence/ds/single-map-ab.mjs',
+    why: 'v672 same-process interleaved A/B harness for the double-Map to single-Map TtlLru swap (ADR 0105), nine interleaved rounds, verdict = direction of the p50 ratio. It is the only instrument the v672 verdict in docs/PERFORMANCE.md trusts because host noise faked a 7x speedup; a human-run measurement, never a per-commit gate',
+  },
   // v531 — the three Studio lane proofs that were DEFERRED here are now derivable ROWS: `verify:build-lane`,
   // `verify:container-lane` and `verify:deploy-lane` exist in package.json and the workflow pre-pulls
   // `node:22-alpine`, which was the blocker all three named. Their entries are deleted, not reworded: a

@@ -1484,3 +1484,12 @@ Studio CI for refs at this ref: as carried backlogged on the hosted process runn
   evidence JSON + append-only PERFORMANCE / ROADMAP / this cont.33 / ADR 0106 / memory. Two narrow
   tsconfigs were temporary and DELETED after gating (never staged). `git add` exact, never `add -A`;
   re-fetch + ff check before push; no force.
+
+## cont. 34 (2026-11-12) - Studio CI red at HEAD 3d89953: two honest drifts repaired (hosted verdict PENDING)
+
+- Both branches' Studio proofs-battery failed on the 2026-11-11 push of `3d89953` (runs 43122359922 master / 43122359909 main; the main-line legs were GREEN meanwhile, 2.2s / 3.1s):
+  - `verify:evidence-census`: README said 132 tracked modules; the index carries 134 (`docs/evidence/ds/complexity-arms.mjs` at v671/b9d6578 and `docs/evidence/ds/single-map-ab.mjs` at v672/f437c22 entered undecided).
+  - `verify:record-encoding`: one ISLAND line in `apps/web/src/server/cache/discoverInvalidation.ts` (line 297 at `3d89953`, digest `13552d988ada245f`; four CJK characters whose writer-model render - codepoint 36335 - set aside leaves 3 witnesses, below WITNESS_FLOOR), shipped with v670 at `eb138f8`.
+- Repairs (this commit): two `class: 'tool'` ROSTER entries with falsifiable reasons and re-runnable commands (no new verify:* rows, no workflow step widened); README `every one of the **134**`, class-table TOOL **7** named, catch-up entry appended; LOOKALIKE pin appended (image codepoint 36335, `REJECTED flanks cjk|punct`). The parallel lane's UNCOMMITTED v674 bytes in that file (working-tree line 426, same byte digest) are covered by the same pin and left untouched.
+- Local verdicts on this host: `verify:evidence-census` exit 0 (134 = 119 row + 5 helper + 3 swept + 7 tool + 0 deferred, 0 unclassified, rows 119+0, arms 132/132 MATCHED); `verify:record-encoding` exit 0 (0 chargeable lines over 2233 graded files).
+- Honest in-flight: the hosted Studio proofs-battery re-earns these rows on the runner. Until it answers, THIS REF's Studio CI is UNPROVEN, not green; the verdict lands here when the runs complete.

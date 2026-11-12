@@ -541,7 +541,7 @@ people.
 
 Deriving the population has a limit listing does not have to admit: a module under `docs/evidence` that was
 never turned into a `verify:*` script stays invisible to the build. Amendments 516–519 closed that half:
-the census below gives every one of the **132** tracked modules a disposition, and the derived population is
+the census below gives every one of the **134** tracked modules a disposition, and the derived population is
 **119 running rows + 0 excluded by name** at this ref (the v645 exclusion is retired — the spring-cloud
 proof establishes its own scratch pgvector source container on the hosted plane — and the residue this
 sentence once carried is now zero). v532 triaged the
@@ -568,7 +568,7 @@ Every tracked module under `docs/evidence` now has a disposition, and the build 
 | ROW | **119** (119 run + 0 excluded) | a `verify:*` script whose whole command is one `node` call into `docs/evidence` — proof-set's own `PROOF_COMMAND`, imported, never retyped |
 | HELPER | **5** | import closure from every `verify:*` node target and every declared tool, through `sweep.relativeSpecs` (code position only): `agents/sweep.mjs`, `lib/syncproc.mjs`, `m9/wire-fields.mjs`, `ci/arms-receipt.mjs`, `m9/plane-bound-claims.mjs` (added 2026-11-10 — the import closure of the two repaired m9 proofs; committed in 9ab2371) |
 | SWEPT | **3** | the agents sweep's own population, read by CALLING `sweep.trackedProofs('HEAD')` — at this ref `cwd-axis` and `tree-axis`, the tree-motion witnesses, which stay there by measurement (their verdict is about whether the walked tree moved during the run), plus `agents/record-repair-proof.mjs`, which the sweep runs and no `verify:*` script claims |
-| TOOL | **5** | declared in the proof's `ROSTER` with a reason and a command a reader can re-run (two mutation probes, one plane-arms script, the isolated-build arms, the SVG generator) |
+| TOOL | **7** | declared in the proof's `ROSTER` with a reason and a command a reader can re-run (two mutation probes, one plane-arms script, the isolated-build arms, the SVG generator, plus the two DS arms: `complexity-arms.mjs` and `single-map-ab.mjs`) |
 | DEFERRED | **0** | none at this ref — the three Studio lane proofs v530 deferred are ROWS since v531 (the workflow pre-pulls `node:22-alpine`, their one blocker). The class and its refusals stay for the next proof a sandbox really blocks |
 
 Anything else is `UNCLASSIFIED` and exits 1 naming the file. Stale records are refused too: a roster entry the
@@ -987,3 +987,32 @@ can only run what the commit owns.
   + 5 helper + 3 swept + 5 tool + 0 deferred · 0 unclassified · rows 119+0 · arms 132/132 MATCHED`),
   `verify:ci-wiring` **exit 0** (population **119 closes as 119 + 0**, 0 orphaned tsc leg, every Maven
   module built).
+
+### 2026-11-12 -- the catch-up: 132 -> 134 tracked modules (two DS evidence arms entered the census undecided) -- TOOL 5 -> 7
+
+- The two modules that moved the index are `docs/evidence/ds/complexity-arms.mjs` (`b9d6578`, v671
+  ADR 0104) and `docs/evidence/ds/single-map-ab.mjs` (`f437c22`, v672 ADR 0105): the mutation arms for
+  the DS complexity contract and the same-process interleaved A/B harness behind the TtlLru single-Map
+  verdict. Neither is a `verify:*` row (the Studio CI proofs battery is census-derived and may not widen
+  its steps), neither is imported by any derived row, and they do not end in `-proof.mjs` (so the sweep
+  does not claim them) -- the pre-fix census classifies both as `UNCLASSIFIED`, graded one assert before
+  the README-drift assert this entry also repairs.
+- What moved: the disposition table above -- `every one of the **134**`, `| TOOL | **7** |` now naming
+  the two DS arms in its how-decided list, and two `ROSTER` entries added to
+  `docs/evidence/ci/evidence-census-proof.mjs` declaring both as `class: 'tool'` with commands a reader
+  can re-run and falsifiable reasons. Nothing else: ROW stays **119** (119 run + 0 excluded), HELPER
+  stays **5** (both ds arms import only Node builtins, so the import closure is unchanged), SWEPT
+  stays **3**, DEFERRED stays **0** (119 + 5 + 3 + 7 + 0 = 134). No row, package.json byte, arms roster or
+  workflow moved -- the "132 fixture arms" number on the table is arms, unchanged.
+- The sibling gate `verify:record-encoding` was RED at this ref for one ISLAND line: a `countError` call
+  whose argument is four CJK characters inside `apps/web/src/server/cache/discoverInvalidation.ts`
+  (line 297 at HEAD, digest `13552d988ada245f`, shipped with v670 at `eb138f8`, ADR 0102). One of those
+  four characters is a render the writer model produces, so only three witnesses remain -- below
+  `WITNESS_FLOOR` -- and the line is an island of Chinese inside an English record; the pin for that
+  digest (image codepoint `36335`, `REJECTED flanks cjk|punct`) was appended to `LOOKALIKE`. The
+  uncommitted v674 lane work in that file carries a byte-identical line (working-tree line 426) and is
+  covered by the same pin; it was left untouched by this recount.
+- This entry is a recount, not an increment: no amendment, no arms, no ceiling moved.
+- Measured exits at this ref: `verify:evidence-census` **exit 0** (`134 tracked modules close as 119 row
+  + 5 helper + 3 swept + 7 tool + 0 deferred . 0 unclassified . rows 119+0 . arms 132/132 MATCHED`),
+  `verify:record-encoding` **exit 0**, `verify:arms-freshness` unchanged.
