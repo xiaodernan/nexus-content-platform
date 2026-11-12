@@ -22,6 +22,7 @@ import Link from 'next/link';
  * 里所有过渡自动归零（--nexus-motion-* 已归零，transition-colors 用其时长）。
  */
 const LINKS = [
+  { key: 'home', href: '/admin', label: '管理台' },
   { key: 'users', href: '/admin/users', label: '账号与角色' },
   { key: 'moderation', href: '/admin/moderation', label: '复核台' },
   { key: 'marketplace', href: '/admin/marketplace', label: '市场工单' },
