@@ -28,10 +28,24 @@
  *   永远收不到别机失效"）。
  * - **publish 永不抛**：连不上只让 `errorCount` 动一下 + 记日志，把正在写库的请求放过去。总线
  *   不能比它服务的业务更脆弱。一致性由 15s TTL 兜底（见下）。
- * - **线路字节不可信**：收到的帧先过 `parseInvalidationFrame`（版本化 + 形状校验），不合法就记账
- *   丢掉。将来换帧格式时 v1 实例会把 v2 帧记为错误，而不是误读。
+ * - **线路字节不可信**：收到的帧先过 `classifyInvalidationFrame`（版本化 + 形状校验，见 v674），
+ *   畸形帧记账丢掉、绝不小心误读。更高版本的合法帧单列为 `future`，不与坏帧混淆（详见下节）。
  * - **每个 error 都要有监听者**：Node 里无监听的 `error` 事件是 uncaught exception，一个连不上的
  *   Redis 会把进程带走。
+ *
+ * ## v674 / ADR 0107：滚动升级期间的版本缝 + 稳定实例身份（默认行为不变）
+ * v670 只把帧当 v1 一种：收到 v2 帧一律 `parseInvalidationFrame` 判 null → 当坏帧记账丢弃。滚动
+ * 升级时这没问题（v1 靠 TTL 收敛），但它把两件**语义不同**的事混成了一笔"错误"账：
+ *   - 真畸形 / 恶意字节（JSON 坏、origin 空）——该拒绝、该记账；
+ *   - **更高版本的合法失效意图**——v2 实例在告诉我"窗口失效了"，只是我读不懂新字段。
+ * v674 把它们分层（`classifyInvalidationFrame`：current / future / rejected），future 单列计数、
+ * 不再污染 errorCount，并给出一个**默认关闭**的保守策略 `fail-safe-invalidate`：滚动升级窗口里
+ * 可显式打开，让 v1 实例收到 v2 帧也保守失效一次（代价是一次多余重算，换"新发布立即可见"）。
+ * **默认 `degrade-to-ttl` 与 v670 一字不差**（守 ADR 0094 X4：门不许惩罚正当改动；默认生产行为
+ * 不因加了旋钮而改变）。future 帧的日志**按版本去重**，避免滚动升级期 v2 帧 flood 把每台 v1
+ * 实例的日志打爆——"总线不能比它服务的业务更脆弱"这条纪律在版本缝里同样成立。
+ * 另加 `NEXUS_DISCOVER_INSTANCE_ID` 稳定身份旋钮：它只做 origin 的**稳定可读前缀**，唯一性仍由
+ * pid/seq 兜底，故两台实例即使误配同一个 id 也不会互相把对方的帧当回环丢掉（那会静默破正确性）。
  *
  * ## 取舍：这是"尽快失效"，不是强一致
  * pub/sub 是 fire-and-forget：断线窗口里漏掉一条失效的实例，最坏 15s 后由 TTL 自然收敛，不会
@@ -53,6 +67,13 @@ export const DISCOVER_INVALIDATION_CHANNEL = 'nexus:discover-invalidate:v1';
 /** 帧格式版本。收到不等于本版本的帧一律记账丢弃。 */
 export const DISCOVER_INVALIDATION_FRAME_VERSION = 1;
 
+/**
+ * v674 / ADR 0107：稳定实例 id 旋钮。设了就作为每次 `publish` 帧 `origin` 的**可读前缀**，
+ * 但回环过滤用的完整 origin 仍带 pid + 进程内 seq —— 于是两台实例即使误配同一个 id，
+ * 完整 origin 仍不同，不会互相把对方的帧当自己回环丢掉。未设时行为与 v670 完全一致。
+ */
+export const DISCOVER_INSTANCE_ID_ENV = 'NEXUS_DISCOVER_INSTANCE_ID';
+
 /** 帧：只有 origin 参与正确性（回环过滤），其余字段用于诊断与将来排障。 */
 export interface DiscoverInvalidationFrame {
   v: number;
@@ -60,6 +81,27 @@ export interface DiscoverInvalidationFrame {
   at: number;
   nonce: number;
 }
+
+/**
+ * v674 / ADR 0107：一条线路帧的三种语义分类。关键是把"更高版本的合法失效意图"(`future`)
+ * 从"畸形 / 不可信字节"(`rejected`) 里**分出来**——v670 把两者都当坏帧计进 errorCount，
+ * 滚动升级期这会把"兄弟实例在帮我失效"误报成"线路被攻击"，也会让运维看不见真正的坏帧比例。
+ */
+export type InvalidationFrameClass =
+  | { kind: 'current'; frame: DiscoverInvalidationFrame }
+  | { kind: 'future'; version: number; origin: string }
+  | { kind: 'rejected'; reason: string };
+
+/**
+ * v674：收到 `future` 帧时怎么办。
+ * - `degrade-to-ttl`（**默认，等于 v670 行为**）：记账 + 丢弃，v1 窗口靠 15s TTL 收敛；
+ * - `fail-safe-invalidate`：读不懂新字段，但"窗口失效了"这个意图是明确的 —— 保守地触发一次
+ *   本地失效（bump generation + 清 inFlight + 清驱动），代价是一次多余重算，换滚动升级期
+ *   "新发布立即可见"不因版本差而退化到 TTL 窗口。
+ * 两种策略都**不把 future 帧计为 error**——它是合法帧，不是线路噪声。
+ */
+export type FutureFramePolicy = 'degrade-to-ttl' | 'fail-safe-invalidate';
+export const DEFAULT_FUTURE_FRAME_POLICY: FutureFramePolicy = 'degrade-to-ttl';
 
 /**
  * 线路字节 → 帧。纯函数，无副作用，便于把"不可信输入"这条纪律用纯数据门钉死。
@@ -80,6 +122,40 @@ export function parseInvalidationFrame(payload: string): DiscoverInvalidationFra
   if (typeof frame.at !== 'number' || !Number.isFinite(frame.at)) return null;
   if (typeof frame.nonce !== 'number' || !Number.isFinite(frame.nonce)) return null;
   return { v: frame.v, origin: frame.origin, at: frame.at, nonce: frame.nonce };
+}
+
+/**
+ * v674 / ADR 0107：把一条线路帧分成 current / future / rejected，**只读公共头部**。
+ *
+ * 公共头部契约（本 ADR 新增，跨版本稳定）：`v` 是整数、`origin` 是非空字符串。v2 及以后可以
+ * 增删诊断字段（at / nonce 之类），但这两格不能变——否则滚动升级时 v1 连"这是不是我自己的帧"
+ * 都判不出来。这是 v674 唯一要求未来版本守的约定，其余一概不碰。
+ *
+ * 判别顺序很重要：先走**一字未改**的 `parseInvalidationFrame`（合法 v1 → current），失败的才看
+ * 是不是更高版本的合法意图帧。于是 v670 的九类畸形帧门继续全绿，零回归。
+ */
+export function classifyInvalidationFrame(payload: string): InvalidationFrameClass {
+  const current = parseInvalidationFrame(payload);
+  if (current !== null) return { kind: 'current', frame: current };
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(payload);
+  } catch {
+    return { kind: 'rejected', reason: 'JSON 不可解析' };
+  }
+  if (typeof parsed !== 'object' || parsed === null) return { kind: 'rejected', reason: '非对象' };
+  const obj = parsed as Record<string, unknown>;
+  // v 必须是**大于**当前版本的整数：等于当前却字段不全的坏 v1 帧仍 rejected，不许冒充 future。
+  if (typeof obj.v !== 'number' || !Number.isInteger(obj.v)) return { kind: 'rejected', reason: 'v 非整数' };
+  if (obj.v <= DISCOVER_INVALIDATION_FRAME_VERSION) return { kind: 'rejected', reason: 'v 不高于当前版本' };
+  if (typeof obj.origin !== 'string' || obj.origin.length === 0) {
+    return { kind: 'rejected', reason: 'future 帧缺公共头部 origin' };
+  }
+  // at / nonce 是 v1 的诊断字段，未来版本可能改名/取消 —— 对 future 帧刻意**不校验**，
+  // 否则等于要求 v2 还得背着 v1 的字段走，"版本化频道 + 帧内 v"就失去意义了。
+  // origin 在分类时一并带出，避免 receive 为回环过滤再 JSON.parse 一次（判据同源）。
+  return { kind: 'future', version: obj.v, origin: obj.origin };
 }
 
 /** 失效总线。形状刻意小：发布一条、订阅一条、报驱动、收摊。 */
@@ -105,13 +181,39 @@ export interface DiscoverInvalidationStats {
   errorCount: number;
   /** Redis 驱动：`SUBSCRIBE` 首次登记的落定值；null = 还没落定。memory 驱动恒 true。 */
   wireReady: boolean | null;
+  /** v674：解析成分辨率的三种帧计数——合法 v1 / 更高版本意图 / 坏帧。前两者不算 error。 */
+  currentFrames: number;
+  futureFrames: number;
+  rejectedFrames: number;
+  /** v674：见过的 future 版本号（去重、升序），诊断滚动升级对端在跑哪一版。 */
+  seenFutureVersions: number[];
+  /** v674：本实例生效的 future 策略（只读回显，防"设了旋钮却没接上"）。 */
+  futurePolicy: FutureFramePolicy;
+}
+
+/**
+ * v674 / ADR 0107：把稳定 id 与进程内唯一性拼成 origin 的**纯函数**（门可直接钉死契约）。
+ *
+ * 关键契约：`instanceId` 只作**可读前缀**，唯一性始终由 `pid:tsBase36:seq` 兜底。于是两台实例
+ * 即使误配同一个 id，完整 origin 仍不同，不会互相把对方的帧当回环过滤掉——旋钮提升可诊断性，
+ * 绝不削弱正确性（那会让对方那台永远收不到失效，是静默的正确性事故）。
+ */
+export function composeInvalidationOrigin(
+  instanceId: string | undefined,
+  pid: number,
+  tsBase36: string,
+  seq: number,
+): string {
+  const stable = instanceId?.trim();
+  const prefix = stable ? `${stable}:` : '';
+  return `${prefix}${pid}:${tsBase36}:${seq}`;
 }
 
 let originSeq = 0;
-/** 同进程造多份（测试就是这么干的）也不撞：pid + 启动时刻 + 序号。 */
-function defaultOrigin(): string {
+/** 同进程造多份（测试就是这么干的）也不撞：稳定 id（可选）+ pid + 启动时刻 + 序号。 */
+function defaultOrigin(instanceId?: string): string {
   originSeq += 1;
-  return `${process.pid}:${Date.now().toString(36)}:${originSeq}`;
+  return composeInvalidationOrigin(instanceId, process.pid, Date.now().toString(36), originSeq);
 }
 
 /**
@@ -153,6 +255,8 @@ export class MemoryInvalidationBus implements DiscoverInvalidationBus {
   constructor(
     private readonly hub: MemoryInvalidationHub,
     readonly origin: string = defaultOrigin(),
+    // memory 驱动没有线路字节，future 分类不适用；保留旋钮只为 stats 形状与 Redis 驱动一致。
+    private readonly futurePolicy: FutureFramePolicy = DEFAULT_FUTURE_FRAME_POLICY,
   ) {}
 
   publish(): void {
@@ -177,6 +281,12 @@ export class MemoryInvalidationBus implements DiscoverInvalidationBus {
       received: this.received,
       errorCount: 0,
       wireReady: true,
+      // 内存线路不承载字节帧，三种计数恒 0 / 空；futurePolicy 仅为接口形状一致而回显。
+      currentFrames: 0,
+      futureFrames: 0,
+      rejectedFrames: 0,
+      seenFutureVersions: [],
+      futurePolicy: this.futurePolicy,
     };
   }
 
@@ -253,6 +363,16 @@ export interface RedisInvalidationBusOptions {
   origin?: string;
   /** 测试缝：注入 fake 连接；生产不传，用真 ioredis。 */
   connect?: InvalidationConnect;
+  /**
+   * v674 / ADR 0107：稳定实例 id，作为 origin 的可读前缀（唯一性仍由 pid/seq 兜底）。
+   * 不传时生产从 `NEXUS_DISCOVER_INSTANCE_ID` 读；测试显式传可绕开环境。
+   */
+  instanceId?: string;
+  /**
+   * v674：收到更高版本合法帧时的策略。不传用 `DEFAULT_FUTURE_FRAME_POLICY`（= v670 行为）。
+   * 滚动升级窗口里 v1 实例可显式传 `fail-safe-invalidate` 换取"新发布立即可见"。
+   */
+  futurePolicy?: FutureFramePolicy;
 }
 
 export class RedisInvalidationBus implements DiscoverInvalidationBus {
@@ -266,11 +386,20 @@ export class RedisInvalidationBus implements DiscoverInvalidationBus {
   private errorCount = 0;
   private wireReadyValue: boolean | null = null;
   private disposed = false;
+  /** v674：三类帧各自的计数 + 见过的 future 版本（去重、升序）。 */
+  private currentFrames = 0;
+  private futureFrames = 0;
+  private rejectedFrames = 0;
+  private readonly seenFutureVersions = new Set<number>();
+  /** v674：已就某个 future 版本发过"降级"日志——按版本去重，防滚动升级期 flood 打爆日志。 */
+  private readonly warnedFutureVersions = new Set<number>();
+  private readonly futurePolicy: FutureFramePolicy;
   /** `SUBSCRIBE` 首次登记的落定值；永不 reject（连不上是明确接受的状态，15s TTL 兜底）。 */
   readonly ready: Promise<boolean>;
 
   constructor(options: RedisInvalidationBusOptions) {
-    this.origin = options.origin ?? defaultOrigin();
+    this.origin = options.origin ?? defaultOrigin(options.instanceId);
+    this.futurePolicy = options.futurePolicy ?? DEFAULT_FUTURE_FRAME_POLICY;
     const connect = options.connect ?? DEFAULT_CONNECT;
     this.pub = connect(options.url, 'pub', PUBLISH_OPTIONS);
     this.sub = connect(options.url, 'sub', SUBSCRIBE_OPTIONS);
@@ -304,13 +433,51 @@ export class RedisInvalidationBus implements DiscoverInvalidationBus {
       this.countError('线路名不认识', new Error(`只该订 ${DISCOVER_INVALIDATION_CHANNEL}，却收到 ${channel}`));
       return;
     }
-    const frame = parseInvalidationFrame(payload);
-    if (frame === null) {
+
+    // v674：三层分流。current 走 v670 原路径一字不改；future 按策略；rejected 才计 error。
+    const classified = classifyInvalidationFrame(payload);
+
+    if (classified.kind === 'rejected') {
+      // 真畸形 / 不可信字节：与 v670 同款记账丢弃，绝不触达本地失效逻辑。
+      this.rejectedFrames += 1;
       this.countError('失效帧不合契约', new Error(`收到不可解析 / 版本不符的帧：${payload.slice(0, 200)}`));
       return;
     }
+
+    if (classified.kind === 'future') {
+      this.futureFrames += 1;
+      this.seenFutureVersions.add(classified.version);
+      // 公共头部 origin 参与回环过滤：自己不会发 future 帧（本实例只发 v1），但同一进程若真有
+      // 别的 bus 版本在发，仍按 origin 摘掉，避免重复失效。
+      if (classified.origin === this.origin) return;
+
+      // 按版本去重日志：滚动升级期对端每秒可能广播几百条，逐条 console.error 会把 v1 实例的
+      // 日志与 CPU 打爆——正是"总线不能比它服务的业务更脆弱"在版本缝里的体现。
+      if (!this.warnedFutureVersions.has(classified.version)) {
+        this.warnedFutureVersions.add(classified.version);
+        console.warn(
+          `[discover-invalidation] 收到更高版本 v${classified.version} 失效帧（本实例 v${DISCOVER_INVALIDATION_FRAME_VERSION}）；` +
+            `策略=${this.futurePolicy}，每条线路日志按版本去重。`,
+        );
+      }
+      // future 帧是**合法意图**，不是线路错误 → 不计 errorCount（与 rejected 分开）。
+      if (this.futurePolicy === 'fail-safe-invalidate') {
+        this.fireLocalInvalidation();
+      }
+      // degrade-to-ttl（默认，= v670）：记账 + 丢弃，窗口靠 15s TTL 收敛。
+      return;
+    }
+
+    // current：以下与 v670 完全同路径。
+    this.currentFrames += 1;
+    const frame = classified.frame;
     // 自己发的帧会回环到自己（订的是同一条频道）；本地失效写路径已经同步做过了，跳过。
     if (frame.origin === this.origin) return;
+    this.fireLocalInvalidation();
+  }
+
+  /** 触发一次本地失效（bump generation + 清 inFlight + 清驱动由 runtime 的订阅回调完成）。 */
+  private fireLocalInvalidation(): void {
     this.received += 1;
     for (const listener of [...this.local]) {
       try {
@@ -361,6 +528,11 @@ export class RedisInvalidationBus implements DiscoverInvalidationBus {
       received: this.received,
       errorCount: this.errorCount,
       wireReady: this.wireReadyValue,
+      currentFrames: this.currentFrames,
+      futureFrames: this.futureFrames,
+      rejectedFrames: this.rejectedFrames,
+      seenFutureVersions: [...this.seenFutureVersions].sort((a, b) => a - b),
+      futurePolicy: this.futurePolicy,
     };
   }
 
@@ -398,7 +570,10 @@ function getDefaultMemoryHub(): MemoryInvalidationHub {
 export function getDiscoverInvalidationBus(): DiscoverInvalidationBus {
   if (lazyBus) return lazyBus;
   const url = process.env[DISCOVER_REDIS_URL_ENV]?.trim();
-  lazyBus = url ? new RedisInvalidationBus({ url }) : new MemoryInvalidationBus(getDefaultMemoryHub());
+  const instanceId = process.env[DISCOVER_INSTANCE_ID_ENV]?.trim();
+  lazyBus = url
+    ? new RedisInvalidationBus({ url, instanceId })
+    : new MemoryInvalidationBus(getDefaultMemoryHub());
   return lazyBus;
 }
 

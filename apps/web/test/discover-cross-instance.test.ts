@@ -6,20 +6,26 @@ import type { DiscoverCache, DiscoverCacheDriver } from '@/server/cache/discover
 import {
   DISCOVER_INVALIDATION_CHANNEL,
   DISCOVER_INVALIDATION_FRAME_VERSION,
+  DISCOVER_INSTANCE_ID_ENV,
+  DEFAULT_FUTURE_FRAME_POLICY,
   MemoryInvalidationHub,
   MemoryInvalidationBus,
   RedisInvalidationBus,
   PUBLISH_OPTIONS,
   SUBSCRIBE_OPTIONS,
+  classifyInvalidationFrame,
+  composeInvalidationOrigin,
   parseInvalidationFrame,
   type InvalidationConnect,
   type InvalidationRedisConnection,
   type InvalidationConnectionOptions,
+  type FutureFramePolicy,
 } from '@/server/cache/discoverInvalidation';
 import { createDiscoverRouteCacheRuntime, type DiscoverRouteCacheRuntime } from '@/server/cache/discoverRouteCache';
 
 /**
  * v670 / ADR 0102：**跨实例** discover anon 缓存失效门。
+ * v674 / ADR 0107：滚动升级期版本缝分层（current/future/rejected）+ 稳定实例 id 旋钮。
  *
  * 缺口是真的、此前所有单进程门都看不见：Redis 键跨实例共享，`generation`/`inFlight` 却不共享。
  * 实例 B 在 gen=G 开算，实例 A 上 publish 只 bump A 自己的代号并 DEL 共享键，B 的旧飞行落地时
@@ -492,7 +498,9 @@ describe('静态接线门 — 生产路径真的接了 pub/sub，不是没人用
 
   it('生产驱动选择：设了 NEXUS_REDIS_URL 就构造 RedisInvalidationBus', () => {
     const text = readFileSync(join(process.cwd(), 'apps/web/src/server/cache/discoverInvalidation.ts'), 'utf8').replace(/\r\n/g, '\n');
-    expect(text).toMatch(/new RedisInvalidationBus\(\{ url \}\)/);
+    // 钉语义（真 Redis 分支存在且接了 url + v674 稳定 id 旋钮），不钉"{ url }"字面——
+    // 加旋钮是正当改动，钉字面会把 ADR 0094 X4 要保护的重构判红。
+    expect(text).toMatch(/new RedisInvalidationBus\(\{ url, instanceId \}\)/);
     expect(text, '频道必须带版本段').toMatch(/nexus:discover-invalidate:v\d+/);
     expect(text, '两条连接都要挂 error 监听，否则连不上的 Redis 会带走进程').toMatch(/this\.pub\.onError/);
     expect(text).toMatch(/this\.sub\.onError/);
@@ -504,5 +512,248 @@ describe('静态接线门 — 生产路径真的接了 pub/sub，不是没人用
       const text = readFileSync(join(process.cwd(), 'apps/web/src/server/domain', file), 'utf8');
       expect(text, `${file} 的写路径不再失效 discover，新发布 15s 内可能不出现`).toMatch(/invalidateDiscoverRoute\(\)/);
     }
+  });
+});
+
+// ───────────────────────────── v674 / ADR 0107 ─────────────────────────────
+// 滚动升级期版本缝：把"更高版本的合法失效意图"从"畸形字节"里分出来；稳定实例 id 旋钮。
+// 全部沿用 v670 的真类 + fake 连接手法：不连真 Redis、低内存宿主也跑得动。
+
+describe('classifyInvalidationFrame — 版本缝三层分流（纯数据门）', () => {
+  it('合法 v1 帧 → current，字段原样（零回归：v670 的帧一个没改）', () => {
+    const frame = { v: 1, origin: 'inst-A', at: 1234, nonce: 7 };
+    const c = classifyInvalidationFrame(JSON.stringify(frame));
+    expect(c.kind).toBe('current');
+    if (c.kind === 'current') expect(c.frame).toEqual(frame);
+  });
+
+  it('更高版本的合法意图帧（只有公共头部 v+origin）→ future，不要求背 v1 的诊断字段', () => {
+    const c = classifyInvalidationFrame(JSON.stringify({ v: 2, origin: 'v2-peer' }));
+    expect(c.kind).toBe('future');
+    if (c.kind === 'future') {
+      expect(c.version).toBe(2);
+      expect(c.origin).toBe('v2-peer');
+    }
+    // v3 及带任意新字段也一样归 future：证明"版本化"不是空话。
+    const c3 = classifyInvalidationFrame(JSON.stringify({ v: 3, origin: 'v3-peer', brandNew: { x: 1 } }));
+    expect(c3.kind).toBe('future');
+  });
+
+  it('真畸形帧与"坏 v1"一律 rejected，绝不冒充 future', () => {
+    expect(classifyInvalidationFrame('{not json').kind).toBe('rejected');
+    expect(classifyInvalidationFrame('null').kind).toBe('rejected');
+    expect(classifyInvalidationFrame('42').kind).toBe('rejected');
+    // 版本等于当前却字段不全（缺 nonce）—— v670 第九类畸形帧，不许因"版本不高于"被误读成别的。
+    expect(classifyInvalidationFrame(JSON.stringify({ v: 1, origin: 'A', at: 1 })).kind).toBe('rejected');
+    expect(classifyInvalidationFrame(JSON.stringify({ v: 1, origin: '', at: 1, nonce: 1 })).kind).toBe('rejected');
+    // v 非整数 / 非正 / 字符串 —— 都不许当 future（防畸形帧借高版本越权）。
+    expect(classifyInvalidationFrame(JSON.stringify({ v: 1.5, origin: 'A' })).kind).toBe('rejected');
+    expect(classifyInvalidationFrame(JSON.stringify({ v: 0, origin: 'A' })).kind).toBe('rejected');
+    expect(classifyInvalidationFrame(JSON.stringify({ v: -1, origin: 'A' })).kind).toBe('rejected');
+    expect(classifyInvalidationFrame(JSON.stringify({ v: '2', origin: 'A' })).kind).toBe('rejected');
+    // 版本更高但缺公共头部 origin —— 连"是不是自己的帧"都判不了，拒绝。
+    expect(classifyInvalidationFrame(JSON.stringify({ v: 2 })).kind).toBe('rejected');
+    expect(classifyInvalidationFrame(JSON.stringify({ v: 2, origin: '' })).kind).toBe('rejected');
+  });
+
+  it('parseInvalidationFrame 对 v2 仍返回 null（v674 不改它一个字，零回归）', () => {
+    expect(parseInvalidationFrame(JSON.stringify({ v: 2, origin: 'A', at: 1, nonce: 1 }))).toBeNull();
+  });
+});
+
+describe('composeInvalidationOrigin — 稳定 id 只作前缀，唯一性不削弱（纯函数门）', () => {
+  it('无 id → v670 原形状 pid:ts:seq', () => {
+    expect(composeInvalidationOrigin(undefined, 4242, 'abc', 1)).toBe('4242:abc:1');
+  });
+
+  it('有 id → 作可读前缀，pid/seq 仍在（可诊断 + 可唯一）', () => {
+    expect(composeInvalidationOrigin('web-prod-0', 4242, 'abc', 1)).toBe('web-prod-0:4242:abc:1');
+  });
+
+  it('两台实例误配同一个 id 也绝不撞 origin（回环过滤不被旋钮削弱）', () => {
+    const a = composeInvalidationOrigin('same-id', 111, 't1', 1);
+    const b = composeInvalidationOrigin('same-id', 222, 't2', 1);
+    const c = composeInvalidationOrigin('same-id', 222, 't2', 2);
+    expect(new Set([a, b, c]).size, 'pid 或 seq 任一不同就必须不同，否则会互相吞掉对方的失效').toBe(3);
+  });
+
+  it('id 带空白 → trim 后作前缀，空串等同未设（旋钮健壮性）', () => {
+    expect(composeInvalidationOrigin('  web-0  ', 1, 't', 1)).toBe('web-0:1:t:1');
+    expect(composeInvalidationOrigin('   ', 1, 't', 1)).toBe('1:t:1');
+  });
+
+  it('env 旋钮名钉死为对外契约，防改名破坏已部署的编排', () => {
+    expect(DISCOVER_INSTANCE_ID_ENV).toBe('NEXUS_DISCOVER_INSTANCE_ID');
+  });
+});
+
+describe('RedisInvalidationBus × future 策略（真类 + fake 连接）', () => {
+  const v2Frame = JSON.stringify({ v: 2, origin: 'v2-peer', at: 1, nonce: 1 });
+  const v1Frame = JSON.stringify({ v: 1, origin: 'v1-peer', at: 1, nonce: 1 });
+
+  async function busWith(policy?: FutureFramePolicy) {
+    const reg = new FakeRedisRegistry();
+    const bus = new RedisInvalidationBus({
+      url: 'redis://fake/x',
+      origin: 'v1-inst',
+      connect: reg.connect,
+      ...(policy ? { futurePolicy: policy } : {}),
+    });
+    await bus.ready;
+    return { reg, bus, sub: subConnectionOf(reg), dispose: () => bus.dispose() };
+  }
+
+  it('默认 degrade-to-ttl（= v670 行为）：future 帧不触发本地失效、且不计 error', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const w = await busWith();
+    let got = 0;
+    w.bus.subscribe(() => (got += 1));
+    w.sub.deliver(DISCOVER_INVALIDATION_CHANNEL, v2Frame);
+    expect(got, '默认不该因读不懂的 v2 帧就失效，保持 v670 的 TTL 降级').toBe(0);
+    const s = w.bus.stats();
+    expect(s.errorCount, 'future 是合法意图不是坏帧——这是与 v670 的关键区别').toBe(0);
+    expect(s.futureFrames).toBe(1);
+    expect(s.rejectedFrames).toBe(0);
+    expect(s.currentFrames).toBe(0);
+    expect(s.received).toBe(0);
+    expect(s.seenFutureVersions).toEqual([2]);
+    expect(s.futurePolicy).toBe('degrade-to-ttl');
+    expect(DEFAULT_FUTURE_FRAME_POLICY).toBe('degrade-to-ttl');
+    w.dispose();
+  });
+
+  it('fail-safe-invalidate：v2 帧保守触发一次本地失效（滚动升级窗口用）', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const w = await busWith('fail-safe-invalidate');
+    let got = 0;
+    w.bus.subscribe(() => (got += 1));
+    w.sub.deliver(DISCOVER_INVALIDATION_CHANNEL, v2Frame);
+    expect(got, '显式打开保守策略后，读不懂也该失效一次').toBe(1);
+    expect(w.bus.stats().received).toBe(1);
+    expect(w.bus.stats().errorCount).toBe(0);
+    expect(w.bus.stats().futurePolicy).toBe('fail-safe-invalidate');
+    w.dispose();
+  });
+
+  it('future 帧 origin 等于自己 → 即便保守策略也回环过滤（正确性不因旋钮破）', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const w = await busWith('fail-safe-invalidate');
+    let got = 0;
+    w.bus.subscribe(() => (got += 1));
+    w.sub.deliver(DISCOVER_INVALIDATION_CHANNEL, JSON.stringify({ v: 2, origin: 'v1-inst' }));
+    expect(got, '回环帧不该触发第二次失效').toBe(0);
+    expect(w.bus.stats().errorCount).toBe(0);
+    w.dispose();
+  });
+
+  it('current 帧仍走 v670 原路径；rejected 帧仍计 error、不触达失效', async () => {
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const w = await busWith();
+    let got = 0;
+    w.bus.subscribe(() => (got += 1));
+    w.sub.deliver(DISCOVER_INVALIDATION_CHANNEL, v1Frame);
+    expect(got, '合法别机 v1 帧照旧触发').toBe(1);
+    w.sub.deliver(DISCOVER_INVALIDATION_CHANNEL, 'not-json');
+    expect(got, '畸形帧不该触达').toBe(1);
+    const s = w.bus.stats();
+    expect(s.currentFrames).toBe(1);
+    expect(s.rejectedFrames).toBe(1);
+    expect(s.errorCount, '真坏帧仍计 error，与 future 分开').toBe(1);
+    expect(s.futureFrames).toBe(0);
+    expect(errSpy).toHaveBeenCalled();
+    w.dispose();
+  });
+});
+
+describe('future 日志量与帧数正交 — O(1) 事件门（v674）', () => {
+  it('喂 3/300/3000 条同版本 v2 帧，console.warn 恒 1 次（按版本去重）', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const frame = JSON.stringify({ v: 2, origin: 'v2-peer', at: 1, nonce: 1 });
+    for (const n of [3, 300, 3000]) {
+      warn.mockClear();
+      const reg = new FakeRedisRegistry();
+      const bus = new RedisInvalidationBus({ url: 'redis://fake/x', origin: 'v1-inst', connect: reg.connect });
+      await bus.ready;
+      const sub = subConnectionOf(reg);
+      for (let i = 0; i < n; i += 1) sub.deliver(DISCOVER_INVALIDATION_CHANNEL, frame);
+      expect(warn.mock.calls.length, `喂 ${n} 条：日志量必须与帧数正交，恒 1 次`).toBe(1);
+      const s = bus.stats();
+      expect(s.futureFrames, '每条都计 future 帧数：记账不丢，只压日志').toBe(n);
+      expect(s.seenFutureVersions).toEqual([2]);
+      expect(s.errorCount).toBe(0);
+      bus.dispose();
+    }
+  });
+
+  it('不同版本各自 warn 一次（按版本去重，不是全局只一次）', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const reg = new FakeRedisRegistry();
+    const bus = new RedisInvalidationBus({ url: 'redis://fake/x', origin: 'v1-inst', connect: reg.connect });
+    await bus.ready;
+    const sub = subConnectionOf(reg);
+    sub.deliver(DISCOVER_INVALIDATION_CHANNEL, JSON.stringify({ v: 2, origin: 'p' }));
+    sub.deliver(DISCOVER_INVALIDATION_CHANNEL, JSON.stringify({ v: 2, origin: 'p' }));
+    sub.deliver(DISCOVER_INVALIDATION_CHANNEL, JSON.stringify({ v: 3, origin: 'p' }));
+    expect(warn.mock.calls.length).toBe(2);
+    expect(bus.stats().seenFutureVersions).toEqual([2, 3]);
+    bus.dispose();
+  });
+});
+
+describe('同源变异臂 — 门对"回退 v670 行为"有牙（v674）', () => {
+  type Classifier = (payload: string) => ReturnType<typeof classifyInvalidationFrame>;
+
+  /** 判据函数：与行为门同源——v2 合法意图必须归 future，不许当坏帧也不许当 current。 */
+  const v674Gate = (classify: Classifier): void => {
+    const c = classify(JSON.stringify({ v: 2, origin: 'peer' }));
+    expect(c.kind, 'v2 合法失效意图必须归 future，回退成"非 v1 全拒"会红').toBe('future');
+  };
+
+  it('真实现绿', () => {
+    expect(() => v674Gate(classifyInvalidationFrame)).not.toThrow();
+  });
+
+  it('退化 A：把非 v1 全拒（= v670 把 v2 当坏帧）→ 门红', () => {
+    const alwaysReject: Classifier = () => ({ kind: 'rejected', reason: 'v670: version mismatch' });
+    expect(() => v674Gate(alwaysReject)).toThrow();
+  });
+
+  it('退化 B：把任意可解析帧当 current → 门红（会读未定义的 v1 字段）', () => {
+    const alwaysCurrent: Classifier = (p) => {
+      const o = JSON.parse(p) as Record<string, number | string>;
+      return { kind: 'current', frame: { v: o.v as number, origin: o.origin as string, at: 0, nonce: 0 } };
+    };
+    expect(() => v674Gate(alwaysCurrent)).toThrow();
+  });
+
+  it('正向对照：更宽松但仍正确的 future 分类 → 门绿（不惩罚正当变体，X4）', () => {
+    const lenientFuture: Classifier = (p) => {
+      const o = JSON.parse(p) as Record<string, unknown>;
+      return typeof o.v === 'number' && o.v > 1
+        ? { kind: 'future', version: o.v, origin: String(o.origin) }
+        : classifyInvalidationFrame(p);
+    };
+    expect(() => v674Gate(lenientFuture)).not.toThrow();
+  });
+});
+
+describe('静态接线门 v674 — env 旋钮与三层分流真的接上生产路径', () => {
+  it('getDiscoverInvalidationBus 读 DISCOVER_INSTANCE_ID_ENV 并传给总线；receive 走三层分类', () => {
+    const text = readFileSync(join(process.cwd(), 'apps/web/src/server/cache/discoverInvalidation.ts'), 'utf8').replace(/\r\n/g, '\n');
+    expect(text).toMatch(/process\.env\[DISCOVER_INSTANCE_ID_ENV\]/);
+    expect(text, 'receive 必须走三层分类，不能还调用旧 parse 一把梭').toMatch(/classifyInvalidationFrame\(payload\)/);
+    expect(text, '未设 Redis URL 仍走 memory 分支，旋钮不该改变驱动选择').toMatch(/new MemoryInvalidationBus\(getDefaultMemoryHub\(\)\)/);
+  });
+
+  it('memory 驱动 stats 也回显全部 v674 字段（两驱动形状一致，读取方不需分支）', () => {
+    const hub = new MemoryInvalidationHub();
+    const bus = new MemoryInvalidationBus(hub, 'M');
+    const s = bus.stats();
+    expect(s.currentFrames).toBe(0);
+    expect(s.futureFrames).toBe(0);
+    expect(s.rejectedFrames).toBe(0);
+    expect(s.seenFutureVersions).toEqual([]);
+    expect(s.futurePolicy).toBe(DEFAULT_FUTURE_FRAME_POLICY);
   });
 });
