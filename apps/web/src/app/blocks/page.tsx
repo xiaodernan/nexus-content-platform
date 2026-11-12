@@ -20,13 +20,13 @@ export default async function BlocksPage() {
   const muted = blocks.filter((b) => b.kind === 'mute');
 
   const row = (b: (typeof blocks)[number]) => (
-    <li key={b.targetId} className="flex items-center justify-between gap-3 rounded bg-bg-1 px-3 py-2" data-block-row={b.handle ?? b.targetId}>
-      <span className="flex min-w-0 flex-col">
-        <span className="truncate text-13 text-fg-1" data-block-row-name>
+    <li key={b.targetId} className="bk-row" data-block-row={b.handle ?? b.targetId}>
+      <span className="bk-rowMain">
+        <span className="bk-rowName" data-block-row-name>
           {b.name}
-          {b.handle ? <a href={`/u/${b.handle}`} className="ml-2 text-11 text-accent-2-ink underline">@{b.handle}</a> : null}
+          {b.handle ? <a href={`/u/${b.handle}`} className="bk-handle">@{b.handle}</a> : null}
         </span>
-        <span className="text-11 text-fg-3">
+        <span className="bk-rowMeta">
           {b.kind === 'block' ? '拉黑：互相不能互动' : '屏蔽：只是你这侧不再看到'} · {new Date(b.createdAt).toLocaleDateString('zh-CN')}
         </span>
       </span>
@@ -35,41 +35,41 @@ export default async function BlocksPage() {
   );
 
   return (
-    <main className="mx-auto flex max-w-[720px] flex-col gap-4 px-6 py-10" data-blocks-root>
-      <header className="flex items-baseline justify-between gap-3">
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">已拉黑与已屏蔽</h1>
-        <Link href="/" className="text-11 text-accent-2-ink underline" data-blocks-home>
+    <main className="bk-page" data-blocks-root>
+      <header className="bk-head">
+        <h1 className="bk-title">已拉黑与已屏蔽</h1>
+        <Link href="/" className="bk-backlink" data-blocks-home>
           回主页
         </Link>
       </header>
 
-      <p className="text-11 text-fg-3" data-blocks-explainer>
+      <p className="bk-lede" data-blocks-explainer>
         屏蔽只管你这侧的可见性：对方照样能给你留言，只是你不再看到他的内容与通知。
         拉黑在此基础上再挡住互动（评论、点赞、关注、改编，两个方向都拒），并解除已有的关注关系。
         两者都不追溯历史：拉黑之前发出去的评论还在，别人也仍然看得到——删别人的发言是审核的事，不是这里的事。
       </p>
 
       <section>
-        <h2 className="text-13 font-semibold text-fg-1">拉黑（{blocked.length}）</h2>
+        <h2 className="bk-sectionTitle">拉黑（{blocked.length}）</h2>
         {blocked.length === 0 ? (
-          <p className="mt-1 text-12 text-fg-3" data-blocks-empty="block">
+          <p className="bk-sectionEmpty" data-blocks-empty="block">
             没有拉黑过任何人。
           </p>
         ) : (
-          <ul className="mt-2 flex flex-col gap-2" data-blocks-list="block">
+          <ul className="bk-list" data-blocks-list="block">
             {blocked.map(row)}
           </ul>
         )}
       </section>
 
       <section>
-        <h2 className="text-13 font-semibold text-fg-1">屏蔽（{muted.length}）</h2>
+        <h2 className="bk-sectionTitle">屏蔽（{muted.length}）</h2>
         {muted.length === 0 ? (
-          <p className="mt-1 text-12 text-fg-3" data-blocks-empty="mute">
+          <p className="bk-sectionEmpty" data-blocks-empty="mute">
             没有屏蔽过任何人。
           </p>
         ) : (
-          <ul className="mt-2 flex flex-col gap-2" data-blocks-list="mute">
+          <ul className="bk-list" data-blocks-list="mute">
             {muted.map(row)}
           </ul>
         )}

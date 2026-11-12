@@ -32,18 +32,18 @@ export function UnblockButton({ handle }: { handle: string }) {
   };
 
   return (
-    <span className="flex items-center gap-2">
+    <span className="bk-btnWrap">
       <button
         type="button"
         disabled={busy}
         onClick={() => void clear()}
-        className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-1 disabled:opacity-50"
+        className="bk-btn"
         data-unblock={handle}
       >
         解除
       </button>
       {error ? (
-        <span className="text-11 text-danger-ink" data-unblock-error>
+        <span className="bk-error" data-unblock-error>
           {error}
         </span>
       ) : null}

@@ -1263,6 +1263,34 @@
   .at-textLinkTight { margin-left: var(--nexus-space-2); }
   .at-foot { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); margin-top: var(--nexus-space-2); }
 
+  /* ── §FE-21 / ADR-0173 `/blocks` 账户黑名单页 `.bk-` 门面化 ──
+   * §132 的"我的已拉黑/已屏蔽"页：有登录才看得到（requireUser + force-dynamic）。
+   * 全裸 Tailwind 平铺 → .bk- 门面族；行为/文案/data 钩子/鉴权一字不改。
+   * 语义色守恒：名字=fg-1、handle 链接=accent-2-ink、读失败/屏蔽说明=fg-3、删除类动作按钮只用 bg-2 底不叠 danger 边
+   * （"解除"不是危险操作——本页没有红色按钮，因为解禁是可逆的、记录保留）。
+   * 零动效、零 @media、focus-visible 环、:disabled 真禁用（busy）。 */
+  .bk-page { margin-inline: auto; max-width: 45rem; padding: var(--nexus-space-10) var(--nexus-space-6); display: flex; flex-direction: column; gap: var(--nexus-space-4); }
+  .bk-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--nexus-space-3); }
+  .bk-title { font-size: var(--nexus-font-size-21); font-weight: 600; color: var(--nexus-color-fg-1); }
+  .bk-backlink { font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-2-ink); text-decoration: underline; text-underline-offset: 0.15em; border-radius: 2px; }
+  .bk-backlink:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .bk-lede { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .bk-sectionTitle { font-size: var(--nexus-font-size-13); font-weight: 600; color: var(--nexus-color-fg-1); }
+  .bk-sectionEmpty { margin-top: var(--nexus-space-1); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .bk-list { margin-top: var(--nexus-space-2); display: flex; flex-direction: column; gap: var(--nexus-space-2); list-style: none; padding: 0; }
+  .bk-row { display: flex; align-items: center; justify-content: space-between; gap: var(--nexus-space-3); border-radius: var(--nexus-radius-md); background: var(--nexus-color-bg-1); padding: var(--nexus-space-2) var(--nexus-space-3); }
+  .bk-rowMain { display: flex; min-width: 0; flex-direction: column; }
+  .bk-rowName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-1); }
+  .bk-handle { margin-left: var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-2-ink); text-decoration: underline; text-underline-offset: 0.15em; border-radius: 2px; }
+  .bk-handle:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .bk-rowMeta { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .bk-btnWrap { display: flex; align-items: center; gap: var(--nexus-space-2); }
+  .bk-btn { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-1); cursor: pointer; }
+  .bk-btn:hover:not(:disabled) { background: var(--nexus-color-bg-3); }
+  .bk-btn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .bk-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .bk-error { font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); }
+
   /* ── §FE-15 / ADR-0163 创作数据页按天曲线 `TrendChart.tsx` `.tc-` 门面化（FE 首个 SVG 图表片） ──
    * analytics 分析页最后一块裸 Tailwind：8 处 className（含 SVG 专属 fill-[...]/text-[9px] 两个
    * 任意值原子类）。本片的灵魂是**三轴语义色守恒**——opens/visitors/playTimeMs 各有专属纵轴与
