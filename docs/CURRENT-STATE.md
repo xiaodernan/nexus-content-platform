@@ -1534,3 +1534,64 @@ Studio CI for refs at this ref: as carried backlogged on the hosted process runn
 - This is the runner working as designed: the v670-strand pin moved the bytes under a row nobody had re-dated in the same commit. The fix (re-run at 6.2s + re-date the row to 2026-11-12) landed one commit later inside beb15de and is carried by every ref after it (4dee75b, 43df71e). 1fb4d12 itself keeps the honest red in the record; it is NOT a behaviour report on the gate (the gate exits 0 on this box at this ref).
 - Expected, not a surprise: 1ad2bad (in flight) carries the same stale row and will show the same singleton red on both branches; beb15de / 4dee75b / 43df71e carry the re-dated row and are the adjudicators that matter. Until those batteries answer, THIS FILE's green-claims one-by-one remain "hosted verdict pending" - the only exception tonight is main-line (typecheck + evals), green on every pushed ref.
 - No code claims were edited in this amend. The record stays honest by construction: the ref that reddens, reddens; the refs that carry the repair prove it.
+## cont. 41 (2026-11-12) - v675: the single-bucket rate-limit window goes amortized O(1), repaying ADR 0106 still-owed ③ (hosted verdict PENDING this push)
+
+- **Premise changed, so a deliberately deferred algorithm change is now safe.** ADR 0106 (v673) gated the
+  single-bucket O(limit) `filter` scan but explicitly did NOT rewrite it: "等 parity 腿本机可跑（无真
+  Redis）". This host now has real `nexus-redis:56379` (cont.37/38) and the Redis-vs-memory parity leg
+  (`rate-limit.redis.integration.test.ts`) passes **2/2** here with `fallbackCount - settled = 0`
+  (i.e. the measured decisions really went to Redis, not the in-process fallback). That leg is the
+  end-to-end regression margin the deferral was waiting for.
+- **The gate-faking trap was found and fixed BEFORE production was touched.** v673's two complexity gates
+  count `Array.prototype.filter` callbacks. Rewriting filter into a cursor makes that count identically
+  0 ⇒ its 3 assertions (zero-variance, ≤limit+32, orthogonal) all pass while reading NO cost — ADR 0095's
+  inverse (a gate reading a proxy that goes 恒0 the moment the implementation changes). Production now
+  reports the real step count via a new read-only getter `windowVisits`, and the contract gates migrated
+  from "bounded O(limit)" to "amortized O(1) 恒 1". Mutation arm **M9 proves the upgrade has teeth by
+  arithmetic**: a "scan the whole bucket and report visits honestly" degeneration yields 8/64/4096
+  (zero-variance, 64≤96) ⇒ v673 old gate GREEN (faked), v675 new gate RED.
+- **The change** (`apps/web/src/server/security/rateLimitMemory.ts`): `hits` is ascending, so expired
+  timestamps are a prefix. Bucket gains a `head` cursor; the while crosses `t <= cutoff` (each entry
+  crossed once ⇒ amortized O(1) per hit); lazy compaction when `head >= 32 && head*2 >= hits.length`
+  caps the array at ≤2×limit+O(1) (page-header "限度" section corrected to match). The three semantics
+  aligned with `RedisRateLimiter` are byte-identical: denied hit not pushed, strict `t > cutoff` kept,
+  `retryAfterMs` from the earliest live entry `hits[head]`. `sweepExpired`/`evictToCap` read the tail
+  (newest) so they are unaffected by head/compaction.
+- **Proof order** (high-risk core algorithm; every step gated): ① **24300-cell new/old对拍**
+  (`docs/evidence/ds/single-bucket-ab.mjs`): 4300 fixed + 20000 cells with `limit`/`windowMs` jittering
+  PER HIT (stressing head monotonicity — when the window grows, do crossed entries revive? both old
+  write-back and new cursor DISCARD, so no), field-by-field strict equality on allowed/count/retryAfterMs/
+  newest — BEFORE the edit. ② edit production. ③ real-Redis parity **2/2** (semantic zero regression) +
+  memory semantic **35/35** + full 8-file **98/98** (zero spillover). ④ contract gates **9/9** (TtlLru 4 +
+  bucket-count 2 unchanged + v675's 3 new: O(1) 封顶恒1 / orthogonality升axis to limit 8/64/4096 /
+  amortized total ≤2N+O(1)). ⑤ mutation arms **10/10 = 7 RED + 3 GREEN** (M9 full-scan RED with v673
+  faked-green reverse-proof; M10 no-persistent-head + no-compaction cumulative 17879 > 2N=4000 RED;
+  M11 a DIFFERENT proper O(1) ring path keeps all 3 gates GREEN = ADR 0094 X4正面臂).
+- **Wall-clock** (`scripts/ds-benchmark.mts` group 4, real class, same process, archived only): limit
+  8/64/512 p50 went from v673's **13.15/17.92/56.93us** (linear 4.3×) to **4.88/4.75/4.71us** (flat
+  within ±3% = O(1)); a second run 3.37/4.08/4.02us, still flat; ns/op at limit 512: 64003→5555.
+  JSON `docs/evidence/ds/bench-single-bucket-o1-v675.json`. **Verdict is the in-process interleaved
+  A/B** (`single-bucket-ab.mjs`, 9 rounds, reverse order each round, p50 median): old/new **115.52 /
+  122.12 / 116.82 / 122.71 / 126.93×** across runs, per-round spread 32–158×. The ABSOLUTE number is
+  NOT an SLA — a pure-array flood microbenchmark (old filter allocates a new array + scans 64, new while
+  probes 1) amplified by host GC; production `hit()`'s limit-independent increment/Map delete+set/Promise
+  overhead dilutes the end-to-end gain (not separately measured). Trustworthy conclusion = DIRECTION
+  ONLY: per-hit cost stops growing with limit; big-limit flood saves most. Full numbers in PERFORMANCE.md.
+- **Gates**: `verify:record-encoding` exit 0 (0 chargeable lines over 2238 graded files — new CJK comments
+  introduce no unpinned ISLAND line; this is the shared-tree hidden landmine v673 hit, so it was run
+  before commit). Web-test + tools narrow tsc each exit 0. eslint 5 changed files heap-fed: one 5-file
+  run SIGTERM = resource peak (not lint red); split into 2 batches, TS batch exit 0, mjs batch first pass
+  caught a real `prefer-const` (fixed) then exit 0. Two temporary narrow tsconfigs DELETED after gating,
+  never staged. ADR 0108 number re-checked free before commit (0103 lane / 0104-0107 prior). `git add`
+  exact to my 6 files, never `add -A`, re-fetch + ff check before push, no force.
+- **Honest gaps (ADR 0108)**: ① A/B single-host 9 rounds, no fixed-CI multi-session mean; end-to-end
+  diluted multiple not separately measured. ② 24300-cell对拍 covers fixed + jittering limit/windowMs but
+  no dedicated same-millisecond concurrency gate (`hit` body is sync/no-await ⇒ serial in-process;
+  multi-instance shared window belongs on NEXUS_REDIS_URL). ③ only the in-process driver changed; the
+  Redis driver's server-side `ZREMRANGEBYSCORE` has no such O(limit) scan, and the fallback path inherits
+  the win but wasn't separately measured. ④ `windowVisits` has no ops consumer yet (like v670 stats fields,
+  exists to be read). ⑤ hosted Studio proofs-battery verdict for this push PENDING; main-line green is
+  the fast signal.
+- **Cross-session fact correction**: MEMORY.md's standing line "本机无真 Redis（6379/56379 不可达）" is
+  now FALSE — both Redis ports and Postgres 55433 probed OPEN at the start of this slice, and the real
+  Redis parity + earlier discover-redis-live legs ran against them. MEMORY.md corrected in this slice.

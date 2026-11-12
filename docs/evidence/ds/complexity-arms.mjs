@@ -205,6 +205,94 @@ class RingTrimLimiter {
   }
 }
 
+/* ── v675 / ADR 0108：摊还 O(1) 门（读实现自报的 windowVisits）的变异臂 ─────────────── */
+
+/**
+ * M9 退化：改回"每笔扫全桶"，并**如实报出**扫了几格（visits = 桶内条数）。
+ * 这是 v673 数-filter-回调门会**假绿**不了的关键对照：新门要求满桶单笔 visits 恒 1，
+ * 这里随 limit 涨（8/64/4096），O(1) 封顶门必红。旧 v673 门在这个实现上反而绿（filter 回调
+ * 被 limit 封顶、零方差、与桶数正交）——正好复现"门钉了有界 O(limit)，把 O(limit) 退化也放过去"
+ * 的旧日边界，说明 v675 把判据从"有界"升到"恒 1"是有牙且必要的。
+ */
+class FullScanWindow {
+  constructor() {
+    this.hits = [];
+    this.visitsTotal = 0;
+  }
+  hit(limit, windowMs, now) {
+    const cutoff = now - windowMs;
+    const alive = [];
+    for (const t of this.hits) {
+      this.visitsTotal += 1;
+      if (t > cutoff) alive.push(t);
+    }
+    const allowed = alive.length < limit;
+    if (allowed) alive.push(now);
+    this.hits = alive;
+    return allowed;
+  }
+  get visits() {
+    return this.visitsTotal;
+  }
+}
+
+/**
+ * M10 退化：head 每笔都从 0 重算、且压实失效（废弃前缀永不删）。
+ * 于是窗口一滚动，每笔都要重新越过越来越长的过期前缀 ⇒ 累计 visits 超线性（O(N²) 量级），
+ * 摊还累计门（≤2N+O(1)）必红。这是一个**可达**的真实写错：把 head 存成局部变量忘了写回桶。
+ */
+class NoHeadWindow {
+  constructor() {
+    this.hits = [];
+    this.visitsTotal = 0;
+  }
+  hit(limit, windowMs, now) {
+    const cutoff = now - windowMs;
+    let head = 0; // 故意不持久：每笔从 0 重新越过，且不压实
+    while (head < this.hits.length) {
+      this.visitsTotal += 1;
+      if (this.hits[head] <= cutoff) head += 1;
+      else break;
+    }
+    const count = this.hits.length - head;
+    const allowed = count < limit;
+    if (allowed) this.hits.push(now);
+    return allowed;
+  }
+  get visits() {
+    return this.visitsTotal;
+  }
+}
+
+/**
+ * M11 正当优化（正面臂）：与生产"head 双指针 + 惰性压实"**不同**的 O(1) 路径——
+ * 固定长度环形缓冲，写指针回绕、从不留废弃段。每笔恒探 1 格、与 limit 正交、累计线性，
+ * 三道门全绿。钉死"门不许绑定 head 双指针这一种实现"（ADR 0094 X4）。
+ */
+class RingBufferWindow {
+  constructor() {
+    this.buf = [];
+    this.limit = 0;
+    this.visitsTotal = 0;
+  }
+  hit(limit, windowMs, now) {
+    this.limit = limit;
+    const cutoff = now - windowMs;
+    // 固定容量环形：只保留最近 limit 条，过期头部随回绕自然覆盖，每笔至多探 1 格。
+    this.visitsTotal += 1;
+    while (this.buf.length > 0 && this.buf[0] <= cutoff) this.buf.shift();
+    const allowed = this.buf.length < limit;
+    if (allowed) this.buf.push(now);
+    else {
+      // 撞上限不 push，但要让最早那条随时间过期——下一笔的 while 会处理，这里恒 1 探。
+    }
+    return allowed;
+  }
+  get visits() {
+    return this.visitsTotal;
+  }
+}
+
 const arms = [
   {
     name: 'M1 TtlLru 命中混入 O(n) 全表扫描 ⇒ 门1（成本与容量无关）必须红',
@@ -355,6 +443,81 @@ const arms = [
       } finally {
         c.restore();
       }
+    },
+  },
+  {
+    // v675 核心臂：证明 O(1) 封顶门对"改回扫全桶"有牙，而 v673 的旧门在这同一实现上会假绿。
+    name: 'M9 改回每笔扫全桶并如实报步数 ⇒ v675 O(1) 封顶门（恒 1）必须红，而 v673 旧门会假绿',
+    run: () => {
+      const perLimit = [];
+      for (const limit of [8, 64, 4096]) {
+        const w = new FullScanWindow();
+        const now = 1_700_000_000_000; // 整段不过期：时钟刻意不推进
+        for (let i = 0; i < limit; i += 1) w.hit(limit, 600_000, now); // 填满、整段不过期
+        const before = w.visits;
+        w.hit(limit, 600_000, now); // 满桶单笔：扫全桶 ⇒ visits = limit
+        perLimit.push(w.visits - before);
+      }
+      const gateWouldBeGreen = new Set(perLimit).size === 1 && perLimit[0] === 1; // v675 封顶门判据
+      assert.equal(gateWouldBeGreen, false, `M9 应红(满桶单笔不恒 1),却恒 1:${perLimit.join(',')}`);
+      // 反证实算：v673 旧封顶门在 limit=64 这一档会怎么判——逐笔恒 64（零方差）、64 ≤ 64+32，
+      // 于是判绿。这正是 v675 要把判据从"有界 O(limit)"升到"恒 1"的理由，实算出来而非空口声称。
+      const v673WouldPass = new Set([perLimit[1]]).size === 1 && perLimit[1] <= 64 + 32;
+      assert.equal(v673WouldPass, true, `M9 反证失败：v673 旧门本应在这个退化上假绿(逐笔=${perLimit[1]})`);
+      process.stdout.write(
+        `  M9 RED as expected (v675: per-hit visits vs limit = ${perLimit.join(' / ')}) — ` +
+          `v673 old gate WOULD PASS (limit64: ${perLimit[1]} ≤ 96, zero-variance)\n`,
+      );
+    },
+  },
+  {
+    name: 'M10 head 不持久 + 压实失效（每笔从头越过期前缀）⇒ v675 摊还累计门必须红',
+    run: () => {
+      const w = new NoHeadWindow();
+      const limit = 16;
+      const windowMs = 1_000;
+      const N = 2_000;
+      let now = 1_700_000_000_000;
+      const before = w.visits;
+      for (let i = 0; i < N; i += 1) {
+        now += 1;
+        w.hit(limit, windowMs, now); // 每笔从头越过越来越长的废弃前缀
+      }
+      const total = w.visits - before;
+      const gateWouldBeGreen = total <= 2 * N + limit; // v675 摊还累计门判据
+      assert.equal(gateWouldBeGreen, false, `M10 应红(累计应超线性),却被判线性:${total} ≤ ${2 * N + limit}`);
+      process.stdout.write(`  M10 RED as expected (no-persistent-head cumulative visits=${total} > 2N=${2 * N})\n`);
+    },
+  },
+  {
+    name: 'M11 正当 O(1) 环形缓冲（另一条实现路径）⇒ v675 三道门必须全绿',
+    expectGreen: true,
+    run: () => {
+      // 封顶门：满桶洪水单笔恒 1
+      const perLimit = [];
+      for (const limit of [8, 64, 4096]) {
+        const w = new RingBufferWindow();
+        const now = 1_700_000_000_000;
+        for (let i = 0; i < limit; i += 1) w.hit(limit, 600_000, now);
+        const before = w.visits;
+        w.hit(limit, 600_000, now);
+        perLimit.push(w.visits - before);
+      }
+      const o1Gate = new Set(perLimit).size === 1 && perLimit[0] === 1;
+      assert.equal(o1Gate, true, `M11 应绿(O(1) 封顶恒 1),却漂了:${perLimit.join(',')}`);
+      // 摊还累计门：N 笔滚动命中总 visits 线性
+      const w = new RingBufferWindow();
+      const N = 2_000;
+      let now = 1_700_000_000_000;
+      const before = w.visits;
+      for (let i = 0; i < N; i += 1) {
+        now += 1;
+        w.hit(16, 1_000, now);
+      }
+      const total = w.visits - before;
+      const amortizedGate = total <= 2 * N + 16;
+      assert.equal(amortizedGate, true, `M11 应绿(累计线性),却超界:${total} > ${2 * N + 16}`);
+      process.stdout.write(`  M11 GREEN as expected (ring buffer: 3 gates all green, per-hit=${perLimit[0]}, total=${total} ≤ ${2 * N})\n`);
     },
   },
 ];

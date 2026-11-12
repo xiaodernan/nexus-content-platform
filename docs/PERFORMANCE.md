@@ -1678,3 +1678,49 @@ false 不 push，hits 被 limit 卡死，逐笔恒 8 零方差）——门判绿
 足堆（2000m）exit 0（全项目仍 SIGTERM，资源非红）。窄 tsc 抓到一个真实类型错（`...args: never[]`
 让 `args[0]` 推成 `undefined`，改 `unknown[]` 收口），是门在做功。仍欠：墙钟单宿主单次、无固定 CI
 多会话均值；只门不改，O(limit)→O(1) 是后续候选但要等 parity 腿本机可跑。详见 ADR 0106。
+
+---
+
+## 2026-11-12 v675 / ADR 0108：`MemoryRateLimiter` 单桶滑动窗口 O(limit) → 摊还 O(1)
+
+兑现 ADR 0106 仍欠③。前提变了：真 Redis `nexus-redis:56379` 本机可用（cont.37/38），
+`rate-limit.redis.integration.test.ts` parity 组改前基线 2/2 green（`fallbackCount - settled = 0`
+证明测量期真走 Redis），locally-runnable parity leg 成立，才敢碰限流热路径。
+
+**做法**：`hits` 天生升序 ⇒ 过期的是前缀。给 Bucket 加 `head` 游标越过 `t <= cutoff`，惰性压实
+（`head >= 32 且 head×2 >= hits.length` 才 `splice(0,head)`），数组长度封顶 `≤ 2×limit + O(1)`。
+三条与 Redis 对齐的语义一字未改。**24300 格新旧对拍逐字段严格相等**（4300 固定 + 20000 格
+`limit/windowMs` 逐笔剧变），先对拍、再改生产。
+
+**墙钟：从随 limit 线性变成持平**（`scripts/ds-benchmark.mts` 第 4 组，真实类，同一次进程内，
+只归档不裁决）：
+
+| limit | v673 改前 p50 us（filter）| v675 改后 p50 us（head）| 改后 ns/op |
+|---|---|---|---|
+| 8 | 13.15 | 4.88 | 5748 |
+| 64 | 17.92 | 4.75 | 5473 |
+| 512 | 56.93 | 4.71 | 5555 |
+
+改前 8→512 涨 **4.3×**（线性）；改后三档在 ±3% 内**持平**（O(1)）。big-limit 档收益最大
+（limit=512：p50 56.93→4.71us，ns/op 64003→5555）——正是洪水期最贵的那档省得最多。
+第二轮连跑 p50 3.37/4.08/4.02us，仍持平。JSON 存档 `docs/evidence/ds/bench-single-bucket-o1-v675.json`。
+
+**收益裁决 = 同进程交替 A/B**（`docs/evidence/ds/single-bucket-ab.mjs`，9 轮、反转先后抵消 JIT、
+p50 中位数，满桶洪水 limit=64 / 40k ops）：old/new 中位 **115.52× / 122.12× / 116.82× / 122.71×
+/ 126.93×**（连跑），每轮离散 32–158×。**绝对值只归档、不当 SLA**：纯数组段旧版每笔 filter 分配
+新数组 + 扫 64 条、新版 while 探 1 格，宿主 GC 放大比值；生产 `hit()` 里 `increment`/Map delete+set/
+Promise 分配等**与 limit 无关的固定开销**会显著稀释端到端收益，未单独量。**可信结论只有方向**：
+洪水期单桶成本从随 limit 线性变成与 limit 无关。
+
+**门假绿陷阱与判据迁移**（本片最重要产物）：v673 门数 `Array.prototype.filter` 回调，改后恒 0 ⇒
+封顶/正交三句全绿却不再读成本（ADR 0095 反面）。生产改报真实步数 `windowVisits`，门迁到：
+① O(1) 封顶（满桶逐笔恒 1）；② 正交**升轴**（limit 8/64/4096 单笔恒 1，真 O(1) 对桶数与 limit
+两轴都平）；③ 摊还累计（N 笔滚动 ≤ 2N+O(1)，压实失效会让累计超线性）。契约门 **9/9**。
+变异臂 **10/10（7 RED + 3 GREEN）**：M9 实算"改回扫全桶 visits=8/64/4096 ⇒ v675 红、v673 旧门假绿"，
+M10 压实失效累计 17879 > 4000 红，M11 另一条 O(1) 环形路径三道门全绿（不惩罚正当优化）。
+
+**零回归**：内存语义门 35/35、**真 Redis parity 2/2**（改后与改前同一逐格比对）、全套 8 文件
+**98/98**；web + tools 窄 tsc 各 exit 0；eslint 5 文件足堆拆两批 exit 0（一次跑 SIGTERM 是资源峰，
+mjs 批首版抓到真 `prefer-const` 已修）；`verify:record-encoding` exit 0（0 chargeable lines / 2238 files）。
+仍欠：A/B 单宿主 9 轮无固定 CI 多会话均值、端到端稀释后倍数未单独量、并发同毫秒无专门门、只改
+进程内驱动（Redis 驱动本就无此问题）、hosted Studio CI verdict 未回。详见 ADR 0108。

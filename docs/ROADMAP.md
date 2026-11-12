@@ -443,6 +443,50 @@ family README section) and a door that reddens the sentence it repairs:
         (absorbs unrelated-filter baseline) — if that baseline drifts with bucket count/time, the
         orthogonality/zero-variance gates red correctly, know the semantics before loosening them.]
 
+  v675  the single-bucket sliding window goes from per-hit O(limit) to amortized O(1), and a gate that
+        would have FAKED GREEN after the rewrite is migrated first (ADR 0108). This repays ADR 0106's
+        still-owed ③ ("O(limit)→O(1) ring pending a locally-runnable parity leg"): the premise changed —
+        cont.37/38 brought up real `nexus-redis:56379`, and the Redis parity leg
+        (`rate-limit.redis.integration.test.ts`) passes 2/2 here with `fallbackCount - settled = 0`.
+        - THE TRAP, solved before touching production: v673 gated the `Array.prototype.filter` CALLBACK
+          count. Replacing filter with a cursor makes that count identically 0, so its 3 assertions
+          (zero-variance / ≤limit+32 / orthogonal) would all pass while reading no cost at all — ADR 0095's
+          inverse. Mutation arm M9 proves it by arithmetic: a "scan the whole bucket, report visits
+          honestly" degeneration is 64/64/... (zero-variance, 64≤96) ⇒ v673 GREEN, v675 RED.
+        - PRODUCTION (`apps/web/src/server/security/rateLimitMemory.ts`): `hits` is ascending, so expired
+          entries are a PREFIX. Add `head`; the while crosses `t <= cutoff` (each entry crossed once ⇒
+          amortized O(1)); lazy compaction when `head>=32 && head*2>=hits.length` bounds the array at
+          ≤2×limit+O(1). The three Redis-aligned semantics are byte-identical (denied not pushed,
+          strict `t > cutoff`, retryAfter from `hits[head]`). NEW diagnostic getter `windowVisits`
+          reports the real step count so the gate reads the claimed cost (not a恒0 proxy).
+        - PROOF ORDER (high-risk core algorithm, gated every step): 24300-cell new/old对拍 (4300 fixed
+          + 20000 with limit/windowMs jittering PER HIT, field-by-field strict equality) BEFORE the edit
+          → edit production → real-Redis parity 2/2 (semantic zero regression) + memory semantic 35/35
+          + full 8-file 98/98 → contract gates 9/9 (migrated to read windowVisits: O(1) 封顶恒1 /
+          orthogonality升axis to limit 8/64/4096 / amortized total ≤2N+O(1)) → mutation arms 10/10
+          (7 RED + 3 GREEN; M11 is a DIFFERENT正当 O(1) ring path, all 3 gates green = ADR 0094 X4).
+        - WALL-CLOCK (archived only, `scripts/ds-benchmark.mts` group 4, same process): limit 8/64/512
+          p50 went from v673's **13.15 / 17.92 / 56.93us** (linear 4.3×) to **4.88 / 4.75 / 4.71us**
+          (flat within ±3% = O(1)); ns/op at limit 512: 64003→5555. JSON `docs/evidence/ds/
+          bench-single-bucket-o1-v675.json`. VERDICT is the in-process interleaved A/B
+          (`docs/evidence/ds/single-bucket-ab.mjs`, 9 rounds, p50 median): old/new **115–127×** on a
+          pure-array flood microbenchmark — ABSOLUTE VALUE IS NOT AN SLA (GC amplifies it; production
+          `hit()`'s limit-independent increment/Map/Promise overhead dilutes the end-to-end gain,
+          not separately measured). Trustworthy conclusion = DIRECTION ONLY: per-hit cost stops
+          growing with limit; big-limit flood saves most.
+        - verify:record-encoding exit 0 (0 chargeable lines / 2238 files — new CJK comments introduce no
+          unpinned ISLAND line); web+tools narrow tsc exit 0; eslint 5 files heap-fed in 2 batches exit 0
+          (one 5-file run SIGTERM = resource peak, not lint red; mjs batch caught a real prefer-const,
+          fixed). Two temporary narrow tsconfigs DELETED after gating, never staged. `git add` exact,
+          never `add -A`, no force, ADR 0108 number re-checked free before commit.
+        - HONEST GAPS (ADR 0108): ① A/B single host 9 rounds, no fixed-CI multi-session mean; end-to-end
+          diluted multiple not separately measured. ② 24300-cell对拍 covers fixed+jittering limit/windowMs
+          but no dedicated same-millisecond concurrency gate (`hit` body is sync/no-await ⇒ single process
+          serial; multi-instance shared window belongs on NEXUS_REDIS_URL anyway). ③ only the in-process
+          driver changed (Redis driver's server-side ZREMRANGEBYSCORE has no such O(limit) scan); the
+          fallback path inherits the win but wasn't measured. ④ `windowVisits` has no ops consumer yet.
+         ⑤ hosted Studio CI verdict for this push PENDING; main-line is the fast signal.
+
 Standing constraints (measured, not assumed): this host keeps ~0.3 GB physical memory
 free and its Docker engine currently refuses to start containers (`docker start` hangs;
 `docker info` still answers) — live m9/spring-cloud legs run on the hosted runner and

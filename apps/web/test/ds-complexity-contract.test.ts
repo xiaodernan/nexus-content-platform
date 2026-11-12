@@ -173,99 +173,101 @@ describe('MemoryRateLimiter 顶到上界后每次只淘汰一只（摊还 O(1) �
 });
 
 /**
- * v673 / ADR 0106：补 v671 的**第二条复杂度轴**。
+ * v673 / ADR 0106 立了"单桶扫描有界"的第一道门，手法是包 `Array.prototype.filter` 数回调。
  *
- * v671 的门只数 `Map` 操作（桶数维度：命中常数、淘汰摊还 O(1)，不随 maxBuckets 涨）。但它对
- * **单只桶内部** `hits` 数组的复杂度是盲的：`hit()` 里 `(previous?.hits ?? []).filter(t => t > cutoff)`
- * 每次滑动窗口都扫一遍桶内时间戳，成本 O(桶内时间戳数) ≤ O(limit)。有人把这句换成双重循环
- * O(limit²)、或图省事不再 filter 让数组无限累积，v671 所有门仍全绿（Map 操作一字未变），而这道
- * **限流闸恰好在撞上上限（allowed=false）时每请求都付满这个成本**——洪水期最该省成本的时候，
- * 单请求反而最贵。这与页眉"闸不能比自己挡的东西先倒下 / 防内存耗尽不许自己变放大攻击"同源。
+ * **v675 / ADR 0108 把它从"有界 O(limit)"兑现成"摊还 O(1)"，并迁移了判据。** 这是一次刻意的
+ * 门升级，原因必须写清（否则像把门改松了）：生产 `hit()` 已把 `hits.filter(t => t > cutoff)`
+ * 换成 head 游标越过过期前缀 + 惰性压实。若沿用 v673 的数-filter-回调，改后那个数**恒为 0**，
+ * 三句断言（零方差 / ≤limit+32 / 正交）全部假绿——门还在，测的却不再是它声称的成本。这正是
+ * ADR 0095 的反面教材：别让门去读一个实现一换就恒 0 的代理量。
  *
- * 因此 O(limit) 是**设计内的有界成本**（limit 由调用方给、封顶；页眉"限度"段已声明单桶内存
- * ≤ limit×8），本片**不改生产源码**，只把"有界"从注释变成门。手法：包 `Array.prototype.filter`
- * 数**回调被调用了几次**（＝被 filter 扫过的时间戳数），转发给原方法防递归。
+ * 所以生产如实报出 `windowVisits`（head 这一笔检查了几个时间戳），门改读它：
+ * ① **O(1) 封顶门**：满桶洪水（窗口整段不过期）逐笔增量恒为 1（while 只探一次就 break）。
+ *    谁把双指针改回"每笔扫全桶"，这里立刻变成 limit 而红——比 v673 的 ≤limit+32 更紧、更有牙。
+ * ② **正交门（换轴）**：v673 钉"与桶数正交"，v675 升到"与 limit 也正交"——limit 8/64/4096
+ *    单笔恒为 1。真 O(1) 必须对**两个会长维度**（桶数、limit）都平。
+ * ③ **摊还累计门**：N 笔滚动命中（时钟推进、窗口持续滑动）总 visits ≤ 2N + 常数。压实若失效，
+ *    hits 无限涨，越过段会把累计 visits 拖成超线性——这条同时钉住"摊还 O(1)"与"内存有上界"，
+ *    不必去读内部数组的封装。
  *
- * 判据只钉 **O(1) 正当优化也会绿的形状**：① 满桶后逐笔零方差 + 扫过的时间戳数被 limit 封顶
- * （挡 O(limit²) 与无限累积）；② 单桶扫描成本与**桶数**正交（挡"退化成扫全桶所有时间戳"）。
- * **刻意不钉"必须随 limit 线性增长"**——那会把将来 O(1) 环形缓冲 / 双指针裁剪的正当优化判红
- * （ADR 0094 X4）。limit 这条轴的实测读数走 `docs/evidence/ds/` 与 PERFORMANCE.md 归档，不做门。
+ * 三道门都是确定性步数，不读墙钟（共享宿主墙钟只归档，见 PERFORMANCE.md）。同进程交替 A/B
+ * 的收益裁决与 24300 格新旧对拍在 `docs/evidence/ds/single-bucket-ab.mjs`。
+ * **刻意不钉"每笔必须恰好 1"以外的实现细节**（如压实门槛 32）——那会把换一个同样 O(1) 的
+ * 环形缓冲正当优化判红（ADR 0094 X4）；钉的是"每笔常数、与两轴正交、累计线性"这三条性质。
  */
-function arrayFilterCallbackCounter() {
-  const original = Array.prototype.filter;
-  let count = 0;
-  vi.spyOn(Array.prototype, 'filter').mockImplementation(function (this: unknown, ...args: unknown[]) {
-    const cb = args[0] as (...a: unknown[]) => unknown;
-    const thisArg = args[1] as unknown;
-    const wrapped = (...a: unknown[]): unknown => {
-      count += 1;
-      return cb(...a);
-    };
-    return Reflect.apply(original, this, [wrapped, thisArg]);
-  } as never);
-  return {
-    reset: () => {
-      count = 0;
-    },
-    value: () => count,
-  };
+function visitsDelta(rl: MemoryRateLimiter, run: () => void): number {
+  const before = rl.windowVisits;
+  run();
+  return rl.windowVisits - before;
 }
 
-describe('MemoryRateLimiter 单桶滑动窗口扫描的有界契约（v673 / ADR 0106）', () => {
-  it('封顶门：满桶后逐笔 filter 回调数零方差、且被 limit 封顶——数组内退化成 O(limit²) 或无限累积会红', async () => {
+describe('MemoryRateLimiter 单桶滑动窗口的摊还 O(1) 契约（v675 / ADR 0108）', () => {
+  it('O(1) 封顶门：满桶洪水逐笔 windowVisits 增量恒为 1——改回每笔扫全桶会随 limit 涨而红', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-11-12T00:00:00Z'));
     try {
-      const counter = arrayFilterCallbackCounter();
       const limit = 64;
       const rl = new MemoryRateLimiter({ maxBuckets: 100, sweepEveryHits: 1_000_000 });
       const key = 'gate|warm|1.1.1.1';
-      // 先填满这一只桶（每笔都在窗口内、都放行，攒到 limit 条时间戳）。
+      // 先填满这只桶（每笔都放行、窗口整段不过期）。
       for (let i = 0; i < limit; i += 1) void rl.hit(key, limit, 600_000);
-      // 撞上限后 allowed=false：不再 push，但 filter 仍扫满 limit 条——逐笔量这一段。
+      // 撞上限后 allowed=false、时钟冻结：旧版每笔 filter 扫满 64 条，新版 while 探 1 次即 break。
       const atCap: number[] = [];
       for (let i = 0; i < 100; i += 1) {
-        counter.reset();
-        void rl.hit(key, limit, 600_000);
-        atCap.push(counter.value());
+        atCap.push(visitsDelta(rl, () => void rl.hit(key, limit, 600_000)));
       }
-      expect(new Set(atCap).size, '满桶后逐笔扫描数必须零方差——逐笔涨起来就是 hits 数组在无限累积').toBe(1);
-      // 上界给 limit + 宽松常数：absorbs observability 里与被测无关的 filter 回调基线；
-      // O(limit²)（4096 条）或扫全桶（本门单桶，另有正交门管）都会远超此界而红。
-      expect(atCap[0]!, `单桶扫描必须被 limit=${limit} 封顶（实测 ${atCap[0]}），O(limit²) 或无限累积会红`)
-        .toBeLessThanOrEqual(limit + 32);
+      expect(new Set(atCap).size, '满桶后逐笔游标检查数必须零方差——逐笔涨就是退化成扫累积段').toBe(1);
+      expect(atCap[0], `摊还 O(1)：满桶单笔只探 1 格（实测 ${atCap[0]}），扫全桶会变成 ${limit}`).toBe(1);
       expect(rl.bucketCount).toBe(1);
     } finally {
       vi.useRealTimers();
     }
   });
 
-  it('正交门：同一只满桶在 8 / 4096 只桶的表里，逐笔扫描数相等——退化成扫全桶会红', async () => {
+  it('正交门：limit 8 / 64 / 4096 满桶单笔 windowVisits 恒为 1——对桶数与 limit 两轴都平', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-11-12T00:00:00Z'));
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     try {
-      const counter = arrayFilterCallbackCounter();
-      const limit = 32;
-      const scanAtBuckets: number[] = [];
-      for (const maxBuckets of [8, 4096]) {
-        const rl = new MemoryRateLimiter({ maxBuckets, sweepEveryHits: 1_000_000 });
-        // 先把别的表塞满，制造 8 vs 4096 只桶的差别（目标桶后填，稳在 LRU 尾部不被淘汰）。
-        for (let i = 0; i < maxBuckets; i += 1) void rl.hit(`gate|other-${i}|9.9.9.9`, 1, 600_000);
-        const key = 'gate|target|1.1.1.1';
+      const perLimit: number[] = [];
+      for (const limit of [8, 64, 4096]) {
+        const rl = new MemoryRateLimiter({ maxBuckets: 100, sweepEveryHits: 1_000_000 });
+        const key = `gate|target-${limit}|1.1.1.1`;
         for (let i = 0; i < limit; i += 1) void rl.hit(key, limit, 600_000);
-        counter.reset();
-        void rl.hit(key, limit, 600_000);
-        scanAtBuckets.push(counter.value());
+        perLimit.push(visitsDelta(rl, () => void rl.hit(key, limit, 600_000)));
       }
       expect(
-        scanAtBuckets[0],
-        `单桶扫描成本必须与桶数正交（8 桶 vs 4096 桶，实测 ${scanAtBuckets.join(' vs ')}）——` +
-          `一旦退化成扫全镇上所有时间戳，大表那一档会暴涨`,
-      ).toBe(scanAtBuckets[1]);
-      expect(scanAtBuckets[0]!).toBeLessThanOrEqual(limit + 32);
+        new Set(perLimit).size,
+        `单桶命中成本必须与 limit 正交（实测 ${perLimit.join(' / ')}）——真 O(1) 对两个会长维度都平`,
+      ).toBe(1);
+      expect(perLimit[0], `三档 limit 都应只探 1 格（实测 ${perLimit.join(' / ')}）`).toBe(1);
     } finally {
       warn.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
+  it('摊还累计门：N 笔持续滚动命中总 visits ≤ 2N+O(1)——压实失效让 hits 无限涨会红', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-12T00:00:00Z'));
+    try {
+      const limit = 16;
+      const windowMs = 1_000;
+      const rl = new MemoryRateLimiter({ maxBuckets: 100, sweepEveryHits: 1_000_000 });
+      const key = 'gate|rolling|1.1.1.1';
+      const N = 5_000;
+      const before = rl.windowVisits;
+      for (let i = 0; i < N; i += 1) {
+        // 每笔推进 1ms：窗口只有 1000ms，于是旧条目持续越过、head 持续前进、压实反复触发。
+        vi.advanceTimersByTime(1);
+        void rl.hit(key, limit, windowMs);
+      }
+      const total = rl.windowVisits - before;
+      // 每笔最坏：1 次 break 探测 + 越过若干过期条目；每一条时间戳一生只被越过一次 ⇒
+      // 累计越过 ≤ push 总数 ≤ N，加每笔 1 次探测 ⇒ 上界 2N。压实若失效（废弃段不删），
+      // 越过段会反复拖累，累计超线性而红。+limit 吸收 head 未压完的尾段。
+      expect(total, `累计 ${total} 应 ≤ 2N+O(1)=${2 * N + limit}；超线性就是摊还承诺破了`).toBeLessThanOrEqual(2 * N + limit);
+    } finally {
       vi.useRealTimers();
     }
   });

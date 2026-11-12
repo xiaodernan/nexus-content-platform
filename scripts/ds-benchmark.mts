@@ -14,11 +14,13 @@
  *     "每次排全表"，这一档会从线性塌成平方，吞吐断崖。
  *  3. MemoryRateLimiter 上界洪水：maxBuckets 固定，灌入远超上界的 distinct 桶。
  *     每次命中只淘汰一只 ⇒ 吞吐近似恒定；若退化成每次扫全表，桶数一多每操作成本就涨。
- *  4. （v673 / ADR 0106）单桶滑动窗口命中成本 vs limit（8 / 64 / 512）：同一只键填满到 limit
- *     后再连打，allowed=false 不再 push，但 `(hits).filter(t>cutoff)` 每笔仍扫满 limit 条。
- *     windowMs 设得远大于测量时长，确保时间戳整段不过期、读的是满窗口扫描。这条轴 v671 的数
- *     Map 操作门完全看不见（filter 不触发 Map 操作），这里只归档、看相邻 limit 的比例；确定性
- *     有界门的那一半在契约门的"封顶 / 正交"两条里。真正 O(limit²) 退化会让这段从线性塌成平方。
+ *  4. 单桶滑动窗口命中成本 vs limit（8 / 64 / 512）：同一只键填满到 limit 后再连打，
+ *     windowMs 设得远大于测量时长，确保时间戳整段不过期、读的是满窗口命中成本。
+ *     v673 / ADR 0106 时这里是 O(limit) filter：每笔扫满 limit 条，墙钟随 limit 线性涨
+ *     （实测 p50 13→18→57us）；确定性"有界"门的那一半在契约门里。
+ *     v675 / ADR 0108 把生产换成 head 游标 + 惰性压实后，**这一段应几乎持平**（每笔只探 1 格），
+ *     即墙钟侧印证 O(1)。收益裁决不靠这里（共享宿主跨进程墙钟是噪声，v672 被 +695% 教过），
+ *     而靠 `docs/evidence/ds/single-bucket-ab.mjs` 的同进程交替 A/B；这里只归档、看相邻规模比例。
  *
  * 跑法：`npx tsx scripts/ds-benchmark.mts`（可选第二个参数控制规模倍率）。
  * 输出直接贴进 docs/PERFORMANCE.md；`--json` 走机器可读，供 CI 存档而不做阈值断言。
@@ -120,15 +122,16 @@ for (const maxBuckets of [64, 4096]) {
   );
 }
 
-/* ── 4. 单桶滑动窗口命中成本 vs limit（v673：第二条复杂度轴，只归档） ── */
+/* ── 4. 单桶滑动窗口命中成本 vs limit（v675：验收 O(1)，只归档不裁决） ── */
 for (const limit of [8, 64, 512]) {
   const rl = new MemoryRateLimiter({ maxBuckets: 1000, sweepEveryHits: 10_000_000 });
   const key = 'gate|single-bucket|10.0.0.1';
-  // windowMs 取 1 小时：整段 bench 内所有时间戳都不过期，满桶后 filter 恒扫 limit 条。
+  // windowMs 取 1 小时：整段 bench 内所有时间戳都不过期 ⇒ 满桶命中。
+  // v673 的 filter 版这里每笔扫满 limit 条（墙钟随 limit 线性涨）；v675 的 head 游标版每笔探 1 格。
   for (let i = 0; i < limit; i += 1) void rl.hit(key, limit, 3_600_000);
   results.push(
     bench(`single-bucket hit at cap (limit=${limit})`, Math.max(HIT_OPS, 20_000), () => {
-      void rl.hit(key, limit, 3_600_000); // allowed=false：不 push，仍 filter 扫满 limit 条
+      void rl.hit(key, limit, 3_600_000); // allowed=false：不 push，head 游标整段不过期只探 1 格
     }),
   );
 }
