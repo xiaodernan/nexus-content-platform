@@ -22,7 +22,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ handle
   if (!profile) notFound();
 
   return (
-    <main className="pf-root mx-auto flex max-w-[980px] flex-col gap-[var(--nexus-space-6)] px-6 py-10" data-profile-root>
+    <main className="pf-root pf-pageRoot" data-profile-root>
       {/* §144 / ADR-0025：注销是"关上门"，不是"拆掉房子"——页面还开着，作品还在公网，
           但这一栏必须说清这个人已经不在了，否则读者会以为名字还能联系到本人 */}
       {profile.accountDeleted ? (
