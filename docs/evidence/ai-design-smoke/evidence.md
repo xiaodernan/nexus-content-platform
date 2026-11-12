@@ -98,13 +98,14 @@ targetNodeId, explanation)`。拿刚 GET 到的权威 document，用**生产同�
 
 ### 诚实边界（未变，且更清晰）
 
-- **仍未验落库（本片）**：`POST /api/ai/run` 只回 patches（`route.ts` 的 `deliver`），落库是
-  Studio client 拿 patches 调 `applyPatch` 再发 `/design` 的活。本片纯 HTTP，不碰那条路。
-  **接手期间协作事实**：并行会话正活跃推进 `§AILIVE-4`——`ffeceff8` 已提交
-  `live-design-edit.mts`（硬断言 ai/run 真 `set typography.fontSize=36` + ledger succeeded），
-  工作树另有 `live-design-apply.mts`（真走 `patches → PATCH /design → 重读确认落库`）与其 evidence，
-  JSDoc 同样确认「`/api/ai/run` 只发回 patches、apply 走 `PATCH /design`」，与本片**正交互补**。
-  本片不碰/不 stage 这些并行活跃文件，待其稳定后并轨。
+- **落库由并行的 §AILIVE-5 补上（本片不重复）**：`POST /api/ai/run` 只回 patches（`route.ts`
+  的 `deliver`），落库是 Studio client 拿 patches 调 `applyPatch` 再发 `/design` 的活，本片纯 HTTP
+  不碰那条路。**接手期间并行会话已把这条链走完并落账**：`ffeceff8`（§AILIVE-4，`live-design-edit.mts`
+  硬断言 ai/run 真 `set typography.fontSize=36` + agent_tasks ledger succeeded）、`afd578b4`
+  （§AILIVE-5，`live-design-apply.mts` 真走 `ai/run → PATCH /design → 重读确认 fontSize=36`
+  的 5 步闭环 + evidence `docs/evidence/ai-design-apply/evidence.md`），两者与本片**正交互补**：
+  本片验「补丁合法且达成诉求、不落库」，§AILIVE-5 验「补丁真落库」。并行会话已提交，本片未碰未 stage、
+  不重复造轮子。
 - **仍未验浏览器**：`/studio/<projectId>` 没打开、无 Run→Screenshot 渲染证据。
 - `scripts/live-design-verify.mts`（纯查库）保留为旁证工具：`design_nodes` 不变是 gate
   正常表现，**不再**作为 smoke 的成败判据。

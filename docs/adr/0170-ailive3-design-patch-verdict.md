@@ -92,16 +92,15 @@ applyPatch 真改 id 真节、终态可被 codegen 真读出」，与 evidence �
 
 ### 诚实边界（未解决，不在本片 scope）
 
-- **落库仍未验（本片）**：Studio client `applyPatch`→`/design`→`design_nodes` 那条路本片没走。
-  `scripts/live-design-verify.mts` 保留为旁证，不再作为本片 smoke 成败判据。
-  **接手期间的协作事实**：并行会话正活跃推进 `§AILIVE-4`——`ffeceff8` 已提交
-  `scripts/live-design-edit.mts`（硬断言 ai/run 真 `set typography.fontSize=36` op + agent_tasks
-  ledger succeeded），并在工作树新增 `scripts/live-design-apply.mts`（真走
-  `AI 生 → patches → PATCH /api/projects/{id}/design → 重读文档确认 fontSize 落库`，硬断言落库值）
-  与 `docs/evidence/ai-design-apply/evidence.md`，其 JSDoc 亦确认「`/api/ai/run` 只发回 patches、
+- **落库由并行的 §AILIVE-5 补上（本片不重复）**：Studio client `applyPatch`→`/design`→
+  `design_nodes` 那条路本片没走，`scripts/live-design-verify.mts` 保留为旁证、不再作本片 smoke
+  成败判据。**接手期间并行会话已把这条链走完并落账**：`ffeceff8`（§AILIVE-4，
+  `live-design-edit.mts` 硬断言 ai/run 真 `set typography.fontSize=36` + agent_tasks ledger
+  succeeded）、`afd578b4`（§AILIVE-5，`live-design-apply.mts` 真走
+  `ai/run → PATCH /api/projects/{id}/design → 重读文档确认 fontSize=36` 的 5 步闭环 + evidence
+  `docs/evidence/ai-design-apply/evidence.md`），其 JSDoc 亦确认「`/api/ai/run` 只发回 patches、
   真正 apply 走 `PATCH /design`」——与本片边界判断一致，两者**正交互补**（本片验「补丁合法且达成
-  诉求、不落库」，§AILIVE-4 验「补丁真落库」）。这些是并行会话的活跃文件，本片**不碰、不 stage**，
-  待其稳定后并轨，不重复造轮子。
+  诉求、不落库」，§AILIVE-5 验「补丁真落库」）。并行会话已提交，本片未碰未 stage、不重复造轮子。
 - 浏览器 UI 层 live smoke、`/api/ai/jobs` 异步路径、真 op batch→审批→落地仍未验。
 - 真模型身份/国度 prompt 问题（ADR-0168）、`costUsd=0` 真计费未知，均不造数字。
 - 未 push。
