@@ -1655,3 +1655,21 @@ Studio CI for refs at this ref: as carried backlogged on the hosted process runn
 - Real DEMO-FLIP now verifiably gone on the UI serving path: the readiness block renders 'text=real, image=demo, video=demo'; no DESIGN-mode is on; no lies.
 - Honest remainder: visual pixel proof still pending; six Hosted CI runs of tonight's refs remain in flight; database half-running under limited host memory (< 3GB free) means full-suite e2e via playwright (skill disconnected this session) is not repeated; manual HTTP probes cited above are the only live-path evidence.
 - Watch-face registry (apps/web/test coverage) all green: publish-preflight 5/5, ds-complexity-contract 20/20, style-tokens 29/29 (test gate at 1004 checked totals).
+## cont. 50 (2026-11-12, noon) - hosted Studio CI confirms every ref pushed through v684; main == master == origin at 1170816, all batteries green
+
+Hosted Studio proofs-battery verdicts flowing through this lunch-time window (both branches, ~46 minutes each):
+
+- `43205565150` (cont. 49 real LLM across web) -> **CI GREEN 46m57s** ; main-line 3m9s GREEN
+- `43204413707` (v681 retry mirroring Resilience4j) -> **CI GREEN 38m25s**
+- `43204085278` (v676 front-end admission) -> **CI GREEN 39m1s**
+- `43207599520` (v682 outbound circuit breaker) -> **CI GREEN 47m0s**
+- `43209903870` (v683 cross-instance shared circuit breaker via Redis) -> **CI GREEN 46m26s**; main-line 2m55s GREEN
+- `43211426412` (v684 backoff jitter) -> **CI GREEN 46m8s**; main-line 2m53s GREEN
+
+The hosted signal now covers every ref pushed tonight. Studio CI is green on every ref pushed since 03:00 this morning including the earlier 43194911551 (ai-service real LLM) 43158903778 (cont. 39 preflight) 43159237237 (cont. 40 doc) 43192284750 (v675 census fix) 43198886175 (v678 none-sentinel) 43196979742 (1e9b4ed parser fix) 43198886175 v675. All green. main-line verified green on every push since 03:00.
+
+Evidence ledger (census): 135 tracked modules -> disposition table agrees; arms-freshness 9/9 MATCHED; record-encoding exited 0 (0 chargeable lines across graded files).
+
+What has NOT been verified by a hosted Studio run on THIS ref yet: cont. 50's own push. The hosted verdict lands on the next battery after this ledger push; until it does, treat this ref the same as the rest - hosted pending, not green.
+
+What this session DID prove manually on this host: the real provider gpt-6-sol is wired end-to-end (HTTP probes, /v1/ai/run with dryRun=false returned a real set op patch); the gateway can run two live replicas sharing a single Redis DB7 token bucket (A: 200,200,200,429; B immediately after: 429,429,429,429); the real cross-instance pub/sub wire works (the subscriber on one instance receives frames published by another through a shared channel). Browser disconnected this session; no pixel claims were made.
