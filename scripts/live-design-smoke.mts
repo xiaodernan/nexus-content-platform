@@ -37,6 +37,7 @@ async function run() {
   const collect = (label: string, res: Response) => {
     for (const raw of res.headers.getSetCookie?.() ?? []) {
       const [p] = raw.split(';');
+      if (!p) continue;
       const e = p.indexOf('=');
       if (e > 0) session.set(p.slice(0, e).trim(), p.slice(e + 1).trim());
     }
