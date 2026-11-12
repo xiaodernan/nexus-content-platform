@@ -76,14 +76,21 @@ function definedCrClasses(css: string): Set<string> {
   return out;
 }
 
-/** `.cr-` 视觉段完整文本：首个 `.cr-` 到下一个已落地门面段（`.tc-`）之前。 */
+/**
+ * `.cr-` 视觉段完整文本：首个 `.cr-` 到**下一个 §FE 段头注释**之前。
+ *
+ * §CRIT-1 修实（并轨收尾）：初版边界用写死前缀枚举 `/\.(tc|an|mr|me|mi|mp)-/`，
+ * 但 FE-17 `.notif-` 段后来插在 `.cr-` 与 `.tc-` 之间且不在枚举里，导致整段 `.notif-`
+ * 被误吞进 `crSegment`——`.notif-grid2` 合法的 `@media (min-width: 40rem)` 撞上本片
+ * "不得出现 40rem"门，判据假红（生产 CSS 无错）。根治：与 FE-17 `notifSegment` 同范式，
+ * 以真实段头注释 `/* ── §FE-N` 为边界，不再枚举前缀——任何后续插段/改序都不会再误吞。
+ */
 const crSegment = (() => {
-  const clean = cssNoComments(globals);
-  const start = clean.search(/\.cr-[A-Za-z]/);
+  const start = globals.search(/\.cr-[A-Za-z]/);
   if (start < 0) return '';
-  const tail = clean.slice(start);
-  const nextFacade = tail.search(/\.(tc|an|mr|me|mi|mp)-[A-Za-z]/);
-  return nextFacade >= 0 ? tail.slice(0, nextFacade) : tail;
+  const tail = globals.slice(start);
+  const nextSection = tail.search(/\/\*\s*─+\s*§FE-\d+/);
+  return cssNoComments(nextSection >= 0 ? tail.slice(0, nextSection) : tail);
 })();
 
 /** 从任意字符串抽所有 `cr-*` token。 */
@@ -347,7 +354,7 @@ describe('§FE-16 credits 额度与消费页门面（静态不变式）', () => 
     }
   });
 
-  it('globals.css 块注释定界符严格配对（堵注释提前闭合导致真编译挂的洞）', () => {
+  it('globals.css 块注释定界符严格配对 + 编译后 .cr- 规则体不被吞（堵注释未闭合/提前闭合导致真编译挂的洞）', () => {
     const OPEN = String.fromCharCode(47, 42);
     const CLOSE = String.fromCharCode(42, 47);
     let inside = false;
@@ -360,5 +367,22 @@ describe('§FE-16 credits 额度与消费页门面（静态不变式）', () => 
     }
     if (inside) strayOpen++;
     expect({ strayOpen, strayClose }, 'globals.css 有孤立定界符或注释未闭合').toEqual({ strayOpen: 0, strayClose: 0 });
+
+    // §CRIT-1 修实（并轨收尾，臂 S12a 抓出）：上面的纯计数状态机有真实盲区——
+    // 删掉 .cr- 段头注释的一个 */ 时，下一段头 /* 被吞进"未闭合"态、再被下一段尾 */ 重新配平，
+    // strayOpen/strayClose 仍全 0＝门假绿，但浏览器按非嵌套语义会把 .cr-page 等真实规则体吞进注释
+    // （CSS 编译挂）。补一道与浏览器一致的判据：用 cssNoComments（/* → 最近 */，非嵌套）剥离后，
+    // page 用到的每个 cr-* 主类都仍带真实规则体 {...}，不许只剩注释里被提到的类名文本喂绿（ADR-0154）。
+    const compiled = cssNoComments(globals);
+    const realBodied = new Set<string>();
+    for (const m of compiled.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      for (const sel of m[1]!.split(',')) {
+        const hit = sel.trim().match(/^\.(cr-[A-Za-z0-9-]+)/);
+        if (hit) realBodied.add(hit[1]!);
+      }
+    }
+    const used = [...new Set([...code.matchAll(/\bcr-[A-Za-z0-9-]+/g)].map((m) => m[0]!))];
+    const swallowed = used.filter((c) => !realBodied.has(c));
+    expect(swallowed, `注释未闭合把真实规则体吞进注释（CSS 编译会挂）：${swallowed.join(', ')}`).toEqual([]);
   });
 });
