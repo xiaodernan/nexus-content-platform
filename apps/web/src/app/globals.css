@@ -1542,6 +1542,38 @@
   .ch-send:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
   .ch-send:disabled { opacity: 0.5; cursor: not-allowed; }
 
+  /* ── §FE-38 / ADR-0190 `AnnotationsPanel.tsx` `.np-` 门面化——§111 画布批注 ──
+   * 点击元素→写一条钉在那个节点上的评论；批注只钉当前选中的那一个；节点被删批注不消失、列表里自述"节点已不在文档里"；
+   * 随 AI 请求发模型时走服务端派生路径。只换皮，不动行为/文案/data 钩子。零动效。 */
+  .np-root { position: absolute; bottom: var(--nexus-space-3); left: var(--nexus-space-3); z-index: 40; display: flex; max-width: 340px; flex-direction: column; gap: var(--nexus-space-2); }
+  .np-toggle { align-self: flex-start; border: 1px solid var(--nexus-color-border-strong); border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-1); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); cursor: pointer; }
+  .np-toggle:hover { background: var(--nexus-color-bg-2); }
+  .np-toggle:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .np-panel { display: flex; flex-direction: column; gap: var(--nexus-space-2); border-radius: var(--nexus-radius-sm); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); padding: var(--nexus-space-2); }
+  .np-lede { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .np-name { color: var(--nexus-color-fg-1); }
+  .np-input { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); }
+  .np-input:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .np-submit { align-self: flex-start; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-accent-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-fg); cursor: pointer; }
+  .np-submit:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+  .np-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+  .np-resolved { align-self: flex-start; border: 0; background: transparent; padding: 0; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .np-resolved:hover { color: var(--nexus-color-fg-2); }
+  .np-resolved:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .np-list { display: flex; max-height: 220px; flex-direction: column; gap: var(--nexus-space-1); overflow: auto; list-style: none; padding: 0; }
+  .np-item { border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-1); font-size: var(--nexus-font-size-11); }
+  .np-bodyOff { color: var(--nexus-color-fg-3); text-decoration: line-through; }
+  .np-bodyOn { color: var(--nexus-color-fg-1); }
+  .np-meta { display: block; color: var(--nexus-color-fg-3); }
+  .np-actions { display: flex; gap: var(--nexus-space-2); margin-top: 2px; }
+  .np-linkBtn { border: 0; background: transparent; padding: 0; font-size: inherit; color: var(--nexus-color-fg-3); cursor: pointer; }
+  .np-linkBtn:hover:not(:disabled) { color: var(--nexus-color-fg-1); }
+  .np-linkBtn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .np-linkBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .np-removeBtn { border: 0; background: transparent; padding: 0; font-size: inherit; color: var(--nexus-color-fg-3); cursor: pointer; }
+  .np-removeBtn:hover { color: var(--nexus-color-danger-ink); }
+  .np-removeBtn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+
   /* ── §FE-33 / ADR-0185 `/admin/rate-limit` 限流闸诊断 `.rl-` 门面化 ──
    * §SEC 第三十五片：装的是哪个驱动/共享窗口还是每台各数/退回本机窗口的次数——镜表、
    * 三类退回原因、IP_RATE_RULES 原样端出。全裸布局 atom 迁入 .rl- 族（dl 11rem），
