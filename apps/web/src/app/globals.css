@@ -2426,6 +2426,30 @@
   .adp-cancelBtn:hover { color: var(--nexus-color-fg-2); }
   .adp-cancelBtn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+  /* ── §FE-88 / ADR-0241 `AccountPanel.tsx` `.ac-` 门面化（`.ap-` 已为 AssetsPanel 占用）——§188 账号面板 ──
+   * 游客也记账（100 点/次生成）——游客可进/可注册认领——不动。 */
+  .ac-root { display: flex; flex-direction: column; gap: var(--nexus-space-3); }
+  .ac-note { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  .ac-between { display: flex; align-items: center; justify-content: space-between; }
+  .ac-ident { font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-2); }
+  .ac-strong { color: var(--nexus-color-fg-1); }
+  .ac-inlineLink { margin-left: var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-2-ink); text-decoration: underline; }
+  .ac-inlineRow { display: inline-flex; align-items: center; gap: var(--nexus-space-2); }
+  .ac-ghostBtnSm { border-radius: var(--nexus-radius-sm); border: 1px solid var(--nexus-color-border-strong); background: transparent; padding: var(--nexus-space-1) var(--nexus-space-3); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); cursor: pointer; }
+  .ac-ghostBtnSm:hover { background: var(--nexus-color-bg-2); }
+  .ac-ghostBtnSm:disabled { opacity: 0.4; cursor: not-allowed; }
+  .ac-form { display: flex; flex-direction: column; gap: var(--nexus-space-2); }
+  .ac-tabs { display: flex; gap: var(--nexus-space-2); }
+  .ac-tab { border-radius: var(--nexus-radius-sm); border: none; background: transparent; padding: var(--nexus-space-1) var(--nexus-space-3); font-size: var(--nexus-font-size-13); cursor: pointer; color: var(--nexus-color-fg-3); }
+  .ac-tabActive { background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-1); }
+  .ac-tabIdle:hover { background: var(--nexus-color-bg-2); }
+  .ac-input { border-radius: var(--nexus-radius-sm); border: none; background: var(--nexus-color-bg-2); padding: var(--nexus-space-2) var(--nexus-space-3); font-size: var(--nexus-font-size-14); color: var(--nexus-color-fg-1); font-family: inherit; }
+  .ac-input::placeholder { color: var(--nexus-color-fg-3); }
+  .ac-submitRow { display: flex; align-items: center; gap: var(--nexus-space-3); }
+  .ac-submitBtn { border-radius: var(--nexus-radius-sm); border: none; background: var(--nexus-color-brand); padding: var(--nexus-space-2) var(--nexus-space-4); font-size: var(--nexus-font-size-14); font-weight: 500; color: var(--nexus-color-accent-fg); cursor: pointer; }
+  .ac-submitBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .ac-error { font-size: var(--nexus-font-size-12); color: var(--nexus-color-danger-ink); }
+
   /* ── §FE-81 / ADR-0234 `FollowButton.tsx` `.fw-` 门面化——§60 关注按钮 ──
    * 只发请求并显示真实回话；csrfHeaders/error 路径一字不动。 */
   .fw-wrap { display: inline-flex; align-items: center; gap: var(--nexus-space-2); }
