@@ -487,6 +487,38 @@ family README section) and a door that reddens the sentence it repairs:
           fallback path inherits the win but wasn't measured. ④ `windowVisits` has no ops consumer yet.
          ⑤ hosted Studio CI verdict for this push PENDING; main-line is the fast signal.
 
+  v677  the real-LLM wiring (gpt-6-sol via wkapi.pro, landed by the parallel lane in
+        cont.42/43 with manual curl + the web's own dry-run agent-path e2e) gets a REPEATABLE,
+        CI-SAFE, TOOTHED gate — ONE new tracked file, zero production edits (ADR 0110).
+        - HOLE: `test_provider.py` is all `httpx.MockTransport`; it proves the adapter path but is
+          structurally blind to real-gateway regressions (JSON mode silently off, `usage=0`, key
+          expired, embedding faked real, model drift). cont.42/43 were human observation, not a door.
+        - SHAPE: `apps/ai-service/tests/test_provider_live.py`. 3 `test_live_*` legs drive the PROJECT's
+          own `OpenAICompatibleProvider` / `create_app` / `Registry` against the real gateway, gated by
+          FUNCTION-level `skipif(NEXUS_LIVE_LLM!=1 or no key)` — no network / no false green in CI.
+          Deliberately NOT module-level `pytestmark`, else the offline arms skip too (ADR 0095 inverse).
+        - SINGLE-TRUTH JUDGES shared by real legs and arms: `_judge_json_mode` (parses to object +
+          promised field), `_judge_real_usage` (both directions > 0 + model/latency echoed),
+          `_judge_embedding_honest` (llm real, embedding honestly unavailable + reason). Pin claimed
+          properties, not literal text or a latency number (ADR 0090/0094 X4).
+        - 4 ALWAYS-ON OFFLINE ARMS (MockTransport / plain dict, no key, run in key-less CI): plain-text
+          reply -> JSON judge RED; `usage=0` -> usage judge RED; embedding faked real -> honesty judge
+          RED; 401 -> key never leaks. Every judge's teeth measured, not assumed.
+        - VERIFIED (this host, both modes): CI mode `test_provider_live.py` 4 passed/3 skipped, full
+          ai-service 83 passed/4 skipped (baseline 79/1 -> +4 arms passed, +3 real legs skipped);
+          opt-in mode file 7 passed/0 skipped (3 real legs hit wkapi.pro), full suite 86 passed/1 skipped
+          (pre-existing jobs leg). `verify:record-encoding` exit 0, 0 chargeable lines / 2242 graded
+          files. Real probe: /v1/models 200 (4 chat models, openai-only, NO embedding); gpt-6-sol JSON
+          mode 200 with real usage; /v1/embeddings 503 model_not_found => NEXUS_MODEL_EMBEDDING=none
+          opt-out correct. Key only in two gitignored files, repr masks it, never in Completion/error.
+        - HONEST GAPS (ADR 0110): ① real legs need a real key, so hosted CI runs config doors + offline
+          arms unless a secret is injected (not "CI hits gateway every run"); ② Studio agent-path with
+          REAL writes (dryRun=false) still owed — cont.43's leftover, gateResponse must first accept a
+          real gpt-6-sol patch shape; ③ no browser/pixel pass; ④ observed-not-gated: `Registry.models()`
+          leaks the `none` sentinel into the llm list (`['gpt-6-sol','none']`, shared models table) —
+          semantics undecided, no door would punish a future tier split (ADR 0094 X4), production untouched;
+          ⑤ hosted Studio CI verdict for this push PENDING.
+
 Standing constraints (measured, not assumed): this host keeps ~0.3 GB physical memory
 free and its Docker engine currently refuses to start containers (`docker start` hangs;
 `docker info` still answers) — live m9/spring-cloud legs run on the hosted runner and
