@@ -1807,3 +1807,18 @@ This session landed 16 refs as push events on master (each push also fired the m
 This is not a ref-specific regression. The named proof row fails identically on unrelated refs pushed today; it also fails on `beb15de@master` (documented earlier). The fix lives in the proof's pg readiness poll; the shard risks apply equally to every ref. Flagging the pattern; not patching the proof's bytes.
 
 Nothing was changed this session to "make the RED go away". The two references honestly carry RED Studio master CI. main-line GREEN is preserved. If a later ref lands with a fix on the hosted pg pipeline, those refs re-earn on the same gate.
+## cont. 60 (2026-11-12, late afternoon) - cont. 58 hosted Studio flipped to GREEN mid-flight (observed 60 minutes after cont. 59 was committed)
+
+State check just ran: 43239855988 (cont. 58 = workspace-wide verification recap doc) was in_progress when cont. 59 was authored; checking the status right now returns:
+
+    { "status": "completed", "conclusion": "success" }
+
+Same singleton clause that failed c1e93c2 (cont. 50) and e189c42 (marketplace) is not the only psql-related clause on this runner today; it is intermittent. cont. 58's battery completed CLEANLY with all 119 rows green.
+
+Remaining hosted in flight as of this read:
+- 43247188249 (cont. 59, today's tally doc) - in progress, may turn either way; the ledger entry is the honest record either way
+- 43248137679, 43248138077 (two new refs from the parallel lane: feat(ai-service): wire v684 jitter into provider retry)
+
+For other lane refs with jitter wiring, hosted verdicts have not landed yet. The failure pattern that hit the last two refs is on `docs/evidence/m9/service-traffic-proof.mjs`. v685 (today's lane push, may cause the same singleton to redden the next two refs). Until the hosted runner settles on those, the ledger stays as-written.
+
+No new pushes this session (everything to push has already been pushed at c8f06cd).
