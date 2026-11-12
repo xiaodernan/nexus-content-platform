@@ -104,14 +104,14 @@ export function AccountDeletionPanel() {
   if (receipt) {
     return (
       <div
-        className="flex flex-col gap-2 rounded-[var(--nexus-radius-sm)] bg-bg-1 px-[var(--nexus-space-3)] py-[var(--nexus-space-2)]"
+        className="adp-card"
         data-account-deleted-receipt
       >
-        <p className="text-11 text-fg-2">
+        <p className="adp-note">
           账号已注销。收起来了 {receipt.privateProjectsSoftDeleted} 个私有草稿，留着 {receipt.publishedWorksKept} 个已发布作品在公网，
           吊销了 {receipt.sessionsRevoked} 个登录会话与 {receipt.apiTokensRevoked} 个 API 凭据。
         </p>
-        <p className="text-11 text-fg-3">
+        <p className="adp-hint">
           这不是删除：库里那条记录还在，找回账号这件事由运维在处理一侧做（ADR-0025）。
         </p>
         <button
@@ -122,7 +122,7 @@ export function AccountDeletionPanel() {
             setReceipt(null);
             router.refresh();
           }}
-          className="self-start rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-3 py-1 text-12 text-fg-2 hover:bg-bg-2"
+          className="adp-ghostBtn"
           data-account-deleted-done
         >
           知道了
@@ -136,7 +136,7 @@ export function AccountDeletionPanel() {
       <button
         type="button"
         onClick={() => void start()}
-        className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11 text-fg-2 hover:bg-bg-2"
+        className="adp-btnSm"
         data-account-delete-open
       >
         注销账号
@@ -146,35 +146,35 @@ export function AccountDeletionPanel() {
 
   return (
     <div
-      className="flex flex-col gap-[var(--nexus-space-2)] rounded-[var(--nexus-radius-sm)] bg-bg-1 px-[var(--nexus-space-3)] py-[var(--nexus-space-2)]"
+      className="adp-card"
       data-account-delete-card
     >
-      <p className="text-11 text-fg-2">注销之后：这个人的登录入口关闭、所有会话与 API 凭据作废、私有草稿收进回收站；已发布的作品继续在公网可达，只是作者名换成「已注销的用户」。</p>
-      {loading ? <p className="text-11 text-fg-3" data-account-delete-loading>正在核对你名下的东西…</p> : null}
+      <p className="adp-note">注销之后：这个人的登录入口关闭、所有会话与 API 凭据作废、私有草稿收进回收站；已发布的作品继续在公网可达，只是作者名换成「已注销的用户」。</p>
+      {loading ? <p className="adp-hint" data-account-delete-loading>正在核对你名下的东西…</p> : null}
       {loadError ? (
-        <p className="text-11 text-danger-ink" data-account-delete-load-error>
+        <p className="adp-error" data-account-delete-load-error>
           没能读到清单：{loadError}
         </p>
       ) : null}
       {preview ? (
         <>
-          <ul className="flex flex-col gap-1 text-11 text-fg-2" data-account-delete-counts>
+          <ul className="adp-counts" data-account-delete-counts>
             <li data-account-private>{preview.privateProjects} 个私有草稿会被收进回收站（从没发布过的那些）</li>
             <li data-account-published>{preview.publishedWorks} 个已发布作品留在公网，不跟着走</li>
             <li data-account-sessions>{preview.liveSessions} 个登录会话会立刻失效（包括你现在这一个）</li>
             <li data-account-tokens>{preview.liveApiTokens} 个 API 凭据会被吊销</li>
           </ul>
           {preview.privateProjects > 0 ? (
-            <div className="flex flex-col gap-1" data-account-export-offer>
-              <span className="text-11 text-fg-3">
+            <div className="adp-offer" data-account-export-offer>
+              <span className="adp-hint">
                 想先带走的话，每个项目的 Studio 里有「导出」（design + code + assets 打成一个 zip）。这一步不强制。
               </span>
-              <ul className="flex flex-wrap gap-2">
+              <ul className="adp-draftList">
                 {preview.drafts.map((d) => (
                   <li key={d.id}>
                     <Link
                       href={`/studio/${d.id}`}
-                      className="text-11 text-accent-2-ink underline"
+                      className="adp-inlineLink"
                       data-account-export-draft={d.id}
                     >
                       {d.name}
@@ -183,24 +183,24 @@ export function AccountDeletionPanel() {
                 ))}
               </ul>
               {preview.draftsTruncated ? (
-                <span className="text-11 text-fg-3" data-account-export-truncated>
+                <span className="adp-hint" data-account-export-truncated>
                   只列了最近改过的 {preview.drafts.length} 个，一共 {preview.privateProjects} 个——项目列表里还有其余的。
                 </span>
               ) : null}
             </div>
           ) : null}
-          <p className="text-11 text-fg-2">
+          <p className="adp-note">
             逐字输入你的{preview.confirmField === 'handle' ? '主页地址（handle）' : '展示名'}{' '}
-            <span className="font-mono text-fg-1" data-account-delete-expected>{preview.confirmWord}</span> 才会执行。
+            <span className="adp-mono" data-account-delete-expected>{preview.confirmWord}</span> 才会执行。
           </p>
-          <div className="flex items-center gap-2">
+          <div className="adp-row">
             <input
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
               aria-label="逐字输入确认词"
               placeholder="逐字输入确认词"
               maxLength={2000}
-              className="w-[240px] rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] bg-bg-2 px-2 py-1 text-12 text-fg-1 placeholder:text-fg-3"
+              className="adp-input"
               data-account-delete-input
             />
             {/* 与删项目那颗按钮同一口径：打错字时按钮照样能按，拒绝要在界面上看得见。
@@ -209,7 +209,7 @@ export function AccountDeletionPanel() {
               type="button"
               disabled={busy || typed.trim().length === 0}
               onClick={() => void remove()}
-              className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg disabled:opacity-40"
+              className="adp-confirmBtn"
               data-account-delete-confirm
             >
               {busy ? '注销中…' : '确认注销'}
@@ -218,7 +218,7 @@ export function AccountDeletionPanel() {
               type="button"
               disabled={busy}
               onClick={close}
-              className="text-11 text-fg-3 hover:text-fg-2 disabled:opacity-40"
+              className="adp-cancelBtn"
               data-account-delete-cancel
             >
               取消
@@ -227,7 +227,7 @@ export function AccountDeletionPanel() {
         </>
       ) : null}
       {notice ? (
-        <p className="text-11 text-fg-2" data-account-delete-notice>
+        <p className="adp-note" data-account-delete-notice>
           {notice}
         </p>
       ) : null}

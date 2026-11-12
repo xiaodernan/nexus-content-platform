@@ -2402,6 +2402,30 @@
   .ae-hint { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
   .ae-note { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); }
 
+  /* ── §FE-87 / ADR-0240 `AccountDeletionPanel.tsx` `.adp-` 门面化——§144/ADR-0025 注销入口 ──
+   * 清单在点开时从 /api/account 现取（不信过期客户端数）；注销 ≠ 删除（收据保留）；不强制先导出。 */
+  .adp-card { display: flex; flex-direction: column; gap: var(--nexus-space-2); border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-1); padding: var(--nexus-space-2) var(--nexus-space-3); }
+  .adp-note { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); }
+  .adp-hint { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .adp-error { font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); }
+  .adp-ghostBtn { align-self: flex-start; border-radius: var(--nexus-radius-sm); border: 1px solid var(--nexus-color-border-strong); background: transparent; padding: var(--nexus-space-1) var(--nexus-space-3); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); cursor: pointer; }
+  .adp-ghostBtn:hover { background: var(--nexus-color-bg-2); }
+  .adp-btnSm { border-radius: var(--nexus-radius-sm); border: 1px solid var(--nexus-color-border-strong); background: transparent; padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); cursor: pointer; }
+  .adp-btnSm:hover { background: var(--nexus-color-bg-2); }
+  .adp-counts { display: flex; flex-direction: column; gap: var(--nexus-space-1); padding: 0; list-style: none; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); }
+  .adp-offer { display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+  .adp-draftList { display: flex; flex-wrap: wrap; gap: var(--nexus-space-2); padding: 0; list-style: none; }
+  .adp-inlineLink { font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-2-ink); text-decoration: underline; }
+  .adp-mono { font-family: var(--nexus-font-mono); color: var(--nexus-color-fg-1); }
+  .adp-row { display: flex; align-items: center; gap: var(--nexus-space-2); }
+  .adp-input { width: 240px; border-radius: var(--nexus-radius-sm); border: 1px solid var(--nexus-color-border-strong); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); font-family: inherit; }
+  .adp-input::placeholder { color: var(--nexus-color-fg-3); }
+  .adp-confirmBtn { border-radius: var(--nexus-radius-sm); border: none; background: var(--nexus-color-accent-2); padding: var(--nexus-space-1) var(--nexus-space-3); font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-fg); cursor: pointer; }
+  .adp-confirmBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .adp-cancelBtn { border: none; background: transparent; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .adp-cancelBtn:hover { color: var(--nexus-color-fg-2); }
+  .adp-cancelBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
   /* ── §FE-81 / ADR-0234 `FollowButton.tsx` `.fw-` 门面化——§60 关注按钮 ──
    * 只发请求并显示真实回话；csrfHeaders/error 路径一字不动。 */
   .fw-wrap { display: inline-flex; align-items: center; gap: var(--nexus-space-2); }
