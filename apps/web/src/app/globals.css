@@ -2209,6 +2209,23 @@
   .cs-fitBtn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
   .cs-virtualized { position: absolute; right: var(--nexus-space-3); top: var(--nexus-space-3); display: inline-block; border-radius: var(--nexus-radius-sm); background: color-mix(in srgb, var(--nexus-color-bg-1) 90%, transparent); padding: var(--nexus-space-1) var(--nexus-space-2); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
   .cs-emptyState { max-width: 26.25rem; border-radius: var(--nexus-radius-md); border: 1px dashed var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); padding: var(--nexus-space-4) var(--nexus-space-5); text-align: center; font-size: 0.8125rem; color: var(--nexus-color-fg-3); line-height: 1.6; }
+
+  /* ── §FE-67 / ADR-0219 `published/[slug]/page.tsx` `.np-` 门面化（续）——§56/§14 公开分享页 ── */
+  .np-root { width: 100%; min-height: 100vh; background: var(--nexus-color-bg-0); color: var(--nexus-color-fg-1); }
+  .np-header { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-3); border-bottom: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); padding: var(--nexus-space-2) var(--nexus-space-4); }
+  .np-title { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .np-meta { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .np-headerAside { margin-left: auto; display: flex; align-items: center; gap: var(--nexus-space-2); }
+  .np-brand { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .np-actions { width: 100%; padding: var(--nexus-space-2) var(--nexus-space-4); }
+  .np-stage { width: 100%; overflow-x: auto; padding: var(--nexus-space-4); }
+  .np-variant { display: block; }
+  .np-note { padding: var(--nexus-space-3) var(--nexus-space-4); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  .np-entry { padding: var(--nexus-space-3) var(--nexus-space-4); font-size: var(--nexus-font-size-12); }
+  .np-playLink { display: inline-flex; align-items: center; gap: var(--nexus-space-2); min-height: 1.5rem; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-accent-2); padding: 2px var(--nexus-space-3); font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-fg); text-decoration: none; }
+  .np-storyboardLink { display: inline-flex; align-items: center; gap: var(--nexus-space-2); min-height: 1.5rem; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-accent-2); padding: 2px var(--nexus-space-3); font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-fg); text-decoration: none; }
+  .np-entryHint { margin-left: var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .np-notice { padding: 0 var(--nexus-space-4) var(--nexus-space-4); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
   .pb-mirrorLink { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); text-decoration: underline; }
 
   /* ── §FE-55 / ADR-0207 `MemoryPanel.tsx` `.mm-` 门面化——§48 角色记忆 ──
