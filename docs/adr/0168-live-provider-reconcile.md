@@ -48,7 +48,12 @@ web 侧 `getAiCapabilities()` 读 ai-service `/healthz` 的 `capability`，`real
 ### 四、诚实边界（写进 evidence，不假装完美）
 
 - 真 `/v1/ai/run` 在无设计文档/页面/pageId 时如实回 **0 补丁**——是诚实模型行为，不凭空编 op batch；
-  完整视觉补丁仍取决于 prompt 管线（Studio submit → op batch → 审批 → 落地未走）。
+  完整视觉补丁仍取决于 prompt 管线。**后续口径更新（并行 `44bfc613` §AILIVE-2）**：web API 层的端到端
+  live smoke 已真走通（`npm run live:ai-smoke -- --confirm-real`：`GET /` 签 CSRF → 注册 → 建项目 →
+  `/api/ai/run` → real provider，HTTP 200 / capability=real / tokensIn=9217 / demoMode=false，默认不带
+  `--confirm-real` 拒绝执行以防意外计费）；**仍欠**浏览器 UI 层真点流程（Studio→AI agent 的
+  Run→Screenshot）、`/api/ai/jobs` 异步路径、以及"真出一个 op batch → 审批 → 落地"那一刀——
+  即 API 链路活着 ≠ 视觉补丁生成能力已验。
 - `/v1/ai/chat` 真生成时模型自称"我是小纳，GPT，由 OpenAI 开发"——**真 provider 接进 ≠ 角色人设稳**，
   system 提示对底层身份压制有限，属内容层 prompt 工程，非接入层缺陷。
 - Image/Video/Speech 仍 `unavailable`；`costUsd=0`（计费未知，不造数字）；未 push。
