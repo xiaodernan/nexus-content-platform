@@ -2123,3 +2123,28 @@ Verification (honest floor first):
 
 Commits this session still pending a final receipt push; verify:arms-freshness will report its own verdict
 on the next hosted ref; nothing about the frontend bytes changed agents' subject shape.
+## cont. 69 (2026-11-13, early hours) - bounded dead letter landed (v688, ADR 0121); arms receipt re-issue still in flight locally; hosted verdicts unchanged
+
+1) v688 - bounded dead letter (ADR 0121) landed on master locally:
+   - dead_letter.py (trim_list in-place left cut, trim_command async LTRIM via inspect.isawaitable,
+     parse_max_dead_letters: AI_SERVICE_DEAD_LETTER_MAX default 500, 0=unlimited opt-out, garbage -> 500)
+   - jobs.py wired at both backends with zero change to attempts/4xx-5xx branches: memory append trims
+     inside the lock; redis LPUSH+EXPIRE then LTRIM 0 N-1 (guard-wrapped, never breaks the path)
+   - 17 new gates: parse x5, trim_list x3, judge/arm x2, memory roundtrip x2, fake-redis LTRIM x4
+   - live real-Redis leg: real Redis (56379/DB7), 4 poisoned jobs + max_dead_letters=2 -> only newest 2 survive
+   - ai-service suite: 254 passed with the Redis env set; this entry rides the commit
+
+2) Arms receipt re-issue (ci-wiring-arms.mjs) is still grinding locally at write time (recycled parent shell;
+   arm children materializing through 2:52). The stale receipt stands; no bytes forged; no push of the
+   subject-bearing refs (v687, next bump, CI-runbooks) until a real green run lands and writes the receipt.
+   Studio CI batteries on every ref since e97007f remain RED on the arms-freshness clause (e97007f, 4395e82,
+   bd29864, 008647f, 6e453a6) - one root cause, all main-line GREEN.
+
+3) Honest remainder: pixels still not captured; dev over-LAN serves pages but the desktop capture path
+   has not produced frames; the root vitest sweep was already killed at 1500s on this host; batteries
+   of the whole arms family stay red until the receipt lands. apps/studio next 15->16 (postcss HIGH)
+   intentionally untouched (line decision).
+
+4) Combined push queued in the working tree while arms settles: next@16.4.6 pin + package-lock,
+   docs/CI-OPERATIONS.md (two-clause hosted CI runbook), cont. 65-69 ledger,
+   v686-v688 slices, arms receipt + companion artifacts when the green run returns.
