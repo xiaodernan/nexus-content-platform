@@ -1946,6 +1946,66 @@
   .ds-iconSmIdle { cursor: not-allowed; opacity: 0.3; }
   .ds-checkLabel { display: flex; align-items: center; gap: var(--nexus-space-2); }
 
+  /* ── §FE-48 / ADR-0200 `WorldPanel.tsx` `.wd-` 门面化——§44 World Builder ──
+   * 世界文档九类摊开成可编辑表单（lore/history/geography/factions/characters/creatures/items/quests/story）。
+     图视图（§45）读同一 store，两处不会各存一份。
+     AI 生成世界内容要真 provider——只做模板骨架不塞预设世界观；世界编辑不进画布 Command 撤销栈。
+   * 零动效、零 @media、零 hex；字面量只出现在 text-13 位（13px 档 token 尺度没有）。 */
+  .wd-rootCol { display: flex; height: 100%; min-height: 0; flex-direction: column; }
+  .wd-scrollPad { display: flex; height: 100%; min-height: 0; flex-direction: column; gap: var(--nexus-space-3); overflow: auto; padding: var(--nexus-space-3); }
+  .wd-scrollP2 { min-height: 0; flex: 1 1 0%; overflow: auto; padding: var(--nexus-space-2); }
+  .wd-headBordered { flex-shrink: 0; border-bottom: 1px solid var(--nexus-color-border-subtle); padding: var(--nexus-space-3); }
+  .wd-col2 { display: flex; flex-direction: column; gap: var(--nexus-space-2); }
+  .wd-colMt1 { margin-top: var(--nexus-space-1); display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+  .wd-row1 { display: flex; align-items: center; gap: var(--nexus-space-1); }
+  .wd-row2 { display: flex; align-items: center; gap: var(--nexus-space-2); }
+  .wd-rowMt1 { margin-top: var(--nexus-space-1); display: flex; align-items: center; gap: var(--nexus-space-1); }
+  .wd-wrapCenter1 { margin-top: var(--nexus-space-1); display: flex; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-1); }
+  .wd-end { margin-left: auto; }
+  .wd-label { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); text-transform: uppercase; letter-spacing: 0.05em; color: var(--nexus-color-fg-3); }
+  .wd-label11 { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); text-transform: uppercase; letter-spacing: 0.05em; color: var(--nexus-color-fg-3); }
+  .wd-labelMb1 { margin-bottom: var(--nexus-space-1); display: flex; align-items: center; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); text-transform: uppercase; letter-spacing: 0.05em; color: var(--nexus-color-fg-3); }
+  .wd-faint11 { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .wd-faint11shrink { flex-shrink: 0; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .wd-danger11 { font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); }
+  .wd-dangerMt2 { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); }
+  .wd-body11 { font-size: var(--nexus-font-size-11); line-height: 1.6; color: var(--nexus-color-fg-3); }
+  .wd-body11Mt1 { margin-top: var(--nexus-space-1); font-size: var(--nexus-font-size-11); line-height: 1.6; color: var(--nexus-color-fg-3); }
+  .wd-body11Mt2 { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-11); line-height: 1.6; color: var(--nexus-color-fg-3); }
+  .wd-body12 { font-size: var(--nexus-font-size-12); line-height: 1.6; color: var(--nexus-color-fg-2); }
+  .wd-mt2 { margin-top: var(--nexus-space-2); }
+  .wd-mt4 { margin-top: 1rem; }
+  .wd-mb3 { margin-bottom: var(--nexus-space-3); }
+  .wd-selfStart { align-self: flex-start; }
+  .wd-fname11truncate { min-width: 0; flex: 1 1 0%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); }
+  .wd-numInput { width: 4rem; border: 0; border-radius: 3px; background: var(--nexus-color-bg-1); padding: 2px var(--nexus-space-1); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
+  .wd-numInput:focus { background: var(--nexus-color-bg-3); }
+  .wd-numInput:disabled { opacity: 0.5; }
+  .wd-inputSm { border: 0; border-radius: 3px; background: var(--nexus-color-bg-1); padding: 2px var(--nexus-space-1); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
+  .wd-inputSm:focus { background: var(--nexus-color-bg-3); }
+  .wd-growInput { min-width: 0; flex: 1 1 0%; border: 0; border-radius: 3px; background: var(--nexus-color-bg-1); padding: 2px var(--nexus-space-1); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
+  .wd-growInput:focus { background: var(--nexus-color-bg-3); }
+  .wd-areaResize { margin-top: var(--nexus-space-2); resize: vertical; width: 100%; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
+  .wd-areaResize:focus { background: var(--nexus-color-bg-3); }
+  .wd-areaResizeMt { resize: vertical; width: 100%; border: 0; border-radius: 3px; background: var(--nexus-color-bg-1); margin-top: var(--nexus-space-1); padding: 2px var(--nexus-space-1); font-size: var(--nexus-font-size-12); line-height: 1.6; color: var(--nexus-color-fg-1); outline: none; }
+  .wd-areaResizeMt:focus { background: var(--nexus-color-bg-3); }
+  .wd-wfullInput13 { margin-top: var(--nexus-space-2); width: 100%; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: 0.8125rem; color: var(--nexus-color-fg-1); outline: none; }
+  .wd-wfullInput13:focus { background: var(--nexus-color-bg-3); }
+  .wd-accentBtn { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-accent-2); padding: var(--nexus-space-1) var(--nexus-space-3); font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-fg); cursor: pointer; }
+  .wd-dis50:disabled { opacity: 0.5; cursor: not-allowed; }
+  .wd-chipSelect { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-1); outline: none; }
+  .wd-ghostBtn { border: 1px solid var(--nexus-color-border-strong); border-radius: var(--nexus-radius-sm); background: transparent; padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); cursor: pointer; }
+  .wd-ghostBtn:hover { background: var(--nexus-color-bg-2); }
+  .wd-ghostBtnShrink { flex-shrink: 0; border: 1px solid var(--nexus-color-border-strong); border-radius: var(--nexus-radius-sm); background: transparent; padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); cursor: pointer; }
+  .wd-ghostBtnShrink:hover { background: var(--nexus-color-bg-2); }
+  .wd-card { border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-2); }
+  .wd-delBtn { flex-shrink: 0; border: 0; background: transparent; padding: 0 var(--nexus-space-1); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .wd-delBtn:hover { color: var(--nexus-color-danger-ink); }
+  .wd-delBtnBig { flex-shrink: 0; border: 0; background: transparent; padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .wd-delBtnBig:hover { color: var(--nexus-color-danger-ink); }
+  .wd-monoFaintEnd { margin-left: auto; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .wd-dangerText { color: var(--nexus-color-danger-ink); }
+
   /* ── §FE-40 / ADR-0192 `/admin/health` 管理台健康总览 `.hd-` 门面化——五层快照一次成 ──
    * 运维只在这一页看到五层（ai/java/gateway/redis/postgres）的真相：
    * 拿不到 = "未测到"（而不是 down），和 web 静默降级纪律一致；每层独立超时。
