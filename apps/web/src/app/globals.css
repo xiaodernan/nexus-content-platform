@@ -2224,6 +2224,38 @@
   .rp-sourceChip { flex-shrink: 0; border-radius: 3px; border: 1px solid var(--nexus-color-border-subtle); background: transparent; padding: 0 var(--nexus-space-1); font-family: var(--nexus-font-mono); font-size: 0.625rem; color: var(--nexus-color-fg-3); }
   .rp-dangerMono11 { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); }
   .rp-ink11shrink { flex-shrink: 0; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); }
+
+  /* ── §FE-57 / ADR-0209 `WorldGraphView.tsx` `.wg-` 门面化——§45 世界图视图（SVG） ──
+   * §45 的图视图（§44 World Builder 的投影）：世界条目的有向图；本片只换皮，SVG 派发（拖圆台 / 画台子 / 删除美图）一字不动。
+     `fill-fg-*` + `text-[NNpx]` 是 SVG attribute-over-className 模拟文本标签；零动效 / 零 @media。 */
+  .wg-ghostDanger { border: 1px solid var(--nexus-color-border-strong); border-radius: var(--nexus-radius-sm); background: transparent; padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); cursor: pointer; }
+  .wg-ghostDanger:hover { background: var(--nexus-color-bg-2); }
+  .wg-linkFaint { margin-left: var(--nexus-space-2); color: var(--nexus-color-fg-3); text-decoration: underline; }
+  .wg-dangerCell { padding: var(--nexus-space-2) var(--nexus-space-3); font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); }
+  .wg-warnCell { padding: var(--nexus-space-2) var(--nexus-space-3); font-size: var(--nexus-font-size-11); color: var(--nexus-color-warn-ink); }
+  .wg-rowFaintPad { flex-shrink: 0; padding: var(--nexus-space-2) var(--nexus-space-3); font-size: var(--nexus-font-size-11); line-height: 1.6; color: var(--nexus-color-fg-3); }
+  .wg-pointerHint { pointer-events: none; padding: var(--nexus-space-2) var(--nexus-space-3) 0; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .wg-axis10 { fill: var(--nexus-color-fg-3); font-size: 0.625rem; }
+  .wg-axis11 { fill: var(--nexus-color-fg-3); font-size: 0.6875rem; }
+  .wg-axis12 { fill: var(--nexus-color-fg-1); font-size: 0.75rem; font-weight: 500; }
+  .wg-rootCol { display: flex; min-height: 0; min-width: 0; flex: 1 1 0%; flex-direction: column; background: var(--nexus-color-bg-0); }
+  .wg-head { display: flex; flex-shrink: 0; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-2); border-bottom: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); padding: var(--nexus-space-2) var(--nexus-space-3); }
+  .wg-emptyState { display: flex; height: 100%; flex-direction: column; align-items: flex-start; justify-content: center; gap: var(--nexus-space-3); padding: var(--nexus-space-6); }
+  .wg-emptyLead { max-width: 420px; font-size: 0.8125rem; line-height: 1.6; color: var(--nexus-color-fg-2); }
+  .wg-terrainInput { width: 11.25rem; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
+  .wg-terrainInput:focus { background: var(--nexus-color-bg-3); }
+  .wg-btnFaintHover { border: 0; border-radius: var(--nexus-radius-sm); background: transparent; padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .wg-btnFaintHover:hover { background: var(--nexus-color-bg-2); }
+  .wg-w14Input { width: 3.5rem; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
+  .wg-segBtn { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); cursor: pointer; }
+  .wg-selOn { background: var(--nexus-color-accent-2); color: var(--nexus-color-accent-fg); }
+  .wg-selIdle { background: var(--nexus-color-bg-2); color: var(--nexus-color-fg-2); }
+  .wg-selIdle:hover { background: var(--nexus-color-bg-3); }
+  .wg-block { display: block; }
+  .wg-crosshair { cursor: crosshair; }
+  .wg-clickable { cursor: pointer; }
+  .wg-grab { cursor: grab; }
+  .wg-grabbing { cursor: grabbing; }
   .cp-inputShared { width: 100%; resize: vertical; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
   .cp-inputShared:focus { background: var(--nexus-color-bg-3); }
   .cp-grow { min-width: 0; flex: 1 1 0%; }
