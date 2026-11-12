@@ -35,18 +35,18 @@ const STATUS_MARK: Record<string, string> = {
 };
 
 const STATUS_TONE: Record<string, string> = {
-  pending: 'text-fg-3',
-  running: 'text-accent-2-ink',
-  done: 'text-fg-2',
-  failed: 'text-danger-ink',
-  skipped: 'text-warn-ink',
+  pending: 'ap-faint',
+  running: 'ag-accent2Ink',
+  done: 'hi-ink',
+  failed: 'wd-danger11',
+  skipped: 'cp-warn11',
 };
 
 const REAL_TIME_TONE: Record<string, string> = {
-  idle: 'text-fg-3',
-  connecting: 'text-warn-ink',
-  open: 'text-fg-3',
-  closed: 'text-danger-ink',
+  idle: 'ap-faint',
+  connecting: 'cp-warn11',
+  open: 'ap-faint',
+  closed: 'wd-danger11',
 };
 
 function messageOf(body: unknown): string | null {
@@ -214,19 +214,19 @@ export function AgentPanel() {
   const done = steps.filter((step) => step.status === 'done').length;
 
   return (
-    <div className="flex h-full min-h-0 flex-col" data-agent-panel>
-      <header className="flex shrink-0 items-center justify-between border-b border-[var(--nexus-color-border-subtle)] px-[var(--nexus-space-3)] py-2">
-        <h2 className="font-mono text-12 uppercase tracking-wide text-fg-3">Agent 作业</h2>
+    <div className="wd-rootCol" data-agent-panel>
+      <header className="ap-headBetween">
+        <h2 className="wd-label">Agent 作业</h2>
         <span
-          className={cn('font-mono text-12', REAL_TIME_TONE[realtime.state] ?? 'text-fg-3')}
+          className={cn('font-mono text-12', REAL_TIME_TONE[realtime.state] ?? 'ap-faint')}
           data-agent-realtime={realtime.state}
         >
           {realtime.state === 'open' ? `实时在线 · 收到 ${events} 条` : '以刷新后的数据为准'}
         </span>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-auto p-[var(--nexus-space-2)]">
-        <p className="text-11 text-fg-3">
+      <div className="wd-scrollP2">
+        <p className="sb-faint11">
           上架前检查：{READINESS_STEPS.length} 步作业，逐步列在下面。步数取自配方本身（`READINESS_STEPS`），
           不是这里手抄的——抄一份就会和配方漂。
           其中跑完留下游戏草稿的那几步（§52 那条链：草稿 → 调战斗数值 → 摆关卡位置），每一步上各有一个
@@ -234,21 +234,21 @@ export function AgentPanel() {
           这一轮不改设计、不发布、不生成像素。
         </p>
         {run?.capability === 'demo' ? (
-          <p className="mt-1 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-11 text-warn-ink" data-agent-planner="demo">
+          <p className="ag-warnRow" data-agent-planner="demo">
             计划由确定性配方生成（DEMO 规划），不是模型规划的；每一步的读数是真的。
           </p>
         ) : null}
 
-        <div className="mt-2 flex items-end gap-1">
-          <label className="min-w-0 flex-1">
-            <span className="text-11 text-fg-3">这一轮想做什么（只进计划标题）</span>
+        <div className="ag-rowEnd">
+          <label className="ag-grow">
+            <span className="sb-faint11">这一轮想做什么（只进计划标题）</span>
             <input
               value={goal}
               onChange={(event) => setGoal(event.target.value)}
               placeholder="例：上架前检查"
               maxLength={200}
               data-agent-goal
-              className="mt-[2px] w-full rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 px-2 py-1 text-12 text-fg-1"
+              className="ag-inputFull"
             />
           </label>
           <button
@@ -256,22 +256,19 @@ export function AgentPanel() {
             onClick={() => void start()}
             disabled={busy}
             data-agent-run
-            className={cn(
-              'shrink-0 rounded-[var(--nexus-radius-sm)] px-2 py-1 text-12',
-              busy ? 'bg-bg-3 text-fg-3' : 'bg-accent-1 text-accent-fg hover:bg-accent-2',
-            )}
+            className={cn('ag-runBtn', busy ? 'ag-runBusy' : 'ag-runReady')}
           >
             {busy ? '跑着…' : '跑一次检查'}
           </button>
         </div>
 
-        <label className="mt-1 block">
-          <span className="text-11 text-fg-3">这一轮编哪一型（只影响游戏那几步；其余几步与型无关）</span>
+        <label className="ag-blockMt1">
+          <span className="sb-faint11">这一轮编哪一型（只影响游戏那几步；其余几步与型无关）</span>
           <select
             value={gameKind}
             onChange={(event) => setGameKind(event.target.value as GameKind)}
             data-agent-game-kind
-            className="mt-[2px] w-full rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 px-2 py-1 text-12 text-fg-1"
+            className="ag-inputFull"
           >
             {GAME_KINDS.map((kind) => (
               <option key={kind} value={kind}>
@@ -282,51 +279,51 @@ export function AgentPanel() {
         </label>
 
         {note ? (
-          <p className="mt-2 rounded-[var(--nexus-radius-sm)] bg-danger/10 px-2 py-1 text-11 text-danger-ink" data-agent-note>
+          <p className="ag-dangerCallout" data-agent-note>
             {note}
           </p>
         ) : null}
         {readError ? (
-          <p className="mt-2 rounded-[var(--nexus-radius-sm)] bg-danger/10 px-2 py-1 text-11 text-danger-ink" data-agent-read-error>
+          <p className="ag-dangerCallout" data-agent-read-error>
             {readError}
           </p>
         ) : null}
 
-        {!loaded && !readError ? <p className="mt-3 text-11 text-fg-3">读这一次的状态…</p> : null}
+        {!loaded && !readError ? <p className="ag-faintMt3">读这一次的状态…</p> : null}
 
         {loaded && !run ? (
-          <p className="mt-3 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-2 text-11 text-fg-3" data-agent-empty>
+          <p className="ag-infoBox" data-agent-empty>
             这个项目还没有跑过 Agent 作业。这一栏不会显示"0 步完成"那种空壳——没有就是没有。
           </p>
         ) : null}
 
         {run ? (
-          <div className="mt-3 flex flex-col gap-2" data-agent-plan>
-            <div className="flex flex-wrap items-baseline gap-x-2 text-11">
+          <div className="ag-col3" data-agent-plan>
+            <div className="ag-wrapBaseline">
               <span
-                className={cn('font-mono', run.status === 'failed' ? 'text-danger-ink' : run.status === 'succeeded' ? 'text-fg-2' : 'text-warn-ink')}
+                className={cn('cb-mono11', run.status === 'failed' ? 'wd-danger11' : run.status === 'succeeded' ? 'hi-ink' : 'cp-warn11')}
                 data-agent-status={run.status}
               >
                 {run.status === 'succeeded' ? '完成' : run.status === 'failed' ? '失败' : '进行中'}
               </span>
-              <span className="font-mono text-fg-3">
+              <span className="sb-monoFaint">
                 {done}/{steps.length || plan?.tasks.length || 0} 步
               </span>
-              <span className="text-fg-3" data-agent-goal-echo>
+              <span className="ap-faint" data-agent-goal-echo>
                 {plan?.goal ?? ''}
               </span>
               {/* 这一轮编的是哪一型：跑完的人要能一眼看见（服务端那一份计划里记着，ADR-0052） */}
-              <span className="text-fg-3" data-agent-kind-echo>
+              <span className="ap-faint" data-agent-kind-echo>
                 {plan?.gameKind ? GAME_KIND_LABELS[plan.gameKind as GameKind] : GAME_KIND_LABELS[GAME_DRAFT_DEFAULT_KIND]}
               </span>
             </div>
             {run.error ? (
-              <p className="rounded-[var(--nexus-radius-sm)] bg-danger/10 px-2 py-1 text-11 text-danger-ink" data-agent-error>
+              <p className="ag-dangerCallout" data-agent-error>
                 {run.error}
               </p>
             ) : null}
 
-            <ol className="flex flex-col gap-[6px]">
+            <ol className="ag-col6">
               {steps.map((step) => (
                 <StepRow
                   key={step.id}
@@ -339,9 +336,9 @@ export function AgentPanel() {
             </ol>
 
             {run.report?.notes.length ? (
-              <ul className="flex flex-col gap-[2px] rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1" data-agent-notes>
+              <ul className="ag-colCard" data-agent-notes>
                 {run.report.notes.map((line) => (
-                  <li key={line} className="text-11 text-fg-2">
+                  <li key={line} className="sb-ink11">
                     · {line}
                   </li>
                 ))}
@@ -367,45 +364,42 @@ function StepRow({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <li className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1" data-agent-step={step.id} data-agent-step-status={step.status}>
+    <li className="ag-slotCard" data-agent-step={step.id} data-agent-step-status={step.status}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-controls={open ? `agent-step-detail-${step.id}` : undefined}
-        className="flex w-full items-baseline gap-[6px] text-left"
+        className="ag-rowBaseline"
       >
-        <span className={cn('w-[12px] shrink-0 font-mono text-12', STATUS_TONE[step.status] ?? 'text-fg-3')}>
+        <span className={cn('ag-stepDot', STATUS_TONE[step.status] ?? 'ap-faint')}>
           {STATUS_MARK[step.status] ?? '?'}
         </span>
-        <span className="min-w-0 flex-1 text-11 text-fg-1">{step.title}</span>
-        <span className="shrink-0 font-mono text-10 text-fg-3">{step.agent}</span>
+        <span className="ag-growFaint">{step.title}</span>
+        <span className="ds-mono10shrink">{step.agent}</span>
       </button>
-      <p className="mt-[2px] text-11 text-fg-3" data-agent-step-summary={step.id}>
+      <p className="ag-mtHint" data-agent-step-summary={step.id}>
         {step.summary}
       </p>
       {step.draft ? (
-        <div className="mt-1 flex flex-col gap-[2px]">
-          <div className="flex flex-wrap items-center gap-[6px]">
+        <div className="ag-colDense">
+          <div className="ag-flexWrap6">
             <button
               type="button"
               onClick={onAccept}
               disabled={accepting}
               data-agent-accept-step={step.id}
-              className={cn(
-                'rounded-[var(--nexus-radius-sm)] px-2 py-[2px] text-11',
-                accepting ? 'bg-bg-3 text-fg-3' : 'bg-accent-1 text-accent-fg hover:bg-accent-2',
-              )}
+              className={cn('ag-acceptBtn', accepting ? 'ag-acceptBusy' : 'ag-acceptReady')}
             >
               {accepting ? '写着…' : '接受进项目'}
             </button>
-            <span className="font-mono text-10 text-fg-3">
+            <span className="ds-mono10">
               {step.draft.name} · {step.draft.entities.length} 个实体
             </span>
           </div>
           {acceptNote ? (
             <p
-              className={cn('text-11', acceptNote.ok ? 'text-fg-2' : 'text-danger-ink')}
+              className={cn(acceptNote.ok ? 'ag-noteOk' : 'ag-noteFail')}
               data-agent-accept-note={acceptNote.ok ? 'ok' : 'refused'}
             >
               {acceptNote.text}
@@ -414,21 +408,21 @@ function StepRow({
         </div>
       ) : null}
       {open ? (
-        <div id={`agent-step-detail-${step.id}`} className="mt-1 flex flex-col gap-[2px]">
+        <div id={`agent-step-detail-${step.id}`} className="ag-colDense">
           {Object.entries(step.counts).map(([key, value]) => (
-            <p key={key} className="font-mono text-11 text-fg-3">
+            <p key={key} className="sb-mono11">
               {key} {value}
             </p>
           ))}
           {step.notes.map((line) => (
-            <p key={line} className="text-11 text-fg-2">
+            <p key={line} className="sb-ink11">
               · {line}
             </p>
           ))}
           {step.handedOff?.length ? (
-            <p className="text-11 text-fg-3">上游交接：{step.handedOff.map((item) => `${item.from}${item.artifact ? `(${item.artifact})` : ''}`).join('、')}</p>
+            <p className="sb-faint11">上游交接：{step.handedOff.map((item) => `${item.from}${item.artifact ? `(${item.artifact})` : ''}`).join('、')}</p>
           ) : null}
-          {step.because?.length ? <p className="text-11 text-warn-ink">被牵连：{step.because.join('、')}</p> : null}
+          {step.because?.length ? <p className="cp-warn11">被牵连：{step.because.join('、')}</p> : null}
         </div>
       ) : null}
     </li>

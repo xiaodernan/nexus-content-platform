@@ -2357,6 +2357,43 @@
   .cb-segOn { background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-1); }
   .cb-segIdle { color: var(--nexus-color-fg-3); cursor: pointer; }
   .cb-segIdle:hover { background: var(--nexus-color-bg-2); }
+
+  /* ── §FE-62 / ADR-0214 `AgentPanel.tsx` `.ag-` 门面化——§29 Agent 面板 ──
+   * §29 Agent 作业的面板：AgentStep 列表 + 运行时 Roster + 应用/接受候选 + tone 成对映射。
+     STATUS_TONE/REAL_TIME_TONE 的色映射在此成对钉住（pending=fg-3/running=accent-2-ink/done=fg-2/failed=danger-ink/skipped=warn-ink）。
+     零动效、零 @media、零 hex。 */
+  .ag-accent2Ink { color: var(--nexus-color-accent-2-ink); }
+  .ag-colDense { margin-top: var(--nexus-space-1); display: flex; flex-direction: column; gap: 2px; }
+  .ag-col6 { display: flex; flex-direction: column; gap: 6px; }
+  .ag-colCard { display: flex; flex-direction: column; gap: 2px; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); }
+  .ag-col3 { margin-top: var(--nexus-space-3); display: flex; flex-direction: column; gap: var(--nexus-space-2); }
+  .ag-slotCard { border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); }
+  .ag-grow { min-width: 0; flex: 1 1 0%; }
+  .ag-growFaint { min-width: 0; flex: 1 1 0%; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-1); }
+  .ag-inputFull { margin-top: 2px; width: 100%; border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
+  .ag-dangerCallout { margin-top: var(--nexus-space-2); border-radius: var(--nexus-radius-sm); background: color-mix(in srgb, var(--nexus-color-danger) 10%, transparent); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); }
+  .ag-dangerCallout:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .ag-rowBaseline { display: flex; width: 100%; align-items: baseline; gap: 6px; text-align: left; }
+  .ag-rowEnd { margin-top: var(--nexus-space-2); display: flex; align-items: flex-end; gap: var(--nexus-space-1); }
+  .ag-wrapBaseline { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; font-size: var(--nexus-font-size-11); }
+  .ag-flexWrap6 { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .ag-blockMt1 { margin-top: var(--nexus-space-1); display: block; }
+  .ag-faintMt3 { margin-top: var(--nexus-space-3); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .ag-infoBox { margin-top: var(--nexus-space-3); border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .ag-warnRow { margin-top: var(--nexus-space-1); border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-warn-ink); }
+  .ag-stepDot { width: 0.75rem; flex-shrink: 0; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); }
+  .ag-mtHint { margin-top: 2px; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .ag-runBtn { flex-shrink: 0; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-accent-1); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-fg); cursor: pointer; }
+  .ag-runBtn:hover { background: var(--nexus-color-accent-2); }
+  .ag-runBtn:disabled { opacity: 0.6; cursor: wait; }
+  .ag-runBusy { background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-3); }
+  .ag-runReady { background: var(--nexus-color-accent-1); color: var(--nexus-color-accent-fg); }
+  .ag-acceptBtn { border: 0; border-radius: var(--nexus-radius-sm); padding: 2px var(--nexus-space-2); font-size: var(--nexus-font-size-11); cursor: pointer; }
+  .ag-acceptBusy { background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-3); cursor: not-allowed; }
+  .ag-acceptReady { background: var(--nexus-color-accent-1); color: var(--nexus-color-accent-fg); }
+  .ag-acceptReady:hover { background: var(--nexus-color-accent-2); }
+  .ag-noteOk { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); }
+  .ag-noteFail { font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); }
   .cp-inputShared { width: 100%; resize: vertical; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
   .cp-inputShared:focus { background: var(--nexus-color-bg-3); }
   .cp-grow { min-width: 0; flex: 1 1 0%; }
