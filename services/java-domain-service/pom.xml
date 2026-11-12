@@ -78,6 +78,17 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
+        <!--
+          §SC-78: spring-cloud-starter-loadbalancer 的实例列表供应器在首次构建时用默认缓存
+          并在每个启动打印 WARN（L55 domain-service.log, verify:topology 实见）。加
+          Caffeine 让 LB 走真正的本地缓存（org.springframework.cache.caffeine.CaffeineCacheManager
+          由随附的 spring-context-support 提供）——这不是哄 WARN 的装饰：缓存会让 LB 在实例up/down
+          期间不再针对每条请求重新走 eureka-client 的实例目录解析。
+        -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
         <!-- §SC-77: Prometheus 抓数端点——不是"先装上看看戏"，而是让运维有一个可以直接面向 scraping 的真端点（SC-8 只说了 health）。随 SC-66（暴露面按服务单独签发，绝不入共享默认）一起落。 -->
         <dependency>
             <groupId>io.micrometer</groupId>
