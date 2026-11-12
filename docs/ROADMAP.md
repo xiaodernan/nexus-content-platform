@@ -634,6 +634,44 @@ family README section) and a door that reddens the sentence it repairs:
           segment, exact `git add`, ff-checked, no force. State note self-contained here + ADR 0113
           (CURRENT-STATE worktree carries lane bytes, not edited).
 
+  v681  bounded provider retry: the Resilience4j lesson crosses languages into ai-service (ADR 0114).
+        - Real gateway (wkapi.pro/v1, gpt-6-sol) measured 2–10 s latency, seen 503; one transient 5xx/429
+          used to fail the whole design request (502). Java nexus-api already solves the same problem with
+          v669a DomainServiceRetry; this slice mirrors it into the Python provider, crossing two known traps:
+          ① a configured retry nobody calls (Feign breaker integration ignores Resilience4j Retry), and
+          ② RetryRegistry.retry() get-or-create silently retrying a 404 via ofDefaults().
+        - Unlike v680's cache, retry has NO usage ambiguity (one logical request -> one successful
+          Completion; usage from the winning attempt; latency_ms includes backoff total wall clock). So this
+          one IS wired into production: openai_compatible.complete() runs a bounded retry loop; Settings gains
+          llm_max_attempts / llm_retry_base_s / llm_retry_cap_s (NEXUS_LLM_MAX_ATTEMPTS / _RETRY_BASE_S /
+          _RETRY_CAP_S); Registry passes them into the provider (config reaches real code, not a prop).
+        - Policy (mirrors "404 is an answer"): RETRY 429/5xx + network HTTPError, exponential min(base·2^i,
+          cap) with Retry-After honored (max of the two); NEVER retry 401/403/400/404/422 nor a malformed
+          200 payload. Idempotent: same body every attempt. ValueError on max_attempts<1 (explicit rejection,
+          never silently retry-everything). max_attempts=1 DEFAULT = byte-identical pass-through (zero regression).
+        - Door (ADR 0110 three-part): ① real gates (transient retried, same body, deterministic errors one
+          shot, exhausted -> ProviderFailed, backoff >= exponential floor + capped + Retry-After respected,
+          latency >= total wait via linked fake clock/sleep, pass-through, invalid config); ② 7 always-on arms
+          (no-retry / client-error-retried / below-floor / over-cap / ignore-Retry-After / latency-hidden RED
+          + correct-observations GREEN incl. "Retry-After legitimately breaks monotonicity" — judges pin
+          lower-bound+cap, NOT monotonic, ADR 0094 X4); ③ opt-in real leg: healthy gpt-6-sol one-shot, valid
+          JSON, usage>0, zero backoff (wiring doesn't invent retries). Judges shared by gates and arms (ADR 0095).
+        - FIRST-RED then GREEN: before prod edit 14 real gates RED (no sleep/clock/max_attempts yet) + 6 arms
+          GREEN; after 21/1. Two REDs along the way were MY gate bugs, not prod bugs (monotonicity wrongly
+          pinned; fake sleep not advancing fake clock) — fixed in the gate only, per "red => impl/assumption/
+          undefined" triage. Full ai-service CI 135/6 (baseline 114/5, +21 zero regression), opt-in real
+          140/1 (all live legs hit real gpt-6-sol), verify:record-encoding exit 0 (0 chargeable / 2251 files).
+        - HONEST GAPS (ADR 0114): ① no circuit breaker (persistent 503 amplifies; bounded max_attempts default
+          off is the only guard; pair with upstream breaker); ② embedding path not retried (gateway has no
+          embedding model anyway); ③ not durable / not cross-process (that is the job queue, §162);
+          ④ Retry-After only parses seconds, not HTTP-date; ⑤ no jitter (multi-instance same-beat retry);
+          ⑥ hosted Studio CI verdict PENDING (no key => live leg skips).
+        - SHARED-TREE: HEAD `41cdaa9` (my v680) at slice start; lane landed `d163a31` (v676 front-end,
+          ADR 0109) DURING this slice and pushed it himself before my commit (3 refs aligned `d163a31`
+          at commit time). I never touch lane's files; status shows only my 3 source files + 1 new test +
+          ADR 0114 + this ROADMAP. v681 commits on top of `d163a31`, single ff push, no force, nothing
+          dropped. State note self-contained here + ADR 0114 (CURRENT-STATE worktree had lane bytes).
+
 Standing constraints (measured, not assumed): this host keeps ~0.3 GB physical memory
 free and its Docker engine currently refuses to start containers (`docker start` hangs;
 `docker info` still answers) — live m9/spring-cloud legs run on the hosted runner and

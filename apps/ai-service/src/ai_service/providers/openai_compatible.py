@@ -7,11 +7,27 @@
 from __future__ import annotations
 
 import time
-from typing import Mapping
+from typing import Callable, Mapping
 
 import httpx
 
 from .base import Completion, EmbeddingResult, ProviderFailed
+
+# 有界重试（v681，镜像 Java v669a DomainServiceRetry）：只有这些**瞬时**状态值得再问一次。
+# 401/403 凭据、400/404/422 请求本身错都**不在**此列——"404 is an answer"，重试只浪费配额、
+# 放大攻击面。429 限流与 5xx 服务端抖动是真瞬时；网络类异常单独在重试循环里判。
+_RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
+
+
+def _retry_after_seconds(value: str | None) -> float | None:
+    """解析 Retry-After（秒）；无效/缺省返回 None，交给指数退避，不因坏头崩掉。"""
+    if not value:
+        return None
+    try:
+        seconds = float(value.strip())
+    except (TypeError, ValueError):
+        return None
+    return seconds if seconds >= 0 else None
 
 
 class OpenAICompatibleProvider:
@@ -27,9 +43,25 @@ class OpenAICompatibleProvider:
         timeout_s: float = 60.0,
         json_mode: bool = True,
         transport: httpx.BaseTransport | None = None,
+        max_attempts: int = 1,
+        base_s: float = 0.5,
+        cap_s: float = 8.0,
+        sleep: Callable[[float], None] | None = None,
+        clock: Callable[[], float] | None = None,
     ) -> None:
+        """`max_attempts=1`（默认）= pass-through，与 v681 前字节级一致（零回归）。
+        >1 时启用有界指数退避：`base_s·2^i` 封顶 `cap_s`，429 的 `Retry-After` 优先。
+        `sleep`/`clock` 可注入，供门确定性验证退避与总墙钟，生产不传。
+        """
+        if max_attempts < 1:
+            raise ValueError("max_attempts 必须 >= 1（1=不重试，pass-through）")
         self._models = dict(models)
         self._json_mode = json_mode
+        self._max_attempts = max_attempts
+        self._base_s = base_s
+        self._cap_s = cap_s
+        self._sleep = sleep or time.sleep
+        self._clock = clock or time.monotonic
         self._client = httpx.Client(
             base_url=base_url,
             timeout=timeout_s,
@@ -46,6 +78,12 @@ class OpenAICompatibleProvider:
             raise ProviderFailed(f"未配置 {model_class} 档模型")
         return model
 
+    def _backoff(self, attempt: int, retry_after: str | None) -> float:
+        """第 attempt 次失败后的等待：指数退避封顶；429 的 Retry-After 优先（取较大者）。"""
+        exponential = min(self._base_s * (2 ** attempt), self._cap_s)
+        server = _retry_after_seconds(retry_after)
+        return max(exponential, server) if server is not None else exponential
+
     def complete(self, *, model: str, system: str, user: str) -> Completion:
         body: dict = {
             "model": model,
@@ -58,12 +96,27 @@ class OpenAICompatibleProvider:
         if self._json_mode:
             body["response_format"] = {"type": "json_object"}
 
-        started = time.perf_counter()
-        try:
-            response = self._client.post("chat/completions", json=body)
-        except httpx.HTTPError as exc:
-            raise ProviderFailed(f"provider 网络失败：{exc.__class__.__name__}") from exc
-        latency_ms = (time.perf_counter() - started) * 1000
+        # 有界重试：总墙钟（含退避）如实计入 latency_ms，不把重试等待藏起来（§159 计量诚实）。
+        started = self._clock()
+        response: httpx.Response | None = None
+        for attempt in range(self._max_attempts):
+            try:
+                response = self._client.post("chat/completions", json=body)
+            except httpx.HTTPError as exc:
+                # 网络抖动（ConnectError/TimeoutException/...）属瞬时，可重试；耗尽后统一抛。
+                if attempt + 1 >= self._max_attempts:
+                    raise ProviderFailed(f"provider 网络失败：{exc.__class__.__name__}") from exc
+                self._sleep(self._backoff(attempt, None))
+                continue
+
+            if response.status_code not in _RETRYABLE_STATUS:
+                break  # 成功、或确定性失败（401/403/400/404/422）——都不重试
+            if attempt + 1 >= self._max_attempts:
+                break  # 重试耗尽，交给下方按状态码抛
+            self._sleep(self._backoff(attempt, response.headers.get("retry-after")))
+
+        assert response is not None  # 循环至少跑一次（max_attempts>=1）
+        latency_ms = (self._clock() - started) * 1000
 
         if response.status_code in (401, 403):
             raise ProviderFailed("provider 拒绝了凭据（401/403），检查 NEXUS_OPENAI_API_KEY")

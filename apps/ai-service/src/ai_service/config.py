@@ -45,6 +45,11 @@ class Settings:
     # embedding 独立门：有些 provider 网关只有 chat 没有 embedding 模型（§159 不谎称能用）。
     # NEXUS_MODEL_EMBEDDING=none 时如实报 unavailable，不创建 embedding 客户端、不给出假的 "real" 就绪。
     embedding_enabled: bool = True
+    # 有界出站重试（v681，镜像 Java v669a）：max_attempts=1 默认 pass-through（零回归）；
+    # >1 时对 429/5xx/网络抖动做指数退避（base·2^i 封顶 cap，尊重 Retry-After）。
+    llm_max_attempts: int = 1
+    llm_retry_base_s: float = 0.5
+    llm_retry_cap_s: float = 8.0
     # 检测到但尚未实现适配器的 key：如实报告为 unavailable，不假装能调用（§159）
     unsupported_text_keys: tuple[str, ...] = ()
 
@@ -78,6 +83,9 @@ class Settings:
             "unsupported_text_keys": self.unsupported_text_keys,
             "openai_api_key": masked,
             "embedding_enabled": self.embedding_enabled,
+            "llm_max_attempts": self.llm_max_attempts,
+            "llm_retry_base_s": self.llm_retry_base_s,
+            "llm_retry_cap_s": self.llm_retry_cap_s,
         }
         inner = ", ".join(f"{key}={value!r}" for key, value in fields.items())
         return f"Settings({inner})"
@@ -116,4 +124,7 @@ def load_settings(environ: Mapping[str, str] | None = None) -> Settings:
         models=models,
         unsupported_text_keys=unsupported,
         embedding_enabled=embedding_enabled,
+        llm_max_attempts=max(1, int(get("NEXUS_LLM_MAX_ATTEMPTS", "1") or "1")),
+        llm_retry_base_s=float(get("NEXUS_LLM_RETRY_BASE_S", "0.5") or "0.5"),
+        llm_retry_cap_s=float(get("NEXUS_LLM_RETRY_CAP_S", "8") or "8"),
     )

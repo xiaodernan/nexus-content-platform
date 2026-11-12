@@ -33,6 +33,9 @@ class Registry:
                 models=settings.llm_models,
                 timeout_s=settings.request_timeout_s,
                 json_mode=settings.json_mode,
+                max_attempts=settings.llm_max_attempts,
+                base_s=settings.llm_retry_base_s,
+                cap_s=settings.llm_retry_cap_s,
             )
             if settings.has_llm
             else None
