@@ -57,9 +57,19 @@ function atClassesDefined(css: string): Set<string> {
   return out;
 }
 
+/** raw 文本里找首个 `re` 匹配，跳过注释（注释里长得像门面类的 `.at-` 不是段起点）。 */
+function findOutsideComments(css: string, re: RegExp): number {
+  const comments = [...css.matchAll(/\/\*[\s\S]*?\*\//g)].map((m) => [m.index!, m.index! + m[0].length] as const);
+  const global = new RegExp(re.source, 'g');
+  for (let m = global.exec(css); m !== null; m = global.exec(css)) {
+    if (!comments.some(([a, b]) => m.index! >= a && m.index! < b)) return m.index!;
+  }
+  return -1;
+}
+
 /** `.at-` 视觉段：`.at-page {` 起，到下一个 §FE 段头止（段头锚够脊梁骨，别吞 `.tc-`）。 */
 function atSegment(css: string): string {
-  const start = css.indexOf('.at-page {');
+  const start = findOutsideComments(css, /\.at-page \{/);
   if (start < 0) throw new Error('globals.css 找不到 .at- 段（.at-page {）');
   const rest = css.slice(start);
   const m = rest.search(/\/\* ── §/);

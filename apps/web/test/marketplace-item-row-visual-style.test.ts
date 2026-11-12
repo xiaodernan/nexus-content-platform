@@ -46,6 +46,16 @@ const component = readFileSync(COMPONENT, 'utf8');
 const globals = readFileSync(GLOBALS, 'utf8');
 const tokens = readFileSync(TOKENS, 'utf8');
 
+/** raw 文本里找首个 `re` 匹配，跳过注释（注释里长得像门面类的 `.an-` 不是段起点）。 */
+function findOutsideComments(css: string, re: RegExp): number {
+  const comments = [...css.matchAll(/\/\*[\s\S]*?\*\//g)].map((m) => [m.index!, m.index! + m[0].length] as const);
+  const global = new RegExp(re.source, 'g');
+  for (let m = global.exec(css); m !== null; m = global.exec(css)) {
+    if (!comments.some(([a, b]) => m.index! >= a && m.index! < b)) return m.index!;
+  }
+  return -1;
+}
+
 function cssNoComments(css: string): string {
   return css.replace(/\/\*[\s\S]*?\*\//g, '');
 }
@@ -117,12 +127,11 @@ function ruleBlocks(css: string): Array<{ selector: string; decls: string }> {
 
 /** `.mi-` 视觉段完整文本：从第一个 `.mi-` 到第一个 `.mp-` 之前（FE-11 段插在 FE-10 段前方，互不污染）。 */
 const miSegment = (() => {
-  const clean = cssNoComments(globals);
-  const start = clean.search(/\.mi-[A-Za-z]/);
+  const start = findOutsideComments(globals, /\.mi-[A-Za-z]/);
   if (start < 0) return '';
-  const tail = clean.slice(start);
-  const nextFacade = tail.search(/\.mp-[A-Za-z]/);
-  return (nextFacade >= 0 ? tail.slice(0, nextFacade) : tail);
+  const rest = globals.slice(start);
+  const nextSection = rest.search(/\/\*\s*─+\s*§FE-\d+/);
+  return cssNoComments(nextSection >= 0 ? rest.slice(0, nextSection) : rest);
 })();
 
 const miRuleLines = miRules(globals).join('\n');

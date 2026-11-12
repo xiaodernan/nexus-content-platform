@@ -52,6 +52,16 @@ const page = readFileSync(PAGE, 'utf8');
 const globals = readFileSync(GLOBALS, 'utf8');
 const tokens = readFileSync(TOKENS, 'utf8');
 
+/** raw 文本里找首个 `re` 匹配，跳过注释（注释里长得像门面类的 `.xx-` 不是段起点）。 */
+function findOutsideComments(css: string, re: RegExp): number {
+  const comments = [...css.matchAll(/\/\*[\s\S]*?\*\//g)].map((m) => [m.index!, m.index! + m[0].length] as const);
+  const global = new RegExp(re.source, 'g');
+  for (let m = global.exec(css); m !== null; m = global.exec(css)) {
+    if (!comments.some(([a, b]) => m.index! >= a && m.index! < b)) return m.index!;
+  }
+  return -1;
+}
+
 function cssNoComments(css: string): string {
   return css.replace(/\/\*[\s\S]*?\*\//g, '');
 }
@@ -114,14 +124,13 @@ function ruleBlocks(css: string): Array<{ selector: string; decls: string }> {
   return out;
 }
 
-/** `.an-` 视觉段完整文本：首个 `.an-` 到首个 `.mr-` 之前（FE-14 段插在 FE-13 `.mr-` 前方）。 */
+/** `.an-` 视觉段完整文本：`.an-` 起，到下一个 `/* ── §FE-` 段头止（段头接缝，不随文件序漂移）。 */
 const anSegment = (() => {
-  const clean = cssNoComments(globals);
-  const start = clean.search(/\.an-[A-Za-z]/);
+  const start = findOutsideComments(globals, /\.an-[A-Za-z]/);
   if (start < 0) return '';
-  const tail = clean.slice(start);
-  const nextFacade = tail.search(/\.mr-[A-Za-z]/);
-  return nextFacade >= 0 ? tail.slice(0, nextFacade) : tail;
+  const rest = globals.slice(start);
+  const nextSection = rest.search(/\/\*\s*─+\s*§FE-\d+/);
+  return cssNoComments(nextSection >= 0 ? rest.slice(0, nextSection) : rest);
 })();
 
 const anRuleLines = anRules(globals).join('\n');

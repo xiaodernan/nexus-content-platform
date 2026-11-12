@@ -32,9 +32,19 @@ function notifClassesDefined(css: string): Set<string> {
   return out;
 }
 
+/** raw 文本里找首个 `re` 匹配，跳过注释（注释里长得像门面类的 `.notif-` 不是段起点）。 */
+function findOutsideComments(css: string, re: RegExp): number {
+  const comments = [...css.matchAll(/\/\*[\s\S]*?\*\//g)].map((m) => [m.index!, m.index! + m[0].length] as const);
+  const global = new RegExp(re.source, 'g');
+  for (let m = global.exec(css); m !== null; m = global.exec(css)) {
+    if (!comments.some(([a, b]) => m.index! >= a && m.index! < b)) return m.index!;
+  }
+  return -1;
+}
+
 /** 从 globals.css 抽出 .notif- 段（直到后面的 §FE-15 注释块止；保留注释里提及的字段）。 */
 function notifSegment(css: string): string {
-  const start = css.search(/\.notif-[A-Za-z0-9]/);
+  const start = findOutsideComments(css, /\.notif-[A-Za-z0-9]/);
   if (start < 0) throw new Error('globals.css 找不到 .notif- 段');
   const marker = css.indexOf('/* ── §FE-15', start);
   return marker > start ? css.slice(start, marker) : css.slice(start);

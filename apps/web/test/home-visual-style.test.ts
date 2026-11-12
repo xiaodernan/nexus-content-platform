@@ -46,6 +46,16 @@ const page = readFileSync(PAGE, 'utf8');
 const globals = readFileSync(GLOBALS, 'utf8');
 const tokens = readFileSync(TOKENS, 'utf8');
 
+/** raw 文本里找首个 `re` 匹配，跳过注释（注释里长得像门面类的 `.an-` 不是段起点）。 */
+function findOutsideComments(css: string, re: RegExp): number {
+  const comments = [...css.matchAll(/\/\*[\s\S]*?\*\//g)].map((m) => [m.index!, m.index! + m[0].length] as const);
+  const global = new RegExp(re.source, 'g');
+  for (let m = global.exec(css); m !== null; m = global.exec(css)) {
+    if (!comments.some(([a, b]) => m.index! >= a && m.index! < b)) return m.index!;
+  }
+  return -1;
+}
+
 function cssNoComments(css: string): string {
   return css.replace(/\/\*[\s\S]*?\*\//g, '');
 }
@@ -74,7 +84,7 @@ function definedHpClasses(css: string): Set<string> {
  * 段头注释锚（非前缀枚举）——任何后续插段/改序都不会误吞（FE-16 §CRIT-1 修实范式）。
  */
 const hpSegment = (() => {
-  const start = globals.search(/\.hp-[A-Za-z]/);
+  const start = findOutsideComments(globals, /\.hp-[A-Za-z]/);
   if (start < 0) return '';
   const tail = globals.slice(start);
   const nextSection = tail.search(/\/\*\s*─+\s*§FE-\d+/);

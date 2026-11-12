@@ -36,6 +36,16 @@ const page = readFileSync(PAGE, 'utf8');
 const globals = readFileSync(GLOBALS, 'utf8');
 const tokens = readFileSync(TOKENS, 'utf8');
 
+/** raw 文本里找首个 `re` 匹配，跳过注释（注释里长得像门面类的 `.an-` 不是段起点）。 */
+function findOutsideComments(css: string, re: RegExp): number {
+  const comments = [...css.matchAll(/\/\*[\s\S]*?\*\//g)].map((m) => [m.index!, m.index! + m[0].length] as const);
+  const global = new RegExp(re.source, 'g');
+  for (let m = global.exec(css); m !== null; m = global.exec(css)) {
+    if (!comments.some(([a, b]) => m.index! >= a && m.index! < b)) return m.index!;
+  }
+  return -1;
+}
+
 function cssNoComments(css: string): string {
   return css.replace(/\/\*[\s\S]*?\*\//g, '');
 }
@@ -124,17 +134,13 @@ function mediaBlocks(css: string, query: string): string[] {
   return out;
 }
 
-/** `.ss-` 段完整文本（含多行声明续行），到 layer 顶格闭合 `}` 为止。 */
+/** `.ss-` 段完整文本：`.ss-` 起，到下一个 `/* ── §FE-` 段头止（文件段头接缝，不是 layer 顶格 `}`）。 */
 const ssSegment = (() => {
-  const clean = cssNoComments(globals);
-  const start = clean.search(/\.ss-[A-Za-z]/);
+  const start = findOutsideComments(globals, /\.ss-[A-Za-z]/);
   if (start < 0) return '';
-  const out: string[] = [];
-  for (const line of clean.slice(start).split('\n')) {
-    if (/^}/.test(line)) break;
-    out.push(line);
-  }
-  return out.join('\n');
+  const rest = globals.slice(start);
+  const nextSection = rest.search(/\/\*\s*─+\s*§FE-\d+/);
+  return cssNoComments(nextSection >= 0 ? rest.slice(0, nextSection) : rest);
 })();
 
 /** 把 CSS 切成 `{ selector, decls }` 规则块（含多行声明）。 */
