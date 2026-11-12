@@ -2311,6 +2311,23 @@
   .pp-list { display: flex; flex-direction: column; gap: var(--nexus-space-1); }
   .pp-danger12 { font-size: var(--nexus-font-size-12); color: var(--nexus-color-danger-ink); }
   .pp-hint11 { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+
+  /* ── §FE-76 / ADR-0229 公开分镜页 `storyboard/page.tsx` 原子清零——叠加于 §FE-8 `.ss-*` 之上。 */
+  .ss-narrow { margin-inline: auto; display: flex; max-width: 720px; flex-direction: column; gap: var(--nexus-space-3); padding: 64px var(--nexus-space-6); }
+  .ss-wide880 { margin-inline: auto; display: flex; max-width: 880px; flex-direction: column; gap: var(--nexus-space-4); padding: var(--nexus-space-8) var(--nexus-space-6); }
+  .ss-headerCol { display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+  .ss-titleRow { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--nexus-space-3); }
+  .ss-shotsList { display: flex; flex-direction: column; gap: var(--nexus-space-2); }
+  .ss-list { display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+  .ss-mono11 { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .ss-hint11 { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .ss-body13 { font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-2); }
+  .ss-pre13Ink { white-space: pre-wrap; font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-1); }
+  .ss-pre12Ink { white-space: pre-wrap; font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  .ss-danger12 { font-size: var(--nexus-font-size-12); color: var(--nexus-color-danger-ink); }
+  .ss-h1xi { font-size: var(--nexus-font-size-21); font-weight: 600; }
+  .ss-backInk { font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-2-ink); text-decoration: underline; }
+  .ss-shotPad { padding: var(--nexus-space-3); }
   .pb-mirrorLink { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); text-decoration: underline; }
 
   /* ── §FE-55 / ADR-0207 `MemoryPanel.tsx` `.mm-` 门面化——§48 角色记忆 ──
