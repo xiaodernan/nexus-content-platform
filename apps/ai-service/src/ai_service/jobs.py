@@ -19,6 +19,7 @@ import asyncio
 import json
 import os
 import uuid
+from collections import deque
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Mapping, Protocol
@@ -93,7 +94,8 @@ class MemoryJobStore:
 
     def __init__(self, *, max_jobs: int = 200) -> None:
         self._jobs: dict[str, Job] = {}
-        self._pending: list[str] = []
+        # 队列的取领必须是 O(1)——claim 是 worker 的热路径，list.pop(0) 每次都搬一遍整列
+        self._pending: deque[str] = deque()
         self._lock = asyncio.Lock()
         self._max_jobs = max_jobs
         # 取消标志与作业本体分开存：作业本体各处都会整份写回，
@@ -126,7 +128,7 @@ class MemoryJobStore:
     async def claim(self) -> Job | None:
         async with self._lock:
             while self._pending:
-                candidate = self._jobs.get(self._pending.pop(0))
+                candidate = self._jobs.get(self._pending.popleft())
                 # 队列里的 id 可能指向已被淘汰或被改状态的作业：跳过，不能同时被两个 worker 领走
                 if candidate is not None and candidate.status == "queued":
                     candidate.status = "running"
