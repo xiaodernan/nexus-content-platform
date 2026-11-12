@@ -445,6 +445,12 @@ export const ROSTER = [
     run: 'node docs/evidence/ds/single-map-ab.mjs',
     why: 'v672 same-process interleaved A/B harness for the double-Map to single-Map TtlLru swap (ADR 0105), nine interleaved rounds, verdict = direction of the p50 ratio. It is the only instrument the v672 verdict in docs/PERFORMANCE.md trusts because host noise faked a 7x speedup; a human-run measurement, never a per-commit gate',
   },
+  {
+    file: 'docs/evidence/ds/single-bucket-ab.mjs',
+    class: 'tool',
+    run: 'node docs/evidence/ds/single-bucket-ab.mjs',
+    why: 'v675 / ADR 0108 same-process interleaved A/B harness for the rateLimitMemory single-bucket sliding-window; jittered 24300-cell parity first, then interleaved rounds (p50 median). Human-run measurement script for the memory-side O(limit) -> amortized O(1) claim, never a per-commit gate',
+  },
   // v531 — the three Studio lane proofs that were DEFERRED here are now derivable ROWS: `verify:build-lane`,
   // `verify:container-lane` and `verify:deploy-lane` exist in package.json and the workflow pre-pulls
   // `node:22-alpine`, which was the blocker all three named. Their entries are deleted, not reworded: a

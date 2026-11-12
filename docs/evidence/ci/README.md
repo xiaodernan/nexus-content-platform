@@ -541,7 +541,7 @@ people.
 
 Deriving the population has a limit listing does not have to admit: a module under `docs/evidence` that was
 never turned into a `verify:*` script stays invisible to the build. Amendments 516–519 closed that half:
-the census below gives every one of the **134** tracked modules a disposition, and the derived population is
+the census below gives every one of the **135** tracked modules a disposition, and the derived population is
 **119 running rows + 0 excluded by name** at this ref (the v645 exclusion is retired — the spring-cloud
 proof establishes its own scratch pgvector source container on the hosted plane — and the residue this
 sentence once carried is now zero). v532 triaged the
@@ -568,7 +568,7 @@ Every tracked module under `docs/evidence` now has a disposition, and the build 
 | ROW | **119** (119 run + 0 excluded) | a `verify:*` script whose whole command is one `node` call into `docs/evidence` — proof-set's own `PROOF_COMMAND`, imported, never retyped |
 | HELPER | **5** | import closure from every `verify:*` node target and every declared tool, through `sweep.relativeSpecs` (code position only): `agents/sweep.mjs`, `lib/syncproc.mjs`, `m9/wire-fields.mjs`, `ci/arms-receipt.mjs`, `m9/plane-bound-claims.mjs` (added 2026-11-10 — the import closure of the two repaired m9 proofs; committed in 9ab2371) |
 | SWEPT | **3** | the agents sweep's own population, read by CALLING `sweep.trackedProofs('HEAD')` — at this ref `cwd-axis` and `tree-axis`, the tree-motion witnesses, which stay there by measurement (their verdict is about whether the walked tree moved during the run), plus `agents/record-repair-proof.mjs`, which the sweep runs and no `verify:*` script claims |
-| TOOL | **7** | declared in the proof's `ROSTER` with a reason and a command a reader can re-run (two mutation probes, one plane-arms script, the isolated-build arms, the SVG generator, plus the two DS arms: `complexity-arms.mjs` and `single-map-ab.mjs`) |
+| TOOL | **8** | declared in the proof's `ROSTER` with a reason and a command a reader can re-run (two mutation probes, one plane-arms script, the isolated-build arms, the SVG generator, plus the three DS arms: `complexity-arms.mjs`, `single-map-ab.mjs` and `single-bucket-ab.mjs`) |
 | DEFERRED | **0** | none at this ref — the three Studio lane proofs v530 deferred are ROWS since v531 (the workflow pre-pulls `node:22-alpine`, their one blocker). The class and its refusals stay for the next proof a sandbox really blocks |
 
 Anything else is `UNCLASSIFIED` and exits 1 naming the file. Stale records are refused too: a roster entry the
@@ -1016,3 +1016,24 @@ can only run what the commit owns.
 - Measured exits at this ref: `verify:evidence-census` **exit 0** (`134 tracked modules close as 119 row
   + 5 helper + 3 swept + 7 tool + 0 deferred . 0 unclassified . rows 119+0 . arms 132/132 MATCHED`),
   `verify:record-encoding` **exit 0**, `verify:arms-freshness` unchanged.
+### 2026-11-12 -- the v675 catch-up: 134 -> 135 tracked modules (the third DS arm entered the census undecided) -- TOOL 7 -> 8
+
+- The module is `docs/evidence/ds/single-bucket-ab.mjs` (`e39a26d`, v675, ADR 0108): the same-process
+  interleaved A/B harness behind the MemoryRateLimiter single-bucket sliding-window verdict. It is the
+  memory-side sibling of `single-map-ab.mjs`. Neither a `verify:*` row (the battery cannot widen)
+  nor imported by any derived row, and not a `-proof.mjs` (the sweep does not claim it) -- the pre-fix
+  census reads it as `UNCLASSIFIED`, and the hosted Studio CI says so out loud:
+  `the README says 134 tracked modules; this census read 135 from the index` (both branches, both red).
+- What moved: `every one of the **135**`; the disposition table's `| TOOL | **8** |` row now names the
+  three DS arms; the proof's `ROSTER` gains the third `class: 'tool'` entry with a falsifiable reason.
+  Nothing else moved: ROW stays **119** (119 run + 0 excluded), HELPER stays **5**, SWEPT stays **3**,
+  DEFERRED stays **0** (119 + 5 + 3 + 8 + 0 = 135). Arms stay **132**.
+- This entry is a recount, not an increment: no arms, ceiling, gate, workflow or arm moved.
+- Hosted Studio CI for `e39a26d` on both branches is FAILURE with exactly this clause as the singleton
+  red (118/119 green of a derived population of 119, residue named: 0). The recount in this ref is the
+  repair; the runner's verdict on this ref is the proof that the clause did its job.
+- Honest note on the neighbours this ref does NOT fix: `beb15de`@master is ALSO red, but on a different,
+  self-describing clause -- `psql failed: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432"
+  failed: FATAL:  the database system is starting up` (container still starting when the proof probed);
+  the same ref @main is green. That is a hosted-runner service-ordering flake, not a byte problem, and it
+  is recorded as such here rather than papered over.
