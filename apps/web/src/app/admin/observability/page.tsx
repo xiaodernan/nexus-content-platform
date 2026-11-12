@@ -20,17 +20,17 @@ export default async function AdminObservabilityPage() {
   const user = await currentUserOrNull();
   if (!user) {
     return (
-      <main className="mx-auto max-w-[860px] px-6 py-16" data-admin-denied="anonymous">
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">观测</h1>
-        <p className="mt-2 text-13 text-fg-2">需要先登录才能看。</p>
+      <main className="adm-denied" data-admin-denied="anonymous">
+        <h1 className="adm-deniedTitle">观测</h1>
+        <p className="adm-deniedText">需要先登录才能看。</p>
       </main>
     );
   }
   if (user.role !== 'admin') {
     return (
-      <main className="mx-auto max-w-[860px] px-6 py-16" data-admin-denied="not-admin">
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">观测</h1>
-        <p className="mt-2 text-13 text-fg-2">
+      <main className="adm-denied" data-admin-denied="not-admin">
+        <h1 className="adm-deniedTitle">观测</h1>
+        <p className="adm-deniedText">
           这个页面对 {user.displayName}（role={user.role}）不开放：观测只对 role=admin 可见。
         </p>
       </main>
@@ -41,42 +41,42 @@ export default async function AdminObservabilityPage() {
   const ledger = await readLedger(24);
 
   return (
-    <main className="mx-auto flex max-w-[1080px] flex-col gap-5 px-6 py-10" data-observability-root>
-      <header className="flex flex-wrap items-baseline justify-between gap-3">
+    <main className="am-shellGapXl" data-observability-root>
+      <header className="adm-headBaseline">
         <div>
-          <h1 className="text-[var(--nexus-font-size-21)] font-semibold">观测</h1>
-          <p className="text-11 text-fg-3" data-observability-scope>
+          <h1 className="adm-deniedTitle">观测</h1>
+          <p className="adm-capNote" data-observability-scope>
             进程 {process.pid} · 本实例已运行 {Math.round(process.uptime())} 秒 · Node {process.version}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <div className="am-headRowTight">
           <AdminNav current="observability" />
-          <Link href="/api/admin/metrics?format=text" className="inline-flex min-h-6 items-center rounded px-1 text-11 text-accent-2-ink underline" data-observability-raw>
+          <Link href="/api/admin/metrics?format=text" className="am-linkImplicit" data-observability-raw>
             原始读数（Prometheus 文本）
           </Link>
         </div>
       </header>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-13 font-semibold" data-metric-heading="process">
+      <section className="am-audit">
+        <h2 className="am-sectionHeadSm" data-metric-heading="process">
           进程内计数器（本实例、本次启动；重启清零）
         </h2>
         {metrics.length === 0 ? (
-          <p className="text-11 text-fg-3" data-metric-empty>
+          <p className="adm-capNote" data-metric-empty>
             这个实例从启动到现在没记到任何一次判定。这不等于平台上什么都没发生——服务刚重启过就是这样，
             跨重启的事实看下面那张库里的账。
           </p>
         ) : (
           // 第五十一片：与审计表同一形状——横滚区没有 tabindex（axe: scrollable-region-focusable）
           <div
-            className="overflow-x-auto"
+            className="tl-tableScroll"
             data-metric-table-scroll
             role="region"
             aria-label="进程内计数器表（可横向滚动）"
             tabIndex={0}
           >
-          <table className="w-full min-w-[520px] text-11">
-            <thead className="text-left text-fg-3">
+          <table className="am-tableNarrow">
+            <thead className="tl-thRow">
               <tr>
                 <th>指标</th>
                 <th>标签</th>
@@ -90,17 +90,17 @@ export default async function AdminObservabilityPage() {
                 metric.kind === 'counter'
                   ? metric.series.map((s) => (
                       <tr key={`${metric.name}|${JSON.stringify(s.labels)}`} data-metric-row={metric.name}>
-                        <td className="font-mono">{metric.name}</td>
-                        <td className="font-mono text-fg-3">{Object.entries(s.labels).map(([k, v]) => `${k}=${v}`).join(' ') || '—'}</td>
+                        <td className="am-monoCell">{metric.name}</td>
+                        <td className="am-monoMuted">{Object.entries(s.labels).map(([k, v]) => `${k}=${v}`).join(' ') || '—'}</td>
                         <td>{s.value}</td>
-                        <td className="text-fg-3">—</td>
-                        <td className="text-fg-3">—</td>
+                        <td className="am-note">—</td>
+                        <td className="am-note">—</td>
                       </tr>
                     ))
                   : metric.series.map((s) => (
                       <tr key={`${metric.name}|${JSON.stringify(s.labels)}`} data-metric-row={metric.name}>
-                        <td className="font-mono">{metric.name}</td>
-                        <td className="font-mono text-fg-3">{Object.entries(s.labels).map(([k, v]) => `${k}=${v}`).join(' ') || '—'}</td>
+                        <td className="am-monoCell">{metric.name}</td>
+                        <td className="am-monoMuted">{Object.entries(s.labels).map(([k, v]) => `${k}=${v}`).join(' ') || '—'}</td>
                         <td>{s.count}</td>
                         <td>{s.sum.toFixed(0)} ms</td>
                         <td>{s.count ? `${(s.sum / s.count).toFixed(0)} ms` : '—'}</td>
@@ -113,11 +113,11 @@ export default async function AdminObservabilityPage() {
         )}
       </section>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-13 font-semibold" data-ledger-section>
+      <section className="am-audit">
+        <h2 className="am-sectionHeadSm" data-ledger-section>
           库里的账（最近 {ledger.windowHours} 小时，跨重启与实例）
         </h2>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="am-ledgerGrid">
           <LedgerTable
             title="审计决定"
             head={['动作', '结果', '条数']}
@@ -144,18 +144,18 @@ export default async function AdminObservabilityPage() {
 
 function LedgerTable(props: { title: string; head: string[]; rows: string[][]; marker: string }) {
   return (
-    <div className="flex flex-col gap-1">
-      <h3 className="text-11 font-semibold text-fg-2" data-ledger-heading={props.marker}>
+    <div className="am-stack">
+      <h3 className="am-ledgerTitle" data-ledger-heading={props.marker}>
         {props.title}
       </h3>
       {props.rows.length === 0 ? (
-        <p className="text-11 text-fg-3" data-ledger-empty={props.marker}>
+        <p className="adm-capNote" data-ledger-empty={props.marker}>
           这个窗口里没有行。
         </p>
       ) : (
-        <div className="overflow-x-auto">
-        <table className="w-full text-11">
-          <thead className="text-left text-fg-3">
+        <div className="tl-tableScroll">
+        <table className="tl-table">
+          <thead className="tl-thRow">
             <tr>
               {props.head.map((h) => (
                 <th key={h}>{h}</th>
@@ -166,7 +166,7 @@ function LedgerTable(props: { title: string; head: string[]; rows: string[][]; m
             {props.rows.map((row, i) => (
               <tr key={`${props.marker}-${i}`} data-ledger-row={props.marker}>
                 {row.map((cell, j) => (
-                  <td key={j} className={j === 0 ? 'font-mono' : undefined}>
+                  <td key={j} className={j === 0 ? 'am-monoCell' : undefined}>
                     {cell}
                   </td>
                 ))}

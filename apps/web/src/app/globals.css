@@ -1509,6 +1509,13 @@
   .am-strongText { color: var(--nexus-color-fg-1); }
   .am-linkImplicit { display: inline-flex; min-height: 1.5rem; align-items: center; border-radius: 2px; padding-inline: var(--nexus-space-1); color: inherit; text-decoration: underline; text-underline-offset: 0.15em; }
   .am-linkImplicit:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .am-shellGapXl { margin-inline: auto; max-width: 67.5rem; padding: var(--nexus-space-10) var(--nexus-space-6); display: flex; flex-direction: column; gap: var(--nexus-space-5); }
+  .am-tableNarrow { width: 100%; min-width: 32.5rem; font-size: var(--nexus-font-size-11); }
+  .am-monoMuted { font-family: var(--nexus-font-mono); color: var(--nexus-color-fg-3); }
+  .am-ledgerTitle { font-size: var(--nexus-font-size-11); font-weight: 600; color: var(--nexus-color-fg-2); }
+  .am-ledgerGrid { display: grid; gap: var(--nexus-space-4); grid-template-columns: 1fr; }
+  @media (min-width: 48rem) { .am-ledgerGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .am-headRowTight { display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--nexus-space-3); row-gap: var(--nexus-space-1); }
   .gw-ident { font-family: var(--nexus-font-mono); font-variant-numeric: tabular-nums; color: var(--nexus-color-fg-1); }
   .gw-ident2 { font-family: var(--nexus-font-mono); font-variant-numeric: tabular-nums; color: var(--nexus-color-fg-2); }
 
