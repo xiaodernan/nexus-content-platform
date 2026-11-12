@@ -19,7 +19,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const total = result.groups.reduce((n, g) => n + g.hits.length, 0);
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-[820px] flex-col gap-6 px-6 py-10" data-search-root>
+    <main className="se-pageRoot" data-search-root>
       <header className="se-header">
         <h1 className="se-title">全平台搜索</h1>
         <span className="se-scopeLine">{result.signedIn ? '九类目标 · 内容组只覆盖你自己的项目' : '未登录：只搜公开项目与公开主页'}</span>
@@ -28,7 +28,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
       {/* §165：建议来自真实命中（同一份可见性判定），历史只存在这台设备上。
           没有 JS 时仍是原生 GET 表单——建议与历史是增强，不是唯一入口。 */}
       <SearchBox initialQuery={q} />
-      <p className="-mt-3 text-11 text-fg-3" data-search-suggest-note>
+      <p className="se-suggestNote" data-search-suggest-note>
         键入两个字符起给出建议——建议就是真实命中，点开即到；最近搜索只存在这台设备上，可逐条删或清空。
       </p>
 
@@ -44,7 +44,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             : '登录后还会搜你自己的世界、游戏、角色、设计稿、组件与资产。'}
         </p>
       ) : (
-        <div className="flex flex-col gap-6" data-search-results>
+        <div className="se-results" data-search-results>
           <p className="se-method" data-search-method>
             {SEARCH_ORDER_METHOD}
           </p>
@@ -60,7 +60,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                     </span>
                   ) : null}
                 </h2>
-                <ul className="grid gap-2">
+                <ul className="se-hitGrid">
                   {group.hits.map((hit) => (
                     <li key={hit.id}>
                       <a href={hit.href} className="se-hit" data-search-hit={hit.id}>
