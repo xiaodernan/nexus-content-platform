@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { currentUserOrNull } from '@/server/domain/session';
 import { readLedger } from '@/server/domain/metrics';
 import { snapshot } from '@/server/observability';
+import { getAiCapabilities } from '@/lib/env';
 import { AdminNav } from '@/components/AdminNav';
 
 export const dynamic = 'force-dynamic';
@@ -39,6 +40,7 @@ export default async function AdminObservabilityPage() {
 
   const metrics = snapshot();
   const ledger = await readLedger(24);
+  const aiReadiness = await getAiCapabilities();
 
   return (
     <main className="mx-auto flex max-w-[1080px] flex-col gap-5 px-6 py-10" data-observability-root>
@@ -56,6 +58,28 @@ export default async function AdminObservabilityPage() {
           </Link>
         </div>
       </header>
+
+      <section className="flex flex-col gap-2" data-ai-readiness-section>
+        <h2 className="text-13 font-semibold" data-ai-readiness-heading>
+          AI 就绪 · 这次渲染问 /healthz 的回答
+        </h2>
+        <div className="rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-subtle)] bg-bg-1 p-4" data-ai-readiness-card>
+          <dl className="grid grid-cols-2 gap-y-2 gap-x-4 text-12">
+            <dt className="text-fg-3">text path</dt>
+            <dd data-ai-readiness-text={aiReadiness.text}>{aiReadiness.text}</dd>
+            <dt className="text-fg-3">image path</dt>
+            <dd data-ai-readiness-image={aiReadiness.image}>{aiReadiness.image}</dd>
+            <dt className="text-fg-3">video path</dt>
+            <dd data-ai-readiness-video={aiReadiness.video}>{aiReadiness.video}</dd>
+            <dt className="text-fg-3"> live capability</dt>
+            <dd data-ai-readiness-live={aiReadiness.live ? 'true' : 'false'}>{aiReadiness.live ? 'real' : 'not real'}</dd>
+          </dl>
+          <p className="mt-2 text-11 text-fg-3">
+            Every render asks /healthz fresh; capabilities are not guesses, not caches, and not "live" for any model that is not actually wired today.
+            DEMO means no real provider for that class yet; blank means not filled, we say so plainly (no silent DEMO labels). Image and video have no real provider yet either &mdash; they read DEMO for now. A class only reads 'real' when ai-service itself reports it as 'real' &mdash; never more optimistic than the ai-service knows.
+          </p>
+        </div>
+      </section>
 
       <section className="flex flex-col gap-2">
         <h2 className="text-13 font-semibold" data-metric-heading="process">
