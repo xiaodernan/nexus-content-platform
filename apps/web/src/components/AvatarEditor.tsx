@@ -69,24 +69,24 @@ export function AvatarEditor({ initialUrl }: { initialUrl: string | null }) {
   };
 
   return (
-    <div className="flex items-start gap-[var(--nexus-space-3)]" data-avatar-editor>
+    <div className="ae-root" data-avatar-editor>
       {shown ? (
         <img
           src={shown}
           alt=""
-          className="h-12 w-12 rounded-full border border-[var(--nexus-color-border-subtle)] object-cover"
+          className="ae-img"
           data-avatar-url={shown}
         />
       ) : (
         <span
-          className="flex h-12 w-12 items-center justify-center rounded-full bg-bg-2 font-mono text-11 text-fg-3"
+          className="ae-fallback"
           data-avatar-none
         >
           无
         </span>
       )}
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="ae-col">
+        <div className="ae-row">
           <input
             ref={inputRef}
             type="file"
@@ -97,7 +97,7 @@ export function AvatarEditor({ initialUrl }: { initialUrl: string | null }) {
               const file = e.target.files?.[0];
               if (file) void upload(file);
             }}
-            className="text-12 text-fg-2 file:mr-2 file:rounded-[var(--nexus-radius-sm)] file:border-0 file:bg-bg-2 file:px-2 file:py-1 file:text-12"
+            className="ae-file"
             data-avatar-file
           />
           {shown ? (
@@ -105,23 +105,23 @@ export function AvatarEditor({ initialUrl }: { initialUrl: string | null }) {
               type="button"
               disabled={pending}
               onClick={() => void remove()}
-              className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11 text-fg-2 hover:bg-bg-2 disabled:opacity-40"
+              className="ae-btn"
               data-avatar-remove
             >
               摘掉头像
             </button>
           ) : null}
         </div>
-        <p className="text-11 text-fg-3" data-avatar-hint>
+        <p className="ae-hint" data-avatar-hint>
           只收 PNG / JPEG / WebP / GIF，按文件头判定；扩展名和浏览器说的类型不算依据。
         </p>
         {meta.length ? (
-          <p className="text-11 text-fg-2" data-avatar-meta={meta.join(',')}>
+          <p className="ae-note" data-avatar-meta={meta.join(',')}>
             上传时已剥离元数据段：{meta.join('、')}
           </p>
         ) : null}
         {notice ? (
-          <p className="text-11 text-fg-2" data-avatar-notice>
+          <p className="ae-note" data-avatar-notice>
             {notice}
           </p>
         ) : null}

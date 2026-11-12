@@ -2387,6 +2387,21 @@
   .tt-fab:hover { color: var(--nexus-color-fg-1); }
   .tt-fab:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
 
+  /* ── §FE-86 / ADR-0239 `AvatarEditor.tsx` `.ae-` 门面化——§60 头像上传 ──
+   * "剥掉了哪些元数据段"必须显示——EXIF 的 GPS/机型不该裸奔；摘掉回到 null 首字母，不造默认图。 */
+  .ae-root { display: flex; align-items: flex-start; gap: var(--nexus-space-3); }
+  .ae-img { height: 3rem; width: 3rem; border-radius: 9999px; border: 1px solid var(--nexus-color-border-subtle); object-fit: cover; }
+  .ae-fallback { display: flex; height: 3rem; width: 3rem; align-items: center; justify-content: center; border-radius: 9999px; background: var(--nexus-color-bg-2); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .ae-col { display: flex; flex-direction: column; gap: var(--nexus-space-2); }
+  .ae-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-2); }
+  .ae-file { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  .ae-file::file-selector-button { margin-right: var(--nexus-space-2); border-radius: var(--nexus-radius-sm); border: none; background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); cursor: pointer; }
+  .ae-btn { border-radius: var(--nexus-radius-sm); border: 1px solid var(--nexus-color-border-strong); background: transparent; padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); cursor: pointer; }
+  .ae-btn:hover { background: var(--nexus-color-bg-2); }
+  .ae-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .ae-hint { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .ae-note { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); }
+
   /* ── §FE-81 / ADR-0234 `FollowButton.tsx` `.fw-` 门面化——§60 关注按钮 ──
    * 只发请求并显示真实回话；csrfHeaders/error 路径一字不动。 */
   .fw-wrap { display: inline-flex; align-items: center; gap: var(--nexus-space-2); }
