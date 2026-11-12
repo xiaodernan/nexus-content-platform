@@ -11735,3 +11735,20 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   DB 平面的行为腿夹具已设计好写在 ADR-0094 里（造 `CAP+1` 条，第 200 位给 3 个赞、第 201 位给 10 个赞，
   断言头一张是第 200 位且第 201 位不出现）——**两个方向都能红**；只造"最老那条分最高"的夹具抓不住上限变小。
   ② `TRENDING_CANDIDATE_CAP` 仍是硬编码，§61 那一节早就写明"平台大了要换成分桶预聚合而不是抬高这个数"，本片没动那个架构判断。
+
+## v686 — 跨实例共享 LLM completion 缓存（ADR 0119）（2026-11-13）
+- **做了**：`RedisLlmCompletionCache`（`apps/ai-service/src/ai_service/redis_completion_cache.py`）：
+  v680 的进程内 `(model, system, user) → Completion` 缓存只有单实例收益；本片做成跨进程共享的
+  Redis 后端组件。键 = `nexus:llmc:e:{sha256(model \0 system \0 user)}`，LRU 索引独立一个 zset
+  （score=epoch ms），entry TTL 由 `SET EX` 权威实现、重启副本漂移不影响过期语义；store 顺手
+  摊销修剪（过期成员数 k，非缓存总条数）；get/store 均为 O(1) 定点 Redis 命令，不 KEYS/SCAN；
+  不写 Lua（双真值会漂移，v683 同款纪律）；计网竞态是"多删/少删一条最旧 entry"的良性缓存级竞态。
+- **一切 Redis 故障 fail-open**：get 一律回 None（miss）、store 吞掉（stores_failed）；缓存是
+  加速器不是门，provider 调用不因缓存层不可用而失败；`stats()` 如实标注 shared/degraded；
+  毒条目（bad JSON / v≠1 / bool 冒充 int / 类型不符）→ miss + corruptions + 顺手 DEL 自愈。
+- **零生产接线**（v680/v683 同款纪律）：把 CachedLlm 换 Redis 后端是契约级语义决策
+  （命中是否进 usage 账等），语义未定不定门、不接线（ADR 0113 仍欠同一条门）。
+- **验证（2026-11-13 本机实测）**：20 新门（假 Redis 真值腿 + 4 判据臂）全绿；全套
+  232 passed / 12 skipped；`NEXUS_LIVE_LLM=1` 真 wkapi.pro / gpt-6-sol +
+  `NEXUS_LLMC_REDIS_LIVE=1 NEXUS_LLMC_REDIS_URL=redis://localhost:56379/7` 真 Redis 两独立
+  client（两"进程"）字节往返 15 条 live 腿全绿；record-encoding exit 0；evidence-census 135 零漂移。

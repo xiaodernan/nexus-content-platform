@@ -1853,3 +1853,55 @@ Local-evidence of truths: verify:spring-cloud, nexus-api 951/951 green, domain 3
 Honest remainder: NO Pixel pass claimed (browser disconnected the whole session - only HTML probes). NO host Studio battery assembly fixes; the three RED batteries belong the hosted plane, not this wire.
 
 Final position: cont. 58 GREEN doc(state), cont. 59 docs(state) lands as marker GREEN, cont. 60 faithfully landed as docs(state) landing reflecting the actual host battery civil - master RED because hosted plane failed to start pgvector. Main remains success on both.
+## cont. 62 (2026-11-13 (session started 2026-11-12 late evening)) - main-line.yml hosted fix pushed (e97007f); v686 cross-instance LLM completion cache landed locally
+
+Two items this turn, both honest:
+
+1) .github/workflows/main-line.yml (fix(ci), e97007f):
+   The hosted "gates" job bound the same pgvector service to BOTH 55433 and 55100.
+   The runner already claims 55100 (the cont. 60/61 test-failure family: failed to
+   bind host port 0.0.0.0:55100/tcp: address already in use, container never came up,
+   evals could not talk to Postgres). Fix: bind 55433 only and point both
+   NEXUS_DATABASE_URL refs at 55433, the code default (apps/web/src/server/db/client.ts).
+   55100 is not referenced anywhere under apps/, evals/, scripts/ or .github/; it is a
+   dev-machine integration-test alias only. Pushed master+main at e97007f; batteries
+   for e97007f were in_progress at the time of this ledger entry and their verdicts are
+   NOT claimed here.
+
+2) v686 - cross-instance shared LLM completion cache (ADR 0119) lands locally on master:
+   - apps/ai-service/src/ai_service/redis_completion_cache.py (RedisLlmCompletionCache):
+     key = nexus:llmc:e:{sha256(model\\0system\\0user)}, LRU index = zset nexus:llmc:lru
+     (score = epoch ms), entry TTL owned by Redis SET EX (survives restarts/replicas),
+     amortized O(k) pruning of expired members on store / __len__, get/store stay O(1)
+     constant Redis commands, no KEYS/SCAN, no Lua (single Python truth, ADR 0116),
+     benign cache-level race documented.
+   - All Redis faults fail open: get -> None (miss), store swallowed (stores_failed);
+     the cache is an accelerator, never a door that can fail a provider call.
+     Corrupt payloads (bad JSON / v != 1 / bool-as-int / type mismatch) -> miss +
+     corruptions count + best-effort self-heal DEL.
+   - Zero production wiring (v680/v683 discipline): wiring CachedLlm to the Redis
+     backend is a contract-level semantic decision, seams deliberately unjudged.
+   - Verified locally on this host: 20 new gates green (fake-redis truth legs +
+     judge/arm pairs); full ai-service suite 232 passed / 12 skipped;
+     with NEXUS_LIVE_LLM=1 (wkapi.pro / gpt-6-sol) and
+     NEXUS_LLMC_REDIS_LIVE=1 NEXUS_LLMC_REDIS_URL=redis://localhost:56379/7 (DB7),
+     15 live legs green including two-independent-clients byte round-trip and
+     real Redis TTL expiry.
+   - record-encoding exit 0 (2264 graded files, 0 chargeable); evidence-census 135
+     modules zero drift; arms-freshness untouched (no verify:* script was added on
+     purpose - the hosted battery gains no Redis dependency).
+   - ADR 0119 still-owes: production wiring (v680/ADR 0113 gate), cross-process
+     single-flight, zset/entry strong consistency, payload v2 evolution,
+     Studio proofs battery row deliberately absent.
+
+Still not claimed: zero pixel verification (browser disconnected all session);
+Studio CI verdicts for c8f06cd / 399418a / 2bbf844 / 597ecf4 / e97007f at ledger time
+in flight or red-per-cont.61; no v685/v686 wiring to production call chain.
+Other lane's working-tree edits (ai-service jobs.py / test_jobs.py / config.py /
+openai_compatible.py / registry.py / test_provider_retry.py family) were not staged,
+edited, or committed by this lane.
+
+Older honest remainder: the hosted Studio proofs battery singleton family
+(spring-cloud-proof pgvector teardown / traffic-proof socket) reddened three refs
+tonight (c1e93c2, e189c42, 399418a) on an identical clause; main-line stayed green on
+all three. This turn contributed no bytes to those proof gates.
