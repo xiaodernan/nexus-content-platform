@@ -13,14 +13,25 @@ import { describe, expect, it } from 'vitest';
 const ROOT = process.cwd();
 const PAGE = join(ROOT, 'apps/web/src/app/admin/page.tsx');
 const NAV = join(ROOT, 'apps/web/src/components/AdminNav.tsx');
+const GLOBALS = join(ROOT, 'apps/web/src/app/globals.css');
 const TOKENS = join(ROOT, 'apps/web/src/styles/tokens.css');
 
 const page = readFileSync(PAGE, 'utf8');
 const nav = readFileSync(NAV, 'utf8');
+const globals = readFileSync(GLOBALS, 'utf8');
 const tokens = readFileSync(TOKENS, 'utf8');
 
 /** 去注释后的真代码——所有语义门锚它（ADR-0154 纪律），注释里的示例不算数。 */
 const code = page.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+/** `.adm-` 视觉段：`.adm-denied {` 起，到下一个 §FE 段头止（`.adm-` 注释含段头）。 */
+const admSegment = ((): string => {
+  const start = globals.indexOf('.adm-denied {');
+  if (start < 0) throw new Error('globals.css 找不到 .adm- 段');
+  const rest = globals.slice(start);
+  const m = rest.search(/\/\* ── §/);
+  return (m > 0 ? rest.slice(0, m) : rest).replace(/\/\*[\s\S]*?\*\//g, '');
+})();
 
 describe('§A11Y-4 admin home', () => {
   it('是纯导航 server component：零 client 指令、零 fetch、零 mutation、零表单', () => {
@@ -73,7 +84,9 @@ describe('§A11Y-4 admin home', () => {
 
   it('零写死颜色：没有 hex 字面量，每个 var(--nexus-*) 都在 tokens.css 声明过', () => {
     expect(code).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
-    const used = [...new Set([...code.matchAll(/var\((--nexus-[a-z0-9-]+)\)/g)].map((m) => m[1]))];
+    expect(admSegment).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+    // §FE-26 后皮线在 .adm- 段：段里的 var(--nexus-*) 也必须每个都在 tokens.css 声明过
+    const used = [...new Set([...admSegment.matchAll(/var\((--nexus-[a-z0-9-]+)\)/g)].map((m) => m[1]))];
     expect(used.length).toBeGreaterThan(0);
     for (const token of used) {
       expect(tokens, `tokens.css 没有声明 ${token}`).toContain(token);
@@ -83,16 +96,17 @@ describe('§A11Y-4 admin home', () => {
   it('动效收口：transition 只用 --nexus-motion-fast，没有 animation/帧循环', () => {
     expect(code).not.toContain('transition-all');
     expect(code).not.toContain('animation');
-    const transitions = (code.match(/transition-colors/g) ?? []).length;
-    const motion = (code.match(/--nexus-motion-fast/g) ?? []).length;
+    expect(admSegment).not.toContain('animation');
+    expect(admSegment).not.toMatch(/transition:[^;}]*\d+(ms|s)\b/);
+    const transitions = (admSegment.match(/transition:/g) ?? []).length;
+    const motion = (admSegment.match(/--nexus-motion-fast/g) ?? []).length;
     expect(transitions).toBeGreaterThan(0);
     expect(motion).toBeGreaterThanOrEqual(transitions);
   });
 
   it('键盘可达：每张卡都可 focus 并带可见 focus-visible 环（不是只有 hover）', () => {
-    expect(code).toContain('focus-visible:outline-none');
-    expect(code).toContain('focus-visible:ring-2');
-    expect(code).toContain('focus-visible:ring-[var(--nexus-color-accent-2-ink)]');
+    expect(admSegment).toMatch(/\.adm-card:focus-visible\s*{[^}]*outline: 2px solid var\(--nexus-color-accent-2-ink\)/);
+    expect(admSegment).toContain('.adm-navItem:focus-visible');
   });
 
   it('面向用户的字符串诚实：十张卡的一句话都不画饼、不虚构百分比、不含 TODO/占位', () => {
