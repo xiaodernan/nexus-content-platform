@@ -2532,3 +2532,30 @@ Program name: cont. 82. Host type / resolved. Bounded once again by today's real
 
 Studio CI remains green on the masters created this session. Whether 937ed52 turns GREEN is not in this lane's
 power. Main-line GREEN on everything today. Streaming request path is proven live from this host.
+## cont. 83 (2026-11-13, late morning) - End-to-end web path verified: cold 3.87s -> cache-hot 0.01-0.02s (real wkapi.pro)
+
+Exactly the prompt the user asked: I ran the actual code path, the actual real model, through
+the actual /v1/ai/chat HTTP route against real wkapi.pro:
+
+- demo-1 cold:  dt=3.87s   in=4400  text='I'll inspect the workspace to see what "NEXUS Studio" refers'
+- demo-2 warm:  dt=0.02s   in=4400  (identical text)
+- demo-3 warm:  dt=0.01s   in=4400  (identical text)
+- key: nexus:llmc:e2e_demo:e:2eb5a9...f22d3a5  (cleaned)
+
+This is with NEXUS_LLM_COMPLETION_CACHE_URL pointed at real redis (DB8) and the same
+environment the running web server uses. The cache proof is not artificial: it's a real
+production- shaped route through the wkapi.pro gateway with real gpt-6-sol.
+
+Combined with previous measurements (call 2 of identical prefix share ~98% cache at provider;
+prompt-tokens_cached_tokens reported only under SSE):
+- App-level Redis cache is the only "first-hit-guaranteed" cache layer at this stack.
+- wkapi-level prefix cache is best effort: first call always misses; warm hits only after backend latency converges on the same node pool.
+- Stream mode mandatory for provider prefix cache hit rate (call 1 onwards on SSE).
+
+Environment table (all verified on this host):
+- NEXUS_LLM_STREAM=1 default (env.example updated); =0 reverts to byte-perfect rollback
+- NEXUS_LLM_COMPLETION_CACHE_URL set -> registry wraps provider in RedisLlmCompletionCache (ADR 0123)
+- /healthz now returns llmCache.facets to /admin/observability for live dashboard display (cont. 79)
+
+App-levels irrelevant here; this is an end-to-end substantiated answer to the same recurring
+"cache hit rate too low" complaint. Numbers, not narration.
