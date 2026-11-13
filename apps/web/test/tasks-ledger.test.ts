@@ -123,6 +123,7 @@ describe('§75 用量那一格：0 与"没记"是两件事', () => {
     modelClass: 'balanced',
     tokensIn: 1234,
     tokensOut: 567,
+    cachedTokens: 0,
     latencyMs: 2345,
     costUsd: 0,
     toolCalls: 2,
