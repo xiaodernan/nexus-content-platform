@@ -205,10 +205,31 @@ def test_run_endpoint_accepts_a_real_assembled_request() -> None:
     assert "components/nexus/Home.tsx" in user
 
 
+def _agent_note_of(request: dict) -> str:
+    """Agent 那一句在**载荷**里（`agentNote`），不在 system 里（§CACHE-2）。
+
+    system 是整条提示的第一段，必须逐字节恒定；把每轮会变的名册塞进去，
+    换 Agent 就从第一个字节起失配，provider 的前缀缓存整条作废。
+    """
+    return _user_payload(request)["agentNote"]
+
+
 def _system(request: dict) -> str:
-    """Agent 那一句拼在发给模型的第一段（system）里，不在 JSON 载荷里。"""
     system, _ = build_prompt(request)
     return system
+
+
+def test_system_prompt_is_byte_identical_across_agents_and_turns() -> None:
+    """§CACHE-2：system 必须是一段常量。
+
+    这是前缀缓存的第一段，也是最便宜的一段（≈900 token）。它一旦随请求变化，
+    后面再大的目录都拼不上——旧版把 agent 说明拼在 system 里，换一位 Agent 就全灭。
+    """
+    named = ai_request(agent={"key": "design", "name": "Design Agent", "responsibilities": ["改设计"], "capabilities": ["design.patch"]})
+    other = ai_request(agent={"key": "qa", "name": "QA Agent", "responsibilities": ["只提问题"], "capabilities": ["browser.read"]})
+    unnamed = ai_request()
+    systems = {_system(r) for r in (named, other, unnamed)}
+    assert len(systems) == 1, "system 跨 Agent/跨轮必须字节一致"
 
 
 def test_named_agent_responsibilities_reach_the_model() -> None:
@@ -221,12 +242,14 @@ def test_named_agent_responsibilities_reach_the_model() -> None:
             "capabilities": ["design.read", "design.patch"],
         }
     )
-    system = _system(request)
-    assert "本轮由 Design Agent 负责" in system
-    assert "理解设计系统后再动手" in system and "规划并修改设计模型" in system
-    assert "design.read" in system and "design.patch" in system
+    note = _agent_note_of(request)
+    assert "本轮由 Design Agent 负责" in note
+    assert "理解设计系统后再动手" in note and "规划并修改设计模型" in note
+    assert "design.read" in note and "design.patch" in note
     # 有 design.patch 的一位也要读到同一条规则：作用域是判断的输入，不是给界面看的标签
-    assert "才允许输出会改动设计文档的 op" in system
+    assert "才允许输出会改动设计文档的 op" in note
+    # 名册本身也原样进载荷：模型可以自己核，而不是只信一句转述
+    assert _user_payload(request)["agent"]["key"] == "design"
 
 
 def test_agent_without_the_patch_scope_is_told_to_keep_patches_empty() -> None:
@@ -238,42 +261,47 @@ def test_agent_without_the_patch_scope_is_told_to_keep_patches_empty() -> None:
     request = ai_request(
         agent={"key": "qa", "name": "QA Agent", "responsibilities": ["只提问题，不改设计文档"], "capabilities": ["browser.read", "test.run"]}
     )
-    system = _system(request)
-    assert "本轮由 QA Agent 负责" in system
-    assert "patches 留空" in system
-    assert "design.patch" in system
+    note = _agent_note_of(request)
+    assert "本轮由 QA Agent 负责" in note
+    assert "patches 留空" in note
+    assert "design.patch" in note
     # 权限作用域里不许出现它没有的那一个：把 capabilities 拼错成含 design.patch 就是替它授权
-    assert "design.read" not in system
+    assert "design.read" not in note
 
 
 def test_unnamed_request_invents_no_agent() -> None:
     """没点名时不说"你是设计 Agent"：那等于替请求方挑了一个人，还顺手给了他名册里的权限。"""
-    system = _system(ai_request())
-    assert "本轮没有点名任何 Agent" in system
-    assert "本轮由" not in system
-    assert "职责：" not in system
+    payload = _user_payload(ai_request())
+    note = payload["agentNote"]
+    assert "本轮没有点名任何 Agent" in note
+    assert "本轮由" not in note
+    assert "职责：" not in note
+    assert "agent" not in payload, "没点名就不该凭空造一个 agent 字段"
 
 
 def test_empty_roster_fields_say_they_are_empty() -> None:
     """名册里职责/权限为空：要说"没有写"，不能拼成一句看起来正常的"职责：。权限：无"。"""
     request = ai_request(agent={"key": "ghost", "name": "Ghost Agent", "responsibilities": [], "capabilities": []})
-    system = _system(request)
-    assert "名册里没有写这一位的职责" in system
-    assert "权限作用域：无" in system
+    note = _agent_note_of(request)
+    assert "名册里没有写这一位的职责" in note
+    assert "权限作用域：无" in note
 
 
 def test_a_non_object_agent_is_treated_as_no_agent_at_all() -> None:
     """这一栏可能来自旧客户端或手改的报文：读不出名字就按"没点名"处理，不崩也不猜。"""
     for bad in ("QA Agent", ["QA Agent"], None, {}):
-        system = _system(ai_request(agent=bad))
-        assert "本轮没有点名任何 Agent" in system, f"agent={bad!r} 时给出了 Agent 的说法"
+        note = _agent_note_of(ai_request(agent=bad))
+        assert "本轮没有点名任何 Agent" in note, f"agent={bad!r} 时给出了 Agent 的说法"
 
 
-def test_run_endpoint_puts_the_agent_note_in_front_of_the_model() -> None:
+def test_run_endpoint_delivers_the_agent_note_to_the_model() -> None:
     """整条路（HTTP + 契约校验）走一遍：装配出来的 agent 真的到了 provider 手上。
 
     直接调 build_prompt 的几条测不到这一层——契约那一关要是把 agent 判成非法字段，
     请求在 422 就死了，提示词永远是绿的。
+
+    §CACHE-2 之后名册走载荷（`agent` / `agentNote`）而不是 system：
+    system 必须逐字节恒定，否则前缀缓存从第一段就失配。
     """
     from fastapi.testclient import TestClient
 
@@ -292,8 +320,9 @@ def test_run_endpoint_puts_the_agent_note_in_front_of_the_model() -> None:
     }
     response = client.post("/v1/ai/run", json=request)
     assert response.status_code == 200, response.text
-    system = provider.calls[0]["system"]
-    assert "本轮由 QA Agent 负责" in system
-    assert "检查结果是否满足验收" in system
+    call = provider.calls[0]
+    assert "本轮由 QA Agent 负责" in call["user"]
+    assert "检查结果是否满足验收" in call["user"]
+    assert "QA Agent" not in call["system"], "system 里不许出现本轮 Agent 名——它会毁掉整条前缀"
     # 同一次调用里目录照旧发得出：加这一段不许把项目上下文挤掉
-    assert '"contextSource":"designIndex"' in provider.calls[0]["user"]
+    assert '"contextSource":"designIndex"' in call["user"]

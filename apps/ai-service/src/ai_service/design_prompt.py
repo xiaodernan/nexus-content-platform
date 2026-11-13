@@ -52,6 +52,10 @@ ops 只允许以下形状（字段名与取值必须严格一致）：
    它回答"该动哪个元素"，不是要照抄进设计的文案——"这个按钮太大"是要你改尺寸，不是把这句话写进按钮。
    批注与本轮诉求冲突时以诉求为准，并在 explanation 里说一句冲突在哪；
    `annotationsNote` 说明有哪些批注没带上来（过期节点或超出条数上限），别把没看见当成没有。
+7. 本轮若点名了 Agent，名册在载荷的 `agent` 字段（name / responsibilities / capabilities），
+   同一件事的人话版本在 `agentNote`。只有 capabilities 里含 design.patch 时才允许输出会改动
+   设计文档的 op；没有这个作用域而诉求又要改文档时，patches 留空，并在 explanation 里说明
+   这一位做不了（§73）。`agentNote` 缺席表示本轮没有点名任何 Agent。
 """
 
 
@@ -144,42 +148,22 @@ def build_prompt(request: dict[str, Any]) -> tuple[str, str]:
     document = context.get("document") or {}
     page_id = context.get("pageId") or document.get("activePageId") or ""
 
-    payload: dict[str, Any] = {
-        # 缓存友好序：先放这轮不变的现场（provider 前缀缓存的载体），最后才是诉求——
-        # json.dumps 按插入序输出，诉求挪到尾部后，同项目连续几轮的 prompt 前缀
-        #（SYSTEM_PROMPT + 整份目录摘要）可以在 provider 侧整段命中
-        "modelClass": request.get("modelClass"),
-        "viewport": context.get("viewport"),
-        "pageId": page_id,
-        "selection": context.get("selection") or [],
-        # 服务端派生的一份目录（entries / missing / unreachable / dropped / omissions）；
-        # 空对象只可能来自手写请求，正常装配一定会带上它
-        "selectionDigest": context.get("selectionDigest") or {},
-        # §111：钉在元素上的用户原话，服务端按文档核对过定位
-        "annotations": context.get("annotations") or [],
-        **({"annotationsNote": context["annotationsNote"]} if context.get("annotationsNote") else {}),
-        "recentChanges": context.get("recentChanges") or [],
-    }
-    # §49 × §66-71：这一轮按相关性从项目语料库取回的内容（世界条目、角色、记忆、分镜、
-    # 游戏设计、设计正文）。空列表与"这一轮没查"是两件事，所以 query 一并带上：
-    # query 为 null 就是装配方没给查询词，不能读成"项目里没有相关设定"。
-    corpus = context.get("corpus") or {}
-    payload["corpus"] = corpus
-    if corpus.get("query"):
-        payload["corpusNote"] = (
-            f"corpus.items 是按「{corpus['query']}」从本项目语料库取回的既有设定，每条带出处"
-            f"（sourceType/sourceId/第几块）与命中方式（matchedBy）。与它冲突就是改设定，"
-            f"要在 explanation 里说清楚改了哪一条；"
-            f"{corpus.get('omitted', 0)} 条相关的因预算没带进来（candidates="
-            f"{corpus.get('candidates', 0)}），没带进来不等于项目里没有。"
-        )
+    # ── 前缀缓存序（§CACHE-2，2026-11-13 实测后重排）────────────────────────────
+    # provider 的自动前缀缓存按**字节前缀**命中：两轮请求从第一个不同字节起，后面全部作废。
+    # 所以 payload 必须"先稳定、后易变"，否则再大的目录也进不了缓存：
+    #   ① 稳定块：同项目逐字节不变的大目录（pages/frames/components/assets/interactions/
+    #      tokens/totals）——它占体量 95% 以上，是最值得缓存的部分；
+    #   ② 现场块：每轮会变的 pageId/selection/selectionDigest/annotations/recentChanges/corpus；
+    #   ③ 诉求块：intent/prompt/variants。
+    # 旧序把 selection/selectionDigest 放在目录之前，`scripts/prompt-prefix-audit.py` 实测
+    # 连续两轮前缀复用率只有 0.45%（≈111 字节），等于整份目录从未进过缓存；重排后见同脚本读数。
+    payload: dict[str, Any] = {}
     # 这个进程自己又裁的每一刀，最后一起写进 promptTruncated（§159：短了要说，别默默变短）
     truncations: list[str] = []
 
+    # ── ① 稳定块 ──
     if _has_catalog(index):
         payload["contextSource"] = "designIndex"
-        payload["indexChars"] = context.get("indexChars")
-        payload["budgetChars"] = context.get("budgetChars")
         payload["pages"] = index.get("pages") or []
         payload["frames"] = index.get("frames") or []
         payload["components"] = index.get("components") or []
@@ -197,6 +181,8 @@ def build_prompt(request: dict[str, Any]) -> tuple[str, str]:
         payload["omissions"] = index.get("omissions") or []
         payload["catalogTrimmed"] = index.get("trimmed") or []
         payload["code"] = code or None
+        payload["indexChars"] = context.get("indexChars")
+        payload["budgetChars"] = context.get("budgetChars")
     elif document.get("pages"):
         payload["contextSource"] = "document-fallback"
         payload["note"] = "没有服务端目录，退回到整份文档的节点表；这条路径不该出现在正常请求里"
@@ -207,8 +193,39 @@ def build_prompt(request: dict[str, Any]) -> tuple[str, str]:
         payload["contextSource"] = "none"
         payload["note"] = "既没有目录也没有文档：这一轮模型看不到项目内容，只能按诉求文字回答（应当说明做不了）"
 
-    # 诉求放在 JSON 对象的尾部：provider 的前缀缓存按字节前缀计，把能变的放到最后，
-    # 同项目连续几轮的 prompt 前缀（目录摘要 + 代码 digest）可以被整段命中。
+    # ── ② 现场块（每轮可能变，但都排在稳定目录之后）──
+    payload["pageId"] = page_id
+    payload["modelClass"] = request.get("modelClass")
+    payload["viewport"] = context.get("viewport")
+    payload["selection"] = context.get("selection") or []
+    # 服务端派生的一份目录（entries / missing / unreachable / dropped / omissions）；
+    # 空对象只可能来自手写请求，正常装配一定会带上它
+    payload["selectionDigest"] = context.get("selectionDigest") or {}
+    # §111：钉在元素上的用户原话，服务端按文档核对过定位
+    payload["annotations"] = context.get("annotations") or []
+    if context.get("annotationsNote"):
+        payload["annotationsNote"] = context["annotationsNote"]
+    payload["recentChanges"] = context.get("recentChanges") or []
+    # §49 × §66-71：这一轮按相关性从项目语料库取回的内容（世界条目、角色、记忆、分镜、
+    # 游戏设计、设计正文）。空列表与"这一轮没查"是两件事，所以 query 一并带上：
+    # query 为 null 就是装配方没给查询词，不能读成"项目里没有相关设定"。
+    corpus = context.get("corpus") or {}
+    payload["corpus"] = corpus
+    if corpus.get("query"):
+        payload["corpusNote"] = (
+            f"corpus.items 是按「{corpus['query']}」从本项目语料库取回的既有设定，每条带出处"
+            f"（sourceType/sourceId/第几块）与命中方式（matchedBy）。与它冲突就是改设定，"
+            f"要在 explanation 里说清楚改了哪一条；"
+            f"{corpus.get('omitted', 0)} 条相关的因预算没带进来（candidates="
+            f"{corpus.get('candidates', 0)}），没带进来不等于项目里没有。"
+        )
+    # Agent 名册从 system 挪到这里：system 是整条前缀的第一段，必须逐字节不变；
+    # 而"本轮由谁负责"每轮都可能变。规则本身（没有 design.patch 就不许改文档）留在 SYSTEM_PROMPT 里。
+    if request.get("agent"):
+        payload["agent"] = request.get("agent")
+    payload["agentNote"] = _agent_note(request)
+
+    # ── ③ 诉求块：provider 的前缀缓存按字节前缀计，能变的放最后 ──
     payload["intent"] = request.get("intent")
     payload["prompt"] = request.get("prompt")
     payload["variants"] = request.get("variants")
@@ -231,7 +248,10 @@ def build_prompt(request: dict[str, Any]) -> tuple[str, str]:
     if truncations:
         payload["promptTruncated"] = "；".join(truncations)
         encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), default=str)
-    return f"{SYSTEM_PROMPT}\n{_agent_note(request)}", encoded
+    # system 只回恒定那一段：它是整条前缀的第一段，一旦带上每轮会变的内容
+    # （旧版把 agent 说明拼在这里），换 Agent 或换一轮就整条前缀失配、缓存全灭。
+    # 每轮会变的 agent 名册改由载荷的 `agent` / `agentNote` 承载（§CACHE-2）。
+    return SYSTEM_PROMPT, encoded
 
 
 def _balanced_object(text: str) -> str | None:

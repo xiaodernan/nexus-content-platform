@@ -190,6 +190,8 @@
     "ratelimit:gateway-lua": "tsx scripts/gateway-rate-lua-live.mts",
     "probe:413": "tsx scripts/import-413-probe.mts",
     "probe:cache": "apps\\ai-service\\.venv\\Scripts\\python.exe scripts/probe-prompt-cache.py",
+    "audit:prompt-prefix": "apps\\ai-service\\.venv\\Scripts\\python.exe scripts/prompt-prefix-audit.py",
+    "probe:cache-turns": "apps\\ai-service\\.venv\\Scripts\\python.exe scripts/probe-cache-turns.py",
     "db:push": "drizzle-kit push",
     "db:seed": "tsx scripts/db-seed.mts",
     "db:studio": "drizzle-kit studio",
