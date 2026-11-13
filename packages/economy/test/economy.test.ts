@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { PriceCents, Tip, Subscription } from './monetization';
+import type { PriceCents, Tip, Subscription } from '../src/monetization';
 
 import {
   PLAN_TERMS_NOTE,
@@ -30,9 +30,9 @@ import {
   tipsByRecipient,
   tipsTotalByAgent,
   isSubscribed,
-} from './economy';
+} from '../src/economy';
 
-import { toPlanRow as barPlanRow } from './planBar';
+import { toPlanRow as barPlanRow } from '../src/planBar';
 
 const pc = (n: number) => n as PriceCents;
 

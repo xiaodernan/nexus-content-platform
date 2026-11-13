@@ -4,8 +4,8 @@ import type {
   Follow,
   Like,
   Profile,
-} from './community';
-import type { AccountId } from './community';
+} from '../src/community';
+import type { AccountId } from '../src/community';
 import {
   buildFollowersIndex,
   buildFollowingIndex,
@@ -26,7 +26,7 @@ import {
   isFollowing,
   toggleFollow,
   toggleLike,
-} from './community';
+} from '../src/community';
 
 const now = 1_700_000_000_000;
 

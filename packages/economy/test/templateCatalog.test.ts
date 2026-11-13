@@ -25,7 +25,7 @@ import {
   withdrawnByAuthor,
   type TemplateCatalog,
   type TemplateListing,
-} from './templateCatalog';
+} from '../src/templateCatalog';
 
 const listing = (over: Partial<TemplateListing> = {}): TemplateListing => ({
   id: 't1',

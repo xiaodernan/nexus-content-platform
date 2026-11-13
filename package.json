@@ -153,7 +153,7 @@
     "dev:ai": "bash infra/dev-ai.sh",
     "build:main": "npm run build -w @nexus/web",
     "start": "npm run start -w @nexus/web",
-    "typecheck:main": "tsc -p packages/creative-model/tsconfig.json --noEmit && tsc -p packages/world-model/tsconfig.json --noEmit && tsc -p packages/game-model/tsconfig.json --noEmit && tsc -p packages/video-model/tsconfig.json --noEmit && tsc -p packages/schemas/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit && tsc -p apps/mcp-server/tsconfig.json --noEmit && tsc -p e2e/tsconfig.json --noEmit && tsc -p tsconfig.tools.json --noEmit",
+    "typecheck:main": "tsc -p packages/creative-model/tsconfig.json --noEmit && tsc -p packages/world-model/tsconfig.json --noEmit && tsc -p packages/game-model/tsconfig.json --noEmit && tsc -p packages/video-model/tsconfig.json --noEmit && tsc -p packages/schemas/tsconfig.json --noEmit && tsc -p packages/economy/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit && tsc -p apps/mcp-server/tsconfig.json --noEmit && tsc -p e2e/tsconfig.json --noEmit && tsc -p tsconfig.tools.json --noEmit",
     "eslint": "node --max-old-space-size=10240 node_modules/eslint/bin/eslint.js .",
     "lint:main": "npm run typecheck && npm run eslint",
     "test:main": "vitest run",

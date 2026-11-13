@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { appendCreditEntry, balanceOf, emptyCreditLedger, type CreditEntry, type CreditLedger } from './credits';
-import { holdsTemplate, refundPurchase } from './refund';
-import { addTemplate, emptyTemplateCatalog, type TemplateCatalog, type TemplateListing } from './templateCatalog';
+import { appendCreditEntry, balanceOf, emptyCreditLedger, type CreditEntry, type CreditLedger } from '../src/credits';
+import { holdsTemplate, refundPurchase } from '../src/refund';
+import { addTemplate, emptyTemplateCatalog, type TemplateCatalog, type TemplateListing } from '../src/templateCatalog';
 
 const LISTING: TemplateListing = {
   id: 't1', title: 'SaaS Landing', description: 'A landing page.', authorId: 'author-1',

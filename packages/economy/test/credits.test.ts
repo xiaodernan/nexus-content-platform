@@ -19,7 +19,7 @@ import {
   validateCreditLedger,
   type CreditEntry,
   type CreditLedger,
-} from './credits';
+} from '../src/credits';
 
 const entry = (over: Partial<CreditEntry> = {}): CreditEntry => ({
   id: 'e1',

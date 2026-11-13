@@ -6,9 +6,9 @@
  * conservation a transfer must hold.
  */
 import { describe, expect, it } from 'vitest';
-import { appendCreditEntry, balanceOf, emptyCreditLedger, historyOf, type CreditEntry, type CreditLedger } from './credits';
-import { addTemplate, emptyTemplateCatalog, type TemplateCatalog } from './templateCatalog';
-import { purchasesOf, purchaseTemplate, refSoldIn, saleOfPurchase, templateAffordable } from './marketplace';
+import { appendCreditEntry, balanceOf, emptyCreditLedger, historyOf, type CreditEntry, type CreditLedger } from '../src/credits';
+import { addTemplate, emptyTemplateCatalog, type TemplateCatalog } from '../src/templateCatalog';
+import { purchasesOf, purchaseTemplate, refSoldIn, saleOfPurchase, templateAffordable } from '../src/marketplace';
 
 function fixture() {
   let catalog: TemplateCatalog = emptyTemplateCatalog();

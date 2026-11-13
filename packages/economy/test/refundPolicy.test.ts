@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { appendCreditEntry, balanceOf, emptyCreditLedger, type CreditEntry, type CreditLedger } from './credits';
-import { holdsTemplate, refundPurchase } from './refund';
+import { appendCreditEntry, balanceOf, emptyCreditLedger, type CreditEntry, type CreditLedger } from '../src/credits';
+import { holdsTemplate, refundPurchase } from '../src/refund';
 import {
   describeRefundPolicy,
   NO_REFUND_DEADLINE,
@@ -10,8 +10,8 @@ import {
   refundPurchaseUnderPolicy,
   refundWindowClosesAt,
   type RefundPolicy,
-} from './refundPolicy';
-import { addTemplate, emptyTemplateCatalog, type TemplateCatalog, type TemplateListing } from './templateCatalog';
+} from '../src/refundPolicy';
+import { addTemplate, emptyTemplateCatalog, type TemplateCatalog, type TemplateListing } from '../src/templateCatalog';
 
 const LISTING: TemplateListing = {
   id: 't1', title: 'SaaS Landing', description: 'A landing page.', authorId: 'author-1',

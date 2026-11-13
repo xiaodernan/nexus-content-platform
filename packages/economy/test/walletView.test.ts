@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 
-import type { CreditLedger } from './credits';
-import { addTemplate, emptyTemplateCatalog, retireTemplate, type TemplateCatalog, type TemplateListing } from './templateCatalog';
-import { buildWalletView, storeRows, walletCanAfford, walletOwns } from './walletView';
+import type { CreditLedger } from '../src/credits';
+import { addTemplate, emptyTemplateCatalog, retireTemplate, type TemplateCatalog, type TemplateListing } from '../src/templateCatalog';
+import { buildWalletView, storeRows, walletCanAfford, walletOwns } from '../src/walletView';
 
 const FREE: TemplateListing = {
   id: 'tpl-free', title: 'Starter', description: 'A free starter', authorId: 'authorA',
