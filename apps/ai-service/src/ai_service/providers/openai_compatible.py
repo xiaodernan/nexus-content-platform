@@ -6,9 +6,10 @@
 
 from __future__ import annotations
 
+import json
 import random
 import time
-from typing import Callable, Mapping
+from typing import Any, Callable, Mapping
 
 import httpx
 
@@ -62,6 +63,7 @@ class OpenAICompatibleProvider:
         breaker=None,
         jitter_strategy: str = "none",
         rng: Callable[[float, float], float] | None = None,
+        stream: bool = False,
     ) -> None:
         """`max_attempts=1`（默认）= pass-through，与 v681 前字节级一致（零回归）。
         >1 时启用有界指数退避：`base_s·2^i` 封顶 `cap_s`，429 的 `Retry-After` 优先。
@@ -88,6 +90,7 @@ class OpenAICompatibleProvider:
         self._breaker = breaker
         self._jitter_strategy = jitter_strategy
         self._rng = rng
+        self._stream = bool(stream)
         self._last_sleep = None
         self._client = httpx.Client(
             base_url=base_url,
@@ -127,8 +130,116 @@ class OpenAICompatibleProvider:
         self._last_sleep = value
         return value
 
-    def complete(self, *, model: str, system: str, user: str) -> Completion:
+    @staticmethod
+    def _usage_details(usage: Mapping[str, Any] | None) -> tuple[int, int]:
+        """provider 自己报的 cached / reasoning token 数（可能都不报，都取 0）。"""
+        u = usage or {}
+        pin = u.get("prompt_tokens_details") or {}
+        cout = u.get("completion_tokens_details") or {}
+        cached = pin.get("cached_tokens") if isinstance(pin, Mapping) else 0
+        reasoning = cout.get("reasoning_tokens") if isinstance(cout, Mapping) else 0
+        try:
+            cached_n = int(cached or 0)
+        except (TypeError, ValueError):
+            cached_n = 0
+        try:
+            reasoning_n = int(reasoning or 0)
+        except (TypeError, ValueError):
+            reasoning_n = 0
+        return cached_n, reasoning_n
+
+    def _complete_via_sse(self, *, model: str, system: str, user: str, json_mode: bool, body_options: dict) -> Completion:
+        """流式路径（SSE）：用 `stream_options.include_usage=true` 把 provider 自己报的
+        prompt-cached/reasoning token 数也拿出来。一次逻辑请求一次流，不做重试（流已开始
+        就不能重放），失败如实抛；整段流程包在断路器门卫内（同一伤口、同一 breaker）。"""
+        started = self._clock()
+        body = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            "temperature": 0.2,
+            "stream": True,
+            "stream_options": {"include_usage": True},
+        }
+        if json_mode:
+            body["response_format"] = {"type": "json_object"}
+        body.update(body_options)
+
+        if self._breaker is not None:
+            self._breaker.before_call()
+
+        text_parts: list[str] = []
+        usage: Mapping[str, Any] | None = None
+        actual_model = model
+        try:
+            with self._client.stream("POST", "chat/completions", json=body) as response:
+                if response.status_code >= 400:
+                    detail = response.read().decode("utf-8", errors="replace")[:400].replace("\n", " ")
+                    if response.status_code in _RETRYABLE_STATUS:
+                        if self._breaker is not None:
+                            self._breaker.record_failure()
+                        raise TransientProviderFailed(f"provider 流式返回 {response.status_code}：{detail}")
+                    if self._breaker is not None:
+                        self._breaker.record_ignored()
+                    raise ProviderFailed(f"provider 流式返回 {response.status_code}：{detail}")
+
+                for raw_line in response.iter_lines():
+                    if not raw_line:
+                        continue
+                    line = raw_line.decode("utf-8") if isinstance(raw_line, bytes) else raw_line
+                    if not line.startswith("data:"):
+                        continue  # SSE comment/keepalive/field-line：忽略非 data 行
+                    payload = line[5:].strip()
+                    if not payload or payload == "[DONE]":
+                        if payload == "[DONE]":
+                            break
+                        continue
+                    try:
+                        event = json.loads(payload)
+                    except json.JSONDecodeError as exc:
+                        if self._breaker is not None:
+                            self._breaker.record_ignored()
+                        raise ProviderFailed("provider 流式 payload 不是合法 JSON") from exc
+                    model_name = event.get("model")
+                    if isinstance(model_name, str) and model_name:
+                        actual_model = model_name
+                    for choice in event.get("choices") or []:
+                        delta = (choice or {}).get("delta") or {}
+                        content = delta.get("content")
+                        if isinstance(content, str):
+                            text_parts.append(content)
+                    u = event.get("usage")
+                    if isinstance(u, Mapping):
+                        usage = u
+        except httpx.HTTPError as exc:
+            if self._breaker is not None:
+                self._breaker.record_failure()
+            raise TransientProviderFailed(f"provider 流式网络失败：{exc.__class__.__name__}") from exc
+
+        latency_ms = (self._clock() - started) * 1000
+        if self._breaker is not None:
+            self._breaker.record_success()
+
+        usage_map = usage or {}
+        cached, reasoning = self._usage_details(usage_map)
+        return Completion(
+            text="".join(text_parts),
+            provider=self.name,
+            model=actual_model,
+            tokens_in=int(usage_map.get("prompt_tokens") or 0),
+            tokens_out=int(usage_map.get("completion_tokens") or 0),
+            latency_ms=round(latency_ms, 1),
+            cached_tokens=cached,
+            reasoning_tokens=reasoning,
+        )
+
+    def complete(self, *, model: str, system: str, user: str, json_mode: bool | None = None) -> Completion:
         self._last_sleep = None  # 一次逻辑请求：decorrelated 的 prev 从 base 重新起步
+        use_json = self._json_mode if json_mode is None else json_mode
+        if self._stream:
+            return self._complete_via_sse(model=model, system=system, user=user, json_mode=use_json, body_options={})
         body: dict = {
             "model": model,
             "messages": [
@@ -137,7 +248,7 @@ class OpenAICompatibleProvider:
             ],
             "temperature": 0.2,
         }
-        if self._json_mode:
+        if use_json:
             body["response_format"] = {"type": "json_object"}
 
         # v682 断路器门卫（坑①：真接进调用链）：OPEN 时抛 CircuitOpen，一次 HTTP 都不发。
@@ -201,6 +312,7 @@ class OpenAICompatibleProvider:
             self._breaker.record_success()
 
         usage = payload.get("usage") or {}
+        cached, reasoning = self._usage_details(usage)
         return Completion(
             text=choice or "",
             provider=self.name,
@@ -208,6 +320,8 @@ class OpenAICompatibleProvider:
             tokens_in=int(usage.get("prompt_tokens") or 0),
             tokens_out=int(usage.get("completion_tokens") or 0),
             latency_ms=round(latency_ms, 1),
+            cached_tokens=cached,
+            reasoning_tokens=reasoning,
         )
 
     def close(self) -> None:

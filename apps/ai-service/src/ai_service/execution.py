@@ -253,8 +253,10 @@ async def execute_chat_request(payload: dict[str, Any], *, registry: Registry) -
     system = str(payload.get("system") or "")
     user = str(payload.get("user") or "")
     try:
+        # 客服对话不是 JSON 任务：response_format=json_object 会被 provider 拒
+        #（协议要求内容里出现 'json' 字面），所以 chat 显式关 json_mode（v690）。
         completion = await anyio.to_thread.run_sync(
-            lambda: registry.llm.complete(model=model, system=system, user=user)
+            lambda: registry.llm.complete(model=model, system=system, user=user, json_mode=False)
         )
     except ProviderFailed as exc:
         return (502, error("provider-failed", str(exc), retryable=True))

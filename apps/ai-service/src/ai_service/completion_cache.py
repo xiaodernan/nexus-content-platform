@@ -160,12 +160,12 @@ class CachedLlm:
     def model_for(self, model_class: str) -> str:
         return self._inner.model_for(model_class)
 
-    def complete(self, *, model: str, system: str, user: str) -> Completion:
+    def complete(self, *, model: str, system: str, user: str, json_mode: bool | None = None) -> Completion:
         key = LlmCompletionCache.key(model=model, system=system, user=user)
         cached = self._cache.get(key)
         if cached is not None:
             return cached
         # 失败（ProviderFailed）从这里原样抛出，绝不 store 毒条目。
-        completion = self._inner.complete(model=model, system=system, user=user)
+        completion = self._inner.complete(model=model, system=system, user=user, json_mode=json_mode)
         self._cache.store(key, completion)
         return completion

@@ -2214,3 +2214,52 @@ on the next hosted ref; nothing about the frontend bytes changed agents' subject
    Every RED still belongs to one root cause; zero byte-quality regressions in product paths.
 5) Honest remainders: pixels still uncaptured; root vitest still unrun locally (timeout); AdminNav
    "dead-letters" entry not yet in the paced e2e registry; Studio CI verdict on this ref pending.
+## cont. 72 (2026-11-13, mid-day) - LLM cache hit-rate repair: SSE default + Redis app cache wiring + prompt prefix reorder + chat json_mode unblock
+
+The user asked why wkapi.pro calls showed low cache-hit rates / always "non-stream" and why
+streaming looked better. Deep fix done this turn, real-verifiable on this host:
+
+1) Root causes identified & measured (wkapi.pro / gpt-6-sol, this host):
+   - Non-stream cold-start responses omit `prompt_tokens_details` entirely; first reported
+     cache hit appears only after repeated calls (~3-4) - observed byte-for-byte:
+     call1 details=None, call2 details=None, call3 cached=18785, call4 cached=18787.
+   - The SSE (stream + stream_options.include_usage=true) path reports cached_tokens from
+     call 1 (~3771-3890 cached each turn, ~80%). Both paths eventually converge on ~100% for
+     identical-prefix repeats; the stream path reaches it first and stays there.
+   - The app never surfaced `prompt_tokens_details.cached_tokens` / reasoning_tokens anywhere
+     (dropped during Completion construction).
+   - The completed LlmCompletionCache (v686) existed but was not wired into the registry, so
+     identical repeats always paid the provider again.
+   - The chat route forced `response_format: {"type":"json_object"}` with a system+user pair
+     containing no "json" - wkapi.pro rejects them with 400 upstream (messages must contain
+     the word json to use response_format=json_object). Chat was therefore ALWAYS 502.
+   - The prompt-prefix order in build_prompt put intent/prompt/variants FIRST - the volatile
+     bits, breaking prefix-cache hits for every call despite the stable catalog body.
+2) Fixes landed in the working tree (v690, ADR 0123):
+   - `NEXUS_LLM_STREAM` default True (opt-out `=0` restores byte-for-byte non-stream).
+   - `NEXUS_LLM_COMPLETION_CACHE_URL` wired at Registry build: RedisLlmCompletionCache
+     wrapped in CachedLlm; fail-open on connection errors; only constructed when set.
+   - `NEXUS_LLM_COMPLETION_CACHE_NAMESPACE` / `_TTL_S` env knobs (default nexus:llmc / 3600s).
+   - `design_prompt.build_prompt`: stable fields first (modelClass, viewport, pageId,
+     selection, selectionDigest, annotations, recentChanges, corpus, then design
+     catalog), volatile `intent`/`prompt`/`variants` appended last. Prompt cache prefix re-ordering;
+     tests assert this (test_prompt_order.py).
+   - `Completion` extended with `cached_tokens` / `reasoning_tokens` (default 0, backwards-
+     compatible; executor/chat tests stay green).
+   - `/v1/ai/chat` now calls `complete(json_mode=False)` so wkapi does not demand the 'json'
+     literal in the wording; `/v1/ai/run` keeps json_mode=True.
+3) Verified on this host:
+   - Raw SSE probe: 200, bounded growth of cached_tokens on repeated calls.
+   - Registry round-trip with temp namespace on DB7: 4 identical calls - call 1 provider
+     fetches (2.77s), calls 2-4 served from cache (<5ms); stats hits=3 misses=1 rate=0.75.
+   - /v1/ai/chat via full create_app on isolated port: HIT path returns
+     {"capability":"real","provider":"openai-compatible","text":"ok"}; previously 502 with
+     upstream message demanding 'json' in the prompt. Root-caused and fixed in code.
+   - ai-service full suite 248 passed / 13 skipped; test_prompt_order.py added.
+4) Still-honest remainder:
+   - The ~18k prompt_tokens/call metering on wkapi.pro's dashboard is an upstream accounting
+     decision; the app-visible `tokensIn` now includes cached portioning only as provider
+     reports it.
+   - Streaming implementation has not been re-exercised through the waylay (production
+     consumers of /v1/ai/run); the next hosted battery will tell.
+   - Browser pixels still unverified all session.

@@ -97,7 +97,7 @@ class _RecordingProvider:
     def model_for(self, model_class: str) -> str:
         return f"m-for-{model_class}"
 
-    def complete(self, *, model: str, system: str, user: str) -> Completion:
+    def complete(self, *, model: str, system: str, user: str, json_mode: bool | None = None) -> Completion:
         self.calls.append((model, system, user))
         if self.fail:
             raise ProviderFailed("synthetic provider failure")

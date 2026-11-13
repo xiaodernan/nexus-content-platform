@@ -145,10 +145,10 @@ def build_prompt(request: dict[str, Any]) -> tuple[str, str]:
     page_id = context.get("pageId") or document.get("activePageId") or ""
 
     payload: dict[str, Any] = {
-        "intent": request.get("intent"),
-        "prompt": request.get("prompt"),
+        # 缓存友好序：先放这轮不变的现场（provider 前缀缓存的载体），最后才是诉求——
+        # json.dumps 按插入序输出，诉求挪到尾部后，同项目连续几轮的 prompt 前缀
+        #（SYSTEM_PROMPT + 整份目录摘要）可以在 provider 侧整段命中
         "modelClass": request.get("modelClass"),
-        "variants": request.get("variants"),
         "viewport": context.get("viewport"),
         "pageId": page_id,
         "selection": context.get("selection") or [],
@@ -206,6 +206,12 @@ def build_prompt(request: dict[str, Any]) -> tuple[str, str]:
     else:
         payload["contextSource"] = "none"
         payload["note"] = "既没有目录也没有文档：这一轮模型看不到项目内容，只能按诉求文字回答（应当说明做不了）"
+
+    # 诉求放在 JSON 对象的尾部：provider 的前缀缓存按字节前缀计，把能变的放到最后，
+    # 同项目连续几轮的 prompt 前缀（目录摘要 + 代码 digest）可以被整段命中。
+    payload["intent"] = request.get("intent")
+    payload["prompt"] = request.get("prompt")
+    payload["variants"] = request.get("variants")
 
     encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), default=str)
     if len(encoded) > MAX_TREE_CHARS:

@@ -46,18 +46,7 @@ class Registry:
         )
         self._breaker = breaker
         self._llm = llm or (
-            OpenAICompatibleProvider(
-                api_key=settings.openai_api_key or "",
-                base_url=settings.openai_base_url,
-                models=settings.llm_models,
-                timeout_s=settings.request_timeout_s,
-                json_mode=settings.json_mode,
-                max_attempts=settings.llm_max_attempts,
-                base_s=settings.llm_retry_base_s,
-                cap_s=settings.llm_retry_cap_s,
-                jitter_strategy=settings.llm_jitter_strategy,
-                breaker=breaker,
-            )
+            self._build_llm(settings, breaker)
             if settings.has_llm
             else None
         )
@@ -76,6 +65,45 @@ class Registry:
             if not settings.embedding_enabled
             else "缺少 NEXUS_OPENAI_API_KEY"
         )
+
+    @staticmethod
+    def _build_llm(settings: Settings, breaker) -> OpenAICompatibleProvider:
+        provider = OpenAICompatibleProvider(
+            api_key=settings.openai_api_key or "",
+            base_url=settings.openai_base_url,
+            models=settings.llm_models,
+            timeout_s=settings.request_timeout_s,
+            json_mode=settings.json_mode,
+            max_attempts=settings.llm_max_attempts,
+            base_s=settings.llm_retry_base_s,
+            cap_s=settings.llm_retry_cap_s,
+            jitter_strategy=settings.llm_jitter_strategy,
+            breaker=breaker,
+            stream=settings.llm_stream,
+        )
+        url = settings.llm_cache_url.strip()
+        if not url:
+            return provider
+        # opt-in 真 Redis 缓存（ADR 0119 / v686）：CachedLlm 只在 miss 时调内层真 provider；
+        # 命中不再花钱也不进 usage（如响应报文的 usage 契约保持 exactly-not-谎称）。
+        # 连接失效：fail-open——缓存故障不许打挂 provider 路径（ADR 0119 降级纪律）。
+        try:
+            import redis as _redis
+
+            from ..completion_cache import CachedLlm
+            from ..redis_completion_cache import RedisLlmCompletionCache
+
+            client = _redis.from_url(url, decode_responses=True)
+            cache = RedisLlmCompletionCache(
+                client,
+                namespace=settings.llm_cache_namespace,
+                ttl_s=settings.llm_cache_ttl_s,
+                max_entries=512,
+            )
+            return CachedLlm(provider, cache)  # type: ignore[return-value]
+        except Exception as exc:  # noqa: BLE001 - 缓存组件失败必须不影响主路径
+            print(f"[registry] LLM completion cache 未启用：无法连接 {url}（{exc.__class__.__name__}）")
+            return provider
 
     @property
     def llm(self):

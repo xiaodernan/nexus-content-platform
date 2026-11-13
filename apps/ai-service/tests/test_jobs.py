@@ -57,7 +57,7 @@ class GatedProvider:
     def model_for(self, model_class: str) -> str:
         return "gated-model"
 
-    def complete(self, *, model: str, system: str, user: str) -> Completion:
+    def complete(self, *, model: str, system: str, user: str, json_mode: bool | None = None) -> Completion:
         with self._lock:
             self.in_flight += 1
             self.max_in_flight = max(self.max_in_flight, self.in_flight)

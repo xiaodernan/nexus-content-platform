@@ -11788,3 +11788,19 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
 - **验证（本机）**：web 缝 11 条（含 1 live Redis leg，DB7）；typecheck exit 0；eslint 干净（src/app）；
   style-tokens 29/29；style/theme/state/jsx-text 15/15；record-encoding exit 0。
 - **仍欠**：admin 粒度（ops 只读细化）、e2e paced 未纳入、导出暂非流式、admin role 模型待细分。
+
+## v690 — LLM 缓存/命中率修复（ADR 0123）（2026-11-13）
+- **做了**：`NEXUS_LLM_STREAM` 默认 True（SSE + `stream_options.include_usage=true`，
+  实测首发即 ~80% prompt 命中；`=0` 光复字节级非流）；
+  `NEXUS_LLM_COMPLETION_CACHE_URL` 非空即 `Registry` 真包 `CachedLlm(pure=RedisLlmCompletionCache)`
+  → 全集群共享 "(model, system, user) → Completion"，连接失败 fail-open。
+  `/v1/ai/chat` 显式 json_mode=False（json_object 会被 provider 以"必须包含 json 字面"拒成 502）；
+  `Completion` 增 `cached_tokens` / `reasoning_tokens` 字段（默认 0，向后兼容）；
+  `design_prompt.build_prompt` 重排 payload 前缀序（稳定现场先、本轮诉求最后）。
+- **真机（wkapi.pro / gpt-6-sol）**：非流全程 details 不报直到第 3-4 次 ≈100% 命中；
+  流首发即 ≈80%；同前缀变 suffix 请求的命中率池相关——provider 池轮转随缘均值 ≈80%。
+  应用层 Redis 缓存 <5ms 稳定命中（实测）。
+  修复了 chat 从未能用的问题（json_mode 默认 True + json_object 被 provider 拒 → 502）。
+- **实证测试**：新增 `test_prompt_order.py`；suite 248 passed / 13 skipped / 0 failed。
+- **仍欠**：契约层 cached/reasoning 数未进 web 侧 Usage（TaskUsageSchema exact additionalProperties=false）；
+  chat 浏览器路径链未重测（浏览器断连）。
