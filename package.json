@@ -149,6 +149,7 @@
     "verify:world-tools": "node docs/evidence/agents/world-tools-proof.mjs",
     "verify:fe-gates": "node tools/ci/fe-gates.mjs",
     "verify:no-raw-tailwind": "node tools/ci/no-raw-tailwind.mjs",
+    "verify:census": "node tools/ci/facade-census.mjs",
     "verify:proofs": "node tools/ci/proof-set.mjs",
     "dev:web": "npm run dev -w @nexus/web",
     "dev:ai": "bash infra/dev-ai.sh",
