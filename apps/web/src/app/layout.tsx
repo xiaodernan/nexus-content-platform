@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
+import { CommandPalette } from '@/components/CommandPalette';
 import { ThemeScript } from '@/components/ThemeScript';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import './globals.css';
@@ -22,6 +23,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="rx-body">
         <ThemeScript />
         {children}
+        {/* §CP-1：全站命令面板。挂在 layout 而不是逐页挂——它的价值全在"哪一页都能按"，
+            少挂一页就少一条入口，而漏挂不会报错，只会悄悄少一路。 */}
+        <CommandPalette />
         <ThemeToggle />
       </body>
     </html>

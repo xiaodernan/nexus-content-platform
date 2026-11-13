@@ -118,16 +118,24 @@
   }
 }
 
-/* v687 / cont. 68: single source for the brand title gradient (fg-1 -> accent-mix -> accent-1).
-   Previously copy-pasted in 15 places as from-[#eef1f6] via-[#8b9cf8]; add one bridge token instead. */
-@layer utilities {
-  .text-gradient-brand {
-    background-image: linear-gradient(125deg, var(--nexus-color-fg-1) 12%, var(--nexus-color-accent-mix) 55%, var(--nexus-color-accent-1) 100%);
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-    display: inline-block;
-  }
+/* .text-gradient-brand（v687 单一来源渐变）已并入 .brand-title：合并后全站标题渐变墨字
+   统一收在门面类上（BrandTitle 组件与 globals.css forced-colors 回退同源），
+   这一格不再单独存在——census 不收零引用门面类。 */
+
+/* v687 门面组件库的一格（.brand-title）：BrandTitle 组件的唯一 className。
+   渐变墨字族（与 .nf-title / .pub-title 同语义），强制高对比度回退在本文件
+   forced-colors 段单列一组。零 hex、零字号写死。 */
+.brand-title {
+  position: relative;
+  display: inline-block;
+  padding-bottom: var(--nexus-space-2);
+  font-size: var(--nexus-font-size-28);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background-image: linear-gradient(125deg, var(--nexus-color-fg-1) 12%, var(--nexus-color-accent-mix) 55%, var(--nexus-color-accent-1) 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -3685,6 +3693,13 @@
       -webkit-background-clip: border-box; background-clip: border-box;
       color: CanvasText;
     }
+    /* v687 门面组件库的一格（.brand-title）——同族处理。 */
+    .brand-title {
+      forced-color-adjust: auto;
+      background: none;
+      -webkit-background-clip: border-box; background-clip: border-box;
+      color: CanvasText;
+    }
   }
 
   /* ── §FE-19 / ADR-0169 Studio 顶栏 TopBar 门面基建（sp- 命名空间开篇，承 FE-18 纪律）──
@@ -3807,4 +3822,301 @@
     .sp-railToggle, .sp-wordmark, .sp-nameBtn, .sp-viewportBtn,
     .sp-previewLink, .sp-topBtn { transition: none; }
   }
+}
+
+/* 鈹€鈹€ 搂FE-GE 鏍圭骇閿欒杈圭晫锛坅pp/error.tsx锛屽苟琛岀嚎 cont. 74 甯﹀叆銆佸悎骞跺悗闂ㄩ潰鍖栵級鈹€鈹€鈹€鈹€
+ * 涓€娆¤瘹瀹炵殑鐘舵€侀〉锛氱孩鑹茶鍛婄鍙?+ 浜у搧璇█璇存槑 + 涓や釜鐪熷疄鍔ㄤ綔銆? * 闆惰８鍘熷瓙锛涢敊璇湰韬彧杩?console锛屼笉杩?DOM 鐨勫爢鏍堛€?*/
+.ge-shell { position: relative; display: flex; min-height: 70vh; max-width: 42rem; margin-inline: auto; flex-direction: column; align-items: center; justify-content: center; gap: var(--nexus-space-5); padding: var(--nexus-space-12) var(--nexus-space-6); text-align: center; }
+.ge-glow { position: absolute; z-index: -1; width: 16rem; height: 16rem; border-radius: var(--nexus-radius-full); background: radial-gradient(circle, rgb(242 85 90 / 0.14), transparent 70%); filter: blur(48px); }
+.ge-mark { font-family: var(--nexus-font-mono); font-size: 64px; font-weight: 900; line-height: 1; letter-spacing: -0.05em; color: var(--nexus-color-danger-ink); user-select: none; }
+.ge-title { font-size: var(--nexus-font-size-21); font-weight: 600; color: var(--nexus-color-fg-1); }
+.ge-body { max-width: 28rem; font-size: var(--nexus-font-size-14); line-height: 1.5; color: var(--nexus-color-fg-2); }
+.ge-digest { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+.ge-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--nexus-space-3); }
+.ge-btnPrimary { display: inline-flex; min-height: 44px; align-items: center; border-radius: var(--nexus-radius-md); border: 0; background: var(--nexus-color-brand); color: var(--nexus-color-accent-fg); padding: var(--nexus-space-2) var(--nexus-space-5); font-size: var(--nexus-font-size-14); font-weight: 600; cursor: pointer; transition: box-shadow 0.15s ease; }
+.ge-btnPrimary:hover { box-shadow: 0 0 30px rgb(91 108 255 / 0.45); }
+.ge-btnGhost { display: inline-flex; min-height: 44px; align-items: center; border-radius: var(--nexus-radius-md); border: 1px solid var(--nexus-color-border-strong); background: var(--nexus-color-bg-2); color: var(--nexus-color-fg-1); padding: var(--nexus-space-2) var(--nexus-space-5); font-size: var(--nexus-font-size-14); font-weight: 500; text-decoration: none; transition: border-color 0.15s ease, background 0.15s ease; }
+.ge-btnGhost:hover { border-color: var(--nexus-color-brand); background: var(--nexus-color-bg-3); }
+
+/* 鈹€鈹€ 搂FE-DL `/admin/dead-letters` 姝讳俊宸℃锛堝苟琛岀嚎 v689 / ADR 0122 甯﹀叆锛夆攢鈹€鈹€鈹€鈹€鈹€
+ * 姣掓秷鎭殧绂诲悗鐨勫彧璇荤獥鍙ｏ細KPI 蹇収 + 鏉＄洰鍒楄〃 + 娓告爣鍒嗛〉銆傞浂瑁稿師瀛愩€?*/
+.dl-card { border-radius: var(--nexus-radius-md); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); padding: var(--nexus-space-4); }
+.dl-cardWarn { border-radius: var(--nexus-radius-md); border: 1px solid var(--nexus-color-warn); background: var(--nexus-color-bg-1); padding: var(--nexus-space-6); }
+.dl-cardRoomy { border-radius: var(--nexus-radius-md); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); padding: var(--nexus-space-6); }
+.dl-summaryRow { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--nexus-space-3); }
+.dl-label { font-size: var(--nexus-font-size-11); text-transform: uppercase; letter-spacing: 0.08em; color: var(--nexus-color-fg-3); }
+.dl-stat { font-size: var(--nexus-font-size-24); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--nexus-color-fg-1); }
+.dl-meta { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+.dl-btnRow { display: flex; flex-wrap: wrap; gap: var(--nexus-space-2); }
+.dl-btnSm { display: inline-flex; align-items: center; border-radius: var(--nexus-radius-sm); border: 1px solid var(--nexus-color-border-subtle); padding: var(--nexus-space-1) var(--nexus-space-3); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); text-decoration: none; }
+.dl-btnSm:hover { background: var(--nexus-color-bg-2); }
+.dl-btnPrimary { display: inline-flex; align-items: center; border-radius: var(--nexus-radius-sm); border: 0; background: var(--nexus-color-brand); padding: var(--nexus-space-1) var(--nexus-space-3); font-size: var(--nexus-font-size-12); font-weight: 600; color: var(--nexus-color-accent-fg); text-decoration: none; }
+.dl-list { display: flex; flex-direction: column; gap: var(--nexus-space-2); list-style: none; margin: 0; padding: 0; }
+.dl-item { border-radius: var(--nexus-radius-md); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); padding: var(--nexus-space-3); transition: border-color 0.15s ease; }
+.dl-item:hover { border-color: var(--nexus-color-brand); }
+.dl-itemTop { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--nexus-space-2); }
+.dl-jobId { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+.dl-attempts { font-size: var(--nexus-font-size-11); font-variant-numeric: tabular-nums; color: var(--nexus-color-fg-3); }
+.dl-reason { margin-top: var(--nexus-space-1); font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-1); }
+.dl-jobMeta { margin-top: 2px; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+.dl-body14 { font-size: var(--nexus-font-size-14); color: var(--nexus-color-fg-1); }
+.dl-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--nexus-space-3); font-size: var(--nexus-font-size-11); }
+.dl-footNote { color: var(--nexus-color-fg-3); }
+.dl-end { color: var(--nexus-color-fg-3); }
+
+/* 鈹€鈹€ 搂FE-ASH `/u` 浣滆€呭箍鍦猴紙authors showcase锛屽苟琛岀嚎甯﹀叆锛夆攢鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+ * "discovery on the author axis"锛氭瘡寮犲崱閮界瓟涓€涓湡闂鈥斺€斿摢涓湡浜哄湪杩欓噷鏀句簡鐪熶笢瑗裤€? * 绌烘€佽瘹瀹烇紙骞垮満鏄┖鐨勶紝涓嶆槸鎸戜汉锛夛紝缃戞牸鑷～鍏咃紝闆惰８鍘熷瓙銆?*/
+.ash-eyebrow { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); text-transform: uppercase; letter-spacing: 0.22em; color: var(--nexus-color-accent-2-ink); }
+.ash-lede { max-width: 32rem; font-size: var(--nexus-font-size-13); line-height: 1.5; color: var(--nexus-color-fg-2); }
+.ash-emptyCard { display: flex; flex-direction: column; align-items: flex-start; gap: var(--nexus-space-3); border-radius: var(--nexus-radius-lg); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); padding: var(--nexus-space-8); }
+.ash-emptyIcon { display: inline-flex; width: 3rem; height: 3rem; align-items: center; justify-content: center; border-radius: var(--nexus-radius-md); border: 1px solid var(--nexus-color-border-strong); background: var(--nexus-color-bg-2); color: var(--nexus-color-accent-2-ink); }
+.ash-emptyTitle { font-size: var(--nexus-font-size-16); font-weight: 600; color: var(--nexus-color-fg-1); }
+.ash-emptyText { max-width: 28rem; font-size: var(--nexus-font-size-13); line-height: 1.5; color: var(--nexus-color-fg-2); }
+.ash-emptyLink { display: inline-flex; min-height: 40px; align-items: center; border-radius: var(--nexus-radius-md); background: var(--nexus-color-brand); padding: var(--nexus-space-2) var(--nexus-space-4); font-size: var(--nexus-font-size-13); font-weight: 600; color: var(--nexus-color-accent-fg); text-decoration: none; transition: box-shadow 0.15s ease; }
+.ash-emptyLink:hover { box-shadow: 0 0 24px rgb(91 108 255 / 0.45); }
+.ash-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: var(--nexus-space-4); list-style: none; margin: 0; padding: 0; }
+.ash-card { display: flex; height: 100%; flex-direction: column; gap: var(--nexus-space-3); border-radius: var(--nexus-radius-md); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); padding: var(--nexus-space-4); text-decoration: none; transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease; }
+.ash-card:hover { border-color: var(--nexus-color-brand); transform: translateY(-2px); box-shadow: 0 18px 48px rgb(91 108 255 / 0.22); }
+.ash-cardHead { display: flex; align-items: flex-start; gap: var(--nexus-space-3); }
+.ash-avatar { width: 3.5rem; height: 3.5rem; border-radius: var(--nexus-radius-full); border: 1px solid var(--nexus-color-border-strong); object-fit: cover; }
+.ash-avatarFallback { display: flex; width: 3.5rem; height: 3.5rem; align-items: center; justify-content: center; border-radius: var(--nexus-radius-full); border: 1px solid rgb(91 108 255 / 0.4); background: linear-gradient(135deg, var(--nexus-color-brand) 0%, var(--nexus-color-accent-1) 50%, var(--nexus-color-accent-2) 100%); font-size: var(--nexus-font-size-16); font-weight: 700; color: var(--nexus-color-accent-fg); }
+.ash-cardName { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--nexus-font-size-14); font-weight: 600; color: var(--nexus-color-fg-1); }
+.ash-handle { margin-top: 2px; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-2-ink); }
+.ash-bio { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: var(--nexus-font-size-12); line-height: 1.45; color: var(--nexus-color-fg-2); }
+.ash-bioEmpty { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+.ash-counts { margin-top: auto; display: flex; align-items: center; gap: var(--nexus-space-3); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+
+
+/* PublishPanel 棰勬缁撴灉琛岋紙骞惰绾垮甫鍏ャ€佸悎骞跺悗闂ㄩ潰鍖栵級鈥?灏忓彿鍒ゅ畾鏂囨湰 */
+.pp-note12 { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+.pp-note12Live { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+.pp-note12Warn { font-size: var(--nexus-font-size-12); color: var(--nexus-color-warn-ink); }
+.pp-note12Danger { font-size: var(--nexus-font-size-12); color: var(--nexus-color-danger-ink); }
+
+
+.ash-cardBody { min-width: 0; flex: 1 1 0%; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   §CP-1 全站命令面板（`components/CommandPalette.tsx` 的唯一 className 来源）。
+   与 `.gw-*` 同一纪律：**零新增颜色 token、零写死 hex、零裸 Tailwind 原子类**，
+   所有颜色/间距/字号/时长都从 `styles/tokens.css` 取，故浅色也过 WCAG AA。
+   状态色只出现在"高亮行"的左侧 inset 条与命中字符上，两处都用 `*-ink` 变体
+   （`accent-1` / `accent-2-ink` 是 tokens.css 里已经过 AA 的那一档）。
+   `prefers-reduced-motion` 下入场动画归零；`forced-colors` 下高亮改走 outline，
+   不靠背景色传意（颜色不是唯一通道）。
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* 触发胶囊：左下角。右下角是 `.tt-fab`（主题），两个浮层各占一侧不打架。 */
+.cp-chip {
+  position: fixed; left: var(--nexus-space-3); bottom: var(--nexus-space-3); z-index: 40;
+  display: inline-flex; align-items: center; gap: var(--nexus-space-2);
+  height: 2.25rem; padding: 0 var(--nexus-space-3);
+  border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-full);
+  background: color-mix(in srgb, var(--nexus-color-bg-2) 90%, transparent);
+  color: var(--nexus-color-fg-2);
+  box-shadow: var(--nexus-shadow-sm);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  cursor: pointer;
+  transition: color var(--nexus-motion-fast) var(--nexus-motion-ease),
+    border-color var(--nexus-motion-fast) var(--nexus-motion-ease);
+}
+.cp-chip:hover { color: var(--nexus-color-fg-1); border-color: var(--nexus-color-border-strong); }
+.cp-chip:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+.cp-chipText { font-size: var(--nexus-font-size-12); }
+
+/* 键帽。三处共用（触发胶囊 / 搜索行 / 页脚），所以它是个门面类而不是局部样式。 */
+.cp-kbd {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 1.25rem; height: 1.25rem; padding: 0 var(--nexus-space-1);
+  border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm);
+  background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-3);
+  font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); line-height: 1;
+}
+
+.cp-backdrop {
+  position: fixed; inset: 0; z-index: 60;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 12vh var(--nexus-space-4) var(--nexus-space-4);
+  background: color-mix(in srgb, var(--nexus-color-bg-0) 74%, transparent);
+  backdrop-filter: blur(10px) saturate(120%); -webkit-backdrop-filter: blur(10px) saturate(120%);
+  animation: cp-fade var(--nexus-motion-fast) var(--nexus-motion-ease) both;
+}
+
+.cp-panel {
+  position: relative; width: 100%; max-width: 40rem; overflow: hidden;
+  border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-lg);
+  background: linear-gradient(160deg, var(--nexus-color-bg-1), var(--nexus-color-bg-2));
+  box-shadow: var(--nexus-shadow-lg), var(--nexus-shadow-glow);
+  animation: cp-rise var(--nexus-motion-base) var(--nexus-motion-ease) both;
+}
+.cp-panel::before {
+  content: ''; position: absolute; inset: 0 0 auto 0; height: 2px;
+  background: linear-gradient(90deg, var(--nexus-color-brand), var(--nexus-color-accent-1), transparent);
+}
+
+.cp-search {
+  display: flex; align-items: center; gap: var(--nexus-space-2);
+  padding: var(--nexus-space-3) var(--nexus-space-4);
+  border-bottom: 1px solid var(--nexus-color-border-subtle);
+}
+/* 焦点在输入框里时给整行一道底边，而不是给 input 画 outline——
+   input 是透明的，给它画环会在视觉上切碎这一行。 */
+.cp-search:focus-within { border-bottom-color: var(--nexus-color-accent-2-ink); }
+.cp-searchIcon { flex: none; color: var(--nexus-color-fg-3); }
+.cp-input {
+  flex: 1 1 auto; min-width: 0; padding: var(--nexus-space-1) 0;
+  border: 0; outline: none; background: transparent;
+  color: var(--nexus-color-fg-1);
+  font-family: var(--nexus-font-sans); font-size: var(--nexus-font-size-14);
+}
+.cp-input::placeholder { color: var(--nexus-color-fg-3); }
+
+.cp-list {
+  max-height: min(56vh, 26rem); overflow-y: auto; overscroll-behavior: contain;
+  padding: var(--nexus-space-2);
+}
+.cp-block + .cp-block { margin-top: var(--nexus-space-2); }
+.cp-blockHead {
+  padding: var(--nexus-space-2) var(--nexus-space-2) var(--nexus-space-1);
+  color: var(--nexus-color-fg-3); font-size: var(--nexus-font-size-11); letter-spacing: .08em;
+}
+.cp-row {
+  position: relative;
+  display: flex; align-items: center; justify-content: space-between; gap: var(--nexus-space-3);
+  min-height: 2.25rem; padding: var(--nexus-space-2) var(--nexus-space-3);
+  border-radius: var(--nexus-radius-md);
+  color: var(--nexus-color-fg-2); cursor: pointer;
+}
+.cp-rowActive {
+  color: var(--nexus-color-fg-1);
+  background: color-mix(in srgb, var(--nexus-color-brand) 12%, transparent);
+  box-shadow: inset 2px 0 0 var(--nexus-color-accent-1); /* 颜色不是唯一通道：左边条 + 底色两处一起变 */
+}
+.cp-label { min-width: 0; font-size: var(--nexus-font-size-13); }
+/* 命中字符：只加粗 + 换 ink 色，不加背景块——背景块会把"顺序敏感"的匹配读成"高亮一整段"。 */
+.cp-hit { background: transparent; color: var(--nexus-color-accent-2-ink); font-weight: 650; }
+.cp-hint {
+  flex: none; color: var(--nexus-color-fg-3);
+  font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11);
+}
+
+.cp-empty { padding: var(--nexus-space-6) var(--nexus-space-5); text-align: center; }
+.cp-emptyTitle { color: var(--nexus-color-fg-1); font-size: var(--nexus-font-size-14); font-weight: 600; }
+.cp-emptyNote {
+  max-width: 34ch; margin: var(--nexus-space-2) auto 0;
+  color: var(--nexus-color-fg-3); font-size: var(--nexus-font-size-12); line-height: 1.55;
+}
+
+.cp-foot {
+  display: flex; align-items: center; gap: var(--nexus-space-4);
+  padding: var(--nexus-space-2) var(--nexus-space-4);
+  border-top: 1px solid var(--nexus-color-border-subtle);
+  color: var(--nexus-color-fg-3); font-size: var(--nexus-font-size-11);
+}
+.cp-footGroup { display: inline-flex; align-items: center; gap: var(--nexus-space-1); }
+.cp-count { margin-left: auto; font-family: var(--nexus-font-mono); }
+
+@keyframes cp-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes cp-rise { from { opacity: 0; transform: translateY(-6px) scale(.995); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .cp-backdrop, .cp-panel { animation: none; }
+}
+
+@media (max-width: 640px) {
+  .cp-backdrop { padding-top: var(--nexus-space-6); }
+  .cp-list { max-height: 58vh; }
+  /* 390 这档把文字让给键帽：胶囊收成「放大镜 + ⌘K」，占位从 5.5rem 掉到 4.5rem */
+  .cp-chipText { display: none; }
+}
+
+@media (forced-colors: active) {
+  .cp-panel { border-color: CanvasText; }
+  .cp-rowActive { outline: 2px solid Highlight; outline-offset: -2px; }
+  .cp-hit { color: Highlight; }
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────
+   §CACHE-2 /admin/ai-cache 缓存读数页（`app/admin/ai-cache/*`）。完全复用 §SC-40 的
+   `.gw-` 视觉原语（卡片 / KPI / 状态灯 / 骨架 / pill / ident），这里只补三样它独有的：
+   - 分段条：一根两段的水平条，表达"份额"，两段都用 token-mix，不写死 hex；
+   - 账目行 / 账目网格：键值两列，数字走 tabular-nums 不左右晃；
+   - 判定卡：左侧一道语义色条（借色不写死），文字仍中性 fg-*，浅色也过 AA。
+   零新增颜色 token、零 CSS Module；reduced-motion 下入场动画归零。
+   ───────────────────────────────────────────────────────────────────────── */
+.cx-verdict {
+  position: relative; overflow: hidden;
+  border: 1px solid var(--nexus-color-border-subtle);
+  border-left: 3px solid var(--nexus-color-fg-3);
+  border-radius: var(--nexus-radius-lg);
+  background: linear-gradient(155deg, var(--nexus-color-bg-1), var(--nexus-color-bg-2));
+  padding: var(--nexus-space-5);
+  box-shadow: var(--nexus-shadow-md);
+  animation: gw-rise var(--nexus-motion-slow) var(--nexus-motion-ease) both;
+}
+.cx-verdict[data-ai-cache-verdict='good'] { border-left-color: var(--nexus-color-success); }
+.cx-verdict[data-ai-cache-verdict='warm'] { border-left-color: var(--nexus-color-warn); }
+.cx-verdict[data-ai-cache-verdict='cold'] { border-left-color: var(--nexus-color-danger); }
+.cx-verdictHead { display: flex; align-items: center; flex-wrap: wrap; gap: var(--nexus-space-2); }
+.cx-verdictHeadline { font-size: var(--nexus-font-size-14); font-weight: 600; color: var(--nexus-color-fg-1); }
+.cx-verdictDetail { margin-top: var(--nexus-space-3); color: var(--nexus-color-fg-2); font-size: var(--nexus-font-size-13); line-height: 1.55; }
+
+.cx-bar {
+  display: flex; overflow: hidden;
+  margin-top: var(--nexus-space-4);
+  height: 0.625rem; border-radius: var(--nexus-radius-full);
+  background: var(--nexus-color-bg-3);
+}
+.cx-barFirst {
+  background: linear-gradient(90deg, var(--nexus-color-brand), var(--nexus-color-accent-1));
+  transition: width var(--nexus-motion-base) var(--nexus-motion-ease);
+}
+.cx-barSecond {
+  background: color-mix(in srgb, var(--nexus-color-fg-3) 32%, transparent);
+  transition: width var(--nexus-motion-base) var(--nexus-motion-ease);
+}
+.cx-barEmpty { margin-top: var(--nexus-space-4); color: var(--nexus-color-fg-3); font-size: var(--nexus-font-size-12); }
+
+.cx-legend {
+  display: flex; flex-wrap: wrap; gap: var(--nexus-space-4);
+  margin-top: var(--nexus-space-2);
+  color: var(--nexus-color-fg-2); font-size: var(--nexus-font-size-12);
+}
+.cx-legendItem { display: inline-flex; align-items: center; gap: var(--nexus-space-2); }
+.cx-legendDotFirst, .cx-legendDotSecond {
+  display: inline-block; width: 8px; height: 8px; border-radius: var(--nexus-radius-full); flex: none;
+}
+.cx-legendDotFirst { background: linear-gradient(90deg, var(--nexus-color-brand), var(--nexus-color-accent-1)); }
+.cx-legendDotSecond { background: color-mix(in srgb, var(--nexus-color-fg-3) 45%, transparent); }
+
+.cx-ledgerGrid {
+  margin-top: var(--nexus-space-4);
+  display: grid; gap: var(--nexus-space-2) var(--nexus-space-6);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+.cx-ledgerRow {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--nexus-space-3);
+  border-top: 1px solid var(--nexus-color-border-subtle);
+  padding-top: var(--nexus-space-2); font-size: var(--nexus-font-size-13);
+}
+.cx-ledgerLabel { color: var(--nexus-color-fg-3); }
+
+.cx-note {
+  margin-top: var(--nexus-space-3);
+  border-left: 2px solid var(--nexus-color-accent-1); border-radius: var(--nexus-radius-sm);
+  background: color-mix(in srgb, var(--nexus-color-accent-1) 6%, var(--nexus-color-bg-1));
+  padding: var(--nexus-space-2) var(--nexus-space-3);
+  color: var(--nexus-color-fg-2); font-size: var(--nexus-font-size-12); line-height: 1.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cx-verdict { animation: none; }
+  .cx-barFirst, .cx-barSecond { transition: none; }
+}
+
+@media (forced-colors: active) {
+  .cx-verdict { border-left-color: Highlight; }
+  .cx-barFirst { background: Highlight; }
+  .cx-barSecond { background: CanvasText; }
 }

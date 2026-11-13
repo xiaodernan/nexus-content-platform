@@ -182,3 +182,51 @@ call2 hit ：wall   71.4ms · cached 22846（= tokensIn，100% 复用）· laten
 5. **`NEXUS_LLM_COMPLETION_CACHE_URL` 仍默认关闭**：本机 `.env` 已开（gitignored），
    仓库默认保持关闭，因为启用需要真 Redis；连接失败 fail-open。
 6. **未 push**（约定）。
+
+## Amendment（同日收尾）：把三本账做成一块能看的界面
+
+前面几节把「缓存到底有没有生效」拆成了三本互不冒充的账，并给了端点
+`GET /v1/ai/cache-stats`。但**判据没有仪表就只是判据**：运维仍然要 curl 才知道这一台
+此刻是什么状态。而用户连着两次问的正是「为什么命中率这么低」——那个问题的正确答法
+不是一句解释，是一块他能自己看的界面。
+
+### 新增
+
+- `apps/web/src/server/ai/cache-stats.ts`：跨进程取 `/v1/ai/cache-stats`。
+  **逐字段校验形状**，不用 `as`：`as` 只是让编译器闭嘴，真到了字段缺失那天，
+  `undefined` 会一路传进渲染变成 `NaN%`——那不是"读数不对"，那是**编了一个读数**。
+  三种失败分开说（没配地址 / 连不上 / 形状不认识），合并成一句"读取失败"等于让人从零查。
+- `apps/web/src/app/admin/ai-cache/`：页面 + 面板 + `cache-view.ts`（展示判据抽成纯函数）。
+- `apps/web/src/app/api/admin/ai-cache/route.ts`：同一道 role=admin 门 + `no-store`。
+- `AdminNav` 加一格「缓存读数」（名单仍收在 `LINKS` 一处）。
+- `.cx-*` 样式段：分段条 / 账目网格 / 判定卡。零 hex、零新增颜色 token。
+
+### 四条刻意的诚实
+
+1. **`appCache: null`（缓存没启用）单独一档**，绝不画成 `hits/misses` 四个 0。
+   这一条是整片的核心口径在界面上的最后一次落地。
+2. **没有样本时不画条**：一根空条会被读成 0%。`Bar` 在 `first === null` 时渲染
+   「没有样本，不画比例」而不是一个宽度 0 的 div。
+3. **比例的分母写进正文**：`provider` 那个命中率旁边直接写「只算报过账的 N 次
+   （M prompt tokens），不是全部 T 次」。
+4. **前缀复用率说的是「请求份额」不是「字节份额」**：96% 的含义是"每 100 次请求里有
+   96 次建立在已见过的稳定前缀上"，不是"提示词有 96% 的字节被复用"。后者要靠
+   `npm run audit:prompt-prefix`。把这两件事混成一句，就是给一个正确的数字配了一句错话。
+
+### 判据
+
+```
+apps/web/test/admin-ai-cache-view.test.ts          21 条（null≠0、分段和恒 100、三格文案、
+                                                          判定阈值闭区间、四档各有话说）
+apps/web/test/admin-ai-cache-visual-style.test.ts  11 条（门禁/轮询/门面类/类都有定义/
+                                                          token 全在 tokens.css/零 hex/
+                                                          null 独立分支/空条不画/钩子守恒）
+verify:no-raw-tailwind OK   verify:census OK（1774 类全部有引用方）   tsc -p apps/web OK
+```
+
+### 仍欠
+
+1. **没有真机浏览器读数**：面板的 4s 轮询、390 下的条形图折行、两主题对比都没有截图。
+2. **没有跨实例聚合**：这一页只看一台进程（页脚已写明）。多实例要各看各的，或用
+   Prometheus 一类的东西聚合——那是另一个工程，不在这一片。
+3. **分段条的过渡动画没有在真机上量过掉帧**；`prefers-reduced-motion` 已归零。

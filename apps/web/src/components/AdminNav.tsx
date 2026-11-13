@@ -35,6 +35,8 @@ const LINKS = [
   { key: 'observability', href: '/admin/observability', label: '观测' },
   { key: 'gateway', href: '/admin/gateway', label: '网关态势' },
   { key: 'discover-cache', href: '/admin/discover-cache', label: '发现页缓存' },
+  { key: 'ai-cache', href: '/admin/ai-cache', label: '缓存读数' },
+  { key: 'dead-letters', href: '/admin/dead-letters', label: '死信巡检' },
   { key: 'health', href: '/admin/health', label: '健康总览' },
 ] as const;
 

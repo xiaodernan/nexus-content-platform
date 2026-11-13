@@ -7,8 +7,15 @@ import { describe, expect, it } from 'vitest';
  * §FE-71 `app/layout.tsx` `.rx-` 门面化——根布局——**静态那一寸**。
  * ThemeScript（同步内联、先于首屏读取 theme）、metadata、viewport 全部一字不动。
  *
- * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `368e57a553c733f940737e533b66a353c50ae58a4deb6fb7b31c3108ff633205` 与 HEAD 字节一致。
+ * **恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）。
+ *
+ * 2026-11-13 / §CP-1：这条哈希**被有意改过**一次，改的理由写在下面，不许悄悄再改。
+ * 命令面板要"哪一页都能按"，唯一挂得住的地方就是根布局；于是 `body` 里多了一行
+ * `<CommandPalette />`（在 `{children}` 之后、`<ThemeToggle />` 之前）。
+ * 除此之外布局一字未动——上一条 `§FE-71` 的判断（ThemeScript 先于内容、metadata 原样）
+ * 仍然逐条成立，所以这不是"放宽门槛"，而是"门槛抓到的变化确实是这次意图"。
+ * 旧的 `368e57a5…` 是新增那一行之前的读数；现在的读数是 `42ab66aa…`。
+ * 「往布局里塞东西」本该是最难的改动，这一格就是它难的地方。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/app/layout.tsx');
@@ -85,9 +92,19 @@ describe('§FE-71 /app/layout 根布局', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：368e57a553c733f940737e533b66a353c50ae58a4deb6fb7b31c3108ff633205）', () => {
+  it('剥 className 后全文 SHA256 守恒（§CP-1 起：42ab66aa29b4cd50827de6447fa2a22953f44e4dade039e09759aef4248e814a）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '368e57a553c733f940737e533b66a353c50ae58a4deb6fb7b31c3108ff633205',
+      '42ab66aa29b4cd50827de6447fa2a22953f44e4dade039e09759aef4248e814a',
     );
+  });
+
+  it('§CP-1 命令面板挂在 children 之后、主题开关之前（浮层顺序 = 遮挡顺序）', () => {
+    expect(main).toContain("import { CommandPalette } from '@/components/CommandPalette'");
+    const childrenAt = main.indexOf('{children}');
+    const paletteAt = main.indexOf('<CommandPalette />');
+    const toggleAt = main.indexOf('<ThemeToggle />');
+    expect(childrenAt).toBeGreaterThan(0);
+    expect(paletteAt).toBeGreaterThan(childrenAt);
+    expect(toggleAt).toBeGreaterThan(paletteAt);
   });
 });
