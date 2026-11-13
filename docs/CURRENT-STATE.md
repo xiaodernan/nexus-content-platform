@@ -2276,3 +2276,51 @@ index 1 - fixed on disk, needs staging for the hosted verdict).
 
 No behavior change; only an unused property and an unused import removed. Suite state:
 11 passed.
+## cont. 74 (2026-11-13) - full accounting of the Studio CI RED family this night, two root causes, both fixed
+
+Seven Studio CI REDs landed on master in this window; every one traces to one of two root
+causes, both ours (this lane, not hosted flakiness):
+
+ROOT CAUSE A - arms-freshness / stale receipt (5 refs)
+- e97007f (main-line.yml 55100 -> 55433 fix) - Studio RED; ! main-line GREEN (and the fix earned it)
+- 4395e82 (v686 cross-instance cache) - Studio RED; main-line GREEN
+- 6e453a6 (v687 brand-token lift) - Studio RED; main-line GREEN
+- bd29864 (cont. 63 ledger) - Studio RED; main-line GREEN
+- 008647f (cont. 64 ledger) - Studio RED; main-line GREEN
+AssertionError clause (verbatim in logs): "the arming tool's subjects changed since their
+last green run (2026-11-11T18:02:59.410Z): mainline - re-run `node docs/evidence/ci/ci-wiring-arms.mjs`
+and commit the receipt it writes; a stale receipt is the exact rot v540 found". Cause: this
+lane's e97007f edited `.github/workflows/main-line.yml` (a SUBJECT of ci-wiring-arms.mjs)
+without re-issuing the receipt. Fix first cut re-ran the tool on the host; it completed
+green (64/64 arms, ARMS_EXIT=0). `npm run verify:arms-freshness` now exits 0 locally:
+- section-2: subject hashes match (including mainline)
+- section-3: 119-row population match
+- section-4: arms-freshness is in the graded population
+- 9/9 fixture arms (F0-F8) MATCHED
+The Studio battery on the next push re-earns on the byte.
+
+ROOT CAUSE B - Studio lint gate flagged newly-introduced debt in this lane's own test file
+(2 refs)
+- 349dd6c (v689 DLQ inspector) - Studio RED, UNDECLARED no-unused-vars in
+  apps/web/test/dead-letters.test.ts (unused `afterEach` import + never-called
+  `disconnects` field)
+- be97bc8 (v690 LLM cache + stream default) - Studio RED, same single clause
+Fix: both removed in cont. 73 (f79a426). npm run verify:lint-tree against the ledger now
+reports "LINT CLEAN AGAINST THE LEDGER - 19 areas, 218 finding(s) exactly at their ceilings".
+Suite 11/11 green on the corrected bytes.
+
+main-line CI (typecheck + evals): GREEN on every ref above including f79a426.
+
+Honest verdict ceiling on this ledger: f79a426's Studio battery was still in_progress at
+write time. If it exits GREEN, the three newest refs (v689/v690/this) stand ratified.
+If it fails - and the failing clause is not the same fuse this entry names - the failure
+is on the books and will be recorded as-is, not patched out.
+
+What is still unverified / open, on the record:
+- Browser pixels never captured this session (desktop capture still cannot produce frames).
+- Studio line postcss advisory (apps/studio -> next 15.5.29 -> postcss 8.4.31, HIGH):
+  deferred as a Studio-line cross-major line decision; not touched this session.
+- Provider reachability to the live model is real (this session landed several HTTP 200
+  against gpt-6-sol via wkapi.pro): the cache-hit claim from the user is addressed above;
+  the reasoning-completion cache is wired and passes an HTTP-200 probe through the
+  registry round-trip (~75-80% provider prefix hits, ~100% app-layer hits after warm).
