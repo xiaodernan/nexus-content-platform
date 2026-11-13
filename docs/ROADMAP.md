@@ -11810,3 +11810,24 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
    变异两臂在 automation suites 中均保持 default-0， 249 passed / 14 skipped 无回归。
 - **验证（本机）**：tsc apps/web exit 0；ai-service suite 249 passed / 14 skipped；schema JSON 已同步导出。
 - **仍欠**：cache/reasoning 渲染在 admin 界面（cont. 80 留下的到产品 handoff）。
+## v693 - Live LLM-path probe landed (2026-11-13, ADR 0125; Spring Cloud Blueprint P0 first cut)
+
+- Did: `scripts/llm-path-live-probe.mts` (`npm run perf:llm-live`). Three measurement groups:
+  A cold unique-tail calls (app cache forced MISS, provider prefix cache gets its chance),
+  B warm repeat pair (app cache must replay), C `/healthz` llmCache counter delta.
+- Measured (three rounds, 27 real calls, 0/27 errors): the app-level Redis completion cache is the
+  deterministic saver - B#2 = 9-17ms vs B#1 = 3.1-10.5s; `/healthz` delta is exactly +1 hit / +7 miss
+  per round, consistent with the probe construction. Provider prefix cache depends on distributor
+  channel draw: round 1 cached=18722/18778 (~99.7% prefix hit, five consecutive same-prefix calls),
+  rounds 2-3 cached=0 (channel rotation). Same text reports prompt_tokens {323, 4699, 4826..18778}
+  across backends (hidden prefix injection or divergent accounting; this repo cannot verify - ADR 0125
+  records it as observation, not conclusion).
+- Restart lesson: an instance started earlier did not re-read `.env`, so `/healthz` did not report
+  llmCache and B group's second call really hit the provider at 5.94s. After restart:
+  llmCache.enabled=true backend=redis shared=true; B#2=17ms (cont. 87). The deployment checklist must
+  include "reload env / restart the service".
+- Embeddings honesty note: wkapi.pro reports 503 model_not_found for text-embedding-3-small on this
+  group right now; the web embed path falls back to deterministic embeddings. Semantic search honesty
+  is NOT claimed.
+- No assertions in the probe (sec. 146/147 lesson): numbers land in ADR/CURRENT-STATE; pass/fail stays
+  out of the path. p50 across rounds 2.85s-6.9s is channel draw, not a stable p50 claim.

@@ -2614,3 +2614,23 @@ cache hit ratio for cataloged design-edit prompt - in=8791 cached=8718 (99.1%) o
 
 App-level Redis completion cache remains the deterministic path. Main-line GREEN on master lineage
 since cont. 79.
+## cont. 87 (2026-11-13) - live LLM probe + ADR 0125; ai-service restarted to load completion cache
+
+Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group with channel rotation):
+
+- `scripts/llm-path-live-probe.mts` (`npm run perf:llm-live`). Round 1 (service without the cache env):
+  p50 5.5s / p95 14.5s; same-prefix calls cached=18722/18778 from call 2 on (~99.7%); the warm pair
+  second call went to the provider at 5.94s because the running instance never loaded the env.
+- Restarted the project-owned uvicorn on 127.0.0.1:3200 (this repo's own dev service; the old chain
+  was pids 9284/32836/8068). `/healthz` now reports llmCache {enabled, redis, shared, namespace
+  nexus:llmc}. Round 2: B#2=17ms; round 3: B#2=9ms; /healthz deltas exactly +1 hit / +7 miss per round.
+- Round 3 healthy-channel draw: p50 2.85s, p95 5.87s, 6 calls, 0 failures. Round 2 draw: p50 ~6.9s,
+  p95 40.7s (channel failover tail), 0 failures. Error rate across all 27 calls: 0.0%.
+- prefix-cache on this distributor is channel-roulette (round 1 = 83.1% aggregate hit; rounds 2-3 =
+  0%); the app-level Redis cache is the deterministic saver (9-17ms warm, full stop). Usage reporting
+  differs per backend (in=323..18780) - documented as observation in ADR 0125, not as fact.
+- Embedding honesty note: provider returns 503 model_not_found for text-embedding-3-small right now;
+  web falls back to deterministic embeddings; semantic search not claimed.
+- Studio CI: main-line f66f874 SUCCESS; CI orbit for f66f874 / e1021e8 / f5cee92 still in flight at
+  record time - do not claim green until the runner says so.
+- Working tree: probe script + package.json script + ADR 0125 + this ledger land as cont. 87.
