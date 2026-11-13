@@ -51,8 +51,8 @@ export function ProjectDescriptionEditor({
 
   if (!open) {
     return (
-      <div className="flex items-center gap-2" data-project-desc-row={projectId}>
-        <span className="text-11 text-fg-3" data-project-desc={initialDescription ? 'set' : 'empty'}>
+      <div className="adp-row" data-project-desc-row={projectId}>
+        <span className="pe-hint" data-project-desc={initialDescription ? 'set' : 'empty'}>
           {initialDescription ?? '没有简介'}
         </span>
         <button
@@ -61,7 +61,7 @@ export function ProjectDescriptionEditor({
             setNotice(null);
             setOpen(true);
           }}
-          className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11 text-fg-2 hover:bg-bg-2"
+          className="adp-btnSm"
           data-project-desc-edit={projectId}
         >
           {initialDescription ? '改简介' : '写简介'}
@@ -71,22 +71,22 @@ export function ProjectDescriptionEditor({
   }
 
   return (
-    <div className="flex flex-col gap-2" data-project-desc-row={projectId}>
+    <div className="pe-root" data-project-desc-row={projectId}>
       <textarea
         value={value}
         onChange={(e) => setValue(e.target.value)}
         rows={2}
         maxLength={500}
         placeholder="一句话说明这个项目是什么（会作为公开页的 og:description）"
-        className="rounded-[var(--nexus-radius-sm)] bg-bg-1 px-2 py-1 text-12 text-fg-1"
+        className="pe-input"
         data-project-desc-input={projectId}
       />
-      <div className="flex items-center gap-2">
+      <div className="adp-row">
         <button
           type="button"
           disabled={busy}
           onClick={() => void save(value)}
-          className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg disabled:opacity-50"
+          className="pe-saveBtn"
           data-project-desc-save={projectId}
         >
           {busy ? '保存中…' : '保存简介'}
@@ -95,7 +95,7 @@ export function ProjectDescriptionEditor({
           type="button"
           disabled={busy}
           onClick={() => void save('')}
-          className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11 text-fg-2 hover:bg-bg-2 disabled:opacity-40"
+          className="adp-btnSm"
           data-project-desc-clear={projectId}
         >
           清空
@@ -108,15 +108,15 @@ export function ProjectDescriptionEditor({
             setNotice(null);
             setOpen(false);
           }}
-          className="text-11 text-fg-3 hover:text-fg-2 disabled:opacity-40"
+          className="adp-cancelBtn"
           data-project-desc-cancel={projectId}
         >
           取消
         </button>
-        <span className="font-mono text-11 text-fg-3">{value.length}/500</span>
+        <span className="pe-monoHint">{value.length}/500</span>
       </div>
       {notice ? (
-        <p className="text-11 text-fg-2" data-project-desc-notice={projectId}>
+        <p className="adp-note" data-project-desc-notice={projectId}>
           {notice}
         </p>
       ) : null}
