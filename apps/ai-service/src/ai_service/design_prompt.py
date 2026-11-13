@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from typing import Any
 
@@ -159,33 +160,19 @@ def _agent_note(request: dict[str, Any]) -> str:
     )
 
 
-def build_prompt(request: dict[str, Any]) -> tuple[str, str]:
-    """拼发给模型的 user 提示。
+def _stable_block(request: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+    """构造 payload 的**稳定块**（同项目逐字节不变的那一段）。
 
-    §68 之后**线上没有整份文档**：web 侧装配出预算内的目录再发过来。
-    所以这里优先吃 `designIndex` / `codeDigest`；只有旧客户端或测试才会还带 `document`，
-    那种情况走 `document-fallback` 并把这个事实写进 payload——降级要看得见（§159）。
+    单独成函数有两个理由：
+    1. `build_prompt` 用它一次，`stable_block_digest()` 也要拿同一份字节——
+       两处各拼一遍必然漂移，而漂移就等于缓存读数在说谎；
+    2. 稳定块是"前缀缓存能不能命中"的全部内容，值得有一个可以单独测的名字。
     """
     context = request.get("context") or {}
     index = context.get("designIndex") or {}
     code = context.get("codeDigest") or {}
     document = context.get("document") or {}
-    page_id = context.get("pageId") or document.get("activePageId") or ""
-
-    # ── 前缀缓存序（§CACHE-2，2026-11-13 实测后重排）────────────────────────────
-    # provider 的自动前缀缓存按**字节前缀**命中：两轮请求从第一个不同字节起，后面全部作废。
-    # 所以 payload 必须"先稳定、后易变"，否则再大的目录也进不了缓存：
-    #   ① 稳定块：同项目逐字节不变的大目录（pages/frames/components/assets/interactions/
-    #      tokens/totals）——它占体量 95% 以上，是最值得缓存的部分；
-    #   ② 现场块：每轮会变的 pageId/selection/selectionDigest/annotations/recentChanges/corpus；
-    #   ③ 诉求块：intent/prompt/variants。
-    # 旧序把 selection/selectionDigest 放在目录之前，`scripts/prompt-prefix-audit.py` 实测
-    # 连续两轮前缀复用率只有 0.45%（≈111 字节），等于整份目录从未进过缓存；重排后见同脚本读数。
-    payload: dict[str, Any] = {}
-    # 这个进程自己又裁的每一刀，最后一起写进 promptTruncated（§159：短了要说，别默默变短）
     truncations: list[str] = []
-
-    # ── ① 稳定块 ──
     stable: dict[str, Any] = {}
     if _has_catalog(index):
         stable["contextSource"] = "designIndex"
@@ -217,6 +204,48 @@ def build_prompt(request: dict[str, Any]) -> tuple[str, str]:
     else:
         stable["contextSource"] = "none"
         stable["note"] = "既没有目录也没有文档：这一轮模型看不到项目内容，只能按诉求文字回答（应当说明做不了）"
+    return stable, truncations
+
+
+def stable_block_digest(request: dict[str, Any]) -> str:
+    """稳定块的短摘要（16 位十六进制）。
+
+    这是 §CACHE-2 里唯一**可自证**的缓存口径：同一摘要重复出现 =
+    这一轮的前缀与上一轮逐字节相同 = provider 只要做前缀缓存就必然能命中。
+    与网关自报的 `cached_tokens` 无关，也不受它抖动影响（ADR 0262 的 L4 反证）。
+    """
+    stable, _ = _stable_block(request)
+    encoded = json.dumps(_compact(stable), ensure_ascii=False, separators=(",", ":"), default=str)
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:16]
+
+
+def build_prompt(request: dict[str, Any]) -> tuple[str, str]:
+    """拼发给模型的 user 提示。
+
+    §68 之后**线上没有整份文档**：web 侧装配出预算内的目录再发过来。
+    所以这里优先吃 `designIndex` / `codeDigest`；只有旧客户端或测试才会还带 `document`，
+    那种情况走 `document-fallback` 并把这个事实写进 payload——降级要看得见（§159）。
+    """
+    context = request.get("context") or {}
+    index = context.get("designIndex") or {}
+    code = context.get("codeDigest") or {}
+    document = context.get("document") or {}
+    page_id = context.get("pageId") or document.get("activePageId") or ""
+
+    # ── 前缀缓存序（§CACHE-2，2026-11-13 实测后重排）────────────────────────────
+    # provider 的自动前缀缓存按**字节前缀**命中：两轮请求从第一个不同字节起，后面全部作废。
+    # 所以 payload 必须"先稳定、后易变"，否则再大的目录也进不了缓存：
+    #   ① 稳定块：同项目逐字节不变的大目录（pages/frames/components/assets/interactions/
+    #      tokens/totals）——它占体量 95% 以上，是最值得缓存的部分；
+    #   ② 现场块：每轮会变的 pageId/selection/selectionDigest/annotations/recentChanges/corpus；
+    #   ③ 诉求块：intent/prompt/variants。
+    # 旧序把 selection/selectionDigest 放在目录之前，`scripts/prompt-prefix-audit.py` 实测
+    # 连续两轮前缀复用率只有 0.45%（≈111 字节），等于整份目录从未进过缓存；重排后见同脚本读数。
+    payload: dict[str, Any] = {}
+    # ── ① 稳定块（与 stable_block_digest 同一份字节，不各拼一遍）──
+    stable, stable_truncations = _stable_block(request)
+    # 这个进程自己又裁的每一刀，最后一起写进 promptTruncated（§159：短了要说，别默默变短）
+    truncations: list[str] = list(stable_truncations)
     # 剔空只作用在稳定块：现场块里的 `missing: []` / `dropped: []` 是"这次没有"的**答案**，
     # 不是空话；把答案删掉会让模型分不清"没有"和"没问"。
     payload.update(_compact(stable))

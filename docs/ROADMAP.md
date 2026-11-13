@@ -13343,8 +13343,12 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
   L2（只改尾部 40 B）98.7%、L3（第 96% 处不同）39.6%、**L4（内容零重叠）仍报 5248**。
   **结论：网关自报 `cached_tokens` 不可作精密仪器**（同内容两次 `prompt_tokens` 还差 500），
   本项目只把可复算的字节前缀复用率当对外指标；探针按设计判 FAIL，不粉饰。
-- **流式澄清**：真机实测流式**有** usage（`prompt_tokens=7663 / completion_tokens=36`，34 个 SSE 帧），
-  只缺 `prompt_tokens_details.cached_tokens` 一项。ADR 0123 后被读成「流式拿不到账本」是误读，流式保留。
+- **流式澄清（本节初稿写错过一次，已按实测改）**：初稿写「流式只缺 `cached_tokens` 一项」，
+  过强。真机实测流式**有** usage（`prompt_tokens=7663 / completion_tokens=36`，34 个 SSE 帧），
+  而 `cached_tokens` 的缺席规律是**冷前缀不报、暖前缀照报**：
+  `stream call1(冷)` 无 `prompt_tokens_details`；`stream call2(暖, 同前缀)` 报
+  `cached_tokens=7168`（7168/7410 = 96.7%）。与「字节前缀复用率 96%」吻合，也与
+  「prefix cache 有最小可缓存长度」一致。ADR 0123 后被读成「流式拿不到账本」是误读，流式保留。
 - **应用级缓存真启用**（Redis `nexus:llmc`）+ **命中如实记账**（`CachedLlm.complete`）：
   命中时 `cached_tokens = 整段输入`、`latency_ms = 查缓存真实耗时`，不再原样回放当初那份
   Completion（否则账本把没花的 token、没等的 1.6 秒再报一遍）。
@@ -13353,6 +13357,22 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
 - **token 效率**：契约夹具 8486 B → 7691 B（**-9.4%**）。
 - **判据升级**：`test_prompt_order.py` 从「键顺序」改为直接断言连续两轮公共前缀 ≥90%，
   另加 system 跨 Agent 恒等、同请求重建字节相同两条。ai-service 全量 **296 passed / 11 skipped**。
-- **仍欠 / 未 push**：网关 `cached_tokens` 抖动，不用于任何对外命中率承诺；流式下该字段缺席而契约
-  仍 `default(0)`，分不出「没报」与「0」；`cachedTokens` 尚未在 UI 渲染；
+- **第二片：读数可观测化（同一片收尾）**。上面那句「网关数字不可信、只认字节前缀率」是判据，
+  但没有仪表就只是判据。补三本账：
+  - `Completion.cache_reported`（`providers/base.py`，默认 `False` = 「没报」而非「报了 0」）；
+    `openai_compatible._usage_details` 返回三元组，认三种形状
+    （`prompt_tokens_details.cached_tokens` / `prompt_cache_hit_tokens` / 都没有）。
+  - `cache_telemetry.py`：`PrefixReuseTracker`（有界 LRU 512，算 `reused/requests`）+
+    `ProviderCacheLedger`（**分母只算报过账的样本**）+ `CacheTelemetry.snapshot()`。
+    零样本时给 **`null` 不给 `0`**——0% 是一句具体的谎，暗示「试过但全没命中」。
+    存储纪律：只留十六进制摘要，不留 prompt 正文；进程内，重启即失，不声称跨实例。
+  - `GET /v1/ai/cache-stats` 暴露三本账。**不塞进 `/healthz`**：healthz 有 1.5 s 预算、
+    被 web 每页探测，塞进去等于让运维面板拖慢探活。
+  - 真机读数：`prefix.reuseRate=0.5`、`appCache hits=1 misses=1`、
+    `provider.reported=2 missing=0 reportedHitRate=0.949`。
+    **`missing=0` 直接推翻了本节初稿的流式结论**，上面那条已据实改写。
+  - `test_cache_telemetry.py` 9 条；ai-service 全量 **305 passed / 11 skipped**。
+- **仍欠 / 未 push**：网关 `cached_tokens` 抖动，不用于任何对外命中率承诺；
+  **web 契约 `UsageSchema.cachedTokens` 仍是 `default(0)`**（ai-service 已带 `cache_reported`，
+  跨服务那一维没接上，分不出「没报」与「0」）；`cachedTokens` 尚未在 UI 渲染；
   96% 的剩下 4% 是每轮必然变的现场与诉求（信息本身，压不掉）。

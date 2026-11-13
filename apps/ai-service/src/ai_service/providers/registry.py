@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from ..cache_telemetry import CacheTelemetry
 from ..config import Settings
 from ..resilience import BreakerConfig, CircuitBreaker
 from .liveness import EmbeddingLiveness, EmbeddingProber
@@ -36,6 +37,9 @@ class Registry:
     ) -> None:
         self._settings = settings
         self._liveness = liveness or EmbeddingLiveness()
+        # §CACHE-2：缓存读数挂在 Registry 上而不是模块全局——每个 app 一份，测试之间天然隔离。
+        # 两个数：前缀复用率（我们自己的字节算的）与 provider 报账覆盖度（报没报 cached）。
+        self._cache_telemetry = CacheTelemetry()
         # v682 断路器：默认 disabled（不构造、零回归）；显式开启才建实例并真注入 provider，
         # 让 complete() 的门卫真的读它——避开 Java 坑①"配了 YAML 却没人取用、静默跑默认值"。
         # Settings 旋钮经 BreakerConfig 真变成运行实例，不是摆设（ADR 0095 声称必须有门读）。
@@ -191,6 +195,14 @@ class Registry:
         if "demo" in statuses:
             return "demo"
         return "unavailable"
+
+    def cache_telemetry(self) -> CacheTelemetry:
+        """§CACHE-2 的缓存读数（前缀复用 + provider 报账覆盖度）。
+
+        它不进 `/healthz`：healthz 有 1.5s 预算、被 web 每次探测，读数属于运维面，
+        放独立端点 `/v1/ai/cache-stats`，由需要的人来读。
+        """
+        return self._cache_telemetry
 
     def llm_cache_state(self) -> dict[str, Any] | None:
         """应用级 LLM 完成缓存的报文状态（可观测性面板读用）。

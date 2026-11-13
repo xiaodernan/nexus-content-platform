@@ -65,7 +65,7 @@ L4 P0,other    P0: prompt=13234 cached=None
 **判定**：L4 不可能成立（第 2 字节就分叉，前缀为 0），故 `cached_tokens` 不可作为精密仪器；
 L2 vs L3 又证明前缀缓存机制本身有效。故本项目只把**字节前缀复用率**当对外指标。
 
-## 4. 流式有 usage，只缺 cached 一项
+## 4. 流式有 usage；`cached_tokens` 是「冷前缀不报」不是「流式不报」
 
 ```
 [non-stream] status=200  usage = {"prompt_tokens": 21494, "completion_tokens": 36, "total_tokens": 21530}
@@ -73,6 +73,34 @@ L2 vs L3 又证明前缀缓存机制本身有效。故本项目只把**字节前
              text = '前缀缓存会按字节匹配输入内容的开头，并复用已缓存的相同前缀数据…'
              usage frame = {"prompt_tokens": 7663, "completion_tokens": 36, "total_tokens": 7699}
 ```
+
+**上面那一轮是冷前缀，所以没有 `prompt_tokens_details`。它不是「流式的普遍行为」。**
+本文件初稿把这一句写成了「流式缺 cached 一项」，随后用同一段前缀连发两轮流式推翻：
+
+```
+stream call1 (冷) usage = {"prompt_tokens": 7410, "completion_tokens": 29, "total_tokens": 7439}
+stream call2 (暖) usage = {"prompt_tokens": 7410, "completion_tokens": 29, "total_tokens": 7439,
+                           "prompt_tokens_details": {"cached_tokens": 7168}}
+```
+
+第二轮同一前缀已在池里，**流式一样把 `cached_tokens` 送回来（7168 / 7410 = 96.7%）**。
+与第 3 节「byte 前缀复用率 96%」吻合。归因改成：**冷前缀 / 首轮 / 短 prompt 不报**，
+而不是「流式不报」。仍然成立的那条只剩「没报 ≠ 报了 0」。
+
+## 4b. 三层读数端点（`GET /v1/ai/cache-stats`）
+
+同一进程内两轮真调用之后：
+
+```
+"prefix"  : {requests: 2, reused: 1, uniquePrefixes: 1, capacity: 512, reuseRate: 0.5}
+"appCache": {enabled: true, backend: "redis", hits: 1, misses: 1, hit_rate: 0.5,
+             shared: true, degraded: false, namespace: "nexus:llmc"}
+"provider": {reported: 2, missing: 0, cachedTokensTotal: 43362,
+             promptTokensTotal: 45692, reportedHitRate: 0.949}
+```
+
+`missing: 0` 就是上面那句话的账本形态：两次都报了账，其中一次是流式。
+`reportedHitRate` 的分母**只算报过账的样本**（45692），不是全部请求的 token。
 
 ## 5. token 剔空
 
@@ -110,7 +138,9 @@ apps/ai-service: 296 passed, 11 skipped
 ## 8. 未做到的（如实）
 
 - 网关 `cached_tokens` 抖动且会给出与内容无关的值，**不**用于任何对外命中率承诺；
-- 流式下 `cached_tokens` 缺席，契约目前仍用 `default(0)`，分不出「没报」与「0」；
+- provider 的 `cached_tokens` **只在冷前缀/首轮/短 prompt 时缺席**（实测第二轮流式报 7168），
+  ai-service 侧已加 `cache_reported` 分开「没报」与「0」；但 **web 契约 `UsageSchema.cachedTokens`
+  仍是 `default(0)`**，跨服务那一维还没接上；
 - `cachedTokens` 尚未在 UI 渲染（只进账本）；
 - 前缀复用率 96% 的剩下 4% 是每轮必然变的现场与诉求，属信息本身；
 - 未 push。

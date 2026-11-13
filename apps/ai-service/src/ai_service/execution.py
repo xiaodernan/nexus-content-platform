@@ -15,7 +15,7 @@ from typing import Any
 import anyio
 
 from .contract import issues as contract_issues
-from .design_prompt import build_prompt, parse_reply
+from .design_prompt import build_prompt, parse_reply, stable_block_digest
 from .providers.base import ProviderFailed
 from .providers.registry import Registry
 
@@ -121,12 +121,17 @@ async def execute_ai_request(payload: dict[str, Any], *, registry: Registry) -> 
         return (503, error("provider-unavailable", str(exc)))
 
     system, user = build_prompt(payload)
+    # §CACHE-2：记一次"这一轮用的是哪段稳定前缀"。这是整条链上唯一与网关无关的缓存读数——
+    # 同一摘要重复出现，就说明 provider 只要做前缀缓存就必然能命中（不靠它自报的 cached_tokens）。
+    registry.cache_telemetry().prefix.observe(stable_block_digest(payload))
     try:
         completion = await anyio.to_thread.run_sync(
             lambda: registry.llm.complete(model=model, system=system, user=user)
         )
     except ProviderFailed as exc:
         return (502, error("provider-failed", str(exc), retryable=True))
+    # 报账覆盖度：`cached=0` 与"provider 没报"是两件事，分别计数（见 cache_telemetry）
+    registry.cache_telemetry().provider.record(completion)
 
     try:
         reply = parse_reply(completion.text)

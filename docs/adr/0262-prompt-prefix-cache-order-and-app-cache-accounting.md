@@ -73,10 +73,26 @@ B 旧序 turn2: prompt=13799 cached=5471 (39.6%)
 [stream]     usage = {"prompt_tokens": 7663,  "completion_tokens": 36, ...}   ← 34 个 SSE data 帧
 ```
 
-**流式有 usage，token 数照常到达**；它缺的只是 `prompt_tokens_details.cached_tokens` 这一项。
-ADR 0123 之前那句「流式 usage 帧不含 cached_tokens」被后续证据（`dc1c31eb`）读成了
-「流式拿不到账本数据」，进而有了「为看见 cache 而牺牲流式」的倾向——那是误读。
-流式保留：首字更早，token 可记账，只有 cached 这一项在流式下缺席（缺失 ≠ 0）。
+**流式有 usage，token 数照常到达**。ADR 0123 之前那句「流式 usage 帧不含 cached_tokens」
+被后续证据（`dc1c31eb`）读成了「流式拿不到账本数据」，进而有了「为看见 cache 而牺牲流式」
+的倾向——那是误读。流式保留：首字更早，token 同样可记账。
+
+**继续追查后必须再修正一次（2026-11-13 晚，本节初稿写的是「流式下 cached 一项永久缺席」，
+这句过强，已按下面读数改）。** 同一段前缀连发两轮流式：
+
+```
+stream call1 (冷) usage = {"prompt_tokens": 7410, "completion_tokens": 29, "total_tokens": 7439}
+stream call2 (暖) usage = {"prompt_tokens": 7410, "completion_tokens": 29, "total_tokens": 7439,
+                           "prompt_tokens_details": {"cached_tokens": 7168}}
+```
+
+**流式不是「不报」，是「冷前缀不报」。** 第一轮前缀没进缓存池，provider 给不出可报的数；
+第二轮同一前缀已在池里，流式一样把 `cached_tokens` 送回来。这与「prefix cache 有最小可缓存
+长度」一致：短 prompt、首轮、前缀刚变过，这几种情况下该字段不出现。
+
+于是不变的那条只剩**「没报」≠「报了 0」**——而它现在有了第二维度的解：
+`Completion.cache_reported`（见决定 6）与 `ProviderCacheLedger`（分母只算报过账的样本），
+不再靠单看一个 `cached_tokens` 猜。
 
 ## 决定
 
@@ -97,6 +113,23 @@ ADR 0123 之前那句「流式 usage 帧不含 cached_tokens」被后续证据�
    直接回放当初那份 `Completion` 会把「没花的 token、没等的 1.6 秒」再报一遍。
 5. **判据升级**：`test_prompt_order.py` 从「键顺序」改为直接断言
    **连续两轮公共前缀 ≥90%**，另加 system 跨 Agent 恒等、同请求重建字节相同两条。
+6. **补第二维度 `Completion.cache_reported`**：`providers/base.py` 默认 `False`，
+   语义是「provider 没报」而不是「报了 0」。`openai_compatible._usage_details`
+   返回三元组并区分三种形状（`prompt_tokens_details.cached_tokens` /
+   `prompt_cache_hit_tokens` / 都没有）。旧构造点不感知，行为不变。
+7. **缓存读数自证**（`cache_telemetry.py`，挂在 Registry 上、随实例隔离）：
+
+   | 账本 | 它回答什么 | 分母 |
+   |---|---|---|
+   | `PrefixReuseTracker` | 我们的提示词本身可不可缓存 | 全部请求 |
+   | `ProviderCacheLedger` | provider 到底报没报 | **只算报过账的样本** |
+   | 应用缓存 `stats()` | 同一个键有没有被问第二次 | 全部请求 |
+
+   前两者由 `/v1/ai/cache-stats` 暴露（**不塞进 `/healthz`**：healthz 有 1.5 s 预算、
+   被 web 每页探测，塞进去等于让运维面板拖慢探活）。零样本时 `reuseRate` /
+   `reportedHitRate` 返回 **`null` 而不是 `0`**——`0%` 是一句具体的谎，它暗示「试过但全没命中」。
+   存储纪律：只留十六进制摘要，**不留 prompt 正文**；有界 LRU（512），进程内，重启即失，
+   不声称跨实例。
 
 ## 后果（实测）
 
@@ -121,13 +154,26 @@ call2 hit ：wall   71.4ms · cached 22846（= tokensIn，100% 复用）· laten
 墙钟 8689ms → 71.4ms（122×）；healthz llmCache hits=1 misses=1 hit_rate=0.5
 ```
 
+三层读数端点（`GET /v1/ai/cache-stats`，同一进程内两轮真调用后）：
+
+```
+"prefix"  : {requests: 2, reused: 1, uniquePrefixes: 1, capacity: 512, reuseRate: 0.5}
+"appCache": {enabled: true, backend: "redis", hits: 1, misses: 1, hit_rate: 0.5,
+             shared: true, degraded: false, namespace: "nexus:llmc"}
+"provider": {reported: 2, missing: 0, cachedTokensTotal: 43362,
+             promptTokensTotal: 45692, reportedHitRate: 0.949}
+```
+
+`provider.missing = 0` 是这一片推翻自己初稿的那一行：两次都报账了，
+其中一次还是流式。`reportedHitRate` 的分母只算这 2 次报过账的样本。
+
 ## 仍欠（诚实边界）
 
 1. **网关 `cached_tokens` 不可信**：L4 证明它会报一个与内容无关的数。
    本项目**不**用它做任何"命中率 X%"的对外承诺；对外只能说我们自己可复算的
    「字节前缀复用率」与「应用缓存 hits/misses」。
-2. **流式下 `cached_tokens` 缺席**：缺失不等于 0，账本不能把「没报」写成「命中 0」。
-   当前 `UsageSchema.cachedTokens` 仍是 `default(0)`，语义上分不出这两者——
+2. **`UsageSchema.cachedTokens` 仍是 `default(0)`**（web 契约那一侧）：ai-service 已经有
+   `cache_reported` 这一维，但跨服务契约还没带上，所以 web 侧仍分不出「没报」与「0」。
    要分清需要在契约里加 nullable 或加 `cacheReported: bool`，属跨模块改动，另立。
 3. **`cachedTokens` 尚未在 UI 渲染**：只进账本。用户能看到的仍是网关控制台那张表。
    做一块诚实的缓存读数面板是下一步（三层：前缀复用率 / 应用缓存 / provider 自报）。

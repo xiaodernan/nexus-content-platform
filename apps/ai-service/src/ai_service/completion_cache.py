@@ -173,7 +173,7 @@ class CachedLlm:
             #   latency_ms    = 这次查缓存真实耗掉的时间（通常 <1ms，与真调用三个数量级）
             # tokens_in/out 保留原值：那是这份答卷的**体量**，界面拿它显示上下文大小；
             # 真正的花费由 cached_tokens 表达，不靠把 tokens_in 改成 0 来暗示（那会让 UI 显示"空"）。
-            return replace(cached, cached_tokens=cached.tokens_in, latency_ms=lookup_ms)
+            return replace(cached, cached_tokens=cached.tokens_in, latency_ms=lookup_ms, cache_reported=True)
         # 失败（ProviderFailed）从这里原样抛出，绝不 store 毒条目。
         completion = self._inner.complete(model=model, system=system, user=user, json_mode=json_mode)
         self._cache.store(key, completion)
