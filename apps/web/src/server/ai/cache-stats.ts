@@ -89,15 +89,21 @@ function record(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-/** 严格的形状校验：任何一段不合形状就整份作废（宁可说"没测到"，不给半份读数）。 */
-export function isKnownReadout(body: unknown): body is AiCacheReadout {
+/**
+ * **上游报文的核心形状**：`prefix` / `provider` 两段是对象、关键字段是数字，
+ * `appCache` 是 null 或对象。
+ *
+ * 注意这里**不查 `measuredAt`**——那个时间戳是 web 侧取到时自己打的
+ * （上游只报进程内计数，没有"采样时刻"这个东西）。第一版把两者混在一个校验里，
+ * 结果每一份真实报文都过不了：上游永远不带 `measuredAt`。这不是小疏忽——
+ * 它会让面板在真机上永远显示"形状不认识"，而单测只要不喂真报文就发现不了。
+ */
+function hasReadoutCore(body: unknown): body is Record<string, unknown> {
   const root = record(body);
   if (!root) return false;
   const prefix = record(root.prefix);
   const provider = record(root.provider);
   if (!prefix || !provider) return false;
-  if (typeof root.measuredAt !== 'string') return false;
-  // appCache 允许为 null，但为 null 之外必须是对象
   if (root.appCache !== null && !record(root.appCache)) return false;
   for (const key of ['requests', 'reused', 'uniquePrefixes', 'capacity', 'evictions']) {
     if (typeof prefix[key] !== 'number') return false;
@@ -106,6 +112,17 @@ export function isKnownReadout(body: unknown): body is AiCacheReadout {
     if (typeof provider[key] !== 'number') return false;
   }
   return true;
+}
+
+/**
+ * **归一化之后的读数形状**（面板消费的那一份）：核心形状 + `measuredAt` 字符串。
+ *
+ * 与 `hasReadoutCore` 分开的两个用处：本文件的 `fetchAiCacheStats` 校验的是上游原报文
+ * （没有 measuredAt），面板校验的是自家 API route 端出的归一化读数（有 measuredAt）。
+ * 一个校验函数服侍两个形状，必然有一边被放松——那正是上面那个 bug 的成因。
+ */
+export function isKnownReadout(body: unknown): body is AiCacheReadout {
+  return hasReadoutCore(body) && typeof (body as Record<string, unknown>).measuredAt === 'string';
 }
 
 /** 把 ai-service 的 snake_case 报文整成 web 侧的 camelCase 形状。 */
@@ -183,11 +200,11 @@ export async function fetchAiCacheStats(fetchImpl: typeof fetch = fetch): Promis
   } catch {
     return { ok: false, error: 'AI Service 的响应不是 JSON' };
   }
-  if (!isKnownReadout(body)) {
+  if (!hasReadoutCore(body)) {
     return { ok: false, error: '读数形状不认识（ai-service 版本可能不匹配）' };
   }
-  // `isKnownReadout` 把类型收窄成 **web 侧形状**（panel 直接吃这个类型），但这一刻手上还是
-  // ai-service 的 snake_case 报文（`hit_rate` / `stores_failed`）。所以先经 `unknown` 回到
-  // 原始字典再走 `normalize`——直接 `as Record<...>` 会被编译器挡住，那道挡住是对的。
+  // `hasReadoutCore` 只查上游原报文（没有 measuredAt），这一刻手上还是 snake_case
+  // （`hit_rate` / `stores_failed`）。所以先经 `unknown` 回到原始字典再走 `normalize`——
+  // 直接 `as Record<...>` 会被编译器挡住，那道挡住是对的。
   return { ok: true, readout: normalize(body as unknown as Record<string, unknown>, new Date().toISOString()) };
 }
