@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import time
 from collections import OrderedDict
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Protocol
 
 from .providers.base import Completion, LLMProvider
@@ -162,9 +162,18 @@ class CachedLlm:
 
     def complete(self, *, model: str, system: str, user: str, json_mode: bool | None = None) -> Completion:
         key = LlmCompletionCache.key(model=model, system=system, user=user)
+        started = time.monotonic()
         cached = self._cache.get(key)
         if cached is not None:
-            return cached
+            lookup_ms = round((time.monotonic() - started) * 1000, 3)
+            # §CACHE-2 诚实记账：命中**不是**一次 provider 调用。
+            # 直接返回当初那份 Completion，会让账本把"没花掉的 token、没等过的 1.6 秒"
+            # 再报一遍（延迟数字尤其毒：它看起来像这次真的等了那么久）。命中时如实改成：
+            #   cached_tokens = 整段输入（这一段 token 一个都没再发给 provider，复用率 100%）
+            #   latency_ms    = 这次查缓存真实耗掉的时间（通常 <1ms，与真调用三个数量级）
+            # tokens_in/out 保留原值：那是这份答卷的**体量**，界面拿它显示上下文大小；
+            # 真正的花费由 cached_tokens 表达，不靠把 tokens_in 改成 0 来暗示（那会让 UI 显示"空"）。
+            return replace(cached, cached_tokens=cached.tokens_in, latency_ms=lookup_ms)
         # 失败（ProviderFailed）从这里原样抛出，绝不 store 毒条目。
         completion = self._inner.complete(model=model, system=system, user=user, json_mode=json_mode)
         self._cache.store(key, completion)

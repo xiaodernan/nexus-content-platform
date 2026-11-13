@@ -113,6 +113,30 @@ def _has_catalog(index: dict[str, Any]) -> bool:
     return isinstance(index.get("pages"), list) or isinstance(index.get("frames"), list)
 
 
+def _compact(value: Any) -> Any:
+    """递归剔掉"空值"字段：`null` / `""` / `[]` / `{}`。
+
+    §CACHE-2 的 token 账：真机目录里 34 条 token 每条都带 `"group":null`（11 B × 34），
+    还有 18 条空 `via`——这些字节模型读不出任何信息，纯粹是 token。
+    契约里"没有这个字段"与"这个字段是空"对读者是同一件事（`omissions` 另有一段
+    专门交代"目录没带什么"），所以剔空不是静默变短，是把同一件事写得更短。
+
+    `0` / `False` **不剔**：它们是具体的值（0 个实例 ≠ 没这一项），
+    剔掉会把"确实是 0"读成"没给"，那是另一种谎。
+    """
+    if isinstance(value, dict):
+        out: dict[str, Any] = {}
+        for k, v in value.items():
+            cv = _compact(v)
+            if cv is None or cv == "" or cv == [] or cv == {}:
+                continue
+            out[k] = cv
+        return out
+    if isinstance(value, list):
+        return [_compact(x) for x in value]
+    return value
+
+
 def _agent_note(request: dict[str, Any]) -> str:
     """§112「每个 Agent 有自己的职责」+ §73「越权调用直接失败」在提示词里的那一句。
 
@@ -162,36 +186,40 @@ def build_prompt(request: dict[str, Any]) -> tuple[str, str]:
     truncations: list[str] = []
 
     # ── ① 稳定块 ──
+    stable: dict[str, Any] = {}
     if _has_catalog(index):
-        payload["contextSource"] = "designIndex"
-        payload["pages"] = index.get("pages") or []
-        payload["frames"] = index.get("frames") or []
-        payload["components"] = index.get("components") or []
-        payload["assets"] = index.get("assets") or []
-        payload["interactions"] = index.get("interactions") or []
+        stable["contextSource"] = "designIndex"
+        stable["pages"] = index.get("pages") or []
+        stable["frames"] = index.get("frames") or []
+        stable["components"] = index.get("components") or []
+        stable["assets"] = index.get("assets") or []
+        stable["interactions"] = index.get("interactions") or []
         index_tokens = index.get("tokens") or []
-        payload["tokens"] = index_tokens[:MAX_TOKENS_IN_PROMPT]
+        stable["tokens"] = index_tokens[:MAX_TOKENS_IN_PROMPT]
         # 服务端裁过一轮，这里再裁一轮也必须留痕，否则模型以为这份列表是完整的
         if len(index_tokens) > MAX_TOKENS_IN_PROMPT:
             truncations.append(
                 f"token 表从 {len(index_tokens)} 条裁到 {MAX_TOKENS_IN_PROMPT} 条（这份进程的上限，不是服务端预算）"
             )
-        payload["totals"] = index.get("totals") or {}
+        stable["totals"] = index.get("totals") or {}
         # 目录说了它没带什么，模型就得知道——否则它会以为"没列出来 = 项目里没有"
-        payload["omissions"] = index.get("omissions") or []
-        payload["catalogTrimmed"] = index.get("trimmed") or []
-        payload["code"] = code or None
-        payload["indexChars"] = context.get("indexChars")
-        payload["budgetChars"] = context.get("budgetChars")
+        stable["omissions"] = index.get("omissions") or []
+        stable["catalogTrimmed"] = index.get("trimmed") or []
+        stable["code"] = code or None
+        stable["indexChars"] = context.get("indexChars")
+        stable["budgetChars"] = context.get("budgetChars")
     elif document.get("pages"):
-        payload["contextSource"] = "document-fallback"
-        payload["note"] = "没有服务端目录，退回到整份文档的节点表；这条路径不该出现在正常请求里"
+        stable["contextSource"] = "document-fallback"
+        stable["note"] = "没有服务端目录，退回到整份文档的节点表；这条路径不该出现在正常请求里"
         tree, _ = build_tree_digest(document)
-        payload["tree"] = tree
-        payload["tokens"] = ((context.get("designSystemDigest") or {}).get("tokens") or [])[:MAX_TOKENS_IN_PROMPT]
+        stable["tree"] = tree
+        stable["tokens"] = ((context.get("designSystemDigest") or {}).get("tokens") or [])[:MAX_TOKENS_IN_PROMPT]
     else:
-        payload["contextSource"] = "none"
-        payload["note"] = "既没有目录也没有文档：这一轮模型看不到项目内容，只能按诉求文字回答（应当说明做不了）"
+        stable["contextSource"] = "none"
+        stable["note"] = "既没有目录也没有文档：这一轮模型看不到项目内容，只能按诉求文字回答（应当说明做不了）"
+    # 剔空只作用在稳定块：现场块里的 `missing: []` / `dropped: []` 是"这次没有"的**答案**，
+    # 不是空话；把答案删掉会让模型分不清"没有"和"没问"。
+    payload.update(_compact(stable))
 
     # ── ② 现场块（每轮可能变，但都排在稳定目录之后）──
     payload["pageId"] = page_id

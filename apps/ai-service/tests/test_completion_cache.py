@@ -12,8 +12,9 @@ CI 安全（函数级 skipif，沿用 v677/ADR 0110）：真线路腿 `test_live
 判据单一真值（ADR 0095）：`_judge_*` 纯判据被真线路腿与变异臂共用，不内联复刻。
 判据钉"声称的性质"，不钉今天恰好相等的字面（ADR 0090/0094 X4）：
  - 命中 ≠ 新调用 = 同键第二次**没有再发网络**、且回放首次内容、stats 诚实记账；
-   **刻意不钉**命中 Completion 的 token/latency/identity——那是 ADR 0113 未定的语义，
-   钉死会惩罚将来"命中时把 latency 归零以更诚实"这类正当修复；
+   §CACHE-2 起，命中 Completion 的 token/latency **被钉死了一条语义**（ADR 0113 的未定项已决）：
+   命中要如实写 `cached_tokens = 整段输入`、`latency_ms = 查缓存真实耗时`——
+   原样回放当初那份 Completion 会让账本把"没花的 token、没等的延迟"再报一遍；
  - 键三维独立 = model / system / user 任一变都必须重新真调（漏一维就串台）；
  - 失败不缓存 = ProviderFailed 不放进缓存，不留毒条目。
 """
@@ -162,6 +163,32 @@ def _run_failure_scenario(cache: LlmCompletionCache) -> dict[str, Any]:
 
 def test_cache_hit_is_not_a_new_provider_call():
     _judge_hit_not_new_call(_run_hit_scenario(_fresh_cache()))
+
+
+def test_cache_hit_reports_reuse_and_its_own_latency():
+    """§CACHE-2 记账：命中要如实说"输入全复用了、这次没等 provider"。
+
+    旧行为是原样回放当初那份 Completion——账本会把 15ms 和 11 个输入 token
+    再报一遍，看起来像又花了一次。命中时：
+      cached_tokens = tokens_in（这一段一个 token 都没再发出去，复用率 100%）
+      latency_ms    = 这次查缓存真实耗时（必然远小于真调用那 15ms）
+    tokens_in/out 保留原值：那是这份答卷的**体量**，界面拿它显示上下文大小。
+    """
+    inner = _RecordingProvider()
+    cached = CachedLlm(inner, _fresh_cache())
+    kw = {"model": "m", "system": "s", "user": "u"}
+    first = cached.complete(**kw)
+    second = cached.complete(**kw)
+
+    assert len(inner.calls) == 1, "命中不许再发一次网络"
+    assert second.text == first.text, "命中回放的必须是同一份答卷"
+    assert second.tokens_in == first.tokens_in and second.tokens_out == first.tokens_out
+    assert second.cached_tokens == first.tokens_in, "命中时整段输入都应记为复用"
+    assert second.latency_ms < first.latency_ms, (
+        f"命中延迟 {second.latency_ms}ms 不该等于真调用的 {first.latency_ms}ms——那是把没等的时间也记上了"
+    )
+    # 首次是真调用：provider 没报 cached，就必须是 0（不替它编一个命中）
+    assert first.cached_tokens == 0
 
 
 def test_all_three_key_dimensions_are_independent():
