@@ -2399,3 +2399,18 @@ Root-cause corrections of the night in one line:
 - Both failure families are this-lane, not hosted or shared-bytes; both are now solved and the hosted plane proves it on 32a4d3c and f79a426 GREEN.
 
 Main-line CI now GREEN on every ref since the fix chain landed. Studio batteries now GREEN on every ref since the fix chain landed.
+## cont. 78 (2026-11-13, overnight) - browser-verified homepage + 4 routes; brand gradient verified live in both themes; zero console errors
+
+The user-side in-app browser tool (browser.tabs / snapshot / evaluate / console) was usable
+this turn. Pointed the tab at http://localhost:3100/ (dev server restarted on this host) and measured:
+
+- / (home)           : HTTP 200, brand gradient computed-style verified; background-clip: text; zero console errors; 1073 chars body.
+- /discover          : HTTP 200, h1 verified, background-clip: text, 24 text-like heart icons rendered server-side.
+- /credits           : HTTP 200, h1 verified, background-clip: text, 1746 chars.
+- /marketplace       : HTTP 200, h1 verified, background-clip: text, 447 chars.
+- /admin/dead-letters (anonymous session): HTTP 200, denied not-admin gate correctly shows the live fallback (data-admin-denied="not-admin"); admin routes safe for anonymous visitors.
+- Theme flip via evaluate (data-nexus-theme='dark'): variable fg-1 flips to #eef1f6, bg-0 to #0a0b10, brand gradient recomputes; theme verifiability on both themes confirmed.
+
+Important honesty line: desktop SCREENSHOT capture still operation_failed on this host (needs the desktop window to be foreground on the user's machine; it is not). All visual verification here is DOM / computed-style level, not pixel. Any pixel-claim must credit this route explicitly.
+
+Consolidated: 5 routes HTTP-verified including anonymous gate on admin dead-letters, dark+light theme propagation verified on the homepage, 24 hearts counted, zero console errors on the homepage load path this take. The v687 brand-lift lineage is now at proof state across the 5 routes the lift covered.
