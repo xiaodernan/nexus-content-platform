@@ -40,6 +40,7 @@ function response(overrides: Partial<AiChatResponse> = {}): AiChatResponse {
       tokensOut: 12,
       cachedTokens: 0,
       cacheReported: false,
+      costBasis: 'unknown',
       latencyMs: 300,
       costUsd: 0,
       toolCalls: 1,

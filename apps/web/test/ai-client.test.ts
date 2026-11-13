@@ -55,6 +55,7 @@ function response(overrides: Partial<AiResponse> = {}): AiResponse {
       tokensOut: 5,
       cachedTokens: 0,
       cacheReported: false,
+      costBasis: 'unknown',
       latencyMs: 100,
       costUsd: 0,
       toolCalls: 1,
