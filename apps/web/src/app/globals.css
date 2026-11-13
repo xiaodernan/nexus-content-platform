@@ -3689,6 +3689,14 @@
       -webkit-background-clip: border-box; background-clip: border-box;
       color: CanvasText;
     }
+    /* §FE-67 发布页（/n/<handle>/<slug>）的渐变墨字——同样独立成组，
+       理由同上（动态发现门扫的是 globals.css，这三类必须都覆盖到）。 */
+    .pub-title {
+      forced-color-adjust: auto;
+      background: none;
+      -webkit-background-clip: border-box; background-clip: border-box;
+      color: CanvasText;
+    }
   }
 
   /* ── §FE-19 / ADR-0169 Studio 顶栏 TopBar 门面基建（sp- 命名空间开篇，承 FE-18 纪律）──
