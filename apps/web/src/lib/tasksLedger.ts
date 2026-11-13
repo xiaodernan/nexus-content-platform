@@ -33,6 +33,9 @@ export const TaskUsageSchema = z.object({
   costUsd: z.number().min(0),
   toolCalls: z.number().int().min(0),
   demoMode: z.boolean(),
+  /** v690 / v691：provider 自己报的 cache 命中 tokens（默认 0） */
+  cachedTokens: z.number().int().min(0).default(0),
+  reasoningTokens: z.number().int().min(0).default(0),
 });
 export type TaskUsage = z.infer<typeof TaskUsageSchema>;
 

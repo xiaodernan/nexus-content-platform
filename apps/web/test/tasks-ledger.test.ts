@@ -127,6 +127,8 @@ describe('§75 用量那一格：0 与"没记"是两件事', () => {
     costUsd: 0,
     toolCalls: 2,
     demoMode: false,
+    cachedTokens: 1184,
+    reasoningTokens: 0,
   };
 
   it('没记就是 null：过得了契约，不会被当成一份"0 token 的用量"', () => {
