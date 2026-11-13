@@ -255,7 +255,8 @@ async def execute_chat_request(payload: dict[str, Any], *, registry: Registry) -
     user = str(payload.get("user") or "")
     try:
         completion = await anyio.to_thread.run_sync(
-            lambda: registry.llm.complete(model=model, system=system, user=user)
+            # 角色对话要的是纯文本，requesting 不到 JSON；provider 若按 JSON 回，会拒
+            lambda: registry.llm.complete(model=model, system=system, user=user, json_mode=False)
         )
     except ProviderFailed as exc:
         return (502, error("provider-failed", str(exc), retryable=True))

@@ -48,7 +48,7 @@ class OpenAICompatibleProvider:
             raise ProviderFailed(f"未配置 {model_class} 档模型")
         return model
 
-    def complete(self, *, model: str, system: str, user: str) -> Completion:
+    def complete(self, *, model: str, system: str, user: str, json_mode: bool | None = None) -> Completion:
         body: dict = {
             "model": model,
             "messages": [
@@ -57,7 +57,8 @@ class OpenAICompatibleProvider:
             ],
             "temperature": 0.2,
         }
-        if self._json_mode:
+        want_json = json_mode if json_mode is not None else self._json_mode
+        if want_json:
             body["response_format"] = {"type": "json_object"}
         if self._prompt_cache_key:
             # OpenAI 官方 prompt_cache_key：把同一 workload 的补丁式请求钉到同一分片，命中自动提示缓存
