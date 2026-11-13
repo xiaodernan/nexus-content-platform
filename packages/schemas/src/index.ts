@@ -121,6 +121,10 @@ export const UsageSchema = z.object({
   costUsd: z.number().min(0).default(0),
   toolCalls: z.number().int().min(0).default(0),
   demoMode: z.boolean().default(false),
+  // v690: provider 自己报的 cached prompt_tokens（同 prefix 请求的命中数）
+  // 默认 0 — 旧构造点 / 旧读法不感知两个新字段，§159 不谎称命中
+  cachedTokens: z.number().int().min(0).default(0),
+  reasoningTokens: z.number().int().min(0).default(0),
 });
 export type Usage = z.infer<typeof UsageSchema>;
 

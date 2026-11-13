@@ -42,6 +42,8 @@ function response(overrides: Partial<AiChatResponse> = {}): AiChatResponse {
       costUsd: 0,
       toolCalls: 1,
       demoMode: false,
+    cachedTokens: 0,
+    reasoningTokens: 0,
     },
     ...overrides,
   };

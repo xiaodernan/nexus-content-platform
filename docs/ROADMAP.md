@@ -11804,3 +11804,9 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
 - **实证测试**：新增 `test_prompt_order.py`；suite 248 passed / 13 skipped / 0 failed。
 - **仍欠**：契约层 cached/reasoning 数未进 web 侧 Usage（TaskUsageSchema exact additionalProperties=false）；
   chat 浏览器路径链未重测（浏览器断连）。
+## v691 — Usage 契约带 cached/reasoning（ADR 0124）（2026-11-13）
+- **做了**：`UsageSchema` 加 `cachedTokens`/`reasoningTokens`，全部代码点填充默认 0；web 的
+   mock 回执 / 测试夹具 / contracts 自动重新导出（`contract:export`），ai-service 两处回执把字段带上。
+   变异两臂在 automation suites 中均保持 default-0， 249 passed / 14 skipped 无回归。
+- **验证（本机）**：tsc apps/web exit 0；ai-service suite 249 passed / 14 skipped；schema JSON 已同步导出。
+- **仍欠**：cache/reasoning 渲染在 admin 界面（cont. 80 留下的到产品 handoff）。

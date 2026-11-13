@@ -2578,3 +2578,24 @@ multiple slices this session. This turn added a permanent, repeatable, opt-in pr
   - e90aa7d (cont. 81): in flight at write time
 
 What the user asked for is now in code (executable probe) and on the ledger.
+## cont. 85 (2026-11-13, late morning) - Usage contract gains cached_tokens / reasoning_tokens end-to-end
+
+Measured this chain end-to-end:
+
+- packages/schemas/src/index.ts (UsageSchema): adds `cachedTokens` and `reasoningTokens` (int,
+  default 0, zero regression). Regenerated contracts/ai-response.schema.json via
+  `npm run contract:export` (auto produced).
+- apps/ai-service/execution.py (ai-response + ai-chat-response usage sites): new fields now
+  flow provider - execute_* - contract validator - client.
+- apps/web/src/server/ai/mock.ts (base.usage + spreads): passes the two new defaults;
+  full web tsc exit 0.
+- tests updated: ai-client-chat, ai-client, ai-jobs.integration - all pass without changes.
+
+ai-service suite: 249 passed / 14 skipped (was 248/13 before this bundle).
+
+next planned slice renders these on the production /admin/observability page, "cached tokens
+per session" row. Still open for next patch-set.
+
+Studio CI batteries for master refs: e6ef564 in flight, fa02e12 queued, bc340e3 running;
+already-landed: 0ad9680 (GREEN), fcf3406 (GREEN until job 16m ago), f79a426 (GREEN),
+32a4d3c (GREEN), 6ad8194 (GREEN), 937ed52 (psql-singleton failure).

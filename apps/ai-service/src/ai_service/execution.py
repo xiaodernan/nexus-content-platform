@@ -197,6 +197,8 @@ async def execute_ai_request(payload: dict[str, Any], *, registry: Registry) -> 
             "costUsd": 0,
             "toolCalls": 1,
             "demoMode": False,
+            "cachedTokens": getattr(completion, "cached_tokens", 0),
+            "reasoningTokens": getattr(completion, "reasoning_tokens", 0),
         },
         "approvals": approvals,
     }
@@ -281,6 +283,8 @@ async def execute_chat_request(payload: dict[str, Any], *, registry: Registry) -
             "costUsd": 0,
             "toolCalls": 1,
             "demoMode": False,
+            "cachedTokens": getattr(completion, "cached_tokens", 0),
+            "reasoningTokens": getattr(completion, "reasoning_tokens", 0),
         },
     }
     response_issues = contract_issues("ai-chat-response.schema.json", response)

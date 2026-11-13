@@ -763,6 +763,18 @@
         "demoMode": {
           "default": false,
           "type": "boolean"
+        },
+        "cachedTokens": {
+          "default": 0,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "reasoningTokens": {
+          "default": 0,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
         }
       },
       "required": [
@@ -774,7 +786,9 @@
         "latencyMs",
         "costUsd",
         "toolCalls",
-        "demoMode"
+        "demoMode",
+        "cachedTokens",
+        "reasoningTokens"
       ],
       "additionalProperties": false
     },
