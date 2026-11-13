@@ -1066,6 +1066,51 @@ export const HealthResponseSchema = z.object({
     .nullable()
     .optional()
     .default(null),
+  /**
+   * v698 / ADR 0130：进程内 + 跨进程 single-flight 省钱账本。未启用 → null。
+   * 诚实边界：local 与 distributed **分别计账、绝不相加**；coalesced 不是缓存命中；
+   * provider_calls 只认最后接触 provider 的那一层。两层都是进程内计数、重启即零。
+   */
+  llmFlight: z
+    .union([
+      z.null(),
+      z.object({
+        enabled: z.boolean(),
+        mode: z.enum(['local', 'local+redis']),
+        local: z.union([
+          z.null(),
+          z.object({
+            leaders: z.number().int().min(0),
+            joined: z.number().int().min(0),
+            coalesced: z.number().int().min(0),
+            failures: z.number().int().min(0),
+            timeouts: z.number().int().min(0),
+            real_calls: z.number().int().min(0),
+            degraded: z.boolean().optional(),
+          }),
+        ]),
+        distributed: z.union([
+          z.null(),
+          z.object({
+            leaders: z.number().int().min(0),
+            joined: z.number().int().min(0),
+            coalesced: z.number().int().min(0),
+            timeouts: z.number().int().min(0),
+            self_served: z.number().int().min(0),
+            lock_failures: z.number().int().min(0),
+            marker_failures: z.number().int().min(0),
+            peek_misses: z.number().int().min(0),
+            real_calls: z.number().int().min(0),
+            degraded: z.boolean().optional(),
+          }),
+        ]),
+        provider_calls: z.number().int().min(0),
+        note: z.string(),
+      }),
+    ])
+    .nullable()
+    .optional()
+    .default(null),
 });
 export type HealthResponse = z.infer<typeof HealthResponseSchema>;
 

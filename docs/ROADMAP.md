@@ -11935,3 +11935,30 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   轮询未做退避+抖动、默认关闭需带真实流量梯度的上线验证。
 - **方法**：跨进程协调不要造第二个结果真值源；done 标记必须带本轮 token（用真组件变异臂
   证明有牙）；租约 ≥ 最坏真调用时长并把"默认满足"写成门；连接失败与配置错误拆两段。
+
+## v698 — 统一 LLM 省钱账本：/healthz + /metrics + admin 观测卡（ADR 0130）（2026-11-14）
+- **关闭**：ADR 0128 仍欠 ② + ADR 0129 仍欠 ②（两层 single-flight 的账本之前只有进程内
+  统计，运维完全看不见省了多少真调用；ai-service 也没有 `/metrics`）。
+- **后端**：`Registry.llm_flight_state()` 出 `llmFlight`（没装 flight → null）；
+  新 `metrics.py` 的 `render_llm_metrics` 是纯函数，吃 `/healthz` 同一份 dict 产
+  Prometheus 文本；新 `/metrics`（`text/plain; version=0.0.4`）。
+- **契约/前端**：`HealthResponseSchema` 增 `llmFlight`（精确 zod 形状 + `default(null)`
+  保证旧报文可解析），`contract:export` 只重生成 `contracts/health.schema.json`；
+  `env.ts` 增 `AiFlightState` 透传；admin 观测卡增四行（mode / 两层 coalesced /
+  provider_calls / timeouts·lock_failures），并用说明文字写清 `—` 是"没接线"不是"省了 0 次"。
+- **五条诚实边界（全有门）**：coalesced 不是 cache hit（两个独立 family、逐项对拍）；
+  两层 flight **分别计账绝不相加**（`provider_calls` 只认最后接触 provider 的那一层，
+  判据显式 `!= 两层之和`）；未启用只报 `*_enabled 0` 不编造流量；进程内重启清零、
+  非集群 SLO；标签转义防注入 + NaN/Inf/负数/bool 显式拒绝。
+- **门**：`test_llm_flight_ledger.py` 23 条（判据纯函数单一真值、纯渲染器对拍、
+  `/healthz` 契约校验 local/local+redis 参数化、`/metrics` 与 healthz 同源、
+  真组件退化臂把 app 渲染器换掉证明端点真走纯函数、6 变异臂 + 1 正向对照）；
+  web `env.test.ts` 7/7、契约+env 合跑 20/20；离线 ai-service 全套 326/20；
+  `tsc` schemas + web 零错误；改动 TS/TSX eslint 零 finding。
+- **仍欠**：本机起不了 `next start`，admin 卡**像素级渲染验证仍欠**（已做类型/单测/
+  lint/源码 data 标记）；**全量 `vitest run` 在本宿主跑 21 分钟无输出被停，未验证完**
+  （0.3–0.6GB 物理内存的已知宿主限制，不谎称全树绿，只保证改动面定向门全绿）；
+  `/metrics` 未接 scrape 配置与告警规则；两层计数口径不同
+  （`provider_calls` vs `llmLatency.calls`）尚无统一 cross-check 门。
+- **方法**："省钱"最容易做成虚荣指标——命中/合并/真调用三种口径必须拆成独立 family
+  并逐项对拍；分层优化后的账本不要相加，只有最后接触外部资源那层才配报真调用数。

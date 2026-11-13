@@ -95,11 +95,32 @@ export default async function AdminObservabilityPage() {
             <dd data-ai-readiness-llm-p50={aiReadiness.latency?.p50_ms ?? -1} data-ai-readiness-llm-p95={aiReadiness.latency?.p95_ms ?? -1}>
               {aiReadiness.latency ? `${Math.round(aiReadiness.latency.p50_ms)} ms / ${Math.round(aiReadiness.latency.p95_ms)} ms` : '—'}
             </dd>
+            <dt className="text-fg-3">single-flight mode</dt>
+            <dd data-ai-readiness-flight-mode={aiReadiness.flight?.mode ?? 'disabled'}>
+              {aiReadiness.flight?.mode ?? 'disabled'}
+            </dd>
+            <dt className="text-fg-3">coalesced local / cross-process</dt>
+            <dd data-ai-readiness-flight-local-coalesced={aiReadiness.flight?.local?.coalesced ?? -1} data-ai-readiness-flight-distributed-coalesced={aiReadiness.flight?.distributed?.coalesced ?? -1}>
+              {aiReadiness.flight
+                ? `${aiReadiness.flight.local?.coalesced ?? 0} / ${aiReadiness.flight.distributed?.coalesced ?? '—'}`
+                : '— / —'}
+            </dd>
+            <dt className="text-fg-3">provider calls (this process)</dt>
+            <dd data-ai-readiness-flight-provider-calls={aiReadiness.flight?.provider_calls ?? -1}>
+              {aiReadiness.flight ? aiReadiness.flight.provider_calls : '—'}
+            </dd>
+            <dt className="text-fg-3">timeouts / lock failures</dt>
+            <dd data-ai-readiness-flight-timeouts={aiReadiness.flight?.local?.timeouts ?? -1} data-ai-readiness-flight-lock-failures={aiReadiness.flight?.distributed?.lock_failures ?? -1}>
+              {aiReadiness.flight
+                ? `${aiReadiness.flight.local?.timeouts ?? 0} / ${aiReadiness.flight.distributed?.lock_failures ?? '—'}`
+                : '— / —'}
+            </dd>
           </dl>
           <p className="mt-2 text-11 text-fg-3">
             Every render asks /healthz fresh; capabilities are not guesses, not caches, and not "live" for any model that is not actually wired today.
             DEMO means no real provider for that class yet; blank means not filled, we say so plainly (no silent DEMO labels). Image and video have no real provider yet either &mdash; they read DEMO for now. A class only reads 'real' when ai-service itself reports it as 'real' &mdash; never more optimistic than the ai-service knows.
             llm latency rows are process-local (window = most recent 1024 round-trips since this instance started) &mdash; they restart to zero and are not a fleet-wide SLO.
+            single-flight rows are also process-local: the two layers are reported separately and never summed, and coalesced is a saved duplicate call, not a cache hit. A dash means that layer is not wired, not that it saved zero.
           </p>
         </div>
       </section>

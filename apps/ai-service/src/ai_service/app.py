@@ -17,7 +17,7 @@ from typing import Any
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 
 # 加载 .env 文件（开发环境），生产环境由环境变量注入
 _env_file = Path(__file__).resolve().parent.parent.parent / ".env"
@@ -34,6 +34,7 @@ from .contract import issues as contract_issues
 from .execution import error as make_error
 from .execution import execute_ai_request, execute_chat_request, parse_request_body
 from .latency_meter import LLM_LATENCY
+from .metrics import render_llm_metrics
 from .jobs import JobStore, Worker, build_store, job_capacity
 from .providers.registry import Registry
 
@@ -122,7 +123,24 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
             # v694：真实 provider 往返延迟（ADR 0126）。CachedLlm 在本 meter 之上：
             # 完成缓存回放不计入；进程级、重启即零、窗口 1024；不冒充全局 SLO
             "llmLatency": LLM_LATENCY.snapshot(),
+            # v698：进程内 + 跨进程 single-flight 的省钱账本（未启用 → null）。
+            # 两层分别列、绝不相加；coalesced 不是缓存命中（ADR 0128/0129 仍欠 ②）。
+            "llmFlight": registry.llm_flight_state(),
         }
+
+    @app.get("/metrics")
+    async def metrics() -> PlainTextResponse:
+        """Prometheus 文本读数：与 /healthz 同一份真值，只多一条纯渲染路径。
+
+        没有全局 scrape 状态、没有 fake counter；未启用的层只报 `*_enabled 0`。
+        """
+        text = render_llm_metrics(
+            service=settings.service,
+            cache=registry.llm_cache_state(),
+            flight=registry.llm_flight_state(),
+            latency=LLM_LATENCY.snapshot(),
+        )
+        return PlainTextResponse(text, media_type="text/plain; version=0.0.4; charset=utf-8")
 
     @app.get("/v1/capabilities")
     async def capabilities() -> dict[str, Any]:

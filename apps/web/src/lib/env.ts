@@ -20,6 +20,33 @@ export interface AiCapabilities {
   /** v690：应用级 LLM completion cache（未启用 / 不可探时为 null） */
   cache?: AiCacheState | null;
   latency?: AiLatencyState | null;
+  /** v698 / ADR 0130：single-flight 省钱账本（未启用 / 不可探时为 null） */
+  flight?: AiFlightState | null;
+}
+
+/** 两层分别计账、绝不相加：local 省的是本进程重复执行下一层，distributed 省的才是真调用。 */
+export interface AiFlightState {
+  enabled: boolean;
+  mode: 'local' | 'local+redis';
+  local: AiFlightLayer | null;
+  distributed: (AiFlightLayer & {
+    self_served: number;
+    lock_failures: number;
+    marker_failures: number;
+    peek_misses: number;
+  }) | null;
+  provider_calls: number;
+  note: string;
+}
+
+export interface AiFlightLayer {
+  leaders: number;
+  joined: number;
+  coalesced: number;
+  failures?: number;
+  timeouts: number;
+  real_calls: number;
+  degraded?: boolean;
 }
 
 export interface AiCacheState {
@@ -62,7 +89,9 @@ export async function getAiCapabilities(prefetched?: HealthResponse | null): Pro
   const cache = raw && typeof raw === 'object' ? (raw as AiCacheState) : null;
   const rawLatency = (health as { llmLatency?: unknown } | null)?.llmLatency;
   const latency = rawLatency && typeof rawLatency === 'object' ? (rawLatency as AiLatencyState) : null;
-  return { text, image, video, live: text === 'real', cache, latency };
+  const rawFlight = (health as { llmFlight?: unknown } | null)?.llmFlight;
+  const flight = rawFlight && typeof rawFlight === 'object' ? (rawFlight as AiFlightState) : null;
+  return { text, image, video, live: text === 'real', cache, latency, flight };
 }
 
 export async function isDemoMode(): Promise<boolean> {
