@@ -4131,3 +4131,11 @@
   .cx-barFirst { background: Highlight; }
   .cx-barSecond { background: CanvasText; }
 }
+
+/* 搂FE-AM `/admin/pricing` 鎴愭湰涓夋牸锛堜粎琚湰椤靛紩鐢ㄤ竴娆★級鈥斺€?am 鏃忕殑涓€鍛?*/
+.am-statGrid { display: grid; gap: var(--nexus-space-3); grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 40rem) { .am-statGrid { grid-template-columns: 1fr; } }
+.am-statCell { border-radius: var(--nexus-radius-md); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); padding: var(--nexus-space-4); display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+.am-statValue { font-size: var(--nexus-font-size-24); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--nexus-color-fg-1); }
+.am-statLabel { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); line-height: 1.45; }
+

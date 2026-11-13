@@ -37,6 +37,7 @@ const LINKS = [
   { key: 'discover-cache', href: '/admin/discover-cache', label: '发现页缓存' },
   { key: 'ai-cache', href: '/admin/ai-cache', label: '缓存读数' },
   { key: 'dead-letters', href: '/admin/dead-letters', label: '死信巡检' },
+  { key: 'pricing', href: '/admin/pricing', label: 'AI 成本' },
   { key: 'health', href: '/admin/health', label: '健康总览' },
 ] as const;
 
