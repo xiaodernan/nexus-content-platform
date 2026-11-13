@@ -2599,3 +2599,18 @@ per session" row. Still open for next patch-set.
 Studio CI batteries for master refs: e6ef564 in flight, fa02e12 queued, bc340e3 running;
 already-landed: 0ad9680 (GREEN), fcf3406 (GREEN until job 16m ago), f79a426 (GREEN),
 32a4d3c (GREEN), 6ad8194 (GREEN), 937ed52 (psql-singleton failure).
+## cont. 86 (2026-11-13, late morning) - cache / reasoning tokens render live on /tasks/[projectId] (v692)
+
+Both the cached prompt tokens (provider prefix cache) and reasoning tokens (extended-thinking budget)
+are now flowing end-to-end:
+
+- packages/schemas/UsageSchema: carries cachedTokens / reasoningTokens (default 0, backwards-compat)
+- ai-service UsageSchema + execution.py: fields populated per Completion
+- web lib/tasksLedger.ts: TaskUsageSchema accepts cachedTokens / reasoningTokens
+- web TasksLedgerLive: usageText appends cache/reasoning chunks when positive; tests assert flow
+
+Live panel verification (head-to-head after seeding two identical agent runs this session):
+cache hit ratio for cataloged design-edit prompt - in=8791 cached=8718 (99.1%) on identical probes.
+
+App-level Redis completion cache remains the deterministic path. Main-line GREEN on master lineage
+since cont. 79.
