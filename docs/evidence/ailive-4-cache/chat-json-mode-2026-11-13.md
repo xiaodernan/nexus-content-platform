@@ -50,7 +50,16 @@ POST /v1/ai/chat HTTP 200
           "costUsd":0,"toolCalls":1,"demoMode":false}}
 ```
 
-第一个 cached 0，这里 system prompt（常量）与 chat user 不是同一段，cache 由 prefix 命中率决定：**同一 agent 端 SSE 报出来的 cache 计数在 97%**。
+## 实测（4 次同 payload，/v1/ai/run，prompt_cache_key=nexus-studio）
+
+```
+call#1 HTTP 200 (8861ms) · model=gpt-6-sol · tokensIn=6668 · cachedTokens=5321 (80%) · tokensOut=97
+call#2 HTTP 200 (8952ms) · model=gpt-6-sol · tokensIn=6682 · cachedTokens=0 (0%) · tokensOut=93
+call#3 HTTP 200 (6574ms) · model=gpt-6-sol · tokensIn=6664 · cachedTokens=0 (0%) · tokensOut=97
+call#4 HTTP 200 (9842ms) · model=gpt-6-sol · tokensIn=6712 · cachedTokens=5366 (80%) · tokensOut=111
+```
+
+**同 payload 命中率在 wkapi.pro 是 per-worker，不是全球 prefix cache**：同一段 prompt bytes 经过它不同的内部 worker，命中与否取决于那一台 worker 此前是否服务过同字节序列的请求；`tokensIn` 在 ~50 以内也漂（不同 tokenizer build）。结论：本仓无法把 80% 钉成保证值，但从 0 → 稳定可追踪。
 
 ## 判据
 
