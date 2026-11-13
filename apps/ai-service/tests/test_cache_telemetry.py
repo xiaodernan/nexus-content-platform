@@ -155,6 +155,89 @@ def test_cache_stats_endpoint_reports_three_books_without_faking() -> None:
 
 def test_snapshot_shape_is_stable() -> None:
     snap = CacheTelemetry(prefix_capacity=4).snapshot()
-    assert set(snap) == {"prefix", "provider"}
+    assert set(snap) == {"prefix", "provider", "upstream"}
     assert set(snap["prefix"]) == {"requests", "reused", "uniquePrefixes", "capacity", "evictions", "reuseRate"}
     assert set(snap["provider"]) == {"reported", "missing", "cachedTokensTotal", "promptTokensTotal", "reportedHitRate"}
+    assert set(snap["upstream"]) == {"comparable", "observed", "drifted", "capacity", "evictions", "maxDrift", "band"}
+
+
+# ── §CACHE-4 上游漂移 ────────────────────────────────────────────────────────
+
+def test_drift_first_sighting_is_not_a_drift() -> None:
+    """第一次见到某个摘要时没有可比对象——报漂移就是把"没有比较"写成"比过了，一样"。"""
+    from ai_service.cache_telemetry import UpstreamDriftTracker
+
+    t = UpstreamDriftTracker()
+    assert t.observe("d1", 8852) is None
+    s = t.stats()
+    assert s["drifted"] == 0
+    assert s["comparable"] == 0, "只见过一次的前缀不算可比样本"
+    assert s["maxDrift"] is None, "没有漂移时给 null，不给 0.0（0 读作「比过、没漂」）"
+
+
+def test_drift_ignores_normal_tail_variation() -> None:
+    """稳定块相同但尾段不同，tokens_in 会自然浮动个位数——这个带宽不能当漂移。"""
+    from ai_service.cache_telemetry import UpstreamDriftTracker
+
+    t = UpstreamDriftTracker()
+    t.observe("d1", 13215)
+    t.observe("d1", 13220)  # 真机实测的自然浮动（+0.04%）
+    s = t.stats()
+    assert s["drifted"] == 0, "0.04% 被判成换后端的话，这个检测器每轮都会喊狼来了"
+    assert s["comparable"] == 1
+
+
+def test_drift_detects_upstream_switch() -> None:
+    """真机三读数：同一份 25586 字节被数成 8852 / 13215 / 27294。"""
+    from ai_service.cache_telemetry import UpstreamDriftTracker
+
+    t = UpstreamDriftTracker()
+    t.observe("d1", 8852)
+    t.observe("d1", 13215)
+    t.observe("d1", 27294)
+    s = t.stats()
+    assert s["drifted"] == 1, "同一份字节差 208%，必须是漂移"
+    assert s["maxDrift"] == pytest.approx((27294 - 8852) / 8852, abs=1e-3)
+
+
+def test_drift_counts_each_prefix_once() -> None:
+    """同一个摘要抖十次只算一个"漂过的前缀"，否则计数会变成"抖了多少次"。"""
+    from ai_service.cache_telemetry import UpstreamDriftTracker
+
+    t = UpstreamDriftTracker()
+    for tokens in (8852, 13215, 27294, 8852, 13215):
+        t.observe("d1", tokens)
+    assert t.stats()["drifted"] == 1
+
+
+def test_drift_ignores_zero_tokens() -> None:
+    """provider 没报 token 数 ≠ 报了 0：不参与判定，也不把 min 拉到 0。"""
+    from ai_service.cache_telemetry import UpstreamDriftTracker
+
+    t = UpstreamDriftTracker()
+    assert t.observe("d1", 0) is None
+    assert t.observe("d1", -5) is None
+    t.observe("d1", 800)
+    s = t.stats()
+    assert s["observed"] == 1, "只有那一次有效读数算数"
+    assert s["comparable"] == 0, "一次有效读数 + 两次缺席不构成可比"
+
+
+def test_drift_is_bounded_and_evicts_lru() -> None:
+    from ai_service.cache_telemetry import UpstreamDriftTracker
+
+    t = UpstreamDriftTracker(capacity=2)
+    t.observe("a", 100)
+    t.observe("b", 100)
+    t.observe("c", 100)  # 挤掉 a
+    t.observe("a", 200)  # a 已不在表里：重新算首次，同时挤掉 b
+    s = t.stats()
+    assert s["evictions"] == 2
+    assert s["comparable"] == 0, "被挤掉的摘要在回来时不该「记得」上一次"
+
+
+def test_drift_zero_capacity_is_rejected() -> None:
+    from ai_service.cache_telemetry import UpstreamDriftTracker
+
+    with pytest.raises(ValueError):
+        UpstreamDriftTracker(capacity=0)

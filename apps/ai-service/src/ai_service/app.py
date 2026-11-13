@@ -139,13 +139,17 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
 
     @app.get("/v1/ai/cache-stats")
     async def cache_stats() -> dict[str, Any]:
-        """§CACHE-2：把"缓存到底有没有生效"拆成三本互不冒充的账。
+        """§CACHE-2 / §CACHE-4：把"缓存到底有没有生效"拆成四本互不冒充的账。
 
         1. `prefix`：用我们自己的字节算出来的稳定前缀复用率——**唯一与网关无关的硬指标**。
            同一摘要重复出现 = 这一轮的前缀与上一轮逐字节相同 = provider 只要做前缀缓存就必然命中。
         2. `appCache`：应用级 completion 缓存的真实命中（命中 = 0 token、0 网络、<1ms）。
         3. `provider`：上游到底**报没报** `cached_tokens`（报了多少次、缺席多少次）。
            `cached=0` 与"没报"是两件事，混成一句就是把缺席写成确定的 0 命中。
+        4. `upstream`：同一段稳定前缀在不同轮次被数成了多少 token。
+           字节逐字节相同却数出不同的数，只能是背后换了推理后端——那是
+           「读数不可比」，不是「我们的前缀在变」。没有这一维，两种情形在面板上
+           是同一个「命中率 40%」，而正确的处置完全相反。
 
         为什么单独开端点而不塞进 `/healthz`：healthz 被 web 每次请求探测、预算 1.5s，
         这里要的是运维面读数，不该跟着健康检查一起被拉。
@@ -154,6 +158,7 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
             "prefix": registry.cache_telemetry().prefix.stats(),
             "appCache": registry.llm_cache_state(),
             "provider": registry.cache_telemetry().provider.stats(),
+            "upstream": registry.cache_telemetry().upstream.stats(),
         }
 
     @app.post("/v1/ai/run")

@@ -150,7 +150,8 @@ async def execute_ai_request(payload: dict[str, Any], *, registry: Registry) -> 
     system, user = build_prompt(payload)
     # §CACHE-2：记一次"这一轮用的是哪段稳定前缀"。这是整条链上唯一与网关无关的缓存读数——
     # 同一摘要重复出现，就说明 provider 只要做前缀缓存就必然能命中（不靠它自报的 cached_tokens）。
-    registry.cache_telemetry().prefix.observe(stable_block_digest(payload))
+    stable_digest = stable_block_digest(payload)
+    registry.cache_telemetry().prefix.observe(stable_digest)
     try:
         completion = await anyio.to_thread.run_sync(
             lambda: registry.llm.complete(model=model, system=system, user=user)
@@ -159,6 +160,10 @@ async def execute_ai_request(payload: dict[str, Any], *, registry: Registry) -> 
         return (502, error("provider-failed", str(exc), retryable=True))
     # 报账覆盖度：`cached=0` 与"provider 没报"是两件事，分别计数（见 cache_telemetry）
     registry.cache_telemetry().provider.record(completion)
+    # §CACHE-4：同一份稳定前缀这次被数成了多少 token。字节相同却数出不同的数，
+    # 只能是背后换了推理后端——那是"读数不可比"，不是"我们的前缀在变"。
+    # 判据落在完成之后：没有 tokens_in 之前，这件事一个字都不能猜。
+    registry.cache_telemetry().upstream.observe(stable_digest, completion.tokens_in)
     # §COST-1：金额与它的来路一起算好。没配价目表时是 ("unknown")，不是"免费"——
     # 界面按 basis 分档，绝不把「未计价」画成 "$0.0000"。
     cost_usd, cost_basis = _cost_of(registry, completion)
