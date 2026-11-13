@@ -434,6 +434,8 @@ export class DeterministicMockProvider implements AiProvider {
         cacheReported: false,
         latencyMs: 0,
         costUsd: 0,
+        // DEMO 不经过模型，没有价目可算——「未计价」而不是"免费"（§COST-1）
+        costBasis: 'unknown' as const,
         toolCalls: 0,
         demoMode: true,
       },

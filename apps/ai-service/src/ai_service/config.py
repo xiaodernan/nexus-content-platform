@@ -6,6 +6,8 @@ import os
 from dataclasses import dataclass, field
 from typing import Mapping, MutableMapping
 
+from .pricing import EMPTY_PRICE_TABLE, PriceTable
+
 MODEL_CLASS_ENV = {
     "fast": "NEXUS_MODEL_FAST",
     "balanced": "NEXUS_MODEL_BALANCED",
@@ -78,6 +80,9 @@ class Settings:
     llm_cache_ttl_s: float = 3600.0
     # 检测到但尚未实现适配器的 key：如实报告为 unavailable，不假装能调用（§159）
     unsupported_text_keys: tuple[str, ...] = ()
+    # §COST-1 单价表：默认**空表 = 未计价**（不是免费）。见 pricing.py 头注释——
+    # 内置任何默认价都等于对外承诺一个可能过期的金额。
+    price_table: PriceTable = field(default_factory=lambda: EMPTY_PRICE_TABLE)
 
     @property
     def has_llm(self) -> bool:
@@ -216,4 +221,7 @@ def load_settings(environ: Mapping[str, str] | None = None) -> Settings:
         llm_cb_failure_rate_threshold=float(get("NEXUS_LLM_CB_FAILURE_RATE", "50") or "50"),
         llm_cb_wait_s=float(get("NEXUS_LLM_CB_WAIT_S", "10") or "10"),
         llm_cb_half_open_calls=int(get("NEXUS_LLM_CB_HALF_OPEN_CALLS", "2") or "2"),
+        # §COST-1：不配 = 空表 = 未计价。解析失败也只跳过坏条目并留 warning，
+        # 不让一块附加读数把整个服务拦在启动门外。
+        price_table=PriceTable.from_env_value(env.get("NEXUS_LLM_PRICES")),
     )

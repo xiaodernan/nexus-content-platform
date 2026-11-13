@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { TaskRetryButton } from '@/components/TaskRetryButton';
 import { readTasksLedger, type TasksLedgerPayload, type TaskUsage } from '@/lib/tasksLedger';
-import { cacheText, cacheTotal } from '@/lib/usage-cache-text';
+import { cacheText, cacheTotal, costText } from '@/lib/usage-cache-text';
 import { REALTIME_TEXT, useRealtime } from '@/lib/useRealtime';
 
 const STATUS_TEXT: Record<string, string> = {
@@ -60,9 +60,8 @@ function usageKind(usage: TaskUsage | null): 'missing' | 'demo' | 'real' {
 function usageText(usage: TaskUsage | null): string {
   if (usage === null) return '未记录';
   if (usage.demoMode) return 'DEMO 规则版不经过模型（0 token）';
-  const cost = usage.costUsd > 0 ? `$${usage.costUsd.toFixed(4)}` : '未计价';
   const latency = `${Math.round(usage.latencyMs / 100) / 10} 秒`;
-  return `${usage.model}（${usage.provider}）· ${usage.tokensIn} 进 / ${usage.tokensOut} 出 token · ${cacheText(usage)} · ${cost} · ${usage.toolCalls} 次工具调用 · 模型侧 ${latency}`;
+  return `${usage.model}（${usage.provider}）· ${usage.tokensIn} 进 / ${usage.tokensOut} 出 token · ${cacheText(usage)} · ${costText(usage)} · ${usage.toolCalls} 次工具调用 · 模型侧 ${latency}`;
 }
 
 export function TasksLedgerLive({ projectId, initial }: { projectId: string; initial: TasksLedgerPayload }) {

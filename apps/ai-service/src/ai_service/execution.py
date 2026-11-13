@@ -30,6 +30,33 @@ def error(code: str, message: str, hint: str = "", retryable: bool = False) -> d
     return {"code": code, "message": message, "hint": hint, "retryable": retryable}
 
 
+def _cost_of(registry: Registry, completion: Any) -> tuple[float, str]:
+    """
+    §COST-1：这一次调用值多少钱。
+
+    返回 `(costUsd, costBasis)`。**没配价目表 → `(0, "unknown")`，那不是免费。**
+    界面必须按 basis 分档显示：「未计价」与「$0.0000」是两件事，
+    把它们画成同一个 0 就是在编一个金额（与 ADR 0262「没报 ≠ 报了 0」同一条纪律）。
+
+    金额四舍五入到 1e-8：一次调用通常在 1e-5 ~ 1e-3 之间，多留几位是为了
+    让小模型上的廉价调用不至于全被舍成 0。
+    """
+    price = registry.price_table.price_for(completion.model)
+    if price is None:
+        return 0.0, "unknown"
+    return (
+        round(
+            price.cost(
+                tokens_in=completion.tokens_in,
+                tokens_out=completion.tokens_out,
+                cached_tokens=completion.cached_tokens,
+            ),
+            8,
+        ),
+        "configured",
+    )
+
+
 def sanitize_plans(raw: Any) -> list[dict[str, Any]]:
     """模型给出的 plan 形状不可信；缺字段的直接丢弃，而不是让整个请求失败。"""
     plans: list[dict[str, Any]] = []
@@ -132,6 +159,9 @@ async def execute_ai_request(payload: dict[str, Any], *, registry: Registry) -> 
         return (502, error("provider-failed", str(exc), retryable=True))
     # 报账覆盖度：`cached=0` 与"provider 没报"是两件事，分别计数（见 cache_telemetry）
     registry.cache_telemetry().provider.record(completion)
+    # §COST-1：金额与它的来路一起算好。没配价目表时是 ("unknown")，不是"免费"——
+    # 界面按 basis 分档，绝不把「未计价」画成 "$0.0000"。
+    cost_usd, cost_basis = _cost_of(registry, completion)
 
     try:
         reply = parse_reply(completion.text)
@@ -203,7 +233,8 @@ async def execute_ai_request(payload: dict[str, Any], *, registry: Registry) -> 
             # 前端只能把"一次都没命中"和"不知道"画成同一个 0——那是编了一个读数。
             "cacheReported": completion.cache_reported,
             "latencyMs": completion.latency_ms,
-            "costUsd": 0,
+            "costUsd": cost_usd,
+            "costBasis": cost_basis,
             "toolCalls": 1,
             "demoMode": False,
         },
@@ -270,6 +301,11 @@ async def execute_chat_request(payload: dict[str, Any], *, registry: Registry) -
     except ProviderFailed as exc:
         return (502, error("provider-failed", str(exc), retryable=True))
 
+    # §CACHE-2 补漏：chat 也是 provider 调用，之前只记 design 路径的报账覆盖度。
+    # 不记的话 `/v1/ai/cache-stats` 的 provider 那本账会漏掉全部客服对话。
+    registry.cache_telemetry().provider.record(completion)
+    cost_usd, cost_basis = _cost_of(registry, completion)
+
     text = (completion.text or "").strip()[:4000]
     if not text:
         return (502, error("provider-failed", "provider 返回了空回复", retryable=True))
@@ -291,7 +327,8 @@ async def execute_chat_request(payload: dict[str, Any], *, registry: Registry) -
             # 前端只能把"一次都没命中"和"不知道"画成同一个 0——那是编了一个读数。
             "cacheReported": completion.cache_reported,
             "latencyMs": completion.latency_ms,
-            "costUsd": 0,
+            "costUsd": cost_usd,
+            "costBasis": cost_basis,
             "toolCalls": 1,
             "demoMode": False,
         },

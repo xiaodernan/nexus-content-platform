@@ -82,3 +82,25 @@ export function cacheTotal(
     share: counted > 0 && prompt > 0 ? Math.round((cached / prompt) * 100) : null,
   };
 }
+
+/**
+ * §COST-1：这一格「花了多少钱」怎么说。
+ *
+ * 两档，**不能合并**：
+ * - `costBasis === 'unknown'` → 「未计价」。那个 0 是「不知道」，不是「免费」。
+ * - `configured` → 金额。小数点后位数按量级给：大额四位、小额六位——
+ *   一律四位会让 `$0.0000` 看起来像免费，一律六位会让 `$1.234500` 看起来像伪精度。
+ *
+ * `costUsd` 极小但非零时**不用科学计数法**：`$3.2e-7` 没人读得出那是三毛的十万分之一。
+ * 小于 `$0.000001` 时说「不足 $0.000001」——这是诚实的上限，不是四舍五入到 0。
+ */
+export type CostSlice = { costUsd: number; costBasis: 'unknown' | 'configured' };
+
+export function costText(usage: CostSlice): string {
+  if (usage.costBasis !== 'configured') return '未计价';
+  const amount = usage.costUsd;
+  if (!Number.isFinite(amount) || amount <= 0) return '$0.000000';
+  if (amount < 0.000001) return '不足 $0.000001';
+  if (amount < 0.01) return `$${amount.toFixed(6)}`;
+  return `$${amount.toFixed(4)}`;
+}

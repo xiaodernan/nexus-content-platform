@@ -44,6 +44,11 @@ export const TaskUsageSchema = z.object({
   cacheReported: z.boolean().default(false),
   latencyMs: z.number().min(0),
   costUsd: z.number().min(0),
+  /**
+   * §COST-1：`costUsd` 的来路。缺省 `unknown` = **「不知道」不是「免费」**。
+   * 老账本没有这一栏，按 `unknown` 读——把一个 0 当成"免费"是在编金额。
+   */
+  costBasis: z.enum(['unknown', 'configured']).default('unknown'),
   toolCalls: z.number().int().min(0),
   demoMode: z.boolean(),
 });

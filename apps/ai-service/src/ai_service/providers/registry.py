@@ -7,6 +7,7 @@ from typing import Any
 
 from ..cache_telemetry import CacheTelemetry
 from ..config import Settings
+from ..pricing import PriceTable
 from ..resilience import BreakerConfig, CircuitBreaker
 from .liveness import EmbeddingLiveness, EmbeddingProber
 from .openai_compatible import OpenAICompatibleProvider, OpenAICompatibleEmbeddingProvider
@@ -203,6 +204,15 @@ class Registry:
         放独立端点 `/v1/ai/cache-stats`，由需要的人来读。
         """
         return self._cache_telemetry
+
+    @property
+    def price_table(self) -> PriceTable:
+        """§COST-1 价目表。
+
+        只暴露这一件而不是整个 `Settings`：那里面有 `openai_api_key`，
+        而调用方（`execution.py` 算成本）只需要单价。
+        """
+        return self._settings.price_table
 
     def llm_cache_state(self) -> dict[str, Any] | None:
         """应用级 LLM 完成缓存的报文状态（可观测性面板读用）。

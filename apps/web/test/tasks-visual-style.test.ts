@@ -213,7 +213,7 @@ describe('§FE-23 /tasks/[projectId] 任务账本', () => {
   it('剥 className 后全文 SHA256 钉死（live=c5667ac0… 合并 §AILIVE-7/CACHE-3 后的字节 · retry=b90012c2… · page=bd7e0e61…）', () => {
     // 常量在改前（git HEAD）由真实产物 redact 算出并钉死；此门保证除 className 外一字节未动。
     expect(createHash('sha256').update(redactClasses(live)).digest('hex')).toBe(
-      'c5667ac0b3f31371456b096e82ba555a7657d0e8e8804fbd2fdcab4108136c25',
+      'e27f3f38c49f8bf6628869fe6f416159a77560690654091afe418bddd05ac67b',
     );
     expect(createHash('sha256').update(redactClasses(retry)).digest('hex')).toBe(
       'b90012c2ad50e24a71a316610fe85fb8b9caa69607d27fc8ef89b8c91ae23801',

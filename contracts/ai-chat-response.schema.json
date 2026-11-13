@@ -77,6 +77,11 @@
           "type": "number",
           "minimum": 0
         },
+        "costBasis": {
+          "default": "unknown",
+          "type": "string",
+          "enum": ["unknown", "configured"]
+        },
         "toolCalls": {
           "default": 0,
           "type": "integer",
@@ -98,6 +103,7 @@
         "cacheReported",
         "latencyMs",
         "costUsd",
+        "costBasis",
         "toolCalls",
         "demoMode"
       ],

@@ -135,6 +135,16 @@ export const UsageSchema = z.object({
   cacheReported: z.boolean().default(false),
   latencyMs: z.number().min(0).default(0),
   costUsd: z.number().min(0).default(0),
+  /**
+   * §COST-1：`costUsd` 是怎么来的。
+   *
+   * `unknown` = 没配单价表，那个 0 是**「不知道」不是「免费」**；
+   * `configured` = 按 `NEXUS_LLM_PRICES` 算出来的。
+   *
+   * 没有这一维，界面只能把「未计价」画成 `$0.0000`——那是在编一个金额，
+   * 比不显示更糟（与 ADR 0262「没报 ≠ 报了 0」同一条纪律）。
+   */
+  costBasis: z.enum(['unknown', 'configured']).default('unknown'),
   toolCalls: z.number().int().min(0).default(0),
   demoMode: z.boolean().default(false),
 });

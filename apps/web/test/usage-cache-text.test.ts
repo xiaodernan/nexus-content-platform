@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cacheShare, cacheState, cacheText, cacheTotal } from '@/lib/usage-cache-text';
+import { cacheShare, cacheState, cacheText, cacheTotal, costText } from '@/lib/usage-cache-text';
 
 /**
  * §CACHE-3 缓存读数翻译层。
@@ -112,5 +112,41 @@ describe('§CACHE-3 cacheTotal：分母只算报过账的行', () => {
       { tokensIn: 1000, cachedTokens: 0, cacheReported: true },
     ]);
     expect(total).toEqual({ rows: 2, cached: 0, prompt: 2000, share: 0 });
+  });
+});
+
+describe('§COST-1 costText：未计价不是免费', () => {
+  it('unknown → 「未计价」，输出里不出现 $ 符号（那会让 0 看起来像金额）', () => {
+    const text = costText({ costUsd: 0, costBasis: 'unknown' });
+    expect(text).toBe('未计价');
+    expect(text).not.toContain('$');
+  });
+
+  it('unknown 即使带着非零 costUsd 也说「未计价」（basis 是唯一判据，不看数值）', () => {
+    // 万一是老账本里写了一个没人能解释的数，也不许把它当成金额展示
+    expect(costText({ costUsd: 9.99, costBasis: 'unknown' })).toBe('未计价');
+  });
+
+  it('configured 的小额给六位：$0.002100', () => {
+    expect(costText({ costUsd: 0.0021, costBasis: 'configured' })).toBe('$0.002100');
+  });
+
+  it('configured 的大额给四位：$1.2346', () => {
+    expect(costText({ costUsd: 1.23456, costBasis: 'configured' })).toBe('$1.2346');
+  });
+
+  it('极小但非零不四舍五入成 $0.000000，说「不足 $0.000001」', () => {
+    // 用科学计数法或 $0.000000 都会让人读成"免费"或"看不懂"
+    expect(costText({ costUsd: 3.2e-7, costBasis: 'configured' })).toBe('不足 $0.000001');
+  });
+
+  it('configured 且确实为 0 → $0.000000（这是"算过、结果是 0"，与"未计价"不同）', () => {
+    expect(costText({ costUsd: 0, costBasis: 'configured' })).toBe('$0.000000');
+  });
+
+  it('NaN / 负数 / Infinity 不产生奇怪字符串', () => {
+    expect(costText({ costUsd: Number.NaN, costBasis: 'configured' })).toBe('$0.000000');
+    expect(costText({ costUsd: -1, costBasis: 'configured' })).toBe('$0.000000');
+    expect(costText({ costUsd: Number.POSITIVE_INFINITY, costBasis: 'configured' })).toBe('$0.000000');
   });
 });

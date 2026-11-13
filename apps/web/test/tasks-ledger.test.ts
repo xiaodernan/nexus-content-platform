@@ -127,7 +127,9 @@ describe('§75 用量那一格：0 与"没记"是两件事', () => {
     cachedTokens: 861,
     cacheReported: true,
     latencyMs: 2345,
-    costUsd: 0,
+    // §COST-1：配了单价表算出来的真实金额（不是 0，也不是「未计价」）
+    costUsd: 0.0021,
+    costBasis: 'configured' as const,
     toolCalls: 2,
     demoMode: false,
   };
