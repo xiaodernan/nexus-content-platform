@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import { describe, expect, it, beforeEach } from 'vitest';
 import {
   readDeadLettersPage,
   exportDeadLettersJsonl,
@@ -13,7 +13,6 @@ import {
 class FakeRedis {
   list: string[] = [];
   calls: Array<[string, ...unknown[]]> = [];
-  disconnects = 0;
 
   async llen(key: string) {
     this.calls.push(['llen', key]);
@@ -27,10 +26,6 @@ class FakeRedis {
 
   lpush(value: string) {
     this.list.unshift(value);
-  }
-
-  disconnect() {
-    this.disconnects += 1;
   }
 }
 

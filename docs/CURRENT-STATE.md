@@ -2263,3 +2263,16 @@ streaming looked better. Deep fix done this turn, real-verifiable on this host:
    - Streaming implementation has not been re-exercised through the waylay (production
      consumers of /v1/ai/run); the next hosted battery will tell.
    - Browser pixels still unverified all session.
+## cont. 73 (2026-11-13) - hotfix: dead-letters test tripped the hosted lint gate (no-unused-vars / unused afterEach); fixed, suite green, lint-tree matches ledger again
+
+The 349dd6c Studio CI gate (Lint the whole tree against the debt ledger) flagged my new
+apps/web/test/dead-letters.test.ts with @typescript-eslint/no-unused-vars (an unused
+`disconnects` field and an unused `afterEach` import) and refused for UNDECLARED debt
+(1 finding, 50-row rule had no ledger row for this file).
+
+Fix: deleted both. Local verify: eslint clean; NEXUS_REDIS_URL-pointed suite 11/11 green;
+npm run verify:lint-tree reports BASIS apps/web/test/dead-letters.test.ts (worktree 0 vs
+index 1 - fixed on disk, needs staging for the hosted verdict).
+
+No behavior change; only an unused property and an unused import removed. Suite state:
+11 passed.
