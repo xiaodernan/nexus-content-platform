@@ -69,7 +69,15 @@ class Registry:
 
     @staticmethod
     def _build_llm(settings: Settings, breaker) -> OpenAICompatibleProvider:
+        # 粘性路由（v695，ADR 0127）：provider 的 SSE 与非流是两条独立构造 body 的路径，
+        # transport 是唯一共同出站点。禁用时传 None => httpx 自建默认 transport，字节级零回归。
+        transport = None
+        if settings.llm_sticky_cache_key:
+            from ..sticky_prompt_cache import StickyPromptCacheTransport
+
+            transport = StickyPromptCacheTransport()
         provider = OpenAICompatibleProvider(
+            transport=transport,
             api_key=settings.openai_api_key or "",
             base_url=settings.openai_base_url,
             models=settings.llm_models,

@@ -302,9 +302,11 @@ def test_arm_correct_observation_is_green():
 
 def test_arm_key_without_user_breaks_the_real_component(monkeypatch):
     """判据真连着生产组件（ADR 0095 反面）：把组件的键真值退化成 2 维，门必须红。"""
+    # 臂仍只干一件事：把键退化成 2 维（丢掉 user）。新加的 json_mode 维度照收不误，
+    # 免得门因为"签名不匹配"而不是"键少了 user"变红——那会是假红。
     monkeypatch.setattr(
         LlmCompletionCache, "key",
-        staticmethod(lambda *, model, system, user: (model, system)),
+        staticmethod(lambda *, model, system, user, json_mode=None: (model, system)),
     )
     obs = _run_isolation_scenario(_fresh_cache())
     with pytest.raises(AssertionError, match="user"):

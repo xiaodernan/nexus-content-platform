@@ -11851,3 +11851,28 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   watchdog respawns its side; we do NOT kill it (same discipline as careeros). Which deployment owns
   the port is a deployment decision, recorded in ADR 0126.
 - SPRINGCLOUD-BLUEPRINT updated: P0 first cut landed (perf:llm-live + llmLatency + admin rows).
+
+## v695 — LLM 缓存命中率深度修正：粘性路由 + 前缀序 + 缓存键第四维（ADR 0127）（2026-11-14）
+- **背景**：用户报"缓存命中率这么低、一直显示非流、显示流时好得多、肯定是调用方法有问题"。
+  先复现不猜：真机 A/B 显示**流式不是命中率的原因**（本轮流 0/8 上报 details、非流 5/8，
+  与 ADR 0123 记录方向相反；`prompt_tokens` 对同一文本在 4358..60236 间跳，是通道 draw）。
+- **根因 A**：`build_prompt` 旧序把 selection/annotations/recentChanges/corpus 放 JSON 最前，
+  稳定目录跟在后面 → 两轮共享前缀只有 **81 / 6876 字节**，provider 前缀缓存从不可能触发。
+  ADR 0123 只挪了 intent/prompt/variants，门只钉"最后 3 个键"所以全绿却是坏的。
+- **根因 B（决定性）**：该 distributor 按通道分发、前缀缓存通道本地，缺 `prompt_cache_key`
+  粘性路由 → 连续两轮落不同通道。同进程交替 A/B：流不带键 1/8（mean 0.124、p50 0.0），
+  带稳定键 **8/8（mean 0.778、p50 0.778）**；非流 2/6 → 5/6；`user` 字段不可用。
+- **做了**：新 `sticky_prompt_cache.py`（`STABLE_PROMPT_KEYS` 单一真值 / `ordered_payload` /
+  `prompt_cache_key` / `StickyPromptCacheTransport`）；`Registry._build_llm` 接线，
+  `NEXUS_LLM_STICKY_CACHE_KEY=0` 字节级零回归；`design_prompt` 三处编码点共用
+  `_encode_prompt`（共享前缀 81 → **6328**，78×）；completion cache 键补 `json_mode`
+  第四维（修 chat/run 串台），进程内 + Redis 两后端同源；新门 `test_sticky_prompt_cache.py`
+  15 条（判据纯函数、正向锚、5 变异臂恒跑、2 正向对照、真腿函数级 skipif）。
+- **真机（wkapi.pro / gpt-6-sol）**：生产 `Registry` 链 A/B（隔离应用级缓存）
+  sticky OFF 1/4、mean 0.121、p50 0.0；ON warm 轮 3/3 稳定 0.81，mean 0.608、p50 0.81。
+  生产类直出两轮均 `cached=11776/11972 ≈ 98.4%`。
+- **验证**：离线 268 passed / 15 skipped；`NEXUS_LIVE_LLM=1` + 真 Redis 279 passed / 4 skipped。
+  零 web / 契约改动；census 安全形状（只加 ai-service src + tests + ADR + ROADMAP）。
+- **仍欠**：distributor cache TTL / 通道数不可知（需供应商信息或长跑）；目录一改键就变；
+  chat 自由文本只用 system 做键；不支持该字段的网关尚无自动探测降级（靠 `=0` opt-out）；
+  temperature 仍未进键（ADR 0113 仍欠）。

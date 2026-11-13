@@ -74,6 +74,10 @@ class Settings:
     llm_cache_url: str = ""
     llm_cache_namespace: str = "nexus:llmc"
     llm_cache_ttl_s: float = 3600.0
+    # provider 前缀缓存粘性路由（v695，ADR 0127）：默认 True。同进程交替 A/B 真机实测
+    # 不带 prompt_cache_key 命中 1/8（p50 0.0），带稳定键 8/8（p50 0.778）。
+    # 设 NEXUS_LLM_STICKY_CACHE_KEY=0 可 byte-level 还原（对不支持该字段的网关降级）。
+    llm_sticky_cache_key: bool = True
     # 检测到但尚未实现适配器的 key：如实报告为 unavailable，不假装能调用（§159）
     unsupported_text_keys: tuple[str, ...] = ()
 
@@ -116,6 +120,7 @@ class Settings:
             "llm_cache_url": bool(self.llm_cache_url.strip()),
             "llm_cache_namespace": self.llm_cache_namespace,
             "llm_cache_ttl_s": self.llm_cache_ttl_s,
+            "llm_sticky_cache_key": self.llm_sticky_cache_key,
             "llm_cb_sliding_window": self.llm_cb_sliding_window,
             "llm_cb_minimum_calls": self.llm_cb_minimum_calls,
             "llm_cb_failure_rate_threshold": self.llm_cb_failure_rate_threshold,
@@ -169,6 +174,7 @@ def load_settings(environ: Mapping[str, str] | None = None) -> Settings:
     llm_cache_url=get("NEXUS_LLM_COMPLETION_CACHE_URL", "") or "",
     llm_cache_namespace=(get("NEXUS_LLM_COMPLETION_CACHE_NAMESPACE", "nexus:llmc") or "nexus:llmc").strip(),
     llm_cache_ttl_s=float(get("NEXUS_LLM_COMPLETION_CACHE_TTL_S", "3600") or "3600"),
+    llm_sticky_cache_key=(get("NEXUS_LLM_STICKY_CACHE_KEY", "1") or "1") != "0",
         llm_cb_sliding_window=int(get("NEXUS_LLM_CB_SLIDING_WINDOW", "20") or "20"),
         llm_cb_minimum_calls=int(get("NEXUS_LLM_CB_MIN_CALLS", "20") or "20"),
         llm_cb_failure_rate_threshold=float(get("NEXUS_LLM_CB_FAILURE_RATE", "50") or "50"),

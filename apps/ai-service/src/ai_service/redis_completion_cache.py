@@ -19,7 +19,7 @@ v680 的 `LlmCompletionCache` 是**进程内**的：重启即失，副本各缓�
   （到点 key 消失），zset 兜底修剪，两者不一致时以 TTL 为准。
 
 **设计取舍**：
-- 键 = `sha256(model \0 system \0 user)`，与 `completion_cache.LlmCompletionCache.key`
+- 键 = `sha256(model \0 system \0 user \0 json_mode)`，与 `completion_cache.LlmCompletionCache.key`
   共用单一真值（`LlmCompletionCache.key`）——换前缀再哈希会串台，两处必须一处定义。
   TTL 与 entry 生命周期由 Redis `SET ... EX` 权威实现；LRU 索引是独立一个 zset（
   member=摘要，score=epoch 毫秒），`store` 时顺手修剪过期成员与超限成员。
@@ -113,14 +113,17 @@ def _default_now_ms() -> int:
 
 
 def _digest(key: CacheKey) -> str:
-    model, system, user = key
-    # NUL 分隔：model/system/user 内部可以任意字符，哈希里唯一
+    model, system, user, json_mode = key
+    # NUL 分隔：各段内部可以任意字符，哈希里唯一。第四维（v695）：json_mode 也影响回复形状，
+    # 漏掉它 chat 与 run 会共用一条缓存——与进程内组件共用 LlmCompletionCache.key 单一真值。
     h = hashlib.sha256()
     h.update(model.encode("utf-8"))
     h.update(b"\0")
     h.update(system.encode("utf-8"))
     h.update(b"\0")
     h.update(user.encode("utf-8"))
+    h.update(b"\0")
+    h.update(json_mode.encode("utf-8"))
     return h.hexdigest()
 
 
@@ -353,5 +356,5 @@ class RedisLlmCompletionCache:
     # ── 兼容 v680 构造参数形状（两组件可同构替换，语义不同见 ADR 0119）────
 
     @staticmethod
-    def key(*, model: str, system: str, user: str) -> CacheKey:
-        return LlmCompletionCache.key(model=model, system=system, user=user)
+    def key(*, model: str, system: str, user: str, json_mode: bool | None = None) -> CacheKey:
+        return LlmCompletionCache.key(model=model, system=system, user=user, json_mode=json_mode)

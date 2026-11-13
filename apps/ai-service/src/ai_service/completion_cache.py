@@ -11,7 +11,10 @@ web `TaskUsageSchema` 是精确 zod 形状，要表达"这次命中了缓存、�
 设计取舍：
 - 纯组件 + 装饰器：`CachedLlm` 实现 `LLMProvider` 协议，套在任意 provider 上。
   `registry.llm.complete(...)` 那条生产路径**一行不改**——启用时只需构造处 opt-in 包一层。
-- 键 = `(model, system, user)`：三个都影响模型输出，缺一个就会串台（门有臂验）。
+- 键 = `(model, system, user, json_mode)`：四个都影响模型输出，缺一个就会串台（门有臂验）。
+  `json_mode` 是 v695 补上的第四维：`response_format=json_object` 与纯文本是**两种不同形状的
+  回复**（chat 路由显式传 False，run 路由用默认），旧键漏了它，同一份 (model, system, user)
+  的 chat 可能拿到 run 缓存下来的 JSON 对象——这是正确的缓存键不该允许的串台。
   不含 `temperature`：当前适配器硬编码 0.2（openai_compatible.py:56），是 provider 的既定
   语义，不是调用方变量；若将来开放 temperature，必须同步进键（ADR 0113 仍欠项）。
 - TTL + LRU：`OrderedDict`，命中移到末尾，超过 `max_entries` 淘汰最久未用；TTL 用
@@ -29,7 +32,16 @@ from typing import Protocol
 
 from .providers.base import Completion, LLMProvider
 
-CacheKey = tuple[str, str, str]  # (model, system, user)
+# None = 用 provider 默认（不是"未指定就随便"）；三态必须分开，否则 chat 与 run 会串台。
+JsonModeKey = str  # "default" | "json" | "text"
+CacheKey = tuple[str, str, str, JsonModeKey]  # (model, system, user, json_mode)
+
+
+def json_mode_key(json_mode: bool | None) -> JsonModeKey:
+    """键维度的单一真值：门与组件共用。None/True/False 三态不能折叠成两态。"""
+    if json_mode is None:
+        return "default"
+    return "json" if json_mode else "text"
 
 
 @dataclass(frozen=True)
@@ -87,9 +99,12 @@ class LlmCompletionCache:
         self._expirations = 0
 
     @staticmethod
-    def key(*, model: str, system: str, user: str) -> CacheKey:
-        """键的单一真值：门与组件共用，避免"组件漏一个维度 + 门也漏"的假绿。"""
-        return (model, system, user)
+    def key(*, model: str, system: str, user: str, json_mode: bool | None = None) -> CacheKey:
+        """键的单一真值：门与组件共用，避免"组件漏一个维度 + 门也漏"的假绿。
+
+        `json_mode` 默认 None 保持旧调用点零改动，但语义上就是 "default" 这一态。
+        """
+        return (model, system, user, json_mode_key(json_mode))
 
     def get(self, key: CacheKey) -> Completion | None:
         """命中移到 LRU 末尾；TTL 过期的条目当场清除并计 expiration，按 miss 处理。"""
@@ -161,7 +176,8 @@ class CachedLlm:
         return self._inner.model_for(model_class)
 
     def complete(self, *, model: str, system: str, user: str, json_mode: bool | None = None) -> Completion:
-        key = LlmCompletionCache.key(model=model, system=system, user=user)
+        # json_mode 必须进键：chat(False) 与 run(None/True) 的回复形状不同，漏了会串台。
+        key = LlmCompletionCache.key(model=model, system=system, user=user, json_mode=json_mode)
         cached = self._cache.get(key)
         if cached is not None:
             return cached
