@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { TaskRetryButton } from '@/components/TaskRetryButton';
 import { readTasksLedger, type TasksLedgerPayload, type TaskUsage } from '@/lib/tasksLedger';
+import { cacheText, cacheTotal } from '@/lib/usage-cache-text';
 import { REALTIME_TEXT, useRealtime } from '@/lib/useRealtime';
 
 const STATUS_TEXT: Record<string, string> = {
@@ -52,13 +53,16 @@ function usageKind(usage: TaskUsage | null): 'missing' | 'demo' | 'real' {
  * - DEMO 规则版不经过模型 ⇒ 写 0 token，不写得像一次模型调用；
  * - 费用为 0 时写「未计价」——今天的适配器还没有价格表，0 与「免费」不是一回事（§159）；
  * - 模型侧延迟与「用时」列不是同一个数：那一列是任务从开始到收尾，这一格是 provider 自己报的。
+ *
+ * 缓存那一格的三种说法（没报 / 未命中 / 命中 N·P%）住在 `lib/usage-cache-text.ts`：
+ * 那三句话是承诺，得能被单测逐条钉住，而钉一个 JSX 表达式只能靠正则猜。
  */
 function usageText(usage: TaskUsage | null): string {
   if (usage === null) return '未记录';
   if (usage.demoMode) return 'DEMO 规则版不经过模型（0 token）';
   const cost = usage.costUsd > 0 ? `$${usage.costUsd.toFixed(4)}` : '未计价';
   const latency = `${Math.round(usage.latencyMs / 100) / 10} 秒`;
-  return `${usage.model}（${usage.provider}）· ${usage.tokensIn} 进 / ${usage.tokensOut} 出 token · ${cost} · ${usage.toolCalls} 次工具调用 · 模型侧 ${latency}`;
+  return `${usage.model}（${usage.provider}）· ${usage.tokensIn} 进 / ${usage.tokensOut} 出 token · ${cacheText(usage)} · ${cost} · ${usage.toolCalls} 次工具调用 · 模型侧 ${latency}`;
 }
 
 export function TasksLedgerLive({ projectId, initial }: { projectId: string; initial: TasksLedgerPayload }) {
@@ -124,6 +128,19 @@ export function TasksLedgerLive({ projectId, initial }: { projectId: string; ini
     },
     { real: 0, demo: 0, missing: 0 },
   );
+  /**
+   * §CACHE-3：这一页真模型调用的缓存合计。
+   *
+   * **只统计 `cacheReported` 的行**。把"没报"的行按 0 加进分母，命中率会凭空变小——
+   * 那是用数据缺失伪造一个更差的读数，和伪造一个更好的读数一样不诚实。
+   * 一行都没报时 `rows === 0`，界面说"没有可用的缓存读数"，绝不画 0%。
+   */
+  /**
+   * §CACHE-3：这一页真模型调用的缓存合计。口径在 `lib/usage-cache-text.ts` 的 `cacheTotal`——
+   * **只统计 `cacheReported` 的行**，一行都没报时 `rows === 0`，界面说"没有可用的缓存读数"，
+   * 绝不画 0%（把"没报"按 0 加进分母，是在用数据缺失伪造一个更差的读数）。
+   */
+  const cache = cacheTotal(payload.tasks.map((task) => task.usage).filter((usage): usage is TaskUsage => usage !== null));
 
   return (
     <main className="tl-page" data-tasks-root>
@@ -142,6 +159,18 @@ export function TasksLedgerLive({ projectId, initial }: { projectId: string; ini
             <p className="tl-summary" data-tasks-usage-summary>
               用量：真模型 {usages.real} 行 · DEMO 规则版 {usages.demo} 行 · 未记录 {usages.missing} 行
             </p>
+          ) : null}
+          {payload.tasks.length > 0 ? (
+            cache.rows > 0 ? (
+              <p className="tl-summary" data-tasks-cache-summary={String(cache.cached)}>
+                缓存读数（只计 {cache.rows} 行报过数的真模型行）：命中 {cache.cached} / {cache.prompt} 输入 token
+                {cache.share === null ? '' : `（占 ${cache.share}%）`} · 「未报」的行不画进这个数
+              </p>
+            ) : (
+              <p className="tl-summary" data-tasks-cache-summary="none">
+                这页真模型行都没报缓存读数——“没报”与“命中 0”是两件事，这里绝不画 0%（ADR-0262）
+              </p>
+            )
           ) : null}
         </div>
         <div className="tl-tools">

@@ -12,9 +12,9 @@ import { describe, expect, it } from 'vitest';
  * 本片只换 className；行为、文案、data 钩子、realtime 订阅/重读判据一字不改。
  *
  * **剥 className 后全文 SHA256 守恒**：三文件均逐字节恒等于改前（git HEAD）。
- * redact 三步序与钉死常量那一次一致：live=`1e7aa68d…`，retry=`b90012c2…`，page=`bd7e0e61…`。
+ * redact 三步序与钉死常量那一次一致：live=`c5667ac0…`，retry=`b90012c2…`，page=`bd7e0e61…`。
  *
- * 判据不变式（13 门）：
+ * 判据不变式（14 门）：
  *  1. page.tsx server 组件 + force-dynamic + requireUser + listProjectTasks 钩子（零 className）；
  *  2. live + retry 保留 'use client'（唯二的 client 面）；
  *  3. 两个 client 文件字面 className 全 `.tl-*`；4. 零裸 Tailwind 原子类；
@@ -22,7 +22,7 @@ import { describe, expect, it } from 'vitest';
  *  7. 零写死 hex；8. 视觉段 var(--nexus-*）全在 tokens.css 声明；9. 零新增颜色 token；
  * 10. 零 transition / animation / @keyframes / @media；11. focus-visible 覆盖 backlink/retryBtn；
  *     .tl-retryBtn:disabled 真禁用；横滚区 role="region" + tabIndex 守恒（axe scrollable-region-focusable）；
- * 12. SHA256 三文件守恒；13. 数据钩子守恒（13 个 data-tasks-/data-task- 系 + 2 个 data-task-retry 系）。
+ * 12. SHA256 三文件守恒；13. 数据钩子守恒（13 个 data-tasks-/data-task- 系 + 2 个 data-task-retry 系）。§CACHE-3（2026-11-14）：live 随并行线补钉新 SHA（c5667ac0…）与 cache 三档钩子，13 门→14 门。
  */
 const ROOT = process.cwd();
 const PAGE = join(ROOT, 'apps/web/src/app/tasks/[projectId]/page.tsx');
@@ -170,12 +170,14 @@ describe('§FE-23 /tasks/[projectId] 任务账本', () => {
     expect(liveCode).toContain('aria-label="任务账本表格（可横向滚动）"');
   });
 
-  it('数据钩子守恒：live 13 个 + retry 2 个（data-task-retry/-note）', () => {
+  it('数据钩子守恒：live 14 个 + retry 2 个（data-task-retry/-note）', () => {
     for (const hook of [
       'data-tasks-root',
       'data-tasks-title',
       'data-tasks-summary',
       'data-tasks-usage-summary',
+      // §CACHE-3：真模型缓存合计格（或 none 档）——「没报」永不画成 0%
+      'data-tasks-cache-summary',
       'data-tasks-realtime',
       'data-tasks-back',
       'data-tasks-live-note',
@@ -192,10 +194,26 @@ describe('§FE-23 /tasks/[projectId] 任务账本', () => {
     expect(retryCode).toContain('data-task-retry-note');
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：live=1e7aa68d… · retry=b90012c2… · page=bd7e0e61…）', () => {
+  it('§CACHE-3「缓存未报/未命中/命中 N」三档：措辞归 lib，组件只许调、不许自己再写一份', () => {
+    // 三句话是**承诺**，它们住在 `lib/usage-cache-text.ts`，并由 13 条纯函数判据逐句钉住
+    // （`usage-cache-text.test.ts`：没报给 null 不给 0、0 做分母不算百分比、DEMO 不进门、
+    // 负数不出负命中率）。留在这里的是**接线**：组件真的在用那份实现，而不是自己又写一份。
+    //
+    // 为什么不在组件里内联：这两处措辞一旦各写一遍，早晚会漂——一处改成"未命中"、
+    // 另一处还写"命中 0"。抽成纯函数后，"哪句话是什么"只有一处定义。
+    expect(liveCode).toContain("from '@/lib/usage-cache-text'");
+    expect(liveCode).toContain('cacheText(usage)');
+    expect(liveCode).toContain('cacheTotal(');
+    // 合计格一行都没报时有独立分支，绝不画 0%
+    expect(liveCode).toContain('data-tasks-cache-summary="none"');
+    // 合计只在有读数时给数字（e2e 靠这个钩子断言，别退化成恒存在的空串）
+    expect(liveCode).toContain('data-tasks-cache-summary={String(cache.cached)}');
+  });
+
+  it('剥 className 后全文 SHA256 钉死（live=c5667ac0… 合并 §AILIVE-7/CACHE-3 后的字节 · retry=b90012c2… · page=bd7e0e61…）', () => {
     // 常量在改前（git HEAD）由真实产物 redact 算出并钉死；此门保证除 className 外一字节未动。
     expect(createHash('sha256').update(redactClasses(live)).digest('hex')).toBe(
-      '1e7aa68d34b020cce7e2d7c3505883352107037368e62ba8119752564a4d520a',
+      'c5667ac0b3f31371456b096e82ba555a7657d0e8e8804fbd2fdcab4108136c25',
     );
     expect(createHash('sha256').update(redactClasses(retry)).digest('hex')).toBe(
       'b90012c2ad50e24a71a316610fe85fb8b9caa69607d27fc8ef89b8c91ae23801',

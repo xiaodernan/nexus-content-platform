@@ -122,6 +122,17 @@ export const UsageSchema = z.object({
   tokensOut: z.number().int().min(0).default(0),
   // OpenAI 兼容网关回的 cached_tokens（命中提示缓存的输入 token 数）——没该字段的 provider 一律 0
   cachedTokens: z.number().int().min(0).default(0),
+  /**
+   * §CACHE-3：provider 到底**报没报** `cachedTokens`。
+   *
+   * `cachedTokens=0` 与「这一栏根本没人填」在界面上必须长得不一样：
+   * 前者是"一次都没命中"，后者是"网关没告诉我们"。没有这一维，前端只能把两者
+   * 画成同一个 0——那不是读数不准，是**编了一个读数**（ADR 0262 的核心口径）。
+   *
+   * 默认 `false` 而不是 `true`：历史账本、mock、以及任何没显式表态的产出方，
+   * 按"没报"处理才是安全的。相信一个没被承诺的数，比对它一无所知更糟。
+   */
+  cacheReported: z.boolean().default(false),
   latencyMs: z.number().min(0).default(0),
   costUsd: z.number().min(0).default(0),
   toolCalls: z.number().int().min(0).default(0),

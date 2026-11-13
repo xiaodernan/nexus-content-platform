@@ -31,6 +31,17 @@ export const TaskUsageSchema = z.object({
   tokensOut: z.number().int().min(0),
   // OpenAI 兼容网关回的 cached_tokens —— 老账本没这个字段，缺省 0，不编一个命中率
   cachedTokens: z.number().int().min(0).default(0),
+  /**
+   * §CACHE-3：这一格**是不是真数**。
+   *
+   * 本 schema 头上写着"字段全部必填、不给默认值"，`cachedTokens` 是唯一的历史例外
+   * （老 jsonb 里没有这一栏）。但那个例外让「没报」与「报了 0」在浏览器上长得一样。
+   * 补这一维而不是把 `cachedTokens` 改成 nullable：库里已有大量老行，
+   * 改 nullable 会让它们从"0"变成"读不懂"，而"读不懂"比"没记"更糟。
+   *
+   * 默认 `false` —— 老行、以及任何没表态的写入方，一律按"没报"显示。
+   */
+  cacheReported: z.boolean().default(false),
   latencyMs: z.number().min(0),
   costUsd: z.number().min(0),
   toolCalls: z.number().int().min(0),

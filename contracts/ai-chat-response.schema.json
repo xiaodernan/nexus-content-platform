@@ -63,6 +63,10 @@
           "minimum": 0,
           "maximum": 9007199254740991
         },
+        "cacheReported": {
+          "default": false,
+          "type": "boolean"
+        },
         "latencyMs": {
           "default": 0,
           "type": "number",
@@ -91,6 +95,7 @@
         "tokensIn",
         "tokensOut",
         "cachedTokens",
+        "cacheReported",
         "latencyMs",
         "costUsd",
         "toolCalls",

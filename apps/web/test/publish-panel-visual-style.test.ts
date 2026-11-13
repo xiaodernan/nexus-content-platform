@@ -11,7 +11,16 @@ import { describe, expect, it } from 'vitest';
  * 本片只换皮；发布 dispatch / popover-dismiss / HealthWatch 派生、ARIA/钩子 — 一字不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @ + cn()整体归一 + `className=@` 归一）：
- * `5ad0738084b4e86b5201d24da1c71149c8bd65d0ac6ce830a6885167908142b8` 与 HEAD 字节一致。
+ * `3427551976d6ab2508c546e27ef5dd3a05cb20c9b7ae64f6d3ef9916ddf30940` 与 HEAD 字节一致。
+ *
+ * **§GATE-2（2026-11-14）这条门换过一次值，理由要留在这里**：上一版是
+ * `5ad0738084b4e86b5201d24da1c71149c8bd65d0ac6ce830a6885167908142b8`，在提交
+ * `33212785`（并轨收官尾巴）里失效——那次给 PublishPanel 加了**预检结果四行**
+ * （`data-publish-preflight-outcome` / `data-publish-ai-ready` 两个钩子就是那时落地的）。
+ * 那是真实的新行为，不是换皮，所以恒等门该破。破的时候没人来签字，因为
+ * `not-found-visual-style.test.ts` 里的活体死循环让 `verify:fe-gates` 在字母序
+ * `n` 处永久挂死，`p` 开头的这一套从来没被执行过——**死循环的代价不只是慢，是遮蔽**。
+ * 死循环已修（§GATE-2），这一条按实际字节把欠的签字补上。
  *
  * 判据不变式（12 门）：
  *  1. 'use client' 保留 + PANEL_ID + popover-dismiss 进门；2. 字面 className 全 `.pb-*`/复用（含 cn 三元分支）；
@@ -155,9 +164,9 @@ describe('§FE-54 /studio PublishPanel 发布面板', () => {
     }
   });
 
-  it('剥 className/cn 后全文 SHA256 守恒（零行为：5ad0738084b4e86b5201d24da1c71149c8bd65d0ac6ce830a6885167908142b8）', () => {
+  it('剥 className/cn 后全文 SHA256 守恒（零行为：3427551976d6ab2508c546e27ef5dd3a05cb20c9b7ae64f6d3ef9916ddf30940）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '5ad0738084b4e86b5201d24da1c71149c8bd65d0ac6ce830a6885167908142b8',
+      '3427551976d6ab2508c546e27ef5dd3a05cb20c9b7ae64f6d3ef9916ddf30940',
     );
   });
 });

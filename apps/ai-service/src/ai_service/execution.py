@@ -199,6 +199,9 @@ async def execute_ai_request(payload: dict[str, Any], *, registry: Registry) -> 
             "tokensIn": completion.tokens_in,
             "tokensOut": completion.tokens_out,
             "cachedTokens": completion.cached_tokens,
+            # §CACHE-3：`cachedTokens=0` 与「网关没报」是两件事。不收这一维，
+            # 前端只能把"一次都没命中"和"不知道"画成同一个 0——那是编了一个读数。
+            "cacheReported": completion.cache_reported,
             "latencyMs": completion.latency_ms,
             "costUsd": 0,
             "toolCalls": 1,
@@ -284,6 +287,9 @@ async def execute_chat_request(payload: dict[str, Any], *, registry: Registry) -
             "tokensIn": completion.tokens_in,
             "tokensOut": completion.tokens_out,
             "cachedTokens": completion.cached_tokens,
+            # §CACHE-3：`cachedTokens=0` 与「网关没报」是两件事。不收这一维，
+            # 前端只能把"一次都没命中"和"不知道"画成同一个 0——那是编了一个读数。
+            "cacheReported": completion.cache_reported,
             "latencyMs": completion.latency_ms,
             "costUsd": 0,
             "toolCalls": 1,

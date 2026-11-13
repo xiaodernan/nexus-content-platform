@@ -2183,6 +2183,14 @@
   @media (max-width: 520px) {
     .pb-popPanel360 { position: fixed; left: 12px; right: 12px; top: 52px; width: auto; }
   }
+  /* 预检结果行 / 就绪度提示：12px 的判定文本，四档语义色。
+   * 并轨时这段被写成 `.pp-note12*` 塞进了 `.pp-`（公开试玩页）段，注释还带着 GBK 误解码的乱码；
+   * 而它唯一的消费者是 PublishPanel（`.pb-` 族）。门面族按页面划分，借用别人的前缀
+   * 会让下一轮改 `.pp-` 的人以为自己动了试玩页。已归位并改名。 */
+  .pb-note12 { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .pb-note12Live { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  .pb-note12Warn { font-size: var(--nexus-font-size-12); color: var(--nexus-color-warn-ink); }
+  .pb-note12Danger { font-size: var(--nexus-font-size-12); color: var(--nexus-color-danger-ink); }
   .ge-warnBanner { margin-top: var(--nexus-space-1); display: block; border-radius: var(--nexus-radius-sm); border: 1px solid color-mix(in srgb, var(--nexus-color-warn) 30%, transparent); background: color-mix(in srgb, var(--nexus-color-warn) 10%, transparent); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); line-height: 1.6; color: var(--nexus-color-warn-ink); }
   .ge-listFaint { margin-top: var(--nexus-space-1); display: block; padding-left: 1.25rem; font-size: var(--nexus-font-size-11); line-height: 1.6; color: var(--nexus-color-fg-3); list-style: disc outside; }
   .ge-listFaintMt2 { margin-top: var(--nexus-space-2); display: block; padding-left: 1.25rem; font-size: var(--nexus-font-size-11); line-height: 1.6; color: var(--nexus-color-fg-3); list-style: disc outside; }
@@ -3885,14 +3893,6 @@
 .ash-bio { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: var(--nexus-font-size-12); line-height: 1.45; color: var(--nexus-color-fg-2); }
 .ash-bioEmpty { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
 .ash-counts { margin-top: auto; display: flex; align-items: center; gap: var(--nexus-space-3); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
-
-
-/* PublishPanel 棰勬缁撴灉琛岋紙骞惰绾垮甫鍏ャ€佸悎骞跺悗闂ㄩ潰鍖栵級鈥?灏忓彿鍒ゅ畾鏂囨湰 */
-.pp-note12 { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
-.pp-note12Live { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
-.pp-note12Warn { font-size: var(--nexus-font-size-12); color: var(--nexus-color-warn-ink); }
-.pp-note12Danger { font-size: var(--nexus-font-size-12); color: var(--nexus-color-danger-ink); }
-
 
 .ash-cardBody { min-width: 0; flex: 1 1 0%; }
 

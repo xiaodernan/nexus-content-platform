@@ -112,13 +112,60 @@ function ruleBlocks(css: string): Array<{ selector: string; decls: string }> {
   return out;
 }
 
-/** `.nf-` 视觉段完整文本：从第一个 `.nf-` 到 forced-colors 块之前（含 reduced-motion，不含 forced 回退）。 */
+/**
+ * `.nf-` 视觉段完整文本：从第一个 `.nf-` 到 forced-colors 块之前（含 reduced-motion，不含 forced 回退）。
+ *
+ * **§GATE-2（2026-11-14）：这里原来是一处活体死循环，不是一段"稍慢的代码"。**
+ *
+ * 旧写法：
+ *
+ *     for (let m = /\.nf-/g.exec(globals) as RegExpExecArray | null;
+ *          m;
+ *          m = /\.nf-/g.exec(globals)) {
+ *       const comments = [...globals.matchAll(/\/\*[\s\S]*?\*\//g)];
+ *       if (!comments.some(...)) return m.index!;
+ *     }
+ *
+ * 每次求值（初始化与每轮更新）都**新建一个正则字面量**，`lastIndex` 因此每轮都回到 0，
+ * `exec` 永远返回**同一个**首个匹配。只要首个 `.nf-` 落在注释里，`return` 永不执行，
+ * 循环就永远转下去——而且每转一圈还要把 36 万字节的全文注释 `matchAll` 一遍。
+ *
+ * 它一直"没事"，是因为**首个 `.nf-` 恰好不在注释里**：那是数据巧合，不是正确性。
+ * 并轨把 `BrandTitle` 那段注释（提到 `.nf-title`）带进 globals.css、落在第 3979 字节，
+ * 首个匹配进了注释 → 96 套视觉判据在 **collect 阶段**全部挂死 →
+ * `verify:fe-gates` 跑了 33 分钟仍无一行输出。判据的绿灯没有变，变的是输入数据。
+ *
+ * 修法不是"把正则提到循环外"（那只是让这一次跑通，形状仍然危险），而是换掉形状：
+ * 注释区间只算一次，再用 `indexOf` 正扫逐个位置判定是否落在注释内。
+ * 代价 O(n + k·log m)，且**结构上不可能**自我重置。
+ */
 const nfSegment = (() => {
   // 注释允许出现 ".nf-"——只需要找**不是被注释包裹**的首个 `.nf-`；raw 用作边界切点、clean 用作测试内容。
+  const commentSpans = [...globals.matchAll(/\/\*[\s\S]*?\*\//g)].map(
+    (c) => [c.index!, c.index! + c[0].length] as const,
+  );
+  /**
+   * 二分：找到最后一个 `start <= at` 的区间，再判 `at < end`。
+   * 不能写成"`at < start` 就往左、`at >= end` 就往右"——那在落在两个区间之间时会越界走丢。
+   */
+  const inComment = (at: number): boolean => {
+    let lo = 0;
+    let hi = commentSpans.length - 1;
+    let best = -1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      if (commentSpans[mid]![0] <= at) {
+        best = mid;
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    return best >= 0 && at < commentSpans[best]![1];
+  };
   const bannerStart = ((): number => {
-    for (let m = /\.nf-/g.exec(globals) as RegExpExecArray | null; m; m = /\.nf-/g.exec(globals)) {
-      const comments = [...globals.matchAll(/\/\*[\s\S]*?\*\//g)];
-      if (!comments.some((c) => m.index! >= (c.index ?? 0) && m.index! < (c.index ?? 0) + c[0].length)) return m.index!;
+    for (let at = globals.indexOf('.nf-'); at >= 0; at = globals.indexOf('.nf-', at + 1)) {
+      if (!inComment(at)) return at;
     }
     return -1;
   })();

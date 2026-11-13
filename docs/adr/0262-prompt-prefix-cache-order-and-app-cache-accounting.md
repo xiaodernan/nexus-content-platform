@@ -250,3 +250,70 @@ verify:no-raw-tailwind OK   verify:census OK（1774 类全部有引用方）   t
 
 这条与 ADR-0105（"宿主噪声假造了一次 7× 提速"）同族：**一个判据如果从来没被真数据喂过，
 它的绿灯什么都不能证明**。
+
+## Amendment 2（§CACHE-3）：把缓存读数送到真正付钱的那个人眼前
+
+前两个 amendment 做完了判据与仪表，但仪表在 `/admin/ai-cache`——**运维视角**。
+用户连着两次问的「为什么缓存命中率这么低」，问的是他自己的创作；而他打开 Studio
+或任务账本时，一个缓存的字都看不到。`cachedTokens` 从 ai-service 一路传到库里，
+在最后一步被丢掉：`usageText()` 只写 `X 进 / Y 出 token`。
+
+这一片补的是最后那一寸。
+
+### 契约：加一维，而不是把已有字段改成 nullable
+
+`UsageSchema` / `TaskUsageSchema` 里 `cachedTokens` 是 `default(0)`——历史 jsonb 没有这一栏。
+把这一栏改成 nullable 会让已有的大量老行从「0」变成「读不懂」，而「读不懂」比「没记」更糟。
+
+所以**加一维** `cacheReported: z.boolean().default(false)`：
+
+| 存储 | 含义 | 界面 |
+|---|---|---|
+| 老行（无此字段） | 没报 | 缓存读数未报 |
+| `cacheReported: false` | 没报 | 缓存读数未报 |
+| `cacheReported: true, cached: 0` | 报了一次真实的冷启动 | 缓存未命中 |
+| `cacheReported: true, cached: N` | 命中 | 缓存命中 N·P% |
+
+`cacheReported` 必须真的进门面（`additionalProperties: false` 的两个契约
+`ai-response` / `ai-chat-response` 都加了）、ai-service 两处产出点都写、
+mock 写 `false`（DEMO 不经过模型，没有网关可问——那是"没报"，不是"命中 0"）。
+
+### 措辞住在 lib，不住在组件
+
+`lib/usage-cache-text.ts`：`cacheShare` / `cacheText` / `cacheTotal` 三个纯函数。
+
+抽出来不是为了好看——**这几句话会原样出现在界面上，措辞就是承诺**，而钉一个 JSX
+表达式只能靠正则猜文本。抽成纯函数后配 13 条判据，逐句钉住：
+
+- 没报时输出里**不出现任何数字**（0 也不许）；
+- 报了 0 说「未命中」，不说「没数据」；
+- `tokensIn === 0` 时不给百分比（0 做分母算出来的数是编的）；
+- 负数被夹到 0，不出负命中率（脏数据不许画成负的）。
+
+### 合计格：分母只算报过账的行
+
+`cacheTotal` **跳过 `cacheReported === false` 的行**。把"没报"按 0 加进分母，
+命中率会凭空变小——那是**用数据缺失伪造一个更差的读数**，和伪造一个更好的读数
+一样不诚实。一行都没报时 `rows === 0`，界面说「这页真模型行都没报缓存读数」，
+并显式写出「"没报"与"命中 0"是两件事，这里绝不画 0%」。
+
+DEMO 行同样不进门：它不经过模型。
+
+### 判据
+
+```
+apps/web/test/usage-cache-text.test.ts   13 条（三档互不冒充 / 0 分母 / 负数 /
+                                              DEMO 与未报不进门 / 空账本 / share=0 是信息）
+apps/web/test/tasks-ledger.test.ts       +2 条（老账本缺 cacheReported → false；
+                                              字符串 "false" 不许混过关）
+apps/web/test/tasks-visual-style.test.ts  改 1 条（措辞归 lib，组件只许调、不许再写一份）
+ai-service                               两处产出点 + 两个契约 schema
+```
+
+### 仍欠
+
+1. **Studio 内联没接**。这一片只到任务账本页。Studio 画布上的 AI 面板仍不显示用量——
+   那条路走的是 chat 流式，`usage` 在最后一帧，需要另一套解析。
+2. **没有真机读数**。判据覆盖了三档措辞，但没有一张 1440/390 下的截图证明它不挤。
+3. **`costUsd` 仍是 0**：价格表没接，所以「省了多少钱」这一句还不能说。缓存省下的
+   是**输入 token 的钱**，但换算需要单价，那是另一件事。

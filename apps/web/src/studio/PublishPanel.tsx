@@ -327,10 +327,10 @@ export function PublishPanel() {
             <p
               className={
                 preflight.blockers.length > 0
-                  ? 'pp-note12Danger'
+                  ? 'pb-note12Danger'
                   : preflight.warnings.length > 0
-                    ? 'pp-note12Warn'
-                    : 'pp-note12'
+                    ? 'pb-note12Warn'
+                    : 'pb-note12'
               }
               data-publish-preflight-ok={preflight.ok ? 'true' : 'false'}
               data-publish-preflight-outcome={preflight.blockers.length > 0 ? 'blocked' : preflight.warnings.length > 0 ? 'warn' : 'all-clear'}
@@ -342,13 +342,13 @@ export function PublishPanel() {
                   : '预检全绿：名额、门禁、机检都放行了'}
             </p>
           ) : open && projectIdForPreflight ? (
-            <p className="pp-note12" data-publish-preflight-outcome="unknown">
+            <p className="pb-note12" data-publish-preflight-outcome="unknown">
               预检还没跑完（或跑不成）——这不是绿灯，是还没有答案
             </p>
           ) : null}
           {open && preflight?.aiReadiness ? (
             <p
-              className={preflight.aiReadiness.live ? 'pp-note12Live' : 'pp-note12Warn'}
+              className={preflight.aiReadiness.live ? 'pb-note12Live' : 'pb-note12Warn'}
               data-publish-ai-ready={preflight.aiReadiness.live ? 'real' : 'demo'}
             >
               {preflight.aiReadiness.live
