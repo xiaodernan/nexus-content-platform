@@ -13,7 +13,7 @@
  */
 import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { chromium } from '@playwright/test';
+import { chromium, type BrowserContext } from '@playwright/test';
 
 const base = process.argv[2] ?? 'http://localhost:3100';
 const outDir = fileURLToPath(new URL('../docs/evidence/admin-home/', import.meta.url));
@@ -24,7 +24,7 @@ const SECRET = 'e2e-secret-123';
 
 const browser = await chromium.launch({ channel: 'chrome' });
 
-async function login(context) {
+async function login(context: BrowserContext) {
   const page = await context.newPage();
   await page.goto(`${base}/`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('[data-auth-tab="login"]', { timeout: 60_000 });
@@ -49,7 +49,7 @@ async function login(context) {
 }
 
 // ── 深/浅两种主题各渲染一次 ────────────────────────────────
-for (const theme of ['dark', 'light']) {
+for (const theme of ['dark', 'light'] as const) {
   const context = await browser.newContext({
     viewport: { width: 1280, height: 900 },
     colorScheme: theme,

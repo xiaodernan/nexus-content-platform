@@ -46,7 +46,8 @@ const cookieStore = new Map<string, string>();
 function collectCookies(res: Response, label: string) {
   const setCookies = res.headers.getSetCookie?.() ?? [];
   for (const raw of setCookies) {
-    const [pair] = raw.split(';');
+    const pair = raw.split(';')[0];
+    if (pair === undefined) continue;
     const eq = pair.indexOf('=');
     if (eq < 0) continue;
     const name = pair.slice(0, eq).trim();
@@ -135,10 +136,12 @@ async function main() {
   let payload: Record<string, unknown> = {};
   try { payload = JSON.parse(text) as Record<string, unknown>; } catch { /* keep {} */ }
 
-  const capability = String((payload as { capability?: unknown }).capability ?? 'unknown');
-  const provider = String((payload as { provider?: unknown }).provider ?? 'none');
-  const model = String((payload as { model?: unknown }).model ?? 'unknown');
-  const explanation = String((payload as { explanation?: unknown }).explanation ?? '');
+  const asString = (v: unknown, fallback: string): string =>
+    typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean' ? String(v) : fallback;
+  const capability = asString(payload.capability, 'unknown');
+  const provider = asString(payload.provider, 'none');
+  const model = asString(payload.model, 'unknown');
+  const explanation = asString(payload.explanation, '');
   const usage = (payload as { usage?: Record<string, unknown> }).usage ?? {};
 
   console.log(JSON.stringify({ capability, provider, model, explanation, usage }, null, 2));

@@ -57,14 +57,14 @@ const DB_PASSWORD = process.env.DB_PASSWORD ?? 'nexus_dev_only';
 const PG_PORT = Number(process.env.NEXUS_DOMAIN_PG_PORT ?? 55433);
 const API_DB_URL = process.env.NEXUS_API_DB_URL ?? `jdbc:postgresql://127.0.0.1:${PG_PORT}/nexus_api_smoke`;
 let failures = 0;
-const ok = (name) => console.log(`  ✓ ${name}`);
-const bad = (name, detail) => {
+const ok = (name: string) => console.log(`  ✓ ${name}`);
+const bad = (name: string, detail: string) => {
   failures += 1;
   console.error(`  ✗ ${name} — ${detail}`);
 };
 
 /** Ports that must be free before we start anything — fail fast with a name, not a timeout. */
-async function assertFree(port) {
+async function assertFree(port: number) {
   const { createConnection } = await import('node:net');
   const busy = await new Promise((resolve) => {
     const socket = createConnection({ port, host: '127.0.0.1' }, () => {
@@ -77,10 +77,10 @@ async function assertFree(port) {
 }
 
 /** 最新源码（java 与 resources 全部——改 application.yml 同样会让 jar 过期）的 mtime。 */
-function newestSourceMtime(serviceDir) {
+function newestSourceMtime(serviceDir: string) {
   const base = path.join(repo, 'services', serviceDir, 'src', 'main');
   let newest = 0;
-  const walk = (dir) => {
+  const walk = (dir: string) => {
     if (!existsSync(dir)) return;
     for (const e of readdirSync(dir, { withFileTypes: true })) {
       const full = path.join(dir, e.name);
@@ -96,7 +96,7 @@ function newestSourceMtime(serviceDir) {
 }
 
 /** jar 必须存在且不比最新 src/main 任何文件新；否则先 package。这就是"mvn test 绿≠jar 能启动"的防线。 */
-function ensureJarFresh(name, serviceDir, jarRelative) {
+function ensureJarFresh(name: string, serviceDir: string, jarRelative: string) {
   const jar = path.join(repo, 'services', serviceDir, jarRelative);
   const srcNewest = newestSourceMtime(serviceDir);
   const jarMtime = existsSync(jar) ? statSync(jar).mtimeMs : 0;
@@ -110,17 +110,18 @@ function mavenCmd() {
   return process.platform === 'win32' ? 'mvn.cmd' : 'mvn';
 }
 
-function execFileSyncSafe(cmd, args, cwd) {
+function execFileSyncSafe(cmd: string, args: string[], cwd: string) {
   try {
     execFileSync(cmd, args, { cwd, stdio: 'pipe', shell: process.platform === 'win32' });
   } catch (e) {
-    console.error(`${DENY} ${cmd} failed: ${e.stderr?.toString() ?? e.message}`);
+    const err = e as { stderr?: Buffer | string; message?: string };
+    console.error(`${DENY} ${cmd} failed: ${err.stderr?.toString() ?? err.message}`);
     process.exit(1);
   }
 }
 
 /** Wait until a URL answers with the status we want, or the deadline passes. Polls every 2s. */
-async function waitFor(label, url, want = 200, deadlineMs = 90_000) {
+async function waitFor(label: string, url: string, want = 200, deadlineMs = 90_000) {
   const start = Date.now();
   let last = 'no response';
   while (Date.now() - start < deadlineMs) {
@@ -129,7 +130,8 @@ async function waitFor(label, url, want = 200, deadlineMs = 90_000) {
       last = `HTTP ${res.status}`;
       if (res.status === want) return true;
     } catch (e) {
-      last = `${e.name}: ${e.message}`;
+      const err = e as Error;
+      last = `${err.name}: ${err.message}`;
     }
     await new Promise((r) => setTimeout(r, 2_000));
   }
@@ -138,7 +140,7 @@ async function waitFor(label, url, want = 200, deadlineMs = 90_000) {
 }
 
 /** Poll a URL until it answers `want` or the deadline passes; returns the last response (or a 499 stub). */
-async function waitForUrl(url, want, deadlineMs) {
+async function waitForUrl(url: string, want: number, deadlineMs: number) {
   const start = Date.now();
   let last = { status: 499 };
   while (Date.now() - start < deadlineMs) {
@@ -155,7 +157,7 @@ async function waitForUrl(url, want, deadlineMs) {
 }
 
 /** 每个 JVM 的 heap 上限——本机 16GB 常常只剩几百 MB。 */
-function heapArgs(service) {
+function heapArgs(service: string) {
   const dedicated = process.env.NEXUS_SMOKE_HEAP_DOMAIN && service.startsWith('domain') ? process.env.NEXUS_SMOKE_HEAP_DOMAIN
     : process.env.NEXUS_SMOKE_HEAP;
   const size = dedicated ?? (service.startsWith('domain') ? '512m' : '384m');
@@ -164,7 +166,7 @@ function heapArgs(service) {
 
 /** Spawn a service jar with env; returns the child. Logs go to LOG_DIR — truncated per run: a stale
  *  line from yesterday must not be able to satisfy today's assertion. */
-function spawnJar(name, jar, env = {}) {
+function spawnJar(name: string, jar: string, env: Record<string, string> = {}) {
   const log = path.join(LOG_DIR, `${name}.log`);
   const err = path.join(LOG_DIR, `${name}.err`);
   const child = spawn('java', [...heapArgs(name), '-jar', jar], {
@@ -177,7 +179,7 @@ function spawnJar(name, jar, env = {}) {
   return child;
 }
 
-const services = [];
+const services: Array<{ name: string; child: ReturnType<typeof spawn> }> = [];
 async function cleanup() {
   for (const { name, child } of services) {
     child.kill('SIGTERM');

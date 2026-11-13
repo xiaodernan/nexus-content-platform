@@ -16,7 +16,7 @@ const page_url = 'file://' + path.resolve(outDir, 'preview.html').replace(/\\/g,
 
 const browser = await chromium.launch({ channel: 'chrome' });
 
-for (const theme of ['dark', 'light']) {
+for (const theme of ['dark', 'light'] as const) {
   const context = await browser.newContext({
     viewport: { width: 1024, height: 250 },
     colorScheme: theme,

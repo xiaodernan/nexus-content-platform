@@ -31,7 +31,8 @@ async function run() {
   const session = new Map<string, string>();
   const collect = (label: string, res: Response) => {
     for (const raw of res.headers.getSetCookie?.() ?? []) {
-      const [p] = raw.split(';');
+      const p = raw.split(';')[0];
+      if (p === undefined) continue;
       const e = p.indexOf('=');
       if (e > 0) session.set(p.slice(0, e).trim(), p.slice(e + 1).trim());
     }
@@ -135,8 +136,9 @@ async function run() {
     console.log(`agent_tasks id=${t.id} cap=${t.capability} status=${t.status} approval=${t.requires_approval} agent=${t.agent_key}`);
   }
   await sql.end({ timeout: 5 });
-  if (tasks.length === 0) { console.error('[FAIL] no agent_tasks row'); process.exit(7); }
-  if (tasks[0].status !== 'succeeded') { console.error(`[FAIL] task status=${tasks[0].status}, not succeeded`); process.exit(7); }
+  const firstTask = tasks[0];
+  if (!firstTask) { console.error('[FAIL] no agent_tasks row'); process.exit(7); }
+  if (firstTask.status !== 'succeeded') { console.error(`[FAIL] task status=${firstTask.status}, not succeeded`); process.exit(7); }
   console.log(`[OK] real provider declared design-edit: capability=real patches=${(j.patches ?? []).length} ops=${flatOps.length} ledger-succeeded`);
   process.exit(0);
 }

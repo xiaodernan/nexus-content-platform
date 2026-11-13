@@ -25,7 +25,8 @@ async function run() {
   const session = new Map<string, string>();
   const collect = (label: string, res: Response) => {
     for (const raw of res.headers.getSetCookie?.() ?? []) {
-      const [p] = raw.split(';');
+      const p = raw.split(';')[0];
+      if (p === undefined) continue;
       const e = p.indexOf('=');
       if (e > 0) session.set(p.slice(0, e).trim(), p.slice(e + 1).trim());
     }
@@ -44,7 +45,7 @@ async function run() {
   // 2. register throwaway + create project
   let projectId = '';
   {
-    const { r, text } = await post('/api/auth/register', { email: SMOKE_EMAIL, password: SMOKE_PW, displayName: 'AI Apply Smoke' });
+    const { r } = await post('/api/auth/register', { email: SMOKE_EMAIL, password: SMOKE_PW, displayName: 'AI Apply Smoke' });
     console.error(`[register ${r.status}]`);
     collect('register', r);
     if (!r.ok) process.exit(3);

@@ -202,7 +202,7 @@ async function main() {
   }
 
   const apps = await waitForUrl(`http://127.0.0.1:${REGISTRY_PORT}/eureka/apps/NEXUS-DOMAIN-SERVICE`, 200, 30_000);
-  const appsText = apps.text ? await apps.text() : '';
+  const appsText = apps instanceof Response ? await apps.text() : '';
   const instanceCount = (appsText.match(/<status>UP<\/status>/g) ?? []).length;
   const hasA = appsText.includes(String(DOMAIN_A));
   const hasB = appsText.includes(String(DOMAIN_B));

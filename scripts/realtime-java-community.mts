@@ -92,6 +92,7 @@ async function roleListen(stopAfterMs: number): Promise<void> {
   }
   const ready = await bus.ready;
   const channel = process.argv[4];
+  if (!channel) throw new Error('roleListen 需要 argv[4]（channel）');
   const frames: FrameSeen[] = [];
   bus.subscribe(channel, (event) => {
     if (event.type !== 'notification') return;
@@ -197,7 +198,11 @@ try {
   if (rows.length === 0) {
     throw new Error('找不到与该作品/该作者零互动的真实用户——这条验证需要至少一个干净的 actor');
   }
-  actor = rows[0].actor_id;
+  const firstRow = rows[0];
+  if (!firstRow) {
+    throw new Error('找不到与该作品/该作者零互动的真实用户——这条验证需要至少一个干净的 actor');
+  }
+  actor = firstRow.actor_id;
 } finally {
   await actorStore.end({ timeout: 5 });
 }
@@ -262,7 +267,7 @@ const followFrames = (): FrameSeen[] =>
 console.log(`[actor ${actor.slice(0, 8)}] 开始 like/follow 往返`);
 const like1 = await probe(likePath);
 console.log(`[like#1] liked=${String(like1.liked)}`);
-const likeFrame1 = await waitFor('like 帧', () => (likeFrames().length >= 1 ? likeFrames()[0] : null), 10_000);
+const likeFrame1 = await waitFor('like 帧', () => likeFrames()[0] ?? null, 10_000);
 console.log(`[frame#1] ${likeFrame1.title} projectId=${likeFrame1.projectId?.slice(0, 8)}`);
 
 const like2 = await probe(likePath);
@@ -272,7 +277,7 @@ const unlikeSilent = likeFrames().length === 1;
 
 const like3 = await probe(likePath);
 console.log(`[like#3] liked=${String(like3.liked)}`);
-const likeFrame2 = await waitFor('第二次 like 帧', () => (likeFrames().length >= 2 ? likeFrames()[1] : null), 10_000);
+const likeFrame2 = await waitFor('第二次 like 帧', () => likeFrames()[1] ?? null, 10_000);
 console.log(`[frame#2] ${likeFrame2.title} projectId=${likeFrame2.projectId?.slice(0, 8)}`);
 const like4 = await probe(likePath);
 console.log(`[like#4 i.e. unlike] liked=${String(like4.liked)}`);
@@ -281,7 +286,7 @@ const unlike2Silent = likeFrames().length === 2;
 
 const follow1 = await probe(followPath);
 console.log(`[follow#1] following=${String(follow1.following)}`);
-const followFrame1 = await waitFor('follow 帧', () => (followFrames().length >= 1 ? followFrames()[0] : null), 10_000);
+const followFrame1 = await waitFor('follow 帧', () => followFrames()[0] ?? null, 10_000);
 console.log(`[frame#3] ${followFrame1.title}`);
 const follow2 = await probe(followPath);
 console.log(`[follow#2 i.e. unfollow] following=${String(follow2.following)}`);
@@ -289,7 +294,7 @@ await sleep(1_500);
 const unfollowSilent = followFrames().length === 1;
 const follow3 = await probe(followPath);
 console.log(`[follow#3] following=${String(follow3.following)}`);
-const followFrame2 = await waitFor('第二次 follow 帧', () => (followFrames().length >= 2 ? followFrames()[1] : null), 10_000);
+const followFrame2 = await waitFor('第二次 follow 帧', () => followFrames()[1] ?? null, 10_000);
 console.log(`[frame#4] ${followFrame2.title}`);
 const follow4 = await probe(followPath);
 console.log(`[follow#4 i.e. unfollow] following=${String(follow4.following)}`);

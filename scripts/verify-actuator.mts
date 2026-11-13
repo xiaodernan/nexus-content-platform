@@ -34,8 +34,8 @@ mkdirSync(LOG_DIR, { recursive: true });
 
 const DENY = '[verify-actuator]';
 let failures = 0;
-const ok = (name) => console.log(`  ✓ ${name}`);
-const bad = (name, detail) => {
+const ok = (name: string) => console.log(`  ✓ ${name}`);
+const bad = (name: string, detail: string) => {
   failures += 1;
   console.error(`  ✗ ${name} — ${detail}`);
 };
@@ -54,7 +54,7 @@ const DB_USERNAME = process.env.DB_USERNAME ?? 'nexus';
 const DB_PASSWORD = process.env.DB_PASSWORD ?? 'nexus_dev_only';
 
 /** Ports that must be free before we start anything — fail fast with a name, not a timeout. */
-async function assertFree(port) {
+async function assertFree(port: number) {
   const { createConnection } = await import('node:net');
   const busy = await new Promise((resolve) => {
     const socket = createConnection({ port, host: '127.0.0.1' }, () => {
@@ -66,10 +66,10 @@ async function assertFree(port) {
   if (busy) throw new Error(`port ${port} is already in use — stop whatever holds it and rerun`);
 }
 
-function newestSourceMtime(serviceDir) {
+function newestSourceMtime(serviceDir: string) {
   const base = path.join(repo, 'services', serviceDir, 'src', 'main');
   let newest = 0;
-  const walk = (dir) => {
+  const walk = (dir: string) => {
     if (!existsSync(dir)) return;
     for (const e of readdirSync(dir, { withFileTypes: true })) {
       const full = path.join(dir, e.name);
@@ -88,7 +88,7 @@ function mavenCmd() {
   return process.platform === 'win32' ? 'mvn.cmd' : 'mvn';
 }
 
-function ensureJarFresh(name, serviceDir, jarRelative) {
+function ensureJarFresh(name: string, serviceDir: string, jarRelative: string) {
   const jar = path.join(repo, 'services', serviceDir, jarRelative);
   const srcNewest = newestSourceMtime(serviceDir);
   const jarMtime = existsSync(jar) ? statSync(jar).mtimeMs : 0;
@@ -101,22 +101,23 @@ function ensureJarFresh(name, serviceDir, jarRelative) {
       shell: process.platform === 'win32',
     });
   } catch (e) {
-    console.error(`${DENY} ${name}: package failed: ${e.stderr?.toString() ?? e.message}`);
+    const err = e as { stderr?: Buffer | string; message?: string };
+    console.error(`${DENY} ${name}: package failed: ${err.stderr?.toString() ?? err.message}`);
     process.exit(1);
   }
   return jar;
 }
 
-function heapArgs(service, size) {
+function heapArgs(service: string, size: string) {
   return [`-Xmx${process.env.NEXUS_SMOKE_HEAP ?? size}`];
 }
 
-function spawnJar(name, jar, heap, env = {}) {
+function spawnJar(name: string, jar: string, heap: string, env: Record<string, string | number> = {}) {
   const log = path.join(LOG_DIR, `${name}.log`);
   const err = path.join(LOG_DIR, `${name}.err`);
   const child = spawn('java', [...heapArgs(name, heap), '-jar', jar], {
     cwd: repo,
-    env: { ...process.env, ...env },
+    env: { ...process.env, ...Object.fromEntries(Object.entries(env).map(([k, v]) => [k, String(v)])) },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   child.stdout.pipe(createWriteStream(log, { flags: 'w' }));
@@ -124,8 +125,8 @@ function spawnJar(name, jar, heap, env = {}) {
   return child;
 }
 
-const children = [];
-async function stopChild(entry) {
+const children: Array<{ name: string; child: ReturnType<typeof spawn> }> = [];
+async function stopChild(entry: { name: string; child: ReturnType<typeof spawn> }) {
   const { name, child } = entry;
   if (child.exitCode !== null || child.signalCode !== null) return;
   child.kill('SIGTERM');
@@ -146,7 +147,7 @@ process.on('uncaughtException', (e) => {
 });
 
 /** Wait until a URL answers with the status we want, or the deadline passes. Polls every 2 s. */
-async function waitFor(label, url, want = 200, deadlineMs = 150_000) {
+async function waitFor(label: string, url: string, want = 200, deadlineMs = 150_000) {
   const start = Date.now();
   let last = 'no response';
   while (Date.now() - start < deadlineMs) {
@@ -155,7 +156,8 @@ async function waitFor(label, url, want = 200, deadlineMs = 150_000) {
       last = `HTTP ${res.status}`;
       if (res.status === want) return true;
     } catch (e) {
-      last = `${e.name}: ${e.message}`;
+      const err = e as Error;
+      last = `${err.name}: ${err.message}`;
     }
     await new Promise((r) => setTimeout(r, 2_000));
   }
@@ -166,7 +168,7 @@ async function waitFor(label, url, want = 200, deadlineMs = 150_000) {
 const LEAKAGE = /stackTrace|JDBC|jdbc:|:55433|:5432|password|BEGIN PRIVATE|Hibernate/i;
 
 /** The health contract: HTTP 200, status UP, and NO component details — show-details must stay `never`. */
-function assertHealthShape(name, body) {
+function assertHealthShape(name: string, body: string) {
   let parsed = null;
   try {
     parsed = JSON.parse(body);
@@ -190,7 +192,7 @@ function assertHealthShape(name, body) {
 }
 
 /** The build-info contract: artifact + component must match what this repo ships (§SC-68b). */
-function assertInfo(name, body, expectedArtifact, expectedComponent) {
+function assertInfo(name: string, body: string, expectedArtifact: string, expectedComponent: string) {
   let parsed = null;
   try {
     parsed = JSON.parse(body);
@@ -218,7 +220,7 @@ function assertInfo(name, body, expectedArtifact, expectedComponent) {
 }
 
 /** Boot one service, assert its contract, stop it. Returns nothing — failures flow via the counter. */
-async function verifyService({ name, dir, jar, heap, env, expectedArtifact, expectedComponent, extra }) {
+async function verifyService({ name, jar, heap, env, expectedArtifact, expectedComponent, extra }: { name: string; jar: string; heap: string; env: Record<string, string | number> & { _port: number }; expectedArtifact: string; expectedComponent: string; extra?: (port: number) => Promise<void> }) {
   console.log(`${DENY} ${name}: starting (heap ${heap}, logs in ${LOG_DIR})`);
   const child = spawnJar(name, jar, heap, env);
   const entry = { name, child };
@@ -238,7 +240,8 @@ async function verifyService({ name, dir, jar, heap, env, expectedArtifact, expe
     }
     if (extra) await extra(env._port);
   } catch (e) {
-    bad(`${name}`, `${e.name}: ${e.message}`);
+    const err = e as Error;
+    bad(`${name}`, `${err.name}: ${err.message}`);
   } finally {
     await stopChild(entry);
     children.splice(children.indexOf(entry), 1);
@@ -257,10 +260,10 @@ async function main() {
 
   // domain-service — JPA against 55433 (DB required; honesty over a fake UP).
   await verifyService({
-    name: 'domain-service', dir: 'java-domain-service', jar: domainJar, heap: '512m',
+    name: 'domain-service', jar: domainJar, heap: '512m',
     env: { NEXUS_DOMAIN_PORT: String(PORTS.domain), NEXUS_DOMAIN_DB_URL: DB_URL, DB_USERNAME, DB_PASSWORD, _port: PORTS.domain },
     expectedArtifact: 'domain-service', expectedComponent: 'nexus-domain-service',
-    extra: async (port) => {
+    extra: async (port: number) => {
       const res = await fetch(`http://127.0.0.1:${port}/actuator/circuitbreakers`, { signal: AbortSignal.timeout(5_000) });
       if (res.status !== 200) {
         bad('domain-service /actuator/circuitbreakers', `HTTP ${res.status} (want 200)`);
@@ -275,28 +278,28 @@ async function main() {
 
   // nexus-api — same truth, same SELECT-1 probe.
   await verifyService({
-    name: 'nexus-api', dir: 'nexus-api', jar: apiJar, heap: '512m',
+    name: 'nexus-api', jar: apiJar, heap: '512m',
     env: { NEXUS_API_PORT: String(PORTS.api), NEXUS_DB_URL: API_DB_URL, NEXUS_DB_USER: DB_USERNAME, NEXUS_DB_PASSWORD: DB_PASSWORD, _port: PORTS.api },
     expectedArtifact: 'nexus-api', expectedComponent: 'nexus-api',
   });
 
   // registry — in-memory standalone; live registry read, no DB.
   await verifyService({
-    name: 'registry', dir: 'nexus-registry', jar: registryJar, heap: '384m',
+    name: 'registry', jar: registryJar, heap: '384m',
     env: { NEXUS_REGISTRY_PORT: String(PORTS.registry), _port: PORTS.registry },
     expectedArtifact: 'nexus-registry', expectedComponent: 'nexus-registry',
   });
 
   // config — native classpath config server; shared-default integrity probe.
   await verifyService({
-    name: 'nexus-config', dir: 'nexus-config', jar: configJar, heap: '384m',
+    name: 'nexus-config', jar: configJar, heap: '384m',
     env: { NEXUS_CONFIG_PORT: String(PORTS.config), _port: PORTS.config },
     expectedArtifact: 'nexus-config', expectedComponent: 'nexus-config',
   });
 
   // gateway — WebFlux; memory backend (no Redis dependency for this verifier).
   await verifyService({
-    name: 'nexus-gateway', dir: 'nexus-gateway', jar: gatewayJar, heap: '384m',
+    name: 'nexus-gateway', jar: gatewayJar, heap: '384m',
     env: { NEXUS_GATEWAY_PORT: String(PORTS.gateway), NEXUS_GATEWAY_RATE_LIMIT_BACKEND: 'memory', _port: PORTS.gateway },
     expectedArtifact: 'nexus-gateway', expectedComponent: 'nexus-gateway',
   });
