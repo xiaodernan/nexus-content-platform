@@ -13323,3 +13323,36 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
 - **实证测试**：新增 `test_prompt_order.py`；suite 248 passed / 13 skipped / 0 failed。
 - **仍欠**：契约层 cached/reasoning 数未进 web 侧 Usage（TaskUsageSchema exact additionalProperties=false）；
   chat 浏览器路径链未重测（浏览器断连）。
+
+## §CACHE-2 提示词前缀缓存：真实多轮 0.45% → 96% + 应用缓存 122× + 命中记账（2026-11-13 / ADR-0262）
+
+用户第二次报告「缓存命中率低、一直显示非流」。上一轮（ADR 0123 / §AILIVE-4）的 95.3% 读数
+全部来自**同一份 payload 连发两次**，证明不了真实多轮。本片从「先量」开始，把这件事量到底。
+
+- **新判据 1（零成本字节审计）** `scripts/prompt-prefix-audit.py`：直接 import 生产同源
+  `build_prompt`，构造「目录不变、选中/诉求在变」的三轮请求，量相邻两轮 `user` 载荷的公共前缀。
+  重排前 **0.45%**（≈111 B / 24.6 KB）—— 因为旧键序把 `selection` / `selectionDigest` /
+  `annotations` / `recentChanges` / `corpus` 排在 `pages/frames/components/tokens` 之前，
+  而 provider 前缀缓存按字节前缀命中，第一处不同之后全部作废：那份占体量 95% 的目录从未进过缓存。
+  另有一处：`_agent_note` 拼在 `system` 里，换 Agent 从第一个字节就失配。
+- **修**：载荷分三块（稳定目录 → 每轮现场 → 诉求）；`system` 只回常量，agent 名册改由载荷承载，
+  「没有 design.patch 就不许改文档」改写成 SYSTEM_PROMPT 第 7 条静态文字；
+  稳定块递归剔空（`null`/`""`/`[]`/`{}`，`0`/`false` 不剔）。重排后 **96.05%**，system 跨 Agent 恒等。
+- **新判据 2（真机 A/B）** `scripts/probe-cache-turns.py`：同内容新旧键序各用独立 lane 连发两轮。
+  结果 **A 39.6% vs B 39.6%，差 -0.0%** —— 打脸「顺序决定网关读数」。跟进四实验：
+  L2（只改尾部 40 B）98.7%、L3（第 96% 处不同）39.6%、**L4（内容零重叠）仍报 5248**。
+  **结论：网关自报 `cached_tokens` 不可作精密仪器**（同内容两次 `prompt_tokens` 还差 500），
+  本项目只把可复算的字节前缀复用率当对外指标；探针按设计判 FAIL，不粉饰。
+- **流式澄清**：真机实测流式**有** usage（`prompt_tokens=7663 / completion_tokens=36`，34 个 SSE 帧），
+  只缺 `prompt_tokens_details.cached_tokens` 一项。ADR 0123 后被读成「流式拿不到账本」是误读，流式保留。
+- **应用级缓存真启用**（Redis `nexus:llmc`）+ **命中如实记账**（`CachedLlm.complete`）：
+  命中时 `cached_tokens = 整段输入`、`latency_ms = 查缓存真实耗时`，不再原样回放当初那份
+  Completion（否则账本把没花的 token、没等的 1.6 秒再报一遍）。
+  真机同一 `AiRequest` 连发两次：**wall 8689ms → 71.4ms（122×）**，
+  `cached=22846 = tokensIn`，`healthz.llmCache hits=1 misses=1`。
+- **token 效率**：契约夹具 8486 B → 7691 B（**-9.4%**）。
+- **判据升级**：`test_prompt_order.py` 从「键顺序」改为直接断言连续两轮公共前缀 ≥90%，
+  另加 system 跨 Agent 恒等、同请求重建字节相同两条。ai-service 全量 **296 passed / 11 skipped**。
+- **仍欠 / 未 push**：网关 `cached_tokens` 抖动，不用于任何对外命中率承诺；流式下该字段缺席而契约
+  仍 `default(0)`，分不出「没报」与「0」；`cachedTokens` 尚未在 UI 渲染；
+  96% 的剩下 4% 是每轮必然变的现场与诉求（信息本身，压不掉）。

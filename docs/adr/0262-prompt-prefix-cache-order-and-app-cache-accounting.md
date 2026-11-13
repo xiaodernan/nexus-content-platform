@@ -1,0 +1,138 @@
+# ADR 0262 — 提示词前缀序决定缓存命中率；应用级缓存命中必须如实记账（§CACHE-2）
+
+- 状态：ACCEPTED（2026-11-13）
+- 上游：ADR 0123（SSE 默认 + prompt_cache_key + 前缀序初版）、ADR 0119（Redis completion cache）、ADR 0113（缓存组件语义未定项）
+- 范围：`apps/ai-service`（`design_prompt.py` / `completion_cache.py` / 测试）、`scripts/`（两个新判据）
+- 兄弟：ADR 0171（capability 短 TTL 缓存，web 侧那一片）
+
+## 背景
+
+用户**第二次**报告同一件事：「调用我的 openai 大模型 api 的时候缓存命中率这么低，而且一直显示非流，
+好像显示流的时候缓存命中率好的多，肯定是调用方法出了问题。」
+
+上一轮（ADR 0123 / §AILIVE-4）的结论是「缺 `prompt_cache_key`」，并给出了 95.3% 命中的读数。
+但那些读数全部来自**同一份 payload 连发两次**。真实 Studio 不是这样：同一个项目里目录逐字节不变，
+只有选中节点、批注、近期改动与诉求在变。旧证据量的是「重放」，用户遇到的是「连续多轮」。
+
+## 先量：两个零成本判据
+
+### 1）字节前缀复用率（`scripts/prompt-prefix-audit.py`，新增）
+
+不联网，直接 import 生产同源的 `build_prompt`，构造「目录不变、现场在变」的三轮请求，
+量相邻两轮 `user` 载荷的公共前缀 / 较短者长度。
+
+重排前：
+
+```
+system 跨轮逐字节稳定 = True
+system 跨 Agent 稳定  = False          ← _agent_note 拼在 system 里
+user 字节/轮          = [24628, 24628, 24634]
+同 payload 重发前缀率 = 100.00%        ← 旧证据量的就是这个
+真实连续多轮前缀率    = ['0.45%', '0.45%']
+```
+
+**0.45%（≈111 字节 / 24.6 KB）**。原因：旧键序把
+`selection` → `selectionDigest` → `annotations` → `recentChanges` → `corpus`
+排在 `pages/frames/components/assets/interactions/tokens` 之前。provider 的自动前缀缓存
+按字节前缀命中，第一处不同之后全部作废——那份占体量 95% 的目录**从未进过缓存**。
+
+### 2）真机 A/B（`scripts/probe-cache-turns.py`，新增）
+
+同一份内容按新旧两种键序重排，各用独立 `prompt_cache_key` lane，各发两轮。
+结果**打脸了「顺序决定网关读数」这个假设**：
+
+```
+A 新序 turn2: prompt=13239 cached=5248 (39.6%)
+B 旧序 turn2: prompt=13799 cached=5471 (39.6%)
+差 = -0.0%
+```
+
+跟进四个受控实验才看清网关的真实行为：
+
+| 实验 | 与首请求的前缀关系 | 网关报的 cached |
+|---|---|---|
+| L1 同 payload 连发 | 100% | 10865 / 13695 = 79.3% |
+| L2 只改最后 40 字符 | 99.8% | **13056 / 13222 = 98.7%** |
+| L3 真实下一轮（第 96% 处开始不同） | 96.1% | **5248 / 13239 = 39.6%** |
+| L4 内容完全不同（第 2 字节分叉） | 0% | **5248 / 21425 = 24.5%** |
+
+**L4 是决定性反证**：两份毫无重叠的内容也报 5248。同一份内容两次请求报的
+`prompt_tokens` 还能差 500。结论：**这个网关的 `cached_tokens` 不可作为精密仪器**，
+拿它算「命中率 X%」是给一个抖动数字编故事。
+
+但 L2 与 L3 的对比同时证明**前缀缓存本身是真的**：只改尾部 40 字节 → 98.7%；
+改在第 96% 处 → 39.6%。所以「把稳定字节放前面」这个方向成立，只是**证据必须由
+我们自己可复算的字节指标来给，不能由网关的自报数来给**。
+
+### 3）流式到底有没有 usage
+
+同一 payload 分别非流与流式（`stream_options.include_usage=true`）：
+
+```
+[non-stream] usage = {"prompt_tokens": 21494, "completion_tokens": 36, ...}
+[stream]     usage = {"prompt_tokens": 7663,  "completion_tokens": 36, ...}   ← 34 个 SSE data 帧
+```
+
+**流式有 usage，token 数照常到达**；它缺的只是 `prompt_tokens_details.cached_tokens` 这一项。
+ADR 0123 之前那句「流式 usage 帧不含 cached_tokens」被后续证据（`dc1c31eb`）读成了
+「流式拿不到账本数据」，进而有了「为看见 cache 而牺牲流式」的倾向——那是误读。
+流式保留：首字更早，token 可记账，只有 cached 这一项在流式下缺席（缺失 ≠ 0）。
+
+## 决定
+
+1. **载荷三块序**（`design_prompt.build_prompt`）：
+   ① 稳定块（`contextSource` / `pages` / `frames` / `components` / `assets` /
+   `interactions` / `tokens` / `totals` / `omissions` / `catalogTrimmed` / `code` /
+   `indexChars` / `budgetChars`）→ ② 现场块（`pageId` / `modelClass` / `viewport` /
+   `selection` / `selectionDigest` / `annotations` / `recentChanges` / `corpus` /
+   `agent` / `agentNote`）→ ③ 诉求块（`intent` / `prompt` / `variants`）。
+2. **system 只回常量**：`_agent_note` 从 system 移到载荷。理由是位置而不是措辞——
+   system 是整条前缀的第一段，带上每轮会变的内容，换 Agent 就从第一个字节失配。
+   「没有 `design.patch` 就不许改文档」这条规则改写进 `SYSTEM_PROMPT` 第 7 条（静态）。
+3. **稳定块剔空**（`_compact`）：递归去掉 `null` / `""` / `[]` / `{}`。
+   `0` / `false` 不剔——「0 个实例」与「没给这一项」是两件事。
+   只作用稳定块：现场块的 `missing: []` / `dropped: []` 是「这次没有」的答案。
+4. **启用应用级 completion 缓存**（`NEXUS_LLM_COMPLETION_CACHE_URL` → 真 Redis），
+   并修正命中记账：命中时 `cached_tokens = tokens_in`、`latency_ms = 查缓存真实耗时`。
+   直接回放当初那份 `Completion` 会把「没花的 token、没等的 1.6 秒」再报一遍。
+5. **判据升级**：`test_prompt_order.py` 从「键顺序」改为直接断言
+   **连续两轮公共前缀 ≥90%**，另加 system 跨 Agent 恒等、同请求重建字节相同两条。
+
+## 后果（实测）
+
+字节前缀复用率：
+
+```
+真实连续多轮前缀率 = ['96.05%', '96.04%']   （阈值 90%，PASS）
+system 跨轮/跨 Agent 逐字节稳定 = True
+```
+
+token 体量（契约夹具 `ai-request-with-index.json`）：
+
+```
+剔空前 8486 B → 剔空后 7691 B（省 795 B，9.4%）
+```
+
+应用级缓存端到端（真 Redis，同一 `AiRequest` 连发两次）：
+
+```
+call1 miss：wall 8689.0ms · tokensIn 22846 · cached 0
+call2 hit ：wall   71.4ms · cached 22846（= tokensIn，100% 复用）· latencyMs 31
+墙钟 8689ms → 71.4ms（122×）；healthz llmCache hits=1 misses=1 hit_rate=0.5
+```
+
+## 仍欠（诚实边界）
+
+1. **网关 `cached_tokens` 不可信**：L4 证明它会报一个与内容无关的数。
+   本项目**不**用它做任何"命中率 X%"的对外承诺；对外只能说我们自己可复算的
+   「字节前缀复用率」与「应用缓存 hits/misses」。
+2. **流式下 `cached_tokens` 缺席**：缺失不等于 0，账本不能把「没报」写成「命中 0」。
+   当前 `UsageSchema.cachedTokens` 仍是 `default(0)`，语义上分不出这两者——
+   要分清需要在契约里加 nullable 或加 `cacheReported: bool`，属跨模块改动，另立。
+3. **`cachedTokens` 尚未在 UI 渲染**：只进账本。用户能看到的仍是网关控制台那张表。
+   做一块诚实的缓存读数面板是下一步（三层：前缀复用率 / 应用缓存 / provider 自报）。
+4. **前缀复用率 96% 不是 100%**：尾部 4% 是每轮必然变的现场 + 诉求，这是信息本身，
+   压不掉；要再高只能减少现场内容，那是产品取舍不是工程优化。
+5. **`NEXUS_LLM_COMPLETION_CACHE_URL` 仍默认关闭**：本机 `.env` 已开（gitignored），
+   仓库默认保持关闭，因为启用需要真 Redis；连接失败 fail-open。
+6. **未 push**（约定）。
