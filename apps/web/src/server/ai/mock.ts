@@ -429,6 +429,7 @@ export class DeterministicMockProvider implements AiProvider {
         modelClass: request.modelClass as ModelClass,
         tokensIn: 0,
         tokensOut: 0,
+        cachedTokens: 0,
         latencyMs: 0,
         costUsd: 0,
         toolCalls: 0,

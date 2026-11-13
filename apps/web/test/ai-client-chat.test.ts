@@ -38,6 +38,7 @@ function response(overrides: Partial<AiChatResponse> = {}): AiChatResponse {
       modelClass: 'balanced',
       tokensIn: 20,
       tokensOut: 12,
+      cachedTokens: 0,
       latencyMs: 300,
       costUsd: 0,
       toolCalls: 1,

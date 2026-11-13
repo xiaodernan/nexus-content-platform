@@ -25,6 +25,7 @@ function health(capability: 'real' | 'demo' = 'real'): HealthResponse {
       { kind: 'llm', name: 'openai-compatible', status: capability, models: ['gpt-6-sol'], reason: '' },
     ],
     queue: { backend: 'memory', pending: 0, running: 0, capacity: 1, note: 'test' },
+    llmCache: null,
   };
 }
 

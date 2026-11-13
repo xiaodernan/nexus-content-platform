@@ -8,9 +8,12 @@ import { describe, expect, it } from 'vitest';
  *
  * `page.tsx`（server）：两张故意不合并的表——进程内计数器（本实例唯一、重启清零）+
  * 库里的三本账（审计决定/生成任务/API 调用，跨重启）。横滚区 `role="region"`+`tabIndex`，3 列表格。
- * 本片只换皮；snapshot()/readLedger(24)/SECTION markers/ledger 映射一字不动。
+ * 2026-11-13 合并（并行线《cont. 50》并入）：新增 §AILIVE-7「AI 就绪」面板——每次渲染问
+ * ai-service /healthz，把 text/image/video/live capability 与 LLM completion cache
+ * （backend / hits / misses / hit rate / degraded）读数以本页同一套 adm/am/tl 门面表呈现。
+ * 判据随之更新：SHA256 钉到合并后的字节（25766451…），面板走同一套零裸原子纪律。
  *
- * **剥 className 后全文 SHA256 守恒（EOL 无关）**：`de5043a1…` 恒等于改前（git HEAD）。
+ * **剥 className 后全文 SHA256 钉死（EOL 无关）**：`25766451…` 恒等于合并后的 page.tsx。
  * redact 三步序与钉死常量一致。
  *
  * 判据不变式（12 门）：
@@ -78,7 +81,30 @@ describe('§FE-35 /admin/observability 观测', () => {
     expect(code).toMatch(/className=\{j === 0 \? 'am-monoCell' : undefined\}/);
   });
 
-  it('数据钩子守恒 + 所有 data- metric/ledger 类钩子', () => {
+  it('§AILIVE-7「AI 就绪」面板：每次渲染问 /healthz，能力读数按 am-tableNarrow 门面表落位', () => {
+    expect(code).toContain('getAiCapabilities()');
+    expect(code).toContain('data-ai-readiness-section');
+    expect(code).toContain('data-ai-readiness-heading');
+    for (const hook of [
+      'data-ai-readiness-text=',
+      'data-ai-readiness-image=',
+      'data-ai-readiness-video=',
+      'data-ai-readiness-live=',
+      'data-ai-readiness-cache-backend=',
+      'data-ai-readiness-cache-hits=',
+      'data-ai-readiness-cache-misses=',
+      'data-ai-readiness-cache-hitrate=',
+      'data-ai-readiness-cache-status=',
+    ]) {
+      expect(code, `AI 就绪面板丢了锚点 ${hook}`).toContain(hook);
+    }
+    // 面板不引入任何域外类：表自己也走 am-/tl- 家族
+    expect(code).toContain('am-tableNarrow');
+    expect(code).toContain('tl-thRow');
+    expect(code).toContain('am-monoCell');
+  });
+
+  it('数据钩子守恒 + 所有 data- metric/ledger 类锚点（续）', () => {
     for (const hook of [
       'data-observability-root',
       'data-observability-scope',
@@ -142,9 +168,9 @@ describe('§FE-35 /admin/observability 观测', () => {
     expect(tokens).toContain('--nexus-color-fg-3');
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：de5043a1bd05c627b88771d6ed823789562da06df1e702d90edbe33e600669a7）', () => {
+  it('剥 className 后全文 SHA256 钉死（合并后的字节：25766451804365c508e9f1646ab3d1ffd229e141220e250f0311c2192c054475）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'de5043a1bd05c627b88771d6ed823789562da06df1e702d90edbe33e600669a7',
+      '25766451804365c508e9f1646ab3d1ffd229e141220e250f0311c2192c054475',
     );
   });
 });

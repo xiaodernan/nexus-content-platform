@@ -53,6 +53,7 @@ function response(overrides: Partial<AiResponse> = {}): AiResponse {
       modelClass: 'balanced',
       tokensIn: 10,
       tokensOut: 5,
+      cachedTokens: 0,
       latencyMs: 100,
       costUsd: 0,
       toolCalls: 1,

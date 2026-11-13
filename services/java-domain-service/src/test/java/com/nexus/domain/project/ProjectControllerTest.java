@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.nexus.domain.SecurityConfig;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -18,6 +19,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -40,6 +42,11 @@ import org.springframework.test.web.servlet.MockMvc;
  * boundary.
  */
 @WebMvcTest(ProjectController.class)
+// The slice must load the same filter chain production uses: a plain `@Configuration` is not
+// picked up by @WebMvcTest, so without this explicit import the starter's default chain (HTTP Basic
+// + generated password) answers 401 to everything — a health reading wrong in the alarming direction.
+// `SecurityConfig` is the only chain this service has; it explicitly permits the API surface.
+@Import(SecurityConfig.class)
 class ProjectControllerTest {
 
     private static final UUID PROJECT_ID = UUID.fromString("6fef79cf-a5f7-4d27-9e7e-30309e567dad");
