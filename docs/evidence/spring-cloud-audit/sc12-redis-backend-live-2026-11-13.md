@@ -1,7 +1,19 @@
 # §SC-12 · 网关 `backend=redis` 限流 — 真线验证（2026-11-13）
 
-关联：§SC-12（ADR-0095）、§SC-36（ADR-0107 的 fail-open 线上纪律）、§SC-72（`verify:actuator` 线上 JVM 探测）
-本条：把 mock 模板背后的 Lua 桶脚本，在**真 Lettuce 连接 + 真 Redis + 真阈值**上跑一遍——之前只有单测（mock template）、没有线上 wire 级证据。
+## 先说清楚这件事的前人工作（防止把重复验证写成首创）
+
+- **ADR-0095 第 229 行起（2026-11-09，§SC-12 第十片）**已经记过真 HTTP 双实例见证：registry 8761 +
+  api 8081 + 网关 8092/8093（`rate=0 burst=2`）——8092 两次 200/200，从未碰本地桶的 8093 第三次 **429 + Retry-After: 1**；
+  Redis `nexus:gateway:rate:127.0.0.1` 读数 `tokens=0`、TTL 3588；指向死端口的 8094 连续两次 200 且日志逐字
+  `gateway rate limit backend 'redis' failed; request allowed unthrottled (fail-open)`。
+- **2026-11-10 第十一片**又把 Lua 桶脚本下沉成脚本级判据（`scripts/gateway-rate-lua-live.mts`，
+  `npm run ratelimit:gateway-lua`）：同一只键上多个调用方就是多个实例，不需要多个 JVM。
+- **本文件**补的是"重演一次 ADR-0095 的承诺"：本机同一套 bits、真 Lettuce、真 Redis（56379）、
+  **新的 KEY_PREFIX**（`nexus:gateway:verify:`，不写 `nexus:gateway:rate:` 默认桶）、**新的端口/新的客户端 IP**、
+  且顺手直读 Lua 落地的 `tokens`/`ts`/`PTTL`（ADR-0095 那轮记了 tokens=0 与 TTL≈3588，没逐字记 hash 全文）。
+  它不是新片，也不是首创；它是"这条纪律今天依然成立"的一份复现字节。
+
+关联：§SC-12（ADR-0095）、§SC-36（ADR-0107 fail-open 线上纪律）、§SC-72（`verify:actuator` 线上 JVM 探测）。
 
 ## 环境
 
@@ -65,8 +77,8 @@ PTTL                                                  → 2642 ms
 
 | 层 | 证据 |
 |---|---|
-| HTTP 429 | req#3–#6，首个客户端 |
-| Redis Lua 真执行 | HGETALL/PTTL 真实字节 |
+| HTTP 429 | req#3–#6，首个客户端（复现 ADR-0095 的 door 429 序列） |
+| Redis Lua 真执行 | HGETALL/PTTL 真实字节（补 ADR-0095 未记的 hash 全文） |
 | 后端选择 | 启动行 `backend=redis` |
 | Fail-open 未误触发 | 本次无 `gateway rate limit backend 'redis' failed` warn——失败打开路径一直闲着，符合预期 |
 

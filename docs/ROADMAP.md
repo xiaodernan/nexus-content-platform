@@ -12384,3 +12384,16 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
 - **修实版真跑：两态都被真模型覆盖**：连跑 3 轮全 `applied`（真模型稳定给 `set typography.fontSize=28` 精准 op，判据真跑到 `targetFontSize=28`、`touched=[目标id]`，EXIT=0）；**首轮另抓一例 `invalid` 真红**（模型给 `merge` 但没把字号落到 28，dry-run 后仍 56 → `目标节点字号 56 ≠ 28` → EXIT=8）——证明真模型输出有随机性，判据每轮真跑、对了才绿、没达成诉求就红，不假设模型一定对。旧版「查库」两段都看不见这种假补丁。
 - **§SC-79 索引追平（并行会话欠账）**：`f943e190`（`/admin/realtime` 补 ai-service capability 看板 `data-ai-capability` 区，service/capability/providers[]/queue 直给，新增 `apps/web/src/server/realtime/ai-wire.ts` + `realtime-stats-readout.test.ts` 使 isKnownStats 27→30）+ `d43104c0`（evidence `docs/evidence/sc-79-ai-wire/evidence.md` 三层实证）已落代码与 evidence，但三处文档（ROADMAP/CURRENT-STATE/memory）此前 grep `SC-79` 全为 0，本片一并追平索引，不重写并行成果。
 - **诚实边界 / 未 push**：落库仍未验（本片没走 Studio client `applyPatch`→`/design`→`design_nodes` 那条路）；**落库由并行会话已并轨的 §AILIVE-4/5 补上**：`ffeceff8`（`live-design-edit.mts` 硬断言 ai/run 真 `set typography.fontSize=36` + ledger succeeded）+ `afd578b4`（§AILIVE-5 `live-design-apply.mts` 真走 `ai/run→PATCH /design→重读确认 fontSize=36` 5 步闭环 + evidence），均与本片正交互补（本片验「补丁合法达成诉求、不落库」，§AILIVE-5 验「真落库」）；本片未碰未 stage、不重复造轮子；`live-design-verify.mts` 保留旁证、不再作本片 smoke 成败判据；浏览器 UI 层 live smoke、`/api/ai/jobs` 异步路径、真 op batch→审批→落地仍未验；`costUsd=0` 真计费未知、模型身份/国度 prompt 问题（ADR-0168）均不造数字。精确 stage、避 `.next-dev-archives/`/`test-results-mine*`/`.git/` 临时臂与真 key（`.env` gitignore）；临时臂 `.git/ailive3-probe/dump/mutate/roadmap-append` 不提交。详见 ADR-0170 + `docs/evidence/ai-design-smoke/evidence.md`。
+
+## §SC-12 真 wire 复现（2026-11-13，非新片、非首创）：网关 `backend=redis` 的当天字节再证
+
+- **背景**：ADR-0095（2026-11-09 第十片）已记真 HTTP 双实例见证（8092 200/200、从未碰本地桶的 8093 第三次 429+Retry-After: 1、指向死端口的 8094 fail-open、Redis `nexus:gateway:rate:127.0.0.1` tokens=0/TTL≈3588）；2026-11-10 第十一片又把 Lua 桶下沉为 `ratelimit:gateway-lua`（真 Redis 脚本级判据）。本片只回答一句"今天这套 bits 还成立吗"，不宣称首创。
+- **做法**：本机 nexus-redis（56379）；gateway 0.1.0-SNAPSHOT 仅带 redis 环境变量启动（`NEXUS_GATEWAY_RATE_LIMIT_BACKEND=redis`、`rate=1`、`burst=2`、`KEY_PREFIX=nexus:gateway:verify:`（**不写默认桶**）、`REGISTER=false`、`Xmx384m`，端口 8097）；单进程。
+- **实测回执（原始字节见 `docs/evidence/spring-cloud-audit/sc12-redis-backend-live-2026-11-13.md`）**：
+  - 启动行 `backend=redis ratePerSecond=1.0 burst=2 backendTimeout=PT1S`；
+  - `/actuator/health` 200 `{"status":"UP"}`、`show-details: never` 未破；
+  - POST `/domain/api/v1/permission/check` ×6（XFF=203.0.113.99）→ req#1/#2 `503`（后端未起，**非被限**）、req#3–#6 **429** `{"error":"rate_limited",...}`；
+  - 第二 XFF 客户端（203.0.113.100）3 发后直读桶：`HGETALL nexus:gateway:verify:203.0.113.100` → `tokens=0.0848, ts=1794551547.873`，`PTTL=2642ms`——`PEXPIRE` 真生效、键按 TTL 自清（收尾 `DEL`→0）；
+  - fail-open 未触发；门控制器路径（`/platform/health`）按设计不过滤器、不限流；eureka 8771 拒连与限流无关（网关如实报 services:[]）；
+  - **边界**：单实例（两实例共享桶见证在 ADR-0095）、没测真断 Redis 的 fail-open 路径、没多机。
+- **协作**：纯 evidence 补字节，未动任何代码；无新 SC 原片（并行 SC-6x/7x 占用编号），依 ADR-0095/0107 续。未 push。
