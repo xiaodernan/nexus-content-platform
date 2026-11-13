@@ -31,6 +31,8 @@ web 侧（`env.ts`）配套调整：`text:` 不再读汇总 `capability`，改�
 
 ## 后果
 
+- **2026-11-13 补记**：`GET /v1/models` 实测（`docs/evidence/ailive-3-liveness/models-list-2026-11-13.md`）——网关只放行 4 个 openai 兼容 chat 模型（`gpt-5.6-sol`/`gpt-5.6-terra`/`gpt-6-astra`/`gpt-6-sol`），**无任何 embedding 模型**；`model_not_found` 是结构性限制，不是单次配错。如需 embedding，需要另一类 provider（或网关显式开通后再探）。
+
 `ai-service` 与 `web` 文本/嵌入能力同一口径 llm-row real → text real。`wapi.pro` 凭证下 `embed-x` 返回 `model_not_found`，所以本机上 `embedding` 的能力状态仍是 `unavailable`，§AILIVE-2 汇出的 `/healthz` 中 embedding=real 为错值——**不拜这一页盖章，拜 `registry` 自己**。
 
 ## 完整边界（如实）
