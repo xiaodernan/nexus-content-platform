@@ -9,6 +9,28 @@
 文档形状：根框 → 容器逐层分叉到第 6 层，叶子是文本与按钮（按钮固定 120×40，
 这样"点击目标过小"那条规则真的会被触发，而不是空转）。
 
+## 2026-11-14：LLM 缓存全链实测——冷 0 → 暖 1216/1216（109ms 回放）
+
+并行线载荷三块重排（稳定目录 → 每轮现场 → 诉求）落地后（byte-level 前缀复用率 0.45% → **96.05%**，token 体量 −9.4%），本窗口按合并后代码复测：
+
+**直连 provider**（`scripts/probe-cache-warm.py`，lane `nexus-cache4`，`prompt_cache_key=nexus-cache4`，max_tokens=1，同一份 27294-token 载荷连发 5 次）：
+
+```
+turn1..turn5: cached=27291 (100.0%) · 判定 = full（前缀基本上全进缓存）
+```
+
+**合并后 ai-service**（3200，`/v1/ai/run` design-edit dryRun）：
+
+```
+cold call 1 HTTP 200 (10138ms) · tokensIn=1216 cachedTokens=0 demoMode=false
+warm call 2 HTTP 200 (1412ms)  · tokensIn=1216 cachedTokens=1216 demoMode=false
+warm call 3 HTTP 200 (109ms)   · tokensIn=1216 cachedTokens=1216 demoMode=false（应用级 Redis 完成缓存回放）
+```
+
+**流式语义**（并行线 2026-11-13 晚实测修正本线早先纪律为准）：stream 有 usage；`cached_tokens` 冷前缀不报、暖前缀照报（如实传播，非流不再是唯一报账路径）。wkapi 网关自报并非精密仪器（内容零重叠也报 5248），本项目只认可复算的字节前缀率；`upstream`（§CACHE-4）把「同一份稳定前缀被数成几个数」钉成了背后端漂移的证据，不再误归因于我们变了提示词。
+
+**边界**：5 turns 100% 是同 lane 同前缀；turn1 也报 100% 是网关自报（这条 lane 此前已被并行线 §CACHE-2 热住）；embedding 仍 unavailable（wkapi 无 embedding 通道）。
+
 ## 2026-09-23：优化前 → 优化后（单位 ms）
 
 | 路径 | 100 前 | 100 后 | 1000 前 | 1000 后 | 10000 前 | 10000 后 |
