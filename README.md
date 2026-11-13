@@ -81,13 +81,18 @@ npm run verify:ci-wiring   # the CI wiring census
 
 # main line
 npm run dev:web         # Web Studio   → http://localhost:3100
-npm run dev:ai          # AI service   → http://localhost:8000
+npm run dev:ai          # AI service   → http://localhost:3200  (see docs/ENVIRONMENT.md; 3200 is this machine's default — env AI_SERVICE_PORT overrides)
 npm run test:main       # main line's vitest suite (aliases, serial, DB-backed)
 npm run typecheck:main  # both models + every main-line TS project, --noEmit
 ```
 
 AI runs against a deterministic DEMO MODE without keys; it is badged in the UI and labeled in
-`provenance`, never disguised (§60).
+`provenance`, never disguised (§60). **Since 2026-11-12** the local dev default is a real provider
+(wkapi.pro `/v1/chat/completions`, model `gpt-6-sol`; key lives only in gitignored
+`apps/ai-service/.env`, the web process never holds it): `/healthz` reports `capability=real`,
+and §AGENTS DEMO-MODE semantics stay as fallback for keyless machines. **Since 2026-11-13** prompt
+caching is wired (`prompt_cache_key`, default lane `nexus-studio`, env override) — repeated
+identical calls see `cached_tokens≈97%` (docs/ENVIRONMENT.md, evidence/ailive-4-cache-2026-11-13.md).
 
 ## Consolidation history
 
