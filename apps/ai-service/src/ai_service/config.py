@@ -37,7 +37,9 @@ class Settings:
     host: str = "127.0.0.1"
     port: int = 3200
     max_body_bytes: int = 6 * 1024 * 1024
-    request_timeout_s: float = 60.0
+    # gpt-6-sol 推理模型调用 8-18k token 前缀 + 长推理链，实测 agent 路由可超 60s；默认 60s 常超时返 504
+    # bump 到 180s（可用 AI_SERVICE_TIMEOUT_S 覆盖）
+    request_timeout_s: float = 180.0
     openai_api_key: str | None = None
     openai_base_url: str = "https://api.openai.com/v1"
     json_mode: bool = True
@@ -149,7 +151,7 @@ def load_settings(environ: Mapping[str, str] | None = None) -> Settings:
     return Settings(
         host=get("AI_SERVICE_HOST", "127.0.0.1") or "127.0.0.1",
         port=int(get("AI_SERVICE_PORT", "3200") or "3200"),
-        request_timeout_s=float(get("AI_SERVICE_TIMEOUT_S", "60") or "60"),
+        request_timeout_s=float(get("AI_SERVICE_TIMEOUT_S", "180") or "180"),
         openai_api_key=get("NEXUS_OPENAI_API_KEY"),
         openai_base_url=get("NEXUS_OPENAI_BASE_URL", "https://api.openai.com/v1")
         or "https://api.openai.com/v1",

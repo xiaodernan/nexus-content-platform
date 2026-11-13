@@ -6,7 +6,7 @@ import type { AiChatRequest, AiChatResponse, AiError, AiJobAccepted, AiJobStatus
  * 两侧都按 `contracts/*.json` 校验；这里再用 zod 复核一次，契约违约必须当场看见。
  */
 
-const RUN_TIMEOUT_MS = Number(process.env.NEXUS_AI_SERVICE_TIMEOUT_MS ?? 60_000);
+const RUN_TIMEOUT_MS = Number(process.env.NEXUS_AI_SERVICE_TIMEOUT_MS ?? 180_000);
 const HEALTH_TIMEOUT_MS = 1_500;
 
 export function aiServiceUrl(): string | null {

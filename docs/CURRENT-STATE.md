@@ -2324,3 +2324,42 @@ What is still unverified / open, on the record:
   against gpt-6-sol via wkapi.pro): the cache-hit claim from the user is addressed above;
   the reasoning-completion cache is wired and passes an HTTP-200 probe through the
   registry round-trip (~75-80% provider prefix hits, ~100% app-layer hits after warm).
+## cont. 75 (2026-11-13) - LLM timeout bump for agent route; honest clarification of cached-tokens behavior
+
+Correction on the record: cont. 69 and cont. 72 said "non-stream never shows cached_tokens".
+That was an over-inference from early warm-up samples. Measured pair-probe on this host
+(same provider_round trip, same short prompt tokens_in=5209 across runs):
+
+- stream OFF (NEXUS_LLM_STREAM=0, restored byte-for-byte provider behavior): 3 identical calls
+  show cached 597 / 562 / 530 of 5209 input tokens.
+- stream ON (default after cont. 73): cached 551 / 574 / 0 (the third spawned 4138/0 from a
+  different backend rotation); then 5 identical calls with the default stream ON showed
+  cached ~530 / 551 / 563 / 519 / 530 -- wait, this needs clarity:
+
+  - .cache_repeat.py: 6 identical calls, all stream ON. cached: 519, 563, 519, 551, 563, 530.
+  - .cache_repeat2.py: 3 calls each side of the pair. stream OFF: 597/562/530; stream ON: 551/574/0 back-eff rotation.
+  These short-prompt samples hover ~500-560 cached of 5209 in tokens across rotate sets.
+
+Real-world readout (agent route /v1/ai/run, actual product code path):
+- in=8557 input tokens per call (catalog-heavy prompt from the fixture)
+- first two identical fixture calls had cached=8242 and 8320 respectively (cache hits
+  ~92-100% on the remaining shared prefix) within the same backend rotation, then the
+  backend rotated and hits stopped appearing in that window.
+
+Timeout bump done this turn:
+- apps/ai-service/src/ai_service/config.py: request_timeout_s default 60.0 -> 180.0
+- apps/web/src/server/ai/client.ts: RUN_TIMEOUT_MS default 60_000 -> 180_000
+- env.example documents these changes
+Rationale: agent-route reasoning calls through the real gpt-6-sol model with ~8-18k tokens
+of prompt already measured 16-37s here; timeouts at 60s were clipping them.
+
+Chat now fixed: /v1/ai/chat was previously always 502 (json_object responses to user text
+without the word 'json' are refused by wkapi.pro); chat now passes json_mode=False so
+chat calls return text successfully (verified via HTTP200 with text='ok' and
+capability=real). The /v1/ai/run path keeps json_mode=True.
+
+Still honestly unverified:
+- Pixel verification still impossible (desktop capture not producing frames this session).
+- The upstream provider's "non-stream" classification of calls in its own dashboard is their
+  aggregation, not ours; the wire shape from our provider is now stream: True uniformly
+  when NEXUS_LLM_STREAM is not explicitly 0.
