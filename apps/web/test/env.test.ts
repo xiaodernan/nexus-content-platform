@@ -10,6 +10,7 @@ function health(over: Partial<HealthResponse> = {}): HealthResponse {
     providers: [],
     // §162：health 里的 queue 现在带后端与容量，0 也要说明 0 是怎么来的
     queue: { backend: 'none', pending: 0, running: 0, capacity: 0, note: '作业队列未启动' },
+    llmCache: null,
     ...over,
   };
 }

@@ -112,6 +112,41 @@
         "note"
       ],
       "additionalProperties": false
+    },
+    "llmCache": {
+      "default": null,
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "backend": { "type": "string", "enum": ["memory", "redis"] },
+            "hits": { "type": "integer", "minimum": 0 },
+            "misses": { "type": "integer", "minimum": 0 },
+            "stores": { "type": "integer", "minimum": 0 },
+            "stores_failed": { "type": "integer", "minimum": 0 },
+            "evictions": { "type": "integer", "minimum": 0 },
+            "hit_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+            "namespace": { "type": "string" },
+            "degraded": { "type": "boolean" },
+            "shared": { "type": "boolean" }
+          },
+          "required": [
+            "enabled",
+            "backend",
+            "hits",
+            "misses",
+            "stores",
+            "stores_failed",
+            "evictions",
+            "hit_rate",
+            "namespace",
+            "degraded"
+          ],
+          "additionalProperties": false
+        }
+      ]
     }
   },
   "required": [

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 from ..config import Settings
 from ..resilience import BreakerConfig, CircuitBreaker
@@ -147,3 +148,36 @@ class Registry:
         if "demo" in statuses:
             return "demo"
         return "unavailable"
+
+    def llm_cache_state(self) -> dict[str, Any] | None:
+        """应用级 LLM 完成缓存的报文状态（可观测性面板读用）。
+
+        缓存由 `CachedLlm` 装在内部 provider 前面；`cache` 属性暴露。
+        没启用缓存 → `None`；`/healthz` 据此报 `null`。
+        """
+        cache = getattr(self._llm, "cache", None) if self._llm is not None else None
+        if cache is None:
+            return None
+        stats_fn = getattr(cache, "stats", None)
+        if not callable(stats_fn):
+            return None
+        try:
+            s = stats_fn()
+        except Exception:
+            return {"enabled": True, "degraded": True}
+        #  both backends expose hits/misses/stores/evictions and hit_rate;
+        #  Redis 版额外带 stores_failed/expirations/corruptions/shared/namespace/max_entries/ttl_s；内存版没有
+        state: dict[str, Any] = {
+            "enabled": True,
+            "backend": "redis" if "redis" in type(cache).__name__.lower() else "memory",
+            "hits": int(getattr(s, "hits", 0)),
+            "misses": int(getattr(s, "misses", 0)),
+            "stores": int(getattr(s, "stores", 0)),
+            "stores_failed": int(getattr(s, "stores_failed", 0)),
+            "evictions": int(getattr(s, "evictions", 0)),
+            "hit_rate": float(getattr(s, "hit_rate", 0.0)),
+            "shared": bool(getattr(s, "shared", False)),
+            "degraded": bool(getattr(s, "degraded", False)),
+            "namespace": str(getattr(s, "namespace", "")),
+        }
+        return state

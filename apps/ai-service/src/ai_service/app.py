@@ -116,6 +116,8 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
             ],
             # §162：这两个数来自真队列。以前 pending 写死 0，等于宣称"有一个永远空的队列"
             "queue": {**queue_report(state), "pending": pending, "running": running},
+            # v690：应用级 LLM 完成缓存状态（未启则 None）；面板照实读，不许藏进配置页
+            "llmCache": registry.llm_cache_state(),
         }
 
     @app.get("/v1/capabilities")

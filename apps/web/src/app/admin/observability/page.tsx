@@ -73,6 +73,20 @@ export default async function AdminObservabilityPage() {
             <dd data-ai-readiness-video={aiReadiness.video}>{aiReadiness.video}</dd>
             <dt className="text-fg-3"> live capability</dt>
             <dd data-ai-readiness-live={aiReadiness.live ? 'true' : 'false'}>{aiReadiness.live ? 'real' : 'not real'}</dd>
+            <dt className="text-fg-3">cache backend</dt>
+            <dd data-ai-readiness-cache-backend={aiReadiness.cache?.backend ?? 'unavailable'}>{aiReadiness.cache?.backend ?? 'unavailable'}</dd>
+            <dt className="text-fg-3">cache hits / misses</dt>
+            <dd data-ai-readiness-cache-hits={aiReadiness.cache?.hits ?? -1} data-ai-readiness-cache-misses={aiReadiness.cache?.misses ?? -1}>
+              {aiReadiness.cache ? `${aiReadiness.cache.hits} / ${aiReadiness.cache.misses}` : '—'}
+            </dd>
+            <dt className="text-fg-3">cache hit rate</dt>
+            <dd data-ai-readiness-cache-hitrate={aiReadiness.cache?.hit_rate ?? -1}>
+              {aiReadiness.cache ? `${Math.round(aiReadiness.cache.hit_rate * 100)}%` : '—'}
+            </dd>
+            <dt className="text-fg-3">cache status</dt>
+            <dd data-ai-readiness-cache-status={aiReadiness.cache ? (aiReadiness.cache.degraded ? 'degraded' : 'healthy') : 'disabled'}>
+              {aiReadiness.cache ? (aiReadiness.cache.degraded ? 'degraded' : 'healthy') : 'disabled'}
+            </dd>
           </dl>
           <p className="mt-2 text-11 text-fg-3">
             Every render asks /healthz fresh; capabilities are not guesses, not caches, and not "live" for any model that is not actually wired today.
