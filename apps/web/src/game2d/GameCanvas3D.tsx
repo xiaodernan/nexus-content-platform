@@ -407,7 +407,7 @@ export function GameCanvas3D({ plan, keys, stateRef, onHud }: GameCanvas3DProps)
   if (webgl === null) {
     return (
       <div
-        className="flex items-center justify-center rounded border border-[var(--nexus-color-border-subtle)] bg-bg-0 font-mono text-12 text-fg-3"
+        className="g3-probing"
         style={{ aspectRatio: `${ARENA.width} / ${ARENA.height}` }}
         data-game-3d="probing"
       >
@@ -418,12 +418,12 @@ export function GameCanvas3D({ plan, keys, stateRef, onHud }: GameCanvas3DProps)
   if (!webgl) {
     return (
       <div
-        className="flex flex-col items-center justify-center gap-2 rounded border border-[var(--nexus-color-border-subtle)] bg-bg-0 px-6 text-center"
+        className="g3-unavailable"
         style={{ aspectRatio: `${ARENA.width} / ${ARENA.height}` }}
         data-game-3d="unavailable"
       >
-        <p className="text-13 text-fg-1">这台设备/浏览器给不出 WebGL 上下文，3D 视角进不去。</p>
-        <p className="text-11 text-fg-3" data-game-3d-reason>
+        <p className="g3-lede">这台设备/浏览器给不出 WebGL 上下文，3D 视角进不去。</p>
+        <p className="g3-hint" data-game-3d-reason>
           这里不会退回 2D 画法然后也叫「3D」。同一条关卡计划换个画法看：把文档类型改回 2D（或 2.5D），
           规则与数值一个字都不变。
         </p>
@@ -433,7 +433,7 @@ export function GameCanvas3D({ plan, keys, stateRef, onHud }: GameCanvas3DProps)
 
   return (
     <div
-      className="w-full overflow-hidden rounded border border-[var(--nexus-color-border-subtle)]"
+      className="g3-frame"
       style={{ aspectRatio: `${ARENA.width} / ${ARENA.height}` }}
       data-game-3d="live"
       data-game-canvas-3d

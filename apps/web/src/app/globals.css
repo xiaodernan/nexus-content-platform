@@ -2467,6 +2467,14 @@
   .pe-saveBtn:disabled { opacity: 0.5; cursor: not-allowed; }
   .pe-hint { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
   .pe-monoHint { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+
+  /* ── §FE-95 / ADR-0248 `game2d/GameCanvas3D.tsx` `.g3-` 门面化——§51 3D 视角 chrome ──
+   * 不动 HUD/sim/输入/three 栈；3D 模型资产与动画一字未接（§34/§43）——不动。 */
+  .g3-probing { display: flex; align-items: center; justify-content: center; border-radius: var(--nexus-radius-sm); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-0); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .g3-unavailable { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--nexus-space-2); border-radius: var(--nexus-radius-sm); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-0); padding: 0 var(--nexus-space-6); text-align: center; }
+  .g3-lede { font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-1); }
+  .g3-hint { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .g3-frame { width: 100%; overflow: hidden; border-radius: var(--nexus-radius-sm); border: 1px solid var(--nexus-color-border-subtle); }
   /* §FE-93 复用 FE-87/FE-92 断言：给 adp-btnSm 补回禁用态——FE-92 的 open 按钮从不 disabled，故不改变其渲染。 */
   .adp-btnSm:disabled { opacity: 0.4; cursor: not-allowed; }
 
