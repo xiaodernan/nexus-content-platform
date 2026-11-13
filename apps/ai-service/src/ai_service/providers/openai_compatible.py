@@ -26,10 +26,12 @@ class OpenAICompatibleProvider:
         models: Mapping[str, str],
         timeout_s: float = 60.0,
         json_mode: bool = True,
+        prompt_cache_key: str | None = None,
         transport: httpx.BaseTransport | None = None,
     ) -> None:
         self._models = dict(models)
         self._json_mode = json_mode
+        self._prompt_cache_key = prompt_cache_key
         self._client = httpx.Client(
             base_url=base_url,
             timeout=timeout_s,
@@ -57,6 +59,10 @@ class OpenAICompatibleProvider:
         }
         if self._json_mode:
             body["response_format"] = {"type": "json_object"}
+        if self._prompt_cache_key:
+            # OpenAI 官方 prompt_cache_key：把同一 workload 的补丁式请求钉到同一分片，命中自动提示缓存
+            # （wkapi.pro 实测：不给 key 时 cached_tokens 恒为 0；给了后一次调用 5376/5603 tokens 命中）
+            body["prompt_cache_key"] = self._prompt_cache_key
 
         started = time.perf_counter()
         try:
@@ -78,6 +84,14 @@ class OpenAICompatibleProvider:
             raise ProviderFailed("provider 响应缺少 choices[0].message.content") from exc
 
         usage = payload.get("usage") or {}
+        prompt_details = usage.get("prompt_tokens_details") or {}
+        cached_tokens = (
+            prompt_details.get("cached_tokens")
+            if isinstance(prompt_details, dict)
+            else None
+        )
+        # DeepSeek 风格的位置：见其官方文档（prompt_cache_hit_tokens）
+        cached_tokens = cached_tokens if cached_tokens is not None else usage.get("prompt_cache_hit_tokens")
         return Completion(
             text=choice or "",
             provider=self.name,
@@ -85,6 +99,7 @@ class OpenAICompatibleProvider:
             tokens_in=int(usage.get("prompt_tokens") or 0),
             tokens_out=int(usage.get("completion_tokens") or 0),
             latency_ms=round(latency_ms, 1),
+            cached_tokens=int(cached_tokens or 0),
         )
 
     def close(self) -> None:

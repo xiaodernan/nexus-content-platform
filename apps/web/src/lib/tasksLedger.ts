@@ -29,6 +29,8 @@ export const TaskUsageSchema = z.object({
   modelClass: z.string(),
   tokensIn: z.number().int().min(0),
   tokensOut: z.number().int().min(0),
+  // OpenAI 兼容网关回的 cached_tokens —— 老账本没这个字段，缺省 0，不编一个命中率
+  cachedTokens: z.number().int().min(0).default(0),
   latencyMs: z.number().min(0),
   costUsd: z.number().min(0),
   toolCalls: z.number().int().min(0),

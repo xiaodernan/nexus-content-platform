@@ -862,6 +862,12 @@
               "minimum": 0,
               "maximum": 9007199254740991
             },
+            "cachedTokens": {
+              "default": 0,
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
             "latencyMs": {
               "default": 0,
               "type": "number",
@@ -889,6 +895,7 @@
             "modelClass",
             "tokensIn",
             "tokensOut",
+            "cachedTokens",
             "latencyMs",
             "costUsd",
             "toolCalls",

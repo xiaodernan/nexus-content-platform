@@ -42,6 +42,7 @@ class Registry:
                     models=settings.models,
                     timeout_s=settings.request_timeout_s,
                     json_mode=settings.json_mode,
+                    prompt_cache_key=settings.openai_prompt_cache_key,
                 )
                 if settings.has_llm
                 else None

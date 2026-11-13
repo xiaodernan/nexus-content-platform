@@ -22,6 +22,9 @@ class Completion:
     tokens_in: int
     tokens_out: int
     latency_ms: float
+    # OpenAI 兼容网关（wkapi.pro → OpenAI automatic prompt caching）回的 `prompt_tokens_details.cached_tokens`；
+    # 没有该字段的 provider 一律报 0，一字不猜（不用猜的 tokenizer 冒充精确计数）
+    cached_tokens: int = 0
 
 
 @dataclass(frozen=True)

@@ -98,3 +98,54 @@ def test_model_for_rejects_unknown_class() -> None:
     assert provider.model_for("balanced") == "gpt-x"
     with pytest.raises(ProviderFailed):
         provider.model_for("image")
+
+
+def test_prompt_cache_key_sent_when_configured_and_parsed_from_usage() -> None:
+    seen: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["body"] = json.loads(request.content)
+        return httpx.Response(
+            200,
+            json={
+                "model": "gpt-x-2026",
+                "choices": [{"message": {"content": '{"patches":[]}'}}],
+                "usage": {"prompt_tokens": 9, "completion_tokens": 4, "prompt_tokens_details": {"cached_tokens": 7}},
+            },
+        )
+
+    completion = make(handler, prompt_cache_key="nexus-studio").complete(model="gpt-x", system="sys", user="usr")
+    assert seen["body"].get("prompt_cache_key") == "nexus-studio"
+    assert completion.cached_tokens == 7
+
+
+def test_prompt_cache_key_absent_when_unconfigured() -> None:
+    seen: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["body"] = json.loads(request.content)
+        return httpx.Response(
+            200,
+            json={
+                "choices": [{"message": {"content": '{"patches":[]}'}}],
+                "usage": {"prompt_tokens": 5, "completion_tokens": 6},
+            },
+        )
+
+    completion = make(handler).complete(model="gpt-x", system="sys", user="usr")
+    assert "prompt_cache_key" not in seen["body"]
+    assert completion.cached_tokens == 0
+
+
+def test_deepseek_style_cache_hit_tokens_also_accepted() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "choices": [{"message": {"content": '{"patches":[]}'}}],
+                "usage": {"prompt_tokens": 9, "completion_tokens": 4, "prompt_cache_hit_tokens": 6},
+            },
+        )
+
+    completion = make(handler).complete(model="gpt-x", system="sys", user="usr")
+    assert completion.cached_tokens == 6

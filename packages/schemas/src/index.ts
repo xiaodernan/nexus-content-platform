@@ -120,6 +120,8 @@ export const UsageSchema = z.object({
   modelClass: ModelClass,
   tokensIn: z.number().int().min(0).default(0),
   tokensOut: z.number().int().min(0).default(0),
+  // OpenAI 兼容网关回的 cached_tokens（命中提示缓存的输入 token 数）——没该字段的 provider 一律 0
+  cachedTokens: z.number().int().min(0).default(0),
   latencyMs: z.number().min(0).default(0),
   costUsd: z.number().min(0).default(0),
   toolCalls: z.number().int().min(0).default(0),

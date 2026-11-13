@@ -34,6 +34,8 @@ class Settings:
     openai_api_key: str | None = None
     openai_base_url: str = "https://api.openai.com/v1"
     json_mode: bool = True
+    # OpenAI 官方 prompt_cache_key 固定路由键（workload 维度）——空串表示不带
+    openai_prompt_cache_key: str | None = "nexus-studio"
     models: Mapping[str, str] = field(default_factory=lambda: dict(DEFAULT_MODELS))
     # 检测到但尚未实现适配器的 key：如实报告为 unavailable，不假装能调用（§159）
     unsupported_text_keys: tuple[str, ...] = ()
@@ -54,6 +56,7 @@ class Settings:
             "request_timeout_s": self.request_timeout_s,
             "openai_base_url": self.openai_base_url,
             "json_mode": self.json_mode,
+            "openai_prompt_cache_key": self.openai_prompt_cache_key,
             "models": dict(self.models),
             "unsupported_text_keys": self.unsupported_text_keys,
             "openai_api_key": masked,
@@ -98,6 +101,14 @@ def load_settings(environ: Mapping[str, str] | None = None) -> Settings:
         value = env.get(name)
         return value.strip() if isinstance(value, str) and value.strip() else default
 
+    def get_or_default(name: str, default: str | None) -> str | None:
+        """unset → default；显式空串 → None（关闭，不是缺省）。"""
+        value = env.get(name)
+        if value is None:
+            return default
+        value = value.strip()
+        return value if value else None
+
     models = dict(DEFAULT_MODELS)
     for model_class, var in MODEL_CLASS_ENV.items():
         configured = get(var)
@@ -116,6 +127,8 @@ def load_settings(environ: Mapping[str, str] | None = None) -> Settings:
         openai_base_url=get("NEXUS_OPENAI_BASE_URL", "https://api.openai.com/v1")
         or "https://api.openai.com/v1",
         json_mode=(get("NEXUS_LLM_JSON_MODE", "1") or "1") != "0",
+        # 显式空串 = 关闭 prompt_cache_key 路由（unset → "nexus-studio" 缺省开启）
+        openai_prompt_cache_key=get_or_default("NEXUS_OPENAI_PROMPT_CACHE_KEY", "nexus-studio"),
         models=models,
         unsupported_text_keys=unsupported,
     )
