@@ -10,6 +10,7 @@ import { currentUserOrNull } from '@/server/domain/session';
 import { listProjects } from '@/server/domain/projects';
 import { MarketplaceCreateForm } from '@/marketplace/MarketplaceCreateForm';
 import { MarketplaceItemRow } from '@/marketplace/MarketplaceItemRow';
+import { BrandTitle } from '@/components/BrandTitle';
 
 /**
  * §127/§128 创作者市场（M7）的店面。
@@ -68,13 +69,13 @@ export default async function MarketplacePage({
           <span className="font-mono text-10 uppercase tracking-[0.22em] text-[var(--nexus-color-accent-2-ink)]">
             MARKET
           </span>
-          <h1 className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight" data-marketplace-title>
+          <BrandTitle className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight" data-marketplace-title>
             创作者市场
             <span
               aria-hidden="true"
               className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70"
             />
-          </h1>
+          </BrandTitle>
           <p className="max-w-lg text-13 leading-6 text-fg-2">
             组件 / 模板 / 设计系统 / 素材 / 世界 / 游戏 / AI 角色。列表只显示公开在售与免费的物品。
           </p>

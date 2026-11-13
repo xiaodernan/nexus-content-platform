@@ -5,6 +5,7 @@ import { loadGame } from '@/server/domain/games';
 import { projectVisibleTo } from '@/server/domain/team';
 import { requireUser } from '@/server/domain/session';
 import { PlayByKind, describeProjection } from '@/play/PlayByKind';
+import { BrandTitle } from '@/components/BrandTitle';
 
 export const dynamic = 'force-dynamic';
 
@@ -90,8 +91,7 @@ export default async function GameRuntimePage({ params }: { params: Promise<{ pr
           <span className="font-mono text-10 uppercase tracking-[0.22em] text-[var(--nexus-color-accent-2-ink)]">
             GAME
           </span>
-          <h1
-            className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight"
+          <BrandTitle            className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight"
             data-game-title
           >
             {game.document.name}
@@ -99,7 +99,7 @@ export default async function GameRuntimePage({ params }: { params: Promise<{ pr
               aria-hidden="true"
               className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70"
             />
-          </h1>
+          </BrandTitle>
           <p className="max-w-lg text-11 leading-5 text-fg-3" data-game-subtitle>
             {describeProjection(game.document, projection)}
           </p>

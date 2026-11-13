@@ -13,6 +13,7 @@ import { ProjectDeleteCard } from '@/components/ProjectDeleteCard';
 import { RestoreProjectButton } from '@/components/RestoreProjectButton';
 import { NotificationBell } from '@/components/NotificationBell';
 import { accountOf, listSaves } from '@/server/domain/profile';
+import { BrandTitle } from '@/components/BrandTitle';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,13 +46,12 @@ export default async function HomePage() {
           <span className="font-mono text-10 uppercase tracking-[0.22em] text-[var(--nexus-color-accent-2-ink)]">
             HOME
           </span>
-          <h1
-            className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight"
+          <BrandTitle            className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight"
             data-page-title="home"
           >
             NEXUS
             <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70" />
-          </h1>
+          </BrandTitle>
           <p className="text-[var(--nexus-font-size-13)] text-fg-2">Describe it. Design it. Generate it. Build it. Enter it.</p>
         </div>
         <span

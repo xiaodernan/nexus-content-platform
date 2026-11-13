@@ -6,6 +6,7 @@ import { currentUserOrNull } from '@/server/domain/session';
 import { MarkRead } from '@/components/NotificationActions';
 import { NotificationBell } from '@/components/NotificationBell';
 import { NotificationSettings } from '@/components/NotificationSettings';
+import { BrandTitle } from '@/components/BrandTitle';
 
 export const dynamic = 'force-dynamic';
 
@@ -145,13 +146,13 @@ export default async function NotificationsPage({ searchParams }: { searchParams
         <p className="relative text-13 text-fg-3">
           {user.displayName} · 共 {page.total} 条 · 未读 {page.unread} 条 · 只有你能看到这一份
         </p>
-        <h1 className="relative mt-2 inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight">
+        <BrandTitle className="relative mt-2 inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight">
           通知
           <span
             aria-hidden="true"
             className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70"
           />
-        </h1>
+        </BrandTitle>
         <div className="relative mt-4 flex flex-wrap items-center gap-4">
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-subtle)] bg-[var(--nexus-color-bg-2)] px-3 py-2 text-center sm:min-w-[5.5rem]">

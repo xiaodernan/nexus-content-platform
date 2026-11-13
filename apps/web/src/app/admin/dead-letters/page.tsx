@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { currentUserOrNull } from '@/server/domain/session';
 import { AdminNav } from '@/components/AdminNav';
 import { readDeadLettersPage, DEFAULT_LIMIT, MAX_LIMIT } from '@/server/deadLetters';
+import { BrandTitle } from '@/components/BrandTitle';
 
 export const dynamic = 'force-dynamic';
 
@@ -110,7 +111,7 @@ export default async function AdminDeadLettersPage({
     <main className="mx-auto flex max-w-[860px] flex-col gap-4 px-6 py-10" data-dead-letters-admin-root>
       <header className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
-          <h1 className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight">死信巡检</h1>
+          <BrandTitle className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight">死信巡检</BrandTitle>
           <p className="text-11 text-fg-3" data-dead-letters-summary>毒消息耗尽重试后隔离于此；看这里的表，不用进 redis-cli。</p>
         </div>
         <AdminNav current="dead-letters" />

@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { discover, type DiscoverSort } from '@/server/domain/social';
 import { currentUserOrNull } from '@/server/domain/session';
 import { publicAssetUrl } from '@/studio/assets';
+import { BrandTitle } from '@/components/BrandTitle';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,13 +32,13 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
   return (
     <main className="mx-auto flex max-w-[1080px] flex-col gap-[var(--nexus-space-6)] px-6 py-10" data-discover-root>
       <header className="flex flex-wrap items-baseline gap-3">
-        <h1 className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight" data-discover-title>
+        <BrandTitle className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight" data-discover-title>
           发现
           <span
             aria-hidden="true"
             className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70"
           />
-        </h1>
+        </BrandTitle>
         <nav className="flex gap-2" data-discover-tabs>
           {TABS.map((tab) => (
             <Link

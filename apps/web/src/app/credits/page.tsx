@@ -16,6 +16,7 @@ import {
   type PlanKey,
 } from '@/server/domain/credits';
 import type { CreditLedgerKind } from '@/server/db/schema';
+import { BrandTitle } from '@/components/BrandTitle';
 
 export const dynamic = 'force-dynamic';
 
@@ -60,7 +61,7 @@ export default async function CreditsPage(): Promise<ReactElement> {
   if (!user) {
     return (
       <main className="mx-auto flex max-w-[880px] flex-col gap-3 px-6 py-10">
-        <h1 className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight">额度与消费<span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70" /></h1>
+        <BrandTitle className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight">额度与消费<span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70" /></BrandTitle>
         <p className="text-13 text-fg-2" data-credits-anonymous>
           这里显示的是四类额度（AI / Image / Video / Compute）与每一笔消费。得先登录或注册，
           才谈得上"谁的额度"。
@@ -84,7 +85,7 @@ export default async function CreditsPage(): Promise<ReactElement> {
   return (
     <main className="mx-auto flex max-w-[980px] flex-col gap-6 px-6 py-10">
       <header className="flex flex-col gap-1">
-        <h1 className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight">额度与消费<span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70" /></h1>
+        <BrandTitle className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight">额度与消费<span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70" /></BrandTitle>
         <p className="text-13 text-fg-2" data-credits-whose>
           {user.displayName}（{user.email ?? '游客，没有邮箱'}）· 当前档位{' '}
           <b data-credits-plan={view.plan}>{PLAN_LABELS[view.plan]}</b> · 本月 {view.period}

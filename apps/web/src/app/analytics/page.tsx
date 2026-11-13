@@ -11,6 +11,7 @@ import { analyzeCreatorFacts, buildCreatorFact } from '@/server/domain/analytics
 import { currentUserOrNull } from '@/server/domain/session';
 import { utcDay } from '@/lib/visit-meter';
 import { TrendChart } from './TrendChart';
+import { BrandTitle } from '@/components/BrandTitle';
 
 /** 曲线能选的三段窗口。默认 30 天：看创作数据最常看的就是这一个月 */
 const RANGE_OPTIONS = [7, 30, 90] as const;
@@ -107,8 +108,7 @@ export default async function AnalyticsPage(props: {
           <span className="font-mono text-10 uppercase tracking-[0.22em] text-[var(--nexus-color-accent-2-ink)]">
             ANALYTICS
           </span>
-          <h1
-            className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight"
+          <BrandTitle            className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight"
             data-page-title="analytics"
           >
             创作数据
@@ -116,7 +116,7 @@ export default async function AnalyticsPage(props: {
               aria-hidden="true"
               className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70"
             />
-          </h1>
+          </BrandTitle>
           <p className="max-w-md text-13 leading-6 text-fg-2">需要先登录：这里只列你自己发布过的版本。</p>
           <Link
             href="/"
@@ -150,8 +150,7 @@ export default async function AnalyticsPage(props: {
       <span className="font-mono text-10 uppercase tracking-[0.22em] text-[var(--nexus-color-accent-2-ink)]">
         ANALYTICS
       </span>
-      <h1
-        className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight"
+      <BrandTitle        className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight"
         data-page-title="analytics"
       >
         创作数据
@@ -159,7 +158,7 @@ export default async function AnalyticsPage(props: {
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70"
         />
-      </h1>
+      </BrandTitle>
       <p className="mt-1 text-12 text-fg-3">
         {user.displayName} · 共 {rows.length} 个发布过的版本 · 数据只对你自己可见
       </p>

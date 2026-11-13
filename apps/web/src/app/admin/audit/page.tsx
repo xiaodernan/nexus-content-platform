@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { listAudit, DELETED_USER_LABEL } from '@/server/domain/audit';
 import { currentUserOrNull } from '@/server/domain/session';
 import { AdminNav } from '@/components/AdminNav';
+import { BrandTitle } from '@/components/BrandTitle';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,13 +46,13 @@ export default async function AdminAuditPage() {
         <div aria-hidden="true" className="pointer-events-none absolute -right-20 -top-20 h-52 w-52 rounded-full bg-[var(--nexus-color-brand)] opacity-[0.14] blur-3xl" />
         <div aria-hidden="true" className="pointer-events-none absolute -bottom-16 -left-14 h-48 w-48 rounded-full bg-[var(--nexus-color-accent-2)] opacity-[0.14] blur-3xl" />
         <p className="relative text-10 font-mono uppercase tracking-[0.35em] text-fg-3">NEXUS · ADMIN · AUDIT</p>
-        <h1 className="relative mt-2 inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight">
+        <BrandTitle className="relative mt-2 inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight">
           审计事件
           <span
             aria-hidden="true"
             className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70"
           />
-        </h1>
+        </BrandTitle>
         <p className="relative mt-2 text-12 text-fg-3" data-audit-summary>
           最多 {events.length} 条 · 其中被拒 {denied} 条 · 放行 {allowed} 条。
         </p>

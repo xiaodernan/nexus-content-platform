@@ -4,6 +4,7 @@ import { StoryboardDocumentSchema } from '@nexus/schemas';
 import { getPublishedPage } from '@/server/domain/publish';
 import { ARROW_LABELS, CAMERA_LABELS, TRANSITION_LABELS } from '@/studio/storyboard-labels';
 import { VisitMeter } from '../VisitMeter';
+import { BrandTitle } from '@/components/BrandTitle';
 
 export const dynamic = 'force-dynamic';
 
@@ -101,8 +102,7 @@ export default async function PublicStoryboardPage({ params }: { params: Promise
           STORYBOARD
         </span>
         <div className="flex flex-wrap items-baseline justify-between gap-4">
-          <h1
-            className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight"
+          <BrandTitle            className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight"
             data-storyboard-title
           >
             {storyboard.title}
@@ -110,7 +110,7 @@ export default async function PublicStoryboardPage({ params }: { params: Promise
               aria-hidden="true"
               className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70"
             />
-          </h1>
+          </BrandTitle>
           {back}
         </div>
         <p className="max-w-lg text-13 leading-6 text-fg-2" data-storyboard-source>

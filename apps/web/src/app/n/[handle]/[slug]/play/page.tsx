@@ -6,6 +6,7 @@ import { getPublishedPage } from '@/server/domain/publish';
 import { describeProjection } from '@/play/PlayByKind';
 import { PublicPlay } from '@/play/PublicPlay';
 import { VisitMeter } from '../VisitMeter';
+import { BrandTitle } from '@/components/BrandTitle';
 
 export const dynamic = 'force-dynamic';
 
@@ -97,8 +98,7 @@ export default async function PublicPlayPage({ params }: { params: Promise<{ han
           <span className="font-mono text-10 uppercase tracking-[0.22em] text-[var(--nexus-color-accent-2-ink)]">
             PLAYING
           </span>
-          <h1
-            className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight"
+          <BrandTitle            className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight"
             data-play-title
           >
             {document.name}
@@ -106,7 +106,7 @@ export default async function PublicPlayPage({ params }: { params: Promise<{ han
               aria-hidden="true"
               className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70"
             />
-          </h1>
+          </BrandTitle>
           <p className="text-11 text-fg-3" data-play-subtitle>
             {describeProjection(document, projection)}
           </p>

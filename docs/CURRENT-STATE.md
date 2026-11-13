@@ -2363,3 +2363,22 @@ Still honestly unverified:
 - The upstream provider's "non-stream" classification of calls in its own dashboard is their
   aggregation, not ours; the wire shape from our provider is now stream: True uniformly
   when NEXUS_LLM_STREAM is not explicitly 0.
+## cont. 76 (2026-11-13) - BrandTitle component consolidates the 21-copy brand h1 sweep; typecheck / eslint / 40+65 page tests green; record-encoding clean
+
+The frontend beauty lift (cont. 68) had landed the brand gradient as `.text-gradient-brand`
+and applied it across 21 page.tsx files - every page copy-pasted the same
+`className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight"`
+variant.  Consolidated into one shared component this turn:
+
+- apps/web/src/components/BrandTitle.tsx: server component, tag h1/h2/h3, children slot,
+  pb-2 baked in; className pass-through keeps existing styling variants (data-* hooks,
+  inline-block, mt-2, etc.) intact where they differed.
+- All 21 call-side files migrated to <BrandTitle>...</BrandTitle> with import line.
+- Two sweep bugs caught & fixed in flight (missing space in `<BrandTitle className=...`
+  after the naive rename; closing-tag re-pairing - both resolved by a name-aware stack-based
+  rewrite).
+
+Verification: tsc apps/web exit 0; eslint clean (BrandTitle + 4 sampled pages); focused
+style(-tokens/state-styles/jsx-text) 65 passing across 4 files; admin/marketplace/moderation/access/realtime
+integration suites 65/65. npm run verify:lint-tree was stopped at 15 min timeout this
+turn (only lint-time heavy); record-encoding exit 0 (2280 files, 0 chargeable).

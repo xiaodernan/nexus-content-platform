@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { listPublicAuthorsForShowcase } from '@/server/domain/profile';
+import { BrandTitle } from '@/components/BrandTitle';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,13 +25,13 @@ export default async function AuthorsShowcasePage() {
         <span className="font-mono text-10 uppercase tracking-[0.22em] text-[var(--nexus-color-accent-2-ink)]">
           SHOWCASE
         </span>
-        <h1 className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight">
+        <BrandTitle className="relative inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight">
           创作者广场
           <span
             aria-hidden="true"
             className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70"
           />
-        </h1>
+        </BrandTitle>
         <p className="max-w-lg text-13 leading-6 text-fg-2">
           真的有人在这里放了真东西——按最新公开时间排。点开一个人就能看到TA的公开作品、世界、角色与游戏（如果有）。
         </p>

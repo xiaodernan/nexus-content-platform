@@ -3,6 +3,7 @@ import { listReviewQueue, MODERATION_LIMITS, MODERATION_RULES_VERSION } from '@/
 import { currentUserOrNull } from '@/server/domain/session';
 import { ResolveButtons } from './ResolveButtons';
 import { AdminNav } from '@/components/AdminNav';
+import { BrandTitle } from '@/components/BrandTitle';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,13 +51,13 @@ export default async function AdminModerationPage() {
         <div aria-hidden="true" className="pointer-events-none absolute -right-20 -top-20 h-52 w-52 rounded-full bg-[var(--nexus-color-brand)] opacity-[0.14] blur-3xl" />
         <div aria-hidden="true" className="pointer-events-none absolute -bottom-16 -left-14 h-48 w-48 rounded-full bg-[var(--nexus-color-accent-2)] opacity-[0.14] blur-3xl" />
         <p className="relative text-10 font-mono uppercase tracking-[0.35em] text-fg-3">NEXUS · ADMIN · MODERATION</p>
-        <h1 className="relative mt-2 inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight">
+        <BrandTitle className="relative mt-2 inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight">
           人工复核台
           <span
             aria-hidden="true"
             className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70"
           />
-        </h1>
+        </BrandTitle>
         <p className="relative mt-2 text-12 text-fg-3" data-rules-version={MODERATION_RULES_VERSION}>
           待看 {cases.length} 条 · 规则版本 {MODERATION_RULES_VERSION} · 裁决之后这案就离开队列（放行或拒绝都会）。
         </p>

@@ -7,6 +7,7 @@ import {
 } from '@/server/domain/api-tokens';
 import { currentUserOrNull } from '@/server/domain/session';
 import { AdminNav } from '@/components/AdminNav';
+import { BrandTitle } from '@/components/BrandTitle';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,13 +57,13 @@ export default async function AdminAccessPage({
         <div aria-hidden="true" className="pointer-events-none absolute -right-20 -top-20 h-52 w-52 rounded-full bg-[var(--nexus-color-brand)] opacity-[0.14] blur-3xl" />
         <div aria-hidden="true" className="pointer-events-none absolute -bottom-16 -left-14 h-48 w-48 rounded-full bg-[var(--nexus-color-accent-2)] opacity-[0.14] blur-3xl" />
         <p className="relative text-10 font-mono uppercase tracking-[0.35em] text-fg-3">NEXUS · ADMIN · ACCESS</p>
-        <h1 className="relative mt-2 inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight">
+        <BrandTitle className="relative mt-2 inline-block text-gradient-brand pb-2 text-28 font-bold tracking-tight">
           访问账（全局）
           <span
             aria-hidden="true"
             className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)] to-transparent opacity-70"
           />
-        </h1>
+        </BrandTitle>
         <p className="relative mt-2 text-12 text-fg-3" data-access-summary>
           最多 {days} 天：总调用 {summary.totalCalls} · 活跃凭据 {summary.activeTokens} 枚 ·
           涉及主人 {summary.activeOwners} 人（分钟合并，只记 30 天；只有读成功才记）
