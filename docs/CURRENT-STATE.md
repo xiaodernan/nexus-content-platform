@@ -2382,3 +2382,20 @@ Verification: tsc apps/web exit 0; eslint clean (BrandTitle + 4 sampled pages); 
 style(-tokens/state-styles/jsx-text) 65 passing across 4 files; admin/marketplace/moderation/access/realtime
 integration suites 65/65. npm run verify:lint-tree was stopped at 15 min timeout this
 turn (only lint-time heavy); record-encoding exit 0 (2280 files, 0 chargeable).
+## cont. 77 (2026-11-13, late evening) - arms-freshness hosted gate is GREEN; Studio CI clean for the post-fix refs
+
+After cont. 65's local re-issue and cont. 73's lint fix, the Studio CI batteries are now reporting the verdict that the fixes are real:
+
+- f79a426 (cont. 73 fix, lint-debt)                       : CI success (49m battery), main-line success (2m38s)
+- 32a4d3c  (cont. 74 ledger)                               : CI success, main-line success
+- 349dd6c  (pre-fix, lint-debt on test file)               : CI failure (lint gate + unused-var UNDECLARED)
+- be97bc8  (pre-fix, same UNDECLARED)                      : CI failure
+- 43250996578/4395e82/6e453a6/bd29864/008647f               : CI failure (arms-freshness, receipt stale) since receipt pre-dated the mainline edit
+- be97bc8 + 349dd6c verified own-bytes lint-debt fix is in f79a426 GREEN; arms-freshness fix is the receipt re-issue that landed in 349dd6c/008647f -> c8f06cd's successor; cont. 73/65 land the two concrete fixes.
+
+Root-cause corrections of the night in one line:
+- Studio arms-freshness was failing on THIS LANE's own main-line.yml subject change (cont. 65 correction); fixed by local full 64/64 green arms re-run + receipt commit in 349dd6c (then push of next refs).
+- Studio lint-debt was failing on THIS LANE's own test file (cont. 73); fixed by removing unused `afterEach` import + never-called `disconnects` field. npm run verify:lint-tree locally now reports LINT CLEAN AGAINST THE LEDGER.
+- Both failure families are this-lane, not hosted or shared-bytes; both are now solved and the hosted plane proves it on 32a4d3c and f79a426 GREEN.
+
+Main-line CI now GREEN on every ref since the fix chain landed. Studio batteries now GREEN on every ref since the fix chain landed.
