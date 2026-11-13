@@ -446,23 +446,23 @@ export function GamePlay({
 
   if (!plan.playable) {
     return (
-      <div className="flex flex-col gap-2" data-game-blocked>
-        <p className="text-13 text-danger-ink">这一份设计跑不起来：</p>
-        <ul className="flex flex-col gap-1">
+      <div className="g2-col" data-game-blocked>
+        <p className="g2-blockedTitle">这一份设计跑不起来：</p>
+        <ul className="g2-col1">
           {plan.blockers.map((line) => (
-            <li key={line} className="text-12 text-fg-2" data-game-blocker>
+            <li key={line} className="g2-blocker" data-game-blocker>
               · {line}
             </li>
           ))}
         </ul>
-        <p className="text-11 text-fg-3">补齐之后回到这一页就会重新编译——这里没有"先给你个演示关卡"的兜底。</p>
+        <p className="g2-note">补齐之后回到这一页就会重新编译——这里没有"先给你个演示关卡"的兜底。</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-3" data-game-root data-game-view={view}>
-      <div className="flex flex-wrap items-center gap-3 text-12" data-game-hud>
+    <div className="g2-col3" data-game-root data-game-view={view}>
+      <div className="g2-hud" data-game-hud>
         <span data-game-status={hud.status}>
           {hud.status === 'playing' ? '进行中' : hud.status === 'won' ? '通关' : '失败'}
         </span>
@@ -485,18 +485,18 @@ export function GamePlay({
           </span>
         ) : null}
         <span data-game-summary>{simSummary(hud)}</span>
-        <button type="button" onClick={restart} className="rounded bg-bg-2 px-2 py-1 text-11" data-game-restart>
+        <button type="button" onClick={restart} className="g2-smallBtn" data-game-restart>
           重新开始
         </button>
       </div>
 
       {hud.outcome ? (
-        <p className="text-12 text-fg-2" data-game-outcome>
+        <p className="g2-blocker" data-game-outcome>
           {hud.outcome}
         </p>
       ) : null}
 
-      <p className="text-11 text-fg-3" data-game-controls>
+      <p className="g2-note" data-game-controls>
         移动：WASD / 方向键 · 攻击：空格（够得着才打得到；触及 {plan.player?.reach ?? 0}px 是
         {plan.player?.reachIsDesign ? '武器 range 里写的' : '投影按贴身算的'}）
         {view === '3d' ? ' · 按住拖动转视角（WASD 跟着视角走，和 2D 的屏幕方向同一套语义）' : ''}
@@ -513,19 +513,19 @@ export function GamePlay({
           ref={canvas}
           width={ARENA.width}
           height={ARENA.height}
-          className="w-full rounded border border-[var(--nexus-color-border-subtle)]"
+          className="g2-canvas"
           data-game-canvas
         />
       )}
 
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <section className="g2-twoCol">
         <div>
-          <h3 className="text-12 font-semibold text-fg-1">任务（{plan.quests.length}）</h3>
-          <ul className="mt-1 flex flex-col gap-1">
+          <h3 className="g2-h3">任务（{plan.quests.length}）</h3>
+          <ul className="g2-mt1col">
             {plan.quests.map((quest) => {
               const doneAt = hud.questDone[quest.id];
               return (
-                <li key={quest.id} className="text-11 text-fg-2" data-game-quest={quest.judgeable ? 'judgeable' : 'unjudgeable'}>
+                <li key={quest.id} className="g2-hint2" data-game-quest={quest.judgeable ? 'judgeable' : 'unjudgeable'}>
                   <span data-game-quest-state={doneAt === undefined ? 'todo' : 'done'}>
                     {doneAt === undefined ? '○' : '●'}
                   </span>{' '}
@@ -537,42 +537,42 @@ export function GamePlay({
                 </li>
               );
             })}
-            {plan.quests.length === 0 ? <li className="text-11 text-fg-3">这份设计里没有任务实体。</li> : null}
+            {plan.quests.length === 0 ? <li className="g2-note">这份设计里没有任务实体。</li> : null}
           </ul>
         </div>
         <div>
-          <h3 className="text-12 font-semibold text-fg-1">最近发生</h3>
-          <ul className="mt-1 flex max-h-[9rem] flex-col gap-[2px] overflow-auto">
+          <h3 className="g2-h3">最近发生</h3>
+          <ul className="g2-eventList">
             {hud.events.slice(-8).reverse().map((event, index) => (
-              <li key={`${event.t}-${index}`} className="text-11 text-fg-3" data-game-event>
+              <li key={`${event.t}-${index}`} className="g2-note" data-game-event>
                 {event.t.toFixed(1)}s · {event.text}
               </li>
             ))}
-            {hud.events.length === 0 ? <li className="text-11 text-fg-3">还没有事情发生。</li> : null}
+            {hud.events.length === 0 ? <li className="g2-note">还没有事情发生。</li> : null}
           </ul>
         </div>
       </section>
 
       {/* §53：不靠人玩也能问出"这版能不能通、按这些走法会不会一进场就死" */}
-      <section className="rounded border border-[var(--nexus-color-border-subtle)] p-3">
-        <div className="flex items-center gap-3">
-          <h3 className="text-12 font-semibold text-fg-1">自动跑一遍（Playtest）</h3>
+      <section className="g2-well">
+        <div className="g2-wellRow">
+          <h3 className="g2-h3">自动跑一遍（Playtest）</h3>
           <button
             type="button"
             onClick={() => setReport(playtest(plan, PLAYTEST_POLICIES, seed))}
-            className="rounded bg-bg-2 px-2 py-1 text-11"
+            className="g2-smallBtn"
             data-playtest-run
           >
             跑四种走法
           </button>
-          <label className="flex items-center gap-[6px] text-11 text-fg-3">
+          <label className="g2-seedLabel">
             随机种子
             <input
               type="number"
               value={Number.isFinite(seed) ? seed : ''}
               // 清空 = 「没有明示种子」，不是 0：`Number('')` 是 0，而 0 是一个真的种子
               onChange={(event) => setSeed(event.target.value === '' ? Number.NaN : Number(event.target.value))}
-              className="w-[92px] rounded border border-[var(--nexus-color-border-subtle)] bg-bg-2 px-1 py-[2px] text-11"
+              className="g2-seedInput"
               data-playtest-seed
               title="只有「定种子随机游走」那一条用它：换种子=换一次抽样，规则与数值一个字都不动"
             />
@@ -580,8 +580,8 @@ export function GamePlay({
         </div>
         {report ? (
           <>
-            <table className="mt-2 w-full text-11">
-              <thead className="text-left text-fg-3">
+            <table className="g2-tableWrap">
+              <thead className="g2-theadRow">
                 <tr>
                   <th>走法</th>
                   <th>结果</th>
@@ -608,32 +608,32 @@ export function GamePlay({
                 ))}
               </tbody>
             </table>
-            <p className="mt-1 text-11 text-fg-3" data-playtest-seed-used={report.seed}>
+            <p className="g2-mt1Note" data-playtest-seed-used={report.seed}>
               {playtestSeedNote(report.seed)}
             </p>
-            <ul className="mt-2 flex flex-col gap-1">
+            <ul className="g2-mt2col">
               {report.findings.map((line) => (
-                <li key={line} className="text-11 text-fg-2" data-playtest-finding>
+                <li key={line} className="g2-hint2" data-playtest-finding>
                   · {line}
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-11 text-fg-3" data-playtest-limits>
+            <p className="g2-mt2Note" data-playtest-limits>
               {report.limits.join(' ')}
             </p>
           </>
         ) : (
-          <p className="mt-1 text-11 text-fg-3">还没跑。这一步不需要人操作，也不需要模型或 provider。</p>
+          <p className="g2-mt1Note">还没跑。这一步不需要人操作，也不需要模型或 provider。</p>
         )}
       </section>
 
-      <section className="rounded bg-bg-1 p-3">
-        <h3 className="text-12 font-semibold text-fg-1">这份"可玩"是从哪些数算出来的</h3>
-        <p className="mt-1 text-11 text-fg-3" data-game-provenance>
+      <section className="g2-provenanceBlock">
+        <h3 className="g2-h3">这份"可玩"是从哪些数算出来的</h3>
+        <p className="g2-mt1Note" data-game-provenance>
           场上共 {fallbackStats.total} 个可显示个体，其中
           {PLAY_PROVENANCE_SLOTS.map((slot) => ` ${fallbackStats.counts[slot]} 个的${PLAY_PROVENANCE_LABELS[slot]}（兜底 ${PLAY_PROVENANCE_FALLBACK_TEXT[slot]}）`).join('、')} 用的是投影兜底值（作者没填），不是设计的数。
         </p>
-        <ul className="mt-2 flex flex-col gap-1">
+        <ul className="g2-mt2col">
           {[
             ...plan.notes,
             ...(view === 'isometric' ? ISO_VIEW_NOTES : []),
@@ -641,7 +641,7 @@ export function GamePlay({
             ...(view === 'puzzle' ? PUZZLE_VIEW_NOTES : []),
             ...SIM_RULE_NOTES,
           ].map((note) => (
-            <li key={note} className="text-11 text-fg-3" data-game-note>
+            <li key={note} className="g2-note" data-game-note>
               · {note}
             </li>
           ))}
