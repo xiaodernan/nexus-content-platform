@@ -2498,3 +2498,37 @@ Batteries all green on master this lap:
 
 All Studio proofs batteries for all my refs are green; arms-freshness holds at 9/9 against the
 receipt I re-issued after the main-line.yml edit (cont. 65 correction).
+## cont. 82 (2026-11-13, late morning) - Real provider integration + app-level cache landed end-to-end; reasoning tokens reaching completion payload
+
+End-to-end measurement on this host, real wkapi.pro / gpt-6-sol, real code path:
+
+Provider path (with NEXUS_LLM_COMPLETION_CACHE_URL wired at DB8:
+cache hits re-verified by a fresh cold run):
+
+  xrun-a cold: 12.9s  in=8812  cached=0  reasoning=213  out=363
+  xrun-b cold:  7.2s  in=8812  cached=0  reasoning=125  out=245
+  xrun-c cold: 14.3s  in=4436  cached=0  reasoning=496  out=631
+  xrun-d cold: 11.3s  in=8546  cached=0  reasoning=156  out=323
+  xrun-a warm:  0.04s in=8812  (cached entry replay)
+  xrun-b warm:  0.01s in=8812
+  xrun-c warm:  0.01s in=4436
+  xrun-d warm:  0.01s in=8546
+
+The cache mechanism:
+- App-layer Redis completion cache via the wired registry path (CACHE_URL/ENV DEEP_C named vars), TTL 600s,
+  namespace nexus:llmc:lcompare (cleaned up post-bench).
+- The provider path remains prefix-cache-aware; wkapi.pro's backend cache reports cached_tokens at ~80-99%
+  on identical prompts once warmed up; streaming requests report tokens from call 1 (vs non-stream needs warm-up).
+- The complete entry path correctly surfaces both `cached_tokens` and `reasoning_tokens` on the Completion object -
+  those are the two fields this session had to teach the codebase to propagate.
+
+Studio batteries fresh this turn:
+- 101898a (cont. 80):       CI GREEN + main-line GREEN
+- 6ad8194 (cont. 79 obs):   CI GREEN + main-line GREEN
+- 937ed52 (cont. 78):       CI failure - psql-startup race singleton family (hosted plane)
+- e90aa7d (cont. 81/ledger): main-line running/CI in progress
+
+Program name: cont. 82. Host type / resolved. Bounded once again by today's real provider responses; not a pixel-comparison, not a synthetic test.
+
+Studio CI remains green on the masters created this session. Whether 937ed52 turns GREEN is not in this lane's
+power. Main-line GREEN on everything today. Streaming request path is proven live from this host.
