@@ -7,6 +7,7 @@ import { ttlLabel } from '@/lib/notify-plan';
 import { cn } from '@/lib/cn';
 import { csrfHeaders } from '@/lib/csrf';
 import { REALTIME_TEXT, useRealtime } from '@/lib/useRealtime';
+import { cacheState, cacheText } from '@/lib/usage-cache-text';
 import { isEditableTarget } from '@/lib/keyboard';
 import { studio, toModelPatches, useStudioReady } from './store';
 
@@ -509,6 +510,19 @@ export function CommandBar() {
             {demoMode ? 'DEMO MODE' : 'LIVE'}
           </span>
           <span>{result.explanation || '已完成'}</span>
+          {/*
+            §CACHE-3：这一次生成里有多少输入是从前缀缓存复用的。
+            画布上的用户看不到 `/admin/ai-cache`，而"我这次花了多少"正是他关心的那句话。
+            三态由 `cacheState` 给（hit / miss / unreported），措辞由 `cacheText` 给——
+            两者分开管：措辞会变，语义不该跟着变。
+          */}
+          <span
+            className="cb-cacheBadge"
+            data-ai-cache={cacheState(result.usage)}
+            title="命中的是**输入** token（前缀缓存）。缓存那一段仍然计费，只是打折。"
+          >
+            {cacheText(result.usage)}
+          </span>
           {result.patches?.length ? (
             <span className="ap-faint">
               {result.patches.reduce((sum, p) => sum + p.ops.length, 0)} 个 op ·{' '}

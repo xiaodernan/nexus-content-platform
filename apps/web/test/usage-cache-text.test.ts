@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cacheShare, cacheText, cacheTotal } from '@/lib/usage-cache-text';
+import { cacheShare, cacheState, cacheText, cacheTotal } from '@/lib/usage-cache-text';
 
 /**
  * §CACHE-3 缓存读数翻译层。
@@ -46,6 +46,35 @@ describe('§CACHE-3 cacheText：三档互不冒充', () => {
 
   it('负数被当作 0 处理而不是算出负占比（脏数据不许画成负命中率）', () => {
     expect(cacheShare({ tokensIn: 1000, cachedTokens: -5, cacheReported: true })).toBe(0);
+  });
+});
+
+describe('§CACHE-3 cacheState：三态是语义，不是措辞', () => {
+  it('没报 → unreported（与"命中 0"是不同状态）', () => {
+    expect(cacheState({ tokensIn: 5000, cachedTokens: 0, cacheReported: false })).toBe('unreported');
+  });
+
+  it('报了 0 → miss', () => {
+    expect(cacheState({ tokensIn: 5000, cachedTokens: 0, cacheReported: true })).toBe('miss');
+  });
+
+  it('报了 N>0 → hit', () => {
+    expect(cacheState({ tokensIn: 7410, cachedTokens: 7168, cacheReported: true })).toBe('hit');
+  });
+
+  it('三态与三句措辞一一对应（改措辞不该改状态）', () => {
+    const cases: Array<[Parameters<typeof cacheState>[0], 'hit' | 'miss' | 'unreported']> = [
+      [{ tokensIn: 1, cachedTokens: 0, cacheReported: false }, 'unreported'],
+      [{ tokensIn: 1, cachedTokens: 0, cacheReported: true }, 'miss'],
+      [{ tokensIn: 1, cachedTokens: 1, cacheReported: true }, 'hit'],
+    ];
+    for (const [usage, state] of cases) {
+      expect(cacheState(usage)).toBe(state);
+      // 每个状态都有且只有一句话——不是空串、也不是同一句
+      expect(cacheText(usage).length).toBeGreaterThan(0);
+    }
+    const texts = cases.map(([usage]) => cacheText(usage));
+    expect(new Set(texts).size).toBe(3);
   });
 });
 

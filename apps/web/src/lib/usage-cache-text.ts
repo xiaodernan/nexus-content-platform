@@ -40,6 +40,20 @@ export function cacheText(usage: CacheUsageSlice): string {
 }
 
 /**
+ * 给渲染用的三态标签——**语义与 `cacheText` 一一对应，但供 `data-*` 与 CSS 分支使用**。
+ *
+ * 为什么不直接让界面 `includes('未报')` 判：那等于把中文措辞当协议。
+ * 措辞会变（今天叫"未报"、明天可能叫"网关未提供"），而三态是稳定的。
+ * 判据可以钉住 `cacheState(u) === 'unreported'`，同时另钉一句措辞——两件事分开管。
+ */
+export type CacheState = 'hit' | 'miss' | 'unreported';
+
+export function cacheState(usage: CacheUsageSlice): CacheState {
+  if (!usage.cacheReported) return 'unreported';
+  return usage.cachedTokens > 0 ? 'hit' : 'miss';
+}
+
+/**
  * 一页账本的缓存合计。
  *
  * **只统计 `cacheReported` 的行**。把"没报"的行按 0 加进分母，命中率会凭空变小——

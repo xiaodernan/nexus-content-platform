@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
  * 本片只换皮；plan 派发、APPROVAL_TTL_MS 流、aiObservation 回读路径——一字不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @ + cn()整体归一 + `className=@` 归一）：
- * `d86846b848b4bd1b8185df54b272d7e4248b18b377aa2b07a0e74d905588d23d` 与 HEAD 字节一致。
+ * `7ef8ffcc40dec49b6433986dbca05d4d30bc3c2fe3b7207f9252b8a919ce2c91` 与 HEAD 字节一致。
  *
  * 判据不变式（12 门）：
  *  1. 'use client' 保留 + csrfHeaders/studio.flushBeforeAi 进门；2. 字面 className 全 `.cb-*`/复用族（含 cn 三元分支）；
@@ -21,6 +21,11 @@ import { describe, expect, it } from 'vitest';
  *  8. 视觉段所有 var(--nexus-*) 都在 tokens.css 声明过；9. 零新增颜色 token；
  * 10. 零 transition/@media/@keyframes；11. `data-demo-mode` DEMO/LIVE 成对守恒（.cb-flagWarn/.cb-flagLive）；
  * 12. SHA256 守恒 + 钩子守恒（data-ai- 系列 / data-demo-mode 成对守恒）。
+ *
+ * **§CACHE-3（2026-11-14）恒等门换过一次值**：`d86846b8…` → `7ef8ffcc…`。
+ * 原因是生成结果行多了一枚缓存读数 chip（`data-ai-cache` 钩子 + `cacheText` 措辞）——
+ * 那是**真实的新界面元素**，不是换皮，所以门该破。来由记在这里而不是只改断言：
+ * 下一个人看到哈希变了，得能查到为什么。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/studio/CommandBar.tsx');
@@ -152,9 +157,20 @@ describe('§FE-61 /studio CommandBar AI 命令栏', () => {
     }
   });
 
-  it('剥 className/cn 后全文 SHA256 守恒（零行为：d86846b848b4bd1b8185df54b272d7e4248b18b377aa2b07a0e74d905588d23d）', () => {
+  it('剥 className/cn 后全文 SHA256 守恒（零行为：7ef8ffcc40dec49b6433986dbca05d4d30bc3c2fe3b7207f9252b8a919ce2c91）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'd86846b848b4bd1b8185df54b272d7e4248b18b377aa2b07a0e74d905588d23d',
+      '7ef8ffcc40dec49b6433986dbca05d4d30bc3c2fe3b7207f9252b8a919ce2c91',
     );
+  });
+
+  it('§CACHE-3 缓存 chip 接线：三态走 data-ai-cache、措辞走 cacheText，组件不许自己再写一份', () => {
+    // 措辞住在 `lib/usage-cache-text.ts`（配 13 条纯函数判据）。这里钉的是**接线**：
+    // 组件真的在用那份实现，并且三态是 `cacheState()` 给的、不是从中文措辞里 includes 出来的。
+    //
+    // 为什么强调"三态不从措辞反推"：措辞会变（今天"未报"、明天可能"网关未提供"），
+    // 而 `hit/miss/unreported` 是稳定语义。用 `includes('未报')` 当协议，改一个词就静默失效。
+    expect(code).toContain("from '@/lib/usage-cache-text'");
+    expect(code).toContain('data-ai-cache={cacheState(result.usage)}');
+    expect(code).toContain('{cacheText(result.usage)}');
   });
 });
