@@ -2502,6 +2502,14 @@
   .g2-mt2col { margin-top: var(--nexus-space-2); display: flex; flex-direction: column; gap: var(--nexus-space-1); padding: 0; list-style: none; }
   .g2-mt2Note { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
   .g2-provenanceBlock { border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-1); padding: var(--nexus-space-3); }
+
+  /* ── §FE-98 / ADR-0251 `play/PlayByKind.tsx` `.pk-` 门面化——§14 未接线 kind 的诚实空态 ──
+   * "还没有可玩的投影"就照实说，不画假入口（§159）。 */
+  .pk-card { border-radius: var(--nexus-radius-lg); border: 1px solid var(--nexus-color-border-subtle); padding: var(--nexus-space-4); }
+  .pk-h2 { font-size: var(--nexus-font-size-13); font-weight: 600; color: var(--nexus-color-fg-1); }
+  .pk-note12 { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
+  .pk-hint { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .pk-hint2 { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
   /* §FE-93 复用 FE-87/FE-92 断言：给 adp-btnSm 补回禁用态——FE-92 的 open 按钮从不 disabled，故不改变其渲染。 */
   .adp-btnSm:disabled { opacity: 0.4; cursor: not-allowed; }
 
