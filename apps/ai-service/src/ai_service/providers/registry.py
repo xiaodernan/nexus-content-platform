@@ -109,7 +109,14 @@ class Registry:
                 ttl_s=settings.llm_cache_ttl_s,
                 max_entries=512,
             )
-            return CachedLlm(provider, cache)  # type: ignore[return-value]
+            # single-flight（v696 / ADR 0128）：同 key 并发 miss 只放一个真调用过去。
+            # 关掉时 flight=None，CachedLlm 与 v695 字节级一致。
+            flight = None
+            if settings.llm_single_flight:
+                from ..single_flight import SingleFlight
+
+                flight = SingleFlight(wait_timeout_s=settings.llm_single_flight_wait_s)
+            return CachedLlm(provider, cache, flight=flight)  # type: ignore[return-value]
         except Exception as exc:  # noqa: BLE001 - 缓存组件失败必须不影响主路径
             print(f"[registry] LLM completion cache 未启用：无法连接 {url}（{exc.__class__.__name__}）")
             return provider

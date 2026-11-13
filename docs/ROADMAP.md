@@ -11876,3 +11876,32 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
 - **仍欠**：distributor cache TTL / 通道数不可知（需供应商信息或长跑）；目录一改键就变；
   chat 自由文本只用 system 做键；不支持该字段的网关尚无自动探测降级（靠 `=0` opt-out）；
   temperature 仍未进键（ADR 0113 仍欠）。
+
+## v696 — completion cache single-flight + 并发过期竞态修复（ADR 0128）（2026-11-14）
+- **背景**：ADR 0113 仍欠 ④。`execution.py` 用 `to_thread` 调 `complete()`，N 路同 prompt
+  会在 leader 写入前**全部 miss、全部打真 LLM**；ADR 0127 省的是 prompt token（provider 前缀
+  缓存），本片省的是真调用次数，两层互补不互相记功。
+- **做了**：新 `single_flight.py`（`threading.Lock` + `Event` + `dict[key, _Flight]`，O(1)
+  定点，镜像 Spring `@Cacheable(sync=true)` / Caffeine coalescing loader）；`CachedLlm` 可注入
+  `flight`，`Registry._build_llm` 在缓存层启用时按 `NEXUS_LLM_SINGLE_FLIGHT` 接线（默认 1，
+  =0 byte-level 零回归）；`Settings` 两旋钮 + repr 脱敏；`env.example` 补齐。
+  四条诚实边界：失败不缓存/传播同一异常、follower 有界等待超时自己补打、`coalesced` 不是
+  cache hit、只进程内不跨进程。
+- **顺带修真 bug**：加并发前提后，`LlmCompletionCache` 的"读过期条目 → `del`"无锁会
+  让 N 路同时 `del` 同一键抛 `KeyError`（不是统计误差，是崩请求）。给 `get/store/stats/
+  __len__/clear` 加实例锁；变异臂把锁退化 + 注入时钟让线程确定性汇合，旧竞态必须复现。
+- **真机 A/B（wkapi.pro /v1 gpt-6-sol）**：同进程生产 provider + 生产 CachedLlm，
+  transport 层计数；3 路并发同 prompt `flight=on` → **真网关 1 次**（coalesced=2、
+  cache_hits=0、tokens_in=4438），`flight=off` 反事实臂 → **3 次**。ON 腿另验返回仍是
+  合法 JSON mode 真回复，避免把失败合并给三路。
+- **门**：`tests/test_single_flight.py` 20 条（判据纯函数单一真值、Event 门 leader +
+  Barrier 强制汇合、`inflight_peak == requests` 正向锚、10 个恒跑变异臂、2 个正向对照、
+  2 条函数级 skipif 真机腿）。离线 20/2；全套离线 289/17；live LLM + 真 Redis 全 opt-in
+  **306 passed / 0 skipped**；`verify:record-encoding` / `verify:evidence-census` /
+  `verify:arms-freshness` 全绿。
+- **仍欠**：跨进程 single-flight（需 Redis 分布式锁 + 结果广播，语义未定不接线）、
+  `coalesced/timeouts` 进 `/healthz` / Prometheus、超时补打与 leader 并行造成的短暂双花、
+  超时补打缺 jitter（ADR 0117 组件已存在，需先定"补打算不算 attempt"）、
+  `temperature` 仍未进缓存键。
+- **方法**：加并发能力前先查"它把哪条旧路径的并发前提变强了"；真机 A/B 必须带反事实臂，
+  否则"1 次"可能来自缓存或网关去重，归因不成立。

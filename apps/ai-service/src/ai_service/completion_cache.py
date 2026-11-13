@@ -1,7 +1,7 @@
 """LLM completion 缓存（v680，进程内 opt-in 组件）。
 
 §159 诚实边界（本文件最重要的一条）：缓存命中**不是一次新的 provider 调用**。
-因此本组件只做一件事——把 `(model, system, user)` → `Completion` 的映射缓存起来，
+因此本组件只做一件事——把 `(model, system, user, json_mode)` → `Completion` 的映射缓存起来，
 并如实统计 hits/misses/stores/evictions/expirations；它**不接进** `usage`，也不改响应
 形状。为什么：契约 `contracts/ai-*-response.schema.json` 是 `additionalProperties=false`、
 web `TaskUsageSchema` 是精确 zod 形状，要表达"这次命中了缓存、没有真的花钱/花延迟"
@@ -20,17 +20,21 @@ web `TaskUsageSchema` 是精确 zod 形状，要表达"这次命中了缓存、�
 - TTL + LRU：`OrderedDict`，命中移到末尾，超过 `max_entries` 淘汰最久未用；TTL 用
   `time.monotonic()`（不受系统时钟回拨影响）。两者都是**进程内**、重启即失，绝不声称跨实例。
 - 失败不缓存：`complete` 只在成功返回后才 `store`；`ProviderFailed` 直接抛出，不留毒条目。
-- 并发不加锁：这是**单进程单 worker** 的 opt-in 组件；并发同 key 的重复真调用是"宁可多花
-  一次钱也不返回半条毒缓存"的取舍，记入 ADR 0113 仍欠（single-flight）。
+- 并发（v696 / ADR 0128）：`CachedLlm` 可注入 `SingleFlight`，同 key 并发 miss 只放一个
+  leader 打真 provider，其余等同一个结果；失败传播同一异常、等待有界、超时自己补打真调用。
+  **默认 `flight=None` = 字节级零回归**（旧调用点一行不改）；生产由 `Registry` 接线。
+  这是进程内合并，不声称跨实例（ADR 0113 仍欠 ④ 由此关闭）。
 """
 from __future__ import annotations
 
+import threading
 import time
 from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Protocol
 
 from .providers.base import Completion, LLMProvider
+from .single_flight import SingleFlight
 
 # None = 用 provider 默认（不是"未指定就随便"）；三态必须分开，否则 chat 与 run 会串台。
 JsonModeKey = str  # "default" | "json" | "text"
@@ -92,6 +96,11 @@ class LlmCompletionCache:
         self._max_entries = int(max_entries)
         self._now = now or _Clock()
         self._entries: OrderedDict[CacheKey, tuple[Completion, float]] = OrderedDict()
+        # v696：`execution.py` 的 to_thread 会让 N 路同 key 请求**同时**走到 get()。
+        # 无锁时"两个线程同时看到同一过期条目、各自 del"会抛 KeyError（真崩溃，不只是
+        # 计数丢一次）；LRU move_to_end 也会撞上被别人删掉的键。锁只护本实例状态，
+        # 不跨 provider 调用、不跨网络，热路径成本是一次无争用 Lock 获取。
+        self._lock = threading.Lock()
         self._hits = 0
         self._misses = 0
         self._stores = 0
@@ -108,43 +117,48 @@ class LlmCompletionCache:
 
     def get(self, key: CacheKey) -> Completion | None:
         """命中移到 LRU 末尾；TTL 过期的条目当场清除并计 expiration，按 miss 处理。"""
-        entry = self._entries.get(key)
-        if entry is None:
-            self._misses += 1
-            return None
-        completion, stored_at = entry
-        if self._now() - stored_at >= self._ttl_s:
-            del self._entries[key]
-            self._expirations += 1
-            self._misses += 1
-            return None
-        self._entries.move_to_end(key)
-        self._hits += 1
-        return completion
+        with self._lock:
+            entry = self._entries.get(key)
+            if entry is None:
+                self._misses += 1
+                return None
+            completion, stored_at = entry
+            if self._now() - stored_at >= self._ttl_s:
+                del self._entries[key]
+                self._expirations += 1
+                self._misses += 1
+                return None
+            self._entries.move_to_end(key)
+            self._hits += 1
+            return completion
 
     def store(self, key: CacheKey, completion: Completion) -> None:
         """成功调用后写入。同键覆盖（重新计时 + 刷新内容），超限淘汰最久未用。"""
-        self._entries[key] = (completion, self._now())
-        self._entries.move_to_end(key)
-        self._stores += 1
-        if len(self._entries) > self._max_entries:
-            self._entries.popitem(last=False)
-            self._evictions += 1
+        with self._lock:
+            self._entries[key] = (completion, self._now())
+            self._entries.move_to_end(key)
+            self._stores += 1
+            if len(self._entries) > self._max_entries:
+                self._entries.popitem(last=False)
+                self._evictions += 1
 
     def stats(self) -> CacheStats:
-        return CacheStats(
-            hits=self._hits,
-            misses=self._misses,
-            stores=self._stores,
-            evictions=self._evictions,
-            expirations=self._expirations,
-        )
+        with self._lock:
+            return CacheStats(
+                hits=self._hits,
+                misses=self._misses,
+                stores=self._stores,
+                evictions=self._evictions,
+                expirations=self._expirations,
+            )
 
     def __len__(self) -> int:
-        return len(self._entries)
+        with self._lock:
+            return len(self._entries)
 
     def clear(self) -> None:
-        self._entries.clear()
+        with self._lock:
+            self._entries.clear()
 
 
 class CachedLlm:
@@ -156,9 +170,12 @@ class CachedLlm:
 
     kind = "llm"
 
-    def __init__(self, inner: LLMProvider, cache: LlmCompletionCache) -> None:
+    def __init__(
+        self, inner: LLMProvider, cache: LlmCompletionCache, *, flight: SingleFlight | None = None
+    ) -> None:
         self._inner = inner
         self._cache = cache
+        self._flight = flight
         self.name = inner.name
 
     @property
@@ -181,7 +198,14 @@ class CachedLlm:
         cached = self._cache.get(key)
         if cached is not None:
             return cached
-        # 失败（ProviderFailed）从这里原样抛出，绝不 store 毒条目。
-        completion = self._inner.complete(model=model, system=system, user=user, json_mode=json_mode)
-        self._cache.store(key, completion)
-        return completion
+
+        def work() -> Completion:
+            # 失败（ProviderFailed）从这里原样抛出，绝不 store 毒条目。
+            completion = self._inner.complete(model=model, system=system, user=user, json_mode=json_mode)
+            self._cache.store(key, completion)
+            return completion
+
+        if self._flight is None:
+            return work()
+        # 同 key 并发只放一个 work 过去；缓存命中不进 flight（命中不是"合并"，不虚报 coalesced）。
+        return self._flight.run(key, work)
