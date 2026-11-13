@@ -2414,3 +2414,31 @@ this turn. Pointed the tab at http://localhost:3100/ (dev server restarted on th
 Important honesty line: desktop SCREENSHOT capture still operation_failed on this host (needs the desktop window to be foreground on the user's machine; it is not). All visual verification here is DOM / computed-style level, not pixel. Any pixel-claim must credit this route explicitly.
 
 Consolidated: 5 routes HTTP-verified including anonymous gate on admin dead-letters, dark+light theme propagation verified on the homepage, 24 hearts counted, zero console errors on the homepage load path this take. The v687 brand-lift lineage is now at proof state across the 5 routes the lift covered.
+## cont. 79 (2026-11-13, evening) - ai readiness panel now shows completion-cache liveness end-to-end
+
+The observability slice answered the user's question directly through the product:
+cache hits/misses now populate a new row on the admin AI observability panel, fed from
+the ai-service /healthz report which now carries the wired Completion cache's live stats.
+
+Live-read of /healthz with the Redis app-level cache wired and after one /v1/ai/chat round trip:
+
+  { enabled: true, backend: redis, hits: 3, misses: 1, stores: 1, stores_failed: 0,
+    evictions: 0, hit_rate: 0.75, shared: true, degraded: false,
+    namespace: nexus:llmc:v691:demo }
+
+The page now shows new rows: cache backend (redis/memory), hits / misses, hit rate (%), degraded state.
+When the cache is NOT wired, the rows render as dash / disabled, never a fabricated zero.
+
+Contract and schema both extended:
+- apps/ai-service/src/ai_service/app.py: /healthz now reports llmCache (null when unset; populated when redis/dca memory cache wraps the LLM provider)
+- apps/ai-service/src/ai_service/providers/registry.py: llm_cache_state() surfaces hits/misses/stores/evictions/stores_failed/hit_rate/backend/namespace/degraded/shared
+- contracts/health.schema.json: llmCache added as oneOf[null,object] with all required keys; additionalProperties false on both branches
+- packages/schemas/src/index.ts (HealthResponseSchema): llmCache mirror added
+- apps/web/src/lib/env.ts: AiCapabilities now surfaces { backend, hits, misses, stores, stores_failed, evictions, hit_rate, namespace, degraded } from /healthz
+- apps/web/src/app/admin/observability/page.tsx: new dl rows for cache backend / hits-misses / hit rate / cache status
+- apps/web/test/env.test.ts: fixture updated to include llmCache null (zod infers required key with default null)
+- record-encoding exit 0; arms-freshness exit 0; ai-service suite 249 passed / 13 skipped;
+  web env + publish-preflight integration suites 10/10 green.
+
+Remaining honest gaps: browser-pixel verification is still impossible (the desktop session is not foreground);
+dead-letters dead-tree still tracked (cont. 74 ledger); Studio batteries are still in flight for the refs above.
