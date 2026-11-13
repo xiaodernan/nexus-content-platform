@@ -58,8 +58,7 @@ function usageText(usage: TaskUsage | null): string {
   if (usage.demoMode) return 'DEMO 规则版不经过模型（0 token）';
   const cost = usage.costUsd > 0 ? `$${usage.costUsd.toFixed(4)}` : '未计价';
   const latency = `${Math.round(usage.latencyMs / 100) / 10} 秒`;
-  const cached = usage.cachedTokens > 0 ? ` · 缓存 ${usage.cachedTokens} tok` : ' · 缓存 0 tok';
-  return `${usage.model}（${usage.provider}）· ${usage.tokensIn} 进 / ${usage.tokensOut} 出 token${cached} · ${cost} · ${usage.toolCalls} 次工具调用 · 模型侧 ${latency}`;
+  return `${usage.model}（${usage.provider}）· ${usage.tokensIn} 进 / ${usage.tokensOut} 出 token · ${cost} · ${usage.toolCalls} 次工具调用 · 模型侧 ${latency}`;
 }
 
 export function TasksLedgerLive({ projectId, initial }: { projectId: string; initial: TasksLedgerPayload }) {
