@@ -475,12 +475,12 @@ Running 12 tests using 1 worker
 ```text
 $ node --version
 v22.22.2
-$ node -e "require('fs').cpSync('.scratch/aaa','.scratch/bbb',{recursive:true});console.log('OK')"
+$ node -e "require('fs').cpSync('./probe-aaa','./probe-bbb',{recursive:true});console.log('OK')"
 $ echo $?
 127                      # 没有异常、没有堆栈、没有输出——进程直接没了
 $ "/c/Program Files/nodejs/node.exe" --version
 v24.15.0
-$ "/c/Program Files/nodejs/node.exe" -e "require('fs').cpSync('.scratch/aaa','.scratch/bbb',{recursive:true});console.log('OK')"
+$ "/c/Program Files/nodejs/node.exe" -e "require('fs').cpSync('./probe-aaa','./probe-bbb',{recursive:true});console.log('OK')"
 OK                       # 系统 Node 24 正常
 ```
 
