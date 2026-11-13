@@ -50,6 +50,14 @@
   开发时不想产生费用就别触开发 AI 路径（或删 .env 里的 key）；healthz 会退回 mock，
   `DEMO MODE` 标志真显示，§AGENTS 纪律仍有效。
 
+### 2026-11-13 LLM 通路接入 prompt caching（§AILIVE-4）
+
+`wkapi.pro`（OpenAI 兼容网关）的 `usage` 对象默认**不带 prompt caching 字段**（只给 `prompt_tokens/completion_tokens/total_tokens`）；stream SSE 结尾直接 `[DONE]`、没有 usage 帧——stream 不是"坏"，充其量是"报不了数"。
+
+2026-11-13 修：OpenAICompatibleProvider 发 `prompt_cache_key`（缺省 `nexus-studio`，env `NEXUS_OPENAI_PROMPT_CACHE_KEY`，显式空串关闭）；`usage` 新增 `cachedTokens`（default 0），契约三件套同步。实测：同 payload 第二次起 `cached_tokens=6272/6449（97.2%）`；经 `POST /v1/ai/run` 完整 HTTP 路径 cold 0 → warm 6272（**97.8%**）。`/healthz` 依旧 `real`；成本仍只看网关的 truth（`costUsd=0`，不编）。
+
+进程归属与停机纪律见 `docs/environment/port-3200-ai-service-owner.md`（3200 现由本仓 patched 实例持有）。
+
 ## 已有容器（不属于本项目，禁止复用/删除）
 
 `careeros-postgres`(5432), `careeros-redis`, `careeros-minio`(19000), `nexus-seed-verify`(55432)。
