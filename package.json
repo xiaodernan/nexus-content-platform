@@ -147,6 +147,7 @@
     "verify:verdict": "node docs/evidence/agents/verdict-proof.mjs",
     "verify:window": "node docs/evidence/agents/window-proof.mjs",
     "verify:world-tools": "node docs/evidence/agents/world-tools-proof.mjs",
+    "verify:fe-gates": "node tools/ci/fe-gates.mjs",
     "verify:no-raw-tailwind": "node tools/ci/no-raw-tailwind.mjs",
     "verify:proofs": "node tools/ci/proof-set.mjs",
     "dev:web": "npm run dev -w @nexus/web",

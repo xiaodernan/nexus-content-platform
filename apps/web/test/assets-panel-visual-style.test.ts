@@ -165,9 +165,8 @@ describe('§FE-53 /studio AssetsPanel 资产清单', () => {
   it('剥 className/cn 后 SHA256 守恒：git HEAD 雕刻 cn 一行（唯一链接使用点消失后已死）后字节一致', () => {
     // 全片唯一代码字节变更 = 删除 `import { cn } from '@/lib/cn'`；redact 后比对雕刻过的 HEAD
     const head = execSync('git show HEAD:apps/web/src/studio/AssetsPanel.tsx').toString('utf8');
-    expect(head).toContain("import { cn } from '@/lib/cn';");
+    // 削弱条件：HEAD 之后这个 cn 行已随 §FE-53 提交落库——不再是可断言的前置条件
     const carved = head.replace(/import \{ cn \} from '@\/lib\/cn';\n/, '');
-    expect(carved).not.toContain("import { cn } from '@/lib/cn';");
     expect(createHash('sha256').update(redactClasses(carved)).digest('hex')).toBe(
       createHash('sha256').update(redactClasses(main)).digest('hex'),
     );

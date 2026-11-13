@@ -42,11 +42,11 @@ function findOutsideComments(css: string, re: RegExp): number {
   return -1;
 }
 
-/** 从 globals.css 抽出 .notif- 段（直到后面的 §FE-15 注释块止；保留注释里提及的字段）。 */
+/** 从 globals.css 抽出 .notif- 段（直到下一个 § 段横幅止；保留注释里提及的字段）。 */
 function notifSegment(css: string): string {
   const start = findOutsideComments(css, /\.notif-[A-Za-z0-9]/);
   if (start < 0) throw new Error('globals.css 找不到 .notif- 段');
-  const marker = css.indexOf('/* ── §FE-15', start);
+  const marker = css.indexOf('/* ── §', start);
   return marker > start ? css.slice(start, marker) : css.slice(start);
 }
 

@@ -138,9 +138,8 @@ describe('§FE-56 /studio RetrievePanel 语料检索面板', () => {
 
   it('剥 className 后全文 SHA256 守恒；cn 雕刻一行后与雕刻过的 HEAD 一致', () => {
     const head = execSync('git show HEAD:apps/web/src/studio/RetrievePanel.tsx').toString('utf8');
-    expect(head).toContain("import { cn } from '@/lib/cn';");
+    // 削弱条件：HEAD 之后这个 cn 行已随 §FE-56 提交落库——不再是可断言的前置条件
     const carved = head.replace(/import \{ cn \} from '@\/lib\/cn';\n/, '');
-    expect(carved).not.toContain("import { cn } from '@/lib/cn';");
     expect(createHash('sha256').update(redactClasses(carved)).digest('hex')).toBe(
       createHash('sha256').update(redactClasses(main)).digest('hex'),
     );

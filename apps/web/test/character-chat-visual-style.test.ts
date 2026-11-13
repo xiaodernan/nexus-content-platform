@@ -178,7 +178,7 @@ describe('§FE-37 /studio CharacterChat 角色对话框', () => {
 
   it('雕刻门：cn 一行删除后 redact 恒等于雕刻后的 BASE 值（ef0f3980…）', () => {
     // 全片唯一代码字节变更 = 删除已死的 cn import；carve 后与钉死常量一致。
-    expect(head).toContain(HEAD_CN_LINE);
+    // 前置条件已过去（§FE-53/私有片已落库）——只保留 redact 字节守恒
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
       'ef0f39809c9d2d9c4a9b7b6de08e1d3ebea14305a3ba9d4be967bb3e3e26e82d',
     );

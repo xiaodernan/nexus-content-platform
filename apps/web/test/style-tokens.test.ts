@@ -177,6 +177,24 @@ describe('强调面上的文字（§90 无障碍 · 同串底色+文字 ≥4.5�
     });
   }
 
+  // §FE 门面化之后（FE-37…FE-101），SPA 剩余稿的 "bg-accent-2 text-accent-fg" 原子串已经消失——
+  // 配对的地方移到 globals.css 的 facade 类定义里（background: var(--nexus-color-accent-2) +
+  // color: var(--nexus-color-accent-fg)）。门禁必须认这类规则才算看过。
+  const GLOBALS_CSS = join(process.cwd(), 'apps/web/src/app/globals.css');
+  const globalsCss = readFileSync(GLOBALS_CSS, 'utf8');
+  const lineNo = (s: string, idx: number): number => s.slice(0, idx).split('\n').length;
+  for (const m of globalsCss.matchAll(/\{([^{}]+)\}/g)) {
+    const body = m[1]!;
+    const bgMatch = [...body.matchAll(/background(?:-color)?:\s*var\(--nexus-color-([a-z0-9-]+)\)/g)].find((x) =>
+      (SATURATED as readonly string[]).includes(x[1]!),
+    );
+    if (!bgMatch) continue;
+    const bg = `bg-${bgMatch[1]!}`;
+    for (const cm of body.matchAll(/color:\s*var\(--nexus-color-([a-z0-9-]+)\)/g)) {
+      pairs.push({ file: 'app/globals.css', line: lineNo(globalsCss, m.index ?? 0), bg, fg: `text-${cm[1]!}` });
+    }
+  }
+
   it('扫到了配对，否则这道门是空的（token 改名或类名写法变了都会让它静默失效）', () => {
     expect(pairs.length, '一条"实底强调面 + 文本 token"的同串配对都没扫到').toBeGreaterThan(0);
     expect(pairs.some((p) => p.fg === 'text-accent-fg')).toBe(true);

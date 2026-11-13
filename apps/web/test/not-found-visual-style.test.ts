@@ -114,12 +114,18 @@ function ruleBlocks(css: string): Array<{ selector: string; decls: string }> {
 
 /** `.nf-` 视觉段完整文本：从第一个 `.nf-` 到 forced-colors 块之前（含 reduced-motion，不含 forced 回退）。 */
 const nfSegment = (() => {
-  const clean = cssNoComments(globals);
-  const start = clean.search(/\.nf-[A-Za-z]/);
-  if (start < 0) return '';
-  const tail = clean.slice(start);
-  const forcedAt = tail.search(/@media\s*\(forced-colors:\s*active\)/);
-  return (forcedAt >= 0 ? tail.slice(0, forcedAt) : tail).replace(/\n\}\s*$/, '\n');
+  // 注释允许出现 ".nf-"——只需要找**不是被注释包裹**的首个 `.nf-`；raw 用作边界切点、clean 用作测试内容。
+  const bannerStart = ((): number => {
+    for (let m = /\.nf-/g.exec(globals) as RegExpExecArray | null; m; m = /\.nf-/g.exec(globals)) {
+      const comments = [...globals.matchAll(/\/\*[\s\S]*?\*\//g)];
+      if (!comments.some((c) => m.index! >= (c.index ?? 0) && m.index! < (c.index ?? 0) + c[0].length)) return m.index!;
+    }
+    return -1;
+  })();
+  if (bannerStart < 0) return '';
+  const nextBanner = globals.indexOf('/* ── §', bannerStart + 1);
+  const raw = nextBanner > bannerStart ? globals.slice(bannerStart, nextBanner) : globals.slice(bannerStart);
+  return cssNoComments(raw).replace(/\n\}\s*$/, '\n');
 })();
 
 const nfRuleLines = nfRules(globals).join('\n');
