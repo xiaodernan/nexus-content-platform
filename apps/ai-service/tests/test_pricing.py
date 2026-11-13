@@ -194,3 +194,69 @@ def test_empty_prefix_key_is_dropped() -> None:
     price = t.price_for("unknown-model")
     assert price is None
     assert t.price_for("gpt-6-sol") is not None
+
+
+# ── wire 集成：价目表从 env 进配置、从 Registry 进执行链、从 usage 回报文 ──
+# 这两条补的是单测覆盖不到的线：如果有人把 Registry 的 price_table 属性改名
+# 而没改 execution 的调用点，单测全绿，报文就永远是 costUsd=0 / costBasis=unknown，
+# 界面画「未计价」——本组就是要钉住这条线。
+
+
+from fastapi.testclient import TestClient
+
+from ai_service.app import create_app
+from ai_service.config import Settings
+from ai_service.providers.registry import Registry
+
+from conftest import FakeProvider, ai_request
+
+_patch_reply = json.dumps(
+    {
+        "patches": [{"pageId": "pg_1", "summary": "t", "ops": [{"op": "set", "nodeId": "n_headline", "path": "typography.fontSize", "value": 72}]}],
+        "explanation": "已改",
+        "labels": ["A"],
+    },
+    ensure_ascii=False,
+)
+
+
+def test_configured_price_flows_to_wire_usage() -> None:
+    """有表 → 报文必须是 configured + 一个算得出来的真金额（不是 0）。"""
+    table = PriceTable.from_env_value('{"fake-model": {"in": 1e-6, "out": 2e-6, "cachedIn": 1e-7}}')
+    settings = Settings(price_table=table)
+    provider = FakeProvider(_patch_reply)
+    client = TestClient(create_app(settings, registry=Registry(settings, llm=provider)))
+
+    response = client.post("/v1/ai/run", json=ai_request(dryRun=True))
+
+    assert response.status_code == 200
+    usage = response.json()["usage"]
+    # FakeProvider 固定 11 进 / 7 出 / 0 命中 → 11·1e-6 + 7·2e-6 = 2.5e-5
+    assert usage["costBasis"] == "configured"
+    assert usage["costUsd"] == pytest.approx(2.5e-5, abs=1e-12)
+
+
+def test_no_price_table_flows_unknown_not_zero() -> None:
+    """没配 → 必须是 unknown + $0（不是「免费」）。"""
+    settings = Settings()
+    provider = FakeProvider(_patch_reply)
+    client = TestClient(create_app(settings, registry=Registry(settings, llm=provider)))
+
+    response = client.post("/v1/ai/run", json=ai_request(dryRun=True))
+
+    assert response.status_code == 200
+    usage = response.json()["usage"]
+    assert usage["costBasis"] == "unknown"
+    assert usage["costUsd"] == 0.0
+
+
+def test_cost_of_configured_never_zero__regression() -> None:
+    """回归钉：报文不允许出现 configured 且 costUsd=0（那是"价格表不工作"的假绿）。"""
+    settings = Settings()
+    provider = FakeProvider(_patch_reply)
+    client = TestClient(create_app(settings, registry=Registry(settings, llm=provider)))
+
+    response = client.post("/v1/ai/run", json=ai_request(dryRun=True))
+
+    usage = response.json()["usage"]
+    assert not (usage["costBasis"] == "configured" and usage["costUsd"] == 0.0)
