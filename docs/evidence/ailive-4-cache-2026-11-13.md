@@ -57,7 +57,7 @@ call#2 (warm) HTTP 200 (2673ms) · tokensIn=6413 cachedTokens=6272 tokensOut=54 
 
 冷启 0、升温后 6272/6413（**97.8%**）——cache 命中沿 provider→registry→execution→contract 整条路径落在报文里（`ai-response.schema.json` 已过 `contract_issues` 校验），不是单元测试造数。
 
-临时实例事后已停止（pid 2808 stopped，端口 3201 释放；既有 3200 实例（pid 6028，旧代码、2026-11-12 启动）未被触碰——`NEXUS_AI_SERVICE_URL` 由 web env 决定，切换到本修复只需 web 环境变量指向新实例或重启 dev:ai）。
+3200 既有实例（pid 6028，旧代码）此后已被改用 patched 代码重起（pid 已换）：`/healthz` 200 `capability=real`（llm `real`/embedding 如实 `unavailable (model_not_found)`/queue `redis`）；随后 cold+warm 各一次 `/v1/ai/run` 均 `tokensIn=6413 cachedTokens=6272`（**上游热缓存全程命中**）。
 
 ## 边界（如实）
 
