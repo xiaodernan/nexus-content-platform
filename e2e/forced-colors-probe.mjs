@@ -13,7 +13,7 @@ for (; end < css.length; end++) {
   else if (css[end] === '}') { depth--; if (depth === 0) break; }
 }
 const forcedBlock = css.slice(start, end + 1);
-const rule = forcedBlock.replace(/\.dv-title,\s*\.mk-title,\s*\.hp-heroTitle,\s*\.se-title,\s*\.pf-name,\s*\.pb-title,\s*\.pp-title,\s*\.ss-title/, '.ink');
+const rule = forcedBlock.replace(/\.dv-title,\s*\.mk-title,\s*\.hp-heroTitle,\s*\.se-title,\s*\.pf-name,\s*\.pp-title,\s*\.ss-title/, '.ink');
 const baseline = `.ink { color: transparent; background: linear-gradient(120deg, #111 20%, #555 80%); -webkit-background-clip: text; background-clip: text; font: 700 28px sans-serif; }`;
 
 const browser = await chromium.launch({ channel: 'chrome' });

@@ -69,7 +69,7 @@ test('@smoke §A11Y-1 forced-colors 下渐变墨字从不可见回退为系统�
   expect(before.backgroundClip, '无修复时 background-clip 应残留 text——这是修复要改变的量，门若非此则空').toBe('text');
 
   // ② 实验组：注入从产物真实提取的 forced 回退，把 .ink 也纳入它的选择器组
-  const rule = forcedBlock.replace(/\.dv-title,\s*\.mk-title,\s*\.hp-heroTitle,\s*\.se-title,\s*\.pf-name,\s*\.pb-title,\s*\.pp-title,\s*\.ss-title/, '.ink');
+  const rule = forcedBlock.replace(/\.dv-title,\s*\.mk-title,\s*\.hp-heroTitle,\s*\.se-title,\s*\.pf-name,\s*\.pp-title,\s*\.ss-title/, '.ink');
   expect(rule, '产物 forced 块的选择器组形态变了，提取/改写不可靠——请同步本判据').toContain('.ink {');
   await page.setContent(`<style>${baseline}\n${rule}</style><h1 class="ink">高对比度标题</h1>`);
 

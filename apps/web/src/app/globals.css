@@ -652,44 +652,13 @@
     .pf-workCard:hover, .pf-gamePlay:hover { transform: none; }
   }
 
-  /* ── §FE-6 / ADR-0138 公开作品页 `/n/[handle]/[slug]` 门面化 ─────────────────
-   * 与 .dv-/.mk-/.hp-/.se-/.pf- 同一套 token 语言（守 ADR-0123 六红线）：
-   * 零新增颜色 token（全锚双主题 token + color-mix，无写死 hex）；双主题 AA；
-   * 只做视觉——page.tsx 结构、文案、data 判据钩子、SEO 与 React cache 读路径、
-   * 四份投影、热点、PublishedFrame 作品本体一字未改，本段只给页面 chrome 上妆，
-   * 不碰作品内容本身。 */
-  .pb-root { position: relative; isolation: isolate; }
-  .pb-header {
-    position: relative;
-    background: linear-gradient(180deg, color-mix(in srgb, var(--nexus-color-bg-2) 72%, var(--nexus-color-brand) 6%), var(--nexus-color-bg-1));
-    box-shadow: 0 1px 0 color-mix(in srgb, var(--nexus-color-border-subtle) 70%, transparent), var(--nexus-shadow-sm);
-  }
-  .pb-header::after {
-    content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
-    background: linear-gradient(90deg, var(--nexus-color-brand), var(--nexus-color-accent-1) 45%, transparent 85%);
-    opacity: .55; pointer-events: none;
-  }
-  /* 渐变墨字：浅色主题下 fg-1 端保证可读，不是白字写白底 */
-  .pb-title {
-    font-weight: 650; letter-spacing: -0.01em;
-    background: linear-gradient(115deg, var(--nexus-color-fg-1) 28%, var(--nexus-color-brand) 92%);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-  }
-  .pb-meta {
-    display: inline-flex; align-items: center; min-height: 1.5rem;
-    padding: 0 var(--nexus-space-2); border: 1px solid var(--nexus-color-border-subtle);
-    border-radius: var(--nexus-radius-full); background: color-mix(in srgb, var(--nexus-color-bg-2) 65%, transparent);
-  }
-  .pb-headerAside { position: relative; z-index: 1; }
-  .pb-brand { opacity: .72; letter-spacing: .06em; text-transform: uppercase; }
-  .pb-actions { border-bottom: 1px solid var(--nexus-color-border-subtle); }
-  /* 作品舞台：柔和底 + 顶部微光，让访客视线落到裱起来的作品上 */
-  .pb-stage {
-    position: relative;
-    background:
-      radial-gradient(120% 60% at 50% -10%, color-mix(in srgb, var(--nexus-color-brand) 7%, transparent), transparent 70%),
-      color-mix(in srgb, var(--nexus-color-bg-1) 55%, var(--nexus-color-bg-2) 45%);
-  }
+  /* ── §FE-67 / ADR-0260 公开作品页 `/n/[handle]/[slug]` 门面（`.pub-` 族）
+   * FE-6 遗留的 `.pb-*` 门面族（.pb-root/.pb-header/.pb-title/.pb-meta/.pb-headerAside/.pb-brand/
+   * .pb-actions/.pb-stage/.pb-note/.pb-entry/.pb-entryHint/.pb-notice/.pb-playLink/.pb-storyboardLink）
+   * 全树零引用——ADR-0260 删除（ADR-0220 的"保留候选样式"决定被 superseded）。
+   * `.pb-variant` 仍被 page.tsx`/n/[handle]/[slug]` 使用，保留。
+   * Studio 自己的 `.pb-` popout 族（.pb-publishBtn/.pb-popPanel/.pb-mirrorLink/…）不属于本段，未被波及。
+   */
   .pb-variant {
     display: inline-block; max-width: 100%; border-radius: var(--nexus-radius-lg);
     border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1);
@@ -697,46 +666,13 @@
     transition: box-shadow var(--nexus-motion-base) var(--nexus-motion-ease), transform var(--nexus-motion-base) var(--nexus-motion-ease);
   }
   .pb-variant:hover { box-shadow: 0 10px 34px color-mix(in srgb, var(--nexus-color-brand) 18%, transparent); transform: translateY(-2px); }
-  /* 互动说明卡：accent-1 左竖线，居中用 top/height 不用 transform（transform 只留给动效，收口门才分得清） */
-  .pb-note {
-    position: relative; border-left: 3px solid var(--nexus-color-accent-1);
-    background: color-mix(in srgb, var(--nexus-color-accent-1) 5%, var(--nexus-color-bg-1));
-    border-radius: 0 var(--nexus-radius-md) var(--nexus-radius-md) 0; line-height: 1.6;
-  }
-  .pb-note::before {
-    content: ''; position: absolute; left: -3px; top: 15%; height: 70%; width: 3px;
-    border-radius: var(--nexus-radius-full);
-    background: linear-gradient(180deg, var(--nexus-color-accent-1), var(--nexus-color-brand));
-  }
-  .pb-entry { display: flex; flex-wrap: wrap; align-items: center; }
-  /* 试玩 / 分镜 chip：底色 token 化、hover 抬升 + 辉光、键盘 focus 描边 */
-  .pb-playLink, .pb-storyboardLink {
-    position: relative; overflow: hidden; font-weight: 600; text-decoration: none;
-    box-shadow: var(--nexus-shadow-sm);
-    transition: transform var(--nexus-motion-base) var(--nexus-motion-ease), box-shadow var(--nexus-motion-base) var(--nexus-motion-ease), filter var(--nexus-motion-base) var(--nexus-motion-ease);
-  }
-  .pb-playLink::after, .pb-storyboardLink::after {
-    content: ''; position: absolute; inset: 0; opacity: 0; pointer-events: none;
-    background: linear-gradient(100deg, transparent 20%, color-mix(in srgb, var(--nexus-color-accent-fg) 22%, transparent) 50%, transparent 80%);
-    transition: opacity var(--nexus-motion-base) var(--nexus-motion-ease);
-  }
-  .pb-playLink:hover, .pb-storyboardLink:hover { transform: translateY(-2px); filter: saturate(1.08); box-shadow: 0 6px 18px color-mix(in srgb, var(--nexus-color-accent-2) 28%, transparent); }
-  .pb-playLink:hover::after, .pb-storyboardLink:hover::after { opacity: 1; }
-  .pb-playLink:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
-  .pb-storyboardLink:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
-  .pb-entryHint { line-height: 1.5; }
-  /* 统计告知条：弱化但可读，顶部细分隔 */
-  .pb-notice {
-    border-top: 1px dashed var(--nexus-color-border-subtle); line-height: 1.55;
-    padding-top: var(--nexus-space-2); background: color-mix(in srgb, var(--nexus-color-bg-1) 70%, transparent);
-  }
   @media (prefers-reduced-motion: reduce) {
-    .pb-variant, .pb-playLink, .pb-storyboardLink, .pb-playLink::after, .pb-storyboardLink::after { transition: none; }
-    .pb-variant:hover, .pb-playLink:hover, .pb-storyboardLink:hover { transform: none; }
+    .pb-variant { transition: none; }
+    .pb-variant:hover { transform: none; }
   }
 
   /* ── §FE-7 / ADR-0141 公开试玩页 `/n/[handle]/[slug]/play` 门面化 ───────────
-   * 与 .dv-/.mk-/.hp-/.se-/.pf-/.pb- 同一套 token 语言（守 ADR-0123 六红线）：
+   * 与 .dv-/.mk-/.hp-/.se-/.pf-/.pub- 同一套 token 语言（守 ADR-0123 六红线）：
    * 零新增颜色 token（全锚双主题 token + color-mix、无写死 hex）；双主题 AA；
    * 只做视觉——三态分支、文案、data-play 钩子、读路径、PublicPlay/VisitMeter 交互组件、
    * 钉住版说明一字未改，本段只给公开试玩页的 chrome 上妆，不碰游戏运行时本体。 */
@@ -808,7 +744,7 @@
   }
 
   /* ── §FE-8 / ADR-0144 公开分镜页 `/n/[handle]/[slug]/storyboard` 门面化 ───────
-   * 与 .dv-/.mk-/.hp-/.se-/.pf-/.pb-/.pp- 同一套 token 语言（守 ADR-0123 六红线）：
+   * 与 .dv-/.mk-/.hp-/.se-/.pf-/.pub-/.pp- 同一套 token 语言（守 ADR-0123 六红线）：
    * 零新增颜色 token（全锚双主题 token + color-mix、无写死 hex）；双主题 AA；
    * 只做视觉——三态分支、文案、data-storyboard 钩子、读路径、VisitMeter、
    * "镜头表不是视频"的诚实边界一字未改，本段只给分镜页 chrome 上妆。
@@ -921,7 +857,7 @@
   }
 
   /* ── §FE-9 / ADR-0151 根 404 门面 `/not-found.tsx` 门面化 ──────────────────
-   * 与 .dv-/.mk-/.hp-/.se-/.pf-/.pb-/.pp-/.ss- 同一套 token 语言（守 ADR-0123 六红线）：
+   * 与 .dv-/.mk-/.hp-/.se-/.pf-/.pub-/.pp-/.ss- 同一套 token 语言（守 ADR-0123 六红线）：
    * 零新增颜色 token（全锚双主题 token + color-mix、无写死 hex）；双主题 AA；
    * 纯展示零行为——不是 client 组件、无 hook / fetch / 读路径 / server action。
    * 404 是全站唯一曾没有任何 chrome 的公开落点（9 个 page 里十余处 notFound + 一切
@@ -3675,7 +3611,7 @@
    * 真浏览器 A/B 见 e2e/forced-colors.spec.ts（测 clip:text→border-box 这个可区分量）。 */
   @media (forced-colors: active) {
     .dv-title, .mk-title, .hp-heroTitle, .se-title,
-    .pf-name, .pb-title, .pp-title, .ss-title {
+    .pf-name, .pp-title, .ss-title {
       forced-color-adjust: auto;
       background: none;
       -webkit-background-clip: border-box; background-clip: border-box;

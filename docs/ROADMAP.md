@@ -12397,3 +12397,11 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
   - fail-open 未触发；门控制器路径（`/platform/health`）按设计不过滤器、不限流；eureka 8771 拒连与限流无关（网关如实报 services:[]）；
   - **边界**：单实例（两实例共享桶见证在 ADR-0095）、没测真断 Redis 的 fail-open 路径、没多机。
 - **协作**：纯 evidence 补字节，未动任何代码；无新 SC 原片（并行 SC-6x/7x 占用编号），依 ADR-0095/0107 续。未 push。
+
+## §Fe 收尾第二片（2026-11-13，ADR-0260）：FE-6 遗留 .pb-* 死类族删除（除 .pb-variant）——ADR-0220 "保留 pb-" 决定 superseded
+
+- **背景**：ADR-0220（2026-11-13 上午，§FE-67）把发布页门面族统一到 `.pub-*` 后，自己写下"保留 .pb- 共享类用作既定发布流候选样式"。同日全树检索证明：14 个 FE-6 残留类（.pb-root/.pb-header/.pb-title/.pb-meta/.pb-headerAside/.pb-brand/.pb-actions/.pb-stage/.pb-note/.pb-entry/.pb-entryHint/.pb-notice/.pb-playLink/.pb-storyboardLink）**零引用**（src/packages/apps/studio/test/e2e/scripts 全部清）。它们不是"候选样式"，是改名漏网的代码。
+- **做法**：globals.css 删整段 FE-6 规则块（90 行）；`@media (forced-colors:active)` 首组 `.pf-name, .pb-title, .pp-title, .ss-title` → `.pf-name, .pp-title, .ss-title`；forced-colors-style.test.ts 静态名单同步（`.pb-title` 剔除、≥9→≥8）；e2e forced-colors.spec.ts / probe.mjs 的整组替换正则同步删除 `.pb-title,\s*`；§FE-7/8/9 / PublishPanel 段注释中提到 `.pb-` 的一族改 `.pub-`；Studio `.pb-` popout 族（FE-54 所有）一字未动；`.pb-variant` 仍被发布页 page.tsx 使用，保留。
+- **判分面**：forced-colors-style 9/9、style-tokens + published-style + published-page-visual + publish-panel 合计 **63/63 绿**；e2e forced-colors smoke 1 passed（真 Chrome、离线 A/B，新 7 类序列被接受）；`verify:fe-gates`（969）此前全绿、CSS 删减不引入 hex/token 违规；eslint/tsc 未受影响（纯 CSS+判据同步）。
+- **诚实边界**：本片不删 `.pb-variant`；ADR-0220 除第 2 条外其余决定不受影响（§FE-60/62 组件本身早是 .pu- 归 owning facade）；强项是命名空间收口，不是性能。**整栈 test:main 复跑已随本片启动（notification 为准），此条目先行记账。**
+- **协作**：精确 stage（globals.css/4 判据/ADR/ROADMAP/CURRENT-STATE），无并行会话交错；ADR-0260。未 push。

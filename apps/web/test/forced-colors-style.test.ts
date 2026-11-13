@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
  *
  * 真问题（跨 UA 加固，措辞经真浏览器证伪后收紧）：FE-1~FE-8 全部门面片都用
  * `color: transparent` + `background-clip: text` 做渐变墨字标题（`.dv-title`/`.mk-title`/
- * `.hp-heroTitle`/`.se-title`/`.pf-name`/`.pb-title`/`.pub-title`/`.pp-title`/`.ss-title` 共 9 个）。
+ * `.hp-heroTitle`/`.se-title`/`.pf-name`/`.pub-title`/`.pp-title`/`.ss-title` 共 8 个）。
  * **诚实读数**：真 Chrome 实测（`e2e/forced-colors-probe.mjs`）在 `forced-colors: active` 下
  * 会**内建保护**——把 `color:transparent` 强制成系统前景色、把渐变 `background-image` 清成 none，
  * 所以"Chrome 高对比度下标题变空白字"**并不成立，不夸大**。真正残留的是 `background-clip:text`
@@ -15,16 +15,16 @@ import { describe, expect, it } from 'vitest';
  * `clip:text` 残留是跨 UA 的可见性隐患。本片因此做**防御性加固**，而非声称修了一个 Chrome 已自愈的洞。
  *
  * 本片不改任何一行的常规（浅/深）视觉，只加一条 `@media (forced-colors: active)` 回退：
- * 显式把 9 个标题的 `background-clip` 回落 `border-box`、`background` 清空、`color` 设为 CSS
+ * 显式把 8 个标题的 `background-clip` 回落 `border-box`、`background` 清空、`color` 设为 CSS
  * **系统色**（`CanvasText`）、并声明 `forced-color-adjust:auto`。系统色关键字零 hex、零
  * `var(--nexus-*)` token——双主题 token 不覆盖用户自定义高对比度配色，系统色才能自动适配。
  * 真浏览器那一寸（`e2e/forced-colors.spec.ts`）A/B 对照测的正是 `clip:text→border-box` 这个
  * 唯一可区分的差异，不测已被 Chrome 强制兜住的 color。
  *
- * 判据设计成**动态发现**而非硬编码 9 个类名：从 globals.css 源码里扫出所有
+ * 判据设计成**动态发现**而非硬编码 8 个类名：从 globals.css 源码里扫出所有
  * `color: transparent` + `background-clip: text` 的类，要求它们**每一个**都在 forced-colors
  * 块里有可读回退。这样将来任何人新增一个渐变墨字标题却忘了加回退，判据会自动抓到
- * ——守的是"所有透明字标题都必须有高对比度兜底"这条不变式，而非 9 个名字的快照。
+ * ——守的是"所有透明字标题都必须有高对比度兜底"这条不变式，而非 8 个名字的快照。
  *
  * 真浏览器那一寸归 `e2e/forced-colors.spec.ts`（`emulateMedia({ forcedColors: 'active' })`）。
  */
@@ -125,10 +125,10 @@ function declsFor(cssClass: string): string {
 }
 
 describe('§A11Y-1 渐变墨字高对比度回退（静态不变式）', () => {
-  it('动态发现到成规模的渐变墨字标题（≥9，FE-1~FE-8 全部门面片 + §FE-67 发布页）', () => {
-    expect(inkClasses.length, '一个渐变墨字类都没扫到，判据是空的').toBeGreaterThanOrEqual(9);
-    // 逐一点名当前 9 个（8 个旧门面 + §FE-67 发布页 .pub-title），防止"扫到的是别的透明字元素"这类漂移
-    for (const expected of ['dv-title', 'mk-title', 'hp-heroTitle', 'se-title', 'pf-name', 'pb-title', 'pub-title', 'pp-title', 'ss-title']) {
+  it('动态发现到成规模的渐变墨字标题（≥8，FE-1~FE-8 旧门面 7 个 + §FE-67 发布页 .pub-title）', () => {
+    expect(inkClasses.length, '一个渐变墨字类都没扫到，判据是空的').toBeGreaterThanOrEqual(8);
+    // 逐一点名当前 8 个（FE-1~FE-8 旧门面 7 个 + §FE-67 发布页 .pub-title；FE-6 的 .pb-title 已按 ADR-0260 删除）
+    for (const expected of ['dv-title', 'mk-title', 'hp-heroTitle', 'se-title', 'pf-name', 'pub-title', 'pp-title', 'ss-title']) {
       expect(inkClasses, `少了渐变墨字类 .${expected}`).toContain(expected);
     }
   });
