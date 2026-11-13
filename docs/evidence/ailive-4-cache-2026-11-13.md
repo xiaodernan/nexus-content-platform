@@ -46,6 +46,19 @@ call#3 model=gpt-6-sol tokens_in=6449 cached_tokens=6272 tokens_out=139 latency_
 ```
 **第二次起 cached_tokens=6272/6449（97.2%）**。延迟未见显著下降（上游 jitter 主导，延迟不是本片承诺）；成本收益归网关折扣规则，不编造。
 
+## 完整 HTTP 路径再证（ai_service /v1/ai/run）
+
+启动临时 ai-service 实例（venv、patched code、端口 3201、健康 `capability=real`/llm `real`/embedding 如实 `unavailable (model_not_found)`/queue `redis`），POST 两个**字节一致**的 dryRun design-edit 请求（`intent=design-edit`、`modelClass=balanced`、`dryRun=true`）：
+
+```
+call#1 (cold) HTTP 200 (2637ms) · tokensIn=6413 cachedTokens=0    tokensOut=52  patches=0
+call#2 (warm) HTTP 200 (2673ms) · tokensIn=6413 cachedTokens=6272 tokensOut=54  patches=0
+```
+
+冷启 0、升温后 6272/6413（**97.8%**）——cache 命中沿 provider→registry→execution→contract 整条路径落在报文里（`ai-response.schema.json` 已过 `contract_issues` 校验），不是单元测试造数。
+
+临时实例事后已停止（pid 2808 stopped，端口 3201 释放；既有 3200 实例（pid 6028，旧代码、2026-11-12 启动）未被触碰——`NEXUS_AI_SERVICE_URL` 由 web env 决定，切换到本修复只需 web 环境变量指向新实例或重启 dev:ai）。
+
 ## 边界（如实）
 
 - wkapi.pro 的 usage **无法证明**「缓存一定能存活」——它存在（5376/6272），但 0 字节的 prompt 永远不命中；小于 128-token 的 system 不分块命中（那是 OpenAI 自动提示缓存规则）。
