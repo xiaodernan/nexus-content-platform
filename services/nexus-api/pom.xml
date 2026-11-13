@@ -29,6 +29,9 @@
     <java.version>25</java.version>
     <maven.compiler.release>25</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <!-- Spring Cloud 2025.0.3 is the release train that matches Spring Boot 3.5.x (this service's
+         parent). The BOM is imported rather than the versions being spelled out one by one, so the
+         whole train moves as a unit. -->
     <spring-cloud.version>2025.0.3</spring-cloud.version>
   </properties>
 
@@ -57,6 +60,11 @@
       SC-8: the gateway's /platform/health asks each discovered instance GET /actuator/health. Without this
       dependency that path answers 404 from THIS service, and the probe would report the service as DOWN
       while it was serving traffic — a health reading that is wrong in the alarming direction.
+      §SC-77: health, and the METRICS that say what the breakers are doing. Without the metrics there is
+      no way to tell WHICH component refused a call — the 503 says a service was unreachable, and the
+      breaker's own state (OPEN, HALF_OPEN, CLOSED) is what turns that into an answer. It is NOT routed
+      through the edge: the gateway's table matches only /api/**, so /actuator/** answers on this
+      service's own port and nowhere else.
     -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -77,15 +85,30 @@
       resolve, because nothing ever announces this service's address. Registration is OFF by default (see
       application.yml): a standalone proof run must not depend on a registry being up, and a service that
       silently registers itself into whatever answers on 8771 is a deployment decision, not a default.
+      The client is on the classpath so the service CAN register; `eureka.client.enabled` decides whether
+      it actually does. A service whose optional dependency is absent must still start, so nothing here may
+      be required for the service to answer.
     -->
     <dependency>
       <groupId>org.springframework.cloud</groupId>
       <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
     </dependency>
-    <!--
-      SC-11: the client half of the config center (SC-9). The import is `optional:` and the client is OFF by
-      default (see application.yml), so nothing here starts a network task unless a deployment asks for it.
-    -->
+    <!-- The TYPED client for the domain service: an interface is the contract, and the address comes
+         from discovery rather than from a URL somebody typed into a config file. -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-openfeign</artifactId>
+    </dependency>
+    <!-- The breaker that stands in front of that call. Without it a downstream that is down produces
+         a timeout per request; with it, the failure is fast AND named. -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
+    </dependency>
+
+    <!-- SC-11: the client half of the config center (SC-9). The import is `optional:` and the client is OFF by
+         default (see application.yml), so nothing here starts a network task unless a deployment asks for it.
+         This service boots without the config server; it just boots with its local file. -->
     <dependency>
       <groupId>org.springframework.cloud</groupId>
       <artifactId>spring-cloud-starter-config</artifactId>
@@ -95,6 +118,18 @@
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- v656 — ONE trace id across the hops. The bridge makes this service a participant; the Feign
+         capability is what puts the SAME id on the outbound call to the domain service. Without the
+         second artifact the api is a hop that STARTS a trace and the domain service never hears it. -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-tracing-bridge-brave</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.github.openfeign</groupId>
+      <artifactId>feign-micrometer</artifactId>
+    </dependency>
+
   </dependencies>
 
   <build>

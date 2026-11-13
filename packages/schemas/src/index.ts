@@ -1029,6 +1029,27 @@ export const HealthResponseSchema = z.object({
       note: z.string().default(''),
     })
     .default({ backend: 'none', pending: 0, running: 0, capacity: 0, note: '' }),
+  /** v690：应用级 LLM completion cache。未启用 → null。面板照实读，不许藏在配置里（ADR 0123） */
+  llmCache: z
+    .union([
+      z.null(),
+      z.object({
+        enabled: z.boolean(),
+        backend: z.enum(['memory', 'redis']),
+        hits: z.number().int().min(0),
+        misses: z.number().int().min(0),
+        stores: z.number().int().min(0),
+        stores_failed: z.number().int().min(0),
+        evictions: z.number().int().min(0),
+        hit_rate: z.number().min(0).max(1),
+        namespace: z.string(),
+        degraded: z.boolean(),
+        shared: z.boolean().optional(),
+      }),
+    ])
+    .nullable()
+    .optional()
+    .default(null),
 });
 export type HealthResponse = z.infer<typeof HealthResponseSchema>;
 

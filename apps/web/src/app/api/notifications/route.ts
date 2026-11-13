@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { currentUserOrNull } from '@/server/domain/session';
 import { inbox } from '@/server/domain/notifications';
+import { privateJson } from '@/server/http';
 
 /**
  * §164 顶栏铃铛要的那一份：未读数 + 最近几条。
@@ -15,11 +16,11 @@ import { inbox } from '@/server/domain/notifications';
  */
 export async function GET(req: Request): Promise<NextResponse> {
   const user = await currentUserOrNull();
-  if (!user) return NextResponse.json({ ok: false, reason: '没有登录' }, { status: 401 });
+  if (!user) return privateJson({ ok: false, reason: '没有登录' }, { status: 401 });
   const url = new URL(req.url);
   const limit = Number.parseInt(url.searchParams.get('limit') ?? '6', 10);
   const page = await inbox(user.id, Number.isFinite(limit) ? limit : 6);
-  return NextResponse.json({
+  return privateJson({
     ok: true,
     unread: page.unread,
     total: page.total,

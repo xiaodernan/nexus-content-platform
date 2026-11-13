@@ -61,6 +61,17 @@ for (let i = 0; i < N; i += 1) {
 }
 git('add', '-A');
 git('commit', '-qm', 'seed three hundred files so a one-millisecond budget is a real timeout');
+// v706 — the seed must make EVERY face slower than its own 1 ms budget, or the budget has no witness.
+// Measured on the ubuntu runner (run 43027498156, main @ b707989): `git.log` landed ok=true with
+// exit=0 — the child had already exited when the host's kill reached the OS, kill() on a zombie
+// succeeded silently, and the exit event said code 0: a face that fast cannot witness a kill. The
+// budget is the class under test, so the FIX is not a longer budget — it is a repository on which
+// `git.log -n 100` walks 100 trees and `git show big.txt` decompresses and streams ~4 MB. Setup cost
+// ~10 s; the assertions are untouched.
+for (let i = 0; i < 200; i += 1) git('commit', '--allow-empty', '-qm', `pad commit ${i} so git.log has trees to walk`);
+writeFileSync(join(root, 'big.txt'), Array.from({ length: 131072 }, (_, i) => `line-${i} ${'x'.repeat(24)}`).join('\n') + '\n');
+git('add', 'big.txt');
+git('commit', '-qm', 'the show face carries four megabytes');
 for (let i = 0; i < N; i += 1) writeFileSync(join(root, `src/m${i}/a-long-file-name-${i}.ts`), `export const a = ${i}; // staged by the human\n`);
 git('add', '-A');
 
@@ -78,7 +89,7 @@ const faces = [
   ['git.diff', () => gitReadOnlyPolicy(root), registerGitTools, 'git.diff', {}],
   ['git.staged', () => gitStagedPolicy(root), registerGitStagedTool, 'git.staged', {}],
   ['git.log', () => gitLogPolicy(root), registerGitLogTool, 'git.log', { count: 100 }],
-  ['git.show', () => gitShowPolicy(root), registerGitShowTool, 'git.show', { path: 'src/m0/a-long-file-name-0.ts' }],
+  ['git.show', () => gitShowPolicy(root), registerGitShowTool, 'git.show', { path: 'big.txt' }],
 ];
 
 // M2 v544 (amendment 527): the budget callback is delivered as a microtask right after the spawn

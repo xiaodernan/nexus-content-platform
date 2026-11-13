@@ -1,0 +1,57 @@
+# NEXUS — the config server (ADR 0057).
+#
+# What it serves: the YAMLs in `infra/config/` (or whatever NEXUS_CONFIG_SEARCH points at).
+# Each service asks for `/{spring.application.name}/{profile}` and gets the keys for THAT service,
+# plus whatever "application.yml" has to say to every service.
+#
+# Every service importing this door uses `optional:configserver:http://…:8888` — a deployment
+# without a config door still boots (local application.yml wins whatever this lacks). A production
+# deployment should never omit it: the operator's knobs live here, not in a rebuilt jar.
+
+spring:
+  application:
+    name: nexus-config-server
+  profiles:
+    active: native
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: ${NEXUS_CONFIG_SEARCH:file:../../infra/config/}
+
+server:
+  # 18888, not Spring's default 8888 — see ADR 0057's amendment 658. 8888 is the port every Spring
+  # project reaches for first, and on this machine a NEIGHBOURING project already owned it: its config
+  # door answered ours and fed a proof service a foreign `eureka.client.service-url`. The compose
+  # profile publishes THIS door on 18888 too (`ports: ['18888:8888']`, the container keeps 8888), so a
+  # bare-metal run and a containerised one now name the same number.
+  port: ${NEXUS_CONFIG_SERVER_PORT:18888}
+
+# The operator's door: health answers "is the config door up?", metrics/prometheus answer "what is it
+# doing?". The scrape endpoint is here because this deployable carries a Prometheus registry like the
+# other five (v658) — and a registry nothing can read is a dependency that owes an answer it cannot give.
+#
+# The question this block had to answer first: does the config server's OWN routing swallow
+# `/actuator/prometheus`? Its product route is `/{application}/{profile}`, which is also two segments.
+# Measured 2026-11-10: it does NOT, because the actuator's handler mapping is an EXACT path and wins
+# over the pattern — `/actuator/health` proved that before this change (ConfigServerTest has asked it
+# for a year). What happened earlier was subtler and is recorded in ADR 0056's amendment 658: with
+# `prometheus` NOT in this list there was no exact mapping to win, so the request fell through to the
+# product route and the caller got the shared document for an application named "actuator". The list
+# below is that hole closed, not a second port introduced.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+logging:
+  # v656 — the same correlation segment every other deployable prints. This process is not a hop a
+  # request crosses, but it is a process whose lines an operator reads while chasing one, and a log
+  # whose shape differs between deployables is a log you have to think about. The ids are empty here
+  # unless a span reaches this thread; an empty segment is honest, a MISSING one is a different format.
+  pattern:
+    correlation: "[${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
+  level:
+    root: warn
+    dev.nexus.configserver: info

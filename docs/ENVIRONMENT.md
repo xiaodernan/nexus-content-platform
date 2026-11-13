@@ -151,6 +151,23 @@ api 与 domain）。配置中心不注册 Eureka，`8888` 不要和别的项目�
   2026-11-05 第三十六片加满额那两台后是 **22 个真进程、19 条判据**，
   判据读的是父进程自己 `ZRANGE`/`SCAN` 出来的那两条集合与那个前缀下的键数，不采信孩子进程的自述）。
 
+### `NEXUS_JOB_QUEUE`（v661 / ADR 0066：持久副作用作业通道的开关，与上面的 URL 分工不同）
+
+- **不设（默认）**：这条 lane 完全不在场。`getJobQueue()` 是一个真 no-op，**不开任何 Redis 连接**，
+  导出通知照旧在下载响应路径上同步 `emit`。只想用 Redis 做实时扇出/限流的部署不会意外多出一个
+  常驻消费者——这是把"开关"与"驱动"拆成两个旋钮的全部理由。
+- **设为 `1` / `true` / `on`**：Next `nodejs` 服务器在 `instrumentation.register()` 里起一个进程内
+  XREADGROUP 消费者，把导出的 `build.complete` 通知甩到 Redis Stream 上；响应不再等那次写库 + 推送。
+  此时 `NEXUS_REDIS_URL` **只负责选驱动**：设了 → Redis Stream（durable、跨实例、能 XAUTOCLAIM 回收
+  崩溃 worker 的 pending）；没设 → 进程内存队列，并**打一行警告**说"你点了 durable，拿到的是随进程
+  消失的内存"——静默地在内存里跑副作用是一种持久性谎言，所以必须出声。
+- 幂等锚点由**生产方**铸造、`notifications.dedupe_key` 的 UNIQUE 索引兜底：worker 在 `emit` 之后、
+  `XACK` 之前崩溃会被重投，重投复用同一个 `exportId`，`ON CONFLICT DO NOTHING` 把第二次写合并掉。
+  真库实测 `created` → `duplicate` → 收件箱一行（`job-lane-idempotency.integration.test.ts`）。
+- 这一格不是 broker、不发客户端、不保证顺序、没有死信库（到 `maxAttempts` 就记日志丢弃）。边界与
+  授权见 `docs/decisions/0066-a-durable-side-effect-lane-not-a-broker.md`；ADR 0064 加了 amendment
+  指向它，免得"现有四种机制"被读成账本到此为止。
+
 ### ⚠️ 这台 `nexus-redis` 实测没有容量上限，所以上界写在应用里（2026-11-03 实测）
 
 ```
@@ -450,3 +467,58 @@ Running 12 tests using 1 worker
 
 同一个守卫还挡过 `next build`（清理 `.next` 时条目数超阈值）——看到
 `SAFE_DELETE_BULK_CONFIRM_REQUIRED` 就先想这条，不要先去改代码。
+
+## 两件在这台机器上会让"运行证据"假死的事：`fs.cpSync` 与 `docker run`（2026-11-10 实测）
+
+**一、工具链自带的 Node 22.22.2，`fs.cpSync` 会让进程静默死掉（退出码 127）。**
+
+```text
+$ node --version
+v22.22.2
+$ node -e "require('fs').cpSync('.scratch/aaa','.scratch/bbb',{recursive:true});console.log('OK')"
+$ echo $?
+127                      # 没有异常、没有堆栈、没有输出——进程直接没了
+$ "/c/Program Files/nodejs/node.exe" --version
+v24.15.0
+$ "/c/Program Files/nodejs/node.exe" -e "require('fs').cpSync('.scratch/aaa','.scratch/bbb',{recursive:true});console.log('OK')"
+OK                       # 系统 Node 24 正常
+```
+
+`PATH` 上第一个 `node` 是 `C:/Users/18414/.workbuddy/binaries/node/versions/22.22.2-6/node.exe`，
+它的 `cpSync` 在这台机器上不可用（不是路径长度、不是权限、不是沙箱：同一个目录在工作区内复制、
+目录里只有 15 个文件、最长路径 90 字符，仍然 127）。**任何用 `cpSync` 复制整棵目录的证明脚本
+（`docs/evidence/java/spring-cloud-proof.mjs` §1 就是）都必须用系统 Node 跑**：
+
+```bash
+"/c/Program Files/nodejs/node.exe" docs/evidence/java/spring-cloud-proof.mjs
+```
+
+否则现象是"脚本只打印了第一行就退出 0/127"，而任务管理器里 **node 和它的子进程还活着**——
+上一轮的证明进程因此挂了一整晚（2026-11-10）。
+
+**二、Docker 引擎只剩 `exec` 能用：`run` / `rm` 会挂死，`exec` 正常。**
+
+| 命令 | 2026-11-10 读数 |
+|---|---|
+| `docker ps` / `docker exec nexus-postgres psql …` | 正常，秒回 |
+| `docker run -d --name … pgvector/pgvector:pg16` | 挂住不返回（`timeout 25` 124） |
+| `docker rm -f <name>` | 挂住不返回（`timeout 25` 124） |
+| `docker compose --profile java up -d` | 挂在 `Container nexus-java-pg Starting`（更早的读数） |
+
+所以本机跑 `verify:spring-cloud` **必须**用"已有的库"这条路，而不是让证明自己拉一个 scratch 源：
+
+```bash
+export NEXUS_PROOF_SOURCE=nexus-postgres NEXUS_PROOF_DB_PORT=55433
+"/c/Program Files/nodejs/node.exe" docs/evidence/java/spring-cloud-proof.mjs
+```
+
+注意用 `export` 而不是行内 `VAR=… cmd`——本机这套 shell 包装会把行内赋值丢掉，证明会退回
+"自己起 scratch 容器"那条路，然后卡死在 `docker run` 上（2026-11-10 两次实跑都是这个形状）。
+两个遗留的 `Created` 尸体容器（`nexus-java-pg`、`nexus-proof-source-…`）就是这类中断的痕迹，
+引擎允许时再 `docker rm -f`。
+
+**`exec` 也会挂**（2026-11-11 实测）：一次 `docker exec nexus-postgres pg_dump …` 通过 `spawnSync`
+调用时永久阻塞——证明进程活着、日志停在 §2、`ps` 里**看不到任何子进程**，五分钟后只能手工杀掉。
+`spawnSync` 没有默认超时，所以"挂住"和"还在算"在同一份日志里长得一模一样。现在证明里每个
+`spawnSync('docker', …)` 都带显式 `timeout`，`run()` 也在 300 s 处杀子进程并回报是哪一条命令；
+`docker exec` 本身仍然是这台机器上最可靠的那条路，但"最可靠"不等于"一定回话"。

@@ -14,6 +14,7 @@ import json
 import os
 import threading
 import time
+import asyncio
 
 import pytest
 from conftest import FakeProvider, ai_request
@@ -22,6 +23,7 @@ from fastapi.testclient import TestClient
 from ai_service.app import create_app
 from ai_service.config import Settings
 from ai_service.contract import issues as contract_issues
+from ai_service.jobs import MemoryJobStore, Worker
 from ai_service.providers.base import Completion
 from ai_service.providers.registry import Registry
 
@@ -55,7 +57,7 @@ class GatedProvider:
     def model_for(self, model_class: str) -> str:
         return "gated-model"
 
-    def complete(self, *, model: str, system: str, user: str) -> Completion:
+    def complete(self, *, model: str, system: str, user: str, json_mode: bool | None = None) -> Completion:
         with self._lock:
             self.in_flight += 1
             self.max_in_flight = max(self.max_in_flight, self.in_flight)
@@ -285,6 +287,92 @@ class TestWorkerConcurrency:
         assert job_capacity() == 1
 
 
+def _judge_poison_routed_to_dead_letter(obs: dict) -> None:
+    """毒消息（耗尽重试仍失败）必须落死信、不再被领取、本体留 failed 终态。"""
+    assert obs["dead_count"] >= 1, "毒消息应落死信，而不是无限重试或静默丢"
+    assert obs["claim_after_dead"] is None, "死信之后这件作业不应再被 worker 领走"
+    assert obs["final_status"] == "failed", "死信的同时本体应保留 failed 终态供按 jobId 查询"
+
+
+def _judge_retry_requeues_until_exhausted(obs: dict) -> None:
+    """有界重试：未耗尽前应重新入队，恰好重试满 max_attempts 次。"""
+    assert obs["attempts"] == obs["max_attempts"], (
+        f"应重试满 {obs['max_attempts']} 次，实测 {obs['attempts']}"
+    )
+    assert obs["requeues"] == obs["max_attempts"] - 1, (
+        f"未耗尽前应重新入队 {obs['max_attempts'] - 1} 次，实测 {obs['requeues']}"
+    )
+
+
+def _judge_default_no_dead_letter(obs: dict) -> None:
+    """默认 max_attempts=1（不重试）：失败直接落 failed 终态，不产生死信（零回归）。"""
+    assert obs["dead_count"] == 0, "默认 max_attempts=1 不应有死信"
+    assert obs["final_status"] == "failed", "默认路径仍应落 failed 终态"
+
+
+class TestDeadLetterAndRetry:
+    """有界重试 + 持久化死信（v686，镜像 Spring Cloud Stream DLQ + Spring Retry）。
+
+    死信解决的是 MQ 经典问题：一件作业反复失败（毒消息），既不该无限重试把 worker 拖死，
+    也不该静默丢弃让问题消失。正确做法是"重试有限次 → 仍失败就隔离到死信"，运维可事后查看。
+    """
+
+    def test_poison_message_routes_to_dead_letter_after_max_attempts(self) -> None:
+        async def scenario() -> None:
+            # 无 llm 的 registry：execute_ai_request 每次确定性返回 503（毒消息）
+            store = MemoryJobStore(max_attempts=3)
+            worker = Worker(store, Registry(Settings(), llm=None), capacity=1)
+            job = await store.enqueue(ai_request())
+            requeues = 0
+            claimed = await store.claim()
+            while claimed is not None:
+                await worker.run_job(claimed)
+                # 看是否被重新入队（或已死信）：本测试只有这一件作业
+                reclaimed = await store.claim()
+                if reclaimed is not None and reclaimed.id == claimed.id:
+                    requeues += 1
+                    claimed = reclaimed
+                else:
+                    claimed = reclaimed  # None = 已死信，退出循环
+            dead = await store.dead_letters()
+            _judge_poison_routed_to_dead_letter({
+                "dead_count": len(dead),
+                "claim_after_dead": await store.claim(),
+                "final_status": (await store.get(job.id)).status,
+            })
+            _judge_retry_requeues_until_exhausted({"attempts": dead[0]["attempts"], "requeues": requeues, "max_attempts": 3})
+            assert dead[0]["job"]["jobId"] == job.id, "死信应带原始 jobId 便于溯源"
+
+        asyncio.run(scenario())
+
+    def test_max_attempts_one_keeps_legacy_failed_terminal_no_dead_letter(self) -> None:
+        async def scenario() -> None:
+            store = MemoryJobStore()  # 默认 max_attempts=1，不重试
+            worker = Worker(store, Registry(Settings(), llm=None), capacity=1)
+            job = await store.enqueue(ai_request())
+            claimed = await store.claim()
+            await worker.run_job(claimed)
+            dead = await store.dead_letters()
+            _judge_default_no_dead_letter({
+                "dead_count": len(dead),
+                "final_status": (await store.get(job.id)).status,
+            })
+
+        asyncio.run(scenario())
+
+    def test_arm_poison_not_routed_goes_red(self) -> None:
+        with pytest.raises(AssertionError, match="死信"):
+            _judge_poison_routed_to_dead_letter({"dead_count": 0, "claim_after_dead": None, "final_status": "failed"})
+
+    def test_arm_over_retry_count_goes_red(self) -> None:
+        with pytest.raises(AssertionError, match="重试满"):
+            _judge_retry_requeues_until_exhausted({"attempts": 2, "requeues": 1, "max_attempts": 3})
+
+    def test_arm_default_has_dead_letter_goes_red(self) -> None:
+        with pytest.raises(AssertionError, match="不应有死信"):
+            _judge_default_no_dead_letter({"dead_count": 1, "final_status": "failed"})
+
+
 class TestRedisBackend:
     """Redis 后端要连真服务测：假客户端只会测到我给自己写的那套假行为。
 
@@ -333,6 +421,51 @@ class TestRedisBackend:
             finally:
                 await store.close()
                 await reader.close()
+
+        asyncio.run(scenario())
+
+    @pytest.mark.skipif(not os.environ.get("NEXUS_REDIS_URL"), reason="未设置 NEXUS_REDIS_URL：Redis 后端这一轮没跑")
+    def test_redis_dead_letter_and_requeue_real_server(self) -> None:
+        """真 Redis 字节往返：重新入队的 RPUSH + 死信的 LPUSH/LRANGE 在真服务器上真的发生。
+
+        不依赖假客户端（假客户端只会测到我给自己写的那套假行为）；只证明生产用的那几条
+        Redis 命令在真 56379 上正确持久化、且死信后该 id 不再被领取。
+        """
+        from ai_service.jobs import RedisJobStore
+
+        prefix = f"nexus:ai:test:{uuid4()}"
+
+        async def scenario() -> None:
+            store = await RedisJobStore.connect(
+                os.environ["NEXUS_REDIS_URL"], prefix=prefix, ttl_s=60, max_attempts=3
+            )
+            try:
+                job = await store.enqueue(ai_request())
+                # 模拟 worker 的有界重试：同一件作业被领取、失败、重新入队，直到耗尽 max_attempts。
+                # 注意节奏——每次"失败→重新入队"之间只领取一次，不能多领（多领会把死信那次也吃掉）。
+                # 第 1 次失败 → 重新入队
+                claimed = await store.claim()
+                assert claimed is not None and claimed.id == job.id
+                claimed.status = "queued"
+                await store.requeue(claimed)
+                reclaimed = await store.claim()
+                assert reclaimed is not None and reclaimed.id == job.id, "重新入队后能被再次领取"
+                # 第 2 次失败 → 重新入队
+                reclaimed.status = "queued"
+                await store.requeue(reclaimed)
+                reclaimed2 = await store.claim()
+                assert reclaimed2 is not None and reclaimed2.id == job.id, "第二次重新入队后仍能被领取"
+                # 第 3 次失败（已耗尽 max_attempts=3）→ 死信
+                await store.route_to_dead_letter(reclaimed2, reason="test: exhausted")
+                dead = await store.dead_letters()
+                assert len(dead) == 1, f"真 Redis 死信应恰好 1 条，实测 {len(dead)}"
+                assert dead[0]["job"]["jobId"] == job.id
+                assert await store.claim() is None, "死信后该 id 不应再被领取"
+            finally:
+                # 清理本测试前缀下的 key，不污染真 Redis
+                for key in (store._pending_key, store._dead_key, store._key(job.id)):
+                    await store._r.delete(key)
+                await store.close()
 
         asyncio.run(scenario())
 

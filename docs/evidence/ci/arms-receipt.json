@@ -1,9 +1,9 @@
 {
   "tool": "docs/evidence/ci/ci-wiring-arms.mjs",
   "scope": "full",
-  "ranAt": "2026-11-09T04:20:20.643Z",
-  "arms": 54,
-  "matched": 54,
+  "ranAt": "2026-11-12T19:55:36.275Z",
+  "arms": 64,
+  "matched": 64,
   "armNames": [
     "C0-control",
     "A1-trigger-loses-master",
@@ -36,6 +36,16 @@
     "A26-tail-whose-own-text-overruns-the-gutter",
     "C3-long-tail-on-a-file-that-is-not-a-row",
     "C4-tail-long-only-because-of-what-it-interpolates",
+    "A27-typecheck-step-deleted",
+    "A28-tools-leg-undeclared",
+    "C6-the-same-step-spelled-as-a-block-scalar",
+    "A29-registry-mvn-line-deleted",
+    "A30-registry-warmed-without-tests",
+    "A31-phantom-pom-named-by-a-step",
+    "A32-every-maven-line-deleted",
+    "A33-cache-key-collapsed-to-one-pom",
+    "A34-cache-key-names-an-unowned-pom",
+    "C7-a-pom-named-only-in-a-comment",
     "R0-control",
     "R1-red-proof-fails-the-build",
     "R2-hang-is-TIMEOUT-not-RED",
@@ -61,13 +71,14 @@
     "R19-a-line-at-the-bound-is-not-marked"
   ],
   "subjects": {
-    "workflow": "6e39ab2cb0bb78f2a2ed7e06f88085fc264ed638515708451a47415490983803",
-    "gate": "d9ef4e999f2deaefc27bf56726927f1beb3055fa4ebfceb2025009bcb5a41509",
-    "arms": "a89ecc1219ed777495ba1f44fb36ce4d6cb43d28715fe1d176ed87188d345a7f",
-    "runner": "5fdc49c0f79ae155ee6f8e392d51a5e7dda44709ac706804d9b40441eb4d72e6",
+    "workflow": "26b272aea0ae25dd6f976d5d2670f26f37ee336ca7b903342f1bac7235cf9dcf",
+    "mainline": "972e8a03f31055e625b92d022c70720198e35b61abfe8cf7b62c5b21355d97bc",
+    "gate": "fcbc702ec76b56b49d60cefff8468f08d53bdfa65c08852d8b7415ff7e3ebce2",
+    "arms": "236db0d6dcb9e9db4db1bd2e29e4e356e65968409d99dcfdcb03340fe55481ac",
+    "runner": "f07ce3b290949c6886cb974e5d910fa4c776bf2892259926b34b35c473c0f718",
     "sweep": "a9904d1f3edcccd0b38b3a396474e7b6eb079a91924eeb0eed3d02ea38cd3097",
-    "scripts": "4f13a845cd9e400b99e3de1617490e81e04721dcbdbead22b5458e555fe2bc7f",
-    "rule": "d950d243b7678dda17d00f877e2a3cbdf94d7d70a1eafed0c2fb59aa06b437d1"
+    "scripts": "1b651470ac2dbead8088827cefe6a91f38f76355beded514bb8c9e2de576cf5f",
+    "rule": "4a38542af2c09948265f43cfa38a59e24145eabee1ffe8f1fe9e2cbb19ee1cc8"
   },
   "population": [
     {
@@ -83,7 +94,7 @@
     {
       "name": "verify:arms",
       "file": "docs/evidence/ci/ci-wiring-arms.mjs",
-      "marker": "// sweep-budget-ms: 900000"
+      "marker": "// sweep-budget-ms: 1050000"
     },
     {
       "name": "verify:arms-freshness",
@@ -206,6 +217,11 @@
       "marker": null
     },
     {
+      "name": "verify:db-index",
+      "file": "docs/evidence/java/db-index-proof.mjs",
+      "marker": null
+    },
+    {
       "name": "verify:deploy-arc",
       "file": "docs/evidence/agents/deploy-arc-proof.mjs",
       "marker": null
@@ -274,6 +290,11 @@
       "name": "verify:explore",
       "file": "docs/evidence/m7/explore-proof.mjs",
       "marker": null
+    },
+    {
+      "name": "verify:gateway-tests",
+      "file": "docs/evidence/java/gateway-suite-proof.mjs",
+      "marker": "// sweep-budget-ms: 1200000"
     },
     {
       "name": "verify:git-aware",
@@ -554,6 +575,11 @@
       "name": "verify:spawnlog",
       "file": "docs/evidence/agents/spawnlog-proof.mjs",
       "marker": null
+    },
+    {
+      "name": "verify:spring-cloud",
+      "file": "docs/evidence/java/spring-cloud-proof.mjs",
+      "marker": "// sweep-budget-ms: 1200000"
     },
     {
       "name": "verify:staged",

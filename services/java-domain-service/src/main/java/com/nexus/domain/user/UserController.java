@@ -101,7 +101,7 @@ public class UserController {
     @GetMapping("/by-role/{role}")
     public ResponseEntity<List<UserResponse>> getUsersByRole(@PathVariable String role) {
         try {
-            User.UserRole userRole = User.UserRole.valueOf(role.toUpperCase());
+            User.UserRole userRole = User.UserRole.fromLabel(role);
             List<User> users = userService.getUsersByRole(userRole);
             return ResponseEntity.ok(users.stream().map(this::toResponse).toList());
         } catch (IllegalArgumentException e) {
@@ -197,8 +197,11 @@ public class UserController {
         response.setHandle(user.getHandle());
         response.setAvatarUrl(user.getAvatarUrl());
         response.setBio(user.getBio());
-        response.setRole(user.getRole().name());
-        response.setPlan(user.getPlan().name());
+        // The LABEL, not the constant name. The web layer compares these words in lowercase
+        // (`row?.role === 'admin'` in apps/web/src/server/domain/roles.ts), so a body that answered
+        // "ADMIN" would be a body no web-layer comparison matches — and it would look correct.
+        response.setRole(user.getRole().label());
+        response.setPlan(user.getPlan().label());
         response.setGuest(user.getGuest());
         return response;
     }

@@ -104,11 +104,11 @@
 // v607 (this increment; the ADR 0016 section is owed, and the ledger files sit in another lane's uncommitted set,
 // so this header carries the record until that section exists) - THE MANIFEST'S BLIND SIDE. This census answers
 // "does every evidence module have a channel?" and its population was `git ls-files -- docs/evidence`, which says
-// nothing about the mirror question: does every `verify:*` NAME have one? Measured at this ref: the manifest holds
-// 125 verify:* scripts, PROOF_COMMAND admits 116, and the 9 it drops are doors the build never walks - seven
+// nothing about the mirror question: does every `verify:*` NAME have one? Measured at v607's ref: the manifest held
+// 125 verify:* scripts, PROOF_COMMAND admitted 116, and the 9 it dropped were doors the build never walked - seven
 // real-browser proofs under tools/harness (each one imports the CDP launcher and six of them navigate a Studio on
 // 127.0.0.1:3210 that no workflow step starts), the maven suite (the workflow runs its own `mvn ... test` line
-// rather than the script), and `verify:proofs` itself (the runner the proofs step calls). Nothing DECIDED those
+// rather than the script), and `verify:proofs` itself (the door the proofs step calls). Nothing DECIDED those
 // nine, and an author who adds a tenth undispositioned `verify:*` script today adds a promise no census grades. So
 // MANIFEST below gives every non-row `verify:*` script one of three dispositions, each read out of bytes rather
 // than out of the entry's own prose:
@@ -127,9 +127,9 @@
 // v608 (this increment; the ADR 0016 section is still owed for v606-v608 and the ledger files sit in another lane's
 // uncommitted set, so this header keeps the record) - THE REVERSE BLIND SIDE. v607 asked which NAMES exist. It said
 // nothing about which RUNNABLE MODULES the build walks, and that question has a different population: `git ls-files
-// -- tools` holds 16 runnable modules at this ref. One is the runner the proofs step calls; four are imported by a
-// module the live closure reaches (125 modules are live, and the closure walks them through the sweep's tokenizer);
-// seven are the node targets of the seven deferred harness doors; and FOUR were in no class at all —
+// -- tools` held 16 runnable modules at v608's ref. One was the runner the proofs step calls; four were imported by a
+// module the live closure reaches (125 modules were live, and the closure walks them through the sweep's tokenizer);
+// seven were the node targets of the seven deferred harness doors; and FOUR were in no class at all —
 // tools/ci/record-encoding-repair.mjs, the 367-line repairer that fixed the record corpus, and the three dock
 // drivers tools/harness/studio-build.mjs (106 lines, amendment 174), studio-container.mjs (94, amendment 172) and
 // studio-deploy.mjs (130, amendment 177). No script names those four, no module IMPORTS them, and nothing in this
@@ -343,7 +343,40 @@
 // ids as backticked digits and a token with no letter in it cannot be told from one of those; and the sight
 // over the other eight READMEs prints instead of refusing, because those bytes belong to the lanes
 // that wrote them — the counts stand as what a lane owes if it asks for its own README to be graded.
-// ROSTER 131 arms in 12 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8 · D14 · E10 · F2 · G5
+// ROSTER 132 arms in 12 families — A19 · R10 · M25 · T17 · N7 · X8 · S7 · C8 · D14 · E10 · F2 · G5
+//
+// v647 (this increment; the ADR 0016 section is still owed for this lane's v606-v631, and the lint ledger sits in
+// this same uncommitted set, so this header keeps the record) - A RUNNER'S CARRIER IS THE STEP THAT WALKS IT. The
+// manifest census had one `runner`, so the sentence printed under it — "the workflow's proofs step calls" — was
+// true by accident: the only door disposed as a runner WAS the proofs step's. Declaring `verify:lint-tree` the
+// second runner would have printed that same sentence about a file the proofs step never calls, and a print that
+// attributes a door to the wrong step is a sentence about the wiring the wiring does not say. So runLinesOf below
+// keeps the step name beside each run command, the display reads the pair, and the pair is GRADED and not merely
+// printed: manifestOf returns `runnerSteps`, and arm M25 rewrites the fixture proofs step's call into a block
+// scalar, then asserts the door is still attributed to "Evidence proofs", still appears in `commands`, and still
+// passes the runner check. Reshaping it is what found the bug in the pairing itself — the census's own print said
+// `verify:proofs` ran in step "Docker images (pre-pull for the lane proofs)", and reading that print was the
+// evidence. A `- name:` line that closes a block scalar was tested AFTER the block-exit branch, so the step named
+// above a block kept ownership of every command written below it; the order is now close the block, capture the
+// name, match the `run:`. `runCommandsOf` went with it, because the pairing left it without a caller and the
+// coverage comparison wants the same list projected to bare strings. The ownership refusal moved off the same
+// false carrier: a runner whose target the index does not own is refused as "disposed as a runner", not as "the
+// runner the proofs step calls". The roster carries the new arm in every copy of its number — the marker above,
+// the fixture README sentence the census grades inside itself, the live README headline, and the arms that grade
+// those numbers — so 131 becomes 132 in twelve families. Measured at this ref, and printed by this run every time:
+// the manifest holds 127 `verify:*` names closing as 117 derived rows + 2 runner + 1 covered + 7 deferred + 0
+// undispositioned over 16 run commands the workflow executes, and the tools population is 17 modules closing as 2
+// runner + 4 reached + 7 named + 0 behind + 4 standby + 0 unreached over a live closure of 132. What the guard is
+// worth was measured rather than argued: with the new workflow step deleted from the worktree — nothing else
+// touched — this census exits 1 naming `verify:lint-tree`, and the ci.yml bytes restored from the index are
+// identical to what they were.
+//
+// v650 (amendment 575) MOVED the run-command tally above from 16 to 19 without this census changing a line: the
+// warm step became four explicit per-module `mvn` lines and `cache-dependency-path` became a four-path block, so
+// the number is a projection of `.github/workflows/ci.yml` and nothing else. Said plainly because it is a face
+// this census does NOT charge: the row totals, the fixture arms and the README headline are re-read every run,
+// while a hand-copied count in a comment is only as live as the person who last looked at the print. The door
+// that refuses a stale copy of THAT number is owed, and owed is how it is recorded.
 //
 // Run from the repository root:  node docs/evidence/ci/evidence-census-proof.mjs   (or: npm run verify:evidence-census)
 import assert from 'node:assert/strict';
@@ -400,6 +433,24 @@ export const ROSTER = [
     run: 'node docs/evidence/studio/style-override-probe.mjs',
     why: 'ADR 0015\'s mutation probe: six arms each mutate one line of the style-override path and run the smallest suite that can see it, restoring every file in `finally`; a build row that edits the tree under test is not a verdict, so the arm log lives in its own header',
   },
+  {
+    file: 'docs/evidence/ds/complexity-arms.mjs',
+    class: 'tool',
+    run: 'node docs/evidence/ds/complexity-arms.mjs',
+    why: 'v671/v673 mutation arms for the DS complexity contract (ADR 0104/0106): each arm inlines a deliberately degenerate Map/filter implementation in-process and asserts the op-count predicate refuses it. Measured 7/7 as-expected (5 RED + 2 GREEN, docs/PERFORMANCE.md); the arms re-run after the contract changes, not per commit, so CI does not re-run them',
+  },
+  {
+    file: 'docs/evidence/ds/single-map-ab.mjs',
+    class: 'tool',
+    run: 'node docs/evidence/ds/single-map-ab.mjs',
+    why: 'v672 same-process interleaved A/B harness for the double-Map to single-Map TtlLru swap (ADR 0105), nine interleaved rounds, verdict = direction of the p50 ratio. It is the only instrument the v672 verdict in docs/PERFORMANCE.md trusts because host noise faked a 7x speedup; a human-run measurement, never a per-commit gate',
+  },
+  {
+    file: 'docs/evidence/ds/single-bucket-ab.mjs',
+    class: 'tool',
+    run: 'node docs/evidence/ds/single-bucket-ab.mjs',
+    why: 'v675 / ADR 0108 same-process interleaved A/B harness for the rateLimitMemory single-bucket sliding-window; jittered 24300-cell parity first, then interleaved rounds (p50 median). Human-run measurement script for the memory-side O(limit) -> amortized O(1) claim, never a per-commit gate',
+  },
   // v531 — the three Studio lane proofs that were DEFERRED here are now derivable ROWS: `verify:build-lane`,
   // `verify:container-lane` and `verify:deploy-lane` exist in package.json and the workflow pre-pulls
   // `node:22-alpine`, which was the blocker all three named. Their entries are deleted, not reworded: a
@@ -421,6 +472,12 @@ export const MANIFEST = [
     class: 'runner',
     run: 'npm run verify:proofs',
     why: 'the door the proofs step walks: its command is the derived runner, whose population this census reads, so the workflow calling this name is checkable in the workflow bytes rather than quoted from here',
+  },
+  {
+    name: 'verify:lint-tree',
+    class: 'runner',
+    run: 'npm run verify:lint-tree',
+    why: 'the second door the build walks directly: `Lint the whole tree against the debt ledger` calls this name, and its target is a tool, not a proof row — it grades ESLint verdicts over every tracked source file outside the areas it excuses by name against docs/evidence/ci/lint-debt.json, and the admission rule cannot DERIVE it because the command does not sit under docs/evidence',
   },
   {
     name: 'verify:api-tests',
@@ -503,26 +560,36 @@ export const MANIFEST = [
 ];
 
 /**
- * The commands the workflow really runs, as strings. Deliberately narrower than ci-wiring's step reader: this
- * census asks one question - does some command CI executes name this subject - so it takes run lines (inline and
- * block scalar) and drops comment lines, and claims nothing about ordering, swallow-checking or step names, all
- * of which docs/evidence/ci/ci-wiring-proof.mjs grades. A shape this reader cannot parse yields NO command, which
- * reddens a coverage claim rather than quietly satisfying it.
+ * Every command the workflow executes, PAIRED with the step whose `run:` holds it. Deliberately narrower than
+ * ci-wiring's step reader: this census asks one question - does some command CI executes name this subject - so
+ * it takes run lines (inline and block scalar), drops comment lines, and claims nothing about ordering or
+ * swallow-checking, both of which docs/evidence/ci/ci-wiring-proof.mjs grades. A shape this reader cannot parse
+ * yields NO command, which reddens a coverage claim rather than quietly satisfying it. The step name is kept
+ * because a door's carrier is the STEP, not the job: two `verify:*` scripts can be called by two different
+ * steps, and a print that attributes both to one of them is a sentence about the wiring that the wiring does not say.
+ * The block closes BEFORE a step line is read, because the line that ends a block scalar is the next step's
+ * `- name:`; pairing the command after it with the step above the block attributes a door to a step that never calls it.
  */
-export function runCommandsOf(workflow) {
+export function runLinesOf(workflow) {
   const out = [];
   let inBlock = false;
   let keyIndent = 0;
+  let step = null;
   for (const raw of String(workflow).split(/\r?\n/)) {
     if (/^\s*#/.test(raw)) continue;
     const indent = (raw.match(/^\s*/) || [''])[0].length;
     if (inBlock) {
       if (raw.trim() === '') continue;
-      if (indent <= keyIndent) inBlock = false;
-      else {
-        out.push(raw.trim());
+      if (indent > keyIndent) {
+        out.push({ step, run: raw.trim() });
         continue;
       }
+      inBlock = false;
+    }
+    const named = /^\s*-\s+name:\s*(.*)$/.exec(raw);
+    if (named) {
+      step = named[1].trim().replace(/^['"]|['"]$/g, '');
+      continue;
     }
     const m = /^(\s*)run:\s*(.*)$/.exec(raw);
     if (!m) continue;
@@ -530,7 +597,7 @@ export function runCommandsOf(workflow) {
     if (value === '|' || value === '>' || value === '|-' || value === '>-') {
       inBlock = true;
       keyIndent = m[1].length;
-    } else if (value !== '') out.push(value);
+    } else if (value !== '') out.push({ step, run: value });
   }
   return out;
 }
@@ -596,7 +663,8 @@ export function manifestOf({ scripts, index, read, workflow, manifest = [] }) {
   const names = Object.keys(scripts ?? {}).filter((n) => n.startsWith('verify:'));
   const rows = new Set(derivePopulation(scripts).map((r) => r.name));
   const indexSet = new Set(index ?? []);
-  const commands = typeof workflow === 'string' ? runCommandsOf(workflow) : null;
+  const lines = typeof workflow === 'string' ? runLinesOf(workflow) : null;
+  const commands = lines === null ? null : lines.map((l) => l.run);
   if (commands === null) {
     violations.push('no workflow text was supplied, so not one `verify:*` disposition can be checked against what CI really runs - an unchecked claim is the silence this census exists to break');
   } else if (commands.length === 0) {
@@ -605,6 +673,7 @@ export function manifestOf({ scripts, index, read, workflow, manifest = [] }) {
 
   const byName = new Map();
   const coverage = new Map();
+  const runnerSteps = new Map();
   for (const e of manifest) {
     if (byName.has(e.name)) violations.push(`MANIFEST disposes ${e.name} twice - two dispositions for one script name is two answers to one question`);
     byName.set(e.name, e);
@@ -622,10 +691,12 @@ export function manifestOf({ scripts, index, read, workflow, manifest = [] }) {
       const target = RUN_RE.exec(cmd.trim())?.[1];
       if (!target) violations.push(`${name} is disposed as the runner, yet its command ${JSON.stringify(cmd)} is not one node call — a door the workflow walks must be one command`);
       else {
-        if (!indexSet.has(target)) violations.push(`${name} is the runner the proofs step calls, but the commit does not own ${target} — CI would check out a manifest naming a file no clone holds`);
+        if (!indexSet.has(target)) violations.push(`${name} is disposed as a runner, but the commit does not own ${target} — CI would check out a manifest naming a file no clone holds`);
         if (target.startsWith(EVIDENCE)) violations.push(`${name} is disposed as the runner while its target ${target} sits under ${EVIDENCE} — that command is a derived row, not a door`);
       }
       if (commands && !commands.includes(`npm run ${name}`)) violations.push(`${name} is disposed as the runner, but no run line in ${WORKFLOW_FILE} calls \`npm run ${name}\` — the workflow stopped walking the door this census is standing in`);
+      const caller = lines?.find((l) => l.run === `npm run ${name}`);
+      runnerSteps.set(name, caller?.step ?? null);
     }
 
     if (e.class === 'covered') {
@@ -681,7 +752,7 @@ export function manifestOf({ scripts, index, read, workflow, manifest = [] }) {
   const closed = counts.row + counts.runner + counts.covered + counts.deferred + counts.undispositioned;
   if (closed !== counts.names) violations.push(`the manifest closes at ${closed} over ${counts.names} verify:* names — a script in no class is a promise nobody decided how to keep`);
 
-  return { counts, dispositions: [...byName.entries()].map(([n, e]) => ({ name: n, ...e })), undispositioned, commands, coverage, violations };
+  return { counts, dispositions: [...byName.entries()].map(([n, e]) => ({ name: n, ...e })), undispositioned, commands, coverage, runnerSteps, violations };
 }
 
 /** Every `verify:*` command that is one `node` call, whatever it targets — import-closure roots, not rows. */
@@ -1942,7 +2013,7 @@ const BASE = () => ({
   // list the real header states, because the arms ARE this list — so S1→S7 drift the marker, not a copy of it.
   source: [
     '// fixture header — the record this file keeps while the ledger files sit in another lane',
-    '// ROSTER 131 arms in 12 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8 · D14 · E10 · F2 · G5',
+    '// ROSTER 132 arms in 12 families — A19 · R10 · M25 · T17 · N7 · X8 · S7 · C8 · D14 · E10 · F2 · G5',
     '// end fixture header',
   ].join('\n'),
   // A synthetic proof for the coverage grader: three refusations, two reached by a named arm, one declared.
@@ -1980,8 +2051,8 @@ const BASE = () => ({
     'The census below gives every one of the **7** tracked modules a disposition, and the derived population is',
     '**1 running rows + 1 excluded by name** at this ref.',
     '',
-    '**131 fixture arms** prove each refusal on a synthetic plane — the nineteen above, ten that drift one README',
-    "number each, twenty-four that dispose the manifest's blind side, seventeen that dispose the tools corpus",
+    '**132 fixture arms** prove each refusal on a synthetic plane — the nineteen above, ten that drift one README',
+    "number each, twenty-five that dispose the manifest's blind side, seventeen that dispose the tools corpus",
     "behind it, seven that grade the numbers those deferrals state, eight that recompute the roster this sentence",
     'lives in, seven that grade the marker this file carries in its own header, eight that grade the arms list',
     'itself, fourteen that date the measurements the authoring box left behind, ten that re-derive the commits a',
@@ -2292,6 +2363,13 @@ const ARMS = [
   ['M24 a manifest that closes at a number it did not reach', (f) => { f.manifest[0].class = 'observed'; }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('the manifest closes at 4 over 5 verify:* names')), `manifest closure: ${r.violations.join(' | ')}`);
   }],
+  ['M25 a door attributed to the step that closes the block above it', (f) => {
+    f.workflow = f.workflow.replace('        run: npm run verify:runner', '        run: |\n          npm run verify:runner');
+  }, (r) => {
+    assert.equal(r.manifest.runnerSteps.get('verify:runner'), 'Evidence proofs', `runner carrier: ${JSON.stringify([...r.manifest.runnerSteps])}`);
+    assert.ok(r.manifest.commands.includes('npm run verify:runner'), `the block spelling must not lose the door: ${JSON.stringify(r.manifest.commands)}`);
+    assert.ok(!r.violations.some((v) => v.includes('verify:runner is disposed as a runner')), `the reshaped call must stay a door: ${r.violations.join(' | ')}`);
+  }],
   ['T1 a tools module nobody reaches', (f) => { f.files['tools/ci/fx-stray.mjs'] = '\n'; }, (r) => {
     assert.ok(r.tools.unreached.includes('tools/ci/fx-stray.mjs'), `stray: ${JSON.stringify(r.tools.unreached)}`);
     assert.ok(r.violations.some((v) => v.includes('fx-stray.mjs') && v.includes('UNREACHED')), `stray refusal: ${r.violations.join(' | ')}`);
@@ -2429,17 +2507,17 @@ const ARMS = [
     assert.ok(r.violations.some((v) => v.includes('verify:browser') && v.includes('no line count and no served address')), `unre-readable: ${r.violations.join(' | ')}`);
   }],
   // ── the roster arms: the README's own count of these arms is recomputed from the list, not copied (v610) ──
-  ['X1 the fixture-arms total the README states has drifted', (f) => { f.readme = f.readme.replace('**131 fixture arms**', '**92 fixture arms**'); }, (r) => {
-    assert.ok(r.violations.some((v) => v.includes('says 92 fixture arms; this census runs 131')), `stale total: ${r.violations.join(' | ')}`);
-    assert.ok(r.violations.some((v) => v.includes("add to 131 against its own total of 92")), `arithmetic: ${r.violations.join(' | ')}`);
+  ['X1 the fixture-arms total the README states has drifted', (f) => { f.readme = f.readme.replace('**132 fixture arms**', '**92 fixture arms**'); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('says 92 fixture arms; this census runs 132')), `stale total: ${r.violations.join(' | ')}`);
+    assert.ok(r.violations.some((v) => v.includes("add to 132 against its own total of 92")), `arithmetic: ${r.violations.join(' | ')}`);
   }],
-  ['X2 one family number in the breakdown has drifted', (f) => { f.readme = f.readme.replace('twenty-four that dispose', 'twenty-three that dispose'); }, (r) => {
-    assert.ok(r.violations.some((v) => v.includes('arm family 3 (M)') && v.includes('i.e. 23') && v.includes('counts 24 arms named M*')), `drifted family: ${r.violations.join(' | ')}`);
+  ['X2 one family number in the breakdown has drifted', (f) => { f.readme = f.readme.replace('twenty-five that dispose', 'twenty-four that dispose'); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('arm family 3 (M)') && v.includes('i.e. 24') && v.includes('counts 25 arms named M*')), `drifted family: ${r.violations.join(' | ')}`);
   }],
   ['X3 a family the breakdown dropped', (f) => {
     // \\s+ rather than a space: the sentence is wrapped, and an anchor that only matches one wrapping is an arm
     // that goes quietly red when a reader asks for a shorter line.
-    f.readme = f.readme.replace(/, twenty-four\s+that\s+dispose\s+the\s+manifest's\s+blind\s+side/, '');
+    f.readme = f.readme.replace(/, twenty-five\s+that\s+dispose\s+the\s+manifest's\s+blind\s+side/, '');
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes("names 11 families; the arms list defines 12")), `dropped family: ${r.violations.join(' | ')}`);
   }],
@@ -2452,14 +2530,14 @@ const ARMS = [
     f.readme = f.readme.replace(/seven\s+that\s+grade/, 'eleventy that grade');
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('eleventy') && v.includes('not a number this reader parses')), `unparseable: ${r.violations.join(' | ')}`);
-    // The compound in the same sentence is the reader's other half: a refusal raised because twenty-four could
+    // The compound in the same sentence is the reader's other half: a refusal raised because twenty-five could
     // not be read would look exactly like this one, so the arm that proves words are read proves compounds too.
     // Quoted as the reader quotes it — the refusal's own text names the shape it knows, so a bare word test
     // would refuse the arm for the message it was written to raise.
-    assert.ok(!r.violations.some((v) => v.includes('a family as "twenty-four"')), `compound failed to parse: ${r.violations.join(' | ')}`);
+    assert.ok(!r.violations.some((v) => v.includes('a family as "twenty-five"')), `compound failed to parse: ${r.violations.join(' | ')}`);
   }],
   ['X6 the headline number written so no shape reads it', (f) => {
-    f.readme = f.readme.replace('**131 fixture arms** prove', 'about fifty-odd fixture arms, proved');
+    f.readme = f.readme.replace('**132 fixture arms** prove', 'about fifty-odd fixture arms, proved');
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('states no "**N fixture arms**" total')), `missing headline: ${r.violations.join(' | ')}`);
   }],
@@ -2475,22 +2553,22 @@ const ARMS = [
     assert.ok(r.violations.some((v) => v.includes('arm family 5 (N)') && v.includes('two families were swapped')), `swapped back: ${r.violations.join(' | ')}`);
   }],
   // ── the marker arms: the roster this file quotes in its own header is graded too (v611) ─────────────────
-  ['S1 the header marker states an out-of-date total', (f) => { f.source = f.source.replace('// ROSTER 131 arms', '// ROSTER 96 arms'); }, (r) => {
-    assert.ok(r.violations.some((v) => v.includes('ROSTER line says 96 arms; the arms list defines 131')), `stale marker total: ${r.violations.join(' | ')}`);
+  ['S1 the header marker states an out-of-date total', (f) => { f.source = f.source.replace('// ROSTER 132 arms', '// ROSTER 96 arms'); }, (r) => {
+    assert.ok(r.violations.some((v) => v.includes('ROSTER line says 96 arms; the arms list defines 132')), `stale marker total: ${r.violations.join(' | ')}`);
   }],
   ['S2 the header marker gone', (f) => {
-    f.source = f.source.replace('// ROSTER 131 arms in 12 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8 · D14 · E10 · F2 · G5', '// the marker moved into prose, where nothing reads it');
+    f.source = f.source.replace('// ROSTER 132 arms in 12 families — A19 · R10 · M25 · T17 · N7 · X8 · S7 · C8 · D14 · E10 · F2 · G5', '// the marker moved into prose, where nothing reads it');
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('states no "// ROSTER') && v.includes('a sentence with nothing behind it')), `missing marker: ${r.violations.join(' | ')}`);
   }],
   ['S3 a family pair in the marker that the list does not count', (f) => { f.source = f.source.replace('· X8 ·', '· X7 ·'); }, (r) => {
     assert.ok(r.violations.some((v) => v.includes("family 6 says \"X7\"") && v.includes('counts 8 arms named X*')), `wrong pair: ${r.violations.join(' | ')}`);
-    assert.ok(r.violations.some((v) => v.includes("families add to 130 against its own headline of 131")), `marker arithmetic: ${r.violations.join(' | ')}`);
+    assert.ok(r.violations.some((v) => v.includes("families add to 131 against its own headline of 132")), `marker arithmetic: ${r.violations.join(' | ')}`);
   }],
   ['S4 a marker reshaped out of its grammar', (f) => {
     // Kept behind the "// ROSTER " the reader looks for: an arm that drops the prefix aims at S2's refusal, and
     // two arms hitting one message is one arm fewer than the roster says.
-    f.source = f.source.replace('// ROSTER 131 arms in 12 families — A19 · R10 · M24 · T17 · N7 · X8 · S7 · C8 · D14 · E10 · F2 · G5', '// ROSTER ninety-eight arms, eight families');
+    f.source = f.source.replace('// ROSTER 132 arms in 12 families — A19 · R10 · M25 · T17 · N7 · X8 · S7 · C8 · D14 · E10 · F2 · G5', '// ROSTER ninety-eight arms, eight families');
   }, (r) => {
     assert.ok(r.violations.some((v) => v.includes('ROSTER line is reshaped') && v.includes('a marker nothing parses is a comment')), `reshaped marker: ${r.violations.join(' | ')}`);
   }],
@@ -2892,7 +2970,9 @@ async function main() {
   console.log(`\nmanifest (every verify:* NAME, not only the commands PROOF_COMMAND admits): ${mf.counts.names} names close as ${mf.counts.row} derived rows + ${mf.counts.runner} runner + ${mf.counts.covered} covered + ${mf.counts.deferred} deferred + ${mf.counts.undispositioned} undispositioned, over ${mf.commands.length} run commands the workflow actually executes`);
   for (const e of MANIFEST) {
     const cmd = String(pkg.scripts[e.name] ?? '');
-    if (e.class === 'runner') console.log(`  RUNNER     ${e.name.padEnd(22)} ${cmd} -- the workflow's proofs step calls \`npm run ${e.name}\``);
+    if (e.class === 'runner') {
+      console.log(`  RUNNER     ${e.name.padEnd(22)} ${cmd} -- step ${JSON.stringify(mf.runnerSteps.get(e.name) ?? '(no step names this command)')} runs \`npm run ${e.name}\``);
+    }
     else if (e.class === 'covered') console.log(`  COVERED    ${e.name.padEnd(22)} ${cmd} -- the workflow runs ${JSON.stringify(mf.coverage.get(e.name) ?? [])}`);
     else console.log(`  DEFERRED   ${e.name.padEnd(22)} ${cmd} -- code-reach ${e.reach}; blocker: ${e.blocker.slice(0, 72)}...; next: ${e.next.slice(0, 72)}...`);
   }

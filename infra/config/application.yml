@@ -1,0 +1,49 @@
+# `infra/config/` — what every Java service reads from the config server.
+#
+# The resolution order Spring Cloud Config uses:
+#   1. `{spring.application.name}-{profile}.yml`  (service + active profile)
+#   2. `{spring.application.name}.yml`            (service, all profiles)
+#   3. `application-{profile}.yml`                (shared, profile-specific)
+#   4. `application.yml`                          (shared, all profiles) — this file
+#
+# It stays deliberately small: only keys EVERY Java service should hold. Service-specific keys live
+# in `{service}.yml` next to this file, so a change to one service never accidentally reconfigures
+# another. No secrets live here: no datasource URLs, no passwords, no keys. A secret that lived in
+# the config server would be a secret every reader of this repo could see, and the audit ledger
+# would have nothing to say about it.
+
+# The four services expose the same management surface: health answers "are you alive?",
+# info answers "which build is this?", metrics answers "what are you doing?". All three are on
+# every service that needs them — the edge and the registry because the gateway reads metrics
+# before credentials pass through, the services because the proof reads both.
+management:
+  # v656 — ONE trace id, and it travels on the WIRE (W3C `traceparent`), not in a header NEXUS invented.
+  # Sampling is 1.0 in development because a sampled-out request is a request with nothing to read; a
+  # deployment sets NEXUS_TRACING_SAMPLING (0.1 is a normal production number).
+  tracing:
+    sampling:
+      probability: ${NEXUS_TRACING_SAMPLING:1.0}
+    propagation:
+      type: W3C
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+# The platform's log discipline: the root stays at warn; each service raises its own package to
+# info (and, when debugging, its own name to debug in the service-specific file beside this one).
+# No service silently starts logging another service's internals at debug.
+logging:
+  # v656 — the ids have to BE in the line for anyone (including a proof) to read them. Boot only
+  # prints them when this pattern is set; measured: without it the format is `[app]` and with it
+  # `[app,traceId,spanId]` (empty ids on a thread with no span, which is the honest rendering too).
+  pattern:
+    correlation: "[${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
+  level:
+    root: warn
+
+# NEXUS_CONFIG_SERVER_SERVED is set by every service that imports this door, so `GET /env` on a
+# running service says whether the config server actually answered for it. It is not used for
+# control flow anywhere; it is documentation implemented as a property, in the platform's idiom.
+nexus:
+  config-server-served: true

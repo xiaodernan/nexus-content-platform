@@ -6,6 +6,851 @@ appendix heading. If you are editing this file, edit the section for your line a
 the other section's bytes alone.
 -->
 
+<!--
+PROGRAM: CONVERGENCE (opened 2026-11-10, owner: the master line)
+
+One line, one branch, one green tree. The two histories were merged at 90ccf28 and
+`origin/main` is an ancestor of `master`; from here every slice lands on `master`,
+fast-forwards `main`, and is witnessed by the hosted CI run at the landed ref. A slice
+that cannot be witnessed on this host is witnessed on the runner — and says so.
+
+Slices, each one commit series with its own evidence record (ADR 0016 amendment + the
+family README section) and a door that reddens the sentence it repairs:
+
+  v652  the lint debt the merge carried: my two m9 proofs' unused binding and the
+        spring-cloud proof's four findings; the ledger re-derived DOWNWARD only. [done when CI quality is green]
+  v653  hosted PostgreSQL for `verify:spring-cloud` (#347): a CI `services:` database +
+        the schema the proof expects, the exclusion in tools/ci/proof-set.mjs retired,
+        and the topology proof run on the runner — the second plane for the crown proof.
+  v654  the six deployables enter infra/docker-compose.yml (registry, gateway, api,
+        domain, config, postgres) with healthchecks and a compose smoke leg; TODAY NO
+        compose file names a Java service (java-config-server/README.md:105-106).
+  v655  the Java evidence README (docs/evidence/java/README.md) and the live docs
+        (CURRENT-STATE, root README) tell the SIX-service truth (#337, #338).
+  v656  distributed tracing across gateway -> api -> Feign -> domain: Micrometer
+        Tracing + W3C propagation, proven by ONE trace id read from every hop.
+        [LANDED 2026-11-11 — the id is MINTED BY THE CALLER (a W3C `traceparent` this proof
+        generates), and §10c requires that exact id in the correlation segment of all three hops,
+        with a DIFFERENT span at each: "ONE trace id crossed all three hops — the id the CALLER
+        minted (0373802ea98db2a970186d32582b605f), with a different span at each: edge
+        c1997df94252e90c, api 4cc124a7c25cc1a6, domain c67537629f0cf928".
+        The slice's finding is that an id is evidence only where a hop WRITES IT DOWN: the edge and
+        the domain service wrote one line per process and none per request, and WebFlux opens no
+        thread-scoped span at all (measured: the edge's wire carried `traceparent: 00-<id>-<span>-01`
+        while its log printed `[nexus-gateway,,]`). Each hop now announces every request
+        (`HopLogFilter`), and the edge reads its own span off the exchange's observation. ADR 0059;
+        static half `apps/web/test/java-tracing-surface.test.ts` (23 legs, 4 mutation arms red then
+        restored). BOUND: no collector, no exporter — this buys log correlation, not trace storage.]
+  v657  edge rate limiting (Spring Cloud Gateway RequestRateLimiter over Redis),
+        proven by the 429 its own configuration promises, closed when Redis is absent.
+  v658  a Prometheus registry on every service with a named allowlist, proven by a
+        scrape of all six (ADR 0056:157-159 records the hole).
+        [LANDED 2026-11-11 — five deployables, not six: the sixth member of the compose profile is
+        PostgreSQL, which has no Spring registry. Four doors read by §10b of the topology proof, the
+        config door by ConfigServerTest's scrape leg, the allowlist by a static gate
+        (apps/web/test/java-metrics-surface.test.ts). ADR 0056 (amended in v658) corrects the earlier
+        "shadowed route" reading; ADR 0057 (amended in v658) moves the config door to 18888 after a
+        neighbour's config server on 8888 captured a proof run.]
+  v659  lint-debt drain family by family (#342) plus the census arms that charge the
+        faces the reach census does not yet grade (#343).
+  v660  a full gate sweep at the then-current ref with every red door attributed
+        (#333), then this program re-plans from what it measured.
+  v661  a durable side-effect lane so the export download stops waiting on its
+        notification write (ADR 0066): Redis Streams (XADD / XREADGROUP / XACK /
+        XAUTOCLAIM) behind an opt-in `NEXUS_JOB_QUEUE` knob, first job `build.complete`.
+        [LANDED 2026-11-11 — the fifth lane ADR 0064 said a future commit must EARN before
+        opening a second transport. Named per that rule: producer `notifyBuildComplete` mints the
+        idempotency anchor `exportId`; consumer one in-process XREADGROUP worker per Next nodejs
+        instance from `instrumentation.register()`; durability at-least-once, surviving a worker
+        crash between emit and XACK by XAUTOCLAIM reclaiming PENDING. The id is minted by the
+        PRODUCER, not the handler — a redelivery reuses it and `dedupeKey=build:<exportId>` over a
+        real UNIQUE index collapses two deliveries to one row (measured: created → duplicate →
+        one row; a distinct exportId still writes a second). OFF by default: with the knob off
+        `getJobQueue()` opens NO connection and the old synchronous emit runs verbatim (export
+        integration 19/19 unchanged); an instance that wants Redis only for realtime fanout does
+        not accidentally run a worker. BOUND: not a broker, not an SSE replacement, no ordering,
+        no dead-letter store (drop-by-log at maxAttempts); an enqueue-time Redis failure logs and
+        skips the notice rather than blocking the response (advisory under outage — at-least-once
+        holds only once an entry is in the stream; knob-off keeps it synchronous and guaranteed);
+        opted-in non-nodejs/no-Redis gets the in-memory driver plus a loud warning, not silent loss.
+        Follow-up fe1566e names the enqueue-failure boundary in ADR 0066 and grades it with
+        job-queue-degraded.test.ts (mocked XADD, no live Redis).]
+  v662  the ADR-0094 candidate-cap gate grows a DB-plane behaviour leg: the static proof said
+        "the SQL reads the constant by name"; this one proves the database REALLY takes only
+        CAP rows. [LANDED 2026-11-11 — §SEC 第四十五片. trending-cap-db.integration.test.ts
+        (4/4, real Postgres): CAP+1 public versions with future publishedAt so they own the
+        newest slots; #CAP gets 3 likes, #CAP+1 gets 10. Asserts the #CAP card is trending's
+        HEAD and the higher-scoring #CAP+1 is ABSENT — a conjunction green only when the LIMIT
+        boundary sits exactly between #CAP and #CAP+1 (smaller cap → #CAP shed; larger/none →
+        #CAP+1 surfaces). A direct DB count proves the excluded card indeed scores higher, so
+        its absence can only be the boundary; the method sentence must name the same CAP.
+        Static trending-cap-reader.test.ts pins the SQL line + method to one constant, so the
+        two gates together cover shrink / grow / hand-copied number / page-length mutations.
+        HONEST GAP: no source-level mutation arm on social.ts .limit(...) — shared tree + a
+        host with 0.3–0.6 GB free; the conjunction + premise + static gate give the two-way
+        discrimination, and the arm is owed on a quiet host. Fixture & criteria are in place.]
+  v663  the anon /api/discover cache's SEMANTIC contract gets a gate (ADR 0095): the driver
+        (discover-redis.integration) and the data structure (ttl-lru) were tested, but the
+        middle layer was only prose. [LANDED 2026-11-11 — discover-route-cache.test.ts 5/5,
+        memory driver, no DB/Redis, no source edits: a hit does not re-run compute; a throwing
+        compute rejects AND is not remembered (next call really recomputes); sort is part of the
+        key; invalidateDiscoverRoute really drains the window; a static leg pins route.ts so only
+        the !viewer branch touches the cache and the viewer branch calls discover directly with
+        viewerId. tsc + eslint exit 0. HONEST GAP, recorded not gated: the memory driver stores
+        DiscoverResult by reference while the Redis driver JSON-round-trips to a value — the two
+        drivers disagree on alias isolation, contradicting "one contract" in discoverRedis.ts.
+        Not observable today (route.ts only NextResponse.json's the result) and NO gate is written:
+        gating either side would punish the legitimate future fix that unifies both to value
+        copies (ADR-0094 X4 discipline). Decided when a mutating caller appears or the two
+        drivers are unified; this slice neither fixes nor prematurely locks it.]
+  v664  `/api/discover` grows an HTTP response cache contract (ADR 0096): the server-side 15s
+        window was gated in v663, but the route told DOWNSTREAM (browser/CDN/reverse proxy) nothing —
+        bare `NextResponse.json`, while the v1 exit `apiJson` already defaults to no-store.
+        [LANDED 2026-11-11 — § 计网 × 前后端协同. `discoverResponseHeaders(authenticated)` returns
+        `Vary: Cookie` + `no-store` (anon) / `private, no-store` (viewer); both branches of route.ts
+        use it, no hand-copied headers. Why: the SAME URL `?sort=new` returns different content by
+        `nexus_session` cookie, so without Vary a future middle cache can cross-serve a private
+        following feed to anon or vice versa (the §188 Accept-Encoding discipline on a more
+        dangerous axis); and `invalidateDiscoverRoute()` drains only the SERVER window — a browser/CDN
+        copy would bypass the "new content in 15s" promise, so downstream must not store. Gates:
+        discover-route-cache.test.ts 9/9 (5 semantic + 3 header-contract + 1 static wiring leg that
+        refuses a bare `NextResponse.json(result)`, false/true swapped, or >2 reply points). tsc +
+        eslint exit 0. Mutation+reverse-control 11/11 arms: 6 breaks redden (bare json ×2, wrong
+        false→true, public/max-age, Vary→Origin, drop no-store), 3 legitimate edits stay green
+        (space in call parens, comment-only, harmless must-revalidate), 2 baselines green. v663's
+        viewer-isolation static leg was NARROWED (it hard-coded the reply spelling and would falsely
+        redden on this正当 change) to pin only cache ownership; the ADR-0094 X4 discipline again.
+        HONEST GAP: no real HTTP leg — no `next start` request with/without cookie read back off the
+        wire, so how Next.js surfaces these headers on a Route Handler is unmeasured, not claimed;
+        `Vary: Cookie` is deliberately coarse (no-store makes it free); gzip's Vary:Accept-Encoding
+        merge is owed when/if this route goes through a compressor (§188).]
+
+  v665  discover's hottest read path gets single-flight + a generation guard against the
+        invalidation race (ADR 0097): the 15s window was gated (v663) and its HTTP headers
+        written (v664), but the WINDOW BOUNDARY itself was unguarded.
+        [LANDED 2026-11-12 — § 算法 × 缓存 × 数据库性能 × 计网. Two real gaps, both deterministically
+        measured. ① cache stampede: at the instant the 15s window expires, N concurrent anon
+        requests all miss and each re-runs discover()'s three count(*) subqueries — the cache
+        missed exactly when it was needed most. ② invalidation race: an in-flight compute that
+        started BEFORE publish/moderation's invalidate and lands AFTER it writes the JUST-CLEARED
+        window back to stale content, defeating "new content visible within 15s". Fix in
+        discoverRouteCache.ts, process-local only (DiscoverCache driver interface untouched, so
+        memory + Redis drivers both benefit): a `Map<sort, Promise>` merges same-sort misses into
+        ONE flight (registered SYNCHRONOUSLY before any await; rejection releases the table; release
+        checks flight identity so a stale flight cannot delete a successor), plus a `generation`
+        counter bumped by invalidate that a landing flight checks before writing back (changed ⇒
+        skip write-back, still return its own result). single-flight merges within ONE process;
+        cross-instance repeat reads are still absorbed by the Redis shared window — two layers,
+        no overlap. Evidence: discover-singleflight.test.ts uses controllable deferred promises
+        (not timers) to make concurrency deterministic — 6/6 (merge to 1 · shared rejection +
+        failure not remembered · two sorts separate · hits don't recompute · late write-back can't
+        refill stale · post-invalidate request starts its own flight); RED-first proof on the old
+        impl: 3 FAIL (2 stampede + 1 stale write-back). v663's 9/9 still green (15 total). tsc +
+        eslint exit 0. Mutation + reverse-control 7/7 on a production-isomorphic in-memory state
+        machine (3 break-arms: drop single-flight → 3 computes; drop generation → stale refill with
+        zero recompute; drop release-identity → successor wrongly deleted; 4 legit controls stay
+        green). HONEST GAP: no real N-way concurrent HTTP leg (no `next start` + wire query count),
+        so cross-route-handler / worker-isolation behavior is unmeasured, not claimed; the
+        generation guard is a read-then-await-set, not an atomic conditional write (a Redis
+        invalidate could still interleave in the tiny gap — judged not worth a Lua/WATCH for a
+        worst-case 15s stale head, recorded as a bound, not an incident).]
+
+  v666  session-dependent JSON responses get a DOWNWARD-ONLY cache-contract ledger, and the
+        four most sensitive read GETs move to a shared helper (ADR 0098): v664 wired one route,
+        a census found 96 session-reading routes with a whole family of bare private GETs.
+        [LANDED 2026-11-12 — § 计网 × 缓存 × 安全 × 前后端协同. New `sessionResponseHeaders()` /
+        `privateJson()` in server/http.ts: default `Vary: Cookie` + `private, no-store`, Vary APPENDED
+        not overwritten (keeps Accept-Encoding), caller's existing cache-control respected. Migrated
+        /api/auth/me, /api/projects GET, /api/notifications GET, /api/marketplace/earnings GET. The
+        other 27 naked session GETs are listed in session-json-cache-ledger.json (lint-debt discipline):
+        gate A refuses any NEW unregistered naked exit, gate B refuses a STALE entry (fixed-but-not-
+        removed ⇒ forces down-only accounting), gate C pins the header contract, gate D pins the 4
+        migrations (comments stripped, so a note mentioning an old API is no longer punished — that
+        RED-first catch was the reverse-control). 12/12; mutation+reverse-control 13/13 (5 break-arms
+        red, 8 legit green); tsc + eslint exit 0; census 132/119 unchanged. NO unified proxy floor:
+        measured that proxy response headers DO reach the client (trace id), but the merge order vs a
+        route's own headers was NOT measurable on this host, and a blanket private,no-store would risk
+        v664's anon/viewer split + apiJson's Accept-Encoding — so the framework-wide兜底 is recorded as
+        an honest owed + WHY, not claimed. Also no real HTTP wire leg (function contract only); the
+        ledger's file-level whitelist is deliberately conservative (a file mentioning cache-control
+        anywhere counts compliant) rather than a brittle per-exit regex.]
+
+  v667  a poison stream entry stops being an infinite XAUTOCLAIM loop — it is reported to a pluggable
+        dead-letter sink and ACKed away (ADR 0099): ADR 0066 promised "logged and ACKed away" for
+        poison payloads, but only the worker/handler layers honoured it; the transport layer's
+        `if (job) process(...)` skipped a null envelope entirely — no log, no XACK, so the entry sat
+        PENDING and was re-claimed every tick, and `MAXLEN ~` cannot shed a PENDING entry.
+        [LANDED 2026-11-12 — § 消息队列 × Redis × 数据结构. New `DeadLetterEntry` / `DeadLetterSink`
+        + `JobQueueOptions.onDeadLetter`; `deadLetter.ts` builds bounded, privacy-truncated records
+        (120-char preview, time injectable). One `handleEntry()` funnel serves BOTH XREADGROUP and
+        XAUTOCLAIM; poison → sink(kind:poison) THEN XACK (a failed ACK still leaves a record), and
+        `reclaim()` returns raw [id, fields] so a poison keeps the id it must ack. Exhausted retries
+        use the same sink; MemoryJobQueue matches the shape; default sink is the old console.error
+        line, so an unconfigured deployment is behaviour-identical to v661. Doors 8/8 + 11/11; a
+        RED-first static-gate spelling bug (reclaim signature regex missing its outer `[]`) was fixed
+        in the GATE, not the implementation; real lint caught `String(body)`'s [object Object] and two
+        no-regex-spaces. tsc 0, eslint 3+3 files 0 (6-at-once and vitest-chained runs SIGTERM on this
+        host — resource, not red), census 132/119/132-arms unchanged via capped-heap direct node.
+        HONEST GAP: no real-Redis poison leg; and the OTHER two poison classes (bad schema in
+        handlers.ts, unknown type in worker.ts) still only console.error — they ACK correctly but do
+        NOT reach the sink, so an injected ledger is incomplete; that convergence is named for a
+        separate slice, not smuggled into verified doors.]
+
+  v668  the dead-letter ledger closes its last two blind spots — worker unknown-type and handler
+        schema failures now reach the same sink (ADR 0100): v667's honest gap③ was that a deployer
+        injecting `onDeadLetter` still got an INCOMPLETE ledger. Two poison classes ACKed correctly
+        but wrote only a现场 log line.
+        [LANDED 2026-11-12 — § 消息队列 × 数据结构 × 操作系统/硬件. `JobHandler` → `(job, ctx?)` with
+        `JobHandlerContext.reportDeadLetter`; both drivers build ctx CONDITIONALLY (`custom ? {...} :
+        undefined`), so with no sink injected `ctx` is undefined and the two判定点 don't even CONSTRUCT
+        a `DeadLetterEntry` — v661现场日志逐字不变 AND the hot path pays zero extra allocation. Added
+        optional `makeDeadLetter({ reason })` for the two schema/unknown cases (no fabricated Error).
+        Pulled worker dispatch out of the start() closure into exported pure `dispatchJob(job, ctx,
+        handlers, stats?)` — production and behavior legs now share ONE code path, no copied double.
+        Behavior legs 4 (pure in-memory, no Redis: unknown-type / schema / happy / handler-throws-stays-retryable),
+        default-behavior 2, static wiring 4, reason-param 3 = 13/13; regression 4 files 35/35 (incl.
+        5 REAL-Redis legs that happened to run — XREADGROUP/XAUTOCLAIM/MAXLEN all intact); tsc exit 0.
+        HONEST GAP: eslint SIGTERMs were first blamed on host RAM, but a 384MB run surfaced a TRUE heap
+        OOM — node's DEFAULT heap can't load the TS type graph; `--max-old-space-size=1536` + direct
+        eslint.js call gives **7 files exit 0** (upstream fix over v667's 3+3 split: give heap, not fewer
+        files). census still SIGTERM (spawns a 30s child scan) — recorded still-owed, statically
+        non-drifting, NOT claimed green. No real-Redis POISON→ledger end-to-end (static wiring同源 only);
+        sink still has no durable implementation. Closes ADR 0099 gap③ without touching shape/ACK/retry.]
+
+  v669  the Feign typed call gets a bounded Resilience4j RETRY — and two silent defects surface
+        (ADR 0101): `nexus-api → nexus-domain-service` is one safe, repeatable GET. A 404 is an
+        ANSWER, an open breaker never made the call, a missing instance is a topology fact — none
+        may be asked twice; only a transient wire blip may. `application.yml` declares
+        `resilience4j.retry.instances.nexus-domain-service` (3 bounded attempts, 200ms fixed wait,
+        retry only RetryableException/503, ignore 404/open-breaker/no-instance), and
+        `DomainServiceRetry` is the code that ACTUALLY obtains and applies that instance — because
+        OpenFeign's circuit-breaker integration never consults a Retry, so a YAML block alone is a
+        silently-unused configuration (the same lesson the breaker's NAME taught in ADR 0057).
+        [LANDED 2026-11-12 — § Spring Cloud 微服务 × 计网 × 算法/容错. THREE defects, all measured:
+        ① the retry gate was RED (404/open/no-instance each called 3×) for a reason UNRELATED to the
+        policy — `RetryRegistry.retry(name)` is get-or-create via `getDefaultConfig()` (Resilience4j
+        2.2.0 sources), and the test's `RetryRegistry.of(Map.of(name, config))` fills only the
+        SHARED-CONFIG map, so `retry(name)` built a retry-everything ofDefaults instance and the
+        composed `(retrySet) ∧ ¬(ignoreSet)` predicate NEVER RAN. Fixed by building the registry the
+        way Spring does (`ofDefaults()` + `retry(name, config)` pre-create); production uses
+        `find(name).orElseThrow` so a deleted/renamed YAML instance FAILS AT STARTUP instead of
+        silently retrying every 404 (`retry(name, configName)` rejected: it conflates the instance
+        and config-name namespaces). ② `DomainProjectReader` had two single-arg constructors and no
+        no-arg — a real `AnnotationConfigApplicationContext` measured `No default constructor found`,
+        i.e. nexus-api could not boot; `@Autowired` on the retry constructor fixes which Spring picks.
+        ③ latent hazard: `retry(name)` would silently get-or-create a retry-all default on a missing
+        instance — closed by find()+fail-loud. NEW DOORS: `DomainServiceRetryTest` 9/9 (three ignore
+        legs finally green on the real policy, + InternalServerError tried once which an ofDefaults
+        retry would try 3× = the leg proving the YAML policy is in force, + undeclared-instance
+        refuses-to-start), `DomainServiceRetryConfigTest` 6/6, `DomainProjectReaderWiringTest` 1/1
+        (real context, red→green), `DomainServiceRetryAutoConfigTest` 3/3 (real `RetryAutoConfiguration`
+        via `ApplicationContextRunner`: find(name) hits the declared instance, 404 once, blip twice).
+        nexus-api full offline suite 951 tests / 0 / 0 / 0. HONEST GAPS: the 14-section
+        `spring-cloud-proof.mjs` topology was NOT re-run on this host (mvn needs -Xmx1400m not to be
+        SIGTERM'd); retry's real-request behaviour is graded by the same-shape auto-config door, not
+        an end-to-end typed call through a live registry + DB. 500/not-retried covered by a真 exception
+        object, not a live downstream. No exponential backoff (2.2.0 binding unconfirmed; fixed wait
+        is bounded and honest). SHARED TREE: converged with a parallel lane in the same worktree;
+        the lane's commit 489afd7 carries the find()+@Autowired+Spring-shape-fix plus both new gates;
+        the auto-config door + ADR 0101 + this ledger follow as the successor commit.]
+
+  v670  discover's anon cache gets CROSS-INSTANCE invalidation — the Redis keys were shared, but the
+        generation guard that protects them was not (ADR 0102): v665's generation guard is
+        process-local, while `discoverRedis.ts` shares the three sort keys across instances. So on
+        instance B a compute started at generation=G can land AFTER instance A's publish invalidated
+        (bumped only A's generation, DELed the shared key) and SET the JUST-CLEARED stale value back
+        to the SHARED key — a cache-resurrection every single-process gate was blind to, defeating
+        "new content visible within 15s".
+        [LANDED 2026-11-12 — § 缓存 × 计网 × Redis × 数据结构. New `discoverInvalidation.ts`: a
+        `DiscoverInvalidationBus` with a `RedisInvalidationBus` (dedicated versioned channel
+        `nexus:discover-invalidate:v1`, frame `{v,origin,at,nonce}`, origin filters the sender's own
+        loopback) and a `MemoryInvalidationHub`/`Bus` (zero-dep, two bus instances share a hub to
+        simulate two machines). `parseInvalidationFrame` treats wire bytes as untrusted (bad JSON /
+        wrong version / empty origin / non-finite at|nonce ⇒ null ⇒ counted and dropped). Connection
+        discipline inherited from realtime's ADR 0028: TWO connections (sub can't send commands),
+        asymmetric options (pub no-offline-queue + 1 retry; sub queue + null/unlimited self-heal),
+        subscribe-at-construction, publish NEVER throws/rejects (writer request is not held hostage to
+        the bus; 15s TTL is the backstop), every `error` listener attached (an unheard error event
+        takes the process down), subscribe ack checked BY SHAPE (ioredis 6 returns a channel COUNT,
+        not a boolean). `getDiscoverInvalidationBus()` shares `NEXUS_REDIS_URL` with
+        `getDiscoverCache()` so you can't share the cache but not its invalidation. Refactored
+        `discoverRouteCache.ts` module-level `inFlight`/`generation` into
+        `createDiscoverRouteCacheRuntime({cache, bus})`: subscribe-at-construction applies the SAME
+        local invalidation on a remote frame (bump + clear flights + clear cache driver) but does NOT
+        republish (no storm); `invalidateDiscoverRoute()` bumps synchronously BEFORE publish so in-flight
+        old flights self-expire, then `await cache.clear()`. `cache` is a LAZY getter not a captured
+        instance — the existing tests reset the driver singleton without touching the runtime, so
+        capturing it would leak stale contents across tests. Top-level export SIGNATURES unchanged ⇒
+        zero regression on both write call sites. TWO lines of defence close the gap together: the
+        generation guard stops THIS instance's late flight; pub/sub bumps the OTHER instance's
+        generation so ITS late flight can't write back to the SHARED key. Evidence:
+        `discover-cross-instance.test.ts` 15/15 running the REAL `RedisInvalidationBus` class over a
+        fake shared channel registry — frame parser 2, memory hub 1, Redis orchestration 5 (asymmetric
+        options · frame reaches B only, lands on the dedicated channel · bad frame/unknown channel
+        counted & dropped · publish failure doesn't throw · unknown subscribe ack ⇒ wireReady=false),
+        CORE race 4 (line OPEN ⇒ B's generation bumps +1, its late flight does NOT write back, next
+        request recomputes fresh; REVERSE CONTROL line CLOSED ⇒ stale RESURRECTS, next request hits it
+        with freshCalls=0; bus publish failure ⇒ A still invalidates locally, writer doesn't reject;
+        post-invalidate request doesn't join another instance's old flight), static wiring 3. The
+        reverse control walks the SAME business code with only the line open/closed as the variable —
+        its red proves the green is a real fix, not a coincidence. Zero regression: singleflight +
+        route-cache suites still 15/15 (30/30 across 3 files). Narrow tsc (changed files + import
+        graph) exit 0; eslint 3 files individually heap-fed exit 0 (full-project tsc/eslint still
+        SIGTERM on this ~0.3GB-free host — resource, not red). A real lint caught a Promise-in-boolean
+        defensive check (`no-misused-promises`) — removed, published Promise now directly `.catch`ed.
+        HONEST GAPS: ① NO real-Redis pub/sub end-to-end leg — 6379/56379 unreachable, no ioredis-mock,
+        Docker refuses containers; the真 class + fake connections grades the编排, the真 wire byte
+        round-trip between two real processes is still-owed. ② no real two-`next start` HTTP leg.
+        ③ default origin is pid:timestamp:seq (unique per process) — a stable instance-id knob for
+        robust cross-process identity is owed. ④ single frame version v1; a v1 instance during a
+        rolling upgrade drops v2 frames and degrades to the 15s TTL, no dual-version subscribe.]
+
+  v671  two of the hottest in-process data structures get their amortized-complexity PROMISE turned
+        into a gated contract — before it was prose in a file header (ADR 0104): `TtlLru` and
+        `MemoryRateLimiter` both document O(1) hit / amortized-O(1) eviction in exhaustive comments,
+        yet every gate asked only "is the ANSWER right, who was evicted, how many were counted" —
+        none asked "does cost stay flat as the table grows". A real regression (an extra liveSize()
+        scan in get, or evictToCap rewritten to sort the whole table) would leave all semantics
+        green while taking the hot path O(1)→O(n); for the limiter that is worse than a bug — a gate
+        meant to stop cheap-write floods becomes an amplification attack on itself.
+        [LANDED 2026-11-12 — § 数据结构 × 操作系统/硬件适配 × 算法. TWO evidence kinds, deliberately
+        split. Wall-clock `scripts/ds-benchmark.mts` (`npx tsx ...`, --json; NO threshold assertions,
+        inherited from perf-baseline.mts's "a flaky threshold's next step is a deleted threshold"):
+        TtlLru hit vs capacity 8/8192, TtlLru 400k-set flood into a 256 cap, limiter 60k-distinct flood
+        at maxBuckets 64/4096, reporting throughput + p50/p99 into docs/PERFORMANCE.md. Deterministic
+        `ds-complexity-contract.test.ts` (the GATE): wraps Map.prototype.get/set/delete/[Symbol.iterator]
+        with vi.spyOn (originals saved BEFORE spying, forwarded after — no recursive套娃; sync measured
+        interval bracketed by resets) and counts hash/iterator ops, NOT milliseconds. Note
+        `MemoryRateLimiter.hit` is `async` but has no `await` in its body — the whole cost lands before
+        the resolved Promise returns, so the count right after the call IS the full per-hit cost. Measured:
+        TtlLru hit = **6** Map ops, set = **3**, IDENTICAL at capacity 8 and 8192; eviction before/after
+        cap same cost; limiter at-cap = **13** ops, **480 hits zero variance**, and maxBuckets 8 vs 4096
+        single-eviction cost EQUAL. Gate pins the SHAPE (capacity-independent + bounded + flood-uniform),
+        deliberately NOT the literal "6" — a future two-Map→one-Map win (hit 6→3) must stay green
+        (ADR 0094 X4 discipline). Benchmark read (host node 22.22.2 win32 x64, scale=1, shared host,
+        archive not verdict): TtlLru hit 8→8192 (1024×) ops/s 483k→214k p50 0.42→0.56us (same order,
+        no O(n)); TtlLru flood ops/s 356k p50 0.74us (linear, not squared); limiter 64→4096 (64×)
+        ops/s 18k→11k p50 49→79us (only ~39% slower, not 64× ⇒ amortized O(1)). p99 28–237us is GC/
+        host noise, not code. MEASUREMENT-METHOD FIX: v1 timed every op with performance.now() and got
+        self-contradictory ns/op=6875 vs p50=0.4us (each timer call ≈ the hit itself) — switched to
+        CHUNKED timing (512 ops/segment, only ~hundreds of timer calls); this is exactly WHY the gate
+        uses op counts, not wall-clock. Mutation arms `docs/evidence/ds/complexity-arms.mjs` (plain
+        node, non-type-aware evidence rule set) 2/2 RED as expected: TtlLru hit +O(n) scan ⇒ cap8=11
+        vs cap8192=8195; eviction cost ∝ max ⇒ max8=12 vs max4096=4100. A THIRD arm "fixed cap +
+        sweep whole table every eviction" was designed to red but measured GREEN — and the gate is
+        RIGHT: with a fixed cap the bucket count is constant, so "scan a fixed 8" is still O(1) (just
+        a bigger constant), zero variance; the real degradable dimension is max (arm ② catches it).
+        That non-red arm and its reason are recorded honestly, no fake-toothed arm (ADR 0104). Zero
+        regression: contract 4/4 + existing ttl/rateLimit/readout **39/39**; narrow tsc (web test +
+        tools script, each changed-files + import graph) exit 0; eslint 3 files individually heap-fed
+        exit 0 (full-project tsc/eslint SIGTERM on ~0.3GB host = resource, not red). HARDWARE-FIT
+        LEAVE-WEIGHT (measured, NOT changed): TtlLru splits {value,expiresAt} across TWO Maps ⇒ 6 hash
+        ops/hit, keys stored twice, LRU order maintained in two tables, and the `expiresAt!` assertion
+        leans on an unexpressed "two maps always share keys" invariant; merging into one Map<K,{value,
+        expiresAt}> would cut hit 6→3 / set 3→2, improve locality, and remove that invariant by
+        construction — but that is a production hot-path storage change, left for a FOLLOW-UP slice
+        with end-to-end regression headroom, not smuggled into a shared host here. HONEST GAPS: wall-clock
+        numbers are single-host single-run scale=1 (no multi-session mean / fixed CI runner); gate counts
+        a proxy (Map ops) that catches O(n) structural regressions but not constant-factor ones; the
+        limiter's O(limit) single-bucket filter (limit caller-supplied, capped) is a stated bound, not
+        gated; two-Map→one-Map gain is structural reasoning + op count (6→3), no before/after wall-clock
+        yet (that comes with the slice that actually changes it).]
+
+  v672  TtlLru becomes ONE Map — and a +695% "speedup" that turned out to be host noise (ADR 0105).
+        This REPAYS the hardware-fit leave-weight ADR 0104 measured but deliberately did NOT change:
+        [LANDED 2026-11-12 — § 数据结构 × 操作系统/硬件适配 × 算法. `TtlLru` previously split
+        `{value,expiresAt}` across `store: Map<K,V>` and `expiry: Map<K,number>`: 6 hash ops/hit, keys
+        hashed AND stored twice, LRU order kept in two tables, and the `expiresAt!` assertion leaning
+        on an inexpressible "both maps always share keys" invariant (one missed delete on any path ⇒
+        cached entries silently NEVER expire). Now a single `store: Map<K, TtlEntry<V>>` binds
+        value+expiry in one entry: hit **3** hash ops, set **2**, key hashed/stored once, LRU order
+        same-sourced, invariant removed BY CONSTRUCTION. EVERY semantic preserved: hit refresh via
+        delete+set; an expired read deletes itself WITHOUT refreshing LRU order; no eager sweep on
+        write; one head eviction at cap; ttl=0⇒Infinity; stats / liveSize / clear unchanged. `set` of
+        an EXISTING key still deletes first — `Map.set` on a live key does NOT move insertion order,
+        so this keeps the old "overwrite = most recently touched" LRU semantic (a stated choice, not
+        inertia). Public API incl. the exported `TtlEntry` unchanged; sole production caller
+        `discoverRedis.ts` uses only new/set/get/clear/liveSize ⇒ zero regression.
+        NEW GATES: single-Map shape gate (unbounded maxEntries isolates the eviction's extra delete)
+        pins hit==3 / set==2; static source gate pins exactly one `new Map<`, `Map<K, TtlEntry<V>>`,
+        no separate `expiry` table; mutation arm M4 (inlined double-Map, hit=6) RED ⇒ 3/3 red as
+        expected (M1/M3/M4). THE DURABLE PRODUCT IS A METHOD DISCIPLINE: cross-process before/after
+        with the v671 harness (JSON archived in `docs/evidence/ds/*-single-map-v672.json`) showed
+        **+695% (≈8×)** — REJECTED, never put in the gain column. Three self-refutations: halving hash
+        ops (fixed cost unchanged) cannot yield 8×; pre p99 49us vs post 1.4us (35×) is host/GC, not
+        storage; the SAME post code reruns at 1.69M / 2.57M / 2.88M ops/s (±40%), so two cross-process
+        runs are not comparable. Verdict comes ONLY from `docs/evidence/ds/single-map-ab.mjs`: old and
+        new implementations inlined side-by-side in ONE process, 9 alternating rounds (order reversed
+        each round to cancel one-way JIT warmup), p50 MEDIAN ⇒ hit cap8 **1.39×**, cap8192 **1.46×**,
+        set cap8 **1.31×**; set cap8192 1.07× (GC long-tail, not a claim) — matches "halved hash ops,
+        unchanged fixed cost". `ds-benchmark.mts` keeps its honest role: archive single readings and
+        read ADJACENT-SCALE ratios (catch O(n) order-of-magnitude collapse), NEVER adjudicate a 1.x×
+        constant-factor win.
+        ZERO REGRESSION: contract **6/6** + semantics `ttl-lru` **8/8** + full 7-file suite **71/71**;
+        narrow tsc (ttlLru + discoverRedis + both gates + import graph) exit 0; eslint changed files +
+        evidence scripts each heap-fed exit 0 (full-project still SIGTERM on ~0.3GB host = resource,
+        not red). HONEST GAPS (ADR 0105): ① A/B single-host 9 rounds, no fixed CI runner / multi-session
+        mean (1.4× is this win32/node22, not a cross-machine SLA); ② A/B probe's double-Map `set` did
+        not literally reproduce the old same-key LRU-refresh delete (the HIT path IS verbatim, so hit
+        1.4× is the credible number, set 1.3× directional only); ③ negative-TTL boundary not newly
+        gated (ttl=0 covered by existing semantics; negative TTL ⇒ past instant ⇒ immediate expiry,
+        unchanged); ④ `TtlEntry<V>` is now both an exported type and the internal storage shape — a
+        future added field should get a separate internal type, not grow the public contract. Ledger:
+        ADR 0105; ADR 0104 leave-weight + still-owed ④ marked REPAID.]
+
+  v673  the SECOND complexity axis — v671 gated the bucket-count dimension; this gates the single-bucket
+        `limit` dimension that the Map-op counter was structurally blind to (ADR 0106):
+        [LANDED 2026-11-12 — § 数据结构 × 算法 × 限流/安全. `MemoryRateLimiter.hit` does
+        `(previous?.hits ?? []).filter(t => t > cutoff)` every call — an O(bucket timestamps) ≤ O(limit)
+        sliding-window scan that fires ZERO Map operations, so v671's Map-op gates cannot see it. Worse,
+        at `allowed=false` (the flood / at-cap path, exactly when this gate must be cheapest) it stops
+        `push`ing but STILL filters all `limit` timestamps — the gate is most expensive precisely when
+        distinct-identity abuse (§137 guest auto-issue) makes it matter. Same discipline as the file
+        header's "a gate must not fall over before what it guards". This REPAYS ADR 0104 still-owed ③
+        ("O(limit) is a stated bound, not gated").
+        DECISION: gate, do NOT change production source. O(limit) is a designed bounded cost (limit is
+        caller-supplied & capped; header already states single-bucket memory ≤ limit×8); rewriting it
+        to an O(1) ring would touch limiting semantics that must stay byte-for-byte parity with the
+        Redis driver, whose parity leg cannot run fully here (no real Redis). v671's contract +2 gates:
+        ① CAP gate — at-cap per-hit filter-callback count ZERO VARIANCE + bounded by limit+const (stops
+        unbounded `hits` growth and O(limit²)); ② ORTHOGONALITY gate — same full bucket in an 8-bucket
+        vs 4096-bucket table costs the SAME (stops "sweep all buckets"). Counter wraps
+        `Array.prototype.filter` (counts callbacks = timestamps scanned), spy-then-forward, reset around
+        the sync interval. **Deliberately does NOT pin "must grow linearly with limit"** — that would
+        red the legitimate future O(1)-ring optimization (ADR 0094 X4); the limit-linearity is archive
+        only. Pin: bounded + bucket-orthogonal + non-drifting, all O(1)-optimization-green.
+        DETERMINISTIC PROBE (frozen clock): empty-bucket first hit 0 callbacks; full limit=64 at-cap
+        **64**; 5 at-cap hits **恒 64 zero-variance**; limit 8/64/512 ⇒ **8/64/512 exact linear**;
+        unrelated-filter baseline 0. WALL-CLOCK archive (only, not verdict; SAME-PROCESS adjacent-scale,
+        unlike v672's cross-process noise): limit 8/64/512 p50 **13.15 / 17.92 / 56.93us**, ns/op
+        18278 / 22423 / 64003 — 8× data costs only 1.23×, 64× costs 3.5× ⇒ LINEAR, no O(limit²)
+        thousands-fold collapse; 18k–64k ns/op is ~1 order above TtlLru hit from `increment` / Map
+        delete+set / Promise allocation, all limit-INDEPENDENT fixed cost (hence 8→64 only 1.23×).
+        `scripts/ds-benchmark.mts` +group 4; JSON `docs/evidence/ds/bench-single-bucket-limit-v673.json`.
+        MUTATION ARMS `complexity-arms.mjs` +4 ⇒ **7/7 as-expected (5 RED + 2 GREEN)**: M6 nested filter
+        (O(limit²), 272 callbacks/hit at limit=16) CAP red; M7 sweep-all (8 vs 4096) ORTHOGONAL red;
+        M8 **legit O(1) ring trim stays GREEN on both gates** (X4 positive witness); M5 "unbounded hits"
+        degeneration is **UNREACHABLE** (allowed=false stops push ⇒ hits capped at limit, zero-variance)
+        — gate GREENS correctly, recorded honestly, no fake-toothed arm, and it exposes a 2nd safeguard
+        (allowed caps push). Gate boundary stated: the proxy is "filter callbacks", so an O(limit²)
+        hidden in a non-filter loop (e.g. for-of) is NOT caught — M6's first version used for-of and
+        measured green until rewritten as nested filter; recorded as a bound, not claimed covered.
+        ZERO REGRESSION: contract **8/8**; full 7-file suite **73/73**; web-test + tools narrow tsc each
+        exit 0; eslint 3 files heap-fed exit 0 (full-project still SIGTERM on ~0.3GB host = resource).
+        HONEST GAPS (ADR 0106): ① wall-clock single-host single-run scale=1, no fixed CI multi-run mean;
+        ② gate counts a proxy (filter callbacks), misses non-filter-loop O(limit²); ③ gate-only, O(limit)
+        →O(1) ring is a named follow-up pending a locally-runnable parity leg; ④ cap bound is limit+32
+        (absorbs unrelated-filter baseline) — if that baseline drifts with bucket count/time, the
+        orthogonality/zero-variance gates red correctly, know the semantics before loosening them.]
+
+  v675  the single-bucket sliding window goes from per-hit O(limit) to amortized O(1), and a gate that
+        would have FAKED GREEN after the rewrite is migrated first (ADR 0108). This repays ADR 0106's
+        still-owed ③ ("O(limit)→O(1) ring pending a locally-runnable parity leg"): the premise changed —
+        cont.37/38 brought up real `nexus-redis:56379`, and the Redis parity leg
+        (`rate-limit.redis.integration.test.ts`) passes 2/2 here with `fallbackCount - settled = 0`.
+        - THE TRAP, solved before touching production: v673 gated the `Array.prototype.filter` CALLBACK
+          count. Replacing filter with a cursor makes that count identically 0, so its 3 assertions
+          (zero-variance / ≤limit+32 / orthogonal) would all pass while reading no cost at all — ADR 0095's
+          inverse. Mutation arm M9 proves it by arithmetic: a "scan the whole bucket, report visits
+          honestly" degeneration is 64/64/... (zero-variance, 64≤96) ⇒ v673 GREEN, v675 RED.
+        - PRODUCTION (`apps/web/src/server/security/rateLimitMemory.ts`): `hits` is ascending, so expired
+          entries are a PREFIX. Add `head`; the while crosses `t <= cutoff` (each entry crossed once ⇒
+          amortized O(1)); lazy compaction when `head>=32 && head*2>=hits.length` bounds the array at
+          ≤2×limit+O(1). The three Redis-aligned semantics are byte-identical (denied not pushed,
+          strict `t > cutoff`, retryAfter from `hits[head]`). NEW diagnostic getter `windowVisits`
+          reports the real step count so the gate reads the claimed cost (not a恒0 proxy).
+        - PROOF ORDER (high-risk core algorithm, gated every step): 24300-cell new/old对拍 (4300 fixed
+          + 20000 with limit/windowMs jittering PER HIT, field-by-field strict equality) BEFORE the edit
+          → edit production → real-Redis parity 2/2 (semantic zero regression) + memory semantic 35/35
+          + full 8-file 98/98 → contract gates 9/9 (migrated to read windowVisits: O(1) 封顶恒1 /
+          orthogonality升axis to limit 8/64/4096 / amortized total ≤2N+O(1)) → mutation arms 10/10
+          (7 RED + 3 GREEN; M11 is a DIFFERENT正当 O(1) ring path, all 3 gates green = ADR 0094 X4).
+        - WALL-CLOCK (archived only, `scripts/ds-benchmark.mts` group 4, same process): limit 8/64/512
+          p50 went from v673's **13.15 / 17.92 / 56.93us** (linear 4.3×) to **4.88 / 4.75 / 4.71us**
+          (flat within ±3% = O(1)); ns/op at limit 512: 64003→5555. JSON `docs/evidence/ds/
+          bench-single-bucket-o1-v675.json`. VERDICT is the in-process interleaved A/B
+          (`docs/evidence/ds/single-bucket-ab.mjs`, 9 rounds, p50 median): old/new **115–127×** on a
+          pure-array flood microbenchmark — ABSOLUTE VALUE IS NOT AN SLA (GC amplifies it; production
+          `hit()`'s limit-independent increment/Map/Promise overhead dilutes the end-to-end gain,
+          not separately measured). Trustworthy conclusion = DIRECTION ONLY: per-hit cost stops
+          growing with limit; big-limit flood saves most.
+        - verify:record-encoding exit 0 (0 chargeable lines / 2238 files — new CJK comments introduce no
+          unpinned ISLAND line); web+tools narrow tsc exit 0; eslint 5 files heap-fed in 2 batches exit 0
+          (one 5-file run SIGTERM = resource peak, not lint red; mjs batch caught a real prefer-const,
+          fixed). Two temporary narrow tsconfigs DELETED after gating, never staged. `git add` exact,
+          never `add -A`, no force, ADR 0108 number re-checked free before commit.
+        - HONEST GAPS (ADR 0108): ① A/B single host 9 rounds, no fixed-CI multi-session mean; end-to-end
+          diluted multiple not separately measured. ② 24300-cell对拍 covers fixed+jittering limit/windowMs
+          but no dedicated same-millisecond concurrency gate (`hit` body is sync/no-await ⇒ single process
+          serial; multi-instance shared window belongs on NEXUS_REDIS_URL anyway). ③ only the in-process
+          driver changed (Redis driver's server-side ZREMRANGEBYSCORE has no such O(limit) scan); the
+          fallback path inherits the win but wasn't measured. ④ `windowVisits` has no ops consumer yet.
+         ⑤ hosted Studio CI verdict for this push PENDING; main-line is the fast signal.
+
+  v677  the real-LLM wiring (gpt-6-sol via wkapi.pro, landed by the parallel lane in
+        cont.42/43 with manual curl + the web's own dry-run agent-path e2e) gets a REPEATABLE,
+        CI-SAFE, TOOTHED gate — ONE new tracked file, zero production edits (ADR 0110).
+        - HOLE: `test_provider.py` is all `httpx.MockTransport`; it proves the adapter path but is
+          structurally blind to real-gateway regressions (JSON mode silently off, `usage=0`, key
+          expired, embedding faked real, model drift). cont.42/43 were human observation, not a door.
+        - SHAPE: `apps/ai-service/tests/test_provider_live.py`. 3 `test_live_*` legs drive the PROJECT's
+          own `OpenAICompatibleProvider` / `create_app` / `Registry` against the real gateway, gated by
+          FUNCTION-level `skipif(NEXUS_LIVE_LLM!=1 or no key)` — no network / no false green in CI.
+          Deliberately NOT module-level `pytestmark`, else the offline arms skip too (ADR 0095 inverse).
+        - SINGLE-TRUTH JUDGES shared by real legs and arms: `_judge_json_mode` (parses to object +
+          promised field), `_judge_real_usage` (both directions > 0 + model/latency echoed),
+          `_judge_embedding_honest` (llm real, embedding honestly unavailable + reason). Pin claimed
+          properties, not literal text or a latency number (ADR 0090/0094 X4).
+        - 4 ALWAYS-ON OFFLINE ARMS (MockTransport / plain dict, no key, run in key-less CI): plain-text
+          reply -> JSON judge RED; `usage=0` -> usage judge RED; embedding faked real -> honesty judge
+          RED; 401 -> key never leaks. Every judge's teeth measured, not assumed.
+        - VERIFIED (this host, both modes): CI mode `test_provider_live.py` 4 passed/3 skipped, full
+          ai-service 83 passed/4 skipped (baseline 79/1 -> +4 arms passed, +3 real legs skipped);
+          opt-in mode file 7 passed/0 skipped (3 real legs hit wkapi.pro), full suite 86 passed/1 skipped
+          (pre-existing jobs leg). `verify:record-encoding` exit 0, 0 chargeable lines / 2242 graded
+          files. Real probe: /v1/models 200 (4 chat models, openai-only, NO embedding); gpt-6-sol JSON
+          mode 200 with real usage; /v1/embeddings 503 model_not_found => NEXUS_MODEL_EMBEDDING=none
+          opt-out correct. Key only in two gitignored files, repr masks it, never in Completion/error.
+        - HONEST GAPS (ADR 0110): ① real legs need a real key, so hosted CI runs config doors + offline
+          arms unless a secret is injected (not "CI hits gateway every run"); ② Studio agent-path with
+          REAL writes (dryRun=false) still owed — cont.43's leftover, gateResponse must first accept a
+          real gpt-6-sol patch shape; ③ no browser/pixel pass; ④ observed-not-gated: `Registry.models()`
+          leaks the `none` sentinel into the llm list (`['gpt-6-sol','none']`, shared models table) —
+          semantics undecided, no door would punish a future tier split (ADR 0094 X4), production untouched;
+          ⑤ hosted Studio CI verdict for this push PENDING.
+
+  v678  the `none` opt-out sentinel that ADR 0110 observed leaking into the llm model list is
+        RESOLVED — the semantics are now decided and gated (ADR 0111). One production fix (3 small
+        edits) + one new 7-leg gate, zero cross-module coupling.
+        - WHY IT BECAME REAL: `apps/web/src/app/page.tsx:239` renders `p.models.join(' / ')` into the
+          "Provider readiness" block, so `/healthz` reporting `llm.models = ['gpt-6-sol','none']` shows
+          the user a nonexistent model as if available (§159). The harm is BIDIRECTIONAL: the same full
+          table was also handed to the embedding provider, which listed all chat models back.
+        - PROBE: capability judgement (`lib/env.ts`) reads only status/capability, NOT models — so this
+          is a display-honesty defect, not a broken function; `execution.py` calls `llm.model_for()` with
+          only the text four classes {fast,balanced,reasoning,vision}, never embedding ⇒ llm never needs
+          the embedding tier. `HealthResponseSchema.models` validates string-array only, so `none` sailed
+          through to the UI. NO existing test asserted any `models()` content — hence the long blind spot.
+        - FIX (single truth): `config.py` gains `LLM_MODEL_CLASSES` / `EMBEDDING_MODEL_CLASSES` constants;
+          `Settings` gains `llm_models` / `embedding_models` views; `Registry` passes each provider ONLY
+          its own tier's table. NOT a `models()` string filter — that would pin the sentinel literal and
+          break when the opt-out word changes or the gateway later really supports embedding. `execution.py`'s
+          identically-named set is API-input validation (a different semantic) and is deliberately left alone.
+        - GATE (7 legs, `test_provider_model_inventory.py`): judges pin the RESPONSIBILITY INVARIANT, not
+          literals — no opt-out sentinel (`none`/`skip`, case-insensitive) in any real provider list;
+          llm's reported models ⊆ text-tier actual config; embedding's ⊆ embedding tier (inventories read
+          from `Settings`, never hardcoded). Real legs drive the project's actual `/healthz`; 3 always-on
+          offline arms: sentinel injected -> RED, cross-tier model -> RED, legitimate chat-model rename ->
+          GREEN (door does not punish a正当 rename). Single-truth `_judge_*` shared by legs and arms.
+        - VERIFIED: BEFORE the fix the 4 real legs were RED (`['none']`, `['skip']`, llm listed
+          `['embedding-model-y']`, embedding listed all chat models) + 3 arms green — teeth measured.
+          AFTER: `test_provider_model_inventory.py` 7/7; full ai-service CI **96 passed/4 skipped**
+          (baseline 89/4 -> +7, zero regression); opt-in real-wiring mode **99 passed/1 skipped**;
+          real `Registry` probe on the live gateway: `llm models=['gpt-6-sol']`, `embedding models=[]`,
+          `capability=real`. `verify:record-encoding` exit 0, 0 chargeable lines / 2245 graded files.
+        - HONEST GAPS (ADR 0111): ① no browser/pixel confirmation that the readiness block actually stops
+          showing `none` (hosted Review pane); ② `embedding_models` has no real consumer yet (M2/M5), this
+          tiers it correctly for when embedding becomes real, does not claim embedding works; ③ hosted
+          Studio CI verdict for this push PENDING.
+        - SHARED-TREE: HEAD was `1e9b4ed` (lane's parser fix, 3 refs aligned) at slice start; v676 front-end
+          + ADR 0109 + the lane's uncommitted cont.46 in CURRENT-STATE are lane bytes, not touched, not
+          staged. This slice's state note is self-contained in ADR 0111 + this ROADMAP row (CURRENT-STATE
+          left alone because its worktree copy carries lane's uncommitted bytes). `git add` exact to my 5
+          files, never `add -A`, ff-checked, no force.
+
+  v679  the Map-operation-count complexity gate's blind spot is measured and anchored (ADR 0112).
+        ZERO production edits — only `ds-complexity-contract.test.ts` (+2 gates) + ADR 0112 + this row.
+        - HOLE (the ADR 0108 general discipline, applied to v671's OWN gate for the first time): if
+          `TtlLru`/`MemoryRateLimiter` move off `Map` to ANY non-Map O(1) structure (open-addressed flat
+          array, plain Object — exactly the "hardware-fit data structure" class of legitimate opt),
+          `mapOpCounter`'s `Map.prototype.*` count goes IDENTICALLY 0, and the 3 numeric judges
+          (`isInteger(0)` / `0≤8` / `cap8===cap8192`) are ALL GREEN — the gate reads no cost at all
+          (same ADR 0095 inverse as v673 filter -> v675 head = 0).
+        - MEASURED (read-only Node, no production mutation): 现状(命中3) green; 恒0 input green = real
+          false-green; contrast `MemoryRateLimiter` gates are RELATIVELY IMMUNE because line 146's
+          `atCap[0] > perHit[1]` positive assertion fails on `0 > 0`.
+        - UNWRITTEN PREMISE COUPLING surfaced: v671's dynamic count gate is only trustworthy because
+          v672's SOURCE STATIC gate (`new Map<` exactly 1, `Map<K,TtlEntry<V>>`, no expiry table) pins
+          "the implementation MUST be a Map". Never stated together before; if someone relaxes the static
+          gate AND swaps the impl in the name of a legit opt, the dynamic gate silently goes blind and CI
+          stays green.
+        - FIX (2 gates, no production change): ① NONZERO ANCHOR (the missing positive assertion on
+          TtlLru): a real TtlLru's 32 hits must use `>0` and `>16` Map ops, and 64 hits must be EXACTLY
+          2x the 32-hit count (proxy量 anchored to the real code path & linear in cost). Pins "nonzero +
+          tracks cost", NOT "exactly 3" (reverting to the double Map's 6 still green = ADR 0094 X4);
+          only identically-0 or decoupled-constant reddens. Same shape as MemoryRateLimiter's `>` anchor.
+          ② HONEST DIAGNOSTIC arm: replays the 3 judges on `perHit=[0,0]`, asserts "they really are all
+          green" (the false-green is a repeatable fact, not hidden), and asserts `ttlLru.ts` still has
+          `new Map<` (the premise that keeps it honest).
+        - TEETH (pure-logic contrast, no shared-tree mutate-and-restore): anchor(96,192)=GREEN,
+          anchor(0,0)=RED, anchor(3,3 decoupled)=RED.
+        - VERIFIED: `ds-complexity-contract.test.ts` **11/11** (9 old + 2 new, zero regression);
+          eslint single-file heap-fed exit 0; `verify:record-encoding` exit 0 (0 chargeable lines / 2247
+          graded files). census no drift: no new `docs/evidence/*`, no `verify:*`, `complexity-arms.mjs`
+          M-count untouched, 132 arms / disposition unchanged (gate lives in `apps/web/test/*`).
+        - HONEST GAPS (ADR 0112): ① the nonzero anchor is only added to TtlLru (MemoryRateLimiter already
+          immune via its `>` line; that line's own presence is unguarded — noted, no gate pre-built for a
+          hypothetical removal); ② a real open-addressed LRU would still hit v672's static gate by design —
+          the migration path is change ADR 0105 + swap static gate AND anchor together, not bypass;
+          ③ hosted Studio CI verdict for this push PENDING.
+        - SHARED-TREE: HEAD `c7a4bb9` (my v678) at slice start -> lane pushed `de812b8` (publish preflight
+          AI readiness, 3 refs aligned) mid-slice; v676 front-end + ADR 0109 are lane's uncommitted bytes,
+          not touched. State note self-contained here + ADR 0112 (CURRENT-STATE worktree carries lane bytes).
+
+  v680  a reusable completion-cache component lands with its honesty boundary drawn before wiring (ADR 0113).
+        - User gave a real LLM gateway (wkapi.pro/v1, gpt-6-sol): billed per token (~4159 prompt tokens
+          measured), 2–10 s latency. Repeating the same (model,system,user) burns money twice. Asked for
+          "caches used well" + "must test/improve with the real API". No completion cache existed (only
+          contract.py's schema lru_cache and jobs.py's Redis queue).
+        - DECISION (the point of this slice): deliver the component + gate + REAL-GATEWAY proof, but DO
+          NOT wire it into registry/execution/usage. A cache hit makes `usage.toolCalls/tokens/latency`
+          semantically ambiguous; contracts/ai-*-response.schema.json is additionalProperties=false,
+          web TaskUsageSchema is an exact zod shape, and §159 forbids reporting a replay as a fresh
+          billed real call. Usage semantics undecided => no gate, no production wiring (ADR 0090/94 X4).
+          Deliverable: `completion_cache.py` (LlmCompletionCache TTL+LRU + CachedLlm decorator, full
+          LLMProvider surface, failures never cached) + `test_completion_cache.py`. `stats()` honestly
+          counts hits = calls saved. Wiring checklist is ADR 0113 "still owed".
+        - Door shape (ADR 0110 three-part): ① real component gates (hit skips re-send, model/system/user
+          three-way independence, no poison on failure, TTL expiry via injected clock, LRU not FIFO,
+          stats arithmetic, invalid config rejected, decorator transparent); ② always-on arms (missing
+          user dim / cached failure / re-sent 2nd call / wrong replay all RED, correct obs GREEN, plus a
+          monkeypatch arm that degrades the real key() and proves the gate reads the component, ADR 0095);
+          ③ opt-in real leg: _CountingTransport wraps real HTTPTransport, same prompt twice on real
+          gpt-6-sol => gateway sees exactly 1 request, 2nd is a 0-network cache hit, replay is valid JSON.
+          Judges pin invariants (no-re-send / replayed content / honest stats), NOT the undecided
+          tokens/latency/identity of a hit (ADR 0094 X4).
+        - VERIFIED: offline CI-safe 18 passed / 1 skipped (no key, live leg skips, no fake green);
+          opt-in real 19 passed (live leg truly sends 1 request); full ai-service CI 114/5, opt-in 118/1
+          (baseline 96/4, zero regression); verify:record-encoding exit 0 (0 chargeable / 2248 files).
+          Zero production-source edits, zero lane-file edits, no real key in either new file.
+        - HONEST GAPS (ADR 0113): ① usage semantics for a hit (toolCalls/tokens/latency) + whether to add
+          cacheHit to contract+web zod — must be decided with web ledger owner; ② opt-in knob
+          NEXUS_LLM_CACHE_TTL_S default-off + Registry wrapping; ③ temperature is hardcoded 0.2 today,
+          must enter the key if opened; ④ no single-flight (concurrent same-key may double-spend, by design);
+          ⑤ process-local only (restart loses it; cross-instance needs Redis, another slice);
+          ⑥ hosted Studio CI verdict PENDING (no key => live leg skips there).
+        - SHARED-TREE: HEAD `b299c28` at slice start, still `b299c28` at commit (lane's v676 front-end
+          3 files + ADR 0109 remain uncommitted, not touched). My 2 new files + ADR 0113 + this ROADMAP
+          segment, exact `git add`, ff-checked, no force. State note self-contained here + ADR 0113
+          (CURRENT-STATE worktree carries lane bytes, not edited).
+
+  v681  bounded provider retry: the Resilience4j lesson crosses languages into ai-service (ADR 0114).
+        - Real gateway (wkapi.pro/v1, gpt-6-sol) measured 2–10 s latency, seen 503; one transient 5xx/429
+          used to fail the whole design request (502). Java nexus-api already solves the same problem with
+          v669a DomainServiceRetry; this slice mirrors it into the Python provider, crossing two known traps:
+          ① a configured retry nobody calls (Feign breaker integration ignores Resilience4j Retry), and
+          ② RetryRegistry.retry() get-or-create silently retrying a 404 via ofDefaults().
+        - Unlike v680's cache, retry has NO usage ambiguity (one logical request -> one successful
+          Completion; usage from the winning attempt; latency_ms includes backoff total wall clock). So this
+          one IS wired into production: openai_compatible.complete() runs a bounded retry loop; Settings gains
+          llm_max_attempts / llm_retry_base_s / llm_retry_cap_s (NEXUS_LLM_MAX_ATTEMPTS / _RETRY_BASE_S /
+          _RETRY_CAP_S); Registry passes them into the provider (config reaches real code, not a prop).
+        - Policy (mirrors "404 is an answer"): RETRY 429/5xx + network HTTPError, exponential min(base·2^i,
+          cap) with Retry-After honored (max of the two); NEVER retry 401/403/400/404/422 nor a malformed
+          200 payload. Idempotent: same body every attempt. ValueError on max_attempts<1 (explicit rejection,
+          never silently retry-everything). max_attempts=1 DEFAULT = byte-identical pass-through (zero regression).
+        - Door (ADR 0110 three-part): ① real gates (transient retried, same body, deterministic errors one
+          shot, exhausted -> ProviderFailed, backoff >= exponential floor + capped + Retry-After respected,
+          latency >= total wait via linked fake clock/sleep, pass-through, invalid config); ② 7 always-on arms
+          (no-retry / client-error-retried / below-floor / over-cap / ignore-Retry-After / latency-hidden RED
+          + correct-observations GREEN incl. "Retry-After legitimately breaks monotonicity" — judges pin
+          lower-bound+cap, NOT monotonic, ADR 0094 X4); ③ opt-in real leg: healthy gpt-6-sol one-shot, valid
+          JSON, usage>0, zero backoff (wiring doesn't invent retries). Judges shared by gates and arms (ADR 0095).
+        - FIRST-RED then GREEN: before prod edit 14 real gates RED (no sleep/clock/max_attempts yet) + 6 arms
+          GREEN; after 21/1. Two REDs along the way were MY gate bugs, not prod bugs (monotonicity wrongly
+          pinned; fake sleep not advancing fake clock) — fixed in the gate only, per "red => impl/assumption/
+          undefined" triage. Full ai-service CI 135/6 (baseline 114/5, +21 zero regression), opt-in real
+          140/1 (all live legs hit real gpt-6-sol), verify:record-encoding exit 0 (0 chargeable / 2251 files).
+        - HONEST GAPS (ADR 0114): ① no circuit breaker (persistent 503 amplifies; bounded max_attempts default
+          off is the only guard; pair with upstream breaker); ② embedding path not retried (gateway has no
+          embedding model anyway); ③ not durable / not cross-process (that is the job queue, §162);
+          ④ Retry-After only parses seconds, not HTTP-date; ⑤ no jitter (multi-instance same-beat retry);
+          ⑥ hosted Studio CI verdict PENDING (no key => live leg skips).
+        - SHARED-TREE: HEAD `41cdaa9` (my v680) at slice start; lane landed `d163a31` (v676 front-end,
+          ADR 0109) DURING this slice and pushed it himself before my commit (3 refs aligned `d163a31`
+          at commit time). I never touch lane's files; status shows only my 3 source files + 1 new test +
+          ADR 0114 + this ROADMAP. v681 commits on top of `d163a31`, single ff push, no force, nothing
+          dropped. State note self-contained here + ADR 0114 (CURRENT-STATE worktree had lane bytes).
+
+  v682  outbound circuit breaker: the other half of the Spring Cloud resilience pair lands (ADR 0115).
+        - v681's HONEST GAP #1 was "no circuit breaker": a persistent 503 on wkapi.pro/v1 made every
+          request burn a full bounded-retry round before failing — amplifying pressure on a sick upstream.
+          Java nexus-api already solves this with Spring Cloud/Resilience4j DomainCircuitBreaker and had
+          MEASURED three silent-failure traps (ADR 0057/0101); this slice mirrors them into ai-service
+          WITH the traps, not just the state machine:
+          ① name/config same-source ("configured but nobody uses it"): Settings gains 6 NEXUS_LLM_CB_*
+          knobs -> Registry constructs BreakerConfig/CircuitBreaker -> injected into complete()'s
+          before_call() gate for REAL. Doors read BEHAVIOR (OPEN => 0 HTTP; Registry knobs byte-equal),
+          not "the config block looks right".
+          ② "404 is an answer": record_ignored() keeps deterministic failures (401/403/400/404/422,
+          malformed payload) OUT of the window; only transient (429/5xx/network, same source as v681's
+          _RETRYABLE_STATUS) record_failure(). A TransientProviderFailed(ProviderFailed) subclass makes
+          the category a TYPE (door + arms share the judge, no error-text parsing). A healthy service is
+          never tripped by its own 404. CircuitOpen inherits ProviderFailed => execution.py's
+          `except ProviderFailed` maps denial to an honest 502 retryable with ZERO change (zero regression).
+          ③ OPEN must auto-return to HALF_OPEN: no thread; state/before_call() lazily transitions on the
+          injected clock (equivalent to Java's automaticTransitionFromOpenToHalfOpenEnabled). All probes
+          succeed -> CLOSED; any failure -> OPEN and restart the wait (no ping-pong, no permanent outage).
+        - BreakerConfig.__post_init__ explicitly REJECTS invalid policy (>=1 window/min, min<=window,
+          threshold in [0,100], non-negative wait, >=1 half-open calls) — Java v669a's "no silent
+          ofDefaults() degradation" mirrored. Default disabled = byte-identical to v681 (zero regression).
+        - DATA-STRUCTURE OPTIMIZATION: the sliding window is the per-call hot path. deque(maxlen=N) +
+          incremental _failure_count => amortized O(1) record/rate query (NOT sum(window) O(n)). Per
+          ADR 0112 the O(1) claim carries THREE doors: positive anchor (record_ops == m > 0, linear),
+          two-size equality (window 20 vs 200 same ops), and static premise coupling (source stays
+          deque+incremental, no sum() traversal) — an arm reddens on a list-rewrite so the dynamic door
+          cannot silently go false-green.
+        - FIRST-RED then GREEN: before resilience.py landed, 18 real gates RED / 11 always-on arms GREEN
+          / 1 live leg skip. After: gate file 30 passed/1 skipped. Full ai-service CI 166 passed/7 skipped
+          (baseline v681 135/6 -> +31, zero regression); opt-in real-gateway 172 passed/1 skipped (all 6
+          live legs hit real gpt-6-sol, breaker live leg: 2 healthy calls stay CLOSED, 2 real networks).
+          verify:record-encoding exit 0 (0 chargeable / 2254 files).
+        - THREE "red"s were MY gate bugs, not prod bugs (triaged "red => impl/assumption/undefined"):
+          two arms fed observations violating multiple asserts at once / a match keyword not equal to the
+          assert that actually fired — fixed in the gate only. Judges shared by gates and arms (ADR 0095);
+          judges pin properties not literals (threshold/window/wait/name rename stays green, ADR 0094 X4).
+        - HONEST GAPS (ADR 0115): ① process-local, non-durable, non-cross-instance (Redis is another
+          slice, akin ADR 0102); ② embedding path not breaker-wired (gateway has no embedding model);
+          ③ stats() not yet on /healthz /metrics wire (web/prd touch, another slice); ④ count-based window
+          not time-based; ⑤ no jitter / no fine half-open concurrency cap.
+        - SHARED-TREE: HEAD `2f1970c` (lane's cont.49 docs/CURRENT-STATE commit) at slice start and at
+          commit — no lane landing during this slice. Only my 5 files (3 modified: config/registry/
+          openai_compatible, 2 new: resilience.py + test_provider_breaker.py) + ADR 0115 + this ROADMAP
+          segment; exact `git add`, ff-checked before push, no force. State note self-contained here + ADR
+          0115 (CURRENT-STATE is lane territory, not edited). ADR number re-checked before commit (0115 free).
+
+  v683  cross-instance shared circuit breaker: the distributed completion of the resilience pair (ADR 0116).
+        - v682's breaker is process-local: multi-replica deployments make EVERY instance accumulate its own
+          failure sample before tripping, so a dead upstream keeps getting hit by the replicas that have not
+          caught up. venv already has redis==5.2.1 (§162 jobs) and real Redis 56379 is OPEN with a SYNC
+          redis-py client PINGing True — so cross-process shared breaker state is now feasible with no
+          async/sync impedance mismatch. New apps/ai-service/src/ai_service/shared_breaker.py: pure
+          should_open(failures,total,*,minimum,threshold) + SharedCircuitBreaker (Redis shared count-based
+          window + three states), REUSING v682's BreakerConfig/CircuitOpen.
+        - NO-LUA BY DESIGN (ADR 0095 single truth): the trip JUDGEMENT is a pure function shared by prod
+          record AND the door/arms — a Lua copy would be a second judge that drifts. Atomicity comes from
+          Redis semantics: INCR (atomic) + pipeline transaction (consistent total/fail snapshot) + IDEMPOTENT
+          SET phase=open EX wait (concurrent over-threshold only re-sets the same phase, harmless; no misses).
+        - THREE Java lessons carried across instances: ① name/config visible (namespace + fixed key suffixes
+          inspectable; stats() reports namespace/shared/degraded truth); ② 404 is an answer — record_ignored()
+          INCRs NOTHING, a healthy service is not tripped by its own/another instance's 404; ③ OPEN must
+          auto-return to HALF_OPEN — Redis TTL does it natively (SET phase EX wait; on expiry the next
+          before_call of ANY instance probes), no thread, cross-process visible.
+        - ZERO PROD WIRING (v680/ADR 0113 discipline): when a SYNC complete() should switch to the shared
+          backend is a CROSS-CONTRACT semantic (degraded fail-open/closed/local, fixed-window boundary burst,
+          per-request Redis latency/availability coupling) — UNDEFINED, so no door pins it, no wiring, gaps
+          in ADR. degraded strategy is an INJECTED ctor param ("local"|"open"|"closed"); the door pins only
+          "stats() honestly marks shared=False/degraded=True, never claims sharing", not which strategy.
+        - O(1) HOT PATH (ADR 0112): record emits a FIXED number of atomic Redis commands regardless of
+          window size/failure count; record_ops self-reports the logical step. No KEYS/SCAN full scans —
+          _delete_all deletes only the 5 fixed keys in its namespace. Three doors: positive anchor
+          (record_ops==m>0, linear), window 3 vs 300 equal cost, static premise coupling (source still calls
+          should_open + INCR + pipeline, no keys(/scan_iter(/smembers(); an arm reddens on a keys() rewrite.
+        - FIRST-RED then GREEN: before the component landed 9 real gates RED / 7 always-on arms GREEN / 1
+          real-Redis leg skip. After: gate file 16 passed/1 skipped (CI). Real-Redis single leg 17 passed
+          (16 offline + 1 real leg, two INDEPENDENT redis-py clients over real 56379: A's failures seen by B,
+          B denied by the shared OPEN, real TTL expiry then auto-probe). Full ai-service CI 182 passed/
+          8 skipped (baseline v682 166/7 -> +16, zero regression); opt-in real-gateway + real-Redis both
+          legs 189 passed/1 skipped (v682 opt-in 172/1 -> +17, all live legs hit real gpt-6-sol AND 56379).
+          verify:record-encoding exit 0 (0 chargeable / 2257 files). census population ZERO drift: only
+          tests/* + src/* + ADR + ROADMAP, no docs/evidence/*, no new verify:*.
+        - THREE "red"s were MY door/fixture bugs, not prod bugs: ① door read stats()["redis_ops"] but impl
+          reports "record_ops" (unified to record_ops); ② FakeRedis's two instances shared the store `s` but
+          NOT the ttl dict, so cross-instance TTL expiry faked RED (real Redis clients share ONE server —
+          fixture now shares store + ttl); ③ the in-wait before_call() was not catching CircuitOpen so the
+          test crashed instead of reaching the judge (added catch + tightened assert). Gates only.
+          ADDITIONALLY one ENVIRONMENT false-red: full suite reported "Settings has no attribute
+          llm_circuit_breaker_enabled"; `git show HEAD:config.py` + empty `git diff` proved v682's field is
+          intact and the tree clean => stale __pycache__ bytecode (repeated Write/Edit on one file); clearing
+          __pycache__ made `hasattr(Settings(), ...)` true and the full suite green. NOT a code/shared-tree
+          regression. Judges shared by gates and arms (ADR 0095), pin properties not literals (ADR 0094 X4).
+        - HONEST GAPS (ADR 0116): ① ZERO prod wiring (complete() still uses v682 process-local breaker;
+          switching to shared is a cross-contract semantic needing owner coordination); ② cross-process
+          HALF_OPEN probe coordination (cumulative N probes / concurrency cap) still owed; ③ fixed-window
+          boundary burst (sliding-log/multi-level window is another, higher-Redis-cost slice); ④ Redis
+          availability coupling once wired; ⑤ TTL relies on Redis server clock (fine single-host);
+          ⑥ hosted Studio CI has no Redis URL => live leg skips, only gates+arms (no false green).
+        - SHARED-TREE: HEAD `c900359` (my v682) at slice start and at commit — no lane landing during this
+          slice. Only my 2 new files (shared_breaker.py + test_shared_breaker.py) + ADR 0116 + this ROADMAP
+          segment; exact `git add`, ff-checked before push, no force. State note self-contained here + ADR
+          0116 (CURRENT-STATE is lane territory, not edited). ADR number re-checked before commit (0116 free).
+
+  v684  backoff jitter: the LAST shared gap of all three resilience pillars closes (ADR 0117).
+        - v681 retry / v682 breaker / v683 shared breaker all recorded HONEST GAP "no jitter": the
+          exponential backoff min(base*2^i, cap) is DETERMINISTIC, so every replica (and every
+          instance probing a shared HALF_OPEN breaker) wakes at the SAME instant and re-hits the
+          barely-recovered upstream — thundering herd. New apps/ai-service/src/ai_service/jitter.py:
+          STRATEGIES + pure bounds(...) + thin jittered_backoff(...) sampling layer.
+        - FOUR strategies: full [0,exp] (max spread), equal [exp/2,exp] (half floor), decorrelated
+          [base,min(cap,prev*3)] (stateful, prev=None -> base first beat), and none [exp,exp] (= v681
+          status quo, ZERO-REGRESSION CONTROL proving the door doesn't punish a legitimate no-jitter
+          deployment, ADR 0094 X4). exp = min(base*2^attempt, cap).
+        - RETRY-AFTER unified post-process (server指令 over local policy, ADR 0114): jitter strategies
+          raise the interval to [max(lo,ra), max(hi,ra*(1+_SPREAD))] — never earlier than the server's
+          hard floor, yet never zero-width (else same-beat again). none adds NO spread and returns
+          exactly max(exp,ra) = v681 byte-identical (door pins this precise semantic, not a loose OR).
+          _SPREAD literal NOT pinned (ADR 0094 X4): change it >0 and gates stay green.
+        - SINGLE TRUTH (ADR 0095): all interval math in pure bounds(); jittered_backoff only does the
+          final rng(lo,hi) sample; door + arms share bounds, no second implementation. rng injected
+          ((low,high)->float): prod random.uniform, door random.Random(seed).uniform — no global state,
+          same seed -> same sequence, A/B-able. Invalid config (unknown strategy/base<0/cap<0/cap<base/
+          retry_after<0/attempt<0) -> ValueError, no silent degrade.
+        - ZERO PROD WIRING (v680/v683 / ADR 0113): wiring into v681 _backoff is cross-contract
+          (strategy choice, decorrelated prev across attempts, RNG source) — UNDEFINED, no door pins it,
+          gaps in ADR. Pure-function component + door + same-process A/B only.
+        - SAME-PROCESS A/B (ADR 0105 methodology, NOT wall-clock): metric is DISPERSION (time-bucket
+          occupancy / collision pairs), a JIT/GC-independent deterministic statistic, so no alternating
+          A/B to cancel warmup noise needed — but 9 rounds x p50 median to damp single-sample variance.
+          NEVER cross-process before/after wall-clock (host once faked +695%/8x, ADR 0105). Archived
+          single read (M=64, K=16, attempt=3, base=0.5, cap=8): no-jitter unique=1/16 collisions=2016
+          (=C(64,2)); full-jitter unique=8/16 collisions=269 (13.3% of no-jitter). Door pins
+          "jitter occupies >= half buckets & collisions <35% of no-jitter", NOT any 1.x× perf factor;
+          POSITIVE ANCHOR (ADR 0112): no-jitter collisions must be >0 else the verdict is meaningless.
+        - FIRST-RED then GREEN: before the component landed 16 real gates RED / 7 always-on arms GREEN.
+          After: gate file 23 passed (CI). Full ai-service CI 205 passed/8 skipped (baseline v683 182/8
+          -> +23, zero regression); opt-in real-gateway + real-Redis both legs 212 passed/1 skipped
+          (v683 opt-in 189/1 -> +23, all live legs hit real gpt-6-sol AND 56379, no interference with
+          jitter's pure-function gates). verify:record-encoding exit 0 (0 chargeable / 2260 files).
+          census population ZERO drift: only +src/jitter.py +tests/test_jitter.py, no docs/evidence/*,
+          no new verify:*.
+        - TWO "red"s were MY gate bugs, not prod bugs (red => impl/assumption/undefined): one arm fed
+          an observation violating two asserts at once and hit the wrong-keyword assert first (fixed to
+          violate only the target property); the none+RA truth gate's first draft was an over-loose
+          `abs(x-0.5)<eps or x>=3.0` (near-tautology, toothless) -> pinned exact =max(exp,ra)=3.0.
+          Gates only. Judges shared by gates and arms (ADR 0095), pin properties not literals.
+        - HONEST GAPS (ADR 0117): ① ZERO prod wiring (v681 _backoff still deterministic; wiring needs
+          strategy choice + decorrelated prev propagation + RNG source, owner coordination); ② herd
+          reduction not measured AFTER wiring into real retry/breaker (needs slice + load test);
+          ③ decorrelated first-beat initial value differs slightly from AWS original; ④ prod random.uniform
+          is module-global RNG (GIL-safe but per-process seeding undecided); ⑤ A/B single read not roomy
+          (13.3% vs theory ~9%; 9-round p50 stable, larger M/scale ratios unmeasured — archived single
+          read, no 1.x× verdict); ⑥ hosted Studio CI has no key/Redis => live legs skip (no false green).
+        - SHARED-TREE: HEAD `01842fa` (my v683) at slice start and at commit — no lane landing during
+          this slice. Only my 2 new files (jitter.py + test_jitter.py) + ADR 0117 + this ROADMAP segment;
+          exact `git add`, ff-checked before push, no force. State note self-contained here + ADR 0117
+          (CURRENT-STATE is lane territory, not edited). ADR number re-checked before commit (0117 free).
+        - BRANCH HYGIENE: local `main` was found 1 behind (v683 push updates origin/main but not local
+          main); ff'd it with `git branch -f main master` after `merge-base --is-ancestor main master`=0
+          (pointer-only, no checkout, no force). Now local main/master + origin/main/master + the single
+          worktree HEAD all align; no stray branches/stash/worktrees — the user's "merge all branches into
+          one main line / 集大成" is satisfied at the global level.
+
+## v685 — 把 v684 抖动组件接进生产重试路径（ADR 0118，2026-11-12）
+- **做了**：`jittered_backoff` 接进 `OpenAICompatibleProvider._backoff`；`NEXUS_LLM_JITTER_STRATEGY`
+  旋钮经 `Settings`→`Registry`→provider 真注入；`none` 默认字节级零回归、opt-in 开 full/equal/
+  decorrelated；decorrelated 跨 attempt 跟踪 prev；`_judge_backoff_shape` 升级复用 `bounds()`
+  单一真值且严格保留"只有首拍响应带 Retry-After"语义。
+- **验证**：CI 209/9（零回归）、opt-in 217/1（含真 gpt-6-sol 抖动腿）、record-encoding 0 收费、
+  census 零漂移。
+- **仍欠**：生产默认仍 none（需压测再开）；embedding provider 未接抖动；v683 跨实例半开探测仍欠。
+
+Standing constraints (measured, not assumed): this host keeps ~0.3 GB physical memory
+free and its Docker engine currently refuses to start containers (`docker start` hangs;
+`docker info` still answers) — live m9/spring-cloud legs run on the hosted runner and
+the record names that plane. Nothing here may be claimed as done without a run whose
+output is read (agents.md §158/§159).
+-->
+
 # NEXUS Roadmap · studio line
 
 # NEXUS Roadmap
@@ -12410,3 +13255,71 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
 - **判分面**：forced-colors-style 9/9、style-tokens + published-style + published-page-visual + publish-panel 合计 **63/63 绿**；e2e forced-colors smoke 1 passed（真 Chrome、离线 A/B，新 7 类序列被接受）；`verify:fe-gates`（969）此前全绿、CSS 删减不引入 hex/token 违规；eslint/tsc 未受影响（纯 CSS+判据同步）。
 - **诚实边界**：本片不删 `.pb-variant`；ADR-0220 除第 2 条外其余决定不受影响（§FE-60/62 组件本身早是 .pu- 归 owning facade）；强项是命名空间收口，不是性能。**整栈 test:main 复跑已随本片启动（notification 为准），此条目先行记账。**
 - **协作**：精确 stage（globals.css/4 判据/ADR/ROADMAP/CURRENT-STATE），无并行会话交错；ADR-0260。未 push。
+## v686 — 跨实例共享 LLM completion 缓存（ADR 0119）（2026-11-13）
+- **做了**：`RedisLlmCompletionCache`（`apps/ai-service/src/ai_service/redis_completion_cache.py`）：
+  v680 的进程内 `(model, system, user) → Completion` 缓存只有单实例收益；本片做成跨进程共享的
+  Redis 后端组件。键 = `nexus:llmc:e:{sha256(model \0 system \0 user)}`，LRU 索引独立一个 zset
+  （score=epoch ms），entry TTL 由 `SET EX` 权威实现、重启副本漂移不影响过期语义；store 顺手
+  摊销修剪（过期成员数 k，非缓存总条数）；get/store 均为 O(1) 定点 Redis 命令，不 KEYS/SCAN；
+  不写 Lua（双真值会漂移，v683 同款纪律）；计网竞态是"多删/少删一条最旧 entry"的良性缓存级竞态。
+- **一切 Redis 故障 fail-open**：get 一律回 None（miss）、store 吞掉（stores_failed）；缓存是
+  加速器不是门，provider 调用不因缓存层不可用而失败；`stats()` 如实标注 shared/degraded；
+  毒条目（bad JSON / v≠1 / bool 冒充 int / 类型不符）→ miss + corruptions + 顺手 DEL 自愈。
+- **零生产接线**（v680/v683 同款纪律）：把 CachedLlm 换 Redis 后端是契约级语义决策
+  （命中是否进 usage 账等），语义未定不定门、不接线（ADR 0113 仍欠同一条门）。
+- **验证（2026-11-13 本机实测）**：20 新门（假 Redis 真值腿 + 4 判据臂）全绿；全套
+  232 passed / 12 skipped；`NEXUS_LIVE_LLM=1` 真 wkapi.pro / gpt-6-sol +
+  `NEXUS_LLMC_REDIS_LIVE=1 NEXUS_LLMC_REDIS_URL=redis://localhost:56379/7` 真 Redis 两独立
+  client（两"进程"）字节往返 15 条 live 腿全绿；record-encoding exit 0；evidence-census 135 零漂移。
+
+## v687 — 作业队列的有界重试 + 死信路由（Stream DLQ / Spring Retry 镜像）（ADR 0120，2026-11-13）
+- **并轨集成**：本片是并轨作业平面（apps/ai-service 的 jobs.py + test_jobs.py）的未落 commit，
+  由本次会话在并轨暂停时按既有授权直接接手集成，不是新造（jobs.py 的原注释把自己叫 v686，
+  与 completion-cache v686 同号——本条不改其它 lane 的字节）。
+- **做了**：Job.attempts 计数（worker 真正跑过的次数）；`AI_SERVICE_JOB_MAX_ATTEMPTS`（默认 1，
+  字节级零回归）opt-in 开启后：4xx/5xx/网络失败 → attempts+=1 → 未耗尽 requeue（内存=pending 尾插；
+  Redis=RPUSH 先进先出）→ 耗尽 route_to_dead_letter（内存=进程内死信列表；Redis=`nexus:ai:dead`
+  LPUSH + 随 TTL 保留），毒消息隔离而非无限重试或静默丢。
+- **专门不做**：不区分失败种类（4xx 与 5xx 同走有界重试）、不加退避、死信无容量上限——
+  这些是仍欠项，不为它们造门（ADR 0120 明示）。
+- **验证**：全 ai-service 套 232 passed / 12 skipped；`NEXUS_REDIS_URL=redis://localhost:56379/7`
+  时 test_jobs.py 20 passed（含两条 live Redis 腿）；4 条 DLQ/Retry 判据绿；record-encoding 0 chargeable。
+
+## v688 — 有界死信（ADR 0121）（2026-11-13）
+- **做了**：`dead_letter.py`（trim_list 原地裁左侧最老 / trim_command LTRIM 的 async 薄封装、
+  inspect.isawaitable 区分 sync fake 与 redis-py asyncio / parse_max_dead_letters 读
+  AI_SERVICE_DEAD_LETTER_MAX，默认 500，0=不限，非法值回落 500）。两后端接线：
+  MemoryJobStore append 后锁内 trim；RedisJobStore LPUSH+EXPIRE 后 LTRIM 0 N-1；裁剪失败不拖垮归档。
+- **零判定路径变化**：不动 attempts、不动 4xx/5xx 分支、不引入新 keyspace。
+- **验证（本机）**：17 新门（parse×5、trim_list×3、判据臂×2、memory×2、fake-redis LTRIM×4）；
+  live 腿 `NEXUS_DL_REDIS_LIVE=1 NEXUS_DL_REDIS_URL=redis://localhost:56379/7` 真腿 4 毒消息→留最新 2；
+  全套 254 passed（设置了真 Redis env）；record-encoding exit 0。
+- **仍欠**：死信导出工具缺、cap≠quota 无反压传播、LPUSH+LTRIM 非事务（极端并发最坏多裁 1 条）。
+
+## v689 — 死信的只读巡检面（ADR 0122）（2026-11-13）
+- **做了**：`/admin/dead-letters` 只读页面 + `/api/admin/dead-letters` JSON/NDJSON 导出 +
+  `server/deadLetters.ts`（llen+bounded lrange、head-relative cursor `{s,e}` base64url；溢出、改写、
+  改写后 stale → 409 提示刷新；limit 上界 100、export 上界 1000；AdminNav 注册死信入口）。
+  LLM 咨询了一轮设计（wkapi.pro / gpt-6-sol）：指向 Postgres readiness 修复（与并轨不满足本次范围，不采纳）
+  + inspector 初始设计（采纳其隐私/有界/不写/JSONL 形状，偏转其 tail-回溯顺序为 head-relative；11 条 contract
+  tests 全量落回本仓判据）。
+- **零生产侵入**：ai-service 一字节不改；读路径 LLEN/LRANGE 两个命令；任何 Redis 故障都如实降级不伪造空表。
+- **验证（本机）**：web 缝 11 条（含 1 live Redis leg，DB7）；typecheck exit 0；eslint 干净（src/app）；
+  style-tokens 29/29；style/theme/state/jsx-text 15/15；record-encoding exit 0。
+- **仍欠**：admin 粒度（ops 只读细化）、e2e paced 未纳入、导出暂非流式、admin role 模型待细分。
+
+## v690 — LLM 缓存/命中率修复（ADR 0123）（2026-11-13）
+- **做了**：`NEXUS_LLM_STREAM` 默认 True（SSE + `stream_options.include_usage=true`，
+  实测首发即 ~80% prompt 命中；`=0` 光复字节级非流）；
+  `NEXUS_LLM_COMPLETION_CACHE_URL` 非空即 `Registry` 真包 `CachedLlm(pure=RedisLlmCompletionCache)`
+  → 全集群共享 "(model, system, user) → Completion"，连接失败 fail-open。
+  `/v1/ai/chat` 显式 json_mode=False（json_object 会被 provider 以"必须包含 json 字面"拒成 502）；
+  `Completion` 增 `cached_tokens` / `reasoning_tokens` 字段（默认 0，向后兼容）；
+  `design_prompt.build_prompt` 重排 payload 前缀序（稳定现场先、本轮诉求最后）。
+- **真机（wkapi.pro / gpt-6-sol）**：非流全程 details 不报直到第 3-4 次 ≈100% 命中；
+  流首发即 ≈80%；同前缀变 suffix 请求的命中率池相关——provider 池轮转随缘均值 ≈80%。
+  应用层 Redis 缓存 <5ms 稳定命中（实测）。
+  修复了 chat 从未能用的问题（json_mode 默认 True + json_object 被 provider 拒 → 502）。
+- **实证测试**：新增 `test_prompt_order.py`；suite 248 passed / 13 skipped / 0 failed。
+- **仍欠**：契约层 cached/reasoning 数未进 web 侧 Usage（TaskUsageSchema exact additionalProperties=false）；
+  chat 浏览器路径链未重测（浏览器断连）。

@@ -24,6 +24,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Mapping, Protocol
 
+from .dead_letter import DEFAULT_MAX_DEAD_LETTERS, parse_max_dead_letters, trim_command, trim_list
 from .execution import error, execute_ai_request
 from .providers.registry import Registry
 
@@ -49,6 +50,7 @@ class Job:
     progress: float | None = None
     result: dict[str, Any] | None = None
     error: dict[str, Any] | None = None
+    attempts: int = 0  # 已被 worker 真正跑过的次数（用于有界重试 + 死信判定，内部记账）
 
     def public(self) -> dict[str, Any]:
         """作业状态报文：payload 是 worker 的私有输入，不发回调用方。"""
@@ -70,6 +72,8 @@ class Job:
 class JobStore(Protocol):
     backend: str
     note: str
+    max_attempts: int  # 每件作业允许的总尝试次数；<=1 表示不重试（默认，零回归）
+    max_dead_letters: int  # 死信上限（ADR 0121）；0 = 不限（回到 ADR 0120 的旧行为）
 
     async def enqueue(self, payload: dict[str, Any]) -> Job: ...
     async def claim(self) -> Job | None: ...
@@ -78,6 +82,9 @@ class JobStore(Protocol):
     async def counts(self) -> tuple[int, int]: ...
     async def request_cancel(self, job_id: str) -> Job | None: ...
     async def is_cancel_requested(self, job_id: str) -> bool: ...
+    async def requeue(self, job: Job) -> None: ...
+    async def route_to_dead_letter(self, job: Job, *, reason: str) -> None: ...
+    async def dead_letters(self) -> list[dict[str, Any]]: ...
     async def close(self) -> None: ...
 
 
@@ -92,15 +99,20 @@ class MemoryJobStore:
     backend = "memory"
     note = "作业只存在当前 ai-service 进程里：重启即失，多副本部署时轮询可能打到另一台查不到。"
 
-    def __init__(self, *, max_jobs: int = 200) -> None:
+    def __init__(self, *, max_jobs: int = 200, max_attempts: int = 1, max_dead_letters: int = DEFAULT_MAX_DEAD_LETTERS) -> None:
         self._jobs: dict[str, Job] = {}
         # 队列的取领必须是 O(1)——claim 是 worker 的热路径，list.pop(0) 每次都搬一遍整列
         self._pending: deque[str] = deque()
         self._lock = asyncio.Lock()
         self._max_jobs = max_jobs
+        self.max_attempts = max(1, max_attempts)  # <=1 表示不重试（默认零回归）
+        self.max_dead_letters = max(0, max_dead_letters)  # 0 = 不限（ADR 0121）
         # 取消标志与作业本体分开存：作业本体各处都会整份写回，
         # 把标志塞进去就会出现"worker 的一次 save 把取消请求抹掉"这种竞态
         self._cancel_requested: set[str] = set()
+        # 死信（dead-letter）：耗尽重试仍失败的毒消息归档在这里，既不被再次领取，也不丢失
+        # （镜像 Spring Cloud Stream 的 DLQ 语义——毒消息隔离而非无限重试或静默丢弃）。
+        self._dead: list[dict[str, Any]] = []
 
     async def enqueue(self, payload: dict[str, Any]) -> Job:
         job = Job(
@@ -169,6 +181,30 @@ class MemoryJobStore:
         async with self._lock:
             return job_id in self._cancel_requested
 
+    async def requeue(self, job: Job) -> None:
+        """失败后可重试：重新挂回 pending 队列（锁内，与 claim 互斥，不会让同一件被领两次）。"""
+        async with self._lock:
+            self._jobs[job.id] = job
+            self._pending.append(job.id)
+            self._purge()
+
+    async def route_to_dead_letter(self, job: Job, *, reason: str) -> None:
+        """毒消息归档：耗尽重试仍失败，落死信而不是无限重试（也不静默丢）。"""
+        async with self._lock:
+            self._dead.append({"job": job.public(), "attempts": job.attempts, "reason": reason})
+            trim_list(self._dead, self.max_dead_letters)
+            # 作业本体保留一份终态 failed，方便按 jobId 仍能查到（与死信的归档互为冗余，不冲突）
+            job.status = "failed"
+            job.finishedAt = utc_now()
+            job.activities.append(
+                {"stage": "queue", "status": "failed", "summary": f"已路由到死信：{reason}", "at": job.finishedAt}
+            )
+            self._jobs[job.id] = job
+
+    async def dead_letters(self) -> list[dict[str, Any]]:
+        async with self._lock:
+            return list(self._dead)
+
     async def counts(self) -> tuple[int, int]:
         async with self._lock:
             return self._counts_locked()
@@ -196,18 +232,20 @@ class RedisJobStore:
     backend = "redis"
     note = "作业存在 Redis 里（带 TTL）：重启不丢，多副本部署时轮询打到任何一台都能查到。"
 
-    def __init__(self, client: Any, *, prefix: str = "nexus:ai", ttl_s: int = 3600) -> None:
+    def __init__(self, client: Any, *, prefix: str = "nexus:ai", ttl_s: int = 3600, max_attempts: int = 1, max_dead_letters: int = DEFAULT_MAX_DEAD_LETTERS) -> None:
         self._r = client
         self._prefix = prefix
         self._ttl = ttl_s
+        self.max_attempts = max(1, max_attempts)  # <=1 表示不重试（默认零回归）
+        self.max_dead_letters = max(0, max_dead_letters)  # 0 = 不限（ADR 0121）
 
     @classmethod
-    async def connect(cls, url: str, *, prefix: str = "nexus:ai", ttl_s: int = 3600) -> "RedisJobStore":
+    async def connect(cls, url: str, *, prefix: str = "nexus:ai", ttl_s: int = 3600, max_attempts: int = 1, max_dead_letters: int = DEFAULT_MAX_DEAD_LETTERS) -> "RedisJobStore":
         import redis.asyncio as aioredis  # 惰性导入：没配 Redis 时不需要这个依赖
 
         client = aioredis.from_url(url, decode_responses=True)
         await client.ping()
-        return cls(client, prefix=prefix, ttl_s=ttl_s)
+        return cls(client, prefix=prefix, ttl_s=ttl_s, max_attempts=max_attempts, max_dead_letters=max_dead_letters)
 
     def _key(self, job_id: str) -> str:
         return f"{self._prefix}:job:{job_id}"
@@ -263,6 +301,11 @@ class RedisJobStore:
         # 前缀刻意不用 `job:`——counts() 按 `prefix:job:*` 扫作业本体，混进去会把 "1" 当 JSON 解析
         return f"{self._prefix}:jobcancel:{job_id}"
 
+    @property
+    def _dead_key(self) -> str:
+        # 死信列表：与作业本体、pending、取消标志都不同前缀，避免被 counts() 的 job:* 扫描或作业淘汰误删
+        return f"{self._prefix}:dead"
+
     async def request_cancel(self, job_id: str) -> Job | None:
         if not await self._r.exists(self._key(job_id)):
             return None
@@ -286,6 +329,33 @@ class RedisJobStore:
 
     async def is_cancel_requested(self, job_id: str) -> bool:
         return bool(await self._r.exists(self._cancel_key(job_id)))
+
+    async def requeue(self, job: Job) -> None:
+        """失败后可重试：重新挂回 pending（RPUSH 追加 = 先进先出，重试件排到队尾）。"""
+        await self._r.set(self._key(job.id), json.dumps(asdict(job), ensure_ascii=False), ex=self._ttl)
+        await self._r.rpush(self._pending_key, job.id)
+
+    async def route_to_dead_letter(self, job: Job, *, reason: str) -> None:
+        """毒消息归档：耗尽重试仍失败，LPUSH 到死信列表（保留 TTL，随前缀清理）；本体留 failed 终态。"""
+        job.status = "failed"
+        job.finishedAt = utc_now()
+        job.activities.append(
+            {"stage": "queue", "status": "failed", "summary": f"已路由到死信：{reason}", "at": job.finishedAt}
+        )
+        await self._r.set(self._key(job.id), json.dumps(asdict(job), ensure_ascii=False), ex=self._ttl)
+        await self._r.lpush(
+            self._dead_key,
+            json.dumps({"job": job.public(), "attempts": job.attempts, "reason": reason}, ensure_ascii=False),
+        )
+        await self._r.expire(self._dead_key, self._ttl)
+        try:
+            await trim_command(self._r, self._dead_key, self.max_dead_letters)
+        except Exception:
+            pass  # 容量裁剪是 guardrail 不是主路径；失败不能拖垮死信归档
+
+    async def dead_letters(self) -> list[dict[str, Any]]:
+        raws = await self._r.lrange(self._dead_key, 0, -1)
+        return [json.loads(r) for r in raws]
 
     async def counts(self) -> tuple[int, int]:
         # pending = list 长度（O(1)），running = SCAN 计数（与 memory 后端同口径 status==running）。
@@ -376,10 +446,35 @@ class Worker:
             )
             await self.store.save(job)
             return job
-        job.result = body if 200 <= status < 300 else None
-        job.error = None if 200 <= status < 300 else body
+        succeeded = 200 <= status < 300
+        if not succeeded:
+            # 有界重试 + 死信（v686，镜像 Spring Cloud Stream DLQ + Spring Retry）：
+            # 默认 max_attempts=1 时此分支整体跳过（仍落 failed 终态，零回归）；
+            # opt-in 开启后，未耗尽则重新入队，耗尽则路由死信而非无限重试或静默丢。
+            job.attempts += 1
+            if self.store.max_attempts >= 2 and job.attempts < self.store.max_attempts:
+                job.status = "queued"
+                job.startedAt = None
+                job.finishedAt = None
+                job.activities.append(
+                    {
+                        "stage": "queue",
+                        "status": "info",
+                        "summary": f"第 {job.attempts} 次失败，重新入队等待重试（上限 {self.store.max_attempts}）",
+                        "at": utc_now(),
+                    }
+                )
+                await self.store.requeue(job)
+                return job
+            if self.store.max_attempts >= 2:
+                await self.store.route_to_dead_letter(
+                    job, reason=f"重试 {job.attempts} 次仍失败（HTTP {status}），路由到死信"
+                )
+                return job
+        job.result = body if succeeded else None
+        job.error = None if succeeded else body
         # 契约层的 200 就是真 200；4xx/5xx 一律算作业失败，不留"看起来完成了"的中间态
-        job.status = "completed" if 200 <= status < 300 else "failed"
+        job.status = "completed" if succeeded else "failed"
         job.finishedAt = utc_now()
         job.activities.append(
             {
@@ -405,11 +500,20 @@ def job_capacity(env: dict[str, str] | None = None) -> int:
         return 1
 
 
+def _max_attempts(env: Mapping[str, str] | None = None) -> int:
+    """每件作业允许的总尝试次数：默认 1（不重试，零回归）；opt-in >=2 开启有界重试 + 死信。"""
+    raw = (env or os.environ).get("AI_SERVICE_JOB_MAX_ATTEMPTS", "1")
+    try:
+        return max(1, int(raw))
+    except ValueError:
+        return 1
+
+
 async def build_store(env: Mapping[str, str] | None = None, *, prefix: str = "nexus:ai") -> JobStore:
     """配了 NEXUS_REDIS_URL 就用 Redis；连不上就抛出让服务启动失败，绝不悄悄退回内存后端。"""
     source = env if env is not None else os.environ
     url = (source.get("NEXUS_REDIS_URL") or "").strip()
     if not url:
-        return MemoryJobStore()
+        return MemoryJobStore(max_attempts=_max_attempts(source), max_dead_letters=parse_max_dead_letters(source))
     ttl = int(source.get("AI_SERVICE_JOB_TTL_S", "3600") or "3600")
-    return await RedisJobStore.connect(url, prefix=prefix, ttl_s=max(60, ttl))
+    return await RedisJobStore.connect(url, prefix=prefix, ttl_s=max(60, ttl), max_attempts=_max_attempts(source), max_dead_letters=parse_max_dead_letters(source))

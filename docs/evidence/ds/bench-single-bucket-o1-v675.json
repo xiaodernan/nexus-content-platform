@@ -1,0 +1,77 @@
+{
+  "scale": 1,
+  "results": [
+    {
+      "label": "TtlLru hit (capacity=8)",
+      "ops": 200000,
+      "totalMs": 59.06,
+      "opsPerSec": 3386169,
+      "p50Us": 0.232,
+      "p99Us": 1.206,
+      "nsPerOp": 295.3
+    },
+    {
+      "label": "TtlLru hit (capacity=8192)",
+      "ops": 200000,
+      "totalMs": 85.14,
+      "opsPerSec": 2349111,
+      "p50Us": 0.267,
+      "p99Us": 3.063,
+      "nsPerOp": 425.7
+    },
+    {
+      "label": "TtlLru flood (maxEntries=256, 400000 sets)",
+      "ops": 400000,
+      "totalMs": 233.5,
+      "opsPerSec": 1713037,
+      "p50Us": 0.48,
+      "p99Us": 2.14,
+      "nsPerOp": 583.8
+    },
+    {
+      "label": "MemoryRateLimiter flood (maxBuckets=64, 60000 distinct keys)",
+      "ops": 60000,
+      "totalMs": 463.19,
+      "opsPerSec": 129536,
+      "p50Us": 6.54,
+      "p99Us": 18.986,
+      "nsPerOp": 7719.9
+    },
+    {
+      "label": "MemoryRateLimiter flood (maxBuckets=4096, 60000 distinct keys)",
+      "ops": 60000,
+      "totalMs": 683.24,
+      "opsPerSec": 87817,
+      "p50Us": 10.518,
+      "p99Us": 25.671,
+      "nsPerOp": 11387.3
+    },
+    {
+      "label": "single-bucket hit at cap (limit=8)",
+      "ops": 200000,
+      "totalMs": 691.21,
+      "opsPerSec": 289347,
+      "p50Us": 3.365,
+      "p99Us": 6.806,
+      "nsPerOp": 3456.1
+    },
+    {
+      "label": "single-bucket hit at cap (limit=64)",
+      "ops": 200000,
+      "totalMs": 866.27,
+      "opsPerSec": 230874,
+      "p50Us": 4.077,
+      "p99Us": 14.184,
+      "nsPerOp": 4331.4
+    },
+    {
+      "label": "single-bucket hit at cap (limit=512)",
+      "ops": 200000,
+      "totalMs": 806.42,
+      "opsPerSec": 248011,
+      "p50Us": 4.015,
+      "p99Us": 6.188,
+      "nsPerOp": 4032.1
+    }
+  ]
+}

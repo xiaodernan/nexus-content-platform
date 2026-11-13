@@ -145,6 +145,65 @@ export interface ProfileView {
   accountDeleted: boolean;
 }
 
+/** 创作者广场卡片：§60 的头像/简介/作品数/粉丝数。只放真有过公开作品的账户——空台子不列（§159）。 */
+export interface AuthorCard {
+  id: string;
+  handle: string | null;
+  displayName: string;
+  bio: string | null;
+  avatarUrl: string | null;
+  works: number;
+  followers: number;
+  latestPublishedAt: string | null;
+}
+
+/**
+ * 公开平台上有过至少一次真公开作品的作者名单。两个聚合 SQL 一次往返——
+ * 不是 N+1：先聚一次作者（按最新公开时间排），再用 `IN ids` 反过来数粉丝一次。
+ * 排好顺序在应用层切片（首页只露 30 个），不放分页参数，免得真出多了之后被读者记作分页。
+ */
+export async function listPublicAuthorsForShowcase(): Promise<AuthorCard[]> {
+  const db = getDb();
+  const rows = await db
+    .select({
+      id: users.id,
+      handle: users.handle,
+      displayName: users.displayName,
+      bio: users.bio,
+      avatarUrl: users.avatarUrl,
+      works: sql<number>`count(distinct ${publishedProjects.id})::int`,
+      latestPublishedAt: sql<string | null>`max(${publishedProjects.publishedAt})::text`,
+    })
+    .from(publishedProjects)
+    .innerJoin(projects, eq(projects.id, publishedProjects.projectId))
+    .innerJoin(users, eq(users.id, projects.ownerId))
+    .where(
+      and(
+        eq(publishedProjects.visibility, 'public'),
+        sql`${publishedProjects.moderation} <> 'rejected'`,
+        isNull(projects.deletedAt),
+        isNull(users.deletedAt),
+        eq(users.guest, false),
+      ),
+    )
+    .groupBy(users.id)
+    .orderBy(sql`max(${publishedProjects.publishedAt}) desc`)
+    .limit(30);
+  if (rows.length === 0) return [];
+  const ids = rows.map((r) => r.id);
+  // 一个 IN 形状一次往返——30 作者的粉丝数最坏情况下 30 组，而 pg 通常一次 Aggregate 搞定
+  const followerRows = await db
+    .select({ followeeId: follows.followeeId, n: sql<number>`count(*)::int` })
+    .from(follows)
+    .where(inArray(follows.followeeId, ids))
+    .groupBy(follows.followeeId);
+  const followersById = new Map(followerRows.map((r) => [r.followeeId, r.n]));
+  return rows.map((r) => ({
+    ...r,
+    followers: followersById.get(r.id) ?? 0,
+  }));
+}
+
 export async function profileOf(handle: string, viewerId: string | null): Promise<ProfileView | null> {
   const db = getDb();
   const [person] = await db

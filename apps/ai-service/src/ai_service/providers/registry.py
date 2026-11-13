@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 from ..config import Settings
+from ..resilience import BreakerConfig, CircuitBreaker
 from .liveness import EmbeddingLiveness, EmbeddingProber
 from .openai_compatible import OpenAICompatibleProvider, OpenAICompatibleEmbeddingProvider
 
@@ -34,36 +36,86 @@ class Registry:
     ) -> None:
         self._settings = settings
         self._liveness = liveness or EmbeddingLiveness()
-        self._llm = (
-            (
-                OpenAICompatibleProvider(
-                    api_key=settings.openai_api_key or "",
-                    base_url=settings.openai_base_url,
-                    models=settings.models,
-                    timeout_s=settings.request_timeout_s,
-                    json_mode=settings.json_mode,
-                    prompt_cache_key=settings.openai_prompt_cache_key,
+        # v682 断路器：默认 disabled（不构造、零回归）；显式开启才建实例并真注入 provider，
+        # 让 complete() 的门卫真的读它——避开 Java 坑①"配了 YAML 却没人取用、静默跑默认值"。
+        # Settings 旋钮经 BreakerConfig 真变成运行实例，不是摆设（ADR 0095 声称必须有门读）。
+        breaker = (
+            CircuitBreaker(
+                BreakerConfig(
+                    name="llm-upstream",
+                    sliding_window_size=settings.llm_cb_sliding_window,
+                    minimum_number_of_calls=settings.llm_cb_minimum_calls,
+                    failure_rate_threshold=settings.llm_cb_failure_rate_threshold,
+                    wait_duration_in_open_state_s=settings.llm_cb_wait_s,
+                    permitted_calls_in_half_open=settings.llm_cb_half_open_calls,
                 )
-                if settings.has_llm
-                else None
             )
-            if llm is _UNSET
-            else llm  # type: ignore[assignment]
+            if settings.llm_circuit_breaker_enabled
+            else None
         )
-        self._embedding = (
-            (
+        self._breaker = breaker
+        if llm is _UNSET:
+            self._llm = self._build_llm(settings, breaker) if settings.has_llm else None
+        else:
+            self._llm = llm  # type: ignore[assignment]
+        if embedding is _UNSET:
+            self._embedding = (
                 OpenAICompatibleEmbeddingProvider(
                     api_key=settings.openai_api_key or "",
                     base_url=settings.openai_base_url,
-                    models=settings.models,
+                    models=settings.embedding_models,
                     timeout_s=settings.request_timeout_s,
                 )
-                if settings.has_llm
+                if settings.has_llm and settings.embedding_enabled
                 else None
             )
-            if embedding is _UNSET
-            else embedding  # type: ignore[assignment]
+        else:
+            self._embedding = embedding  # type: ignore[assignment]
+        self._embedding_disabled_reason = (
+            "NEXUS_MODEL_EMBEDDING=none -- 该 provider 网关没有 embedding 模型（§159 不谎称可用）"
+            if not settings.embedding_enabled
+            else "缺少 NEXUS_OPENAI_API_KEY"
         )
+
+    @staticmethod
+    def _build_llm(settings: Settings, breaker) -> OpenAICompatibleProvider:
+        provider = OpenAICompatibleProvider(
+            api_key=settings.openai_api_key or "",
+            base_url=settings.openai_base_url,
+            models=settings.llm_models,
+            timeout_s=settings.request_timeout_s,
+            json_mode=settings.json_mode,
+            prompt_cache_key=settings.openai_prompt_cache_key,
+            max_attempts=settings.llm_max_attempts,
+            base_s=settings.llm_retry_base_s,
+            cap_s=settings.llm_retry_cap_s,
+            jitter_strategy=settings.llm_jitter_strategy,
+            breaker=breaker,
+            stream=settings.llm_stream,
+        )
+        url = settings.llm_cache_url.strip()
+        if not url:
+            return provider
+        # opt-in 真 Redis 缓存（ADR 0119 / v686）：CachedLlm 只在 miss 时调内层真 provider；
+        # 命中不再花钱也不进 usage（如响应报文的 usage 契约保持 exactly-not-谎称）。
+        # 连接失效：fail-open——缓存故障不许打挂 provider 路径（ADR 0119 降级纪律）。
+        try:
+            import redis as _redis
+
+            from ..completion_cache import CachedLlm
+            from ..redis_completion_cache import RedisLlmCompletionCache
+
+            client = _redis.from_url(url, decode_responses=True)
+            cache = RedisLlmCompletionCache(
+                client,
+                namespace=settings.llm_cache_namespace,
+                ttl_s=settings.llm_cache_ttl_s,
+                max_entries=512,
+            )
+            return CachedLlm(provider, cache)  # type: ignore[return-value]
+        except Exception as exc:  # noqa: BLE001 - 缓存组件失败必须不影响主路径
+            print(f"[registry] LLM completion cache 未启用：无法连接 {url}（{exc.__class__.__name__}）")
+            return provider
 
     @property
     def llm(self):
@@ -126,7 +178,7 @@ class Registry:
                 )
             )
         else:
-            infos.append(ProviderInfo("embedding", "openai-compatible", "unavailable", [], self.embedding_reason()))
+            infos.append(ProviderInfo("embedding", "openai-compatible", "unavailable", [], self._embedding_disabled_reason))
         infos.append(ProviderInfo("image", "none", "unavailable", [], "M2 图像切片未实现"))
         infos.append(ProviderInfo("video", "none", "unavailable", [], "M5 视频切片未实现"))
         infos.append(ProviderInfo("speech", "none", "unavailable", [], "未实现"))
@@ -139,3 +191,36 @@ class Registry:
         if "demo" in statuses:
             return "demo"
         return "unavailable"
+
+    def llm_cache_state(self) -> dict[str, Any] | None:
+        """应用级 LLM 完成缓存的报文状态（可观测性面板读用）。
+
+        缓存由 `CachedLlm` 装在内部 provider 前面；`cache` 属性暴露。
+        没启用缓存 → `None`；`/healthz` 据此报 `null`。
+        """
+        cache = getattr(self._llm, "cache", None) if self._llm is not None else None
+        if cache is None:
+            return None
+        stats_fn = getattr(cache, "stats", None)
+        if not callable(stats_fn):
+            return None
+        try:
+            s = stats_fn()
+        except Exception:
+            return {"enabled": True, "degraded": True}
+        #  both backends expose hits/misses/stores/evictions and hit_rate;
+        #  Redis 版额外带 stores_failed/expirations/corruptions/shared/namespace/max_entries/ttl_s；内存版没有
+        state: dict[str, Any] = {
+            "enabled": True,
+            "backend": "redis" if "redis" in type(cache).__name__.lower() else "memory",
+            "hits": int(getattr(s, "hits", 0)),
+            "misses": int(getattr(s, "misses", 0)),
+            "stores": int(getattr(s, "stores", 0)),
+            "stores_failed": int(getattr(s, "stores_failed", 0)),
+            "evictions": int(getattr(s, "evictions", 0)),
+            "hit_rate": float(getattr(s, "hit_rate", 0.0)),
+            "shared": bool(getattr(s, "shared", False)),
+            "degraded": bool(getattr(s, "degraded", False)),
+            "namespace": str(getattr(s, "namespace", "")),
+        }
+        return state

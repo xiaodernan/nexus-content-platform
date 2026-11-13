@@ -7,7 +7,6 @@
 from __future__ import annotations
 
 import json
-import re
 from typing import Any
 
 MAX_TOKENS_IN_PROMPT = 120
@@ -146,10 +145,10 @@ def build_prompt(request: dict[str, Any]) -> tuple[str, str]:
     page_id = context.get("pageId") or document.get("activePageId") or ""
 
     payload: dict[str, Any] = {
-        "intent": request.get("intent"),
-        "prompt": request.get("prompt"),
+        # 缓存友好序：先放这轮不变的现场（provider 前缀缓存的载体），最后才是诉求——
+        # json.dumps 按插入序输出，诉求挪到尾部后，同项目连续几轮的 prompt 前缀
+        #（SYSTEM_PROMPT + 整份目录摘要）可以在 provider 侧整段命中
         "modelClass": request.get("modelClass"),
-        "variants": request.get("variants"),
         "viewport": context.get("viewport"),
         "pageId": page_id,
         "selection": context.get("selection") or [],
@@ -208,6 +207,12 @@ def build_prompt(request: dict[str, Any]) -> tuple[str, str]:
         payload["contextSource"] = "none"
         payload["note"] = "既没有目录也没有文档：这一轮模型看不到项目内容，只能按诉求文字回答（应当说明做不了）"
 
+    # 诉求放在 JSON 对象的尾部：provider 的前缀缓存按字节前缀计，把能变的放到最后，
+    # 同项目连续几轮的 prompt 前缀（目录摘要 + 代码 digest）可以被整段命中。
+    payload["intent"] = request.get("intent")
+    payload["prompt"] = request.get("prompt")
+    payload["variants"] = request.get("variants")
+
     encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), default=str)
     if len(encoded) > MAX_TREE_CHARS:
         # 服务端已经按预算裁过，这里撑爆说明预算本身失效：宁可少给目录，也不能把请求撑爆，
@@ -229,7 +234,38 @@ def build_prompt(request: dict[str, Any]) -> tuple[str, str]:
     return f"{SYSTEM_PROMPT}\n{_agent_note(request)}", encoded
 
 
-_JSON_BLOCK = re.compile(r"\{.*\}", re.S)
+def _balanced_object(text: str) -> str | None:
+    """挑出第一段**平衡的 JSON 对象**（字符串感知）。
+
+    模型夹了前后说明文字的常见情形：`{...} tail prose with } braces`。
+    只裁边，不猜结构；取第一段平衡块——前后多余的括号内容不是想要的对象。
+    """
+    start = text.find("{")
+    if start < 0:
+        return None
+    depth = 0
+    in_str = False
+    esc = False
+    for i in range(start, len(text)):
+        ch = text[i]
+        if esc:
+            esc = False
+            continue
+        if ch == "\\":
+            esc = True
+            continue
+        if ch == '"':
+            in_str = not in_str
+            continue
+        if in_str:
+            continue
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : i + 1]
+    return None
 
 
 def parse_reply(text: str) -> dict[str, Any]:
@@ -242,7 +278,7 @@ def parse_reply(text: str) -> dict[str, Any]:
     try:
         return json.loads(raw)
     except ValueError:
-        match = _JSON_BLOCK.search(raw)
-        if not match:
+        block = _balanced_object(raw)
+        if block is None:
             raise ValueError("provider 未返回 JSON 对象")
-        return json.loads(match.group(0))
+        return json.loads(block)

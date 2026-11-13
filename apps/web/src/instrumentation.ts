@@ -2,6 +2,28 @@ import type { Instrumentation } from 'next';
 import { TRACE_HEADER, increment, sanitizeTraceId } from './server/observability';
 
 /**
+ * ADR 0065: 常驻作业消费者只在这台 Next 服务器真正起来时装配，且只在显式 `NEXUS_JOB_QUEUE=1` 时。
+ * 三个约束决定了这里只能 fire-and-forget：
+ * - `register` 必须让服务器尽快就绪，不能 await 一个可能正在等 Redis 连上的 start()；
+ * - 只在 nodejs runtime 起 worker（edge runtime 没有常驻进程，也没有 ioredis 的 socket）；
+ * - start() 自己幂等且内部 catch，这里再兜一层 .catch，绝不让一条后台作业的启动失败变成"服务器起不来"。
+ *
+ * 关着开关时 startJobWorker() 是一个真 no-op：不开任何 Redis 连接。这就是为什么
+ * 只想用 Redis 做 realtime 扇出的部署不会意外多出一个消费者。
+ */
+export async function register(): Promise<void> {
+  if (process.env.NEXT_RUNTIME !== 'nodejs') return;
+  try {
+    const { startJobWorker, jobQueueEnabled } = await import('./server/queue/worker');
+    if (!jobQueueEnabled()) return;
+    void startJobWorker().catch((err) => console.error('[job-queue] 装配失败，作业将不被消费：', err));
+  } catch (err) {
+    // 动态 import 失败（比如构建期剪枝）不该拖垮服务器；作业 lane 只是没被装上。
+    console.error('[job-queue] 无法加载 worker 模块：', err);
+  }
+}
+
+/**
  * Next 服务器捕获到的未处理错误——`docs/ROADMAP.md` 那格"只能靠审计表 + stderr"里，
  * 这一片补的是 stderr 那一半：**以前那条错误日志不知道自己是哪一次请求**，
  * 现在它带着 `x-nexus-trace`，同一次请求的审计行、限流判定、回执头能对着同一个 id 串起来。

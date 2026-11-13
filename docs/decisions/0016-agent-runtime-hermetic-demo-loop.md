@@ -13833,3 +13833,328 @@ This addendum GRANTS nothing and CORRECTS the record; the repair is amendment 51
 - **Execution.** `infra/migrations/0000_init.sql` (tabs → spaces, 274 sites), `docs/adr/0043-bot-visitor-suspected-not-convicted.md` (reconstructed from surviving bytes + the ROADMAP mirror), `tools/ci/record-encoding-repair.mjs --write` on four files, the shard-* log files retired and `docs/TESTING.md` citations rewritten, `docs/evidence/agents/record-encoding-proof.mjs` (63 pin rows added, two assertions recalibrated).
 
 - **CITES** amendment 569; **GRANTS** amendment 571 / version v644 (re-checked free at this ref: no `### Amendment 571` header exists and no landed commit subject carries `v644`). Version label **v643** is the only label this landing mints.
+
+### Amendment 572 (v645, gates) — a row arrives whose hazard is the WORKFLOW's, not the machine's: the Spring Cloud proof is EXCLUDED by name, and the arms that plant an exclusion now READ the shipped declaration instead of assuming it was empty
+
+- **What the java lane shipped, and what the admission rule did with it.** Commit `04693aa` put `docs/evidence/java/spring-cloud-proof.mjs` in the tree and `package.json:41` gave it the script `verify:spring-cloud`. The CI population is derived, not curated: `tools/ci/proof-set.mjs` admits any script whose command matches `/^node +(docs\/evidence\/\S+\.mjs)$/`, so the row entered the census the moment the script did. The build then reads **117 = 116 running rows + 1 excluded by name**, and every term of that sentence comes from the same derivation the runner uses, not from a table someone maintains.
+
+- **Why the hosted runner cannot grade it, read out of `.github/workflows/ci.yml` rather than argued.** The proof's own roster (`spring-cloud-proof.mjs:95-98`) names four Maven modules and `:369` builds them with `mvn -o -B package -DskipTests` in a copy of each — offline, so an artifact the warm step never downloaded is a hard failure, not a slow one. It reaches PostgreSQL through `createConnection` and `docker exec … psql` against the repository's own `nexus-postgres` container (`infra/docker-compose.yml`, `--profile core`). The workflow brings up no database at all: it declares no `services:` block, its only docker step is two `docker pull` lines (`node:22-alpine`, `pgvector/pgvector:pg16`), and its Maven warm is `mvn -B -q -f services/nexus-api/pom.xml test` with a `cache-dependency-path` naming that one pom. So the hosted red would have been a fact about the runner's cache and the runner's process list — not about the edge → api → discovery → domain → PostgreSQL topology the proof exists to establish.
+
+- **The exclusion is written as the workflow's absence, so its retirement is a workflow change.** `EXCLUDED` now carries exactly one entry naming the file and its needs — *"the repository's own running PostgreSQL container, and an offline-warm Maven for the three service modules the workflow never builds"* — and the wiring gate's §6 grades that reason against the file: the reach it names must appear in the proof's CODE outside its comments. It printed `[§6] residue docs/evidence/java/spring-cloud-proof.mjs reaches "postgres" in code`, which is `createConnection` to a published port and `docker exec … psql`, not a prose mention. The row is excluded from the BUILD, not retired from the evidence: `04693aa` remains the record of the topology on a machine that holds the container. The day ci.yml gains a compose-up step and a per-module warm (the per-module warm the next CI landing plans), this entry is deleted and the derived run/residue split moves by itself — which is why the need is written as a workflow shape rather than as slowness, the spelling amendment 530 retired the last exclusion for.
+
+- **Amendment 530's premise expired, and an arm that merely assumes it dies instead of arming.** v547 retired the last excluded row, so the runner arms A10 and A11 spliced their planted entry onto a needle copied from the then-empty `export const EXCLUDED = [];`. That needle now matches nothing. Both arms read the declaration out of the producer's own bytes through `EXCLUDED_DECL_RE`, which accepts the one-line and the block spelling alike, and a load-time assert refuses to run at all when the producer declares it zero or two or more times: a plant that matched no place would grade pristine bytes and report a surviving guard, which is the false green this ledger was built to refuse. The planted entry is followed by a comma on purpose — measured in this batch, an entry spliced without a separator makes the plane's producer fail to PARSE, and a gate that dies before reading the residue reports MISMATCH for a syntax error rather than for its clause.
+
+- **The runner half's synthetic plane must not inherit the shipped record.** `runnerPlane` clears the residue (`residueCleared`) before it writes its nine stub scripts. With the Spring Cloud entry left standing, `unknownExclusions` fires in EVERY runner arm for naming a file the synthetic population cannot hold — R6's charge and nobody else's — and R4's `runs 9 + excluded 0` is the same claim from the other side. The clearing asserts its own carrier too, so the day the producer's spelling moves, the arms say so out loud instead of mis-grading every row.
+
+- **Three arms answered red first, and the reading said why; the re-run did not.** The first battery of this batch printed **51/54**: A10 and A11 died at `proof-set.mjs:107` inside their own planes and A15 on an ENOENT. Re-producing those three subjects against the current bytes in a scratch plane answered `declaration hits: 1`, `node --check` exit **0**, and the gate exit **1** carrying A10's predicted sentence verbatim — *"nothing OUTSIDE its comments reaches a docker daemon, a maven/postgres client, a harness or a socket — so this exclusion retires a proof the build COULD run"*. So the reds were the residue of a killed earlier run on a reused plane root, not a live defect. The clean re-run, with nothing else touching the closure, answered **54/54**. Both numbers are recorded because "51, then 54" is a different claim from "54", and the difference is the whole subject of this ledger.
+
+- **Two prose numbers that had no reader.** The README header said `the 49 witness arms` about a set that moved 49 → 54 at amendment 545, and its §-table stopped at clause 11 while the gate prints thirteen. Both now read 54 and 1-13. A figure restated in prose rots unless a gate imports it, and these two had nothing importing them — which is exactly how they survived a cycle.
+
+- **Instrument readings at this ref (2026-11-10, this box).** `npm run verify:ci-wiring` **exit 0** — trigger covers master, proof step #11 of 12, nothing swallowed, population **117 closes as 116 + 1**, §9 **22 of 116** rows declare their own budget, §11 job ceiling 60 min against the rows' own worst case **667 min**, §12 **115 of 116** end on a literal print with 1 unreadable tail and 0 housekeeping, §13 longest whole tail `verify:record-window` at **293 bytes** and 0 guaranteed cuts. `npm run verify:arms` **54/54 arms matched (31 gate incl. the control, 23 runner)**, planes removed. `npm run verify:arms-freshness` **8/8 fixture arms matched**, and `arms-receipt.json` stamps **54 arms / 7 subjects / 117 derived rows** — re-stamped by that run, not edited by hand. `npm run verify:evidence-census` closes **129 tracked modules as 117 row + 4 helper + 3 swept + 5 tool + 0 deferred · rows 116+1 · 0 unclassified**, its own arms **131/131**.
+
+- **What this is not.** Not a claim that the hosted runner WOULD have gone red: the prediction is a reading of ci.yml's bytes, and the hosted contact for these bytes has not happened yet — that sentence is in the README section too, for the same reason. Not a repair to the Spring Cloud proof, to the four services, or to `docs/decisions/0054-spring-cloud-registry-and-edge.md`, `0055-a-service-is-reached-by-name-and-its-failure-is-a-fact.md`, `0056-a-failure-must-name-itself.md`: nothing under `services/` or `docs/evidence/java/` moved in this landing. Not the four-module CI warm — that is the next grant. And not an exclusion that softens the build's silence: §5 counts the residue and §6 refuses a named exclusion whose need is not readable in the file, so this entry stays honest by being graded, not by being trusted.
+
+- **Execution.** Five files, all of them this lane's: `tools/ci/proof-set.mjs` (+25 — the doc block that reads the two workflow facts and the single `EXCLUDED` entry), `docs/evidence/ci/ci-wiring-arms.mjs` (`EXCLUDED_DECL_RE`, the load-time single-declaration assert, the comma, `residueCleared`), `docs/evidence/ci/arms-receipt.json` (re-stamped by the 54/54 run itself), `docs/evidence/ci/README.md` (this increment's section, the two stale numbers, §-table rows 12-13), and this ledger entry. Re-measured on the bytes this landing ships: `npm run verify:table-recount` **exit 0** — `[§7] ledger headings 559 · record corpus 253 files · dangling explicit citations 0 · the newest grant 572 IS titled`, 8 title-holes all older than this grant and named rather than refused, `[verdict] plane GIT: 998 tracked cases in 56 files over 2 packages`, and its own mutation arms 4/4 plus every §7 arm caught. `npm run verify:record-encoding` **exit 0** — 2137 tracked names / 14 binary / **2123 graded, chargeable lines 0**, the new prose adding no render site and no island. `npx turbo run lint --force` **exit 0** with **0 cached, 7 tasks**, because a cache replay is not a measurement. `npm run typecheck:main` **exit 2**, and the red is not this batch's: `evals/suites/demo-mode.mts:3` imports the type `DesignDocument` from `packages/schemas`, a name that module has never exported (`git log -S"export type DesignDocument" -- packages/schemas/src/index.ts` answers nothing; the real owner is `packages/creative-model/src/types.ts:587`), the file is at its HEAD bytes, and the import arrived with `64d462d`, the twelfth eval suite. It survives because CI runs `npm run typecheck` (turbo's per-package tasks) and never runs `typecheck:main`, so the one tsc invocation that reads `tsconfig.tools.json` — which is the only config that includes `evals/**` — is graded by nothing. That is a reach defect of exactly the kind this ledger keeps charging, and it is the next landing's subject, not this one's patch.
+
+- **What this is not, twice.** Not a claim that the merge of v642 was wrong to park the java proof's row here; the population moved because the build derives it. Not a hosted green: no run has carried these bytes yet, and the exclusion's value is that the next run's log cannot be a surprise about the cache.
+
+**CITES** amendments 530 (v547 — the exclusion whose absence these arms assumed), 545 (v591 — where the arms became 54), 568 (v641 — the 116-row population this entry moves) and 570 (v643 — the tree these bytes sit on); amendment 571 / version v644 remains a grant that was promised and never written, and this landing does not consume it; **GRANTS** amendment 573 / version v646 (re-checked free at this ref: no `### Amendment 573` header exists and no landed commit subject carries `v646`). Version label **v645** is the only label this landing mints.
+
+
+### Amendment 572 — addendum (v645 follow-up): the hosted log answers the exclusion word for word, and the Execution bullet's sentence about `typecheck:main` was FALSE
+
+- **The exclusion held on the runner, in the runner's own bytes.** Hosted run `42665488779` (sha `be111c6`, the commit that shipped amendment 572) ends its `Evidence proofs` step with `113/116 green of a derived population of 117 · residue named: 1`, and the residue line above it is `  EXCLUDED  verify:spring-cloud    docs/evidence/java/spring-cloud-proof.mjs — the repository's own running PostgreSQL container, and an offline-warm Maven for the three service modules the workflow never builds` — 214 bytes, no `[cut:` marker, and the em dash arriving as U+2014 rather than as a `?`. The parent's run `42585034727` (sha `6e76510`, before the entry) printed `113/116 green of a derived population of 116 · residue named: 0`, and BOTH runs redden the same three rows — `verify:health`, `verify:liveness`, `verify:budgets`. So the split this box derived is the split the runner derived, the named residue is one on both machines, and the entry reddened nothing that was green before it. The three reds stay other lanes' rows, attributed in 572's own body and still not repaired by this lane.
+- **The sentence that was false, and the reading that showed it.** Amendment 572's Execution bullet explained a live typecheck red this way: *"It survives because CI runs `npm run typecheck` (turbo's per-package tasks) and never runs `typecheck:main`, so the one tsc invocation that reads `tsconfig.tools.json` … is graded by nothing."* The first clause is a reading of `.github/workflows/ci.yml` and is true. The second is a claim about CI, and CI has a second workflow file — `.github/workflows/main-line.yml`, added at `cf1537e` — whose `Typecheck main line` step runs exactly `npm run typecheck:main`: hosted run `42665488782` prints that step's nine-leg chain, `… && tsc -p e2e/tsconfig.json --noEmit && tsc -p tsconfig.tools.json --noEmit`, and its single error `evals/suites/demo-mode.mts(3,26): error TS2724`. The true shape is worse than the sentence allowed: the red was not invisible to CI, it was visible in a job this lane's gate has never read and nobody in this lane had opened, and it sat there for the 16 commits between `64d462d` (18:07 local) and `be111c6` (01:31 local). The next amendment is the repair of the silence; the import itself is repaired there too.
+- **What this addendum does not touch.** The exclusion's premise stays as 572 read it — `ci.yml` declares no `services:` block, its only docker step is two `docker pull` lines, and its Maven warm names one pom — and §6's charge against the proof's CODE, A10/A11's re-aimed needle, `residueCleared` and the battery all stand. This addendum mints no version label and consumes no grant: it is a v645 follow-up, the shape `de41bb6` and `0a97810` set for theirs, and the amendment it points at — 573/v646 — is written immediately below in this same landing.
+
+### Amendment 573 (v646, gates) — the gate that counts what CI grades had read ONE workflow file its whole life: §14 charges a typecheck leg that no workflow reaches and a package tsconfig that no leg names, and the eval-suite import that hid behind that silence is repaired at its owner
+
+- **What the second file is, measured rather than remembered.** `.github/workflows/main-line.yml` entered the tree at `cf1537e` (2026-11-09 08:42 local) and pushes to the same `master`; `cf1537e..be111c6` is 48 commits. At the ref before this landing, `git grep -l main-line -- tools docs/evidence` answered NOTHING: thirteen clauses that each say what CI grades read `ci.yml` alone. That file's step census is a counted contract — §2 names the proof step's INDEX, §4 its order after `build`, §11 the job ceiling and token, and arms re-aim needles against those numbers — so the second workflow was left out for a reason that was sound when there was only one door and false from the day there were two.
+- **§14 counts a REACH, in two refusals.** A LEG is `tsc -p <config>` inside a script of the root manifest or of a manifest a root `workspaces` glob names, or a bare `tsc --noEmit` that reads its own directory; a leg is REACHED when a step's `run:` body names the declaring script, transitively through `npm run` and `turbo run`. Refusal one charges an ORPHAN leg; refusal two charges an UNTYPED surface — a package `tsconfig*.json` that names no leg and extends nothing — and exists because refusal one is satisfiable by deleting the thing it counts. `extends` bases are excused: seven of the tree's tsconfigs are named that way (the root `tsconfig.base.json` and the six package `tsconfig.json` files their `tsconfig.test.json` sibling extends), because a base is not a surface. At this ref the clause prints `22 config(s) carry a declared tsc leg across 15 of the 20 directories the root workspaces globs name, and ALL of them are reached by a step of the 2 workflow file(s) · who reaches them: 1 by ci.yml+main-line.yml · 13 by ci.yml · 8 by main-line.yml · 22 tsconfig inside the package set, 7 of them an extends-base excused from a leg · 0 orphaned leg · 0 untyped surface`.
+- **The eight, named, and the reverse control that names them too.** `apps/mcp-server/tsconfig.json`, `e2e/tsconfig.json`, `packages/creative-model/tsconfig.json`, `packages/game-model/tsconfig.json`, `packages/schemas/tsconfig.json`, `packages/video-model/tsconfig.json`, `packages/world-model/tsconfig.json`, `tsconfig.tools.json` — every one declared by exactly one script, `package.json#typecheck:main`, and reached by exactly one step, the `Typecheck main line` step of the file no clause read. `tsconfig.tools.json` is the only config that includes `evals/**`, which is where the TS2724 lived. The reverse control re-measured for this record: the same reach derivation with `main-line.yml` withheld from its own file list answers `configs with a leg: 22 · orphaned legs: 8` and prints exactly those eight names, and the totals agree with the gate's printed 22/13/8/1 before any name was written into this paragraph. `cf1537e^` is the same shape in history rather than in a plane: the script was already there (`git show cf1537e^:package.json | grep -c typecheck:main` answers 1) and the workflows directory held one file (`git ls-tree --name-only cf1537e^ .github/workflows/` answers `.github/workflows/ci.yml`).
+- **The first version of the clause read FILES, and only the arm noticed.** `main-line.yml` names `npm run typecheck:main` twice in its own header comment — prose about what the job does, not a step that does it. The first census scanned whole file text for `npm run`; A27 deleted the step and the gate stayed GREEN, because the comment still said the words. That is the class this ledger charges over and over — a gate that grades a sentence about the mechanism instead of the mechanism — and here it was caught by the arm before the clause shipped, not by a hosted red afterwards. The clause now walks `stepsOf()` and reads `run:` bodies only, plain scalars and block scalars alike.
+- **Three arms, a closure that had to grow, and an eighth subject.** `A27` deletes the main line's typecheck step and must redden at §14 with `typecheck leg(s) are declared in a script no workflow step reaches`; `A28` deletes the leg out of `package.json` instead, leaving `tsconfig.tools.json` a file that names no leg and extends nothing, so the SECOND refusal fires and neither arm can pass by shrinking a count; `C6` rewrites that step as a `run: |` block scalar and must stay green, because the clause reads bodies, not spellings. The gate set moves **54 → 57 (34 gate arms incl. the control, 23 runner)**. `GATE_CLOSURE` is now derived the way the census is: every file under `.github/workflows` plus every `package.json` and `tsconfig*.json` in the directories the root globs name — a hand-kept list would grade pristine bytes for the very file an arm edited and report a surviving guard. `arms-receipt.mjs` gains `mainline` among its `SUBJECT_FILES` (7 hashes → 8): a receipt that does not hash the workflow whose step the arms delete cannot tell its own stale stamp from a fresh one.
+- **The repair at the owner, three lines.** `evals/suites/demo-mode.mts:1` becomes `import { createDocument, createPage, type DesignDocument } from '../../packages/creative-model/src/index.ts';` and line 3 keeps `import type { AiRequest } from '../../packages/schemas/src/index.js';`. The type is declared at `packages/creative-model/src/types.ts:587` and reaches that index through its first line, `export * from "./types"`; `AiRequest` is a cross-boundary wire type and stays in `packages/schemas`, which `agents.md` architecture rule 6 requires anyway. Line 2 also loses `mockProvider`, a name the suite never reads; `npx eslint evals` flags it and is clean on the three lines that remain. That is the same absence of a reader seen from the other side: the root manifest's own `npm run eslint` (`eslint .`, ESLint 10.11) dies with exit 2 inside `@rushstack/eslint-patch` while reading `apps/studio/node_modules/eslint-config-next/index.js`, before it grades a single file, and no workflow step names it or `lint:main`, so CI has never seen either verdict. Removing the dead name is this increment; the unlinted surface and the crashed script are their own. Nothing about the suite's assertions moved — the file was failing to COMPILE, which is a different defect from the one suite-level evidence usually charges. This lane owns the CI wiring, not the evals suite, so the import is repaired here because the hosted red is this landing's own record's error and leaving it would have kept §14's first reading a red.
+- **Instrument readings at this ref (2026-11-10, this box).** `npm run verify:ci-wiring` **exit 0** — all fourteen clauses printing, population **117 closes as 116 + 1**, §9 **22 of 116** rows declare their own budget, §11 ceiling 60 min below the rows' own worst case **667 min**, §12 **115 of 116** end on a literal print with 1 unreadable tail and 0 housekeeping tails, §13's longest whole tail is now **`verify:ci-wiring` at 293 bytes** — this gate's own closing print grew into the top slot and was cut back under the runner's 300-byte clip BEFORE shipping rather than found severed in a hosted log after — and §14 as quoted above. `npm run verify:arms` **57/57 arms matched (34 gate incl. the control, 23 runner)**, planes removed; `npm run verify:arms-freshness` **9/9 fixture arms** after the eighth subject broke it (the bullet below); `arms-receipt.json` re-stamped by that run at **57 arms / 8 subjects / 117 derived rows**. `npm run verify:evidence-census` **exit 0**, **129** tracked modules closing as **117 row + 4 helper + 3 swept + 5 tool + 0 deferred · rows 116+1 · 0 unclassified**, its own arms **131/131**; `npm run verify:table-recount` **exit 0** with 573 titled by this heading; `npm run verify:record-encoding` **exit 0**, 0 chargeable over **2123** graded files; `npm run typecheck:main` **exit 0**; `npm run evals` **exit 0** with the `demo-mode` suite at **14/14**, which is the reading that says the two-line import moved no behaviour.
+- **The eighth subject broke the row that reads it, and the break is a finding.** `verify:arms-freshness` builds its synthetic planes from a hand-written `BASE_FILES` table, and `makeReceipt` asks that plane for EVERY subject in `SUBJECT_FILES`; once `mainline` joined the list the fixture had no `.github/workflows/main-line.yml`, so the row died on a raw `ENOENT` at `arms-receipt.mjs:42` — before §1, before any clause, with nothing for the frontier rule to read. This is the receipt's own rule seen from the side that has to hold it: a subject list is a claim about bytes, and every plane built to satisfy it is a second copy of that claim, which no gate compares to the first. The crash also exposed a subject no arm had ever read — `F1` moves the FIRST workflow file, so nothing had hashed the second — and `F8-mainline-moved` does now: it rewrites the fixture's main-line job and demands §2 refuse while naming `mainline`, because a subject in a table that the loop over that table never reaches is a subject nobody hashes. `docs/evidence/ci/arms-freshness-proof.mjs` moves **8 → 9 fixture arms**, all matched, and this increment's README section carries the same reading from the real run.
+- **Execution.** Seven files, six of them this lane's and one borrowed: `docs/evidence/ci/ci-wiring-proof.mjs` (+99/−7 — §14 and the header that names the 48 commits and the hosted error), `docs/evidence/ci/ci-wiring-arms.mjs` (+58/−15 — A27/A28/C6, the derived `GATE_CLOSURE`, `CLAUSES` to fourteen), `docs/evidence/ci/arms-receipt.mjs` (+5/−3 — the `mainline` subject), `docs/evidence/ci/arms-freshness-proof.mjs` (+11/−0 — the main-line fixture and `F8-mainline-moved`), `docs/evidence/ci/arms-receipt.json` (re-stamped by the battery, not edited), `docs/evidence/ci/README.md` (+22/−6 — the two-workflow opening, §-table row 14, the retired `54 witness arms` figure, the v645 hosted correction, this increment's section and its crash), and `evals/suites/demo-mode.mts` (+3/−3 — the type's owner, the wire type that stays, and the dead name). The header's stale figure is dropped rather than re-pinned to 57: no gate imports a README number, which is what let `49` survive until v645 renamed it to `54` and let `54` go stale again in the eleven days since.
+- **What this is not.** Not a claim that §14 grades verdicts: it says a step reaches a script that runs tsc over a config, and says nothing about whether that tsc exits 0 — the hosted log quoted above is the reading of the verdict, and `npm run typecheck:main` at this ref is this box's. Not a repair of the three hosted reds (`verify:health`, `verify:liveness`, `verify:budgets`), which are other lanes' rows and were already attributed. Not a retirement of the Spring Cloud residue: that needs the per-module Maven warm and a compose-up step, which is the next CI grant's own subject. And not a hosted green: the bytes carrying §14 have not run yet, and if the hosted main-line job disagrees with this page, the page is what changes.
+
+**CITES** amendments 572 (v645 — the record whose Execution sentence this corrects and whose exclusion the hosted log answered verbatim), 514 (v528 — the gate whose fourteenth clause this is), 545 (v591 — where the arms became 54, the set this moves to 57), 540 (v565 — the 300-byte clip this gate's own tail had to fit) and 568 (v641 — the receipt machinery that gains its eighth subject); amendments 571 and version v644 remain a grant that was promised and never written, and this landing does not consume it; **GRANTS** amendment 574 / version v647 (re-checked free at this ref: no `### Amendment 574` header exists and no landed commit subject carries `v647`, on `--all`). Version label **v646** is the only label this landing mints.
+
+### Amendment 574 (v647, gates) — the build's only lint door graded ONE of fourteen workspace packages, the root script that could have graded the rest died before it named a single file, and `tools/ci/lint-tree.mjs` now grades the whole tracked tree area by area against a per-(rule, file) debt ledger taken on the INDEX's bytes
+
+- **The hole is a REACH, and it is countable without opinion.** `npm run lint` is `turbo run lint`; a package
+  joins only by declaring a `lint` script in its own manifest. `tools/ci/lint-tree.mjs` resolves the 14 manifests
+  the root `workspaces` globs name and prints `a lint script declared by 1: apps/studio -> eslint .
+  --max-warnings=0`. Everything the build called lint outside that package was silence, and the size of the
+  silence is derivable: **1117 tracked lintable files in 19 areas** — `(root)` 4 · `agents/exec-host` 25 ·
+  `agents/runtime` 85 · `apps/mcp-server` 7 · `apps/web` 548 · `docs` 129 · `e2e` 51 · `evals` 15 ·
+  `packages/ai-providers` 18 · `packages/creative-model` 55 · `packages/design-model` 28 · `packages/game-model`
+  26 · `packages/schemas` 9 · `packages/three-runtime` 35 · `packages/video-model` 10 · `packages/world-engine`
+  10 · `packages/world-model` 10 · `scripts` 35 · `tools` 17. Two root scripts could have covered them: `eslint`
+  (`eslint .`) and `lint:main` (`npm run typecheck && npm run eslint`). Neither is named by a step of `ci.yml` or
+  `main-line.yml`, so no CI run in this repository's history has held a verdict from either.
+- **The root script's death, measured with ITS OWN argv — which is the half amendment 573's sentence was
+  missing.** That amendment asserted `npm run eslint` "dies with exit 2 inside `@rushstack/eslint-patch` … before
+  it grades a single file". A run made while writing it answered `exit 134` instead, and the difference was the
+  probe's command, not the tree: `--config <path>` suppresses ESLint's per-directory config lookup, so that
+  invocation never loads `apps/studio/eslint.config.mjs` at all. Re-measured at HEAD's config bytes with the argv
+  the manifest declares: **exit 2 in 4.5 s**, `ESLint: 10.11.0`, `Cannot read config file: D:\终极项目\
+  apps\studio\node_modules\eslint-config-next\index.js`, `Failed to patch ESLint because the calling module was
+  not recognized`, `Referenced from: …/eslint-config-next/core-web-vitals.js`, and the probe's scan of its own
+  stdout for the first line naming a graded file answers `NONE`. The `--config` shape is a different measurement
+  and dies differently: **exit 134**, `Ineffective mark-compacts near heap limit`, 4079 MB reached 202 s in, again
+  with no verdict on any file. Amendment 573's sentence stands — this record confirms it rather than correcting
+  it, and adds that a print's argv is part of what it measured.
+- **Why one child per area rather than one process over the tree.** The OOM answers it: a single ESLint process
+  holding type-aware programs for 1117 files is one heap, one crash, and one answer a file in a directory nobody
+  chose can destroy. Per-area children fail alone and print their own counts; the slowest is `apps/web` at 548
+  files / 49 s while the whole gate finishes in minutes. The root config's `apps/studio/**` ignore is what lets
+  the ONE remaining whole-tree run (the unreached `eslint .`) finish at all — 248 s, 223 findings, exit 1 — and
+  that run stays outside CI's reach on purpose: apps/studio is judged by its own door, and letting a second
+  ESLint major re-judge the same bytes produces a different verdict, not a stronger one.
+- **A ledger that can only fall.** `docs/evidence/ci/lint-debt.json`: **221 findings over 109 (rule, file) pairs
+  in 16 rules across 91 files.** The budget is per (rule, file), not per file and not per rule: a file-level
+  ceiling lets a new rule in as the price of fixing an old one, and a rule-level ceiling lets a rule spread into
+  new files. Four verdicts — `UNDECLARED` (a finding the ledger never named), `GREW` (above its ceiling), `LOOSE`
+  (a ceiling above what the file now produces), `STALE` (a pair the file no longer produces) — plus `NO LEDGER`,
+  `PARSE` and `BASIS CRASH`. `--write` re-derives and may only lower, and the planted shape `moved-not-reduced`
+  refuses a ceiling that leaves the total intact while changing what it claims.
+- **The basis is the index, and the two readings must agree.** The gate compares a count to a committed ceiling,
+  so it grades committed bytes: a tracked lintable file differing from the index is re-measured through `eslint
+  --stdin --stdin-filename <its own path>` and both answers are reconciled before a verdict prints — four planted
+  shapes (`basis-control`, `basis-draft-overstates`, `basis-draft-hides-committed-debt`, `basis-row-erased`) cover
+  both directions and the erased-row case. At this ref the gate prints `4 tracked lintable file(s) differ from the
+  index — the run grades 221 finding(s) at the committed bytes, where the worktree alone would say 222`, and the
+  file that changes the number is `docs/evidence/java/spring-cloud-proof.mjs — the worktree says 4, the INDEX says
+  3; graded from the index, so stage your fix to have it counted`. That file is the concurrent lane's uncommitted
+  Spring Cloud work, and the sentence is its handoff. `tmp_servicecall_orig.ts` — root debris dated Oct 24, 46
+  lines, untracked, not this increment's to delete — supplies the third number: `npm run eslint` grades 92 files
+  where the ledger carries 91, so 223 = 221 + the untracked file + the uncommitted one.
+- **Exemptions state the reader that earns them, and the gate re-derives the reader.** Two areas are excused.
+  `apps/studio` (300 files) by a chain recomputed each run: its manifest declares `lint`, `npm run lint` is
+  `turbo run lint`, a ci.yml step walks that name, and the package measures passing at its own bytes (eslint
+  9.39.5, `eslint . --max-warnings=0`, exit 0). `eslint-config-next` declares its peer range as
+  `^7.23.0 || ^8.0.0 || ^9.0.0`, so the root's 10.11.0 is outside the range its own patch supports — the exemption
+  is a handoff between two real doors, and `UNLINTED EXEMPTION` reddens the day the `lint` script disappears.
+  `.scratch` (24 files) because those bytes are probes rewritten mid-run, each already graded by the arm that
+  spawns it. §4b's `UNREACHED` exists so the first cannot be satisfied by a declaration nobody walks: a package
+  with a `lint` script that no step names is refused. The four `linter-*` shapes plant all four corners.
+- **The gate is graded before it grades anything.** `--self-test` runs 15 planted shapes and the tool refuses its
+  own verdicts first: 7 over the verdict table, 4 over the index basis, 4 over the reach claims. That is this
+  ledger's standing rule — a validator's first run may not be its first test — and it is why `UNDECLARED` is not a
+  belief about ESLint's output but a shape the file reproduces.
+- **A RUNNER'S CARRIER IS THE STEP THAT WALKS IT (the census half).** `verify:lint-tree`'s command is `node
+  tools/ci/lint-tree.mjs`; the admission rule `PROOF_COMMAND` admits only scripts whose whole command is one
+  `node` call under `docs/evidence`, so the new name cannot be derived as a row and, before this increment, would
+  have landed in the census as an undispositioned name. It is disposed as a second `runner`. That class had one
+  member, so its caption — "the workflow's proofs step calls" — was true only because the sole door happened to
+  be the proofs step's; shipping a second runner would have printed that sentence about a step that never calls
+  it. `runLinesOf` now keeps the step name beside each run command and `manifestOf` returns `runnerSteps`, so the
+  pair is printed AND graded: `verify:proofs` → "Evidence proofs", `verify:lint-tree` → "Lint the whole tree
+  against the debt ledger". Reshaping the fixture's step into a `run: |` block (arm `M25`) exposed a second bug in
+  the pairing — a `- name:` line that closes a block scalar was tested after the block-exit branch, so the step
+  named ABOVE a block kept ownership of every command written BELOW it — and the order is now close the block,
+  capture the name, match the `run:`. `runCommandsOf` went with it: the pairing left it without a caller, and the
+  coverage comparison wants the same list projected to bare strings. The ownership refusal moved off the same
+  false carrier — a runner whose target the index does not own is now refused as "disposed as a runner", not as
+  "the runner the proofs step calls". The roster carries the new arm in every copy of its number: **131 → 132
+  arms, twelve families (A19 · R10 · M25 · T17 · N7 · X8 · S7 · C8 · D14 · E10 · F2 · G5)**.
+- **The two censuses as this run prints them.** `manifest (every verify:* NAME, not only the commands
+  PROOF_COMMAND admits): 127 names close as 117 derived rows + 2 runner + 1 covered + 7 deferred + 0
+  undispositioned, over 16 run commands the workflow actually executes`; `tools reach census …: 17 modules close
+  as 2 runner + 4 reached + 7 named + 0 behind + 4 standby + 0 unreached, over a live closure of 132 modules
+  reached from 117 rows, the runner door and 5 declared tools (specifier scan: 1310 modules in 1328 ms)`. The
+  evidence population is unchanged — `129` tracked modules as `117 row + 4 helper + 3 swept + 5 tool + 0 deferred
+  · rows 116+1 · 0 unclassified` — because the increment's new file lives in `tools/`, which is what the reach
+  census was built to see. ci.yml's proof step moves from #11 to #12 of 13 steps; §2 names the index, §4 the order
+  after `build` step #9, and neither is re-pinned by hand.
+- **Instrument readings at this ref (2026-11-10, this box).** `npm run verify:lint-tree` **exit 0**: `areas 19
+  derived from git ls-files · exempt 2 named by this file`, `surfaces 14 workspace package manifest(s) … a lint
+  script declared by 1: apps/studio`, 1117 files graded, `measured 221 finding(s) over 109 (rule, file) pair(s) in
+  16 rule(s) at the committed bytes`, `LINT CLEAN AGAINST THE LEDGER · 19 areas, 221 finding(s) exactly at their
+  ceilings, 0 parse errors, 0 crashes · basis: 4 file(s) re-measured from the index`, and the 15 planted shapes
+  printing `refused as planted` / `clean over N planted package(s)` before any real verdict. `npm run
+  verify:evidence-census` **exit 0**: `[arms] 132/132 MATCHED`, `arms coverage: 119 refusations`, `127 names close
+  as 117 derived rows + 2 runner + 1 covered + 7 deferred + 0 undispositioned, over 16 run commands`, `17 modules
+  close as 2 runner + 4 reached + 7 named + 0 behind + 4 standby + 0 unreached, over a live closure of 132
+  modules`, evidence population unchanged at `129 tracked modules … rows 116+1 … 0 unclassified`. `npm run
+  verify:ci-wiring` **exit 0**: all fourteen clauses, `step #12 "Evidence proofs"`, `13 steps, none with
+  continue-on-error`, `build step #9 precedes the proof step #12`, `derived population 117 = runs 116 + named
+  residue 1`, §9 22 of 116 and 0 refused, §11 60 min vs 667 min, §12 115 of 116, §13 293 bytes longest whole tail,
+  §14 22 configs / 15 of 20 directories / 0 orphaned leg / 0 untyped surface. `npm run verify:arms` **57/57 arms
+  matched (34 gate incl. the control, 23 runner)**, `planes under D:\nexus-ci-arms-plane-42900 removed: true`;
+  `npm run verify:arms-freshness` **9/9 fixture arms**; `arms-receipt.json` re-stamped by that run at **57 arms / 8
+  subject hashes / 117 derived rows**. `npm run typecheck:main` **exit 0** over its nine `tsc -p` legs; `npm run
+  evals` **exit 0**, `全部结构不变式 PASS`, ten suites, `demo-mode` at **14/14** — the reading that says a lint
+  gate added to `package.json` moves no behaviour. The root script, both carriers: HEAD's config bytes with the
+  manifest's own argv `exit 2 in 4.5s`, `first line naming a graded file: NONE`; this landing's bytes
+  `exit 1`, 223 findings, 248 s.
+- **Execution.** Nine files, every one of them this lane's: `tools/ci/lint-tree.mjs` (+637/−0, new — the derived
+  areas, the (rule, file) ledger and its four movement verdicts, the index basis and its four planted shapes, the
+  two exemption clauses, the fifteen `--self-test` shapes), `docs/evidence/ci/lint-debt.json` (+149/−0, new — 109
+  ceilings over 91 files), `eslint.config.mjs` (+58/−0 — the `apps/studio/**` and `.nexus-tmp/**` ignores, the six
+  packages whose `test/` files must be resolved by their own `tsconfig.test.json` because the project service only
+  opens `tsconfig.json`, and the `disableTypeChecked` + `no-undef` off block that lets 146 evidence and tools
+  `.mjs` files be graded at all), `package.json` (+1/−0 — the `verify:lint-tree` declaration),
+  `.github/workflows/ci.yml` (+11/−0 — the step that walks the door, which is the difference between a runner and
+  an undispositioned name), `docs/evidence/ci/evidence-census-proof.mjs` (+94/−39 — the second `runner` class,
+  `runLinesOf`'s step pairing and its block-exit order, arm `M25`, and the roster moved to 132 in every copy
+  including the ten arms that drift those numbers), `docs/evidence/ci/arms-receipt.json` (2 changed lines —
+  re-stamped by the battery, not edited by hand), `docs/evidence/ci/README.md` (+126/−2 — the door line in the
+  commands block, the "What each piece is" bullet, this increment's section and its record-gate bullet; the two
+  removed lines are the re-wrapped roster sentence the census grades inside this README, where `131 → 132` and
+  `twenty-four → twenty-five` are figures this increment moved rather than claims it retracts), and this
+  amendment. No container, no database, no `services/**` path, no `git stash`, nothing deleted — the drain of the
+  221 findings is the next grant's work and starts with the six families that hold 205 of them.
+- **What this is not.** Not a clean tree: 221 findings sit exactly at their ceilings, and the drain is the next
+  grant's work, family by family (`docs` 84, `packages/world-engine` 37, `packages/three-runtime` 28,
+  `agents/runtime` 26). Not a reached root script: `eslint` and `lint:main` are named by no step in either
+  workflow and `npm run eslint` still answers 223 on bytes this gate does not own (untracked debris, another lane's
+  draft); the census charges a workspace package's lint reach and does not yet charge the root manifest's own
+  unreached scripts — that asymmetry is a named open face, not a claim. Not a coverage claim about apps/studio
+  beyond its own door: the root run ignores it because two ESLint majors cannot both judge it, and the ignore is a
+  handoff the gate re-derives. Not a hosted green: the bytes carrying the new row have not run on the host yet,
+  and if the hosted log disagrees with this page, this page is what changes. And not a Maven or Spring Cloud
+  increment: `services/**` and the java evidence lane are untouched here — including the 4-vs-3 file the basis
+  sentence names.
+
+**CITES** amendments 573 (v646 — the record whose `@rushstack` sentence this re-measures with the script's own argv and confirms, and whose unreached `eslint`/`lint:main` pair this ships a door for), 514 (v528 — the gate whose derived population this joins as a second door), 545 (v591 — the arms machinery that grades the census roster this moves to 132), 568 (v641 — the census whose `MANIFEST` classes gain a runner's carrier) and 572 (v645 — the exclusion whose hosted reading the same proof step now follows); amendments 571 and version v644 remain a grant that was promised and never written, and this landing does not consume it; **GRANTS** amendment 575 / version v648 (re-checked free at this ref: no `### Amendment 575` header exists and no landed commit subject carries `v648`, on `--all`). Version label **v647** is the only label this landing mints.
+
+### Amendment 575 (v650, gates) — CI built ONE of the four Maven modules the commit owns, three of them never had a reader anywhere in either workflow file, and §15 now derives the pom roster from the index and refuses a `mvn` line that names nothing, skips its tests, or hashes a cache key over one path of four
+
+- **The hole is a REACH, and it is countable without opinion.** `git ls-files` owns 4 `pom.xml`; a `mvn` command
+  in a workflow run body names at most one of them with `-f`. At HEAD the count is one: ci.yml's step "Warm the
+  Maven repository (the service-suite row runs offline)" runs `mvn -B -q -f services/nexus-api/pom.xml test`, and
+  `main-line.yml` has no Maven command. `java-registry`, `java-gateway` and `java-domain-service` were therefore
+  built by nobody: their **45 tests over 9 classes** (2/1, 4/2, 39/6) had never been run by a CI job, beside the
+  917 tests over 46 classes the same build does run. The evidence for those five numbers is not inference — four
+  `mvn -B -f <pom> package` runs at HEAD's bytes on a detached plane exit 0 and write surefire XML, and the count
+  of that XML is **962 tests over 55 classes**. The same step's `cache-dependency-path` named the one pom it
+  warmed, so a change to any of the other three re-used a cache keyed on a file nobody touched: v646 (amendment
+  573) named that shape for a `tsc` leg and called it a reach bug, and this is the Maven copy of it.
+- **What "reaches" means, written so a fifth module cannot be quietly forgotten.** The population is the
+  commit's poms, from the index (the basis every census in this repository uses; a plane with no git falls to a
+  tree walk and prints that it did). A command reaches a module when all three hold: it invokes `mvn` with
+  `-f`/`--file` naming that pom; it does not skip tests (`-DskipTests`, `-Dmaven.test.skip` — and `-DskipITs` is
+  deliberately NOT a skip, because ITs are a phase a project may choose to run in CI and a door that called it a
+  skip would be a door that approves `-DskipITs` everywhere); and it names a test-bearing phase (`test`,
+  `package`, `verify`, `install`, `integration-test`). `#` lines inside a run body are dropped before the scan: a
+  pom that appears only in a comment is a pom a reader can believe in and no command can build.
+- **Four refusals, ordered the way the clause reads them.** `§15 read 0` — the reader that sees no Maven command
+  certifies nothing, which is the vacuity ceiling every clause here carries. A pom named by a step that the commit
+  does not own — the phantom path, the run that goes green against a file absent from the tree it describes. An
+  owned pom no command reaches, or one reached only by a command that skips its tests — the two halves of the hole
+  this amendment closes, refused by one clause with two sentences because they are two different mistakes. A
+  `cache: maven` key hashing fewer paths than the commit owns, or hashing one it does not own — because a restore
+  that lies about its inputs shows up as a build failure inside the row that is grading something else.
+- **Why four explicit lines rather than a glob or a reactor.** There is no root `pom.xml` in this repository, so
+  a reactor build has nothing to name, and `mvn -f services/*/pom.xml` is expanded by a shell rather than by the
+  file — which makes both shapes commands this census cannot attribute to a module. **A command the census cannot
+  attribute is a command the census cannot redden**, and a door that cannot be reddened is prose. So the step
+  carries four literal lines with `package` as the phase (the java proofs resolve jar-shaped dependencies a bare
+  `test` does not build), and a fifth tracked pom makes §15 red with its name in the sentence until a fifth line
+  is written.
+- **Six arms and a control, all landing on the frontier, and the budget marker moved with them.** The roster goes
+  **57 → 64 (41 gate incl. the control, 23 runner)**. `A29-registry-mvn-line-deleted`,
+  `A30-registry-warmed-without-tests`, `A31-phantom-pom-named-by-a-step`, `A32-every-maven-line-deleted`,
+  `A33-cache-key-collapsed-to-one-pom`, `A34-cache-key-names-an-unowned-pom` each report `first red at §15,
+  14 clause(s) below it, none above, exit 1`: the refusal is reached, its words reach stderr, and no clause that
+  ran before it moved. `C7-a-pom-named-only-in-a-comment` is the control for the comment rule — the plant is in
+  the file and the gate still prints all fifteen clauses with exit 0, like `C0-control`. The row's declared
+  budget moved `900000 → 1050000` because the row was measured twice at these bytes: **15 m 16 s and 15 m 21 s**
+  (916 s and 921 s against the older 900 s declaration, the second run with two Maven builds sharing the CPU),
+  where the last hosted reading the file carries is run 41428780884 at 49 arms in 122.0 s. A row whose declaration
+  its own slowest plane overshoots is killed by the runner and reported as a failure it did not have, so the
+  declaration is the slower plane plus headroom — and §9 reads the marker, which is what makes the header comment
+  a claim rather than a note.
+- **Execution.** Eight files, all of them this lane's: `.github/workflows/ci.yml` (+28/−10 — the four explicit
+  `mvn -B -q -f <pom> package` lines, the four-path `cache-dependency-path` block, and the comments that say why
+  each shape is what it is), `docs/evidence/ci/ci-wiring-proof.mjs` (+140/−1 — §15 and its four refusals, the
+  `trackedPoms()` index reader with its skip-listed tree-walk fallback, `depPathsOf()` reading the block-scalar
+  cache key, and the `TEST_PHASE` / `SKIP_TESTS` predicates), `docs/evidence/ci/ci-wiring-arms.mjs` (+93/−7 — six gate arms, the comment-planting
+  control, the §15 premise line the battery prints before anything else, and the budget marker with both local
+  readings beside it), `tools/ci/proof-set.mjs` (+19/−8 — the residue's `needs` sentence now says what the
+  workflow does not do, and the two stale sentences about the warm-up are corrected rather than deleted so the
+  reader can see which half the door closed), `docs/evidence/ci/evidence-census-proof.mjs` (+7/−0 — the
+  paragraph that records the run-command tally moving 16 → 19 without the census re-pinning a line),
+  `docs/evidence/ci/arms-receipt.json` (2 changed lines — re-stamped by the battery, not edited by hand),
+  `docs/evidence/ci/README.md` (+88/−0 — this increment's section, inserted whole before "What this
+  does NOT claim"), and this amendment (+81/−0). No `services/**` path, no container, no database, no
+  `git stash`, nothing deleted; the battery is the last write, because `verify:arms-freshness` §2 reddens a
+  receipt whose subject bytes moved after it was stamped.
+- **What this is not.** Not hosted green: these bytes have not run on the host, and the previous hosted run
+  reddened on three rows whose claims are keyed to the machine rather than to the contract — the 25-second floor
+  this box's docker-proxy pays and a Linux refusal does not, an integer `uptimeSeconds` that can fail to cross a
+  second boundary inside a fast outage, and a `no exit code reported` sentence for a child that reports an exit
+  code there. All three are filed (v651a/b/c) with their causes read out of the hosted log. Not a verdict about
+  the 962 tests: §15 grades reach, not result — the surefire counts above came from this increment's own four
+  runs on this box, and the CI verdict is the next hosted log's to give. Not a census of every Maven command in
+  the repository: eight proof rows build `services/nexus-api` in a temp plane with `mvn -B -q package
+  -DskipTests`, a command §15 would refuse twice and does not read at all, because the clause charges the
+  workflow rather than the corpus; and `docs/evidence/java/spring-cloud-proof.mjs`, which builds all four, is the
+  residue §6 names for want of a PostgreSQL no workflow step brings up — that half is v653's to close. Not a
+  rule about jobs that never start: an `if:`-gated job's steps are read as reach here. And the version label is
+  re-aimed with the ledger open: amendment 574's grant sentence predicted **v648** for this number, the landing
+  minted **v650**, and the two queued increments that hold v648 and v649 land after it — said here rather than
+  left for a reader to trip over.
+
+**CITES** amendments 574 (v647 — the reach census whose run-command tally this moves 16 → 19, and the method of charging a step rather than a script that §15 copies to Maven), 573 (v646 — the cache-key-over-one-path bug this repeats for Maven, and the two-workflow-file basis §15 reads), 572 (v645 — the exclusion whose residue §6 now names as a PostgreSQL the workflow never brings up), 545 (v591 — the arms machinery these six arms join) and 568 (v641 — the 116-row population this moves no row of); **GRANTS** amendment 576 / version v651 (re-checked free at this ref: no `### Amendment 576` header exists and no landed commit subject carries `v651`, on `--all`). Version label **v650** is the only label this landing mints.
+
+### Amendment 576 (v651, evidence) — A MEASUREMENT MAY NOT BE GRADED BY A NUMBER REMEMBERED FROM ANOTHER MACHINE
+
+- **Status of the landing:** this record is WRITTEN LATE, and this section says so instead of hiding it.
+  The content it names landed in commit `9ab2371` ("feat(services): a failure names itself everywhere
+  across the edge, the api, and the proof (ADR 0056)"), which is the commit this ledger's own recount
+  door sent a reader to when `docs/evidence/m9/plane-bound-claims.mjs:1` cited v651 / amendment 576 and
+  no `### Amendment 576` existed for the reader to be sent to. The grant itself was amendment 575's
+  (v650) to make — "**GRANTS** amendment 576 / version v651" — and v651 content landed exactly as
+  filed, in three parts (a/b/c), without this record ever being appended. The recount door caught the
+  hole, and deleting or rewording the citation would have been deleting the finding.
+- **What the three parts were, read out of the bytes rather than remembered:**
+  - **v651a** — the assertion `outage.elapsedMs >= 25_000` compared a DURATION against a constant
+    that is true only on the machine that wrote it (Hikari's connectionTimeout as the Windows
+    docker-proxy leaves an already-pooled socket hanging) and is REFUTED on a runner where
+    `docker stop` closes the socket and the borrow is refused in milliseconds. Repaired by deriving
+    the bound inside the SAME run — the service's own `database.latencyMs` beside the client's own
+    wall time — in `docs/evidence/m9/service-liveness-proof.mjs` and
+    `docs/evidence/m9/service-health-proof.mjs` (both carry the `planeBoundRuleIsLive()` call at the
+    top of every build, so a blinded rule reddens the row rather than quietly clearing it).
+  - **v651b** — the assertion "uptime must have grown" compared two READS of an integer-second
+    counter with a strict `>`, so it passed by luck whenever the recovery landed inside the same
+    second. Repaired by a non-decreasing reading plus a bounded poll for the step up, in the same
+    two m9 proof files.
+  - **v651c** — the rendered sentence "no exit code reported" was unconditionally claimed for a
+    killed child, when a win32 forced exit (and the ubuntu runner's own sighting, hosted run
+    `42681784313`) ends with `code 1` beside the kill and NO signal. `agents/exec-host/test/
+    execTestRunner.test.ts` now carries v651c's case: a kill the OS answered WITH an exit code prints
+    that code, and no signal is invented beside it.
+  - **the gate that keeps the two shapes charged:** `docs/evidence/m9/plane-bound-claims.mjs`
+    reads an assertion's predicate (the first argument of `assert.ok(...)`), charges
+    REMEMBERED-FLOOR (a `>=`/`>` whose left side names a measured field and whose right side is a
+    number literal other than 0) and COIN-FLIP (a strict order between two reads of the same measured
+    field), refuses itself when the rules stop firing (`planeBoundRuleIsLive()`), and deliberately
+    does NOT charge ceilings or bounds whose far side is another reading. Executing it calls the
+    same rule the rows call.
+- **Which hosted rows this repair touched, and which it did not:** the `verify:liveness` and
+  `verify:health` rows of the Java service proof. They remain the two known runner-bound Studio-CI
+  reds called out elsewhere in this ledger; this record does not claim they are green there and does
+  not repair them — the 30 s Hikari-leash premise does not hold on the runner, and the gate's
+  answer is to stop grading the CALLER's clocks, not to fake a refusal the runner never felt.
+- **What this landing does NOT mint:** the next number after 576. Amendments 577 / v652 remain
+  unwritten BY NOT EXISTING — no `### Amendment 577` heading exists, no RUN anywhere is charged by a
+  gate against it, and this record deliberately does not grant it: granting ahead of the record is
+  the exact hole this section was written to close, and writing a grant that nothing loads is how a
+  ledger accumulates orphan grants no reader can be sent to. A successor increment (for example,
+  the residue 575's body names — §6's `verify:spring-cloud` row and a PostgreSQL no workflow step
+  brings up, v653's to close) lands as its own amendment with its own record first.
+
+**CITES** amendment 575 (v650 — the landing this record completes whose footer granted this number
+and whose body filed v651a/b/c and named the two runner-bound rows), `docs/evidence/m9/
+plane-bound-claims.mjs` (the gate, whose first line and whose `planeBoundRuleIsLive()` are the
+contract described above), `docs/evidence/m9/service-liveness-proof.mjs` and `docs/evidence/m9/
+service-health-proof.mjs` (the two repaired rows) and `agents/exec-host/test/execTestRunner.test.ts`
+(v651c's case; the exec-host row was recounted in `3dfeb0b` for exactly this case); commit `9ab2371`
+(where the content landed); **GRANTS nothing** — no number is promised by this record, said plainly
+so the next reader's recount door has no orphan to catch.

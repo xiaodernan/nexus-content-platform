@@ -1,11 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  NEXUS java-domain-service — the JVM write-path service (SC-6).
+  NEXUS — services/java-domain-service (the AUTHORITATIVE WRITE PATH for the domain tables).
 
-  Dependencies are the same set the standalone tests grade, plus the two Spring Cloud halves this
-  service actually declares: eureka-client (SC-6, registration OFF by default) and config (SC-11,
-  `optional:` import, OFF by default) — see application.yml. resilience4j is here since SC-60:
-  the Feign client (AiServiceClient) reads it — the breaker exists and has a real caller.
+  This service owns the writes for the rows the web layer only reads: `projects` and `users` are
+  declared in `apps/web/src/server/db/schema.ts` (drizzle) and are the SAME tables this service's
+  JPA entities map onto. Two writers on one table is a deliberate boundary, not an accident: the
+  web layer's writes go through its own validated paths, and the DOMAIN writes go through here.
+
+  Version alignment (measured 2026-11-09): this pom used to pin Spring Boot **3.2.0** (Jan 2024)
+  and Java **21**, while every other Java service in this repository runs Spring Boot **3.5.16** on
+  Java **25**. The consequence was that the service had NEVER BEEN COMPILED: `mvn -o test` failed
+  with "Cannot access central in offline mode" for eleven artifacts, because Boot 3.2.0's
+  dependency versions are not in this machine's local Maven repository — the repository holds
+  Boot 3.5.16's. A service nobody has built is a service nobody can claim works.
+
+  So the versions are now the repository's versions, and the compiler settings are copied from
+  `services/nexus-api` — including the explicit UTF-8 encoding, which this repository has needed
+  more than once (see the GBK records repair, ADR 0016 amendment 570).
+
+  Dependencies this service declares:
+  - eureka-client + config (SC-6/SC-11, registration OFF by default, `optional:` import) — see
+    application.yml.
+  - resilience4j since SC-60: the Feign client (AiServiceClient) reads it — the breaker exists and
+    has a real caller.
+  - spring-boot-starter-security: `SecurityConfig` defines the only filter chain this service has.
+  - spring-boot-starter-validation + spring-boot-starter-cache: declared by this line's writes; a
+    second schema/DDL writer (flyway) is deliberately absent — the domain tables are owned by the
+    web layer's drizzle migrations, and a service whose schema is not its own must not carry a
+    second migration tool pointing at it.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -23,12 +45,16 @@
     <artifactId>domain-service</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <name>NEXUS Domain Service</name>
-    <description>Java Spring Boot domain services for NEXUS platform (user/project/community/permission/billing)</description>
+    <description>NEXUS authoritative write path for project/user/community/permission/billing (Java Spring Boot).</description>
 
     <properties>
         <java.version>25</java.version>
         <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Spring Cloud 2025.0.3 is the release train that matches Spring Boot 3.5.x (this service's
+             parent) — the same train `services/nexus-api` and `services/java-gateway` ride. The BOM is
+             imported rather than the versions being spelled out one by one, so the whole train moves as a
+             unit. -->
         <spring-cloud.version>2025.0.3</spring-cloud.version>
     </properties>
 
@@ -73,7 +99,13 @@
             <artifactId>spring-boot-starter-cache</artifactId>
         </dependency>
 
-        <!-- Spring Boot Actuator (SC-8: health only) -->
+        <!-- Spring Boot Actuator (SC-8: health only).
+             The operator's door. MEASURED 2026-11-11: this module exposed
+             `health,info,metrics,prometheus` in its application.yml and carried the Prometheus
+             registry, but had NO actuator on the classpath at all — so `/actuator/prometheus`
+             answered 404 and the whole management block was decoration. A configuration that names
+             endpoints nothing can serve is the same class of lie as an answer that names a failure
+             it did not have; the topology proof's §10b found it by asking the door. -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
@@ -82,17 +114,29 @@
           §SC-78: spring-cloud-starter-loadbalancer 的实例列表供应器在首次构建时用默认缓存
           并在每个启动打印 WARN（L55 domain-service.log, verify:topology 实见）。加
           Caffeine 让 LB 走真正的本地缓存（org.springframework.cache.caffeine.CaffeineCacheManager
-          由随附的 spring-context-support 提供）——这不是哄 WARN 的装饰：缓存会让 LB 在实例up/down
+          由随附的 spring-context-support 提供）——这不是哄 WARN 的装饰：缓存会让 LB 在实例 up/down
           期间不再针对每条请求重新走 eureka-client 的实例目录解析。
         -->
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
         </dependency>
-        <!-- §SC-77: Prometheus 抓数端点——不是"先装上看看戏"，而是让运维有一个可以直接面向 scraping 的真端点（SC-8 只说了 health）。随 SC-66（暴露面按服务单独签发，绝不入共享默认）一起落。 -->
+        <!-- §SC-77 / v656: Prometheus scrape endpoint on the operator door — the door answers with the
+             metrics the same services already produce, in the standard format nothing invents. -->
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
+        <!-- Redis. The merged tree publishes the cross-process realtime wire through
+             `WirePublisher` (StringRedisTemplate) and its tests (WirePublisherFrameShapeTest /
+             WirePublisherRoundTripTest / WireCommunityEventListenerTest) use a real
+             LettuceConnectionFactory — so the starter is NOT optional here, even though one of the
+             merged lines had no RedisTemplate and removed it. `none` of that code is decorative:
+             pub/sub is the wire; a frame nobody receives is simply dropped, never an error. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
         <!-- PostgreSQL Driver -->
@@ -105,12 +149,6 @@
           No migration tool: this service maps onto a schema the WEB layer owns (apps/web/src/server/db/schema.ts
           and its Drizzle migrations). A second writer of DDL is how two systems disagree about the same table.
         -->
-
-        <!-- Redis -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-        </dependency>
 
         <!--
           Service discovery (SC-6): registers as `nexus-domain-service` so the gateway can route to it by ID.
@@ -152,12 +190,15 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.security</groupId>
-            <artifactId>spring-security-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
+
+    <!-- v656 — the bridge (only the bridge): this deployable RECEIVES the trace from the hop before it
+         and continues it; it starts no outbound typed call of its own, so the Feign capability would be a
+         dependency with nothing to attach to. -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-tracing-bridge-brave</artifactId>
+    </dependency>
+  </dependencies>
 
     <build>
         <resources>
@@ -229,7 +270,7 @@
                             <additionalProperties>
                                     <!-- pinned at packaging time; nothing dynamic or secret. -->
                                     <component>nexus-domain-service</component>
-                                </additionalProperties>
+                            </additionalProperties>
                         </configuration>
                     </execution>
                 </executions>

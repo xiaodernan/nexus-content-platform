@@ -4,7 +4,7 @@ import { requireUser } from '@/server/domain/session';
 import { PROJECT_KINDS, createProject, listProjects } from '@/server/domain/projects';
 import { csrfOk } from '@/server/security/csrf';
 import { ipWriteGate } from '@/server/security/rateLimit';
-import { badRequest, failure, jsonError, readJson } from '@/server/http';
+import { badRequest, failure, jsonError, privateJson, readJson } from '@/server/http';
 
 const CreateProjectSchema = z.object({
   name: z.string().trim().min(1).max(80),
@@ -14,7 +14,7 @@ const CreateProjectSchema = z.object({
 export async function GET(): Promise<NextResponse> {
   try {
     const user = await requireUser();
-    return NextResponse.json({ projects: await listProjects(user.id) });
+    return privateJson({ projects: await listProjects(user.id) });
   } catch (error) {
     return failure(error, 'GET /api/projects');
   }

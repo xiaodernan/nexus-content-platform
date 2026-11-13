@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { currentUserOrNull } from '@/server/domain/session';
 import { readLedger } from '@/server/domain/metrics';
 import { snapshot } from '@/server/observability';
+import { getAiCapabilities } from '@/lib/env';
 import { AdminNav } from '@/components/AdminNav';
 
 export const dynamic = 'force-dynamic';
@@ -39,6 +40,7 @@ export default async function AdminObservabilityPage() {
 
   const metrics = snapshot();
   const ledger = await readLedger(24);
+  const aiReadiness = await getAiCapabilities();
 
   return (
     <main className="am-shellGapXl" data-observability-root>
@@ -56,6 +58,50 @@ export default async function AdminObservabilityPage() {
           </Link>
         </div>
       </header>
+
+      <section className="am-audit" data-ai-readiness-section>
+        <h2 className="am-sectionHeadSm" data-ai-readiness-heading>
+          AI 就绪 · 这次渲染问 /healthz 的回答
+        </h2>
+        <p className="adm-capNote">
+          每次渲染都现问 /healthz——能力不是猜测、不是缓存、任何模型只要没真接就不报 real。
+          DEMO 表示该类暂无真实 provider；留空表示未填，我们就明说（不静默挂 DEMO 标）。图像和视频目前也没有真实
+          provider——它们因此读 DEMO。某个能力只有在 ai-service 自己报 real 时才显示 real——永远不比 ai-service 知道的更乐观。
+        </p>
+        <table className="am-tableNarrow">
+          <thead className="tl-thRow">
+            <tr>
+              <th>面</th>
+              <th>读数</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td className="am-monoCell">text path</td><td data-ai-readiness-text={aiReadiness.text}>{aiReadiness.text}</td></tr>
+            <tr><td className="am-monoCell">image path</td><td data-ai-readiness-image={aiReadiness.image}>{aiReadiness.image}</td></tr>
+            <tr><td className="am-monoCell">video path</td><td data-ai-readiness-video={aiReadiness.video}>{aiReadiness.video}</td></tr>
+            <tr><td className="am-monoCell">live capability</td><td data-ai-readiness-live={aiReadiness.live ? 'true' : 'false'}>{aiReadiness.live ? 'real' : 'not real'}</td></tr>
+            <tr><td className="am-monoCell">cache backend</td><td data-ai-readiness-cache-backend={aiReadiness.cache?.backend ?? 'unavailable'}>{aiReadiness.cache?.backend ?? 'unavailable'}</td></tr>
+            <tr>
+              <td className="am-monoCell">cache hits / misses</td>
+              <td data-ai-readiness-cache-hits={aiReadiness.cache?.hits ?? -1} data-ai-readiness-cache-misses={aiReadiness.cache?.misses ?? -1}>
+                {aiReadiness.cache ? `${aiReadiness.cache.hits} / ${aiReadiness.cache.misses}` : '—'}
+              </td>
+            </tr>
+            <tr>
+              <td className="am-monoCell">cache hit rate</td>
+              <td data-ai-readiness-cache-hitrate={aiReadiness.cache?.hit_rate ?? -1}>
+                {aiReadiness.cache ? `${Math.round(aiReadiness.cache.hit_rate * 100)}%` : '—'}
+              </td>
+            </tr>
+            <tr>
+              <td className="am-monoCell">cache status</td>
+              <td data-ai-readiness-cache-status={aiReadiness.cache ? (aiReadiness.cache.degraded ? 'degraded' : 'healthy') : 'disabled'}>
+                {aiReadiness.cache ? (aiReadiness.cache.degraded ? 'degraded' : 'healthy') : 'disabled'}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
 
       <section className="am-audit">
         <h2 className="am-sectionHeadSm" data-metric-heading="process">

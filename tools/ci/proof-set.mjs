@@ -79,6 +79,22 @@ export const PROOF_COMMAND = /^node +(docs\/evidence\/\S+\.mjs)$/;
  * and a warm `~/.m2` for the offline flag, which the workflow buys online (a warm-up step) before the proofs
  * run. The array is kept — not deleted — because the clause is "a proof the build cannot run must say what it
  * needs", and an empty set is still a set the gates read.
+ *
+ * v653 (2026-11-10) — EMPTY AGAIN, and this time the exclusion DIED BY ITS OWN REDESIGN rather than by
+ * a special case. The blocker was never the machine and never Maven (warmed at v650); the blocker was
+ * the proof's own shape: it wanted an already-migrated `nexus-postgres` container, and no workflow
+ * step had one to give. v653 made the proof self-sufficient on the hosted plane: with no
+ * NEXUS_PROOF_DB_CONTAINER set, §3a now pulls `pgvector/pgvector:pg16`, runs a scratch source
+ * container on an ephemeral host port, replays the repository's ENTIRE ordered `infra/migrations/*.sql`
+ * into it (the canonical schema, not a pg_dump locally of an arbitrary dev database), and destroys it
+ * in §16. The workflow already pre-pulls pgvector/pgvector:pg16, so no ci.yml step changed; nothing
+ * outside the proof file changed either. On the hosted runner that is the whole gate for the row's
+ * green: it re-earns or honestly reddens like any other row — the residue is zero by construction
+ * rather than by hope.
+ *
+ * The operator-local plane is unchanged: `NEXUS_PROOF_DB_CONTAINER=nexus-postgres` (with the core
+ * profile's compose up) reuses the dev container exactly as before, including its pg_dump path out of
+ * the platform's own database. The two planes share every step after §3a.
  */
 export const EXCLUDED = [];
 

@@ -1,0 +1,9 @@
+# keys for `services/nexus-api` only — never served to the gateway, the registry, or the domain.
+#
+# Increasing a service's log volume is the operator's lever that does not need a rebuild; raising
+# `dev.nexus.api` to debug is exactly that. The surrounding packages come from elsewhere and stay
+# out of the change: the config server serves ONE service's view at a time.
+
+logging:
+  level:
+    dev.nexus.api: info

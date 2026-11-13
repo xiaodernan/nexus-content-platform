@@ -31,10 +31,10 @@ Counts below are from `NODE_OPTIONS= npx vitest run --root <pkg> --no-file-paral
 | `@nexus/three-runtime` | **635/635** | 30 | M5: scene graph, entities, cameras, lighting, save/quest/combat/NPC surface |
 | `@nexus/world-engine` | **109/109** | 4 | M4: world/lore/character/location + relationships + tick + save/load |
 | `@nexus/agent-runtime` | **658/658** | 46 | M2–M5 doors; see `docs/evidence/agents/README.md` |
-| `@nexus/exec-host` | **358/358** | 14 | the only `child_process` holder (ADR 0013 policy sandbox) |
+| `@nexus/exec-host` | **359/359** | 14 | the only `child_process` holder (ADR 0013 policy sandbox) |
 | `@nexus/studio` | **2857/2857** | 142 | the Studio slice: canvas, surfaces, lanes, and the `/credits` page |
 
-_Generated on 2026-11-09 (win32 x64, Node 24.15.0) by `npm run verify:package-counts` from seven `vitest run --root <pkg> --no-file-parallelism` arms — never hand-typed. A package whose counts move must regenerate this block; the gate refuses a table that differs from the suites it ran._
+_Generated on 2026-11-10 (win32 x64, Node 24.15.0) by `npm run verify:package-counts` from seven `vitest run --root <pkg> --no-file-parallelism` arms — never hand-typed. A package whose counts move must regenerate this block; the gate refuses a table that differs from the suites it ran._
 <!-- package-counts:end -->
 
 _The table above used to be hand-typed, and by v548 it had drifted into a lie: the `studio` row

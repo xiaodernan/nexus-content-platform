@@ -24,6 +24,22 @@ function tsxFiles(dir: string): string[] {
 }
 
 /**
+ * v676 / ADR 0109：CSS 文件本身也得进 token 引用门。
+ *
+ * 原门的 var() 存在性检查只扫 .tsx/.ts，把设计系统自己的两个 CSS 文件漏了——而恰恰是
+ * `globals.css` 的 `@theme` 块把 30+ 个 token 映射成 Tailwind 类、`tokens.css` 自己层叠引用。
+ * 这两处写错一个名字同样静默失效（拼错的 token 不报错，只是那条工具类再也不起作用），
+ * 却没有任何门看着。这一支把它们纳入同一套"引用必须已定义"的判据。
+ */
+function styleFiles(dir: string): string[] {
+  return readdirSync(dir).flatMap((name) => {
+    const p = join(dir, name);
+    if (statSync(p).isDirectory()) return styleFiles(p);
+    return p.endsWith('.css') ? [p] : [];
+  });
+}
+
+/**
  * fg-3 是 11/12px 小字与占位符用的颜色，必须在四级表面上都过 WCAG AA 的 4.5:1。
  *
  * 为什么要单钉这一条：§85 的 axe e2e 只扫得到公开作品页那一个面，而全站 639 处 text-fg-3
@@ -82,9 +98,11 @@ describe('设计 token 引用（§12）', () => {
     expect(defined.has('--nexus-color-brand-fg')).toBe(false);
   });
 
-  it('界面里没有出现指向不存在 token 的 var()', () => {
+  it('界面里没有出现指向不存在 token 的 var()（含 CSS 自身，v676）', () => {
     const unknown: string[] = [];
-    for (const file of tsxFiles(SRC)) {
+    // v676：把设计系统自己的 .css（globals.css 的 @theme 映射 + tokens.css 层叠）纳入同一判据。
+    // 以前只扫 .tsx/.ts，这两处引用写错名字会静默失效却无人看见。
+    for (const file of [...tsxFiles(SRC), ...styleFiles(SRC)]) {
       const lines = readFileSync(file, 'utf8').split('\n');
       lines.forEach((line, i) => {
         for (const m of line.matchAll(/var\((--nexus-[a-z0-9-]+)[),]/g)) {
@@ -92,7 +110,33 @@ describe('设计 token 引用（§12）', () => {
         }
       });
     }
-    expect(unknown).toEqual([]);
+    expect(unknown, 'CSS/TSX 里有 var() 指向未在 tokens.css 定义的 token——拼错的名字不报错，只会静默失效').toEqual([]);
+  });
+
+  it('门确实扫到了 CSS：把 globals.css 里一个 @theme 映射换成坏名字，必须被上面那条抓住', () => {
+    // 验电（ADR 0094 X4  discipline）：若 styleFiles 没接上，上面那条在 CSS 上就是空门。
+    // 这里不改真实文件，只复刻那条门对"一份含坏引用的 CSS 文本"的判据。
+    const globals = readFileSync(join(SRC, 'app/globals.css'), 'utf8');
+    expect(globals).toMatch(/var\(--nexus-/); // 确认 globals.css 真有 var() 可扫
+    const planted = '  --color-brand: var(--nexus-color-brand-typo);'; // token 名规范是小写，故意造一个未定义的小写名
+    const badRefs = [...planted.matchAll(/var\((--nexus-[a-z0-9-]+)[),]/g)]
+      .map((m) => m[1]!)
+      .filter((name) => !defined.has(name));
+    expect(badRefs, '验电：这个故意写坏的 token 名必须被判为未定义，否则门是摆设').toEqual(['--nexus-color-brand-typo']);
+  });
+
+  it('验电：把这次真 bug 的 11px 档定义拿掉，home 的 var() 必须被判成未定义（修复不静默回退）', () => {
+    // v676 真案：home 页 LIVE/DEMO 徽标引用 --nexus-font-size-11，改前阶梯从 12 起 ⇒ 静默失效。
+    // 本片把它正式补进 tokens.css。这里钉住那道"引用必须已定义"门会抓住它的缺失：
+    // 若有人再把 11 档删掉（或改回不存在的名字），把定义集合拿掉后同一条 var() 必须落进坏引用表。
+    expect(defined.has('--nexus-font-size-11'), '11px 档现在必须是设计系统的正式定义，不是 home 手写的孤儿').toBe(true);
+    const homeRef = 'text-[var(--nexus-font-size-11)]';
+    const without11 = new Set([...defined].filter((t) => t !== '--nexus-font-size-11'));
+    const badRefs = [...homeRef.matchAll(/var\((--nexus-[a-z0-9-]+)[),]/g)]
+      .map((m) => m[1]!)
+      .filter((name) => !without11.has(name));
+    expect(badRefs, '验电：缺了 11 档定义时，home 那条 var() 必须被判为坏引用，否则这次修复没有门守着')
+      .toEqual(['--nexus-font-size-11']);
   });
 });
 
@@ -454,6 +498,60 @@ describe('其余语义色当文字（§90 无障碍 · 当前 0 处，出现即�
       );
       expect(worst, `${name} 在两个主题四级表面上最差 ${worst.toFixed(2)}——若真全过了，这道门就该删`).toBeLessThan(4.5);
     }
+  });
+});
+
+/**
+ * v676 / ADR 0109：设计系统的 motion 契约与"减少动态"兜底。
+ *
+ * 探针实测（2026-11-12）：tokens.css 定义了 fast/base/slow/ease 四个 motion token，但改前全站
+ * **0 处 var() 消费者**——节奏写进了权威文件，屏幕上一帧都没兑现，`prefers-reduced-motion`
+ * 的兜底也因此几乎空转（block 在，却没东西可兜）。这跟 fg-3 那种"token 在、消费者错"同类，
+ * 只是更隐蔽：不是写错，是**从没接上**。
+ *
+ * 两道门守两件事，都只钉语义、不钉"必须写在 globals.css 第几行/哪条选择器"（ADR 0094 X4）：
+ * ① 全站交互节奏的快档/中档/缓动（fast/base/ease）必须各有真实 var() 消费者——防止退回
+ *    "整族孤儿"。**刻意不强求 slow 档**：它是给将来大转场预留的慢节奏，此刻没有消费者是
+ *    合法现状；门不许为了点云数逼谁造一个没意义的长动画（ADR 0094 X4 的反向纪律）。
+ * ② 减少动态兜底必须同时压住 transition/animation 的 duration 与 delay、并消掉 :active 位移——
+ *    这样将来任何新动效只要走 token，就不会在"减少动态"下残留；这是可访问性硬收益，静态可验。
+ */
+describe('设计系统的 motion 契约与减少动态兜底（v676 / ADR 0109）', () => {
+  const GLOBALS = join(SRC, 'app/globals.css');
+  /** 交互实际在用的三档：快（active 反馈）、中（常规过渡）、缓动曲线。slow 是预留档，见上。 */
+  const ACTIVE_MOTION_TOKENS = ['--nexus-motion-fast', '--nexus-motion-base', '--nexus-motion-ease'];
+
+  it('交互节奏的 fast/base/ease 各有全站消费者——motion 族不再是整族孤儿', () => {
+    // 扫全部 .tsx/.ts/.css 的 var() 引用；只钉"有消费者"这条性质，不钉消费者在哪个文件/选择器。
+    // 于是 lane 将来换一条正当动效实现（仍用这些 token）门依旧绿，退回整族孤儿才红；
+    // 不强求 slow——它是预留慢档，门不逼谁造一个没意义的长动画（ADR 0094 X4 反向纪律）。
+    const referenced = new Set<string>();
+    for (const file of [...tsxFiles(SRC), ...styleFiles(SRC)]) {
+      const text = readFileSync(file, 'utf8');
+      for (const m of text.matchAll(/var\((--nexus-motion-[a-z-]+)[),]/g)) referenced.add(m[1]!);
+    }
+    for (const token of ACTIVE_MOTION_TOKENS) {
+      expect(referenced.has(token), `${token} 全站 0 个 var() 消费者——交互节奏又成了死 token`).toBe(true);
+    }
+  });
+
+  it('减少动态兜底完整：duration / delay / :active 位移都被压住，新动效不会在 reduce 下残留', () => {
+    const css = readFileSync(GLOBALS, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    const at = css.indexOf('@media (prefers-reduced-motion: reduce)');
+    expect(at, 'globals.css 里没有 prefers-reduced-motion 兜底块').toBeGreaterThanOrEqual(0);
+    // 取该 @media 到文件尾的整段兜底区（globals.css 里它排在最后），避免手动数括号截错内层规则。
+    const reduceRegion = css.slice(at);
+    for (const prop of ['transition-duration', 'animation-duration', 'animation-delay', 'transition-delay']) {
+      expect(reduceRegion, `减少动态兜底漏了 ${prop}——带该属性的动效仍会迟滞/残留`).toMatch(new RegExp(`${prop}\\s*:\\s*0`));
+    }
+    expect(reduceRegion, '减少动态下 :active 的 scale 位移没被消掉').toMatch(/transform\s*:\s*none\s*!important/);
+  });
+
+  it('验电：把消费者全部拿掉，消费者门必须红（不是空门）', () => {
+    // 复刻上一道门的判据，喂一份"只有 tokens.css 定义、无任何 var() 消费者"的文本，确认它会被拒。
+    const referenced = new Set<string>(); // 空消费者集合
+    const orphaned = ACTIVE_MOTION_TOKENS.filter((t) => !referenced.has(t));
+    expect(orphaned, '验电：空消费者时三档交互节奏都该被判为孤儿，否则消费者门是摆设').toHaveLength(3);
   });
 });
 

@@ -34,9 +34,22 @@ export default tseslint.config(
       // Agent 的临时实验区：里面是变异探针与跑批脚本，不属于任何 tsconfig，
       // 类型感知的规则集对它会直接报"文件不在 project service 里"（见 .gitignore 同名条目）
       '.scratch/**',
+      // 同一个家族的另一半：`.nexus-tmp/`（.gitignore:87），481 个探针/一次性脚本，其中 146 个
+      // 是 ESLint 认得的扩展名。别以为点目录会被自动跳过——实测（在 tools/ 下放一个 `.nxprobe/bad.mjs`
+      // 再 `eslint tools`）ESLint 10.11 照样走进去并把它算进 18 个文件里。而这里没有一个文件在任何
+      // tsconfig 里，走进去读到的只有解析错误。
+      '.nexus-tmp/**',
       // 根目录的同类临时脚本（scratch-shot.mjs 一类）：同样不属于任何 tsconfig，
       // 留在根目录时整仓 eslint 会被它一个人卡住
       'scratch-*.mjs',
+      // apps/studio 自带一份 eslint 9 + eslint-config-next，并且是唯一一个声明了 `lint` 脚本的包
+      // （`npm run lint` = `turbo run lint`，CI 走的就是这条路；它自己那一跑实测 exit 0）。根这一份是
+      // eslint 10：在 HEAD 的字节上、用脚本自己的 argv（`eslint .`，不带 --config）实测 4.5 秒就死在
+      // `@rushstack/eslint-patch` 里——"Failed to patch ESLint because the calling module was
+      // not recognized"，exit 2，输出里没有一行点名的文件，因为 ESLint 走到 studio 时会去加载它就近的
+      // 配置。加上这条 ignore 之后同一个 argv 跑得完了：248 秒、223 条、exit 1。排除它不是放过它：它被
+      // 那条已到达的腿评着，这里排除的是"同一份代码被两个不同大版本的 eslint 各评一遍"。
+      'apps/studio/**',
     ],
   },
 
@@ -233,7 +246,7 @@ export default tseslint.config(
     // 名单是逐个包写的，不是通配：那六个之外的包（schemas / creative-model / game-model / video-model /
     // world-model / mcp-server / apps/web）的 tsconfig.json 本来就 include 了 test/**，它们由 project
     // service 正常认领。通配一次会把这些包的文件也拽到这份名单里，而它们不在任何一个 tsconfig.test.json
-    // 里——那就从"解析不了"换成"文件不在项目里"，一样是红的，只是换了个错法。
+    // 里——那就从"解析不了"换成"文件不在项目里"，一样是红的，只是换了个错法（见 docs/decisions/0016）。
     files: [
       'packages/ai-providers/test/**/*.ts',
       'packages/design-model/test/**/*.ts',

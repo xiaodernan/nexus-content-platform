@@ -65,3 +65,16 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0051  | A journal is pruned only from the front                        | Accepted |
 | 0052  | A replacement chain names where it ends                        | Accepted |
 | 0053  | A warning list can select several states at once                | Accepted |
+| 0054  | Spring Cloud enters NEXUS as a REGISTRY and an EDGE, not as a rewrite | Accepted |
+| 0055  | A service is reached BY NAME, and its failure is a FACT about the service | Accepted |
+| 0056  | A failure must NAME itself: which service, which kind, and who refused | Accepted |
+| 0057  | Configuration enters NEXUS as ONE door, and it is optional at boot | Accepted |
+| 0058  | Spring Cloud in NEXUS: what runs, what only parses, and what is deliberately absent | Accepted |
+| 0059  | A span is evidence only where a hop writes it down | Accepted |
+| 0061  | When the Discover feed cache is correct, and when it breaks | Accepted |
+| 0062  | The CONVERGENCE program: what is live, what is landed, what is pending, what we will not do | Accepted |
+| 0063  | Redis in NEXUS: what it earns, what it costs, when it lies | Accepted |
+| 0064  | Messaging in NEXUS, honestly inventoried: SSE-only delivery, Redis pub-sub as the cross-instance fanout, and the things it is NOT | Accepted |
+| 0065  | The routes actuator is a dead door on the WebFlux edge — verified three ways; NEXUS proves the live route table instead | Accepted |
+| 0066  | A durable side-effect lane, not a broker: Redis Streams for post-response work that must happen once | Accepted |
+| 0059  | A trace id is evidence only where a hop WRITES IT DOWN                  | Accepted |

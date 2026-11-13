@@ -7,13 +7,41 @@ spring:
   application:
     name: nexus-api
   # SC-11 — config client, same contract as the gateway (SC-9). `optional:` means an unreachable config
-  # center is not a startup failure; `enabled` is false unless a deployment says NEXUS_CONFIG_ENABLED=true,
-  # so this file stays the offline truth and no test or proof silently depends on something on 8888.
+  # center is not a startup failure. `enabled` is false unless a deployment says NEXUS_CONFIG_ENABLED=true,
+  # so this file stays the offline truth and no test or proof silently depends on something on 18888.
+  # NEXUS's OWN port, not Spring's default 8888: 8888 is the first port a neighbouring Spring
+  # project takes, and measured 2026-11-10 one did — its config door answered ours and handed a
+  # proof service a FOREIGN `eureka.client.service-url` (ADR 0057 amendment 658). Compose publishes
+  # this door on 18888 and the smoke probes 18888; the default now agrees with both.
   config:
-    import: optional:configserver:${NEXUS_CONFIG_URL:http://127.0.0.1:8888}
+    import: "optional:configserver:${NEXUS_CONFIG_SERVER_URL:http://127.0.0.1:18888}"
   cloud:
     config:
       enabled: ${NEXUS_CONFIG_ENABLED:false}
+    openfeign:
+      circuitbreaker:
+        # The breaker in front of the domain-service call. Without it a downstream that is down costs
+        # every call a full timeout; with it, the failure is fast AND it is a named fact rather than
+        # an exception the caller has to guess about.
+        enabled: true
+        group:
+          # The per-client instance below is the one that matters; the shared group is left off so
+          # that one client's failures cannot open a breaker for an unrelated one.
+          enabled: false
+        # The NAME of the breaker is decided by `DomainCircuitBreakerNameResolver` (see
+        # `dev.nexus.api.domain`), NOT by the library's default resolvers. Measured (2026-11-09): those
+        # name a breaker `dev.nexus.api.domain.DomainServiceClient#getProject` — and, by default, that
+        # with every non-alphanumeric character removed. The `resilience4j` block below is keyed by
+        # `nexus-domain-service`, so with the library's own resolver it configured an instance
+        # NOTHING WAS USING, and the breaker that actually guarded the call ran on the defaults.
+        #
+        # The first run of the topology proof showed what that costs: the real breaker counted every
+        # exception as a failure, including a 404 — which is an ANSWER, not a failure — and once it
+        # opened, a healthy domain service answered "there is no project with that id" with
+        # 503 "No fallback available." instead of 404.
+        #
+        # `DomainCircuitBreakerConfigTest` reads this file and refuses to let the instance name and
+        # the name in front of the call drift apart again.
   datasource:
     url: ${NEXUS_DB_URL:jdbc:postgresql://127.0.0.1:55433/nexus}
     username: ${NEXUS_DB_USER:nexus}
@@ -25,6 +53,69 @@ spring:
       # exists, and the bound is stated in the README rather than implied by this line.
       ddl-auto: update
     open-in-view: false
+
+resilience4j:
+  # v669 — the fourth resilience pillar, on the SAME typed call. The three already here answer
+  # "the service is down" (breaker), "the service is slow" (deadline, on the gateway), "too many
+  # callers" (rate limit). RETRY answers "the service had a momentary blip" — a GET that can be
+  # asked again safely. It is the last pillar because it is the only one that can make a bad call
+  # WORSE if wired wrongly, so it is wired by hand and graded hard (see DomainServiceRetry).
+  #
+  # THE TRAP this config is written around: Spring Cloud OpenFeign's CircuitBreaker integration
+  # wraps the call in a CircuitBreaker (and a TimeLimiter) but does NOT consult a Resilience4j
+  # RETRY instance — there is no retry config class in spring-cloud-circuitbreaker-resilience4j.
+  # So a `resilience4j.retry.instances.*` block alone would configure an instance NOTHING uses,
+  # silently — the exact failure mode this repository already survived once with the breaker name
+  # (see the circuitbreaker block below). `DomainServiceRetry` is the code that ACTUALLY obtains
+  # this instance from RetryRegistry and runs the call through it; the config and the code must
+  # agree on the name, and `DomainServiceRetryConfigTest` refuses to let them drift.
+  retry:
+    instances:
+      # Same instance name as the breaker: the retry protects the ONE typed call, named after the
+      # Feign client. A second spelling here would quietly configure a retry nothing applies.
+      nexus-domain-service:
+        # 3 total attempts = the first call + at most 2 retries. Bounded on purpose: an unbounded
+        # retry against a hung downstream turns one slow caller into a connection-pool exhaustion.
+        maxAttempts: ${NEXUS_DOMAIN_RETRY_ATTEMPTS:3}
+        # A fixed, bounded wait: 2 retries × 200 ms is at most 400 ms of backoff, comfortably inside
+        # the caller's own deadline. Exponential-backoff properties exist in newer Resilience4j
+        # Spring Boot bindings, but are deliberately NOT used here: a knob this release does not
+        # bind would be another silently-ignored line, and a fixed wait is all a bounded retry needs.
+        waitDuration: ${NEXUS_DOMAIN_RETRY_WAIT:200ms}
+        retryExceptions:
+          # Only transient wire failures are worth asking twice. A Feign RetryableException is the
+          # family Feign uses for connection failures; FeignException.ServiceUnavailable (503) is a
+          # response that says "try me again". Neither is a statement about the PROJECT.
+          - feign.RetryableException
+          - feign.FeignException$ServiceUnavailable
+        ignoreExceptions:
+          # A 404 is an ANSWER, not a blip: the service was there and holds no such project. Retrying
+          # it wastes two round trips and turns a cheap 404 into a slow one. SAME rule the breaker
+          # already applies to 404, kept in lockstep here.
+          - feign.FeignException$NotFound
+          # An open breaker means the call was NEVER MADE; retrying only re-hits the open breaker.
+          - io.github.resilience4j.circuitbreaker.CallNotPermittedException
+          # No instance to call is a topology fact, not a momentary blip.
+          - java.lang.IllegalStateException
+  circuitbreaker:
+    instances:
+      # The instance name MUST be the name Spring Cloud OpenFeign actually asks for — which is the
+      # Feign client's name, verbatim, because `alphanumeric-ids.enabled` is false above — or the
+      # breaker that stands in front of the call is not the one this configuration describes.
+      nexus-domain-service:
+        slidingWindowSize: 20
+        minimumNumberOfCalls: 20
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 2
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        # A 404 is an ANSWER, not a failure. The domain service said "there is no project with that
+        # id", which is exactly what it was asked — a healthy service doing its job. Counting it as a
+        # failure would open the breaker for a service that is working perfectly, and every later 404
+        # would then come back as a 503, i.e. as "the service is down". The two facts must not be
+        # confused on this side of the boundary either.
+        ignoreExceptions:
+          - feign.FeignException.NotFound
 
 server:
   port: ${NEXUS_API_PORT:8080}
@@ -41,11 +132,14 @@ server:
 # Registering is OFF by default. A standalone run (a proof, a test, `java -jar` on a laptop) must not depend
 # on something answering on 8771 (dedicated port — 8761 is the framework default and on this machine
 # provably already somebody else's; see docs/adr/0100), and a service that silently joins whatever registry
-# happens to be there is
-# a deployment decision, not a default. A deployment that wants discovery sets NEXUS_API_REGISTER=true.
+# happens to be there is a deployment decision, not a default. A deployment that wants discovery sets
+# NEXUS_API_REGISTER=true.
 #
 # With both flags off the Eureka client starts no network task at all: no registration, no fetch, no
 # heartbeat. That is why this block can live in the shipped config instead of a test-only profile.
+# Eureka's own namespace is TOP-LEVEL `eureka.*`, not `spring.cloud.eureka.*`: measured in the
+# gateway, written under the wrong prefix the client starts anyway and dials a registry nobody
+# started, for a reason no log line explains.
 eureka:
   client:
     enabled: ${NEXUS_API_EUREKA_ENABLED:true}
@@ -61,11 +155,27 @@ eureka:
 # SC-8 — the only management endpoint this service publishes. `health` (and nothing else) is what the
 # gateway's /platform/health probes; `show-details: never` keeps component names, datasource URLs and
 # exception text out of an unauthenticated answer. Status is still aggregated (a down database answers DOWN).
+# The operator's door: `metrics` is here for ONE reason — `resilience4j.circuitbreaker.state` is the metric
+# that says whether the breaker in front of the domain service is CLOSED, OPEN or HALF_OPEN, and its `name`
+# tag is the breaker's own name — `nexus-domain-service`, the same word the configuration above
+# uses. Without it, a 503 says "the domain service could not be reached" and nobody can tell
+# whether the call was refused by the breaker, refused by the network, or never made.
+#
+# This door is NOT reachable through the edge: the gateway's route table matches only `/api/**`.
+# So `/actuator/**` answers on this service's own port and nowhere else.
 management:
+  # v656 — ONE trace id, and it travels on the WIRE (W3C `traceparent`), not in a header NEXUS invented.
+  # Sampling is 1.0 in development because a sampled-out request is a request with nothing to read; a
+  # deployment sets NEXUS_TRACING_SAMPLING (0.1 is a normal production number).
+  tracing:
+    sampling:
+      probability: ${NEXUS_TRACING_SAMPLING:1.0}
+    propagation:
+      type: W3C
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: never
@@ -77,6 +187,11 @@ management:
       enabled: false
 
 logging:
+  # v656 — the ids have to BE in the line for anyone (including a proof) to read them. Boot only
+  # prints them when this pattern is set; measured: without it the format is `[app]` and with it
+  # `[app,traceId,spanId]` (empty ids on a thread with no span, which is the honest rendering too).
+  pattern:
+    correlation: "[${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
   level:
     root: warn
     dev.nexus.api: info

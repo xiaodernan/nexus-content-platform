@@ -9,7 +9,7 @@
 // had never executed once, so every "CI would have caught it" sentence in this project's records was about a
 // machine that does not run.
 //
-// So the wiring is a subject, not a footnote. This proof reads the shipped workflow as bytes and refuses,
+// So the wiring is a subject, not a footnote. This proof reads the shipped workflows as bytes and refuses,
 // clause by clause, each way the fix could rot back into the hole: the trigger losing this branch, the proof
 // step disappearing, the step swallowing a failure (`|| true`, `continue-on-error`), the proofs running
 // before the build they grade, and — the one a hand-written list always ends up in — the derived set and the
@@ -40,9 +40,10 @@
 //
 // Run from the repository root:  node docs/evidence/ci/ci-wiring-proof.mjs   (or: npm run verify:ci-wiring)
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, posix, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
@@ -64,12 +65,12 @@ const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
  * `name:`, `uses:` and a `run:` that is either a single line or a `|` block scalar. Refusing a shape this
  * reader cannot parse is deliberate: silently grading half a step is how a swallow hides.
  */
-function stepsOf(text) {
+function stepsOf(text, label = WORKFLOW) {
   const lines = text.split(/\r?\n/);
   const at = lines.findIndex((l) => /^\s+steps:\s*$/.test(l));
-  assert.ok(at >= 0, `${WORKFLOW}: no "steps:" sequence, so nothing here can say which commands the build runs`);
+  assert.ok(at >= 0, `${label}: no "steps:" sequence, so nothing here can say which commands the build runs`);
   const first = lines.slice(at + 1).find((l) => /^\s*-\s/.test(l));
-  assert.ok(first, `${WORKFLOW}: \`steps:\` has no entries`);
+  assert.ok(first, `${label}: \`steps:\` has no entries`);
   const indent = first.match(/^\s*/)[0].length;
   const blocks = [];
   let cur = null;
@@ -474,4 +475,234 @@ const noCall = running.length - tails.size;
   console.log(`[§13] ${measured} row(s) measured against the runner's own ${producer.GUTTER_BOUND_BYTES}-byte clip, 0 guaranteed to be cut · ${atTheBound} land exactly on the bound and print whole · the longest whole one is ${closest.name} at ${closest.bytes} bytes · ${unreadable} row(s) end on a call this gate cannot read`);
 }
 
-console.log(`\nci wiring: trigger covers master · proof step #${proofSteps[0].index} · ${steps.length} steps swallow nothing · build precedes it · population ${population.length} closes as ${splitSet(population).running.length} + ${splitSet(population).residue.length} · build Node ${buildNodeMajor} · ceiling ${jobTimeoutMinutes} min, read-only token · no row ends its source on a cleanup print · no row's tail is guaranteed to overrun the gutter`);
+
+// ── §14 every tsc surface the tree declares is reached by a step of SOME workflow ──────────────────
+// Why a second workflow needs a clause of its own: `.github/workflows/main-line.yml` was added by cf1537e on
+// 2026-11-09 — 48 commits back from the ref this clause lands on — and until this clause the string `main-line`
+// appeared in NO file under tools/ or docs/evidence/ (`git grep -l main-line HEAD -- tools docs/evidence` answers
+// nothing), so the thirteen clauses that gate then had read ci.yml only. The silence was not harmless: the
+// sentence amendment 572 shipped about exactly this reach was false, and only reading this file plus a hosted log
+// settled it (see that amendment's addendum — `git log -S"typecheck:main" -- .github/workflows/ci.yml` answers
+// nothing, and the main-line job of hosted run 42665488782 printed exactly one error,
+// `evals/suites/demo-mode.mts(3,26): error TS2724`). Eight of the tree's typecheck surfaces, `tsconfig.tools`
+// among them, are reached by nothing but one step of that workflow, so a step deleted from it reddens no build
+// and hides no error — it just stops the grading.
+// What is counted is a REACH, not a name. A LEG is `tsc -p <config>` inside a script of the root manifest or of
+// a manifest a root `workspaces` glob names, or a bare `tsc --noEmit`, which reads its own directory; a leg is
+// REACHED when a step's `run:` in a workflow file names, transitively through `npm run` and `turbo run`, the
+// script that declares it. Two refusals follow, and the second exists so the first cannot be satisfied by
+// deleting the thing it counts: an ORPHAN leg (a config some script typechecks that no workflow reaches) and an
+// UNTYPED surface (a tsconfig inside a package directory that no leg names anywhere — unless another config
+// EXTENDS it, because a base is not a surface; seven of the tree's tsconfig files are named that way, the root
+// `tsconfig.base.json` and the six package `tsconfig.json` files their `tsconfig.test.json` sibling extends).
+// The census reads STEP BODIES, not files. `main-line.yml` names `npm run typecheck:main` twice in its own
+// header comment, and the first version of this clause scanned whole files for `npm run`: its arm deleted the
+// step and the gate stayed green, because the prose still said the words.
+{
+  const read = (rel) => readFileSync(join(ROOT, rel), 'utf8');
+  const TSC_P = /\btsc\b[^&|\n]*?-p\s+(\S+\.json)/g;
+  const TSC_P_ONCE = new RegExp(TSC_P.source);
+  const TSC_BARE = /\btsc\b[^&|\n]*?--noEmit/;
+  const RUN = /npm\s+run\s+([A-Za-z0-9:_-]+)/g;
+  const TURBO = /turbo\s+run\s+([A-Za-z0-9:_-]+)/g;
+  const one = (xs) => [...new Set(xs)];
+  const cfgKey = (dir, name) => posix.normalize(posix.join(dir === '.' ? '' : dir, name.replace(/^\.\//, '')));
+
+  const WF_DIR = '.github/workflows';
+  const wfNames = existsSync(join(ROOT, WF_DIR))
+    ? readdirSync(join(ROOT, WF_DIR)).filter((f) => /\.(yml|yaml)$/.test(f)).sort() : [];
+  assert.ok(wfNames.length >= 1, `no workflow file under ${WF_DIR}, so nothing in this repository can say what CI runs and every reach claim below would be vacuous`);
+  const pkgDirs = one(['.', ...(JSON.parse(read('package.json')).workspaces ?? []).flatMap((glob) => {
+    const parent = glob.replace(/\/\*.*$/, '');
+    const at = join(ROOT, parent === '' ? '.' : parent);
+    return existsSync(at) ? readdirSync(at, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => posix.join(parent, e.name)) : [];
+  })]).sort();
+  const manifests = pkgDirs.filter((d) => existsSync(join(ROOT, d, 'package.json')));
+
+  const scripts = new Map();
+  const legs = new Map();
+  const addLeg = (cfg, site) => { if (!legs.has(cfg)) legs.set(cfg, new Set()); legs.get(cfg).add(site); };
+  for (const dir of manifests) {
+    const mf = dir === '.' ? 'package.json' : posix.join(dir, 'package.json');
+    for (const [name, body] of Object.entries(JSON.parse(read(mf)).scripts ?? {})) {
+      const key = `${mf}#${name}`;
+      scripts.set(key, String(body));
+      for (const m of String(body).matchAll(TSC_P)) addLeg(cfgKey(dir, m[1]), key);
+      if (TSC_BARE.test(String(body)) && !TSC_P_ONCE.test(String(body))) addLeg(cfgKey(dir, 'tsconfig.json'), key);
+    }
+  }
+  const reachedBy = new Map();
+  const touch = (key, rel) => { if (!reachedBy.has(key)) reachedBy.set(key, new Set()); reachedBy.get(key).add(rel); };
+  for (const wf of wfNames) {
+    const rel = `${WF_DIR}/${wf}`;
+    const seeds = new Set();
+    for (const st of stepsOf(read(rel), rel)) for (const m of String(st.run ?? '').matchAll(RUN)) seeds.add(`package.json#${m[1]}`);
+    const visit = (key) => {
+      if (!scripts.has(key) || (reachedBy.get(key)?.has(rel) ?? false)) return;
+      touch(key, rel);
+      for (const m of scripts.get(key).matchAll(RUN)) visit(`${key.split('#')[0]}#${m[1]}`);
+      for (const m of scripts.get(key).matchAll(TURBO)) for (const k of scripts.keys()) if (k.endsWith(`#${m[1]}`)) visit(k);
+    };
+    for (const s of seeds) visit(s);
+  }
+  const wfOf = (cfg) => [...new Set([...(legs.get(cfg) ?? [])].flatMap((k) => [...(reachedBy.get(k) ?? [])]))];
+  const orphans = [...legs.keys()].filter((cfg) => wfOf(cfg).length === 0).sort();
+  assert.deepEqual(orphans, [], `${orphans.length} typecheck leg(s) are declared in a script no workflow step reaches, so nothing in CI runs tsc over those bytes: ${orphans.map((c) => `${c} (declared by ${[...legs.get(c)].join(', ')})`).join(' | ')} — re-arm the step, or retire the leg with the config, but do not leave a surface that looks typechecked while nothing grades it`);
+
+  const inPackages = one(pkgDirs.flatMap((d) => (existsSync(join(ROOT, d)) ? readdirSync(join(ROOT, d)) : [])
+    .filter((f) => /^tsconfig.*\.json$/.test(f)).map((f) => cfgKey(d, f)))).sort();
+  const bases = new Set();
+  for (const cfg of inPackages) {
+    const m = /"extends"\s*:\s*"([^"]+)"/.exec(read(cfg));
+    if (m) bases.add(cfgKey(posix.dirname(cfg), m[1]));
+  }
+  const untyped = inPackages.filter((cfg) => !legs.has(cfg) && !bases.has(cfg)).sort();
+  assert.deepEqual(untyped, [], `${untyped.length} tsconfig file(s) sit in a package directory, name no leg and extend nothing, so they describe a typecheck surface the build never performs: ${untyped.join(', ')} — either a script gains a \`tsc -p\` leg for it and a workflow reaches that script, or the file is a base and another config says so with \`extends\``);
+
+  const byWf = new Map();
+  for (const cfg of legs.keys()) {
+    const k = wfOf(cfg).map((w) => posix.basename(w)).sort().join('+');
+    byWf.set(k, (byWf.get(k) ?? 0) + 1);
+  }
+  console.log(`[§14] ${legs.size} config(s) carry a declared tsc leg across ${manifests.length} of the ${pkgDirs.length} directories the root \`workspaces\` globs name, and ALL of them are reached by a step of the ${wfNames.length} workflow file(s) · who reaches them: ${[...byWf].map(([k, n]) => `${n} by ${k}`).sort().join(' · ')} · ${inPackages.length} tsconfig inside the package set, ${bases.size} of them an extends-base excused from a leg · 0 orphaned leg · 0 untyped surface`);
+}
+
+/**
+ * The population §15 grades: the pom files the COMMIT owns. `git ls-files` is the basis because the runner
+ * checks out a commit, not this worktree — a pom that lives only in a scratch plane extracted under the root
+ * would otherwise join a population the build owes nothing to, and this repository has already been bitten by
+ * censuses that walk the disk. A plane with no `.git` (the arm battery copies a closure of bytes into one) falls
+ * back to a walk, where the closure IS the population the arms are grading.
+ */
+function trackedPoms() {
+  if (existsSync(join(ROOT, '.git'))) {
+    const r = spawnSync('git', ['-C', ROOT, 'ls-files', '-z', '--', '*pom.xml'], { encoding: 'utf8', windowsHide: true });
+    if (r.status === 0) return String(r.stdout).split('\0').filter(Boolean).map((p) => posix.normalize(p.replace(/\\/g, '/'))).sort();
+  }
+  const SKIP = new Set(['node_modules', 'target', 'dist', 'build', 'coverage']);
+  const out = [];
+  (function walk(dir) {
+    for (const e of readdirSync(join(ROOT, dir), { withFileTypes: true })) {
+      const rel = posix.join(dir, e.name);
+      if (e.isFile() && e.name === 'pom.xml') out.push(posix.normalize(rel));
+      else if (e.isDirectory() && !SKIP.has(e.name) && !e.name.startsWith('.')) walk(rel);
+    }
+  })('.');
+  return out.sort();
+}
+
+/**
+ * The pom paths a `cache-dependency-path:` key lists, either inline or under a `|` block scalar, read from a
+ * step body whose indentation has already been stripped by `stepsOf`. Null means the key is absent, which is the
+ * action's own glob-the-poms default — a shape this clause cannot verify offline and therefore does not grade.
+ */
+function depPathsOf(body) {
+  const lines = String(body).split('\n');
+  const at = lines.findIndex((l) => /^\s*cache-dependency-path:/.test(l));
+  if (at < 0) return null;
+  const inline = lines[at].replace(/^\s*cache-dependency-path:\s*/, '').trim();
+  if (inline && !/^[|>]/.test(inline)) return inline.split(/\s+/).filter((s) => s.endsWith('pom.xml')).map((p) => posix.normalize(p));
+  const keyIndent = lines[at].match(/^\s*/)[0].length;
+  const listed = [];
+  for (const l of lines.slice(at + 1)) {
+    if (l.trim() === '') continue;
+    if (l.match(/^\s*/)[0].length <= keyIndent) break;
+    if (!l.trim().endsWith('pom.xml')) break;
+    listed.push(posix.normalize(l.trim()));
+  }
+  return listed;
+}
+
+// ── §15 every pom the commit owns is built WITH its tests by a step of SOME workflow ───────────────
+// The hole this clause closes is §14's, wearing a different tool: the workflow reached one of the tree's four
+// Maven modules and the tree shipped four. `verify:api-tests` is disposed as COVERED by a census claim ("the
+// workflow owns its own mvn line"), and that claim was checked against the ONE pom the disposition names — so
+// the Spring Cloud trio (java-registry, java-gateway, java-domain-service) could stay unbuilt by CI while a door
+// printed a sentence about mvn coverage. The same silence is the second half of what `tools/ci/proof-set.mjs`
+// states as its own reason for excluding `verify:spring-cloud`: "an offline-warm Maven for the three service
+// modules the workflow never builds". A clause, not a comment: the exclusion is retired by a ci.yml change, and
+// the day the four lines below lose one this gate reddens instead of the README remembering to.
+// What is read is a LINE of a STEP BODY, in either workflow file, with `#` lines dropped. A command reaches a
+// module when it runs `mvn` with `-f`/`--file` naming that pom, does NOT skip tests, and names a phase whose
+// lifecycle includes the test phase (`test`, `package`, `verify`, `install`, `integration-test`). Three shapes
+// follow from that: `mvn -f pom.xml -DskipTests package` warms a repository and grades nothing; `mvn -f pom.xml
+// dependency:go-offline` builds nothing; and a comment quoting a pom is prose about a file, which is exactly the
+// distinction this repository's own census makes — the warm-up step now writes `mvn -f services/*/pom.xml` in
+// its own comment, and a reader that counted prose would redden a sentence about a module while ignoring it.
+// `-DskipITs` is deliberately NOT a skip here: it leaves the surefire unit tests running.
+// Three refusals: PHANTOM (a step names a pom the commit does not own — the runner would fail, or a module left
+// the tree and its step stayed), UNREACHED (a tracked pom no command reaches, said WITH its cause), and the
+// CACHE KEY (where a step asks setup-java for `cache: maven`, its `cache-dependency-path` list must be the same
+// population — a key over one pom restores a cache the other three then miss and pay for inside the row).
+// What stays prose, said rather than left to be discovered: a REACTOR build — `mvn -B package` from an
+// aggregator pom listing `<modules>` — reaches every module it aggregates while naming none of their poms with
+// `-f`. The tree has no aggregator pom, so no green here is a reactor claim; if one lands, this clause must
+// learn `<modules>` before its UNREACHED red is believed. And when a `cache: maven` step declares NO
+// `cache-dependency-path`, the action globs the poms itself; this clause cannot read that default offline, so
+// it grades a present list and prints that the step had none.
+{
+  const POM_F = /(?:-f|--file)\s+(\S*pom\.xml)/;
+  const TEST_PHASE = /(?:^|\s)(?:test|package|verify|install|integration-test)(?:\s|$)/;
+  const SKIP_TESTS = /-D(?:skipTests|maven\.test\.skip|skip\.tests)\b/;
+  const MVN = /(?:^|\s)mvn\b/;
+
+  const WF_DIR = '.github/workflows';
+  const wfNames15 = existsSync(join(ROOT, WF_DIR))
+    ? readdirSync(join(ROOT, WF_DIR)).filter((f) => /\.(yml|yaml)$/.test(f)).sort() : [];
+  assert.ok(wfNames15.length >= 1, `no workflow file under ${WF_DIR}, so §15 has no command string to read and no reach it can certify`);
+
+  const hits = [];
+  for (const wfName of wfNames15) {
+    const rel = `${WF_DIR}/${wfName}`;
+    for (const st of stepsOf(readFileSync(join(ROOT, rel), 'utf8'), rel)) {
+      for (const raw of String(st.run ?? '').split('\n')) {
+        const line = raw.trim();
+        if (line === '' || line.startsWith('#')) continue;
+        if (!MVN.test(line)) continue;
+        const pom = POM_F.exec(line)?.[1];
+        if (!pom) continue;
+        hits.push({ pom: posix.normalize(pom.replace(/\\/g, '/')), step: st.name ?? `#${st.index}`, wf: posix.basename(rel), line, skips: SKIP_TESTS.test(line), phase: TEST_PHASE.test(line) });
+      }
+    }
+  }
+  assert.ok(hits.length > 0, `§15 read ${hits.length} \`mvn -f <pom>\` lines from the ${wfNames15.length} workflow file(s) — a reader that sees no Maven command cannot certify that any module is built, which is the silence this clause exists to break`);
+
+  const poms = trackedPoms();
+  assert.ok(poms.length >= 1, `no pom.xml is owned by the commit (nor found by the walk this clause falls back to), so there is no Maven population to grade — §15 would go green on an empty set`);
+
+  const known = new Set(poms);
+  const phantoms = [...new Set(hits.filter((h) => !known.has(h.pom)).map((h) => h.pom))].sort();
+  assert.deepEqual(phantoms, [], `${phantoms.length} pom path(s) named by a workflow step are not owned by the commit: ${phantoms.map((p) => `${p} (by ${[...new Set(hits.filter((h) => h.pom === p).map((h) => `${h.step} of ${h.wf}`))].join(', ')})`).join(' | ')} — the runner checks out a commit, so such a step fails there; a module that left the tree takes its step with it`);
+
+  const causes = poms.filter((pom) => !hits.some((h) => h.pom === pom && !h.skips && h.phase)).map((pom) => {
+    const named = hits.filter((h) => h.pom === pom);
+    const why = named.length === 0 ? 'no step names it in either workflow file'
+      : named.every((h) => h.skips) ? `named only by a command that skips tests: ${JSON.stringify(named[0].line)}`
+      : named.every((h) => !h.phase) ? `named only by a command that runs no test-bearing phase: ${JSON.stringify(named[0].line)}`
+      : 'both skipped and phaseless';
+    return `${pom} — ${why}`;
+  });
+  assert.deepEqual(causes, [], `${causes.length} of the ${poms.length} pom.xml the commit owns never have their tests run by CI: ${causes.join(' | ')} — name the module in a step whose lifecycle includes the test phase, or retire the module with its sources, but do not ship a build that looks graded because a pom sits in a directory`);
+
+  const cacheSteps = [];
+  for (const wfName of wfNames15) {
+    const rel = `${WF_DIR}/${wfName}`;
+    for (const st of stepsOf(readFileSync(join(ROOT, rel), 'utf8'), rel)) {
+      if (!/^\s*cache:\s*maven\s*$/m.test(st.raw)) continue;
+      cacheSteps.push({ rel, step: st.name ?? `#${st.index}`, listed: depPathsOf(st.raw) });
+    }
+  }
+  const keyFaults = [];
+  for (const c of cacheSteps) {
+    if (c.listed === null) continue;
+    const missing = poms.filter((p) => !c.listed.includes(p));
+    const extra = c.listed.filter((p) => !known.has(p));
+    if (missing.length) keyFaults.push(`${c.rel} ${c.step}: its \`cache-dependency-path\` hashes ${c.listed.length} of the ${poms.length} poms, so a change to ${missing.join(', ')} re-uses the previous job's cache and the first build of the changed module pays for its own downloads inside the row that grades it`);
+    if (extra.length) keyFaults.push(`${c.rel} ${c.step}: its \`cache-dependency-path\` hashes ${extra.join(', ')}, which the commit does not own`);
+  }
+  assert.deepEqual(keyFaults, [], `${keyFaults.length} cache-key fault(s): ${keyFaults.join(' | ')} — the warm-up step is online precisely because the cache may be cold, and a key over half the population is how a half-warm repository comes back`);
+
+  console.log(`[§15] ${poms.length} pom.xml owned by the commit, ${hits.length} \`mvn -f\` line(s) across ${wfNames15.length} workflow file(s), ALL reaching a test-bearing phase without skipping tests · 0 phantom path · ${cacheSteps.length} \`cache: maven\` step(s), ${cacheSteps.filter((c) => c.listed).length} with an explicit key over ${cacheSteps.find((c) => c.listed)?.listed.length ?? 0} path(s)`);
+}
+
+console.log(`\nci wiring: trigger covers master · proof step #${proofSteps[0].index} · ${steps.length} steps swallow nothing · build precedes it · population ${population.length} closes as ${splitSet(population).running.length} + ${splitSet(population).residue.length} · build Node ${buildNodeMajor} · ceiling ${jobTimeoutMinutes} min, read-only token · no cleanup-print tail · no gutter-overrun tail · no orphaned tsc leg · every Maven module built`);

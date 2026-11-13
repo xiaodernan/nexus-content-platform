@@ -8,8 +8,9 @@
 // runner case; scheduling it would double the build), so the rot was structural: NOTHING compared the tool's
 // last verdict with the bytes it graded. This module is that comparison, in one place, imported by both sides:
 // the tool writes the receipt on a full green run, and docs/evidence/ci/arms-freshness-proof.mjs refuses when
-// a subject's hash no longer matches. The subjects are exactly what the arms read: the workflow, the gate, the
-// tool, the runner, the sweep whose budget grammar §9 borrows, the two script entries the gate names, the
+// a subject's hash no longer matches. The subjects are exactly what the arms read: the two workflow files (the
+// studio line's ci.yml and the main line's main-line.yml, which amendment 573's §14 added), the gate, the
+// tool, the runner, the sweep whose budget grammar §9 borrows, the three script entries the arms splice, the
 // population the derivation sees (name + budget marker, because A14 derives from it), and this rule's own bytes
 // — a rule that could be weakened silently would be the receipt's own unopened door.
 import { createHash } from 'node:crypto';
@@ -27,6 +28,7 @@ export const FRESHNESS_ROW = 'verify:arms-freshness';
 
 export const SUBJECT_FILES = {
   workflow: '.github/workflows/ci.yml',
+  mainline: '.github/workflows/main-line.yml',
   gate: 'docs/evidence/ci/ci-wiring-proof.mjs',
   arms: 'docs/evidence/ci/ci-wiring-arms.mjs',
   runner: 'tools/ci/proof-set.mjs',
@@ -62,7 +64,7 @@ export function subjectsOf(root) {
   const scripts = JSON.parse(readOf(root, 'package.json')).scripts ?? {};
   const subjects = {};
   for (const [key, rel] of Object.entries(SUBJECT_FILES)) subjects[key] = sha(readOf(root, rel));
-  subjects.scripts = sha(JSON.stringify({ 'verify:proofs': scripts['verify:proofs'] ?? null, 'verify:ci-wiring': scripts['verify:ci-wiring'] ?? null }));
+  subjects.scripts = sha(JSON.stringify({ 'verify:proofs': scripts['verify:proofs'] ?? null, 'verify:ci-wiring': scripts['verify:ci-wiring'] ?? null, 'typecheck:main': scripts['typecheck:main'] ?? null }));
   subjects.rule = sha(readFileSync(join(HERE, 'arms-receipt.mjs'), 'utf8'));
   return subjects;
 }

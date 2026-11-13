@@ -1,0 +1,50 @@
+{
+  "scale": 1,
+  "results": [
+    {
+      "label": "TtlLru hit (capacity=8)",
+      "ops": 200000,
+      "totalMs": 659.85,
+      "opsPerSec": 303101,
+      "p50Us": 0.493,
+      "p99Us": 49.348,
+      "nsPerOp": 3299.2
+    },
+    {
+      "label": "TtlLru hit (capacity=8192)",
+      "ops": 200000,
+      "totalMs": 794.12,
+      "opsPerSec": 251852,
+      "p50Us": 0.574,
+      "p99Us": 40.177,
+      "nsPerOp": 3970.6
+    },
+    {
+      "label": "TtlLru flood (maxEntries=256, 400000 sets)",
+      "ops": 400000,
+      "totalMs": 974.89,
+      "opsPerSec": 410305,
+      "p50Us": 0.976,
+      "p99Us": 20.154,
+      "nsPerOp": 2437.2
+    },
+    {
+      "label": "MemoryRateLimiter flood (maxBuckets=64, 60000 distinct keys)",
+      "ops": 60000,
+      "totalMs": 2533.86,
+      "opsPerSec": 23679,
+      "p50Us": 32.203,
+      "p99Us": 163.575,
+      "nsPerOp": 42231
+    },
+    {
+      "label": "MemoryRateLimiter flood (maxBuckets=4096, 60000 distinct keys)",
+      "ops": 60000,
+      "totalMs": 3682.09,
+      "opsPerSec": 16295,
+      "p50Us": 57.245,
+      "p99Us": 157.961,
+      "nsPerOp": 61368.1
+    }
+  ]
+}

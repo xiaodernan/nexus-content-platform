@@ -31,6 +31,9 @@ name: main-line
 #      genuinely SELECTs against Postgres) plus `/actuator/info` carrying maven build-info artifact +
 #      component, plus domain-service's ai-service circuit-breaker surface. Same stale-jar-class defence
 #      as the three steps above.
+#   7. the Spring Cloud config server (`services/java-config-server`, Maven) — the one Java module
+#      with no other workflow covering it: ci.yml builds none of the Maven modules on the hosted
+#      runner, and §15 of `verify:ci-wiring` refuses a pom the commit owns that no step tests.
 #
 # WHAT IT DELIBERATELY DOES NOT GRADE:
 #   - the studio line's gates — they run in ci.yml and are re-earned by `npm run verify:proofs`;
@@ -61,7 +64,6 @@ jobs:
           POSTGRES_DB: nexus
         ports:
           - 55433:5432
-          - 55100:5432
         options: >-
           --health-cmd "pg_isready -U nexus -d nexus"
           --health-interval 5s
@@ -80,13 +82,19 @@ jobs:
       - name: Migrate the database (evals need the `users` table)
         run: npm run db:migrate
         env:
-          NEXUS_DATABASE_URL: postgres://nexus:nexus_dev_only@localhost:55100/nexus
+          NEXUS_DATABASE_URL: postgres://nexus:nexus_dev_only@localhost:55433/nexus
       - name: Typecheck main line
         run: npm run typecheck:main
       - name: Evals (invariants in CI, ADR-0093)
         run: npm run evals
         env:
-          NEXUS_DATABASE_URL: postgres://nexus:nexus_dev_only@localhost:55100/nexus
+          NEXUS_DATABASE_URL: postgres://nexus:nexus_dev_only@localhost:55433/nexus
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+      - name: Java config server tests (Spring Cloud Config door, ADR 0057)
+        run: mvn -B -f services/java-config-server/pom.xml test
   topology:
     # The §SC-19/20/23 live smoke, in CI: package all three services, apply migrations, then run
     # `npm run verify:topology`. Catches the class of bug `mvn test` cannot see (test uses target/classes;

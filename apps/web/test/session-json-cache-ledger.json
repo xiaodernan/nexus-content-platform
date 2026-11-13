@@ -1,0 +1,42 @@
+{
+  "schema": "nexus/session-json-cache-ledger/v1",
+  "meaning": "GET route handlers under apps/web/src/app/api that resolve a session (currentUserOrNull/requireUser/cookies) yet return JSON without any approved cache/vary exit. This is a DEBT LEDGER, not a count: the door refuses both a NEW naked entry (a fresh private response that lies to caches) and a STALE entry (a path that has since become compliant but is still listed). The only way to change the list downward is to actually fix the route with privateJson / an explicit cache-control+vary, then remove its line in the same commit. Downward-only, like lint-debt.json.",
+  "approved_exits": [
+    "privateJson(...) - server/http.ts, adds Vary: Cookie + private, no-store",
+    "discoverResponseHeaders(...) - ADR 0096, the anon/viewer split",
+    "apiJson(...) - server/http.ts, v1 exit, defaults no-store",
+    "bytesResponse(...) - server/http.ts, takes an explicit cache argument",
+    "a literal cache-control / 'vary' / NO_STORE in the route file"
+  ],
+  "population_rule": "a file is IN the population iff its source matches currentUserOrNull|requireUser|getCurrentUser|currentUser|SESSION_COOKIE|cookies() AND declares export async function GET. A file is COMPLIANT iff its whole source matches any approved exit token. Every population file that is NOT compliant MUST be listed here; every file listed here MUST be non-compliant.",
+  "added": "2026-11-12 v666 / ADR 0098",
+  "debts": [
+    "apps/web/src/app/api/account/route.ts",
+    "apps/web/src/app/api/admin/access/route.ts",
+    "apps/web/src/app/api/admin/marketplace/audit/route.ts",
+    "apps/web/src/app/api/admin/marketplace/reports/route.ts",
+    "apps/web/src/app/api/admin/moderation/route.ts",
+    "apps/web/src/app/api/admin/rate-limit/route.ts",
+    "apps/web/src/app/api/admin/realtime/route.ts",
+    "apps/web/src/app/api/notifications/settings/route.ts",
+    "apps/web/src/app/api/projects/[projectId]/annotations/route.ts",
+    "apps/web/src/app/api/projects/[projectId]/assets/route.ts",
+    "apps/web/src/app/api/projects/[projectId]/characters/route.ts",
+    "apps/web/src/app/api/projects/[projectId]/context/route.ts",
+    "apps/web/src/app/api/projects/[projectId]/game/code/route.ts",
+    "apps/web/src/app/api/projects/[projectId]/game/route.ts",
+    "apps/web/src/app/api/projects/[projectId]/knowledge/block/route.ts",
+    "apps/web/src/app/api/projects/[projectId]/knowledge/route.ts",
+    "apps/web/src/app/api/projects/[projectId]/members/route.ts",
+    "apps/web/src/app/api/projects/[projectId]/memories/route.ts",
+    "apps/web/src/app/api/projects/[projectId]/publish/route.ts",
+    "apps/web/src/app/api/projects/[projectId]/retrieve/route.ts",
+    "apps/web/src/app/api/projects/[projectId]/route.ts",
+    "apps/web/src/app/api/projects/[projectId]/snapshots/[snapshotId]/route.ts",
+    "apps/web/src/app/api/projects/[projectId]/snapshots/route.ts",
+    "apps/web/src/app/api/projects/[projectId]/storyboard/render/route.ts",
+    "apps/web/src/app/api/projects/[projectId]/storyboard/route.ts",
+    "apps/web/src/app/api/projects/[projectId]/variants/route.ts",
+    "apps/web/src/app/api/projects/[projectId]/world/route.ts"
+  ]
+}

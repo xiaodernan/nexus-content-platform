@@ -22,9 +22,12 @@ class Completion:
     tokens_in: int
     tokens_out: int
     latency_ms: float
-    # OpenAI 兼容网关（wkapi.pro → OpenAI automatic prompt caching）回的 `prompt_tokens_details.cached_tokens`；
-    # 没有该字段的 provider 一律报 0，一字不猜（不用猜的 tokenizer 冒充精确计数）
+    # v690 增，零回归：provider 自己报的"这次命中多少已缓存的 prompt"与"推理用掉了多少 token"。
+    # 默认 0：旧构造点/旧读法不感知两个新字段，解析失败或对端不报都取 0。
+    # （wkapi.pro → OpenAI automatic prompt caching 回 `prompt_tokens_details.cached_tokens`；
+    #  没有该字段的 provider 一律报 0，一字不猜。）
     cached_tokens: int = 0
+    reasoning_tokens: int = 0
 
 
 @dataclass(frozen=True)
@@ -42,7 +45,7 @@ class LLMProvider(Protocol):
 
     def models(self) -> list[str]: ...
 
-    def complete(self, *, model: str, system: str, user: str) -> Completion: ...
+    def complete(self, *, model: str, system: str, user: str, json_mode: bool | None = None) -> Completion: ...
 
 
 class EmbeddingProvider(Protocol):

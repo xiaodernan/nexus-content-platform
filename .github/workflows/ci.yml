@@ -44,7 +44,16 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: maven
-          cache-dependency-path: services/nexus-api/pom.xml
+          # The key hashed ONE pom while the tree tracks five, so a change to the registry, the gateway, the
+          # domain service, the config server or the api re-used the previous job's cache — and the first build
+          # of the CHANGED module paid for its own parents and plugins inside the row that grades it.
+          # §15 refuses a tracked pom missing here.
+          cache-dependency-path: |
+            services/java-registry/pom.xml
+            services/java-gateway/pom.xml
+            services/java-domain-service/pom.xml
+            services/nexus-api/pom.xml
+            services/java-config-server/pom.xml
       - name: Install (workspace root)
         run: npm ci || npm install
       - name: ADR index integrity
@@ -59,19 +68,41 @@ jobs:
         run: npm run typecheck
       - name: Lint
         run: npm run lint
+      # `npm run lint` above is `turbo run lint`, and a package joins that run only by declaring a `lint`
+      # script — the step below prints the tally it resolves from the root workspaces globs, so nobody has
+      # to trust a comment about how many that is. This step is the surface the rest of the tree never had:
+      # every tracked source file outside the packages that lint themselves, one ESLint child per area,
+      # judged against a debt ledger that only falls (docs/evidence/ci/lint-debt.json).
+      # It runs in CI on purpose: a lint surface nobody reaches is a lint surface nobody sees rot.
+      # The script is named `verify:*` so the evidence census has to decide it: MANIFEST disposes it as the
+      # second door the build walks directly, and `tools/ci/lint-tree.mjs` lands in that census as a runner
+      # instead of an unaccounted module under tools/.
+      - name: Lint the whole tree against the debt ledger
+        run: npm run verify:lint-tree
       - name: Test
         run: npm run test
       - name: Build
         run: npm run build
-      - name: Warm the Maven repository (the service-suite row runs offline)
-        # v547 (ADR 0016 amendment 530): the service-suite row runs `mvn -o -B test` — OFFLINE, on purpose,
-        # because a test that needs the network is not a test of this tree. Offline is only honest against a
-        # warm local repository, and setup-java's `cache: maven` restores only what a PREVIOUS job saved, so
-        # a fresh cache key (the first run after any pom change) starts empty. This step is the online half:
-        # it runs the exact lifecycle the row grades, so the row's `-o` answers with the tests' verdict rather
-        # than with a missing artifact. It grades nothing itself — the row re-runs and reads its OWN surefire
-        # XML, digesting the service sources before and after.
-        run: mvn -B -q -f services/nexus-api/pom.xml test
+      - name: Warm the Maven repository (every tracked module, the lifecycle the rows run)
+        # v547 (ADR 0016 amendment 530) made this step ONLINE on purpose: the service-suite row runs `mvn -o` —
+        # OFFLINE, because a test that needs the network is not a test of this tree — and offline is only honest
+        # against a warm local repository, since `cache: maven` restores only what a PREVIOUS job saved. What it
+        # warmed was ONE module. The tree tracks four poms and the other three (java-registry, java-gateway,
+        # java-domain-service — the Spring Cloud topology) were named by no step of either workflow file, so
+        # their parents, plugins and BOMs were never in the cache the row reads. That silence is the second half
+        # of why `verify:spring-cloud` sits EXCLUDED: "an offline-warm Maven for the three service modules the
+        # workflow never builds". This step is what retiring that entry needs on the Maven side.
+        # FOUR EXPLICIT LINES, not a glob and not a reactor: §15 of the ci-wiring gate counts a module as reached
+        # only when a run command NAMES its pom, and `mvn -f services/*/pom.xml` is a shape a reader cannot
+        # attribute to a module — a command the census cannot attribute is a command the census cannot redden.
+        # The lifecycle is `package`, not `test`: package runs the test phase AND resolves the jar-shaped
+        # dependencies the java proof's offline `mvn -o -B package -DskipTests` needs, so the warm-up runs the
+        # lifecycle the rows actually ask for instead of a narrower one. It grades nothing itself.
+        run: |
+          mvn -B -q -f services/java-registry/pom.xml package
+          mvn -B -q -f services/java-gateway/pom.xml package
+          mvn -B -q -f services/java-domain-service/pom.xml package
+          mvn -B -q -f services/nexus-api/pom.xml package
       - name: Docker images (pre-pull for the lane proofs)
         # exec-host spawns containers with `--pull never` (its lanes must not depend on a registry at
         # run time), so the image the Studio lane proofs use has to exist BEFORE the proofs start. On a

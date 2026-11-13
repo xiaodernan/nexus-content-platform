@@ -12,6 +12,7 @@ import { currentBranchId } from './branches';
 import { emit } from './notifications';
 import { createSnapshot, readSnapshot } from './snapshots';
 import { channels, getRealtimeBus } from '../realtime/bus';
+import { invalidateDiscoverRoute } from '../cache/discoverRouteCache';
 import { DELETED_USER_LABEL } from './audit';
 import { invalidateDiscoverGlobally } from './discover-cache';
 
@@ -101,8 +102,9 @@ export type PublishResult =
   | { ok: true; publication: Publication; gate: GateReport; scan: ModerationScan; snapshotId: string }
   | { ok: false; reason: string; gate: GateReport; scan: ModerationScan };
 
-/** 公开页引用到的资产出处（§130：机检判断不了画面，只能知道它是从外面进来的） */
-async function assetProvenance(projectId: string): Promise<AssetProvenance[]> {
+/** 公开页引用到的资产出处（§130：机检判断不了画面，只能知道它是从外面进来的）。
+ *  导出给 publishPreflight 复用同一份出处查询 -- 导出而不是复制粘贴 */
+export async function assetProvenance(projectId: string): Promise<AssetProvenance[]> {
   const rows = await getDb()
     .select({ id: assets.id, name: assets.name, kind: assets.kind, source: assets.source })
     .from(assets)
@@ -313,7 +315,12 @@ export async function publishProject(
     version: publication.version,
     visibility: input.visibility,
   });
-  // 到这里才是"这一版构建产物真的落库了"：publication 行写好、审计与通知都记上了
+  // 到这里才是"这一版构建产物真的落库了"：publication 行写好、审计与通知都记上了。
+  // 匿名 `/api/discover` 的 15 秒缓存从这一刻起失效——曾今发生的一切公开页面都必须可见
+  // （§46 缓存有自己的寿命，但寿命由真实写路径拔掉，不靠等待）。
+  // 匿名 `/api/discover` 的 15 秒缓存从这一刻起失效——"刚发出去的页面就要在
+  // Discover 排在它自己支付的那样的位置"，而发布这一条路正是那个并发的源头。
+  await invalidateDiscoverRoute();
   emitBuildStatus(projectId, 'ok', `v${publication.version} · ${publication.path} · 可见性 ${input.visibility}`);
   await publishPreviewStatus(projectId, publication.path, outward);
   // §SC-44 / ADR-0116：只在"发现页收录状态真的改变"时清全缓存，别让 private/unlisted

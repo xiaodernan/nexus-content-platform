@@ -59,12 +59,19 @@ const REPLACER = String.fromCodePoint(0xfffd);
 
 // A spawn wrapper that counts PROCESSES and BYTE CHUNKS, so "the output really arrived in N
 // pieces" is a measurement instead of an assumption about pipes.
-const countingSpawn = (sink) => (command, args, opts) => {
+// `ends` is OPTIONAL and is what the OS answered, not what this box usually sees: the child's end record
+// carries the exit code and the signal, and a claim about either one has to be checked against it rather
+// than against a remembered shape (v651c: hosted run 42681784313 reddened §4 because the sentence asserted
+// the ABSENCE of an exit code, which is true of a POSIX signalled death and false of a win32 forced exit).
+const countingSpawn = (sink, ends) => (command, args, opts) => {
   sink.push(`${command} ${args.join(' ')}`);
   const child = NODE_SPAWN(command, args, opts);
   return {
     onData: (listener) => child.onData((stream, chunk) => listener(stream, chunk)),
-    onEnd: (listener) => child.onEnd(listener),
+    onEnd: (listener) => child.onEnd((end) => {
+      if (ends) ends.push(end);
+      listener(end);
+    }),
     kill: () => child.kill(),
   };
 };
@@ -250,8 +257,9 @@ try {
     maxOutputBytes: 1_048_576,
   });
   const spawns = [];
+  const ends = [];
   const run = async (timeoutMs) => {
-    const host = createExecHost(suitePolicy(timeoutMs), { spawnLike: countingSpawn(spawns) });
+    const host = createExecHost(suitePolicy(timeoutMs), { spawnLike: countingSpawn(spawns, ends) });
     let registry = new ToolRegistry();
     // the registry's exec gate is the single §28 checkpoint for test.run (v31's contract)
     registry = registerTestTools(registry, execTestRunner(host, SUITE_ARGV, { preApproved: true, cwd: '', env: suiteEnv() }));
@@ -276,7 +284,24 @@ try {
     if (/^descendants/.test(inner)) continue;
     assert.match(inner, /^(SIGTERM|SIGKILL|SIGINT|SIGQUIT)$/, `the budget sentence names a plausible signal, and it invents none: got ${paren}`);
   }
-  assert.match(killed.detail, /no exit code reported/, 'v60: the sentence names the ABSENCE of an exit rather than printing "exit null" for a process that never exited');
+  // v651c: the sentence may not be graded against the shape THIS BOX usually sees. A POSIX child killed by a
+  // signal ends `code: null, signal: SIGTERM` and the bridge says "no exit code reported"; a win32 forced exit
+  // ends `code: 1, signal: null` and a child that races its own exit into the budget window ends with a code
+  // too (ADR 0016 amendment 527 measured exactly that race on the ubuntu runner, run 40833035921). Hosted run
+  // 42681784313 reddened here because the row demanded the ABSENCE. So the claim is read off the end record of
+  // the child this proof spawned, and the refusal below is what makes that a door rather than a fallback.
+  assert.ok(ends.length >= 1, 'the killed child answered with an end record — without it there is nothing to grade the sentence against');
+  const exitHead = [];
+  for (const part of killed.detail.split(' · ')) {
+    if (/^(stdout|stderr): /.test(part) || part.startsWith('output truncated at budget')) break;
+    exitHead.push(part);
+  }
+  const exitClaims = exitHead.filter((p) => /^exit \d+$/.test(p) || p === 'no exit code reported');
+  assert.equal(exitClaims.length, 1,
+      `the budget sentence must make EXACTLY ONE claim about how the child ended, got ${exitClaims.length} in ${JSON.stringify(exitHead)}`);
+  const wantedExitClaim = ends[0].code !== null ? `exit ${ends[0].code}` : 'no exit code reported';
+  assert.equal(exitClaims[0], wantedExitClaim,
+      `the child's own end record reported code=${ends[0].code} signal=${ends[0].signal}; the sentence says ${JSON.stringify(exitClaims[0])}`);
   assert.equal(killed.report.passed, 0);
   assert.ok(impatient.ms < 15_000, `the timeout actually cut the wait short (took ${impatient.ms}ms)`);
 
@@ -285,8 +310,9 @@ try {
   assert.equal(patient.out.output.detail.includes('killed at timeout budget'), false, 'and the label is only spoken when it bites');
 
   assert.equal(spawns.length, 2, 'exactly two processes for two verifies');
+  assert.equal(ends.length, 2, `two spawns, two end records — got ${ends.length}`);
   assert.deepEqual([...new Set(spawns)], ['node node_modules/vitest/vitest.mjs run --root packages/design-model'], 'every spawn carried the allowlisted argv and nothing else, executable included');
-  console.log(`[budgets-proof] §4 real vitest: killed at 400ms → FAILING report "${killed.report.failures[0].message}" in ${impatient.ms}ms · same argv at 180s budget → green in ${patient.ms}ms · 2 spawns`);
+  console.log(`[budgets-proof] §4 real vitest: killed at 400ms → FAILING report "${killed.report.failures[0].message}" in ${impatient.ms}ms · the OS ended that child with code=${ends[0].code} signal=${ends[0].signal}, so the sentence says ${JSON.stringify(exitClaims[0])} and nothing else about the exit · same argv at 180s budget → green in ${patient.ms}ms · 2 spawns`);
 }
 
 assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), homeHead, '§9: home repo HEAD byte-identical — every write here lived in os.tmpdir');

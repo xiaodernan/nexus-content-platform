@@ -4,6 +4,9 @@ name: nexus
 # 且按 profile 分开启动：内存有限（见 docs/ENVIRONMENT.md），不要一次拉起全套。
 #   npm run infra:up        → 只起 postgres（M0/M1 足够）
 #   npm run infra:up:full   → postgres + redis + minio
+#   npm run infra:up:java   → 六个 Java 制品（registry/config/api/domain/gateway/throwaway pg），
+#                             先 `mvn -B -q -f services/*/pom.xml package -DskipTests`，
+#                             再 `npm run db:migrate`（drizzle 负责建 schema），然后 up（ADR 0054/0057）
 
 services:
   postgres:
@@ -56,6 +59,159 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+
+  # ── the six Java deployables: a THROWAWAY topology, not the dev platform (CONVERGENCE v654) ──
+  # The profile exists so a fresh clone can stand the whole edge → api → domain → PostgreSQL chain up
+  # with one command. It does NOT replace the dev platform and NEVER boots against the shared dev
+  # database: it carries its OWN throwaway postgres with tmpfs data (schema comes from
+  # `npm run db:migrate` against it — the domain service boots with `ddl-auto: validate` and refuses
+  # an empty one). It builds NOTHING: the jars are produced on the host (see each service's README).
+  # Healthchecks probe the port only — "the JVM accepts connections"; the HTTP probes are what the
+  # proof performs against published ports, and the smoke script names that boundary.
+  nexus-java-pg:
+    image: pgvector/pgvector:pg16
+    container_name: nexus-java-pg
+    profiles: ['java']
+    restart: unless-stopped
+    # tmpfs: the throwaway dies with the container — no named volume EVER persists this test data,
+    # and `docker compose --profile java down` leaves nothing behind.
+    tmpfs:
+      - /var/lib/postgresql/data
+    ports: ['15433:5432']
+    environment:
+      POSTGRES_USER: nexus
+      POSTGRES_PASSWORD: nexus_java_only
+      POSTGRES_DB: nexus
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U nexus -d nexus']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  java-registry:
+    build:
+      context: ../services/java-registry
+    container_name: nexus-java-registry
+    profiles: ['java']
+    restart: unless-stopped
+    ports: ['18761:8761']
+    environment:
+      NEXUS_REGISTRY_PORT: '8761'
+      # The registry must not spend its startup looking for peers it does not have
+      # (single node on purpose, ADR 0054); it advertises its OWN name to clients.
+      NEXUS_REGISTRY_HOST: java-registry
+      NEXUS_EUREKA_ENABLED: 'true'
+      NEXUS_EUREKA_URL: http://java-registry:8761/eureka/
+      NEXUS_CONFIG_SERVER_URL: http://java-config-server:8888
+    depends_on:
+      nexus-java-pg:
+        condition: service_started
+    healthcheck:
+      test: ['CMD-SHELL', 'bash -c "echo > /dev/tcp/127.0.0.1/8761" || exit 1']
+      interval: 5s
+      timeout: 3s
+      retries: 24
+
+  java-config-server:
+    build:
+      context: ../services/java-config-server
+    container_name: nexus-java-config-server
+    profiles: ['java']
+    restart: unless-stopped
+    ports: ['18888:8888']
+    environment:
+      NEXUS_CONFIG_SERVER_PORT: '8888'
+      NEXUS_CONFIG_SEARCH: file:/etc/nexus-config/
+    volumes:
+      # the same bytes the repository serves in development, mounted read-only — the native
+      # profile resolves from the file system, not from a build
+      - ../infra/config:/etc/nexus-config:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'bash -c "echo > /dev/tcp/127.0.0.1/8888" || exit 1']
+      interval: 5s
+      timeout: 3s
+      retries: 24
+
+  java-domain-service:
+    build:
+      context: ../services/java-domain-service
+    container_name: nexus-java-domain
+    profiles: ['java']
+    restart: unless-stopped
+    ports: ['18082:8080']
+    environment:
+      NEXUS_DOMAIN_PORT: '8080'
+      NEXUS_DB_URL: jdbc:postgresql://nexus-java-pg:5432/nexus
+      NEXUS_DB_USER: nexus
+      NEXUS_DB_PASSWORD: nexus_java_only
+      NEXUS_EUREKA_ENABLED: 'true'
+      NEXUS_EUREKA_URL: http://java-registry:8761/eureka/
+      NEXUS_CONFIG_SERVER_URL: http://java-config-server:8888
+    depends_on:
+      nexus-java-pg:
+        condition: service_healthy
+      java-registry:
+        condition: service_healthy
+      java-config-server:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'bash -c "echo > /dev/tcp/127.0.0.1/8080" || exit 1']
+      interval: 5s
+      timeout: 3s
+      retries: 24
+
+  nexus-api:
+    build:
+      context: ../services/nexus-api
+    container_name: nexus-java-api
+    profiles: ['java']
+    restart: unless-stopped
+    ports: ['18080:8080']
+    environment:
+      NEXUS_API_PORT: '8080'
+      NEXUS_DB_URL: jdbc:postgresql://nexus-java-pg:5432/nexus
+      NEXUS_DB_USER: nexus
+      NEXUS_DB_PASSWORD: nexus_java_only
+      NEXUS_EUREKA_ENABLED: 'true'
+      NEXUS_EUREKA_URL: http://java-registry:8761/eureka/
+      NEXUS_CONFIG_SERVER_URL: http://java-config-server:8888
+      # The proof's convention: the BOUND port is announced in a file a caller can read.
+      NEXUS_PORT_FILE: /tmp/nexus-api.port
+    depends_on:
+      nexus-java-pg:
+        condition: service_healthy
+      java-registry:
+        condition: service_healthy
+      java-config-server:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'bash -c "echo > /dev/tcp/127.0.0.1/8080" || exit 1']
+      interval: 5s
+      timeout: 3s
+      retries: 24
+
+  java-gateway:
+    build:
+      context: ../services/java-gateway
+    container_name: nexus-java-gateway
+    profiles: ['java']
+    restart: unless-stopped
+    ports: ['18081:8080']
+    environment:
+      NEXUS_GATEWAY_PORT: '8080'
+      NEXUS_EUREKA_ENABLED: 'true'
+      NEXUS_EUREKA_URL: http://java-registry:8761/eureka/
+      NEXUS_CONFIG_SERVER_URL: http://java-config-server:8888
+    depends_on:
+      nexus-api:
+        condition: service_healthy
+      java-domain-service:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'bash -c "echo > /dev/tcp/127.0.0.1/8080" || exit 1']
+      interval: 5s
+      timeout: 3s
+      retries: 24
 
 volumes:
   nexus-pgdata:

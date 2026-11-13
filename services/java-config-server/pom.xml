@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  NEXUS — services/java-config-server (Spring Cloud: the CONFIG server).
+
+  What this service is: the single door for everything that all four Java services need said ONCE —
+  the logging base line, the management surface exposure, the metrics surface, and anything that
+  changes about a service's behaviour without rebuilding the service.
+
+  What it is NOT: it holds no business data, it is not a proxy, and it never turns a stack trace into
+  a string someone outside the platform could use to attack it. It serves YAML, and nothing else.
+
+  Why a config server at all instead of a shared build profile: the four services are built
+  independently and deployed independently. A shared build profile couples deployments to a rebuild.
+  A config server says "here is what this service should say about itself next start" in one place,
+  with the same discipline the registry says "here is who is alive right now".
+
+  What the native profile serves: `infra/config/` in this repository. The path is configurable via
+  NEXUS_CONFIG_SEARCH (file:…), so a deployment may serve a repo-agnostic location; the default is
+  the repository's own `infra/config/`.
+
+  Version pins: Spring Cloud 2025.0.3 is the release train that matches Spring Boot 3.5.x (this
+  repo's parent). The BOM is imported so the whole train moves as a unit.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.5.16</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>dev.nexus</groupId>
+  <artifactId>nexus-config-server</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <name>nexus-config-server</name>
+  <description>NEXUS configuration server (Spring Cloud Config Server, native profile).</description>
+
+  <properties>
+    <java.version>25</java.version>
+    <maven.compiler.release>25</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <spring-cloud.version>2025.0.3</spring-cloud.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-dependencies</artifactId>
+        <version>${spring-cloud.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <!-- The config server itself: the REST API + the native profile file resolver. -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-config-server</artifactId>
+    </dependency>
+
+    <!-- Health, so the gateway/proof/operator can ask whether the config door is ANSWERING,
+         not merely running. A config door that cannot be asked cannot be trusted either. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- Prometheus scrape endpoint on the operator door: the door answers with the metrics
+         the same services already produce, in the standard format nothing invents. -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.14.1</version>
+        <configuration>
+          <release>25</release>
+          <encoding>UTF-8</encoding>
+          <source>25</source>
+          <target>25</target>
+          <compilerArgs>
+            <arg>-J-Dfile.encoding=UTF-8</arg>
+          </compilerArgs>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

@@ -63,9 +63,11 @@ import type { RateLimitDecision, RateLimiter, RateLimiterReadout } from './rateL
  * 要么这台进程先倒。选了前者，并把 `cap` 那个读数留在原地——只有它在涨才说明这台进程
  * 真的被 distinct 身份压着打（`expired` 在涨是正常收尾，别读成事故）。
  *
- * **限度（别把这一节读成"有了上界就有容量规划"）**：单只桶的内存由 `limit` 封顶（只有被放行
- * 的命中才写时间戳，所以至多 `limit` 个），桶数由 `maxBuckets` 封顶，两条合起来才是这台进程
- * 的上界 ≈ `maxBuckets × (键长 + limit×8)`；而 `maxBuckets` 之内仍然先到先得。这一格的正解
+ * **限度（别把这一节读成"有了上界就有容量规划"）**：单只桶的**活窗口**由 `limit` 封顶（只有被
+ * 放行的命中才写时间戳，所以活条目至多 `limit` 个）；v675 起数组还允许留一段已被 head 越过、
+ * 尚未压实的过期前缀，但压实门槛（head 过半）保证整段 `hits.length ≤ 2×limit + O(1)`，
+ * 仍是与 limit 成正比的常数倍，不是无界。桶数由 `maxBuckets` 封顶，两条合起来才是这台进程
+ * 的上界 ≈ `maxBuckets × (键长 + 2×limit×8)`；而 `maxBuckets` 之内仍然先到先得。这一格的正解
  * 不在这里——是 `NEXUS_REDIS_URL`（窗口不在任何一台的内存里）与边缘层。这里做的是
  * "闸不能比自己挡的东西先倒下"，不是"闸有了容量规划"。
  *
@@ -106,17 +108,37 @@ export interface MemoryRateLimiterOptions {
 }
 
 /**
- * 一只桶：窗口内的命中时刻（升序）+ 这一档自己的窗口。
+ * 一只桶：升序的命中时刻（`head` 之前是被越过、待压实的过期段，见下）+ 这一档自己的窗口。
  *
  * 为什么把 `windowMs` 存进桶里，而不是清扫时传一个全局值：这张表同时住着 `6 次/10 分钟`
  * 与 `600 次/10 分钟`。按最大窗口判过期会让短窗口的桶赖着不走（那正是要收的东西），
  * 按最小窗口判会删掉还在窗口里的长窗口桶（那是白送额度）。两个方向都是错的，所以每只桶
  * 带自己的那一个。
  */
+/**
+ * `head` 是 v675 加的滑动窗口读游标：`hits[head..]` 才是窗口内还活着的时间戳，
+ * `hits[..head)` 是已经越过 cutoff 的段（惰性丢弃，等压实才真正从数组里摘掉）。
+ *
+ * 为什么加它：v673 量出这一句每笔 `hits.filter(t => t > cutoff)` 在撞上限时**照扫满
+ * limit 条**——洪水期（最该省成本的时刻）单请求最贵。滑动窗口的 `hits` 天生升序
+ * （每笔 `push(now)`，`now` 单调不减），所以过期的一定是一段前缀：把"每笔扫全数组"
+ * 换成"head 只往前越过那一段前缀"，每条时间戳一生最多被越过一次 ⇒ 摊还 O(1)。
+ * 语义与逐条对齐 Redis 的那三条一字未改，24300 格对拍（含 limit/windowMs 逐笔抖动）
+ * 见 `docs/evidence/ds/single-bucket-ab.mjs`，裁决见 ADR 0108。
+ *
+ * 为什么是"惰性"越过而不是当场 `splice`：当场删头部是 O(数组长) 的搬移，每笔都付；
+ * 攒到 head 过半再一次 `slice` 压实，搬移次数摊还到那批越过的元素上，仍是 O(1)。
+ * 压实的门槛同时给数组长度封了顶：`head × 2 ≥ hits.length` 才压 ⇒ 没压时活段至少占
+ * 一半，而活段被 limit 封顶 ⇒ `hits.length ≤ 2×limit + O(1)`，不会无限长。
+ */
 interface Bucket {
   hits: number[];
   windowMs: number;
+  head: number;
 }
+
+/** 惰性压实门槛：head 到这么多格、且已过数组一半，才把活段 slice 到头。 */
+const COMPACT_MIN_HEAD = 32;
 
 export class MemoryRateLimiter implements RateLimiter {
   /** 插入序＝最近被碰的顺序（命中时先删再写）。头部是最久没被碰的。 */
@@ -126,6 +148,25 @@ export class MemoryRateLimiter implements RateLimiter {
   private hitsSinceSweep = 0;
   /** 上一次喊"到上界了"的时刻，只用来压日志节奏（见 `CAP_WARN_INTERVAL_MS`）。 */
   private lastCapWarnAt = 0;
+  /**
+   * v675 诊断计数：单桶滑动窗口这一笔，head 游标检查了几个时间戳才定位到窗口起点。
+   *
+   * 它存在的唯一理由是给"摊还 O(1)"那条声称配一个**可读的数**去守它（ADR 0095：
+   * 别让门去读一个改完实现后恒为 0 的代理量）。v673 的门数的是 `filter` 回调次数，
+   * 一旦把 filter 换成双指针，那个数恒为 0、门会假绿；这里把"这一笔实际扫了几格"
+   * 从实现里如实报出来——洪水期（窗口整段不过期）恒为 1，limit 从 8 涨到 4096 也恒为 1，
+   * 而退化成每次扫全桶会随 limit 涨。确定性门读它，不读墙钟。
+   *
+   * 累计值不是逐笔序列；门用两次读数之差隔离出被测区间（与 `bucketCount` 同一取向：
+   * 权威数由结构自己报，不让测试去猜内部状态）。它不进 `describe()` readout——那是给
+   * 运维看的驱动现场，不需要一个纯内部成本代理；测试直接读这个 getter。
+   */
+  private windowVisitsTotal = 0;
+
+  /** 见 `windowVisitsTotal`：累计的单桶游标检查次数，供摊还 O(1) 确定性门做差。 */
+  get windowVisits(): number {
+    return this.windowVisitsTotal;
+  }
 
   constructor(options: MemoryRateLimiterOptions = {}) {
     this.maxBuckets = options.maxBuckets ?? DEFAULT_MAX_BUCKETS;
@@ -162,12 +203,35 @@ export class MemoryRateLimiter implements RateLimiter {
     const now = Date.now();
     const cutoff = now - windowMs;
     const previous = this.buckets.get(key);
-    const window = (previous?.hits ?? []).filter((t) => t > cutoff);
-    const allowed = window.length < limit;
-    if (allowed) window.push(now);
+    /**
+     * v675：滑动窗口从"每笔 filter 扫满 limit 条"换成"head 游标越过那一段过期的头部"。
+     * `hits` 升序（now 单调不减），过期的一定是前缀，所以 head 只前进、每条最多越过一次。
+     * 与旧版的语义逐字相同（写回式丢弃：越过的元素不复活），24300 格对拍见
+     * `docs/evidence/ds/single-bucket-ab.mjs`；三条与 Redis 对齐的语义一字未动。
+     */
+    const hits = previous?.hits ?? [];
+    let head = previous?.head ?? 0;
+    // 越过所有 t <= cutoff（严格留下 t > cutoff，与旧版 filter 的判定同一个式子）。
+    while (head < hits.length) {
+      this.windowVisitsTotal += 1;
+      if (hits[head]! <= cutoff) head += 1;
+      else break;
+    }
+    let count = hits.length - head;
+    const allowed = count < limit;
+    if (allowed) {
+      hits.push(now);
+      count += 1;
+    }
+    // 惰性压实：head 过半且够大时把活段 slice 到头，给数组长度封顶（≤ 2×limit + O(1)）。
+    // 只砍头部、不动尾，所以下面 sweep/evict 读的 newest = hits[length-1] 与旧版一致。
+    if (head >= COMPACT_MIN_HEAD && head * 2 >= hits.length) {
+      hits.splice(0, head);
+      head = 0;
+    }
     // 先删再写：把这只桶挪到插入序的尾部，于是头部永远是最久没被碰的那一只。
     if (previous) this.buckets.delete(key);
-    this.buckets.set(key, { hits: window, windowMs });
+    this.buckets.set(key, { hits, windowMs, head });
     /**
      * 只取键的第一段（路由字面量）当标签，不看后面两段。
      * 限流键的形状是 `路由|身份|IP`，而 `auth/login` 那一格的"身份"传的是**邮箱**
@@ -182,9 +246,11 @@ export class MemoryRateLimiter implements RateLimiter {
     if (!previous) increment('nexus_rate_limit_buckets_created_total');
     increment('nexus_rate_limit_decisions_total', { gate: key.split('|')[0] ?? 'unknown', allowed: String(allowed) });
     // 窗口里最早那条到期的时间 = 再过多久能腾出一个名额。
-    const oldest = window[0] ?? now;
+    // 只有 denied 时用得上（allowed 时下面直接给 0），而 denied 时不 push，
+    // 所以 hits[head] 正是还未过期的第一条 = 旧版 window[0]。压实不改这个位置的内容。
+    const oldest = hits[head] ?? now;
     this.prune(now);
-    return { allowed, count: window.length, retryAfterMs: allowed ? 0 : Math.max(0, oldest + windowMs - now) };
+    return { allowed, count, retryAfterMs: allowed ? 0 : Math.max(0, oldest + windowMs - now) };
   }
 
   /** 清扫按节奏走，上界按插入序当场收——两条的成本不同，触发条件也就不一样。 */
@@ -199,8 +265,12 @@ export class MemoryRateLimiter implements RateLimiter {
 
   /**
    * 删掉"整个窗口都已过期"的桶：最新一条命中距今 > 它自己的 `windowMs`，整只删掉。
-   * 空窗口也删——只有被放行的命中会写时间戳，一只桶被滤空就意味着它已经什么都没记了，
-   * 留着只剩下一个键名的成本，而那正是这一格要收的东西。
+   * 空窗口也删——只有被放行的命中会写时间戳，一只桶被越过到没有活条目就意味着它已经什么
+   * 都没记了，留着只剩下一个键名的成本，而那正是这一格要收的东西。
+   *
+   * v675 注：判据读的是 `hits` **尾部**（最近一次命中），不是活窗口起点，所以 head 游标与
+   * 惰性压实都不影响它——被越过的过期段永远在头部前缀，never 在尾。整窗过期的桶里 head
+   * 可能还没追到尾（没被再命中过），但 newest 那条一到期，整个窗口必然也空了，删它不动任何额度。
    *
    * 返回删掉的只数，让两个调用方（每 256 次命中那趟全表清扫、上界那条的兜底）记同一本账。
    * 这一条**不动任何人的额度**：那些桶下次命中本来也会把自己滤空，删掉只是把没人读的东西收走。

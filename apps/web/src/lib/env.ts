@@ -21,6 +21,20 @@ export interface AiCapabilities {
   video: CapabilityStatus;
   /** UI 必须在 false 时常驻 DEMO MODE 标识（§160） */
   live: boolean;
+  /** v690：应用级 LLM completion cache（未启用 / 不可探时为 null） */
+  cache?: AiCacheState | null;
+}
+
+export interface AiCacheState {
+  backend: 'memory' | 'redis';
+  hits: number;
+  misses: number;
+  stores: number;
+  stores_failed: number;
+  evictions: number;
+  hit_rate: number;
+  namespace: string;
+  degraded: boolean;
 }
 
 /**
@@ -42,7 +56,10 @@ export async function getAiCapabilities(prefetched?: HealthResponse | null): Pro
   // 图像 / 视频 provider 属于 M2 / M5，本里程碑恒为 demo（health 里若出现 real 才升级）。
   const image = statusOf('image');
   const video = statusOf('video');
-  return { text, image, video, live: text === 'real' };
+
+  const raw = (health as { llmCache?: unknown } | null)?.llmCache;
+  const cache = raw && typeof raw === 'object' ? (raw as AiCacheState) : null;
+  return { text, image, video, live: text === 'real', cache };
 }
 
 export async function isDemoMode(): Promise<boolean> {

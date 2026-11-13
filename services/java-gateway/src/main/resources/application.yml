@@ -1,0 +1,210 @@
+# NEXUS nexus-gateway (Spring Cloud Gateway) — the EDGE.
+#
+# Every value here is overridable by environment, because the proof that runs this service must point
+# it at its OWN upstream and its OWN port — not at whatever happens to be listening on 8080 on this
+# machine, which is somebody else's container.
+#
+# The route table is the service's whole product: which path goes to which service, and what a caller
+# is told when that service cannot be reached.
+server:
+  port: ${NEXUS_GATEWAY_PORT:8081}
+
+spring:
+  application:
+    name: nexus-gateway
+  # The config door, optional (see nexus-api): a deployment without
+  # the config server boots with this file as it stands.
+  config:
+    # NEXUS's OWN port, not Spring's default 8888: 8888 is the first port a neighbouring Spring
+    # project takes, and measured 2026-11-10 one did — its config door answered ours and handed a
+    # proof service a FOREIGN `eureka.client.service-url` (ADR 0057 amendment 658). Compose publishes
+    # this door on 18888 and the smoke probes 18888; the default now agrees with both.
+    import: "optional:configserver:${NEXUS_CONFIG_SERVER_URL:http://127.0.0.1:18888}"
+  # v657 — the rate limiter's COUNTER lives here. Spring Cloud Gateway's `RequestRateLimiter` runs a
+  # token bucket as a Lua script INSIDE Redis, so "how many tokens are left" is one round trip and the
+  # numbers are shared by every edge instance — an in-process map would give each replica its own
+  # private limit, which multiplies the real limit by the replica count and is invisible until a
+  # deployment scales.
+  #
+  # The 300 ms timeouts are a decision, not a default: this is a GUARD, and a guard that waits a full
+  # second for its own counter is a guard that has become the outage. Measured consequence of the
+  # timeout being short — a slow Redis turns into the degraded path (see ResilientRateLimiter), which
+  # serves the request and labels it, rather than into p99 latency for every caller.
+  data:
+    redis:
+      host: ${NEXUS_REDIS_HOST:127.0.0.1}
+      port: ${NEXUS_REDIS_PORT:6379}
+      # A separate database index, so the edge's counters cannot collide with whatever else shares a
+      # Redis. Compose publishes this instance on 56379 and the proof points here; a deployment sets
+      # NEXUS_REDIS_DB to a free index.
+      database: ${NEXUS_REDIS_DB:0}
+      timeout: ${NEXUS_REDIS_TIMEOUT:300ms}
+      connect-timeout: ${NEXUS_REDIS_CONNECT_TIMEOUT:300ms}
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            # The system of record. `StripPrefix=1` removes the `/api` prefix, so the service behind
+            # the door sees the path IT owns (`/projects/{id}/publish`) rather than the edge's path.
+            #
+            # The circuit breaker is the reason this route is safe to expose: when `nexus-api` is down,
+            # the edge answers 503 with a body that NAMES the service that could not be reached — never
+            # a 200 with an empty body, which a caller could not tell from "there is no such project".
+            - id: nexus-api
+              uri: ${NEXUS_GATEWAY_NEXUS_API_URI:http://127.0.0.1:8080}
+              predicates:
+                - Path=/api/**
+              filters:
+                - StripPrefix=1
+                # v657 — the limit comes BEFORE the breaker, on purpose. A caller who is over the
+                # limit is over it whether or not the upstream is healthy; counted after the breaker,
+                # an open circuit would answer 503 and the edge would stop counting exactly when the
+                # traffic it is supposed to protect against is the traffic it cannot see.
+                #
+                # `key-resolver`/`rate-limiter` are bean NAMES on purpose (`#{}` is SpEL, not a
+                # placeholder): the next reader can see WHICH limiter this route means without
+                # knowing what `@Primary` happened to resolve to. Both are `@Primary` as well, because
+                # the filter factory injects its defaults by type.
+                #
+                # The numbers are per CALLER, not global: the key is the caller's address and the
+                # bucket is per (route, key). 50/s sustained with a 100 burst is a generous ceiling for
+                # one address — the point of the default is that a runaway client hits a wall before
+                # the upstream does; the proof lowers it to 3/3 through the same knobs.
+                - name: RequestRateLimiter
+                  args:
+                    key-resolver: "#{@edgeKeyResolver}"
+                    rate-limiter: "#{@nexusRateLimiter}"
+                    redis-rate-limiter.replenishRate: ${NEXUS_RATE_LIMIT_RPS:50}
+                    redis-rate-limiter.burstCapacity: ${NEXUS_RATE_LIMIT_BURST:100}
+                    redis-rate-limiter.requestedTokens: 1
+                    # 429, named rather than left to the library's default: this is the status the
+                    # proof reads, and the one RFC 9110 defines for "the caller sent too many".
+                    statusCode: TOO_MANY_REQUESTS
+                - name: CircuitBreaker
+                  args:
+                    name: nexusApiCircuitBreaker
+                    fallbackUri: forward:/__fallback/nexus-api
+
+    # Discovery. The registry is OPTIONAL: with `NEXUS_EUREKA_ENABLED` set, this service registers itself
+    # and can resolve `lb://` route targets; without it, the service runs exactly as before and the
+    # routes above use their configured addresses. A service that cannot start because an optional
+    # dependency is absent is a service whose absence takes the edge down with it.
+
+# The breaker the ROUTE asks for. The instance name MUST be the name in the route's `CircuitBreaker`
+# filter above (`nexusApiCircuitBreaker`), or this block configures an instance nothing uses — and a
+# configuration that names the wrong instance fails SILENTLY: the file still looks right.
+#
+# Why the numbers matter, measured on the topology proof (2026-11-09): with the library's DEFAULTS
+# (100 calls before the breaker may open, 60 seconds before it may come back) the edge kept sending
+# traffic to a dead upstream for about half a minute. Five calls and ten seconds is the difference
+# between "the service is gone" and "the edge noticed".
+resilience4j:
+  # The breaker ENDS a dead upstream, but a deadline is what stops a SLOW one from holding callers
+  # open-ended. The reactive path wraps every proxied call in the breaker AND in a TimeLimiter whose
+  # instance name is the one the route's `CircuitBreaker` filter names (nexusApiCircuitBreaker) —
+  # and when no `timelimiter.instances.*` block exists, that TimeLimiter comes up at the library's
+  # DEFAULT: `Duration.ofSeconds(1)`, verified in resilience4j-timelimiter-2.2.0's TimeLimiterConfig.
+  # This file declares its timeouts as DECISIONS (the redis counter below is 300 ms on the same
+  # principle) — so the upstream deadline is decided here too, not inherited from a jar nobody read.
+  #
+  # 5s is the decision: an API on a healthy box answers in tens of milliseconds (measured, not hoped),
+  # and a single-digit-second tail is not a failure — killing that tail caller at 1s was a denial of
+  # service against a loaded-but-alive upstream, not a guard against a dead one. Tight deployments
+  # set NEXUS_UPSTREAM_TIMEOUT; the shipped default only guarantees a hung upstream cannot hold a
+  # caller open-ended. The breaker still opens on the failures this produces.
+  timelimiter:
+    instances:
+      nexusApiCircuitBreaker:
+        timeoutDuration: ${NEXUS_UPSTREAM_TIMEOUT:5s}
+        cancelRunningFuture: true
+  circuitbreaker:
+    instances:
+      nexusApiCircuitBreaker:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 2
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+
+management:
+  # v656 — ONE trace id, and it travels on the WIRE (W3C `traceparent`), not in a header NEXUS invented.
+  # Sampling is 1.0 in development because a sampled-out request is a request with nothing to read; a
+  # deployment sets NEXUS_TRACING_SAMPLING (0.1 is a normal production number).
+  tracing:
+    sampling:
+      probability: ${NEXUS_TRACING_SAMPLING:1.0}
+    propagation:
+      type: W3C
+  # v658 — the gateway's health question is "is the EDGE alive", not "is the shared counter alive".
+  # `spring-boot-starter-data-redis-reactive` puts Spring Boot's RedisHealthIndicator on the classpath
+  # automatically, and with no Redis on the deployment's configured port it answers DOWN and flips
+  # /actuator/health to 503. That is NOT a fact about the edge's ability to route: the rate limiter
+  # degrades gracefully when the counter is unreachable (see ResilientRateLimiter — the request
+  # is SERVED, the answer is LABELLED with X-Nexus-Edge-Degraded: unavailable, and the call's own
+  # metric counts), so turning the whole health endpoint DOWN for the counter would cascade the outage
+  # into a full third of the topology. The counter's reachability stays VISIBLE in metrics and in
+  # x-nexus-edge-degraded on the wire; it is exactly the kind of thing this line says NOT to hide.
+  health:
+    redis:
+      enabled: ${NEXUS_REDIS_HEALTH_ENABLED:false}
+  endpoints:
+    web:
+      exposure:
+        # `metrics` is here for one reason: `resilience4j.circuitbreaker.state` says whether the
+        # edge's own breaker (the one the route table names) is CLOSED, OPEN or HALF_OPEN, and its
+        # `name` tag is the breaker's own name — `nexusApiCircuitBreaker`, the same word the route
+        # uses. Without it, a 503 says the upstream was unreachable and nobody can tell whether
+        # the edge stopped asking on purpose.
+        #
+        # NOTE on the door that is NOT here: Spring Cloud Gateway 4.3.5 ships the routes actuator
+        # beans (GatewayControllerEndpoint / GatewayLegacyControllerEndpoint, endpoint id `gateway`),
+        # but in this WebFlux-only edge they never register — measured three ways: default flags,
+        # `spring.cloud.gateway.server.webflux.actuator.verbose.enabled=true`, and `=false`.
+        # /actuator discovery lists only health/info/metrics/prometheus and /actuator/gateway/**
+        # answers 404 in all three configurations. Both beans are @RestControllerEndpoint (the
+        # servlet-family annotation), and no routes endpoint is mounted on the reactive handler
+        # mapping. `gateway` was verified dead in THIS deployment, so it is not listed here — an
+        # exposure-list entry for an endpoint that does not exist is a door drawn on a wall.
+        # If a future Spring Cloud version mounts it (or a second route consumer appears), adding
+        # the id to this list is the change. Until then the live route table is verified the way
+        # that cannot drift: the proof boots the real jar and routes a real request through it.
+        include: health,info,metrics,prometheus
+
+# Eureka's OWN namespace is TOP-LEVEL `eureka.*`, not `spring.cloud.eureka.*`. The switch that stops
+# the client is `eureka.client.enabled` — and the address it would register with is
+# `eureka.client.service-url.defaultZone`. Measured here: with the block written under
+# `spring.cloud.eureka`, the client started anyway and tried to register with Eureka's own default
+# (localhost:8761) — a service quietly dialling a registry nobody started, for a reason no log line
+# explains. The names below are the ones Eureka actually reads.
+eureka:
+  client:
+    enabled: ${NEXUS_EUREKA_ENABLED:false}
+    register-with-eureka: ${NEXUS_EUREKA_ENABLED:false}
+    fetch-registry: ${NEXUS_EUREKA_ENABLED:false}
+    service-url:
+      defaultZone: ${NEXUS_EUREKA_URL:http://127.0.0.1:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+logging:
+  # v656 — the ids have to BE in the line for anyone (including a proof) to read them. Boot only
+  # prints them when this pattern is set; measured: without it the format is `[app]` and with it
+  # `[app,traceId,spanId]` (empty ids on a thread with no span, which is the honest rendering too).
+  pattern:
+    correlation: "[${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
+  level:
+    root: warn
+    dev.nexus.gateway: info
+
+# Where this service writes the port it actually bound, when a caller asks it to. Empty by default
+# (no file, no behaviour change) — same rule the other Java services follow.
+nexus:
+  port-file: ${NEXUS_PORT_FILE:}
+  edge:
+    rate-limit:
+      # How often the "I could not count this request and served it anyway" WARN may reach the log.
+      # During a counter outage every request takes that path; the metric is per request, the line is
+      # not. Ten seconds is a line per ten seconds per route rather than a few hundred per second.
+      warn-interval: ${NEXUS_RATE_LIMIT_WARN_INTERVAL:10s}

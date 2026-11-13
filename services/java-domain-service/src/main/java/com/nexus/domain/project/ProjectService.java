@@ -1,5 +1,6 @@
 package com.nexus.domain.project;
 
+import com.nexus.domain.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +24,10 @@ public class ProjectService {
 
     /**
      * Create a new project.
+     *
+     * <p>The kind is checked against the schema's vocabulary BEFORE the write: {@code projects.kind} is
+     * a PostgreSQL enum, so an unknown kind is a rejected insert, and letting the database be the one
+     * that refuses turns a caller's bad word into a 500 that blames the server.
      */
     @Transactional
     public Project createProject(UUID ownerId, String slug, String name, String kind, String description) {
@@ -31,20 +36,22 @@ public class ProjectService {
         project.setOwnerId(ownerId);
         project.setSlug(slug);
         project.setName(name);
-        project.setKind(kind != null ? kind : "website");
+        project.setKind(ProjectVocabulary.requireKind(kind));
         project.setDescription(description);
-        project.setVisibility("private");
+        project.setVisibility(ProjectVocabulary.DEFAULT_VISIBILITY);
 
         return projectRepository.save(project);
     }
 
     /**
      * Update project metadata (name, description, visibility).
+     *
+     * <p>The visibility is checked against the schema's vocabulary for the same reason the kind is.
      */
     @Transactional
     public Project updateProject(UUID projectId, String name, String description, String visibility) {
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found: " + projectId));
 
         if (name != null) {
             project.setName(name);
@@ -53,7 +60,7 @@ public class ProjectService {
             project.setDescription(description);
         }
         if (visibility != null) {
-            project.setVisibility(visibility);
+            project.setVisibility(ProjectVocabulary.requireVisibility(visibility));
         }
 
         return projectRepository.save(project);
@@ -65,7 +72,7 @@ public class ProjectService {
     @Transactional
     public void deleteProject(UUID projectId) {
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found: " + projectId));
 
         project.setDeletedAt(Instant.now());
         projectRepository.save(project);
@@ -106,7 +113,7 @@ public class ProjectService {
     @Transactional
     public Project forkProject(UUID originalProjectId, UUID newOwnerId, String newSlug, String newName) {
         Project original = projectRepository.findById(originalProjectId)
-                .orElseThrow(() -> new IllegalArgumentException("Original project not found: " + originalProjectId));
+                .orElseThrow(() -> new ResourceNotFoundException("Original project not found: " + originalProjectId));
 
         Project fork = new Project();
         fork.setId(UUID.randomUUID());
@@ -115,7 +122,7 @@ public class ProjectService {
         fork.setName(newName);
         fork.setKind(original.getKind());
         fork.setDescription("Fork of: " + original.getName());
-        fork.setVisibility("private");
+        fork.setVisibility(ProjectVocabulary.DEFAULT_VISIBILITY);
         fork.setForkOf(originalProjectId);
 
         return projectRepository.save(fork);

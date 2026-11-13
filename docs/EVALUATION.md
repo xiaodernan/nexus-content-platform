@@ -2678,3 +2678,26 @@ target 文档落在 top-1 或 top-2、所有分数有限。
 `NEXUS_RERANKER_PROVIDER=local` 之下，DEMO MODE 全链路（bge-tokenizer → 1536 维 → 混合 → rerank）
 无需任何凭据即可离线跑通。
 
+
+
+
+## 2026-11-09 addendum (cont. 3): §85 evals 第十二套 `demo-mode`——§159/§160 诚实入矩阵
+
+第十二套 `demo-mode`（确定性、§159/§160、DEMO MODE 诚实）：`14/14`：
+
+```
+demo-mode 14/14
+```
+
+它钉的是"DEMO MODE 的诚实但不羞于自称"：
+
+- `capability === 'demo'` 在三个意图（`critique` / `design-edit` / `research`）下都成立；
+- `usage.demoMode === true` 永远为 true；`tokensIn`/`tokensOut`/`costUsd` 永远是 0——
+  系统绝不伪造它没真跑过的会计；
+- provider/model 字段从不点名任何供应商云或真实模型名；
+- 输出不含网络形态 URL（没有真去过任何端点）；
+- 两次同输入调用，除墙上延迟外逐字节一致。
+
+第十二套入矩阵后，`npm run evals` 报告 **290/290 PASS**（不含需真库的 export-roundtrip）。
+验证命令：`npm run evals -- --suite demo-mode`。
+
