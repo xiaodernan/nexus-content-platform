@@ -59,6 +59,23 @@ call#2 (warm) HTTP 200 (2673ms) · tokensIn=6413 cachedTokens=6272 tokensOut=54 
 
 3200 既有实例（pid 6028，旧代码）此后已被改用 patched 代码重起（pid 已换）：`/healthz` 200 `capability=real`（llm `real`/embedding 如实 `unavailable (model_not_found)`/queue `redis`）；随后 cold+warm 各一次 `/v1/ai/run` 均 `tokensIn=6413 cachedTokens=6272`（**上游热缓存全程命中**）。
 
+## 可复检判据：`scripts/probe-prompt-cache.py`（`npm run probe:cache`）
+
+§AILIVE-1 的三层判据之上，补了一层专门为 cache wiring 的可执行判据：
+
+```
+[§AILIVE-4] prompt-caching probe · base=https://wkapi.pro/v1 · model=gpt-6-sol · key=*** · cache_key=***
+  L1 call#1: model=gpt-6-sol · 2779ms · prompt=5226 · cached=0
+  L1 call#2: model=gpt-6-sol · 2025ms · prompt=5226 · cached=4992
+PASS: L1 prompt caching: cold=0 → warm=4992（≥1024）
+  L2 call#1: model=gpt-6-sol · 8414ms · tokens_in=6413 · cachedTokens=0
+  L2 call#2: model=gpt-6-sol · 2871ms · tokens_in=6413 · cachedTokens=5120
+PASS: L2 ai-service /v1/ai/run: cold=0 → warm=5120（≥1024）
+[§AILIVE-4] ALL PASS —— prompt caching 已接通且可读数（不编数字、不编缓存）
+```
+
+L1 断言直接打上游；L2 走 service 完整 `provider → registry → execution → contract 校验` 路径，两段 payload **字节一致**，任何一层不发 `prompt_cache_key` 就 L1/L2 红。退出码：无 key→2 / L1 网络→3 / L1 违约→4 / L2 不可达→5 / L2 违约→6；`--direct-only` 只验 L1。
+
 ## 边界（如实）
 
 - wkapi.pro 的 usage **无法证明**「缓存一定能存活」——它存在（5376/6272），但 0 字节的 prompt 永远不命中；小于 128-token 的 system 不分块命中（那是 OpenAI 自动提示缓存规则）。
