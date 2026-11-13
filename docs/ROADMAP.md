@@ -13529,3 +13529,21 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
 - **仍欠**：① 没有超时兜底——`testTimeout`/`hookTimeout` 都管不到模块顶层，真兜底是外部看门狗；
   ② collect 才是大头（并行下累加 100s，96 套各读一遍 globals.css）。要再进一步得把"读一次 +
   共享解析"做成 fixture，但那样每套就不能独立运行了——是设计取舍，65 秒已不影响工作节奏，不做。
+
+## §CACHE-3 补记：画布上的缓存 chip（2026-11-14）
+
+Amendment 2 的「Studio 内联没接」补上了：`CommandBar` 生成结果行多一枚 `data-ai-cache` chip。
+
+- **三态视觉刻意分开**：`hit` 绿点实心+淡绿底 / `miss` 灰边灰点 / `unreported` **虚线边+空心圆点**。
+  最后那条是重点——**若 `unreported` 与 `miss` 长得一样，用户会把「网关没报」读成「一次没命中」**，
+  那正是本项目反复在防的错，只是换了个界面。
+- **三件事分开**：`cacheState()` 给 `hit|miss|unreported` 供 `data-*` 与 CSS；`cacheText()` 给措辞；
+  CSS 一条新类名 `.cb-cacheBadge` + 三个 `[data-ai-cache=...]` 变体。**不从措辞反推状态**
+  （`includes('未报')` 当协议，改一个词就静默失效）。
+- 零 hex、零新增颜色 token、`tabular-nums` 让连续生成时数字不左右跳。
+- 判据：`usage-cache-text.test.ts` +4 条（三态 / 三态与三句措辞一一对应、三句互不相同）；
+  `command-bar-visual-style.test.ts` +1 条接线 + SHA 换值（`d86846b8…`→`7ef8ffcc…`，
+  理由是"真实的新界面元素，不是换皮"，写在文件头）。`verify:census OK`（1775 类）、
+  `no-raw-tailwind` 干净、`tsc` OK。
+- **仍欠**：`costUsd` 仍是 0——要回答「省了多少钱」需要单价表，而单价不能编（随模型/供应商/折扣变）。
+  现在能说的是「省了多少 token」，不是「省了多少钱」。
