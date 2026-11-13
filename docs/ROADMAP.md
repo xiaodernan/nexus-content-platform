@@ -13508,3 +13508,24 @@ SC-46 的 stale 兜底有一个**真实盲区**：它只在 loader `reject` 时�
 - **仍欠**：① Studio 内联没接（走 chat 流式，`usage` 在最后一帧，需另一套解析）；
   ② 无真机截图（1440/390 下三档措辞会不会挤）；③ `costUsd` 仍是 0，价格表没接，
   所以「省了多少钱」这句还不能说——缓存省的是输入 token 的钱，换算需要单价。
+
+## §GATE-2b 解掉串行的误伤：243s → 65s（2026-11-14 / ADR-0264 补充）
+
+死循环修好后 fe-gates 是 243s，但比例不舒服：`tests` 只占 12.46s，剩下全是 collect + prepare。
+原因是根 `vitest.config.ts` 的 `fileParallelism: false`——它保护的是**共用同一个 Postgres
+的集成测试**（"Sequential is cheaper than red"），而 96 套视觉判据一个都不碰库，跟着串行是**误伤**。
+
+- **派生配置而不是改根配置**：`vitest.fe.config.ts` 只 include `apps/web/test/**/*-visual-style.test.ts`，
+  `fileParallelism: true`，`pool: 'forks'`。改根配置 = 为了视觉判据去动 DB 测试的正确性；
+  派生 = 让两种测试各按自己的约束跑。**约束要落在它真正保护的东西上。**
+- **forks 不选 threads**：Windows 上 worker_threads 起停更慢，且 `readFileSync` 是**同步阻塞**——
+  在线程池里会拖住同进程的其他测试；fork 各自独立进程，阻塞只影响自己。
+- **`maxForks` 上限 8 而不是 CPU 数**：不是省 CPU，是省内存——每个 fork 各持一份 36 万字节 CSS，
+  16 个 fork 的峰值 RSS 会到 GB 级。
+- **仍显式传 96 个文件**：若那份配置的 `include` 写错，会因"传 96 个却 filter 出 0 个"而红，
+  不会安静地跑 0 套报绿。
+- **结果：243s → 65s 端到端（vitest 161.66s → 36.24s）**，96 套 / 1006 条全绿。
+  相对最初"33 分钟零输出（永久挂死）"约 **30×**。
+- **仍欠**：① 没有超时兜底——`testTimeout`/`hookTimeout` 都管不到模块顶层，真兜底是外部看门狗；
+  ② collect 才是大头（并行下累加 100s，96 套各读一遍 globals.css）。要再进一步得把"读一次 +
+  共享解析"做成 fixture，但那样每套就不能独立运行了——是设计取舍，65 秒已不影响工作节奏，不做。

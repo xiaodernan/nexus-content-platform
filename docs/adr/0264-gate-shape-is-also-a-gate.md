@@ -96,8 +96,47 @@ for (let m = /x/g.exec(s); m; m = /x/g.exec(s)) {}   // 短一行，且在首个
 
 判据：`gate-hygiene.test.ts` 8 条；`not-found-visual-style.test.ts` 14 条（不变，但 collect 从 ∞ 变成 4.84s）；补签 `publish-panel-visual-style.test.ts` 的 SHA。
 
+## 补充（同日第二片）：把误伤的串行解掉
+
+上面「结果」里那 375 秒有个不舒服的比例：`tests` 只占 12.46s，剩下全是 collect + prepare。
+原因是根 `vitest.config.ts` 里那一行 `fileParallelism: false`——它的注释写得很清楚：
+
+    // Real-DB suites share one Postgres; 5s kills them when they queue. Sequential is cheaper than red.
+
+那条约束是**对的**，但它保护的是「共用同一个 Postgres 的集成测试」。96 套视觉判据
+一个都不碰库（只 `readFileSync` 读 CSS/源码做正则），跟着串行属于**误伤**。
+
+**做法是派生一份配置，不是改根配置。** 改根配置＝为了视觉判据去动 DB 测试的正确性；
+派生一份＝让两种测试各按自己的约束跑。这是本 ADR 同一条思路的延续：
+**约束要落在它真正保护的东西上。**
+
+`vitest.fe.config.ts`：只 include `apps/web/test/**/*-visual-style.test.ts`，
+`fileParallelism: true`，`pool: 'forks'`。
+
+选 forks 不选 threads 的理由：Windows 上 worker_threads 起停更慢，而 `readFileSync`
+是**同步阻塞**调用——在线程池里会拖住同进程的其他测试；fork 各自独立进程，阻塞只影响自己。
+`maxForks` 上限取 8 而不是 CPU 数：不是为省 CPU，是为省内存——每个 fork 各自持有一份
+36 万字节 CSS + 若干源码字符串，16 个 fork 的峰值 RSS 会到 GB 级。
+
+`fe-gates.mjs` 仍然**显式传 96 个文件**：如果那份配置的 `include` 哪天写错，
+这里会因为"传了 96 个却 filter 出 0 个"而红，而不是安静地跑 0 套、报绿。
+
+```
+修复死循环后（串行）  243s 端到端 / vitest 161.66s（tests 8.66s）
+并行配置后            65s 端到端 / vitest  36.24s
+────────────────────────────────────────────────
+相对最初 33 分钟零输出，约 30×
+```
+
 ## 仍欠
 
-1. **没有并行化**。96 套 375 秒里 47.81s 是 collect、40s 是 prepare，而 `tests` 只有 12.46s。根 `vitest.config.ts` 的 `fileParallelism: false` 是为共用同一个 Postgres 的集成测试设的，视觉判据不碰库却跟着串行。**这是下一片的位置**：给 fe-gates 一份独立的 vitest 配置（只含 `*-visual-style.test.ts`，开文件级并行），不动根配置。
-2. **没有超时兜底**。这次是人工发现"跑了 33 分钟不对劲"。`vitest` 的 `testTimeout` 管不到 collect 阶段。真正的兜底是外部看门狗（`--hookTimeout` 也管不到模块顶层），这一片没做。
-3. **只扫了 visual-style**。同族形状理论上可能出现在任何测试或源码里；这次扫描范围选了 96 套判据，因为那是唯一跑全量的一批。
+1. **仍没有超时兜底**。`testTimeout` / `hookTimeout` 都管不到**模块顶层**——
+   这次就是死在那里。真正的兜底是外部看门狗（`timeout` 命令或 CI 的 job 超时），
+   这一片没做。现在的并行配置把 96 套压到 36 秒，客观上让"跑到一半卡住"更容易被发现，
+   但那不是兜底，是运气变好了。
+2. **只扫了 visual-style**。同族形状理论上可能出现在任何测试或源码里；这次扫描范围
+   选了 96 套判据，因为那是唯一跑全量的一批。
+3. **collect 才是真正的大头**（并行下累加 100s）。每套判据都在模块顶层把 `globals.css`
+   与 `tokens.css` 各读一遍——36 万字节 × 96。真要再进一步，得把"读一次 + 共享解析结果"
+   做成 fixture（`globalSetup` 或 `setupFiles` 注入），但那样每套判据就不能独立运行了，
+   是设计取舍不是纯优化。**没做，也不打算在短期做**——65 秒已经不影响任何人的工作节奏。

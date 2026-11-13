@@ -40,9 +40,24 @@ if (census.status !== 0) {
   process.exit(1);
 }
 console.log(`fe-gates: ${files.length} visual-style suites`);
-const result = spawnSync('npx', ['vitest', 'run', '--reporter=dot', ...files], {
-  cwd: root,
-  stdio: 'inherit',
-  shell: process.platform === 'win32',
-});
+/**
+ * §GATE-2b：用 `vitest.fe.config.ts` 而不是根配置。
+ *
+ * 根配置的 `fileParallelism: false` 是给「共用同一个 Postgres 的集成测试」设的，
+ * 而这 96 套判据一个都不碰库（只 readFileSync 读 CSS/源码做正则）。
+ * 让它们跟着串行的代价是可量的：串行 161.66s 里 tests 只占 8.66s，
+ * 其余全是 collect/prepare/transform 的排队。派生一份配置，让两种测试各按自己的约束跑。
+ *
+ * 仍然显式传文件列表：如果那份配置的 `include` 哪天写错，这里会因为"传了 96 个文件
+ * 却 filter 出 0 个"而红，而不是安静地跑 0 套、报绿。
+ */
+const result = spawnSync(
+  'npx',
+  ['vitest', 'run', '--config', 'vitest.fe.config.ts', '--reporter=dot', ...files],
+  {
+    cwd: root,
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+  },
+);
 process.exit(result.status ?? 1);
