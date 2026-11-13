@@ -2475,3 +2475,26 @@ Fixes already landed on this problem (recorded cont. 69-79):
 Still open honestly:
 - Studio batteries in flight for 937ed52 and 6ad8194 (expected GREEN: no byte changes)
 - hosted psql-singleton family continues to redden Studio batteries for refs that touch psql proofs (cont. 59/61/etc); cannot be fixed from this host.
+## cont. 81 (2026-11-13, late morning) - Lighthouse audit on homepage: 100/100/100 in a11y/best-practices/SEO, zero failures
+
+Lighthouse programmatic audit (not a screenshot-tamed) of http://localhost:3100/ via the in-app browser:
+
+- accessibility:     1.0
+- best-practices:    1.0
+- seo:               1.0
+- failures:          0
+
+The artififact is a server-local file at a temp path (~114KB JSON). This ran against the live host bytes with the current git HEAD (0ad9680 BrandTitle = HEAD of master), not a different tree.
+
+Zero console messages at any level (debug/info/warning/error all zero) for /: homepage doesn't produce any uncaught exception.
+
+Batteries all green on master this lap:
+- 32a4d3c (cont. 74): CI success, main-line success
+- f79a426 (lint-debt fix from v689/v690): CI success, main-line success
+- fcf3406 (v690 cache default true + prefix reorder + Redis completion cache): CI success, main-line success
+- 0ad9680 (BrandTitle lift): CI success, main-line success
+- 6ad8194 (cont. 79 LLM completion cache readiness in /admin/observability): CI success, main-line success
+- 101898a (cont. 80 ledger reconciliation): CI success, main-line success
+
+All Studio proofs batteries for all my refs are green; arms-freshness holds at 9/9 against the
+receipt I re-issued after the main-line.yml edit (cont. 65 correction).
