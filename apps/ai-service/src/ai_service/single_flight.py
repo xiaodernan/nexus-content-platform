@@ -24,9 +24,19 @@ from __future__ import annotations
 
 import threading
 from dataclasses import dataclass
-from typing import Callable, Hashable, TypeVar
+from typing import Any, Callable, Hashable, Protocol, TypeVar
 
 T = TypeVar("T")
+
+
+class FlightLike(Protocol):
+    """可注入 `CachedLlm` 的合并器统一面（v697）。
+
+    `SingleFlight`（进程内）与 `distributed_flight.CompositeFlight`（进程内 + 跨进程）
+    都满足它；`CachedLlm` 只依赖这个面，不关心装的是哪一层。
+    """
+
+    def run(self, key: Hashable, work: Callable[[], Any]) -> Any: ...
 
 
 @dataclass(frozen=True)

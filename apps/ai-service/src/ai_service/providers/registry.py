@@ -109,17 +109,46 @@ class Registry:
                 ttl_s=settings.llm_cache_ttl_s,
                 max_entries=512,
             )
-            # single-flight（v696 / ADR 0128）：同 key 并发 miss 只放一个真调用过去。
-            # 关掉时 flight=None，CachedLlm 与 v695 字节级一致。
-            flight = None
-            if settings.llm_single_flight:
-                from ..single_flight import SingleFlight
-
-                flight = SingleFlight(wait_timeout_s=settings.llm_single_flight_wait_s)
-            return CachedLlm(provider, cache, flight=flight)  # type: ignore[return-value]
         except Exception as exc:  # noqa: BLE001 - 缓存组件失败必须不影响主路径
             print(f"[registry] LLM completion cache 未启用：无法连接 {url}（{exc.__class__.__name__}）")
             return provider
+        # 分开两段是刻意的（ADR 0114）：**连接失败** fail-open 退回裸 provider，
+        # **配置错误**必须显式抛出来，不许被同一个 except 吞成"悄悄没启用"。
+        flight = Registry._build_flight(settings, client, cache)
+        from ..completion_cache import CachedLlm
+        return CachedLlm(provider, cache, flight=flight)  # type: ignore[return-value]
+
+    @staticmethod
+    def _build_flight(settings: Settings, client, cache):
+        """组装合并层：默认只进程内；显式 opt-in 才叠上跨进程租约。
+
+        关掉 `llm_single_flight` 时 `flight=None`，CachedLlm 与 v695 字节级一致（零回归）。
+        """
+        if not settings.llm_single_flight:
+            return None
+        from ..single_flight import SingleFlight
+
+        local = SingleFlight(wait_timeout_s=settings.llm_single_flight_wait_s)
+        if not settings.llm_distributed_single_flight:
+            return local
+        from ..distributed_flight import CompositeFlight, DistributedSingleFlight
+
+        # 租约必须覆盖最坏真调用时长：leader 还在打模型、锁先过期的话，
+        # follower 会提前自补，合并退化成双花。显式拒绝，不静默接受（ADR 0114）。
+        if settings.llm_distributed_flight_lease_s < settings.request_timeout_s:
+            raise ValueError(
+                "NEXUS_LLM_DISTRIBUTED_FLIGHT_LEASE_S 必须不小于 AI_SERVICE_TIMEOUT_S"
+            )
+        remote = DistributedSingleFlight(
+            client,
+            peek=cache.get,
+            namespace=settings.llm_cache_namespace,
+            wait_timeout_s=settings.llm_distributed_flight_wait_s,
+            poll_interval_s=settings.llm_distributed_flight_poll_s,
+            lease_s=settings.llm_distributed_flight_lease_s,
+            marker_ttl_s=settings.llm_distributed_flight_lease_s,
+        )
+        return CompositeFlight(local, remote)
 
     @property
     def llm(self):

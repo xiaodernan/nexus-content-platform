@@ -11905,3 +11905,33 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   `temperature` 仍未进缓存键。
 - **方法**：加并发能力前先查"它把哪条旧路径的并发前提变强了"；真机 A/B 必须带反事实臂，
   否则"1 次"可能来自缓存或网关去重，归因不成立。
+
+## v697 — 跨进程 single-flight over Redis（ADR 0129）（2026-11-14）
+- **背景**：ADR 0128 仍欠 ①。v696 只合并**同一进程**的并发 miss；多副本 A/B 各自 miss
+  共享 Redis completion cache，仍会各打一次真 LLM。
+- **做了**：新 `distributed_flight.py`——`SET key token NX EX lease` 抢 leader，
+  follower 读 owner token 后轮询 `<lock>:done:<owner_token>`，标记出现就 `peek` **同一个
+  共享缓存**拿结果；等不到 / peek 不到 / 锁过期 / Redis 抖动就自己补打真调用。
+  不广播序列化结果（避免第二个真值源）、不 DEL 别人的锁（无 Lua 纪律）、
+  done 标记绑定本轮 token（防旧标记跨轮串台）、Redis 故障 fail-open。
+  新 `CompositeFlight` 先进程内合并再由本进程 leader 抢跨进程锁（省 Redis RTT）；
+  `CachedLlm` 只依赖新 `FlightLike` Protocol，逻辑一行未改。
+- **接线**：`NEXUS_LLM_DISTRIBUTED_SINGLE_FLIGHT=0` **默认关闭**（零回归），=1 且缓存
+  启用才叠上。`Registry._build_llm` 拆两段：连接失败 fail-open、配置错误显式抛
+  `ValueError` 不被同一个 except 吞掉。**默认租约 240s / WAIT 180s 对齐
+  `AI_SERVICE_TIMEOUT_S=180s`**——租约短于最坏真调用时长会让锁先过期、follower 提前
+  自补双花；`_build_flight` 显式拒绝，并有门钉"默认值满足该不变量"。
+- **真机（wkapi.pro gpt-6-sol + 真 Redis 56379）**：真 Redis 双实例各自 client+cache
+  → `work_calls=1`、A 写的 Completion 由 B **经真 Redis 反序列化读回**；真网关双实例
+  并发同 prompt `distributed=on` → **真网关 1 次**（leaders=1、coalesced=1），
+  反事实臂 `off` → **2 次**。顺带把 ADR 0102/0107 的"多进程真 OS 字节往返"从仍欠变实证。
+- **门** `test_distributed_flight.py` 21 条：判据纯函数单一真值、Barrier 双实例 +
+  Event 门 leader、假时钟验超时、`distinct_lock_names == key_count` 正向锚、
+  9 个恒跑变异臂（含 `run` 直通与 `done_key` 去 token 两个真组件退化臂）、2 正向对照、
+  3 条函数级 skipif 真机腿。离线 21/3；全套离线 310/20；live LLM + 全 Redis opt-in
+  **330 passed / 0 skipped**；record-encoding / census / arms-freshness 全绿。
+- **仍欠**：leader 进程被杀时 follower 要等满 WAIT_S（可加 FAILED 标记，语义未定）、
+  跨进程账本进 /healthz + Prometheus、单实例 Redis 非 Redlock（主从切换可能双 leader）、
+  轮询未做退避+抖动、默认关闭需带真实流量梯度的上线验证。
+- **方法**：跨进程协调不要造第二个结果真值源；done 标记必须带本轮 token（用真组件变异臂
+  证明有牙）；租约 ≥ 最坏真调用时长并把"默认满足"写成门；连接失败与配置错误拆两段。

@@ -83,6 +83,16 @@ class Settings:
     # 后才生效（无缓存就没有 "miss"，自然也无从合并）；默认 True，=0 还原"并发各打各的"。
     llm_single_flight: bool = True
     llm_single_flight_wait_s: float = 30.0
+    # 跨进程 single-flight（v697，ADR 0129，ADR 0128 仍欠 ①）：默认 **关闭**（零回归）。
+    # 只有显式 =1 且 completion cache 启用时才抢 Redis 租约，把多副本并发 miss 合成一次。
+    # 打开前确认 Redis 可达；组件对 Redis 故障 fail-open（自己打真调用），不会打挂主路径。
+    # 默认对齐 request_timeout_s(180s)：租约**必须**大于最坏真调用时长，否则 leader
+    # 还在打模型、锁已过期，follower 会提前自补造成双花。调大 AI_SERVICE_TIMEOUT_S
+    # 时必须同步调大租约（门钉住这个不变量，ADR 0095）。
+    llm_distributed_single_flight: bool = False
+    llm_distributed_flight_wait_s: float = 180.0
+    llm_distributed_flight_poll_s: float = 0.25
+    llm_distributed_flight_lease_s: float = 240.0
     # 检测到但尚未实现适配器的 key：如实报告为 unavailable，不假装能调用（§159）
     unsupported_text_keys: tuple[str, ...] = ()
 
@@ -128,6 +138,10 @@ class Settings:
             "llm_sticky_cache_key": self.llm_sticky_cache_key,
             "llm_single_flight": self.llm_single_flight,
             "llm_single_flight_wait_s": self.llm_single_flight_wait_s,
+            "llm_distributed_single_flight": self.llm_distributed_single_flight,
+            "llm_distributed_flight_wait_s": self.llm_distributed_flight_wait_s,
+            "llm_distributed_flight_poll_s": self.llm_distributed_flight_poll_s,
+            "llm_distributed_flight_lease_s": self.llm_distributed_flight_lease_s,
             "llm_cb_sliding_window": self.llm_cb_sliding_window,
             "llm_cb_minimum_calls": self.llm_cb_minimum_calls,
             "llm_cb_failure_rate_threshold": self.llm_cb_failure_rate_threshold,
@@ -186,6 +200,10 @@ def load_settings(environ: Mapping[str, str] | None = None) -> Settings:
         # 关掉时 CachedLlm 不装 flight，恢复到"并发各打各的"旧行为。
         llm_single_flight=(get("NEXUS_LLM_SINGLE_FLIGHT", "1") or "1") != "0",
         llm_single_flight_wait_s=float(get("NEXUS_LLM_SINGLE_FLIGHT_WAIT_S", "30") or "30"),
+        llm_distributed_single_flight=(get("NEXUS_LLM_DISTRIBUTED_SINGLE_FLIGHT", "0") or "0") == "1",
+        llm_distributed_flight_wait_s=float(get("NEXUS_LLM_DISTRIBUTED_FLIGHT_WAIT_S", "180") or "180"),
+        llm_distributed_flight_poll_s=float(get("NEXUS_LLM_DISTRIBUTED_FLIGHT_POLL_S", "0.25") or "0.25"),
+        llm_distributed_flight_lease_s=float(get("NEXUS_LLM_DISTRIBUTED_FLIGHT_LEASE_S", "240") or "240"),
         llm_cb_sliding_window=int(get("NEXUS_LLM_CB_SLIDING_WINDOW", "20") or "20"),
         llm_cb_minimum_calls=int(get("NEXUS_LLM_CB_MIN_CALLS", "20") or "20"),
         llm_cb_failure_rate_threshold=float(get("NEXUS_LLM_CB_FAILURE_RATE", "50") or "50"),

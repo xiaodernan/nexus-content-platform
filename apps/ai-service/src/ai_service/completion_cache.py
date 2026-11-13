@@ -34,7 +34,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from .providers.base import Completion, LLMProvider
-from .single_flight import SingleFlight
+from .single_flight import FlightLike
 
 # None = 用 provider 默认（不是"未指定就随便"）；三态必须分开，否则 chat 与 run 会串台。
 JsonModeKey = str  # "default" | "json" | "text"
@@ -171,7 +171,7 @@ class CachedLlm:
     kind = "llm"
 
     def __init__(
-        self, inner: LLMProvider, cache: LlmCompletionCache, *, flight: SingleFlight | None = None
+        self, inner: LLMProvider, cache: LlmCompletionCache, *, flight: FlightLike | None = None
     ) -> None:
         self._inner = inner
         self._cache = cache
