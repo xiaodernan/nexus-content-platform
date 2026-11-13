@@ -33,6 +33,7 @@ from .contract import ContractMissing, contract_dir
 from .contract import issues as contract_issues
 from .execution import error as make_error
 from .execution import execute_ai_request, execute_chat_request, parse_request_body
+from .latency_meter import LLM_LATENCY
 from .jobs import JobStore, Worker, build_store, job_capacity
 from .providers.registry import Registry
 
@@ -118,6 +119,9 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
             "queue": {**queue_report(state), "pending": pending, "running": running},
             # v690：应用级 LLM 完成缓存状态（未启则 None）；面板照实读，不许藏进配置页
             "llmCache": registry.llm_cache_state(),
+            # v694：真实 provider 往返延迟（ADR 0126）。CachedLlm 在本 meter 之上：
+            # 完成缓存回放不计入；进程级、重启即零、窗口 1024；不冒充全局 SLO
+            "llmLatency": LLM_LATENCY.snapshot(),
         }
 
     @app.get("/v1/capabilities")

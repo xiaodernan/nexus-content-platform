@@ -11831,3 +11831,23 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   is NOT claimed.
 - No assertions in the probe (sec. 146/147 lesson): numbers land in ADR/CURRENT-STATE; pass/fail stays
   out of the path. p50 across rounds 2.85s-6.9s is channel draw, not a stable p50 claim.
+## v694 - /healthz exposes true provider round-trip latency (2026-11-14, ADR 0126)
+
+- Did: `latency_meter.py` (process-local ring of last 1024 provider round-trips; snapshot
+  yields calls/errors/window/avg_ms/p50_ms/p95_ms/max_ms; nearest-rank percentiles, no histogram
+  approximation). Wired at the provider layer (`OpenAICompatibleProvider._complete_impl`), NOT the
+  route layer: the app-level Redis completion cache (CachedLlm) sits above it, so cache replays
+  never inflate latency stats. execution.py instrumentation was written then deliberately removed.
+- Contract: HealthResponseSchema gains `llmLatency` (nullable, default null; backend emits it, web
+  consumes or renders '-'); `npm run contract:export` regenerated contracts/health.schema.json.
+- Web: `env.ts` (AiLatencyState + passthrough), admin/observability AI-readiness card gains two rows
+  (calls / errors and p50 / p95 with process-local disclaimer), `env.test.ts` passthrough case added
+  (6/6 green).
+- Tests: `tests/test_latency_meter.py` (4); ai-service 253 passed / 14 skipped (was 249).
+- Honest caveat (this one is real): THIS host now has two ai-service deployments sharing
+  127.0.0.1:3200 - an opencode-side instance (this working tree, verifies v694 fine) and a
+  WorkBuddy/PortableGit-spawned instance (occupies the port as of 00:04; its /healthz reports a real
+  503 probe from the distributor, so its env differs; it predates the llmLatency commit). The user's
+  watchdog respawns its side; we do NOT kill it (same discipline as careeros). Which deployment owns
+  the port is a deployment decision, recorded in ADR 0126.
+- SPRINGCLOUD-BLUEPRINT updated: P0 first cut landed (perf:llm-live + llmLatency + admin rows).

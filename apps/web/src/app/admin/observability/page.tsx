@@ -87,10 +87,19 @@ export default async function AdminObservabilityPage() {
             <dd data-ai-readiness-cache-status={aiReadiness.cache ? (aiReadiness.cache.degraded ? 'degraded' : 'healthy') : 'disabled'}>
               {aiReadiness.cache ? (aiReadiness.cache.degraded ? 'degraded' : 'healthy') : 'disabled'}
             </dd>
+            <dt className="text-fg-3">llm calls / errors</dt>
+            <dd data-ai-readiness-llm-calls={aiReadiness.latency?.calls ?? -1} data-ai-readiness-llm-errors={aiReadiness.latency?.errors ?? -1}>
+              {aiReadiness.latency ? `${aiReadiness.latency.calls} / ${aiReadiness.latency.errors}` : '—'}
+            </dd>
+            <dt className="text-fg-3">llm latency p50 / p95</dt>
+            <dd data-ai-readiness-llm-p50={aiReadiness.latency?.p50_ms ?? -1} data-ai-readiness-llm-p95={aiReadiness.latency?.p95_ms ?? -1}>
+              {aiReadiness.latency ? `${Math.round(aiReadiness.latency.p50_ms)} ms / ${Math.round(aiReadiness.latency.p95_ms)} ms` : '—'}
+            </dd>
           </dl>
           <p className="mt-2 text-11 text-fg-3">
             Every render asks /healthz fresh; capabilities are not guesses, not caches, and not "live" for any model that is not actually wired today.
             DEMO means no real provider for that class yet; blank means not filled, we say so plainly (no silent DEMO labels). Image and video have no real provider yet either &mdash; they read DEMO for now. A class only reads 'real' when ai-service itself reports it as 'real' &mdash; never more optimistic than the ai-service knows.
+            llm latency rows are process-local (window = most recent 1024 round-trips since this instance started) &mdash; they restart to zero and are not a fleet-wide SLO.
           </p>
         </div>
       </section>

@@ -14,6 +14,7 @@ from typing import Any, Callable, Mapping
 import httpx
 
 from ..jitter import jittered_backoff
+from ..latency_meter import LLM_LATENCY
 from .base import Completion, EmbeddingResult, ProviderFailed
 
 # 有界重试（v681，镜像 Java v669a DomainServiceRetry）：只有这些**瞬时**状态值得再问一次。
@@ -236,6 +237,17 @@ class OpenAICompatibleProvider:
         )
 
     def complete(self, *, model: str, system: str, user: str, json_mode: bool | None = None) -> Completion:
+        """ADR 0126：只统计真实 provider 往返（cache（CachedLlm）在本层之上，replay 不计入）。"""
+        started = self._clock()
+        try:
+            result = self._complete_impl(model=model, system=system, user=user, json_mode=json_mode)
+        except Exception:  # noqa: BLE001 - 熔断/重试之后的最终失败，含 httpx 与契约解析
+            LLM_LATENCY.record(self._clock() - started, failed=True)
+            raise
+        LLM_LATENCY.record(self._clock() - started, failed=False)
+        return result
+
+    def _complete_impl(self, *, model: str, system: str, user: str, json_mode: bool | None = None) -> Completion:
         self._last_sleep = None  # 一次逻辑请求：decorrelated 的 prev 从 base 重新起步
         use_json = self._json_mode if json_mode is None else json_mode
         if self._stream:

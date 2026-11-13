@@ -2634,3 +2634,21 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - Studio CI: main-line f66f874 SUCCESS; CI orbit for f66f874 / e1021e8 / f5cee92 still in flight at
   record time - do not claim green until the runner says so.
 - Working tree: probe script + package.json script + ADR 0125 + this ledger land as cont. 87.
+## cont. 88 (2026-11-14) - v694 landed: provider-level LLM latency in /healthz + admin panel rows
+
+- apps/ai-service: latency_meter.py (deque ring 1024, thread-safe, nearest-rank p50/p95/max/avg).
+  OpenAICompatibleProvider.complete now wraps _complete_impl: real provider round-trips only;
+  CachedLlm replay (~9-17ms warm) excluded. execution.py unchanged (instrumentation added then
+  deliberately reverted - route-level semantics conflated cache hits with provider health).
+- /healthz: llmLatency {calls, errors, window, avg_ms, p50_ms, p95_ms, max_ms}; contract regenerated
+  (contracts/health.schema.json); web env.ts passthrough + admin/observability two new rows with
+  process-local disclaimer; env.test.ts 6/6 green; ai-service 253 passed (+4).
+- Live verified on this host: a real call increments calls; app-cache replay does NOT (route-level
+  experiment measured calls=8 incl. one 111ms replay, corrected to provider-level semantics).
+- Honesty notes (ADR 0126): this host runs two ai-service deployments on port 3200 - ours
+  (working tree; NEXUS_MODEL_EMBEDDING=none, reports embedding unavailable) and a
+  WorkBuddy/PortableGit-spawned one (started 00:04; reports a real distributor 503 model_not_found
+  probe; no llmLatency because it predates this commit). Port ownership is a deployment decision -
+  we do not kill the other deployment; admin panel renders '-' for missing llmLatency.
+- Studio CI for 4921545 (probe slice) pending at record time; do not claim green until the runner
+  says so. record-encoding/arms-freshness run before commit.

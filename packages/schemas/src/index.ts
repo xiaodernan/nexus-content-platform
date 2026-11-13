@@ -1049,6 +1049,23 @@ export const HealthResponseSchema = z.object({
     .nullable()
     .optional()
     .default(null),
+  /** v694 / ADR 0126：真实 provider 往返延迟（窗口 = 最近 1024 次往返，完成缓存回放不计入）。进程级、重启即零——面板只当"本实例自启动以来"的分位参考，不冒充全局 SLO */
+  llmLatency: z
+    .union([
+      z.null(),
+      z.object({
+        calls: z.number().int().min(0),
+        errors: z.number().int().min(0),
+        window: z.number().int().min(0),
+        avg_ms: z.number().min(0),
+        p50_ms: z.number().min(0),
+        p95_ms: z.number().min(0),
+        max_ms: z.number().min(0),
+      }),
+    ])
+    .nullable()
+    .optional()
+    .default(null),
 });
 export type HealthResponse = z.infer<typeof HealthResponseSchema>;
 

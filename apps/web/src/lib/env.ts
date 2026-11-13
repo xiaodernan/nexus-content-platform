@@ -19,6 +19,7 @@ export interface AiCapabilities {
   live: boolean;
   /** v690：应用级 LLM completion cache（未启用 / 不可探时为 null） */
   cache?: AiCacheState | null;
+  latency?: AiLatencyState | null;
 }
 
 export interface AiCacheState {
@@ -31,6 +32,16 @@ export interface AiCacheState {
   hit_rate: number;
   namespace: string;
   degraded: boolean;
+}
+
+export interface AiLatencyState {
+  calls: number;
+  errors: number;
+  window: number;
+  avg_ms: number;
+  p50_ms: number;
+  p95_ms: number;
+  max_ms: number;
 }
 
 /**
@@ -49,7 +60,9 @@ export async function getAiCapabilities(prefetched?: HealthResponse | null): Pro
 
   const raw = (health as { llmCache?: unknown } | null)?.llmCache;
   const cache = raw && typeof raw === 'object' ? (raw as AiCacheState) : null;
-  return { text, image, video, live: text === 'real', cache };
+  const rawLatency = (health as { llmLatency?: unknown } | null)?.llmLatency;
+  const latency = rawLatency && typeof rawLatency === 'object' ? (rawLatency as AiLatencyState) : null;
+  return { text, image, video, live: text === 'real', cache, latency };
 }
 
 export async function isDemoMode(): Promise<boolean> {
