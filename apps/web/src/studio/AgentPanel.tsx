@@ -218,7 +218,7 @@ export function AgentPanel() {
       <header className="ap-headBetween">
         <h2 className="wd-label">Agent 作业</h2>
         <span
-          className={cn('font-mono text-12', REAL_TIME_TONE[realtime.state] ?? 'ap-faint')}
+          className={cn('ag-monoOnly', REAL_TIME_TONE[realtime.state] ?? 'ap-faint')}
           data-agent-realtime={realtime.state}
         >
           {realtime.state === 'open' ? `实时在线 · 收到 ${events} 条` : '以刷新后的数据为准'}
