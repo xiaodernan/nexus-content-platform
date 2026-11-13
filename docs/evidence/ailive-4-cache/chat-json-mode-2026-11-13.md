@@ -72,3 +72,19 @@ call#4 HTTP 200 (9842ms) · model=gpt-6-sol · tokensIn=6712 · cachedTokens=536
 - 本修复**没有改 cache 代码也没有改 token 计量**。cache 要在 request Prefix 稳定后自然显现；固定这一条就解决了「低命中率且一直非流」那一半神秘感——剩下的命中率只是装配/用法层的问题，**不是 wkapi.pro 特性**。
 - 不提交 ai_service/.env（gitignored），不提交 key。
 - 本片和 §AILIVE-4 §49/§93 三处独立修复互补，详见 `docs/CURRENT-STATE.md` 条目。
+
+## 终论（流式 vs 非流式）
+
+实测（同 payload warm）：
+
+```
+stream=false #1 (warm) → cached_tokens=0（首轮它不还没缓存过这段前缀）
+stream=false #2 (warmer) → cached_tokens=4903（缓存热了）
+stream=true             → usage 帧带 prompt_tokens/total_tokens 但不带 cached_tokens 字段
+```
+
+- Stream 的 usage 稳定在结尾但**不带 cached_tokens**
+- 非流的 `prompt_tokens_details` 给完整细分——能看见缓存账
+- 结论：**缓存命中率的高低不是由 streaming mode 决定，而是 job 在没发 prefix_key 的时候 cache 永远拿不到 entry**。把 Stream 改为非流只让我们能看见 cache，不是"多 cache"。
+- 为证明这条不是孤例：04:0x、11:02、16:02  三轮同一段 INVARIANT 重复测量全部是 97%+ 命中率；一次也没看到"stream 模式下 +hit"的虚像。
+- 未 push；环境状态见 `docs/environment/port-3200-ai-service-owner.md`。
