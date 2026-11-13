@@ -11776,3 +11776,15 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   live 腿 `NEXUS_DL_REDIS_LIVE=1 NEXUS_DL_REDIS_URL=redis://localhost:56379/7` 真腿 4 毒消息→留最新 2；
   全套 254 passed（设置了真 Redis env）；record-encoding exit 0。
 - **仍欠**：死信导出工具缺、cap≠quota 无反压传播、LPUSH+LTRIM 非事务（极端并发最坏多裁 1 条）。
+
+## v689 — 死信的只读巡检面（ADR 0122）（2026-11-13）
+- **做了**：`/admin/dead-letters` 只读页面 + `/api/admin/dead-letters` JSON/NDJSON 导出 +
+  `server/deadLetters.ts`（llen+bounded lrange、head-relative cursor `{s,e}` base64url；溢出、改写、
+  改写后 stale → 409 提示刷新；limit 上界 100、export 上界 1000；AdminNav 注册死信入口）。
+  LLM 咨询了一轮设计（wkapi.pro / gpt-6-sol）：指向 Postgres readiness 修复（与并轨不满足本次范围，不采纳）
+  + inspector 初始设计（采纳其隐私/有界/不写/JSONL 形状，偏转其 tail-回溯顺序为 head-relative；11 条 contract
+  tests 全量落回本仓判据）。
+- **零生产侵入**：ai-service 一字节不改；读路径 LLEN/LRANGE 两个命令；任何 Redis 故障都如实降级不伪造空表。
+- **验证（本机）**：web 缝 11 条（含 1 live Redis leg，DB7）；typecheck exit 0；eslint 干净（src/app）；
+  style-tokens 29/29；style/theme/state/jsx-text 15/15；record-encoding exit 0。
+- **仍欠**：admin 粒度（ops 只读细化）、e2e paced 未纳入、导出暂非流式、admin role 模型待细分。

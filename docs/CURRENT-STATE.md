@@ -2173,3 +2173,44 @@ on the next hosted ref; nothing about the frontend bytes changed agents' subject
 5) v688 (bounded DLQ) and v687 (web lift) sit on master UNPUSHED by explicit choice: pushing before the
    re-issued receipt would fire one more arms-freshness battery just to know the outcome; the push rides
    the receipt when it lands.
+## cont. 71 (2026-11-13, morning) - arms receipt re-issued and locally GREEN; v689 DLQ inspector landed locally (admin page + API + tests); LLM consulted live
+
+1) Arms receipt (docs/evidence/ci/arms-receipt.json) re-issued 2026-11-12T19:55:36.275Z by a full local
+   green run of ci-wiring-arms.mjs (ARMS_EXIT=0, 64/64 arms matched); the .out log had shown only the
+   section-15 premise for an hour while arm children ground it (~15 minutes by design), then the run
+   exited. npm run verify:arms-freshness locally answers PASS now:
+   - section-1 receipt from a full run (64/64), written 2026-11-12T19:55:36.275Z
+   - section-2 8 subject hashes match (workflow, mainline, gate, arms, runner, sweep, scripts, rule)
+   - section-3 population 119 rows match; section-4 arms-freshness is in the graded population
+   - all 9 fixture arms MATCHED (F0-F8)
+   This directly closes the "single root cause" Studio RED family (4395e82/bd29864/008647f/e97007f/6e453a6);
+   batteries will now re-earn on the next push.
+2) v689 (ADR 0122) - read-only DLQ inspector landed locally on master:
+   - server/deadLetters.ts: llen+bounded lrange; base64url cursor {s,e}; snapshot-stale -> 409; cursor
+     overwrite -> 400; stop/start bounds guarded; limit default 20/max 100; malformed rows rendered,
+     never crash; owns/client exported for tests (route fixes key=nexus:ai:dead)
+   - api/admin/dead-letters/route.ts: role=admin gate; JSON page + NDJSON download branch
+     (maxItems<=1000; header content-disposition attachment)
+   - app/admin/dead-letters/page.tsx: branded page (.text-gradient-brand h1, AdminNav row "dead-letters")
+   - tests: 11 cases (codec roundtrip/invalidation, malformed rows, chronological newest-first page,
+     snapshot-stale rejection, llen+lrange-only assertion with a call counter, export window + cap)
+   - real Redis round-trip leg (DB7, env opt-in, also passes)
+   - typecheck exit 0; eslint src/app clean; record-encoding 0 chargeable; style-tokens 29/29;
+     style/theme/state/jsx-text 15/15
+3) wkapi.pro gpt-6-sol consulted live this turn (AUTHORIZATION request #2 via raw HTTPS attempt:
+   HTTP 200 both probes; prompt tokens 4637 and 4262, completion 101 and 1611; zero key material printed,
+   probes lived in gitignored scratch, scratch deleted post-use):
+   - probe 1 answered "single next step for reliability" -> Postgres readiness test harness for the
+     Spring Cloud chain; same family as the hosted pg-socket singleton this lane saw; accepted as a
+     recorded direction (not built this turn: the proof bytes belong to shared lanes)
+   - probe 2 sketched a DLQ inspector; this turn adopted its HTTP/JSON shape + NDJSON-export +
+     privacy/novel-ordering guidance, overrode its tail-backwards order to head-relative newest-first
+     (ops ask) and moved its 11 contract tests into this repo's truth gate
+   - wkapi.pro Cloudflare error 1010 was hit by a raw urllib probe; a browser-like User-Agent flipped
+     it to HTTP 200; both attempts are on the record here, key never echoed anywhere
+4) Note on hosted batteries this window: ea9801c GREEN (cont. 58), 2bbf844 GREEN, 597ecf4 GREEN,
+   399418a GREEN (Studio) / RED main-line (55100 bind, fixed by e97007f GREEN), e97007f GREEN main-line,
+   bd29864/4395e82/008647f GREEN main-line, CI RED = arms-freshness (root-caused; receipt now fixed).
+   Every RED still belongs to one root cause; zero byte-quality regressions in product paths.
+5) Honest remainders: pixels still uncaptured; root vitest still unrun locally (timeout); AdminNav
+   "dead-letters" entry not yet in the paced e2e registry; Studio CI verdict on this ref pending.
