@@ -84,7 +84,15 @@ class Registry:
 
     @staticmethod
     def _build_llm(settings: Settings, breaker) -> OpenAICompatibleProvider:
+        # 粘性路由（v695，ADR 0127）：provider 的 SSE 与非流是两条独立构造 body 的路径，
+        # transport 是唯一共同出站点。禁用时传 None => httpx 自建默认 transport，字节级零回归。
+        transport = None
+        if settings.llm_sticky_cache_key:
+            from ..sticky_prompt_cache import StickyPromptCacheTransport
+
+            transport = StickyPromptCacheTransport()
         provider = OpenAICompatibleProvider(
+            transport=transport,
             api_key=settings.openai_api_key or "",
             base_url=settings.openai_base_url,
             models=settings.llm_models,
@@ -117,10 +125,46 @@ class Registry:
                 ttl_s=settings.llm_cache_ttl_s,
                 max_entries=512,
             )
-            return CachedLlm(provider, cache)  # type: ignore[return-value]
         except Exception as exc:  # noqa: BLE001 - 缓存组件失败必须不影响主路径
             print(f"[registry] LLM completion cache 未启用：无法连接 {url}（{exc.__class__.__name__}）")
             return provider
+        # 分开两段是刻意的（ADR 0114）：**连接失败** fail-open 退回裸 provider，
+        # **配置错误**必须显式抛出来，不许被同一个 except 吞成"悄悄没启用"。
+        flight = Registry._build_flight(settings, client, cache)
+        from ..completion_cache import CachedLlm
+        return CachedLlm(provider, cache, flight=flight)  # type: ignore[return-value]
+
+    @staticmethod
+    def _build_flight(settings: Settings, client, cache):
+        """组装合并层：默认只进程内；显式 opt-in 才叠上跨进程租约。
+
+        关掉 `llm_single_flight` 时 `flight=None`，CachedLlm 与 v695 字节级一致（零回归）。
+        """
+        if not settings.llm_single_flight:
+            return None
+        from ..single_flight import SingleFlight
+
+        local = SingleFlight(wait_timeout_s=settings.llm_single_flight_wait_s)
+        if not settings.llm_distributed_single_flight:
+            return local
+        from ..distributed_flight import CompositeFlight, DistributedSingleFlight
+
+        # 租约必须覆盖最坏真调用时长：leader 还在打模型、锁先过期的话，
+        # follower 会提前自补，合并退化成双花。显式拒绝，不静默接受（ADR 0114）。
+        if settings.llm_distributed_flight_lease_s < settings.request_timeout_s:
+            raise ValueError(
+                "NEXUS_LLM_DISTRIBUTED_FLIGHT_LEASE_S 必须不小于 AI_SERVICE_TIMEOUT_S"
+            )
+        remote = DistributedSingleFlight(
+            client,
+            peek=cache.get,
+            namespace=settings.llm_cache_namespace,
+            wait_timeout_s=settings.llm_distributed_flight_wait_s,
+            poll_interval_s=settings.llm_distributed_flight_poll_s,
+            lease_s=settings.llm_distributed_flight_lease_s,
+            marker_ttl_s=settings.llm_distributed_flight_lease_s,
+        )
+        return CompositeFlight(local, remote)
 
     @property
     def llm(self):
@@ -246,3 +290,56 @@ class Registry:
             "namespace": str(getattr(s, "namespace", "")),
         }
         return state
+
+    def llm_flight_state(self) -> dict[str, Any] | None:
+        """LLM 省钱账本（v698 / ADR 0130）：`SingleFlight` / `DistributedSingleFlight` 的读数。
+
+        诚实边界（本函数最要紧的一条）：**两层分别计账，绝不相加**。
+        - `local.real_calls` 是"本地 leader 执行下一层"的次数；装了跨进程层时下一层是
+          `remote.run`，它可能是合并后的 peek，不是真 provider 调用。
+        - 真 provider 调用以 `distributed.real_calls` 为准；只有进程内那一层时才以
+          `local.real_calls` 为准。顶层 `provider_calls` 按这个规则选，**不把两层相加**。
+        - `coalesced` 不是缓存命中；两层的口径不同（省 Redis RTT vs 省真调用），
+          面板与 Prometheus 都分开列，不造一个"总省了多少"的和。
+        两层计数都只是**本进程**的、重启即零，绝非集群 SLO；没装 flight → `None`。
+        """
+        llm = self._llm
+        flight = getattr(llm, "_flight", None) if llm is not None else None
+        if flight is None:
+            return None
+        local = getattr(flight, "local", flight)       # CompositeFlight -> SingleFlight
+        remote = getattr(flight, "remote", None)       # DistributedSingleFlight | None
+
+        def snapshot(obj: Any, names: tuple[str, ...]) -> dict[str, Any]:
+            # 降级也要保持契约形状：缺失的计数如实填 0 并打 degraded，绝不省字段
+            # 让 /healthz 因 additionalProperties/required 被 zod 判红。
+            state = {name: 0 for name in names}
+            try:
+                s = obj.stats()
+            except Exception:
+                state["degraded"] = True
+                return state
+            for name in names:
+                state[name] = int(getattr(s, name, 0))
+            return state
+
+        local_names = ("leaders", "joined", "coalesced", "failures", "timeouts", "real_calls")
+        remote_names = ("leaders", "joined", "coalesced", "timeouts", "self_served",
+                        "lock_failures", "marker_failures", "peek_misses", "real_calls")
+        local_state = snapshot(local, local_names)
+        remote_state = snapshot(remote, remote_names) if remote is not None else None
+        if remote_state is not None and "real_calls" in remote_state:
+            provider_calls = remote_state["real_calls"]
+        else:
+            provider_calls = int(local_state.get("real_calls", 0))
+        return {
+            "enabled": True,
+            "mode": "local+redis" if remote_state is not None else "local",
+            "local": local_state,
+            "distributed": remote_state,
+            "provider_calls": int(provider_calls),
+            "note": (
+                "process-local counters, reset on restart; coalesced is not a cache hit; "
+                "the two layers are reported separately, never summed"
+            ),
+        }

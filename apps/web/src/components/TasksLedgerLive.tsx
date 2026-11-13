@@ -61,7 +61,11 @@ function usageText(usage: TaskUsage | null): string {
   if (usage === null) return '未记录';
   if (usage.demoMode) return 'DEMO 规则版不经过模型（0 token）';
   const latency = `${Math.round(usage.latencyMs / 100) / 10} 秒`;
-  return `${usage.model}（${usage.provider}）· ${usage.tokensIn} 进 / ${usage.tokensOut} 出 token · ${cacheText(usage)} · ${costText(usage)} · ${usage.toolCalls} 次工具调用 · 模型侧 ${latency}`;
+  const cacheStr = cacheText(usage);
+  const costStr = costText(usage);
+  const reasoning = (usage as { reasoningTokens?: number }).reasoningTokens;
+  const reasoningStr = typeof reasoning === 'number' && reasoning > 0 ? ` · 推理 ${reasoning}` : '';
+  return `${usage.model}（${usage.provider}）· ${usage.tokensIn} 进 / ${usage.tokensOut} 出 token · ${cacheStr}${reasoningStr} · ${costStr} · ${usage.toolCalls} 次工具调用 · 模型侧 ${latency}`;
 }
 
 export function TasksLedgerLive({ projectId, initial }: { projectId: string; initial: TasksLedgerPayload }) {

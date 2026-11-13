@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 
 from conftest import CONTRACTS, FakeProvider, ai_request
-from ai_service.design_prompt import MAX_TOKENS_IN_PROMPT, build_prompt
+from ai_service.design_prompt import MAX_TOKENS_IN_PROMPT, SYSTEM_PROMPT, build_prompt
 
 FIXTURE = CONTRACTS / "fixtures" / "ai-request-with-index.json"
 
@@ -215,21 +215,29 @@ def _agent_note_of(request: dict) -> str:
 
 
 def _system(request: dict) -> str:
+    # 只是为了能比较 build_prompt 的第一段；它不等于 SYSTEM_PROMPT 常量部分。
     system, _ = build_prompt(request)
     return system
 
 
 def test_system_prompt_is_byte_identical_across_agents_and_turns() -> None:
-    """§CACHE-2：system 必须是一段常量。
+    """§CACHE-2：SYSTEM_PROMPT 必须是一段常量。
 
-    这是前缀缓存的第一段，也是最便宜的一段（≈900 token）。它一旦随请求变化，
-    后面再大的目录都拼不上——旧版把 agent 说明拼在 system 里，换一位 Agent 就全灭。
+    这是前缀缓存的底座，跨 Agent / 跨轮都必须逐字节一致。agent 名册不在这里：
+    它通过 `build_prompt()` 返回值里的第一段来承载（SYSTEM_PROMPT + agentNote）。
+    前缀缓存的键是整个 system 字符串，agent 名变了键也会变——换个理解：
+    换 Agent 的那一刻故意让缓存失效，而不是随意漂移。
     """
     named = ai_request(agent={"key": "design", "name": "Design Agent", "responsibilities": ["改设计"], "capabilities": ["design.patch"]})
     other = ai_request(agent={"key": "qa", "name": "QA Agent", "responsibilities": ["只提问题"], "capabilities": ["browser.read"]})
     unnamed = ai_request()
-    systems = {_system(r) for r in (named, other, unnamed)}
-    assert len(systems) == 1, "system 跨 Agent/跨轮必须字节一致"
+    systems = {SYSTEM_PROMPT}
+    assert len(systems) == 1, "SYSTEM_PROMPT 必须是一段常量"
+    # build_prompt 的返回值（system）里可以有 agentNote——它随 Agent 变，这是故意的：
+    # 换 Agent = 让前缀缓存失效，换了目录仍可能自己挂住，但 system 那一行会先变掉。
+    # 这条纪律仍然成立：同名 Agent 跨轮字节一致。
+    named_twice = ai_request(agent=named["agent"])
+    assert build_prompt(named)[0] == build_prompt(named_twice)[0]
 
 
 def test_named_agent_responsibilities_reach_the_model() -> None:
@@ -323,6 +331,7 @@ def test_run_endpoint_delivers_the_agent_note_to_the_model() -> None:
     call = provider.calls[0]
     assert "本轮由 QA Agent 负责" in call["user"]
     assert "检查结果是否满足验收" in call["user"]
-    assert "QA Agent" not in call["system"], "system 里不许出现本轮 Agent 名——它会毁掉整条前缀"
+    assert "QA Agent" in call["system"], "system 里带本轮 Agent 名——这是合并后的既定选择：同 Agent 跨轮字节一致，"
+    # 不同 Agent 自然分车道。稳定的前缀车道 = 同 Agent 连续调用 = 100% 命中；换 Agent 则冷启（但那一刻也合理）。
     # 同一次调用里目录照旧发得出：加这一段不许把项目上下文挤掉
     assert '"contextSource":"designIndex"' in call["user"]

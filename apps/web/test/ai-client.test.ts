@@ -60,6 +60,7 @@ function response(overrides: Partial<AiResponse> = {}): AiResponse {
       costUsd: 0,
       toolCalls: 1,
       demoMode: false,
+      reasoningTokens: 0,
     },
     approvals: [],
     ...overrides,

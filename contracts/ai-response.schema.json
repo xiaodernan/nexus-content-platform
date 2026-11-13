@@ -767,7 +767,10 @@
         "costBasis": {
           "default": "unknown",
           "type": "string",
-          "enum": ["unknown", "configured"]
+          "enum": [
+            "unknown",
+            "configured"
+          ]
         },
         "toolCalls": {
           "default": 0,
@@ -778,6 +781,12 @@
         "demoMode": {
           "default": false,
           "type": "boolean"
+        },
+        "reasoningTokens": {
+          "default": 0,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
         }
       },
       "required": [
@@ -792,7 +801,8 @@
         "costUsd",
         "costBasis",
         "toolCalls",
-        "demoMode"
+        "demoMode",
+        "reasoningTokens"
       ],
       "additionalProperties": false
     },

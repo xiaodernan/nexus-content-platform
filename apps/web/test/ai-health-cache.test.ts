@@ -26,6 +26,8 @@ function health(capability: 'real' | 'demo' = 'real'): HealthResponse {
     ],
     queue: { backend: 'memory', pending: 0, running: 0, capacity: 1, note: 'test' },
     llmCache: null,
+    llmLatency: null,
+    llmFlight: null,
   };
 }
 

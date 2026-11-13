@@ -51,6 +51,11 @@ export const TaskUsageSchema = z.object({
   costBasis: z.enum(['unknown', 'configured']).default('unknown'),
   toolCalls: z.number().int().min(0),
   demoMode: z.boolean(),
+  /**
+   * v690（并轨合并）：provider 自己报的 reasoning prompt_tokens（思考模型的推理段）。
+   * 默认 0 — 老构造点 / 旧读法不感知这个新字段，§159 不谎称推理。
+   */
+  reasoningTokens: z.number().int().min(0).default(0),
 });
 export type TaskUsage = z.infer<typeof TaskUsageSchema>;
 

@@ -132,6 +132,8 @@ describe('§75 用量那一格：0 与"没记"是两件事', () => {
     costBasis: 'configured' as const,
     toolCalls: 2,
     demoMode: false,
+    /** v690（并轨合并）：思考模型推理段 tokens，默认 0（本 fixture 不启用推理） */
+    reasoningTokens: 0,
   };
 
   it('没记就是 null：过得了契约，不会被当成一份"0 token 的用量"', () => {

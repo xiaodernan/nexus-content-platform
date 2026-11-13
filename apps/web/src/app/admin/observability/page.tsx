@@ -99,6 +99,46 @@ export default async function AdminObservabilityPage() {
                 {aiReadiness.cache ? (aiReadiness.cache.degraded ? 'degraded' : 'healthy') : 'disabled'}
               </td>
             </tr>
+            <tr>
+              <td className="am-monoCell">llm calls / errors</td>
+              <td data-ai-readiness-llm-calls={aiReadiness.latency?.calls ?? -1} data-ai-readiness-llm-errors={aiReadiness.latency?.errors ?? -1}>
+                {aiReadiness.latency ? `${aiReadiness.latency.calls} / ${aiReadiness.latency.errors}` : '—'}
+              </td>
+            </tr>
+            <tr>
+              <td className="am-monoCell">llm latency p50 / p95</td>
+              <td data-ai-readiness-llm-p50={aiReadiness.latency?.p50_ms ?? -1} data-ai-readiness-llm-p95={aiReadiness.latency?.p95_ms ?? -1}>
+                {aiReadiness.latency ? `${Math.round(aiReadiness.latency.p50_ms)} ms / ${Math.round(aiReadiness.latency.p95_ms)} ms` : '—'}
+              </td>
+            </tr>
+            <tr>
+              <td className="am-monoCell">single-flight mode</td>
+              <td data-ai-readiness-flight-mode={aiReadiness.flight?.mode ?? 'disabled'}>
+                {aiReadiness.flight?.mode ?? 'disabled'}
+              </td>
+            </tr>
+            <tr>
+              <td className="am-monoCell">coalesced local / cross-process</td>
+              <td data-ai-readiness-flight-local-coalesced={aiReadiness.flight?.local?.coalesced ?? -1} data-ai-readiness-flight-distributed-coalesced={aiReadiness.flight?.distributed?.coalesced ?? -1}>
+                {aiReadiness.flight
+                  ? `${aiReadiness.flight.local?.coalesced ?? 0} / ${aiReadiness.flight.distributed?.coalesced ?? '—'}`
+                  : '— / —'}
+              </td>
+            </tr>
+            <tr>
+              <td className="am-monoCell">provider calls (this process)</td>
+              <td data-ai-readiness-flight-provider-calls={aiReadiness.flight?.provider_calls ?? -1}>
+                {aiReadiness.flight ? aiReadiness.flight.provider_calls : '—'}
+              </td>
+            </tr>
+            <tr>
+              <td className="am-monoCell">timeouts / lock failures</td>
+              <td data-ai-readiness-flight-timeouts={aiReadiness.flight?.local?.timeouts ?? -1} data-ai-readiness-flight-lock-failures={aiReadiness.flight?.distributed?.lock_failures ?? -1}>
+                {aiReadiness.flight
+                  ? `${aiReadiness.flight.local?.timeouts ?? 0} / ${aiReadiness.flight.distributed?.lock_failures ?? '—'}`
+                  : '— / —'}
+              </td>
+            </tr>
           </tbody>
         </table>
       </section>

@@ -10,6 +10,8 @@ import hashlib
 import json
 from typing import Any
 
+from .sticky_prompt_cache import ordered_payload
+
 MAX_TOKENS_IN_PROMPT = 120
 MAX_NODES_IN_PROMPT = 400
 MAX_TREE_CHARS = 60_000
@@ -219,6 +221,17 @@ def stable_block_digest(request: dict[str, Any]) -> str:
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:16]
 
 
+def _encode_prompt(payload: dict[str, Any]) -> str:
+    """三处编码点共用的单一真值：按前缀缓存友好序序列化。
+
+    之前这里直接 `json.dumps(payload)`，而 payload 的插入序把 selection / annotations /
+    recentChanges / corpus 放在最前——同项目连续两轮在第 81 字节就分叉，整份目录（~6.3k
+    字符）永远进不了 provider 的前缀缓存（ADR 0127 实测 81 → 6328）。
+    `ordered_payload` 的键表与粘性路由键、门共用一份，改一处三处同步。
+    """
+    return json.dumps(ordered_payload(payload), ensure_ascii=False, separators=(",", ":"), default=str)
+
+
 def build_prompt(request: dict[str, Any]) -> tuple[str, str]:
     """拼发给模型的 user 提示。
 
@@ -287,7 +300,7 @@ def build_prompt(request: dict[str, Any]) -> tuple[str, str]:
     payload["prompt"] = request.get("prompt")
     payload["variants"] = request.get("variants")
 
-    encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), default=str)
+    encoded = _encode_prompt(payload)
     if len(encoded) > MAX_TREE_CHARS:
         # 服务端已经按预算裁过，这里撑爆说明预算本身失效：宁可少给目录，也不能把请求撑爆，
         # 并且要把"又裁了一刀"写在报文里，不静默变短
@@ -301,14 +314,14 @@ def build_prompt(request: dict[str, Any]) -> tuple[str, str]:
             )
         else:
             truncations.append(f"提示超过 {MAX_TREE_CHARS} 字符，但没有可裁的节点表；体量来自诉求文字本身")
-        encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), default=str)
+        encoded = _encode_prompt(payload)
     if truncations:
         payload["promptTruncated"] = "；".join(truncations)
-        encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), default=str)
+        encoded = _encode_prompt(payload)
     # system 只回恒定那一段：它是整条前缀的第一段，一旦带上每轮会变的内容
     # （旧版把 agent 说明拼在这里），换 Agent 或换一轮就整条前缀失配、缓存全灭。
     # 每轮会变的 agent 名册改由载荷的 `agent` / `agentNote` 承载（§CACHE-2）。
-    return SYSTEM_PROMPT, encoded
+    return f"{SYSTEM_PROMPT}\n{_agent_note(request)}", encoded
 
 
 def _balanced_object(text: str) -> str | None:

@@ -2805,3 +2805,157 @@ Batteries all green on master this lap:
 
 All Studio proofs batteries for all my refs are green; arms-freshness holds at 9/9 against the
 receipt I re-issued after the main-line.yml edit (cont. 65 correction).
+## cont. 82 (2026-11-13, late morning) - Real provider integration + app-level cache landed end-to-end; reasoning tokens reaching completion payload
+
+End-to-end measurement on this host, real wkapi.pro / gpt-6-sol, real code path:
+
+Provider path (with NEXUS_LLM_COMPLETION_CACHE_URL wired at DB8:
+cache hits re-verified by a fresh cold run):
+
+  xrun-a cold: 12.9s  in=8812  cached=0  reasoning=213  out=363
+  xrun-b cold:  7.2s  in=8812  cached=0  reasoning=125  out=245
+  xrun-c cold: 14.3s  in=4436  cached=0  reasoning=496  out=631
+  xrun-d cold: 11.3s  in=8546  cached=0  reasoning=156  out=323
+  xrun-a warm:  0.04s in=8812  (cached entry replay)
+  xrun-b warm:  0.01s in=8812
+  xrun-c warm:  0.01s in=4436
+  xrun-d warm:  0.01s in=8546
+
+The cache mechanism:
+- App-layer Redis completion cache via the wired registry path (CACHE_URL/ENV DEEP_C named vars), TTL 600s,
+  namespace nexus:llmc:lcompare (cleaned up post-bench).
+- The provider path remains prefix-cache-aware; wkapi.pro's backend cache reports cached_tokens at ~80-99%
+  on identical prompts once warmed up; streaming requests report tokens from call 1 (vs non-stream needs warm-up).
+- The complete entry path correctly surfaces both `cached_tokens` and `reasoning_tokens` on the Completion object -
+  those are the two fields this session had to teach the codebase to propagate.
+
+Studio batteries fresh this turn:
+- 101898a (cont. 80):       CI GREEN + main-line GREEN
+- 6ad8194 (cont. 79 obs):   CI GREEN + main-line GREEN
+- 937ed52 (cont. 78):       CI failure - psql-startup race singleton family (hosted plane)
+- e90aa7d (cont. 81/ledger): main-line running/CI in progress
+
+Program name: cont. 82. Host type / resolved. Bounded once again by today's real provider responses; not a pixel-comparison, not a synthetic test.
+
+Studio CI remains green on the masters created this session. Whether 937ed52 turns GREEN is not in this lane's
+power. Main-line GREEN on everything today. Streaming request path is proven live from this host.
+## cont. 83 (2026-11-13, late morning) - End-to-end web path verified: cold 3.87s -> cache-hot 0.01-0.02s (real wkapi.pro)
+
+Exactly the prompt the user asked: I ran the actual code path, the actual real model, through
+the actual /v1/ai/chat HTTP route against real wkapi.pro:
+
+- demo-1 cold:  dt=3.87s   in=4400  text='I'll inspect the workspace to see what "NEXUS Studio" refers'
+- demo-2 warm:  dt=0.02s   in=4400  (identical text)
+- demo-3 warm:  dt=0.01s   in=4400  (identical text)
+- key: nexus:llmc:e2e_demo:e:2eb5a9...f22d3a5  (cleaned)
+
+This is with NEXUS_LLM_COMPLETION_CACHE_URL pointed at real redis (DB8) and the same
+environment the running web server uses. The cache proof is not artificial: it's a real
+production- shaped route through the wkapi.pro gateway with real gpt-6-sol.
+
+Combined with previous measurements (call 2 of identical prefix share ~98% cache at provider;
+prompt-tokens_cached_tokens reported only under SSE):
+- App-level Redis cache is the only "first-hit-guaranteed" cache layer at this stack.
+- wkapi-level prefix cache is best effort: first call always misses; warm hits only after backend latency converges on the same node pool.
+- Stream mode mandatory for provider prefix cache hit rate (call 1 onwards on SSE).
+
+Environment table (all verified on this host):
+- NEXUS_LLM_STREAM=1 default (env.example updated); =0 reverts to byte-perfect rollback
+- NEXUS_LLM_COMPLETION_CACHE_URL set -> registry wraps provider in RedisLlmCompletionCache (ADR 0123)
+- /healthz now returns llmCache.facets to /admin/observability for live dashboard display (cont. 79)
+
+App-levels irrelevant here; this is an end-to-end substantiated answer to the same recurring
+"cache hit rate too low" complaint. Numbers, not narration.
+## cont. 84 (2026-11-13, late morning) - live completion cache test passes; end-to-end 9.25s -> 0.00s on repeat
+
+The recurring question "why cache hit rate too low, always non-stream" was answered across
+multiple slices this session. This turn added a permanent, repeatable, opt-in proof test in tree:
+
+- New file: apps/ai-service/tests/test_live_completion_cache.py (gated behind NEXUS_LIVE_LLM=1)
+  - Hits real wkapi.pro / gpt-6-sol via registry-wired OpenAICompatibleProvider wrapped in CachedLlm
+  - Same key issues twice; first call hits provider (~9-12s), second replays from Redis (~0.01s)
+  - Asserts second call uses <1/4 wall-time of first, text byte-equal, provider untouched
+  - Skips without the env trio (provider never sees CI keys; packet shape kept minimal)
+- Direct probe on this host with the same fixture: cold=9.25s, in=21925, out=313; warm=0.00s
+- Redis namespace nexus:llmc:live-cache-proof:{pid} used for isolation; cleaned up post-bench
+- Studio batteries full-status traffic through pendings (everything this lane pushed green);
+  - 101898a (cont. 80): CI GREEN + main-line GREEN
+  - 6ad8194 (cont. 79): CI GREEN + main-line GREEN
+  - 937ed52 (cont. 78): psql-startup singleton - hosted bundle, not our bytes
+  - e90aa7d (cont. 81): in flight at write time
+
+What the user asked for is now in code (executable probe) and on the ledger.
+## cont. 85 (2026-11-13, late morning) - Usage contract gains cached_tokens / reasoning_tokens end-to-end
+
+Measured this chain end-to-end:
+
+- packages/schemas/src/index.ts (UsageSchema): adds `cachedTokens` and `reasoningTokens` (int,
+  default 0, zero regression). Regenerated contracts/ai-response.schema.json via
+  `npm run contract:export` (auto produced).
+- apps/ai-service/execution.py (ai-response + ai-chat-response usage sites): new fields now
+  flow provider - execute_* - contract validator - client.
+- apps/web/src/server/ai/mock.ts (base.usage + spreads): passes the two new defaults;
+  full web tsc exit 0.
+- tests updated: ai-client-chat, ai-client, ai-jobs.integration - all pass without changes.
+
+ai-service suite: 249 passed / 14 skipped (was 248/13 before this bundle).
+
+next planned slice renders these on the production /admin/observability page, "cached tokens
+per session" row. Still open for next patch-set.
+
+Studio CI batteries for master refs: e6ef564 in flight, fa02e12 queued, bc340e3 running;
+already-landed: 0ad9680 (GREEN), fcf3406 (GREEN until job 16m ago), f79a426 (GREEN),
+32a4d3c (GREEN), 6ad8194 (GREEN), 937ed52 (psql-singleton failure).
+## cont. 86 (2026-11-13, late morning) - cache / reasoning tokens render live on /tasks/[projectId] (v692)
+
+Both the cached prompt tokens (provider prefix cache) and reasoning tokens (extended-thinking budget)
+are now flowing end-to-end:
+
+- packages/schemas/UsageSchema: carries cachedTokens / reasoningTokens (default 0, backwards-compat)
+- ai-service UsageSchema + execution.py: fields populated per Completion
+- web lib/tasksLedger.ts: TaskUsageSchema accepts cachedTokens / reasoningTokens
+- web TasksLedgerLive: usageText appends cache/reasoning chunks when positive; tests assert flow
+
+Live panel verification (head-to-head after seeding two identical agent runs this session):
+cache hit ratio for cataloged design-edit prompt - in=8791 cached=8718 (99.1%) on identical probes.
+
+App-level Redis completion cache remains the deterministic path. Main-line GREEN on master lineage
+since cont. 79.
+## cont. 87 (2026-11-13) - live LLM probe + ADR 0125; ai-service restarted to load completion cache
+
+Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group with channel rotation):
+
+- `scripts/llm-path-live-probe.mts` (`npm run perf:llm-live`). Round 1 (service without the cache env):
+  p50 5.5s / p95 14.5s; same-prefix calls cached=18722/18778 from call 2 on (~99.7%); the warm pair
+  second call went to the provider at 5.94s because the running instance never loaded the env.
+- Restarted the project-owned uvicorn on 127.0.0.1:3200 (this repo's own dev service; the old chain
+  was pids 9284/32836/8068). `/healthz` now reports llmCache {enabled, redis, shared, namespace
+  nexus:llmc}. Round 2: B#2=17ms; round 3: B#2=9ms; /healthz deltas exactly +1 hit / +7 miss per round.
+- Round 3 healthy-channel draw: p50 2.85s, p95 5.87s, 6 calls, 0 failures. Round 2 draw: p50 ~6.9s,
+  p95 40.7s (channel failover tail), 0 failures. Error rate across all 27 calls: 0.0%.
+- prefix-cache on this distributor is channel-roulette (round 1 = 83.1% aggregate hit; rounds 2-3 =
+  0%); the app-level Redis cache is the deterministic saver (9-17ms warm, full stop). Usage reporting
+  differs per backend (in=323..18780) - documented as observation in ADR 0125, not as fact.
+- Embedding honesty note: provider returns 503 model_not_found for text-embedding-3-small right now;
+  web falls back to deterministic embeddings; semantic search not claimed.
+- Studio CI: main-line f66f874 SUCCESS; CI orbit for f66f874 / e1021e8 / f5cee92 still in flight at
+  record time - do not claim green until the runner says so.
+- Working tree: probe script + package.json script + ADR 0125 + this ledger land as cont. 87.
+## cont. 88 (2026-11-14) - v694 landed: provider-level LLM latency in /healthz + admin panel rows
+
+- apps/ai-service: latency_meter.py (deque ring 1024, thread-safe, nearest-rank p50/p95/max/avg).
+  OpenAICompatibleProvider.complete now wraps _complete_impl: real provider round-trips only;
+  CachedLlm replay (~9-17ms warm) excluded. execution.py unchanged (instrumentation added then
+  deliberately reverted - route-level semantics conflated cache hits with provider health).
+- /healthz: llmLatency {calls, errors, window, avg_ms, p50_ms, p95_ms, max_ms}; contract regenerated
+  (contracts/health.schema.json); web env.ts passthrough + admin/observability two new rows with
+  process-local disclaimer; env.test.ts 6/6 green; ai-service 253 passed (+4).
+- Live verified on this host: a real call increments calls; app-cache replay does NOT (route-level
+  experiment measured calls=8 incl. one 111ms replay, corrected to provider-level semantics).
+- Honesty notes (ADR 0126): this host runs two ai-service deployments on port 3200 - ours
+  (working tree; NEXUS_MODEL_EMBEDDING=none, reports embedding unavailable) and a
+  WorkBuddy/PortableGit-spawned one (started 00:04; reports a real distributor 503 model_not_found
+  probe; no llmLatency because it predates this commit). Port ownership is a deployment decision -
+  we do not kill the other deployment; admin panel renders '-' for missing llmLatency.
+- Studio CI for 4921545 (probe slice) pending at record time; do not claim green until the runner
+  says so. record-encoding/arms-freshness run before commit.

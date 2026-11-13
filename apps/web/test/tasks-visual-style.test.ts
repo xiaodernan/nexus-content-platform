@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
  * 本片只换 className；行为、文案、data 钩子、realtime 订阅/重读判据一字不改。
  *
  * **剥 className 后全文 SHA256 守恒**：三文件均逐字节恒等于改前（git HEAD）。
- * redact 三步序与钉死常量那一次一致：live=`c5667ac0…`，retry=`b90012c2…`，page=`bd7e0e61…`。
+ * redact 三步序与钉死常量一致：live=`35299b4d…`（并轨 §AILIVE-9 后的字节），retry=`b90012c2…`，page=`bd7e0e61…`。
  *
  * 判据不变式（14 门）：
  *  1. page.tsx server 组件 + force-dynamic + requireUser + listProjectTasks 钩子（零 className）；
@@ -22,7 +22,7 @@ import { describe, expect, it } from 'vitest';
  *  7. 零写死 hex；8. 视觉段 var(--nexus-*）全在 tokens.css 声明；9. 零新增颜色 token；
  * 10. 零 transition / animation / @keyframes / @media；11. focus-visible 覆盖 backlink/retryBtn；
  *     .tl-retryBtn:disabled 真禁用；横滚区 role="region" + tabIndex 守恒（axe scrollable-region-focusable）；
- * 12. SHA256 三文件守恒；13. 数据钩子守恒（13 个 data-tasks-/data-task- 系 + 2 个 data-task-retry 系）。§CACHE-3（2026-11-14）：live 随并行线补钉新 SHA（c5667ac0…）与 cache 三档钩子，13 门→14 门。
+ * 12. SHA256 三文件守恒；13. 数据钩子守恒（13 个 data-tasks-/data-task- 系 + 2 个 data-task-retry 系）。§CACHE-3（2026-11-14）：live 随并行线补钉新 SHA（c5667ac0…）与 cache 三档钩子，13 门→14 门→15 门（并轨 v691–v698：live 补 reasoning 推理旁注，SHA 重钉）。
  */
 const ROOT = process.cwd();
 const PAGE = join(ROOT, 'apps/web/src/app/tasks/[projectId]/page.tsx');
@@ -210,10 +210,10 @@ describe('§FE-23 /tasks/[projectId] 任务账本', () => {
     expect(liveCode).toContain('data-tasks-cache-summary={String(cache.cached)}');
   });
 
-  it('剥 className 后全文 SHA256 钉死（live=c5667ac0… 合并 §AILIVE-7/CACHE-3 后的字节 · retry=b90012c2… · page=bd7e0e61…）', () => {
+  it('剥 className 后全文 SHA256 钉死（live=35299b4d… 并轨 §AILIVE-9/CACHE-3 后的字节（usageText 增加 reasoning 推理旁注）· retry=b90012c2… · page=bd7e0e61…）', () => {
     // 常量在改前（git HEAD）由真实产物 redact 算出并钉死；此门保证除 className 外一字节未动。
     expect(createHash('sha256').update(redactClasses(live)).digest('hex')).toBe(
-      'e27f3f38c49f8bf6628869fe6f416159a77560690654091afe418bddd05ac67b',
+      '35299b4da6d960af48c6d48239e1da834cc043d2bd6417aa080c542dec3efb1f',
     );
     expect(createHash('sha256').update(redactClasses(retry)).digest('hex')).toBe(
       'b90012c2ad50e24a71a316610fe85fb8b9caa69607d27fc8ef89b8c91ae23801',

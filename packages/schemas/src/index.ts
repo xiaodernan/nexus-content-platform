@@ -147,6 +147,11 @@ export const UsageSchema = z.object({
   costBasis: z.enum(['unknown', 'configured']).default('unknown'),
   toolCalls: z.number().int().min(0).default(0),
   demoMode: z.boolean().default(false),
+  /**
+   * v690（并轨合并）：provider 自己报的 reasoning prompt_tokens（思考模型的推理段）。
+   * 默认 0 — 旧构造点 / 旧读法不感知这个新字段，§159 不谎称推理。
+   */
+  reasoningTokens: z.number().int().min(0).default(0),
 });
 export type Usage = z.infer<typeof UsageSchema>;
 
@@ -1066,6 +1071,68 @@ export const HealthResponseSchema = z.object({
         namespace: z.string(),
         degraded: z.boolean(),
         shared: z.boolean().optional(),
+      }),
+    ])
+    .nullable()
+    .optional()
+    .default(null),
+  /** v694 / ADR 0126：真实 provider 往返延迟（窗口 = 最近 1024 次往返，完成缓存回放不计入）。进程级、重启即零——面板只当"本实例自启动以来"的分位参考，不冒充全局 SLO */
+  llmLatency: z
+    .union([
+      z.null(),
+      z.object({
+        calls: z.number().int().min(0),
+        errors: z.number().int().min(0),
+        window: z.number().int().min(0),
+        avg_ms: z.number().min(0),
+        p50_ms: z.number().min(0),
+        p95_ms: z.number().min(0),
+        max_ms: z.number().min(0),
+      }),
+    ])
+    .nullable()
+    .optional()
+    .default(null),
+  /**
+   * v698 / ADR 0130：进程内 + 跨进程 single-flight 省钱账本。未启用 → null。
+   * 诚实边界：local 与 distributed **分别计账、绝不相加**；coalesced 不是缓存命中；
+   * provider_calls 只认最后接触 provider 的那一层。两层都是进程内计数、重启即零。
+   */
+  llmFlight: z
+    .union([
+      z.null(),
+      z.object({
+        enabled: z.boolean(),
+        mode: z.enum(['local', 'local+redis']),
+        local: z.union([
+          z.null(),
+          z.object({
+            leaders: z.number().int().min(0),
+            joined: z.number().int().min(0),
+            coalesced: z.number().int().min(0),
+            failures: z.number().int().min(0),
+            timeouts: z.number().int().min(0),
+            real_calls: z.number().int().min(0),
+            degraded: z.boolean().optional(),
+          }),
+        ]),
+        distributed: z.union([
+          z.null(),
+          z.object({
+            leaders: z.number().int().min(0),
+            joined: z.number().int().min(0),
+            coalesced: z.number().int().min(0),
+            timeouts: z.number().int().min(0),
+            self_served: z.number().int().min(0),
+            lock_failures: z.number().int().min(0),
+            marker_failures: z.number().int().min(0),
+            peek_misses: z.number().int().min(0),
+            real_calls: z.number().int().min(0),
+            degraded: z.boolean().optional(),
+          }),
+        ]),
+        provider_calls: z.number().int().min(0),
+        note: z.string(),
       }),
     ])
     .nullable()

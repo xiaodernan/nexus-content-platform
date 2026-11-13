@@ -13547,3 +13547,162 @@ Amendment 2 的「Studio 内联没接」补上了：`CommandBar` 生成结果行
   `no-raw-tailwind` 干净、`tsc` OK。
 - **仍欠**：`costUsd` 仍是 0——要回答「省了多少钱」需要单价表，而单价不能编（随模型/供应商/折扣变）。
   现在能说的是「省了多少 token」，不是「省了多少钱」。
+
+## v691 —  Usage 契约带 cached/reasoning（ADR 0124）（2026-11-13）
+- **做了**：`UsageSchema` 加 `cachedTokens`/`reasoningTokens`，全部代码点填充默认 0；web 的
+   mock 回执 / 测试夹具 / contracts 自动重新导出（`contract:export`），ai-service 两处回执把字段带上。
+   变异两臂在 automation suites 中均保持 default-0， 249 passed / 14 skipped 无回归。
+- **验证（本机）**：tsc apps/web exit 0；ai-service suite 249 passed / 14 skipped；schema JSON 已同步导出。
+- **仍欠**：cache/reasoning 渲染在 admin 界面（cont. 80 留下的到产品 handoff）。
+## v693 - Live LLM-path probe landed (2026-11-13, ADR 0125; Spring Cloud Blueprint P0 first cut)
+
+- Did: `scripts/llm-path-live-probe.mts` (`npm run perf:llm-live`). Three measurement groups:
+  A cold unique-tail calls (app cache forced MISS, provider prefix cache gets its chance),
+  B warm repeat pair (app cache must replay), C `/healthz` llmCache counter delta.
+- Measured (three rounds, 27 real calls, 0/27 errors): the app-level Redis completion cache is the
+  deterministic saver - B#2 = 9-17ms vs B#1 = 3.1-10.5s; `/healthz` delta is exactly +1 hit / +7 miss
+  per round, consistent with the probe construction. Provider prefix cache depends on distributor
+  channel draw: round 1 cached=18722/18778 (~99.7% prefix hit, five consecutive same-prefix calls),
+  rounds 2-3 cached=0 (channel rotation). Same text reports prompt_tokens {323, 4699, 4826..18778}
+  across backends (hidden prefix injection or divergent accounting; this repo cannot verify - ADR 0125
+  records it as observation, not conclusion).
+- Restart lesson: an instance started earlier did not re-read `.env`, so `/healthz` did not report
+  llmCache and B group's second call really hit the provider at 5.94s. After restart:
+  llmCache.enabled=true backend=redis shared=true; B#2=17ms (cont. 87). The deployment checklist must
+  include "reload env / restart the service".
+- Embeddings honesty note: wkapi.pro reports 503 model_not_found for text-embedding-3-small on this
+  group right now; the web embed path falls back to deterministic embeddings. Semantic search honesty
+  is NOT claimed.
+- No assertions in the probe (sec. 146/147 lesson): numbers land in ADR/CURRENT-STATE; pass/fail stays
+  out of the path. p50 across rounds 2.85s-6.9s is channel draw, not a stable p50 claim.
+## v694 - /healthz exposes true provider round-trip latency (2026-11-14, ADR 0126)
+
+- Did: `latency_meter.py` (process-local ring of last 1024 provider round-trips; snapshot
+  yields calls/errors/window/avg_ms/p50_ms/p95_ms/max_ms; nearest-rank percentiles, no histogram
+  approximation). Wired at the provider layer (`OpenAICompatibleProvider._complete_impl`), NOT the
+  route layer: the app-level Redis completion cache (CachedLlm) sits above it, so cache replays
+  never inflate latency stats. execution.py instrumentation was written then deliberately removed.
+- Contract: HealthResponseSchema gains `llmLatency` (nullable, default null; backend emits it, web
+  consumes or renders '-'); `npm run contract:export` regenerated contracts/health.schema.json.
+- Web: `env.ts` (AiLatencyState + passthrough), admin/observability AI-readiness card gains two rows
+  (calls / errors and p50 / p95 with process-local disclaimer), `env.test.ts` passthrough case added
+  (6/6 green).
+- Tests: `tests/test_latency_meter.py` (4); ai-service 253 passed / 14 skipped (was 249).
+- Honest caveat (this one is real): THIS host now has two ai-service deployments sharing
+  127.0.0.1:3200 - an opencode-side instance (this working tree, verifies v694 fine) and a
+  WorkBuddy/PortableGit-spawned instance (occupies the port as of 00:04; its /healthz reports a real
+  503 probe from the distributor, so its env differs; it predates the llmLatency commit). The user's
+  watchdog respawns its side; we do NOT kill it (same discipline as careeros). Which deployment owns
+  the port is a deployment decision, recorded in ADR 0126.
+- SPRINGCLOUD-BLUEPRINT updated: P0 first cut landed (perf:llm-live + llmLatency + admin rows).
+
+## v695 — LLM 缓存命中率深度修正：粘性路由 + 前缀序 + 缓存键第四维（ADR 0127）（2026-11-14）
+- **背景**：用户报"缓存命中率这么低、一直显示非流、显示流时好得多、肯定是调用方法有问题"。
+  先复现不猜：真机 A/B 显示**流式不是命中率的原因**（本轮流 0/8 上报 details、非流 5/8，
+  与 ADR 0123 记录方向相反；`prompt_tokens` 对同一文本在 4358..60236 间跳，是通道 draw）。
+- **根因 A**：`build_prompt` 旧序把 selection/annotations/recentChanges/corpus 放 JSON 最前，
+  稳定目录跟在后面 → 两轮共享前缀只有 **81 / 6876 字节**，provider 前缀缓存从不可能触发。
+  ADR 0123 只挪了 intent/prompt/variants，门只钉"最后 3 个键"所以全绿却是坏的。
+- **根因 B（决定性）**：该 distributor 按通道分发、前缀缓存通道本地，缺 `prompt_cache_key`
+  粘性路由 → 连续两轮落不同通道。同进程交替 A/B：流不带键 1/8（mean 0.124、p50 0.0），
+  带稳定键 **8/8（mean 0.778、p50 0.778）**；非流 2/6 → 5/6；`user` 字段不可用。
+- **做了**：新 `sticky_prompt_cache.py`（`STABLE_PROMPT_KEYS` 单一真值 / `ordered_payload` /
+  `prompt_cache_key` / `StickyPromptCacheTransport`）；`Registry._build_llm` 接线，
+  `NEXUS_LLM_STICKY_CACHE_KEY=0` 字节级零回归；`design_prompt` 三处编码点共用
+  `_encode_prompt`（共享前缀 81 → **6328**，78×）；completion cache 键补 `json_mode`
+  第四维（修 chat/run 串台），进程内 + Redis 两后端同源；新门 `test_sticky_prompt_cache.py`
+  15 条（判据纯函数、正向锚、5 变异臂恒跑、2 正向对照、真腿函数级 skipif）。
+- **真机（wkapi.pro / gpt-6-sol）**：生产 `Registry` 链 A/B（隔离应用级缓存）
+  sticky OFF 1/4、mean 0.121、p50 0.0；ON warm 轮 3/3 稳定 0.81，mean 0.608、p50 0.81。
+  生产类直出两轮均 `cached=11776/11972 ≈ 98.4%`。
+- **验证**：离线 268 passed / 15 skipped；`NEXUS_LIVE_LLM=1` + 真 Redis 279 passed / 4 skipped。
+  零 web / 契约改动；census 安全形状（只加 ai-service src + tests + ADR + ROADMAP）。
+- **仍欠**：distributor cache TTL / 通道数不可知（需供应商信息或长跑）；目录一改键就变；
+  chat 自由文本只用 system 做键；不支持该字段的网关尚无自动探测降级（靠 `=0` opt-out）；
+  temperature 仍未进键（ADR 0113 仍欠）。
+
+## v696 — completion cache single-flight + 并发过期竞态修复（ADR 0128）（2026-11-14）
+- **背景**：ADR 0113 仍欠 ④。`execution.py` 用 `to_thread` 调 `complete()`，N 路同 prompt
+  会在 leader 写入前**全部 miss、全部打真 LLM**；ADR 0127 省的是 prompt token（provider 前缀
+  缓存），本片省的是真调用次数，两层互补不互相记功。
+- **做了**：新 `single_flight.py`（`threading.Lock` + `Event` + `dict[key, _Flight]`，O(1)
+  定点，镜像 Spring `@Cacheable(sync=true)` / Caffeine coalescing loader）；`CachedLlm` 可注入
+  `flight`，`Registry._build_llm` 在缓存层启用时按 `NEXUS_LLM_SINGLE_FLIGHT` 接线（默认 1，
+  =0 byte-level 零回归）；`Settings` 两旋钮 + repr 脱敏；`env.example` 补齐。
+  四条诚实边界：失败不缓存/传播同一异常、follower 有界等待超时自己补打、`coalesced` 不是
+  cache hit、只进程内不跨进程。
+- **顺带修真 bug**：加并发前提后，`LlmCompletionCache` 的"读过期条目 → `del`"无锁会
+  让 N 路同时 `del` 同一键抛 `KeyError`（不是统计误差，是崩请求）。给 `get/store/stats/
+  __len__/clear` 加实例锁；变异臂把锁退化 + 注入时钟让线程确定性汇合，旧竞态必须复现。
+- **真机 A/B（wkapi.pro /v1 gpt-6-sol）**：同进程生产 provider + 生产 CachedLlm，
+  transport 层计数；3 路并发同 prompt `flight=on` → **真网关 1 次**（coalesced=2、
+  cache_hits=0、tokens_in=4438），`flight=off` 反事实臂 → **3 次**。ON 腿另验返回仍是
+  合法 JSON mode 真回复，避免把失败合并给三路。
+- **门**：`tests/test_single_flight.py` 20 条（判据纯函数单一真值、Event 门 leader +
+  Barrier 强制汇合、`inflight_peak == requests` 正向锚、10 个恒跑变异臂、2 个正向对照、
+  2 条函数级 skipif 真机腿）。离线 20/2；全套离线 289/17；live LLM + 真 Redis 全 opt-in
+  **306 passed / 0 skipped**；`verify:record-encoding` / `verify:evidence-census` /
+  `verify:arms-freshness` 全绿。
+- **仍欠**：跨进程 single-flight（需 Redis 分布式锁 + 结果广播，语义未定不接线）、
+  `coalesced/timeouts` 进 `/healthz` / Prometheus、超时补打与 leader 并行造成的短暂双花、
+  超时补打缺 jitter（ADR 0117 组件已存在，需先定"补打算不算 attempt"）、
+  `temperature` 仍未进缓存键。
+- **方法**：加并发能力前先查"它把哪条旧路径的并发前提变强了"；真机 A/B 必须带反事实臂，
+  否则"1 次"可能来自缓存或网关去重，归因不成立。
+
+## v697 — 跨进程 single-flight over Redis（ADR 0129）（2026-11-14）
+- **背景**：ADR 0128 仍欠 ①。v696 只合并**同一进程**的并发 miss；多副本 A/B 各自 miss
+  共享 Redis completion cache，仍会各打一次真 LLM。
+- **做了**：新 `distributed_flight.py`——`SET key token NX EX lease` 抢 leader，
+  follower 读 owner token 后轮询 `<lock>:done:<owner_token>`，标记出现就 `peek` **同一个
+  共享缓存**拿结果；等不到 / peek 不到 / 锁过期 / Redis 抖动就自己补打真调用。
+  不广播序列化结果（避免第二个真值源）、不 DEL 别人的锁（无 Lua 纪律）、
+  done 标记绑定本轮 token（防旧标记跨轮串台）、Redis 故障 fail-open。
+  新 `CompositeFlight` 先进程内合并再由本进程 leader 抢跨进程锁（省 Redis RTT）；
+  `CachedLlm` 只依赖新 `FlightLike` Protocol，逻辑一行未改。
+- **接线**：`NEXUS_LLM_DISTRIBUTED_SINGLE_FLIGHT=0` **默认关闭**（零回归），=1 且缓存
+  启用才叠上。`Registry._build_llm` 拆两段：连接失败 fail-open、配置错误显式抛
+  `ValueError` 不被同一个 except 吞掉。**默认租约 240s / WAIT 180s 对齐
+  `AI_SERVICE_TIMEOUT_S=180s`**——租约短于最坏真调用时长会让锁先过期、follower 提前
+  自补双花；`_build_flight` 显式拒绝，并有门钉"默认值满足该不变量"。
+- **真机（wkapi.pro gpt-6-sol + 真 Redis 56379）**：真 Redis 双实例各自 client+cache
+  → `work_calls=1`、A 写的 Completion 由 B **经真 Redis 反序列化读回**；真网关双实例
+  并发同 prompt `distributed=on` → **真网关 1 次**（leaders=1、coalesced=1），
+  反事实臂 `off` → **2 次**。顺带把 ADR 0102/0107 的"多进程真 OS 字节往返"从仍欠变实证。
+- **门** `test_distributed_flight.py` 21 条：判据纯函数单一真值、Barrier 双实例 +
+  Event 门 leader、假时钟验超时、`distinct_lock_names == key_count` 正向锚、
+  9 个恒跑变异臂（含 `run` 直通与 `done_key` 去 token 两个真组件退化臂）、2 正向对照、
+  3 条函数级 skipif 真机腿。离线 21/3；全套离线 310/20；live LLM + 全 Redis opt-in
+  **330 passed / 0 skipped**；record-encoding / census / arms-freshness 全绿。
+- **仍欠**：leader 进程被杀时 follower 要等满 WAIT_S（可加 FAILED 标记，语义未定）、
+  跨进程账本进 /healthz + Prometheus、单实例 Redis 非 Redlock（主从切换可能双 leader）、
+  轮询未做退避+抖动、默认关闭需带真实流量梯度的上线验证。
+- **方法**：跨进程协调不要造第二个结果真值源；done 标记必须带本轮 token（用真组件变异臂
+  证明有牙）；租约 ≥ 最坏真调用时长并把"默认满足"写成门；连接失败与配置错误拆两段。
+
+## v698 — 统一 LLM 省钱账本：/healthz + /metrics + admin 观测卡（ADR 0130）（2026-11-14）
+- **关闭**：ADR 0128 仍欠 ② + ADR 0129 仍欠 ②（两层 single-flight 的账本之前只有进程内
+  统计，运维完全看不见省了多少真调用；ai-service 也没有 `/metrics`）。
+- **后端**：`Registry.llm_flight_state()` 出 `llmFlight`（没装 flight → null）；
+  新 `metrics.py` 的 `render_llm_metrics` 是纯函数，吃 `/healthz` 同一份 dict 产
+  Prometheus 文本；新 `/metrics`（`text/plain; version=0.0.4`）。
+- **契约/前端**：`HealthResponseSchema` 增 `llmFlight`（精确 zod 形状 + `default(null)`
+  保证旧报文可解析），`contract:export` 只重生成 `contracts/health.schema.json`；
+  `env.ts` 增 `AiFlightState` 透传；admin 观测卡增四行（mode / 两层 coalesced /
+  provider_calls / timeouts·lock_failures），并用说明文字写清 `—` 是"没接线"不是"省了 0 次"。
+- **五条诚实边界（全有门）**：coalesced 不是 cache hit（两个独立 family、逐项对拍）；
+  两层 flight **分别计账绝不相加**（`provider_calls` 只认最后接触 provider 的那一层，
+  判据显式 `!= 两层之和`）；未启用只报 `*_enabled 0` 不编造流量；进程内重启清零、
+  非集群 SLO；标签转义防注入 + NaN/Inf/负数/bool 显式拒绝。
+- **门**：`test_llm_flight_ledger.py` 23 条（判据纯函数单一真值、纯渲染器对拍、
+  `/healthz` 契约校验 local/local+redis 参数化、`/metrics` 与 healthz 同源、
+  真组件退化臂把 app 渲染器换掉证明端点真走纯函数、6 变异臂 + 1 正向对照）；
+  web `env.test.ts` 7/7、契约+env 合跑 20/20；离线 ai-service 全套 326/20；
+  `tsc` schemas + web 零错误；改动 TS/TSX eslint 零 finding。
+- **仍欠**：本机起不了 `next start`，admin 卡**像素级渲染验证仍欠**（已做类型/单测/
+  lint/源码 data 标记）；**全量 `vitest run` 在本宿主跑 21 分钟无输出被停，未验证完**
+  （0.3–0.6GB 物理内存的已知宿主限制，不谎称全树绿，只保证改动面定向门全绿）；
+  `/metrics` 未接 scrape 配置与告警规则；两层计数口径不同
+  （`provider_calls` vs `llmLatency.calls`）尚无统一 cross-check 门。
+- **方法**："省钱"最容易做成虚荣指标——命中/合并/真调用三种口径必须拆成独立 family
+  并逐项对拍；分层优化后的账本不要相加，只有最后接触外部资源那层才配报真调用数。

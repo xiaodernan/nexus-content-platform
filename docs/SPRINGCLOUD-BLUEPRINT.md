@@ -42,8 +42,12 @@ NEXUS 的 Java 侧是一个真 Spring Cloud 微服务拓扑，不是玩具 demo�
 
 ## 下一步（按价值/风险排序）
 
-- **P0**：LLM 路径的完整集成压测（ai-service + lb:// + 真 gpt-6-sol），量化 p95、错误率、
-  熔断触发条件；在观测页暴露这些数（不造指标）。
+- **P0（v693/v694 已落地第一切）**：`npm run perf:llm-live`（ADR 0125，三轮在线压测、
+  27 次真实 gpt-6-sol 调用、错误率 0/27；app 级 Redis 完成缓存确定性 9-17ms warm；
+  provider prefix 缓存取决于 distributor 通道 draw（一轮 99.7%、两轮 0%），如实记录不冒充；
+  usage 报数在通道间不一致已记录为观察项）+ `/healthz.llmLatency`（ADR 0126，provider 级，
+  窗口 1024 次往返，完成缓存回放不计入）+ admin/observability 两行（calls/errors、p50/p95）。
+  **仍欠**：熔断触发条件的真实量测（需跨通道持续故障注入，不造指标）；多实例聚合 SLO 属 M9 观测拓扑。
 - **P1**：redis DLQ 与真 RabbitMQ 的决定记录——市场选择前不移植 Stream 绑定器。
 - **P2**：镜像 one-hot 校验（每次启动的 pod identity + discovery 对账），防"Eureka 过期条目喂旧"。
 - **P3**：DLQ 完整生命周期（v689：dead_letters() 的有界窗口分页 + 导出器 + admin 面板只读面）。
