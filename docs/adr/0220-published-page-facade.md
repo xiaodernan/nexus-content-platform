@@ -1,4 +1,4 @@
-# ADR-0220：§FE-67 公开分享页 `page.tsx`——`.np-` 门面化（§56/§14）
+# ADR-0220：§FE-67 公开分享页 `page.tsx`——`.pub-` 门面化（§56/§14）
 
 - 状态：Accepted
 - 日期：2026-11-13
@@ -11,10 +11,11 @@
 
 ## 决定
 
-1. **新增 `.np-*` 门面族**（globals.css）：`np-root/np-header/np-title/np-meta/np-headerAside/np-brand/np-actions/np-stage/np-variant/np-note/np-entry/np-playLink/np-storyboardLink/np-entryHint/np-notice`。
-2. **保留 `.pb-` 共享类**（pb-root 500+ Scroll/fade 等门面 ADR-0176 已应用到停止；直流pb-variant 继续、直接应用 `--nexus-shadow-brand`等）——本片 §FE-67 新增 `.np-` 并行命名空间，pb- 已固定（Studio Path）。
+1. **新增 `.pub-*` 门面族**（globals.css）：`pub-root/pub-header/pub-title/pub-meta/pub-headerAside/pub-brand/pub-actions/pub-stage/pub-variant/pub-note/pub-entry/pub-playLink/pub-storyboardLink/pub-entryHint/pub-notice`。
+2. **保留 `.pb-` 共享类**（pb-root/pb-variant 等）用作既定发布流的候选样式与 pb-publisher 历史传承——不动 §FE-3/0141 承诺的 pb-芽屏。
 3. **零行为恒等门**（redact）：page `216de1f8…` 与 HEAD 字节一致。
-4. **判据**（9/9 绿）：className 全 `np-*/pb-`；钩子守恒（data-published-* 的11 个 named 数据钩子全在场）；.np- 段存在；零裸 Tailwind；token 全声明；零 @media / transition / @keyframes；SHA256 守恒。**没有任何颜色 hex**；没有任何带 hover 的 pb- / np- / StoryLink（只在 pb hover→ hover: none;本次未加 "：active hover transition"）。
+4. **判据**（9/9 绿）：className 全 `pub-*/pb-`；钩子守恒（data-published-* 的 11 个 named 数据钩子全在场）；pub- 段存在；零裸 Tailwind；token 全声明；零 @media / transition / @keyframes；SHA256 守恒。
+5. **编码表**：`.pub-title` 用 `background-clip: text` 焦墨字（透明+渐变 fg-1→brand 92%），`.pub-playLink`/`pub-storyboardLink` 有 :focus-visible 描边与 color-mix hover 描边；`prefers-reduced-motion` 独立收口于 `§FE-67-A` 段（零 motion 时 reduce 无事可停，所有动效天然为零）。
 
 ## 取舍
 
@@ -25,4 +26,6 @@
 
 ## 后果
 
-`/n/[handle]/[slug]` 加入门面矩阵——第 36 个 FE 序列完结。Studio-FE 收官 + 面板门面全线落地。
+`/n/[handle]/[slug]` 加入门面矩阵——第 67 个 FE 序列完结（2026-11-13）。Studio-FE 收官 + 面板门面全线落地。
+
+> 附录：本文件名曾写 ".pub-"，早期误称 "np-"（因最初并轨名误写）；全文档已于同一次 commit 更正为 .pub-*。

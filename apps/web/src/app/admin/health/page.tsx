@@ -67,7 +67,7 @@ export default async function AdminHealthPage(): Promise<ReactElement> {
         <div>
           <h1 className="adm-title">健康总览</h1>
           <p className="adm-capNote" data-health-scope>
-            这一页汇总五层（ai / java / gateway / redis / postgres）此刻的**权威读数**。拿不到就说未测到，绝不改写成 down（§159）。
+            这一页汇总五层（ai / java / gateway / redis / postgres）此刻的<strong>权威读数</strong>。拿不到就说未测到，绝不改写成 down（§159）。
           </p>
         </div>
         <AdminNav current="health" />

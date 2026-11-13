@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 /**
- * §FE-67 `published/[slug]/page.tsx` `.np-` 门面化（§56/§14 公开分享页）——**静态那一寸**。
+ * §FE-67 `published/[slug]/page.tsx` `.pub-` 门面化（§56/§14 公开分享页）——**静态那一寸**。
  *
  * §14 / ADR-0069 / ADR-0074：`?viewport=` 三态；`?viewport=` 自动选择四份投影，媒体查询选一份；design 钉体素；
  * 评论区 177 行——公开链接任何访客不登录即看——这是 NEXUS 被分享给陌生人的第一眼 surface；本片只换皮，
@@ -14,9 +14,9 @@ import { describe, expect, it } from 'vitest';
  * `216de1f858cbd61d0e09ef82840ed08d8e11ceca6701e25cd4acd11cd5aadf43` 与 HEAD 字节一致。
  *
  * 判据不变式（10 门）：
- *  1. 'use client' 不涉及；2. 字面 className 全 `.np-*`/`.pb-variant`（pb-variant 保留 fd 共享标记）；
- *  3. 零裸 Tailwind；4. 用到的每个类都在 globals.css 有基础定义；5. `.np-` 视觉段存在且零 @media / transition / @keyframes；
- *  6. `.np-header`/`.np-stage`/`.np-playLink` hover 与 :focus-visible 环（若适用）；7. 零 hex；
+ *  1. 'use client' 不涉及；2. 字面 className 全 `.pub-*`/`.pb-variant`（pb-variant 保留 fd 共享标记）；
+ *  3. 零裸 Tailwind；4. 用到的每个类都在 globals.css 有基础定义；5. `.pub-` 视觉段存在且零 @media / transition / @keyframes；
+ *  6. `.pub-header`/`.pub-stage`/`.pub-playLink` hover 与 :focus-visible 环（若适用）；7. 零 hex；
  *  8. 视觉段所有 var(--nexus-*) 都在 tokens.css 声明过；9. 零新增颜色 token；10. SHA256 守恒 + 钩子守恒（data-published-*）。
  */
 const ROOT = process.cwd();
@@ -41,16 +41,16 @@ function findOutsideComments(css: string, re: RegExp): number {
   return -1;
 }
 
-/** `.np-` 视觉段：`.np-root {` 起，到下一个 §FE 段止。 */
-function npSegment(css: string): string {
-  const start = findOutsideComments(css, /\.np-root \{/);
-  if (start < 0) throw new Error('globals.css 找不到 .np- 段（.np-root {）');
+/** `.pub-` 视觉段：`.pub-root {` 起，到下一个 §FE 段止。 */
+function pubSegment(css: string): string {
+  const start = findOutsideComments(css, /\.pub-root \{/);
+  if (start < 0) throw new Error('globals.css 找不到 .pub- 段（.pub-root {）');
   const rest = css.slice(start);
   const m = rest.search(/\/\* ── §/);
   return m > 0 ? rest.slice(0, m) : rest;
 }
 
-const segment = npSegment(globals);
+const segment = pubSegment(globals);
 
 /** redact：EOL+空白归一 + className 任意形态归一 @。 */
 function redactClasses(source: string): string {
@@ -66,7 +66,7 @@ function redactClasses(source: string): string {
 function classesDefined(css: string): Set<string> {
   const out = new Set<string>();
   for (const line of strip(css).split('\n')) {
-    for (const m of line.matchAll(/\.((?:np|pb|cs|sb|wd|cp|ap)-[A-Za-z0-9-]+)(?=[,{:\s])/g)) out.add(m[1]!);
+    for (const m of line.matchAll(/\.((?:pub|pb|cs|sb|wd|cp|ap)-[A-Za-z0-9-]+)(?=[,{:\s])/g)) out.add(m[1]!);
   }
   return out;
 }
@@ -93,24 +93,24 @@ describe('§FE-67 /n/[handle]/[slug] 公开分享页', () => {
     }
   });
 
-  it('字面 className 只认 .np-*/.pb-variant（§ND 回收残，CLI）', () => {
+  it('字面 className 只认 .pub-*/.pb-variant（§ND 回收残，CLI）', () => {
     const literals = [...code.matchAll(/className="([^"]*)"/g)].map((m) => m[1]!);
     expect(literals.length).toBeGreaterThanOrEqual(12);
     for (const cls of literals) {
       for (const tok of cls.split(/\s+/).filter(Boolean)) {
-        expect(tok, `${cls} 里出现了非门面类`).toMatch(/^(?:np|pb)-[A-Za-z0-9-]+$/);
+        expect(tok, `${cls} 里出现了非门面类`).toMatch(/^(?:pub|pb)-[A-Za-z0-9-]+$/);
       }
     }
   });
 
-  it('零裸 Tailwind（np- 之外）——没有 text-fg-*/flex/flex-col/bg-bg-*', () => {
+  it('零裸 Tailwind（pub- 之外）——没有 text-fg-*/flex/flex-col/bg-bg-*', () => {
     for (const re of ['text-fg-', 'flex-col', 'flex flex-wrap', 'min-h-screen', 'bg-bg-', 'border-b', 'max-w-', 'hover:text-']) {
       expect(code, `published page 仍出现 ${re}`).not.toContain(re);
     }
   });
 
   it('className 用到的每个类都在 globals.css 有基础定义', () => {
-    const used = new Set([...code.matchAll(/\b(?:np|pb|cs)-[A-Za-z0-9][A-Za-z0-9-]*/g)].map((m) => m[0]));
+    const used = new Set([...code.matchAll(/\b(?:pub|pb|cs)-[A-Za-z0-9][A-Za-z0-9-]*/g)].map((m) => m[0]));
     expect(used.size).toBeGreaterThanOrEqual(11);
     const defined = classesDefined(globals);
     for (const cls of used) {
@@ -118,7 +118,7 @@ describe('§FE-67 /n/[handle]/[slug] 公开分享页', () => {
     }
   });
 
-  it('.np- 视觉段存在且零 @media / transition / @keyframes；零 hex', () => {
+  it('.pub- 视觉段存在且零 @media / transition / @keyframes；零 hex', () => {
     expect(segment.length).toBeGreaterThan(600);
     expect(segment).not.toContain('@media');
     expect(segment).not.toContain('transition');
@@ -126,7 +126,7 @@ describe('§FE-67 /n/[handle]/[slug] 公开分享页', () => {
     expect(segment).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
   });
 
-  it('.np- 视觉段所有 var(--nexus-*) 都在 tokens.css 声明过', () => {
+  it('.pub- 视觉段所有 var(--nexus-*) 都在 tokens.css 声明过', () => {
     const used = [...new Set([...segment.matchAll(/var\((--nexus-[a-z0-9-]+)\)/g)].map((m) => m[1]!))];
     expect(used.length).toBeGreaterThanOrEqual(5);
     for (const token of used) {
@@ -134,7 +134,7 @@ describe('§FE-67 /n/[handle]/[slug] 公开分享页', () => {
     }
   });
 
-  it('.np- 视觉段零新增颜色 token', () => {
+  it('.pub- 视觉段零新增颜色 token', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 

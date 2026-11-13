@@ -126,24 +126,24 @@ export default async function PublishedPage({ params, searchParams }: Props) {
   const terminal = isTerminalInteractivePage(document, page.id);
 
   return (
-    <main className="np-root" data-published-root data-published-path={publication.path}>
-      <header className="np-header">
-        <span className="np-title" data-published-title>
+    <main className="pub-root" data-published-root data-published-path={publication.path}>
+      <header className="pub-header">
+        <span className="pub-title" data-published-title>
           {ownerName} / {projectName}
         </span>
-        <span className="np-meta" data-published-meta>
+        <span className="pub-meta" data-published-meta>
           第 {publication.version} 版 ·{' '}
           {publication.visibility === 'public' ? '公开' : '仅链接可见'} ·{' '}
           {new Date(publication.publishedAt).toLocaleString('zh-CN', { hour12: false })}
         </span>
         {/* §132：公开页要有人能举报，否则 §129 的红线只能靠作者自觉 */}
-        <span className="np-headerAside">
+        <span className="pub-headerAside">
           <ReportControl path={publication.path} />
-          <span className="np-brand">Built with NEXUS</span>
+          <span className="pub-brand">Built with NEXUS</span>
         </span>
       </header>
       {actions ? (
-        <div className="np-actions">
+        <div className="pub-actions">
           <PublicationActions state={actions} />
         </div>
       ) : null}
@@ -162,7 +162,7 @@ export default async function PublishedPage({ params, searchParams }: Props) {
       {/* §85 第三十一片 / ADR-0074：自动选档。四份投影同一时刻在 DOM 里，媒体查询选一份；
           隐藏的几份 display:none（不进可访问树）。零 JS 也成立，且没有第二条渲染路径。 */}
       {auto ? <style data-published-auto>{publishedVariantsStyle()}</style> : null}
-      <div className="np-stage">
+      <div className="pub-stage">
         {variants.map(({ label, layout }) => (
           <div key={label} className="pb-variant" data-published-variant={label} data-published-variant-width={layout.width}>
             <PublishedFrame
@@ -184,7 +184,7 @@ export default async function PublishedPage({ params, searchParams }: Props) {
           两句键盘话是 §85 第三片量出来的：那条链只写"鼠标移到…点它"，只用键盘的人
           不知道自己也能走通（Tab 会停在热点上、Enter 真的翻页并上报），所以照实补上。 */}
       {hotspots.length ? (
-        <p className="np-note" data-interactive-note>
+        <p className="pub-note" data-interactive-note>
           这一版把「点击 → 跳到另一页」的交互跑起来了：鼠标移到可点的区域会亮一圈，点它翻到那一页；
           只用键盘也一样——Tab 会走到那块区域（同样亮一圈），按 Enter 翻到那一页。
           悬停、弹窗、状态切换等其余交互在这一版里不会发生。
@@ -194,32 +194,32 @@ export default async function PublishedPage({ params, searchParams }: Props) {
       {/* §50：这一版钉住了游戏设计才有这个入口。没有钉住就不出现，
           也不给一个"点进去说没有内容"的链接——那等于用入口骗一次点击 */}
       {publication.hasGame ? (
-        <p className="np-entry" data-published-play>
+        <p className="pub-entry" data-published-play>
           <a
             href={`${publication.path}/play`}
-            className="np-playLink"
+            className="pub-playLink"
           >
             试玩这一版 →
           </a>
-          <span className="np-entryHint">玩的是发布那一刻钉住的游戏设计，不是作者现在的工作稿</span>
+          <span className="pub-entryHint">玩的是发布那一刻钉住的游戏设计，不是作者现在的工作稿</span>
         </p>
       ) : null}
       {/* §40 × §56：分镜与游戏设计同一条口径——这一版钉住了分镜稿才有这个入口。
           只发布镜头表文本，不链接任何视频：本机没有真视频 provider（§159 不说有片可播） */}
       {publication.hasStoryboard ? (
-        <p className="np-entry" data-published-storyboard>
+        <p className="pub-entry" data-published-storyboard>
           <a
             href={`${publication.path}/storyboard`}
-            className="np-storyboardLink"
+            className="pub-storyboardLink"
           >
             查看分镜稿 →
           </a>
-          <span className="np-entryHint">读的是发布那一刻钉住的镜头表，不是作者现在的工作稿</span>
+          <span className="pub-entryHint">读的是发布那一刻钉住的镜头表，不是作者现在的工作稿</span>
         </p>
       ) : null}
       {/* §168：被统计这件事要写在页面上，而不是只在代码注释里。
           这句是服务端渲染的——不执行 JS 的访客也看得见自己被统计了什么 */}
-      <p className="np-notice" data-visit-notice>
+      <p className="pub-notice" data-visit-notice>
         这一页会统计作者的创作数据：打开次数、页面可见时的停留时长、以及最远滚到的高度比例。
         切走标签页的时间不计入时长。
       </p>

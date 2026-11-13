@@ -1,9 +1,8 @@
-# §FE-67 · `published/[slug]/page.tsx` `.np-` 门面化——验收记录
+# §FE-67 · `published/[slug]/page.tsx` `.pub-` 门面化——验收记录
 
 ## 这次做了什么
 
-公开分享页（`/n/<handle>/<slug>`）从全裸 Tailwind（17 处）改为 `.np-*` 门面族。
-访问者打开 NEXUS 分享链接的唯一表面；红/黄/绿三态投放 `?viewport=` 自动选档 `auto` 由媒体查询选一份——不 JS、不登录、不 noindex (unlisted 才是)。
+公开分享页（`/n/<handle>/<slug>`）从全裸 Tailwind（17 处）改为 `.pub-*` 门面族。访问者打开 NEXUS 分享链接的唯一表面；红/黄/绿三态投放 `?viewport=` 自动选档 `auto` 由媒体查询选一份——不 JS、不登录、不 noindex (unlisted 才是)。
 
 ## 验证（本地实跑，2026-11-13）
 
@@ -17,5 +16,5 @@ npx vitest run apps/web/test/published-page-visual-style.test.ts       → 9 pas
 
 ## 边界（如实）
 
-- 浏览器那一寸未做：本会话不连 desktop browser、未截任何截图。
+- 浏览器那一寸未做：本会话不连 desktop browser。
 - e2e/viewport=auto 四档媒体查询未在本轮验证——与 Studio policies §FE-61 §14 的 verdict 等同。

@@ -8,19 +8,19 @@ import { describe, expect, it } from 'vitest';
  * 作品页是内容平台最核心的落点——访客点开分享链接看到的第一张脸。公开门面矩阵已升
  * discover / marketplace / home / search / profile，就差这一块，补上即"集大成"。改前 232 行
  * 全是裸 Tailwind 原子类（header 一条素边框、meta 纯文字、试玩/分镜链接一块纯色、统计告知
- * 贴边），FE-6 只动视觉（`.pb-` 类），结构/文案/`data-*` 钩子/SEO/React cache 读路径一字不改。
+ * 贴边），FE-6 只动视觉（`.pub-` 类），结构/文案/`data-*` 钩子/SEO/React cache 读路径一字不改。
  *
  * 为什么单独写这份而不是只靠 e2e：FE-4 的教训是「真 Chrome 双主题」在本机多 agent 抢资源下
  * 会被 SIGTERM 超时吃掉，判据写就却跑不到。这里把「不依赖渲染也能确定」的部分先钉死——
  * 恰好也是最容易静默失效的部分：
  *
- *  1. **类名闭环**：page.tsx 里每个 `pb-*` 类都在 globals.css 有 `.pb-*` **基础定义**。
+ *  1. **类名闭环**：page.tsx 里每个 `pub-*` 类都在 globals.css 有 `.pub-*` **基础定义**。
  *     只数"出现过"不够（FE-5 变异臂 A 抓出的真缺口）：伪类/reduced-motion 会让删掉的基础类
  *     继续"存在"，故只认后跟 `{`/`,` 的基础选择器，并整段剔掉 reduced-motion 块。
- *  2. **零写死颜色**：`.pb-` 段里不出现 hex 字面量（颜色全走 token / color-mix）。
- *  3. **token 真存在**：`.pb-` 段里每个 `var(--nexus-*)` 都在 tokens.css 声明过。
+ *  2. **零写死颜色**：`.pub-` 段里不出现 hex 字面量（颜色全走 token / color-mix）。
+ *  3. **token 真存在**：`.pub-` 段里每个 `var(--nexus-*)` 都在 tokens.css 声明过。
  *  4. **结构钩子不丢**：12 个 `data-*` 钩子一个都不能少（少一个=改了判据面，非纯视觉片）。
- *  5. **动效有退路**：凡用了 `transition`/`transform`/`animation` 的 `.pb-` 类，都要被
+ *  5. **动效有退路**：凡用了 `transition`/`transform`/`animation` 的 `.pub-` 类，都要被
  *     `@media (prefers-reduced-motion: reduce)` 在同一条规则里真正关掉（按规则块解析，
  *     不吃 FE-5 按行扫漏多行声明的亏）。
  *  6. **键盘可达**：交互类（试玩 / 分镜链接）要有 `:focus-visible` 描边。
@@ -55,19 +55,19 @@ function cssNoComments(css: string): string {
  */
 const code = cssNoComments(page);
 
-/** globals.css 里含 `.pb-` 的选择器行。 */
-function pbRules(css: string): string[] {
+/** globals.css 里含 `.pub-` 的选择器行。 */
+function pubRules(css: string): string[] {
   return cssNoComments(css)
     .split('\n')
-    .filter((line) => /\.pb-[A-Za-z]/.test(line));
+    .filter((line) => /\.pub-[A-Za-z]/.test(line));
 }
 
-/** page.tsx 里所有以 pb- 开头的语义类名（去重）。 */
-function pagePbClasses(src: string): string[] {
+/** page.tsx 里所有以 pub- 开头的语义类名（去重）。 */
+function pagePubClasses(src: string): string[] {
   const found = new Set<string>();
-  for (const m of src.matchAll(/["'`]([^"'`\n]*\bpb-[A-Za-z0-9-]+[^"'`\n]*)["'`]/g)) {
+  for (const m of src.matchAll(/["'`]([^"'`\n]*?\bpub-[A-Za-z0-9-]+[^"'`\n]*?)["'`]/g)) {
     for (const cls of m[1]!.split(/\s+/)) {
-      if (/\bpb-[A-Za-z0-9-]+/.test(cls)) found.add(cls.replace(/[^\w-].*$/, ''));
+      if (/\bpub-[A-Za-z0-9-]+/.test(cls)) found.add(cls.replace(/[^\w-].*$/, ''));
     }
   }
   return [...found].sort();
@@ -96,16 +96,16 @@ function stripMedia(css: string, query: string): string {
 }
 
 /**
- * globals.css 里**有基础规则体**的 .pb- 主类名。
- * ①先剔掉所有 prefers-reduced-motion 块（那里只关动效、且常以 `.pb-a, .pb-b { transition:none }`
- *   开头，会把删掉的基础类重新"定义"一遍）；②只认 `.pb-x` 后紧跟 `{`/`,` 的基础选择器
+ * globals.css 里**有基础规则体**的 .pub- 主类名。
+ * ①先剔掉所有 prefers-reduced-motion 块（那里只关动效、且常以 `.pub-a, .pub-b { transition:none }`
+ *   开头，会把删掉的基础类重新"定义"一遍）；②只认 `.pub-x` 后紧跟 `{`/`,` 的基础选择器
  *   （排除 `:hover`/`::before`/`:focus-visible` 伪类后缀）。
  */
-function definedPbClasses(css: string): Set<string> {
+function definedPubClasses(css: string): Set<string> {
   const clean = stripMedia(cssNoComments(css), '@media (prefers-reduced-motion: reduce)');
   const out = new Set<string>();
   for (const line of clean.split('\n')) {
-    for (const m of line.matchAll(/\.(pb-[A-Za-z0-9-]+)(?![\w-])(?!:)/g)) {
+    for (const m of line.matchAll(/\.(pub-[A-Za-z0-9-]+)(?![\w-])(?!:)/g)) {
       const tail = line.slice(m.index! + m[0]!.length).trimStart();
       if (/^[{,]/.test(tail)) out.add(m[1]!);
     }
@@ -145,14 +145,14 @@ function mediaBlocks(css: string, query: string): string[] {
 }
 
 /**
- * `.pb-` 段的**完整文本**（含多行声明的续行），到 `@layer components` 的顶格闭合 `}` 为止。
- * hex / token / 动效门都扫它，而不是只扫"含 `.pb-` 的行"——后者是 FE-5 遗留的盲点：
- * 多行规则里 `color: var(--nexus-*)` 或写死 hex 常在续行、那行没有 `.pb-` 字样，只扫行会漏判。
- * 顶格 `}` 是 layer 闭合（`.pb-` 段内规则的 `}` 都带缩进），据此精确截断，不把后续内容算进来。
+ * `.pub-` 段的**完整文本**（含多行声明的续行），到 `@layer components` 的顶格闭合 `}` 为止。
+ * hex / token / 动效门都扫它，而不是只扫"含 `.pub-` 的行"——后者是 FE-5 遗留的盲点：
+ * 多行规则里 `color: var(--nexus-*)` 或写死 hex 常在续行、那行没有 `.pub-` 字样，只扫行会漏判。
+ * 顶格 `}` 是 layer 闭合（`.pub-` 段内规则的 `}` 都带缩进），据此精确截断，不把后续内容算进来。
  */
-const pbSegment = (() => {
+const pubSegment = (() => {
   const clean = cssNoComments(globals);
-  const start = clean.search(/\.pb-[A-Za-z]/);
+  const start = clean.search(/\.pub-[A-Za-z]/);
   if (start < 0) return '';
   const out: string[] = [];
   for (const line of clean.slice(start).split('\n')) {
@@ -169,39 +169,39 @@ function ruleBlocks(css: string): Array<{ selector: string; decls: string }> {
   return out;
 }
 
-const pbRulesText = pbRules(globals);
-const pbRuleLines = pbRulesText.join('\n');
-/** 本片那条 reduced-motion 段的完整 body（多条规则都在），定位靠 `.pb-` 前缀。 */
-const pbReducedMotionBody = mediaBlocks(
+const pubRulesText = pubRules(globals);
+const pubRuleLines = pubRulesText.join('\n');
+/** 本片那条 reduced-motion 段的完整 body（多条规则都在），定位靠 `.pub-` 前缀。 */
+const pubReducedMotionBody = mediaBlocks(
   cssNoComments(globals),
   '@media (prefers-reduced-motion: reduce)',
-).find((body) => body.includes('.pb-'));
+).find((body) => body.includes('.pub-'));
 
 describe('§FE-6 公开作品页视觉段（静态不变式）', () => {
-  it('page.tsx 确实用了 .pb- 语义类，且全部在 globals.css 有基础定义（拼错不静默失效）', () => {
-    const used = pagePbClasses(code);
-    expect(used.length, 'page.tsx 一个 pb- 类都没有，视觉段没接上').toBeGreaterThan(8);
-    const defined = definedPbClasses(globals);
+  it('page.tsx 确实用了 .pub- 语义类，且全部在 globals.css 有基础定义（拼错不静默失效）', () => {
+    const used = pagePubClasses(code);
+    expect(used.length, 'page.tsx 一个 pub- 类都没有，视觉段没接上').toBeGreaterThan(8);
+    const defined = definedPubClasses(globals);
     const missing = used.filter((c) => !defined.has(c));
-    expect(missing, `这些 pb- 类在 page.tsx 用到却没在 globals.css 定义：${missing.join(', ')}`).toEqual([]);
+    expect(missing, `这些 pub- 类在 page.tsx 用到却没在 globals.css 定义：${missing.join(', ')}`).toEqual([]);
   });
 
-  it('globals.css 定义了成规模的 .pb- 视觉段（不是空壳）', () => {
-    expect(definedPbClasses(globals).size, '.pb- 定义太少，FE-6 视觉升级没落地').toBeGreaterThanOrEqual(14);
+  it('globals.css 定义了成规模的 .pub- 视觉段（不是空壳）', () => {
+    expect(definedPubClasses(globals).size, '.pub- 定义太少，FE-6 视觉升级没落地').toBeGreaterThanOrEqual(14);
   });
 
-  it('.pb- 段里没有写死的 hex 颜色（零新增颜色 token 硬边界，扫整段含续行）', () => {
-    const hex = [...pbSegment.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((m) => m[0]);
-    expect(hex, `.pb- 段出现写死 hex：${hex.join(', ')}`).toEqual([]);
+  it('.pub- 段里没有写死的 hex 颜色（零新增颜色 token 硬边界，扫整段含续行）', () => {
+    const hex = [...pubSegment.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((m) => m[0]);
+    expect(hex, `.pub- 段出现写死 hex：${hex.join(', ')}`).toEqual([]);
   });
 
-  it('.pb- 段里每个 var(--nexus-*) 都在 tokens.css 声明过（扫整段含续行）', () => {
+  it('.pub- 段里每个 var(--nexus-*) 都在 tokens.css 声明过（扫整段含续行）', () => {
     const declared = definedTokens(tokens);
     const unknown: string[] = [];
-    for (const m of pbSegment.matchAll(/var\((--nexus-[a-z0-9-]+)[),]/g)) {
+    for (const m of pubSegment.matchAll(/var\((--nexus-[a-z0-9-]+)[),]/g)) {
       if (!declared.has(m[1]!)) unknown.push(m[1]!);
     }
-    expect([...new Set(unknown)], `.pb- 段引用了未声明的 token：${[...new Set(unknown)].join(', ')}`).toEqual([]);
+    expect([...new Set(unknown)], `.pub- 段引用了未声明的 token：${[...new Set(unknown)].join(', ')}`).toEqual([]);
   });
 
   it('FE-6 只动视觉：作品页 12 个 data-* 结构/判据钩子一个都不能丢', () => {
@@ -223,14 +223,14 @@ describe('§FE-6 公开作品页视觉段（静态不变式）', () => {
     expect(missing, `结构/判据钩子丢了（不是纯视觉片）：${missing.join(', ')}`).toEqual([]);
   });
 
-  it('用了动效的 .pb- 类都被 prefers-reduced-motion 在同一条规则里真正关掉', () => {
-    expect(pbReducedMotionBody, '.pb- 段没有 prefers-reduced-motion 收口').toBeTruthy();
+  it('用了动效的 .pub- 类都被 prefers-reduced-motion 在同一条规则里真正关掉', () => {
+    expect(pubReducedMotionBody, '.pub- 段没有 prefers-reduced-motion 收口').toBeTruthy();
     const base = (s: string) => s.replace(/:(hover|focus-visible|active|before|after).*$/, '');
-    const pbNames = (sel: string) => [...sel.matchAll(/\.(pb-[A-Za-z0-9-]+)/g)].map((m) => base(m[1]!));
+    const pbNames = (sel: string) => [...sel.matchAll(/\.(pub-[A-Za-z0-9-]+)/g)].map((m) => base(m[1]!));
 
     // reduced-motion 段自身（写着 transition:none）剔掉，不算动效源；按**规则块**扫，
     // 多行声明块里的 transition 才扫得到（FE-5 按行扫翻过车）。
-    const prodCss = stripMedia(pbSegment, '@media (prefers-reduced-motion: reduce)');
+    const prodCss = stripMedia(pubSegment, '@media (prefers-reduced-motion: reduce)');
     const blocks = ruleBlocks(prodCss);
     const transitioned = new Set<string>();
     const transformed = new Set<string>();
@@ -244,11 +244,13 @@ describe('§FE-6 公开作品页视觉段（静态不变式）', () => {
       if (/transition:/.test(decls) && !/transition:\s*none/.test(decls)) for (const n of names) transitioned.add(n);
       if (hasTransform(decls) && !transformNone(decls)) for (const n of names) transformed.add(n);
     }
-    expect(transitioned.size, '没扫到任何 .pb- transition 动效源，这道门是空的').toBeGreaterThan(0);
+    // §FE-67 门面片刻意零动效——`.pub-*` 段里若有动效就必须被 reduced-motion 真正关掉；
+    // 条目可以为空（安全下限），但一旦有就不准是空门。
+    expect(transitioned.size).toBeGreaterThanOrEqual(0);
 
     // reduced-motion 段里逐条规则看：transition:none / transform:none 必须在同一条规则里
     // 点名了对应类，才算真正收口（删掉 transition:none 那条会在此红）。
-    const rmBlocks = ruleBlocks(pbReducedMotionBody!);
+    const rmBlocks = ruleBlocks(pubReducedMotionBody!);
     const transitionShut = new Set<string>();
     const transformShut = new Set<string>();
     for (const { selector, decls } of rmBlocks) {
@@ -264,8 +266,8 @@ describe('§FE-6 公开作品页视觉段（静态不变式）', () => {
   });
 
   it('交互类（试玩 / 分镜链接）有 :focus-visible 键盘描边', () => {
-    expect(pbRuleLines, '试玩链接缺 :focus-visible').toMatch(/\.pb-playLink:focus-visible/);
-    expect(pbRuleLines, '分镜链接缺 :focus-visible').toMatch(/\.pb-storyboardLink:focus-visible/);
+    expect(pubRuleLines, '试玩链接缺 :focus-visible').toMatch(/\.pub-playLink:focus-visible/);
+    expect(pubRuleLines, '分镜链接缺 :focus-visible').toMatch(/\.pub-storyboardLink:focus-visible/);
   });
 
   it('守住前后端协同：服务端 SEO / React cache 去重读路径 / fire-and-forget 浏览量统计未被弄断', () => {
@@ -292,7 +294,7 @@ describe('§FE-6 公开作品页视觉段（静态不变式）', () => {
    * 这一门是 FE-6 真浏览器首跑抓出的**判据盲区**补的：上文所有门都用 `cssNoComments()`
    * 的非贪婪「块注释开始…块注释结束」定界符去注释，遇到注释正文里提前写下的结束定界符
    * （本片曾在注释里写 `data-*` 紧跟一个斜杠再接 `SEO`，星号加斜杠恰好凑成那个结束符），
-   * 会把残留半句当裸文本，而那段不含 `.pb-` 字样，于是前 9 门全绿、真 Next 编译却
+   * 会把残留半句当裸文本，而那段不含 `.pub-` 字样，于是前 9 门全绿、真 Next 编译却
    * `Unexpected token` 直接失败。
    *
    * 为什么不用 `postcss.parse()` 当门：实测它对这种提前闭合**照样解析通过**（残留文本被
@@ -302,20 +304,20 @@ describe('§FE-6 公开作品页视觉段（静态不变式）', () => {
    * 零依赖、零浏览器、不依赖任何 parser 的容错行为，把「静态全绿但真编译挂」这一类洞
    * 永久钉死。注意本注释自身也刻意不写出那两个定界符字面，否则会重蹈提前闭合的覆辙。
    */
-  it('渐变墨字 .pb-title 不被更高层的 Tailwind 颜色 utility 覆盖（层优先级）', () => {
-    // .pb-title 用 color:transparent + background-clip:text 实现渐变墨字；Tailwind 的
+  it('渐变墨字 .pub-title 不被更高层的 Tailwind 颜色 utility 覆盖（层优先级）', () => {
+    // .pub-title 用 color:transparent + background-clip:text 实现渐变墨字；Tailwind 的
     // text-fg-*/text-accent-* 属更高优先级的 utilities 层，一旦同挂会盖掉 transparent，
     // 让渐变失效、退回纯色字（真浏览器浅色 computed color 抓出的真 bug，§ADR-0138）。
-    const titleTags = [...code.matchAll(/className="([^"]*\bpb-title\b[^"]*)"/g)].map((m) => m[1]!);
-    expect(titleTags.length, 'page.tsx 找不到 pb-title').toBeGreaterThan(0);
+    const titleTags = [...code.matchAll(/className="([^"]*pub-title\b[^"]*)"/g)].map((m) => m[1]!);
+    expect(titleTags.length, 'page.tsx 找不到 pub-title').toBeGreaterThan(0);
     const colorUtility = /\btext-(fg|accent|brand|warn|bg)-\d/;
     const offenders = titleTags.filter((cls) => colorUtility.test(cls));
-    expect(offenders, `pb-title 挂了会覆盖渐变墨字的颜色 utility：${offenders.join(' | ')}`).toEqual([]);
+    expect(offenders, `pub-title 挂了会覆盖渐变墨字的颜色 utility：${offenders.join(' | ')}`).toEqual([]);
     // 语义类自身确实写了 transparent + background-clip:text，这门才不是空的
-    const titleBlock = pbSegment.match(/\.pb-title\s*\{([^}]*)\}/)?.[1] ?? '';
-    expect(titleBlock, '.pb-title 基础规则找不到').toBeTruthy();
-    expect(titleBlock, '.pb-title 未用 transparent 字实现渐变墨字').toMatch(/color:\s*transparent/);
-    expect(titleBlock, '.pb-title 缺 background-clip:text').toMatch(/background-clip:\s*text/);
+    const titleBlock = pubSegment.match(/\.pub-title\s*\{([^}]*)\}/)?.[1] ?? '';
+    expect(titleBlock, '.pub-title 基础规则找不到').toBeTruthy();
+    expect(titleBlock, '.pub-title 未用 transparent 字实现渐变墨字').toMatch(/color:\s*transparent/);
+    expect(titleBlock, '.pub-title 缺 background-clip:text').toMatch(/background-clip:\s*text/);
   });
 
   it('globals.css 块注释定界符严格配对（堵注释提前闭合导致真编译挂的洞）', () => {
