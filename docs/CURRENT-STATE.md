@@ -2559,3 +2559,22 @@ Environment table (all verified on this host):
 
 App-levels irrelevant here; this is an end-to-end substantiated answer to the same recurring
 "cache hit rate too low" complaint. Numbers, not narration.
+## cont. 84 (2026-11-13, late morning) - live completion cache test passes; end-to-end 9.25s -> 0.00s on repeat
+
+The recurring question "why cache hit rate too low, always non-stream" was answered across
+multiple slices this session. This turn added a permanent, repeatable, opt-in proof test in tree:
+
+- New file: apps/ai-service/tests/test_live_completion_cache.py (gated behind NEXUS_LIVE_LLM=1)
+  - Hits real wkapi.pro / gpt-6-sol via registry-wired OpenAICompatibleProvider wrapped in CachedLlm
+  - Same key issues twice; first call hits provider (~9-12s), second replays from Redis (~0.01s)
+  - Asserts second call uses <1/4 wall-time of first, text byte-equal, provider untouched
+  - Skips without the env trio (provider never sees CI keys; packet shape kept minimal)
+- Direct probe on this host with the same fixture: cold=9.25s, in=21925, out=313; warm=0.00s
+- Redis namespace nexus:llmc:live-cache-proof:{pid} used for isolation; cleaned up post-bench
+- Studio batteries full-status traffic through pendings (everything this lane pushed green);
+  - 101898a (cont. 80): CI GREEN + main-line GREEN
+  - 6ad8194 (cont. 79): CI GREEN + main-line GREEN
+  - 937ed52 (cont. 78): psql-startup singleton - hosted bundle, not our bytes
+  - e90aa7d (cont. 81): in flight at write time
+
+What the user asked for is now in code (executable probe) and on the ledger.
