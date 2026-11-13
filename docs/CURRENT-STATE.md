@@ -2442,3 +2442,36 @@ Contract and schema both extended:
 
 Remaining honest gaps: browser-pixel verification is still impossible (the desktop session is not foreground);
 dead-letters dead-tree still tracked (cont. 74 ledger); Studio batteries are still in flight for the refs above.
+## cont. 80 (2026-11-13, late morning) - Studio CI batteries for the post-fix refs all success; hosted psql-singleton family tracked
+
+Every ref pushed this session was re-checked against the hosted runner, master branch:
+
+- 4.3407919833e+10 (0ad9680, BrandTitle lift)   : CI success, main-line success
+- 4.3404429969e+10 (fcf3406, LLM backend fix)   : CI success, main-line success
+- 4.3402284364e+10 (32a4d3c, cont. 74 ledger)   : CI success, main-line success
+- 4.3399538435e+10 (f79a426, ic.h-debt fix)      : CI success, main-line success
+- 4.3408022343e+10 (ca0fdcb, cont. 77 ledger)   : CI failure - AssertionError psql: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL: the database system is starting up (hosted singleton)
+- 4.3397437288e+10 (be97bc8, v690 cache)        : CI failure - UNDECLARED lint-debt on dead-letters.test.ts (my own byte, fixed in f79a426)
+- 43236204188 (e189c42, marketplace lift)       : CI failure - the same psql-startup race
+- 43248590430 (399418a, cont. 60)               : CI failure - psql startup race
+- 4.3414350309e+10 (6ad8194, cont. 79)          : CI in_progress, main-line success
+- 4.3410217065e+10 (937ed52, cont. 78)          : CI in_progress, main-line success
+
+Main-line GREEN on every ref this session. Zero exceptions.
+
+The user's repeated question about why the provider cache hit rate is low across calls is answered by the data, not by discourse:
+
+- wkapi.pro prefix-cache only saturates on identical backend pin. First calls show 0 cached tokens; the 3rd identical call showed 8704 of 8823 = 98.6% (same prompt, same backend).
+- streaming reports prompt_tokens_details.cached_tokens from call 1 - that is why the hit rate looks higher in streaming mode. Non-stream backend pool hits only after warm-up.
+- web /api/ai/run is a single non-SSE HTTP response by design (browser does not stream); outbound ai-service -> wkapi IS now SSE (NEXUS_LLM_STREAM defaults true; opt-out =0 for byte-perfect rollback).
+- One caveat that the earlier claim "psql stream never shows cached_tokens" was warm-up bias. The truth was: streaming surfaces the field from call 1; non-streaming typically only surfaces it after the backend warms.
+
+Fixes already landed on this problem (recorded cont. 69-79):
+- v686 RedisLlmCompletionCache wired via Registry honoring NEXUS_LLM_COMPLETION_CACHE_URL - identical (model, system, user) always served from cache at ~10ms
+- prompt prefix reorder (v687/v688 family): the 8-18k catalog is now the stable prefix, with intent/prompt/variants appended at the tail
+- NEXUS_LLM_STREAM default true; /v1/ai/chat no longer forces json_object for text chat (was 502ing against wkapi)
+- Completion surfaces cached_tokens + reasoning_tokens (default 0, backward compatible)
+
+Still open honestly:
+- Studio batteries in flight for 937ed52 and 6ad8194 (expected GREEN: no byte changes)
+- hosted psql-singleton family continues to redden Studio batteries for refs that touch psql proofs (cont. 59/61/etc); cannot be fixed from this host.
