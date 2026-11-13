@@ -48,8 +48,12 @@ function toLiteral(v: number[]): string {
 
 const percentiles = (xs: number[]) => {
   const s = [...xs].sort((a, b) => a - b);
-  const pick = (p: number) => s[Math.min(s.length - 1, Math.floor((p / 100) * (s.length - 1)))];
-  return { p50: pick(50), p95: pick(95), max: s[s.length - 1]! };
+  const pick = (p: number): number => {
+    const v = s[Math.min(s.length - 1, Math.floor((p / 100) * (s.length - 1)))];
+    return v ?? 0;
+  };
+  const max = s[s.length - 1] ?? 0;
+  return { p50: pick(50), p95: pick(95), max };
 };
 
 async function benchOne(sql: postgres.Sql, rows: number) {
@@ -74,8 +78,9 @@ async function benchOne(sql: postgres.Sql, rows: number) {
   const buildStart = Date.now();
   await sql.unsafe(`CREATE INDEX ${table}_hnsw ON ${table} USING hnsw (embedding vector_cosine_ops)`);
   const buildMs = Date.now() - buildStart;
-  const [{ size_bytes }] = await sql`SELECT pg_relation_size((${table} || '_hnsw')::regclass)::bigint AS size_bytes`;
-  console.log(`HNSW build ${(buildMs / 1000).toFixed(1)}s · index size ${(Number(size_bytes) / 1024 / 1024).toFixed(1)} MiB`);
+  const sizeRow = (await sql`SELECT pg_relation_size((${table} || '_hnsw')::regclass)::bigint AS size_bytes`)[0] as { size_bytes?: string } | undefined;
+  const sizeBytes = Number(sizeRow?.size_bytes ?? 0);
+  console.log(`HNSW build ${(buildMs / 1000).toFixed(1)}s · index size ${(sizeBytes / 1024 / 1024).toFixed(1)} MiB`);
 
   // 50 distinct random probes
   const latencies: number[] = [];
@@ -104,7 +109,7 @@ async function benchOne(sql: postgres.Sql, rows: number) {
 
   await sql.unsafe(`DROP TABLE IF EXISTS ${table}`);
 
-  return { rows, insertMs, buildMs, indexBytes: Number(size_bytes), ann: { p50, p95, max }, seqScan: { p50: seq.p50, max: seq.max } };
+  return { rows, insertMs, buildMs, indexBytes: sizeBytes, ann: { p50, p95, max }, seqScan: { p50: seq.p50, max: seq.max } };
 }
 
 async function main() {

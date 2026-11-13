@@ -671,11 +671,16 @@ warm 方向奶油字压亮橙 3.35:1、cyber 的 light 模式是深底配深字 
   四类都能记、能列、能单条删、能按类清空；**没有"全部抹掉"的入口，也没有搜索框**（检索要 embedding，§49）。
 - [~] pgvector RAG：hybrid retrieval + rerank（§49/93）— 语料索引（世界条目/角色档案/记忆 →
   `knowledge_chunks`）+ 混合检索（tsvector 全文 + 子串 + 词覆盖度的确定性融合）**已落地并跑通
-  真库集成测试**，见下方进度记录。**两件事没做，也不假装做了**：① embedding 列没有 provider 时
+  真库集成测试**，见下方进度记录。**2026-11-13 补了 wire-level 实测**（`scripts/pgvector-wire-bench.mts` →
+  `docs/evidence/pgvector-wire-bench-2026-11-13.md`）：HNSW/vector_cosine_ops 在本机 pgvector 0.8.6 上，
+  10k/30k 行 `vector(1536)` 分别索引 78/234 MiB、top-20 ANN p50 = **5.3/8.0 ms**（Seq Scan 对照 57/217 ms，
+  ~11×/~27×）；Postgres 自报 WARN `maintenance_work_mem=64MB` 不足以高效为 1536 维 HNSW 建图
+  （`hnsw graph no longer fits after 9755 tuples`）→ 生产应设 ≥1GB。
+  **两件事没做，也不假装做了**：① embedding 列没有 provider 时
   保持 null、返回 `vectorAvailable: false`，所以**没有语义检索**——pgvector 的 HNSW 索引和
   `vector` 列都在库里，只等真实 embedding provider 写入；② §49 的 "Reranking" 要真模型，
   现在给的是**规则重排**（融合分数 + 新近），不是模型重排。所以此处仍是 `[~]`：
-  做的那一半已验证，没做的那一半要真 provider。
+  做的那一半已验证、wire 判据也量了，没做的那一半要真 provider。
 
 **M3 进度记录（2026-09-23，World Builder 第一切片，§44）**：新开一个纯模型包
 `packages/world-model`（与 design-model 同一条纪律：无 React / 无 IO，浏览器与服务端跑同一份校验）。
