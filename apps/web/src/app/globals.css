@@ -2510,6 +2510,23 @@
   .pk-note12 { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); }
   .pk-hint { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
   .pk-hint2 { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+
+  /* ── §FE-99 / ADR-0252 `play/StoryPlay.tsx` `.st-` 门面化——§54 互动叙事的运行时 chrome ──
+   * "这一段开不了场"照实说；note 原字回放——不动。 */
+  .st-card { border-radius: var(--nexus-radius-lg); border: 1px solid var(--nexus-color-border-subtle); padding: var(--nexus-space-4); }
+  .st-hudRow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .st-restartBtn { border: none; background: transparent; padding: 2px var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: inherit; text-decoration: underline; cursor: pointer; }
+  .st-title { font-size: var(--nexus-font-size-21); font-weight: 600; color: var(--nexus-color-fg-1); }
+  .st-warnNote { font-size: var(--nexus-font-size-11); color: var(--nexus-color-warn); }
+  .st-emptyNote { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .st-body { margin-top: var(--nexus-space-2); white-space: pre-wrap; font-size: var(--nexus-font-size-13); line-height: 1.5rem; }
+  .st-choices { margin-top: var(--nexus-space-3); display: flex; flex-direction: column; gap: 6px; }
+  .st-choiceBtn { border-radius: var(--nexus-radius-sm); border: 1px solid var(--nexus-color-border-subtle); background: transparent; padding: 6px var(--nexus-space-3); text-align: left; font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); cursor: pointer; }
+  .st-choiceBtn:hover { border-color: var(--nexus-color-border-strong); }
+  .st-endingNote { margin-top: var(--nexus-space-3); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+  .st-summary { cursor: pointer; }
+  .st-notesList { margin-top: var(--nexus-space-1); padding-left: var(--nexus-space-4); display: flex; flex-direction: column; gap: var(--nexus-space-1); list-style: none; }
+  .st-bullet { list-style: disc; }
   /* §FE-93 复用 FE-87/FE-92 断言：给 adp-btnSm 补回禁用态——FE-92 的 open 按钮从不 disabled，故不改变其渲染。 */
   .adp-btnSm:disabled { opacity: 0.4; cursor: not-allowed; }
 
