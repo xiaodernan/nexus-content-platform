@@ -1524,3 +1524,26 @@ ADR-0074 把默认选档做成"有断点规则的页面铺四份投影、媒体�
 
 两个压测项目留在库里：`c87908ad-084e-4cef-accd-4765c3c8eb98`、`f6992658-ed23-4f96-a3b5-a8ca91fc80df`（要清理就删）。
 此轮是一次测量件，不用于裁决"要不要废掉增量"——要裁决，需要**模型层的复跑 + 多会话均值观测**，两件都没有做，记在案。
+
+
+## 2026-11-13（续）：JavaScript 热点 + prompt caching + pgvector 三件实测
+
+本条只补上 2026-11-13 当天真跑到的三根线，全部可复核、全部没有动 hot path，全部是一份读数的下限，不是宣告。
+
+**1. 设计模型热路径：100 / 1,000 / 10,000 节点（实测 `scripts/perf-baseline.mts`，本机 i5-12500H）**
+- 10,000 节点：resolveLayout 210.4 ms · validateDocument 133.6 ms · lintDesign 449.4 ms · analyzeHealth 387.6 ms · generateProject 148.4 ms · buildDesignIndex 64.1 ms · buildCodeIndex 265.3 ms · execute+undo 203.3 ms · diffDocuments 109.5 ms
+- 存于 `evidence/perf-baseline/2026-11-13-nodes-baseline.md`；lintDesign 是当前最贵的一条（~450 ms，O(N)，不是 hot-path rewrite，只记录不改）。
+
+**2. LLM 调用：prompt_cache_key 接通（§AILIVE-4）**
+- 无 hint 时 wkapi.pro 的 usage 不携带 prompt caching 字段；
+- 接上 `prompt_cache_key=nexus-studio` 后，同 payload 第二次起测得 cached_tokens=6272/6449（~97.2%）（直接 provider 路径）
+  · 完整 /v1/ai/run HTTP 路径再证：cold 0 → warm 6272/6413（~97.8%）；3200 现场 instance 用 patched 代码重起，两次请求均 6272/6413
+- 延迟未见显著改善（上游 jitter 主导）；成本收益归网关折扣规则，不编造。
+- 详见 ADR-0261、`evidence/ailive-4-cache-2026-11-13.md`
+
+**3. pgvector 语料索引：vector(1536) + HNSW cosine（pgvector 0.8.6，本机 Postgres 55433）**
+- 10k / 30k 行（synthetic random vector，目的不在语义读数）：HNSW 索引 78 / 234 MiB；top-20 ANN p50 = 5.3 / 8.0 ms（~11× / ~27× 对照 Seq Scan 57 / 217 ms）
+- `maintenance_work_mem=64MB` 不足以如实建 1536 维 HNSW 图（数据库自报 WARN）——生产建议 ≥ 1GB
+- 详见 `evidence/pgvector-wire-bench-2026-11-13.md`
+
+**边界**：三件都是本机一次实测；proof-of-concept 不超三件；本次没有任何 hot path 重写。未 push。
