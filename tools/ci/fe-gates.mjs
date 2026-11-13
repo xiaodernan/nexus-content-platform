@@ -30,6 +30,15 @@ if (files.length === 0) {
   console.error('fe-gates: no *-visual-style.test.ts found under apps/web/test');
   process.exit(1);
 }
+// §FE-CENSUS: globals.css 零引用门面类一毙一利（FE-6 死类清扫记账此门日后防回潮，tools/ci/facade-census.mjs）
+const census = spawnSync(process.execPath, ['tools/ci/facade-census.mjs'], {
+  cwd: root,
+  stdio: 'inherit',
+});
+if (census.status !== 0) {
+  console.error('fe-gates: verify:census failed — globals.css 有零引用的门面类（详见上方列表）');
+  process.exit(1);
+}
 console.log(`fe-gates: ${files.length} visual-style suites`);
 const result = spawnSync('npx', ['vitest', 'run', '--reporter=dot', ...files], {
   cwd: root,
