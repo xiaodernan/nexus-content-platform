@@ -54,9 +54,9 @@ describe('§FE-About /about-nexus 品牌页', () => {
     expect(code).not.toMatch(/from '@\/server/);
     expect(code).toContain('BrandTitle');
     expect(code).toContain('/discover');
-    expect(code).toContain('<StepTag tag=');
-    expect(code).toMatch(/no="01"[\s\S]*no="02"[\s\S]*no="03"/);
-    expect(code).toContain('NumberRow');
+    expect(code).toMatch(/<StepTag[^>]*\btag=/);
+    expect(code).toMatch(/no:\s*'01'[\s\S]*no:\s*'02'[\s\S]*no:\s*'03'/);
+    expect(code).toContain('ab-numberRow');
   });
 
   it('字面 className 只认 ab-/ash-/am-/adm- 族', () => {
@@ -105,7 +105,7 @@ describe('§FE-About /about-nexus 品牌页', () => {
 
   it('SHA256 钉死（本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '17d403100f1710f124c1df7f2cd116084a10b478fae25d998b3f6b12933b47cc',
+      '882ec1e7554a51de398c309e418310a9fdbba162deb94f28df8036dd9884afd4',
     );
   });
 });

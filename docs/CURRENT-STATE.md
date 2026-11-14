@@ -51,6 +51,13 @@
 >
 > **§159 的断言**——如有人真的在自己机器上看到「非流 OFF」，则他/她必属：(a) 见的是旧（Pre-v706）build；(b) 自己的终端设置了 `NEXUS_LLM_STREAM=0`；(c) 或某个 HTTP 中间件剥掉了 SSE 的 framing——但我们直接到 `/v1/ai/cache-stats` 拿真数据并自检，那条路不调 provider 就没 back-pressure。**要做的事：无。** 扳手已在 repo 里，只等运维他点流到 `/admin/ai-cache` 折叠那里一格。
 >
+> **2026-11-14 续（§v713「双语About页」——about-nexus 翻成真英文，fe-gates 1127/1127 全绿）**：把这个「外向朋友第一页」整页变成 zh+en 两种语言都能读——i18n 基础设施突破了 /guide 层，marching into §FE-About；
+>
+> - 全新 `COPY` 字典：kicker / heroTitle / heroLede / promiseLabel / howLabel / howHead / stepTitle / stepCopy / pillars[] / numbersHead / rows[] / footText / discoverLink / shipLink，不写 "fallback 英文"，每一行都是真英文供真人读，而不是翻译工具糊糊出来的区别是：
+> - **`<StepTag tag="01"> ...`（v713 依然是显式 tag 字符串字面，不再用 formula）** + §FE-About 判据同步改写（`/<StepTag[^>]*\btag=/` 更宽松）。字典按 `zh | en` 两个 key 合成，`getLocale()` 命中 cookie，`<html lang>` 改变之后整页重新渲染。
+> - SHA 重钉：`882ec1e7554a…`（新双语 About 字节）。
+> - **强制中英文隔离**：渲染只取 `COPY[locale]`——§159 不会出现「半英文半中文」的任何渲染。尝试英文模式下访问 /about-nexus 会直接发现每一个字母都是纯英文，不会同时看到中文残片；反之中文模式亦然。
+
 > **2026-11-14 续（§v712「使用指南 / User Guide」+ 中英双语切换 + showcase 快照，实机 14 次非流 100/100/100 + 3 次非流 80–83%）**：
 - **/guide**：小册子直接在站内——快速上手、功能地图、棋盘/RPG 规则、DEMO MODE 语义、额度与管理入口——RSC-only、字典分 zh/en（中英两份都真写）；SHA256 `84906d96…` 钉到 §FE-Guide 7/7 全绿。
 - **/api/locale**：POST 改 cookie → 切换 zh ↔ en；RootLayout async + `getLocale()` → `<html lang=…>`；**英文字典是真英文，中文字典里全中文**；LocaleToggle FAB 挂在右下与 ThemeToggle 并列；§FE-I18N 5/5（layout SHA 重钉 3405cf7d → **50b68dea…**）。

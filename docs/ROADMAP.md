@@ -13802,6 +13802,16 @@ shadow-[0_0_...]），按 §FE 判据不可带入主线。本线做的：
   hub-selected detail panel with voice/desires/fears/relationships); two-way relationship
   merge labels render on the canvas.
 - Studio world panel gains a "character star map" entry button next to the 3D walkthrough.
+## v713 - §FE-About 双语化 —— /about-nexus 从单语变 zh+en（2026-11-14, v712 i18n 的实效扩展）
+
+- `apps/web/src/app/about-nexus/page.tsx` 重写为 COPY 字典（zh/en 两套完整文案——正则、项目清单、链接文案、ledes、
+  pillars、numbers 全量），不机翻：英文按英语本族语者规格直接写——`A factory, not merely a finished piece`、`numbers with receipts (not `checked` bullets)`、
+  中文沿着真中文原文。`getLocale()` 驱动渲染，空 `<html lang>` 随 RootLayout 分发；
+- 数字 row 的 "80–100%" 文字作为英文同样出现，不出现不必要的"the 80-100%" 分裂渲染。
+- §FE-About gate 同步更新：`StepTag tag=` 字字面断言放宽为 `/\btag=/` pattern；`NumberRow` 改钉
+  `ab-numberRow`；`no=` literal 模式补 `\b`（`no:\s*'01'`）； SHA 重钉 `882ec1e7554a…`。
+- 前置口径：§159 的强制隔离——两语言永远全量、不相混。英文模式下进这一页你会看到 100% 英文。
+
 ## v712 - /guide 用户指南 + 全站中英双语切换 + showcase 快照（2026-11-14, ADR-0265 era）
 
 - NEW page `apps/web/src/app/guide/page.tsx`（RSC, force-dynamic, bilingual dictionary zh/en）：
