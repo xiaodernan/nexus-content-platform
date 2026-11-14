@@ -22,7 +22,7 @@ const VIEWPORTS: { id: ViewportMode; label: string; hint: string }[] = [
 ];
 
 /** §4 顶栏：Project · File · Preview · Share · Publish + 撤销/重做 + 保存状态 + viewport 切换 */
-export function TopBar({ onOpenRail }: { onOpenRail: () => void }) {
+export function TopBar({ onOpenRail, credits = null }: { onOpenRail: () => void; credits?: { ai: number; grant: number; plan: string } | null }) {
   // §147 选中响应：顶栏只关心文档名 / 保存状态 / 视口 / 主题 mode，这些在选中时都不变。
   // 用选式子订阅，选中（commit 换了整快照对象）不再把顶栏也拖着重渲染。
   const { documentName, saveState, saveError, dirty, savedAt, canUndo, canRedo, undoLabel, redoLabel, viewport, activeMode, projectId, modes, grid } =
@@ -113,6 +113,7 @@ export function TopBar({ onOpenRail }: { onOpenRail: () => void }) {
       </div>
 
       <div className="ml-auto flex items-center gap-[var(--nexus-space-2)]">
+        {credits ? <CreditChip credits={credits} /> : null}
         <span className={cn('font-mono text-12', saveState === 'error' ? 'text-danger-ink' : 'text-fg-3')} data-save-state>
           {saveLabel}
         </span>
@@ -178,5 +179,43 @@ function TopButton(props: { label: string; shortcut?: string; disabled?: boolean
     >
       {props.label}
     </button>
+  );
+}
+
+/**
+ * 顶栏 AI 额度芯片（v703）：让"这次编辑还够不够 AI"在余光里可见。
+ * - 余额由服务端 page 直读（`readCredits`），null = 读不到就整片不渲染（§3 不猜）；
+ * - 低额度（<15%）变琥珀辉光、零时变红，提醒的是"再点就要不到额度"，不是吓人；
+ * - 纯 CSS 宽条过渡，无 JS 动画；做的是一跳到 /credits 的入口，不在这里扣款。
+ */
+function CreditChip({ credits }: { credits: { ai: number; grant: number; plan: string } }) {
+  const grant = Math.max(0, credits.grant);
+  const balance = Math.max(0, credits.ai);
+  const pct = grant > 0 ? Math.min(100, Math.max(0, Math.round((balance / grant) * 100))) : 0;
+  const tone =
+    balance === 0
+      ? 'border-danger-ink/60 text-danger-ink'
+      : pct < 15
+        ? 'border-warn/60 text-warn-ink'
+        : 'border-[var(--nexus-color-brand)]/40 text-accent-2-ink';
+  const fill =
+    balance === 0
+      ? 'bg-danger-ink'
+      : pct < 15
+        ? 'bg-warn'
+        : 'bg-gradient-to-r from-[var(--nexus-color-brand)] via-[var(--nexus-color-accent-1)] to-[var(--nexus-color-accent-2)]';
+  return (
+    <a
+      href="/credits"
+      title={`AI 额度 ${balance}/${grant}（${credits.plan} 档）· 点开 /credits 看燃烧速度`}
+      data-credit-chip={balance}
+      className={cn('flex min-h-7 items-center gap-1.5 rounded-full border px-2.5 py-1 text-11', tone)}
+    >
+      <span className="text-fg-4">AI</span>
+      <span className="font-mono tabular-nums">{balance}<span className="text-fg-4">/{grant}</span></span>
+      <span className="h-1 w-8 overflow-hidden rounded-full bg-[var(--nexus-color-border-subtle)]" aria-hidden="true">
+        <span className={cn('block h-full rounded-full transition-[width] duration-700', fill)} style={{ width: `${pct}%` }} />
+      </span>
+    </a>
   );
 }

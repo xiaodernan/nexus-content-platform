@@ -4,6 +4,8 @@ import { isDemoMode } from '@/lib/env';
 import { requireUser } from '@/server/domain/session';
 import { loadDocument } from '@/server/domain/projects';
 import { projectWriteAccess } from '@/server/domain/team';
+import { PLAN_MONTHLY_GRANTS } from '@/server/domain/credits';
+import { readCredits } from '@/server/domain/credit-ledger';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,12 +34,22 @@ export default async function StudioPage({ params }: Props) {
   // 读失败按"没有文档"处理：`studio.load()` 那条客户端老路照旧能救场（§159 不装作读过）。
   const ssrDocument = process.env.NEXUS_STUDIO_SSR_DOCUMENT !== '0';
   const documentPromise = ssrDocument ? loadDocument(projectId).catch(() => null) : null;
+  // 首屏那一份额度给顶栏芯片：直读（失败 → 芯片不渲染，§3 不猜）。readCredits 内部只
+  // 按月幂等发放一次——与 /credits 页同一条语义，不会在这里多发。
+  let credits: { ai: number; grant: number; plan: string } | null;
+  try {
+    const view = await readCredits(user.id);
+    credits = { ai: view.balances.ai, grant: PLAN_MONTHLY_GRANTS[view.plan].ai, plan: view.plan };
+  } catch {
+    credits = null;
+  }
   return (
     <StudioShell
       projectId={projectId}
       demoMode={await isDemoMode()}
       readOnly={access === 'read_only'}
       documentPromise={documentPromise ?? undefined}
+      credits={credits}
     />
   );
 }

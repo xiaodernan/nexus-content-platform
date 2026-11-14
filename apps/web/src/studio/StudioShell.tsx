@@ -121,6 +121,7 @@ export function StudioShell({
   demoMode,
   readOnly,
   documentPromise,
+  credits = null,
 }: {
   projectId: string;
   demoMode: boolean;
@@ -136,6 +137,8 @@ export function StudioShell({
    * 解开它。没有它（构建开关关掉 SSR 文档）就走原来的"水合后再 fetch"。
    */
   documentPromise?: Promise<DesignDocument | null>;
+  /** v703 顶栏额度芯片：服务端 page 直读；读不到 = 不渲染（§3） */
+  credits?: { ai: number; grant: number; plan: string } | null;
 }) {
   // §147 选中响应：外壳只关心 ready / loadError / zoom，这些在选中时不变。
   // 用选式子订阅，选中（整快照对象被换掉）不再把整个工作区子树拖着重渲染。
@@ -187,7 +190,7 @@ export function StudioShell({
       ) : null}
       {ready ? (
         <Profiler id="workspace" onRender={recordWorkspaceRender}>
-          <StudioWorkspace zoom={zoom} demoMode={demoMode} />
+          <StudioWorkspace zoom={zoom} demoMode={demoMode} credits={credits} />
         </Profiler>
       ) : (
         <p className="m-auto font-mono text-13 text-fg-3" data-studio-status>
@@ -199,7 +202,7 @@ export function StudioShell({
 }
 
 /** 只在 load 完成后挂载：子组件因此可以假定 document / page / layout 存在 */
-function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }) {
+function StudioWorkspace({ zoom, demoMode, credits = null }: { zoom: number; demoMode: boolean; credits?: { ai: number; grant: number; plan: string } | null }) {
   const [tab, setTab] = useState<PanelTab>('layers');
   const [view, setView] = useState<WorkspaceView>('canvas');
   // §85 第二十七片：390 下 264px 的左栏把画布压到 82px——窄视口默认收起，
@@ -222,7 +225,7 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
   return (
     <>
       <Profiler id="topbar" onRender={recordRender('topbar')}>
-        <TopBar onOpenRail={() => setRailOpen((v) => !v)} />
+        <TopBar onOpenRail={() => setRailOpen((v) => !v)} credits={credits} />
       </Profiler>
       <div className="relative flex min-h-0 flex-1">
         <nav className="flex w-[44px] shrink-0 flex-col items-center gap-1 border-r border-[var(--nexus-color-border-subtle)] bg-bg-1 py-[var(--nexus-space-2)]">

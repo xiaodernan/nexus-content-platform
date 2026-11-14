@@ -2742,3 +2742,14 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - CI for 7fb3c91 / 846dec5 / 95dbf12 still in_progress at record time; do not claim green.
 - Instances up: 3101 web, 3200 ai-service (this lane's); sibling 3100/3200 observed refused at
   record time; host keeps rebooting; Docker Desktop relaunch remains manual recovery.
+## cont. 95 (2026-11-14) - v703 landed: Studio TopBar AI credit chip
+
+- The Studio top bar now shows the fixture account's live AI credits: 97/100 visible in the
+  screenshot, honest to the point count (3 real AI calls this session really deducted 3 points).
+- Server-read from the ledger (readCredits, idempotent monthly grant); read failure -> chip hidden,
+  never a fake number. Links to /credits where the burn-rate card lives.
+- Incidents this turn: Docker Desktop went down again mid-verification (third outage this host) -
+  relaunched; nexus-postgres/redis recovered; sibling 3100/3200 remain the watchdog's affair;
+  our instances: 3101 web + 3200 ai-service serving after relaunch.
+- CI at record time: 846dec5 both SUCCESS; 95dbf12 + 7fb3c91 main-line SUCCESS / CI queued;
+  4d67a2b queued. Do not claim green until runners complete.

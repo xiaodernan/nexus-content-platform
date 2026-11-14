@@ -12039,3 +12039,14 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   leads with 20,842 cached / 28,240 tin / 74% / 1 project / 3 turns; tin=0 users show "-" rate.
   Browser-proven (playwright + SQL-promoted admin fixture); screenshot in the turn report.
 - tsc 0, eslint 0 (direct), unit 7/7 unchanged; no other files touched.
+## v703 - Studio TopBar shows a live AI credit chip (2026-11-14)
+
+- New glanceable chip in the Studio top bar: "AI <balance>/<grant>" with a mini gradient bar;
+  link to /credits. "97/100" on the fixture account that made 3 real gpt-6-sol calls - the number
+  is the live ledger, not a placeholder.
+- Server-read via readCredits() in the studio page (same idempotent-grant semantics as /credits);
+  read failure -> chip does not render (sec. 3). Tone: balance=0 -> danger, <15% -> amber, else brand.
+  Pure CSS width transition; no client JS beyond cn(); reduced-motion safe by construction.
+- Verification: browser E2E (playwright, fixture account): register/login -> studio -> chip visible
+  with real values; screenshot in turn report. tsc 0, direct eslint 0.
+- threading: page (server) -> StudioShell (credits prop) -> StudioWorkspace -> TopBar -> CreditChip.
