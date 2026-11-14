@@ -9,6 +9,7 @@ import {
   type CodeEditSummary,
 } from '@nexus/creative-model';
 import { cn } from '@/lib/cn';
+import type { Locale } from '@/lib/i18n';
 import { studio, useStudioReady } from './store';
 
 /** 反向解析要用与生成一致的前缀和 token 表，否则 var(--nx-…) 回不到 {color.*} */
@@ -19,12 +20,60 @@ interface ApplyReport extends CodeEditSummary {
   issues: string[];
 }
 
+const COPY = {
+  zh: {
+    empty: '还没有页面可以生成代码。',
+    copy: '复制',
+    applyToModel: '应用到模型',
+    cancel: '取消',
+    editCode: '编辑代码',
+    issueLine: (line: number, message: string) => `第 ${line} 行：${message}`,
+    undoLabel: '代码编辑',
+    appliedTo: (applied: number) => `已回写 ${applied} 处（Ctrl+Z 整体撤销）：`,
+    noChanges: '没有可回写的改动。',
+    unmappedLine: (line: number, name: string, reasons: string) =>
+      `第 ${line} 行 ${name}：${reasons} —— 保留为 code-only 区域，下一次生成会被设计模型覆盖（§19）`,
+    unmappedJoin: '；',
+    pathsJoin: '、',
+    hintEditing:
+      '代码 → 设计模型：应用后这里会列出哪些改动回了模型、哪些解析不了（§19）。改标签、加删节点、重排属于结构性变更，请在画布或图层树完成。',
+    hintEditable:
+      '画布、代码与预览是同一份设计模型的投影：选中的元素在这里定位到自己那一行（§16）。点「编辑代码」可把改动写回模型（§19）。',
+    hintReadonly:
+      '这份文件由设计模型单向生成：只有当前页面的组件能反向映射回模型（§19）。',
+  },
+  en: {
+    empty: 'No page to generate code for yet.',
+    copy: 'Copy',
+    applyToModel: 'Apply to model',
+    cancel: 'Cancel',
+    editCode: 'Edit code',
+    issueLine: (line: number, message: string) => `Line ${line}: ${message}`,
+    undoLabel: 'Code edit',
+    appliedTo: (applied: number) => `Wrote back ${applied} ${applied === 1 ? 'change' : 'changes'} (Ctrl+Z undoes the whole transaction):`,
+    noChanges: 'No changes to write back.',
+    unmappedLine: (line: number, name: string, reasons: string) =>
+      `Line ${line} ${name}: ${reasons} — kept as a code-only region, the next generate will overwrite it (§19)`,
+    unmappedJoin: '; ',
+    pathsJoin: ', ',
+    hintEditing:
+      'Code → design model: after applying, this lists which changes wrote back and which could not be parsed (§19). Changing tags, adding/removing nodes and reordering are structural changes — do them in the canvas or the layers tree.',
+    hintEditable:
+      'Canvas, code and preview are projections of the same design model: a selected element is located to its line here (§16). “Edit code” writes changes back into the model (§19).',
+    hintReadonly:
+      'This file is generated one way from the design model: only the current page’s component maps back onto the model (§19).',
+  },
+} as const;
+
 /**
  * §19 Code 视图：画布旁边的第二块投影，并且可以反向编辑。
  * 页面组件经受限 JSX 解析器回到设计模型（一次应用 = 一个可撤销事务），再由模型重新投影；
  * 解析器吃不下的片段如实报告，不回写、也不假装回写成功（§159）。
+ * 双语（v737）：locale 由 StudioShell 透传；zh 原文原样保留，en 逐句对应。
+ * 解析器报文（§19 反向映射）仍是中文——§46 错误语面英文化独立立片，本片不伪造翻译。
  */
-export function CodePanel() {
+export function CodePanel({ locale = 'zh' }: { locale?: Locale }) {
+  const c = COPY[locale];
   const state = useStudioReady();
   const files = useMemo(
     () => generateProject(state.document, { mode: state.activeMode }),
@@ -61,7 +110,7 @@ export function CodePanel() {
   if (!active) {
     return (
       <p className="cd-empty" data-code-empty>
-        还没有页面可以生成代码。
+        {c.empty}
       </p>
     );
   }
@@ -80,13 +129,13 @@ export function CodePanel() {
       tokens: state.document.tokens,
       mode: state.activeMode,
     });
-    const issues = result.issues.map((issue) => `第 ${issue.line} 行：${issue.message}`);
+    const issues = result.issues.map((issue) => c.issueLine(issue.line, issue.message));
     if (!result.mappings.length) {
       // 连根元素都对不上：一行都不回写，代码留在编辑器里等用户改（§159 不静默丢弃）
       setReport({ changed: [], unmapped: [], applied: 0, issues });
       return;
     }
-    if (result.ops.length) studio.execute('代码编辑', result.ops);
+    if (result.ops.length) studio.execute(c.undoLabel, result.ops);
     setReport({
       ...summarizeCodeEdit(result, changedNodeIds(active.contents, draft)),
       applied: result.ops.length,
@@ -125,7 +174,7 @@ export function CodePanel() {
           className="cd-ghost cd-pushEnd"
           data-code-copy
         >
-          复制
+          {c.copy}
         </button>
         {editable &&
           (editing ? (
@@ -137,7 +186,7 @@ export function CodePanel() {
                 data-code-apply
                 className={cn('cd-apply', draft === active.contents && 'cd-applyIdle')}
               >
-                应用到模型
+                {c.applyToModel}
               </button>
               <button
                 type="button"
@@ -145,7 +194,7 @@ export function CodePanel() {
                 data-code-cancel
                 className="cd-ghost"
               >
-                取消
+                {c.cancel}
               </button>
             </>
           ) : (
@@ -158,7 +207,7 @@ export function CodePanel() {
               data-code-edit
               className="cd-ghost"
             >
-              编辑代码
+              {c.editCode}
             </button>
           ))}
       </div>
@@ -198,27 +247,26 @@ export function CodePanel() {
         >
           {report.applied ? (
             <p className="am-lede" data-code-report-applied>
-              已回写 {report.applied} 处（Ctrl+Z 整体撤销）：
+              {c.appliedTo(report.applied)}
               {report.changed.map((entry) => (
                 <span
                   key={`${entry.nodeName}:${entry.line}`}
                   className="cd-changeName"
                 >
-                  {entry.nodeName} → {entry.paths.join('、')}
+                  {entry.nodeName} → {entry.paths.join(c.pathsJoin)}
                 </span>
               ))}
             </p>
           ) : (
             <p className="cd-appliedNone" data-code-report-applied>
-              没有可回写的改动。
+              {c.noChanges}
             </p>
           )}
           {report.unmapped.length > 0 && (
             <ul className="cd-warn" data-code-report-unmapped>
               {report.unmapped.map((entry) => (
                 <li key={`${entry.nodeName}:${entry.line}`}>
-                  第 {entry.line} 行 {entry.nodeName}：{entry.reasons.join('；')} ——
-                  保留为 code-only 区域，下一次生成会被设计模型覆盖（§19）
+                  {c.unmappedLine(entry.line, entry.nodeName, entry.reasons.join(c.unmappedJoin))}
                 </li>
               ))}
             </ul>
@@ -238,10 +286,10 @@ export function CodePanel() {
         data-code-hint
       >
         {editing
-          ? '代码 → 设计模型：应用后这里会列出哪些改动回了模型、哪些解析不了（§19）。改标签、加删节点、重排属于结构性变更，请在画布或图层树完成。'
+          ? c.hintEditing
           : editable
-            ? '画布、代码与预览是同一份设计模型的投影：选中的元素在这里定位到自己那一行（§16）。点「编辑代码」可把改动写回模型（§19）。'
-            : '这份文件由设计模型单向生成：只有当前页面的组件能反向映射回模型（§19）。'}
+            ? c.hintEditable
+            : c.hintReadonly}
       </p>
     </div>
   );

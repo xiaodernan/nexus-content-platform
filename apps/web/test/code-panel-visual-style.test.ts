@@ -76,8 +76,9 @@ describe('§FE-39 /studio CodePanel Code 视图', () => {
     expect(code).toContain('codeToPageOps(');
     expect(code).toContain('studio.execute(');
     expect(code).toContain('generateProject(');
-    // 一次应用 = 一个可撤销事务（§19/150）
-    expect(code).toContain("studio.execute('代码编辑', result.ops)");
+    // 一次应用 = 一个可撤销事务（§19/150）；v737 起撤销标签随 locale（zh 原样保留）
+    expect(code).toContain('studio.execute(c.undoLabel, result.ops)');
+    expect(main).toContain("undoLabel: '代码编辑'");
     // 连根元素都对不上：一行都不回写、issues 如实上屏（§159）
     expect(code).toContain('!result.mappings.length');
   });
@@ -172,9 +173,9 @@ describe('§FE-39 /studio CodePanel Code 视图', () => {
     expect(segment).not.toContain('@keyframes');
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：70a1a8b2f886145b8aea070e0ce6a11ba4e59875a6d88cabbbd01bc939f4c342）', () => {
+  it('剥 className 后全文 SHA256 守恒（2026-11-14 v737「CodePanel 双语化」重钉：90e8ce0a2848d7d06ce7457a565c3edfe58a3fc8e5bab3fe89e2156ac2413b07）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '70a1a8b2f886145b8aea070e0ce6a11ba4e59875a6d88cabbbd01bc939f4c342',
+      '90e8ce0a2848d7d06ce7457a565c3edfe58a3fc8e5bab3fe89e2156ac2413b07',
     );
   });
 });

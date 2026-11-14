@@ -333,7 +333,7 @@ function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zo
               ) : view === 'gamegraph' ? (
                 <GameGraphView />
               ) : (
-                <CodePanel />
+                <CodePanel locale={locale} />
               )}
             </div>
           </div>

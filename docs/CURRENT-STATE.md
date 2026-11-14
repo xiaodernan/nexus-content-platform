@@ -3328,3 +3328,16 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - fe-gates 116/116（1148/1148）；web tsc 0；creative-model 502/502；context.integration 8/8；context-en 2/2。
 - 已知边界：recentChanges 的 label/source 与 snapshot summary 仍为用户数据原样；快照 label 为用户输入；
   branch.name 保持英文（与 AGENTS 分支命名一致，§71 是英文词表）。
+
+## cont. 106 (2026-11-14) - v737: CodePanel 双语化（§19 代码视图）
+
+- CodePanel.tsx zh/en 双字典：empty/copy/apply/cancel/edit/hint 三态 hints/report applied/noChanges/
+  unmappedLine/issueLine 全部接 locale；撤销事务标签 studio.execute(c.undoLabel, ops)（zh 原样
+  "代码编辑"，en "Code edit"）；StudioShell 继续透传 locale。
+- parser messages（§19 反向映射的真实 AST 报文）仍是中文——§46 错误语面英文化是独立立片，本片不伪造翻译；
+  format wrapper 已双语（Line N：... / Line N: ...）。
+- Gate 纪律记录：studio-shell 门的 redact 只有 6 行（EOL+className×4+cn+\s+），我那边曾误带一行
+  className=@ 折叠导致两次假 SHA；现以门内 redact 口径实测 9566141b… 重钉，并把 CodePanel 门内
+  一条硬编码 "studio.execute('代码编辑'…" 契约改为断言机制 + zh 标签仍在 dict。
+  教训：SHA 门重钉永远用**门内同一 redact** 实测，不用手写的近似版。
+- fe-gates 116/116（1148/1148）；web tsc 0；eslint 净。
