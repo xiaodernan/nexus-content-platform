@@ -1,7 +1,9 @@
 'use client';
 
+import Link from 'next/link';
 import type { ChronicleEra, ChronicleEntry } from '@/lib/chronicle';
 import { eraProgress } from '@/lib/chronicle';
+import type { EraTie } from '@/lib/era-ties';
 
 /**
  * 序言 — 同「人物星图」：世界文档的投影，全部从真实节点读。
@@ -10,11 +12,23 @@ import { eraProgress } from '@/lib/chronicle';
  * - 这是投影，不是第二份真值：数据全来自世界文档的 story/history 条目；只是画出来。
  * - 父节点（era）是作者写的字面，**不是算法给的"历史感"**——用过的词就叫用过的词。
  * - 空状态如实渲染：没有 story/history 条目时就是空的编年册，不补假条目。
+ * - 星图⇄编年双向联动（v710 §C）：本卷与哪些星图人物相连，由服务端算好（lib/era-ties，
+ *   一跳、id 精确命中），本组件只渲染——零 provider，不做任何传递推断。
  *
  * §FE-CRN 门面版：全 .crn-*（零 hex，零裸 atom），暗空画布与色块全由 var(--nexus-color-*)
  * 与 color-mix 组合成；SVG/CSS backgrounds 不写死色。
  */
-export function ChronicleView({ worldName, eras }: { worldName: string; eras: ChronicleEra[] }) {
+export function ChronicleView({
+  worldName,
+  projectId,
+  eras,
+  ties,
+}: {
+  worldName: string;
+  projectId: string;
+  eras: ChronicleEra[];
+  ties?: EraTie[];
+}) {
   const total = eras.reduce((a, e) => a + e.entries.length, 0);
 
   if (total === 0) {
@@ -66,6 +80,7 @@ export function ChronicleView({ worldName, eras }: { worldName: string; eras: Ch
               <h2 className="crn-eraTitle">{era.era}</h2>
               <p className="crn-eraCount">{era.entries.length} 条编年</p>
             </div>
+            <EraTiesStrip ties={ties} eraIndex={eraIndex} era={era.era} projectId={projectId} />
             <ol className="crn-list">
               {era.entries.map((entry, i) => (
                 <ChronicleCard key={entry.id} entry={entry} eraIndex={eraIndex} entryIndex={i} eras={eras} />
@@ -79,6 +94,36 @@ export function ChronicleView({ worldName, eras }: { worldName: string; eras: Ch
         只有 story / history 进编年 · era 是作者写的字，不是算法给的“历史感” · 顺序按 lore.order（缺省 updatedAt） · 本页零写库
       </footer>
     </main>
+  );
+}
+
+function EraTiesStrip({ ties, eraIndex, era, projectId }: { ties?: EraTie[]; eraIndex: number; era: string; projectId: string }) {
+  if (!ties) return null;
+  // 首选按位（chronicle 与 ties 同序）；降级按卷名匹配，防脏数据串卷
+  const tie = ties[eraIndex]?.era === era ? ties[eraIndex]! : ties.find((t) => t.era === era);
+  if (!tie) return null;
+  const figures = tie.linkedCharacters;
+  return (
+    <div className="crn-ties" data-chronicle-ties={tie.era} aria-label="星图与本卷相连的人物">
+      {figures.length === 0 ? (
+        <span className="crn-tiesEmpty" data-chronicle-ties-empty>星图里还没有人物指向本卷的条目——在人物关系页给任意角色加一条「指向世界条目」的关系，这里就会亮起来。</span>
+      ) : (
+        <>
+          <span className="crn-tiesLabel">本卷活跃的星图人物</span>
+          {figures.map((fig) => (
+            <Link
+              key={fig.id}
+              href={`/world/${projectId}/constellation`}
+              className="crn-tie"
+              data-chronicle-tie={fig.id}
+              title={`与本卷 ${fig.viaEntryIds.length} 条编年相连`}
+            >
+              {fig.name}
+            </Link>
+          ))}
+        </>
+      )}
+    </div>
   );
 }
 

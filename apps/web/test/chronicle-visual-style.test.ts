@@ -67,6 +67,9 @@ describe('§FE-CRN /world/<project>/chronicle 世界编年', () => {
       'data-chronicle-kind',
       'data-chronicle-seq',
       'data-chronicle-footnote',
+      'data-chronicle-ties',
+      'data-chronicle-tie=',
+      'data-chronicle-ties-empty',
     ]) {
       expect(code, `ChronicleView 丢了钩子 ${hook}`).toContain(hook);
     }
@@ -116,7 +119,7 @@ describe('§FE-CRN /world/<project>/chronicle 世界编年', () => {
 
   it('SHA256 钉死（本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '790cd1e4fe2b5f9a3e135ea54413ff8ab8fce4bb0ccffc2af1711f1d304445c4',
+      '27b60ee39a949f9c6552b5528dbd11301b79d4bc4e14aa03f480da63daeab254',
     );
   });
 });
