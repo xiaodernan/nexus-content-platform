@@ -262,7 +262,7 @@ function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zo
           ) : tab === 'design' ? (
             <DesignSystemPanel />
           ) : tab === 'assets' ? (
-            <AssetsPanel />
+            <AssetsPanel locale={locale} />
           ) : tab === 'world' ? (
             <WorldPanel />
           ) : tab === 'game' ? (

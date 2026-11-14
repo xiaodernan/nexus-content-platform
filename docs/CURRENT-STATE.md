@@ -3393,3 +3393,15 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   该自比较早已不成立，只是没有失败——未被证明前的每一刀都是债）；改为直接钉死逐字节 hash，
   并注明 UTF-8 陷阱被 node 字节流自然避开。
 - fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；§FE-TB 再次重钉（ExportPanel 入 locale 行列）。
+
+## cont. 112 (2026-11-16) - v743: AssetsPanel 双语化（M2 资产库）
+
+- AssetsPanel.tsx zh/en 双字典：§38 文生图/草图生图（DEMO 合成器明写）、
+  §86 VisualBenchmark（参考图/生成图/结构比较 + 测不出维度如实渲染——绝不 0 分）、
+  资产卡片（refs/DEMO 角标/角色肖像与场景/提取视觉语言/生成变体/以此生成场景/删除）、空态、
+  bytes 格式与 refs title 全部接 locale；locale 自 StudioShell 透传。
+- VisualBenchmarkResult 的 m.*.meaning（服务端契约校验后透传原句）、assetNotice/assetError（store 层的裁定）仍 zh——投影层英文化是 §46；
+  生成 seed「变体 · 名称」/「场景 · 名称」刻意保留 zh：DEMO 合成器按中文影射概念，行为逐字节不变。
+- §FE-53 门修：删自引用 execSync HEAD 雕刻比较（与 §FE-63 同一类型的消亡断言——cn 行早已随 FE-53 落库），
+  改为直接钉逐字节 hash（0bc55a8e…）。vitest 报出的 ACTUAL/EXPECTED 读法曾把我看拧一遍，已以门内 redact 复算三清。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；StudioShell §FE-41 第六次重钉。
