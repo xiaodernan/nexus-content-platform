@@ -3008,3 +3008,23 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   (CI in_progress); c28ad48 CI in_progress (main-line SUCCESS); 84f7f0d CI+main-line SUCCESS;
   bf84954 CI+main-line SUCCESS. Not claiming until the runner finishes.
 - Docker Desktop outage #12 today; self-healed; sibling 3100/3200 untouched.
+## cont. 111 (2026-11-14) - v714 memories cross-nav + v715 second fixture world filled to nine-kind
+
+- v714: /world/<id>/memories header gains the world subsystem navigation (藏经阁/图志/编年/星图，
+  4 chips, same shape as the atlas header). Playwright re-verified: entries=4, nav links=4,
+  full-page screenshot captured; tsc 0; eslint 0.
+- v715: second fixture member `lore-editor+mwgao0ch@nexus.test` world "年表 mwgao0ch"
+  (project 1c3b87af, previously 2 filled nodes over skeleton templates) filled to nine-kind:
+  every remaining skeleton node replaced with 北境 canon content in-place (same node ids) -
+  lore "每一盏灯熄灭之前", geography 小雪巷, factions 灯芯行, characters 阿婆, creatures 咳嗽云,
+  items 那盏没灭的油灯, quests "把 4,011 盏灯的名字找回来". All text verbatim 北境; ids
+  preserved; written via sql.json. Schema review done (WorldNodeSchema: id/kind/trimmed nonempty
+  title/<=200/ body<=20000/ISO updatedAt) - the owner's world loads and renders on all
+  projection routes. UI screenshot NOT captured: fixture member password not available to this
+  lane (wrong password logs in as guest, which correctly 404s the project) - SQL-verified only,
+  owner-side rendering unverified this turn, said so.
+- Two scratch probes were cleaned up; no untracked files remain.
+- CI at record time: 84f7f0d CI+main-line SUCCESS; bf84954 CI+main-line SUCCESS;
+  63069f7 main-line SUCCESS (CI in_progress); c28ad48 in_progress (main-line SUCCESS);
+  3233c93 queued; 7284152 queued; a092ee9 in_progress. Not claiming until runner finishes.
+- Docker Desktop outage count today: 13. Self-healed; sibling deployments 3100/3200 untouched.

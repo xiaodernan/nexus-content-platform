@@ -49,12 +49,20 @@ export default async function MemoriesPage({ params }: { params: Promise<{ proje
 
   return (
     <main className="min-h-dvh bg-[#070a14] px-6 py-10 text-[#e8eaed]" data-memories-root>
-      <header className="mx-auto max-w-3xl">
-        <p className="font-mono text-10 uppercase tracking-[0.22em] text-[#8b95ff]">MEMORIES · {project.name}</p>
-        <h1 className="mt-2 text-[var(--nexus-font-size-34)] font-bold leading-tight text-[#eef0ff]">记忆回廊</h1>
-        <p className="mt-3 text-14 leading-6 text-[#aab2d8]">
-          世界里被刻下来的回声。每一条都来自真实条目的 <code className="rounded bg-[#111737] px-1 font-mono text-10 text-[#a8e3ff]">memory</code> 字段——不是梗概，不是人设，是一句"你在场时听到了什么"。
-        </p>
+      <header className="mx-auto flex max-w-3xl flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="font-mono text-10 uppercase tracking-[0.22em] text-[#8b95ff]">MEMORIES · {project.name}</p>
+          <h1 className="mt-2 text-[var(--nexus-font-size-34)] font-bold leading-tight text-[#eef0ff]">记忆回廊</h1>
+          <p className="mt-3 text-14 leading-6 text-[#aab2d8]">
+            世界里被刻下来的回声。每一条都来自真实条目的 <code className="rounded bg-[#111737] px-1 font-mono text-10 text-[#a8e3ff]">memory</code> 字段——不是梗概，不是人设，是一句"你在场时听到了什么"。
+          </p>
+        </div>
+        <nav className="flex flex-wrap items-center gap-2" aria-label="世界子页导航">
+          <a href={`/world/${projectId}/almanac`} className="rounded-md border border-[#232b52] bg-[#0d1230]/70 px-3 py-1.5 text-11 text-[#c6cdf5] transition-colors hover:border-[#3a4472] hover:text-white">世界藏经阁</a>
+          <a href={`/world/${projectId}/atlas`} className="rounded-md border border-[#232b52] bg-[#0d1230]/70 px-3 py-1.5 text-11 text-[#c6cdf5] transition-colors hover:border-[#3a4472] hover:text-white">寰宇图志</a>
+          <a href={`/world/${projectId}/chronicle`} className="rounded-md border border-[#232b52] bg-[#0d1230]/70 px-3 py-1.5 text-11 text-[#c6cdf5] transition-colors hover:border-[#3a4472] hover:text-white">世界编年</a>
+          <a href={`/world/${projectId}/constellation`} className="rounded-md border border-[#232b52] bg-[#0d1230]/70 px-3 py-1.5 text-11 text-[#c6cdf5] transition-colors hover:border-[#3a4472] hover:text-white">角色星图</a>
+        </nav>
       </header>
 
       {entries.length === 0 ? (
