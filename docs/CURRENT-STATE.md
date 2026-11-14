@@ -3269,3 +3269,18 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   nexus-postgres healthy; sibling deployments on 3100/3200 not touched.
 - CI before fix push: 51f07b0 / 2917d5c / 4d67a2b / 95dbf12 / 7fb3c91 / 846dec5 / 475ff76 / af356bf
   all double-green except 9cd48bc's CI. Not yet verified after this fix.
+
+## cont. 103 (2026-11-14) - v734: nexus-redis completion-cache 形状压力测试（零错误通关）
+
+- New bounded load probe: scripts/load-redis-completion-cache.py (stdlib-only, raw RESP2,
+  no redis-py). Mirrors RedisLlmCompletionCache (v690 / ADR-0123) op shape: GET hit + ZADD,
+  miss -> SET EX 3600 + ZADD + ZREMRANGEBYRANK(0,-257). DB15 + namespace nexus:loadtest:llmc:*,
+  never touches DB8 / nexus:llmc / FLUSHDB / KEYS.
+- Result @ 4 stages x 6000 ops, no pipeline: 16c 3753 ops/s p99 3.95ms; 64c 3167 ops/s p99 14.69ms;
+  128c 2573 ops/s p99 32.38ms; 256c 2599 ops/s p99 59.94ms. Zero errors, hit ratio ~0.80 (as designed),
+  cleanup verified entries_deleted=4755, SCAN residue=0 (the FIRST probe had a tuple-unpack bug in its
+  cleanup SCAN path that made residue checks silently fake — fixed and locked: residue != 0 exits nonzero).
+- Tail latency grows linearly with concurrency (single-command in flight); throughput plateaus ~2.6k ops/s;
+  follow-up headroom (pipeline / batched ZADD, sharding, async store) deliberately NOT applied: ai-service
+  behavior change, own slice. Evidence: docs/evidence/load-redis-completion-cache-2026-11-14.md (+ .json).
+- PERFORMANCE.md gained the v734 section; sibling "careeros-*" containers not touched.

@@ -1,0 +1,81 @@
+{
+  "target": "127.0.0.1:56379 DB15 namespace=nexus:loadtest:llmc",
+  "pattern": "llmc get-hit/zadd + get-miss→set/zadd/zremrangebyrank (v690 ADR-0123 同形状)",
+  "payload_bytes": 1500,
+  "hot_keys": 16,
+  "stages": [
+    {
+      "connections": 16,
+      "ops_target": 6000,
+      "ops_done": 6000,
+      "hits": 4771,
+      "misses": 1229,
+      "errors": 0,
+      "error_samples": [],
+      "slow_ops_over_5s": 0,
+      "wall_s": 1.599,
+      "throughput_ops_s": 3752.9,
+      "hit_ratio": 0.7952,
+      "p50_ms": 1.624,
+      "p95_ms": 2.988,
+      "p99_ms": 3.954,
+      "max_ms": 5.897
+    },
+    {
+      "connections": 64,
+      "ops_target": 6000,
+      "ops_done": 6000,
+      "hits": 4851,
+      "misses": 1149,
+      "errors": 0,
+      "error_samples": [],
+      "slow_ops_over_5s": 0,
+      "wall_s": 1.895,
+      "throughput_ops_s": 3166.9,
+      "hit_ratio": 0.8085,
+      "p50_ms": 7.957,
+      "p95_ms": 12.909,
+      "p99_ms": 14.686,
+      "max_ms": 18.032
+    },
+    {
+      "connections": 128,
+      "ops_target": 6000,
+      "ops_done": 6000,
+      "hits": 4823,
+      "misses": 1177,
+      "errors": 0,
+      "error_samples": [],
+      "slow_ops_over_5s": 0,
+      "wall_s": 2.332,
+      "throughput_ops_s": 2572.8,
+      "hit_ratio": 0.8038,
+      "p50_ms": 20.281,
+      "p95_ms": 25.708,
+      "p99_ms": 32.378,
+      "max_ms": 50.354
+    },
+    {
+      "connections": 256,
+      "ops_target": 6000,
+      "ops_done": 6000,
+      "hits": 4817,
+      "misses": 1183,
+      "errors": 0,
+      "error_samples": [],
+      "slow_ops_over_5s": 0,
+      "wall_s": 2.308,
+      "throughput_ops_s": 2599.4,
+      "hit_ratio": 0.8028,
+      "p50_ms": 40.006,
+      "p95_ms": 52.347,
+      "p99_ms": 59.936,
+      "max_ms": 75.429
+    }
+  ],
+  "cleanup": {
+    "entries_deleted": 4755,
+    "namespace_residue": 0
+  },
+  "generated_at": "2026-11-14T23:04:40+0800"
+}

@@ -1861,3 +1861,24 @@ M10 压实失效累计 17879 > 4000 红，M11 另一条 O(1) 环形路径三道�
 mjs 批首版抓到真 `prefer-const` 已修）；`verify:record-encoding` exit 0（0 chargeable lines / 2238 files）。
 仍欠：A/B 单宿主 9 轮无固定 CI 多会话均值、端到端稀释后倍数未单独量、并发同毫秒无专门门、只改
 进程内驱动（Redis 驱动本就无此问题）、hosted Studio CI verdict 未回。详见 ADR 0108。
+
+## 2026-11-14 v734：nexus-redis 补全缓存形状负载测试（裸 RESP 探针，本机实测）
+
+用途：回应「对系统做高压测试」的要求——先对**本项目自己的 nexus-redis**（127.0.0.1:56379）的 DB15 打与 RedisLlmCompletionCache（v690 / ADR-0123）同形的真实调用序列；**旁项目容器一律未触碰**；不许 FLUSHDB / KEYS 全表扫。
+
+工具：`scripts/load-redis-completion-cache.py`（Python 3 标准库 + 裸 RESP2，无需 redis-py）。证据：`docs/evidence/load-redis-completion-cache-2026-11-14.md` 与同名 JSON。
+
+实测（每档 6000 次，16/64/128/256 并发连接，无 pipeline，80/20 合成热/冷分布，1.5KB payload，EX 3600）：
+
+| conns | ops/s | p50 | p95 | p99 | errors |
+|---|---|---|---|---|---|
+| 16  | 3752.9 | 1.62ms | 2.99ms | 3.95ms | 0 |
+| 64  | 3166.9 | 7.96ms | 12.91ms | 14.69ms | 0 |
+| 128 | 2572.8 | 20.28ms | 25.71ms | 32.38ms | 0 |
+| 256 | 2599.4 | 40.01ms | 52.35ms | 59.94ms | 0 |
+
+清理验证：`entries_deleted=4755`，`SCAN MATCH nexus:loadtest:llmc:*` 残留 0；DB15 复测 DBSIZE=0。
+
+读法：零错误跨越 16→256 连接；吞吐约 2.6–3.8k ops/s 平台化、时延随并发线性排队——瓶颈是**每连接单命令在途数**而非单线程 Redis 服务端；命中 8 成符合 80/20 合成值。**这不是 SLA，是本机当日容量感知 + 回归对照。**
+
+榨取空间（本轮未做，属 ai-service 行为变更，须单独立片）：pipeline / 批量 ZADD（completion-cache 同 digest 三段写天然可批，不改业务语义）；多实例分片；调用方异步写。探针自身第一版曾因 call() 元组解包错误导致清理函数静默无效（「0 残留」从未被真正测量）——已修并以「残留非 0 即非零退出」锁定，详见证据篇「校准说明」。§CACHE-4-AB 测的是 provider 端 KV 命中（字节前缀稳定），本篇测**本项目应用层** Redis 命中通路容量，二者互不代替。
