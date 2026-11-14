@@ -270,7 +270,7 @@ function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zo
           ) : tab === 'storyboard' ? (
             <StoryboardPanel />
           ) : tab === 'team' ? (
-            <TeamPanel />
+            <TeamPanel locale={locale} />
           ) : tab === 'characters' ? (
             <CharacterPanel />
           ) : tab === 'memory' ? (

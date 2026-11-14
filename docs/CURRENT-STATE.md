@@ -3405,3 +3405,11 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - §FE-53 门修：删自引用 execSync HEAD 雕刻比较（与 §FE-63 同一类型的消亡断言——cn 行早已随 FE-53 落库），
   改为直接钉逐字节 hash（0bc55a8e…）。vitest 报出的 ACTUAL/EXPECTED 读法曾把我看拧一遍，已以门内 redact 复算三清。
 - fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；StudioShell §FE-41 第六次重钉。
+
+## cont. 113 (2026-11-16) - v744: TeamPanel 双语化（§133 teamCollaboration）
+
+- TeamPanel.tsx zh/en 双字典：协作者上限档位说明、邀请邮箱/角色、成员行（改/移/角色名）、
+  邀请行（已接受/未兑现/已过期/已撤回）、名额占用两行（成员 N + 未兑现邀请 M、过期不占）、
+  一次性链接注意事项、403/撤回快路径 全部接 locale；locale 自 StudioShell 透传。补 'use client' 显式指令。
+- 门也补了边：'use client' 显式化是模块图的加强项（此前全隐式）。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；§FE-41 重钉（第七跳）。

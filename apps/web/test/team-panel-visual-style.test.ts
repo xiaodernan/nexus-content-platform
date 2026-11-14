@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
  * 本片只换皮；角色/邀请派发全部一字不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `64dec99c38e1ed385ca1db07cb64813e9c1c020c2ad334d5862e46ef166b383d` 与 HEAD 字节一致。
+ * `a1c0ed8645e8b1c2e632093baea528d79a307458f96a2e05bce6f16f7a8978c0` 与 HEAD 字节一致。
  *
  * 判据不变式（10 门）：
  *  1. 'use client' 保留 + csrfHeaders/studio 进门；2. 字面 className 全 `.tp-*`/复用族；
@@ -129,9 +129,9 @@ describe('§FE-60 /studio TeamPanel 团队协作面板', () => {
     }
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：64dec99c38e1ed385ca1db07cb64813e9c1c020c2ad334d5862e46ef166b383d）', () => {
+  it('剥 className 后全文 SHA256 守恒（2026-11-16 v744「TeamPanel 双语化」重钉：a1c0ed8645e8b1c2e632093baea528d79a307458f96a2e05bce6f16f7a8978c0）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '64dec99c38e1ed385ca1db07cb64813e9c1c020c2ad334d5862e46ef166b383d',
+      'a1c0ed8645e8b1c2e632093baea528d79a307458f96a2e05bce6f16f7a8978c0',
     );
   });
 });
