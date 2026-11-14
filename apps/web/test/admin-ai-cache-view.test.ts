@@ -213,7 +213,6 @@ describe('§CACHE-2 cache-view · 判定阈值', () => {
 
 describe('§CACHE-4-AB nonStreamCaveat', () => {
   it('transport.stream===false → 判读 detail 必含「退回非流」警示', () => {
-    const on: CacheVerdict = 'cold';
     const bad = readout({
       transport: { stream: false },
       prefix: { requests: 10, reused: 1, uniquePrefixes: 9, capacity: 512, evictions: 0, reuseRate: 0.1 },
