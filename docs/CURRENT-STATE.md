@@ -3631,6 +3631,19 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   并轨完成，本次无新增（不动陈旧 refs，删除需用户拍板）。
 - showcase 快照同步于提交后（npm run sync:showcase）。
 
+## cont. 141 (2026-11-17) - v772: /admin discover-cache 双语化——20/24 终结
+
+- discover-view.ts 双语（locale 参数，默认 zh 保旧断言）：dashOr/hitRate/busErrorsNote/busTag（三档）/
+  generationNote/epochNote/wavesHeadline/waveRow/waveNote/staleNote/loadTimingHeadline/loadRow/loadNote/footNote；
+  isKnownReadout/pollAllowed/keepPreviousOnError 不动语义。
+- DiscoverPanel.tsx（client）双语（locale prop 默认 zh）：五格 KPI/busCard 三态/caption/pre-footer/refreshError
+  全部接 c.*；d-ledger aria/labels/wave labels/samples/updated+measuredAt footer 全部双语。
+- discover-cache/page.tsx 双语（RSC getLocale）：denied×2/title/scopeNote；locale 透传 DiscoverPanel。
+- Gates：§FE-DC 双文件 SHA 重钉（page=f302e9b9… panel=dc3fe4b3…，门内 redact 复算）；
+  discover-view 42/42；fe-gates 116/116 · 1148/1148；tsc web 0；eslint 净。
+- **/admin 20/24 全部双语**；剩余 4 格为留档位（无其他文件级前端中文面）。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
 ## cont. 140 (2026-11-17) - v770/v771: /admin gateway 集群 + ai-cache 集群双语化
 
 - gateway-view.ts 双语（locale 参数，默认 zh 保旧断言）：sharedHealthView 三态/numberOrDash/healthView（five态）+

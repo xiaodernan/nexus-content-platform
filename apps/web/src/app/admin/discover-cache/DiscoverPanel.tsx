@@ -2,6 +2,116 @@
 
 import { useEffect, useState } from 'react';
 import type { DiscoverCacheReadout } from '@/server/domain/discover-cache';
+import type { Locale } from '@/lib/i18n';
+
+const COPY = {
+  zh: {
+    loadingAria: '正在读取发现页缓存读数',
+    fetchFailedHttp: (status: number, message?: string) => `拉取失败（HTTP ${status}${message ? ` · ${message}` : ''}）`,
+    fetchFailedNetwork: '拉取失败（网络错误）',
+    kpiGridAria: '缓存概览',
+    busAria: '跨实例失效总线',
+    generationAria: 'generation 水位线',
+    epochAria: '全局世代',
+    wavesAria: '发布冷启动波',
+    staleAria: '上游故障降级',
+    loadAria: '加载耗时观测',
+    kpiHitRate: '命中率',
+    kpiSize: '缓存条目',
+    kpiLoads: '真查库次数',
+    kpiLoadsHint: '每次 miss 才打一次 loader',
+    kpiInFlight: '在途合并',
+    kpiInFlightHint: 'singleflight 当前键数',
+    kpiEvictions: (n: string) => `淘汰 ${n} 次`,
+    hitsWord: ' 命中 / ',
+    missesWord: ' 未命中',
+    busAttachedPill: 'bus 在线',
+    busDetachedPill: '单机语义',
+    errorsNote: '错误合计含本机出站拒发（超界/坏 id 帧没让上线路、对端没丢）、坏帧、线路错误与坏回调；出站拒发不是线路故障。细分拒发次数留待将来真有批量失效调用方时另立分列读数。',
+    busDetachedHint: '四账此刻不是 0，是"没有这条线路"——本机屏蔽/关注的即时失效仍照旧工作。',
+    refreshError: (updatedAt: string | null, err: string) =>
+      `最近一次刷新失败（${err}）；下面仍是 ${updatedAt ?? '上一次'} 读到的账，未清空。`,
+    generationSectionTitle: '隐私失效的内存账',
+    genLedgerLabel: '单调水位线 globalGen',
+    viewerGenerations: 'generation 表 viewer 数',
+    ttlLabel: '缓存 TTL',
+    ttlConvergence: '未接总线时的收敛上界',
+    epochSectionTitle: '内容新鲜度的内存账',
+    epochLabel: '全局世代 globalEpoch',
+    epochEvery: '每次 +1 作废',
+    epochScope: '所有 sort · 所有 viewer · 含匿名',
+    wavesTitle: '发布冷启动波 · 只记不拦',
+    waveLabel: (epoch: number) => `波 #${epoch}`,
+    staleSectionTitle: '上游故障降级 · 只记不声张',
+    staleServedLabel: '端出旧页次数 staleServed',
+    staleMaxLabel: '旧值上界 staleMaxMs',
+    loadSectionTitle: '加载耗时观测 · 只记不设闸',
+    loadsTimedLabel: '已计时打库 loadsTimed',
+    maxLoadLabel: '最慢一次 maxLoadMs',
+    noMeasured: '—（未测）',
+    slowLoadsLabel: '超阈值次数 slowLoads',
+    slowThresholdLabel: '慢查询阈值 slowLoadMs',
+    gapLabel: '发起 − 已计时（卡住的旁证）',
+    sampleLabel: (n: number) => `样本 #${n}`,
+    epochLedgerLabel: '世代',
+    ttlSuffix: 's',
+    updatedLabel: '更新于',
+    measuredAtLabel: '上游测量时刻',
+  },
+  en: {
+    loadingAria: 'Reading discover-cache stats',
+    fetchFailedHttp: (status: number, message?: string) => `Fetch failed (HTTP ${status}${message ? ` · ${message}` : ''})`,
+    fetchFailedNetwork: 'Fetch failed (network error)',
+    kpiGridAria: 'Cache overview',
+    busAria: 'Cross-instance invalidation bus',
+    generationAria: 'Generation watermark',
+    epochAria: 'Global epoch',
+    wavesAria: 'Publish cold-start waves',
+    staleAria: 'Upstream fault fallback',
+    loadAria: 'Load-duration observation',
+    kpiHitRate: 'Hit rate',
+    kpiSize: 'Entries',
+    kpiLoads: 'Library hits',
+    kpiLoadsHint: 'one loader call per miss',
+    kpiInFlight: 'In-flight merges',
+    kpiInFlightHint: 'singleflight current-key count',
+    kpiEvictions: (n: string) => `${n} evictions`,
+    hitsWord: ' hits / ',
+    missesWord: ' misses',
+    busAttachedPill: 'bus online',
+    busDetachedPill: 'single-instance semantics',
+    errorsNote: 'The error count includes local outbound refusals (oversized/bad-id frames that never hit the wire — the peer loses nothing), bad frames, wire errors, and bad callbacks; outbound refusals are NOT a wire fault. A split-out refusal column waits for a caller with real batch invalidations.',
+    busDetachedHint: 'The four ledgers are not 0 right now — there is no wire. Local block/follow invalidation keeps working instantly regardless.',
+    refreshError: (updatedAt: string | null, err: string) =>
+      `Last refresh failed (${err}); the panel still shows the ledger read at ${updatedAt ?? 'last time'}, nothing cleared.`,
+    generationSectionTitle: 'Memory ledger of private invalidation',
+    genLedgerLabel: 'monotonic watermark globalGen',
+    viewerGenerations: 'generation table viewers',
+    ttlLabel: 'cache TTL',
+    ttlConvergence: 'convergence ceiling when no bus',
+    epochSectionTitle: 'Memory ledger of content freshness',
+    epochLabel: 'global epoch globalEpoch',
+    epochEvery: 'invalidates on every +1',
+    epochScope: 'all sorts · all viewers · incl. anonymous',
+    wavesTitle: 'Publish cold-start waves · observe, never block',
+    waveLabel: (epoch: number) => `Wave #${epoch}`,
+    staleSectionTitle: 'Upstream fault fallback · observe, never shout',
+    staleServedLabel: 'stale pages served staleServed',
+    staleMaxLabel: 'stale ceiling staleMaxMs',
+    loadSectionTitle: 'Load duration · observe, never set a gate',
+    loadsTimedLabel: 'timed library hits loadsTimed',
+    maxLoadLabel: 'slowest single load maxLoadMs',
+    noMeasured: '— (unmeasured)',
+    slowLoadsLabel: 'above threshold slowLoads',
+    slowThresholdLabel: 'slow-query threshold slowLoadMs',
+    gapLabel: 'initiated − timed (corroboration of stuck)',
+    sampleLabel: (n: number) => `Sample #${n}`,
+    epochLedgerLabel: 'epoch',
+    ttlSuffix: 's',
+    updatedLabel: 'Updated',
+    measuredAtLabel: 'measured at',
+  },
+} as const;
 import { busTag, dashOr, epochNote, footNote, generationNote, hitRate, isKnownReadout, loadNote, loadRow, loadTimingHeadline, pollAllowed, staleNote, waveNote, waveRow, wavesHeadline } from './discover-view';
 
 /**
@@ -39,7 +149,8 @@ function LedgerRow({ label, value, mono = true }: { label: string; value: string
   );
 }
 
-export function DiscoverPanel({ initial, initialError }: { initial: DiscoverCacheReadout | null; initialError: string | null }) {
+export function DiscoverPanel({ initial, initialError, locale = 'zh' }: { initial: DiscoverCacheReadout | null; initialError: string | null; locale?: Locale }) {
+  const c = COPY[locale];
   const [readout, setReadout] = useState<DiscoverCacheReadout | null>(initial);
   const [error, setError] = useState<string | null>(initialError);
   const [updatedAt, setUpdatedAt] = useState<string | null>(initial ? new Date().toLocaleTimeString('zh-CN', { hour12: false }) : null);
@@ -53,17 +164,17 @@ export function DiscoverPanel({ initial, initialError }: { initial: DiscoverCach
         const body = await res.json().catch(() => null);
         if (!alive) return;
         if (!res.ok || !isKnownReadout(body)) {
-          setError(`拉取失败（HTTP ${res.status}${body?.message ? ` · ${body.message}` : ''}）`);
+          setError(c.fetchFailedHttp(res.status, body?.message));
           return; // keepPreviousOnError：不清空上一帧，旧账带 measuredAt 比空白诚实
         }
         setReadout(body);
         setError(null);
-        setUpdatedAt(new Date().toLocaleTimeString('zh-CN', { hour12: false }));
+        setUpdatedAt(new Date().toLocaleTimeString(locale === 'en' ? 'en-US' : 'zh-CN', { hour12: false }));
       } catch {
         // 不清空 readout 就是"保留上一帧"（语义判据在 discover-view.keepPreviousOnError，
         // 那里钉住"失败的读什么都不证明、旧账带日期比空白诚实"）。effect 里不读 state，
         // 否则 readout 会被拖进依赖、让轮询随每次刷新重建。
-        if (alive) setError('拉取失败（网络错误）');
+        if (alive) setError(c.fetchFailedNetwork);
       }
     };
     const onVisible = () => {
@@ -82,7 +193,7 @@ export function DiscoverPanel({ initial, initialError }: { initial: DiscoverCach
   // 首屏取数都失败、轮询还没回来：骨架屏，不画空账
   if (!readout) {
     return (
-      <section data-discover-cache-loading aria-label="正在读取发现页缓存读数">
+      <section data-discover-cache-loading aria-label={c.loadingAria}>
         {error ? (
           <p className="ar-errorNote" data-discover-cache-error>{error}</p>
         ) : (
@@ -95,27 +206,27 @@ export function DiscoverPanel({ initial, initialError }: { initial: DiscoverCach
   }
 
   const { stats, busAttached, busUrlConfigured, measuredAt } = readout;
-  const tag = busTag(stats.bus);
-  const rate = hitRate(stats.hits, stats.misses);
+  const tag = busTag(stats.bus, locale);
+  const rate = hitRate(stats.hits, stats.misses, locale);
   const cfg = stats.config;
 
   return (
     <div className="am-stackXl" data-discover-cache-ready>
       {/* KPI：命中率 + 缓存六账；分母为 0 说"还没有读"，不画 0% */}
-      <section className="gw-grid" aria-label="缓存概览">
-        <Kpi label="命中率" value={rate} hint={`${stats.hits} 命中 / ${stats.misses} 未命中`} />
-        <Kpi label="缓存条目" value={`${stats.size}/${cfg.maxEntries}`} hint={`淘汰 ${stats.evictions} 次`} />
-        <Kpi label="真查库次数" value={dashOr(stats.loads)} hint="每次 miss 才打一次 loader" />
-        <Kpi label="在途合并" value={dashOr(stats.inFlight)} hint="singleflight 当前键数" />
+      <section className="gw-grid" aria-label={c.kpiGridAria}>
+        <Kpi label={c.kpiHitRate} value={rate} hint={`${stats.hits}${c.hitsWord}${stats.misses}${c.missesWord}`} />
+        <Kpi label={c.kpiSize} value={`${stats.size}/${cfg.maxEntries}`} hint={c.kpiEvictions(dashOr(stats.evictions))} />
+        <Kpi label={c.kpiLoads} value={dashOr(stats.loads, undefined, locale)} hint={c.kpiLoadsHint} />
+        <Kpi label={c.kpiInFlight} value={dashOr(stats.inFlight, undefined, locale)} hint={c.kpiInFlightHint} />
       </section>
 
       {/* 跨实例总线：这一片最要紧的诚实——没接 ≠ 接了但全 0 */}
-      <section className="dc-busCard" data-discover-bus={busAttached ? 'attached' : 'detached'} aria-label="跨实例失效总线">
+      <section className="dc-busCard" data-discover-bus={busAttached ? 'attached' : 'detached'} aria-label={c.busAria}>
         <div className="dc-busHead">
           <span className={`gw-dot ${tag.dot}`} style={{ verticalAlign: 'middle', marginRight: 10 }} />
           <span className="dc-busHeadline">{tag.headline}</span>
           <span className="gw-pill" data-discover-bus-attached={busAttached ? 'true' : 'false'}>
-            {busAttached ? 'bus 在线' : '单机语义'}
+            {busAttached ? c.busAttachedPill : c.busDetachedPill}
           </span>
         </div>
         <p className="dc-busDetail">{tag.detail}</p>
@@ -128,113 +239,112 @@ export function DiscoverPanel({ initial, initialError }: { initial: DiscoverCach
               <LedgerRow label="本地处置 applied" value={dashOr(stats.bus.applied)} />
             </div>
             <p className="dc-note" data-discover-errors-note>
-              错误合计含本机出站拒发（超界/坏 id 帧没让上线路、对端没丢）、坏帧、线路错误与坏回调；
-              出站拒发不是线路故障。细分拒发次数留待将来真有批量失效调用方时另立分列读数。
+              {c.errorsNote}
             </p>
           </>
         ) : (
           <p className="dc-busHint" data-discover-bus-null>
-            四账此刻不是 0，是"没有这条线路"——本机屏蔽/关注的即时失效仍照旧工作。
+            {c.busDetachedHint}
           </p>
         )}
       </section>
 
       {error ? (
         <p className="am-warnNote" data-discover-cache-refresh-error>
-          最近一次刷新失败（{error}）；下面仍是 {updatedAt ?? '上一次'} 读到的账，未清空。
+          {c.refreshError(updatedAt, error)}
         </p>
       ) : null}
 
       {/* 单调水位线：把 ADR-0113 的方法论结论第一次放到运维眼前 */}
-      <section className="am-audit" aria-label="generation 水位线">
-        <h2 className="am-sectionHeadSm">隐私失效的内存账</h2>
+      <section className="am-audit" aria-label={c.generationAria}>
+        <h2 className="am-sectionHeadSm">{c.generationSectionTitle}</h2>
         <div className="dc-ledgerGrid" data-discover-generation>
-          <LedgerRow label="单调水位线 globalGen" value={dashOr(stats.globalGen)} />
-          <LedgerRow label="generation 表 viewer 数" value={`${stats.viewerGenerations}/${cfg.maxViewers}`} />
-          <LedgerRow label="缓存 TTL" value={`${Math.round(cfg.ttlMs / 1000)}s`} />
-          <LedgerRow label="未接总线时的收敛上界" value="TTL" />
+          <LedgerRow label={c.genLedgerLabel} value={dashOr(stats.globalGen, undefined, locale)} />
+          <LedgerRow label={c.viewerGenerations} value={`${stats.viewerGenerations}/${cfg.maxViewers}`} />
+          <LedgerRow label={c.ttlLabel} value={`${Math.round(cfg.ttlMs / 1000)}${c.ttlSuffix}`} />
+          <LedgerRow label={c.ttlConvergence} value="TTL" />
         </div>
         <p className="dc-note" data-discover-generation-note>
-          {generationNote(stats.globalGen, stats.viewerGenerations, cfg.maxViewers)}
+          {generationNote(stats.globalGen, stats.viewerGenerations, cfg.maxViewers, locale)}
         </p>
       </section>
 
       {/* §SC-44 全局世代：把"新作品即时可见"的收益与冷启动代价一起放到运维眼前 */}
-      <section className="am-audit" aria-label="全局世代">
-        <h2 className="am-sectionHeadSm">内容新鲜度的内存账</h2>
+      <section className="am-audit" aria-label={c.epochAria}>
+        <h2 className="am-sectionHeadSm">{c.epochSectionTitle}</h2>
         <div className="dc-ledgerGrid" data-discover-epoch>
-          <LedgerRow label="全局世代 globalEpoch" value={dashOr(stats.globalEpoch)} />
-          <LedgerRow label="每次 +1 作废" value="所有 sort · 所有 viewer · 含匿名" mono={false} />
+          <LedgerRow label={c.epochLabel} value={dashOr(stats.globalEpoch, undefined, locale)} />
+          <LedgerRow label={c.epochEvery} value={c.epochScope} mono={false} />
         </div>
         <p className="dc-note" data-discover-epoch-note>
-          {epochNote(stats.globalEpoch)}
+          {epochNote(stats.globalEpoch, locale)}
         </p>
       </section>
 
       {/* §SC-45 发布冷启动波：把 ADR-0116 诚实留下的"预期尖峰"从猜测变成可观测数字，只记不拦 */}
-      <section className="am-audit" aria-label="发布冷启动波">
-        <h2 className="am-sectionHeadSm">发布冷启动波 · 只记不拦</h2>
+      <section className="am-audit" aria-label={c.wavesAria}>
+        <h2 className="am-sectionHeadSm">{c.wavesTitle}</h2>
         <p className="am-subNote" data-discover-waves-headline>
-          {wavesHeadline(stats.waves)}
+          {wavesHeadline(stats.waves, locale)}
         </p>
         {stats.waves.length ? (
           <div className="dc-ledgerGrid" data-discover-waves>
             {stats.waves.map((w) => (
               <LedgerRow
                 key={`${w.epoch}-${w.openedAtMs}`}
-                label={`波 #${w.epoch}`}
-                value={waveRow(w)}
+                label={c.waveLabel(w.epoch)}
+                value={waveRow(w, locale)}
                 mono={false}
               />
             ))}
           </div>
         ) : null}
         <p className="dc-note" data-discover-waves-note>
-          {waveNote(stats.waveConfig.windowMs, stats.waveConfig.capacity)}
+          {waveNote(stats.waveConfig.windowMs, stats.waveConfig.capacity, locale)}
         </p>
       </section>
 
       {/* §SC-46 上游故障降级：DB 抖动时端过几次旧页，0 只表示还没抖过、不是功能没开 */}
-      <section className="am-audit" aria-label="上游故障降级">
-        <h2 className="am-sectionHeadSm">上游故障降级 · 只记不声张</h2>
+      <section className="am-audit" aria-label={c.staleAria}>
+        <h2 className="am-sectionHeadSm">{c.staleSectionTitle}</h2>
         <div className="dc-ledgerGrid" data-discover-stale>
-          <LedgerRow label="端出旧页次数 staleServed" value={dashOr(stats.staleServed)} />
-          <LedgerRow label="旧值上界 staleMaxMs" value={`${Math.round(cfg.staleMaxMs / 1000)}s`} />
+          <LedgerRow label={c.staleServedLabel} value={dashOr(stats.staleServed, undefined, locale)} />
+          <LedgerRow label={c.staleMaxLabel} value={`${Math.round(cfg.staleMaxMs / 1000)}s`} />
         </div>
         <p className="dc-note" data-discover-stale-note>
-          {staleNote(stats.staleServed, cfg.staleMaxMs)}
+          {staleNote(stats.staleServed, cfg.staleMaxMs, locale)}
         </p>
       </section>
 
       {/* §SC-47 加载耗时观测：先量再治，只记真实打库的墙钟、不设闸；0 = 没量到，不是都很快 */}
-      <section className="am-audit" aria-label="加载耗时观测">
-        <h2 className="am-sectionHeadSm">加载耗时观测 · 只记不设闸</h2>
+      <section className="am-audit" aria-label={c.loadAria}>
+        <h2 className="am-sectionHeadSm">{c.loadSectionTitle}</h2>
         <p className="am-subNote" data-discover-load-headline>
-          {loadTimingHeadline(stats.loadsTimed, stats.maxLoadMs, stats.slowLoads)}
+          {loadTimingHeadline(stats.loadsTimed, stats.maxLoadMs, stats.slowLoads, locale)}
         </p>
         <div className="dc-ledgerGrid" data-discover-load-timing>
-          <LedgerRow label="已计时打库 loadsTimed" value={dashOr(stats.loadsTimed)} />
-          <LedgerRow label="最慢一次 maxLoadMs" value={dashOr(stats.maxLoadMs, '—（未测）')} />
-          <LedgerRow label="超阈值次数 slowLoads" value={dashOr(stats.slowLoads)} />
+          <LedgerRow label={c.loadsTimedLabel} value={dashOr(stats.loadsTimed, undefined, locale)} />
+          <LedgerRow label={c.maxLoadLabel} value={dashOr(stats.maxLoadMs, c.noMeasured, locale)} />
+          <LedgerRow label={c.slowLoadsLabel} value={dashOr(stats.slowLoads, undefined, locale)} />
           {/* 慢查询阈值是毫秒粒度（可配 50/100ms），画成秒会得到 "0s" 的谎，故照画毫秒 */}
-          <LedgerRow label="慢查询阈值 slowLoadMs" value={`${cfg.slowLoadMs}ms`} />
-          <LedgerRow label="发起 − 已计时（卡住的旁证）" value={dashOr(Math.max(0, stats.loads - stats.loadsTimed))} />
+          <LedgerRow label={c.slowThresholdLabel} value={`${cfg.slowLoadMs}ms`} />
+          <LedgerRow label={c.gapLabel} value={dashOr(Math.max(0, stats.loads - stats.loadsTimed), undefined, locale)} />
         </div>
         {stats.recentLoads.length ? (
           <div className="dc-ledgerGrid" data-discover-load-samples>
             {stats.recentLoads.map((d, i) => (
-              <LedgerRow key={`${d.atMs}-${i}`} label={`样本 #${i + 1}`} value={loadRow(d)} mono={false} />
+              <LedgerRow key={`${d.atMs}-${i}`} label={c.sampleLabel(i + 1)} value={loadRow(d, locale)} mono={false} />
             ))}
           </div>
         ) : null}
         <p className="dc-note" data-discover-load-note>
-          {loadNote(cfg.slowLoadMs, cfg.loadSampleCapacity)}
+          {loadNote(cfg.slowLoadMs, cfg.loadSampleCapacity, locale)}
         </p>
       </section>
 
       <footer className="adm-capNote" data-discover-cache-footer>
-        更新于 {updatedAt ?? '—'} · 上游测量时刻 {new Date(measuredAt).toLocaleTimeString('zh-CN', { hour12: false })} ·{' '}
-        {footNote(busAttached, busUrlConfigured, POLL_MS)}
+        {c.updatedLabel} {updatedAt ?? '—'} · {c.measuredAtLabel} {new Date(measuredAt).toLocaleTimeString(locale === 'en' ? 'en-US' : 'zh-CN', { hour12: false })} ·{' '}
+        {footNote(busAttached, busUrlConfigured, POLL_MS, locale)}
       </footer>
     </div>
   );
