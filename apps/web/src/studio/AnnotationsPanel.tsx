@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import type { Locale } from '@/lib/i18n';
 import { studio, useStudioReady } from './store';
 
 /**
@@ -13,8 +14,50 @@ import { studio, useStudioReady } from './store';
  *   因为"话是谁说的、说过没有"是历史，不该被一次删除抹掉。
  * - 这是作者项目内部的私有笔记，不会出现在公开页上；
  *   它随 AI 请求发给模型时走服务端派生那一条路（见 server/ai/assemble.ts）。
+ * 双语（v751）：locale 由调用侧透传；zh 原文原样保留，en 逐句对应。
  */
-export function AnnotationsPanel() {
+
+const COPY = {
+  zh: {
+    pinnedTo: '钉在：',
+    placeholder: '例如：这个按钮太大',
+    submitBusy: '写入中…',
+    submitBtn: '批注这个元素',
+    hintMulti: '先只选一个元素再批注：对着五个元素说"这个太大"，定位就成了猜。',
+    hintNone: '在画布上点一个元素，再回来写批注。',
+    showResolved: (n: number) => `显示已解决的 ${n} 条`,
+    hideResolved: '收起已解决的批注',
+    deletedNode: ' · 节点已不在文档里',
+    resolved: ' · 已解决',
+    reopen: '重新打开',
+    markResolved: '标为已解决',
+    remove: '删除',
+    emptyPage: '这一页还没有批注。',
+    allResolved: '这一页的批注都已标记为已解决。',
+    toggle: (total: number, onSelected: number) => `批注 ${total} 条${onSelected ? ` · 选中元素上 ${onSelected}` : ''}`,
+  },
+  en: {
+    pinnedTo: 'Pinned to: ',
+    placeholder: 'e.g. this button is too big',
+    submitBusy: 'Writing…',
+    submitBtn: 'Annotate this element',
+    hintMulti: 'Pick a single element first; with five selected, “this is too big” is a guess.',
+    hintNone: 'Click an element on the canvas, then come back to annotate.',
+    showResolved: (n: number) => `Show ${n} resolved`,
+    hideResolved: 'Hide resolved annotations',
+    deletedNode: ' · node not in document',
+    resolved: ' · resolved',
+    reopen: 'Reopen',
+    markResolved: 'Mark resolved',
+    remove: 'Delete',
+    emptyPage: 'No annotations on this page yet.',
+    allResolved: 'All annotations on this page are marked resolved.',
+    toggle: (total: number, onSelected: number) => `Annotations ${total}${onSelected ? ` · ${onSelected} on selected` : ''}`,
+  },
+} as const;
+
+export function AnnotationsPanel({ locale = 'zh' }: { locale?: Locale }) {
+  const c = COPY[locale];
   const state = useStudioReady();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
@@ -66,7 +109,7 @@ export function AnnotationsPanel() {
         data-annotations-toggle={open ? 'on' : 'off'}
         className="np-toggle"
       >
-        批注 {mine.length} 条{onSelected.length ? ` · 选中元素上 ${onSelected.length}` : ''}
+        {c.toggle(mine.length, onSelected.length)}
       </button>
 
       {open ? (
@@ -74,14 +117,14 @@ export function AnnotationsPanel() {
           {selectedId && selectedNode ? (
             <>
               <p className="np-lede">
-                钉在：<span className="np-name">{selectedNode.name}</span>（{selectedNode.type} · {selectedId}）
+                {c.pinnedTo}<span className="np-name">{selectedNode.name}</span>（{selectedNode.type} · {selectedId}）
               </p>
               <textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 rows={2}
                 maxLength={1000}
-                placeholder="例如：这个按钮太大"
+                placeholder={c.placeholder}
                 className="np-input"
                 data-annotation-input
               />
@@ -92,14 +135,12 @@ export function AnnotationsPanel() {
                 className="np-submit"
                 data-annotation-submit
               >
-                {busy ? '写入中…' : '批注这个元素'}
+                {busy ? c.submitBusy : c.submitBtn}
               </button>
             </>
           ) : (
             <p className="np-lede" data-annotation-hint>
-              {state.selection.length > 1
-                ? '先只选一个元素再批注：对着五个元素说"这个太大"，定位就成了猜。'
-                : '在画布上点一个元素，再回来写批注。'}
+              {state.selection.length > 1 ? c.hintMulti : c.hintNone}
             </p>
           )}
           {error ? (
@@ -115,7 +156,7 @@ export function AnnotationsPanel() {
               className="np-resolved"
               data-annotations-resolved-filter={hideResolved ? 'hiding' : 'showing'}
             >
-              {hideResolved ? `显示已解决的 ${resolvedCount} 条` : '收起已解决的批注'}
+              {hideResolved ? c.showResolved(resolvedCount) : c.hideResolved}
             </button>
           ) : null}
 
@@ -130,8 +171,8 @@ export function AnnotationsPanel() {
                 <span className={a.resolvedAt ? 'np-bodyOff' : 'np-bodyOn'}>{a.body}</span>
                 <span className="np-meta">
                   {a.nodeName} · {a.pageName} · {a.author}
-                  {a.pageName === '(节点已不在文档里)' ? ' · 节点已不在文档里' : ''}
-                  {a.resolvedAt ? ' · 已解决' : ''}
+                  {a.pageName === '(节点已不在文档里)' ? c.deletedNode : ''}
+                  {a.resolvedAt ? c.resolved : ''}
                 </span>
                 <span className="np-actions">
                   <button
@@ -141,7 +182,7 @@ export function AnnotationsPanel() {
                     className="np-linkBtn"
                     data-annotation-resolve={a.id}
                   >
-                    {resolving === a.id ? '…' : a.resolvedAt ? '重新打开' : '标为已解决'}
+                    {resolving === a.id ? '…' : a.resolvedAt ? c.reopen : c.markResolved}
                   </button>
                   <button
                     type="button"
@@ -149,14 +190,14 @@ export function AnnotationsPanel() {
                     className="np-removeBtn"
                     data-annotation-remove={a.id}
                   >
-                    删除
+                    {c.remove}
                   </button>
                 </span>
               </li>
             ))}
             {shown.length === 0 ? (
               <li className="np-lede">
-                {mine.length === 0 ? '这一页还没有批注。' : '这一页的批注都已标记为已解决。'}
+                {mine.length === 0 ? c.emptyPage : c.allResolved}
               </li>
             ) : null}
           </ul>

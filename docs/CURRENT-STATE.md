@@ -3465,3 +3465,9 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - SketchPad.tsx zh/en 双字典：撤销/清空/笔画数/画布 aria/DEMO 生成/limits 说明三段全部接 locale；
   locale 自 AssetsPanel 透传。§38 eyes: limits 中「构图密度与明暗」加粗段完整双语。
 - fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；sketch gate 重钉。
+
+## cont. 120 (2026-11-16) - v751: AnnotationsPanel 双语化（§111 画布批注）
+- AnnotationsPanel.tsx zh/en 双字典：钉哪个节点/place/浮现按钮/空态两档/已解决三态/删除全部接 locale；
+  挂载点 CanvasStage 本次未接 locale（CanvasStage 仍单 zh，与整页 Studio 剩余单语组件一并最后收）；
+  locale prop 已预埋（默认 zh），CanvasStage 序列出 locale 即全通。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；annotations gate 重钉。

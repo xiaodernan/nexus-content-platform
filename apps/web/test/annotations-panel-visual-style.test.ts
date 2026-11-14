@@ -166,9 +166,9 @@ describe('§FE-38 /studio AnnotationsPanel 画布批注', () => {
     expect(segment).not.toContain('@keyframes');
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：49f6fff9a6e5fe55fcfec76276ef99a6c9d416ec68f83ac443ead3c2decef22f）', () => {
+  it('剥 className 后全文 SHA256 守恒（2026-11-16 v751「AnnotationsPanel 双语化」重钉：cc51ba249f4bb058cc38fcaf88731474b5944d0aee960b9231abb50735adaedf）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '49f6fff9a6e5fe55fcfec76276ef99a6c9d416ec68f83ac443ead3c2decef22f',
+      'cc51ba249f4bb058cc38fcaf88731474b5944d0aee960b9231abb50735adaedf',
     );
   });
 });
