@@ -3443,3 +3443,13 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - §46 边界（照旧）：validateCharacter issue 裁定句、语料检索说明、store 层 assetNotice/Error 仍 zh——
   全套靠 creative-model/world-model 定点本地化，是独立立片，不是本片。
 - fe-gates 116/116（1148/1148）；world-model 2/2；tsc web/wm 0；eslint 净；§FE-41 重钉。
+
+## cont. 117 (2026-11-16) - v748: DesignSystemPanel 双语化（§12/§13 token 真值面板）
+- DesignSystemPanel.tsx zh/en 双字典：token 分组（颜色/尺寸/字体/阴影/其他）、引用数/未使用、
+  内建保护/仍被引用两档禁删、实例放入/实例更新/删除、Visual DNA 来源三档+清除、
+  建 token 全流程（badKey/已存在/读不懂）、per-mode（dark）取值全部接 locale；
+  studio.execute 撤销标签本地化（v748 起撤销 Feed 跟随语言）。locale 自 StudioShell 透传。
+- 过程性事故：一次 sloppy 的 PS -e 重写把文件 corrupted，git-checkout HEAD 复位后重写并加固门（重钉）；
+  协议结算：PowerShell 直写跟踪文件 = UTF-16/BOM，切勿用；tracked 文件一律 write 工具或 node fs。
+- §FE-47 门去「studio.execute('删除 token ${token.key}' 字面量」改为 dict/call-site 双断言。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；StudioShell §FE-41 重钉（第 11 跳）。
