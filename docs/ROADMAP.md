@@ -13818,3 +13818,10 @@ shadow-[0_0_...]），按 §FE 判据不可带入主线。本线做的：
   nodes with lore across three eras plus 1 unlabeled entry -> page renders 4 lanes, 7 cards,
   correct seq numbering; screenshot captured (in turn report). Roundtrip through
   zod + validateWorld + storage preserves lore fields exactly.
+- Studio world panel gains **lore editing** for story/history nodes (era text input, max 80 chars,
+  order numeric, `patchLore` merge helper; whitespace era / non-integer / negative order are
+  un-set, both gone = lore cleared). `updateWorldNode` accepts `{ lore: WorldNodeLore | null }`
+  (`null` wipes the key; JSON roundtrip drops it, byte-identical to a pre-lore document).
+  Takeover note (2026-11-14): the sibling lane left this as uncommitted WIP; landed on main by
+  the primary lane with its Studio editor ported to the `.wd-*` façade (§FE gate re-pinned
+  ee3fadec -> 863b2154), `worldLore` 7/7, fe-gates 107/107 · 1087/1087.
