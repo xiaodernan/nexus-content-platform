@@ -64,7 +64,7 @@
 // sweep-budget-ms: 1200000
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
-import { createConnection } from 'node:net';
+import { createConnection, createServer } from 'node:net';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -264,12 +264,30 @@ async function readPortFile(file, timeoutMs = 180_000) {
   }, timeoutMs, `${file} to carry a port`);
 }
 
+/**
+ * Pick a port the OS would hand out right now — then a service can be given that number and the registry
+ * can hear its real address. Binding to port 0 used to leave the registry with a port 0 and the load
+ * balancer unable to answer, but reserving the number before the JVM binds it avoids the race.
+ */
+function pickFreePort() {
+  return new Promise((resolve, reject) => {
+    const socket = createServer();
+    socket.unref();
+    socket.on('error', reject);
+    socket.listen(0, '127.0.0.1', () => {
+      const port = socket.address().port;
+      socket.close((err) => (err ? reject(err) : resolve(port)));
+    });
+  });
+}
+
 /** Start one of the built services and wait until it answers on the port it reported. */
 async function startService(service, extraArgs) {
   const portFile = path.join(BUILD_ROOT, `nexus-cloud-proof-${service.id}-port-${STAMP}.txt`);
   started.push(portFile);
   const jar = path.join(BUILD_ROOT, service.id, 'target', service.jar);
   assert.ok(existsSync(jar), `the ${service.id} jar was not built: ${jar}`);
+  const pickedPort = await pickFreePort();
 
   // `spring.cloud.config.enabled=false` is NOT a convenience — it is the proof refusing to depend on a
   // door it did not open. Measured 2026-11-10, and it cost a whole run: a NEIGHBOURING project's config
@@ -279,7 +297,7 @@ async function startService(service, extraArgs) {
   // 8761 and this proof waited sixty seconds for a name its own registry had never been told. Nothing
   // in the failure named the config door; the only visible symptom was a timeout. A proof that reads
   // the developer's machine is not a proof, so the import is off for every service started here.
-  const child = spawn('java', [...extraArgs, service.heap, '-Dserver.port=0', `-Dnexus.port-file=${portFile}`, '-Dspring.cloud.config.enabled=false', '-jar', jar], {
+  const child = spawn('java', [...extraArgs, service.heap, `-Dserver.port=${pickedPort}`, `-Dnexus.port-file=${portFile}`, '-Dspring.cloud.config.enabled=false', '-jar', jar], {
     cwd: path.join(BUILD_ROOT, service.id),
     env: { ...process.env },
     stdio: ['ignore', 'pipe', 'pipe'],

@@ -23,19 +23,19 @@ const ROOT = process.cwd();
 const OUT_DIR = join(ROOT, 'docs', 'showcase');
 mkdirSync(OUT_DIR, { recursive: true });
 
-const sh = (args) => {
+const sh = (args: string[]) => {
   try { return execFileSync('git', args, { encoding: 'utf8' }).trim(); } catch { return null; }
 };
 
 const commits = sh(['rev-list', '--count', 'HEAD']) ?? '—';
 const aheadOfOrigin = sh(['rev-list', '--count', 'origin/main..main']);
 
-const countFiles = (dir, suffix = '') => {
+const countFiles = (dir: string, suffix = '') => {
   try {
     return readdirSync(dir, { withFileTypes: true }).filter((e) => (suffix ? e.name.endsWith(suffix) : e.isFile())).length;
   } catch { return null; }
 };
-const countDirs = (dir) => {
+const countDirs = (dir: string) => {
   try {
     return readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory()).length;
   } catch { return null; }

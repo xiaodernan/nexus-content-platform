@@ -239,6 +239,9 @@ async function main() {
     DB_PASSWORD,
     NEXUS_DOMAIN_PORT: String(DOMAIN_PORT),
     NEXUS_CONFIG_ENABLED: 'true',
+    // The baked default points at 18888; the verify-topology config door is spawned on CONFIG_PORT instead,
+    // and both the domain-service and the smoke need to agree on where the config server lives.
+    NEXUS_CONFIG_SERVER_URL: `http://127.0.0.1:${CONFIG_PORT}`,
     // §SC-62/verify: covered: probe is gated; need a known operator token to assert the positive branch.
     NEXUS_OPERATOR_TOKEN: 'verify-topology-op-token',
     // No NEXUS_DOMAIN_REGISTER/FETCH anywhere: the register-with-eureka:true this service will obey
@@ -290,6 +293,7 @@ async function main() {
     NEXUS_DB_PASSWORD: DB_PASSWORD,
     NEXUS_API_PORT: String(API_PORT),
     NEXUS_CONFIG_ENABLED: 'true',
+    NEXUS_CONFIG_SERVER_URL: `http://127.0.0.1:${CONFIG_PORT}`,
     // Same round-trip: nexus-api.yml says register-with-eureka:true — nothing in env does.
   });
   services.push({ name: 'nexus-api', child: api });
@@ -301,7 +305,11 @@ async function main() {
   if (apiReg.status !== 200) bad('nexus-api registered via config server', `GET answered ${apiReg.status}`);
   else ok('eureka holds NEXUS-API (via config server, no env flags)');
 
-  const gateway = spawnJar('gateway', gatewayJar, { NEXUS_GATEWAY_PORT: String(GATEWAY_PORT), NEXUS_CONFIG_ENABLED: 'true' });
+  const gateway = spawnJar('gateway', gatewayJar, {
+    NEXUS_GATEWAY_PORT: String(GATEWAY_PORT),
+    NEXUS_CONFIG_ENABLED: 'true',
+    NEXUS_CONFIG_SERVER_URL: `http://127.0.0.1:${CONFIG_PORT}`,
+  });
   services.push({ name: 'gateway', child: gateway });
   if (!(await waitFor('gateway', `http://127.0.0.1:${GATEWAY_PORT}/platform/health`, 200))) {
     await cleanup();

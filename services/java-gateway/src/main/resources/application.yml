@@ -33,7 +33,7 @@ spring:
   data:
     redis:
       host: ${NEXUS_REDIS_HOST:127.0.0.1}
-      port: ${NEXUS_REDIS_PORT:6379}
+      port: ${NEXUS_REDIS_PORT:56379}
       # A separate database index, so the edge's counters cannot collide with whatever else shares a
       # Redis. Compose publishes this instance on 56379 and the proof points here; a deployment sets
       # NEXUS_REDIS_DB to a free index.
