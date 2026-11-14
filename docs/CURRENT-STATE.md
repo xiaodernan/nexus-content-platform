@@ -3491,3 +3491,15 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - TerrainSection/TideSection 两个子组件同片落地（在 WorldPanel 同文件内 double-prefix 受限）。
 - WORLD_KIND_LABELS_EN 直入 world-model 权威库（本轮初焊），不再各页重复。
 - fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；§FE-41 重钉（第十五跳）。
+
+## cont. 124 (2026-11-16) - 会话盘点：v733–v754 全量绿；剩余面盘点与后续计划
+- 双语化覆盖率（Studio 面板 zh-only 剩余）：CanvasStage、PropertiesPanel、AnnotationsPanel 挂载点的 CanvasStage 线路。
+  已清：Layers/Retrieve/RetrievePanel 的检索说明、Game/Code/Context/Publish/Memory/History/Export/Assets/Team/Health/DesignSystem/
+  CommandBar/Character/World/WorldGraph/Variants/SketchPad/Agent/Annotations/WorldGraphView。
+  WorldPanel 在本会话撞车也在内——与 WorldGraphView 同一纪律：先稳原始 CRLF，再定向置换，不全文重写。
+- 协议结算 v748 记下：tracked 文件一律 write 工具 / node fs；PowerShell 重定向写文件 = UTF-16 转换 = 假换行，
+  本会话 incident 8 次全部以 git-checkout HEAD 复解决，gates 全绿。
+- fe-gates 始终 116/116 · 1148/1148；world-model 新增 WORLD_KIND_LABELS_EN + 2 测钉同序（cont. 116）；§CACHE-4-AB 结论入 PERFORMANCE（cont. 102/103）。
+- 长期开发线次交汇点：AGENTS.md 的 open/show/next 纪律被本次覆盖途中持续满足（直连顺序 + showcase 按快照更新，未发现漂移）。
+- 下一项精选：PropertiesPanel（§6 右面板，1103 行，91 处中文字面量）— 分两段落地（子组件→主体→doors §14/§124 的功能列），
+  每段可独立回归；CanvasStage 与 CanvasStage 挂载点（AnnotationsPanel 挂载链）紧随其后。
