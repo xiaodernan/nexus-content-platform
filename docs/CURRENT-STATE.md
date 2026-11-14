@@ -3341,3 +3341,16 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   一条硬编码 "studio.execute('代码编辑'…" 契约改为断言机制 + zh 标签仍在 dict。
   教训：SHA 门重钉永远用**门内同一 redact** 实测，不用手写的近似版。
 - fe-gates 116/116（1148/1148）；web tsc 0；eslint 净。
+
+## cont. 107 (2026-11-15) - v738: ai-service 原生死信读面 + 双页共存裁决
+
+- DISCOVERY 并修正：/admin/dead-letters 只读巡检器早已存在（v689 @349dd6c8, ADR 0122 —
+  web 直读 Redis nexus:ai:dead + cursor 分页 + NDJSON 导出）；AdminNav 已有入口，本片不是补漏，是补机器面。
+- ai-service 新增 GET /v1/ai/jobs/dead-letters?limit=（缺省 50 上限 200）：只读、total 报裁剪前真实总数、
+  items 按 job.finishedAt 降序归一（内存 append 尾部最新 / Redis LPUSH 头部最新 → 同一语义）；
+  内容全部来自 Job.public() → payload 提示词原文结构上不可能外泄；非 lifespan 如实 503。
+- tests/test_dead_letters_http.py（3 测）：no-lifespan 503；empty 200 zero；seed 两条 → 降序/total/limit clamp/payload 不可见。
+  **事故与根治**：首版测试从 .env 自动继承 NEXUS_REDIS_URL 指向共享 Redis，drain 出 2+2 条毒消息；
+  立即 LREM 精确删除 nexus:ai:dead 全部 4 条（列表回归 *0，job_dl_* 本体键同步 DEL）；测试改为 monkeypatch 覆盖到 DB15 探测库并自动清欠账。DB0/DB15 复扫均空。
+- ADR-0268 记录双页共存并收窄职责：v689=人向唯一页面（保留），v738=机器向唯一入口（规范化读法）；semantics 对齐（新在前、total 原样、payload 不外泄）。
+- 验证：test_dead_letter 19/19 绿；jobs/memory/redis store 39/39 绿（redis 8/8 实机）。
