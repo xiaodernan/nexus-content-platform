@@ -6,6 +6,26 @@ import { studio, useStudio, perfSegmentsOn } from './store';
 import { nodeStyle } from './render';
 import { AnnotationsPanel } from './AnnotationsPanel';
 import { isControlTarget, isEditableTarget } from '@/lib/keyboard';
+import type { Locale } from '@/lib/i18n';
+
+const COPY = {
+  zh: {
+    loadCanvas: '载入画布…',
+    fitWindow: '适应窗口',
+    fitWindowTitle: '适应窗口（Shift+1）',
+    annotationTitle: (name: string, body: string, resolved: boolean) => `${name}：${body}${resolved ? '（已解决）' : ''}`,
+    virtualized: (shown: number, total: number) => `画布按视口裁剪：显示 ${shown} / ${total}`,
+    emptyPage: '空页面：用左侧 Layers 面板的“+”添加元素。画布上的每次修改都会写回设计模型，再投影成渲染与代码。',
+  },
+  en: {
+    loadCanvas: 'Loading canvas…',
+    fitWindow: 'Fit window',
+    fitWindowTitle: 'Fit window (Shift+1)',
+    annotationTitle: (name: string, body: string, resolved: boolean) => `${name}: ${body}${resolved ? ' (resolved)' : ''}`,
+    virtualized: (shown: number, total: number) => `Canvas clipped to viewport: showing ${shown} / ${total}`,
+    emptyPage: 'Empty page: add elements with the “+” in the Layers panel on the left. Every edit on canvas writes back to the design model, then projects to render and code.',
+  },
+} as const;
 
 type Handle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
 
@@ -131,8 +151,9 @@ const Node = memo(function NodeComponent({
 Node.displayName = 'Node';
 
 /** §8 Canvas：无限画布 + zoom/pan + 选择/框选 + 拖拽 + 8 手柄缩放 + 吸附/网格 + viewport 预览 */
-export function CanvasStage() {
+export function CanvasStage({ locale = 'zh' }: { locale?: Locale }) {
   const state = useStudio();
+  const c = COPY[locale];
   const surfaceRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const spaceRef = useRef(false);
@@ -477,7 +498,7 @@ export function CanvasStage() {
   if (!layout || !page) {
     return (
       <div className="cs-loader">
-        <p className="cs-mono13">{state.loadError ?? '载入画布…'}</p>
+        <p className="cs-mono13">{state.loadError ?? c.loadCanvas}</p>
       </div>
     );
   }
@@ -522,12 +543,12 @@ export function CanvasStage() {
       <button
         type="button"
         data-fit-canvas
-        title="适应窗口（Shift+1）"
+        title={c.fitWindowTitle}
         onPointerDown={(e) => e.stopPropagation()}
         onClick={fitToWindow}
         className="cs-fitBtn"
       >
-        适应窗口
+        {c.fitWindow}
       </button>
       <div
         data-canvas-frame
@@ -589,7 +610,7 @@ export function CanvasStage() {
               data-annotation-badge={a.nodeId}
               // §111「已解决」的批注角标退成灰并淡出：元素上还有话，但已经处理过了
               data-annotation-resolved={a.resolvedAt ? 'on' : 'off'}
-              title={`${a.nodeName}：${a.body}${a.resolvedAt ? '（已解决）' : ''}`}
+              title={c.annotationTitle(a.nodeName, a.body, Boolean(a.resolvedAt))}
               onPointerDown={(e) => e.stopPropagation()}
               onClick={() => studio.select([a.nodeId])}
               style={{
@@ -609,14 +630,14 @@ export function CanvasStage() {
           );
         })}
         <div style={{ pointerEvents: 'auto' }}>
-          <AnnotationsPanel />
+          <AnnotationsPanel locale={locale} />
         </div>
         {visible.virtualized ? (
           <span
             className="cs-virtualized"
             data-canvas-virtualized
           >
-            画布按视口裁剪：显示 {visible.ids.length} / {layout.paintOrder.length}
+            {c.virtualized(visible.ids.length, layout.paintOrder.length)}
           </span>
         ) : null}
         {preview.guides?.map((guide, i) => {
@@ -692,7 +713,7 @@ export function CanvasStage() {
         {Object.keys(page.nodes).length <= 1 ? (
           <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>
             <p className="cs-emptyState">
-              空页面：用左侧 Layers 面板的“+”添加元素。画布上的每次修改都会写回设计模型，再投影成渲染与代码。
+              {c.emptyPage}
             </p>
           </div>
         ) : null}

@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
  * 本片只换皮：token/component CRUD 路径、parseInput/resolveColor/usage="tokenUsage" 的数据链——一字不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @ + cn()整体归一 + `className=@` 归一）：
- * `9fb3d0540e7b1c2b8dbdab46053fd3bea0d6c920a53c6f7e36bb3b66ce02247a` 与 HEAD 字节一致。
+ * `179886b4ab396ba8773247eb3ec5b62b58a9b2844c7b8f44118bb5550834f7e8` 与 HEAD 字节一致。
  *
  * 判据不变式（12 门）：
  *  1. 'use client' 保留 + studio(execute/addComponent/addToken/setToken/removeToken) 进门；
@@ -79,9 +79,13 @@ describe('§FE-47 /studio DesignSystemPanel 设计系统面板', () => {
   it("'use client' 保留 + studio.execute/addComponent/setToken 存在", () => {
     expect(main.slice(0, 40)).toContain("'use client'");
     expect(code).toContain('studio.execute(');
-    expect(code).toContain("studio.execute(`删除 token ${token.key}`");
-    expect(code).toContain("studio.execute(`新增 token ${key}`");
-    expect(code).toContain("studio.execute(`存为组件 ${root.name}`");
+    // zh 文案原样留在双语字典里（v748），撤销标签经 c.*Undo 函数进事务条目
+    expect(main).toContain('`删除 token ${key}`');
+    expect(main).toContain('`新增 token ${key}`');
+    expect(main).toContain('`存为组件 ${name}`');
+    expect(code).toContain('studio.execute(c.removeTokenUndo(token.key)');
+    expect(code).toContain('studio.execute(c.addTokenUndo(key)');
+    expect(code).toContain('studio.execute(c.saveComponentUndo(root.name)');
   });
 
   it('数据钩子守恒：data-design-system-root/data-token-count/data-token-add-*/data-components-*/data-token-remove 派系', () => {
@@ -163,9 +167,9 @@ describe('§FE-47 /studio DesignSystemPanel 设计系统面板', () => {
     }
   });
 
-  it('剥 className/cn 后全文 SHA256 守恒（零行为：9fb3d0540e7b1c2b8dbdab46053fd3bea0d6c920a53c6f7e36bb3b66ce02247a）', () => {
+  it('剥 className/cn 后全文 SHA256 守恒（2026-11-16 v748「DesignSystemPanel 双语化」重钉：179886b4ab396ba8773247eb3ec5b62b58a9b2844c7b8f44118bb5550834f7e8）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '9fb3d0540e7b1c2b8dbdab46053fd3bea0d6c920a53c6f7e36bb3b66ce02247a',
+      '179886b4ab396ba8773247eb3ec5b62b58a9b2844c7b8f44118bb5550834f7e8',
     );
   });
 });

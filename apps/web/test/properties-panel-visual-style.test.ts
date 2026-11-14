@@ -13,7 +13,7 @@ import { describe, expect, it } from 'vitest';
  * popMenu 的 shadow-panel 复位为 --nexus-shadow-md（原 utility → @theme --shadow-panel → 同 token）。
  *
  * **零行为恒等门**（redact = EOL//s 归一 + className 任意形态归一 @ + cn()整体归一 + `className=@` 归一 + `const cls = '…'` 共享类常量归一）：
- * `6d2c2adacf41d89dce034c123f7e10858c3ae527a2b5b15b00c49271e7e7229d` 与 HEAD 字节一致。
+ * `c58f8b89f895a09e644dca48f2d6a03822b52a4ed8743ca1eec837d6a8ca779f` 与 HEAD 一致（v756 i18n 重钉）。
  *
  * 判据不变式（13 门）：
  *  1. 'use client' 保留 + studio.write/setProps/setResponsiveValue/write/studio 依赖路径进门；
@@ -181,9 +181,9 @@ describe('§FE-45 /studio PropertiesPanel 属性面板', () => {
     expect(segment).toContain('.pp-segOn { background: var(--nexus-color-brand);');
   });
 
-  it('剥 className/cn/共享类常量后全文 SHA256 守恒（零行为：6d2c2adacf41d89dce034c123f7e10858c3ae527a2b5b15b00c49271e7e7229d）', () => {
+  it('剥 className/cn/共享类常量后全文 SHA256 守恒（零行为：c58f8b89f895a09e644dca48f2d6a03822b52a4ed8743ca1eec837d6a8ca779f）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '6d2c2adacf41d89dce034c123f7e10858c3ae527a2b5b15b00c49271e7e7229d',
+      'c58f8b89f895a09e644dca48f2d6a03822b52a4ed8743ca1eec837d6a8ca779f',
     );
   });
 });

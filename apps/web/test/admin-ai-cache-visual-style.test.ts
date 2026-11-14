@@ -79,7 +79,7 @@ describe('§CACHE-2 /admin/ai-cache 门禁与轮询', () => {
   });
 
   it('管理台导航里有这一页（名单收在 LINKS 一处）', () => {
-    expect(nav).toContain("{ key: 'ai-cache', href: '/admin/ai-cache', label: '缓存读数' }");
+    expect(nav).toContain("{ key: 'ai-cache', href: '/admin/ai-cache', labelZh: '缓存读数', labelEn: 'AI cache' }");
   });
 });
 

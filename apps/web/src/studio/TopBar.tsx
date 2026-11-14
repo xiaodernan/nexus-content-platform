@@ -152,8 +152,8 @@ export function TopBar({ onOpenRail, credits = null, locale = 'zh' }: { onOpenRa
           ))}
         </select>
         <TopButton label={c.grid} shortcut="Ctrl+G" active={grid} onClick={() => studio.toggleGrid()} />
-        <ExportPanel />
-        <PublishPanel />
+        <ExportPanel locale={locale} />
+        <PublishPanel locale={locale} />
         <a
           href={`/preview/${projectId}`}
           className="sp-previewLink"

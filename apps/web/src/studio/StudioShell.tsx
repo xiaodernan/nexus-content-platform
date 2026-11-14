@@ -260,31 +260,31 @@ function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zo
           {tab === 'layers' ? (
             <LayersPanel locale={locale} />
           ) : tab === 'design' ? (
-            <DesignSystemPanel />
+            <DesignSystemPanel locale={locale} />
           ) : tab === 'assets' ? (
-            <AssetsPanel />
+            <AssetsPanel locale={locale} />
           ) : tab === 'world' ? (
-            <WorldPanel />
+            <WorldPanel locale={locale} />
           ) : tab === 'game' ? (
-            <GamePanel />
+            <GamePanel locale={locale} />
           ) : tab === 'storyboard' ? (
-            <StoryboardPanel />
+            <StoryboardPanel locale={locale} />
           ) : tab === 'team' ? (
-            <TeamPanel />
+            <TeamPanel locale={locale} />
           ) : tab === 'characters' ? (
-            <CharacterPanel />
+            <CharacterPanel locale={locale} />
           ) : tab === 'memory' ? (
-            <MemoryPanel />
+            <MemoryPanel locale={locale} />
           ) : tab === 'retrieve' ? (
             <RetrievePanel locale={locale} />
           ) : tab === 'context' ? (
-            <ContextPanel />
+            <ContextPanel locale={locale} />
           ) : tab === 'agent' ? (
-            <AgentPanel />
+            <AgentPanel locale={locale} />
           ) : tab === 'health' ? (
-            <HealthRail />
+            <HealthRail locale={locale} />
           ) : (
-            <HistoryPanel />
+            <HistoryPanel locale={locale} />
           )}
         </aside>
       </Profiler>
@@ -325,21 +325,21 @@ function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zo
             </div>
             <div className="se-canvasWrap">
               {view === 'canvas' ? (
-                <CanvasStage />
+                <CanvasStage locale={locale} />
               ) : view === 'variants' ? (
-                <VariantsBoard />
+                <VariantsBoard locale={locale} />
               ) : view === 'graph' ? (
-                <WorldGraphView />
+                <WorldGraphView locale={locale} />
               ) : view === 'gamegraph' ? (
                 <GameGraphView />
               ) : (
-                <CodePanel />
+                <CodePanel locale={locale} />
               )}
             </div>
           </div>
           {/* 比较板是只读的：AI 命令栏改的是工作区那一份，在这儿会让人以为改的是某张卡 */}
           {/* 命令栏改的是设计工作区；方案板、世界图与游戏图都不是它的作用域 */}
-          {view === 'variants' || view === 'graph' || view === 'gamegraph' ? null : <CommandBar />}
+          {view === 'variants' || view === 'graph' || view === 'gamegraph' ? null : <CommandBar locale={locale} />}
         </main>
       </Profiler>
 
@@ -403,7 +403,7 @@ function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zo
             >
               {inspectorOpen ? c.collapseInspectorBar : c.inspectToggle}
             </button>
-            <PropertiesPanel />
+            <PropertiesPanel locale={locale} />
           </div>
         </aside>
       </Profiler>

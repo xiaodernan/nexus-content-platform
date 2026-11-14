@@ -92,21 +92,30 @@ export async function buildProjectContext(
   projectId: string,
   ownerId: string,
   options: BuildContextOptions = {},
+  locale: 'zh' | 'en' = 'zh',
 ): Promise<ContextResult> {
   const maxIndexChars = options.maxIndexChars ?? DEFAULT_INDEX_CHAR_BUDGET;
   const maxCodeChars = options.maxCodeChars ?? DEFAULT_CODE_CHAR_BUDGET;
   const recentLimit = options.recentChangeLimit ?? RECENT_DEFAULT;
   const maxCorpusChars = options.maxCorpusChars ?? DEFAULT_CORPUS_CHAR_BUDGET;
   const corpusQuery = options.corpusQuery?.trim() ?? '';
+  const en = locale === 'en';
+  const pick = (zh: string, enText: string): string => (en ? enText : zh);
 
   const document = await loadDocument(projectId);
-  if (!document) return { ok: false, reason: '这个项目读不出设计文档（不存在或已删除），目录无从算起。' };
+  if (!document)
+    return {
+      ok: false,
+      reason: en
+        ? 'This project has no readable design document (missing or deleted), so the catalog cannot be computed.'
+        : '这个项目读不出设计文档（不存在或已删除），目录无从算起。',
+    };
 
-  const fullIndex = buildDesignIndex(document);
-  const index = fitIndexToBudget(fullIndex, maxIndexChars);
+  const fullIndex = buildDesignIndex(document, locale);
+  const index = fitIndexToBudget(fullIndex, maxIndexChars, locale);
   // §69：代码目录是对 codegen 产物的解析，而 codegen 是文档的纯投影——所以它在这里是 CPU 密集
   // 而不是 IO。10k 节点那一档的耗时见 docs/PERFORMANCE.md。
-  const codeIndex = fitCodeIndexToBudget(buildCodeIndex(document), maxCodeChars);
+  const codeIndex = fitCodeIndexToBudget(buildCodeIndex(document), maxCodeChars, locale);
 
   const [world, characters, memoryCounts, assetRows, knowledge, snapshots, publication, retrieved] =
     await Promise.all([
@@ -122,13 +131,21 @@ export async function buildProjectContext(
     ]);
   const corpus = retrieved ? fitCorpusToBudget(retrieved.items, maxCorpusChars) : null;
 
-  const unavailable = [
-    '当前选中 / 页面 / 视口是画布的本地状态，由浏览器侧的 Context Engine 补上（§66 那三项不在这里）',
-    '代码正文：目录说了有哪几份文件、里面有什么符号，但还没有"按 path 取正文"的通道给 Agent（§69 的后半截）',
-    '语义检索与相关性排序：要 embedding provider，§49 只落了全文 + 子串，§69 的排序是词法的',
-    '资产像素内容：只带元数据与引用计数',
-    '上下文里发的语料摘录是命中位置附近的窗口，不是整块正文：整块能按出处走 GET /api/projects/<id>/knowledge/block 取回，但这一轮没有替你取',
-  ];
+  const unavailable = en
+    ? [
+        'Current selection / page / viewport are canvas-local state and are filled in by the browser-side Context Engine (those are the three §66 items not assembled here)',
+        'Code bodies: the catalog says which files exist and which symbols they carry, but no "fetch body by path" channel exists yet for the agent (the second half of §69)',
+        'Semantic search and relevance ranking: needs an embedding provider; §49 lands fulltext + substring only, and §69 ranking is lexical',
+        'Asset pixel contents: metadata and reference counts only',
+        'Corpus excerpts shipped here are windows around the hit position, not whole blocks: whole blocks can be fetched via GET /api/projects/<id>/knowledge/block, but this turn did not take that',
+      ]
+    : [
+        '当前选中 / 页面 / 视口是画布的本地状态，由浏览器侧的 Context Engine 补上（§66 那三项不在这里）',
+        '代码正文：目录说了有哪几份文件、里面有什么符号，但还没有"按 path 取正文"的通道给 Agent（§69 的后半截）',
+        '语义检索与相关性排序：要 embedding provider，§49 只落了全文 + 子串，§69 的排序是词法的',
+        '资产像素内容：只带元数据与引用计数',
+        '上下文里发的语料摘录是命中位置附近的窗口，不是整块正文：整块能按出处走 GET /api/projects/<id>/knowledge/block 取回，但这一轮没有替你取',
+      ];
 
   const context: ProjectContextPayload = {
     projectId,
@@ -216,34 +233,76 @@ export async function buildProjectContext(
       publishedAt: publication?.publishedAt ?? null,
     },
     branches: [
-      { name: 'Design', status: 'indexed', note: `页面/结构/组件/资产/token/交互 + 跨引用边（§70）` },
+      {
+        name: 'Design',
+        status: 'indexed',
+        note: en
+          ? 'Pages/structure/components/assets/tokens/interactions + cross-reference edges (§70)'
+          : `页面/结构/组件/资产/token/交互 + 跨引用边（§70）`,
+      },
       {
         name: 'Code',
         // 有文件解析不出来或被预算裁掉时只说 partial：目录不完整还自称索引好了，就是 §159
         status: codeIndex.totals.unreadableFiles > 0 || codeIndex.dropped ? 'partial' : 'indexed',
         note:
-          `${codeIndex.totals.files} 个文件、${codeIndex.totals.symbols} 个符号、${codeIndex.totals.internalDeps} 条内部依赖（§69，真实 AST）` +
-          (codeIndex.totals.unreadableFiles > 0 ? `；${codeIndex.totals.unreadableFiles} 个文件语法解析失败，目录不含其符号` : '') +
-          (codeIndex.dropped ? `；目录被压进 ${maxCodeChars} 字符预算，省掉的见 trimmed` : ''),
+          pick(
+            `${codeIndex.totals.files} 个文件、${codeIndex.totals.symbols} 个符号、${codeIndex.totals.internalDeps} 条内部依赖（§69，真实 AST）`,
+            `${codeIndex.totals.files} files, ${codeIndex.totals.symbols} symbols, ${codeIndex.totals.internalDeps} internal deps (§69, real AST)`,
+          ) +
+          (codeIndex.totals.unreadableFiles > 0
+            ? pick(
+                `；${codeIndex.totals.unreadableFiles} 个文件语法解析失败，目录不含其符号`,
+                `; ${codeIndex.totals.unreadableFiles} files failed syntax parsing, their symbols are not in the catalog`,
+              )
+            : '') +
+          (codeIndex.dropped
+            ? pick(
+                `；目录被压进 ${maxCodeChars} 字符预算，省掉的见 trimmed`,
+                `; catalog compressed into the ${maxCodeChars}-char budget — see trimmed for what was dropped`,
+              )
+            : ''),
       },
       {
         name: 'Assets',
         status: 'partial',
-        note: `只有元数据与引用计数：${assetRows.length} 个资产，其中 ${index.totals.orphanAssets} 个没被设计引用`,
+        note: pick(
+          `只有元数据与引用计数：${assetRows.length} 个资产，其中 ${index.totals.orphanAssets} 个没被设计引用`,
+          `Metadata and reference counts only: ${assetRows.length} assets, ${index.totals.orphanAssets} of which are not referenced by the design`,
+        ),
       },
-      { name: 'Agents', status: 'not-indexed', note: 'Agent 的活动与产出还没进装配（§26 事件流在 ai-service 侧）' },
+      {
+        name: 'Agents',
+        status: 'not-indexed',
+        note: pick(
+          'Agent 的活动与产出还没进装配（§26 事件流在 ai-service 侧）',
+          'Agent activity and outputs are not assembled yet (the §26 event stream lives on the ai-service side)',
+        ),
+      },
       {
         name: 'Data',
         status: 'partial',
-        note: `世界 ${world?.ok ? '有' : '没有'}、角色 ${characters.items.length}、记忆 ${Object.values(memoryCounts).reduce((a, b) => a + b, 0)} 条：只带条数与标题，正文按 id 取`,
+        note: pick(
+          `世界 ${world?.ok ? '有' : '没有'}、角色 ${characters.items.length}、记忆 ${Object.values(memoryCounts).reduce((a, b) => a + b, 0)} 条：只带条数与标题，正文按 id 取`,
+          `World ${world?.ok ? 'present' : 'absent'}, ${characters.items.length} characters, ${Object.values(memoryCounts).reduce((a, b) => a + b, 0)} memories: counts and titles only — bodies fetch by id`,
+        ),
       },
-      { name: 'Runtime', status: 'not-indexed', note: '预览跑在沙箱里，运行期指标（§82/§83）还没回流到上下文' },
+      {
+        name: 'Runtime',
+        status: 'not-indexed',
+        note: pick(
+          '预览跑在沙箱里，运行期指标（§82/§83）还没回流到上下文',
+          'The preview runs in a sandbox; runtime metrics (§82/§83) do not flow back into the context yet',
+        ),
+      },
       {
         name: 'Publishing',
         status: publication ? 'partial' : 'not-indexed',
         note: publication
-          ? `已发布为 ${publication.visibility}（${publication.path}，v${publication.version}）`
-          : '还没有发布记录，也就没有可引用的发布态',
+          ? pick(
+              `已发布为 ${publication.visibility}（${publication.path}，v${publication.version}）`,
+              `Published as ${publication.visibility} (${publication.path}, v${publication.version})`,
+            )
+          : pick('还没有发布记录，也就没有可引用的发布态', 'No publication record yet, so nothing published to reference'),
       },
     ],
     unavailable,
@@ -253,9 +312,13 @@ export async function buildProjectContext(
   if (!parsed.success) {
     return {
       ok: false,
-      reason: `上下文装配不符合契约：${parsed.error.issues
-        .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
-        .join('；')}`,
+      reason: en
+        ? `Context assembly does not match the contract: ${parsed.error.issues
+            .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+            .join('; ')}`
+        : `上下文装配不符合契约：${parsed.error.issues
+            .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+            .join('；')}`,
     };
   }
   return { ok: true, context: parsed.data, document };

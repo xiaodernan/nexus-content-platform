@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   WORLD_KINDS,
   WORLD_KIND_LABELS,
+  WORLD_KIND_LABELS_EN,
   WORLD_PLATEAU_LIMIT,
   WORLD_TERRAIN_HEIGHT_MAX,
   linkWorldNodes,
@@ -16,8 +17,79 @@ import {
 import { clampHeight, clampRadius, plateauFromDrag } from './terrainDraw';
 import type { WorldPlateauProfile } from '@nexus/world-model';
 import { cn } from '@/lib/cn';
+import type { Locale } from '@/lib/i18n';
 import { useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';
+
+const COPY = {
+  zh: {
+    loading: '读取世界…',
+    unreadable: (reason: string) => `读不出世界：${reason}`,
+    noWorld: '这个项目还没有世界。先建一份模板骨架，再来这里连关系。',
+    createSkeleton: '创建世界骨架（模板）',
+    defaultWorldName: '未命名世界',
+    drawTerrain: '画地形',
+    coneTop: '坡顶高度',
+    mesaTop: '台面高度',
+    terrainProfileAria: '地形剖面',
+    mesa: '台面',
+    cone: '坡',
+    deleteThisPlateau: '删除这个圆台',
+    hintPickedPlateau: '点「删除这个圆台」确认删掉选中的台子',
+    hintCone: '在空白处按下拖一个圆 = 画一座圆锥坡（台心到边缘线性降到 0，可走）；点它选中可删',
+    hintMesa: '在空白处按下拖一个圆 = 画一个硬边台子；点台子选中可删',
+    pickedPair: (a: string, b: string) => `已选 ${a} → ${b}`,
+    clickTwo: '点两个节点就能连一条关系',
+    relationLabelPlaceholder: '关系叫什么（可留空）',
+    relationLabelAria: '关系标签',
+    connect: '连一条',
+    clearSelection: '取消选择',
+    deleteEdge: '删除这条关系',
+    saving: '保存中…',
+    dirty: '未保存',
+    saved: '已保存',
+    saveError: '保存失败',
+    gotIt: '知道了',
+    noEdges: '还没有关系：点两个节点（顺序就是箭头方向），再点「连一条」。',
+    positionNote: '位置存在世界文档里，拖完松手即写库；没拖过的按类分列自动排布。',
+    kindNoteJoiner: ' / ',
+  },
+  en: {
+    loading: 'Reading world…',
+    unreadable: (reason: string) => `The world cannot be read: ${reason}`,
+    noWorld: 'This project has no world yet. Create the template skeleton first, then come back to wire relationships.',
+    createSkeleton: 'Create world skeleton (template)',
+    defaultWorldName: 'Untitled world',
+    drawTerrain: 'Draw terrain',
+    coneTop: 'Summit height',
+    mesaTop: 'Plateau height',
+    terrainProfileAria: 'Terrain profile',
+    mesa: 'Mesa',
+    cone: 'Cone',
+    deleteThisPlateau: 'Delete this plateau',
+    hintPickedPlateau: 'Confirm “Delete this plateau” to remove the selected one',
+    hintCone: 'Press on blank space and drag a circle = draw a steep-cone plateau (linear falloff from center to rim, walkable); click it to select and delete',
+    hintMesa: 'Press on blank space and drag a circle = draw a hard-edged plateau; click it to select and delete',
+    pickedPair: (a: string, b: string) => `Selected ${a} → ${b}`,
+    clickTwo: 'Click two nodes to connect them',
+    relationLabelPlaceholder: 'Relationship name (optional)',
+    relationLabelAria: 'Relationship label',
+    connect: 'Connect',
+    clearSelection: 'Clear selection',
+    deleteEdge: 'Delete this relationship',
+    saving: 'Saving…',
+    dirty: 'Unsaved',
+    saved: 'Saved',
+    saveError: 'Save failed',
+    gotIt: 'Got it',
+    noEdges: 'No relationships yet — click two nodes (the order is the arrow direction), then tap “Connect”.',
+    positionNote: 'Positions live in the world document; drop to write to the store right away. Undragged nodes auto-layout by kind.',
+    kindNoteJoiner: ' / ',
+  },
+} as const;
+
+const kindLabel = (kind: WorldKind, locale: Locale): string =>
+  locale === 'en' ? WORLD_KIND_LABELS_EN[kind] : WORLD_KIND_LABELS[kind];
 
 /**
  * §45 World Graph：世界条目之间的关系画成一张可拖的图。
@@ -48,7 +120,8 @@ const KIND_FILL: Record<WorldKind, string> = {
   story: '#4d2b34',
 };
 
-export function WorldGraphView() {
+export function WorldGraphView({ locale = 'zh' }: { locale?: Locale }) {
+  const c = COPY[locale];
   const studio = useStudioReady();
   const snapshot = useWorld();
   const [label, setLabel] = useState('');
@@ -82,19 +155,19 @@ export function WorldGraphView() {
       <div className="wg-emptyState" data-world-graph>
         <p className="wg-emptyLead" data-graph-empty>
           {snapshot.saveState === 'loading'
-            ? '读取世界…'
+            ? c.loading
             : snapshot.error
-              ? `读不出世界：${snapshot.error}`
-              : '这个项目还没有世界。先建一份模板骨架，再来这里连关系。'}
+              ? c.unreadable(snapshot.error)
+              : c.noWorld}
         </p>
         {!snapshot.error && snapshot.saveState !== 'loading' ? (
           <button
             type="button"
-            onClick={() => void worldStore.createSkeleton(studio.document?.name ?? '未命名世界')}
+            onClick={() => void worldStore.createSkeleton(studio.document?.name ?? c.defaultWorldName)}
             data-graph-create
             className="sb-accentBtn"
           >
-            创建世界骨架（模板）
+            {c.createSkeleton}
           </button>
         ) : null}
       </div>
@@ -342,12 +415,12 @@ export function WorldGraphView() {
           data-world-terrain-mode
           className={cn('wg-segBtn', terrainMode ? 'wg-selOn' : 'wg-selIdle')}
         >
-          画地形
+          {c.drawTerrain}
         </button>
         {terrainMode ? (
           <>
             <label htmlFor="world-graph-terrain-height" className="gp-row1ink">
-              {terrainProfile === 'cone' ? '坡顶高度' : '台面高度'}
+              {terrainProfile === 'cone' ? c.coneTop : c.mesaTop}
               <input
                 id="world-graph-terrain-height"
                 type="number"
@@ -361,7 +434,7 @@ export function WorldGraphView() {
               />
             </label>
             {/* 剖面开关：台面（mesa，硬边）/ 坡（cone，台心到边缘线性降到 0）。画下一笔用哪个 */}
-            <span className="gp-row1ink" role="group" aria-label="地形剖面">
+            <span className="gp-row1ink" role="group" aria-label={c.terrainProfileAria}>
               {(['mesa', 'cone'] as const).map((option) => (
                 <button
                   key={option}
@@ -371,16 +444,16 @@ export function WorldGraphView() {
                   data-world-terrain-profile={option}
                   className={cn('wg-segBtn', terrainProfile === option ? 'wg-selOn' : 'wg-selIdle')}
                 >
-                  {option === 'mesa' ? '台面' : '坡'}
+                  {option === 'mesa' ? c.mesa : c.cone}
                 </button>
               ))}
             </span>
             <span className="sb-faint11" data-world-terrain-hint>
               {pickedPlateau
-                ? '点「删除这个圆台」确认删掉选中的台子'
+                ? c.hintPickedPlateau
                 : terrainProfile === 'cone'
-                  ? '在空白处按下拖一个圆 = 画一座圆锥坡（台心到边缘线性降到 0，可走）；点它选中可删'
-                  : '在空白处按下拖一个圆 = 画一个硬边台子；点台子选中可删'}
+                  ? c.hintCone
+                  : c.hintMesa}
               （{plateaus.length}/{WORLD_PLATEAU_LIMIT}）
             </span>
             {pickedPlateau ? (
@@ -390,21 +463,21 @@ export function WorldGraphView() {
                 data-world-terrain-remove-selected
                 className="wg-ghostDanger"
               >
-                删除这个圆台
+                {c.deleteThisPlateau}
               </button>
             ) : null}
           </>
         ) : null}
         <span className="sb-faint11">
-          {picked.length === 2 ? `已选 ${byId.get(picked[0]!)?.title} → ${byId.get(picked[1]!)?.title}` : '点两个节点就能连一条关系'}
+          {picked.length === 2 ? c.pickedPair(byId.get(picked[0]!)?.title ?? '', byId.get(picked[1]!)?.title ?? '') : c.clickTwo}
         </span>
         {picked.length === 2 ? (
           <>
             <input
               value={label}
               onChange={(e) => setLabel(e.target.value)}
-              placeholder="关系叫什么（可留空）"
-              aria-label="关系标签"
+              placeholder={c.relationLabelPlaceholder}
+              aria-label={c.relationLabelAria}
               data-graph-label
               className="wg-terrainInput"
             />
@@ -414,7 +487,7 @@ export function WorldGraphView() {
               data-graph-connect
               className="sb-accentBtn"
             >
-              连一条
+              {c.connect}
             </button>
             <button
               type="button"
@@ -422,7 +495,7 @@ export function WorldGraphView() {
               data-graph-clear
               className="wg-btnFaintHover"
             >
-              取消选择
+              {c.clearSelection}
             </button>
           </>
         ) : null}
@@ -433,7 +506,7 @@ export function WorldGraphView() {
             data-graph-remove-edge
             className="wg-ghostDanger"
           >
-            删除这条关系
+            {c.deleteEdge}
           </button>
         ) : null}
         <span
@@ -444,13 +517,13 @@ export function WorldGraphView() {
           data-graph-state
         >
           {snapshot.saveState === 'saving'
-            ? '保存中…'
+            ? c.saving
             : snapshot.saveState === 'dirty'
-              ? '未保存'
+              ? c.dirty
               : snapshot.saveState === 'saved'
-                ? '已保存'
+                ? c.saved
                 : snapshot.saveState === 'error'
-                  ? '保存失败'
+                  ? c.saveError
                   : ''}
         </span>
         {/* 还有没写完的保存吗？面板上给一个可读的信号，测试也用它等落库稳定 */}
@@ -465,7 +538,7 @@ export function WorldGraphView() {
             className="wg-linkFaint"
             data-graph-notice-dismiss
           >
-            知道了
+            {c.gotIt}
           </button>
         </p>
       ) : null}
@@ -610,7 +683,7 @@ export function WorldGraphView() {
                 {node.title.length > 16 ? `${node.title.slice(0, 15)}…` : node.title}
               </text>
               <text x={12} y={35} className="wg-axis10">
-                {WORLD_KIND_LABELS[node.kind] ?? node.kind}
+                {kindLabel(node.kind, locale)}
               </text>
             </g>
           );
@@ -619,12 +692,12 @@ export function WorldGraphView() {
       </div>
       {!edges.length ? (
         <p className="wg-pointerHint" data-graph-hint>
-          还没有关系：点两个节点（顺序就是箭头方向），再点「连一条」。
+          {c.noEdges}
         </p>
       ) : null}
       <p className="wg-rowFaintPad" data-graph-note>
-        位置存在世界文档里，拖完松手即写库；没拖过的按类分列自动排布。
-        九类：{WORLD_KINDS.map((k) => WORLD_KIND_LABELS[k]).join(' / ')}。
+        {c.positionNote}
+        {(locale === 'en' ? 'Nine kinds: ' : '九类：') + WORLD_KINDS.map((k) => kindLabel(k, locale)).join(c.kindNoteJoiner)}{locale === 'en' ? '.' : '。'}
       </p>
     </div>
   );

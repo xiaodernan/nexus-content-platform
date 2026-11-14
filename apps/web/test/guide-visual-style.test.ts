@@ -61,8 +61,8 @@ describe('§FE-Guide /guide 使用指南', () => {
     const en = code.indexOf('en: {');
     expect(zh).toBeGreaterThan(0);
     expect(en).toBeGreaterThan(0);
-    // 每 langue 必须有 6 个节标题
-    for (const heading of ['①', '②', '③', '④', '⑤', '⑥']) {
+    // 每 langue 必须有 10 个节标题（①-⑥ 原版 + ⑦ 分镜 / ⑧ 世界 / ⑨ 市场团队 / ⑩ 安全网）
+    for (const heading of ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩']) {
       expect(code, `双语字典缺节 ${heading}`).toContain(heading);
     }
     for (const key of ['kicker', 'title', 'lede', 'sections']) {
@@ -106,9 +106,9 @@ describe('§FE-Guide /guide 使用指南', () => {
     }
   });
 
-  it('SHA256 钉死（本线字节）', () => {
+  it('SHA256 钉死（本线字节，v758 手册扩 4 节重钉）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '0248e0f4265882ae3531fa0c58262d8fbfcfa5d95a1feef57816441854263f36',
+      'c5eb20699d8a9f1785a85a7d22dacc008643c70cbdf745b48995647ff7a0e020',
     );
   });
 });

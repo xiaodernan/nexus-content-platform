@@ -3,13 +3,16 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AgentActivity, AgentPlan, AgentRoster, AiResponse, ModelClass } from '@nexus/schemas';
 import { AiJobObservationSchema, AiResponseSchema, AgentRosterSchema, APPROVAL_TTL_MS, DesignPatchSchema } from '@nexus/schemas';
-import { ttlLabel } from '@/lib/notify-plan';
+import { ttlLabel, ttlLabelEn } from '@/lib/notify-plan';
 import { cn } from '@/lib/cn';
 import { csrfHeaders } from '@/lib/csrf';
-import { REALTIME_TEXT, useRealtime } from '@/lib/useRealtime';
+import type { Locale } from '@/lib/i18n';
+import { REALTIME_TEXT, REALTIME_TEXT_EN, useRealtime } from '@/lib/useRealtime';
 import { cacheState, cacheText } from '@/lib/usage-cache-text';
 import { isEditableTarget } from '@/lib/keyboard';
 import { studio, toModelPatches, useStudioReady } from './store';
+
+/** §7 底部 AI 命令栏：输入 → Agent Plan → 执行 → Activity → 一次事务落地 → AI Diff → 可整体撤销 */
 
 const MODES: { id: ModelClass; label: string }[] = [
   { id: 'fast', label: 'Fast' },
@@ -17,17 +20,165 @@ const MODES: { id: ModelClass; label: string }[] = [
   { id: 'reasoning', label: 'Reasoning' },
 ];
 
-const EXAMPLES = [
-  'Make the hero 30% taller.',
-  'Make this feel more cinematic.',
-  'Add a section: 三档定价卡片',
-  'Find accessibility issues.',
-  // §74：删除类动作的入口。点了它会拿到一份被服务端扣下的结果，而不是直接改动画布
-  '删除 Hero 区块',
-];
+const COPY = {
+  zh: {
+    examples: [
+      'Make the hero 30% taller.',
+      'Make this feel more cinematic.',
+      'Add a section: 三档定价卡片',
+      'Find accessibility issues.',
+      // §74：删除类动作的入口。点了它会拿到一份被服务端扣下的结果，而不是直接改动画布
+      '删除 Hero 区块',
+    ],
+    realtimeProgress: (pct: number, message: string | undefined, taskId: string) =>
+      `实时进度 ${pct}% · ${message ?? '生成中'} · 任务 ${taskId.slice(0, 8)}`,
+    cancelSending: '取消请求发送中…',
+    cancelJob: '取消这次作业',
+    taskLine: (id: string) => `这次请求记为任务 ${id} · `,
+    taskLink: '这个项目的任务列表',
+    patchRefused: 'AI 返回的补丁不符合补丁契约，已拒绝写入',
+    patchNoMatch: '补丁未能改动模型：AI 返回的 op 与当前文档不匹配',
+    approvalHeld: (n: number) => `这份结果含 ${n} 处需人工审批的动作，补丁已被服务端扣下，画布还没有被改动。`,
+    approvalExpiry: (ttl: string, deadline: string | null) =>
+      `${ttl}内未决定，这一份自动作废、被扣下的补丁不会落地${deadline ? `（截止 ${deadline}）` : ''}`,
+    approveAndReturn: '批准并交回编辑区',
+    reject: '放弃',
+    approvalTaskLink: '在任务列表里看这一行',
+    approvalRefused: (detail: string | string[]) =>
+      `没有生效：${Array.isArray(detail) ? detail.join('；') : detail}`,
+    rejectedNoTouch: '已放弃这份结果，工作区没有被改动，删除也没有发生。',
+    approvedPayloadMismatch: '批准已记下，但交回的结果不符合契约，因此没有打进工作区。',
+    approvedApplied: (n: number) => `已批准：${n} 个 op 交回编辑区（Ctrl+Z 可整体撤销）。`,
+    approveFailed: (msg: string) => `审批请求失败：${msg}`,
+    rejectedUndo: '这一份挂起的结果先前已被放弃，异步这一路不会再交回补丁。',
+    cancelAcceptedUser: (jobId: string, outcome: string | null) =>
+      `已取消 · 作业 ${jobId}${outcome ? ` · ${outcome}` : ''}`,
+    cancelAcceptedServer: '这次作业已经取消：没有补丁交回，画布没有被改动。任务列表里可以重试。',
+    asyncNotCancelable: (jobId: string, reason: string) => `问不到这个作业的状态：${reason}`,
+    asyncFailed: (reason: string | null) => reason ?? '作业失败，没有给出原因',
+    asyncStillRunning: (jobId: string) =>
+      `等了 3 分钟，这个作业还没结束（作业号 ${jobId}）。它还在队列里跑，可以再回来问，或者在任务列表里看它。`,
+    jobObserved: (jobId: string, status: string | null, taskId: string, notes: string | null) =>
+      `作业 ${jobId} · ${status ?? '没问到'} · 任务 ${taskId.slice(0, 8)}${notes ? ` · ${notes}` : ''}`,
+    queuedLine: (jobId: string, backend: string | null, note: string | null) =>
+      `已交给队列 · 作业 ${jobId} · 后端 ${backend ?? '未知'}${note ? ` · ${note}` : ''}`,
+    cancelAcceptedLine: (jobId: string, taskStatus: string | null, running: boolean, note: string | null) =>
+      `取消已受理 · 作业 ${jobId} · 账本 ${taskStatus ?? 'cancelled'}${
+        running ? ' · 队列在跑，检查点落成 cancelled 之前状态仍是 running' : ''
+      }${note ? ` · ${note}` : ''}`,
+    rosterUnreadable: (detail: string) =>
+      `名册读不到（${detail}），这一轮只能不点名`,
+    rosterEmpty: '库里一个 Agent 都没有：跑一次 npm run db:seed 才会有名册',
+    rosterReadFailed: (msg: string) => `名册读不到：${msg}`,
+    rosterMalformed: '返回的报文不合契约',
+    agentScope: (name: string, responsibilities: string[], capabilities: string[], canPatch: boolean) =>
+      `${name} 的职责：${responsibilities.join('；') || '名册里没写'} · 权限：${capabilities.join('、') || '无'}${
+        canPatch ? '' : '（没有 design.patch：这一位给出的改动会被服务端拒收，不进画布）'
+      }`,
+    agentLineNamed: (name: string) => `这一轮交给 ${name}`,
+    agentLineNone: '这一轮没有人被点名',
+    completed: '已完成',
+    cacheBadgeTitle: '命中的是**输入** token（前缀缓存）。缓存那一段仍然计费，只是打折。',
+    opsLine: (n: number) => `${n} 个 op · Ctrl+Z 可整体撤销本次事务`,
+    undoButton: 'Ctrl+Z 可整体撤销本次事务',
+    realtimePrefix: '实时通道：',
+    realtimeEvents: (n: number) => ` · 本次已收到 ${n} 条事件`,
+    assignTo: '交给',
+    noAgent: '不点名',
+    placeholder: '描述要改什么（/ 聚焦，Enter 执行，Shift+Enter 换行）。选中元素后只改该区域。',
+    executing: '执行中…',
+    submit: '执行',
+    asyncModeLabel: '异步作业',
+    asyncModeTitle: '交给 AI Service 的队列执行：不挂住这次请求，状态与结果靠回来问',
+    assignTitle: '名册来自库里的 agents 表（§112）。没点名就按这次请求的意图走',
+    deliveryFailed: '提交没有拿到作业号，因此没东西可以问',
+    undoStored: '已批准并交回的 AI 结果',
+    executionPlan: '执行计划',
+    taskCount: (n: number) => `${n} 个任务`,
+  },
+  en: {
+    examples: [
+      'Make the hero 30% taller.',
+      'Make this feel more cinematic.',
+      'Add a section: three-tier pricing cards',
+      'Find accessibility issues.',
+      // §74：删除类动作的入口——点它会拿到一份被服务端扣下的结果，而不是直接改画布
+      'Delete the Hero section',
+    ],
+    realtimeProgress: (pct: number, message: string | undefined, taskId: string) =>
+      `Live progress ${pct}% · ${message ?? 'generating'} · task ${taskId.slice(0, 8)}`,
+    cancelSending: 'Sending cancel request…',
+    cancelJob: 'Cancel this job',
+    taskLine: (id: string) => `This request is logged as task ${id} · `,
+    taskLink: 'Task list for this project',
+    patchRefused: 'The AI returned a patch that fails the patch contract; nothing was written',
+    patchNoMatch: 'The patch could not change the model: the AI’s ops do not match the current document',
+    approvalHeld: (n: number) => `This result carries ${n} action(s) requiring human approval; server held the patches — the canvas is untouched.`,
+    approvalExpiry: (ttl: string, deadline: string | null) =>
+      `Unresolved within ${ttl}, this one expires automatically — held patches never land${deadline ? ` (deadline ${deadline})` : ''}`,
+    approveAndReturn: 'Approve and send back to the editor',
+    reject: 'Reject',
+    approvalTaskLink: 'Open this row in the task list',
+    approvalRefused: (detail: string | string[]) =>
+      `Not applied: ${Array.isArray(detail) ? detail.join('; ') : detail}`,
+    rejectedNoTouch: 'Discarded this result — the workspace is untouched and nothing was deleted.',
+    approvedPayloadMismatch: 'Approval recorded, but the returned result fails the contract — nothing was written to the workspace.',
+    approvedApplied: (n: number) => `Approved: ${n} ops returned to the editor (Ctrl+Z undoes the whole transaction).`,
+    approveFailed: (msg: string) => `Approval request failed: ${msg}`,
+    rejectedUndo: 'This pending result was discarded earlier; the async lane will not return patches.',
+    cancelAcceptedUser: (jobId: string, outcome: string | null) =>
+      `Cancelled · job ${jobId}${outcome ? ` · ${outcome}` : ''}`,
+    cancelAcceptedServer: 'This job is cancelled: no patch returns and the canvas is untouched. Retry from the task list.',
+    asyncNotCancelable: (jobId: string, reason: string) => `This job’s status cannot be read: ${reason}`,
+    asyncFailed: (reason: string | null) => reason ?? 'The job failed without giving a reason',
+    asyncStillRunning: (jobId: string) =>
+      `Still running after 3 minutes (job ${jobId}). It is still in the queue — come back later to ask again, or check the task list.`,
+    jobObserved: (jobId: string, status: string | null, taskId: string, notes: string | null) =>
+      `Job ${jobId} · ${status ?? 'unreadable'} · task ${taskId.slice(0, 8)}${notes ? ` · ${notes}` : ''}`,
+    queuedLine: (jobId: string, backend: string | null, note: string | null) =>
+      `Handed to the queue · job ${jobId} · backend ${backend ?? 'unknown'}${note ? ` · ${note}` : ''}`,
+    cancelAcceptedLine: (jobId: string, taskStatus: string | null, running: boolean, note: string | null) =>
+      `Cancel accepted · job ${jobId} · ledger ${taskStatus ?? 'cancelled'}${
+        running ? ' · queue still running — state stays running until a check lands cancelled' : ''
+      }${note ? ` · ${note}` : ''}`,
+    rosterUnreadable: (detail: string) =>
+      `The roster cannot be read (${detail}); this run can only go unnamed`,
+    rosterEmpty: 'The library has no agents at all — run npm run db:seed once to seed the roster',
+    rosterReadFailed: (msg: string) => `The roster cannot be read: ${msg}`,
+    rosterMalformed: 'the returned payload fails the contract',
+    agentScope: (name: string, responsibilities: string[], capabilities: string[], canPatch: boolean) =>
+      `${name}’s remit: ${responsibilities.join('; ') || 'the roster says nothing'} · permissions: ${capabilities.join(', ') || 'none'}${
+        canPatch ? '' : ' (no design.patch: this agent’s changes get refused server-side and never reach the canvas)'
+      }`,
+    agentLineNamed: (name: string) => `This run goes to ${name}`,
+    agentLineNone: 'No one is named this run',
+    completed: 'Done',
+    cacheBadgeTitle: 'Hits mean **input** tokens (prefix cache). The cached segment is still billed, only at a discount.',
+    opsLine: (n: number) => `${n} ops · Ctrl+Z undoes the whole transaction`,
+    undoButton: 'Ctrl+Z undoes the whole transaction',
+    realtimePrefix: 'Realtime: ',
+    realtimeEvents: (n: number) => ` · ${n} event(s) received`,
+    assignTo: 'Assign',
+    noAgent: 'Unnamed',
+    placeholder: 'Describe the change (/ to focus, Enter to run, Shift+Enter for a newline). With an element selected, only that region changes.',
+    executing: 'Running…',
+    submit: 'Run',
+    asyncModeLabel: 'Async job',
+    asyncModeTitle: 'Run it through the AI Service queue: no blocking request; status and result are polled for',
+    assignTitle: 'The roster comes from the agents table in the library (§112). Unnamed runs follow the request’s intent',
+    deliveryFailed: 'The submit came back without a job id; there is nothing to poll',
+    undoStored: 'An approved and returned AI result',
+    executionPlan: 'Executing plan',
+    taskCount: (n: number) => `${n} tasks`,
+  },
+} as const;
 
-/** §7 底部 AI 命令栏：输入 → Agent Plan → 执行 → Activity → 一次事务落地 → AI Diff → 可整体撤销 */
-export function CommandBar() {
+type CommandCopy = (typeof COPY)[Locale];
+
+export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
+  const c = COPY[locale];
+  const realtimeText = locale === 'en' ? REALTIME_TEXT_EN : REALTIME_TEXT;
+  const approvalTtlLabel = locale === 'en' ? ttlLabelEn(APPROVAL_TTL_MS) : ttlLabel(APPROVAL_TTL_MS);
   const state = useStudioReady();
   const [prompt, setPrompt] = useState('');
   const [mode, setMode] = useState<ModelClass>('balanced');
@@ -111,19 +262,19 @@ export function CommandBar() {
         const parsed = AgentRosterSchema.safeParse(await res.json().catch(() => null));
         if (cancelled) return;
         if (!res.ok || !parsed.success) {
-          setRosterNote(`名册读不到（${res.ok ? '返回的报文不合契约' : `HTTP ${res.status}`}），这一轮只能不点名`);
+          setRosterNote(c.rosterUnreadable(res.ok ? c.rosterMalformed : `HTTP ${res.status}`));
           return;
         }
         setRoster(parsed.data.agents);
-        if (parsed.data.agents.length === 0) setRosterNote('库里一个 Agent 都没有：跑一次 npm run db:seed 才会有名册');
+        if (parsed.data.agents.length === 0) setRosterNote(c.rosterEmpty);
       } catch (e) {
-        if (!cancelled) setRosterNote(`名册读不到：${e instanceof Error ? e.message : String(e)}`);
+        if (!cancelled) setRosterNote(c.rosterReadFailed(e instanceof Error ? e.message : String(e)));
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [c]);
 
   // §74：审批卡片不能只活在 React 状态里。刷新之后从账本找回还挂着的那一条（最新在前），
   // 否则库里那条等待中的任务在界面上就什么都不剩——没人能再决定它，它就一直等着。
@@ -164,9 +315,10 @@ export function CommandBar() {
   const [approvalNote, setApprovalNote] = useState<string | null>(null);
 
   /** 把一份 AI 结果打进工作区。同步那一路与"批准后交回的那一版"共用这一条：一次事务、可整体撤销（§149/§150） */
-  const applyResult = (response: AiResponse, fallbackText: string): void => {    const invalid = response.patches.find((p) => !DesignPatchSchema.safeParse(p).success);
+  const applyResult = (response: AiResponse, fallbackText: string): void => {
+    const invalid = response.patches.find((p) => !DesignPatchSchema.safeParse(p).success);
     if (invalid) {
-      setError('AI 返回的补丁不符合补丁契约，已拒绝写入');
+      setError(c.patchRefused);
       return;
     }
     const entry = studio.applyAiTransaction(response.explanation || fallbackText, toModelPatches(response.patches), {
@@ -174,7 +326,7 @@ export function CommandBar() {
       model: response.model,
       demoMode: response.usage.demoMode || response.capability === 'demo',
     });
-    if (!entry) setError('补丁未能改动模型：AI 返回的 op 与当前文档不匹配');
+    if (!entry) setError(c.patchNoMatch);
   };
 
   /**
@@ -195,25 +347,25 @@ export function CommandBar() {
       const payload = (await res.json().catch(() => null)) as Record<string, unknown> | null;
       if (!res.ok) {
         const detail = (payload?.message ?? payload?.issues ?? `HTTP ${res.status}`) as string | string[];
-        setApprovalNote(`没有生效：${Array.isArray(detail) ? detail.join('；') : detail}`);
+        setApprovalNote(c.approvalRefused(detail));
         return;
       }
       if (decision === 'reject') {
         setHeld(null);
-        setApprovalNote('已放弃这份结果，工作区没有被改动，删除也没有发生。');
+        setApprovalNote(c.rejectedNoTouch);
         return;
       }
       const checked = AiResponseSchema.safeParse(payload?.held ?? null);
       if (!checked.success) {
-        setApprovalNote('批准已记下，但交回的结果不符合契约，因此没有打进工作区。');
+        setApprovalNote(c.approvedPayloadMismatch);
         setHeld(null);
         return;
       }
-      applyResult(checked.data, '已批准并交回的 AI 结果');
+      applyResult(checked.data, c.undoStored);
       setHeld(null);
-      setApprovalNote(`已批准：${checked.data.patches.reduce((n, p) => n + p.ops.length, 0)} 个 op 交回编辑区（Ctrl+Z 可整体撤销）。`);
+      setApprovalNote(c.approvedApplied(checked.data.patches.reduce((n, p) => n + p.ops.length, 0)));
     } catch (e) {
-      setApprovalNote(`审批请求失败：${e instanceof Error ? e.message : String(e)}`);
+      setApprovalNote(c.approveFailed(e instanceof Error ? e.message : String(e)));
     } finally {
       setApprovalBusy(false);
     }
@@ -249,34 +401,32 @@ export function CommandBar() {
       const parsed = AiJobObservationSchema.safeParse(await res.json().catch(() => null));
       if (!res.ok || !parsed.success) {
         const detail = parsed.success ? `HTTP ${res.status}` : parsed.error.issues.map((x) => `${x.path.join('.')}: ${x.message}`).join('；');
-        throw new Error(`问不到这个作业的状态：${detail}`);
+        throw new Error(c.asyncNotCancelable(jobId, detail));
       }
       const seen = parsed.data;
       // 异步这一路的"交给谁"以账本里那一行为准（观察报文带的就是它），不拿浏览器选的那一个冒充
       if (seen.agent) setRunAgent(seen.agent.name);
-      setAsyncStatus(
-        `作业 ${jobId} · ${seen.jobStatus ?? '没问到'} · 任务 ${seen.taskId.slice(0, 8)}${seen.notes[0] ? ` · ${seen.notes[0]}` : ''}`,
-      );
+      setAsyncStatus(c.jobObserved(jobId, seen.jobStatus, seen.taskId, seen.notes[0] ?? null));
       if (seen.response) {
         consume(seen.response, seen.taskId ?? taskId, text);
         return;
       }
       if (seen.jobStatus === 'failed' || seen.taskStatus === 'failed') {
-        throw new Error(seen.outcome ?? '作业失败，没有给出原因');
+        throw new Error(c.asyncFailed(seen.outcome));
       }
       // cancelled 有两种来路，各说各的（见 cancelRequested 的注释）。都停在这里：
       // 取消之后队列不再交回补丁，继续轮询只会把用户已知的终态再读一百遍
       if (seen.jobStatus === 'cancelled' || seen.taskStatus === 'cancelled') {
         if (cancelRequested.current) {
-          setAsyncStatus(`已取消 · 作业 ${jobId}${seen.outcome ? ` · ${seen.outcome}` : ''}`);
-          setApprovalNote('这次作业已经取消：没有补丁交回，画布没有被改动。任务列表里可以重试。');
+          setAsyncStatus(c.cancelAcceptedUser(jobId, seen.outcome));
+          setApprovalNote(c.cancelAcceptedServer);
         } else {
-          setApprovalNote('这一份挂起的结果先前已被放弃，异步这一路不会再交回补丁。');
+          setApprovalNote(c.rejectedUndo);
         }
         return;
       }
     }
-    throw new Error(`等了 3 分钟，这个作业还没结束（作业号 ${jobId}）。它还在队列里跑，可以再回来问，或者在任务列表里看它。`);
+    throw new Error(c.asyncStillRunning(jobId));
   };
 
   /**
@@ -297,9 +447,7 @@ export function CommandBar() {
       if (!res.ok) throw new Error(body?.message ?? body?.error ?? `HTTP ${res.status}`);
       cancelRequested.current = true;
       setAsyncStatus(
-        `取消已受理 · 作业 ${jobId} · 账本 ${body?.taskStatus ?? 'cancelled'}${
-          body?.jobStatus === 'running' ? ' · 队列在跑，检查点落成 cancelled 之前状态仍是 running' : ''
-        }${body?.note ? ` · ${body.note}` : ''}`,
+        c.cancelAcceptedLine(jobId, body?.taskStatus ?? null, body?.jobStatus === 'running', body?.note ?? null),
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -370,13 +518,13 @@ export function CommandBar() {
       if (rawNote) setAgentNote(decodeURIComponent(rawNote));
       if (!res.ok || !payload) {
         // 409 demo_mode 那句原样报出来：异步作业要真 provider，这里不替它演一个"已提交"
-        const detail = payload?.issues?.join('；') ?? payload?.message ?? payload?.error ?? `HTTP ${res.status}`;
+        const detail = payload?.issues?.join(locale === 'en' ? '; ' : '；') ?? payload?.message ?? payload?.error ?? `HTTP ${res.status}`;
         throw new Error(detail);
       }
       if (asyncMode) {
-        if (!payload.jobId) throw new Error('提交没有拿到作业号，因此没东西可以问');
+        if (!payload.jobId) throw new Error(c.deliveryFailed);
         setAsyncJobId(payload.jobId);
-        setAsyncStatus(`已交给队列 · 作业 ${payload.jobId} · 后端 ${payload.backend ?? '未知'}${payload.note ? ` · ${payload.note}` : ''}`);
+        setAsyncStatus(c.queuedLine(payload.jobId, payload.backend ?? null, payload.note ?? null));
         await waitJob(payload.jobId, taskIdHeader, text);
         return;
       }
@@ -398,7 +546,7 @@ export function CommandBar() {
     <div className="wd-headBordered" data-command-bar>
       {live ? (
         <p className="sb-faint11" data-generation-progress={live.taskId}>
-          实时进度 {Math.round(live.progress * 100)}% · {live.message ?? '生成中'} · 任务 {live.taskId.slice(0, 8)}
+          {c.realtimeProgress(Math.round(live.progress * 100), live.message, live.taskId)}
         </p>
       ) : null}
       {/* 异步那一路说的都是观察到的东西：作业号、队列报的状态、以及后端带来的限制 */}
@@ -417,14 +565,14 @@ export function CommandBar() {
           data-async-cancel
           className="cb-infoChip"
         >
-          {cancelBusy ? '取消请求发送中…' : '取消这次作业'}
+          {cancelBusy ? c.cancelSending : c.cancelJob}
         </button>
       ) : null}
       {taskId ? (
         <p className="sb-faint11" data-ai-task>
-          这次请求记为任务 {taskId.slice(0, 8)} ·
+          {c.taskLine(taskId.slice(0, 8))}
           <a href={`/tasks/${state.projectId}`} className="cb-accentInk2">
-            这个项目的任务列表
+            {c.taskLink}
           </a>
         </p>
       ) : null}
@@ -432,7 +580,7 @@ export function CommandBar() {
       {held ? (
         <div className="cb-warningBanner" data-approval-card>
           <p className="cp-trunc12ink" data-approval-title>
-            这份结果含 {held.approvals.length} 处需人工审批的动作，补丁已被服务端扣下，画布还没有被改动。
+            {c.approvalHeld(held.approvals.length)}
           </p>
           <ul className="cb-mtHint" data-approval-reasons>
             {held.approvals.map((a) => (
@@ -445,8 +593,10 @@ export function CommandBar() {
               "这一份放着不管会自己作废"改变的是他要不要现在去看这 3 处删除，
               而那句作废的理由（补丁从未落地）与服务端写进账本的是同一句。 */}
           <p className="cb-mtHint" data-approval-expiry>
-            {ttlLabel(APPROVAL_TTL_MS)}内未决定，这一份自动作废、被扣下的补丁不会落地
-            {held.expiresAt ? `（截止 ${new Date(held.expiresAt).toLocaleString('zh-CN', { hour12: false })}）` : ''}
+            {c.approvalExpiry(
+              approvalTtlLabel,
+              held.expiresAt ? new Date(held.expiresAt).toLocaleString(locale === 'en' ? 'en-GB' : 'zh-CN', { hour12: false }) : null,
+            )}
           </p>
           <div className="cb-wrapCenter2">
             <button
@@ -456,7 +606,7 @@ export function CommandBar() {
               data-approval-approve
               className="cb-warnChip"
             >
-              批准并交回编辑区
+              {c.approveAndReturn}
             </button>
             <button
               type="button"
@@ -465,10 +615,10 @@ export function CommandBar() {
               data-approval-reject
               className="cb-underLink"
             >
-              放弃
+              {c.reject}
             </button>
             <a href={`/tasks/${state.projectId}`} className="cb-accentInk2" data-approval-link>
-              在任务列表里看这一行
+              {c.approvalTaskLink}
             </a>
           </div>
         </div>
@@ -484,20 +634,23 @@ export function CommandBar() {
           让人在按下"执行"之前看见这句，比让他看完一次失败再猜为什么强 */}
       {selectedAgent ? (
         <p className="sb-faint11" data-ai-agent-scope>
-          {selectedAgent.name} 的职责：{selectedAgent.responsibilities.join('；') || '名册里没写'} ·
-          {' '}权限：{selectedAgent.capabilities.join('、') || '无'}
-          {canPatchDesign ? '' : '（没有 design.patch：这一位给出的改动会被服务端拒收，不进画布）'}
+          {c.agentScope(
+            selectedAgent.name,
+            selectedAgent.responsibilities,
+            selectedAgent.capabilities,
+            canPatchDesign,
+          )}
         </p>
       ) : null}
       {runAgent || agentNote || rosterNote ? (
         <p className="sb-faint11" data-ai-agent-line>
-          {runAgent ? `这一轮交给 ${runAgent}` : rosterNote ? '' : '这一轮没有人被点名'}
+          {runAgent ? c.agentLineNamed(runAgent) : rosterNote ? '' : c.agentLineNone}
           {agentNote ? <span data-ai-agent-note>{` · ${agentNote}`}</span> : null}
           {rosterNote ? <span data-ai-roster-note>{` · ${rosterNote}`}</span> : null}
         </p>
       ) : null}
       {result?.plans?.length || result?.activities?.length ? (
-        <ActivityFeed plan={result.plans[0]} activities={result.activities} />
+        <ActivityFeed plan={result.plans[0]} activities={result.activities} c={c} />
       ) : null}
       {error ? (
         <p className="cb-dangerMb1" data-ai-error>
@@ -509,7 +662,7 @@ export function CommandBar() {
           <span className={cn('cb-demoFlag', demoMode ? 'cb-flagWarn' : 'cb-flagLive')} data-demo-mode={demoMode ? 'on' : 'off'}>
             {demoMode ? 'DEMO MODE' : 'LIVE'}
           </span>
-          <span>{result.explanation || '已完成'}</span>
+          <span>{result.explanation || c.completed}</span>
           {/*
             §CACHE-3：这一次生成里有多少输入是从前缀缓存复用的。
             画布上的用户看不到 `/admin/ai-cache`，而"我这次花了多少"正是他关心的那句话。
@@ -519,23 +672,23 @@ export function CommandBar() {
           <span
             className="cb-cacheBadge"
             data-ai-cache={cacheState(result.usage)}
-            title="命中的是**输入** token（前缀缓存）。缓存那一段仍然计费，只是打折。"
+            title={c.cacheBadgeTitle}
           >
             {cacheText(result.usage)}
           </span>
           {result.patches?.length ? (
             <span className="ap-faint">
-              {result.patches.reduce((sum, p) => sum + p.ops.length, 0)} 个 op ·{' '}
+              {`${result.patches.reduce((sum, p) => sum + p.ops.length, 0)} ops · `}
               <button type="button" className="cb-under" onClick={() => studio.undo()}>
-                Ctrl+Z 可整体撤销本次事务
+                {c.undoButton}
               </button>
             </span>
           ) : null}
         </p>
       ) : null}
       <p className="sb-faint11" data-realtime={realtime.state}>
-        实时通道：{REALTIME_TEXT[realtime.state]}
-        {realtime.received > 0 ? ` · 本次已收到 ${realtime.received} 条事件` : ''}
+        {c.realtimePrefix}{realtimeText[realtime.state]}
+        {realtime.received > 0 ? c.realtimeEvents(realtime.received) : ''}
       </p>
       <div className="cb-rowEnd2">
         <div className="cb-rowFrozen">
@@ -553,15 +706,15 @@ export function CommandBar() {
         </div>
         {/* §112：提名这一轮交给谁。也可以直接在提示词里写 @design / @qa——两处都写时以名册里那一位为准，
             而"名册里有没有"由服务端判，不由这里列了什么判 */}
-        <label className="cb-sendBar" title="名册来自库里的 agents 表（§112）。没点名就按这次请求的意图走">
-          交给
+        <label className="cb-sendBar" title={c.assignTitle}>
+          {c.assignTo}
           <select
             value={agentKey}
             onChange={(e) => setAgentKey(e.target.value)}
             data-ai-agent
             className="cb-w150Input"
           >
-            <option value="">不点名</option>
+            <option value="">{c.noAgent}</option>
             {roster.map((agent) => (
               <option key={agent.key} value={agent.key}>
                 {agent.name}
@@ -573,7 +726,7 @@ export function CommandBar() {
           ref={inputRef}
           rows={1}
           value={prompt}
-          placeholder="描述要改什么（/ 聚焦，Enter 执行，Shift+Enter 换行）。选中元素后只改该区域。"
+          placeholder={c.placeholder}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={(e) => {
             e.stopPropagation();
@@ -592,10 +745,10 @@ export function CommandBar() {
           className="cb-primary"
           data-ai-submit
         >
-          {busy ? '执行中…' : '执行'}
+          {busy ? c.executing : c.submit}
         </button>
         {/* 勾上它只是换"谁在等"：等同步返回，还是交给队列然后一次一次问。拦不拦高危动作由服务端那道门说（§74） */}
-        <label className="cb-sendBar" title="交给 AI Service 的队列执行：不挂住这次请求，状态与结果靠回来问">
+        <label className="cb-sendBar" title={c.asyncModeTitle}>
           <input
             type="checkbox"
             checked={asyncMode}
@@ -603,11 +756,11 @@ export function CommandBar() {
             className="cb-footBadge"
             data-ai-async
           />
-          异步作业
+          {c.asyncModeLabel}
         </label>
       </div>
       <div className="cb-wrap2Mt1">
-        {EXAMPLES.map((example) => (
+        {c.examples.map((example) => (
           <button
             key={example}
             type="button"
@@ -622,15 +775,15 @@ export function CommandBar() {
   );
 }
 
-function ActivityFeed({ plan, activities }: { plan?: AgentPlan; activities: AgentActivity[] }) {
+function ActivityFeed({ plan, activities, c }: { plan?: AgentPlan; activities: AgentActivity[]; c: CommandCopy }) {
   const [open, setOpen] = useState(true);
   if (!plan && !activities?.length) return null;
   return (
     <div className="cb-intentBox">
       <button type="button" onClick={() => setOpen((v) => !v)} className="cb-rowFull">
         <span className="ap-mono11faint">{open ? '▾' : '▸'}</span>
-        <span className="cb-trunc">{plan?.goal ?? '执行计划'}</span>
-        {plan?.tasks?.length ? <span className="ap-faint">{plan.tasks.length} 个任务</span> : null}
+        <span className="cb-trunc">{plan?.goal ?? c.executionPlan}</span>
+        {plan?.tasks?.length ? <span className="ap-faint">{c.taskCount(plan.tasks.length)}</span> : null}
       </button>
       {open ? (
         <ul className="cb-stackPad">

@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
  * compare/restore 共用 .hi-chipSm（on/off 双态）· entry current row → .hi-entryCurrent。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @ + cn()整体归一 + `className=@` 归一）：
- * `3a3f9d024bc28f5d53e13062344cffed502aee6d412025f8c832fad6eb2eaf50` 与 HEAD 字节一致。
+ * `d6124bee46c1fd99c02ccc18a0b4ff50ee09399b49df2de52359f3d8b82b4147` 与 HEAD 字节一致。
  *
  * 判据不变式（12 门）：
  *  1. 'use client' 保留 + studio.restore/compare/jumpTo/createSnapshot 依赖进门；2. 字面 className 全 `.hi-*`/`.wd-*`/`.gp-*`/`.pp-*`；
@@ -165,9 +165,9 @@ describe('§FE-50 /studio HistoryPanel 历史与快照面板', () => {
     }
   });
 
-  it('剥 className/cn 后全文 SHA256 守恒（零行为：3a3f9d024bc28f5d53e13062344cffed502aee6d412025f8c832fad6eb2eaf50）', () => {
+  it('剥 className/cn 后全文 SHA256 守恒（2026-11-15 v741「HistoryPanel 双语化」重钉：d6124bee46c1fd99c02ccc18a0b4ff50ee09399b49df2de52359f3d8b82b4147）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '3a3f9d024bc28f5d53e13062344cffed502aee6d412025f8c832fad6eb2eaf50',
+      'd6124bee46c1fd99c02ccc18a0b4ff50ee09399b49df2de52359f3d8b82b4147',
     );
   });
 });

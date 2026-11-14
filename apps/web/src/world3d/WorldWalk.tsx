@@ -7,6 +7,7 @@ import { GLTFLoader } from 'three-stdlib';
 import {
   LABEL_LIMIT,
   NEARBY_RADIUS,
+  WORLD_KIND_LABELS_EN,
   nearestEntities,
   pickLabelTargets,
   resolveWalkCollision,
@@ -15,10 +16,68 @@ import {
   walkToward,
   type SceneEntity,
   type WorldScene,
+  type WorldKind,
 } from '@nexus/world-model';
 import { CharacterChat } from '@/studio/CharacterChat';
 import { apiAssetUrl } from '@/studio/assets';
 import { isControlTarget, isEditableTarget } from '@/lib/keyboard';
+import type { Locale } from '@/lib/i18n';
+
+const COPY = {
+  zh: {
+    confirmingWebGl: '正在确认这台设备能不能用 WebGL…',
+    noWebGlTitle: '这台设备/浏览器给不出 WebGL 上下文，3D 世界进不去。',
+    noWebGlBody: '这里不会退回成 2D 图然后也叫「世界」：要读这些条目，用 Studio 里的世界与世界图视图。',
+    distance: (d: number) => `离你 ${d}`,
+    labelLimitNote: (limit: number, total: number) => `标签只显示离你最近的 ${limit} 个（这一页共 ${total} 个条目）`,
+    from: (name: string) => `来自《${name}》`,
+    relations: (drawn: number, total: number) => `${drawn}/${total} 条关系`,
+    entries: (n: number) => `${n} 个条目`,
+    placementOrigin: (authored: number, fallback: number) =>
+      `位置：${authored} 个来自你在世界图上摆过的坐标，${fallback} 个按文档顺序排在同心环上（线框的那些）。`,
+    moveHint:
+      'WASD / 方向键走动，按住鼠标拖动转视角；点地面走过去（直线加碰撞滑动——绕不过大障碍时会停在障碍前）。',
+    pointerHint: '点条目名是展开正文，不会把你搬过去。',
+    collisionNote: '条目占位会挡路（圆碰撞）。没有地形：模型里没有高程字段，脚下是平的。对话（§47）跟的是 §46 角色档案，不是这些世界条目。',
+    talkCollapse: '收起对话',
+    talkExpand: '跟角色说话',
+    talkTargetAria: '对话的角色',
+    talkEmpty: '这个项目还没有角色档案（§46）。对话是跟档案说的——先回 Studio 的角色面板建一个。',
+    fallbackPlacement: ' · 位置是按序号排的，不是摆过的',
+    noBody: '（这一条还没有正文）',
+    nearbyEmpty: (r: number) =>
+      `附近 ${r} 个单位内没有条目。走远一点看看，或者用下面这些按钮直接读某一条——那只是展开正文，不会把你搬到那儿。`,
+    readEntity: (title: string) => `读：${title}`,
+  },
+  en: {
+    confirmingWebGl: 'Checking whether this device can run WebGL…',
+    noWebGlTitle: 'This device/browser cannot provide a WebGL context — the 3D world cannot open.',
+    noWebGlBody:
+      'There is no 2D fallback pretending to be “a world”: to read these entries, use the World and World-Graph views in Studio.',
+    distance: (d: number) => `${d} away`,
+    labelLimitNote: (limit: number, total: number) => `Showing the ${limit} closest labels (of ${total} entries in this view)`,
+    from: (name: string) => `From “${name}”`,
+    relations: (drawn: number, total: number) => `${drawn}/${total} relations`,
+    entries: (n: number) => `${n} entries`,
+    placementOrigin: (authored: number, fallback: number) =>
+      `Placement: ${authored} from coordinates you placed on the world graph, ${fallback} evenly arranged on concentric rings (wireframed).`,
+    moveHint:
+      'Move with WASD / arrow keys; hold the mouse and drag to look; click the ground to walk there (straight line with collision sliding — you stop in front of large obstacles).',
+    pointerHint: 'Clicking an entry name expands the body text — it does not teleport you.',
+    collisionNote:
+      'Entry placeholders block movement (circle collision). No terrain: the model has no elevation field — your feet are on flat ground. Talk (§47) targets the §46 character profiles, not these world entries.',
+    talkCollapse: 'Close chat',
+    talkExpand: 'Talk to a character',
+    talkTargetAria: 'Character to talk to',
+    talkEmpty:
+      'This project has no character profiles yet (§46). Conversations are with profiles — create one in Studio’s character panel first.',
+    fallbackPlacement: ' · position assigned by order, not placed',
+    noBody: '(this entry has no body yet)',
+    nearbyEmpty: (r: number) =>
+      `No entries within ${r} units of you. Walk further, or use the buttons below to read an entry — it just expands the body, it does not move you there.`,
+    readEntity: (title: string) => `Read: ${title}`,
+  },
+} as const;
 
 /**
  * §140 的"走进去"：Three.js + React Three Fiber 渲染 §140 那份场景计划，
@@ -135,7 +194,7 @@ function Controls({
     const onMove = (e: PointerEvent) => {
       if (!drag.current) return;
       yaw.current = drag.current.yaw - (e.clientX - drag.current.x) * 0.005;
-      pitch.current = Math.min(1.2, Math.max(-1.2, drag.current.pitch + (e.clientY - drag.current.y) * 0.004));
+      pitch.current = Math.min(1.2, Math.max(-1.2, drag.current.pitch - (e.clientY - drag.current.y) * 0.004));
     };
     const onUp = (e: PointerEvent) => {
       // 按下与抬起几乎没动：是点击地面（不是拖视角），把落点设为行走目标
@@ -413,6 +472,7 @@ function LinkLines({ scene }: { scene: WorldScene }) {
 interface ScreenLabel {
   id: string;
   title: string;
+  kind: WorldKind;
   kindLabel: string;
   color: string;
   placed: SceneEntity['placed'];
@@ -454,6 +514,7 @@ function LabelProjector({
       next.push({
         id: entity.id,
         title: entity.title,
+        kind: entity.kind,
         kindLabel: entity.kindLabel,
         color: entity.color,
         placed: entity.placed,
@@ -473,12 +534,17 @@ export function WorldWalk({
   projectName,
   projectId,
   characters,
+  locale = 'zh',
 }: {
   scene: WorldScene;
   projectName: string;
   projectId: string;
   characters: { id: string; name: string }[];
+  locale?: Locale;
 }) {
+  const c = COPY[locale];
+  const kindLabelOf = (kind: WorldKind, zhLabel: string): string =>
+    locale === 'en' ? WORLD_KIND_LABELS_EN[kind] : zhLabel;
   const [webgl, setWebgl] = useState<boolean | null>(null);
   const [at, setAt] = useState({ x: 0, z: 0 });
   const [selected, setSelected] = useState<string | null>(null);
@@ -503,16 +569,16 @@ export function WorldWalk({
   if (webgl === null) {
     return (
       <div className="ww-probing" data-world3d="probing">
-        正在确认这台设备能不能用 WebGL…
+        {c.confirmingWebGl}
       </div>
     );
   }
   if (!webgl) {
     return (
       <div className="ww-unavailable" data-world3d="unavailable">
-        <p className="g3-lede">这台设备/浏览器给不出 WebGL 上下文，3D 世界进不去。</p>
+        <p className="g3-lede">{c.noWebGlTitle}</p>
         <p className="g3-hint">
-          这里不会退回成 2D 图然后也叫「世界」：要读这些条目，用 Studio 里的世界与世界图视图。
+          {c.noWebGlBody}
         </p>
       </div>
     );
@@ -562,7 +628,7 @@ export function WorldWalk({
             onClick={() => setSelected(label.id)}
             data-world-label={label.id}
             data-placed={label.placed}
-            title={`${label.kindLabel} · 离你 ${label.distance}`}
+            title={`${kindLabelOf(label.kind, label.kindLabel)} · ${c.distance(label.distance)}`}
             className="ww-label"
             // 近处的标签要压过远处的：DOM 默认后画的在上面，而数组是"由近到远"排的，
             // 不显式给 z-index 就会出现"远处的名字挡住近处的、点不到"（e2e 点标签时撞上的）
@@ -574,7 +640,7 @@ export function WorldWalk({
         ))}
         {labels.length >= LABEL_LIMIT ? (
           <p className="ww-capNote" data-label-capped>
-            标签只显示离你最近的 {LABEL_LIMIT} 个（这一页共 {scene.stats.entities} 个条目）
+            {c.labelLimitNote(LABEL_LIMIT, scene.stats.entities)}
           </p>
         ) : null}
       </div>
@@ -585,19 +651,17 @@ export function WorldWalk({
             {scene.worldName}
           </p>
           <p className="g3-hint">
-            来自《{projectName}》 · {scene.stats.entities} 个条目 · {scene.stats.linksDrawn}/{scene.stats.links} 条关系
+            {c.from(projectName)} · {c.entries(scene.stats.entities)} · {c.relations(scene.stats.linksDrawn, scene.stats.links)}
           </p>
           <p className="g2-mt1Note">
-            位置：{scene.stats.authored} 个来自你在世界图上摆过的坐标，{scene.stats.fallback} 个按文档顺序排在同心环上
-            （线框的那些）。
+            {c.placementOrigin(scene.stats.authored, scene.stats.fallback)}
           </p>
           <p className="ww-note2">
-            WASD / 方向键走动，按住鼠标拖动转视角；点地面走过去（直线加碰撞滑动——绕不过大障碍时会停在障碍前）。
-            点条目名是展开正文，不会把你搬过去。
+            {c.moveHint}
+            {c.pointerHint}
           </p>
           <p className="g3-hint">
-            条目占位会挡路（圆碰撞）。没有地形：模型里没有高程字段，脚下是平的。对话（§47）跟的是 §46
-            角色档案，不是这些世界条目。
+            {c.collisionNote}
           </p>
           <button
             type="button"
@@ -607,14 +671,14 @@ export function WorldWalk({
             aria-controls={talkOpen ? 'world-talk' : undefined}
             className="ww-miniBtn"
           >
-            {talkOpen ? '收起对话' : '跟角色说话'}
+            {talkOpen ? c.talkCollapse : c.talkExpand}
           </button>
           {talkOpen ? (
             <div id="world-talk" className="ww-talkMount" data-world-talk>
               {characters.length ? (
                 <>
                   <select
-                    aria-label="对话的角色"
+                    aria-label={c.talkTargetAria}
                     data-world-talk-target
                     value={talkTarget ?? ''}
                     onChange={(e) => setTalkTarget(e.target.value || null)}
@@ -633,12 +697,13 @@ export function WorldWalk({
                       projectId={projectId}
                       characterId={talkTarget}
                       characterName={characters.find((c) => c.id === talkTarget)?.name ?? ''}
+                      locale={locale}
                     />
                   ) : null}
                 </>
               ) : (
                 <p className="g2-note" data-world-talk-empty>
-                  这个项目还没有角色档案（§46）。对话是跟档案说的——先回 Studio 的角色面板建一个。
+                  {c.talkEmpty}
                 </p>
               )}
             </div>
@@ -648,7 +713,7 @@ export function WorldWalk({
           {sceneLegend(scene).map((entry) => (
             <span key={entry.kind} className="ww-legendItem">
               <span className="ww-dot" style={{ background: entry.color }} />
-              {entry.label} · {entry.count}
+              {kindLabelOf(entry.kind, entry.label)} · {entry.count}
             </span>
           ))}
         </div>
@@ -661,16 +726,15 @@ export function WorldWalk({
               <span className="ww-swatchLg" style={{ background: focused.color }} />
               {focused.title}
               <span className="ww-kindNote">
-                {focused.kindLabel}
-                {focused.placed === 'fallback' ? ' · 位置是按序号排的，不是摆过的' : ''}
+                {kindLabelOf(focused.kind, focused.kindLabel)}
+                {focused.placed === 'fallback' ? c.fallbackPlacement : ''}
               </span>
             </p>
-            <p className="ww-focusedBody">{focused.body || '（这一条还没有正文）'}</p>
+            <p className="ww-focusedBody">{focused.body || c.noBody}</p>
           </div>
         ) : (
           <p className="g2-note" data-nearby-empty>
-            附近 {NEARBY_RADIUS} 个单位内没有条目。走远一点看看，或者用下面这些按钮直接读某一条——
-            那只是展开正文，不会把你搬到那儿。
+            {c.nearbyEmpty(NEARBY_RADIUS)}
           </p>
         )}
         <div className="ww-chipWrap">
@@ -682,7 +746,7 @@ export function WorldWalk({
               data-read-entity={entity.id}
               className="ww-chipBtn"
             >
-              读：{entity.title}
+              {c.readEntity(entity.title)}
             </button>
           ))}
         </div>

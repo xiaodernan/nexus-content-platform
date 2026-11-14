@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * 判定在 Sim/Worker；WebGL 给不出就明说，不降级冒充 3D（§159）——不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `042ed85112529b474c48583d7456294157f002fb3a1e354a9a92022cba333e52` 与 HEAD 字节一致。
+ * `20c50d9fb367e9ef4029d0ef493afb54b9993dbc0665c7f2c1b58aa76cf4ee8d` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/world3d/WorldWalk.tsx');
@@ -97,9 +97,9 @@ describe('§FE-100 /world3d WorldWalk 3D 行走 chrome', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：042ed85112529b474c48583d7456294157f002fb3a1e354a9a92022cba333e52）', () => {
+  it('剥 className 后全文 SHA256 守恒（v759 i18n 重钉：7464a5d90f1c44e6bc4d97606c9b5dbb4289dd43b9af74f9e50eb236d62f7a76）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '042ed85112529b474c48583d7456294157f002fb3a1e354a9a92022cba333e52',
+      '7464a5d90f1c44e6bc4d97606c9b5dbb4289dd43b9af74f9e50eb236d62f7a76',
     );
   });
 });

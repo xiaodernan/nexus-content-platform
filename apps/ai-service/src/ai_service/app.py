@@ -291,6 +291,42 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
             )
         return JSONResponse(body)
 
+    @app.get("/v1/ai/jobs/dead-letters")
+    async def dead_letters(limit: int = 50) -> JSONResponse:
+        """§162 / ADR-0120 / ADR-0121：死信可读面（只读、有界窗口）。
+
+        - 为什么单独一个端点而不塞进 `/v1/ai/jobs/{job_id}`- 那一路：死信不是单个作业，
+          是一串已放弃重试的毒消息；查它要的是**整个最新窗口**，不是某一件。
+        - `limit` 缺省 50，上限 200；返回值里 `total` 是**裁剪前**的死信总数（不少报数），
+          `items` 是最近 `limit` 条；超过窗口的更老条目直接被 ADR-0121 的 LTRIM 裁掉，
+          这里看不到不是"没了"而是"不在保留窗口里"，如实由 `total` 承担。
+        - 内容来自 `Job.public()`：payload（提示词原文）**刻意不发回**；
+          运维诊断要的是 requestId / 失败阶段 / reason，不是用户数据。
+        - 必须注册在 `/v1/ai/jobs/{job_id}` 之前——FastAPI 按声明顺序匹配，
+          后注册会让 dead-letters 被 `{job_id}` 当单个作业吃掉。
+        """
+        state = runtime()
+        if state is None:
+            return queue_unavailable()
+        limit = max(1, min(200, int(limit)))
+        dead = await state.store.dead_letters()
+        # 后端序不确定（内存后端尾部是最新、Redis LPUSH 头部是最新）：
+        # 一律按被归档作业的 finishedAt 降序排，再看窗口——两个后端得到同一个语义
+        ordered = sorted(
+            dead,
+            key=lambda entry: (entry.get("job") or {}).get("finishedAt") or "",
+            reverse=True,
+        )
+        items = [
+            {
+                "job": entry.get("job"),
+                "attempts": entry.get("attempts"),
+                "reason": entry.get("reason"),
+            }
+            for entry in ordered[:limit]
+        ]
+        return JSONResponse({"total": len(dead), "limit": limit, "items": items})
+
     @app.get("/v1/ai/jobs/{job_id}")
     async def job_status(job_id: str) -> JSONResponse:
         state = runtime()

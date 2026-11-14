@@ -24,10 +24,12 @@ import {
 } from '@nexus/video-model';
 import { cn } from '@/lib/cn';
 import { csrfHeaders } from '@/lib/csrf';
+import type { Locale } from '@/lib/i18n';
 import { apiAssetUrl } from '@/studio/assets';
 import { useStudioReady } from './store';
 import { storyboardStore, useStoryboard } from './storyboardStore';
-import { ARROW_LABELS, CAMERA_LABELS, TRANSITION_LABELS, arrowNeedText } from './storyboard-labels';
+import { cameraLabel, transitionLabel, arrowLabel, arrowNeedText } from './storyboard-labels';
+type StoryboardCopy = (typeof COPY)[Locale];
 
 /**
  * §40-42 分镜面板：Prompt → Storyboard → Shot list → Timeline 的界面入口。
@@ -70,14 +72,250 @@ interface RenderQuota {
   rendersLeft: number;
 }
 
-const STATE_TEXT: Record<string, string> = {
-  idle: '',
-  loading: '读取中…',
-  dirty: '未保存',
-  saving: '保存中…',
-  saved: '已保存',
-  error: '保存失败',
-};
+const COPY = {
+  zh: {
+    heading: '分镜',
+    state: { idle: '', loading: '读取中…', dirty: '未保存', saving: '保存中…', saved: '已保存', error: '保存失败' } as Record<string, string>,
+    readError: (err: string) => `读不出库里那份分镜：${err}`,
+    emptyBody: '这个项目还没有分镜。写一句话，下面按标点把它切成镜头表——这是本地确定性断句，不是 AI 分镜（provider 未接入前不做假生成）。',
+    readStoryboard: '读取分镜…',
+    promptPlaceholder: '夜色里的港口，一台旧起重机慢慢转身，猫跳上缆绳，它跑起来了',
+    sourceLabel: '这条片子的来源',
+    referenceAssetAria: '这条片子的参考图',
+    referenceAssetEmpty: '挑一张已定格的参考图（资产库里的）…',
+    characterAria: '这条片子的角色',
+    characterEmpty: '挑一位本项目的角色…',
+    createAndSplit: '切一版分镜',
+    changeSource: '改来源',
+    changeSourceTitle: '换一条箭头（不会重切这一版：镜头、长度、撤销栈都留着）',
+    changeSourceNote: '换来源不重切一版：镜头、长度、撤销栈都留着。',
+    undo: '撤销',
+    redo: '重做',
+    reload: '重读',
+    applySource: '应用来源',
+    cancel: '取消',
+    shotsVsSeconds: (shots: number, seconds: number) => `${shots} 镜 · 共 ${seconds} 秒`,
+    sourceArrow: (label: string) => `来源：${label}`,
+    arrowOption: (label: string, need: string) => `${label}（${need}）`,
+    sourcePrompt: '原句：',
+    sourceMissing: '（没有原句）',
+    locateShot: '定位',
+    locateTitle: '在时间线上找到这一镜',
+    locateAria: (n: number) => `在时间线上定位第 ${n} 镜`,
+    cameraAria: '机位',
+    transitionAria: '转场',
+    durationAria: '时长（毫秒）',
+    shotCharacterAria: '这一镜里的角色',
+    noCharacter: '不挂角色',
+    shotReferenceAria: '这一镜的参考图',
+    noReference: '不用参考图',
+    imageBusy: '合成中…',
+    imageTitle: '本地确定性合成（DEMO），不是 AI 出图；撤销只断开引用，不删除已生成的资产',
+    imageAria: '为本镜生成参考图',
+    imageBtn: 'DEMO 参考图',
+    upOne: '上一位',
+    downOne: '下一位',
+    splitBefore: (ms: number) => `这一镜不足两格步长（${ms} 毫秒），切不出第二镜`,
+    splitReady: '在这一镜的中点切成两镜（可撤销）',
+    lastCannotDelete: '最后一镜不能删：0 镜的时间线没什么可编辑的',
+    deleteShot: '删掉这一镜（可撤销）',
+    insertAfter: '在这一镜之后插一镜',
+    newShotPrompt: '新的一镜：写要拍什么',
+    renderSection: '渲染（§40 最后一格 · DEMO）',
+    renderLead: '真 ffmpeg、真链路：额度门在任务之前，参考帧按 id 取字节（带归属校验），成片过视频摄入门，只有成功才扣点。',
+    renderHonesty: '但像素是',
+    renderHonestyBold: '本地确定性推演，不是 AI 生成',
+    renderHonestyTail: '这一条明码标注，不假装有视频 provider（§159/§160）。',
+    renderBtn: 'DEMO 渲染整条分镜',
+    rendering: '渲染中…',
+    renderBtnTitle: '把整条分镜渲成一条 mp4（DEMO：本地 ffmpeg 确定性推演，非 AI 生成）。成片挂回第一镜的 videoAssetId',
+    quota: (plan: string, grants: number, cost: number, left: number, balance: number) =>
+      `${plan} 档：每月 ${grants} 次成片渲染 · 每次 ${cost} 点 · 本月还可渲 ${left} 次（Video credits 余额 ${balance} 点）`,
+    quotaExhausted: '——额度用尽时服务端会拒（429），这里先置灰',
+    renderDone: (ms: number) => `成片已挂到第一镜（整条分镜一条片子），耗时 ${ms} 毫秒`,
+    renderHistory: (n: number) => `这条分镜渲过 ${n} 版（都是 DEMO，新的在前）：`,
+    msUnit: '毫秒',
+    attachmentNotDone: ' 条没做到的',
+    mountedOnShot: ' · 正挂在某一镜上',
+    timelineDoc: '时间线（§41）· 说明与轨道',
+    splitHint: '双击一格在点击处切成两镜',
+    timelineHintTail: '（两半共享同一张参考帧——切的是时间线，不是像素）；',
+    timelineHint: (coarseStep: number) => `松手才写库，每一步都可撤销。键盘：Tab 到格子的右边缘，左右方向键调长度（Shift 一格 ${coarseStep} 毫秒），Enter 落库、Esc 取消；换位用镜头表里的 ↑ ↓，精确毫秒用那个数字框——四条路改的是同一份模型。`,
+    emptyTrack: (reason: string) => `空——${reason}`,
+    noTrackContent: '这一版没有内容',
+    clipCount: (n: number) => `${n} 格`,
+    originsSection: '这一版分镜是怎么来的',
+    timelineSection: '时间线（§41）',
+    totalLength: '总长',
+    seconds: '秒',
+    notPlayable: '不可播：还没有能直接播放的画面——镜头视频那一格要真 provider，本机不做假生成（§159）',
+    playable: ' 可播',
+    timelineAria: (shots: number) =>
+      `时间线：${shots} 个镜头按顺序排开。拖格子右边缘改长度、拖整块换位置；点任意一格在镜头列表里定位那一镜；键盘按 Tab 到右边缘用方向键改`,
+    timelineBlockAria: (i: number, seconds: string, camera: string, transition: string, labelForTransition: string) =>
+      `第 ${i} 镜：${seconds} 秒，${camera}，衔接${labelForTransition}`,
+    timelineBlockTitle: (i: number, seconds: string, camera: string, transition: string) =>
+      `第 ${i} 镜 · ${seconds} 秒 · ${camera} · ${transition} · 双击在点击处切成两镜`,
+    noCharactersAssets: '这个项目还没有角色，参考图也要先在资产库里上传（不给你手填 id）',
+    unreadableCharacters: (n: number, m: number) => `${n} 位角色可挂，其中 ${m} 位档案读不出来，暂时不列`,
+    rosterMiss: '名册或资产清单没读到，镜头上的引用暂时只能留空',
+    newReference: '（新生成的参考图）',
+    noNamedCharacter: '（没有名字的角色）',
+    attachedFinished: '成片已挂到第 1 镜，镜头列表已定位到它',
+    locatedInList: (n: number) => `第 ${n} 镜：镜头列表已定位到这一镜`,
+    locatedOnStrip: (n: number) => `第 ${n} 镜：已在时间线上定位`,
+    lengthChanged: (at: number, delta: string) => `${at >= 0 ? `第 ${at + 1} 镜` : '这一镜'}的长度改成 ${delta} 秒，已写库`,
+    splitAtCursor: (at: number) => `第 ${at + 1} 镜在点击处切成两镜，已写库，可撤销`,
+    revertPreview: (n: number, seconds: string) => `第 ${n} 镜还是 ${seconds} 秒，取消了这个预览`,
+    atLimit: (n: number, isFloor: boolean, edgeSeconds: string) =>
+      `第 ${n} 镜已经是${isFloor ? `下限 ${edgeSeconds}` : `上限 ${edgeSeconds}`}秒，这一步没改`,
+    previewSeconds: (n: number, seconds: string) => `第 ${n} 镜 ${seconds} 秒，还没写库`,
+    emptyPrompt: '这一镜的提示词是空的，没有写进去——空白的镜头没法生成。',
+    badDuration: (max: number, min: number, step: number, draft: string, currentMs: number) =>
+      `时长要 1 到 ${max} 之间的整数毫秒（拖拽那条路的下限是 ${min}、吸附 ${step}），「${draft}」没写进去——这一镜还是 ${currentMs} 毫秒。`,
+    announceSourceChanged: (label: string) => `来源改成了${label}，已写库，可撤销`,
+    frameSourceLine: (i: number) => `第 ${i} 镜：`,
+    frameSourceSelf: '画面来自这一镜自己挂的参考帧',
+    frameSourceWhole: '画面来自整片那张图（image-to-video 箭头带的，本镜没自己挂）',
+    frameSourcePlaceholder: '色卡占位（本镜没挂参考帧）',
+    shotPromptAria: '这一镜要拍什么',
+    resizeHint: (step: number, min: number, _coarseStep: number) =>
+      `拖右边缘改长度（吸附 ${step} 毫秒，下限 ${min} 毫秒）、拖整块换位、点左上角的转场标记换衔接、点条上任意一格在镜头列表里定位那一镜（反向用镜头行里的「定位」）、`,
+    reloadTitle: '重新读库里那一份（未保存的本地编辑会被覆盖）',
+    referenceError: (msg: string) => `参考图没生成：${msg}`,
+    rosterCharacter: (name: string) => `角色 ${name}`,
+    rosterReference: (name: string) => `参考图 ${name}`,
+    swapTransitionAria: (label: string) => `换这一镜的转场（现在是${label}）`,
+    swapTransitionTitle: (label: string) => `这一镜的衔接是${label}，点一下换下一种（可撤销）`,
+    resizeHandleAria: (n: number, stepMs: number, coarseStepMs: number) =>
+      `第 ${n} 镜的右边缘：拖动改长度；方向键一格 ${stepMs} 毫秒、Shift 一格 ${coarseStepMs} 毫秒，Enter 落库，Esc 取消`,
+    ariaValueSeconds: (v: string) => `${v} 秒`,
+    dragPreviewShot: (n: number, fromSec: string, toSec: string) => `第 ${n} 镜：${fromSec} 秒 → ${toSec} 秒`,
+    dragReorderShot: (fromOne: number, toOne: number) => `把第 ${fromOne} 镜拖到第 ${toOne} 位`,
+    previewVideoTitle: 'DEMO 成片预览：真 ffmpeg 渲出来的字节，像素是本地确定性推演、不是 AI 生成（§160）',
+  },
+  en: {
+    heading: 'Storyboard',
+    state: { idle: '', loading: 'Loading…', dirty: 'Unsaved', saving: 'Saving…', saved: 'Saved', error: 'Save failed' } as Record<string, string>,
+    readError: (err: string) => `The stored storyboard cannot be read: ${err}`,
+    emptyBody: 'This project has no storyboard yet. Write one line; the panel splits it into a shot list below — local deterministic punctuation, not AI storyboarding (no fake generation until a provider is wired).',
+    readStoryboard: 'Reading the storyboard…',
+    promptPlaceholder: 'Night harbor: an old crane turns slowly, a cat leaps onto the cable, it sprints off',
+    sourceLabel: 'Source of this piece',
+    referenceAssetAria: 'Reference image for this piece',
+    referenceAssetEmpty: 'Pick a pinned reference image from the asset library…',
+    characterAria: 'Character for this piece',
+    characterEmpty: 'Pick a character in this project…',
+    createAndSplit: 'Cut a storyboard',
+    changeSource: 'Change source',
+    changeSourceTitle: 'Swap the arrow (no re-cut: shots, durations, undo stack all stay)',
+    changeSourceNote: 'Changing source does not re-cut the version: shots, lengths and the undo stack stay.',
+    undo: 'Undo',
+    redo: 'Redo',
+    reload: 'Reload',
+    applySource: 'Apply source',
+    cancel: 'Cancel',
+    shotsVsSeconds: (shots: number, seconds: number) => `${shots} shots · ${seconds}s`,
+    sourceArrow: (label: string) => `Source: ${label}`,
+    arrowOption: (label: string, need: string) => `${label} (${need})`,
+    sourcePrompt: 'Prompt: ',
+    sourceMissing: '(no prompt)',
+    locateShot: 'Locate',
+    locateTitle: 'Find this shot in the timeline',
+    locateAria: (n: number) => `Locate shot ${n} in the timeline`,
+    cameraAria: 'Camera',
+    transitionAria: 'Transition',
+    durationAria: 'Duration (ms)',
+    shotCharacterAria: 'Character in this shot',
+    noCharacter: 'No character',
+    shotReferenceAria: 'Reference image for this shot',
+    noReference: 'No reference image',
+    imageBusy: 'Composing…',
+    imageTitle: 'Local deterministic composition (DEMO), not AI output; undo only drops the reference, it never deletes generated assets',
+    imageAria: 'Generate a reference image for this shot',
+    imageBtn: 'DEMO reference',
+    upOne: 'Previous',
+    downOne: 'Next',
+    splitBefore: (ms: number) => `This shot is shorter than two stride steps (${ms} ms) — cannot split off a second shot`,
+    splitReady: 'Split this shot at its midpoint into two (undoable)',
+    lastCannotDelete: 'Last shot cannot be deleted: a 0-shot timeline has nothing to edit',
+    deleteShot: 'Delete this shot (undoable)',
+    insertAfter: 'Insert a shot after this one',
+    newShotPrompt: 'New shot: say what to shoot',
+    renderSection: 'Render (§40 last cell · DEMO)',
+    renderLead: 'Real ffmpeg, real pipeline: quota door runs before the task starts, reference frames are fetched by id (with ownership check), the render goes through the video ingest gate — credits only burn on success.',
+    renderHonesty: 'Pixels are ',
+    renderHonestyBold: 'local deterministic inference, not AI output',
+    renderHonestyTail: ' — labeled plainly, no fake video provider (§159/§160).',
+    renderBtn: 'DEMO-render the whole storyboard',
+    rendering: 'Rendering…',
+    renderBtnTitle: 'Render the whole storyboard into one mp4 (DEMO: local ffmpeg deterministic inference, not AI-generated). The finished clip is attached as the first shot’s videoAssetId',
+    quota: (plan: string, grants: number, cost: number, left: number, balance: number) =>
+      `${plan} tier: ${grants} renders/month · ${cost} credits each · ${left} renders left this month (Video credits balance ${balance})`,
+    quotaExhausted: ' — once exhausted the server refuses (429); here it is greyed out first',
+    renderDone: (ms: number) => `The finished clip is attached to the first shot (one clip per storyboard); took ${ms} ms`,
+    renderHistory: (n: number) => `${n} render(s) of this storyboard (all DEMO, newest first):`,
+    msUnit: 'ms',
+    attachmentNotDone: ' unfinished item(s)',
+    mountedOnShot: ' · attached to a shot',
+    timelineDoc: 'Timeline (§41) · notes and lanes',
+    splitHint: 'Double-click a cell to split at the click point',
+    timelineHintTail: ' (the two halves share one reference frame — you split the timeline, not the pixels);',
+    timelineHint: (coarseStep: number) => `Write happens on drop; every step is undoable. Keyboard: Tab to a cell’s right edge, arrow keys nudge length (Shift = ${coarseStep} ms per step), Enter commits, Esc cancels; reorder via the ↑ ↓ in the shot list; the exact-ms box is another path to the same model.`,
+    emptyTrack: (reason: string) => `empty — ${reason}`,
+    noTrackContent: 'this version carries no content',
+    clipCount: (n: number) => `${n} clips`,
+    originsSection: 'How this storyboard was made',
+    timelineSection: 'Timeline (§41)',
+    totalLength: 'Total',
+    seconds: 's',
+    notPlayable: 'not playable: there is no directly playable picture — the shot-video cell needs a real provider; no fake generation on this machine (§159)',
+    playable: ' playable',
+    timelineAria: (shots: number) =>
+      `Timeline: ${shots} shots arranged in order. Drag a cell’s right edge to change length, drag the block to reorder; click any cell to locate that shot in the shot list; Tab to the right edge and use arrow keys`,
+    timelineBlockAria: (i: number, seconds: string, camera: string, transition: string, labelForTransition: string) =>
+      `Shot ${i}: ${seconds}s, ${camera}, ${labelForTransition}`,
+    timelineBlockTitle: (i: number, seconds: string, camera: string, transition: string) =>
+      `Shot ${i} · ${seconds}s · ${camera} · ${transition} · double-click to split at this point`,
+    noCharactersAssets: 'This project has no characters yet, and reference images must be uploaded to the asset library first (no typed ids)',
+    unreadableCharacters: (n: number, m: number) => `${n} characters can be linked, ${m} profile(s) unreadable and not listed`,
+    rosterMiss: 'The roster or asset library cannot be read — references stay empty for now',
+    newReference: '(new reference image)',
+    noNamedCharacter: '(no-named character)',
+    attachedFinished: 'The finished clip is attached to shot 1; the shot list is focused there',
+    locatedInList: (n: number) => `Shot ${n}: shot list focused there`,
+    locatedOnStrip: (n: number) => `Shot ${n}: located on the timeline`,
+    lengthChanged: (at: number, delta: string) => `${at >= 0 ? `Shot ${at + 1}` : 'This shot'} changed to ${delta}s, written to the library`,
+    splitAtCursor: (at: number) => `Shot ${at + 1} split in two at the click point, written, undoable`,
+    revertPreview: (n: number, seconds: string) => `Shot ${n} still ${seconds}s — preview reverted`,
+    atLimit: (n: number, isFloor: boolean, edgeSeconds: string) =>
+      `Shot ${n} already at the ${isFloor ? `floor ${edgeSeconds}s` : `ceiling ${edgeSeconds}s`} — no change`,
+    previewSeconds: (n: number, seconds: string) => `Shot ${n} ${seconds}s, not written yet`,
+    emptyPrompt: 'This shot’s prompt is empty — it was not written, a blank shot cannot generate.',
+    badDuration: (max: number, min: number, step: number, draft: string, currentMs: number) =>
+      `Duration must be an integer ms between 1 and ${max} (drag route floor is ${min}, snap ${step}); “${draft}” was not written — the shot keeps ${currentMs}ms.`,
+    announceSourceChanged: (label: string) => `Source changed to ${label}, written, undoable`,
+    frameSourceLine: (i: number) => `Shot ${i}: `,
+    frameSourceSelf: 'Frame from this shot’s own reference',
+    frameSourceWhole: 'Frame from the whole-piece image (image-to-video arrow carries this shot; no own reference)',
+    frameSourcePlaceholder: 'Color-card placeholder (no reference on this shot)',
+    shotPromptAria: 'What to shoot in this shot',
+    resizeHint: (step: number, min: number, _coarseStep: number) =>
+      `Drag the right edge to resize (snaps to ${step} ms, minimum ${min} ms), drag the block to reorder, click the transition mark at the top-left to swap the join, click any cell in the strip to locate that shot in the list (reverse via “Locate” in the shot row), `,
+    reloadTitle: 'Re-read the library copy (unsaved local edits will be overwritten)',
+    referenceError: (msg: string) => `The reference image failed: ${msg}`,
+    rosterCharacter: (name: string) => `Character ${name}`,
+    rosterReference: (name: string) => `Reference ${name}`,
+    swapTransitionAria: (label: string) => `Swap this shot’s transition (currently ${label})`,
+    swapTransitionTitle: (label: string) => `This shot joins via ${label} — click to switch to the next one (undoable)`,
+    resizeHandleAria: (n: number, stepMs: number, coarseStepMs: number) =>
+      `Right edge of shot ${n}: drag to resize; arrow key = ${stepMs} ms per step, Shift = ${coarseStepMs} ms, Enter commits, Esc cancels`,
+    ariaValueSeconds: (v: string) => `${v}s`,
+    dragPreviewShot: (n: number, fromSec: string, toSec: string) => `Shot ${n}: ${fromSec}s → ${toSec}s`,
+    dragReorderShot: (fromOne: number, toOne: number) => `Drag shot ${fromOne} to slot ${toOne}`,
+    previewVideoTitle: 'DEMO render preview: bytes rendered by real ffmpeg — pixels are local deterministic inference, not AI generation (§160)',
+  },
+} as const;
 
 /** 界面状态里的两个引用用空字符串表示"还没挑"；到规则里要折成 undefined（空 id 与没有 id 是两件事） */
 type ArrowSourceValue = { arrow: StoryboardArrow; referenceAssetId: string; characterId: string };
@@ -101,12 +339,16 @@ function SourceFields({
   onChange,
   roster,
   dataAttr,
+  c,
+  locale,
 }: {
   idPrefix: string;
   value: ArrowSourceValue;
   onChange: (next: ArrowSourceValue) => void;
   roster: { characters: { id: string; name: string }[]; assets: { id: string; name: string }[] };
   dataAttr: { arrow: string; asset: string; character: string; missing: string };
+  c: StoryboardCopy;
+  locale: 'zh' | 'en';
 }) {
   const needs = ARROW_SOURCE_NEEDS[value.arrow];
   const gaps = arrowSourceGaps(value);
@@ -114,7 +356,7 @@ function SourceFields({
   return (
     <div className="sb-col1">
       <label className="sb-faint11" htmlFor={`${idPrefix}-arrow`}>
-        这条片子的来源
+        {c.sourceLabel}
       </label>
       <select
         id={`${idPrefix}-arrow`}
@@ -125,19 +367,19 @@ function SourceFields({
       >
         {STORYBOARD_ARROWS.map((option) => (
           <option key={option} value={option}>
-            {ARROW_LABELS[option]}（{arrowNeedText(option)}）
+            {c.arrowOption(arrowLabel(option, locale), arrowNeedText(option, locale))}
           </option>
         ))}
       </select>
       {needs.referenceAssetId ? (
         <select
-          aria-label="这条片子的参考图"
+          aria-label={c.referenceAssetAria}
           value={value.referenceAssetId}
           onChange={(e) => onChange({ ...value, referenceAssetId: e.target.value })}
           {...attr(dataAttr.asset)}
           className="sb-inputBox"
         >
-          <option value="">挑一张已定格的参考图（资产库里的）…</option>
+          <option value="">{c.referenceAssetEmpty}</option>
           {roster.assets.map((asset) => (
             <option key={asset.id} value={asset.id}>
               {asset.name}
@@ -147,13 +389,13 @@ function SourceFields({
       ) : null}
       {needs.characterId ? (
         <select
-          aria-label="这条片子的角色"
+          aria-label={c.characterAria}
           value={value.characterId}
           onChange={(e) => onChange({ ...value, characterId: e.target.value })}
           {...attr(dataAttr.character)}
           className="sb-inputBox"
         >
-          <option value="">挑一位本项目的角色…</option>
+          <option value="">{c.characterEmpty}</option>
           {roster.characters.map((character) => (
             <option key={character.id} value={character.id}>
               {character.name}
@@ -194,7 +436,8 @@ type TimelineDrag =
       previewIndex: number;
     };
 
-export function StoryboardPanel() {
+export function StoryboardPanel({ locale = 'zh' }: { locale?: Locale }) {
+  const c = COPY[locale];
   const studio = useStudioReady();
   const snapshot = useStoryboard();
   const [prompt, setPrompt] = useState('');
@@ -272,7 +515,7 @@ export function StoryboardPanel() {
         ]);
         if (cancelled) return;
         const characters = ((c as { characters?: { id: string; profile: { name: string } }[] } | null)?.characters ?? []).map(
-          (item) => ({ id: item.id, name: item.profile.name || '（没有名字的角色）' }),
+          (item) => ({ id: item.id, name: item.profile.name || c.noNamedCharacter }),
         );
         const assets = ((a as { assets?: { id: string; name: string }[] } | null)?.assets ?? []).map((item) => ({
           id: item.id,
@@ -285,13 +528,13 @@ export function StoryboardPanel() {
         const unreadable = ((c as { unreadable?: string[] } | null)?.unreadable ?? []).length;
         setRosterNote(
           characters.length === 0
-            ? '这个项目还没有角色，参考图也要先在资产库里上传（不给你手填 id）'
+            ? 'c.noCharactersAssets'
             : unreadable
-              ? `${characters.length} 位角色可挂，其中 ${unreadable} 位档案读不出来，暂时不列`
+              ? c.unreadableCharacters(characters.length, unreadable)
               : null,
         );
       } catch {
-        if (!cancelled) setRosterNote('名册或资产清单没读到，镜头上的引用暂时只能留空');
+        if (!cancelled) setRosterNote(c.rosterMiss);
       }
     })();
     return () => {
@@ -328,7 +571,7 @@ export function StoryboardPanel() {
         setRoster((prev) =>
           prev.assets.some((item) => item.id === body.asset!.id)
             ? prev
-            : { ...prev, assets: [...prev.assets, { id: body.asset!.id, name: body.asset!.name || '（新生成的参考图）' }] },
+            : { ...prev, assets: [...prev.assets, { id: body.asset!.id, name: body.asset!.name || c.newReference }] },
         );
         storyboardStore.applyOps([
           {
@@ -400,7 +643,7 @@ export function StoryboardPanel() {
       // 不走 focusShot()：那个函数的播报话是"用户点了定位"的口径，这里是渲染完成的副作用，
       // 话要说明白是"成片挂在了这一镜"。同样只动视图状态，不进撤销栈（§150 管改动，不管查看）。
       setLinkedShotId(first.id);
-      setAnnounce('成片已挂到第 1 镜，镜头列表已定位到它');
+      setAnnounce(c.attachedFinished);
       document.querySelector(`[data-storyboard-shot="${first.id}"]`)?.scrollIntoView({ block: 'nearest' });
     } catch (error) {
       setRenderError(error instanceof Error ? error.message : String(error));
@@ -414,14 +657,14 @@ export function StoryboardPanel() {
   /** 时间线 → 镜头列表：滚到那一镜并高亮；读屏也有一句（§90 焦点之外要有回话） */
   const focusShot = (shotId: string, index: number): void => {
     setLinkedShotId(shotId);
-    setAnnounce(`第 ${index + 1} 镜：镜头列表已定位到这一镜`);
+    setAnnounce(c.locatedInList(index + 1));
     document.querySelector(`[data-storyboard-shot="${shotId}"]`)?.scrollIntoView({ block: 'nearest' });
   };
 
   /** 镜头列表 → 时间线：把那一格滚进视野（条是横的，两个方向都要） */
   const locateOnStrip = (shotId: string, index: number): void => {
     setLinkedShotId(shotId);
-    setAnnounce(`第 ${index + 1} 镜：已在时间线上定位`);
+    setAnnounce(c.locatedOnStrip(index + 1));
     document.querySelector(`[data-timeline-block="${shotId}"]`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   };
 
@@ -518,9 +761,7 @@ export function StoryboardPanel() {
       { op: 'updateShot', id: shot.id, before: { durationMs: shot.durationMs }, after: { durationMs: active.previewMs } },
     ]);
     const at = sb?.shots.findIndex((candidate) => candidate.id === shot.id) ?? -1;
-    setAnnounce(
-      `${at >= 0 ? `第 ${at + 1} 镜` : '这一镜'}的长度改成 ${(active.previewMs / 1000).toFixed(1)} 秒，已写库`,
-    );
+    setAnnounce(c.lengthChanged(at, (active.previewMs / 1000).toFixed(1)));
   };
 
   /**
@@ -538,7 +779,7 @@ export function StoryboardPanel() {
     const atMs = ((event.clientX - rect.left) / rect.width) * shot.durationMs;
     const at = sb?.shots.findIndex((candidate) => candidate.id === shot.id) ?? -1;
     if (storyboardStore.splitShot(shot.id, atMs, `shot-split-${crypto.randomUUID().slice(0, 8)}`)) {
-      setAnnounce(`第 ${at + 1} 镜在点击处切成两镜，已写库，可撤销`);
+      setAnnounce(c.splitAtCursor(at));
     }
   };
 
@@ -570,7 +811,7 @@ export function StoryboardPanel() {
       event.stopPropagation();
       dragRef.current = null;
       setDrag(null);
-      setAnnounce(`第 ${index + 1} 镜还是 ${(shot.durationMs / 1000).toFixed(1)} 秒，取消了这个预览`);
+      setAnnounce(c.revertPreview(index + 1, (shot.durationMs / 1000).toFixed(1)));
       return;
     }
     const delta = keyboardTrimDelta(event.key, event.shiftKey);
@@ -583,7 +824,7 @@ export function StoryboardPanel() {
     if (previewMs === fromMs) {
       // 停在上下限上：说清楚"这一步没改"，而不是让按键看起来像丢了
       setAnnounce(
-        `第 ${index + 1} 镜已经是${fromMs <= MIN_SHOT_MS ? `下限 ${(MIN_SHOT_MS / 1000).toFixed(1)}` : `上限 ${(MAX_SHOT_MS / 1000).toFixed(1)}`}秒，这一步没改`,
+        c.atLimit(index + 1, fromMs <= MIN_SHOT_MS, ((fromMs <= MIN_SHOT_MS ? MIN_SHOT_MS : MAX_SHOT_MS) / 1000).toFixed(1)),
       );
       return;
     }
@@ -596,7 +837,7 @@ export function StoryboardPanel() {
     };
     dragRef.current = next;
     setDrag(next);
-    setAnnounce(`第 ${index + 1} 镜 ${(previewMs / 1000).toFixed(1)} 秒，还没写库`);
+    setAnnounce(c.previewSeconds(index + 1, (previewMs / 1000).toFixed(1)));
   };
 
   const beginReorder = (event: React.PointerEvent<HTMLElement>, shot: StoryboardShot, index: number): void => {
@@ -662,13 +903,13 @@ export function StoryboardPanel() {
   if (!sb) {
     return (
       <div className="sb-root" data-storyboard-panel>
-        <h2 className="sb-label12">分镜</h2>
+        <h2 className="sb-label12">{c.heading}</h2>
         <p className="sb-body12" data-storyboard-empty>
           {snapshot.saveState === 'loading'
-            ? '读取分镜…'
+            ? c.readStoryboard
             : snapshot.error
-              ? `读不出库里那份分镜：${snapshot.error}`
-              : '这个项目还没有分镜。写一句话，下面按标点把它切成镜头表——这是本地确定性断句，不是 AI 分镜（provider 未接入前不做假生成）。'}
+              ? c.readError(snapshot.error)
+              : c.emptyBody}
         </p>
         {snapshot.error ? (
           <p className="sb-danger11" data-storyboard-error>
@@ -679,7 +920,7 @@ export function StoryboardPanel() {
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           rows={3}
-          placeholder="夜色里的港口，一台旧起重机慢慢转身，猫跳上缆绳，它跑起来了"
+          placeholder={c.promptPlaceholder}
           data-storyboard-prompt-input
           className="sb-inputBoxResize"
         />
@@ -699,6 +940,8 @@ export function StoryboardPanel() {
             character: 'data-storyboard-source-character',
             missing: 'data-storyboard-source-missing',
           }}
+          c={c}
+          locale={locale}
         />
         {rosterNote ? <p className="sb-faint11">{rosterNote}</p> : null}
         <button
@@ -714,7 +957,7 @@ export function StoryboardPanel() {
           data-storyboard-create
           className="sb-accentBtn sb-selfStart"
         >
-          切一版分镜
+          {c.createAndSplit}
         </button>
         {snapshot.notice ? (
           <p className="sb-faint11" data-storyboard-notice>
@@ -738,7 +981,7 @@ export function StoryboardPanel() {
     const next = (drafts[key] ?? shot.prompt).trim();
     if (!next) {
       // 空提示词过不了报文契约，也不该静默把旧值清掉：明说这一格没动
-      storyboardStore.showNotice('这一镜的提示词是空的，没有写进去——空白的镜头没法生成。');
+      storyboardStore.showNotice(c.emptyPrompt);
       setDraft(key, shot.prompt);
       return;
     }
@@ -765,7 +1008,7 @@ export function StoryboardPanel() {
     });
     if (!Number.isInteger(next) || next < 1 || next > MAX_SHOT_MS) {
       storyboardStore.showNotice(
-        `时长要 1 到 ${MAX_SHOT_MS} 之间的整数毫秒（拖拽那条路的下限是 ${MIN_SHOT_MS}、吸附 ${SHOT_MS_STEP}），「${drafts[key] ?? ''}」没写进去——这一镜还是 ${shot.durationMs} 毫秒。`,
+        c.badDuration(MAX_SHOT_MS, MIN_SHOT_MS, SHOT_MS_STEP, drafts[key] ?? '', shot.durationMs),
       );
       return;
     }
@@ -783,11 +1026,11 @@ export function StoryboardPanel() {
   const sourceNeeds = ARROW_SOURCE_NEEDS[sb.source.arrow];
   const sourceRefName = sourceNeeds.characterId
     ? sb.source.characterId
-      ? `角色 ${roster.characters.find((c) => c.id === sb.source.characterId)?.name ?? sb.source.characterId}`
+      ? c.rosterCharacter(roster.characters.find((who) => who.id === sb.source.characterId)?.name ?? sb.source.characterId)
       : null
     : sourceNeeds.referenceAssetId
       ? sb.source.referenceAssetId
-        ? `参考图 ${roster.assets.find((a) => a.id === sb.source.referenceAssetId)?.name ?? sb.source.referenceAssetId}`
+        ? c.rosterReference(roster.assets.find((asset) => asset.id === sb.source.referenceAssetId)?.name ?? sb.source.referenceAssetId)
         : null
       : null;
 
@@ -812,21 +1055,21 @@ export function StoryboardPanel() {
     <div className="sb-rootCol" data-storyboard-panel>
       <header className="sb-sectionBorderB">
         <div className="sb-row2">
-          <h2 className="sb-label12">分镜</h2>
+          <h2 className="sb-label12">{c.heading}</h2>
           <span
             className={cn('sb-saveBadge', snapshot.saveState === 'error' && 'sb-saveBadgeError')}
             data-storyboard-save-state
           >
-            {STATE_TEXT[snapshot.saveState] ?? ''}
+            {c.state[snapshot.saveState] ?? ''}
           </span>
         </div>
         <p className="sb-inkMt1-12" data-storyboard-summary>
-          {`${total} 镜 · 共 ${(timeline?.totalMs ?? 0) / 1000} 秒 · 来源：${ARROW_LABELS[sb.source.arrow]}${
+          {`${c.shotsVsSeconds(total, (timeline?.totalMs ?? 0) / 1000)} · ${c.sourceArrow(arrowLabel(sb.source.arrow, locale))}${
             sourceRefName ? `｜${sourceRefName}` : ''
           }`}
         </p>
         <p className="sb-faintMt1" data-storyboard-source-prompt>
-          原句：{sb.source.prompt || '（没有原句）'}
+          {c.sourcePrompt}{sb.source.prompt || c.sourceMissing}
         </p>
         <div className="sb-rowMt2">
           <button
@@ -840,42 +1083,42 @@ export function StoryboardPanel() {
               });
               setSourceEditing((open) => !open);
             }}
-            title="换一条箭头（不会重切这一版：镜头、长度、撤销栈都留着）"
+            title={c.changeSourceTitle}
             aria-expanded={sourceEditing}
             aria-controls={sourceEditing ? 'storyboard-source-editor' : undefined}
             data-storyboard-source-open
             className="sb-btn2"
           >
-            改来源
+            {c.changeSource}
           </button>
           <button
             type="button"
             onClick={() => storyboardStore.undo()}
             disabled={!snapshot.canUndo || snapshot.saveState === 'saving'}
-            title="撤销上一次镜头改动（走 patch 的逆补丁，不是重打一遍）"
+            title={c.undo}
             data-storyboard-undo
             className="sb-btn2dis"
           >
-            撤销
+            {c.undo}
           </button>
           <button
             type="button"
             onClick={() => storyboardStore.redo()}
             disabled={!snapshot.canRedo || snapshot.saveState === 'saving'}
-            title="重做"
+            title={c.redo}
             data-storyboard-redo
             className="sb-btn2dis"
           >
-            重做
+            {c.redo}
           </button>
           <button
             type="button"
             onClick={() => storyboardStore.reload()}
             className="sb-btn2faint"
-            title="重新读库里那一份（未保存的本地编辑会被覆盖）"
+            title={c.reloadTitle}
             data-storyboard-reload
           >
-            重读
+            {c.reload}
           </button>
         </div>
         {/* §40 建完之后改来源：镜头表不重切、长度不变、一次应用是一个可撤销事务（§150） */}
@@ -896,8 +1139,10 @@ export function StoryboardPanel() {
                 character: 'data-storyboard-source-edit-character',
                 missing: 'data-storyboard-source-edit-missing',
               }}
+              c={c}
+              locale={locale}
             />
-            <p className="sb-faint11">换来源不重切一版：镜头、长度、撤销栈都留着。</p>
+            <p className="sb-faint11">{c.changeSourceNote}</p>
             <div className="sb-row1">
               <button
                 type="button"
@@ -910,13 +1155,13 @@ export function StoryboardPanel() {
                   });
                   if (changed) {
                     setSourceEditing(false);
-                    setAnnounce(`来源改成了${ARROW_LABELS[sourceDraft.arrow]}，已写库，可撤销`);
+                    setAnnounce(c.announceSourceChanged(arrowLabel(sourceDraft.arrow, locale)));
                   }
                 }}
                 data-storyboard-source-apply
                 className="sb-accentBtn"
               >
-                应用来源
+                {c.applySource}
               </button>
               <button
                 type="button"
@@ -924,7 +1169,7 @@ export function StoryboardPanel() {
                 data-storyboard-source-cancel
                 className="sb-btn2faint"
               >
-                取消
+                {c.cancel}
               </button>
             </div>
           </div>
@@ -946,7 +1191,7 @@ export function StoryboardPanel() {
         ) : null}
         {imageError ? (
           <p className="sb-dangerMt1" data-storyboard-image-error>
-            参考图没生成：{imageError}
+            {c.referenceError(imageError)}
           </p>
         ) : null}
       </header>
@@ -969,12 +1214,12 @@ export function StoryboardPanel() {
                 <button
                   type="button"
                   onClick={() => locateOnStrip(shot.id, index)}
-                  title="在时间线上找到这一镜"
-                  aria-label={`在时间线上定位第 ${index + 1} 镜`}
+                  title={c.locateTitle}
+                  aria-label={c.locateAria(index + 1)}
                   data-storyboard-locate={shot.id}
                   className="sb-chip"
                 >
-                  定位
+                  {c.locateShot}
                 </button>
                 <select
                   value={shot.camera}
@@ -988,13 +1233,13 @@ export function StoryboardPanel() {
                       },
                     ])
                   }
-                  aria-label="机位"
+                  aria-label={c.cameraAria}
                   data-storyboard-camera={shot.id}
                   className="sb-chip sb-fg1"
                 >
-                  {SHOT_CAMERAS.map((c) => (
-                    <option key={c} value={c}>
-                      {CAMERA_LABELS[c]}
+                  {SHOT_CAMERAS.map((cam) => (
+                    <option key={cam} value={cam}>
+                      {cameraLabel(cam, locale)}
                     </option>
                   ))}
                 </select>
@@ -1010,13 +1255,13 @@ export function StoryboardPanel() {
                       },
                     ])
                   }
-                  aria-label="转场"
+                  aria-label={c.transitionAria}
                   data-storyboard-transition={shot.id}
                   className="sb-chip sb-fg1"
                 >
                   {SHOT_TRANSITIONS.map((t) => (
                     <option key={t} value={t}>
-                      {TRANSITION_LABELS[t]}
+                      {transitionLabel(t, locale)}
                     </option>
                   ))}
                 </select>
@@ -1024,7 +1269,7 @@ export function StoryboardPanel() {
                   value={draftOf(shot, 'durationMs')}
                   onChange={(e) => setDraft(`${shot.id}::durationMs`, e.target.value)}
                   onBlur={() => flushDuration(shot)}
-                  aria-label="时长（毫秒）"
+                  aria-label={c.durationAria}
                   data-storyboard-duration={shot.id}
                   className="sb-chip sb-fg1 sb-cap64"
                 />
@@ -1042,11 +1287,11 @@ export function StoryboardPanel() {
                       },
                     ])
                   }
-                  aria-label="这一镜里的角色"
+                  aria-label={c.shotCharacterAria}
                   data-storyboard-character={shot.id}
                   className="sb-chip sb-fg1 sb-max110"
                 >
-                  <option value="">不挂角色</option>
+                  <option value="">{c.noCharacter}</option>
                   {roster.characters.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
@@ -1065,11 +1310,11 @@ export function StoryboardPanel() {
                       },
                     ])
                   }
-                  aria-label="这一镜的参考图"
+                  aria-label={c.shotReferenceAria}
                   data-storyboard-reference={shot.id}
                   className="sb-chip sb-fg1 sb-max110"
                 >
-                  <option value="">不用参考图</option>
+                  <option value="">{c.noReference}</option>
                   {roster.assets.map((item) => (
                     <option key={item.id} value={item.id}>
                       {item.name}
@@ -1080,19 +1325,19 @@ export function StoryboardPanel() {
                   type="button"
                   onClick={() => void makeReference(shot)}
                   disabled={imageBusy !== null}
-                  title="本地确定性合成（DEMO），不是 AI 出图；撤销只断开引用，不删除已生成的资产"
-                  aria-label="为本镜生成参考图"
+                  title={c.imageTitle}
+                  aria-label={c.imageAria}
                   data-storyboard-image-gen={shot.id}
                   className="sb-chip sb-dis40"
                 >
-                  {imageBusy === shot.id ? '合成中…' : 'DEMO 参考图'}
+                  {imageBusy === shot.id ? c.imageBusy : c.imageBtn}
                 </button>
                 <span className="sb-rowEnd">
                   <button
                     type="button"
                     onClick={() => storyboardStore.applyOps([{ op: 'moveShot', from: index, to: index - 1 }])}
                     disabled={index === 0}
-                    title="上一位"
+                    title={c.upOne}
                     data-storyboard-move-up={shot.id}
                     className="sb-chip sb-dis40"
                   >
@@ -1102,7 +1347,7 @@ export function StoryboardPanel() {
                     type="button"
                     onClick={() => storyboardStore.applyOps([{ op: 'moveShot', from: index, to: index + 1 }])}
                     disabled={index === total - 1}
-                    title="下一位"
+                    title={c.downOne}
                     data-storyboard-move-down={shot.id}
                     className="sb-chip sb-dis40"
                   >
@@ -1117,7 +1362,7 @@ export function StoryboardPanel() {
                           index: index + 1,
                           shot: {
                             id: `shot-manual-${crypto.randomUUID().slice(0, 8)}`,
-                            prompt: '新的一镜：写要拍什么',
+                            prompt: c.newShotPrompt,
                             durationMs: DEFAULT_SHOT_MS,
                             camera: 'medium',
                             transition: 'cut',
@@ -1125,7 +1370,7 @@ export function StoryboardPanel() {
                         },
                       ])
                     }
-                    title="在这一镜之后插一镜"
+                    title={c.insertAfter}
                     data-storyboard-add={shot.id}
                     className="sb-chip"
                   >
@@ -1136,7 +1381,7 @@ export function StoryboardPanel() {
                     type="button"
                     onClick={() => storyboardStore.splitShot(shot.id, Math.round(shot.durationMs / 2), `shot-split-${crypto.randomUUID().slice(0, 8)}`)}
                     disabled={shot.durationMs < MIN_SHOT_MS * 2}
-                    title={shot.durationMs < MIN_SHOT_MS * 2 ? `这一镜不足两格步长（${MIN_SHOT_MS * 2} 毫秒），切不出第二镜` : '在这一镜的中点切成两镜（可撤销）'}
+                    title={shot.durationMs < MIN_SHOT_MS * 2 ? c.splitBefore(MIN_SHOT_MS * 2) : c.splitReady}
                     data-storyboard-split={shot.id}
                     className="sb-chip sb-dis40"
                   >
@@ -1146,7 +1391,7 @@ export function StoryboardPanel() {
                     type="button"
                     onClick={() => storyboardStore.applyOps([{ op: 'removeShot', id: shot.id }])}
                     disabled={total <= 1}
-                    title={total <= 1 ? '最后一镜不能删：0 镜的时间线没什么可编辑的' : '删掉这一镜（可撤销）'}
+                    title={total <= 1 ? c.lastCannotDelete : c.deleteShot}
                     data-storyboard-remove={shot.id}
                     className="sb-chip sb-dis40"
                   >
@@ -1159,7 +1404,7 @@ export function StoryboardPanel() {
                 onChange={(e) => setDraft(`${shot.id}::prompt`, e.target.value)}
                 onBlur={() => flushPrompt(shot)}
                 rows={2}
-                aria-label="这一镜要拍什么"
+                aria-label={c.shotPromptAria}
                 data-storyboard-prompt={shot.id}
                 className="sb-inputMtResize"
               />
@@ -1168,26 +1413,25 @@ export function StoryboardPanel() {
         </ul>
 
         <section className="sb-sectionBorderT" data-storyboard-render-panel>
-          <h3 className="sb-label">渲染（§40 最后一格 · DEMO）</h3>
+          <h3 className="sb-label">{c.renderSection}</h3>
           <p className="sb-inkMt1">
-            真 ffmpeg、真链路：额度门在任务之前，参考帧按 id 取字节（带归属校验），成片过视频摄入门，只有成功才扣点。
-            但像素是<strong>本地确定性推演，不是 AI 生成</strong>——这一条明码标注，不假装有视频 provider（§159/§160）。
+            {c.renderLead}
+            {c.renderHonesty}<strong>{c.renderHonestyBold}</strong>{c.renderHonestyTail}
           </p>
           <button
             type="button"
             disabled={renderBusy || sb.shots.length === 0 || quota?.rendersLeft === 0}
             onClick={() => void renderDemo()}
             data-storyboard-render
-            title="把整条分镜渲成一条 mp4（DEMO：本地 ffmpeg 确定性推演，非 AI 生成）。成片挂回第一镜的 videoAssetId"
+            title={c.renderBtnTitle}
             className="sb-btnDis"
           >
-            {renderBusy ? '渲染中…' : 'DEMO 渲染整条分镜'}
+            {renderBusy ? c.rendering : c.renderBtn}
           </button>
           {quota ? (
             <p className="sb-faintMt2" data-storyboard-render-quota>
-              {quota.planLabel} 档：每月 {quota.monthlyGrant} 次成片渲染 · 每次 {quota.costPerRender} 点 ·
-              本月还可渲 {quota.rendersLeft} 次（Video credits 余额 {quota.balance} 点）
-              {quota.rendersLeft === 0 ? '——额度用尽时服务端会拒（429），这里先置灰' : ''}
+              {c.quota(quota.planLabel, quota.monthlyGrant, quota.costPerRender, quota.rendersLeft, quota.balance)}
+              {quota.rendersLeft === 0 ? c.quotaExhausted : ''}
             </p>
           ) : null}
           {renderError ? (
@@ -1199,7 +1443,7 @@ export function StoryboardPanel() {
             <div className="sb-colMt2" data-storyboard-render-result>
               <p className="sb-ink11">
                 <span className="sb-demoChip">DEMO</span>
-                {' '}成片已挂到第一镜（整条分镜一条片子），耗时 {renderNote.renderMs} 毫秒
+                {' '}{c.renderDone(renderNote.renderMs)}
               </p>
               <video
                 controls
@@ -1207,7 +1451,7 @@ export function StoryboardPanel() {
                 src={apiAssetUrl(renderNote.assetId)}
                 data-storyboard-render-video
                 className="sb-trackMt"
-                title="DEMO 成片预览：真 ffmpeg 渲出来的字节，像素是本地确定性推演、不是 AI 生成（§160）"
+                title={c.previewVideoTitle}
               />
               {renderNote.warnings.length ? (
                 <ul className="sb-col1" data-storyboard-render-warnings>
@@ -1222,12 +1466,12 @@ export function StoryboardPanel() {
                 <ul className="sb-col1" data-storyboard-render-provenance>
                   {renderNote.segments.map((segment) => (
                     <li key={`${segment.shotId}-${segment.index}`} className="sb-faint11">
-                      {`第 ${segment.index + 1} 镜：${
+                      {`${c.frameSourceLine(segment.index + 1)}${
                         segment.frame === 'own'
-                          ? '画面来自这一镜自己挂的参考帧'
+                          ? c.frameSourceSelf
                           : segment.frame === 'whole-piece'
-                            ? '画面来自整片那张图（image-to-video 箭头带的，本镜没自己挂）'
-                            : '色卡占位（本镜没挂参考帧）'
+                            ? c.frameSourceWhole
+                            : c.frameSourcePlaceholder
                       }`}
                     </li>
                   ))}
@@ -1244,16 +1488,16 @@ export function StoryboardPanel() {
           ) : null}
           {renders.length ? (
             <div className="sb-colMt2" data-storyboard-render-history>
-              <span className="sb-faint11">这条分镜渲过 {renders.length} 版（都是 DEMO，新的在前）：</span>
+              <span className="sb-faint11">{c.renderHistory(renders.length)}</span>
               <ul className="sb-col1">
                 {renders.map((r) => (
                   <li key={r.assetId} className="sb-col1ink">
                     <span>
                       <span className="sb-demoChip">DEMO</span>
                       {' '}
-                      {new Date(r.createdAt).toLocaleString('zh-CN')} · {r.renderMs} 毫秒
-                      {r.warnings.length ? ` · ${r.warnings.length} 条没做到的` : ''}
-                      {sb.shots.some((s) => s.videoAssetId === r.assetId) ? ' · 正挂在某一镜上' : ''}
+                      {new Date(r.createdAt).toLocaleString(locale === 'en' ? 'en-US' : 'zh-CN')} · {r.renderMs} {c.msUnit}
+                      {r.warnings.length ? ` · ${r.warnings.length}${c.attachmentNotDone}` : ''}
+                      {sb.shots.some((s) => s.videoAssetId === r.assetId) ? c.mountedOnShot : ''}
                     </span>
                     <video
                       controls
@@ -1270,20 +1514,18 @@ export function StoryboardPanel() {
         </section>
 
         <section className="sb-sectionBorderT" data-storyboard-timeline-doc>
-          <h3 className="sb-label">时间线（§41）· 说明与轨道</h3>
+          <h3 className="sb-label">{c.timelineDoc}</h3>
           <p className="sb-faintMt1">
-            拖右边缘改长度（吸附 {SHOT_MS_STEP} 毫秒，下限 {MIN_SHOT_MS} 毫秒）、拖整块换位、点左上角的转场标记换衔接、
-            点条上任意一格在镜头列表里定位那一镜（反向用镜头行里的「定位」）、
-            <span data-timeline-split-hint>双击一格在点击处切成两镜</span>（两半共享同一张参考帧——切的是时间线，不是像素）；
-            松手才写库，每一步都可撤销。键盘：Tab 到格子的右边缘，左右方向键调长度（Shift 一格 {SHOT_MS_COARSE_STEP} 毫秒），
-            Enter 落库、Esc 取消；换位用镜头表里的 ↑ ↓，精确毫秒用那个数字框——四条路改的是同一份模型。
+            {c.resizeHint(SHOT_MS_STEP, MIN_SHOT_MS, SHOT_MS_COARSE_STEP)}
+            <span data-timeline-split-hint>{c.splitHint}</span>{c.timelineHintTail}
+            {c.timelineHint(SHOT_MS_COARSE_STEP)}
           </p>
           <ul className="sb-colMt2">
             {(timeline?.tracks ?? []).map((track) => (
               <li key={track.kind} className="sb-ink11" data-storyboard-track={track.kind}>
                 <span className="sb-monoFaint">{track.kind}</span>
-                {'：'}
-                {track.clips.length ? `${track.clips.length} 格` : `空——${track.emptyReason ?? '这一版没有内容'}`}
+                {': '}
+                {track.clips.length ? c.clipCount(track.clips.length) : c.emptyTrack(track.emptyReason ?? c.noTrackContent)}
               </li>
             ))}
           </ul>
@@ -1300,7 +1542,7 @@ export function StoryboardPanel() {
 
 
         <section className="sb-sectionBorderT">
-          <h3 className="sb-label">这一版分镜是怎么来的</h3>
+          <h3 className="sb-label">{c.originsSection}</h3>
           <ul className="sb-colMt1">
             {sb.notes.map((note) => (
               <li key={note} className="sb-body11" data-storyboard-note>
@@ -1312,25 +1554,24 @@ export function StoryboardPanel() {
       </div>
 
         <section className="sb-sectionBorderT" data-storyboard-timeline>
-          <h3 className="sb-label">时间线（§41）</h3>
+          <h3 className="sb-label">{c.timelineSection}</h3>
           <p className="sb-inkMt1">
-            总长 {String((timeline?.totalMs ?? 0) / 1000)} 秒 ·
+            {c.totalLength} {String((timeline?.totalMs ?? 0) / 1000)}{c.seconds} ·
             <span data-storyboard-playable={String(timeline?.playable)}>
               {timeline?.playable
-                ? ' 可播'
-                : ' 不可播：还没有能直接播放的画面——镜头视频那一格要真 provider，本机不做假生成（§159）'}
+                ? c.playable
+                : c.notPlayable}
             </span>
           </p>
-          {/*
-            §41 的编辑面：一格一镜，宽度就是时长。三种直接操作各有一处实现——
-            右边缘 trim/extend、整块 reorder、左上角的转场标记换衔接；
-            三者都只在松手时落一个补丁事务，拖动期间库里那一份不动。
-          */}
+          {/* §41 的编辑面：一格一镜，宽度就是时长。三种直接操作各有一处实现——
+              右边缘 trim/extend、整块 reorder、左上角的转场标记换衔接；
+              三者都只在松手时落一个补丁事务，拖动期间库里那一份不动。
+              （comment stays zh-only; the rendered surface is fully localized） */}
           <div
             ref={stripRef}
             role="list"
             onClick={locateFromStrip}
-            aria-label={`时间线：${sb.shots.length} 个镜头按顺序排开。拖格子右边缘改长度、拖整块换位置；点任意一格在镜头列表里定位那一镜；键盘按 Tab 到右边缘用方向键改`}
+            aria-label={c.timelineAria(sb.shots.length)}
             className="sb-timeBar"
             data-timeline-strip
             data-timeline-total-ms={String(timeline?.totalMs ?? 0)}
@@ -1349,10 +1590,10 @@ export function StoryboardPanel() {
                 <div
                   key={shot.id}
                   role="listitem"
-                  aria-label={`第 ${index + 1} 镜：${(shownMs / 1000).toFixed(1)} 秒，${CAMERA_LABELS[shot.camera]}，衔接${TRANSITION_LABELS[shot.transition]}`}
+                  aria-label={c.timelineBlockAria(index + 1, (shownMs / 1000).toFixed(1), cameraLabel(shot.camera, locale), transitionLabel(shot.transition, locale), transitionLabel(shot.transition, locale))}
                   data-timeline-block={shot.id}
                   data-timeline-drop-target={dropTarget ? 'true' : undefined}
-                  title={`第 ${index + 1} 镜 · ${(shownMs / 1000).toFixed(1)} 秒 · ${CAMERA_LABELS[shot.camera]} · ${TRANSITION_LABELS[shot.transition]} · 双击在点击处切成两镜`}
+                  title={c.timelineBlockTitle(index + 1, (shownMs / 1000).toFixed(1), cameraLabel(shot.camera, locale), transitionLabel(shot.transition, locale))}
                   onPointerDown={(event) => beginReorder(event, shot, index)}
                   onPointerMove={moveReorder}
                   onPointerUp={endReorder}
@@ -1386,23 +1627,23 @@ export function StoryboardPanel() {
                       type="button"
                       onPointerDown={(event) => event.stopPropagation()}
                       onClick={() => cycleTransition(shot)}
-                      aria-label={`换这一镜的转场（现在是${TRANSITION_LABELS[shot.transition]}）`}
-                      title={`这一镜的衔接是${TRANSITION_LABELS[shot.transition]}，点一下换下一种（可撤销）`}
+                      aria-label={c.swapTransitionAria(transitionLabel(shot.transition, locale))}
+                      title={c.swapTransitionTitle(transitionLabel(shot.transition, locale))}
                       data-timeline-transition={shot.id}
                       className="sb-indexChip"
                     >
-                      {TRANSITION_LABELS[shot.transition]}
+                      {transitionLabel(shot.transition, locale)}
                     </button>
                   ) : null}
                   <span
                     role="separator"
                     tabIndex={0}
                     aria-orientation="vertical"
-                    aria-label={`第 ${index + 1} 镜的右边缘：拖动改长度；方向键一格 ${SHOT_MS_STEP} 毫秒、Shift 一格 ${SHOT_MS_COARSE_STEP} 毫秒，Enter 落库，Esc 取消`}
+                    aria-label={c.resizeHandleAria(index + 1, SHOT_MS_STEP, SHOT_MS_COARSE_STEP)}
                     aria-valuemin={MIN_SHOT_MS}
                     aria-valuemax={MAX_SHOT_MS}
                     aria-valuenow={shownMs}
-                    aria-valuetext={`${(shownMs / 1000).toFixed(1)} 秒`}
+                    aria-valuetext={c.ariaValueSeconds((shownMs / 1000).toFixed(1))}
                     data-timeline-trim={shot.id}
                     onPointerDown={(event) => beginTrim(event, shot)}
                     onPointerMove={moveTrim}
@@ -1420,8 +1661,8 @@ export function StoryboardPanel() {
           {drag ? (
             <p className="sb-accent2inkMt1" data-timeline-readout>
               {drag.kind === 'trim'
-                ? `第 ${sb.shots.findIndex((candidate) => candidate.id === drag.shotId) + 1} 镜：${(drag.startMs / 1000).toFixed(1)} 秒 → ${(drag.previewMs / 1000).toFixed(1)} 秒`
-                : `把第 ${drag.fromIndex + 1} 镜拖到第 ${drag.previewIndex + 1} 位`}
+                ? c.dragPreviewShot(sb.shots.findIndex((candidate) => candidate.id === drag.shotId) + 1, (drag.startMs / 1000).toFixed(1), (drag.previewMs / 1000).toFixed(1))
+                : c.dragReorderShot(drag.fromIndex + 1, drag.previewIndex + 1)}
             </p>
           ) : null}
           {/* 读屏那一句：视觉上藏起来，但与上面那行读数说的是同一件事（§90 的键盘路要能听见结果） */}

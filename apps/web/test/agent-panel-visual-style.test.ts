@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
  * 本片只换皮；plan/agent 派发、POST acceptStep/applyStep 链路、§160 轮式披露——一字不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @ + cn()整体归一 + `const …TONE = @TONE;` 雕刻两组 tone Map）：
- * `2903b96cf86b79aceb0cbe9bc214d1a44e21836df1594d25b408b8f926006183`（当前与 HEAD redact 逐字节一致）。
+ * `1188f59bb4ab4c933662168ce85ee7210f8df38648a7271d41d00f851386ee18`（当前与 HEAD redact 逐字节一致）。
  *
  * 判据不变式（12 门）：
  *  1. 'use client' 保留 + studio execute 进门；
@@ -175,9 +175,9 @@ describe('§FE-62 /studio AgentPanel Agent 面板', () => {
     }
   });
 
-  it('剥 className/cn/两组 tone Map 后全文 SHA256 守恒（零行为：2903b96cf86b79aceb0cbe9bc214d1a44e21836df1594d25b408b8f926006183）', () => {
+  it('剥 className/cn/两组 tone Map 后全文 SHA256 守恒（2026-11-16 v746「AgentPanel 双语化」重钉：1188f59bb4ab4c933662168ce85ee7210f8df38648a7271d41d00f851386ee18）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '2903b96cf86b79aceb0cbe9bc214d1a44e21836df1594d25b408b8f926006183',
+      '1188f59bb4ab4c933662168ce85ee7210f8df38648a7271d41d00f851386ee18',
     );
   });
 });

@@ -115,6 +115,39 @@ describe('§52 Code 出口：把库里那份设计投影成拿得走的产物', 
     expect(body.message).toContain('创建游戏骨架');
   });
 
+  it('NEXUS_LOCALE=en → 读数面英文（limits / notes），产物字节与中文版逐字节相同', async () => {
+    const projectId = await newProject('双语-en');
+    await saveGame(projectId, owner, sampleGame(projectId));
+
+    const zhRes = await call(projectId, asUser(ownerToken));
+    expect(zhRes.status).toBe(200);
+    const zh = (await zhRes.json()) as { files: { path: string; contents: string }[]; limits: string[] };
+
+    // 会话保持，再挂 en 语言 cookie（asUser 会 jar.clear，故这里手动布置）
+    jar.clear();
+    jar.set(SESSION_COOKIE, ownerToken);
+    jar.set('NEXUS_LOCALE', 'en');
+    const enRes = await call(projectId, { cookie: `${SESSION_COOKIE}=${ownerToken}` });
+    expect(enRes.status).toBe(200);
+    const en = (await enRes.json()) as {
+      files: { path: string; contents: string }[];
+      limits: string[];
+      notes: string[];
+      bytes: number;
+    };
+    // 限度 4 条必须是英文那版（CODEGEN_LIMITS_EN）
+    expect(en.limits[0]).toContain('transcription');
+    expect(en.limits.join(' ')).toContain('connect-src');
+    // 备注英文模板（实体名属于文档数据，不断言）
+    expect(en.notes.join(' ')).toContain('entities');
+    expect(en.notes.join(' ')).not.toContain('这些实体');
+    // 产物字节与语言无关：files 内容逐字节相同
+    en.files.forEach((file, index) => {
+      expect(file.contents, `${file.path} 在 en/zh 之间不得漂移`).toBe(zh.files[index]!.contents);
+    });
+    jar.clear();
+  });
+
   it('写进库的那份设计 → 产物与它逐字节对应：文件数、plan 里的实体、字节数都对上', async () => {
     const projectId = await newProject('有游戏');
     await saveGame(projectId, owner, sampleGame(projectId));

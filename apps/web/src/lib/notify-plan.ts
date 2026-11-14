@@ -521,6 +521,15 @@ export function planNotification(event: NotifyEvent): NotificationPlan | null {
  * 两处各写一遍 `Math.round(ms / 3_600_000)`，改一次常量就会一个说"24 小时"一个说"0 小时"。
  * 小于一小时时往下退一档，而不是四舍五入成"0 小时"——那是一句看着像真话的假话。
  */
+/** 与 `ttlLabel` 同结构的英文版（v749）：1.5 小时读成 1.5 而不是 2，不假装整读法。 */
+export function ttlLabelEn(ms: number): string {
+  const hours = ms / 3_600_000;
+  if (hours >= 1) return `${Number.isInteger(hours) ? hours : Math.round(hours * 10) / 10} hours`;
+  const minutes = ms / 60_000;
+  if (minutes >= 1) return `${Math.round(minutes)} minutes`;
+  return `${Math.round(ms / 1000)} seconds`;
+}
+
 export function ttlLabel(ms: number): string {
   const hours = ms / 3_600_000;
   // 不是整小时就留一位小数：把 1.5 小时读成"2 小时"是一句看着像真话的假话

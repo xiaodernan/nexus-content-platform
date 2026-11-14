@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
 import { csrfHeaders } from '@/lib/csrf';
+import type { Locale } from '@/lib/i18n';
 import { useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';
 
@@ -13,7 +14,83 @@ import { useWorld, worldStore } from './worldStore';
  * 不是什么：**不是语义检索**（没有 embedding 之前，用词不同意思相近的那条搜不到），
  * 而「我的偏好」那一类不挂项目、本来就不在这个项目的语料里（那是 §49 的语料清单决定的，不是漏了）。
  * 也没有"全部清空"：§48 要的是按类删除，一次误点抹掉用户全部记忆这种事不该有按钮。
+ * 双语（v740）：locale 由 StudioShell 透传；zh 原文原样保留，en 逐句对应。
  */
+
+const COPY = {
+  zh: {
+    scopes: [
+      { scope: 'session', label: '本次会话', hint: '只在这个项目的工作过程里跟着走' },
+      { scope: 'character', label: '角色', hint: '挂在某个角色身上（§46）' },
+      { scope: 'world', label: '世界', hint: '整个世界都成立的事实' },
+      { scope: 'user', label: '我的偏好', hint: '你本人的偏好，跨项目有效' },
+    ] as { scope: Scope; label: string; hint: string }[],
+    heading: '记忆',
+    note: '四类记忆都可查看、可删除（§48）。搜索走的是 §49 那套词面混合检索（全文 + 子串 + 词覆盖度），',
+    noteNotSemantic: '不是语义检索',
+    noteTail: '：用词不同、意思相近的那条搜不到。',
+    searchPlaceholder: '搜记忆内容（词面匹配，回车检索）',
+    searchAria: '搜索记忆',
+    search: '搜',
+    clear: '清空',
+    needContent: '先写下要记住的内容。',
+    me: '本人',
+    thisProject: '这个项目',
+    currentWorld: '当前世界',
+    noName: '（没有名字）',
+    addTitle: '记一条',
+    scopeAria: '记忆类型',
+    noWorld: '（还没有世界）',
+    subjectAria: '记忆主体',
+    pickCharacter: '选一个角色…',
+    contentPlaceholder: '要记住什么？',
+    contentAria: '记忆内容',
+    remember: '记下',
+    needWorldFirst: '先建世界，再记世界类的记忆。',
+    needCharacterFirst: '先选一个角色。',
+    reading: '读取记忆…',
+    clearClass: '清空这一类',
+    deleteAria: '删除这条记忆',
+    emptyWithNote: '这一类里没有词面命中的条目（不等于没有相关记忆：这是词面检索）。',
+    emptyPlain: '还没有这一类的记忆。',
+  },
+  en: {
+    scopes: [
+      { scope: 'session', label: 'Session', hint: 'Follows you through this project’s work' },
+      { scope: 'character', label: 'Character', hint: 'Attached to a character (§46)' },
+      { scope: 'world', label: 'World', hint: 'Facts that hold for the whole world' },
+      { scope: 'user', label: 'My preferences', hint: 'Your personal preferences, valid across projects' },
+    ] as { scope: Scope; label: string; hint: string }[],
+    heading: 'Memory',
+    note: 'All four classes can be viewed and deleted (§48). Search is the §49 lexical hybrid (fulltext + substring + term coverage) —',
+    noteNotSemantic: ' not semantic search',
+    noteTail: ': lines with different words but similar meaning will not come back.',
+    searchPlaceholder: 'Search memories (lexical match; Enter to search)',
+    searchAria: 'Search memories',
+    search: 'Search',
+    clear: 'Clear',
+    needContent: 'Write down what to remember first.',
+    me: 'You',
+    thisProject: 'This project',
+    currentWorld: 'Current world',
+    noName: '(no name)',
+    addTitle: 'Remember one',
+    scopeAria: 'Memory scope',
+    noWorld: '(no world yet)',
+    subjectAria: 'Memory subject',
+    pickCharacter: 'Pick a character…',
+    contentPlaceholder: 'What to remember?',
+    contentAria: 'Memory content',
+    remember: 'Remember',
+    needWorldFirst: 'Create a world first, then remember world-scoped memories.',
+    needCharacterFirst: 'Pick a character first.',
+    reading: 'Reading memories…',
+    clearClass: 'Clear this class',
+    deleteAria: 'Delete this memory',
+    emptyWithNote: 'No lexical matches in this class (there may still be relevant ones — this is lexical retrieval).',
+    emptyPlain: 'No memories in this class yet.',
+  },
+} as const;
 
 type Scope = 'session' | 'character' | 'world' | 'user';
 
@@ -26,14 +103,9 @@ interface MemoryEntry {
   embedded: boolean;
 }
 
-const SCOPES: { scope: Scope; label: string; hint: string }[] = [
-  { scope: 'session', label: '本次会话', hint: '只在这个项目的工作过程里跟着走' },
-  { scope: 'character', label: '角色', hint: '挂在某个角色身上（§46）' },
-  { scope: 'world', label: '世界', hint: '整个世界都成立的事实' },
-  { scope: 'user', label: '我的偏好', hint: '你本人的偏好，跨项目有效' },
-];
-
-export function MemoryPanel() {
+export function MemoryPanel({ locale = 'zh' }: { locale?: Locale }) {
+  const c = COPY[locale];
+  const SCOPES = c.scopes;
   const studio = useStudioReady();
   const world = useWorld();
   const [items, setItems] = useState<MemoryEntry[]>([]);
@@ -108,27 +180,27 @@ export function MemoryPanel() {
           | { characters?: { id: string; profile: { name: string } }[] }
           | null;
         setCharacterNames(
-          (body?.characters ?? []).map((c) => ({ id: c.id, name: c.profile.name || '（没有名字）' })),
+          (body?.characters ?? []).map((char) => ({ id: char.id, name: char.profile.name || c.noName })),
         );
       } catch {
         setCharacterNames([]);
       }
     })();
-  }, [studio.projectId]);
+  }, [studio.projectId, c.noName]);
 
   const subjectLabel = useMemo(() => {
     const worldId = world.world?.id;
     return (entry: MemoryEntry): string => {
-      if (entry.scope === 'user') return '本人';
-      if (entry.scope === 'session') return '这个项目';
-      if (entry.scope === 'world') return entry.subjectId === worldId ? world.world?.name ?? '当前世界' : entry.subjectId;
-      return characterNames.find((c) => c.id === entry.subjectId)?.name ?? entry.subjectId;
+      if (entry.scope === 'user') return c.me;
+      if (entry.scope === 'session') return c.thisProject;
+      if (entry.scope === 'world') return entry.subjectId === worldId ? world.world?.name ?? c.currentWorld : entry.subjectId;
+      return characterNames.find((char) => char.id === entry.subjectId)?.name ?? entry.subjectId;
     };
-  }, [characterNames, world.world]);
+  }, [characterNames, world.world, c]);
 
   const add = async () => {
     if (!content.trim()) {
-      setMessage('先写下要记住的内容。');
+      setMessage(c.needContent);
       return;
     }
     setBusy(true);
@@ -200,14 +272,14 @@ export function MemoryPanel() {
     <div className="wd-rootCol" data-memory-panel>
       <header className="wd-headBordered">
         <div className="wd-row2">
-          <h2 className="wd-label">记忆</h2>
+          <h2 className="wd-label">{c.heading}</h2>
           <span className="wd-monoFaintEnd" data-memory-total>
             {items.length}
           </span>
         </div>
         <p className="wd-body11Mt1" data-memory-note>
-          四类记忆都可查看、可删除（§48）。搜索走的是 §49 那套词面混合检索（全文 + 子串 + 词覆盖度），
-          <span className="hi-ink">不是语义检索</span>：用词不同、意思相近的那条搜不到。
+          {c.note}
+          <span className="hi-ink">{c.noteNotSemantic}</span>{c.noteTail}
         </p>
         <div className="mm-rowMt2">
           <input
@@ -220,8 +292,8 @@ export function MemoryPanel() {
               e.stopPropagation();
               if (e.key === 'Enter') void reload();
             }}
-            placeholder="搜记忆内容（词面匹配，回车检索）"
-            aria-label="搜索记忆"
+            placeholder={c.searchPlaceholder}
+            aria-label={c.searchAria}
             data-memory-search
             className="mm-growPlaceholder"
           />
@@ -231,7 +303,7 @@ export function MemoryPanel() {
             className="mm-btn1"
             data-memory-search-go
           >
-            搜
+            {c.search}
           </button>
           {query ? (
             <button
@@ -245,7 +317,7 @@ export function MemoryPanel() {
               className="mm-btnGhost"
               data-memory-search-clear
             >
-              清空
+              {c.clear}
             </button>
           ) : null}
         </div>
@@ -263,7 +335,7 @@ export function MemoryPanel() {
 
       <div className="wd-scrollP2">
         <section className="pb-blockBordered">
-          <h3 className="cp-faintMb1">记一条</h3>
+          <h3 className="cp-faintMb1">{c.addTitle}</h3>
           <div className="cp-wrap">
             <select
               value={scope}
@@ -271,7 +343,7 @@ export function MemoryPanel() {
                 setScope(e.target.value as Scope);
                 setSubjectId('');
               }}
-              aria-label="记忆类型"
+              aria-label={c.scopeAria}
               data-memory-scope
               className="mm-chipPlain"
             >
@@ -286,21 +358,21 @@ export function MemoryPanel() {
                 className="mm-truncFaint"
                 data-memory-subject="world"
               >
-                {world.world ? world.world.name : '（还没有世界）'}
+                {world.world ? world.world.name : c.noWorld}
               </span>
             ) : null}
             {scope === 'character' ? (
               <select
                 value={subjectId}
                 onChange={(e) => setSubjectId(e.target.value)}
-                aria-label="记忆主体"
+                aria-label={c.subjectAria}
                 data-memory-subject
                 className="mm-growField11"
               >
-                <option value="">选一个角色…</option>
-                {characterNames.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
+                <option value="">{c.pickCharacter}</option>
+                {characterNames.map((char) => (
+                  <option key={char.id} value={char.id}>
+                    {char.name}
                   </option>
                 ))}
               </select>
@@ -309,8 +381,8 @@ export function MemoryPanel() {
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="要记住什么？"
-            aria-label="记忆内容"
+            placeholder={c.contentPlaceholder}
+            aria-label={c.contentAria}
             data-memory-content
             rows={2}
             className="mm-textArea"
@@ -322,16 +394,16 @@ export function MemoryPanel() {
             data-memory-add
             className="mm-accent"
           >
-            记下
+            {c.remember}
           </button>
           {needsSubject && !effectiveSubject ? (
             <p className="cp-warnMt1" data-memory-need-subject>
-              {scope === 'world' ? '先建世界，再记世界类的记忆。' : '先选一个角色。'}
+              {scope === 'world' ? c.needWorldFirst : c.needCharacterFirst}
             </p>
           ) : null}
         </section>
 
-        {status === 'loading' ? <p className="cp-empty">读取记忆…</p> : null}
+        {status === 'loading' ? <p className="cp-empty">{c.reading}</p> : null}
 
         {SCOPES.map((group) => {
           const rows = items.filter((item) => item.scope === group.scope);
@@ -348,7 +420,7 @@ export function MemoryPanel() {
                     data-memory-clear={group.scope}
                     className="mm-clearAll"
                   >
-                    清空这一类
+                    {c.clearClass}
                   </button>
                 ) : null}
               </h3>
@@ -366,7 +438,7 @@ export function MemoryPanel() {
                       type="button"
                       disabled={busy}
                       onClick={() => void remove(entry.id)}
-                      aria-label="删除这条记忆"
+                      aria-label={c.deleteAria}
                       data-memory-remove={entry.id}
                       className={cn('mm-xshrink', !entry.embedded && 'mm-semi90')}
                     >
@@ -377,7 +449,7 @@ export function MemoryPanel() {
                 {status === 'ready' && !rows.length ? (
                   <li className="cp-faintPx1" data-memory-empty={group.scope}>
                     {/* 搜索态下这句不能说"还没有这一类的记忆"——那一类可能有一堆，只是这个词没命中 */}
-                    {searchNote ? '这一类里没有词面命中的条目（不等于没有相关记忆：这是词面检索）。' : '还没有这一类的记忆。'}
+                    {searchNote ? c.emptyWithNote : c.emptyPlain}
                   </li>
                 ) : null}
               </ul>

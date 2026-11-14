@@ -38,6 +38,14 @@ export const REALTIME_TEXT: Record<RealtimeState, string> = {
   closed: '已断开，以刷新后的数据为准',
 };
 
+/** 与 REALTIME_TEXT 一一对应的英文版（v749）：同裸状态词纪律，前缀由各处按自己的句式拼。 */
+export const REALTIME_TEXT_EN: Record<RealtimeState, string> = {
+  idle: 'off',
+  connecting: 'connecting…',
+  open: 'connected',
+  closed: 'disconnected — the refreshed data wins',
+};
+
 export interface RealtimeOptions {
   /** 项目频道；不传就只订用户频道（通知） */
   projectId?: string | null;

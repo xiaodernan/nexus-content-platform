@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
  * （canvas 底 fillStyle 就是 '#ffffff'），两主题一致（这条断言写进 ADR-0204）。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @ + `className=@` 归一）：
- * `e6fa416efb21d02cb96586cc4e62d84a9571c6f93fd22cd2e8c60041219dac33` 与 HEAD 字节一致。
+ * `d8e28aaafb7c66bab5e7b80afea0cc6d2185bfd99b908e1a7100aa8fa22c89e9` 与 HEAD 字节一致。
  *
  * 判据不变式（11 门）：
  *  1. 'use client' 保留 + onGenerate 链路进门；2. 字面 className 全 `.sk-*` / 复用 `.wd-*`/`.cp-*`；
@@ -153,9 +153,9 @@ describe('§FE-52 /studio SketchPad 草图画布', () => {
     expect(comment, '.sketch 段应有白纸=内容色的记账注释').not.toBeNull();
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：e6fa416efb21d02cb96586cc4e62d84a9571c6f93fd22cd2e8c60041219dac33）', () => {
+  it('剥 className 后全文 SHA256 守恒（2026-11-16 v750「SketchPad 双语化」重钉：d8e28aaafb7c66bab5e7b80afea0cc6d2185bfd99b908e1a7100aa8fa22c89e9）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'e6fa416efb21d02cb96586cc4e62d84a9571c6f93fd22cd2e8c60041219dac33',
+      'd8e28aaafb7c66bab5e7b80afea0cc6d2185bfd99b908e1a7100aa8fa22c89e9',
     );
   });
 });

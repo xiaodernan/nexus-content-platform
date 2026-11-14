@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
  * 真 provider 才启动：DEMO 不假装出现，task 锁没到的方向不显示"生成中"假。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @ + cn()整体归一 + `className=@` 归一）：
- * `7d791e4951e30d9be870caf48d1c94499c1915698857ded1a1a889486f5a941e`。
+ * `d5d8b42a6ed16b707ea87e3c7dd2746266b36005e9b774a5f163c5c18372083e`。
  *
  * 判据不变式（12 门）：
  *  1. 'use client' 保留 + studio.switchBranch 进门；2. 字面 className 全 `.vb-*`/复用族（含 cn 三元分支）；
@@ -147,9 +147,9 @@ describe('§FE-59 /studio VariantsBoard AI 方案板', () => {
     }
   });
 
-  it('剥 className/cn 后全文 SHA256 守恒（零行为：7d791e4951e30d9be870caf48d1c94499c1915698857ded1a1a889486f5a941e）', () => {
+  it('剥 className/cn 后全文 SHA256 守恒（2026-11-16 v752「VariantsBoard 双语化」重钉：d5d8b42a6ed16b707ea87e3c7dd2746266b36005e9b774a5f163c5c18372083e）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '7d791e4951e30d9be870caf48d1c94499c1915698857ded1a1a889486f5a941e',
+      'd5d8b42a6ed16b707ea87e3c7dd2746266b36005e9b774a5f163c5c18372083e',
     );
   });
 });

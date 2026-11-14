@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import type { AssetRef, DesignDocument } from '@nexus/creative-model';
 import type { VisualBenchmarkResponse } from '@nexus/schemas';
+import type { Locale } from '@/lib/i18n';
 import { apiAssetUrl } from './assets';
 import { SketchPad } from './SketchPad';
 import { studio, useStudioReady } from './store';
@@ -14,7 +15,97 @@ import { studio, useStudioReady } from './store';
  * 删除走 `studio.deleteAssetFromLibrary`：一次可撤销事务把资产移出清单并剥掉引用它的填充
  * （removeAsset 模型级负责跨页清理，§149）。字节删除是尽力而为的第二步，
  * 面板把"撤销能恢复引用、但文件字节回不来"这条非对称如实写进回执（§159），不假装万能。
+ * 双语（v743）：locale 由 StudioShell 透传；zh 原文原样保留，en 逐句对应。
  */
+
+const COPY = {
+  zh: {
+    heading: '资产库',
+    imagePlaceholder: '描述一张图，例如：一只在月球上弹吉他的猫',
+    imageAria: '图像生成的描述文字',
+    generateDemo: '生成中…',
+    generateBtn: '生成图片（DEMO · 扣 2 点）',
+    sketchFrom: '从草图生成（DEMO）',
+    vbenchTitle: '视觉基准（比较两张 PNG）',
+    vbenchNeedTwo: '需要至少两张位图资产：一张当参考图，一张当生成结果。先上传或生成图片。',
+    vbenchRef: '参考图',
+    vbenchCand: '生成图',
+    vbenchPick: '选一张…',
+    vbenchRun: '比较结构',
+    vbenchRunning: '比较中…',
+    layoutScore: (v: string) => `布局 ${v}`,
+    spacingScore: (vV: string, vH: string) => `间距（纵/横）${vV} / ${vH}`,
+    alignmentScore: (v: string) => `对齐 ${v}`,
+    colorScore: (v: string) => `颜色 ${v}`,
+    pixelDiff: (n: string) => `像素亮度平均差 ${n}（原始读数，不是分数）`,
+    shapeMismatch: '两图宽高比差超过 5%，下面的分数要在这个前提下读。',
+    notMeasured: (area: string, reason: string) => `测不出 ${area}：${reason}`,
+    refs: (n: number) => `引用 ${n}`,
+    demoTitle: '这张图不是真模型给的：本机没有图像 provider，像素来自本地确定性合成器（§160）',
+    demoBadge: 'DEMO',
+    portraitScene: '角色场景',
+    portraitSelf: '角色肖像',
+    portraitTitleSelf: (id: string) =>
+      `这是角色 ${id} 自己的参考图：由档案驱动，后续场景可以拿它当参考`,
+    portraitTitleScene: (id: string) => `这张图归属于角色 ${id}`,
+    dna: '提取视觉语言',
+    dnaTitleBitmap: '把这张图当作参考图，提取项目的 Visual DNA（§30）',
+    dnaTitleOther: '目前只有位图可提取',
+    variant: '生成变体',
+    variantTitleBitmap:
+      '以这张图为参考再生成一张（DEMO 本地合成 · 扣 image 额度 2 点；换的是它派生出的色调，不是把画面内容改成另一个场景）',
+    variantTitleOther: '目前只有位图可以做参考',
+    sceneBtn: '以此生成场景',
+    sceneTitle:
+      '拿这张肖像当参考，为同一个角色再生成一个场景：色调取的是这张图量出来的主色（DEMO 本地合成 · 扣 image 额度 2 点）',
+    deleteBtn: '删除',
+    emptyText: '还没有资产。在画布上选中元素，用属性面板上传一张图片，它就会出现在这里。',
+  },
+  en: {
+    heading: 'Asset library',
+    imagePlaceholder: 'Describe an image, e.g. a cat playing guitar on the Moon',
+    imageAria: 'Prompt for image generation',
+    generateDemo: 'Generating…',
+    generateBtn: 'Generate image (DEMO · –2 credits)',
+    sketchFrom: 'Generate from sketch (DEMO)',
+    vbenchTitle: 'Visual benchmark (compare two PNGs)',
+    vbenchNeedTwo: 'Need at least two bitmap assets: one as the reference, one as the generated result. Upload or generate first.',
+    vbenchRef: 'Reference',
+    vbenchCand: 'Candidate',
+    vbenchPick: 'Pick one…',
+    vbenchRun: 'Compare structure',
+    vbenchRunning: 'Comparing…',
+    layoutScore: (v: string) => `Layout ${v}`,
+    spacingScore: (vV: string, vH: string) => `Spacing (vert/horiz) ${vV} / ${vH}`,
+    alignmentScore: (v: string) => `Alignment ${v}`,
+    colorScore: (v: string) => `Color ${v}`,
+    pixelDiff: (n: string) => `Mean abs luminance difference ${n} (raw reading, not a score)`,
+    shapeMismatch: 'The two images differ in aspect ratio by more than 5% — read the scores below under that caveat.',
+    notMeasured: (area: string, reason: string) => `Cannot measure ${area}: ${reason}`,
+    refs: (n: number) => `refs ${n}`,
+    demoTitle: 'Not a real model output: no image provider on this machine — pixels come from the local deterministic synthesizer (§160)',
+    demoBadge: 'DEMO',
+    portraitScene: 'Character scene',
+    portraitSelf: 'Character portrait',
+    portraitTitleSelf: (id: string) =>
+      `This is the reference image of character ${id} itself: driven by the dossier, later scenes can use it as reference`,
+    portraitTitleScene: (id: string) => `This image belongs to character ${id}`,
+    dna: 'Extract visual DNA',
+    dnaTitleBitmap: 'Use this image as a reference to extract the project’s Visual DNA (§30)',
+    dnaTitleOther: 'Bitmaps only for now',
+    variant: 'Generate variant',
+    variantTitleBitmap:
+      'Generate another image using this one as reference (DEMO local synthesis · –2 image credits; what changes is its derived palette, not the scene content)',
+    variantTitleOther: 'Bitmaps only for references',
+    sceneBtn: 'Generate scene from this',
+    sceneTitle:
+      'Use this portrait as reference to generate one more scene for the same character; the palette is taken from the measured primary colors of this image (DEMO local synthesis · –2 image credits)',
+    deleteBtn: 'Delete',
+    emptyText: 'No assets yet. Select an element on the canvas and upload an image through the properties panel — it will show up here.',
+  },
+} as const;
+
+type AssetsCopy = (typeof COPY)[Locale];
 
 /**
  * 每个资产被多少个节点引用（一个节点里同一资产出现多次只算一次）。
@@ -54,7 +145,7 @@ const pct = (v: number): string => `${Math.round(v * 100)}%`;
  * §86 结果区。纪律：测不出的维度渲染"测不出"+ 原因，绝不渲染成 0 分（§159）；
  * 像素亮度差标明是原始读数不是分数——它不参与"像不像"的结论。
  */
-function VisualBenchmarkResult({ r }: { r: VisualBenchmarkResponse }) {
+function VisualBenchmarkResult({ r, c }: { r: VisualBenchmarkResponse; c: AssetsCopy }) {
   const m = r.metrics;
   return (
     <div className="ap-infoBox" data-vbench-result>
@@ -63,30 +154,30 @@ function VisualBenchmarkResult({ r }: { r: VisualBenchmarkResponse }) {
       </p>
       <ul className="cp-colGap2">
         <li data-vbench-layout title={m.layout.meaning}>
-          布局 {pct(m.layout.score)}
+          {c.layoutScore(pct(m.layout.score))}
         </li>
         <li data-vbench-spacing title={m.spacing.meaning}>
-          间距（纵/横）{pct(m.spacing.vertical)} / {pct(m.spacing.horizontal)}
+          {c.spacingScore(pct(m.spacing.vertical), pct(m.spacing.horizontal))}
         </li>
         <li data-vbench-alignment title={m.alignment.meaning}>
-          对齐 {pct(m.alignment.score)}
+          {c.alignmentScore(pct(m.alignment.score))}
         </li>
         <li data-vbench-color title={m.color.meaning}>
-          颜色 {pct(m.color.score)}
+          {c.colorScore(pct(m.color.score))}
         </li>
       </ul>
       <p className="ap-faint" title={m.pixel.meaning} data-vbench-pixel>
-        像素亮度平均差 {m.pixel.meanAbsLuminanceDiff.toFixed(3)}（原始读数，不是分数）
+        {c.pixelDiff(m.pixel.meanAbsLuminanceDiff.toFixed(3))}
       </p>
       {r.shapeMismatch ? (
         <p className="hi-warnInk" data-vbench-shape-mismatch>
-          两图宽高比差超过 5%，下面的分数要在这个前提下读。
+          {c.shapeMismatch}
         </p>
       ) : null}
       <ul className="ap-colGap2Faint">
         {r.notMeasured.map((n) => (
           <li key={n.area} data-vbench-notmeasured={n.area}>
-            测不出 {n.area}：{n.reason}
+            {c.notMeasured(n.area, n.reason)}
           </li>
         ))}
       </ul>
@@ -94,7 +185,8 @@ function VisualBenchmarkResult({ r }: { r: VisualBenchmarkResponse }) {
   );
 }
 
-export function AssetsPanel() {
+export function AssetsPanel({ locale = 'zh' }: { locale?: Locale }) {
+  const c = COPY[locale];
   const state = useStudioReady();
   const assets = state.assets as AssetRef[];
   const [prompt, setPrompt] = useState('');
@@ -109,7 +201,7 @@ export function AssetsPanel() {
   return (
     <div className="wd-rootCol" data-assets-panel>
       <header className="ap-headBetween">
-        <h2 className="wd-label">资产库</h2>
+        <h2 className="wd-label">{c.heading}</h2>
         <span className="ap-mono12faint">{assets.length}</span>
       </header>
 
@@ -120,8 +212,8 @@ export function AssetsPanel() {
           type="text"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="描述一张图，例如：一只在月球上弹吉他的猫"
-          aria-label="图像生成的描述文字"
+          placeholder={c.imagePlaceholder}
+          aria-label={c.imageAria}
           data-image-prompt
           className="ap-wfullInput"
         />
@@ -136,14 +228,14 @@ export function AssetsPanel() {
           data-image-generate
           className="sk-selfStart ap-primary"
         >
-          {state.assetBusy ? '生成中…' : '生成图片（DEMO · 扣 2 点）'}
+          {state.assetBusy ? c.generateDemo : c.generateBtn}
         </button>
       </div>
 
       {/* §38 Sketch → Image 的入口：同一句 prompt，构图来源从"随机"换成"你画的这张"。
           折叠着放——绘制面 240px 见方，常驻会把资产列表挤出可视区。 */}
       <details className="wd-headBordered" data-sketch-section>
-        <summary className="ap-uploadTrigger">从草图生成（DEMO）</summary>
+        <summary className="ap-uploadTrigger">{c.sketchFrom}</summary>
         <div className="wd-mt2">
           <SketchPad
             busy={state.assetBusy}
@@ -152,6 +244,7 @@ export function AssetsPanel() {
               if (ok) setPrompt('');
               return ok;
             })}
+            locale={locale}
           />
         </div>
       </details>
@@ -161,15 +254,15 @@ export function AssetsPanel() {
           两份下拉不筛 mime：JPEG/WebP 选进去会让路由用 415 把"只支持 PNG、是哪张"
           讲清楚，比面板自己猜一份 mime 白名单诚实（§159）。 */}
       <details className="wd-headBordered" data-vbench-section>
-        <summary className="ap-uploadTrigger">视觉基准（比较两张 PNG）</summary>
+        <summary className="ap-uploadTrigger">{c.vbenchTitle}</summary>
         {imageAssets.length < 2 ? (
           <p className="ap-topfaint">
-            需要至少两张位图资产：一张当参考图，一张当生成结果。先上传或生成图片。
+            {c.vbenchNeedTwo}
           </p>
         ) : (
           <div className="sb-colMt2">
             <label className="ap-row2ink">
-              参考图
+              {c.vbenchRef}
               <select
                 value={vrefId}
                 onChange={(e) => setVrefId(e.target.value)}
@@ -177,7 +270,7 @@ export function AssetsPanel() {
                 data-vbench-reference
                 className="ap-searchField"
               >
-                <option value="">选一张…</option>
+                <option value="">{c.vbenchPick}</option>
                 {imageAssets.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.name}
@@ -186,7 +279,7 @@ export function AssetsPanel() {
               </select>
             </label>
             <label className="ap-row2ink">
-              生成图
+              {c.vbenchCand}
               <select
                 value={vcandId}
                 onChange={(e) => setVcandId(e.target.value)}
@@ -194,7 +287,7 @@ export function AssetsPanel() {
                 data-vbench-candidate
                 className="ap-searchField"
               >
-                <option value="">选一张…</option>
+                <option value="">{c.vbenchPick}</option>
                 {imageAssets.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.name}
@@ -209,11 +302,11 @@ export function AssetsPanel() {
               data-vbench-run
               className="sk-selfStart ap-primary"
             >
-              {state.assetBusy ? '比较中…' : '比较结构'}
+              {state.assetBusy ? c.vbenchRunning : c.vbenchRun}
             </button>
           </div>
         )}
-        {state.visualBenchmarkResult ? <VisualBenchmarkResult r={state.visualBenchmarkResult} /> : null}
+        {state.visualBenchmarkResult ? <VisualBenchmarkResult r={state.visualBenchmarkResult} c={c} /> : null}
       </details>
 
       {state.assetError ? (
@@ -230,7 +323,7 @@ export function AssetsPanel() {
       <div className="wd-scrollP2">
         {assets.length === 0 ? (
           <p className="ap-emptyState">
-            还没有资产。在画布上选中元素，用属性面板上传一张图片，它就会出现在这里。
+            {c.emptyText}
           </p>
         ) : (
           <ul className="wd-col2">
@@ -257,9 +350,9 @@ export function AssetsPanel() {
                     </span>
                     <span
                       className="hi-monoTruncFaint"
-                      title={`${asset.width && asset.height ? `${asset.width}×${asset.height} · ` : ''}${formatBytes(asset.sizeBytes)} · 引用 ${refs}`}
+                      title={`${asset.width && asset.height ? `${asset.width}×${asset.height} · ` : ''}${formatBytes(asset.sizeBytes)} · ${c.refs(refs)}`}
                     >
-                      {formatBytes(asset.sizeBytes)} · 引用 {refs}
+                      {formatBytes(asset.sizeBytes)} · {c.refs(refs)}
                     </span>
                     {/* flex-wrap 是修"一字一行"的：这一排是角标 + 三个按钮，窄面板下不换行时
                         每个按钮都被压到自己的最小内容宽度以下，中文就一个字占一行 */}
@@ -267,10 +360,10 @@ export function AssetsPanel() {
                       {asset.generatedBy?.demoMode ? (
                         <span
                           className="ap-badgeWarn"
-                          title="这张图不是真模型给的：本机没有图像 provider，像素来自本地确定性合成器（§160）"
+                          title={c.demoTitle}
                           data-asset-demo-badge
                         >
-                          DEMO
+                          {c.demoBadge}
                         </span>
                       ) : null}
                       {asset.characterId ? (
@@ -281,38 +374,34 @@ export function AssetsPanel() {
                           className="ap-codeChipSm"
                           title={
                             asset.characterPortrait
-                              ? `这是角色 ${asset.characterId} 自己的参考图：由档案驱动，后续场景可以拿它当参考`
-                              : `这张图归属于角色 ${asset.characterId}`
+                              ? c.portraitTitleSelf(asset.characterId)
+                              : c.portraitTitleScene(asset.characterId)
                           }
                           data-asset-character={asset.characterId}
                           data-asset-portrait={asset.characterPortrait ? 'true' : undefined}
                         >
-                          {asset.characterPortrait ? '角色肖像' : '角色场景'}
+                          {asset.characterPortrait ? c.portraitSelf : c.portraitScene}
                         </span>
                       ) : null}
                       <button
                         type="button"
                         onClick={() => void studio.extractVisualDnaFromAsset(asset.id)}
                         disabled={state.assetBusy || asset.kind !== 'image'}
-                        title={asset.kind === 'image' ? '把这张图当作参考图，提取项目的 Visual DNA（§30）' : '目前只有位图可提取'}
+                        title={asset.kind === 'image' ? c.dnaTitleBitmap : c.dnaTitleOther}
                         data-asset-dna={asset.id}
                         className="ap-chipDisEnd"
                       >
-                        提取视觉语言
+                        {c.dna}
                       </button>
                       <button
                         type="button"
                         onClick={() => void studio.generateImageFromPrompt(`变体 · ${asset.name}`, { referenceAssetId: asset.id })}
                         disabled={state.assetBusy || asset.kind !== 'image'}
-                        title={
-                          asset.kind === 'image'
-                            ? '以这张图为参考再生成一张（DEMO 本地合成 · 扣 image 额度 2 点；换的是它派生出的色调，不是把画面内容改成另一个场景）'
-                            : '目前只有位图可以做参考'
-                        }
+                        title={asset.kind === 'image' ? c.variantTitleBitmap : c.variantTitleOther}
                         data-asset-variant={asset.id}
                         className="ap-chipDis"
                       >
-                        生成变体
+                        {c.variant}
                       </button>
                       {asset.characterId && asset.characterPortrait ? (
                         // §39 的闭环入口：这个角色自己的肖像 → 它的下一个场景。
@@ -326,11 +415,11 @@ export function AssetsPanel() {
                             })
                           }
                           disabled={state.assetBusy}
-                          title="拿这张肖像当参考，为同一个角色再生成一个场景：色调取的是这张图量出来的主色（DEMO 本地合成 · 扣 image 额度 2 点）"
+                          title={c.sceneTitle}
                           data-asset-scene-from-portrait={asset.id}
                           className="ap-chipDis"
                         >
-                          以此生成场景
+                          {c.sceneBtn}
                         </button>
                       ) : null}
                       <button
@@ -340,7 +429,7 @@ export function AssetsPanel() {
                         data-asset-delete={asset.id}
                         className="ap-chipDis"
                       >
-                        删除
+                        {c.deleteBtn}
                       </button>
                     </div>
                   </div>

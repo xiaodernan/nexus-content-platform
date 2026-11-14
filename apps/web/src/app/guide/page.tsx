@@ -80,6 +80,41 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           'Q：数据安全吗？A：所有 AI 改动都进审计账本、可撤销 Command；公开作品随时可撤回。',
         ],
       },
+      {
+        heading: '⑦ 分镜怎么玩（Storyboard，§40–§42）',
+        body: [
+          '打开 Studio 底部的「分镜」Tab → 写一句话、点「切一版分镜」——这是本地确定性断句（按标点切成镜头表），不是 AI 分镜；provider 未接入前不做假生成。',
+          '镜头行可改：时长（毫秒）、机位（宽景/中景/特写/细部/跟移/航拍）、转场（硬切/淡入/叠化/划像）；点「DEMO 参考图」为本镜合成一张参考帧——像素来自本地确定性合成器，不是 AI 出图；撤销只断开引用、不删资产。',
+          '「DEMO 渲染整条分镜」会把整条分镜渲成一条 mp4 并挂回第一镜：真 ffmpeg、真额度门、真视频摄入门，成片为 DEMO（本地推演，不是 AI 生成），按钮处明码标注。',
+          '时间线可直接编辑：拖右边缘改长度（吸附 100ms、下限 200ms）、拖整块换位、双击一格在点击处切成两镜；键盘 Tab 到格子的右边缘、方向键调整（Shift 一档 500ms），Enter 落库、Esc 取消——四条路改的是同一份模型，全程可撤销。',
+        ],
+      },
+      {
+        heading: '⑧ 走进一个世界玩（World）',
+        body: [
+          '/world/<id> 进入 3D 走动视角：WASD 或方向键移动；按住鼠标左键拖拽可以环视四周（向上拖 = 往上看）；靠近 NPC 后按角色旁出现的「跟角色说话」入口对话。',
+          '/world/<id>/chronicle 编年史：故事/历史条目按纪元排开（灰灯纪/灰烬纪/铁月纪……你项目自己的纪元名），人物星图 ↔ 编年互相点亮；条目可挂「记忆回声」——纯感官刻痕，≤ 240 字，不是梗概。',
+          '/world/<id>/digest 世界速览 · /world/<id>/integrity 世界体检（只报真问题：纪元错位/回声缺失/孤儿条目，不打分不假绿）· /world/<id>/tide 世界潮汐 · /world/<id>/ephemeris 世界日历投影 · /world/<id>/codex 设定集 · /world/<id>/constellation 人物关系星图。',
+          '这些页面全部是你的项目数据的投影——世界页不是"官方故事"，是你画的世界自己的结构。',
+        ],
+      },
+      {
+        heading: '⑨ 市场、邀请与团队',
+        body: [
+          '/marketplace 组件市场：浏览作者挂牌的东西、看谁买过、买下或退货；市场里卖的东西每一件都有真实结算路径。',
+          '/invites/<token> 接受队伍邀请：项目成员从 Studio 的 Team 面板发出邀请链接，接受后成为协作者（席位有上限；过期邀请不再占席）。',
+          '/api-tokens 自建机器人：给 CI/脚本一枚令牌，就能用程序化方式读写你的内容与作品；/tasks 里能看到每个云端任务的真实排队与状态。',
+          '/ship 每日交付日志 · /notifications 收件箱 · /analytics 你的作品数据 · /credits 你的额度账本——每个都是真实数据页。',
+        ],
+      },
+      {
+        heading: '⑩ 走错一步怎么走回来',
+        body: [
+          '⌘Z（或 Ctrl Z）一次撤销最近一个 Command——对话、画布、分镜、状态补丁、断点，全部走同一条撤销栈；重做是 ⌘⇧Z / Ctrl Y。',
+          '删除类操作（删除项目/撤发布/删镜头）都有二次确认；删掉的项目进回收站、可以恢复；公开作品随时可撤回到 private。',
+          '发布前最后一步是确认卡——没点头就不会投进广场；AI 的危险动作（删/发/花额度）同样有人审门，没批准就不执行。',
+        ],
+      },
     ],
   },
   en: {
@@ -144,6 +179,41 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           'Q: is low cache-hit-rate my fault? A: No — it’s the provider’s KV-shard lottery. Over 6–10 identical prefix lanes expect ~1 cold shard; admins can see their per-lane bills at /admin/ai-cache.',
           'Q: how do others see my work? A: top-bar Publish → fill title → publish; before publishing it stays private.',
           'Q: is my data safe? A: every AI edit is in the audit ledger, revocable Command; public works recallable anytime.',
+        ],
+      },
+      {
+        heading: '⑦ How the storyboard plays (§40–§42)',
+        body: [
+          'Open the “Storyboard” tab at the bottom of Studio → write one sentence and press “Cut a storyboard”. That is local deterministic splitting by punctuation, not AI storyboarding; no fake generation before a provider is wired.',
+          'Per shot you can change: duration (ms), camera (Wide/Medium/Close-up/Detail/Tracking/Aerial), transition (Cut/Fade/Dissolve/Wipe); hit “DEMO reference” to compose a reference frame for the shot — pixels come from a local deterministic synthesizer, not AI output; undo only drops the link, it never deletes the asset.',
+          '“DEMO-render the whole storyboard” renders the entire board into one mp4 attached to the first shot: real ffmpeg, real quota door, real video-ingest gate, product is DEMO (local inference, not AI generation) and is labeled as such at the button.',
+          'The timeline is directly editable: drag a cell’s right edge to resize (snaps to 100 ms, minimum 200 ms), drag the block to reorder, double-click a cell to split at the click point; keyboard: Tab to the right edge, arrows nudge (Shift = 500 ms per step), Enter commits, Esc cancels — all four paths edit the same model and are undoable.',
+        ],
+      },
+      {
+        heading: '⑧ Step into a world',
+        body: [
+          '/world/<id> is the 3D walk view: WASD or arrow keys move; hold the left mouse button and drag to look around (drag up = look up); stand near an NPC and use the “Talk to the character” entry to converse.',
+          '/world/<id>/chronicle — story and history entries arranged by era (Grey-Lamp Age / Ash Age / Iron-Moon Age — whatever YOUR project’s eras are), characters and chronicle light each other up; entries can carry “memory echoes” — pure sensory etchings, ≤ 240 chars, not plot summaries.',
+          '/world/<id>/digest world digest · /world/<id>/integrity world checkup (reports real issues only: era drift, missing echoes, orphan entries — no fake scoring) · /world/<id>/tide world tide · /world/<id>/ephemeris world calendar projection · /world/<id>/codex the lore tome · /world/<id>/constellation the character graph.',
+          'Every one of these pages is a projection of YOUR project — the world pages are not “the official story”; they are the structure of the world you drew, rendered.',
+        ],
+      },
+      {
+        heading: '⑨ Marketplace, invites and teams',
+        body: [
+          '/marketplace — the components bazaar: browse what authors have listed, see who bought what, buy or refund; everything listed has a real settlement path.',
+          '/invites/<token> — accept a team invite: project members send invite links from the Studio Team panel; accepted collaborators hold a seat (seats are capped; expired invites stop holding one).',
+          '/api-tokens — mint a token for CI/scripts to read and publish your content programmatically; /tasks shows the real queue and state of every cloud task.',
+          '/ship daily delivery log · /notifications inbox · /analytics your works’ stats · /credits your quota ledger — all real data pages.',
+        ],
+      },
+      {
+        heading: '⑩ Wrong turn? Walk back',
+        body: [
+          '⌘Z (or Ctrl+Z) undoes the most recent Command — chat edits, canvas, storyboard, state patches, breakpoints all run through the same undo stack; redo is ⌘⇧Z / Ctrl+Y.',
+          'Destructive actions (delete project / unpublish / delete shot / clear selection) all carry a confirmation step; deleted projects go to the recoverable trash; public works can be recalled to private anytime.',
+          'Publish’s last step is a confirmation card — nothing enters the feed without your explicit yes; dangerous AI actions (delete / publish / spend quota) are likewise human-gated and refuse to run until approved.',
         ],
       },
     ],

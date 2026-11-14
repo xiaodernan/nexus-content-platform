@@ -1,0 +1,39 @@
+merge(parallel-line): other-lane 41 commits (v733-v762, Studio i18n / guide / Redis load probe / DLQ) join master
+
+The other lane kept working after THE GREAT MERGE. Its newly produced line
+(f455a199, 41 commits ahead of the merged-base b638b789) is consolidated into
+this line here — same standing order as the first merge.
+
+Absorbed content:
+- §v757-§v762: Studio panels bilingual (CanvasStage, PropertiesPanel,
+  StoryboardPanel, StoryShell/AdminNav, /admin audit + dead-letters,
+  /world3d WorldWalk HUD, /guide expanded four chapters bilingual).
+- §v760: Redis completion-cache load probe (4 tiers × 6000 ops, scripts/
+  load-redis-completion-cache.py) + v760+ regression test; evidence files
+  load-redis-completion-cache-2026-11-14/17.md + .json archived in-repo.
+- §v754: DLQ two read paths ADR 0268 (dead-letters inspection read vs admin
+  write path split) + apps/ai-service/tests/test_dead_letters_http.py.
+- Cross-line game-model codegen + creative-model context + world-model
+  kind-labels EN dictionaries (zh byte-identical) with en tests;
+  context-en integration test; world-model en kind labels.
+- showcase pointer snapshots v733..v762 (their line regenerated its
+  fact pack from its own HEAD each version).
+
+Conflicts resolved honestly, local gates green after resolution:
+- three FE visual-style pins re-measured against the merged tree's bytes
+  (world-graph-view bdac6b8…, studio-shell 46a145a… — the file's redact
+  has no className=@ rule, world-graph's and retrieve-panel's do; retrieve-
+  panel comment unified byte-identical).
+- docs/CURRENT-STATE.md: both lanes' cont. 103-… ledgers kept in parallel
+  (Studio line's cont. 103-118 with THE GREAT MERGE and shared-process notes;
+  the other lane's v733-v762 record after it). Numbering overlaps are honest
+  parallel accounting, not a contradiction — the merged line resumes at the
+  next entry from this commit.
+- docs/showcase/latest.json: taken from this line; regenerated after the
+  commit from the merged tree (npm run sync:showcase) — numbers below.
+
+Verified locally after resolution:
+- tools/ci/fe-gates.mjs: 116/116 suites, 1148/1148 tests green.
+- tsc apps/web: 0; eslint clean on merged tree files; no-raw-tailwind clean.
+- thirty world-sub / Studio SHA-pin suites + world-model/game-model kind-labels en tests green.
+Merged ref CI verdict is not claimed until the hosted runner finishes.

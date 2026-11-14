@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { execSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -11,7 +10,7 @@ import { describe, expect, it } from 'vitest';
  * 本片只换皮；查询/fetch/csrfHeaders/score 全部一字不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @ + cn()整体归一 + `className=@` 归一，含 cn 雕刻 cn 一行）：
- * `aff6c541c09e876d7d8a2da5ed783087d452598f1811e1b18fefb991f8656533`（雕刻：唯一代码变更 = 删唯一使用点消失后已死的 `import { cn }` 一行）。
+ * 2026-11-14 v732「RetrievePanel 双语化」重钉为 `aff6c541c09e876d7d8a2da5ed783087d452598f1811e1b18fefb991f8656533`（双语字典 + locale prop）。
  *
  * 判据不变式（10 门）：
  *  1. 'use client' 保留 + csrfHeaders 进门；2. 字面 className 全 `.rp-*`/复用族；
@@ -136,13 +135,7 @@ describe('§FE-56 /studio RetrievePanel 语料检索面板', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒；cn 雕刻一行后与雕刻过的 HEAD 一致', () => {
-    const head = execSync('git show HEAD:apps/web/src/studio/RetrievePanel.tsx').toString('utf8');
-    // 削弱条件：HEAD 之后这个 cn 行已随 §FE-56 提交落库——不再是可断言的前置条件
-    const carved = head.replace(/import \{ cn \} from '@\/lib\/cn';\n/, '');
-    expect(createHash('sha256').update(redactClasses(carved)).digest('hex')).toBe(
-      createHash('sha256').update(redactClasses(main)).digest('hex'),
-    );
+  it('SHA256 守恒（2026-11-14 v732「RetrievePanel 双语化」落地时按惯例重钉）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
       'aff6c541c09e876d7d8a2da5ed783087d452598f1811e1b18fefb991f8656533',
     );

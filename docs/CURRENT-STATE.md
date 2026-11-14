@@ -3269,6 +3269,11 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   nexus-postgres healthy; sibling deployments on 3100/3200 not touched.
 - CI before fix push: 51f07b0 / 2917d5c / 4d67a2b / 95dbf12 / 7fb3c91 / 846dec5 / 475ff76 / af356bf
   all double-green except 9cd48bc's CI. Not yet verified after this fix.
+
+## ═══ 2026-11-15 并轨记录：两条线各自的 cont. 账本在此并置保存 ═══
+Studio 线自己的账本（cont. 103 … 118）继续在下；另一条线在同一时段独立演进到 v733…v762 的账本接在它之后。两条线的 cont. 编号重叠是两条并行流水线各自记账的结果，不是矛盾。并轨后的统一账本从本文件末尾的新 cont. 条目开始。
+
+─── Studio 线 (cont. 103 … 118) ───
 ## cont. 103 (2026-11-14) - Spring Cloud P2 landed: discovery one-hot gate in java-domain-service
 
 - New: OneHotVerification (pure verdict: disabled / ok / unknown_instance / ambiguous_identity)
@@ -3645,3 +3650,382 @@ WirePublisher path and the health indicator both see a real Redis — same as co
 - Honest scale note: the merged Zeiters line needed this envwiring pass because its CI never ran against
   the merged tree — every hot-path fix this session was driven by a hosted-runner verdict, not preference.
 
+─── 另一条线 (并轨前 v733…v762 账本) ───
+
+## cont. 103 (2026-11-14) - v734: nexus-redis completion-cache 形状压力测试（零错误通关）
+
+- New bounded load probe: scripts/load-redis-completion-cache.py (stdlib-only, raw RESP2,
+  no redis-py). Mirrors RedisLlmCompletionCache (v690 / ADR-0123) op shape: GET hit + ZADD,
+  miss -> SET EX 3600 + ZADD + ZREMRANGEBYRANK(0,-257). DB15 + namespace nexus:loadtest:llmc:*,
+  never touches DB8 / nexus:llmc / FLUSHDB / KEYS.
+- Result @ 4 stages x 6000 ops, no pipeline: 16c 3753 ops/s p99 3.95ms; 64c 3167 ops/s p99 14.69ms;
+  128c 2573 ops/s p99 32.38ms; 256c 2599 ops/s p99 59.94ms. Zero errors, hit ratio ~0.80 (as designed),
+  cleanup verified entries_deleted=4755, SCAN residue=0 (the FIRST probe had a tuple-unpack bug in its
+  cleanup SCAN path that made residue checks silently fake — fixed and locked: residue != 0 exits nonzero).
+- Tail latency grows linearly with concurrency (single-command in flight); throughput plateaus ~2.6k ops/s;
+  follow-up headroom (pipeline / batched ZADD, sharding, async store) deliberately NOT applied: ai-service
+  behavior change, own slice. Evidence: docs/evidence/load-redis-completion-cache-2026-11-14.md (+ .json).
+- PERFORMANCE.md gained the v734 section; sibling "careeros-*" containers not touched.
+
+## cont. 104 (2026-11-14) - v735: Studio Game 面板 + Code 投影 双语化（产物字节与语言无关）
+
+- GamePanel.tsx & GameCodeExport.tsx localized zh/en (SHELL_COPY pattern, locale prop threaded
+  StudioShell -> GamePanel -> GameCodeExport; data-* and classes byte-stable; §FE-49 / §FE-GCE re-pinned;
+  StudioShell §FE-41 re-pinned (GamePanel now receives locale). 3 gates re-pinned with notes.
+- game-model: GAME_KIND_STATUS_EN / GAME_ENTITY_LABELS_EN / CODEGEN_LIMITS_EN exports;
+  artifactChainSentence(chain, locale), codeKindReadings(document, locale), documentNotes(..., locale),
+  generateGameCode(document, locale). Artifact bytes are locale-independent BY CONSTRUCTION:
+  files[] (README/index.html/plan*) always render from zh strings; only the HTTP JSON readout surface
+  (notes / kindNote / limits) follows NEXUS_LOCALE. codegen-locale.test.ts (9 tests) pins:
+  en/zh files byte-identical; en notes template-English; zh default untouched; en limits/table key sets match.
+- /game/code route reads cookie NEXUS_LOCALE via getLocale() and passes locale; 404 game_missing + 413
+  messages localized; zip route deliberately stays zh (the download is the Chinese artifact deliverable).
+- Evidence: fe-gates 116/116 (1148/1148), game-code.integration 13/13 (incl. new NEXUS_LOCALE=en row),
+  game-model 363/363, web tsc 0, game-model tsc 0, eslint on touched files clean.
+- Infra event mid-slice: nexus-postgres + nexus-redis stopped themselves (Exited 0) ~23:30 while fe-gates
+  was running; cause unknown (likely Docker Desktop memory pressure on 1.7GB free); docker start revived
+  both to healthy 8s later and the suite re-ran green. Not treated as "the tests are flaky" — the failure
+  mode was real and had to be fixed, not rerun into green.
+- Known gaps (deliberate, documented):
+  1. projection-layer factual verdicts (play.ts plan/player blockers, playtest/combat findings) are still
+     Chinese-only; en mode shows the en templates that surround them but verdict strings pass through.
+     Fixing those is the §46 error-surface localization slice, not this one (would touch sim/story/rpg
+     and their parity tests).
+  2. gameStore notice strings driven by game-model reason strings (setStat / linkEntities ...) are zh-only.
+  3. The zip deliverable itself (README/index.html/plan*) is Chinese by design; the UI says so when en.
+  4. Untouched panels still zh-only: GamePanel count is 2 of 15 Studio tabs; ContextPanel / CodePanel next.
+
+## cont. 105 (2026-11-14) - v736: Context Engine 读数面双语化 + PanelContext 全双语
+
+- ContextPanel.tsx localized zh/en (StudioShell threads locale; COPY dict; .cx- classes untouched;
+  §FE-CX gate re-pinned twice in-slice: v736 rewrite + drop of an illegal eslint-disable for a rule this
+  repo does not define — verified absent, not suppressed).
+- Server 装配同步本地化（v736）：buildProjectContext(projectId, ownerId, options, locale='zh')
+  — unavailable[5] / branches note[6+1] / failure reasons / fitCodeIndexToBudget / fitIndexToBudget /
+  buildDesignIndex(locale) 全部接 locale；creative-model 增 DESIGN_INDEX_OMISSIONS_EN 与 trimmed 5 句 en 版；
+  code-index 增 5 句 en 版。/context 出口按 NEXUS_LOCALE 产出 en 装配。
+- 装配层 pick() 曾被参数同名遮蔽（en ? en : zh 恒返回英文）——context.integration.test 当即咬住
+  "Code.note 中文模板" 断言；修成 enText 后双语测试一并新增 context-en.integration.test.ts（2 测）：
+  en 装配的 unavailable/branches 为英文、totals 与 zh 逐字相等、omissions 英文、tiny budget trimmed 全英文。
+- fe-gates 116/116（1148/1148）；web tsc 0；creative-model 502/502；context.integration 8/8；context-en 2/2。
+- 已知边界：recentChanges 的 label/source 与 snapshot summary 仍为用户数据原样；快照 label 为用户输入；
+  branch.name 保持英文（与 AGENTS 分支命名一致，§71 是英文词表）。
+
+## cont. 106 (2026-11-14) - v737: CodePanel 双语化（§19 代码视图）
+
+- CodePanel.tsx zh/en 双字典：empty/copy/apply/cancel/edit/hint 三态 hints/report applied/noChanges/
+  unmappedLine/issueLine 全部接 locale；撤销事务标签 studio.execute(c.undoLabel, ops)（zh 原样
+  "代码编辑"，en "Code edit"）；StudioShell 继续透传 locale。
+- parser messages（§19 反向映射的真实 AST 报文）仍是中文——§46 错误语面英文化是独立立片，本片不伪造翻译；
+  format wrapper 已双语（Line N：... / Line N: ...）。
+- Gate 纪律记录：studio-shell 门的 redact 只有 6 行（EOL+className×4+cn+\s+），我那边曾误带一行
+  className=@ 折叠导致两次假 SHA；现以门内 redact 口径实测 9566141b… 重钉，并把 CodePanel 门内
+  一条硬编码 "studio.execute('代码编辑'…" 契约改为断言机制 + zh 标签仍在 dict。
+  教训：SHA 门重钉永远用**门内同一 redact** 实测，不用手写的近似版。
+- fe-gates 116/116（1148/1148）；web tsc 0；eslint 净。
+
+## cont. 107 (2026-11-15) - v738: ai-service 原生死信读面 + 双页共存裁决
+
+- DISCOVERY 并修正：/admin/dead-letters 只读巡检器早已存在（v689 @349dd6c8, ADR 0122 —
+  web 直读 Redis nexus:ai:dead + cursor 分页 + NDJSON 导出）；AdminNav 已有入口，本片不是补漏，是补机器面。
+- ai-service 新增 GET /v1/ai/jobs/dead-letters?limit=（缺省 50 上限 200）：只读、total 报裁剪前真实总数、
+  items 按 job.finishedAt 降序归一（内存 append 尾部最新 / Redis LPUSH 头部最新 → 同一语义）；
+  内容全部来自 Job.public() → payload 提示词原文结构上不可能外泄；非 lifespan 如实 503。
+- tests/test_dead_letters_http.py（3 测）：no-lifespan 503；empty 200 zero；seed 两条 → 降序/total/limit clamp/payload 不可见。
+  **事故与根治**：首版测试从 .env 自动继承 NEXUS_REDIS_URL 指向共享 Redis，drain 出 2+2 条毒消息；
+  立即 LREM 精确删除 nexus:ai:dead 全部 4 条（列表回归 *0，job_dl_* 本体键同步 DEL）；测试改为 monkeypatch 覆盖到 DB15 探测库并自动清欠账。DB0/DB15 复扫均空。
+- ADR-0268 记录双页共存并收窄职责：v689=人向唯一页面（保留），v738=机器向唯一入口（规范化读法）；semantics 对齐（新在前、total 原样、payload 不外泄）。
+- 验证：test_dead_letter 19/19 绿；jobs/memory/redis store 39/39 绿（redis 8/8 实机）。
+
+## cont. 108 (2026-11-15) - v739: PublishPanel 双语化（§57 发布交互）
+
+- PublishPanel.tsx zh/en 双字典（StudioShell 透传 locale，经 TopBar 挂载点）；数据钩子/类名逐字节不动；
+  构建/预览状态、可见性三选项+hint、空态说明、发布/撤下忙态、preflight/aiReadiness 文案全部接 locale；
+  scan 的机检行三档、位置引述（zh 全角「」/ en 弯引号）接 locale。
+- preflight 的 blockers/warnings/why/quote 来自服务端（zh 裁定句），原样透传且不改序——服务端错误语面
+  英文化仍是 §46 独立立片；健康门禁（HealthPanel 组件）仍单中文，随后续片。
+- TopBar 挂载点 locale 透传：<PublishPanel locale={locale} />；STRIP_CLASS_SHA256 以**门内逐字逻辑**重算并重钉
+  （提取 test 文件里的 stripClassNames 原样转译后算得 264c122e…，与 vitest 报出的 actual 前 40 位一致后采用）。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净。
+
+## cont. 109 (2026-11-15) - v740: MemoryPanel 双语化（§48 记忆面板）
+
+- MemoryPanel.tsx zh/en 双字典；scopes 四类+hint、检索说明三段、搜索框/按钮、
+  记一条表单、需要主体提示、清空这一类、删除按钮 aria、空态（搜索态/常态两档）全部接 locale；
+  locale 自 StudioShell 透传。
+- 服务端那句边界说明（§49 词面检索不是语义检索）原样从 API 透传，面板自身那份说明接 locale；
+  searchNote 不改序（服务裁定面）。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；StudioShell §FE-41 第四次重钉（MemoryPanel 入 locale 行列）。
+
+## cont. 110 (2026-11-15) - v741: HistoryPanel 双语化（§27/§28/§108 事务历史/分支/快照）
+
+- HistoryPanel.tsx zh/en 双字典：KIND_LABEL（改/增/删/移/令牌 → M/A/D/MV/TOK）、
+  SOURCE_LABEL、分支行三态+切换警示、快照过滤/创建/比较/恢复/确认恢复、快照超量/一致性/批注、
+  差异统计、两档空态（当前分支/全部）、heading 与入口 chip 全部接 locale；locale 自 StudioShell 透传。
+- 审计链说明（该是用户项目历史而非 git 的开发历史）双语复述原意。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；§FE-41 重钉（第五跳）。
+
+## cont. 111 (2026-11-15) - v742: ExportPanel 双语化（§144 no-lock-in 出口）
+
+- ExportPanel.tsx zh/en 双字典：5 parts label/hint、唯一渲染期动态标签（busy/prefix）、
+  receipt 统计、missing 资产如实提示、禁失败伪造三档错误文案、README 限度两行、collapse 全部接 locale；
+  locale 自 TopBar 透传（<ExportPanel locale={locale} />）。
+- 服务端回执（HTTP message）与 README.txt 本体仍 zh（artifact 产物本身）；错误语面英文化属 §46。
+- §FE-63 门修复：去掉自引用 execSync('git show HEAD:ExportPanel.tsx') 削弱断言（cn 行早已随 FE-63 落库，
+  该自比较早已不成立，只是没有失败——未被证明前的每一刀都是债）；改为直接钉死逐字节 hash，
+  并注明 UTF-8 陷阱被 node 字节流自然避开。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；§FE-TB 再次重钉（ExportPanel 入 locale 行列）。
+
+## cont. 112 (2026-11-16) - v743: AssetsPanel 双语化（M2 资产库）
+
+- AssetsPanel.tsx zh/en 双字典：§38 文生图/草图生图（DEMO 合成器明写）、
+  §86 VisualBenchmark（参考图/生成图/结构比较 + 测不出维度如实渲染——绝不 0 分）、
+  资产卡片（refs/DEMO 角标/角色肖像与场景/提取视觉语言/生成变体/以此生成场景/删除）、空态、
+  bytes 格式与 refs title 全部接 locale；locale 自 StudioShell 透传。
+- VisualBenchmarkResult 的 m.*.meaning（服务端契约校验后透传原句）、assetNotice/assetError（store 层的裁定）仍 zh——投影层英文化是 §46；
+  生成 seed「变体 · 名称」/「场景 · 名称」刻意保留 zh：DEMO 合成器按中文影射概念，行为逐字节不变。
+- §FE-53 门修：删自引用 execSync HEAD 雕刻比较（与 §FE-63 同一类型的消亡断言——cn 行早已随 FE-53 落库），
+  改为直接钉逐字节 hash（0bc55a8e…）。vitest 报出的 ACTUAL/EXPECTED 读法曾把我看拧一遍，已以门内 redact 复算三清。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；StudioShell §FE-41 第六次重钉。
+
+## cont. 113 (2026-11-16) - v744: TeamPanel 双语化（§133 teamCollaboration）
+
+- TeamPanel.tsx zh/en 双字典：协作者上限档位说明、邀请邮箱/角色、成员行（改/移/角色名）、
+  邀请行（已接受/未兑现/已过期/已撤回）、名额占用两行（成员 N + 未兑现邀请 M、过期不占）、
+  一次性链接注意事项、403/撤回快路径 全部接 locale；locale 自 StudioShell 透传。补 'use client' 显式指令。
+- 门也补了边：'use client' 显式化是模块图的加强项（此前全隐式）。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；§FE-41 重钉（第七跳）。
+
+## cont. 114 (2026-11-16) - v745: HealthPanel 双语化（§178 发布门禁/项目健康读数）
+
+- HealthPanel.tsx zh/en 双字典（HealthPanel + HealthRail 共用一份 COPY）：
+  门禁通过/未通过、实时计算来源、重算中、未运行清单、项目健康、可发布/有阻塞、
+  计算中/正在算健康度、提取只读标记、仅参考/零错误芯片、发现计数/列出数、omission 说明全部接 locale。
+- **发布弹层(en)完全不再泄露中文台词**；Studio 左侧 HealthRail 同双语。
+- 引擎侧的 check.label/basis/finding.message/metric.label 仍是 creative-model 的中文裁定句——§46 独立立片
+  （analyzeHealth 定点本地化、creative-model 角色引擎、sim/story/rpg 拒绝句全部在那里）。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；StudioShell §FE-41 重钉（第八跳）+ PublishPanel §FE-PB 重钉。
+
+## cont. 115 (2026-11-16) - v746: AgentPanel 双语化（§112/§25 上架前检查作业）
+
+- AgentPanel.tsx zh/en 双字典：heading/realtime/demo 声明/goal/运行按钮/kindTerm（GAME_KIND_TERMS en）
+  接受进项目/各读数/空态/完成-失败-进行中/步数/实体/上游交接/被牵连 全部接 locale；
+  locale 自 StudioShell 透传。
+- AgentRun 报文本身就是服务端契约（"READINESS_STEPS" 步数）——比对载荷照常
+- notes 服务端报告（run.report.notes）仍 zh（§46 独立立片）。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；§FE-41 重钉。
+
+## cont. 116 (2026-11-16) - v747: CharacterPanel + CharacterChat 双语化（§46/§47 角色档案+对话）
+
+- CharacterPanel.tsx zh/en 双字典：建档/名字/身份/外观/穿着/画风/纪元/特征/性格/背景/目标/恐惧/
+  声音/视觉标识/色板/关系/保存-删除/issues/空态全部接 locale；locale 自 StudioShell 透传。
+- CharacterChat.tsx zh/en：跟角色说话的共用组件接 locale；Panel 传入，WorldWalk 3D HUD 未接（page 仍单 zh、与整页一致）。
+- @nexus/world-model 新增 WORLD_KIND_LABELS_EN（与中文版同序键）+ kind-labels-en.test.ts 2 测钉同序与互异；
+  CharacterPanel 的关系下拉/条目渲染从这一处读，世界页继续用各自单份（避免 SHA 连锁）。
+- §46 边界（照旧）：validateCharacter issue 裁定句、语料检索说明、store 层 assetNotice/Error 仍 zh——
+  全套靠 creative-model/world-model 定点本地化，是独立立片，不是本片。
+- fe-gates 116/116（1148/1148）；world-model 2/2；tsc web/wm 0；eslint 净；§FE-41 重钉。
+
+## cont. 117 (2026-11-16) - v748: DesignSystemPanel 双语化（§12/§13 token 真值面板）
+- DesignSystemPanel.tsx zh/en 双字典：token 分组（颜色/尺寸/字体/阴影/其他）、引用数/未使用、
+  内建保护/仍被引用两档禁删、实例放入/实例更新/删除、Visual DNA 来源三档+清除、
+  建 token 全流程（badKey/已存在/读不懂）、per-mode（dark）取值全部接 locale；
+  studio.execute 撤销标签本地化（v748 起撤销 Feed 跟随语言）。locale 自 StudioShell 透传。
+- 过程性事故：一次 sloppy 的 PS -e 重写把文件 corrupted，git-checkout HEAD 复位后重写并加固门（重钉）；
+  协议结算：PowerShell 直写跟踪文件 = UTF-16/BOM，切勿用；tracked 文件一律 write 工具或 node fs。
+- §FE-47 门去「studio.execute('删除 token ${token.key}' 字面量」改为 dict/call-site 双断言。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；StudioShell §FE-41 重钉（第 11 跳）。
+
+## cont. 118 (2026-11-16) - v749: CommandBar 双语化（§7 ⌘K AI 命令栏）
+- CommandBar.tsx zh/en 双字典：实时进度、审批卡+24h TTL 时钟、roster/职责/权限、Examples、
+  执行/取消/队列/approval TTL… 全部接 locale；locale 自 StudioShell 透传。REALTIME_TEXT_EN + ttlLabelEn 并入 lib（其它两个使用方不动）。
+- 事故自检：本片中间产生过残片式 stub（以为 ActivityFeed 不存在——HEAD 里它真实存在）→ 立刻恢复并双语化（executionPlan/taskCount）。
+- 撤销 Feed 已本地化(v748)，approval 剩余中文面在服务端（§46）。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；§FE-41 重钉（第十二跳）。
+
+## cont. 119 (2026-11-16) - v750: SketchPad 双语化（§38 Sketch → Image 原料面板）
+- SketchPad.tsx zh/en 双字典：撤销/清空/笔画数/画布 aria/DEMO 生成/limits 说明三段全部接 locale；
+  locale 自 AssetsPanel 透传。§38 eyes: limits 中「构图密度与明暗」加粗段完整双语。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；sketch gate 重钉。
+
+## cont. 120 (2026-11-16) - v751: AnnotationsPanel 双语化（§111 画布批注）
+- AnnotationsPanel.tsx zh/en 双字典：钉哪个节点/place/浮现按钮/空态两档/已解决三态/删除全部接 locale；
+  挂载点 CanvasStage 本次未接 locale（CanvasStage 仍单 zh，与整页 Studio 剩余单语组件一并最后收）；
+  locale prop 已预埋（默认 zh），CanvasStage 序列出 locale 即全通。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；annotations gate 重钉。
+
+## cont. 121 (2026-11-16) - v752: VariantsBoard 双语化（§29 多方案比较板）
+- VariantsBoard.tsx zh/en 双字典：候选卡 caption/当前/布局/视觉/切选/计数/确定性配方 note/合成工具条/
+  同源分支禁合成/空态全部接 locale；locale 自 StudioShell 透传。
+- 屏内只读分支生成注释保持“合成/生成”两个动作的语气一致（不互相偷换概念）。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；§FE-41 重钉（第十三跳）。
+
+## cont. 122 (2026-11-16) - v753: WorldGraphView 双语化（§45 世界缩图·画地形）
+- WorldGraphView.tsx 仅在文本行置换（18 处），画布拖拽/plateau/pointer 原样保留字节不动；
+  KIND_KIND_LABELS_EN kindLabel helper 复用 world-model 权威清单；九类/空关系/方位说明/地形 profile 全部接 locale；
+  locale 自 StudioShell 透传。（本轮早些时候曾整文件重写导致原拖拽失真，以 git-checkout HEAD 复位后改为**定向多次置换**。）
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；§FE-41 重钉（第十四跳）。
+
+## cont. 123 (2026-11-16) - v754: WorldPanel 双语化（§44 世界填写面板：纪元/记忆回声/地形/潮汐 全套）
+- WorldPanel.tsx zh/en 双字典：主名/概述/九类 group headings/条目编辑器/纪元/memory echo/
+  elevation/model（含 narration 全量）/地形 plateau 编辑（radius/height/profile）/潮汐压声明/
+  新增条目/删除计数（含 links）/保存全部接 locale；locale 自 StudioShell 透传。
+- TerrainSection/TideSection 两个子组件同片落地（在 WorldPanel 同文件内 double-prefix 受限）。
+- WORLD_KIND_LABELS_EN 直入 world-model 权威库（本轮初焊），不再各页重复。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；§FE-41 重钉（第十五跳）。
+
+## cont. 124 (2026-11-16) - 会话盘点：v733–v754 全量绿；剩余面盘点与后续计划
+- 双语化覆盖率（Studio 面板 zh-only 剩余）：CanvasStage、PropertiesPanel、AnnotationsPanel 挂载点的 CanvasStage 线路。
+  已清：Layers/Retrieve/RetrievePanel 的检索说明、Game/Code/Context/Publish/Memory/History/Export/Assets/Team/Health/DesignSystem/
+  CommandBar/Character/World/WorldGraph/Variants/SketchPad/Agent/Annotations/WorldGraphView。
+  WorldPanel 在本会话撞车也在内——与 WorldGraphView 同一纪律：先稳原始 CRLF，再定向置换，不全文重写。
+- 协议结算 v748 记下：tracked 文件一律 write 工具 / node fs；PowerShell 重定向写文件 = UTF-16 转换 = 假换行，
+  本会话 incident 8 次全部以 git-checkout HEAD 复解决，gates 全绿。
+- fe-gates 始终 116/116 · 1148/1148；world-model 新增 WORLD_KIND_LABELS_EN + 2 测钉同序（cont. 116）；§CACHE-4-AB 结论入 PERFORMANCE（cont. 102/103）。
+- 长期开发线次交汇点：AGENTS.md 的 open/show/next 纪律被本次覆盖途中持续满足（直连顺序 + showcase 按快照更新，未发现漂移）。
+- 下一项精选：PropertiesPanel（§6 右面板，1103 行，91 处中文字面量）— 分两段落地（子组件→主体→doors §14/§124 的功能列），
+  每段可独立回归；CanvasStage 与 CanvasStage 挂载点（AnnotationsPanel 挂载链）紧随其后。
+
+## cont. 125 (2026-11-16) - v755: StoryboardPanel 双语化（§40–§42 分镜面板）+ storyboard-labels EN 表
+
+- StoryboardPanel.tsx 全量 zh/en 双字典（111 键对称，kb-sb 对 keys 逐项核验无 dup/缺 key）：
+  heading/状态六态/空态三路/来源编辑器/名册与资产加载提示/切-改-撤-重做-重读-应用来源/镜头行
+  （定位 aria+title、机位/转场/时长/角色/参考图选择器、DEMO 参考图合成）/渲染段（额度门展示
+  c.quota、DEMO 渲染按钮+429 提示、渲染历史、逐镜画面出处 provenance 三态）/时间线段（说明
+  resizeHint+splitHint+timelineHint 三段拼接、轨道清单 emptyTrack/clipCount 含 emptyReason 透传、
+  说明段时间线 aria-valuesum、可播/不可播、role=separator 右边缘 aria-valuetext/aria-valuenow）
+  全部接 locale；c.announce* 系列（attachedFinished/locatedInList/locatedOnStrip/lengthChanged/
+  splitAtCursor/revertPreview/atLimit/previewSeconds/announceSourceChanged/emptyPrompt/badDuration）
+  全部替换原模板字面量。
+- storyboard-labels.ts 增 CAMERA_LABELS_EN / TRANSITION_LABELS_EN / ARROW_LABELS_EN 与
+  cameraLabel/transitionLabel/arrowLabel(key, locale) helper（与中文表同序键）；
+  arrowNeedText(arrow, locale = 'zh')；公开分镜页（/n/.../storyboard，ss-*）仍是单 zh 面，
+  §FE-56/76 不动；visual 测试对 CAMERA_LABELS 的断言仍对（zh 导出保留）。
+- **事故自查（本片第二类风险）**：pass1 脚本把字面量 `这个项目还没有角色…` 同时命中字典行与
+  JSX 行，字典值被写成 'c.noCharactersAssets'——发现后立即修正为原句；kb-sb 双向对称校验 +
+  typecheck + eslint 双保险锁住；教训落盘：批量 string→c.* 置换前先摘字典行出匹配集。
+- StudioShell 透传 locale（StoryboardPanel locale={locale}）。
+- Gate：§FE-46 SHA 三次重钉（i18n 后重写）；§FE-41 第十四次重钉（StudioShell 一行）；
+  fe-gates 116/116 · 1148/1148；tsc web 0；eslint 净；无新增颜色 token、无粗线程 SSR。
+- 已知边界（诚实登记，*非本片偷偷做*）：storyboard 渲染 notes/warnings（服务端裁定原句）仍 zh；
+  timeline/render 服务端文案（§46 独立切片）；CanvasStage/PropertiesPanel 与顶层 /admin/*、3D WorldWalk HUD 未双语化；
+  分镜公开页（/n/[handle]/[slug]/storyboard）ZH 单语保留。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 126 (2026-11-16) - v756: PropertiesPanel 双语化（§6 属性面板）+ responsive-editor/viewer-params/state-labels EN 表
+
+- PropertiesPanel.tsx 全量 zh/en 双字典（对称 121 键，kb-pp 对齐核验）：主面板（尺寸/布局/文字/填充/效果/
+  交互状态 §124/断点 §14/可见性）+ ResponsiveSection（断点标签·投影读数·徽标"改 N 处"·混合·outside·清档）+
+  StateEditor（状态标签按 locale·复制/粘贴补丁·背景/描边/阴影/透明度 aria）+ PageProperties（页面·DS 概览）
+  + FillList/TokenBindButton/AlignMenu/NodeNameField/PaddingGrid/SizeField/NumberField/SelectField/TextField/CheckField。
+- responsive-editor.ts 增 CHOICES_EN（按 spec.id 映射至 CURSOR/MODE/JUSTIFY/ITEMS/SCROLL/TEXTCASE/ALIGN/VERT_ALIGN/
+  DECORATION 英文表，BLEND_MODE 原值透传）、CHANNEL_LABEL_EN（27 键 Record<ResponsiveChannel>，编译期强制齐）、
+  TOGGLE_LABELS_EN、channelLabel/toggleLabelsFor/choicesFor 三件套（EN 按表取、zh 回落 spec 原值）；
+  responsiveChannelLabelFor 薄封装（撤销栈仍走中文版，§150 历史不改档）。
+- viewer-params.ts 增 BREAKPOINT_LABELS_EN / VIEWPORT_OPTIONS_EN / viewportOptions(locale) / breakpointLabel(id, locale)。
+- state-labels.ts 增 STATE_LABELS_EN + stateLabel(state, locale)（7 键同序）。
+- 事故自查（本片）：① 初版 clearChannelTitle 名称双义（StateEditor 字符串版 vs ResponsiveSection 函数版），
+  TS1117×2 + title 类型错误×1 → 重命名 clearTierChannelTitle 根治；② 字典迭代中 en 块与 zh 块同名键校验由 kb-pp 守住。
+- readout 中 breakpoint 裸 token（"mobile 档"）改读 breakpointLabel（zh 全中文、en 全英文）——修掉中英混排。
+- StudioShell 透传 locale（PropertiesPanel locale={locale}）。
+- Gates：§FE-45 重钉（c58f8b89…）；§FE-41 第十五次重钉；fe-gates 116/116 · 1148/1148；web tsc 0；eslint 净；
+  responsive-editor 41/41；studio-responsive 13/13。
+- 已知边界（诚实登记*）：spec 频道名的撤销栈（§150 中文历史）与 `responsiveChannelLabel(channel)`（zh）保留；
+  服务端裁定的 reason/findings/notes（§46 独立切片）不在本片；CanvasStage 与 /admin/*、3D WorldWalk HUD、分镜/作品公开页仍单 zh。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 127 (2026-11-16) - v757: CanvasStage 双语化（§8 画布外壳）——Studio 右面板与画布双语收官
+
+- CanvasStage.tsx 加 COPY dict（7 键对称）：载入画布、适应窗口（Shift+1）按钮 + title、
+  批注角标 title（annotationTitle：名 + 冒号 + 正文 + 已解决后缀，冒号按 locale 取全/半角）、
+  virtualized 裁剪提示（函数式：shown/total）、空页面引导（Layers 面板 +）。
+- AnnotationsPanel 挂载点补 locale={locale}（原 zh 单语挂载——这是 AnnotationsPanel 双语化（v751）
+  当时登记的挂载链缺口，本片闭合）。
+- StudioShell 透传 locale（CanvasStage locale={locale}）。
+- Gates：§FE-66 重钉（0708bc71…）；§FE-41 第十六次重钉；fe-gates 116/116 · 1148/1148；tsc web 0；eslint 净。
+- 已知边界（诚实登记*）：画布内节点文本（用户数据）不动；/admin/*、3D WorldWalk HUD、作品/分镜公开页、
+  服务端裁定中文（§46）、撤销栈中文（§150）仍单 zh，未宣称完成。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 128 (2026-11-16) - v758: /guide 手册扩四章 ⑦⑧⑨⑩（双语）——分镜·世界·市场团队·走错怎么走回来
+
+- apps/web/src/app/guide/page.tsx（RSC，getLocale 双语）新增四节，两种语言同构：
+  ⑦ 分镜怎么玩（§40-42：确定性断句定位、镜头行机位/转场、DEMO 参考图能力边界、时间线编辑四条路）
+  ⑧ 走进一个世界玩（/world/<id> 3D 视角与角色对话入口；chronicle 纪元·星图联动·记忆回声 ≤240 字；7 个世界子路由如实列举）
+  ⑨ 市场、邀请与团队（/marketplace 真实结算路径、/invites/<token> 席位规则、/api-tokens 程序化出口）
+  ⑩ 走错一步怎么走回来（⌘Z 统一撤销栈、两次确认、回收站、公开撤回、发布=明确批准）
+- 全部内容只写真实存在的页面/路由（chronicle/codex/constellation/digest/ephemeris/integrity/tide 逐一核过目录）；
+  不吹牛皮：DEMO 边界、额度真实记账、失败如实说——与 guide 既有 §159 口径一致。
+- §FE-Guide 门更新：节数 6→10（两语都要求 ①-⑩ 在场）；SHA 重钉（c5eb2069…）。
+- fe-gates 116/116 · 1148/1148；guide-visual 7/7；web tsc 0（guide 是 RSC，无 client 面）。
+- 已知边界：guide 之外的 /admin/* 双语化未做（operator-facing，31 文件约 1.9 万字，
+  v759+ 专项切片，按 server page → getLocale → 逐页字典分两批落地）；3D WorldWalk HUD 顶层单 zh。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 129 (2026-11-16) - v759: /world/[projectId] 3D 页 + WorldWalk HUD 双语化
+
+- world/[projectId]/page.tsx 改为 RSC `await getLocale()`（force-dynamic 保持）：noWorld/broken 两壳、
+  返回入口、noCharacters 兜底名字（kind-aware fallback），远端 `world.reason` 原文透传（服务端裁定 zh——§46 独立切片）。
+- WorldWalk.tsx 加 COPY dict（bilingual，kb-ww 对称校验 20 键）：
+  WebGL 三态探测文案/不可用兜底/标签标题（kindLabel 按 WORLD_KIND_LABELS_EN 换算 + 冒号半角）/
+  labelLimitNote/from/entries/relations/placementOrigin/
+  moveHint（停的那句也在内）/pointerHint/collisionNote/近处条目 focus + fallback 披露/
+  读：按钮/talk 收展/target aria/空角色披露/nearby 空态/CharacterChat locale 透传（v747 起 CharacterChat 已 locale prop ready）。
+- ScreenLabel 增 `kind: WorldKind` 字段；legend/条目 focus/标签三处 kindLabel 换算共用同一个 kindLabelOf() 助手。
+- /world 页与 WorldWalk 双 gate 重钉：§FE-100（7464a5d9…）、§FE-24 world 半场（a007330d…）。
+- Gates：fe-gates 116/116 · 1148/1148；web tsc 0；eslint 净（两个文件）。
+- 已知边界（诚实登记*）：HUD 里的 `scene.limits`（world-model 常量导航网格限制句）仍单 zh
+  （§46/registry 独立切片）；渲染说明文字（comments）仍 zh；page 的远端 reason 原文如上。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 130 (2026-11-17) - v760: /admin 总入口 + AdminNav 双语化；分支并轨审计归档
+
+- 【分支并轨审计】（对应"尽量把多个工作分支/worktree 合并起来"）：
+  git worktree list = 只有主仓一棵；git branch -a = 只有本地 main；
+  remote.origin 配置完整（nexus-content-platform）；`refs/remotes/other/master..master12` 为早先已移除的
+  `other` 远端留下的陈旧 ref——**12/12 均为 main 的祖先（already merged），origin/master 同理**；
+  并轨工作在 "consolidated 2026-11-09"（docs/AGENTS.md 两条线合并）时已完成，本次只核验并留档，
+  不删任何陈旧 ref（refs 删除属破坏性操作，等用户拍板；它们不占代码内容）。
+- AdminNav.tsx 双语（server RSC，async + getLocale()）：LINKS 16 入口改 {labelZh,labelEn} 同序同键；
+  aria-label 按 locale；名单、data-* 钩子、`as const` 形状不动（两个 visual gate 的 `const LINKS =`
+  正则逐字仍成立）。page 与 nav 由 record 字典驱动，中文模式仍是全中文（不夹杂）。
+- app/admin/page.tsx 双语（server RSC，getLocale()）：denied×2（anonymous/not-admin，displayName
+  与 role 透传）、kicker/title/lede、"11 入口" cardsAria、"十一张卡"、AREAS 11 张卡片
+  （slug 不动以保字节钩子，title/note 双语对）、页脚三问（审计/观测/访问账指引）全部接 locale；
+  data-* 钩子、className、currentUserOrNull()/force-dynamic 选股一字未动。
+- Gates：§FE-26 重钉（NAV 2c31d5b4… / PAGE 63e5f7ba…，门内 redact 复算）；
+  两处 `aria-label="管理台"` 字节钉改 `{c.aria}` 变量断言（行为不变，断言改跟读法）；
+  fe-gates 116/116 · 1148/1148；tsc web 0；eslint 净。
+- /admin 余下页面（users/moderation/marketplace/audit/realtime/rate-limit/access/observability/
+  gateway/discover-cache/ai-cache/savings/dead-letters/pricing/health/moderation + *-view.ts/*-Panel.tsx
+  共 24+ 文件、约 1.7 万字）登记为 v761+ 专项：按 server page → getLocale → 字典双轨、client Panel 走
+  locale prop 逐页推进，每页一书面决定（KEEP zh 则明确登记）。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 131 (2026-11-17) - v761: Redis completion-cache 压测回归（v733–v760 之后）
+
+- 高压测试复跑（用户常设要求）：scripts/load-redis-completion-cache.py，4 档 × 6000 ops（合计 24,000 ops）：
+  **errors=0，hit_ratio≈0.80，namespace_residue=0，entries_deleted=4755**；DB0/生产命名空间未动。
+- 诚实读数：吞吐 1170/640/749/874 ops/s **低于** v734（2560–3760 ops/s），本机 free≈2.2 GB；
+  只登记"零错误与清理不变量保持"，绝不写成 SLA（§159）。证据：docs/evidence/load-redis-completion-cache-2026-11-17.{md,json}；
+  PERFORMANCE.md 尾部新增 "## 2026-11-17 v760+ 回归"。
+- 分支并轨审计（v760 已留档，cont. 130）：origin/master 与 refs/remotes/other/* 全为 main 祖先——
+  并轨完成，本次无新增（不动陈旧 refs，删除需用户拍板）。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 132 (2026-11-17) - v762: /admin dead-letters + audit 双语化
+
+- app/admin/dead-letters/page.tsx 双语（server RSC，getLocale()）：
+  denied×2、BrandTitle、capNote、快照读数 + NDJSON 导出按钮 + 刷新、
+  空态诚实文案（"这不是没失败过"）、footer 游标分页说明（footNote(n)，含尾部相对下标平移提示）、
+  下一页/到底了、unavailable 分支的指引、invalid-cursor/snapshot-stale/error 三分支全部接 locale；
+  readDeadLettersPage()/NDJSON 导出 / cursor 协议一字未动；result.note（服务端裁定 zh）原文透传（§46）。
+- app/admin/audit/page.tsx 双语（server RSC，getLocale()）：
+  denied×2、summary（最近 N 条 · 其中被拒绝 D 条）、table aria-label（变量 {c.tableAria}）、
+  colTime/Actor/Action/Target/Result/Detail 六列表头、anonymousActor、放行/拒绝→Allowed/Denied、
+  空态、toLocaleString(locale) 日期格式化。
+- DELETED_USER_LABEL（服务端常量"已注销的用户"）原文透传（§46 边界，登记）。
+- Gates：§FE-DL 重钉（ccd8dbb1…）；§FE-31 重钉（665fb228…）；
+  两处 aria-label 字面量钉 → 变量断言（断言跟读法、行为不变）；fe-gates 116/116 · 1148/1148；tsc 0；eslint 净。
+- /admin 已完成：总入口、AdminNav、dead-letters、audit（4/24 页）。剩余 20 页见 v763+ 专项。
+- showcase 快照同步于提交后（npm run sync:showcase）。

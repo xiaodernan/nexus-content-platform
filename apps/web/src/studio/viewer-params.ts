@@ -30,6 +30,18 @@ export const BREAKPOINT_LABELS: Record<BreakpointName, string> = {
   wide: '宽屏',
 };
 
+/** v756: 英文口径（同序键）；面板/预览按 locale 取表 */
+export const BREAKPOINT_LABELS_EN: Record<BreakpointName, string> = {
+  mobile: 'Mobile',
+  tablet: 'Tablet',
+  desktop: 'Desktop',
+  wide: 'Wide',
+};
+
+export function breakpointLabel(id: BreakpointName, locale: 'zh' | 'en'): string {
+  return (locale === 'en' ? BREAKPOINT_LABELS_EN : BREAKPOINT_LABELS)[id];
+}
+
 export interface ViewerViewportOption {
   id: BreakpointName;
   label: string;
@@ -42,6 +54,17 @@ export const VIEWPORT_OPTIONS: readonly ViewerViewportOption[] = BREAKPOINT_NAME
   width: BREAKPOINT_WIDTH[id],
   label: `${BREAKPOINT_LABELS[id]} ${BREAKPOINT_WIDTH[id]}`,
 }));
+
+/** v756: 英文口径的断点选项表；与 VIEWPORT_OPTIONS 同序同宽 */
+export const VIEWPORT_OPTIONS_EN: readonly ViewerViewportOption[] = BREAKPOINT_NAMES.map((id) => ({
+  id,
+  width: BREAKPOINT_WIDTH[id],
+  label: `${BREAKPOINT_LABELS_EN[id]} ${BREAKPOINT_WIDTH[id]}`,
+}));
+
+export function viewportOptions(locale: 'zh' | 'en'): readonly ViewerViewportOption[] {
+  return locale === 'en' ? VIEWPORT_OPTIONS_EN : VIEWPORT_OPTIONS;
+}
 
 /** 只有这四个名字算断点；别的值（手改的、过期的链接）退回"按设计尺寸"，不 404 */
 export function breakpointFromParam(raw: string | undefined): BreakpointName | undefined {

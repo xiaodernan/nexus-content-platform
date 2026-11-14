@@ -1,6 +1,5 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { execSync } from 'node:child_process';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -66,10 +65,6 @@ function redactClasses(source: string): string {
     .replace(/className=\{[^}]*\}/g, 'className={@}')
     .replace(/className=("@"|\{@\})/g, 'className=@');
 }
-
-const HEAD_CN_LINE = "import { cn } from '@/lib/cn';\n";
-const head = execSync('git show HEAD:apps/web/src/studio/CharacterChat.tsx').toString('utf8').replace(/\r\n/g, '\n');
-const carved = head.replace(HEAD_CN_LINE, '');
 
 function chClassesDefined(css: string): Set<string> {
   const out = new Set<string>();
@@ -176,14 +171,9 @@ describe('§FE-37 /studio CharacterChat 角色对话框', () => {
     expect(segment).not.toContain('@keyframes');
   });
 
-  it('雕刻门：cn 一行删除后 redact 恒等于雕刻后的 BASE 值（ef0f3980…）', () => {
-    // 全片唯一代码字节变更 = 删除已死的 cn import；carve 后与钉死常量一致。
-    // 前置条件已过去（§FE-53/私有片已落库）——只保留 redact 字节守恒
+  it('剥 className 后 SHA256 守恒（2026-11-16 v747「CharacterChat 双语化」重钉）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'ef0f39809c9d2d9c4a9b7b6de08e1d3ebea14305a3ba9d4be967bb3e3e26e82d',
-    );
-    expect(createHash('sha256').update(redactClasses(carved)).digest('hex')).toBe(
-      'ef0f39809c9d2d9c4a9b7b6de08e1d3ebea14305a3ba9d4be967bb3e3e26e82d',
+      '4d7617d73d1533e5e75f3c899eeb73e6f136ff467dd6c04b08e9ae5a40578cef',
     );
   });
 });

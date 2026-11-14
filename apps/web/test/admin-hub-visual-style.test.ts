@@ -106,7 +106,7 @@ describe('§FE-26 /admin 入口总览 + AdminNav', () => {
 
   it('AdminNav：LINKS 16 入口 · aria-current="page" · data-admin-link 全集恒等于 LINKS 键集', () => {
     expect(navCode).toContain('aria-current="page"');
-    expect(navCode).toContain('aria-label="管理台"');
+    expect(navCode).toContain('aria-label={c.aria}');
     expect(navCode).toContain('data-admin-nav');
     const keys = [...navCode.matchAll(/\{ key: '([a-z-]+)', href: '\/admin/g)].map((m) => m[1]!);
     expect(keys).toHaveLength(16);
@@ -203,13 +203,13 @@ describe('§FE-26 /admin 入口总览 + AdminNav', () => {
     expect(navCode).toContain('const LINKS =');
     // 2026-11-14：名单涨到 16 格（接手并行线的 savings），哈希随之更新。上一版是 a34c7e5c…。
     expect(createHash('sha256').update(redactClasses(nav)).digest('hex')).toBe(
-      '713ffdc90dae2cdc7f4da112c14d899b01f9b2a6f6d060321a16db11bad0e8ab',
+      '2c31d5b4ecf94440d3af7e566d17a04136d907fda56c22df1329ffa4fe6cf660',
     );
   });
 
   it('page.tsx redact 与有意录在目录册里的常量一致（§FE-40 追加 health 卡后重钉）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '91884ec4c287a5f04d85ee0f6d304980b33f41939bcc5607a177723a55933277',
+      '63e5f7bab1bf1c4263801cfbf7a9952d6f879351f12d523e71d8224ba87eedc5',
     );
   });
 

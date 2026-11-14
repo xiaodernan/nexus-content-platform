@@ -57,6 +57,21 @@ export const GAME_ENTITY_LABELS: Record<GameEntityKind, string> = {
   particle: "粒子",
 };
 
+/** 11 类的英文名（v735）：与 `GAME_ENTITY_LABELS` 一一对应，改一处必须改另一处 */
+export const GAME_ENTITY_LABELS_EN: Record<GameEntityKind, string> = {
+  player: "Player",
+  enemy: "Enemy",
+  weapon: "Weapon",
+  item: "Item",
+  quest: "Quest",
+  dialogue: "Dialogue",
+  trigger: "Trigger",
+  npc: "NPC",
+  camera: "Camera",
+  animation: "Animation",
+  particle: "Particle",
+};
+
 /**
  * 建议的数值键名，**仅供界面做占位提示**，不参与校验。
  * 这些是这类实体在多数游戏里都会有的旋钮，列出来是为了让用户知道"这里可以放什么"，
@@ -229,6 +244,28 @@ export const GAME_KIND_STATUS: Record<GameKind, GameKindStatus> = {
     pipeline: "story",
     note: "已接入：与互动故事同一条对话管线，只有正文与选择，没有立绘/背景/音乐。",
   },
+};
+
+/**
+ * 同一张状态表的英文版（v735）：en 界面逐句复述同样的"接没接、限度是什么"。
+ * 与 `GAME_KIND_STATUS.*.note` 逐句对应，改一处必须改另一处（codegen 测试钉住键集一致）。
+ */
+export const GAME_KIND_STATUS_EN: Record<GameKind, string> = {
+  "2d": "Wired: top-down 2D arena — positions and stats are projected by compileGame.",
+  "2.5d":
+    "Wired: 2.5D is an isometric rendering of the same arena plan — rules run the same 2D step, with no depth collision and no 3D models.",
+  "3d":
+    "Wired: 3D is a solid-space rendering of the same plan (three.js) — rules still resolve on a flat plane, with no depth collision or height; geometry is category markers (sphere=player, box=enemy, octahedron=item, cone=NPC), not 3D art models, with no name labels either.",
+  "interactive-story":
+    "Wired: the minimal dialogue pipeline — body text is the dialogue entity's notes; choices come from its references to other dialogues.",
+  "rpg-prototype":
+    "Wired: combat runs the same step as 2D, with an RPG growth loop on top — defeating enemies and completing quests grant XP; levelling kicks in once enough is earned (curve and bonuses come from the projection; the HUD can say so); no inventory, skill tree or turn-based.",
+  exploration:
+    "Wired: exploration is another rendering of the same plan — you see things only when close (and they stay visible once seen); rules run the same 2D step, discovery counts live in the HUD, and win/loss is still decided by quest conditions.",
+  puzzle:
+    "Wired: puzzle is the same plan with a mechanism rendering — triggers are machines, their targets come from authored references, and quests that reference triggers judge by activation; rules run the same 2D step, with no ordered-puzzle fields.",
+  "visual-novel":
+    "Wired: the same dialogue pipeline as interactive story — body text and choices only; no sprites, backgrounds or music.",
 };
 
 export interface GameDocument {

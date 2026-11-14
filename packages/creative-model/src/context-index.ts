@@ -172,6 +172,14 @@ export const DESIGN_INDEX_OMISSIONS: string[] = [
   "资产的实际像素内容（只有名字、类型与被引用次数）",
 ];
 
+/** 同一份省略清单的英文版（v736）：与 `DESIGN_INDEX_OMISSIONS` 逐句对应。 */
+export const DESIGN_INDEX_OMISSIONS_EN: string[] = [
+  "Full per-node style values (this carries a structure digest only; per-node styles still come from the document)",
+  "Code-side files and symbols (§69 the Code Index is a separate catalog; the two ship side by side and never expand into each other)",
+  "Semantic search and relevance ranking (needs an embedding provider; §49 has fulltext + substring only)",
+  "Actual asset pixels (names, types and reference counts only)",
+];
+
 function tokenValue(token: Token): IndexTokenEntry["value"] {
   const v = token.value;
   if (v === null || typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
@@ -244,7 +252,7 @@ function recordUse(
 }
 
 /** 由设计文档产出 §70 索引。纯函数：不改文档、不读库、不碰时钟。 */
-export function buildDesignIndex(document: DesignDocument): DesignIndex {
+export function buildDesignIndex(document: DesignDocument, locale: "zh" | "en" = "zh"): DesignIndex {
   const pages: IndexPageEntry[] = [];
   const frames: IndexFrameEntry[] = [];
   const interactions: IndexInteractionEntry[] = [];
@@ -474,7 +482,7 @@ export function buildDesignIndex(document: DesignDocument): DesignIndex {
       edges: edges.length,
       textChars,
     },
-    omissions: DESIGN_INDEX_OMISSIONS,
+    omissions: locale === "en" ? [...DESIGN_INDEX_OMISSIONS_EN] : [...DESIGN_INDEX_OMISSIONS],
   };
 }
 
@@ -505,6 +513,7 @@ export interface IndexDropped {
 export function fitIndexToBudget(
   index: DesignIndex,
   maxChars: number = DEFAULT_INDEX_CHAR_BUDGET,
+  locale: "zh" | "en" = "zh",
 ): DesignIndex {
   if (maxChars <= 0 || designIndexChars(index) <= maxChars) return index;
 
@@ -526,12 +535,13 @@ export function fitIndexToBudget(
     textPreviews: 0,
   };
   const trimmed: string[] = [];
+  const pick = (zh: string, en: string): string => (locale === "en" ? en : zh);
 
   // 1) 文字预览最先牺牲：它帮人认结构，帮不了机器
   if (next.frames.some((f) => f.textPreview)) {
     dropped.textPreviews = next.frames.filter((f) => f.textPreview).length;
     next.frames = next.frames.map((f) => ({ ...f, textPreview: "" }));
-    trimmed.push(`去掉了 ${dropped.textPreviews} 个结构节点的文字预览`);
+    trimmed.push(pick(`去掉了 ${dropped.textPreviews} 个结构节点的文字预览`, `Dropped text previews from ${dropped.textPreviews} structural nodes`));
   }
   // 2) 边是目录里最贵、又最可推导的一份：按 kind 从多到少逐级丢
   const EDGE_ORDER: IndexEdgeKind[] = ["token", "asset", "instance", "interaction"];
@@ -542,7 +552,7 @@ export function fitIndexToBudget(
     dropped.edges += before - next.edges.length;
   }
   if (dropped.edges > 0) {
-    trimmed.push(`去掉了 ${dropped.edges} 条交叉引用边（完整关系要从文档读）`);
+    trimmed.push(pick(`去掉了 ${dropped.edges} 条交叉引用边（完整关系要从文档读）`, `Dropped ${dropped.edges} cross-reference edges (full relations come from the document)`));
   }
   // 3) 只留浅层结构：深层节点仍在 totals 里，只是不再逐个列名
   if (designIndexChars(next) > maxChars) {
@@ -555,7 +565,7 @@ export function fitIndexToBudget(
     dropped.frames = next.frames.length - kept.length;
     if (dropped.frames > 0) {
       next.frames = kept;
-      trimmed.push(`结构目录只列到第 ${depth} 层，省掉 ${dropped.frames} 个更深的框`);
+      trimmed.push(pick(`结构目录只列到第 ${depth} 层，省掉 ${dropped.frames} 个更深的框`, `Structure catalog only lists down to depth ${depth}; dropped ${dropped.frames} deeper frames`));
     }
   }
   // 4) 交互按页保留前若干条：交互少，通常走不到这一步
@@ -564,14 +574,17 @@ export function fitIndexToBudget(
     dropped.interactions = next.interactions.length - kept.length;
     if (dropped.interactions > 0) {
       next.interactions = kept;
-      trimmed.push(`交互只列前 ${kept.length} 条，另有 ${dropped.interactions} 条未展开`);
+      trimmed.push(pick(`交互只列前 ${kept.length} 条，另有 ${dropped.interactions} 条未展开`, `Kept only the first ${kept.length} interactions; ${dropped.interactions} were left unexpanded`));
     }
   }
 
   next.dropped = dropped;
   next.trimmed = trimmed;
   if (designIndexChars(next) > maxChars) {
-    trimmed.push(`即便只剩骨架仍是 ${designIndexChars(next)} 字符：预算 ${maxChars} 比这份项目的最小目录还小`);
+    trimmed.push(pick(
+      `即便只剩骨架仍是 ${designIndexChars(next)} 字符：预算 ${maxChars} 比这份项目的最小目录还小`,
+      `Even the skeleton is ${designIndexChars(next)} chars: the ${maxChars}-char budget is smaller than this project's minimal catalog`,
+    ));
   }
   return next;
 }

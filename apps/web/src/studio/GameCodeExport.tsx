@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { artifactChainSentence, type ArtifactChain } from '@nexus/game-model';
 import { saveBlob } from '@/lib/download';
+import type { Locale } from '@/lib/i18n';
 import { useGame } from './gameStore';
 
 /**
@@ -11,7 +12,7 @@ import { useGame } from './gameStore';
  * 五件事刻意这么做：
  * 1. **只读**：这个按钮只调 `GET /api/projects/<id>/game/code`，不写库——产物是设计的投影（§16），
  *    设计改一个数重新生成就是新的字节，所以没有"保存产物"这一步，也没有"覆盖你上一份"的问题。
- * 2. **限度随产物一起念出来**（CODEGEN_LIMITS 原样显示）：产物是引擎的**转写**、不是"平台正在跑的那一套"；
+ * 2. **限度随产物一起念出来**（CODEGEN_LIMITS / CODEGEN_LIMITS_EN 按 NEXUS_LOCALE 选择）：产物是引擎的**转写**、不是"平台正在跑的那一套"；
  *    §81 这一格不 eval、不起子进程、不联网。只报"成功"而不报这三句，界面就在替产品撒谎。
  * 3. **下载走 Blob**：产物文件由浏览器自己落盘。两种拿法都在：一个个下，或者「打包成一个 zip」
  *    走 `.../game/code/zip`——那一路读的是**同一道闸口**（同一个 404/500 判定、同一份库里设计），
@@ -25,7 +26,55 @@ import { useGame } from './gameStore';
  *    就会和分派点说两套话。对得上时它是 `null`，界面上就一个字都不印：恒真的警告和恒无的警告一样没人信；
  *    但"跑的是哪条链"这一句恒在（`artifactChain`），因为它是读数不是警告——而这一句的写法也不在面板里拼，
  *    用的是产物页面同一个 `artifactChainSentence()`：一个句子两个写法，迟早有一处先过时。
+ *
+ * 双语（v735）：locale 由 GamePanel 透传；notes/kindNote/limits 由 `/game/code` 按 NEXUS_LOCALE 产出；
+ * 下载的 zip **本体是中文交付物**，与界面语言无关。
  */
+
+const COPY = {
+  zh: {
+    heading: '可玩产物（§52 Code）',
+    note:
+      '把库里这份设计投影成一份自包含的 HTML 页面：设计文档是唯一真值，产物只是它的一个投影。' +
+      '改完设计重新生成一次就是新的字节，所以这里不保存、也不覆盖任何东西。',
+    generate: '生成可玩产物',
+    generateBusy: '生成中…',
+    zip: '打包成一个 zip 下载',
+    zipBusy: '打包中…',
+    behindSaving: '库里那份正在写',
+    behindDirty: '屏上还有改动没写进库',
+    behindSuffix: '：产物读的是库里那一份，现在点会拿到旧的设计。等它写完，或点上面的「保存到库」。',
+    genFail: (status: number) => `生成失败（HTTP ${status}）`,
+    zipFail: (status: number) => `打包失败（HTTP ${status}）`,
+    downloaded: (name: string) => `已下载 ${name}`,
+    packaged: (name: string, files: number, zipBytes: number, artifactBytes: number) =>
+      `已下载 ${name} · 包里 ${files} 个文件 · zip ${zipBytes} 字节（产物 ${artifactBytes} 字节，store 不压缩）`,
+    byteCount: (files: number, bytes: number) => `${files} 个文件 · 共 ${bytes} 字节`,
+    perFile: '上面这些按钮一个个存；整份拿走用「打包成一个 zip 下载」，那一路读的仍是库里这份设计。',
+    chainSentence: (chain: ArtifactChain) => artifactChainSentence(chain, 'zh'),
+  },
+  en: {
+    heading: 'Playable artifacts (§52 Code)',
+    note:
+      'Project the stored design into a self-contained HTML page: the design document is the only source of truth, and the artifact is just one of its projections. ' +
+      'Edit the design, regenerate, and the bytes change — so nothing is saved and nothing is overwritten here.',
+    generate: 'Generate playable artifact',
+    generateBusy: 'Generating…',
+    zip: 'Download as one zip',
+    zipBusy: 'Packaging…',
+    behindSaving: 'The library copy is being written',
+    behindDirty: 'You have edits on screen that are not in the library',
+    behindSuffix: ' — the artifact reads the library copy; clicking now would get the old design. Wait for it, or click “Save to library” above.',
+    genFail: (status: number) => `Generation failed (HTTP ${status})`,
+    zipFail: (status: number) => `Packaging failed (HTTP ${status})`,
+    downloaded: (name: string) => `Downloaded ${name}`,
+    packaged: (name: string, files: number, zipBytes: number, artifactBytes: number) =>
+      `Downloaded ${name} · ${files} files in the package · zip ${zipBytes} bytes (artifacts ${artifactBytes} bytes, stored uncompressed)`,
+    byteCount: (files: number, bytes: number) => `${files} files · ${bytes} bytes total`,
+    perFile: 'The buttons above save files one by one; for the whole thing use “Download as one zip” — that path reads the same stored design. Zip contents themselves are the Chinese artifact deliverable.',
+    chainSentence: (chain: ArtifactChain) => artifactChainSentence(chain, 'en'),
+  },
+} as const;
 
 interface GeneratedFile {
   path: string;
@@ -70,7 +119,8 @@ function nameFromDisposition(header: string | null): string | null {
   return /filename="([^"]*)"/i.exec(header ?? '')?.[1] ?? null;
 }
 
-export function GameCodeExport({ projectId }: { projectId: string }) {
+export function GameCodeExport({ projectId, locale = 'zh' }: { projectId: string; locale?: Locale }) {
+  const c = COPY[locale];
   const [busy, setBusy] = useState(false);
   const [zipping, setZipping] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,7 +138,7 @@ export function GameCodeExport({ projectId }: { projectId: string }) {
       const text = await res.text();
       if (!res.ok) {
         const body = JSON.parse(text) as { message?: string };
-        setError(body.message ?? `生成失败（HTTP ${res.status}）`);
+        setError(body.message ?? c.genFail(res.status));
         setOutput(null);
         return;
       }
@@ -109,7 +159,7 @@ export function GameCodeExport({ projectId }: { projectId: string }) {
       const res = await fetch(`/api/projects/${projectId}/game/code/zip`);
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as { message?: string } | null;
-        setError(body?.message ?? `打包失败（HTTP ${res.status}）`);
+        setError(body?.message ?? c.zipFail(res.status));
         return;
       }
       const blob = await res.blob();
@@ -119,9 +169,9 @@ export function GameCodeExport({ projectId }: { projectId: string }) {
       const receipt = res.headers.get('x-nexus-code-receipt');
       if (receipt) {
         const parsed = JSON.parse(receipt) as { files: number; zipBytes: number; artifactBytes: number };
-        setPackaged(`已下载 ${name} · 包里 ${parsed.files} 个文件 · zip ${parsed.zipBytes} 字节（产物 ${parsed.artifactBytes} 字节，store 不压缩）`);
+        setPackaged(c.packaged(name, parsed.files, parsed.zipBytes, parsed.artifactBytes));
       } else {
-        setPackaged(`已下载 ${name}`);
+        setPackaged(c.downloaded(name));
       }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
@@ -132,10 +182,9 @@ export function GameCodeExport({ projectId }: { projectId: string }) {
 
   return (
     <section className="wd-mt4" data-game-code>
-      <h3 className="wd-label11">可玩产物（§52 Code）</h3>
+      <h3 className="wd-label11">{c.heading}</h3>
       <p className="wd-body11Mt1" data-game-code-note>
-        把库里这份设计投影成一份自包含的 HTML 页面：设计文档是唯一真值，产物只是它的一个投影。
-        改完设计重新生成一次就是新的字节，所以这里不保存、也不覆盖任何东西。
+        {c.note}
       </p>
       <div className="ap-wrapCenter">
         <button
@@ -145,7 +194,7 @@ export function GameCodeExport({ projectId }: { projectId: string }) {
           data-game-code-run
           className="rp-ghostBtnFaint"
         >
-          {busy ? '生成中…' : '生成可玩产物'}
+          {busy ? c.generateBusy : c.generate}
         </button>
         <button
           type="button"
@@ -154,7 +203,7 @@ export function GameCodeExport({ projectId }: { projectId: string }) {
           data-game-code-zip
           className="rp-ghostBtnFaint"
         >
-          {zipping ? '打包中…' : '打包成一个 zip 下载'}
+          {zipping ? c.zipBusy : c.zip}
         </button>
       </div>
 
@@ -166,8 +215,8 @@ export function GameCodeExport({ projectId }: { projectId: string }) {
 
       {behindLibrary ? (
         <p className="wd-body11Mt2" data-game-code-behind>
-          {saveState === 'saving' ? '库里那份正在写' : '屏上还有改动没写进库'}
-          ：产物读的是库里那一份，现在点会拿到旧的设计。等它写完，或点上面的「保存到库」。
+          {saveState === 'saving' ? c.behindSaving : c.behindDirty}
+          {c.behindSuffix}
         </p>
       ) : null}
 
@@ -180,12 +229,12 @@ export function GameCodeExport({ projectId }: { projectId: string }) {
       {output ? (
         <div className="wd-mt2" data-game-code-output>
           <p className="sb-ink11" data-game-code-bytes={output.bytes}>
-            {output.files.length} 个文件 · 共 {output.bytes} 字节
+            {c.byteCount(output.files.length, output.bytes)}
           </p>
 
           {/* 恒在的那一句是读数不是警告：产物带的引擎是哪条链，由服务端那一格派生、这里只念 */}
           <p className="wd-body11Mt1" data-game-code-chain={output.artifactChain}>
-            {artifactChainSentence(output.artifactChain)}
+            {c.chainSentence(output.artifactChain)}
           </p>
 
           {output.kindNote ? (
@@ -225,7 +274,7 @@ export function GameCodeExport({ projectId }: { projectId: string }) {
             </ul>
           ) : null}
           <p className="wd-body11Mt2" data-game-code-perfile>
-            上面这些按钮一个个存；整份拿走用「打包成一个 zip 下载」，那一路读的仍是库里这份设计。
+            {c.perFile}
           </p>
         </div>
       ) : null}

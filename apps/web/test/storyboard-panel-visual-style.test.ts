@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
  * data 钩子 / drag-reorder / shot 双击分镜 / 渲染请求路径 / `sb.shots.map` 派生——一字不动。
  *
  * **零行为恒等门**（redact = EOL//s 归一 + className 任意形态归一 @ + cn()整体归一 + `className=@` 归一）：
- * `3919d8045dd014960534b03986e6b0200b056ef1765303fb4fb27289aa820082` 与 HEAD 字节一致。
+ * `f84c552da80e2e4f38f9fd5d0167b56c6a85fc9b846d07fef1d88f9bbf6f7a56` 与 HEAD 一致（v755 i18n 重钉）。
  *
  * 判据不变式（12 门）：
  *  1. 'use client' 保留 + storyboardStore 依赖路径进门；2. 字面 className 全 `.sb-*`（含 cn 三元分支）；
@@ -162,9 +162,9 @@ describe('§FE-46 /studio StoryboardPanel 分镜面板', () => {
     expect(segment).toContain('.sb-resizeHandle:focus-visible {');
   });
 
-  it('剥 className/cn 后全文 SHA256 守恒（零行为：3919d8045dd014960534b03986e6b0200b056ef1765303fb4fb27289aa820082）', () => {
+  it('剥 className/cn 后全文 SHA256 守恒（零行为：f84c552da80e2e4f38f9fd5d0167b56c6a85fc9b846d07fef1d88f9bbf6f7a56）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '3919d8045dd014960534b03986e6b0200b056ef1765303fb4fb27289aa820082',
+      'f84c552da80e2e4f38f9fd5d0167b56c6a85fc9b846d07fef1d88f9bbf6f7a56',
     );
   });
 });

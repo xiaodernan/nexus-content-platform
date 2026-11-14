@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { execSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -11,7 +10,7 @@ import { describe, expect, it } from 'vitest';
  * 本片只换皮：完全复用既有 `.pb-*`（FE-54 既成族）+ 新增 `.pb-runBtn` / `.pb-popPanel360`（360px 面板形态）。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @ + cn()整体归一）：
- * `8cf979c52c94923126781ccdcbb96c0691c6dfbd7f2b67176d836466a80dac87`（含雕刻 cn 一行、对齐 HEAD 净字节——唯一代码变更 = 删唯一使用点消失后已死的 `import { cn }` 一行）。
+ * v742「ExportPanel 双语化」重钉（hash 见下方 `it(` 块）；不再截取 HEAD 自比较模式（cn 行早已随 FE-63 落库，该断言退不成立）。
  *
  * 判据不变式（10 门）：
  *  1. 'use client' 保留 + POST/Export contract 进门；2. 字面 className 全 `.pb-*`/复用族（含 cn 单条分支）；
@@ -137,13 +136,9 @@ describe('§FE-63 /studio ExportPanel 导出面板', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className/cn 后全文 SHA256 守恒：HEAD 雕刻 cn 一行（唯一使用点消失后已死）后与改后 redact 字节一致', () => {
-    const head = execSync('git show HEAD:apps/web/src/studio/ExportPanel.tsx').toString('utf8');
-    // 削弱条件：HEAD 之后这个 cn 行已随 §FE-63 提交落库——不再是可断言的前置条件
-    const carved = head.replace(/import \{ cn \} from '@\/lib\/cn';\n/, '');
-    expect(redactClasses(carved)).toBe(redactClasses(main));
+  it('剥 className/cn 后全文 SHA256 守恒（2026-11-15 v742「ExportPanel 双语化」落地时按惯例重钉）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '8cf979c52c94923126781ccdcbb96c0691c6dfbd7f2b67176d836466a80dac87',
+      '3d1bfe4b0e8353628bac0bb9757caca3e4614f567b3991aa381340847629282b',
     );
   });
 });

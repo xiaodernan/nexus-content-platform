@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
  * 本片只换皮：只换了 className，写在脸上的文案/aria/data 钩子全部不动。
  *
  * **零行为恒等门**（redact = EOL//s 归一 + className 任意形态归一 @ + cn()整体归一 + `className=@` 归一）：
- * `d3a649c245bc0ca89cbd30ca52e3c1983ce6568221fefe492739419bd69df54d` 与 HEAD 字节一致。
+ * `fc217c8740944416458474be29273765a89fe558d7cfbd866864a7a3292f9a0d` 与 HEAD 字节一致。
  *
  * 判据不变式（12 门）：
  *  1. 'use client' 保留 + analyzeHealth/studio 依赖链未动；2. 字面 className 只认 `.hp-*`（含 cn ternary 分支）；
@@ -176,9 +176,9 @@ describe('§FE-44 /studio HealthPanel 项目健康面板', () => {
     expect(segment).toContain('.hp-rowFail {');
   });
 
-  it('剥 className/cn 后全文 SHA256 守恒（零行为：d3a649c245bc0ca89cbd30ca52e3c1983ce6568221fefe492739419bd69df54d）', () => {
+  it('剥 className/cn 后全文 SHA256 守恒（2026-11-16 v745「HealthPanel 双语化」重钉：fc217c8740944416458474be29273765a89fe558d7cfbd866864a7a3292f9a0d）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'd3a649c245bc0ca89cbd30ca52e3c1983ce6568221fefe492739419bd69df54d',
+      'fc217c8740944416458474be29273765a89fe558d7cfbd866864a7a3292f9a0d',
     );
   });
 });
