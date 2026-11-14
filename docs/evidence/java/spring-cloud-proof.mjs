@@ -656,7 +656,14 @@ const ready = spawnSync('docker', ['exec', SOURCE, 'psql', '-U', DB_USER, '-d', 
     `-Dspring.datasource.username=${DB_USER}`,
     `-Dspring.datasource.password=${DB_PASSWORD}`,
     '-DNEXUS_EUREKA_ENABLED=true',
-    `-DNEXUS_EUREKA_URL=${registryBase}/eureka/`,
+    // The domain service reads its own flag names (NEXUS_DOMAIN_*) and the registry address from
+    // NEXUS_REGISTRY_ZONE — the shared client switch is necessary but not sufficient. Keyed after
+    // the SC-19/20/23 base→line split, this proof stayed on the pre-split shape (only the shared
+    // client flag); the service then booted with the Eureka client up but register=false and
+    // fetch=false, and the §5 registry-wait timed out at 60s while the service itself was healthy.
+    '-DNEXUS_DOMAIN_REGISTER=true',
+    '-DNEXUS_DOMAIN_FETCH=true',
+    `-DNEXUS_REGISTRY_ZONE=${registryBase}/eureka/`,
   ]);
   const domainHealth = await waitFor(async () => {
     const answer = await httpJson(`http://127.0.0.1:${domain.port}/health`);
@@ -678,9 +685,13 @@ const ready = spawnSync('docker', ['exec', SOURCE, 'psql', '-U', DB_USER, '-d', 
     `-Dspring.datasource.url=jdbc:postgresql://127.0.0.1:${dbPort}/${DB_NAME_API}`,
     `-Dspring.datasource.username=${DB_USER}`,
     `-Dspring.datasource.password=${DB_PASSWORD}`,
-    // The discovery client is ON for this run — that is what §5 is about.
-    '-DNEXUS_EUREKA_ENABLED=true',
-    `-DNEXUS_EUREKA_URL=${registryBase}/eureka/`,
+    // The discovery client is ON for this run — that is what §5 is about. Same split as the domain
+    // service: nexus-api reads NEXUS_API_* (registration/fetch) and NEXUS_REGISTRY_ZONE (address),
+    // NOT the shared NEXUS_EUREKA_URL name the gateway reads.
+    '-DNEXUS_API_EUREKA_ENABLED=true',
+    '-DNEXUS_API_REGISTER=true',
+    '-DNEXUS_API_FETCH=true',
+    `-DNEXUS_REGISTRY_ZONE=${registryBase}/eureka/`,
   ]);
   console.log(`[§5] nexus-api answered on port ${api.port} against the throwaway database ${DB_NAME_API}`);
 

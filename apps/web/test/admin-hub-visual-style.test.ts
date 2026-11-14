@@ -9,17 +9,17 @@ import { describe, expect, it } from 'vitest';
  * 两份文件平移：
  *  - `app/admin/page.tsx`：denied×2（anonymous/not-admin）+ 十卡矩阵（`data-admin-home-card` 全集 10 个，
  *    一卡一句「这一格是干嘛的」，**不读库、不发请求、不填占位百分比**）；
- *  - `components/AdminNav.tsx`：管理台导航名单一份（**15 入口**）+ WCAG 2.5.8 的 28px 下限一处。
+ *  - `components/AdminNav.tsx`：管理台导航名单一份（**16 入口**）+ WCAG 2.5.8 的 28px 下限一处。
  * 本片只换皮（arbitrary atom → `.adm-*`）；文案、AREAS 常量、LINKS、aria-current、
  * data 钩子、鉴权对照（`user.role !== 'admin'`）一字不改。
  *
- * **2026-11-14 名单从 12 涨到 15，三格都是后来加的，不是本片改的**：
+ * **2026-11-14 名单从 12 涨到 16，四格都是后来加的，不是本片改的**：
  *  - `dead-letters`（死信巡检，MQ 并行线引入的页面）；
  *  - `ai-cache`（§CACHE-2 缓存读数，本线）；
  *  - `pricing`（§COST-1 成本只读账本，新加的一格）。
  * 名单变长这件事本片管不着，但它**会同时推动下面那条 SHA 门**——那两个哈希
  * （LINKS 的期望数组、AdminNav 的 SHA256）不是装饰，是"名单只在一处"这条纪律的代价：
- * 每加一格都要有人来这里签字。这次签字的就是这三格。
+ * 每加一格都要有人来这里签字。这次签字的就是这四格。
  *
  * **零行为门（两条，pipeline 一致）**：redact = `className="…"`→`"@"`、`className={\`…\`}`→`{@}`、
  * 其余 `className={…}`→`{@}`、`"@"|{@}`→`className=@`、注释→占位。
@@ -104,13 +104,13 @@ describe('§FE-26 /admin 入口总览 + AdminNav', () => {
     expect(pageCode).not.toContain('use client');
   });
 
-  it('AdminNav：LINKS 15 入口 · aria-current="page" · data-admin-link 全集恒等于 LINKS 键集', () => {
+  it('AdminNav：LINKS 16 入口 · aria-current="page" · data-admin-link 全集恒等于 LINKS 键集', () => {
     expect(navCode).toContain('aria-current="page"');
     expect(navCode).toContain('aria-label="管理台"');
     expect(navCode).toContain('data-admin-nav');
     const keys = [...navCode.matchAll(/\{ key: '([a-z-]+)', href: '\/admin/g)].map((m) => m[1]!);
-    expect(keys).toHaveLength(15);
-    expect(keys).toEqual(['home', 'users', 'moderation', 'marketplace', 'audit', 'realtime', 'rate-limit', 'access', 'observability', 'gateway', 'discover-cache', 'ai-cache', 'dead-letters', 'pricing', 'health']);
+    expect(keys).toHaveLength(16);
+    expect(keys).toEqual(['home', 'users', 'moderation', 'marketplace', 'audit', 'realtime', 'rate-limit', 'access', 'observability', 'gateway', 'discover-cache', 'ai-cache', 'savings', 'dead-letters', 'pricing', 'health']);
     expect(navCode).toContain('data-admin-link={link.key}');
     expect(navCode).toContain('data-admin-dot={link.key}');
   });
@@ -201,9 +201,9 @@ describe('§FE-26 /admin 入口总览 + AdminNav', () => {
     // 合并后的 HEAD 里不再有 ITEM 常量——雕刻预言已经兑现，这里钉住它不会复活。
     expect(navCode).not.toMatch(/\bITEM\b/);
     expect(navCode).toContain('const LINKS =');
-    // 2026-11-14：名单涨到 15 格（pricing），哈希随之更新。上一版是 c9932427…。
+    // 2026-11-14：名单涨到 16 格（接手并行线的 savings），哈希随之更新。上一版是 a34c7e5c…。
     expect(createHash('sha256').update(redactClasses(nav)).digest('hex')).toBe(
-      'a34c7e5ce8a63e44fb11cc189c85feb91d7b68a85291d595f2ce811766463f84',
+      '713ffdc90dae2cdc7f4da112c14d899b01f9b2a6f6d060321a16db11bad0e8ab',
     );
   });
 
