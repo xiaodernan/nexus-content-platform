@@ -2905,3 +2905,30 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   re-evaluation triggers, and P3's read-only scope as delivered (v689) with the batch-repair
   action explicitly declined (security review, not a refactor).
 - Docker Desktop outage count today: 9. nexus-postgres/redis healthy; sibling 3100/3200 untouched.
+## cont. 105 (2026-11-14) - v709 landed: 寰宇图志 atlas (/world/<id>/atlas)
+
+- New read-only surface: the world''s SPACE nodes (geography / factions) projected as a
+  deterministic night chart. Deterministic golden-angle phyllotaxis (137.508°, sorted by node id)
+  places pins; mulberry32(0x5EED_FACE) draws 110 seed stars; nearest-neighbor greedy edges (degree
+  cap 3, ⌈1.15·n⌉ cap) draw 灵脉 with distance-faded opacity. Geography = ringed circle glyph;
+  factions = golden diamond.
+- Selection is `?pin=<id>` query param, full SSR, zero client state; anchors natively keyboard-
+  focusable; aria-pressed/aria-current honest; empty state renders when no space nodes exist;
+  visibility gate = projectVisibleTo (404 for non-owners) - same discipline as chronicle/memories.
+- Fixture (星图 MWG35NRI / f7ec6716): one-shot SQL seed added 8 space nodes (6 地理 incl. 北境,
+  4 势力 incl. 苍雪盟约) using sql.json() write-back. Playwright verified: pins=10 edges=12
+  ledgerRows=10; ?pin=node_geo_ember selects, dossier updates verbatim; two screenshots captured.
+- Studio top-bar gains 寰宇图志 next to 记忆回廊 / 世界编年.
+- This turn also: branch consolidation audit (local main fast-forwarded, master->main pushed;
+  other/master13-15 and archive tag are ancestors; all 42 cline checkpoints are pre-merge snapshots
+  with ZERO unique files vs master - the one apparent miss moved in v553; no wholesale merge done,
+  would have reverted ~380k lines). Fixture document string-scalar double-encode repaired via
+  sql.json() (all other 35 rows were objects; app write path unaffected).
+- Spring Cloud Blueprint: P1 recorded landed (ADR 0140) with four re-evaluation triggers; P3
+  read-only scope recorded delivered (v689) with batch repair explicitly declined.
+- ADR 0142: the atlas decision record (phyllotaxis, deterministic starfield, ley-line algorithm,
+  URL-driven SSR selection, zero writes, visibility gate, explicit honest-narrowing list).
+- Gates: tsc 0; per-file direct eslint 0; record-encoding OK at cont. 104; arms-freshness 9/9.
+- Docker Desktop outage count today: 9. nexus-postgres/redis healthy; sibling 3100/3200 untouched.
+- CI at record time: bf84954 pushed (master+main) - runner verdict pending, do not claim until it
+  completes. 87aa270/84f9dea/799eaf5 CI still in_progress/queued from earlier.
