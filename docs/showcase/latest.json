@@ -1,9 +1,9 @@
 {
   "schema_version": "nexus-content.latest.v1",
-  "generated_at": "2026-11-14T10:50:21.159Z",
+  "generated_at": "2026-11-14T10:57:45.765Z",
   "branch": "main",
-  "head": "12de755",
-  "total_commits": 2532,
+  "head": "72570a5",
+  "total_commits": 2534,
   "first_commit_at": "2026-09-22",
   "adrs": 308,
   "contracts": 14,
@@ -32,5 +32,5 @@
     "evidence-census"
   ],
   "live_demo": null,
-  "headline": "NEXUS Content Platform — AI Universe Studio: describe, design, build, enter."
+  "headline": "NEXUS Content Platform - AI Universe Studio: describe, design, build, enter."
 }
