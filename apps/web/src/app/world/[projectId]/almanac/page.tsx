@@ -102,7 +102,7 @@ export default async function AlmanacPage({ params }: { params: Promise<{ projec
             {eras.map((e) => (
               <Link
                 key={e.era}
-                href={`/world/${projectId}/chronicle`}
+                href={`/world/${projectId}/chronicle#era-${encodeURIComponent(e.era)}`}
                 data-almanac-era={e.era}
                 className="group rounded-full border border-[#c9a86a]/25 bg-[#141109]/60 px-4 py-1.5 text-12 text-[#d8cfb6] transition-colors hover:border-[#c9a86a]/60 hover:text-[#f5edd9]"
               >

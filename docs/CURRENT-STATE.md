@@ -2969,3 +2969,13 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - CI at record time: c28ad48 in_progress/queued on CI and main-line; 84f7f0d main-line SUCCESS;
   bf84954/7f84983 main-line SUCCESS; not claiming until the runner finishes.
 - tsc 0; per-file eslint 0.
+## cont. 108 (2026-11-14) - chronicle era anchors (closes the v711 narrowing item, ADR 0144 #1)
+
+- ChronicleView: each era section now carries `id="era-<encodeURIComponent(era)>"` (SSR-safe,
+  anchor-addressable). Almanac era chips deep-link `chronicle#era-<encoded>`; verified with a
+  Playwright click from /almanac: lands on #era-%E7%81%B0%E7%81%AF%E7%BA%AA with the section in DOM;
+  full-page screenshot confirms the four eras render (灰灯纪/灰烬纪/铁月纪/未标纪元, 7 entries,
+  memory echoes + present-roster chips visible).
+- Chronicle unit 6/6; tsc 0; per-file eslint 0; record-encoding OK at cont. 107.
+- CI at record time: bf84954 CI SUCCESS (first green on this lane's 2026-11-14 refs);
+  84f7f0d in_progress; c28ad48 in_progress; 63069f7 queued; main-line green on every pushed ref.

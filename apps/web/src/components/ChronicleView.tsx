@@ -45,9 +45,10 @@ export function ChronicleView({ worldName, eras, characters = [], projectId = ''
         {eras.map((era, eraIndex) => (
           <section
             key={`${era.era}-${eraIndex}`}
+            id={`era-${encodeURIComponent(era.era)}`}
             className="relative flex w-[340px] shrink-0 flex-col border-r border-[#151b3a] px-5 py-5"
             data-chronicle-era={era.era}
-            aria-label={`纪元：${era.era}`}
+            aria-label={`纪元 ${era.era}`}
           >
             {/* 纪元背景光 */}
             <div
