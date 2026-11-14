@@ -9,6 +9,8 @@
 > - **验证**：`era-ties` 9/9 · `chronicle-visual-style` 5/5 · `chronicle` 8/8 · `digest-visual-style` 7/7 · `guide-visual-style` 7/7；`tsc -p apps/web` EXIT=0。
 > - **诚实限度**：fe-gates 本地整线未在本段重跑（本机内存 1.3–2.5GB 锯齿，视觉判据按文件分片单跑 + 逐个绿，未声明整线全绿）；digest 页面像素/浏览器层未验证（本机无合适 Chrome）；`main` 领先 origin 620+，仍不可 push（OAuth token 无 `workflow` scope，阻塞不阻塞开发）。
 >
+> **2026-11-14 续8（§CACHE-4-AB 复验——用户仍见非流/命中低，今日实测 stream lane 98.4%**，`docs/evidence/cache-4-ab-2026-11-14.md`）：wiring 静态复核无回归（`config.py:74` `llm_stream=True` 默认 → `registry.py:107` → SSE `include_usage` → `app.py:186 transport.stream`）。stream lane `nexus-content-ab4` 今日 4 轮：冷启动 0.0% → turn2-4 稳定 98.4%（12800/13003）；非流两次复测 39.5% / 71.6% → 100.0%，**随机分发是事实，不是 bug**。结论不变：显示命中高 = 流式；显示低 = 非流。若任何 `/admin/ai-cache` 真显示 OFF，排查顺序：① 该进程 `.env` 的 `NEXUS_LLM_STREAM`；② 重启后进程代码是否含 v706+；③ 是否出口有人手动截断 SSE。
+>
 > **2026-11-14 续7（§v730「Studio 外壳 + 顶栏双语」，commit 号见 git log v730）**：SHELL_COPY zh/en 双语字典落地——TABS(14)/VIEWS(5)/readOnly 横幅/loadingProject/railToggle/撤销·重做·网格·预览/保存状态四分支/credit chip/inspector 关合；locale 由 RSC 页 getLocale() 自 cookie 读 → `<StudioShell locale>` → StudioWorkspace → TopBar；gate 同步换钉（topbar 判据锚从 zh 字面换为 c.* + COPY 的 zh 段；shell/topbar SHA 重钉）；fe-gates 116/116 · 1148/1148 · census 2149 · tsc web EXIT=0。**honest gap**：14 个面板自己的文案仍然中文优先——各面板自己的下一片。
 >
 > **2026-11-14 续6（§v729「世界体检」，commit 号见 git log 本线 v729 提交）**：`/world/<id>/integrity`——作者打开世界就能看见的真指标单（10 卡：已落笔 kind 覆盖 / 仍是模板 / 薄节点 / 未标纶元 / order 撞号 / 未解析关系 / 纸面纶元 / 世界锚点 / 星图人物 / 缺色板），全部真数、全部 Link 到最适操作面；新 §FE-IC 门面；WorldGraphView 进入按钮加「世界体检」（§FE-57 SHA 重钉），/guide 双语地图各补一行（SHA 重钉）。**fe-gates 116/116 · 1148/1148 · census 2149 · tsc web EXIT=0**。世界线新模块真值示例：零假分数、零「AI 说你世界怎么样」。
