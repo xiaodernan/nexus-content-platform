@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
  * 零行为：SVG 派发（画台子 / 删除 / iframe 事件）一字不动；terrainMode 系列全部保留。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @ + cn()整体归一 + `className=@` 归一）：
- * `9df15316808985955d44fdac3362f97a9790fb5e94287d3c62473940afb51167`。
+ * `fb1672202cfc3469769ec5c5eb7277f66d13a688608c274fa5d839f22b8439a5`。
  *
  * 判据不变式（10 门）：
  *  1. 'use client' 保留 + worldStore/drag/graph-execute 进门；2. 字面 className 全 `.wg-*`/复用族（含 cn 三元分支）；
@@ -145,9 +145,9 @@ describe('§FE-57 /studio WorldGraphView 世界图视图', () => {
     }
   });
 
-  it('剥 className/cn 后全文 SHA256 守恒（零行为：9df15316808985955d44fdac3362f97a9790fb5e94287d3c62473940afb51167）', () => {
+  it('剥 className/cn 后全文 SHA256 守恒（2026-11-14 v718「世界速览」入口落地时按惯例重钉：fb167220…）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '9df15316808985955d44fdac3362f97a9790fb5e94287d3c62473940afb51167',
+      'fb1672202cfc3469769ec5c5eb7277f66d13a688608c274fa5d839f22b8439a5',
     );
   });
 });
