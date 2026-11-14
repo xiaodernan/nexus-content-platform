@@ -45,6 +45,22 @@ export const WORLD_KIND_LABELS: Record<WorldKind, string> = {
   story: "故事",
 };
 
+/**
+ * 九类的英文名（v746）：与 `WORLD_KIND_LABELS` 一一对应——改一处必须改另一处。
+ * 世界页与面板双语都读这一处；不许在各处各写一份副本。
+ */
+export const WORLD_KIND_LABELS_EN: Record<WorldKind, string> = {
+  lore: "Lore",
+  history: "History",
+  geography: "Geography",
+  factions: "Factions",
+  characters: "Characters",
+  creatures: "Creatures",
+  items: "Items",
+  quests: "Quests",
+  story: "Story",
+};
+
 export interface WorldNode {
   id: string;
   kind: WorldKind;

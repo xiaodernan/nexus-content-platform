@@ -3432,3 +3432,14 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - AgentRun 报文本身就是服务端契约（"READINESS_STEPS" 步数）——比对载荷照常
 - notes 服务端报告（run.report.notes）仍 zh（§46 独立立片）。
 - fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；§FE-41 重钉。
+
+## cont. 116 (2026-11-16) - v747: CharacterPanel + CharacterChat 双语化（§46/§47 角色档案+对话）
+
+- CharacterPanel.tsx zh/en 双字典：建档/名字/身份/外观/穿着/画风/纪元/特征/性格/背景/目标/恐惧/
+  声音/视觉标识/色板/关系/保存-删除/issues/空态全部接 locale；locale 自 StudioShell 透传。
+- CharacterChat.tsx zh/en：跟角色说话的共用组件接 locale；Panel 传入，WorldWalk 3D HUD 未接（page 仍单 zh、与整页一致）。
+- @nexus/world-model 新增 WORLD_KIND_LABELS_EN（与中文版同序键）+ kind-labels-en.test.ts 2 测钉同序与互异；
+  CharacterPanel 的关系下拉/条目渲染从这一处读，世界页继续用各自单份（避免 SHA 连锁）。
+- §46 边界（照旧）：validateCharacter issue 裁定句、语料检索说明、store 层 assetNotice/Error 仍 zh——
+  全套靠 creative-model/world-model 定点本地化，是独立立片，不是本片。
+- fe-gates 116/116（1148/1148）；world-model 2/2；tsc web/wm 0；eslint 净；§FE-41 重钉。

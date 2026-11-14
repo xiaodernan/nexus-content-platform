@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
  * tab（cp-tabOn/Idle）· save（cp-saveReady/Idle）· notice（cp-noticeRow/Error/Idle）。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + INPUT 共享类常量归一（多行）+ className 任意形态归一 @ + cn()整体归一 + `className=@` 归一）：
- * `8b24672866df75441f49174b5e6cf7073d024499a329fd7d9171b3ab52ca6d55` 与 HEAD 字节一致。
+ * `9b71d077e6423ac336c56b53a201c1bc254a3c40dd699318e9267dd8c3405939` 与 HEAD 字节一致。
  *
  * 判据不变式（12 门）：
  *  1. 'use client' 保留 + studio.save/generatePortrait/delete 依赖链进门；2. 字面 className 全 `.cp-*`/复用 `.wd-*`/复用 `.gp-*`（含 cn 三元分支）；
@@ -138,7 +138,8 @@ describe('§FE-51 /studio CharacterPanel 角色面板', () => {
     expect(segment).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
     const classLiterals = [...code.matchAll(/className="([^"]*)"/g)].map((m) => m[1]!).join(' ');
     expect(classLiterals).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
-    expect(code).toContain('"色板：#1b1205 #f5b451（空格分隔）"'); // 写给用户看的示例，原样保留
+    // 写给用户看的示例，原样保留（v747 双语后放在 COPY.zh 字典里，任意字面量风格都认）
+    expect(code).toContain('色板：#1b1205 #f5b451（空格分隔）');
     expect(segment).toContain('font-size: 0.625rem');
   });
 
@@ -157,9 +158,9 @@ describe('§FE-51 /studio CharacterPanel 角色面板', () => {
     }
   });
 
-  it('剥 className/cn/INPUT 共享常量后全文 SHA256 守恒（零行为：8b24672866df75441f49174b5e6cf7073d024499a329fd7d9171b3ab52ca6d55）', () => {
+  it('剥 className/cn/INPUT 共享常量后全文 SHA256 守恒（2026-11-16 v747「CharacterPanel 双语化」重钉：9b71d077e6423ac336c56b53a201c1bc254a3c40dd699318e9267dd8c3405939）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '8b24672866df75441f49174b5e6cf7073d024499a329fd7d9171b3ab52ca6d55',
+      '9b71d077e6423ac336c56b53a201c1bc254a3c40dd699318e9267dd8c3405939',
     );
   });
 });

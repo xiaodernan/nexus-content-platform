@@ -3,15 +3,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import {
   WORLD_KIND_LABELS,
+  WORLD_KIND_LABELS_EN,
   addRelationship,
   removeRelationshipAt,
   validateCharacter,
   withProfile,
   type Character,
   type CharacterProfile,
+  type WorldKind,
 } from '@nexus/world-model';
 import { cn } from '@/lib/cn';
 import { csrfHeaders } from '@/lib/csrf';
+import type { Locale } from '@/lib/i18n';
 import { CharacterChat } from '@/studio/CharacterChat';
 import { studio as editor, useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';
@@ -23,7 +26,151 @@ import { useWorld, worldStore } from './worldStore';
  * 自动保存会把"我还没写完"的半份档案写进库而撤销又救不回来——所以宁可让用户点一下。
  * 关系的目标从世界文档（§44）的下拉里选，不靠手抄 id；档案里没有 memory 字段，
  * 那是 §48 的独立存储，塞个文本框就会造出第二个记忆真值。
+ * 双语（v747）：locale 由 StudioShell 透传；zh 原文原样保留，en 逐句对应。
  */
+
+const COPY = {
+  zh: {
+    heading: '角色',
+    newNamePlaceholder: '新角色名字',
+    newNameAria: '新角色名字',
+    create: '建',
+    note: '建档只给名字，其余留空等用户填；AI 生成角色设定要真 provider，这里不做假生成（§159）。记忆属于 §48 的独立存储，不在档案里放一个假字段。',
+    unreadable: (n: number, first: string) => `有 ${n} 个角色的档案读不出来：${first}`,
+    reading: '读取角色…',
+    empty: '还没有角色。',
+    noName: '（没有名字）',
+    name: '名字',
+    appearance: '外观',
+    identity: '身份（不变的那部分：五官 / 疤痕 / 标记）',
+    clothing: '穿着',
+    style: '画风 / 媒介',
+    activeEra: '活跃纪元（可选：与世界编年里的纪元同名）',
+    traits: '特征',
+    traitsHint: '逗号分隔',
+    traitsPlaceholder: '例：怕水，话多，认路很快',
+    personality: '性格',
+    backstory: '背景故事',
+    goals: '目标',
+    onePerLine: '一行一条',
+    fears: '恐惧',
+    voiceSection: '声音',
+    register: '语域',
+    pace: '语速',
+    registerAria: '语域',
+    paceAria: '语速',
+    catchphrasesPlaceholder: '口头禅（一行一条）',
+    catchphrases: '口头禅',
+    voiceSectionTitle: '声音',
+    visualSection: '视觉标识',
+    silhouette: '轮廓',
+    motifs: '母题',
+    motifsPlaceholder: '母题（逗号分隔）',
+    palette: '色板',
+    palettePlaceholder: '色板：#1b1205 #f5b451（空格分隔）',
+    scenePlaceholder: '给它一个场景：在雪地里 / 在夜市里',
+    sceneAria: '场景',
+    paletteRequired: '先把色板填上：没有视觉标识就谈不上"同一个角色"',
+    sceneTitle: '按这个角色的视觉标识生成它在该场景里的一张图（DEMO 本地合成 · 扣 image 额度 2 点）',
+    generateScene: '生成场景',
+    generatePortrait: '生成肖像',
+    sceneLabel: '场景',
+    portraitTitle:
+      '按档案里的 身份/穿着/画风/特征 + 视觉标识 生成这个角色自己的参考图，之后可以拿它当场景的参考（DEMO 本地合成 · 扣 image 额度 2 点）',
+    portraitShort: '由档案驱动，不用填场景',
+    relationshipsTitle: '关系（指向世界条目）',
+    removeRelationship: '删除这条关系',
+    noRelationships: '还没有关系。',
+    noRelationshipTarget: '＋ 选一个世界条目…',
+    noWorld: '这个项目还没有世界，关系没有可指向的条目。',
+    relationshipAria: '关系名称',
+    relationshipKindPlaceholder: '关系',
+    relationshipTargetAria: '关系目标',
+    relationshipsTitle2: '关系（指向世界条目）',
+    pickTarget: '关系目标',
+    relKindPlaceholder: '关系',
+    namelessFallback: '（没有名字）',
+    pickCharacter: '（没有名字）',
+    unspecifiedTarget: '（还没选目标）',
+    relationshipName: '关系名称',
+    saving: '保存中…',
+    saveProfile: '保存档案',
+    noChanges: '没有改动',
+    deleteCharacter: '删除角色',
+    savedHint: '保存档案',
+  },
+  en: {
+    heading: 'Characters',
+    newNamePlaceholder: 'New character name',
+    newNameAria: 'New character name',
+    create: 'Create',
+    note: 'Creation only takes a name; the rest is yours to fill in. An AI to author the dossier needs a real provider; no fake generation here (§159). Memory lives in §48’s own store — the dossier carries no fake field for it.',
+    unreadable: (n: number, first: string) => `${n} character profile(s) cannot be read: ${first}`,
+    reading: 'Reading characters…',
+    empty: 'No characters yet.',
+    noName: '(no name)',
+    name: 'Name',
+    appearance: 'Appearance',
+    identity: 'Identity (the unchanging part: features / scars / marks)',
+    clothing: 'Clothing',
+    style: 'Style / medium',
+    activeEra: 'Active era (optional; name it like an era in the world chronicle)',
+    traits: 'Traits',
+    traitsHint: 'comma-separated',
+    traitsPlaceholder: 'e.g. afraid of water, talks a lot, finds the way fast',
+    personality: 'Personality',
+    backstory: 'Backstory',
+    goals: 'Goals',
+    onePerLine: 'one per line',
+    fears: 'Fears',
+    voiceSection: 'Voice',
+    register: 'Register',
+    pace: 'Pace',
+    registerAria: 'Voice register',
+    paceAria: 'Voice pace',
+    catchphrasesPlaceholder: 'Catchphrases (one per line)',
+    catchphrases: 'Catchphrases',
+    voiceSectionTitle: 'Voice',
+    visualSection: 'Visual identity',
+    silhouette: 'Silhouette',
+    motifs: 'Motifs',
+    motifsPlaceholder: 'Motifs (comma-separated)',
+    palette: 'Palette',
+    palettePlaceholder: 'Palette: #1b1205 #f5b451 (space-separated)',
+    scenePlaceholder: 'Give it a scene: in the snow / at the night market',
+    sceneAria: 'Scene',
+    paletteRequired: 'Fill the palette first — without a visual signature there is no “same character”',
+    sceneTitle: 'Generate one image of this character in this scene from their visual signature (DEMO local synthesis · –2 image credits)',
+    generateScene: 'Generate scene',
+    generatePortrait: 'Generate portrait',
+    sceneLabel: 'Scene',
+    portraitTitle:
+      'Use Identity/Clothing/Style/Traits + Visual identity from the dossier to generate this character’s own reference image; later scenes can take it as reference (DEMO local synthesis · –2 image credits)',
+    portraitShort: 'Dossier-driven; no scene needed',
+    relationshipsTitle: 'Relationships (pointing at world entries)',
+    removeRelationship: 'Delete this relationship',
+    noRelationships: 'No relationships yet.',
+    noRelationshipTarget: '＋ Pick a world entry…',
+    noWorld: 'This project has no world yet; relationships have nothing to point at.',
+    relationshipAria: 'Relationship name',
+    relationshipKindPlaceholder: 'Relationship',
+    relationshipTargetAria: 'Relationship target',
+    relationshipsTitle2: 'Relationships (pointing at world entries)',
+    pickTarget: 'Relationship target',
+    relKindPlaceholder: 'Relationship',
+    namelessFallback: '(no name)',
+    pickCharacter: '(no name)',
+    unspecifiedTarget: '(no target picked yet)',
+    relationshipName: 'Relationship name',
+    saving: 'Saving…',
+    saveProfile: 'Save dossier',
+    noChanges: 'No changes',
+    deleteCharacter: 'Delete character',
+    savedHint: 'Saved',
+  },
+} as const;
+
+type CharacterCopy = (typeof COPY)[Locale];
 
 const INPUT =
   'cp-inputShared';
@@ -59,6 +206,7 @@ function ListText({
   multiline = false,
   showLabel = true,
   className = INPUT,
+  c,
 }: {
   label: string;
   value: readonly string[];
@@ -70,6 +218,7 @@ function ListText({
   multiline?: boolean;
   showLabel?: boolean;
   className?: string;
+  c: CharacterCopy;
 }) {
   const [text, setText] = useState(() => joinList(value, mode));
   const seen = useRef(value);
@@ -91,7 +240,7 @@ function ListText({
       {...data}
       aria-label={label}
       value={text}
-      placeholder={placeholder ?? '一行一条'}
+      placeholder={placeholder ?? c.onePerLine}
       onChange={handle}
       className={className}
     />
@@ -111,7 +260,11 @@ function ListText({
   );
 }
 
-export function CharacterPanel() {
+const kindLabel = (kind: WorldKind, locale: Locale): string =>
+  locale === 'en' ? WORLD_KIND_LABELS_EN[kind] : WORLD_KIND_LABELS[kind];
+
+export function CharacterPanel({ locale = 'zh' }: { locale?: Locale }) {
+  const c = COPY[locale];
   const studio = useStudioReady();
   const world = useWorld();
   const [items, setItems] = useState<Character[]>([]);
@@ -172,7 +325,7 @@ export function CharacterPanel() {
   const create = async () => {
     const name = newName.trim();
     if (!name) {
-      setMessage('先给角色一个名字。');
+      setMessage(locale === 'en' ? 'Give the character a name first.' : '先给角色一个名字。');
       return;
     }
     setSaving(true);
@@ -268,7 +421,7 @@ export function CharacterPanel() {
     <div className="wd-rootCol" data-character-panel>
       <header className="wd-headBordered">
         <div className="wd-row2">
-          <h2 className="wd-label">角色</h2>
+          <h2 className="wd-label">{c.heading}</h2>
           <span className="wd-monoFaintEnd" data-character-count>
             {items.length}
           </span>
@@ -280,8 +433,8 @@ export function CharacterPanel() {
             onKeyDown={(e) => {
               if (e.key === 'Enter') void create();
             }}
-            placeholder="新角色名字"
-            aria-label="新角色名字"
+            placeholder={c.newNamePlaceholder}
+            aria-label={c.newNameAria}
             data-character-new-name
             className="cp-growField"
           />
@@ -292,12 +445,11 @@ export function CharacterPanel() {
             data-character-create
             className="cp-accentBtnSm"
           >
-            建
+            {c.create}
           </button>
         </div>
         <p className="wd-body11Mt2" data-character-note>
-          建档只给名字，其余留空等用户填；AI 生成角色设定要真 provider，这里不做假生成（§159）。
-          记忆属于 §48 的独立存储，不在档案里放一个假字段。
+          {c.note}
         </p>
         {message ? (
           <p className="wd-dangerMt2" data-character-error>
@@ -306,16 +458,16 @@ export function CharacterPanel() {
         ) : null}
         {unreadable.length ? (
           <p className="cp-warnMt2" data-character-unreadable>
-            有 {unreadable.length} 个角色的档案读不出来：{unreadable[0]}
+            {c.unreadable(unreadable.length, unreadable[0]!)}
           </p>
         ) : null}
       </header>
 
       <div className="wd-scrollP2">
-        {status === 'loading' ? <p className="cp-empty">读取角色…</p> : null}
+        {status === 'loading' ? <p className="cp-empty">{c.reading}</p> : null}
         {status === 'ready' && !items.length ? (
           <p className="cp-empty" data-character-empty>
-            还没有角色。
+            {c.empty}
           </p>
         ) : null}
         <ul className="cp-wrapMb3">
@@ -332,7 +484,7 @@ export function CharacterPanel() {
                 aria-pressed={character.id === selectedId}
                 className={cn('cp-charTab', character.id === selectedId ? 'cp-tabOn' : 'cp-tabIdle')}
               >
-                {character.profile.name || '（没有名字）'}
+                {character.profile.name || c.noName}
               </button>
             </li>
           ))}
@@ -340,109 +492,115 @@ export function CharacterPanel() {
 
         {selected && draft ? (
           <div key={selected.id} className="wd-col2" data-character-editor={selected.id}>
-            {textField('name', '名字')}
-            {textField('appearance', '外观', true)}
-            {textField('identity', '身份（不变的那部分：五官 / 疤痕 / 标记）', true)}
-            {textField('clothing', '穿着')}
-            {textField('style', '画风 / 媒介')}
-            {textField('activeEra', '活跃纪元（可选：与世界编年里的纪元同名）')}
+            {textField('name', c.name)}
+            {textField('appearance', c.appearance, true)}
+            {textField('identity', c.identity, true)}
+            {textField('clothing', c.clothing)}
+            {textField('style', c.style)}
+            {textField('activeEra', c.activeEra)}
             <ListText
-              label="特征"
-              hint="逗号分隔"
+              label={c.traits}
+              hint={c.traitsHint}
               value={draft.traits}
               mode="comma"
               data={{ 'data-character-field': 'traits' }}
-              placeholder="例：怕水，话多，认路很快"
+              placeholder={c.traitsPlaceholder}
               onChange={(traits) => patchProfile({ traits })}
+              c={c}
             />
-            {textField('personality', '性格', true)}
-            {textField('backstory', '背景故事', true)}
+            {textField('personality', c.personality, true)}
+            {textField('backstory', c.backstory, true)}
             <ListText
-              label="目标"
-              hint="一行一条"
+              label={c.goals}
+              hint={c.onePerLine}
               value={draft.goals}
               mode="lines"
               multiline
               data={{ 'data-character-list': 'goals' }}
               onChange={(goals) => patchProfile({ goals })}
+              c={c}
             />
             <ListText
-              label="恐惧"
-              hint="一行一条"
+              label={c.fears}
+              hint={c.onePerLine}
               value={draft.fears}
               mode="lines"
               multiline
               data={{ 'data-character-list': 'fears' }}
               onChange={(fears) => patchProfile({ fears })}
+              c={c}
             />
 
             <section>
-              <h3 className="cp-faintMb1">声音</h3>
+              <h3 className="cp-faintMb1">{c.voiceSectionTitle}</h3>
               <div className="cp-wrap">
                 <input
                   value={draft.voice.register}
                   onChange={(e) => patchProfile({ voice: { ...draft.voice, register: e.target.value } })}
-                  placeholder="语域"
-                  aria-label="语域"
+                  placeholder={c.register}
+                  aria-label={c.registerAria}
                   data-character-voice="register"
                   className={INPUT}
                 />
                 <input
                   value={draft.voice.pace}
                   onChange={(e) => patchProfile({ voice: { ...draft.voice, pace: e.target.value } })}
-                  placeholder="语速"
-                  aria-label="语速"
+                  placeholder={c.pace}
+                  aria-label={c.paceAria}
                   data-character-voice="pace"
                   className={INPUT}
                 />
               </div>
               <ListText
-                label="口头禅"
+                label={c.catchphrases}
                 value={draft.voice.catchphrases}
                 mode="lines"
                 multiline
                 showLabel={false}
-                placeholder="口头禅（一行一条）"
+                placeholder={c.catchphrasesPlaceholder}
                 data={{ 'data-character-voice': 'catchphrases' }}
                 className={`${INPUT} gp-mt1`}
                 onChange={(catchphrases) =>
                   patchProfile({ voice: { ...draft.voice, catchphrases } })
                 }
+                c={c}
               />
             </section>
 
             <section>
-              <h3 className="cp-faintMb1">视觉标识</h3>
+              <h3 className="cp-faintMb1">{c.visualSection}</h3>
               <div className="cp-wrap">
                 <input
                   value={draft.visualIdentity.silhouette}
                   onChange={(e) =>
                     patchProfile({ visualIdentity: { ...draft.visualIdentity, silhouette: e.target.value } })
                   }
-                  placeholder="轮廓"
-                  aria-label="轮廓"
+                  placeholder={c.silhouette}
+                  aria-label={c.silhouette}
                   data-character-visual="silhouette"
                   className={INPUT}
                 />
                 <ListText
-                  label="母题"
+                  label={c.motifs}
                   value={draft.visualIdentity.motifs}
                   mode="comma"
                   showLabel={false}
-                  placeholder="母题（逗号分隔）"
+                  placeholder={c.motifsPlaceholder}
                   data={{ 'data-character-visual': 'motifs' }}
                   onChange={(motifs) => patchProfile({ visualIdentity: { ...draft.visualIdentity, motifs } })}
+                  c={c}
                 />
               </div>
               <ListText
-                label="色板"
+                label={c.palette}
                 value={draft.visualIdentity.palette}
                 mode="space"
                 showLabel={false}
-                placeholder="色板：#1b1205 #f5b451（空格分隔）"
+                placeholder={c.palettePlaceholder}
                 data={{ 'data-character-visual': 'palette' }}
                 className={`${INPUT} gp-mt1 cp-mono`}
                 onChange={(palette) => patchProfile({ visualIdentity: { ...draft.visualIdentity, palette } })}
+                c={c}
               />
 
               {/* §39/§40 Character → Scene 的界面入口。色板（**已保存的那一版**）为空时按钮不可点：
@@ -451,8 +609,8 @@ export function CharacterPanel() {
                 <input
                   value={scene}
                   onChange={(e) => setScene(e.target.value)}
-                  placeholder="给它一个场景：在雪地里 / 在夜市里"
-                  aria-label="场景"
+                  placeholder={c.scenePlaceholder}
+                  aria-label={c.sceneAria}
                   data-scene-prompt
                   className={`${INPUT} cp-grow`}
                 />
@@ -465,12 +623,12 @@ export function CharacterPanel() {
                   data-character-scene
                   title={
                     selected.profile.visualIdentity.palette.length === 0
-                      ? '先把色板填上：没有视觉标识就谈不上"同一个角色"'
-                      : '按这个角色的视觉标识生成它在该场景里的一张图（DEMO 本地合成 · 扣 image 额度 2 点）'
+                      ? c.paletteRequired
+                      : c.sceneTitle
                   }
                   className="cp-btnHover"
                 >
-                  生成场景
+                  {c.generateScene}
                 </button>
               </div>
 
@@ -488,14 +646,14 @@ export function CharacterPanel() {
                   data-character-portrait
                   title={
                     selected.profile.visualIdentity.palette.length === 0
-                      ? '先把色板填上：肖像要读的就是这份视觉标识'
-                      : '按档案里的 身份/穿着/画风/特征 + 视觉标识 生成这个角色自己的参考图，之后可以拿它当场景的参考（DEMO 本地合成 · 扣 image 额度 2 点）'
+                      ? c.paletteRequired
+                      : c.portraitTitle
                   }
                   className="cp-btnHover"
                 >
-                  生成肖像
+                  {c.generatePortrait}
                 </button>
-                <span className="cp-microFaint">由档案驱动，不用填场景</span>
+                <span className="cp-microFaint">{c.portraitShort}</span>
               </div>
               {studio.assetError || studio.assetNotice ? (
                 <p
@@ -508,7 +666,7 @@ export function CharacterPanel() {
             </section>
 
             <section>
-              <h3 className="cp-faintMb1">关系（指向世界条目）</h3>
+              <h3 className="cp-faintMb1">{c.relationshipsTitle}</h3>
               <ul className="gp-col1">
                 {draft.relationships.map((rel, index) => {
                   const node = world.world?.nodes.find((n) => n.id === rel.target);
@@ -519,13 +677,13 @@ export function CharacterPanel() {
                       data-character-relationship={index}
                     >
                       <span className="cp-trunc12ink">
-                        {node ? `${node.title}（${WORLD_KIND_LABELS[node.kind]}）` : rel.target || '（还没选目标）'}
+                        {node ? `${node.title}（${kindLabel(node.kind, locale)}）` : rel.target || c.unspecifiedTarget}
                         {rel.kind ? ` · ${rel.kind}` : ''}
                       </span>
                       <button
                         type="button"
                         onClick={() => setDraft(removeRelationshipAt({ ...selected, profile: draft }, index).profile)}
-                        aria-label="删除这条关系"
+                        aria-label={c.removeRelationship}
                         data-character-relationship-remove={index}
                         className="wd-delBtn"
                       >
@@ -534,11 +692,11 @@ export function CharacterPanel() {
                     </li>
                   );
                 })}
-                {!draft.relationships.length ? <li className="cp-faintPx1">还没有关系。</li> : null}
+                {!draft.relationships.length ? <li className="cp-faintPx1">{c.noRelationships}</li> : null}
               </ul>
               <div className="wd-rowMt1">
                 <select
-                  aria-label="关系目标"
+                  aria-label={c.relationshipTargetAria}
                   data-character-relationship-target
                   value=""
                   onChange={(e) => {
@@ -549,24 +707,24 @@ export function CharacterPanel() {
                   }}
                   className="cp-growInput"
                 >
-                  <option value="">＋ 选一个世界条目…</option>
+                  <option value="">{c.noRelationshipTarget}</option>
                   {(world.world?.nodes ?? []).map((node) => (
                     <option key={node.id} value={node.id}>
-                      {WORLD_KIND_LABELS[node.kind]} · {node.title}
+                      {kindLabel(node.kind, locale)} · {node.title}
                     </option>
                   ))}
                 </select>
                 <input
                   value={relKind}
                   onChange={(e) => setRelKind(e.target.value)}
-                  placeholder="关系"
-                  aria-label="关系名称"
+                  placeholder={c.relKindPlaceholder}
+                  aria-label={c.relationshipName}
                   data-character-relationship-kind
                   className="cp-mode80"
                 />
               </div>
               {!world.world ? (
-                <p className="cp-warnMt1">这个项目还没有世界，关系没有可指向的条目。</p>
+                <p className="cp-warnMt1">{c.noWorld}</p>
               ) : null}
             </section>
 
@@ -576,6 +734,7 @@ export function CharacterPanel() {
               projectId={studio.projectId}
               characterId={selected.id}
               characterName={draft.name || ''}
+              locale={locale}
             />
 
             {issues.length ? (
@@ -596,7 +755,7 @@ export function CharacterPanel() {
                 data-character-save
                 className={cn('cp-saveBtn', dirty ? 'cp-saveReady' : 'cp-saveIdle')}
               >
-                {saving ? '保存中…' : dirty ? '保存档案' : '没有改动'}
+                {saving ? c.saving : dirty ? c.saveProfile : c.noChanges}
               </button>
               <button
                 type="button"
@@ -605,7 +764,7 @@ export function CharacterPanel() {
                 data-character-delete
                 className="cp-dangerGhost"
               >
-                删除角色
+                {c.deleteCharacter}
               </button>
             </div>
           </div>
