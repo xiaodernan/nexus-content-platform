@@ -113,7 +113,7 @@ describe('§FE-CODEX /world/<project>/codex 设定集', () => {
 
   it('SHA256 钉死（本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '3267864d5a4363aa06132b8c2545aa15420c6d0ffefc4a540dbfc1cee2cc4539',
+      'd9682fddb990646007c5a77cf4b76212fb59db844fb28c9d696d340f7548f0e2',
     );
   });
 });

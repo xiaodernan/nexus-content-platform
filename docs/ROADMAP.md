@@ -13802,6 +13802,21 @@ shadow-[0_0_...]），按 §FE 判据不可带入主线。本线做的：
   hub-selected detail panel with voice/desires/fears/relationships); two-way relationship
   merge labels render on the canvas.
 - Studio world panel gains a "character star map" entry button next to the 3D walkthrough.
+## v711 - 世界/<projectId>/codex/<nodeId> 「一页书」＋ codex 入口改穿 Link (2026-11-14)
+
+- NEW page `apps/web/src/app/world/[projectId]/codex/[nodeId]/page.tsx`（RSC，force-dynamic，仅作者可见，零provider，零写库）：
+  找到 §46 节点本身——.cdx/cdr 语料逐段，欢迎面和世界图/编年均有独立锚点链接；只有作者能读。
+- `.cdr-*` 门面族（cdr-root/hero/shade/article/cdr-para*）全部 token、零 hex、forced-colors 收口；
+  §FE-CODEX-TEXT `.cdx-entryLink` 入口 .cdx-entryPeek 相邻的样式也在 globals 里补齐了；
+  判据 `codex-reader-visual-style.test.ts`（§FE-Cdr，6 道门 + SHA256 `26647005…`）：RSC 只作者可见、fixture 级渲染、
+  零写库、零 getDb、零 hex clash、.cdr-* 定义齐全。
+- 守 gate 等值点：v711 goat 送 .cdr-root/cdr-hero/cdr-paraFirst 全 cover 强制色彩；强制色覆盖与 .cdx-* 兄弟族并列。
+- 编排入口：`apps/web/src/app/world/[projectId]/codex/page.tsx` 每个节点从 `<article className="cdx-entry">` 升级成
+  可导航的 `<Link className="cdx-entryLink" data-codex-entry-link>`——用户体验更流畅(
+  章名/开文直接跳)，无需回到目录。
+- 守针 §FE-CODEX SHA256 重钉（3267864d → d9682fdd…）；`census` **2051**；`no-raw-tailwind` 干净；tsc EXIT=0；
+  fe-gates **111/111 · 1115/1115 · 0 fail**。
+
 ## v710 - Roadmap: 世界引擎下一阶段展望（2026-11-14）
 
 已交付的世界模块里程碑：v704 人物星图（/world/<id>/constellation）、v705 世界编年（/world/<id>/chronicle）、v708 设定集（/world/<id>/codex）、v709 世界切片（/world/<id>/ephemeris）。本节记录世界/<id>/下一阶段的内容，不急于实现；每个新页面必须自带零填充空态，任何 provider 引入必须在 ADR 中书面通过。

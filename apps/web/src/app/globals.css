@@ -4592,3 +4592,38 @@
   .eph-dayLive:focus-visible { box-shadow: 0 0 0 2px Highlight; }
 }
 @media (prefers-reduced-motion: reduce) { .eph-hero::before { animation: none; } }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   §FE-CODEX-Reader「设定集·一页书」：单篇可读书页。
+   全 tokens、零 hex、serif 字族、.adr-* 变量驱动
+   ───────────────────────────────────────────────────────────────────── */
+.cdr-root { display: flex; min-height: 100dvh; background: linear-gradient(180deg, var(--nexus-color-bg-1) 0%, var(--nexus-color-bg-2) 100%); justify-content: center; padding: var(--nexus-space-8) var(--nexus-space-5); color: var(--nexus-color-fg-1); }
+.cdr-article { display: flex; flex-direction: column; gap: var(--nexus-space-4); max-width: 39rem; width: 100%; font-family: Georgia, 'Songti SC', 'STSong', 'Noto Serif SC', serif; }
+.cdr-hero { display: flex; flex-direction: column; gap: var(--nexus-space-2); text-align: center; padding: var(--nexus-space-5); border: 1px solid color-mix(in srgb, var(--nexus-color-brand) 44%, transparent); border-radius: var(--nexus-radius-md); background: radial-gradient(ellipse at 50% -20%, color-mix(in srgb, var(--nexus-color-warn-ink) 18%, transparent) 0%, transparent 55%); position: relative; overflow: hidden; }
+.cdr-kicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.26em; text-transform: uppercase; color: var(--nexus-color-warn-ink); }
+.cdr-kind { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.16em; color: var(--nexus-color-fg-3); }
+.cdr-title { font-size: var(--nexus-font-size-28); font-weight: 650; letter-spacing: 0.02em; margin: 0; }
+.cdr-footnote { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+.cdr-para { font-size: var(--nexus-font-size-13); line-height: 2.05; color: var(--nexus-color-fg-2); margin: 0; text-indent: 2em; }
+.cdr-paraFirst::first-letter { float: left; font-size: 2.6em; line-height: 0.9; padding: 0 var(--nexus-space-2) 0 0; color: var(--nexus-color-warn-ink); font-weight: 700; }
+.cdr-empty { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); line-height: 1.8; padding: var(--nexus-space-3) var(--nexus-space-2); border: 1px dashed var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); }
+.cdr-foot { display: flex; justify-content: space-between; gap: var(--nexus-space-3); border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-3); }
+
+@media (forced-colors: active) {
+  .cdr-root, .cdr-hero { border-color: CanvasText; background: Canvas; color: CanvasText; }
+  .cdr-title, .cdr-kicker { color: CanvasText; }
+  .cdr-para, .cdr-footnote { color: CanvasText; }
+  .cdr-paraFirst::first-letter { color: CanvasText; }
+}
+
+/* §v710 补丁：把设定集每条条目做成可点开的阅读页入口（.cdx-entryLink） */
+.cdx-entryLink { display: block; text-decoration: none; border-radius: var(--nexus-radius-md); outline: none; }
+.cdx-entryLink:hover .cdx-entry, .cdx-entryLink:focus-visible .cdx-entry { border-color: color-mix(in srgb, var(--nexus-color-brand) 60%, transparent); background: var(--nexus-color-bg-2); }
+.cdx-entryLink:focus-visible { box-shadow: 0 0 0 2px var(--nexus-color-brand); }
+.cdx-entryPeek { margin-top: var(--nexus-space-1); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); letter-spacing: 0.12em; align-self: flex-end; }
+
+@media (forced-colors: active) {
+  .cdx-entryLink:hover .cdx-entry, .cdx-entryLink:focus-visible .cdx-entry { border-color: Highlight; background: Canvas; }
+  .cdx-entryLink:focus-visible { box-shadow: 0 0 0 2px Highlight; }
+  .cdx-entryPeek { color: CanvasText; }
+}

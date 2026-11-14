@@ -113,12 +113,15 @@ export default async function CodexPage({ params }: { params: Promise<{ projectI
               <p className="cdx-empty" data-codex-empty={kind}>还没人动笔——这一章还是模板骨架，写完后就会长出来。</p>
             ) : (
               nodes.map((node) => (
-                <article key={node.id} className="cdx-entry" data-codex-entry={node.id}>
-                  <h3 className="cdx-entryTitle">{node.title}</h3>
-                  {paragraphs(node.body).map((p, j) => (
-                    <p key={j} className={`cdx-para${j === 0 ? ' cdx-paraFirst' : ''}`}>{p}</p>
-                  ))}
-                </article>
+                <Link key={node.id} href={`/world/${projectId}/codex/${node.id}`} className="cdx-entryLink" data-codex-entry-link={node.id}>
+                  <article className="cdx-entry" data-codex-entry={node.id}>
+                    <h3 className="cdx-entryTitle">{node.title}</h3>
+                    {paragraphs(node.body).map((p, j) => (
+                      <p key={j} className={`cdx-para${j === 0 ? ' cdx-paraFirst' : ''}`}>{p}</p>
+                    ))}
+                    <span className="cdx-entryPeek" aria-hidden="true">开 →</span>
+                  </article>
+                </Link>
               ))
             )}
           </section>
