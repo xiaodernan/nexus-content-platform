@@ -84,6 +84,15 @@ export const MODERATION_LIMITS: string[] = [
   '机检从不写 approved：published_projects.moderation 只能由人工裁决改变。',
 ];
 
+/** v765: 同序同款英文表；界面按 locale 取，不各写一份 */
+export const MODERATION_LIMITS_EN: string[] = [
+  'The word list only blocks the most explicit wording — rephrasing, writing it as an image, or using another language slips through. No match does not mean compliant.',
+  'No image/video content model: real-person photos can only be escalated to a human; the scan cannot see what is in the picture (§130).',
+  'No copyright library or fingerprint matching: cannot tell whether text or images were copied (§129 copyright safeguards not landed).',
+  'Asset bytes are never opened and no external links are followed: the design model exposes no arbitrary egress, so there is nothing to hot-link-check either.',
+  'The machine scan never writes approved: published_projects.moderation only changes by human verdict.',
+];
+
 function clip(value: string): string {
   const flat = value.replace(/\s+/g, ' ').trim();
   return flat.length > 120 ? `${flat.slice(0, 120)}…` : flat;

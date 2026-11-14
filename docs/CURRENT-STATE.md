@@ -3631,6 +3631,20 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   并轨完成，本次无新增（不动陈旧 refs，删除需用户拍板）。
 - showcase 快照同步于提交后（npm run sync:showcase）。
 
+## cont. 135 (2026-11-17) - v765: /admin moderation 集群双语化
+
+- moderation.ts 增 MODERATION_LIMITS_EN（同序同款；机检 5 条未覆盖项 → 英文版）；page 按 locale 取。
+- ResolveButtons.tsx（client）双语（locale prop 默认 zh）：note aria/placeholder/approve/reject/failedNotice(HTTP 状态码）/doneNotice。
+- moderation/page.tsx 双语（RSC getLocale()）：denied×2（含"先看账号与角色"指引段双语化）、
+  summary（待看 N 案 · 规则版本 · 裁决后离队）、limitsLede+limits（MODERATION_LIMITS/EN）、empty、
+  decisionBlocked/decisionPending、otherReports(n)、publishedVersion、locationQuote、nothingPublished/openLink、
+  toLocaleString(locale)；locale 透传给 ResolveButtons。
+- finding.why（REDLINES 机检原因，服务端 zh）原文透传（§46）；findings 原文不翻（字节级机检判据）。
+- Gates：§FE-29 双文件 SHA 重钉（page=0c96de94… resolve=8c5be023…，门内 redact 复算）；
+  fe-gates 116/116 · 1148/1148；tsc web 0；eslint 净。
+- /admin 已完成 7/24（home/AdminNav/dead-letters/audit/health/users/moderation）。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
 ## cont. 134 (2026-11-17) - v764: /admin users 集群双语化（含 GuestReclaimPanel）
 
 - app/admin/users/page.tsx 双语（server RSC，getLocale()）：denied×2、summary（已认领/guest/审核员）、
