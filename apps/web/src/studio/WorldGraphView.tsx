@@ -266,6 +266,13 @@ export function WorldGraphView() {
           世界编年
         </a>
         <a
+          href={`/world/${studio.projectId}/codex`}
+          className="sb-btn2"
+          data-enter-codex
+        >
+          设定集
+        </a>
+        <a
           href={`/world/${studio.projectId}/constellation`}
           className="sb-btn2"
           data-enter-constellation

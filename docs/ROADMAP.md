@@ -13802,6 +13802,18 @@ shadow-[0_0_...]），按 §FE 判据不可带入主线。本线做的：
   hub-selected detail panel with voice/desires/fears/relationships); two-way relationship
   merge labels render on the canvas.
 - Studio world panel gains a "character star map" entry button next to the 3D walkthrough.
+## v708 - 世界/<projectId>/codex 「设定集」——世界文档的纸面投影（2026-11-14, ADR 0136 续）
+
+- `apps/web/src/app/world/[projectId]/codex/page.tsx`（RSC、强制动态、仅作者可见、零写库）：把 worlds
+  文档投影为**纸面精装书**——封面（项目名/summary/计数）→ 目录（九类章名 + 落笔数 + 编年/星图章节）
+  → 各章节正文（只渲染 body.trim() 非空的"落笔"节点——模板骨架写"还没人动笔"，**零填充零 bluff**）
+  → 世界编年节（复用 buildChronicle 只读投影）→ 人物关系谱节（只读名册 + 直连星图）。
+- `.cdx-*` 门面族（零 hex、forced-colors、serif 字族、卷首"金色落墨"首字下沉 p::first-letter）。
+- 判据：`codex-visual-style.test.ts` **8/8**（含空态如实、零写库、零 server-ai import）；
+  `census` **2013**；`no-raw-tailwind` 干净；fe-gates **109/109 · 1103/1103**。
+- WorldGraphView 加「设定集」入口（§FE-57 SHA 重钉 436ba236→e8da379c…）。
+- 浏览器渲染仍未像素级验收（本机无合适 Chrome）。
+
 ## v707 - LLM stream-vs-non-stream cache measurement + /admin/ai-cache transport readout (2026-11-14, ADR-0265)
 
 - Direct provider A/B (same stableDigest `23aa0d15b1f4843b`): stream turn2-4 = **27345/27348 = 100.0%** hit (lane

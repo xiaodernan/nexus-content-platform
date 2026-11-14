@@ -4485,3 +4485,63 @@
 @media (forced-colors: active) {
   .sh-footLinks { border-top: 1px solid CanvasText; }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   §FE-CODEX「设定集」纸面投影：宣纸深页 + 章节铁框 + 落墨首字下沉。
+   全 tokens，零 hex；font 系直接用系统 serif family（font name 不算 hex）。
+   ───────────────────────────────────────────────────────────────────── */
+.cdx-root { display: flex; flex-direction: column; gap: var(--nexus-space-5); max-width: 52rem; margin: 0 auto; padding: var(--nexus-space-8) var(--nexus-space-5); background: linear-gradient(180deg, var(--nexus-color-bg-1) 0%, var(--nexus-color-bg-2) 100%); min-height: 100dvh; color: var(--nexus-color-fg-1); font-family: Georgia, 'Songti SC', 'STSong', 'Noto Serif SC', serif; }
+.cdx-hero { display: flex; flex-direction: column; gap: var(--nexus-space-2); padding: var(--nexus-space-5); border: 1px solid color-mix(in srgb, var(--nexus-color-brand) 44%, transparent); border-radius: var(--nexus-radius-md); background: radial-gradient(ellipse at 50% -10%, color-mix(in srgb, var(--nexus-color-brand) 14%, transparent) 0%, transparent 60%); text-align: center; position: relative; }
+.cdx-kicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.26em; text-transform: uppercase; color: var(--nexus-color-warn-ink); }
+.cdx-title { font-size: var(--nexus-font-size-28); font-weight: 650; letter-spacing: 0.24em; margin: 0; color: var(--nexus-color-fg-1); }
+.cdx-lede { font-size: var(--nexus-font-size-13); line-height: 1.9; color: var(--nexus-color-fg-2); max-width: 38rem; margin: 0 auto; }
+.cdx-footnote { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+.cdx-tocSummary { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-mix); border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-2); font-variant-numeric: tabular-nums; }
+.cdx-toc { background: var(--nexus-color-bg-2); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md); padding: var(--nexus-space-4); }
+.cdx-tocTitle { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.28em; color: var(--nexus-color-warn-ink); text-transform: uppercase; margin-bottom: var(--nexus-space-2); }
+.cdx-tocList { list-style: none; margin: 0; padding: 0; columns: 2; column-gap: var(--nexus-space-4); }
+@media (max-width: 40rem) { .cdx-tocList { columns: 1; } }
+.cdx-tocItem { break-inside: avoid; }
+.cdx-tocLink { display: grid; grid-template-columns: 3.25rem 1fr auto; gap: var(--nexus-space-2); align-items: baseline; padding: var(--nexus-space-2) var(--nexus-space-2); border-radius: var(--nexus-radius-sm); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--nexus-color-border-subtle) 55%, transparent); }
+.cdx-tocLink:hover, .cdx-tocLink:focus-visible { background: var(--nexus-color-bg-3); }
+.cdx-tocChapter { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+.cdx-tocName { color: var(--nexus-color-fg-1); font-size: var(--nexus-font-size-13); }
+.cdx-tocCount { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-mix); font-variant-numeric: tabular-nums; }
+.cdx-chapter { background: var(--nexus-color-bg-1); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md); padding: var(--nexus-space-5); display: flex; flex-direction: column; gap: var(--nexus-space-3); position: relative; }
+.cdx-chapter::before { content: ''; position: absolute; left: 0; top: var(--nexus-space-4); bottom: var(--nexus-space-4); width: 3px; border-radius: 2px; background: linear-gradient(180deg, var(--nexus-color-brand) 0%, var(--nexus-color-accent-2) 100%); opacity: 0.55; }
+.cdx-chapterHead { display: flex; align-items: baseline; gap: var(--nexus-space-3); border-bottom: 2px solid color-mix(in srgb, var(--nexus-color-brand) 35%, transparent); padding-bottom: var(--nexus-space-2); }
+.cdx-chapterNo { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-24); color: var(--nexus-color-warn-ink); opacity: 0.75; }
+.cdx-chapterTitle { flex: 1; font-size: var(--nexus-font-size-21); font-weight: 650; letter-spacing: 0.08em; margin: 0; }
+.cdx-chapterCount { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); font-variant-numeric: tabular-nums; }
+.cdx-empty { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); line-height: 1.8; padding: var(--nexus-space-3) var(--nexus-space-2); border: 1px dashed var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); }
+.cdx-entry { display: flex; flex-direction: column; gap: var(--nexus-space-2); padding: var(--nexus-space-3) 0; border-top: 1px solid color-mix(in srgb, var(--nexus-color-border-subtle) 55%, transparent); }
+.cdx-entry:first-of-type { border-top: 0; }
+.cdx-entryTitle { font-size: var(--nexus-font-size-16); font-weight: 650; margin: 0; color: var(--nexus-color-fg-1); }
+.cdx-para { font-size: var(--nexus-font-size-13); line-height: 2.0; color: var(--nexus-color-fg-2); margin: 0; text-indent: 2em; }
+.cdx-paraFirst::first-letter { float: left; font-size: 2.6em; line-height: 0.9; padding: 0 var(--nexus-space-2) 0 0; color: var(--nexus-color-warn-ink); font-weight: 700; }
+.cdx-eraList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--nexus-space-4); }
+.cdx-eraItem { border-left: 2px solid color-mix(in srgb, var(--nexus-color-brand) 40%, transparent); padding-left: var(--nexus-space-4); }
+.cdx-eraName { font-size: var(--nexus-font-size-13); font-weight: 650; color: var(--nexus-color-accent-mix); letter-spacing: 0.08em; margin: 0 0 var(--nexus-space-2) 0; }
+.cdx-eraEntries { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+.cdx-eraEntry { display: flex; align-items: baseline; gap: var(--nexus-space-3); padding: var(--nexus-space-1) 0; border-bottom: 1px solid color-mix(in srgb, var(--nexus-color-border-subtle) 40%, transparent); }
+.cdx-eraEntryKind { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-9); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); padding: 0 0.35rem; color: var(--nexus-color-fg-3); white-space: nowrap; }
+.cdx-eraEntryTitle { flex: 1; font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); }
+.cdx-eraEntryTime { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); font-variant-numeric: tabular-nums; }
+.cdx-castList { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--nexus-space-2); }
+@media (max-width: 40rem) { .cdx-castList { grid-template-columns: 1fr; } }
+.cdx-castItem { border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-2) var(--nexus-space-3); background: var(--nexus-color-bg-2); display: flex; flex-direction: column; gap: 2px; }
+.cdx-castName { font-size: var(--nexus-font-size-13); font-weight: 650; color: var(--nexus-color-fg-1); }
+.cdx-castIdentity { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); line-height: 1.6; }
+.cdx-link { color: var(--nexus-color-accent-2-ink); text-decoration: underline; text-underline-offset: 3px; }
+.cdx-foot { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--nexus-space-3); border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-3); }
+
+@media (forced-colors: active) {
+  .cdx-root, .cdx-chapter, .cdx-hero, .cdx-toc, .cdx-entry, .cdx-castItem { border-color: CanvasText; box-shadow: none; background: Canvas; color: CanvasText; }
+  .cdx-chapter::before { display: none; }
+  .cdx-title, .cdx-chapterTitle, .cdx-tocName, .cdx-castName, .cdx-entryTitle { color: CanvasText; }
+  .cdx-para, .cdx-lede { color: CanvasText; }
+  .cdx-kicker, .cdx-tocChapter, .cdx-tocCount, .cdx-chapterNo, .cdx-chapterCount, .cdx-eraEntryTime, .cdx-castIdentity, .cdx-footnote { color: CanvasText; }
+  .cdx-paraFirst::first-letter { color: CanvasText; }
+  .cdx-tocLink:hover, .cdx-tocLink:focus-visible { background: Highlight; color: HighlightText; }
+  .cdx-tocLink:focus-visible { outline: 2px solid Highlight; }
+}
