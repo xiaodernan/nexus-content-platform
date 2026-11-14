@@ -13872,7 +13872,7 @@ shadow-[0_0_...]），按 §FE 判据不可带入主线。本线做的：
 ### 一阶段已落地（2026-11-14，v717–v718）
 
 A. **世界 digest 控制台 [LANDED 2026-11-14 · v718]**——`/world/<id>/digest`：一屏四象限（星图/编年/设定集/切片，全部真实计数）；「最近两条纶元」只认作者取了名字的纶元（UNLABELED_ERA 剔除），星图活跃人次接入 EraTies；「最近动过的设定」按 updatedAt 倒序、平局 title/id 兜底（确定性，不做"重要度"算法）；世界读不出来 ⇒ dg-empty 页不画任何数字。§FE-DG 门面判据 7/7（钩子、.dg-*、零 hex、forced-colors、SHA256）。
-B. **世界 tide 推演 [ENGINE LANDED 2026-11-14 · v719]**——`lib/tide.ts` 纯函数引擎：五种扰模（drought 干亢 / progeny 繁衍 / inflation 通胀 / erosion 寂蚀 / murmur 潮声），各守一规（词典/kind/长度阈值），`severity`（1 要闻/2 季节/3 纪元）不参与任何计数；非法声明进 `invalid` 逐字列出；确定性双跑深相等。`tide.test.ts` 13 legs；`/world/<id>/tide` RSC 页面（声明区如实空白 + 五张「若声明」真预演卡，零叙事）；§FE-TD 判据 7/7；codex/digest 两处入口（SHA 重钉）。**剩余：Studio 落笔声明 + WorldDocument 可选 pressures 字段（下一片）**。
+B. **世界 tide 推演 [ENGINE+PERSISTENCE LANDED 2026-11-14 · v719–v720]**——引擎：`lib/tide.ts` 纯函数五扰模各守一规（drought 干亢 / progeny 繁衍 / inflation 通胀 / erosion 寂蚀 / murmur 潮声），`severity`（1 要闻/2 季节/3 纪元）不参与任何计数；非法声明进 `invalid`；确定性双跑深相等；`tide.test.ts` 13 legs + §FE-TD 7/7（`/world/<id>/tide` RSC 页面，codex/digest 两处入口）。持久化（v720）：WorldDocument 增可选 `pressures?: WorldTidePressure[]`（上界 16）；`@nexus/schemas` TidePressureSchema（severity union literals）与 world-model WORLD_TIDE_PRESSURE_KINDS 两处对齐（contract 测试锁死顺序）；`validateWorld` bad-pressure 逐项列 issues；世界读不出来仍零数字。**剩余：Studio「声明扰模」编辑器（下一片）**。
 C. **星图⇄编年双向联动 [LANDED 2026-11-14 · v717]**——lib/era-ties.ts 纯函数：人物 relationships[].target 一跳精确命中本卷 story/history 条目 id → 该人物「活跃于此卷」；viaEntryIds 保原序去重；人物按名升序+id 次级；编年页每卷渲染 .crn-ties 条（chips 指向 /constellation）；空态如实说。§FE-CRN 扩 13 钩子、SHA256 重钉。
 D. **Character soul patch 自动归档**——角色视觉字段变更同步归档——比起 agent_tasks snapshot，世界必须串行同步，不能成为第二份世界真值。**仍展望，未动未承诺**。
 

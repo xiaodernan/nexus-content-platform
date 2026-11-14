@@ -3,11 +3,12 @@ import {
   CharacterCreateRequestSchema,
   CharacterSchema,
   CharacterUpdateRequestSchema,
+  TidePressureKindSchema,
   WorldDocumentSchema,
   WorldKindSchema,
   WorldSaveRequestSchema,
 } from '../src/index';
-import { WORLD_ELEVATION_MAX, WORLD_KINDS, addWorldNode, createWorld, removeWorldNode, setWorldNodeElevation, setWorldNodePosition } from '@nexus/world-model';
+import { WORLD_ELEVATION_MAX, WORLD_KINDS, WORLD_TIDE_PRESSURE_KINDS, addWorldNode, createWorld, removeWorldNode, setWorldNodeElevation, setWorldNodePosition } from '@nexus/world-model';
 
 /**
  * ä¸–ç•Œæ–‡æ¡£çš„ zod å¥‘çº¦ä¸Ž @nexus/world-model ä¸è®¸æ¼‚ç§»ã€‚
@@ -137,5 +138,38 @@ describe('è§’è‰²æ¡£æ¡ˆå¥‘çº¦ï¼ˆÂ§46ï¼‰', () => {
 
   it('æ›´æ–°è¯·æ±‚å¿…é¡»å¸¦æ•´ä»½ profile', () => {
     expect(CharacterUpdateRequestSchema.safeParse({ profile: { name: 'x' } }).success).toBe(false);
+  });
+});
+
+/**
+ * ¡¸ÊÀ½ç³±Ï«¡¹µÄÈÅÄ£ÉùÃ÷ÆõÔ¼£¨v719-engine / ADR-0267£©¡£
+ * È±Ê¡ optional£ºÀÏÊÀ½çÃ»ÓÐ pressures ÕÕÑù¹ýÃÅ£»severity Ö»ÈÏ 1/2/3 ÇÒ²»²ÎÓëÈÎºÎÍ¶Ó°¼ÆÊý¡£
+ */
+describe('ÊÀ½ç³±Ï«ÈÅÄ£ÉùÃ÷ÆõÔ¼£¨¡ìv719 ¡ìB£©', () => {
+  it('kind Çåµ¥ÓëÄ£ÐÍÍêÈ«Ò»ÖÂ£¬Ë³ÐòÒ²Ëã', () => {
+    expect(TidePressureKindSchema.options).toEqual([...WORLD_TIDE_PRESSURE_KINDS]);
+  });
+
+  it('ÀÏÎÄµµÃ»ÓÐ pressures ÕÕÑù×ÔÇ¢', () => {
+    const world = createWorld('ÎÞ³±Ï«', 'proj-tide');
+    expect(WorldDocumentSchema.safeParse(world).success).toBe(true);
+    expect(WorldSaveRequestSchema.safeParse({ document: world }).success).toBe(true);
+  });
+
+  it('´øºÏ·¨ pressures µÄÊÀ½ç¹ýÃÅ£»severity Ô½½ç / label ³¬³¤ / id ¿Õ ¶¼µ²', () => {
+    const world = createWorld('ÓÐ³±Ï«', 'proj-tide-2');
+    const pressures = [
+      { id: 'tp-1', kind: 'drought', label: '¸É¿ºËê', severity: 3 },
+      { id: 'tp-2', kind: 'murmur', label: '·çÉùÄê', severity: 1 },
+    ];
+    expect(WorldDocumentSchema.safeParse({ ...world, pressures }).success).toBe(true);
+    expect(WorldSaveRequestSchema.safeParse({ document: { ...world, pressures } }).success).toBe(true);
+    expect(WorldDocumentSchema.safeParse({ ...world, pressures: [{ ...pressures[0]!, severity: 4 }] }).success).toBe(false);
+    expect(WorldDocumentSchema.safeParse({ ...world, pressures: [{ ...pressures[0]!, label: 'x'.repeat(41) }] }).success).toBe(false);
+    expect(WorldDocumentSchema.safeParse({ ...world, pressures: [{ ...pressures[0]!, id: '   ' }] }).success).toBe(false);
+    expect(WorldDocumentSchema.safeParse({ ...world, pressures: [{ ...pressures[0]!, kind: 'sunburn' }] }).success).toBe(false);
+    // 17 Ìõ³¬¹ýÉÏ½ç
+    const over = Array.from({ length: 17 }, (_, i) => ({ id: `tp-${i}`, kind: 'drought', label: '¸É¿º', severity: 2 }));
+    expect(WorldDocumentSchema.safeParse({ ...world, pressures: over }).success).toBe(false);
   });
 });

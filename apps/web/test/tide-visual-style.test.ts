@@ -68,7 +68,7 @@ describe('§FE-TD /world/<project>/tide 世界潮汐', () => {
     expect(lib).not.toContain('crypto.getRandomValues');
     expect(lib).not.toContain('Math.random');
     expect(lib).toContain('EROSION_BODY_LIMIT = 120');
-    expect(lib).toContain("TIDE_PRESSURE_KINDS = ['drought', 'progeny', 'inflation', 'erosion', 'murmur']");
+    expect(lib).toContain('TIDE_PRESSURE_KINDS = WORLD_TIDE_PRESSURE_KINDS');
   });
 
   it('诚实空态：世界读不出来 ⇒ 不画数字；声明区未声明 ⇒ 指引不装演', () => {

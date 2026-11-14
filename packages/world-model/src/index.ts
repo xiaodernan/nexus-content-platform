@@ -138,6 +138,32 @@ export function isWorldPlateauProfile(value: unknown): value is WorldPlateauProf
   return value === undefined || (WORLD_PLATEAU_PROFILES as readonly unknown[]).includes(value);
 }
 
+/**
+ * 「世界潮汐」的扰模声明（v719-engine / ADR-0267）。缺省 = 没有声明——潮汐页如实空白。
+ *
+ * severity 1 要闻 / 2 季节 / 3 纪元——是作者的着墨，**不参与任何投影计数**
+ * （见 lib/tide.ts 的字节级注释；算法不给作者缩水，也不给作者放大）。
+ * kind 清单与 @nexus/schemas 的 TidePressureKindSchema 同源——两处各有一份是没办法的事
+ * （z.enum 要字面量），world-contract.test.ts 拿模型对齐，漂移会炸测试。
+ * 此清单即潮汐引擎的全部受体——没落进这五种 kind 的扰模，引擎一行代码都看不见它。
+ */
+export const WORLD_TIDE_PRESSURE_KINDS = ["drought", "progeny", "inflation", "erosion", "murmur"] as const;
+export type WorldTidePressureKind = (typeof WORLD_TIDE_PRESSURE_KINDS)[number];
+
+export interface WorldTidePressure {
+  /** 作者声明的原始 id（唯一，trim 后非空） */
+  id: string;
+  kind: WorldTidePressureKind;
+  /** 作者给这个扰模取的名字（限 40 字——这是作者的字，不做回退） */
+  label: string;
+  /** 强度（1 要闻 / 2 季节 / 3 纪元） */
+  severity: 1 | 2 | 3;
+}
+
+export function isWorldTidePressureKind(value: unknown): value is WorldTidePressureKind {
+  return typeof value === "string" && (WORLD_TIDE_PRESSURE_KINDS as readonly string[]).includes(value);
+}
+
 export interface WorldDocument {
   id: string;
   /** 世界属于哪个项目；独立世界（还没挂到项目上）时为 null */
@@ -157,6 +183,8 @@ export interface WorldDocument {
    * 位置与高程分开存，地形也分开：它是世界的地，不是哪个条目的属性。
    */
   terrain?: WorldTerrain;
+  /** §潮汐（v719-engine / ADR-0267）：作者声明的扰模。缺省 = 本世界未声明任何扰模。 */
+  pressures?: WorldTidePressure[];
   createdAt: string;
   updatedAt: string;
 }
@@ -172,7 +200,8 @@ export interface WorldIssue {
     | "missing-endpoint"
     | "duplicate-link"
     | "bad-terrain"
-    | "bad-lore";
+    | "bad-lore"
+    | "bad-pressure";
   message: string;
   nodeId?: string;
 }
@@ -765,6 +794,48 @@ export function validateWorld(document: WorldDocument): WorldIssue[] {
           issues.push({
             code: "bad-terrain",
             message: `圆台「${plateau.id}」的剖面只有 mesa 和 cone 两种（收到 ${String(plateau.profile)}）。`,
+          });
+        }
+      }
+    }
+  }
+  // 「潮汐」扰模声明：作者写的每一条都逐项过门——任何一条不合法都列进 issues，
+  // 不静默地剥掉（剥了就等于对作者说谎，§159）
+  if (document.pressures !== undefined) {
+    if (!Array.isArray(document.pressures)) {
+      issues.push({ code: "bad-pressure", message: "pressures 必须是数组（扰模声明是一张清单）" });
+    } else {
+      const seenIds = new Set<string>();
+      for (const raw of document.pressures as readonly unknown[]) {
+        const pressure = raw as { id?: unknown; kind?: unknown; label?: unknown; severity?: unknown } | null;
+        const id = typeof pressure?.id === "string" ? pressure.id.trim() : "";
+        if (id.length === 0) {
+          issues.push({ code: "bad-pressure", message: "扰模的 id 是空白——每一个扰模都要有自己的名字" });
+          continue;
+        }
+        if (seenIds.has(id)) {
+          issues.push({ code: "bad-pressure", message: `扰模 id 重复（${id} 出现了两次）` });
+        }
+        seenIds.add(id);
+        if (typeof pressure?.id === "string" && pressure.id.trim().length > 80) {
+          issues.push({ code: "bad-pressure", message: `扰模「${id}」的 id 超过 80 字` });
+        }
+        if (!isWorldTidePressureKind(pressure?.kind)) {
+          issues.push({
+            code: "bad-pressure",
+            message: `扰模「${id}」的 kind 不认识：${String(pressure?.kind)}（可用：${WORLD_TIDE_PRESSURE_KINDS.join(" / ")}）`,
+          });
+        }
+        const label = typeof pressure?.label === "string" ? pressure.label.trim() : "";
+        if (label.length === 0) {
+          issues.push({ code: "bad-pressure", message: `扰模「${id}」没有取名（label 是空白）` });
+        } else if (label.length > 40) {
+          issues.push({ code: "bad-pressure", message: `扰模「${id}」的 label 超过 40 字（${label.length}）` });
+        }
+        if (pressure?.severity !== 1 && pressure?.severity !== 2 && pressure?.severity !== 3) {
+          issues.push({
+            code: "bad-pressure",
+            message: `扰模「${id}」的 severity 只允许 1 / 2 / 3（收到 ${String(pressure?.severity)}）`,
           });
         }
       }

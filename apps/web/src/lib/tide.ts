@@ -14,7 +14,10 @@
  * - 非法声明不静默：全部列进 `invalid` 里——写错了就写错了，作者下一眼就能看见。
  */
 
-export const TIDE_PRESSURE_KINDS = ['drought', 'progeny', 'inflation', 'erosion', 'murmur'] as const;
+/** 潮汐五扰模的权威清单在 @nexus/world-model 与 packages/schemas（模型与契约两处对齐）。 */
+import { WORLD_TIDE_PRESSURE_KINDS } from '@nexus/world-model';
+
+export const TIDE_PRESSURE_KINDS = WORLD_TIDE_PRESSURE_KINDS;
 export type TidePressureKind = (typeof TIDE_PRESSURE_KINDS)[number];
 
 /** 作者声明的一条扰模（id trim 后非空、唯一；label 限 40 字；severity 1..3）。 */

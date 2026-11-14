@@ -1364,6 +1364,21 @@ export const WorldLinkSchema = z.object({
 });
 export type WorldLinkPayload = z.infer<typeof WorldLinkSchema>;
 
+/**
+ * 「世界潮汐」的扰模声明报文（v719-engine / ADR-0267）。
+ * 缺省可省（optional）——老世界没有这一栏照样读得出来；severity 只允许 1 / 2 / 3，且**不参与任何投影计数**
+ * （它是作者的着墨：1 要闻 / 2 季节 / 3 纪元）。kind 清单与 @nexus/world-model 的 WORLD_TIDE_PRESSURE_KINDS
+ * 同源——两处各有一份是没办法的事（z.enum 要字面量），world-contract.test.ts 拿模型对齐，漂移会炸测试。
+ */
+export const TidePressureKindSchema = z.enum(['drought', 'progeny', 'inflation', 'erosion', 'murmur']);
+export const TidePressureSchema = z.object({
+  id: z.string().trim().min(1).max(80),
+  kind: TidePressureKindSchema,
+  label: z.string().trim().min(1).max(40),
+  severity: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+});
+export type TidePressurePayload = z.infer<typeof TidePressureSchema>;
+
 export const WorldDocumentSchema = z.object({
   id: z.string().min(1).max(128),
   projectId: z.string().max(128).nullable(),
@@ -1376,6 +1391,9 @@ export const WorldDocumentSchema = z.object({
   positions: z.record(z.string(), WorldPointSchema).default({}),
   // 老世界没有 terrain：缺字段必须仍然读得出来，而不是让老项目一打开面板就报"契约不符"
   terrain: WorldTerrainSchema.optional(),
+  // 老世界没有 tide 扰模声明：缺字段必须仍然读得出来，而不是让老项目一打开就报"契约不符"
+  // 上界 16 条——作者的着墨不是清单，超过这个数写进来的要么不是扰模要么该拆文档
+  pressures: z.array(TidePressureSchema).max(16).optional(),
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
 });
