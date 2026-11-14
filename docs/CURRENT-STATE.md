@@ -3787,3 +3787,16 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - Gates：§FE-RL 双文件 SHA 重钉（page=68fd8650… panel=a294e80a…）；fe-gates 116/116 · 1148/1148；tsc web 0；eslint 净。
 - /admin 已完成 14/24。
 - showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 143 (2026-11-17) - v774: 世界大典第二章「潮汐教团的第四十一次会议」+ 锚句校验本地入口
+
+- 新建 docs/world-bible/002-潮汐教团的第四十一次会议.md：接续第一章"缺那一页"的谜题——第四十一页只存在于潮汐室的地砖下；
+  六节（名单上的空格／第四十一页／镜碎了／守夜人的回信／会册的背面／铁月纪的第一个冬天卷三引线），
+  全篇中英对照；6 处锚句中英字字对齐（第四十一次会议是海开的／海说不再记这本账／第七条灯芯没熄／月亮桥等守夜人／会册是海的账本／每一种海风都有缺口→潮沙盘）。
+  章末 world-node 映射表（lore/geography/factions/characters/items/story/quests），并在"本章与第一章"段写明大典的两扇门结构。
+- 新建 scripts/verify-world-bible-anchors.mts（纯检查、零依赖、零 provider）：逐文件验锚句恰好一次出现、中英锚句数量一致、
+  单章 ≥4、zh/en 计数相等、目录非空即红；注册 npm script `verify:world-bible`（package.json）。
+  现状验证：2 个章文件、zh 锚句 12、en 锚句 12，✓ 全部通过。
+- ROADMAP M3 登记世界大典两章目录 + 校验入口。
+- Gates：fe-gates 116/116 · 1148/1148；web tsc 0；`verify:world-bible` 2 文件 / 12 锚句对；eslint 净。
+- showcase 快照同步于提交后（npm run sync:showcase）。
