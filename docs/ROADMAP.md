@@ -13802,6 +13802,22 @@ shadow-[0_0_...]），按 §FE 判据不可带入主线。本线做的：
   hub-selected detail panel with voice/desires/fears/relationships); two-way relationship
   merge labels render on the canvas.
 - Studio world panel gains a "character star map" entry button next to the 3D walkthrough.
+## v706 - global "?" shortcut cheatsheet (2026-11-14)
+
+- `components/KeyboardCheatsheet.tsx`: fixed fab (`.kb-fab`) opens an aria-modal dialog
+  (`.kb-sheet`) listing every real keyboard shortcut on the site, grouped
+  (全局 / Studio 画布 / 命令面板内 / 提示词命令条 / 人物关系星图 / 世界编年).
+- Honesty gate (§FE-KB `keyboard-cheatsheet-visual-style.test.ts`, 8/8): every key binding
+  cited in the sheet has its keydown branch asserted present in the owning source file
+  (CanvasStage z/y/s/a/g, command-palette PALETTE_KEY, CommandBar '/', ConstellationPanel
+  Enter/Space, palette `data-command-palette-root`). Sheet content = code truth; nothing invented.
+- `Esc` always closes; `?` (Shift+Slash, key '?') toggles; inactive while typing / on controls /
+  or while the command palette is open (`[data-command-palette-root]` guard); body scroll locked
+  while open.
+- Mounted globally in root layout next to `<CommandPalette/>` / `<ThemeToggle/>`.
+- Verification: SSR mount probe (149 bytes, fab renders), no-raw-tailwind clean,
+  census 1973, tsc EXIT=0.
+
 ## v705 - world chronicle: /world/<projectId>/chronicle (2026-11-14, ADR 0136)
 
 - Added the time dimension to the world model: WorldNode.lore = { era?, order? } (optional,

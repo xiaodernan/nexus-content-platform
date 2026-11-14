@@ -4439,3 +4439,42 @@
   .crn-kindTag, .crn-kindTagHistory { border-color: ButtonText; background: Canvas; color: ButtonText; }
   .crn-scroll:focus-visible { outline-color: Highlight; }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   §FE-KB「?快速键速览」视觉层（全局 overlay + fab）。
+   全 tokens、零 hex、forced-colors 有收口。
+   ───────────────────────────────────────────────────────────────────── */
+.kb-fab { position: fixed; z-index: 60; right: max(var(--nexus-space-4), env(safe-area-inset-right, var(--nexus-space-4))); bottom: max(var(--nexus-space-4), env(safe-area-inset-bottom, var(--nexus-space-4))); width: 2.5rem; height: 2.5rem; border-radius: 9999px; border: 1px solid color-mix(in srgb, var(--nexus-color-brand) 45%, transparent); background: color-mix(in srgb, var(--nexus-color-bg-1) 88%, transparent); color: var(--nexus-color-accent-mix); font-family: var(--nexus-font-mono); font-size: 1.05rem; line-height: 1; cursor: pointer; backdrop-filter: blur(8px); box-shadow: 0 0.3rem 1.1rem color-mix(in srgb, var(--nexus-color-bg-0) 70%, transparent); transition: border-color 160ms ease, transform 160ms ease; }
+.kb-fab:hover, .kb-fab:focus-visible { border-color: var(--nexus-color-brand); transform: translateY(-1px); outline: none; }
+.kb-fab:focus-visible { box-shadow: 0 0 0 3px color-mix(in srgb, var(--nexus-color-brand) 40%, transparent); }
+.kb-backdrop { position: fixed; z-index: 90; inset: 0; display: flex; align-items: center; justify-content: center; padding: var(--nexus-space-4); background: color-mix(in srgb, var(--nexus-color-bg-0) 78%, transparent); backdrop-filter: blur(4px); }
+.kb-sheet { display: flex; flex-direction: column; gap: var(--nexus-space-4); width: 100%; max-width: 46rem; max-height: min(82vh, 44rem); overflow-y: auto; border-radius: var(--nexus-radius-md); border: 1px solid var(--nexus-color-border-subtle); background: linear-gradient(165deg, var(--nexus-color-bg-1), var(--nexus-color-bg-2)); padding: var(--nexus-space-5); position: relative; box-shadow: 0 1.2rem 3rem color-mix(in srgb, var(--nexus-color-bg-0) 65%, transparent); }
+.kb-head { position: relative; display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+.kb-kicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); text-transform: uppercase; letter-spacing: 0.22em; color: var(--nexus-color-accent-mix); }
+.kb-title { font-size: var(--nexus-font-size-21); font-weight: 700; color: var(--nexus-color-fg-1); }
+.kb-note { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); line-height: 1.7; max-width: 32rem; }
+.kb-close { position: absolute; top: 0; right: 0; width: 2rem; height: 2rem; border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); color: var(--nexus-color-fg-2); font-size: 1.1rem; cursor: pointer; line-height: 1; }
+.kb-close:hover, .kb-close:focus-visible { border-color: var(--nexus-color-border-strong); color: var(--nexus-color-fg-1); }
+.kb-close:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+.kb-groups { display: grid; grid-template-columns: 1fr; gap: var(--nexus-space-3); }
+@media (min-width: 48rem) { .kb-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.kb-group { display: flex; flex-direction: column; gap: var(--nexus-space-2); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md); background: var(--nexus-color-bg-2); padding: var(--nexus-space-3); }
+.kb-groupHead { display: flex; align-items: baseline; justify-content: space-between; gap: var(--nexus-space-2); }
+.kb-groupTitle { font-size: var(--nexus-font-size-13); font-weight: 650; color: var(--nexus-color-fg-1); }
+.kb-groupScope { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+.kb-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.kb-row { display: flex; align-items: baseline; gap: var(--nexus-space-3); padding: var(--nexus-space-1) 0; border-top: 1px solid color-mix(in srgb, var(--nexus-color-border-subtle) 50%, transparent); }
+.kb-row:first-child { border-top: 0; }
+.kb-key { flex-shrink: 0; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-2-ink); background: var(--nexus-color-bg-1); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); padding: 2px var(--nexus-space-2); white-space: nowrap; }
+.kb-action { font-size: var(--nexus-font-size-12); line-height: 1.65; color: var(--nexus-color-fg-2); }
+
+@media (forced-colors: active) {
+  .kb-fab { border-color: ButtonText; background: Canvas; color: ButtonText; }
+  .kb-backdrop { background: Canvas; }
+  .kb-sheet { border: 1px solid CanvasText; background: Canvas; color: CanvasText; box-shadow: none; }
+  .kb-group, .kb-close { border-color: CanvasText; background: Canvas; color: CanvasText; }
+  .kb-key { border-color: ButtonText; background: Canvas; color: ButtonText; }
+  .kb-title, .kb-groupTitle, .kb-note, .kb-action { color: CanvasText; }
+  .kb-fab:focus-visible { box-shadow: 0 0 0 3px Highlight; }
+  .kb-close:focus-visible { outline: 2px solid Highlight; }
+}
