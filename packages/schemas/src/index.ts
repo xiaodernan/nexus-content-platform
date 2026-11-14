@@ -1312,6 +1312,13 @@ export const WorldNodeSchema = z.object({
   title: z.string().trim().min(1).max(200),
   body: z.string().max(20_000),
   updatedAt: z.string().min(1),
+  /** §44 纪年（可选；老文档没有这一层照样读得出）*/
+  lore: z
+    .object({
+      era: z.string().trim().min(1).max(80).optional(),
+      order: z.number().int().min(0).optional(),
+    })
+    .optional(),
 });
 export type WorldNodePayload = z.infer<typeof WorldNodeSchema>;
 

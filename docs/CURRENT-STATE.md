@@ -3114,3 +3114,18 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   nexus-postgres/redis healthy; both screenshots taken after recovery.
 - CI note: hosted queue still capacity-blocked (7fb3c91/95dbf12 CI now SUCCESS; 4d67a2b and
   later refs queued in_progress at record time).
+## cont. 98 (2026-11-14) - v705 landed: world chronicle (time dimension for the world map)
+
+- The world module gained its missing axis: time. WorldNode.lore { era?, order? } is additive
+  and optional; zod + validateWorld + roundtrip verified; old docs byte-compatible.
+- /world/<projectId>/chronicle renders the era lanes horizontally (three named eras plus the
+  unlabeled bucket) with starfield lane backgrounds, kind-colored chips, per-card in-era
+  sequence, honest empty state when there is no story/history content.
+- Verification: 6/6 chronicle unit tests; tsc 0; direct eslint 0 on all touched files; seeded
+  story/history nodes into the constellation fixture project and captured the rendered chronicle
+  screenshot; eras sorted correctly; unlabeled bucket last; roundtrip through zod/validateWorld/
+  storage confirmed (era/order survive PUT -> GET).
+- Docker Desktop went down again this turn (fifth outage host today); relaunched before the
+  chronicle verification; nexus-postgres/redis healthy.
+- CI: 4d67a2b both SUCCESS; 95dbf12 both SUCCESS; 7fb3c91 both SUCCESS; 846dec5 both SUCCESS;
+  51f07b0 queued at record time - main-line elsewhere stays green.
