@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { SavingsCard } from '../apps/web/src/components/SavingsCard';

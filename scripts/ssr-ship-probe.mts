@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import ShipPage from '../apps/web/src/app/ship/page';
