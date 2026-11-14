@@ -103,7 +103,7 @@ describe('§FE-EPH /world/<project>/ephemeris 世界切片', () => {
 
   it('SHA256 钉死（本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      'a88b9c1d676cc24c2a8f4e11659ecc0bfdb0d74be5e772bbd94ae7ad1a86f7a8',
+      'fbfeb401c79854c88d62f4cecf045e3f300584256e8a089958b0f8d66f482862',
     );
   });
 });
