@@ -3619,3 +3619,14 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   共 24+ 文件、约 1.7 万字）登记为 v761+ 专项：按 server page → getLocale → 字典双轨、client Panel 走
   locale prop 逐页推进，每页一书面决定（KEEP zh 则明确登记）。
 - showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 131 (2026-11-17) - v761: Redis completion-cache 压测回归（v733–v760 之后）
+
+- 高压测试复跑（用户常设要求）：scripts/load-redis-completion-cache.py，4 档 × 6000 ops（合计 24,000 ops）：
+  **errors=0，hit_ratio≈0.80，namespace_residue=0，entries_deleted=4755**；DB0/生产命名空间未动。
+- 诚实读数：吞吐 1170/640/749/874 ops/s **低于** v734（2560–3760 ops/s），本机 free≈2.2 GB；
+  只登记"零错误与清理不变量保持"，绝不写成 SLA（§159）。证据：docs/evidence/load-redis-completion-cache-2026-11-17.{md,json}；
+  PERFORMANCE.md 尾部新增 "## 2026-11-17 v760+ 回归"。
+- 分支并轨审计（v760 已留档，cont. 130）：origin/master 与 refs/remotes/other/* 全为 main 祖先——
+  并轨完成，本次无新增（不动陈旧 refs，删除需用户拍板）。
+- showcase 快照同步于提交后（npm run sync:showcase）。

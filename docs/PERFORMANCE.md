@@ -1074,6 +1074,13 @@ derivedCache 的命中是有效的（tokens/资产 0ms），ADR-0027 的 layout 
   | | 读 | 组装/解析 | 合计 |
   |---|---|---|---|
   | 逐行读 + Node 组装（今天这条） | **151ms** | 4ms | **155ms** |
+
+## 2026-11-17 v760+ 回归：24,000 ops、零错误、residue=0（本机内存压力更大，吞吐低于 v734）
+
+4 档（16/64/128/256 连接 × 6000 ops）全部 **errors=0**，命中率 ≈ 0.80（80/20 合成读写比，1500B payload，TTL 3600），
+清理 `entries_deleted=4755`、`namespace_residue=0`；DB0/生产命名空间未动。
+吞吐 1170/640/749/874 ops/s 低于 v734（2560–3760 ops/s）——本机 free ≈ 2.2 GB 且 `.next` 驻留加大；
+结论只记**零错误与清理不变量保持**，不受吞吐数字读法影响。RAW 读数见 `docs/evidence/load-redis-completion-cache-2026-11-17.{md,json}`。**不是 SLA。**
   | jsonb_agg 一行 + JSON.parse（另一条） | 643ms | 741ms | **1384ms** |
   | 内容是否相等 | ✓ 10000 vs 10000，0 条不同 | | |
 
