@@ -3631,6 +3631,15 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   并轨完成，本次无新增（不动陈旧 refs，删除需用户拍板）。
 - showcase 快照同步于提交后（npm run sync:showcase）。
 
+## cont. 133 (2026-11-17) - v763: /admin health 双语化
+
+- app/admin/health/page.tsx 双语（server RSC，getLocale()）：denied×2、overallAria（role=status）、
+  overall 两态文案、greenCount、listAria（五层健康清单）、verdictOk/Bad、measuredSuffix、toLocaleTimeString(locale)。
+  tier.detail（服务端裁定 zh）原文透传（§46），TIER_LABEL 产品名保持原样。
+- §FE-40 无 SHA 门（12 门全 hook 守恒），本次零门钉改动即绿；fe-gates 116/116 · 1148/1148；tsc 0；eslint 净。
+- /admin 已完成 5/24（home/AdminNav/dead-letters/audit/health）。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
 ## cont. 132 (2026-11-17) - v762: /admin dead-letters + audit 双语化
 
 - app/admin/dead-letters/page.tsx 双语（server RSC，getLocale()）：
