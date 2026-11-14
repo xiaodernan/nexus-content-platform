@@ -5,7 +5,7 @@
   "headline": "NEXUS Content Platform — an entire world you can walk, read, and play.",
   "as_of": "2026-11-14",
   "first_commit_at": "2026-09-22T00:41:41+08:00",
-  "services": 5,
+  "services": 8,
   "feature_surface": [
     "Studio + Agent Runtime",
     "Spring Cloud (Eureka · Gateway · Config · Resilience4j)",
