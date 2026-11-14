@@ -153,7 +153,7 @@ function maskLiterals(expr: string): string {
  * **剥 className 后全文逐字节哈希**（本片最强零行为门）。
  * 基线（全裸）与改造后（全 `.sp-`）必须整份恒等 `8fefe54…`（v703-credit-chip 并入后真值重钉（8fefe54，含 CreditChip））。
  */
-const STRIP_CLASS_SHA256 = '8fefe54cc641fa3b465307fe2b4de0836d845bb98bdc34bc33016f75699cea54';
+const STRIP_CLASS_SHA256 = 'ecb6e254cbd61cfa4062b419aca778bab0d3c761b235121afe64b3bf19759e57';
 function stripClassNames(src: string): string {
   const s = src.replace(/\r\n/g, '\n');
   let out = '';
@@ -291,10 +291,14 @@ describe('§FE-19 Studio 顶栏门面基建（静态不变式）', () => {
   });
 
   it('纯函数 / 常量 / 诚实文案契约零行为（saveLabel 四分支 / studio.* 调用 / aria / VIEWPORTS）', () => {
-    // saveLabel 四分支（诚实保存态）
-    expect(code, 'saveLabel 判定链动了').toMatch(/const saveLabel =\s*saveState === 'saving'\s*\?\s*'保存中…'/);
-    for (const s of ["'有未保存改动'", "'已同步'", '`保存失败：${saveError ?? \'未知错误\'}`']) {
-      expect(code, `诚实文案丢了：${s}`).toContain(s);
+    // saveLabel 四分支（诚实保存态）：判定链指向 shell-i18n 的 COPY
+    expect(code, 'saveLabel 判定链动了').toMatch(/const saveLabel =\s*saveState === 'saving'\s*\?\s*c\.saving/);
+    const i18n = readFileSync(join(ROOT, 'apps/web/src/studio/shell-i18n.ts'), 'utf8');
+    for (const s of ['saving:', 'saveFailed:', 'unsavedChanges:', 'synced:', 'savedAt:']) {
+      expect(i18n, `shell-i18n COPY 丢了：${s}`).toContain(s);
+    }
+    for (const s of ['保存中…', '有未保存改动', '已同步', '未知错误']) {
+      expect(i18n, `shell-i18n zh 文案丢了：${s}`).toContain(s);
     }
     // studio.* 存储调用链
     for (const s of ['studio.renameDocument(trimmed)', 'studio.undo()', 'studio.redo()', 'studio.setViewport(v.id)', 'studio.setMode(', 'studio.toggleGrid()']) {
@@ -305,19 +309,23 @@ describe('§FE-19 Studio 顶栏门面基建（静态不变式）', () => {
       expect(code, `事件处理丢了：${s}`).toContain(s);
     }
     // aria 契约
-    expect(code).toContain('aria-label="项目名"');
+    expect(code).toContain('c.projectNameAria');
     expect(code).toContain('aria-pressed={props.active}');
     // VIEWPORTS 映射来自 viewer-params 那一份表（§16 单一真值）
-    for (const s of ['VIEWPORTS.map(', 'BREAKPOINT_LABELS[option.id]', 'VIEWPORT_OPTIONS.map(', 'studio.setViewport(v.id)']) {
+    for (const s of ['viewports.map(', 'BREAKPOINT_LABELS[option.id]', 'VIEWPORT_OPTIONS.map(', 'studio.setViewport(v.id)']) {
       expect(code, `视口真值链丢了：${s}`).toContain(s);
     }
     // 2 个 <a> href / title 诚实文案
-    for (const s of ['<a href="/"', "'未命名项目'", 'href={`/preview/${projectId}`}', '只读运行预览（任务 #7 接入运行态投影）']) {
+    for (const s of ['<a href="/"', 'href={`/preview/${projectId}`}', 'c.previewTitle', 'c.defaultProjectName']) {
       expect(topbar, `链接/文案丢了：${s}`).toContain(s);
     }
     // 顶栏按钮诚实文案
-    for (const s of ['面板', 'NEXUS', '默认主题', '预览', '撤销', '重做', '网格']) {
-      expect(topbar, `顶栏文案丢了：${s}`).toContain(s);
+    for (const s of ['NEXUS']) {
+      expect(topbar, `顶栏品牌串丢了：${s}`).toContain(s);
+    }
+    const i18nZh = i18n.slice(i18n.indexOf('zh: {'), i18n.indexOf('en: {'));
+    for (const s of ['面板', '默认主题', '预览', '撤销', '重做', '网格']) {
+      expect(i18nZh, `shell-i18n zh 文案丢了：${s}`).toContain(s);
     }
   });
 

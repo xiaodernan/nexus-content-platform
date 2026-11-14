@@ -6,23 +6,26 @@ import { studio, useStudioFields, type ViewportMode } from './store';
 import { BREAKPOINT_LABELS, VIEWPORT_OPTIONS } from './viewer-params';
 import { PublishPanel } from './PublishPanel';
 import { ExportPanel } from './ExportPanel';
+import { shellCopy } from './shell-i18n';
+import type { Locale } from '@/lib/i18n';
 
 /**
  * 顶栏那一排视口按钮。名字与宽度都取自 `viewer-params` 那一份表：
  * 以前这里手抄了一份"移动 375 / 平板 768"，与访客页的"手机 375"两套叫法并存，
  * 而数字抄的是模型里的常量——同一件事在两个界面里长得不一样，作者会以为它们不是一回事（§16）。
  */
-const VIEWPORTS: { id: ViewportMode; label: string; hint: string }[] = [
-  { id: 'design', label: '设计', hint: '模型原始画布宽度' },
-  ...VIEWPORT_OPTIONS.map((option) => ({
-    id: option.id as ViewportMode,
-    label: `${BREAKPOINT_LABELS[option.id]} ${option.width}`,
-    hint: `按 ${option.width}px 重新求解布局`,
-  })),
-];
 
 /** §4 顶栏：Project · File · Preview · Share · Publish + 撤销/重做 + 保存状态 + viewport 切换 */
-export function TopBar({ onOpenRail, credits = null }: { onOpenRail: () => void; credits?: { ai: number; grant: number; plan: string } | null }) {
+export function TopBar({ onOpenRail, credits = null, locale = 'zh' }: { onOpenRail: () => void; credits?: { ai: number; grant: number; plan: string } | null; locale?: Locale }) {
+  const c = shellCopy(locale);
+  const viewports: { id: ViewportMode; label: string; hint: string }[] = [
+    { id: 'design', label: c.designViewLabel, hint: c.designViewHint },
+    ...VIEWPORT_OPTIONS.map((option) => ({
+      id: option.id as ViewportMode,
+      label: `${BREAKPOINT_LABELS[option.id]} ${option.width}`,
+      hint: c.viewportHint(option.width),
+    })),
+  ];
   // §147 选中响应：顶栏只关心文档名 / 保存状态 / 视口 / 主题 mode，这些在选中时都不变。
   // 用选式子订阅，选中（commit 换了整快照对象）不再把顶栏也拖着重渲染。
   const { documentName, saveState, saveError, dirty, savedAt, canUndo, canRedo, undoLabel, redoLabel, viewport, activeMode, projectId, modes, grid } =
@@ -60,14 +63,14 @@ export function TopBar({ onOpenRail, credits = null }: { onOpenRail: () => void;
 
   const saveLabel =
     saveState === 'saving'
-      ? '保存中…'
+      ? c.saving
       : saveState === 'error'
-        ? `保存失败：${saveError ?? '未知错误'}`
+        ? c.saveFailed(saveError)
         : dirty
-          ? '有未保存改动'
+          ? c.unsavedChanges
           : savedAt
-            ? `已保存 ${new Date(savedAt).toLocaleTimeString('zh-CN', { hour12: false })}`
-            : '已同步';
+            ? c.savedAt(new Date(savedAt).toLocaleTimeString(locale === 'en' ? 'en-GB' : 'zh-CN', { hour12: false }))
+            : c.synced;
 
   return (
     <header className="sp-topbar">
@@ -76,14 +79,14 @@ export function TopBar({ onOpenRail, credits = null }: { onOpenRail: () => void;
         onClick={onOpenRail}
         className="sp-railToggle"
       >
-        面板
+        {c.railToggle}
       </button>
       <a href="/" className="sp-wordmark">
         NEXUS
       </a>
       <span className="sp-divider" />
       {editingName ? (
-        <input aria-label="项目名"
+        <input aria-label={c.projectNameAria}
           ref={nameRef}
           value={nameDraft}
           onChange={(e) => setNameDraft(e.target.value)}
@@ -99,26 +102,26 @@ export function TopBar({ onOpenRail, credits = null }: { onOpenRail: () => void;
         <button
           type="button"
           onClick={() => setEditingName(true)}
-          title="重命名项目"
+          title={c.renameProjectTitle}
           className="sp-nameBtn"
           data-project-name
         >
-          {documentName || '未命名项目'}
+          {documentName || c.defaultProjectName}
         </button>
       )}
 
       <div className="sp-toolGroup">
-        <TopButton label="撤销" shortcut="Ctrl+Z" disabled={!canUndo} title={undoLabel ?? undefined} onClick={() => studio.undo()} />
-        <TopButton label="重做" shortcut="Ctrl+Shift+Z" disabled={!canRedo} title={redoLabel ?? undefined} onClick={() => studio.redo()} />
+        <TopButton label={c.undo} shortcut="Ctrl+Z" disabled={!canUndo} title={undoLabel ?? undefined} onClick={() => studio.undo()} />
+        <TopButton label={c.redo} shortcut="Ctrl+Shift+Z" disabled={!canRedo} title={redoLabel ?? undefined} onClick={() => studio.redo()} />
       </div>
 
       <div className="sp-actions">
-        {credits ? <CreditChip credits={credits} /> : null}
+        {credits ? <CreditChip credits={credits} locale={locale} /> : null}
         <span className={cn('sp-saveState', saveState === 'error' ? 'sp-saveErr' : 'sp-saveIdle')} data-save-state>
           {saveLabel}
         </span>
         <div className="sp-toolGroup">
-          {VIEWPORTS.map((v) => (
+          {viewports.map((v) => (
             <button
               key={v.id}
               type="button"
@@ -139,24 +142,24 @@ export function TopBar({ onOpenRail, credits = null }: { onOpenRail: () => void;
           onChange={(e) => studio.setMode(e.target.value === 'default' ? null : e.target.value)}
           data-theme-mode
           className="sp-modeSelect"
-          title="Token 主题 mode"
+          title={c.tokenModeTitle}
         >
-          <option value="default">默认主题</option>
+          <option value="default">{c.defaultThemeLabel}</option>
           {modes.map((m) => (
             <option key={m} value={m}>
               {m}
             </option>
           ))}
         </select>
-        <TopButton label="网格" shortcut="Ctrl+G" active={grid} onClick={() => studio.toggleGrid()} />
+        <TopButton label={c.grid} shortcut="Ctrl+G" active={grid} onClick={() => studio.toggleGrid()} />
         <ExportPanel />
         <PublishPanel />
         <a
           href={`/preview/${projectId}`}
           className="sp-previewLink"
-          title="只读运行预览（任务 #7 接入运行态投影）"
+          title={c.previewTitle}
         >
-          预览
+          {c.preview}
         </a>
       </div>
     </header>
@@ -169,7 +172,7 @@ function TopButton(props: { label: string; shortcut?: string; disabled?: boolean
       type="button"
       onClick={props.onClick}
       disabled={props.disabled}
-      title={props.shortcut ? `${props.label}（${props.shortcut}）` : props.label}
+      title={props.shortcut ? `${props.label} (${props.shortcut})` : props.label}
       aria-pressed={props.active}
       className={cn(
         'sp-topBtn',
@@ -188,7 +191,8 @@ function TopButton(props: { label: string; shortcut?: string; disabled?: boolean
  * - 低额度（<15%）变琥珀辉光、零时变红，提醒的是"再点就要不到额度"，不是吓人；
  * - 纯 CSS 宽条过渡，无 JS 动画；做的是一跳到 /credits 的入口，不在这里扣款。
  */
-function CreditChip({ credits }: { credits: { ai: number; grant: number; plan: string } }) {
+function CreditChip({ credits, locale = 'zh' }: { credits: { ai: number; grant: number; plan: string }; locale?: Locale }) {
+  const c = shellCopy(locale);
   const grant = Math.max(0, credits.grant);
   const balance = Math.max(0, credits.ai);
   const pct = grant > 0 ? Math.min(100, Math.max(0, Math.round((balance / grant) * 100))) : 0;
@@ -207,7 +211,7 @@ function CreditChip({ credits }: { credits: { ai: number; grant: number; plan: s
   return (
     <a
       href="/credits"
-      title={`AI 额度 ${balance}/${grant}（${credits.plan} 档）· 点开 /credits 看燃烧速度`}
+      title={c.creditTitle(balance, grant, credits.plan)}
       data-credit-chip={balance}
       className={tone}
     >
