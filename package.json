@@ -207,7 +207,8 @@
     "live:design-edit": "tsx --tsconfig apps/web/tsconfig.json scripts/live-design-edit.mts",
     "live:design-apply": "tsx --tsconfig apps/web/tsconfig.json scripts/live-design-apply.mts",
     "live:all": "tsx --tsconfig apps/web/tsconfig.json scripts/live-all.mts",
-    "verify:cost-ledger": "tsx --tsconfig apps/web/tsconfig.json scripts/cost-ledger-probe.mts"
+    "verify:cost-ledger": "tsx --tsconfig apps/web/tsconfig.json scripts/cost-ledger-probe.mts",
+    "gen:ship": "tsx scripts/gen-ship-manifest.mts"
   },
   "devDependencies": {
     "turbo": "^2.3.3",

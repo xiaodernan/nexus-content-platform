@@ -13757,6 +13757,16 @@ shadow-[0_0_...]），按 §FE 判据不可带入主线。本线做的：
   (register + SQL promote to admin + playwright screenshot). Screenshot attached to the turn report.
 - In flight at record time: CI for 4185301 / 846dec5 / 7fb3c91; do not claim green until the runner
   says so.
+## v703 - /ship 交付日志公开页（2026-11-14，ADR-0135）
+
+- 新增：`scripts/gen-ship-manifest.mts`（git log 机械过滤，含 v\d{3} / ADR-\d{4}-aware 识别，生成
+  `docs/ship-manifest.json` + `apps/web/src/lib/ship-manifest.ts`）；`apps/web/src/app/ship/page.tsx`
+  （RSC-only、公开、请求时 `execFileSync('git rev-list --count HEAD')` 现数累计 + adr 数 + contracts 数、按日期降序），
+  `.sh-*` 门面（零 hex、forced-colors、RSC 不挑选）。
+- 命令面板：`ship` 注入 PALETTE_COMMANDS，`command-palette-registry` 16→17 重钉。
+- §FE-Ship 判据 `ship-visual-style`（7 门）。`census` 1845（新 27 类全引用） · `no-raw-tailwind` 干净。
+- SSR 渲染通过：29000 字节、90 条全部 ship 行渲染，含 kind 标记和 hash。**像素级验收未做**——本机无合适浏览器，如实记态。
+
 ## v702.2 - /admin/savings gains the per-user pivot (2026-11-14, ADR 0134 amendment)
 
 - New "by user" section on the same page: GROUP BY owner over agent_tasks.usage joined to projects
