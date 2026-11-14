@@ -186,6 +186,8 @@ class RedisLlmCompletionCache:
                     "tokens_in": completion.tokens_in,
                     "tokens_out": completion.tokens_out,
                     "latency_ms": completion.latency_ms,
+                    "cached_tokens": completion.cached_tokens,
+                    "reasoning_tokens": completion.reasoning_tokens,
                 },
             },
             ensure_ascii=False,
@@ -228,6 +230,11 @@ class RedisLlmCompletionCache:
                 return None
         if not isinstance(latency_ms, (int, float)) or isinstance(latency_ms, bool):
             return None
+        cached_tokens = c.get("cached_tokens", 0)
+        reasoning_tokens = c.get("reasoning_tokens", 0)
+        for name, value in (("cached_tokens", cached_tokens), ("reasoning_tokens", reasoning_tokens)):
+            if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+                return None
         return Completion(
             text=text,
             provider=provider,
@@ -235,6 +242,8 @@ class RedisLlmCompletionCache:
             tokens_in=tokens_in,
             tokens_out=tokens_out,
             latency_ms=float(latency_ms),
+            cached_tokens=cached_tokens,
+            reasoning_tokens=reasoning_tokens,
         )
 
     # ── 主路径（一切 Redis 故障 fail-open）────────────────────────────────

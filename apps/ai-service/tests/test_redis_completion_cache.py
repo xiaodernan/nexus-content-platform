@@ -470,3 +470,51 @@ def test_live_ttl_expiry_removes_entry_on_real_redis():
         assert cache.get(key) is None
     finally:
         cache.clear()
+
+
+def test_roundtrip_preserves_cached_and_reasoning_tokens():
+    """v701: replayed completions keep provider-reported cached/reasoning counts."""
+    c = FakeRedis()
+    cache = _cache(c, ttl_s=60.0, max_entries=8)
+    cache.store(_KEY, _completion(cached_tokens=4096, reasoning_tokens=405))
+    got = cache.get(_KEY)
+    assert got is not None
+    assert got.cached_tokens == 4096 and got.reasoning_tokens == 405
+
+
+def test_legacy_v1_payload_without_new_fields_decodes_as_zero():
+    """v1 legacy payload missing the new fields decodes to 0, not a corrupt entry."""
+    import json as _json
+    payload = _json.dumps({
+        'v': 1,
+        'completion': {
+            'text': 'legacy',
+            'provider': 'openai-compatible',
+            'model': 'gpt-6-sol',
+            'tokens_in': 12,
+            'tokens_out': 34,
+            'latency_ms': 456.0,
+        },
+    })
+    got = RedisLlmCompletionCache._decode(payload)
+    assert got is not None
+    assert got.cached_tokens == 0 and got.reasoning_tokens == 0
+
+
+def test_corrupt_cached_tokens_are_rejected():
+    """bool / negative / non-integer / float cached_tokens are rejected as poison."""
+    import json as _json
+    base = {
+        'v': 1,
+        'completion': {
+            'text': 'legacy',
+            'provider': 'openai-compatible',
+            'model': 'gpt-6-sol',
+            'tokens_in': 12,
+            'tokens_out': 34,
+            'latency_ms': 456.0,
+        },
+    }
+    for bad in (True, -1, '12', 3.5):
+        payload = _json.dumps({**base, 'completion': {**base['completion'], 'cached_tokens': bad}})
+        assert RedisLlmCompletionCache._decode(payload) is None, f'cached_tokens={bad!r} not rejected'
