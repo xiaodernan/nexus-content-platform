@@ -39,7 +39,7 @@ export default async function AdminSavingsPage(): Promise<ReactElement> {
     );
   }
 
-  let rows: SavingsAdminRow[] | null = null;
+  let rows: SavingsAdminRow[] | null;
   try {
     rows = await readTopSavingsProjects(50);
   } catch {
