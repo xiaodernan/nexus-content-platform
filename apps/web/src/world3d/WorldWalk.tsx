@@ -135,7 +135,7 @@ function Controls({
     const onMove = (e: PointerEvent) => {
       if (!drag.current) return;
       yaw.current = drag.current.yaw - (e.clientX - drag.current.x) * 0.005;
-      pitch.current = Math.min(1.2, Math.max(-1.2, drag.current.pitch + (e.clientY - drag.current.y) * 0.004));
+      pitch.current = Math.min(1.2, Math.max(-1.2, drag.current.pitch - (e.clientY - drag.current.y) * 0.004));
     };
     const onUp = (e: PointerEvent) => {
       // 按下与抬起几乎没动：是点击地面（不是拖视角），把落点设为行走目标
