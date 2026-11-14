@@ -4185,3 +4185,38 @@
   .sv-chipValue, .sv-barValue { color: CanvasText; }
   .sv-kicker { color: CanvasText; }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   §FE-BN `/credits` 燃烬速度卡（CreditsBurnCard）视觉层。与 §FE-SV 同一套笔法：
+   brand 描边卡 + 135° 渐变表面 + 角光晕两枚 + 大数字 brand 渐变墨字 + chip 脚注。
+   SVG 用 CSS var() 取色，零 hex，零裸 atom，forced-colors 有回退。
+   ───────────────────────────────────────────────────────────────────── */
+.bn-root { position: relative; overflow: hidden; display: flex; flex-direction: column; border-radius: var(--nexus-radius-md); border: 1px solid color-mix(in srgb, var(--nexus-color-brand) 30%, transparent); background: linear-gradient(135deg, var(--nexus-color-bg-1) 0%, var(--nexus-color-bg-2) 55%, var(--nexus-color-bg-1) 100%); padding: var(--nexus-space-5); box-shadow: 0 0 48px color-mix(in srgb, var(--nexus-color-brand) 16%, transparent); }
+.bn-glowRight { position: absolute; pointer-events: none; right: -4rem; top: -5rem; width: 14rem; height: 14rem; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--nexus-color-brand) 20%, transparent) 0%, transparent 65%); filter: blur(2rem); }
+.bn-glowLeft { position: absolute; pointer-events: none; left: -6rem; bottom: -6rem; width: 12rem; height: 12rem; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--nexus-color-accent-2) 12%, transparent) 0%, transparent 65%); filter: blur(2rem); }
+.bn-layout { position: relative; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--nexus-space-3) var(--nexus-space-8); }
+.bn-colLead { min-width: 15rem; max-width: 22.5rem; }
+.bn-kicker { display: inline-flex; align-items: center; gap: var(--nexus-space-2); font-size: var(--nexus-font-size-11); text-transform: uppercase; letter-spacing: 0.18em; color: var(--nexus-color-fg-3); font-weight: 600; }
+.bn-kickerIcon { color: var(--nexus-color-brand); }
+.bn-daysBig { margin-top: var(--nexus-space-2); display: inline-block; font-family: var(--nexus-font-mono); font-size: 2.4rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1; background-image: linear-gradient(125deg, var(--nexus-color-fg-1) 12%, var(--nexus-color-accent-mix) 55%, var(--nexus-color-accent-1) 100%); background-clip: text; -webkit-background-clip: text; color: transparent; }
+.bn-copy { margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-11); line-height: 1.7; color: var(--nexus-color-fg-3); }
+.bn-copy b { color: var(--nexus-color-fg-1); }
+.bn-colMain { display: flex; min-width: 17.5rem; flex: 1 1 0%; flex-direction: column; gap: var(--nexus-space-3); }
+.bn-svg { height: 6.875rem; width: 100%; }
+.bn-chips { display: flex; flex-wrap: wrap; gap: var(--nexus-space-2); }
+.bn-chip { display: inline-flex; align-items: center; gap: var(--nexus-space-2); min-height: 1.5rem; border-radius: var(--nexus-radius-md); border: 1px solid color-mix(in srgb, var(--nexus-color-brand) 40%, transparent); background: color-mix(in srgb, var(--nexus-color-brand) 10%, transparent); padding: var(--nexus-space-1) var(--nexus-space-3); font-size: var(--nexus-font-size-11); }
+.bn-chipLabel { color: var(--nexus-color-fg-3); }
+.bn-chipValue { font-family: var(--nexus-font-mono); font-variant-numeric: tabular-nums; color: color-mix(in srgb, var(--nexus-color-accent-2-ink) 92%, var(--nexus-color-fg-1)); }
+.bn-note { font-size: var(--nexus-font-size-11); line-height: 1.7; color: var(--nexus-color-fg-3); }
+
+@media (forced-colors: active) {
+  .bn-root { border-color: CanvasText; box-shadow: none; background: Canvas; }
+  .bn-glowRight, .bn-glowLeft { display: none; }
+  .bn-daysBig { forced-color-adjust: auto; background: none; -webkit-background-clip: border-box; background-clip: border-box; color: CanvasText; }
+  .bn-kicker { color: CanvasText; }
+  .bn-chip { border-color: ButtonText; background: Canvas; color: ButtonText; }
+  .bn-chipValue { color: CanvasText; }
+  .bn-svg polyline, .bn-svg line, .bn-svg circle, .bn-svg path { stroke: CanvasText; }
+  .bn-svg circle { fill: Highlight; }
+  .bn-svg path { fill: Highlight; fill-opacity: 0.35; }
+}

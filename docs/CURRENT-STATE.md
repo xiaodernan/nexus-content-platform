@@ -2983,3 +2983,22 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   all merged by that lane; this lane now adds v699 on top (dd9fb83..origin).
 - In flight: hosted Studio CI for 369efb5 and the upcoming v699 push - do not claim green until the
   runner says so.
+## cont. 90 (2026-11-14) - v700 landed: credits burn-rate card; host instability documented
+
+- /credits now answers "when do my AI credits run out": zero-filled UTC 30-day series ->
+  closed-form least-squares slope -> days-until-empty (or an honest insufficient-data state).
+  All pure + unit-tested.
+- Environment events this session (all real, observed): TWO system restarts; Docker Desktop down
+  (nexus-postgres / nexus-redis ECONNREFUSED -> every SSR page 500ing incl. both this repo's dev
+  instance and the sibling deployment on 3100 - both recovered once Docker Desktop relaunched);
+  two deployments share this host (sibling on 3100 + ai-service on 3200, user's watchdog-managed) -
+  never touched; our verification instances ran on 3101 and were stopped. Single point of failure for
+  the whole local stack = Docker Desktop auto-start.
+- Browser hydration in Next 16 dev on this host is currently broken (HMR WS blocked by dev-origin
+  rule; hydration confirmed dead via fiber check). Browser-driven verification of the burn card
+  (and any interactive flow) is NOT possible until that is resolved or a production build/start is
+  used. Production build was deliberately not attempted: 1.4-2.5GB free RAM on a shared 16GB box.
+- Verified honestly instead: unit (15/15), tsc, eslint, dev compile of the route, curl end-to-end
+  register 200 (fresh fixture account), real-DB owner / stranger / bad-id, SSR marker presence.
+- Commit chain: v699 (8528722, savings card) pushed; hosted runner verdict for it PENDING at this
+  writing; master == main == origin @ 8528722 until v700 lands.

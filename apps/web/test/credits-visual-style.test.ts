@@ -162,7 +162,7 @@ function maskLiterals(expr: string): string {
  * `"@"`；动态 `className={…}` 平衡括号取出，字面值归一、保留 `${}`/条件/标识符/分支位置。
  * 基线（全裸）与改造后（全 `.cr-`）必须整份恒等。
  */
-const STRIP_CLASS_SHA256 = '735592fb93a54c66ef349a718e53e9666cf28bc507a3df7073922287b20eaa67';
+const STRIP_CLASS_SHA256 = 'c38018b2a27f9bc9edee36a46446c4cf611a92f73e25fd3d54070be0cd5a1409';
 function stripClassNames(src: string): string {
   const s = src.replace(/\r\n/g, '\n');
   let out = '';
@@ -315,7 +315,7 @@ describe('§FE-16 credits 额度与消费页门面（静态不变式）', () => 
     expect(crSegment, 'cr-empty 须 13px').toMatch(/\.cr-empty\s*\{[^}]*font-size:\s*var\(--nexus-font-size-13\)/);
   });
 
-  it('剥 className 后全文逐字节零行为：58 处类值之外（纯函数/文案/data 钩子/业务调用）一个字节没动', () => {
+  it('剥 className 后全文逐字节零行为（并轨 v700 内容：CreditsBurnCard 接入新增 readAiBurnHistory/projectBurn 调用与 section，非纯视觉；业务类调用有意加入，本次按合并代码逐字节重钉 735592fb…→c38018b2…）', () => {
     const stripped = stripClassNames(page).trimEnd();
     expect(createHash('sha256').update(stripped).digest('hex'),
       '剥类后全文变了——改动溢出 className，纯视觉零行为承诺不成立').toBe(STRIP_CLASS_SHA256);

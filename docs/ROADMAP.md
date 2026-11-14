@@ -878,8 +878,6 @@ preview from tokens, and is validated by tests + a headless pipeline proof + mod
 SVG artifacts (ADR 0005/0006/0010, §59/§32). See `docs/evidence/studio/README.md` for the
 honest note on why pixel screenshots were substituted in this environment.
 
-
-
 ---
 
 # 附录 · ROADMAP · main line (the older, richer line, kept in full)
@@ -3511,8 +3509,6 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   `/api/published/game-complete` → `recordGameCompletion`。
   建议全部限于平台今天真支持的动作（改标题/写简介/放封面/改可见性/把链接发出去），没有"投放""买流量"。
 
-
-
 **全量回归基线（2026-09-26 15:36）**：`npx vitest run --no-file-parallelism` = **84 个文件 / 910 条全绿，exit 0**。
 这是自 §112 那一片以来第一次整套干净：上一轮全量是 872/875，那三条红的就是当天结案的两件事
 （分支切换噪音快照的读取顺序、以及并行负载下贴着 30 秒线的两条超时）。
@@ -3793,7 +3789,6 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
     → 旧判据恒 miss → 纯选中提交也重算整页布局）。红证：`studio-layout-cache.test.ts` 三条断言
     （只改选区命中 / 事务内半程不交旧布局 / 换视口重算）随之加固；全量 2585 条 + lint 0。
 
-
 ## #63 落地：文档规模的门改成按整份文档挡，§146 的 10000 档第一次真跑通（2026-09-27）
 
 `docs/adr/0015-document-size-gate-counts-the-whole-document.md`。一句话：
@@ -3816,7 +3811,6 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 下一步顺序：**"空闲机器重跑同一档"已完成（本机有并发负载，选中响应起手 8 节点 49.9ms、属性写入 8 节点 37.7ms）**，
 分清了选中响应是常数级问题（起手 8 节点就超标，非随规模增大）。→ 画布虚拟化 + 选中事件路径常数开销（§147）。#63 关掉。
 
-
 ## #64 落地：同一项目的并发保存以前必然互相踩，现在在事务里排队（2026-09-27）
 
 `docs/adr/0016-project-writes-serialized-by-xact-lock.md`。修的是生产日志里那次
@@ -3835,7 +3829,6 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 - 与 §147 的关系：这是"整份文档替换"的写放大的**下半截（并发）**，上半截（一次保存为什么要写 10000 行）
   还是增量保存那一刀，做完之后这把锁仍然是对的。**大文档下的排队代价没重测**（今天这台机器不空闲，
   一次普通页面加载 4.3 秒），记在这里不当已知。
-
 
 ## #65 落地：trending 的同分用例第一次有两条腿（2026-09-27）
 
@@ -3871,7 +3864,6 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 这一遍比出问题那一遍（532 秒）快得多，因为机器空闲——**同一套用例的墙上时钟本来就随负载飘**，
 所以这里报的是文件/用例数而不是时长。
 
-
 ## §38 第一格：本地确定性图像合成器落地（2026-09-27，只有合成器与它的单测）
 
 `docs/ROADMAP.md` 的阻塞项第 3 条写着"真实 AI provider key（文本/图像/视频）"没有着落，
@@ -3891,7 +3883,6 @@ prompt/seed/尺寸 → 真 PNG 字节（自己写的编码器：签名 + IHDR/ID
   所以 §133/§134 的 image 额度桶**今天仍然没有消耗方**。
 - `assetRowToRef`（`projects.ts:223`）没把 `genMeta.demoMode` 映射出去，
   于是 `AssetsPanel.tsx:111` 上那个 DEMO 徽标是**读一个永远不会被写的字段**——接上生成的那一格要一起修。
-
 
 ## §133/§134 第一片：额度账本落地，五格里只有一格真的有执行方（2026-09-26 夜）
 
@@ -3969,7 +3960,6 @@ generation / team collaboration / publishing 设计"，§134"用户看得到 AI 
 - 这道门**不预扣**：并发可以把余额跑到负数（预扣要一个能把 provider 调用包进去的可回滚事务，今天没有）。
   负余额在流水里看得见，这个松是选定的，写在 `credit-ledger.ts` 注释与 ADR-0014 里。
 
-
 ## §38 第二格：Text→Image 端到端接上，image 那个额度桶第一次有消耗方（2026-09-28 凌晨）
 
 需求原文（§38）要的是五条箭头，而本机没有图像 provider（阻塞项"真实 AI provider key"还在）。
@@ -4009,7 +3999,6 @@ generation / team collaboration / publishing 设计"，§134"用户看得到 AI 
 所以"角标在界面上真的亮起来"目前只有服务端与单测层面的凭证，没有肉眼看到的图）；
 其余四条箭头（Image→Image、Sketch→Image、Reference→Variation、Character→Scene）一格没动；
 真 provider 那一格仍然缺 key——换成真模型时改的是 `image-synth.ts` 那一个文件里的像素来源。
-
 
 ## §38 第三格：Image Studio 的界面入口落地，顺带挖出模型层一处"撤销不可逆"（2026-09-27）
 
@@ -4053,7 +4042,6 @@ e2e：`图像生成` 1 passed（13.7 秒），回归 `上传图片 | 资产库` 
 （**下一段已补上**）；
 其余四条箭头（Image→Image、Sketch→Image、Reference→Variation、Character→Scene）仍未动；
 真 provider 仍缺 key。
-
 
 ## 补上第三格点名的那道洞：addComponent 的撤销 + 它牵出的删除门（2026-09-27）
 
@@ -4100,7 +4088,6 @@ e2e：`图像生成` 1 passed（13.7 秒），回归 `上传图片 | 资产库` 
 
 **这一片没有做的**：Studio 里还没有"删除组件"的入口（模型层能撤了，界面还没有那个按钮）；
 `docs/STUDIO.md` 的组件那一节还没提这两个 op；§38 其余四条箭头、真 provider key 仍未动。
-
 
 ## §38 第二格箭头：Reference → Variation 的服务端那一段（2026-09-27）
 
@@ -4407,7 +4394,6 @@ e2e 那条链现在一次点完三档（场景 → 肖像 → 以肖像延伸场
 
 **边界照旧**：DEMO 合成器只认 prompt 哈希与一个色相锚点，所以"同一个角色认得出"今天可测的只有**色调**那半；
 换真 provider 时这一格不必重接，欠的还是像素。
-
 
 ## §40 的第一片：`packages/video-model`——分镜与时间线先是模型，后才是要生成的东西
 需求那条流程是 `Prompt → Storyboard → Shot list → Image references → Video generation → Timeline`。
@@ -4735,7 +4721,6 @@ hook 第二轮又抓出一条 e2e 的：`toHaveCount(1, '主张')` 不合法—�
 **同一个坑在同一个 session 里踩了第二遍**，因为探针文件是从上一份复制的；
 import 坏掉的探针进程**0 条用例跑起来**，那不是"没红"。
 
-
 ## §165 第九组：分镜进全平台搜索——标题查表，画面描述查 §49 的语料块
 
 §49 × §40 那一片记下的欠账（"全平台搜索有 `games` 但没有 `storyboards`"）在这一片还上。
@@ -4772,7 +4757,6 @@ A 把标题那条 `ilike(storyboards.title, term)` 换成一个不可能的词 �
 B 把语料块的 join 退回我等值写错的那个形状（`${行id} = sourceId`）→ `2 failed / 14`，
 红的正是"画面描述命中"与"孤儿块不产结果"两条——**这条探针复现的是我这一片里真实发生过的错误**，
 所以它证明的不是断言写得严，而是这条路一旦形状错就会响。
-
 
 ## §49 × §66-71：语料的**内容**按相关性进 AI 请求，不再只报一个块数
 
@@ -6092,7 +6076,6 @@ delete account
    `docs/RUNTIME.md` 那句"必须能被另一个实例重新导入"因此从要求变成现状。
 3. **`docs/TESTING.md` 第 12 条**：**三半都证过了**（前半句、干净实例、413）。
 
-
 ## §144 导入的界面入口 + 真 HTTP 状态码（2026-10-03 落地）
 
 上面那一节欠的第一寸。四件产物：
@@ -6387,11 +6370,6 @@ M2 清单里最后那条"未动"的箭头接上了。链路是：资产库面板
 **这一片明确不做的**：草图笔迹进设计模型（它是生成原料，不是文档真值，与分镜/世界面板
 同一口径走本地态）；按轮廓构图（合成器没有"形状摆位"这条受草图驱动的路，硬做就是假变换）；
 草图与参考图混用（两条来源各说各的，混在一起 genMeta 就说不清这一张到底是谁家的）。
-
-
-
-
-
 
 ## §127/§134：买与分成这两条路**从 0024/0025 落地起就一行都写不进去**，以及并发下的重复扣款（2026-10-09）
 
@@ -7053,7 +7031,6 @@ RPG 那份 7 文件 / 27276 字节里没有成长循环，视觉小说那份 7 �
   方法论补一条：**"守在哪一层"不能靠文件位置推断**——`characters.ts` 的域助手全守着，
   而 chat 路由自己查库的那一句照样漏；探针要打的是**路由**，不是域函数名单。
 
-
 - **2026-10-23 第十八片（#165）：社交三连的并发双点 500——insert 缺一句 onConflictDoNothing**。
   toggleLike / toggleFollow / toggleSave 都是"先查有没有 → 没有就 insert"的读—改—写。
   两个请求同时到（双击、两个标签页、移动端连击），两边都查到"没有" →
@@ -7714,7 +7691,6 @@ DOM 联动层（onClick → scrollIntoView）按仓库惯例不进单测（无�
 **下一步**：状态补丁的复制/批量应用（现在只能逐节点编辑）；发布页的 `data-state` 仍需要作者
 自己的运行时去设——平台不再补假驱动，这已是产品的边界而不是欠账。
 
-
 ## M5 第八片（#195）：分镜导出与导回——包里多一层 storyboard，导入侧按字节类型分派摄取门
 
 M5 收尾两格的第一格（§105 的"导出必须能被重新导入"要覆盖视频产物）：
@@ -7751,7 +7727,6 @@ tsc 0、eslint 0。变异探针 4 种全部精确红：不按 mime 分派（asse
 **下一步**：M5 收尾最后一格——§133 的 generation 档位在 render 链上的呈现；以及
 "角色随包走"仍是缺口（导出格式无 character part，当前口径是剥掉并点名，要补得先加 part 再升 v4）。
 
-
 ## M5 第九片（#196）：§133 generation 档位接上 render 链——"本月还可渲几次"与门同源
 
 M5 收尾第二格（也是最后一格）：#191 落成渲染额度门之后，"哪个档位每月能渲几版"
@@ -7779,7 +7754,6 @@ M5 收尾第二格（也是最后一格）：#191 落成渲染额度门之后，
 当前口径是剥掉并点名）；② §133 剩余两格（teamCollaboration / publishing）的拦截方；
 ③ Studio 画布上 videoAssetId 成片的播放预览（时间线 playable 仍是 false，§160）。
 
-
 ## M5 第十片（#197）：角色随包走——导出加 character part，格式版本升到 v4
 
 #195 留下的明确缺口：分镜的镜头可以挂角色，但导出格式里没有角色那一层，导入侧只能把
@@ -7804,7 +7778,6 @@ M5 收尾第二格（也是最后一格）：#191 落成渲染额度门之后，
 `storyboard-import.integration.test.ts` 往返 4 条（v4 happy path 角色换号 + 档案参考图换号、
 建档失败剥角色、参考图悬空置空）。五文件 62/62 绿，tsc 0、eslint 0。
 变异探针 3 种全部精确红：不建档角色 / 档案参考图不换号 / 版本不升。
-
 
 ## M5 第十一片（#198）：成片播放预览——渲出的 mp4 在面板里直接播，DEMO 三个字照旧
 
@@ -7832,7 +7805,6 @@ DOM 胶水层按仓库惯例不进 vitest 单测（同 #194 先例），钉子�
 **下一步**：候选：① §133 剩余两格（teamCollaboration / publishing）的拦截方；
 ② 渲染完成后时间线自动定位到挂着成片的那一镜（renderNote → focusShot）；
 ③ e2e storyboard 全量回归（七条一起跑）。
-
 
 ## M5 第十二片（#199）：publishing 档位接上发布链——"同时最多公开发几个项目"从此真的会拦
 
@@ -7864,7 +7836,6 @@ DOM 胶水层按仓库惯例不进 vitest 单测（同 #194 先例），钉子�
 **下一步**：候选：① §133 最后一格 teamCollaboration 的拦截方（需要先有成员/邀请模型，
 是比前四格大的一块）；② 渲染完成后时间线自动定位到挂着成片的那一镜；③ e2e storyboard 全量回归。
 
-
 ## M5 第十三片（#200）：渲完成片，镜头列表自己找到挂着它的那一镜
 
 #198 让成片能播之后，还剩一个小缺口：渲染结果区在面板底部，而"成片挂在哪一镜"在
@@ -7880,7 +7851,6 @@ DOM 胶水层按仓库惯例不进 vitest 单测（同 #194 先例），钉子�
 见证：e2e storyboard 播放预览用例追加三断言（linked 计数为 1、linked 的就是渲染前取的
 那个 shotId、播报含"成片已挂到第 1 镜"）。真 Chrome 两连跑通过。
 变异探针精确红：摘掉 `setLinkedShotId(first.id)` → linked 计数断言红。
-
 
 ## M5 第十四片（#201）：teamCollaboration 档位落库——成员/邀请模型 + §133 五格全有拦截方
 
@@ -7913,7 +7883,6 @@ DOM 胶水层按仓库惯例不进 vitest 单测（同 #194 先例），钉子�
 **下一步**：① 成员/邀请的 API 路由与 Studio 界面（名册面板、邀请链接接受页）；
 ② e2e 见证邀请→接受全链路；③ e2e storyboard 全量回归。
 
-
 ## M5 第十五片（#202）：成员/邀请的 API 路由——转发的全部艺术是不重写
 
 #201 落好了领域层，这片把五条路由接上，全部是 team.ts 的转发（§74：路由里另起一套
@@ -7936,7 +7905,6 @@ tsc 0、eslint 0。
 
 **下一步**：① TeamPanel 界面（名册 + 邀请表单 + 邀请链接）+ StudioShell 加 tab；
 ② e2e 见证邀请→接受全链路；③ e2e storyboard 全量回归。
-
 
 ## M5 第十六片（#203）：TeamPanel + 邀请接受页——§133 团队协作的界面落地
 
@@ -7964,7 +7932,6 @@ ENVIRONMENT.md 的规矩）；playwright webServer 超时 120s→180s、用例 3
 **下一步**：① e2e storyboard 全量回归（七条一起跑）；② 协作者进得了其它面板
 （design/assets 的 projectBelongsTo 目前只认 owner，可扩 projectVisibleTo）；
 ③ editor/viewer 的实质读写差别（目前只是档案标签，§160 已明码标注）。
-
 
 ## M5 第十七片（#204）：storyboard e2e 全量回归——揪出两个真 bug：双击裁切在界面上根本完不成
 
@@ -8004,7 +7971,6 @@ ENVIRONMENT.md 的规矩）；playwright webServer 超时 120s→180s、用例 3
 **下一步**：① 协作者进得了其它面板（design/assets 等路由的 projectBelongsTo 只认 owner，
 可扩 `projectVisibleTo`）；② editor/viewer 的实质读写差别；③ v1 API 的 team 端点。
 
-
 ## M5 第十八片（#205）：协作者可见性贯通——读路径放名册成员，写路径仍 owner-only
 
 #201-#203 把团队功能立了起来（成员/邀请/名册/接受页），但成员进了项目**只能看到名册**：
@@ -8039,7 +8005,6 @@ projectBelongsTo → 成员读立刻 404；摘 ownerOf 形状门 → id-shape �
 **下一步**：① editor/viewer 的实质读写差别（#206：协作者按角色门禁写操作）；
 ② v1 API 的 team 端点（#207）；③ 并行会话丢失的 ADR-0062 状态层投影四片可接手重做。
 
-
 ## M5 第十九片（#206）：editor/viewer 的实质读写差别——写路径三态门，role 不再是档案标签
 
 #201-#205 之后协作者能读项目了，但**所有写路径仍然只认 owner**：邀请时选的
@@ -8070,7 +8035,6 @@ editor 404、viewer 403 变 404。均逐字节还原（bda62ccde72e / 07948d067a
 **下一步**：① v1 API 的 team 端点（#207）；② ADR-0062 状态层投影四片（并行会话丢失，
 可接手重做）；③ 协作者通知/邀请过期等团队体验边角。
 
-
 ## M5 第二十片（#207）：v1 API 的 team 端点——名册读端点 + team:read 一格
 
 §188 的公开 API 到 #206 为止只有项目/设计/发布四口，团队功能（#201-#203）一点没露出去。
@@ -8099,7 +8063,6 @@ editor 404、viewer 403 变 404。均逐字节还原（bda62ccde72e / 07948d067a
 
 **下一步**：① ADR-0062 状态层投影四片（并行会话丢失，设计文档幸存，可接手重做）；
 ② 协作者通知/邀请过期等团队体验边角；③ e2e 覆盖协作者跨面板读（浏览器见证）。
-
 
 ## M5 第二十一片（#208）：状态层投影 part ①——codegen 发射变体类，状态名只有一份表
 
@@ -8368,7 +8331,6 @@ Primary CTA · 悬停）→ Headline 粘贴 → 撤销只回滚这一贴（Headl
 **已知边界**：剪贴板不跨刷新/项目（视图态），也不能只复制单个通道；粘贴对没有该状态的目标是新建，
 对已有目标才是整份覆盖。`unset` 只删指定路径的叶子，不清理祖先空对象（`states` 会留下 `{}`）。
 
-
 ## §133 协作者角色变更：改角色立刻生效，不用「踢掉再邀」
 
 #201-#206 之后 editor/viewer 在写门上真的分开了（`projectWriteAccess` 每次写请求现读成员行），
@@ -8542,7 +8504,6 @@ Primary CTA · 悬停）→ Headline 粘贴 → 撤销只回滚这一贴（Headl
   TypeError；旧代码上实测红）。`projects.integration.test.ts` 17/17。
 - **口径更正**：`docs/TESTING.md` / `docs/adr/0024-project-export-zip.md` 里"7 条判据全绿""22 条迁移""臂只在设 env 时"
   三处旧说法同片改口。仍然欠的那寸没变：这条脚本不在 `npm test` 里，也没有 CI 跑它。
-
 
 ---
 
@@ -8974,7 +8935,6 @@ guest 身份连着别人的项目一起删掉**。这一片不碰闸的语义，
    第 5 项（RFC 7239）已在**第二十八片**还掉；1／2／3（直接暴露那一档、Redis 驱动、审计里看不出垃圾头）
    继续欠着。
 
-
 ## §SEC 第二十八片：`Forwarded` 这行头以前没人读；补上之后活体探针把结论改了一半（2026-10-30）
 
 **起点是上一片自己记的账**：ADR-0070 文末「仍欠」第 5 条——`readForwardedChain` 只认
@@ -9085,7 +9045,6 @@ XFF 又在优先级里赢 ⇒ **`Forwarded` 那一支在 Next 之路走不到**�
    代价是它会消耗 `::1` 那一只桶——排期时和浏览器用例错开。
 5. `Forwarded` 的畸形形状（引号未闭合、一跳内多个 `for=`、`for=` 后面跟注释符）没有用例。
 6. 探针留下的 guest 行没有清扫路径（见上面那段）；过期 guest 的回收仍是独立任务。
-
 
 ## §SEC 第二十九片：过期 guest 身份谁来收——判据 60 天 + 四道护身符 + 审核员调用式回收；界面见证抓到本片唯一的真 bug（2026-10-30）
 
@@ -10103,7 +10062,6 @@ e2e 腿 R，以及变异电池第一轮 MISMATCH 之后按磁盘上的断言重�
   定位器等了一个不存在的字符串的 900s 测试预算（段 745 点击死等）；顺手 grep 完 spec 全部单引号变量引用才过。
   两笔记账：影响徽标翻完仍读 2（而非预期的 1，埋的 padding+mode 两个键两个 live）；`boxIn` 读页面坐标，翻后断言改成『兄弟重叠』而不是各自 0。
   面板此刻 **二十六格**。
-
 
 **第十八片（2026-11-08）：腿 S——公共页就是这份投影（翻进 none → 发布 → 访客也 absolute → 撤销 → 再发 → 访客回到竖排）**
 
@@ -11378,7 +11336,6 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   不证那台真处于那个现场（真实现场归集成测试；不为一张图去改共享 dev server 的 `NEXUS_REDIS_URL`——
   那个旋钮同时管着限流闸）。
 
-
 ## M5 第三十八片：分镜的箭头进像素——整片那一张参考图补进没挂图的镜头，画面出处写进计划（2026-11-06）
 
 - 起点是逐字核对 ROADMAP 上 M5 唯一那条 `[ ]`（"Video Studio（text/image/storyboard→video）"）时 grep 出来的事实：
@@ -11446,7 +11403,6 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   ④ 优先级没有作者可改的入口（"每镜优先"是写死的规则）；⑤ 参考帧读取没有并发上界
   （12 镜 12 张不同的图 = 12 次顺序存储读 + 12 份临时文件，全在 ffmpeg 起跑前串行做完）。
   取舍与逐字段规则见 `docs/adr/0086-storyboard-arrow-into-pixels.md`。
-
 
 ## §SEC 第三十九片：线路失败按原因分账——一本闭合的账、两本账必须同口供、界面不认字只照读（2026-11-06）
 
@@ -11531,7 +11487,6 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   ③ 端点交出的 key 若不在词表里今天照印，要不要在形状门里拒绝取决于"宁可生词不可吞数"，与决定⑤相冲，留给下一次；
   ④ 转发器端口钉死 56998、e2e 后三段是 `page.route` 喂的形状（照旧）。
   取舍与逐字段规则见 `docs/adr/0087-realtime-wire-error-ledger-by-reason.md`。
-
 
 ## §SEC 第四十片：studio e2e 按行号 filter 切分片的 paced 跑法（2026-11-06）
 
@@ -13750,4 +13705,23 @@ shadow-[0_0_...]），按 §FE 判据不可带入主线。本线做的：
 - census EXIT=0（119 行 + 10 runner + 1 covered + 7 deferred = 0 residue，投影拓到**两处**工作流，
   cost-ledger 升 runner，main-line.yml gates JOB 新增一步 `verify:cost-ledger`）；
   cache-warm 真网关复测：27344/27347（100%）×3 轮（记录 `docs/evidence/cachewarm-postmerge-2026-11-14.md`）。
+
+## v700 - /credits gains a "burn rate" projection card (2026-11-14, ADR 0132)
+
+- New: `lib/burn-projection.ts` (pure: UTC-day zero-filled series, closed-form least-squares fit,
+  verdicts projecting / no-burn / insufficient-data, cap 9999 days, NaN-safe) +
+  `server/domain/credit-burn.ts` (read-only SQL aggregate; any anomaly -> flat series -> card says
+  nothing rather than the page 500ing) + `components/CreditsBurnCard.tsx` (SVG sparkline with gradient
+  area + dashed projection limb; count-up headline; chips; reduced-motion safe; brand-gradient big
+  numerator) + /credits renders it between the balance grid and the ledger table.
+- Honest by construction: only kind='ai', only delta<0, UTC day, last 30 days; grants excluded;
+  video not in this projection; fewer than 3 active burn days or non-negative slope -> no date,
+  the card says so in words. Real dev DB has no user with >= 3 active burn days -> the real page
+  renders the insufficient-data state today; the "projecting" path is unit-tested (15/15).
+- Verification: unit 15/15 (burn-projection.test.ts); related vitest 31/31; tsc 0; eslint 0; dev
+  compile of /credits OK; real-DB SQL path verified owner / stranger / bad-id.
+- Honesty notes: pixels / animation NOT verified on this host (Next 16 dev hydration kept failing
+  under reboot / Docker-down / HMR-blocked conditions; machine restarted twice this session and
+  Docker Desktop went down once - nexus-postgres / redis outage; both recovered). Container outage
+  caused a full-stack 500 storm on / until recovery - recorded in CURRENT-STATE cont. 90.
 
