@@ -7,6 +7,8 @@
 > 本文与 fixture 共写：fixture 是真运行库，本文是人类可读的设定手册；两者不互为权威，
 > 差异以 fixture 为准（更新时请同时改两个地方）。世界卷语（fixture 原文）：
 > 「灯火、雪线与被划掉的名字——苍雪盟约之上的冷秩序。」
+> 同系 fixture 参照：「年表 mwgao0ch」（1c3b87af，另一位 disposable 成员的小型九造完整世界）、
+> 「潮汐回声海」（f15b2c24，被海淹没又吐出的城邦史诗，设定手册见 docs/lore/tide-echo-sea.md）。
 
 ## 世界速读
 

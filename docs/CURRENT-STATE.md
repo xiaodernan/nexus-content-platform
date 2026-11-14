@@ -3086,3 +3086,35 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   a0027a2 (this commit): both workflows queued at record time. Zero red refs this session.
   Runner latency for Studio CI is measured in ~30-60 min per ref; not a failure signal.
 - Related-unit-test sweep (world-view-cache 7 + quiz 12 + chronicle 6): 25/25 green post-a0027a2.
+## cont. 114 (2026-11-14) - v718: third reference world 潮汐回声海 (fixture, all projections green)
+
+- New fixture world "潮汐回声海 / The Tide-Echo Sea" (drowned port-city-state epic; genre
+  contrast with 北境纪事): fixture project f15b2c24-2a95-4902-9845-169f52a79bde
+  (slug tide-echo-mwgdev, owner disposable fixture member, private), world
+  992b22ff-9127-4c70-bdd6-7545b0324fbb; 23 nodes across ALL nine kinds (lore 1, history 3,
+  story 3, geography 6, factions 4, creatures 2, items 2, quests 2), zero placeholders;
+  three fully-profiled characters (吕岚 - 沉灯纪 / 季裴 - 翻潮纪 / 雾小) wired into relationships
+  targeting world node ids (吕岚 to node_qst_bells and node_fac_diver; 季裴 to node_itm_seal;
+  雾小 to node_fac_diver).
+- Contract proof WITHOUT the dev server: WorldDocumentSchema.safeParse OK; validateWorld OK;
+  kind census lore1 history3 story3 geography6 factions4 creatures2 items2 quests2;
+  characters=3; project visibility private.
+- Live Playwright verification on the dev server (mwg35nri login):
+  ALMANAC renders serif hero 潮汐回声海, epigraph auto-picked verbatim from the 沉灯纪
+  memory ("那一夜没有风，海却像全部点着火——每一盏灯都慢慢熄了，天上看不出来。"),
+  era ribbon (沉灯纪2 / 翻潮纪3 / 未标纪元1), five doors (卷一..卷五), census bars
+  nonzero across the palette; ATLAS renders 6 地理 + 4 势力 pins, dossier card follows
+  pin selection; QUIZ renders a family-B question with verbatim body and four options that
+  are all real story/history entries, and family A is correctly skipped (2-era world cannot
+  supply 4 era-options) - exactly the designed behavior.
+- docs/lore/tide-echo-sea.md (canon excerpt, verbatim fixture text) + a cross-reference line
+  in bei-jing-records.md header naming all three fixture worlds.
+- No production code touched; gates: record-encoding OK.
+- Memory pressure this turn forced care: 1611 -> 2143MB free range; no extra dev servers
+  beyond one verification window; ai-service on 3200 untouched.
+- Docker Desktop outage count today: 16+ (relaunched at turn start and once mid-turn);
+  sibling deployments 3100/3200 untouched; own ai-service on 3200 untouched.
+- CI at record time: 9bc1974/a0027a2 queued/in_progress (both workflows);
+  1d127b9 main-line SUCCESS (CI in_progress); 738dfb7 main-line SUCCESS (CI in_progress);
+  7284152 main-line SUCCESS (CI in_progress); 3233c93 main-line SUCCESS (CI in_progress);
+  c28ad48 CI SUCCESS; 84f7f0d CI SUCCESS; bf84954 CI SUCCESS. No red refs this session.
