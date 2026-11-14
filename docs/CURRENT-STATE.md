@@ -3354,3 +3354,14 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   立即 LREM 精确删除 nexus:ai:dead 全部 4 条（列表回归 *0，job_dl_* 本体键同步 DEL）；测试改为 monkeypatch 覆盖到 DB15 探测库并自动清欠账。DB0/DB15 复扫均空。
 - ADR-0268 记录双页共存并收窄职责：v689=人向唯一页面（保留），v738=机器向唯一入口（规范化读法）；semantics 对齐（新在前、total 原样、payload 不外泄）。
 - 验证：test_dead_letter 19/19 绿；jobs/memory/redis store 39/39 绿（redis 8/8 实机）。
+
+## cont. 108 (2026-11-15) - v739: PublishPanel 双语化（§57 发布交互）
+
+- PublishPanel.tsx zh/en 双字典（StudioShell 透传 locale，经 TopBar 挂载点）；数据钩子/类名逐字节不动；
+  构建/预览状态、可见性三选项+hint、空态说明、发布/撤下忙态、preflight/aiReadiness 文案全部接 locale；
+  scan 的机检行三档、位置引述（zh 全角「」/ en 弯引号）接 locale。
+- preflight 的 blockers/warnings/why/quote 来自服务端（zh 裁定句），原样透传且不改序——服务端错误语面
+  英文化仍是 §46 独立立片；健康门禁（HealthPanel 组件）仍单中文，随后续片。
+- TopBar 挂载点 locale 透传：<PublishPanel locale={locale} />；STRIP_CLASS_SHA256 以**门内逐字逻辑**重算并重钉
+  （提取 test 文件里的 stripClassNames 原样转译后算得 264c122e…，与 vitest 报出的 actual 前 40 位一致后采用）。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净。
