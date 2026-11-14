@@ -768,6 +768,10 @@ export function responsiveChannelLabel(channel: ResponsiveChannel): string {
   return specOf(channel).label;
 }
 
+export function responsiveChannelLabelFor(channel: ResponsiveChannel, locale: 'zh' | 'en'): string {
+  return locale === 'en' ? CHANNEL_LABEL_EN[channel] : specOf(channel).label;
+}
+
 /** 这一档现在的规则覆盖了哪几个通道——面板用它标"有规则/无规则"，数的是模型里的键不是我自己编的 */
 export function responsiveChannelsOf(node: DesignNode, breakpoint: BreakpointName): ResponsiveChannel[] {
   const rule = ruleOf(node, breakpoint);
@@ -913,4 +917,139 @@ export function responsiveImpactOf(
   tokens?: readonly Token[],
 ): number {
   return responsiveImpactDetailOf(node, breakpoint, parent ?? null, tokens).total;
+}
+
+/* ============================================================================
+ * v756 — 英文口径。与上文中文表**同序、同键、同值集**；mix-blend 那一组按原值透传
+ *（没有定型的英文说法，§159 不编）。面板按 locale 取，不另抄一份规则。
+ * ========================================================================== */
+
+const CURSOR_CHOICES_EN: readonly ResponsiveChoice[] = [
+  { value: 'default', label: 'Default' },
+  { value: 'pointer', label: 'Pointer' },
+  { value: 'text', label: 'Text' },
+  { value: 'not-allowed', label: 'Not allowed' },
+  { value: 'grab', label: 'Grab' },
+  { value: 'grabbing', label: 'Grabbing' },
+];
+const MODE_CHOICES_EN: readonly ResponsiveChoice[] = [
+  { value: 'vertical', label: 'Vertical' },
+  { value: 'horizontal', label: 'Horizontal' },
+  { value: 'grid', label: 'Grid' },
+  { value: 'wrap', label: 'Wrap' },
+  { value: 'none', label: 'Free position' },
+];
+const JUSTIFY_LABELS_EN: Record<Layout['justify'], string> = {
+  start: 'Start',
+  center: 'Center',
+  end: 'End',
+  'space-between': 'Between',
+  'space-around': 'Around',
+  'space-evenly': 'Evenly',
+};
+const ITEMS_LABELS_EN: Record<Layout['items'], string> = {
+  start: 'Start',
+  center: 'Center',
+  end: 'End',
+  stretch: 'Stretch',
+  baseline: 'Baseline',
+};
+const JUSTIFY_CHOICES_EN: readonly ResponsiveChoice[] = (
+  Object.keys(JUSTIFY_LABELS_EN) as Layout['justify'][]
+).map((value) => ({ value, label: JUSTIFY_LABELS_EN[value] }));
+const ITEMS_CHOICES_EN: readonly ResponsiveChoice[] = (
+  Object.keys(ITEMS_LABELS_EN) as Layout['items'][]
+).map((value) => ({ value, label: ITEMS_LABELS_EN[value] }));
+const SCROLL_CHOICES_EN: readonly ResponsiveChoice[] = [
+  { value: 'none', label: 'No scroll' },
+  { value: 'vertical', label: 'Vertical' },
+  { value: 'horizontal', label: 'Horizontal' },
+  { value: 'both', label: 'Both' },
+];
+const TEXTCASE_CHOICES_EN: readonly ResponsiveChoice[] = [
+  { value: 'original', label: 'Original' },
+  { value: 'upper', label: 'UPPERCASE' },
+  { value: 'lower', label: 'lowercase' },
+  { value: 'title', label: 'Title case' },
+];
+const ALIGN_CHOICES_EN: readonly ResponsiveChoice[] = [
+  { value: 'left', label: 'Left' },
+  { value: 'center', label: 'Center' },
+  { value: 'right', label: 'Right' },
+  { value: 'justify', label: 'Justified' },
+];
+const VERT_ALIGN_CHOICES_EN: readonly ResponsiveChoice[] = [
+  { value: 'top', label: 'Top' },
+  { value: 'middle', label: 'Middle' },
+  { value: 'bottom', label: 'Bottom' },
+];
+const DECORATION_CHOICES_EN: readonly ResponsiveChoice[] = [
+  { value: 'none', label: 'None' },
+  { value: 'underline', label: 'Underline' },
+  { value: 'line-through', label: 'Strikethrough' },
+];
+
+/** 面板那一行的选项清单按 locale 取；fontFamily 那一格由面板从文档 token 派生，不在这张表里 */
+export const CHOICES_EN: Partial<Record<ResponsiveChannel, readonly ResponsiveChoice[]>> = {
+  'style.cursor': CURSOR_CHOICES_EN,
+  'layout.mode': MODE_CHOICES_EN,
+  'layout.justify': JUSTIFY_CHOICES_EN,
+  'layout.items': ITEMS_CHOICES_EN,
+  'layout.scroll': SCROLL_CHOICES_EN,
+  'typography.textCase': TEXTCASE_CHOICES_EN,
+  'typography.decoration': DECORATION_CHOICES_EN,
+  'typography.align': ALIGN_CHOICES_EN,
+  'typography.verticalAlign': VERT_ALIGN_CHOICES_EN,
+};
+
+export const CHANNEL_LABEL_EN: Record<ResponsiveChannel, string> = {
+  visible: 'Visible',
+  'size.width': 'Width',
+  'size.height': 'Height',
+  'style.opacity': 'Opacity',
+  'style.blendMode': 'Blend mode',
+  'style.rotation': 'Rotation',
+  'style.cursor': 'Cursor',
+  'layout.mode': 'Layout',
+  'layout.gap': 'Gap',
+  'layout.columns': 'Columns',
+  'layout.justify': 'Justify',
+  'layout.items': 'Align items',
+  'layout.reverse': 'Reverse',
+  'layout.clipContent': 'Clip',
+  'layout.scroll': 'Scroll',
+  'typography.fontSize': 'Font size',
+  'typography.fontFamily': 'Font family',
+  'typography.fontWeight': 'Font weight',
+  'typography.lineHeight': 'Line height',
+  'typography.letterSpacing': 'Letter spacing',
+  'typography.textCase': 'Case',
+  'typography.decoration': 'Decoration',
+  'typography.align': 'Align',
+  'typography.verticalAlign': 'Vertical align',
+  'position.x': 'X',
+  'position.y': 'Y',
+};
+
+export const TOGGLE_LABELS_EN: Partial<Record<ResponsiveChannel, readonly [string, string]>> = {
+  visible: ['Hidden', 'Visible'],
+  'layout.reverse': ['Forward', 'Reverse'],
+  'layout.clipContent': ['Visible', 'Clipped'],
+};
+
+/** 行左侧标签按 locale 取（撤销标签仍走中文版 responsiveChannelLabel —— §150 历史中文不改档） */
+export function channelLabel(spec: ChannelSpec, locale: 'zh' | 'en'): string {
+  return locale === 'en' ? CHANNEL_LABEL_EN[spec.id] : spec.label;
+}
+
+/** 布尔两端按 locale 取；spec 没给 toggleLabels 时 visible 那一格的既有读法 */
+export function toggleLabelsFor(spec: ChannelSpec, locale: 'zh' | 'en'): readonly [string, string] {
+  if (locale === 'en') return TOGGLE_LABELS_EN[spec.id] ?? ['Hidden', 'Visible'];
+  return spec.toggleLabels ?? ['隐藏', '显示'];
+}
+
+/** 静态 choice 清单按 locale 取；font-family-tokens 那一格返回 undefined（面板自己派生） */
+export function choicesFor(spec: ChannelSpec, locale: 'zh' | 'en'): readonly ResponsiveChoice[] | undefined {
+  if (locale === 'en') return CHOICES_EN[spec.id];
+  return spec.choices;
 }

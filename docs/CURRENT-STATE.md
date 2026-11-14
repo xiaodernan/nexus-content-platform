@@ -3529,3 +3529,25 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   timeline/render 服务端文案（§46 独立切片）；CanvasStage/PropertiesPanel 与顶层 /admin/*、3D WorldWalk HUD 未双语化；
   分镜公开页（/n/[handle]/[slug]/storyboard）ZH 单语保留。
 - showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 126 (2026-11-16) - v756: PropertiesPanel 双语化（§6 属性面板）+ responsive-editor/viewer-params/state-labels EN 表
+
+- PropertiesPanel.tsx 全量 zh/en 双字典（对称 121 键，kb-pp 对齐核验）：主面板（尺寸/布局/文字/填充/效果/
+  交互状态 §124/断点 §14/可见性）+ ResponsiveSection（断点标签·投影读数·徽标"改 N 处"·混合·outside·清档）+
+  StateEditor（状态标签按 locale·复制/粘贴补丁·背景/描边/阴影/透明度 aria）+ PageProperties（页面·DS 概览）
+  + FillList/TokenBindButton/AlignMenu/NodeNameField/PaddingGrid/SizeField/NumberField/SelectField/TextField/CheckField。
+- responsive-editor.ts 增 CHOICES_EN（按 spec.id 映射至 CURSOR/MODE/JUSTIFY/ITEMS/SCROLL/TEXTCASE/ALIGN/VERT_ALIGN/
+  DECORATION 英文表，BLEND_MODE 原值透传）、CHANNEL_LABEL_EN（27 键 Record<ResponsiveChannel>，编译期强制齐）、
+  TOGGLE_LABELS_EN、channelLabel/toggleLabelsFor/choicesFor 三件套（EN 按表取、zh 回落 spec 原值）；
+  responsiveChannelLabelFor 薄封装（撤销栈仍走中文版，§150 历史不改档）。
+- viewer-params.ts 增 BREAKPOINT_LABELS_EN / VIEWPORT_OPTIONS_EN / viewportOptions(locale) / breakpointLabel(id, locale)。
+- state-labels.ts 增 STATE_LABELS_EN + stateLabel(state, locale)（7 键同序）。
+- 事故自查（本片）：① 初版 clearChannelTitle 名称双义（StateEditor 字符串版 vs ResponsiveSection 函数版），
+  TS1117×2 + title 类型错误×1 → 重命名 clearTierChannelTitle 根治；② 字典迭代中 en 块与 zh 块同名键校验由 kb-pp 守住。
+- readout 中 breakpoint 裸 token（"mobile 档"）改读 breakpointLabel（zh 全中文、en 全英文）——修掉中英混排。
+- StudioShell 透传 locale（PropertiesPanel locale={locale}）。
+- Gates：§FE-45 重钉（c58f8b89…）；§FE-41 第十五次重钉；fe-gates 116/116 · 1148/1148；web tsc 0；eslint 净；
+  responsive-editor 41/41；studio-responsive 13/13。
+- 已知边界（诚实登记*）：spec 频道名的撤销栈（§150 中文历史）与 `responsiveChannelLabel(channel)`（zh）保留；
+  服务端裁定的 reason/findings/notes（§46 独立切片）不在本片；CanvasStage 与 /admin/*、3D WorldWalk HUD、分镜/作品公开页仍单 zh。
+- showcase 快照同步于提交后（npm run sync:showcase）。

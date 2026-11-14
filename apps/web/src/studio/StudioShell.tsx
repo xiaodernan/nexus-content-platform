@@ -403,7 +403,7 @@ function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zo
             >
               {inspectorOpen ? c.collapseInspectorBar : c.inspectToggle}
             </button>
-            <PropertiesPanel />
+            <PropertiesPanel locale={locale} />
           </div>
         </aside>
       </Profiler>
