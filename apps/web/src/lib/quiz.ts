@@ -153,13 +153,33 @@ export function buildQuiz(nodes: readonly QuizNodeInput[], seed: number): QuizRo
   return rounds;
 }
 
+/**
+ * §FE-CRS verdictFor — the closing lines after a lantern round.
+ * Bilingual (v733): zh remains the default (tests pin it); en carries its own dictionary.
+ */
+const COPY_VERDICTS: Record<'zh' | 'en', Array<{ test: (score: number, total: number) => boolean; title: string; line: string }>> = {
+  zh: [
+    { test: (s, t) => t === 0, title: '无灯', line: '这座世界还没有题——先写几条 story / history，谜灯馆才会亮。' },
+    { test: (s, t) => s / t >= 1, title: '灯海', line: '每一盏灯都应答了你——你记住了这个世界的每一道痕迹。' },
+    { test: (s, t) => s / t >= 0.75, title: '整船灯芯', line: '你几乎能蒙着眼走完全程——只差几盏灯别熄。' },
+    { test: (s, t) => s / t >= 0.5, title: '半盏灯', line: '你在这个世界里走了几程，还有几盏灯记着别人的名字。' },
+    { test: (s, t) => s / t >= 0.25, title: '一枚灯芯', line: '火是真的，只是还不够亮——再来一局。' },
+    { test: () => true, title: '初来乍到', line: '雾还没散。先去藏经阁走一圈，再回来点灯。' },
+  ],
+  en: [
+    { test: (s, t) => t === 0, title: 'No Lanterns', line: 'This world has no questions yet — write a few story / history entries first.' },
+    { test: (s, t) => s / t >= 1, title: 'Sea of Lanterns', line: 'Every lantern answered back. You are carrying this world in your memory.' },
+    { test: (s, t) => s / t >= 0.75, title: 'A Ship of Wicks', line: 'Almost the whole road in the dark — only a few lamps left to stay lit.' },
+    { test: (s, t) => s / t >= 0.5, title: 'Half a Lamp', line: 'You have walked some roads in this world; some lamps still remember other names.' },
+    { test: (s, t) => s / t >= 0.25, title: 'One Lamp-Flame', line: 'The fire was real, only not yet bright enough — one more round.' },
+    { test: () => true, title: 'Just Arrived', line: 'The fog has not cleared. Walk the Almanac once, then come light the lanterns.' },
+  ],
+};
+
 /** 结算文案：按得分给出北境式判词。 */
-export function verdictFor(score: number, total: number): { title: string; line: string } {
-  if (total === 0) return { title: '无灯', line: '这座世界还没有题——先写几条 story / history，谜灯馆才会亮。' };
-  const ratio = score / total;
-  if (ratio >= 1) return { title: '灯海', line: '每一盏灯都应答了你——你记住了这个世界的每一道痕迹。' };
-  if (ratio >= 0.75) return { title: '整船灯芯', line: '你几乎能蒙着眼走完全程——只差几盏灯别熄。' };
-  if (ratio >= 0.5) return { title: '半盏灯', line: '你在这个世界里走了几程，还有几盏灯记着别人的名字。' };
-  if (ratio >= 0.25) return { title: '一枚灯芯', line: '火是真的，只是还不够亮——再来一局。' };
-  return { title: '初来乍到', line: '雾还没散。先去藏经阁走一圈，再回来点灯。' };
+export function verdictFor(score: number, total: number, locale: 'zh' | 'en' = 'zh'): { title: string; line: string } {
+  for (const row of COPY_VERDICTS[locale]) {
+    if (row.test(score, total)) return { title: row.title, line: row.line };
+  }
+  return { title: '?', line: '' };
 }

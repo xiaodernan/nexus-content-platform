@@ -6,6 +6,7 @@ import { requireUser } from '@/server/domain/session';
 import type { WorldKind } from '@nexus/world-model';
 import { seedFromString, type QuizNodeInput } from '@/lib/quiz';
 import { QuizArcade } from '@/components/QuizArcade';
+import { getLocale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +16,7 @@ export const dynamic = 'force-dynamic';
  * 零写库、不保存成绩；归属判定 = projectVisibleTo，未授权 404。
  */
 export default async function QuizPage({ params }: { params: Promise<{ projectId: string }> }) {
-  const { projectId } = await params;
+  const [{ projectId }, locale] = await Promise.all([params, getLocale()]);
   const user = await requireUser();
   if (!(await projectVisibleTo(projectId, user.id))) notFound();
 
@@ -41,6 +42,7 @@ export default async function QuizPage({ params }: { params: Promise<{ projectId
       worldName={worldName}
       projectId={projectId}
       initialSeed={seedFromString(worldOk?.id ?? projectId) ^ 0x1e3779b9}
+      locale={locale}
     />
   );
 }

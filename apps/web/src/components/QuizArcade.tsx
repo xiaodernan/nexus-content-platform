@@ -8,26 +8,94 @@ import {
   type QuizNodeInput,
   type QuizRound,
 } from '@/lib/quiz';
+import type { Locale } from '@/lib/i18n';
 
 /**
  * 「谜灯馆」v717 —— 凭记忆为这座世界点灯。
  * 题目全来自世界文档（见 lib/quiz.ts）：答对的不只是分数，是这座世界的回声你有没有在场。
  * 八盏灯的灯廊，点亮几盏，就是几盏。零写库、全客户端，种子由调用方给（可再来一局）。
+ * 全站双语（v733）：locale 由 RSC 透传，COPY 中英一辞两字面，不夹杂。
  */
 
-const 甲乙丙丁 = ['甲', '乙', '丙', '丁'] as const;
+const COPY: Record<Locale, {
+  emptyTitle: string;
+  emptyCopy: string;
+  backToAlmanac: string;
+  kicker: (worldName: string) => string;
+  title: string;
+  familyA: string;
+  familyB: string;
+  lanternUnit: (index: number, total: number) => string;
+  letters: readonly string[];
+  optionsLegend: string;
+  optionsAria: string;
+  nextButton: (index: number, total: number) => string;
+  waitingHint: string;
+  finalTally: string;
+  litCount: (score: number, total: number) => string;
+  recapSource: (sourceTitle: string, ok: boolean) => string;
+  replay: string;
+  almanacBack: string;
+  litAria: (score: number, total: number) => string;
+}> = {
+  zh: {
+    emptyTitle: '谜灯馆暂时无灯可点',
+    emptyCopy: '这座世界还没有足够的 story / history 条目与记忆回声。先去 Studio 写几笔，谜灯馆才会亮。',
+    backToAlmanac: '回藏经阁 →',
+    kicker: (worldName) => `THE LANTERN TRIAL · ${worldName}`,
+    title: '谜灯馆',
+    familyA: '回声 · 哪个纪元',
+    familyB: '条目 · 叫什么',
+    lanternUnit: (index, total) => ` · 第 ${index + 1} / ${total} 灯`,
+    letters: ['甲', '乙', '丙', '丁'],
+    optionsLegend: '选项',
+    optionsAria: '四个选项',
+    nextButton: (index, total) => (index + 1 >= total ? '结算灯廊' : '点亮下一盏灯') + ' →',
+    waitingHint: '回声有自己的年份，只是你没听见。',
+    finalTally: 'FINAL TALLY',
+    litCount: (score, total) => `点亮 ${score} / ${total} 盏灯`,
+    recapSource: (sourceTitle, ok) => `出自「${sourceTitle}」 · ${ok ? '你记得' : '这盏没认出'}`,
+    replay: '再入谜灯馆',
+    almanacBack: '回藏经阁 →',
+    litAria: (score, total) => `已点亮 ${score} 盏，共 ${total} 盏`,
+  },
+  en: {
+    emptyTitle: 'No lanterns to light yet',
+    emptyCopy: 'This world does not have enough story / history entries and memory echoes yet. Write a few in Studio, and the Lantern House will light.',
+    backToAlmanac: 'Back to the Almanac →',
+    kicker: (worldName) => `THE LANTERN TRIAL · ${worldName}`,
+    title: 'Lantern House',
+    familyA: 'Echo · which era',
+    familyB: 'Entry · what is it called',
+    lanternUnit: (index, total) => ` · lantern ${index + 1} of ${total}`,
+    letters: ['A', 'B', 'C', 'D'],
+    optionsLegend: 'Options',
+    optionsAria: 'Four options',
+    nextButton: (index, total) => (index + 1 >= total ? 'Final Tally' : 'Light the next lantern') + ' →',
+    waitingHint: 'Echoes keep their own years — you just never heard them.',
+    finalTally: 'FINAL TALLY',
+    litCount: (score, total) => `${score} of ${total} lanterns lit`,
+    recapSource: (sourceTitle, ok) => `from “${sourceTitle}” · ${ok ? 'you remembered' : 'this one slipped past you'}`,
+    replay: 'Re-enter the Lantern House',
+    almanacBack: 'Back to the Almanac →',
+    litAria: (score, total) => `${score} of ${total} lanterns lit`,
+  },
+};
 
 export function QuizArcade({
   nodes,
   worldName,
   projectId,
   initialSeed,
+  locale = 'zh',
 }: {
   nodes: QuizNodeInput[];
   worldName: string;
   projectId: string;
   initialSeed: number;
+  locale?: Locale;
 }) {
+  const c = COPY[locale];
   const [seed, setSeed] = useState(initialSeed);
   const rounds = useMemo(() => buildQuiz(nodes, seed >>> 0), [nodes, seed]);
   const [index, setIndex] = useState(0);
@@ -37,7 +105,7 @@ export function QuizArcade({
 
   const total = rounds.length;
   const score = marks.filter((m) => m === 'right').length;
-  const verdict = verdictFor(score, total);
+  const verdict = verdictFor(score, total, locale);
   const round: QuizRound | undefined = done ? undefined : rounds[index];
 
   const choose = (i: number) => {
@@ -61,9 +129,9 @@ export function QuizArcade({
     return (
       <main className="qaz-empty" data-quiz-empty>
         <LampIcon className="qaz-lampIcon" />
-        <h1 className="qaz-emptyTitle">谜灯馆暂时无灯可点</h1>
-        <p className="qaz-emptyCopy">这座世界还没有足够的 story / history 条目与记忆回声。先去 Studio 写几笔，谜灯馆才会亮。</p>
-        <Link href={`/world/${projectId}/almanac`} className="qaz-backLink">回藏经阁 →</Link>
+        <h1 className="qaz-emptyTitle">{c.emptyTitle}</h1>
+        <p className="qaz-emptyCopy">{c.emptyCopy}</p>
+        <Link href={`/world/${projectId}/almanac`} className="qaz-backLink">{c.backToAlmanac}</Link>
       </main>
     );
   }
@@ -75,13 +143,12 @@ export function QuizArcade({
         className="qaz-glow"
         style={{ background: 'radial-gradient(720px 420px at 50% -6%, rgba(201,168,106,0.16), transparent 55%), radial-gradient(640px 520px at 50% 112%, rgba(201,168,106,0.08), transparent 55%)' }}
       />
-      {/* 灯廊（进度） */}
       <header className="qaz-head">
         <div>
-          <p className="qaz-kicker">THE LANTERN TRIAL · {worldName}</p>
-          <h1 className="qaz-title" data-quiz-title>谜灯馆</h1>
+          <p className="qaz-kicker">{c.kicker(worldName)}</p>
+          <h1 className="qaz-title" data-quiz-title>{c.title}</h1>
         </div>
-        <div className="qaz-lanterns" role="img" aria-label={`已点亮 ${score} 盏，共 ${total} 盏`} data-quiz-lanterns>
+        <div className="qaz-lanterns" role="img" aria-label={c.litAria(score, total)} data-quiz-lanterns>
           {Array.from({ length: total }, (_, i) => (
             <LampMini
               key={i}
@@ -94,9 +161,9 @@ export function QuizArcade({
       </header>
 
       {!done && round ? (
-        <section className="qaz-stage" aria-label="谜灯馆题目">
+        <section className="qaz-stage" aria-label={c.title}>
           <p className="qaz-family" data-quiz-family>
-            {round.family === 'A' ? '回声 · 哪个纪元' : '条目 · 叫什么'} · 第 {index + 1} / {total} 灯
+            {round.family === 'A' ? c.familyA : c.familyB}{c.lanternUnit(index, total)}
           </p>
           <blockquote
             className="qaz-prompt"
@@ -106,8 +173,8 @@ export function QuizArcade({
             {round.family === 'A' ? `“${round.prompt}”` : `“${truncate(round.prompt, 140)}”`}
           </blockquote>
           <fieldset className="qaz-options">
-            <legend className="qaz-srOnly">选项</legend>
-            <div className="qaz-optionGrid" role="radiogroup" aria-label="四个选项">
+            <legend className="qaz-srOnly">{c.optionsLegend}</legend>
+            <div className="qaz-optionGrid" role="radiogroup" aria-label={c.optionsAria}>
               {round.options.map((option, i) => {
                 const isAnswer = i === round.answer;
                 const locked = picked !== null;
@@ -130,7 +197,7 @@ export function QuizArcade({
                     className={`qaz-option ${tone}`}
                   >
                     <span className="qaz-seal" style={{ fontFamily: "'Noto Serif SC', 'Songti SC', serif" }}>
-                      {甲乙丙丁[i]}
+                      {c.letters[i]}
                     </span>
                     <span className="qaz-optionText">{option}</span>
                   </button>
@@ -147,22 +214,22 @@ export function QuizArcade({
                 data-quiz-next
                 className="qaz-next"
               >
-                {index + 1 >= total ? '结算灯廊' : '点亮下一盏灯'} →
+                {c.nextButton(index, total)}
               </button>
             ) : (
-              <p className="qaz-hint">回声有自己的年份，只是你没听见。</p>
+              <p className="qaz-hint">{c.waitingHint}</p>
             )}
           </div>
         </section>
       ) : (
         <section className="qaz-verdict" aria-live="polite" data-quiz-verdict-root>
           <BigLantern lit={score} total={total} />
-          <p className="qaz-family">FINAL TALLY</p>
+          <p className="qaz-family">{c.finalTally}</p>
           <h2 className="qaz-verdictTitle" style={{ fontFamily: "'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif" }} data-quiz-verdict-title>
             {verdict.title}
           </h2>
           <p className="qaz-verdictLine">{verdict.line}</p>
-          <p className="qaz-tally">点亮 {score} / {total} 盏灯</p>
+          <p className="qaz-tally">{c.litCount(score, total)}</p>
           <ol className="qaz-recap">
             {rounds.map((r, i) => {
               const ok = marks[i] === 'right';
@@ -173,15 +240,15 @@ export function QuizArcade({
                   </span>
                   <span className="qaz-recapBody">
                     <span className="qaz-recapPrompt">{truncate(r.prompt, 64)}</span>
-                    <span className="qaz-recapSource">出自「{r.sourceTitle.slice(0, 24)}{r.sourceTitle.length > 24 ? '…' : ''}」 · {ok ? '你记得' : '这盏没认出'}</span>
+                    <span className="qaz-recapSource">{c.recapSource(`${r.sourceTitle.slice(0, 24)}${r.sourceTitle.length > 24 ? '…' : ''}`, ok)}</span>
                   </span>
                 </li>
               );
             })}
           </ol>
           <div className="qaz-actions">
-            <button type="button" onClick={replay} data-quiz-replay className="qaz-next">再入谜灯馆</button>
-            <Link href={`/world/${projectId}/almanac`} className="qaz-ghostLink">回藏经阁 →</Link>
+            <button type="button" onClick={replay} data-quiz-replay className="qaz-next">{c.replay}</button>
+            <Link href={`/world/${projectId}/almanac`} className="qaz-ghostLink">{c.almanacBack}</Link>
           </div>
         </section>
       )}
@@ -207,7 +274,7 @@ function BigLantern({ lit, total }: { lit: number; total: number }) {
   const ratio = total === 0 ? 0 : lit / total;
   const glow = 0.25 + ratio * 0.75;
   return (
-    <svg viewBox="0 0 120 150" width="150" height="188" role="img" aria-label="灯廊结算" data-quiz-lantern>
+    <svg viewBox="0 0 120 150" width="150" height="188" role="img" aria-label="Lantern tally" data-quiz-lantern>
       <defs>
         <radialGradient id="quiz-glow" cx="50%" cy="44%" r="55%">
           <stop offset="0%" stopColor="#f5edd9" stopOpacity={glow} />

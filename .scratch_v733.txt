@@ -1,0 +1,30 @@
+feat(world): v733 - the four world-sub surfaces go full bilingual (zh/en, no mixed copy) + FE facade families are hex-free
+
+The user's standing requirement is full-content zh/en everywhere. The four
+world-sub surfaces were Chinese-only (this lane's own surfaces); the merge
+proved the bilingual discipline on the Studio line now extends to the world:
+
+- /almanac, /atlas, /memories: getLocale() on the RSC, inline COPY dict,
+  user-authored content (world name, epigraphs, entries) renders verbatim,
+  chrome switches zh/en; quiz RSC passes locale into QuizArcade.
+- /quiz: QuizArcade takes a locale prop (default zh), COPY dict with letters
+  A/B/C/D for en, verdictFor gained an EN dictionary (zh byte-identical,
+  quiz.test.ts 12/12 green).
+- Atlas figure caption/legend, star ledger, detail panel, memories corridor,
+  epigraphs, era ribbon and entry census all localize; kind labels have an EN
+  map (WORLD_KIND_LABELS stays the shared zh source).
+
+Also: the twelve FE visual-style pins that were red on the merged tree
+(chronicle/codex/constellation/integrity/guide/ephemeris/digest/tide/
+dead-letters/admin-pricing/codex-reader/keyboard-cheatsheet) — the pattern is
+always the same: the pin slices globals.css from its family start to EOF, so
+any downstream raw hex in a NEW facade family reddens every pinned family
+behind it. The new `.world-nav*`/`.alm-*`/`.atl-*`/`.mem-*`/`.qaz-*` families
+are now built ONLY from existing tokens + color-mix (zero raw hex, zero
+missing --nexus-var refs: five invented font-size steps 10/15/17/20/34 were
+retargeted to real tokens) — the whole facade section is token-pure, every
+pinned family stays green without touching a single pin.
+
+Gates run locally, all green: tools/ci/fe-gates.mjs 116/116 suites,
+1148/1148 tests; tools/ci/facade-census.mjs 2280/2280 classes referenced;
+no-raw-tailwind clean; eslint 0; tsc web 0; vitest world/quiz 34/34.

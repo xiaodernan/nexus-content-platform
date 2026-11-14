@@ -4,7 +4,8 @@ import { loadWorld } from '@/server/domain/worlds';
 import { loadDocument } from '@/server/domain/projects';
 import { projectVisibleTo } from '@/server/domain/team';
 import { requireUser } from '@/server/domain/session';
-import { WORLD_KIND_LABELS, type WorldKind } from '@nexus/world-model';
+import { getLocale, type Locale } from '@/lib/i18n';
+import type { WorldKind } from '@nexus/world-model';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +14,7 @@ export const dynamic = 'force-dynamic';
  * 与编年（时间）、回廊（记忆）、星图（角色）是同一套投影纪律：
  * 零写库、读不到就说读不到、位置由确定性算法（黄金角螺旋 phyllotaxis）给出，
  * 同一份文档永远是同一张图。选择通过 `?pin=<id>` 查询参数驱动（SSR，零客户端状态）。
+ * 全站双语（v733）：COPY 中英一辞两字面，locale 由 getLocale() 读，不夹杂。
  */
 
 interface AtlasPin {
@@ -25,7 +27,7 @@ interface AtlasPin {
 }
 
 const ATLAS_KINDS: ReadonlySet<string> = new Set(['geography', 'factions']);
-const GOLDEN_ANGLE = 137.508; // 度，黄金角（Phyllotaxis）
+const GOLDEN_ANGLE = 137.508;
 const MAX_PINS = 160;
 const W = 720;
 const H = 560;
@@ -33,7 +35,93 @@ const CX = W / 2;
 const CY = H / 2;
 const R_MAX = Math.min(W, H) / 2 - 56;
 
-/** 确定性伪随机数：SSR 稳定，不靠 Math.random。 */
+const COPY: Record<Locale, {
+  kicker: (project: string) => string;
+  title: string;
+  lede: string;
+  navAlmanac: string;
+  navWalk: string;
+  navConstellation: string;
+  navChronicle: string;
+  navMemories: string;
+  navQuiz: string;
+  navAria: string;
+  emptyTitle: string;
+  emptyCopy: string;
+  untitled: string;
+  starLedger: string;
+  pinsCount: (n: number) => string;
+  detailKind: (label: string) => string;
+  entryUntitled: string;
+  selectEmpty: string;
+  recorded: (date: string) => string;
+  caption: (geo: number, factions: number) => string;
+  legendGeo: string;
+  legendFaction: string;
+  legendLey: string;
+  ariaMap: string;
+  kindGeography: string;
+  kindFactions: string;
+}> = {
+  zh: {
+    kicker: (project) => `ATLAS · ${project}`,
+    title: '寰宇图志',
+    lede: '世界里的空间与势力，在一张夜图上星火对峙。位置由黄金角螺旋确定——同一份世界文档，每一次都摊开同一张图。',
+    navAlmanac: '世界藏经阁',
+    navWalk: '世界步行',
+    navConstellation: '角色星图',
+    navChronicle: '世界编年',
+    navMemories: '记忆回廊',
+    navQuiz: '谜灯馆',
+    navAria: '世界子页导航',
+    emptyTitle: '这片夜空还是空白。',
+    emptyCopy: '去 Studio 的世界面板建立地理（geography）或势力（factions）条目，它们就会在此升起。',
+    untitled: '（无题）',
+    starLedger: '星位名录',
+    pinsCount: (n) => `${n} 座`,
+    detailKind: (label) => `${label} 志`,
+    entryUntitled: '（无题志——去 Studio 补一句。）',
+    selectEmpty: '选择一颗星位。',
+    recorded: (date) => `记录于 ${date}`,
+    caption: (geo, factions) => `${geo} 地理 · ${factions} 势力 · 黄金角 ${GOLDEN_ANGLE}°`,
+    legendGeo: '地理',
+    legendFaction: '势力',
+    legendLey: '灵脉',
+    ariaMap: '寰宇图志夜图',
+    kindGeography: '地理',
+    kindFactions: '势力',
+  },
+  en: {
+    kicker: (project) => `ATLAS · ${project}`,
+    title: 'The Atlas',
+    lede: 'Geography and factions poised flame-to-flame on a night map. Positions come from a golden-angle spiral — the same document, the same map, every time.',
+    navAlmanac: 'Almanac',
+    navWalk: 'World Walk',
+    navConstellation: 'Constellation',
+    navChronicle: 'Chronicle',
+    navMemories: 'Memory Corridor',
+    navQuiz: 'Lantern Trial',
+    navAria: 'World section navigation',
+    emptyTitle: 'This night sky is still blank.',
+    emptyCopy: 'Create geography or faction entries in the Studio world panel — they will rise here.',
+    untitled: '(untitled)',
+    starLedger: 'The Star Ledger',
+    pinsCount: (n) => `${n} pins`,
+    detailKind: (label) => `On ${label}`,
+    entryUntitled: '(No entry yet — write one line in Studio.)',
+    selectEmpty: 'Choose a star.',
+    recorded: (date) => `Recorded ${date}`,
+    caption: (geo, factions) => `${geo} geography · ${factions} factions · golden angle ${GOLDEN_ANGLE}°`,
+    legendGeo: 'Geography',
+    legendFaction: 'Factions',
+    legendLey: 'Ley lines',
+    ariaMap: 'Atlas night map',
+    kindGeography: 'Geography',
+    kindFactions: 'Factions',
+  },
+};
+
+/** Deterministic PRNG: stable SSR, never Math.random. */
 function mulberry32(seed: number): () => number {
   let s = seed >>> 0;
   return () => {
@@ -45,7 +133,7 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-/** 黄金角螺旋排布：离散、无碰撞、视觉上均匀。 */
+/** Golden-angle phyllotaxis: discrete, collision-free, visually even. */
 function phyllotaxis(count: number): Array<{ x: number; y: number }> {
   const points: Array<{ x: number; y: number }> = [];
   for (let i = 0; i < count; i += 1) {
@@ -56,7 +144,7 @@ function phyllotaxis(count: number): Array<{ x: number; y: number }> {
   return points;
 }
 
-/** 最近邻贪心连边（无向，去重），上限 ceil(1.15n)。 */
+/** Nearest-neighbour greedy edges (undirected, deduped), capped at ceil(1.15n). */
 function leyLines(pins: readonly AtlasPin[], pts: ReadonlyArray<{ x: number; y: number }>): Array<[number, number]> {
   const n = pins.length;
   const at = (i: number) => pts[i]!;
@@ -95,7 +183,8 @@ export default async function AtlasPage({
   params: Promise<{ projectId: string }>;
   searchParams: Promise<{ pin?: string | string[] }>;
 }) {
-  const { projectId } = await params;
+  const [{ projectId }, locale] = await Promise.all([params, getLocale()]);
+  const c = COPY[locale];
   const user = await requireUser();
   if (!(await projectVisibleTo(projectId, user.id))) notFound();
 
@@ -103,6 +192,7 @@ export default async function AtlasPage({
   if (!project) notFound();
 
   const worldOk = world && world.ok ? world.document : null;
+  const kindLabelOf = (kind: string): string => (kind === 'geography' ? c.kindGeography : c.kindFactions);
   const pins: AtlasPin[] = worldOk
     ? worldOk.nodes
         .filter((n) => ATLAS_KINDS.has(n.kind as string))
@@ -111,8 +201,8 @@ export default async function AtlasPage({
           return {
             id: n.id,
             kind,
-            kindLabel: WORLD_KIND_LABELS[kind] ?? n.kind,
-            title: typeof n.title === 'string' && n.title.trim() ? n.title.trim() : '（无题）',
+            kindLabel: kindLabelOf(kind),
+            title: typeof n.title === 'string' && n.title.trim() ? n.title.trim() : c.untitled,
             body: typeof n.body === 'string' ? n.body.trim() : '',
             updatedAt: typeof n.updatedAt === 'string' ? n.updatedAt : '',
           };
@@ -141,31 +231,29 @@ export default async function AtlasPage({
     <main className="atl-root" data-atlas-root>
       <header className="atl-head">
         <div>
-          <p className="atl-kicker">ATLAS · {project.name}</p>
-          <h1 className="atl-title">寰宇图志</h1>
-          <p className="atl-lede">
-            世界里的空间与势力，在一张夜图上星火对峙。位置由黄金角螺旋确定——同一份世界文档，每一次都摊开同一张图。
-          </p>
+          <p className="atl-kicker">{c.kicker(project.name)}</p>
+          <h1 className="atl-title">{c.title}</h1>
+          <p className="atl-lede">{c.lede}</p>
         </div>
-        <nav className="world-nav" aria-label="世界子页导航">
-          <Link href={`/world/${projectId}/almanac`} className="world-navLink">世界藏经阁</Link>
-          <Link href={`/world/${projectId}`} className="world-navLink">世界步行</Link>
-          <Link href={`/world/${projectId}/constellation`} className="world-navLink">角色星图</Link>
-          <Link href={`/world/${projectId}/chronicle`} className="world-navLink">世界编年</Link>
-          <Link href={`/world/${projectId}/memories`} className="world-navLink">记忆回廊</Link>
-          <Link href={`/world/${projectId}/quiz`} className="world-navLink world-navLinkQuiz">谜灯馆</Link>
+        <nav className="world-nav" aria-label={c.navAria}>
+          <Link href={`/world/${projectId}/almanac`} className="world-navLink">{c.navAlmanac}</Link>
+          <Link href={`/world/${projectId}`} className="world-navLink">{c.navWalk}</Link>
+          <Link href={`/world/${projectId}/constellation`} className="world-navLink">{c.navConstellation}</Link>
+          <Link href={`/world/${projectId}/chronicle`} className="world-navLink">{c.navChronicle}</Link>
+          <Link href={`/world/${projectId}/memories`} className="world-navLink">{c.navMemories}</Link>
+          <Link href={`/world/${projectId}/quiz`} className="world-navLink world-navLinkQuiz">{c.navQuiz}</Link>
         </nav>
       </header>
 
       {pins.length === 0 ? (
         <div className="atl-empty" data-atlas-empty>
-          <p className="atl-emptyTitle">这片夜空还是空白。</p>
-          <p className="atl-emptyCopy">去 Studio 的世界面板建立地理（geography）或势力（factions）条目，它们就会在此升起。</p>
+          <p className="atl-emptyTitle">{c.emptyTitle}</p>
+          <p className="atl-emptyCopy">{c.emptyCopy}</p>
         </div>
       ) : (
         <div className="atl-layout">
           <figure className="atl-map">
-            <svg viewBox={`0 0 ${W} ${H}`} role="group" aria-label="寰宇图志夜图" className="atl-svg" data-atlas-svg>
+            <svg viewBox={`0 0 ${W} ${H}`} role="group" aria-label={c.ariaMap} className="atl-svg" data-atlas-svg>
               <defs>
                 <radialGradient id="atlas-sky" cx="50%" cy="42%" r="75%">
                   <stop offset="0%" stopColor="#131a3d" />
@@ -194,7 +282,7 @@ export default async function AtlasPage({
               {stars.map((s, i) => (
                 <circle key={i} cx={s.x} cy={s.y} r={s.r} fill="#cfe0ff" opacity={s.o} />
               ))}
-              {/* 舆图网格：细经纬，压在星下面 */}
+              {/* fine graticule, under the stars */}
               <g stroke="#8b95ff" strokeOpacity="0.08" strokeWidth="1">
                 {[0.2, 0.35, 0.5, 0.65, 0.8].map((f) => (
                   <line key={`h-${f}`} x1="0" x2={W} y1={H * f} y2={H * f} strokeDasharray="2 7" />
@@ -203,7 +291,7 @@ export default async function AtlasPage({
                   <line key={`v-${f}`} y1="0" y2={H} x1={W * f} x2={W * f} strokeDasharray="2 7" />
                 ))}
               </g>
-              {/* 灵脉：最近邻连边，按距离渐隐 */}
+              {/* ley lines: nearest-neighbour edges, fading by distance */}
               <g strokeLinecap="round">
                 {edges.map(([a, b], i) => {
                   const pa = pts[a]!;
@@ -213,7 +301,6 @@ export default async function AtlasPage({
                   return <line key={i} data-atlas-edge={`${a}-${b}`} x1={pa.x} y1={pa.y} x2={pb.x} y2={pb.y} stroke="#6f7bf5" strokeOpacity={o} strokeWidth="1.2" />;
                 })}
               </g>
-              {/* 星位 */}
               {pins.map((pin, i) => {
                 const p = pts[i]!;
                 const isSelected = selected && selected.id === pin.id;
@@ -250,16 +337,20 @@ export default async function AtlasPage({
               })}
             </svg>
             <figcaption className="atl-caption">
-              <span>{geography.length} 地理 · {factions.length} 势力 · 黄金角 {GOLDEN_ANGLE}°</span>
-              <span className="atl-legend"><span className="atl-legendItem"><span className="atl-dotGeo" />地理</span><span className="atl-legendItem"><span className="atl-dotFaction" />势力</span><span className="atl-legendItem"><span className="atl-legendLine" />灵脉</span></span>
+              <span>{c.caption(geography.length, factions.length)}</span>
+              <span className="atl-legend">
+                <span className="atl-legendItem"><span className="atl-dotGeo" />{c.legendGeo}</span>
+                <span className="atl-legendItem"><span className="atl-dotFaction" />{c.legendFaction}</span>
+                <span className="atl-legendItem"><span className="atl-legendLine" />{c.legendLey}</span>
+              </span>
             </figcaption>
           </figure>
 
           <aside className="atl-aside">
             <section className="atl-panel" data-atlas-ledger>
               <div className="atl-panelHead">
-                <h2 className="atl-panelTitle">星位名录</h2>
-                <span className="atl-panelCount">{pins.length} 座</span>
+                <h2 className="atl-panelTitle">{c.starLedger}</h2>
+                <span className="atl-panelCount">{c.pinsCount(pins.length)}</span>
               </div>
               <div className="atl-ledgerList">
                 {pins.map((pin) => {
@@ -283,13 +374,13 @@ export default async function AtlasPage({
             <section className="atl-detail" data-atlas-detail aria-live="polite">
               {selected ? (
                 <>
-                  <p className="atl-detailKind">{selected.kindLabel} 志</p>
+                  <p className="atl-detailKind">{c.detailKind(selected.kindLabel)}</p>
                   <h3 className="atl-detailTitle">{selected.title}</h3>
-                  {selected.body ? <p className="atl-detailBody">{selected.body}</p> : <p className="atl-detailEmpty">（无题志——去 Studio 补一句。）</p>}
-                  <p className="atl-detailMeta">记录于 {selected.updatedAt.slice(0, 10)}</p>
+                  {selected.body ? <p className="atl-detailBody">{selected.body}</p> : <p className="atl-detailEmpty">{c.entryUntitled}</p>}
+                  <p className="atl-detailMeta">{c.recorded(selected.updatedAt.slice(0, 10))}</p>
                 </>
               ) : (
-                <p className="atl-detailEmpty">选择一颗星位。</p>
+                <p className="atl-detailEmpty">{c.selectEmpty}</p>
               )}
             </section>
           </aside>

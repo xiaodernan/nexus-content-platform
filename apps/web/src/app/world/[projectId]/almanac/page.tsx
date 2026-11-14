@@ -6,6 +6,7 @@ import { projectVisibleTo } from '@/server/domain/team';
 import { requireUser } from '@/server/domain/session';
 import { listCharacters } from '@/server/domain/characters';
 import { WORLD_KIND_LABELS, type WorldKind } from '@nexus/world-model';
+import { getLocale, type Locale } from '@/lib/i18n';
 import { buildChronicle, type ChronicleNodeInput } from '@/lib/chronicle';
 import { buildQuiz, seedFromString, type QuizNodeInput } from '@/lib/quiz';
 
@@ -15,11 +16,89 @@ export const dynamic = 'force-dynamic';
  * 「世界藏经阁」v711 —— 世界子系统的卷首与目录。
  * 与步行 / 星图 / 编年 / 回廊 / 图志是同一纪律：零写库、读不到就说读不到。
  * 本页是「走进去之前先看一眼殿门」的地方——宏观的史诗目录，细节交给各卷。
+ * 全站双语（v733）：COPY 中英一辞两字面，locale 由 getLocale() 读，不夹杂。
  */
 const SERIF = "'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', Georgia, 'Times New Roman', serif";
 
+const EN_KIND_LABELS: Record<WorldKind, string> = {
+  lore: 'Lore',
+  history: 'History',
+  geography: 'Geography',
+  factions: 'Factions',
+  characters: 'Characters',
+  creatures: 'Creatures',
+  items: 'Items',
+  quests: 'Quests',
+  story: 'Story',
+};
+
+interface DoorCopy { vol: string; title: string; href: string; count: string; note: string }
+
+const COPY: Record<Locale, {
+  backlink: string;
+  eyebrowArchive: string;
+  almanacKicker: string;
+  ledeFallback: string;
+  entries: (n: number) => string;
+  eras: (n: number) => string;
+  characters: (n: number) => string;
+  echoes: (n: number) => string;
+  erasRibbon: string;
+  epigraphSource: (title: string) => string;
+  doors: (projectId: string, storyHistory: number, spaceCount: number, echoes: number, characters: number, lanterns: number) => DoorCopy[];
+  censusTitle: string;
+  kindLabels: Record<WorldKind, string>;
+  footnote: (unreadable: number) => string;
+}> = {
+  zh: {
+    backlink: '← 世界步行',
+    eyebrowArchive: 'THE GREAT ARCHIVE',
+    almanacKicker: '世界藏经阁',
+    ledeFallback: '这一卷还没有被写下的卷语——回到 Studio，替它写下第一句。',
+    entries: (n) => `${n} 条目`,
+    eras: (n) => `${n} 纪元`,
+    characters: (n) => `${n} 人物`,
+    echoes: (n) => `${n} 道回声`,
+    erasRibbon: '纪元长卷',
+    epigraphSource: (title) => `—— ${title}`,
+    doors: (projectId, storyHistory, spaceCount, echoes, characters, lanterns) => [
+      { vol: '卷一', title: '世界编年', href: `/world/${projectId}/chronicle`, count: `${storyHistory} 条目`, note: '纪元之轴上，每一次燃与灭都按时间排着' },
+      { vol: '卷二', title: '寰宇图志', href: `/world/${projectId}/atlas`, count: `${spaceCount} 座星位`, note: '地理与势力在夜图上星火对峙（黄金角排布）' },
+      { vol: '卷三', title: '记忆回廊', href: `/world/${projectId}/memories`, count: `${echoes} 道回声`, note: '每一条都是"你在场时听到了什么"' },
+      { vol: '卷四', title: '角色星图', href: `/world/${projectId}/constellation`, count: `${characters} 位人物`, note: '全档人物与骨架节点，一张可以步行的星图' },
+      { vol: '卷五', title: '谜灯馆', href: `/world/${projectId}/quiz`, count: `${lanterns} 盏灯`, note: '凭记忆为这座世界点灯——题面全出自世界文档' },
+    ],
+    censusTitle: '世界九造 · 条目普查',
+    kindLabels: WORLD_KIND_LABELS,
+    footnote: (unreadable) => `本页由世界文档直接投影，不落任何字节。${unreadable > 0 ? `有 ${unreadable} 位人物读不出（档案损坏，名单不凑数）。` : ''}纪元顺序按编年同一口径；未建条目不计入。`,
+  },
+  en: {
+    backlink: '← World Walk',
+    eyebrowArchive: 'THE GREAT ARCHIVE',
+    almanacKicker: 'The Great Archive',
+    ledeFallback: 'No preface has been written for this volume yet — return to Studio and write the first line.',
+    entries: (n) => `${n} entries`,
+    eras: (n) => `${n} eras`,
+    characters: (n) => `${n} characters`,
+    echoes: (n) => `${n} echoes`,
+    erasRibbon: 'The Era Ribbon',
+    epigraphSource: (title) => `—— ${title}`,
+    doors: (projectId, storyHistory, spaceCount, echoes, characters, lanterns) => [
+      { vol: 'VOL. I', title: 'The World Chronicle', href: `/world/${projectId}/chronicle`, count: `${storyHistory} entries`, note: 'On the axis of ages, every burning and every dying, in order' },
+      { vol: 'VOL. II', title: 'The Atlas', href: `/world/${projectId}/atlas`, count: `${spaceCount} pins`, note: 'Geography and factions on a night map (golden-angle spiral)' },
+      { vol: 'VOL. III', title: 'The Memory Corridor', href: `/world/${projectId}/memories`, count: `${echoes} echoes`, note: 'Each one is "what you heard when you were there"' },
+      { vol: 'VOL. IV', title: 'The Constellation', href: `/world/${projectId}/constellation`, count: `${characters} characters`, note: 'The full roster on one walkable star chart' },
+      { vol: 'VOL. V', title: 'The Lantern Trial', href: `/world/${projectId}/quiz`, count: `${lanterns} lanterns`, note: 'Light this world by memory — every question comes from the document' },
+    ],
+    censusTitle: 'The Nine Factions · Entry Census',
+    kindLabels: EN_KIND_LABELS,
+    footnote: (unreadable) => `This page is a pure projection of the world document — nothing is written here.${unreadable > 0 ? ` ${unreadable} character roster(s) could not be read (corrupt records; the list was not padded to compensate).` : ''} Era order follows the same rule as the Chronicle; entries without records are not counted.`,
+  },
+};
+
 export default async function AlmanacPage({ params }: { params: Promise<{ projectId: string }> }) {
-  const { projectId } = await params;
+  const [{ projectId }, locale] = await Promise.all([params, getLocale()]);
+  const c = COPY[locale];
   const user = await requireUser();
   if (!(await projectVisibleTo(projectId, user.id))) notFound();
 
@@ -65,13 +144,7 @@ export default async function AlmanacPage({ params }: { params: Promise<{ projec
   const KIND_ORDER: WorldKind[] = ['lore', 'history', 'geography', 'factions', 'characters', 'creatures', 'items', 'quests', 'story'];
   const maxKind = Math.max(1, ...KIND_ORDER.map((k) => countByKind.get(k) ?? 0));
 
-  const doors: Array<{ vol: string; title: string; href: string; count: string; note: string }> = [
-    { vol: '卷一', title: '世界编年', href: `/world/${projectId}/chronicle`, count: `${storyHistory} 条目`, note: '纪元之轴上，每一次燃与灭都按时间排着' },
-    { vol: '卷二', title: '寰宇图志', href: `/world/${projectId}/atlas`, count: `${spaceCount} 座星位`, note: '地理与势力在夜图上星火对峙（黄金角排布）' },
-    { vol: '卷三', title: '记忆回廊', href: `/world/${projectId}/memories`, count: `${memories.length} 道回声`, note: '每一条都是"你在场时听到了什么"' },
-    { vol: '卷四', title: '角色星图', href: `/world/${projectId}/constellation`, count: `${characters.items.length} 位人物`, note: '全档人物与骨架节点，一张可以步行的星图' },
-    { vol: '卷五', title: '谜灯馆', href: `/world/${projectId}/quiz`, count: `${quizRounds} 盏灯`, note: '凭记忆为这座世界点灯——题面全出自世界文档' },
-  ];
+  const doors = c.doors(projectId, storyHistory, spaceCount, memories.length, characters.items.length, quizRounds);
 
   return (
     <main className="alm-root" data-almanac-root>
@@ -81,35 +154,35 @@ export default async function AlmanacPage({ params }: { params: Promise<{ projec
         style={{ background: 'radial-gradient(900px 480px at 12% -8%, rgba(201,168,106,0.14), transparent 55%), radial-gradient(900px 560px at 88% 4%, rgba(91,108,255,0.16), transparent 60%), radial-gradient(700px 600px at 50% 115%, rgba(34,211,238,0.08), transparent 55%)' }}
       />
       <header className="alm-head">
-        <Link href={`/world/${projectId}`} className="alm-backlink">← 世界步行</Link>
-        <p className="alm-eyebrow">THE GREAT ARCHIVE · {project.name}</p>
+        <Link href={`/world/${projectId}`} className="alm-backlink">{c.backlink}</Link>
+        <p className="alm-eyebrow">{c.eyebrowArchive} · {project.name}</p>
       </header>
 
       <section className="alm-section">
-        <p className="alm-eyebrow">世界藏经阁</p>
+        <p className="alm-eyebrow">{c.almanacKicker}</p>
         <h1 className="alm-title" style={{ fontFamily: SERIF }}>
           {worldOk?.name ?? project.name}
         </h1>
         <p className="alm-lede">
-          {worldOk?.summary?.trim() || '这一卷还没有被写下的卷语——回到 Studio，替它写下第一句。'}
+          {worldOk?.summary?.trim() || c.ledeFallback}
         </p>
         <div className="alm-strip">
-          <span>{totalNodes} 条目</span>
-          <span>{eras.length} 纪元</span>
-          <span>{characters.items.length} 人物</span>
-          <span>{memories.length} 道回声</span>
+          <span>{c.entries(totalNodes)}</span>
+          <span>{c.eras(eras.length)}</span>
+          <span>{c.characters(characters.items.length)}</span>
+          <span>{c.echoes(memories.length)}</span>
         </div>
         {epigraphs.length > 0 && (
           <blockquote className="alm-epigraph" data-almanac-epigraph>
             {epigraphs[0]!.memory}
-            <span className="alm-epigraphSource">—— {epigraphs[0]!.title}</span>
+            <span className="alm-epigraphSource">{c.epigraphSource(epigraphs[0]!.title)}</span>
           </blockquote>
         )}
       </section>
 
       {eras.length > 0 && (
         <section className="alm-section" data-almanac-eras>
-          <p className="alm-eyebrow">纪元长卷</p>
+          <p className="alm-eyebrow">{c.erasRibbon}</p>
           <div className="alm-eraRow">
             {eras.map((e) => (
               <Link
@@ -145,13 +218,13 @@ export default async function AlmanacPage({ params }: { params: Promise<{ projec
       </section>
 
       <section className="alm-census" data-almanac-kinds>
-        <p className="alm-eyebrow">世界九造 · 条目普查</p>
+        <p className="alm-eyebrow">{c.censusTitle}</p>
         <div className="alm-kindGrid">
           {KIND_ORDER.map((k) => {
             const count = countByKind.get(k) ?? 0;
             return (
               <div key={k} className="alm-kindRow" data-almanac-kind-row={k}>
-                <span className="alm-kindLabel">{WORLD_KIND_LABELS[k]}</span>
+                <span className="alm-kindLabel">{c.kindLabels[k]}</span>
                 <div className="alm-kindTrack">
                   <div className="alm-kindFill" style={{ width: `${(count / maxKind) * 100}%` }} />
                 </div>
@@ -160,9 +233,7 @@ export default async function AlmanacPage({ params }: { params: Promise<{ projec
             );
           })}
         </div>
-        <p className="alm-footnote">
-          本页由世界文档直接投影，不落任何字节。{characters.unreadable.length > 0 ? `有 ${characters.unreadable.length} 位人物读不出（档案损坏，名单不凑数）。` : ''}纪元顺序按编年同一口径；未建条目不计入。
-        </p>
+        <p className="alm-footnote">{c.footnote(characters.unreadable.length)}</p>
       </section>
     </main>
   );
