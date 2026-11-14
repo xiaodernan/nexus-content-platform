@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { CALL_TIMEOUT_MS, likePublication, unlikePublication, readLikes } from './likeLane';
+import { bodyText } from './fetchBody';
 
 /**
  * M7 v284 — the browser half of the LIKES lane.
@@ -26,7 +27,7 @@ describe('likeLane — likePublication (client half)', () => {
     const fetchImpl = makeFetch((url, init) => {
       expect(url).toBe('/api/likes');
       expect(init?.method).toBe('POST');
-      const body = JSON.parse(String(init?.body)) as { projectId: string; claim: { accountId: string } };
+      const body = JSON.parse(bodyText(init)) as { projectId: string; claim: { accountId: string } };
       expect(body.projectId).toBe('pub-1');
       expect(body.claim.accountId).toBe('acct-ada');
       return new Response(JSON.stringify({ ok: true, count: 1, liked: true }), { status: 200 });

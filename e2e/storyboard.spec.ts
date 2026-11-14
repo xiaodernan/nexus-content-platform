@@ -811,6 +811,9 @@ test('@smoke 整片参考图进画面：每镜都不挂图时，notes 说画面�
   await expect(result).toBeVisible({ timeout: 120_000 });
   await expect(result).toContainText('2/2 镜自己没挂参考帧');
   await expect(result).toContainText('image-to-video 带的那张整片参考图');
+  // 逐镜画面出处：这两镜都来自整片那张图（§40 第三十八片仍欠②）
+  await expect(result).toContainText('第 1 镜：画面来自整片那张图');
+  await expect(result).toContainText('第 2 镜：画面来自整片那张图');
   await expect(result).not.toContainText('色卡');
   await result.scrollIntoViewIfNeeded();
   await expect(result).toBeInViewport();

@@ -420,10 +420,11 @@ try {
   assert.match(longSummary.body.message, /281/);
 
   // The schema is a JSON OBJECT, not a string that contains JSON, not an array.
-  for (const [badSchema, label] of [
+  const table = /** @type Array<[unknown, string]> */ ([
     ['{"type":"object"}', 'a string that contains JSON'],
     [[{ type: 'object' }], 'an array'],
-  ]) {
+  ]);
+  for (const [badSchema, label] of table) {
     const refused = await postJson('/tools', { owner, name: `bad.schema.${STAMP}`, summary: 'anything', inputSchema: badSchema });
     assert.equal(refused.status, 400, `the schema ${label} must be 400, got ${refused.status}: ${refused.text}`);
     assert.match(refused.body.message, /JSON OBJECT/, `the refusal must say the schema is not an object: ${JSON.stringify(refused.body)}`);

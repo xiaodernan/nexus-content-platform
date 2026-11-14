@@ -71,7 +71,7 @@
 //
 // Requires nothing but Node:  node docs/evidence/m9/audit-contract-proof.mjs
 import assert from 'node:assert/strict';
-import { readFileSync, mkdtempSync, writeFileSync, rmSync, readdirSync } from 'node:fs';
+import { readFileSync, mkdtempSync, writeFileSync, rmSync, readdirSync, existsSync, mkdirSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { pathToFileURL, fileURLToPath } from 'node:url';
@@ -123,7 +123,7 @@ const SOURCES = [CONTROLLER, AUDIT_SERVICE, REPORT_DTOS, REPORT_SERVICE, MODERAT
     .map((s) => s.trim())
     .filter(Boolean)
     .map((s) => {
-      const m = /^([A-Za-z_][\w.<>\[\]]*)\s+([A-Za-z_]\w*)$/.exec(s);
+      const m = /^([A-Za-z_][\w.<>[\]]*)\s+([A-Za-z_]\w*)$/.exec(s);
       assert.ok(m, `the wire field "${s}" is not in the shape "Type name" — the proof must know how to read it`);
       return { type: m[1], name: m[2] };
     });
@@ -296,8 +296,24 @@ export const probe = [anonymous, named, future];
 // in a copied module is rewritten to its `.mjs` twin before it can be imported.
 const toMjs = (src) => src.replace(/from '(\.[^']+)'/g, "from '$1.mjs'");
 
+/**
+ * The box's ONLY window on the workspace: `node_modules/@nexus` as a junction to the root's own namespace.
+ * Without it every `@nexus/*` specifier the copied modules carry — `@nexus/economy/community`,
+ * `@nexus/economy/pageShell` — can be found by TypeScript's resolver nowhere, and the copy is a module
+ * that cannot run. The junction points at the SAME namespace the workspace resolution uses (its entries
+ * are themselves junctions into `packages/*`), so the box grades the shipped bytes, never a stale copy.
+ * Idempotent per box; junction needs no elevation on Windows, and `dir` is what POSIX hands back.
+ */
+function linkNexusNamespace(box) {
+  const boxNm = join(box, 'node_modules');
+  if (existsSync(join(boxNm, '@nexus'))) return;
+  mkdirSync(boxNm, { recursive: true });
+  symlinkSync(join(process.cwd(), 'node_modules', '@nexus'), join(boxNm, '@nexus'), process.platform === 'win32' ? 'junction' : 'dir');
+}
+
 async function copyIntoBox(box, rel) {
   const { stripTypeScriptTypes } = await import('node:module');
+  linkNexusNamespace(box);
   const dest = join(box, rel.split('/').pop().replace(/\.tsx?$/, '.mjs'));
   writeFileSync(dest, toMjs(stripTypeScriptTypes(readFileSync(rel, 'utf8'), { mode: 'strip' })), 'utf8');
   return dest;
@@ -373,7 +389,7 @@ async function loadShippedReportFaces(box) {
     .map((s) => s.trim())
     .filter(Boolean)
     .map((s) => {
-      const m = /^([A-Za-z_][\w.<>\[\]]*)\s+([A-Za-z_]\w*)$/.exec(s);
+      const m = /^([A-Za-z_][\w.<>[\]]*)\s+([A-Za-z_]\w*)$/.exec(s);
       assert.ok(m, `the envelope field "${s}" is not in the shape "Type name" — the proof must know how to read it`);
       return { type: m[1], name: m[2] };
     });
@@ -1120,7 +1136,7 @@ const vocab = (() => {
     const reportFaces = await loadShippedReportFaces(box);
     const NEVER_SENT_BAR = { id: 'r-ns', reporterId: 'acct-ada', targetId: 'pub-1', reason: 'spam', detail: '', createdAt: 1 };
     const NEVER_SENT_DESK = { reportId: 'r-ns', targetProjectId: 'pub-1', reason: 'spam', detail: '', createdAt: 1 };
-    for (const [face, fn, key] of [['reportBar', reportFaces.bar.toReportRow, NEVER_SENT_BAR], ['moderation', reportFaces.desk.toDeskRow, NEVER_SENT_DESK]]) {
+    for (const [face, fn] of [['reportBar', reportFaces.bar.toReportRow], ['moderation', reportFaces.desk.toDeskRow]]) {
       assert.equal(typeof fn, 'function', `${face === 'reportBar' ? CLIENT_REPORTBAR : CLIENT_MODERATION} no longer exports its row builder — §11.10 has lost the face it grades, and the clauses above would be grading names`);
     }
     {

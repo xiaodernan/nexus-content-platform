@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from typing import Any
 
@@ -54,6 +55,10 @@ ops 只允许以下形状（字段名与取值必须严格一致）：
    它回答"该动哪个元素"，不是要照抄进设计的文案——"这个按钮太大"是要你改尺寸，不是把这句话写进按钮。
    批注与本轮诉求冲突时以诉求为准，并在 explanation 里说一句冲突在哪；
    `annotationsNote` 说明有哪些批注没带上来（过期节点或超出条数上限），别把没看见当成没有。
+7. 本轮若点名了 Agent，名册在载荷的 `agent` 字段（name / responsibilities / capabilities），
+   同一件事的人话版本在 `agentNote`。只有 capabilities 里含 design.patch 时才允许输出会改动
+   设计文档的 op；没有这个作用域而诉求又要改文档时，patches 留空，并在 explanation 里说明
+   这一位做不了（§73）。`agentNote` 缺席表示本轮没有点名任何 Agent。
 """
 
 
@@ -111,6 +116,30 @@ def _has_catalog(index: dict[str, Any]) -> bool:
     return isinstance(index.get("pages"), list) or isinstance(index.get("frames"), list)
 
 
+def _compact(value: Any) -> Any:
+    """递归剔掉"空值"字段：`null` / `""` / `[]` / `{}`。
+
+    §CACHE-2 的 token 账：真机目录里 34 条 token 每条都带 `"group":null`（11 B × 34），
+    还有 18 条空 `via`——这些字节模型读不出任何信息，纯粹是 token。
+    契约里"没有这个字段"与"这个字段是空"对读者是同一件事（`omissions` 另有一段
+    专门交代"目录没带什么"），所以剔空不是静默变短，是把同一件事写得更短。
+
+    `0` / `False` **不剔**：它们是具体的值（0 个实例 ≠ 没这一项），
+    剔掉会把"确实是 0"读成"没给"，那是另一种谎。
+    """
+    if isinstance(value, dict):
+        out: dict[str, Any] = {}
+        for k, v in value.items():
+            cv = _compact(v)
+            if cv is None or cv == "" or cv == [] or cv == {}:
+                continue
+            out[k] = cv
+        return out
+    if isinstance(value, list):
+        return [_compact(x) for x in value]
+    return value
+
+
 def _agent_note(request: dict[str, Any]) -> str:
     """§112「每个 Agent 有自己的职责」+ §73「越权调用直接失败」在提示词里的那一句。
 
@@ -131,6 +160,65 @@ def _agent_note(request: dict[str, Any]) -> str:
         "只有权限作用域里含 design.patch 时，才允许输出会改动设计文档的 op；"
         "没有这个作用域而诉求又要改文档时，patches 留空，并在 explanation 里说明这一位做不了（§73）。"
     )
+
+
+def _stable_block(request: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+    """构造 payload 的**稳定块**（同项目逐字节不变的那一段）。
+
+    单独成函数有两个理由：
+    1. `build_prompt` 用它一次，`stable_block_digest()` 也要拿同一份字节——
+       两处各拼一遍必然漂移，而漂移就等于缓存读数在说谎；
+    2. 稳定块是"前缀缓存能不能命中"的全部内容，值得有一个可以单独测的名字。
+    """
+    context = request.get("context") or {}
+    index = context.get("designIndex") or {}
+    code = context.get("codeDigest") or {}
+    document = context.get("document") or {}
+    truncations: list[str] = []
+    stable: dict[str, Any] = {}
+    if _has_catalog(index):
+        stable["contextSource"] = "designIndex"
+        stable["pages"] = index.get("pages") or []
+        stable["frames"] = index.get("frames") or []
+        stable["components"] = index.get("components") or []
+        stable["assets"] = index.get("assets") or []
+        stable["interactions"] = index.get("interactions") or []
+        index_tokens = index.get("tokens") or []
+        stable["tokens"] = index_tokens[:MAX_TOKENS_IN_PROMPT]
+        # 服务端裁过一轮，这里再裁一轮也必须留痕，否则模型以为这份列表是完整的
+        if len(index_tokens) > MAX_TOKENS_IN_PROMPT:
+            truncations.append(
+                f"token 表从 {len(index_tokens)} 条裁到 {MAX_TOKENS_IN_PROMPT} 条（这份进程的上限，不是服务端预算）"
+            )
+        stable["totals"] = index.get("totals") or {}
+        # 目录说了它没带什么，模型就得知道——否则它会以为"没列出来 = 项目里没有"
+        stable["omissions"] = index.get("omissions") or []
+        stable["catalogTrimmed"] = index.get("trimmed") or []
+        stable["code"] = code or None
+        stable["indexChars"] = context.get("indexChars")
+        stable["budgetChars"] = context.get("budgetChars")
+    elif document.get("pages"):
+        stable["contextSource"] = "document-fallback"
+        stable["note"] = "没有服务端目录，退回到整份文档的节点表；这条路径不该出现在正常请求里"
+        tree, _ = build_tree_digest(document)
+        stable["tree"] = tree
+        stable["tokens"] = ((context.get("designSystemDigest") or {}).get("tokens") or [])[:MAX_TOKENS_IN_PROMPT]
+    else:
+        stable["contextSource"] = "none"
+        stable["note"] = "既没有目录也没有文档：这一轮模型看不到项目内容，只能按诉求文字回答（应当说明做不了）"
+    return stable, truncations
+
+
+def stable_block_digest(request: dict[str, Any]) -> str:
+    """稳定块的短摘要（16 位十六进制）。
+
+    这是 §CACHE-2 里唯一**可自证**的缓存口径：同一摘要重复出现 =
+    这一轮的前缀与上一轮逐字节相同 = provider 只要做前缀缓存就必然能命中。
+    与网关自报的 `cached_tokens` 无关，也不受它抖动影响（ADR 0262 的 L4 反证）。
+    """
+    stable, _ = _stable_block(request)
+    encoded = json.dumps(_compact(stable), ensure_ascii=False, separators=(",", ":"), default=str)
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:16]
 
 
 def _encode_prompt(payload: dict[str, Any]) -> str:
@@ -157,22 +245,37 @@ def build_prompt(request: dict[str, Any]) -> tuple[str, str]:
     document = context.get("document") or {}
     page_id = context.get("pageId") or document.get("activePageId") or ""
 
-    payload: dict[str, Any] = {
-        # 缓存友好序：先放这轮不变的现场（provider 前缀缓存的载体），最后才是诉求——
-        # json.dumps 按插入序输出，诉求挪到尾部后，同项目连续几轮的 prompt 前缀
-        #（SYSTEM_PROMPT + 整份目录摘要）可以在 provider 侧整段命中
-        "modelClass": request.get("modelClass"),
-        "viewport": context.get("viewport"),
-        "pageId": page_id,
-        "selection": context.get("selection") or [],
-        # 服务端派生的一份目录（entries / missing / unreachable / dropped / omissions）；
-        # 空对象只可能来自手写请求，正常装配一定会带上它
-        "selectionDigest": context.get("selectionDigest") or {},
-        # §111：钉在元素上的用户原话，服务端按文档核对过定位
-        "annotations": context.get("annotations") or [],
-        **({"annotationsNote": context["annotationsNote"]} if context.get("annotationsNote") else {}),
-        "recentChanges": context.get("recentChanges") or [],
-    }
+    # ── 前缀缓存序（§CACHE-2，2026-11-13 实测后重排）────────────────────────────
+    # provider 的自动前缀缓存按**字节前缀**命中：两轮请求从第一个不同字节起，后面全部作废。
+    # 所以 payload 必须"先稳定、后易变"，否则再大的目录也进不了缓存：
+    #   ① 稳定块：同项目逐字节不变的大目录（pages/frames/components/assets/interactions/
+    #      tokens/totals）——它占体量 95% 以上，是最值得缓存的部分；
+    #   ② 现场块：每轮会变的 pageId/selection/selectionDigest/annotations/recentChanges/corpus；
+    #   ③ 诉求块：intent/prompt/variants。
+    # 旧序把 selection/selectionDigest 放在目录之前，`scripts/prompt-prefix-audit.py` 实测
+    # 连续两轮前缀复用率只有 0.45%（≈111 字节），等于整份目录从未进过缓存；重排后见同脚本读数。
+    payload: dict[str, Any] = {}
+    # ── ① 稳定块（与 stable_block_digest 同一份字节，不各拼一遍）──
+    stable, stable_truncations = _stable_block(request)
+    # 这个进程自己又裁的每一刀，最后一起写进 promptTruncated（§159：短了要说，别默默变短）
+    truncations: list[str] = list(stable_truncations)
+    # 剔空只作用在稳定块：现场块里的 `missing: []` / `dropped: []` 是"这次没有"的**答案**，
+    # 不是空话；把答案删掉会让模型分不清"没有"和"没问"。
+    payload.update(_compact(stable))
+
+    # ── ② 现场块（每轮可能变，但都排在稳定目录之后）──
+    payload["pageId"] = page_id
+    payload["modelClass"] = request.get("modelClass")
+    payload["viewport"] = context.get("viewport")
+    payload["selection"] = context.get("selection") or []
+    # 服务端派生的一份目录（entries / missing / unreachable / dropped / omissions）；
+    # 空对象只可能来自手写请求，正常装配一定会带上它
+    payload["selectionDigest"] = context.get("selectionDigest") or {}
+    # §111：钉在元素上的用户原话，服务端按文档核对过定位
+    payload["annotations"] = context.get("annotations") or []
+    if context.get("annotationsNote"):
+        payload["annotationsNote"] = context["annotationsNote"]
+    payload["recentChanges"] = context.get("recentChanges") or []
     # §49 × §66-71：这一轮按相关性从项目语料库取回的内容（世界条目、角色、记忆、分镜、
     # 游戏设计、设计正文）。空列表与"这一轮没查"是两件事，所以 query 一并带上：
     # query 为 null 就是装配方没给查询词，不能读成"项目里没有相关设定"。
@@ -186,42 +289,13 @@ def build_prompt(request: dict[str, Any]) -> tuple[str, str]:
             f"{corpus.get('omitted', 0)} 条相关的因预算没带进来（candidates="
             f"{corpus.get('candidates', 0)}），没带进来不等于项目里没有。"
         )
-    # 这个进程自己又裁的每一刀，最后一起写进 promptTruncated（§159：短了要说，别默默变短）
-    truncations: list[str] = []
+    # Agent 名册从 system 挪到这里：system 是整条前缀的第一段，必须逐字节不变；
+    # 而"本轮由谁负责"每轮都可能变。规则本身（没有 design.patch 就不许改文档）留在 SYSTEM_PROMPT 里。
+    if request.get("agent"):
+        payload["agent"] = request.get("agent")
+    payload["agentNote"] = _agent_note(request)
 
-    if _has_catalog(index):
-        payload["contextSource"] = "designIndex"
-        payload["indexChars"] = context.get("indexChars")
-        payload["budgetChars"] = context.get("budgetChars")
-        payload["pages"] = index.get("pages") or []
-        payload["frames"] = index.get("frames") or []
-        payload["components"] = index.get("components") or []
-        payload["assets"] = index.get("assets") or []
-        payload["interactions"] = index.get("interactions") or []
-        index_tokens = index.get("tokens") or []
-        payload["tokens"] = index_tokens[:MAX_TOKENS_IN_PROMPT]
-        # 服务端裁过一轮，这里再裁一轮也必须留痕，否则模型以为这份列表是完整的
-        if len(index_tokens) > MAX_TOKENS_IN_PROMPT:
-            truncations.append(
-                f"token 表从 {len(index_tokens)} 条裁到 {MAX_TOKENS_IN_PROMPT} 条（这份进程的上限，不是服务端预算）"
-            )
-        payload["totals"] = index.get("totals") or {}
-        # 目录说了它没带什么，模型就得知道——否则它会以为"没列出来 = 项目里没有"
-        payload["omissions"] = index.get("omissions") or []
-        payload["catalogTrimmed"] = index.get("trimmed") or []
-        payload["code"] = code or None
-    elif document.get("pages"):
-        payload["contextSource"] = "document-fallback"
-        payload["note"] = "没有服务端目录，退回到整份文档的节点表；这条路径不该出现在正常请求里"
-        tree, _ = build_tree_digest(document)
-        payload["tree"] = tree
-        payload["tokens"] = ((context.get("designSystemDigest") or {}).get("tokens") or [])[:MAX_TOKENS_IN_PROMPT]
-    else:
-        payload["contextSource"] = "none"
-        payload["note"] = "既没有目录也没有文档：这一轮模型看不到项目内容，只能按诉求文字回答（应当说明做不了）"
-
-    # 诉求放在 JSON 对象的尾部：provider 的前缀缓存按字节前缀计，把能变的放到最后，
-    # 同项目连续几轮的 prompt 前缀（目录摘要 + 代码 digest）可以被整段命中。
+    # ── ③ 诉求块：provider 的前缀缓存按字节前缀计，能变的放最后 ──
     payload["intent"] = request.get("intent")
     payload["prompt"] = request.get("prompt")
     payload["variants"] = request.get("variants")
@@ -244,6 +318,9 @@ def build_prompt(request: dict[str, Any]) -> tuple[str, str]:
     if truncations:
         payload["promptTruncated"] = "；".join(truncations)
         encoded = _encode_prompt(payload)
+    # system 只回恒定那一段：它是整条前缀的第一段，一旦带上每轮会变的内容
+    # （旧版把 agent 说明拼在这里），换 Agent 或换一轮就整条前缀失配、缓存全灭。
+    # 每轮会变的 agent 名册改由载荷的 `agent` / `agentNote` 承载（§CACHE-2）。
     return f"{SYSTEM_PROMPT}\n{_agent_note(request)}", encoded
 
 

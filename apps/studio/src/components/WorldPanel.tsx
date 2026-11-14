@@ -178,7 +178,7 @@ export default function WorldPanel() {
             </span>
             <button
               data-sim-step="1"
-              onClick={() => step(1)}
+              onClick={() => void step(1)}
               disabled={busy}
               style={buttonStyle}
             >
@@ -186,7 +186,7 @@ export default function WorldPanel() {
             </button>
             <button
               data-sim-step="5"
-              onClick={() => step(5)}
+              onClick={() => void step(5)}
               disabled={busy}
               style={buttonStyle}
             >
@@ -208,10 +208,10 @@ export default function WorldPanel() {
             <span style={{ fontSize: 11, letterSpacing: 1, color: 'var(--nexus-muted)', textTransform: 'uppercase' }}>
               Persist
             </span>
-            <button data-world-save-disk onClick={onSaveToDisk} disabled={busy} style={buttonStyle}>
+            <button data-world-save-disk onClick={() => void onSaveToDisk()} disabled={busy} style={buttonStyle}>
               save to disk
             </button>
-            <button data-world-browse-disk onClick={onBrowseDisk} disabled={busy} style={buttonStyle}>
+            <button data-world-browse-disk onClick={() => void onBrowseDisk()} disabled={busy} style={buttonStyle}>
               browse disk
             </button>
             <span style={{ color: 'var(--nexus-muted)' }} data-world-save-note>
@@ -235,7 +235,7 @@ export default function WorldPanel() {
                       key={name}
                       style={{ ...item, cursor: 'pointer' }}
                       data-world-disk-save={name}
-                      onClick={() => onLoadFromDisk(name)}
+                      onClick={() => void onLoadFromDisk(name)}
                     >
                       {name}
                     </li>

@@ -110,6 +110,7 @@ assert.equal(report.ok, true, `the real suite must pass through the sandbox: ${r
 assert.equal(report.engine, `exec-host:${SUITE_ARGV.join(' ')}`, '§60: the label names the ACTUAL command, never masquerades as predicates');
 assert.deepEqual([report.total, report.passed, report.failures.length], [1, 1, 0], 'subprocess verification = ONE named exit-zero check');
 assert.match(report.detail, /exit 0/);
+// eslint-disable-next-line no-control-regex -- ANSI 转义序列必须匹配 ESC 本身，这条规则表达不了
 const plain = report.detail.replace(/\x1b\[[0-9;]*m/g, ''); // ANSI-stripped VIEW; the stored report stays verbatim
 assert.match(plain, /Test Files\s+\d+ passed/, "vitest's own summary travels VERBATIM inside the report");
 assert.match(plain, /Tests\s+\d+ passed \(\d+\)/, 'a passing suite reports its totals through the sandbox (counts drift; absence would mean failure)');

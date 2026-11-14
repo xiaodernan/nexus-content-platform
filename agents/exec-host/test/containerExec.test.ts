@@ -231,7 +231,9 @@ describe('createContainerExecHost (only what planContainerRun approved ever spaw
     const pending = h.host.run({ argv: ['git', 'status', '--short'] }, OK_GATE); // rule: timeout 20, cap 6
     // The kill fires at 20 ms; the rm -f is the SECOND spawn and must name THIS run's container.
     const r = await new Promise<ContainerRunResult>((resolve, reject) => {
-      setTimeout(() => pending.then(resolve, reject), 120);
+      setTimeout(() => {
+        pending.then(resolve, reject);
+      }, 120);
     });
     expect(r.killedByBudget).toBe(true);
     expect(r.signal).toBe('SIGTERM');
@@ -246,7 +248,9 @@ describe('createContainerExecHost (only what planContainerRun approved ever spaw
     const h = harness(['never', { code: 1, signal: null }]);
     const pending = h.host.run({ argv: ['git', 'status', '--short'] }, OK_GATE);
     const r = await new Promise<ContainerRunResult>((resolve, reject) => {
-      setTimeout(() => pending.then(resolve, reject), 120);
+      setTimeout(() => {
+        pending.then(resolve, reject);
+      }, 120);
     });
     expect(r.cleanup).toMatchObject({ attempted: true, removed: false });
     expect(r.cleanup!.note).toContain('exited 1');
@@ -325,7 +329,7 @@ describe('the container.exec tool in the gated registry (§28 at the registry)',
     const invalidPolicy: ContainerPolicy = { ...POLICY, image: '' }; // a copy: mutating the host's own fixture would poison every later test
     expect(() => {
       const registry = new ToolRegistry();
-      registerContainerExecTools(registry, { policy: invalidPolicy, run: bad.host.run });
+      registerContainerExecTools(registry, { policy: invalidPolicy, run: (...args) => bad.host.run(...args) });
     }).toThrow('container policy invalid');
   });
 });

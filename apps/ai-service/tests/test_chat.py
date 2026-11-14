@@ -65,6 +65,9 @@ def test_chat_returns_provider_text() -> None:
     # 人设与用户消息必须真的进入提示，否则模型只能瞎猜角色
     assert "守夜人" in provider.calls[0]["system"]
     assert "山口安静吗" in provider.calls[0]["user"]
+    # 角色对话必须明确请求非 JSON：provider 据此不带 response_format: json_object，
+    # 否则 wkapi.pro 把"这不是 JSON"的请求拒 400。
+    assert provider.calls[0]["json_mode"] is False
 
 
 def test_chat_fails_when_provider_returns_empty() -> None:

@@ -57,6 +57,10 @@ target/
 __pycache__/
 *.pyc
 .venv/
+# Python 安装管理器（uv / python manager）在本机留下的缓存——不是项目产物（内容是 "Python install
+# manager was successfully updated"），但它在仓库根下，不忽略就会以未跟踪文件的形式出现在 git status 里，
+# 迟早被一次 `git add -A` 顺手带进去。
+Python/_cache/
 
 # scratch: proof runs materialise a ref here, so this tree holds WHOLE COPIES of test files (measured
 # 2026-10-09: 879 *.test.ts under four .scratch dirs). Two things went wrong while it was unignored: a
@@ -88,6 +92,13 @@ commit_msg.txt
 run-result.txt
 test_output.txt
 test-output.txt
+
+# machine-local verification/backup scratch from 2026-11 multi-session runs (pre-restore snapshots,
+# proof dumps, playwright pre-e2e archives). Reference-only; not part of the product. Not deleted,
+# just not tracked.
+.next-dev-archives/
+test-results-mine/
+test-results-mine*/
 
 # Three root-level SCRATCH files that were tracked before the rules above existed, and were kept
 # tracked by the same `git add -A` hazard the .scratch/ note describes. Measured 2026-11-09 while

@@ -588,7 +588,7 @@ describe('the shipped shape and the shipped builder are the same set (read from 
     const audit = runtime.saveFeasibilityAudit(scene, hero)!;
 
     const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(runtime))
-      .filter((name) => name !== 'constructor' && typeof (runtime as unknown as Record<string, Function>)[name] === 'function');
+      .filter((name) => name !== 'constructor' && typeof (runtime as unknown as Record<string, unknown>)[name] === 'function');
     expect(methods.length, 'the prototype read a real class, not an empty object').toBeGreaterThan(20);
     // The two verbs the save lane uses for the two directions of a shape, taken from the entity pair
     // (`snapshotEntity`/`restoreEntity`) rather than hand-picked per field.

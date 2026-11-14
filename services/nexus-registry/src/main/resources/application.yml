@@ -1,0 +1,60 @@
+# NEXUS nexus-registry (Spring Cloud SC-1) — a STANDALONE Eureka server.
+#
+# Every value is overridable by environment, for the same reason nexus-api's are: a proof that starts this
+# service must point it at its OWN port. On this machine the Eureka DEFAULT 8761 demonstrably belongs to
+# D:\3a大作's stack (its config-server heartbeats against an 8761 registry started here — confirmed from the
+# registry's own "lease doesn't exist" log, 2026-11-10; see docs/adr/0100). This service therefore defaults
+# to a dedicated port instead of the framework's default.
+spring:
+  application:
+    name: nexus-registry
+
+server:
+  port: ${NEXUS_REGISTRY_PORT:8771}
+
+eureka:
+  instance:
+    hostname: ${NEXUS_REGISTRY_HOST:127.0.0.1}
+  client:
+    # A registry that registers with itself and fetches a registry it is the only member of reports itself
+    # DOWN when it cannot find a peer, and logs that failure every 30 s. Standalone is the honest shape for
+    # one node; a real multi-node deployment sets both to true and points defaultZone at its peers.
+    register-with-eureka: ${NEXUS_REGISTRY_REGISTER:false}
+    fetch-registry: ${NEXUS_REGISTRY_FETCH:false}
+    service-url:
+      defaultZone: ${NEXUS_REGISTRY_ZONE:http://127.0.0.1:8771/eureka/}
+  server:
+    # Self-preservation stops evictions when a large fraction of heartbeats goes missing at once — it protects
+    # a real fleet from a network partition. With one node and a handful of services it instead keeps dead
+    # addresses in the registry forever, so the default here is off and a deployment can turn it back on.
+    enable-self-preservation: ${NEXUS_REGISTRY_SELF_PRESERVATION:false}
+    # The read-only response cache is refreshed on a timer (30 s by default), so a reader can be handed an
+    # address list that is half a minute behind a registration that already happened. Reading the read-write
+    # cache costs a little contention and removes that window; at this fleet size that is the right trade.
+    use-read-only-response-cache: ${NEXUS_REGISTRY_READ_ONLY_CACHE:false}
+    eviction-interval-timer-in-ms: ${NEXUS_REGISTRY_EVICTION_MS:15000}
+
+logging:
+  level:
+    root: warn
+    dev.nexus.registry: info
+
+# Spring Boot Actuator: only health (for /platform/health by the gateway) and info.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+  # §SC-68: build-info goal 出 jar 时带 artifact/group/version/time + component
+  info:
+    build:
+      enabled: true
+    env:
+      enabled: false
+info:
+  app:
+    name: nexus-registry
+    description: standalone Eureka registry for the NEXUS topology

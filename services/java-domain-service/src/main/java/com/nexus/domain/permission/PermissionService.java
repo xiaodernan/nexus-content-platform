@@ -1,96 +1,83 @@
 package com.nexus.domain.permission;
 
-import com.nexus.domain.UnimplementedOperation;
+import com.nexus.domain.community.PublicationRepository;
+import com.nexus.domain.project.Project;
+import com.nexus.domain.project.ProjectRepository;
+import com.nexus.domain.user.User;
+import com.nexus.domain.user.UserRepository;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Permission domain service — roles, permissions, access control.
+ * Permission checks, read-only (SC-18). The question answered is "may this user act on this resource?", read
+ * off the same rows the web layer wrote: the user's role, projects.owner_id, and the publication → project
+ * chain. The service writes nothing.
  *
- * <p><b>This service does not own these writes yet, and it says so instead of pretending.</b> Every
- * method below used to answer with a made-up value:
- *
- * <pre>{@code
- * public boolean hasPermission(String userId, String resourceType, String resourceId, String action) {
- *     return false;                   // a permission check that answers without checking
- * }
- * public boolean isAdmin(String userId) { return false; }   // an admin flag, always "no"
- * public boolean isModerator(String userId) { return false; }
- * public void grantRole(String userId, String role) { }      // success; no role was granted
- * public void revokeRole(String userId, String role) { }
- * }</pre>
- *
- * <p>A permission check that always answers {@code false} has a peculiar kind of danger: it looks
- * like the SAFE answer. It is not safe — it is an answer the service never established, and a
- * caller that trusts it will deny a legitimate owner their own project while believing the system
- * is enforcing something. The {@code void} grant/revoke pair is worse in the other direction: the
- * caller is told the role moved.
- *
- * <p>The membership and role facts for this platform live with the accounts and the project
- * membership surface — the web layer's {@code users} / {@code project_members} tables (see
- * {@code apps/web/src/server/db/schema.ts}) and {@code nexus-api}'s publication-ownership rules.
- * This service is the second candidate for that judgement, and it will not make it up.
- *
- * <p>So each method refuses with {@link UnimplementedOperation}, which names the operation and the
- * boundary.
- *
- * @see com.nexus.domain.UnimplementedOperation
+ * <p>What is deliberately NOT here:
+ * <ul>
+ *   <li>grantRole / revokeRole — the in-flight draft let any caller rewrite users.role with no supervision
+ *       and no audit trail. A role write is a privilege-escalation primitive; roles change in the web layer,
+ *       which owns the users table.</li>
+ *   <li>toUserDetails — the draft declared a UserDetails return type and returned an Authentication; it never
+ *       compiled. Authentication is the gateway's job (SC-13 AuthFilter); this service only judges roles.</li>
+ *   <li>isModerator — users.role carries exactly two labels (creator, admin); a moderator identity the schema
+ *       cannot store would be invented authority.</li>
+ *   <li>Visibility rules — whether a stranger may read a given project or publication is enforced by the web
+ *       layer's own query paths. Here a non-owner gets read and nothing else, mirroring the legacy contract;
+ *       a resource that does not resolve grants nothing at all.</li>
+ * </ul>
  */
 @Service
 @Transactional(readOnly = true)
 public class PermissionService {
 
-    private static final String OWNERSHIP =
-            "roles and membership live with the accounts and the project membership surface (the web "
-                    + "layer's `users` / `project_members` tables and nexus-api's ownership rules); this "
-                    + "service does not own that judgement, so it will not answer it without checking";
+    private final UserRepository users;
+    private final ProjectRepository projects;
+    private final PublicationRepository publications;
 
-    /**
-     * Check if user has permission to access a resource.
-     *
-     * @throws UnimplementedOperation always — a {@code false} here is a made-up answer, not a check.
-     */
-    public boolean hasPermission(String userId, String resourceType, String resourceId, String action) {
-        throw new UnimplementedOperation("permission.hasPermission", OWNERSHIP);
+    public PermissionService(UserRepository users, ProjectRepository projects,
+            PublicationRepository publications) {
+        this.users = users;
+        this.projects = projects;
+        this.publications = publications;
     }
 
     /**
-     * Grant a role to a user.
-     *
-     * @throws UnimplementedOperation always — a silent no-op would report a grant that never
-     *     happened.
+     * Ownership grants every action; a non-owner gets read only; a resource that does not resolve grants
+     * nothing — the caller answers 404 for a missing row, and a ghost must not become a silent yes.
      */
-    @Transactional
-    public void grantRole(String userId, String role) {
-        throw new UnimplementedOperation("permission.grantRole", OWNERSHIP);
+    public boolean hasPermission(UUID userId, String resourceType, String resourceId, String action) {
+        User user = users.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+        if (user.getRole() == User.UserRole.ADMIN) {
+            return true;
+        }
+        Optional<Project> resource = switch (resourceType) {
+            case "project" -> projects.findById(UUID.fromString(resourceId));
+            case "publication" -> publications.findById(UUID.fromString(resourceId))
+                    .flatMap(publication -> projects.findById(publication.getProjectId()));
+            default -> throw new IllegalArgumentException("Unknown resource type: " + resourceType);
+        };
+        if (resource.isEmpty()) {
+            return false;
+        }
+        return userId.equals(resource.get().getOwnerId()) || "read".equals(action);
     }
 
-    /**
-     * Revoke a role from a user.
-     *
-     * @throws UnimplementedOperation always.
-     */
-    @Transactional
-    public void revokeRole(String userId, String role) {
-        throw new UnimplementedOperation("permission.revokeRole", OWNERSHIP);
+    public boolean isAdmin(UUID userId) {
+        return User.UserRole.ADMIN == roleOf(userId);
     }
 
-    /**
-     * Check if user is admin.
-     *
-     * @throws UnimplementedOperation always — an admin flag that is always {@code false} is an
-     *     answer the service never established.
-     */
-    public boolean isAdmin(String userId) {
-        throw new UnimplementedOperation("permission.isAdmin", OWNERSHIP);
+    public String getUserAuthority(UUID userId) {
+        return "ROLE_" + roleOf(userId).name().toLowerCase(Locale.ROOT);
     }
 
-    /**
-     * Check if user is moderator.
-     *
-     * @throws UnimplementedOperation always.
-     */
-    public boolean isModerator(String userId) {
-        throw new UnimplementedOperation("permission.isModerator", OWNERSHIP);
+    private User.UserRole roleOf(UUID userId) {
+        return users.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId))
+                .getRole();
     }
 }

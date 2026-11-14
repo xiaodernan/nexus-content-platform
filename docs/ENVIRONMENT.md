@@ -14,6 +14,9 @@
 
 **关键约束：内存。** 不能同时常驻 Next.js dev server + FastAPI + Spring Boot + Postgres + Redis + MinIO + Playwright。
 所有本地服务必须支持"按需启动"，并在 `docs/RUNTIME.md` 中给出最小可运行组合。
+2026-11-10 实测：`scripts/verify-topology|loadbalance|auth.mts` 启动的 JVM 全部带 `-Xmx` heap 上界
+（**domain 512m，其余 384m**，用 `NEXUS_SMOKE_HEAP` / `NEXUS_SMOKE_HEAP_DOMAIN` 覆盖）——
+本机空闲只剩 ~150MB 时 Spring Boot 默认堆会让服务在 150 秒内起不来；把"内存吃紧"当"服务坏了"是误诊。
 
 ## 工具链
 
@@ -26,19 +29,98 @@
 | Java | Temurin 25.0.1 | OK |
 | Maven | 3.9.15 | OK |
 | Python | 3.11.1 + pip 25.3 | OK |
-| Docker Desktop | 29.1.3（daemon 运行中） | OK |
+| Docker Desktop | 29.9.3（2026-11-12 重启后实测；2026-09-22 勘察为 29.1.3） | OK |
 | Chrome | 已安装 | Playwright 复用系统 Chrome（`channel: 'chrome'`） |
 | psql / redis-cli | — | 本机无，仅通过容器访问 |
 
 > **Playwright 约束**：本机网络无法下载 Playwright 自带的 Chromium/headless-shell（`npx playwright install` 失败）。
 > 截图与 e2e 一律用系统 Chrome：`chromium.launch({ channel: 'chrome' })`。已实测可渲染并截图成功。
 
+### 2026-11-12 真实 LLM provider 接入（§AILIVE-1）
+
+本机开发从此日期起默认接入真实 LLM provider（wkapi.pro 的 `gpt-6-sol`）：`apps/ai-service/.env`
+含 key（gitignored，详见 `apps/ai-service/.env.example`），`NEXUS_OPENAI_BASE_URL`、`NEXUS_MODEL_*`、`NEXUS_LLM_JSON_MODE` 亦同。
+因此核心 AI 依赖不再是纯 mock（§160 §AGENTS）；
+
+- `/healthz` capability 现为 `real`（providers: `llm`/`embedding` openai-compatible REAL；
+  `image`/`video`/`speech` 仍如实 `unavailable`）。
+- web 的 Provider 就绪页盖 `在线 · real` 布尔真，不再是 `未配置`。
+- `scripts/probe-provider.py` 一次请求验证 endpoint（无需手动导环境变量，读 apps/ai-service/.env）。
+- 真实调用产生真实费用：每个真实 generation 请求都向 endpoint 计费；`demoMode=false`。
+  开发时不想产生费用就别触开发 AI 路径（或删 .env 里的 key）；healthz 会退回 mock，
+  `DEMO MODE` 标志真显示，§AGENTS 纪律仍有效。
+
+### 2026-11-13 LLM 通路接入 prompt caching（§AILIVE-4）
+
+`wkapi.pro`（OpenAI 兼容网关）的 `usage` 对象默认**不带 prompt caching 字段**（只给 `prompt_tokens/completion_tokens/total_tokens`）；stream SSE 结尾直接 `[DONE]`、没有 usage 帧——stream 不是"坏"，充其量是"报不了数"。
+
+2026-11-13 修：OpenAICompatibleProvider 发 `prompt_cache_key`（缺省 `nexus-studio`，env `NEXUS_OPENAI_PROMPT_CACHE_KEY`，显式空串关闭）；`usage` 新增 `cachedTokens`（default 0），契约三件套同步。实测：同 payload 第二次起 `cached_tokens=6272/6449（97.2%）`；经 `POST /v1/ai/run` 完整 HTTP 路径 cold 0 → warm 6272（**97.8%**）。`/healthz` 依旧 `real`；成本仍只看网关的 truth（`costUsd=0`，不编）。
+
+进程归属与停机纪律见 `docs/environment/port-3200-ai-service-owner.md`（3200 现由本仓 patched 实例持有）。
+
 ## 已有容器（不属于本项目，禁止复用/删除）
 
 `careeros-postgres`(5432), `careeros-redis`, `careeros-minio`(19000), `nexus-seed-verify`(55432)。
 
+### 2026-11-12 重启后清点（实测）
+
+OpenCode/Docker 一次同机重启让全部容器掉线。重启 Docker Desktop 后：
+- **`nexus-postgres`**（55433）和 **`nexus-redis`**（56379）自动回到 Healthy（其 compose restart 策略把它们拉回）；
+- `nexus-admin`, `nexus-gateway`, `nexus-java-pg`, `nexus-eureka`, `nexus-config`、
+  若干 `nexus-health-db-*` / `caesura-*` 仍是 **`Created`（从未 start）**——本机没有常驻 Spring Cloud
+  五件套，Java 侧一律由 `npm run verify:topology` / `verify:lb` / `verify:actuator` 按需拉起；
+- `specproof-*`、careeros-\*、football_os-\* 保持原状（其中 careeros-\* 掉线前后一视同仁、未动）；
+- **根因/症状**：网页当时 `GET /` 的 500 是 "the database system is starting up"（Postgres 57P03），
+  不是前端、不是后端逻辑坏了——startDockerDesktop 后分钟级自愈；重启前看日志必须先分清这是
+  "容器没起来"还是"服务代码病了"。
+
 因此 NEXUS 使用**独立端口段**避免冲突：Postgres `55433`、Redis `56379`、MinIO `59000/59001`、AI Service `3200`、Web `3100`。
 容器统一前缀 `nexus-`，compose project name 为 `nexus`。
+
+Spring Cloud 三件（2026-11-09 起，SC-1–SC-3）：注册中心 **`8771`**（2026-11-10 起专用端口，
+原 8761 已被本机另一项目（`D:\3a大作`）的 Spring Cloud 栈占用——其 config-server 会心跳进一个
+在 8761 起的 registry，实测见 `docs/adr/0100`）、网关 `8090`（被占挡用 8091，`NEXUS_GATEWAY_PORT`）、
+`nexus-api` 默认 `8080`。
+三个都可被环境变量覆盖：`NEXUS_REGISTRY_PORT` / `NEXUS_GATEWAY_PORT` / `NEXUS_API_PORT`，后端用
+`NEXUS_API_REGISTER=true` 才会注册。
+
+SC-6 起第四个进程：`java-domain-service` 默认 `8082`（`NEXUS_DOMAIN_PORT`），用
+`NEXUS_DOMAIN_REGISTER=true` 注册；数据库用 `NEXUS_DOMAIN_DB_URL` + `DB_USERNAME` / `DB_PASSWORD`，
+Redis 用 `REDIS_HOST` / `REDIS_PORT`。它映射的是 web 层的 schema，`ddl-auto` 固定 `none`。
+
+SC-7 起网关的边界参数也可覆盖：`NEXUS_GATEWAY_MAX_REQUEST_BYTES`（默认 1048576）、
+`NEXUS_GATEWAY_RATE_LIMIT`（默认 `true`）、`NEXUS_GATEWAY_RATE_LIMIT_RATE`（默认 100 每秒）、
+`NEXUS_GATEWAY_RATE_LIMIT_BURST`（默认 200）、`NEXUS_GATEWAY_RATE_LIMIT_CLIENTS`（默认 10000）。
+SC-12 起限流后端可选：`NEXUS_GATEWAY_RATE_LIMIT_BACKEND`（`memory` 默认 / `redis` 共享计数）、
+**SEO**：`NEXUS_PUBLIC_ORIGIN`（可选，绝对域名如 `https://nexus.example.com`，结尾不带 `/`；未配置时从请求头推导——
+只有成对 `x-forwarded-host` + `x-forwarded-proto` 才采信；两者皆无则
+`/sitemap.xml` 交空清单、页面的 `<loc>`/`canonical` 拒绝生成——**不猜测值、不发 invalid 地址**）。`/robots.txt` 的 Sitemap
+行仅在有 origin 时出现。page 接线由 `apps/web/test/sitemap-robots-contract.test.ts` 钉死（§166）。
+`NEXUS_GATEWAY_RATE_LIMIT_KEY_PREFIX`（默认 `nexus:gateway:rate:`）、`NEXUS_REDIS_HOST` /
+`NEXUS_REDIS_PORT`（默认 `127.0.0.1` / **56379**，不是本机别人的 6379）、
+`NEXUS_GATEWAY_REDIS_CONNECT_TIMEOUT` / `NEXUS_GATEWAY_REDIS_TIMEOUT`（各 1 秒）。`memory` 桶按**实例**
+计；`redis` 桶由所有实例共享，后端不可达时 **fail-open**（放行 + WARN，限流不阻断门）。
+
+SC-8 起网关的 `/platform/health` 会逐个实例探测 `/actuator/health`，单实例超时用
+`NEXUS_GATEWAY_HEALTH_TIMEOUT_MS`（默认 1500）。注意本机 6379 被另一项目的 specproof-redis 占用且要
+AUTH：`java-domain-service` 的 Redis 默认端口已改成 **56379**（nexus-redis，SC-10 修复），只有显式
+`REDIS_PORT` 才会改走别处。
+
+SC-9 起可选第五个进程：`nexus-config` 默认 `8888`（`NEXUS_CONFIG_PORT`），native 模式读自身 classpath
+的 `nexus-config/`。**三个服务（gateway / nexus-api / java-domain-service）都默认不连它**；要看集中配置
+生效，启动时加 `NEXUS_CONFIG_ENABLED=true` 与 `NEXUS_CONFIG_URL=http://127.0.0.1:8888`（SC-11 把客户端接到
+api 与 domain）。配置中心不注册 Eureka，`8888` 不要和别的项目混用。
+
+> `8761` 是 Eureka 的默认端口，**本机别的项目注册到这里是常态**：2026-11-09 联调时
+> `/eureka/apps` 里同时有外部项目的 `FOOTBALL-EDGE`；2026-11-10 再实测，`D:\3a大作` 的
+> config-server 心跳打进一个跑在 8761 的 registry（registry 日志 `Not Found (Renew): CONFIG-SERVER -
+> host.docker.internal:config-server:28889`），`/platform/services` 会老实把它列出来。这是读数在说真话，
+> 不是串台——所以 **2026-11-10 注册中心默认端口迁到 `8771`**（所有服务的 `defaultZone` 与
+> `NEXUS_REGISTRY_PORT` 默认都指向 8771；8761 留给 3a大作）。要回退只需重新设回两个环境变量。
+
+> 同一天实测 `8080` 与 `8090` 都被机器上的外部进程占着（不是本仓库的服务，**不要终止**）。
+> 联调改用 `--server.port=8081`（api）与 `NEXUS_GATEWAY_PORT=8091`（网关）；注册中心按服务 id 找到
+> 8081，所以网关不需要知道这个数字。
 
 > 端口 `3000` 已被机器上另一个项目的 Next dev server 占用（`D:\求职平台\frontend`，属外部进程，禁止终止），
 > 因此 NEXUS Web 固定使用 **3100**，e2e / 预览 / 截图脚本都以 `http://localhost:3100` 为基准。
@@ -148,6 +230,11 @@ docker inspect nexus-redis --format '{{.HostConfig.Memory}}' → 0（容器也�
 | --- | --- | --- |
 | 集成测试（`apps/web/test/**.integration.test.ts`） | `postgres://nexus:nexus_dev_only@localhost:55100/nexus_regress` | 打真库、可随时清 |
 | e2e（Playwright 起的 dev server） | `postgres://nexus:nexus_dev_only@localhost:55433/nexus`（代码默认；显式设成 55100 也行） | 浏览器那一寸落数据的地方 |
+| nexus-api 冒烟（2026-11-10，`npm run verify:topology`） | `jdbc:postgresql://127.0.0.1:55433/nexus_api_smoke` | nexus-api 自带 ddl-auto:update 的一次性演示库；CI 每次跑前显式 `CREATE DATABASE nexus_api_smoke` |
+
+> 2026-11-10 部署冒烟把 **nexus-api 也纳入了拓扑**：它注册进同一个注册中心（2026-11-10 时为 8761；同日迁往 8771 后为 8771，`NEXUS_API_REGISTER=true`），
+> 网关 `/api/** → lb://nexus-api` 真的走 service discovery 打进去；它**连的是自己的一次性库**
+> `nexus_api_smoke`，不是 e2e 的 `nexus` 库——两个库的写入者都不许互相污染。
 
 ⇒ ⇒ **所以：加一条新迁移，两个库都要打**（`npm run db:migrate` 跑两遍，第二个库改一下 `NEXUS_DATABASE_URL`）。
 只打一个的后果很具体（今天踩过）：集成测试全绿（它打的那张表存在），
@@ -392,12 +479,12 @@ Running 12 tests using 1 worker
 ```text
 $ node --version
 v22.22.2
-$ node -e "require('fs').cpSync('.scratch/aaa','.scratch/bbb',{recursive:true});console.log('OK')"
+$ node -e "require('fs').cpSync('./probe-aaa','./probe-bbb',{recursive:true});console.log('OK')"
 $ echo $?
 127                      # 没有异常、没有堆栈、没有输出——进程直接没了
 $ "/c/Program Files/nodejs/node.exe" --version
 v24.15.0
-$ "/c/Program Files/nodejs/node.exe" -e "require('fs').cpSync('.scratch/aaa','.scratch/bbb',{recursive:true});console.log('OK')"
+$ "/c/Program Files/nodejs/node.exe" -e "require('fs').cpSync('./probe-aaa','./probe-bbb',{recursive:true});console.log('OK')"
 OK                       # 系统 Node 24 正常
 ```
 

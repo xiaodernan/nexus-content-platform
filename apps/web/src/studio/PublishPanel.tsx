@@ -125,7 +125,7 @@ export function PublishPanel() {
     : '发布';
 
   return (
-    <div ref={rootRef} className="relative" data-publish-root>
+    <div ref={rootRef} className="pb-rel" data-publish-root>
       <button
         ref={triggerRef}
         type="button"
@@ -133,10 +133,7 @@ export function PublishPanel() {
         aria-expanded={open}
         aria-controls={open ? PANEL_ID : undefined}
         data-publish-open
-        className={cn(
-          'rounded-[var(--nexus-radius-sm)] px-[var(--nexus-space-3)] py-1 text-13',
-          publication && publication.visibility !== 'private' ? 'bg-brand text-accent-fg' : 'border border-[var(--nexus-color-border-strong)] text-fg-2 hover:bg-bg-2',
-        )}
+        className={cn('pb-publishBtn', publication && publication.visibility !== 'private' ? 'pb-publishLive' : 'pb-publishIdle')}
       >
         {statusLabel}
       </button>
@@ -147,30 +144,30 @@ export function PublishPanel() {
           role="region"
           aria-label="发布与分享"
           data-publish-panel
-          className="absolute right-0 top-[calc(100%+6px)] z-[70] max-h-[72vh] w-[min(440px,calc(100vw_-_24px))] overflow-auto rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-strong)] bg-bg-1 p-[var(--nexus-space-3)] shadow-2xl max-[520px]:fixed max-[520px]:left-3 max-[520px]:right-3 max-[520px]:top-[52px] max-[520px]:w-auto"
+          className="pb-popPanel"
         >
-          <p className="mb-2 font-mono text-12 text-fg-3">§56 / §57 发布与分享</p>
-          <div className="mb-[var(--nexus-space-3)] flex flex-col gap-1">
+          <p className="pb-monoMt2">§56 / §57 发布与分享</p>
+          <div className="pb-col">
             {CHOICES.map((choice) => (
-              <label key={choice.id} className="flex cursor-pointer items-start gap-2 text-12" data-publish-choice={choice.id}>
+              <label key={choice.id} className="pb-pickRow" data-publish-choice={choice.id}>
                 <input
                   type="radio"
                   name="publish-visibility"
                   checked={visibility === choice.id}
                   onChange={() => setVisibility(choice.id)}
                   aria-describedby={visibility === 'private' && health && choice.id === 'private' ? PRIVATE_NOTE_ID : undefined}
-                  className="mt-[3px]"
+                  className="pb-mt3px"
                 />
                 <span>
-                  <span className="text-fg-1">{choice.label}</span>
-                  <span className="block text-11 text-fg-3">{choice.hint}</span>
+                  <span className="pb-ink1">{choice.label}</span>
+                  <span className="pb-faintBlock">{choice.hint}</span>
                 </span>
               </label>
             ))}
           </div>
 
           {health ? (
-            <div className="mb-[var(--nexus-space-3)] rounded-[var(--nexus-radius-sm)] bg-bg-2 p-2" data-publish-gate>
+            <div className="pb-block" data-publish-gate>
               <HealthPanel
                 report={health.report}
                 healthSource={health.source}
@@ -179,40 +176,40 @@ export function PublishPanel() {
                 computeMs={health.computeMs}
               />
               {visibility === 'private' ? (
-                <p id={PRIVATE_NOTE_ID} className="mt-1 text-11 text-fg-3" data-publish-private-note>
+                <p id={PRIVATE_NOTE_ID} className="sb-faintMt1" data-publish-private-note>
                   切成私有是下架动作：即使门禁没过也允许，把链接收回来永远比挡住它安全。
                 </p>
               ) : null}
             </div>
           ) : healthPending ? (
-            <p className="mb-[var(--nexus-space-3)] text-11 text-fg-3" data-publish-gate-pending>
+            <p className="pb-faintMb3" data-publish-gate-pending>
               正在后台算门禁…
             </p>
           ) : null}
 
           {state.publishScan ? (
             <div
-              className="mb-[var(--nexus-space-3)] rounded-[var(--nexus-radius-sm)] bg-bg-2 p-2"
+              className="pb-block"
               role="status"
               data-publish-scan
             >
-              <p className="text-11 text-fg-3" data-scan-decision={state.publishScan.decision}>
+              <p className="sb-faint11" data-scan-decision={state.publishScan.decision}>
                 {state.publishScan.decision === 'clear'
                   ? `机检（${state.publishScan.rulesVersion}）：这次没命中规则。`
                   : state.publishScan.decision === 'review'
                     ? `机检（${state.publishScan.rulesVersion}）：${state.publishScan.findings.length} 项挂人工复核，页面已发出去。`
                     : `机检（${state.publishScan.rulesVersion}）：命中硬红线，这次没有发出去。`}
               </p>
-              <p className="text-11 text-fg-3">
+              <p className="sb-faint11">
                 扫过：{state.publishScan.scanned.pages} 页 / {state.publishScan.scanned.textNodes} 段可见文字 /{' '}
                 {state.publishScan.scanned.assetRefs} 个引用资产
               </p>
               {state.publishScan.findings.length ? (
-                <ul className="mt-1 space-y-1">
+                <ul className="pb-listMt1">
                   {state.publishScan.findings.map((finding, i) => (
-                    <li className="text-11 text-fg-2" data-scan-finding={finding.rule} key={`${finding.rule}-${i}`}>
-                      <span className="font-mono text-fg-3">{finding.rule}</span> · {finding.why}
-                      <span className="block text-fg-3">
+                    <li className="sb-ink11" data-scan-finding={finding.rule} key={`${finding.rule}-${i}`}>
+                      <span className="sb-monoFaint">{finding.rule}</span> · {finding.why}
+                      <span className="pb-faintBlock">
                         位置 {finding.where} · 「{finding.quote}」
                       </span>
                     </li>
@@ -220,9 +217,9 @@ export function PublishPanel() {
                 </ul>
               ) : null}
               {/* §159：没命中不等于合规。机检覆盖不到的部分必须和结论一起出现 */}
-              <ul className="mt-1 space-y-[2px]">
+              <ul className="pb-listMt1">
                 {state.publishScan.limits.map((limit) => (
-                  <li className="text-11 text-fg-3" data-scan-limit key={limit}>
+                  <li className="sb-faint11" data-scan-limit key={limit}>
                     · {limit}
                   </li>
                 ))}
@@ -231,20 +228,20 @@ export function PublishPanel() {
           ) : null}
 
           {state.publishError ? (
-            <p className="mb-2 text-11 text-danger-ink" role="alert" data-publish-error>
+            <p className="pb-dangerMb2" role="alert" data-publish-error>
               {state.publishError}
             </p>
           ) : null}
 
           {build ? (
-            <p className="mb-2 text-11 text-fg-3" data-publish-build={build.status}>
+            <p className="pb-faint11m2" data-publish-build={build.status}>
               构建：{BUILD_LABEL[build.status]}
               {build.log ? ` · ${build.log}` : ''}
               {realtime.state === 'closed' ? '（实时已断开，以刷新后的数据为准）' : ''}
             </p>
           ) : null}
           {preview ? (
-            <p className="mb-2 text-11 text-fg-3" data-publish-preview={preview.status}>
+            <p className="pb-faint11m2" data-publish-preview={preview.status}>
               预览：{PREVIEW_LABEL[preview.status]}
               {/* 路径是服务端给的那一条，不在这里用 origin 拼一遍——拼出来的和真能打开的那个可能不是一回事 */}
               {preview.url ? ` · ${preview.url}` : ''}
@@ -253,21 +250,21 @@ export function PublishPanel() {
 
           {publication && publication.visibility !== 'private' ? (
             <div
-              className="mb-[var(--nexus-space-3)] rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2"
+              className="pb-blockBordered"
               role="status"
               data-publish-result
             >
-              <p className="text-11 text-fg-3">当前公开地址（第 {publication.version} 版）</p>
+              <p className="sb-faint11">当前公开地址（第 {publication.version} 版）</p>
               <a
                 href={publication.path}
                 target="_blank"
                 rel="noreferrer"
-                className="block truncate font-mono text-12 text-fg-1 underline"
+                className="pb-mirrorLink"
                 data-publish-url
               >
                 {typeof window !== 'undefined' ? `${window.location.origin}${publication.path}` : publication.path}
               </a>
-              <p className="mt-1 text-11 text-fg-3">
+              <p className="sb-faintMt1">
                 发布的是那一刻的快照：之后在 Studio 里改的东西要点"发布"才会换出去。
                 {' '}
                 {publication.moderation === 'pending'
@@ -283,7 +280,7 @@ export function PublishPanel() {
 
           {state.publishBusy ? (
             <p
-              className="mb-2 text-11 text-fg-3"
+              className="pb-faint11m2"
               role="status"
               data-publish-busy
               data-publish-busy-kind={unpublishing ? 'unpublish' : 'publish'}
@@ -294,13 +291,13 @@ export function PublishPanel() {
             </p>
           ) : null}
 
-          <div className="flex items-center gap-2" aria-busy={state.publishBusy}>
+          <div className="wd-row2" aria-busy={state.publishBusy}>
             <button
               type="button"
               disabled={state.publishBusy}
               onClick={() => void studio.publish(visibility)}
               data-publish-submit
-              className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg disabled:opacity-50"
+              className="sb-accentBtn"
             >
               {state.publishBusy ? '发布中…' : publication ? '重新发布' : '发布'}
             </button>
@@ -313,7 +310,7 @@ export function PublishPanel() {
                   void studio.unpublish().finally(() => setUnpublishing(false));
                 }}
                 data-publish-off
-                className="rounded-[var(--nexus-radius-sm)] px-3 py-1 text-12 text-fg-3 hover:bg-bg-2"
+                className="pb-ghostBig"
               >
                 取消发布
               </button>
@@ -321,7 +318,7 @@ export function PublishPanel() {
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="ml-auto inline-flex h-6 min-w-6 items-center justify-center px-1 text-11 text-fg-3 hover:text-fg-1"
+              className="pb-closeBtn"
             >
               收起
             </button>
@@ -330,10 +327,10 @@ export function PublishPanel() {
             <p
               className={
                 preflight.blockers.length > 0
-                  ? 'text-12 text-danger-ink'
+                  ? 'pb-note12Danger'
                   : preflight.warnings.length > 0
-                    ? 'text-12 text-warn-ink'
-                    : 'text-12 text-fg-3'
+                    ? 'pb-note12Warn'
+                    : 'pb-note12'
               }
               data-publish-preflight-ok={preflight.ok ? 'true' : 'false'}
               data-publish-preflight-outcome={preflight.blockers.length > 0 ? 'blocked' : preflight.warnings.length > 0 ? 'warn' : 'all-clear'}
@@ -345,13 +342,13 @@ export function PublishPanel() {
                   : '预检全绿：名额、门禁、机检都放行了'}
             </p>
           ) : open && projectIdForPreflight ? (
-            <p className="text-12 text-fg-3" data-publish-preflight-outcome="unknown">
+            <p className="pb-note12" data-publish-preflight-outcome="unknown">
               预检还没跑完（或跑不成）——这不是绿灯，是还没有答案
             </p>
           ) : null}
           {open && preflight?.aiReadiness ? (
             <p
-              className={preflight.aiReadiness.live ? 'text-12 text-fg-2' : 'text-12 text-warn-ink'}
+              className={preflight.aiReadiness.live ? 'pb-note12Live' : 'pb-note12Warn'}
               data-publish-ai-ready={preflight.aiReadiness.live ? 'real' : 'demo'}
             >
               {preflight.aiReadiness.live

@@ -197,19 +197,19 @@ export function MemoryPanel() {
   const needsSubject = scope === 'world' || scope === 'character';
 
   return (
-    <div className="flex h-full min-h-0 flex-col" data-memory-panel>
-      <header className="shrink-0 border-b border-[var(--nexus-color-border-subtle)] p-[var(--nexus-space-3)]">
-        <div className="flex items-center gap-2">
-          <h2 className="font-mono text-12 uppercase tracking-wide text-fg-3">记忆</h2>
-          <span className="ml-auto font-mono text-11 text-fg-3" data-memory-total>
+    <div className="wd-rootCol" data-memory-panel>
+      <header className="wd-headBordered">
+        <div className="wd-row2">
+          <h2 className="wd-label">记忆</h2>
+          <span className="wd-monoFaintEnd" data-memory-total>
             {items.length}
           </span>
         </div>
-        <p className="mt-1 text-11 leading-relaxed text-fg-3" data-memory-note>
+        <p className="wd-body11Mt1" data-memory-note>
           四类记忆都可查看、可删除（§48）。搜索走的是 §49 那套词面混合检索（全文 + 子串 + 词覆盖度），
-          <span className="text-fg-2">不是语义检索</span>：用词不同、意思相近的那条搜不到。
+          <span className="hi-ink">不是语义检索</span>：用词不同、意思相近的那条搜不到。
         </p>
-        <div className="mt-2 flex gap-1">
+        <div className="mm-rowMt2">
           <input
             value={query}
             onChange={(e) => {
@@ -223,12 +223,12 @@ export function MemoryPanel() {
             placeholder="搜记忆内容（词面匹配，回车检索）"
             aria-label="搜索记忆"
             data-memory-search
-            className="min-w-0 flex-1 rounded-[var(--nexus-radius-sm)] bg-bg-1 px-2 py-1 text-11 text-fg-1 placeholder:text-fg-3"
+            className="mm-growPlaceholder"
           />
           <button
             type="button"
             onClick={() => void reload()}
-            className="shrink-0 rounded-[var(--nexus-radius-sm)] bg-bg-1 px-2 py-1 text-11 text-fg-2 hover:bg-bg-3"
+            className="mm-btn1"
             data-memory-search-go
           >
             搜
@@ -242,7 +242,7 @@ export function MemoryPanel() {
                 setSearchNote(null);
                 void reload();
               }}
-              className="shrink-0 rounded-[var(--nexus-radius-sm)] px-2 py-1 text-11 text-fg-3 hover:bg-bg-2"
+              className="mm-btnGhost"
               data-memory-search-clear
             >
               清空
@@ -250,21 +250,21 @@ export function MemoryPanel() {
           ) : null}
         </div>
         {searchNote ? (
-          <p className="mt-1 text-11 leading-relaxed text-fg-3" data-memory-search-note>
+          <p className="wd-body11Mt1" data-memory-search-note>
             {searchNote}
           </p>
         ) : null}
         {message ? (
-          <p className="mt-2 text-11 text-danger-ink" data-memory-error>
+          <p className="wd-dangerMt2" data-memory-error>
             {message}
           </p>
         ) : null}
       </header>
 
-      <div className="min-h-0 flex-1 overflow-auto p-[var(--nexus-space-2)]">
-        <section className="mb-3 rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2">
-          <h3 className="mb-1 text-11 text-fg-3">记一条</h3>
-          <div className="flex gap-1">
+      <div className="wd-scrollP2">
+        <section className="pb-blockBordered">
+          <h3 className="cp-faintMb1">记一条</h3>
+          <div className="cp-wrap">
             <select
               value={scope}
               onChange={(e) => {
@@ -273,7 +273,7 @@ export function MemoryPanel() {
               }}
               aria-label="记忆类型"
               data-memory-scope
-              className="rounded-[var(--nexus-radius-sm)] bg-bg-1 px-1 py-1 text-11 text-fg-1"
+              className="mm-chipPlain"
             >
               {SCOPES.map((item) => (
                 <option key={item.scope} value={item.scope}>
@@ -283,7 +283,7 @@ export function MemoryPanel() {
             </select>
             {scope === 'world' ? (
               <span
-                className="min-w-0 flex-1 truncate rounded-[var(--nexus-radius-sm)] bg-bg-1 px-2 py-1 text-11 text-fg-3"
+                className="mm-truncFaint"
                 data-memory-subject="world"
               >
                 {world.world ? world.world.name : '（还没有世界）'}
@@ -295,7 +295,7 @@ export function MemoryPanel() {
                 onChange={(e) => setSubjectId(e.target.value)}
                 aria-label="记忆主体"
                 data-memory-subject
-                className="min-w-0 flex-1 rounded-[var(--nexus-radius-sm)] bg-bg-1 px-1 py-1 text-11 text-fg-1"
+                className="mm-growField11"
               >
                 <option value="">选一个角色…</option>
                 {characterNames.map((c) => (
@@ -313,69 +313,69 @@ export function MemoryPanel() {
             aria-label="记忆内容"
             data-memory-content
             rows={2}
-            className="mt-1 w-full resize-y rounded-[var(--nexus-radius-sm)] bg-bg-1 px-2 py-1 text-12 text-fg-1 outline-none focus:bg-bg-3"
+            className="mm-textArea"
           />
           <button
             type="button"
             disabled={busy || !content.trim() || (needsSubject && !effectiveSubject)}
             onClick={() => void add()}
             data-memory-add
-            className="mt-1 rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-11 text-accent-fg disabled:opacity-50"
+            className="mm-accent"
           >
             记下
           </button>
           {needsSubject && !effectiveSubject ? (
-            <p className="mt-1 text-11 text-warn-ink" data-memory-need-subject>
+            <p className="cp-warnMt1" data-memory-need-subject>
               {scope === 'world' ? '先建世界，再记世界类的记忆。' : '先选一个角色。'}
             </p>
           ) : null}
         </section>
 
-        {status === 'loading' ? <p className="p-3 text-12 text-fg-3">读取记忆…</p> : null}
+        {status === 'loading' ? <p className="cp-empty">读取记忆…</p> : null}
 
         {SCOPES.map((group) => {
           const rows = items.filter((item) => item.scope === group.scope);
           return (
-            <section key={group.scope} className="mb-3" data-memory-group={group.scope}>
-              <h3 className="mb-1 flex items-center gap-1 text-11 text-fg-3">
+            <section key={group.scope} className="wd-mb3" data-memory-group={group.scope}>
+              <h3 className="mm-labelRow">
                 {group.label}
-                <span className="font-mono">{counts[group.scope]}</span>
+                <span className="mm-mono">{counts[group.scope]}</span>
                 {rows.length ? (
                   <button
                     type="button"
                     disabled={busy}
                     onClick={() => void clearScope(group.scope)}
                     data-memory-clear={group.scope}
-                    className="ml-auto text-11 text-fg-3 underline hover:text-danger-ink disabled:opacity-50"
+                    className="mm-clearAll"
                   >
                     清空这一类
                   </button>
                 ) : null}
               </h3>
-              <p className="mb-1 text-11 text-fg-3">{group.hint}</p>
-              <ul className="flex flex-col gap-1">
+              <p className="cp-faintMb1">{group.hint}</p>
+              <ul className="gp-col1">
                 {rows.map((entry) => (
                   <li
                     key={entry.id}
-                    className="flex items-start gap-1 rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 px-2 py-1"
+                    className="mm-memRow"
                     data-memory-entry={entry.id}
                   >
-                    <span className="min-w-0 flex-1 text-12 leading-relaxed text-fg-1">{entry.content}</span>
-                    <span className="shrink-0 font-mono text-10 text-fg-3">{subjectLabel(entry)}</span>
+                    <span className="mm-growLead">{entry.content}</span>
+                    <span className="ds-mono10shrink">{subjectLabel(entry)}</span>
                     <button
                       type="button"
                       disabled={busy}
                       onClick={() => void remove(entry.id)}
                       aria-label="删除这条记忆"
                       data-memory-remove={entry.id}
-                      className={cn('shrink-0 px-1 text-12 text-fg-3 hover:text-danger-ink', !entry.embedded && 'opacity-90')}
+                      className={cn('mm-xshrink', !entry.embedded && 'mm-semi90')}
                     >
                       ×
                     </button>
                   </li>
                 ))}
                 {status === 'ready' && !rows.length ? (
-                  <li className="px-1 text-11 text-fg-3" data-memory-empty={group.scope}>
+                  <li className="cp-faintPx1" data-memory-empty={group.scope}>
                     {/* 搜索态下这句不能说"还没有这一类的记忆"——那一类可能有一堆，只是这个词没命中 */}
                     {searchNote ? '这一类里没有词面命中的条目（不等于没有相关记忆：这是词面检索）。' : '还没有这一类的记忆。'}
                   </li>

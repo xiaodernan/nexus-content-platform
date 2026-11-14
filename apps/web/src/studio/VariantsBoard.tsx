@@ -38,7 +38,7 @@ function VariantFrame({ variant, height = 260 }: { variant: VariantEntry; height
   const { assetContext } = useStudio();
   if (!preview) {
     return (
-      <div className="flex h-[260px] items-center justify-center bg-bg-0 text-12 text-fg-3" data-variant-empty>
+      <div className="vb-cardPreview" data-variant-empty>
         这条分支还没有可读的文档
       </div>
     );
@@ -47,7 +47,7 @@ function VariantFrame({ variant, height = 260 }: { variant: VariantEntry; height
   const tokens = new TokenStore(variant.document.tokens);
   const scale = layout.width ? Math.min(1, 420 / layout.width) : 1;
   return (
-    <div className="relative overflow-hidden bg-bg-0" style={{ height, width: '100%' }} data-variant-frame>
+    <div className="vb-relOverflow" style={{ height, width: '100%' }} data-variant-frame>
       <div
         style={{
           position: 'absolute',
@@ -93,27 +93,24 @@ function VariantCard({
   const caption = description ?? label ?? '这条分支还没有说明';
   return (
     <div
-      className="flex flex-col overflow-hidden rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-subtle)] bg-bg-1"
+      className="vb-cardWrap"
       data-variant-card={branch.id}
       data-variant-current={branch.current ? 'true' : 'false'}
     >
-      <div className="flex items-center gap-2 px-[var(--nexus-space-3)] py-[var(--nexus-space-2)]">
-        <span className="font-mono text-12 text-fg-1" data-variant-name>
+      <div className="vb-row2pad">
+        <span className="vb-mono12" data-variant-name>
           {branch.name}
         </span>
         {branch.current ? (
-          <span className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-[5px] py-[1px] text-11 text-accent-fg">当前</span>
+          <span className="vb-accentPill">当前</span>
         ) : null}
-        <span className="ml-auto flex items-center gap-1">
+        <span className="vb-rowEnd">
           <button
             type="button"
             onClick={onPickLayout}
             aria-pressed={layoutPicked}
             data-variant-pick-layout={branch.id}
-            className={cn(
-              'rounded-[var(--nexus-radius-sm)] px-2 py-[2px] text-11',
-              layoutPicked ? 'bg-bg-3 text-fg-1' : 'text-fg-3 hover:bg-bg-2',
-            )}
+            className={cn('vb-pickBtn', layoutPicked ? 'vb-pickOn' : 'vb-pickIdle')}
           >
             布局
           </button>
@@ -122,18 +119,15 @@ function VariantCard({
             onClick={onPickVisual}
             aria-pressed={visualPicked}
             data-variant-pick-visual={branch.id}
-            className={cn(
-              'rounded-[var(--nexus-radius-sm)] px-2 py-[2px] text-11',
-              visualPicked ? 'bg-bg-3 text-fg-1' : 'text-fg-3 hover:bg-bg-2',
-            )}
+            className={cn('vb-pickBtn', visualPicked ? 'vb-pickOn' : 'vb-pickIdle')}
           >
             视觉
           </button>
         </span>
       </div>
       <VariantFrame variant={variant} />
-      <div className="flex flex-col gap-[var(--nexus-space-2)] px-[var(--nexus-space-3)] py-[var(--nexus-space-2)]">
-        <p className="text-11 leading-relaxed text-fg-3" data-variant-desc>
+      <div className="vb-cardBody">
+        <p className="wd-body11" data-variant-desc>
           {caption}
         </p>
         <button
@@ -141,10 +135,7 @@ function VariantCard({
           disabled={branch.current}
           onClick={() => void studio.switchBranch(branch.id)}
           data-variant-adopt={branch.id}
-          className={cn(
-            'rounded-[var(--nexus-radius-sm)] px-2 py-1 text-12',
-            branch.current ? 'cursor-not-allowed text-fg-3' : 'bg-bg-3 text-fg-1 hover:bg-bg-2',
-          )}
+          className={cn('vb-adoptBtn', branch.current ? 'vb-adoptCurrent' : 'vb-adoptLive')}
         >
           {branch.current ? '正在编辑这条线' : '切到这个方向'}
         </button>
@@ -169,16 +160,16 @@ export function VariantsBoard() {
   const visualChoice = variants.find((v) => v.branch.id === visualId) ?? null;
 
   return (
-    <div className="min-h-0 flex-1 overflow-auto bg-bg-0 px-[var(--nexus-space-4)] py-[var(--nexus-space-3)]" data-variants-board>
-      <div className="mb-[var(--nexus-space-3)] flex flex-wrap items-center gap-2">
-        <span className="font-mono text-12 text-fg-2">§29 多方案</span>
-        <label className="flex items-center gap-1 text-12 text-fg-3">
+    <div className="vb-scroll" data-variants-board>
+      <div className="vb-thead2">
+        <span className="vb-mono12ink">§29 多方案</span>
+        <label className="vb-row1">
           条数
           <select
             value={count}
             onChange={(e) => setCount(Number(e.target.value))}
             data-variant-count
-            className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1 py-[2px] text-12 text-fg-1"
+            className="vb-fieldSm"
           >
             {[2, 3, 4].map((n) => (
               <option key={n} value={n}>
@@ -192,40 +183,40 @@ export function VariantsBoard() {
           disabled={state.snapshotBusy}
           onClick={() => void studio.generateVariants(count)}
           data-variant-generate
-          className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-2 py-1 text-12 text-accent-fg disabled:opacity-50"
+          className="vb-accent"
         >
           {state.snapshotBusy ? '生成中…' : '生成候选方案'}
         </button>
-        <span className="rounded-[var(--nexus-radius-sm)] bg-warn px-2 py-[2px] font-mono text-11 text-accent-fg" data-variant-demo-mode>
+        <span className="vb-warnBadge" data-variant-demo-mode>
           DEMO MODE
         </span>
-        <span className="text-11 text-fg-3">
+        <span className="sb-faint11">
           确定性配方（结构 × 视觉语言），不是模型输出；生成只开新分支，不动当前画布。
         </span>
       </div>
 
       {state.snapshotError ? (
-        <p className="mb-2 text-12 text-danger-ink" data-variant-error>
+        <p className="vb-dangerMt2" data-variant-error>
           {state.snapshotError}
         </p>
       ) : null}
 
       {state.variantNotes.length ? (
-        <ul className="mb-2 flex flex-col gap-1 text-11 text-warn-ink" data-variant-notes>
+        <ul className="vb-warnMt2" data-variant-notes>
           {state.variantNotes.map((note) => (
             <li key={note}>· {note}</li>
           ))}
         </ul>
       ) : null}
 
-      <div className="mb-[var(--nexus-space-3)] flex flex-wrap items-center gap-2 rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-subtle)] bg-bg-1 px-[var(--nexus-space-3)] py-[var(--nexus-space-2)]">
-        <span className="text-12 text-fg-2">合成：</span>
+      <div className="vb-toolbar">
+        <span className="hi-ink">合成：</span>
         <select
           value={layoutId ?? ''}
           onChange={(e) => setLayoutId(e.target.value || null)}
           aria-label="布局来源"
           data-variant-layout
-          className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1 py-[2px] text-12 text-fg-1"
+          className="vb-fieldSm"
         >
           <option value="">布局来源…</option>
           {variants.map((v) => (
@@ -234,13 +225,13 @@ export function VariantsBoard() {
             </option>
           ))}
         </select>
-        <span className="text-12 text-fg-3">的布局 +</span>
+        <span className="hi-faint12">的布局 +</span>
         <select
           value={visualId ?? ''}
           onChange={(e) => setVisualId(e.target.value || null)}
           aria-label="视觉来源"
           data-variant-visual
-          className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1 py-[2px] text-12 text-fg-1"
+          className="vb-fieldSm"
         >
           <option value="">视觉来源…</option>
           {variants.map((v) => (
@@ -249,13 +240,13 @@ export function VariantsBoard() {
             </option>
           ))}
         </select>
-        <span className="text-12 text-fg-3">的视觉</span>
+        <span className="hi-faint12">的视觉</span>
         <input aria-label="新分支名"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="新分支名（可留空）"
           data-variant-name
-          className="w-[160px] rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-[3px] text-12 text-fg-1 outline-none"
+          className="vb-w160"
         />
         <button
           type="button"
@@ -271,11 +262,11 @@ export function VariantsBoard() {
             });
           }}
           data-variant-merge
-          className="rounded-[var(--nexus-radius-sm)] bg-bg-3 px-2 py-1 text-12 text-fg-1 disabled:opacity-40"
+          className="vb-primary"
         >
           合成新方案
         </button>
-        <span className="text-11 text-fg-3">
+        <span className="sb-faint11">
           {layoutChoice && visualChoice && layoutChoice.branch.id === visualChoice.branch.id
             ? '布局与视觉要选两条不同的分支'
             : '两条都选中才能合成；结果作为一条新分支加入比较板'}
@@ -283,11 +274,11 @@ export function VariantsBoard() {
       </div>
 
       {variants.length === 0 ? (
-        <p className="text-12 text-fg-3" data-variant-empty-list>
+        <p className="hi-faint12" data-variant-empty-list>
           还没有可比较的方向。点"生成候选方案"开几条分支。
         </p>
       ) : (
-        <div className="grid gap-[var(--nexus-space-3)] [grid-template-columns:repeat(auto-fill,minmax(360px,1fr))]">
+        <div className="vb-grid">
           {variants.map((variant) => (
             <VariantCard
               key={variant.branch.id}

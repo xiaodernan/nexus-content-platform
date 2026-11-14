@@ -2,19 +2,24 @@ package com.nexus.domain.project;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.nexus.domain.SecurityConfig;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -37,6 +42,11 @@ import org.springframework.test.web.servlet.MockMvc;
  * boundary.
  */
 @WebMvcTest(ProjectController.class)
+// The slice must load the same filter chain production uses: a plain `@Configuration` is not
+// picked up by @WebMvcTest, so without this explicit import the starter's default chain (HTTP Basic
+// + generated password) answers 401 to everything — a health reading wrong in the alarming direction.
+// `SecurityConfig` is the only chain this service has; it explicitly permits the API surface.
+@Import(SecurityConfig.class)
 class ProjectControllerTest {
 
     private static final UUID PROJECT_ID = UUID.fromString("6fef79cf-a5f7-4d27-9e7e-30309e567dad");
@@ -47,6 +57,30 @@ class ProjectControllerTest {
 
     @MockitoBean
     private ProjectService service;
+
+    /**
+     * The by-owner listing — the read surface the admin pages call. Answers an array, here a one-element
+     * one; the shape is the contract, not the length.
+     */
+    @Test
+    void aByOwnerListingAnswersAnArray() throws Exception {
+        when(service.getProjectsByOwner(OWNER_ID)).thenReturn(List.of(project()));
+
+        mvc.perform(get("/api/v1/projects/by-owner/{ownerId}", OWNER_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].ownerId").value(OWNER_ID.toString()));
+    }
+
+    /**
+     * A delete is a soft delete: the controller answers 204 and the service does the stamping.
+     */
+    @Test
+    void aDeleteAnswers204AndReachesTheService() throws Exception {
+        mvc.perform(delete("/api/v1/projects/{id}", PROJECT_ID))
+                .andExpect(status().isNoContent());
+
+        verify(service).deleteProject(PROJECT_ID);
+    }
 
     private static Project project() {
         Project project = new Project();

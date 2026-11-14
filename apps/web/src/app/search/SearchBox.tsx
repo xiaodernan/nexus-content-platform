@@ -158,14 +158,8 @@ export function SearchBox({ initialQuery }: { initialQuery: string }) {
   const pauseSeconds = remainingSeconds(pausedUntil, nowTick);
 
   return (
-    <div className="flex flex-col gap-2">
-      <form
-        action="/search"
-        method="get"
-        className="flex items-center gap-2"
-        data-search-form
-        onSubmit={() => remember(value)}
-      >
+    <div className="se-boxRoot">
+      <form action="/search" method="get" className="se-form" data-search-form onSubmit={() => remember(value)}>
         <input
           name="q"
           value={value}
@@ -181,15 +175,15 @@ export function SearchBox({ initialQuery }: { initialQuery: string }) {
           autoComplete="off"
           data-search-input
           placeholder="项目 / 用户 / 世界 / 游戏 / 角色 / 设计稿 / 组件 / 资产"
-          className="min-w-0 flex-1 rounded-[var(--nexus-radius-sm)] bg-bg-1 px-3 py-2 text-14 text-fg-1 outline-none focus:bg-bg-2"
+          className="se-input"
         />
-        <button type="submit" data-search-submit className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-4 py-2 text-13 text-accent-fg">
+        <button type="submit" data-search-submit className="se-submit">
           搜
         </button>
       </form>
 
       {pauseSeconds > 0 ? (
-        <p data-search-suggest-pause role="status" className="text-12 text-fg-3">
+        <p data-search-suggest-pause role="status" className="se-pauseNote">
           建议暂停 {pauseSeconds} 秒——打字太快被限流；结果页照常能搜。
         </p>
       ) : null}
@@ -200,7 +194,7 @@ export function SearchBox({ initialQuery }: { initialQuery: string }) {
           role="listbox"
           aria-label="搜索建议"
           data-search-suggest
-          className="overflow-hidden rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-1"
+          className="se-suggest"
         >
           {suggestions.map((hit, index) => (
             <li key={`${hit.group}:${hit.id}`} id={`search-suggestion-${index}`} role="option" aria-selected={index === active}>
@@ -209,12 +203,10 @@ export function SearchBox({ initialQuery }: { initialQuery: string }) {
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => go(hit.href)}
                 data-search-suggestion={hit.id}
-                className={`flex w-full items-baseline justify-between gap-3 px-3 py-2 text-left hover:bg-bg-2 ${
-                  index === active ? 'bg-bg-2' : ''
-                }`}
+                className={`se-suggestion ${index === active ? 'se-suggestionActive' : ''}`}
               >
-                <span className="truncate text-13 text-fg-1">{hit.title}</span>
-                <span className="shrink-0 font-mono text-11 text-fg-3">{hit.label}</span>
+                <span className="se-suggestTitle">{hit.title}</span>
+                <span className="se-suggestionLabel">{hit.label}</span>
               </button>
             </li>
           ))}
@@ -222,14 +214,14 @@ export function SearchBox({ initialQuery }: { initialQuery: string }) {
       ) : null}
 
       {showHistory ? (
-        <div className="flex flex-wrap items-center gap-2" data-search-history>
-          <span className="text-11 text-fg-3">最近的搜索（只存在这台设备上）</span>
+        <div className="se-historyRow" data-search-history>
+          <span className="se-hint11">最近的搜索（只存在这台设备上）</span>
           {history.map((query) => (
-            <span key={query} className="inline-flex items-center gap-1 rounded-[var(--nexus-radius-sm)] bg-bg-1 px-2 py-1">
+            <span key={query} className="se-historyChip">
               <a
                 href={`/search?q=${encodeURIComponent(query)}`}
                 data-search-history-item={query}
-                className="text-12 text-fg-2 hover:text-fg-1"
+                className="se-historyLink"
               >
                 {query}
               </a>
@@ -242,7 +234,7 @@ export function SearchBox({ initialQuery }: { initialQuery: string }) {
                   writeSearchHistory(window.localStorage, next);
                   setHistory(next);
                 }}
-                className="inline-flex h-5 w-5 items-center justify-center rounded text-11 text-fg-3 hover:bg-bg-2 hover:text-fg-1"
+                className="se-historyRemove"
               >
                 ×
               </button>
@@ -255,7 +247,7 @@ export function SearchBox({ initialQuery }: { initialQuery: string }) {
               writeSearchHistory(window.localStorage, []);
               setHistory([]);
             }}
-            className="text-11 text-fg-3 underline hover:text-fg-1"
+            className="se-clearBtn"
           >
             清空
           </button>

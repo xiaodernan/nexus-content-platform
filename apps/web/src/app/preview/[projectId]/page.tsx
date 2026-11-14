@@ -56,43 +56,33 @@ export default async function PreviewPage({ params, searchParams }: Props) {
     viewerHref(`/preview/${projectId}`, query, { state: value ?? undefined });
 
   return (
-    <main className="min-h-screen w-full overflow-auto bg-bg-0 pb-[var(--nexus-space-10)]" data-preview-root data-page={page.name}>
-      <header className="sticky top-0 z-10 flex items-center gap-[var(--nexus-space-3)] border-b border-[var(--nexus-color-border-subtle)] bg-bg-1/95 px-[var(--nexus-space-4)] py-[var(--nexus-space-2)] backdrop-blur-sm">
-        <a
-          href={`/studio/${projectId}`}
-          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-13 text-fg-2 transition-colors hover:bg-bg-2 hover:text-fg-1"
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+    <main className="pv-page" data-preview-root data-page={page.name}>
+      <header className="pv-bar">
+        <a href={`/studio/${projectId}`} className="pv-back">
           回到 Studio
         </a>
-        <span className="font-mono text-12 text-fg-3">
+        <span className="pv-meta">
           {document.name} · {page.name} · {layout.width}×{layout.height}
           {breakpoint ? ` · ${breakpoint}` : ''}
         </span>
-        {/* the hairline under brand */}
-        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)]/50 to-transparent opacity-80" />
       </header>
       {stateSheet ? (
         <div
-          className="flex flex-wrap items-center gap-[var(--nexus-space-2)] border-b border-[var(--nexus-color-border-subtle)] bg-bg-1/70 px-[var(--nexus-space-4)] py-[var(--nexus-space-1)] text-12"
+          className="pv-statebar"
           data-state-preview
         >
-          <span className="text-fg-3">状态预览</span>
+          <span className="pv-stateNote">状态预览</span>
           {[null, ...SIMULATED_STATES].map((value) => (
             <a
               key={value ?? 'none'}
               href={stateHref(value)}
               data-state-preview-option={value ?? 'none'}
-              className={
-                previewState === value
-                  ? 'rounded-[var(--nexus-radius-sm)] bg-bg-3 px-[var(--nexus-space-2)] py-0.5 text-fg-1'
-                  : 'rounded-[var(--nexus-radius-sm)] px-[var(--nexus-space-2)] py-0.5 text-fg-3 hover:bg-bg-2'
-              }
+              className={previewState === value ? 'pv-stateOptionActive' : 'pv-stateOption'}
             >
               {value ?? '基础态'}
             </a>
           ))}
-          <span className="text-fg-3" data-state-preview-note>
+          <span className="pv-stateNote" data-state-preview-note>
             {previewState
               ? `只有定义了 ${previewState} 状态的节点会变；hover / active / focus 要直接在元素上操作。`
               : 'hover / active / focus 直接在元素上操作；这里只演示靠 data-state 兑现的三种。'}
@@ -101,7 +91,7 @@ export default async function PreviewPage({ params, searchParams }: Props) {
       ) : null}
       {/* §14 / ADR-0069：与公开页同一排控件——作者在这里看到的断点/缩放就是访客那一份 */}
       <ViewerControls base={`/preview/${projectId}`} query={query} page={page} breakpoint={breakpoint} zoom={zoom} width={layout.width} height={layout.height} />
-      <div className="w-full overflow-x-auto p-[var(--nexus-space-6)]">
+      <div className="pv-canvas">
         {/* 缩放用 transform，版式盒不跟着缩：外面这层按缩后的尺寸占位，
             否则画面"缩小看全"了，页面仍要横向平移一整屏（第十三片量到的就是这个） */}
         <div

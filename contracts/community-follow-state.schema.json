@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "following": {
+      "type": "boolean"
+    },
+    "followers": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "blocked": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "me",
+            "them"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "following",
+    "followers",
+    "blocked",
+    "reason"
+  ],
+  "additionalProperties": false
+}

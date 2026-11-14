@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  NEXUS — services/nexus-gateway (Spring Cloud SC-2).
+
+  The single HTTP door decisions/0011-backend-service-boundaries.md already promises the Studio ("Talks to
+  the API gateway over typed HTTP/WS contracts only"). Before this module that sentence named a door that
+  did not exist: apps/studio reached nexus-api directly at 127.0.0.1:8080. This is the door, and it routes
+  by SERVICE ID through the registry rather than by a host somebody typed into a config file.
+
+  Routes are built in Java (GatewayConfig) instead of `spring.cloud.gateway.*` YAML on purpose: the Gateway
+  4.2+ line moved that prefix to `spring.cloud.gateway.server.webflux.*`, and a route table written against
+  a prefix that a dependency bump renames is a route table that silently stops matching. The Java DSL is
+  compiled, so a rename is a build error.
+
+  `eureka-client` is here for deployment; the tests disable it and supply their own DiscoveryClient, because
+  a test that needs a running registry is a test of two services at once and cannot say which one broke.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.5.16</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>dev.nexus</groupId>
+  <artifactId>nexus-gateway</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <name>nexus-gateway</name>
+  <description>NEXUS API gateway (Spring Cloud Gateway + LoadBalancer + Resilience4j). SC-2: discovery routing with an honest 503.</description>
+
+  <properties>
+    <java.version>25</java.version>
+    <maven.compiler.release>25</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <spring-cloud.version>2025.0.3</spring-cloud.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-dependencies</artifactId>
+        <version>${spring-cloud.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-gateway-server-webflux</artifactId>
+    </dependency>
+    <!--
+      SC-8: the gateway's own /actuator/health, and the fact that /platform/health probes the SAME path on
+      every backend. Exposing `health` only keeps management from becoming a second API surface.
+    -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <!--
+      SC-9 — the optional central-config client. `spring.cloud.config.enabled` defaults to false, so tests and
+      the laptop run read application.yml only; a deployment sets NEXUS_CONFIG_ENABLED=true and the same jar
+      reads its bounds from nexus-config instead.
+    -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-config</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+    </dependency>
+    <!--
+      The LoadBalancer caches service instances; without a cache implementation it warns on every start and
+      uses an unbounded default. Caffeine is also what the rate limiter's per-client buckets expire through.
+    -->
+    <dependency>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>caffeine</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-circuitbreaker-reactor-resilience4j</artifactId>
+    </dependency>
+    <!--
+      SC-12 — the OPTIONAL shared limiter. The starter is on the classpath so the `redis` backend can be
+      selected by configuration, but the default backend is `memory`: nothing connects to Redis unless a
+      deployment asks for it. Lettuce connects lazily, so a gateway with backend=memory never needs a
+      second process to start or to answer.
+    -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.projectreactor</groupId>
+      <artifactId>reactor-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.14.1</version>
+        <configuration>
+          <release>25</release>
+          <encoding>UTF-8</encoding>
+          <source>25</source>
+          <target>25</target>
+          <compilerArgs>
+            <arg>-J-Dfile.encoding=UTF-8</arg>
+          </compilerArgs>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <!--
+            SC-38 — the suite has 21 RANDOM_PORT @SpringBootTest classes, each with a distinct property set,
+            so Spring's context cache (default maxSize=32) kept ALL of them alive in one 512m fork. Adding the
+            SC-37 bulkhead contexts pushed past the heap ceiling: GC pressure made health probes answer 503,
+            shifted in-flight wire counts, and left the fork 30s past System.exit(0) before surefire killed it
+            — three different existing tests went red across three full-suite runs, each green in isolation.
+            Capping the cache at 4 lets Spring evict the least-recently-used contexts, so resident contexts no
+            longer grow with the test count. This is a TEST-HARNESS bound, not a production setting; the
+            property name is Spring's own (ContextCacheUtils.retrieveMaxCacheSize / spring.test.context.cache.maxSize,
+            source-verified), read via SpringProperties, which honours the -D system property.
+          -->
+          <argLine>-Xmx512m -Dfile.encoding=UTF-8 -Dspring.test.context.cache.maxSize=4</argLine>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>build-info</goal>
+            </goals>
+            <configuration>
+              <additionalProperties>
+                  <component>nexus-gateway</component>
+                </additionalProperties>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

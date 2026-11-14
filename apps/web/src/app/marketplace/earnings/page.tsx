@@ -44,32 +44,32 @@ export default function EarningsPage() {
   }, [router]);
 
   if (loading) {
-    return <div className="p-6 text-13 text-fg-2">加载中...</div>;
+    return <div className="me-loading">加载中...</div>;
   }
 
   if (error) {
-    return <div className="p-6 text-13 text-danger-ink">{error}</div>;
+    return <div className="me-error">{error}</div>;
   }
 
   if (!summary) {
-    return <div className="p-6 text-13 text-fg-2">暂无数据</div>;
+    return <div className="me-empty">暂无数据</div>;
   }
 
   return (
-    <main className="mx-auto max-w-4xl p-6">
-      <h1 className="mb-4 text-[var(--nexus-font-size-24)] font-semibold">创作者收入明细</h1>
+    <main className="me-root">
+      <h1 className="me-title">创作者收入明细</h1>
 
-      <section className="mb-6 rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-4">
-        <div className="flex gap-8">
-          <div>
-            <div className="text-11 text-fg-3">累计收入</div>
-            <div className="text-[var(--nexus-font-size-21)] font-semibold text-accent-2-ink" data-earnings-total>
+      <section className="me-summary">
+        <div className="me-summaryGrid">
+          <div className="me-stat">
+            <div className="me-statLabel">累计收入</div>
+            <div className="me-statValue me-statValueAccent" data-earnings-total>
               {summary.totalEarned} credits
             </div>
           </div>
-          <div>
-            <div className="text-11 text-fg-3">总销量</div>
-            <div className="text-[var(--nexus-font-size-21)] font-semibold" data-earnings-sales>
+          <div className="me-stat">
+            <div className="me-statLabel">总销量</div>
+            <div className="me-statValue" data-earnings-sales>
               {summary.totalSales} 次
             </div>
           </div>
@@ -77,29 +77,29 @@ export default function EarningsPage() {
       </section>
 
       {summary.dailyBreakdown.length > 0 ? (
-        <section>
-          <h2 className="mb-2 text-[var(--nexus-font-size-16)] font-medium">每日明细</h2>
-          <table className="w-full text-13">
+        <section className="me-section">
+          <h2 className="me-sectionTitle">每日明细</h2>
+          <table className="me-table">
             <thead>
-              <tr className="border-b border-[var(--nexus-color-border-subtle)]">
-                <th className="py-2 text-left font-medium text-fg-2">日期</th>
-                <th className="py-2 text-right font-medium text-fg-2">销量</th>
-                <th className="py-2 text-right font-medium text-fg-2">收入</th>
+              <tr className="me-tr">
+                <th className="me-th">日期</th>
+                <th className="me-th me-thRight">销量</th>
+                <th className="me-th me-thRight">收入</th>
               </tr>
             </thead>
             <tbody>
               {summary.dailyBreakdown.map((day) => (
-                <tr key={day.date} className="border-b border-[var(--nexus-color-border-subtle)]">
-                  <td className="py-2 text-fg-1">{day.date}</td>
-                  <td className="py-2 text-right text-fg-1">{day.salesCount}</td>
-                  <td className="py-2 text-right text-accent-2-ink">{day.totalAmount} credits</td>
+                <tr key={day.date} className="me-tr">
+                  <td className="me-td">{day.date}</td>
+                  <td className="me-td me-tdRight">{day.salesCount}</td>
+                  <td className="me-td me-tdRight me-tdAccent">{day.totalAmount} credits</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </section>
       ) : (
-        <section className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-4 text-13 text-fg-2">
+        <section className="me-emptyDetail">
           暂无销售记录。把你的作品上架到 Marketplace，开始获得收入吧！
         </section>
       )}

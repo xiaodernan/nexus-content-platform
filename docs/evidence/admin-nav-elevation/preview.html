@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN" data-nexus-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NEXUS admin nav — 双主题 + forced-colors 取证</title>
+<link rel="stylesheet" href="./preview.css" />
+</head>
+<body>
+<main id="root"></main>
+<script>
+  // 与 AdminNav.tsx 的 LINKS 同一份名单（2026-11-12 现状）。docs 是证据，不进构建graph。
+  const LINKS = [
+    ['users', '账号与角色'], ['moderation', '复核台'], ['marketplace', '市场工单'], ['audit', '审计事件'],
+    ['realtime', '实时总线'], ['rate-limit', '限流闸'], ['access', '访问账'], ['observability', '观测'],
+    ['gateway', '网关态势'], ['discover-cache', '发现页缓存'],
+  ];
+  const SUBJECT = new URLSearchParams(location.search).get('theme') === 'light' ? 'light' : 'dark';
+  const root = document.getElementById('root');
+  document.documentElement.setAttribute('data-nexus-theme', SUBJECT);
+  const active = new URLSearchParams(location.search).get('current') || 'observability';
+
+  const nav = (labelled) => {
+    const nav = document.createElement('nav');
+    nav.className = 'admin-nav'; nav.setAttribute('aria-label', '管理台'); nav.setAttribute('data-admin-nav', '');
+    for (const [key, text] of LINKS) {
+      if (key === active) {
+        const s = document.createElement('span');
+        s.className = 'admin-nav__item admin-nav__item--current';
+        s.setAttribute('aria-current', 'page'); s.setAttribute('data-admin-link', key);
+        s.innerHTML = '<span class="admin-nav__dot" aria-hidden="true"></span>' + text;
+        nav.appendChild(s);
+      } else {
+        const a = document.createElement('a');
+        a.className = 'admin-nav__item'; a.href = '#'; a.textContent = text;
+        a.setAttribute('data-admin-link', key);
+        nav.appendChild(a);
+      }
+    }
+    return nav;
+  };
+
+  const pane = document.createElement('section');
+  pane.className = 'pane';
+  pane.innerHTML =
+    '<div class="label"><span>§A11Y-3 · <strong>/admin 导航 — 磨砂胶囊长航格</strong></span><span>' +
+    (SUBJECT === 'light' ? 'light' : 'dark') + ' · current=' + active + '</span></div>';
+  pane.appendChild(nav());
+  root.appendChild(pane);
+</script>
+</body>
+</html>

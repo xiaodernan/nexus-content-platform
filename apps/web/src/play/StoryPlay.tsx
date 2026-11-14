@@ -52,11 +52,11 @@ export function StoryPlay({ plan, onComplete }: { plan: StoryPlan; onComplete?: 
 
   if (!plan.playable) {
     return (
-      <div className="rounded-lg border border-[var(--nexus-color-border-subtle)] p-4" data-story="blocked">
-        <h2 className="text-13 font-semibold">这一段开不了场</h2>
-        <ul className="mt-2 flex flex-col gap-1">
+      <div className="st-card" data-story="blocked">
+        <h2 className="pk-h2">这一段开不了场</h2>
+        <ul className="g2-mt2col">
           {plan.blockers.map((blocker) => (
-            <li key={blocker} className="text-12 text-danger-ink" data-story-blocker>
+            <li key={blocker} className="pp-danger12" data-story-blocker>
               {blocker}
             </li>
           ))}
@@ -66,43 +66,43 @@ export function StoryPlay({ plan, onComplete }: { plan: StoryPlan; onComplete?: 
   }
 
   return (
-    <div className="flex flex-col gap-3" data-story-play>
-      <div className="flex flex-wrap items-center gap-2 text-11 text-fg-3">
+    <div className="g2-col3" data-story-play>
+      <div className="st-hudRow">
         <span data-story-progress>
           走过 {state.trail.length} 段 · 共 {plan.beats.length} 段可读
         </span>
-        <button type="button" onClick={restart} className="px-2 py-0.5 text-11 underline" data-story-restart>
+        <button type="button" onClick={restart} className="st-restartBtn" data-story-restart>
           从头开始
         </button>
       </div>
 
-      <article className="rounded-lg border border-[var(--nexus-color-border-subtle)] p-4" data-story-beat={beat?.id ?? 'none'}>
-        <h2 className="text-[var(--nexus-font-size-21)] font-semibold" data-story-name>
+      <article className="st-card" data-story-beat={beat?.id ?? 'none'}>
+        <h2 className="st-title" data-story-name>
           {beat?.name ?? '没有起点'}
         </h2>
         {repeats > 1 ? (
-          <p className="text-11 text-[var(--nexus-color-warn)]" data-story-repeat>
+          <p className="st-warnNote" data-story-repeat>
             这是第 {repeats} 次走到这一段：对话之间有环，模型里没有防回头的约束。
           </p>
         ) : null}
         {beat?.textEmpty ? (
-          <p className="mt-2 text-12 text-fg-3" data-story-text-empty>
+          <p className="st-emptyNote" data-story-text-empty>
             作者没给这一段写正文（对话实体的「设计说明」是空的）。这里不替你补一句。
           </p>
         ) : (
-          <p className="mt-2 whitespace-pre-wrap text-13 leading-6" data-story-text>
+          <p className="st-body" data-story-text>
             {beat?.text}
           </p>
         )}
 
         {beat && beat.choices.length ? (
-          <div className="mt-3 flex flex-col gap-1.5" data-story-choices>
+          <div className="st-choices" data-story-choices>
             {beat.choices.map((choice) => (
               <button
                 key={choice.id}
                 type="button"
                 onClick={() => go(choice.id)}
-                className="rounded border border-[var(--nexus-color-border-subtle)] px-3 py-1.5 text-left text-12 hover:border-[var(--nexus-color-border-strong)]"
+                className="st-choiceBtn"
                 data-story-choice={choice.to}
               >
                 {choice.label}
@@ -110,24 +110,24 @@ export function StoryPlay({ plan, onComplete }: { plan: StoryPlan; onComplete?: 
             ))}
           </div>
         ) : (
-          <p className="mt-3 text-12 text-fg-3" data-story-ending>
+          <p className="st-endingNote" data-story-ending>
             这一段没有指向别的对话，走到这里就停了——没有"结局画面"这种东西，只是没有下一段。
           </p>
         )}
       </article>
 
-      <div className="text-11 text-fg-3" data-story-trail>
+      <div className="g2-note" data-story-trail>
         {state.trail.map((id, index) => `${index + 1}. ${byId.get(id)?.name ?? '（读不到名字）'}`).join(' → ')}
       </div>
 
       {/* §53 对话管线的"自动跑一遍"：查可达性，不是跑走法——按钮的话与报告的限度一起显示 */}
-      <section className="rounded border border-[var(--nexus-color-border-subtle)] p-3">
-        <div className="flex items-center gap-3">
-          <h3 className="text-12 font-semibold text-fg-1">自动查一遍（Playtest）</h3>
+      <section className="g2-well">
+        <div className="g2-wellRow">
+          <h3 className="g2-h3">自动查一遍（Playtest）</h3>
           <button
             type="button"
             onClick={() => setReport(playtestStory(plan))}
-            className="rounded bg-bg-2 px-2 py-1 text-11"
+            className="g2-smallBtn"
             data-playtest-run
           >
             查可达性
@@ -135,33 +135,33 @@ export function StoryPlay({ plan, onComplete }: { plan: StoryPlan; onComplete?: 
         </div>
         {report ? (
           <>
-            <p className="mt-2 text-11 text-fg-3" data-playtest-story-stats>
+            <p className="g2-mt2Note" data-playtest-story-stats>
               可达 {report.reachable}/{report.total} · 停点 {report.reachableEndings} · 空正文 {report.reachableEmptyText}
               {report.unreachableNames.length ? ` · 走不到：${report.unreachableNames.slice(0, 5).join('、')}` : ''}
             </p>
-            <ul className="mt-2 flex flex-col gap-1">
+            <ul className="g2-mt2col">
               {report.findings.map((line) => (
-                <li key={line} className="text-11 text-fg-2" data-playtest-finding>
+                <li key={line} className="g2-hint2" data-playtest-finding>
                   · {line}
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-11 text-fg-3" data-playtest-limits>
+            <p className="g2-mt2Note" data-playtest-limits>
               {report.limits.join(' ')}
             </p>
           </>
         ) : (
-          <p className="mt-1 text-11 text-fg-3">
+          <p className="g2-mt1Note">
             还没查。这一步按引用连线算「连不连得到」，不需要人点，也不需要模型或 provider。
           </p>
         )}
       </section>
 
-      <details className="text-11 text-fg-3" data-story-notes>
-        <summary className="cursor-pointer">这条管线如实说明的 {plan.notes.length} 件事</summary>
-        <ul className="mt-1 flex flex-col gap-1 pl-4">
+      <details className="g2-note" data-story-notes>
+        <summary className="st-summary">这条管线如实说明的 {plan.notes.length} 件事</summary>
+        <ul className="st-notesList">
           {plan.notes.map((note) => (
-            <li key={note} className="list-disc">
+            <li key={note} className="st-bullet">
               {note}
             </li>
           ))}

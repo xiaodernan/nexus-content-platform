@@ -23,8 +23,8 @@ const POLICY = {
 // 1) Fake-spawn harness: EVERY claim below first holds without starting a process.
 const spawns = [];
 function fakeChild(end, chunks = []) {
-  let data = [];
-  let ends = [];
+  const data = [];
+  const ends = [];
   const c = {
     killed: false,
     onData(l) { data.push(l); },
@@ -58,7 +58,7 @@ assert.equal(approved.ran, true);
 assert.deepEqual(spawns[0], { command: 'node', args: ['app.js'], opts: { cwd: 'X:/jail/sub', env: { PATH: '/bin' } }, child: spawns[0].child });
 assert.equal(spawns[0].opts.env.SECRET, undefined, 'the scrubbed env is what the process ACTUALLY gets');
 const capped = await host.createExecHost(POLICY, {
-  spawnLike: (cmd, args, opts) => {
+  spawnLike: (_cmd, _args, _opts) => {
     const c = fakeChild({ code: 0, signal: null }, [['stdout', 'ab\ncd\n'], ['stderr', 'ef\ngh\n']]);
     queueMicrotask(() => c.fire());
     return c;
@@ -72,7 +72,7 @@ const capped = await host.createExecHost(POLICY, {
 // Both streams fit their own ceiling here, so neither is cut and neither is trimmed.
 assert.deepEqual([capped.stdout, capped.stderr, capped.truncated], ['ab\ncd\n', 'ef\ngh\n', false], '6 bytes per stream: each keeps its whole lines, nothing was cut');
 const loud = await host.createExecHost(POLICY, {
-  spawnLike: (cmd, args, opts) => {
+  spawnLike: (_cmd, _args, _opts) => {
     const c = fakeChild({ code: 0, signal: null }, [['stderr', 'E'.repeat(99) + '\n'], ['stdout', 'ab\ncd\n']]);
     queueMicrotask(() => c.fire());
     return c;

@@ -86,7 +86,9 @@ export default function AssetPanel() {
   useEffect(() => {
     let cancelled = false;
 
-    (async () => {
+    // void：这个 IIFE 自己吞掉了所有异常（catch 里 setError），返回值没人需要——写明「有意不等」，
+    // 而不是让一个没人管的 promise 悬在那儿。
+    void (async () => {
       try {
         const built = await buildStudioAssets(stack.generator, stack.library, stack.storyboards);
         if (cancelled) return;

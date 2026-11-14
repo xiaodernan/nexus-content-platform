@@ -4,7 +4,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AssetRef } from '@nexus/creative-model';
-import { buildFfmpegArgs, planVideoRender, type RenderInputFile } from '@nexus/video-model';
+import { buildFfmpegArgs, planVideoRender, type RenderInputFile, type VideoRenderPlan } from '@nexus/video-model';
 import { openAssetForOwner, uploadVideoAsset } from './assets';
 import { finishTask, startTask } from './agent-tasks';
 import { refusalForRun } from './credit-ledger';
@@ -90,6 +90,13 @@ export type RenderStoryboardOutcome =
       /** 计划做的每一个解释与限度：界面上原样显示 */
       notes: string[];
       renderMs: number;
+      /**
+       * 逐镜画面出处——计划里每镜的 `source` 收下来这一格。
+       *
+       * 为什么要给：计划里 `from: 'shot' | 'source'` 一直存在，但只有渲染期才看得见；
+       * 面板在渲染后要告诉作者"第 i 镜的画面来自谁"，否则整片那张图与每镜各挂一张同形。
+       */
+      segments: ShotProvenance[];
     }
   | {
       ok: false;
@@ -108,6 +115,35 @@ export type RenderStoryboardOutcome =
       message: string;
       issues?: string[];
     };
+
+export interface ShotProvenance {
+  /** 分镜里的序号（0 起）：与界面上的镜号一致，也就是 plan.segments[i].index */
+  index: number;
+  shotId: string;
+  /**
+   * 这一镜的画面由谁供给：
+   * - `own`        — 这一镜自己挂的参考帧（最具体的决定赢）；
+   * - `whole-piece` — 整片那张图（`image-to-video` 箭头带的，本镜自己没挂）；
+   * - `card`        — 色卡占位（这一镜没有可看的来源）。
+   */
+  frame: 'own' | 'whole-piece' | 'card';
+}
+
+/** 计划里每镜的 source → 这一格交给界面的话：explained by the plan, not by the panel. */
+function shotProvenance(segments: VideoRenderPlan['segments']): ShotProvenance[] {
+  // Mirror the plan's own rule for a segment's frame — no second source of truth, ever.
+  return segments.map((segment) => {
+    const source = segment.source;
+    if (source.kind === 'reference') {
+      return {
+        index: segment.index,
+        shotId: segment.shotId,
+        frame: source.from === 'source' ? 'whole-piece' : 'own',
+      };
+    }
+    return { index: segment.index, shotId: segment.shotId, frame: 'card' as const };
+  });
+}
 
 type FfmpegRun =
   | { ok: true }
@@ -317,6 +353,7 @@ export async function renderStoryboardDemo(input: RenderStoryboardInput): Promis
       warnings: built.warnings,
       notes: plan.notes,
       renderMs: Date.now() - startedAt,
+      segments: shotProvenance(plan.segments),
     };
   } finally {
     // 临时目录即焚：参考帧字节与成片都不留在服务器上（库里那一条才是产物）

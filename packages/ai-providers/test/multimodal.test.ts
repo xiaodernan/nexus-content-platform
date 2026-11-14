@@ -5,12 +5,9 @@ import {
   DemoVideoGenerator,
   CharacterConsistencyManager,
   StoryboardManager,
-  type AssetMetadata,
   type AssetReference,
-  type AssetType,
   type CharacterConsistencyOptions,
   type GenerationRequest,
-  type StoryboardFrame,
 } from '../src/multimodal.js';
 
 describe('multimodal asset library', () => {
@@ -308,7 +305,7 @@ describe('StoryboardManager', () => {
   it('lists and deletes storyboards', () => {
     const mgr = new StoryboardManager();
     const sb1 = mgr.create('Story 1');
-    const sb2 = mgr.create('Story 2');
+    mgr.create('Story 2');
 
     expect(mgr.list().length).toBe(2);
     expect(mgr.delete(sb1.id)).toBe(true);

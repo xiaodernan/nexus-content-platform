@@ -53,7 +53,6 @@ describe('RoleRegistry (§24 slice)', () => {
   it('researcher cannot write even WITH a checkpoint; editor can (same gate)', async () => {
     const roles = new RoleRegistry();
     DEMO_ROLES.forEach((r) => roles.register(r));
-    const host = hostRegistry();
     const ws = new InMemoryWorkspace({ 'docs/a.md': '# A\n' });
     const writer = roles.scopedRegistry('editor', registerWorkspaceTools(new ToolRegistry(), ws));
     const denied = await roles.scopedRegistry('researcher', writer).invoke(

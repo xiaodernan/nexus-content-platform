@@ -15,11 +15,16 @@ import {
   setWorldNodeElevation,
   setWorldNodeModelAsset,
   setWorldTerrain,
+  setWorldTidePressures,
   updateWorldNode,
+  WORLD_TIDE_PRESSURE_KINDS,
+  WORLD_TIDE_PRESSURE_LIMIT,
   worldCounts,
   type WorldDocument,
   type WorldKind,
   type WorldPlateau,
+  type WorldTidePressure,
+  type WorldTidePressureKind,
 } from '@nexus/world-model';
 import { cn } from '@/lib/cn';
 import { patchLore } from '@/lib/worldLore';
@@ -79,9 +84,9 @@ export function WorldPanel() {
 
   if (!world) {
     return (
-      <div className="flex h-full min-h-0 flex-col gap-3 overflow-auto p-[var(--nexus-space-3)]" data-world-panel>
-        <h2 className="font-mono text-12 uppercase tracking-wide text-fg-3">世界</h2>
-        <p className="text-12 leading-relaxed text-fg-2" data-world-empty>
+      <div className="wd-scrollPad" data-world-panel>
+        <h2 className="wd-label">世界</h2>
+        <p className="wd-body12" data-world-empty>
           {snapshot.saveState === 'loading'
             ? '读取世界…'
             : snapshot.error
@@ -94,7 +99,7 @@ export function WorldPanel() {
                 )}
         </p>
         {snapshot.error ? (
-          <p className="text-11 text-danger-ink" data-world-error>
+          <p className="wd-danger11" data-world-error>
             {snapshot.error}
           </p>
         ) : null}
@@ -103,7 +108,7 @@ export function WorldPanel() {
           disabled={snapshot.saveState === 'saving'}
           onClick={() => void worldStore.createSkeleton(studio.document?.name ?? '未命名世界')}
           data-world-create
-          className="self-start rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg disabled:opacity-50"
+          className="wd-selfStart wd-accentBtn wd-dis50"
         >
           创建世界骨架（模板）
         </button>
@@ -119,15 +124,12 @@ export function WorldPanel() {
   const groups = WORLD_KINDS.filter((kind) => counts?.[kind]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col" data-world-panel>
-      <header className="shrink-0 border-b border-[var(--nexus-color-border-subtle)] p-[var(--nexus-space-3)]">
-        <div className="flex items-center gap-2">
-          <h2 className="font-mono text-12 uppercase tracking-wide text-fg-3">世界</h2>
+    <div className="wd-rootCol" data-world-panel>
+      <header className="wd-headBordered">
+        <div className="wd-row2">
+          <h2 className="wd-label">世界</h2>
           <span
-            className={cn(
-              'ml-auto font-mono text-11',
-              snapshot.saveState === 'error' ? 'text-danger-ink' : 'text-fg-3',
-            )}
+            className={cn('wd-monoFaintEnd', snapshot.saveState === 'error' && 'wd-dangerText')}
             data-world-state
           >
             {STATE_TEXT[snapshot.saveState] ?? ''}
@@ -140,7 +142,7 @@ export function WorldPanel() {
           onBlur={() => edit({ ...world, name: world.name.trim() || '未命名世界' }, true)}
           aria-label="世界名称"
           data-world-name
-          className="mt-2 w-full rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-13 text-fg-1 outline-none focus:bg-bg-3"
+          className="wd-wfullInput13"
         />
         <textarea
           value={world.summary}
@@ -150,39 +152,39 @@ export function WorldPanel() {
           aria-label="世界概述"
           data-world-summary
           rows={2}
-          className="mt-2 w-full resize-y rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12 text-fg-1 outline-none focus:bg-bg-3"
+          className="wd-areaResize"
         />
         {snapshot.error ? (
-          <p className="mt-2 text-11 text-danger-ink" data-world-error>
+          <p className="wd-dangerMt2" data-world-error>
             {snapshot.error}
           </p>
         ) : null}
       </header>
 
-      <div className="min-h-0 flex-1 overflow-auto p-[var(--nexus-space-2)]">
+      <div className="wd-scrollP2">
         {groups.map((kind) => (
-          <section key={kind} className="mb-3" data-world-group={kind}>
-            <h3 className="mb-1 flex items-center font-mono text-11 uppercase tracking-wide text-fg-3">
+          <section key={kind} className="wd-mb3" data-world-group={kind}>
+            <h3 className="wd-labelMb1">
               {WORLD_KIND_LABELS[kind]}
-              <span className="ml-auto">{counts?.[kind] ?? 0}</span>
+              <span className="wd-end">{counts?.[kind] ?? 0}</span>
             </h3>
-            <ul className="flex flex-col gap-2">
+            <ul className="wd-col2">
               {world.nodes
                 .filter((node) => node.kind === kind)
                 .map((node) => (
                   <li
                     key={node.id}
-                    className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2"
+                    className="wd-card"
                     data-world-node={node.id}
                   >
-                    <div className="flex items-center gap-1">
+                    <div className="wd-row1">
                       <input
                         value={node.title}
                         onChange={(e) => edit(updateWorldNode(world, node.id, { title: e.target.value }))}
                         onBlur={() => edit(world, true)}
                         aria-label={`条目标题 ${node.title}`}
                         data-world-title={node.id}
-                        className="min-w-0 flex-1 rounded-[3px] bg-bg-1 px-1 py-[2px] text-12 text-fg-1 outline-none focus:bg-bg-3"
+                        className="wd-growInput"
                       />
                       <button
                         type="button"
@@ -194,7 +196,7 @@ export function WorldPanel() {
                         onClick={() => edit(removeWorldNode(world, node.id), true)}
                         aria-label={`删除 ${node.title}`}
                         data-world-remove={node.id}
-                        className="shrink-0 px-1 text-12 text-fg-3 hover:text-danger-ink"
+                        className="wd-delBtn"
                       >
                         ×
                       </button>
@@ -207,12 +209,14 @@ export function WorldPanel() {
                       aria-label={`正文 ${node.title}`}
                       data-world-body={node.id}
                       rows={3}
-                      className="mt-1 w-full resize-y rounded-[3px] bg-bg-1 px-1 py-[2px] text-12 leading-relaxed text-fg-1 outline-none focus:bg-bg-3"
+                      className="wd-areaResizeMt"
                     />
                     {node.kind === 'story' || node.kind === 'history' ? (
                       <>
-                      <div className="mt-1 flex items-center gap-1" data-world-lore-row={node.id}>
-                        <label htmlFor={`world-era-${node.id}`} className="shrink-0 text-11 text-fg-3">纪元</label>
+                      <div className="wd-rowMt1" data-world-lore-row={node.id}>
+                        <label htmlFor={`world-era-${node.id}`} className="wd-faint11shrink">
+                          纪元
+                        </label>
                         <input
                           id={`world-era-${node.id}`}
                           type="text"
@@ -226,9 +230,11 @@ export function WorldPanel() {
                             edit(updateWorldNode(world, node.id, { lore: merged }));
                           }}
                           onBlur={() => edit(world, true)}
-                          className="min-w-0 flex-1 rounded-[3px] bg-bg-1 px-1 py-[2px] text-12 text-fg-1 outline-none focus:bg-bg-3"
+                          className="wd-growInput"
                         />
-                        <label htmlFor={`world-order-${node.id}`} className="shrink-0 text-11 text-fg-3">序</label>
+                        <label htmlFor={`world-order-${node.id}`} className="wd-faint11shrink">
+                          序
+                        </label>
                         <input
                           id={`world-order-${node.id}`}
                           type="number"
@@ -243,9 +249,9 @@ export function WorldPanel() {
                             edit(updateWorldNode(world, node.id, { lore: merged }));
                           }}
                           onBlur={() => edit(world, true)}
-                          className="w-16 rounded-[3px] bg-bg-1 px-1 py-[2px] text-12 text-fg-1 outline-none focus:bg-bg-3"
+                          className="wd-numInput"
                         />
-                        <span className="text-10 text-fg-3">0 最早，缺省按 updatedAt 排</span>
+                        <span className="wd-faint11">0 最早，缺省按 updatedAt 排</span>
                       </div>
                       <input
                         type="text"
@@ -259,12 +265,12 @@ export function WorldPanel() {
                           edit(updateWorldNode(world, node.id, { lore: merged }));
                         }}
                         onBlur={() => edit(world, true)}
-                        className="mt-1 w-full rounded-[3px] bg-bg-1 px-1 py-[2px] text-11 text-fg-2 outline-none placeholder:text-fg-3 focus:bg-bg-3"
+                        className="wd-growInput"
                       />
                       </>
                     ) : null}
-                    <div className="mt-1 flex items-center gap-1">
-                      <label htmlFor={`world-elevation-${node.id}`} className="shrink-0 text-11 text-fg-3">
+                    <div className="wd-rowMt1">
+                      <label htmlFor={`world-elevation-${node.id}`} className="wd-faint11shrink">
                         高度
                       </label>
                       <input
@@ -287,14 +293,14 @@ export function WorldPanel() {
                         }}
                         aria-label={`高度 ${node.title}`}
                         data-world-elevation={node.id}
-                        className="w-16 rounded-[3px] bg-bg-1 px-1 py-[2px] text-12 text-fg-1 outline-none focus:bg-bg-3 disabled:opacity-50"
+                        className="wd-numInput"
                       />
-                      <span className="text-11 text-fg-3">
+                      <span className="wd-faint11">
                         0–{WORLD_ELEVATION_MAX}；3D 世界里条目会浮在这个高度上（先在世界图上摆过位置才能写）
                       </span>
                     </div>
-                    <div className="mt-1 flex items-center gap-1">
-                      <label htmlFor={`world-model-${node.id}`} className="shrink-0 text-11 text-fg-3">
+                    <div className="wd-rowMt1">
+                      <label htmlFor={`world-model-${node.id}`} className="wd-faint11shrink">
                         3D 模型
                       </label>
                       <select
@@ -310,7 +316,7 @@ export function WorldPanel() {
                         }}
                         aria-label={`3D 模型 ${node.title}`}
                         data-world-model={node.id}
-                        className="min-w-0 flex-1 rounded-[3px] bg-bg-1 px-1 py-[2px] text-12 text-fg-1 outline-none focus:bg-bg-3"
+                        className="wd-growInput"
                       >
                         <option value="">
                           {modelAssets.length ? '类别几何体（占位）' : '类别几何体（本项目还没有 model 资产）'}
@@ -321,7 +327,7 @@ export function WorldPanel() {
                           </option>
                         ))}
                       </select>
-                      <span className="shrink-0 text-11 text-fg-3">
+                      <span className="wd-faint11shrink">
                         在 3D 世界里渲染哪个模型；加载不出来时退回类别几何体，不会留空白
                       </span>
                     </div>
@@ -333,13 +339,15 @@ export function WorldPanel() {
 
         <TerrainSection world={world} edit={edit} />
 
-        <div className="mt-1 flex items-center gap-1">
+        <TideSection world={world} edit={edit} />
+
+        <div className="wd-rowMt1">
           <select
             value={newKind}
             onChange={(e) => setNewKind(e.target.value as WorldKind)}
             aria-label="新增条目的类型"
             data-world-new-kind
-            className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1 py-1 text-11 text-fg-1"
+            className="wd-chipSelect"
           >
             {WORLD_KINDS.map((kind) => (
               <option key={kind} value={kind}>
@@ -353,12 +361,12 @@ export function WorldPanel() {
               edit(addWorldNode(world, { kind: newKind, title: `${WORLD_KIND_LABELS[newKind]} · 新条目` }), true)
             }
             data-world-add={newKind}
-            className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11 text-fg-2 hover:bg-bg-2"
+            className="wd-ghostBtn"
           >
             加一条
           </button>
         </div>
-        <p className="mt-2 text-11 leading-relaxed text-fg-3" data-world-note>
+        <p className="wd-body11Mt2" data-world-note>
           改完即写库（失焦或点删除都会保存）。世界编辑不进画布的撤销栈：Ctrl+Z 只管设计文档。
           {groups.length < WORLD_KINDS.length
             ? ` ${WORLD_KINDS.filter((k) => !counts?.[k]).map((k) => WORLD_KIND_LABELS[k]).join('、')} 这一类还没有条目，可以用上面的下拉补。`
@@ -368,7 +376,7 @@ export function WorldPanel() {
           type="button"
           onClick={() => void worldStore.commit()}
           data-world-save
-          className="mt-2 self-start rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg"
+          className="wd-mt2 wd-selfStart wd-accentBtn"
         >
           保存到库
         </button>
@@ -405,18 +413,18 @@ function TerrainSection({
   };
 
   return (
-    <section className="mt-4" data-world-terrain-panel>
-      <h3 className="font-mono text-11 uppercase tracking-wide text-fg-3">地形（可走的圆台与坡）</h3>
-      <p className="mt-1 text-11 leading-relaxed text-fg-3">
+    <section className="wd-mt4" data-world-terrain-panel>
+      <h3 className="wd-label11">地形（可走的圆台与坡）</h3>
+      <p className="wd-body11Mt1">
         站在地形特征上就是站在它的高度上（相机与点击地面都读同一份高度）。剖面两种：台面（硬边）
         与坡（台心到边缘线性降到 0，可走）。没画地形的世界脚下是平的。
         高度 0–{WORLD_TERRAIN_HEIGHT_MAX}，半径 {WORLD_PLATEAU_RADIUS_MIN}–{WORLD_PLATEAU_RADIUS_MAX}；
         重叠的地形取最高的那个。当前 {plateaus.length}/{WORLD_PLATEAU_LIMIT} 个。
       </p>
-      <ul className="mt-1 flex flex-col gap-1">
+      <ul className="wd-colMt1">
         {plateaus.map((plateau) => (
-          <li key={plateau.id} className="flex items-center gap-1" data-world-plateau={plateau.id}>
-            <span className="min-w-0 flex-1 truncate font-mono text-11 text-fg-2">
+          <li key={plateau.id} className="wd-row1" data-world-plateau={plateau.id}>
+            <span className="wd-fname11truncate">
               ({plateau.x}, {plateau.y}) r={plateau.radius} h={plateau.height}
               {plateau.profile === 'cone' ? ' 坡' : ''}
             </span>
@@ -425,15 +433,15 @@ function TerrainSection({
               onClick={() => apply(plateaus.filter((p) => p.id !== plateau.id))}
               aria-label={`删除圆台 ${plateau.id}`}
               data-world-plateau-remove={plateau.id}
-              className="shrink-0 px-1 text-12 text-fg-3 hover:text-danger-ink"
+              className="wd-delBtn"
             >
               ×
             </button>
           </li>
         ))}
       </ul>
-      <div className="mt-1 flex flex-wrap items-center gap-1">
-        <label htmlFor="world-plateau-x" className="shrink-0 text-11 text-fg-3">
+      <div className="wd-wrapCenter1">
+        <label htmlFor="world-plateau-x" className="wd-faint11shrink">
           x
         </label>
         <input
@@ -442,9 +450,9 @@ function TerrainSection({
           value={draft.x}
           onChange={(e) => setDraft((d) => ({ ...d, x: Number(e.target.value) }))}
           data-world-plateau-input="x"
-          className="w-16 rounded-[3px] bg-bg-1 px-1 py-[2px] text-12 text-fg-1 outline-none focus:bg-bg-3"
+          className="wd-numInput"
         />
-        <label htmlFor="world-plateau-y" className="shrink-0 text-11 text-fg-3">
+        <label htmlFor="world-plateau-y" className="wd-faint11shrink">
           y
         </label>
         <input
@@ -453,9 +461,9 @@ function TerrainSection({
           value={draft.y}
           onChange={(e) => setDraft((d) => ({ ...d, y: Number(e.target.value) }))}
           data-world-plateau-input="y"
-          className="w-16 rounded-[3px] bg-bg-1 px-1 py-[2px] text-12 text-fg-1 outline-none focus:bg-bg-3"
+          className="wd-numInput"
         />
-        <label htmlFor="world-plateau-radius" className="shrink-0 text-11 text-fg-3">
+        <label htmlFor="world-plateau-radius" className="wd-faint11shrink">
           半径
         </label>
         <input
@@ -466,9 +474,9 @@ function TerrainSection({
           value={draft.radius}
           onChange={(e) => setDraft((d) => ({ ...d, radius: Number(e.target.value) }))}
           data-world-plateau-input="radius"
-          className="w-16 rounded-[3px] bg-bg-1 px-1 py-[2px] text-12 text-fg-1 outline-none focus:bg-bg-3"
+          className="wd-numInput"
         />
-        <label htmlFor="world-plateau-height" className="shrink-0 text-11 text-fg-3">
+        <label htmlFor="world-plateau-height" className="wd-faint11shrink">
           高度
         </label>
         <input
@@ -480,9 +488,9 @@ function TerrainSection({
           value={draft.height}
           onChange={(e) => setDraft((d) => ({ ...d, height: Number(e.target.value) }))}
           data-world-plateau-input="height"
-          className="w-16 rounded-[3px] bg-bg-1 px-1 py-[2px] text-12 text-fg-1 outline-none focus:bg-bg-3"
+          className="wd-numInput"
         />
-        <label htmlFor="world-plateau-profile" className="shrink-0 text-11 text-fg-3">
+        <label htmlFor="world-plateau-profile" className="wd-faint11shrink">
           剖面
         </label>
         <select
@@ -492,7 +500,7 @@ function TerrainSection({
             setDraft((d) => ({ ...d, profile: e.target.value === 'cone' ? 'cone' : undefined }))
           }
           data-world-plateau-input="profile"
-          className="rounded-[3px] bg-bg-1 px-1 py-[2px] text-12 text-fg-1 outline-none focus:bg-bg-3"
+          className="wd-inputSm"
         >
           <option value="mesa">台面（硬边）</option>
           <option value="cone">坡（线性降到 0）</option>
@@ -505,7 +513,7 @@ function TerrainSection({
             apply([...plateaus, { ...rest, id: `wp_${Date.now().toString(36)}${plateaus.length}`, ...(profile === 'cone' ? { profile: 'cone' as const } : {}) }]);
           }}
           data-world-plateau-add
-          className="shrink-0 rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11 text-fg-2 hover:bg-bg-2"
+          className="wd-ghostBtnShrink"
         >
           加上去
         </button>
@@ -514,9 +522,146 @@ function TerrainSection({
             type="button"
             onClick={() => apply(null)}
             data-world-terrain-clear
-            className="shrink-0 px-2 py-1 text-11 text-fg-3 hover:text-danger-ink"
+            className="wd-delBtnBig"
           >
             收掉地形
+          </button>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+const TIDE_KIND_LABEL: Record<WorldTidePressureKind, string> = {
+  drought: '干亢',
+  progeny: '繁衍',
+  inflation: '通胀',
+  erosion: '寂蚀',
+  murmur: '潮声',
+};
+
+/**
+ * §潮汐声明编辑器（v721 · ADR-0267 的第三片）：作者在面板里落笔声明扰模。
+ * 写入口径与 `setWorldTidePressures` 同一支笔：kind 不认识 / label 空白 / id 重复 / 超限整批拒绝，
+ * 原因由 `worldStore.showNotice` 原样显示——和「画地形」是同一门（UI 永远不收不合法的字节）。
+ * severity 只是着墨（1 要闻 / 2 季节 / 3 纪元），不参与任何潮汐计数。
+ */
+function TideSection({
+  world,
+  edit,
+}: {
+  world: WorldDocument;
+  edit: (next: WorldDocument, save?: boolean) => void;
+}) {
+  const pressures = world.pressures ?? [];
+  const [label, setLabel] = useState('');
+  const [kind, setKind] = useState<WorldTidePressureKind>('drought');
+  const [severity, setSeverity] = useState<1 | 2 | 3>(2);
+
+  const apply = (next: WorldTidePressure[] | null) => {
+    const result = setWorldTidePressures(world, next);
+    if (result.reason) {
+      worldStore.showNotice(result.reason);
+      return;
+    }
+    edit(result.document, true);
+  };
+
+  return (
+    <section className="wd-mt4" data-world-tide-panel>
+      <h3 className="wd-label11">潮汐扰模（作者声明）</h3>
+      <p className="wd-body11Mt1">
+        声明一条，潮汐页（/world/项目/tide）就会按它算出真压住了多少落笔节点。severity 只是着墨（1 要闻 / 2 季节 / 3 纪元），不参与计数。
+        {pressures.length > 0 ? ` 已声明 ${pressures.length} / ${WORLD_TIDE_PRESSURE_LIMIT} 条。` : ' 还没有声明——写了一条，潮汐页就会亮。'}
+      </p>
+      <ul className="wd-colMt1">
+        {pressures.map((pressure) => (
+          <li key={pressure.id} className="wd-row1" data-world-tide={pressure.id}>
+            <span className="wd-fname11truncate">
+              {pressure.label} · {TIDE_KIND_LABEL[pressure.kind]} · severity {pressure.severity}
+            </span>
+            <button
+              type="button"
+              onClick={() => apply(pressures.filter((entry) => entry.id !== pressure.id))}
+              aria-label={`删除扰模 ${pressure.label}`}
+              data-world-tide-remove={pressure.id}
+              className="wd-delBtn"
+            >
+              ×
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div className="wd-wrapCenter1">
+        <label htmlFor="world-tide-label" className="wd-faint11shrink">
+          名字
+        </label>
+        <input
+          id="world-tide-label"
+          type="text"
+          value={label}
+          maxLength={40}
+          placeholder="孕育季"
+          onChange={(e) => setLabel(e.target.value)}
+          aria-label="扰模名字"
+          data-world-tide-label
+          className="wd-numInput"
+        />
+        <label htmlFor="world-tide-kind" className="wd-faint11shrink">
+          kind
+        </label>
+        <select
+          id="world-tide-kind"
+          value={kind}
+          onChange={(e) => setKind(e.target.value as WorldTidePressureKind)}
+          aria-label="扰模 kind"
+          data-world-tide-kind
+          className="wd-inputSm"
+        >
+          {WORLD_TIDE_PRESSURE_KINDS.map((entry) => (
+            <option key={entry} value={entry}>
+              {entry}（{TIDE_KIND_LABEL[entry]}）
+            </option>
+          ))}
+        </select>
+        <label htmlFor="world-tide-severity" className="wd-faint11shrink">
+          severity
+        </label>
+        <select
+          id="world-tide-severity"
+          value={severity}
+          onChange={(e) => setSeverity(Number(e.target.value) as 1 | 2 | 3)}
+          aria-label="扰模 severity"
+          data-world-tide-severity
+          className="wd-inputSm"
+        >
+          <option value={1}>1 · 要闻</option>
+          <option value={2}>2 · 季节</option>
+          <option value={3}>3 · 纪元</option>
+        </select>
+        <button
+          type="button"
+          onClick={() => {
+            const trimmed = label.trim();
+            if (!trimmed) {
+              worldStore.showNotice('扰模要有一个名字——给它取 1–40 字。');
+              return;
+            }
+            apply([...pressures, { id: `tp_${Date.now().toString(36)}${pressures.length}`, kind, label: trimmed, severity }]);
+            setLabel('');
+          }}
+          data-world-tide-add
+          className="wd-ghostBtnShrink"
+        >
+          加上去
+        </button>
+        {pressures.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => apply(null)}
+            data-world-tide-clear
+            className="wd-delBtnBig"
+          >
+            收掉全部
           </button>
         ) : null}
       </div>

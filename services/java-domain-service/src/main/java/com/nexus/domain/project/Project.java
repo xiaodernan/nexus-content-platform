@@ -2,7 +2,9 @@ package com.nexus.domain.project;
 
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -45,15 +47,22 @@ public class Project {
     @Column(name = "current_snapshot_id")
     private UUID currentSnapshotId;
 
+    // The three jsonb columns are declared as JSON, not varchar. Without that, Hibernate binds a String
+    // parameter as varchar — including NULL on an insert — and PostgreSQL refuses it with
+    // `column "brand_kit" is of type jsonb but expression is of type character varying`. Declaring the JDBC
+    // type is what makes an insert that omits these fields actually work.
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "brand_kit", columnDefinition = "jsonb")
     private String brandKit;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "visual_dna", columnDefinition = "jsonb")
     private String visualDna;
 
     @Column(name = "active_mode")
     private String activeMode;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "modes", columnDefinition = "jsonb")
     private String modes;
 

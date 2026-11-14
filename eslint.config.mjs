@@ -1,4 +1,6 @@
 import js from '@eslint/js';
+import globals from 'globals';
+import nextPlugin from '@next/eslint-plugin-next';
 import tseslint from 'typescript-eslint';
 
 /**
@@ -160,6 +162,50 @@ export default tseslint.config(
   },
 
   {
+    // .mjs 证明脚本与跑批脚本是 Node 脚本，但它们不是 TypeScript——typescript-eslint 的 configs 只对
+    // **/*.ts 生效，其中"关掉 no-undef"那一手因此不落在它们身上，no-undef 照旧开着，而 console / process /
+    // Buffer 这些 Node 全局在 ESLint 眼里是没有定义过的名字（每用一次报一条）。
+    // 这里把 Node 的全局显式声明出来，而不是逐个文件加 /* global console */。
+    files: ['docs/evidence/**/*.mjs', 'tools/**/*.mjs'],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
+  },
+
+  {
+    // studio 的 NEXT 规则：studio 自己那份配置（next/core-web-vitals + next/typescript）开着这 21 条，
+    // 而根配置没有加载 @next/next 插件——于是 studio 源码里那条
+    // `eslint-disable-next-line @next/next/no-img-element` 在根配置下变成「规则未找到」而报错。
+    // 这里把插件挂上，并把同一批规则按同样的严重度交给 studio 的文件：两个门看同一件事，
+    // 而不是一个看得到、另一个看不见。严重度与 studio 自己那份一致（warn 的仍是 warn）。
+    files: ['apps/studio/**/*.{ts,tsx}'],
+    plugins: { '@next/next': nextPlugin },
+    rules: {
+      '@next/next/google-font-display': 'warn',
+      '@next/next/google-font-preconnect': 'warn',
+      '@next/next/next-script-for-ga': 'warn',
+      '@next/next/no-async-client-component': 'warn',
+      '@next/next/no-before-interactive-script-outside-document': 'warn',
+      '@next/next/no-css-tags': 'warn',
+      '@next/next/no-head-element': 'warn',
+      '@next/next/no-html-link-for-pages': ['error', 'apps/studio'],
+      '@next/next/no-img-element': 'warn',
+      '@next/next/no-page-custom-font': 'warn',
+      '@next/next/no-styled-jsx-in-document': 'warn',
+      '@next/next/no-sync-scripts': 'error',
+      '@next/next/no-title-in-document-head': 'warn',
+      '@next/next/no-typos': 'warn',
+      '@next/next/no-unwanted-polyfillio': 'warn',
+      '@next/next/inline-script-id': 'error',
+      '@next/next/no-assign-module-variable': 'error',
+      '@next/next/no-document-import-in-page': 'error',
+      '@next/next/no-duplicate-head': 'error',
+      '@next/next/no-head-import-in-document': 'error',
+      '@next/next/no-script-component-in-head': 'error',
+    },
+  },
+
+  {
     // scripts/ 与根配置不在任何 package tsconfig 的 include 里，project service 认不到它们，
     // 于是 type-aware 规则直接报"解析不了"。这里显式把它们交给 tsconfig.tools.json——
     // 不是为了少报几条，是因为压测脚本自己就藏过一次"量了 8 个节点却写成 1000 个节点"的事故
@@ -172,6 +218,16 @@ export default tseslint.config(
       'vitest.config.ts',
       'drizzle.config.ts',
       'playwright.config.ts',
+      // 证据脚本（docs/evidence/**）与 tools/ 下的跑批脚本：同样是"不在任何 package tsconfig 里"的一类。
+      // 它们是 .mjs，靠 tsconfig.tools.json 的 allowJs 进项目，类型感知的规则（尤其是
+      // no-floating-promises——这些脚本全是 await 链，漏一个 await 就是一次静默失败）在它们身上照样跑。
+      'docs/evidence/**/*.mjs',
+      'tools/**/*.mjs',
+      'tools/**/*.ts',
+      // studio 的两个配置文件：apps/studio/tsconfig.json 只 include src/**，这两个在包根上，
+      // 于是对 project service 是孤儿。它们是配置不是产品代码，但仍是 TypeScript，也一并进 tools 项目。
+      'apps/studio/next.config.ts',
+      'apps/studio/vitest.config.ts',
     ],
     languageOptions: {
       parserOptions: {
@@ -182,47 +238,35 @@ export default tseslint.config(
   },
 
   {
-    // 每个包只有两份 tsconfig，分工写死在文件名里：`tsconfig.json` 是构建（`exclude: ["test"]`），
-    // `tsconfig.test.json` 是 vitest 实际编译的那份（`include: ["src","test"]`）。
-    // project service 只会去开 `tsconfig.json`，所以下面这 6 个包的 test 目录里的每一个 .ts
-    // 都是一条 "was not found by the project service" 的解析错误——类型感知的规则一条也没看过它们。
-    // 这里把解析器交给包自己的那份 test 配置（`project` 支持通配，一条顶六条）。
+    // 这六个包的 tsconfig.json 为了构建（rootDir: src）明确 exclude 了 test/，而 project service 只认
+    // 最近的 tsconfig.json —— 于是它们的测试文件对类型感知规则是"孤儿"：解析期就报
+    // "was not found by the project service"。每个包另有一份 tsconfig.test.json（include: src+test），
+    // 那才是这些文件真正的项目，指过去，类型感知的规则在测试里也照样跑。
     //
-    // 名单只列**把 test 排除出构建**的那 6 个包。另外 5 个（creative-model / game-model / schemas /
-    // video-model / world-model）的 `tsconfig.json` 没有 exclude，test 本来就在程序里，
-    // project service 认得——给它们也套上 `project:` 反而会把它们从"认得"变成"找不到归属"
-    // （实测多出的 12 条解析错误就是这么来的）。这条分工由 `packages/*/tsconfig*.json` 的
-    // 名字决定，不是风格选择：见 docs/decisions/0016 里配这条改动的门。
+    // 名单是逐个包写的，不是通配：那六个之外的包（schemas / creative-model / game-model / video-model /
+    // world-model / mcp-server / apps/web）的 tsconfig.json 本来就 include 了 test/**，它们由 project
+    // service 正常认领。通配一次会把这些包的文件也拽到这份名单里，而它们不在任何一个 tsconfig.test.json
+    // 里——那就从"解析不了"换成"文件不在项目里"，一样是红的，只是换了个错法（见 docs/decisions/0016）。
     files: [
       'packages/ai-providers/test/**/*.ts',
       'packages/design-model/test/**/*.ts',
       'packages/three-runtime/test/**/*.ts',
       'packages/world-engine/test/**/*.ts',
-      'agents/runtime/test/**/*.ts',
       'agents/exec-host/test/**/*.ts',
+      'agents/runtime/test/**/*.ts',
     ],
     languageOptions: {
       parserOptions: {
         projectService: false,
-        project: ['./packages/*/tsconfig.test.json', './agents/*/tsconfig.test.json'],
+        project: [
+          'packages/ai-providers/tsconfig.test.json',
+          'packages/design-model/tsconfig.test.json',
+          'packages/three-runtime/tsconfig.test.json',
+          'packages/world-engine/tsconfig.test.json',
+          'agents/exec-host/tsconfig.test.json',
+          'agents/runtime/tsconfig.test.json',
+        ],
       },
-    },
-  },
-
-  {
-    // 证据语料（docs/evidence/**、tools/**）是纯 Node ESM，没有任何 tsconfig 说过它们。
-    // 实测：把 type-aware 那批规则留着跑 `eslint docs tools`，146 个文件得到 146 条解析错误
-    // ——每个文件恰好一条 "was not found by the project service"，一条规则都没往下看。
-    // 关掉 type-aware 不等于放过它们：非类型规则（恒真/死代码/未 await 那几条）照常评，
-    // 实测这批文件仍有 101 条 finding，而这些文件真正的守卫是它们自己跑起来的断言
-    // （`npm run verify:proofs`）。
-    files: ['docs/evidence/**/*.mjs', 'tools/**/*.mjs'],
-    extends: [tseslint.configs.disableTypeChecked],
-    rules: {
-      // .mjs 里没有类型层，ESLint 也看不到 Node 的全局对象。实测把这条打开再跑同一批文件：
-      // finding 从 101 涨到 2101，多出来的正好是 2000 条 no-undef——`process` / `console` / `URL`
-      // 每一个引用一次报一次。噪音盖过信号，所以关掉，而不是逐个文件加 disable。
-      'no-undef': 'off',
     },
   },
 

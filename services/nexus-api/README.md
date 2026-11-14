@@ -151,6 +151,22 @@ The service is configured by **environment** (`NEXUS_DB_URL`, `NEXUS_DB_USER`, `
 `NEXUS_API_PORT`, `NEXUS_PORT_FILE`). The proof passes the same values as **command-line arguments**
 instead — see the note below.
 
+### Discovery (SC-3)
+
+`nexus-api` can announce itself to `nexus-registry` (8771) so that `nexus-gateway` can route
+`lb://nexus-api` without a hard-coded address. **Registration is off by default:**
+
+| variable | default | effect |
+| --- | --- | --- |
+| `NEXUS_API_REGISTER` | `false` | announce this instance to the registry |
+| `NEXUS_API_FETCH` | `false` | pull the registry's service list |
+| `NEXUS_REGISTRY_ZONE` | `http://127.0.0.1:8771/eureka/` | where the registry is |
+| `NEXUS_API_EUREKA_ENABLED` | `true` | set `false` to skip the client entirely |
+
+Both flags off means the Eureka client starts **no network task** — a standalone run and every unit test
+behave exactly as before this dependency was added. A three-service run sets `NEXUS_API_REGISTER=true`; see
+`services/nexus-gateway/README.md` for the joined-up command.
+
 ## Bounds, stated (§60)
 
 - **No auth, no accounts, no ownership.** Anyone who can reach the service can publish any project id.
@@ -159,7 +175,12 @@ instead — see the note below.
   answer reports the cap it applied. A caller that wants the 5000th publication is asking a question this
   service does not answer yet.
 - **`ddl-auto: update`, no migrations.** The schema is one table and this service is the only writer. A
-  migration tool is the honest answer once a second writer or a destructive change exists.
+  migration tool is the honest answer once a second writer or a destructive change exists. This build
+  relaxed `audit_entry.target_type` from `NOT NULL` to nullable for exactly that reason: Hibernate's
+  `update` cannot add a NOT NULL column to a table that already holds rows (PostgreSQL answers
+  "column … contains null values"), so a database created before v384 starts with a DDL warning on every
+  boot. Writes still REQUIRE a kind (the service refuses otherwise); reads must treat null as "written
+  before the column existed". Re-tightening it needs the migration tool.
 - **The URL is this server's.** No CDN, no rewrite rule, no custom domain. "Hosted publish" here means a row
   on this service and an address that serves it.
 - **The document is stored, not understood.** No validation beyond "is a JSON object", no migration, no

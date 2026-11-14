@@ -59,25 +59,25 @@ export function NotificationBell() {
   if (signedOut) return null;
   if (failed) {
     return (
-      <span className="text-11 text-fg-3" data-notification-bell="failed">
+      <span className="nb-faint" data-notification-bell="failed">
         通知：没读到
       </span>
     );
   }
   if (!summary) {
     return (
-      <span className="text-11 text-fg-3" data-notification-bell="loading">
+      <span className="nb-faint" data-notification-bell="loading">
         通知：—
       </span>
     );
   }
   const unread = summary.unread ?? 0;
   return (
-    <span className="flex items-center gap-2">
-      <Link href="/notifications" className="text-accent-2-ink underline" data-notification-bell="ready">
+    <span className="nb-row">
+      <Link href="/notifications" className="nb-link" data-notification-bell="ready">
         通知<span data-notification-unread={unread}>{unread > 0 ? `（${unread} 条未读）` : `（${summary.total ?? 0} 条）`}</span>
       </Link>
-      <span className="text-11 text-fg-3" data-realtime={realtime.state}>
+      <span className="nb-faint" data-realtime={realtime.state}>
         实时：{REALTIME_TEXT[realtime.state]}
       </span>
     </span>

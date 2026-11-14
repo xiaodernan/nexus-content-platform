@@ -21,17 +21,17 @@ export default async function AdminObservabilityPage() {
   const user = await currentUserOrNull();
   if (!user) {
     return (
-      <main className="mx-auto max-w-[860px] px-6 py-16" data-admin-denied="anonymous">
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">观测</h1>
-        <p className="mt-2 text-13 text-fg-2">需要先登录才能看。</p>
+      <main className="adm-denied" data-admin-denied="anonymous">
+        <h1 className="adm-deniedTitle">观测</h1>
+        <p className="adm-deniedText">需要先登录才能看。</p>
       </main>
     );
   }
   if (user.role !== 'admin') {
     return (
-      <main className="mx-auto max-w-[860px] px-6 py-16" data-admin-denied="not-admin">
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">观测</h1>
-        <p className="mt-2 text-13 text-fg-2">
+      <main className="adm-denied" data-admin-denied="not-admin">
+        <h1 className="adm-deniedTitle">观测</h1>
+        <p className="adm-deniedText">
           这个页面对 {user.displayName}（role={user.role}）不开放：观测只对 role=admin 可见。
         </p>
       </main>
@@ -43,108 +43,126 @@ export default async function AdminObservabilityPage() {
   const aiReadiness = await getAiCapabilities();
 
   return (
-    <main className="mx-auto flex max-w-[1080px] flex-col gap-5 px-6 py-10" data-observability-root>
-      <header className="flex flex-wrap items-baseline justify-between gap-3">
+    <main className="am-shellGapXl" data-observability-root>
+      <header className="adm-headBaseline">
         <div>
-          <h1 className="text-[var(--nexus-font-size-21)] font-semibold">观测</h1>
-          <p className="text-11 text-fg-3" data-observability-scope>
+          <h1 className="adm-deniedTitle">观测</h1>
+          <p className="adm-capNote" data-observability-scope>
             进程 {process.pid} · 本实例已运行 {Math.round(process.uptime())} 秒 · Node {process.version}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <div className="am-headRowTight">
           <AdminNav current="observability" />
-          <Link href="/api/admin/metrics?format=text" className="inline-flex min-h-6 items-center rounded px-1 text-11 text-accent-2-ink underline" data-observability-raw>
+          <Link href="/api/admin/metrics?format=text" className="am-linkImplicit" data-observability-raw>
             原始读数（Prometheus 文本）
           </Link>
         </div>
       </header>
 
-      <section className="flex flex-col gap-2" data-ai-readiness-section>
-        <h2 className="text-13 font-semibold" data-ai-readiness-heading>
+      <section className="am-audit" data-ai-readiness-section>
+        <h2 className="am-sectionHeadSm" data-ai-readiness-heading>
           AI 就绪 · 这次渲染问 /healthz 的回答
         </h2>
-        <div className="rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-subtle)] bg-bg-1 p-4" data-ai-readiness-card>
-          <dl className="grid grid-cols-2 gap-y-2 gap-x-4 text-12">
-            <dt className="text-fg-3">text path</dt>
-            <dd data-ai-readiness-text={aiReadiness.text}>{aiReadiness.text}</dd>
-            <dt className="text-fg-3">image path</dt>
-            <dd data-ai-readiness-image={aiReadiness.image}>{aiReadiness.image}</dd>
-            <dt className="text-fg-3">video path</dt>
-            <dd data-ai-readiness-video={aiReadiness.video}>{aiReadiness.video}</dd>
-            <dt className="text-fg-3"> live capability</dt>
-            <dd data-ai-readiness-live={aiReadiness.live ? 'true' : 'false'}>{aiReadiness.live ? 'real' : 'not real'}</dd>
-            <dt className="text-fg-3">cache backend</dt>
-            <dd data-ai-readiness-cache-backend={aiReadiness.cache?.backend ?? 'unavailable'}>{aiReadiness.cache?.backend ?? 'unavailable'}</dd>
-            <dt className="text-fg-3">cache hits / misses</dt>
-            <dd data-ai-readiness-cache-hits={aiReadiness.cache?.hits ?? -1} data-ai-readiness-cache-misses={aiReadiness.cache?.misses ?? -1}>
-              {aiReadiness.cache ? `${aiReadiness.cache.hits} / ${aiReadiness.cache.misses}` : '—'}
-            </dd>
-            <dt className="text-fg-3">cache hit rate</dt>
-            <dd data-ai-readiness-cache-hitrate={aiReadiness.cache?.hit_rate ?? -1}>
-              {aiReadiness.cache ? `${Math.round(aiReadiness.cache.hit_rate * 100)}%` : '—'}
-            </dd>
-            <dt className="text-fg-3">cache status</dt>
-            <dd data-ai-readiness-cache-status={aiReadiness.cache ? (aiReadiness.cache.degraded ? 'degraded' : 'healthy') : 'disabled'}>
-              {aiReadiness.cache ? (aiReadiness.cache.degraded ? 'degraded' : 'healthy') : 'disabled'}
-            </dd>
-            <dt className="text-fg-3">llm calls / errors</dt>
-            <dd data-ai-readiness-llm-calls={aiReadiness.latency?.calls ?? -1} data-ai-readiness-llm-errors={aiReadiness.latency?.errors ?? -1}>
-              {aiReadiness.latency ? `${aiReadiness.latency.calls} / ${aiReadiness.latency.errors}` : '—'}
-            </dd>
-            <dt className="text-fg-3">llm latency p50 / p95</dt>
-            <dd data-ai-readiness-llm-p50={aiReadiness.latency?.p50_ms ?? -1} data-ai-readiness-llm-p95={aiReadiness.latency?.p95_ms ?? -1}>
-              {aiReadiness.latency ? `${Math.round(aiReadiness.latency.p50_ms)} ms / ${Math.round(aiReadiness.latency.p95_ms)} ms` : '—'}
-            </dd>
-            <dt className="text-fg-3">single-flight mode</dt>
-            <dd data-ai-readiness-flight-mode={aiReadiness.flight?.mode ?? 'disabled'}>
-              {aiReadiness.flight?.mode ?? 'disabled'}
-            </dd>
-            <dt className="text-fg-3">coalesced local / cross-process</dt>
-            <dd data-ai-readiness-flight-local-coalesced={aiReadiness.flight?.local?.coalesced ?? -1} data-ai-readiness-flight-distributed-coalesced={aiReadiness.flight?.distributed?.coalesced ?? -1}>
-              {aiReadiness.flight
-                ? `${aiReadiness.flight.local?.coalesced ?? 0} / ${aiReadiness.flight.distributed?.coalesced ?? '—'}`
-                : '— / —'}
-            </dd>
-            <dt className="text-fg-3">provider calls (this process)</dt>
-            <dd data-ai-readiness-flight-provider-calls={aiReadiness.flight?.provider_calls ?? -1}>
-              {aiReadiness.flight ? aiReadiness.flight.provider_calls : '—'}
-            </dd>
-            <dt className="text-fg-3">timeouts / lock failures</dt>
-            <dd data-ai-readiness-flight-timeouts={aiReadiness.flight?.local?.timeouts ?? -1} data-ai-readiness-flight-lock-failures={aiReadiness.flight?.distributed?.lock_failures ?? -1}>
-              {aiReadiness.flight
-                ? `${aiReadiness.flight.local?.timeouts ?? 0} / ${aiReadiness.flight.distributed?.lock_failures ?? '—'}`
-                : '— / —'}
-            </dd>
-          </dl>
-          <p className="mt-2 text-11 text-fg-3">
-            Every render asks /healthz fresh; capabilities are not guesses, not caches, and not "live" for any model that is not actually wired today.
-            DEMO means no real provider for that class yet; blank means not filled, we say so plainly (no silent DEMO labels). Image and video have no real provider yet either &mdash; they read DEMO for now. A class only reads 'real' when ai-service itself reports it as 'real' &mdash; never more optimistic than the ai-service knows.
-            llm latency rows are process-local (window = most recent 1024 round-trips since this instance started) &mdash; they restart to zero and are not a fleet-wide SLO.
-            single-flight rows are also process-local: the two layers are reported separately and never summed, and coalesced is a saved duplicate call, not a cache hit. A dash means that layer is not wired, not that it saved zero.
-          </p>
-        </div>
+        <p className="adm-capNote">
+          每次渲染都现问 /healthz——能力不是猜测、不是缓存、任何模型只要没真接就不报 real。
+          DEMO 表示该类暂无真实 provider；留空表示未填，我们就明说（不静默挂 DEMO 标）。图像和视频目前也没有真实
+          provider——它们因此读 DEMO。某个能力只有在 ai-service 自己报 real 时才显示 real——永远不比 ai-service 知道的更乐观。
+        </p>
+        <table className="am-tableNarrow">
+          <thead className="tl-thRow">
+            <tr>
+              <th>面</th>
+              <th>读数</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td className="am-monoCell">text path</td><td data-ai-readiness-text={aiReadiness.text}>{aiReadiness.text}</td></tr>
+            <tr><td className="am-monoCell">image path</td><td data-ai-readiness-image={aiReadiness.image}>{aiReadiness.image}</td></tr>
+            <tr><td className="am-monoCell">video path</td><td data-ai-readiness-video={aiReadiness.video}>{aiReadiness.video}</td></tr>
+            <tr><td className="am-monoCell">live capability</td><td data-ai-readiness-live={aiReadiness.live ? 'true' : 'false'}>{aiReadiness.live ? 'real' : 'not real'}</td></tr>
+            <tr><td className="am-monoCell">cache backend</td><td data-ai-readiness-cache-backend={aiReadiness.cache?.backend ?? 'unavailable'}>{aiReadiness.cache?.backend ?? 'unavailable'}</td></tr>
+            <tr>
+              <td className="am-monoCell">cache hits / misses</td>
+              <td data-ai-readiness-cache-hits={aiReadiness.cache?.hits ?? -1} data-ai-readiness-cache-misses={aiReadiness.cache?.misses ?? -1}>
+                {aiReadiness.cache ? `${aiReadiness.cache.hits} / ${aiReadiness.cache.misses}` : '—'}
+              </td>
+            </tr>
+            <tr>
+              <td className="am-monoCell">cache hit rate</td>
+              <td data-ai-readiness-cache-hitrate={aiReadiness.cache?.hit_rate ?? -1}>
+                {aiReadiness.cache ? `${Math.round(aiReadiness.cache.hit_rate * 100)}%` : '—'}
+              </td>
+            </tr>
+            <tr>
+              <td className="am-monoCell">cache status</td>
+              <td data-ai-readiness-cache-status={aiReadiness.cache ? (aiReadiness.cache.degraded ? 'degraded' : 'healthy') : 'disabled'}>
+                {aiReadiness.cache ? (aiReadiness.cache.degraded ? 'degraded' : 'healthy') : 'disabled'}
+              </td>
+            </tr>
+            <tr>
+              <td className="am-monoCell">llm calls / errors</td>
+              <td data-ai-readiness-llm-calls={aiReadiness.latency?.calls ?? -1} data-ai-readiness-llm-errors={aiReadiness.latency?.errors ?? -1}>
+                {aiReadiness.latency ? `${aiReadiness.latency.calls} / ${aiReadiness.latency.errors}` : '—'}
+              </td>
+            </tr>
+            <tr>
+              <td className="am-monoCell">llm latency p50 / p95</td>
+              <td data-ai-readiness-llm-p50={aiReadiness.latency?.p50_ms ?? -1} data-ai-readiness-llm-p95={aiReadiness.latency?.p95_ms ?? -1}>
+                {aiReadiness.latency ? `${Math.round(aiReadiness.latency.p50_ms)} ms / ${Math.round(aiReadiness.latency.p95_ms)} ms` : '—'}
+              </td>
+            </tr>
+            <tr>
+              <td className="am-monoCell">single-flight mode</td>
+              <td data-ai-readiness-flight-mode={aiReadiness.flight?.mode ?? 'disabled'}>
+                {aiReadiness.flight?.mode ?? 'disabled'}
+              </td>
+            </tr>
+            <tr>
+              <td className="am-monoCell">coalesced local / cross-process</td>
+              <td data-ai-readiness-flight-local-coalesced={aiReadiness.flight?.local?.coalesced ?? -1} data-ai-readiness-flight-distributed-coalesced={aiReadiness.flight?.distributed?.coalesced ?? -1}>
+                {aiReadiness.flight
+                  ? `${aiReadiness.flight.local?.coalesced ?? 0} / ${aiReadiness.flight.distributed?.coalesced ?? '—'}`
+                  : '— / —'}
+              </td>
+            </tr>
+            <tr>
+              <td className="am-monoCell">provider calls (this process)</td>
+              <td data-ai-readiness-flight-provider-calls={aiReadiness.flight?.provider_calls ?? -1}>
+                {aiReadiness.flight ? aiReadiness.flight.provider_calls : '—'}
+              </td>
+            </tr>
+            <tr>
+              <td className="am-monoCell">timeouts / lock failures</td>
+              <td data-ai-readiness-flight-timeouts={aiReadiness.flight?.local?.timeouts ?? -1} data-ai-readiness-flight-lock-failures={aiReadiness.flight?.distributed?.lock_failures ?? -1}>
+                {aiReadiness.flight
+                  ? `${aiReadiness.flight.local?.timeouts ?? 0} / ${aiReadiness.flight.distributed?.lock_failures ?? '—'}`
+                  : '— / —'}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </section>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-13 font-semibold" data-metric-heading="process">
+      <section className="am-audit">
+        <h2 className="am-sectionHeadSm" data-metric-heading="process">
           进程内计数器（本实例、本次启动；重启清零）
         </h2>
         {metrics.length === 0 ? (
-          <p className="text-11 text-fg-3" data-metric-empty>
+          <p className="adm-capNote" data-metric-empty>
             这个实例从启动到现在没记到任何一次判定。这不等于平台上什么都没发生——服务刚重启过就是这样，
             跨重启的事实看下面那张库里的账。
           </p>
         ) : (
           // 第五十一片：与审计表同一形状——横滚区没有 tabindex（axe: scrollable-region-focusable）
           <div
-            className="overflow-x-auto"
+            className="tl-tableScroll"
             data-metric-table-scroll
             role="region"
             aria-label="进程内计数器表（可横向滚动）"
             tabIndex={0}
           >
-          <table className="w-full min-w-[520px] text-11">
-            <thead className="text-left text-fg-3">
+          <table className="am-tableNarrow">
+            <thead className="tl-thRow">
               <tr>
                 <th>指标</th>
                 <th>标签</th>
@@ -158,17 +176,17 @@ export default async function AdminObservabilityPage() {
                 metric.kind === 'counter'
                   ? metric.series.map((s) => (
                       <tr key={`${metric.name}|${JSON.stringify(s.labels)}`} data-metric-row={metric.name}>
-                        <td className="font-mono">{metric.name}</td>
-                        <td className="font-mono text-fg-3">{Object.entries(s.labels).map(([k, v]) => `${k}=${v}`).join(' ') || '—'}</td>
+                        <td className="am-monoCell">{metric.name}</td>
+                        <td className="am-monoMuted">{Object.entries(s.labels).map(([k, v]) => `${k}=${v}`).join(' ') || '—'}</td>
                         <td>{s.value}</td>
-                        <td className="text-fg-3">—</td>
-                        <td className="text-fg-3">—</td>
+                        <td className="am-note">—</td>
+                        <td className="am-note">—</td>
                       </tr>
                     ))
                   : metric.series.map((s) => (
                       <tr key={`${metric.name}|${JSON.stringify(s.labels)}`} data-metric-row={metric.name}>
-                        <td className="font-mono">{metric.name}</td>
-                        <td className="font-mono text-fg-3">{Object.entries(s.labels).map(([k, v]) => `${k}=${v}`).join(' ') || '—'}</td>
+                        <td className="am-monoCell">{metric.name}</td>
+                        <td className="am-monoMuted">{Object.entries(s.labels).map(([k, v]) => `${k}=${v}`).join(' ') || '—'}</td>
                         <td>{s.count}</td>
                         <td>{s.sum.toFixed(0)} ms</td>
                         <td>{s.count ? `${(s.sum / s.count).toFixed(0)} ms` : '—'}</td>
@@ -181,11 +199,11 @@ export default async function AdminObservabilityPage() {
         )}
       </section>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-13 font-semibold" data-ledger-section>
+      <section className="am-audit">
+        <h2 className="am-sectionHeadSm" data-ledger-section>
           库里的账（最近 {ledger.windowHours} 小时，跨重启与实例）
         </h2>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="am-ledgerGrid">
           <LedgerTable
             title="审计决定"
             head={['动作', '结果', '条数']}
@@ -212,18 +230,18 @@ export default async function AdminObservabilityPage() {
 
 function LedgerTable(props: { title: string; head: string[]; rows: string[][]; marker: string }) {
   return (
-    <div className="flex flex-col gap-1">
-      <h3 className="text-11 font-semibold text-fg-2" data-ledger-heading={props.marker}>
+    <div className="am-stack">
+      <h3 className="am-ledgerTitle" data-ledger-heading={props.marker}>
         {props.title}
       </h3>
       {props.rows.length === 0 ? (
-        <p className="text-11 text-fg-3" data-ledger-empty={props.marker}>
+        <p className="adm-capNote" data-ledger-empty={props.marker}>
           这个窗口里没有行。
         </p>
       ) : (
-        <div className="overflow-x-auto">
-        <table className="w-full text-11">
-          <thead className="text-left text-fg-3">
+        <div className="tl-tableScroll">
+        <table className="tl-table">
+          <thead className="tl-thRow">
             <tr>
               {props.head.map((h) => (
                 <th key={h}>{h}</th>
@@ -234,7 +252,7 @@ function LedgerTable(props: { title: string; head: string[]; rows: string[][]; m
             {props.rows.map((row, i) => (
               <tr key={`${props.marker}-${i}`} data-ledger-row={props.marker}>
                 {row.map((cell, j) => (
-                  <td key={j} className={j === 0 ? 'font-mono' : undefined}>
+                  <td key={j} className={j === 0 ? 'am-monoCell' : undefined}>
                     {cell}
                   </td>
                 ))}

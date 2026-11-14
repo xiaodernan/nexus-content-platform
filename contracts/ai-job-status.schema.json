@@ -862,6 +862,16 @@
               "minimum": 0,
               "maximum": 9007199254740991
             },
+            "cachedTokens": {
+              "default": 0,
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "cacheReported": {
+              "default": false,
+              "type": "boolean"
+            },
             "latencyMs": {
               "default": 0,
               "type": "number",
@@ -872,6 +882,14 @@
               "type": "number",
               "minimum": 0
             },
+            "costBasis": {
+              "default": "unknown",
+              "type": "string",
+              "enum": [
+                "unknown",
+                "configured"
+              ]
+            },
             "toolCalls": {
               "default": 0,
               "type": "integer",
@@ -881,12 +899,6 @@
             "demoMode": {
               "default": false,
               "type": "boolean"
-            },
-            "cachedTokens": {
-              "default": 0,
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 9007199254740991
             },
             "reasoningTokens": {
               "default": 0,
@@ -901,11 +913,13 @@
             "modelClass",
             "tokensIn",
             "tokensOut",
+            "cachedTokens",
+            "cacheReported",
             "latencyMs",
             "costUsd",
+            "costBasis",
             "toolCalls",
             "demoMode",
-            "cachedTokens",
             "reasoningTokens"
           ],
           "additionalProperties": false

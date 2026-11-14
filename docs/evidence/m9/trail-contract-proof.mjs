@@ -267,7 +267,6 @@ console.log('[§0] trail model and server lane parse with zero errors (sanity ga
   const fields = javaRecordFields(CONTROLLER, 'Entry');
   const props = tsInterfaceFieldOptionality(SERVER_LANE, 'AuditEntry');
   const types = tsInterfaceFieldTypes(SERVER_LANE, 'AuditEntry');
-  const mismatched = [];
   for (const f of fields) {
     if (JAVA_PRIMITIVES.has(f.type) || f.type === 'String') {
       assert.equal(props.get(f.name), false, `${SERVER_LANE} AuditEntry marks ${f.name} optional, but the wire sends it as a non-nullable ${f.type}`);

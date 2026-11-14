@@ -171,6 +171,21 @@ class ProjectServiceTest {
                 .hasMessageContaining("Original project not found");
     }
 
+    /**
+     * The one rule from this line's original suite (kept on merge): a soft-deleted project is not
+     * readable. The row stays; the read path treats it as absent — both halves of a soft delete are
+     * the contract, not just the stamp.
+     */
+    @Test
+    void aSoftDeletedProjectIsNotReadable() {
+        UUID id = UUID.randomUUID();
+        Project deleted = existing(id);
+        deleted.setDeletedAt(java.time.Instant.now());
+        when(repository.findById(id)).thenReturn(Optional.of(deleted));
+
+        assertThat(service.getProjectById(id)).isEmpty();
+    }
+
     private static Project existing(UUID id) {
         Project project = new Project();
         project.setId(id);

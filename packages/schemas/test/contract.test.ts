@@ -22,6 +22,8 @@ describe('contracts/ 导出', () => {
       'screenshot-request.schema.json',
       'screenshot-response.schema.json',
       'realtime-event.schema.json',
+      'community-like-state.schema.json',
+      'community-follow-state.schema.json',
     ]);
   });
 

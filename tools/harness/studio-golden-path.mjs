@@ -56,7 +56,6 @@ async function clickByTitle(title) {
 }
 
 const snap = () => page.evaluate("window.__nexus ? window.__nexus.snapshot() : null");
-const nodeCount = () => page.evaluate("window.__nexus ? window.__nexus.nodeCount() : -1");
 
 /** Poll until `read()` satisfies `pred`, or time out. Returns the last value read. */
 async function until(read, pred, ms = 15000) {

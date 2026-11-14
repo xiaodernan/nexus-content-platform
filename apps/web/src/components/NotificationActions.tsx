@@ -38,13 +38,13 @@ export function MarkRead({ ids, all = false, label }: { ids?: string[]; all?: bo
         type="button"
         onClick={() => void submit()}
         disabled={busy}
-        className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] px-2 py-0.5 text-11 text-fg-2 hover:bg-bg-2 disabled:opacity-50"
+        className="nd-readBtn"
         data-notification-mark-read={all ? 'all' : ids?.length === 1 ? ids[0] : 'many'}
       >
         {label}
       </button>
       {result ? (
-        <span className="ml-2 text-11 text-fg-3" data-notification-result>
+        <span className="nb-resultInk" data-notification-result>
           {result}
         </span>
       ) : null}

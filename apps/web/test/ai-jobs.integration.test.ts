@@ -120,7 +120,7 @@ function okResponse(over: Partial<AiResponse> = {}): AiResponse {
     labels: [],
     activities: [],
     explanation: '',
-    usage: { provider: 'fake-provider', model: 'fake-model', modelClass: 'balanced', tokensIn: 0, tokensOut: 0, latencyMs: 10, costUsd: 0, toolCalls: 0, demoMode: false, cachedTokens: 0, reasoningTokens: 0 },
+    usage: { provider: 'fake-provider', model: 'fake-model', modelClass: 'balanced', tokensIn: 0, tokensOut: 0, cachedTokens: 0, cacheReported: false, costBasis: 'unknown', reasoningTokens: 0, latencyMs: 10, costUsd: 0, toolCalls: 0, demoMode: false },
     approvals: [],
     ...over,
   };

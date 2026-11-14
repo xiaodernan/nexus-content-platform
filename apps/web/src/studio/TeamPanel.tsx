@@ -137,16 +137,16 @@ export function TeamPanel() {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 overflow-auto p-[var(--nexus-space-3)]" data-team-panel>
-      <h3 className="font-mono text-11 uppercase tracking-wide text-fg-3">团队（§133 · teamCollaboration）</h3>
-      <p className="text-11 text-fg-2">
+    <div className="tp-rootPad" data-team-panel>
+      <h3 className="sb-label">团队（§133 · teamCollaboration）</h3>
+      <p className="sb-ink11">
         协作者上限随档位（本档 {roster?.teamLimit ?? '—'} 人，不含所有者）。成员与未兑现的邀请都占名额；
         撤回或移除立刻释放。owner 自己不是成员行——名额数的是"除所有者外还能拉几个人"。
       </p>
 
-      <section className="flex flex-col gap-2" data-team-invite-form>
-        <div className="flex items-end gap-2">
-          <label className="flex flex-col gap-1 text-11 text-fg-3">
+      <section className="wd-col2" data-team-invite-form>
+        <div className="tp-rowEnd">
+          <label className="tp-colFaint">
             邮箱
             <input
               type="email"
@@ -154,16 +154,16 @@ export function TeamPanel() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="teammate@example.com"
               data-team-invite-email
-              className="w-[220px] rounded-[var(--nexus-radius-sm)] bg-bg-3 p-1 text-12 text-fg-1"
+              className="tp-w220"
             />
           </label>
-          <label className="flex flex-col gap-1 text-11 text-fg-3">
+          <label className="tp-colFaint">
             角色
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as 'editor' | 'viewer')}
               data-team-invite-role
-              className="rounded-[var(--nexus-radius-sm)] bg-bg-3 p-1 text-12 text-fg-1"
+              className="tp-chipPrimary"
             >
               <option value="editor">可编辑</option>
               <option value="viewer">可查看</option>
@@ -174,12 +174,12 @@ export function TeamPanel() {
             disabled={busy || !email.trim()}
             onClick={() => void invite()}
             data-team-invite
-            className="rounded-[var(--nexus-radius-sm)] bg-bg-3 px-3 py-1 text-12 text-fg-1 disabled:opacity-40"
+            className="tp-btnPrimary"
           >
             {busy ? '处理中…' : '发邀请'}
           </button>
         </div>
-        <p className="text-11 text-fg-3" data-team-slots>
+        <p className="sb-faint11" data-team-slots>
           已占 {occupied} / {roster?.teamLimit ?? '—'} 个名额（成员 {roster?.members.length ?? 0} + 未兑现邀请{' '}
           {livePending}）
           {expiredPending > 0 ? `；另有 ${expiredPending} 封已过期，不占名额` : ''}
@@ -188,32 +188,32 @@ export function TeamPanel() {
       </section>
 
       {error ? (
-        <p className="text-11 text-danger-ink" data-team-error>
+        <p className="wd-danger11" data-team-error>
           {error}
         </p>
       ) : null}
       {notice ? (
-        <p className="text-11 text-accent-2-ink" data-team-notice>
+        <p className="tp-accent2Ink" data-team-notice>
           {notice}
         </p>
       ) : null}
       {freshLink ? (
-        <div className="flex flex-col gap-1 rounded-[var(--nexus-radius-sm)] bg-bg-2 p-2" data-team-fresh-link>
-          <span className="text-11 text-fg-3">邀请链接（只显示这一次，刷新后只能撤回再邀拿新的）：</span>
-          <code className="break-all text-11 text-fg-1">{freshLink}</code>
+        <div className="tp-cardFaint" data-team-fresh-link>
+          <span className="sb-faint11">邀请链接（只显示这一次，刷新后只能撤回再邀拿新的）：</span>
+          <code className="tp-breakAll">{freshLink}</code>
         </div>
       ) : null}
 
-      <section className="flex flex-col gap-1" data-team-members>
-        <span className="text-11 text-fg-3">成员（{roster?.members.length ?? 0}）</span>
+      <section className="gp-col1" data-team-members>
+        <span className="sb-faint11">成员（{roster?.members.length ?? 0}）</span>
         {roster && roster.members.length ? (
-          <ul className="flex flex-col gap-1">
+          <ul className="gp-col1">
             {roster.members.map((m) => (
-              <li key={m.id} className="flex items-center justify-between gap-2 text-12 text-fg-2" data-team-member={m.userId}>
+              <li key={m.id} className="tp-rowBetween" data-team-member={m.userId}>
                 <span>
                   {m.displayName ?? '（没有名字）'} · {m.email ?? '（没有邮箱）'}
                 </span>
-                <span className="flex items-center gap-2">
+                <span className="wd-row2">
                   <select
                     value={m.role}
                     disabled={busy}
@@ -226,7 +226,7 @@ export function TeamPanel() {
                     }
                     data-team-member-role={m.userId}
                     aria-label={`${m.displayName ?? m.email ?? m.userId} 的角色`}
-                    className="rounded-[var(--nexus-radius-sm)] bg-bg-3 p-1 text-11 text-fg-1 disabled:opacity-40"
+                    className="tp-chipPrimarySm"
                   >
                     <option value="editor">可编辑</option>
                     <option value="viewer">可查看</option>
@@ -240,7 +240,7 @@ export function TeamPanel() {
                       })
                     }
                     data-team-remove={m.userId}
-                    className="rounded-[var(--nexus-radius-sm)] bg-bg-3 px-2 py-[1px] text-11 text-danger-ink disabled:opacity-40"
+                    className="tp-chipDanger"
                   >
                     移除
                   </button>
@@ -249,18 +249,18 @@ export function TeamPanel() {
             ))}
           </ul>
         ) : (
-          <p className="text-11 text-fg-3">还没有协作者。所有者不算成员——名额数的是除你之外的人。</p>
+          <p className="sb-faint11">还没有协作者。所有者不算成员——名额数的是除你之外的人。</p>
         )}
       </section>
 
-      <section className="flex flex-col gap-1" data-team-invites>
-        <span className="text-11 text-fg-3">邀请（{roster?.invites.length ?? 0}）</span>
+      <section className="gp-col1" data-team-invites>
+        <span className="sb-faint11">邀请（{roster?.invites.length ?? 0}）</span>
         {roster && roster.invites.length ? (
-          <ul className="flex flex-col gap-1">
+          <ul className="gp-col1">
             {roster.invites.map((i) => (
               <li
                 key={i.id}
-                className="flex items-center justify-between gap-2 text-12 text-fg-2"
+                className="tp-rowBetween"
                 data-team-invite-row={i.id}
                 data-team-invite-expired={i.expired ? 'true' : 'false'}
               >
@@ -268,7 +268,7 @@ export function TeamPanel() {
                   {i.email} · {ROLE_LABELS[i.role] ?? i.role} ·{' '}
                   {i.status === 'pending' ? (i.expired ? '已过期' : '未兑现') : i.status === 'accepted' ? '已接受' : '已撤回'}
                   {i.status === 'pending' ? (
-                    <span className="text-11 text-fg-3"> · 有效至 {i.expiresAt.slice(0, 10)}</span>
+                    <span className="sb-faint11"> · 有效至 {i.expiresAt.slice(0, 10)}</span>
                   ) : null}
                 </span>
                 {i.status === 'pending' ? (
@@ -279,7 +279,7 @@ export function TeamPanel() {
                       void act(`/api/projects/${state.projectId}/invites/${i.id}/revoke`, `已撤回给 ${i.email} 的邀请`)
                     }
                     data-team-revoke={i.id}
-                    className="rounded-[var(--nexus-radius-sm)] bg-bg-3 px-2 py-[1px] text-11 text-warn-ink disabled:opacity-40"
+                    className="tp-chipWarn"
                   >
                     撤回
                   </button>
@@ -288,11 +288,11 @@ export function TeamPanel() {
             ))}
           </ul>
         ) : (
-          <p className="text-11 text-fg-3">没有邀请。</p>
+          <p className="sb-faint11">没有邀请。</p>
         )}
       </section>
 
-      <p className="text-11 text-fg-3">
+      <p className="sb-faint11">
         本机没有发信服务：邀请链接由你转交。editor 能编辑；viewer 的写请求会被服务端拒绝（403）。
         改角色立刻生效，不需要对方重新接受邀请，也不影响名额。
       </p>

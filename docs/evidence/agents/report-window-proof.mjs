@@ -18,7 +18,7 @@ import { pathToFileURL } from 'node:url';
 
 const rt = await import(pathToFileURL('./agents/runtime/dist/index.js').href);
 const eh = await import(pathToFileURL('./agents/exec-host/dist/index.js').href);
-const { ToolRegistry, appendTestReport, loadTestReports, registerTestTools } = rt;
+const { appendTestReport, loadTestReports } = rt;
 const { createExecHost, execTestRunner } = eh;
 
 function mkTmp(prefix) {

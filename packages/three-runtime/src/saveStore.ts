@@ -284,8 +284,11 @@ export function createFsSaveStore(fs: FsLike, root: string): SaveStore {
         throw new Error(`saveStore: browsing "${trimmed}" needs BOTH readdirSync and statSync from the injected fs; without them a listing is a guess, so this store refuses rather than answering []`);
       }
       if (!fs.existsSync(trimmed)) return [];
-      const readdir = fs.readdirSync;
-      const stat = fs.statSync;
+      // 这两个方法要带着 fs 一起调：把它们摘成局部变量（`const readdir = fs.readdirSync`）再调用，
+      // `this` 就丢了——注入的 fs 若是带状态的实现（记忆化、路径根），丢掉的 this 就是错的目录。
+      // bind 把 this 留在 fs 上；而先摘成局部变量，是因为可选属性的窄化进不了闭包（walk 是箭头函数）。
+      const readdir = fs.readdirSync.bind(fs);
+      const stat = fs.statSync.bind(fs);
       const found: string[] = [];
       const walk = (dir: string, prefix: string): void => {
         for (const name of readdir(dir)) {

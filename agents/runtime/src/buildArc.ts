@@ -1,3 +1,4 @@
+import { stringArg } from './args.js';
 import { receiptsOrNote, type CheckpointDecision } from './checkpointPolicy.js';
 import type { Checkpoint, ToolRegistry } from './registry.js';
 import type { Step, ToolResult, ToolSpec } from './types.js';
@@ -86,7 +87,7 @@ export function registerBuildTools(registry: ToolRegistry, verifier: BuildVerifi
         arcId: String(args.arcId),
         stepId: String(args.stepId),
         argv: args.argv as string[],
-        ...(args.cwd === undefined ? {} : { cwd: String(args.cwd) }),
+        ...(args.cwd === undefined ? {} : { cwd: stringArg(args, 'cwd') }),
       });
       return {
         ok: answer.ok,

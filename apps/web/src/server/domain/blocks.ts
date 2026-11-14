@@ -1,6 +1,15 @@
 import { and, eq, or } from 'drizzle-orm';
+import {
+  BLOCK_KINDS,
+  COMMUNITY_REFUSAL,
+  INTERACTION_BLOCKING_KINDS,
+  INTERACTION_REFUSAL,
+  type BlockKind,
+  type InteractionVerdict,
+} from '@nexus/schemas';
 import { getDb } from '../db/client';
 import { follows, userBlocks, users } from '../db/schema';
+import { invalidateDiscoverFor } from './discover-cache';
 
 /**
  * §132 社区治理的第三、第四件：block 与 mute。report 与 moderation 先落了
@@ -17,14 +26,13 @@ import { follows, userBlocks, users } from '../db/schema';
  * 都不追溯历史：拉黑之前发出去的评论还在（别人仍然看得到，只是我自己这边过滤掉了），
  * 删别人的发言是 moderation 的活，不是 block 的。§131 那条"机检只升级不认证"在这里的对应是
  * "一个人的自助动作不改写公共记录"。
+ *
+ * kinds 与拒绝理由的字面量在 `packages/schemas/src/community-policy.ts`：java-domain-service 读同一份
+ * 导出（§SC-17），这里不再抄第二份。
  */
 
-export type BlockKind = 'block' | 'mute';
-
-const KINDS: readonly BlockKind[] = ['block', 'mute'];
-
 function isKind(value: unknown): value is BlockKind {
-  return KINDS.includes(value as BlockKind);
+  return (BLOCK_KINDS as readonly unknown[]).includes(value);
 }
 
 export interface BlockEntry {
@@ -55,16 +63,19 @@ export async function hiddenAuthorIds(observerId: string | null): Promise<string
   return rows.map((r) => r.id);
 }
 
-export type InteractionVerdict = { allowed: true } | { allowed: false; reason: string; blockedBy: 'me' | 'them' };
-
 /**
  * 能不能对对方做一件"会落到对方身上"的事（评论 / 点赞 / 关注 / 改编）。
- * 只看 block，不看 mute —— 见文件头那条边界。
+ * 只看 block，不看 mute —— 见文件头那条边界；挡哪几类由 `INTERACTION_BLOCKING_KINDS` 说，
+ * 因为 java-domain-service 读的是同一份导出（§SC-17）。
  */
 export async function canInteract(actorId: string, targetId: string): Promise<InteractionVerdict> {
   const [theyBlockedMe, iBlockedThem] = await Promise.all([relationOf(targetId, actorId), relationOf(actorId, targetId)]);
-  if (theyBlockedMe === 'block') return { allowed: false, blockedBy: 'them', reason: '对方不接受你的互动' };
-  if (iBlockedThem === 'block') return { allowed: false, blockedBy: 'me', reason: '你已经拉黑了对方，先解除才能互动' };
+  if (theyBlockedMe && INTERACTION_BLOCKING_KINDS.includes(theyBlockedMe)) {
+    return { allowed: false, blockedBy: 'them', reason: INTERACTION_REFUSAL.them };
+  }
+  if (iBlockedThem && INTERACTION_BLOCKING_KINDS.includes(iBlockedThem)) {
+    return { allowed: false, blockedBy: 'me', reason: INTERACTION_REFUSAL.me };
+  }
   return { allowed: true };
 }
 
@@ -74,11 +85,11 @@ export type SetBlockResult =
 
 /** 拉黑 / 屏蔽一个人。同一对人反复提交只有一行，kind 以最后一次为准 */
 export async function setBlock(actorId: string, targetId: string, kind: BlockKind): Promise<SetBlockResult> {
-  if (!isKind(kind)) return { ok: false, reason: '只支持 block 与 mute 两类' };
-  if (actorId === targetId) return { ok: false, reason: '不能把自己拉黑或屏蔽' };
+  if (!isKind(kind)) return { ok: false, reason: COMMUNITY_REFUSAL.unknownKind };
+  if (actorId === targetId) return { ok: false, reason: COMMUNITY_REFUSAL.selfBlock };
   const db = getDb();
   const [target] = await db.select({ id: users.id }).from(users).where(eq(users.id, targetId)).limit(1);
-  if (!target) return { ok: false, reason: '没有这个用户' };
+  if (!target) return { ok: false, reason: COMMUNITY_REFUSAL.noSuchUser };
 
   const existing = await db
     .select({ kind: userBlocks.kind })
@@ -106,6 +117,10 @@ export async function setBlock(actorId: string, targetId: string, kind: BlockKin
       .returning({ followerId: follows.followerId });
     unfollowed = removed.length;
   }
+  // §SC-41：屏蔽名单变了 → actor 的全部发现视图即时作废。block 还拆掉了双向关注，
+  // 目标用户那侧的 following 列表也变了，一起失效；mute 不动关注，只失效 actor 自己。
+  // 隐私即时生效，不依赖 TTL——否则拉黑后 TTL 内仍看得到被拉黑的人。
+  invalidateDiscoverFor(actorId, kind === 'block' ? targetId : null);
   return { ok: true, kind, created: !existing.length, unfollowed };
 }
 
@@ -115,6 +130,8 @@ export async function clearBlock(actorId: string, targetId: string): Promise<{ r
     .delete(userBlocks)
     .where(and(eq(userBlocks.blockerId, actorId), eq(userBlocks.blockedId, targetId)))
     .returning({ blockerId: userBlocks.blockerId });
+  // §SC-41：解除屏蔽 → actor 的发现视图即时重算（解除后作品该立刻回来，不能等 TTL）。
+  if (removed.length) invalidateDiscoverFor(actorId);
   return { removed: removed.length > 0 };
 }
 

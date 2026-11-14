@@ -1,15 +1,16 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { cn } from '@/lib/cn';
 import { csrfHeaders } from '@/lib/csrf';
 import { useStudioReady } from './store';
+import type { Locale } from '@/lib/i18n';
 
 /**
  * §49 的检索面板：在项目语料（世界条目 / 角色档案 / 记忆 / 分镜镜头 / 游戏实体）里查一句。
  *
- * 结果里带着"怎么命中的"（全文 / 子串）和三个加数，不藏在一个黑盒分数后面；
+ * 结果里带着"怎么命中的"（全文 / 子串）和三个加分，不藏在一个黑盒分数后面；
  * 顶部明写向量检索不可用——没有 provider 就没有语义检索，这里不假装。
+ * 双语（v732）：locale 由上层 StudioShell 透传；Chinese keys 与 en keys 同位一一对齐。
  */
 
 interface Retrieved {
@@ -24,34 +25,98 @@ interface Retrieved {
   parts: { fulltext: number; substring: number; coverage: number };
 }
 
-const SOURCE_LABELS: Record<string, string> = {
-  lore: '传说',
-  history: '历史',
-  geography: '地理',
-  factions: '势力',
-  characters: '角色条目',
-  creatures: '生物',
-  items: '物品',
-  quests: '任务',
-  story: '故事',
-  character: '角色档案',
-  memory: '记忆',
-  storyboard: '分镜',
-  game: '游戏',
-  design: '设计文档',
-};
+const COPY = {
+  zh: {
+    title: '检索',
+    totalBlocks: (n: number) => `${n} 块`,
+    readFailed: '读不到',
+    corpusFailed: (reason: string) => `语料库读不到：${reason}`,
+    statsRetry: '重试',
+    queryPlaceholder: '查一句设定…',
+    queryAria: '查询',
+    search: '查',
+    reindex: '重建索引',
+    vectorOn: '向量检索已接（语义相近也能搜到）。',
+    vectorOff: '向量检索未接（没有 provider 就没有 embedding），所以这里没有"语义相近"这回事。',
+    vectorPartial: (n: number) => `其中 ${n} 块已有向量。`,
+    idleWithStats: (n: number) => `还没有查询。索引里有 ${n} 块语料。`,
+    idleUnreadable: '还没有查询。语料库这次没读到，所以这里不报块数——点上面的"重试"再看一次。',
+    empty: '没有命中的块。换个说法，或先点"重建索引"。',
+    none: '无',
+    fulltext: '全文',
+    substring: '子串',
+    coverage: '覆盖',
+    corpusDescription: '语料来自世界条目、角色档案、记忆、分镜镜头、游戏实体与设计页面的文字节点（§44/§46/§48/§40/§54/§16）。命中的是全文与子串匹配，分数由这三项相加：全文 ts_rank、子串命中、词覆盖度。',
+    sourceLabels: {
+      lore: '传说',
+      history: '历史',
+      geography: '地理',
+      factions: '势力',
+      characters: '角色条目',
+      creatures: '生物',
+      items: '物品',
+      quests: '任务',
+      story: '故事',
+      character: '角色档案',
+      memory: '记忆',
+      storyboard: '分镜',
+      game: '游戏',
+      design: '设计文档',
+    } as Record<string, string>,
+  },
+  en: {
+    title: 'Retrieve',
+    totalBlocks: (n: number) => `${n} blocks`,
+    readFailed: 'Not readable',
+    corpusFailed: (reason: string) => `The corpus can’t be read: ${reason}`,
+    statsRetry: 'Retry',
+    queryPlaceholder: 'Ask the world’s lore…',
+    queryAria: 'Query',
+    search: 'Find',
+    reindex: 'Rebuild index',
+    vectorOn: 'Vector search is wired — semantic neighbors come back too.',
+    vectorOff: 'Vector search is not wired (no embedding provider) — so there is no "semantic neighbors" experience here.',
+    vectorPartial: (n: number) => `${n} blocks already vectorized.`,
+    idleWithStats: (n: number) => `No query yet. The index holds ${n} blocks of corpus.`,
+    idleUnreadable: 'No query yet. The corpus did not read this time — nothing will be claimed about block counts; tap “Retry” above.',
+    empty: 'No blocks hit. Reword it, or rebuild the index first.',
+    none: 'none',
+    fulltext: 'fulltext',
+    substring: 'substring',
+    coverage: 'coverage',
+    corpusDescription:
+      'The corpus comes from world entries, character profiles, memories, storyboard shots, game entities and design-page text nodes (§44/§46/§48/§40/§54/§16). Matched by fulltext and substring — the score adds three: fulltext ts_rank, substring hits, term coverage.',
+    sourceLabels: {
+      lore: 'Lore',
+      history: 'History',
+      geography: 'Geography',
+      factions: 'Factions',
+      characters: 'Characters',
+      creatures: 'Creatures',
+      items: 'Items',
+      quests: 'Quests',
+      story: 'Story',
+      character: 'Characters',
+      memory: 'Memory',
+      storyboard: 'Storyboard',
+      game: 'Game',
+      design: 'Design doc',
+    } as Record<string, string>,
+  },
+} as const;
 
 /**
- * 块的标题是「文档名 · 块名」（第 3 镜 / 来源句子 / 条目类型…）。这 264px 的面板里
- * 整条标题一定被截断，而截掉的正好是"哪一块"——那才是检索结果最有信息量的半句。
- * 所以拆成两段：文档名可以截，块名单独占一格不截。
+ * 块的标题是「文档名 · 块名」。这 264px 的面板里
+ * 整条标题一定被截断，而截掉的正好是"哪一块"——那才是检索结果最有信息量的半边。
+ * 所以拆成两段：文档名可以截，块名单独占一栏不截。
  */
 function splitTitle(title: string): { doc: string; part: string } {
   const i = title.indexOf(' · ');
   return i < 0 ? { doc: title, part: '' } : { doc: title.slice(0, i), part: title.slice(i + 3) };
 }
 
-export function RetrievePanel() {
+export function RetrievePanel({ locale = 'zh' }: { locale?: Locale }) {
+  const c = COPY[locale];
   const studio = useStudioReady();
   const [query, setQuery] = useState('');
   const [items, setItems] = useState<Retrieved[]>([]);
@@ -64,7 +129,7 @@ export function RetrievePanel() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [vectorAvailable, setVectorAvailable] = useState(false);
-  // 读取失败与"库里真的没块"是两件事，界面必须说不同的话：把一次 404/503 报成「0 块」，
+  // 读取失败与"库里真的没块"是两件事，界面必须说不同的话：把一次 404/503 报成“空块”，
   // 就等于用一个像内容的数字宣布"这个项目没有语料"（§159）。
   const [statsFailed, setStatsFailed] = useState<string | null>(null);
 
@@ -140,37 +205,37 @@ export function RetrievePanel() {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col" data-retrieve-panel>
-      <header className="shrink-0 border-b border-[var(--nexus-color-border-subtle)] p-[var(--nexus-space-3)]">
-        <div className="flex items-center gap-2">
-          <h2 className="font-mono text-12 uppercase tracking-wide text-fg-3">检索</h2>
+    <div className="wd-rootCol" data-retrieve-panel>
+      <header className="wd-headBordered">
+        <div className="wd-row2">
+          <h2 className="wd-label">{c.title}</h2>
           <span
-            className="ml-auto font-mono text-11 text-fg-3"
+            className="wd-monoFaintEnd"
             data-knowledge-total
             data-stats-failed={statsFailed ? 'true' : 'false'}
           >
-            {statsFailed ? '读不到' : `${stats.total} 块`}
+            {statsFailed ? c.readFailed : c.totalBlocks(stats.total)}
           </span>
         </div>
         {statsFailed ? (
-          // 读失败时这里一个芯片都不许出现：芯片缺席本来是"这一类真的没块"的证据，
+          // 读失败时这里一个锭片都不允许出现：锭片缺少本身是"这一类真的没块"的证据，
           // 让它替一次网络故障作证就是把证据变成谎。
-          <div className="mt-2 flex flex-wrap items-center gap-2" data-knowledge-unavailable>
-            <span className="font-mono text-11 text-danger-ink">语料库读不到：{statsFailed}</span>
+          <div className="rp-wrap2Mt" data-knowledge-unavailable>
+            <span className="rp-dangerMono11">{c.corpusFailed(statsFailed)}</span>
             <button
               type="button"
               disabled={busy}
               onClick={() => void loadStats()}
               data-retrieve-stats-retry
-              className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-0.5 text-11 text-fg-3 hover:bg-bg-2 disabled:opacity-50"
+              className="rp-ghostBtnFaintSm"
             >
-              重试
+              {c.statsRetry}
             </button>
           </div>
         ) : (
-          /* 只有总数说不清"哪一类有几块"：设计正文一进来，总数就不再等于"游戏有没有内容"。
-             一块都没有的来源不出现芯片——缺哪一片就是那一类真的没内容。 */
-          <div className="mt-2 flex flex-wrap items-center gap-1" data-knowledge-sources>
+          /* 只有总数读不清哪一类有几块：设计正文一进来，总数就不再等于"游戏有没有内容"。
+             一块都没有的来源不出现锭片——缺哪一片就是那一类真的没内容。 */
+          <div className="ap-wrapCenter" data-knowledge-sources>
             {Object.entries(stats.bySource)
               .filter(([, count]) => count > 0)
               .sort(([a], [b]) => a.localeCompare(b))
@@ -178,110 +243,102 @@ export function RetrievePanel() {
                 <span
                   key={key}
                   data-knowledge-source={key}
-                  className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1.5 py-0.5 font-mono text-11 text-fg-3"
+                  className="rp-chipSm"
                 >
-                  {SOURCE_LABELS[key] ?? key} {count}
+                  {c.sourceLabels[key] ?? key} {count}
                 </span>
               ))}
           </div>
         )}
-        <div className="mt-2 flex items-center gap-1">
+        <div className="wd-rowMt2">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') void search();
             }}
-            placeholder="查一句设定…"
-            aria-label="查询"
+            placeholder={c.queryPlaceholder}
+            aria-label={c.queryAria}
             data-retrieve-query
-            className="min-w-0 flex-1 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12 text-fg-1 outline-none focus:bg-bg-3"
+            className="cp-growField"
           />
           <button
             type="button"
             disabled={busy || !query.trim()}
             onClick={() => void search()}
             data-retrieve-run
-            className="shrink-0 rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-11 text-accent-fg disabled:opacity-50"
+            className="mm-accent"
           >
-            查
+            {c.search}
           </button>
         </div>
-        <div className="mt-2 flex items-start gap-2">
-          <p className="min-w-0 flex-1 text-11 leading-relaxed text-fg-3" data-retrieve-note>
-            语料来自世界条目、角色档案、记忆、分镜镜头、游戏实体与设计页面的文字节点（§44/§46/§48/§40/§54/§16）。
-            命中的是全文与子串匹配，
-            分数由这三项相加：全文 ts_rank、子串命中、词覆盖度。
+        <div className="rp-row2Mt">
+          <p className="rp-lead11" data-retrieve-note>
+            {c.corpusDescription}
             {searched && !vectorAvailable
-              ? ' 向量检索未接（没有 provider 就没有 embedding），所以这里没有"语义相近"这回事。'
+              ? ' ' + c.vectorOff
               : searched && vectorAvailable
-              ? ' 向量检索已接（语义相近也能搜到）。'
-              : stats.vectorized === 0
-              ? ' 向量检索未接（没有 provider 就没有 embedding），所以这里没有"语义相近"这回事。'
-              : ` 其中 ${stats.vectorized} 块已有向量。`}
+                ? ' ' + c.vectorOn
+                : stats.vectorized === 0
+                  ? ' ' + c.vectorOff
+                  : ' ' + c.vectorPartial(stats.vectorized)}
           </p>
           <button
             type="button"
             disabled={busy}
             onClick={() => void rebuild()}
             data-retrieve-rebuild
-            className="shrink-0 rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11 text-fg-3 hover:bg-bg-2 disabled:opacity-50"
+            className="rp-ghostBtnFaint"
           >
-            重建索引
+            {c.reindex}
           </button>
         </div>
         {message ? (
-          <p className="mt-2 text-11 text-danger-ink" data-retrieve-error>
+          <p className="wd-dangerMt2" data-retrieve-error>
             {message}
           </p>
         ) : null}
       </header>
 
-      <div className="min-h-0 flex-1 overflow-auto p-[var(--nexus-space-2)]">
+      <div className="wd-scrollP2">
         {!searched ? (
-          <p className="p-3 text-12 text-fg-3" data-retrieve-idle>
-            {statsFailed
-              ? '还没有查询。语料库这次没读到，所以这里不报块数——点上面的「重试」再看一次。'
-              : `还没有查询。索引里有 ${stats.total} 块语料。`}
+          <p className="cp-empty" data-retrieve-idle>
+            {statsFailed ? c.idleUnreadable : c.idleWithStats(stats.total)}
           </p>
         ) : null}
         {searched && !items.length ? (
-          <p className="p-3 text-12 text-fg-3" data-retrieve-empty>
-            没有命中的块。换个说法，或先点「重建索引」。
-          </p>
+          <p className="cp-empty" data-retrieve-empty>{c.empty}</p>
         ) : null}
-        <ul className="flex flex-col gap-2">
+        <ul className="wd-col2">
           {items.map((item) => {
             const { doc, part } = splitTitle(item.title);
             return (
               <li
                 key={item.id}
-                className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2"
+                className="wd-card"
                 data-retrieve-hit={item.id}
               >
-                <div className="flex items-center gap-1">
+                <div className="wd-row1">
                   <span
-                    className={cn(
-                      'shrink-0 rounded-[3px] border border-[var(--nexus-color-border-subtle)] px-1 font-mono text-10 text-fg-3',
-                    )}
+                    className="rp-sourceChip"
                     data-retrieve-source={item.sourceType}
                   >
-                    {SOURCE_LABELS[item.sourceType] ?? item.sourceType}
+                    {c.sourceLabels[item.sourceType] ?? item.sourceType}
                   </span>
-                  <span className="shrink-0 text-11 text-fg-2" data-retrieve-part={item.id}>
+                  <span className="rp-ink11shrink" data-retrieve-part={item.id}>
                     {part}
                   </span>
-                  <span className="min-w-0 flex-1 truncate text-12 text-fg-1" title={item.title}>
+                  <span className="cp-trunc12ink" title={item.title}>
                     {doc}
                   </span>
-                  <span className="shrink-0 font-mono text-11 text-fg-3" data-retrieve-score={item.id}>
+                  <span className="hi-monoFaintShrink" data-retrieve-score={item.id}>
                     {item.score.toFixed(2)}
                   </span>
                 </div>
-                <p className="mt-1 text-11 leading-relaxed text-fg-2">{item.snippet}</p>
-                <p className="mt-1 font-mono text-10 text-fg-3" data-retrieve-matched={item.id}>
-                  {item.matchedBy.length ? item.matchedBy.join(' + ') : '无'} · 全文{' '}
-                  {item.parts.fulltext.toFixed(3)} · 子串 {item.parts.substring.toFixed(2)} · 覆盖{' '}
+                <p className="rp-lead11ink">{item.snippet}</p>
+                <p className="ds-monoMt10" data-retrieve-matched={item.id}>
+                  {item.matchedBy.length ? item.matchedBy.join(' + ') : c.none} · {c.fulltext}{' '}
+                  {item.parts.fulltext.toFixed(3)} · {c.substring} {item.parts.substring.toFixed(2)} · {c.coverage}{' '}
                   {item.parts.coverage.toFixed(2)}
                 </p>
               </li>

@@ -6,6 +6,7 @@ import { TaskRetryButton } from '@/components/TaskRetryButton';
 import { SavingsCard } from '@/components/SavingsCard';
 import { readTasksLedger, type TasksLedgerPayload, type TaskUsage } from '@/lib/tasksLedger';
 import type { SavingsSummary } from '@/lib/savings';
+import { cacheText, cacheTotal, costText } from '@/lib/usage-cache-text';
 import { REALTIME_TEXT, useRealtime } from '@/lib/useRealtime';
 
 const STATUS_TEXT: Record<string, string> = {
@@ -54,17 +55,19 @@ function usageKind(usage: TaskUsage | null): 'missing' | 'demo' | 'real' {
  * - DEMO 规则版不经过模型 ⇒ 写 0 token，不写得像一次模型调用；
  * - 费用为 0 时写「未计价」——今天的适配器还没有价格表，0 与「免费」不是一回事（§159）；
  * - 模型侧延迟与「用时」列不是同一个数：那一列是任务从开始到收尾，这一格是 provider 自己报的。
+ *
+ * 缓存那一格的三种说法（没报 / 未命中 / 命中 N·P%）住在 `lib/usage-cache-text.ts`：
+ * 那三句话是承诺，得能被单测逐条钉住，而钉一个 JSX 表达式只能靠正则猜。
  */
 function usageText(usage: TaskUsage | null): string {
   if (usage === null) return '未记录';
   if (usage.demoMode) return 'DEMO 规则版不经过模型（0 token）';
-  const cost = usage.costUsd > 0 ? `$${usage.costUsd.toFixed(4)}` : '未计价';
   const latency = `${Math.round(usage.latencyMs / 100) / 10} 秒`;
-  const cached = (usage as { cachedTokens?: number }).cachedTokens;
+  const cacheStr = cacheText(usage);
+  const costStr = costText(usage);
   const reasoning = (usage as { reasoningTokens?: number }).reasoningTokens;
-  const cacheStr = typeof cached === 'number' && cached > 0 ? ` · 缓存 ${cached}` : '';
   const reasoningStr = typeof reasoning === 'number' && reasoning > 0 ? ` · 推理 ${reasoning}` : '';
-  return `${usage.model}（${usage.provider}）· ${usage.tokensIn} 进 / ${usage.tokensOut} 出 token${cacheStr}${reasoningStr} · ${cost} · ${usage.toolCalls} 次工具调用 · 模型侧 ${latency}`;
+  return `${usage.model}（${usage.provider}）· ${usage.tokensIn} 进 / ${usage.tokensOut} 出 token · ${cacheStr}${reasoningStr} · ${costStr} · ${usage.toolCalls} 次工具调用 · 模型侧 ${latency}`;
 }
 
 export function TasksLedgerLive({
@@ -138,35 +141,60 @@ export function TasksLedgerLive({
     },
     { real: 0, demo: 0, missing: 0 },
   );
+  /**
+   * §CACHE-3：这一页真模型调用的缓存合计。
+   *
+   * **只统计 `cacheReported` 的行**。把"没报"的行按 0 加进分母，命中率会凭空变小——
+   * 那是用数据缺失伪造一个更差的读数，和伪造一个更好的读数一样不诚实。
+   * 一行都没报时 `rows === 0`，界面说"没有可用的缓存读数"，绝不画 0%。
+   */
+  /**
+   * §CACHE-3：这一页真模型调用的缓存合计。口径在 `lib/usage-cache-text.ts` 的 `cacheTotal`——
+   * **只统计 `cacheReported` 的行**，一行都没报时 `rows === 0`，界面说"没有可用的缓存读数"，
+   * 绝不画 0%（把"没报"按 0 加进分母，是在用数据缺失伪造一个更差的读数）。
+   */
+  const cache = cacheTotal(payload.tasks.map((task) => task.usage).filter((usage): usage is TaskUsage => usage !== null));
 
   return (
-    <main className="mx-auto flex max-w-[1080px] flex-col gap-4 px-6 py-10" data-tasks-root>
-      <header className="flex flex-wrap items-baseline justify-between gap-3">
+    <main className="tl-page" data-tasks-root>
+      <header className="tl-head">
         <div>
-          <h1 className="text-[var(--nexus-font-size-21)] font-semibold" data-tasks-title>
+          <h1 className="tl-title" data-tasks-title>
             {payload.projectName} 的任务
           </h1>
-          <p className="text-11 text-fg-3" data-tasks-summary>
+          <p className="tl-summary" data-tasks-summary>
             共 {payload.tasks.length} 行 ·{' '}
             {Object.entries(counts)
               .map(([status, n]) => `${STATUS_TEXT[status] ?? status} ${n}`)
               .join(' · ') || '还没有跑过一次'}
           </p>
           {payload.tasks.length > 0 ? (
-            <p className="text-11 text-fg-3" data-tasks-usage-summary>
+            <p className="tl-summary" data-tasks-usage-summary>
               用量：真模型 {usages.real} 行 · DEMO 规则版 {usages.demo} 行 · 未记录 {usages.missing} 行
             </p>
           ) : null}
+          {payload.tasks.length > 0 ? (
+            cache.rows > 0 ? (
+              <p className="tl-summary" data-tasks-cache-summary={String(cache.cached)}>
+                缓存读数（只计 {cache.rows} 行报过数的真模型行）：命中 {cache.cached} / {cache.prompt} 输入 token
+                {cache.share === null ? '' : `（占 ${cache.share}%）`} · 「未报」的行不画进这个数
+              </p>
+            ) : (
+              <p className="tl-summary" data-tasks-cache-summary="none">
+                这页真模型行都没报缓存读数——“没报”与“命中 0”是两件事，这里绝不画 0%（ADR-0262）
+              </p>
+            )
+          ) : null}
         </div>
-        <div className="flex items-baseline gap-3">
-          <span className="text-11 text-fg-3" data-tasks-realtime={realtime.state}>
+        <div className="tl-tools">
+          <span className="tl-realtime" data-tasks-realtime={realtime.state}>
             实时：{REALTIME_TEXT[realtime.state]}
           </span>
           {/* 第四十九片：这一颗是页面上唯一的返回口，原来 61×21——高度比 24 少 3px 也是低于下限。
               文字不换行也不该靠行高凑尺寸，直接给盒高（WCAG 2.5.8）。 */}
           <Link
             href={`/studio/${projectId}`}
-            className="inline-flex min-h-6 items-center text-11 text-accent-2-ink underline"
+            className="tl-back"
             data-tasks-back
           >
             回 Studio
@@ -177,12 +205,12 @@ export function TasksLedgerLive({
       {savings ? <SavingsCard savings={savings} /> : null}
 
       {note ? (
-        <p className="text-11 text-danger-ink" data-tasks-live-note>
+        <p className="tl-note" data-tasks-live-note>
           {note}
         </p>
       ) : null}
 
-      <p className="text-11 text-fg-3" data-tasks-scope>
+      <p className="tl-scope" data-tasks-scope>
         每一行对应一次 AI 请求（§7 命令栏发起的那种）。§112 那种多步 Agent 任务——Goal、子任务、依赖、验收——
         还没有执行方，所以这张表里不会出现"一个任务带六个步骤"的东西。
         能力那一列区分 real（真 provider）与 demo（DEMO 模板），两者不混写（§160）。
@@ -197,7 +225,7 @@ export function TasksLedgerLive({
       </p>
 
       {payload.tasks.length === 0 ? (
-        <p className="text-13 text-fg-2" data-tasks-empty>
+        <p className="tl-empty" data-tasks-empty>
           这个项目还没有跑过任何一次 AI 请求。
         </p>
       ) : (
@@ -205,7 +233,7 @@ export function TasksLedgerLive({
         // 宽度不该靠压缩列来换：给表格一个可读的下限，让它自己横滚，
         // 而不是把每一列挤成只剩一个字符宽（表格不承担"把布局视口撑宽"的后果）。
         <div
-          className="overflow-x-auto"
+          className="tl-tableScroll"
           data-tasks-table-scroll
           // 横滚区自己必须是键盘停得下来的（axe: scrollable-region-focusable）。
           // 没有这一颗 tabindex，键盘用户看得到表格却滚不到右边那几列。
@@ -213,8 +241,8 @@ export function TasksLedgerLive({
           aria-label="任务账本表格（可横向滚动）"
           tabIndex={0}
         >
-        <table className="w-full min-w-[880px] text-11">
-          <thead className="text-left text-fg-3">
+        <table className="tl-table">
+          <thead className="tl-thRow">
             <tr>
               <th>时间</th>
               <th>意图</th>
@@ -232,7 +260,7 @@ export function TasksLedgerLive({
               <tr key={task.id} data-task-row={task.id}>
                 <td
                   data-task-time={new Date(task.createdAt).toLocaleString('zh-CN', { hour12: false })}
-                  className="whitespace-nowrap"
+                  className="tl-tdNowrap"
                   // 时间戳两套 ICU（Node 渲染 vs 浏览器）逐字节可能差一个字符，
                   // 这一格本来就随重读更新，不值得为它报一次 hydration 警告
                   suppressHydrationWarning
@@ -246,10 +274,10 @@ export function TasksLedgerLive({
                 </td>
                 <td data-task-status={task.status}>{STATUS_TEXT[task.status] ?? task.status}</td>
                 <td>{task.durationMs === null ? '—' : `${Math.round(task.durationMs / 100) / 10} 秒`}</td>
-                <td data-task-usage={usageKind(task.usage)} className="text-fg-2">
+                <td data-task-usage={usageKind(task.usage)} className="tl-tdMuted">
                   {usageText(task.usage)}
                 </td>
-                <td className="text-fg-2">{task.error ?? '—'}</td>
+                <td className="tl-tdMuted">{task.error ?? '—'}</td>
                 <td>
                   {/* 只有自己的失败/取消行才有按钮：别人行上的按钮点了也只会 404，
                       与其让人点了才知道，不如不挂出来 */}

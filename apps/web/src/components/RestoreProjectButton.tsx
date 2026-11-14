@@ -36,18 +36,18 @@ export function RestoreProjectButton({ projectId, projectName }: { projectId: st
   };
 
   return (
-    <span className="flex items-center gap-2">
+    <span className="adp-row">
       <button
         type="button"
         disabled={busy}
         onClick={() => void restore()}
-        className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11 text-fg-2 hover:bg-bg-2 disabled:opacity-40"
+        className="adp-btnSm"
         data-restore-project={projectId}
       >
         {busy ? '恢复中…' : `恢复「${projectName}」`}
       </button>
       {notice ? (
-        <span className="text-11 text-fg-2" data-restore-notice={projectId}>
+        <span className="adp-note" data-restore-notice={projectId}>
           {notice}
         </span>
       ) : null}

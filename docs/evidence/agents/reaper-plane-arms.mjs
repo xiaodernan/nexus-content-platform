@@ -33,8 +33,8 @@
 // Run from anywhere:  node docs/evidence/agents/reaper-plane-arms.mjs     (~30 s, 16 child processes)
 // Human-run tool: deliberately NOT a `verify:*` script and carries no `sweep-budget-ms` row marker.
 import assert from 'node:assert/strict';
-import { execFileSync, spawnSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 

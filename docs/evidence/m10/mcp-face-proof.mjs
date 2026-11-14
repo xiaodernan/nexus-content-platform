@@ -273,7 +273,6 @@ try {
 
   const asJson = { 'content-type': 'application/json' };
   const postJson = (pathname, value) => call(pathname, { method: 'POST', headers: asJson, body: JSON.stringify(value) });
-  const q = (value) => encodeURIComponent(value);
 
   async function sql(query) {
     const r = await run('docker', ['exec', DB_CONTAINER, 'psql', '-U', DB_USER, '-d', DB_NAME, '-tAc', query]);

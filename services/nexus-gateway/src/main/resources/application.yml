@@ -1,0 +1,175 @@
+# NEXUS nexus-gateway (Spring Cloud SC-2) — the HTTP door ADR 0011 promises the Studio.
+#
+# Routes are NOT here: see GatewayConfig, which builds them with the compiled DSL. The Gateway 4.2+ line
+# renamed `spring.cloud.gateway.*` to `spring.cloud.gateway.server.webflux.*`, and a YAML route table under
+# a prefix a bump renames stops matching silently instead of failing.
+spring:
+  application:
+    name: nexus-gateway
+  # SC-9 — central config is OPTIONAL. `optional:` means a missing server does not stop the door; the client
+  # itself is off unless a deployment says otherwise, so the packaged file stays the offline truth and the
+  # test suite never needs a second process. When enabled, values served for `nexus-gateway` override this
+  # file (Config Client property sources rank above application.yml).
+  config:
+    import: optional:configserver:${NEXUS_CONFIG_URL:http://127.0.0.1:8888}
+  cloud:
+    config:
+      enabled: ${NEXUS_CONFIG_ENABLED:false}
+
+  # SC-12 — the server behind the optional `redis` rate-limit backend. Nothing connects here unless that
+  # backend is selected: Lettuce is lazy, so the default (memory) gateway starts and answers without Redis.
+  #
+  # 56379, not 6379: this machine's 6379 is another project's Redis and answers NOAUTH. A default that points
+  # at someone else's service is a trap (the same lesson SC-10 applied to domain).
+  #
+  # The timeouts are part of the fail-open story: a blackholed server must produce "no answer" quickly, not
+  # hold every request for the command timeout default. Short bounds only affect the limiter, whose failure
+  # mode is "allow"; they never turn into a slow request path.
+  data:
+    redis:
+      host: ${NEXUS_REDIS_HOST:127.0.0.1}
+      port: ${NEXUS_REDIS_PORT:56379}
+      timeout: ${NEXUS_GATEWAY_REDIS_TIMEOUT:1s}
+      connect-timeout: ${NEXUS_GATEWAY_REDIS_CONNECT_TIMEOUT:1s}
+
+server:
+  port: ${NEXUS_GATEWAY_PORT:8090}
+
+nexus:
+  gateway:
+    # The service ID the registry must know. `lb://` + this name is the whole address: no host, no port.
+    api-service: ${NEXUS_GATEWAY_API_SERVICE:nexus-api}
+    api-prefix: ${NEXUS_GATEWAY_API_PREFIX:/api}
+    # SC-6 — the Java write-path service. Its own prefix keeps the two backends distinguishable in a URL.
+    domain-service: ${NEXUS_GATEWAY_DOMAIN_SERVICE:nexus-domain-service}
+    domain-prefix: ${NEXUS_GATEWAY_DOMAIN_PREFIX:/domain}
+    # A body larger than this is answered 413 at the door and never forwarded (SC-7).
+    max-request-bytes: ${NEXUS_GATEWAY_MAX_REQUEST_BYTES:1048576}
+    rate-limit:
+      enabled: ${NEXUS_GATEWAY_RATE_LIMIT:true}
+      # SC-12 — memory = a bucket per instance (no second process); redis = one atomic bucket shared by every
+      # gateway instance pointing at this Redis. Unknown values fail startup instead of silently using memory.
+      backend: ${NEXUS_GATEWAY_RATE_LIMIT_BACKEND:memory}
+      rate-per-second: ${NEXUS_GATEWAY_RATE_LIMIT_RATE:100}
+      burst: ${NEXUS_GATEWAY_RATE_LIMIT_BURST:200}
+      # Only the memory backend uses this ceiling; Redis keys expire by TTL instead.
+      max-clients: ${NEXUS_GATEWAY_RATE_LIMIT_CLIENTS:10000}
+      # Only the redis backend uses this prefix. Deployments sharing one server with another gateway share
+      # buckets only if they share this prefix, which is why it is configuration rather than a literal.
+      redis-key-prefix: ${NEXUS_GATEWAY_RATE_LIMIT_KEY_PREFIX:nexus:gateway:rate:}
+      # SC-36 — the gateway's OWN deadline on the shared limiter's answer (redis backend only). Fail-open can
+      # only fire once the backend produces an error; Lettuce's connect/command timeouts are a client detail
+      # that does not cover a blackholed server, an exhausted connection pool or a hung DNS lookup. This bound
+      # guarantees "no answer" becomes an error on a deadline WE own, then flows into the existing fail-open.
+      # Keep it relative to spring.data.redis.timeout above: the first of the two to fire wins, and both lead to
+      # allow-unthrottled. Only affects the limiter, whose failure mode is "allow"; never a slow request path.
+      backend-timeout-ms: ${NEXUS_GATEWAY_RATE_LIMIT_BACKEND_TIMEOUT_MS:1000}
+    # SC-8 — how long /platform/health waits for one instance's GET /actuator/health. Short on purpose: the
+    # answer is "what is true right now", and a probe that takes 30 s has already stopped being one.
+    health-probe-timeout-ms: ${NEXUS_GATEWAY_HEALTH_TIMEOUT_MS:1500}
+    # SC-13 — the door's identity check. OFF by default so the packaged door stays offline-truth (no secret,
+    # no open door). Turn it on only with a real secret: a blank secret while enabled fails startup instead
+    # of starting open. Whitelisted (no token needed): /platform/health, /actuator/health, /fallback/**.
+    auth:
+      enabled: ${NEXUS_GATEWAY_AUTH_ENABLED:false}
+      secret: ${NEXUS_GATEWAY_AUTH_SECRET:}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${NEXUS_REGISTRY_ZONE:http://127.0.0.1:8771/eureka/}
+    registry-fetch-interval-seconds: ${NEXUS_GATEWAY_FETCH_SECONDS:10}
+    register-with-eureka: ${NEXUS_GATEWAY_REGISTER:true}
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+
+# The breaker's own bounds. Spring Cloud CircuitBreaker's default TimeLimiter is ONE second, which is a
+# reasonable library default and a wrong platform default: a cold nexus-api answering a 4000-node document
+# would be cut off and reported as unavailable while it was still working. Five seconds is the bound this
+# deployment chose, and it is a bound — a call slower than this answers 503 naming the timeout.
+resilience4j:
+  timelimiter:
+    instances:
+      nexus-api:
+        timeout-duration: ${NEXUS_GATEWAY_TIMEOUT:5s}
+        cancel-running-future: true
+      nexus-domain-service:
+        timeout-duration: ${NEXUS_GATEWAY_TIMEOUT:5s}
+        cancel-running-future: true
+  circuitbreaker:
+    instances:
+      nexus-api:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: ${NEXUS_GATEWAY_OPEN_WAIT:10s}
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+      nexus-domain-service:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: ${NEXUS_GATEWAY_OPEN_WAIT:10s}
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+  # SC-37 — the bulkhead (the fourth resilience4j primitive) was ALREADY wrapping every route: Spring Cloud's
+  # reactive circuit-breaker factory registers a SemanticBulkhead provider by default, on resilience4j's silent
+  # DEFAULT_MAX_CONCURRENT_CALLS=25. This makes that bound explicit and tunable instead of an accident of a
+  # library default. It caps how many calls may be IN FLIGHT to one backend at once (a different failure from
+  # the breaker: capacity shedding, not a failing backend). When all slots are full the next call is refused at
+  # the door with an honest 503 naming BulkheadFullException — it never queues onto an already-saturated backend
+  # and never amplifies the wire (graded by GatewayBulkheadWiringTest). max-wait-duration=0 is deliberate: a
+  # caller waits for a FREE SLOT zero time, so shedding is immediate rather than a hidden latency cliff.
+  # Keep the default at 25 (the library default) so declaring it changes no existing behaviour; a deployment
+  # tightens it by env when one slow backend must not consume all the door's concurrency.
+  bulkhead:
+    instances:
+      nexus-api:
+        max-concurrent-calls: ${NEXUS_GATEWAY_BULKHEAD_MAX_CALLS:25}
+        max-wait-duration: 0
+      nexus-domain-service:
+        max-concurrent-calls: ${NEXUS_GATEWAY_BULKHEAD_MAX_CALLS:25}
+        max-wait-duration: 0
+
+# SC-8 — `/platform/health` is the aggregate the Studio/operator asks; this is the gateway's own answer,
+# so a probe of the probe exists.
+#
+# SC-31 — `circuitbreakers` is exposed alongside `health` so an operator can READ the breaker state that
+# §SC-24/§SC-29 drive: which backend is tripped, its failure rate and call counts, and that the door healed.
+# SC-37 — `bulkheads` joins it, listing which routes carry a capacity bound ({"bulkheads":["nexus-api",...]}).
+# HONEST BOUND: resilience4j's 2.2.0 BulkheadEndpoint exposes only the NAMES by default — no per-name
+# /actuator/bulkheads/{id} detail and no live in-flight count exists to read. This is a "which doors have a
+# bound" readout, NOT a real-time occupancy gauge; the occupancy itself is graded on the wire by
+# GatewayBulkheadWiringTest. Do not dress the name list up as a capacity metric.
+#
+# Neither is in PlatformAuthFilter's whitelist (only /actuator/health is): when auth is enabled the readouts
+# are behind a token (graded by CircuitBreakerActuatorAuthTest / BulkheadActuatorAuthTest), because a free map
+# of which backends are failing or saturated is an intrusion aid, not a health probe. With auth off (the
+# packaged offline truth) they are readable locally, like /platform/services — the deployment decides by
+# turning auth on.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,circuitbreakers,bulkheads
+  endpoint:
+    health:
+      show-details: never
+  # §SC-68: build-info goal 出 jar 时带 artifact/group/version/time + component
+  info:
+    build:
+      enabled: true
+    env:
+      enabled: false
+
+logging:
+  level:
+    root: warn
+    dev.nexus.gateway: info
+info:
+  app:
+    name: nexus-gateway
+    description: NEXUS edge router with Spring Cloud Gateway + rate limit + circuit breakers

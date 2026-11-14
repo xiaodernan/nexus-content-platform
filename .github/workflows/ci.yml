@@ -54,6 +54,9 @@ jobs:
             services/java-domain-service/pom.xml
             services/nexus-api/pom.xml
             services/java-config-server/pom.xml
+            services/nexus-registry/pom.xml
+            services/nexus-config/pom.xml
+            services/nexus-gateway/pom.xml
       - name: Install (workspace root)
         run: npm ci || npm install
       - name: ADR index integrity

@@ -47,35 +47,26 @@ type PanelTab =
   | 'history'
   | 'health';
 
-const TABS: { id: PanelTab; label: string }[] = [
-  { id: 'layers', label: '图层' },
-  { id: 'design', label: '设计系统' },
-  { id: 'assets', label: '资产库' },
-  { id: 'world', label: '世界' },
-  { id: 'game', label: '游戏' },
-  { id: 'storyboard', label: '分镜' },
-  { id: 'team', label: '团队' },
-  { id: 'characters', label: '角色' },
-  { id: 'memory', label: '记忆' },
-  { id: 'retrieve', label: '检索' },
-  { id: 'context', label: '上下文' },
-  { id: 'agent', label: 'Agent' },
-  { id: 'history', label: '历史' },
-  { id: 'health', label: '健康' },
+const TABS: { id: PanelTab }[] = [
+  { id: 'layers' },
+  { id: 'design' },
+  { id: 'assets' },
+  { id: 'world' },
+  { id: 'game' },
+  { id: 'storyboard' },
+  { id: 'team' },
+  { id: 'characters' },
+  { id: 'memory' },
+  { id: 'retrieve' },
+  { id: 'context' },
+  { id: 'agent' },
+  { id: 'history' },
+  { id: 'health' },
 ];
 
 /** 主区那几个视图：都是同一批真值的投影，切换不复制数据 */
 type WorkspaceView = 'canvas' | 'variants' | 'code' | 'graph' | 'gamegraph';
-
 const VIEWS: WorkspaceView[] = ['canvas', 'variants', 'code', 'graph', 'gamegraph'];
-
-const VIEW_LABELS: Record<WorkspaceView, string> = {
-  canvas: '画布',
-  variants: '方案',
-  code: '代码',
-  graph: '世界图',
-  gamegraph: '游戏图',
-};
 
 /**
  * §147 选中响应诊断：一次"点节点 → 手柄出现"是同一个同步任务，靠外部轮询拆不开
@@ -115,6 +106,9 @@ function DocumentStream({ documentPromise }: { documentPromise: Promise<DesignDo
   return null;
 }
 
+import { shellCopy } from './shell-i18n';
+import type { Locale } from '@/lib/i18n';
+
 /** §4 Studio 外壳：负责载入与保存时机，不做布局细节 */
 export function StudioShell({
   projectId,
@@ -122,6 +116,7 @@ export function StudioShell({
   readOnly,
   documentPromise,
   credits = null,
+  locale = 'zh',
 }: {
   projectId: string;
   demoMode: boolean;
@@ -139,6 +134,8 @@ export function StudioShell({
   documentPromise?: Promise<DesignDocument | null>;
   /** v703 顶栏额度芯片：服务端 page 直读；读不到 = 不渲染（§3） */
   credits?: { ai: number; grant: number; plan: string } | null;
+  /** 双语（v730）：服务端读 cookie 传入 */
+  locale?: Locale;
 }) {
   // §147 选中响应：外壳只关心 ready / loadError / zoom，这些在选中时不变。
   // 用选式子订阅，选中（整快照对象被换掉）不再把整个工作区子树拖着重渲染。
@@ -147,6 +144,7 @@ export function StudioShell({
     loadError: s.loadError,
     zoom: s.zoom,
   }));
+  const c = shellCopy(locale);
 
   useEffect(() => {
     setStudioReadOnly(readOnly);
@@ -173,7 +171,7 @@ export function StudioShell({
   }, [projectId]);
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-bg-0 text-fg-1" data-studio-root data-project-id={projectId}>
+    <div className="se-root" data-studio-root data-project-id={projectId}>
       {documentPromise ? (
         <Suspense fallback={null}>
           <DocumentStream documentPromise={documentPromise} />
@@ -182,19 +180,18 @@ export function StudioShell({
       {readOnly ? (
         <p
           data-studio-read-only
-          className="shrink-0 border-b border-[var(--nexus-color-border-subtle)] bg-bg-2 px-[var(--nexus-space-3)] py-1 text-11 text-warn-ink"
+          className="se-readOnly"
         >
-          你是这个项目的查看者（viewer）：文档可以看，编辑不会落到文档上——服务端会拒绝写请求（403）。
-          要改内容，让所有者把角色改成可编辑。
+          {c.readOnly}
         </p>
       ) : null}
       {ready ? (
         <Profiler id="workspace" onRender={recordWorkspaceRender}>
-          <StudioWorkspace zoom={zoom} demoMode={demoMode} credits={credits} />
+          <StudioWorkspace zoom={zoom} demoMode={demoMode} credits={credits} locale={locale} />
         </Profiler>
       ) : (
-        <p className="m-auto font-mono text-13 text-fg-3" data-studio-status>
-          {loadError ?? '载入项目…'}
+        <p className="se-status" data-studio-status>
+          {loadError ?? c.loadingProject}
         </p>
       )}
     </div>
@@ -202,7 +199,8 @@ export function StudioShell({
 }
 
 /** 只在 load 完成后挂载：子组件因此可以假定 document / page / layout 存在 */
-function StudioWorkspace({ zoom, demoMode, credits = null }: { zoom: number; demoMode: boolean; credits?: { ai: number; grant: number; plan: string } | null }) {
+function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zoom: number; demoMode: boolean; credits?: { ai: number; grant: number; plan: string } | null; locale?: Locale }) {
+  const c = shellCopy(locale);
   const [tab, setTab] = useState<PanelTab>('layers');
   const [view, setView] = useState<WorkspaceView>('canvas');
   // §85 第二十七片：390 下 264px 的左栏把画布压到 82px——窄视口默认收起，
@@ -225,27 +223,27 @@ function StudioWorkspace({ zoom, demoMode, credits = null }: { zoom: number; dem
   return (
     <>
       <Profiler id="topbar" onRender={recordRender('topbar')}>
-        <TopBar onOpenRail={() => setRailOpen((v) => !v)} credits={credits} />
+        <TopBar onOpenRail={() => setRailOpen((v) => !v)} credits={credits} locale={locale} />
       </Profiler>
-      <div className="relative flex min-h-0 flex-1">
-        <nav className="flex w-[44px] shrink-0 flex-col items-center gap-1 border-r border-[var(--nexus-color-border-subtle)] bg-bg-1 py-[var(--nexus-space-2)]">
+      <div className="se-frame">
+        <nav className="se-rail">
           {TABS.map((item) => (
             <button
               key={item.id}
               type="button"
-              title={item.label}
-              aria-label={item.label}
+              title={c.tabs[item.id]}
+              aria-label={c.tabs[item.id]}
               onClick={() => {
                 setTab(item.id);
                 setRailOpen(true);
               }}
               data-panel-tab={item.id}
               className={cn(
-                'flex h-8 w-8 items-center justify-center rounded-[var(--nexus-radius-sm)] text-12',
-                tab === item.id && railOpen ? 'bg-bg-3 text-fg-1' : 'text-fg-3 hover:bg-bg-2',
+                'se-tab',
+                tab === item.id && railOpen && 'se-tabActive',
               )}
             >
-              {item.label[0]}
+              {c.tabs[item.id][0]}
             </button>
           ))}
         </nav>
@@ -254,14 +252,13 @@ function StudioWorkspace({ zoom, demoMode, credits = null }: { zoom: number; dem
         <aside
           className={cn(
             // 小屏浮层：面板盖在画布上而不是挤窄它（`left-[44px]` 让出图标栏）；lg 起回到内联三栏
-            'min-h-0 w-[264px] shrink-0 border-r border-[var(--nexus-color-border-subtle)] bg-bg-1',
-            'absolute inset-y-0 left-[44px] z-30 shadow-2xl lg:static lg:z-auto lg:shadow-none',
-            railOpen ? 'block' : 'hidden',
+            'se-panel',
+            railOpen ? 'se-panel-visible' : 'se-panel-hidden',
           )}
           data-left-panel
         >
           {tab === 'layers' ? (
-            <LayersPanel />
+            <LayersPanel locale={locale} />
           ) : tab === 'design' ? (
             <DesignSystemPanel />
           ) : tab === 'assets' ? (
@@ -279,7 +276,7 @@ function StudioWorkspace({ zoom, demoMode, credits = null }: { zoom: number; dem
           ) : tab === 'memory' ? (
             <MemoryPanel />
           ) : tab === 'retrieve' ? (
-            <RetrievePanel />
+            <RetrievePanel locale={locale} />
           ) : tab === 'context' ? (
             <ContextPanel />
           ) : tab === 'agent' ? (
@@ -293,11 +290,11 @@ function StudioWorkspace({ zoom, demoMode, credits = null }: { zoom: number; dem
       </Profiler>
 
         <Profiler id="main" onRender={recordRender('main')}>
-        <main className="flex min-w-0 flex-1 flex-col">
-          <div className="relative flex min-h-0 flex-1 flex-col">
+        <main className="se-workArea">
+          <div className="se-workCol">
             {/* 视图切换与 DEMO 标识常驻在同一行：浮层会盖住代码视图的文件标签（§160） */}
-            <div className="flex shrink-0 items-center gap-2 border-b border-[var(--nexus-color-border-subtle)] bg-bg-1 px-[var(--nexus-space-2)] py-1">
-              <span className="flex items-center gap-1" data-view-switch>
+            <div className="se-viewBar">
+              <span className="se-viewSwitch" data-view-switch>
                 {VIEWS.map((id) => (
                   <button
                     key={id}
@@ -305,31 +302,28 @@ function StudioWorkspace({ zoom, demoMode, credits = null }: { zoom: number; dem
                     onClick={() => setView(id)}
                     data-view={id}
                     aria-pressed={view === id}
-                    className={cn(
-                      'rounded-[var(--nexus-radius-sm)] px-2 py-[2px] font-mono text-12',
-                      view === id ? 'bg-bg-3 text-fg-1' : 'text-fg-3 hover:bg-bg-2',
-                    )}
+              className={cn('se-viewBtn', view === id && 'se-viewBtnActive')}
                   >
-                    {VIEW_LABELS[id]}
+                    {c.views[id]}
                   </button>
                 ))}
               </span>
               {view === 'canvas' ? (
-                <span className="font-mono text-12 text-fg-3" data-zoom>
+                <span className="se-zoomX" data-zoom>
                   {Math.round(zoom * 100)}%
                 </span>
               ) : null}
               <span
                 data-demo-mode={demoMode ? 'on' : 'off'}
                 className={cn(
-                  'ml-auto rounded-[var(--nexus-radius-sm)] px-2 py-1 font-mono text-12',
-                  demoMode ? 'bg-warn text-accent-fg' : 'bg-success text-accent-fg',
+                  'se-demoChipBase',
+                  demoMode ? 'se-demoChipWarn' : 'se-demoChipLive',
                 )}
               >
                 {demoMode ? 'DEMO MODE' : 'LIVE PROVIDER'}
               </span>
             </div>
-            <div className="relative min-h-0 flex-1">
+            <div className="se-canvasWrap">
               {view === 'canvas' ? (
                 <CanvasStage />
               ) : view === 'variants' ? (
@@ -352,16 +346,16 @@ function StudioWorkspace({ zoom, demoMode, credits = null }: { zoom: number; dem
         {inspectorOpen ? (
           <button
             type="button"
-            aria-label="关闭属性面板"
+            aria-label={c.closeInspector}
             onClick={() => setInspectorOpen(false)}
-            className="fixed inset-0 z-40 bg-black/40 xl:hidden"
+            className="se-scrim"
           />
         ) : null}
         {inspectorFolded ? (
           <button
             ref={unfoldRef}
             type="button"
-            aria-label="展开属性面板"
+            aria-label={c.unfoldInspector}
             aria-expanded={false}
             aria-controls="nexus-inspector"
             onClick={() => {
@@ -369,27 +363,27 @@ function StudioWorkspace({ zoom, demoMode, credits = null }: { zoom: number; dem
               window.requestAnimationFrame(() => foldRef.current?.focus());
             }}
             data-inspector-unfold
-            className="fixed right-0 top-1/2 z-40 inline-flex min-h-8 min-w-8 -translate-y-1/2 items-center justify-center rounded-l-[var(--nexus-radius-sm)] border border-r-0 border-[var(--nexus-color-border-strong)] bg-bg-2 px-2 py-3 text-12 text-fg-2 hover:bg-bg-3 [writing-mode:vertical-rl]"
+            className="se-unfoldBtn"
           >
-            属性
+            {c.propertyToggle}
           </button>
         ) : null}
         <Profiler id="properties" onRender={recordRender('properties')}>
         <aside
           className={cn(
-            'z-50 min-h-0 w-[300px] shrink-0 border-l border-[var(--nexus-color-border-subtle)] bg-bg-1',
-            inspectorOpen ? 'fixed bottom-0 left-0 right-0 top-auto h-[52vh] max-xl:block' : 'max-xl:hidden',
-            'xl:static xl:h-auto',
-            inspectorFolded ? 'xl:hidden' : 'xl:block',
+            'se-inspector',
+            inspectorOpen ? 'se-inspectorShowMobile' : 'se-inspectorHideMobile',
+            
+            inspectorFolded ? 'se-inspectorHideXL' : 'se-inspectorShowXL',
           )}
           id="nexus-inspector"
           data-right-panel
         >
-          <div className="relative flex h-full min-h-0 flex-col">
+          <div className="se-inspectorBody">
             <button
               ref={foldRef}
               type="button"
-              aria-label="折起属性面板"
+              aria-label={c.foldInspector}
               aria-expanded
               aria-controls="nexus-inspector"
               onClick={() => {
@@ -397,16 +391,17 @@ function StudioWorkspace({ zoom, demoMode, credits = null }: { zoom: number; dem
                 window.requestAnimationFrame(() => unfoldRef.current?.focus());
               }}
               data-inspector-fold
-              className="absolute right-2 top-2 z-50 hidden h-6 min-w-6 items-center justify-center rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 text-11 text-fg-3 hover:bg-bg-3 xl:inline-flex"
+              className="se-foldBtn"
             >
-              折起
+              {c.propertyToggle}
             </button>
             <button
               type="button"
               onClick={() => setInspectorOpen((v) => !v)}
-              className="absolute bottom-2 right-2 z-50 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12 text-fg-3 xl:hidden"
+              className="se-inspectorToggle"
+              aria-label={c.inspectorAria}
             >
-              {inspectorOpen ? '收起属性' : '属性面板'}
+              {inspectorOpen ? c.collapseInspectorBar : c.inspectToggle}
             </button>
             <PropertiesPanel />
           </div>

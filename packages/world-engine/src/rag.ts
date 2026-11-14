@@ -1,5 +1,4 @@
-import { hybridScore, embedTokens, tokenize } from '@nexus/agent-runtime';
-import { cosine, EMBED_DIM } from '@nexus/ai-providers';
+import { hybridScoreFrom, embedTokens, tokenize } from '@nexus/agent-runtime';
 import type {
   WorldState,
   Character,
@@ -14,7 +13,6 @@ import type {
   LocationId,
   FactionId,
   LoreId,
-  EventId,
 } from './types.js';
 
 export interface WorldRAGIndex {
@@ -219,7 +217,10 @@ export class WorldRAG {
         if (!matches) continue;
       }
 
-      const score = hybridScore(query.query, doc.content);
+      // The query's vector and tokens are computed ONCE here and reused for every candidate; the
+      // score is the shared `hybridScoreFrom` rule — the same arithmetic `hybridScore` applies, with
+      // the query's embedding hoisted out of the loop and the document's stored vector used as-is.
+      const score = hybridScoreFrom(qVector, qTokens, doc.vector, doc.content);
       if (score >= (query.ragScoreThreshold ?? 0)) {
         hits.push({
           id: doc.id,

@@ -1,12 +1,15 @@
-"""Provider 注册表：按配置决定能力状态，绝不把"没实现"说成"能用"（§159）。"""
+"""Provider 注册表：配置决定"有没有适配器"，探测决定"这条模型真的在不在"，绝不把"没验证"说成"能用"（§159）。"""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any
 
+from ..cache_telemetry import CacheTelemetry
 from ..config import Settings
+from ..pricing import PriceTable
 from ..resilience import BreakerConfig, CircuitBreaker
+from .liveness import EmbeddingLiveness, EmbeddingProber
 from .openai_compatible import OpenAICompatibleProvider, OpenAICompatibleEmbeddingProvider
 
 
@@ -19,15 +22,25 @@ class ProviderInfo:
     reason: str = ""
 
 
+from typing import Final
+
+_UNSET: Final = object()  # ⊥：调用方没传这一项（保持按 key 自动构造）；显式 None = 故意不要适配器
+
+
 class Registry:
     def __init__(
         self,
         settings: Settings,
         *,
-        llm: OpenAICompatibleProvider | None = None,
-        embedding: OpenAICompatibleEmbeddingProvider | None = None,
+        llm: OpenAICompatibleProvider | None | object = _UNSET,
+        embedding: OpenAICompatibleEmbeddingProvider | None | object = _UNSET,
+        liveness: EmbeddingLiveness | None = None,
     ) -> None:
         self._settings = settings
+        self._liveness = liveness or EmbeddingLiveness()
+        # §CACHE-2：缓存读数挂在 Registry 上而不是模块全局——每个 app 一份，测试之间天然隔离。
+        # 两个数：前缀复用率（我们自己的字节算的）与 provider 报账覆盖度（报没报 cached）。
+        self._cache_telemetry = CacheTelemetry()
         # v682 断路器：默认 disabled（不构造、零回归）；显式开启才建实例并真注入 provider，
         # 让 complete() 的门卫真的读它——避开 Java 坑①"配了 YAML 却没人取用、静默跑默认值"。
         # Settings 旋钮经 BreakerConfig 真变成运行实例，不是摆设（ADR 0095 声称必须有门读）。
@@ -46,21 +59,23 @@ class Registry:
             else None
         )
         self._breaker = breaker
-        self._llm = llm or (
-            self._build_llm(settings, breaker)
-            if settings.has_llm
-            else None
-        )
-        self._embedding = embedding or (
-            OpenAICompatibleEmbeddingProvider(
-                api_key=settings.openai_api_key or "",
-                base_url=settings.openai_base_url,
-                models=settings.embedding_models,
-                timeout_s=settings.request_timeout_s,
+        if llm is _UNSET:
+            self._llm = self._build_llm(settings, breaker) if settings.has_llm else None
+        else:
+            self._llm = llm  # type: ignore[assignment]
+        if embedding is _UNSET:
+            self._embedding = (
+                OpenAICompatibleEmbeddingProvider(
+                    api_key=settings.openai_api_key or "",
+                    base_url=settings.openai_base_url,
+                    models=settings.embedding_models,
+                    timeout_s=settings.request_timeout_s,
+                )
+                if settings.has_llm and settings.embedding_enabled
+                else None
             )
-            if settings.has_llm and settings.embedding_enabled
-            else None
-        )
+        else:
+            self._embedding = embedding  # type: ignore[assignment]
         self._embedding_disabled_reason = (
             "NEXUS_MODEL_EMBEDDING=none -- 该 provider 网关没有 embedding 模型（§159 不谎称可用）"
             if not settings.embedding_enabled
@@ -83,6 +98,7 @@ class Registry:
             models=settings.llm_models,
             timeout_s=settings.request_timeout_s,
             json_mode=settings.json_mode,
+            prompt_cache_key=settings.openai_prompt_cache_key,
             max_attempts=settings.llm_max_attempts,
             base_s=settings.llm_retry_base_s,
             cap_s=settings.llm_retry_cap_s,
@@ -158,11 +174,35 @@ class Registry:
     def embedding(self):
         return self._embedding
 
+    @property
+    def liveness(self) -> EmbeddingLiveness:
+        """探测结论的所有者：app 在启动时与 /healthz 里刷新它，报告只读它。"""
+        return self._liveness
+
+    def embedding_prober(self) -> EmbeddingProber | None:
+        if not self._embedding:
+            return None
+        return EmbeddingProber(self._embedding)
+
     def text_status(self) -> str:
         return "real" if self._llm else "unavailable"
 
     def embedding_status(self) -> str:
-        return "real" if self._embedding else "unavailable"
+        """
+        配了 key 只说明适配器能构造出来，不说明这条模型在网关上活着。
+        所以这里三档：探到过 → real；探到失败 → unavailable（带网关原话）；没探过 → unavailable，
+        并写明"未验证"——把未知说成可用，就是 healthz 对着一个 model_not_found 报 real 的那种读数。
+        """
+        if not self._embedding:
+            return "unavailable"
+        return "real" if self._liveness.state == "ok" else "unavailable"
+
+    def embedding_reason(self) -> str:
+        if not self._embedding:
+            return "缺少 NEXUS_OPENAI_API_KEY"
+        if self._liveness.state == "unknown":
+            return "未验证：还没对真实 embeddings 探过一次"
+        return self._liveness.reason
 
     def providers(self) -> list[ProviderInfo]:
         infos: list[ProviderInfo] = []
@@ -177,7 +217,15 @@ class Registry:
                 ProviderInfo("llm", name, "unavailable", [], "检测到 key，但尚未实现该 provider 适配器")
             )
         if self._embedding:
-            infos.append(ProviderInfo("embedding", self._embedding.name, "real", self._embedding.models(), ""))
+            infos.append(
+                ProviderInfo(
+                    "embedding",
+                    self._embedding.name,
+                    self.embedding_status(),
+                    self._embedding.models() if self.embedding_status() == "real" else [],
+                    self.embedding_reason(),
+                )
+            )
         else:
             infos.append(ProviderInfo("embedding", "openai-compatible", "unavailable", [], self._embedding_disabled_reason))
         infos.append(ProviderInfo("image", "none", "unavailable", [], "M2 图像切片未实现"))
@@ -192,6 +240,23 @@ class Registry:
         if "demo" in statuses:
             return "demo"
         return "unavailable"
+
+    def cache_telemetry(self) -> CacheTelemetry:
+        """§CACHE-2 的缓存读数（前缀复用 + provider 报账覆盖度）。
+
+        它不进 `/healthz`：healthz 有 1.5s 预算、被 web 每次探测，读数属于运维面，
+        放独立端点 `/v1/ai/cache-stats`，由需要的人来读。
+        """
+        return self._cache_telemetry
+
+    @property
+    def price_table(self) -> PriceTable:
+        """§COST-1 价目表。
+
+        只暴露这一件而不是整个 `Settings`：那里面有 `openai_api_key`，
+        而调用方（`execution.py` 算成本）只需要单价。
+        """
+        return self._settings.price_table
 
     def llm_cache_state(self) -> dict[str, Any] | None:
         """应用级 LLM 完成缓存的报文状态（可观测性面板读用）。

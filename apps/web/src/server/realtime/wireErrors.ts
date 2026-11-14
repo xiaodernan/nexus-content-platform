@@ -28,6 +28,8 @@ export const WIRE_ERROR_REASONS = [
   '线路名不认识',
   /** 帧序列化失败（内部生产者给了个 stringify 不了的东西） */
   '帧序列化',
+  /** 帧字节数超过 `MAX_FRAME_BYTES`（64 KiB）——pub/sub 无背压无死信，大帧直接丢弃 */
+  '帧超长',
   /** `publish` 到线路上失败：本机那半边已经送达，跨机那一半丢了 */
   '投递',
   /** 线路上的字节不是 JSON */

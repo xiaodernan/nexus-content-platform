@@ -67,13 +67,11 @@ const activeAccount = (runtime: ThreeRuntime, id: ReturnType<typeof sceneId>) =>
 
 describe('M5 v225 — a create* seam refuses an id the live record already holds', () => {
   let runtime: ThreeRuntime;
-  let backend: HeadlessBackend;
   let scene: ReturnType<ThreeRuntime['createScene']>;
 
   beforeEach(() => {
     const h = headlessRuntime();
     runtime = h.runtime;
-    backend = h.backend;
     scene = runtime.createScene('Collision Scene');
   });
 

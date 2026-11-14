@@ -21,7 +21,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const eh = await import(pathToFileURL('./agents/exec-host/dist/index.js').href);
-const { createExecHost, execTestRunner, gitEnv } = eh;
+const { createExecHost, execTestRunner } = eh;
 
 function mkTmp(prefix) {
   const base = join(tmpdir().replace(/\\/g, '/'), prefix);

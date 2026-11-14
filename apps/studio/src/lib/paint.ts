@@ -56,7 +56,10 @@ const num = (x: unknown, fallback: number) => (typeof x === 'number' && Number.i
 const alignOf = (x: unknown): TextAlign => (x === 'center' || x === 'right' ? x : 'left');
 
 export function resolveTextStyle(doc: DesignDocument, style: TextStyle) {
-  const family = String(tokenOf(doc, style.fontFamilyToken)?.$value ?? 'Inter, sans-serif');
+  // $value 来自 design token，类型是未知的：String() 它只会印出 "[object Object]"，
+  // 而字体族是要写进 CSS 的——是字符串就用它，不是就退回默认。
+  const familyValue = tokenOf(doc, style.fontFamilyToken)?.$value;
+  const family = typeof familyValue === 'string' ? familyValue : 'Inter, sans-serif';
   const sizePx = parseDimension(tokenOf(doc, style.sizeToken)?.$value, 16);
   const weight = num(style.weight, 400);
   const letterSpacing = num(style.letterSpacing, 0);

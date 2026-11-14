@@ -19,6 +19,8 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 
+from .providers.liveness import refresh_in_background
+
 # 加载 .env 文件（开发环境），生产环境由环境变量注入
 _env_file = Path(__file__).resolve().parent.parent.parent / ".env"
 if _env_file.exists():
@@ -63,6 +65,12 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
         worker = Worker(store, registry, capacity=job_capacity())
         await worker.start()
         app.state.nexus = _State(store, worker)
+        # 启动就起一次 embeddings 探测，但不在启动路径上等它：provider 慢的时候
+        # 把服务拉起来的代价变成 60s 等待，不值得。第一次 /healthz 可能仍写"未验证"，
+        # 那是一句实话；探测落地后下一次读到的就是网关的真答复（见 providers/liveness.py）。
+        prober = registry.embedding_prober()
+        if prober is not None:
+            refresh_in_background(registry.liveness, prober)
         try:
             yield
         finally:
@@ -105,6 +113,11 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
 
     @app.get("/healthz")
     async def healthz() -> dict[str, Any]:
+        # 结论过期就后台补一次，本次仍返回上一次已知结论：healthz 的预算是毫秒，
+        # 而 web 侧探测它的超时只有 1.5s（把网络等待放进健康检查，provider 一慢就整条链路变 DEMO）。
+        prober = registry.embedding_prober()
+        if prober is not None:
+            refresh_in_background(registry.liveness, prober)
         providers = registry.providers()
         state = runtime()
         pending, running = await state.store.counts() if state else (0, 0)
@@ -145,6 +158,33 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
     @app.get("/v1/capabilities")
     async def capabilities() -> dict[str, Any]:
         return await healthz()
+
+    @app.get("/v1/ai/cache-stats")
+    async def cache_stats() -> dict[str, Any]:
+        """§CACHE-2 / §CACHE-4：把"缓存到底有没有生效"拆成四本互不冒充的账。
+
+        1. `prefix`：用我们自己的字节算出来的稳定前缀复用率——**唯一与网关无关的硬指标**。
+           同一摘要重复出现 = 这一轮的前缀与上一轮逐字节相同 = provider 只要做前缀缓存就必然命中。
+        2. `appCache`：应用级 completion 缓存的真实命中（命中 = 0 token、0 网络、<1ms）。
+        3. `provider`：上游到底**报没报** `cached_tokens`（报了多少次、缺席多少次）。
+           `cached=0` 与"没报"是两件事，混成一句就是把缺席写成确定的 0 命中。
+        4. `upstream`：同一段稳定前缀在不同轮次被数成了多少 token。
+           字节逐字节相同却数出不同的数，只能是背后换了推理后端——那是
+           「读数不可比」，不是「我们的前缀在变」。没有这一维，两种情形在面板上
+           是同一个「命中率 40%」，而正确的处置完全相反。
+
+        为什么单独开端点而不塞进 `/healthz`：healthz 被 web 每次请求探测、预算 1.5s，
+        这里要的是运维面读数，不该跟着健康检查一起被拉。
+        """
+        return {
+            "prefix": registry.cache_telemetry().prefix.stats(),
+            "appCache": registry.llm_cache_state(),
+            "provider": registry.cache_telemetry().provider.stats(),
+            "upstream": registry.cache_telemetry().upstream.stats(),
+            # v706 §CACHE-4-AB：机器可读"本进程出站 LLM 走的是流式还是非流"——
+            # /admin/ai-cache 面板一格直接显示，不再让运维靠猜 / 靠看代码。
+            "transport": {"stream": bool(settings.llm_stream)},
+        }
 
     @app.post("/v1/ai/run")
     async def run(request: Request) -> JSONResponse:

@@ -47,21 +47,21 @@ export function NotificationSettings() {
       .finally(() => setSaving(false));
   }
 
-  if (!settings) return <p className="text-12 text-fg-3">加载设置中…</p>;
+  if (!settings) return <p className="ns-loading">加载设置中…</p>;
 
   return (
-    <section className="mt-6 rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-subtle)] bg-bg-1 p-4" data-notification-settings>
-      <h2 className="text-12 font-semibold text-fg-1">通知偏好（§164）</h2>
-      <p className="mt-1 text-11 text-fg-3">关掉某一类后，那类事件不会再往收件箱里插行。</p>
-      <ul className="mt-3 space-y-2">
+    <section className="ns-card" data-notification-settings>
+      <h2 className="ns-title">通知偏好（§164）</h2>
+      <p className="ns-desc">关掉某一类后，那类事件不会再往收件箱里插行。</p>
+      <ul className="ns-list">
         {(Object.keys(NOTIFICATION_KINDS) as NotificationKind[]).map((kind) => (
-          <li key={kind} className="flex items-center justify-between" data-notification-setting={kind}>
-            <span className="text-12 text-fg-2">{KIND_LABEL[kind]}</span>
+          <li key={kind} className="ns-row" data-notification-setting={kind}>
+            <span className="ns-kindLabel">{KIND_LABEL[kind]}</span>
             <button
               onClick={() => toggle(kind, !settings[kind])}
               disabled={saving}
-              className={`rounded px-2 py-1 text-11 ${
-                settings[kind] ? 'bg-accent-2 text-accent-fg' : 'bg-bg-2 text-fg-3'
+              className={`ns-toggle ${
+                settings[kind] ? 'ns-toggleOn' : 'ns-toggleOff'
               }`}
               aria-label={`${KIND_LABEL[kind]}：${settings[kind] ? '开启' : '关闭'}`}
             >

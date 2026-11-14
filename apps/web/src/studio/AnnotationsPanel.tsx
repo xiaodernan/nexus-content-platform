@@ -54,7 +54,7 @@ export function AnnotationsPanel() {
 
   return (
     <div
-      className="absolute bottom-3 left-3 z-40 flex max-w-[340px] flex-col gap-2"
+      className="np-root"
       data-annotations-root
       // 这块面板浮在画布上：不挡住 pointerdown 的话，点面板里任何一个控件都会
       // 被画布当成"点了空白处"，选中项被清空，刚写的批注就没地方钉了
@@ -64,17 +64,17 @@ export function AnnotationsPanel() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         data-annotations-toggle={open ? 'on' : 'off'}
-        className="self-start rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] bg-bg-1 px-2 py-1 text-11 text-fg-2 hover:bg-bg-2"
+        className="np-toggle"
       >
         批注 {mine.length} 条{onSelected.length ? ` · 选中元素上 ${onSelected.length}` : ''}
       </button>
 
       {open ? (
-        <div className="flex flex-col gap-2 rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-1 p-2" data-annotations-panel>
+        <div className="np-panel" data-annotations-panel>
           {selectedId && selectedNode ? (
             <>
-              <p className="text-11 text-fg-3">
-                钉在：<span className="text-fg-1">{selectedNode.name}</span>（{selectedNode.type} · {selectedId}）
+              <p className="np-lede">
+                钉在：<span className="np-name">{selectedNode.name}</span>（{selectedNode.type} · {selectedId}）
               </p>
               <textarea
                 value={text}
@@ -82,28 +82,28 @@ export function AnnotationsPanel() {
                 rows={2}
                 maxLength={1000}
                 placeholder="例如：这个按钮太大"
-                className="rounded bg-bg-2 px-2 py-1 text-12 text-fg-1"
+                className="np-input"
                 data-annotation-input
               />
               <button
                 type="button"
                 disabled={busy || !text.trim()}
                 onClick={() => void submit()}
-                className="self-start rounded bg-accent-2 px-2 py-1 text-11 text-accent-fg disabled:opacity-50"
+                className="np-submit"
                 data-annotation-submit
               >
                 {busy ? '写入中…' : '批注这个元素'}
               </button>
             </>
           ) : (
-            <p className="text-11 text-fg-3" data-annotation-hint>
+            <p className="np-lede" data-annotation-hint>
               {state.selection.length > 1
                 ? '先只选一个元素再批注：对着五个元素说"这个太大"，定位就成了猜。'
                 : '在画布上点一个元素，再回来写批注。'}
             </p>
           )}
           {error ? (
-            <p className="text-11 text-danger-ink" data-annotation-error>
+            <p className="am-triageError" data-annotation-error>
               {error}
             </p>
           ) : null}
@@ -112,33 +112,33 @@ export function AnnotationsPanel() {
             <button
               type="button"
               onClick={() => setHideResolved((v) => !v)}
-              className="self-start text-11 text-fg-3 hover:text-fg-2"
+              className="np-resolved"
               data-annotations-resolved-filter={hideResolved ? 'hiding' : 'showing'}
             >
               {hideResolved ? `显示已解决的 ${resolvedCount} 条` : '收起已解决的批注'}
             </button>
           ) : null}
 
-          <ul className="flex max-h-[220px] flex-col gap-1 overflow-auto" data-annotation-list>
+          <ul className="np-list" data-annotation-list>
             {shown.map((a) => (
               <li
-                className="border-t border-[var(--nexus-color-border-subtle)] pt-1 text-11"
+                className="np-item"
                 data-annotation={a.nodeId}
                 data-annotation-resolved={a.resolvedAt ? 'on' : 'off'}
                 key={a.id}
               >
-                <span className={a.resolvedAt ? 'text-fg-3 line-through' : 'text-fg-1'}>{a.body}</span>
-                <span className="block text-fg-3">
+                <span className={a.resolvedAt ? 'np-bodyOff' : 'np-bodyOn'}>{a.body}</span>
+                <span className="np-meta">
                   {a.nodeName} · {a.pageName} · {a.author}
                   {a.pageName === '(节点已不在文档里)' ? ' · 节点已不在文档里' : ''}
                   {a.resolvedAt ? ' · 已解决' : ''}
                 </span>
-                <span className="mt-[2px] flex gap-2">
+                <span className="np-actions">
                   <button
                     type="button"
                     disabled={resolving === a.id}
                     onClick={() => void resolve(a.id, a.resolvedAt === null)}
-                    className="text-fg-3 hover:text-fg-1 disabled:opacity-50"
+                    className="np-linkBtn"
                     data-annotation-resolve={a.id}
                   >
                     {resolving === a.id ? '…' : a.resolvedAt ? '重新打开' : '标为已解决'}
@@ -146,7 +146,7 @@ export function AnnotationsPanel() {
                   <button
                     type="button"
                     onClick={() => void studio.removeAnnotation(a.id)}
-                    className="text-fg-3 hover:text-danger-ink"
+                    className="np-removeBtn"
                     data-annotation-remove={a.id}
                   >
                     删除
@@ -155,7 +155,7 @@ export function AnnotationsPanel() {
               </li>
             ))}
             {shown.length === 0 ? (
-              <li className="text-11 text-fg-3">
+              <li className="np-lede">
                 {mine.length === 0 ? '这一页还没有批注。' : '这一页的批注都已标记为已解决。'}
               </li>
             ) : null}

@@ -114,6 +114,41 @@ class PublishControllerTest {
     }
 
     @Test
+    void theReceiptUsesTheCallersAddressWhenTheGatewaySaysSo() {
+        // Behind the gateway the request reaches this process on an internal address (host:8081), but the
+        // caller typed the gateway's. The gateway forwards the address the CLIENT used; the receipt must name
+        // that one, because the internal instance address is one the caller cannot open.
+        MockHttpServletRequest viaGateway = new MockHttpServletRequest();
+        viaGateway.addHeader("X-Nexus-Original-URL", "https://studio.example.test");
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(viaGateway));
+
+        when(service.find("pub-1")).thenReturn(Optional.empty());
+        when(service.publish(eq("pub-1"), any(), any(), any())).thenReturn(row("pub-1", "Harbour", 1));
+
+        ResponseEntity<Receipt> res = controller.publish("pub-1", new PublishRequest("Harbour", document(), claim()));
+
+        assertThat(res.getBody()).isNotNull();
+        assertThat(res.getBody().url()).isEqualTo("https://studio.example.test/projects/pub-1");
+    }
+
+    @Test
+    void aBlankCallerAddressHeaderFallsBackToThisServersOwnAddress() {
+        // A blank header is not an address. Falling back to the request's own base keeps a direct call — or a
+        // gateway that forward-filled an empty value — producing a usable URL instead of "/projects/pub-1".
+        MockHttpServletRequest blank = new MockHttpServletRequest();
+        blank.addHeader("X-Nexus-Original-URL", "   ");
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(blank));
+
+        when(service.find("pub-1")).thenReturn(Optional.empty());
+        when(service.publish(eq("pub-1"), any(), any(), any())).thenReturn(row("pub-1", "Harbour", 1));
+
+        ResponseEntity<Receipt> res = controller.publish("pub-1", new PublishRequest("Harbour", document(), claim()));
+
+        assertThat(res.getBody()).isNotNull();
+        assertThat(res.getBody().url()).startsWith("http://localhost").endsWith("/projects/pub-1");
+    }
+
+    @Test
     void aMissingOrJsonNullDocumentIsPassedThroughAsNull() {
         when(service.find("pub-1")).thenReturn(Optional.empty());
         when(service.publish(eq("pub-1"), any(), eq(null), any())).thenReturn(row("pub-1", "Harbour", 1));

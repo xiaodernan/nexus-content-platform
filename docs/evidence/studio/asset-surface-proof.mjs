@@ -174,7 +174,7 @@ const routed = {
   generate: async (request) => (request.type === 'video' ? videos.generate(request) : imageOnly.generate(request)),
 };
 
-const beforeVideo = await buildAssetReport(library, storyboards, consistency, report.provenanceMode, built.storyboardId);
+await buildAssetReport(library, storyboards, consistency, report.provenanceMode, built.storyboardId);
 const footage = await generateAsset(routed, library, 'a skiff crossing the harbour, three seconds', 'video');
 const footageEntry = await library.get(footage.assetId);
 assert.ok(footageEntry, 'the footage is retrievable from the library');

@@ -86,16 +86,20 @@ export interface ProviderInfo {
   available: boolean;
 }
 
+// The provider methods are declared `this: void` on purpose: none of the shipped implementations
+// touches `this` (the demo providers read nothing from the instance), and saying so is what lets a
+// caller hand one of these functions to something else — a mock's `expect(...).not.toHaveBeenCalled()`,
+// a registry that stores it — without the `this` silently changing underneath.
 export interface DesignProvider extends ProviderInfo {
-  generate(req: GenerateDesignRequest): Promise<GenerateDesignResult>;
-  edit(req: EditDesignRequest): Promise<GenerateDesignResult>;
+  generate(this: void, req: GenerateDesignRequest): Promise<GenerateDesignResult>;
+  edit(this: void, req: EditDesignRequest): Promise<GenerateDesignResult>;
 }
 export interface EmbeddingProvider extends ProviderInfo {
-  embed(req: EmbedRequest): Promise<EmbedResult>;
+  embed(this: void, req: EmbedRequest): Promise<EmbedResult>;
 }
 export interface RerankerProvider extends ProviderInfo {
-  rank(req: RankRequest): Promise<RankResult>;
+  rank(this: void, req: RankRequest): Promise<RankResult>;
 }
 export interface ImageProvider extends ProviderInfo {
-  textToImage(req: ImageRequest): Promise<ImageResult>;
+  textToImage(this: void, req: ImageRequest): Promise<ImageResult>;
 }

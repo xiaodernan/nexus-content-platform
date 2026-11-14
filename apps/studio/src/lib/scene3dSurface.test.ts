@@ -1805,13 +1805,13 @@ describe('M5 v244 — addCamera / removeCamera through the shipped seam (the rea
   it('a camera the scene does not hold is answered BEFORE the runtime is asked', () => {
     const { headless, surface } = camerasOnHeadless();
     const asked: string[] = [];
-    const real = headless.runtime.removeCamera;
+    const real = headless.runtime.removeCamera.bind(headless.runtime);
     // A contract-faithful wrapper: it records, then delegates. An id this surface never saw in a row must
     // not reach the verb at all — the pre-lookup is this grant's own rule, and this is the only shape that
     // can measure it on the real package.
     headless.runtime.removeCamera = (sceneId, cameraId) => {
       asked.push(String(cameraId));
-      return real.call(headless.runtime, sceneId, cameraId);
+      return real(sceneId, cameraId);
     };
 
     const refused = surface.removeCamera('cam-no-such-row');

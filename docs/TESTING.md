@@ -72,6 +72,7 @@ run concurrently; build the affected package directly with `tsc -p tsconfig.json
 | 服务 | pytest（`apps/ai-service/tests`） | 契约校验、Model Router、provider 成功/失败/噪声、审批门、dryRun、体积上限 | ai-service 改动 |
 | 集成 | Vitest + 真 Postgres(容器) | 项目 CRUD、snapshot/branch、publish、usage | 每里程碑 |
 | 集成（跨实例） | Vitest + 真 Redis(容器)，另加 `npm run realtime:two-process` 起真实第二个进程 | 实时总线扇出：进程与进程之间的投递、关门、坏帧、线路断开不拖业务（§163 / ADR-0028） | 实时驱动或连接参数改动 |
+| 服务（JVM / Spring Cloud） | Maven Surefire：`mvn -f services/<模块>/pom.xml test`（registry / config / gateway / api / domain）；网关那只共享限流桶另加 `npm run ratelimit:gateway-lua`（真 Redis、零 JVM，脚本正文从 Java text block 里读出、打印 sha256，6 条判据，臂 L1–L5 见 ROADMAP §SC 第十一片） | 注册与路由、边界策略（413/429/503 与 fallback 正文）、逐实例健康读数、配置中心客户端、限流后端；Lua 桶的共享计数/原子性/服务端钟补水/TTL | Java 模块或限流脚本改动 |
 | 端到端 | Playwright | Studio 全流程竖向切片（见下 Golden Path） | 每里程碑 + 发布前 |
 | 视觉 | Playwright screenshot + Visual Benchmark | 渲染快照、AI Diff 前后对比、参考图 vs 生成图 | Studio/渲染器改动 |
 | Agent 评测 | `npm run evals`（`evals/` 按能力分套件、十套、全绿 exit 0；`--list`/`--suite` 经 CLI 选片）· `npm run evals:baseline`（`scripts/eval-baseline.mts`，真库基线） | 确定性套件（当前十二套全绿 · 290 checks）：`code-index 19 · model-roundtrip 13 · export-roundtrip 17（需真库，skip sentinel）· video-plan 30 · world-build 55 · schemas-contract 17 · game-build 36 · design-build 46 · project-bundle 14 · local-embedding 14（§49 本地 token-bag 检索自洽） · local-reranker 15（§93 本地 token-bag 重排自洽） · demo-mode 14（§159/§160 DEMO 诚实）`；真库基线：RAG / 设计精度 / 视觉 / 无障碍 | 评测框架与套件改动时
@@ -2464,3 +2465,21 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   - `store-selection-stress.test.ts`（§147 #32 压力版 1 条，`43eb15b`）
   `git ls-files -- '**/*.test.ts' '**/*.test.mts'` `= 272` 与两片之和一致。
   证据日志 `shard1-2026-11-09c.log（生成时的证据日志，GBK 损坏，本仓已弃用）`、`shard2-2026-11-09c.log（生成时的证据日志，GBK 损坏，本仓已弃用）` 已 `git add -f` 入库。
+- **2026-11-09：§85 第四十四片 机检 review 态（页面已发出去，复核不是挡下）**——`e2e/a11y-opened.spec.ts`
+  新增一条。**真发布先发生**：`page.route('**/api/projects/*/publish')` 里先 `route.fetch()` 让服务端
+  真的发布、落下 publication 并返回真回执，只把 `body.scan` 改写成合规的 review 结构
+  （`ad-disclosure` / `level:'review'` / 一条 finding / 两条 limits / scanned 1·8·0），
+  `route.fulfill({ response, json: body })` 保留状态码与头——成功不是注入造出来的，只有裁决那一个字段
+  是构造的。夹具若已被上一轮发布过，先点 `[data-publish-off]` 收回来再发。跑法同上，
+  `-g "机检挂人工复核"` 单跑。断言链：`[data-publish-scan]` 可见且 `role=status`；结果块可见、
+  `[data-publish-url]` 恰好 1 个、顶栏 `已发布 vN`（N 从结果块文本读，不硬编码）；`[data-scan-decision]`
+  同时含「1 项挂人工复核」「页面已发出去」；`[data-scan-finding="ad-disclosure"]` 的 rule / why / where /
+  quote 逐项在；`[data-scan-limit]` 恰好 2 条；无 `[data-publish-error]`、无 `[data-publish-busy]`。
+  读数：**28 通过 / 35 不适用 / 0 违规**，critical 全 0；**1 passed（16.8s）**。截图
+  `screenshots/a11y-opened-publish-scan-review.png` 人工看过（顶栏 v26、裁决句与发现条目同屏）。
+  **三条臂**：N1 裁决块去 `role="status"` → 红在 `toHaveAttribute('role','status')`；
+  N2 review 文案改成 clear 口径 → 红在 `toHaveText(/1 项挂人工复核.*页面已发出去/)`
+  （unexpected `"机检（2026-11-02.1）：这次没命中规则。"`）；N3 发现条目把 `data-scan-finding`
+  固定成 `other` → 红在 `toHaveCount(1)`（Received 0）。三条臂后逐字节还原，
+  `git diff -- apps/web/src/studio/PublishPanel.tsx` 为空，复跑 **1 passed**。
+  notMeasured：真服务端 5xx / 413、390 下弹层、焦点陷阱。

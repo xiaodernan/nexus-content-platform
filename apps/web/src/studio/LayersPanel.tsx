@@ -5,21 +5,73 @@ import { CONTAINER_TYPES, type DesignNode, type NodeType } from '@nexus/creative
 import { cn } from '@/lib/cn';
 import { flattenLayers, keepAncestors, type LayerRow as LayerRowData } from './layers-flat';
 import { studio, useStudioReady } from './store';
+import type { Locale } from '@/lib/i18n';
 
-const ADD_TYPES: { type: NodeType; label: string }[] = [
-  { type: 'section', label: 'Section' },
-  { type: 'container', label: '容器' },
-  { type: 'text', label: '文本' },
-  { type: 'button', label: '按钮' },
-  { type: 'input', label: '输入框' },
-  { type: 'image', label: '图片' },
-  { type: 'card', label: '卡片' },
-  { type: 'grid', label: '网格' },
-  { type: 'shape', label: '形状' },
-];
+/** 双语（v731）：一中一英、逐 key 对齐；键盘字面与 aria-label/title 保持同一套措辞。 */
+const COPY = {
+  zh: {
+    searchAria: '搜索图层',
+    searchPlaceholder: '搜索图层 / 文本',
+    filterTitle: '按类型过滤',
+    all: '全部',
+    containerChip: '容器',
+    textChip: '文本',
+    mediaChip: '媒体',
+    typeChip: '容器',
+    addType: {
+      section: 'Section',
+      container: '容器',
+      text: '文本',
+      button: '按钮',
+      input: '输入框',
+      image: '图片',
+      card: '卡片',
+      grid: '网格',
+      shape: '形状',
+    } as Record<NodeType, string>,
+    newPage: '新建页面',
+    emptyFiltered: '没有匹配的图层',
+    layerNameAria: '图层名',
+    hide: '隐藏',
+    show: '显示',
+    unlock: '解锁',
+    lock: '锁定',
+  },
+  en: {
+    searchAria: 'Search layers',
+    searchPlaceholder: 'Search layers / text',
+    filterTitle: 'Filter by type',
+    all: 'All',
+    containerChip: 'Container',
+    textChip: 'Text',
+    mediaChip: 'Media',
+    typeChip: 'Container',
+    addType: {
+      section: 'Section',
+      container: 'Container',
+      text: 'Text',
+      button: 'Button',
+      input: 'Input',
+      image: 'Image',
+      card: 'Card',
+      grid: 'Grid',
+      shape: 'Shape',
+    } as Record<NodeType, string>,
+    newPage: 'New page',
+    emptyFiltered: 'No matching layers',
+    layerNameAria: 'Layer name',
+    hide: 'Hide',
+    show: 'Show',
+    unlock: 'Unlock',
+    lock: 'Lock',
+  },
+} as const;
 
 /** §5 Layers 树：重命名 / 显隐 / 锁定 / 拖拽改父级 / 多选 / 搜索 / 按类型过滤 */
-export function LayersPanel() {
+const ADD_KINDS = ['section', 'container', 'text', 'button', 'input', 'image', 'card', 'grid', 'shape'] as const satisfies readonly NodeType[];
+
+export function LayersPanel({ locale = 'zh' }: { locale?: Locale } = {}) {
+  const c = COPY[locale];
   const state = useStudioReady();
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'container' | 'text' | 'media'>('all');
@@ -94,47 +146,47 @@ export function LayersPanel() {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="flex items-center gap-1 border-b border-[var(--nexus-color-border-subtle)] px-[var(--nexus-space-2)] py-[var(--nexus-space-2)]">
-        <input aria-label="搜索图层"
+    <div className="ly-root">
+      <div className="ly-header">
+        <input aria-label={c.searchAria}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="搜索图层 / 文本"
-          className="min-w-0 flex-1 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12 placeholder:text-fg-3"
+          placeholder={c.searchPlaceholder}
+          className="ly-search"
         />
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)}
-          className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1 py-1 text-12 text-fg-2"
-          title="按类型过滤"
+          className="ly-filter"
+          title={c.filterTitle}
         >
-          <option value="all">全部</option>
-          <option value="container">容器</option>
-          <option value="text">文本</option>
-          <option value="media">媒体</option>
+          <option value="all">{c.all}</option>
+          <option value="container">{c.containerChip}</option>
+          <option value="text">{c.textChip}</option>
+          <option value="media">{c.mediaChip}</option>
         </select>
-        <div className="relative">
+        <div className="ly-rel">
           <button
             type="button"
             onClick={() => setAdding((v) => !v)}
-            className="rounded-[var(--nexus-radius-sm)] bg-brand px-2 py-1 text-12 text-accent-fg"
+            className="ly-addBtn"
             data-add-node
           >
             +
           </button>
           {adding ? (
-            <div className="absolute right-0 top-7 z-50 w-[140px] rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-subtle)] bg-bg-1 p-1 shadow-panel">
-              {ADD_TYPES.map((item) => (
+            <div className="ly-drop">
+              {ADD_KINDS.map((type) => (
                 <button
-                  key={item.label}
+                  key={type}
                   type="button"
                   onClick={() => {
-                    studio.addNode(item.type);
+                    studio.addNode(type);
                     setAdding(false);
                   }}
-                  className="block w-full rounded-[var(--nexus-radius-sm)] px-2 py-1 text-left text-12 text-fg-1 hover:bg-bg-2"
+                  className="ly-dropItem"
                 >
-                  {item.label}
+                  {c.addType[type]}
                 </button>
               ))}
             </div>
@@ -142,17 +194,14 @@ export function LayersPanel() {
         </div>
       </div>
 
-      <div className="flex gap-1 overflow-x-auto border-b border-[var(--nexus-color-border-subtle)] px-[var(--nexus-space-2)] py-[var(--nexus-space-1)]">
+      <div className="ly-pageTabs">
         {state.document.pages.map((p) => (
           <button
             key={p.id}
             type="button"
             onClick={() => studio.setPage(p.id)}
             data-page-tab={p.name}
-            className={cn(
-              'shrink-0 rounded-[var(--nexus-radius-sm)] px-[var(--nexus-space-2)] py-1 text-12',
-              p.id === page.id ? 'bg-bg-3 text-fg-1' : 'text-fg-3 hover:bg-bg-2',
-            )}
+            className={cn('ly-pageBtn', p.id === page.id && 'ly-pageBtnActive')}
           >
             {p.name}
           </button>
@@ -160,8 +209,8 @@ export function LayersPanel() {
         <button
           type="button"
           onClick={() => studio.addPage(`Page ${state.document.pages.length + 1}`)}
-          className="shrink-0 rounded-[var(--nexus-radius-sm)] px-2 py-1 text-12 text-fg-3 hover:bg-bg-2"
-          title="新建页面"
+          className="ly-pageAdd"
+          title={c.newPage}
         >
           +
         </button>
@@ -175,15 +224,15 @@ export function LayersPanel() {
         onScroll={measure}
         data-layer-scroll
         data-layer-total={rows.length}
-        className="min-h-0 flex-1 overflow-auto py-[var(--nexus-space-1)]"
+        className="ly-scroller"
         onDragOver={(e) => e.preventDefault()}
         onDrop={() => dragId && onDropNode(page.rootId)}
       >
-        <div className="relative" style={{ height: rows.length * ROW_H }}>
+        <div className="ly-spacer" style={{ height: rows.length * ROW_H }}>
           {rows.slice(range.start, range.end).map((row, i) => (
             <div
               key={row.node.id}
-              className="absolute inset-x-0"
+              className="ly-rowShell"
               style={{ top: (range.start + i) * ROW_H, height: ROW_H }}
             >
               <LayerRow
@@ -194,11 +243,12 @@ export function LayersPanel() {
                 onToggleCollapse={(id) => setCollapsed((c) => ({ ...c, [id]: !c[id] }))}
                 onDragStart={setDragId}
                 onDropNode={onDropNode}
+                locale={locale}
               />
             </div>
           ))}
         </div>
-        {!rows.length ? <p className="px-[var(--nexus-space-3)] py-[var(--nexus-space-2)] text-12 text-fg-3">没有匹配的图层</p> : null}
+        {!rows.length ? <p className="ly-empty">{c.emptyFiltered}</p> : null}
       </div>
     </div>
   );
@@ -216,7 +266,9 @@ function LayerRow(props: {
   onToggleCollapse: (id: string) => void;
   onDragStart: (id: string) => void;
   onDropNode: (id: string) => void;
+  locale: Locale;
 }) {
+  const c = COPY[props.locale];
   const { row, selection } = props;
   const node = row.node;
   const depth = row.depth;
@@ -257,10 +309,7 @@ function LayerRow(props: {
           setDraft(node.name);
           setRenaming(true);
         }}
-        className={cn(
-          'flex h-full cursor-default items-center gap-1 px-[var(--nexus-space-2)] text-12',
-          selected ? 'bg-bg-3 text-fg-1' : 'text-fg-2 hover:bg-bg-2',
-        )}
+        className={cn('ly-row', selected && 'ly-rowSelected')}
         style={{ paddingLeft: `calc(var(--nexus-space-2) + ${depth * 12}px)` }}
       >
         <button
@@ -269,16 +318,16 @@ function LayerRow(props: {
             e.stopPropagation();
             if (isContainer) props.onToggleCollapse(node.id);
           }}
-          className="inline-flex min-h-6 w-6 shrink-0 items-center justify-center text-fg-3"
+          className="ly-iconBtn"
         >
           {isContainer ? (open ? '▾' : '▸') : '·'}
         </button>
-        <span className="w-[52px] shrink-0 truncate font-mono text-12 text-fg-3">{node.type}</span>
+        <span className="ly-typeChip">{node.type}</span>
         {renaming ? (
           <input
             autoFocus
             value={draft}
-            aria-label="图层名"
+            aria-label={c.layerNameAria}
             onChange={(e) => setDraft(e.target.value)}
             onBlur={commitRename}
             onKeyDown={(e) => {
@@ -286,37 +335,31 @@ function LayerRow(props: {
               if (e.key === 'Enter') commitRename();
               if (e.key === 'Escape') setRenaming(false);
             }}
-            className="min-w-0 flex-1 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1 text-12"
+            className="ly-rename"
             data-layer-rename
           />
         ) : (
-          <span className="min-w-0 flex-1 truncate">{node.name}</span>
+          <span className="ly-name">{node.name}</span>
         )}
         <button
           type="button"
-          title={node.visible ? '隐藏' : '显示'}
+          title={node.visible ? c.hide : c.show}
           onClick={(e) => {
             e.stopPropagation();
             studio.setVisible(node.id, !node.visible);
           }}
-          className={cn(
-            'inline-flex min-h-6 w-6 shrink-0 items-center justify-center rounded',
-            node.visible ? 'text-fg-3' : 'text-danger-ink',
-          )}
+          className={cn('ly-iconBtn', !node.visible && 'ly-danger')}
         >
           {node.visible ? '◉' : '◌'}
         </button>
         <button
           type="button"
-          title={node.locked ? '解锁' : '锁定'}
+          title={node.locked ? c.unlock : c.lock}
           onClick={(e) => {
             e.stopPropagation();
             studio.setLocked(node.id, !node.locked);
           }}
-          className={cn(
-            'inline-flex min-h-6 w-6 shrink-0 items-center justify-center rounded',
-            node.locked ? 'text-warn-ink' : 'text-fg-3',
-          )}
+          className={cn('ly-iconBtn', node.locked && 'ly-warn')}
         >
           {node.locked ? '⊘' : '○'}
         </button>

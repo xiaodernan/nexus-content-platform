@@ -55,6 +55,7 @@ class OpenAICompatibleProvider:
         models: Mapping[str, str],
         timeout_s: float = 60.0,
         json_mode: bool = True,
+        prompt_cache_key: str | None = None,
         transport: httpx.BaseTransport | None = None,
         max_attempts: int = 1,
         base_s: float = 0.5,
@@ -83,6 +84,7 @@ class OpenAICompatibleProvider:
             raise ValueError("max_attempts 必须 >= 1（1=不重试，pass-through）")
         self._models = dict(models)
         self._json_mode = json_mode
+        self._prompt_cache_key = prompt_cache_key
         self._max_attempts = max_attempts
         self._base_s = base_s
         self._cap_s = cap_s
@@ -132,12 +134,27 @@ class OpenAICompatibleProvider:
         return value
 
     @staticmethod
-    def _usage_details(usage: Mapping[str, Any] | None) -> tuple[int, int]:
-        """provider 自己报的 cached / reasoning token 数（可能都不报，都取 0）。"""
+    def _usage_details(usage: Mapping[str, Any] | None) -> tuple[int, int, bool]:
+        """provider 自己报的 cached / reasoning token 数，以及**它到底报没报**。
+
+        cached 依次读两个官方位置：OpenAI 路径 `prompt_tokens_details.cached_tokens`，
+        DeepSeek 路径 `prompt_cache_hit_tokens`（顶层）。都不给就取 0，一字不猜。
+
+        第三个返回值（§CACHE-2）区分两件常被混为一谈的事：
+        `cached=0` 与"没报"。流式路径实测拿不到 `prompt_tokens_details`——
+        那是"缺席"，不是"命中 0"；账本必须能分辨，否则会把缺席写成一次确定的 0 命中。
+        """
         u = usage or {}
         pin = u.get("prompt_tokens_details") or {}
         cout = u.get("completion_tokens_details") or {}
-        cached = pin.get("cached_tokens") if isinstance(pin, Mapping) else 0
+        reported = False
+        cached = 0
+        if isinstance(pin, Mapping) and "cached_tokens" in pin:
+            reported = True
+            cached = pin.get("cached_tokens")
+        elif "prompt_cache_hit_tokens" in u:
+            reported = True
+            cached = u.get("prompt_cache_hit_tokens")
         reasoning = cout.get("reasoning_tokens") if isinstance(cout, Mapping) else 0
         try:
             cached_n = int(cached or 0)
@@ -147,7 +164,7 @@ class OpenAICompatibleProvider:
             reasoning_n = int(reasoning or 0)
         except (TypeError, ValueError):
             reasoning_n = 0
-        return cached_n, reasoning_n
+        return cached_n, reasoning_n, reported
 
     def _complete_via_sse(self, *, model: str, system: str, user: str, json_mode: bool, body_options: dict) -> Completion:
         """流式路径（SSE）：用 `stream_options.include_usage=true` 把 provider 自己报的
@@ -167,6 +184,9 @@ class OpenAICompatibleProvider:
         if json_mode:
             body["response_format"] = {"type": "json_object"}
         body.update(body_options)
+        if self._prompt_cache_key:
+            # 流式同样钉在同一 cache lane（wkapi.pro 对 stream 只砍掉 usage 帧，cache 本身照常生效）
+            body["prompt_cache_key"] = self._prompt_cache_key
 
         if self._breaker is not None:
             self._breaker.before_call()
@@ -224,7 +244,7 @@ class OpenAICompatibleProvider:
             self._breaker.record_success()
 
         usage_map = usage or {}
-        cached, reasoning = self._usage_details(usage_map)
+        cached, reasoning, cache_reported = self._usage_details(usage_map)
         return Completion(
             text="".join(text_parts),
             provider=self.name,
@@ -234,6 +254,7 @@ class OpenAICompatibleProvider:
             latency_ms=round(latency_ms, 1),
             cached_tokens=cached,
             reasoning_tokens=reasoning,
+            cache_reported=cache_reported,
         )
 
     def complete(self, *, model: str, system: str, user: str, json_mode: bool | None = None) -> Completion:
@@ -262,6 +283,10 @@ class OpenAICompatibleProvider:
         }
         if use_json:
             body["response_format"] = {"type": "json_object"}
+        if self._prompt_cache_key:
+            # OpenAI 官方 prompt_cache_key：把同一 workload 的补丁式请求钉到同一分片，命中自动提示缓存
+            # （wkapi.pro 实测：不给 key 时 cached_tokens 恒为 0；给了后一次调用 5376/5603 tokens 命中）
+            body["prompt_cache_key"] = self._prompt_cache_key
 
         # v682 断路器门卫（坑①：真接进调用链）：OPEN 时抛 CircuitOpen，一次 HTTP 都不发。
         # 默认 breaker=None 时整段跳过，与 v681 字节级一致（零回归）。
@@ -324,7 +349,7 @@ class OpenAICompatibleProvider:
             self._breaker.record_success()
 
         usage = payload.get("usage") or {}
-        cached, reasoning = self._usage_details(usage)
+        cached, reasoning, cache_reported = self._usage_details(usage)
         return Completion(
             text=choice or "",
             provider=self.name,
@@ -334,6 +359,7 @@ class OpenAICompatibleProvider:
             latency_ms=round(latency_ms, 1),
             cached_tokens=cached,
             reasoning_tokens=reasoning,
+            cache_reported=cache_reported,
         )
 
     def close(self) -> None:

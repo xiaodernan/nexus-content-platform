@@ -123,11 +123,16 @@ describe('§75 用量那一格：0 与"没记"是两件事', () => {
     modelClass: 'balanced',
     tokensIn: 1234,
     tokensOut: 567,
+    // §CACHE-3：一次真的命中（不是 0）——拿 0 当样本测不出「报了 0」与「没报」的区别
+    cachedTokens: 861,
+    cacheReported: true,
     latencyMs: 2345,
-    costUsd: 0,
+    // §COST-1：配了单价表算出来的真实金额（不是 0，也不是「未计价」）
+    costUsd: 0.0021,
+    costBasis: 'configured' as const,
     toolCalls: 2,
     demoMode: false,
-    cachedTokens: 1184,
+    /** v690（并轨合并）：思考模型推理段 tokens，默认 0（本 fixture 不启用推理） */
     reasoningTokens: 0,
   };
 
@@ -157,6 +162,23 @@ describe('§75 用量那一格：0 与"没记"是两件事', () => {
     const partial: Record<string, unknown> = { ...realUsage };
     delete partial.costUsd;
     const parsed = TasksLedgerSchema.safeParse(ledgerPayload([taskRow({ usage: partial })]));
+    expect(parsed.success).toBe(false);
+  });
+
+  it('§CACHE-3 老账本没有 cacheReported：默认 false（"没报"），不冒充"命中 0"', () => {
+    // 库里的老 jsonb 只有 cachedTokens，没有这一维。读出来的必须是「没报」，
+    // 而不是把那次生成说成"缓存一次都没命中"——后者是一句具体的谎。
+    const legacy: Record<string, unknown> = { ...realUsage };
+    delete legacy.cacheReported;
+    const parsed = TasksLedgerSchema.safeParse(ledgerPayload([taskRow({ usage: legacy })]));
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    expect(parsed.data.tasks[0]!.usage?.cacheReported).toBe(false);
+  });
+
+  it('§CACHE-3 cacheReported 必须真是布尔：字符串 "false" 不许混过关', () => {
+    const bad = { ...realUsage, cacheReported: 'false' };
+    const parsed = TasksLedgerSchema.safeParse(ledgerPayload([taskRow({ usage: bad })]));
     expect(parsed.success).toBe(false);
   });
 

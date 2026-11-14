@@ -29,5 +29,13 @@
     "playwright.config.ts",
     "eslint.config.mjs",
     "apps/web/postcss.config.mjs",
+    // 证据脚本与 tools/ 下的跑批脚本：它们不在任何 package tsconfig 里，allowJs 让它们进这个项目
+    // （allowJs 已开、checkJs 关，所以 .mjs 不产生类型错误，只是给类型感知规则一份类型信息）。
+    "docs/evidence/**/*.mjs",
+    "tools/**/*.mjs",
+    "tools/**/*.ts",
+    // studio 的两个配置：apps/studio/tsconfig.json 只 include src/**，这两个在包根上。
+    "apps/studio/next.config.ts",
+    "apps/studio/vitest.config.ts",
   ]
 }

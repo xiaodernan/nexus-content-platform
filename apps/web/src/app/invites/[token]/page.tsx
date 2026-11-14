@@ -16,19 +16,16 @@ export default async function InviteAcceptPage({ params }: { params: Promise<{ t
   const { token } = await params;
   const user = await currentUserOrNull();
   return (
-    <main className="mx-auto flex w-full max-w-[560px] flex-col gap-[var(--nexus-space-4)] px-[var(--nexus-space-4)] py-[var(--nexus-space-6)]" data-invite-accept-page>
-      <header className="relative flex flex-col gap-1 overflow-hidden rounded-xl border border-[var(--nexus-color-border-subtle)] bg-gradient-to-br from-bg-1 via-bg-2 to-bg-1 px-6 py-6">
-        {/* ambient glow — pure CSS */}
-        <span aria-hidden="true" className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[radial-gradient(circle,rgb(91_108_255/0.22),transparent_70%)] blur-2xl" />
-        <span className="font-mono text-10 uppercase tracking-[0.22em] text-[var(--nexus-color-accent-2-ink)]">TEAM INVITE</span>
-        <h1 className="mt-1 text-[var(--nexus-font-size-24)] font-bold tracking-tight text-fg-1">接受项目邀请</h1>
+    <main className="iv-page" data-invite-accept-page>
+      <header className="iv-head">
+        <h1 className="iv-title">接受项目邀请</h1>
         {user ? (
-          <p className="text-12 text-fg-3">
-            你正在以 <span className="text-fg-1">{user.email ?? user.displayName ?? '当前用户'}</span> 的身份接受邀请。
+          <p className="iv-lede">
+            你正在以 <span className="iv-ledeStrong">{user.email ?? user.displayName ?? '当前用户'}</span> 的身份接受邀请。
             如果这封邀请不是发给这个邮箱的，服务端会拒绝——换个账号登录再来。
           </p>
         ) : (
-          <p className="text-12 text-fg-3">
+          <p className="iv-lede">
             接受邀请需要先登录：服务端要核对你的邮箱与邀请发给的邮箱是不是同一个。
             登录后重新打开这条链接即可。
           </p>
@@ -37,7 +34,7 @@ export default async function InviteAcceptPage({ params }: { params: Promise<{ t
       {user ? (
         <InviteAcceptPanel token={token} />
       ) : (
-        <Link href="/" className="text-13 text-accent-2-ink underline">
+        <Link href="/" className="iv-backlink">
           回首页登录
         </Link>
       )}

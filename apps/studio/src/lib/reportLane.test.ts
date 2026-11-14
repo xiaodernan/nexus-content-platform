@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { CALL_TIMEOUT_MS, fileReport, readMyReports, withdrawReport } from './reportLane';
+import { bodyText } from './fetchBody';
 
 /**
  * M7 v305 — the browser half of the REPORTER’s view.
@@ -181,7 +182,7 @@ describe('reportLane — fileReport (v441)', () => {
     expect(seenUrl).toBe('/api/reports');
     expect(seenInit?.method).toBe('POST');
     expect(seenInit?.headers).toEqual({ 'content-type': 'application/json', accept: 'application/json' });
-    expect(JSON.parse(String(seenInit?.body))).toEqual({
+    expect(JSON.parse(bodyText(seenInit))).toEqual({
       projectId: 'pub-1',
       reason: 'harassment',
       detail: 'the words the reporter wrote',
@@ -196,7 +197,7 @@ describe('reportLane — fileReport (v441)', () => {
     const detail = 'line one\nline two "quoted" <&> — end';
     let sent: unknown;
     const fetchImpl = makeFetch((_url, init) => {
-      sent = JSON.parse(String(init?.body));
+      sent = JSON.parse(bodyText(init));
       return new Response(JSON.stringify({ ok: true, reports: [A_REPORT] }), { status: 200 });
     });
 

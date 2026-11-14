@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { readComments, readCommentsWritten, removeCommentOnService, writeComment } from './commentServer';
 import { nexusApiBase } from './publishServer';
+import { bodyText } from './fetchBody';
 
 /**
  * M7 v399 — the server-side half of the COMMENTS reader.
@@ -145,7 +146,7 @@ describe('commentServer — the write path (v437)', () => {
     expect(seenUrl).toBe(`${nexusApiBase()}/comments`);
     expect(seenInit?.method).toBe('POST');
     expect(seenInit?.headers).toEqual({ 'content-type': 'application/json', accept: 'application/json' });
-    expect(JSON.parse(String(seenInit?.body))).toEqual({
+    expect(JSON.parse(bodyText(seenInit))).toEqual({
       projectId: 'pub-1',
       body: 'hello',
       claim: { accountId: 'acct-9', handle: 'mira', assurance: 'unsigned-local', claimedAt: 99 },
@@ -159,7 +160,7 @@ describe('commentServer — the write path (v437)', () => {
     const text = 'line one\nline two "quoted" <&> \u2014 end';
     let sent: unknown;
     const fetchImpl = makeFetch((_url, init) => {
-      sent = JSON.parse(String(init?.body));
+      sent = JSON.parse(bodyText(init));
       return new Response(JSON.stringify({ ok: true, comments: [comment('c-new', text)] }), { status: 200 });
     });
 
@@ -171,7 +172,7 @@ describe('commentServer — the write path (v437)', () => {
   it('an absent handle, assurance or claimedAt is written as null, not dropped', async () => {
     let body: unknown;
     const fetchImpl = makeFetch((_url, init) => {
-      body = JSON.parse(String(init?.body));
+      body = JSON.parse(bodyText(init));
       return new Response(JSON.stringify({ ok: true, comments: [comment('c-new', 'hi')] }), { status: 200 });
     });
 

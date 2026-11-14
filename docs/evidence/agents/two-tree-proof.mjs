@@ -32,10 +32,8 @@ const {
   gitCommitPolicy,
   gitEnv,
   gitReadOnlyPolicy,
-  parseGitStatus,
   registerGitCommitTool,
   registerGitTools,
-  treeSplitNotice,
 } = eh;
 
 function gitRaw(dir, env, ...argv) {

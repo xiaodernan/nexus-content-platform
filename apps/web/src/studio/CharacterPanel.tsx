@@ -26,7 +26,7 @@ import { useWorld, worldStore } from './worldStore';
  */
 
 const INPUT =
-  'w-full resize-y rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12 text-fg-1 outline-none focus:bg-bg-3';
+  'cp-inputShared';
 
 type ListMode = 'lines' | 'comma' | 'space';
 
@@ -101,10 +101,10 @@ function ListText({
 
   if (!showLabel) return field;
   return (
-    <label className="block">
-      <span className="mb-[2px] block text-11 text-fg-3">
+    <label className="cp-block">
+      <span className="cp-labelSmall">
         {label}
-        {hint ? <span className="ml-1">{hint}</span> : null}
+        {hint ? <span className="cp-ml1">{hint}</span> : null}
       </span>
       {field}
     </label>
@@ -241,8 +241,8 @@ export function CharacterPanel() {
   };
 
   const textField = (key: 'name' | 'appearance' | 'personality' | 'backstory' | 'identity' | 'style' | 'clothing' | 'activeEra', label: string, multiline = false) => (
-    <label className="block">
-      <span className="mb-[2px] block text-11 text-fg-3">{label}</span>
+    <label className="cp-block">
+      <span className="cp-labelSmall">{label}</span>
       {multiline ? (
         <textarea
           rows={3}
@@ -265,15 +265,15 @@ export function CharacterPanel() {
   );
 
   return (
-    <div className="flex h-full min-h-0 flex-col" data-character-panel>
-      <header className="shrink-0 border-b border-[var(--nexus-color-border-subtle)] p-[var(--nexus-space-3)]">
-        <div className="flex items-center gap-2">
-          <h2 className="font-mono text-12 uppercase tracking-wide text-fg-3">角色</h2>
-          <span className="ml-auto font-mono text-11 text-fg-3" data-character-count>
+    <div className="wd-rootCol" data-character-panel>
+      <header className="wd-headBordered">
+        <div className="wd-row2">
+          <h2 className="wd-label">角色</h2>
+          <span className="wd-monoFaintEnd" data-character-count>
             {items.length}
           </span>
         </div>
-        <div className="mt-2 flex items-center gap-1">
+        <div className="cp-rowMt2">
           <input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
@@ -283,42 +283,42 @@ export function CharacterPanel() {
             placeholder="新角色名字"
             aria-label="新角色名字"
             data-character-new-name
-            className="min-w-0 flex-1 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12 text-fg-1 outline-none focus:bg-bg-3"
+            className="cp-growField"
           />
           <button
             type="button"
             disabled={saving}
             onClick={() => void create()}
             data-character-create
-            className="shrink-0 rounded-[var(--nexus-radius-sm)] bg-accent-2 px-2 py-1 text-11 text-accent-fg disabled:opacity-50"
+            className="cp-accentBtnSm"
           >
             建
           </button>
         </div>
-        <p className="mt-2 text-11 leading-relaxed text-fg-3" data-character-note>
+        <p className="wd-body11Mt2" data-character-note>
           建档只给名字，其余留空等用户填；AI 生成角色设定要真 provider，这里不做假生成（§159）。
           记忆属于 §48 的独立存储，不在档案里放一个假字段。
         </p>
         {message ? (
-          <p className="mt-2 text-11 text-danger-ink" data-character-error>
+          <p className="wd-dangerMt2" data-character-error>
             {message}
           </p>
         ) : null}
         {unreadable.length ? (
-          <p className="mt-2 text-11 text-warn-ink" data-character-unreadable>
+          <p className="cp-warnMt2" data-character-unreadable>
             有 {unreadable.length} 个角色的档案读不出来：{unreadable[0]}
           </p>
         ) : null}
       </header>
 
-      <div className="min-h-0 flex-1 overflow-auto p-[var(--nexus-space-2)]">
-        {status === 'loading' ? <p className="p-3 text-12 text-fg-3">读取角色…</p> : null}
+      <div className="wd-scrollP2">
+        {status === 'loading' ? <p className="cp-empty">读取角色…</p> : null}
         {status === 'ready' && !items.length ? (
-          <p className="p-3 text-12 text-fg-3" data-character-empty>
+          <p className="cp-empty" data-character-empty>
             还没有角色。
           </p>
         ) : null}
-        <ul className="mb-3 flex flex-wrap gap-1">
+        <ul className="cp-wrapMb3">
           {items.map((character) => (
             <li key={character.id}>
               <button
@@ -330,10 +330,7 @@ export function CharacterPanel() {
                 }}
                 data-character-tab={character.id}
                 aria-pressed={character.id === selectedId}
-                className={cn(
-                  'rounded-[var(--nexus-radius-sm)] px-2 py-1 text-12',
-                  character.id === selectedId ? 'bg-bg-3 text-fg-1' : 'text-fg-3 hover:bg-bg-2',
-                )}
+                className={cn('cp-charTab', character.id === selectedId ? 'cp-tabOn' : 'cp-tabIdle')}
               >
                 {character.profile.name || '（没有名字）'}
               </button>
@@ -342,7 +339,7 @@ export function CharacterPanel() {
         </ul>
 
         {selected && draft ? (
-          <div key={selected.id} className="flex flex-col gap-2" data-character-editor={selected.id}>
+          <div key={selected.id} className="wd-col2" data-character-editor={selected.id}>
             {textField('name', '名字')}
             {textField('appearance', '外观', true)}
             {textField('identity', '身份（不变的那部分：五官 / 疤痕 / 标记）', true)}
@@ -380,8 +377,8 @@ export function CharacterPanel() {
             />
 
             <section>
-              <h3 className="mb-1 text-11 text-fg-3">声音</h3>
-              <div className="flex gap-1">
+              <h3 className="cp-faintMb1">声音</h3>
+              <div className="cp-wrap">
                 <input
                   value={draft.voice.register}
                   onChange={(e) => patchProfile({ voice: { ...draft.voice, register: e.target.value } })}
@@ -407,7 +404,7 @@ export function CharacterPanel() {
                 showLabel={false}
                 placeholder="口头禅（一行一条）"
                 data={{ 'data-character-voice': 'catchphrases' }}
-                className={`${INPUT} mt-1`}
+                className={`${INPUT} gp-mt1`}
                 onChange={(catchphrases) =>
                   patchProfile({ voice: { ...draft.voice, catchphrases } })
                 }
@@ -415,8 +412,8 @@ export function CharacterPanel() {
             </section>
 
             <section>
-              <h3 className="mb-1 text-11 text-fg-3">视觉标识</h3>
-              <div className="flex gap-1">
+              <h3 className="cp-faintMb1">视觉标识</h3>
+              <div className="cp-wrap">
                 <input
                   value={draft.visualIdentity.silhouette}
                   onChange={(e) =>
@@ -444,20 +441,20 @@ export function CharacterPanel() {
                 showLabel={false}
                 placeholder="色板：#1b1205 #f5b451（空格分隔）"
                 data={{ 'data-character-visual': 'palette' }}
-                className={`${INPUT} mt-1 font-mono`}
+                className={`${INPUT} gp-mt1 cp-mono`}
                 onChange={(palette) => patchProfile({ visualIdentity: { ...draft.visualIdentity, palette } })}
               />
 
               {/* §39/§40 Character → Scene 的界面入口。色板（**已保存的那一版**）为空时按钮不可点：
                   服务端同一口径会拒绝，界面不给人点出一张与角色无关的图冒充"它的场景" */}
-              <div className="mt-2 flex items-center gap-1">
+              <div className="cp-rowMt2">
                 <input
                   value={scene}
                   onChange={(e) => setScene(e.target.value)}
                   placeholder="给它一个场景：在雪地里 / 在夜市里"
                   aria-label="场景"
                   data-scene-prompt
-                  className={`${INPUT} min-w-0 flex-1`}
+                  className={`${INPUT} cp-grow`}
                 />
                 <button
                   type="button"
@@ -471,7 +468,7 @@ export function CharacterPanel() {
                       ? '先把色板填上：没有视觉标识就谈不上"同一个角色"'
                       : '按这个角色的视觉标识生成它在该场景里的一张图（DEMO 本地合成 · 扣 image 额度 2 点）'
                   }
-                  className="shrink-0 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-11 text-fg-2 hover:bg-bg-3 disabled:opacity-50"
+                  className="cp-btnHover"
                 >
                   生成场景
                 </button>
@@ -480,7 +477,7 @@ export function CharacterPanel() {
               {/* §39 角色一致性生成：角色自己的参考图。**不要输入框**——这一张完全由档案驱动，
                   让用户填一句话再被忽略，比不给输入框更让人困惑。同样要求色板已填，
                   与服务端同一条口径（没有视觉标识就谈不上"同一个角色"） */}
-              <div className="mt-2 flex items-center gap-2">
+              <div className="cp-row2Mt2">
                 <button
                   type="button"
                   disabled={selected.profile.visualIdentity.palette.length === 0 || Boolean(studio.assetBusy)}
@@ -494,15 +491,15 @@ export function CharacterPanel() {
                       ? '先把色板填上：肖像要读的就是这份视觉标识'
                       : '按档案里的 身份/穿着/画风/特征 + 视觉标识 生成这个角色自己的参考图，之后可以拿它当场景的参考（DEMO 本地合成 · 扣 image 额度 2 点）'
                   }
-                  className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-11 text-fg-2 hover:bg-bg-3 disabled:opacity-50"
+                  className="cp-btnHover"
                 >
                   生成肖像
                 </button>
-                <span className="text-10 text-fg-3">由档案驱动，不用填场景</span>
+                <span className="cp-microFaint">由档案驱动，不用填场景</span>
               </div>
               {studio.assetError || studio.assetNotice ? (
                 <p
-                  className={cn('mt-1 text-11', studio.assetError ? 'text-danger-ink' : 'text-fg-3')}
+                  className={cn('cp-noticeRow', studio.assetError && 'cp-noticeError')}
                   data-character-notice
                 >
                   {studio.assetError ?? studio.assetNotice}
@@ -511,17 +508,17 @@ export function CharacterPanel() {
             </section>
 
             <section>
-              <h3 className="mb-1 text-11 text-fg-3">关系（指向世界条目）</h3>
-              <ul className="flex flex-col gap-1">
+              <h3 className="cp-faintMb1">关系（指向世界条目）</h3>
+              <ul className="gp-col1">
                 {draft.relationships.map((rel, index) => {
                   const node = world.world?.nodes.find((n) => n.id === rel.target);
                   return (
                     <li
                       key={`${rel.target}-${index}`}
-                      className="flex items-center gap-1 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1"
+                      className="cp-rowChip"
                       data-character-relationship={index}
                     >
-                      <span className="min-w-0 flex-1 truncate text-12 text-fg-1">
+                      <span className="cp-trunc12ink">
                         {node ? `${node.title}（${WORLD_KIND_LABELS[node.kind]}）` : rel.target || '（还没选目标）'}
                         {rel.kind ? ` · ${rel.kind}` : ''}
                       </span>
@@ -530,16 +527,16 @@ export function CharacterPanel() {
                         onClick={() => setDraft(removeRelationshipAt({ ...selected, profile: draft }, index).profile)}
                         aria-label="删除这条关系"
                         data-character-relationship-remove={index}
-                        className="shrink-0 px-1 text-12 text-fg-3 hover:text-danger-ink"
+                        className="wd-delBtn"
                       >
                         ×
                       </button>
                     </li>
                   );
                 })}
-                {!draft.relationships.length ? <li className="px-1 text-11 text-fg-3">还没有关系。</li> : null}
+                {!draft.relationships.length ? <li className="cp-faintPx1">还没有关系。</li> : null}
               </ul>
-              <div className="mt-1 flex items-center gap-1">
+              <div className="wd-rowMt1">
                 <select
                   aria-label="关系目标"
                   data-character-relationship-target
@@ -550,7 +547,7 @@ export function CharacterPanel() {
                     setDraft(addRelationship({ ...selected, profile: draft }, { target, kind: relKind }).profile);
                     setRelKind('');
                   }}
-                  className="min-w-0 flex-1 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1 py-1 text-11 text-fg-1"
+                  className="cp-growInput"
                 >
                   <option value="">＋ 选一个世界条目…</option>
                   {(world.world?.nodes ?? []).map((node) => (
@@ -565,11 +562,11 @@ export function CharacterPanel() {
                   placeholder="关系"
                   aria-label="关系名称"
                   data-character-relationship-kind
-                  className="w-[80px] rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1 py-1 text-11 text-fg-1 outline-none focus:bg-bg-3"
+                  className="cp-mode80"
                 />
               </div>
               {!world.world ? (
-                <p className="mt-1 text-11 text-warn-ink">这个项目还没有世界，关系没有可指向的条目。</p>
+                <p className="cp-warnMt1">这个项目还没有世界，关系没有可指向的条目。</p>
               ) : null}
             </section>
 
@@ -582,25 +579,22 @@ export function CharacterPanel() {
             />
 
             {issues.length ? (
-              <ul className="flex flex-col gap-[2px]" data-character-issues>
+              <ul className="cp-colGap2" data-character-issues>
                 {issues.map((issue) => (
-                  <li key={`${issue.code}-${issue.path}`} className="text-11 text-warn-ink">
+                  <li key={`${issue.code}-${issue.path}`} className="cp-warn11">
                     · {issue.message}
                   </li>
                 ))}
               </ul>
             ) : null}
 
-            <div className="sticky bottom-0 flex items-center gap-2 bg-bg-1 pt-2">
+            <div className="cp-stickyBar">
               <button
                 type="button"
                 disabled={!dirty || saving}
                 onClick={() => void save()}
                 data-character-save
-                className={cn(
-                  'rounded-[var(--nexus-radius-sm)] px-3 py-1 text-12',
-                  dirty ? 'bg-accent-2 text-accent-fg' : 'bg-bg-2 text-fg-3',
-                )}
+                className={cn('cp-saveBtn', dirty ? 'cp-saveReady' : 'cp-saveIdle')}
               >
                 {saving ? '保存中…' : dirty ? '保存档案' : '没有改动'}
               </button>
@@ -609,7 +603,7 @@ export function CharacterPanel() {
                 disabled={saving}
                 onClick={() => void remove()}
                 data-character-delete
-                className="rounded-[var(--nexus-radius-sm)] px-2 py-1 text-12 text-fg-3 hover:text-danger-ink disabled:opacity-50"
+                className="cp-dangerGhost"
               >
                 删除角色
               </button>

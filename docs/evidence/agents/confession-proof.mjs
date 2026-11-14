@@ -474,7 +474,7 @@ console.log(`[§6] wiring: ${failedRows.length} synthetic reds → declaring ${s
 // contradiction. Each reason gets a fixture, and the invariant is graded over the whole population rather than
 // asserted about it.
 {
-  const ONE = (s) => { const v = sw.aliasVerdicts(s); return [[...v.readable.map((x) => 'h'), ...v.refused.map((x) => `h:${x.why}`), ...v.notAlias.map((x) => `h:${x.why}`)].sort(), v.readable.length + v.refused.length + v.notAlias.length]; };
+  const ONE = (s) => { const v = sw.aliasVerdicts(s); return [[...v.readable.map((_x) => 'h'), ...v.refused.map((x) => `h:${x.why}`), ...v.notAlias.map((x) => `h:${x.why}`)].sort(), v.readable.length + v.refused.length + v.notAlias.length]; };
   const cases = [
     ["const h = (...args) => execFileSync('git', args);\n", [['h'], 1], 'readable: a rest-forwarder with no location anywhere'],
     ["const h = (...args) => execFileSync('git', ['-C', dir, ...args]);\n", [['h:redirect-flag'], 1], 'refused for naming a repository-redirect flag in its argv'],

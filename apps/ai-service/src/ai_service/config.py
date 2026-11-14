@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
-from typing import Mapping
+from typing import Mapping, MutableMapping
+
+from .pricing import EMPTY_PRICE_TABLE, PriceTable
 
 MODEL_CLASS_ENV = {
     "fast": "NEXUS_MODEL_FAST",
@@ -43,6 +45,8 @@ class Settings:
     openai_api_key: str | None = None
     openai_base_url: str = "https://api.openai.com/v1"
     json_mode: bool = True
+    # OpenAI 官方 prompt_cache_key 固定路由键（workload 维度）——空串表示不带
+    openai_prompt_cache_key: str | None = "nexus-studio"
     models: Mapping[str, str] = field(default_factory=lambda: dict(DEFAULT_MODELS))
     # embedding 独立门：有些 provider 网关只有 chat 没有 embedding 模型（§159 不谎称能用）。
     # NEXUS_MODEL_EMBEDDING=none 时如实报 unavailable，不创建 embedding 客户端、不给出假的 "real" 就绪。
@@ -95,6 +99,9 @@ class Settings:
     llm_distributed_flight_lease_s: float = 240.0
     # 检测到但尚未实现适配器的 key：如实报告为 unavailable，不假装能调用（§159）
     unsupported_text_keys: tuple[str, ...] = ()
+    # §COST-1 单价表：默认**空表 = 未计价**（不是免费）。见 pricing.py 头注释——
+    # 内置任何默认价都等于对外承诺一个可能过期的金额。
+    price_table: PriceTable = field(default_factory=lambda: EMPTY_PRICE_TABLE)
 
     @property
     def has_llm(self) -> bool:
@@ -122,6 +129,7 @@ class Settings:
             "request_timeout_s": self.request_timeout_s,
             "openai_base_url": self.openai_base_url,
             "json_mode": self.json_mode,
+            "openai_prompt_cache_key": self.openai_prompt_cache_key,
             "models": dict(self.models),
             "unsupported_text_keys": self.unsupported_text_keys,
             "openai_api_key": masked,
@@ -152,12 +160,49 @@ class Settings:
         return f"Settings({inner})"
 
 
+def sanitize_no_proxy(env: MutableMapping[str, str]) -> list[tuple[str, str, str]]:
+    """把 NO_PROXY / no_proxy 里带方括号的 IPv6 字面量改成裸地址，返回被改动的项。
+
+    为什么要在建 provider 之前动它：httpx 会把 NO_PROXY 的每一项拼成 `all://<项>` 的挂载模式，
+    而 `all://*[::1]` 解析出来的"端口"是 `:1]`——`httpx.InvalidURL: Invalid port` 在
+    `httpx.Client(...)` 构造时就抛，也就是服务一启动就死在导入期，跟 provider 通不通没关系。
+    常见来源是 Windows/代理工具写的 `NO_PROXY=localhost,127.0.0.1,[::1]`。
+    只改方括号这一个语法形式，不改语义：条目还是同一些主机，绕过代理的范围一模一样。
+    """
+    changed: list[tuple[str, str, str]] = []
+    for name in list(env):
+        if name.upper() != "NO_PROXY":
+            continue
+        raw = env.get(name) or ""
+        if "[" not in raw and "]" not in raw:
+            continue
+        cleaned = ",".join(
+            part.strip().removeprefix("[").removesuffix("]") if part.strip() else part
+            for part in raw.split(",")
+        )
+        if cleaned != raw:
+            env[name] = cleaned
+            changed.append((name, raw, cleaned))
+    return changed
+
+
 def load_settings(environ: Mapping[str, str] | None = None) -> Settings:
     env = os.environ if environ is None else environ
+    if environ is None:
+        # 真进程环境才需要清洗：传进来的 environ 是测试的只读快照，改它等于改测试现场。
+        sanitize_no_proxy(env)  # type: ignore[arg-type]
 
     def get(name: str, default: str | None = None) -> str | None:
         value = env.get(name)
         return value.strip() if isinstance(value, str) and value.strip() else default
+
+    def get_or_default(name: str, default: str | None) -> str | None:
+        """unset → default；显式空串 → None（关闭，不是缺省）。"""
+        value = env.get(name)
+        if value is None:
+            return default
+        value = value.strip()
+        return value if value else None
 
     models = dict(DEFAULT_MODELS)
     for model_class, var in MODEL_CLASS_ENV.items():
@@ -182,6 +227,8 @@ def load_settings(environ: Mapping[str, str] | None = None) -> Settings:
         openai_base_url=get("NEXUS_OPENAI_BASE_URL", "https://api.openai.com/v1")
         or "https://api.openai.com/v1",
         json_mode=(get("NEXUS_LLM_JSON_MODE", "1") or "1") != "0",
+        # 显式空串 = 关闭 prompt_cache_key 路由（unset → "nexus-studio" 缺省开启）
+        openai_prompt_cache_key=get_or_default("NEXUS_OPENAI_PROMPT_CACHE_KEY", "nexus-studio"),
         models=models,
         unsupported_text_keys=unsupported,
         embedding_enabled=embedding_enabled,
@@ -209,4 +256,7 @@ def load_settings(environ: Mapping[str, str] | None = None) -> Settings:
         llm_cb_failure_rate_threshold=float(get("NEXUS_LLM_CB_FAILURE_RATE", "50") or "50"),
         llm_cb_wait_s=float(get("NEXUS_LLM_CB_WAIT_S", "10") or "10"),
         llm_cb_half_open_calls=int(get("NEXUS_LLM_CB_HALF_OPEN_CALLS", "2") or "2"),
+        # §COST-1：不配 = 空表 = 未计价。解析失败也只跳过坏条目并留 warning，
+        # 不让一块附加读数把整个服务拦在启动门外。
+        price_table=PriceTable.from_env_value(env.get("NEXUS_LLM_PRICES")),
     )

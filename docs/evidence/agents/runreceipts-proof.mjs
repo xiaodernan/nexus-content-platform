@@ -38,7 +38,6 @@ const {
   GIT_ARC_TOOLS,
   NO_RECEIPTS_NOTE,
   RELEASE_ROLE,
-  formatLedgerLine,
   gatedCallIds,
   loadLedger,
   parseLedgerLine,
@@ -279,7 +278,7 @@ try {
   const commitsAtPlain = commitsAt();
   stage(['the human staged a version for a face that keeps no list']);
   const h4 = chainHost('NOTE (DEMO MODE');
-  const res4 = await released('rr-4', h4, () => true);
+  await released('rr-4', h4, () => true);
   const run4 = runOf('rr-4');
   assert.deepEqual(run4.decisions, [], 'four stages gated by a human hand, zero receipts the runtime can read');
   assert.equal(run4.decisionsNote, NO_RECEIPTS_NOTE, 'the run line says WHY — the sentence v50 introduced for the arc, now on the other kind');

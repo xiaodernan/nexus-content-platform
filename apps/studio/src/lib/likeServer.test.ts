@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { likeOnService, readLikes, readLikesOnService, unlikeOnService } from './likeServer';
 import { nexusApiBase } from './publishServer';
+import { bodyText } from './fetchBody';
 
 /**
  * M7 v400 — the server-side half of the LIKES reader.
@@ -133,7 +134,7 @@ describe('likeServer — the write path (v436)', () => {
     expect(seenUrl).toBe(`${nexusApiBase()}/likes`);
     expect(seenInit?.method).toBe('POST');
     expect(seenInit?.headers).toEqual({ 'content-type': 'application/json', accept: 'application/json' });
-    expect(JSON.parse(String(seenInit?.body))).toEqual({
+    expect(JSON.parse(bodyText(seenInit))).toEqual({
       projectId: 'pub-1',
       claim: { accountId: 'acct-9', handle: 'mira', assurance: 'unsigned-local', claimedAt: 1234 },
     });
@@ -145,7 +146,7 @@ describe('likeServer — the write path (v436)', () => {
     // leave the service guessing whether the client knew and declined, or never asked.
     let body: unknown;
     const fetchImpl = makeFetch((_url, init) => {
-      body = JSON.parse(String(init?.body));
+      body = JSON.parse(bodyText(init));
       return new Response(okBody({ count: 1, liked: true }), { status: 200 });
     });
 
@@ -243,7 +244,7 @@ describe('likeServer — the write path (v436)', () => {
     let deleteUrl = '';
     const fetchImpl = makeFetch((url, init) => {
       if (init?.method === 'DELETE') deleteUrl = url;
-      else postBody = JSON.parse(String(init?.body));
+      else postBody = JSON.parse(bodyText(init));
       return new Response(okBody({ count: 0, liked: false }), { status: 200 });
     });
 

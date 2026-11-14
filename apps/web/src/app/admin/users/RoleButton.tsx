@@ -49,7 +49,7 @@ export function RoleButton({
 
   if (self) {
     return (
-      <span className="text-11 text-fg-3" data-role-self>
+      <span className="adm-capNote" data-role-self>
         这是你自己，改不了
       </span>
     );
@@ -57,24 +57,24 @@ export function RoleButton({
   // 未认领的 guest 不给提权（服务端同样拒）：guest 身份新开一个浏览器就有，提权等于发给匿名会话
   if (guest && next === 'admin') {
     return (
-      <span className="text-11 text-fg-3" data-role-guest>
+      <span className="adm-capNote" data-role-guest>
         未认领，先让他注册
       </span>
     );
   }
   return (
-    <span className="flex items-center gap-2">
+    <span className="am-triageRow">
       <button
         type="button"
         disabled={busy}
         onClick={() => void click()}
-        className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-1 disabled:opacity-50"
+        className="am-btn"
         data-role-set={handle ?? userId}
       >
         {role === 'admin' ? '降为普通' : '提为审核员'}
       </button>
       {notice ? (
-        <span className="text-11 text-danger-ink" data-role-notice>
+        <span className="am-triageError" data-role-notice>
           {notice}
         </span>
       ) : null}

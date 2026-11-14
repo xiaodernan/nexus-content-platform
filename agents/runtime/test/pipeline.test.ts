@@ -78,8 +78,8 @@ describe('runRolePipeline (§25 handoff as data)', () => {
   });
 
   it('two identical pipelines are deterministic in every observable', async () => {
-    const a = await runRolePipeline(task, { ...hostShim(await host()) });
-    const b = await runRolePipeline(task, { ...hostShim(await host()) });
+    const a = await runRolePipeline(task, { ...hostShim(host()) });
+    const b = await runRolePipeline(task, { ...hostShim(host()) });
     expect(JSON.stringify(b)).toEqual(JSON.stringify(a));
   });
 });

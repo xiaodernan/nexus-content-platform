@@ -2681,6 +2681,18 @@ target 文档落在 top-1 或 top-2、所有分数有限。
 
 
 
+## 2026-11-14 addendum (cont. 4): §85 evals 第十三套 `cost-ledger`——§COST-1 线账入矩阵
+
+第十三套 `cost-ledger`（确定性、§COST-1/ADR-0262/ADR-0124、账本真实性）：`23/23`（`npm run evals -- --suite cost-ledger`）：
+
+- wire schema（UsageSchema）与 web 读契约（TaskUsageSchema）对**历史行**（缺 cacheReported / costBasis / reasoningTokens 三个新字段）各自补默认 `false / unknown / 0`——而不是整行判"不合契约"。**没报 ≠ 报了 0**；
+- 同一新账经 wire schema 解析后，三个新字段（cacheReported=true / costBasis=configured / reasoningTokens=12）**原样保留，不被重置**；
+- DEMO usage 的 `costBasis === 'unknown'`、`cacheReported === false`——DEMO 绝不谎称一份配置过的价目，也绝不谎报命中；
+- 节省账单纯函数三处病态夹逼：`cachedTokens` 溢出必须夹到 `tokensIn`；`tokensIn=0 → hitRate=null`（不报 0%）；`NaN` 输入当 0 处理且 hitRate=null。
+
+第十三套入矩阵后，`npm run evals` 报告 **296/296 PASS**（不含需真库的 export-roundtrip）——套件明细见上表（code-index 19 · model-roundtrip 13 · video-plan 30 · world-build 55 · schemas-contract 17 · game-build 36 · design-build 46 · project-bundle 14 · local-embedding 14 · local-reranker 15 · demo-mode 14 · cost-ledger 23）。
+命令：`npm run evals` 或 `npm run evals -- --suite cost-ledger`。
+
 ## 2026-11-09 addendum (cont. 3): §85 evals 第十二套 `demo-mode`——§159/§160 诚实入矩阵
 
 第十二套 `demo-mode`（确定性、§159/§160、DEMO MODE 诚实）：`14/14`：

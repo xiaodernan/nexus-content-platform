@@ -15,7 +15,7 @@ from typing import Any
 import anyio
 
 from .contract import issues as contract_issues
-from .design_prompt import build_prompt, parse_reply
+from .design_prompt import build_prompt, parse_reply, stable_block_digest
 from .providers.base import ProviderFailed
 from .providers.registry import Registry
 
@@ -28,6 +28,33 @@ LLM_MODEL_CLASSES = {"fast", "balanced", "reasoning", "vision"}
 
 def error(code: str, message: str, hint: str = "", retryable: bool = False) -> dict[str, Any]:
     return {"code": code, "message": message, "hint": hint, "retryable": retryable}
+
+
+def _cost_of(registry: Registry, completion: Any) -> tuple[float, str]:
+    """
+    §COST-1：这一次调用值多少钱。
+
+    返回 `(costUsd, costBasis)`。**没配价目表 → `(0, "unknown")`，那不是免费。**
+    界面必须按 basis 分档显示：「未计价」与「$0.0000」是两件事，
+    把它们画成同一个 0 就是在编一个金额（与 ADR 0262「没报 ≠ 报了 0」同一条纪律）。
+
+    金额四舍五入到 1e-8：一次调用通常在 1e-5 ~ 1e-3 之间，多留几位是为了
+    让小模型上的廉价调用不至于全被舍成 0。
+    """
+    price = registry.price_table.price_for(completion.model)
+    if price is None:
+        return 0.0, "unknown"
+    return (
+        round(
+            price.cost(
+                tokens_in=completion.tokens_in,
+                tokens_out=completion.tokens_out,
+                cached_tokens=completion.cached_tokens,
+            ),
+            8,
+        ),
+        "configured",
+    )
 
 
 def sanitize_plans(raw: Any) -> list[dict[str, Any]]:
@@ -121,12 +148,25 @@ async def execute_ai_request(payload: dict[str, Any], *, registry: Registry) -> 
         return (503, error("provider-unavailable", str(exc)))
 
     system, user = build_prompt(payload)
+    # §CACHE-2：记一次"这一轮用的是哪段稳定前缀"。这是整条链上唯一与网关无关的缓存读数——
+    # 同一摘要重复出现，就说明 provider 只要做前缀缓存就必然能命中（不靠它自报的 cached_tokens）。
+    stable_digest = stable_block_digest(payload)
+    registry.cache_telemetry().prefix.observe(stable_digest)
     try:
         completion = await anyio.to_thread.run_sync(
             lambda: registry.llm.complete(model=model, system=system, user=user)
         )
     except ProviderFailed as exc:
         return (502, error("provider-failed", str(exc), retryable=True))
+    # 报账覆盖度：`cached=0` 与"provider 没报"是两件事，分别计数（见 cache_telemetry）
+    registry.cache_telemetry().provider.record(completion)
+    # §CACHE-4：同一份稳定前缀这次被数成了多少 token。字节相同却数出不同的数，
+    # 只能是背后换了推理后端——那是"读数不可比"，不是"我们的前缀在变"。
+    # 判据落在完成之后：没有 tokens_in 之前，这件事一个字都不能猜。
+    registry.cache_telemetry().upstream.observe(stable_digest, completion.tokens_in)
+    # §COST-1：金额与它的来路一起算好。没配价目表时是 ("unknown")，不是"免费"——
+    # 界面按 basis 分档，绝不把「未计价」画成 "$0.0000"。
+    cost_usd, cost_basis = _cost_of(registry, completion)
 
     try:
         reply = parse_reply(completion.text)
@@ -193,8 +233,13 @@ async def execute_ai_request(payload: dict[str, Any], *, registry: Registry) -> 
             "modelClass": model_class,
             "tokensIn": completion.tokens_in,
             "tokensOut": completion.tokens_out,
+            "cachedTokens": completion.cached_tokens,
+            # §CACHE-3：`cachedTokens=0` 与「网关没报」是两件事。不收这一维，
+            # 前端只能把"一次都没命中"和"不知道"画成同一个 0——那是编了一个读数。
+            "cacheReported": completion.cache_reported,
             "latencyMs": completion.latency_ms,
-            "costUsd": 0,
+            "costUsd": cost_usd,
+            "costBasis": cost_basis,
             "toolCalls": 1,
             "demoMode": False,
             "cachedTokens": getattr(completion, "cached_tokens", 0),
@@ -263,6 +308,11 @@ async def execute_chat_request(payload: dict[str, Any], *, registry: Registry) -
     except ProviderFailed as exc:
         return (502, error("provider-failed", str(exc), retryable=True))
 
+    # §CACHE-2 补漏：chat 也是 provider 调用，之前只记 design 路径的报账覆盖度。
+    # 不记的话 `/v1/ai/cache-stats` 的 provider 那本账会漏掉全部客服对话。
+    registry.cache_telemetry().provider.record(completion)
+    cost_usd, cost_basis = _cost_of(registry, completion)
+
     text = (completion.text or "").strip()[:4000]
     if not text:
         return (502, error("provider-failed", "provider 返回了空回复", retryable=True))
@@ -279,8 +329,13 @@ async def execute_chat_request(payload: dict[str, Any], *, registry: Registry) -
             "modelClass": model_class,
             "tokensIn": completion.tokens_in,
             "tokensOut": completion.tokens_out,
+            "cachedTokens": completion.cached_tokens,
+            # §CACHE-3：`cachedTokens=0` 与「网关没报」是两件事。不收这一维，
+            # 前端只能把"一次都没命中"和"不知道"画成同一个 0——那是编了一个读数。
+            "cacheReported": completion.cache_reported,
             "latencyMs": completion.latency_ms,
-            "costUsd": 0,
+            "costUsd": cost_usd,
+            "costBasis": cost_basis,
             "toolCalls": 1,
             "demoMode": False,
             "cachedTokens": getattr(completion, "cached_tokens", 0),

@@ -53,12 +53,14 @@ function response(overrides: Partial<AiResponse> = {}): AiResponse {
       modelClass: 'balanced',
       tokensIn: 10,
       tokensOut: 5,
+      cachedTokens: 0,
+      cacheReported: false,
+      costBasis: 'unknown',
       latencyMs: 100,
       costUsd: 0,
       toolCalls: 1,
       demoMode: false,
-    cachedTokens: 0,
-    reasoningTokens: 0,
+      reasoningTokens: 0,
     },
     approvals: [],
     ...overrides,
@@ -177,6 +179,67 @@ describe('fetchAiServiceHealth', () => {
         throw new Error('ECONNREFUSED');
       }) as unknown as typeof fetch;
       expect(await fetchAiServiceHealth(down)).toBeNull();
+    });
+  });
+});
+
+/**
+ * §AILIVE-3 缺省地址的那三行有各自的失败模式，逐个钉住：
+ * 开发模式补约定端口（少配一个环境变量就把真链路整条丢掉，而现象只是"DEMO MODE"）；
+ * 生产不补（连一个必然连不上的 127.0.0.1 会把"未配置"伪装成"配置了但坏了"）。
+ */
+describe('aiServiceUrl 的模式相关缺省', () => {
+  const previousNodeEnv = process.env.NODE_ENV;
+  const previousPort = process.env.AI_SERVICE_PORT;
+
+  function withEnv(nodeEnv: string | undefined, port: string | undefined, url: string | undefined, run: () => void) {
+    const env = process.env as Record<string, string | undefined>;
+    if (nodeEnv === undefined) delete env.NODE_ENV;
+    else env.NODE_ENV = nodeEnv;
+    if (port === undefined) delete env.AI_SERVICE_PORT;
+    else env.AI_SERVICE_PORT = port;
+    if (url === undefined) delete env[ENV_KEY];
+    else env[ENV_KEY] = url;
+    try {
+      run();
+    } finally {
+      if (previousNodeEnv === undefined) delete env.NODE_ENV;
+      else env.NODE_ENV = previousNodeEnv;
+      if (previousPort === undefined) delete env.AI_SERVICE_PORT;
+      else env.AI_SERVICE_PORT = previousPort;
+    }
+  }
+
+  it('开发模式：没配 URL 时用约定端口 3200', () => {
+    withEnv('development', undefined, undefined, () => {
+      expect(aiServiceUrl()).toBe('http://127.0.0.1:3200');
+    });
+  });
+
+  it('开发模式：AI_SERVICE_PORT 换了，缺省跟着换（端口只有一个真值源）', () => {
+    withEnv('development', '3311', undefined, () => {
+      expect(aiServiceUrl()).toBe('http://127.0.0.1:3311');
+    });
+  });
+
+  it('开发模式：显式 URL 仍然说了算，缺省不得盖过它', () => {
+    withEnv('development', '3311', 'http://ai.internal:9000/', () => {
+      expect(aiServiceUrl()).toBe('http://ai.internal:9000');
+    });
+  });
+
+  it('生产：没配就是 null——不许把未配置伪装成一次注定失败的连接', () => {
+    withEnv('production', undefined, undefined, () => {
+      expect(aiServiceUrl()).toBeNull();
+    });
+  });
+
+  it('空串与纯空格等于没配（否则会拿空 base 拼出相对路径）', () => {
+    withEnv('production', undefined, '', () => {
+      expect(aiServiceUrl()).toBeNull();
+    });
+    withEnv('development', undefined, '   ', () => {
+      expect(aiServiceUrl()).toBe('http://127.0.0.1:3200');
     });
   });
 });

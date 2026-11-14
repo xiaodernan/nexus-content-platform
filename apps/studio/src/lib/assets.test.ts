@@ -98,7 +98,7 @@ function fakeStack(over: Partial<AssetGeneratorLike> = {}) {
       return {
         metadata: {
           id: String(m.id),
-          type: String(m.type ?? 'image'),
+          type: typeof m.type === 'string' ? m.type : 'image',
           name: String(m.name),
           mimeType: String(m.mimeType),
           size: entry.data.length,

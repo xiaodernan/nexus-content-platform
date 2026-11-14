@@ -3,11 +3,12 @@ import {
   CharacterCreateRequestSchema,
   CharacterSchema,
   CharacterUpdateRequestSchema,
+  TidePressureKindSchema,
   WorldDocumentSchema,
   WorldKindSchema,
   WorldSaveRequestSchema,
 } from '../src/index';
-import { WORLD_ELEVATION_MAX, WORLD_KINDS, addWorldNode, createWorld, removeWorldNode, setWorldNodeElevation, setWorldNodePosition } from '@nexus/world-model';
+import { WORLD_ELEVATION_MAX, WORLD_KINDS, WORLD_TIDE_PRESSURE_KINDS, addWorldNode, createWorld, removeWorldNode, setWorldNodeElevation, setWorldNodePosition } from '@nexus/world-model';
 
 /**
  * 世界文档的 zod 契约与 @nexus/world-model 不许漂移。
@@ -137,5 +138,39 @@ describe('角色档案契约（§46）', () => {
 
   it('更新请求必须带整份 profile', () => {
     expect(CharacterUpdateRequestSchema.safeParse({ profile: { name: 'x' } }).success).toBe(false);
+  });
+});
+
+/**
+ * THE TIDE PRESSURE ENGINE (v719 / ADR-0267).
+ * Any world may carry `pressures` (opt-in; old documents without them still parse).
+ * Severity must be 1/2/3; unknown kinds are refused; the 17th pressure is refused.
+ */
+describe('tide pressure engine (v719, ADR-0267)', () => {
+  it('the kind allowlist is exactly the model table, order included', () => {
+    expect(TidePressureKindSchema.options).toEqual([...WORLD_TIDE_PRESSURE_KINDS]);
+  });
+
+  it('model-built pressures pass the contract', () => {
+    const world = createWorld('tide-world', 'proj-tide');
+    expect(WorldDocumentSchema.safeParse(world).success).toBe(true);
+    expect(WorldSaveRequestSchema.safeParse({ document: world }).success).toBe(true);
+  });
+
+  it('pressures validate shape: severity 1/2/3 / label cap / id trimmed / kind allowlist', () => {
+    const world = createWorld('tide-tide', 'proj-tide-2');
+    const pressures = [
+      { id: 'tp-1', kind: 'drought', label: 'the-long-day', severity: 3 },
+      { id: 'tp-2', kind: 'murmur', label: 'the-low-voice', severity: 1 },
+    ];
+    expect(WorldDocumentSchema.safeParse({ ...world, pressures }).success).toBe(true);
+    expect(WorldSaveRequestSchema.safeParse({ document: { ...world, pressures } }).success).toBe(true);
+    expect(WorldDocumentSchema.safeParse({ ...world, pressures: [{ ...pressures[0]!, severity: 4 }] }).success).toBe(false);
+    expect(WorldDocumentSchema.safeParse({ ...world, pressures: [{ ...pressures[0]!, label: 'x'.repeat(41) }] }).success).toBe(false);
+    expect(WorldDocumentSchema.safeParse({ ...world, pressures: [{ ...pressures[0]!, id: '   ' }] }).success).toBe(false);
+    expect(WorldDocumentSchema.safeParse({ ...world, pressures: [{ ...pressures[0]!, kind: 'sunburn' }] }).success).toBe(false);
+    // the 17th pressure is refused
+    const over = Array.from({ length: 17 }, (_, i) => ({ id: `tp-${i}`, kind: 'drought', label: 'drought', severity: 2 }));
+    expect(WorldDocumentSchema.safeParse({ ...world, pressures: over }).success).toBe(false);
   });
 });

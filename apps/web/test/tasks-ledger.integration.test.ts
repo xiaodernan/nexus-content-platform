@@ -80,6 +80,8 @@ describe('§75 用量记账（真库）', () => {
     modelClass: 'balanced',
     tokensIn: 0,
     tokensOut: 0,
+    cachedTokens: 0,
+    cacheReported: false,
     latencyMs: 42,
     costUsd: 0,
     toolCalls: 0,

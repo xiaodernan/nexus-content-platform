@@ -1,47 +1,88 @@
-# NEXUS nexus-domain-service — the AUTHORITATIVE WRITE PATH for the domain tables.
+# NEXUS java-domain-service — the Java write-path service (SC-6).
 #
-# Every value here is overridable by environment. The service writes to the SAME `projects` and
-# `users` tables the web layer reads (see `apps/web/src/server/db/schema.ts`), so the datasource
-# must be pointed at the right database rather than at whatever is on 5432 — which on this machine
-# is somebody else's container.
+# Every value is overridable by environment for the same reason nexus-api's are: a proof must be able to
+# point this service at ITS OWN port and database. The defaults below are local-development conveniences,
+# not a deployment contract.
 server:
-  port: ${NEXUS_DOMAIN_PORT:8081}
+  port: ${NEXUS_DOMAIN_PORT:8082}
 
-# The port this service actually bound to, written to this file once the server is up. Unset means the
-# component does nothing; a proof sets it so it can address the service without parsing a log line.
+# One `nexus:` block only:
+# - `port-file`: the port this service actually bound to, written by the server once it is up. Unset means
+#   the component does nothing; a proof sets it so it can address the service without parsing a log line.
+# - `operator.token` (§SC-61): the operator key for `/api/v1/realtime/probe`. Empty = the probe is always
+#   closed (a deliberate secure default); only an explicit NEXUS_OPERATOR_TOKEN opens the door.
 nexus:
   port-file: ${NEXUS_DOMAIN_PORT_FILE:}
+  operator:
+    token: ${NEXUS_OPERATOR_TOKEN:}
 
 spring:
   application:
     name: nexus-domain-service
-  # The config door, optional (see nexus-api): a deployment without
-  # the config server boots with this file as it stands.
+  # SC-11 — config client, same contract as the gateway (SC-9): `optional:` import, client OFF by default.
+  # NEXUS's OWN port, not Spring's default 8888: 8888 is the first port a neighbouring Spring
+  # project takes, and measured 2026-11-10 one did — its config door answered ours and handed a
+  # proof service a FOREIGN `eureka.client.service-url` (ADR 0057 amendment 658). Compose publishes
+  # this door on 18888 and the smoke probes 18888; the default now agrees with both.
   config:
-    # NEXUS's OWN port, not Spring's default 8888: 8888 is the first port a neighbouring Spring
-    # project takes, and measured 2026-11-10 one did — its config door answered ours and handed a
-    # proof service a FOREIGN `eureka.client.service-url` (ADR 0057 amendment 658). Compose publishes
-    # this door on 18888 and the smoke probes 18888; the default now agrees with both.
     import: "optional:configserver:${NEXUS_CONFIG_SERVER_URL:http://127.0.0.1:18888}"
+  cloud:
+    config:
+      enabled: ${NEXUS_CONFIG_ENABLED:false}
+      # SC-59: with fail-fast OFF the service still boots without a live config server (fallback to
+      # packaged application.yml + env vars). With retry set, a short blip mid-start doesn't permanently
+      # ignore the shared truth — the client retries a transient failure only when the server comes back.
+      # No infinite hang: request-timeout is per-request (2s), not socket-level infinity.
+      fail-fast: ${NEXUS_CONFIG_FAIL_FAST:false}
+      request-timeout: ${NEXUS_CONFIG_TIMEOUT_MS:2000}
+      retry:
+        max-attempts: ${NEXUS_CONFIG_RETRY_MAX_ATTEMPTS:3}
+        initial-interval: ${NEXUS_CONFIG_RETRY_INITIAL_MS:1000}
+        multiplier: ${NEXUS_CONFIG_RETRY_MULTIPLIER:1.5}
+        max-interval: ${NEXUS_CONFIG_RETRY_MAX_INTERVAL_MS:3000}
+    # SC-60 — Feign integration breaker. Without this the Feign client ignores resilience4j entirely.
+    # group.enabled=true: Feign matches the breaker by Feign-client's name (ai-service), not the
+    # ephemeral ConfigKey-derived "AiServiceClienthealthz" — one stable breaker named ai-service.
+    openfeign:
+      circuitbreaker:
+        enabled: ${NEXUS_FEIGN_BREAKER:true}
+        group:
+          enabled: ${NEXUS_FEIGN_BREAKER_GROUP:true}
+  autoconfigure:
+    # Without this, Boot prints "Using generated security password" and configures an in-memory user that no
+    # request needs: SecurityConfig defines the only filter chain this service has.
+    exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
   datasource:
-    # §DB-perf (2026-11-11) — the pool and the driver's plan cache are tuned for THIS host:
-    # 16 GB RAM with only ~2.5 GB free, and this service is one of five JVMs. A large pool would
-    # starve the neighbours and the OS file cache, so the pool is deliberately small; the driver's
-    # prepared-statement cache is what buys throughput here, not connection count. Every number below
-    # is a measured choice, not a default: see docs/decisions/0065-*.md.
-    url: ${NEXUS_DB_URL:jdbc:postgresql://127.0.0.1:5432/nexus?prepareThreshold=5&preparedStatementCacheQueries=256&preparedStatementCacheSizeMiB=5&defaultRowFetchSize=100}
-    username: ${NEXUS_DB_USER:nexus}
-    password: ${NEXUS_DB_PASSWORD:nexus}
+    # The schema is owned by the WEB layer (apps/web/src/server/db/schema.ts + its Drizzle migrations).
+    # This service reads and writes the tables that already exist; it never runs DDL and
+    # carries no migration tool, because a second writer of DDL is how two systems disagree about a table.
+    # Default targets THIS project's Postgres (55433, docs/ENVIRONMENT.md). The previous default
+    # (5432) is this machine's careeros-postgres — connecting to somebody else's database by accident
+    # is not a convenience default, it is a trap; and on a machine where 5432 is simply not ours, the
+    # service could not boot at all. A stand-alone `java -jar` must reach the project's own database.
+    # prepareThreshold=5 + the prepared-statement cache are measured tuning for THIS host
+    # (16 GB RAM, ~2.5 GB free): throughput comes from the driver's plan cache, not connection count —
+    # see docs/decisions/0065-*.md.
+    url: ${NEXUS_DOMAIN_DB_URL:jdbc:postgresql://127.0.0.1:55433/nexus?prepareThreshold=5&preparedStatementCacheQueries=256&preparedStatementCacheSizeMiB=5&defaultRowFetchSize=100}
+    username: ${DB_USERNAME:nexus}
+    password: ${DB_PASSWORD:nexus_dev_only}
     driver-class-name: org.postgresql.Driver
     hikari:
+      # `stringtype=unspecified` lets PostgreSQL infer the type of a bound String instead of assuming
+      # varchar. The shared schema uses native ENUM columns (`project_kind`, `visibility`, `user_role`), and
+      # without this an INSERT of "website" fails with "column kind is of type project_kind but expression is
+      # of type character varying". It is set on the pool, not the URL, so it also applies when a deployment
+      # supplies NEXUS_DOMAIN_DB_URL without remembering to add the parameter.
+      data-source-properties:
+        stringtype: unspecified
       # Small on purpose. The domain service holds no long transactions, so ten concurrent statements
       # is more than its workload needs; a bigger pool would just hold connections idle and tax the
       # single Postgres instance the whole platform shares.
-      maximum-pool-size: 10
-      minimum-idle: 2
+      maximum-pool-size: ${NEXUS_DOMAIN_DB_POOL_MAX:10}
+      minimum-idle: ${NEXUS_DOMAIN_DB_POOL_MIN_IDLE:2}
       # A caller must never wait forever for a connection; 30 s is long enough to ride out a GC pause
       # but short enough that a wedged pool surfaces as a fast, named failure rather than a hang.
-      connection-timeout: 30000
+      connection-timeout: ${NEXUS_DOMAIN_DB_CONNECT_TIMEOUT_MS:30000}
       idle-timeout: 600000
       # Rotate connections well under any infra idle cutoff; this host has no proxy, but 30 min is a
       # safe ceiling that also papers over a backend that recycles sessions silently.
@@ -51,19 +92,47 @@ spring:
       leak-detection-threshold: 60000
   jpa:
     hibernate:
-      # `validate`, NOT `update`. The schema of these tables is owned by drizzle in the web layer;
-      # a second writer that is allowed to ALTER the schema would silently diverge from the owner.
-      # `validate` means this service REFUSES TO START if its entity mapping does not match the
-      # table that is actually there — which is the honest way for a write path to disagree with
-      # the schema owner.
-      ddl-auto: validate
+      # `none` by default on this line: the shared schema is not this service's to change. A deployment
+      # that wants the stricter contract sets NEXUS_DOMAIN_DDL_AUTO=validate — this service then REFUSES
+      # TO START if its entity mapping does not match the table that is actually there, which is the
+      # honest way for a write path to disagree with the schema owner. Do not set `update`: that is a
+      # second writer of DDL by another name.
+      ddl-auto: ${NEXUS_DOMAIN_DDL_AUTO:none}
+    open-in-view: false
     show-sql: false
-    properties:
-      hibernate:
-        format_sql: true
-  # Redis and Flyway were REMOVED from this file. There is no RedisTemplate in the source, and
-  # there is no db/migration directory: the schema is owned by drizzle, and a second migration
-  # tool pointed at the same database writes its own history table into a database it does not own.
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      # 56379 is this project's nexus-redis (docs/ENVIRONMENT.md). 6379 on this machine belongs to another
+      # project's Redis and requires AUTH — defaulting to it made a fresh `java -jar` report health DOWN and
+      # then need an environment variable to recover. A default that points at someone else's service is not
+      # a default, it is a trap. The data is used by `WirePublisher` (realtime frames), never decoratively.
+      port: ${REDIS_PORT:56379}
+
+# SC-6 — the discovery half of the gateway's second `lb://` route.
+#
+# Registration and fetch are both OFF by default, exactly like nexus-api: a standalone run (a test, a proof,
+# `java -jar` on a laptop) must not depend on something answering on 8771 (the dedicated registry port;
+# 8761 is the framework default and, on this machine, provably already somebody else's — see docs/adr/0100).
+# A deployment that wants discovery sets NEXUS_EUREKA_ENABLED=true (plus NEXUS_DOMAIN_REGISTER=true).
+# Eureka's namespace is TOP-LEVEL `eureka.*`, not `spring.cloud.eureka.*`: measured in this repo,
+# written under the wrong prefix the client starts anyway and dials a registry nobody started,
+# for a reason no log line explains.
+eureka:
+  client:
+    enabled: ${NEXUS_EUREKA_ENABLED:false}
+    service-url:
+      defaultZone: ${NEXUS_REGISTRY_ZONE:http://127.0.0.1:8771/eureka/}
+    register-with-eureka: ${NEXUS_DOMAIN_REGISTER:false}
+    fetch-registry: ${NEXUS_DOMAIN_FETCH:false}
+  instance:
+    prefer-ip-address: true
+
+# SC-8 — health only is exposed, and details stay out of an unauthenticated answer.
+info:
+  app:
+    name: java-domain-service
+    description: NEXUS Java-side service (java-domain-service)
 
 logging:
   # v656 — the ids have to BE in the line for anyone (including a proof) to read them. Boot only
@@ -75,8 +144,6 @@ logging:
     com.nexus: INFO
     org.springframework.web: WARN
 
-# The operator's door — identical with or without the config server (§4 of ADR 0056/0058 keeps
-# the four-service surface uniform): health/info/metrics/prometheus on the service's OWN port.
 management:
   # v656 — ONE trace id, and it travels on the WIRE (W3C `traceparent`), not in a header NEXUS invented.
   # Sampling is 1.0 in development because a sampled-out request is a request with nothing to read; a
@@ -89,22 +156,50 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        # circuitbreakers 是运维 smoke 读数（SC-64）——Feign 的中断器计这次如何，
+        # 开放**只读**，无内容无载荷，不泄漏；bug_rate/计数只在 .send/stats 里体现。
+        # metrics 一并开放：Prometheus 抓数端点（§SC-77）就是从这里供货。
+        include: health,info,metrics,circuitbreakers,prometheus
+  # §SC-66 — 启用 build 注入（spring-boot-maven-plugin 的 `build-info` goal 产出的 properties 会被
+  # BuildInfoContributor 自动收录； env/build/git 都不从外部拿路径以避免落 pwd 到 HTTP 响应里）
+  info:
+    env:
+      enabled: false
+    build:
+      enabled: true
+    git:
+      enabled: false
+  endpoint:
+    #  §SC-69 — show-details: never（安全阀）
+    #  health probe 的 detail 由 /actuator/health 自己控制——外部一律 UP/DOWN；组件名（db）等信息只在
+    #  admin 抓包时才看得到；永远不把 stacktrace leak 给公共未认证调用方。
+    health:
+      show-details: never
 
-# Discovery, OPT-IN. With NEXUS_EUREKA_ENABLED=true this service registers with the registry under the
-# name `nexus-domain-service`, which is the name `nexus-api`'s OpenFeign client asks for; with it unset
-# the service behaves exactly as it did before and does not need a registry to start. The client is on
-# the classpath either way — the switch decides whether it DIALS anything.
-#
-# Eureka's own namespace is TOP-LEVEL `eureka.*`, not `spring.cloud.eureka.*`. Measured in this repo:
-# written under the wrong prefix the client started anyway and dialled a registry nobody started, for a
-# reason no log line explained.
-eureka:
+# SC-59 — Feign 到 Python ai-service 的超时。缺了这两条就是库默认（read 可能十秒级），
+# 一个探针挂住一次 pageload 就不叫探针。1s 连 / 3s 读（一个 provider 健康应当远快于此）。
+feign:
   client:
-    enabled: ${NEXUS_EUREKA_ENABLED:false}
-    register-with-eureka: ${NEXUS_EUREKA_ENABLED:false}
-    fetch-registry: ${NEXUS_EUREKA_ENABLED:false}
-    service-url:
-      defaultZone: ${NEXUS_EUREKA_URL:http://127.0.0.1:8761/eureka/}
-  instance:
-    prefer-ip-address: true
+    config:
+      ai-service:
+        connect-timeout: ${NEXUS_AI_HEALTH_CONNECT_MS:1000}
+        read-timeout: ${NEXUS_AI_HEALTH_READ_MS:3000}
+
+# SC-60 — the breaker's own bounds. Spring Cloud CircuitBreaker's defaults are for a library,
+# not a platform: minimum-number-of-calls defaults to 100, which is a mile of polite silence on top
+# of a five-call outage window. A default base-config is set deliberately (any breaker the
+# framework opens, including Feign's resolver-derived one, inherits sane silent behavior out of the box):
+# 10s of patience, close the circuit after 10 calls in the window, reopen at 50% failures.
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: ${NEXUS_FEIGN_OPEN_WAIT_MS:10s}
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+    instances:
+      ai-service:
+        base-config: default

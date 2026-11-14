@@ -5,7 +5,6 @@ import {
   DEFAULT_AGENT_CONFIG,
   RELATIONSHIP_FLOOR,
   createCharacterId,
-  createLocationId,
   createEventId,
   type Character,
   type WorldState,

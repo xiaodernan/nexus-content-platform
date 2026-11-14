@@ -39,18 +39,18 @@ export function TaskRetryButton({ taskId }: { taskId: string }) {
   };
 
   return (
-    <span className="inline-flex items-center gap-2">
+    <span className="tl-retryWrap">
       <button
         type="button"
         onClick={() => void retry()}
         disabled={busy}
         data-task-retry={taskId}
-        className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] px-2 py-[2px] text-11 text-fg-2 disabled:opacity-50"
+        className="tl-retryBtn"
       >
         {busy ? '重试中…' : '重试'}
       </button>
       {note ? (
-        <span className="text-fg-3" data-task-retry-note>
+        <span className="tl-retryNote" data-task-retry-note>
           {note}
         </span>
       ) : null}

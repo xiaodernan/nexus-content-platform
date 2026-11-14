@@ -88,11 +88,12 @@ try {
 
   // ── §4 the catalog rules still apply ─────────────────────────────────────────────────────────────
   console.log('§4 the catalog rules still apply to a published listing');
-  for (const [label, over, pattern] of [
+  const table = /** @type Array<[string, Record<string, unknown>, RegExp]> */ ([
     ['blank title', { title: '   ' }, /title/],
     ['negative price', { priceCents: -1 }, /price/],
     ['unknown category', { category: 'nope' }, /category/],
-  ]) {
+  ]);
+  for (const [label, over, pattern] of table) {
     const res = publish.publishTemplate(doc(), { ...input, ...over });
     assert.equal(res.ok, false, `${label} was published`);
     assert.match(res.reason, pattern);

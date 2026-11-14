@@ -242,10 +242,16 @@ const MVN_ALL_LINES = [
 // predicted `§15 read 0` is false the day the fifth module lands (this was measured: the arm was written when
 // main-line.yml carried no Maven command at all). The line is DERIVED from the shipped bytes with its premise
 // checked here, because a hand-typed needle that drifts crashes the arm at its own splice.
+// That fifth door is the config-server's Maven line in the OTHER workflow file. The merge that brought the
+// other lane's CI-wiring expansion into this tree added three more Maven modules to main-line.yml
+// (nexus-registry / nexus-config / nexus-gateway beside java-* + nexus-api), so "exactly one Maven line" no
+// longer holds. This narrows the selector to the config-server door itself, which is the line A32 grades,
+// instead of refusing the whole file for having grown.
 const MVN_MAIN_LINE = (() => {
   const lines = readSrc(MAIN_LINE).split('\n').filter((l) => !l.trim().startsWith('#') && /(?:^|\s)mvn\b/.test(l) && /(?:-f|--file)\s+\S*pom\.xml/.test(l));
-  assert.equal(lines.length, 1, `${MAIN_LINE}: expected exactly ONE \`mvn -f <pom>\` run line (the config server door), found ${lines.length} — A32 deletes this exact line to mean "every Maven line in both files"`);
-  return `${lines[0]}\n`;
+  const config = lines.filter((l) => /java-config-server/.test(l));
+  assert.equal(config.length, 1, `${MAIN_LINE}: expected exactly ONE \`mvn -f <pom>\` line naming services/java-config-server/pom.xml (the config door A32 grades), found ${config.length} of the ${lines.length} Maven line(s) present`);
+  return `${config[0]}\n`;
 })();
 // The key block is QUOTED FROM THE SHIPPED BYTES rather than re-typed in this file's own order: `splice` refuses
 // a needle that occurs zero times, and an arm that crashes at its own needle takes the whole battery with it —
@@ -530,7 +536,7 @@ const RUNNER_ARMS = [
   { tag: 'R2c-undeclared-slow-row-is-killed', bodies: { ...BASE_BODIES, 'docs/evidence/stub/c.mjs': SLOW_WITHOUT_MARKER }, argv: ['--budget', '600'], code: 1, has: [/── verify:stub-c TIMEOUT ──/, /\[default 600ms\]/], lacks: [/\bRED\b/], ran: true },
   { tag: 'R3-only-typo-certifies-nothing', argv: ['--only', 'nosuchrow'], code: 1, has: [/NOTHING RAN/], lacks: [ALL_GREEN], ran: false },
   { tag: 'R3b-only-selects-one-row', argv: ['--only', 'stub-a'], code: 0, has: [/1\/1 green of a derived population of 9/], lacks: [/verify:stub-b/], ran: true, ranRows: 1 },
-  { tag: 'R4-list-runs-nothing', argv: ['--list'], code: 0, has: [/RUN      verify:stub-a/, /derived population 9 = runs 9 \+ excluded 0/], lacks: [/EXCLUDED/, /OK \d/], ran: false },
+  { tag: 'R4-list-runs-nothing', argv: ['--list'], code: 0, has: [/RUN {6}verify:stub-a/, /derived population 9 = runs 9 \+ excluded 0/], lacks: [/EXCLUDED/, /OK \d/], ran: false },
   { tag: 'R5-dangling-script-is-red-not-skipped', remove: ['docs/evidence/stub/d.mjs'], argv: [], code: 1, has: [/points at a proof file that is not on disk/], lacks: [ALL_GREEN], ran: false },
   { tag: 'R6-stale-exclusion-named', edits: [{ file: RUNNER, from: EXCLUDED_DECL, to: "export const EXCLUDED = [\n  {\n    file: 'docs/evidence/stub/ghost.mjs',\n    needs: 'a daemon this synthetic plane never starts — the arm plants a record for a proof nobody wires',\n  },\n];\n" }], argv: [], code: 1, has: [/EXCLUDED names a file that is not in the derived population/], lacks: [ALL_GREEN], ran: false },
   // v555 — the stub's target is ASSEMBLED, not written whole: the runner's `distNeeded` reads this row's own

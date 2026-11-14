@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { CALL_TIMEOUT_MS, acknowledgeReport, readDesk } from './moderationLane';
+import { bodyText } from './fetchBody';
 
 /**
  * M7 v415 — the browser half of the OWNER'S DESK, graded directly.
@@ -165,7 +166,7 @@ describe('acknowledgeReport — the browser says the owner has seen it (v415)', 
     const answer = await acknowledgeReport('rep-9', 'acct-o', fetchImpl);
     expect(seen[0]!.url).toContain('owner=acct-o');
     expect(seen[0]!.init?.method).toBe('POST');
-    expect(JSON.parse(String(seen[0]!.init?.body))).toEqual({ reportId: 'rep-9' });
+    expect(JSON.parse(bodyText(seen[0]!.init))).toEqual({ reportId: 'rep-9' });
     expect(answer.ok).toBe(true);
     expect(answer.moved).toBe(true);
     expect(answer.status).toBe('resolved');

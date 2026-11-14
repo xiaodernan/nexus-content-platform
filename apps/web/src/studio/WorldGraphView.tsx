@@ -79,8 +79,8 @@ export function WorldGraphView() {
 
   if (!world) {
     return (
-      <div className="flex h-full flex-col items-start justify-center gap-3 p-6" data-world-graph>
-        <p className="max-w-[420px] text-13 leading-relaxed text-fg-2" data-graph-empty>
+      <div className="wg-emptyState" data-world-graph>
+        <p className="wg-emptyLead" data-graph-empty>
           {snapshot.saveState === 'loading'
             ? '读取世界…'
             : snapshot.error
@@ -92,7 +92,7 @@ export function WorldGraphView() {
             type="button"
             onClick={() => void worldStore.createSkeleton(studio.document?.name ?? '未命名世界')}
             data-graph-create
-            className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg"
+            className="sb-accentBtn"
           >
             创建世界骨架（模板）
           </button>
@@ -251,10 +251,10 @@ export function WorldGraphView() {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-bg-0" data-world-graph>
+    <div className="wg-rootCol" data-world-graph>
       {/* 工具条与回执固定在滚动区之外：跟着画布一起横滚，"已保存"和「连一条」会在往右拖时消失 */}
-      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-[var(--nexus-color-border-subtle)] bg-bg-1 px-3 py-2">
-        <span className="font-mono text-12 text-fg-3" data-graph-count>
+      <div className="wg-head">
+        <span className="ap-mono12faint" data-graph-count>
           {nodes.length} 个条目 · {edges.length} 条关系
         </span>
         {/* §140：图上摆过的位置就是 3D 世界的地面布局，所以入口放在这里而不是另造一个页面 */}
@@ -288,21 +288,49 @@ export function WorldGraphView() {
         </a>
         <a
           href={`/world/${studio.projectId}/chronicle`}
-          className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-2 hover:bg-bg-3"
+          className="sb-btn2"
           data-enter-chronicle
         >
           世界编年
         </a>
         <a
+          href={`/world/${studio.projectId}/ephemeris`}
+          className="sb-btn2"
+          data-enter-ephemeris
+        >
+          世界切片
+        </a>
+        <a
+          href={`/world/${studio.projectId}/digest`}
+          className="sb-btn2"
+          data-enter-digest
+        >
+          世界速览
+        </a>
+        <a
+          href={`/world/${studio.projectId}/integrity`}
+          className="sb-btn2"
+          data-enter-integrity
+        >
+          世界体检
+        </a>
+        <a
+          href={`/world/${studio.projectId}/codex`}
+          className="sb-btn2"
+          data-enter-codex
+        >
+          设定集
+        </a>
+        <a
           href={`/world/${studio.projectId}/constellation`}
-          className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-2 hover:bg-bg-3"
+          className="sb-btn2"
           data-enter-constellation
         >
           人物星图
         </a>
         <a
           href={`/world/${studio.projectId}`}
-          className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-2 hover:bg-bg-3"
+          className="sb-btn2"
           data-enter-world3d
         >
           走进这个世界（3D）
@@ -312,16 +340,13 @@ export function WorldGraphView() {
           onClick={toggleTerrainMode}
           aria-pressed={terrainMode}
           data-world-terrain-mode
-          className={cn(
-            'rounded bg-bg-2 px-2 py-1 text-11',
-            terrainMode ? 'bg-accent-2 text-accent-fg' : 'text-fg-2 hover:bg-bg-3',
-          )}
+          className={cn('wg-segBtn', terrainMode ? 'wg-selOn' : 'wg-selIdle')}
         >
           画地形
         </button>
         {terrainMode ? (
           <>
-            <label htmlFor="world-graph-terrain-height" className="flex items-center gap-1 text-11 text-fg-3">
+            <label htmlFor="world-graph-terrain-height" className="gp-row1ink">
               {terrainProfile === 'cone' ? '坡顶高度' : '台面高度'}
               <input
                 id="world-graph-terrain-height"
@@ -332,11 +357,11 @@ export function WorldGraphView() {
                 value={terrainHeight}
                 onChange={(event) => setTerrainHeight(clampHeight(event.target.value))}
                 data-world-terrain-height-input
-                className="w-14 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1 py-1 text-12 text-fg-1 outline-none"
+                className="wg-w14Input"
               />
             </label>
             {/* 剖面开关：台面（mesa，硬边）/ 坡（cone，台心到边缘线性降到 0）。画下一笔用哪个 */}
-            <span className="flex items-center gap-1 text-11 text-fg-3" role="group" aria-label="地形剖面">
+            <span className="gp-row1ink" role="group" aria-label="地形剖面">
               {(['mesa', 'cone'] as const).map((option) => (
                 <button
                   key={option}
@@ -344,16 +369,13 @@ export function WorldGraphView() {
                   onClick={() => setTerrainProfile(option)}
                   aria-pressed={terrainProfile === option}
                   data-world-terrain-profile={option}
-                  className={cn(
-                    'rounded px-2 py-1 text-11',
-                    terrainProfile === option ? 'bg-accent-2 text-accent-fg' : 'bg-bg-2 text-fg-2 hover:bg-bg-3',
-                  )}
+                  className={cn('wg-segBtn', terrainProfile === option ? 'wg-selOn' : 'wg-selIdle')}
                 >
                   {option === 'mesa' ? '台面' : '坡'}
                 </button>
               ))}
             </span>
-            <span className="text-11 text-fg-3" data-world-terrain-hint>
+            <span className="sb-faint11" data-world-terrain-hint>
               {pickedPlateau
                 ? '点「删除这个圆台」确认删掉选中的台子'
                 : terrainProfile === 'cone'
@@ -366,14 +388,14 @@ export function WorldGraphView() {
                 type="button"
                 onClick={removePickedPlateau}
                 data-world-terrain-remove-selected
-                className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11 text-danger-ink"
+                className="wg-ghostDanger"
               >
                 删除这个圆台
               </button>
             ) : null}
           </>
         ) : null}
-        <span className="text-11 text-fg-3">
+        <span className="sb-faint11">
           {picked.length === 2 ? `已选 ${byId.get(picked[0]!)?.title} → ${byId.get(picked[1]!)?.title}` : '点两个节点就能连一条关系'}
         </span>
         {picked.length === 2 ? (
@@ -384,13 +406,13 @@ export function WorldGraphView() {
               placeholder="关系叫什么（可留空）"
               aria-label="关系标签"
               data-graph-label
-              className="w-[180px] rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12 text-fg-1 outline-none focus:bg-bg-3"
+              className="wg-terrainInput"
             />
             <button
               type="button"
               onClick={connect}
               data-graph-connect
-              className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg"
+              className="sb-accentBtn"
             >
               连一条
             </button>
@@ -398,7 +420,7 @@ export function WorldGraphView() {
               type="button"
               onClick={() => worldStore.clearPick()}
               data-graph-clear
-              className="rounded-[var(--nexus-radius-sm)] px-2 py-1 text-11 text-fg-3 hover:bg-bg-2"
+              className="wg-btnFaintHover"
             >
               取消选择
             </button>
@@ -409,15 +431,15 @@ export function WorldGraphView() {
             type="button"
             onClick={removeEdge}
             data-graph-remove-edge
-            className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11 text-danger-ink"
+            className="wg-ghostDanger"
           >
             删除这条关系
           </button>
         ) : null}
         <span
           className={cn(
-            'ml-auto font-mono text-11',
-            snapshot.saveState === 'error' ? 'text-danger-ink' : 'text-fg-3',
+            'wd-monoFaintEnd',
+            snapshot.saveState === 'error' && 'wd-dangerText',
           )}
           data-graph-state
         >
@@ -435,12 +457,12 @@ export function WorldGraphView() {
         <span data-graph-pending={snapshot.saveState === 'saving' || snapshot.saveState === 'dirty' ? 'true' : 'false'} />
       </div>
       {snapshot.notice ? (
-        <p className="px-3 py-2 text-11 text-warn-ink" data-graph-notice>
+        <p className="wg-warnCell" data-graph-notice>
           {snapshot.notice}
           <button
             type="button"
             onClick={() => worldStore.clearNotice()}
-            className="ml-2 text-fg-3 underline"
+            className="wg-linkFaint"
             data-graph-notice-dismiss
           >
             知道了
@@ -448,16 +470,16 @@ export function WorldGraphView() {
         </p>
       ) : null}
       {snapshot.error ? (
-        <p className="px-3 py-2 text-11 text-danger-ink" data-graph-error>
+        <p className="wg-dangerCell" data-graph-error>
           {snapshot.error}
         </p>
       ) : null}
 
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className="sb-scroll">
         <svg
           width={width}
           height={height}
-          className={cn('block', terrainMode && 'cursor-crosshair')}
+          className={cn('wg-block', terrainMode && 'wg-crosshair')}
           data-graph-canvas
           onPointerDown={startTerrainDraw}
           onPointerMove={moveTerrainDraw}
@@ -492,14 +514,14 @@ export function WorldGraphView() {
                 y2={b.cy}
                 stroke="transparent"
                 strokeWidth={16}
-                className="cursor-pointer"
+                className="wg-clickable"
                 onClick={() => {
                   if (terrainMode) return;
                   setPickedEdge(active ? null : edge.id);
                 }}
               />
               {edge.label ? (
-                <text x={mid.x} y={mid.y - 6} textAnchor="middle" className="fill-fg-3 text-[11px]">
+                <text x={mid.x} y={mid.y - 6} textAnchor="middle" className="wg-axis11">
                   {edge.label}
                 </text>
               ) : null}
@@ -521,7 +543,7 @@ export function WorldGraphView() {
               stroke={active ? 'var(--nexus-color-accent-2)' : 'rgba(96, 168, 138, 0.85)'}
               strokeWidth={active ? 2.5 : 1.5}
               strokeDasharray={cone ? '5 3' : undefined}
-              className={cn(terrainMode && 'cursor-pointer')}
+              className={cn(terrainMode && 'wg-clickable')}
               style={{ pointerEvents: terrainMode ? undefined : 'none' }}
               data-world-plateau-graph={plateau.id}
               data-world-plateau-profile={plateau.profile ?? 'mesa'}
@@ -560,7 +582,7 @@ export function WorldGraphView() {
             <g
               key={node.id}
               transform={`translate(${node.x}, ${node.y})`}
-              className={cn('cursor-grab', dragging === node.id && 'cursor-grabbing')}
+              className={cn('wg-grab', dragging === node.id && 'wg-grabbing')}
               data-graph-node={node.id}
               data-graph-kind={node.kind}
               data-graph-picked={isPicked ? 'true' : 'false'}
@@ -584,10 +606,10 @@ export function WorldGraphView() {
                 stroke={isPicked ? 'var(--nexus-color-accent-2)' : 'var(--nexus-color-border-strong)'}
                 strokeWidth={isPicked ? 2 : 1}
               />
-              <text x={12} y={19} className="fill-fg-1 text-[12px] font-medium">
+              <text x={12} y={19} className="wg-axis12">
                 {node.title.length > 16 ? `${node.title.slice(0, 15)}…` : node.title}
               </text>
-              <text x={12} y={35} className="fill-fg-3 text-[10px]">
+              <text x={12} y={35} className="wg-axis10">
                 {WORLD_KIND_LABELS[node.kind] ?? node.kind}
               </text>
             </g>
@@ -596,11 +618,11 @@ export function WorldGraphView() {
         </svg>
       </div>
       {!edges.length ? (
-        <p className="pointer-events-none px-3 pt-2 text-11 text-fg-3" data-graph-hint>
+        <p className="wg-pointerHint" data-graph-hint>
           还没有关系：点两个节点（顺序就是箭头方向），再点「连一条」。
         </p>
       ) : null}
-      <p className="shrink-0 px-3 py-2 text-11 leading-relaxed text-fg-3" data-graph-note>
+      <p className="wg-rowFaintPad" data-graph-note>
         位置存在世界文档里，拖完松手即写库；没拖过的按类分列自动排布。
         九类：{WORLD_KINDS.map((k) => WORLD_KIND_LABELS[k]).join(' / ')}。
       </p>

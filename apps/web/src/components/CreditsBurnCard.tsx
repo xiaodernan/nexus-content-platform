@@ -4,16 +4,18 @@ import { useEffect, useState } from 'react';
 import type { BurnProjection } from '@/lib/burn-projection';
 
 /**
- * 「点数燃烧」（v700 / ROADMAP）—— /credits 页上的燃烧速度卡。
+ * 「点数燃烬」（v700 / ROADMAP）—— /credits 页上的燃烬速度卡。
+ * §FE-BN 门面版：全部 `.bn-*`（tokens，零 hex，零裸 atom）；SVG 用 CSS var() 取色；
+ * 钩子守恒（data-burn-*）。
  *
- * 视觉语言与 v699 SavingsCard 同一套：brand 渐变大数字 + 径向辉光 + 芯片脚注。
- * 图：SVG sparkline（面积渐变填充）+ 虚线外推段（线性斜率续出去，封在图底）。
+ * 视觉语言与 v699 SavingsCard 同一套：brand 渐变大数字 + 循环光 + chip 脚注。
+ * 图：SVG sparkline（面积渐变填充）+ 虚线外推娈（线性斜率续出去，封在图底）。
  *
  * 诚实边界（§3/§159）：
- * - 预测就是预测：footnote 说清口径（AI 类、delta<0、UTC 日、近 30 天）；
- * - 活跃天数不足 → 明文说"不猜"；斜率 ≥ 0 → 明文说"按趋势用不完"；
- * - 不说"还能用 X 个月"这种单位，只给天数与 ISO 日期；封顶 9999 并说明；
- * - 发放不计入燃烧；video 类不在这条预测里。
+ * - 预测就是预测；footnote 说清口径（AI 类、delta<0、UTC 日、近 30 天）；
+ * - 活跃天数不够 → 明文说「不猜」；斜率 ≥ 0 → 明文说「按趋势走完不完」；
+ * - 不说"还能用 X 个月"这种单位，只给天数与 ISO 日期；封顶 9999 天说明；
+ * - 发放不计入燃烬；video 类不在这条预测里。
  */
 
 const W = 320;
@@ -89,62 +91,56 @@ export function CreditsBurnCard({ projection, balance }: { projection: BurnProje
   return (
     <section
       data-burn-card
-      aria-label="点数燃烧速度"
-      className="relative overflow-hidden rounded-2xl border border-[var(--nexus-color-brand)]/30 bg-gradient-to-br from-bg-1 via-bg-2 to-bg-1 p-5 shadow-[0_0_48px_rgb(91_108_255/0.16)]"
+      aria-label="点数燃烬速度"
+      className="bn-root"
     >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgb(91_108_255/0.20)_0%,transparent_65%)] blur-2xl"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -left-24 -bottom-24 h-48 w-48 rounded-full bg-[radial-gradient(circle,rgb(34_211_238/0.12)_0%,transparent_65%)] blur-2xl"
-      />
+      <div aria-hidden="true" className="bn-glowRight" />
+      <div aria-hidden="true" className="bn-glowLeft" />
 
-      <div className="relative flex flex-wrap items-center justify-between gap-x-8 gap-y-5">
-        <div className="min-w-[240px] max-w-[360px]">
-          <span className="inline-flex items-center gap-1.5 text-10 uppercase tracking-[0.18em] text-fg-3">
-            <FlameIcon /> 点数燃烧 · 近 30 天
+      <div className="bn-layout">
+        <div className="bn-colLead">
+          <span className="bn-kicker">
+            <FlameIcon /> 点数燃烬 · 近 30 天
           </span>
           {projection.verdict === 'projecting' ? (
             <>
-              <div className="mt-2 font-mono text-[44px] font-black leading-none text-gradient-brand tabular-nums" data-burn-days>
+              <div className="bn-daysBig" data-burn-days>
                 ≈ {animatedDays >= 9999 ? '9999+' : animatedDays} 天
               </div>
-              <p className="mt-2 text-11 leading-relaxed text-fg-3">
-                按近 30 天的下降趋势（least-squares 线性外推），剩余 <b data-burn-balance>{balanceLabel}</b> 点 AI 额度约在{' '}
+              <p className="bn-copy">
+                按近 30 天的下降趋势（least-squares 线性外推），剩余<b data-burn-balance>{balanceLabel}</b> 点 AI 额度约在{' '}
                 <b data-burn-date>{projection.exhaustDate}</b> 耗尽。外推不是承诺，只是你过去的消耗照出了镜子。
               </p>
             </>
           ) : projection.verdict === 'no-burn' ? (
             <>
-              <div className="mt-2 font-mono text-[40px] font-black leading-none text-gradient-brand" data-burn-days>稳</div>
-              <p className="mt-2 text-11 leading-relaxed text-fg-3">
-                近 30 天没有下降趋势（斜率 ≥ 0）——照现在的用法，AI 额度撑得过这一整月。日均燃烧约 {projection.avgPerDay.toFixed(1)} 点。
+              <div className="bn-daysBig" data-burn-days>稳</div>
+              <p className="bn-copy">
+                近 30 天没有下降趋势（斜率 ≥ 0）——照现在的用法，AI 额度撑得过这个整月。日均燃烬约 {projection.avgPerDay.toFixed(1)} 点。
               </p>
             </>
           ) : (
             <>
-              <div className="mt-2 font-mono text-[40px] font-black leading-none text-gradient-brand" data-burn-days>不猜</div>
-              <p className="mt-2 text-11 leading-relaxed text-fg-3">
-                近 30 天只有 <b>{projection.activeDays}</b> 个活跃燃烧日（&lt; 3），样本不够算出方向——这一页就不给你编一个日期。
+              <div className="bn-daysBig" data-burn-days>不猜</div>
+              <p className="bn-copy">
+                近 30 天只有<b>{projection.activeDays}</b> 个活跃燃烬日（&lt; 3），样本不够算出方向——这一页就不给你编一个日期。
               </p>
             </>
           )}
         </div>
 
-        <div className="flex min-w-[280px] flex-1 flex-col gap-3">
+        <div className="bn-colMain">
           <svg
             viewBox={`0 0 ${W} ${H}`}
-            className="h-[110px] w-full"
+            className="bn-svg"
             role="img"
-            aria-label={`近 30 天每日 AI 点数燃烧，合计 ${projection.totalBurned.toFixed(0)} 点`}
+            aria-label={`近 30 天每日 AI 点数燃烬，合计 ${projection.totalBurned.toFixed(0)} 点`}
             data-burn-svg
           >
             <defs>
               <linearGradient id="burnArea" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#5b6cff" stopOpacity="0.55" />
-                <stop offset="100%" stopColor="#5b6cff" stopOpacity="0.02" />
+                <stop offset="0%" stopColor="var(--nexus-color-brand)" stopOpacity="0.55" />
+                <stop offset="100%" stopColor="var(--nexus-color-brand)" stopOpacity="0.02" />
               </linearGradient>
             </defs>
             <line x1={PAD_X} y1={floorY} x2={W - PAD_X} y2={floorY} stroke="currentColor" strokeOpacity="0.14" strokeDasharray="3 5" />
@@ -165,7 +161,7 @@ export function CreditsBurnCard({ projection, balance }: { projection: BurnProje
               <polyline
                 points={linePoints}
                 fill="none"
-                stroke="#5b6cff"
+                stroke="var(--nexus-color-brand)"
                 strokeWidth="2"
                 strokeLinejoin="round"
                 strokeLinecap="round"
@@ -177,22 +173,22 @@ export function CreditsBurnCard({ projection, balance }: { projection: BurnProje
                 y1={dashed.y1}
                 x2={dashed.x2}
                 y2={dashed.y2}
-                stroke="#22d3ee"
+                stroke="var(--nexus-color-accent-2)"
                 strokeWidth="2"
                 strokeDasharray="4 4"
                 strokeLinecap="round"
               />
             ) : null}
-            {n > 0 ? <circle cx={xAt(n - 1)} cy={yAt(projection.series[n - 1]!)} r="3" fill="#a5b4ff" /> : null}
+            {n > 0 ? <circle cx={xAt(n - 1)} cy={yAt(projection.series[n - 1]!)} r="3" fill="var(--nexus-color-accent-mix)" /> : null}
           </svg>
 
-          <div className="flex flex-wrap gap-2" data-burn-chips>
-            <Chip label="日均燃烧" value={`${projection.avgPerDay.toFixed(1)} 点`} marker="avg" />
-            <Chip label="活跃燃烧日" value={String(projection.activeDays)} marker="active" />
+          <div className="bn-chips" data-burn-chips>
+            <Chip label="日均燃烬" value={`${projection.avgPerDay.toFixed(1)} 点`} marker="avg" />
+            <Chip label="活跃燃烬日" value={String(projection.activeDays)} marker="active" />
             <Chip label="窗口合计" value={`${Math.round(projection.totalBurned)} 点`} marker="total" />
           </div>
 
-          <p className="text-10 leading-relaxed text-fg-4">
+          <p className="bn-note">
             口径：仅 AI 类、delta&lt;0、按 UTC 日分组、近 30 天；least-squares 线性外推不是承诺；发放不计；video 类不在这条预测里。
           </p>
         </div>
@@ -203,19 +199,16 @@ export function CreditsBurnCard({ projection, balance }: { projection: BurnProje
 
 function Chip({ marker, label, value }: { marker: string; label: string; value: string }) {
   return (
-    <span
-      data-burn-chip={marker}
-      className="inline-flex min-h-6 items-center gap-1.5 rounded-full border border-[var(--nexus-color-brand)]/40 bg-[var(--nexus-color-brand)]/10 px-2.5 py-0.5 text-10 text-accent-2-ink"
-    >
-      <span className="text-fg-4">{label}</span>
-      <span className="font-mono tabular-nums">{value}</span>
+    <span data-burn-chip={marker} className="bn-chip">
+      <span className="bn-chipLabel">{label}</span>
+      <span className="bn-chipValue">{value}</span>
     </span>
   );
 }
 
 function FlameIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="text-[var(--nexus-color-brand)]">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="bn-kickerIcon">
       <path
         d="M12 3c1.2 3.6 4.6 5.1 4.6 9a4.6 4.6 0 0 1-9.2 0c0-1.8.8-3 2-4.6.6 1.4 1.6 2 2.6 2-.6-2.4-.6-4.6 0-6.4Z"
         stroke="currentColor"

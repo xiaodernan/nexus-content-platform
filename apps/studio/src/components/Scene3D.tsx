@@ -224,11 +224,7 @@ export default function Scene3D() {
         }
       },
       renameSaveFile(oldPath, newPath) {
-        try {
-          return runtime.renameSaveFile(oldPath, newPath);
-        } catch (error) {
-          throw error;
-        }
+        return runtime.renameSaveFile(oldPath, newPath);
       },
     };
     saverRef.current = saver;

@@ -20,30 +20,28 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <main className="mx-auto flex min-h-[70vh] max-w-2xl flex-col items-center justify-center gap-[var(--nexus-space-5)] px-6 py-16 text-center">
-      <div aria-hidden="true" className="pointer-events-none absolute -z-10 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgb(242_85_90/0.14),transparent_70%)] blur-3xl" />
-      <span className="font-mono text-[64px] font-black leading-none tracking-tighter text-[var(--nexus-color-danger-ink)] select-none">
-        ⚠
-      </span>
-      <h1 className="text-[var(--nexus-font-size-21)] font-semibold text-fg-1">这片页面出错了</h1>
-      <p className="max-w-md text-14 leading-6 text-fg-2">
+    <main className="ge-shell">
+      <div aria-hidden="true" className="ge-glow" />
+      <span className="ge-mark">⚠</span>
+      <h1 className="ge-title">这片页面出错了</h1>
+      <p className="ge-body">
         这不是你的操作问题——页面背后的那段代码抛了一个异常。我们已经在控制台留了痕迹，
         它会被下一次发布修掉。
       </p>
       {error.digest ? (
-        <p className="font-mono text-10 text-fg-3">digest: {error.digest}</p>
+        <p className="ge-digest">digest: {error.digest}</p>
       ) : null}
-      <div className="flex flex-wrap items-center justify-center gap-3">
+      <div className="ge-actions">
         <button
           type="button"
           onClick={reset}
-          className="inline-flex min-h-11 items-center rounded-lg bg-[var(--nexus-color-brand)] px-5 py-2 text-14 font-semibold text-[var(--nexus-color-accent-fg)] transition-all duration-150 hover:shadow-[0_0_30px_rgb(91_108_255/0.45)]"
+          className="ge-btnPrimary"
         >
           再试一次
         </button>
         <a
           href="/"
-          className="inline-flex min-h-11 items-center rounded-lg border border-[var(--nexus-color-border-strong)] bg-bg-2 px-5 py-2 text-14 font-medium text-fg-1 transition-colors hover:border-[var(--nexus-color-brand)] hover:bg-bg-3"
+          className="ge-btnGhost"
         >
           回到首页
         </a>

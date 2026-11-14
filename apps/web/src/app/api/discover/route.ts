@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { currentUserOrNull } from '@/server/domain/session';
-import { discover, type DiscoverSort } from '@/server/domain/social';
-import { cachedDiscoverAnonymous, discoverResponseHeaders } from '@/server/cache/discoverRouteCache';
+import { discoverCached, type DiscoverSort } from '@/server/domain/social';
+// v670 (ADR 0102)：下游缓存契约——`Vary: Cookie` 把 anon / 登录两种内容隔在缓存键两侧，
+// `no-store`（登录另加 `private`）堵住下游再存一层的路。服务端 15s 窗口由本进程的
+// `discoverCached` 守（singleflight 在 viewer×sort×limit 完整键上合并），下游不存各管一段。
+import { discoverResponseHeaders } from '@/server/cache/discoverRouteCache';
 
 /**
  * §61 发现列表。只承诺排得出来的三种：New / Popular / Following。
@@ -23,10 +26,6 @@ export async function GET(req: Request): Promise<NextResponse> {
   const requested = url.searchParams.get('sort') ?? 'new';
   const sort: DiscoverSort = SORTS.includes(requested as DiscoverSort) ? (requested as DiscoverSort) : 'new';
   const viewer = await currentUserOrNull();
-  if (!viewer) {
-    const result = await cachedDiscoverAnonymous(sort, () => discover({ sort, viewerId: null }));
-    return NextResponse.json(result, { headers: discoverResponseHeaders(false) });
-  }
-  const result = await discover({ sort, viewerId: viewer.id });
-  return NextResponse.json(result, { headers: discoverResponseHeaders(true) });
+  const result = await discoverCached({ sort, viewerId: viewer?.id ?? null });
+  return NextResponse.json(result, { headers: discoverResponseHeaders(viewer !== null) });
 }

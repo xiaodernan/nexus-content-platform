@@ -36,28 +36,28 @@ export function ProfileEditor({ initialBio }: { initialBio: string | null }) {
   };
 
   return (
-    <div className="flex flex-col gap-2" data-profile-editor>
+    <div className="pe-root" data-profile-editor>
       <textarea
         value={bio}
         onChange={(e) => setBio(e.target.value)}
         rows={3}
         maxLength={500}
         placeholder="一句话介绍你自己（会公开在 /u/你的地址 上）"
-        className="rounded bg-bg-1 px-2 py-1 text-12 text-fg-1"
+        className="pe-input"
         data-bio-input
       />
-      <div className="flex items-center gap-2">
+      <div className="pe-row">
         <button
           type="button"
           disabled={busy}
           onClick={() => void save()}
-          className="rounded bg-accent-2 px-3 py-1 text-12 text-accent-fg disabled:opacity-50"
+          className="pe-saveBtn"
           data-bio-save
         >
           {busy ? '保存中…' : '保存简介'}
         </button>
         {notice ? (
-          <span className="text-11 text-fg-3" data-bio-notice>
+          <span className="pe-hint" data-bio-notice>
             {notice}
           </span>
         ) : null}

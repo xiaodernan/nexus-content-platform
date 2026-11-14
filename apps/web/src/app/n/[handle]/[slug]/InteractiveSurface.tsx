@@ -85,7 +85,7 @@ export function InteractiveHotspots({
             padding: 0,
             cursor: 'pointer',
           }}
-          className="rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nexus-color-accent-2-ink)] hover:ring-2 hover:ring-inset hover:ring-[var(--nexus-color-accent-2-ink)]"
+          className="is-hotspot"
         />
       ))}
     </>
@@ -153,13 +153,13 @@ export function InteractiveEnd({ path, pageId }: { path: string; pageId: string 
 
   return (
     <p
-      className="px-[var(--nexus-space-4)] pt-[var(--nexus-space-3)] text-12 text-fg-2"
+      className="is-endNote"
       data-interactive-end
       data-interactive-record={
         record === 'recorded' ? 'yes' : record === 'already' ? 'already' : record === 'failed' ? 'failed' : undefined
       }
     >
-      <span className="text-fg-1">这一页没有下一步，它是这一版的终点。</span>{' '}
+      <span className="is-endStrong">这一页没有下一步，它是这一版的终点。</span>{' '}
       {record === 'checking' ? '只有从入口点着走过来的人会被记一次「走通」。' : null}
       {record === 'not-walked' ? '你这一次是直接打开这一页的，没有从入口点过来 ⇒ 不算走通，也没有上报。' : null}
       {record === 'recording' ? '正在记这一次走通…' : null}

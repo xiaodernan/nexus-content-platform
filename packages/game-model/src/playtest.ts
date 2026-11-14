@@ -1,4 +1,4 @@
-import { initialState, step, type SimInput, type SimState } from "./sim";
+import { enemyByIdOf, getPlanIndices, initialState, step, type SimInput, type SimState } from "./sim";
 import type { GamePlan } from "./play";
 import { initialRpgState, rpgStep, type RpgPlan } from "./rpg";
 import type { StoryPlan } from "./story";
@@ -100,8 +100,11 @@ function lcg(seed: number): () => number {
 }
 
 function nearest(state: SimState, plan: GamePlan): { x: number; y: number } | null {
+  // §PERF-2：nearest 每个 policy step 都调，原先用 state.enemies.find 对每个敌人线性扫（O(E²)）。
+  // 索引按不可变 plan 缓存一次，state.enemies 与 plan.enemies 同序同长，按 id O(1) 取回。
+  const enemyIdx = getPlanIndices(plan);
   const alive = plan.enemies
-    .map((enemy) => state.enemies.find((s) => s.id === enemy.id))
+    .map((enemy) => enemyByIdOf(state.enemies, enemyIdx, enemy.id))
     .filter((sim): sim is NonNullable<typeof sim> => Boolean(sim?.active));
   if (!alive.length) return null;
   return alive.reduce((best, other) =>

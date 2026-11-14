@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { probeDeployLane, requestDeployArcRun } from './deployLane';
+import { bodyText } from './fetchBody';
 
 /**
  * M7 v417 — the CLIENT half of the dock's deploy face, graded directly.
@@ -81,7 +82,7 @@ describe('requestDeployArcRun — the goal goes up, the stdout comes back (v417)
     await requestDeployArcRun('ship the dock');
     expect(seen[0]!.url).toBe('/api/agent/deploy');
     expect(seen[0]!.init?.method).toBe('POST');
-    expect(JSON.parse(String(seen[0]!.init?.body))).toEqual({ goal: 'ship the dock' });
+    expect(JSON.parse(bodyText(seen[0]!.init))).toEqual({ goal: 'ship the dock' });
   });
 
   it('NO goal means no body and no content-type — the ask is the route itself', async () => {
@@ -94,7 +95,7 @@ describe('requestDeployArcRun — the goal goes up, the stdout comes back (v417)
   it('an EMPTY-string goal still travels — the server refuses by name rather than the client inventing "no goal"', async () => {
     const seen = stubFetch(() => new Response(JSON.stringify({ ok: false, reason: 'a goal is required' }), { status: 200 }));
     const answer = await requestDeployArcRun('');
-    expect(JSON.parse(String(seen[0]!.init?.body))).toEqual({ goal: '' });
+    expect(JSON.parse(bodyText(seen[0]!.init))).toEqual({ goal: '' });
     expect(answer.ok).toBe(false);
     expect(answer.reason).toBe('a goal is required');
   });

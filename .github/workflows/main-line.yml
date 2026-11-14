@@ -14,7 +14,28 @@ name: main-line
 #   2. `npm run evals` — the §85 deterministic structural invariants, exit 1 on any red (ADR-0093).
 #      With NEXUS_DATABASE_URL pointed at the service container, the export-roundtrip suite runs too
 #      (it prints SKIP without one, without a red).
-#   3. the Spring Cloud config server (`services/java-config-server`, Maven) — the one Java module
+#   2b. the facade health trio — `verify:fe-gates` (the studio line's 100 visual-style gates),
+#       `verify:census` (globals.css every class referenced) and `verify:no-raw-tailwind` (className only from
+#       the facade families) — the main line's own FE discipline, wired so a page silently re-acquiring
+#       raw atoms reddens this door instead of depending on somebody remembering.
+#   3. `verify:topology` (the `topology` job) — the §SC-19/20/23/25 live smoke: registry + config +
+#      domain-service + gateway + nexus-api packaged, started, asserted against each other, with the
+#      config round-trip proven out of the gateway's own startup log (ratePerSecond=50.0 beats the
+#      packaged 100) and both backends registering with ZERO env register flags. This is the CI answer
+#      to the stale-jar class of bug (a green `mvn test` says nothing about `java -jar`).
+#   4. `verify:lb` (the `topology` job, second step) — the §SC-26 live smoke: TWO nexus-domain-service
+#      instances under ONE service id, registry holding both, gateway `/domain/**` answering 10/10
+#      through `lb://`, with both instances probed UP by the gateway's measured health view.
+#   5. `verify:auth` (the `topology` job, third step) — the §SC-27 live smoke: auth ON; no token → 401
+#      with the gateway's own refusal reason; wrong-secret/expired/garbage → 401; valid token → 200 with
+#      X-Nexus-Subject round-tripping to the backend verbatim; /platform/health whitelisted; the
+#      gateway's OWN diagnostic surface (/platform/services) requires a token.
+#   6. `verify:actuator` (the `topology` job, fourth step) — the §SC-68..§SC-72 branch of work: five JVMs,
+#      one per service, each asserted for `/actuator/health` 200 UP with details hidden (the JPA pair
+#      genuinely SELECTs against Postgres) plus `/actuator/info` carrying maven build-info artifact +
+#      component, plus domain-service's ai-service circuit-breaker surface. Same stale-jar-class defence
+#      as the three steps above.
+#   7. the Spring Cloud config server (`services/java-config-server`, Maven) — the one Java module
 #      with no other workflow covering it: ci.yml builds none of the Maven modules on the hosted
 #      runner, and §15 of `verify:ci-wiring` refuses a pom the commit owns that no step tests.
 #
@@ -68,13 +89,133 @@ jobs:
           NEXUS_DATABASE_URL: postgres://nexus:nexus_dev_only@localhost:55433/nexus
       - name: Typecheck main line
         run: npm run typecheck:main
+      - name: FE gates (facade families, zero raw Tailwind atoms)
+        run: npm run verify:fe-gates
+      - name: Facade census (globals.css classes all referenced)
+        run: npm run verify:census
+      - name: No raw Tailwind atoms
+        run: npm run verify:no-raw-tailwind
       - name: Evals (invariants in CI, ADR-0093)
         run: npm run evals
+        env:
+          NEXUS_DATABASE_URL: postgres://nexus:nexus_dev_only@localhost:55433/nexus
+      - name: Cost ledger probe (read-only, §COST-1)
+        run: npm run verify:cost-ledger
         env:
           NEXUS_DATABASE_URL: postgres://nexus:nexus_dev_only@localhost:55433/nexus
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "25"
-      - name: Java config server tests (Spring Cloud Config door, ADR 0057)
-        run: mvn -B -f services/java-config-server/pom.xml test
+      - name: Maven tests — all eight service modules (§15 of verify:ci-wiring)
+        # The other-lane merge brought three more Maven modules into the tree
+        # (nexus-registry / nexus-config / nexus-gateway beside java-* and nexus-api).
+        # §15 refuses a pom the commit owns that no workflow builds with its tests;
+        # every pom below is exercised with its tests on the hosted runner.
+        run: |
+          mvn -B -f services/java-registry/pom.xml test
+          mvn -B -f services/java-config-server/pom.xml test
+          mvn -B -f services/java-domain-service/pom.xml test
+          mvn -B -f services/java-gateway/pom.xml test
+          mvn -B -f services/nexus-api/pom.xml test
+          mvn -B -f services/nexus-registry/pom.xml test
+          mvn -B -f services/nexus-config/pom.xml test
+          mvn -B -f services/nexus-gateway/pom.xml test
+  topology:
+    # The §SC-19/20/23 live smoke, in CI: package all three services, apply migrations, then run
+    # `npm run verify:topology`. Catches the class of bug `mvn test` cannot see (test uses target/classes;
+    # `java -jar` uses the jar) and catches wiring regressions (gateway route, correlation id, door-less
+    # refusal) on every push, not only when a human remembers to run the smoke.
+    # HONEST NOTE: the first run of this job is unproven until a push actually executes it; if it goes
+    # red, the failure is real signal — the same class of failure this job exists to surface.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: nexus
+          POSTGRES_PASSWORD: nexus_dev_only
+          POSTGRES_DB: nexus
+        ports:
+          - 55433:5432
+        options: >-
+          --health-cmd "pg_isready -U nexus -d nexus"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install
+        run: npm ci || npm install
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Migrate the database (the shared schema is web-owned; the domain service never runs DDL)
+        run: npm run db:migrate
+        env:
+          NEXUS_DATABASE_URL: postgres://nexus:nexus_dev_only@localhost:55433/nexus
+      - name: Create the nexus-api throwaway database (it owns its own ddl-auto:update demo schema)
+        run: |
+          which psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+          psql -h localhost -p 55433 -U nexus -d postgres -c "CREATE DATABASE nexus_api_smoke" || true
+        env:
+          PGPASSWORD: nexus_dev_only
+      - name: Package the five services (jar must postdate the checkout's source mtimes)
+        run: |
+          mvn -B -DskipTests package -f services/nexus-registry/pom.xml
+          mvn -B -DskipTests package -f services/nexus-config/pom.xml
+          mvn -B -DskipTests package -f services/java-domain-service/pom.xml
+          mvn -B -DskipTests package -f services/nexus-gateway/pom.xml
+          mvn -B -DskipTests package -f services/nexus-api/pom.xml
+      - name: verify:topology (registry + config + domain-service + gateway + nexus-api through service discovery)
+        run: npm run verify:topology
+        env:
+          NEXUS_GATEWAY_PORT: 8090
+      - name: verify:lb (two instances, one service id, measured round-trip through the door)
+        # Lineage of this step: the §SC-26 live run on 2026-11-10. Ports are distinct
+        # (8773/8085/8086/8092) so it cannot collide with the previous step. Two
+        # domain-service JVMs on a 2-core runner take longer to boot; the smoke's
+        # own waitFor deadlines (150s each) cover that. HONEST NOTE: never run by
+        # a real CI executor yet — a red here is real signal, same as the door above.
+        run: npm run verify:lb
+        env:
+          NEXUS_GATEWAY_PORT: 8092
+          NEXUS_REGISTRY_PORT: 8773
+          NEXUS_DOMAIN_A_PORT: 8085
+          NEXUS_DOMAIN_B_PORT: 8086
+      - name: verify:auth (the live authentication door — 401s without a token, 200 with one)
+        # Lineage: the §SC-27 smoke (2026-11-10). Distinct ports (8774/8087/8093).
+        # This step is what makes the SC-27 fix (PlatformAuthFilter protecting the
+        # gateway's OWN endpoints, not just the route pipeline) CI-enforced, not just
+        # unit-tested — the §SC-27 live run on the authoring box could not complete
+        # because the machine is out of RAM, not because the door failed. HONEST
+        # NOTE: never run by a real CI executor yet — a red here is real signal.
+        run: npm run verify:auth
+        env:
+          NEXUS_GATEWAY_PORT: 8093
+          NEXUS_REGISTRY_PORT: 8774
+          NEXUS_DOMAIN_PORT: 8087
+      - name: verify:actuator (five JVMs, one per service — health 200 UP + build.component pinned)
+        # Lineage: the §SC-68..§SC-72 branch of work. This step is what makes the five-service
+        # actuator honesty contract CI-enforced: health must be genuinely UP (selector 1 against
+        # Postgres on the JPA pair) with details hidden, /actuator/info must carry the maven
+        # build-info artifact+component, and domain-service must expose ai-service circuit
+        # breaker. Distinct ports (8775/8886/8089/8083/8094) shadow none of the other steps.
+        # HONEST NOTE: never run by a real CI executor yet — a red here is real signal.
+        run: npm run verify:actuator
+        env:
+          NEXUS_ACTUATOR_REGISTRY_PORT: 8775
+          NEXUS_ACTUATOR_CONFIG_PORT: 8886
+          NEXUS_ACTUATOR_DOMAIN_PORT: 8089
+          NEXUS_ACTUATOR_API_PORT: 8083
+          NEXUS_ACTUATOR_GATEWAY_PORT: 8094
+          NEXUS_API_DB_URL: jdbc:postgresql://localhost:55433/nexus_api_smoke

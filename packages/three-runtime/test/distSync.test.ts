@@ -133,7 +133,7 @@ class ThreeRuntime {
   });
 
   it('an overload signature (no body) is not a method the dist must carry', () => {
-    const signatureOnly = SRC.replace(/^  setEntityVisible\(.*$/m, '  setEntityVisible(sceneId: SceneId, entityId: EntityId, visible: boolean): boolean;');
+    const signatureOnly = SRC.replace(/^ {2}setEntityVisible\(.*$/m, '  setEntityVisible(sceneId: SceneId, entityId: EntityId, visible: boolean): boolean;');
     expect(classMethodNames(signatureOnly)).not.toContain('setEntityVisible');
   });
 

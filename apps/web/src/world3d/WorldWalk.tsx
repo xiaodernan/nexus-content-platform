@@ -502,16 +502,16 @@ export function WorldWalk({
 
   if (webgl === null) {
     return (
-      <div className="flex h-full items-center justify-center bg-bg-0 font-mono text-13 text-fg-3" data-world3d="probing">
+      <div className="ww-probing" data-world3d="probing">
         正在确认这台设备能不能用 WebGL…
       </div>
     );
   }
   if (!webgl) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-2 bg-bg-0 px-6 text-center" data-world3d="unavailable">
-        <p className="text-13 text-fg-1">这台设备/浏览器给不出 WebGL 上下文，3D 世界进不去。</p>
-        <p className="text-11 text-fg-3">
+      <div className="ww-unavailable" data-world3d="unavailable">
+        <p className="g3-lede">这台设备/浏览器给不出 WebGL 上下文，3D 世界进不去。</p>
+        <p className="g3-hint">
           这里不会退回成 2D 图然后也叫「世界」：要读这些条目，用 Studio 里的世界与世界图视图。
         </p>
       </div>
@@ -520,7 +520,7 @@ export function WorldWalk({
 
   return (
     <div
-      className="relative h-full w-full bg-bg-0"
+      className="ww-stage"
       data-world3d="live"
       data-world-name={scene.worldName}
       // 高度也进读数：走在圆台上时 e2e 能断言"人确实在台面上"，
@@ -554,7 +554,7 @@ export function WorldWalk({
       </Canvas>
 
       {/* 名字标签：DOM 层，能被点、能被读屏、能被测试断言 */}
-      <div className="pointer-events-none absolute inset-0" data-world-labels>
+      <div className="ww-labelsLayer" data-world-labels>
         {labels.map((label, index) => (
           <button
             key={label.id}
@@ -563,39 +563,39 @@ export function WorldWalk({
             data-world-label={label.id}
             data-placed={label.placed}
             title={`${label.kindLabel} · 离你 ${label.distance}`}
-            className="pointer-events-auto absolute -translate-x-1/2 -translate-y-full whitespace-nowrap rounded bg-bg-1/85 px-1.5 py-[1px] text-11 text-fg-1 hover:bg-bg-2"
+            className="ww-label"
             // 近处的标签要压过远处的：DOM 默认后画的在上面，而数组是"由近到远"排的，
             // 不显式给 z-index 就会出现"远处的名字挡住近处的、点不到"（e2e 点标签时撞上的）
             style={{ left: label.x, top: label.y, zIndex: LABEL_LIMIT - index }}
           >
-            <span className="mr-1 inline-block h-2 w-2 rounded-sm align-middle" style={{ background: label.color }} />
+            <span className="ww-swatch" style={{ background: label.color }} />
             {label.title}
           </button>
         ))}
         {labels.length >= LABEL_LIMIT ? (
-          <p className="absolute bottom-2 right-3 text-11 text-fg-3" data-label-capped>
+          <p className="ww-capNote" data-label-capped>
             标签只显示离你最近的 {LABEL_LIMIT} 个（这一页共 {scene.stats.entities} 个条目）
           </p>
         ) : null}
       </div>
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-wrap items-start justify-between gap-3 p-3">
-        <div className="pointer-events-auto max-w-[420px] rounded-[var(--nexus-radius-sm)] bg-bg-1/90 p-3" data-world-hud>
-          <p className="text-13 font-semibold text-fg-1" data-hud-world>
+      <div className="ww-hudLayer">
+        <div className="ww-hudPanel" data-world-hud>
+          <p className="ww-hudTitle" data-hud-world>
             {scene.worldName}
           </p>
-          <p className="text-11 text-fg-3">
+          <p className="g3-hint">
             来自《{projectName}》 · {scene.stats.entities} 个条目 · {scene.stats.linksDrawn}/{scene.stats.links} 条关系
           </p>
-          <p className="mt-1 text-11 text-fg-3">
+          <p className="g2-mt1Note">
             位置：{scene.stats.authored} 个来自你在世界图上摆过的坐标，{scene.stats.fallback} 个按文档顺序排在同心环上
             （线框的那些）。
           </p>
-          <p className="mt-2 text-11 text-fg-2">
+          <p className="ww-note2">
             WASD / 方向键走动，按住鼠标拖动转视角；点地面走过去（直线加碰撞滑动——绕不过大障碍时会停在障碍前）。
             点条目名是展开正文，不会把你搬过去。
           </p>
-          <p className="text-11 text-fg-3">
+          <p className="g3-hint">
             条目占位会挡路（圆碰撞）。没有地形：模型里没有高程字段，脚下是平的。对话（§47）跟的是 §46
             角色档案，不是这些世界条目。
           </p>
@@ -604,12 +604,13 @@ export function WorldWalk({
             onClick={() => setTalkOpen((open) => !open)}
             data-world-talk-toggle
             aria-expanded={talkOpen}
-            className="mt-2 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-11 text-fg-2 hover:bg-bg-3"
+            aria-controls={talkOpen ? 'world-talk' : undefined}
+            className="ww-miniBtn"
           >
             {talkOpen ? '收起对话' : '跟角色说话'}
           </button>
           {talkOpen ? (
-            <div className="mt-2" data-world-talk>
+            <div id="world-talk" className="ww-talkMount" data-world-talk>
               {characters.length ? (
                 <>
                   <select
@@ -617,7 +618,7 @@ export function WorldWalk({
                     data-world-talk-target
                     value={talkTarget ?? ''}
                     onChange={(e) => setTalkTarget(e.target.value || null)}
-                    className="mb-1 w-full rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1 py-1 text-11 text-fg-1"
+                    className="ww-input"
                   >
                     {characters.map((character) => (
                       <option key={character.id} value={character.id}>
@@ -636,56 +637,56 @@ export function WorldWalk({
                   ) : null}
                 </>
               ) : (
-                <p className="text-11 text-fg-3" data-world-talk-empty>
+                <p className="g2-note" data-world-talk-empty>
                   这个项目还没有角色档案（§46）。对话是跟档案说的——先回 Studio 的角色面板建一个。
                 </p>
               )}
             </div>
           ) : null}
         </div>
-        <div className="pointer-events-auto rounded-[var(--nexus-radius-sm)] bg-bg-1/90 p-2" data-world-legend>
+        <div className="ww-legend" data-world-legend>
           {sceneLegend(scene).map((entry) => (
-            <span key={entry.kind} className="flex items-center gap-2 text-11 text-fg-2">
-              <span className="inline-block h-2 w-2 rounded-sm" style={{ background: entry.color }} />
+            <span key={entry.kind} className="ww-legendItem">
+              <span className="ww-dot" style={{ background: entry.color }} />
               {entry.label} · {entry.count}
             </span>
           ))}
         </div>
       </div>
 
-      <div className="absolute inset-x-0 bottom-0 flex flex-col gap-2 p-3" data-nearby-panel>
+      <div className="ww-nearbyLayer" data-nearby-panel>
         {focused ? (
-          <div className="max-w-[720px] rounded-[var(--nexus-radius-sm)] bg-bg-1/95 p-3" data-nearby-focus={focused.id}>
-            <p className="text-12 text-fg-1">
-              <span className="mr-2 inline-block h-2 w-2 rounded-sm align-middle" style={{ background: focused.color }} />
+          <div className="ww-nearbyCard" data-nearby-focus={focused.id}>
+            <p className="ww-strong12">
+              <span className="ww-swatchLg" style={{ background: focused.color }} />
               {focused.title}
-              <span className="ml-2 text-11 text-fg-3">
+              <span className="ww-kindNote">
                 {focused.kindLabel}
                 {focused.placed === 'fallback' ? ' · 位置是按序号排的，不是摆过的' : ''}
               </span>
             </p>
-            <p className="mt-1 max-h-[140px] overflow-auto whitespace-pre-wrap text-12 text-fg-2">{focused.body || '（这一条还没有正文）'}</p>
+            <p className="ww-focusedBody">{focused.body || '（这一条还没有正文）'}</p>
           </div>
         ) : (
-          <p className="text-11 text-fg-3" data-nearby-empty>
+          <p className="g2-note" data-nearby-empty>
             附近 {NEARBY_RADIUS} 个单位内没有条目。走远一点看看，或者用下面这些按钮直接读某一条——
             那只是展开正文，不会把你搬到那儿。
           </p>
         )}
-        <div className="flex flex-wrap gap-1">
+        <div className="ww-chipWrap">
           {scene.entities.slice(0, 24).map((entity) => (
             <button
               key={entity.id}
               type="button"
               onClick={() => setSelected(entity.id)}
               data-read-entity={entity.id}
-              className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-2 hover:bg-bg-3"
+              className="ww-chipBtn"
             >
               读：{entity.title}
             </button>
           ))}
         </div>
-        <ul className="max-w-[820px] text-11 text-fg-3" data-scene-limits>
+        <ul className="ww-limits" data-scene-limits>
           {scene.limits.map((limit) => (
             <li key={limit}>· {limit}</li>
           ))}

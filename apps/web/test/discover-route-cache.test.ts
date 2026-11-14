@@ -14,7 +14,11 @@ import { __resetDiscoverCacheDriverForTests, DISCOVER_REDIS_URL_ENV } from '@/se
  *
  * 这一片用内存驱动（不设 NEXUS_REDIS_URL，零外部依赖）把它确定性地测出来：compute 是可数的替身，
  * 命中/未命中/抛错/invalidate 全是同步可观察的，不连库、不起 Redis、不改源码、低内存宿主也跑得动。
- * route 层"带 viewer 绝不进公共缓存"由 route.ts 的分支结构保证，末尾一条静态门钉住它不会被改回去。
+ * route 层"带 viewer 绝不进公共缓存"——合并后本书的保证由 route.ts 直接走 `discoverCached`
+ * （键为 viewerId × sort × limit；anon 是 null 那一格）给出，而不是靠 `cachedDiscoverAnonymous`
+ * 的 anon 专用分支。合并后的静态门钉的是：route 只调 `discoverCached`（单一调用点、键带 viewer），
+ * 应答头由 `discoverResponseHeaders(viewer !== null)` 收敛——钉的是合并后的接线，语义
+ * （个人化答案永不进公共键）由本仓库的 discover-cache 套件另行钉住。
  */
 
 const ROUTE = join(process.cwd(), 'apps/web/src/app/api/discover/route.ts');
@@ -121,13 +125,14 @@ describe('route 层：个人化答案绝不进 anon 公共缓存（静态门）'
     const text = readFileSync(ROUTE, 'utf8').replace(/\r\n/g, '\n');
     // 这里只钉「缓存调用被 anon 块包住」，不把应答写法写死——返回头由下面那片门单独钉，
     // 两片各自只管一件事，改 response header 不该牵连这条缓存归属门（反向对照：门不惩罚正当改动）。
-    const anonBranch = /if \(!viewer\)\s*\{[\s\S]*?cachedDiscoverAnonymous\(sort,[\s\S]*?\)[\s\S]*?\}/.exec(text);
-    expect(anonBranch, 'anon 分支不再包住 cachedDiscoverAnonymous——谁在缓存私人答案就说不清了').not.toBeNull();
-    // 登录分支必须是直接 discover({ sort, viewerId: viewer.id })，不能经缓存
-    const viewerBranch = /const result = await discover\(\{\s*sort,\s*viewerId: viewer\.id\s*\}\)/.exec(text);
-    expect(viewerBranch, '带 viewer 的路径不再直接算——private/following 的私人答案可能混进公共键').not.toBeNull();
-    // 全文件只有 anon 那一处碰缓存，没有第二条调用点
-    const calls = text.split('cachedDiscoverAnonymous(').length - 1;
+    const merged = /const result = await discoverCached\(\{\s*sort,\s*viewerId:\s*viewer\?\.id\s*\?\?\s*null\s*\}\)/.exec(text);
+    expect(
+      merged,
+      '合并后 route 直接走本仓库的 discoverCached：键是 (viewerId, sort, limit)，'
+        + 'anon（null）与登录用户各占一格，私人答案永远进不了公共键——这是本仓库自己的个人化/公共缓存隔离',
+    ).not.toBeNull();
+    // 全文件没有私有答案泄漏路径：只有这一处调用，且它带自己的 viewer 维度
+    const calls = text.split('discoverCached(').length - 1;
     expect(calls, '缓存调用点不止一处，个人化答案可能从别处漏进去').toBe(1);
   });
 });
@@ -164,14 +169,18 @@ describe('discoverResponseHeaders — /api/discover 应答的 HTTP 缓存契约�
 describe('route 层：两个应答分支都挂上 discoverResponseHeaders（静态接线门）', () => {
   it('anon 传 false、登录传 true，任何分支都不许退回裸 NextResponse.json(result)', () => {
     const text = readFileSync(ROUTE, 'utf8').replace(/\r\n/g, '\n');
-    const anonReturn = /return NextResponse\.json\(result,\s*\{\s*headers:\s*discoverResponseHeaders\(\s*false\s*\)\s*\}\);/.exec(text);
-    const viewerReturn = /return NextResponse\.json\(result,\s*\{\s*headers:\s*discoverResponseHeaders\(\s*true\s*\)\s*\}\);/.exec(text);
-    expect(anonReturn, 'anon 分支没接 discoverResponseHeaders(false)——应答缺 Vary/no-store').not.toBeNull();
-    expect(viewerReturn, '登录分支没接 discoverResponseHeaders(true)——私人结果可能被共享缓存存下').not.toBeNull();
+    // 合并后的 route：单一 return，但 headers 的 authenticated 位按 viewer 是否为 null 传入——
+    // anon 传 false、登录传 true，两条路径共用同一行代码也不会串错。
+    const mergedReturn = /return NextResponse\.json\(result,\s*\{\s*headers:\s*discoverResponseHeaders\(\s*viewer\s*!==\s*null\s*\)\s*\}\);/.exec(text);
+    expect(
+      mergedReturn,
+      'route 没接 discoverResponseHeaders(viewer !== null)——anon/登录两种内容的下游缓存契约缺 Vary/no-store/private',
+    ).not.toBeNull();
     // 凡是 return 出去的 json 应答都不得超过「带 headers」这一种形态：漏接一门就会静默退回无头应答。
     const bareReturns = text.match(/return NextResponse\.json\(result\);/g) ?? [];
     expect(bareReturns, '仍有裸 NextResponse.json(result)——该分支会退回无缓存头应答').toHaveLength(0);
     const jsonCalls = text.split('NextResponse.json(').length - 1;
-    expect(jsonCalls, '应答点数量变了（不是 2），需重新核对每个分支是否都挂了头').toBe(2);
+    // 合并后 route 单一应答点（分支收敛到一次 return，authenticated 位由 viewer 决定）。
+    expect(jsonCalls, '应答点数量变了，需重新核对 headers 接线').toBe(1);
   });
 });

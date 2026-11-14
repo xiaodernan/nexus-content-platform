@@ -1358,7 +1358,7 @@ export async function probeChildResolution(cwd, specs = PROBED_BUILDS, timeoutMs
       'const out = specs.map((s) => {',
       "  const path = fileURLToPath(pathToFileURL('./' + s).href);",
       '  const exists = existsSync(path);',
-      '  return { spec: s, path, exists, sha: exists ? createHash(\"sha256\").update(readFileSync(path)).digest(\"hex\") : null };',
+      '  return { spec: s, path, exists, sha: exists ? createHash("sha256").update(readFileSync(path)).digest("hex") : null };',
       '});',
       'console.log(JSON.stringify({ cwd: process.cwd(), execPath: process.execPath, resolved: out }));',
     ].join('\n'),

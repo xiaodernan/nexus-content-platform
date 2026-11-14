@@ -1,0 +1,29 @@
+{
+  "blockKinds": [
+    "block",
+    "mute"
+  ],
+  "interactionBlockingKinds": [
+    "block"
+  ],
+  "interactionRefusal": {
+    "them": "对方不接受你的互动",
+    "me": "你已经拉黑了对方，先解除才能互动"
+  },
+  "refusal": {
+    "selfFollow": "不能关注自己",
+    "selfBlock": "不能把自己拉黑或屏蔽",
+    "unknownKind": "只支持 block 与 mute 两类",
+    "noSuchUser": "没有这个用户",
+    "noSuchPublication": "没有这个发布版本",
+    "publicationGone": "这一版已经不公开了"
+  },
+  "publication": {
+    "reachableVisibility": [
+      "unlisted",
+      "public"
+    ],
+    "rejectedModeration": "rejected",
+    "deletedProjectHides": true
+  }
+}

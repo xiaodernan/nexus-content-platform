@@ -52,6 +52,24 @@ npm run infra:down     # 停止（不删卷）
 端口固定（详见 `docs/ENVIRONMENT.md`，避免与本机已有容器冲突）：
 web `3100` · ai-service `8000` · postgres `55433` · redis `56379` · minio `59000/59001`。
 
+## Spring Cloud 拓扑（2026-11-10 起，SC-1–SC-28）
+
+Java 侧的五件套，全部 `npm run verify:*` 可复跑（详见 `docs/ENVIRONMENT.md` 端口节、`docs/adr/0095/0100`）：
+
+| 角色 | 进程 | 默认端口 | 一条命令读数 |
+| --- | --- | --- | --- |
+| 注册中心 | `nexus-registry` | **8771**（8761 是 Eureka 默认，本机已被 `D:\3a大作` 占用） | `npm run verify:topology` |
+| 配置中心 | `nexus-config`（native） | 8888 | 同上（config 往返：网关日志 `ratePerSecond=50.0`） |
+| API 门面 | `nexus-api` | 8080（8084 smoke） | 同上（`/api/health` 200，仅数据库可达才 200） |
+| 领域服务 | `java-domain-service` | 8082 | 同上（policy/billing/permission 三面经网关 200/400） |
+| 网关 | `nexus-gateway` | 8090（:8090 常被占，smokes 用 8091/8092/8093） | 同上 + `npm run verify:lb`（两实例一 id）+ `npm run verify:auth`（12/12） |
+| 冒烟专用 | 8761→本仓保留给 3a大作 | — | `mvn -o -B test`（gateway wiring 测试 62 条） |
+
+CI：`main-line.yml` 的 `topology` job 顺序跑 `db:migrate → verify:topology → verify:lb → verify:auth`（timeout 30 分钟；首个 push 之前没有任何一次真实 CI 执行记录，红则为真信号）。
+
+按需启动顺序：registry → config → domain-service / nexus-api（各自 `*_REGISTER=true`）→ gateway。
+冒烟脚本 `scripts/verify-*.mts` 内置 jar 过期自打包、堆上界 `-Xmx`、`NEXUS_*_PORT` 全覆盖；不需要任何外部服务。
+
 ## 作品运行时（§55）
 
 任何项目 `Design → Build → Runtime`，都可点 **PLAY**。Runtime 类型：

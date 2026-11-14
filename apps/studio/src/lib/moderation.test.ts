@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { deskSummary, deskWindowText, reportStatusText, statusGaps, statusGapText, tallyText, toDeskRow, toDeskRows } from './moderation';
 import { acknowledgeReport, readDesk } from './moderationLane';
+import { bodyText } from './fetchBody';
 
 /**
  * M7 v304 — the OWNER'S DESK.
@@ -253,7 +254,7 @@ describe('moderationLane \u2014 the browser half', () => {
     const fetchImpl = makeFetch((url, init) => {
       expect(url).toBe('/api/moderation?owner=acct-ada');
       expect(init?.method).toBe('POST');
-      const body = JSON.parse(String(init?.body)) as { reportId: string };
+      const body = JSON.parse(bodyText(init)) as { reportId: string };
       expect(body.reportId).toBe('rep-1');
       return new Response(JSON.stringify({ ok: true, reportId: 'rep-1', status: 'acknowledged', moved: true }), {
         status: 200,

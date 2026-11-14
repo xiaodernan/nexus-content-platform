@@ -42,34 +42,34 @@ export function HealthPanel({
 }) {
   return (
     <div
-      className="flex flex-col gap-[6px]"
+      className="hp-root"
       data-health-panel
       data-health-source={healthSource}
       data-health-pending={pending ? '1' : '0'}
       data-health-seq={seq}
       data-health-compute-ms={computeMs === undefined ? undefined : Math.round(computeMs)}
     >
-      <p className="text-11 text-fg-3" data-health-summary>
+      <p className="hp-summary" data-health-summary>
         门禁{report.passed ? '通过' : '未通过'}
-        <span className="text-fg-3"> · {source ?? '实时按当前文档计算'}</span>
-        {pending ? <span className="text-fg-3" data-health-recomputing> · 重算中…</span> : null}
+        <span className="hp-faint"> · {source ?? '实时按当前文档计算'}</span>
+        {pending ? <span className="hp-faint" data-health-recomputing> · 重算中…</span> : null}
       </p>
-      <ul className="flex flex-col gap-[6px]">
+      <ul className="hp-ul">
         {report.checks.map((check) => (
           <HealthRow key={check.id} check={check} />
         ))}
       </ul>
       {report.blockers.length ? (
-        <ul className="flex flex-col gap-[2px]" data-health-blockers>
+        <ul className="hp-blockers" data-health-blockers>
           {report.blockers.map((blocker) => (
-            <li key={blocker} className="text-11 text-danger-ink">
+            <li key={blocker} className="hp-blocker">
               · {blocker}
             </li>
           ))}
         </ul>
       ) : null}
       {report.notRun.length ? (
-        <p className="text-11 text-warn-ink" data-gate-not-run>
+        <p className="hp-notRun" data-gate-not-run>
           未运行：{report.notRun.join('、')}
         </p>
       ) : null}
@@ -99,25 +99,25 @@ export function HealthRail() {
   }, [deferred.document, deferred.viewport, deferred.layout, deferred.page]);
   const { reading, pending } = useHealthReport(job);
   return (
-    <div className="flex h-full min-h-0 flex-col" data-health-rail data-health-seq={reading?.seq ?? 0}>
-      <header className="flex shrink-0 items-center justify-between border-b border-[var(--nexus-color-border-subtle)] px-[var(--nexus-space-3)] py-2">
-        <h2 className="font-mono text-12 uppercase tracking-wide text-fg-3">项目健康</h2>
+    <div className="hp-railRoot" data-health-rail data-health-seq={reading?.seq ?? 0}>
+      <header className="hp-railHead">
+        <h2 className="hp-railTitle">项目健康</h2>
         {reading ? (
           <span
-            className="font-mono text-12"
+            className="hp-railTide"
             data-health-rail-state={reading.report.passed ? 'pass' : 'fail'}
           >
-            <span className={reading.report.passed ? 'text-fg-2' : 'text-danger-ink'}>
+            <span className={reading.report.passed ? 'hp-railStatePass' : 'hp-railStateFail'}>
               {reading.report.passed ? '可发布' : '有阻塞'}
             </span>
           </span>
         ) : pending ? (
-          <span className="font-mono text-12 text-fg-3" data-health-rail-pending>
+          <span className="hp-railPending" data-health-rail-pending>
             计算中…
           </span>
         ) : null}
       </header>
-      <div className="min-h-0 flex-1 overflow-auto p-[var(--nexus-space-2)]">
+      <div className="hp-railBody">
         {reading ? (
           <HealthPanel
             report={reading.report}
@@ -128,7 +128,7 @@ export function HealthRail() {
             computeMs={reading.computeMs}
           />
         ) : (
-          <p className="px-3 py-8 text-center text-12 text-fg-3" data-health-rail-wait>
+          <p className="hp-railWait" data-health-rail-wait>
             {pending ? '正在算健康度…' : '文档还没载入完，算不出健康度。'}
           </p>
         )}
@@ -154,31 +154,25 @@ function HealthRow({ check }: { check: HealthCheck }) {
   const summary = (
     <>
       <span
-        className={cn(
-          'w-[12px] shrink-0 font-mono text-12',
-          check.state === 'pass' ? 'text-fg-2' : check.state === 'fail' ? 'text-danger-ink' : 'text-warn-ink',
-        )}
+        className={check.state === 'pass' ? 'hp-inkPass' : check.state === 'fail' ? 'hp-inkFail' : 'hp-inkWarn'}
       >
         {STATE_MARK[check.state]}
       </span>
-      <span className="min-w-0 flex-1 truncate text-11 text-fg-1">{check.label}</span>
-      <span className="shrink-0 font-mono text-11 text-fg-2" data-health-score={check.id}>
+      <span className="hp-label">{check.label}</span>
+      <span className="hp-score" data-health-score={check.id}>
         {formatHealthValue(check)}
       </span>
-      <span className="shrink-0 rounded-[3px] border border-[var(--nexus-color-border-subtle)] px-1 font-mono text-10 text-fg-3">
+      <span className="hp-chip">
         {chip}
       </span>
-      <span className="shrink-0 whitespace-nowrap font-mono text-11 text-fg-3" data-health-findings={check.id}>
+      <span className="hp-findings" data-health-findings={check.id}>
         {total ? `${total} 项发现${check.omitted ? `（列 ${check.findings.length}）` : ''}` : '无发现'}
       </span>
     </>
   );
   return (
     <li
-      className={cn(
-        'rounded-[var(--nexus-radius-sm)] px-2 py-1',
-        check.state === 'fail' ? 'bg-danger/10' : 'bg-bg-2',
-      )}
+      className={cn('hp-row', check.state === 'fail' && 'hp-rowFail')}
       data-health-row={check.id}
       data-health-state={check.state}
     >
@@ -188,40 +182,37 @@ function HealthRow({ check }: { check: HealthCheck }) {
           onClick={() => setExpanded((v) => !v)}
           aria-expanded={expanded}
           aria-controls={expanded ? listId : undefined}
-          className="flex w-full items-center gap-[6px] text-left"
+          className="hp-summaryRow"
           data-health-toggle={check.id}
         >
           {summary}
         </button>
       ) : (
-        <div className="flex w-full items-center gap-[6px]" data-health-static={check.id}>
+        <div className="hp-staticRow" data-health-static={check.id}>
           {summary}
         </div>
       )}
-      <p className="mt-[2px] text-11 text-fg-3">{check.basis}</p>
+      <p className="hp-basis">{check.basis}</p>
       {check.metrics.length ? (
-        <p className="mt-[2px] font-mono text-11 text-fg-3">
+        <p className="hp-metrics">
           {check.metrics.map((metric) => `${metric.label} ${metric.value}`).join(' · ')}
         </p>
       ) : null}
       {expanded && total ? (
-        <ul id={listId} className="mt-1 flex flex-col gap-[2px]" data-health-findings-list={check.id}>
+        <ul id={listId} className="hp-findingList" data-health-findings-list={check.id}>
           {check.findings.map((finding, i) => (
-            <li key={`${finding.code}-${finding.nodeId ?? finding.path ?? ''}-${i}`} className="text-11 text-fg-2">
+            <li key={`${finding.code}-${finding.nodeId ?? finding.path ?? ''}-${i}`} className="hp-finding">
               <span
-                className={cn(
-                  'mr-1 font-mono uppercase',
-                  finding.severity === 'error' ? 'text-danger-ink' : finding.severity === 'warning' ? 'text-warn-ink' : 'text-fg-3',
-                )}
+                className={finding.severity === 'error' ? 'hp-sevError' : finding.severity === 'warning' ? 'hp-sevWarn' : 'hp-sevNeutral'}
               >
                 {finding.severity[0]}
               </span>
               {finding.message}
-              {finding.suggestion ? <span className="text-fg-3"> · {finding.suggestion}</span> : null}
+              {finding.suggestion ? <span className="hp-faint"> · {finding.suggestion}</span> : null}
             </li>
           ))}
           {check.omitted ? (
-            <li className="text-11 text-fg-3" data-health-omitted={check.id}>
+            <li className="hp-omitted" data-health-omitted={check.id}>
               另有 {check.omitted} 条同类发现未列出（计分已计入）
             </li>
           ) : null}

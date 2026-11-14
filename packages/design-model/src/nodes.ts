@@ -1,4 +1,4 @@
-import { newId, rgba } from './ids.js';
+import { newId } from './ids.js';
 import type {
   AutoLayout,
   ContainerNode,

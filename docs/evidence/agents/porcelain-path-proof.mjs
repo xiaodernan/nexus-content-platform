@@ -77,7 +77,6 @@ const {
   registerGitShowTool,
   registerGitStagedTool,
   registerGitTools,
-  unwrapRendering,
 } = eh;
 
 const B = (s) => Buffer.byteLength(s ?? '', 'utf8');

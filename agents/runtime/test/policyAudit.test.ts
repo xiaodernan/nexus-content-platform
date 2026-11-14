@@ -165,10 +165,10 @@ describe('auditGateHistory — validation and purity', () => {
 });
 
 describe('bridging real v40 receipts into an audit', () => {
-  it('reduces a policyCheckpoint’s decisions to policy-made records', () => {
+  it('reduces a policyCheckpoint’s decisions to policy-made records', async () => {
     const cp = policyCheckpoint(openPolicy);
-    cp({ call: { callId: 'c1', tool: 'fs.read', args: {} }, permissions: ['write'] });
-    cp({ call: { callId: 'c2', tool: 'git.commit', args: {} }, permissions: ['exec'] });
+    await cp({ call: { callId: 'c1', tool: 'fs.read', args: {} }, permissions: ['write'] });
+    await cp({ call: { callId: 'c2', tool: 'git.commit', args: {} }, permissions: ['exec'] });
 
     const records = recordsFromDecisions(cp.decisions);
     expect(records).toEqual([
@@ -183,9 +183,9 @@ describe('bridging real v40 receipts into an audit', () => {
     expect(audit.skippedPolicyRecords).toBe(2);
   });
 
-  it('audits a history that mixes real receipts with human verdicts', () => {
+  it('audits a history that mixes real receipts with human verdicts', async () => {
     const cp = policyCheckpoint(openPolicy);
-    cp({ call: { callId: 'c1', tool: 'git.commit', args: {} }, permissions: ['exec'] });
+    await cp({ call: { callId: 'c1', tool: 'git.commit', args: {} }, permissions: ['exec'] });
     const mixed = [human('fs.read', true), ...recordsFromDecisions(cp.decisions), human('git.commit', true)];
     const audit = auditGateHistory(openPolicy, mixed);
     expect(audit.total).toBe(3);

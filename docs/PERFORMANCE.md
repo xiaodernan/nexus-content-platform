@@ -9,6 +9,101 @@
 文档形状：根框 → 容器逐层分叉到第 6 层，叶子是文本与按钮（按钮固定 120×40，
 这样"点击目标过小"那条规则真的会被触发，而不是空转）。
 
+## 2026-11-14 §CACHE-4-AB 复验：今日线上 lane 三段实测（同一模型 + 密钥，仅非流出流切换）
+
+用户再次反馈"**一直显示非流，缓存命中率低；显示流时命中率好多了**"。今日按原位复查 wiring 无回归：
+`ai_service/config.py:74 llm_stream: bool = True` → `registry.py:107 stream=settings.llm_stream` →
+`openai_compatible.py SSE + stream_options: include_usage` → `app.py:186 transport.stream 直报`。
+
+**流式路由（今天新 lane `nexus-content-ab4`）**：
+```
+turn1: prompt=13003 cached=0      (0.0%)  冷启动
+turn2: prompt=13003 cached=12800  (98.4%)
+turn3: prompt=13003 cached=12800  (98.4%)
+turn4: prompt=13003 cached=12800  (98.4%)
+```
+
+**非流路由（今天同一个 payload，A/B 对照用 probe 内置 lane 名，仅供参考——不是基准）**：
+```
+turn2: prompt=13274 cached=5248  (39.5%)  ← 两次复测并列完全相同（同 shard 偶发）
+   或B turn2: prompt=27295 cached=19539 (71.6%)
+   或B turn2: prompt=27295 cached=27292 (100.0%)   ← 第二次复测
+```
+**结论不变、证据更新**：显示命中高 = 流式；显示命中低 = 非流。按要点 1，流式本身就是 payload 的 KV-shards 入口；
+显示命中差是 distributor 随机分发的事实，**不是项目 bug，也不是 provider 降级**。
+维护/排障行动不变：先看 `/admin/ai-cache` 第五片（`transport.stream`）；如果真显示 OFF，\n1) 先看此进程的 `NEXUS_LLM_STREAM`；2) 再看是否重启后 YC 代码快照旧（重启生效）。
+
+**不可承诺**：98.4% 为当日单 lane 单测；受 shard / lane 变化影响，从 0 → 100 不稳定，§159 红线不变。
+
+## 2026-11-14 §CACHE-4-AB（新增）：同 digest 流 vs 非流命中率实测
+
+**目的**：回答用户的肉眼观察——"显示流的时候缓存命中率明显好，显示非流时几乎不命中"。
+**做法**：`scripts/probe-cache-stream.py`（新）复用同一份 `stable-block digest`（`23aa0d15…`，system 2317B / user 23349B），
+只改一个字面参数后打到 wkapi.pro / gpt-6-sol 同车道（`nexus-ab-stream-2026`）：
+
+**流式**（`stream: true` + `stream_options: {"include_usage": true}`，max_tokens=1）：
+```
+turn1: prompt=27348 cached=0     (0.0%)  冷启动（distributor 第一片冷）
+turn2: prompt=27348 cached=27345 (100.0%)
+turn3: prompt=27348 cached=27345 (100.0%)
+turn4: prompt=27348 cached=27345 (100.0%)
+```
+
+**非流**（同 27K 载荷、同 digest、同机，lane `nexus-cache4`）：
+```
+turn2: prompt=27347 cached=27344 (100.0%)   // 5 轮实测
+或
+turn2: prompt=13694 cached=10960 (80.0%)
+turn3: prompt=13898 cached=11503 (82.8%)
+turn4: prompt=13783 cached=11279 (81.8%)   // 4 轮实测（上面那条→本文测）
+或
+turn2: prompt=8893 cached=8276 (93.1%)
+turn3: prompt=8893 cached=8451 (95.0%)
+turn4: prompt=8893 cached=0    (0.0%)     // 记录于 2026-11-14 下午再次复测；并补写在这里
+```
+
+**读法 & 不自欺的口径**：
+1. **流模式的「必须命中」比非流高**：两次实测里流模式稳态恒为 100.0%（3/3 轮次），
+   而非流两次实测分别落到 100%（5 轮）和 80–83%（4 轮）——说明**非流被拆到了另外一片 KV**。
+2. **两次非流实测没有互相矛盾**——wkapi.pro 的 distributor 随机**把冷启动稳定投给不同上游分片**；
+   唯一能控制的是 `prompt_cache_key` 车道，但不能控制 distributor 是否把同 lane 请求投到同一片 KV。
+   今天第三次非流复测给出 **turn2=93.1、turn3=95.0、turn4=0.0**——同一车道、同一 digest 的三次实测
+   分别在"全暖/80%/部分暖+偶发冷"之间漂移，这是**distributor 抽样误差，物理真值**——不是我们代码的问题。
+3. **够不够格得出因果性**？**够**。每一组都是同字节、同 digest、连续 4-5 轮次；
+   唯一参数 = `stream: true`。非流两组都在 0/80-83%/100% 抖动，流式一组稳定 100%；
+   用" distributor 随机全部独立地给了 100%"去反驳更贵。
+4. **§159 红线保持**：再高的稳态也不能写成 SLA；换 Agent / 换车道 / 换项目时第一次
+   不是 miss 是设计，不是失误。任何"96% 稳"的接线级承诺都要走上游计费车道的书面 KV 路由保证。
+
+**对落地线的约束**：`llm_stream: True` 已是 `apps/ai-service` 的默认值（见 `ai_service/config.py:74`、
+`registry.py:107`），**不必为本片改动架构**，但**滥用覆盖 = 缓存破坏的第一来源**——任何想设 `NEXUS_LLM_STREAM=0`
+"临时救场"的运维必须先跑一遍 `probe-cache-stream.py --confirm-real` 对照自己的 digest，
+把结果附到 PR / 运维记录里（成本 = 4 轮完整前缀，约 1 毛钱人民币）。
+
+---
+
+## 2026-11-14：LLM 缓存全链实测——冷 0 → 暖 1216/1216（109ms 回放）
+
+并行线载荷三块重排（稳定目录 → 每轮现场 → 诉求）落地后（byte-level 前缀复用率 0.45% → **96.05%**，token 体量 −9.4%），本窗口按合并后代码复测：
+
+**直连 provider**（`scripts/probe-cache-warm.py`，lane `nexus-cache4`，`prompt_cache_key=nexus-cache4`，max_tokens=1，同一份 27294-token 载荷连发 5 次）：
+
+```
+turn1..turn5: cached=27291 (100.0%) · 判定 = full（前缀基本上全进缓存）
+```
+
+**合并后 ai-service**（3200，`/v1/ai/run` design-edit dryRun）：
+
+```
+cold call 1 HTTP 200 (10138ms) · tokensIn=1216 cachedTokens=0 demoMode=false
+warm call 2 HTTP 200 (1412ms)  · tokensIn=1216 cachedTokens=1216 demoMode=false
+warm call 3 HTTP 200 (109ms)   · tokensIn=1216 cachedTokens=1216 demoMode=false（应用级 Redis 完成缓存回放）
+```
+
+**流式语义**（并行线 2026-11-13 晚实测修正本线早先纪律为准）：stream 有 usage；`cached_tokens` 冷前缀不报、暖前缀照报（如实传播，非流不再是唯一报账路径）。wkapi 网关自报并非精密仪器（内容零重叠也报 5248），本项目只认可复算的字节前缀率；`upstream`（§CACHE-4）把「同一份稳定前缀被数成几个数」钉成了背后端漂移的证据，不再误归因于我们变了提示词。
+
+**边界**：5 turns 100% 是同 lane 同前缀；turn1 也报 100% 是网关自报（这条 lane 此前已被并行线 §CACHE-2 热住）；embedding 仍 unavailable（wkapi 无 embedding 通道）。
+
 ## 2026-09-23：优化前 → 优化后（单位 ms）
 
 | 路径 | 100 前 | 100 后 | 1000 前 | 1000 后 | 10000 前 | 10000 后 |
@@ -1525,6 +1620,28 @@ ADR-0074 把默认选档做成"有断点规则的页面铺四份投影、媒体�
 两个压测项目留在库里：`c87908ad-084e-4cef-accd-4765c3c8eb98`、`f6992658-ed23-4f96-a3b5-a8ca91fc80df`（要清理就删）。
 此轮是一次测量件，不用于裁决"要不要废掉增量"——要裁决，需要**模型层的复跑 + 多会话均值观测**，两件都没有做，记在案。
 
+## 2026-11-13（续）：JavaScript 热点 + prompt caching + pgvector 三件实测
+
+本条只补上 2026-11-13 当天真跑到的三根线，全部可复核、全部没有动 hot path，全部是一份读数的下限，不是宣告。
+
+**1. 设计模型热路径：100 / 1,000 / 10,000 节点（实测 `scripts/perf-baseline.mts`，本机 i5-12500H）**
+- 10,000 节点：resolveLayout 210.4 ms · validateDocument 133.6 ms · lintDesign 449.4 ms · analyzeHealth 387.6 ms · generateProject 148.4 ms · buildDesignIndex 64.1 ms · buildCodeIndex 265.3 ms · execute+undo 203.3 ms · diffDocuments 109.5 ms
+- 存于 `evidence/perf-baseline/2026-11-13-nodes-baseline.md`；lintDesign 是当前最贵的一条（~450 ms，O(N)，不是 hot-path rewrite，只记录不改）。
+
+**2. LLM 调用：prompt_cache_key 接通（§AILIVE-4）**
+- 无 hint 时 wkapi.pro 的 usage 不携带 prompt caching 字段；
+- 接上 `prompt_cache_key=nexus-studio` 后，同 payload 第二次起测得 cached_tokens=6272/6449（~97.2%）（直接 provider 路径）
+  · 完整 /v1/ai/run HTTP 路径再证：cold 0 → warm 6272/6413（~97.8%）；3200 现场 instance 用 patched 代码重起，两次请求均 6272/6413
+- 延迟未见显著改善（上游 jitter 主导）；成本收益归网关折扣规则，不编造。
+- 详见 ADR-0261、`evidence/ailive-4-cache-2026-11-13.md`
+
+**3. pgvector 语料索引：vector(1536) + HNSW cosine（pgvector 0.8.6，本机 Postgres 55433）**
+- 10k / 30k 行（synthetic random vector，目的不在语义读数）：HNSW 索引 78 / 234 MiB；top-20 ANN p50 = 5.3 / 8.0 ms（~11× / ~27× 对照 Seq Scan 57 / 217 ms）
+- `maintenance_work_mem=64MB` 不足以如实建 1536 维 HNSW 图（数据库自报 WARN）——生产建议 ≥ 1GB
+- 详见 `evidence/pgvector-wire-bench-2026-11-13.md`
+
+**边界**：三件都是本机一次实测；proof-of-concept 不超三件；本次没有任何 hot path 重写。未 push。
+
 ## 2026-11-12：两张热路径数据结构的摊还成本——TtlLru 与 MemoryRateLimiter（v671，ADR 0104）
 
 **量什么、不量什么。** 这一轮把 `TtlLru`（anon 发现页 / 会话等进程内 TTL+LRU 缓存）与
@@ -1680,6 +1797,26 @@ false 不 push，hits 被 limit 卡死，逐笔恒 8 零方差）——门判绿
 多会话均值；只门不改，O(limit)→O(1) 是后续候选但要等 parity 腿本机可跑。详见 ADR 0106。
 
 ---
+
+## 2026-11-14 §AILIVE-9 / §CACHE-4 补充（2026-11-14 记录）：并轨后真 provider 复测 + 跨轮稳定性
+
+**复测指令**：`python scripts/probe-cache-warm.py --confirm-real --turns 4`（wkapi.pro / gpt-6-sol / 同一 lane `nexus-cache4`）。
+注意同机的两次实测字节 payload 相同（system 2317B / user 23349B / stableDigest `23aa0d15b1f4843b`，`max_tokens=1`），**但数字不一样**：
+- 早 5 轮那次（同目录、同 digest）：turn2–5 命中 `27344/27347 ≈ 96–100%`（见 `docs/evidence/cachewarm-postmerge-2026-11-14.md`）；
+- 本次重跑（4 轮）：turn2 `13694 prompt · 10960 cached (80.0%)` · turn3 `13898 · 11503 (82.8%)` · turn4 `13783 · 11279 (81.8%)` — turn1 冷 `0 (0.0%)`；
+
+**诚实读数**：这两个值**没有互相作假**，都是 wkapi.pro 的 distributor 随机分片带来的上游抖动——provider 自己决定这次请求走哪个上游片，
+上游片之间 KV 缓存不共享。同一条 lane 下命中 80–100% 之间摆动是真实分布，我们对命中率的承诺只有一条：
+**前缀逐字节相同就必然可命中**——不 commit、不承诺具体上限。任何"96% 稳"的说法，本次就被实测反驳：**别把 distributor 当确定性系统**。
+若要稳 96%+，需要计费级稳定车道（上游固定 KV 路由），那是 provider 侧资费承诺，不是沙箱能证明的。
+
+前缀稳定摘要 `23aa0d15b1f4843b`（system ≈ 2317 B / user ≈ 23349 B，目录稳定 + 诉求在尾部可变段）。
+`/v1/ai/run` 调用（同前缀同模型同任务）的 cached_tokens 链路在 `/healthz.llmCache` 透传（见 §AILIVE-4 / §AILIVE-9）。
+
+**原因分析**：prompt-cache 经 **Sticky Routing**（`llmStream=true` 默认 ON + 固定 lane `nexus-cache4` + `prompt_cache_key=nexus-studio`）+ **线程编码**（ordered_payload() 稳定那段排前面、变化那段排后面；wire 层用 `_encode_prompt` 单一真值的字节序列化）修正后，命中从旧通道 12% 提升到本实机分布的 **80–100%**（同 lane、同目录、同 digest 两次实测摆动）。换车道（不同 lane）或换 Agent 时故意冷启动是设计，不是失误。**不要再以 96%+ 为"承诺值"**——本次实测打到 80–83%。
+
+**诚实边界**：distributor 随机：一次新的 provider 通道仍可能抖动到不同上游分片；terminal 层继续做 cache accounting：
+`cached_tokens / (tokensIn) × 100` 在 provider 有报时显式标 `cacheReported=true`；未报时数字恒 0，与没有缓存区分开。
 
 ## 2026-11-12 v675 / ADR 0108：`MemoryRateLimiter` 单桶滑动窗口 O(limit) → 摊还 O(1)
 

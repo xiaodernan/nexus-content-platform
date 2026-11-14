@@ -21,9 +21,8 @@ interface Props {
 /** 选中/未选中两种画法，两处（缩放、断点）共用一份。
  *  行内盒 + 24px 下限：这一排是给手机上的拇指点的，WCAG 2.5.8 的下限就是 24×24，
  *  第十三片那遍读数里"小于 24px 的点击目标"这一栏不该因为我多一排按钮更长。 */
-const pill = 'inline-flex min-h-[24px] items-center rounded-[var(--nexus-radius-sm)] px-[var(--nexus-space-2)] py-0.5';
-const active = `${pill} bg-bg-3 text-fg-1`;
-const idle = `${pill} text-fg-3 hover:bg-bg-2`;
+const active = `vc-pill vc-pillOn`;
+const idle = `vc-pill vc-pillIdle`;
 
 /**
  * §14 / ADR-0069：查看器控件行 —— 公开页与预览页同一排、同一套参数名。
@@ -48,7 +47,7 @@ export function ViewerControls({
   const liveSet = new Set<BreakpointName>(live);
   return (
     <div
-      className="flex flex-wrap items-center gap-[var(--nexus-space-2)] px-[var(--nexus-space-4)] pt-[var(--nexus-space-2)] text-12"
+      className="vc-row"
       data-viewer-controls
       data-viewer-design-width={page.width}
       data-viewer-resolved-width={width}
@@ -57,12 +56,12 @@ export function ViewerControls({
       data-viewer-zoom={zoom}
       data-viewer-auto={auto ? 'on' : 'off'}
     >
-      <span className="text-fg-3" data-viewer-reading>
+      <span className="ap-faint" data-viewer-reading>
         {auto
           ? `按访客视口自动选档（四档各解一份）· 以 ${zoom} 倍呈现`
           : `按 ${width}×${height} 求解${breakpoint ? `（${breakpoint} 断点）` : '（设计尺寸）'} · 以 ${zoom} 倍呈现`}
       </span>
-      <span className="flex items-center gap-1" data-viewer-zoom-options>
+      <span className="wd-row1" data-viewer-zoom-options>
         {ZOOM_STEPS.map((step) => (
           <a
             key={step}
@@ -80,7 +79,7 @@ export function ViewerControls({
         const options = VIEWPORT_OPTIONS.filter((o) => liveSet.has(o.id) || o.id === breakpoint);
         return (
           <span
-            className="flex flex-wrap items-center gap-1"
+            className="ap-wrapCenter"
             data-viewer-viewport-options
             data-viewer-live-breakpoints={live.join(',')}
           >

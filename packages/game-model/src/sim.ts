@@ -1,4 +1,177 @@
-import type { GamePlan, PlayActor } from "./index";
+import type { GamePlan, PlayActor, PlayTrigger, PlayQuest } from "./index";
+
+/**
+ * 一份 `plan` 的只读索引（§PERF）。`step` 每帧都要按 id 把 state 里的 sim actor 对回 plan 里的
+ * design；这些索引**只依赖 plan**，而 `plan` 是 `compileGame` 的不可变产物，整场模拟 / 整个 rAF
+ * 序列都是同一引用。改前每帧重建 4 个 Map + 1 次 filter（60fps≈每秒 240 个短命 Map，一次
+ * 60s playtest≈57600 个），纯属 GC 压力；这里把它按 plan 缓存起来，分配从 O(帧数) 降到 O(plan 数)。
+ *
+ * `WeakMap` 做键不阻止 plan 被回收，plan 一旦被换掉（升级）旧索引随之可收，不泄漏。
+ */
+export interface PlanIndices {
+  readonly enemyById: ReadonlyMap<string, PlayActor>;
+  readonly itemById: ReadonlyMap<string, PlayActor>;
+  readonly triggerById: ReadonlyMap<string, PlayTrigger>;
+  readonly questById: ReadonlyMap<string, PlayQuest>;
+  readonly judgeable: readonly PlayQuest[];
+  /**
+   * §PERF-2：敌人 id → 在 `plan.enemies`（从而 `state.enemies`）里的下标。
+   * 只依赖不可变 plan，随其余索引一起缓存；把打在逐帧 state 上的 `enemies.find` 从 O(E) 降到 O(1)。
+   * 模型层强制实体 id 唯一（`index.ts` 的 `duplicate-id` 校验），故下标一一对应。
+   */
+  readonly enemyIndexById: ReadonlyMap<string, number>;
+  /**
+   * §PERF-3：物品 id → 在 `plan.items`（从而 `state.items`）里的下标。与 `enemyIndexById` 同构、
+   * 同样只依赖不可变 plan、随其余索引一起缓存；把任务判定 collect 分支打在逐帧 state 上的
+   * `next.items.find` 从 O(I) 降到 O(1)。items 的顺序不变量与 id 唯一性同 enemies（见 `itemByIdOf`）。
+   */
+  readonly itemIndexById: ReadonlyMap<string, number>;
+}
+
+/** 构造一份 plan 索引——纯函数，单独导出便于逐支验电。 */
+export function buildPlanIndices(plan: GamePlan): PlanIndices {
+  return {
+    enemyById: new Map(plan.enemies.map((enemy) => [enemy.id, enemy])),
+    itemById: new Map(plan.items.map((item) => [item.id, item])),
+    triggerById: new Map(plan.triggers.map((trigger) => [trigger.id, trigger])),
+    questById: new Map(plan.quests.map((quest) => [quest.id, quest])),
+    judgeable: plan.quests.filter((quest) => quest.judgeable),
+    enemyIndexById: new Map(plan.enemies.map((enemy, at) => [enemy.id, at])),
+    itemIndexById: new Map(plan.items.map((item, at) => [item.id, at])),
+  };
+}
+
+/**
+ * §PERF-2：按 id 从一份**与 plan.enemies 同序同长**的 state actor 数组里 O(1) 取回。
+ *
+ * <p>顺序不变量由 `initialState`/`step` 保证：`state.enemies` 从 `plan.enemies` 逐位置构造，
+ * 整场只对元素就地改 active/坐标，从不重排或增删。id 唯一（模型层 `duplicate-id` 校验）。
+ * 因此 `enemyIndexById.get(id)` 的下标必然指回同一个敌人。
+ *
+ * <p>**守护而非盲信**：若下标处的 `id` 与请求不符（未来有人重排/增删 state.enemies，不变量被破坏），
+ * 就地回退线性 `find` 保证结果仍正确——宁可退回 O(E)，也绝不静默返回一个错的 actor（§159）。
+ * 判据用 Proxy 拦截 `Array.find`：正常同序路径零 find 调用，乱序路径才触发回退。
+ */
+export function enemyByIdOf(
+  actors: readonly SimActor[],
+  idx: Pick<PlanIndices, "enemyIndexById">,
+  id: string,
+): SimActor | undefined {
+  const at = idx.enemyIndexById.get(id);
+  if (at === undefined) return undefined; // id 不在 plan 里 → 与 find 一样找不到
+  const hit = actors[at];
+  if (hit && hit.id === id) {
+    if (lookupMeter) lookupMeter.hits += 1;
+    return hit;
+  }
+  // 顺序不变量被破坏：回退线性 find，宁可退回 O(E) 也不返回错的 actor
+  if (lookupMeter) lookupMeter.findFallbacks += 1;
+  return actors.find((e) => e.id === id);
+}
+
+/**
+ * §PERF-2 可注入计数缝（对标 PERF-1 `builds` / SC-51 可注入钟）：默认 `null`，生产路径零开销、
+ * 零行为变化。仅判据通过 `measureEnemyLookups` 短暂启用，跑完即还原，不在模块里留状态。
+ * 这样"N 帧走了多少次 O(1) 命中、是否触发过 find 回退"成了确定性判据，而非 flaky 墙钟。
+ */
+export interface EnemyLookupMeter {
+  readonly hits: number;
+  readonly findFallbacks: number;
+}
+let lookupMeter: { hits: number; findFallbacks: number } | null = null;
+export function measureEnemyLookups<T>(run: () => T): { result: T; meter: EnemyLookupMeter } {
+  const prev = lookupMeter;
+  const meter = { hits: 0, findFallbacks: 0 };
+  lookupMeter = meter;
+  try {
+    return { result: run(), meter: { hits: meter.hits, findFallbacks: meter.findFallbacks } };
+  } finally {
+    lookupMeter = prev; // 嵌套安全：判据并行/嵌套时不互相污染
+  }
+}
+
+/**
+ * §PERF-3：按 id 从一份**与 plan.items 同序同长**的 state actor 数组里 O(1) 取回（与 `enemyByIdOf`
+ * 同构）。顺序不变量由 `initialState`/`step` 保证：`state.items` 从 `plan.items` 逐位置构造、
+ * 整场拾取只就地改 `active`，从不重排增删；id 唯一（模型层 `duplicate-id` 全局校验）。
+ *
+ * <p>**守护而非盲信**：下标处的 `id` 与请求不符（未来有人重排/增删 state.items）就回退线性 `find`，
+ * 宁可退回 O(I) 也绝不静默返回错 actor（§159）——即使某个 plan 绕过 `validateGame`、id 重复，
+ * 守护也保证结果正确，安全性不依赖"校验一定跑过"。
+ */
+export function itemByIdOf(
+  actors: readonly SimActor[],
+  idx: Pick<PlanIndices, "itemIndexById">,
+  id: string,
+): SimActor | undefined {
+  const at = idx.itemIndexById.get(id);
+  if (at === undefined) return undefined;
+  const hit = actors[at];
+  if (hit && hit.id === id) {
+    if (itemLookupMeter) itemLookupMeter.hits += 1;
+    return hit;
+  }
+  if (itemLookupMeter) itemLookupMeter.findFallbacks += 1;
+  return actors.find((e) => e.id === id);
+}
+
+/**
+ * §PERF-3 可注入计数缝：与 PERF-2 的 `measureEnemyLookups` **完全独立**（各自一个模块级 meter、
+ * 默认 null、生产零开销、`finally` 还原、嵌套安全），刻意不并表——PERF-2 的 API 与判据零回归，
+ * 两条查找路径的计数互不串味，"items 分支在真实循环里 O(1) 生效"因此也是确定性判据。
+ */
+export interface ItemLookupMeter {
+  readonly hits: number;
+  readonly findFallbacks: number;
+}
+let itemLookupMeter: { hits: number; findFallbacks: number } | null = null;
+export function measureItemLookups<T>(run: () => T): { result: T; meter: ItemLookupMeter } {
+  const prev = itemLookupMeter;
+  const meter = { hits: 0, findFallbacks: 0 };
+  itemLookupMeter = meter;
+  try {
+    return { result: run(), meter: { hits: meter.hits, findFallbacks: meter.findFallbacks } };
+  } finally {
+    itemLookupMeter = prev;
+  }
+}
+
+/** 取 plan 的只读索引（走 PERF-1 的默认单例）——供 rpg.ts / playtest.ts 复用同一份缓存。 */
+export function getPlanIndices(plan: GamePlan): PlanIndices {
+  return defaultPlanIndexCache.get(plan);
+}
+
+/**
+ * 索引缓存。`builds` 是**注入计数的确定性判据**（对标 SC-51 的可注入钟）：判据跑 N 帧后断言
+ * `builds===1` 而非拿 `Date.now()` 量墙钟——后者在多 agent 抢资源的机器上会 flaky。
+ * 生产默认走模块级 WeakMap 单例；判据可注入自己的 cache 观察命中/未命中。
+ */
+export interface PlanIndexCache {
+  get(plan: GamePlan): PlanIndices;
+  readonly builds: number;
+}
+
+export function makePlanIndexCache(): PlanIndexCache {
+  const memo = new WeakMap<GamePlan, PlanIndices>();
+  let builds = 0;
+  return {
+    get(plan) {
+      let found = memo.get(plan);
+      if (!found) {
+        found = buildPlanIndices(plan);
+        memo.set(plan, found);
+        builds += 1;
+      }
+      return found;
+    },
+    get builds() {
+      return builds;
+    },
+  };
+}
+
+/** 生产单例：同一 plan 在整场模拟里只建一次索引。 */
+const defaultPlanIndexCache = makePlanIndexCache();
 
 /**
  * §50 的可玩规则：一份纯函数模拟器（状态 + 输入 + 时长 → 新状态）。
@@ -116,8 +289,17 @@ function push(events: { t: number; text: string }[], t: number, text: string): v
  * 推进一小段模拟。**不修改传入的 state**（返回一份新的），所以 React 里可以直接 setState，
  * 也让"同一个初始状态 + 同一段输入 = 同一个结果"这种可复现断言成立。
  */
-export function step(plan: GamePlan, state: SimState, input: SimInput, dt: number): SimState {
+export function step(
+  plan: GamePlan,
+  state: SimState,
+  input: SimInput,
+  dt: number,
+  cache: PlanIndexCache = defaultPlanIndexCache,
+): SimState {
   if (state.status !== "playing") return state;
+  // 只读索引按 plan 缓存：整场模拟里 plan 不变，4 个 Map + judgeable 只建一次（§PERF）。
+  // 正常路径零行为变化（Map 内容逐字相同），只是不再每帧重新分配。
+  const idx = cache.get(plan);
   const frame = Math.min(Math.max(dt, 0), MAX_FRAME_SECONDS); // 定步长上限：切标签页回来不该一次跳几秒
   const next: SimState = {
     ...state,
@@ -139,8 +321,7 @@ export function step(plan: GamePlan, state: SimState, input: SimInput, dt: numbe
   next.py = Math.min(Math.max(next.py + (input.dy / norm) * player.speed * frame, player.radius), plan.arena.height - player.radius);
 
   // —— 敌人：察觉则追击，接触则结算伤害 ——
-  const byId = new Map<string, PlayActor>();
-  for (const enemy of plan.enemies) byId.set(enemy.id, enemy);
+  const byId = idx.enemyById;
   for (const sim of next.enemies) {
     if (!sim.active) continue;
     const design = byId.get(sim.id)!;
@@ -177,7 +358,7 @@ export function step(plan: GamePlan, state: SimState, input: SimInput, dt: numbe
   }
 
   // —— 拾取 ——
-  const itemById = new Map(plan.items.map((i) => [i.id, i]));
+  const itemById = idx.itemById;
   for (const sim of next.items) {
     if (!sim.active) continue;
     const design = itemById.get(sim.id)!;
@@ -189,7 +370,7 @@ export function step(plan: GamePlan, state: SimState, input: SimInput, dt: numbe
   }
 
   // —— 触发器：只记账（见文件头那条限度）。首次踩到记为「激活」，解谜任务判定读它 ——
-  const triggerById = new Map(plan.triggers.map((t) => [t.id, t]));
+  const triggerById = idx.triggerById;
   for (const sim of next.triggers) {
     const design = triggerById.get(sim.id)!;
     if (dist(next.px, next.py, sim.x, sim.y) > design.radius) continue;
@@ -206,12 +387,16 @@ export function step(plan: GamePlan, state: SimState, input: SimInput, dt: numbe
   }
 
   // —— 任务完成判定 ——
-  const questById = new Map(plan.quests.map((q) => [q.id, q]));
+  const questById = idx.questById;
   for (const quest of plan.quests) {
     if (!quest.judgeable || next.questDone[quest.id] !== undefined) continue;
     const allMet = quest.goals.every((goal) => {
       if (goal.kind === "activate") return next.activated[goal.actorId] !== undefined;
-      const sim = goal.kind === "defeat" ? next.enemies.find((e) => e.id === goal.actorId) : next.items.find((i) => i.id === goal.actorId);
+      // §PERF-2 enemies / §PERF-3 items 都走按 plan 缓存的下标 O(1)；守护式回退保证不返回错 actor
+      const sim =
+        goal.kind === "defeat"
+          ? enemyByIdOf(next.enemies, idx, goal.actorId)
+          : itemByIdOf(next.items, idx, goal.actorId);
       return sim ? !sim.active : false;
     });
     if (!allMet) continue;
@@ -220,7 +405,7 @@ export function step(plan: GamePlan, state: SimState, input: SimInput, dt: numbe
   }
 
   // —— 结束条件 ——
-  const judgeable = plan.quests.filter((quest) => quest.judgeable);
+  const judgeable = idx.judgeable;
   if (next.health <= 0) {
     next.status = "lost";
     next.outcome = `生命值归零（${Math.round(next.t * 10) / 10} 秒，承受 ${next.counters.damageTaken} 点伤害）。`;

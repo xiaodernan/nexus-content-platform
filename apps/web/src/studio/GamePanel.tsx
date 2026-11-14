@@ -68,9 +68,9 @@ export function GamePanel() {
 
   if (!game) {
     return (
-      <div className="flex h-full min-h-0 flex-col gap-3 overflow-auto p-[var(--nexus-space-3)]" data-game-panel>
-        <h2 className="font-mono text-12 uppercase tracking-wide text-fg-3">游戏</h2>
-        <p className="text-12 leading-relaxed text-fg-2" data-game-empty>
+      <div className="wd-scrollPad" data-game-panel>
+        <h2 className="wd-label">游戏</h2>
+        <p className="wd-body12" data-game-empty>
           {snapshot.saveState === 'loading'
             ? '读取游戏设计…'
             : snapshot.error
@@ -80,7 +80,7 @@ export function GamePanel() {
                 '整份设计由模型生成（§52 的 Game Agent 真规划）要真实 provider，没接入前不做假生成。'}
         </p>
         {snapshot.error ? (
-          <p className="text-11 text-danger-ink" data-game-error>
+          <p className="wd-danger11" data-game-error>
             {snapshot.error}
           </p>
         ) : null}
@@ -89,7 +89,7 @@ export function GamePanel() {
           disabled={snapshot.saveState === 'saving'}
           onClick={() => void gameStore.createSkeleton(studio.document?.name ?? '未命名游戏')}
           data-game-create
-          className="self-start rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg disabled:opacity-50"
+          className="wd-selfStart wd-accentBtn wd-dis50"
         >
           创建游戏骨架（模板）
         </button>
@@ -106,15 +106,12 @@ export function GamePanel() {
   const refTotal = game.entities.reduce((n, e) => n + e.refs.length, 0);
 
   return (
-    <div className="flex h-full min-h-0 flex-col" data-game-panel>
-      <header className="shrink-0 border-b border-[var(--nexus-color-border-subtle)] p-[var(--nexus-space-3)]">
-        <div className="flex items-center gap-2">
-          <h2 className="font-mono text-12 uppercase tracking-wide text-fg-3">游戏</h2>
+    <div className="wd-rootCol" data-game-panel>
+      <header className="wd-headBordered">
+        <div className="wd-row2">
+          <h2 className="wd-label">游戏</h2>
           <span
-            className={cn(
-              'ml-auto font-mono text-11',
-              snapshot.saveState === 'error' ? 'text-danger-ink' : 'text-fg-3',
-            )}
+            className={cn('wd-monoFaintEnd', snapshot.saveState === 'error' && 'wd-dangerText')}
             data-game-state
           >
             {STATE_TEXT[snapshot.saveState] ?? ''}
@@ -127,7 +124,7 @@ export function GamePanel() {
           onBlur={() => edit({ ...game, name: game.name.trim() || '未命名游戏' }, true)}
           aria-label="游戏名称"
           data-game-name
-          className="mt-2 w-full rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-13 text-fg-1 outline-none focus:bg-bg-3"
+          className="wd-wfullInput13"
         />
         <textarea
           value={game.summary}
@@ -137,19 +134,19 @@ export function GamePanel() {
           aria-label="游戏概述"
           data-game-summary
           rows={2}
-          className="mt-2 w-full resize-y rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12 text-fg-1 outline-none focus:bg-bg-3"
+          className="wd-areaResize"
         />
         {/* §51：类型是**文档字段**，不是界面状态——它决定试玩页跑哪条管线（§16）。
             下面那句"接没接"直接读 GAME_KIND_STATUS：面板自己判断一遍，
             就会和分派点说两套话（这里说能玩、点进去是空场子，正是 §159 禁止的那种谎）。 */}
-        <label className="mt-2 flex items-center gap-2 text-11 text-fg-3">
+        <label className="wd-rowMt2faint">
           游戏类型
           <select
             value={game.kind}
             onChange={(e) => edit({ ...game, kind: e.target.value as GameKind }, true)}
             aria-label="游戏类型"
             data-game-kind={game.kind}
-            className="flex-1 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12 text-fg-1 outline-none"
+            className="wd-growInputB2"
           >
             {GAME_KINDS.map((kind) => (
               <option key={kind} value={kind}>
@@ -158,10 +155,10 @@ export function GamePanel() {
             ))}
           </select>
         </label>
-        <p className="mt-1 text-11 text-fg-3" data-game-kind-note={game.kind}>
+        <p className="gp-faintMt1" data-game-kind-note={game.kind}>
           {GAME_KIND_STATUS[game.kind].note}
         </p>
-        <p className="mt-1 font-mono text-11 text-fg-3" data-game-progress>
+        <p className="gp-monoFaintMt1" data-game-progress>
           {game.entities.length} 个实体 · {refTotal} 条引用 · {fleshedOutCount(game)} 个已填内容
         </p>
         {/* §50：这一页改的就是可玩投影读的那份文档，所以"试玩"永远指向同一份真值（§16）。
@@ -170,31 +167,31 @@ export function GamePanel() {
           href={`/game/${studio.projectId}`}
           target="_blank"
           rel="noreferrer"
-          className="mt-2 inline-block rounded-[var(--nexus-radius-sm)] bg-accent-2 px-2 py-1 font-mono text-11 text-accent-fg"
+          className="gp-tag"
           data-game-play
         >
           试玩这份设计 →
         </a>
         {snapshot.error ? (
-          <p className="mt-2 text-11 text-danger-ink" data-game-error>
+          <p className="wd-dangerMt2" data-game-error>
             {snapshot.error}
           </p>
         ) : null}
         {snapshot.notice ? (
-          <p className="mt-2 text-11 text-warn-ink" data-game-notice>
+          <p className="gp-warnMt2" data-game-notice>
             {snapshot.notice}
           </p>
         ) : null}
       </header>
 
-      <div className="min-h-0 flex-1 overflow-auto p-[var(--nexus-space-2)]">
+      <div className="wd-scrollP2">
         {groups.map((kind) => (
-          <section key={kind} className="mb-3" data-game-group={kind}>
-            <h3 className="mb-1 flex items-center font-mono text-11 uppercase tracking-wide text-fg-3">
+          <section key={kind} className="wd-mb3" data-game-group={kind}>
+            <h3 className="wd-labelMb1">
               {GAME_ENTITY_LABELS[kind]}
-              <span className="ml-auto">{counts?.[kind] ?? 0}</span>
+              <span className="wd-end">{counts?.[kind] ?? 0}</span>
             </h3>
-            <ul className="flex flex-col gap-2">
+            <ul className="wd-col2">
               {game.entities
                 .filter((entity) => entity.kind === kind)
                 .map((entity) => (
@@ -211,13 +208,13 @@ export function GamePanel() {
           </section>
         ))}
 
-        <div className="mt-1 flex items-center gap-1">
+        <div className="wd-rowMt1">
           <select
             value={newKind}
             onChange={(e) => setNewKind(e.target.value as GameEntityKind)}
             aria-label="新增实体的类型"
             data-game-new-kind
-            className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1 py-1 text-11 text-fg-1"
+            className="wd-chipSelect"
           >
             {GAME_ENTITY_KINDS.map((kind) => (
               <option key={kind} value={kind}>
@@ -229,12 +226,12 @@ export function GamePanel() {
             type="button"
             onClick={() => edit(addEntity(game, { kind: newKind, name: GAME_ENTITY_LABELS[newKind] }), true)}
             data-game-add={newKind}
-            className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11 text-fg-2 hover:bg-bg-2"
+            className="wd-ghostBtn"
           >
             加一个实体
           </button>
         </div>
-        <p className="mt-2 text-11 leading-relaxed text-fg-3" data-game-note>
+        <p className="wd-body11Mt2" data-game-note>
           改完即写库（失焦或点删除都会保存）。游戏编辑不进画布的撤销栈：Ctrl+Z 只管设计文档。
           {groups.length < GAME_ENTITY_KINDS.length
             ? ` ${GAME_ENTITY_KINDS.filter((k) => !counts?.[k]).map((k) => GAME_ENTITY_LABELS[k]).join('、')} 这一类还没有实体，可以用上面的下拉补。`
@@ -244,7 +241,7 @@ export function GamePanel() {
           type="button"
           onClick={() => void gameStore.commit()}
           data-game-save
-          className="mt-2 self-start rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg"
+          className="wd-mt2 wd-selfStart wd-accentBtn"
         >
           保存到库
         </button>
@@ -287,15 +284,15 @@ function EntityCard({
   const others = game.entities.filter((e) => e.id !== entity.id);
 
   return (
-    <div className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2">
-      <div className="flex items-center gap-1">
+    <div className="wd-card">
+      <div className="wd-row1">
         <input
           value={entity.name}
           onChange={(e) => edit(updateEntity(game, entity.id, { name: e.target.value }))}
           onBlur={() => edit(game, true)}
           aria-label={`实体名称 ${entity.name}`}
           data-game-entity-name={entity.id}
-          className="min-w-0 flex-1 rounded-[3px] bg-bg-1 px-1 py-[2px] text-12 text-fg-1 outline-none focus:bg-bg-3"
+          className="wd-growInput"
         />
         <button
           type="button"
@@ -303,7 +300,7 @@ function EntityCard({
           onClick={() => edit(removeEntity(game, entity.id), true)}
           aria-label={`删除 ${entity.name}`}
           data-game-remove={entity.id}
-          className="shrink-0 px-1 text-12 text-fg-3 hover:text-danger-ink"
+          className="wd-delBtn"
         >
           ×
         </button>
@@ -316,15 +313,15 @@ function EntityCard({
         aria-label={`设计说明 ${entity.name}`}
         data-game-entity-notes={entity.id}
         rows={2}
-        className="mt-1 w-full resize-y rounded-[3px] bg-bg-1 px-1 py-[2px] text-12 leading-relaxed text-fg-1 outline-none focus:bg-bg-3"
+        className="wd-areaResizeMt"
       />
 
-      <div className="mt-1" data-game-stats={entity.id}>
+      <div className="gp-mt1" data-game-stats={entity.id}>
         {Object.keys(entity.stats).map((key) => {
           const dk = statKey(entity.id, key);
           return (
-            <div key={key} className="flex items-center gap-1">
-              <span className="min-w-0 flex-1 truncate font-mono text-11 text-fg-2">{key}</span>
+            <div key={key} className="wd-row1">
+              <span className="wd-fname11truncate">{key}</span>
               <input
                 type="number"
                 step="any"
@@ -342,28 +339,28 @@ function EntityCard({
                 }}
                 aria-label={`数值 ${key}`}
                 data-game-stat={`${entity.id}:${key}`}
-                className="w-20 rounded-[3px] bg-bg-1 px-1 py-[2px] text-11 text-fg-1 outline-none focus:bg-bg-3"
+                className="gp-w80Input"
               />
               <button
                 type="button"
                 onClick={() => edit(removeStat(game, entity.id, key), true)}
                 aria-label={`删除数值 ${key}`}
                 data-game-stat-remove={`${entity.id}:${key}`}
-                className="shrink-0 px-1 text-11 text-fg-3 hover:text-danger-ink"
+                className="wd-delBtnSm"
               >
                 ×
               </button>
             </div>
           );
         })}
-        <div className="mt-1 flex items-center gap-1">
+        <div className="wd-rowMt1">
           <input
             value={newStat.key}
             onChange={(e) => setNewStat({ ...newStat, key: e.target.value })}
             placeholder={STAT_HINTS[entity.kind][0] ?? 'health'}
             aria-label="新数值的键名"
             data-game-stat-key={entity.id}
-            className="min-w-0 flex-1 rounded-[3px] bg-bg-1 px-1 py-[2px] text-11 text-fg-1 outline-none placeholder:text-fg-3 focus:bg-bg-3"
+            className="wd-growInputPh"
           />
           <input
             type="number"
@@ -373,7 +370,7 @@ function EntityCard({
             placeholder="0"
             aria-label="新数值的值"
             data-game-stat-value={entity.id}
-            className="w-16 rounded-[3px] bg-bg-1 px-1 py-[2px] text-11 text-fg-1 outline-none placeholder:text-fg-3 focus:bg-bg-3"
+            className="gp-w16Mode"
           />
           <button
             type="button"
@@ -381,21 +378,21 @@ function EntityCard({
               if (writeStat(newStat.key, newStat.value)) setNewStat({ key: '', value: '' });
             }}
             data-game-stat-add={entity.id}
-            className="shrink-0 rounded-[3px] border border-[var(--nexus-color-border-strong)] px-1 py-[2px] text-11 text-fg-2 hover:bg-bg-3"
+            className="wd-ghostBtnSm"
           >
             加数值
           </button>
         </div>
       </div>
 
-      <div className="mt-2 border-t border-[var(--nexus-color-border-subtle)] pt-1" data-game-refs={entity.id}>
+      <div className="gp-hrMt" data-game-refs={entity.id}>
         {entity.refs.length ? (
-          <ul className="flex flex-col gap-1">
+          <ul className="gp-col1">
             {entity.refs.map((ref) => {
               const target = game.entities.find((e) => e.id === ref.to);
               return (
-                <li key={ref.id} className="flex items-center gap-1 text-11" data-game-ref={ref.id}>
-                  <span className="min-w-0 flex-1 truncate text-fg-2" data-game-ref-label={ref.id}>
+                <li key={ref.id} className="gp-row1ink" data-game-ref={ref.id}>
+                  <span className="wd-nameTrunc" data-game-ref-label={ref.id}>
                     → {target ? `${target.name}${ref.role ? `（${ref.role}）` : ''}` : `（悬空引用 ${ref.to}）`}
                   </span>
                   <button
@@ -403,7 +400,7 @@ function EntityCard({
                     onClick={() => edit(removeRef(game, entity.id, ref.id), true)}
                     aria-label="摘掉这条引用"
                     data-game-ref-remove={ref.id}
-                    className="shrink-0 px-1 text-fg-3 hover:text-danger-ink"
+                    className="wd-xshrink"
                   >
                     ×
                   </button>
@@ -412,17 +409,17 @@ function EntityCard({
             })}
           </ul>
         ) : (
-          <p className="text-11 text-fg-3" data-game-ref-empty={entity.id}>
+          <p className="wd-faint11" data-game-ref-empty={entity.id}>
             还没有引用别的实体
           </p>
         )}
-        <div className="mt-1 flex flex-wrap items-center gap-1">
+        <div className="wd-wrapCenter1">
           <select
             value={link.to}
             onChange={(e) => setLink({ ...link, to: e.target.value })}
             aria-label="引用指向的实体"
             data-game-ref-target={entity.id}
-            className="min-w-0 max-w-full flex-1 basis-28 rounded-[3px] bg-bg-1 px-1 py-[2px] text-11 text-fg-1 outline-none focus:bg-bg-3"
+            className="wd-growBasis"
           >
             <option value="">指向…</option>
             {others.map((e) => (
@@ -438,7 +435,7 @@ function EntityCard({
             title="这条引用是什么关系，例如「装备」「掉落」；留空则图上不写字"
             aria-label="引用关系"
             data-game-ref-role={entity.id}
-            className="w-[72px] min-w-0 shrink-0 rounded-[3px] bg-bg-1 px-1 py-[2px] text-11 text-fg-1 outline-none placeholder:text-fg-3 focus:bg-bg-3"
+            className="gp-mode72"
           />
           <button
             type="button"
@@ -456,7 +453,7 @@ function EntityCard({
               edit(result.document, true);
             }}
             data-game-ref-add={entity.id}
-            className="shrink-0 rounded-[3px] border border-[var(--nexus-color-border-strong)] px-1 py-[2px] text-11 text-fg-2 hover:bg-bg-3"
+            className="wd-ghostBtnSm"
           >
             连引用
           </button>

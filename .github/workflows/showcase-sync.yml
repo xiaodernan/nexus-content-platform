@@ -1,0 +1,79 @@
+name: Showcase sync
+
+# Pushes the NEXUS Content Platform showcase fact pack (this repository's latest.json)
+# into the portfolio site (xiaodernan/xiaodernan.github.io, path assets/nexus-content/latest.json).
+#
+# Cadence, on purpose: weekly, the same one-sync-per-milestone rhythm the portfolio's
+# sync-nexus-platform.yml already uses for the sibling project. Never per-push.
+#
+# Auth paths, on purpose (no pretending this is magic):
+#   1. The fact pack is ALWAYS computed in this repository (git history + filesystem)
+#      and committed here when it drifts - this repo is private, the portfolio cannot read it anonymously.
+#   2. Moving the pack into the portfolio repo needs a token that can WRITE to another repo.
+#      If the repository secret NEXUS_PORTFOLIO_TOKEN (a classic PAT with repo scope for
+#      xiaodernan/xiaodernan.github.io) is present, it is used to clone, copy, commit and push.
+#      If it is absent, this job logs what a human must do and stays green - nothing silently fails.
+#   3. To keep this repo's history honest, the pack in THIS repo is regenerated at every
+#      run; the bot commits only when the values actually moved.
+
+on:
+  schedule:
+    - cron: "0 14 * * 1"   # weekly Monday 14:00 UTC (one hour after the sibling sync's slot)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: showcase-sync
+  cancel-in-progress: true
+
+jobs:
+  fact-pack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # the pack reads real history (first_commit_at, total_commits)
+
+      - name: Regenerate docs/latest.json
+        run: node scripts/build-showcase.mjs
+
+      - name: Commit if the fact pack moved
+        id: commit_pack
+        run: |
+          if git diff --quiet -- docs/latest.json; then
+            echo "unchanged=true" >> "$GITHUB_OUTPUT"
+            echo "fact pack unchanged; no commit, nothing to push"
+          else
+            git config user.name "nexus-content-sync"
+            git config user.email "nexus-content-sync@users.noreply.github.com"
+            git add docs/latest.json
+            git commit -m "sync(showcase): refresh docs/latest.json (head, counts, milestone)"
+            git push
+            echo "unchanged=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Push the fact pack into the portfolio (needs NEXUS_PORTFOLIO_TOKEN)
+        if: steps.commit_pack.outputs.unchanged == 'false'
+        env:
+          NEXUS_PORTFOLIO_TOKEN: ${{ secrets.NEXUS_PORTFOLIO_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${NEXUS_PORTFOLIO_TOKEN}" ]; then
+            echo "::notice title=portfolio-push skipped::NEXUS_PORTFOLIO_TOKEN is not set; a maintainer must copy docs/latest.json to assets/nexus-content/latest.json in xiaodernan/xiaodernan.github.io. See docs/SHOWCASE.json."
+            exit 0
+          fi
+          git clone --depth 1 "https://x-access-token:${NEXUS_PORTFOLIO_TOKEN}@github.com/xiaodernan/xiaodernan.github.io.git" /tmp/portfolio-sync
+          mkdir -p /tmp/portfolio-sync/assets/nexus-content
+          cp docs/latest.json /tmp/portfolio-sync/assets/nexus-content/latest.json
+          cd /tmp/portfolio-sync
+          if git diff --quiet -- assets/nexus-content/latest.json; then
+            echo "portfolio already up to date"
+            exit 0
+          fi
+          git config user.name "pages-sync-bot"
+          git config user.email "pages-sync-bot@users.noreply.github.com"
+          git add assets/nexus-content/latest.json
+          git commit -m "sync(nexus-content): refresh the showcase fact pack from nexus-content-platform (weekly)"
+          git push

@@ -68,38 +68,38 @@ export function AccountPanel({ user }: { user: Identity }) {
   };
 
   return (
-    <section className="flex flex-col gap-[var(--nexus-space-3)]">
+    <section className="ac-root">
       {notice ? (
-        <p className="text-12 text-fg-2" data-auth-notice>
+        <p className="ac-note" data-auth-notice>
           {notice}
         </p>
       ) : null}
-      <div className="flex items-center justify-between" data-auth-identity={user.guest ? 'guest' : 'member'}>
-        <span className="text-[var(--nexus-font-size-13)] text-fg-2">
+      <div className="ac-between" data-auth-identity={user.guest ? 'guest' : 'member'}>
+        <span className="ac-ident">
           {user.guest ? (
-            <>当前是<b className="text-fg-1">游客</b>（{user.displayName}）。注册即可把游客项目认领到自己的账号。</>
+            <>当前是<b className="ac-strong">游客</b>（{user.displayName}）。注册即可把游客项目认领到自己的账号。</>
           ) : (
-            <>已登录：<b className="text-fg-1">{user.email}</b></>
+            <>已登录：<b className="ac-strong">{user.email}</b></>
           )}
           {/* §134：游客也在被记账（一次生成扣的就是这个会话名下那 100 点），
               所以这一页对两种身份都得进得去 */}
-          <Link href="/credits" className="ml-2 text-12 text-accent-2-ink underline" data-credits-link>
+          <Link href="/credits" className="ac-inlineLink" data-credits-link>
             额度与消费
           </Link>
           {/* §188：公开 API 的凭据也是账号的一部分，游客没有可认领的项目，这一页只对登录态开 */}
           {!user.guest ? (
-            <Link href="/api-tokens" className="ml-2 text-12 text-accent-2-ink underline" data-api-tokens-link>
+            <Link href="/api-tokens" className="ac-inlineLink" data-api-tokens-link>
               API 凭据
             </Link>
           ) : null}
         </span>
         {!user.guest ? (
-          <span className="flex items-center gap-[var(--nexus-space-2)]">
+          <span className="ac-inlineRow">
             <button
               type="button"
               onClick={() => void logout()}
               disabled={busy}
-              className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-[var(--nexus-space-3)] py-1 text-12 text-fg-2 hover:bg-bg-2 disabled:opacity-40"
+              className="ac-ghostBtnSm"
               data-auth-logout
             >
               登出
@@ -109,8 +109,8 @@ export function AccountPanel({ user }: { user: Identity }) {
       </div>
 
       {user.guest ? (
-        <form onSubmit={(event) => void submit(event)} className="flex flex-col gap-[var(--nexus-space-2)]">
-          <div className="flex gap-[var(--nexus-space-2)]">
+        <form onSubmit={(event) => void submit(event)} className="ac-form">
+          <div className="ac-tabs">
             <button
               type="button"
               onClick={() => setMode('register')}
@@ -159,17 +159,17 @@ export function AccountPanel({ user }: { user: Identity }) {
             className={inputClass}
             data-auth-password
           />
-          <div className="flex items-center gap-[var(--nexus-space-3)]">
+          <div className="ac-submitRow">
             <button
               type="submit"
               disabled={busy}
-              className="rounded-[var(--nexus-radius-sm)] bg-brand px-[var(--nexus-space-4)] py-2 text-14 font-medium text-accent-fg disabled:opacity-40"
+              className="ac-submitBtn"
               data-auth-submit
             >
               {busy ? '处理中…' : mode === 'register' ? '注册并认领项目' : '登录'}
             </button>
           </div>
-          {error ? <p className="text-12 text-danger-ink" data-auth-error>{error}</p> : null}
+          {error ? <p className="ac-error" data-auth-error>{error}</p> : null}
         </form>
       ) : null}
     </section>
@@ -177,9 +177,9 @@ export function AccountPanel({ user }: { user: Identity }) {
 }
 
 const inputClass =
-  'rounded-[var(--nexus-radius-sm)] bg-bg-2 px-[var(--nexus-space-3)] py-2 text-14 placeholder:text-fg-3';
+  'ac-input';
 
 function tabClass(active: boolean): string {
-  const base = 'rounded-[var(--nexus-radius-sm)] px-[var(--nexus-space-3)] py-1 text-13';
-  return active ? `${base} bg-bg-3 text-fg-1` : `${base} text-fg-3 hover:bg-bg-2`;
+  const base = 'ac-tab';
+  return active ? `${base} ac-tabActive` : `${base} ac-tabIdle`;
 }

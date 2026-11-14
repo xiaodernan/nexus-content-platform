@@ -197,7 +197,7 @@ try {
   const emptyMemory = emptyStore.list('intent');
   assert.equal(emptyMemory.length, 1);
   assert.ok(!String(emptyMemory[0].summary).includes('COMMITTED+CONFIRMED'), '§60: the remembered sentence does NOT claim a landing that git refused — amendment 45 retires the wording amendment 39 could not support');
-  assert.match(String(emptyMemory[0].summary), /whether anything LANDED is git\'s own answer/);
+  assert.match(String(emptyMemory[0].summary), /whether anything LANDED is git's own answer/);
   console.log('[intent-proof] REAL: denied read = 0 spawns and no commit · an EMPTY index is stated one step before git answers "no changes added to commit" with history unmoved');
 
   // 2d) RED: the plan carries the whole tail; a red run never knocks on the first door.

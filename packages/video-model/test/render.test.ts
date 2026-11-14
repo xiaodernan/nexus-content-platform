@@ -161,6 +161,7 @@ describe('planVideoRender —— 箭头进像素（M5 第三十八片）', () =>
       expect(plan.sourceReferenceCount).toBe(0);
       expect(plan.cardCount).toBe(1);
       expect(plan.notes.join('')).not.toContain('整片参考图');
+      expect(plan.notes.join(''), `${arrow} 该说出残留的参考图`).toContain('这条箭头不读它');
     }
   });
 
@@ -169,6 +170,17 @@ describe('planVideoRender —— 箭头进像素（M5 第三十八片）', () =>
     expect(plan.segments[0]!.source.kind).toBe('card');
     expect(plan.sourceReferenceCount).toBe(0);
     expect(plan.cardCount).toBe(1);
+  });
+
+  it('箭头不认但留着的人/图也会被说出来——静默丢弃是上一片指出的静默格子', () => {
+    const plan = planVideoRender(
+      board([shot({ id: 'a' })], { arrow: 'text-to-video', prompt: 'x', characterId: 'c-1', referenceAssetId: 'whole-1' }),
+    );
+    const notes = plan.notes.join('');
+    expect(notes).toContain('这条箭头不读它');
+    // 两个残留分开数：图一句、角色一句，不是一句笼统的"有残留"
+    expect(notes).toContain('referenceAssetId');
+    expect(notes).toContain('characterId');
   });
 
   it('character-to-scene 渲成色卡时把限度说出来；每镜都挂了图就不虚构这个缺口', () => {

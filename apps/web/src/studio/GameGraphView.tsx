@@ -112,8 +112,8 @@ export function GameGraphView() {
 
   if (!game) {
     return (
-      <div className="flex h-full flex-col items-start justify-center gap-3 p-6" data-game-graph>
-        <p className="max-w-[420px] text-13 leading-relaxed text-fg-2" data-game-graph-empty>
+      <div className="wg-emptyState" data-game-graph>
+        <p className="wg-emptyLead" data-game-graph-empty>
           {snapshot.saveState === 'loading'
             ? '读取游戏设计…'
             : snapshot.error
@@ -125,7 +125,7 @@ export function GameGraphView() {
             type="button"
             onClick={() => void gameStore.createSkeleton(studio.document?.name ?? '未命名游戏')}
             data-game-graph-create
-            className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg"
+            className="sb-accentBtn"
           >
             创建游戏骨架（模板）
           </button>
@@ -177,13 +177,13 @@ export function GameGraphView() {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-bg-0" data-game-graph>
+    <div className="wg-rootCol" data-game-graph>
       {/* 工具条固定在滚动区之外：跟着画布一起横滚的话，"已保存"会在往右拖时消失 */}
-      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-[var(--nexus-color-border-subtle)] bg-bg-1 px-3 py-2">
-        <span className="font-mono text-12 text-fg-3" data-game-graph-count>
+      <div className="wg-head">
+        <span className="ap-mono12faint" data-game-graph-count>
           {nodes.length} 个实体 · {edges.length} 条引用
         </span>
-        <span className="text-11 text-fg-3" data-game-graph-selection>
+        <span className="sb-faint11" data-game-graph-selection>
           {picked.length === 2
             ? `已选 ${nameOf(picked[0]!)} → ${nameOf(picked[1]!)}`
             : '点两个实体就能连一条引用（顺序就是箭头方向）'}
@@ -196,13 +196,13 @@ export function GameGraphView() {
               placeholder="关系叫什么（可留空）"
               aria-label="引用关系"
               data-game-graph-role
-              className="w-[180px] rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12 text-fg-1 outline-none focus:bg-bg-3"
+              className="wg-terrainInput"
             />
             <button
               type="button"
               onClick={connect}
               data-game-graph-connect
-              className="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg"
+              className="sb-accentBtn"
             >
               连一条
             </button>
@@ -210,7 +210,7 @@ export function GameGraphView() {
               type="button"
               onClick={() => setPicked([])}
               data-game-graph-clear
-              className="rounded-[var(--nexus-radius-sm)] px-2 py-1 text-11 text-fg-3 hover:bg-bg-2"
+              className="wg-btnFaintHover"
             >
               取消选择
             </button>
@@ -221,13 +221,13 @@ export function GameGraphView() {
             type="button"
             onClick={removeEdge}
             data-game-graph-remove-ref
-            className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11 text-danger-ink"
+            className="wg-ghostDanger"
           >
             摘掉这条引用
           </button>
         ) : null}
         <span
-          className={cn('ml-auto font-mono text-11', snapshot.saveState === 'error' ? 'text-danger-ink' : 'text-fg-3')}
+          className={cn('wd-monoFaintEnd', snapshot.saveState === 'error' && 'wd-dangerText')}
           data-game-graph-state
         >
           {snapshot.saveState === 'saving'
@@ -245,18 +245,18 @@ export function GameGraphView() {
         />
       </div>
       {snapshot.notice ? (
-        <p className="px-3 py-2 text-11 text-warn-ink" data-game-graph-notice>
+        <p className="wg-warnCell" data-game-graph-notice>
           {snapshot.notice}
         </p>
       ) : null}
       {snapshot.error ? (
-        <p className="px-3 py-2 text-11 text-danger-ink" data-game-graph-error>
+        <p className="wg-dangerCell" data-game-graph-error>
           {snapshot.error}
         </p>
       ) : null}
 
-      <div className="min-h-0 flex-1 overflow-auto">
-        <svg width={width} height={height} className="block" data-game-graph-canvas>
+      <div className="sb-scroll">
+        <svg width={width} height={height} className="wg-block" data-game-graph-canvas>
           <defs>
             <marker
               id="game-arrow"
@@ -278,7 +278,7 @@ export function GameGraphView() {
                 key={kind}
                 x={at(inKind[0]!.id).x}
                 y={PAD_Y - 22}
-                className="fill-fg-3 text-[11px]"
+                className="wg-axis11"
                 data-game-graph-column={kind}
               >
                 {GAME_ENTITY_LABELS[kind]}（{inKind.length}）
@@ -301,7 +301,7 @@ export function GameGraphView() {
                   fill="none"
                   stroke="transparent"
                   strokeWidth={16}
-                  className="cursor-pointer"
+                  className="wg-clickable"
                   onClick={pickEdge}
                 />
                 <circle
@@ -310,12 +310,12 @@ export function GameGraphView() {
                   r={6}
                   fill={active ? 'var(--nexus-color-accent-2)' : 'var(--nexus-color-bg-2)'}
                   stroke="var(--nexus-color-border-strong)"
-                  className="cursor-pointer"
+                  className="wg-clickable"
                   data-game-graph-handle={edge.id}
                   onClick={pickEdge}
                 />
                 {edge.role ? (
-                  <text x={drawn.mid.x} y={drawn.mid.y - 12} textAnchor="middle" className="fill-fg-3 text-[11px]">
+                  <text x={drawn.mid.x} y={drawn.mid.y - 12} textAnchor="middle" className="wg-axis11">
                     {edge.role}
                   </text>
                 ) : null}
@@ -329,7 +329,7 @@ export function GameGraphView() {
               <g
                 key={node.id}
                 transform={`translate(${p.x}, ${p.y})`}
-                className="cursor-pointer"
+                className="wg-clickable"
                 data-game-graph-node={node.id}
                 data-game-graph-kind={node.kind}
                 data-game-graph-stats={node.statCount}
@@ -345,10 +345,10 @@ export function GameGraphView() {
                   strokeWidth={isPicked ? 2 : 1}
                   opacity={node.statCount === 0 ? 0.55 : 1}
                 />
-                <text x={12} y={19} className="fill-fg-1 text-[12px] font-medium">
+                <text x={12} y={19} className="wg-axis12">
                   {node.name.length > 16 ? `${node.name.slice(0, 15)}…` : node.name}
                 </text>
-                <text x={12} y={35} className="fill-fg-3 text-[10px]">
+                <text x={12} y={35} className="wg-axis10">
                   {GAME_ENTITY_LABELS[node.kind] ?? node.kind}
                   {node.statCount ? ` · ${node.statCount} 项数值` : ' · 还没填数值'}
                 </text>
@@ -358,11 +358,11 @@ export function GameGraphView() {
         </svg>
       </div>
       {!edges.length ? (
-        <p className="pointer-events-none px-3 pt-2 text-11 text-fg-3" data-game-graph-hint>
+        <p className="wg-pointerHint" data-game-graph-hint>
           还没有引用：点两个实体（顺序就是箭头方向），再点「连一条」。
         </p>
       ) : null}
-      <p className="shrink-0 px-3 py-2 text-11 leading-relaxed text-fg-3" data-game-graph-note>
+      <p className="wg-rowFaintPad" data-game-graph-note>
         位置按 §54 的 11 类分列算出来、不存在文档里：游戏文档只记谁引用谁，不记摆在哪个像素。
         点边上的圆点（或直接点那条线）选中引用，再摘掉它。
         淡一点的是还没填过数值的实体（模板骨架里的样子）。

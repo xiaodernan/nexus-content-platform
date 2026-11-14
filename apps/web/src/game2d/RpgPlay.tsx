@@ -112,16 +112,16 @@ export function RpgPlay({ plan, onComplete }: { plan: RpgPlan; onComplete?: () =
 
   if (!plan.playable) {
     return (
-      <div className="flex flex-col gap-2" data-rpg-blocked>
-        <p className="text-13 text-danger-ink">这一份设计跑不起来：</p>
-        <ul className="flex flex-col gap-1">
+      <div className="g2-col" data-rpg-blocked>
+        <p className="g2-blockedTitle">这一份设计跑不起来：</p>
+        <ul className="g2-col1">
           {plan.blockers.map((line) => (
-            <li key={line} className="text-12 text-fg-2" data-rpg-blocker>
+            <li key={line} className="g2-blocker" data-rpg-blocker>
               · {line}
             </li>
           ))}
         </ul>
-        <p className="text-11 text-fg-3">blocker 来自底层关卡计划——RPG 不另立一套，补齐之后回来就会重新编译。</p>
+        <p className="g2-note">blocker 来自底层关卡计划——RPG 不另立一套，补齐之后回来就会重新编译。</p>
       </div>
     );
   }
@@ -130,8 +130,8 @@ export function RpgPlay({ plan, onComplete }: { plan: RpgPlan; onComplete?: () =
   const questMeta = new Map(plan.quests.map((quest) => [quest.id, quest]));
 
   return (
-    <div className="flex flex-col gap-3" data-rpg-root>
-      <div className="flex flex-wrap items-center gap-3 text-12" data-rpg-hud>
+    <div className="g2-col3" data-rpg-root>
+      <div className="g2-hud" data-rpg-hud>
         <span data-rpg-status={hud.base.status}>
           {hud.base.status === 'playing' ? '进行中' : hud.base.status === 'won' ? '通关' : '失败'}
         </span>
@@ -148,18 +148,18 @@ export function RpgPlay({ plan, onComplete }: { plan: RpgPlan; onComplete?: () =
           敌人 {hud.base.enemies.filter((e) => e.active).length}/{hud.base.enemies.length}
         </span>
         <span data-rpg-summary>{rpgSummary(plan, hud)}</span>
-        <button type="button" onClick={restart} className="rounded bg-bg-2 px-2 py-1 text-11" data-rpg-restart>
+        <button type="button" onClick={restart} className="g2-smallBtn" data-rpg-restart>
           重新开始
         </button>
       </div>
 
       {hud.base.outcome ? (
-        <p className="text-12 text-fg-2" data-rpg-outcome>
+        <p className="g2-blocker" data-rpg-outcome>
           {hud.base.outcome}
         </p>
       ) : null}
 
-      <p className="text-11 text-fg-3" data-rpg-controls>
+      <p className="g2-note" data-rpg-controls>
         移动：WASD / 方向键 · 攻击：空格——战斗手感与 2D 关卡完全相同（同一个 step）；
         RPG 加的只有成长：打倒敌人与完成任务发经验，攒够升级涨生命与伤害。
       </p>
@@ -168,16 +168,16 @@ export function RpgPlay({ plan, onComplete }: { plan: RpgPlan; onComplete?: () =
         ref={canvas}
         width={ARENA.width}
         height={ARENA.height}
-        className="w-full rounded border border-[var(--nexus-color-border-subtle)]"
+        className="g2-canvas"
         data-rpg-canvas
       />
 
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <section className="g2-twoCol">
         <div>
-          <h3 className="text-12 font-semibold text-fg-1">经验与任务</h3>
-          <ul className="mt-1 flex flex-col gap-1">
+          <h3 className="g2-h3">经验与任务</h3>
+          <ul className="g2-mt1col">
             {plan.enemyXp.map((enemy) => (
-              <li key={enemy.id} className="text-11 text-fg-2" data-rpg-enemy-xp={enemy.from}>
+              <li key={enemy.id} className="g2-hint2" data-rpg-enemy-xp={enemy.from}>
                 {enemy.name}：打倒 +{enemy.xp} 经验
                 （{enemy.from === 'design' ? '作者写的 xpReward' : '投影兜底——作者没写 xpReward，这不是设计的数'}）
               </li>
@@ -186,7 +186,7 @@ export function RpgPlay({ plan, onComplete }: { plan: RpgPlan; onComplete?: () =
               const meta = questMeta.get(quest.id);
               const doneAt = hud.base.questDone[quest.id];
               return (
-                <li key={quest.id} className="text-11 text-fg-2" data-rpg-quest={quest.id}>
+                <li key={quest.id} className="g2-hint2" data-rpg-quest={quest.id}>
                   <span data-rpg-quest-state={doneAt === undefined ? 'todo' : 'done'}>
                     {doneAt === undefined ? '○' : '●'}
                   </span>{' '}
@@ -198,43 +198,43 @@ export function RpgPlay({ plan, onComplete }: { plan: RpgPlan; onComplete?: () =
               );
             })}
             {plan.enemyXp.length === 0 && plan.base.quests.length === 0 ? (
-              <li className="text-11 text-fg-3">没有敌人也没有任务：经验没有来源，成长循环转不起来。</li>
+              <li className="g2-note">没有敌人也没有任务：经验没有来源，成长循环转不起来。</li>
             ) : null}
           </ul>
         </div>
         <div>
-          <h3 className="text-12 font-semibold text-fg-1">最近发生</h3>
-          <ul className="mt-1 flex max-h-[9rem] flex-col gap-[2px] overflow-auto">
+          <h3 className="g2-h3">最近发生</h3>
+          <ul className="g2-eventList">
             {hud.base.events.slice(-8).reverse().map((event, index) => (
-              <li key={`${event.t}-${index}`} className="text-11 text-fg-3" data-rpg-event>
+              <li key={`${event.t}-${index}`} className="g2-note" data-rpg-event>
                 {event.t.toFixed(1)}s · {event.text}
               </li>
             ))}
-            {hud.base.events.length === 0 ? <li className="text-11 text-fg-3">还没有事情发生。</li> : null}
+            {hud.base.events.length === 0 ? <li className="g2-note">还没有事情发生。</li> : null}
           </ul>
         </div>
       </section>
 
       {/* §53：RPG 这边跑的仍是四种走法，但推进用 rpgStep——报告里的等级/经验与门是成长语义算的 */}
-      <section className="rounded border border-[var(--nexus-color-border-subtle)] p-3">
-        <div className="flex items-center gap-3">
-          <h3 className="text-12 font-semibold text-fg-1">自动跑一遍（Playtest）</h3>
+      <section className="g2-well">
+        <div className="g2-wellRow">
+          <h3 className="g2-h3">自动跑一遍（Playtest）</h3>
           <button
             type="button"
             onClick={() => setReport(playtestRpg(plan, PLAYTEST_POLICIES, seed))}
-            className="rounded bg-bg-2 px-2 py-1 text-11"
+            className="g2-smallBtn"
             data-playtest-run
           >
             跑四种走法
           </button>
-          <label className="flex items-center gap-[6px] text-11 text-fg-3">
+          <label className="g2-seedLabel">
             随机种子
             <input
               type="number"
               value={Number.isFinite(seed) ? seed : ''}
               // 清空 = 「没有明示种子」，不是 0：`Number('')` 是 0，而 0 是一个真的种子
               onChange={(event) => setSeed(event.target.value === '' ? Number.NaN : Number(event.target.value))}
-              className="w-[92px] rounded border border-[var(--nexus-color-border-subtle)] bg-bg-2 px-1 py-[2px] text-11"
+              className="g2-seedInput"
               data-playtest-seed
               title="只有「定种子随机游走」那一条用它：换种子=换一次抽样，规则与数值一个字都不动"
             />
@@ -242,8 +242,8 @@ export function RpgPlay({ plan, onComplete }: { plan: RpgPlan; onComplete?: () =
         </div>
         {report ? (
           <>
-            <table className="mt-2 w-full text-11">
-              <thead className="text-left text-fg-3">
+            <table className="g2-tableWrap">
+              <thead className="g2-theadRow">
                 <tr>
                   <th>走法</th>
                   <th>结果</th>
@@ -276,33 +276,33 @@ export function RpgPlay({ plan, onComplete }: { plan: RpgPlan; onComplete?: () =
                 ))}
               </tbody>
             </table>
-            <p className="mt-1 text-11 text-fg-3" data-playtest-max-level={report.maxLevel}>
+            <p className="g2-mt1Note" data-playtest-max-level={report.maxLevel}>
               这几种走法到达过的最高等级：{report.maxLevel}
             </p>
-            <p className="mt-1 text-11 text-fg-3" data-playtest-seed-used={report.seed}>
+            <p className="g2-mt1Note" data-playtest-seed-used={report.seed}>
               {playtestSeedNote(report.seed)}
             </p>
-            <ul className="mt-2 flex flex-col gap-1">
+            <ul className="g2-mt2col">
               {report.findings.map((line) => (
-                <li key={line} className="text-11 text-fg-2" data-playtest-finding>
+                <li key={line} className="g2-hint2" data-playtest-finding>
                   · {line}
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-11 text-fg-3" data-playtest-limits>
+            <p className="g2-mt2Note" data-playtest-limits>
               {report.limits.join(' ')}
             </p>
           </>
         ) : (
-          <p className="mt-1 text-11 text-fg-3">还没跑。这一步不需要人操作，也不需要模型或 provider——成长语义（经验、升级、等级门）会参与判定。</p>
+          <p className="g2-mt1Note">还没跑。这一步不需要人操作，也不需要模型或 provider——成长语义（经验、升级、等级门）会参与判定。</p>
         )}
       </section>
 
-      <section className="rounded bg-bg-1 p-3">
-        <h3 className="text-12 font-semibold text-fg-1">这份"成长"是从哪些数算出来的</h3>
-        <ul className="mt-1 flex flex-col gap-1">
+      <section className="g2-provenanceBlock">
+        <h3 className="g2-h3">这份"成长"是从哪些数算出来的</h3>
+        <ul className="g2-mt1col">
           {plan.notes.map((note) => (
-            <li key={note} className="text-11 text-fg-3" data-rpg-note>
+            <li key={note} className="g2-note" data-rpg-note>
               · {note}
             </li>
           ))}

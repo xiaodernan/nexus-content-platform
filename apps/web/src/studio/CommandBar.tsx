@@ -7,6 +7,7 @@ import { ttlLabel } from '@/lib/notify-plan';
 import { cn } from '@/lib/cn';
 import { csrfHeaders } from '@/lib/csrf';
 import { REALTIME_TEXT, useRealtime } from '@/lib/useRealtime';
+import { cacheState, cacheText } from '@/lib/usage-cache-text';
 import { isEditableTarget } from '@/lib/keyboard';
 import { studio, toModelPatches, useStudioReady } from './store';
 
@@ -394,15 +395,15 @@ export function CommandBar() {
   const canPatchDesign = selectedAgent?.capabilities.includes('design.patch') ?? false;
 
   return (
-    <div className="shrink-0 border-t border-[var(--nexus-color-border-subtle)] bg-bg-1 px-[var(--nexus-space-3)] py-[var(--nexus-space-2)]" data-command-bar>
+    <div className="wd-headBordered" data-command-bar>
       {live ? (
-        <p className="text-11 text-fg-3" data-generation-progress={live.taskId}>
+        <p className="sb-faint11" data-generation-progress={live.taskId}>
           实时进度 {Math.round(live.progress * 100)}% · {live.message ?? '生成中'} · 任务 {live.taskId.slice(0, 8)}
         </p>
       ) : null}
       {/* 异步那一路说的都是观察到的东西：作业号、队列报的状态、以及后端带来的限制 */}
       {asyncStatus ? (
-        <p className="text-11 text-fg-3" data-async-status>
+        <p className="sb-faint11" data-async-status>
           {asyncStatus}
         </p>
       ) : null}
@@ -414,26 +415,26 @@ export function CommandBar() {
           onClick={() => void cancelAsync()}
           disabled={cancelBusy}
           data-async-cancel
-          className="mb-1 rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] px-2 py-[2px] text-11 text-fg-2 disabled:opacity-50"
+          className="cb-infoChip"
         >
           {cancelBusy ? '取消请求发送中…' : '取消这次作业'}
         </button>
       ) : null}
       {taskId ? (
-        <p className="text-11 text-fg-3" data-ai-task>
+        <p className="sb-faint11" data-ai-task>
           这次请求记为任务 {taskId.slice(0, 8)} ·
-          <a href={`/tasks/${state.projectId}`} className="ml-1 text-accent-2-ink underline">
+          <a href={`/tasks/${state.projectId}`} className="cb-accentInk2">
             这个项目的任务列表
           </a>
         </p>
       ) : null}
       {/* §74：被服务端扣下的高危结果。审批卡片是这条决定唯一的出口，界面上不给它任何"自动应用"的余地 */}
       {held ? (
-        <div className="mb-1 rounded-[var(--nexus-radius-sm)] border border-warn/50 bg-bg-2 px-2 py-[6px]" data-approval-card>
-          <p className="text-12 text-fg-1" data-approval-title>
+        <div className="cb-warningBanner" data-approval-card>
+          <p className="cp-trunc12ink" data-approval-title>
             这份结果含 {held.approvals.length} 处需人工审批的动作，补丁已被服务端扣下，画布还没有被改动。
           </p>
-          <ul className="mt-[2px] text-11 text-fg-3" data-approval-reasons>
+          <ul className="cb-mtHint" data-approval-reasons>
             {held.approvals.map((a) => (
               <li key={`${a.action}:${a.reason}`} data-approval-reason>
                 {a.action} · {a.reason}
@@ -443,17 +444,17 @@ export function CommandBar() {
           {/* §74 的时效要说在卡片上，而不是等用户按下批准才从 409 里知道：
               "这一份放着不管会自己作废"改变的是他要不要现在去看这 3 处删除，
               而那句作废的理由（补丁从未落地）与服务端写进账本的是同一句。 */}
-          <p className="mt-[2px] text-11 text-fg-3" data-approval-expiry>
+          <p className="cb-mtHint" data-approval-expiry>
             {ttlLabel(APPROVAL_TTL_MS)}内未决定，这一份自动作废、被扣下的补丁不会落地
             {held.expiresAt ? `（截止 ${new Date(held.expiresAt).toLocaleString('zh-CN', { hour12: false })}）` : ''}
           </p>
-          <div className="mt-1 flex flex-wrap items-center gap-2">
+          <div className="cb-wrapCenter2">
             <button
               type="button"
               disabled={approvalBusy}
               onClick={() => void decide('approve')}
               data-approval-approve
-              className="rounded-[var(--nexus-radius-sm)] bg-warn px-2 py-[2px] text-11 text-accent-fg disabled:opacity-50"
+              className="cb-warnChip"
             >
               批准并交回编辑区
             </button>
@@ -462,11 +463,11 @@ export function CommandBar() {
               disabled={approvalBusy}
               onClick={() => void decide('reject')}
               data-approval-reject
-              className="rounded-[var(--nexus-radius-sm)] px-2 py-[2px] text-11 text-fg-2 underline disabled:opacity-50"
+              className="cb-underLink"
             >
               放弃
             </button>
-            <a href={`/tasks/${state.projectId}`} className="text-11 text-accent-2-ink underline" data-approval-link>
+            <a href={`/tasks/${state.projectId}`} className="cb-accentInk2" data-approval-link>
               在任务列表里看这一行
             </a>
           </div>
@@ -475,21 +476,21 @@ export function CommandBar() {
       {/* 裁决的回执在卡片之外：批准或放弃之后卡片就没了，回执要是住在里面，
           用户看到的是"卡片一闪，什么都不说"——那与没点过按钮长得一样 */}
       {approvalNote ? (
-        <p className="mb-1 text-11 text-fg-3" data-approval-note>
+        <p className="cp-faintMb1" data-approval-note>
           {approvalNote}
         </p>
       ) : null}
       {/* §73 要说在前头：选了一位没有 design.patch 的 Agent，改动就会被服务端拒收。
           让人在按下"执行"之前看见这句，比让他看完一次失败再猜为什么强 */}
       {selectedAgent ? (
-        <p className="text-11 text-fg-3" data-ai-agent-scope>
+        <p className="sb-faint11" data-ai-agent-scope>
           {selectedAgent.name} 的职责：{selectedAgent.responsibilities.join('；') || '名册里没写'} ·
           {' '}权限：{selectedAgent.capabilities.join('、') || '无'}
           {canPatchDesign ? '' : '（没有 design.patch：这一位给出的改动会被服务端拒收，不进画布）'}
         </p>
       ) : null}
       {runAgent || agentNote || rosterNote ? (
-        <p className="text-11 text-fg-3" data-ai-agent-line>
+        <p className="sb-faint11" data-ai-agent-line>
           {runAgent ? `这一轮交给 ${runAgent}` : rosterNote ? '' : '这一轮没有人被点名'}
           {agentNote ? <span data-ai-agent-note>{` · ${agentNote}`}</span> : null}
           {rosterNote ? <span data-ai-roster-note>{` · ${rosterNote}`}</span> : null}
@@ -499,39 +500,52 @@ export function CommandBar() {
         <ActivityFeed plan={result.plans[0]} activities={result.activities} />
       ) : null}
       {error ? (
-        <p className="mb-1 text-12 text-danger-ink" data-ai-error>
+        <p className="cb-dangerMb1" data-ai-error>
           {error}
         </p>
       ) : null}
       {result && !error ? (
-        <p className="mb-1 flex flex-wrap items-center gap-2 text-12 text-fg-2" data-ai-result>
-          <span className={cn('rounded px-[5px] py-[1px] font-mono text-11', demoMode ? 'bg-warn text-accent-fg' : 'bg-success text-accent-fg')} data-demo-mode={demoMode ? 'on' : 'off'}>
+        <p className="cb-wrapCenter" data-ai-result>
+          <span className={cn('cb-demoFlag', demoMode ? 'cb-flagWarn' : 'cb-flagLive')} data-demo-mode={demoMode ? 'on' : 'off'}>
             {demoMode ? 'DEMO MODE' : 'LIVE'}
           </span>
           <span>{result.explanation || '已完成'}</span>
+          {/*
+            §CACHE-3：这一次生成里有多少输入是从前缀缓存复用的。
+            画布上的用户看不到 `/admin/ai-cache`，而"我这次花了多少"正是他关心的那句话。
+            三态由 `cacheState` 给（hit / miss / unreported），措辞由 `cacheText` 给——
+            两者分开管：措辞会变，语义不该跟着变。
+          */}
+          <span
+            className="cb-cacheBadge"
+            data-ai-cache={cacheState(result.usage)}
+            title="命中的是**输入** token（前缀缓存）。缓存那一段仍然计费，只是打折。"
+          >
+            {cacheText(result.usage)}
+          </span>
           {result.patches?.length ? (
-            <span className="text-fg-3">
+            <span className="ap-faint">
               {result.patches.reduce((sum, p) => sum + p.ops.length, 0)} 个 op ·{' '}
-              <button type="button" className="underline" onClick={() => studio.undo()}>
+              <button type="button" className="cb-under" onClick={() => studio.undo()}>
                 Ctrl+Z 可整体撤销本次事务
               </button>
             </span>
           ) : null}
         </p>
       ) : null}
-      <p className="text-11 text-fg-3" data-realtime={realtime.state}>
+      <p className="sb-faint11" data-realtime={realtime.state}>
         实时通道：{REALTIME_TEXT[realtime.state]}
         {realtime.received > 0 ? ` · 本次已收到 ${realtime.received} 条事件` : ''}
       </p>
-      <div className="flex items-end gap-[var(--nexus-space-2)]">
-        <div className="flex shrink-0 items-center gap-1">
+      <div className="cb-rowEnd2">
+        <div className="cb-rowFrozen">
           {MODES.map((m) => (
             <button
               key={m.id}
               type="button"
               onClick={() => setMode(m.id)}
               data-model-class={m.id}
-              className={cn('rounded-[var(--nexus-radius-sm)] px-2 py-1 text-11', mode === m.id ? 'bg-bg-3 text-fg-1' : 'text-fg-3 hover:bg-bg-2')}
+              className={cn('cb-segPill', mode === m.id ? 'cb-segOn' : 'cb-segIdle')}
             >
               {m.label}
             </button>
@@ -539,13 +553,13 @@ export function CommandBar() {
         </div>
         {/* §112：提名这一轮交给谁。也可以直接在提示词里写 @design / @qa——两处都写时以名册里那一位为准，
             而"名册里有没有"由服务端判，不由这里列了什么判 */}
-        <label className="flex h-[34px] shrink-0 items-center gap-1 text-11 text-fg-3" title="名册来自库里的 agents 表（§112）。没点名就按这次请求的意图走">
+        <label className="cb-sendBar" title="名册来自库里的 agents 表（§112）。没点名就按这次请求的意图走">
           交给
           <select
             value={agentKey}
             onChange={(e) => setAgentKey(e.target.value)}
             data-ai-agent
-            className="h-[26px] max-w-[150px] rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1 text-11 text-fg-1"
+            className="cb-w150Input"
           >
             <option value="">不点名</option>
             {roster.map((agent) => (
@@ -568,37 +582,37 @@ export function CommandBar() {
               void submit();
             }
           }}
-          className="max-h-[120px] min-h-[34px] flex-1 resize-none rounded-[var(--nexus-radius-md)] bg-bg-2 px-[var(--nexus-space-3)] py-2 text-13 placeholder:text-fg-3"
+          className="cb-textarea"
           data-ai-input
         />
         <button
           type="button"
           disabled={busy || !prompt.trim()}
           onClick={() => void submit()}
-          className="h-[34px] shrink-0 rounded-[var(--nexus-radius-md)] bg-brand px-[var(--nexus-space-4)] text-13 font-medium text-accent-fg disabled:opacity-40"
+          className="cb-primary"
           data-ai-submit
         >
           {busy ? '执行中…' : '执行'}
         </button>
         {/* 勾上它只是换"谁在等"：等同步返回，还是交给队列然后一次一次问。拦不拦高危动作由服务端那道门说（§74） */}
-        <label className="flex h-[34px] shrink-0 items-center gap-1 text-11 text-fg-3" title="交给 AI Service 的队列执行：不挂住这次请求，状态与结果靠回来问">
+        <label className="cb-sendBar" title="交给 AI Service 的队列执行：不挂住这次请求，状态与结果靠回来问">
           <input
             type="checkbox"
             checked={asyncMode}
             onChange={(e) => setAsyncMode(e.target.checked)}
-            className="h-6 w-6 shrink-0"
+            className="cb-footBadge"
             data-ai-async
           />
           异步作业
         </label>
       </div>
-      <div className="mt-1 flex flex-wrap gap-[var(--nexus-space-2)]">
+      <div className="cb-wrap2Mt1">
         {EXAMPLES.map((example) => (
           <button
             key={example}
             type="button"
             onClick={() => setPrompt(example)}
-            className="truncate rounded-full border border-[var(--nexus-color-border-subtle)] px-2 py-[2px] text-11 text-fg-3 hover:text-fg-1"
+            className="cb-suggestionChip"
           >
             {example}
           </button>
@@ -612,24 +626,24 @@ function ActivityFeed({ plan, activities }: { plan?: AgentPlan; activities: Agen
   const [open, setOpen] = useState(true);
   if (!plan && !activities?.length) return null;
   return (
-    <div className="mb-[var(--nexus-space-2)] rounded-[var(--nexus-radius-md)] bg-bg-2 p-[var(--nexus-space-2)]">
-      <button type="button" onClick={() => setOpen((v) => !v)} className="flex w-full items-center gap-2 text-12 text-fg-2">
-        <span className="font-mono text-11 text-fg-3">{open ? '▾' : '▸'}</span>
-        <span className="truncate">{plan?.goal ?? '执行计划'}</span>
-        {plan?.tasks?.length ? <span className="text-fg-3">{plan.tasks.length} 个任务</span> : null}
+    <div className="cb-intentBox">
+      <button type="button" onClick={() => setOpen((v) => !v)} className="cb-rowFull">
+        <span className="ap-mono11faint">{open ? '▾' : '▸'}</span>
+        <span className="cb-trunc">{plan?.goal ?? '执行计划'}</span>
+        {plan?.tasks?.length ? <span className="ap-faint">{plan.tasks.length} 个任务</span> : null}
       </button>
       {open ? (
-        <ul className="mt-1 flex flex-col gap-1 pl-[var(--nexus-space-5)]">
+        <ul className="cb-stackPad">
           {plan?.tasks?.map((task) => (
-            <li key={task.id} className="flex items-center gap-2 text-12">
-              <span className="font-mono text-11 uppercase text-fg-3">{task.status}</span>
-              <span className="text-fg-1">{task.title}</span>
-              <span className="text-fg-3">@{task.agent}</span>
+            <li key={task.id} className="cb-row2">
+              <span className="wd-label11">{task.status}</span>
+              <span className="pb-ink1">{task.title}</span>
+              <span className="ap-faint">@{task.agent}</span>
             </li>
           ))}
           {activities?.map((activity, i) => (
-            <li key={`${activity.stage}-${i}`} className="flex items-center gap-2 text-12 text-fg-3">
-              <span className="font-mono text-11">{activity.status}</span>
+            <li key={`${activity.stage}-${i}`} className="cb-row2Faint">
+              <span className="cb-mono11">{activity.status}</span>
               <span>{activity.summary}</span>
             </li>
           ))}

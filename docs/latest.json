@@ -1,0 +1,23 @@
+{
+  "schema_version": "nexus-content.latest.v1",
+  "generated_at": "2026-11-14T14:26:10Z",
+  "branch": "master",
+  "head": "78dd843",
+  "total_commits": 2124,
+  "first_commit_at": "2026-09-22T00:41:41+08:00",
+  "adrs": 145,
+  "contracts": 12,
+  "services": 5,
+  "test_files": 1442,
+  "milestone": "v718",
+  "milestone_full": "third reference world + lantern trial + world-view Redis cache + Studio CI root-cause fix",
+  "headline": "NEXUS Content Platform — an entire world you can walk, read, and play.",
+  "feature_surface": [
+    "Studio + Agent Runtime",
+    "Spring Cloud (Eureka · Gateway · Config · Resilience4j)",
+    "World subsystem (walk · almanac · atlas · chronicle · memories · quiz)",
+    "RAG + evidence CI (119 proof doors)",
+    "Redis (LLM completions · world-view cache · Streams)"
+  ],
+  "privacy_note": "Synthetic fixture worlds only (obfuscated fixture members). No real user content or external product data appears in this repository or its fact pack."
+}

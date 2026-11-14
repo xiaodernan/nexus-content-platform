@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
+import { COMMUNITY_REFUSAL } from '@nexus/schemas';
 import { getDb } from '@/server/db/client';
 import { users } from '@/server/db/schema';
 import { requireUser } from '@/server/domain/session';
@@ -28,7 +29,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   const [target] = await getDb().select({ id: users.id }).from(users).where(eq(users.handle, handle)).limit(1);
   if (!target) return jsonError(404, 'not_found', { message: '没有这个作者' });
-  if (target.id === user.id) return jsonError(400, 'self_follow', { message: '不能关注自己' });
+  if (target.id === user.id) return jsonError(400, 'self_follow', { message: COMMUNITY_REFUSAL.selfFollow });
 
   const state = await toggleFollow(user.id, target.id);
   // §132：拉黑双方的关注动作都不生效（setBlock 已经先把已有的关注边删掉了）

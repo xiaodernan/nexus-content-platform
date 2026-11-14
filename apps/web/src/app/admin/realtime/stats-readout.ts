@@ -6,6 +6,9 @@
  * 一句合成话的写法在界面上看不出任何毛病，只能把逐档措辞变成可判定的纯函数来钉。
  */
 
+import type { BreakerState, JavaWireStats, JavaActuatorBreakerEntry, JavaActuatorInfo } from '@/server/realtime/java-wire';
+import type { AiServiceCapability } from '@/server/realtime/ai-wire';
+
 /** 跨实例线路的档位：`na` 与 `down` 是两句话——没有这回事 ≠ 有一根断了的线 */
 export type WireLive = 'up' | 'pending' | 'down' | 'na';
 
@@ -25,6 +28,14 @@ export type RealtimeStatsReadout = {
    * 词表一旦改动界面不该跟着改（改了就会漂），所以这一格对 UI 只是 `Record<string, number>`。
    */
   wireErrorByReason: Record<string, number> | null;
+  /** §SC-58：Java 生产者（domain-service）那一侧的读数。`undefined`（老回执没带）/`null`（这次没拿到）= 没接上，**不是**"接了但都是 0" */
+  javaWire?: JavaWireStats | null;
+  /** §SC-64：/actuator/circuitbreakers 原样端出"name → entry"的清单；`null` = 没拿到，`[]` = 拿到但空。 */
+  javaBreakers?: JavaActuatorBreakerEntry[] | null;
+  /** §SC-66：/actuator/info 原样端出 app/runtime/os 三组；`null` = 没拿到。 */
+  javaActuator?: JavaActuatorInfo | null;
+  /** §SC-79：AI service 的 capability 读数；`undefined`/`null` = fail-open 这次没拿到，不是"mock 正在工作" */
+  aiCapability?: AiServiceCapability | null;
 };
 
 /**
@@ -117,5 +128,127 @@ export function isKnownStats(body: unknown): body is RealtimeStatsReadout {
   if (value.wireErrorByReason === undefined) return false;
   const ledger = value.wireErrorByReason;
   if (!(ledger === null || (typeof ledger === 'object' && !Array.isArray(ledger)))) return false;
-  return (value.wireErrorCount === null) === (ledger === null);
+  if ((value.wireErrorCount === null) !== (ledger === null)) return false;
+  // §SC-79 aiCapability additive：未带→通过，null（明确“这次没拿到）→通过，非空须合法形状
+  const cap = value.aiCapability;
+  if (cap !== undefined && cap !== null && !isAiWireShape(cap)) return false;
+  return true;
+}
+
+function isAiWireShape(v: unknown): v is AiServiceCapability {
+  if (typeof v !== 'object' || v === null) return false;
+  const cap = v as Record<string, unknown>;
+  if (typeof cap.service !== 'string' || !cap.service.trim()) return false;
+  if (typeof cap.version !== 'string' || !cap.version.trim()) return false;
+  if (cap.capability !== 'mock' && cap.capability !== 'real' && cap.capability !== 'unavailable') return false;
+  if (!Array.isArray(cap.providers)) return false;
+  return true;
+}
+
+/**
+ * 断路器 break 状态（可选）：`CLOSED`（闭合，正常走）、`OPEN`（断，拒后续调用/回退 fallback）、
+ * `HALF_OPEN`（半开——放行少量请求试回路，仍是测试中的过渡状态）、`null`（部署关了 breaker）
+ * `undefined`（老回执不带此格——如实报"未见过"）。
+ */
+export function breakerStateText(state: BreakerState | undefined): string {
+  switch (state) {
+    case 'CLOSED':
+      return 'CLOSED';
+    case 'OPEN':
+      return 'OPEN';
+    case 'HALF_OPEN':
+      return 'HALF_OPEN';
+    case null:
+      return '—（本次部署 break 关）';
+    case undefined:
+      return '—（本次 wire 份响应不带此格）';
+  }
+}
+
+/** §SC-66 · Java actuator info（`/actuator/info` 原样出 info 面板）。 */
+export function javaActuatorPanelRows(
+  info: JavaActuatorInfo | null | undefined,
+): Array<[label: string, value: string]> | null {
+  if (!info) return null;
+  return [
+    ['名称', `${info.app.name} · ${info.app.version}`],
+    ['组件', `${info.app.group}:${info.app.artifact}`],
+    ['Java', `${info.runtime.java} · ${info.runtime.vendor}`],
+    ['OS', `${info.os.name} · ${info.os.arch}`],
+  ];
+}
+
+export function javaActuatorNote(info: JavaActuatorInfo | null | undefined): string {
+  if (info == null) return '没拿到 /actuator/info 的回执——这台实例没暴露 info 段（如实，不冒充）';
+  return `Java 生产者 · ${info.app.name} ${info.app.version} · 编译 ${info.runtime.java} · ${info.runtime.vendor} · ${info.os.name} on ${info.os.arch}`;
+}
+
+export function aiCapabilityPanelRows(
+  cap: AiServiceCapability | null | undefined,
+): Array<[label: string, value: string]> | null {
+  if (!cap || !isAiWireShape(cap)) return null;
+  return [
+    ['service', `${cap.service} ${cap.version}`],
+    ['capability', cap.capability],
+    ['providers', cap.providers.map((p) => `${p.kind}:${p.status}[${p.models.join('/')}]`).join(' · ')],
+    ['queue', `${cap.queue.backend ?? 'none'} (capacity=${cap.queue.capacity}, pending=${cap.queue.pending}, running=${cap.queue.running})`],
+  ];
+}
+
+export function aiCapabilityNote(cap: AiServiceCapability | null | undefined): string {
+  if (cap == null) return 'no /v1/capabilities — ai-service 未连接（或端口/capability 未配，不画零）';
+  if (!isAiWireShape(cap)) return '回执形状不认识——ai-service 未连接，或回执不是 capability 格式';
+  if (cap.capability === 'real') return `capability=real · ${cap.providers.map((p) => `${p.kind}:${p.status}`).join(' / ')}`;
+  if (cap.capability === 'mock') return 'capability=mock（DEMO，真调用会返回模拟回答，不是正式输出）';
+  return 'capability=unavailable（未接入真 provider 或 provider 不可用——任何真实调用走 mock）';
+}
+
+export function kb(bytes: number): string {
+  return `${Math.round(bytes / 1024)} KiB`;
+}
+
+function isJavaWirePanelShape(v: JavaWireStats): boolean {
+  if (typeof v.wireChannel !== 'string' || v.wireChannel.trim().length === 0) return false;
+  if (typeof v.maxFrameBytes !== 'number' || !Number.isFinite(v.maxFrameBytes) || v.maxFrameBytes <= 0) return false;
+  for (const n of [v.publishedTotal, v.tooLargeDropped, v.redisFailures]) {
+    if (typeof n !== 'number' || !Number.isFinite(n) || n < 0) return false;
+  }
+  if (v.breakerState !== undefined) {
+    if (v.breakerState === null) return true;   // 部署关了断路器
+    if (v.breakerState !== 'CLOSED' && v.breakerState !== 'OPEN' && v.breakerState !== 'HALF_OPEN') return false;
+  }
+  return true;
+}
+
+/**
+ * Java 生产者五格行数据。`undefined`（老回执）/`null`（这次没拿到）→ `null` ——
+ * 面板画一行"没拿到"，绝不画五个 0。形状不认识（NaN/空 channel/上限≤0）同样给 null。
+ */
+export function javaWirePanelRows(
+  javaWire: JavaWireStats | null | undefined,
+): Array<[label: string, value: string]> | null {
+  if (!javaWire || !isJavaWirePanelShape(javaWire)) return null;
+  return [
+    ['线路', javaWire.wireChannel],
+    ['帧上限', kb(javaWire.maxFrameBytes)],
+    ['已发', String(javaWire.publishedTotal)],
+    ['超限丢', String(javaWire.tooLargeDropped)],
+    ['线路异常', String(javaWire.redisFailures)],
+    ['breaker', breakerStateText(javaWire.breakerState)],
+  ];
+}
+
+/**
+ * Java 一侧的一句话。缺省/null 与 `fetchJavaWireStats` 的 null 同义——这页说话的频道只有一个：
+ * **没拿到 ≠ 全 0**。有值的时候数字照原样印，不翻译成模糊的"正常/异常"（避免又写一重读不准的语义）。
+ */
+export function javaWireNote(javaWire: JavaWireStats | null | undefined): string {
+  if (javaWire == null || !isJavaWirePanelShape(javaWire)) {
+    return '没拿到 Java 生产者的读数——domain-service 没在跑、连不上 /api/v1/realtime/stats，或回执形状不认识（这不是"接了但都是 0"）';
+  }
+  const parts: string[] = [`Java 生产者在线：已发 ${javaWire.publishedTotal} 帧`, `帧上限 ${kb(javaWire.maxFrameBytes)}`];
+  if (javaWire.tooLargeDropped > 0) parts.push(`超限丢 ${javaWire.tooLargeDropped}（发帧的那段代码值得看一眼）`);
+  if (javaWire.redisFailures > 0) parts.push(`线路异常 ${javaWire.redisFailures}（去看线路侧，不是 web 侧）`);
+  if (javaWire.tooLargeDropped === 0 && javaWire.redisFailures === 0) parts.push('零超限 · 零线路异常');
+  return parts.join(' · ');
 }

@@ -74,7 +74,7 @@ describe('studio disk save lane facts (v184)', () => {
     expect(STUDIO_SCENE_SAVES_ROOT).toBe('.nexus/scene-saves');
     expect(STUDIO_SCENE_DISK_SAVE_PATH).toBe('last-saved');
     expect(createStudioSceneSaveStore().kind).toBe('fs');
-    expect(nodeSaveFs.flushSync).toBeUndefined();
+    expect('flushSync' in nodeSaveFs).toBe(false);
   });
 
   it('write → probe → read round-trips one save file through the store', () => {

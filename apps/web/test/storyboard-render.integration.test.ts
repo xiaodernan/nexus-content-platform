@@ -232,6 +232,11 @@ describe('renderStoryboardDemo —— §40 最后一格：分镜真的渲出来�
     expect(charges[0]!.delta).toBe(-5);
 
     // genMeta 把"这是 DEMO"和每一句交代原样留下：界面上必须原样显示（§159/§160）
+    // 与它并列的还有这一格：逐镜画面出处——界面上"第 i 镜的画面来自谁"读的就是它
+    expect(result.segments.map((s) => ({ index: s.index, shotId: s.shotId, frame: s.frame }))).toEqual([
+      { index: 0, shotId: 'shot-ref', frame: 'own' },
+      { index: 1, shotId: 'shot-card', frame: 'card' },
+    ]);
     const [row] = await getDb().select().from(assets).where(eq(assets.id, result.asset.id));
     const genMeta = row!.genMeta as Record<string, unknown>;
     expect(genMeta.demoMode).toBe(true);
@@ -433,6 +438,12 @@ describe('renderStoryboardDemo —— §40 最后一格：分镜真的渲出来�
     // ③ 去重：同一个 assetId 出现两次，存储只读一次。
     //    这一条没有任何"结果对不对"的断言能替代——不去重也渲得出正确的片子，只是读两遍
     expect(refReads).toEqual([refAssetId]);
+
+    // ⑥ 逐镜画面出处：两镜都来自整片那张图，界面按这一格显示（each shot unchanged own-or-nothing）
+    expect(result.segments).toEqual([
+      { index: 0, shotId: 'shot-src-a', frame: 'whole-piece' },
+      { index: 1, shotId: 'shot-src-b', frame: 'whole-piece' },
+    ]);
 
     // ④ 画面真的来自那张图：参考帧是纯色 0x406080，两镜中段都该读出它。
     //    色卡版的平均色是 shotId 哈希出来的深色加一行白字，落不进这个窗口

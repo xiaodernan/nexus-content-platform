@@ -15,7 +15,7 @@
 // — a rule that could be weakened silently would be the receipt's own unopened door.
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { derivePopulation } from '../../../tools/ci/proof-set.mjs';
 

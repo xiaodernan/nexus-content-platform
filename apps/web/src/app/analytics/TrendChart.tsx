@@ -64,16 +64,16 @@ function MiniChart({
   const labelEvery = Math.max(1, Math.ceil(days.length / 12));
 
   return (
-    <div className="mt-2">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-2 text-11">
-        <span className="text-fg-2">{spec.title}</span>
-        <span className="text-fg-3" data-analytics-series-max={spec.key}>
+    <div className="tc-chart">
+      <div className="tc-head">
+        <span className="tc-title">{spec.title}</span>
+        <span className="tc-max" data-analytics-series-max={spec.key}>
           纵轴 0 → {spec.formatMax(max)}
         </span>
       </div>
       <svg
         viewBox={`0 0 ${WIDTH} ${height}`}
-        className="w-full"
+        className="tc-svg"
         role="img"
         aria-label={`${spec.title}：${days.length} 天，最高 ${spec.formatMax(max)}`}
         data-analytics-series={spec.key}
@@ -116,7 +116,7 @@ function MiniChart({
                   x={PAD_LEFT + index * step + step / 2}
                   y={height - 3}
                   textAnchor="middle"
-                  className="fill-[var(--nexus-color-fg-3)] text-[9px]"
+                  className="tc-axisLabel"
                 >
                   {dayLabel(point.day)}
                 </text>
@@ -131,7 +131,7 @@ function MiniChart({
 export function TrendChart({ days, emptyNote }: { days: readonly DailyPoint[]; emptyNote: string }): ReactElement {
   const secondOf = (ms: number) => Math.round(ms / 1000);
   return (
-    <div className="mt-3" data-analytics-charts>
+    <div className="tc-root" data-analytics-charts>
       <MiniChart
         days={days}
         height={92}
@@ -176,7 +176,7 @@ export function TrendChart({ days, emptyNote }: { days: readonly DailyPoint[]; e
         }}
       />
       {days.every((point) => point.visitors === 0 && point.opens === 0) ? (
-        <p className="mt-2 text-11 text-fg-3" data-analytics-chart-empty>
+        <p className="tc-empty" data-analytics-chart-empty>
           {emptyNote}
         </p>
       ) : null}

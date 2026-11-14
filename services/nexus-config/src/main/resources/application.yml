@@ -1,0 +1,44 @@
+# NEXUS nexus-config (Spring Cloud SC-9) — the central configuration address.
+#
+# `native` means the configuration is read from this jar's own classpath (src/main/resources/nexus-config),
+# not from Git. It makes the component testable with no external state; a production deployment swaps the
+# backend (git/k8s/vault) and keeps this module's HTTP contract unchanged.
+spring:
+  application:
+    name: nexus-config
+  profiles:
+    active: native
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: classpath:/nexus-config
+
+server:
+  port: ${NEXUS_CONFIG_PORT:8888}
+
+# Same rule as every other service here: health is the only management endpoint, without details.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+  # §SC-68: build-info goal 出 jar 时带 artifact/group/version/time + component
+  info:
+    build:
+      enabled: true
+    env:
+      enabled: false
+
+logging:
+  level:
+    root: warn
+    org.springframework.cloud.config: info
+
+info:
+  app:
+    name: nexus-config
+    description: NEXUS Java-side service (nexus-config)

@@ -209,7 +209,7 @@ describe('runGitArc receipts (v50: WHO allowed each door, not just that it opene
 
   it('matched by CALL ID, not by tool: another stage\'s gate over the same tool is not this arc\'s alibi', async () => {
     const cp = policyCheckpoint(MIXED);
-    ask(cp, 'r:verify', 'git.commit'); // an EARLIER stage knocked on the very same door
+    await ask(cp, 'r:verify', 'git.commit'); // an EARLIER stage knocked on the very same door
     const out = await runGitArc(doorHost(FULL), { callId: 'r:release', message: 'm', showPath: 'p', checkpoint: cp, recordReceipts: true });
     expect(cp.decisions).toHaveLength(5);
     expect(out.decisions).toHaveLength(4);
@@ -221,7 +221,7 @@ describe('runGitArc receipts (v50: WHO allowed each door, not just that it opene
     const out = await runGitArc(doorHost(FULL), { callId: 'x', message: 'm', showPath: 'p', checkpoint: cp, recordReceipts: true });
     const written = JSON.stringify(out.decisions);
     expect(out.decisions).toHaveLength(4);
-    ask(cp, 'x:release:commit', 'git.commit'); // a late ask under an arc callId
+    await ask(cp, 'x:release:commit', 'git.commit'); // a late ask under an arc callId
     cp.decisions[0]!.granted = false; // and a direct edit of a receipt already handed over
     expect(JSON.stringify(out.decisions)).toBe(written);
   });

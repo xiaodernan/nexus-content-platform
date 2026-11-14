@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { StudioShell } from '@/studio/StudioShell';
 import { isDemoMode } from '@/lib/env';
 import { requireUser } from '@/server/domain/session';
+import { getLocale } from '@/lib/i18n';
 import { loadDocument } from '@/server/domain/projects';
 import { projectWriteAccess } from '@/server/domain/team';
 import { PLAN_MONTHLY_GRANTS } from '@/server/domain/credits';
@@ -50,6 +51,7 @@ export default async function StudioPage({ params }: Props) {
       readOnly={access === 'read_only'}
       documentPromise={documentPromise ?? undefined}
       credits={credits}
+      locale={await getLocale()}
     />
   );
 }

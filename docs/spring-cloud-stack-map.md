@@ -1,0 +1,93 @@
+# Spring Cloud 栈面（2026-11-11，现状实读）
+
+记录 Java Spring Cloud 家族**实装的**与**仅 scaffold 的**部分，来源皆为已落地的 smoke/测试/ADR——本篇不新写声称，只交叉查询事实。
+
+## Actuator 出阵（§SC-66Family + §SC-68，五个 Java 服务都真）
+
+- **`/actuator/info`**（live on all 5 Java services）返回 `app`（DomainServiceInfoContributor）+ `runtime` + `os` + `build` 四段真实字段：
+  `{"app":{"artifact":"domain-service",…}, "runtime":{"java":"25.0.1",…}, "os":{…}, "build":{...}}`。
+- **`/actuator/circuitbreakers`**（live on 8082）：`{"circuitBreakers":{"ai-service":{"state":"CLOSED","bufferedCalls":0,…}}}`。
+- **ActuatorShapeTest** `onlyHealthInfoAndCircuitBreakersAreExposed` 秒兵固定 `{health,info,circuitbreakers}` 不能多、不能少、不能带 detail。
+- **Smoke 实线** — `verify:topology` 验证 `/actuator/info`，断言 `build.artifact=domain-service`、`runtime.java=25.0.1`，并**加入**`/actuator/circuitbreakers` 双重断言；两次都 PASS。
+- **§SC-68**：nexus-api / nexus-gateway / nexus-registry / nexus-config ALL gain maven `build-info` goal + `NEXUS_...YML-file/management.info.build.enabled:true`——`curl :port/actuator/info` returns `build` payloads identical shape: artifact/group/version/time/component。
+  - verified on registry ({"artifact":"nexus-registry",…}), gateway (…"nexus-gateway"…), config (…"nexus-config"…) — nexus-api 通过 verify:topology /api/health 200 确证 jar can fly, and maven plugin 执行模式与其它四个同型。
+- **§SC-68（续）**：五个家族 pom 的 `<buildInfo><additionalProperties>` 是**静默吞掉"unknown parameter"警告**——真正生效的参数名是 `<additionalProperties>`，jar 里从未出现 `build.component` 坐标。已统一改为 `<additionalProperties>` 扁平写法；续后五个 jar 皆真带 `build.component=<service>`。
+- **§SC-69 / §SC-69b**：JPA 服务（domain-service + nexus-api）都装 `SharedSchemaHealthIndicator`——`JdbcTemplate("SELECT 1")`，失败→`DOWN` + `probe: <ExceptionShortName>`，**不漏** stacktrace / host / password；`show-details: never` 恒守着。
+- **§SC-70**：gateway（无 JPA）的 `GatewayRateLimitHealthIndicator` —— `memory` backend 如实报 `probe: not_applicable`；`redis` backend `ReactiveStringRedisTemplate.ping()` 实跑 PING，两秒 deadline。
+- **§SC-71**：nexus-registry（无 DB 的 Eureka standalone）装 `RegistryStandaloneHealthIndicator` —— 直接读 `PeerAwareInstanceRegistry` 真值：`mode: in-memory-standalone`、`applications`/`instances` 内存计数、`renewsLastMinute`、`selfPreservation`。加 `spring-boot-starter-actuator`（之前完全没有 /actuator/health）。live `MANAGEMENT_ENDPOINT_HEALTH_SHOWDETAILS=always` 抛出 `registryStandalone:{…applications:0,…}` 确证是内存 truth、不是 stub。
+- **§SC-71c**：nexus-config 装 `ConfigServedDefaultsHealthIndicator` —— `native` classpath 下必须含 `management.endpoints.web.exposure.include: health,info`（2026-11-11 那次共享默认被放宽导致 domain-service 继承 + /actuator/circuitbreakers 404 的事故箭靶），不符→DOWN。配一条单测 `ConfigServedDefaultsHealthIndicatorTest` 锁死。另：nexus-config 的 `ConfigServerTest` 里 `health` → `health,info` 断言已随共享默认收窄同步修正（§SC-64 遗留 stale）。
+- **§SC-72**：`scripts/verify-actuator.mts`（`npm run verify:actuator`）——五个 JVM 逐个真起，断 `/actuator/health` 200 + `status:UP` + 无 `components/details` + 无 JDBC/端口/密码/Hibernate 字样（`show-details: never` 是死罪线），`/actuator/info` 断 `build.artifact`/`build.component` 与本仓实际产物一致（§SC-68b），domain-service 额外断 `/actuator/circuitbreakers` 出 `ai-service`。实跑 PASS（domain 8088 / api 8086 / registry 8777 / config 8889 / gateway 8095，覆盖 env 可改）。
+- **§SC-77 / §SC-77b**：domain-service 与 **nexus-api** 都加 `micrometer-registry-prometheus`（Boot BOM 管理版本），`include:` 各自扩为 {health,info[,circuitbreakers],prometheus}；`ActuatorShapeTest`（domain）已同步。**共享默认（nexus-config → 所有 client）保持 `health,info` 未放开**，prometheus 只给 JPA 的两位。live boot 8088/8086：`GET /actuator/prometheus` → 200（domain 35,724 bytes / 433 行；nexus-api 14,605 / 240 行）真 Micrometer 字节（`hikaricp_connections_active`、`http_server_requests_seconds_count{outcome="SUCCESS"...}` 真计数、`jvm_gc_pause_seconds_count`、`process_start_time_seconds`）——真实抓数面，不是"先装上看看戏"。
+- **§SC-78**：domain-service `pom.xml` 补 `spring-boot-starter-cache` + `caffeine`（`com.github.ben-manes.caffeine:caffeine`，Boot BOM 管版本）。此前 `spring-cloud-starter-loadbalancer` 的实例列表供应器每次启动打 WARN、且**每条请求都重新解析一次 eureka 目录**；加 Caffeine 后由 `CaffeineCacheManager` 让 LB 走**真正的本地缓存**，实例 up/down 期间不再逐请求回源 eureka。这是运维/性能面（在 §SC-77 抓数端点之后落地），不暴露新端点、不改共享默认；`verify:lb` PASS（两个 domain-service 实例 LB 路由成功）为该链既有凭证。**本条为 §INTEGRATE-1 并轨收尾追记**（提交 `ee23f9fd` 落地时只改 pom、未同步本栈图）。
+
+## 端口（只在本机有效）
+
+| 端口 | 服务 | 状态 | 备注 |
+|---|---|---|---|
+| 8082 | `services/java-domain-service`（domain-service，SC-6） | 实装 | 独立 jar，JPA→Postgres 55433`; full test suite green |
+| 8084 | `services/nexus-api`（SC-52 M7 controller） | 实装 | verify:auth 12/12 走它；smoke 不启动 |
+| 8771 | `services/nexus-registry`（Eureka） | 实装 | 本机独有，不抢 8761（3a大作栈在占） |
+| 8888 | `services/nexus-config`（Config Server, native） | 实装 | `ratePerSecond=50.0` 力证 config 轮→gateway 生效果 |
+| 8090 | `services/nexus-gateway` | 实装（门） | 8084→80 smoke 带舱壁+熔断+限流 |
+| 8091/8092/8093 | gateway 烟测口 | 脚本专用 | verify:topology / verify:auth 跑时用这个 |
+
+## 发现链（验证过）
+
+**真相传播**：`nexus-registry`（独立 jar，注册中心）→ `nexus-config/nexus-domain-service.yml` 声明 `register-with-eureka: true` → domain-service 不再靠 env，**只靠 config server** → 注册成功后 Eureka 列表里出现实例 → 网关按 `lb://nexus-domain-service` 路由；
+
+**相关文件**：
+- `services/nexus-config/src/main/resources/nexus-config/nexus-domain-service.yml`（native 配置源）
+- `services/nexus-config/src/main/resources/nexus-config/nexus-api.yml`（native 配置源）
+- `services/nexus-config/src/main/resources/nexus-config/nexus-gateway.yml`（native 配置源）
+- `scripts/verify-topology.mts`（`npm run verify:topology`；端口可 NEXUS_*_PORT 覆盖；fresh jar 重打后两度 PASS）
+- `scripts/verify-loadbalance.mts`（双实例 LB 路由验证）
+- `scripts/verify-auth.mts`（SC-27 door-close；12/12 PASS）
+- `services/nexus-gateway/.../GatewayConfig.java`、`services/nexus-gateway/.../PlatformAuthFilter.java`
+
+## 门禁现状（SC-27/28）
+
+- `AuthFilter`（GlobalFilter）+ `PlatformAuthFilter`（WebFilter）= 双门关闭——匿名来者 400 `缺 Door`；
+- Gateway rate-limit Lua 存/is 过 NEXUS_GATEWAY_RATELIMIT_BACKEND（redis || NeRF-redis 协同）：memory 与 Redis 两个 backend；`redis backend round trip` 已 live 验证。
+- `PlatformAuthFilter` 已关闭 `/api/**` 的未授权路径；verify:auth 12/12 全绿。
+
+## 无 Java→Python 的"假衬"
+
+- Python `ai-service`（端口 3200 默认，方评测用）被 java-domain-service 称 `Feign ai-service client`；
+- `Java→Python healthz` ping 在 Feign breaker 闭启开关时被关闭过熔（SC-60），现在只有**半边门**必要时开；HALL ok。
+- requirement.txt =? fresh-solve: **ai-service 不参与 全 topology smoke**——wireJava→web 端到端的脚步由 `scripts/realtime-java-to-web.mts` 专门跑。
+
+## 探针门（§SC-61）
+
+- `POST /api/v1/realtime/probe`（探针 of "probe"）现在要求`X-Nexus-Operator-Token`；
+- `GET /api/v1/realtime/stats` 仍敞开只读 `publishedTotal / tooLargeDropped / redisFailures`；
+- 主体 of frame 固定：`channel=projects:probe`、`title="probe event"`、`notification`（不带 body）屏蔽调用方定制；
+- `published=true` 标志 byte 是非空 EventFrame；web-bus wireErrorCount 计数器**已知 0**（wire safeParse 路径）。
+
+## 网关配置中心 override 读数（记入 ADR-0099/0125）
+
+| key | 值 | 性质 |
+|---|---|---|
+| `ratePerSecond` | `50.0` | config 显式注入 gateway 生效（default=100） |
+| `tokenLife` | `300` 秒 | 可配置，`nexus.auth.token-life-seconds=300` |
+| `maxViewers` | `512` | discover-cache 软限，参考 `discover-cache.ts` |
+
+## 仍债（SC-61 之后）
+
+- Java side: `verify:topology` 未接入 `probe` 必经断言（SC-61）；
+- Gateway rate-limit 的 Redis backend Lua 在断开的情况下有 `NOAUTH` 跟 `NOPERM` 行（EPoll: multilayer fallback）——需要 verify 注释；
+- 多个 Java instance LB 时 `spring.cloud.gateway.route.domain.openfeign` 的 `timeout` 5s 断开的 120ms timeout 吞掉；
+- Config server 只覆盖 gateway 的 rate-limit defeat-`only`（permitted range of checks）；读写组合成证据还没一次看清。
+
+## Foreign 架构警惕区（不要动）
+
+- `com.nexus.NexusApplication` 埠 PID = 39424→12952 是别的项目  Spring @AutoWire (not mine)；
+- `careeros-*` Docker 容器、`3a大作` Spring Cloud stack 在 8761/29161/29888：**不杀不进**
+- 停机 `192.168.1.5` 的实际多。
+
+## 读数清单（mini）
+
+- `npm run verify:topology` — PASS ×2（fresh jars 重打后每次都是首绿）
+- `npm run verify:lb` — PASS（两个 domain-service 实例 LB 路由成功）
+- `npm run evals` — exit 0（export-roundtrip 17/17）
+- Java 全套 — 137/137
+- `realtime-java-to-web` — 探针全 PASS（SC-53→SC-61）

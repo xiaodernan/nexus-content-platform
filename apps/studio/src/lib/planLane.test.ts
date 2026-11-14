@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { cancelSubscription, offerPlan, repricePlan, retirePlan, subscribeToPlan } from './planLane';
+import { bodyText } from './fetchBody';
 
 /**
  * M7 v314 — the browser half of the PLANS and SUBSCRIPTIONS lane.
@@ -169,7 +170,7 @@ describe('planLane — subscribeToPlan (v440)', () => {
     expect(seenUrl).toBe('/api/subscriptions');
     expect(seenInit?.method).toBe('POST');
     expect(seenInit?.headers).toEqual({ 'content-type': 'application/json', accept: 'application/json' });
-    expect(JSON.parse(String(seenInit?.body))).toEqual({ planId: 'plan-1', claim: CLAIM });
+    expect(JSON.parse(bodyText(seenInit))).toEqual({ planId: 'plan-1', claim: CLAIM });
     expect(answer.ok).toBe(true);
     expect(answer.subscription).toEqual({ planId: 'plan-1', priceCents: 500, period: 'month' });
   });
@@ -273,7 +274,7 @@ describe('planLane — offerPlan (v440)', () => {
 
     expect(seenUrl).toBe('/api/plans');
     expect(seenInit?.method).toBe('POST');
-    expect(JSON.parse(String(seenInit?.body))).toEqual({
+    expect(JSON.parse(bodyText(seenInit))).toEqual({
       planId: 'plan-9',
       priceCents: 1200,
       currency: 'CNY',
@@ -287,7 +288,7 @@ describe('planLane — offerPlan (v440)', () => {
   it('the price travels as a number and the currency as the code it was given', async () => {
     let body: { priceCents?: unknown; currency?: unknown; period?: unknown } = {};
     const fetchImpl = makeFetch((_url, init) => {
-      body = JSON.parse(String(init?.body));
+      body = JSON.parse(bodyText(init));
       return new Response(JSON.stringify({ ok: true, plan: { planId: 'plan-9', priceCents: 1200, period: 'month' } }), { status: 200 });
     });
 

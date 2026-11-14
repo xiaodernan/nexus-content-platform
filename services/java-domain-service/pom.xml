@@ -17,6 +17,17 @@
   So the versions are now the repository's versions, and the compiler settings are copied from
   `services/nexus-api` — including the explicit UTF-8 encoding, which this repository has needed
   more than once (see the GBK records repair, ADR 0016 amendment 570).
+
+  Dependencies this service declares:
+  - eureka-client + config (SC-6/SC-11, registration OFF by default, `optional:` import) — see
+    application.yml.
+  - resilience4j since SC-60: the Feign client (AiServiceClient) reads it — the breaker exists and
+    has a real caller.
+  - spring-boot-starter-security: `SecurityConfig` defines the only filter chain this service has.
+  - spring-boot-starter-validation + spring-boot-starter-cache: declared by this line's writes; a
+    second schema/DDL writer (flyway) is deliberately absent — the domain tables are owned by the
+    web layer's drizzle migrations, and a service whose schema is not its own must not carry a
+    second migration tool pointing at it.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -60,56 +71,36 @@
     </dependencyManagement>
 
     <dependencies>
-        <!-- Web + JPA + the Postgres driver: exactly what the code USES.
-             Four starters this pom used to declare have been REMOVED, and the reason for each is
-             the same shape — a dependency nobody imports is not a harmless extra, it is a
-             behaviour nobody asked for:
-
-               security  — spring-boot-starter-security with NO SecurityFilterChain locks EVERY
-                           endpoint behind a generated basic-auth password. A service whose
-                           controllers are meant to be reachable would answer 401 to everything,
-                           and the log line that explains it is one nobody reads.
-               cache     — no @Cacheable anywhere in the source; the starter only adds a
-                           caffeine dependency and a cache auto-configuration.
-               redis     — no RedisTemplate anywhere in the source.
-               validation— no @Valid / @NotNull / @Validated on any parameter.
-               flyway    — there is NO db/migration directory, and the schema of these tables is
-                           owned by drizzle in `apps/web/src/server/db/schema.ts`. A second
-                           migration tool pointed at the same database would write its own
-                           history table into a database it does not own. The honest arrangement is
-                           ONE schema owner, and it is not this service. -->
-
+        <!-- Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+
+        <!-- Spring Data JPA -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
-        <!-- Database -->
+        <!-- Security: SecurityConfig defines the only filter chain this service has -->
         <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <scope>runtime</scope>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
 
-        <!-- Discovery, OPT-IN at runtime (see application.yml). This service is the one `nexus-api`
-             reaches BY NAME through OpenFeign, so it has to be findable: without a registry the name
-             resolves to nothing and the caller gets an honest 503. The client is on the classpath either
-             way — `eureka.client.enabled` decides whether it actually dials anything, so a deployment
-             without a registry still starts and still serves. -->
         <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-config</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
-        <!-- The operator's door. MEASURED 2026-11-11: this module exposed
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+
+        <!-- Spring Boot Actuator (SC-8: health only).
+             The operator's door. MEASURED 2026-11-11: this module exposed
              `health,info,metrics,prometheus` in its application.yml and carried the Prometheus
              registry, but had NO actuator on the classpath at all — so `/actuator/prometheus`
              answered 404 and the whole management block was decoration. A configuration that names
@@ -118,6 +109,79 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <!--
+          §SC-78: spring-cloud-starter-loadbalancer 的实例列表供应器在首次构建时用默认缓存
+          并在每个启动打印 WARN（L55 domain-service.log, verify:topology 实见）。加
+          Caffeine 让 LB 走真正的本地缓存（org.springframework.cache.caffeine.CaffeineCacheManager
+          由随附的 spring-context-support 提供）——这不是哄 WARN 的装饰：缓存会让 LB 在实例 up/down
+          期间不再针对每条请求重新走 eureka-client 的实例目录解析。
+        -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+        <!-- §SC-77 / v656: Prometheus scrape endpoint on the operator door — the door answers with the
+             metrics the same services already produce, in the standard format nothing invents. -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
+        <!-- Redis. The merged tree publishes the cross-process realtime wire through
+             `WirePublisher` (StringRedisTemplate) and its tests (WirePublisherFrameShapeTest /
+             WirePublisherRoundTripTest / WireCommunityEventListenerTest) use a real
+             LettuceConnectionFactory — so the starter is NOT optional here, even though one of the
+             merged lines had no RedisTemplate and removed it. `none` of that code is decorative:
+             pub/sub is the wire; a frame nobody receives is simply dropped, never an error. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
+        <!-- PostgreSQL Driver -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <!--
+          No migration tool: this service maps onto a schema the WEB layer owns (apps/web/src/server/db/schema.ts
+          and its Drizzle migrations). A second writer of DDL is how two systems disagree about the same table.
+        -->
+
+        <!--
+          Service discovery (SC-6): registers as `nexus-domain-service` so the gateway can route to it by ID.
+          Registration is OFF by default (`NEXUS_DOMAIN_REGISTER=false`): a standalone run must not depend on
+          a registry answering on the dedicated port 8771.
+        -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>
+        <!--
+          SC-11: the client half of the config center (SC-9). The import is `optional:` and the client is OFF
+          by default (see application.yml), so a standalone run never waits on 8888.
+        -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-config</artifactId>
+        </dependency>
+
+        <!--
+          SC-18: OpenFeign — the declarative client for service-to-service calls (AiServiceClient).
+          The client resolves ai-service by explicit URL (NEXUS_AI_SERVICE_URL, default the documented
+          ai port 8000), so like everything above it is inert until a caller injects it.
+          SC-60: the breaker has real pressure — repeated probes against a dead Python stop being free
+          connection-refused episodes and become "stop trying for 10s"; the endpoint does not pretend.
+        -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
         </dependency>
 
         <!-- Test -->
@@ -134,16 +198,41 @@
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-tracing-bridge-brave</artifactId>
     </dependency>
-
-    <!-- Prometheus scrape endpoint on the operator door: the door answers with the metrics
-         the same services already produce, in the standard format nothing invents. -->
-    <dependency>
-      <groupId>io.micrometer</groupId>
-      <artifactId>micrometer-registry-prometheus</artifactId>
-    </dependency>
   </dependencies>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <!--
+              SC-17: the community policy values document is exported by `npm run contract:export` into the
+              repo-root contracts/ and copied into the jar here — CommunityPolicy reads it from the classpath
+              and stops the context on any missing or malformed key. One file, one writer (the export), two
+              readers (TS web domain, JVM policy loader).
+            -->
+            <resource>
+                <directory>${project.basedir}/../../contracts</directory>
+                <targetPath>contracts</targetPath>
+                <includes>
+                    <include>community-policy.json</include>
+                </includes>
+            </resource>
+        </resources>
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+            </testResource>
+            <testResource>
+                <directory>${project.basedir}/../../contracts</directory>
+                <targetPath>contracts</targetPath>
+                <includes>
+                    <include>community-policy.json</include>
+                    <include>community-like-state.schema.json</include>
+                    <include>community-follow-state.schema.json</include>
+                </includes>
+            </testResource>
+        </testResources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -160,8 +249,31 @@
                 </configuration>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-Xmx512m -Dfile.encoding=UTF-8</argLine>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <!-- SC-66: drop a META-INF/build-info.properties into the jar so /actuator/info
+                         renders the artifact's real coordinates; Spring Boot auto-register the
+                         BuildInfoContributor at startup when build.properties is visible on the classpath. -->
+                    <execution>
+                        <goals>
+                            <goal>build-info</goal>
+                        </goals>
+                        <configuration>
+                            <additionalProperties>
+                                    <!-- pinned at packaging time; nothing dynamic or secret. -->
+                                    <component>nexus-domain-service</component>
+                            </additionalProperties>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

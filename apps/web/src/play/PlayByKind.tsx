@@ -32,7 +32,7 @@ export function PlayByKind({
   onComplete?: () => void;
 }) {
   const kindNote = isGameKind(document.kind) ? (
-    <p className="text-11 text-fg-3" data-game-kind-note={document.kind}>
+    <p className="pk-hint" data-game-kind-note={document.kind}>
       {GAME_KIND_STATUS[document.kind].note}
     </p>
   ) : null;
@@ -64,12 +64,12 @@ export function PlayByKind({
   // 没接：reason 本身就是状态表那句话，不重复显示第二遍
   const label = isGameKind(document.kind) ? GAME_KIND_LABELS[document.kind] : '这一种';
   return (
-    <div className="rounded-lg border border-[var(--nexus-color-border-subtle)] p-4" data-play="kind-not-wired">
-      <h2 className="text-13 font-semibold">这一版标的类型是「{label}」，它还没有可玩的投影</h2>
-      <p className="mt-2 text-12 text-fg-2" data-play-kind-reason>
+    <div className="pk-card" data-play="kind-not-wired">
+      <h2 className="pk-h2">这一版标的类型是「{label}」，它还没有可玩的投影</h2>
+      <p className="pk-note12" data-play-kind-reason>
         {projection.reason}
       </p>
-      <p className="mt-2 text-11 text-fg-3">
+      <p className="pk-hint2">
         这里不给一个空场子，也不拿别的类型的关卡顶上：那会让"平台还没接这一种"看起来像"你的设计跑出来就是这样"（§159）。
       </p>
     </div>

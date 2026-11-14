@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { readReports, readFiledReports, withdrawReport, reportOnService, type ReportEntry } from './reportServer';
 import { nexusApiBase } from './publishServer';
+import { bodyText } from './fetchBody';
 
 /**
  * M7 v405 — the server-side half of the REPORTS reader, writer and withdrawer.
@@ -208,7 +209,7 @@ describe('reportServer — reportOnService FILES a report (v405)', () => {
     const answer = await reportOnService('pub-1', 'spam', 'it is spam', claim, fetchImpl);
     expect(seen).toContain('/reports');
     expect(init?.method).toBe('POST');
-    expect(JSON.parse(String(init?.body))).toEqual({
+    expect(JSON.parse(bodyText(init))).toEqual({
       projectId: 'pub-1',
       reason: 'spam',
       detail: 'it is spam',
@@ -225,7 +226,7 @@ describe('reportServer — reportOnService FILES a report (v405)', () => {
       return new Response(JSON.stringify({ ok: true, reports: [report(0)] }), { status: 200 });
     });
     await reportOnService('pub-1', 'spam', '', { accountId: 'acct-p' }, fetchImpl);
-    const body = JSON.parse(String(init?.body)) as { claim: Record<string, unknown> };
+    const body = JSON.parse(bodyText(init)) as { claim: Record<string, unknown> };
     expect(body.claim).toEqual({ accountId: 'acct-p', handle: null, assurance: null, claimedAt: null });
   });
 

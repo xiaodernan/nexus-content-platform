@@ -40,7 +40,7 @@ class FakeProvider:
         return "fake-model"
 
     def complete(self, *, model: str, system: str, user: str, json_mode: bool | None = None) -> Completion:
-        self.calls.append({"model": model, "system": system, "user": user})
+        self.calls.append({"model": model, "system": system, "user": user, "json_mode": json_mode})
         return Completion(
             text=self.reply,
             provider=self.name,

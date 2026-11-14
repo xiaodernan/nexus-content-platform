@@ -505,7 +505,7 @@ try {
     { timeout: 10000 },
   );
   const dimHud = await page.waitForFunction(
-    `(() => { const v = document.querySelector('[data-scene3d-light-value=\"directional\"]'); return v && v.textContent === '0.90' ? v.textContent : null; })()`,
+    `(() => { const v = document.querySelector('[data-scene3d-light-value="directional"]'); return v && v.textContent === '0.90' ? v.textContent : null; })()`,
     { timeout: 10000 },
   );
   check(
@@ -520,7 +520,7 @@ try {
     { timeout: 10000 },
   );
   const offLabel = await page.waitForFunction(
-    `(() => { const b = document.querySelector('[data-scene3d-light-toggle=\"directional\"]'); return b && b.textContent === 'off' ? 'off' : null; })()`,
+    `(() => { const b = document.querySelector('[data-scene3d-light-toggle="directional"]'); return b && b.textContent === 'off' ? 'off' : null; })()`,
     { timeout: 10000 },
   );
   check(
@@ -574,7 +574,7 @@ try {
 
   await page.evaluate("document.querySelector('[data-scene-browse-disk]').click()");
   const diskRow = await page.waitForFunction(
-    `(() => { const n = document.querySelector('[data-scene3d-disk-save=\"last-saved\"]'); return n ? n.getAttribute('data-scene3d-disk-save') : null; })()`,
+    `(() => { const n = document.querySelector('[data-scene3d-disk-save="last-saved"]'); return n ? n.getAttribute('data-scene3d-disk-save') : null; })()`,
     { timeout: 10000 },
   );
   check('browse disk lists the save the route just wrote', diskRow === 'last-saved', JSON.stringify(diskRow));
@@ -620,7 +620,7 @@ try {
   // move is read back with node:fs, and delete is proven by absence on the real disk.
   await page.evaluate("document.querySelector('[data-scene-browse-disk]').click()");
   const diskRowAgain = await page.waitForFunction(
-    `(() => { const n = document.querySelector('[data-scene3d-disk-save=\"last-saved\"]'); return n ? n.getAttribute('data-scene3d-disk-save') : null; })()`,
+    `(() => { const n = document.querySelector('[data-scene3d-disk-save="last-saved"]'); return n ? n.getAttribute('data-scene3d-disk-save') : null; })()`,
     { timeout: 10000 },
   );
   check('browse disk still lists last-saved before the v186 verbs touch it', diskRowAgain === 'last-saved', JSON.stringify(diskRowAgain));
@@ -637,7 +637,7 @@ try {
   check('the rename really moved the file on the server disk (old name gone, new name present)', renamedOnDisk, `old exists: ${existsSync(diskFile)} · renamed exists: ${existsSync(join(process.cwd(), 'apps', 'studio', '.nexus', 'scene-saves', 'renamed-save'))}`);
 
   const rowsFollowRename = await page.waitForFunction(
-    `(() => { const gone = !document.querySelector('[data-scene3d-disk-save=\"last-saved\"]'); const here = !!document.querySelector('[data-scene3d-disk-save=\"renamed-save\"]'); return gone && here ? { gone, here } : null; })()`,
+    `(() => { const gone = !document.querySelector('[data-scene3d-disk-save="last-saved"]'); const here = !!document.querySelector('[data-scene3d-disk-save="renamed-save"]'); return gone && here ? { gone, here } : null; })()`,
     { timeout: 10000 },
   );
   check('the disk rows follow the rename — re-probed from the disk, not hand-edited', rowsFollowRename.gone === true && rowsFollowRename.here === true, JSON.stringify(rowsFollowRename));

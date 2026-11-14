@@ -5,10 +5,11 @@ import type { SavingsSummary } from '@/lib/savings';
 
 /**
  * 「节省账单」（v699 / ROADMAP）—— /tasks/<项目> 页上的用户可感知一格。
+ * §FE-SV 门面版：全部 `.sv-*`（tokens，零 hex，零裸 atom）；钩子守恒（data-savings-*）。
  *
  * 视觉纪律：
  * - 只用现有设计系统 token（brand 渐变 / accent 系 / fg 与 bg 系文本背景变量），不引入新色板；
- * - 数字走 font-mono + tabular-nums；大数字用 text-gradient-brand（与全页品牌标题同一笔法）；
+ * - 数字走 font-mono + tabular-nums；大数字用 .sv-tokens（brand 渐变墨字，与 .brand-title 同笔法）；
  * - 动画只发生一次（挂载后 ~1s），prefers-reduced-motion 直接落终值；
  *
  * 诚实边界（§159 / §3）：
@@ -71,65 +72,56 @@ export function SavingsCard({ savings }: { savings: SavingsSummary }) {
     <section
       data-savings-card
       aria-label="AI 节省账单"
-      className="relative overflow-hidden rounded-2xl border border-[var(--nexus-color-brand)]/30 bg-gradient-to-br from-bg-1 via-bg-2 to-bg-1 p-5 shadow-[0_0_48px_rgb(91_108_255/0.16)]"
+      className="sv-root"
     >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgb(91_108_255/0.22)_0%,transparent_65%)] blur-2xl"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -left-24 -bottom-24 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgb(34_211_238/0.14)_0%,transparent_65%)] blur-2xl"
-      />
+      <div aria-hidden="true" className="sv-glowRight" />
+      <div aria-hidden="true" className="sv-glowLeft" />
 
       {empty ? (
-        <div className="relative">
-          <span className="inline-flex items-center gap-1.5 text-10 uppercase tracking-[0.18em] text-fg-3">
+        <div className="sv-copy">
+          <span className="sv-kicker">
             <BoltIcon /> AI 节省账单
           </span>
-          <p className="mt-3 text-13 text-fg-2">
+          <p className="sv-empty">
             这个项目还没有跑过任何一轮 AI——提一个请求，之后这里会记下缓存帮你省下的重复计算。
           </p>
         </div>
       ) : (
-        <div className="relative flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
-          <div className="min-w-[230px]">
-            <span className="inline-flex items-center gap-1.5 text-10 uppercase tracking-[0.18em] text-fg-3">
+        <div className="sv-layout">
+          <div className="sv-colLead">
+            <span className="sv-kicker">
               <BoltIcon /> AI 节省账单
             </span>
-            <div
-              className="mt-2 font-mono text-[44px] font-black leading-none text-gradient-brand tabular-nums"
-              data-savings-tokens
-            >
+            <div className="sv-tokens" data-savings-tokens>
               {formatTokens(animatedTokens)}
             </div>
-            <p className="mt-2 max-w-[280px] text-11 leading-relaxed text-fg-3">
+            <p className="sv-tokenNote">
               缓存复用的 prompt token——同一批目录、品牌规范与选区不用重复计算（provider 前缀缓存）。
             </p>
           </div>
 
-          <div className="flex min-w-[280px] flex-1 flex-col gap-3">
+          <div className="sv-colMain">
             <div>
-              <div className="mb-1.5 flex items-baseline justify-between gap-3 text-11">
-                <span className="text-fg-3">输入计算复用率</span>
-                <span className="font-mono text-12 text-fg-1 tabular-nums" data-savings-share>
+              <div className="sv-barHead">
+                <span className="sv-barLabel">输入计算复用率</span>
+                <span className="sv-barValue" data-savings-share>
                   {formatRate(savings.savedShare)}
                 </span>
               </div>
               <div
-                className="h-2 overflow-hidden rounded-full bg-[var(--nexus-color-border-subtle)]"
+                className="sv-barTrack"
                 role="img"
                 aria-label={`缓存复用占输入 token 的 ${formatRate(savings.savedShare)}`}
               >
                 <div
                   data-savings-bar
-                  className="h-full rounded-full bg-gradient-to-r from-[var(--nexus-color-brand)] via-[var(--nexus-color-accent-1)] to-[var(--nexus-color-accent-2)] shadow-[0_0_12px_rgb(91_108_255/0.55)] transition-[width] duration-1000 ease-out"
+                  className="sv-barFill"
                   style={{ width: mounted ? `${barWidth}%` : '0%' }}
                 />
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2" data-savings-chips>
+            <div className="sv-chips" data-savings-chips>
               <Chip marker="rate" label="命中率" value={formatRate(savings.hitRate)} />
               <Chip marker="real" label="真模型轮次" value={String(savings.realTurns)} />
               {savings.demoTurns > 0 ? <Chip marker="demo" label="DEMO 轮次" value={String(savings.demoTurns)} /> : null}
@@ -138,7 +130,7 @@ export function SavingsCard({ savings }: { savings: SavingsSummary }) {
               ) : null}
             </div>
 
-            <p className="text-10 leading-relaxed text-fg-4">
+            <p className="sv-note">
               口径：usage.cachedTokens（provider prompt_tokens_details）按本项目台账累计；应用级 Redis
               完成缓存（整条响应复用）不计入此数。{savings.legacyRows > 0 ? `${savings.legacyRows} 行旧账本不记缓存字段，按未记录处理。` : ''}
             </p>
@@ -161,23 +153,16 @@ function Chip({
   muted?: boolean;
 }) {
   return (
-    <span
-      data-savings-chip={marker}
-      className={`inline-flex min-h-6 items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-10 ${
-        muted
-          ? 'border-[var(--nexus-color-border-subtle)] text-fg-3'
-          : 'border-[var(--nexus-color-brand)]/40 bg-[var(--nexus-color-brand)]/10 text-accent-2-ink'
-      }`}
-    >
-      <span className="text-fg-4">{label}</span>
-      <span className="font-mono tabular-nums">{value}</span>
+    <span data-savings-chip={marker} className={muted ? 'sv-chipMuted' : 'sv-chip'}>
+      <span className="sv-chipLabel">{label}</span>
+      <span className="sv-chipValue">{value}</span>
     </span>
   );
 }
 
 function BoltIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="text-[var(--nexus-color-brand)]">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="sv-kickerIcon">
       <path
         d="M13 2 4.5 13.5H11L9.5 22 18 10.5h-6.5L13 2Z"
         stroke="currentColor"

@@ -45,7 +45,9 @@ provider 的前缀缓存（wkapi.pro gpt-6-sol）与应用级 Redis 完成缓存
 
 ## 仍欠（诚实记录）
 
-1. 像素级/a11y 浏览器实测（需 playwright 或可截图环境）。
+1. 像素级/a11y 浏览器实测（需 playwright 或可截图环境）——2026-11-14 补：**SSR 渲染判据已落地**
+   （`scripts/ssr-savings-probe.mts`：empty/hot 两态 SSR 输出 HTML，钩子守恒、`.sv-*` 23 个类全部在 HTML 上、
+   字节 611/1618）；**浏览器像素级渲染仍未验证**（本证机/并行 dev 台，如实保留）。
 2. 应用级 Redis 完成缓存对用户可见的价值面（ADR 0130 在 admin；用户侧无对象可展示，
    因为它不进 usage——如需用户侧，需要新写入侧口径，另议）。
 3. /tasks 分页后卡片是**全量 SUM**（不止当前 50 行），大项目请观察 SQL 计划；当前 444 行

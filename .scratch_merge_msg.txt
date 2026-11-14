@@ -1,0 +1,30 @@
+merge(parallel-line): other-lanes 472 commits join master - THE GREAT MERGE (cont. 116, ADR 0147)
+
+The other line of work (D:\??????, same remote, 471 commits ahead of origin/master at our
+divergence point: v360 -> v733 nation, i18n shell wave, /guide bilingual manual, world integrity
+page, FE gates/census/no-raw-tailwind/topology/lb/auth/actuator in main-line, tide-pressures
+v719-engine, showcase artifacts) is consolidated into this lane's branch.
+
+Conflict resolution and repairs, recorded honestly:
+- ChronicleView.tsx: kept rum-era classes + localized aria labels (theirs) + era-anchor id (ours).
+- packages/schemas/test/world-contract.test.ts arrived GBK-corrupt (beach barrage of mojibake
+  through the tide-pressure assertions): repaired to equivalent ASCII assertions, no coverage loss.
+- ci-wiring-arms.mjs A32: the "config server door" maven line selector narrowed to
+  java-config-server/pom.xml after the merge added three more Maven modules; A32's purpose kept.
+- ci.yml cache-dependency-path: now lists all 8 tracked poms; gate reads the full population.
+- main-line.yml gates job gains "Maven tests - all eight service modules" (previously only
+  config-server test + five -DskipTests packaging steps; java-registry/java-gateway had no
+  Maven line anywhere; nexus-* would never have been test-run). Local verification:
+  nexus-registry 6/6, nexus-config 6/6, nexus-gateway 126/126 (Java 25 + Maven 3.9.15).
+- record-encoding re-admitted with 3 pinned bilingual rows: docs/showcase/nexus.html and
+  scripts/gen-showcase-snapshot.mts (one sha, two files, cjk|cjk flanks; deliberate bilingual
+  artifacts by the other lane, not damage).
+
+Priorities kept: record-encoding is green on the merged tree (3106 files graded).
+Vitest: quiz/chronicle/world-view-cache 25/25 green post-merge.
+eslint 0 on the merged ChronicleView conflict site.
+
+The 472-commit wave was never run through this lane's CI; its verification evidence lives in
+WHERE the commits say: their docs/CURRENT-STATE.md entries. Honest record: the consolidated
+ref is the hosted CI's first full peer review for the union; red/green verdicts are not
+claimed until the runner completes.

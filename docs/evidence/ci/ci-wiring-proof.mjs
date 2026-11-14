@@ -143,7 +143,7 @@ const FALLBACK_DISCLOSURE = [
   const undeclared = carriers.filter((s) => !disclosed.has(s.name || ''));
   assert.deepEqual(undeclared.map((s) => s.name ?? s.uses), [], `a step uses \`||\` and is not disclosed: ${undeclared.map((s) => `${s.name ?? s.uses} -> ${JSON.stringify(s.run)}`).join(' | ')} — add it to FALLBACK_DISCLOSURE ONLY with the reason it cannot swallow a verdict`);
   const missing = [...disclosed].filter((n) => !carriers.some((s) => s.name === n));
-  assert.deepEqual(missing, [], `FALLBACK_DISCLOSURE names steps that no longer carry a \`||\`: ${missing.join(', ')} — an exemption outliving its hazard is a stale record, which is this increment\'s own subject`);
+  assert.deepEqual(missing, [], `FALLBACK_DISCLOSURE names steps that no longer carry a \`||\`: ${missing.join(', ')} — an exemption outliving its hazard is a stale record, which is this increment's own subject`);
   for (const d of FALLBACK_DISCLOSURE) assert.ok(d.why.length >= 30, `${d.step} is disclosed with a reason of ${JSON.stringify(d.why)}`);
   console.log(`[§3] ${steps.length} steps, none with continue-on-error or a swallowed verdict; ${carriers.length} \`||\` carriers, each disclosed by name (${carriers.map((s) => s.name).join(', ')})`);
 }

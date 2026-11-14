@@ -131,19 +131,19 @@ export function GameCodeExport({ projectId }: { projectId: string }) {
   }
 
   return (
-    <section className="mt-4" data-game-code>
-      <h3 className="font-mono text-11 uppercase tracking-wide text-fg-3">可玩产物（§52 Code）</h3>
-      <p className="mt-1 text-11 leading-relaxed text-fg-3" data-game-code-note>
+    <section className="wd-mt4" data-game-code>
+      <h3 className="wd-label11">可玩产物（§52 Code）</h3>
+      <p className="wd-body11Mt1" data-game-code-note>
         把库里这份设计投影成一份自包含的 HTML 页面：设计文档是唯一真值，产物只是它的一个投影。
         改完设计重新生成一次就是新的字节，所以这里不保存、也不覆盖任何东西。
       </p>
-      <div className="mt-2 flex flex-wrap items-center gap-2">
+      <div className="ap-wrapCenter">
         <button
           type="button"
           onClick={() => void generate()}
           disabled={busy || behindLibrary}
           data-game-code-run
-          className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11 text-fg-2 hover:bg-bg-2 disabled:opacity-50"
+          className="rp-ghostBtnFaint"
         >
           {busy ? '生成中…' : '生成可玩产物'}
         </button>
@@ -152,64 +152,64 @@ export function GameCodeExport({ projectId }: { projectId: string }) {
           onClick={() => void packAndDownload()}
           disabled={busy || zipping || behindLibrary}
           data-game-code-zip
-          className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11 text-fg-2 hover:bg-bg-2 disabled:opacity-50"
+          className="rp-ghostBtnFaint"
         >
           {zipping ? '打包中…' : '打包成一个 zip 下载'}
         </button>
       </div>
 
       {packaged ? (
-        <p className="mt-2 text-11 leading-relaxed text-fg-2" data-game-code-packaged>
+        <p className="ge-faintMt2ink" data-game-code-packaged>
           {packaged}
         </p>
       ) : null}
 
       {behindLibrary ? (
-        <p className="mt-2 text-11 leading-relaxed text-fg-3" data-game-code-behind>
+        <p className="wd-body11Mt2" data-game-code-behind>
           {saveState === 'saving' ? '库里那份正在写' : '屏上还有改动没写进库'}
           ：产物读的是库里那一份，现在点会拿到旧的设计。等它写完，或点上面的「保存到库」。
         </p>
       ) : null}
 
       {error ? (
-        <p className="mt-2 text-11 leading-relaxed text-danger-ink" data-game-code-error>
+        <p className="ge-listDanger" data-game-code-error>
           {error}
         </p>
       ) : null}
 
       {output ? (
-        <div className="mt-2" data-game-code-output>
-          <p className="text-11 text-fg-2" data-game-code-bytes={output.bytes}>
+        <div className="wd-mt2" data-game-code-output>
+          <p className="sb-ink11" data-game-code-bytes={output.bytes}>
             {output.files.length} 个文件 · 共 {output.bytes} 字节
           </p>
 
           {/* 恒在的那一句是读数不是警告：产物带的引擎是哪条链，由服务端那一格派生、这里只念 */}
-          <p className="mt-1 text-11 leading-relaxed text-fg-3" data-game-code-chain={output.artifactChain}>
+          <p className="wd-body11Mt1" data-game-code-chain={output.artifactChain}>
             {artifactChainSentence(output.artifactChain)}
           </p>
 
           {output.kindNote ? (
-            <p className="mt-1 rounded border border-amber-400/30 bg-amber-500/10 px-2 py-1 text-11 leading-relaxed text-amber-100" data-game-code-kind>
+            <p className="ge-warnBanner" data-game-code-kind>
               {output.kindNote}
             </p>
           ) : null}
 
           {output.notes.length > 0 ? (
-            <ul className="mt-1 list-disc pl-4 text-11 leading-relaxed text-fg-3" data-game-code-findings>
+            <ul className="ge-listFaint" data-game-code-findings>
               {output.notes.map((note) => (
                 <li key={note}>{note}</li>
               ))}
             </ul>
           ) : null}
 
-          <ul className="mt-2 flex flex-wrap gap-1" data-game-code-files>
+          <ul className="ge-wrapMt2" data-game-code-files>
             {output.files.map((file) => (
               <li key={file.path}>
                 <button
                   type="button"
                   onClick={() => saveOne(file.path, file.contents, file.mime)}
                   data-game-code-file={file.path}
-                  className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 font-mono text-11 text-fg-2 hover:bg-bg-3"
+                  className="sb-btn2"
                 >
                   {file.path}
                 </button>
@@ -218,13 +218,13 @@ export function GameCodeExport({ projectId }: { projectId: string }) {
           </ul>
 
           {output.limits.length > 0 ? (
-            <ul className="mt-2 list-disc pl-4 text-11 leading-relaxed text-fg-3" data-game-code-limits>
+            <ul className="ge-listFaintMt2" data-game-code-limits>
               {output.limits.map((limit) => (
                 <li key={limit}>{limit}</li>
               ))}
             </ul>
           ) : null}
-          <p className="mt-2 text-11 leading-relaxed text-fg-3" data-game-code-perfile>
+          <p className="wd-body11Mt2" data-game-code-perfile>
             上面这些按钮一个个存；整份拿走用「打包成一个 zip 下载」，那一路读的仍是库里这份设计。
           </p>
         </div>

@@ -51,22 +51,22 @@ export function ReportControl({ path }: { path: string }) {
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2" data-report-root>
+    <div className="rc-root" data-report-root>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] px-2 py-[2px] text-11 text-fg-3 hover:bg-bg-2"
+        className="rc-openBtn"
         data-report-open
       >
         举报此页
       </button>
       {open ? (
-        <div className="flex w-full flex-wrap items-center gap-2 rounded-[var(--nexus-radius-sm)] bg-bg-2 p-2" data-report-form>
+        <div className="rc-form" data-report-form>
           <select
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             aria-label="举报理由"
-            className="rounded bg-bg-1 px-2 py-1 text-11 text-fg-1"
+            className="rc-select"
             data-report-reason
           >
             {REASONS.map((r) => (
@@ -80,28 +80,28 @@ export function ReportControl({ path }: { path: string }) {
             onChange={(e) => setDetail(e.target.value)}
             placeholder="补充说明（可选）"
             maxLength={2000}
-            className="min-w-[16rem] flex-1 rounded bg-bg-1 px-2 py-1 text-11 text-fg-1"
+            className="rc-input"
             data-report-detail
           />
           <button
             type="button"
             disabled={busy}
             onClick={() => void submit()}
-            className="rounded bg-accent-2 px-2 py-1 text-11 text-accent-fg disabled:opacity-50"
+            className="rc-submitBtn"
             data-report-submit
           >
             {busy ? '提交中…' : '提交举报'}
           </button>
-          <p className="w-full text-11 text-fg-3">举报不会立刻撤下内容；是否下架由人看完决定。</p>
+          <p className="rc-note">举报不会立刻撤下内容；是否下架由人看完决定。</p>
         </div>
       ) : null}
       {error ? (
-        <span className="text-11 text-danger-ink" data-report-error>
+        <span className="rc-error" data-report-error>
           {error}
         </span>
       ) : null}
       {notice ? (
-        <span className="text-11 text-fg-3" data-report-notice>
+        <span className="rc-hint" data-report-notice>
           {notice}
         </span>
       ) : null}

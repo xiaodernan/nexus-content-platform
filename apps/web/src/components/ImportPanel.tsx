@@ -89,11 +89,11 @@ export function ImportPanel() {
   };
 
   return (
-    <div className="mt-[var(--nexus-space-4)] rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] p-[var(--nexus-space-4)]" data-import-root>
-      <p className="mb-1 text-[var(--nexus-font-size-13)] text-fg-2">导入一份导出过的包</p>
-      <p className="mb-[var(--nexus-space-3)] text-11 text-fg-3" data-import-hint>
-        只收本平台「导出」产出的 zip（包里有 <span className="font-mono">.nexus/manifest.json</span>）。
-        导入的结果是<strong className="text-fg-2">一个新项目</strong>，页面与资产都会换号，不会改动你现有的任何项目。
+    <div className="ip-root" data-import-root>
+      <p className="ip-title">导入一份导出过的包</p>
+      <p className="ip-hint" data-import-hint>
+        只收本平台「导出」产出的 zip（包里有 <span className="ip-mono">.nexus/manifest.json</span>）。
+        导入的结果是<strong className="ip-strongInk">一个新项目</strong>，页面与资产都会换号，不会改动你现有的任何项目。
       </p>
       <input
         ref={inputRef}
@@ -105,23 +105,23 @@ export function ImportPanel() {
           const file = e.target.files?.[0];
           if (file) void run(file);
         }}
-        className="text-12 text-fg-2 file:mr-2 file:rounded-[var(--nexus-radius-sm)] file:border-0 file:bg-bg-2 file:px-2 file:py-1 file:text-12 disabled:opacity-40"
+        className="ip-file"
         data-import-file
       />
-      {busy ? <p className="mt-2 text-11 text-fg-3" data-import-busy>正在核对清单并写入新项目…</p> : null}
+      {busy ? <p className="ip-busyNote" data-import-busy>正在核对清单并写入新项目…</p> : null}
 
       {done ? (
-        <div className="mt-[var(--nexus-space-3)] rounded-[var(--nexus-radius-sm)] bg-bg-2 p-2" data-import-receipt>
-          <p className="text-11 text-fg-1">
+        <div className="ip-receipt" data-import-receipt>
+          <p className="ip-strongNote">
             已导入为项目{' '}
-            <a href={`/studio/${done.projectId}`} className="text-accent-2-ink underline" data-import-open={done.projectId}>
+            <a href={`/studio/${done.projectId}`} className="ip-inlineLink" data-import-open={done.projectId}>
               {done.name}
             </a>
-            <span className="ml-2 font-mono text-11 text-fg-3">
+            <span className="ip-metaMono">
               {done.kind} · 整包 {kilobytes(done.bytes.zip)} · 解压后 {kilobytes(done.bytes.extracted)}
             </span>
           </p>
-          <p className="mt-1 text-11 text-fg-3" data-import-composition>
+          <p className="ip-note" data-import-composition>
             进了库：设计文档 {done.counts.design} 份 · 资产 {done.counts.assets} 张
             {done.counts.storyboard ? ` · 分镜 ${done.counts.storyboard} 份` : ''}
             {done.counts.character ? ` · 角色 ${done.counts.character} 位` : ''}
@@ -129,24 +129,24 @@ export function ImportPanel() {
             {done.exportedAt ? ` · 源包导出于 ${done.exportedAt}` : ''}
           </p>
           {done.assetFailures.length ? (
-            <ul className="mt-1 text-11 text-warn-ink" data-import-asset-failures>
+            <ul className="ip-warnList" data-import-asset-failures>
               <li>有 {done.assetFailures.length} 张资产没能进库，项目已经在了，但下面这几张图会断着：</li>
               {done.assetFailures.map((f) => (
-                <li key={`${f.path}-${f.reason}`} className="font-mono text-11">
+                <li key={`${f.path}-${f.reason}`} className="ip-mono11">
                   · {f.path}：{f.reason}
                 </li>
               ))}
             </ul>
           ) : null}
           {done.storyboardNotes.length ? (
-            <ul className="mt-1 text-11 text-fg-3" data-import-storyboard-notes>
+            <ul className="ip-hintList" data-import-storyboard-notes>
               {done.storyboardNotes.map((note, index) => (
                 <li key={`${index}-${note}`}>· {note}</li>
               ))}
             </ul>
           ) : null}
           {done.characterNotes.length ? (
-            <ul className="mt-1 text-11 text-warn-ink" data-import-character-notes>
+            <ul className="ip-warnList" data-import-character-notes>
               {done.characterNotes.map((note, index) => (
                 <li key={`${index}-${note}`}>· {note}</li>
               ))}
@@ -156,18 +156,18 @@ export function ImportPanel() {
       ) : null}
 
       {refused ? (
-        <div className="mt-[var(--nexus-space-3)] rounded-[var(--nexus-radius-sm)] bg-bg-2 p-2" data-import-refused>
-          <p className="text-11 text-danger-ink" data-import-refusal-reason>
+        <div className="ip-receipt" data-import-refused>
+          <p className="ip-error" data-import-refusal-reason>
             没收这份包（HTTP {refused.status}）：{refused.reason}
           </p>
           {refused.issues.length ? (
-            <ul className="mt-1 font-mono text-11 text-fg-3" data-import-refusal-issues>
+            <ul className="ip-issuesList" data-import-refusal-issues>
               {refused.issues.map((line) => (
                 <li key={line}>· {line}</li>
               ))}
             </ul>
           ) : (
-            <p className="mt-1 text-11 text-fg-3">服务端没给逐条细节，只有上面那一句。</p>
+            <p className="ip-note">服务端没给逐条细节，只有上面那一句。</p>
           )}
         </div>
       ) : null}

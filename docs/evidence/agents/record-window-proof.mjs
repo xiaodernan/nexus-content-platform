@@ -27,7 +27,7 @@ const rt = await import(pathToFileURL('./agents/runtime/dist/index.js').href);
 const eh = await import(pathToFileURL('./agents/exec-host/dist/index.js').href);
 const { ToolRegistry } = rt;
 const {
-  createExecHost, gitEnv, gitLogPolicy, gitReadOnlyPolicy, gitShowPolicy, gitStagedPolicy, logWindowNotice,
+  createExecHost, gitEnv, gitLogPolicy, gitReadOnlyPolicy, gitShowPolicy, gitStagedPolicy,
   NODE_SPAWN, registerGitLogTool, registerGitShowTool, registerGitStagedTool, registerGitTools, stdoutWasCut, windowField,
 } = eh;
 

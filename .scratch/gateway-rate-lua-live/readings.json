@@ -1,0 +1,65 @@
+{
+  "runId": "mw9lz2cl-30360",
+  "redisUrl": "redis://127.0.0.1:56379",
+  "luaSha256": "8db0f4043dd7",
+  "at": "2026-11-09T18:42:30.986Z",
+  "shared": {
+    "verdicts": [
+      1,
+      1,
+      0
+    ],
+    "tokens": "0",
+    "pttlMs": 3599996
+  },
+  "perInstance": {
+    "verdicts": [
+      1,
+      1,
+      1
+    ]
+  },
+  "atomic": {
+    "total": 13,
+    "allowed": 3,
+    "verdicts": [
+      1,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "tokens": "0"
+  },
+  "refill": {
+    "drained": [
+      1,
+      1,
+      0
+    ],
+    "afterWait": 1,
+    "stamp": 1794249749.5634,
+    "serverBefore": 1794249749.561248,
+    "serverAfter": 1794249749.564844,
+    "tokens": 1
+  },
+  "clockSkew": {
+    "verdict": 0,
+    "tokens": 0,
+    "futureStamp": 1794249779.57023
+  },
+  "ttl": {
+    "first": 1,
+    "writtenMs": 1199,
+    "existsAfter": 0,
+    "afterExpiry": 1,
+    "zeroRateMs": 3599999
+  }
+}

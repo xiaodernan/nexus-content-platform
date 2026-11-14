@@ -25,7 +25,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * The slice's whole HTTP surface: publish one project, read it back.
@@ -35,6 +38,11 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
  * the publication — not a configured "public base" that could point somewhere nothing is listening. That
  * also makes the bound honest: <em>this is this server's URL</em>, and there is no CDN, no rewrite rule and
  * no custom domain behind it (§60).
+ *
+ * <p><strong>Behind the gateway it is the caller's URL.</strong> The gateway forwards
+ * {@code X-Nexus-Original-URL} (the scheme and authority the client typed); when present this controller
+ * prefers it, because the instance's own address is an internal address the caller cannot open. Without the
+ * header — a direct call, an existing proof — nothing changes.
  *
  * <p>A created publication answers 201 and an updated one 200. Both carry the same receipt shape; the status
  * is the difference between "this id was new" and "this id already had a publication", which a caller
@@ -153,7 +161,33 @@ public class PublishController {
     }
 
     private String urlFor(String projectId) {
-        return ServletUriComponentsBuilder.fromCurrentContextPath().path("/projects/{projectId}").buildAndExpand(projectId).toUriString();
+        String callerBase = callerFacingBase();
+        UriComponentsBuilder builder = callerBase == null
+                ? ServletUriComponentsBuilder.fromCurrentContextPath()
+                : UriComponentsBuilder.fromUriString(callerBase);
+        return builder.path("/projects/{projectId}").buildAndExpand(projectId).toUriString();
+    }
+
+    /**
+     * The base URL the CALLER used, when a trusted gateway in front of us said so.
+     *
+     * <p>{@code ServletUriComponentsBuilder} composes a URL from the request <em>this process</em> sees. That is
+     * the right answer for a direct call, and the wrong one behind a gateway: the receipt would name an
+     * internal instance address ({@code 192.168.1.5:8081}) that the caller usually cannot open (§60).
+     *
+     * <p>The gateway sets {@code X-Nexus-Original-URL} from the authority the client actually typed. We prefer
+     * it when present. This header is trusted on the same boundary as any forwarded header: {@code nexus-api}
+     * must not be reachable directly by clients that can forge it — the gateway overwrites it, and the README
+     * states the bound.
+     */
+    private static String callerFacingBase() {
+        if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes) {
+            String original = attributes.getRequest().getHeader("X-Nexus-Original-URL");
+            if (original != null && !original.isBlank()) {
+                return original.strip();
+            }
+        }
+        return null;
     }
 
     /**

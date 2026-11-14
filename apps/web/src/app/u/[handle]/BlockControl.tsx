@@ -55,11 +55,11 @@ export function BlockControl({ handle, initial }: { handle: string; initial: Kin
   };
 
   return (
-    <div className="flex flex-col items-end gap-1" data-block-control>
-      <div className="flex items-center gap-2">
+    <div className="bc-root" data-block-control>
+      <div className="bc-row">
         {kind ? (
           <>
-            <span className="text-11 text-fg-3" data-block-state={kind}>
+            <span className="bc-hint11" data-block-state={kind}>
               {COPY[kind].done} @{handle}
             </span>
             {kind === 'mute' ? (
@@ -67,7 +67,7 @@ export function BlockControl({ handle, initial }: { handle: string; initial: Kin
                 type="button"
                 disabled={busy}
                 onClick={() => void send('POST', { handle, kind: 'block' })}
-                className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-1 disabled:opacity-50"
+                className="bc-btn"
                 data-block-set="block"
               >
                 升级为拉黑
@@ -77,7 +77,7 @@ export function BlockControl({ handle, initial }: { handle: string; initial: Kin
               type="button"
               disabled={busy}
               onClick={() => void send('DELETE', { handle })}
-              className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-1 disabled:opacity-50"
+              className="bc-btn"
               data-block-clear
             >
               解除
@@ -90,7 +90,7 @@ export function BlockControl({ handle, initial }: { handle: string; initial: Kin
               type="button"
               disabled={busy}
               onClick={() => void send('POST', { handle, kind: k })}
-              className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-1 disabled:opacity-50"
+              className="bc-btn"
               data-block-set={k}
             >
               {COPY[k].button} @{handle}
@@ -98,9 +98,9 @@ export function BlockControl({ handle, initial }: { handle: string; initial: Kin
           ))
         )}
       </div>
-      {kind ? <p className="max-w-[22rem] text-right text-11 text-fg-3" data-block-note>{COPY[kind].note}</p> : null}
+      {kind ? <p className="bc-note" data-block-note>{COPY[kind].note}</p> : null}
       {notice ? (
-        <p className="text-11 text-danger-ink" data-block-notice>
+        <p className="bc-error" data-block-notice>
           {notice}
         </p>
       ) : null}

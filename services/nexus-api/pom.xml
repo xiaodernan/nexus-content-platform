@@ -56,21 +56,43 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
     </dependency>
+    <!--
+      SC-8: the gateway's /platform/health asks each discovered instance GET /actuator/health. Without this
+      dependency that path answers 404 from THIS service, and the probe would report the service as DOWN
+      while it was serving traffic — a health reading that is wrong in the alarming direction.
+      §SC-77: health, and the METRICS that say what the breakers are doing. Without the metrics there is
+      no way to tell WHICH component refused a call — the 503 says a service was unreachable, and the
+      breaker's own state (OPEN, HALF_OPEN, CLOSED) is what turns that into an answer. It is NOT routed
+      through the edge: the gateway's table matches only /api/**, so /actuator/** answers on this
+      service's own port and nowhere else.
+    -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <!-- §SC-77: Prometheus 抓数端点——与 domain-service 同款（见 spring-cloud-stack-map.md §SC-77） -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
       <scope>runtime</scope>
     </dependency>
-
-    <!-- Discovery, OPT-IN at runtime (see application.yml). The client is on the classpath so the
-         service CAN register; `eureka.client.enabled` decides whether it actually does. A service
-         whose optional dependency is absent must still start, so nothing here may be required for
-         the service to answer. -->
+    <!--
+      SC-3: the registry half of "lb://nexus-api". Without this dependency the gateway's route can never
+      resolve, because nothing ever announces this service's address. Registration is OFF by default (see
+      application.yml): a standalone proof run must not depend on a registry being up, and a service that
+      silently registers itself into whatever answers on 8771 is a deployment decision, not a default.
+      The client is on the classpath so the service CAN register; `eureka.client.enabled` decides whether
+      it actually does. A service whose optional dependency is absent must still start, so nothing here may
+      be required for the service to answer.
+    -->
     <dependency>
       <groupId>org.springframework.cloud</groupId>
       <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
     </dependency>
-
     <!-- The TYPED client for the domain service: an interface is the contract, and the address comes
          from discovery rather than from a URL somebody typed into a config file. -->
     <dependency>
@@ -84,23 +106,13 @@
       <artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
     </dependency>
 
-    <!-- The config door: where operator knobs live. Optional (see application.yml): this service
-         boots without the config server, it just boots with its local file. -->
+    <!-- SC-11: the client half of the config center (SC-9). The import is `optional:` and the client is OFF by
+         default (see application.yml), so nothing here starts a network task unless a deployment asks for it.
+         This service boots without the config server; it just boots with its local file. -->
     <dependency>
       <groupId>org.springframework.cloud</groupId>
       <artifactId>spring-cloud-starter-config</artifactId>
     </dependency>
-
-    <!-- The operator's door: health, and the METRICS that say what the breakers are doing.
-         Without the metrics there is no way to tell WHICH component refused a call — the 503
-         says a service was unreachable, and the breaker's own state (OPEN, HALF_OPEN, CLOSED) is
-         what turns that into an answer. It is NOT routed through the edge: the gateway's table
-         matches only /api/**, so /actuator/** answers on this service's own port and nowhere else. -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-actuator</artifactId>
-    </dependency>
-
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
@@ -116,13 +128,6 @@
     <dependency>
       <groupId>io.github.openfeign</groupId>
       <artifactId>feign-micrometer</artifactId>
-    </dependency>
-
-    <!-- Prometheus scrape endpoint on the operator door: the door answers with the metrics
-         the same services already produce, in the standard format nothing invents. -->
-    <dependency>
-      <groupId>io.micrometer</groupId>
-      <artifactId>micrometer-registry-prometheus</artifactId>
     </dependency>
 
   </dependencies>
@@ -146,6 +151,18 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>build-info</goal>
+            </goals>
+            <configuration>
+              <additionalProperties>
+                  <component>nexus-api</component>
+                </additionalProperties>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

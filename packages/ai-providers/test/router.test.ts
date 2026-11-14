@@ -88,8 +88,11 @@ describe('ModelRouter — the honesty contract (ADR 0010 / §60)', () => {
     await expect(
       router.editDesign({ instruction: 'x', document: doc, selectedNodeIds: [] }),
     ).rejects.toThrow(/is unavailable for task "design.edit"/);
-    expect(design.generate).not.toHaveBeenCalled();
-    expect(design.edit).not.toHaveBeenCalled();
+    // 解构出来再断言，而不是把 `design.generate` 当值传下去：成员表达式被单独取出来时，
+    // 它身上的 `this` 就丢了（unbound-method）。断言指向的还是同一个 mock，语义一字未改。
+    const { generate, edit } = design;
+    expect(generate).not.toHaveBeenCalled();
+    expect(edit).not.toHaveBeenCalled();
   });
 
   it('and the same refusal on the embedding, rerank and image tasks', async () => {
@@ -137,7 +140,8 @@ describe('ModelRouter — the honesty contract (ADR 0010 / §60)', () => {
     const design = liveDesign();
     const router = new ModelRouter({ recorder: rec, design });
     const res = await router.generateDesign({ prompt: 'x', document: createEmptyDocument() });
-    expect(design.generate).toHaveBeenCalledTimes(1);
+    const { generate } = design;
+    expect(generate).toHaveBeenCalledTimes(1);
     expect(res.usage).toEqual(LIVE_USAGE);
     expect(rec.totals().calls).toBe(1);
     expect(rec.all()[0]).toEqual(LIVE_USAGE);
@@ -150,7 +154,8 @@ describe('ModelRouter — the honesty contract (ADR 0010 / §60)', () => {
     const design = liveDesign();
     const router = new ModelRouter({ recorder: rec, design });
     await router.editDesign({ instruction: 'recolor', document: createEmptyDocument(), selectedNodeIds: [] });
-    expect(design.edit).toHaveBeenCalledTimes(1);
+    const { edit } = design;
+    expect(edit).toHaveBeenCalledTimes(1);
     expect(rec.totals().calls).toBe(1);
   });
 

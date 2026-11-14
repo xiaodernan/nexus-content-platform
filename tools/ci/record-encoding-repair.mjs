@@ -83,7 +83,6 @@ export function m1(to, tail) {
   }
   return { img: out, extra: Math.max(0, i - toLen) };
 }
-const fold = (img) => cps(img).map((c) => (code(c) < 0x80 ? c : FF)).join('');
 /** M2: a producer's GBK bytes read as UTF-8, one replacement per unreadable byte, ASCII kept. */
 export function m2(to) {
   let out = '';

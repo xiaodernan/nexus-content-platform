@@ -111,18 +111,18 @@ export function PublicationActions({ state }: { state: PublicationState }) {
   };
 
   return (
-    <div className="flex w-full flex-col gap-2 border-t border-[var(--nexus-color-border-subtle)] pt-2" data-actions-root>
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="pu-root" data-actions-root>
+      <div className="pu-row">
         <button
           type="button"
           disabled={busy}
           onClick={() => void onLike()}
-          className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-1 disabled:opacity-50"
+          className="pu-btn"
           data-action-like={liked ? 'on' : 'off'}
         >
           {liked ? '已点赞' : '点赞'} · {likeCount}
         </button>
-        <span className="text-11 text-fg-3" data-comment-count>
+        <span className="pu-hint" data-comment-count>
           {comments.length} 条评论 · {state.remixCount} 个改编
         </span>
         {!state.isOwner && state.ownerHandle ? (
@@ -130,20 +130,20 @@ export function PublicationActions({ state }: { state: PublicationState }) {
             type="button"
             disabled={busy}
             onClick={() => void onFollow()}
-            className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-1 disabled:opacity-50"
+            className="pu-btn"
             data-action-follow={following ? 'on' : 'off'}
           >
             {following ? '已关注' : '关注作者'} · {followers}
           </button>
         ) : null}
-        <button type="button" disabled={busy} onClick={() => void onRemix()} className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-1 disabled:opacity-50" data-action-remix>
+        <button type="button" disabled={busy} onClick={() => void onRemix()} className="pu-btn" data-action-remix>
           Remix 成我的改编
         </button>
         <button
           type="button"
           disabled={busy}
           onClick={() => void onSave()}
-          className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-1 disabled:opacity-50"
+          className="pu-btn"
           data-action-save={saved ? 'on' : 'off'}
         >
           {saved ? '已收藏' : '收藏这一版'}
@@ -151,54 +151,54 @@ export function PublicationActions({ state }: { state: PublicationState }) {
         {state.ownerHandle ? (
           <a
             href={`/u/${state.ownerHandle}`}
-            className="inline-flex min-h-6 items-center rounded px-1 text-11 text-accent-2-ink underline"
+            className="pu-authorLink"
             data-action-author
           >
             作者主页
           </a>
         ) : null}
-        <button type="button" onClick={() => void share()} className="rounded px-2 py-1 text-11 text-fg-3 hover:bg-bg-2" data-action-share>
+        <button type="button" onClick={() => void share()} className="pu-shareBtn" data-action-share>
           复制链接
         </button>
       </div>
 
-      <div className="flex flex-wrap items-start gap-2">
+      <div className="pu-commentRow">
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={2}
           maxLength={2000}
           placeholder="写条评论（会过一遍发布机检）"
-          className="min-w-[16rem] flex-1 rounded bg-bg-1 px-2 py-1 text-11 text-fg-1"
+          className="pu-input"
           data-comment-input
         />
         <button
           type="button"
           disabled={busy || !text.trim()}
           onClick={() => void onComment()}
-          className="rounded bg-accent-2 px-2 py-1 text-11 text-accent-fg disabled:opacity-50"
+          className="pu-submitBtn"
           data-comment-submit
         >
           发送
         </button>
       </div>
       {notice ? (
-        <p className="text-11 text-fg-3" data-action-notice>
+        <p className="pu-hint" data-action-notice>
           {notice}
         </p>
       ) : null}
 
-      <ul className="flex flex-col gap-1" data-comment-list>
+      <ul className="pu-commentList" data-comment-list>
         {comments.map((c) => (
-          <li className="text-11 text-fg-2" data-comment={c.id} key={c.id}>
-            <span className="text-fg-1">{c.author}</span> {c.body}
+          <li className="pu-commentItem" data-comment={c.id} key={c.id}>
+            <span className="pu-commentAuthor">{c.author}</span> {c.body}
           </li>
         ))}
-        {comments.length === 0 ? <li className="text-11 text-fg-3">还没有评论。</li> : null}
+        {comments.length === 0 ? <li className="pu-hint">还没有评论。</li> : null}
       </ul>
       {/* §132：过滤要报数。评论从 5 条变成 3 条而没有解释，人会以为评论真的少了 */}
       {state.hiddenComments > 0 ? (
-        <p className="text-11 text-fg-3" data-hidden-comments={state.hiddenComments}>
+        <p className="pu-hint" data-hidden-comments={state.hiddenComments}>
           另有 {state.hiddenComments} 条来自你已屏蔽或拉黑的人，没有显示在这里（别人仍然看得到）。
         </p>
       ) : null}

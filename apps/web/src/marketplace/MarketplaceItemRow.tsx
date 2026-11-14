@@ -41,6 +41,10 @@ export function MarketplaceItemRow({
   visibilityLabel: string;
 }) {
   const router = useRouter();
+  // §A11Y-2：disclosure 契约——触发键的 aria-controls 与受控面板的 id 共用同一份，
+  // 派生自 item.id 让列表里多行实例互不串味；只在展开态引用、收起不留悬空引用。
+  const editPanelId = `marketplace-edit-${item.id}`;
+  const reportPanelId = `marketplace-report-${item.id}`;
   const [message, setMessage] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [price, setPrice] = useState(item.priceCredits);
@@ -169,47 +173,48 @@ export function MarketplaceItemRow({
 
   return (
     <li
-      className="group rounded-xl border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--nexus-color-brand)] hover:shadow-[0_18px_48px_rgb(91_108_255/0.22)]"
+      className="mk-card"
       data-marketplace-item={item.id}
     >
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="mi-head">
         {item.previewAssetId ? (
           // 预览走市场自己的公开路由：素材本体在作者项目里，画布那条取图路是 owner-only 的
           <img
             src={`/api/marketplace/${item.id}/preview`}
             alt={`预览：${item.title}`}
-            className="h-14 w-20 rounded object-cover"
+            className="mi-preview"
             data-marketplace-preview={item.id}
           />
         ) : null}
-        <span className="text-13 font-semibold text-fg-1" data-marketplace-item-title>
+        <span className="mi-title" data-marketplace-item-title>
           {item.title}
         </span>
-        <span className="rounded bg-bg-3 px-1 text-11 text-fg-2">{typeLabel}</span>
-        <span className="rounded bg-bg-3 px-1 text-11 text-fg-2" data-marketplace-item-visibility={item.visibility}>
+        <span className="mi-tag">{typeLabel}</span>
+        <span className="mi-tag" data-marketplace-item-visibility={item.visibility}>
           {visibilityLabel}
         </span>
-        <span className="text-12 text-accent-2-ink" data-marketplace-item-price={item.priceCredits}>
+        <span className="mi-price" data-marketplace-item-price={item.priceCredits}>
           {item.priceCredits > 0 ? `${item.priceCredits} credits` : '免费'}
         </span>
         {purchased ? (
-          <span className="rounded bg-green-900/30 px-1 text-11 text-green-400" data-marketplace-purchased>
+          <span className="mi-badgePurchased" data-marketplace-purchased>
             已购买
           </span>
         ) : null}
         {reported ? (
-          <span className="rounded bg-bg-3 px-1 text-11 text-fg-3" data-marketplace-reported>
+          <span className="mi-badgeReported" data-marketplace-reported>
             已举报
           </span>
         ) : null}
-        <span className="ml-auto text-11 text-fg-3">{item.creatorName ?? '匿名创作者'}</span>
+        <span className="mi-creator">{item.creatorName ?? '匿名创作者'}</span>
         {mine ? (
           <button
             type="button"
             onClick={() => setEditing((on) => !on)}
             data-marketplace-edit={item.id}
             aria-expanded={editing}
-            className="rounded bg-bg-3 px-2 py-1 text-11 text-fg-2 hover:bg-bg-1"
+            aria-controls={editing ? editPanelId : undefined}
+            className="mi-btn mi-btnGhost"
           >
             {editing ? '收起' : '改价格/可见性'}
           </button>
@@ -220,7 +225,7 @@ export function MarketplaceItemRow({
             onClick={() => void purchase()}
             disabled={purchasing}
             data-marketplace-purchase={item.id}
-            className="rounded bg-[var(--nexus-color-brand)] px-2 py-1 text-11 font-semibold text-[var(--nexus-color-accent-fg)] transition-shadow hover:shadow-[0_0_24px_rgb(91_108_255/0.45)]"
+            className="mi-btn mi-btnPrimary"
           >
             {purchasing ? '购买中...' : '购买'}
           </button>
@@ -230,8 +235,9 @@ export function MarketplaceItemRow({
             type="button"
             onClick={() => setReportOpen((on) => !on)}
             aria-expanded={reportOpen}
+            aria-controls={reportOpen ? reportPanelId : undefined}
             data-marketplace-report={item.id}
-            className="rounded px-2 py-1 text-11 text-fg-3 hover:text-danger-ink"
+            className="mi-btn mi-btnDanger"
           >
             {reportOpen ? '收起举报' : '举报'}
           </button>
@@ -241,7 +247,7 @@ export function MarketplaceItemRow({
           onClick={() => void download()}
           disabled={downloading}
           data-marketplace-download={item.id}
-          className="rounded border border-[var(--nexus-color-brand)]/50 bg-[var(--nexus-color-brand)]/10 px-2 py-1 text-11 text-[var(--nexus-color-accent-2-ink)] transition-colors hover:border-[var(--nexus-color-brand)] hover:bg-[var(--nexus-color-brand)]/20"
+          className="mi-btn mi-btnGhost"
         >
           {downloading ? '取包中...' : `下载（${item.downloadCount}）`}
         </button>
@@ -250,15 +256,15 @@ export function MarketplaceItemRow({
             type="button"
             onClick={() => void remove()}
             data-marketplace-remove={item.id}
-            className="rounded px-2 py-1 text-11 text-fg-3 hover:text-danger-ink"
+            className="mi-btn mi-btnDanger"
           >
             下架
           </button>
         ) : null}
       </div>
       {editing ? (
-        <div className="mt-2 flex flex-wrap items-center gap-2" data-marketplace-edit-panel={item.id}>
-          <label className="flex items-center gap-1 text-11 text-fg-2">
+        <div id={editPanelId} className="mi-panel" data-marketplace-edit-panel={item.id}>
+          <label className="mi-field">
             价格
             <input
               type="number"
@@ -266,16 +272,16 @@ export function MarketplaceItemRow({
               value={price}
               onChange={(e) => setPrice(Math.max(0, Number(e.target.value) || 0))}
               data-marketplace-edit-price={item.id}
-              className="w-20 rounded bg-bg-1 px-1 py-[2px] text-12"
+              className="mi-input mi-inputNum"
             />
           </label>
-          <label className="flex items-center gap-1 text-11 text-fg-2">
+          <label className="mi-field">
             可见性
             <select
               value={visibility}
               onChange={(e) => setVisibility(e.target.value)}
               data-marketplace-edit-visibility={item.id}
-              className="rounded bg-bg-2 px-1 py-1 text-12"
+              className="mi-select"
             >
               <option value="public">公开在售</option>
               <option value="free">免费</option>
@@ -286,21 +292,21 @@ export function MarketplaceItemRow({
             type="button"
             onClick={() => void saveEdit()}
             data-marketplace-edit-save={item.id}
-            className="rounded bg-accent-1 px-2 py-1 text-11"
+            className="mi-btn mi-btnPrimary"
           >
             保存
           </button>
         </div>
       ) : null}
       {reportOpen ? (
-        <div className="mt-2 flex flex-wrap items-center gap-2" data-marketplace-report-panel={item.id}>
-          <label className="flex items-center gap-1 text-11 text-fg-2">
+        <div id={reportPanelId} className="mi-panel" data-marketplace-report-panel={item.id}>
+          <label className="mi-field">
             原因
             <select
               value={reportReason}
               onChange={(e) => setReportReason(e.target.value as ReportReason)}
               data-marketplace-report-reason={item.id}
-              className="rounded bg-bg-2 px-1 py-1 text-12"
+              className="mi-select"
             >
               {REPORT_REASONS.map((value) => (
                 <option value={value} key={value}>
@@ -315,14 +321,14 @@ export function MarketplaceItemRow({
             maxLength={1000}
             placeholder="补充说明（可选，最多 1000 字）"
             data-marketplace-report-note={item.id}
-            className="min-w-[16rem] flex-1 rounded bg-bg-1 px-2 py-1 text-11 text-fg-1"
+            className="mi-input mi-inputNote"
           />
           <button
             type="button"
             onClick={() => void submitReport()}
             disabled={reportBusy}
             data-marketplace-report-submit={item.id}
-            className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-1 disabled:opacity-50"
+            className="mi-btn mi-btnPrimary"
           >
             {reportBusy ? '提交中...' : '提交举报'}
           </button>
@@ -330,16 +336,16 @@ export function MarketplaceItemRow({
             type="button"
             onClick={() => setReportOpen(false)}
             data-marketplace-report-cancel={item.id}
-            className="rounded px-2 py-1 text-11 text-fg-3 hover:text-fg-1"
+            className="mi-btn mi-btnGhost"
           >
             取消
           </button>
-          <span className="text-11 text-fg-3">举报进审核员工单台；结案 / 驳回都不会自动下架物品。</span>
+          <span className="mi-hint">举报进审核员工单台；结案 / 驳回都不会自动下架物品。</span>
         </div>
       ) : null}
-      {item.description ? <p className="mt-1 text-12 text-fg-2">{item.description}</p> : null}
+      {item.description ? <p className="mi-desc">{item.description}</p> : null}
       {message ? (
-        <p className="mt-1 text-11 text-fg-3" data-marketplace-item-message>
+        <p className="mi-msg" data-marketplace-item-message>
           {message}
         </p>
       ) : null}

@@ -126,39 +126,24 @@ export default async function PublishedPage({ params, searchParams }: Props) {
   const terminal = isTerminalInteractivePage(document, page.id);
 
   return (
-    <main className="min-h-screen w-full bg-bg-0 text-fg-1" data-published-root data-published-path={publication.path}>
-      <header className="bg-bg-1/90 backdrop-blur-md supports-[backdrop-filter]:bg-bg-1/75 sticky top-0 z-10 flex flex-wrap items-center gap-[var(--nexus-space-3)] border-b border-[var(--nexus-color-border-subtle)] px-[var(--nexus-space-4)] py-[var(--nexus-space-2)]">
-        <a href="/" className="group flex items-center gap-2.5 no-underline" data-published-brand>
-          <span className="flex h-6 w-6 items-center justify-center rounded-md border border-[var(--nexus-color-border-strong)] bg-gradient-to-br from-[var(--nexus-color-brand)] via-[var(--nexus-color-accent-1)] to-[var(--nexus-color-accent-2)] text-[13px] font-black text-[var(--nexus-color-accent-fg)] shadow-[0_0_16px_rgb(91_108_255/0.4)] transition-transform duration-200 group-hover:scale-105">
-            N
-          </span>
-          <span className="font-mono text-11 font-semibold tracking-[0.08em] text-fg-2 transition-colors group-hover:text-fg-1">
-            NEXUS
-          </span>
-        </a>
-        <span aria-hidden="true" className="hidden h-4 w-px bg-[var(--nexus-color-border-strong)] sm:block" />
-        <a href={publication.path} className="font-mono text-13 font-semibold text-fg-1 transition-colors hover:text-[var(--nexus-color-accent-2-ink)]" data-published-title>
-          <span className="text-fg-3">{ownerName}</span>
-          <span className="mx-1.5 text-[var(--nexus-color-accent-1)]">/</span>
-          {projectName}
-        </a>
-        <span className="flex items-center gap-1.5 rounded-full border border-[var(--nexus-color-border-subtle)] bg-bg-2 px-2.5 py-0.5 font-mono text-10 text-fg-3" data-published-meta>
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--nexus-color-accent-2)]" aria-hidden="true" />
-          v{publication.version} · {publication.visibility === 'public' ? '公开' : '仅链接可见'} ·{' '}
+    <main className="pub-root" data-published-root data-published-path={publication.path}>
+      <header className="pub-header">
+        <span className="pub-title" data-published-title>
+          {ownerName} / {projectName}
+        </span>
+        <span className="pub-meta" data-published-meta>
+          第 {publication.version} 版 ·{' '}
+          {publication.visibility === 'public' ? '公开' : '仅链接可见'} ·{' '}
           {new Date(publication.publishedAt).toLocaleString('zh-CN', { hour12: false })}
         </span>
         {/* §132：公开页要有人能举报，否则 §129 的红线只能靠作者自觉 */}
-        <span className="ml-auto flex items-center gap-2">
+        <span className="pub-headerAside">
           <ReportControl path={publication.path} />
-          <span className="rounded-full border border-[var(--nexus-color-border-strong)] bg-gradient-to-r from-bg-2 via-bg-3 to-bg-2 px-3 py-1 font-sans text-11 font-medium text-fg-2">
-            Built with <span className="font-bold text-fg-1">NEXUS</span>
-          </span>
+          <span className="pub-brand">Built with NEXUS</span>
         </span>
       </header>
-      {/* hairline brand rule: the one warm gradient along the entire title bar */}
-      <div aria-hidden="true" className="h-px w-full bg-gradient-to-r from-transparent via-[var(--nexus-color-brand)]/60 via-40% to-transparent" />
       {actions ? (
-        <div className="w-full px-[var(--nexus-space-4)] pt-[var(--nexus-space-2)]">
+        <div className="pub-actions">
           <PublicationActions state={actions} />
         </div>
       ) : null}
@@ -177,9 +162,9 @@ export default async function PublishedPage({ params, searchParams }: Props) {
       {/* §85 第三十一片 / ADR-0074：自动选档。四份投影同一时刻在 DOM 里，媒体查询选一份；
           隐藏的几份 display:none（不进可访问树）。零 JS 也成立，且没有第二条渲染路径。 */}
       {auto ? <style data-published-auto>{publishedVariantsStyle()}</style> : null}
-      <div className="w-full overflow-x-auto p-[var(--nexus-space-4)]">
+      <div className="pub-stage">
         {variants.map(({ label, layout }) => (
-          <div key={label} data-published-variant={label} data-published-variant-width={layout.width}>
+          <div key={label} className="pb-variant" data-published-variant={label} data-published-variant-width={layout.width}>
             <PublishedFrame
               layout={layout}
               page={page}
@@ -199,7 +184,7 @@ export default async function PublishedPage({ params, searchParams }: Props) {
           两句键盘话是 §85 第三片量出来的：那条链只写"鼠标移到…点它"，只用键盘的人
           不知道自己也能走通（Tab 会停在热点上、Enter 真的翻页并上报），所以照实补上。 */}
       {hotspots.length ? (
-        <p className="px-[var(--nexus-space-4)] pt-[var(--nexus-space-3)] text-12 text-fg-2" data-interactive-note>
+        <p className="pub-note" data-interactive-note>
           这一版把「点击 → 跳到另一页」的交互跑起来了：鼠标移到可点的区域会亮一圈，点它翻到那一页；
           只用键盘也一样——Tab 会走到那块区域（同样亮一圈），按 Enter 翻到那一页。
           悬停、弹窗、状态切换等其余交互在这一版里不会发生。
@@ -209,32 +194,32 @@ export default async function PublishedPage({ params, searchParams }: Props) {
       {/* §50：这一版钉住了游戏设计才有这个入口。没有钉住就不出现，
           也不给一个"点进去说没有内容"的链接——那等于用入口骗一次点击 */}
       {publication.hasGame ? (
-        <p className="px-[var(--nexus-space-4)] pt-[var(--nexus-space-3)] text-12" data-published-play>
+        <p className="pub-entry" data-published-play>
           <a
             href={`${publication.path}/play`}
-            className="inline-flex min-h-6 items-center rounded bg-accent-2 px-3 py-1 text-accent-fg"
+            className="pub-playLink"
           >
             试玩这一版 →
           </a>
-          <span className="ml-2 text-11 text-fg-3">玩的是发布那一刻钉住的游戏设计，不是作者现在的工作稿</span>
+          <span className="pub-entryHint">玩的是发布那一刻钉住的游戏设计，不是作者现在的工作稿</span>
         </p>
       ) : null}
       {/* §40 × §56：分镜与游戏设计同一条口径——这一版钉住了分镜稿才有这个入口。
           只发布镜头表文本，不链接任何视频：本机没有真视频 provider（§159 不说有片可播） */}
       {publication.hasStoryboard ? (
-        <p className="px-[var(--nexus-space-4)] pt-[var(--nexus-space-3)] text-12" data-published-storyboard>
+        <p className="pub-entry" data-published-storyboard>
           <a
             href={`${publication.path}/storyboard`}
-            className="inline-flex min-h-6 items-center rounded bg-accent-2 px-3 py-1 text-accent-fg"
+            className="pub-storyboardLink"
           >
             查看分镜稿 →
           </a>
-          <span className="ml-2 text-11 text-fg-3">读的是发布那一刻钉住的镜头表，不是作者现在的工作稿</span>
+          <span className="pub-entryHint">读的是发布那一刻钉住的镜头表，不是作者现在的工作稿</span>
         </p>
       ) : null}
       {/* §168：被统计这件事要写在页面上，而不是只在代码注释里。
           这句是服务端渲染的——不执行 JS 的访客也看得见自己被统计了什么 */}
-      <p className="px-[var(--nexus-space-4)] pb-[var(--nexus-space-4)] text-11 text-fg-3" data-visit-notice>
+      <p className="pub-notice" data-visit-notice>
         这一页会统计作者的创作数据：打开次数、页面可见时的停留时长、以及最远滚到的高度比例。
         切走标签页的时间不计入时长。
       </p>

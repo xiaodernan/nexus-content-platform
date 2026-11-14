@@ -10,7 +10,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const rt = await import(pathToFileURL('./agents/runtime/dist/index.js').href);
-const { MemoryStore, ToolRegistry, registerMemoryTools, saveVectors, loadVectors, queryVectors } = rt;
+const { MemoryStore, ToolRegistry, registerMemoryTools, saveVectors, loadVectors } = rt;
 
 const JAIL = path.join(os.tmpdir(), 'nexus-memvec-proof').replace(/\\/g, '/');
 fs.rmSync(JAIL, { recursive: true, force: true });

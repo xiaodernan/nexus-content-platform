@@ -176,7 +176,6 @@ describe('design model: geometry + layout', () => {
     const frame = frameNode('Loop');
     frame.x = 0; frame.y = 0; frame.width = 50; frame.height = 50;
     doc = applyBatch(doc, userBatch([ops.addSubtree(pageId(doc), 0, [frame])]));
-    const page = doc.nodes[pageId(doc)]! as { childIds: string[] };
     // Hand-corrupt: make the frame its own descendant via the page.
     doc.nodes[frame.id] = { ...doc.nodes[frame.id]!, childIds: [pageId(doc)] } as never;
     const layout = layoutPage(doc, pageId(doc));

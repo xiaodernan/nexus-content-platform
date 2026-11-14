@@ -60,7 +60,7 @@ export function CodePanel() {
 
   if (!active) {
     return (
-      <p className="m-auto text-13 text-fg-3" data-code-empty>
+      <p className="cd-empty" data-code-empty>
         还没有页面可以生成代码。
       </p>
     );
@@ -96,8 +96,8 @@ export function CodePanel() {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-bg-0" data-code-view>
-      <div className="flex shrink-0 flex-wrap items-center gap-[var(--nexus-space-1)] border-b border-[var(--nexus-color-border-subtle)] bg-bg-1 px-[var(--nexus-space-2)] py-[var(--nexus-space-1)]">
+    <div className="cd-root" data-code-view>
+      <div className="cd-toolbar">
         {files.map((file) => (
           <button
             key={file.path}
@@ -109,9 +109,9 @@ export function CodePanel() {
             }}
             data-code-file={file.path}
             className={cn(
-              'rounded-[var(--nexus-radius-sm)] px-[var(--nexus-space-2)] py-1 font-mono text-12',
-              file.path === active.path ? 'bg-bg-3 text-fg-1' : 'text-fg-3 hover:bg-bg-2',
-              editing && 'cursor-not-allowed opacity-50',
+              'cd-fileBtn',
+              file.path === active.path && 'cd-fileBtnActive',
+              editing && 'cd-disabledForbidden',
             )}
           >
             {file.path.replace('components/nexus/', '')}
@@ -122,7 +122,7 @@ export function CodePanel() {
           onClick={() => {
             void navigator.clipboard?.writeText(active.contents);
           }}
-          className="ml-auto rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-[var(--nexus-space-2)] py-1 text-12 text-fg-2 hover:bg-bg-2"
+          className="cd-ghost cd-pushEnd"
           data-code-copy
         >
           复制
@@ -135,12 +135,7 @@ export function CodePanel() {
                 onClick={apply}
                 disabled={draft === active.contents}
                 data-code-apply
-                className={cn(
-                  'rounded-[var(--nexus-radius-sm)] border px-[var(--nexus-space-2)] py-1 text-12',
-                  draft === active.contents
-                    ? 'cursor-not-allowed border-[var(--nexus-color-border-subtle)] text-fg-3'
-                    : 'border-transparent bg-accent-2 text-accent-fg hover:opacity-90',
-                )}
+                className={cn('cd-apply', draft === active.contents && 'cd-applyIdle')}
               >
                 应用到模型
               </button>
@@ -148,7 +143,7 @@ export function CodePanel() {
                 type="button"
                 onClick={cancel}
                 data-code-cancel
-                className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-[var(--nexus-space-2)] py-1 text-12 text-fg-2 hover:bg-bg-2"
+                className="cd-ghost"
               >
                 取消
               </button>
@@ -161,21 +156,21 @@ export function CodePanel() {
                 setDraft(active.contents);
               }}
               data-code-edit
-              className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-[var(--nexus-space-2)] py-1 text-12 text-fg-2 hover:bg-bg-2"
+              className="cd-ghost"
             >
               编辑代码
             </button>
           ))}
       </div>
 
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto">
+      <div ref={scrollRef} className="cd-canvas">
         {editing ? (
           <textarea
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             spellCheck={false}
             data-code-editor
-            className="min-h-full w-full resize-none bg-bg-0 p-[var(--nexus-space-3)] font-mono text-12 leading-[1.6] text-fg-1 outline-none"
+            className="cd-editor"
           />
         ) : (
           <div data-code-file-path={active.path}>
@@ -183,16 +178,13 @@ export function CodePanel() {
               <div
                 key={`${active.path}:${index}`}
                 ref={index === hitIndex ? hitRef : null}
-                className={cn(
-                  'flex font-mono text-12 leading-[1.6]',
-                  index === hitIndex ? 'bg-accent-2/20 text-fg-1' : 'text-fg-2',
-                )}
+                className={index === hitIndex ? 'cd-lineHit' : 'cd-lineIdle'}
                 data-code-line={index === hitIndex ? 'selected' : undefined}
               >
-                <span className="w-[42px] shrink-0 select-none pr-[var(--nexus-space-2)] text-right text-fg-3">
+                <span className="cd-gutter">
                   {index + 1}
                 </span>
-                <span className="whitespace-pre pr-[var(--nexus-space-4)]">{line}</span>
+                <span className="cd-lineText">{line}</span>
               </div>
             ))}
           </div>
@@ -201,28 +193,28 @@ export function CodePanel() {
 
       {report && (
         <div
-          className="shrink-0 space-y-1 border-t border-[var(--nexus-color-border-subtle)] bg-bg-1 px-[var(--nexus-space-3)] py-[var(--nexus-space-2)] text-12"
+          className="cd-report"
           data-code-report
         >
           {report.applied ? (
-            <p className="text-fg-2" data-code-report-applied>
+            <p className="am-lede" data-code-report-applied>
               已回写 {report.applied} 处（Ctrl+Z 整体撤销）：
               {report.changed.map((entry) => (
                 <span
                   key={`${entry.nodeName}:${entry.line}`}
-                  className="ml-[var(--nexus-space-2)] text-fg-1"
+                  className="cd-changeName"
                 >
                   {entry.nodeName} → {entry.paths.join('、')}
                 </span>
               ))}
             </p>
           ) : (
-            <p className="text-fg-3" data-code-report-applied>
+            <p className="cd-appliedNone" data-code-report-applied>
               没有可回写的改动。
             </p>
           )}
           {report.unmapped.length > 0 && (
-            <ul className="text-warn-ink" data-code-report-unmapped>
+            <ul className="cd-warn" data-code-report-unmapped>
               {report.unmapped.map((entry) => (
                 <li key={`${entry.nodeName}:${entry.line}`}>
                   第 {entry.line} 行 {entry.nodeName}：{entry.reasons.join('；')} ——
@@ -232,7 +224,7 @@ export function CodePanel() {
             </ul>
           )}
           {report.issues.length > 0 && (
-            <ul className="text-warn-ink" data-code-report-issues>
+            <ul className="cd-warn" data-code-report-issues>
               {report.issues.map((issue) => (
                 <li key={issue}>{issue}</li>
               ))}
@@ -242,7 +234,7 @@ export function CodePanel() {
       )}
 
       <p
-        className="shrink-0 border-t border-[var(--nexus-color-border-subtle)] bg-bg-1 px-[var(--nexus-space-3)] py-[var(--nexus-space-2)] text-12 text-fg-3"
+        className="cd-hint"
         data-code-hint
       >
         {editing

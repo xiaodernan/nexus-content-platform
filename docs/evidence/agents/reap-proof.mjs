@@ -140,6 +140,7 @@ async function runKilled(tag, { mode, reapTree, journal, timeoutMs = null }) {
   let sampling = true;
   const samples = [];
   const sampler = (async () => {
+    // eslint-disable-next-line no-unmodified-loop-condition -- `sampling` 由闭包外的主体现在置位：这条规则只看循环体内有没有改它，看不到跨闭包的改写，所以它把一个会停的循环读成了「永不退出」。
     while (sampling) {
       await sleep(120);
       samples.push({ t: Date.now() - started, n: beats(`${tag}-g`) });

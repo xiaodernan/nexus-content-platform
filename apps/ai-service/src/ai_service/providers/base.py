@@ -24,8 +24,15 @@ class Completion:
     latency_ms: float
     # v690 增，零回归：provider 自己报的"这次命中多少已缓存的 prompt"与"推理用掉了多少 token"。
     # 默认 0：旧构造点/旧读法不感知两个新字段，解析失败或对端不报都取 0。
+    # （wkapi.pro → OpenAI automatic prompt caching 回 `prompt_tokens_details.cached_tokens`；
+    #  没有该字段的 provider 一律报 0，一字不猜。）
     cached_tokens: int = 0
     reasoning_tokens: int = 0
+    # §CACHE-2：provider **有没有**报 `prompt_tokens_details`。
+    # 这是 `cached_tokens=0` 之外必须单独存在的第二维：0 可能是"真的一个都没命中"，
+    # 也可能是"这个 provider / 这条路径根本不报"，两者在账本上不能混成一句话。
+    # 默认 False（旧构造点不感知，语义是"没报"而不是"报了 0"）。
+    cache_reported: bool = False
 
 
 @dataclass(frozen=True)
