@@ -22,6 +22,7 @@ const LINKS = [
   { key: 'rate-limit', href: '/admin/rate-limit', label: '限流闸' },
   { key: 'access', href: '/admin/access', label: '访问账' },
   { key: 'observability', href: '/admin/observability', label: '观测' },
+  { key: 'savings', href: '/admin/savings', label: 'AI 节省' },
   { key: 'dead-letters', href: '/admin/dead-letters', label: '死信' },
 ] as const;
 
