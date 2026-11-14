@@ -119,9 +119,9 @@ describe('§FE-BN /credits 燃烬速度卡（CreditsBurnCard）', () => {
     }
   });
 
-  it('SHA256 钉死（并轨后的本线字节）', () => {
+  it('SHA256 钉死（并轨 + v700.1 零态水印后的本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'd0deadaac09a352a73c26e64b0b3d744545f4a0f7e14bbb50ee2b37780cecc0e',
+      '73d81b9f1934df498a5686815c3681a3452458b384c29cb78255893d935e8bfc',
     );
   });
 });
