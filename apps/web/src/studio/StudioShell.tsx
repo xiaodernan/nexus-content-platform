@@ -339,7 +339,7 @@ function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zo
           </div>
           {/* 比较板是只读的：AI 命令栏改的是工作区那一份，在这儿会让人以为改的是某张卡 */}
           {/* 命令栏改的是设计工作区；方案板、世界图与游戏图都不是它的作用域 */}
-          {view === 'variants' || view === 'graph' || view === 'gamegraph' ? null : <CommandBar />}
+          {view === 'variants' || view === 'graph' || view === 'gamegraph' ? null : <CommandBar locale={locale} />}
         </main>
       </Profiler>
 

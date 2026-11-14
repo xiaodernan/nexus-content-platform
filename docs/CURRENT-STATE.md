@@ -3453,3 +3453,10 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   协议结算：PowerShell 直写跟踪文件 = UTF-16/BOM，切勿用；tracked 文件一律 write 工具或 node fs。
 - §FE-47 门去「studio.execute('删除 token ${token.key}' 字面量」改为 dict/call-site 双断言。
 - fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；StudioShell §FE-41 重钉（第 11 跳）。
+
+## cont. 118 (2026-11-16) - v749: CommandBar 双语化（§7 ⌘K AI 命令栏）
+- CommandBar.tsx zh/en 双字典：实时进度、审批卡+24h TTL 时钟、roster/职责/权限、Examples、
+  执行/取消/队列/approval TTL… 全部接 locale；locale 自 StudioShell 透传。REALTIME_TEXT_EN + ttlLabelEn 并入 lib（其它两个使用方不动）。
+- 事故自检：本片中间产生过残片式 stub（以为 ActivityFeed 不存在——HEAD 里它真实存在）→ 立刻恢复并双语化（executionPlan/taskCount）。
+- 撤销 Feed 已本地化(v748)，approval 剩余中文面在服务端（§46）。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；§FE-41 重钉（第十二跳）。
