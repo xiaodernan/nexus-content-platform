@@ -13959,10 +13959,51 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   nodes with lore across three eras plus 1 unlabeled entry -> page renders 4 lanes, 7 cards,
   correct seq numbering; screenshot captured (in turn report). Roundtrip through
   zod + validateWorld + storage preserves lore fields exactly.
-- Studio world panel gains **lore editing** for story/history nodes (era text input, max 80 chars,
-  order numeric, `patchLore` merge helper; whitespace era / non-integer / negative order are
-  un-set, both gone = lore cleared). `updateWorldNode` accepts `{ lore: WorldNodeLore | null }`
-  (`null` wipes the key; JSON roundtrip drops it, byte-identical to a pre-lore document).
-  Takeover note (2026-11-14): the sibling lane left this as uncommitted WIP; landed on main by
-  the primary lane with its Studio editor ported to the `.wd-*` façade (§FE gate re-pinned
-  ee3fadec -> 863b2154), `worldLore` 7/7, fe-gates 107/107 · 1087/1087.
+## v705.2 - Studio world panel gains the lore editor (2026-11-14, ADR 0136 amendment)
+
+- Story/history nodes now expose two inline fields in the Studio world panel: era (free text,
+  max 80 chars) and order (non-negative integer). Wire: patchLore (pure merge, clears blanks)
+  -> updateWorldNode (lore key added to the patch union; lore=null deletes the key) ->
+  worldStore -> validate -> PUT roundtrip.
+- patchLore is pure and unit-tested (blank handling, truncation, both-absent -> null removes
+  key, era/order semi-merge, negative/NaN rejected, existing bad values rejected).
+- Verified end-to-end on a fresh fixture project: skeleton created from the panel, both
+  story/history entries filled with era/order via the real inputs, save pushed, reload
+  (studio AND chronicle), eras persisted, chronicle renders the seeded era with correct
+  in-era sequencing (1/2, 2/2) plus an honest empty-width right lane.
+- Verification: 29/29 unit (worldLore + chronicle + world-model), tsc 0, direct eslint 0,
+  record-encoding green; arms-freshness green.
+- Takeover note (2026-11-14): the sibling lane left this as uncommitted WIP; landed on main
+  twice on different dates — first by the primary lane with its Studio editor ported to the
+  `.wd-*` façade (§FE gate re-pinned ee3fadec -> 863b2154), `worldLore` 7/7, fe-gates
+  107/107 · 1087/1087; then the sibling lane's own push reached origin, and the merge by the
+  primary lane (2026-11-14, same-day) resolved it as superset in the `.wd-*` façade with
+  §FE-48 SHA re-pinned once more (863b2154 -> 29e46e0b, v721 tide editor). Conflicts were
+  resolved §FE-façade-superset; the sibling lane's hex/mt-* raw atoms were re-housed into
+  `.wd-*`/`.crn-*`/`.cns-*` before every gate could legitimately go green again.
+## v705.3 - world chronicle gains memory echoes (2026-11-14, ADR 0136 amendment, cont. 100)
+
+- WorldNode.lore gains `memory?: string` (<= 240 chars, optional). Purely additive: old
+  documents unchanged byte-wise; zod WorldNodeSchema carries the same optional field;
+  validateWorld enforces non-empty-if-present and the 240-char cap (bad-lore on violation).
+- chronicle.ts projects it (cap 240); Studio world panel gains one input row per story/history
+  node (data-world-memory) with the same patchLore merge path as era/order.
+- Chronicle entry cards render the echo as a bordered italic line under the title; empty -> not drawn.
+- Verified end-to-end on the seeded fixture (project 1c3b87af, era already populated): PUT world
+  with memory populated on the two story/history nodes -> GET chronicle renders the echo inline.
+- Verification: 31/31 unit (worldLore + chronicle + world-model); tsc 0; eslint direct 0.
+- Docker down again this turn (7th outage today) - relaunched; nexus-postgres/redis healthy.
+## v706 - characters and chronicle share an era (2026-11-14, ADR 0137)
+
+- CharacterProfile.activeEra added (optional, <= 80 chars, additive, byte-compatible baseline).
+  zod schema carries the same field; old saves parse unchanged.
+- Studio character panel gains an "activeEra" text field (data-character-field="activeEra"),
+  type-union textField helper widened to accept it.
+- Constellation detail panel renders a pill (data-constellation-era) with the era when set.
+- Chronicle cards render a chip row of characters active in that era (data-chronicle-present),
+  each linking to /world/<id>/constellation?character=<id>. Page server-loads roster and passes
+  {id,name,activeEra} to ChronicleView.
+- Verified end-to-end: patched the seeded fixture's two characters to the seeded era;
+  chronicle page renders present-chips on the grey-lantern cards; screenshot captured.
+- Gates: tsc 0, per-file eslint 0, constellation+chronicle+world unit suites green.
+- Docker Desktop fifth outage this session; recovered; nexus-postgres healthy.

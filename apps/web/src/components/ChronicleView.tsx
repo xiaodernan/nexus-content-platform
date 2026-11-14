@@ -6,28 +6,40 @@ import { eraProgress } from '@/lib/chronicle';
 import type { EraTie } from '@/lib/era-ties';
 
 /**
- * 序言 — 同「人物星图」：世界文档的投影，全部从真实节点读。
+ * 「世界编年」—— 世界文献的投影，全部从真实节点读。
  *
  * 边界（诚实）：
  * - 这是投影，不是第二份真值：数据全来自世界文档的 story/history 条目；只是画出来。
- * - 父节点（era）是作者写的字面，**不是算法给的"历史感"**——用过的词就叫用过的词。
+ * - 纶元（era）是作者写的文字，**不是算法给的"历史感"**——用过的词就叫用过的词。
  * - 空状态如实渲染：没有 story/history 条目时就是空的编年册，不补假条目。
- * - 星图⇄编年双向联动（v710 §C）：本卷与哪些星图人物相连，由服务端算好（lib/era-ties，
+ * - 星图⇄编年双向联动（v710 §C）：哪些星图人物与本卷相连，由服务端算好（lib/era-ties，
  *   一跳、id 精确命中），本组件只渲染——零 provider，不做任何传递推断。
+ * - 在场人物（作者声明）：`CharacterProfile.activeEra === entry.era` 才算在场，
+ *   由作者在角色面板写进档案；chip 链接到 /world/<id>/constellation?character=<id>。
+ * - memory 回声来自 lore.memory（≤240 字，可选），只显示原文，不润色、不补叙事。
  *
  * §FE-CRN 门面版：全 .crn-*（零 hex，零裸 atom），暗空画布与色块全由 var(--nexus-color-*)
  * 与 color-mix 组合成；SVG/CSS backgrounds 不写死色。
  */
+
+interface PresentCharacter {
+  id: string;
+  name: string;
+  activeEra?: string;
+}
+
 export function ChronicleView({
   worldName,
   projectId,
   eras,
   ties,
+  characters = [],
 }: {
   worldName: string;
   projectId: string;
   eras: ChronicleEra[];
   ties?: EraTie[];
+  characters?: ReadonlyArray<PresentCharacter>;
 }) {
   const total = eras.reduce((a, e) => a + e.entries.length, 0);
 
@@ -40,7 +52,7 @@ export function ChronicleView({
         </svg>
         <h1 className="crn-emptyTitle">编年册还是空白</h1>
         <p className="crn-emptyCopy">
-          「{worldName}」的世界文档里还没有 story / history 条目。去 Studio 的世界面板写一段历史——哪怕一行——编年册就会长出第一个缝元。
+          「{worldName}」的世界文档里还没有 story / history 条目。去 Studio 的世界面板写一段历史——哪怕一行——编年册就会长出第一个纶元。
         </p>
       </main>
     );
@@ -54,7 +66,7 @@ export function ChronicleView({
           <h1 className="crn-title">世界编年</h1>
         </div>
         <div className="crn-headCounts" data-chronicle-counts>
-          <span>{eras.length} 个缝元</span>
+          <span>{eras.length} 个纶元</span>
           <span aria-hidden="true" className="crn-headDot">·</span>
           <span>{total} 条编年</span>
         </div>
@@ -67,9 +79,9 @@ export function ChronicleView({
             key={`${era.era}-${eraIndex}`}
             className="crn-era"
             data-chronicle-era={era.era}
-            aria-label={`缝元：${era.era}`}
+            aria-label={`纶元：${era.era}`}
           >
-            {/* 缝元背景光 */}
+            {/* 纶元背景光晕 */}
             <div
               aria-hidden="true"
               className="crn-eraGlow"
@@ -83,7 +95,7 @@ export function ChronicleView({
             <EraTiesStrip ties={ties} eraIndex={eraIndex} era={era.era} projectId={projectId} />
             <ol className="crn-list">
               {era.entries.map((entry, i) => (
-                <ChronicleCard key={entry.id} entry={entry} eraIndex={eraIndex} entryIndex={i} eras={eras} />
+                <ChronicleCard key={entry.id} entry={entry} eraIndex={eraIndex} entryIndex={i} eras={eras} characters={characters} projectId={projectId} />
               ))}
             </ol>
           </section>
@@ -91,7 +103,7 @@ export function ChronicleView({
       </div>
 
       <footer className="crn-footnote" data-chronicle-footnote>
-        只有 story / history 进编年 · era 是作者写的字，不是算法给的“历史感” · 顺序按 lore.order（缺省 updatedAt） · 本页零写库
+        只有 story / history 进编年 · era 是作者写的字面，不是算法给的"历史感" · 顺序按 lore.order（缺省 updatedAt）· 本页零写库
       </footer>
     </main>
   );
@@ -127,9 +139,10 @@ function EraTiesStrip({ ties, eraIndex, era, projectId }: { ties?: EraTie[]; era
   );
 }
 
-function ChronicleCard({ entry, eraIndex, entryIndex, eras }: { entry: ChronicleEntry; eraIndex: number; entryIndex: number; eras: ChronicleEra[] }) {
+function ChronicleCard({ entry, eraIndex, entryIndex, eras, characters, projectId }: { entry: ChronicleEntry; eraIndex: number; entryIndex: number; eras: ChronicleEra[]; characters?: ReadonlyArray<PresentCharacter>; projectId?: string }) {
   const progress = eraProgress(eras, eraIndex, entryIndex);
   const kindClass = entry.kind === 'history' ? 'crn-kindTag crn-kindTagHistory' : 'crn-kindTag';
+  const presentCharacters = characters?.filter((c) => c.activeEra && c.activeEra === entry.era) ?? [];
   return (
     <li
       className="crn-card"
@@ -141,7 +154,26 @@ function ChronicleCard({ entry, eraIndex, entryIndex, eras }: { entry: Chronicle
           <span className="crn-seq" data-chronicle-seq>{progress.current}/{progress.total}</span>
         ) : null}
       </div>
+      {presentCharacters.length > 0 ? (
+        <div className="crn-present" data-chronicle-present>
+          {presentCharacters.map((c) => (
+            <Link
+              key={c.id}
+              href={`/world/${projectId}/constellation?character=${c.id}`}
+              className="crn-presentLink"
+              data-chronicle-character={c.id}
+              title={`在 ${entry.era} 在场`}
+            >
+              <span aria-hidden="true" className="crn-presentDot" />
+              {c.name}
+            </Link>
+          ))}
+        </div>
+      ) : null}
       <p className="crn-titleRow">{entry.title}</p>
+      {entry.memory ? (
+        <p className="crn-memory" data-chronicle-memory>{entry.memory}</p>
+      ) : null}
       <time className="crn-time" dateTime={entry.updatedAt}>
         {entry.updatedAt.slice(0, 10)}
       </time>

@@ -1317,6 +1317,8 @@ export const WorldNodeSchema = z.object({
     .object({
       era: z.string().trim().min(1).max(80).optional(),
       order: z.number().int().min(0).optional(),
+      /** 记忆回声：感官碎片（声音 / 味道 / 触感 / 光线），不是剧情梗概。可选 ≤ 240 字 */
+      memory: z.string().trim().max(240).optional(),
     })
     .optional(),
 });
@@ -1441,6 +1443,8 @@ export const CharacterProfileSchema = z.object({
   style: z.string().max(2000).default(''),
   clothing: z.string().max(8000).default(''),
   traits: z.array(z.string().trim().min(1).max(500)).max(100).default([]),
+  /** §44 纪年：角色曾身处的纪元（自由文本，≤ 80）。可省——没有它，旧行字节级兼容 */
+  activeEra: z.string().trim().max(80).optional(),
 });
 
 export const CharacterSchema = z.object({

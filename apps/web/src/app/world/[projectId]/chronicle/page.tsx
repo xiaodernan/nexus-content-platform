@@ -18,8 +18,8 @@ export const metadata = {
 /**
  * 「世界编年」—— 世界的年表。只有项目作者能进（与 /world 同一道门）。
  * 数据来自世界文档的 story/history 条目；世界读不出来 ⇒ 年表不画，页面说明缺什么（同 §500、不假装）。
- * 星图⇄编年双向联动（v710 §C）：服务端把人物 relationships 命中的本卷条目算成 ties，
- * 交给 ChronicleView 渲染「本卷活跃的星图人物」——零 provider、纯函数、如实空白。
+ * 星图⇄编年双向联动（v710 §C）：服务端把人物 relationships 命中的本卷条目算成 ties；
+ * 同时把作者声明的 activeEra 角色带进在场 chips —— 两套口径都是真值、都如实投影。
  */
 export default async function ChroniclePage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
@@ -39,6 +39,12 @@ export default async function ChroniclePage({ params }: { params: Promise<{ proj
     eras.map((era) => ({ era: era.era, entries: era.entries.map((entry) => ({ id: entry.id })) })),
     roster.items,
   );
+  // 作者声明的在场：character.profile.activeEra === entry.era（逐字匹配，不推断）
+  const characters = roster.items.map((character) => ({
+    id: character.id,
+    name: character.profile.name || '（没有名字）',
+    activeEra: character.profile.activeEra,
+  }));
 
-  return <ChronicleView worldName={project.name} projectId={projectId} eras={eras} ties={ties} />;
+  return <ChronicleView worldName={project.name} projectId={projectId} eras={eras} ties={ties} characters={characters} />;
 }

@@ -212,6 +212,7 @@ export function WorldPanel() {
                       className="wd-areaResizeMt"
                     />
                     {node.kind === 'story' || node.kind === 'history' ? (
+                      <>
                       <div className="wd-rowMt1" data-world-lore-row={node.id}>
                         <label htmlFor={`world-era-${node.id}`} className="wd-faint11shrink">
                           纪元
@@ -252,6 +253,21 @@ export function WorldPanel() {
                         />
                         <span className="wd-faint11">0 最早，缺省按 updatedAt 排</span>
                       </div>
+                      <input
+                        type="text"
+                        value={node.lore?.memory ?? ''}
+                        maxLength={240}
+                        placeholder="记忆回声：那一刻的感官（声音 / 味道 / 触感 / 光线）—— 不是剧情，是刻痕"
+                        aria-label={`记忆回声 ${node.title}`}
+                        data-world-memory={node.id}
+                        onChange={(e) => {
+                          const merged = patchLore(node.lore, { memory: e.target.value });
+                          edit(updateWorldNode(world, node.id, { lore: merged }));
+                        }}
+                        onBlur={() => edit(world, true)}
+                        className="wd-growInput"
+                      />
+                      </>
                     ) : null}
                     <div className="wd-rowMt1">
                       <label htmlFor={`world-elevation-${node.id}`} className="wd-faint11shrink">

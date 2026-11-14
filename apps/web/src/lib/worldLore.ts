@@ -10,11 +10,13 @@
 export interface WorldLoreInput {
   era?: string;
   order?: number | string;
+  memory?: string;
 }
 
 export interface WorldLore {
   era?: string;
   order?: number;
+  memory?: string;
 }
 
 export function patchLore(existing: WorldLore | undefined, patch: Partial<WorldLoreInput>): WorldLore | null {
@@ -33,9 +35,13 @@ export function patchLore(existing: WorldLore | undefined, patch: Partial<WorldL
     order = existing.order;
   }
 
+  const memoryRaw = patch.memory !== undefined ? patch.memory : existing?.memory;
+  const memory = typeof memoryRaw === 'string' && memoryRaw.trim().length > 0 ? memoryRaw.trim().slice(0, 240) : undefined;
+
   const out: WorldLore = {
     ...(era !== undefined ? { era } : {}),
     ...(order !== undefined ? { order } : {}),
+    ...(memory !== undefined ? { memory } : {}),
   };
   return Object.keys(out).length > 0 ? out : null;
 }

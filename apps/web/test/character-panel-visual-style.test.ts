@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
  * tab（cp-tabOn/Idle）· save（cp-saveReady/Idle）· notice（cp-noticeRow/Error/Idle）。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + INPUT 共享类常量归一（多行）+ className 任意形态归一 @ + cn()整体归一 + `className=@` 归一）：
- * `db5864a8548a6fe699bd205d294660f90c0dc575aabec558f8a7e3bab4ceb048` 与 HEAD 字节一致。
+ * `8b24672866df75441f49174b5e6cf7073d024499a329fd7d9171b3ab52ca6d55` 与 HEAD 字节一致。
  *
  * 判据不变式（12 门）：
  *  1. 'use client' 保留 + studio.save/generatePortrait/delete 依赖链进门；2. 字面 className 全 `.cp-*`/复用 `.wd-*`/复用 `.gp-*`（含 cn 三元分支）；
@@ -157,9 +157,9 @@ describe('§FE-51 /studio CharacterPanel 角色面板', () => {
     }
   });
 
-  it('剥 className/cn/INPUT 共享常量后全文 SHA256 守恒（零行为：db5864a8548a6fe699bd205d294660f90c0dc575aabec558f8a7e3bab4ceb048）', () => {
+  it('剥 className/cn/INPUT 共享常量后全文 SHA256 守恒（零行为：8b24672866df75441f49174b5e6cf7073d024499a329fd7d9171b3ab52ca6d55）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'db5864a8548a6fe699bd205d294660f90c0dc575aabec558f8a7e3bab4ceb048',
+      '8b24672866df75441f49174b5e6cf7073d024499a329fd7d9171b3ab52ca6d55',
     );
   });
 });

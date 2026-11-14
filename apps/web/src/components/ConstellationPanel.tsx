@@ -204,6 +204,12 @@ export function ConstellationPanel({
               </a>
             </div>
             {selected.profile.identity ? <p className="cns-identity" data-constellation-identity>{selected.profile.identity}</p> : null}
+            {selected.profile.activeEra ? (
+              <p className="cns-era" data-constellation-era>
+                <span aria-hidden="true" className="cns-eraDot" />
+                {selected.profile.activeEra}
+              </p>
+            ) : null}
             {selected.profile.personality ? <p className="cns-personality">{selected.profile.personality}</p> : null}
 
             {selected.profile.visualIdentity.palette.length > 0 ? (
