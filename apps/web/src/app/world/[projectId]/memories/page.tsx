@@ -62,6 +62,7 @@ export default async function MemoriesPage({ params }: { params: Promise<{ proje
           <a href={`/world/${projectId}/atlas`} className="rounded-md border border-[#232b52] bg-[#0d1230]/70 px-3 py-1.5 text-11 text-[#c6cdf5] transition-colors hover:border-[#3a4472] hover:text-white">寰宇图志</a>
           <a href={`/world/${projectId}/chronicle`} className="rounded-md border border-[#232b52] bg-[#0d1230]/70 px-3 py-1.5 text-11 text-[#c6cdf5] transition-colors hover:border-[#3a4472] hover:text-white">世界编年</a>
           <a href={`/world/${projectId}/constellation`} className="rounded-md border border-[#232b52] bg-[#0d1230]/70 px-3 py-1.5 text-11 text-[#c6cdf5] transition-colors hover:border-[#3a4472] hover:text-white">角色星图</a>
+          <a href={`/world/${projectId}/quiz`} className="rounded-md border border-[#3a2f17] bg-[#1a1610]/70 px-3 py-1.5 text-11 text-[#e8d5a4] transition-colors hover:border-[#c9a86a]/60 hover:text-[#f5edd9]">谜灯馆</a>
         </nav>
       </header>
 

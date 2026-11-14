@@ -7,6 +7,7 @@ import { requireUser } from '@/server/domain/session';
 import { listCharacters } from '@/server/domain/characters';
 import { WORLD_KIND_LABELS, type WorldKind } from '@nexus/world-model';
 import { buildChronicle, type ChronicleNodeInput } from '@/lib/chronicle';
+import { buildQuiz, seedFromString, type QuizNodeInput } from '@/lib/quiz';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,6 +43,16 @@ export default async function AlmanacPage({ params }: { params: Promise<{ projec
     updatedAt: typeof n.updatedAt === 'string' ? n.updatedAt : '',
     lore: n.lore,
   }));
+  const quizInput: QuizNodeInput[] = nodes.map((n) => ({
+    id: n.id,
+    kind: n.kind as string,
+    title: typeof n.title === 'string' ? n.title.trim() : '',
+    body: typeof n.body === 'string' ? n.body.trim() : '',
+    updatedAt: typeof n.updatedAt === 'string' ? n.updatedAt : '',
+    lore: n.lore,
+  }));
+  const quizSeed = seedFromString(worldOk?.id ?? projectId) ^ 0x1e3779b9;
+  const quizRounds = buildQuiz(quizInput, quizSeed >>> 0).length;
   const eras = buildChronicle(chronicleInput);
   const storyHistory = eras.reduce((acc, e) => acc + e.entries.length, 0);
   const spaceCount = (countByKind.get('geography') ?? 0) + (countByKind.get('factions') ?? 0);
@@ -59,6 +70,7 @@ export default async function AlmanacPage({ params }: { params: Promise<{ projec
     { vol: '卷二', title: '寰宇图志', href: `/world/${projectId}/atlas`, count: `${spaceCount} 座星位`, note: '地理与势力在夜图上星火对峙（黄金角排布）' },
     { vol: '卷三', title: '记忆回廊', href: `/world/${projectId}/memories`, count: `${memories.length} 道回声`, note: '每一条都是"你在场时听到了什么"' },
     { vol: '卷四', title: '角色星图', href: `/world/${projectId}/constellation`, count: `${characters.items.length} 位人物`, note: '全档人物与骨架节点，一张可以步行的星图' },
+    { vol: '卷五', title: '谜灯馆', href: `/world/${projectId}/quiz`, count: `${quizRounds} 盏灯`, note: '凭记忆为这座世界点灯——题面全出自世界文档' },
   ];
 
   return (

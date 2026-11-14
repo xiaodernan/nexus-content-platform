@@ -280,6 +280,13 @@ export function WorldGraphView() {
           记忆回廊
         </a>
         <a
+          href={`/world/${studio.projectId}/quiz`}
+          className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-2 hover:bg-bg-3"
+          data-enter-quiz
+        >
+          谜灯馆
+        </a>
+        <a
           href={`/world/${studio.projectId}/chronicle`}
           className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-2 hover:bg-bg-3"
           data-enter-chronicle

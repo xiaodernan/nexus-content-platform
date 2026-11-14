@@ -3048,3 +3048,33 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - CI at record time: 84f7f0d CI+main-line SUCCESS; bf84954 CI+main-line SUCCESS;
   63069f7 main-line SUCCESS (CI in_progress); c28ad48 main-line SUCCESS (CI in_progress);
   a092ee9 main-line SUCCESS (CI in_progress); 3233c93/7284152/738dfb7 queued.
+## cont. 113 (2026-11-14) - v717 landed: 谜灯馆 lantern-trial quiz (/world/<id>/quiz)
+
+- New interactive module: a seeded 8-lamp memory trial generated FROM the world document
+  (zero invented content): family A = memory echo -> which era (era pool must be >=4, else
+  skipped); family B = body excerpt -> which entry (distractors are real story/history titles);
+  one relic holds one lamp max (source-id dedupe across families); mulberry32+FNV-1a PRNG;
+  identical seed => identical rounds; verdict ladder (无灯/初来乍到/一枚灯芯/半盏灯/整船灯芯/灯海).
+- Zero persistence, zero writes, member-gated (projectVisibleTo), empty state honest when the
+  world has no qualifying entries; a11y: radiogroup semantics + 甲乙丙丁 affordances, aria-live verdict,
+  full keyboard play.
+- Fixture verification (星图 MWG35NRI, 23 entries): Playwright login -> A-family round renders
+  the verbatim echo with 4 era options, walkthrough to verdict "一枚灯芯 2/6", recap rows=6
+  (source dedupe enforced), replay button works; almanac now shows FIVE doors (卷五 谜灯馆);
+  quiz unit 12/12; tsc 0; eslint 0 on 8 touched files; chronicle unit unchanged 6/6.
+- Studio top-bar gains 谜灯馆 (data-enter-quiz); almanac door auto-counts lamps; atlas/memories/
+  chronicle shared nav rows gain the chip; constellation stays h-dvh clean on purpose.
+- ADR 0145: the lantern-trial decision record (families, dedupe口径, seeds, verdict scale,
+  honest narrowings: no persistence, A-family gap on tiny era pools, 140-char prompt window).
+- LLM A/B measurement (control: identical WkapiPro /v1/chat/completions, N=6 both arms):
+  SSE default (3200) 79.4% prefix cache, non-stream (3202, NEXUS_LLM_STREAM=0) 79.4%;
+  cached per call identical (4480/4699 tokens); warm-repeat 4-5ms both; p50 2660 vs 2185ms
+  (noise). The "streaming shows better cache" hypothesis is REFUTED by controlled A/B -
+  variance is upstream channel roulette, not the wire format; app-level Redis cache remains
+  the deterministic guarantor (B round 4-5 ms both arms). ~32 real wkapi.pro calls this turn
+  (16 A/B + rest); error rate 0% both arms.
+- CI at record time: 1d127b9 in_progress (main-line + CI); 738dfb7 CI in_progress (main-line
+  SUCCESS); 7284152 CI in_progress (main-line SUCCESS); 3233c93 in_progress (main-line SUCCESS);
+  a092ee9 CI in_progress (main-line SUCCESS); 63069f7 CI in_progress (main-line SUCCESS);
+  c28ad48 CI SUCCESS; 84f7f0d CI SUCCESS; bf84954 CI SUCCESS. Not claiming until runner.
+- Docker Desktop outage count today: 15. Self-healed; sibling deployments 3100/3200 untouched.
