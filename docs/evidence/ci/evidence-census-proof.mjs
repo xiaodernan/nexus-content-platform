@@ -366,14 +366,20 @@
 // those numbers — so 131 becomes 132 in twelve families. Measured at this ref, and printed by this run every time:
 // the manifest holds 127 `verify:*` names closing as 117 derived rows + 2 runner + 1 covered + 7 deferred + 0
 // undispositioned over 16 run commands the workflow executes, and the tools population is 17 modules closing as 2
-// runner + 4 reached + 7 named + 0 behind + 4 standby + 0 unreached over a live closure of 132. What the guard is
+// runner + 4 reached + 7 named + 0 behind + 4 standby + 0 unreached over a live closure of 132. v651 (this
+// increment) widened the proof to BOTH doors (ci.yml and main-line.yml, RUN_RE admitting `tsx`) and wired the three
+// FE-gate doors into main-line.yml, so the same run now prints: the manifest holds 137 names closing as 119 derived
+// rows + 9 runner + 1 covered + 8 deferred + 0 undispositioned over 40 run commands the workflows execute, and the
+// tools population is 20 modules closing as 5 runner + 4 reached + 7 named + 0 behind + 4 standby + 0 unreached. What the guard is
 // worth was measured rather than argued: with the new workflow step deleted from the worktree — nothing else
 // touched — this census exits 1 naming `verify:lint-tree`, and the ci.yml bytes restored from the index are
 // identical to what they were.
 //
 // v650 (amendment 575) MOVED the run-command tally above from 16 to 19 without this census changing a line: the
 // warm step became four explicit per-module `mvn` lines and `cache-dependency-path` became a four-path block, so
-// the number is a projection of `.github/workflows/ci.yml` and nothing else. Said plainly because it is a face
+// the number was a projection of `.github/workflows/ci.yml` alone. v651 (this increment) widened the projection to
+// both doors (`ci.yml` and `main-line.yml`), so the tally is the sum of both workflows' run lines and the print
+// names both files. Said plainly because it is a face
 // this census does NOT charge: the row totals, the fixture arms and the README headline are re-read every run,
 // while a hand-copied count in a comment is only as live as the person who last looked at the print. The door
 // that refuses a stale copy of THAT number is owed, and owed is how it is recorded.
@@ -394,8 +400,8 @@ const SWEEP_DIR = 'docs/evidence/agents/';
 const TOOLS_DIR = 'tools/';
 /** The extensions a checkout can RUN. A new one is admitted by this census the day it appears, as unclassified. */
 export const MODULE_RE = /\.(mjs|cjs|js|mts|cts|ts)$/;
-const RUN_RE = /^node +(\S+\.(?:mjs|cjs|js|mts|cts|ts))$/;
-const RUN_HEAD_RE = /^node +(\S+\.(?:mjs|cjs|js|mts|cts|ts))\b/;
+const RUN_RE = /^(?:node|tsx) +(?:--[A-Za-z0-9-]+(?:(?:=| +)[^\s]+)? +)*(\S+\.(?:mjs|cjs|js|mts|cts|ts))$/;
+const RUN_HEAD_RE = /^(?:node|tsx) +(?:--[A-Za-z0-9-]+(?:(?:=| +)[^\s]+)? +)*(\S+\.(?:mjs|cjs|js|mts|cts|ts))\b/;
 
 /**
  * The modules a human runs on purpose, and the three the build cannot run yet — each with the reason, such
@@ -457,7 +463,16 @@ export const ROSTER = [
   // deferral that outlives its blocker is the stale record this census refuses in the other direction.
 ];
 
-const WORKFLOW_FILE = '.github/workflows/ci.yml';
+// v651 (this increment) - TWO DOORS, ONE PROJECTION. This census had read `.github/workflows/ci.yml` alone
+// since v575's amendment, and the main-line door (`.github/workflows/main-line.yml`) is the same kind of CI:
+// it runs `npm run verify:topology`, `verify:lb`, `verify:auth` and `verify:actuator` (five JVMs through the
+// Spring Cloud door) and now also `verify:fe-gates`, `verify:census` and `verify:no-raw-tailwind`. A projection
+// of ci.yml alone declared those four Spring Cloud doors UNDISPOSITIONED — they were never unrun, only unseen.
+// Both files are the projection now; every message names both; RUN_RE admits `tsx` (the shape the main-line
+// callers use), and a workflow run line in either file discharges a `runner` disposition. ci-wiring still
+// grades ci.yml alone, and the main-line door is not the studio line's contract.
+const WORKFLOW_FILES = ['.github/workflows/ci.yml', '.github/workflows/main-line.yml'];
+const WORKFLOW_FILE = WORKFLOW_FILES.join(' + ');
 
 /**
  * The manifest's other half: every `verify:*` script the admission rule does NOT turn into a row, disposed by
@@ -502,7 +517,7 @@ export const MANIFEST = [
     class: 'deferred',
     run: 'npm run verify:studio',
     reach: 'tools/harness/cdp.mjs',
-    measured: '270 lines; navigates 127.0.0.1:3210 and compares a PNG baseline through tools/harness/png.mjs; starts nothing itself (no createServer, no spawn in its own bytes)',
+    measured: '269 lines; navigates 127.0.0.1:3210 and compares a PNG baseline through tools/harness/png.mjs; starts nothing itself (no createServer, no spawn in its own bytes)',
     blocker: 'a Studio served on 127.0.0.1:3210 by a person who ran `npm run dev` first - the proofs step owns no long-lived dev server, and one would hold the 60-minute job ceiling for every row behind it',
     next: 'stand up its own Studio the way docs/evidence/m7/studio-publish.mjs does (amendment 534 moved that proof into docs/evidence for exactly this reason), then it becomes a derived row',
     why: 'the golden-path walk is real-browser evidence, and real-browser evidence with an unstalled prerequisite is a script a person runs, not a door the build walks',
@@ -556,6 +571,58 @@ export const MANIFEST = [
     blocker: 'a served Studio on 127.0.0.1:3210 and a Chrome binary; its screenshots land in docs/evidence/studio/, so a build run would rewrite evidence bytes it is also grading',
     next: 'stand up its own Studio the way docs/evidence/m7/studio-publish.mjs does (amendment 534), write its captures to a scratch plane instead of the graded tree, then move it under docs/evidence so PROOF_COMMAND derives it',
     why: 'a proof that writes into the tree it grades is the rot this census names elsewhere, so its capture path is part of the repair, not a footnote to it',
+  },
+  {
+    name: 'verify:topology',
+    class: 'runner',
+    run: 'npm run verify:topology',
+    why: 'the Spring Cloud live door: the `topology` job of main-line.yml (not ci.yml — this census read only ci.yml until v651 and could not see it) packages the registry, config, domain-service, gateway and nexus-api, starts them and asserts the round trip. A `runner` here means CI really executes the name, and the file is the one the callers walk',
+  },
+  {
+    name: 'verify:lb',
+    class: 'runner',
+    run: 'npm run verify:lb',
+    why: 'the Spring Cloud load-balancer door: the `topology` job runs it after verify:topology with two domain-service JVMs under one service id — measured round-trip through the gateway. It was never unrun, only unseen by a projection that read one workflow',
+  },
+  {
+    name: 'verify:auth',
+    class: 'runner',
+    run: 'npm run verify:auth',
+    why: 'the Spring Cloud authentication door: the `topology` job runs it third — 401 without a token, 401 for wrong-secret/expired/garbage, 200 with a valid token round-tripping X-Nexus-Subject, and the platform surfaces whitelisted/protected. Same gap as its three siblings: run by main-line.yml, invisible to a ci.yml-only projection',
+  },
+  {
+    name: 'verify:actuator',
+    class: 'runner',
+    run: 'npm run verify:actuator',
+    why: 'the Spring Cloud actuator door: the `topology` job runs five JVMs, one per service, asserting /actuator/health 200 UP with details hidden plus /actuator/info build-info artifact+component, and the domain-service ai-service circuit breaker surface. Runs in main-line.yml since it was written; the ci.yml-only projection reddened it as a script nobody ever executed — that was the projection being narrow, not the door being idle',
+  },
+  {
+    name: 'verify:fe-gates',
+    class: 'runner',
+    run: 'npm run verify:fe-gates',
+    why: 'the main line\'s hundred facade gates: the gates job of main-line.yml (added at v651, alongside verify:census and verify:no-raw-tailwind) calls it directly, so the name is a door CI really walks rather than a promise a person keeps locally. The main-line door is the right home for them — the studio line\'s ci.yml does not name this tree',
+  },
+  {
+    name: 'verify:census',
+    class: 'runner',
+    run: 'npm run verify:census',
+    why: 'the facade census — every class globals.css defines must be referenced somewhere in the tracked tree. Added to the gates job of main-line.yml at v651, so the honest claim is "CI runs it", not "a person runs it locally" — the v609-era reality was a locally-kept gate, which is what nobody keeps',
+  },
+  {
+    name: 'verify:no-raw-tailwind',
+    class: 'runner',
+    run: 'npm run verify:no-raw-tailwind',
+    why: 'the raw-atom scrub: every className must come from the facade families, no arbitrary Tailwind atoms. Added to the gates job of main-line.yml at v651 with its two siblings; without it the gates job would typecheck, lint and eval the tree and never notice a page silently re-acquiring raw atoms — the drift nobody sees when it is nobody\'s job',
+  },
+  {
+    name: 'verify:cost-ledger',
+    class: 'deferred',
+    run: 'npm run verify:cost-ledger',
+    reach: 'apps/web/src/server/domain/costLedger',
+    measured: '16 lines; prints the §COST-1 ledger for the given window (rows / ΣtokensIn / cached share / per-basis and per-model breakdown) by reading agent_tasks.usage straight from the live Postgres, read-only — no writes, no provider, no migration',
+    blocker: 'the probe needs a live Postgres with the web schema; no workflow door dedicates a step to it yet (main-line.yml has the service, nothing calls the name), and this box\'s own run on 2026-11-14 read the authoring store: 253 rows / 349,695 tokensIn / 20,842 cached (6%), every row legacy. A gate nobody schedules is documentation that looks like machinery',
+    next: 'either wire `npm run verify:cost-ledger` into main-line.yml\'s gates job (unambiguous once the measurements have an owner) or delete the script; the halfway state — an authoring-box probe with a name in package.json and no door — is the exact rot this census exists to stop',
+    why: 'the ledger probe is real evidence about the live store; leaving it undispositioned would both redden this census and pretend observability that nothing enforces or schedules',
   },
 ];
 
@@ -817,7 +884,7 @@ export const TOOLS_STANDBY = [
   {
     path: 'tools/ci/record-encoding-repair.mjs',
     reachedBy: 'docs/evidence/agents/record-repair-proof.mjs',
-    measured: '367 lines read off the index at this ref; its grader holds the path in `const TOOL = ...`, reaches it with `await import(pathToFileURL(join(root, TOOL)))` and spawns it three times (two --write, one --plan)',
+    measured: '366 lines read off the index at this ref; its grader holds the path in `const TOOL = ...`, reaches it with `await import(pathToFileURL(join(root, TOOL)))` and spawns it three times (two --write, one --plan)',
     blocker: 'the grader is SWEPT, not a row: no verify:* script names docs/evidence/agents/record-repair-proof.mjs, so nothing the build walks reaches this tool through it and the repair runs only when a person runs the agents sweep',
     next: 'name the grader a row — verify:record-repair = node docs/evidence/agents/record-repair-proof.mjs, in the package.json the m9 lane holds uncommitted — and give the grader a relative import of this path, which DERIVES the tool as reached and deletes this entry',
     why: 'this repairer is the derived machinery for a whole defect class (a writer channel that mangles records), so an unreached file here is a fix nobody can prove still runs',
@@ -2815,8 +2882,8 @@ async function main() {
   // one of the derived rows naming a deleted proof would be.
   const index = (await sweep.gitText(['ls-files'], ROOT)).split(/\r?\n/).map((s) => s.trim()).filter(Boolean).sort();
   assert.ok(index.length >= tracked.length, `the whole index (${index.length}) is smaller than the evidence half (${tracked.length}) — a listing that cannot hold its own subset is a broken git call, not a tree`);
-  assert.ok(existsSync(join(ROOT, WORKFLOW_FILE)), `${WORKFLOW_FILE} is missing — no disposition can be checked against a workflow that is not in the tree`);
-  const workflow = readFileSync(join(ROOT, WORKFLOW_FILE), 'utf8');
+  for (const f of WORKFLOW_FILES) assert.ok(existsSync(join(ROOT, f)), `${f} is missing — no disposition can be checked against a workflow that is not in the tree`);
+  const workflow = WORKFLOW_FILES.map((f) => readFileSync(join(ROOT, f), 'utf8')).join('\n');
 
   const indexSwept = tracked.filter((f) => f.startsWith(SWEEP_DIR) && f.endsWith('-proof.mjs')).sort();
   const headSwept = (await sweep.trackedProofs('HEAD', ROOT)).slice().sort();

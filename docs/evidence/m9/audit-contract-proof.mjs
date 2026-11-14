@@ -71,7 +71,7 @@
 //
 // Requires nothing but Node:  node docs/evidence/m9/audit-contract-proof.mjs
 import assert from 'node:assert/strict';
-import { readFileSync, mkdtempSync, writeFileSync, rmSync, readdirSync } from 'node:fs';
+import { readFileSync, mkdtempSync, writeFileSync, rmSync, readdirSync, existsSync, mkdirSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { pathToFileURL, fileURLToPath } from 'node:url';
@@ -296,8 +296,24 @@ export const probe = [anonymous, named, future];
 // in a copied module is rewritten to its `.mjs` twin before it can be imported.
 const toMjs = (src) => src.replace(/from '(\.[^']+)'/g, "from '$1.mjs'");
 
+/**
+ * The box's ONLY window on the workspace: `node_modules/@nexus` as a junction to the root's own namespace.
+ * Without it every `@nexus/*` specifier the copied modules carry — `@nexus/economy/community`,
+ * `@nexus/economy/pageShell` — can be found by TypeScript's resolver nowhere, and the copy is a module
+ * that cannot run. The junction points at the SAME namespace the workspace resolution uses (its entries
+ * are themselves junctions into `packages/*`), so the box grades the shipped bytes, never a stale copy.
+ * Idempotent per box; junction needs no elevation on Windows, and `dir` is what POSIX hands back.
+ */
+function linkNexusNamespace(box) {
+  const boxNm = join(box, 'node_modules');
+  if (existsSync(join(boxNm, '@nexus'))) return;
+  mkdirSync(boxNm, { recursive: true });
+  symlinkSync(join(process.cwd(), 'node_modules', '@nexus'), join(boxNm, '@nexus'), process.platform === 'win32' ? 'junction' : 'dir');
+}
+
 async function copyIntoBox(box, rel) {
   const { stripTypeScriptTypes } = await import('node:module');
+  linkNexusNamespace(box);
   const dest = join(box, rel.split('/').pop().replace(/\.tsx?$/, '.mjs'));
   writeFileSync(dest, toMjs(stripTypeScriptTypes(readFileSync(rel, 'utf8'), { mode: 'strip' })), 'utf8');
   return dest;

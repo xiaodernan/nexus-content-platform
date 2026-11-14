@@ -3843,7 +3843,7 @@
   }
 }
 
-/* 鈹€鈹€ 搂FE-GE 鏍圭骇閿欒杈圭晫锛坅pp/error.tsx锛屽苟琛岀嚎 cont. 74 甯﹀叆銆佸悎骞跺悗闂ㄩ潰鍖栵級鈹€鈹€鈹€鈹€
+/* 鈹€鈹€ §FE-GE 鏍圭骇閿欒杈圭晫锛坅pp/error.tsx锛屽苟琛岀嚎 cont. 74 甯﹀叆銆佸悎骞跺悗闂ㄩ潰鍖栵級鈹€鈹€鈹€鈹€
  * 涓€娆¤瘹瀹炵殑鐘舵€侀〉锛氱孩鑹茶鍛婄鍙?+ 浜у搧璇█璇存槑 + 涓や釜鐪熷疄鍔ㄤ綔銆? * 闆惰８鍘熷瓙锛涢敊璇湰韬彧杩?console锛屼笉杩?DOM 鐨勫爢鏍堛€?*/
 .ge-shell { position: relative; display: flex; min-height: 70vh; max-width: 42rem; margin-inline: auto; flex-direction: column; align-items: center; justify-content: center; gap: var(--nexus-space-5); padding: var(--nexus-space-12) var(--nexus-space-6); text-align: center; }
 .ge-glow { position: absolute; z-index: -1; width: 16rem; height: 16rem; border-radius: var(--nexus-radius-full); background: radial-gradient(circle, rgb(242 85 90 / 0.14), transparent 70%); filter: blur(48px); }
@@ -3857,7 +3857,7 @@
 .ge-btnGhost { display: inline-flex; min-height: 44px; align-items: center; border-radius: var(--nexus-radius-md); border: 1px solid var(--nexus-color-border-strong); background: var(--nexus-color-bg-2); color: var(--nexus-color-fg-1); padding: var(--nexus-space-2) var(--nexus-space-5); font-size: var(--nexus-font-size-14); font-weight: 500; text-decoration: none; transition: border-color 0.15s ease, background 0.15s ease; }
 .ge-btnGhost:hover { border-color: var(--nexus-color-brand); background: var(--nexus-color-bg-3); }
 
-/* 鈹€鈹€ 搂FE-DL `/admin/dead-letters` 姝讳俊宸℃锛堝苟琛岀嚎 v689 / ADR 0122 甯﹀叆锛夆攢鈹€鈹€鈹€鈹€鈹€
+/* 鈹€鈹€ §FE-DL `/admin/dead-letters` 姝讳俊宸℃锛堝苟琛岀嚎 v689 / ADR 0122 甯﹀叆锛夆攢鈹€鈹€鈹€鈹€鈹€
  * 姣掓秷鎭殧绂诲悗鐨勫彧璇荤獥鍙ｏ細KPI 蹇収 + 鏉＄洰鍒楄〃 + 娓告爣鍒嗛〉銆傞浂瑁稿師瀛愩€?*/
 .dl-card { border-radius: var(--nexus-radius-md); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); padding: var(--nexus-space-4); }
 .dl-cardWarn { border-radius: var(--nexus-radius-md); border: 1px solid var(--nexus-color-warn); background: var(--nexus-color-bg-1); padding: var(--nexus-space-6); }
@@ -3883,7 +3883,7 @@
 .dl-footNote { color: var(--nexus-color-fg-3); }
 .dl-end { color: var(--nexus-color-fg-3); }
 
-/* 鈹€鈹€ 搂FE-ASH `/u` 浣滆€呭箍鍦猴紙authors showcase锛屽苟琛岀嚎甯﹀叆锛夆攢鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+/* 鈹€鈹€ §FE-ASH `/u` 浣滆€呭箍鍦猴紙authors showcase锛屽苟琛岀嚎甯﹀叆锛夆攢鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
  * "discovery on the author axis"锛氭瘡寮犲崱閮界瓟涓€涓湡闂鈥斺€斿摢涓湡浜哄湪杩欓噷鏀句簡鐪熶笢瑗裤€? * 绌烘€佽瘹瀹烇紙骞垮満鏄┖鐨勶紝涓嶆槸鎸戜汉锛夛紝缃戞牸鑷～鍏咃紝闆惰８鍘熷瓙銆?*/
 .ash-eyebrow { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); text-transform: uppercase; letter-spacing: 0.22em; color: var(--nexus-color-accent-2-ink); }
 .ash-lede { max-width: 32rem; font-size: var(--nexus-font-size-13); line-height: 1.5; color: var(--nexus-color-fg-2); }
@@ -4132,7 +4132,7 @@
   .cx-barSecond { background: CanvasText; }
 }
 
-/* 搂FE-AM `/admin/pricing` 鎴愭湰涓夋牸锛堜粎琚湰椤靛紩鐢ㄤ竴娆★級鈥斺€?am 鏃忕殑涓€鍛?*/
+/* §FE-AM `/admin/pricing` 鎴愭湰涓夋牸锛堜粎琚湰椤靛紩鐢ㄤ竴娆★級鈥斺€?am 鏃忕殑涓€鍛?*/
 .am-statGrid { display: grid; gap: var(--nexus-space-3); grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 40rem) { .am-statGrid { grid-template-columns: 1fr; } }
 .am-statCell { border-radius: var(--nexus-radius-md); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); padding: var(--nexus-space-4); display: flex; flex-direction: column; gap: var(--nexus-space-1); }

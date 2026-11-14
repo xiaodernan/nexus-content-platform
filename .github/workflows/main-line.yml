@@ -14,6 +14,10 @@ name: main-line
 #   2. `npm run evals` — the §85 deterministic structural invariants, exit 1 on any red (ADR-0093).
 #      With NEXUS_DATABASE_URL pointed at the service container, the export-roundtrip suite runs too
 #      (it prints SKIP without one, without a red).
+#   2b. the facade health trio — `verify:fe-gates` (the studio line's 100 visual-style gates),
+#       `verify:census` (globals.css every class referenced) and `verify:no-raw-tailwind` (className only from
+#       the facade families) — the main line's own FE discipline, wired so a page silently re-acquiring
+#       raw atoms reddens this door instead of depending on somebody remembering.
 #   3. `verify:topology` (the `topology` job) — the §SC-19/20/23/25 live smoke: registry + config +
 #      domain-service + gateway + nexus-api packaged, started, asserted against each other, with the
 #      config round-trip proven out of the gateway's own startup log (ratePerSecond=50.0 beats the
@@ -85,6 +89,12 @@ jobs:
           NEXUS_DATABASE_URL: postgres://nexus:nexus_dev_only@localhost:55433/nexus
       - name: Typecheck main line
         run: npm run typecheck:main
+      - name: FE gates (facade families, zéro raw Tailwind atoms)
+        run: npm run verify:fe-gates
+      - name: Facade census (globals.css classes all referenced)
+        run: npm run verify:census
+      - name: No raw Tailwind atoms
+        run: npm run verify:no-raw-tailwind
       - name: Evals (invariants in CI, ADR-0093)
         run: npm run evals
         env:
