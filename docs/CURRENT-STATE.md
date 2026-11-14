@@ -2730,3 +2730,15 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - Housekeeping: two background dev instances (3101 web + 3200 ai-service) still serve; sibling
   deployment (3100/3200 before restart) was observed ECONNREFUSED at record time; this host keeps
   rebooting - Docker Desktop relaunch remains the manual recovery step.
+## cont. 94 (2026-11-14) - v702.2 landed: per-user pivot on /admin/savings
+
+- Follow-through on cont. 93's deferred item: /admin/savings now answers "which USERS are the
+  cache-heavy ones" too - GROUP BY owner LEFT-ish join (inner on users), top 25 by cached desc.
+  Straight SSR section below the per-project table; no client JS added.
+- Verified live: 25 user rows render; live-cache owner leads (20,842 / 28,240 / 74%); users with
+  no cached reuse show "-"; deleted-account rows are not guessed into the user dimension.
+- Direct eslint 0 (learned the hard way last slice: turbo lint cache replays green - run the file's
+  eslint directly every slice).
+- CI for 7fb3c91 / 846dec5 / 95dbf12 still in_progress at record time; do not claim green.
+- Instances up: 3101 web, 3200 ai-service (this lane's); sibling 3100/3200 observed refused at
+  record time; host keeps rebooting; Docker Desktop relaunch remains manual recovery.

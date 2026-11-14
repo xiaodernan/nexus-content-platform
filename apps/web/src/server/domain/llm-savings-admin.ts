@@ -24,6 +24,49 @@ export interface SavingsAdminRow {
   cachedTokens: number;
 }
 
+/** v702.2：按用户聚合（owner 维度）。口径同上；owner 行缺失的行不计入（显示真位置，不猜归属）。 */
+export interface SavingsAdminUserRow {
+  ownerId: string;
+  ownerEmail: string | null;
+  /** 该用户名下有 usage 的项目数 */
+  projects: number;
+  turns: number;
+  realTurns: number;
+  tokensIn: number;
+  cachedTokens: number;
+}
+
+export async function readTopSavingsUsers(limit = 25): Promise<SavingsAdminUserRow[]> {
+  const take = Math.max(1, Math.min(200, Math.trunc(limit) || 25));
+  const rows = await getDb()
+    .select({
+      ownerId: users.id,
+      ownerEmail: users.email,
+      projects: sql<string>`count(distinct ${agentTasks.projectId})::text`,
+      turns: sql<string>`count(*)::text`,
+      realTurns: sql<string>`count(*) filter (where ${agentTasks.capability} = 'real')::text`,
+      tokensIn: sql<string>`coalesce(sum((${agentTasks.usage} ->> 'tokensIn')::float8), 0)::text`,
+      cachedTokens: sql<string>`coalesce(sum((${agentTasks.usage} ->> 'cachedTokens')::float8), 0)::text`,
+    })
+    .from(agentTasks)
+    .innerJoin(projects, eq(projects.id, agentTasks.projectId))
+    .innerJoin(users, eq(users.id, projects.ownerId))
+    .where(isNotNull(agentTasks.usage))
+    .groupBy(users.id, users.email)
+    .orderBy(desc(sql`coalesce(sum((${agentTasks.usage} ->> 'cachedTokens')::float8), 0)`), desc(sql`count(*)`))
+    .limit(take);
+
+  return rows.map((row) => ({
+    ownerId: row.ownerId,
+    ownerEmail: row.ownerEmail ?? null,
+    projects: num0(row.projects),
+    turns: num0(row.turns),
+    realTurns: num0(row.realTurns),
+    tokensIn: num0(row.tokensIn),
+    cachedTokens: num0(row.cachedTokens),
+  }));
+}
+
 export async function readTopSavingsProjects(limit = 50): Promise<SavingsAdminRow[]> {
   const take = Math.max(1, Math.min(200, Math.trunc(limit) || 50));
   const rows = await getDb()

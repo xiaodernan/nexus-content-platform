@@ -3,7 +3,7 @@ import type { ReactElement } from 'react';
 import { currentUserOrNull } from '@/server/domain/session';
 import { AdminNav } from '@/components/AdminNav';
 import { BrandTitle } from '@/components/BrandTitle';
-import { readTopSavingsProjects, type SavingsAdminRow } from '@/server/domain/llm-savings-admin';
+import { readTopSavingsProjects, readTopSavingsUsers, type SavingsAdminRow, type SavingsAdminUserRow } from '@/server/domain/llm-savings-admin';
 import { formatRate, formatTokensCompact, hitRate, weightedHitRate } from '@/lib/llmSavingsAdmin';
 
 export const dynamic = 'force-dynamic';
@@ -40,10 +40,16 @@ export default async function AdminSavingsPage(): Promise<ReactElement> {
   }
 
   let rows: SavingsAdminRow[] | null;
+  let userRows: SavingsAdminUserRow[] | null;
   try {
     rows = await readTopSavingsProjects(50);
   } catch {
     rows = null;
+  }
+  try {
+    userRows = await readTopSavingsUsers(25);
+  } catch {
+    userRows = null;
   }
 
   const aggregate =
@@ -135,6 +141,60 @@ export default async function AdminSavingsPage(): Promise<ReactElement> {
             <p className="text-10 leading-relaxed text-fg-4">
               口径：provider prompt_tokens_details.cached_tokens（usage jsonb）；tokensIn ≈ prompt_tokens（含缓存部分）；命中率 = cached ÷ tokensIn，封顶 1。只对 role=admin 可见；任何一行读不懂就是该行按 0 计，不让整表崩。
             </p>
+          </section>
+
+          <section className="flex flex-col gap-2" data-savings-by-user>
+            <h2 className="text-13 font-semibold">按用户（按缓存复用排序，前 25 位）</h2>
+            {userRows === null ? (
+              <p className="text-13 text-danger-ink" data-savings-by-user-unavailable>
+                读不到用户维度的账（聚合失败）。项目维度不受影响，刷新再看。
+              </p>
+            ) : userRows.length === 0 ? (
+              <p className="text-13 text-fg-2" data-savings-by-user-empty>
+                还没有哪一位用户的任务行带 usage——跑一次真模型请求之后这张表会自己长出来。
+              </p>
+            ) : (
+              <div className="overflow-x-auto" role="region" aria-label="按用户聚合的 AI 节省表（可横向滚动）" tabIndex={0}>
+                <table className="w-full min-w-[640px] text-11">
+                  <thead className="text-left text-fg-3">
+                    <tr>
+                      <th className="py-1 pr-3 font-normal">用户</th>
+                      <th className="py-1 pr-3 font-normal">项目数</th>
+                      <th className="py-1 pr-3 font-normal">轮次（真）</th>
+                      <th className="py-1 pr-3 font-normal">tokensIn 合计</th>
+                      <th className="py-1 pr-3 font-normal">缓存复用</th>
+                      <th className="py-1 font-normal">命中率</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {userRows.map((row) => {
+                      const rate = hitRate(row.tokensIn, row.cachedTokens);
+                      const width = rate === null ? 0 : Math.round(rate * 100);
+                      return (
+                        <tr key={row.ownerId} data-savings-user-row={row.ownerId} className="border-t border-[var(--nexus-color-border-subtle)]">
+                          <td className="py-1.5 pr-3 text-fg-2">{row.ownerEmail ?? '—'}</td>
+                          <td className="py-1.5 pr-3 tabular-nums">{row.projects}</td>
+                          <td className="py-1.5 pr-3 tabular-nums">{row.turns}（{row.realTurns}）</td>
+                          <td className="py-1.5 pr-3 tabular-nums">{row.tokensIn.toLocaleString('en-US')}</td>
+                          <td className="py-1.5 pr-3 font-medium tabular-nums text-accent-2-ink">{row.cachedTokens.toLocaleString('en-US')}</td>
+                          <td className="py-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className="w-8 font-mono tabular-nums">{formatRate(rate)}</span>
+                              <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[var(--nexus-color-border-subtle)]" aria-hidden="true">
+                                <div
+                                  className="h-full rounded-full bg-gradient-to-r from-[var(--nexus-color-brand)] via-[var(--nexus-color-accent-1)] to-[var(--nexus-color-accent-2)]"
+                                  style={{ width: `${width}%` }}
+                                />
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </section>
         </>
       )}

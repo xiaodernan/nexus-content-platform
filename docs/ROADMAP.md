@@ -12029,3 +12029,13 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   (register + SQL promote to admin + playwright screenshot). Screenshot attached to the turn report.
 - In flight at record time: CI for 4185301 / 846dec5 / 7fb3c91; do not claim green until the runner
   says so.
+## v702.2 - /admin/savings gains the per-user pivot (2026-11-14, ADR 0134 amendment)
+
+- New "by user" section on the same page: GROUP BY owner over agent_tasks.usage joined to projects
+  and users; top 25 by cached tokens desc; same conventions (capped hitRate, null on tin=0,
+  weighted-friendly); columns: user email / projects / turns (real) / tin / cached / hit rate.
+- Owner rows missing (deleted accounts) are excluded from the user dimension - no ownership guessed.
+- Verified on the real DB (docker nexus-postgres 55433): 25 rows render; live-cache-...@example.test
+  leads with 20,842 cached / 28,240 tin / 74% / 1 project / 3 turns; tin=0 users show "-" rate.
+  Browser-proven (playwright + SQL-promoted admin fixture); screenshot in the turn report.
+- tsc 0, eslint 0 (direct), unit 7/7 unchanged; no other files touched.
