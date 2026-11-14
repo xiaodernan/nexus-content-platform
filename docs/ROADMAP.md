@@ -13867,14 +13867,14 @@ shadow-[0_0_...]），按 §FE 判据不可带入主线。本线做的：
 
 ## v710 - Roadmap: 世界引擎下一阶段展望（2026-11-14）
 
-已交付的世界模块里程碑：v704 人物星图（/world/<id>/constellation）、v705 世界编年（/world/<id>/chronicle）、v708 设定集（/world/<id>/codex）、v709 世界切片（/world/<id>/ephemeris）。本节记录世界/<id>/下一阶段的内容，不急于实现；每个新页面必须自带零填充空态，任何 provider 引入必须在 ADR 中书面通过。
+已交付的世界模块里程碑：v704 人物星图（/world/<id>/constellation）、v705 世界编年（/world/<id>/chronicle）、v708 设定集（/world/<id>/codex）、v709 世界切片（/world/<id>/ephemeris）。本节记录世界/<id>/下一阶段的内容；每个新页面必须自带零填充空态，任何 provider 引入必须在 ADR 中书面通过。
 
-### 下一阶段（展望，非当前片）
+### 一阶段已落地（2026-11-14，v717–v718）
 
-A. **世界 digest 控制台**——把 v704/v708/v709 的三个子页聚成一个自然路径聚合的 `/world/<id>` 版本：一屏看四象限（星图/编年/设定集/切片），突出显示最活跃的 lore 节点与最近两条 era 轮换。纯投影，零 AI。
-B. **世界 tide 推演**——v709 投影上叠加作者声明的扰模（drought / progeny / inflation 等细碎的环境压力），每种扰模由 world-model 层独立函数算出；可单测、可复现。
-C. **星图⇄编年双向联动**——chronicle 的 era.name 与 constellation 的 node.id 交叉引用；星图节点激活时编年同时高亮连带项。零依赖、纯子函数。
-D. **Character soul patch 自动归档**——角色视觉字段变更同步归档——比起 agent_tasks snapshot，世界必须串行同步，不能成为第二份世界真值。
+A. **世界 digest 控制台 [LANDED 2026-11-14 · v718]**——`/world/<id>/digest`：一屏四象限（星图/编年/设定集/切片，全部真实计数）；「最近两条纶元」只认作者取了名字的纶元（UNLABELED_ERA 剔除），星图活跃人次接入 EraTies；「最近动过的设定」按 updatedAt 倒序、平局 title/id 兜底（确定性，不做"重要度"算法）；世界读不出来 ⇒ dg-empty 页不画任何数字。§FE-DG 门面判据 7/7（钩子、.dg-*、零 hex、forced-colors、SHA256）。
+B. **世界 tide 推演**——v709 投影上叠加作者声明的扰模（drought / progeny / inflation 等细碎的环境压力），每种扰模由 world-model 层独立函数算出；可单测、可复现。**仍展望，未动未承诺**。
+C. **星图⇄编年双向联动 [LANDED 2026-11-14 · v717]**——lib/era-ties.ts 纯函数：人物 relationships[].target 一跳精确命中本卷 story/history 条目 id → 该人物「活跃于此卷」；viaEntryIds 保原序去重；人物按名升序+id 次级；编年页每卷渲染 .crn-ties 条（chips 指向 /constellation）；空态如实说。§FE-CRN 扩 13 钩子、SHA256 重钉。
+D. **Character soul patch 自动归档**——角色视觉字段变更同步归档——比起 agent_tasks snapshot，世界必须串行同步，不能成为第二份世界真值。**仍展望，未动未承诺**。
 
 ### 原则红线
 
