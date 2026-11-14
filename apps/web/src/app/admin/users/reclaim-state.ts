@@ -77,8 +77,13 @@ export function pageWindow<T>(candidates: T[], page: number, pageSize: number = 
  * 人会一直翻找一个不存在的第三屏；而 N 那个数必须从快照里读，不是界面上硬写的一个常量——
  * 硬写的那一刻，一次改小扫描就让它变成一句假话（ADR-0072 决定九）。
  */
-export function scanCaveats(live: GuestReclaimScan): string[] {
+export function scanCaveats(live: GuestReclaimScan, locale: 'zh' | 'en' = 'zh'): string[] {
   const out: string[] = [];
+  if (locale === 'en') {
+    if (live.moreThanBatch) out.push('This round does not fit — some remain');
+    if (live.scanTruncated) out.push(`Only the first ${live.scanLimit} were counted`);
+    return out;
+  }
   if (live.moreThanBatch) out.push('这一轮装不下，还有剩下的');
   if (live.scanTruncated) out.push(`只数了前 ${live.scanLimit} 个`);
   return out;

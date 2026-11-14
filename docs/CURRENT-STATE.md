@@ -3631,6 +3631,23 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   并轨完成，本次无新增（不动陈旧 refs，删除需用户拍板）。
 - showcase 快照同步于提交后（npm run sync:showcase）。
 
+## cont. 134 (2026-11-17) - v764: /admin users 集群双语化（含 GuestReclaimPanel）
+
+- app/admin/users/page.tsx 双语（server RSC，getLocale()）：denied×2、summary（已认领/guest/审核员）、
+  三条硬规则整段（rules）、改档位整段（planRules）、guestTag、roleLine（toLocaleDateString(locale)）；
+  透传 locale 给 GuestReclaimPanel / PlanSelect / RoleButton。
+- PlanSelect.tsx（client）双语（locale prop，默认 zh）：aria/noChangeNotice/failedNotice（HTTP 状态）/改档位/（你自己）。
+- RoleButton.tsx（client）双语（locale prop）：selfBlock/guestBlock/demote/promote/failedNotice。
+- GuestReclaimPanel.tsx（client）双语（locale prop）：
+  rule（graceDays 天已插值，去掉 <strong> 直接平铺——内容等价）、counts+scanCaveats 双语（state 判据函数同步接受 locale，
+  默认 zh 保持旧调用与 guest-reclaim-panel.test.ts 现有断言全绿）、pickAll/pageInfo/paging、
+  reasonOrphan/reasonExpired/注册于/草稿、moreThanBatchNote、empty、recount/apply 两态、
+  failedNotice（HTTP 状态）、noReceipt/requestFailed；shadowed map var 改名 cand 避免与 COPY 的 c 撞名。
+- Gates：§FE-30 四文件 SHA 重钉（page=265efe79… plan=1e61d109… role=19e86998… reclaim=6abcc9ad…，门内 redact 复算）；
+  fe-gates 116/116 · 1148/1148；tsc web 0；eslint 净；guest-reclaim-panel 17/17。
+- /admin 已完成 6/24（home/AdminNav/dead-letters/audit/health/users）。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
 ## cont. 133 (2026-11-17) - v763: /admin health 双语化
 
 - app/admin/health/page.tsx 双语（server RSC，getLocale()）：denied×2、overallAria（role=status）、
