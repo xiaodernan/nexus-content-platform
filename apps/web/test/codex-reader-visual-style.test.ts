@@ -101,7 +101,7 @@ describe('§FE-Cdr /world/<project>/codex/<nodeId> 一页书', () => {
 
   it('SHA256 钉死（本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '266470055dfffd4a228483b504837293b96f93c05b2f87517662cd0f74ecfa2f',
+      '96c6c692e70d0a25e23b537fe9515b890ce9433b07d984d0bf5021d6b60db4fb',
     );
   });
 });
