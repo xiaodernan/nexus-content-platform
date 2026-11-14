@@ -2767,3 +2767,17 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   stopped to relieve memory; 3200 ai-service still serving; sibling 3100/3200 not ours to manage.
 - Sync discipline: after a checkout-index race this turn, both branches fast-forwarded and
   pushed together; master == main == origin @ 4d67a2b before this commit.
+## cont. 97 (2026-11-14) - v704 landed: character constellation star map
+
+- The user's epic ask (infinite stories, an enormous living world) gets a real answer:
+  /world/<projectId>/constellation renders the cast as a deterministic star map -
+  palette-faithful stars, merged two-way edges with labels, world anchors on the outer ring,
+  honest unresolved handling, keyboard-selectable nodes, relationship dossier panel.
+- Seeded entirely through the product's own APIs (world PUT + characters POST/PATCH):
+  project f7ec6716 with a two-entry world doc (factions + geography) and 5 fully profiled
+  characters; screenshots confirm 5 stars / 7 merged edges / 2 anchors; selecting the hub
+  node shows identity, palette, VOICE, desires/fears and clickable relationship jumps.
+- Docker Desktop died mid-run again (4th outage this host today) - relaunched;
+  nexus-postgres/redis healthy; both screenshots taken after recovery.
+- CI note: hosted queue still capacity-blocked (7fb3c91/95dbf12 CI now SUCCESS; 4d67a2b and
+  later refs queued in_progress at record time).

@@ -12050,3 +12050,17 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
 - Verification: browser E2E (playwright, fixture account): register/login -> studio -> chip visible
   with real values; screenshot in turn report. tsc 0, direct eslint 0.
 - threading: page (server) -> StudioShell (credits prop) -> StudioWorkspace -> TopBar -> CreditChip.
+## v704 - character constellation: /world/<projectId>/constellation (2026-11-14, ADR 0135)
+
+- New epic-grade read surface for the world module: the cast as a star map. Character nodes
+  (palette from each profile's visualIdentity), edges from sec. 46 relationships (bidirectional
+  merge, double-labeled), world-entry targets become dim outer-ring anchors; unresolvable
+  targets are honestly NOT drawn (footnote counts them).
+- Deterministic phyllotaxis placement; same input -> same map; no physics sim. Server-gated
+  (project visibility), zero writes from the page; world doc unreadable -> anchors absent,
+  page still renders.
+- Verification: 7/7 unit; tsc 0; direct eslint 0; seeded a full cast through the real API
+  (5 characters + PUT world), opened the page, screenshots captured (empty state and the
+  hub-selected detail panel with voice/desires/fears/relationships); two-way relationship
+  merge labels render on the canvas.
+- Studio world panel gains a "character star map" entry button next to the 3D walkthrough.
