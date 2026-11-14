@@ -57,7 +57,7 @@ describe('§A11Y-4 admin home', () => {
   it('AdminNav 是 home 态：current="home" 且组件名单里有 /admin 自链接', () => {
     expect(code).toContain('AdminNav');
     expect(code).toContain('current="home"');
-    expect(nav).toContain("{ key: 'home', href: '/admin', label: '管理台' }");
+    expect(nav).toContain("{ key: 'home', href: '/admin', labelZh: '管理台', labelEn: 'Admin console' }");
     expect(nav).toContain("export type AdminSection = (typeof LINKS)[number]['key']");
   });
 

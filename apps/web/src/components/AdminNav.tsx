@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { getLocale, type Locale } from '@/lib/i18n';
 
 /**
  * 管理台的导航：一份名单、一个下限
@@ -19,36 +20,45 @@ import Link from 'next/link';
  * accent-2→info 渐变实底 + accent-fg 墨字（两主题皆 ≥10.9:1，token 出处 tokens.css），
  * 非当前页 hover 才亮 bg-3 底；可见聚焦环沿用 accent-2-ink（style-tokens 钉住 AA）。
  * 下限仍是 WCAG 2.5.8：`.adm-navItem`/`.adm-navItemActive` 的 `min-height: 1.75rem` = 28px，
- * 比 24px 下限更高。`prefers-reduced-motion`
- * 里所有过渡自动归零（--nexus-motion-* 已归零，transition 用其时长）。
+ * 比 24px 下限更高。`prefers-reduced-motion` 里所有过渡自动归零（--nexus-motion-* 已归零，transition 用其时长）。
  * §FE-26 / ADR-0178：arbitrary atom → `.adm-*` 门面族（零行为，见 ADR）。
+ *
+ * v760：名单双语（zh/en 同序同键）。`aria-label` 跟随 locale；链接文本按 locale 取。
  */
 const LINKS = [
-  { key: 'home', href: '/admin', label: '管理台' },
-  { key: 'users', href: '/admin/users', label: '账号与角色' },
-  { key: 'moderation', href: '/admin/moderation', label: '复核台' },
-  { key: 'marketplace', href: '/admin/marketplace', label: '市场工单' },
-  { key: 'audit', href: '/admin/audit', label: '审计事件' },
-  { key: 'realtime', href: '/admin/realtime', label: '实时总线' },
-  { key: 'rate-limit', href: '/admin/rate-limit', label: '限流闸' },
-  { key: 'access', href: '/admin/access', label: '访问账' },
-  { key: 'observability', href: '/admin/observability', label: '观测' },
-  { key: 'gateway', href: '/admin/gateway', label: '网关态势' },
-  { key: 'discover-cache', href: '/admin/discover-cache', label: '发现页缓存' },
-  { key: 'ai-cache', href: '/admin/ai-cache', label: '缓存读数' },
-  { key: 'savings', href: '/admin/savings', label: 'AI 节省' },
-  { key: 'dead-letters', href: '/admin/dead-letters', label: '死信巡检' },
-  { key: 'pricing', href: '/admin/pricing', label: 'AI 成本' },
-  { key: 'health', href: '/admin/health', label: '健康总览' },
+  { key: 'home', href: '/admin', labelZh: '管理台', labelEn: 'Admin console' },
+  { key: 'users', href: '/admin/users', labelZh: '账号与角色', labelEn: 'Accounts & roles' },
+  { key: 'moderation', href: '/admin/moderation', labelZh: '复核台', labelEn: 'Moderation' },
+  { key: 'marketplace', href: '/admin/marketplace', labelZh: '市场工单', labelEn: 'Marketplace queue' },
+  { key: 'audit', href: '/admin/audit', labelZh: '审计事件', labelEn: 'Audit events' },
+  { key: 'realtime', href: '/admin/realtime', labelZh: '实时总线', labelEn: 'Realtime bus' },
+  { key: 'rate-limit', href: '/admin/rate-limit', labelZh: '限流闸', labelEn: 'Rate limiting' },
+  { key: 'access', href: '/admin/access', labelZh: '访问账', labelEn: 'Access log' },
+  { key: 'observability', href: '/admin/observability', labelZh: '观测', labelEn: 'Observability' },
+  { key: 'gateway', href: '/admin/gateway', labelZh: '网关态势', labelEn: 'Gateway' },
+  { key: 'discover-cache', href: '/admin/discover-cache', labelZh: '发现页缓存', labelEn: 'Discover cache' },
+  { key: 'ai-cache', href: '/admin/ai-cache', labelZh: '缓存读数', labelEn: 'AI cache' },
+  { key: 'savings', href: '/admin/savings', labelZh: 'AI 节省', labelEn: 'AI savings' },
+  { key: 'dead-letters', href: '/admin/dead-letters', labelZh: '死信巡检', labelEn: 'Dead letters' },
+  { key: 'pricing', href: '/admin/pricing', labelZh: 'AI 成本', labelEn: 'AI costs' },
+  { key: 'health', href: '/admin/health', labelZh: '健康总览', labelEn: 'Health' },
 ] as const;
 
 export type AdminSection = (typeof LINKS)[number]['key'];
 
-export function AdminNav({ current }: { current: AdminSection }) {
+const NAV_COPY: Record<Locale, { aria: string }> = {
+  zh: { aria: '管理台' },
+  en: { aria: 'Admin console' },
+};
+
+export async function AdminNav({ current }: { current: AdminSection }) {
+  const locale = await getLocale();
+  const c = NAV_COPY[locale];
+  const labelOf = (link: (typeof LINKS)[number]): string => (locale === 'en' ? link.labelEn : link.labelZh);
   return (
     <nav
       className="adm-nav"
-      aria-label="管理台"
+      aria-label={c.aria}
       data-admin-nav
     >
       {LINKS.map((link) =>
@@ -64,7 +74,7 @@ export function AdminNav({ current }: { current: AdminSection }) {
               className="adm-navDot"
               data-admin-dot={link.key}
             />
-            {link.label}
+            {labelOf(link)}
           </span>
         ) : (
           <Link
@@ -73,7 +83,7 @@ export function AdminNav({ current }: { current: AdminSection }) {
             data-admin-link={link.key}
             className="adm-navItem"
           >
-            {link.label}
+            {labelOf(link)}
           </Link>
         ),
       )}

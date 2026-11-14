@@ -3595,3 +3595,27 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 已知边界（诚实登记*）：HUD 里的 `scene.limits`（world-model 常量导航网格限制句）仍单 zh
   （§46/registry 独立切片）；渲染说明文字（comments）仍 zh；page 的远端 reason 原文如上。
 - showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 130 (2026-11-17) - v760: /admin 总入口 + AdminNav 双语化；分支并轨审计归档
+
+- 【分支并轨审计】（对应"尽量把多个工作分支/worktree 合并起来"）：
+  git worktree list = 只有主仓一棵；git branch -a = 只有本地 main；
+  remote.origin 配置完整（nexus-content-platform）；`refs/remotes/other/master..master12` 为早先已移除的
+  `other` 远端留下的陈旧 ref——**12/12 均为 main 的祖先（already merged），origin/master 同理**；
+  并轨工作在 "consolidated 2026-11-09"（docs/AGENTS.md 两条线合并）时已完成，本次只核验并留档，
+  不删任何陈旧 ref（refs 删除属破坏性操作，等用户拍板；它们不占代码内容）。
+- AdminNav.tsx 双语（server RSC，async + getLocale()）：LINKS 16 入口改 {labelZh,labelEn} 同序同键；
+  aria-label 按 locale；名单、data-* 钩子、`as const` 形状不动（两个 visual gate 的 `const LINKS =`
+  正则逐字仍成立）。page 与 nav 由 record 字典驱动，中文模式仍是全中文（不夹杂）。
+- app/admin/page.tsx 双语（server RSC，getLocale()）：denied×2（anonymous/not-admin，displayName
+  与 role 透传）、kicker/title/lede、"11 入口" cardsAria、"十一张卡"、AREAS 11 张卡片
+  （slug 不动以保字节钩子，title/note 双语对）、页脚三问（审计/观测/访问账指引）全部接 locale；
+  data-* 钩子、className、currentUserOrNull()/force-dynamic 选股一字未动。
+- Gates：§FE-26 重钉（NAV 2c31d5b4… / PAGE 63e5f7ba…，门内 redact 复算）；
+  两处 `aria-label="管理台"` 字节钉改 `{c.aria}` 变量断言（行为不变，断言改跟读法）；
+  fe-gates 116/116 · 1148/1148；tsc web 0；eslint 净。
+- /admin 余下页面（users/moderation/marketplace/audit/realtime/rate-limit/access/observability/
+  gateway/discover-cache/ai-cache/savings/dead-letters/pricing/health/moderation + *-view.ts/*-Panel.tsx
+  共 24+ 文件、约 1.7 万字）登记为 v761+ 专项：按 server page → getLocale → 字典双轨、client Panel 走
+  locale prop 逐页推进，每页一书面决定（KEEP zh 则明确登记）。
+- showcase 快照同步于提交后（npm run sync:showcase）。
