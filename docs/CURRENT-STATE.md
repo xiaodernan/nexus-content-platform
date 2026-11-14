@@ -3631,6 +3631,23 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   并轨完成，本次无新增（不动陈旧 refs，删除需用户拍板）。
 - showcase 快照同步于提交后（npm run sync:showcase）。
 
+## cont. 136 (2026-11-17) - v766: /admin marketplace 集群双语化
+
+- TriageButtons.tsx（client）双语（locale prop 默认 zh）：note aria/placeholder/受理/结案/驳回/failedNotice(HTTP 状态码）/doneNotice。
+- marketplace/page.tsx 双语（RSC getLocale()）：denied×2（含 devenir 指引段双语化）、
+  STATUS_LABELS 按 locale 双语（pending/reviewing/resolved/dismissed）、summary、
+  scopeNoteStrong/Weak（结案=工单结论、不下架——"不会"排版只一处 <strong>）、
+  terminalNote、filterAll（全部 → All）、empty、auditTitle/Note/Empty、itemLabel/reporterLabel、
+  noDescription、closedTime/Missing、dispositionNote/noDispositionNote、moderationLink/moderationReject、
+  五列表头（colTime/Action/Item/Actor/Detail）、locale 透传给 TriageButtons、toLocaleString(locale)。
+- 事故自查：编辑中一度用 PowerShell `Set-Content` 改 tracked 文件——重写后 CRLF 混入且多处 CJK 字节
+  被吞（`者` → 数个 ?），即刻 `git checkout HEAD` 还原并**用 write 工具整文件重写**（不再走组合拳）；
+  LF 校验 = 0 CRLF；门重钉 5db65907…。再次确认：tracked 文件一律不走 PS 直写。
+- Gates：§FE-28 双文件 SHA 重钉（page=5db65907… triage=2529f5d2…）；
+  fe-gates 116/116 · 1148/1148；tsc web 0；eslint 净。
+- /admin 已完成 8/24。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
 ## cont. 135 (2026-11-17) - v765: /admin moderation 集群双语化
 
 - moderation.ts 增 MODERATION_LIMITS_EN（同序同款；机检 5 条未覆盖项 → 英文版）；page 按 locale 取。

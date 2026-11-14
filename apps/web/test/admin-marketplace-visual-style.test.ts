@@ -13,7 +13,7 @@ import { describe, expect, it } from 'vitest';
  * `outcome` 并排展示（不换掉按钮）、409 原样念——全部一字不动。
  *
  * **剥 className 后全文 SHA256 守恒**：两文件均恒等于改前（git HEAD）。
- * redact 三步序与钉死常量一致：page=`84052785…`，triage=`03379155…`。
+ * redact 三步序与钉死常量一致：page=`5db65907…`，triage=`2529f5d2…`（v766 i18n 重钉）。
  *
  * 判据不变式（13 门）：
  *  1. page.tsx server 组件 + denied×2 + role 闸门 + AdminNav current="marketplace"；
@@ -201,13 +201,13 @@ describe('§FE-28 /admin/marketplace 市场工单', () => {
     expect(triageCode).toContain('受理（复核中）');
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：page=84052785… · triage=03379155…）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：page=5db65907… · triage=2529f5d2…（v766 i18n 重钉））', () => {
     // 常量在改前（git HEAD）由真实产物 redact 算出并钉死；此门保证除 className 外一字节未动。
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '84052785e43badae0f1bddc029306887a4793500fa8fb4dc826fe49172cbfc82',
+      '5db65907fa666b5c9c13f3311421a168ea3115f27327995d743d4584103c7768',
     );
     expect(createHash('sha256').update(redactClasses(triage)).digest('hex')).toBe(
-      '033791554f714a59914b7930b36bdc254d79f5eefa535b54b90a9291364c9d2d',
+      '2529f5d2829dec86be12b3b1751d604c18e5fbed2e41ad6638c167039cf5f0ec',
     );
   });
 });

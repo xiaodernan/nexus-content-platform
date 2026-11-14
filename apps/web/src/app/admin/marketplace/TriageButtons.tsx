@@ -3,6 +3,28 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { csrfHeaders } from '@/lib/csrf';
+import type { Locale } from '@/lib/i18n';
+
+const COPY = {
+  zh: {
+    noteAria: '处置依据（可选）',
+    notePlaceholder: '处置依据（可选，会记在工单上）',
+    reviewing: '受理（复核中）',
+    resolved: '结案（举报成立）',
+    dismissed: '驳回（举报不成立）',
+    failedNotice: (status: number) => `处置失败（HTTP ${status}）`,
+    doneNotice: '已记录处置',
+  },
+  en: {
+    noteAria: 'Disposition rationale (optional)',
+    notePlaceholder: 'Disposition rationale (optional, recorded on the case)',
+    reviewing: 'Accept (reviewing)',
+    resolved: 'Resolve (report upheld)',
+    dismissed: 'Dismiss (report rejected)',
+    failedNotice: (status: number) => `Disposition failed (HTTP ${status})`,
+    doneNotice: 'Disposition recorded',
+  },
+} as const;
 
 /**
  * §123/#158：一条举报工单的三个处置动作。这是界面上唯一能推进
@@ -12,7 +34,8 @@ import { csrfHeaders } from '@/lib/csrf';
  * 就是这件事，按钮本身不写含糊的"处理"。终态不可改写（域层条件 UPDATE），
  * 所以 409 要把服务端那句"已经结案"原样念出来，而不是换个成功文案。
  */
-export function TriageButtons({ reportId }: { reportId: string }) {
+export function TriageButtons({ reportId, locale = 'zh' }: { reportId: string; locale?: Locale }) {
+  const c = COPY[locale];
   const router = useRouter();
   const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState(false);
@@ -32,10 +55,10 @@ export function TriageButtons({ reportId }: { reportId: string }) {
         | { message?: string; issues?: string[] }
         | null;
       if (!res.ok) {
-        setError(body?.issues?.join('；') ?? body?.message ?? `处置失败（HTTP ${res.status}）`);
+        setError(body?.issues?.join('；') ?? body?.message ?? c.failedNotice(res.status));
         return;
       }
-      setOutcome(body?.message ?? '已记录处置');
+      setOutcome(body?.message ?? c.doneNotice);
       router.refresh();
     } finally {
       setBusy(false);
@@ -52,10 +75,10 @@ export function TriageButtons({ reportId }: { reportId: string }) {
         </p>
       ) : null}
       <div className="am-triageRow">
-        <input aria-label="处置依据（可选）"
+        <input aria-label={c.noteAria}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="处置依据（可选，会记在工单上）"
+          placeholder={c.notePlaceholder}
           maxLength={2000}
           className="am-noteInput"
           data-triage-note
@@ -67,7 +90,7 @@ export function TriageButtons({ reportId }: { reportId: string }) {
           className="am-btn"
           data-triage="reviewing"
         >
-          受理（复核中）
+          {c.reviewing}
         </button>
         <button
           type="button"
@@ -76,7 +99,7 @@ export function TriageButtons({ reportId }: { reportId: string }) {
           className="am-btn"
           data-triage="resolved"
         >
-          结案（举报成立）
+          {c.resolved}
         </button>
         <button
           type="button"
@@ -85,7 +108,7 @@ export function TriageButtons({ reportId }: { reportId: string }) {
           className="am-btnDanger"
           data-triage="dismissed"
         >
-          驳回（举报不成立）
+          {c.dismissed}
         </button>
         {error ? (
           <span className="am-triageError" data-triage-error>
