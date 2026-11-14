@@ -53,6 +53,8 @@
 >
 > **2026-11-14 续（§v715「中文发现页·双语」——把 public `/discover` 也撤到 i18n，fe-gates 1127/1127 全绿）**：公开广场页面从纯中文重写为 `zh|en` 双语。`getLocale()` 驱动 `TABS(ORDER)`、`COPY` 字典复制全部 UI 字面（`views/likes/comments/remixes/score`/空态/工具栏/method-tag/屏蔽 hint/unavailable），不机翻；Git 数据文本不翻译。§FE-77 SHA 重钉（d52b3522 → **92d8e28e…**）；fe-gates **113/113 · 1127/1127**。
 
+> **2026-11-14 续（§v716「Search 完全双语」——/search 完全双语，fe-gates 1127/1127 全绿）**：Search.tsx 也走双语字典；`title/scope/suggest/tooShort/empty suffix/scopeTitle/cappedHint` 全 zh+en 字面。`getLocale()` 驱动 locale；SEARCH_ORDER_METHOD（方法论真值）原样保留不翻译。§FE-Search SHA 重钉（7422b9c0 → d4760ec6…）；fe-gates **113/113 · 1127/1127** · tsc web EXIT=0。6 大公开面（/about /ship /guide /search /discover /RootLayout FAB）现在都是真双语——双语 i18n 切换基础设施已落地。
+
 > **2026-11-14 续（§v714「§FE-Ship 双语化」——交付日志页也是真双语，fe-gates 1127/1127 全绿保持）**：把 `/ship` 也变成真 `zh/en` 双语——完整 `COPY` 字典（title/lede/statStrip 5 格标签/dayTag/hero headline/dataNote/aboutLink/back Link），中英两份完整字面，同样的 `getLocale()` 驱动 RootLayout 的 `<html lang>`；placeholder-locale-toggle 出现在每页右上角一致。
 >
 > - **§FE-Ship SHA 重钉**：`51d186d7 → 19332535…`；gate 7/7 全绿；`.sh-*` 不变（layout 不动，arena 也不新加键位）。

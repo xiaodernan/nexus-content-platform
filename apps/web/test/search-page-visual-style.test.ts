@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * §165：搜索范围与可见性全由 `domain/search.ts` 决定；界面不另立说法——不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `7422b9c02aae3ad7c0405f9fa137a4254aab33a1665f99303d12bbb1b8f13b26` 与 HEAD 字节一致。
+ * `d4760ec6437393e36a4cf3207ce9a152c705dd03101734f7cf5295ddf8357302` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/app/search/page.tsx');
@@ -102,9 +102,9 @@ describe('§FE-78 /search 全平台搜索原子清零', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：7422b9c02aae3ad7c0405f9fa137a4254aab33a1665f99303d12bbb1b8f13b26）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：d4760ec6437393e36a4cf3207ce9a152c705dd03101734f7cf5295ddf8357302）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '7422b9c02aae3ad7c0405f9fa137a4254aab33a1665f99303d12bbb1b8f13b26',
+      'd4760ec6437393e36a4cf3207ce9a152c705dd03101734f7cf5295ddf8357302',
     );
   });
 });

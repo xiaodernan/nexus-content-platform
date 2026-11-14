@@ -13802,11 +13802,25 @@ shadow-[0_0_...]），按 §FE 判据不可带入主线。本线做的：
   hub-selected detail panel with voice/desires/fears/relationships); two-way relationship
   merge labels render on the canvas.
 - Studio world panel gains a "character star map" entry button next to the 3D walkthrough.
+## v714 - §FE-Ship 双语化 —— /ship 完全双语
+
+- `apps/web/src/app/ship/page.tsx` 重写为 COPY 字典（zh/en 两套字面），`getLocale()` 驱动；Git 数据不翻译（日期/hash/subject 原样保留）。
+- 守 gate：§FE-Ship SHA 重钉 `51d186d7 → 19332535…`；v714 落到 113/113 · 1127/1127。
+
 ## v715 - /discover 完全双语 —— 
 
 - `apps/web/src/app/discover/page.tsx` 重写为 COPY 字典 TABS_ZH/TABS_EN（new/popular/trending/following 四个标签）+ COPY.zh/COPY.en 承载 title/subtitle/searchCta/emptyFollowing/emptyNothing/coverMissing/methodPrefix/views/likes/comments/remixes/scoreLabel/blocked mention/blocksPrompt/unavailableHead。
 - §FE-77 SHA 重钉 `d52b3522 → 92d8e28e…`；fe-gates **113/113 · 1127/1127**；publishedAt 用 locale flag 决定 `zh-CN` / `en-US` date 格式化。RootLayout `/about`/`/ship`/`/guide`/`/discover` 都是真双语。
 - 跨页 bilingual：About / Guide / Ship / Discover / RootLayout — 底片全屏 i18n。All of these follow the same `getLocale()` + COPY dict idiom; no auto-translation.
+
+
+## v716 - /search 完全双语——顶层 SEO 主表 6 个公开页均双语（2026-11-14, v712 i18n wave）
+
+- `apps/web/src/app/search/page.tsx` 重写为 COPY 字典 zh/en；`getLocale()` 驱动页面语：
+  title/scope/suggest/tooShort/empty suffix (signedIn/anonymous)/scopeTitle/cappedHint；Git-derived SEARCH_ORDER_METHOD 保留（真值不翻译）。
+- §FE-Search SHA 重钉 `7422b9c0 → d4760ec6…`；fe-gates **113/113 · 1127/1127** 全绿；tsc web EXIT=0。
+- 截止目前 **双语公开面**：`/`（ThemeToggle+locale FAB）/`/discover` /`/ship` /`/about-nexus` /`/guide` /`/search` 全集；`/ship` 和 `/about-nexus` SHA 已重钉。
+- 路线图中 §v712/v713/v714/v715/v716 五片合计产生 **双语 public front page = 6/6**。
 
 
 - `apps/web/src/app/ship/page.tsx` 重写为 COPY 字典（zh/en 两套完整文案；Git log 数据本身不翻译如日期/hash/subject），`getLocale()` 驱动 `<html lang>`。
