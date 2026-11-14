@@ -4755,3 +4755,35 @@
   .td-ruleHits { color: CanvasText; }
   .td-emptyLink:focus-visible, .td-footLink:focus-visible { outline-color: Highlight; }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   §FE-IC「世界体检」—— 可核对的真实指标卡片（全部 var() tokens、零 hex）。
+   ───────────────────────────────────────────────────────────────────── */
+.ic-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--nexus-space-4); min-height: 100dvh; padding: var(--nexus-space-6); background: var(--nexus-color-bg-1); color: var(--nexus-color-fg-1); text-align: center; }
+.ic-emptyTitle { font-size: var(--nexus-font-size-21); font-weight: 650; }
+.ic-emptyCopy { max-width: 32rem; font-size: var(--nexus-font-size-12); line-height: 1.75; color: var(--nexus-color-fg-3); }
+.ic-emptyLink { font-size: var(--nexus-font-size-13); color: var(--nexus-color-accent-2-ink); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--nexus-color-brand) 55%, transparent); padding-bottom: 0.12rem; }
+.ic-emptyLink:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+.ic-root { position: relative; display: flex; flex-direction: column; gap: var(--nexus-space-4); min-height: 100dvh; padding: var(--nexus-space-6) var(--nexus-space-5); background: radial-gradient(1100px 520px at 88% -10%, color-mix(in srgb, var(--nexus-color-accent-mix) 15%, transparent) 0%, transparent 62%), var(--nexus-color-bg-0); color: var(--nexus-color-fg-1); }
+.ic-hero { display: flex; flex-direction: column; gap: var(--nexus-space-2); }
+.ic-kicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.22em; text-transform: uppercase; color: var(--nexus-color-accent-mix); }
+.ic-title { font-size: var(--nexus-font-size-28); font-weight: 700; letter-spacing: -0.01em; background: linear-gradient(135deg, var(--nexus-color-fg-1) 0%, var(--nexus-color-accent-mix) 55%, var(--nexus-color-accent-1) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.ic-lede { max-width: 38rem; font-size: var(--nexus-font-size-13); line-height: 1.75; color: var(--nexus-color-fg-2); }
+.ic-footnote { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+.ic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: var(--nexus-space-3); }
+.ic-card { display: flex; flex-direction: column; gap: var(--nexus-space-1); padding: var(--nexus-space-4); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md); background: linear-gradient(170deg, var(--nexus-color-bg-1) 0%, var(--nexus-color-bg-2) 100%); transition: border-color 160ms ease, transform 160ms ease; }
+.ic-card:hover { border-color: color-mix(in srgb, var(--nexus-color-brand) 55%, transparent); transform: translateY(-2px); }
+.ic-cardValue { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-28); font-weight: 700; color: var(--nexus-color-fg-1); font-variant-numeric: tabular-nums; line-height: 1; }
+.ic-cardTitle { font-size: var(--nexus-font-size-13); font-weight: 650; color: var(--nexus-color-fg-1); }
+.ic-cardSub { font-size: var(--nexus-font-size-11); line-height: 1.6; color: var(--nexus-color-fg-3); }
+.ic-cardLink { margin-top: auto; align-self: flex-start; font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-2-ink); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--nexus-color-brand) 55%, transparent); padding-bottom: 0.08rem; }
+.ic-cardLink:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+.ic-foot { display: flex; justify-content: space-between; gap: var(--nexus-space-3); border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-3); align-items: center; flex-wrap: wrap; }
+.ic-link { font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-2-ink); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--nexus-color-brand) 55%, transparent); padding-bottom: 0.08rem; }
+.ic-link:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+@media (forced-colors: active) {
+  .ic-root, .ic-hero, .ic-card, .ic-empty { border-color: CanvasText; background: Canvas; color: CanvasText; }
+  .ic-title, .ic-emptyTitle, .ic-lede, .ic-footnote, .ic-cardValue, .ic-cardTitle, .ic-cardSub { color: CanvasText; -webkit-text-fill-color: CanvasText; background: none; }
+  .ic-card:hover { border-color: Highlight; transform: none; }
+  .ic-emptyLink:focus-visible, .ic-cardLink:focus-visible, .ic-link:focus-visible { outline-color: Highlight; }
+}

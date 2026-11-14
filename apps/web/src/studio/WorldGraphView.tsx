@@ -280,6 +280,13 @@ export function WorldGraphView() {
           世界速览
         </a>
         <a
+          href={`/world/${studio.projectId}/integrity`}
+          className="sb-btn2"
+          data-enter-integrity
+        >
+          世界体检
+        </a>
+        <a
           href={`/world/${studio.projectId}/codex`}
           className="sb-btn2"
           data-enter-codex
