@@ -3365,3 +3365,12 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - TopBar 挂载点 locale 透传：<PublishPanel locale={locale} />；STRIP_CLASS_SHA256 以**门内逐字逻辑**重算并重钉
   （提取 test 文件里的 stripClassNames 原样转译后算得 264c122e…，与 vitest 报出的 actual 前 40 位一致后采用）。
 - fe-gates 116/116（1148/1148）；tsc web 0；eslint 净。
+
+## cont. 109 (2026-11-15) - v740: MemoryPanel 双语化（§48 记忆面板）
+
+- MemoryPanel.tsx zh/en 双字典；scopes 四类+hint、检索说明三段、搜索框/按钮、
+  记一条表单、需要主体提示、清空这一类、删除按钮 aria、空态（搜索态/常态两档）全部接 locale；
+  locale 自 StudioShell 透传。
+- 服务端那句边界说明（§49 词面检索不是语义检索）原样从 API 透传，面板自身那份说明接 locale；
+  searchNote 不改序（服务裁定面）。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；StudioShell §FE-41 第四次重钉（MemoryPanel 入 locale 行列）。

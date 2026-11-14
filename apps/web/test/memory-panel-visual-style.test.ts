@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
  * 本片只换皮；clear/save/scope 派发——一字不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @ + cn()整体归一 + `className=@` 归一）：
- * `973ddab6f6ecd1152e73cc6e8f361c3ebf0833d59f33230aa53a9dea7a4f926b` 与 HEAD 字节一致。
+ * `cd56ae18e614f5e9ebbae8ba7d45e3de1935b27f5492ed711c306c0f801d6ed1` 与 HEAD 字节一致。
  *
  * 判据不变式（11 门）：
  *  1. 'use client' 保留 + studio 进门；2. 字面 className 全 `.mm-*`/复用族（含 cn 三元分支）；
@@ -130,9 +130,9 @@ describe('§FE-55 /studio MemoryPanel 角色记忆', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className/cn 后全文 SHA256 守恒（零行为：973ddab6f6ecd1152e73cc6e8f361c3ebf0833d59f33230aa53a9dea7a4f926b）', () => {
+  it('剥 className/cn 后全文 SHA256 守恒（2026-11-15 v740「MemoryPanel 双语化」重钉：cd56ae18e614f5e9ebbae8ba7d45e3de1935b27f5492ed711c306c0f801d6ed1）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '973ddab6f6ecd1152e73cc6e8f361c3ebf0833d59f33230aa53a9dea7a4f926b',
+      'cd56ae18e614f5e9ebbae8ba7d45e3de1935b27f5492ed711c306c0f801d6ed1',
     );
   });
 });
