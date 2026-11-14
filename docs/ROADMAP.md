@@ -13706,3 +13706,19 @@ Amendment 2 的「Studio 内联没接」补上了：`CommandBar` 生成结果行
   （`provider_calls` vs `llmLatency.calls`）尚无统一 cross-check 门。
 - **方法**："省钱"最容易做成虚荣指标——命中/合并/真调用三种口径必须拆成独立 family
   并逐项对拍；分层优化后的账本不要相加，只有最后接触外部资源那层才配报真调用数。
+## v699 - user-facing "AI savings ledger" card on /tasks/<project> (2026-11-14, ADR 0131)
+
+- New: `lib/savings.ts` (pure savings math: hitRate capped at 1, null when tokensIn=0, legacyRows for
+  pre-v692 rows, NaN-safe) + `server/domain/savings.ts` (owner-gated SQL aggregate over
+  agent_tasks.usage; anomalies -> null -> card hidden, never a 500) + `components/SavingsCard.tsx`
+  (animated count-up headline, share bar, chips, process-local disclaimer, prefers-reduced-motion
+  fallback, brand-gradient big number, design-system tokens only) + `/tasks/[projectId]` renders it
+  above the live ledger (TasksLedgerLive gains optional `savings` prop).
+- Honesty: provider prefix-cache only (prompt_tokens_details.cachedTokens); the app-level Redis
+  completion cache is NOT in this number (no usage rows) and is labeled as excluded; no dollar
+  figures (no price table in-repo, sec. 159); legacy rows counted separately.
+- Verification: savings.test.ts 7/7; tsc clean; eslint 0; combined vitest 31/31; dev-server compile
+  OK (/tasks/<uuid> 404 as designed); real-DB end-to-end: cache-probe project
+  (3df1a14c-8981-4455-936d-186238e40c78) -> tokensIn 28240 / cached 20842 / hitRate 73.8% / turns 3;
+  stranger actor and bad id both -> null.
+- Pixel-level render NOT verified here (browser capture unavailable) - see ADR 0131 sec. remaining.

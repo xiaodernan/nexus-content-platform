@@ -3,7 +3,9 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { TaskRetryButton } from '@/components/TaskRetryButton';
+import { SavingsCard } from '@/components/SavingsCard';
 import { readTasksLedger, type TasksLedgerPayload, type TaskUsage } from '@/lib/tasksLedger';
+import type { SavingsSummary } from '@/lib/savings';
 import { cacheText, cacheTotal, costText } from '@/lib/usage-cache-text';
 import { REALTIME_TEXT, useRealtime } from '@/lib/useRealtime';
 
@@ -68,7 +70,15 @@ function usageText(usage: TaskUsage | null): string {
   return `${usage.model}（${usage.provider}）· ${usage.tokensIn} 进 / ${usage.tokensOut} 出 token · ${cacheStr}${reasoningStr} · ${costStr} · ${usage.toolCalls} 次工具调用 · 模型侧 ${latency}`;
 }
 
-export function TasksLedgerLive({ projectId, initial }: { projectId: string; initial: TasksLedgerPayload }) {
+export function TasksLedgerLive({
+  projectId,
+  initial,
+  savings = null,
+}: {
+  projectId: string;
+  initial: TasksLedgerPayload;
+  savings?: SavingsSummary | null;
+}) {
   const [payload, setPayload] = useState<TasksLedgerPayload>(initial);
   const [note, setNote] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -191,6 +201,8 @@ export function TasksLedgerLive({ projectId, initial }: { projectId: string; ini
           </Link>
         </div>
       </header>
+
+      {savings ? <SavingsCard savings={savings} /> : null}
 
       {note ? (
         <p className="tl-note" data-tasks-live-note>

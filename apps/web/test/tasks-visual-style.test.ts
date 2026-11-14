@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
  * 本片只换 className；行为、文案、data 钩子、realtime 订阅/重读判据一字不改。
  *
  * **剥 className 后全文 SHA256 守恒**：三文件均逐字节恒等于改前（git HEAD）。
- * redact 三步序与钉死常量一致：live=`35299b4d…`（并轨 §AILIVE-9 后的字节），retry=`b90012c2…`，page=`bd7e0e61…`。
+ * redact 三步序与钉死常量一致：live=`09db66dc…`（§AILIVE-9/CACHE-3 + §v699 SavingsCard 接线后的字节），retry=`b90012c2…`，page=`cae7a533…`。
  *
  * 判据不变式（14 门）：
  *  1. page.tsx server 组件 + force-dynamic + requireUser + listProjectTasks 钩子（零 className）；
@@ -210,16 +210,16 @@ describe('§FE-23 /tasks/[projectId] 任务账本', () => {
     expect(liveCode).toContain('data-tasks-cache-summary={String(cache.cached)}');
   });
 
-  it('剥 className 后全文 SHA256 钉死（live=35299b4d… 并轨 §AILIVE-9/CACHE-3 后的字节（usageText 增加 reasoning 推理旁注）· retry=b90012c2… · page=bd7e0e61…）', () => {
+  it('剥 className 后全文 SHA256 钉死（live=09db66dc… 并轨 §AILIVE-9/CACHE-3 + §v699 SavingsCard 接线后的字节 · retry=b90012c2… · page=cae7a533…）', () => {
     // 常量在改前（git HEAD）由真实产物 redact 算出并钉死；此门保证除 className 外一字节未动。
     expect(createHash('sha256').update(redactClasses(live)).digest('hex')).toBe(
-      '35299b4da6d960af48c6d48239e1da834cc043d2bd6417aa080c542dec3efb1f',
+      '09db66dc5fc6b3b2e23c8502be63e53cf7ff8ba2e5294e27763b9381c0c5339e',
     );
     expect(createHash('sha256').update(redactClasses(retry)).digest('hex')).toBe(
       'b90012c2ad50e24a71a316610fe85fb8b9caa69607d27fc8ef89b8c91ae23801',
     );
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      'bd7e0e611bc74902aad2fd028288539769d2efbe5d078579af89d9cbe386e9a3',
+      'cae7a533607f212cc3b582d0e2b115ecede5b8cdf51e3bafc63ca048dccdb81c',
     );
   });
 });

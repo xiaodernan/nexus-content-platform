@@ -26,7 +26,9 @@ const code = strip(main);
 
 const GE_START = globals.indexOf('.ge-shell {');
 if (GE_START < 0) throw new Error('globals.css 里没有 .ge- 段（.ge-shell {）');
-const nextSection = globals.indexOf('/* ── §FE-DL', GE_START);
+// §FE-SV（SavingsCard 节）与 §FE-AM（成本账单节）是合并后追加在文件尾部的新段；
+// 它们不属于本片 §FE-GE 的视觉族——改按 §FE-AM 切界，保住 ".ge- 段没有渐变墨字" 一门的原始语义。
+const nextSection = globals.indexOf('/* §FE-AM', GE_START);
 const segment = globals.slice(GE_START, nextSection > 0 ? nextSection : undefined);
 
 function redactClasses(source: string): string {
