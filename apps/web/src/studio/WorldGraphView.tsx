@@ -273,6 +273,13 @@ export function WorldGraphView() {
           世界切片
         </a>
         <a
+          href={`/world/${studio.projectId}/digest`}
+          className="sb-btn2"
+          data-enter-digest
+        >
+          世界速览
+        </a>
+        <a
           href={`/world/${studio.projectId}/codex`}
           className="sb-btn2"
           data-enter-codex
