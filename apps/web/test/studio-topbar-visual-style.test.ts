@@ -21,7 +21,7 @@ import { describe, expect, it } from 'vitest';
  * 比较/分支位置，只归一字符串字面值。
  *
  * **剥 className 后全文逐字节零行为门**（本片最强）：基线（全裸）与改造后（全 `.sp-`）
- * 必须整份恒等 `3f6bcdd8…`——常量在**改前**由真实产物算出并钉死，改后匹配同一常量才证明
+ * 必须整份恒等 `8fefe54…`——常量在**改前**由真实产物算出并钉死，改后匹配同一常量才证明
  * "改动只落在 className 字面值里，其它一个字节没动"。
  *
  * 判据不变式（13 门）：
@@ -151,9 +151,9 @@ function maskLiterals(expr: string): string {
 
 /**
  * **剥 className 后全文逐字节哈希**（本片最强零行为门）。
- * 基线（全裸）与改造后（全 `.sp-`）必须整份恒等 `3f6bcdd8…`（改前由真实产物算出并钉死）。
+ * 基线（全裸）与改造后（全 `.sp-`）必须整份恒等 `8fefe54…`（v703-credit-chip 并入后真值重钉（8fefe54，含 CreditChip））。
  */
-const STRIP_CLASS_SHA256 = '3f6bcdd87872c2c880759f4a18d884d38764fc395e63dff72cd70196100b03ce';
+const STRIP_CLASS_SHA256 = '8fefe54cc641fa3b465307fe2b4de0836d845bb98bdc34bc33016f75699cea54';
 function stripClassNames(src: string): string {
   const s = src.replace(/\r\n/g, '\n');
   let out = '';
@@ -262,7 +262,7 @@ describe('§FE-19 Studio 顶栏门面基建（静态不变式）', () => {
         .toMatch(new RegExp(`\\.${sel}:hover\\s*\\{[^}]*background[^}]*\\}`));
     }
     // 2 个 <a>（NEXUS wordmark / 预览）href 仍在，且门面段有 focus-visible 环
-    expect((code.match(/<a\s/g) ?? []).length, 'TopBar <a> 数变了').toBe(2);
+    expect((code.match(/<a\s/g) ?? []).length, 'TopBar <a> 数变了（NEXUS wordmark · 预览 · v703 credit chip）').toBe(3);
     expect(spSegment, 'sp- 段缺 focus-visible 环').toMatch(/:focus-visible\s*\{/);
     expect(spSegment).toMatch(/outline:\s*2px\s+solid\s+var\(--nexus-color-brand\)/);
     for (const a of ['sp-wordmark', 'sp-previewLink']) {

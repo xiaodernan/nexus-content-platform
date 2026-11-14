@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
  * 唯一的行为面是 `railOpen` / `inspectorOpen` / `inspectorFolded` 三件套（boolean 翻转），
  * 职责：画面 budgets（390 收起、xl 常驻）；只交换皮、文案/强调词/data 钩子止住。
  *
- * **零行为门**：改前（git HEAD）与改后 redact 一致（`52806156…`；redact = EOL 归一 +
+ * **零行为门**：改前（git HEAD）与改后 redact 一致（`fbe62975…`；redact = EOL 归一 +
  * `\s+`→1 + className 任意形态归一 @ + cn(…) 全体 → cn()）。整页只有 `.se-*`、无 cn-only className 分支、
  * 无 arbitrary value。StudioStore 的 load/flush 路径（flushSave×4、beforeunload flush）一字不改。
  *
@@ -179,9 +179,9 @@ describe('§FE-41 /studio StudioShell Studio 外壳', () => {
     expect(segment).not.toMatch(/transition:[^;}]*\d+(ms|s)\b/);
   });
 
-  it('剥 className/cn 后（EOL+空白归一）全文 SHA256 守恒（容零行为：528061562f9b57175547d56ec5bc34f1eaf10bdb6524c0a8633b1c955729f6da）', () => {
+  it('剥 className/cn 后（EOL+空白归一）全文 SHA256 守恒（容零行为：5edbbc9d04ba54a852b7966ac8a8ef363c4618b676acb8eab8454b46b3f79fe7）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '528061562f9b57175547d56ec5bc34f1eaf10bdb6524c0a8633b1c955729f6da',
+      '5edbbc9d04ba54a852b7966ac8a8ef363c4618b676acb8eab8454b46b3f79fe7',
     );
   });
 });

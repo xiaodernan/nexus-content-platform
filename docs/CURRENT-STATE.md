@@ -3071,3 +3071,28 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - CI for 7fb3c91 / 846dec5 / 95dbf12 still in_progress at record time; do not claim green.
 - Instances up: 3101 web, 3200 ai-service (this lane's); sibling 3100/3200 observed refused at
   record time; host keeps rebooting; Docker Desktop relaunch remains manual recovery.
+## cont. 95 (2026-11-14) - v703 landed: Studio TopBar AI credit chip
+
+- The Studio top bar now shows the fixture account's live AI credits: 97/100 visible in the
+  screenshot, honest to the point count (3 real AI calls this session really deducted 3 points).
+- Server-read from the ledger (readCredits, idempotent monthly grant); read failure -> chip hidden,
+  never a fake number. Links to /credits where the burn-rate card lives.
+- Incidents this turn: Docker Desktop went down again mid-verification (third outage this host) -
+  relaunched; nexus-postgres/redis recovered; sibling 3100/3200 remain the watchdog's affair;
+  our instances: 3101 web + 3200 ai-service serving after relaunch.
+- CI at record time: 846dec5 both SUCCESS; 95dbf12 + 7fb3c91 main-line SUCCESS / CI queued;
+  4d67a2b queued. Do not claim green until runners complete.
+## cont. 96 (2026-11-14) - v703 landed: Studio credit chip; record-encoding memory finding
+
+- v703 committed (5cfbc2b): Studio top bar now shows the live AI credit chip (fixture: 97/100,
+  real ledger, not a placeholder). Thread: page -> StudioShell -> StudioWorkspace -> TopBar ->
+  CreditChip. Browser-verified via playwright; tsc 0; direct eslint 0 per file.
+- Process lesson: `npm run verify:record-encoding` exited -1 with only the two diagnostic lines
+  printed when the host had ~284MB free - it is not a repo regression; with
+  NODE_OPTIONS=--max-old-space-size=6144 the same script prints the OK line (verified green,
+  same tree). Do not hand-wave the difference away - the proof needs heap, the box was saturated.
+  (Not editing the agents lane's gate to say it; just noting the operational fact here.)
+- Host saturation persists (vmmemWSL 4.3GB + user's msedge 2GB + Docker). Our 3101 dev instance
+  stopped to relieve memory; 3200 ai-service still serving; sibling 3100/3200 not ours to manage.
+- Sync discipline: after a checkout-index race this turn, both branches fast-forwarded and
+  pushed together; master == main == origin @ 4d67a2b before this commit.
