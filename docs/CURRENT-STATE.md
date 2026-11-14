@@ -2979,3 +2979,20 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - Chronicle unit 6/6; tsc 0; per-file eslint 0; record-encoding OK at cont. 107.
 - CI at record time: bf84954 CI SUCCESS (first green on this lane's 2026-11-14 refs);
   84f7f0d in_progress; c28ad48 in_progress; 63069f7 queued; main-line green on every pushed ref.
+## cont. 109 (2026-11-14) - v713: 北境纪事 canon excerpt archived in-repo (docs/lore)
+
+- New `docs/lore/bei-jing-records.md`: a human-readable canon excerpt of the dev-fixture
+  reference world (「北境纪事」/ fixture project 星图 MWG35NRI, f7ec6716): pitch, era table,
+  7 dated timeline entries (titles/bodies verbatim from the world doc), 6 geography pins,
+  4 faction seats, 5 fully-profiled characters (names/defined-by lines distilled from
+  profile jsonb: 守夜人/苍雪主席 marked 灰灯纪 via activeEra), 4 memory echoes verbatim,
+  9 derived open mysteries (derived, not invented), projection-route index, writing discipline
+  for future expansion (memory<=240, fixture<->doc sync, no publish surface).
+- Every line in the doc is fixture-grounded (checked back against the world document nodes
+  2026-11-14T14:20Z; two initially-paraphrased story bodies were corrected to the fixture text).
+- No code changed; gates: record-encoding OK.
+- CI at record time: a092ee9 queued (main-line + CI); 63069f7 main-line SUCCESS; c28ad48 CI
+  in_progress (main-line SUCCESS); 84f7f0d CI in_progress (main-line SUCCESS);
+  bf84954 CI SUCCESS + main-line SUCCESS; 7f84983 CI in_progress (main-line SUCCESS).
+  Not claiming until the runner finishes.
+- Docker Desktop outage count today: 11. Self-healed; sibling deployments 3100/3200 untouched.
