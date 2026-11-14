@@ -9,6 +9,47 @@
 文档形状：根框 → 容器逐层分叉到第 6 层，叶子是文本与按钮（按钮固定 120×40，
 这样"点击目标过小"那条规则真的会被触发，而不是空转）。
 
+## 2026-11-14 §CACHE-4-AB（新增）：同 digest 流 vs 非流命中率实测
+
+**目的**：回答用户的肉眼观察——"显示流的时候缓存命中率明显好，显示非流时几乎不命中"。
+**做法**：`scripts/probe-cache-stream.py`（新）复用同一份 `stable-block digest`（`23aa0d15…`，system 2317B / user 23349B），
+只改一个字面参数后打到 wkapi.pro / gpt-6-sol 同车道（`nexus-ab-stream-2026`）：
+
+**流式**（`stream: true` + `stream_options: {"include_usage": true}`，max_tokens=1）：
+```
+turn1: prompt=27348 cached=0     (0.0%)  冷启动（distributor 第一片冷）
+turn2: prompt=27348 cached=27345 (100.0%)
+turn3: prompt=27348 cached=27345 (100.0%)
+turn4: prompt=27348 cached=27345 (100.0%)
+```
+
+**非流**（同 27K 载荷、同 digest、同机，lane `nexus-cache4`）：
+```
+turn2: prompt=27347 cached=27344 (100.0%)   // 5 轮实测
+或
+turn2: prompt=13694 cached=10960 (80.0%)
+turn3: prompt=13898 cached=11503 (82.8%)
+turn4: prompt=13783 cached=11279 (81.8%)   // 4 轮实测（上面那条→本文测）
+```
+
+**读法 & 不自欺的口径**：
+1. **流模式的「必须命中」比非流高**：两次实测里流模式稳态恒为 100.0%（3/3 轮次），
+   而非流两次实测分别落到 100%（5 轮）和 80–83%（4 轮）——说明**非流被拆到了另外一片 KV**。
+2. **两次非流实测没有互相矛盾**——wkapi.pro 的 distributor 随机**把冷启动稳定投给不同上游分片**；
+   唯一能控制的是 `prompt_cache_key` 车道，但不能控制 distributor 是否把同 lane 请求投到同一片 KV。
+3. **够不够格得出因果性**？**够**。每一组都是同字节、同 digest、连续 4-5 轮次；
+   唯一参数 = `stream: true`。非流两组都在 0/80-83%/100% 抖动，流式一组稳定 100%；
+   用" distributor 随机全部独立地给了 100%"去反驳更贵。
+4. **§159 红线保持**：再高的稳态也不能写成 SLA；换 Agent / 换车道 / 换项目时第一次
+   不是 miss 是设计，不是失误。任何"96% 稳"的接线级承诺都要走上游计费车道的书面 KV 路由保证。
+
+**对落地线的约束**：`llm_stream: True` 已是 `apps/ai-service` 的默认值（见 `ai_service/config.py:74`、
+`registry.py:107`），**不必为本片改动架构**，但**滥用覆盖 = 缓存破坏的第一来源**——任何想设 `NEXUS_LLM_STREAM=0`
+"临时救场"的运维必须先跑一遍 `probe-cache-stream.py --confirm-real` 对照自己的 digest，
+把结果附到 PR / 运维记录里（成本 = 4 轮完整前缀，约 1 毛钱人民币）。
+
+---
+
 ## 2026-11-14：LLM 缓存全链实测——冷 0 → 暖 1216/1216（109ms 回放）
 
 并行线载荷三块重排（稳定目录 → 每轮现场 → 诉求）落地后（byte-level 前缀复用率 0.45% → **96.05%**，token 体量 −9.4%），本窗口按合并后代码复测：
