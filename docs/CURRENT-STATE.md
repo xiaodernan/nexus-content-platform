@@ -3503,3 +3503,29 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 长期开发线次交汇点：AGENTS.md 的 open/show/next 纪律被本次覆盖途中持续满足（直连顺序 + showcase 按快照更新，未发现漂移）。
 - 下一项精选：PropertiesPanel（§6 右面板，1103 行，91 处中文字面量）— 分两段落地（子组件→主体→doors §14/§124 的功能列），
   每段可独立回归；CanvasStage 与 CanvasStage 挂载点（AnnotationsPanel 挂载链）紧随其后。
+
+## cont. 125 (2026-11-16) - v755: StoryboardPanel 双语化（§40–§42 分镜面板）+ storyboard-labels EN 表
+
+- StoryboardPanel.tsx 全量 zh/en 双字典（111 键对称，kb-sb 对 keys 逐项核验无 dup/缺 key）：
+  heading/状态六态/空态三路/来源编辑器/名册与资产加载提示/切-改-撤-重做-重读-应用来源/镜头行
+  （定位 aria+title、机位/转场/时长/角色/参考图选择器、DEMO 参考图合成）/渲染段（额度门展示
+  c.quota、DEMO 渲染按钮+429 提示、渲染历史、逐镜画面出处 provenance 三态）/时间线段（说明
+  resizeHint+splitHint+timelineHint 三段拼接、轨道清单 emptyTrack/clipCount 含 emptyReason 透传、
+  说明段时间线 aria-valuesum、可播/不可播、role=separator 右边缘 aria-valuetext/aria-valuenow）
+  全部接 locale；c.announce* 系列（attachedFinished/locatedInList/locatedOnStrip/lengthChanged/
+  splitAtCursor/revertPreview/atLimit/previewSeconds/announceSourceChanged/emptyPrompt/badDuration）
+  全部替换原模板字面量。
+- storyboard-labels.ts 增 CAMERA_LABELS_EN / TRANSITION_LABELS_EN / ARROW_LABELS_EN 与
+  cameraLabel/transitionLabel/arrowLabel(key, locale) helper（与中文表同序键）；
+  arrowNeedText(arrow, locale = 'zh')；公开分镜页（/n/.../storyboard，ss-*）仍是单 zh 面，
+  §FE-56/76 不动；visual 测试对 CAMERA_LABELS 的断言仍对（zh 导出保留）。
+- **事故自查（本片第二类风险）**：pass1 脚本把字面量 `这个项目还没有角色…` 同时命中字典行与
+  JSX 行，字典值被写成 'c.noCharactersAssets'——发现后立即修正为原句；kb-sb 双向对称校验 +
+  typecheck + eslint 双保险锁住；教训落盘：批量 string→c.* 置换前先摘字典行出匹配集。
+- StudioShell 透传 locale（StoryboardPanel locale={locale}）。
+- Gate：§FE-46 SHA 三次重钉（i18n 后重写）；§FE-41 第十四次重钉（StudioShell 一行）；
+  fe-gates 116/116 · 1148/1148；tsc web 0；eslint 净；无新增颜色 token、无粗线程 SSR。
+- 已知边界（诚实登记，*非本片偷偷做*）：storyboard 渲染 notes/warnings（服务端裁定原句）仍 zh；
+  timeline/render 服务端文案（§46 独立切片）；CanvasStage/PropertiesPanel 与顶层 /admin/*、3D WorldWalk HUD 未双语化；
+  分镜公开页（/n/[handle]/[slug]/storyboard）ZH 单语保留。
+- showcase 快照同步于提交后（npm run sync:showcase）。
