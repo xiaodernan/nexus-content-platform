@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { saveBlob } from '@/lib/download';
+import type { Locale } from '@/lib/i18n';
 import { useStudioReady } from './store';
 import { usePopoverDismiss } from './use-popover-dismiss';
 
@@ -17,17 +18,86 @@ import { usePopoverDismiss } from './use-popover-dismiss';
  * - **缺了资产要说出来**。库里有一行、存储里的字节却取不回来，这种事会发生（本地驱动被清过、
  *   S3 凭据换过）；默默少几个文件比明说少几个更糟——那时作者已经拿着 zip 走人了。
  * - **限度写在旁边**。导的是当前这一版投影：历史快照、分支、撤销栈、知识索引、对话都不在里面。
+ * 双语（v742）：locale 由 TopBar 透传；zh 原文原样保留，en 逐句对应。
  */
 
-const PARTS = [
-  { id: 'design', label: '设计文档', hint: '这份项目当前那一版的模型本身（design model 是唯一真值，§16）' },
-  { id: 'code', label: '生成的代码', hint: '由那份文档确定性投影出来的文件，不是另存的一份真相' },
-  { id: 'assets', label: '上传的资产', hint: '你自己传进来的图片等原始字节' },
-  { id: 'storyboard', label: '分镜', hint: '§40-42 的分镜文档；镜头的参考帧与成片按 id 引用 assets/ 里的字节' },
-  { id: 'character', label: '角色档案', hint: '§46 的角色设定；世界归属不随包走，导入时挂到新项目自己的世界上' },
-] as const;
+const COPY = {
+  zh: {
+    heading: '§144 导出这个项目',
+    trigger: '导出',
+    ariaLabel: '导出与下载',
+    pickAtLeast: '至少勾一样：什么都不导的包是不存在的。',
+    failureHttp: (status: number) => `导出失败（HTTP ${status}）`,
+    failurePlain: '导出失败',
+    downloaded: (filename: string, kilobytes: string) => `已下载 ${filename}（${kilobytes}）`,
+    packageEmpty: '一个文件也没有（README 之外是空的）',
+    noReceipt: '服务端没给构成回执，这里只报字节数。',
+    inPackage: (said: string) => `包内：${said}`,
+    missingAssets: (n: number) =>
+      `有 ${n} 个资产在存储里取不回来了，它们没进包，包里的 README.txt 写了名字。`,
+    limitProjection:
+      '导的是当前这一版：历史快照、分支、撤销栈、知识索引与对话都不在这份包里，它们还在项目里。',
+    limitReadme: '包里的 README.txt 会写清有什么、按什么生成的、以及哪些资产没取回来。',
+    packaging: '打包中…',
+    nothingPicked: '（没勾东西）',
+    exportPrefix: '导出 ',
+    collapse: '收起',
+    partLabels: {
+      design: '设计文档',
+      code: '生成的代码',
+      assets: '上传的资产',
+      storyboard: '分镜',
+      character: '角色档案',
+    } as Record<Part, string>,
+    partHints: {
+      design: '这份项目当前那一版的模型本身（design model 是唯一真值，§16）',
+      code: '由那份文档确定性投影出来的文件，不是另存的一份真相',
+      assets: '你自己传进来的图片等原始字节',
+      storyboard: '§40-42 的分镜文档；镜头的参考帧与成片按 id 引用 assets/ 里的字节',
+      character: '§46 的角色设定；世界归属不随包走，导入时挂到新项目自己的世界上',
+    } as Record<Part, string>,
+  },
+  en: {
+    heading: '§144 Export this project',
+    trigger: 'Export',
+    ariaLabel: 'Export and download',
+    pickAtLeast: 'Pick at least one part: a package that exports nothing exists not.',
+    failureHttp: (status: number) => `Export failed (HTTP ${status})`,
+    failurePlain: 'Export failed',
+    downloaded: (filename: string, kilobytes: string) => `Downloaded ${filename} (${kilobytes})`,
+    packageEmpty: 'No files at all (empty apart from README)',
+    noReceipt: 'The server gave no composition receipt; only bytes are reported.',
+    inPackage: (said: string) => `In the package: ${said}`,
+    missingAssets: (n: number) =>
+      `${n} assets could not be retrieved from storage; they are not in the package, and README.txt in the package names them.`,
+    limitProjection:
+      'This is the current version only: historical snapshots, branches, the undo stack, the knowledge index and dialogues are not in this package — they remain in the project.',
+    limitReadme: 'README.txt in the package lists what is in it, what generated it, and which assets went missing.',
+    packaging: 'Packaging…',
+    nothingPicked: '(nothing picked)',
+    exportPrefix: 'Export ',
+    collapse: 'Collapse',
+    partLabels: {
+      design: 'Design document',
+      code: 'Generated code',
+      assets: 'Uploaded assets',
+      storyboard: 'Storyboard',
+      character: 'Character profiles',
+    } as Record<Part, string>,
+    partHints: {
+      design: 'The current model of this project (the design model is the single source of truth, §16)',
+      code: 'Files deterministically projected from that document — not another saved copy of the truth',
+      assets: 'Raw bytes of the images you uploaded',
+      storyboard: 'The §40–42 storyboard document; reference frames and rushes reference assets/ bytes by id',
+      character: 'The §46 character designs; world attachments follow nothing — importing mounts them on the new project’s own world',
+    } as Record<Part, string>,
+  },
+} as const;
 
-type Part = (typeof PARTS)[number]['id'];
+type Part = 'design' | 'code' | 'assets' | 'storyboard' | 'character';
+
+/** PARTS 的 id 顺序是唯一的；label/hint 走 COPY（§144 导出这个项目的双语门面）。 */
+const PART_IDS = ['design', 'code', 'assets', 'storyboard', 'character'] as const satisfies readonly Part[];
 
 /** 弹层与触发键的绑定：`aria-controls` 指的必须是真存在的 id，两边共用这一个常量。 */
 const EXPORT_PANEL_ID = 'nexus-export-panel';
@@ -62,7 +132,7 @@ function parseReceipt(header: string | null): Pick<Receipt, 'counts' | 'missing'
     const counts = parsed.counts;
     if (typeof counts !== 'object' || counts === null) return { counts: null, missing: null };
     const only = Object.fromEntries(
-      PARTS.map((p) => p.id).map((id) => [id, (counts as Record<string, unknown>)[id]]).filter(([, n]) => typeof n === 'number'),
+      PART_IDS.map((id) => [id, (counts as Record<string, unknown>)[id]]).filter(([, n]) => typeof n === 'number'),
     ) as Partial<Record<Part, number>>;
     return { counts: only, missing: typeof parsed.missing === 'number' ? parsed.missing : null };
   } catch {
@@ -74,7 +144,8 @@ function kilobytes(bytes: number): string {
   return `${(bytes / 1024).toFixed(1)} KB`;
 }
 
-export function ExportPanel() {
+export function ExportPanel({ locale = 'zh' }: { locale?: Locale }) {
+  const c = COPY[locale];
   const state = useStudioReady();
   const [open, setOpen] = useState(false);
   const [picked, setPicked] = useState<Record<Part, boolean>>({ design: true, code: true, assets: true, storyboard: true, character: true });
@@ -83,11 +154,11 @@ export function ExportPanel() {
   const [error, setError] = useState<string | null>(null);
   const { rootRef, triggerRef } = usePopoverDismiss(open, setOpen);
 
-  const chosen = PARTS.filter((p) => picked[p.id]).map((p) => p.id);
+  const chosen = PART_IDS.filter((id) => picked[id]);
 
   const run = async () => {
     if (!chosen.length) {
-      setError('至少勾一样：什么都不导的包是不存在的。');
+      setError(c.pickAtLeast);
       return;
     }
     setBusy(true);
@@ -97,7 +168,7 @@ export function ExportPanel() {
       const res = await fetch(`/api/projects/${state.projectId}/export?parts=${chosen.join(',')}`);
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as { message?: string } | null;
-        setError(body?.message ?? `导出失败（HTTP ${res.status}）`);
+        setError(body?.message ?? c.failureHttp(res.status));
         return;
       }
       const bytes = new Uint8Array(await res.arrayBuffer());
@@ -106,7 +177,7 @@ export function ExportPanel() {
       saveBlob(filename, new Blob([bytes], { type: 'application/zip' }));
       setReceipt({ bytes: bytes.byteLength, filename, ...parseReceipt(res.headers.get('x-nexus-export-receipt')) });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '导出失败');
+      setError(cause instanceof Error ? cause.message : c.failurePlain);
     } finally {
       setBusy(false);
     }
@@ -115,7 +186,7 @@ export function ExportPanel() {
   /** 只数真的进了包的那几档；一个都没进就说"没有"，不写"0 个"（§159） */
   const composition = (counts: Receipt['counts']): string | null => {
     if (!counts) return null;
-    const said = PARTS.filter((p) => counts[p.id]).map((p) => `${p.label} ${counts[p.id]}`).join(' · ');
+    const said = PART_IDS.filter((id) => counts[id]).map((id) => `${c.partLabels[id]} ${counts[id]}`).join(' · ');
     return said || null;
   };
 
@@ -130,30 +201,30 @@ export function ExportPanel() {
         data-export-open
         className="pb-ghostBig"
       >
-        导出
+        {c.trigger}
       </button>
 
       {open ? (
         <div
           id={EXPORT_PANEL_ID}
           role="region"
-          aria-label="导出与下载"
+          aria-label={c.ariaLabel}
           data-export-panel
           className="pb-popPanel360"
         >
-          <p className="pb-monoMt2">§144 导出这个项目</p>
+          <p className="pb-monoMt2">{c.heading}</p>
           <div className="pb-col">
-            {PARTS.map((part) => (
-              <label key={part.id} className="pb-pickRow" data-export-part={part.id}>
+            {PART_IDS.map((id) => (
+              <label key={id} className="pb-pickRow" data-export-part={id}>
                 <input
                   type="checkbox"
-                  checked={picked[part.id]}
-                  onChange={() => setPicked((prev) => ({ ...prev, [part.id]: !prev[part.id] }))}
+                  checked={picked[id]}
+                  onChange={() => setPicked((prev) => ({ ...prev, [id]: !prev[id] }))}
                   className="pb-mt3px"
                 />
                 <span>
-                  <span className="pb-ink1">{part.label}</span>
-                  <span className="pb-faintBlock">{part.hint}</span>
+                  <span className="pb-ink1">{c.partLabels[id]}</span>
+                  <span className="pb-faintBlock">{c.partHints[id]}</span>
                 </span>
               </label>
             ))}
@@ -167,21 +238,19 @@ export function ExportPanel() {
               className="pb-block"
               data-export-receipt
             >
-              <p className="pb-ink1">
-                已下载 {receipt.filename}（{kilobytes(receipt.bytes)}）
-              </p>
+              <p className="pb-ink1">{c.downloaded(receipt.filename, kilobytes(receipt.bytes))}</p>
               {receipt.counts ? (
                 <p className="sb-faintMt1" data-export-composition>
-                  包内：{composition(receipt.counts) ?? '一个文件也没有（README 之外是空的）'}
+                  {c.inPackage(composition(receipt.counts) ?? c.packageEmpty)}
                 </p>
               ) : (
                 <p className="sb-faintMt1" data-export-composition>
-                  服务端没给构成回执，这里只报字节数。
+                  {c.noReceipt}
                 </p>
               )}
               {receipt.missing ? (
                 <p className="cp-warnMt1" data-export-missing>
-                  有 {receipt.missing} 个资产在存储里取不回来了，它们没进包，包里的 README.txt 写了名字。
+                  {c.missingAssets(receipt.missing)}
                 </p>
               ) : null}
             </div>
@@ -196,10 +265,10 @@ export function ExportPanel() {
 
           <ul className="pb-listMt1">
             <li className="sb-faint11" data-export-limit>
-              · 导的是当前这一版：历史快照、分支、撤销栈、知识索引与对话都不在这份包里，它们还在项目里。
+              · {c.limitProjection}
             </li>
             <li className="sb-faint11" data-export-limit>
-              · 包里的 README.txt 会写清有什么、按什么生成的、以及哪些资产没取回来。
+              · {c.limitReadme}
             </li>
           </ul>
 
@@ -212,11 +281,11 @@ export function ExportPanel() {
               className="pb-runBtn"
             >
               {busy
-                ? '打包中…'
-                : `导出 ${chosen.map((id) => PARTS.find((p) => p.id === id)!.label).join('+') || '（没勾东西）'}`}
+                ? c.packaging
+                : `${c.exportPrefix}${chosen.map((id) => c.partLabels[id]).join('+') || c.nothingPicked}`}
             </button>
             <button type="button" onClick={() => setOpen(false)} className="pb-closeBtn">
-              收起
+              {c.collapse}
             </button>
           </div>
         </div>

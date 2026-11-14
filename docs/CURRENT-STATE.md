@@ -3382,3 +3382,14 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   差异统计、两档空态（当前分支/全部）、heading 与入口 chip 全部接 locale；locale 自 StudioShell 透传。
 - 审计链说明（该是用户项目历史而非 git 的开发历史）双语复述原意。
 - fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；§FE-41 重钉（第五跳）。
+
+## cont. 111 (2026-11-15) - v742: ExportPanel 双语化（§144 no-lock-in 出口）
+
+- ExportPanel.tsx zh/en 双字典：5 parts label/hint、唯一渲染期动态标签（busy/prefix）、
+  receipt 统计、missing 资产如实提示、禁失败伪造三档错误文案、README 限度两行、collapse 全部接 locale；
+  locale 自 TopBar 透传（<ExportPanel locale={locale} />）。
+- 服务端回执（HTTP message）与 README.txt 本体仍 zh（artifact 产物本身）；错误语面英文化属 §46。
+- §FE-63 门修复：去掉自引用 execSync('git show HEAD:ExportPanel.tsx') 削弱断言（cn 行早已随 FE-63 落库，
+  该自比较早已不成立，只是没有失败——未被证明前的每一刀都是债）；改为直接钉死逐字节 hash，
+  并注明 UTF-8 陷阱被 node 字节流自然避开。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；§FE-TB 再次重钉（ExportPanel 入 locale 行列）。

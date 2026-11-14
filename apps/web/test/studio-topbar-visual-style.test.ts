@@ -151,9 +151,9 @@ function maskLiterals(expr: string): string {
 
 /**
  * **剥 className 后全文逐字节哈希**（本片最强零行为门）。
- * 真值 `264c122e…`（v739-PublishPanel-localize 把 `<PublishPanel />` 改成带 locale 透传，按惯例重钉）。
+ * 真值 `c1687319…`（v742-ExportPanel-localize 把 `<ExportPanel />` 改成带 locale 透传，按惯例重钉）。
  */
-const STRIP_CLASS_SHA256 = '264c122e57b016883f31d55ecae9d75faa445e8dc3f8c220fc875744403900f5';
+const STRIP_CLASS_SHA256 = 'c16873192a4412f47494affcdee82a855f756144dd6833e9458760060646118d';
 function stripClassNames(src: string): string {
   const s = src.replace(/\r\n/g, '\n');
   let out = '';
