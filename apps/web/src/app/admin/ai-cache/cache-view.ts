@@ -141,27 +141,38 @@ export function verdictOf(readout: AiCacheReadout): CacheVerdict {
   return 'cold';
 }
 
+/** §CACHE-4-AB 警示：本进程被显式退回非流时，"命中率低"未必是 prompt 坏事。 */
+export function nonStreamCaveat(readout: AiCacheReadout): string {
+  if (readout.transport?.stream === false) {
+    return '本进程的出站 LLM 被显式退回非流（NEXUS_LLM_STREAM=0）；上游对不同车道分片不共享 KV，同一车道分发器也可能把 KV 不定投进不同片——' +
+      '非流命中率会比流式低很多（同机同 digest 实测：稳态 80–83% vs 100%）。先恢复流式，再读这一栏。';
+  }
+  return '';
+}
+
 export function verdictText(readout: AiCacheReadout): { headline: string; detail: string } {
+  const caveat = nonStreamCaveat(readout);
+  const appended = (detail: string) => (caveat ? `${detail} ${caveat}` : detail);
   switch (verdictOf(readout)) {
     case 'good':
       return {
         headline: '前缀稳定，前缀缓存该命中',
-        detail: '绝大多数请求建立在同一段稳定前缀上。provider 只要做前缀缓存，这一段就该被复用。',
+        detail: appended('绝大多数请求建立在同一段稳定前缀上。provider 只要做前缀缓存，这一段就该被复用。'),
       };
     case 'warm':
       return {
         headline: '前缀部分稳定',
-        detail: '一半左右的请求换过前缀。常见原因是每轮都在变的现场内容（选中、标注、最近改动）占比偏大。',
+        detail: appended('一半左右的请求换过前缀。常见原因是每轮都在变的现场内容（选中、标注、最近改动）占比偏大。'),
       };
     case 'cold':
       return {
         headline: '前缀一直在变，缓存救不了',
-        detail: '不到四成请求延续了上一轮的前缀。先看载荷里哪些字段每轮都在变——字节前缀缓存遇到第一处不同就断。',
+        detail: appended('不到四成请求续接了上一轮的前缀。先看载荷里哪些字段每轮都在变——字节前缀缓存遇到第一处不同就断。'),
       };
     default:
       return {
         headline: '还没有样本',
-        detail: '这一台还没处理过请求。先跑一次真实调用，再回来看这三本账。',
+        detail: appended('这一台还没处理过请求。先跑一次真实调用，再回来看这三本账。'),
       };
   }
 }

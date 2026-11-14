@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { AiCacheReadout, AppCacheStats } from '@/server/ai/cache-stats';
+import type { AiCacheReadout, AppCacheStats, AiCacheTransport } from '@/server/ai/cache-stats';
 import {
   appCacheDetail,
   appCacheHeadline,
@@ -15,6 +15,7 @@ import {
   share,
   verdictOf,
   verdictText,
+  nonStreamCaveat,
 } from '@/app/admin/ai-cache/cache-view';
 
 /**
@@ -206,5 +207,32 @@ describe('§CACHE-2 cache-view · 判定阈值', () => {
       seen.add(text.headline);
     }
     expect(seen.size).toBe(4);
+  });
+});
+
+
+describe('§CACHE-4-AB nonStreamCaveat', () => {
+  it('transport.stream===false → 判读 detail 必含「退回非流」警示', () => {
+    const on: CacheVerdict = 'cold';
+    const bad = readout({
+      transport: { stream: false },
+      prefix: { requests: 10, reused: 1, uniquePrefixes: 9, capacity: 512, evictions: 0, reuseRate: 0.1 },
+    });
+    const good = readout({ transport: { stream: true } });
+    expect(verdictOf(bad)).toBe('cold');
+    const text = verdictText(bad);
+    expect(text.detail).toContain('非流');
+    expect(text.detail).toContain('NEXUS_LLM_STREAM=0');
+    const fine = verdictText(good);
+    expect(fine.detail).not.toContain('NEXUS_LLM_STREAM=0');
+    expect(nonStreamCaveat(good)).toBe('');
+    expect(nonStreamCaveat(bad)).toContain('非流');
+  });
+
+  it('transport 缺失（上游未报）→ caveat 为空字符串，不误报', () => {
+    const quiet = readout({ transport: null });
+    expect(nonStreamCaveat(quiet)).toBe('');
+    const absent = readout({ transport: undefined as unknown as AiCacheTransport });
+    expect(nonStreamCaveat(absent)).toBe('');
   });
 });

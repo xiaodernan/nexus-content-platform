@@ -13802,6 +13802,21 @@ shadow-[0_0_...]），按 §FE 判据不可带入主线。本线做的：
   hub-selected detail panel with voice/desires/fears/relationships); two-way relationship
   merge labels render on the canvas.
 - Studio world panel gains a "character star map" entry button next to the 3D walkthrough.
+## v707 - LLM stream-vs-non-stream cache measurement + /admin/ai-cache transport readout (2026-11-14, ADR cache-stats wire)
+
+- Direct provider A/B (same stableDigest `23aa0d15b1f4843b`): stream turn2-4 = **27345/27348 = 100.0%** hit (lane
+  `nexus-ab-stream-2026`); non-stream turn2-5 = 100% (5-turn run at `nexus-cache4`) and 80/82.8/81.8% (4-turn run).
+  Distributor sharding on wkapi.pro is the real cause of the high variance, NOT our payload (§CACHE-4-AB,
+  PERFORMANCE 2026-11-14). `llm_stream` default stays ON (`Settings.llm_stream = True`); any NEXUS_LLM_STREAM=0
+  rollback must run the same A/B first and record it.
+- New wire: `/v1/ai/cache-stats` now returns `transport:{stream:bool}` read directly from Settings; the admin panel
+  shows "流模式（出站 LLM）" as its 5th KPI (ON / OFF / 未报, provenance shown). Settings missing → null, never fake.
+- Also fixes a UX trap: transport.stream=false used to route operators into the wrong "cache is broken" diagnosis.
+  `verdictText` now appends `nonStreamCaveat()` warning text whenever the process opts out of stream — read it as a
+  routing note, not a payload failure ("缓存救不了" ≠ "缓存坏了"; read §CACHE-4-AB explanation).
+- Verification: ai-cache-stats.test.ts 18/18 · admin-ai-cache-view.test.ts 20/20 · visual-style unchanged ·
+  tsc EXIT=0.
+
 ## v706 - global "?" shortcut cheatsheet (2026-11-14)
 
 - `components/KeyboardCheatsheet.tsx`: fixed fab (`.kb-fab`) opens an aria-modal dialog
