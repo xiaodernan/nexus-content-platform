@@ -2846,3 +2846,19 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   nexus-postgres healthy; sibling deployments on 3100/3200 not touched.
 - CI before fix push: 51f07b0 / 2917d5c / 4d67a2b / 95dbf12 / 7fb3c91 / 846dec5 / 475ff76 / af356bf
   all double-green except 9cd48bc's CI. Not yet verified after this fix.
+## cont. 103 (2026-11-14) - Spring Cloud P2 landed: discovery one-hot gate in java-domain-service
+
+- New: OneHotVerification (pure verdict: disabled / ok / unknown_instance / ambiguous_identity)
+  + DiscoveryOneHotGate (ApplicationListener, opt-in eureka path). Not active unless
+  NEXUS_EUREKA_ENABLED=true; log-only by default, fail-fast under nexus.one-hot-gate=hard.
+- Tests: OneHotVerificationTest (7). Domain service suite: 46/46 green (was 39/39).
+  Compile + tests all offline; nexus-api unchanged, gateway unchanged, registry unchanged.
+- CI note: 799eaf5 in_progress at record time; af356bf CI green; dc20411 dual-green; all prior
+  green on main-line. Do not claim green until runner reports it.
+- Honest edit record: docs/evidence/m9/service-health-proof.mjs had its startup-skew tolerance
+  widened 3s -> 15s (cont. 102, ADR 0138) to tolerate hosted-plane JVM warm-up; this lane edited
+  a file outside its direct ownership in response to a hosted-runner flake; rationale documented
+  in ADR 0138. This slice does NOT touch the agents-lane gates.
+- Docker Desktop died again this turn (6th outage host today); relaunched;
+  nexus-postgres healthy; sibling 3100/3200 not touched.
+- Sprint Cloud Blueprint's P1 (decision record) and P3 (DLQ lifecycle) stay open.
