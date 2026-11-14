@@ -2996,3 +2996,15 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   bf84954 CI SUCCESS + main-line SUCCESS; 7f84983 CI in_progress (main-line SUCCESS).
   Not claiming until the runner finishes.
 - Docker Desktop outage count today: 11. Self-healed; sibling deployments 3100/3200 untouched.
+## cont. 110 (2026-11-14) - fixture enrichment: 北境纪事 becomes a full nine-kind world (23 entries)
+
+- Seeded six new entries into the dev-fixture world (sql.json write-back): 2 creatures (雪苔龙/灯蛾),
+  2 items (刻名灯芯/铁皮契约), 2 quests (把 4,011 盏灯的账还清/找到棱师的原图). World now renders
+  nonzero census bars across the entire nine-kind palette on /world/<id>/almanac (live screenshot:
+  23 条目, 物品2 任务2 生物2 势力4 地理6 历史3 故事4).
+- docs/lore/bei-jing-records.md extended with the three new sections (verbatim fixture text).
+- No repo code changed; gates: record-encoding OK.
+- CI at record time: 3233c93 queued; a092ee9 in_progress (both workflows); 63069f7 main-line SUCCESS
+  (CI in_progress); c28ad48 CI in_progress (main-line SUCCESS); 84f7f0d CI+main-line SUCCESS;
+  bf84954 CI+main-line SUCCESS. Not claiming until the runner finishes.
+- Docker Desktop outage #12 today; self-healed; sibling 3100/3200 untouched.
