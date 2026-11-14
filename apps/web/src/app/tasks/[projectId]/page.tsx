@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { TasksLedgerLive } from '@/components/TasksLedgerLive';
 import { listProjectTasks } from '@/server/domain/agent-tasks';
+import { projectSavings } from '@/server/domain/savings';
 import { requireUser } from '@/server/domain/session';
 
 export const dynamic = 'force-dynamic';
@@ -25,13 +26,19 @@ export const dynamic = 'force-dynamic';
 export default async function TasksPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
   const user = await requireUser();
-  const result = await listProjectTasks(projectId, user.id);
+  // 两条读侧各自判一道项目 owner 门（projectSavings 不复用 listProjectTasks 的判权——
+  // 它以后还会被别的页面单独用，门不能省）。Promise.all 并行：同一道门、两条独立查询。
+  const [result, savings] = await Promise.all([
+    listProjectTasks(projectId, user.id),
+    projectSavings(projectId, user.id),
+  ]);
   if (!result) notFound();
 
   return (
     <TasksLedgerLive
       projectId={projectId}
       initial={{ ok: true, projectName: result.projectName, tasks: result.tasks }}
+      savings={savings}
     />
   );
 }

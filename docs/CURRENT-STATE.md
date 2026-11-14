@@ -2652,3 +2652,19 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   we do not kill the other deployment; admin panel renders '-' for missing llmLatency.
 - Studio CI for 4921545 (probe slice) pending at record time; do not claim green until the runner
   says so. record-encoding/arms-freshness run before commit.
+## cont. 89 (2026-11-14) - v699 landed: user-facing savings card on /tasks; host runs a parallel deployment
+
+- Feature: /tasks/<project> now shows a top savings card - real provider prefix-cache reuse for the
+  project (hitRate / turns / tokens). ADR 0131 explains the two cache layers' different ledgers.
+- NOTE on this host: a parallel deployment of this project (a different checkout with its own env,
+  managed by the user's watchdog, dev server started 13:27) owns port 3100. We do NOT kill it or its
+  ai-service (same discipline as careeros). Our verification instance ran on 127.0.0.1:3101 and was
+  stopped after the compile check. The 3100 side serves the UI the user sees; our commits land on
+  GitHub and reach it via the user's own sync.
+- Verification chain this turn: 7/7 unit, tsc 0, eslint 0, dev compile OK, drizzle query on real
+  postgres (owner/stranger/bad-id all correct). Pixel check unavailable on this host, recorded in
+  ADR 0131.
+- Branch state: sibling lane landed v695-v698 (14e58d3/f49ecad/dfc17f9/369efb5) on master == main -
+  all merged by that lane; this lane now adds v699 on top (dd9fb83..origin).
+- In flight: hosted Studio CI for 369efb5 and the upcoming v699 push - do not claim green until the
+  runner says so.
