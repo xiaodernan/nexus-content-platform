@@ -1727,19 +1727,20 @@ false 不 push，hits 被 limit 卡死，逐笔恒 8 零方差）——门判绿
 
 ## 2026-11-14 §AILIVE-9 / §CACHE-4 补充（2026-11-14 记录）：并轨后真 provider 复测 + 跨轮稳定性
 
-**复测指令**：`python scripts/probe-cache-warm.py --confirm-real --turns 4`（wkapi.pro / gpt-6-sol / 同一 lane `nexus-cache4`）：
+**复测指令**：`python scripts/probe-cache-warm.py --confirm-real --turns 4`（wkapi.pro / gpt-6-sol / 同一 lane `nexus-cache4`）。
+注意同机的两次实测字节 payload 相同（system 2317B / user 23349B / stableDigest `23aa0d15b1f4843b`，`max_tokens=1`），**但数字不一样**：
+- 早 5 轮那次（同目录、同 digest）：turn2–5 命中 `27344/27347 ≈ 96–100%`（见 `docs/evidence/cachewarm-postmerge-2026-11-14.md`）；
+- 本次重跑（4 轮）：turn2 `13694 prompt · 10960 cached (80.0%)` · turn3 `13898 · 11503 (82.8%)` · turn4 `13783 · 11279 (81.8%)` — turn1 冷 `0 (0.0%)`；
 
-```
-turn1: prompt=27347 cached=0 (0.0%)
-turn2: prompt=27347 cached=27344 (100.0%)
-turn3: prompt=27347 cached=27344 (100.0%)
-turn4: prompt=27347 cached=27344 (100.0%)
-```
+**诚实读数**：这两个值**没有互相作假**，都是 wkapi.pro 的 distributor 随机分片带来的上游抖动——provider 自己决定这次请求走哪个上游片，
+上游片之间 KV 缓存不共享。同一条 lane 下命中 80–100% 之间摆动是真实分布，我们对命中率的承诺只有一条：
+**前缀逐字节相同就必然可命中**——不 commit、不承诺具体上限。任何"96% 稳"的说法，本次就被实测反驳：**别把 distributor 当确定性系统**。
+若要稳 96%+，需要计费级稳定车道（上游固定 KV 路由），那是 provider 侧资费承诺，不是沙箱能证明的。
 
 前缀稳定摘要 `23aa0d15b1f4843b`（system ≈ 2317 B / user ≈ 23349 B，目录稳定 + 诉求在尾部可变段）。
 `/v1/ai/run` 调用（同前缀同模型同任务）的 cached_tokens 链路在 `/healthz.llmCache` 透传（见 §AILIVE-4 / §AILIVE-9）。
 
-**原因分析**：prompt-cache 经 **Sticky Routing**（`llmStream=true` 默认 ON + 固定 lane `nexus-cache4` + `prompt_cache_key=nexus-studio`）+ **线程编码**（ordered_payload() 稳定那段排前面、变化那段排后面；wire 层用 `_encode_prompt` 单一真值的字节序列化）修正后，缓存命中率从旧通道 12% 全线提升到 96%+（本机实机结果，跨多次 / 多 session 可复现）。换车道（不同 lane）或换 Agent 时故意冷启动是设计，不是失误。
+**原因分析**：prompt-cache 经 **Sticky Routing**（`llmStream=true` 默认 ON + 固定 lane `nexus-cache4` + `prompt_cache_key=nexus-studio`）+ **线程编码**（ordered_payload() 稳定那段排前面、变化那段排后面；wire 层用 `_encode_prompt` 单一真值的字节序列化）修正后，命中从旧通道 12% 提升到本实机分布的 **80–100%**（同 lane、同目录、同 digest 两次实测摆动）。换车道（不同 lane）或换 Agent 时故意冷启动是设计，不是失误。**不要再以 96%+ 为"承诺值"**——本次实测打到 80–83%。
 
 **诚实边界**：distributor 随机：一次新的 provider 通道仍可能抖动到不同上游分片；terminal 层继续做 cache accounting：
 `cached_tokens / (tokensIn) × 100` 在 provider 有报时显式标 `cacheReported=true`；未报时数字恒 0，与没有缓存区分开。
