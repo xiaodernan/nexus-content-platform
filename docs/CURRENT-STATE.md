@@ -3815,4 +3815,25 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - Gates：`verify:world-bible` 3 文件 / 19 锚句对；fe-gates 116/116 · 1148/1148；web tsc 0；eslint 净。
 - showcase 快照同步于提交后（npm run sync:showcase）。
 
+## cont. 145 (2026-11-17) - v776: 《低语诸王》典籍室 `/bible` 落产品面（中英双语、正典阅读器）
+
+- 背景：大典三章长在 docs/ 里没人能直达；用户要"庞大世界"在产品里可见、且全站中英双语。v776 把正典抬进平台本身。
+- EN 译本补齐：`docs/world-bible/{001,002,003}-*.en.md` 逐章 1:1 翻译（每章锚句中英字字对齐；纪律不变，
+  zh 仍是唯一真值、en 不得另立）；`verify:world-bible` 扩为第二版：逐章核对译本存在 + 中英锚句数量一致 + 各自不重复 + ≥4/章。
+  现状：3 章 zh + 3 章 en，19/19 对，✓。
+- 快照生成：`scripts/gen-bible-snapshot.mts`（读 docs/world-bible/ 产出 `apps/web/src/world-bible/generated.ts`），
+  `verify-bible-snapshot.mts` 字节校验两边一致；`gen:bible-snapshot` / `verify:bible-snapshot` 已注册。
+- `/bible`（目录）+ `/bible/[slug]`（阅读页）双语（getLocale）：章卡（壹/贰/叁 · 中英标题 · 纪元 · 锚句数）、
+  阅读页（breadcrumb/**正文逐语言**渲染 + 章末"锚句速览 · 中英并排"逐对列表）、上页/下页、回目录；
+  网页 slug 全 ASCII（`001-last-ember-…` 等，由 `WEB_SLUGS` 显式登记；新章漏登记直接红）。
+- 渲染器 `components/BibleMarkdown.tsx`：只认这一小撮正典语法（`##`/`###`/`>`/ol/ul/表格/hr/段落/`**bold**`/`` `code` ``），
+  非通用 markdown 解析器；表格区 `role="region"`+`tabIndex`+双语 aria-label 入参。全站首个"正典正文 + 锚句对译"视图。
+- 门面 `.bb-*`（globals.css §BIBLE-1，≈50 类，零 hex、全 var tokens、forced-colors 收口）；目录页不含正文，正典句只活在快照里。
+- /guide ⑧双语各加一行典籍室入口；§FE-Guide SHA 重钉（c5eb2069→f4f88ed2；页面钩子未动）。
+- Gates：新门 `test/bible-visual-style.test.ts`（9 条，含 3 文件 SHA 钉死 + 双语钩子守恒 + 零 hex + tokens 全声明 + bb 类全定义）；
+  fe-gates **117/117 · 1157/1157**；census OK（2199 类全有引用方）；verify:bible-snapshot ✓；verify:world-bible ✓；tsc web 0；eslint 净。
+- 本地 SSR 实测（next dev :3401，已关）：/bible 200（24 KB），三章阅读页 200（71–82 KB），/bible/不存在 404；
+  EN cookie（NEXUS_LOCALE=en）渲染英文正文 + 锚句中英对照（en 中 潮汐/雾港 等正典字样只出现在锚句行），ZH 默认中文正文。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
 
