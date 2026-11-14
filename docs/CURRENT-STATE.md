@@ -3717,3 +3717,21 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   两处 aria-label 字面量钉 → 变量断言（断言跟读法、行为不变）；fe-gates 116/116 · 1148/1148；tsc 0；eslint 净。
 - /admin 已完成：总入口、AdminNav、dead-letters、audit（4/24 页）。剩余 20 页见 v763+ 专项。
 - showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 138 (2026-11-17) - v768: /admin access + observability + savings + pricing 双语化
+
+- access/page.tsx 双语（RSC getLocale）：denied×2、summary（天数/调用/凭据/主人）、windowAria、凭据榜/端点榜两表
+  表头、空态、scope 口径句——§FE-34 重钉（91a21128…）。
+- observability/page.tsx 双语（RSC getLocale）：denied×2、rawText（Prometheus 文本）、uptimeNote（进程 pid）、
+  aiReadiness 整段口径（DEMO 说明一字保留）、进程内计数器两表 + LedgerTable 三段（审计/任务/凭据）、
+  ledgerTitle 跨实例、aria-label={c.processTableAria}、LedgerTable emptyLabel 入参。§FE-35 重钉（0050f0fc…）。
+- savings/page.tsx 双语（RSC getLocale）：AI 节省总账——denied×2、BrandTitle、unavailable/empty 诚实两态、
+  四格统计、projects+users 两表、turnsPair、footNote 口径一字保留（不伪造美元、不混应用级缓存）。§FE-SAVINGS 重钉（b488cde4…）。
+- pricing/page.tsx 双语（RSC getLocale）：AI 成本——denied×2、三格、unknownBold/Rest
+  （"没配价目表"不说成"免费"）——basis 拆/model 拆两表、whyNotPrices 保留"账本盖什么章显示什么章"。§FE-PR 重钉（11c465d9…）。
+- 事故自查：中间编辑中再度被 GBK 代码页吞 CJK——admin-observability-visual-style.test.ts 某次 PS `Set-Content`
+  把整个注释区重写成乱码，当场 `git checkout HEAD` 恢复 + 2 处 edit 重钉，字节级确认干净；
+  savings/page.tsx 首版被 PS 转成 CRLF，node 转 LF 校正。教训再次坐实：**tracked 文件永不经 PS 直写**。
+- Gates：四门 SHA 重钉；fe-gates 116/116 · 1148/1148；web tsc 0；eslint 净。
+- /admin 已完成 13/24（home/AdminNav/dead-letters/audit/health/users/moderation/marketplace/realtime/access/observability/savings/pricing）。
+- showcase 快照同步于提交后（npm run sync:showcase）。

@@ -108,9 +108,9 @@ describe('§FE-AS /admin/savings AI 节省总账（v702 接手）', () => {
     }
   });
 
-  it('SHA256 钉死（本线字节）', () => {
+  it('SHA256 钉死（本线字节，v768 i18n 重钉）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'ed0265b72552d388654bf861b4106b7f4a16403560bcd44e70a980e9180e5e89',
+      'b488cde4e117f5cf45cbccdfc5a84f73337614189cdc560d80dc0ab522319012',
     );
   });
 });

@@ -13,7 +13,7 @@ import { describe, expect, it } from 'vitest';
  * （backend / hits / misses / hit rate / degraded）读数以本页同一套 adm/am/tl 门面表呈现。
  * 判据随之更新：SHA256 钉到合并后的字节（25766451…），面板走同一套零裸原子纪律。
  *
- * **剥 className 后全文 SHA256 钉死（EOL 无关）**：`25766451…` 恒等于合并后的 page.tsx。
+ * **剥 className 后全文 SHA256 钉死（EOL 无关）**：`0050f0fc…`（v768 i18n 重钉）。
  * redact 三步序与钉死常量一致。
  *
  * 判据不变式（12 门）：
@@ -168,9 +168,9 @@ describe('§FE-35 /admin/observability 观测', () => {
     expect(tokens).toContain('--nexus-color-fg-3');
   });
 
-  it('剥 className 后全文 SHA256 钉死（合并后的字节：26ed5b62300187fad678d3999608be237722223c4bee81c64c6b206d98a3b75a）', () => {
+  it('剥 className 后全文 SHA256 钉死（合并后的字节：0050f0fcfbb971dd8200be0ffedc20e086a2ff46457819c7e592f6ac1d3e0ede）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '26ed5b62300187fad678d3999608be237722223c4bee81c64c6b206d98a3b75a',
+      '0050f0fcfbb971dd8200be0ffedc20e086a2ff46457819c7e592f6ac1d3e0ede',
     );
   });
 });
