@@ -3551,3 +3551,16 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 已知边界（诚实登记*）：spec 频道名的撤销栈（§150 中文历史）与 `responsiveChannelLabel(channel)`（zh）保留；
   服务端裁定的 reason/findings/notes（§46 独立切片）不在本片；CanvasStage 与 /admin/*、3D WorldWalk HUD、分镜/作品公开页仍单 zh。
 - showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 127 (2026-11-16) - v757: CanvasStage 双语化（§8 画布外壳）——Studio 右面板与画布双语收官
+
+- CanvasStage.tsx 加 COPY dict（7 键对称）：载入画布、适应窗口（Shift+1）按钮 + title、
+  批注角标 title（annotationTitle：名 + 冒号 + 正文 + 已解决后缀，冒号按 locale 取全/半角）、
+  virtualized 裁剪提示（函数式：shown/total）、空页面引导（Layers 面板 +）。
+- AnnotationsPanel 挂载点补 locale={locale}（原 zh 单语挂载——这是 AnnotationsPanel 双语化（v751）
+  当时登记的挂载链缺口，本片闭合）。
+- StudioShell 透传 locale（CanvasStage locale={locale}）。
+- Gates：§FE-66 重钉（0708bc71…）；§FE-41 第十六次重钉；fe-gates 116/116 · 1148/1148；tsc web 0；eslint 净。
+- 已知边界（诚实登记*）：画布内节点文本（用户数据）不动；/admin/*、3D WorldWalk HUD、作品/分镜公开页、
+  服务端裁定中文（§46）、撤销栈中文（§150）仍单 zh，未宣称完成。
+- showcase 快照同步于提交后（npm run sync:showcase）。

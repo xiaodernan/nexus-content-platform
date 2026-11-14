@@ -325,7 +325,7 @@ function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zo
             </div>
             <div className="se-canvasWrap">
               {view === 'canvas' ? (
-                <CanvasStage />
+                <CanvasStage locale={locale} />
               ) : view === 'variants' ? (
                 <VariantsBoard locale={locale} />
               ) : view === 'graph' ? (
