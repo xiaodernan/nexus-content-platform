@@ -13742,3 +13742,18 @@ shadow-[0_0_...]），按 §FE 判据不可带入主线。本线做的：
 - Still honestly open: provider prefix cache remains distributor-roulette (cold call-1 cached=0,
   channel draw); pre-fix entries already stored decode as 0 until re-stored (cannot backfill,
   will not fake).
+## v702 - /admin/savings: cross-project AI savings ledger (2026-11-14, ADR 0134)
+
+- New admin-only page answering the operator question: which projects actually reuse the provider
+  prefix cache, and how much did they save in total vs in hit rate?
+  Server-side SQL aggregate over agent_tasks.usage grouped by project (top 50 by cached tokens desc);
+  pure helpers live in lib/llmSavingsAdmin.ts (capped hitRate, null on tin=0, weighted totals);
+  tiles + table + gradient bars; AdminNav gains the AI-savings entry; each row links back to
+  /tasks/<projectId>.
+- Honesty: same conventions as v699 (cachedTokens from prompt_tokens_details; no dollars; legacy rows
+  counted as 0; admin-only; failure -> insufficient-data wording rather than a fake table).
+- Verification: 7/7 unit, tsc 0, eslint 0, real-DB harness verified the numbers (cache-probe row
+  first: 20842 cached / 28240 in / 74%, weighted 5%, 37 real turns, top-50 rows render); browser-proven
+  (register + SQL promote to admin + playwright screenshot). Screenshot attached to the turn report.
+- In flight at record time: CI for 4185301 / 846dec5 / 7fb3c91; do not claim green until the runner
+  says so.

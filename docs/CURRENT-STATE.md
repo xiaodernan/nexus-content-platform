@@ -3037,3 +3037,17 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - v699 both workflows SUCCESS; v700 main-line SUCCESS, CI pending at record time; 846dec5 queued.
 - This lane does not touch the sibling deployment or its watchdog; restart order on this host is a
   deployment decision, recorded in cont. 90/91.
+## cont. 93 (2026-11-14) - v702 landed: cross-project operator savings ledger live in admin
+
+- /admin/savings (admin-only): per-project prompt-cache reuse leaderboard. New page, new nav entry,
+  new server domain (SQL aggregate; failure -> read-unavailable wording, never a fake table), pure lib
+  helpers with unit tests. Row -> /tasks/<id> deep link.
+- Verified against the real dev DB (docker nexus-postgres 55433): 50 rows; cache-probe project
+  leads with 20,842 cached / 28,240 tokensIn / 74%; weighted hit rate 5%; 37 real turns; top-50 held.
+  Browser-verified via playwright with a fresh SQL-promoted admin fixture (same pattern as
+  scripts/e2e-admin-fixture.mts).
+- Honesty on screen: cache reuse is NOT a dollar amount (no price table); legacy rows (pre-v692
+  usage) count as 0; app-level Redis cache excluded (it lives in /healthz counters).
+- Housekeeping: two background dev instances (3101 web + 3200 ai-service) still serve; sibling
+  deployment (3100/3200 before restart) was observed ECONNREFUSED at record time; this host keeps
+  rebooting - Docker Desktop relaunch remains the manual recovery step.

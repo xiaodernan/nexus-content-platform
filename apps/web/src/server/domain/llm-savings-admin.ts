@@ -1,4 +1,4 @@
-import { and, desc, eq, isNotNull, sql } from 'drizzle-orm';
+import { desc, eq, isNotNull, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { agentTasks, projects, users } from '../db/schema';
 
