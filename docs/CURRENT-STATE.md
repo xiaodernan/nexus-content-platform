@@ -3579,3 +3579,19 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 已知边界：guide 之外的 /admin/* 双语化未做（operator-facing，31 文件约 1.9 万字，
   v759+ 专项切片，按 server page → getLocale → 逐页字典分两批落地）；3D WorldWalk HUD 顶层单 zh。
 - showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 129 (2026-11-16) - v759: /world/[projectId] 3D 页 + WorldWalk HUD 双语化
+
+- world/[projectId]/page.tsx 改为 RSC `await getLocale()`（force-dynamic 保持）：noWorld/broken 两壳、
+  返回入口、noCharacters 兜底名字（kind-aware fallback），远端 `world.reason` 原文透传（服务端裁定 zh——§46 独立切片）。
+- WorldWalk.tsx 加 COPY dict（bilingual，kb-ww 对称校验 20 键）：
+  WebGL 三态探测文案/不可用兜底/标签标题（kindLabel 按 WORLD_KIND_LABELS_EN 换算 + 冒号半角）/
+  labelLimitNote/from/entries/relations/placementOrigin/
+  moveHint（停的那句也在内）/pointerHint/collisionNote/近处条目 focus + fallback 披露/
+  读：按钮/talk 收展/target aria/空角色披露/nearby 空态/CharacterChat locale 透传（v747 起 CharacterChat 已 locale prop ready）。
+- ScreenLabel 增 `kind: WorldKind` 字段；legend/条目 focus/标签三处 kindLabel 换算共用同一个 kindLabelOf() 助手。
+- /world 页与 WorldWalk 双 gate 重钉：§FE-100（7464a5d9…）、§FE-24 world 半场（a007330d…）。
+- Gates：fe-gates 116/116 · 1148/1148；web tsc 0；eslint 净（两个文件）。
+- 已知边界（诚实登记*）：HUD 里的 `scene.limits`（world-model 常量导航网格限制句）仍单 zh
+  （§46/registry 独立切片）；渲染说明文字（comments）仍 zh；page 的远端 reason 原文如上。
+- showcase 快照同步于提交后（npm run sync:showcase）。

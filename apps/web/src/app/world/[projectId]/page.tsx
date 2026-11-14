@@ -6,9 +6,36 @@ import { loadWorld } from '@/server/domain/worlds';
 import { loadDocument } from '@/server/domain/projects';
 import { projectVisibleTo } from '@/server/domain/team';
 import { requireUser } from '@/server/domain/session';
+import { getLocale, type Locale } from '@/lib/i18n';
 import { WorldWalk } from '@/world3d/WorldWalk';
 
 export const dynamic = 'force-dynamic';
+
+const COPY: Record<Locale, {
+  noWorldTitle: string;
+  noWorldBody: string;
+  noWorldLink: string;
+  brokenTitle: string;
+  brokenNote: string;
+  noCharacters: string;
+}> = {
+  zh: {
+    noWorldTitle: '这个项目还没有世界',
+    noWorldBody: '3D 运行时读的是世界文档（§44）与你在世界图（§45）上摆过的位置。先去 Studio 建骨架、填几条内容。',
+    noWorldLink: '回到 Studio 的世界面板',
+    brokenTitle: '库里的世界读不出来',
+    brokenNote: '这里不会用一份空场景代替它：那看起来像"世界是空的"，而实际是读不出来。',
+    noCharacters: '（没有名字）',
+  },
+  en: {
+    noWorldTitle: 'This project has no world yet',
+    noWorldBody: 'The 3D runtime reads the world document (§44) and the positions you placed on the world graph (§45). Build the skeleton and fill a few entries in Studio first.',
+    noWorldLink: 'Back to the Studio world panel',
+    brokenTitle: 'The world in the library cannot be read',
+    brokenNote: 'No empty scene will stand in for it: that would look like “the world is empty” when in fact it cannot be read.',
+    noCharacters: '(no name)',
+  },
+};
 
 /**
  * §140「进入世界」：`/world/<项目>`。渲染的是这个项目那一份世界文档的投影（§16）——
@@ -19,6 +46,7 @@ export const dynamic = 'force-dynamic';
  */
 export default async function WorldRuntimePage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
+  const locale = await getLocale();
   const user = await requireUser();
   if (!(await projectVisibleTo(projectId, user.id))) notFound();
 
@@ -28,12 +56,12 @@ export default async function WorldRuntimePage({ params }: { params: Promise<{ p
   if (!world) {
     return (
       <main className="rt-shell" data-world3d="none">
-        <h1 className="rt-title">这个项目还没有世界</h1>
+        <h1 className="rt-title">{COPY[locale].noWorldTitle}</h1>
         <p className="rt-lede">
-          3D 运行时读的是世界文档（§44）与你在世界图（§45）上摆过的位置。先去 Studio 建骨架、填几条内容。
+          {COPY[locale].noWorldBody}
         </p>
         <Link href={`/studio/${projectId}`} className="rt-link">
-          回到 Studio 的世界面板
+          {COPY[locale].noWorldLink}
         </Link>
       </main>
     );
@@ -41,11 +69,11 @@ export default async function WorldRuntimePage({ params }: { params: Promise<{ p
   if (!world.ok) {
     return (
       <main className="rt-shell" data-world3d="broken">
-        <h1 className="rt-title">库里的世界读不出来</h1>
+        <h1 className="rt-title">{COPY[locale].brokenTitle}</h1>
         <p className="rt-error" data-world-error>
           {world.reason}
         </p>
-        <p className="rt-note">这里不会用一份空场景代替它：那看起来像"世界是空的"，而实际是读不出来。</p>
+        <p className="rt-note">{COPY[locale].brokenNote}</p>
       </main>
     );
   }
@@ -61,8 +89,9 @@ export default async function WorldRuntimePage({ params }: { params: Promise<{ p
         projectId={projectId}
         characters={roster.items.map((character) => ({
           id: character.id,
-          name: character.profile.name || '（没有名字）',
+          name: character.profile.name || COPY[locale].noCharacters,
         }))}
+        locale={locale}
       />
     </div>
   );

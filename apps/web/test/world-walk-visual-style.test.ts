@@ -97,9 +97,9 @@ describe('§FE-100 /world3d WorldWalk 3D 行走 chrome', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（2026-11-14 v731+「鼠标纵轴反转」修复后重钉：20c50d9fb367e9ef4029d0ef493afb54b9993dbc0665c7f2c1b58aa76cf4ee8d）', () => {
+  it('剥 className 后全文 SHA256 守恒（v759 i18n 重钉：7464a5d90f1c44e6bc4d97606c9b5dbb4289dd43b9af74f9e50eb236d62f7a76）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '20c50d9fb367e9ef4029d0ef493afb54b9993dbc0665c7f2c1b58aa76cf4ee8d',
+      '7464a5d90f1c44e6bc4d97606c9b5dbb4289dd43b9af74f9e50eb236d62f7a76',
     );
   });
 });
