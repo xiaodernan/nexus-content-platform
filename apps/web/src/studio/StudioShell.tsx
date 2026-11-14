@@ -327,7 +327,7 @@ function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zo
               {view === 'canvas' ? (
                 <CanvasStage />
               ) : view === 'variants' ? (
-                <VariantsBoard />
+                <VariantsBoard locale={locale} />
               ) : view === 'graph' ? (
                 <WorldGraphView />
               ) : view === 'gamegraph' ? (

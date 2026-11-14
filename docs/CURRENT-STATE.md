@@ -3471,3 +3471,9 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   挂载点 CanvasStage 本次未接 locale（CanvasStage 仍单 zh，与整页 Studio 剩余单语组件一并最后收）；
   locale prop 已预埋（默认 zh），CanvasStage 序列出 locale 即全通。
 - fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；annotations gate 重钉。
+
+## cont. 121 (2026-11-16) - v752: VariantsBoard 双语化（§29 多方案比较板）
+- VariantsBoard.tsx zh/en 双字典：候选卡 caption/当前/布局/视觉/切选/计数/确定性配方 note/合成工具条/
+  同源分支禁合成/空态全部接 locale；locale 自 StudioShell 透传。
+- 屏内只读分支生成注释保持“合成/生成”两个动作的语气一致（不互相偷换概念）。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；§FE-41 重钉（第十三跳）。
