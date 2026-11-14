@@ -3078,3 +3078,11 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   a092ee9 CI in_progress (main-line SUCCESS); 63069f7 CI in_progress (main-line SUCCESS);
   c28ad48 CI SUCCESS; 84f7f0d CI SUCCESS; bf84954 CI SUCCESS. Not claiming until runner.
 - Docker Desktop outage count today: 15. Self-healed; sibling deployments 3100/3200 untouched.
+## cont. 113 amendment (2026-11-14, CI snapshot, no code)
+
+- After a0027a2 push: 1d127b9 main-line SUCCESS; 738dfb7 main-line SUCCESS (CI in_progress);
+  7284152 main-line SUCCESS (CI in_progress); 3233c93 main-line SUCCESS (CI in_progress);
+  c28ad48 CI SUCCESS earlier; 84f7f0d CI SUCCESS; bf84954 CI SUCCESS; 87aa270 CI+main-line SUCCESS.
+  a0027a2 (this commit): both workflows queued at record time. Zero red refs this session.
+  Runner latency for Studio CI is measured in ~30-60 min per ref; not a failure signal.
+- Related-unit-test sweep (world-view-cache 7 + quiz 12 + chronicle 6): 25/25 green post-a0027a2.
