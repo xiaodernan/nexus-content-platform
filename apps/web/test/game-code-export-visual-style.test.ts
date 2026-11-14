@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
  * 本片只换皮：fetch / CSRF / download blob / 引擎 adapter 派发全部一字不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `508e49c2d399864caa69e8ca98a8ca4d0c52ad526b984eaa5be642c2fe26f019` 与 HEAD 字节一致。
+ * `f208051649d8e884e9befeece3aeaa422219ad87724132fab1d391898d2391da` 与 HEAD 字节一致。
  *
  * 判据不变式（10 门）：
  *  1. 'use client' 保留 + csrfHeaders 进门；2. 字面 className 全 `.ge-*`/复用族；
@@ -131,9 +131,9 @@ describe('§FE-64 /studio GameCodeExport 游戏代码导出面板', () => {
     }
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：508e49c2d399864caa69e8ca98a8ca4d0c52ad526b984eaa5be642c2fe26f019）', () => {
+  it('剥 className 后全文 SHA256 守恒（2026-11-14 v735「GameCodeExport 双语化」重钉：f208051649d8e884e9befeece3aeaa422219ad87724132fab1d391898d2391da）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '508e49c2d399864caa69e8ca98a8ca4d0c52ad526b984eaa5be642c2fe26f019',
+      'f208051649d8e884e9befeece3aeaa422219ad87724132fab1d391898d2391da',
     );
   });
 });

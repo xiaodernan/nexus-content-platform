@@ -41,8 +41,14 @@ export type GameCodeGate = { ok: true; document: GameDocument; output: GameCodeO
  * `notFound`（项目不存在或不是这个人的）与 `game_missing`（项目有但没设计）都回 404，
  * 但**只有前者**必须共用同一个答案：归属错了不能说"没有设计"，那等于把"这项目存在但不是你的"
  * 换了一种拼写说出来。所以 `game_missing` 一定是在归属判掉之后才可能产生的。
+ *
+ * locale（v735）只本地化 JSON 读数面：notes / kindNote / limits；下载的 zip 是中文交付物，zip 那条路默认 zh。
  */
-export async function projectGameCode(user: CurrentUser, projectId: string): Promise<GameCodeGate> {
+export async function projectGameCode(
+  user: CurrentUser,
+  projectId: string,
+  locale: 'zh' | 'en' = 'zh',
+): Promise<GameCodeGate> {
   if (!(await projectVisibleTo(projectId, user.id))) return { ok: false, refusal: { status: 404, error: 'not_found' } };
 
   const result = await loadGame(projectId);
@@ -52,11 +58,14 @@ export async function projectGameCode(user: CurrentUser, projectId: string): Pro
       refusal: {
         status: 404,
         error: 'game_missing',
-        message: '这份项目还没有游戏设计：先在游戏面板里「创建游戏骨架」，再回来生成产物。',
+        message:
+          locale === 'en'
+            ? 'This project has no game design yet: create the skeleton in the Game panel, then come back and generate.'
+            : '这份项目还没有游戏设计：先在游戏面板里「创建游戏骨架」，再回来生成产物。',
       },
     };
   }
   if (!result.ok) return { ok: false, refusal: { status: 500, error: 'game_unreadable', message: result.reason } };
 
-  return { ok: true, document: result.document, output: generateGameCode(result.document) };
+  return { ok: true, document: result.document, output: generateGameCode(result.document, locale) };
 }

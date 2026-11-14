@@ -1,9 +1,14 @@
 import {
   GAME_ENTITY_LABELS,
+  GAME_ENTITY_LABELS_EN,
   GAME_KIND_LABELS,
   GAME_KIND_STATUS,
+  GAME_KIND_STATUS_EN,
+  GAME_KIND_TERMS,
+  GAME_KINDS,
   type GameDocument,
   type GameEntityKind,
+  type GameKind,
 } from "./index";
 import { PLAY_KIND_SHAPES, compileGame, type GamePlan, type PlayActor, type StatSource } from "./play";
 import { compileForKind, compileStory, STORY_NO_BEATS_OUTCOME, type GameProjection, type StoryPlan } from "./story";
@@ -80,6 +85,17 @@ export const CODEGEN_LIMITS: readonly string[] = [
 ];
 
 /**
+ * 同一份限度的英文版（v735）：界面层按 NEXUS_LOCALE 念——产物本体内嵌的仍是中文交付物。
+ * 与上面那 4 条必须逐句对应；改一处必须改另一处，codegen 测试钉住两者条数一致。
+ */
+export const CODEGEN_LIMITS_EN: readonly string[] = [
+  "The engine in this artifact is a transcription of the platform's rule modules: the 2D chain transcribes sim.ts, the RPG-prototype flavor adds a rpg.ts section, the interactive-story/visual-novel flavors swap in story.ts's body and branches; numbers are interpolated from the exports at generation time and the logic is not retyped here.",
+  "This artifact has no Studio UI: no stat-provenance panel, no isometric/3D rendering, no Playtest report.",
+  "This artifact never goes online: CSP connect-src is none, and the keyboard has arrow keys and WASD only — no gamepad.",
+  "This slot executes nothing: generation is string composition (§81); running happens in a browser sandbox when you open it.",
+];
+
+/**
  * 产物侧的分派表：**哪几条链在这份产物里真的带了引擎**。
  *
  * 这一处就是唯一答案：`engine.js` 带不带那段转写、README 那条"按什么生成的"多不多一行、
@@ -104,12 +120,31 @@ export const ARTIFACT_CHAINS = {
 
 export type ArtifactChain = keyof typeof ARTIFACT_CHAINS;
 
+/** 三条链英文名（v735）：与 `ARTIFACT_CHAINS.*.label` 逐句对应；改一处必须改另一处。 */
+export const ARTIFACT_CHAIN_LABEL_EN: Record<ArtifactChain, string> = {
+  topdown: "the topdown 2D chain (NexusSim in engine.js transcribes sim.ts)",
+  rpg: "the RPG chain (a NexusRpg section on top of NexusSim, transcribing rpg.ts: XP, levelling and level gates)",
+  story: "the dialogue chain (NexusStory in engine.js, transcribing story.ts: body text, choices and branches)",
+};
+
 /** 平台侧三条管线各自那句话里要用的名字：从 `compileForKind` 的读数派生，不另起一套叫法 */
 const PIPELINE_NAMES: Record<NonNullable<GameProjection["pipeline"]>, string> = {
   topdown: "2D 俯视（compileGame + sim.step）",
   story: "对话管线（compileStory：正文与选择，没有场地与判定）",
   rpg: "RPG 成长循环（compileRpg + rpgStep）",
 };
+
+/** 同一份叫法的英文版（v735）：与 `PIPELINE_NAMES` 逐句对应。 */
+const PIPELINE_NAMES_EN: Record<NonNullable<GameProjection["pipeline"]>, string> = {
+  topdown: "the 2D top-down arena (compileGame + sim.step)",
+  story: "the dialogue pipeline (compileStory: body and choices, no arena and no hit checks)",
+  rpg: "the RPG growth loop (compileRpg + rpgStep)",
+};
+
+/** §51 英文词（正文用词照原文）：与 GAME_KINDS 位置对齐 */
+const KIND_TERM_EN: Record<GameKind, string> = Object.fromEntries(
+  GAME_KINDS.map((kind, index) => [kind, GAME_KIND_TERMS[index]]),
+) as Record<GameKind, string>;
 
 /** 平台上这一型走哪条管线，在产物里有没有对应的引擎——答案只有这一处（`ARTIFACT_CHAINS` 的键）。 */
 export function hasArtifactEngine(pipeline: GameProjection["pipeline"]): pipeline is ArtifactChain {
@@ -129,8 +164,10 @@ export function artifactChainOf(document: GameDocument): ArtifactChain {
 /**
  * "这一份产物跑的是哪条链"那一句只有一个写法：产物页面（`index.html`）与界面上那一格都调这里，
  * 而不是各拼一遍 `${label}。`——拼第二遍的那一处会先过时。
+ * locale=en 念英文那句（v735）；默认 zh 与产物本体一致。
  */
-export function artifactChainSentence(chain: ArtifactChain): string {
+export function artifactChainSentence(chain: ArtifactChain, locale: "zh" | "en" = "zh"): string {
+  if (locale === "en") return `This artifact runs ${ARTIFACT_CHAIN_LABEL_EN[chain]}.`;
   return `这条产物跑的是${ARTIFACT_CHAINS[chain].label}。`;
 }
 
@@ -239,15 +276,39 @@ const GENERATED_BANNER =
  * 所以"补一条链"这件事改的是引擎与投影，**不是这句文案**——RPG 那条链落地后，
  * 这一型自动没有话（`kindNote === null`），而对话两型仍然说出来，因为产物里确实没有它的引擎。
  */
-export function codeKindReadings(document: GameDocument): {
+export function codeKindReadings(
+  document: GameDocument,
+  locale: "zh" | "en" = "zh",
+): {
   kindPipeline: GameProjection["pipeline"];
   artifactChain: ArtifactChain;
   kindNote: string | null;
 } {
   const kindPipeline = compileForKind(document).pipeline;
   const artifactChain = artifactChainOf(document);
-  const label = GAME_KIND_LABELS[document.kind];
   if (hasArtifactEngine(kindPipeline)) return { kindPipeline, artifactChain, kindNote: null };
+
+  if (locale === "en") {
+    const kindLabel = KIND_TERM_EN[document.kind];
+    const missingEn = kindPipeline === null
+      ? "the chain that the status table says is not wired for this kind today"
+      : PIPELINE_NAMES_EN[kindPipeline];
+    const carriedEn = (Object.keys(ARTIFACT_CHAINS) as ArtifactChain[])
+      .map((chain) => ARTIFACT_CHAIN_LABEL_EN[chain])
+      .join("; ");
+    return {
+      kindPipeline,
+      artifactChain,
+      kindNote:
+        `This artifact runs ${ARTIFACT_CHAIN_LABEL_EN[artifactChain]}, whereas the ${kindLabel} on this platform` +
+        ` is meant to run ${missingEn} — that chain has no engine in this artifact.` +
+        ` The chains carrying engines in this artifact are: ${carriedEn}.` +
+        ` The status table's note for ${kindLabel} is: "${GAME_KIND_STATUS_EN[document.kind]}" — and that is not in this artifact:` +
+        ` unzip and open the kind the play page would not run.`,
+    };
+  }
+
+  const label = GAME_KIND_LABELS[document.kind];
   const missing = kindPipeline === null ? "这条链（状态表说这个类型今天没接）" : PIPELINE_NAMES[kindPipeline];
   const carried = Object.values(ARTIFACT_CHAINS)
     .map((chain) => chain.label)
@@ -874,7 +935,12 @@ function cssSource(): string {
 }
 
 /** 针对这一份文档的发现：投影已经说了的（plan.notes / blockers）不重写一遍，只补产物这一侧才看得见的 */
-function documentNotes(document: GameDocument, plan: ArtifactPlan, _chain: ArtifactChain): string[] {
+function documentNotes(
+  document: GameDocument,
+  plan: ArtifactPlan,
+  _chain: ArtifactChain,
+  locale: "zh" | "en" = "zh",
+): string[] {
   const notes: string[] = [];
   // 对话那条链没有"可显示个体"与"任务"这些读数：它读的是 dialogue 实体，
   // 而这一型读不读别的实体、漏了多少个，compileStory 已经写进 plan.story.notes 了（不重写一遍）。
@@ -898,22 +964,38 @@ function documentNotes(document: GameDocument, plan: ArtifactPlan, _chain: Artif
     leftovers.set(entity.kind, bucket);
   }
   if (leftovers.size) {
-    const parts = [...leftovers.entries()].map(([kind, names]) => `${GAME_ENTITY_LABELS[kind]} ${names.length} 个（${names.join("、")}）`);
+    const parts = [...leftovers.entries()].map(([kind, names]) =>
+      locale === "en"
+        ? `${GAME_ENTITY_LABELS_EN[kind]} ×${names.length} (${names.join(", ")})`
+        : `${GAME_ENTITY_LABELS[kind]} ${names.length} 个（${names.join("、")}）`);
     notes.push(
-      `这些实体在产物里没有自己的那一个身体：${parts.join("、")}。` +
-        "投影要么把它们折成别的东西的数值（武器的 damage 与 range 进玩家），要么根本不消费" +
-        "（对话、动画、粒子、镜头在这一版是设计说明），所以转写的引擎里没有它们可跑的行为。",
+      locale === "en"
+        ? `These entities have no body of their own in this artifact: ${parts.join("; ")}.` +
+          " The projection either folds them into another stat (weapon damage & range go into the player)" +
+          " or does not consume them at all (dialogue, animation, particle and camera entities are design" +
+          " notes in this version), so the transcribed engine has no behavior for them to run."
+        : `这些实体在产物里没有自己的那一个身体：${parts.join("、")}。` +
+          "投影要么把它们折成别的东西的数值（武器的 damage 与 range 进玩家），要么根本不消费" +
+          "（对话、动画、粒子、镜头在这一版是设计说明），所以转写的引擎里没有它们可跑的行为。",
     );
   }
 
   const templates = [plan.player, ...plan.enemies, ...plan.items, ...plan.npcs].filter((actor) => actor?.template).length;
   if (templates) {
-    notes.push(`场上有 ${templates} 个未设计的模板实体：它们一个数值都没填，产物会照原样跑成一个不会动的东西。`);
+    notes.push(
+      locale === "en"
+        ? `There are ${templates} undesigned template entities on the field: they have no stats filled in, and the artifact runs them as-is — an inert thing that never moves.`
+        : `场上有 ${templates} 个未设计的模板实体：它们一个数值都没填，产物会照原样跑成一个不会动的东西。`,
+    );
   }
 
   const unjudgeable = plan.quests.filter((quest) => !quest.judgeable).length;
   if (unjudgeable) {
-    notes.push(`有 ${unjudgeable} 条任务不可判定：产物里它们永远不推动"赢"，通关条件只剩生命值与能判定的那几条。`);
+    notes.push(
+      locale === "en"
+        ? `${unjudgeable} quests cannot be judged: in the artifact they never push "win"; the win condition is health and the judgeable quests only.`
+        : `有 ${unjudgeable} 条任务不可判定：产物里它们永远不推动"赢"，通关条件只剩生命值与能判定的那几条。`,
+    );
   }
 
   // 成长层的读数只在 rpg 那条链上存在；数与曲线全部从 plan.growth 里读，不在这里重打
@@ -923,16 +1005,24 @@ function documentNotes(document: GameDocument, plan: ArtifactPlan, _chain: Artif
     const withXp = growth.quests.filter((quest) => quest.hasXpReward && quest.xpReward > 0).length;
     const gated = growth.quests.filter((quest) => quest.requiredLevel > 1).length;
     notes.push(
-      `这一份带成长层（NexusRpg）：${growth.enemyXp.length} 个敌人发经验（${defaulted} 个用的是投影兜底）、` +
-        `${withXp} 条任务完成发经验、${gated} 条任务带等级门；` +
-        `升级曲线是下一级要 ${growth.xpBase} + (等级-1)×${growth.xpStep} 点，每级生命上限 +${growth.levelBonus.maxHealth}、` +
-        `伤害 +${growth.levelBonus.damage}——这几个数写在 plan.json 的 growth 里，源头是 rpg.ts 的导出。`,
+      locale === "en"
+        ? `This one carries the growth layer (NexusRpg): ${growth.enemyXp.length} enemies grant XP (${defaulted} use projection defaults), ` +
+          `${withXp} quests grant XP on completion, ${gated} quests have level gates; ` +
+          `levelling needs ${growth.xpBase} + (level-1)×${growth.xpStep} XP per level, +${growth.levelBonus.maxHealth} max HP ` +
+          `and +${growth.levelBonus.damage} damage per level — those numbers live in plan.json's growth, sourced from rpg.ts.`
+        : `这一份带成长层（NexusRpg）：${growth.enemyXp.length} 个敌人发经验（${defaulted} 个用的是投影兜底）、` +
+          `${withXp} 条任务完成发经验、${gated} 条任务带等级门；` +
+          `升级曲线是下一级要 ${growth.xpBase} + (等级-1)×${growth.xpStep} 点，每级生命上限 +${growth.levelBonus.maxHealth}、` +
+          `伤害 +${growth.levelBonus.damage}——这几个数写在 plan.json 的 growth 里，源头是 rpg.ts 的导出。`,
     );
   }
 
   if (!plan.playable) {
+    // 投影层（play.ts）的事实判决句仍是中文——§46 错误语面英文化是独立立片，本片不伪造翻译
     notes.push(
-      `这一份跑不起来（${plan.blockers.join("；")}）：文件还是全部生成，打开就是失败态——不为了看起来能玩而补一个玩家。`,
+      locale === "en"
+        ? `This one cannot run — the projection layer's verdicts are not localized in this build yet. The files are generated anyway, and opening is a failure state — no player is fabricated to make it look playable.`
+        : `这一份跑不起来（${plan.blockers.join("；")}）：文件还是全部生成，打开就是失败态——不为了看起来能玩而补一个玩家。`,
     );
   }
   return notes;
@@ -1013,17 +1103,24 @@ function readmeSource(
  * 纯函数：不读时钟、不碰文件系统、不联网、不执行任何东西（§81）。
  * 同一份文档跑两遍得到逐字节相同的结果——这条有测试钉着，因为"能下载"如果附带一次随机数，
  * 作者拿到的那份就和界面上看到的那份对不上了。
+ *
+ * locale=en（v735）：仅本地化 CLI/HTTP 消费的**读数面**（notes / kindNote）。
+ * 产物文件本体（README/index.html/plan.*）始终按中文生成——下载的 zip 是中文交付物，与界面语言无关；
+ * zh 与 en 两种 locale 生成的 files[] 字节逐字节相同，只有 HTTP 响应体里 notes/kindNote 不同。
  */
-export function generateGameCode(document: GameDocument): GameCodeOutput {
+export function generateGameCode(document: GameDocument, locale: "zh" | "en" = "zh"): GameCodeOutput {
   const chain = artifactChainOf(document);
   const plan = artifactPayload(document);
-  const { kindPipeline, kindNote } = codeKindReadings(document);
+  // 产物本体（README/index.html）一律按中文投影——下载的 zip 是中文交付物，与界面语言无关
+  const zhReadings = codeKindReadings(document, "zh");
+  const zhNotes = documentNotes(document, plan, chain, "zh");
+  const surface = locale === "en" ? codeKindReadings(document, "en") : zhReadings;
+  const notes = locale === "en" ? documentNotes(document, plan, chain, "en") : zhNotes;
   const json = planJson(plan);
-  const notes = documentNotes(document, plan, chain);
 
   const bodies: Record<string, string> = {
-    "README.txt": readmeSource(document, plan, notes, chain, kindNote),
-    "index.html": htmlSource(document, plan, chain, kindNote),
+    "README.txt": readmeSource(document, plan, zhNotes, chain, zhReadings.kindNote),
+    "index.html": htmlSource(document, plan, chain, zhReadings.kindNote),
     "style.css": cssSource(),
     "plan.json": json,
     "plan.js": `// ${GENERATED_BANNER}\n// 这一份与 plan.json 是同一次序列化的结果，不是各写一遍的两份计划。\nwindow.NEXUS_PLAN = ${json};\n`,
@@ -1050,5 +1147,5 @@ export function generateGameCode(document: GameDocument): GameCodeOutput {
   }));
 
   const bytes = files.reduce((sum, file) => sum + new TextEncoder().encode(file.contents).length, 0);
-  return { files, notes, bytes, kindPipeline, artifactChain: chain, kindNote };
+  return { files, notes, bytes, kindPipeline: zhReadings.kindPipeline, artifactChain: chain, kindNote: surface.kindNote };
 }

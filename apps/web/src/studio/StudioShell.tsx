@@ -266,7 +266,7 @@ function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zo
           ) : tab === 'world' ? (
             <WorldPanel />
           ) : tab === 'game' ? (
-            <GamePanel />
+            <GamePanel locale={locale} />
           ) : tab === 'storyboard' ? (
             <StoryboardPanel />
           ) : tab === 'team' ? (

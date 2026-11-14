@@ -4,9 +4,12 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   GAME_ENTITY_KINDS,
   GAME_ENTITY_LABELS,
+  GAME_ENTITY_LABELS_EN,
   GAME_KINDS,
   GAME_KIND_LABELS,
   GAME_KIND_STATUS,
+  GAME_KIND_STATUS_EN,
+  GAME_KIND_TERMS,
   STAT_HINTS,
   addEntity,
   countRefsFor,
@@ -24,6 +27,7 @@ import {
   type GameKind,
 } from '@nexus/game-model';
 import { cn } from '@/lib/cn';
+import type { Locale } from '@/lib/i18n';
 import { useStudioReady } from './store';
 import { useGame, gameStore } from './gameStore';
 import { GameCodeExport } from './GameCodeExport';
@@ -40,21 +44,130 @@ import { GameCodeExport } from './GameCodeExport';
  *
  * 引用有两种画法：这里是挂在发起方实体下面的**列表**（能连能摘），
  * 主区第五个视图「游戏图」是同一份 refs 的图投影（§54）。两处写的是同一个 store，不分叉。
+ * 双语（v735）：locale 由 StudioShell 透传；zh 原文原样保留，en 逐句对应。
  */
 
-const STATE_TEXT: Record<string, string> = {
-  idle: '',
-  loading: '读取中…',
-  dirty: '未保存',
-  saving: '保存中…',
-  saved: '已保存',
-  error: '保存失败',
-};
+const KIND_TERM_EN: Record<GameKind, string> = Object.fromEntries(
+  GAME_KINDS.map((kind, index) => [kind, GAME_KIND_TERMS[index]]),
+) as Record<GameKind, string>;
+
+const COPY = {
+  zh: {
+    state: { idle: '', loading: '读取中…', dirty: '未保存', saving: '保存中…', saved: '已保存', error: '保存失败' } as Record<string, string>,
+    game: '游戏',
+    loadGame: '读取游戏设计…',
+    unreadableBody: (reason: string) =>
+      `读不出库里那份游戏：${reason}。下面这个按钮会写一份新的模板骨架进去，覆盖掉读不出来的那份——先确认不是契约漂移再点。`,
+    noDesignBody:
+      '这个项目还没有游戏设计。可以先建一份模板骨架：§54 的 11 类各留一个空实体，说明和数值都由你填。' +
+      '想要 §52 那份 RPG 草稿：切到「Agent 作业」跑一次检查，点那一步上的「接受进项目」——项目已有游戏时它不会覆盖。' +
+      '整份设计由模型生成（§52 的 Game Agent 真规划）要真实 provider，没接入前不做假生成。',
+    createSkeleton: '创建游戏骨架（模板）',
+    defaultName: '未命名游戏',
+    nameAria: '游戏名称',
+    summaryPlaceholder: '一句话说明这是个什么样的游戏',
+    summaryAria: '游戏概述',
+    kindLabel: '游戏类型',
+    kindSelectAria: '游戏类型',
+    progress: (entities: number, refs: number, fleshed: number) => `${entities} 个实体 · ${refs} 条引用 · ${fleshed} 个已填内容`,
+    play: '试玩这份设计 →',
+    editsNote:
+      '改完即写库（失焦或点删除都会保存）。游戏编辑不进画布的撤销栈：Ctrl+Z 只管设计文档。',
+    missingKinds: (names: string) => ` ${names} 这一类还没有实体，可以用上面的下拉补。`,
+    addEntity: '加一个实体',
+    newKindAria: '新增实体的类型',
+    saveToLib: '保存到库',
+    entityNameAria: (name: string) => `实体名称 ${name}`,
+    deleteEntityTitle: (refCount: number) =>
+      refCount ? `删除这个实体（会一并去掉 ${refCount} 条引用）` : '删除这个实体',
+    deleteEntityAria: (name: string) => `删除 ${name}`,
+    notesPlaceholder: '这块东西是什么、为什么这样设计',
+    entityNotesAria: (name: string) => `设计说明 ${name}`,
+    statAria: (key: string) => `数值 ${key}`,
+    statRemoveAria: (key: string) => `删除数值 ${key}`,
+    emptyStat: (key: string) => `${key} 是空的：没有改动。要删掉这条数值点右边的 ×。`,
+    statNameAria: '新数值的键名',
+    statValueAria: '新数值的值',
+    statAdd: '加数值',
+    danglingRef: (id: string) => `（悬空引用 ${id}）`,
+    noRefs: '还没有引用别的实体',
+    refTargetAria: '引用指向的实体',
+    pointTo: '指向…',
+    rolePlaceholder: '关系',
+    roleTitle: '这条引用是什么关系，例如「装备」「掉落」；留空则图上不写字',
+    roleAria: '引用关系',
+    removeRefAria: '摘掉这条引用',
+    noticeNoTarget: '先选一个目标实体，再连引用。',
+    linkRef: '连引用',
+    groupJoin: '、',
+    wrapRole: (role: string) => `（${role}）`,
+    entityLabel: (kind: GameEntityKind) => GAME_ENTITY_LABELS[kind],
+    kindTerm: (kind: GameKind) => GAME_KIND_LABELS[kind],
+    kindNote: (kind: GameKind) => GAME_KIND_STATUS[kind].note,
+  },
+  en: {
+    state: { idle: '', loading: 'Loading…', dirty: 'Unsaved', saving: 'Saving…', saved: 'Saved', error: 'Save failed' } as Record<string, string>,
+    game: 'Game',
+    loadGame: 'Reading the game design…',
+    unreadableBody: (reason: string) =>
+      `The stored game could not be read: ${reason}. The button below writes a fresh template skeleton over ` +
+      'the unreadable one — confirm it is not a contract drift before clicking.',
+    noDesignBody:
+      'This project has no game design yet. Start with a template skeleton: the §54 kinds, one empty entity each, for you to fill in. ' +
+      'For the §52 RPG draft: switch to "Agent job", run a check, then click "Accept into project" on that step — it will not overwrite an existing game. ' +
+      'A full model-generated design (a real §52 Game Agent plan) needs a real provider; until one is wired, nothing fake is generated.',
+    createSkeleton: 'Create game skeleton (template)',
+    defaultName: 'Untitled game',
+    nameAria: 'Game name',
+    summaryPlaceholder: 'One line: what this game is',
+    summaryAria: 'Game summary',
+    kindLabel: 'Game kind',
+    kindSelectAria: 'Game kind',
+    progress: (entities: number, refs: number, fleshed: number) => `${entities} entities · ${refs} refs · ${fleshed} fleshed out`,
+    play: 'Play this design →',
+    editsNote:
+      "Edits write straight to the DB (blur or delete saves). Game edits don't enter the canvas undo stack: Ctrl+Z only covers the design document.",
+    missingKinds: (names: string) => ` These kinds have no entity yet: ${names}. Add them from the dropdown above.`,
+    addEntity: 'Add one entity',
+    newKindAria: 'Kind of the new entity',
+    saveToLib: 'Save to library',
+    entityNameAria: (name: string) => `Entity name ${name}`,
+    deleteEntityTitle: (refCount: number) =>
+      refCount ? `Delete this entity (also removes ${refCount} references)` : 'Delete this entity',
+    deleteEntityAria: (name: string) => `Delete ${name}`,
+    notesPlaceholder: 'What this thing is and why it is designed this way',
+    entityNotesAria: (name: string) => `Design notes ${name}`,
+    statAria: (key: string) => `Stat ${key}`,
+    statRemoveAria: (key: string) => `Remove stat ${key}`,
+    emptyStat: (key: string) => `${key} is empty: nothing changed. To delete this stat, click the × on the right.`,
+    statNameAria: 'New stat key',
+    statValueAria: 'New stat value',
+    statAdd: 'Add stat',
+    danglingRef: (id: string) => `(dangling reference ${id})`,
+    noRefs: 'No references to other entities yet',
+    refTargetAria: 'Reference target entity',
+    pointTo: 'Point to…',
+    rolePlaceholder: 'Role',
+    roleTitle: 'What this reference means, e.g. "equips", "drops"; leave empty and the graph draws no label',
+    roleAria: 'Reference role',
+    removeRefAria: 'Remove this reference',
+    noticeNoTarget: 'Pick a target entity first, then link.',
+    linkRef: 'Link',
+    groupJoin: ', ',
+    wrapRole: (role: string) => ` (${role})`,
+    entityLabel: (kind: GameEntityKind) => GAME_ENTITY_LABELS_EN[kind],
+    kindTerm: (kind: GameKind) => KIND_TERM_EN[kind],
+    kindNote: (kind: GameKind) => GAME_KIND_STATUS_EN[kind],
+  },
+} as const;
+
+type GameCopy = (typeof COPY)[Locale];
 
 /** 草稿键：一个实体的一条数值 / 一条待连的引用，各自独立存，别互相踩 */
 const statKey = (entityId: string, key: string) => `${entityId}::${key}`;
 
-export function GamePanel() {
+export function GamePanel({ locale = 'zh' }: { locale?: Locale }) {
+  const c = COPY[locale];
   const studio = useStudioReady();
   const snapshot = useGame();
   const [newKind, setNewKind] = useState<GameEntityKind>('enemy');
@@ -69,15 +182,13 @@ export function GamePanel() {
   if (!game) {
     return (
       <div className="wd-scrollPad" data-game-panel>
-        <h2 className="wd-label">游戏</h2>
+        <h2 className="wd-label">{c.game}</h2>
         <p className="wd-body12" data-game-empty>
           {snapshot.saveState === 'loading'
-            ? '读取游戏设计…'
+            ? c.loadGame
             : snapshot.error
-              ? `读不出库里那份游戏：${snapshot.error}。下面这个按钮会写一份新的模板骨架进去，覆盖掉读不出来的那份——先确认不是契约漂移再点。`
-              : '这个项目还没有游戏设计。可以先建一份模板骨架：§54 的 11 类各留一个空实体，说明和数值都由你填。' +
-                '想要 §52 那份 RPG 草稿：切到「Agent 作业」跑一次检查，点那一步上的「接受进项目」——项目已有游戏时它不会覆盖。' +
-                '整份设计由模型生成（§52 的 Game Agent 真规划）要真实 provider，没接入前不做假生成。'}
+              ? c.unreadableBody(snapshot.error)
+              : c.noDesignBody}
         </p>
         {snapshot.error ? (
           <p className="wd-danger11" data-game-error>
@@ -87,11 +198,11 @@ export function GamePanel() {
         <button
           type="button"
           disabled={snapshot.saveState === 'saving'}
-          onClick={() => void gameStore.createSkeleton(studio.document?.name ?? '未命名游戏')}
+          onClick={() => void gameStore.createSkeleton(studio.document?.name ?? c.defaultName)}
           data-game-create
           className="wd-selfStart wd-accentBtn wd-dis50"
         >
-          创建游戏骨架（模板）
+          {c.createSkeleton}
         </button>
       </div>
     );
@@ -109,20 +220,20 @@ export function GamePanel() {
     <div className="wd-rootCol" data-game-panel>
       <header className="wd-headBordered">
         <div className="wd-row2">
-          <h2 className="wd-label">游戏</h2>
+          <h2 className="wd-label">{c.game}</h2>
           <span
             className={cn('wd-monoFaintEnd', snapshot.saveState === 'error' && 'wd-dangerText')}
             data-game-state
           >
-            {STATE_TEXT[snapshot.saveState] ?? ''}
+            {c.state[snapshot.saveState] ?? ''}
           </span>
           <span data-game-pending={snapshot.saveState === 'saving' || snapshot.saveState === 'dirty' ? 'true' : 'false'} />
         </div>
         <input
           value={game.name}
           onChange={(e) => edit({ ...game, name: e.target.value })}
-          onBlur={() => edit({ ...game, name: game.name.trim() || '未命名游戏' }, true)}
-          aria-label="游戏名称"
+          onBlur={() => edit({ ...game, name: game.name.trim() || c.defaultName }, true)}
+          aria-label={c.nameAria}
           data-game-name
           className="wd-wfullInput13"
         />
@@ -130,8 +241,8 @@ export function GamePanel() {
           value={game.summary}
           onChange={(e) => edit({ ...game, summary: e.target.value })}
           onBlur={() => edit(game, true)}
-          placeholder="一句话说明这是个什么样的游戏"
-          aria-label="游戏概述"
+          placeholder={c.summaryPlaceholder}
+          aria-label={c.summaryAria}
           data-game-summary
           rows={2}
           className="wd-areaResize"
@@ -140,26 +251,26 @@ export function GamePanel() {
             下面那句"接没接"直接读 GAME_KIND_STATUS：面板自己判断一遍，
             就会和分派点说两套话（这里说能玩、点进去是空场子，正是 §159 禁止的那种谎）。 */}
         <label className="wd-rowMt2faint">
-          游戏类型
+          {c.kindLabel}
           <select
             value={game.kind}
             onChange={(e) => edit({ ...game, kind: e.target.value as GameKind }, true)}
-            aria-label="游戏类型"
+            aria-label={c.kindSelectAria}
             data-game-kind={game.kind}
             className="wd-growInputB2"
           >
             {GAME_KINDS.map((kind) => (
               <option key={kind} value={kind}>
-                {GAME_KIND_LABELS[kind]}
+                {c.kindTerm(kind)}
               </option>
             ))}
           </select>
         </label>
         <p className="gp-faintMt1" data-game-kind-note={game.kind}>
-          {GAME_KIND_STATUS[game.kind].note}
+          {c.kindNote(game.kind)}
         </p>
         <p className="gp-monoFaintMt1" data-game-progress>
-          {game.entities.length} 个实体 · {refTotal} 条引用 · {fleshedOutCount(game)} 个已填内容
+          {c.progress(game.entities.length, refTotal, fleshedOutCount(game))}
         </p>
         {/* §50：这一页改的就是可玩投影读的那份文档，所以"试玩"永远指向同一份真值（§16）。
             新标签打开：跳走会丢掉这里没保存完的编辑。 */}
@@ -170,7 +281,7 @@ export function GamePanel() {
           className="gp-tag"
           data-game-play
         >
-          试玩这份设计 →
+          {c.play}
         </a>
         {snapshot.error ? (
           <p className="wd-dangerMt2" data-game-error>
@@ -188,7 +299,7 @@ export function GamePanel() {
         {groups.map((kind) => (
           <section key={kind} className="wd-mb3" data-game-group={kind}>
             <h3 className="wd-labelMb1">
-              {GAME_ENTITY_LABELS[kind]}
+              {c.entityLabel(kind)}
               <span className="wd-end">{counts?.[kind] ?? 0}</span>
             </h3>
             <ul className="wd-col2">
@@ -200,6 +311,7 @@ export function GamePanel() {
                       game={game}
                       entity={entity}
                       edit={edit}
+                      c={c}
                       onNotice={(message) => gameStore.showNotice(message)}
                     />
                   </li>
@@ -212,29 +324,29 @@ export function GamePanel() {
           <select
             value={newKind}
             onChange={(e) => setNewKind(e.target.value as GameEntityKind)}
-            aria-label="新增实体的类型"
+            aria-label={c.newKindAria}
             data-game-new-kind
             className="wd-chipSelect"
           >
             {GAME_ENTITY_KINDS.map((kind) => (
               <option key={kind} value={kind}>
-                {GAME_ENTITY_LABELS[kind]}
+                {c.entityLabel(kind)}
               </option>
             ))}
           </select>
           <button
             type="button"
-            onClick={() => edit(addEntity(game, { kind: newKind, name: GAME_ENTITY_LABELS[newKind] }), true)}
+            onClick={() => edit(addEntity(game, { kind: newKind, name: c.entityLabel(newKind) }), true)}
             data-game-add={newKind}
             className="wd-ghostBtn"
           >
-            加一个实体
+            {c.addEntity}
           </button>
         </div>
         <p className="wd-body11Mt2" data-game-note>
-          改完即写库（失焦或点删除都会保存）。游戏编辑不进画布的撤销栈：Ctrl+Z 只管设计文档。
+          {c.editsNote}
           {groups.length < GAME_ENTITY_KINDS.length
-            ? ` ${GAME_ENTITY_KINDS.filter((k) => !counts?.[k]).map((k) => GAME_ENTITY_LABELS[k]).join('、')} 这一类还没有实体，可以用上面的下拉补。`
+            ? c.missingKinds(GAME_ENTITY_KINDS.filter((k) => !counts?.[k]).map((k) => c.entityLabel(k)).join(c.groupJoin))
             : ''}
         </p>
         <button
@@ -243,9 +355,9 @@ export function GamePanel() {
           data-game-save
           className="wd-mt2 wd-selfStart wd-accentBtn"
         >
-          保存到库
+          {c.saveToLib}
         </button>
-        <GameCodeExport projectId={studio.projectId} />
+        <GameCodeExport projectId={studio.projectId} locale={locale} />
       </div>
     </div>
   );
@@ -256,11 +368,13 @@ function EntityCard({
   game,
   entity,
   edit,
+  c,
   onNotice,
 }: {
   game: GameDocument;
   entity: GameEntity;
   edit: (next: GameDocument, save?: boolean) => void;
+  c: GameCopy;
   onNotice: (message: string) => void;
 }) {
   // 键名与数字都边敲边存草稿，失焦才过模型层校验：setStat 只接受有限数，
@@ -290,15 +404,15 @@ function EntityCard({
           value={entity.name}
           onChange={(e) => edit(updateEntity(game, entity.id, { name: e.target.value }))}
           onBlur={() => edit(game, true)}
-          aria-label={`实体名称 ${entity.name}`}
+          aria-label={c.entityNameAria(entity.name)}
           data-game-entity-name={entity.id}
           className="wd-growInput"
         />
         <button
           type="button"
-          title={refCount ? `删除这个实体（会一并去掉 ${refCount} 条引用）` : '删除这个实体'}
+          title={c.deleteEntityTitle(refCount)}
           onClick={() => edit(removeEntity(game, entity.id), true)}
-          aria-label={`删除 ${entity.name}`}
+          aria-label={c.deleteEntityAria(entity.name)}
           data-game-remove={entity.id}
           className="wd-delBtn"
         >
@@ -309,8 +423,8 @@ function EntityCard({
         value={entity.notes}
         onChange={(e) => edit(updateEntity(game, entity.id, { notes: e.target.value }))}
         onBlur={() => edit(game, true)}
-        placeholder="这块东西是什么、为什么这样设计"
-        aria-label={`设计说明 ${entity.name}`}
+        placeholder={c.notesPlaceholder}
+        aria-label={c.entityNotesAria(entity.name)}
         data-game-entity-notes={entity.id}
         rows={2}
         className="wd-areaResizeMt"
@@ -332,19 +446,19 @@ function EntityCard({
                   setDrafts({ ...drafts, [dk]: '' });
                   if (raw === undefined) return;
                   if (raw.trim() === '') {
-                    onNotice(`${key} 是空的：没有改动。要删掉这条数值点右边的 ×。`);
+                    onNotice(c.emptyStat(key));
                     return;
                   }
                   writeStat(key, raw);
                 }}
-                aria-label={`数值 ${key}`}
+                aria-label={c.statAria(key)}
                 data-game-stat={`${entity.id}:${key}`}
                 className="gp-w80Input"
               />
               <button
                 type="button"
                 onClick={() => edit(removeStat(game, entity.id, key), true)}
-                aria-label={`删除数值 ${key}`}
+                aria-label={c.statRemoveAria(key)}
                 data-game-stat-remove={`${entity.id}:${key}`}
                 className="wd-delBtnSm"
               >
@@ -358,7 +472,7 @@ function EntityCard({
             value={newStat.key}
             onChange={(e) => setNewStat({ ...newStat, key: e.target.value })}
             placeholder={STAT_HINTS[entity.kind][0] ?? 'health'}
-            aria-label="新数值的键名"
+            aria-label={c.statNameAria}
             data-game-stat-key={entity.id}
             className="wd-growInputPh"
           />
@@ -368,7 +482,7 @@ function EntityCard({
             value={newStat.value}
             onChange={(e) => setNewStat({ ...newStat, value: e.target.value })}
             placeholder="0"
-            aria-label="新数值的值"
+            aria-label={c.statValueAria}
             data-game-stat-value={entity.id}
             className="gp-w16Mode"
           />
@@ -380,7 +494,7 @@ function EntityCard({
             data-game-stat-add={entity.id}
             className="wd-ghostBtnSm"
           >
-            加数值
+            {c.statAdd}
           </button>
         </div>
       </div>
@@ -393,12 +507,12 @@ function EntityCard({
               return (
                 <li key={ref.id} className="gp-row1ink" data-game-ref={ref.id}>
                   <span className="wd-nameTrunc" data-game-ref-label={ref.id}>
-                    → {target ? `${target.name}${ref.role ? `（${ref.role}）` : ''}` : `（悬空引用 ${ref.to}）`}
+                    → {target ? `${target.name}${ref.role ? c.wrapRole(ref.role) : ''}` : c.danglingRef(ref.to)}
                   </span>
                   <button
                     type="button"
                     onClick={() => edit(removeRef(game, entity.id, ref.id), true)}
-                    aria-label="摘掉这条引用"
+                    aria-label={c.removeRefAria}
                     data-game-ref-remove={ref.id}
                     className="wd-xshrink"
                   >
@@ -410,30 +524,30 @@ function EntityCard({
           </ul>
         ) : (
           <p className="wd-faint11" data-game-ref-empty={entity.id}>
-            还没有引用别的实体
+            {c.noRefs}
           </p>
         )}
         <div className="wd-wrapCenter1">
           <select
             value={link.to}
             onChange={(e) => setLink({ ...link, to: e.target.value })}
-            aria-label="引用指向的实体"
+            aria-label={c.refTargetAria}
             data-game-ref-target={entity.id}
             className="wd-growBasis"
           >
-            <option value="">指向…</option>
+            <option value="">{c.pointTo}</option>
             {others.map((e) => (
               <option key={e.id} value={e.id}>
-                {GAME_ENTITY_LABELS[e.kind]} · {e.name}
+                {c.entityLabel(e.kind)} · {e.name}
               </option>
             ))}
           </select>
           <input
             value={link.role}
             onChange={(e) => setLink({ ...link, role: e.target.value })}
-            placeholder="关系"
-            title="这条引用是什么关系，例如「装备」「掉落」；留空则图上不写字"
-            aria-label="引用关系"
+            placeholder={c.rolePlaceholder}
+            title={c.roleTitle}
+            aria-label={c.roleAria}
             data-game-ref-role={entity.id}
             className="gp-mode72"
           />
@@ -441,7 +555,7 @@ function EntityCard({
             type="button"
             onClick={() => {
               if (!link.to) {
-                onNotice('先选一个目标实体，再连引用。');
+                onNotice(c.noticeNoTarget);
                 return;
               }
               const result = linkEntities(game, entity.id, link.to, link.role);
@@ -455,7 +569,7 @@ function EntityCard({
             data-game-ref-add={entity.id}
             className="wd-ghostBtnSm"
           >
-            连引用
+            {c.linkRef}
           </button>
         </div>
       </div>

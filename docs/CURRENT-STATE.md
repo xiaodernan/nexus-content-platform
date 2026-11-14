@@ -3284,3 +3284,31 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   follow-up headroom (pipeline / batched ZADD, sharding, async store) deliberately NOT applied: ai-service
   behavior change, own slice. Evidence: docs/evidence/load-redis-completion-cache-2026-11-14.md (+ .json).
 - PERFORMANCE.md gained the v734 section; sibling "careeros-*" containers not touched.
+
+## cont. 104 (2026-11-14) - v735: Studio Game 面板 + Code 投影 双语化（产物字节与语言无关）
+
+- GamePanel.tsx & GameCodeExport.tsx localized zh/en (SHELL_COPY pattern, locale prop threaded
+  StudioShell -> GamePanel -> GameCodeExport; data-* and classes byte-stable; §FE-49 / §FE-GCE re-pinned;
+  StudioShell §FE-41 re-pinned (GamePanel now receives locale). 3 gates re-pinned with notes.
+- game-model: GAME_KIND_STATUS_EN / GAME_ENTITY_LABELS_EN / CODEGEN_LIMITS_EN exports;
+  artifactChainSentence(chain, locale), codeKindReadings(document, locale), documentNotes(..., locale),
+  generateGameCode(document, locale). Artifact bytes are locale-independent BY CONSTRUCTION:
+  files[] (README/index.html/plan*) always render from zh strings; only the HTTP JSON readout surface
+  (notes / kindNote / limits) follows NEXUS_LOCALE. codegen-locale.test.ts (9 tests) pins:
+  en/zh files byte-identical; en notes template-English; zh default untouched; en limits/table key sets match.
+- /game/code route reads cookie NEXUS_LOCALE via getLocale() and passes locale; 404 game_missing + 413
+  messages localized; zip route deliberately stays zh (the download is the Chinese artifact deliverable).
+- Evidence: fe-gates 116/116 (1148/1148), game-code.integration 13/13 (incl. new NEXUS_LOCALE=en row),
+  game-model 363/363, web tsc 0, game-model tsc 0, eslint on touched files clean.
+- Infra event mid-slice: nexus-postgres + nexus-redis stopped themselves (Exited 0) ~23:30 while fe-gates
+  was running; cause unknown (likely Docker Desktop memory pressure on 1.7GB free); docker start revived
+  both to healthy 8s later and the suite re-ran green. Not treated as "the tests are flaky" — the failure
+  mode was real and had to be fixed, not rerun into green.
+- Known gaps (deliberate, documented):
+  1. projection-layer factual verdicts (play.ts plan/player blockers, playtest/combat findings) are still
+     Chinese-only; en mode shows the en templates that surround them but verdict strings pass through.
+     Fixing those is the §46 error-surface localization slice, not this one (would touch sim/story/rpg
+     and their parity tests).
+  2. gameStore notice strings driven by game-model reason strings (setStat / linkEntities ...) are zh-only.
+  3. The zip deliverable itself (README/index.html/plan*) is Chinese by design; the UI says so when en.
+  4. Untouched panels still zh-only: GamePanel count is 2 of 15 Studio tabs; ContextPanel / CodePanel next.

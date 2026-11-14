@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
  * 本片只换皮：gameStore.ensure / edit / updateEntity / addEntity / removeEntity / linkEntities 路径一字不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @ + cn()整体归一 + `className=@` 归一）：
- * `ad814925e156832577e25e0349514d46f76ad776c045bf98761ee4de1768832d` 与 HEAD 字节一致。
+ * `e7e390a6ac5dc9931d4a2481a2e1c7bfd26f9d4c45cb65f5dfb6b7632104aa73` 与 HEAD 字节一致。
  *
  * 判据不变式（12 门）：
  *  1. 'use client' 保留 + gameStore.ensure/edit 依赖链进门；2. 字面 className 全 `.wd-*`/`.gp-*`（含 cn 三元分支）；
@@ -160,9 +160,9 @@ describe('§FE-49 /studio GamePanel 游戏设计系统面板', () => {
     expect(code).toContain("'wd-monoFaintEnd', snapshot.saveState === 'error' && 'wd-dangerText'");
   });
 
-  it('剥 className/cn 后全文 SHA256 守恒（零行为：ad814925e156832577e25e0349514d46f76ad776c045bf98761ee4de1768832d）', () => {
+  it('剥 className/cn 后全文 SHA256 守恒（2026-11-14 v735「GamePanel 双语化」重钉：e7e390a6ac5dc9931d4a2481a2e1c7bfd26f9d4c45cb65f5dfb6b7632104aa73）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'ad814925e156832577e25e0349514d46f76ad776c045bf98761ee4de1768832d',
+      'e7e390a6ac5dc9931d4a2481a2e1c7bfd26f9d4c45cb65f5dfb6b7632104aa73',
     );
   });
 });

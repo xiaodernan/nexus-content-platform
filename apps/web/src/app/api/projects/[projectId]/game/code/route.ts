@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { CODEGEN_LIMITS } from '@nexus/game-model';
+import { CODEGEN_LIMITS, CODEGEN_LIMITS_EN } from '@nexus/game-model';
 import { requireUser } from '@/server/domain/session';
 import { MAX_CODE_JSON_BYTES, MAX_CODE_ZIP_BYTES, projectGameCode } from '@/server/domain/gameCode';
+import { getLocale } from '@/lib/i18n';
 import { failure, jsonError } from '@/server/http';
 
 interface RouteContext {
@@ -28,7 +29,8 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();
-    const gate = await projectGameCode(user, projectId);
+    const locale = await getLocale();
+    const gate = await projectGameCode(user, projectId, locale);
     if (!gate.ok) {
       const { refusal } = gate;
       return jsonError(refusal.status, refusal.error, 'message' in refusal ? { message: refusal.message } : {});
@@ -37,7 +39,10 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
     const { output } = gate;
     if (output.bytes > MAX_CODE_JSON_BYTES) {
       return jsonError(413, 'code_too_large', {
-        message: `产物 ${output.bytes} 字节，超过单次 JSON 响应上限 ${MAX_CODE_JSON_BYTES}：改用「打包下载」（zip 那一档是 ${MAX_CODE_ZIP_BYTES} 字节），或者把设计拆小。`,
+        message:
+          locale === 'en'
+            ? `Artifact ${output.bytes} bytes, over the single-response cap of ${MAX_CODE_JSON_BYTES}: use the zip download instead (${MAX_CODE_ZIP_BYTES} bytes) or break the design down.`
+            : `产物 ${output.bytes} 字节，超过单次 JSON 响应上限 ${MAX_CODE_JSON_BYTES}：改用「打包下载」（zip 那一档是 ${MAX_CODE_ZIP_BYTES} 字节），或者把设计拆小。`,
         bytes: output.bytes,
         limit: MAX_CODE_JSON_BYTES,
       });
@@ -48,7 +53,7 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
       files: output.files,
       notes: output.notes,
       bytes: output.bytes,
-      limits: CODEGEN_LIMITS,
+      limits: locale === 'en' ? CODEGEN_LIMITS_EN : CODEGEN_LIMITS,
       kindPipeline: output.kindPipeline,
       artifactChain: output.artifactChain,
       kindNote: output.kindNote,
