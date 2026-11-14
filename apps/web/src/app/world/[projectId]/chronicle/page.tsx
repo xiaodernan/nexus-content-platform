@@ -4,6 +4,7 @@ import { listCharacters } from '@/server/domain/characters';
 import { loadDocument } from '@/server/domain/projects';
 import { projectVisibleTo } from '@/server/domain/team';
 import { requireUser } from '@/server/domain/session';
+import { getLocale } from '@/lib/i18n';
 import { buildChronicle } from '@/lib/chronicle';
 import { buildEraTies } from '@/lib/era-ties';
 import { ChronicleView } from '@/components/ChronicleView';
@@ -39,6 +40,7 @@ export default async function ChroniclePage({ params }: { params: Promise<{ proj
     eras.map((era) => ({ era: era.era, entries: era.entries.map((entry) => ({ id: entry.id })) })),
     roster.items,
   );
+  const locale = await getLocale();
   // 作者声明的在场：character.profile.activeEra === entry.era（逐字匹配，不推断）
   const characters = roster.items.map((character) => ({
     id: character.id,
@@ -46,5 +48,5 @@ export default async function ChroniclePage({ params }: { params: Promise<{ proj
     activeEra: character.profile.activeEra,
   }));
 
-  return <ChronicleView worldName={project.name} projectId={projectId} eras={eras} ties={ties} characters={characters} />;
+  return <ChronicleView worldName={project.name} projectId={projectId} eras={eras} ties={ties} characters={characters} locale={locale} />;
 }
