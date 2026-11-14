@@ -9,6 +9,8 @@
 > - **验证**：`era-ties` 9/9 · `chronicle-visual-style` 5/5 · `chronicle` 8/8 · `digest-visual-style` 7/7 · `guide-visual-style` 7/7；`tsc -p apps/web` EXIT=0。
 > - **诚实限度**：fe-gates 本地整线未在本段重跑（本机内存 1.3–2.5GB 锯齿，视觉判据按文件分片单跑 + 逐个绿，未声明整线全绿）；digest 页面像素/浏览器层未验证（本机无合适 Chrome）；`main` 领先 origin 620+，仍不可 push（OAuth token 无 `workflow` scope，阻塞不阻塞开发）。
 >
+> **2026-11-14 续3（§GATE/fe-gates 整线第一次在本机复绿，含今日新门——`verify:fe-gates` 12.73s / 115 文件 / 1141 条全过，`census` OK 2125 类）**：tide/digest/era-ties 三条门面进线后没有引入任何红，§FE-48 SHA 重钉（863b21→29e46e0b）也是授权的意图变更。之前「不承诺整线绿」的诚实限度可以撤销：本轮整线实测全绿。剩余诚实限度：浏览器像素层验证缺席（本机无合适 Chrome）；`main` 630+ 领先 origin 仍不可 push（`workflow` scope 缺失，见此前段落）。
+>
 > **2026-11-14 续（§v719「世界潮汐」引擎片——v710 §B 拆片真落地，main 领先 origin 625+，未 push）**：
 > - **§v719-Tide**（`e47217e3`）：`lib/tide.ts` 纯函数引擎：五扰模各守一规（drought 干亢认水词典 / progeny 繁衍 kind∈{生物/人物/势力} 且认繁衍词典 / inflation 通胀 kind∈{物品/势力} 一律暴露不认词典 / erosion 寂蚀 body<120 字一切落笔节点 / murmur 潮声 kind∈{故事/历史} 且认传闻词典）；`severity`（1/2/3）不参与计数；非法声明全部列进 `invalid`；确定性双跑深相等。`tide.test.ts` 13/13。
 > - `/world/<id>/tide` RSC 页面：仅作者可见；世界读不出来 ⇒ 零数字（td-empty 页）；声明区如实空白指引（Studio「声明扰模」面板是下一片——见 ADR-0267 对「先引擎后声明」的取舍）；「若声明 · 机制预演」五张卡全部真演算（命中篇数 + kind 构成，零叙事）；§FE-TD 判据 7/7。
