@@ -53,6 +53,12 @@
 >
 > **2026-11-14 续（§v715「中文发现页·双语」——把 public `/discover` 也撤到 i18n，fe-gates 1127/1127 全绿）**：公开广场页面从纯中文重写为 `zh|en` 双语。`getLocale()` 驱动 `TABS(ORDER)`、`COPY` 字典复制全部 UI 字面（`views/likes/comments/remixes/score`/空态/工具栏/method-tag/屏蔽 hint/unavailable），不机翻；Git 数据文本不翻译。§FE-77 SHA 重钉（d52b3522 → **92d8e28e…**）；fe-gates **113/113 · 1127/1127**。
 
+> **2026-11-14 续（§SHOWCASE 个人展示页实时同步生效——`xiaodernan.github.io/` 主卡现在直读 nexus-content-platform 的 `docs/showcase/latest.json`，真相约束）**：用户的个人展示页 `xiaodernan.github.io` 「07 NEXUS Platform」（`.scratch\showcase-site\site` 本地克隆；`github.com/xiaodernan/xiaodernan.github.io`）本来只有 README 卡片——通过本片转成 **真实 main 头 + 计数 + 特征面**：
+> - `scripts/gen-latest.mts` + `npm run gen:latest` → `docs/showcase/latest.json`（commits=2534 / ADRs=308 / contracts=14 / services=8 / test_files=530 / feature_surface 真值，HEAD short sha）
+> - `docs/showcase/showcase-sync-recipe.md` 写好了一套同步 recipe：可放在 `xiaodernan.github.io` 的 `.github/workflows/sync-nexus-content.yml` 实现每周 cron 同步（同 `sync-minicc.yml` 模式）
+> - showcase 站主卡完成改造：插入 .minicc-latest 系列结构 (`nexus-content-latest`) + inline paint script，`?nocache=…` 实测 LIVE 返回 main @ 72570a5、2534 commits、308 ADRs、530 test files。
+> - 两个 commit 已 **push 到 master**（07ecf55 + b2e0251）：主卡入口可被直接访问；max-age=600 的 edge cache 将在 ~10 分钟内统一刷新。
+
 > **2026-11-14 续（§v716「Search 完全双语」——/search 完全双语，fe-gates 1127/1127 全绿）**：Search.tsx 也走双语字典；`title/scope/suggest/tooShort/empty suffix/scopeTitle/cappedHint` 全 zh+en 字面。`getLocale()` 驱动 locale；SEARCH_ORDER_METHOD（方法论真值）原样保留不翻译。§FE-Search SHA 重钉（7422b9c0 → d4760ec6…）；fe-gates **113/113 · 1127/1127** · tsc web EXIT=0。6 大公开面（/about /ship /guide /search /discover /RootLayout FAB）现在都是真双语——双语 i18n 切换基础设施已落地。
 
 > **2026-11-14 续（§v714「§FE-Ship 双语化」——交付日志页也是真双语，fe-gates 1127/1127 全绿保持）**：把 `/ship` 也变成真 `zh/en` 双语——完整 `COPY` 字典（title/lede/statStrip 5 格标签/dayTag/hero headline/dataNote/aboutLink/back Link），中英两份完整字面，同样的 `getLocale()` 驱动 RootLayout 的 `<html lang>`；placeholder-locale-toggle 出现在每页右上角一致。
