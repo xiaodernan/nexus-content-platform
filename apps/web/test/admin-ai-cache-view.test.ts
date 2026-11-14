@@ -48,6 +48,7 @@ function readout(overrides: Partial<AiCacheReadout> = {}): AiCacheReadout {
       namespace: 'nexus:llmc',
     },
     provider: { reported: 2, missing: 0, cachedTokensTotal: 43362, promptTokensTotal: 45692, reportedHitRate: 0.949 },
+    transport: { stream: true },
     ...overrides,
   };
 }

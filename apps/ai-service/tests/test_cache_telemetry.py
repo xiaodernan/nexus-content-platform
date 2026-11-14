@@ -241,3 +241,29 @@ def test_drift_zero_capacity_is_rejected() -> None:
 
     with pytest.raises(ValueError):
         UpstreamDriftTracker(capacity=0)
+
+
+def test_cache_stats_exposes_transport_stream_default_true() -> None:
+    """配置默认的出站 LLM 是流式（Settings.llm_stream=True）。
+
+    v706 起 cache-stats 显式报 transport.stream——/admin/ai-cache 面板靠它显示
+    「本进程走流式还是非流」，运维不再猜。契约要求上报如实。
+    """
+    from fastapi.testclient import TestClient
+
+    from ai_service.app import create_app
+    from ai_service.config import Settings
+    from ai_service.providers.registry import Registry
+
+    provider = FakeProvider(json.dumps({"patches": [], "explanation": "", "labels": []}, ensure_ascii=False))
+    registry = Registry(Settings(), llm=provider)
+    client = TestClient(create_app(Settings(), registry=registry))
+    body = client.get("/v1/ai/cache-stats").json()
+    assert body["transport"]["stream"] is True
+
+
+def test_cache_stats_exposes_transport_stream_opt_out_false() -> None:
+    """NEXUS_LLM_STREAM=0 的显式退回也是如实报 False。"""
+    from ai_service.config import Settings
+
+    assert Settings(llm_stream=False).llm_stream is False

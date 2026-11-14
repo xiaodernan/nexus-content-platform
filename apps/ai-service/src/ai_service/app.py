@@ -181,6 +181,9 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
             "appCache": registry.llm_cache_state(),
             "provider": registry.cache_telemetry().provider.stats(),
             "upstream": registry.cache_telemetry().upstream.stats(),
+            # v706 §CACHE-4-AB：机器可读"本进程出站 LLM 走的是流式还是非流"——
+            # /admin/ai-cache 面板一格直接显示，不再让运维靠猜 / 靠看代码。
+            "transport": {"stream": bool(settings.llm_stream)},
         }
 
     @app.post("/v1/ai/run")

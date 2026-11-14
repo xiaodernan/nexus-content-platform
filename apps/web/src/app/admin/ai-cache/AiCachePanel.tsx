@@ -145,7 +145,7 @@ export function AiCachePanel({ initial, initialError }: { initial: AiCacheReadou
     );
   }
 
-  const { prefix, appCache, provider } = readout;
+  const { prefix, appCache, provider, transport } = readout;
   const reqSplit = requestSplit(prefix);
   const provSplit = providerSplit(provider);
   const verdict = verdictOf(readout);
@@ -166,6 +166,11 @@ export function AiCachePanel({ initial, initialError }: { initial: AiCacheReadou
           hint={appCacheHeadline(appCache)}
         />
         <Kpi label="provider 报账覆盖" value={pct(providerCoverage)} hint={`${provider.reported} 报账 / ${provider.missing} 缺席`} />
+        <Kpi
+          label="流模式（出站 LLM）"
+          value={transport == null ? '未报' : transport.stream === true ? '流式 ON' : transport.stream === false ? '非流 OFF' : '未报'}
+          hint="ai-service 直报 Settings.llm_stream（env NEXUS_LLM_STREAM，默认 ON）；非流会改变上游 KV 分片分布"
+        />
       </section>
 
       {/* 判定卡：这一屏值不值得细看，先给一句结论。左边条颜色随判定变，文字仍中性。 */}

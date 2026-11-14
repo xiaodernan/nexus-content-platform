@@ -32,6 +32,7 @@ const LIVE_BODY = {
     namespace: 'nexus:llmc',
   },
   provider: { reported: 2, missing: 0, cachedTokensTotal: 43362, promptTokensTotal: 45692, reportedHitRate: 0.949 },
+  transport: { stream: true },
 };
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -175,5 +176,44 @@ describe('§CACHE-2 fetchAiCacheStats 三种失败分开说', () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error).toContain('形状不认识');
+  });
+});
+
+
+describe('§CACHE-4-AB transport 读数', () => {
+  it('上游报 transport（默认 stream=true）→ normalize 透传为 true', async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse(LIVE_BODY)) as unknown as typeof fetch;
+    const result = await fetchAiCacheStats(fetchImpl);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.readout.transport).toEqual({ stream: true });
+  });
+
+  it('上游报 stream=false（NEXUS_LLM_STREAM=0 的显式退回）→ 如实为 false', async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse({ ...LIVE_BODY, transport: { stream: false } })) as unknown as typeof fetch;
+    const result = await fetchAiCacheStats(fetchImpl);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.readout.transport).toEqual({ stream: false });
+  });
+
+  it('上游没报 transport（旧版 ai-service）→ null，绝不伪造', async () => {
+    const sparse: Record<string, unknown> = { ...LIVE_BODY };
+    delete sparse.transport;
+    const fetchImpl = vi.fn(async () => jsonResponse(sparse)) as unknown as typeof fetch;
+    const result = await fetchAiCacheStats(fetchImpl);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.readout.transport).toBeNull();
+  });
+
+  it('transport.stream 类型不对（字符串/数字/null）→ null，不给半个判断', async () => {
+    for (const bad of ['true', 1, null, undefined, {}]) {
+      const fetchImpl = vi.fn(async () => jsonResponse({ ...LIVE_BODY, transport: { stream: bad } })) as unknown as typeof fetch;
+      const result = await fetchAiCacheStats(fetchImpl);
+      expect(result.ok).toBe(true);
+      if (!result.ok) continue;
+      expect(result.readout.transport).toEqual({ stream: null });
+    }
   });
 });

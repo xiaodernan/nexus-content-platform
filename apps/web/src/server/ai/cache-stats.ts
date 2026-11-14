@@ -54,11 +54,18 @@ export interface ProviderStats {
   reportedHitRate: number | null;
 }
 
+/** 出站 LLM 传输方式：true=流式，false=非流，null=上游未报（旧版 ai-service）。 */
+export interface AiCacheTransport {
+  stream: boolean | null;
+}
+
 export interface AiCacheReadout {
   prefix: PrefixStats;
   /** null = 应用级缓存未启用（不是"启用了但零命中"）。 */
   appCache: AppCacheStats | null;
   provider: ProviderStats;
+  /** null = 上游没报 transport 字段——不伪造，不妄判。 */
+  transport: AiCacheTransport | null;
   /** web 侧取到这份读数的时刻（ISO）。**不是** ai-service 的采样时刻——那份是它自报的进程内计数。 */
   measuredAt: string;
 }
@@ -130,9 +137,14 @@ function normalize(body: Record<string, unknown>, measuredAt: string): AiCacheRe
   const prefix = record(body.prefix)!;
   const provider = record(body.provider)!;
   const appCacheRaw = body.appCache === null ? null : record(body.appCache);
+  const transportRaw = body.transport == null ? null : record(body.transport);
 
   return {
     measuredAt,
+    transport:
+      transportRaw === null
+        ? null
+        : { stream: transportRaw.stream === true ? true : transportRaw.stream === false ? false : null },
     prefix: {
       requests: num(prefix.requests),
       reused: num(prefix.reused),
