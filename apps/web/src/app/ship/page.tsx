@@ -103,7 +103,10 @@ export default function ShipPage() {
           数据源 <code>git log</code> · 收录 {shown}/{days.flatMap((d) => d.entries).length} 条（最近 {shownDays.length} 天）。
           本页不挑选"好看的里程碑"，只把发生过的事按时间顺序摊开。
         </p>
-        <a href="/discover" className="am-linkImplicit" data-ship-back>← 回到广场</a>
+        <span className="sh-footLinks">
+          <a href="/about-nexus" className="am-linkImplicit" data-ship-about>这座工厂是怎么造的 → 关于 NEXUS</a>
+          <a href="/discover" className="am-linkImplicit" data-ship-back>← 回到广场</a>
+        </span>
       </footer>
     </main>
   );

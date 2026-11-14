@@ -105,14 +105,14 @@ describe('§FE-Ship /ship 交付日志', () => {
   });
 
   it('钩子守恒（root/heroKicker/heroTitle/lede/stats/spine/daySection/entry/kind-note/foot）', () => {
-    for (const hook of ['data-ship-root', 'data-ship-hero-kicker', 'data-ship-hero-title', 'data-ship-lede', 'data-ship-stats', 'data-ship-spine', 'data-ship-spine', 'data-ship-day=', 'data-ship-kind-note', 'data-ship-foot', 'data-ship-back', 'data-ship-hash', 'data-ship-subject', 'data-ship-kind-tag=']) {
+    for (const hook of ['data-ship-root', 'data-ship-hero-kicker', 'data-ship-hero-title', 'data-ship-lede', 'data-ship-stats', 'data-ship-spine', 'data-ship-spine', 'data-ship-day=', 'data-ship-kind-note', 'data-ship-foot', 'data-ship-back', 'data-ship-about', 'data-ship-hash', 'data-ship-subject', 'data-ship-kind-tag=']) {
       expect(code, `Ship 丢了钩子 ${hook}`).toContain(hook);
     }
   });
 
   it('SHA256 钉死（本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'c602d3a20d7385ba8a0f8b57031777d9a30cbc02afa4a44013c2fb239a6cd021',
+      '51d186d7d588f09d74aedf11345455d34611c4b3e9dae030e97d3b9124806065',
     );
   });
 });

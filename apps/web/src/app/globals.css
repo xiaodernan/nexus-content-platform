@@ -4478,3 +4478,10 @@
   .kb-fab:focus-visible { box-shadow: 0 0 0 3px Highlight; }
   .kb-close:focus-visible { outline: 2px solid Highlight; }
 }
+
+/* §v706.1：/ship 页脚双链容器（about-nexus ↔ ship 交叉互链） */
+.sh-footLinks { display: flex; align-items: baseline; gap: var(--nexus-space-4); flex-wrap: wrap; }
+
+@media (forced-colors: active) {
+  .sh-footLinks { border-top: 1px solid CanvasText; }
+}

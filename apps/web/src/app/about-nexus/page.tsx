@@ -100,6 +100,7 @@ export default function AboutPage() {
           没有任何一行数字是脚注时代补写的。读不动的都是后面 TestBoundary 直接钉住的。
         </p>
         <Link href="/discover" className="ash-emptyLink">去看看放出来的作品 →</Link>
+        <Link href="/ship" className="ash-emptyLink">或者，看看这台工厂每天交付了什么 →</Link>
       </footer>
     </main>
   );
