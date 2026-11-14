@@ -10,8 +10,7 @@ import { describe, expect, it } from 'vitest';
  * 职责：毒消息耗尽重试后隔离在此，运维在浏览器里看而不是进 redis-cli。
  * 纯读路径（LLEN+LRANGE），不写、不阻塞、不触发 worker；cursor 分页、NDJSON 附件导出。
  *
- * **剥 className 后全文 SHA256 钉死**：`22cb214b…`，合并后 2026-11-14 修实后的字节
- * （`@Import(SecurityConfig.class)` 只在后端，本文件当时未变）。
+ * **剥 className 后全文 SHA256 钉死**：`ccd8dbb1…`（v762 i18n 双语重钉）。
  */
 
 const ROOT = process.cwd();
@@ -86,9 +85,9 @@ describe('§FE-DL /admin/dead-letters 死信巡检', () => {
     }
   });
 
-  it('剥 className 后全文 SHA256 钉死（修实后字节：22cb214b0e09e524e288b8a2195db7722807a904906d8af17000805393fb036d）', () => {
+  it('剥 className 后全文 SHA256 钉死（v762 i18n 双语重钉：ccd8dbb1a2a14596562296d7ea2d195918a3ff119c4b91fc83613dd38c7e0a98）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '22cb214b0e09e524e288b8a2195db7722807a904906d8af17000805393fb036d',
+      'ccd8dbb1a2a14596562296d7ea2d195918a3ff119c4b91fc83613dd38c7e0a98',
     );
   });
 });

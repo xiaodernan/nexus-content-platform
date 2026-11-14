@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
  * 六列宽表格，390 下横滚 + role="region" + tabIndex={0}（axe scrollable-region-focusable，与 /tasks 同一纪律）。
  * 本片只换皮；listAudit、denied 两态、表格结构逐字节一致。
  *
- * **剥 className 后全文 SHA256 守恒**：`199d910c…` 恒等于改前（git HEAD）。
+ * **剥 className 后全文 SHA256 守恒**：`665fb228…`（v762 i18n 双语重钉）。
  * redact 三步序与钉死常量一致。
  *
  * 判据不变式（10 门）：
@@ -64,7 +64,8 @@ describe('§FE-31 /admin/audit 审计事件', () => {
   it('横滚区键盘可达进门：role="region" + tabIndex={0} + aria-label 守恒', () => {
     expect(code).toContain('role="region"');
     expect(code).toContain('tabIndex={0}');
-    expect(code).toContain('aria-label="审计事件表（可横向滚动）"');
+    expect(code).toContain('aria-label={c.tableAria}');
+    expect(code).toContain('tableAria:');
     expect(code).toContain('data-audit-table-scroll');
   });
 
@@ -123,9 +124,9 @@ describe('§FE-31 /admin/audit 审计事件', () => {
     expect(globals).toContain('.tl-table {');
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：199d910ce56d7fab7a70db25489d5746b1d6b5a3b95c72bdc52fb6d26b125340）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：665fb2280c6be2215e7a588fc152ca6256b6537fc46a4e801ee14dede9450d53）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '199d910ce56d7fab7a70db25489d5746b1d6b5a3b95c72bdc52fb6d26b125340',
+      '665fb2280c6be2215e7a588fc152ca6256b6537fc46a4e801ee14dede9450d53',
     );
   });
 });

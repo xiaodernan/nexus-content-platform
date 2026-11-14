@@ -3630,3 +3630,20 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 分支并轨审计（v760 已留档，cont. 130）：origin/master 与 refs/remotes/other/* 全为 main 祖先——
   并轨完成，本次无新增（不动陈旧 refs，删除需用户拍板）。
 - showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 132 (2026-11-17) - v762: /admin dead-letters + audit 双语化
+
+- app/admin/dead-letters/page.tsx 双语（server RSC，getLocale()）：
+  denied×2、BrandTitle、capNote、快照读数 + NDJSON 导出按钮 + 刷新、
+  空态诚实文案（"这不是没失败过"）、footer 游标分页说明（footNote(n)，含尾部相对下标平移提示）、
+  下一页/到底了、unavailable 分支的指引、invalid-cursor/snapshot-stale/error 三分支全部接 locale；
+  readDeadLettersPage()/NDJSON 导出 / cursor 协议一字未动；result.note（服务端裁定 zh）原文透传（§46）。
+- app/admin/audit/page.tsx 双语（server RSC，getLocale()）：
+  denied×2、summary（最近 N 条 · 其中被拒绝 D 条）、table aria-label（变量 {c.tableAria}）、
+  colTime/Actor/Action/Target/Result/Detail 六列表头、anonymousActor、放行/拒绝→Allowed/Denied、
+  空态、toLocaleString(locale) 日期格式化。
+- DELETED_USER_LABEL（服务端常量"已注销的用户"）原文透传（§46 边界，登记）。
+- Gates：§FE-DL 重钉（ccd8dbb1…）；§FE-31 重钉（665fb228…）；
+  两处 aria-label 字面量钉 → 变量断言（断言跟读法、行为不变）；fe-gates 116/116 · 1148/1148；tsc 0；eslint 净。
+- /admin 已完成：总入口、AdminNav、dead-letters、audit（4/24 页）。剩余 20 页见 v763+ 专项。
+- showcase 快照同步于提交后（npm run sync:showcase）。
