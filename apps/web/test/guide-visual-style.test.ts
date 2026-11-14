@@ -108,7 +108,7 @@ describe('§FE-Guide /guide 使用指南', () => {
 
   it('SHA256 钉死（本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '125319967f357ab5090aaeff6872956b95a82df4abd5fb972412bd4d67a2f35d',
+      'b8f4222122212c0612141aef1e22ef5c3230ccbb1698d6863052e1fb4f4bf0a7',
     );
   });
 });
