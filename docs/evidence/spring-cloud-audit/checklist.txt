@@ -17,7 +17,7 @@
 - [x] `spring-security` keeps health probes unauthenticated for liveness
 
 13/13 pass — no new Spring Cloud surface added; documented what's wired vs what's intentionally absent.
-- [x] §SC-72 live JVM actuator probe (2026-11-13): `npm run verify:actuator` �?5/5 services boot, `/actuator/health` 200 UP (show-details never), `/actuator/info` pinned per service, domain-service circuitbreakers shows ai-service=CLOSED. Details: docs/evidence/spring-cloud-audit/sc72-live-2026-11-13.md
+- [x] §SC-72 live JVM actuator probe (2026-11-13): `npm run verify:`actuator` — 5/5 services boot, `/actuator/health` 200 UP (show-details never), `/actuator/info` pinned per service, domain-service circuitbreakers shows ai-service=CLOSED. Details: docs/evidence/spring-cloud-audit/sc72-live-2026-11-13.md
 
-14/14 pass �?static audit complete AND one live JVM-theatre run through.
+14/14 pass — static audit complete AND one live JVM-theatre run through.
 
