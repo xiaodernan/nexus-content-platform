@@ -9,6 +9,8 @@
 > - **验证**：`era-ties` 9/9 · `chronicle-visual-style` 5/5 · `chronicle` 8/8 · `digest-visual-style` 7/7 · `guide-visual-style` 7/7；`tsc -p apps/web` EXIT=0。
 > - **诚实限度**：fe-gates 本地整线未在本段重跑（本机内存 1.3–2.5GB 锯齿，视觉判据按文件分片单跑 + 逐个绿，未声明整线全绿）；digest 页面像素/浏览器层未验证（本机无合适 Chrome）；`main` 领先 origin 620+，仍不可 push（OAuth token 无 `workflow` scope，阻塞不阻塞开发）。
 >
+> **2026-11-14 续7（§v730「Studio 外壳 + 顶栏双语」，commit 号见 git log v730）**：SHELL_COPY zh/en 双语字典落地——TABS(14)/VIEWS(5)/readOnly 横幅/loadingProject/railToggle/撤销·重做·网格·预览/保存状态四分支/credit chip/inspector 关合；locale 由 RSC 页 getLocale() 自 cookie 读 → `<StudioShell locale>` → StudioWorkspace → TopBar；gate 同步换钉（topbar 判据锚从 zh 字面换为 c.* + COPY 的 zh 段；shell/topbar SHA 重钉）；fe-gates 116/116 · 1148/1148 · census 2149 · tsc web EXIT=0。**honest gap**：14 个面板自己的文案仍然中文优先——各面板自己的下一片。
+>
 > **2026-11-14 续6（§v729「世界体检」，commit 号见 git log 本线 v729 提交）**：`/world/<id>/integrity`——作者打开世界就能看见的真指标单（10 卡：已落笔 kind 覆盖 / 仍是模板 / 薄节点 / 未标纶元 / order 撞号 / 未解析关系 / 纸面纶元 / 世界锚点 / 星图人物 / 缺色板），全部真数、全部 Link 到最适操作面；新 §FE-IC 门面；WorldGraphView 进入按钮加「世界体检」（§FE-57 SHA 重钉），/guide 双语地图各补一行（SHA 重钉）。**fe-gates 116/116 · 1148/1148 · census 2149 · tsc web EXIT=0**。世界线新模块真值示例：零假分数、零「AI 说你世界怎么样」。
 >
 > **2026-11-14 续5（§i18n 世界线双语复牌，`e2eb6f9f`…`b339790e`）**：tide（v722）/digest（v723）/chronicle（v724）/constellation（v725）/codex（v726）/codex-reader（v727）/ephemeris（v728）全部 cookie-locale COPY 双语，kind 标签经 KIND_LABEL_EN 平行映射（Lore/History/…）；chronicle/constellation 是 client 组件，locale 由 RSC prop 传入；§FE SHA 全部按惯例重钉；world 线仅剩 3D 步行画布（无 UI 文案）未接 locale。`/guide` §② 新手快速演示按 KeyboardCheatsheet 真清单重写成双语实录（注册→Studio→Cmd/Ctrl+K→Ctrl+S→发布→/ship）；端用户手册不再指引 wkapi.pro。fe-gates 115/115 · 1141/1141 · census 2131 · no-raw-tailwind 干净（全程复绿两次）。
