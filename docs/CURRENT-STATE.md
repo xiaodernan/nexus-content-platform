@@ -2952,3 +2952,20 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   SQL writes).
 - CI at record time: 84f7f0d/bf84954 in_progress on CI; main-line SUCCESS for bf84954 earlier;
   not claiming until the runner finishes.
+## cont. 107 (2026-11-14) - v711 landed: world almanac 世界藏经阁 (/world/<id>/almanac)
+
+- New route: the world subsystem's front door. Pure projection, zero writes, zero schema change:
+  world name/summary as the cover, live stats strip (entries/eras/characters/echoes), the longest
+  memory echo as the epigraph, era ribbon (buildChronicle order, links to chronicle),
+  four volume doors (chronicle/atlas/memories/constellation with counts + bleeding serif numerals),
+  and a nine-kind census bar rollup.
+- Studio top-bar gains 世界藏经阁 (data-enter-almanac); atlas header gains a 藏经阁 cross-link.
+- Fixture verification (星图 MWG35NRI / f7ec6716): doors=4, eras=4 (灰灯纪2/灰烬纪2/铁月纪2/未标纪元1),
+  kindRows=9, epigraph verbatim; full-page screenshot confirms the night-gold archive look
+  (serif hero 北境纪事, gold stats rule, era chips, volume grid, census bars).
+- Docker Desktop outage count today: 10 (relaunched mid-turn; sibling 3100/3200 untouched).
+- ADR 0144: the almanac decision record (front-door rationale, SSR-first, no random/rotation,
+  visibility gate, honest narrowings: era anchors pending chronicle review, no Studio tab).
+- CI at record time: c28ad48 in_progress/queued on CI and main-line; 84f7f0d main-line SUCCESS;
+  bf84954/7f84983 main-line SUCCESS; not claiming until the runner finishes.
+- tsc 0; per-file eslint 0.

@@ -148,6 +148,7 @@ export default async function AtlasPage({
           </p>
         </div>
         <nav className="flex flex-wrap items-center gap-2" aria-label="世界子页导航">
+          <Link href={`/world/${projectId}/almanac`} className="rounded-md border border-[#232b52] bg-[#0d1230]/70 px-3 py-1.5 text-11 text-[#c6cdf5] transition-colors hover:border-[#3a4472] hover:text-white">世界藏经阁</Link>
           <Link href={`/world/${projectId}`} className="rounded-md border border-[#232b52] bg-[#0d1230]/70 px-3 py-1.5 text-11 text-[#c6cdf5] transition-colors hover:border-[#3a4472] hover:text-white">世界步行</Link>
           <Link href={`/world/${projectId}/constellation`} className="rounded-md border border-[#232b52] bg-[#0d1230]/70 px-3 py-1.5 text-11 text-[#c6cdf5] transition-colors hover:border-[#3a4472] hover:text-white">角色星图</Link>
           <Link href={`/world/${projectId}/chronicle`} className="rounded-md border border-[#232b52] bg-[#0d1230]/70 px-3 py-1.5 text-11 text-[#c6cdf5] transition-colors hover:border-[#3a4472] hover:text-white">世界编年</Link>
