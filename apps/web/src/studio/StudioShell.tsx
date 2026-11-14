@@ -280,7 +280,7 @@ function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zo
           ) : tab === 'context' ? (
             <ContextPanel locale={locale} />
           ) : tab === 'agent' ? (
-            <AgentPanel />
+            <AgentPanel locale={locale} />
           ) : tab === 'health' ? (
             <HealthRail locale={locale} />
           ) : (

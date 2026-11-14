@@ -3423,3 +3423,12 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 引擎侧的 check.label/basis/finding.message/metric.label 仍是 creative-model 的中文裁定句——§46 独立立片
   （analyzeHealth 定点本地化、creative-model 角色引擎、sim/story/rpg 拒绝句全部在那里）。
 - fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；StudioShell §FE-41 重钉（第八跳）+ PublishPanel §FE-PB 重钉。
+
+## cont. 115 (2026-11-16) - v746: AgentPanel 双语化（§112/§25 上架前检查作业）
+
+- AgentPanel.tsx zh/en 双字典：heading/realtime/demo 声明/goal/运行按钮/kindTerm（GAME_KIND_TERMS en）
+  接受进项目/各读数/空态/完成-失败-进行中/步数/实体/上游交接/被牵连 全部接 locale；
+  locale 自 StudioShell 透传。
+- AgentRun 报文本身就是服务端契约（"READINESS_STEPS" 步数）——比对载荷照常
+- notes 服务端报告（run.report.notes）仍 zh（§46 独立立片）。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；§FE-41 重钉。
