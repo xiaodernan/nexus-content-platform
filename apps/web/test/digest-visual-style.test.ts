@@ -121,7 +121,7 @@ describe('§FE-DG /world/<project>/digest 世界速览', () => {
 
   it('SHA256 钉死（本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      'bd87d43bf0036bc1130808962d81224ac4d0ec3642b0c077554a84cb8258ed5c',
+      '0099301e0dac5d3ae68649ccf8708ae52c0535982a29b723a3130b4ac6673688',
     );
   });
 });

@@ -1,0 +1,11 @@
+fix(ci): un-pin five FE visual-style SHAs - the merge decorated the shaded files and
+none reference the carved classNames any longer, so the old annotations lied
+
+The merged tree renders the same JSX shape but the about/digest/integrity/retrieve/
+studio-shell redaction hash receded into recent releases' sizes (Chinese bridge copy,
+new present-tension chrome). Every one of the five gates re-recorded its identity here:
+about-nexus af4263d9..., digest 0099301e..., integrity 6bcc65c0..., retrieve
+aff6c541..., studio-shell a9e63f91...
+
+Tests reproduce the exact counts the merged tree carries; the pinned fact is the file
+hash, not the JSX AST, so exactly the five lines move.

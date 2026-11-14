@@ -260,28 +260,28 @@ export function WorldGraphView() {
         {/* §140：图上摆过的位置就是 3D 世界的地面布局，所以入口放在这里而不是另造一个页面 */}
         <a
           href={`/world/${studio.projectId}/almanac`}
-          className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-2 hover:bg-bg-3"
+          className="sb-btn2"
           data-enter-almanac
         >
           世界藏经阁
         </a>
         <a
           href={`/world/${studio.projectId}/atlas`}
-          className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-2 hover:bg-bg-3"
+          className="sb-btn2"
           data-enter-atlas
         >
           寰宇图志
         </a>
         <a
           href={`/world/${studio.projectId}/memories`}
-          className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-2 hover:bg-bg-3"
+          className="sb-btn2"
           data-enter-memories
         >
           记忆回廊
         </a>
         <a
           href={`/world/${studio.projectId}/quiz`}
-          className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-2 hover:bg-bg-3"
+          className="sb-btn2"
           data-enter-quiz
         >
           谜灯馆

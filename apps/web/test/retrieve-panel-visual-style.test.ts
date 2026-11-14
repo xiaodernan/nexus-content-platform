@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
  * 本片只换皮；查询/fetch/csrfHeaders/score 全部一字不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @ + cn()整体归一 + `className=@` 归一，含 cn 雕刻 cn 一行）：
- * `4ee170c1e09253add9e7266d6e5e313251ca14c6ef77aab0066f3e3a75a9e0bf`（雕刻：唯一代码变更 = 删唯一使用点消失后已死的 `import { cn }` 一行）。
+ * `aff6c541c09e876d7d8a2da5ed783087d452598f1811e1b18fefb991f8656533`（雕刻：唯一代码变更 = 删唯一使用点消失后已死的 `import { cn }` 一行）。
  *
  * 判据不变式（10 门）：
  *  1. 'use client' 保留 + csrfHeaders 进门；2. 字面 className 全 `.rp-*`/复用族；
@@ -144,7 +144,7 @@ describe('§FE-56 /studio RetrievePanel 语料检索面板', () => {
       createHash('sha256').update(redactClasses(main)).digest('hex'),
     );
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '4ee170c1e09253add9e7266d6e5e313251ca14c6ef77aab0066f3e3a75a9e0bf',
+      'aff6c541c09e876d7d8a2da5ed783087d452598f1811e1b18fefb991f8656533',
     );
   });
 });

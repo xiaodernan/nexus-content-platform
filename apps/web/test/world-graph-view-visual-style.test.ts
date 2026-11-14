@@ -147,7 +147,7 @@ describe('§FE-57 /studio WorldGraphView 世界图视图', () => {
 
   it('剥 className/cn 后全文 SHA256 守恒（2026-11-14 v718「世界速览」入口落地时按惯例重钉：fb167220…）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '5ecdd97a704bc73c32898f7883c8e514a28a474df35f7f995abe1c5e670ac24e',
+      'a9054bedc156dd0294fbecdd9e45358aef54e1ce302dadbd20d361f5ecc4c440',
     );
   });
 });

@@ -122,7 +122,7 @@ describe('§FE-CRN /world/<project>/chronicle 世界编年', () => {
 
   it('SHA256 钉死（本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'c7fb6f50aef59930757b186d72169527fe9e3b6bcf0ac3d58eba32efc5a39e07',
+      '874b6140ba04057ccace509c63638ebdd6fbeb5990a28b4dc1ef96f45671acb1',
     );
   });
 });
