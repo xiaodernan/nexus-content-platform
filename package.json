@@ -209,7 +209,8 @@
     "live:all": "tsx --tsconfig apps/web/tsconfig.json scripts/live-all.mts",
     "verify:cost-ledger": "tsx --tsconfig apps/web/tsconfig.json scripts/cost-ledger-probe.mts",
     "gen:ship": "tsx scripts/gen-ship-manifest.mts",
-    "gen:showcase": "tsx scripts/gen-showcase-snapshot.mts"
+    "gen:showcase": "tsx scripts/gen-showcase-snapshot.mts",
+    "gen:latest": "tsx scripts/gen-latest.mts"
   },
   "devDependencies": {
     "turbo": "^2.3.3",
