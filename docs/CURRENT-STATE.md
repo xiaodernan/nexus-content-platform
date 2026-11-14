@@ -3374,3 +3374,11 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 服务端那句边界说明（§49 词面检索不是语义检索）原样从 API 透传，面板自身那份说明接 locale；
   searchNote 不改序（服务裁定面）。
 - fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；StudioShell §FE-41 第四次重钉（MemoryPanel 入 locale 行列）。
+
+## cont. 110 (2026-11-15) - v741: HistoryPanel 双语化（§27/§28/§108 事务历史/分支/快照）
+
+- HistoryPanel.tsx zh/en 双字典：KIND_LABEL（改/增/删/移/令牌 → M/A/D/MV/TOK）、
+  SOURCE_LABEL、分支行三态+切换警示、快照过滤/创建/比较/恢复/确认恢复、快照超量/一致性/批注、
+  差异统计、两档空态（当前分支/全部）、heading 与入口 chip 全部接 locale；locale 自 StudioShell 透传。
+- 审计链说明（该是用户项目历史而非 git 的开发历史）双语复述原意。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；§FE-41 重钉（第五跳）。

@@ -284,7 +284,7 @@ function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zo
           ) : tab === 'health' ? (
             <HealthRail />
           ) : (
-            <HistoryPanel />
+            <HistoryPanel locale={locale} />
           )}
         </aside>
       </Profiler>
