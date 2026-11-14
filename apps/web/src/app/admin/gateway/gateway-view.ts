@@ -41,38 +41,54 @@ export function sharedHealthView(input: {
   driver: unknown;
   fallbacks: unknown;
   lastError: unknown;
-}): SharedHealthView {
+}, locale: 'zh' | 'en' = 'zh'): SharedHealthView {
   const fallbacks = typeof input.fallbacks === 'number' && Number.isFinite(input.fallbacks) && input.fallbacks > 0 ? input.fallbacks : 0;
   const lastError = typeof input.lastError === 'string' && input.lastError.length > 0 ? input.lastError : null;
   const configured = input.driver === 'redis';
 
   if (!configured) {
     // in-process 与任何未知/坏值都按中性说法：单实例进程内，不提 Redis、不亮生效灯。
-    return { label: '共享缓存：进程内（单实例）', detail: '', active: false };
+    return locale === 'en'
+      ? { label: 'Shared cache: in-process (single instance)', detail: '', active: false }
+      : { label: '共享缓存：进程内（单实例）', detail: '', active: false };
   }
 
   if (fallbacks > 0 || lastError !== null) {
     const parts: string[] = [];
-    if (fallbacks > 0) parts.push(`已回退 ${fallbacks} 次到进程内`);
-    if (lastError !== null) parts.push(`最近错误：${lastError}`);
-    return { label: '共享缓存：Redis 已配置，正在回退', detail: parts.join(' · '), active: true };
+    if (fallbacks > 0) parts.push(locale === 'en' ? `fell back ${fallbacks} times to in-process` : `已回退 ${fallbacks} 次到进程内`);
+    if (lastError !== null) parts.push(locale === 'en' ? `last error: ${lastError}` : `最近错误：${lastError}`);
+    return locale === 'en'
+      ? { label: 'Shared cache: Redis configured, falling back', detail: parts.join(' · '), active: true }
+      : { label: '共享缓存：Redis 已配置，正在回退', detail: parts.join(' · '), active: true };
   }
 
   // 配了、但还没观察到失败：只能说"已配置"，不能说"已连接健康"——此刻可能正断着、
   // 也可能 lazyConnect 还没发过第一条命令，面板没有瞬时权威去断言连着。
-  return {
-    label: '共享缓存：已配置 Redis（连接实况看错误/回退计数）',
-    detail: '',
-    active: false,
-  };
+  return locale === 'en'
+    ? { label: 'Shared cache: Redis configured (see error/fallback counts for live status)', detail: '', active: false }
+    : { label: '共享缓存：已配置 Redis（连接实况看错误/回退计数）', detail: '', active: false };
 }
 
-export function numberOrDash(value: number | null): string {
-  return value === null ? '—（未测）' : String(value);
+export function numberOrDash(value: number | null, locale: 'zh' | 'en' = 'zh'): string {
+  return value === null ? (locale === 'en' ? '— (unmeasured)' : '—（未测）') : String(value);
 }
 
 /** 五种健康态逐一映射：UNKNOWN 与没测到各有自己的中性说法，绝不归到 DOWN。 */
-export function healthView(h: ServiceHealthView): HealthBadge {
+export function healthView(h: ServiceHealthView, locale: 'zh' | 'en' = 'zh'): HealthBadge {
+  if (locale === 'en') {
+    switch (h) {
+      case 'UP':
+        return { dot: 'gw-dotUp', text: 'OK' };
+      case 'DOWN':
+        return { dot: 'gw-dotDown', text: 'Down' };
+      case 'UNKNOWN':
+        return { dot: 'gw-dotUnknown', text: 'Unanswered' };
+      case 'NOT_PROBED':
+        return { dot: 'gw-dotUnmeasured', text: 'No instance' };
+      case 'NOT_MEASURED':
+        return { dot: 'gw-dotUnmeasured', text: 'Unmeasured' };
+    }
+  }
   switch (h) {
     case 'UP':
       return { dot: 'gw-dotUp', text: '正常' };
@@ -95,12 +111,35 @@ export const CLASS_LABEL: Record<JoinedService['classification'], string> = {
   dangling: '有路由·无实例',
 };
 
+export const CLASS_LABEL_EN: Record<JoinedService['classification'], string> = {
+  'routed-healthy': 'Managed · OK',
+  'routed-degraded': 'Managed · degraded',
+  'routed-down': 'Managed · down',
+  unrouted: 'Registered · no route',
+  dangling: 'Routed · no instance',
+};
+
+export function classLabel(classification: JoinedService['classification'], locale: 'zh' | 'en'): string {
+  return (locale === 'en' ? CLASS_LABEL_EN : CLASS_LABEL)[classification];
+}
+
 export const STATE_LABEL: Record<ReadoutState, string> = {
   fresh: '本次实测',
   cached: '缓存',
   stale: '旧快照',
   unavailable: '未测到',
 };
+
+export const STATE_LABEL_EN: Record<ReadoutState, string> = {
+  fresh: 'Measured now',
+  cached: 'Cached',
+  stale: 'Stale snapshot',
+  unavailable: 'Unmeasured',
+};
+
+export function stateLabel(state: ReadoutState, locale: 'zh' | 'en'): string {
+  return (locale === 'en' ? STATE_LABEL_EN : STATE_LABEL)[state];
+}
 
 /** 后台标签不轮询；只有 visible 才发。判据用字符串注入，不需要真的 document。 */
 export function pollAllowed(visibilityState: 'visible' | 'hidden' | 'prerender'): boolean {

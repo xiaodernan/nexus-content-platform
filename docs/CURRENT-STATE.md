@@ -3631,6 +3631,22 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   并轨完成，本次无新增（不动陈旧 refs，删除需用户拍板）。
 - showcase 快照同步于提交后（npm run sync:showcase）。
 
+## cont. 140 (2026-11-17) - v770/v771: /admin gateway 集群 + ai-cache 集群双语化
+
+- gateway-view.ts 双语（locale 参数，默认 zh 保旧断言）：sharedHealthView 三态/numberOrDash/healthView（five态）+
+  CLASS_LABEL_EN/STATE_LABEL_EN + classLabel/stateLabel 三件套；en 质量优先不与 zh 漂移。
+- GatewayPanel.tsx（client）双语：Kpi 五格（路由/服务/实例/中断/没答上）/ColumnState 状态 chip/
+  逐服务表头/空态诚实说明/refreshError/骨架 aria/footer（每 4 秒·后台暂停·原子性披露）全部接 locale prop。
+- gateway/page.tsx 双语（RSC getLocale）：denied×2/title/scopeNote（地址、4s 刷新）；locale 透传 GatewayPanel。
+- stats-readout/gateway-view 单测 zh 默认保持绿；gateway-view.test 一处 `.map(healthView)` 改箭头修签名。
+- ai-cache cluster：cache-view.ts 双语（locale 参数，默认 zh）：pct/prefix/capacity/appCache/provider/verdict/nonStreamCaveat/footNote 全部覆盖；
+  AiCachePanel.tsx（client）双语：Kpi 五格/判定卡/前缀-应用-provider 三账全部行/图/legend/aria/footNote 接 locale prop。
+- ai-cache/page.tsx 双语（RSC getLocale）：denied×2/title/scopeNote；locale 透传 AiCachePanel。
+- Gates：§FE-GW 重钉（page=c5df2ff9… panel=aee35aeb…）；无 SHA 门外的钩子被动过；
+  fe-gates 116/116 · 1148/1148；tsc web 0；eslint 净；gateway-view 17/17；ai-cache-view 20/20；realtime-stats-readout 30/30。
+- /admin 已完成 17/24（home/AdminNav/dead-letters/audit/health/users/moderation/marketplace/realtime/access/observability/savings/pricing/rate-limit/gateway/ai-cache）。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
 ## cont. 137 (2026-11-17) - v767: /admin realtime 集群双语化
 
 - stats-readout.ts 增 locale 参数（默认 zh）：LIVE_LABEL_EN/BOOT_LABEL_EN（zh 表原样保留，单测钉住）、

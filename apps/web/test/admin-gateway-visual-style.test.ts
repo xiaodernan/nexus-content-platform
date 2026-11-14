@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
  * `GatewayPanel.tsx`（client）：4s 轮询 / visibilitychange 暂停 / 拉取失败不清空上一帧——只换皮。
  *
  * **剥 className 后全文 SHA256 守恒（EOL 无关）**：两文件均恒等于改前（git HEAD）。
- * redact（\r\n→\n 后）三步序与钉死常量一致：page=`be946472…`，panel=`7922f441…`。
+ * redact（\r\n→\n 后）三步序与钉死常量一致：page=`c5df2ff9…`，panel=`200d82c9…`（v770 i18n 注释清理重钉）。
  *
  * 判据不变式（12 门）：
  *  1. page.tsx server 组件 + denied×2 + AdminNav current="gateway"（denied 分支 `.adm-*` 复用）；
@@ -176,13 +176,13 @@ describe('§FE-32 /admin/gateway 网关态势', () => {
     expect(code(page)).toContain('<AdminNav current="gateway"');
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：page=be946472… · panel=7922f441…）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：page=c5df2ff9… · panel=200d82c9…（v770 i18n 注释清理重钉））', () => {
     // 常量在改前（git HEAD）由真实产物 redact（EOL 归一后三步）算出并钉死。
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      'be94647267f663fa807cbee6ed4da9a5b70f0d3efe4ecbeda350de28985396e7',
+      'c5df2ff949538c7bb1777355089c8a1720c6591f495c8569cbc4a3e6b115e8d7',
     );
     expect(createHash('sha256').update(redactClasses(panel)).digest('hex')).toBe(
-      '7922f44149ea6382bab8a90ac1a4966592a3071b42ce4eb1ab86d5fe279b015d',
+      '200d82c9052d27ebf3f1b9639d81eea22a6cf6aed7ccca978f4e4d19cf2f9851',
     );
   });
 });

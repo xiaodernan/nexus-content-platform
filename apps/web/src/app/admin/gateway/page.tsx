@@ -3,6 +3,30 @@ import { getGatewayStatus, getGatewayClient } from '@/server/gateway';
 import type { GatewaySnapshot } from '@/server/gateway/snapshot';
 import { AdminNav } from '@/components/AdminNav';
 import { GatewayPanel } from './GatewayPanel';
+import { getLocale, type Locale } from '@/lib/i18n';
+
+const COPY: Record<Locale, {
+  deniedTitle: string;
+  deniedAnonymous: string;
+  deniedNotAdmin: (name: string, role: string) => string;
+  title: string;
+  scopeNote: (baseUrl: string) => string;
+}> = {
+  zh: {
+    deniedTitle: '网关态势',
+    deniedAnonymous: '需要先登录才能看。',
+    deniedNotAdmin: (name, role) => `这个页面对 ${name}（role=${role}）不开放：网关拓扑只对 role=admin 可见。`,
+    title: '网关态势',
+    scopeNote: (baseUrl) => `路由 × 注册 × 健康 · 问的是网关此刻读到的真值 · 每 4 秒刷新 · 地址 ${baseUrl}`,
+  },
+  en: {
+    deniedTitle: 'Gateway',
+    deniedAnonymous: 'You must sign in first.',
+    deniedNotAdmin: (name, role) => `This page is not open to ${name} (role=${role}): gateway topology is visible only to role=admin.`,
+    title: 'Gateway',
+    scopeNote: (baseUrl) => `Route × registry × health · the gateway’s own live reads · refresh every 4 s · target ${baseUrl}`,
+  },
+};
 
 export const dynamic = 'force-dynamic';
 
@@ -31,21 +55,23 @@ async function initialSnapshot(): Promise<{ snapshot: GatewaySnapshot | null; er
 }
 
 export default async function AdminGatewayPage() {
+  const locale = await getLocale();
+  const c = COPY[locale];
   const user = await currentUserOrNull();
   if (!user) {
     return (
       <main className="adm-denied" data-admin-denied="anonymous">
-        <h1 className="adm-deniedTitle">网关态势</h1>
-        <p className="adm-deniedText">需要先登录才能看。</p>
+        <h1 className="adm-deniedTitle">{c.deniedTitle}</h1>
+        <p className="adm-deniedText">{c.deniedAnonymous}</p>
       </main>
     );
   }
   if (user.role !== 'admin') {
     return (
       <main className="adm-denied" data-admin-denied="not-admin">
-        <h1 className="adm-deniedTitle">网关态势</h1>
+        <h1 className="adm-deniedTitle">{c.deniedTitle}</h1>
         <p className="adm-deniedText">
-          这个页面对 {user.displayName}（role={user.role}）不开放：网关拓扑只对 role=admin 可见。
+          {c.deniedNotAdmin(user.displayName, user.role)}
         </p>
       </main>
     );
@@ -57,15 +83,15 @@ export default async function AdminGatewayPage() {
     <main className="am-shellXl" data-gateway-root>
       <header className="adm-headBaseline">
         <div>
-          <h1 className="am-titleLg">网关态势</h1>
+          <h1 className="am-titleLg">{c.title}</h1>
           <p className="adm-capNote" data-gateway-scope>
-            路由 × 注册 × 健康 · 问的是网关此刻读到的真值 · 每 4 秒刷新 · 地址 {driver.baseUrl}
+            {c.scopeNote(driver.baseUrl)}
           </p>
         </div>
         <AdminNav current="gateway" />
       </header>
 
-      <GatewayPanel initial={snapshot} initialError={error} driver={driver} />
+      <GatewayPanel initial={snapshot} initialError={error} driver={driver} locale={locale} />
     </main>
   );
 }

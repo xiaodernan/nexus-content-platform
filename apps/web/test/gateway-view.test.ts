@@ -49,7 +49,7 @@ describe('健康态映射：UNKNOWN 绝不当 DOWN', () => {
   });
 
   it('验电：DOWN 是唯一用红色圆点的态', () => {
-    const all = (['UP', 'DOWN', 'UNKNOWN', 'NOT_PROBED', 'NOT_MEASURED'] as const).map(healthView);
+    const all = (['UP', 'DOWN', 'UNKNOWN', 'NOT_PROBED', 'NOT_MEASURED'] as const).map((h) => healthView(h));
     expect(all.filter((b) => b.dot === 'gw-dotDown')).toHaveLength(1);
   });
 });
