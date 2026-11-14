@@ -9,7 +9,7 @@ import { eraProgress } from '@/lib/chronicle';
  * 诚实边界（同星图）：这是投影，不写库；story/history 才进编年；era 只是文字，没有硬模型——
  * 档位是作者自己写的，不是算法给的"历史感"。
  */
-export function ChronicleView({ worldName, eras }: { worldName: string; eras: ChronicleEra[] }) {
+export function ChronicleView({ worldName, eras, characters = [], projectId = '' }: { worldName: string; eras: ChronicleEra[]; characters?: ReadonlyArray<{ id: string; name: string; activeEra?: string }>; projectId?: string }) {
   const total = eras.reduce((a, e) => a + e.entries.length, 0);
   if (total === 0) {
     return (
@@ -62,7 +62,7 @@ export function ChronicleView({ worldName, eras }: { worldName: string; eras: Ch
             </div>
             <ol className="relative flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
               {era.entries.map((entry, i) => (
-                <ChronicleCard key={entry.id} entry={entry} eraIndex={eraIndex} entryIndex={i} eras={eras} />
+                <ChronicleCard key={entry.id} entry={entry} eraIndex={eraIndex} entryIndex={i} eras={eras} characters={characters} projectId={projectId} />
               ))}
             </ol>
           </section>
@@ -76,8 +76,9 @@ export function ChronicleView({ worldName, eras }: { worldName: string; eras: Ch
   );
 }
 
-function ChronicleCard({ entry, eraIndex, entryIndex, eras }: { entry: ChronicleEntry; eraIndex: number; entryIndex: number; eras: ChronicleEra[] }) {
+function ChronicleCard({ entry, eraIndex, entryIndex, eras, characters, projectId }: { entry: ChronicleEntry; eraIndex: number; entryIndex: number; eras: ChronicleEra[]; characters?: ReadonlyArray<{ id: string; name: string; activeEra?: string }>; projectId?: string }) {
   const progress = eraProgress(eras, eraIndex, entryIndex);
+  const presentCharacters = characters?.filter((c) => c.activeEra && c.activeEra === entry.era) ?? [];
   const kindColor = entry.kind === 'history' ? 'text-[#c9a227] border-[#c9a227]/35' : 'text-[#e8eaed] border-[#5b6cff]/35';
   return (
     <li
@@ -90,6 +91,16 @@ function ChronicleCard({ entry, eraIndex, entryIndex, eras }: { entry: Chronicle
           <span className="font-mono text-10 tabular-nums text-[#8b95ff]" data-chronicle-seq>{progress.current}/{progress.total}</span>
         ) : null}
       </div>
+      {presentCharacters.length > 0 ? (
+        <div className="mt-1.5 flex flex-wrap gap-1" data-chronicle-present>
+          {presentCharacters.map((c) => (
+            <a key={c.id} href={`/world/${projectId}/constellation?character=${c.id}`} className="inline-flex items-center gap-1 rounded-full border border-[#26315e] bg-[#101732] px-1.5 py-0.5 text-10 text-[#8b95ff] hover:border-[#3a4472]" data-chronicle-character={c.id}>
+              <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[#5b6cff]" />
+              {c.name}
+            </a>
+          ))}
+        </div>
+      ) : null}
       <p className="mt-1.5 text-13 font-medium leading-5 text-[#eef0ff]">{entry.title}</p>
       {entry.memory ? (
         <p className="mt-1 border-l-2 border-[#5b6cff]/40 pl-2 text-11 italic leading-4 text-[#b9bef0]" data-chronicle-memory>{entry.memory}</p>

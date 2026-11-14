@@ -2822,3 +2822,14 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - Docker Desktop down again this host today (7th); relaunched, healthy.
 - CI: 51f07b0, 2917d5c, 4d67a2b, 95dbf12, 7fb3c91, 846dec5, 475ff76, dc20411 all double-green;
   9cd48bc double-green; do not claim until runner confirms.
+## cont. 101 (2026-11-14) - v706 landed: characters and chronicle share an era
+
+- CharacterProfile.activeEra added end-to-end (zod + world-model + Studio editor field +
+  constellation detail pill). Chronicle cards now render in-area-present chips for roster
+  members whose era matches the card's era; links go to the constellation with ?character= anchor.
+- Verified end-to-end on the fixture: the seeded-era cards show the two fixture characters
+  as chips; screenshot confirms layout; 29/29 related unit tests green; tsc 0; direct eslint 0.
+- Docker Desktop died again mid-session (fifth this host today); relaunched;
+  nexus-postgres healthy; sibling deployments on 3100/3200 unmanaged as usual.
+- CI at record time: 9cd48bc double-green; af356bf queued/in_progress; dc20411 both SUCCESS;
+  51f07b0 both SUCCESS.

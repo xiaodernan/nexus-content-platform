@@ -1398,6 +1398,8 @@ export const CharacterProfileSchema = z.object({
   style: z.string().max(2000).default(''),
   clothing: z.string().max(8000).default(''),
   traits: z.array(z.string().trim().min(1).max(500)).max(100).default([]),
+  /** §44 纪年：角色曾身处的纪元（自由文本，≤ 80）。可省——没有它，旧行字节级兼容 */
+  activeEra: z.string().trim().max(80).optional(),
 });
 
 export const CharacterSchema = z.object({

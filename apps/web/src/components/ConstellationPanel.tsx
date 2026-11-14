@@ -204,6 +204,12 @@ export function ConstellationPanel({
               </a>
             </div>
             {selected.profile.identity ? <p className="text-13 leading-6 text-[#d6dbf5]" data-constellation-identity>{selected.profile.identity}</p> : null}
+            {selected.profile.activeEra ? (
+              <p className="mt-1 inline-flex items-center gap-1.5 self-start rounded-full border border-[#26315e] bg-[#101732] px-2.5 py-0.5 text-10 font-medium uppercase tracking-[0.18em] text-[#8b95ff]" data-constellation-era>
+                <span aria-hidden="true" className="inline-block h-1.5 w-1.5 rounded-full bg-[#5b6cff]" />
+                {selected.profile.activeEra}
+              </p>
+            ) : null}
             {selected.profile.personality ? <p className="text-11 leading-5 text-[#aab2d8]">{selected.profile.personality}</p> : null}
 
             {selected.profile.visualIdentity.palette.length > 0 ? (

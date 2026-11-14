@@ -12106,3 +12106,17 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   with memory populated on the two story/history nodes -> GET chronicle renders the echo inline.
 - Verification: 31/31 unit (worldLore + chronicle + world-model); tsc 0; eslint direct 0.
 - Docker down again this turn (7th outage today) - relaunched; nexus-postgres/redis healthy.
+## v706 - characters and chronicle share an era (2026-11-14, ADR 0137)
+
+- CharacterProfile.activeEra added (optional, <= 80 chars, additive, byte-compatible baseline).
+  zod schema carries the same field; old saves parse unchanged.
+- Studio character panel gains an "activeEra" text field (data-character-field="activeEra"),
+  type-union textField helper widened to accept it.
+- Constellation detail panel renders a pill (data-constellation-era) with the era when set.
+- Chronicle cards render a chip row of characters active in that era (data-chronicle-present),
+  each linking to /world/<id>/constellation?character=<id>. Page server-loads roster and passes
+  {id,name,activeEra} to ChronicleView.
+- Verified end-to-end: patched the seeded fixture's two characters to the seeded era;
+  chronicle page renders present-chips on the grey-lantern cards; screenshot captured.
+- Gates: tsc 0, per-file eslint 0, constellation+chronicle+world unit suites green.
+- Docker Desktop fifth outage this session; recovered; nexus-postgres healthy.

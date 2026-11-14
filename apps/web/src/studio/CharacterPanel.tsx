@@ -240,7 +240,7 @@ export function CharacterPanel() {
     }
   };
 
-  const textField = (key: 'name' | 'appearance' | 'personality' | 'backstory' | 'identity' | 'style' | 'clothing', label: string, multiline = false) => (
+  const textField = (key: 'name' | 'appearance' | 'personality' | 'backstory' | 'identity' | 'style' | 'clothing' | 'activeEra', label: string, multiline = false) => (
     <label className="block">
       <span className="mb-[2px] block text-11 text-fg-3">{label}</span>
       {multiline ? (
@@ -348,6 +348,7 @@ export function CharacterPanel() {
             {textField('identity', '身份（不变的那部分：五官 / 疤痕 / 标记）', true)}
             {textField('clothing', '穿着')}
             {textField('style', '画风 / 媒介')}
+            {textField('activeEra', '活跃纪元（可选：与世界编年里的纪元同名）')}
             <ListText
               label="特征"
               hint="逗号分隔"

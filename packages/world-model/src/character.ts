@@ -56,6 +56,8 @@ export interface CharacterProfile {
   clothing: string;
   /** §39：几个短标签式的显著特征，供检索与生成时点名 */
   traits: string[];
+  /** §44 纪年：角色曾身处的纪元（自由文本，≤ 80）。可选——老档案没有这一栏字节级不变 */
+  activeEra?: string;
 }
 
 export interface Character {
