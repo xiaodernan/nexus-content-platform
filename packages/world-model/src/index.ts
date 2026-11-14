@@ -250,7 +250,7 @@ export function addWorldNode(
 export function updateWorldNode(
   document: WorldDocument,
   nodeId: string,
-  patch: Partial<Pick<WorldNode, "title" | "body" | "kind">>,
+  patch: Partial<Pick<WorldNode, "title" | "body" | "kind">> & { lore?: WorldNodeLore | null },
 ): WorldDocument {
   const at = stamp();
   let touched = false;
@@ -262,6 +262,13 @@ export function updateWorldNode(
       ...(patch.kind !== undefined ? { kind: patch.kind } : {}),
       ...(patch.title !== undefined ? { title: patch.title } : {}),
       ...(patch.body !== undefined ? { body: patch.body } : {}),
+      // lore=null 清空：键设成 undefined（spread 出的新对象），JSON.stringify 会把它丢掉，
+      // zod/validateWorld 都把 undefined 当"没有这层"——字节级回到没有纪元的旧文档
+      ...(patch.lore !== undefined
+        ? patch.lore === null
+          ? { lore: undefined }
+          : { lore: patch.lore }
+        : {}),
       updatedAt: at,
     };
   });
