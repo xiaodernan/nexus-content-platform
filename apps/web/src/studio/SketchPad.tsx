@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { Locale } from '@/lib/i18n';
 
 /**
  * §38 Sketch → Image 的绘制面：一块白纸、一支黑笔。
@@ -12,7 +13,45 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  *
  * 白底要先铺死再收笔迹：浏览器给的 canvas 是透明底，导出的 PNG 透明度通道会让
  * 服务端"平均亮度"量到空洞——纸白当墨水黑，一张没画的纸会被读成涂满。
+ * 双语（v750）：locale 由 AssetsPanel 透传；zh 原文原样保留，en 逐句对应。
  */
+
+const COPY = {
+  zh: {
+    undo: '撤销一笔',
+    clear: '清空',
+    strokes: (n: number) => `${n} 笔`,
+    generateBusy: '生成中…',
+    generateBtn: '从草图生成（DEMO · 扣 2 点）',
+    canvasAria: '草图绘制区',
+    pngFailed: '这块画布导不出 PNG（浏览器没给 blob）',
+    sketchFilename: (ts: string) => `草图 ${ts}.png`,
+    needPrompt: '上面的描述文字还空着——草图管构图，文字管画什么，缺一样都生成不了。',
+    drawFirst: '先在白纸上画几笔——空白纸不算草图，这颗按钮也不该点得动。',
+    limits:
+      '落墨越重画面越暗，线越碎元素越多。边界说清：草图管',
+    limitsEm: '构图密度与明暗',
+    limitsTail:
+      '，不管形状本身——"照草图的轮廓画"要真 provider 的图生图，接上之前不做假变换。',
+  },
+  en: {
+    undo: 'Undo stroke',
+    clear: 'Clear',
+    strokes: (n: number) => `${n} strokes`,
+    generateBusy: 'Generating…',
+    generateBtn: 'Generate from sketch (DEMO · –2 credits)',
+    canvasAria: 'Sketch pad',
+    pngFailed: 'This canvas cannot export a PNG (the browser gave no blob)',
+    sketchFilename: (ts: string) => `sketch ${ts}.png`,
+    needPrompt: 'The prompt above is still empty — the sketch drives composition, the text drives what the image depicts; both are needed to generate.',
+    drawFirst: 'Draw a few strokes on the paper first — a blank page is not a sketch, and the button should stay unpressable.',
+    limits:
+      'Heavier ink darkens the image; more fragmented lines mean more elements. Clear on the limits: the sketch drives ',
+    limitsEm: 'composition density and tonal weight',
+    limitsTail:
+      ' — not shape itself — “draw exactly this silhouette” needs a real provider’s image-to-image; nothing fake is wired until then.',
+  },
+} as const;
 
 const PAD_SIZE = 240;
 const INK = '#101014';
@@ -43,11 +82,14 @@ export function SketchPad({
   busy,
   canGenerate,
   onGenerate,
+  locale = 'zh',
 }: {
   busy: boolean;
   canGenerate: boolean;
   onGenerate: (file: File) => Promise<boolean>;
+  locale?: Locale;
 }) {
+  const c = COPY[locale];
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [strokes, setStrokes] = useState<Point[][]>([]);
   const drawing = useRef(false);
@@ -98,16 +140,16 @@ export function SketchPad({
     setExportError(null);
     try {
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
-      if (!blob) throw new Error('这块画布导不出 PNG（浏览器没给 blob）');
+      if (!blob) throw new Error(c.pngFailed);
       // onGenerate 走 store 动作：失败原因已经落在面板的 assetError 格里，这里不再接住 reject
-      await onGenerate(new File([blob], `草图 ${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.png`, { type: 'image/png' }));
+      await onGenerate(new File([blob], c.sketchFilename(new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')), { type: 'image/png' }));
     } catch (error) {
       // 只可能由导出这条路抛出——那是本地故障，store 帮不上，就地摊出来（§159）
       setExportError(error instanceof Error ? error.message : String(error));
     } finally {
       setSubmitting(false);
     }
-  }, [onGenerate, submitting]);
+  }, [onGenerate, submitting, c]);
 
   return (
     <div className="sk-root">
@@ -119,7 +161,7 @@ export function SketchPad({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        aria-label="草图绘制区"
+        aria-label={c.canvasAria}
         data-sketch-pad
         className="sk-paper"
         style={{ touchAction: 'none' }}
@@ -132,7 +174,7 @@ export function SketchPad({
           data-sketch-undo
           className="sk-btn"
         >
-          撤销一笔
+          {c.undo}
         </button>
         <button
           type="button"
@@ -141,10 +183,10 @@ export function SketchPad({
           data-sketch-clear
           className="sk-btn"
         >
-          清空
+          {c.clear}
         </button>
         <span className="sk-monoFaint" data-sketch-strokes>
-          {strokes.length} 笔
+          {c.strokes(strokes.length)}
         </span>
       </div>
       <button
@@ -154,7 +196,7 @@ export function SketchPad({
         data-sketch-generate
         className="sk-primary sk-selfStart"
       >
-        {busy || submitting ? '生成中…' : '从草图生成（DEMO · 扣 2 点）'}
+        {busy || submitting ? c.generateBusy : c.generateBtn}
       </button>
       {exportError ? (
         <p className="sk-warn12" data-sketch-export-error>
@@ -163,17 +205,16 @@ export function SketchPad({
       ) : null}
       {strokes.length > 0 && !canGenerate ? (
         <p className="cp-warn11" data-sketch-need-prompt>
-          上面的描述文字还空着——草图管构图，文字管画什么，缺一样都生成不了。
+          {c.needPrompt}
         </p>
       ) : null}
       {strokes.length === 0 ? (
         <p className="wd-faint11" data-sketch-empty>
-          先在白纸上画几笔——空白纸不算草图，这颗按钮也不该点得动。
+          {c.drawFirst}
         </p>
       ) : (
         <p className="wd-body11">
-          落墨越重画面越暗，线越碎元素越多。边界说清：草图管<strong>构图密度与明暗</strong>，不管形状本身——
-          "照草图的轮廓画"要真 provider 的图生图，接上之前不做假变换。
+          {c.limits}<strong>{c.limitsEm}</strong>{c.limitsTail}
         </p>
       )}
     </div>

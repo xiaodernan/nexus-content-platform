@@ -244,6 +244,7 @@ export function AssetsPanel({ locale = 'zh' }: { locale?: Locale }) {
               if (ok) setPrompt('');
               return ok;
             })}
+            locale={locale}
           />
         </div>
       </details>

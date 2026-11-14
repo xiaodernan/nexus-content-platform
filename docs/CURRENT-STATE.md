@@ -3460,3 +3460,8 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 事故自检：本片中间产生过残片式 stub（以为 ActivityFeed 不存在——HEAD 里它真实存在）→ 立刻恢复并双语化（executionPlan/taskCount）。
 - 撤销 Feed 已本地化(v748)，approval 剩余中文面在服务端（§46）。
 - fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；§FE-41 重钉（第十二跳）。
+
+## cont. 119 (2026-11-16) - v750: SketchPad 双语化（§38 Sketch → Image 原料面板）
+- SketchPad.tsx zh/en 双字典：撤销/清空/笔画数/画布 aria/DEMO 生成/limits 说明三段全部接 locale；
+  locale 自 AssetsPanel 透传。§38 eyes: limits 中「构图密度与明暗」加粗段完整双语。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；sketch gate 重钉。
