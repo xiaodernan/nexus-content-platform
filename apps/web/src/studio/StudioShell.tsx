@@ -276,7 +276,7 @@ function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zo
           ) : tab === 'memory' ? (
             <MemoryPanel />
           ) : tab === 'retrieve' ? (
-            <RetrievePanel />
+            <RetrievePanel locale={locale} />
           ) : tab === 'context' ? (
             <ContextPanel />
           ) : tab === 'agent' ? (
