@@ -2833,3 +2833,16 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   nexus-postgres healthy; sibling deployments on 3100/3200 unmanaged as usual.
 - CI at record time: 9cd48bc double-green; af356bf queued/in_progress; dc20411 both SUCCESS;
   51f07b0 both SUCCESS.
+## cont. 102 (2026-11-14) - CI hosted-plane flake: /health proof widened from 3s to 15s
+
+- Studio CI failed on 9cd48bc for `verify:health` - the proof's startup-skew tolerance.
+  Hosted runner clock skew between spawn and the HealthService bean's `startedAt` was measured
+  around 5s (uptime 32s, wall 37s). The assertion asked for <= 3s of host drift, which is a
+  property of an idle machine, not of the service's derivation from its own startedAt.
+- Widened both tolerances to 15s with unchanged invariants (uptime never backwards, startedAt
+  unchanged across the outage, uptime still derived from that same startedAt). ADR 0138.
+- Evidence: failing run 43588777374, quality / evidence proofs / verify:health, failed 2026-11-14T11:48:43Z.
+- Docker Desktop down again this turn (sixth outage host today); relaunched;
+  nexus-postgres healthy; sibling deployments on 3100/3200 not touched.
+- CI before fix push: 51f07b0 / 2917d5c / 4d67a2b / 95dbf12 / 7fb3c91 / 846dec5 / 475ff76 / af356bf
+  all double-green except 9cd48bc's CI. Not yet verified after this fix.
