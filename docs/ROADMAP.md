@@ -13802,6 +13802,29 @@ shadow-[0_0_...]），按 §FE 判据不可带入主线。本线做的：
   hub-selected detail panel with voice/desires/fears/relationships); two-way relationship
   merge labels render on the canvas.
 - Studio world panel gains a "character star map" entry button next to the 3D walkthrough.
+## v710 - Roadmap: 世界引擎下一阶段展望（2026-11-14）
+
+已交付的世界模块里程碑：v704 人物星图（/world/<id>/constellation）、v705 世界编年（/world/<id>/chronicle）、v708 设定集（/world/<id>/codex）、v709 世界切片（/world/<id>/ephemeris）。本节记录世界/<id>/下一阶段的内容，不急于实现；每个新页面必须自带零填充空态，任何 provider 引入必须在 ADR 中书面通过。
+
+### 下一阶段（展望，非当前片）
+
+A. **世界 digest 控制台**——把 v704/v708/v709 的三个子页聚成一个自然路径聚合的 `/world/<id>` 版本：一屏看四象限（星图/编年/设定集/切片），突出显示最活跃的 lore 节点与最近两条 era 轮换。纯投影，零 AI。
+B. **世界 tide 推演**——v709 投影上叠加作者声明的扰模（drought / progeny / inflation 等细碎的环境压力），每种扰模由 world-model 层独立函数算出；可单测、可复现。
+C. **星图⇄编年双向联动**——chronicle 的 era.name 与 constellation 的 node.id 交叉引用；星图节点激活时编年同时高亮连带项。零依赖、纯子函数。
+D. **Character soul patch 自动归档**——角色视觉字段变更同步归档——比起 agent_tasks snapshot，世界必须串行同步，不能成为第二份世界真值。
+
+### 原则红线
+
+- 任何零 AI、零 provider、零新大依赖的内容润物增益：必须是真的投影 / 真的单测 / 真的表现，不发明故事
+- v709 空态：落笔节点数 = 0 时**如实空白**，不编造任何"创世"
+- 页面外链星系一律需要 studio ↔ 世界图回路，避免变成死页；link 逻辑必须在 visual gate 里被钉住
+
+### 不做的事
+
+- 不拆微服务：web ↔ ai-service 通道单向；Spring Cloud 网关/配置/发现全线在 ci 里有静态 + 实机证明，不添加新部署单元
+- 不把 LLM 续接进世界生成——"模型胡编"不是项目的故事；provider 配置是能力标记，不应当做假世界
+- 不做收益预测/留存预测/热度预测：没有真实 user 的平台不 forecast 留存、付费、热度——继续推就是继续编；等真有用户再来
+
 ## v709 - 世界/<projectId>/ephemeris 「世界切片」—— 确定性投影的「创世年」（2026-11-14, ADR 0137）
 
 - `apps/web/src/app/world/[projectId]/ephemeris/page.tsx`（RSC, force-dynamic, 仅作者可见，零 provider/零写库）：
