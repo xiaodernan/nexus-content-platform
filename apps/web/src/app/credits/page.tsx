@@ -16,7 +16,10 @@ import {
   type PlanKey,
 } from '@/server/domain/credits';
 import type { CreditLedgerKind } from '@/server/db/schema';
+import { readAiBurnHistory } from '@/server/domain/credit-burn';
+import { projectBurn } from '@/lib/burn-projection';
 import { BrandTitle } from '@/components/BrandTitle';
+import { CreditsBurnCard } from '@/components/CreditsBurnCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,6 +84,10 @@ export default async function CreditsPage(): Promise<ReactElement> {
   // 页面显示 1/1 而门放行第二个，那种对不上比不显示更糟（§159）。
   const activePublications = await activePublicationCount(user.id);
   const publishLimit = concurrentPublishLimit(view.plan);
+  // v700：近 30 天 AI 燃烧序列（UTC 日，补零）→ 线性外推。失败/样本不够时上层渲染"不猜"，
+  // 这行读不成目录也不会把整页拖死（readAiBurnHistory 内含 catch → 平直序列）
+  const burnSeries = await readAiBurnHistory(user.id, 30);
+  const burnProjection = projectBurn(view.balances.ai, burnSeries);
 
   return (
     <main className="mx-auto flex max-w-[980px] flex-col gap-6 px-6 py-10">
@@ -111,6 +118,10 @@ export default async function CreditsPage(): Promise<ReactElement> {
             </li>
           ))}
         </ul>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <CreditsBurnCard projection={burnProjection} balance={view.balances.ai} />
       </section>
 
       <section className="flex flex-col gap-2">

@@ -11978,3 +11978,21 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   (3df1a14c-8981-4455-936d-186238e40c78) -> tokensIn 28240 / cached 20842 / hitRate 73.8% / turns 3;
   stranger actor and bad id both -> null.
 - Pixel-level render NOT verified here (browser capture unavailable) - see ADR 0131 sec. remaining.
+## v700 - /credits gains a "burn rate" projection card (2026-11-14, ADR 0132)
+
+- New: `lib/burn-projection.ts` (pure: UTC-day zero-filled series, closed-form least-squares fit,
+  verdicts projecting / no-burn / insufficient-data, cap 9999 days, NaN-safe) +
+  `server/domain/credit-burn.ts` (read-only SQL aggregate; any anomaly -> flat series -> card says
+  nothing rather than the page 500ing) + `components/CreditsBurnCard.tsx` (SVG sparkline with gradient
+  area + dashed projection limb; count-up headline; chips; reduced-motion safe; brand-gradient big
+  numerator) + /credits renders it between the balance grid and the ledger table.
+- Honest by construction: only kind='ai', only delta<0, UTC day, last 30 days; grants excluded;
+  video not in this projection; fewer than 3 active burn days or non-negative slope -> no date,
+  the card says so in words. Real dev DB has no user with >= 3 active burn days -> the real page
+  renders the insufficient-data state today; the "projecting" path is unit-tested (15/15).
+- Verification: unit 15/15 (burn-projection.test.ts); related vitest 31/31; tsc 0; eslint 0; dev
+  compile of /credits OK; real-DB SQL path verified owner / stranger / bad-id.
+- Honesty notes: pixels / animation NOT verified on this host (Next 16 dev hydration kept failing
+  under reboot / Docker-down / HMR-blocked conditions; machine restarted twice this session and
+  Docker Desktop went down once - nexus-postgres / redis outage; both recovered). Container outage
+  caused a full-stack 500 storm on / until recovery - recorded in CURRENT-STATE cont. 90.
