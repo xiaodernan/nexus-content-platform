@@ -121,7 +121,7 @@ describe('§FE-TD /world/<project>/tide 世界潮汐', () => {
 
   it('SHA256 钉死（本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      'c4edc46ad4cbbebacd124f7a0811ef05a7927654c5b88a6476b8c5836c9817da',
+      'ff48e582c228bb4bf89ff3e254ec3087331d1998bbdae4003e396cabec2f2737',
     );
   });
 });

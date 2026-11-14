@@ -1,7 +1,7 @@
 # ADR-0267 — 世界潮汐（v710 §B）：引擎先立、契约次之，声明面板后补
 
-- 状态：引擎片 + 持久化契约片均已落地；Studio 声明面板仍未落地（诚实写在案）
-- 日期：2026-11-14（v719 引擎片 → v720 契约片，同日续）
+- 状态：引擎片 + 持久化契约片 + Studio 声明面板均已落地（v719–v721）；tide 全链成立
+- 日期：2026-11-14（v719 引擎片 → v720 契约片 → v721 声明面板）
 - 关联：v710（ROADMAP）、ADR-0266（ephemeris 确定性投影）、ADR-0265（llm_stream 决策）
 
 ## 背景
@@ -28,9 +28,8 @@ v710 立项说「世界 tide 推演——v709 投影上叠加作者声明的扰�
 
 1. **引擎片（v719）**：`lib/tide.ts` 纯函数——五扰模各守一规（drought 干亢水词典 / progeny 繁衍幼词典 / inflation 通胀账本暴露 / erosion 寂蚀 body<120 字 / murmur 潮声叙事线+传闻词典）；severity 不参与任何计数；非法声明进 invalid；确定性双跑深相等。`tide.test.ts` 13 legs + §FE-TD 7/7。
 2. **页面片（v719）**：`/world/<id>/tide` RSC——声明区如实空白指引；「若声明·机制预演」五张卡全部真演算（零叙事）；severity 1 要闻 / 2 季节 / 3 纪元只是着墨。
-3. **契约片（v720）**：`packages/schemas` TidePressureSchema(可选，上界 16) + `packages/world-model` WORLD_TIDE_PRESSURE_KINDS（权威清单）+ `validateWorld` bad-pressure + `tide-pressure.test.ts` 9 legs + world-contract 新增契约段（kind 清单锁死、老文档自洽、severity/label/id/上界 16 回归）。验证：world-model 11 文件 125 条绿 · schemas 390 条绿 · web tide 13/13 · tide-visual-style 7/7 · tsc web EXIT=0 · census OK 2125。
-4. **下一片（未承诺）**：Studio「声明扰模」编辑器（add/remove Command、severity 选择器、§FE-WTP 门面判据、undo/redo 全链）；
-   落地后 `/world/<id>/tide` 声明区自动从「空白指引」亮成「已声明投影」（页面早已按声明数组真演算，无需再动）。
+3. **契约片（v720）**：`packages/schemas` TidePressureSchema(可选，上界 16) + `packages/world-model` WORLD_TIDE_PRESSURE_KINDS（权威清单）+ `validateWorld` bad-pressure + `tide-pressure.test.ts` 14 legs（含本片新增的 setWorldTidePressures 五例）+ world-contract 新增契约段（kind 清单锁死、老文档自洽、severity/label/id/上界 16 回归）。验证：world-model 11 文件 125 条绿 · schemas 390 条绿 · web tide 13/13 · tide-visual-style 7/7 · tsc web EXIT=0 · census OK 2125。
+4. **声明面板片（v721）**：`setWorldTidePressures(document, pressures | null)`（setWorldTerrain 同一流派）——null 收掉全部回到字节形状、否则逐项过门整批拒绝、document 引用不变；`WorldPanel.tsx` 底部新「潮汐扰模（作者声明）」段：label（≤40 字）+ kind + severity（1 要闻 / 2 季节 / 3 纪元）选择器 + id 自动生成（`tp_<base36><序号>`）+ 删除/收掉全部；全部 .wd-* 类（新类零个）、`worldStore.showNotice` 原样显示理由、§FE-48 SHA 按惯例重钉（863b21…→29e46e0b…）。
 
 ## 不做的事（显式记录）
 
@@ -41,6 +40,6 @@ v710 立项说「世界 tide 推演——v709 投影上叠加作者声明的扰�
 
 ## 后果
 
-- 用户在未声明页面是「看得到引擎、还不能落笔扰模」——诚实中间态；
-- 契约落库后，声明面板只是 Command + 选择器，算法侧与契约侧零改动；
+- 用户现在能走通「作者声明扰模 → 潮汐页照声明真演算」全链；
+- 契约落库后，声明面板就是 setWorldTerrain 流派的平移，算法侧零改动；
 - tide 页面从 codex 页脚与 digest 板块两处可达（各 SHA 重钉并留有钩子）。

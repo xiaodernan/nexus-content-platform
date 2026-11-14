@@ -568,6 +568,66 @@ export function setWorldTerrain(
   };
 }
 
+/** 一条世界最多多少条扰模声明——作者的着墨不是清单，写爆了要么不是扰模要么该拆文档 */
+export const WORLD_TIDE_PRESSURE_LIMIT = 16;
+
+/**
+ * §潮汐（v719-engine / ADR-0267）：作者声明 / 收掉扰模——setWorldTerrain 的同一流派。
+ * - 传 null：收掉全部声明（document 回到没有 pressures 的字节形状），不是"声明一个空清单"；
+ * - 逐项过门（kind 认识 / id 非空·唯一·≤80 / label 1–40 字 / severity ∈ {1,2,3} / 条数 ≤16）；
+ *   任何一条不合法整批拒绝——不静默地剥掉（剥了就是对作者说谎，§159）；
+ * - 归属校验不做：模型不认识 UI，id 冲突由调用方显示 `reason`。
+ */
+export function setWorldTidePressures(
+  document: WorldDocument,
+  pressures: WorldTidePressure[] | null,
+): { document: WorldDocument; reason: string | null } {
+  if (pressures === null) {
+    if (!document.pressures) return { document, reason: null };
+    const { pressures: _dropped, ...rest } = document;
+    return { document: { ...rest, updatedAt: stamp() }, reason: null };
+  }
+  if (!Array.isArray(pressures)) {
+    return { document, reason: '扰模需要是一张清单（数组）。' };
+  }
+  if (pressures.length > WORLD_TIDE_PRESSURE_LIMIT) {
+    return { document, reason: `一个世界最多 ${WORLD_TIDE_PRESSURE_LIMIT} 条扰模（收到 ${pressures.length} 条）。` };
+  }
+  const seen = new Set<string>();
+  for (const raw of pressures as readonly unknown[]) {
+    const p = raw as { id?: unknown; kind?: unknown; label?: unknown; severity?: unknown } | null;
+    const id = typeof p?.id === 'string' ? p.id.trim() : '';
+    if (id.length === 0 || id.length > 80) {
+      return { document, reason: '扰模需要一个 id（1–80 字符）。' };
+    }
+    if (seen.has(id)) {
+      return { document, reason: `扰模 id 重复：${id}` };
+    }
+    seen.add(id);
+    if (!isWorldTidePressureKind(p?.kind)) {
+      return {
+        document,
+        reason: `扰模「${id}」的 kind 不认识：${String(p?.kind)}（可用：${WORLD_TIDE_PRESSURE_KINDS.join(' / ')}）。`,
+      };
+    }
+    const label = typeof p?.label === 'string' ? p.label.trim() : '';
+    if (label.length === 0 || label.length > 40) {
+      return { document, reason: `扰模「${id}」的名字要 1–40 字（收到 ${label.length} 字）。` };
+    }
+    if (p?.severity !== 1 && p?.severity !== 2 && p?.severity !== 3) {
+      return { document, reason: `扰模「${id}」的 severity 只允许 1 / 2 / 3（收到 ${String(p?.severity)}）。` };
+    }
+  }
+  return {
+    document: {
+      ...document,
+      pressures: pressures.map((p) => ({ id: p.id.trim(), kind: p.kind, label: p.label.trim(), severity: p.severity })),
+      updatedAt: stamp(),
+    },
+    reason: null,
+  };
+}
+
 /** 图上排布的间距：一列一类，同类里往下堆 */
 export const GRAPH_COLUMN_GAP = 220;
 export const GRAPH_ROW_GAP = 96;

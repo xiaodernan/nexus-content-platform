@@ -15,11 +15,16 @@ import {
   setWorldNodeElevation,
   setWorldNodeModelAsset,
   setWorldTerrain,
+  setWorldTidePressures,
   updateWorldNode,
+  WORLD_TIDE_PRESSURE_KINDS,
+  WORLD_TIDE_PRESSURE_LIMIT,
   worldCounts,
   type WorldDocument,
   type WorldKind,
   type WorldPlateau,
+  type WorldTidePressure,
+  type WorldTidePressureKind,
 } from '@nexus/world-model';
 import { cn } from '@/lib/cn';
 import { patchLore } from '@/lib/worldLore';
@@ -318,6 +323,8 @@ export function WorldPanel() {
 
         <TerrainSection world={world} edit={edit} />
 
+        <TideSection world={world} edit={edit} />
+
         <div className="wd-rowMt1">
           <select
             value={newKind}
@@ -502,6 +509,143 @@ function TerrainSection({
             className="wd-delBtnBig"
           >
             收掉地形
+          </button>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+const TIDE_KIND_LABEL: Record<WorldTidePressureKind, string> = {
+  drought: '干亢',
+  progeny: '繁衍',
+  inflation: '通胀',
+  erosion: '寂蚀',
+  murmur: '潮声',
+};
+
+/**
+ * §潮汐声明编辑器（v721 · ADR-0267 的第三片）：作者在面板里落笔声明扰模。
+ * 写入口径与 `setWorldTidePressures` 同一支笔：kind 不认识 / label 空白 / id 重复 / 超限整批拒绝，
+ * 原因由 `worldStore.showNotice` 原样显示——和「画地形」是同一门（UI 永远不收不合法的字节）。
+ * severity 只是着墨（1 要闻 / 2 季节 / 3 纪元），不参与任何潮汐计数。
+ */
+function TideSection({
+  world,
+  edit,
+}: {
+  world: WorldDocument;
+  edit: (next: WorldDocument, save?: boolean) => void;
+}) {
+  const pressures = world.pressures ?? [];
+  const [label, setLabel] = useState('');
+  const [kind, setKind] = useState<WorldTidePressureKind>('drought');
+  const [severity, setSeverity] = useState<1 | 2 | 3>(2);
+
+  const apply = (next: WorldTidePressure[] | null) => {
+    const result = setWorldTidePressures(world, next);
+    if (result.reason) {
+      worldStore.showNotice(result.reason);
+      return;
+    }
+    edit(result.document, true);
+  };
+
+  return (
+    <section className="wd-mt4" data-world-tide-panel>
+      <h3 className="wd-label11">潮汐扰模（作者声明）</h3>
+      <p className="wd-body11Mt1">
+        声明一条，潮汐页（/world/项目/tide）就会按它算出真压住了多少落笔节点。severity 只是着墨（1 要闻 / 2 季节 / 3 纪元），不参与计数。
+        {pressures.length > 0 ? ` 已声明 ${pressures.length} / ${WORLD_TIDE_PRESSURE_LIMIT} 条。` : ' 还没有声明——写了一条，潮汐页就会亮。'}
+      </p>
+      <ul className="wd-colMt1">
+        {pressures.map((pressure) => (
+          <li key={pressure.id} className="wd-row1" data-world-tide={pressure.id}>
+            <span className="wd-fname11truncate">
+              {pressure.label} · {TIDE_KIND_LABEL[pressure.kind]} · severity {pressure.severity}
+            </span>
+            <button
+              type="button"
+              onClick={() => apply(pressures.filter((entry) => entry.id !== pressure.id))}
+              aria-label={`删除扰模 ${pressure.label}`}
+              data-world-tide-remove={pressure.id}
+              className="wd-delBtn"
+            >
+              ×
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div className="wd-wrapCenter1">
+        <label htmlFor="world-tide-label" className="wd-faint11shrink">
+          名字
+        </label>
+        <input
+          id="world-tide-label"
+          type="text"
+          value={label}
+          maxLength={40}
+          placeholder="孕育季"
+          onChange={(e) => setLabel(e.target.value)}
+          aria-label="扰模名字"
+          data-world-tide-label
+          className="wd-numInput"
+        />
+        <label htmlFor="world-tide-kind" className="wd-faint11shrink">
+          kind
+        </label>
+        <select
+          id="world-tide-kind"
+          value={kind}
+          onChange={(e) => setKind(e.target.value as WorldTidePressureKind)}
+          aria-label="扰模 kind"
+          data-world-tide-kind
+          className="wd-inputSm"
+        >
+          {WORLD_TIDE_PRESSURE_KINDS.map((entry) => (
+            <option key={entry} value={entry}>
+              {entry}（{TIDE_KIND_LABEL[entry]}）
+            </option>
+          ))}
+        </select>
+        <label htmlFor="world-tide-severity" className="wd-faint11shrink">
+          severity
+        </label>
+        <select
+          id="world-tide-severity"
+          value={severity}
+          onChange={(e) => setSeverity(Number(e.target.value) as 1 | 2 | 3)}
+          aria-label="扰模 severity"
+          data-world-tide-severity
+          className="wd-inputSm"
+        >
+          <option value={1}>1 · 要闻</option>
+          <option value={2}>2 · 季节</option>
+          <option value={3}>3 · 纪元</option>
+        </select>
+        <button
+          type="button"
+          onClick={() => {
+            const trimmed = label.trim();
+            if (!trimmed) {
+              worldStore.showNotice('扰模要有一个名字——给它取 1–40 字。');
+              return;
+            }
+            apply([...pressures, { id: `tp_${Date.now().toString(36)}${pressures.length}`, kind, label: trimmed, severity }]);
+            setLabel('');
+          }}
+          data-world-tide-add
+          className="wd-ghostBtnShrink"
+        >
+          加上去
+        </button>
+        {pressures.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => apply(null)}
+            data-world-tide-clear
+            className="wd-delBtnBig"
+          >
+            收掉全部
           </button>
         ) : null}
       </div>

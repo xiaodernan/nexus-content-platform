@@ -17,11 +17,11 @@ export const metadata = {
  * 「世界潮汐」——作者声明的扰模如何压向这个世界（v710 §B）。
  *
  * 诚实边界：
- * - 2026-11-14 现状：世界文档【还没有】pressure 字段（见 ADR-0267）——这一片先把引擎
- *   立住、单测钉死、页面把机制看得见。若文档里一旦带上 `pressures`（下一片在 Studio
- *   落笔声明），本页自动亮成「已声明」投影；在此之前，声明区如实空白。
- * - 本页没有任何「发生了」的叙事：每个数字都是真演算血（kind 过滤 + 词典命中 + 长度阈值），
- *   没有两个词讲不清的地方；severity（1 要闻 / 2 季节 / 3 纪元）不参与任何计数。
+ * - 2026-11-14 起（v721）：世界文档带有可选的 `pressures`（作者声明的扰模，见 ADR-0267）——
+ *   Studio 世界面板底部的「潮汐扰模」段里写了一条，本页声明区就自动亮成「已声明」投影；
+ *   没写过的话，声明区如实空白并指出声明从哪来。
+ * - 本页没有任何「发生了」的叙事：每个数字都是真演算（kind 过滤 + 词典命中 + 长度阈值）；
+ *   severity（1 要闻 / 2 季节 / 3 纪元）是作者的着墨，不参与任何计数。
  * - 只有项目作者可见。
  */
 
@@ -45,7 +45,8 @@ export default async function TidePage({ params }: { params: Promise<{ projectId
   const nodes = worldOk ? worldOk.nodes : [];
   const totalAuthored = nodes.filter((node) => node.body.trim().length > 0).length;
 
-  // 未来声明面板落地后自动点亮；现状：declared 为 null（如实空白）
+  // 声明投影：文档没带 pressures（从没声明过）→ null，声明区如实空白并指路；
+  // 带了就照 severity/kind 原样进 buildTide 真演算，不给兜底、不给假数
   const declaredRaw = (worldOk as { pressures?: unknown } | null)?.pressures;
   const declared = Array.isArray(declaredRaw)
     ? buildTide(nodes, declaredRaw as { id: string; kind: string; label: string; severity: number }[])
@@ -92,7 +93,7 @@ export default async function TidePage({ params }: { params: Promise<{ projectId
         <p className="td-panelKicker">作者声明</p>
         {declared === null ? (
           <p className="td-panelNote" data-tide-decl-empty>
-            这份世界文档里还没有扰模声明—— Studio 的「声明扰模」面板是 v710 §B 的下一片（先立引擎，再让作者落笔；取舍记 ADR-0267）。
+            这份世界文档里还没有扰模声明——去 Studio 世界面板底部的「潮汐扰模」里写一条，这里就会亮（severity 1 要闻 / 2 季节 / 3 纪元，不参与计数）。
             引擎本身已经可以构建、可以单测——下方「若声明」是对今天这份文档的真预演。
           </p>
         ) : declared.declared === 0 ? (
