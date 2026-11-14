@@ -3564,3 +3564,18 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 已知边界（诚实登记*）：画布内节点文本（用户数据）不动；/admin/*、3D WorldWalk HUD、作品/分镜公开页、
   服务端裁定中文（§46）、撤销栈中文（§150）仍单 zh，未宣称完成。
 - showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 128 (2026-11-16) - v758: /guide 手册扩四章 ⑦⑧⑨⑩（双语）——分镜·世界·市场团队·走错怎么走回来
+
+- apps/web/src/app/guide/page.tsx（RSC，getLocale 双语）新增四节，两种语言同构：
+  ⑦ 分镜怎么玩（§40-42：确定性断句定位、镜头行机位/转场、DEMO 参考图能力边界、时间线编辑四条路）
+  ⑧ 走进一个世界玩（/world/<id> 3D 视角与角色对话入口；chronicle 纪元·星图联动·记忆回声 ≤240 字；7 个世界子路由如实列举）
+  ⑨ 市场、邀请与团队（/marketplace 真实结算路径、/invites/<token> 席位规则、/api-tokens 程序化出口）
+  ⑩ 走错一步怎么走回来（⌘Z 统一撤销栈、两次确认、回收站、公开撤回、发布=明确批准）
+- 全部内容只写真实存在的页面/路由（chronicle/codex/constellation/digest/ephemeris/integrity/tide 逐一核过目录）；
+  不吹牛皮：DEMO 边界、额度真实记账、失败如实说——与 guide 既有 §159 口径一致。
+- §FE-Guide 门更新：节数 6→10（两语都要求 ①-⑩ 在场）；SHA 重钉（c5eb2069…）。
+- fe-gates 116/116 · 1148/1148；guide-visual 7/7；web tsc 0（guide 是 RSC，无 client 面）。
+- 已知边界：guide 之外的 /admin/* 双语化未做（operator-facing，31 文件约 1.9 万字，
+  v759+ 专项切片，按 server page → getLocale → 逐页字典分两批落地）；3D WorldWalk HUD 顶层单 zh。
+- showcase 快照同步于提交后（npm run sync:showcase）。
