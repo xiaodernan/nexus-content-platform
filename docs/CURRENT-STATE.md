@@ -3631,6 +3631,19 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   并轨完成，本次无新增（不动陈旧 refs，删除需用户拍板）。
 - showcase 快照同步于提交后（npm run sync:showcase）。
 
+## cont. 137 (2026-11-17) - v767: /admin realtime 集群双语化
+
+- stats-readout.ts 增 locale 参数（默认 zh）：LIVE_LABEL_EN/BOOT_LABEL_EN（zh 表原样保留，单测钉住）、
+  errorCountText/errorReasonList/breakerStateText（"本次部署 break 关"等）/javaActuatorPanelRows（名称/组件标签）/
+  javaActuatorNote/aiCapabilityNote/javaWirePanelRows（线路/帧上限/已发/超限丢/线路异常）/javaWireNote/liveLabel/bootLabel 三件套。
+- StatsPanel.tsx（client）双语（locale prop 默认 zh）：dt 六项/驱动/Redis 扇出/loading/错误三态/更新于系时间/
+  这只回答这台实例（每 4 秒）/actuator·capability 各段标题；CharacterChat 式 locale prop 模式一致。
+- realtime/page.tsx 双语（RSC getLocale()）：denied×2/title/summary/scope 三句限度整段双语；locale 透传 StatsPanel。
+- Gates：§FE-RT 双文件 SHA 重钉（page=554f6f67… panel=0c9f2ec1…，门内 redact 复算）；
+  realtime-stats-readout 30/30（zh 默认保持绿）；fe-gates 116/116 · 1148/1148；tsc web 0；eslint 净。
+- /admin 已完成 9/24。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
 ## cont. 136 (2026-11-17) - v766: /admin marketplace 集群双语化
 
 - TriageButtons.tsx（client）双语（locale prop 默认 zh）：note aria/placeholder/受理/结案/驳回/failedNotice(HTTP 状态码）/doneNotice。

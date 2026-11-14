@@ -42,12 +42,21 @@ export type RealtimeStatsReadout = {
  * **此刻**这一行（读 `stats.wire`）。
  * `pending` 的措辞故意不说"故障"：connecting / reconnecting 是连接层在正常自愈，
  * 把它报成故障会让人去做一件没必要的重启。
+ *
+ * v767：`*_EN_LABEL` 是同序英文；界面按 locale 取，导出仍保留 zh（测试钉住）。
  */
 export const LIVE_LABEL: Record<WireLive, string> = {
   na: '—（这个驱动没有线路）',
   up: '在（发布与订阅两条连接都 ready）',
   pending: '还在路上（connecting / reconnecting——重连是正常自愈，这一档不是故障）',
   down: '已关（end / close）——这台现在收不到别机的事件，直到重新连上',
+};
+
+export const LIVE_LABEL_EN: Record<WireLive, string> = {
+  na: '— (this driver has no wire)',
+  up: 'Up (both publish and subscribe connections ready)',
+  pending: 'Still in flight (connecting / reconnecting — reconnect is normal self-healing, this is not a fault)',
+  down: 'Closed (end / close) — this instance no longer receives other machines’ events until it reconnects',
 };
 
 /**
@@ -61,6 +70,21 @@ export const BOOT_LABEL: Record<WireLive, string> = {
   pending: '还没落定（刚启动或正在等第一轮重试）',
   na: '—（这个驱动没有线路）',
 };
+
+export const BOOT_LABEL_EN: Record<WireLive, string> = {
+  up: 'Connected at boot',
+  down: 'Not connected (the connection layer will keep retrying — “is it up now” is the row above)',
+  pending: 'Undecided yet (just started or waiting for the first retry)',
+  na: '— (this driver has no wire)',
+};
+
+export function liveLabel(live: WireLive, locale: 'zh' | 'en'): string {
+  return (locale === 'en' ? LIVE_LABEL_EN : LIVE_LABEL)[live];
+}
+
+export function bootLabel(live: WireLive, locale: 'zh' | 'en'): string {
+  return (locale === 'en' ? BOOT_LABEL_EN : BOOT_LABEL)[live];
+}
 
 /**
  * 现读值只认这四档。认不出来的一律 `na`，**不许**猜成 `up` 或 `down`：
@@ -82,8 +106,9 @@ export function bootTag(stats: Pick<RealtimeStatsReadout, 'driver' | 'wireReady'
  * 失败累计：`null` 说"没有线路，不适用"，`0` 说"跑着，一帧没断过"。
  * 把前者渲染成 0 就等于对着一台进程内驱动宣布"你的 Redis 很健康"。
  */
-export function errorCountText(wireErrorCount: number | null): string {
-  return wireErrorCount === null ? '—（没有线路，不适用）' : String(wireErrorCount);
+export function errorCountText(wireErrorCount: number | null, locale: 'zh' | 'en' = 'zh'): string {
+  if (wireErrorCount === null) return locale === 'en' ? '— (no wire, n/a)' : '—（没有线路，不适用）';
+  return String(wireErrorCount);
 }
 
 /**
@@ -93,13 +118,13 @@ export function errorCountText(wireErrorCount: number | null): string {
  * 固定顺序：次数从多到少，再按名字，免得同一台的账每次轮询跳来跳去。
  * 词表（那几个字具体是什么）在服务端 `WIRE_ERROR_REASONS`，这里只照读，不认得也不改写。
  */
-export function errorReasonList(byReason: Record<string, number> | null): string {
-  if (byReason === null) return '—（没有线路，不适用）';
+export function errorReasonList(byReason: Record<string, number> | null, locale: 'zh' | 'en' = 'zh'): string {
+  if (byReason === null) return locale === 'en' ? '— (no wire, n/a)' : '—（没有线路，不适用）';
   const entries = Object.entries(byReason).filter(
     ([reason, count]) =>
       reason.trim().length > 0 && typeof count === 'number' && Number.isFinite(count) && count > 0,
   );
-  if (entries.length === 0) return '—（这台还没出过一帧失败）';
+  if (entries.length === 0) return locale === 'en' ? '— (not a single failed frame yet)' : '—（这台还没出过一帧失败）';
   entries.sort(([a, an], [b, bn]) => bn - an || (a < b ? -1 : a > b ? 1 : 0));
   return entries.map(([reason, count]) => `${reason} ${count}`).join(' · ');
 }
@@ -150,7 +175,7 @@ function isAiWireShape(v: unknown): v is AiServiceCapability {
  * `HALF_OPEN`（半开——放行少量请求试回路，仍是测试中的过渡状态）、`null`（部署关了 breaker）
  * `undefined`（老回执不带此格——如实报"未见过"）。
  */
-export function breakerStateText(state: BreakerState | undefined): string {
+export function breakerStateText(state: BreakerState | undefined, locale: 'zh' | 'en' = 'zh'): string {
   switch (state) {
     case 'CLOSED':
       return 'CLOSED';
@@ -159,17 +184,26 @@ export function breakerStateText(state: BreakerState | undefined): string {
     case 'HALF_OPEN':
       return 'HALF_OPEN';
     case null:
-      return '—（本次部署 break 关）';
+      return locale === 'en' ? '— (breaker off in this deploy)' : '—（本次部署 break 关）';
     case undefined:
-      return '—（本次 wire 份响应不带此格）';
+      return locale === 'en' ? '— (absent in this wire payload)' : '—（本次 wire 份响应不带此格）';
   }
 }
 
 /** §SC-66 · Java actuator info（`/actuator/info` 原样出 info 面板）。 */
 export function javaActuatorPanelRows(
   info: JavaActuatorInfo | null | undefined,
+  locale: 'zh' | 'en' = 'zh',
 ): Array<[label: string, value: string]> | null {
   if (!info) return null;
+  if (locale === 'en') {
+    return [
+      ['Name', `${info.app.name} · ${info.app.version}`],
+      ['Component', `${info.app.group}:${info.app.artifact}`],
+      ['Java', `${info.runtime.java} · ${info.runtime.vendor}`],
+      ['OS', `${info.os.name} · ${info.os.arch}`],
+    ];
+  }
   return [
     ['名称', `${info.app.name} · ${info.app.version}`],
     ['组件', `${info.app.group}:${info.app.artifact}`],
@@ -178,9 +212,13 @@ export function javaActuatorPanelRows(
   ];
 }
 
-export function javaActuatorNote(info: JavaActuatorInfo | null | undefined): string {
-  if (info == null) return '没拿到 /actuator/info 的回执——这台实例没暴露 info 段（如实，不冒充）';
-  return `Java 生产者 · ${info.app.name} ${info.app.version} · 编译 ${info.runtime.java} · ${info.runtime.vendor} · ${info.os.name} on ${info.os.arch}`;
+export function javaActuatorNote(info: JavaActuatorInfo | null | undefined, locale: 'zh' | 'en' = 'zh'): string {
+  if (info == null) return locale === 'en'
+    ? 'No /actuator/info receipt — this instance does not expose an info section (reported as-is, no pretending)'
+    : '没拿到 /actuator/info 的回执——这台实例没暴露 info 段（如实，不冒充）';
+  return locale === 'en'
+    ? `Java producer · ${info.app.name} ${info.app.version} · built ${info.runtime.java} · ${info.runtime.vendor} · ${info.os.name} on ${info.os.arch}`
+    : `Java 生产者 · ${info.app.name} ${info.app.version} · 编译 ${info.runtime.java} · ${info.runtime.vendor} · ${info.os.name} on ${info.os.arch}`;
 }
 
 export function aiCapabilityPanelRows(
@@ -195,12 +233,20 @@ export function aiCapabilityPanelRows(
   ];
 }
 
-export function aiCapabilityNote(cap: AiServiceCapability | null | undefined): string {
-  if (cap == null) return 'no /v1/capabilities — ai-service 未连接（或端口/capability 未配，不画零）';
-  if (!isAiWireShape(cap)) return '回执形状不认识——ai-service 未连接，或回执不是 capability 格式';
+export function aiCapabilityNote(cap: AiServiceCapability | null | undefined, locale: 'zh' | 'en' = 'zh'): string {
+  if (cap == null) return locale === 'en'
+    ? 'no /v1/capabilities — ai-service is not connected (or port/capability unset; nothing painted as 0)'
+    : 'no /v1/capabilities — ai-service 未连接（或端口/capability 未配，不画零）';
+  if (!isAiWireShape(cap)) return locale === 'en'
+    ? 'Receipt shape not recognized — ai-service is not connected, or the receipt is not a capability payload'
+    : '回执形状不认识——ai-service 未连接，或回执不是 capability 格式';
   if (cap.capability === 'real') return `capability=real · ${cap.providers.map((p) => `${p.kind}:${p.status}`).join(' / ')}`;
-  if (cap.capability === 'mock') return 'capability=mock（DEMO，真调用会返回模拟回答，不是正式输出）';
-  return 'capability=unavailable（未接入真 provider 或 provider 不可用——任何真实调用走 mock）';
+  if (cap.capability === 'mock') return locale === 'en'
+    ? 'capability=mock (DEMO — real calls return simulated answers, not production output)'
+    : 'capability=mock（DEMO，真调用会返回模拟回答，不是正式输出）';
+  return locale === 'en'
+    ? 'capability=unavailable (no real provider wired, or the provider is unavailable — any real call goes to mock)'
+    : 'capability=unavailable（未接入真 provider 或 provider 不可用——任何真实调用走 mock）';
 }
 
 export function kb(bytes: number): string {
@@ -226,15 +272,26 @@ function isJavaWirePanelShape(v: JavaWireStats): boolean {
  */
 export function javaWirePanelRows(
   javaWire: JavaWireStats | null | undefined,
+  locale: 'zh' | 'en' = 'zh',
 ): Array<[label: string, value: string]> | null {
   if (!javaWire || !isJavaWirePanelShape(javaWire)) return null;
+  if (locale === 'en') {
+    return [
+      ['Channel', javaWire.wireChannel],
+      ['Max frame', kb(javaWire.maxFrameBytes)],
+      ['Sent', String(javaWire.publishedTotal)],
+      ['Too-large dropped', String(javaWire.tooLargeDropped)],
+      ['Wire errors', String(javaWire.redisFailures)],
+      ['breaker', breakerStateText(javaWire.breakerState, locale)],
+    ];
+  }
   return [
     ['线路', javaWire.wireChannel],
     ['帧上限', kb(javaWire.maxFrameBytes)],
     ['已发', String(javaWire.publishedTotal)],
     ['超限丢', String(javaWire.tooLargeDropped)],
     ['线路异常', String(javaWire.redisFailures)],
-    ['breaker', breakerStateText(javaWire.breakerState)],
+    ['breaker', breakerStateText(javaWire.breakerState, locale)],
   ];
 }
 
@@ -242,9 +299,18 @@ export function javaWirePanelRows(
  * Java 一侧的一句话。缺省/null 与 `fetchJavaWireStats` 的 null 同义——这页说话的频道只有一个：
  * **没拿到 ≠ 全 0**。有值的时候数字照原样印，不翻译成模糊的"正常/异常"（避免又写一重读不准的语义）。
  */
-export function javaWireNote(javaWire: JavaWireStats | null | undefined): string {
+export function javaWireNote(javaWire: JavaWireStats | null | undefined, locale: 'zh' | 'en' = 'zh'): string {
   if (javaWire == null || !isJavaWirePanelShape(javaWire)) {
-    return '没拿到 Java 生产者的读数——domain-service 没在跑、连不上 /api/v1/realtime/stats，或回执形状不认识（这不是"接了但都是 0"）';
+    return locale === 'en'
+      ? 'No Java producer reads — domain-service is not running, /api/v1/realtime/stats is unreachable, or the receipt shape is not recognized (this is not “wired but all zeros”)'
+      : '没拿到 Java 生产者的读数——domain-service 没在跑、连不上 /api/v1/realtime/stats，或回执形状不认识（这不是"接了但都是 0"）';
+  }
+  if (locale === 'en') {
+    const parts: string[] = [`Java producer online: ${javaWire.publishedTotal} frames sent`, `max frame ${kb(javaWire.maxFrameBytes)}`];
+    if (javaWire.tooLargeDropped > 0) parts.push(`too-large drops ${javaWire.tooLargeDropped} (the send-side code is worth a look)`);
+    if (javaWire.redisFailures > 0) parts.push(`wire errors ${javaWire.redisFailures} (wire-side, not web-side)`);
+    if (javaWire.tooLargeDropped === 0 && javaWire.redisFailures === 0) parts.push('zero too-large · zero wire errors');
+    return parts.join(' · ');
   }
   const parts: string[] = [`Java 生产者在线：已发 ${javaWire.publishedTotal} 帧`, `帧上限 ${kb(javaWire.maxFrameBytes)}`];
   if (javaWire.tooLargeDropped > 0) parts.push(`超限丢 ${javaWire.tooLargeDropped}（发帧的那段代码值得看一眼）`);

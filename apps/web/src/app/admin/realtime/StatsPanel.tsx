@@ -2,8 +2,7 @@
 
 import { Fragment, useEffect, useState } from 'react';
 import {
-  BOOT_LABEL,
-  LIVE_LABEL,
+  bootLabel,
   bootTag,
   errorCountText,
   errorReasonList,
@@ -14,9 +13,68 @@ import {
   javaWirePanelRows,
   aiCapabilityNote,
   aiCapabilityPanelRows,
+  liveLabel,
   liveTag,
   type RealtimeStatsReadout,
 } from './stats-readout';
+import type { Locale } from '@/lib/i18n';
+
+const COPY = {
+  zh: {
+    fetchFailedHttp: (status: number, message?: string) => `拉取失败（HTTP ${status}${message ? `·${message}` : ''}）`,
+    fetchFailedShape: '拉取失败（回执形状不认识）',
+    fetchFailedNetwork: '拉取失败（网络错误）',
+    loading: '正在问这台实例…',
+    driverRedis: 'Redis 跨实例扇出',
+    driverInProcess: '进程内（单实例默认）',
+    dtDriver: '驱动',
+    dtInstance: '实例身份',
+    dtWireNow: '跨实例线路（此刻）',
+    dtWireBoot: '跨实例线路（启动那次）',
+    dtErrors: '线路失败累计',
+    dtErrorsByReason: '失败按原因',
+    dtSubscribers: '本进程订阅者',
+    subscribersSuffix: ' 人（不是全平台的数——线路查不到远端有谁在订）',
+    javaProducerTitle: 'Java 生产者（domain-service）',
+    breakersTitle: 'actuator circuitbreakers（Java 自己报）',
+    breakersMissing: '没拿到 actuator 读数——没有在这份回执里看到 circuitBreakers 这格（不是"闭合"，是这台 instance 没接）。',
+    breakersEmpty: 'actuator 有，breaker 0 个——这台 domain-service 没装 resilience4j。',
+    actuatorTitle: 'actuator info（Java runtime 自报）',
+    aiCapabilityTitle: 'ai-service capability（/v1/capabilities 自报）',
+    failuresNote: '失败的帧不补发：实时是加速器，权威状态永远在库里——这个数只是"刚才有几帧没过去"的账。',
+    neverUpdated: '还没更新过',
+    updatedAt: (time: string) => `更新于 ${time}`,
+    pollSuffix: ' · 每 4 秒问一次 ·',
+    scopeNote: ' 这只回答这台实例（多实例部署下每台各算各的）',
+  },
+  en: {
+    fetchFailedHttp: (status: number, message?: string) => `Fetch failed (HTTP ${status}${message ? `·${message}` : ''})`,
+    fetchFailedShape: 'Fetch failed (receipt shape not recognized)',
+    fetchFailedNetwork: 'Fetch failed (network error)',
+    loading: 'Asking this instance…',
+    driverRedis: 'Redis cross-instance fan-out',
+    driverInProcess: 'In-process (single-instance default)',
+    dtDriver: 'Driver',
+    dtInstance: 'Instance identity',
+    dtWireNow: 'Cross-instance wire (now)',
+    dtWireBoot: 'Cross-instance wire (at boot)',
+    dtErrors: 'Wire failures (total)',
+    dtErrorsByReason: 'Failures by reason',
+    dtSubscribers: 'Subscribers on this process',
+    subscribersSuffix: ' (not a platform-wide number — the wire cannot see who else is subscribed)',
+    javaProducerTitle: 'Java producer (domain-service)',
+    breakersTitle: 'actuator circuitbreakers (Java’s own report)',
+    breakersMissing: 'No actuator reads — this receipt has no circuitBreakers cell (not “closed”, this instance did not wire it).',
+    breakersEmpty: 'actuator is present, breakers are 0 — this domain-service does not ship resilience4j.',
+    actuatorTitle: 'actuator info (Java runtime’s own report)',
+    aiCapabilityTitle: 'ai-service capability (self-reported at /v1/capabilities)',
+    failuresNote: 'Failed frames are never resent: realtime is an accelerator, the authority is always the library — this number is just “how many frames did not make it, just now”.',
+    neverUpdated: 'Never updated',
+    updatedAt: (time: string) => `Updated ${time}`,
+    pollSuffix: ' · polling every 4 s ·',
+    scopeNote: ' This answers only this instance (every instance counts for itself in multi-instance deployments)',
+  },
+} as const;
 
 /**
  * §163 诊断入口的表盘（`/admin/realtime` 里轮询这块）。每 4 秒问一次
@@ -34,7 +92,8 @@ import {
  */
 type Stats = RealtimeStatsReadout;
 
-export function RealtimeStatsPanel() {
+export function RealtimeStatsPanel({ locale = 'zh' }: { locale?: Locale }) {
+  const c = COPY[locale];
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
@@ -48,18 +107,18 @@ export function RealtimeStatsPanel() {
         if (!alive) return;
         if (!res.ok) {
           // 失败要说出来，不能画成 0：那次读什么都没证明
-          setError(`拉取失败（HTTP ${res.status}${body?.message ? `·${body.message}` : ''}）`);
+          setError(c.fetchFailedHttp(res.status, body?.message));
           return;
         }
         if (!isKnownStats(body)) {
-          setError('拉取失败（回执形状不认识）');
+          setError(c.fetchFailedShape);
           return;
         }
         setStats(body);
         setError(null);
-        setUpdatedAt(new Date().toLocaleTimeString('zh-CN', { hour12: false }));
+        setUpdatedAt(new Date().toLocaleTimeString(locale === 'en' ? 'en-US' : 'zh-CN', { hour12: false }));
       } catch {
-        if (alive) setError('拉取失败（网络错误）');
+        if (alive) setError(c.fetchFailedNetwork);
       }
     };
     void tick();
@@ -80,7 +139,7 @@ export function RealtimeStatsPanel() {
   if (!stats) {
     return (
       <p className="ar-muted" data-realtime-stats="loading">
-        正在问这台实例…
+        {c.loading}
       </p>
     );
   }
@@ -89,36 +148,36 @@ export function RealtimeStatsPanel() {
   // 上面那行读的是服务端的现读值，这里不做二次推断：把不认识的 `wire` 当成 `down` 或 `up`
   // 都会让"这台现在通不通"这一格说得出一句没根据的话，所以只认四档、其余归 `na`
   const live = liveTag(stats.wire);
-  const javaRows = javaWirePanelRows(stats.javaWire);
+  const javaRows = javaWirePanelRows(stats.javaWire, locale);
   const breakers = stats.javaBreakers;
-  const javaActuatorRows = javaActuatorPanelRows(stats.javaActuator);
+  const javaActuatorRows = javaActuatorPanelRows(stats.javaActuator, locale);
   const aiCapability = stats.aiCapability;
   const aiCapabilityRows = aiCapabilityPanelRows(aiCapability);
 
   return (
     <div className="ar-root" data-realtime-stats="ready">
       <dl className="ar-dl">
-        <dt className="ar-dt">驱动</dt>
+        <dt className="ar-dt">{c.dtDriver}</dt>
         <dd data-realtime-driver={stats.driver}>
-          {stats.driver === 'redis' ? 'Redis 跨实例扇出' : '进程内（单实例默认）'}
+          {stats.driver === 'redis' ? c.driverRedis : c.driverInProcess}
         </dd>
-        <dt className="ar-dt">实例身份</dt>
+        <dt className="ar-dt">{c.dtInstance}</dt>
         <dd data-realtime-instance>{stats.instance}</dd>
-        <dt className="ar-dt">跨实例线路（此刻）</dt>
-        <dd data-realtime-wire={live}>{LIVE_LABEL[live]}</dd>
-        <dt className="ar-dt">跨实例线路（启动那次）</dt>
-        <dd data-realtime-wire-boot={boot}>{BOOT_LABEL[boot]}</dd>
-        <dt className="ar-dt">线路失败累计</dt>
-        <dd data-realtime-errors>{errorCountText(stats.wireErrorCount)}</dd>
-        <dt className="ar-dt">失败按原因</dt>
-        <dd data-realtime-errors-by-reason>{errorReasonList(stats.wireErrorByReason)}</dd>
-        <dt className="ar-dt">本进程订阅者</dt>
+        <dt className="ar-dt">{c.dtWireNow}</dt>
+        <dd data-realtime-wire={live}>{liveLabel(live, locale)}</dd>
+        <dt className="ar-dt">{c.dtWireBoot}</dt>
+        <dd data-realtime-wire-boot={boot}>{bootLabel(boot, locale)}</dd>
+        <dt className="ar-dt">{c.dtErrors}</dt>
+        <dd data-realtime-errors>{errorCountText(stats.wireErrorCount, locale)}</dd>
+        <dt className="ar-dt">{c.dtErrorsByReason}</dt>
+        <dd data-realtime-errors-by-reason>{errorReasonList(stats.wireErrorByReason, locale)}</dd>
+        <dt className="ar-dt">{c.dtSubscribers}</dt>
         <dd data-realtime-subscribers>
-          {stats.subscriberCount} 人（不是全平台的数——线路查不到远端有谁在订）
+          {stats.subscriberCount}{c.subscribersSuffix}
         </dd>
       </dl>
       <section data-java-wire className="ar-section">
-        <p className="ar-sectionTitle" data-java-wire-title>Java 生产者（domain-service）</p>
+        <p className="ar-sectionTitle" data-java-wire-title>{c.javaProducerTitle}</p>
         {javaRows ? (
           <dl className="ar-dl">
             {javaRows.map(([label, value]) => (
@@ -130,20 +189,20 @@ export function RealtimeStatsPanel() {
           </dl>
         ) : (
           <p className="ar-muted" data-java-wire="missing">
-            {javaWireNote(stats.javaWire)}
+            {javaWireNote(stats.javaWire, locale)}
           </p>
         )}
       </section>
       <section data-java-breakers className="ar-section">
-        <p className="ar-sectionTitle" data-java-breakers-title>actuator circuitbreakers（Java 自己报）</p>
+        <p className="ar-sectionTitle" data-java-breakers-title>{c.breakersTitle}</p>
         {breakers === null && (
           <p className="ar-muted" data-java-breakers="missing">
-            没拿到 actuator 读数——没有在这份回执里看到 circuitBreakers 这格（不是"闭合"，是这台 instance 没接）。
+            {c.breakersMissing}
           </p>
         )}
         {Array.isArray(breakers) && breakers.length === 0 && (
           <p className="ar-muted" data-java-breakers="empty">
-            actuator 有，breaker 0 个——这台 domain-service 没装 resilience4j。
+            {c.breakersEmpty}
           </p>
         )}
         {Array.isArray(breakers) && breakers.length > 0 && (
@@ -166,7 +225,7 @@ export function RealtimeStatsPanel() {
         )}
       </section>
       <section data-java-actuator className="ar-section">
-        <p className="ar-sectionTitle" data-java-actuator-title>actuator info（Java runtime 自报）</p>
+        <p className="ar-sectionTitle" data-java-actuator-title>{c.actuatorTitle}</p>
         {javaActuatorRows ? (
           <dl className="ar-dlSmall">
             {javaActuatorRows.map(([label, value]) => (
@@ -178,12 +237,12 @@ export function RealtimeStatsPanel() {
           </dl>
         ) : (
           <p className="ar-muted" data-java-actuator="missing">
-            {javaActuatorNote(stats.javaActuator)}
+            {javaActuatorNote(stats.javaActuator, locale)}
           </p>
         )}
       </section>
       <section data-ai-capability className="ar-section">
-        <p className="ar-sectionTitle" data-ai-capability-title>ai-service capability（/v1/capabilities 自报）</p>
+        <p className="ar-sectionTitle" data-ai-capability-title>{c.aiCapabilityTitle}</p>
         {aiCapabilityRows ? (
           <dl className="ar-dlSmall">
             {aiCapabilityRows.map(([label, value]) => (
@@ -195,19 +254,18 @@ export function RealtimeStatsPanel() {
           </dl>
         ) : (
           <p className="ar-muted" data-ai-capability="missing">
-            {aiCapabilityNote(aiCapability)}
+            {aiCapabilityNote(aiCapability, locale)}
           </p>
         )}
       </section>
 
       {stats.wireErrorCount !== null && stats.wireErrorCount > 0 ? (
         <p className="ar-note" data-realtime-error-note>
-          失败的帧不补发：实时是加速器，权威状态永远在库里——这个数只是"刚才有几帧没过去"的账。
+          {c.failuresNote}
         </p>
       ) : null}
       <p className="ar-note" data-realtime-updated>
-        {updatedAt ? `更新于 ${updatedAt}` : '还没更新过'} · 每 4 秒问一次 ·
-        这只回答这台实例（多实例部署下每台各算各的）
+        {updatedAt ? c.updatedAt(updatedAt) : c.neverUpdated}{c.pollSuffix}{c.scopeNote}
       </p>
     </div>
   );
