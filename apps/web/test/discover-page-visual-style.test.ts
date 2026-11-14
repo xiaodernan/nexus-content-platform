@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * §61：Trending 按天互动序列真的能排，但算法参数与候选集上限必须连同 `result.method` 显示——不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `d52b35226a5c5e3d845ede941ca224b8e86ef48c7588e9175f056db9b115a357` 与 HEAD 字节一致。
+ * `92d8e28ecb311ddc4a7ecff7a7014f3215f2832273ac776ead3c0b43ea7530ae` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/app/discover/page.tsx');
@@ -101,9 +101,9 @@ describe('§FE-77 /discover 发现页原子清零', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：d52b35226a5c5e3d845ede941ca224b8e86ef48c7588e9175f056db9b115a357）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：92d8e28ecb311ddc4a7ecff7a7014f3215f2832273ac776ead3c0b43ea7530ae）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'd52b35226a5c5e3d845ede941ca224b8e86ef48c7588e9175f056db9b115a357',
+      '92d8e28ecb311ddc4a7ecff7a7014f3215f2832273ac776ead3c0b43ea7530ae',
     );
   });
 });

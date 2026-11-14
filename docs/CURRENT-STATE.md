@@ -51,6 +51,8 @@
 >
 > **§159 的断言**——如有人真的在自己机器上看到「非流 OFF」，则他/她必属：(a) 见的是旧（Pre-v706）build；(b) 自己的终端设置了 `NEXUS_LLM_STREAM=0`；(c) 或某个 HTTP 中间件剥掉了 SSE 的 framing——但我们直接到 `/v1/ai/cache-stats` 拿真数据并自检，那条路不调 provider 就没 back-pressure。**要做的事：无。** 扳手已在 repo 里，只等运维他点流到 `/admin/ai-cache` 折叠那里一格。
 >
+> **2026-11-14 续（§v715「中文发现页·双语」——把 public `/discover` 也撤到 i18n，fe-gates 1127/1127 全绿）**：公开广场页面从纯中文重写为 `zh|en` 双语。`getLocale()` 驱动 `TABS(ORDER)`、`COPY` 字典复制全部 UI 字面（`views/likes/comments/remixes/score`/空态/工具栏/method-tag/屏蔽 hint/unavailable），不机翻；Git 数据文本不翻译。§FE-77 SHA 重钉（d52b3522 → **92d8e28e…**）；fe-gates **113/113 · 1127/1127**。
+
 > **2026-11-14 续（§v714「§FE-Ship 双语化」——交付日志页也是真双语，fe-gates 1127/1127 全绿保持）**：把 `/ship` 也变成真 `zh/en` 双语——完整 `COPY` 字典（title/lede/statStrip 5 格标签/dayTag/hero headline/dataNote/aboutLink/back Link），中英两份完整字面，同样的 `getLocale()` 驱动 RootLayout 的 `<html lang>`；placeholder-locale-toggle 出现在每页右上角一致。
 >
 > - **§FE-Ship SHA 重钉**：`51d186d7 → 19332535…`；gate 7/7 全绿；`.sh-*` 不变（layout 不动，arena 也不新加键位）。

@@ -13802,7 +13802,12 @@ shadow-[0_0_...]），按 §FE 判据不可带入主线。本线做的：
   hub-selected detail panel with voice/desires/fears/relationships); two-way relationship
   merge labels render on the canvas.
 - Studio world panel gains a "character star map" entry button next to the 3D walkthrough.
-## v714 - §FE-Ship 双语化 —— /ship 真实 zh+en (2026-11-14)
+## v715 - /discover 完全双语 —— 
+
+- `apps/web/src/app/discover/page.tsx` 重写为 COPY 字典 TABS_ZH/TABS_EN（new/popular/trending/following 四个标签）+ COPY.zh/COPY.en 承载 title/subtitle/searchCta/emptyFollowing/emptyNothing/coverMissing/methodPrefix/views/likes/comments/remixes/scoreLabel/blocked mention/blocksPrompt/unavailableHead。
+- §FE-77 SHA 重钉 `d52b3522 → 92d8e28e…`；fe-gates **113/113 · 1127/1127**；publishedAt 用 locale flag 决定 `zh-CN` / `en-US` date 格式化。RootLayout `/about`/`/ship`/`/guide`/`/discover` 都是真双语。
+- 跨页 bilingual：About / Guide / Ship / Discover / RootLayout — 底片全屏 i18n。All of these follow the same `getLocale()` + COPY dict idiom; no auto-translation.
+
 
 - `apps/web/src/app/ship/page.tsx` 重写为 COPY 字典（zh/en 两套完整文案；Git log 数据本身不翻译如日期/hash/subject），`getLocale()` 驱动 `<html lang>`。
 - §FE-Ship SHA 重钉：`51d186d7 → 19332535…`；gate 7/7 全绿；`.sh-*` 的 data hooks 完整。
