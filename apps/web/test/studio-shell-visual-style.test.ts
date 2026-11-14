@@ -179,9 +179,9 @@ describe('§FE-41 /studio StudioShell Studio 外壳', () => {
     expect(segment).not.toMatch(/transition:[^;}]*\d+(ms|s)\b/);
   });
 
-  it('剥 className/cn 后（EOL+空白归一）全文 SHA256 守恒（容零行为：9d86545c203e4907b89a665a6c3100dfd709f5807262e220f2fd6a0920579487）', () => {
+  it('剥 className/cn 后（EOL+空白归一）全文 SHA256 守恒（容零行为：10b6e4196eb956a0d6fa996f2e98cd5773c4e756c44f20fc0efc6314a3585e00）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '9d86545c203e4907b89a665a6c3100dfd709f5807262e220f2fd6a0920579487',
+      '10b6e4196eb956a0d6fa996f2e98cd5773c4e756c44f20fc0efc6314a3585e00',
     );
   });
 });

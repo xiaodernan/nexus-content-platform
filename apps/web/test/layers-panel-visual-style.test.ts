@@ -168,9 +168,9 @@ describe('§FE-43 /studio LayersPanel 图层树', () => {
     }
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：a3ae9c9b36da750656c44faef38a1b6181edbc2b1896efb12d755c1317d3a549）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：cfd23e849baa1fe40f2df9c53f7dae1a1ef5aad9777512d40c9200b530731646）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'a3ae9c9b36da750656c44faef38a1b6181edbc2b1896efb12d755c1317d3a549',
+      'cfd23e849baa1fe40f2df9c53f7dae1a1ef5aad9777512d40c9200b530731646',
     );
   });
 });

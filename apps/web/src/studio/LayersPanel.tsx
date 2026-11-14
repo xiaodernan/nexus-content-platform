@@ -5,21 +5,73 @@ import { CONTAINER_TYPES, type DesignNode, type NodeType } from '@nexus/creative
 import { cn } from '@/lib/cn';
 import { flattenLayers, keepAncestors, type LayerRow as LayerRowData } from './layers-flat';
 import { studio, useStudioReady } from './store';
+import type { Locale } from '@/lib/i18n';
 
-const ADD_TYPES: { type: NodeType; label: string }[] = [
-  { type: 'section', label: 'Section' },
-  { type: 'container', label: '容器' },
-  { type: 'text', label: '文本' },
-  { type: 'button', label: '按钮' },
-  { type: 'input', label: '输入框' },
-  { type: 'image', label: '图片' },
-  { type: 'card', label: '卡片' },
-  { type: 'grid', label: '网格' },
-  { type: 'shape', label: '形状' },
-];
+/** 双语（v731）：一中一英、逐 key 对齐；键盘字面与 aria-label/title 保持同一套措辞。 */
+const COPY = {
+  zh: {
+    searchAria: '搜索图层',
+    searchPlaceholder: '搜索图层 / 文本',
+    filterTitle: '按类型过滤',
+    all: '全部',
+    containerChip: '容器',
+    textChip: '文本',
+    mediaChip: '媒体',
+    typeChip: '容器',
+    addType: {
+      section: 'Section',
+      container: '容器',
+      text: '文本',
+      button: '按钮',
+      input: '输入框',
+      image: '图片',
+      card: '卡片',
+      grid: '网格',
+      shape: '形状',
+    } as Record<NodeType, string>,
+    newPage: '新建页面',
+    emptyFiltered: '没有匹配的图层',
+    layerNameAria: '图层名',
+    hide: '隐藏',
+    show: '显示',
+    unlock: '解锁',
+    lock: '锁定',
+  },
+  en: {
+    searchAria: 'Search layers',
+    searchPlaceholder: 'Search layers / text',
+    filterTitle: 'Filter by type',
+    all: 'All',
+    containerChip: 'Container',
+    textChip: 'Text',
+    mediaChip: 'Media',
+    typeChip: 'Container',
+    addType: {
+      section: 'Section',
+      container: 'Container',
+      text: 'Text',
+      button: 'Button',
+      input: 'Input',
+      image: 'Image',
+      card: 'Card',
+      grid: 'Grid',
+      shape: 'Shape',
+    } as Record<NodeType, string>,
+    newPage: 'New page',
+    emptyFiltered: 'No matching layers',
+    layerNameAria: 'Layer name',
+    hide: 'Hide',
+    show: 'Show',
+    unlock: 'Unlock',
+    lock: 'Lock',
+  },
+} as const;
 
 /** §5 Layers 树：重命名 / 显隐 / 锁定 / 拖拽改父级 / 多选 / 搜索 / 按类型过滤 */
-export function LayersPanel() {
+const ADD_KINDS = ['section', 'container', 'text', 'button', 'input', 'image', 'card', 'grid', 'shape'] as const satisfies readonly NodeType[];
+
+export function LayersPanel({ locale = 'zh' }: { locale?: Locale } = {}) {
+  const c = COPY[locale];
   const state = useStudioReady();
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'container' | 'text' | 'media'>('all');
@@ -96,22 +148,22 @@ export function LayersPanel() {
   return (
     <div className="ly-root">
       <div className="ly-header">
-        <input aria-label="搜索图层"
+        <input aria-label={c.searchAria}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="搜索图层 / 文本"
+          placeholder={c.searchPlaceholder}
           className="ly-search"
         />
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)}
           className="ly-filter"
-          title="按类型过滤"
+          title={c.filterTitle}
         >
-          <option value="all">全部</option>
-          <option value="container">容器</option>
-          <option value="text">文本</option>
-          <option value="media">媒体</option>
+          <option value="all">{c.all}</option>
+          <option value="container">{c.containerChip}</option>
+          <option value="text">{c.textChip}</option>
+          <option value="media">{c.mediaChip}</option>
         </select>
         <div className="ly-rel">
           <button
@@ -124,17 +176,17 @@ export function LayersPanel() {
           </button>
           {adding ? (
             <div className="ly-drop">
-              {ADD_TYPES.map((item) => (
+              {ADD_KINDS.map((type) => (
                 <button
-                  key={item.label}
+                  key={type}
                   type="button"
                   onClick={() => {
-                    studio.addNode(item.type);
+                    studio.addNode(type);
                     setAdding(false);
                   }}
                   className="ly-dropItem"
                 >
-                  {item.label}
+                  {c.addType[type]}
                 </button>
               ))}
             </div>
@@ -158,7 +210,7 @@ export function LayersPanel() {
           type="button"
           onClick={() => studio.addPage(`Page ${state.document.pages.length + 1}`)}
           className="ly-pageAdd"
-          title="新建页面"
+          title={c.newPage}
         >
           +
         </button>
@@ -191,11 +243,12 @@ export function LayersPanel() {
                 onToggleCollapse={(id) => setCollapsed((c) => ({ ...c, [id]: !c[id] }))}
                 onDragStart={setDragId}
                 onDropNode={onDropNode}
+                locale={locale}
               />
             </div>
           ))}
         </div>
-        {!rows.length ? <p className="ly-empty">没有匹配的图层</p> : null}
+        {!rows.length ? <p className="ly-empty">{c.emptyFiltered}</p> : null}
       </div>
     </div>
   );
@@ -213,7 +266,9 @@ function LayerRow(props: {
   onToggleCollapse: (id: string) => void;
   onDragStart: (id: string) => void;
   onDropNode: (id: string) => void;
+  locale: Locale;
 }) {
+  const c = COPY[props.locale];
   const { row, selection } = props;
   const node = row.node;
   const depth = row.depth;
@@ -272,7 +327,7 @@ function LayerRow(props: {
           <input
             autoFocus
             value={draft}
-            aria-label="图层名"
+            aria-label={c.layerNameAria}
             onChange={(e) => setDraft(e.target.value)}
             onBlur={commitRename}
             onKeyDown={(e) => {
@@ -288,7 +343,7 @@ function LayerRow(props: {
         )}
         <button
           type="button"
-          title={node.visible ? '隐藏' : '显示'}
+          title={node.visible ? c.hide : c.show}
           onClick={(e) => {
             e.stopPropagation();
             studio.setVisible(node.id, !node.visible);
@@ -299,7 +354,7 @@ function LayerRow(props: {
         </button>
         <button
           type="button"
-          title={node.locked ? '解锁' : '锁定'}
+          title={node.locked ? c.unlock : c.lock}
           onClick={(e) => {
             e.stopPropagation();
             studio.setLocked(node.id, !node.locked);

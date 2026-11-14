@@ -258,7 +258,7 @@ function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zo
           data-left-panel
         >
           {tab === 'layers' ? (
-            <LayersPanel />
+            <LayersPanel locale={locale} />
           ) : tab === 'design' ? (
             <DesignSystemPanel />
           ) : tab === 'assets' ? (
