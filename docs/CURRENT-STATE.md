@@ -3118,3 +3118,27 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   1d127b9 main-line SUCCESS (CI in_progress); 738dfb7 main-line SUCCESS (CI in_progress);
   7284152 main-line SUCCESS (CI in_progress); 3233c93 main-line SUCCESS (CI in_progress);
   c28ad48 CI SUCCESS; 84f7f0d CI SUCCESS; bf84954 CI SUCCESS. No red refs this session.
+## cont. 115 (2026-11-14) - CI red found and root-caused: verify:vitals §3 restart-readiness flake
+
+- 3233c93 Studio CI = FAILURE (quality job, "Evidence proofs 14"): 118/119 of the derived
+  population green, one red = verify:vitals, `psql: connection to server on socket
+  "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL: the database system is starting up`.
+- Root cause: §1 of service-vitals-proof.mjs waits for pg with a REAL psql SELECT 1 poll
+  (documented in the proof itself). §3 (docker stop -> vitals 200 -> docker start) only did a
+  raw TCP canConnect, then ran psql straight away; the host TCP port accepts during pg's
+  "starting up" window, so the gate opened and psql FATAL'd. That is the exact failure line.
+- Fix: §3 now runs the same real-query readiness poll (psql SELECT 1, tries 60 x 1000ms)
+  before the existing canConnect / psql assertions. No assertion content changed; proof
+  semantics preserved. Verified for real on this host: full proof passes end-to-end
+  (§1 vitals 200/12ms heap 98710256/243269632 bytes of 4246732800, 28/28 threads, 16 processors;
+  §2 database STOPPED: vitals still 200/7ms, /health/live still 200/24ms;
+  §3 database restarted: vitals still 200/7ms, psql read ZERO audit entries;
+  §4 teardown: service gone, throwaway container removed) - the exact stage that flaked is green.
+- ADR 0146 records the analysis + the honest ledger note (second hosted-plane timing flake
+  this week after 9cd48bc's /health tolerance, ADR 0138): both were startup windows the runner
+  does not wait through; both fixed with the same in-repo discipline; no assertions widened.
+- ci-quality_log 1.1MB captured, scanned, removed from the tree.
+- CI at record time: 738dfb7 CI SUCCESS; a0027a2/9bc1974/cb9398e main-line SUCCESS
+  (Studio CI in_progress/queued); 1d127b9 main-line SUCCESS (CI in_progress);
+  7284152 main-line SUCCESS (CI in_progress); 3233c93 = the failing ref, fixed on master
+  as a new ref whose full 119-population re-run includes vitals. Not claiming until runner.

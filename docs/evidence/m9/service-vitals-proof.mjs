@@ -323,6 +323,14 @@ const r = await run('docker', ['exec', DB_CONTAINER, 'psql', '-U', DB_USER, '-d'
   // ── §3 the database STARTS again, and psql proves vitals wrote nothing ───────────────────────────
   const restartedDb = await run('docker', ['start', DB_CONTAINER]);
   assert.equal(restartedDb.code, 0, `could not restart the throwaway database: ${restartedDb.stderr}`);
+  // The host TCP port accepts during "database system is starting up" -- psql then fails with FATAL.
+  // §1 waits for a real query; §3 did only a TCP check, which is exactly how the hosted runner flaked.
+  // Apply the same proof-shaped wait to the restart path before any psql is issued.
+  const backReady = await until(async () => {
+      const r = await run('docker', ['exec', DB_CONTAINER, 'psql', '-U', DB_USER, '-d', DB_NAME, '-c', 'SELECT 1', '-q', '-X', '-v', 'ON_ERROR_STOP=1']);
+      return r.code === 0;
+  }, { tries: 60, gapMs: 1000, label: 'postgres to accept real queries after the restart' });
+  assert.ok(backReady, 'the database never accepted a real query after docker start returned');
   const databaseBack = await until(() => canConnect(dbPort), { tries: 30, gapMs: 500, label: 'the database port to accept again' });
   assert.ok(databaseBack, 'docker start returned but the host port never accepted a connection');
 
