@@ -92,6 +92,8 @@ SC-7 起网关的边界参数也可覆盖：`NEXUS_GATEWAY_MAX_REQUEST_BYTES`（
 `NEXUS_GATEWAY_RATE_LIMIT`（默认 `true`）、`NEXUS_GATEWAY_RATE_LIMIT_RATE`（默认 100 每秒）、
 `NEXUS_GATEWAY_RATE_LIMIT_BURST`（默认 200）、`NEXUS_GATEWAY_RATE_LIMIT_CLIENTS`（默认 10000）。
 SC-12 起限流后端可选：`NEXUS_GATEWAY_RATE_LIMIT_BACKEND`（`memory` 默认 / `redis` 共享计数）、
+**SEO**：`NEXUS_SITE_ORIGIN`（可选，绝对域名如 `https://nexus.example.com`，结尾不带 `/`；未配置时 `/sitemap.xml`
+返回空集、`robots.txt` 省略 Sitemap 行——不生成协议非法的相对 URL，公开页集合由 `apps/web/test/sitemap-robots-contract.test.ts` 钉死）。
 `NEXUS_GATEWAY_RATE_LIMIT_KEY_PREFIX`（默认 `nexus:gateway:rate:`）、`NEXUS_REDIS_HOST` /
 `NEXUS_REDIS_PORT`（默认 `127.0.0.1` / **56379**，不是本机别人的 6379）、
 `NEXUS_GATEWAY_REDIS_CONNECT_TIMEOUT` / `NEXUS_GATEWAY_REDIS_TIMEOUT`（各 1 秒）。`memory` 桶按**实例**
