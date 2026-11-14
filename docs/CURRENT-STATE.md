@@ -3483,3 +3483,11 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   KIND_KIND_LABELS_EN kindLabel helper 复用 world-model 权威清单；九类/空关系/方位说明/地形 profile 全部接 locale；
   locale 自 StudioShell 透传。（本轮早些时候曾整文件重写导致原拖拽失真，以 git-checkout HEAD 复位后改为**定向多次置换**。）
 - fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；§FE-41 重钉（第十四跳）。
+
+## cont. 123 (2026-11-16) - v754: WorldPanel 双语化（§44 世界填写面板：纪元/记忆回声/地形/潮汐 全套）
+- WorldPanel.tsx zh/en 双字典：主名/概述/九类 group headings/条目编辑器/纪元/memory echo/
+  elevation/model（含 narration 全量）/地形 plateau 编辑（radius/height/profile）/潮汐压声明/
+  新增条目/删除计数（含 links）/保存全部接 locale；locale 自 StudioShell 透传。
+- TerrainSection/TideSection 两个子组件同片落地（在 WorldPanel 同文件内 double-prefix 受限）。
+- WORLD_KIND_LABELS_EN 直入 world-model 权威库（本轮初焊），不再各页重复。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；§FE-41 重钉（第十五跳）。
