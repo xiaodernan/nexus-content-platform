@@ -2702,3 +2702,17 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   relaunch; Docker Desktop itself is healthy and restarted both previously). Not touched by us.
 - CI: 8528722 (v699) both workflows SUCCESS; 4185301 (v700) main-line SUCCESS, CI in_progress at
   record time - do not claim v700 CI green until the runner says so.
+## cont. 92 (2026-11-14) - v701 landed: Redis completion-cache replay keeps provider cache accounting
+
+- Measured the anomaly first: two identical browser-driven calls -> identical 5766ms latency,
+  reasoningTokens 405 vs 0. Root cause: redis_completion_cache._encode/_decode dropped the two
+  fields. Fix + 3 tests; ai-service 329 passed / 20 skipped (delta includes sibling-lane v695-v698).
+- Verified live on this host: register fresh fixture account -> Studio -> prompt twice.
+  Row 1: 8838/195/123 reasoning (real call). Row 2: Redis replay; /healthz llmLatency.calls=1 -
+  zero real provider round trips for the replay; llmCache hits=2; reasoning=123 preserved.
+- Environment: sibling deployment (3100/3200) down at record time (ECONNREFUSED); this lane's own
+  instances run on 3101 (web) and 3200 (ai-service) and both serve now - user's machine gives a
+  working product with real GPT-6-sol calls. Docker Desktop healthy.
+- v699 both workflows SUCCESS; v700 main-line SUCCESS, CI pending at record time; 846dec5 queued.
+- This lane does not touch the sibling deployment or its watchdog; restart order on this host is a
+  deployment decision, recorded in cont. 90/91.

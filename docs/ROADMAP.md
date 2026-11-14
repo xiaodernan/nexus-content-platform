@@ -11996,3 +11996,21 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   under reboot / Docker-down / HMR-blocked conditions; machine restarted twice this session and
   Docker Desktop went down once - nexus-postgres / redis outage; both recovered). Container outage
   caused a full-stack 500 storm on / until recovery - recorded in CURRENT-STATE cont. 90.
+## v701 - app-level completion cache replay keeps cached/reasoning tokens (2026-11-14, ADR 0133)
+
+- Bug found by end-to-end measurement, not by reading: identical consecutive calls on one browser
+  session showed identical latencyMs (5766) with reasoningTokens 405 -> 0 - the second call was a
+  Redis completion-cache REPLAY, and the Redis codec silently dropped cached_tokens /
+  reasoning_tokens on both encode and decode. Every replay was under-reporting cache value.
+- Fix (additive, v=1 compatible): encode now writes both fields; decode validates them
+  (int, not bool, >= 0; missing -> 0 for pre-existing legacy entries, never treated as poison).
+  In-memory path (LlmCompletionCache) untouched (no serialization).
+- Tests: +3 (roundtrip preservation, legacy decode, poison rejection). ai-service 329 passed /
+  20 skipped.
+- Live end-to-end on this host (browser -> web -> ai-service -> Redis -> wkapi.pro GPT-6-sol):
+  fresh project; 2 identical /api/ai/run calls. Row 1: 8838/195/5766ms/reasoning=123.
+  Row 2: Redis replay, identical figures incl. reasoning=123 (legacy entries would read 0 - by
+  design). /healthz: cache hits=2, llmLatency.calls=1 - exactly one real provider round trip.
+- Still honestly open: provider prefix cache remains distributor-roulette (cold call-1 cached=0,
+  channel draw); pre-fix entries already stored decode as 0 until re-stored (cannot backfill,
+  will not fake).
