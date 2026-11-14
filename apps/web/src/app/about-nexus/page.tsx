@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { readdirSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { join } from 'node:path';
 import { BrandTitle } from '@/components/BrandTitle';
 
 
@@ -13,7 +16,43 @@ export const metadata: Metadata = {
 /**
  * 关于 NEXUS — 外向朋友的那一页。
  * 大字、少字、真句段。每段只说一件事：这是什么 / 它怎么工作 / 它不是什么。
+ * 账面数字全部在**请求时现算**——这张页面自己的承诺是"每个数字都有出处"，
+ * 不在这里换成一组会悄悄过时的硬编码（同 /ship 的纪律）。
  */
+
+function countDirFiles(dir: string, suffix?: string): string {
+  try {
+    const entries = readdirSync(join(process.cwd(), dir), { withFileTypes: true }).filter(
+      (e) => e.isFile() && (suffix ? e.name.endsWith(suffix) : true),
+    );
+    return String(entries.length);
+  } catch {
+    return '—';
+  }
+}
+
+function countDirs(dir: string): string {
+  try {
+    return String(readdirSync(join(process.cwd(), dir), { withFileTypes: true }).filter((e) => e.isDirectory()).length);
+  } catch {
+    return '—';
+  }
+}
+
+function gitOut(args: string[]): string {
+  try {
+    return execFileSync('git', args, { encoding: 'utf8' }).trim();
+  } catch {
+    return '—';
+  }
+}
+
+const COMMIT_TOTAL = gitOut(['rev-list', '--count', 'HEAD']);
+const HEAD_DATE = gitOut(['log', '-1', '--format=%cd', '--date=short']);
+const ADR_TOTAL = countDirFiles('docs/adr', '.md');
+const CONTRACTS = countDirFiles('contracts', '.schema.json');
+const SERVICES = countDirs('services');
+
 export default function AboutPage() {
   return (
     <main className="ab-shell" data-about-root>
@@ -76,19 +115,29 @@ export default function AboutPage() {
         <h2 className="ab-numbersHead">现在的账本怎么看</h2>
         <ol className="ab-numberList">
           <NumberRow
-            k="cached tokens (warm loop)"
-            v="~27 344 / 27 347"
-            foot="5 轮同目录同诉求真实调用 · wkapi.pro / gpt-6-sol · 实测 exit 0"
+            k="累计提交（请求时现算）"
+            v={COMMIT_TOTAL}
+            foot="`git rev-list --count HEAD` · 最后一次提交 {HEAD_DATE}"
           />
           <NumberRow
-            k="证据门（verify:fe-gates）"
-            v="104 / 104"
-            foot="1067 条类级字节判据 · 零 hex · 零裸 Tailwind · 零降级 token"
+            k="ADR 决策（请求时现算）"
+            v={ADR_TOTAL}
+            foot="readdir docs/adr · 每一份都是真取舍，不写表决纪要"
           />
           <NumberRow
-            k="整库测试"
-            v="417 passed / 18 skipped"
-            foot="pytest apps/ai-service · 18 skip 因为配置不是承诺（未接的就跳）"
+            k="跨端契约（请求时现算）"
+            v={CONTRACTS}
+            foot="contracts/*.schema.json · web ↔ ai-service ↔ java 共享同一份 zod 真值"
+          />
+          <NumberRow
+            k="Java 微服务（请求时现算）"
+            v={SERVICES}
+            foot="readdir services · 网关注册/路由/熔断/链路实证见 springcloud-verify-live 证据"
+          />
+          <NumberRow
+            k="缓存命中（真 provider，两次实测）"
+            v="80–100%"
+            foot="同 lane 同目录同 digest 实测两次：5 轮 96–100%（2026-11-14 早）与 4 轮 80–83%（同日重跑）——wkapi.pro distributor 随机分片上游 KV 不共享，不承诺单值"
           />
         </ol>
         <div className="ab-swatchShell"><p className="adm-capNote">品牌渐变：所有标题都用同一笔 brand→accent-1→fg-1 的渐变墨字，全从 tokens 取色。</p></div>

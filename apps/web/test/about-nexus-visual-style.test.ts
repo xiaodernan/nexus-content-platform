@@ -105,7 +105,7 @@ describe('§FE-About /about-nexus 品牌页', () => {
 
   it('SHA256 钉死（本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'cd12aa12a3e0bb58ed5e5e244ba7f6556706900527a0570ceb9a4abb129de8e4',
+      '17d403100f1710f124c1df7f2cd116084a10b478fae25d998b3f6b12933b47cc',
     );
   });
 });
