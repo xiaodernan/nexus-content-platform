@@ -38,5 +38,9 @@
     // studio 的两个配置：apps/studio/tsconfig.json 只 include src/**，这两个在包根上。
     "apps/studio/next.config.ts",
     "apps/studio/vitest.config.ts",
+    // 三合一 vitest config 与一次性 probe：不在任何 package tsconfig 里，但仍需为类型感知规则提供类型信息
+    "vitest.fe.config.ts",
+    "e2e/forced-colors-probe.mjs",
+    "scripts/build-showcase.mjs",
   ]
 }

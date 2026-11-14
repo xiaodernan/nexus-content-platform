@@ -228,11 +228,22 @@ export default tseslint.config(
       // 于是对 project service 是孤儿。它们是配置不是产品代码，但仍是 TypeScript，也一并进 tools 项目。
       'apps/studio/next.config.ts',
       'apps/studio/vitest.config.ts',
+      // 三合一 vitest config、一次性 probe 与 showcase fact builder：不在任何 package tsconfig 里，
+      // tools 项目把它们当产品代码一起抓。
+      'vitest.fe.config.ts',
+      'e2e/forced-colors-probe.mjs',
+      'scripts/build-showcase.mjs',
     ],
     languageOptions: {
       parserOptions: {
         projectService: false,
         project: ['./tsconfig.tools.json'],
+      },
+      globals: {
+        ...globals.node,
+        // forced-colors-probe.mjs 既访问 Node（console/process）也驱动 chromium 的端点
+        // （getComputedStyle）——它就是为浏览器 probe 写的，不是产品代码，但要全局可读。
+        getComputedStyle: 'readonly',
       },
     },
   },
