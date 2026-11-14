@@ -92,9 +92,9 @@ describe('§FE-71 /app/layout 根布局', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（§CP-1 起：3405cf7d23b618783809c208c98d095da64baef4c648f79081cc8cb3fe5d2d2c）', () => {
+  it('剥 className 后全文 SHA256 守恒（§CP-1 起：50b68deae4809e3f44f6812fe698e3bba2f8753fa26c40b9af640b2e4d27a985）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '3405cf7d23b618783809c208c98d095da64baef4c648f79081cc8cb3fe5d2d2c',
+      '50b68deae4809e3f44f6812fe698e3bba2f8753fa26c40b9af640b2e4d27a985',
     );
   });
 

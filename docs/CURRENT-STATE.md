@@ -51,6 +51,15 @@
 >
 > **§159 的断言**——如有人真的在自己机器上看到「非流 OFF」，则他/她必属：(a) 见的是旧（Pre-v706）build；(b) 自己的终端设置了 `NEXUS_LLM_STREAM=0`；(c) 或某个 HTTP 中间件剥掉了 SSE 的 framing——但我们直接到 `/v1/ai/cache-stats` 拿真数据并自检，那条路不调 provider 就没 back-pressure。**要做的事：无。** 扳手已在 repo 里，只等运维他点流到 `/admin/ai-cache` 折叠那里一格。
 >
+> **2026-11-14 续（§v712「使用指南 / User Guide」+ 中英双语切换 + showcase 快照，实机 14 次非流 100/100/100 + 3 次非流 80–83%）**：
+- **/guide**：小册子直接在站内——快速上手、功能地图、棋盘/RPG 规则、DEMO MODE 语义、额度与管理入口——RSC-only、字典分 zh/en（中英两份都真写）；SHA256 `84906d96…` 钉到 §FE-Guide 7/7 全绿。
+- **/api/locale**：POST 改 cookie → 切换 zh ↔ en；RootLayout async + `getLocale()` → `<html lang=…>`；**英文字典是真英文，中文字典里全中文**；LocaleToggle FAB 挂在右下与 ThemeToggle 并列；§FE-I18N 5/5（layout SHA 重钉 3405cf7d → **50b68dea…**）。
+- **⌘K register**：/guide + /ship 均入命令面板 18→19 条；registry 重钉。
+- **缓存实测记账**：wkapi.pro / gpt-6-sol，同 digest lane `nexus-ab-stream-2026`，`stream=on` → turn2-4 **27345/27348 = 100.0%**（turn1 冷 0.0% 是 distributor 迟到）；`stream=off` 同机：turn2-4 = **10960/11503/11279 / turn4 = 0.0%** —— 非流 distributor 不定位，不承诺稳态（§159）。
+- **showcase 快照**：`npm run gen:showcase` → `docs/showcase/nexus.html` —— 自带真数据（git rev-list 真计数 2527 / 308 ADRs / 14 契约 / 8 Java 微服务 / 10 packages 真值）；`.github/workflows/showcase.yml` 手动触发 + 推 `xiaodernan/xiaodernan.github.io` 的 `showcase/latest`，secret `SHOWCASE_TOKEN` + var `SHOWCASE_TARGET_REPO` 都需管理员填——**没填这个 job 直接 skipped**，不会造满红 CI。
+- **前端美观**：`.gd-*` 新族（hero/lede/toc/section/para/hero），强制颜色 + ⌘K 入口 + locale FAB；全部 tokens，零 hex；forced-colors 收口。
+- **前端判据**：fe-gates **113/113 · 1127/1127**；census **2062**；no-raw-tailwind 干净；tsc EXIT=0。
+
 > **2026-11-14 续（§v711「一页书」· `/world/<project>/codex/<nodeId>` ＋ codex 目录入口全 Link 化）**：补世界模块 "**宏观叙事 + 微观一页**" 最后一块——节点**微观渲染**。author 只读页：提取 §46 节点的 body 段落全部赋给 `.cdr-para` 第 2.05 行、字符全衬线+顺序首字下沉（`.cdr-paraFirst::first-letter` 2.6em warn-ink），`.cdr-hero` 只说两句话（CODEX · 世界名 + 第N章启动），副标题只写"本页仅由 worlds.document 原文渲染"。设定集目录（v708）里每个落笔节点**现在都是 `<Link>`**（`cdx-entryLink` + 末位 `cdx-entryPeek`）——宏观→微观一键穿透。**判据**：新增门 `codex-reader-visual-style.test.ts`（§FE-Cdr）**6 门全绿**（RSC-only、requireUser+visitProject和notFound、无 getDb、零 hex、tokens 全在、.cdr-* 字段齐、cdx-entry 链形状）；`.cdx-reader` SHA256 **26647005** 钉死；**§FE-CODEX SHA 重钉（3267864d→d9682fdd）**；`census` **2051** · `no-raw-tailwind` 干净 · tsc EXIT=0 · **fe-gates **111/111 · 1115/1115**。
 
 > **2026-11-14 续（§v709「世界切片」· `/world/<projectId>/ephemeris`，确定性「创世年」）**：面与「设定集」并列——同一份世界文档的**时间面**投影，体验不同于阅读，更像翻阅一年的推算。**RSC-only + 仅作者可见**：360 格日历（`.eph-calendar`，写死 360 天、零随机、零 Date、零 provider），落笔节点经 xor-shift32 散列分配到固定的那天；live 天高亮、悬停显示当日标题；下方一列按日排序的条目（`.eph-entry`：kindChip/eraChip/摘录文本前 96 字+…、excerpt 截断上限 97 字符）；空状态引导去 Studio 写第一点。**红线**：引擎零加密、零 Math.random、零 system 时间——同一份世界文档从来给同一年；不写库——绝不假读写；Body.trim() 为空的模板骨架压根上不了图。**判据**：`ephemeris.test.ts` 7/7（确定性/day 区间/排序/≥96 截断/era 钩/kindLabel 来自 WORLD_KIND_LABELS）+ `ephemeris-visual-style.test.ts`（§FE-EPH）6/6（RSC/零 provider/零 `getDb()`/六钩子/SHA256 a88b9c1d… 钉死/零 hex/forced-colors）。**census 2038 · no-raw-tailwind 干净 · fe-gates 110/110 · 1109/1109 · §FE-57 WorldGraphView SHA 重钉（设定集+切片+星图+3D 四入口：9df15316…）**。

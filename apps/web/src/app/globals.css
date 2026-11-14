@@ -4627,3 +4627,28 @@
   .cdx-entryLink:focus-visible { box-shadow: 0 0 0 2px Highlight; }
   .cdx-entryPeek { color: CanvasText; }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   §FE-Guide「用户指南 / User Guide」—— 中文优先的说明书页面。
+   全 tokens、零 hex、serif（衬线）字族、强制颜色收口、单一语言分节渲染。
+   ───────────────────────────────────────────────────────────────────── */
+.gd-root { position: relative; display: flex; flex-direction: column; gap: var(--nexus-space-4); max-width: 54rem; margin: 0 auto; padding: var(--nexus-space-8) var(--nexus-space-5); background: linear-gradient(180deg, var(--nexus-color-bg-1) 0%, var(--nexus-color-bg-2) 100%); color: var(--nexus-color-fg-1); min-height: 100dvh; }
+.gd-hero { padding: var(--nexus-space-5); border: 1px solid color-mix(in srgb, var(--nexus-color-brand) 45%, transparent); border-radius: var(--nexus-radius-md); background: radial-gradient(ellipse at 50% -10%, color-mix(in srgb, var(--nexus-color-accent-2) 14%, transparent) 0%, transparent 55%); display: flex; flex-direction: column; gap: var(--nexus-space-2); }
+.gd-kicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.24em; text-transform: uppercase; color: var(--nexus-color-warn-ink); }
+.gd-title { font-size: var(--nexus-font-size-28); font-weight: 700; margin: 0; letter-spacing: -0.01em; color: var(--nexus-color-fg-1); }
+.gd-lede { font-size: var(--nexus-font-size-13); line-height: 1.9; color: var(--nexus-color-fg-2); margin: 0; }
+.gd-toc { display: flex; flex-wrap: wrap; gap: var(--nexus-space-2); margin-top: var(--nexus-space-2); border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-3); }
+.gd-tocLink { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); text-decoration: none; border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); padding: 2px var(--nexus-space-2); }
+.gd-tocLink:hover, .gd-tocLink:focus-visible { color: var(--nexus-color-brand); border-color: var(--nexus-color-brand); outline: none; }
+.gd-section { padding: var(--nexus-space-4); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md); background: var(--nexus-color-bg-1); }
+.gd-sectionTitle { font-size: var(--nexus-font-size-18); font-weight: 650; margin: 0 0 var(--nexus-space-2) 0; color: var(--nexus-color-fg-1); letter-spacing: 0.01em; border-bottom: 1px solid var(--nexus-color-border-subtle); padding-bottom: var(--nexus-space-2); }
+.gd-para { font-size: var(--nexus-font-size-13); line-height: 1.95; color: var(--nexus-color-fg-2); margin: 0 0 var(--nexus-space-2) 0; font-family: Georgia, 'Songti SC', 'Noto Serif SC', serif; }
+.gd-para:last-child { margin-bottom: 0; }
+.gd-foot { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--nexus-space-3); border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-3); font-size: var(--nexus-font-size-12); }
+
+@media (forced-colors: active) {
+  .gd-root, .gd-hero, .gd-section { border-color: CanvasText; background: Canvas; color: CanvasText; }
+  .gd-title, .gd-sectionTitle { color: CanvasText; }
+  .gd-para, .gd-kicker, .gd-lede, .gd-tocLink { color: CanvasText; }
+  .gd-tocLink:focus-visible { box-shadow: 0 0 0 2px Highlight; }
+}

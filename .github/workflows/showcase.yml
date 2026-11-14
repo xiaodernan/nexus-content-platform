@@ -1,0 +1,47 @@
+name: Publish showcase
+
+# 手动触发：点 Actions → Publish showcase → Run workflow。
+# 把 docs/showcase/ 推到你的展示仓（如 xiaodernan/xiaodernan.github.io）的 showcase/latest 分支。
+# 两样必须由仓库管理员填妥才会真的发：
+#   - Secret SHOWCASE_TOKEN — fine-grained PAT，有足够 scope 推到展示仓的 showcase/latest
+#   - Var    SHOWCASE_TARGET_REPO — 目标仓 slug，例如 xiaodernan/xiaodernan.github.io
+# 未填时整个 job skipped（不假红 CI）。
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    if: ${{ vars.SHOWCASE_TARGET_REPO != '' }}
+    env:
+      TARGET_REPO: ${{ vars.SHOWCASE_TARGET_REPO }}
+      SHOWCASE_TOKEN: ${{ secrets.SHOWCASE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci --ignore-scripts || npm install --ignore-scripts
+
+      - name: Regenerate showcase snapshot from current main
+        run: npm run gen:showcase
+
+      - name: Push to showcase/latest of target repo
+        run: |
+          set -euo pipefail
+          test -n "$SHOWCASE_TOKEN" || { echo 'skip: no SHOWCASE_TOKEN secret set'; exit 0; }
+          git clone "https://x-access-token:${SHOWCASE_TOKEN}@github.com/${TARGET_REPO}.git" _showcase --depth 1
+          (cd _showcase && \
+            git config user.name 'NEXUS Showcase' && \
+            git config user.email 'showcase@nexus.local' && \
+            git checkout -B showcase/latest && \
+            cp -R ../docs/showcase/. . && \
+            git add -A && \
+            (git commit -m "showcase: snapshot $(date -u +%Y-%m-%d) from nexus-content-platform" || echo 'nothing to commit; done'; \
+              git push -u origin showcase/latest --force))

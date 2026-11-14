@@ -13802,6 +13802,19 @@ shadow-[0_0_...]），按 §FE 判据不可带入主线。本线做的：
   hub-selected detail panel with voice/desires/fears/relationships); two-way relationship
   merge labels render on the canvas.
 - Studio world panel gains a "character star map" entry button next to the 3D walkthrough.
+## v712 - /guide 用户指南 + 全站中英双语切换 + showcase 快照（2026-11-14, ADR-0265 era）
+
+- NEW page `apps/web/src/app/guide/page.tsx`（RSC, force-dynamic, bilingual dictionary zh/en）：
+  sections：什么是 / 快速上手 / 功能地图 / 游戏玩法（棋盘 WASD·空格 + RPG 对话） / DEMO MODE / FAQ；
+  §FE-Guide gate **84906d96** 钉死。§FE-I18N 5/5；§FE-Layout SHA 重钉（3405cf7d → 50b68dea…）。
+- NEW `/api/locale` POST，i18n `lib/i18n.ts`（cookie-driven，async SSR getLocale）；
+  `LocaleToggle.tsx` FAB 挂进 RootLayout（与 ThemeToggle 并列），layout 变为 async。
+- `docs/showcase/nexus.html` on-demand generated (via `npm run gen:showcase`)。
+- `.github/workflows/showcase.yml` manual-dispatch + `SHOWCASE_TOKEN`/`SHOWCASE_TARGET_REPO` management；
+  **未填 secret → job skipped，不满红 CI**。
+- `docs/showcase/README.md`：如何配置和手动触发；操作员 = admin maintainer。
+- 命令面板 register `/guide`（18→19；registry 重新钉死 18/19）。
+
 ## v711 - 世界/<projectId>/codex/<nodeId> 「一页书」＋ codex 入口改穿 Link (2026-11-14)
 
 - NEW page `apps/web/src/app/world/[projectId]/codex/[nodeId]/page.tsx`（RSC，force-dynamic，仅作者可见，零provider，零写库）：

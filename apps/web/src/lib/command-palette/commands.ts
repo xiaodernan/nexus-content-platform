@@ -64,6 +64,7 @@ export const PALETTE_COMMANDS: readonly PaletteCommand[] = [
   { kind: 'nav', id: 'discover', label: '发现', group: 'go', href: '/discover', keywords: ['discover', 'explore', 'trending', '热门', '逛逛'] },
   { kind: 'nav', id: 'search', label: '搜索', group: 'go', href: '/search', keywords: ['search', 'find', 'query', '查找', '检索'] },
   { kind: 'nav', id: 'ship', label: '交付日志', group: 'go', href: '/ship', keywords: ['ship', 'changelog', 'log', '日志', '发布', '更新', '进展', '刊物'] },
+  { kind: 'nav', id: 'guide', label: '使用指南', group: 'go', href: '/guide', keywords: ['guide', 'manual', 'help', 'docs', '教程', '说明书', '指南', '帮助', '手册', '怎么用'] },
   { kind: 'nav', id: 'about', label: '关于 NEXUS', group: 'go', href: '/about-nexus', keywords: ['about', 'story', 'why', '原则', '关于', '为什么', '我们是谁'] },
   { kind: 'nav', id: 'blocks', label: '积木库', group: 'go', href: '/blocks', keywords: ['blocks', 'block', '组件', '素材', '积木'] },
   { kind: 'nav', id: 'marketplace', label: '市场', group: 'go', href: '/marketplace', keywords: ['market', 'marketplace', 'store', '商店', '市集'] },
