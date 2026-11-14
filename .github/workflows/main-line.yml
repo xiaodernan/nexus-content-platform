@@ -73,6 +73,18 @@ jobs:
           --health-interval 5s
           --health-timeout 3s
           --health-retries 20
+      # The gateway's own health needs a Redis on 56379 (Spring Data Redis health indicator);
+      # without one, three gateway tests (BulkheadActuatorAuthTest, CircuitBreakerActuatorWiringTest,
+      # BulkheadActuatorWiringTest) report DOWN and turn an honest red into a false one.
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 56379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
     steps:
       - uses: actions/checkout@v4
         with:

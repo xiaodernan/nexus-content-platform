@@ -36,6 +36,17 @@ jobs:
           --health-interval 5s
           --health-timeout 3s
           --health-retries 20
+      # The gateway tests (BulkheadActuatorAuthTest etc.) ride the packaged default Redis 56379,
+      # and the Spring Data Redis health indicator reports DOWN without a reachable one.
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 56379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
     steps:
       - uses: actions/checkout@v4
         with:
