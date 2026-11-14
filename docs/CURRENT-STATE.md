@@ -3606,3 +3606,42 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   assets/nexus-content/latest.json re-seeded with merged numbers, push to main per fast-forward.
 - ADR 0147: THE GREAT MERGE decision record (what was absorbed, what was repaired, what is
   unverified, what the 471 commits still owe).
+
+
+## cont. 117 (2026-11-15) - world-sub surfaces façade-ized; the four raw-Tailwind pages stop failing the merged gate
+
+- Local gates the merged main-line needed: `node tools/ci/no-raw-tailwind.mjs` had 724 hits across the
+  four pages this lane wrote before the other lane's FE discipline landed (almanac 180, atlas 208,
+  memories 137, QuizArcade 199). All four are rewritten to facade-class families defined in the same
+  commit: `.alm-*` (17 classes), `.atl-*` (29), `.mem-*` (19), `.qaz-*` (28), plus shared `.world-nav*`
+  for the world-sub navigation row (the ChronicleView `.crn-nav` stays for the footer shape; the
+  world-sub nav is inline). Token-based where the app palette fits; two small bespoke layered-hex
+  families for the art-directed sepia archive and night-map palettes (identical render).
+- Visual verification (fixture account constellation+mwg35nri@nexus.test, project f15b2c24-2a95-4902-
+  9845-169f52a79bde): /almanac, /atlas, /memories, /quiz all render correctly post-façade — gold-serif
+  archive, night star chart with phyllotaxis placement, memory corridor and the lantern trial intact.
+- `node tools/ci/no-raw-tailwind.mjs`: 干净（零裸原子）. `node tools/ci/facade-census.mjs`: 2280 个类全部有引用。
+  eslint on the four files + verify-topology.mts: 0 error. `npx tsc -p apps/web/tsconfig.json --noEmit`: 0.
+- vitest (quiz / world-view-cache / chronicle / era-ties): 34/34 green.
+
+## cont. 118 (2026-11-15) - hosted CI keeps failing at three gates; all three root-caused today
+
+Honest status: the merged refs 386bfc6c..fa479c2e all went red on the hosted runner at gates step 10
+(No raw Tailwind atoms, 724 violations) — fixed in cont. 117. The topology job (`verify:topology`)
+answered HTTP 503 from the domain-service health endpoint and stayed DOWN: the hosted topology job
+gives its services a Postgres on 55433 but NO Redis on 56379, and the domain-service's Redis health
+indicator drags the aggregate to DOWN (the packaged application.yml comment says exactly this:
+"defaulting to 6379 made a fresh java -jar report health DOWN and then need an environment variable
+to recover"). FIX: the topology job now declares `redis:7-alpine` mapped to 56379, so the real
+WirePublisher path and the health indicator both see a real Redis — same as compose everywhere else.
+- The `ci.yml` quality job's "Warm the Maven repository" step ran `mvn -B -q package` on four modules;
+  `package` includes the TEST phase, and java-domain-service's AiHealthBreakerOpenTest boots the Spring
+  context — without a database the Hibernate dialect cannot be determined and the warm-up red at exactly
+  that line (Unable to determine Dialect). FIX: the quality job now carries the same Postgres service on
+  55433. java-domain-service 175/175 and nexus-api 953/953 pass locally with the same environment.
+- `scripts/verify-topology.mts` now dumps the last 40 lines of a spawned service's log before exiting on
+  a failed health wait — the hosted run printed only "did not answer"; the log tail is the difference
+  between "503" and the actual reason.
+- Honest scale note: the merged Zeiters line needed this envwiring pass because its CI never ran against
+  the merged tree — every hot-path fix this session was driven by a hosted-runner verdict, not preference.
+

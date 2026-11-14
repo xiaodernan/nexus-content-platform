@@ -59,29 +59,29 @@ export function QuizArcade({
 
   if (total === 0) {
     return (
-      <main className="flex min-h-dvh flex-col items-center justify-center gap-5 bg-[#0a0906] px-6 text-center text-[#e8e3d3]" data-quiz-empty>
-        <LampIcon className="h-16 w-16 text-[#c9a86a]/60" />
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold text-[#f0e9d8]">谜灯馆暂时无灯可点</h1>
-        <p className="max-w-md text-13 leading-6 text-[#a89f85]">这座世界还没有足够的 story / history 条目与记忆回声。先去 Studio 写几笔，谜灯馆才会亮。</p>
-        <Link href={`/world/${projectId}/almanac`} className="rounded-md border border-[#c9a86a]/30 px-4 py-2 text-12 text-[#d8cfb6] transition-colors hover:border-[#c9a86a]/70 hover:text-[#f5edd9]">回藏经阁 →</Link>
+      <main className="qaz-empty" data-quiz-empty>
+        <LampIcon className="qaz-lampIcon" />
+        <h1 className="qaz-emptyTitle">谜灯馆暂时无灯可点</h1>
+        <p className="qaz-emptyCopy">这座世界还没有足够的 story / history 条目与记忆回声。先去 Studio 写几笔，谜灯馆才会亮。</p>
+        <Link href={`/world/${projectId}/almanac`} className="qaz-backLink">回藏经阁 →</Link>
       </main>
     );
   }
 
   return (
-    <main className="relative flex min-h-dvh flex-col overflow-hidden bg-[#0a0906] text-[#e8e3d3]" data-quiz-root>
+    <main className="qaz-root" data-quiz-root>
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
+        className="qaz-glow"
         style={{ background: 'radial-gradient(720px 420px at 50% -6%, rgba(201,168,106,0.16), transparent 55%), radial-gradient(640px 520px at 50% 112%, rgba(201,168,106,0.08), transparent 55%)' }}
       />
       {/* 灯廊（进度） */}
-      <header className="relative flex flex-wrap items-center justify-between gap-3 border-b border-[#c9a86a]/10 px-6 py-4">
+      <header className="qaz-head">
         <div>
-          <p className="font-mono text-10 uppercase tracking-[0.28em] text-[#c9a86a]">THE LANTERN TRIAL · {worldName}</p>
-          <h1 className="mt-1 text-[var(--nexus-font-size-21)] font-semibold text-[#f0e9d8]" data-quiz-title>谜灯馆</h1>
+          <p className="qaz-kicker">THE LANTERN TRIAL · {worldName}</p>
+          <h1 className="qaz-title" data-quiz-title>谜灯馆</h1>
         </div>
-        <div className="flex items-center gap-1.5" role="img" aria-label={`已点亮 ${score} 盏，共 ${total} 盏`} data-quiz-lanterns>
+        <div className="qaz-lanterns" role="img" aria-label={`已点亮 ${score} 盏，共 ${total} 盏`} data-quiz-lanterns>
           {Array.from({ length: total }, (_, i) => (
             <LampMini
               key={i}
@@ -94,30 +94,30 @@ export function QuizArcade({
       </header>
 
       {!done && round ? (
-        <section className="relative mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center gap-6 px-6 py-10" aria-label="谜灯馆题目">
-          <p className="font-mono text-10 uppercase tracking-[0.3em] text-[#c9a86a]/80" data-quiz-family>
+        <section className="qaz-stage" aria-label="谜灯馆题目">
+          <p className="qaz-family" data-quiz-family>
             {round.family === 'A' ? '回声 · 哪个纪元' : '条目 · 叫什么'} · 第 {index + 1} / {total} 灯
           </p>
           <blockquote
-            className="max-w-2xl border-l-2 border-[#c9a86a]/45 pl-5 text-center text-[19px] leading-9 text-[#efe9d6]"
+            className="qaz-prompt"
             style={{ fontFamily: "'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', serif" }}
             data-quiz-prompt
           >
             {round.family === 'A' ? `“${round.prompt}”` : `“${truncate(round.prompt, 140)}”`}
           </blockquote>
-          <fieldset className="w-full max-w-2xl">
-            <legend className="sr-only">选项</legend>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" role="radiogroup" aria-label="四个选项">
+          <fieldset className="qaz-options">
+            <legend className="qaz-srOnly">选项</legend>
+            <div className="qaz-optionGrid" role="radiogroup" aria-label="四个选项">
               {round.options.map((option, i) => {
                 const isAnswer = i === round.answer;
                 const locked = picked !== null;
                 const tone = !locked
-                  ? 'border-[#3a3424] bg-[#131009] text-[#e8e3d3] hover:border-[#c9a86a]/60 hover:bg-[#1a1610]'
+                  ? 'qaz-optionIdle'
                   : isAnswer
-                    ? 'border-[#e8d5a4] bg-[#241f10] text-[#f5edd9] shadow-[0_0_28px_rgba(201,168,106,0.25)]'
+                    ? 'qaz-optionRight'
                     : picked === i
-                      ? 'border-[#5a2b2b] bg-[#1d1010] text-[#c98f8f]'
-                      : 'border-[#2c2820] bg-[#100e09] text-[#8f887a]';
+                      ? 'qaz-optionPicked'
+                      : 'qaz-optionDim';
                 return (
                   <button
                     key={i}
@@ -127,61 +127,61 @@ export function QuizArcade({
                     disabled={locked}
                     onClick={() => choose(i)}
                     data-quiz-option={i}
-                    className={`flex items-center gap-4 rounded-xl border px-5 py-4 text-left text-15 leading-7 transition-all duration-200 ${tone}`}
+                    className={`qaz-option ${tone}`}
                   >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#c9a86a]/30 font-mono text-14 text-[#c9a86a]" style={{ fontFamily: "'Noto Serif SC', 'Songti SC', serif" }}>
+                    <span className="qaz-seal" style={{ fontFamily: "'Noto Serif SC', 'Songti SC', serif" }}>
                       {甲乙丙丁[i]}
                     </span>
-                    <span className="leading-7">{option}</span>
+                    <span className="qaz-optionText">{option}</span>
                   </button>
                 );
               })}
             </div>
           </fieldset>
-          <div className="flex h-12 items-center">
+          <div className="qaz-footer">
             {picked !== null ? (
               <button
                 type="button"
                 onClick={advance}
                 autoFocus
                 data-quiz-next
-                className="rounded-lg border border-[#c9a86a]/40 bg-[#1d1910] px-6 py-2.5 text-13 text-[#e8d5a4] transition-all hover:border-[#c9a86a]/80 hover:bg-[#262115]"
+                className="qaz-next"
               >
                 {index + 1 >= total ? '结算灯廊' : '点亮下一盏灯'} →
               </button>
             ) : (
-              <p className="font-mono text-10 text-[#6f6a58]">回声有自己的年份，只是你没听见。</p>
+              <p className="qaz-hint">回声有自己的年份，只是你没听见。</p>
             )}
           </div>
         </section>
       ) : (
-        <section className="relative mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center gap-6 px-6 py-10 text-center" aria-live="polite" data-quiz-verdict-root>
+        <section className="qaz-verdict" aria-live="polite" data-quiz-verdict-root>
           <BigLantern lit={score} total={total} />
-          <p className="font-mono text-10 uppercase tracking-[0.3em] text-[#c9a86a]/80">FINAL TALLY</p>
-          <h2 className="text-[56px] font-semibold leading-none text-[#f5edd9]" style={{ fontFamily: "'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif" }} data-quiz-verdict-title>
+          <p className="qaz-family">FINAL TALLY</p>
+          <h2 className="qaz-verdictTitle" style={{ fontFamily: "'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif" }} data-quiz-verdict-title>
             {verdict.title}
           </h2>
-          <p className="max-w-md text-14 leading-7 text-[#c9c2a8]">{verdict.line}</p>
-          <p className="font-mono text-12 text-[#c9a86a]">点亮 {score} / {total} 盏灯</p>
-          <ol className="max-h-56 w-full max-w-lg space-y-1.5 overflow-y-auto pr-1 text-left">
+          <p className="qaz-verdictLine">{verdict.line}</p>
+          <p className="qaz-tally">点亮 {score} / {total} 盏灯</p>
+          <ol className="qaz-recap">
             {rounds.map((r, i) => {
               const ok = marks[i] === 'right';
               return (
-                <li key={r.id} className="flex items-start gap-3 rounded-lg border border-[#241f14] bg-[#100e09]/80 px-3 py-2" data-quiz-recap={i}>
-                  <span className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-10 ${ok ? 'border-[#c9a86a]/60 text-[#e8d5a4]' : 'border-[#5a2b2b] text-[#c98f8f]'}`}>
+                <li key={r.id} className="qaz-recapItem" data-quiz-recap={i}>
+                  <span className={`qaz-recapMark ${ok ? 'qaz-recapMarkRight' : 'qaz-recapMarkWrong'}`}>
                     {ok ? '✓' : '✗'}
                   </span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-12 text-[#d8cfb6]">{truncate(r.prompt, 64)}</span>
-                    <span className="mt-0.5 block font-mono text-10 text-[#6f6a58]">出自「{r.sourceTitle.slice(0, 24)}{r.sourceTitle.length > 24 ? '…' : ''}」 · {ok ? '你记得' : '这盏没认出'}</span>
+                  <span className="qaz-recapBody">
+                    <span className="qaz-recapPrompt">{truncate(r.prompt, 64)}</span>
+                    <span className="qaz-recapSource">出自「{r.sourceTitle.slice(0, 24)}{r.sourceTitle.length > 24 ? '…' : ''}」 · {ok ? '你记得' : '这盏没认出'}</span>
                   </span>
                 </li>
               );
             })}
           </ol>
-          <div className="flex flex-wrap items-center gap-3">
-            <button type="button" onClick={replay} data-quiz-replay className="rounded-lg border border-[#c9a86a]/45 bg-[#1d1910] px-6 py-2.5 text-13 text-[#e8d5a4] transition-colors hover:border-[#c9a86a]/85">再入谜灯馆</button>
-            <Link href={`/world/${projectId}/almanac`} className="rounded-lg border border-[#2c2820] px-6 py-2.5 text-13 text-[#a89f85] transition-colors hover:border-[#3a3424] hover:text-[#e8e3d3]">回藏经阁 →</Link>
+          <div className="qaz-actions">
+            <button type="button" onClick={replay} data-quiz-replay className="qaz-next">再入谜灯馆</button>
+            <Link href={`/world/${projectId}/almanac`} className="qaz-ghostLink">回藏经阁 →</Link>
           </div>
         </section>
       )}

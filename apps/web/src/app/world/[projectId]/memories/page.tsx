@@ -48,51 +48,51 @@ export default async function MemoriesPage({ params }: { params: Promise<{ proje
     : [];
 
   return (
-    <main className="min-h-dvh bg-[#070a14] px-6 py-10 text-[#e8eaed]" data-memories-root>
-      <header className="mx-auto flex max-w-3xl flex-wrap items-end justify-between gap-4">
+    <main className="mem-root" data-memories-root>
+      <header className="mem-head">
         <div>
-          <p className="font-mono text-10 uppercase tracking-[0.22em] text-[#8b95ff]">MEMORIES · {project.name}</p>
-          <h1 className="mt-2 text-[var(--nexus-font-size-34)] font-bold leading-tight text-[#eef0ff]">记忆回廊</h1>
-          <p className="mt-3 text-14 leading-6 text-[#aab2d8]">
-            世界里被刻下来的回声。每一条都来自真实条目的 <code className="rounded bg-[#111737] px-1 font-mono text-10 text-[#a8e3ff]">memory</code> 字段——不是梗概，不是人设，是一句"你在场时听到了什么"。
+          <p className="mem-kicker">MEMORIES · {project.name}</p>
+          <h1 className="mem-title">记忆回廊</h1>
+          <p className="mem-lede">
+            世界里被刻下来的回声。每一条都来自真实条目的 <code className="mem-code">memory</code> 字段——不是梗概，不是人设，是一句"你在场时听到了什么"。
           </p>
         </div>
-        <nav className="flex flex-wrap items-center gap-2" aria-label="世界子页导航">
-          <a href={`/world/${projectId}/almanac`} className="rounded-md border border-[#232b52] bg-[#0d1230]/70 px-3 py-1.5 text-11 text-[#c6cdf5] transition-colors hover:border-[#3a4472] hover:text-white">世界藏经阁</a>
-          <a href={`/world/${projectId}/atlas`} className="rounded-md border border-[#232b52] bg-[#0d1230]/70 px-3 py-1.5 text-11 text-[#c6cdf5] transition-colors hover:border-[#3a4472] hover:text-white">寰宇图志</a>
-          <a href={`/world/${projectId}/chronicle`} className="rounded-md border border-[#232b52] bg-[#0d1230]/70 px-3 py-1.5 text-11 text-[#c6cdf5] transition-colors hover:border-[#3a4472] hover:text-white">世界编年</a>
-          <a href={`/world/${projectId}/constellation`} className="rounded-md border border-[#232b52] bg-[#0d1230]/70 px-3 py-1.5 text-11 text-[#c6cdf5] transition-colors hover:border-[#3a4472] hover:text-white">角色星图</a>
-          <a href={`/world/${projectId}/quiz`} className="rounded-md border border-[#3a2f17] bg-[#1a1610]/70 px-3 py-1.5 text-11 text-[#e8d5a4] transition-colors hover:border-[#c9a86a]/60 hover:text-[#f5edd9]">谜灯馆</a>
+        <nav className="world-nav" aria-label="世界子页导航">
+          <a href={`/world/${projectId}/almanac`} className="world-navLink">世界藏经阁</a>
+          <a href={`/world/${projectId}/atlas`} className="world-navLink">寰宇图志</a>
+          <a href={`/world/${projectId}/chronicle`} className="world-navLink">世界编年</a>
+          <a href={`/world/${projectId}/constellation`} className="world-navLink">角色星图</a>
+          <a href={`/world/${projectId}/quiz`} className="world-navLink world-navLinkQuiz">谜灯馆</a>
         </nav>
       </header>
 
       {entries.length === 0 ? (
-        <div className="mx-auto mt-10 max-w-3xl rounded-xl border border-[#1e2647] bg-[#0d1230]/60 p-8 text-center" data-memories-empty>
-          <p className="text-16 text-[#d6dbf5]">还没有被刻下的回声。</p>
-          <p className="mt-2 text-13 text-[#8b95ff]/70">去 Studio 的世界面板，给 story / history 条目写一刻 memory——世界就会在此处低声复述它。</p>
+        <div className="mem-empty" data-memories-empty>
+          <p className="mem-emptyTitle">还没有被刻下的回声。</p>
+          <p className="mem-emptyCopy">去 Studio 的世界面板，给 story / history 条目写一刻 memory——世界就会在此处低声复述它。</p>
         </div>
       ) : (
-        <ol className="mx-auto mt-10 flex max-w-3xl flex-col gap-6">
+        <ol className="mem-list">
           {entries.map((entry) => (
             <li
               key={entry.id}
-              className="group relative rounded-xl border border-[#1e2647] bg-[#0d1230]/80 p-5 pl-6 transition-colors hover:border-[#3a4472]"
+              className="mem-item"
               data-memories-entry={entry.id}
             >
               <span
                 aria-hidden="true"
-                className="absolute left-0 top-5 h-[calc(100%-2.5rem)] w-1 rounded-r bg-gradient-to-b from-[#5b6cff] via-[#8b95ff] to-[#22d3ee]"
+                className="mem-pin"
               />
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <div className="flex flex-wrap items-baseline gap-3">
-                  <span className="font-mono text-10 uppercase tracking-[0.18em] text-[#8b95ff]" data-memories-era>{entry.era}</span>
-                  <span className="font-mono text-10 text-[#22d3ee]/70" data-memories-kind>{entry.kindLabel}</span>
+              <div className="mem-row">
+                <div className="mem-rowMeta">
+                  <span className="mem-era" data-memories-era>{entry.era}</span>
+                  <span className="mem-kind" data-memories-kind>{entry.kindLabel}</span>
                 </div>
-                <time className="font-mono text-10 text-[#8b95ff]/60" dateTime={entry.updatedAt}>{entry.updatedAt.slice(0, 10)}</time>
+                <time className="mem-when" dateTime={entry.updatedAt}>{entry.updatedAt.slice(0, 10)}</time>
               </div>
-              <p className="mt-2 text-16 font-medium leading-7 text-[#eef0ff]">{entry.title}</p>
+              <p className="mem-entryTitle">{entry.title}</p>
               {entry.memory ? (
-                <blockquote className="mt-3 border-l-2 border-[#5b6cff]/40 pl-4 text-15 italic leading-7 text-[#dde2ff]" data-memories-quote>“{entry.memory}”</blockquote>
+                <blockquote className="mem-quote" data-memories-quote>“{entry.memory}”</blockquote>
               ) : null}
             </li>
           ))}

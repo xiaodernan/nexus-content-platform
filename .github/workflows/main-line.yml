@@ -144,6 +144,17 @@ jobs:
           --health-interval 5s
           --health-timeout 3s
           --health-retries 20
+      # The domain service's Redis health indicator contributes to /actuator/health; a host with
+      # nothing on 56379 makes the aggregate DOWN (503) even though the datasource is fine.
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 56379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
     steps:
       - uses: actions/checkout@v4
         with:

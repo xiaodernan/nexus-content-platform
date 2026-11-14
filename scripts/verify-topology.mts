@@ -121,6 +121,19 @@ function execFileSyncSafe(cmd: string, args: string[], cwd: string) {
 }
 
 /** Wait until a URL answers with the status we want, or the deadline passes. Polls every 2s. */
+/** Print the last `lines` of a spawned service's log so CI gets the boot story, not a bare timeout. */
+function dumpLogTail(name: string, lines = 40): void {
+  const log = path.join(LOG_DIR, `${name}.log`);
+  try {
+    const text = readFileSync(log, 'utf8');
+    const tail = text.trimEnd().split('\n').slice(-lines);
+    console.error(`${DENY} ---- tail of ${name}.log (${tail.length} lines) ----`);
+    for (const line of tail) console.error(`   ${line}`);
+  } catch {
+    console.error(`${DENY} (no log readable at ${log})`);
+  }
+}
+
 async function waitFor(label: string, url: string, want = 200, deadlineMs = 90_000) {
   const start = Date.now();
   let last = 'no response';
@@ -217,6 +230,7 @@ async function main() {
   const registry = spawnJar('registry', registryJar, { NEXUS_REGISTRY_PORT: String(REGISTRY_PORT) });
   services.push({ name: 'registry', child: registry });
   if (!(await waitFor('registry', `http://127.0.0.1:${REGISTRY_PORT}/eureka/apps`, 200))) {
+    dumpLogTail('registry');
     await cleanup();
     process.exit(1);
   }
@@ -228,6 +242,7 @@ async function main() {
   const configServer = spawnJar('nexus-config', configJar, { NEXUS_CONFIG_PORT: String(CONFIG_PORT) });
   services.push({ name: 'nexus-config', child: configServer });
   if (!(await waitFor('nexus-config', `http://127.0.0.1:${CONFIG_PORT}/actuator/health`, 200))) {
+    dumpLogTail('nexus-config');
     await cleanup();
     process.exit(1);
   }
@@ -250,6 +265,7 @@ async function main() {
   });
   services.push({ name: 'domain-service', child: domain });
   if (!(await waitFor('domain-service', `http://127.0.0.1:${DOMAIN_PORT}/actuator/health`, 200, 150_000))) {
+    dumpLogTail('domain-service');
     await cleanup();
     process.exit(1);
   }
@@ -298,6 +314,7 @@ async function main() {
   });
   services.push({ name: 'nexus-api', child: api });
   if (!(await waitFor('nexus-api', `http://127.0.0.1:${API_PORT}/actuator/health`, 200, 150_000))) {
+    dumpLogTail('nexus-api');
     await cleanup();
     process.exit(1);
   }
@@ -312,6 +329,7 @@ async function main() {
   });
   services.push({ name: 'gateway', child: gateway });
   if (!(await waitFor('gateway', `http://127.0.0.1:${GATEWAY_PORT}/platform/health`, 200))) {
+    dumpLogTail('gateway');
     await cleanup();
     process.exit(1);
   }

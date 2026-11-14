@@ -138,34 +138,34 @@ export default async function AtlasPage({
   const selected = pins.find((p) => p.id === pinParam) ?? pins[0];
 
   return (
-    <main className="min-h-dvh bg-[#070a14] px-6 py-8 text-[#e8eaed]" data-atlas-root>
-      <header className="mx-auto flex max-w-6xl flex-wrap items-end justify-between gap-4">
+    <main className="atl-root" data-atlas-root>
+      <header className="atl-head">
         <div>
-          <p className="font-mono text-10 uppercase tracking-[0.22em] text-[#8b95ff]">ATLAS · {project.name}</p>
-          <h1 className="mt-2 text-[var(--nexus-font-size-34)] font-bold leading-tight text-[#eef0ff]">寰宇图志</h1>
-          <p className="mt-2 max-w-xl text-13 leading-6 text-[#aab2d8]">
+          <p className="atl-kicker">ATLAS · {project.name}</p>
+          <h1 className="atl-title">寰宇图志</h1>
+          <p className="atl-lede">
             世界里的空间与势力，在一张夜图上星火对峙。位置由黄金角螺旋确定——同一份世界文档，每一次都摊开同一张图。
           </p>
         </div>
-        <nav className="flex flex-wrap items-center gap-2" aria-label="世界子页导航">
-          <Link href={`/world/${projectId}/almanac`} className="rounded-md border border-[#232b52] bg-[#0d1230]/70 px-3 py-1.5 text-11 text-[#c6cdf5] transition-colors hover:border-[#3a4472] hover:text-white">世界藏经阁</Link>
-          <Link href={`/world/${projectId}`} className="rounded-md border border-[#232b52] bg-[#0d1230]/70 px-3 py-1.5 text-11 text-[#c6cdf5] transition-colors hover:border-[#3a4472] hover:text-white">世界步行</Link>
-          <Link href={`/world/${projectId}/constellation`} className="rounded-md border border-[#232b52] bg-[#0d1230]/70 px-3 py-1.5 text-11 text-[#c6cdf5] transition-colors hover:border-[#3a4472] hover:text-white">角色星图</Link>
-          <Link href={`/world/${projectId}/chronicle`} className="rounded-md border border-[#232b52] bg-[#0d1230]/70 px-3 py-1.5 text-11 text-[#c6cdf5] transition-colors hover:border-[#3a4472] hover:text-white">世界编年</Link>
-          <Link href={`/world/${projectId}/memories`} className="rounded-md border border-[#232b52] bg-[#0d1230]/70 px-3 py-1.5 text-11 text-[#c6cdf5] transition-colors hover:border-[#3a4472] hover:text-white">记忆回廊</Link>
-          <Link href={`/world/${projectId}/quiz`} className="rounded-md border border-[#3a2f17] bg-[#1a1610]/70 px-3 py-1.5 text-11 text-[#e8d5a4] transition-colors hover:border-[#c9a86a]/60 hover:text-[#f5edd9]">谜灯馆</Link>
+        <nav className="world-nav" aria-label="世界子页导航">
+          <Link href={`/world/${projectId}/almanac`} className="world-navLink">世界藏经阁</Link>
+          <Link href={`/world/${projectId}`} className="world-navLink">世界步行</Link>
+          <Link href={`/world/${projectId}/constellation`} className="world-navLink">角色星图</Link>
+          <Link href={`/world/${projectId}/chronicle`} className="world-navLink">世界编年</Link>
+          <Link href={`/world/${projectId}/memories`} className="world-navLink">记忆回廊</Link>
+          <Link href={`/world/${projectId}/quiz`} className="world-navLink world-navLinkQuiz">谜灯馆</Link>
         </nav>
       </header>
 
       {pins.length === 0 ? (
-        <div className="mx-auto mt-10 max-w-3xl rounded-xl border border-[#1e2647] bg-[#0d1230]/60 p-8 text-center" data-atlas-empty>
-          <p className="text-16 text-[#d6dbf5]">这片夜空还是空白。</p>
-          <p className="mt-2 text-13 text-[#8b95ff]/70">去 Studio 的世界面板建立地理（geography）或势力（factions）条目，它们就会在此升起。</p>
+        <div className="atl-empty" data-atlas-empty>
+          <p className="atl-emptyTitle">这片夜空还是空白。</p>
+          <p className="atl-emptyCopy">去 Studio 的世界面板建立地理（geography）或势力（factions）条目，它们就会在此升起。</p>
         </div>
       ) : (
-        <div className="mx-auto mt-6 flex max-w-6xl flex-col gap-6 lg:flex-row">
-          <figure className="flex-1 overflow-hidden rounded-2xl border border-[#1e2647] bg-[#0b0f24]">
-            <svg viewBox={`0 0 ${W} ${H}`} role="group" aria-label="寰宇图志夜图" className="block h-auto w-full" data-atlas-svg>
+        <div className="atl-layout">
+          <figure className="atl-map">
+            <svg viewBox={`0 0 ${W} ${H}`} role="group" aria-label="寰宇图志夜图" className="atl-svg" data-atlas-svg>
               <defs>
                 <radialGradient id="atlas-sky" cx="50%" cy="42%" r="75%">
                   <stop offset="0%" stopColor="#131a3d" />
@@ -227,9 +227,9 @@ export default async function AtlasPage({
                     data-atlas-kind={pin.kind}
                     aria-pressed={isSelected ? true : false}
                     aria-label={`${pin.kindLabel}：${pin.title}`}
-                    className="outline-none"
+                    className="atl-pinLink"
                   >
-                    <g transform={`translate(${p.x} ${p.y})`} filter="url(#pin-glow)" className="cursor-pointer">
+                    <g transform={`translate(${p.x} ${p.y})`} filter="url(#pin-glow)" className="atl-pinGlyph">
                       {isGeo ? (
                         <>
                           <circle r={isSelected ? 11 : 8.5} fill="#0e1434" stroke={ring} strokeWidth={isSelected ? 2.4 : 1.6} />
@@ -242,26 +242,26 @@ export default async function AtlasPage({
                         </>
                       )}
                     </g>
-                    <text x={p.x} y={p.y + (isGeo ? 22 : 24)} textAnchor="middle" fill={isSelected ? '#eef0ff' : '#aab2d8'} fontSize="10.5" fontFamily="var(--nexus-font-sans, system-ui)" className="select-none">
+                    <text x={p.x} y={p.y + (isGeo ? 22 : 24)} textAnchor="middle" fill={isSelected ? '#eef0ff' : '#aab2d8'} fontSize="10.5" fontFamily="var(--nexus-font-sans, system-ui)" className="atl-pinLabel">
                       {pin.title.length > 9 ? `${pin.title.slice(0, 9)}…` : pin.title}
                     </text>
                   </a>
                 );
               })}
             </svg>
-            <figcaption className="flex flex-wrap items-center justify-between gap-3 border-t border-[#1e2647] bg-[#0b0f24] px-5 py-3 font-mono text-10 text-[#8b95ff]/80">
+            <figcaption className="atl-caption">
               <span>{geography.length} 地理 · {factions.length} 势力 · 黄金角 {GOLDEN_ANGLE}°</span>
-              <span className="flex items-center gap-4"><span className="inline-flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded-full border border-[#8b95ff]" />地理</span><span className="inline-flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rotate-45 border border-[#f0b35a]" />势力</span><span className="inline-flex items-center gap-1.5"><span className="inline-block h-0.5 w-5 bg-[#6f7bf5]/60" />灵脉</span></span>
+              <span className="atl-legend"><span className="atl-legendItem"><span className="atl-dotGeo" />地理</span><span className="atl-legendItem"><span className="atl-dotFaction" />势力</span><span className="atl-legendItem"><span className="atl-legendLine" />灵脉</span></span>
             </figcaption>
           </figure>
 
-          <aside className="flex w-full flex-col gap-4 lg:w-[360px]">
-            <section className="rounded-2xl border border-[#1e2647] bg-[#0d1230]/70 p-4" data-atlas-ledger>
-              <div className="mb-3 flex items-baseline justify-between">
-                <h2 className="font-mono text-10 uppercase tracking-[0.2em] text-[#8b95ff]">星位名录</h2>
-                <span className="font-mono text-10 text-[#8b95ff]/60">{pins.length} 座</span>
+          <aside className="atl-aside">
+            <section className="atl-panel" data-atlas-ledger>
+              <div className="atl-panelHead">
+                <h2 className="atl-panelTitle">星位名录</h2>
+                <span className="atl-panelCount">{pins.length} 座</span>
               </div>
-              <div className="max-h-64 space-y-1.5 overflow-y-auto pr-1">
+              <div className="atl-ledgerList">
                 {pins.map((pin) => {
                   const isSelected = selected && selected.id === pin.id;
                   return (
@@ -270,26 +270,26 @@ export default async function AtlasPage({
                       href={`/world/${projectId}/atlas?pin=${encodeURIComponent(pin.id)}`}
                       data-atlas-ledger-row={pin.id}
                       aria-current={isSelected ? 'true' : undefined}
-                      className={`flex items-center gap-2.5 rounded-lg border px-2.5 py-2 text-left transition-colors ${isSelected ? 'border-[#2e3a75] bg-[#141b45]' : 'border-transparent hover:border-[#232b52] hover:bg-[#101636]'}`}
+                      className={`atl-ledgerRow${isSelected ? ' atl-ledgerRowOn' : ''}`}
                     >
-                      <span className={`font-mono text-10 uppercase tracking-wider ${pin.kind === 'geography' ? 'text-[#8b95ff]' : 'text-[#f0b35a]'}`}>{pin.kindLabel}</span>
-                      <span className="truncate text-12 text-[#dde2ff]">{pin.title}</span>
+                      <span className={pin.kind === 'geography' ? 'atl-ledgerKindGeo' : 'atl-ledgerKindFaction'}>{pin.kindLabel}</span>
+                      <span className="atl-ledgerTitle">{pin.title}</span>
                     </a>
                   );
                 })}
               </div>
             </section>
 
-            <section className="rounded-2xl border border-[#1e2647] bg-[#0d1230]/70 p-5" data-atlas-detail aria-live="polite">
+            <section className="atl-detail" data-atlas-detail aria-live="polite">
               {selected ? (
                 <>
-                  <p className="font-mono text-10 uppercase tracking-[0.2em] text-[#22d3ee]">{selected.kindLabel} 志</p>
-                  <h3 className="mt-2 text-20 font-semibold leading-snug text-[#eef0ff]">{selected.title}</h3>
-                  {selected.body ? <p className="mt-3 text-14 leading-7 text-[#c9ceef]">{selected.body}</p> : <p className="mt-3 text-13 text-[#8b95ff]/60">（无题志——去 Studio 补一句。）</p>}
-                  <p className="mt-4 border-t border-[#1e2647] pt-3 font-mono text-10 text-[#8b95ff]/60">记录于 {selected.updatedAt.slice(0, 10)}</p>
+                  <p className="atl-detailKind">{selected.kindLabel} 志</p>
+                  <h3 className="atl-detailTitle">{selected.title}</h3>
+                  {selected.body ? <p className="atl-detailBody">{selected.body}</p> : <p className="atl-detailEmpty">（无题志——去 Studio 补一句。）</p>}
+                  <p className="atl-detailMeta">记录于 {selected.updatedAt.slice(0, 10)}</p>
                 </>
               ) : (
-                <p className="text-13 text-[#8b95ff]/60">选择一颗星位。</p>
+                <p className="atl-detailEmpty">选择一颗星位。</p>
               )}
             </section>
           </aside>
