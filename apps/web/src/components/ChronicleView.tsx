@@ -91,6 +91,9 @@ function ChronicleCard({ entry, eraIndex, entryIndex, eras }: { entry: Chronicle
         ) : null}
       </div>
       <p className="mt-1.5 text-13 font-medium leading-5 text-[#eef0ff]">{entry.title}</p>
+      {entry.memory ? (
+        <p className="mt-1 border-l-2 border-[#5b6cff]/40 pl-2 text-11 italic leading-4 text-[#b9bef0]" data-chronicle-memory>{entry.memory}</p>
+      ) : null}
       <time className="mt-1 block font-mono text-10 text-[#8b95ff]/60" dateTime={entry.updatedAt}>
         {entry.updatedAt.slice(0, 10)}
       </time>

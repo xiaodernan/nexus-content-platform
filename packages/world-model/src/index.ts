@@ -26,6 +26,8 @@ export const WORLD_KINDS = [
 export interface WorldNodeLore {
   era?: string;
   order?: number;
+  /** 一段简短的感官记忆：声音 / 味道 / 触感 / 光线——不是剧情梗概，是"那一刻"。可选，≤ 240 字 */
+  memory?: string;
 }
 
 export type WorldKind = (typeof WORLD_KINDS)[number];
@@ -672,6 +674,21 @@ export function validateWorld(document: WorldDocument): WorldIssue[] {
           issues.push({
             code: "bad-lore",
             message: `条目「${node.title || node.id}」的 order 不是非负整数`,
+            nodeId: node.id,
+          });
+        }
+      }
+      if (lore.memory !== undefined) {
+        if (typeof lore.memory !== "string" || lore.memory.trim().length === 0) {
+          issues.push({
+            code: "bad-lore",
+            message: `条目「${node.title || node.id}」有一段记忆回声，但它是空的——要么不写，要么写满`,
+            nodeId: node.id,
+          });
+        } else if (lore.memory.trim().length > 240) {
+          issues.push({
+            code: "bad-lore",
+            message: `条目「${node.title || node.id}」的记忆回声超过 240 字`,
             nodeId: node.id,
           });
         }

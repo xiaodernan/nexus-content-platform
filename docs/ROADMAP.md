@@ -12094,3 +12094,15 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   in-era sequencing (1/2, 2/2) plus an honest empty-width right lane.
 - Verification: 29/29 unit (worldLore + chronicle + world-model), tsc 0, direct eslint 0,
   record-encoding green; arms-freshness green.
+## v705.3 - world chronicle gains memory echoes (2026-11-14, ADR 0136 amendment, cont. 100)
+
+- WorldNode.lore gains `memory?: string` (<= 240 chars, optional). Purely additive: old
+  documents unchanged byte-wise; zod WorldNodeSchema carries the same optional field;
+  validateWorld enforces non-empty-if-present and the 240-char cap (bad-lore on violation).
+- chronicle.ts projects it (cap 240); Studio world panel gains one input row per story/history
+  node (data-world-memory) with the same patchLore merge path as era/order.
+- Chronicle entry cards render the echo as a bordered italic line under the title; empty -> not drawn.
+- Verified end-to-end on the seeded fixture (project 1c3b87af, era already populated): PUT world
+  with memory populated on the two story/history nodes -> GET chronicle renders the echo inline.
+- Verification: 31/31 unit (worldLore + chronicle + world-model); tsc 0; eslint direct 0.
+- Docker down again this turn (7th outage today) - relaunched; nexus-postgres/redis healthy.

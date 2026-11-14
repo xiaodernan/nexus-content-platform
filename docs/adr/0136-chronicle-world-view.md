@@ -37,6 +37,7 @@
 ## 仍欠（诚实记录）
 
 1. ~~Studio 还没有 lore 的编辑入口~~——v705.2（cont. 99）已落地：story/history 条目在 Studio 世界面板获得「纪元 + 序」编辑行（`data-world-era` / `data-world-order`），经 `patchLore` 合并后写库；`lore: undefined` 整片摘掉（字节级回老文档）；validateWorld / zod 全链路保持空缺省。
+2. ~~「记忆回声」没有~~——v705.3（cont. 100）已落地：story/history 条目获得「记忆回声」单行字段（≤ 240 字，纯感官刻痕，不是剧情梗概）；栏内编辑行 + chronicle 卡片左侧竖线的 italic 渲染；GET/PUT 往返保留；seeded 实测证据（见 cont. 100 与本轮截图）。
 2. 同纪元跨日期顺序靠 order 手工标：不写 order 的条目按 updatedAt 兜底，会让"写错日期"的账也对
    （这是规格，不是缺陷；文档在 lib/chronicle.ts 注释里说过了）。
 3. 未做横向年表的无限滚动 / 虚拟化 —— 500 条 story/history 以上时页面会一次性挂载（同角色上限

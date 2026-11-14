@@ -21,6 +21,7 @@ export interface ChronicleEntry {
   kindLabel: string;
   era: string;          // 归一化后的纪元名（空白/未设置 → UNLABELED_ERA）
   order: number;        // 归一化序号（缺省 = MAX）
+  memory?: string;      // 记忆回声，可选
   updatedAt: string;
 }
 
@@ -37,7 +38,7 @@ export interface ChronicleNodeInput {
   kind: string;
   title: string;
   updatedAt: string;
-  lore?: { era?: string; order?: number };
+  lore?: { era?: string; order?: number; memory?: string };
 }
 
 const CHRONICLE_KINDS: ReadonlySet<string> = new Set(['story', 'history']);
@@ -56,6 +57,7 @@ export function buildChronicle(nodes: readonly ChronicleNodeInput[]): ChronicleE
     const lore = node.lore;
     const eraRaw = typeof lore?.era === 'string' ? lore.era.trim() : '';
     const order = lore && Number.isInteger(lore.order) && (lore.order as number) >= 0 ? (lore.order as number) : MAX_ORDER;
+    const memoryRaw = typeof lore?.memory === 'string' ? lore.memory.trim() : '';
     valid.push({
       id: node.id,
       title: node.title.trim(),
@@ -63,6 +65,7 @@ export function buildChronicle(nodes: readonly ChronicleNodeInput[]): ChronicleE
       kindLabel: WORLD_KIND_LABELS[kind] ?? kind,
       era: eraRaw === '' ? UNLABELED_ERA : eraRaw,
       order,
+      ...(memoryRaw ? { memory: memoryRaw.slice(0, 240) } : {}),
       updatedAt: node.updatedAt,
     });
   }

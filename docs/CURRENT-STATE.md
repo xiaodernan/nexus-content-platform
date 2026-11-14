@@ -2809,3 +2809,16 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   nexus-postgres/redis healthy; sibling 3100/3200 not touched.
 - CI: 2917d5c both SUCCESS; 51f07b0 main-line SUCCESS, CI queued; dc20411 queued at record
   time - do not claim green until the runner finishes.
+## cont. 100 (2026-11-14) - v705.3 landed: memory echoes in the world chronicle
+
+- Lore gained `memory?: string` (<= 240 chars, optional). Purely additive; old documents
+  byte-compatible; zod/validateWorld carry the same optional field with 3 guardrails (trim, cap,
+  bad-lore on violation).
+- chronicle.ts projects the memory through to cards; the Studio panel gains the one input row
+  per story/history node with the same patchLore merge path.
+- Seeded on the fixture project: verified both entries render the echo with bordered italic lines;
+  the PUT->GET roundtrip is exact; live screenshot captured.
+- Gates: 31/31 unit, tsc 0, per-file direct eslint 0, record-encoding OK, arms-freshness OK.
+- Docker Desktop down again this host today (7th); relaunched, healthy.
+- CI: 51f07b0, 2917d5c, 4d67a2b, 95dbf12, 7fb3c91, 846dec5, 475ff76, dc20411 all double-green;
+  9cd48bc double-green; do not claim until runner confirms.

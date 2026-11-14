@@ -210,6 +210,7 @@ export function WorldPanel() {
                       className="mt-1 w-full resize-y rounded-[3px] bg-bg-1 px-1 py-[2px] text-12 leading-relaxed text-fg-1 outline-none focus:bg-bg-3"
                     />
                     {node.kind === 'story' || node.kind === 'history' ? (
+                      <>
                       <div className="mt-1 flex items-center gap-1" data-world-lore-row={node.id}>
                         <label htmlFor={`world-era-${node.id}`} className="shrink-0 text-11 text-fg-3">纪元</label>
                         <input
@@ -246,6 +247,21 @@ export function WorldPanel() {
                         />
                         <span className="text-10 text-fg-3">0 最早，缺省按 updatedAt 排</span>
                       </div>
+                      <input
+                        type="text"
+                        value={node.lore?.memory ?? ''}
+                        maxLength={240}
+                        placeholder="记忆回声：那一刻的感官（声音 / 味道 / 触感 / 光线）—— 不是剧情，是刻痕"
+                        aria-label={`记忆回声 ${node.title}`}
+                        data-world-memory={node.id}
+                        onChange={(e) => {
+                          const merged = patchLore(node.lore, { memory: e.target.value });
+                          edit(updateWorldNode(world, node.id, { lore: merged }));
+                        }}
+                        onBlur={() => edit(world, true)}
+                        className="mt-1 w-full rounded-[3px] bg-bg-1 px-1 py-[2px] text-11 text-fg-2 outline-none placeholder:text-fg-3 focus:bg-bg-3"
+                      />
+                      </>
                     ) : null}
                     <div className="mt-1 flex items-center gap-1">
                       <label htmlFor={`world-elevation-${node.id}`} className="shrink-0 text-11 text-fg-3">

@@ -34,4 +34,14 @@ describe('patchLore', () => {
     expect(patchLore({ order: -3 }, {})).toBeNull();
     expect(patchLore({ order: 1.5 }, {})).toBeNull();
   });
+
+  it('memory：空串摘掉，保留 era/order；超长截断到 240', () => {
+    expect(patchLore({ era: '灰灯纪' }, { memory: '' })).toEqual({ era: '灰灯纪' });
+    expect(patchLore(undefined, { memory: 'x'.repeat(600) })?.memory).toHaveLength(240);
+  });
+
+  it('memory 半合并：只补 memory 时 era/order 保留；全摘 → null', () => {
+    expect(patchLore({ era: '灰烬纪', order: 1 }, { memory: '雪停了' })).toEqual({ era: '灰烬纪', order: 1, memory: '雪停了' });
+    expect(patchLore({ memory: 'x' }, { memory: '   ' })).toBeNull();
+  });
 });
