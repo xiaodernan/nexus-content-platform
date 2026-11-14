@@ -13722,3 +13722,32 @@ Amendment 2 的「Studio 内联没接」补上了：`CommandBar` 生成结果行
   (3df1a14c-8981-4455-936d-186238e40c78) -> tokensIn 28240 / cached 20842 / hitRate 73.8% / turns 3;
   stranger actor and bad id both -> null.
 - Pixel-level render NOT verified here (browser capture unavailable) - see ADR 0131 sec. remaining.
+
+## v699-fix (2026-11-14 cont.) — 并轨后门面化 + SSR 判据 + 双 SHA 重钉（ddfe91a9 / 45a22033）
+
+并轨产物本身是全裸 arbitrary atoms（rounded-2xl · text-gradient-brand · text-10 · tracking-[0.18em] ·
+shadow-[0_0_...]），按 §FE 判据不可带入主线。本线做的：
+
+- **门面化**：SavingsCard 收进 `.sv-*` 族（23 类：brand 描边卡片 + 135° 渐变表面 + 角光晕 + 大数字
+  `.sv-tokens`·与 .brand-title 同一笔渐变笔法 + brand→accent 渐变进度条 + chip 两态 + nz-fg 文字回退 ·
+  forced-colors CanvasText/Highlight/ButtonText 段 · prefers-reduced-motion 保留 transition 封印）；
+  钩子守恒（data-savings-card/tokens/share/bar/chips/chip marker 全集）。
+- **新增 §FE-SV 视觉判据**（8 门：门面类、零裸原子、类全有定义、零 hex、零新增 token、forced-colors/
+  reduced-motion 收口、数据钩子、SHA256 钉死 `f13b232f…`）。CRUCIAL：并轨产物的 `text-gradient-brand`
+  在主线不复活。
+- **真库判据** `savings-ledger.integration.test.ts`（4 条）：1 行新账（cachedTokens=700）+ 1 行 v692 前
+  旧账（直接 SQL 写缺 cachedTokens 字段的 jsonb——recordTaskUsage 会被 zod default 补 0，绕开是正确的）；
+  owner 聚合（cached≥700、tokensIn≥1000、hitRate>0、legacyRows≥1）+ stranger→null + bad uuid→null +
+  空项目 turns=0/hitRate=null（不渲染 0% 冒充）。
+- **重钉两门**：tasks-visual-style（live/page SHA 改为合并后字节 `09db66dc…`/`cae7a533…`）；
+  error-visual-style 的 `.ge-` 段切界改为按 `/* §FE-AM` 切（否则文件尾部新增段里的 background-clip
+  会误伤本片「ge- 段没有渐变墨字」的原始语义）。
+- **渲染判据升级为 SSR**（`scripts/ssr-savings-probe.mts`）：用 tsx + react-dom/server 把 SavingsCard
+  两态（empty/hot）各 SSR 输出 HTML——钩子守恒、`.sv-*` 23 个类全部在 HTML 上、字节 611/1618。**浏览器
+  像素级渲染仍未验证**——证机/并行 dev 台问题，如实保留。
+- **并轨提交图补缺**（`102bd0f0`）：024de62f 在并轨过程中被 `git stash` 打断，stash pop 后 index 重建，
+  提交成单父——并轨内容先进主线但祖先图没接上；v699 那次的内容是**真正的双父合并**（ddfe91a9：102bd0f0+8528722）。
+- census EXIT=0（119 行 + 10 runner + 1 covered + 7 deferred = 0 residue，投影拓到**两处**工作流，
+  cost-ledger 升 runner，main-line.yml gates JOB 新增一步 `verify:cost-ledger`）；
+  cache-warm 真网关复测：27344/27347（100%）×3 轮（记录 `docs/evidence/cachewarm-postmerge-2026-11-14.md`）。
+
