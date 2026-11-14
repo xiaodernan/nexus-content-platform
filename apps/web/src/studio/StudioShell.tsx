@@ -260,7 +260,7 @@ function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zo
           {tab === 'layers' ? (
             <LayersPanel locale={locale} />
           ) : tab === 'design' ? (
-            <DesignSystemPanel />
+            <DesignSystemPanel locale={locale} />
           ) : tab === 'assets' ? (
             <AssetsPanel locale={locale} />
           ) : tab === 'world' ? (

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { DEFAULT_TOKENS, syncInstanceOps, uid, type Token } from '@nexus/creative-model';
 import { cn } from '@/lib/cn';
+import type { Locale } from '@/lib/i18n';
 import { tokenUsage } from './token-usage';
 import { studio, useStudioReady } from './store';
 
@@ -12,15 +13,131 @@ import { studio, useStudioReady } from './store';
  * 所有改动都走 `studio.execute`，所以改 token 和改节点一样可撤销（§148）；
  * 面板上同时显示"有多少节点引用它"，因为删掉一个正在用的 token 会留下断链——
  * 与其让人删了再等 lint 报错，不如直接不让删。
+ * 双语（v748）：locale 由 StudioShell 透传；zh 原文原样保留，en 逐句对应。
  */
 
-const GROUPS: { types: Token['type'][]; label: string }[] = [
-  { types: ['color'], label: '颜色' },
-  { types: ['dimension'], label: '尺寸 / 间距 / 圆角' },
-  { types: ['fontFamily'], label: '字体' },
-  { types: ['shadow'], label: '阴影' },
-  { types: ['number', 'string', 'motion', 'duration', 'easing'], label: '其他' },
-];
+const COPY = {
+  zh: {
+    heading: 'Design System',
+    tokenCount: (n: number) => `${n} 个 token`,
+    add: '新增',
+    components: '组件',
+    saveAsComponent: '存为组件',
+    saveComponentTitle: (hasSelection: boolean) =>
+      hasSelection ? '把选中的元素存为主组件的根' : '先在画布上选中一个元素',
+    componentsEmpty: '还没有组件。选中一个元素后用上面那个按钮，或让 AI 生成（addComponent）。',
+    refs: (n: number) => `引用 ${n}`,
+    placeHere: '放到当前页',
+    placeTitleReady: '把这份组件复制一个实例放到当前页末尾（可撤销）',
+    placeTitleDetached: '主组件的根节点已经不在任何页面上了，放不出实例',
+    updateInstances: '更新实例',
+    updateInstancesCount: (n: number) => `更新实例 ${n}`,
+    syncTitleReady: (n: number) => `把这一页上 ${n} 个实例的复制体换成主组件现在的样子（可撤销）`,
+    syncTitleNoRefs: '还没有实例引用这份组件',
+    syncTitleElsewhere: (n: number) => `引用都在别的页面上（共 ${n} 个）；切过去才能更新那一页`,
+    delete: '删除',
+    deleteComponentTitle: '从组件目录里移出，并解开所有页面上引用它的实例（可撤销）',
+    visualDnaClear: '清除',
+    visualDnaClearTitle: '清除 Visual DNA',
+    visualDnaSource: {
+      'pixel-stats': '本地像素统计',
+      'vision-model': '视觉模型',
+      'concept-language': '概念语言',
+      unknown: '来源未知',
+    } as Record<string, string>,
+    newKeyAria: '新 token 的键',
+    newTypeAria: '新 token 的类型',
+    valueKey: '#7c5cff 或 16',
+    newValueAria: '新 token 的值',
+    badKey: 'token 名要像 color.brand / space.5 这样：小写字母开头，用点分段',
+    keyExists: (key: string) => `已经有 ${key} 这个 token`,
+    valueUnreadable: (type: string) => `按 ${type} 读不懂这个值`,
+    addToken: '加入',
+    cancel: '取消',
+    unused: '未使用',
+    usedRefs: (n: number) => `${n} 处引用`,
+    builtinProtected: '内置 token 不能删（可以改值）',
+    stillReferenced: '还有节点引用它，先解绑再删',
+    deleteToken: '删除这个 token',
+    valueAria: (key: string) => `${key} · 值`,
+    colorAria: (key: string) => `${key} · 颜色`,
+    editToken: (key: string, mode?: string) => (mode ? `修改 token ${key}（${mode}）` : `修改 token ${key}`),
+    addTokenUndo: (key: string) => `新增 token ${key}`,
+    removeTokenUndo: (key: string) => `删除 token ${key}`,
+    saveComponentUndo: (name: string) => `存为组件 ${name}`,
+    instantiateUndo: (name: string) => `放入 ${name} 实例`,
+    syncInstancesUndo: (name: string, n: number) => `更新 ${name} 的 ${n} 个实例`,
+    deleteComponentUndo: (name: string) => `删除组件 ${name}`,
+    clearDnaUndo: '清除 Visual DNA',
+    groupLabels: {
+      color: '颜色',
+      dimension: '尺寸 / 间距 / 圆角',
+      fontFamily: '字体',
+      shadow: '阴影',
+      other: '其他',
+    },
+  },
+  en: {
+    heading: 'Design System',
+    tokenCount: (n: number) => `${n} tokens`,
+    add: 'Add',
+    components: 'Components',
+    saveAsComponent: 'Save as component',
+    saveComponentTitle: (hasSelection: boolean) =>
+      hasSelection ? 'Save the selected element as the root of a master component' : 'Select an element on the canvas first',
+    componentsEmpty: 'No components yet. Select an element and use the button above, or let the AI generate one (addComponent).',
+    refs: (n: number) => `refs ${n}`,
+    placeHere: 'Place here',
+    placeTitleReady: 'Place a new instance of this component at the end of this page (undoable)',
+    placeTitleDetached: 'The master component root no longer lives on any page; no instance can be placed',
+    updateInstances: 'Update instances',
+    updateInstancesCount: (n: number) => `Update instances ${n}`,
+    syncTitleReady: (_n: number) => `Swap the clones on this page for the master component’s current shape (undoable)`,
+    syncTitleNoRefs: 'No instances reference this component yet',
+    syncTitleElsewhere: (n: number) => `All ${n} references live on other pages; switch there to update them`,
+    delete: 'Delete',
+    deleteComponentTitle: 'Remove from the component catalog and unwrap every instance referencing it (undoable)',
+    visualDnaClear: 'Clear',
+    visualDnaClearTitle: 'Clear Visual DNA',
+    visualDnaSource: {
+      'pixel-stats': 'Local pixel stats',
+      'vision-model': 'Vision model',
+      'concept-language': 'Concept language',
+      unknown: 'Unknown source',
+    } as Record<string, string>,
+    newKeyAria: 'New token key',
+    newTypeAria: 'New token type',
+    valueKey: '#7c5cff or 16',
+    newValueAria: 'Value of the new token',
+    badKey: 'Token names look like color.brand / space.5 — lowercase-first segments, dot-separated',
+    keyExists: (key: string) => `A token ${key} already exists`,
+    valueUnreadable: (type: string) => `Cannot read this value as ${type}`,
+    addToken: 'Add',
+    cancel: 'Cancel',
+    unused: 'Unused',
+    usedRefs: (n: number) => `${n} refs`,
+    builtinProtected: 'Built-in tokens cannot be deleted (change the value instead)',
+    stillReferenced: 'Nodes still reference it — unbind first, then delete',
+    deleteToken: 'Delete this token',
+    valueAria: (key: string) => `${key} · value`,
+    colorAria: (key: string) => `${key} · color`,
+    editToken: (key: string, mode?: string) => (mode ? `Edit token ${key} (${mode})` : `Edit token ${key}`),
+    addTokenUndo: (key: string) => `Add token ${key}`,
+    removeTokenUndo: (key: string) => `Remove token ${key}`,
+    saveComponentUndo: (name: string) => `Save component ${name}`,
+    instantiateUndo: (name: string) => `Place ${name} instance`,
+    syncInstancesUndo: (name: string, n: number) => `Update ${name}’s ${n} instances`,
+    deleteComponentUndo: (name: string) => `Remove component ${name}`,
+    clearDnaUndo: 'Clear Visual DNA',
+    groupLabels: {
+      color: 'Color',
+      dimension: 'Size / spacing / radii',
+      fontFamily: 'Fonts',
+      shadow: 'Shadow',
+      other: 'Other',
+    },
+  },
+} as const;
 
 const DEFAULT_KEYS = new Set(DEFAULT_TOKENS.map((t) => t.key));
 
@@ -54,7 +171,15 @@ function isColor(token: Token): boolean {
   return token.type === 'color' && typeof token.value === 'string' && /^#[0-9a-f]{3,8}$/i.test(token.value);
 }
 
-export function DesignSystemPanel() {
+export function DesignSystemPanel({ locale = 'zh' }: { locale?: Locale }) {
+  const c = COPY[locale];
+  const GROUPS: { types: Token['type'][]; label: string }[] = [
+    { types: ['color'], label: c.groupLabels.color },
+    { types: ['dimension'], label: c.groupLabels.dimension },
+    { types: ['fontFamily'], label: c.groupLabels.fontFamily },
+    { types: ['shadow'], label: c.groupLabels.shadow },
+    { types: ['number', 'string', 'motion', 'duration', 'easing'], label: c.groupLabels.other },
+  ];
   const state = useStudioReady();
   const document = state.document;
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -111,12 +236,13 @@ export function DesignSystemPanel() {
       return next;
     });
 
-  const setTokenValue = (token: Token, raw: string, mode?: string) => {    const parsed = parseInput(token.type, raw);
+  const setTokenValue = (token: Token, raw: string, mode?: string) => {
+    const parsed = parseInput(token.type, raw);
     if (parsed === null) {
       setDrafts((d) => ({ ...d, [`${token.key}|${mode ?? ''}`]: raw }));
       return;
     }
-    studio.execute(mode ? `修改 token ${token.key}（${mode}）` : `修改 token ${token.key}`, [
+    studio.execute(c.editToken(token.key, mode), [
       { op: 'setToken', key: token.key, value: parsed, ...(mode ? { mode } : {}) },
     ]);
   };
@@ -124,35 +250,35 @@ export function DesignSystemPanel() {
   const addToken = () => {
     const key = newToken.key.trim().toLowerCase();
     if (!TOKEN_KEY.test(key)) {
-      setFormError('token 名要像 color.brand / space.5 这样：小写字母开头，用点分段');
+      setFormError(c.badKey);
       return;
     }
     if (document.tokens.some((t) => t.key === key)) {
-      setFormError(`已经有 ${key} 这个 token`);
+      setFormError(c.keyExists(key));
       return;
     }
     const value = parseInput(newToken.type, newToken.value);
     if (value === null) {
-      setFormError(`按 ${newToken.type} 读不懂这个值`);
+      setFormError(c.valueUnreadable(newToken.type));
       return;
     }
     const type = newToken.type;
-    studio.execute(`新增 token ${key}`, [{ op: 'addToken', token: { key, type, value } }]);
+    studio.execute(c.addTokenUndo(key), [{ op: 'addToken', token: { key, type, value } }]);
     setFormError(null);
     setAdding(false);
     setNewToken({ key: '', type: 'color', value: '#7c5cff' });
   };
 
   const removeToken = (token: Token) => {
-    studio.execute(`删除 token ${token.key}`, [{ op: 'removeToken', key: token.key }]);
+    studio.execute(c.removeTokenUndo(token.key), [{ op: 'removeToken', key: token.key }]);
   };
 
   return (
     <div className="ds-root" data-design-system-root>
       <div className="ds-head">
-        <span className="ds-title">Design System</span>
+        <span className="ds-title">{c.heading}</span>
         <span className="ds-monoFaintM" data-token-count>
-          {document.tokens.length} 个 token
+          {c.tokenCount(document.tokens.length)}
         </span>
         <button
           type="button"
@@ -160,13 +286,13 @@ export function DesignSystemPanel() {
           data-token-add-open
           className="ds-btn"
         >
-          新增
+          {c.add}
         </button>
       </div>
 
       <section className="ds-section" data-components-section>
         <div className="ds-row2">
-          <span className="ds-label">组件</span>
+          <span className="ds-label">{c.components}</span>
           <span className="ds-mono10">{document.components.length}</span>
           <button
             type="button"
@@ -178,7 +304,7 @@ export function DesignSystemPanel() {
               if (!rootId) return;
               const root = rootOf(rootId);
               if (!root) return;
-              studio.execute(`存为组件 ${root.name}`, [
+              studio.execute(c.saveComponentUndo(root.name), [
                 {
                   op: 'addComponent',
                   component: {
@@ -194,14 +320,14 @@ export function DesignSystemPanel() {
             }}
             data-component-save
             className="ds-btnMono"
-            title={state.selection.length ? '把选中的元素存为主组件的根' : '先在画布上选中一个元素'}
+            title={c.saveComponentTitle(state.selection.length > 0)}
           >
-            存为组件
+            {c.saveAsComponent}
           </button>
         </div>
         {document.components.length === 0 ? (
           <p className="ds-monoFaintMt1" data-components-empty>
-            还没有组件。选中一个元素后用上面那个按钮，或让 AI 生成（addComponent）。
+            {c.componentsEmpty}
           </p>
         ) : (
           <ul className="ds-colMt1">
@@ -221,7 +347,7 @@ export function DesignSystemPanel() {
                     <span className="ds-trunc12" title={component.name}>
                       {component.name}
                     </span>
-                    <span className="ds-monoFaintMShrink">引用 {refs}</span>
+                    <span className="ds-monoFaintMShrink">{c.refs(refs)}</span>
                   </div>
                   {/* 动作换一行摆：这一栏宽约 280px，三个按钮加名字排不进同一行，
                       排不进去的那一个会被画布盖住——e2e 点它时不是失败而是干等到超时
@@ -236,7 +362,7 @@ export function DesignSystemPanel() {
                         // id 在客户端点名下：`instantiate` 的撤销条目要能指名道姓，
                         // 而 invertPatch 跑在 apply 之前，那时这颗实例还不存在（§150）
                         const instanceId = uid('ins');
-                        studio.execute(`放入 ${component.name} 实例`, [
+                        studio.execute(c.instantiateUndo(component.name), [
                           { op: 'instantiate', componentId: component.id, instanceId },
                         ]);
                         // 落成了才选上：viewer 只读模式下 execute 会被按下，那时不该把选区指向不存在的节点
@@ -245,44 +371,44 @@ export function DesignSystemPanel() {
                       data-component-instantiate={component.id}
                       title={
                         rootOf(component.rootId)
-                          ? '把这份组件复制一个实例放到当前页末尾（可撤销）'
-                          : '主组件的根节点已经不在任何页面上了，放不出实例'
+                          ? c.placeTitleReady
+                          : c.placeTitleDetached
                       }
                       className="ds-btnGhostMode"
                     >
-                      放到当前页
+                      {c.placeHere}
                     </button>
                     <button
                       type="button"
                       disabled={syncOps.length === 0}
                       onClick={() =>
-                        studio.execute(`更新 ${component.name} 的 ${onThisPage.length} 个实例`, syncOps)
+                        studio.execute(c.syncInstancesUndo(component.name, onThisPage.length), syncOps)
                       }
                       data-component-sync={component.id}
                       data-component-sync-count={onThisPage.length}
                       title={
                         syncOps.length > 0
-                          ? `把这一页上 ${onThisPage.length} 个实例的复制体换成主组件现在的样子（可撤销）`
+                          ? c.syncTitleReady(onThisPage.length)
                           : refs === 0
-                            ? '还没有实例引用这份组件'
-                            : `引用都在别的页面上（共 ${refs} 个）；切过去才能更新那一页`
+                            ? c.syncTitleNoRefs
+                            : c.syncTitleElsewhere(refs)
                       }
                       className="ds-btnGhostMode"
                     >
-                      更新实例{onThisPage.length > 0 ? ` ${onThisPage.length}` : ''}
+                      {onThisPage.length ? c.updateInstancesCount(onThisPage.length) : c.updateInstances}
                     </button>
                     <button
                       type="button"
                       onClick={() =>
-                        studio.execute(`删除组件 ${component.name}`, [
+                        studio.execute(c.deleteComponentUndo(component.name), [
                           { op: 'removeComponent', componentId: component.id },
                         ])
                       }
                       data-component-delete={component.id}
-                      title="从组件目录里移出，并解开所有页面上引用它的实例（可撤销）"
+                      title={c.deleteComponentTitle}
                       className="ds-btnGhostMono"
                     >
-                      删除
+                      {c.delete}
                     </button>
                   </div>
                 </li>
@@ -297,21 +423,16 @@ export function DesignSystemPanel() {
           <div className="ds-row2">
             <span className="ds-label">Visual DNA</span>
             <span className="ds-mono10">
-              {document.visualDna.source?.method === 'pixel-stats'
-                ? '本地像素统计'
-                : document.visualDna.source?.method === 'vision-model'
-                  ? '视觉模型'
-                  : document.visualDna.source?.method === 'concept-language'
-                    ? '概念语言'
-                    : '来源未知'}
+              {c.visualDnaSource[document.visualDna.source?.method ?? 'unknown'] ?? c.visualDnaSource.unknown}
             </span>
             <button
               type="button"
-              onClick={() => studio.execute('清除 Visual DNA', [{ op: 'setVisualDna', dna: null }])}
+              onClick={() => studio.execute(c.clearDnaUndo, [{ op: 'setVisualDna', dna: null }])}
               data-visual-dna-clear
               className="ds-btnGhostMonoEnd"
+              title={c.visualDnaClearTitle}
             >
-              清除
+              {c.visualDnaClear}
             </button>
           </div>
           <div className="ds-wrapMt1">
@@ -343,13 +464,13 @@ export function DesignSystemPanel() {
               onChange={(e) => setNewToken((t) => ({ ...t, key: e.target.value }))}
               placeholder="color.brand"
               data-token-new-key
-              aria-label="新 token 的键"
+              aria-label={c.newKeyAria}
               className="ds-tokenInput"
             />
             <select
               value={newToken.type}
               onChange={(e) => setNewToken((t) => ({ ...t, type: e.target.value as Token['type'] }))}
-              aria-label="新 token 的类型"
+              aria-label={c.newTypeAria}
               data-token-new-type
               className="ds-typeSelect"
             >
@@ -363,9 +484,9 @@ export function DesignSystemPanel() {
           <input
             value={newToken.value}
             onChange={(e) => setNewToken((t) => ({ ...t, value: e.target.value }))}
-            placeholder="#7c5cff 或 16"
+            placeholder={c.valueKey}
             data-token-new-value
-            aria-label="新 token 的值"
+            aria-label={c.newValueAria}
             className="ds-addTokenInput"
           />
           {formError ? (
@@ -380,7 +501,7 @@ export function DesignSystemPanel() {
               data-token-new-submit
               className="ds-accentBtnSm"
             >
-              加入
+              {c.addToken}
             </button>
             <button
               type="button"
@@ -390,7 +511,7 @@ export function DesignSystemPanel() {
               }}
               className="ds-linkBtnFaint"
             >
-              取消
+              {c.cancel}
             </button>
           </div>
         </div>
@@ -426,17 +547,17 @@ export function DesignSystemPanel() {
                           {token.key}
                         </span>
                         <span className="ds-mono10shrink" data-token-usage={token.key}>
-                          {used ? `${used} 处引用` : '未使用'}
+                          {used ? c.usedRefs(used) : c.unused}
                         </span>
                         <button
                           type="button"
                           disabled={!removable}
                           title={
                             DEFAULT_KEYS.has(token.key)
-                              ? '内置 token 不能删（可以改值）'
+                              ? c.builtinProtected
                               : used
-                                ? '还有节点引用它，先解绑再删'
-                                : '删除这个 token'
+                                ? c.stillReferenced
+                                : c.deleteToken
                           }
                           onClick={() => removeToken(token)}
                           data-token-remove={token.key}
@@ -459,7 +580,7 @@ export function DesignSystemPanel() {
                             e.stopPropagation();
                           }}
                           data-token-value={token.key}
-                          aria-label={`${token.key} · 值`}
+                          aria-label={c.valueAria(token.key)}
                           className="ds-wfullInput"
                         />
                         {isColor(token) ? (
@@ -468,7 +589,7 @@ export function DesignSystemPanel() {
                             value={/^#[0-9a-f]{6}$/i.test(String(token.value)) ? String(token.value) : '#000000'}
                             onChange={(e) => setTokenValue(token, e.target.value)}
                             data-token-color={token.key}
-                            aria-label={`${token.key} · 颜色`}
+                            aria-label={c.colorAria(token.key)}
                             className="ds-colorWell"
                           />
                         ) : null}
