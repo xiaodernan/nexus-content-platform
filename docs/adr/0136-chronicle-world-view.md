@@ -36,9 +36,7 @@
 
 ## 仍欠（诚实记录）
 
-1. Studio 还没有 lore 的编辑入口（当前只能经 `PUT /world` 写入，或由后续 Studio 面板补上）——
-   本片只落模型 + 契约 + 纯阅读面，**不**编造写入链路。下一刀：角色面板同排的世界条目编辑器
-   （加 era 输入 + order 步进器）。
+1. ~~Studio 还没有 lore 的编辑入口~~——v705.2（cont. 99）已落地：story/history 条目在 Studio 世界面板获得「纪元 + 序」编辑行（`data-world-era` / `data-world-order`），经 `patchLore` 合并后写库；`lore: undefined` 整片摘掉（字节级回老文档）；validateWorld / zod 全链路保持空缺省。
 2. 同纪元跨日期顺序靠 order 手工标：不写 order 的条目按 updatedAt 兜底，会让"写错日期"的账也对
    （这是规格，不是缺陷；文档在 lib/chronicle.ts 注释里说过了）。
 3. 未做横向年表的无限滚动 / 虚拟化 —— 500 条 story/history 以上时页面会一次性挂载（同角色上限

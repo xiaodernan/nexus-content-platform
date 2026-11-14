@@ -12080,3 +12080,17 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   nodes with lore across three eras plus 1 unlabeled entry -> page renders 4 lanes, 7 cards,
   correct seq numbering; screenshot captured (in turn report). Roundtrip through
   zod + validateWorld + storage preserves lore fields exactly.
+## v705.2 - Studio world panel gains the lore editor (2026-11-14, ADR 0136 amendment)
+
+- Story/history nodes now expose two inline fields in the Studio world panel: era (free text,
+  max 80 chars) and order (non-negative integer). Wire: patchLore (pure merge, clears blanks)
+  -> updateWorldNode (lore key added to the patch union; lore=null deletes the key) ->
+  worldStore -> validate -> PUT roundtrip.
+- patchLore is pure and unit-tested (blank handling, truncation, both-absent -> null removes
+  key, era/order semi-merge, negative/NaN rejected, existing bad values rejected).
+- Verified end-to-end on a fresh fixture project: skeleton created from the panel, both
+  story/history entries filled with era/order via the real inputs, save pushed, reload
+  (studio AND chronicle), eras persisted, chronicle renders the seeded era with correct
+  in-era sequencing (1/2, 2/2) plus an honest empty-width right lane.
+- Verification: 29/29 unit (worldLore + chronicle + world-model), tsc 0, direct eslint 0,
+  record-encoding green; arms-freshness green.

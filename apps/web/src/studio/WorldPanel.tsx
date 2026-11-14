@@ -22,6 +22,7 @@ import {
   type WorldPlateau,
 } from '@nexus/world-model';
 import { cn } from '@/lib/cn';
+import { patchLore } from '@/lib/worldLore';
 import { useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';
 
@@ -208,6 +209,44 @@ export function WorldPanel() {
                       rows={3}
                       className="mt-1 w-full resize-y rounded-[3px] bg-bg-1 px-1 py-[2px] text-12 leading-relaxed text-fg-1 outline-none focus:bg-bg-3"
                     />
+                    {node.kind === 'story' || node.kind === 'history' ? (
+                      <div className="mt-1 flex items-center gap-1" data-world-lore-row={node.id}>
+                        <label htmlFor={`world-era-${node.id}`} className="shrink-0 text-11 text-fg-3">纪元</label>
+                        <input
+                          id={`world-era-${node.id}`}
+                          type="text"
+                          value={node.lore?.era ?? ''}
+                          maxLength={80}
+                          placeholder="灰灯纪"
+                          aria-label={`纪元 ${node.title}`}
+                          data-world-era={node.id}
+                          onChange={(e) => {
+                            const merged = patchLore(node.lore, { era: e.target.value });
+                            edit(updateWorldNode(world, node.id, { lore: merged }));
+                          }}
+                          onBlur={() => edit(world, true)}
+                          className="min-w-0 flex-1 rounded-[3px] bg-bg-1 px-1 py-[2px] text-12 text-fg-1 outline-none focus:bg-bg-3"
+                        />
+                        <label htmlFor={`world-order-${node.id}`} className="shrink-0 text-11 text-fg-3">序</label>
+                        <input
+                          id={`world-order-${node.id}`}
+                          type="number"
+                          min={0}
+                          step={1}
+                          value={node.lore?.order ?? ''}
+                          placeholder="0"
+                          aria-label={`编年序号 ${node.title}`}
+                          data-world-order={node.id}
+                          onChange={(e) => {
+                            const merged = patchLore(node.lore, { order: e.target.value });
+                            edit(updateWorldNode(world, node.id, { lore: merged }));
+                          }}
+                          onBlur={() => edit(world, true)}
+                          className="w-16 rounded-[3px] bg-bg-1 px-1 py-[2px] text-12 text-fg-1 outline-none focus:bg-bg-3"
+                        />
+                        <span className="text-10 text-fg-3">0 最早，缺省按 updatedAt 排</span>
+                      </div>
+                    ) : null}
                     <div className="mt-1 flex items-center gap-1">
                       <label htmlFor={`world-elevation-${node.id}`} className="shrink-0 text-11 text-fg-3">
                         高度

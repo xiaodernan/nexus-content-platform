@@ -2796,3 +2796,16 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   chronicle verification; nexus-postgres/redis healthy.
 - CI: 4d67a2b both SUCCESS; 95dbf12 both SUCCESS; 7fb3c91 both SUCCESS; 846dec5 both SUCCESS;
   51f07b0 queued at record time - main-line elsewhere stays green.
+## cont. 99 (2026-11-14) - v705.2 landed: Studio lore editor, world-model roundtrip
+
+- Studio world panel now edits the chronicle lore on story/history nodes inline: era + order.
+  Pure merge helper patchLore unit-tested; updateWorldNode accepts the lore key (null deletes);
+  patch union type matches zod + validateWorld.
+- Verified end to end: fresh fixture -> create project -> Studio world panel -> lore rows on the
+  two skeleton story/history nodes -> typed era + order via the real inputs -> save -> reload
+  (studio AND chronicle) -> persisted -> chronicle renders the seeded era with correct seq.
+- Gates: 29/29 unit, tsc 0, direct eslint 0, record-encoding green, arms-freshness green.
+- Docker Desktop died again this turn (sixth outage host today); relaunched;
+  nexus-postgres/redis healthy; sibling 3100/3200 not touched.
+- CI: 2917d5c both SUCCESS; 51f07b0 main-line SUCCESS, CI queued; dc20411 queued at record
+  time - do not claim green until the runner finishes.
