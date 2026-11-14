@@ -51,11 +51,12 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '④ 游戏怎么玩',
         body: [
-          '棋盘游戏（/game/<id>）：WASD 或方向键移动；空格键攻击；收集钻石（道具），避开方形（敌人）。',
-          '完成探索后进入的下一关由游戏设计系统（@nexus/game-model）决定——你上一关走到的坐标会影响这一关敌人的初始位置。',
-          'RPG 冒险（/game/<id>?view=rpg）：WASD/方向键走路，靠近 NPC 按空格/Enter 开始对话；对话选项用上下箭头选中、空格确认；对话完的决定会写进你的世界档案。',
-          '每局游戏都有"检查点"可以回退到上一步；失败了也不丢进度。',
-          '这些游戏是用你项目里的设计系统/角色生成的——不是玩家看到成品，是项目自己长出来的玩法。',
+          '动作面（/game/<id>）：WASD 或方向键移动；空格攻击；右上角 HUD 会实时显示 生命、时间、场上敌人数、拾取计数（物品 x/y）、发现量 与 激活量——把一张图完整走完再看结算。',
+          '失败了就重来：失败的结果画面上「重新开始」按钮可以一键重开，键盘上也绑了空格键；每一局固定、检查点不跨盘。',
+          '下一段的敌人布局由游戏设计系统（@nexus/game-model）接上一局的落点决定——你走到哪里、没走到哪里，下一盘的敌人就按那个坐标长出来。',
+          'RPG 冒险（/game/<id>?view=rpg）：WASD/方向键走，靠近 NPC 按空格/Enter 开始对话；上下箭头选选项、空格确认；对话的决定会写进你的世界档案。',
+          '这些游戏是项目自己长出来的：棋盘、敌人、数值全来自你项目里的设计系统/角色，没有"看价目表定死的成品"——Studio 里改数，下一盘就按新数跑。',
+          '诚实说明书：游戏本体没有云存档、没有自动保存点——每一局独立结算，交了卷就没有下一盘继承你的 HP。',
         ],
       },
       {
@@ -69,7 +70,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑥ 常见问答',
         body: [
-          'Q：为什么我按了个按钮，整页空白了？A：这是 DEMO MODE 的特性——未配置 provider 时，生成路径不写真实代码；等到你配置了 wkapi.pro 并跑通真实调用，那些页就"亮"了。',
+          'Q：为什么我按了个按钮，整页空白了？A：这是 DEMO MODE 的特性——未配置 provider 时，生成路径不写真实代码；等到你在环境变量里配置好真实 provider 并跑通第一次真实调用，那些页就"亮"了。',
           'Q：缓存命中率低是我的问题吗？A：不是——你在看的是 provider 端的 KV 分布片分配；把同一 lane 打满 6–10 次大概率出现 1 次未命中；可以在 /admin/ai-cache（admin）看自己的使用账。',
           'Q：怎么让别人看到我的作品？A：顶栏发布→填标题→发布；发布后自动进广场/市场；发布前作品是私密的。',
           'Q：数据安全吗？A：所有 AI 改动都进审计账本、可撤销 Command；公开作品随时可撤回。',
@@ -112,11 +113,12 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '④ How games work here',
         body: [
-          'Board game (/game/<id>): WASD or arrows to move; Space to attack; collect diamonds; avoid squares.',
-          'Next stage difficulty is decided by @nexus/game-model — your previous coordinates influence the next enemy placements.',
-          'RPG adventure (/game/<id>?view=rpg): WASD/arrows to walk; Space/Enter near an NPC to talk; pick options with arrows + Space; choices write into the world file.',
-          'Each play has checkpoints you can revert to; no run loses your progress.',
-          'These games are generated from your project’s own design system/cast — not a finished product; your project grows its own play.',
+          'Action surface (/game/<id>): WASD or arrow keys to move; Space to attack. The HUD shows health, time, live enemies, pickups (items x/y), discoveries and activations — finish the map before judging, not by health alone.',
+          'Dead? Restart: the “Restart” button on the outcome screen re-runs (Space also bound); runs are self-contained, no cross-run checkpoints.',
+          'Next stage layout is decided by @nexus/game-model from where you ended — your previous coordinates seed the next enemy placements.',
+          'RPG adventure (/game/<id>?view=rpg): WASD/arrows to walk; Space/Enter near an NPC to talk; pick options with arrows + Space; dialogue choices write into your world file (visible in the character panel).',
+          'These games grow from YOUR project: boards, enemies and numbers come from your own design system/cast — not a pre-baked product; tweak numbers in Studio and the next run plays by them.',
+          'Honesty note: the game itself has no cloud save and no auto checkpoints — every run settles independently; once you wipe-screen out, there is no carrying HP forward.',
         ],
       },
       {
@@ -130,7 +132,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑥ Frequently asked questions',
         body: [
-          'Q: why did the page go blank? A: DEMO MODE short-circuit — no provider configured, so generation can’t write real code. Configure wkapi.pro to make those pages "light up".',
+          'Q: why did the page go blank? A: DEMO MODE short-circuit — no provider configured, so generation can’t write real code. Configure the real provider endpoint in the environment to make those pages "light up".',
           'Q: is low cache-hit-rate my fault? A: No — it’s the provider’s KV-shard lottery. Over 6–10 identical prefix lanes expect ~1 cold shard; admins can see their per-lane bills at /admin/ai-cache.',
           'Q: how do others see my work? A: top-bar Publish → fill title → publish; before publishing it stays private.',
           'Q: is my data safe? A: every AI edit is in the audit ledger, revocable Command; public works recallable anytime.',
