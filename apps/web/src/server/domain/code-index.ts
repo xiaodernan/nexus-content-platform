@@ -433,18 +433,23 @@ export function indexCharsWithFiles(skeletonChars: number, arrayChars: number): 
 export const DEFAULT_CODE_CHAR_BUDGET = 8_000;
 const SYMBOLS_PER_FILE = 60;
 
-export function fitCodeIndexToBudget(index: CodeIndex, maxChars: number = DEFAULT_CODE_CHAR_BUDGET): CodeIndex {
+export function fitCodeIndexToBudget(
+  index: CodeIndex,
+  maxChars: number = DEFAULT_CODE_CHAR_BUDGET,
+  locale: "zh" | "en" = "zh",
+): CodeIndex {
   if (maxChars <= 0 || codeIndexChars(index) <= maxChars) return index;
 
   const dropped = { files: 0, symbols: 0, anchors: false };
   const trimmed: string[] = [];
+  const pick = (zh: string, en: string): string => (locale === "en" ? en : zh);
   let files = index.files.map((file) => ({ ...file }));
 
   // 1) 锚点计数：帮人核对投影完整性，帮不了机器定位
   if (files.some((file) => file.designAnchors > 0)) {
     dropped.anchors = true;
     files = files.map((file) => ({ ...file, designAnchors: 0 }));
-    trimmed.push('去掉了每个文件的节点锚点计数');
+    trimmed.push(pick('去掉了每个文件的节点锚点计数', "Dropped per-file node anchor counts"));
   }
   // 2) 每文件符号截到前 N 个：符号按出现顺序，排在前面的就是顶层入口
   let droppedSymbols = 0;
@@ -455,12 +460,12 @@ export function fitCodeIndexToBudget(index: CodeIndex, maxChars: number = DEFAUL
   });
   if (droppedSymbols > 0) {
     dropped.symbols = droppedSymbols;
-    trimmed.push(`每个文件最多列 ${SYMBOLS_PER_FILE} 个符号，省掉 ${droppedSymbols} 个`);
+    trimmed.push(pick(`每个文件最多列 ${SYMBOLS_PER_FILE} 个符号，省掉 ${droppedSymbols} 个`, `Up to ${SYMBOLS_PER_FILE} symbols per file are listed; dropped ${droppedSymbols}`));
   }
   // 3) 参数名是目录里最贵、又最少被用来定位的一项
   if (codeIndexChars({ ...index, files }) > maxChars) {
     files = files.map((file) => ({ ...file, symbols: file.symbols.map((symbol) => ({ ...symbol, params: [] })) }));
-    trimmed.push('去掉了符号的参数名');
+    trimmed.push(pick('去掉了符号的参数名', 'Dropped symbol parameter names'));
   }
   // 4) 文件按 codegen 顺序保留前若干个（页面顺序就是文档顺序，砍尾巴等于砍后面的页面）
   // §PERF-4：原实现从 keep=length-1 逐个递减、每轮全量 JSON.stringify({...index, files.slice(0,keep)})
@@ -490,12 +495,15 @@ export function fitCodeIndexToBudget(index: CodeIndex, maxChars: number = DEFAUL
     }
     dropped.files = files.length - keep;
     files = files.slice(0, Math.max(keep, 1));
-    trimmed.push(`只列前 ${Math.max(keep, 1)} 个文件，另有 ${dropped.files} 个未展开（总数仍在 totals 里）`);
+    trimmed.push(pick(`只列前 ${Math.max(keep, 1)} 个文件，另有 ${dropped.files} 个未展开（总数仍在 totals 里）`, `Kept only the first ${Math.max(keep, 1)} files; ${dropped.files} more were left unexpanded (the total still lives in totals)`));
   }
 
   const next: CodeIndex = { ...index, files, dropped, trimmed };
   if (codeIndexChars(next) > maxChars) {
-    trimmed.push(`即便只剩骨架仍是 ${codeIndexChars(next)} 字符：预算 ${maxChars} 比这份项目的最小目录还小`);
+    trimmed.push(pick(
+      `即便只剩骨架仍是 ${codeIndexChars(next)} 字符：预算 ${maxChars} 比这份项目的最小目录还小`,
+      `Even the skeleton is ${codeIndexChars(next)} chars: the ${maxChars}-char budget is smaller than this project's minimal catalog`,
+    ));
   }
   return next;
 }

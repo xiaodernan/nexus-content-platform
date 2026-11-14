@@ -176,9 +176,9 @@ describe('§FE-42 /studio ContextPanel Context Engine', () => {
     }
   });
 
-  it('剥 className/cn 后（EOL+空白归一）全文 SHA256 守恒（零行为：9a24d764d1bd607c717cd07e1f3fee8a441b25f0e82acb41317acebe153c5fec）', () => {
+  it('剥 className/cn 后（EOL+空白归一）全文 SHA256 守恒（2026-11-14 v736「ContextPanel 双语化」重钉：5652d211536f04dd731b8d045ca0dc6b62d0ff257358b2597d69b9fabaeeab91）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '9a24d764d1bd607c717cd07e1f3fee8a441b25f0e82acb41317acebe153c5fec',
+      '5652d211536f04dd731b8d045ca0dc6b62d0ff257358b2597d69b9fabaeeab91',
     );
   });
 });

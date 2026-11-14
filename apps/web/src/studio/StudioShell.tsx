@@ -278,7 +278,7 @@ function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zo
           ) : tab === 'retrieve' ? (
             <RetrievePanel locale={locale} />
           ) : tab === 'context' ? (
-            <ContextPanel />
+            <ContextPanel locale={locale} />
           ) : tab === 'agent' ? (
             <AgentPanel />
           ) : tab === 'health' ? (

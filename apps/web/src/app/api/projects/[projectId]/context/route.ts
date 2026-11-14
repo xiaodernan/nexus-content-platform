@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireUser } from '@/server/domain/session';
 import { projectVisibleTo } from '@/server/domain/team';
 import { buildProjectContext } from '@/server/domain/context';
+import { getLocale } from '@/lib/i18n';
 import { failure, jsonError, notFound } from '@/server/http';
 
 interface RouteContext {
@@ -21,22 +22,35 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
   // 查询参数只能从 req.url 拿：route handler 的 ctx.searchParams 在 Next 16 里不存在，
   // 读它会永远得到 undefined，于是预算被静默忽略（这个坑由 §66-71 的 smoke 测出的）
   const params = new URL(req.url).searchParams;
+  const locale = await getLocale();
   const raw = params.get('indexChars');
   const requested = raw === null ? undefined : Number(raw);
   if (requested !== undefined && (!Number.isFinite(requested) || requested < 0)) {
-    return jsonError(400, 'bad_index_chars', { message: 'indexChars 要是一个非负整数' });
+    return jsonError(400, 'bad_index_chars', {
+      message: locale === 'en' ? 'indexChars must be a non-negative integer' : 'indexChars 要是一个非负整数',
+    });
   }
   const corpusQuery = params.get('corpusQuery')?.trim() ?? '';
   if (corpusQuery.length > 200) {
-    return jsonError(400, 'bad_corpus_query', { message: 'corpusQuery 最多 200 字：这是查询词，不是整份文档' });
+    return jsonError(400, 'bad_corpus_query', {
+      message:
+        locale === 'en'
+          ? 'corpusQuery is at most 200 characters: it is a query term, not the whole document'
+          : 'corpusQuery 最多 200 字：这是查询词，不是整份文档',
+    });
   }
   try {
     const user = await requireUser();
     if (!(await projectVisibleTo(projectId, user.id))) return notFound();
-    const result = await buildProjectContext(projectId, user.id, {
-      maxIndexChars: requested,
-      corpusQuery: corpusQuery || undefined,
-    });
+    const result = await buildProjectContext(
+      projectId,
+      user.id,
+      {
+        maxIndexChars: requested,
+        corpusQuery: corpusQuery || undefined,
+      },
+      locale,
+    );
     if (!result.ok) return jsonError(409, 'context_unavailable', { message: result.reason });
     return NextResponse.json({ ok: true, context: result.context });
   } catch (error) {

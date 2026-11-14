@@ -3312,3 +3312,19 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   2. gameStore notice strings driven by game-model reason strings (setStat / linkEntities ...) are zh-only.
   3. The zip deliverable itself (README/index.html/plan*) is Chinese by design; the UI says so when en.
   4. Untouched panels still zh-only: GamePanel count is 2 of 15 Studio tabs; ContextPanel / CodePanel next.
+
+## cont. 105 (2026-11-14) - v736: Context Engine 读数面双语化 + PanelContext 全双语
+
+- ContextPanel.tsx localized zh/en (StudioShell threads locale; COPY dict; .cx- classes untouched;
+  §FE-CX gate re-pinned twice in-slice: v736 rewrite + drop of an illegal eslint-disable for a rule this
+  repo does not define — verified absent, not suppressed).
+- Server 装配同步本地化（v736）：buildProjectContext(projectId, ownerId, options, locale='zh')
+  — unavailable[5] / branches note[6+1] / failure reasons / fitCodeIndexToBudget / fitIndexToBudget /
+  buildDesignIndex(locale) 全部接 locale；creative-model 增 DESIGN_INDEX_OMISSIONS_EN 与 trimmed 5 句 en 版；
+  code-index 增 5 句 en 版。/context 出口按 NEXUS_LOCALE 产出 en 装配。
+- 装配层 pick() 曾被参数同名遮蔽（en ? en : zh 恒返回英文）——context.integration.test 当即咬住
+  "Code.note 中文模板" 断言；修成 enText 后双语测试一并新增 context-en.integration.test.ts（2 测）：
+  en 装配的 unavailable/branches 为英文、totals 与 zh 逐字相等、omissions 英文、tiny budget trimmed 全英文。
+- fe-gates 116/116（1148/1148）；web tsc 0；creative-model 502/502；context.integration 8/8；context-en 2/2。
+- 已知边界：recentChanges 的 label/source 与 snapshot summary 仍为用户数据原样；快照 label 为用户输入；
+  branch.name 保持英文（与 AGENTS 分支命名一致，§71 是英文词表）。
