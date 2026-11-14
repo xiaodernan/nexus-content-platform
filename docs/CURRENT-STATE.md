@@ -2882,3 +2882,26 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   nexus-postgres/redis healthy; sibling deployments on 3100/3200 untouched.
 - CI at record time: 87aa270 CI in_progress (main-line SUCCESS); 84f9dea CI in_progress
   (main-line SUCCESS); 799eaf5 CI in_progress (main-line SUCCESS). Do not claim until runner.
+## cont. 104 amendment (2026-11-14) - branch/worktree consolidation audit + fixture repair
+
+- Consolidation audit (user-authorized "汇集所有内容"): local `main` fast-forwarded to master
+  (7f84983); origin/main == origin/master == 7f84983 (push master:main this turn); the tag
+  archive/v601-v604 (d414a4b) is an ancestor of master. `remotes/other/master13-15` (dc20411)
+  are ancestors of master - nothing unique. The 42 `refs/cline/checkpoints/*` snapshots were all
+  taken on pre-merge bases that are ancestors of master; a per-ref unique-content scan across the
+  session tips found ZERO files missing from master (the single apparent miss,
+  tools/harness/studio-publish.mjs, moved in v553 to docs/evidence/m7/studio-publish.mjs and is in
+  master). Merging checkpoint refs wholesale would revert ~380k lines and was NOT done.
+  Honest verdict: master already holds the union; no merge performed because there is nothing
+  safe to merge. No force-push, no history rewrite, no branch creation.
+- Fixture document repair: the throwaway memory-seed script this turn double-encoded the fixture
+  world's `document` jsonb into a string scalar (postgres.js binds a `JSON.stringify`'d parameter
+  as a JSON string when cast with ::jsonb - the client stringified twice). Detected by
+  jsonb_typeof across all 37 worlds rows (35 object / 2 null / 1 string). Repaired by parsing the
+  inner object and storing it via `sql.json()`; post-repair typeof=object, nodes=9, 4 memory
+  echoes intact. End-to-end re-verified: /world/<id>/memories entries=4. App's own write path is
+  unaffected (35/35 other rows are objects).
+- Spring Cloud Blueprint doc now records P1 as landed (ADR 0140, 2026-11-14) with its four
+  re-evaluation triggers, and P3's read-only scope as delivered (v689) with the batch-repair
+  action explicitly declined (security review, not a refactor).
+- Docker Desktop outage count today: 9. nexus-postgres/redis healthy; sibling 3100/3200 untouched.
