@@ -616,13 +616,9 @@ export const MANIFEST = [
   },
   {
     name: 'verify:cost-ledger',
-    class: 'deferred',
+    class: 'runner',
     run: 'npm run verify:cost-ledger',
-    reach: 'apps/web/src/server/domain/costLedger',
-    measured: '16 lines; prints the §COST-1 ledger for the given window (rows / ΣtokensIn / cached share / per-basis and per-model breakdown) by reading agent_tasks.usage straight from the live Postgres, read-only — no writes, no provider, no migration',
-    blocker: 'the probe needs a live Postgres with the web schema; no workflow door dedicates a step to it yet (main-line.yml has the service, nothing calls the name), and this box\'s own run on 2026-11-14 read the authoring store: 253 rows / 349,695 tokensIn / 20,842 cached (6%), every row legacy. A gate nobody schedules is documentation that looks like machinery',
-    next: 'either wire `npm run verify:cost-ledger` into main-line.yml\'s gates job (unambiguous once the measurements have an owner) or delete the script; the halfway state — an authoring-box probe with a name in package.json and no door — is the exact rot this census exists to stop',
-    why: 'the ledger probe is real evidence about the live store; leaving it undispositioned would both redden this census and pretend observability that nothing enforces or schedules',
+    why: 'the main-line door runs it read-only against the service Postgres: a SELECT over agent_tasks.usage that answers "how much of the ledger is configured vs unknown vs legacy". Never writes, never bills, exits 0 on an empty store; the deferral was dispositioned at v651 and the door added on top of it in the same increment — a runner means CI really executes the name',
   },
 ];
 

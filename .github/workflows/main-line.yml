@@ -89,7 +89,7 @@ jobs:
           NEXUS_DATABASE_URL: postgres://nexus:nexus_dev_only@localhost:55433/nexus
       - name: Typecheck main line
         run: npm run typecheck:main
-      - name: FE gates (facade families, zéro raw Tailwind atoms)
+      - name: FE gates (facade families, zero raw Tailwind atoms)
         run: npm run verify:fe-gates
       - name: Facade census (globals.css classes all referenced)
         run: npm run verify:census
@@ -97,6 +97,10 @@ jobs:
         run: npm run verify:no-raw-tailwind
       - name: Evals (invariants in CI, ADR-0093)
         run: npm run evals
+        env:
+          NEXUS_DATABASE_URL: postgres://nexus:nexus_dev_only@localhost:55433/nexus
+      - name: Cost ledger probe (read-only, §COST-1)
+        run: npm run verify:cost-ledger
         env:
           NEXUS_DATABASE_URL: postgres://nexus:nexus_dev_only@localhost:55433/nexus
       - uses: actions/setup-java@v4
