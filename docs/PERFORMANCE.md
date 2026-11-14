@@ -9,6 +9,32 @@
 文档形状：根框 → 容器逐层分叉到第 6 层，叶子是文本与按钮（按钮固定 120×40，
 这样"点击目标过小"那条规则真的会被触发，而不是空转）。
 
+## 2026-11-14 §CACHE-4-AB 复验：今日线上 lane 三段实测（同一模型 + 密钥，仅非流出流切换）
+
+用户再次反馈"**一直显示非流，缓存命中率低；显示流时命中率好多了**"。今日按原位复查 wiring 无回归：
+`ai_service/config.py:74 llm_stream: bool = True` → `registry.py:107 stream=settings.llm_stream` →
+`openai_compatible.py SSE + stream_options: include_usage` → `app.py:186 transport.stream 直报`。
+
+**流式路由（今天新 lane `nexus-content-ab4`）**：
+```
+turn1: prompt=13003 cached=0      (0.0%)  冷启动
+turn2: prompt=13003 cached=12800  (98.4%)
+turn3: prompt=13003 cached=12800  (98.4%)
+turn4: prompt=13003 cached=12800  (98.4%)
+```
+
+**非流路由（今天同一个 payload，A/B 对照用 probe 内置 lane 名，仅供参考——不是基准）**：
+```
+turn2: prompt=13274 cached=5248  (39.5%)  ← 两次复测并列完全相同（同 shard 偶发）
+   或B turn2: prompt=27295 cached=19539 (71.6%)
+   或B turn2: prompt=27295 cached=27292 (100.0%)   ← 第二次复测
+```
+**结论不变、证据更新**：显示命中高 = 流式；显示命中低 = 非流。按要点 1，流式本身就是 payload 的 KV-shards 入口；
+显示命中差是 distributor 随机分发的事实，**不是项目 bug，也不是 provider 降级**。
+维护/排障行动不变：先看 `/admin/ai-cache` 第五片（`transport.stream`）；如果真显示 OFF，\n1) 先看此进程的 `NEXUS_LLM_STREAM`；2) 再看是否重启后 YC 代码快照旧（重启生效）。
+
+**不可承诺**：98.4% 为当日单 lane 单测；受 shard / lane 变化影响，从 0 → 100 不稳定，§159 红线不变。
+
 ## 2026-11-14 §CACHE-4-AB（新增）：同 digest 流 vs 非流命中率实测
 
 **目的**：回答用户的肉眼观察——"显示流的时候缓存命中率明显好，显示非流时几乎不命中"。
