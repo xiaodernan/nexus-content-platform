@@ -282,7 +282,7 @@ function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zo
           ) : tab === 'agent' ? (
             <AgentPanel />
           ) : tab === 'health' ? (
-            <HealthRail />
+            <HealthRail locale={locale} />
           ) : (
             <HistoryPanel locale={locale} />
           )}

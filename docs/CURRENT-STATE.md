@@ -3413,3 +3413,13 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   一次性链接注意事项、403/撤回快路径 全部接 locale；locale 自 StudioShell 透传。补 'use client' 显式指令。
 - 门也补了边：'use client' 显式化是模块图的加强项（此前全隐式）。
 - fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；§FE-41 重钉（第七跳）。
+
+## cont. 114 (2026-11-16) - v745: HealthPanel 双语化（§178 发布门禁/项目健康读数）
+
+- HealthPanel.tsx zh/en 双字典（HealthPanel + HealthRail 共用一份 COPY）：
+  门禁通过/未通过、实时计算来源、重算中、未运行清单、项目健康、可发布/有阻塞、
+  计算中/正在算健康度、提取只读标记、仅参考/零错误芯片、发现计数/列出数、omission 说明全部接 locale。
+- **发布弹层(en)完全不再泄露中文台词**；Studio 左侧 HealthRail 同双语。
+- 引擎侧的 check.label/basis/finding.message/metric.label 仍是 creative-model 的中文裁定句——§46 独立立片
+  （analyzeHealth 定点本地化、creative-model 角色引擎、sim/story/rpg 拒绝句全部在那里）。
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；StudioShell §FE-41 重钉（第八跳）+ PublishPanel §FE-PB 重钉。

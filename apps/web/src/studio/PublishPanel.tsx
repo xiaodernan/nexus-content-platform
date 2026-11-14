@@ -273,6 +273,7 @@ export function PublishPanel({ locale = 'zh' }: { locale?: Locale }) {
                 pending={healthPending}
                 seq={health.seq}
                 computeMs={health.computeMs}
+                locale={locale}
               />
               {visibility === 'private' ? (
                 <p id={PRIVATE_NOTE_ID} className="sb-faintMt1" data-publish-private-note>

@@ -3,6 +3,7 @@
 import { useDeferredValue, useMemo, useState } from 'react';
 import { formatHealthValue, type HealthCheck, type HealthReport } from '@nexus/creative-model';
 import { cn } from '@/lib/cn';
+import type { Locale } from '@/lib/i18n';
 import type { HealthJob } from '@/lib/health-job';
 import { useHealthReport, type HealthSource } from './health-client';
 import { useStudioReady } from './store';
@@ -17,7 +18,53 @@ import { useStudioReady } from './store';
  * §147：数字现在在 worker 里算（`health-client.ts`），面板据此多挂三个只读标记——
  * `data-health-source`（worker / sync）、`data-health-pending`（正在重算）、
  * `data-health-seq`（第几份报告）——探针与 e2e 靠它们分辨"后台算的"与"退回主线程算的"。
+ * 双语（v745）：locale 由 PublishPanel / StudioShell 透传；zh 原文原样保留。
  */
+
+const COPY = {
+  zh: {
+    gatePassed: '门禁',
+    pass: '通过',
+    fail: '未通过',
+    computedLive: '实时按当前文档计算',
+    recomputing: '重算中…',
+    notRun: (list: string) => `未运行：${list}`,
+    health: '项目健康',
+    canPublish: '可发布',
+    blocked: '有阻塞',
+    computing: '计算中…',
+    updatesOnEdit: '随改动更新',
+    waitingDoc: '文档还没载入完，算不出健康度。',
+    computingHealth: '正在算健康度…',
+    onlyReference: '仅参考',
+    zeroErrors: '零错误',
+    findings: (total: number, shown?: number) => `${total} 项发现${shown ? `（列 ${shown}）` : ''}`,
+    noFindings: '无发现',
+    omitted: (n: number) => `另有 ${n} 条同类发现未列出（计分已计入）`,
+    joinList: '、',
+  },
+  en: {
+    gatePassed: 'Gate',
+    pass: 'passed',
+    fail: 'failed',
+    computedLive: 'Computed live against the current document',
+    recomputing: 'Recomputing…',
+    notRun: (list: string) => `Not run: ${list}`,
+    health: 'Project health',
+    canPublish: 'Ready to publish',
+    blocked: 'Blocked',
+    computing: 'Computing…',
+    updatesOnEdit: 'Updates on edits',
+    waitingDoc: 'The document has not finished loading — no health readout yet.',
+    computingHealth: 'Computing health…',
+    onlyReference: 'Ref only',
+    zeroErrors: 'No errors',
+    findings: (total: number, shown?: number) => `${total} findings${shown ? ` (listing ${shown})` : ''}`,
+    noFindings: 'No findings',
+    omitted: (n: number) => `${n} more of the same kind not listed (already counted in the score)`,
+    joinList: ', ',
+  },
+} as const;
 
 const STATE_MARK: Record<HealthCheck['state'], string> = {
   pass: '✓',
@@ -32,6 +79,7 @@ export function HealthPanel({
   pending,
   seq,
   computeMs,
+  locale = 'zh',
 }: {
   report: HealthReport;
   source?: string;
@@ -39,7 +87,9 @@ export function HealthPanel({
   pending?: boolean;
   seq?: number;
   computeMs?: number;
+  locale?: Locale;
 }) {
+  const c = COPY[locale];
   return (
     <div
       className="hp-root"
@@ -50,13 +100,13 @@ export function HealthPanel({
       data-health-compute-ms={computeMs === undefined ? undefined : Math.round(computeMs)}
     >
       <p className="hp-summary" data-health-summary>
-        门禁{report.passed ? '通过' : '未通过'}
-        <span className="hp-faint"> · {source ?? '实时按当前文档计算'}</span>
-        {pending ? <span className="hp-faint" data-health-recomputing> · 重算中…</span> : null}
+        {c.gatePassed}{report.passed ? c.pass : c.fail}
+        <span className="hp-faint"> · {source ?? c.computedLive}</span>
+        {pending ? <span className="hp-faint" data-health-recomputing> · {c.recomputing}</span> : null}
       </p>
       <ul className="hp-ul">
         {report.checks.map((check) => (
-          <HealthRow key={check.id} check={check} />
+          <HealthRow key={check.id} check={check} c={c} />
         ))}
       </ul>
       {report.blockers.length ? (
@@ -70,7 +120,7 @@ export function HealthPanel({
       ) : null}
       {report.notRun.length ? (
         <p className="hp-notRun" data-gate-not-run>
-          未运行：{report.notRun.join('、')}
+          {c.notRun(report.notRun.join(c.joinList))}
         </p>
       ) : null}
     </div>
@@ -87,7 +137,8 @@ export function HealthPanel({
  * 2026-10-29 起这次重算整个搬进 worker（`health-client.ts`）：10k 节点 438ms 的全量体检
  * 不再占主线程；算的时候旧读数照常在，但会挂"重算中…"，不把旧数当当前值。
  */
-export function HealthRail() {
+export function HealthRail({ locale = 'zh' }: { locale?: Locale }) {
+  const c = COPY[locale];
   const state = useStudioReady();
   const deferred = useDeferredValue(state);
   const job = useMemo<HealthJob>(() => {
@@ -101,19 +152,19 @@ export function HealthRail() {
   return (
     <div className="hp-railRoot" data-health-rail data-health-seq={reading?.seq ?? 0}>
       <header className="hp-railHead">
-        <h2 className="hp-railTitle">项目健康</h2>
+        <h2 className="hp-railTitle">{c.health}</h2>
         {reading ? (
           <span
             className="hp-railTide"
             data-health-rail-state={reading.report.passed ? 'pass' : 'fail'}
           >
             <span className={reading.report.passed ? 'hp-railStatePass' : 'hp-railStateFail'}>
-              {reading.report.passed ? '可发布' : '有阻塞'}
+              {reading.report.passed ? c.canPublish : c.blocked}
             </span>
           </span>
         ) : pending ? (
           <span className="hp-railPending" data-health-rail-pending>
-            计算中…
+            {c.computing}
           </span>
         ) : null}
       </header>
@@ -121,15 +172,16 @@ export function HealthRail() {
         {reading ? (
           <HealthPanel
             report={reading.report}
-            source="随改动更新"
+            source={c.updatesOnEdit}
             healthSource={reading.source}
             pending={pending}
             seq={reading.seq}
             computeMs={reading.computeMs}
+            locale={locale}
           />
         ) : (
           <p className="hp-railWait" data-health-rail-wait>
-            {pending ? '正在算健康度…' : '文档还没载入完，算不出健康度。'}
+            {pending ? c.computingHealth : c.waitingDoc}
           </p>
         )}
       </div>
@@ -137,10 +189,12 @@ export function HealthRail() {
   );
 }
 
-function HealthRow({ check }: { check: HealthCheck }) {
+type HealthCopy = (typeof COPY)[Locale];
+
+function HealthRow({ check, c }: { check: HealthCheck; c: HealthCopy }) {
   const [expanded, setExpanded] = useState(false);
   // 分数旁边只放"这条线是怎么定的"：≥80 分数线、零错误 = 有 error 就挡、仅参考 = 不参与门禁
-  const chip = !check.gating ? '仅参考' : check.threshold === null ? '零错误' : `≥${check.threshold}`;
+  const chip = !check.gating ? c.onlyReference : check.threshold === null ? c.zeroErrors : `≥${check.threshold}`;
   const total = check.findings.length + check.omitted;
   /**
    * §85（第四十三片）：展开键原来只有 `aria-expanded`，没有 `aria-controls`——
@@ -166,7 +220,7 @@ function HealthRow({ check }: { check: HealthCheck }) {
         {chip}
       </span>
       <span className="hp-findings" data-health-findings={check.id}>
-        {total ? `${total} 项发现${check.omitted ? `（列 ${check.findings.length}）` : ''}` : '无发现'}
+        {total ? c.findings(total, check.omitted ? check.findings.length : undefined) : c.noFindings}
       </span>
     </>
   );
@@ -213,7 +267,7 @@ function HealthRow({ check }: { check: HealthCheck }) {
           ))}
           {check.omitted ? (
             <li className="hp-omitted" data-health-omitted={check.id}>
-              另有 {check.omitted} 条同类发现未列出（计分已计入）
+              {c.omitted(check.omitted)}
             </li>
           ) : null}
         </ul>

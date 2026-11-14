@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
  * 本片只换皮；发布 dispatch / popover-dismiss / HealthWatch 派生、ARIA/钩子 — 一字不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @ + cn()整体归一 + `className=@` 归一）：
- * `115ba8033223fc210135d8067463ec884c5538953d29e3dfb3f237158c459d04` 与 HEAD 字节一致。
+ * `71037cfe7b5f0ba44fd152400c4a92ed232811f306b1b3d188503efa653dd5c1` 与 HEAD 字节一致。
  *
  * **§GATE-2（2026-11-14）这条门换过一次值，理由要留在这里**：上一版是
  * `5ad0738084b4e86b5201d24da1c71149c8bd65d0ac6ce830a6885167908142b8`，在提交
@@ -164,9 +164,9 @@ describe('§FE-54 /studio PublishPanel 发布面板', () => {
     }
   });
 
-  it('剥 className/cn 后全文 SHA256 守恒（2026-11-15 v739「PublishPanel 双语化」重钉：115ba8033223fc210135d8067463ec884c5538953d29e3dfb3f237158c459d04）', () => {
+  it('剥 className/cn 后全文 SHA256 守恒（2026-11-15 v739「PublishPanel 双语化」重钉：71037cfe7b5f0ba44fd152400c4a92ed232811f306b1b3d188503efa653dd5c1）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '115ba8033223fc210135d8067463ec884c5538953d29e3dfb3f237158c459d04',
+      '71037cfe7b5f0ba44fd152400c4a92ed232811f306b1b3d188503efa653dd5c1',
     );
   });
 });
