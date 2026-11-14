@@ -105,7 +105,7 @@ describe('§FE-CNS /world/<project>/constellation 人物关系星图', () => {
 
   it('SHA256 钉死（本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '3bffd7445859a5ec0a6c8f705fdd30c0843d7e7bd6762cefbb7fbb9bdf55e613',
+      'ffbfb51527148292577b76b6bb86b675e7177e9cd6294d5e59c060fdd715d761',
     );
   });
 });

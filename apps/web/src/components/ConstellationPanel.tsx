@@ -3,6 +3,59 @@
 import { useMemo, useState } from 'react';
 import type { Character } from '@nexus/world-model';
 import type { ConstellationGraph } from '@/lib/constellation';
+import type { Locale } from '@/lib/i18n';
+
+/**
+ * 双语（v725）：locale 由上层 RSC 读 cookie 传入，COPY 字典一中一英，不机翻、不夹带。
+ */
+const COPY = {
+  zh: {
+    emptyTitle: '星图还没有星',
+    emptyCopy: (name: string) => `「${name}」还没有角色档案——星图读的是 §46 角色档案之间的关系。先去 Studio 建几个人物，这里会长出属于这个世界的星链。`,
+    emptyCta: '去 Studio 的人物面板 →',
+    unnamed: '（没有名字）',
+    svgLabel: (n: number) => `${n} 个角色的关系星图`,
+    title: '人物关系星图',
+    kickerPrefix: 'CONSTELLATION',
+    starUnit: '星',
+    edgeMerge: '条双向合并的边',
+    anchorUnit: '个世界锚点',
+    unresolvedCount: '条未解析未上图',
+    panelAria: '角色详情',
+    studioLink: '去 Studio 人物面板 →',
+    wantsTag: '欲望',
+    fearsTag: '恐惧',
+    relTitle: '关系',
+    relEmpty: '还没有写下关系——这个人还没有被连上这个世界。',
+    emptyTarget: '（空 target）',
+    hintCopy: '点一颗星看这个人——他的语气、口头禅、欲望与惧怕、他在这个世界里拉扯谁。',
+    unresolvedPrefix: '条关系指向不存在的名字（未上图）：',
+    canvasAria: '人物星图',
+  },
+  en: {
+    emptyTitle: 'The map has no stars yet',
+    emptyCopy: (name: string) => `「${name}」 has no character profiles yet — the map reads the relationships between character profiles. Build a few characters in Studio and your world grows its own star-links.`,
+    emptyCta: 'Go to the character panel in Studio →',
+    unnamed: '(unnamed)',
+    svgLabel: (n: number) => `${n} characters’ relationship map`,
+    title: 'Character constellation',
+    kickerPrefix: 'CONSTELLATION',
+    starUnit: 'stars',
+    edgeMerge: 'dual-merged edges',
+    anchorUnit: 'world anchor(s)',
+    unresolvedCount: 'unresolved, unmapped',
+    panelAria: 'Character detail',
+    studioLink: 'Go to the character panel in Studio →',
+    wantsTag: 'Wants',
+    fearsTag: 'Fears',
+    relTitle: 'Relationships',
+    relEmpty: 'No relationships written yet — this person is not woven into this world.',
+    emptyTarget: '(empty target)',
+    hintCopy: 'Tap a star to see this person — voice, catchphrases, wants and fears, who they tug against in this world.',
+    unresolvedPrefix: 'relationship(s) target names that do not exist on the map:',
+    canvasAria: 'Character constellation',
+  },
+} as const;
 
 /**
  * §FE-CNS 「人物关系星图」—— world 的角色之间到底谁连着谁，一眼看清。
@@ -25,16 +78,19 @@ export function ConstellationPanel({
   characters,
   worldNodeTitles,
   graph,
+  locale = 'zh',
 }: {
   projectName: string;
   projectId: string;
   characters: Character[];
   worldNodeTitles: Record<string, string>;
   graph: ConstellationGraph;
+  locale?: Locale;
 }) {
+  const c = COPY[locale];
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = useMemo(() => characters.find((c) => c.id === selectedId) ?? null, [characters, selectedId]);
-  const nameById = useMemo(() => new Map(characters.map((c) => [c.id, c.profile.name || '（没有名字）'])), [characters]);
+  const nameById = useMemo(() => new Map(characters.map((char) => [char.id, char.profile.name || c.unnamed])), [characters, c.unnamed]);
   const targetLabel = (t: string) => nameById.get(t) ?? worldNodeTitles[t] ?? null;
 
   if (characters.length === 0) {
@@ -43,12 +99,10 @@ export function ConstellationPanel({
         <svg viewBox="0 0 48 48" width="56" height="56" fill="none" aria-hidden="true">
           <path d="M24 4l3.2 8.6 9.1.1-7.3 5.5 2.7 8.4-7.7-5.2-7.7 5.2 2.7-8.4-7.3-5.5 9.1-.1L24 4Z" stroke="var(--nexus-color-brand)" strokeWidth="1.6" strokeLinejoin="round" fill="var(--nexus-color-brand)" fillOpacity="0.15" />
         </svg>
-        <h1 className="cns-emptyTitle">星图还没有星</h1>
-        <p className="cns-emptyCopy">
-          「{projectName}」还没有角色档案——星图读的是 §46 角色档案之间的关系。先去 Studio 建几个人物，这里会长出属于这个世界的星链。
-        </p>
+        <h1 className="cns-emptyTitle">{c.emptyTitle}</h1>
+        <p className="cns-emptyCopy">{c.emptyCopy(projectName)}</p>
         <a href={`/studio/${projectId}`} className="cns-emptyCta" data-constellation-cta>
-          去 Studio 的人物面板 →
+          {c.emptyCta}
         </a>
       </main>
     );
@@ -70,14 +124,14 @@ export function ConstellationPanel({
   return (
     <main className="cns-shell" data-constellation-root>
       {/* 星空 */}
-      <section className="cns-canvas" aria-label="人物星图">
+      <section className="cns-canvas" aria-label={c.canvasAria}>
         <div aria-hidden="true" className="cns-starfield" />
         <header className="cns-kicker">
-          <p className="cns-kickerLine" data-constellation-kicker>CONSTELLATION · {projectName}</p>
-          <h1 className="cns-title">人物关系星图</h1>
+          <p className="cns-kickerLine" data-constellation-kicker>{c.kickerPrefix} · {projectName}</p>
+          <h1 className="cns-title">{c.title}</h1>
         </header>
 
-        <svg viewBox={`0 0 ${W} ${H}`} className="cns-svg" role="img" aria-label={`${characters.length} 个角色的关系星图`} data-constellation-svg>
+        <svg viewBox={`0 0 ${W} ${H}`} className="cns-svg" role="img" aria-label={c.svgLabel(characters.length)} data-constellation-svg>
           <defs>
             <filter id="starGlow" x="-60%" y="-60%" width="220%" height="220%">
               <feGaussianBlur stdDeviation="7" result="b" />
@@ -156,7 +210,7 @@ export function ConstellationPanel({
                 role="button"
                 tabIndex={0}
                 aria-pressed={active}
-                aria-label={`${node.name}（${node.degree} 条关系）`}
+                aria-label={`${node.name}${locale === 'en' ? ` (${node.degree} relationships)` : `（${node.degree} 条关系）`}`}
                 data-constellation-node={node.id}
                 className="cns-node"
                 onClick={() => setSelectedId(active ? null : node.id)}
@@ -186,21 +240,21 @@ export function ConstellationPanel({
 
         {/* 计数脚注 */}
         <footer className="cns-counts" data-constellation-counts>
-          <span>{graph.nodes.length} 星</span>
-          <span>{graph.edges.length} 条双向合并的边</span>
-          <span>{graph.worldAnchors.length} 个世界锚点</span>
-          {graph.unresolved.length > 0 ? <span>{graph.unresolved.length} 条未解析未上图</span> : null}
+          <span>{graph.nodes.length} {c.starUnit}</span>
+          <span>{graph.edges.length} {c.edgeMerge}</span>
+          <span>{graph.worldAnchors.length} {c.anchorUnit}</span>
+          {graph.unresolved.length > 0 ? <span>{graph.unresolved.length} {c.unresolvedCount}</span> : null}
         </footer>
       </section>
 
       {/* 详情面板 */}
-      <aside className="cns-panel" aria-label="角色详情" data-constellation-panel>
+      <aside className="cns-panel" aria-label={c.panelAria} data-constellation-panel>
         {selected ? (
           <>
             <div className="cns-panelHead">
-              <h2 className="cns-panelTitle">{selected.profile.name || '（没有名字）'}</h2>
+              <h2 className="cns-panelTitle">{selected.profile.name || c.unnamed}</h2>
               <a href={`/studio/${projectId}`} className="cns-panelLink" data-constellation-open-studio>
-                去 Studio 人物面板 →
+                {c.studioLink}
               </a>
             </div>
             {selected.profile.identity ? <p className="cns-identity" data-constellation-identity>{selected.profile.identity}</p> : null}
@@ -253,13 +307,13 @@ export function ConstellationPanel({
               <section className="cns-goals" data-constellation-gfe>
                 {selected.profile.goals.length > 0 ? (
                   <div className="cns-goalsCell">
-                    <p className="cns-goalsCellTag cns-goalsCellTagWant">欲望</p>
+                    <p className="cns-goalsCellTag cns-goalsCellTagWant">{c.wantsTag}</p>
                     <ul className="cns-goalsList">{selected.profile.goals.slice(0, 4).map((g) => <li key={g}>→ {g}</li>)}</ul>
                   </div>
                 ) : null}
                 {selected.profile.fears.length > 0 ? (
                   <div className="cns-goalsCell">
-                    <p className="cns-goalsCellTag cns-goalsCellTagFear">恐惧</p>
+                    <p className="cns-goalsCellTag cns-goalsCellTagFear">{c.fearsTag}</p>
                     <ul className="cns-goalsList">{selected.profile.fears.slice(0, 4).map((f) => <li key={f}>× {f}</li>)}</ul>
                   </div>
                 ) : null}
@@ -267,9 +321,9 @@ export function ConstellationPanel({
             ) : null}
 
             <section data-constellation-relationships>
-              <p className="cns-sectionTag">关系</p>
+              <p className="cns-sectionTag">{c.relTitle}</p>
               {selected.profile.relationships.length === 0 ? (
-                <p className="cns-relationshipsEmpty">还没有写下关系——这个人还没有被连上这个世界。</p>
+                <p className="cns-relationshipsEmpty">{c.relEmpty}</p>
               ) : (
                 <ul className="cns-relationshipsList">
                   {selected.profile.relationships.map((rel, i) => {
@@ -287,7 +341,7 @@ export function ConstellationPanel({
                             ) : anchor ? (
                               <>◇ {label}</>
                             ) : (
-                              <>? {rel.target || '（空 target）'}</>
+                              <>? {rel.target || c.emptyTarget}</>
                             )}
                           </span>
                           <span className="cns-relationshipsKind">{rel.kind || '—'}</span>
@@ -303,13 +357,13 @@ export function ConstellationPanel({
         ) : (
           <div className="cns-panelHint" data-constellation-hint>
             <p className="cns-panelHintTag">SELECT A STAR</p>
-            <p className="cns-panelHintCopy">点一颗星看这个人——他的语气、口头禅、欲望与恐惧、他在这个世界里拇住谁。</p>
+            <p className="cns-panelHintCopy">{c.hintCopy}</p>
           </div>
         )}
         {graph.unresolved.length > 0 ? (
           <p className="cns-unresolved" data-constellation-unresolved>
-            {graph.unresolved.length} 条关系指向不存在的名字（未上图）：
-            {graph.unresolved.slice(0, 3).map((u) => `「${u.target}」（${u.ownerName}）`).join('、')}
+            {graph.unresolved.length} {c.unresolvedPrefix}
+            {graph.unresolved.slice(0, 3).map((u) => `「${u.target}」（${u.ownerName}）`).join(locale === 'en' ? ' / ' : '、')}
             {graph.unresolved.length > 3 ? ' …' : ''}
           </p>
         ) : null}

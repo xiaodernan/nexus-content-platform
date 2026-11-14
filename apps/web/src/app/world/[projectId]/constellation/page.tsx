@@ -4,6 +4,7 @@ import { loadWorld } from '@/server/domain/worlds';
 import { loadDocument } from '@/server/domain/projects';
 import { projectVisibleTo } from '@/server/domain/team';
 import { requireUser } from '@/server/domain/session';
+import { getLocale } from '@/lib/i18n';
 import { buildConstellation } from '@/lib/constellation';
 import { ConstellationPanel } from '@/components/ConstellationPanel';
 
@@ -36,6 +37,7 @@ export default async function ConstellationPage({ params }: { params: Promise<{ 
   const worldNodeTitles: Record<string, string> = worldOk
     ? Object.fromEntries(worldOk.nodes.map((node) => [node.id, node.title]))
     : {};
+  const locale = await getLocale();
 
   return (
     <ConstellationPanel
@@ -44,6 +46,7 @@ export default async function ConstellationPage({ params }: { params: Promise<{ 
       characters={roster.items}
       worldNodeTitles={worldNodeTitles}
       graph={graph}
+      locale={locale}
     />
   );
 }
