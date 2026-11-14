@@ -14,7 +14,7 @@ import { describe, expect, it } from 'vitest';
  * `<CommandPalette />`（在 `{children}` 之后、`<ThemeToggle />` 之前）。
  * 除此之外布局一字未动——上一条 `§FE-71` 的判断（ThemeScript 先于内容、metadata 原样）
  * 仍然逐条成立，所以这不是"放宽门槛"，而是"门槛抓到的变化确实是这次意图"。
- * 旧的 `368e57a5…` 是新增那一行之前的读数；现在的读数是 `42ab66aa…`。
+ * 旧读数 `42ab66aa…` 是挂到 CommandPalette 那一版；新读数 `3405cf7d…` 是追加 `<KeyboardCheatsheet/>`（§v706）之后的读数。
  * 「往布局里塞东西」本该是最难的改动，这一格就是它难的地方。
  */
 const ROOT = process.cwd();
@@ -92,9 +92,9 @@ describe('§FE-71 /app/layout 根布局', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（§CP-1 起：42ab66aa29b4cd50827de6447fa2a22953f44e4dade039e09759aef4248e814a）', () => {
+  it('剥 className 后全文 SHA256 守恒（§CP-1 起：3405cf7d23b618783809c208c98d095da64baef4c648f79081cc8cb3fe5d2d2c）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '42ab66aa29b4cd50827de6447fa2a22953f44e4dade039e09759aef4248e814a',
+      '3405cf7d23b618783809c208c98d095da64baef4c648f79081cc8cb3fe5d2d2c',
     );
   });
 
