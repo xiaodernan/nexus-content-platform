@@ -3800,3 +3800,19 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - ROADMAP M3 登记世界大典两章目录 + 校验入口。
 - Gates：fe-gates 116/116 · 1148/1148；web tsc 0；`verify:world-bible` 2 文件 / 12 锚句对；eslint 净。
 - showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 144 (2026-11-17) - v775: 世界大典第三章「潮汐教团的潮沙盘」——收尾完成，第八盏灯留下引线
+
+- 新建 docs/world-bible/003-潮沙盘.md：兑现第二章结尾的"一扇门"——潮沙盘（第七次日蚀掉下的惊雷把荒原尘沙熔成的黑金色玻璃原野，
+  几十年尘土都在上面一粒没踏过）；送信人（孩子长大了）带遗信前往，门框里的灰色海、出价（留下或带回）、桥上无名的人；
+  盐封里的纸原本没有字——那句话从来没有写下来过；他借喉咙说出"我们还欠着你"。潮沙盘随之彻底暗掉。
+- 铁月纪的余波：幸存者在原地发现一块半人高无字的石，石上"嵌"着一根没点的灯芯（第八盏灯）；教团留下的账从此不再有人签名，只要人记得。
+- 7 处锚句中英字字对齐（没有路只问句／门问两难／我欠你一句／门关上之前看见桥上人／纸没有字／海借喉咙／第八盏灯没人点），
+  章末 world-node 映射表（lore/geography/factions/characters/items/story/quests/history）。
+- 大典至此成三章闭环：第一扇门问海叫什么 → 第二扇门问谁在还 → 第三扇门问还完之后怎么办；
+  潮沙盘的卷四引线是"第八盏灯"。
+- ROADMAP M3 目录更新；CURRENT-STATE 登记。
+- Gates：`verify:world-bible` 3 文件 / 19 锚句对；fe-gates 116/116 · 1148/1148；web tsc 0；eslint 净。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+
