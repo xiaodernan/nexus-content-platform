@@ -12064,3 +12064,19 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   hub-selected detail panel with voice/desires/fears/relationships); two-way relationship
   merge labels render on the canvas.
 - Studio world panel gains a "character star map" entry button next to the 3D walkthrough.
+## v705 - world chronicle: /world/<projectId>/chronicle (2026-11-14, ADR 0136)
+
+- Added the time dimension to the world model: WorldNode.lore = { era?, order? } (optional,
+  additive, zero migration - old docs read/write unchanged). zod WorldNodeSchema carries the
+  same block; validateWorld gains bad-lore (empty era / era > 80 chars / non-integer order).
+- New projection: story/history nodes grouped into eras (era name optional; unlabeled bucket
+  last), sorted by min(order) asc; entries by (order ?? MAX, updatedAt desc, id asc).
+  Pure function, 6/6 unit; zero state; zero writes; zero deps.
+- New route /world/<projectId>/chronicle: same project gate as /world; renders horizontal era
+  columns with starfield lanes, kind-colored cards (history=gold, story=brand), per-card
+  in-era sequence (current/total). Empty state honest (no entries, no fake dates).
+- Studio world panel gains the world-chronicle entry button next to the constellation/3D links.
+- Verified end-to-end with a real seed (constellation fixture project f7ec6716): 6 story/history
+  nodes with lore across three eras plus 1 unlabeled entry -> page renders 4 lanes, 7 cards,
+  correct seq numbering; screenshot captured (in turn report). Roundtrip through
+  zod + validateWorld + storage preserves lore fields exactly.

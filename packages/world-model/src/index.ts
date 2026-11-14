@@ -22,6 +22,12 @@ export const WORLD_KINDS = [
   "story",
 ] as const;
 
+/** 世界纪年（可选）：era 名与纪元内顺序。没有它，老节点照样读得出（core 不变）。 */
+export interface WorldNodeLore {
+  era?: string;
+  order?: number;
+}
+
 export type WorldKind = (typeof WORLD_KINDS)[number];
 
 /** 九类的中文名：面板分组标题与模板条目都用它，避免各处各写一套 */
@@ -50,6 +56,13 @@ export interface WorldNode {
    * 库里 assets.kind='model' 的那一行就是它的来源（storageKey 指向 .glb/.gltf 文件）。
    */
   modelAssetId?: string;
+  /**
+   * §44 的节外生枝：本条目在世界纪年里的位置。**可选**——老文档没有这一层，
+   * 读/存/导出原样穿过（zod 同样带这一栏），不编年序。
+   * - `era`：纪元名（"灰灯纪"），自由文本 ≤ 80 字，空白按未标纪元处理
+   * - `order`：纪元内顺序（0 = 最早），缺省按 updatedAt 兜底
+   */
+  lore?: WorldNodeLore;
 }
 
 /**
@@ -158,7 +171,8 @@ export interface WorldIssue {
     | "self-link"
     | "missing-endpoint"
     | "duplicate-link"
-    | "bad-terrain";
+    | "bad-terrain"
+    | "bad-lore";
   message: string;
   nodeId?: string;
 }
@@ -629,6 +643,33 @@ export function validateWorld(document: WorldDocument): WorldIssue[] {
       });
     }
     seen.add(node.id);
+    if (node.lore !== undefined) {
+      const lore = node.lore;
+      if (lore.era !== undefined) {
+        if (typeof lore.era !== "string" || !lore.era.trim()) {
+          issues.push({
+            code: "bad-lore",
+            message: `条目「${node.title || node.id}」的 era 是空白——要么不标，要么写个名字`,
+            nodeId: node.id,
+          });
+        } else if (lore.era.trim().length > 80) {
+          issues.push({
+            code: "bad-lore",
+            message: `条目「${node.title || node.id}」的 era 超过 80 字`,
+            nodeId: node.id,
+          });
+        }
+      }
+      if (lore.order !== undefined) {
+        if (!Number.isInteger(lore.order) || lore.order < 0) {
+          issues.push({
+            code: "bad-lore",
+            message: `条目「${node.title || node.id}」的 order 不是非负整数`,
+            nodeId: node.id,
+          });
+        }
+      }
+    }
     if (typeof node.updatedAt !== "string" || Number.isNaN(Date.parse(node.updatedAt))) {
       issues.push({
         code: "bad-timestamp",
