@@ -2862,3 +2862,23 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - Docker Desktop died again this turn (6th outage host today); relaunched;
   nexus-postgres healthy; sibling 3100/3200 not touched.
 - Sprint Cloud Blueprint's P1 (decision record) and P3 (DLQ lifecycle) stay open.
+## cont. 104 (2026-11-14) - v708 landed: world memories walk (记忆回廊)
+
+- New read-only route `/world/<projectId>/memories`: every story/history entry whose `lore.memory`
+  is set, sorted era-first (UNLABELED last) then `lore.order` then `updatedAt` asc. Zero DB writes;
+  no schema change; pure projection like chronicle. Studio top-bar gains 记忆回廊 next to 世界编年.
+- Fixture evidence (星图 MWG35NRI / f7ec6716): 4 memory echoes seeded via one-shot SQL (not
+  committed), Playwright login, `[data-memories-entry]` = 4, quotes match verbatim; full-page
+  screenshot shows era chips + kind chips (历史/故事) + italic quotes on the gradient spine.
+- Live LLM probe re-run against real wkapi.pro (N=6): prefix cache hit 68.1% this run (channel-
+  roulette persists; per-run variance is expected); app Redis warm-repeat 3422 ms -> 8 ms;
+  /healthz llmCache went 0 -> 1 hits on the second call; 0 failed of 6; 0.0% error rate.
+- ADR 0140: why we do NOT adopt RabbitMQ now (Redis bounded DLQ + admin panel suffices; explicit
+  re-evaluation triggers; no decorative broker without consumers, §159).
+- ADR 0141: the memories walk (projection-only, no schema change, unlabeled-era-last sort,
+  Studio top-bar link; honest notes: no theming, fixture-only seed, NOT a publish surface).
+- Gates: tsc 0; per-file direct eslint 0; chronicle unit 6/6.
+- Docker Desktop died again this turn (8th outage today); relaunched;
+  nexus-postgres/redis healthy; sibling deployments on 3100/3200 untouched.
+- CI at record time: 87aa270 CI in_progress (main-line SUCCESS); 84f9dea CI in_progress
+  (main-line SUCCESS); 799eaf5 CI in_progress (main-line SUCCESS). Do not claim until runner.
