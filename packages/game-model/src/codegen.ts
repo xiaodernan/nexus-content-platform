@@ -141,10 +141,11 @@ const PIPELINE_NAMES_EN: Record<NonNullable<GameProjection["pipeline"]>, string>
   rpg: "the RPG growth loop (compileRpg + rpgStep)",
 };
 
-/** §51 英文词（正文用词照原文）：与 GAME_KINDS 位置对齐 */
-const KIND_TERM_EN: Record<GameKind, string> = Object.fromEntries(
-  GAME_KINDS.map((kind, index) => [kind, GAME_KIND_TERMS[index]]),
-) as Record<GameKind, string>;
+/** §51 英文词（正文用词照原文）：与 GAME_KINDS 位置对齐。惰性读取——模块环求值时 index 的 const 可能尚未初始化，函数调用时必定已就绪。 */
+function kindTermEn(kind: GameKind): string {
+  const index = GAME_KINDS.indexOf(kind);
+  return index >= 0 ? GAME_KIND_TERMS[index]! : kind;
+}
 
 /** 平台上这一型走哪条管线，在产物里有没有对应的引擎——答案只有这一处（`ARTIFACT_CHAINS` 的键）。 */
 export function hasArtifactEngine(pipeline: GameProjection["pipeline"]): pipeline is ArtifactChain {
@@ -289,7 +290,7 @@ export function codeKindReadings(
   if (hasArtifactEngine(kindPipeline)) return { kindPipeline, artifactChain, kindNote: null };
 
   if (locale === "en") {
-    const kindLabel = KIND_TERM_EN[document.kind];
+    const kindLabel = kindTermEn(document.kind);
     const missingEn = kindPipeline === null
       ? "the chain that the status table says is not wired for this kind today"
       : PIPELINE_NAMES_EN[kindPipeline];

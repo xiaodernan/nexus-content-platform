@@ -552,7 +552,13 @@ const LOOKALIKE = [{"f":"docs/decisions/0016-agent-runtime-hermetic-demo-loop.md
   // -- w === "REJECTED flanks cjk|cjk" as the roster's dominant shape.
   {"f":"docs/showcase/nexus.html","d":"ff78e99e042ec9b9","i":[36335],"w":"REJECTED flanks cjk|cjk"},
   {"f":"scripts/gen-showcase-snapshot.mts","d":"ebd7f4c230315fc8","i":[36335],"w":"REJECTED flanks cjk|cjk"},
-  {"f":"scripts/gen-showcase-snapshot.mts","d":"ff78e99e042ec9b9","i":[36335],"w":"REJECTED flanks cjk|cjk"}
+  {"f":"scripts/gen-showcase-snapshot.mts","d":"ff78e99e042ec9b9","i":[36335],"w":"REJECTED flanks cjk|cjk"},
+  // -- amendment (cont. 120, the second consolidation): two bilingual artifacts from the freshly merged
+  // -- other-lane line, both deliberately mixed-script: the ledger line describing the absorbed /guide
+  // -- manual (an English-language Studio ledger row that keeps one Chinese word), and the other lane's
+  // -- load-test markdown bullet. Both are person-written bilingual documentation, not damage.
+  {"f":"docs/CURRENT-STATE.md","d":"adb6e4dcda39e1f6","i":[36335],"w":"REJECTED flanks cjk|punct"},
+  {"f":"docs/evidence/load-redis-completion-cache-2026-11-14.md","d":"03a7adbd583f2edb","i":[36335],"w":"REJECTED flanks cjk|cjk"}
 ];
 const laKey = (e) => `${e.f}\u0000${e.d}`;
 const WITNESS_FLOOR = 4;
