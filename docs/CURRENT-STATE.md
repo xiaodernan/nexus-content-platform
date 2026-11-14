@@ -3735,3 +3735,13 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - Gates：四门 SHA 重钉；fe-gates 116/116 · 1148/1148；web tsc 0；eslint 净。
 - /admin 已完成 13/24（home/AdminNav/dead-letters/audit/health/users/moderation/marketplace/realtime/access/observability/savings/pricing）。
 - showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 139 (2026-11-17) - v769: /admin rate-limit 集群双语化
+
+- rate-limit/page.tsx 双语（RSC getLocale）：denied×2、title/summary/scope 第三句限度整段双语；locale 透传 StatsPanel。
+- StatsPanel.tsx（client）双语（locale prop 默认 zh）：WIRE_LABEL + REASON_LABEL 按 locale 取、
+  windowText（分钟单元）/dt 六项/shared vs own 窗口/桶上界/tracked 条数/键前缀/
+  fallback 退回计数 + 原因清单（排序保持）/桶被回收/部署 envVar 与 pid 句/rules 静态装法表/每 4 秒口径句。
+- Gates：§FE-RL 双文件 SHA 重钉（page=68fd8650… panel=a294e80a…）；fe-gates 116/116 · 1148/1148；tsc web 0；eslint 净。
+- /admin 已完成 14/24。
+- showcase 快照同步于提交后（npm run sync:showcase）。
