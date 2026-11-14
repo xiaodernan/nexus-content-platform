@@ -182,6 +182,7 @@ export default async function DigestPage({ params }: { params: Promise<{ project
       <footer className="dg-foot" data-digest-foot>
         <Link className="am-linkImplicit" href={`/world/${projectId}`} data-digest-back-graph>← 回到世界图</Link>
         <Link className="dg-panelLink" href={`/world/${projectId}/constellation`} data-digest-open-constellation>人物星图 →</Link>
+        <Link className="dg-panelLink" href={`/world/${projectId}/tide`} data-digest-open-tide>世界潮汐 →</Link>
       </footer>
     </main>
   );

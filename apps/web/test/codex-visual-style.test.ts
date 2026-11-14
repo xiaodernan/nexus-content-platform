@@ -106,14 +106,14 @@ describe('§FE-CODEX /world/<project>/codex 设定集', () => {
   });
 
   it('数据钩子守恒（root/kicker/lede/toc/chapter/cast/foot）', () => {
-    for (const hook of ['data-codex-root', 'data-codex-kicker', 'data-codex-lede', 'data-codex-summary', 'data-codex-toc-item=', 'data-codex-chapter=', 'data-codex-cast-entry=', 'data-codex-foot', 'data-codex-back-graph']) {
+    for (const hook of ['data-codex-root', 'data-codex-kicker', 'data-codex-lede', 'data-codex-summary', 'data-codex-toc-item=', 'data-codex-chapter=', 'data-codex-cast-entry=', 'data-codex-foot', 'data-codex-back-graph', 'data-codex-open-tide']) {
       expect(code, `codex 丢了钩子 ${hook}`).toContain(hook);
     }
   });
 
   it('SHA256 钉死（本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      'd9682fddb990646007c5a77cf4b76212fb59db844fb28c9d696d340f7548f0e2',
+      '62a3fbded1944d652a2055fbaa973118513c2ca40f70cbc2cd7be2c9cb344af7',
     );
   });
 });

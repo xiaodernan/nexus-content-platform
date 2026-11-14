@@ -182,6 +182,7 @@ export default async function CodexPage({ params }: { params: Promise<{ projectI
       <footer className="cdx-foot" data-codex-foot>
         <Link className="am-linkImplicit" href={`/world/${projectId}`} data-codex-back-graph>← 回到世界图</Link>
         <Link className="cdx-link" href={`/world/${projectId}/chronicle`} data-codex-open-chronicle>完整编年 →</Link>
+        <Link className="cdx-link" href={`/world/${projectId}/tide`} data-codex-open-tide>世界潮汐 →</Link>
       </footer>
     </main>
   );

@@ -83,7 +83,7 @@ describe('§FE-DG /world/<project>/digest 世界速览', () => {
       'data-digest-counts', 'data-digest-quad',
       'data-digest-quad-constellation', 'data-digest-quad-chronicle', 'data-digest-quad-codex', 'data-digest-quad-ephemeris',
       'data-digest-eras', 'data-digest-era=', 'data-digest-lore', 'data-digest-lore-item=',
-      'data-digest-open-chronicle', 'data-digest-open-codex', 'data-digest-open-constellation',
+      'data-digest-open-chronicle', 'data-digest-open-codex', 'data-digest-open-constellation', 'data-digest-open-tide',
       'data-digest-back-graph', 'data-digest-foot',
     ]) {
       expect(code, `digest 丢了钩子 ${hook}`).toContain(hook);
@@ -121,7 +121,7 @@ describe('§FE-DG /world/<project>/digest 世界速览', () => {
 
   it('SHA256 钉死（本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      'eddaa60ebc5e998921fa08c7e912bb62d649672e5a7e55aacc1267139506069d',
+      'c8b7a73a750fe8bd1893c17f00f6c03b3d58a4211f0269e10a415965f0d71e83',
     );
   });
 });

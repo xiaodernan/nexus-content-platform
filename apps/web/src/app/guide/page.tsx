@@ -43,7 +43,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         heading: '③ 功能地图（点进去就是那个页面）',
         body: [
           '/discover 广场（热门/最新/ trending / 我关注的）· /marketplace 组件/模板/资产市场 · /blocks 积木库 · /search 全站搜索',
-          '/studio/<project> 项目主场：画布/图层/设计系统/3D · /world/<id> 走进这个世界（3D 步行）· /world/<id>/digest 世界速览 · /world/<id>/constellation 人物关系星图 · /world/<id>/codex 设定集（纸面投影）· /world/<id>/chronicle 编年 · /world/<id>/ephemeris 世界切片',
+          '/studio/<project> 项目主场：画布/图层/设计系统/3D · /world/<id> 走进这个世界（3D 步行）· /world/<id>/digest 世界速览 · /world/<id>/tide 世界潮汐 · /world/<id>/constellation 人物关系星图 · /world/<id>/codex 设定集（纸面投影）· /world/<id>/chronicle 编年 · /world/<id>/ephemeris 世界切片',
           '/credits 我的额度 · /tasks 任务账本 · /api-tokens API 令牌 · /analytics 我作品的数据 · /notifications 收件箱 · /ship 交付日志 · /about-nexus 关于',
           '/admin/* 平台管理台（role=admin）：审核台、pricing、dead-letter、ai-cache、audit、observability、users、pricing、rate-limit 等',
         ],
@@ -104,7 +104,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         heading: '③ Feature map (click a path, land on the page)',
         body: [
           '/discover feed · /marketplace components/templates/assets · /blocks library · /search global search',
-          '/studio/<project> studio · /world/<id> walk this world (3D) · /world/<id>/digest world digest · /world/<id>/constellation character graph · /world/<id>/codex paper tome · /world/<id>/chronicle timeline · /world/<id>/ephemeris 360-day page',
+          '/studio/<project> studio · /world/<id> walk this world (3D) · /world/<id>/digest world digest · /world/<id>/tide world tide · /world/<id>/constellation character graph · /world/<id>/codex paper tome · /world/<id>/chronicle timeline · /world/<id>/ephemeris 360-day page',
           '/credits your quota · /tasks task ledger · /api-tokens API tokens · /analytics your stats · /notifications inbox · /ship ship log · /about-nexus about',
           '/admin/* admin console (role=admin): moderation, pricing, dead-letters, ai-cache, audit, observability, users, rate-limit, etc.',
         ],
