@@ -9,6 +9,8 @@
 > - **验证**：`era-ties` 9/9 · `chronicle-visual-style` 5/5 · `chronicle` 8/8 · `digest-visual-style` 7/7 · `guide-visual-style` 7/7；`tsc -p apps/web` EXIT=0。
 > - **诚实限度**：fe-gates 本地整线未在本段重跑（本机内存 1.3–2.5GB 锯齿，视觉判据按文件分片单跑 + 逐个绿，未声明整线全绿）；digest 页面像素/浏览器层未验证（本机无合适 Chrome）；`main` 领先 origin 620+，仍不可 push（OAuth token 无 `workflow` scope，阻塞不阻塞开发）。
 >
+> **2026-11-14 续4（§merge：兄弟线 v705.2–v706 + ci 容差并入主线，`f243462e`）**：全量并轨完成。兄弟线用 SSH 于 11:52 前后推到 origin/main 的 4 个 commit（9cd48bce 纪元行内编辑器 · af356bf2 memory echoes · 799eaf54 人物/编年共享纪元 · 84f9deae /health 容差 15s）合并进本线。§FE façade 超集统收——兄弟线 raw Tailwind/hex 全部回迁到 `.crn-*` / `.cns-*` / `.wd-*`；ChronicleView 双口径并存（EraTiesStrip 一跳命中 + 在场 chips 深链 ?character=<id> + memory 回声）；§FE-CRN/CNS SHA 重钉；一个合并挖真 bug（elevation 行 `<label>` 被误删 → tsc TS17008 抓出回补，工作树再验 1141/1141 全绿、tsc EXIT=0、census 2131 绿）；主线自身新增 .crn-present*/.crn-memory/.cns-era 出forced-colors 收口；merge 无遥测修改、无行尾伪影。main 净领先 origin/main 449 commits（未 push，通道受阻同前）。
+>
 > **2026-11-14 续3（§GATE/fe-gates 整线第一次在本机复绿，含今日新门——`verify:fe-gates` 12.73s / 115 文件 / 1141 条全过，`census` OK 2125 类）**：tide/digest/era-ties 三条门面进线后没有引入任何红，§FE-48 SHA 重钉（863b21→29e46e0b）也是授权的意图变更。之前「不承诺整线绿」的诚实限度可以撤销：本轮整线实测全绿。剩余诚实限度：浏览器像素层验证缺席（本机无合适 Chrome）；`main` 630+ 领先 origin 仍不可 push（`workflow` scope 缺失，见此前段落）。
 >
 > **2026-11-14 续（§v719「世界潮汐」引擎片——v710 §B 拆片真落地，main 领先 origin 625+，未 push）**：
