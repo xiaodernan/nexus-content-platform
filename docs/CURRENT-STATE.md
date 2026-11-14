@@ -3028,3 +3028,23 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   63069f7 main-line SUCCESS (CI in_progress); c28ad48 in_progress (main-line SUCCESS);
   3233c93 queued; 7284152 queued; a092ee9 in_progress. Not claiming until runner finishes.
 - Docker Desktop outage count today: 13. Self-healed; sibling deployments 3100/3200 untouched.
+## cont. 112 (2026-11-14) - v716 chronicle cross-nav + mobile 390px verification of the world surfaces
+
+- ChronicleView header gains the world-subsystem navigation row (藏经阁/回廊/图志/星图,
+  data-chronicle-nav), completing the cross-link set across ALL FIVE world surfaces
+  (walk/almanac/atlas/chronicle/memories) + constellation. Verified desktop: nav links=4,
+  full-page screenshot shows the row between kicker/counts and the timeline, zero layout
+  disturbance; chronicle unit 6/6; tsc 0; per-file eslint 0.
+- Mobile 390x844 viewport check (fixture 星图 MWG35NRI, screenshots captured): almanac
+  (single-column stack, all volumes/cenesus legible), atlas (night chart fully visible,
+  5 nav chips wrap to two rows, dossier card below), memories (chip rows wrap, quotes intact).
+  No layout defects found; app-shell floating buttons overlap content on mobile but that is
+  the shared FAB, not a world-surface defect (not fixed here).
+- World subsystem is now fully interlinked: almanac -> four volume doors + era anchors;
+  chronicle -> constellation (roster chips) + anchor deep-links from almanac; atlas -> ?pin
+  selection; memories/chronicle/atlas/memories all carry the shared nav row.
+- Docker Desktop outage count today: 14. Self-healed twice; sibling deployments 3100/3200
+  untouched throughout.
+- CI at record time: 84f7f0d CI+main-line SUCCESS; bf84954 CI+main-line SUCCESS;
+  63069f7 main-line SUCCESS (CI in_progress); c28ad48 main-line SUCCESS (CI in_progress);
+  a092ee9 main-line SUCCESS (CI in_progress); 3233c93/7284152/738dfb7 queued.

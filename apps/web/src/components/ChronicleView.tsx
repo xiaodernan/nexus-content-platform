@@ -38,6 +38,12 @@ export function ChronicleView({ worldName, eras, characters = [], projectId = ''
           <span className="text-[#5b6cff]">·</span>
           <span>{total} 条编年</span>
         </div>
+        <nav className="order-3 flex w-full flex-wrap gap-2 border-t border-[#151b3a] pt-2" aria-label="世界子页导航" data-chronicle-nav>
+          <a href={`/world/${projectId}/almanac`} className="rounded-md border border-[#232b52] bg-[#0d1230]/70 px-3 py-1.5 text-11 text-[#c6cdf5] transition-colors hover:border-[#3a4472] hover:text-white">世界藏经阁</a>
+          <a href={`/world/${projectId}/memories`} className="rounded-md border border-[#232b52] bg-[#0d1230]/70 px-3 py-1.5 text-11 text-[#c6cdf5] transition-colors hover:border-[#3a4472] hover:text-white">记忆回廊</a>
+          <a href={`/world/${projectId}/atlas`} className="rounded-md border border-[#232b52] bg-[#0d1230]/70 px-3 py-1.5 text-11 text-[#c6cdf5] transition-colors hover:border-[#3a4472] hover:text-white">寰宇图志</a>
+          <a href={`/world/${projectId}/constellation`} className="rounded-md border border-[#232b52] bg-[#0d1230]/70 px-3 py-1.5 text-11 text-[#c6cdf5] transition-colors hover:border-[#3a4472] hover:text-white">角色星图</a>
+        </nav>
       </header>
 
       {/* 横向年表 */}
