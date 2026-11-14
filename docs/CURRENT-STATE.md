@@ -2932,3 +2932,23 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - Docker Desktop outage count today: 9. nexus-postgres/redis healthy; sibling 3100/3200 untouched.
 - CI at record time: bf84954 pushed (master+main) - runner verdict pending, do not claim until it
   completes. 87aa270/84f9dea/799eaf5 CI still in_progress/queued from earlier.
+## cont. 106 (2026-11-14) - v710 landed: world-document read path now behind a 30s shared cache
+
+- New module `apps/web/src/server/cache/worldViewCache.ts`: post-validation `WorldResult`
+  (incl. the "no world" null answer) cached for 30s; driver mirrors discoverRouteCache -
+  `NEXUS_REDIS_URL` set -> Redis (`nexus:world-view:v1:<projectId>`, PX 30000, no local replica,
+  DEL is instantly global), else in-process TtlLru (64 entries + 30s).
+- Wired into `loadWorld` (every /world/* page, Studio panel reads, knowledge sync input):
+  hit short-circuits SQL + zod + validateWorld. Write paths (saveWorld insert success and
+  applyWorldUpdate after SQL update) call `invalidateWorldViewCache(projectId)`.
+- Failure contract: Redis unreachable -> get undefined (read-through), set/del silent no-op,
+  driver()='redis-unavailable'; never a wrong answer, never a throw.
+- Tests `apps/web/test/world-view-cache.test.ts`: 7/7 green (memory-driver semantics + Redis
+  unreachable leg + static gates pinning both write paths' DEL and the miss-side ordering).
+- tsc 0; per-file eslint 0; live dev server (3101, Turbopack): memories/chronicle/atlas all 200
+  after the wiring; content unchanged.
+- ADR 0143 records the decision (post-validation cache, write-path DEL, versioned key prefix,
+  no single-flight for this path, no observability export in this slice, 30s bound for direct
+  SQL writes).
+- CI at record time: 84f7f0d/bf84954 in_progress on CI; main-line SUCCESS for bf84954 earlier;
+  not claiming until the runner finishes.

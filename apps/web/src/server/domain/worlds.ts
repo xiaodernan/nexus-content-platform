@@ -4,6 +4,7 @@ import { validateWorld, type WorldDocument } from '@nexus/world-model';
 import { syncProjectKnowledge } from './knowledge';
 import { getDb } from '../db/client';
 import { worlds } from '../db/schema';
+import { getWorldViewCache, invalidateWorldViewCache } from '../cache/worldViewCache';
 
 /**
  * §44 世界文档的读写。一个项目一份世界（v1）：面板、图视图（§45）、角色对话（§47）
@@ -28,7 +29,7 @@ async function currentRow(projectId: string) {
 }
 
 /** 读取；没有世界时返回 null（不是空文档——"还没有"和"有一份空的"是两件事） */
-export async function loadWorld(projectId: string): Promise<WorldResult | null> {
+async function computeWorldResult(projectId: string): Promise<WorldResult | null> {
   const row = await currentRow(projectId);
   if (!row) return null;
   const parsed = WorldDocumentSchema.safeParse(row.document);
@@ -48,6 +49,20 @@ export async function loadWorld(projectId: string): Promise<WorldResult | null> 
   // 一份世界只有一个 id：行的 uuid。文档自带的那个字符串只是建档时的临时值，
   // 读出来就换掉，否则角色挂的 worldId 与世界文档的 id 会变成两个说法。
   return { ok: true, document: { ...stored, id: row.id } };
+}
+
+/**
+ * 读取；没有世界时返回 null（不是空文档——"还没建"和"有一份空的世界"是两件事）。
+ * 成功答案（含「没世界」）缓存 30s（v710 / ADR 0143）——读远多于写；
+ * 写路径 saveWorld 两处落点在写成功后立即失效该键。
+ */
+export async function loadWorld(projectId: string): Promise<WorldResult | null> {
+  const cache = getWorldViewCache();
+  const cached = await cache.get(projectId);
+  if (cached !== undefined) return cached;
+  const result = await computeWorldResult(projectId);
+  await cache.set(projectId, result);
+  return result;
 }
 
 /**
@@ -98,6 +113,7 @@ export async function saveWorld(
     .returning({ id: worlds.id });
   if (inserted) {
     await syncProjectKnowledge(projectId);
+    await invalidateWorldViewCache(projectId);
     return { ok: true, document: { ...stamped, id: inserted.id } };
   }
   // 撞了唯一约束：另一个请求刚插了同一项目的那一行。重新读出来走更新路径
@@ -135,6 +151,7 @@ async function applyWorldUpdate(
     .returning({ id: worlds.id });
   if (!row) return { ok: false, reason: '保存世界文档时没写到任何行' };
   await syncProjectKnowledge(projectId);
+  await invalidateWorldViewCache(projectId);
   return { ok: true, document: { ...stamped, id: row.id } };
 }
 
