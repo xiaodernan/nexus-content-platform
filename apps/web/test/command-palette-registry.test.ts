@@ -17,7 +17,7 @@ import {
  */
 describe('§CP-1 命令表', () => {
   it('十六格，id 与 label 都不重复', () => {
-    expect(PALETTE_COMMANDS).toHaveLength(17);
+    expect(PALETTE_COMMANDS).toHaveLength(18);
     const ids = PALETTE_COMMANDS.map((command) => command.id);
     expect(new Set(ids).size).toBe(ids.length);
     const labels = PALETTE_COMMANDS.map((command) => command.label);
