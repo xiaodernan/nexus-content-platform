@@ -148,6 +148,18 @@ export function CreditsBurnCard({ projection, balance }: { projection: BurnProje
               </linearGradient>
             </defs>
             <line x1={PAD_X} y1={floorY} x2={W - PAD_X} y2={floorY} stroke="currentColor" strokeOpacity="0.14" strokeDasharray="3 5" />
+            {projection.series.every((v) => v === 0) ? (
+              <text
+                x={W / 2}
+                y={H / 2 - 4}
+                textAnchor="middle"
+                fontSize="12"
+                fill="currentColor"
+                fillOpacity="0.35"
+              >
+                这 30 天没有 AI 消耗行为
+              </text>
+            ) : null}
             {mounted && areaPath ? <path d={areaPath} fill="url(#burnArea)" /> : null}
             {n > 0 ? (
               <polyline

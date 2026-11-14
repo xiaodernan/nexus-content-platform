@@ -2687,3 +2687,18 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   register 200 (fresh fixture account), real-DB owner / stranger / bad-id, SSR marker presence.
 - Commit chain: v699 (8528722, savings card) pushed; hosted runner verdict for it PENDING at this
   writing; master == main == origin @ 8528722 until v700 lands.
+## cont. 91 (2026-11-14) - dev-mode hydration unblocked; v700 empty-state fix; pixel verification landed
+
+- Root cause of the long-standing "page loads, nothing is clickable" in this repo's dev setup:
+  Next 16 blocks the /_next/hmr WebSocket from 127.0.0.1 origins by default ("Blocked
+  cross-origin request to Next.js dev resource"). Fix: allowedDevOrigins in next.config.ts
+  (dev-only field; production untouched). Verified: same page now hydrates (fiber keys present),
+  register / login flows work end to end on 127.0.0.1.
+- Pixel verification UNBLOCKED at last: /credits screenshot with v700 burn card (zero history =>
+  honest insufficient-data / no-date headline; SVG watermark "no AI usage in 30 days" after this
+  slice added the empty-state text). Fresh fixture account -> register -> member -> /credits;
+  screenshot captured (shown in the turn report).
+- sibling deployment status at record time: 3100 / 3200 both ECONNREFUSED (its watchdog owns the
+  relaunch; Docker Desktop itself is healthy and restarted both previously). Not touched by us.
+- CI: 8528722 (v699) both workflows SUCCESS; 4185301 (v700) main-line SUCCESS, CI in_progress at
+  record time - do not claim v700 CI green until the runner says so.
