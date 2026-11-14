@@ -4545,3 +4545,50 @@
   .cdx-tocLink:hover, .cdx-tocLink:focus-visible { background: Highlight; color: HighlightText; }
   .cdx-tocLink:focus-visible { outline: 2px solid Highlight; }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   §FE-EPH「世界切片」Ephemeris：创世年（360 天日历）× 流动条目，纸面投影，
+   暗金 + 墨色底，全 tokens 零 hex，forced-colors 收口。
+   ───────────────────────────────────────────────────────────────────── */
+.eph-root { display: flex; flex-direction: column; gap: var(--nexus-space-4); max-width: 56rem; margin: 0 auto; padding: var(--nexus-space-8) var(--nexus-space-5); background: linear-gradient(180deg, var(--nexus-color-bg-1) 0%, var(--nexus-color-bg-0) 100%); min-height: 100dvh; color: var(--nexus-color-fg-1); }
+.eph-hero { border: 1px solid color-mix(in srgb, var(--nexus-color-brand) 45%, transparent); border-radius: var(--nexus-radius-md); padding: var(--nexus-space-5); background: radial-gradient(ellipse at 50% -20%, color-mix(in srgb, var(--nexus-color-accent-2) 18%, transparent) 0%, transparent 55%), var(--nexus-color-bg-2); text-align: center; display: flex; flex-direction: column; gap: var(--nexus-space-2); position: relative; overflow: hidden; }
+@media (prefers-reduced-motion: no-preference) { .eph-hero::before { content: ''; position: absolute; width: 18rem; height: 18rem; top: -4rem; left: 50%; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--nexus-color-warn-ink) 14%, transparent) 0%, transparent 65%); animation: ephPulse 6s ease-in-out infinite; } }
+@keyframes ephPulse { 0%,100% { opacity: 0.4; transform: translateX(-50%) scale(1); } 50% { opacity: 0.9; transform: translateX(-50%) scale(1.15); } }
+.eph-kicker { position: relative; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.26em; text-transform: uppercase; color: var(--nexus-color-warn-ink); }
+.eph-title { position: relative; font-size: var(--nexus-font-size-28); font-weight: 700; letter-spacing: 0.22em; margin: 0; color: var(--nexus-color-fg-1); text-shadow: 0 0 0.6rem color-mix(in srgb, var(--nexus-color-warn-ink) 35%, transparent); }
+.eph-lede { position: relative; font-size: var(--nexus-font-size-13); line-height: 1.85; color: var(--nexus-color-fg-2); max-width: 40rem; margin: 0 auto; }
+.eph-footnote { position: relative; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+.eph-counts { position: relative; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-mix); font-variant-numeric: tabular-nums; border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-2); margin-top: var(--nexus-space-2); letter-spacing: 0.04em; }
+.eph-empty { display: flex; flex-direction: column; align-items: center; gap: var(--nexus-space-2); text-align: center; padding: var(--nexus-space-8) var(--nexus-space-5); border: 1px dashed var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md); background: var(--nexus-color-bg-1); }
+.eph-emptyTitle { font-size: var(--nexus-font-size-18); font-weight: 650; color: var(--nexus-color-fg-1); margin: 0; }
+.eph-emptyCopy { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); line-height: 1.8; max-width: 32rem; margin: 0; }
+.eph-calendar { display: grid; grid-template-columns: repeat(30, minmax(0, 1fr)); gap: 2px; border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-1); background: var(--nexus-color-bg-2); }
+@media (max-width: 56rem) { .eph-calendar { grid-template-columns: repeat(15, minmax(0, 1fr)); } }
+@media (max-width: 32rem) { .eph-calendar { grid-template-columns: repeat(10, minmax(0, 1fr)); } }
+.eph-day { display: flex; flex-direction: column; align-items: center; gap: 0; min-height: 2.6rem; padding: 0.25rem 0; border-radius: var(--nexus-radius-sm); text-decoration: none; color: var(--nexus-color-fg-3); border: 0; background: transparent; font-family: var(--nexus-font-mono); transition: background 120ms ease; }
+.eph-dayNum { font-size: var(--nexus-font-size-11); font-variant-numeric: tabular-nums; opacity: 0.65; }
+.eph-dayLive { background: color-mix(in srgb, var(--nexus-color-warn-ink) 14%, transparent); color: var(--nexus-color-accent-mix); }
+.eph-dayLive:hover, .eph-dayLive:focus-visible { background: color-mix(in srgb, var(--nexus-color-warn-ink) 26%, transparent); color: var(--nexus-color-warn-ink); outline: none; }
+.eph-dayLive:focus-visible { box-shadow: 0 0 0 2px var(--nexus-color-brand); }
+.eph-dayCount { font-size: var(--nexus-font-size-9); font-variant-numeric: tabular-nums; color: var(--nexus-color-accent-2-ink); }
+.eph-flow { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--nexus-space-3); }
+.eph-daySection { display: flex; flex-direction: column; gap: var(--nexus-space-2); border-left: 2px solid color-mix(in srgb, var(--nexus-color-warn-ink) 45%, transparent); padding-left: var(--nexus-space-3); }
+.eph-dayLabel { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.18em; color: var(--nexus-color-warn-ink); text-transform: uppercase; margin: 0; }
+.eph-entry { display: flex; flex-direction: column; gap: var(--nexus-space-1); padding: var(--nexus-space-2) var(--nexus-space-3); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md); background: var(--nexus-color-bg-1); }
+.eph-entryHead { display: flex; align-items: center; gap: var(--nexus-space-2); }
+.eph-kindChip { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-9); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); padding: 0 0.35rem; color: var(--nexus-color-fg-3); letter-spacing: 0.12em; }
+.eph-eraChip { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-9); color: var(--nexus-color-accent-mix); }
+.eph-entryTitle { font-size: var(--nexus-font-size-14); font-weight: 650; color: var(--nexus-color-fg-1); margin: 0; }
+.eph-entryExcerpt { font-size: var(--nexus-font-size-12); line-height: 1.8; color: var(--nexus-color-fg-2); margin: 0; }
+.eph-foot { display: flex; justify-content: flex-start; align-items: center; gap: var(--nexus-space-4); border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-3); }
+
+@media (forced-colors: active) {
+  .eph-hero, .eph-entry, .eph-empty, .eph-calendar { border-color: CanvasText; background: Canvas; color: CanvasText; }
+  .eph-hero::before { display: none; }
+  .eph-title, .eph-entryTitle, .eph-emptyTitle, .eph-kicker { color: CanvasText; }
+  .eph-dayNum, .eph-lede, .eph-footnote, .eph-entryExcerpt { color: CanvasText; }
+  .eph-dayLive { background: Canvas; border: 1px solid CanvasText; }
+  .eph-kindChip { border-color: CanvasText; color: CanvasText; }
+  .eph-dayLive:focus-visible { box-shadow: 0 0 0 2px Highlight; }
+}
+@media (prefers-reduced-motion: reduce) { .eph-hero::before { animation: none; } }

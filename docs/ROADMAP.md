@@ -13802,6 +13802,18 @@ shadow-[0_0_...]），按 §FE 判据不可带入主线。本线做的：
   hub-selected detail panel with voice/desires/fears/relationships); two-way relationship
   merge labels render on the canvas.
 - Studio world panel gains a "character star map" entry button next to the 3D walkthrough.
+## v709 - 世界/<projectId>/ephemeris 「世界切片」—— 确定性投影的「创世年」（2026-11-14, ADR 0137）
+
+- `apps/web/src/app/world/[projectId]/ephemeris/page.tsx`（RSC, force-dynamic, 仅作者可见，零 provider/零写库）：
+  360 日创世年投影，从 worlds.document 真绑定落笔节点（body.trim() 非空）经确定性 xor-shift 散列
+  分配到 1..360 的某一天；每天一张"今日"卡片（.eph-entry），含摘录、kindLabel、lore.era 角标；
+  额外一个 360 格日历 `.eph-calendar`（live 天高亮，悬停 title 显示当天条目）。
+  零 provider、零 IO、零 Date、Math.random — 同一份字节文件在任何机器上给出同一年。
+- `lib/ephemeris.ts`：纯函数 + 确定性 xor-shift32；unit gate `ephemeris.test.ts` 7/7（含空 body 排除、
+  day 区间、排序稳定、kindLabel 取自 WORLD_KIND_LABELS、excerpt 截断 ≤96+…）。
+- 判据 `ephemeris-visual-style.test.ts`（§FE-EPH）6/6；census **2038**；fe-gates **110/110 · 1109/1109**。
+  WorldGraphView 加「世界切片」入口（§FE-57 SHA 重钉 9df15316…）。
+
 ## v708 - 世界/<projectId>/codex 「设定集」——世界文档的纸面投影（2026-11-14, ADR 0136 续）
 
 - `apps/web/src/app/world/[projectId]/codex/page.tsx`（RSC、强制动态、仅作者可见、零写库）：把 worlds
