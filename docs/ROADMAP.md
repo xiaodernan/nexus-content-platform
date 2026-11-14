@@ -13802,6 +13802,12 @@ shadow-[0_0_...]），按 §FE 判据不可带入主线。本线做的：
   hub-selected detail panel with voice/desires/fears/relationships); two-way relationship
   merge labels render on the canvas.
 - Studio world panel gains a "character star map" entry button next to the 3D walkthrough.
+## v714 - §FE-Ship 双语化 —— /ship 真实 zh+en (2026-11-14)
+
+- `apps/web/src/app/ship/page.tsx` 重写为 COPY 字典（zh/en 两套完整文案；Git log 数据本身不翻译如日期/hash/subject），`getLocale()` 驱动 `<html lang>`。
+- §FE-Ship SHA 重钉：`51d186d7 → 19332535…`；gate 7/7 全绿；`.sh-*` 的 data hooks 完整。
+- 后向同步：About/Guide/Ship 三个公开页全部是真双语，根布局 layout 也是异步的，语言 FAB 等待者可以点。
+
 ## v713 - §FE-About 双语化 —— /about-nexus 从单语变 zh+en（2026-11-14, v712 i18n 的实效扩展）
 
 - `apps/web/src/app/about-nexus/page.tsx` 重写为 COPY 字典（zh/en 两套完整文案——正则、项目清单、链接文案、ledes、
