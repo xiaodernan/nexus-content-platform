@@ -1506,6 +1506,8 @@ warm 方向奶油字压亮橙 3.35:1、cyber 的 light 模式是深底配深字 
 - [~] World Builder（Lore/History/Geography/Factions/Characters/Creatures/Items/Quests/Story）—
   世界文档（九类）+ 存储 + Studio「世界」面板已落地，见下方进度记录；
   **§44 的 AI 生成那半没做**（要真 provider），没接之前面板只给模板骨架，正文一律留空。
+  正典内容另立：`docs/world-bible/`——章正典按锚句逐字一致的方式书写，
+  现已含 `001-潮汐教团的余烬.md`（低语诸王 · 灰烬纪，中英对照，九类条目映射见章末表）。
 - [x] World Graph 可视化 + 可拖拽节点（§45）— 关系（有向、可带标签）与拖拽位置都存在世界文档里，
   Studio 第四个视图「世界图」画出来；见下方进度记录。自动避障 / 缩放 / 多选没做，不在 §45 的验收里。
 - [~] Character System + Character Agent 对话（§46-47）— §46 档案（含关系、声音、视觉标识）已落地，

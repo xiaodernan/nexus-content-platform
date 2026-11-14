@@ -3644,6 +3644,19 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - **/admin 20/24 全部双语**；剩余 4 格为留档位（无其他文件级前端中文面）。
 - showcase 快照同步于提交后（npm run sync:showcase）。
 
+## cont. 142 (2026-11-17) - v773: 低语诸王大典·第一章「潮汐教团的余烬」——正典落库
+
+- 新建 docs/world-bible/ 目录 + 001-潮汐教团的余烬.md：
+  七日蚀→潮汐教团七席→第七口井→镜鳗→七条汐台规矩→铁月纪遗信，全篇中英对照；
+  九处锚句唯一（导航/检索/评测锚/读者定位都靠它）；触及世界模型九类条目全部覆盖
+  （lore/history/geography/factions/characters/creatures/items/quests/story + memory 回声一则），
+  章末附 "这一章在模型里的影子" 映射表，可直接灌进 `低语诸王` 世界文档照相落地。
+- 写入纪律（写死在正文里）：本章是正典，不可经任何机器翻译改写；锚句中英字字对齐。
+  与 eval-baseline.mts 的现有锚句（第七次日蚀/雾港灯人/守夜人/打翻的镜子）互不冲突。
+- ROADMAP §44/M3 一行登记：bible 作为 §44 正典内容通道存在，**不伪造 "AI 已经生成世界" 之外的东西**——
+  这就是"低语诸王"的第一本世界观正典，而不是 §159 意义上的假生成。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
 ## cont. 140 (2026-11-17) - v770/v771: /admin gateway 集群 + ai-cache 集群双语化
 
 - gateway-view.ts 双语（locale 参数，默认 zh 保旧断言）：sharedHealthView 三态/numberOrDash/healthView（five态）+
