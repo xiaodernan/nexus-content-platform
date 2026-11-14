@@ -38,7 +38,7 @@ export function LocaleToggle() {
   return (
     <button
       type="button"
-      onClick={toggle}
+      onClick={() => { void toggle(); }}
       data-locale-toggle={locale}
       data-locale-toggle-ready={ready ? '1' : undefined}
       aria-label={label}

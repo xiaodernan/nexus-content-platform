@@ -9,7 +9,7 @@ import { getLocale } from '@/lib/i18n';
 import { buildChronicle, UNLABELED_ERA } from '@/lib/chronicle';
 import { buildEraTies } from '@/lib/era-ties';
 import { buildEphemeris, EPHEMERIS_DAYS } from '@/lib/ephemeris';
-import { WORLD_KINDS, type WorldNode } from '@nexus/world-model';
+import { type WorldNode } from '@nexus/world-model';
 
 export const dynamic = 'force-dynamic';
 

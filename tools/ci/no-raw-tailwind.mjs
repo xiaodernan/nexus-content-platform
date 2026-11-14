@@ -79,25 +79,24 @@ function tokensOf(text) {
 
 function* scanFile(file) {
   const src = readFileSync(file, 'utf8');
-  const lines = src.split('\n');
   for (const m of src.matchAll(ATTR_RE)) {
     if (m[1] !== undefined) {
-      for (const tok of tokensOf(m[1])) if (isAtom(tok)) yield { line: lineOf(src, m.index ?? 0, lines), tok };
+      for (const tok of tokensOf(m[1])) if (isAtom(tok)) yield { line: lineOf(src, m.index ?? 0), tok };
     } else if (m[2] !== undefined) {
       const tpl = m[2];
       for (const tok of tokensOf(tpl)) {
         const clean = tok.replace(/^\$\{|\}$/g, '');
-        if (isAtom(clean)) yield { line: lineOf(src, m.index ?? 0, lines), tok: clean };
+        if (isAtom(clean)) yield { line: lineOf(src, m.index ?? 0), tok: clean };
       }
     } else if (m[3] !== undefined) {
       for (const q of m[3].matchAll(QUOTE_RE)) {
-        for (const tok of tokensOf(q[1])) if (isAtom(tok)) yield { line: lineOf(src, m.index ?? 0, lines), tok };
+        for (const tok of tokensOf(q[1])) if (isAtom(tok)) yield { line: lineOf(src, m.index ?? 0), tok };
       }
     }
   }
 }
 
-function lineOf(src, index, lines) {
+function lineOf(src, index) {
   return src.slice(0, index).split('\n').length;
 }
 

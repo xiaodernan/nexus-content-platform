@@ -8,7 +8,7 @@ import { requireUser } from '@/server/domain/session';
 import { getLocale } from '@/lib/i18n';
 import { buildChronicle, UNLABELED_ERA } from '@/lib/chronicle';
 import { buildConstellation } from '@/lib/constellation';
-import { WORLD_KINDS, type WorldKind, type WorldNode } from '@nexus/world-model';
+import { type WorldNode } from '@nexus/world-model';
 
 export const dynamic = 'force-dynamic';
 

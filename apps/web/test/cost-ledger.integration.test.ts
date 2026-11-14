@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { eq, inArray } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { readCostLedger } from '../src/server/domain/costLedger';
 import { startTask, recordTaskUsage } from '../src/server/domain/agent-tasks';
 import { createProject } from '../src/server/domain/projects';
@@ -49,7 +49,7 @@ afterAll(async () => {
   await db.delete(users).where(eq(users.id, ownerId));
 });
 
-const startAndRecord = async (usage: unknown | null) => {
+const startAndRecord = async (usage: unknown) => {
   const started = await startTask({
     projectId,
     agentKey: 'design-edit',
@@ -63,9 +63,9 @@ const startAndRecord = async (usage: unknown | null) => {
 
 describe('readCostLedger · 真库对账', () => {
   it('按 costBasis 拆开：configured / unknown / legacy 三档各自成队', async () => {
-    const configuredId = await startAndRecord(configuredUsage);
-    const unknownId = await startAndRecord(unknownUsage);
-    const legacyId = await startAndRecord(null);
+    await startAndRecord(configuredUsage);
+    await startAndRecord(unknownUsage);
+    await startAndRecord(null);
 
     const ledger = await readCostLedger(24);
     expect(ledger.rows).toBeGreaterThanOrEqual(3);

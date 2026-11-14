@@ -52,7 +52,6 @@ import { isTheme, THEME_STORAGE_KEY } from '@/lib/theme';
 const RECENT_KEY = 'nexus.palette.recent';
 const RECENT_MAX = 8;
 /** 同分时"最近用过"能加多少。取 6：足够把一条常用命令提到同分组的首位，又翻不过一条更高分的匹配。 */
-const RECENT_BOOST = 6;
 
 function readRecent(): string[] {
   try {

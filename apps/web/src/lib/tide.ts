@@ -124,7 +124,8 @@ export function validatePressure(raw: {
   if (id.length === 0) return '扰模 id 为空';
   if (id.length > 80) return '扰模 id 超过 80 字';
   if (typeof raw?.kind !== 'string' || !(TIDE_PRESSURE_KINDS as readonly string[]).includes(raw.kind)) {
-    return `扰模 kind 不认识：${String(raw?.kind ?? '')}（可用：${TIDE_PRESSURE_KINDS.join(' / ')}）`;
+    const kindStr = typeof raw?.kind === 'string' ? raw.kind : typeof raw?.kind === 'number' ? String(raw.kind) : typeof raw?.kind === 'boolean' ? String(raw.kind) : 'unknown';
+    return `扰模 kind 不认识：${kindStr}（可用：${TIDE_PRESSURE_KINDS.join(' / ')}）`;
   }
   const label = typeof raw?.label === 'string' ? raw.label.trim() : '';
   if (label.length === 0) return '扰模没有取名（label 为空）';

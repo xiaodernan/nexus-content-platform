@@ -15,7 +15,7 @@
  * 它自己那条 Redis（NEXUS_REDIS_URL 或 127.0.0.1:56379），且**启动时必须带上** `NEXUS_OPERATOR_TOKEN`。
  * 跑：NEXUS_OPERATOR_TOKEN=<token> npm run realtime:java-to-web
  */
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { Redis } from 'ioredis';
@@ -114,7 +114,7 @@ try {
   console.log(`[domain-service] healthy：${await health.text()}`);
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
-  throw new Error(`domain-service 不在 ${DOMAIN_URL}（先启动它再跑这条验证）：${message}`);
+  throw new Error(`domain-service 不在 ${DOMAIN_URL}（先启动它再跑这条验证）：${message}`, { cause: error });
 }
 
 {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildEphemeris, EPHEMERIS_DAYS } from '../src/lib/ephemeris';
-import type { WorldKind } from '@nexus/world-model';
+
 
 function node(id: string, kind: string, title: string, body: string, era?: string) {
   return { id, kind, title, body, lore: era !== undefined ? { era } : undefined };

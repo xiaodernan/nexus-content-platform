@@ -22,10 +22,10 @@ import assert from 'node:assert/strict';
 function mapOpCounter() {
   const proto = Map.prototype;
   const original = {
-    get: proto.get,
-    set: proto.set,
-    delete: proto.delete,
-    iter: proto[Symbol.iterator],
+    get: proto.get.bind(proto),
+    set: proto.set.bind(proto),
+    delete: proto.delete.bind(proto),
+    iter: proto[Symbol.iterator].bind(proto[Symbol.iterator]),
   };
   let count = 0;
   const bump = (fn) =>
