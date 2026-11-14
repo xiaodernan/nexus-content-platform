@@ -329,7 +329,7 @@ function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zo
               ) : view === 'variants' ? (
                 <VariantsBoard locale={locale} />
               ) : view === 'graph' ? (
-                <WorldGraphView />
+                <WorldGraphView locale={locale} />
               ) : view === 'gamegraph' ? (
                 <GameGraphView />
               ) : (

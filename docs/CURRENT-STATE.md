@@ -3477,3 +3477,9 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   同源分支禁合成/空态全部接 locale；locale 自 StudioShell 透传。
 - 屏内只读分支生成注释保持“合成/生成”两个动作的语气一致（不互相偷换概念）。
 - fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；§FE-41 重钉（第十三跳）。
+
+## cont. 122 (2026-11-16) - v753: WorldGraphView 双语化（§45 世界缩图·画地形）
+- WorldGraphView.tsx 仅在文本行置换（18 处），画布拖拽/plateau/pointer 原样保留字节不动；
+  KIND_KIND_LABELS_EN kindLabel helper 复用 world-model 权威清单；九类/空关系/方位说明/地形 profile 全部接 locale；
+  locale 自 StudioShell 透传。（本轮早些时候曾整文件重写导致原拖拽失真，以 git-checkout HEAD 复位后改为**定向多次置换**。）
+- fe-gates 116/116（1148/1148）；tsc web 0；eslint 净；§FE-41 重钉（第十四跳）。
