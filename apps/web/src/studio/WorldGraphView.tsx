@@ -260,7 +260,7 @@ export function WorldGraphView() {
         {/* §140：图上摆过的位置就是 3D 世界的地面布局，所以入口放在这里而不是另造一个页面 */}
         <a
           href={`/world/${studio.projectId}/chronicle`}
-          className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-2 hover:bg-bg-3"
+          className="sb-btn2"
           data-enter-chronicle
         >
           世界编年
