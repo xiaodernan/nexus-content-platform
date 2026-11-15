@@ -4639,3 +4639,12 @@ D
 - 表扩充：EXACT +6；PATTERNS +4（上传/导入体积 MB 字节、admin metrics 403 模板、登录前 没有登录 经私有 JSON）。
 - 调用点 16 处（v1 端点 + 会话/通知）awaited；api-response.test.ts 26 绿；
   全量 test:main 8000 passed；失败 9 项与干净 HEAD 同集合，零回归；tsc 0；eslint 0。
+
+
+## cont. 134 (2026-11-15) - 简明说明书 /guide 扩充（新手教程落新地图）
+
+- `/guide` 双语（zh/en）：新增 ⑪ 典籍室（/bible）怎么玩——正典精读 /bible、直达 /bible/search、
+  潮汐挑战 /bible/quiz、七口井 /bible/well、Echoes 星图↔编年互点亮；③ 功能地图扩编（almanac/world、bible 三入口、
+  /n/<handle>/<slug> 公开落点、/preview 同源镜头）；/tasks 账本口径（第几次·真/DEMO·用时）与 /credits SavingsCard
+  口径（缓存替你省下的重复计算·命中率/输入 token 复用）进两条；④ 游戏怎么玩接典籍室两节；⑤ 真 provider 叙述校准到 wkapi.pro 上的 gpt-6-sol。
+- 判据：guide-visual-style SHA pin 重钉（f4f88ed2 → 7b4a306e）；7/7 绿；live 探针 :3100 用完即停，zh 与 en 各渲染 ⑪，零跨语混写；tsc 0；eslint 0。
