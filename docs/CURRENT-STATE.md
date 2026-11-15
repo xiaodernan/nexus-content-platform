@@ -4516,3 +4516,18 @@ D
   全部替换干净，浏览器原生 file 按钮除外）。
 - 诚实边界：宿主 CI 的 proofs step 仍挂在 arms 这一行外（fused-red 历史见 cont. 125）；main-line 在
   c2dd36e9 / 0ea7c2f0 / bb4c172 / 833fb1f7 全部 success。verify:arms 在下一个 proofs verdict 之前不承认 earned。
+
+
+## cont. 127 (2026-11-15) - /notifications 收件箱全双语 + 通知组件三件套收尾
+
+- /notifications 此前是中文：进入 Signed-in 视图后主页 rail 上的入口会落到中文页。这一遍整体双语化：
+  页面级 getLocale + COPY dict；`NOTIFICATION_TERMINAL_STATE` 的 zh 字节照抄库原值（零改动约束），
+  EN 用一一对应的 TERMINAL_EN 映射（同一份键集，键丢失会被 notify-producers.test.ts 抓到）；
+  空态、分页、backed/unbacked 两栏、unbacked 讲解牌、页脚全部照实双语。
+- NotificationSettings 全量双语（含 zh 下的 开/关 和 en 下的 ON/OFF、aria-label 双辞典）；
+  NotificationActions 结果回执译成 EN；NotificationBell 已是 locale prop，精确透传。
+- FE-pins 重钉：settings 95b32d95…、actions e14819e0…。FE-17 的 `NotificationBell` 锚点放宽为接受可选 locale
+  prop —— 保留"denied 分支先于 bell 出现"这一条仍然成立的语义。
+- Gates：fe-gates 120/120 · 1181/1181；census 2399；tsc 0；eslint 0。EN 实测渲染通过（整页英文、含 ON 开关面板）。
+- 回归边界：`notify-producers.test.ts` 的注册表未被这次改动触碰；EN 字典新增的键若将来被删，它的 notify-producers
+  census 会照样通过，但 FE-17 的钩子守恒仍会兜住 chrome 部分——双兜底。
