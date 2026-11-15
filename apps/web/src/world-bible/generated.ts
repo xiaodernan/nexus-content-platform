@@ -1421,4 +1421,174 @@ And the patrol road itself — it served no one. On its surface only two kinds o
 > 它不接第二章也不接第三章。它只是潮里压过的一页，被偶尔潮回来访的孩子发现。
 `,
   },
+  {
+    order: 2,
+    slug: 'echo-002-lamp-wick-notes',
+    titleZh: '灯芯札记',
+    titleEn: 'Notes from the Lamp Wick',
+    eraLineZh: '纪元：铁月纪 · 第二冬之后。',
+    eraLineEn: 'Era: the Iron-Moon Age — after the second winter.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 2): Notes from the Lamp Wick
+
+> 回响仍是正典之外的侧写——第三层纹理，不是续篇，不是批判，不是伪造。
+> 本篇写给雾港灯还没缺那一盏、铁月纪之后的少年。它不替任何一盏灯命名。
+> 本篇引用的锚句，与《潮沙盘》《第八盏灯》同一纪律。
+>
+> An echo is not a continuation, a critique, nor a forgery — another grain of salt on the same stone.
+> Written for the young who lived after the Iron-Moon winters, while Mist-Port's lamps were still short one.
+> Anchors follow the same discipline as Chapters III and IV: verbatim, never rephrased.
+
+> 纪元：铁月纪 · 第二冬之后。
+> Era: the Iron-Moon Age — after the second winter.
+
+---
+
+## 一 · 不是纸，是一张还没寄出的纸
+
+送信人的名字从前是小人问的，后来再也没有人问过；铁月纪的最后一页上也没有。纸不是字，纸只是一种被按住的沉默。
+
+"写没写"是个错误的问题。那不是纸没写，是纸等了那么久，等到它不是读给某一个人了——它是读给盐海本身的。盐海从来不替送信人签收文件，也不替书手记账。它只收；它收得很慢，但从来没退过单。
+
+港尾那位几乎一辈子没等过的老船夫说，每一个版本的潮沙盘都藏有同一种心情：把一句话写下来，只有复印机做得最利索；把一句话记住，只有盐做得最彻底。
+
+**锚句**：收件单上从来没有人签收过——它一直在等第一个肯伸手的人。
+**Anchor sentence**: no one ever signed for the receipt — it has been waiting for the first hand willing to reach out.
+
+---
+
+## 二 · 印章经过四只手
+
+印章正面刻着一个半月、一个波浪和一根灯芯；背面只有一句话：它见过灯点起来的时候吗？四只手接过它，四只手都愣过一秒：老船夫把它当作海盗的黑话；海盗把它当作潮汐教团余烬的遗物；铁月商人把它当作一笔没人记得的旧账；鼹鼠书记员把它当作一张收件单——缺签名。
+
+四种释读，没有一种是错的，也没有一种是全对的。没读懂的都不是因为没识字，而是因为缺了一份对手——印章不是谜，它只是**没看过就拒绝相信灯会亮**。
+
+印章到书手手里的时候，它的四种释读都没有消失。它只是不再是一个需要被翻译的人影了，它变成了一件事的具体形状：一件古老却仍暗暗运转着的事。
+
+**锚句**：印章经过四只手，每只手都以为报完了账。
+**Anchor sentence**: the stamp passed through four hands, each sure it had just closed an account.
+
+---
+
+## 三 · 雾港第四盏灯
+
+雾港灯的规则是世代传下来的：每个灯班只负责复看一盏灯，复看不是为了看灯亮，是为了记住灯没亮。
+
+每一班灯，都会在第一个冬末之后留一个名字。第四盏灯的人的名字留在纸上，而第四盏灯却从没按时亮过。后来三盏灯是的事情量力而为，最亮的一班把它留到了最后一刻；最后一刻到了，他不肯点。现在没有人再要他圆第四盏的故事了，他也不再圆。
+
+盐海两岸的人不再问第四盏亮没亮，他们只问能不能看到第八盏灯。第四盏的缺席，已经从失望变成了一种长明：它永远在测量着某一件事——某件尚未被签收的事——还欠着多少。
+
+**锚句**：雾港第四盏灯没有按时点——它一直等一个不肯认账的人。
+**Anchor sentence**: the fourth lamp of Mist-Port never lights on schedule; it has always waited for one who would not sign for it.
+
+---
+
+## 四 · 书手没有见过自己
+
+书手把货单拍在柜台上那次，商人只看到一个读不懂货单的穷光蛋。不富裕的书手做了六个月的苦力，他挣到的钱不够买一盏灯芯。他根本不在意买不买得起：
+
+他关心的是，这枚印章的主人是谁。没有人告诉过他。也没有人能告诉他。国王没告诉他；雾港灯人没告诉他；潮汐余烬没告诉他。他只知道，他怕印章里那句话被认出他自己——
+
+**锚句**：书手没见自己——他把货单拍在柜台上，海就知道收件人是谁。
+**Anchor sentence**: the copyist never saw his debt — he slapped the manifest on the counter, and the sea knew who had read it.
+
+---
+
+## 五 · 模型映射（回响二章对应关系）
+
+| 类别 | 标题 | 对应节 |
+|---|---|---|
+| lore | 印章 · 收件单 · 第八盏灯 | 一、二、三 |
+| geography | 雾港 · 潮沙盘（印章的出发点） · 荒原灰海 | 一至五 |
+| factions | 铁月商人 · 雾港灯人 · 海盗集市 · 潮汐教团余烬 | 二、三、四 |
+| characters | 送信人 · 书手 · 雾港灯班（守夜人） | 一、四、五 |
+| items | 铁月纪遗信 · 印章 · 第八盏灯灯芯 · 货单 | 一、二、四 |
+| story | 第八盏灯 · 灯芯札记 · 回响（其二） | 全篇 |
+| history | 铁月纪的第二冬之后 | 一至五 |
+
+> 回响从不回答。它只负责把光压进灯里，然后让那一点光，等。
+> 签收从来不是一个人的事——它是整份正典的事。
+>
+> An echo never answers. It does only what it can: press light into the lamp,
+> and let that little light wait. Signing, too, is never one person's — it is
+> the whole canon's affair.
+`,
+    markdownEn: `
+> An echo is not a continuation, a critique, nor a forgery — another grain of salt on the same stone.
+> Written for the young who lived after the Iron-Moon winters, while Mist-Port's lamps were still short one.
+> Anchors follow the same discipline as Chapters III and IV: verbatim, never rephrased.
+
+> Era: the Iron-Moon Age — after the second winter.
+> 纪元：铁月纪 · 第二冬之后。
+
+---
+
+## One · Not paper, an undelivered letter
+
+The courier's name belonged to the early chapters; nobody asked after it again, and it was never written in the last page either. Paper is not ink. Paper is only a silence being held.
+
+“Did he write it?” is the wrong question. It was never the paper that failed to contain the words — it was the paper that had waited so long, it was no longer addressed to any one person at all; it was addressed to the salt sea itself. The salt sea never signs for receipts, and nobody keeps a ledger for it. It only gathers. It gathers slowly, but it has never returned a single parcel.
+
+The oldest figure in Mist-Port who had never once waited for anything said: every version of the tide-sand table hides the same kind of longing — writing a sentence down, a copyist does that best; remembering a sentence, only salt does that completely.
+
+**Anchor sentence**: no one ever signed for the receipt — it has been waiting for the first hand willing to reach out.
+**锚句**：收件单上从来没有人签收过——它一直在等第一个肯伸手的人。
+
+---
+
+## Two · The stamp, four hands
+
+The stamp on the front carried a half-moon, one wave and one lamp-wick; on the back, one single line: did it ever see the lamp alight? Four pairs of hands received it, and four pairs paused for one second. To the old boatman it read like pirates' cant; to the pirates, like a relic left behind by the Tide Conclave's last remnants; to the Iron-Moon merchant, like an old debt nobody could name; to the mole-clerk, like a receipt waiting to be countersigned.
+
+Four readings, none of them wrong, none of them fully right. Each mistook the stamp not because of literacy, but because of the missing counterpart — it was never a riddle. It was always **a refusal to believe the lamp would light until it had been seen**.
+
+By the time the stamp reached the copyist, none of the four readings had vanished. It had simply stopped being a person to be translated; it had become the specific shape of a thing: an old event, still dimly running.
+
+**Anchor sentence**: the stamp passed through four hands, each sure it had just closed an account.
+**锚句**：印章经过四只手，每只手都以为报完了账。
+
+---
+
+## Three · The fourth lamp at Mist-Port
+
+The rule of the Mist-Port lamps passed down through generations was simple: every lamp-crew is charged with watching over exactly one lamp, and watching over does not mean watching it lit — it means remembering it not lit.
+
+Each crew, after the first winter, also carried one name away. The fourth lamp's name was written somewhere; the fourth lamp never lit on schedule. Later crews did what they could, and the brightest of them said: the last word about the fourth lamp belongs to the one who refused to light it, and I refuse to write it.
+
+The people on both shores of the salt sea stopped asking whether the fourth lamp had lit; they asked only whether the eighth lamp could be seen. The absence of the fourth had stopped being a disappointment and become a long arrangement: a permanent instrument measuring exactly how much still awaited signature for that one question.
+
+**Anchor sentence**: the fourth lamp of Mist-Port never lights on schedule; it has always waited for one who would not sign for it.
+**锚句**：雾港第四盏灯没有按时点——它一直等一个不肯认账的人。
+
+---
+
+## Four · The copyist never saw his debt
+
+The copyist slapped the manifest onto the counter and the merchant saw a laughable creature ask for a trade. For six months the copyist sweated and starved — he did not earn enough to buy a lamp-wick. He did not care:
+
+What he cared about, was who this stamp had been owed to. Nobody told him, and nobody could. The king never told him; the Mist-Port lamp crews never told him; the Conclave's last remnants never told him. He only understood one thing — that he was afraid the stamp would recognise him as the one it had been owed to all along.
+
+**Anchor sentence**: the copyist never saw his debt — he slapped the manifest on the counter, and the sea knew who had read it.
+**锚句**：书手没见自己——他把货单拍在柜台上，海就知道收件人是谁。
+
+---
+
+## Five · Model map (Echo No. 2 correlation)
+
+| Kind | Title | Section |
+|---|---|---|
+| lore | 印章 · 收件单 · 第八盏灯 | I, II, III |
+| geography | 雾港 · 潮沙盘 · 荒原灰海 | I–V |
+| factions | 铁月商人 · 雾港灯人 · 海盗集市 · 潮汐教团余烬 | II, III, IV |
+| characters | 送信人 · 书手 · 雾港灯班（守夜人） | I, IV, V |
+| items | 铁月纪遗信 · 印章 · 第八盏灯灯芯 · 货单 | I, II, IV |
+| story | 第八盏灯 · 灯芯札记 · 回响（其二） | whole text |
+| history | 铁月纪的第二冬之后 | I–V |
+
+> An echo never answers. It does only what it can: press light into the lamp,
+> and let that little light wait. Signing, too, is never one person's — it is
+> the whole canon's affair.
+> 回响从不回答。它只负责把光压进灯里，然后让那一点光，等。
+> 签收从来不是一个人的事——它是整份正典的事。
+`,
+  },
 ] as const;
