@@ -59,6 +59,15 @@ export const PLAY_PROVENANCE_LABELS: Record<PlayProvenanceSlot, string> = {
   position: "位置",
 };
 
+/** 同一张表的英文版（v767）：键集与 `PLAY_PROVENANCE_LABELS` 逐一一致；界面英文模式照这张表写。 */
+export const PLAY_PROVENANCE_LABELS_EN: Record<PlayProvenanceSlot, string> = {
+  health: "HP",
+  damage: "Damage",
+  speed: "Speed",
+  senseRadius: "Sense / interact radius",
+  position: "Position",
+};
+
 /** 摆回场地内：贴边的个体会有一半画在屏幕外，所以按半径钳，不是按 0 钳 */
 export function clampToArena(value: number, span: number, radius: number): number {
   return Math.min(Math.max(value, radius), span - radius);
@@ -86,6 +95,15 @@ export const PLAY_PROVENANCE_FALLBACK_TEXT: Record<PlayProvenanceSlot, string> =
   speed: `${PLAY_DEFAULTS.speed} 像素/秒`,
   senseRadius: `${PLAY_DEFAULTS.senseRadius} 像素`,
   position: '按类别排在同心环上',
+};
+
+/** 同一张表的英文版（v767）：与 `PLAY_PROVENANCE_FALLBACK_TEXT` 逐一对应。 */
+export const PLAY_PROVENANCE_FALLBACK_TEXT_EN: Record<PlayProvenanceSlot, string> = {
+  health: String(PLAY_DEFAULTS.health),
+  damage: String(PLAY_DEFAULTS.damage),
+  speed: `${PLAY_DEFAULTS.speed} px/s`,
+  senseRadius: `${PLAY_DEFAULTS.senseRadius} px`,
+  position: "arranged in concentric rings by kind",
 };
 
 export type StatSource = "design" | "default";
@@ -140,6 +158,8 @@ export interface PlayQuestGoal {
   kind: "defeat" | "collect" | "activate";
   actorId: string;
   label: string;
+  /** 同一标签的英文版（v767）：界面英文模式按它渲染 */
+  labelEn: string;
 }
 
 export interface PlayQuest {
@@ -149,6 +169,8 @@ export interface PlayQuest {
   /** 一条可判定的引用都没有就是 false —— 这种任务不会推动"赢" */
   judgeable: boolean;
   why: string;
+  /** 同一口径的英文版（v767）：两模式中任一读同一事实——只是说法按界面选择；缺省=zh 原文 */
+  whyEn: string;
   /** 秒。模型没有单位约定，这里按秒解释，并在 notes 里写明这个解释 */
   timeLimit: number | null;
 }
@@ -382,9 +404,9 @@ export function compileGame(document: GameDocument): GamePlan {
     for (const ref of entity.refs) {
       const target = byId.get(ref.to);
       if (!target) continue;
-      if (target.kind === "enemy") goals.push({ kind: "defeat", actorId: target.id, label: `打倒 ${target.name}` });
-      else if (target.kind === "item") goals.push({ kind: "collect", actorId: target.id, label: `拾取 ${target.name}` });
-      else if (target.kind === "trigger") goals.push({ kind: "activate", actorId: target.id, label: `激活 ${target.name}` });
+      if (target.kind === "enemy") goals.push({ kind: "defeat", actorId: target.id, label: `打倒 ${target.name}`, labelEn: `Defeat ${target.name}` });
+      else if (target.kind === "item") goals.push({ kind: "collect", actorId: target.id, label: `拾取 ${target.name}`, labelEn: `Collect ${target.name}` });
+      else if (target.kind === "trigger") goals.push({ kind: "activate", actorId: target.id, label: `激活 ${target.name}`, labelEn: `Activate ${target.name}` });
     }
     const timeLimit = stat(entity, "timeLimit");
     return {
@@ -397,6 +419,11 @@ export function compileGame(document: GameDocument): GamePlan {
         : entity.refs.length
           ? "引用的不是敌人、物品或触发器（可能是对话、NPC 或已删除的实体）——投影判不出这条任务什么时候算完成。"
           : "这条任务没有引用任何对象，没有可判定的完成条件。",
+      whyEn: goals.length
+        ? `references ${goals.length} judgeable object${goals.length === 1 ? '' : 's'}`
+        : entity.refs.length
+          ? "references something other than an enemy, item or trigger (likely a dialogue, NPC or deleted entity) — the projection cannot judge when this quest is done."
+          : "this quest references nothing; there is no completion condition to judge.",
       timeLimit: timeLimit === null ? null : Math.max(0, timeLimit),
     };
   });

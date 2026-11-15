@@ -4663,3 +4663,20 @@ D
   契约与代码一字未改——这里只是把 `NEXUS_REDIS_URL` 配上，再提交一次真实作业核对。
 - 注意：本文件 `apps/ai-service/.env` 是 gitignored，其他部署/机器不会自动带这个值；
   若要多副本共享作业状态，各自部署处也需设同类 NEXUS_REDIS_URL 指到共享 Redis。
+
+## cont. 136 (2026-11-15) - 试玩面双语 wave（公开可玩 + 作者工作稿共享）
+
+- 落地 PublicPlay/PlayByKind/GamePlay/RpgPlay/StoryPlay 全量双语（zh 字节原样保留于 COPY dict；
+  en 逐字对应，组件只做选择）；线入 /game/<id>（作者工作稿）与 /n/<handle>/<slug>/play（公开可玩）两个入口；
+  describeProjection(document, projection, locale = 'zh') 是两个页首的同一门。
+- game-model v767 增补：GAME_KIND_LABELS_EN、PLAY_PROVENANCE_LABELS_EN、PLAY_PROVENANCE_FALLBACK_TEXT_EN、
+  PlayQuest.whyEn（en 逐字对应 why）、PlayQuestGoal.labelEn、simSummaryEn、rpgSummaryEn；
+  codegen-locale 测试照例加键集对称断言。
+- 判据：SHA pins 重钉（game-play ec00641e / rpg-play 94f627b / story-play e7f6a41f / play-by-kind bcc7949c /
+  public-play-page 672cfc13 / runtime-pages game 7e9fd258）；fe-gates 120/120 · 1181/1181 OK；census 2399 OK；
+  model 全集 363/363 绿；puzzle.test.ts 钉进 labelEn 子句（新字段按字节钉死，不放宽）；
+  live 探针（dev :3100，用完即停）zh 与 en 两局 /n/ub6f80d14/公开关卡-mw45bell/play 均 200；
+  EN 直读 HP/Enemies/Quests done/Triggers…，零 zh chrome 泄到 EN；zh 保持原字节。
+- 全量 test:main：8008 passed；失败 9 项与干净 HEAD 同集合（db-performance-surface、discover-cross-instance、
+  java-metrics/tracing-surface、jsx-text、session-json-cache、visit-completion-honesty×2），零回归。
+- tsc 0（web + model）；eslint 0。

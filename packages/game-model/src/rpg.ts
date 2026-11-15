@@ -246,3 +246,16 @@ export function rpgSummary(plan: RpgPlan, state: RpgState): string {
     state.base.status === "playing" ? "进行中" : state.base.status === "won" ? "通关" : "失败",
   ].join(" · ");
 }
+
+/** 同一张摘要的英文版（v767）：分片与 `rpgSummary` 逐格对应。 */
+export function rpgSummaryEn(plan: RpgPlan, state: RpgState): string {
+  return [
+    `Level ${state.level}`,
+    `XP ${state.xp}/${xpToNext(plan, state.level)}`,
+    `HP ${Math.max(0, state.base.health)}`,
+    `Damage ${plan.base.player ? plan.base.player.damage + plan.levelBonus.damage * state.levelUps : 0}`,
+    `Enemies ${state.base.enemies.filter((e) => e.active).length}/${state.base.enemies.length}`,
+    `Quests done ${Object.keys(state.base.questDone).length}`,
+    state.base.status === "playing" ? "Playing" : state.base.status === "won" ? "Won" : "Lost",
+  ].join(" · ");
+}

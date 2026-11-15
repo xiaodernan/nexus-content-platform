@@ -434,3 +434,16 @@ export function simSummary(state: SimState): string {
     state.status === "playing" ? "进行中" : state.status === "won" ? "通关" : "失败",
   ].join(" · ");
 }
+
+/** 同一张摘要的英文版（v767）：分片与 `simSummary` 逐格对应——顺序、口径、取反一致。 */
+export function simSummaryEn(state: SimState): string {
+  return [
+    `${Math.round(state.t * 10) / 10}s elapsed`,
+    `HP ${Math.max(0, state.health)}`,
+    `Enemies ${state.enemies.filter((e) => e.active).length}/${state.enemies.length}`,
+    `Pickups ${state.counters.pickups}/${state.items.length}`,
+    `Quests done ${Object.keys(state.questDone).length}`,
+    `Triggers ${Object.keys(state.activated).length}/${state.triggers.length}`,
+    state.status === "playing" ? "Playing" : state.status === "won" ? "Won" : "Lost",
+  ].join(" · ");
+}

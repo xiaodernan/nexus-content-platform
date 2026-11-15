@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * "这一段开不了场"照实说；blocked → 不画假分支；尾巴 note 原字回放——不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `5a101e8e42d032ee331b75128f043f116a34af6450b6168804382086c68b2bb0` 与 HEAD 字节一致。
+ * `e7f6a41f00d59e4870ddea5b2e5f98cf4f9fc1f3473a7d1f35acdb5f9aae3d5b` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/play/StoryPlay.tsx');
@@ -95,9 +95,9 @@ describe('§FE-99 /play/StoryPlay §54 互动叙事运行时 chrome', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：5a101e8e42d032ee331b75128f043f116a34af6450b6168804382086c68b2bb0）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：e7f6a41f00d59e4870ddea5b2e5f98cf4f9fc1f3473a7d1f35acdb5f9aae3d5b）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '5a101e8e42d032ee331b75128f043f116a34af6450b6168804382086c68b2bb0',
+      'e7f6a41f00d59e4870ddea5b2e5f98cf4f9fc1f3473a7d1f35acdb5f9aae3d5b',
     );
   });
 });

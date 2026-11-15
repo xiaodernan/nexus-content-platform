@@ -5,6 +5,7 @@ import type { GameDocument, GameProjection } from '@nexus/game-model';
 import { csrfHeaders } from '@/lib/csrf';
 import { visitorKey } from '@/lib/visitor-key';
 import { PlayByKind } from './PlayByKind';
+import type { Locale } from '@/lib/i18n';
 
 /**
  * §168：公开可玩页上的那一层——**通关了就把这一声报出去**。
@@ -25,11 +26,14 @@ export function PublicPlay({
   document,
   projection,
   path,
+  locale = 'zh',
 }: {
   document: GameDocument;
   projection: GameProjection;
   /** 这一版的公开路径（`/n/<handle>/<slug>`）：服务端靠它认出是哪一版 */
   path: string;
+  /** 双语（2026-11-15 公开试玩面）——与页面同一 locale；缺省 zh */
+  locale?: Locale;
 }) {
   const reported = useRef(false);
   const onComplete = useCallback(() => {
@@ -47,5 +51,5 @@ export function PublicPlay({
     }).catch(() => undefined);
   }, [path]);
 
-  return <PlayByKind document={document} projection={projection} onComplete={onComplete} />;
+  return <PlayByKind document={document} projection={projection} onComplete={onComplete} locale={locale} />;
 }

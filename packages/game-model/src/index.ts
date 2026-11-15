@@ -148,6 +148,18 @@ export const GAME_KIND_LABELS: Record<GameKind, string> = {
   "visual-novel": "视觉小说",
 };
 
+/** 同一张表的英文版（v767）：8 类的英文名，与 `GAME_KIND_LABELS` 逐键对应；界面英文模式照这张表选。 */
+export const GAME_KIND_LABELS_EN: Record<GameKind, string> = {
+  "2d": "2D",
+  "2.5d": "2.5D",
+  "3d": "3D",
+  "interactive-story": "Interactive story",
+  "rpg-prototype": "RPG prototype",
+  exploration: "Exploration",
+  puzzle: "Puzzle",
+  "visual-novel": "Visual novel",
+};
+
 export function isGameKind(value: unknown): value is GameKind {
   return typeof value === "string" && (GAME_KINDS as readonly string[]).includes(value);
 }

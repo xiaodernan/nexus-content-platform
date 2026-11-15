@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * "还没有可玩的投影"照实说，不画假入口（§159）——不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `6148c8d38cf2e46abbd26dd05f1d3ab883ab633c69770478ddfe52eef03c61d8` 与 HEAD 字节一致。
+ * `bcc7949c9ec4488ccd098be4778020c01b7c287fa7a53d8dca45ddd5951efc1f` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/play/PlayByKind.tsx');
@@ -90,9 +90,9 @@ describe('§FE-98 /play/PlayByKind 未接线 kind 空态', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：6148c8d38cf2e46abbd26dd05f1d3ab883ab633c69770478ddfe52eef03c61d8）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：bcc7949c9ec4488ccd098be4778020c01b7c287fa7a53d8dca45ddd5951efc1f）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '6148c8d38cf2e46abbd26dd05f1d3ab883ab633c69770478ddfe52eef03c61d8',
+      'bcc7949c9ec4488ccd098be4778020c01b7c287fa7a53d8dca45ddd5951efc1f',
     );
   });
 });
