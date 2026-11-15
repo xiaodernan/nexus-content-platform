@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
  * 本片只换皮；fetch/PUT/toggle/`setSaving` 六名一字不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `0ab184b027ced12d84c3529e1b201f98fcd4e9d8894b0928f614960ac79eaf1a` 与 HEAD 字节一致。
+ * `95b32d959cb9960bccd090bc5656ac94180d2ec04dbb8a92800d333db2afbcb2` 与 HEAD 字节一致。
  *
  * 判据不变式（9 门）：
  *  1. 'use client' 保留 + csrfHeaders/NOTIFICATION_KINDS 进门；
@@ -126,9 +126,9 @@ describe('§FE-70 /components NotificationSettings 通知偏好', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：0ab184b027ced12d84c3529e1b201f98fcd4e9d8894b0928f614960ac79eaf1a）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：95b32d959cb9960bccd090bc5656ac94180d2ec04dbb8a92800d333db2afbcb2）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '0ab184b027ced12d84c3529e1b201f98fcd4e9d8894b0928f614960ac79eaf1a',
+      '95b32d959cb9960bccd090bc5656ac94180d2ec04dbb8a92800d333db2afbcb2',
     );
   });
 });

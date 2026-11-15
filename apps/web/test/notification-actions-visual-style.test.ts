@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
  * 本片只换皮；CSRF/POST/busy/result/router.refresh 一字不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `ced6592aca3758720ee156a1bc326e1ae084251ee8a54a7ec5dbffc88a4341d6` 与 HEAD 字节一致。
+ * `e14819e087ec5ad8ac78931bd4e97705cedc3aaf30aeef4bf3862b963f8a685f` 与 HEAD 字节一致。
  *
  * 判据不变式（9 门）：
  *  1. 'use client' 保留 + router/csrfHeaders 进门；
@@ -125,9 +125,9 @@ describe('§FE-69 /components NotificationActions 标记已读按钮', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：ced6592aca3758720ee156a1bc326e1ae084251ee8a54a7ec5dbffc88a4341d6）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：e14819e087ec5ad8ac78931bd4e97705cedc3aaf30aeef4bf3862b963f8a685f）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'ced6592aca3758720ee156a1bc326e1ae084251ee8a54a7ec5dbffc88a4341d6',
+      'e14819e087ec5ad8ac78931bd4e97705cedc3aaf30aeef4bf3862b963f8a685f',
     );
   });
 });

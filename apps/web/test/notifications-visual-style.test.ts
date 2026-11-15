@@ -67,9 +67,11 @@ describe('§FE-17 notifications 收件箱页', () => {
     expect(code).toContain('!user');
     expect(code).toContain('data-notification-denied="anonymous"');
     expect(code).toContain('notif-anonymousLede');
-    // anonymous 分支是在 `if (!user) { return(...) }` 里，client 组件（NotificationBell）之后的第一次出现必须排在 denied 钩子之后
+    // anonymous 分支是在 `if (!user) { return(...) }` 里，client 组件（NotificationBell）之后的第一次出现必须排在 denied 钩子之后。
+    // 2026-11-15: 双语化 wave 给 bell 加了 locale prop，锚点放宽到 `<NotificationBell `（可带任意 props）。
     const deniedIdx = code.indexOf('data-notification-denied="anonymous"');
-    const bellIdx = code.indexOf('NotificationBell />');
+    const bellMatch = /<NotificationBell[ /]/.exec(code);
+    const bellIdx = bellMatch ? bellMatch.index : -1;
     expect(deniedIdx).toBeGreaterThan(-1);
     expect(bellIdx).toBeGreaterThanOrEqual(deniedIdx);
   });
