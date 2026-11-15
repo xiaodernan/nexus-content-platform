@@ -4722,3 +4722,17 @@ D
 - census MANIFEST +2（verify:world-bible / verify:bible-snapshot 两个 runner 条目）并接入 main-line `gates` job（33 zh/33 en 锚句 1:1 + generated.ts 字节一致）；evidence-census 本地绿。
 - `verify:ci-wiring` arms A29/A30/A32 重装为八模块两文件读者（main-line 现在也在读 maven 行；A32 从硬编码 MVN_ALL_LINES 改为按字节派生 `mvnLinesOf`，
   含 main-line 的 `-DskipTests package` 两行）；arms 整套重跑 → 若全绿则 arms-receipt.json 由 arms 工具自身盖戳落判据。
+
+## cont. 140 (2026-11-15) - v767 addendum：世界大典回响（其三）「盐灯守灵日记」落地
+
+- 新作：`docs/world-bible/echoes/E03-盐灯守灵日记.md` + `.en.md`——《低语诸王》典籍室第三篇回响：
+  雾港八盏灯里只有第八盏灯没熄过——它不欠任何人光，它欠一个"能被写进收件单的结局"；
+  守灵人不数年，他数夜；六节正文 + 六组锚句（zh/en 逐字对位），与《潮沙盘》《第八盏灯》同一纪律。
+  锚句总数 33 zh/33 en → **39 zh / 39 en，全部通过**。
+- `scripts/gen-bible-snapshot.mts` ECHO_WEB_SLUGS +1：`echo-003-salt-lamp-vigil-diary`；
+  generated.ts 重生成（4 章 + 3 回响）；`verify:bible-snapshot` 字节一致通过；`verify:world-bible` 全绿。
+- 典籍室问答 BibleQuiz 双语题库扩至 14 题（新增「灯芯札记·印章经过四只手」en/zh 同题 +
+  「盐灯守灵日记·守灵人数夜」en/zh 同题）；判据 bible-quiz-visual-style 题数/镜像序列扩至 14 题，8/8 绿。
+- 简明说明书 /guide 三处「四章 + 两回响」→「四章 + 三回响」、en 同步（four→three echoes）；
+  guide-visual-style SHA pin 重钉（2cd97881 → 8bc1397c），7/7 绿。
+- 其余侧写：fe-gates 120/120 · 1181/1181 全绿；census 2399 OK；tsc 0；eslint 0。

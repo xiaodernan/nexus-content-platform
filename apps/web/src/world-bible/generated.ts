@@ -1591,4 +1591,230 @@ What he cared about, was who this stamp had been owed to. Nobody told him, and n
 > 签收从来不是一个人的事——它是整份正典的事。
 `,
   },
+  {
+    order: 3,
+    slug: 'echo-003-salt-lamp-vigil-diary',
+    titleZh: '盐灯守灵日记',
+    titleEn: 'The Salt-Lamp Vigil Diary',
+    eraLineZh: '纪元：铁月纪之后 · 第八盏灯的守夜时刻。',
+    eraLineEn: 'Era: after the Iron-Moon Age — the vigil hour of the Eighth Lamp.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 3): The Salt-Lamp Vigil Diary
+
+> 回响仍是正典之外的侧写——第三层纹理，不是续篇，不是批判，不是伪造。
+> 本篇写给雾港灯缺了那一盏、第八盏灯第一次被允许看见自己的夜晚之后的每一个人。
+> 本篇引用的锚句，与《潮沙盘》《第八盏灯》同一纪律。
+>
+> An echo is not a continuation, a critique, nor a forgery — another grain of salt on the same stone.
+> Written for everyone after the night the Eighth Lamp was first allowed to see itself.
+> Anchors follow the same discipline as Chapters III and IV: verbatim, never rephrased.
+
+> 纪元：铁月纪之后 · 第八盏灯的守夜时刻。
+> Era: after the Iron-Moon Age — the vigil hour of the Eighth Lamp.
+
+---
+
+## 一 · 守灵的人没有名字
+
+正典里从来没写过守灵人的名字。不是因为没人知道——是因为知道的人一个接一个地死去了，最后只有灯知道。灯认得他的手：补风罩的手势、理灯芯的节奏、把盐撒进灯油的那层薄薄的样子，比任何登记册都准。
+
+他睡在灯下，醒在灯下，吃在灯下。镇上的人叫他"那个不睡觉的"——这不是外号，是体重计上没有姓氏的那一栏。盐风洗掉了他脸上所有能让他被认出的轮廓，只留下两样东西：指甲缝里的灯油痕，和每天清晨往灯座上拍掉的一层盐霜。
+
+日记是他自己撕的灯下旧纸，边角泡过盐水，干了之后硬得像珊瑚。每一页只写一句话——多一句都会被他用潮汐擦掉。
+
+**锚句**：守灵人没有名字——灯认得他的手，不认得他的名。
+**Anchor sentence**: the vigil-keeper has no name — the lamp knows his hand, not his name.
+
+---
+
+## 二 · 第八盏灯的第几夜
+
+他不数年。年数太大，装不进一盏灯里；手上的炭火一熄，"年"就塌成了一堆没人收的灰。他只数夜——一夜、十夜、九十九夜、第四百夜。数着数着就不数了，因为夜和夜之间也不再有可以按的缝。
+
+每一夜他只写一句："今天盐的味道比昨天淡。"或是："今天第八盏灯的芯比昨天直。"或是："今天有人站在海堤上看了很久，但没有签。"
+
+第四百夜之后，他的笔迹不再变老——老的是盐：纸的边角一层一层地往里吃，像有人在帮他把多余的话反复揉薄。
+
+**锚句**：守灵人不数年——他数夜；每一夜都是盐的一粒。
+**Anchor sentence**: the vigil-keeper does not count years — he counts nights; every night is a grain of salt.
+
+---
+
+## 三 · 潮走了，心没走
+
+别人看见他在灯下打盹，没人敢叫醒他；叫醒他等于替他签收一样东西，而他这辈子没替任何人签过收。
+
+潮汐从没替他过夜。潮汐走了，盐滩是湿的；他合上眼，盐滩是亮的。港口的钟打了几下，他都当作是灯在说话——不是在吵醒他，是在和他一起蹲下来，看那张一直摊在海面上、没有人敢合上的白纸。
+
+他做的事只有一件：等着。等的东西他不写；写了就等于点名，而点名等于答应回答。
+
+**锚句**：日记没有结尾——每一夜都只是盐落在盐上。
+**Anchor sentence**: the diary has no ending — every night is only salt falling on salt.
+
+---
+
+## 四 · 灯芯与盐灯
+
+雾港的八盏灯里，前七盏为活人亮，第八盏为回声亮。前七盏烧的油是鲸油与菜籽，第八盏烧的是"没人替它们认领的那一份"——每一盏失去光的那天早晨剩下的半盏灯芯，被守灵人收起来，一层一层铺进第八盏灯的腹里。
+
+他照顾前七盏像照顾病人，照顾第八盏像照顾一封没寄出的信。第八盏不接受安慰，不接受哀悼，不接受纪念——它只接受一种燃料：没人愿意承认自己失去过光的那些夜。
+
+有人问他灯什么时候亮，他说："等一封信先决定寄出。"没人听懂；他也没打算让人听懂。盐的逻辑不需要观众，只需要一个肯替它守夜的人。
+
+**锚句**：第八盏灯不为悲伤而亮——它只为一个还没回来的人亮。
+**Anchor sentence**: the Eighth Lamp does not light for grief — it lights only for the one who has not come back.
+
+---
+
+## 五 · 收件单的那一整本
+
+日记最后一页的背面，压着四样东西：一枚被四只手摸过的印章、一本没写完的货单、一碗干透的盐灯油、和一枚没有署名的收件章。
+
+守灵人没给自己留一句话。他只在一张没有日期的纸上写："今天按了——灯没亮，海先回答了。"
+
+他做的整本书，没有一页替他签收。它们不是要被人读的——他知道客栈里只有三种人会翻这本日记：海盗、账房、和赶路赶错了方向的旅客。
+
+**锚句**：一本日记没写完——它替整份正典收着尾。
+**Anchor sentence**: the diary was never finished — it signs the whole canon in on its behalf.
+
+---
+
+## 六 · 续页
+
+第二年开春，镇上的人重新找到那盏灯。灯还亮着，芯还直，盐的颜色比去年白。日记摊在灯架上，最后一页画着一根笔直的灯芯——这是守灵人留给世人的唯一一页图。
+
+纸上没有字。照字典的读法，这一页是空的；照港口的读法，这一页是唯一写满的那一页：笔直的芯等于"承诺还没被违约"，一盏仍在燃烧的灯等于"只要还有人愿意守夜，收件就永远不会关闭"。
+
+雾港的八盏灯里，只有第八盏灯没熄过。它不欠任何人光；它欠的是一个能被写进收件单的结局——而它一直拒绝让这个结局被签走。
+
+**锚句**：守灵日记没有最后一页——盐会再湿，手会再拿起笔。
+**Anchor sentence**: the vigil diary has no last page — salt will dampen again, and the hand will pick up the pen again.
+
+---
+
+## 七 · 模型映射（回响三章对应关系）
+
+| 类别 | 标题 | 对应节 |
+|---|---|---|
+| lore | 第八盏灯的燃料 · 收件章 · 防雨的收件体系 | 四、五 |
+| geography | 雾港 · 灯座 · 海堤 · 潮滩 | 三、四 |
+| factions | 雾港灯人 · 铁月商人 · 海盗 · 账房 | 二、四、五 |
+| characters | 守灵人 · 海盗 · 账房 · 第八盏灯 | 一至六 |
+| items | 灯下旧纸 · 灯油 · 收件章 · 第八盏灯芯 | 一、二、四、五 |
+| story | 第八盏灯 · 守灵人 · 回响（其三） | 全篇 |
+| history | 铁月纪之后 · 第八盏灯的守夜时刻 | 一至六 |
+
+> 日记没有最后一页——盐会再湿，手会再拿起笔。
+> 守灵不是替海签收——守灵是让海知道，还有人在按住那张纸不让它被风翻走。
+>
+> The diary has no final page — salt will dampen again, and the hand will pick up the pen again.
+> The vigil is not a signature on behalf of the sea — it is making sure the sea knows,
+> that someone is holding the paper down so the wind cannot turn it over.
+`,
+    markdownEn: `
+> An echo is not a continuation, a critique, nor a forgery — another grain of salt on the same stone.
+> Written for everyone after the night the Eighth Lamp was first allowed to see itself.
+> Anchors follow the same discipline as Chapters III and IV: verbatim, never rephrased.
+
+> Era: after the Iron-Moon Age — the vigil hour of the Eighth Lamp.
+> 纪元：铁月纪之后 · 第八盏灯的守夜时刻。
+
+---
+
+## One · The vigil-keeper has no name
+
+The canon never recorded the vigil-keeper's name. Not because nobody knew — because one by one, the ones who knew died, and in the end only the lamp knew. The lamp knew his hand: the gesture of refitting the chimney glass, the rhythm of trimming the wick, the thin smear of salt pressed into old lamp oil — far surer than any ledger.
+
+He slept beneath the lamp, woke beneath it, ate beneath it. The town called him the one who does not sleep — not a nickname; just the unchecked box where a surname should be. The salt wind had rinsed every contour from his face, leaving only two things: the stains of lamp grease in his fingernails, and the salt rime he swept from the pedestal every dawn.
+
+His diary was made from old paper torn from beneath the lamp, the edges soaked in brine until they dried as hard as coral. Each page carried exactly one line — one more, and he erased it with the ebb tide.
+
+**Anchor sentence**: the vigil-keeper has no name — the lamp knows his hand, not his name.
+**锚句**：守灵人没有名字——灯认得他的手，不认得他的名。
+
+---
+
+## Two · Which night of the Eighth Lamp
+
+He never counted years. Years are too large to fit inside one lamp; once the coal burned out beneath his hand, "years" collapsed into a heap of ash nobody comes to collect. He counted nights — one night, ten nights, ninety-nine nights, the four hundredth night. Eventually he stopped counting at all, because one night and the next no longer had a seam that could be pressed apart.
+
+Each night he wrote exactly one line:
+
+"the salt tasted paler today," or "the wick of the Eighth stood straighter today," or "someone stood on the breakwater a long time today — but no one signed."
+
+After the four hundredth night, his hand did not age — it was the paper that aged. The edges were eaten inward, layer by layer, as if someone were patiently folding his surplus words thinner and thinner.
+
+**Anchor sentence**: the vigil-keeper does not count years — he counts nights; every night is a grain of salt.
+**锚句**：守灵人不数年——他数夜；每一夜都是盐的一粒。
+
+---
+
+## Three · The tide has gone; the hand has not
+
+When people saw him napping beneath the lamp, nobody dared wake him; waking him would have meant signing for something on his behalf, and he had never signed for anyone.
+
+The tide never stayed with him over night. The tide withdrew; the salt flats were damp. When he closed his eyes, the salt flats shone. The harbor clock struck however many times it struck; he counted all of them as the lamp speaking — not waking him, but sitting down beside him, to look together at the white page nobody dares fold up on the surface of the sea.
+
+He did one single thing: he waited. He never wrote what he was waiting for; writing it would have meant naming it, and naming it would have meant consenting to answer.
+
+**Anchor sentence**: the diary has no ending — every night is only salt falling on salt.
+**锚句**：日记没有结尾——每一夜都只是盐落在盐上。
+
+---
+
+## Four · Wick and salt lamp
+
+Of the eight lamps of Mist-Port, seven burn for the living, and the Eighth burns for echoes. The first seven are fed whale oil and rapeseed; the Eighth is fed what nobody will claim — the half-wicks left behind the morning each of the other lamps lost its light, gathered and layered, one upon another, into the belly of the Eighth.
+
+He cared for the first seven as for the sick; he cared for the Eighth as for an undelivered letter. The Eighth accepts no consolation, no mourning, no remembrance — it accepts only one fuel: the nights in which no one would admit they had lost their light.
+
+When someone asked when the lamp would light, he answered: "When a letter first agrees to be sent." Nobody understood; he never intended anyone to. Salt does not ask its audience to understand, it asks only for one person willing to keep its vigil.
+
+**Anchor sentence**: the Eighth Lamp does not light for grief — it lights only for the one who has not come back.
+**锚句**：第八盏灯不为悲伤而亮——它只为一个还没回来的人亮。
+
+---
+
+## Five · The whole book of receipts
+
+On the back of the last page of the diary, he pressed four things in place: the stamp passed from hand to hand four times, an unfinished manifest, a bowl of dried salt-lamp oil, and a receiving-seal that bore no name.
+
+The vigil-keeper left no message for himself. On a sheet without a date he wrote only: "I pressed it today — the lamp did not answer, the first to reply was the sea."
+
+Not a single page of his book signs itself away. They were never meant to be read — he knew three kinds of people would leaf through this diary in a room without him: pirates, ledger-keepers, and travelers who set out in the wrong direction and had nowhere else to stop.
+
+**Anchor sentence**: the diary was never finished — it signs the whole canon in on its behalf.
+**锚句**：一本日记没写完——它替整份正典收着尾。
+
+---
+
+## Six · The next page
+
+When the town rediscovered the lamp the following spring, it was still alight — the wick still straight, the salt whiter than last year. The diary lay open on the lamp-rack, and its final page held one drawing: a perfectly straight wick. It was the only image the vigil-keeper left for the world.
+
+There were no words on that page. By the reading of dictionaries, this page was empty; by the reading of the port, this is the one page completely full: a straight wick means the promise has not yet broken, and a lamp still burning means the receipt can never be closed — as long as somebody is still willing to keep the vigil.
+
+Of the eight lamps of Mist-Port, only the Eighth has never gone dark. It owes no one light; what it owes is an ending written onto a receipt — and it refuses, stubbornly, to let that ending be signed away by anyone.
+
+**Anchor sentence**: the vigil diary has no last page — salt will dampen again, and the hand will pick up the pen again.
+**锚句**：守灵日记没有最后一页——盐会再湿，手会再拿起笔。
+
+---
+
+## Seven · Model mapping (what Echo No. 3 maps onto)
+
+| Category | Title | Sections |
+|---|---|---|
+| lore | The fuel of the Eighth Lamp · the receiving-seal · the rain-proof system of receipts | IV, V |
+| geography | Mist-Port · the lamp pedestal · the breakwater · the salt flats | III, IV |
+| factions | The Mist-Port lampers · the Iron-Moon merchants · pirates · ledger-keepers | II, IV, V |
+| characters | The vigil-keeper · pirates · ledger-keepers · the Eighth Lamp | I–VI |
+| items | Lamp-tended paper · lamp oil · the receiving-seal · the wick of the Eighth | I, II, IV, V |
+| story | The Eighth Lamp · the vigil-keeper · Echo No. 3 | All |
+| history | After the Iron-Moon Age · the vigil hour of the Eighth Lamp | I–VI |
+
+> The diary has no final page — salt will dampen again, and the hand will pick up the pen again.
+> The vigil is not a signature on behalf of the sea — it is making sure the sea knows,
+> that someone is holding the paper down so the wind cannot turn it over.
+`,
+  },
 ] as const;
