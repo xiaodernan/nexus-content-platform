@@ -8,6 +8,44 @@ import {
   writeSearchHistory,
 } from './search-history';
 import { pauseMsFromResponse, remainingSeconds } from './suggest-pause';
+import { clientLocale } from '@/lib/client-locale';
+import type { Locale } from '@/lib/i18n';
+
+/**
+ * 双语 COPY（2026-11-15 公开试玩面 wave）：判据严苛的 aria/占位/按钮文案同源 zh-en 对齐；
+ * 服务端产生的 suggestion.label 已经随 locale 出口翻译（/api/search/suggest 同一张表）。
+ */
+const COPY: Record<Locale, {
+  searchAria: string;
+  placeholder: string;
+  submit: string;
+  pauseNote: (seconds: number) => string;
+  suggestionsAria: string;
+  recentLabel: string;
+  removeAria: (query: string) => string;
+  clear: string;
+}> = {
+  zh: {
+    searchAria: '搜索内容',
+    placeholder: '项目 / 用户 / 世界 / 游戏 / 角色 / 设计稿 / 组件 / 资产',
+    submit: '搜',
+    pauseNote: (seconds) => `建议暂停 ${seconds} 秒——打字太快被限流；结果页照常能搜。`,
+    suggestionsAria: '搜索建议',
+    recentLabel: '最近的搜索（只存在这台设备上）',
+    removeAria: (query) => `删除最近搜索 ${query}`,
+    clear: '清空',
+  },
+  en: {
+    searchAria: 'Search everything',
+    placeholder: 'projects / people / worlds / games / characters / designs / components / assets',
+    submit: 'Search',
+    pauseNote: (seconds) => `Suggestions paused for ${seconds}s — too many requests; results page still works.`,
+    suggestionsAria: 'Suggestions',
+    recentLabel: 'Recent searches (this device only)',
+    removeAria: (query) => `Remove recent search ${query}`,
+    clear: 'Clear',
+  },
+};
 
 /**
  * §165 搜索框：建议 + 历史。
@@ -33,6 +71,8 @@ interface Suggestion {
 const MIN_QUERY = 2;
 
 export function SearchBox({ initialQuery }: { initialQuery: string }) {
+  const [locale] = useState<Locale>(() => clientLocale());
+  const c = COPY[locale];
   const [value, setValue] = useState(initialQuery);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
@@ -166,7 +206,7 @@ export function SearchBox({ initialQuery }: { initialQuery: string }) {
           onChange={(event) => setValue(event.target.value)}
           onKeyDown={onKeyDown}
           onBlur={() => window.setTimeout(() => setOpen(false), 120)}
-          aria-label="搜索内容"
+          aria-label={c.searchAria}
           role="combobox"
           aria-expanded={open && suggestions.length > 0}
           aria-controls="search-suggestions"
@@ -174,17 +214,17 @@ export function SearchBox({ initialQuery }: { initialQuery: string }) {
           aria-activedescendant={active >= 0 ? `search-suggestion-${active}` : undefined}
           autoComplete="off"
           data-search-input
-          placeholder="项目 / 用户 / 世界 / 游戏 / 角色 / 设计稿 / 组件 / 资产"
+          placeholder={c.placeholder}
           className="se-input"
         />
         <button type="submit" data-search-submit className="se-submit">
-          搜
+          {c.submit}
         </button>
       </form>
 
       {pauseSeconds > 0 ? (
         <p data-search-suggest-pause role="status" className="se-pauseNote">
-          建议暂停 {pauseSeconds} 秒——打字太快被限流；结果页照常能搜。
+          {c.pauseNote(pauseSeconds)}
         </p>
       ) : null}
 
@@ -192,7 +232,7 @@ export function SearchBox({ initialQuery }: { initialQuery: string }) {
         <ul
           id="search-suggestions"
           role="listbox"
-          aria-label="搜索建议"
+          aria-label={c.suggestionsAria}
           data-search-suggest
           className="se-suggest"
         >
@@ -215,7 +255,7 @@ export function SearchBox({ initialQuery }: { initialQuery: string }) {
 
       {showHistory ? (
         <div className="se-historyRow" data-search-history>
-          <span className="se-hint11">最近的搜索（只存在这台设备上）</span>
+          <span className="se-hint11">{c.recentLabel}</span>
           {history.map((query) => (
             <span key={query} className="se-historyChip">
               <a
@@ -227,7 +267,7 @@ export function SearchBox({ initialQuery }: { initialQuery: string }) {
               </a>
               <button
                 type="button"
-                aria-label={`删除最近搜索 ${query}`}
+                aria-label={c.removeAria(query)}
                 data-search-history-remove={query}
                 onClick={() => {
                   const next = removeSearchHistory(readSearchHistory(window.localStorage), query);
@@ -249,7 +289,7 @@ export function SearchBox({ initialQuery }: { initialQuery: string }) {
             }}
             className="se-clearBtn"
           >
-            清空
+                {c.clear}
           </button>
         </div>
       ) : null}

@@ -4,7 +4,7 @@ import { currentUserOrNull } from '@/server/domain/session';
 import { AdminNav } from '@/components/AdminNav';
 import { BrandTitle } from '@/components/BrandTitle';
 import { readTopSavingsProjects, readTopSavingsUsers, type SavingsAdminRow, type SavingsAdminUserRow } from '@/server/domain/llm-savings-admin';
-import { formatRate, formatTokensCompact, hitRate, weightedHitRate } from '@/lib/llmSavingsAdmin';
+import { formatRate, formatTokensCompact, formatTokensCompactEn, hitRate, weightedHitRate } from '@/lib/llmSavingsAdmin';
 import { getLocale, type Locale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
@@ -196,7 +196,7 @@ export default async function AdminSavingsPage(): Promise<ReactElement> {
                 <p className="am-statLabel">{c.statRealTurns}</p>
               </div>
               <div className="am-statCell">
-                <p className="am-statValue" data-savings-total-cached>{formatTokensCompact(aggregate.cachedTokens)}</p>
+                <p className="am-statValue" data-savings-total-cached>{locale === 'zh' ? formatTokensCompact(aggregate.cachedTokens) : formatTokensCompactEn(aggregate.cachedTokens)}</p>
                 <p className="am-statLabel">{c.statCached}</p>
               </div>
               <div className="am-statCell">

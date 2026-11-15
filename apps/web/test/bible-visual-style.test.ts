@@ -149,7 +149,7 @@ describe('§BIBLE-1 /bible 典籍室', () => {
       '80fd704e5f188293f791e367fb28212c046292593c5f3df4f37208f1ab76b74a',
     );
     expect(createHash('sha256').update(redactClasses(component)).digest('hex')).toBe(
-      'e235ac2ab90e76ac1b3f106732465d541ee7677981a7d9ecf853cf0d3a978557',
+      '5051a2bdbb11cca3f3e5369562edbcce97bbf5a53a568f8024da3fef9ac8ad82',
     );
   });
 });

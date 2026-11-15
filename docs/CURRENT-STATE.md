@@ -4629,7 +4629,7 @@ D
 - 全量测试（`npm run test:main`，8010 条）：7996 passed, 5 skipped; 9 failed——与干净 HEAD 对照，
   **失败的 9 个判据一一相同**（db-performance-surface、discover-cross-instance、java-metrics/tracing-surface、
   jsx-text、session-json-cache、visit-completion-honesty×2、savings-ledger 偶发）——本波零回归；
-  tsc 0；eslint 0（http.ts/api-messages.ts/submit.ts/两个 auth 路由）。
+  tsc 0；eslint 0（http.ts/api-messages.ts/submit.ts/两个 auth 路由的守门检查）。
 - 强约束：缺省 = zh，与本波前字节一致——不命中表的串一律透传（不猜不编）。
 
 ## cont. 133 (2026-11-15) - API 出口文案双语（v4 波：reason/note/error 扁平字段 + privateJson/apiJson）
@@ -4690,3 +4690,35 @@ D
   `gen-bible-snapshot.mts` 登记 E02 → echo-002-lamp-wick-notes；`verify:bible-snapshot` 字节一致通过；
   live 探针（:3100，用完即停）/bible 与 /bible/echo-002-lamp-wick-notes 双局 200、锚句皆命中；
   bible 判据五件 40/40 绿；指南同步「三章」→「四章 + 两回响」，guide-visual-style SHA pin 重钉（7b4a306e → 2cd97881），7/7 绿。
+
+
+## cont. 139 (2026-11-15) - 公开面 i18n 二轮清尾 + api-messages 拼接整理
+
+- 收尾残留：`app/error.tsx`（全局 500 兜底）、`marketplace/earnings`、`marketplace/purchases`、`marketplace/reports`、
+  `invites/[token]/page.tsx` + `InviteAcceptPanel`、`search/SearchBox`、`app/u/page.tsx`（创作者广场 + generateMetadata 双语 head）、
+  `app/u/[handle]/page.tsx`（创作者主页）、`BlockControl`/`FollowButton`、`/n/<handle>/<slug>/storyboard`（分镜稿）
+  ——全部经 COPY dict + `client-locale.ts`（`<html lang>` 同步直读，缺省 zh，与 RSC 缺省一致）翻滚至 zh/en 逐字对应。
+- 服务端补口：`/api/search/suggest` 补 `SEARCH_GROUP_LABELS_EN`（v767）与 `apiLocale()`；suggest 标签随 locale 出口双语，不再出
+  现「英文界面看鲸落三件套中文标签」那种混页。
+- 其余分档：`llmSavingsAdmin.formatTokensCompactEn`（K/M/B 千分位）；savings 面板随 locale 走；`QuizArcade` 渲染处本地化
+  `UNLABELED_ERA`（`unlabeled` 字段）。
+- 判据：新增 `test/client-locale.test.ts` 5 道门（SSR fallback zh / lang=zh-CN / lang=en / 空串 / 乱码）；
+  SHA pins 重钉（error ad6b7ebe / earnings 61272153 / reports SEG_A eafb5340+SEG_B c810e270 并附条款重钉 /
+  search-box afde07c0 / authors-showcase 13fff9cb / invites 2d461b45+b6909639 / public-storyboard 457d8925 /
+  admin-savings af20a91a）；fe-gates 120/120 · 1181/1181 全绿；census 2399 OK；tsc 0；eslint 0。
+- 本波在 `test:main`（8027 条，18:15 复跑）上**9 个主干旧失败全部清零**：db-performance-surface（Hikari 正则放宽 `${VAR:default}` 两档）、
+  discover-cross-instance（写路径失效契约重钉：publish 双出口 + moderation 全局 generation）、
+  java-metrics-surface（DEPLOYABLES 5→8 + `ALLOWED_EXTRAS` 命名白名单：`java-domain-service` 仅 circuitbreakers；`nexus-gateway` circuitbreakers+bulkheads）、
+  java-tracing-surface（DEPLOYABLES 5→8；三个 nexus-* 不挂 brave bridge，只补 correlation 镜像模式）、
+  jsx-text（BibleMarkdown bold-mark 常量化、CommandBar tooltip 去 `**`；§BIBLE-1 与 §FE-61 pins 重钉）、
+  session-json-cache（账本 DOWNWARD 删除 `admin/realtime/route.ts`——该路由早已 privateJson 合规）、
+  visit-completion-honesty（works 单元格 `人·天` 直写入 JSX、窗口卡 over 插值同构诚实标注；analytics 双段 pins 重钉）。
+- Java 三服务 door 扩展：`nexus-config` / `nexus-registry` / `nexus-gateway` 全部改为 `health,info,metrics` + `prometheus` exposure，
+  application.yml 各自镜像 `logging.pattern.correlation`（v656 口径），pom 各加 `micrometer-registry-prometheus`（runtime scope）；
+  `mvn -o -B test` 三个模块 BUILD SUCCESS；两个 Java 门 45/45 绿。`nexus-registry` 的重复 logging 块 YAML 修復（红→绿）。
+- 主干 18:15 跑 8029 绿 / 2 红——两条 `rate-limit.redis.integration` 在三重构建并发打 Redis 56379 时 250ms 命令超时回退进程内（同一条注释里预写的负载失真）；
+  单独复跑 **26/26 绿（17.55s）**。判据零退化。
+- record-encoding 本地复核：0 chargeable lines / ledger 116 行（93/13/10）+ 17 GLUE + 7 CONTROL，OK。
+- census MANIFEST +2（verify:world-bible / verify:bible-snapshot 两个 runner 条目）并接入 main-line `gates` job（33 zh/33 en 锚句 1:1 + generated.ts 字节一致）；evidence-census 本地绿。
+- `verify:ci-wiring` arms A29/A30/A32 重装为八模块两文件读者（main-line 现在也在读 maven 行；A32 从硬编码 MVN_ALL_LINES 改为按字节派生 `mvnLinesOf`，
+  含 main-line 的 `-DskipTests package` 两行）；arms 整套重跑 → 若全绿则 arms-receipt.json 由 arms 工具自身盖戳落判据。

@@ -154,7 +154,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,circuitbreakers,bulkheads
+        include: health,info,metrics,circuitbreakers,bulkheads,prometheus
   endpoint:
     health:
       show-details: never
@@ -166,6 +166,10 @@ management:
       enabled: false
 
 logging:
+  # v656 — the ids have to BE in the line for anyone (including a proof) to read them.
+  # Central config holds the identical pattern; this mirror keeps the local yml honest on its own.
+  pattern:
+    correlation: "[${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
   level:
     root: warn
     dev.nexus.gateway: info

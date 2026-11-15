@@ -115,6 +115,10 @@ jobs:
         run: npm run verify:cost-ledger
         env:
           NEXUS_DATABASE_URL: postgres://nexus:nexus_dev_only@localhost:55433/nexus
+      - name: Bible anchors (bilingual anchor sentences present 1:1, both locales)
+        run: npm run verify:world-bible
+      - name: Bible snapshot (generated.ts byte-equals docs/world-bible sources)
+        run: npm run verify:bible-snapshot
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

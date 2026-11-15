@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * 状态从服务端带进来，这里只发请求并显示真实回话——不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `64a5481439cc92e74eb9e82bb3b6830b3f2abf8a5edb50aae9b2d4860c2868e9` 与 HEAD 字节一致。
+ * `37150ef7bc4210d6c9a23b70569b9f75c1c5a027739b363de4b27580b2654096` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/app/u/[handle]/FollowButton.tsx');
@@ -95,9 +95,9 @@ describe('§FE-81 /u/[handle] FollowButton 关注按钮', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：64a5481439cc92e74eb9e82bb3b6830b3f2abf8a5edb50aae9b2d4860c2868e9）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：37150ef7bc4210d6c9a23b70569b9f75c1c5a027739b363de4b27580b2654096）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '64a5481439cc92e74eb9e82bb3b6830b3f2abf8a5edb50aae9b2d4860c2868e9',
+      '37150ef7bc4210d6c9a23b70569b9f75c1c5a027739b363de4b27580b2654096',
     );
   });
 });

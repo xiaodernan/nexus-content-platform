@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import {
   buildQuiz,
+  UNLABELED_ERA,
   verdictFor,
   type QuizNodeInput,
   type QuizRound,
@@ -29,6 +30,7 @@ const COPY: Record<Locale, {
   letters: readonly string[];
   optionsLegend: string;
   optionsAria: string;
+  unlabeled: string;
   nextButton: (index: number, total: number) => string;
   waitingHint: string;
   finalTally: string;
@@ -50,6 +52,7 @@ const COPY: Record<Locale, {
     letters: ['甲', '乙', '丙', '丁'],
     optionsLegend: '选项',
     optionsAria: '四个选项',
+    unlabeled: '未标纪元',
     nextButton: (index, total) => (index + 1 >= total ? '结算灯廊' : '点亮下一盏灯') + ' →',
     waitingHint: '回声有自己的年份，只是你没听见。',
     finalTally: 'FINAL TALLY',
@@ -71,6 +74,7 @@ const COPY: Record<Locale, {
     letters: ['A', 'B', 'C', 'D'],
     optionsLegend: 'Options',
     optionsAria: 'Four options',
+    unlabeled: 'Unmarked era',
     nextButton: (index, total) => (index + 1 >= total ? 'Final Tally' : 'Light the next lantern') + ' →',
     waitingHint: 'Echoes keep their own years — you just never heard them.',
     finalTally: 'FINAL TALLY',
@@ -199,7 +203,7 @@ export function QuizArcade({
                     <span className="qaz-seal" style={{ fontFamily: "'Noto Serif SC', 'Songti SC', serif" }}>
                       {c.letters[i]}
                     </span>
-                    <span className="qaz-optionText">{option}</span>
+                    <span className="qaz-optionText">{option === UNLABELED_ERA ? c.unlabeled : option}</span>
                   </button>
                 );
               })}

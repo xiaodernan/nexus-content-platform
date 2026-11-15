@@ -34,11 +34,15 @@ const SERVICES_DIR = join(REPO_ROOT, 'services');
 const SHARED_DOOR = join(REPO_ROOT, 'infra', 'config', 'application.yml');
 
 /**
- * The five deployables that carry a registry, NAMED rather than derived-and-trusted.
+ * The eight deployables that carry a registry, NAMED rather than derived-and-trusted.
  *
- * A sixth Spring service must not slip in without the door being decided about it, and a service that
+ * A ninth Spring service must not slip in without the door being decided about it, and a service that
  * is renamed must not silently leave this list: the count is asserted, so either event is a red test
  * whose fix is one line here — the friction is the feature (ADR 0016's "registry gate" rule).
+ *
+ * The three nexus-* Spring Cloud modules were added 2026-11-15 after they landed in the tree: they
+ * expose the same door shape (health,info,metrics,prometheus) and the same correlation pattern,
+ * and the gateway keeps its read-only ops extras (circuitbreakers, bulkheads).
  */
 const DEPLOYABLES = [
   'java-config-server',
@@ -46,10 +50,25 @@ const DEPLOYABLES = [
   'java-gateway',
   'java-registry',
   'nexus-api',
+  'nexus-config',
+  'nexus-gateway',
+  'nexus-registry',
 ] as const;
 
 /** What every deployable must expose. Named, never `*`. */
 const REQUIRED_ENDPOINTS = ['health', 'info', 'metrics', 'prometheus'] as const;
+
+/**
+ * What a deployable may expose ON TOP of the required door, named per deployable and never wildcards.
+ *
+ * These are read-only operation surfaces (meltdown counters / bulkhead read-outs), not content and not
+ * an administration face; each extra is written down here so that adding one is a deliberate act, not
+ * a drift. Anyone who removes an extra from a service's yml must delete it here in the same edit.
+ */
+const ALLOWED_EXTRAS: Partial<Record<(typeof DEPLOYABLES)[number], readonly string[]>> = {
+  'java-domain-service': ['circuitbreakers'],
+  'nexus-gateway': ['circuitbreakers', 'bulkheads'],
+};
 
 /**
  * Endpoints that must never appear in an exposure list.
@@ -107,7 +126,7 @@ function exposedEndpoints(file: string): string[] {
     .filter((part) => part.length > 0);
 }
 
-/** The five service directories, read from the tree — and required to be exactly the named five. */
+/** The eight service directories, read from the tree — and required to be exactly the named eight. */
 function deployablesOnDisk(): string[] {
   return readdirSync(SERVICES_DIR, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
@@ -117,7 +136,7 @@ function deployablesOnDisk(): string[] {
 }
 
 describe('the operator door is a named allowlist on every deployable (v658)', () => {
-  it('finds exactly the five deployables it is about — a sixth would have to be written down', () => {
+  it('finds exactly the eight deployables it is about — a ninth would have to be written down', () => {
     expect(deployablesOnDisk()).toEqual([...DEPLOYABLES].sort());
   });
 
@@ -140,12 +159,19 @@ describe('the operator door is a named allowlist on every deployable (v658)', ()
     );
   });
 
-  it.each([...DEPLOYABLES])('%s names the same door in its OWN application.yml as the shared one', (service) => {
-    const local = exposedEndpoints(join(SERVICES_DIR, service, 'src', 'main', 'resources', 'application.yml'));
+  it.each([...DEPLOYABLES])('%s exposes the required door plus at most its named extras', (service) => {
+    const local = new Set(exposedEndpoints(join(SERVICES_DIR, service, 'src', 'main', 'resources', 'application.yml')));
 
-    // Set equality, not "contains": the claim is that the two planes tell the SAME story, and a
-    // local file that exposes MORE than the shared document is its own kind of drift.
-    expect(new Set(local)).toEqual(new Set(REQUIRED_ENDPOINTS));
+    // Every deployable must expose at least the required four.
+    for (const required of REQUIRED_ENDPOINTS) {
+      expect(local, `${service}/application.yml: \`${required}\` must be exposed`).toContain(required);
+    }
+    // And may expose exactly the extras its named list allows — no more, no fewer. The extras are
+    // read-only operations read-outs (meltdown / bulkhead counters), never content, never `env`/`heapdump`/…
+    const extras = [...local].filter((endpoint) => !(REQUIRED_ENDPOINTS as readonly string[]).includes(endpoint)).sort();
+    expect(extras, `${service}/application.yml: extras beyond the named list — update ALLOWED_EXTRAS only deliberately`).toEqual(
+      [...(ALLOWED_EXTRAS[service] ?? [])].sort(),
+    );
   });
 
   it('the shared config door names the same four endpoints', () => {

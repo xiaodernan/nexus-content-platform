@@ -49,6 +49,10 @@ export const SEARCH_GROUP_KEYS = [
 
 export type SearchGroupKey = (typeof SEARCH_GROUP_KEYS)[number];
 
+/**
+ * 界面照抄这份清单：EN 界面照本档的 `SEARCH_GROUP_LABELS_EN`（v767）翻译，键集逐一对齐；
+ * 两种语言下条目、组均同一份 kind（服务端用 zh label 钉 schema，这份只影响展示）。
+ */
 export const SEARCH_GROUP_LABELS: Record<SearchGroupKey, string> = {
   projects: '项目',
   users: '用户',
@@ -59,6 +63,19 @@ export const SEARCH_GROUP_LABELS: Record<SearchGroupKey, string> = {
   components: '组件',
   assets: '资产',
   storyboards: '分镜',
+};
+
+/** 与 `SEARCH_GROUP_LABELS` 键集逐一对应的英文标签（v767）。 */
+export const SEARCH_GROUP_LABELS_EN: Record<SearchGroupKey, string> = {
+  projects: 'Projects',
+  users: 'People',
+  worlds: 'Worlds',
+  games: 'Games',
+  characters: 'Characters',
+  designs: 'Designs',
+  components: 'Components',
+  assets: 'Assets',
+  storyboards: 'Storyboards',
 };
 
 /** 界面照抄这份清单：搜索没覆盖到的东西要说得出为什么没覆盖 */

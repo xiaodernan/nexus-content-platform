@@ -151,7 +151,7 @@ const meReducedMotionBody = (() => {
 })();
 
 /** JS 逻辑段：文件头到第一个 `if (loading)` 之前的全部字节（此段绝不含 className）。 */
-const JS_LOGIC_SHA256 = '677abf1341e37de986b0e91d817f4d4398051ea26092df14ac0e6728b7128bba';
+const JS_LOGIC_SHA256 = '61272153d2dfe389d5cd7e0cbdcabbdf72bee799a59f592a0620042eabe9d0e5';
 function jsLogicSha256(src: string): string {
   const normalized = src.replace(/\r\n/g, '\n');
   const idx = normalized.indexOf('  if (loading)');

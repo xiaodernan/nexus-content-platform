@@ -12,11 +12,14 @@
 
 type InlinePiece = { kind: 'text' | 'strong' | 'code'; text: string };
 
+/** 粗体标记——集中在常量里，避免页面代码四散星号（结构门：连续两个星号只许出现在这里） */
+const BOLD_MARK = '**';
+
 function inlinePieces(text: string): InlinePiece[] {
   const out: InlinePiece[] = [];
   for (const part of text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g)) {
     if (!part) continue;
-    if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+    if (part.startsWith(BOLD_MARK) && part.endsWith(BOLD_MARK) && part.length > 4) {
       out.push({ kind: 'strong', text: part.slice(2, -2) });
     } else if (part.startsWith('`') && part.endsWith('`') && part.length > 2) {
       out.push({ kind: 'code', text: part.slice(1, -1) });

@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * 两个动作摆明面（屏蔽≠禁言；拉黑=互关闭+解除关注）——不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `3825924d5d5949b2c0eb952e4fb0dd5ea1b55a5cb77a4775ea14fa12a47adfb3` 与 HEAD 字节一致。
+ * `500d36322b886c43f4a828277b20b8304ce066ed979611e287c69c03c1ca85d3` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/app/u/[handle]/BlockControl.tsx');
@@ -98,9 +98,9 @@ describe('§FE-82 /u/[handle] BlockControl 自助治理', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：3825924d5d5949b2c0eb952e4fb0dd5ea1b55a5cb77a4775ea14fa12a47adfb3）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：500d36322b886c43f4a828277b20b8304ce066ed979611e287c69c03c1ca85d3）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '3825924d5d5949b2c0eb952e4fb0dd5ea1b55a5cb77a4775ea14fa12a47adfb3',
+      '500d36322b886c43f4a828277b20b8304ce066ed979611e287c69c03c1ca85d3',
     );
   });
 });

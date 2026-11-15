@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * §40 × §56：读的是发布那一刻钉住的分镜（迁移 0046，ADR-0009 口径），不是工作稿——不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `5d9e9168178f720680f3f44ddde64d2618f13db9dc7909ecce8350bae6e4a941` 与 HEAD 字节一致。
+ * `457d892542d447fa80517d1cea0b8e0264eb787dabb63356de5bd7036370d7f4` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/app/n/[handle]/[slug]/storyboard/page.tsx');
@@ -100,9 +100,9 @@ describe('§FE-76 /n/[handle]/[slug]/storyboard 公开分镜页原子清零', ()
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：5d9e9168178f720680f3f44ddde64d2618f13db9dc7909ecce8350bae6e4a941）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：457d892542d447fa80517d1cea0b8e0264eb787dabb63356de5bd7036370d7f4）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '5d9e9168178f720680f3f44ddde64d2618f13db9dc7909ecce8350bae6e4a941',
+      '457d892542d447fa80517d1cea0b8e0264eb787dabb63356de5bd7036370d7f4',
     );
   });
 });

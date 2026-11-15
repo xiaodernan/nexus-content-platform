@@ -48,9 +48,9 @@ describe('domain datasource is tuned, not defaulted', () => {
   });
 
   it('keeps the pool small enough for a 2.5 GB-free host running five JVMs', () => {
-    const m = block.match(/maximum-pool-size:\s*(\d+)/);
-    expect(m, 'maximum-pool-size must be a number').not.toBeNull();
-    const size = Number(m![1]);
+    const m = block.match(/maximum-pool-size:\s*(?:\$\{[A-Z_a-z0-9]+:(\d+)\}|(\d+))/);
+    expect(m, 'maximum-pool-size must be a number (or ${VAR:default} with numeric default)').not.toBeNull();
+    const size = Number(m![1] ?? m![2]);
     expect(size, `pool of ${size} is too large for this host; keep it <= 12`).toBeLessThanOrEqual(12);
     expect(size, `pool of ${size} is too small to do any work; keep it >= 4`).toBeGreaterThanOrEqual(4);
   });

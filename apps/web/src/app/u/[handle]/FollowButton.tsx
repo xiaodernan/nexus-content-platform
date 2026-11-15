@@ -2,9 +2,31 @@
 
 import { useState } from 'react';
 import { csrfHeaders } from '@/lib/csrf';
+import type { Locale } from '@/lib/i18n';
 
-/** §60 主页上的关注按钮。状态从服务端带进来，这里只发请求并显示真实回话 */
-export function FollowButton({ handle, initialFollowing, initialFollowers }: { handle: string; initialFollowing: boolean; initialFollowers: number }) {
+/**
+ * §60 主页上的关注按钮。状态从服务端带进来，这里只发请求并显示真实回话。
+ * 双语（2026-11-15 公开试玩面 wave）：服务端透传 `locale`；缺省 zh。
+ */
+const COPY: Record<Locale, {
+  follow: string;
+  following: string;
+  failed: (status: number) => string;
+}> = {
+  zh: {
+    follow: '关注',
+    following: '已关注',
+    failed: (status) => `没做成（HTTP ${status}）`,
+  },
+  en: {
+    follow: 'Follow',
+    following: 'Following',
+    failed: (status) => `Could not do that (HTTP ${status})`,
+  },
+};
+
+export function FollowButton({ handle, initialFollowing, initialFollowers, locale = 'zh' }: { handle: string; initialFollowing: boolean; initialFollowers: number; locale?: Locale }) {
+  const c = COPY[locale];
   const [following, setFollowing] = useState(initialFollowing);
   const [followers, setFollowers] = useState(initialFollowers);
   const [busy, setBusy] = useState(false);
@@ -24,7 +46,7 @@ export function FollowButton({ handle, initialFollowing, initialFollowers }: { h
         setFollowing(body.following === true);
         setFollowers(Number(body.followers ?? followers));
       } else {
-        setError(body?.message ?? `没做成（HTTP ${res.status}）`);
+        setError(body?.message ?? c.failed(res.status));
       }
     } finally {
       setBusy(false);
@@ -40,7 +62,7 @@ export function FollowButton({ handle, initialFollowing, initialFollowers }: { h
         data-follow-button={following ? 'on' : 'off'}
         className="fw-btn"
       >
-        {following ? '已关注' : '关注'} · {followers}
+        {following ? c.following : c.follow} · {followers}
       </button>
       {error ? (
         <span className="fw-error" data-follow-error>

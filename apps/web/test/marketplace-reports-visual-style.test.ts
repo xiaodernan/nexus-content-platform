@@ -161,8 +161,8 @@ const mrReducedMotionBody = (() => {
 })();
 
 /** 双段 JS 逻辑哈希：段 A = 文件头到 STATUS_LABELS 之前；段 B = 三个纯函数区。 */
-const SEG_A_SHA256 = '5b4e2924ce6cf53f3bf3c49995ea7d213558076ab13c525d3779d72612f585cd';
-const SEG_B_SHA256 = '2ebfd4105dd99871f97ad5d939d8031bcd729bb5120cda314d6a8ead629346f1';
+const SEG_A_SHA256 = 'eafb53408679c0cd50397c1d03aab1cc713ff82ed1527a28660cbcc3dbd8f464';
+const SEG_B_SHA256 = 'c810e2703b84766f5372d724e2cb633a89d2fa412a9feb830d6aae1486eb5812';
 function jsLogicSegments(src: string): { a: string; b: string } {
   const s = src.replace(/\r\n/g, '\n');
   const aIdx = s.indexOf('const STATUS_LABELS');
@@ -275,14 +275,14 @@ describe('§FE-13 我的举报页门面（静态不变式）', () => {
       ['pending', '待受理'], ['reviewing', '审核中'], ['resolved', '举报成立'], ['dismissed', '举报不成立'],
     ]) {
       expect(code, `STATUS_LABELS 键 ${key} 丢了`).toMatch(new RegExp(`${key}:\\s*\\{`));
-      expect(code, `STATUS_LABELS label「${label}」丢了`).toContain(`label: '${label}'`);
+      expect(code, `zh 文案节缺：${label}`).toContain(label);
     }
     // 三纯函数在 JSX 里的调用：itemState ×2 / stamp ×2 / reasonLabel ×1。
     // 注意锚 stamp(report. 而非 stamp( —— 纯函数定义 `function stamp(value: Date)` 也含 stamp(，
     // 只数带 report. 实参的**调用**才不会把定义算进去（先红假红逼出的修实，§CRIT-1）。
-    expect(countOccurrences(code, 'itemState(report.itemVisibility, report.itemDeletedAt)'), 'itemState 调用数变了').toBe(2);
+    expect(countOccurrences(code, 'itemState(c, report.itemVisibility, report.itemDeletedAt)'), 'itemState 调用数变了（2026-11-15 双语 wave：签名加了 locale 判据 c；每个报告行两次渲染位，恰好 2 处）').toBe(2);
     expect(countOccurrences(code, 'stamp(report.'), 'stamp 调用数变了（created + resolved）').toBe(2);
-    expect(code, 'reasonLabel(report.reason) 丢了').toContain('reasonLabel(report.reason)');
+    expect(code, 'reasonLabel 调用进了 render 树（2026-11-15 wave：签名加了 locale）').toContain('reasonLabel(locale, report.reason)');
     // 空/列表分支 + 状态映射
     expect(code, '空态分支 reports.length===0 丢了').toContain('reports.length === 0');
     expect(code, 'reports.map 丢了').toContain('reports.map((report)');

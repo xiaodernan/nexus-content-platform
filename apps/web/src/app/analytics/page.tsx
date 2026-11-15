@@ -129,7 +129,6 @@ const COPY: Record<Locale, {
   windowStreak: string;
   windowPlayTime: string;
   windowCompletion: string;
-  windowCompletionNote: (over: number) => string;
   windowBotOpens: (count: number) => string;
   chartEmpty: (days: number) => string;
   trendFootnote: string;
@@ -159,7 +158,6 @@ const COPY: Record<Locale, {
   public_: string;
   unlisted_: string;
   stopped_: string;
-  perDayPeople: string;
   footer: string;
   backLink: string;
   days: string;
@@ -193,7 +191,6 @@ const COPY: Record<Locale, {
     windowStreak: '连续有人来',
     windowPlayTime: '窗口内时长',
     windowCompletion: '完成度',
-    windowCompletionNote: (over) => `%（${over} 个滚过 0% 的 人·天；打开即走的 0% 不计入）`,
     windowBotOpens: (count) => `其中爬虫/自动化打开 ${count} 次（未计入上面的访客与时长）`,
     chartEmpty: (days) => `这 ${days} 天里一条心跳都没有：图上的 0 是"没人来"，不是"没采到"（采集一直开着）。`,
     trendFootnote: '这一节读的是「窗口口径」，下面表格里那一排读的是「累计口径」，两者不是同一个数、也不能互相推：窗口内的访客按整段去重（同一个人连着来三天算一个），缺的那天是 0（那天真的没有心跳），累计那一列则包含窗口之外的全部历史。窗口外的行不进这张图，但仍在下面的表格里。',
@@ -223,7 +220,6 @@ const COPY: Record<Locale, {
     public_: '公开',
     unlisted_: '仅链接',
     stopped_: '已停',
-    perDayPeople: '人·天',
     footer: '还能往下做的两件事：把窗口粒度做到小时（库里就是一天一行，按小时画等于编一个不存在的分辨率）。游戏这一类的 completion 已经接上了——公开可玩页上玩到了结局就记一次，于是「通关过」那一格说的是"多少人玩通了"（一个人在同一版里只记一次）。互动作品的 completion 也接上了——公开设计稿页上点着跳页、走到了没有出路的终点页就记一次，「互动完成」那一格说的是"多少人走通过"；直接打开终点页不算，非互动作品那一格写「—」。爬虫与真人的区分已按"疑似另计"落地（见上面的口径）——UA 名单是保守的，漏掉的爬虫仍会混进真人的数里，这一条限度不假装已经解决。',
     backLink: '回到我的项目',
     days: '天',
@@ -257,7 +253,6 @@ const COPY: Record<Locale, {
     windowStreak: 'Streak',
     windowPlayTime: 'Visible time in window',
     windowCompletion: 'Completion',
-    windowCompletionNote: (over) => `% (${over} person-day rows past 0%; instant-bounce 0% rows excluded)`,
     windowBotOpens: (count) => `${count} crawler/automation opens (not included in the visitors/duration above)`,
     chartEmpty: (days) => `Not a single heartbeat in these ${days} days — the 0 on the chart means “no one came”, not “not measured” (collection is always on).`,
     trendFootnote: 'This section reads the “window” basis; the row under the table reads the “cumulative” basis — not the same number, cannot be derived from one another: in-window visitors are deduped across the window (the same person on three days counts once), missing days are 0 (no heartbeat that day), the cumulative column covers all history outside the window. Out-of-window rows neither enter this chart nor the column below, though they remain in the table below.',
@@ -287,7 +282,6 @@ const COPY: Record<Locale, {
     public_: 'Public',
     unlisted_: 'Unlisted',
     stopped_: 'Stopped',
-    perDayPeople: 'person-days',
     footer: 'What could be done next: hourly window resolution (the library stores one row per day, an hourly chart would invent a resolution that does not exist). Game completions are wired now — a public play page reaching its ending is counted once, so “Completed” says how many people finished (a person counts once per version). Interactive completions are wired as well — a click-through chain on a public design page reaching an exit-less terminal page counts once, so “Interact. complete” says how many people finished; opening the terminal page directly does not count; non-interactive works show “—”. Crawlers are handled as “suspected, counted separately” (see above) — the UA list is conservative, so undetected crawlers still mix into the human numbers; that limit does not pretend to be solved.',
     backLink: 'Back to my projects',
     days: 'd',
@@ -317,7 +311,7 @@ function CompletionCell({ analytics, locale }: { analytics: AnalyticsNumbers; lo
   return (
     <td className="an-cell" data-analytics-value="completion">
       {analytics.completion.avgPct}%
-      <span className="an-cellNote">/ {analytics.completion.over} {COPY[locale].perDayPeople}</span>
+      <span className="an-cellNote">/ {analytics.completion.over} {locale === 'zh' ? '人·天' : 'person-days'}</span>
     </td>
   );
 }
@@ -534,7 +528,8 @@ export default async function AnalyticsPage(props: {
                 <span className="an-cellMuted">{c.uncollected}</span>
               ) : (
                 <span className="an-mono" data-analytics-window="completion">
-                  {overview.totals.completionPct}{c.windowCompletionNote(overview.totals.completionOver ?? 0)}
+                  {overview.totals.completionPct}
+                  <span className="an-cellNote">{overview.totals.completionOver } {locale === 'zh' ? '滚过 0% 的人·天，打开即走的 0% 不计入' : 'person-days past 0% (0% bounce rows excluded)'}</span>
                 </span>
               )}
             </li>

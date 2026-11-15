@@ -84,9 +84,9 @@ describe('§FE-GE /app/error.tsx 根级错误边界', () => {
     expect(segment).not.toContain('color: transparent');
   });
 
-  it('剥 className 后全文 SHA256 钉死（合并后字节：1ed9d6af6a99e46990adb5900885f1c4c175d231126b454b472cf238cc67f9a7）', () => {
+  it('剥 className 后全文 SHA256 钉死（合并后字节：ad6b7ebecbff5181436b523b01b42361381cedffc630f32ff7cc4f5c02e0867c）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '1ed9d6af6a99e46990adb5900885f1c4c175d231126b454b472cf238cc67f9a7',
+      'ad6b7ebecbff5181436b523b01b42361381cedffc630f32ff7cc4f5c02e0867c',
     );
   });
 });

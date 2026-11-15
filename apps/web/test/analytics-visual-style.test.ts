@@ -160,7 +160,7 @@ const anReducedMotionBody = (() => {
 })();
 
 /** 双段 JS 逻辑哈希：段 A = 文件头到 `function Cell`；段 B = creatorAnalytics 到 publicationTrend 取数链（段 B 与 v782 之前逐字节一致）。 */
-const SEG_A_SHA256 = 'b6013374e65410f77928f79dd8ec07c8a246f0fea482a01aed9ca73a7e712f3f'; // v782 i18n：DEFINITIONS/COPY 双语化重钉
+const SEG_A_SHA256 = 'bd8a17265673d6f538d248ad284b3eb69ecc81950a12fe4d1ca27478c87d1864'; // v782 i18n：DEFINITIONS/COPY 双语化重钉
 const SEG_B_SHA256 = 'dd0dd3ea30bac4961283608be32bbd8f398b4dcb2ff318f32fe69f813c065f63';
 
 /**
@@ -171,7 +171,7 @@ const SEG_B_SHA256 = 'dd0dd3ea30bac4961283608be32bbd8f398b4dcb2ff318f32fe69f813c
  * 与改后（.an-）必须**逐字节恒等**，从而证明"除 className 字面值外一个字节都没动"。
  * 与双段哈希互补：双段锚原样字节（段 A/B 本就零 className），此门锚剥类后的**整份**文件。
  */
-const STRIP_CLASS_SHA256 = '9545e9d26b25e174363bd000f89eb877e08fe885c5b121fb51bdc0298ae57bce';
+const STRIP_CLASS_SHA256 = 'bc986c58f8d11d8ee6e3aff7011cec3781b2ef83bb41e3b565906b2d9f2b3ece';
 function stripClassNames(src: string): string {
   const s = src.replace(/\r\n/g, '\n');
   // 三元/表达式：保留条件与 ? :，只把引号字面量归一；再吞静态 className="…"

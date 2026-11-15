@@ -231,28 +231,24 @@ const TOOLS_LEG = ' && tsc -p tsconfig.tools.json --noEmit';
 // real one, because a needle that renames `java-registry` into `java-regisrtry` reddens TWO refusals at once and
 // leaves the arm unable to say which door it opened.
 const MVN_REGISTRY_LINE = '          mvn -B -q -f services/java-registry/pom.xml package\n';
-const MVN_ALL_LINES = [
-  '          mvn -B -q -f services/java-registry/pom.xml package\n',
-  '          mvn -B -q -f services/java-gateway/pom.xml package\n',
-  '          mvn -B -q -f services/java-domain-service/pom.xml package\n',
-  '          mvn -B -q -f services/nexus-api/pom.xml package\n',
-].join('');
-// The FIFTH module's reader is a `mvn -f` line in the OTHER workflow file, so a battery that deletes only
-// ci.yml's warm-up no longer empties §15's reader: A32 must delete the main-line config-server line too, or its
-// predicted `§15 read 0` is false the day the fifth module lands (this was measured: the arm was written when
-// main-line.yml carried no Maven command at all). The line is DERIVED from the shipped bytes with its premise
-// checked here, because a hand-typed needle that drifts crashes the arm at its own splice.
-// That fifth door is the config-server's Maven line in the OTHER workflow file. The merge that brought the
-// other lane's CI-wiring expansion into this tree added three more Maven modules to main-line.yml
-// (nexus-registry / nexus-config / nexus-gateway beside java-* + nexus-api), so "exactly one Maven line" no
-// longer holds. This narrows the selector to the config-server door itself, which is the line A32 grades,
-// instead of refusing the whole file for having grown.
-const MVN_MAIN_LINE = (() => {
-  const lines = readSrc(MAIN_LINE).split('\n').filter((l) => !l.trim().startsWith('#') && /(?:^|\s)mvn\b/.test(l) && /(?:-f|--file)\s+\S*pom\.xml/.test(l));
-  const config = lines.filter((l) => /java-config-server/.test(l));
-  assert.equal(config.length, 1, `${MAIN_LINE}: expected exactly ONE \`mvn -f <pom>\` line naming services/java-config-server/pom.xml (the config door A32 grades), found ${config.length} of the ${lines.length} Maven line(s) present`);
-  return `${config[0]}\n`;
+// §15's reader spans BOTH workflow files in the eight-module world, so the two arms that want a
+// module GONE from the report have to take it out of both — deleting one leaves the other's coverage standing,
+// which is exactly how A29/A30 went stale the day main-line grew its own `mvn -f …pom.xml test` line for
+// every module. The main-line and ci.yml command lines are DERIVED from the shipped bytes; the premise
+// checked here is that each selector this battery uses names its line exactly once.
+const mvnLinesOf = (rel) => readSrc(rel).split('\n')
+  .filter((l) => !l.trim().startsWith('#') && /(?:^|\s)mvn\b/.test(l) && /(?:-f|--file)\s+\S*pom\.xml/.test(l))
+  .map((l) => l + '\n');
+const MVN_MAIN_LINE_ALL = mvnLinesOf(MAIN_LINE);
+const MVN_CI_ALL = mvnLinesOf(WF);
+const MVN_MAIN_LINE_JAVA_REGISTRY = (() => {
+  const lines = MVN_MAIN_LINE_ALL.filter((l) => l.includes('services/java-registry/pom.xml'));
+  const real = lines.filter((l) => /\s+test\s*$/.test(l.trimEnd()));
+  assert.equal(real.length, 1, `${MAIN_LINE}: expected exactly ONE \`mvn -f <pom>\` test line naming services/java-registry/pom.xml (the module A29/A30 grade), found ${real.length} of the ${lines.length} line(s) present`);
+  return real[0];
 })();
+// A32 deletes EVERY Maven line of BOTH files, because the reader is the union: a ci.yml-only deletion would
+// leave the main-line step(s) standing, and a one-file deletion grades only half the population the commit owns.
 // The key block is QUOTED FROM THE SHIPPED BYTES rather than re-typed in this file's own order: `splice` refuses
 // a needle that occurs zero times, and an arm that crashes at its own needle takes the whole battery with it —
 // so the block is read out of ci.yml, in whatever order the workflow lists it, and the premise that it lists the
@@ -439,10 +435,10 @@ const GATE_ARMS = [
   // asserting the phantom half, because the missing half would also be true. C7 is the control this clause
   // cannot do without: a `#` line inside a `run:` block is a shell comment that executes nothing, and a reader
   // that counted prose would redden the very sentence the shipped step writes about `services/*/pom.xml`.
-  { tag: 'A29-registry-mvn-line-deleted', clause: '§15', edits: [{ file: WF, from: MVN_REGISTRY_LINE, to: '' }], sig: /never have their tests run by CI/ },
-  { tag: 'A30-registry-warmed-without-tests', clause: '§15', edits: [{ file: WF, from: MVN_REGISTRY_LINE, to: MVN_REGISTRY_LINE.replace(' package\n', ' package -DskipTests\n') }], sig: /named only by a command that skips tests/ },
+  { tag: 'A29-registry-mvn-line-deleted', clause: '§15', edits: [{ file: WF, from: MVN_REGISTRY_LINE, to: '' }, { file: MAIN_LINE, from: MVN_MAIN_LINE_JAVA_REGISTRY, to: '' }], sig: /never have their tests run by CI/ },
+  { tag: 'A30-registry-warmed-without-tests', clause: '§15', edits: [{ file: WF, from: MVN_REGISTRY_LINE, to: MVN_REGISTRY_LINE.replace(' package\n', ' package -DskipTests\n') }, { file: MAIN_LINE, from: MVN_MAIN_LINE_JAVA_REGISTRY, to: MVN_MAIN_LINE_JAVA_REGISTRY.replace(' test\n', ' test -DskipTests\n') }], sig: /named only by a command that skips tests/ },
   { tag: 'A31-phantom-pom-named-by-a-step', clause: '§15', edits: [{ file: WF, from: MVN_REGISTRY_LINE, to: `${MVN_REGISTRY_LINE}          mvn -B -q -f ${GHOST_POM} package\n` }], sig: /named by a workflow step are not owned by the commit/ },
-  { tag: 'A32-every-maven-line-deleted', clause: '§15', edits: [{ file: WF, from: MVN_ALL_LINES, to: '' }, { file: MAIN_LINE, from: MVN_MAIN_LINE, to: '' }], sig: /§15 read 0/ },
+  { tag: 'A32-every-maven-line-deleted', clause: '§15', edits: [...MVN_CI_ALL.map((from) => ({ file: WF, from, to: '' })), ...MVN_MAIN_LINE_ALL.map((from) => ({ file: MAIN_LINE, from, to: '' }))], sig: /§15 read 0/ },
   { tag: 'A33-cache-key-collapsed-to-one-pom', clause: '§15', edits: [{ file: WF, from: CACHE_KEY_BLOCK, to: CACHE_KEY_ONE }], sig: new RegExp(`hashes 1 of the ${pomsInCommit.length} poms`) },
   { tag: 'A34-cache-key-names-an-unowned-pom', clause: '§15', edits: [{ file: WF, from: `            ${pomsInCommit[0]}\n`, to: `            ${GHOST_POM}\n` }], sig: /which the commit does not own/ },
   { tag: 'C7-a-pom-named-only-in-a-comment', clause: null, edits: [{ file: WF, from: MVN_REGISTRY_LINE, to: `          # mvn -B -q -f ${GHOST_POM} package is a comment about a module, not a build of it\n${MVN_REGISTRY_LINE}` }], sig: null },
