@@ -21,7 +21,7 @@ function round2(n: number): number {
 }
 
 function get(agent: http.Agent, path: string): Promise<Sample> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const started = process.hrtime.bigint();
     const req = http.get(`${BASE}${path}`, { agent, timeout: 20_000 }, (res) => {
       let bytes = 0;

@@ -24,7 +24,7 @@ import { createProject } from '../apps/web/src/server/domain/projects';
 import { saveWorld } from '../apps/web/src/server/domain/worlds';
 import { syncProjectKnowledge, retrieveProjectKnowledge } from '../apps/web/src/server/domain/knowledge';
 import { getDb } from '../apps/web/src/server/db/client';
-import { knowledgeChunks, users } from '../apps/web/src/server/db/schema';
+import { users } from '../apps/web/src/server/db/schema';
 
 if (!process.env.NEXUS_DATABASE_URL) {
   console.error('需要数据库：NEXUS_DATABASE_URL=postgres://nexus:nexus_dev_only@localhost:55433/nexus npx tsx scripts/ingest-world-bible.mts');
