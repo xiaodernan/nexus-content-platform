@@ -71,7 +71,6 @@ const MODULES = ['credits', 'templateCatalog', 'catalogStore', 'marketplace', 'c
 /** Every file the mutation probe copies in, resolved to its real home (studio lib or packages/economy). */
 const TEST_FILES = [...MODULES.map((m) => SRC_OF.get(m).test), join(SRC, 'm8Invariants.test.ts')];
 const srcOf = (name) => SRC_OF.get(name).src;
-const testOf = (name) => SRC_OF.get(name).test;
 
 /**
  * Each mutation breaks ONE rule and names the rule it breaks. The `find` strings are asserted present
