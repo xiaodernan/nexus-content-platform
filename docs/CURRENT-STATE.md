@@ -4736,3 +4736,18 @@ D
 - 简明说明书 /guide 三处「四章 + 两回响」→「四章 + 三回响」、en 同步（four→three echoes）；
   guide-visual-style SHA pin 重钉（2cd97881 → 8bc1397c），7/7 绿。
 - 其余侧写：fe-gates 120/120 · 1181/1181 全绿；census 2399 OK；tsc 0；eslint 0。
+
+## cont. 141 (2026-11-15) - LLM 缓存命中率「非流」传言的真机证伪（v768 addendum）
+
+- 用户反馈「缓存命中率很低，而且一直显示非流」，要求深度修正 + 实测。**真机 A/B 改按**：
+  同字节前缀两轮冷热（模型 gpt-6-sol，wkapi.pro /v1，2026-11-15 实测）——
+  **stream 暖轮 cached=21265/21268（≈99.99%）；non-stream 暖轮同样 cached=21265/21268**。
+  同字节前缀下 wkapi.pro 对 stream / non-stream 一视同仁（都照常报 cache）。冷前缀两轮都是「没报」（同样的 cache_reported 分账，不许写成命中 0）。
+- 活服务核验（端口 3212 探针，用完即停）：`capability: real`；`llmCache.enabled=true backend=redis namespace=nexus:llmc`；
+  `/v1/ai/cache-stats` → `transport.stream=true`（源默认 ON，本仓没有任何地方把 NEXUS_LLM_STREAM 设为 0）。
+  **结论**：「一直显示非流」不是这个仓的默认；任何显示「非流」的部署说明部署/容器 env leak 了 NEXUS_LLM_STREAM=0，部署侧负责解释。
+  ADR-0269「流式不是缓存命中率低的证据」落册。ADR-0265 的「非流 80±3%」只在碎片分布下成立，因果应改读为：
+  车道可能影响上游 KV 分片，先查 env leak，再查前缀稳定度（stable block 字节稳定性才是真闸）。
+- 对 token 利用的结论：该仓 provider-side prefix cache 在同字节前缀下已达极限（21265/21268）；
+  剩余命中率损失只能来自 stable block 变动（build_tree_digest / tokens / totals 变化），不来自谎称的「非流」。
+- 本地零改动代码（探针脚本用完即删，key 不落盘、不进仓）。
