@@ -14025,3 +14025,14 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   chronicle page renders present-chips on the grey-lantern cards; screenshot captured.
 - Gates: tsc 0, per-file eslint 0, constellation+chronicle+world unit suites green.
 - Docker Desktop fifth outage this session; recovered; nexus-postgres healthy.
+
+## §IN — 观察哨 /insight —— 用户拍板的公共口令洞察台（2026-11-16 / v789）
+
+用户在长期指令第十段明示：「开发一个管理员功能，可以检测、分析、查看、观察所有用户的行为，密码输入 123 就可以进去了，所有用户知道密码都可以进入管理员页面；里面可以监控项目里面所有用户的统计数据，以及分析、趋势预测，并且项目根据这些数据给出下一步应该采取的深度优化措施。」
+
+- 落点：独立新页面 `/insight`（不动 `/admin/*` 的 role=admin 授权面）。口令门 `POST /api/insight/login`：口令默认 `123`（`NEXUS_INSIGHT_PASSWORD` 可覆盖），httpOnly Cookie `nexus-insight`（sameSite=lax，7 天），按 IP 限流 30 次 / 5 分钟（`gateIp` + `getRateLimiter().hit`）；`/api/insight/logout` 清 Cookie。门后**只出聚合**，无邮箱 / 密钥 / 单人明细（§159）。
+- 真实数据源：`server/domain/insight.ts` 的 `collectInsightSnapshot()`：并行 21 条聚合查询（count(*)::int；30 天日序列按库时区归桶，缺天补 0 在渲染层；AI 口径与 /admin/savings 一致：rate = cached/tokens_in，weightedHitRate）。
+- 分析与预测：`lib/insight-math.ts`（leastSquares / projectNext / projectHorizonSum，R² 如实标出）→ 新用户 / 新发布 / 作品打开三条序列的斜率 + R² + 外推 7 日 Σ；`lib/insight-rules.ts` 的 8 条确定性规则按真实数字触发行动建议（publish-conversion / open-reach / interaction-rate / guest-claim / bot-opens / credit-burn / demo-heavy / signup-trend），每条带证据数字与阈值，zh/en 双语。
+- 实测（真库 nexus-postgres @55433）：未解锁 zh 200；登录 123 成功；解锁后 SSR 200：总量 3,356 账号 / 1,832 游客 / 1,283 项目 / 140 公开发布 / 868 总打开 / AI usage 表近 30 天 0；signup 拟合 +7.48/天 R²=0.20（外推 7 日 1,905，如实低拟合）；规则引擎真触发 publish-conversion(act) / open-reach(act) / bot-opens(watch)。/guide zh/en 200 且随 GUIDE_COPY 新增 ⑪（说明书同步嵌入）。
+- Gates：新门 `insight-visual-style.test.ts`（10 条）+ `insight-math.test.ts`（8）+ `insight-rules.test.ts`（11）；fe-gates 122/122 · 1199/1199；census 2344 OK；tsc web 0。
+- 明确边界：口令是公共口令（用户拍板），门挡的是路过的手不是蓄意的人；数据是聚合的，不构成对任何人的监视。外推不是承诺。规则建议不是模型猜测。这三句话写在页面脚注里。

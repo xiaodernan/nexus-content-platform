@@ -4036,3 +4036,15 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - `StudioShell.tsx`：`helpOpen` state；`<TopBar onOpenHelp={…} />`（`.sp-helpToggle`，`data-help-open`）之后渲染 `<InAppGuide>`；`shell-i18n.ts` 新增 `helpToggle` / `helpToggleTitle`（zh 帮助 / en Help）。
 - Gates：新门 `help-drawer-visual-style.test.ts`（8 条）；`/guide` SHA 重钉；StudioShell 剥类 SHA 重钉（第十七次，deb5856b…）；§FE-19 STRIP_CLASS 重钉（门自带 redact 复算 d51da7bf…）；fe-gates **121/121 · 1189/1189**；census **2287** OK；tsc web 0；eslint 干净；SSR 实测 `/guide`、`/` 200（`data-guide-root`、zh 标题皆在）。
 - showcase 快照同步于提交后（`npm run sync:showcase`）。
+
+## cont. 158 (2026-11-16) — v789: 观察哨 /insight —— 口令 123 的管理员实况洞察台
+
+- 触发：用户十一段明示「开发一个管理员功能可以检测、分析、查看、观察所有用户的行为，密码输入 123 就可以进去了……监控项目里面所有用户的统计数据，以及分析、趋势预测，并且项目根据这些数据给出下一步应该采取的深度优化措施」。
+- 设计：不复用 /admin 的 role=admin 门（那是另一种授权形态）；口令门型 `NEXUS_INSIGHT_PASSWORD ?? '123'`（`/api/insight/login`，IP 限流 30/5min，httpOnly Cookie `nexus-insight` 7 天，`/api/insight/logout` 清除）。门后只出**聚合**数据（§159）：总量、近 30 天日序列（库时区归桶，缺天渲染层补 0）、线性外推（leastSquares + projectHorizonSum，R² 如实标出）、互动信号（发布转化/游客占比/互动率/爬虫打开占比/额度消耗率）、AI 成本与缓存（tokens_in / cached_tokens / 命中率 / 后端成本估算 / 延迟）、热门发布作品 Top5、以及**按账面判定的深度优化建议**（8 条确定性规则，全部带证据数字与阈值，`insight-rules.ts` 可单测）。
+- 纯函数真源：`lib/insight-math.ts`（leastSquares / projectNext / projectHorizonSum）、`lib/insight-rules.ts`（RULE_THRESHOLDS + evaluateInsightRules，zh/en 双语证据串）。
+- 服务端域 `server/domain/insight.ts`：`collectInsightSnapshot()`——Promise.all 并行 21 条聚合查询（count(*)::int / coalesce(sum…)），无 PII（热门作品 name/handle 本即公开页数据）。AI 口径与 /admin/savings 一致（weightedHitRate：rate = cached/tokens_in）。
+- 页面 `app/insight/page.tsx`：RSC 直出；未解锁渲染 `components/InsightGate.tsx`（client，POST /api/insight/login → router.refresh），已解锁渲染完整仪表（Sparkline SVG、趋势表、信号条、建议卡、Top5 作品、双语口径脚注）；`components/InsightLogoutButton.tsx`。视觉层 `§INSIGHT-1 .insg-*`（globals.css，零 hex，token + color-mix，forced-colors 收口，48rem 单栏断点）。
+- 说明书（/guide + 『帮助』抽屉同源 GUIDE_COPY）新增 **⑪** 双语节，如实写明口令 123 是公共口令、只展示聚合数据、IP 限流、外推不是预测承诺。
+- 实测（nexus dev :3199，库连真实 nexus-postgres @55433）：未解锁 `/insight` zh 200；`/api/insight/login {"password":"123"}` → `{ok:true}`；解锁后 SSR 200、11 项总量实数横幅（账号 3,356 / 游客 1,832 / 项目 1,283 / 公开发布 140 / 总打开 868 / 游戏通关 4 / 作品走完 27 / AI usage 表近 30 天 0）；趋势行（新用户 +7.48/天 R²=0.20、外推 7 日 1,905；新发布 ≈0.00 R²=0.00；作品打开 +0.53 R²=0.01）如实低拟合；规则引擎真触发 3 条（publish-conversion act、open-reach act、bot-opens watch）；/guide zh/en 200 含⑪。
+- Gates：新门 `insight-visual-style.test.ts`（10 条）；新单测 `insight-math.test.ts`（8) + `insight-rules.test.ts`（11，阈值抽屉式）；fe-gates **122/122 · 1199/1199**；census **2344** OK（insg-severity-keep 未被规则生产 → 已删除该类）；tsc web 0。
+- 说明书内嵌 + 长期指令 Task List 已落 docs/.

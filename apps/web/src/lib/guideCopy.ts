@@ -103,6 +103,14 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           '发布前最后一步是确认卡——没点头就不会投进广场；AI 的危险动作（删/发/花额度）同样有人审门，没批准就不执行。',
         ],
       },
+      {
+        heading: '⑪ 观察哨 /insight —— 管理员看全站（口令 123）',
+        body: [
+          '想看全站的真实账面？打开 /insight，输入口令 123 即可——这是一道公共口令门：知道 123 的人都能进，所以页面上只展示聚合数据（总量、近 30 天日序列、线性外推、互动率、爬虫占比、额度消耗、AI 成本与缓存命中率，以及按真实数字触发的深度优化建议），不含任何人的邮箱、密钥或单人明细。',
+          '页面上的趋势是近 30 天的最小二乘拟合外推（R² 如实标出），不是预测承诺；「深度优化建议」每条都带触发它的数字和阈值——它们是确定性规则，不是模型猜测。',
+          '任何人都可以提交与讨论——口令不是秘密，数据也不涉隐私；系统会按 IP 限流防滥刷（30 次 / 5 分钟）。',
+        ],
+      },
     ],
   },
   en: {
@@ -203,6 +211,14 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           '⌘Z (or Ctrl+Z) undoes the most recent Command — chat edits, canvas, storyboard, state patches, breakpoints all run through the same undo stack; redo is ⌘⇧Z / Ctrl+Y.',
           'Destructive actions (delete project / unpublish / delete shot / clear selection) all carry a confirmation step; deleted projects go to the recoverable trash; public works can be recalled to private anytime.',
           'Publish’s last step is a confirmation card — nothing enters the feed without your explicit yes; dangerous AI actions (delete / publish / spend quota) are likewise human-gated and refuse to run until approved.',
+        ],
+      },
+      {
+        heading: '⑪ The observatory at /insight — admins see the whole ledger (passcode 123)',
+        body: [
+          'Want the platform’s real numbers? Open /insight and enter passcode 123 — a public-door gate: anyone who knows it may walk in, so the page shows aggregate data only (totals, last-30-day series with r²-annotated least-squares extrapolation, interaction rate, bot-open share, credit burn, AI cost & cache hit rate, and deep-optimization actions triggered by the ledger) — never emails, keys or single-user rows.',
+          'The trend line is least-squares over the last 30 days with R² printed beside it — reference, not a promise; every §5 “deep optimization” item lists the numbers that triggered it and its threshold — deterministic rules, not a model guess.',
+          'Anyone may enter — the passcode is not a secret and the numbers are not personal; an IP rate limit (30 per 5 minutes) keeps scripts from hammering the door.',
         ],
       },
     ],
