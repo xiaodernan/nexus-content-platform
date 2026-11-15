@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getLocale, type Locale } from '@/lib/i18n';
+import { BibleSearch } from '@/components/BibleSearch';
 import { BIBLE_CHAPTERS, BIBLE_ECHOES } from '@/world-bible/generated';
 import { extractAnchors } from '@/components/BibleMarkdown';
 
@@ -82,6 +83,7 @@ export default async function BiblePage() {
         <p className="bb-playTrial">
           <Link href="/bible/quiz" className="bb-playLink" data-bible-open-quiz>{c.playLink}</Link>
         </p>
+        <BibleSearch locale={locale} />
       </header>
 
       <ol className="bb-chapterList" data-bible-chapters>

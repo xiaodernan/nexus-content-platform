@@ -3921,6 +3921,23 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - SSR 实测（next dev :3401，已关）：/api-tokens zh/en cookie 各 200。
 - showcase 快照同步于提交后（npm run sync:showcase）。
 
+## cont. 155 (2026-11-17) - v786: 典籍室「直达」—— 正典本地检索直读
+
+- 触发：用户要求"庞大细节里让人真的找得到"。
+- `components/BibleSearch.tsx`（client，locale prop 默认 zh）：典籍室目录顶部新增「直达」卡，
+  命中的是**正典原文原行**（锚句优先、标题次之、正文兜底），`hitCount` 直接是 hits.length 的算式计数，
+  不画"0 命中"也不伪造任何 banner。零网络/provider，全部客户端substring（正典行长文本，不必向量）。
+- 双语 COPY：placeholders / aria-label / empty / hits 编组全双语；命中行按 score 三档排序（锚句 → 标题 → 正文），
+  命中卡片点击进入这一章（/bible/[slug]）；移动端校准为单列。
+- globals.css 新增 `.bb-searchWrap`/`.bb-searchBar`/`.bb-searchKicker`/`.bb-searchInput`/`.bb-searchCount`/
+  `.bb-searchEmpty`/`.bb-searchResults`/`.bb-searchHit`/`.bb-searchHitLink`/.bb-searchHitMeta`/`.bb-searchHitKind`/
+  `.bb-searchHitTitle`/`.bb-searchHitLine`/`.bb-searchHitEra`（14 类，§BIBLE-1 段，零 hex，forced-colors 走 Canvas/CanvasText）。
+- Gates：新门 `bible-search-visual-style.test.ts`（9 条：client+零 fetch·零 provider 字面 / 只读正典快照 /
+  双语齐 / 钩子守恒 / 域外类零 / bb-search* 定义齐 / 零 hex / 命中计数=实数值）；
+  §FE-BIBLE index SHA 重钉（8fc8eb43→7e9d7284…）；fe-gates **119/119 · 1174/1174**；census **2241** OK；
+  tsc web 0；eslint 净；SSR `/bible`、`/bible/quiz` 双语 cookie 各 200。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
 ## cont. 154 (2026-11-17) - v785: 典籍室「潮汐挑战」QA —— 大典的第一个玩法
 
 - 触发：用户连着四次要求"开发新的玩法、新模块、新功能"；庞大世界需要一个"可以赢的阅读"。
