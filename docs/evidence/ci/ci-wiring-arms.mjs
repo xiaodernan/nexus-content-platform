@@ -677,12 +677,6 @@ try {
 for (const r of results) console.log(`${r.ok ? 'MATCHED ' : 'MISMATCH'} ${r.tag.padEnd(44)} ${r.ok ? r.note : r.why}`);
 const reds = results.filter((r) => !r.ok);
 console.log(`\n${results.length - reds.length}/${results.length} arms matched (${GATE_ARMS.length} gate incl. the control, ${RUNNER_ARMS.length} runner) · planes under ${PLANE_ROOT} removed: ${!existsSync(PLANE_ROOT)}`);
-if (reds.length > 0) {
-  // Print the mismatched arm names as the LAST line of stdout: the runner's gutter bounds what a reader sees,
-  // and a last line naming the failing arms is what the hosted runner carries into its summary. This line is
-  // additive readability — no assertion, receipt or budget logic changes.
-  console.log(`arm-mismatch: ${reds.map((r) => r.tag).join(', ')}`);
-}
 let ok = reds.length === 0;
 if (!ok) {
   console.log(`receipt: ${RECEIPT_FILE} was NOT written — ${reds.length} arm(s) mismatched, and a receipt may only come from a run where every arm matched`);
@@ -712,3 +706,10 @@ if (!ok) {
   }
 }
 process.exitCode = ok ? 0 : 1;
+if (reds.length > 0) {
+  // The proof-set runner prints ONLY each row's last stdout line; everything earlier is discarded. A row that
+  // would print its verdict line early would be invisible exactly when it is not green. So this line is the very
+  // LAST one written — it names the failing arms — and it is additive readability: no assertion, receipt or
+  // budget logic changes anywhere above.
+  console.log(`arm-mismatch: ${reds.map((r) => r.tag).join(', ')}`);
+}
