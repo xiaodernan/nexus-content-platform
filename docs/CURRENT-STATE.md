@@ -4497,3 +4497,22 @@ D
 - 遗留：hosted CI 对合并树仍双红（main-line 全成功 × 多个 refs；CI quality 停在 Lint+proofs 阶段）。
   c0770c17 在飞；0ea7c2f0 含本次聊天的双修（not-found + bible-search）的归宿可能是主线唯一 CI 全绿的 ref。
   verify:arms 的 3 arm 失配名单将在下一次 proofs step 的 gutter 里出现（a6b7cab9 起 LAST stdout line 打印名单）。
+
+
+## cont. 126 (2026-11-15) - 账户面/首页壳全站中英双语（home/account chrome wave）
+
+- 上一次合并后本线接管：把 `/` 首页的账户板块整体 i18n 化（page 级 `getLocale` + 语料译 COPY dict 三套；
+  日期格式随 locale 换 zh-CN/en-US；`/search` 尾注、导航标签、DEMO/LIVE 之外的所有 chrome 都双语）。
+- 组件（全部 `locale?: Locale` prop，zh 默认）：NewProjectForm / ImportPanel / AccountPanel /
+  AccountDeletionPanel / ProfileEditor / AvatarEditor / ProjectDescriptionEditor / ProjectDeleteCard /
+  RestoreProjectButton / NotificationBell + 首页壳本身。EN 是真辞（不是直译）；
+  用户可见字节（姓名、handle、确认词 x/Word）原样渲染——确认词流程不碰任何一个变体分支里的 code path。
+- 测试侧：10 个 FE 套件 SHA 针重钉（`// 2026-11-15 双语化重钉` 注释留在该常量处）；home-visual 的
+  MODALITIES 断言改为 Record 形状（三条 label 字节不变）；project-delete-card 的 9 行字面预算由共享节点
+  `ExpectedWord`（一次 className 文本）守住；import-panel 字面预算 20、account-deletion 22 同样恢复到预算内。
+- 门禁：fe-gates **120/120 套件 · 1181/1181 用例**；census 2399；no-raw-tailwind 干净；tsc web 0；eslint 0
+  （两个仅 eslint-未用符号）与 verify:record-encoding 绿（3154 files / 0 chargeable）。
+- 双语画像目检：zh / en 两套登录 home 截图对比通过（empty states / credentials / imports / trash / provider chrome
+  全部替换干净，浏览器原生 file 按钮除外）。
+- 诚实边界：宿主 CI 的 proofs step 仍挂在 arms 这一行外（fused-red 历史见 cont. 125）；main-line 在
+  c2dd36e9 / 0ea7c2f0 / bb4c172 / 833fb1f7 全部 success。verify:arms 在下一个 proofs verdict 之前不承认 earned。
