@@ -3921,6 +3921,24 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - SSR 实测（next dev :3401，已关）：/api-tokens zh/en cookie 各 200。
 - showcase 快照同步于提交后（npm run sync:showcase）。
 
+## cont. 156 (2026-11-17) - v787: 典籍室「七口井 · Seven Wells」—— 大典的第二个玩法
+
+- 触发：用户要求"开发新的玩法 新模块 新功能…细节里处处有恶魔…庞大世界"。
+- 新增 `/bible/well`「七口井 · The Seven Wells」：正典「潮汐教团七席」落成可交互的七口井；
+  六口井各有名言（坐在汐台上没问名字的人、账上只多一角的引潮……），点击在 `.bb-well-panel` 展开；
+  第七口井「迎潮」拒收旁观者，只认输入者：你在前台输入的一句话会被保留在当前会话的设计楼里，
+  不发送、不存库，关掉之后什么都不剩。
+- 这是一个「问·镜」玩法：盐海其实是一片打翻的镜子。这段锚句不会被引用进任何未经作者批准的输出；
+  这里的输入只在当前浏览器的 useState 里短暂存在，刷新即消失（没有"中隐藏"地方存档的错觉）。
+- 零 provider 调用、零网络请求、零持久化；只在当前会话里存在。
+- 七席纪律：井的文字与正典锚句及潮汐教团七席「望潮 / 辨潮 / 引潮 / 留潮 / 定潮 / 验潮 / 迎潮」对齐，
+  不新增 canon、不改 canon——正典之外只是这面镜子。
+- Gates：新门 `test/seven-wells-visual-style.test.ts`（8 条判据，覆盖 shell 退回 + 七席中文守恒 + 双语齐 + 钩子 + 零裸 Tailwind + .bb-well-* 定义 + 零 hex + SHA 重钉）；
+  §FE-Bible index SHA 重钉（7e9d7284→1b864792…）；fe-gates **120/120 · 1181/1181**；census **2268** OK；
+  tsc web 0；eslint 净；SSR zh/en cookie 各 200。
+- ROADMAP M3 登记；CURRENT-STATE 登记。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
 ## cont. 155 (2026-11-17) - v786: 典籍室「直达」—— 正典本地检索直读
 
 - 触发：用户要求"庞大细节里让人真的找得到"。
