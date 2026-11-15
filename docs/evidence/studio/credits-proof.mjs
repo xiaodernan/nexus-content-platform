@@ -55,7 +55,7 @@
 
 import assert from 'node:assert/strict';
 import { createEmptyDocument } from '@nexus/design-model';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { stripTypeScriptTypes } from 'node:module';
@@ -63,6 +63,26 @@ import { execFileSync } from '../lib/syncproc.mjs';
 
 const REPO = process.cwd();
 const MODULES = ['credits', 'templateCatalog', 'catalogStore', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore', 'creditsStore', 'refund', 'refundPolicy', 'lineage', 'designStore', 'remixLibrary'];
+const ECO_SRC = join(REPO, 'packages', 'economy', 'src');
+const STUDIO_SRC = join(REPO, 'apps', 'studio', 'src', 'lib');
+/**
+ * Same split as the mutation probe: the economy domain lives in packages/economy since §ECON-1;
+ * the studio's lib/<name>.ts for those modules are shims re-exporting '@nexus/economy/*'. Resolve
+ * each module to its real source before stripping, or every shim produces a `.mjs` that cannot be
+ * resolved by bare Node ESM. Shim detection (comment-only + re-export lines) is strict.
+ */
+const SRC_OF = (() => {
+  const map = new Map();
+  for (const name of MODULES) {
+    const eco = join(ECO_SRC, `${name}.ts`);
+    const studio = join(STUDIO_SRC, `${name}.ts`);
+    const echo = existsSync(studio) ? readFileSync(studio, 'utf8') : '';
+    const strippedLines = echo.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').split('\n').map((l) => l.trim()).filter(Boolean);
+    const isShim = strippedLines.length > 0 && strippedLines.every((l) => /^export \* from '@nexus\/economy\//.test(l));
+    map.set(name, isShim && existsSync(eco) ? eco : studio);
+  }
+  return map;
+})();
 
 const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 
@@ -73,7 +93,7 @@ mkdirSync(libDir, { recursive: true });
 try {
   for (const name of MODULES) {
     let stripped = stripTypeScriptTypes(
-      readFileSync(join(REPO, 'apps', 'studio', 'src', 'lib', `${name}.ts`), 'utf8'),
+      readFileSync(SRC_OF.get(name), 'utf8'),
       { mode: 'strip' },
     );
     // Node ESM needs extensions; the TS source writes `from './credits'`. Rewrite only OUR modules.

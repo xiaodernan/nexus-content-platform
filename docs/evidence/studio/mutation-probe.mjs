@@ -25,13 +25,39 @@
 //
 // Run:  node docs/evidence/studio/mutation-probe.mjs
 
-import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { basename, join } from 'node:path';
 import { spawnSync } from '../lib/syncproc.mjs';
 
 const REPO = process.cwd();
+const ECO_SRC = join(REPO, 'packages', 'economy', 'src');
+const ECO_TEST = join(REPO, 'packages', 'economy', 'test');
 const SRC = join(REPO, 'apps', 'studio', 'src', 'lib');
 const STUDIO = join(REPO, 'apps', 'studio');
+/**
+ * The economy domain lives in `packages/economy` since §ECON-1: the studio's `lib/*.ts` files for it are
+ * shims re-exporting `@nexus/economy/*` (the move is proven by the package's own suite living there).
+ * A proof that reads the shims would strip a one-line re-export as `.mjs` and then fail to resolve the
+ * package — reading paths, not shims, keeps the proof grading the real sources. Shim detection is strict:
+ * nothing but comment-or-blank lines plus `export * from '@nexus/economy/...'` count as a shim.
+ */
+const SRC_OF = (() => {
+  const map = new Map();
+  const MODULES_HOISTED = ['credits', 'templateCatalog', 'catalogStore', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore', 'creditsStore', 'refund', 'refundPolicy', 'publish', 'lineage', 'designStore', 'remixLibrary', 'm8Invariants'];
+  for (const name of MODULES_HOISTED) {
+    const eco = join(ECO_SRC, `${name}.ts`);
+    const studio = join(SRC, `${name}.ts`);
+    const studioText = existsSync(studio) ? readFileSync(studio, 'utf8') : '';
+    const stripped = studioText.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').split('\n').map((l) => l.trim()).filter(Boolean);
+    const isShim = stripped.length > 0 && stripped.every((l) => /^export \* from '@nexus\/economy\//.test(l));
+    if (isShim && existsSync(eco)) {
+      map.set(name, { src: eco, test: join(ECO_TEST, `${name}.test.ts`) });
+    } else {
+      map.set(name, { src: studio, test: join(SRC, `${name}.test.ts`) });
+    }
+  }
+  return map;
+})();
 // One box per PROCESS, named in the argv filter too: a fixed `.nexus-mut-probe` let two concurrent runs
 // (a human's and CI's, or two of this repository's lanes) share the directory, and the first to finish
 // deleted the box under the other's feet — measured 2026-10-28 as ENOENT on the loser's restore write, a
@@ -41,7 +67,11 @@ const BOX = join(STUDIO, BOX_NAME);
 const VITEST = join(REPO, 'node_modules', 'vitest', 'vitest.mjs');
 
 const MODULES = ['credits', 'templateCatalog', 'catalogStore', 'marketplace', 'creatorDashboard', 'settlement', 'templateRemix', 'walletView', 'ledgerStore', 'creditsStore', 'refund', 'refundPolicy', 'publish', 'lineage', 'designStore', 'remixLibrary'];
-const TEST_FILES = [...MODULES.map((m) => `${m}.test.ts`), 'm8Invariants.test.ts'];
+
+/** Every file the mutation probe copies in, resolved to its real home (studio lib or packages/economy). */
+const TEST_FILES = [...MODULES.map((m) => SRC_OF.get(m).test), join(SRC, 'm8Invariants.test.ts')];
+const srcOf = (name) => SRC_OF.get(name).src;
+const testOf = (name) => SRC_OF.get(name).test;
 
 /**
  * Each mutation breaks ONE rule and names the rule it breaks. The `find` strings are asserted present
@@ -105,8 +135,8 @@ const MUTATIONS = [
  */
 function stage() {
   mkdirSync(BOX, { recursive: true });
-  for (const module of MODULES) cpSync(join(SRC, `${module}.ts`), join(BOX, `${module}.ts`));
-  for (const test of TEST_FILES) cpSync(join(SRC, test), join(BOX, test));
+  for (const module of MODULES) cpSync(srcOf(module), join(BOX, `${module}.ts`));
+  for (const test of TEST_FILES) cpSync(test, join(BOX, basename(test)));
 }
 
 /** Run the temp suite; returns the spawn result. The filter keeps it to the copied files only. */
@@ -123,7 +153,7 @@ stage();
 try {
   for (const mutation of MUTATIONS) {
     const path = join(BOX, `${mutation.file}.ts`);
-    const original = readFileSync(join(SRC, `${mutation.file}.ts`), 'utf8');
+    const original = readFileSync(srcOf(mutation.file), 'utf8');
     if (!original.includes(mutation.find)) {
       results.push({ ...mutation, verdict: 'ERROR', detail: 'the mutation target was not found in the source' });
       console.log(`${mutation.id} ERROR     ${mutation.file}: target not found`);

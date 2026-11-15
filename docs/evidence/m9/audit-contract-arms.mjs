@@ -41,7 +41,7 @@
 
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -102,6 +102,12 @@ function plant(ref) {
   }
   mkdirSync(join(PLANE, 'node_modules'), { recursive: true });
   cpSync(join(ROOT, 'node_modules/typescript'), join(PLANE, 'node_modules/typescript'), { recursive: true });
+  // The shipped proof executes the client by stripping types and importing them; every `@nexus/*`
+  // specifier those modules carry resolves through this junction, which must point at the real
+  // workspace namespace or the box grades a resolver with no target and crashes before §11 prints.
+  if (!existsSync(join(PLANE, 'node_modules', '@nexus'))) {
+    symlinkSync(join(ROOT, 'node_modules', '@nexus'), join(PLANE, 'node_modules', '@nexus'), process.platform === 'win32' ? 'junction' : 'dir');
+  }
   return closure;
 }
 

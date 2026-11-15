@@ -55,6 +55,7 @@ const PKGS = [
   { name: '@nexus/world-engine', root: 'packages/world-engine', lane: 'M4: world/lore/character/location + relationships + tick + save/load' },
   { name: '@nexus/agent-runtime', root: 'agents/runtime', lane: 'M2–M5 doors; see `docs/evidence/agents/README.md`' },
   { name: '@nexus/exec-host', root: 'agents/exec-host', lane: 'the only `child_process` holder (ADR 0013 policy sandbox)' },
+  { name: '@nexus/economy', root: 'packages/economy', lane: 'M8: the extracted creator economy — credits ledger, marketplace, settlement, refunds, wallet view (§ECON-1)' },
   { name: '@nexus/studio', root: 'apps/studio', lane: 'the Studio slice: canvas, surfaces, lanes, and the `/credits` page' },
 ];
 
@@ -80,7 +81,7 @@ function render(rows, day) {
     '| --- | --- | --- | --- |',
     ...rows.map((r) => `| \`${r.name}\` | **${r.passed}/${r.total}** | ${r.files} | ${r.lane} |`),
     '',
-    `_Generated on ${day} (${made}) by \`npm run verify:package-counts\` from seven \`vitest run --root <pkg> --no-file-parallelism\` arms — never hand-typed. A package whose counts move must regenerate this block; the gate refuses a table that differs from the suites it ran._`,
+    `_Generated on ${day} (${made}) by \`npm run verify:package-counts\` from eight \`vitest run --root <pkg> --no-file-parallelism\` arms — never hand-typed. A package whose counts move must regenerate this block; the gate refuses a table that differs from the suites it ran._`,
   ];
   return lines.join('\n') + '\n';
 }
