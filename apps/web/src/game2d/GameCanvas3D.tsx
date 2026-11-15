@@ -105,7 +105,9 @@ function CameraRig() {
     const onMove = (e: PointerEvent) => {
       if (!drag.current) return;
       yaw.current = drag.current.yaw - (e.clientX - drag.current.x) * 0.006;
-      pitch.current = Math.min(1.35, Math.max(0.18, drag.current.pitch + (e.clientY - drag.current.y) * 0.005));
+      // 与 /world 同一套方向惯例（cont. 146）：向上拖 = 视角上仰（仰角升高、相机更高），向下拖 = 视角下俯。
+      // 曾经方向记反（+ dy×k，却下滑才抬头、上滑才俯近），用户长期反馈"搞反了、很难受"，此处修正。
+      pitch.current = Math.min(1.35, Math.max(0.18, drag.current.pitch - (e.clientY - drag.current.y) * 0.005));
     };
     const onUp = (e: PointerEvent) => {
       drag.current = null;

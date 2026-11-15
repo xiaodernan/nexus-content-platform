@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
  * `bus:null` 中立档、命中率分母 0、水位线/全局世代/洪潮/上游降级/耗时 P99 ——全部复用 `.gw-*`/`.dc-*`。
  * 本片只换皮：`dc-busCard`/`dc-ledgerRow`/`dc-ledgerGrid` 等 SC-43 原语保持冻结。
  *
- * **剥 className 后全文 SHA256 守恒（EOL 无关）**：page=`2f1974be…`，panel=`25cdf8a1…`。
+ * **剥 className 后全文 SHA256 守恒（EOL 无关）**：page=`f302e9b9…`，panel=`dc3fe4b3…`（v772 i18n 重钉）。
  * redact 三步序与钉死常量一致。
  *
  * 判据不变式（12 门）：
@@ -176,12 +176,12 @@ describe('§FE-36 /admin/discover-cache 发现页缓存态势', () => {
     expect(panelCode).toMatch(/className=\{mono \? 'gw-ident' : 'am-mutedText'\}/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：page=2f1974be… · panel=25cdf8a1…）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：page=f302e9b9… · panel=dc3fe4b3…（v772 i18n 重钉））', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '2f1974be810eaef6cf0c82f65027adc7a386a113641665cc987a172d7738d399',
+      'f302e9b9b83472c393b5ad1022192c5c490493539493ba42a77e783f488e2f5c',
     );
     expect(createHash('sha256').update(redactClasses(panel)).digest('hex')).toBe(
-      '25cdf8a11f726713e8039c7fa239428bfcc135408cf01c072e5b8b028abc315e',
+      'dc3fe4b308934900823b8b7706c5b2e506a281ec3b89fabfa2738f329198e637',
     );
   });
 });

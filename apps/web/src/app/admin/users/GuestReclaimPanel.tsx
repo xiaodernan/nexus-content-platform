@@ -3,8 +3,72 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { csrfHeaders } from '@/lib/csrf';
+import type { Locale } from '@/lib/i18n';
 import type { GuestReclaimCandidate, GuestReclaimScan } from '@/server/domain/guest-reclaim';
 import { adoptScan, allCheckedOf, clampPage, pageWindow, pageCount, scanCaveats, selectionOf, toggleId } from './reclaim-state';
+
+const COPY = {
+  zh: {
+    sectionAria: '过期访客回收',
+    heading: '过期访客回收',
+    rule: (graceDays: number) =>
+      `判据是沉默：最后一条会话过期之后再过 ${graceDays} 天——会话本身活 ${graceDays} 天，所以从这个人最后一次打开页面算，大约是两个月。认领过（注册）的、名下有已发布作品的、还带着有效 API 令牌的，都不在这一轮。收走走的是注销那六件事：草稿进回收站、会话与凭据吊销，不是把行从库里抹掉（ADR-0025／ADR-0072）。`,
+    counts: (stale: number, eligible: number, skippedPublished: number, skippedLiveToken: number, batch: number) =>
+      `沉默到线 ${stale} 个 · 够格 ${eligible} 个 · 发布过不碰 ${skippedPublished} 个 · 带令牌不碰 ${skippedLiveToken} 个 · 一次最多 ${batch} 个`,
+    pickAllAria: '全选这一屏列出来的候选',
+    pickAll: (selected: number, shown: number) => `全选（${selected}/${shown}）`,
+    prevPage: '← 上一屏',
+    nextPage: '下一屏 →',
+    pageInfo: (current: number, pages: number, shown: number, total: number) =>
+      `第 ${current}/${pages} 屏 · 这一屏 ${shown} 行 · 够格的一共 ${total} 个`,
+    reclaimOneAria: (name: string) => `收走 ${name}`,
+    reasonOrphan: '从来没有过会话',
+    reasonExpired: (day: string) => `会话止于 ${day}`,
+    registeredOn: (day: string) => `注册于 ${day}`,
+    draftsTogether: (n: number) => `${n} 个草稿一起收起`,
+    noDrafts: '没有草稿',
+    moreThanBatchNote: (batch: number) =>
+      `这份清单一次装 ${batch} 个，够格的比这多——翻完这几屏也看不到剩下的那些，它们这一轮进不了清单，也就点不到。`,
+    empty: '此刻没有够格的访客——这是好消息，不是这个入口坏了。',
+    recountIdle: '重新数一遍',
+    recountBusy: '数中…',
+    applyIdle: (n: number) => `收走这 ${n} 个`,
+    applyBusy: '回收中…',
+    failedNotice: (detail: string) => `没做成：${detail}`,
+    noReceipt: '没收到回执',
+    requestFailed: '请求没走通',
+  },
+  en: {
+    sectionAria: 'Reclaim expired guests',
+    heading: 'Reclaim expired guests',
+    rule: (graceDays: number) =>
+      `The criterion is silence: ${graceDays} days after the last session expired — each session lives ${graceDays} days, so from this person’s last visit it is roughly two months. Claimed (registered), published works in their name, or live API tokens — none of those are in this round. Reclaiming walks the six deletion steps: drafts to the recycle bin, sessions and credentials revoked — rows are not wiped from the library (ADR-0025 / ADR-0072).`,
+    counts: (stale: number, eligible: number, skippedPublished: number, skippedLiveToken: number, batch: number) =>
+      `Silent past the line ${stale} · eligible ${eligible} · published, untouched ${skippedPublished} · live-token, untouched ${skippedLiveToken} · at most ${batch} per round`,
+    pickAllAria: 'Select every candidate listed on this screen',
+    pickAll: (selected: number, shown: number) => `Select all (${selected}/${shown})`,
+    prevPage: '← Previous page',
+    nextPage: 'Next page →',
+    pageInfo: (current: number, pages: number, shown: number, total: number) =>
+      `Page ${current}/${pages} · this screen shows ${shown} rows · ${total} eligible in total`,
+    reclaimOneAria: (name: string) => `Reclaim ${name}`,
+    reasonOrphan: 'No session has ever existed',
+    reasonExpired: (day: string) => `Last session ended ${day}`,
+    registeredOn: (day: string) => `Registered ${day}`,
+    draftsTogether: (n: number) => `${n} draft${n === 1 ? '' : 's'} collected together`,
+    noDrafts: 'No drafts',
+    moreThanBatchNote: (batch: number) =>
+      `This list loads ${batch} at a time and there are more eligible than that — paging through every screen still will not reach the rest, they cannot enter this list, and cannot be clicked.`,
+    empty: 'No eligible guests right now — that is good news, not a broken entry.',
+    recountIdle: 'Recount',
+    recountBusy: 'Counting…',
+    applyIdle: (n: number) => `Reclaim these ${n}`,
+    applyBusy: 'Reclaiming…',
+    failedNotice: (detail: string) => `Did not go through: ${detail}`,
+    noReceipt: 'No receipt received',
+    requestFailed: 'The request did not go through',
+  },
+} as const;
 
 /**
  * 过期访客回收的后台入口（ADR-0072）。
@@ -36,11 +100,12 @@ interface Receipt {
   issues?: string[];
 }
 
-function dayOf(iso: string): string {
-  return new Date(iso).toLocaleDateString('zh-CN');
+function dayOf(iso: string, locale: Locale): string {
+  return new Date(iso).toLocaleDateString(locale === 'en' ? 'en-US' : 'zh-CN');
 }
 
-export function GuestReclaimPanel({ scan }: { scan: GuestReclaimScan }) {
+export function GuestReclaimPanel({ scan, locale = 'zh' }: { scan: GuestReclaimScan; locale?: Locale }) {
+  const c = COPY[locale];
   const router = useRouter();
   const [live, setLive] = useState<GuestReclaimScan>(scan);
   /** `null` = 全勾（清单上列出来的这些）；给了数组就是只勾这几行 */
@@ -91,19 +156,19 @@ export function GuestReclaimPanel({ scan }: { scan: GuestReclaimScan }) {
       });
       const body = (await res.json().catch(() => null)) as Receipt | null;
       if (!res.ok || body?.ok === false) {
-        setNotice(`没做成：${body?.issues?.join('；') ?? body?.message ?? body?.error ?? `HTTP ${res.status}`}`);
+        setNotice(c.failedNotice(body?.issues?.join('；') ?? body?.message ?? body?.error ?? `HTTP ${res.status}`));
         return;
       }
       const next = body?.scan;
       if (next) setLive((prev) => adoptScan(prev, next));
-      setNotice(body?.message ?? '没收到回执');
+      setNotice(body?.message ?? c.noReceipt);
       if (!dryRun && (body?.reclaimed?.length ?? 0) > 0) {
         // 换过读数之后"全勾"指的是新一屏列出来的这些，不是刚才收掉的那几个
         setPicked(null);
         router.refresh();
       }
     } catch (cause) {
-      setNotice(cause instanceof Error ? cause.message : '请求没走通');
+      setNotice(cause instanceof Error ? cause.message : c.requestFailed);
     } finally {
       setBusy(null);
     }
@@ -113,19 +178,16 @@ export function GuestReclaimPanel({ scan }: { scan: GuestReclaimScan }) {
     <section
       className="au-reclaimRoot"
       data-reclaim-root
-      aria-label="过期访客回收"
+      aria-label={c.sectionAria}
     >
-      <h2 className="au-sectionTitle">过期访客回收</h2>
+      <h2 className="au-sectionTitle">{c.heading}</h2>
       <p className="adm-capNote" data-reclaim-rule>
-        判据是沉默：最后一条会话过期之后<strong>再过 {live.graceDays} 天</strong>——会话本身活 {live.graceDays} 天，
-        所以从这个人最后一次打开页面算，大约是两个月。认领过（注册）的、名下有已发布作品的、还带着有效 API 令牌的，
-        都不在这一轮。收走走的是注销那六件事：草稿进回收站、会话与凭据吊销，不是把行从库里抹掉（ADR-0025／ADR-0072）。
+        {c.rule(live.graceDays)}
       </p>
 
       <p className="au-counts" data-reclaim-counts>
-        沉默到线 {live.stale} 个 · 够格 {totalEligible} 个 · 发布过不碰 {live.skippedPublished} 个 ·
-        带令牌不碰 {live.skippedLiveToken} 个 · 一次最多 {live.batch} 个
-        {scanCaveats(live).map((s) => (
+        {c.counts(live.stale, totalEligible, live.skippedPublished, live.skippedLiveToken, live.batch)}
+        {scanCaveats(live, locale).map((s) => (
           <span key={s}> · {s}</span>
         ))}
       </p>
@@ -143,9 +205,9 @@ export function GuestReclaimPanel({ scan }: { scan: GuestReclaimScan }) {
               }}
               onChange={() => setPicked(allChecked ? [] : shownIds)}
               data-reclaim-pick-all
-              aria-label="全选这一屏列出来的候选"
+              aria-label={c.pickAllAria}
             />
-            全选（{selected.length}/{shownIds.length}）
+            {c.pickAll(selected.length, shownIds.length)}
           </label>
           {pages > 1 ? (
             // 屏号单独一行，是因为「全选（8/8）」这句光看像"全部"：够格的一共几个、这一屏几个，
@@ -158,9 +220,9 @@ export function GuestReclaimPanel({ scan }: { scan: GuestReclaimScan }) {
                 className="au-navBtn"
                 data-reclaim-prev
               >
-                ← 上一屏
+                {c.prevPage}
               </button>
-              第 {current + 1}/{pages} 屏 · 这一屏 {shownIds.length} 行 · 够格的一共 {totalEligible} 个
+              {c.pageInfo(current + 1, pages, shownIds.length, totalEligible)}
               <button
                 type="button"
                 onClick={() => goPage(current + 1)}
@@ -168,37 +230,36 @@ export function GuestReclaimPanel({ scan }: { scan: GuestReclaimScan }) {
                 className="au-navBtn"
                 data-reclaim-next
               >
-                下一屏 →
+                {c.nextPage}
               </button>
             </div>
           ) : null}
           <ul className="am-findingsList" data-reclaim-list>
-            {shown.map((c) => (
-              <li key={c.id} className="au-reclaimRow" data-reclaim-row={c.id}>
+            {shown.map((cand) => (
+              <li key={cand.id} className="au-reclaimRow" data-reclaim-row={cand.id}>
                 <input
                   type="checkbox"
-                  checked={selected.includes(c.id)}
-                  onChange={() => toggleOne(c.id)}
-                  data-reclaim-pick={c.id}
-                  aria-label={`收走 ${c.name}`}
+                  checked={selected.includes(cand.id)}
+                  onChange={() => toggleOne(cand.id)}
+                  data-reclaim-pick={cand.id}
+                  aria-label={COPY[locale].reclaimOneAria(cand.name)}
                 />
-                <span className="au-counts">{c.name}</span>
-                <span>{c.reason === 'orphan' ? '从来没有过会话' : `会话止于 ${dayOf(c.lastExpiry!)}`}</span>
-                <span>注册于 {dayOf(c.createdAt)}</span>
-                <span>{c.drafts > 0 ? `${c.drafts} 个草稿一起收起` : '没有草稿'}</span>
+                <span className="au-counts">{cand.name}</span>
+                <span>{cand.reason === 'orphan' ? c.reasonOrphan : c.reasonExpired(dayOf(cand.lastExpiry!, locale))}</span>
+                <span>{c.registeredOn(dayOf(cand.createdAt, locale))}</span>
+                <span>{cand.drafts > 0 ? c.draftsTogether(cand.drafts) : c.noDrafts}</span>
               </li>
             ))}
             {live.moreThanBatch ? (
               <li className="adm-capNote" data-reclaim-truncated>
-                这份清单一次装 {live.batch} 个，够格的比这多——翻完这几屏也看不到剩下的那些，
-                它们这一轮进不了清单，也就点不到。
+                {c.moreThanBatchNote(live.batch)}
               </li>
             ) : null}
           </ul>
         </>
       ) : (
         <p className="adm-capNote" data-reclaim-empty>
-          此刻没有够格的访客——这是好消息，不是这个入口坏了。
+          {c.empty}
         </p>
       )}
 
@@ -210,7 +271,7 @@ export function GuestReclaimPanel({ scan }: { scan: GuestReclaimScan }) {
           className="au-ghostBtn"
           data-recount-button
         >
-          {busy === 'count' ? '数中…' : '重新数一遍'}
+          {busy === 'count' ? c.recountBusy : c.recountIdle}
         </button>
         <button
           type="button"
@@ -219,7 +280,7 @@ export function GuestReclaimPanel({ scan }: { scan: GuestReclaimScan }) {
           className="au-applyBtn"
           data-reclaim-apply
         >
-          {busy === 'apply' ? '回收中…' : `收走这 ${selected.length} 个`}
+          {busy === 'apply' ? c.applyBusy : c.applyIdle(selected.length)}
         </button>
       </div>
 

@@ -3,6 +3,24 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { csrfHeaders } from '@/lib/csrf';
+import type { Locale } from '@/lib/i18n';
+
+const COPY = {
+  zh: {
+    aria: '该用户的订阅档位',
+    noChangeNotice: '还是这一档，没有改动',
+    failedNotice: (status: number) => `没做成（HTTP ${status}）`,
+    changeButton: '改档位',
+    selfNote: '（你自己）',
+  },
+  en: {
+    aria: 'This user’s plan tier',
+    noChangeNotice: 'That tier is already selected, nothing changed',
+    failedNotice: (status: number) => `Did not go through (HTTP ${status})`,
+    changeButton: 'Change tier',
+    selfNote: '(that’s you)',
+  },
+} as const;
 
 /**
  * §133 的改档位入口。与 `RoleButton` 的两处不同，都是刻意的：
@@ -29,12 +47,15 @@ export function PlanSelect({
   plan,
   self,
   handle,
+  locale = 'zh',
 }: {
   userId: string;
   plan: Plan;
   self: boolean;
   handle: string | null;
+  locale?: Locale;
 }) {
+  const c = COPY[locale];
   const router = useRouter();
   const [choice, setChoice] = useState<Plan>(plan);
   const [busy, setBusy] = useState(false);
@@ -42,7 +63,7 @@ export function PlanSelect({
 
   const submit = async (): Promise<void> => {
     if (choice === plan) {
-      setNotice('还是这一档，没有改动');
+      setNotice(c.noChangeNotice);
       return;
     }
     setBusy(true);
@@ -55,7 +76,7 @@ export function PlanSelect({
       });
       const body = (await res.json().catch(() => null)) as { message?: string; reason?: string } | null;
       if (!res.ok) {
-        setNotice(body?.message ?? body?.reason ?? `没做成（HTTP ${res.status}）`);
+        setNotice(body?.message ?? body?.reason ?? c.failedNotice(res.status));
         return;
       }
       router.refresh();
@@ -70,7 +91,7 @@ export function PlanSelect({
         value={choice}
         disabled={busy}
         onChange={(event) => setChoice(event.target.value as Plan)}
-        aria-label="该用户的订阅档位"
+        aria-label={c.aria}
         className="au-select"
         data-plan-select={handle ?? userId}
       >
@@ -87,9 +108,9 @@ export function PlanSelect({
         className="am-btn"
         data-plan-set={handle ?? userId}
       >
-        改档位
+        {c.changeButton}
       </button>
-      {self ? <span className="adm-capNote">（你自己）</span> : null}
+      {self ? <span className="adm-capNote">{c.selfNote}</span> : null}
       {notice ? (
         <span className="am-triageError" data-plan-notice>
           {notice}

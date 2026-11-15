@@ -2,8 +2,32 @@ import { currentUserOrNull } from '@/server/domain/session';
 import { describeDiscoverCache, type DiscoverCacheReadout } from '@/server/domain/discover-cache';
 import { AdminNav } from '@/components/AdminNav';
 import { DiscoverPanel } from './DiscoverPanel';
+import { getLocale, type Locale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
+
+const COPY: Record<Locale, {
+  deniedTitle: string;
+  deniedAnonymous: string;
+  deniedNotAdmin: (name: string, role: string) => string;
+  title: string;
+  scopeNote: string;
+}> = {
+  zh: {
+    deniedTitle: '发现页缓存',
+    deniedAnonymous: '需要先登录才能看。',
+    deniedNotAdmin: (name, role) => `这个页面对 ${name}（role=${role}）不开放：缓存读数只对 role=admin 可见。`,
+    title: '发现页缓存 · 跨实例失效',
+    scopeNote: '按 viewer 分键 · 本机隐私即时失效 · 跨实例经 Redis 最终一致 · 每 4 秒刷新',
+  },
+  en: {
+    deniedTitle: 'Discover cache',
+    deniedAnonymous: 'You must sign in first.',
+    deniedNotAdmin: (name, role) => `This page is not open to ${name} (role=${role}): cache stats are visible only to role=admin.`,
+    title: 'Discover cache · cross-instance invalidation',
+    scopeNote: 'per-viewer keys · local privacy invalidation is instant · cross-instance via Redis, eventually consistent · refresh every 4 s',
+  },
+};
 
 /**
  * §SC-43：发现页缓存态势页——把 SC-41/SC-42 后端那套"按 viewer 分键缓存 + 跨实例失效总线"
@@ -26,21 +50,23 @@ function initialReadout(): { readout: DiscoverCacheReadout | null; error: string
 }
 
 export default async function AdminDiscoverCachePage() {
+  const locale = await getLocale();
+  const c = COPY[locale];
   const user = await currentUserOrNull();
   if (!user) {
     return (
       <main className="adm-denied" data-admin-denied="anonymous">
-        <h1 className="adm-deniedTitle">发现页缓存</h1>
-        <p className="adm-deniedText">需要先登录才能看。</p>
+        <h1 className="adm-deniedTitle">{c.deniedTitle}</h1>
+        <p className="adm-deniedText">{c.deniedAnonymous}</p>
       </main>
     );
   }
   if (user.role !== 'admin') {
     return (
       <main className="adm-denied" data-admin-denied="not-admin">
-        <h1 className="adm-deniedTitle">发现页缓存</h1>
+        <h1 className="adm-deniedTitle">{c.deniedTitle}</h1>
         <p className="adm-deniedText">
-          这个页面对 {user.displayName}（role={user.role}）不开放：缓存读数只对 role=admin 可见。
+          {c.deniedNotAdmin(user.displayName, user.role)}
         </p>
       </main>
     );
@@ -52,15 +78,15 @@ export default async function AdminDiscoverCachePage() {
     <main className="am-shellXl" data-discover-cache-root>
       <header className="adm-headBaseline">
         <div>
-          <h1 className="am-titleLg">发现页缓存 · 跨实例失效</h1>
+          <h1 className="am-titleLg">{c.title}</h1>
           <p className="adm-capNote" data-discover-cache-scope>
-            按 viewer 分键 · 本机隐私即时失效 · 跨实例经 Redis 最终一致 · 每 4 秒刷新
+            {c.scopeNote}
           </p>
         </div>
         <AdminNav current="discover-cache" />
       </header>
 
-      <DiscoverPanel initial={readout} initialError={error} />
+      <DiscoverPanel initial={readout} initialError={error} locale={locale} />
     </main>
   );
 }

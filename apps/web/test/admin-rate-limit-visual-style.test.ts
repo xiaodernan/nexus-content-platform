@@ -13,7 +13,7 @@ import { describe, expect, it } from 'vitest';
  *
  * 本片只换皮；wire 判据（WIRE_LABEL）、fallback 原因（REASON_LABEL）、rules 排序——一字不改。
  *
- * **剥 className 后全文 SHA256 守恒（EOL 无关）**：page=`a7cff6c8…`，panel=`6cc9b0b4…`。
+ * **剥 className 后全文 SHA256 守恒（EOL 无关）**：page=`68fd8650…`，panel=`a294e80a…`（v769 i18n 重钉）。
  * redact 三步序与钉死常量一致。
  *
  * 判据不变式（12 门）：
@@ -193,12 +193,12 @@ describe('§FE-33 /admin/rate-limit 限流闸诊断', () => {
     expect(globals).toMatch(/\.ar-num \{[^}]*font-variant-numeric: tabular-nums/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：page=a7cff6c8… · panel=6cc9b0b4…）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：page=68fd8650… · panel=a294e80a…（v769 i18n 重钉））', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      'a7cff6c8e8f5e52e22302d26288ca46df068181eb697e51c5b30decaf4234d54',
+      '68fd8650e72e87eddeff7ee764582661b5c64dcab7fdb31634350bf876cc7d45',
     );
     expect(createHash('sha256').update(redactClasses(panel)).digest('hex')).toBe(
-      '6cc9b0b435c28aeca9a40e687c5e7a3f882a2a4c1b7159aa41737420f652e89e',
+      'a294e80ac5bf8100cb771c03716816eee1987a423c9ae0f86d8f26647525e10b',
     );
   });
 });

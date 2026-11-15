@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
  * 裁决是审核链上唯一能写下 approved/rejected 的地方——本片只换皮。
  *
  * **剥 className 后全文 SHA256 守恒**：两文件均恒等于改前（git HEAD）。
- * redact 三步序与钉死常量一致：page=`585733e5…`，resolve=`1917a942…`。
+ * redact 三步序与钉死常量一致：page=`0c96de94…`，resolve=`8c5be023…`（v765 i18n 重钉）。
  *
  * 判据不变式（12 门）：
  *  1. page.tsx server 组件 + denied×2 + role 闸门 + AdminNav current="moderation"；
@@ -181,13 +181,13 @@ describe('§FE-29 /admin/moderation 人工复核台', () => {
     expect(resolveCode).toContain('放行');
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：page=585733e5… · resolve=1917a942…）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：page=0c96de94… · resolve=8c5be023…（v765 i18n 重钉））', () => {
     // 常量在改前（git HEAD）由真实产物 redact 算出并钉死；此门保证除 className 外一字节未动。
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '585733e5a416b822e9ea86206b776622ef9d4a87ee42a45b74d48962f57636ed',
+      '0c96de94e988ec9a6cd9a0e588ade98ee25cdcc54a0ace4ab1997c9d020eded7',
     );
     expect(createHash('sha256').update(redactClasses(resolve)).digest('hex')).toBe(
-      '1917a94213071801ce54bb3dc590f6d47f0b8a5a9a34e836007890821065e525',
+      '8c5be023064eaa0dfa58245ce43ced24cf0b6ae42a19516b4da2e7f3fbf6a670',
     );
   });
 });

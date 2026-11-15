@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
  * 守卫；「此刻/启动那次」wireReady 分行、in-memory 写"不适用"、ai-service capability 段
  * （§SC-79）原样。页面只换皮，文案/判据/轮询/四分格（wire/java/breakers/actuator/ai）一字不改。
  *
- * **剥 className 后全文 SHA256 守恒**：两文件均恒等于改前（git HEAD）。
+ * **剥 className 后全文 SHA256 守恒**：两文件均恒等于改前（git HEAD，v767 i18n 重钉）。
  * redact 三步序与钉死常量一致：page=`09b484f7…`，panel=`f66b4716…`。
  *
  * 判据不变式（13 门）：
@@ -190,13 +190,13 @@ describe('§FE-27 /admin/realtime 实时总线诊断', () => {
     }
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：page=09b484f7… · panel=f66b4716…）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：page=554f6f67… · panel=0c9f2ec1…（v767 i18n 重钉））', () => {
     // 常量在改前（git HEAD）由真实产物 redact 算出并钉死；此门保证除 className 外一字节未动。
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '09b484f797ec273cd78066933b94eb8412876def654d732fd108411ebdaf4008',
+      '554f6f6733a395b83a7ce9bb54b84b566e7b1cc10fdf24f18cec3f3c61bdc568',
     );
     expect(createHash('sha256').update(redactClasses(panel)).digest('hex')).toBe(
-      'f66b471627e00200fc66b3eb9bc0a0fbb5dc56154d65239c4f6c3357050b25ed',
+      '0c9f2ec18fce37d470bd741859f45c93316219292af142eedd54debe67600d29',
     );
   });
 });

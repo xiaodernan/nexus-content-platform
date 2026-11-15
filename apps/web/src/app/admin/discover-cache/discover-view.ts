@@ -24,17 +24,18 @@ import type { DiscoverCacheReadout, EpochWave, LoadDuration } from '@/server/dom
 import type { InvalidationBusStats } from '@/server/domain/invalidation-bus';
 
 /** 没测到 / 不适用渲染成"—（…）"，绝不渲染成 0。 */
-export function dashOr(value: number | null, dash = '—（未测）'): string {
-  return value === null ? dash : String(value);
+export function dashOr(value: number | null, dash?: string, locale: 'zh' | 'en' = 'zh'): string {
+  const fallback = dash ?? (locale === 'en' ? '— (unmeasured)' : '—（未测）');
+  return value === null ? fallback : String(value);
 }
 
 /**
  * 命中率：分母（hits+misses）为 0 时说"还没人读"，不画 0%（0% 是一句具体的谎——它暗示
  * 有读发生且全没命中）。命中率高到 100% 也照实说，不因为"太满"而怀疑。
  */
-export function hitRate(hits: number, misses: number): string {
+export function hitRate(hits: number, misses: number, locale: 'zh' | 'en' = 'zh'): string {
   const total = hits + misses;
-  if (total <= 0) return '—（还没有读）';
+  if (total <= 0) return locale === 'en' ? '— (nothing read yet)' : '—（还没有读）';
   const pct = Math.round((hits / total) * 100);
   return `${pct}%`;
 }
@@ -51,36 +52,62 @@ export interface BusTag {
  * 超界/坏 id 的帧根本没让上线路、对端没丢任何东西；其余（坏帧/线路错误/坏回调）才可能涉及对端。
  * `errors=0` 的反向支刻意不说"拒发过/丢过帧"，防"文案写了词、0 时也谎称有错"那类假绿。
  */
-export function busErrorsNote(errors: number): string {
+export function busErrorsNote(errors: number, locale: 'zh' | 'en' = 'zh'): string {
+  if (locale === 'en') {
+    if (errors === 0) return 'errors 0 · nothing worth logging yet (0 means "not yet", not "tested and healthy"); cross-instance losses may still fall back to TTL.';
+    return `${errors} errors (local outbound refuses / bad frames / wire errors / bad callbacks); local refuses never put a frame on the wire and the peer loses nothing, true frame-loss peers fall back to TTL (15s) and self-heal.`;
+  }
   if (errors === 0) return '错误 0 · 还没发生过需要记的错误（0 是"还没发生"，不是"测过都健康"）；跨实例仍可能丢帧退回 TTL。';
   return `错误 ${errors}（含本机出站拒发 / 坏帧 / 线路错误 / 坏回调）；本机拒发是没让帧上线路、对端没丢，其余真丢帧的对端则退回 TTL（15s）自愈。`;
 }
 
 /** 总线状态三档：没接（null，中性）/ 已接且有错（warn）/ 已接且账上无错（success）。 */
-export function busTag(bus: InvalidationBusStats | null): BusTag {
+export function busTag(bus: InvalidationBusStats | null, locale: 'zh' | 'en' = 'zh'): BusTag {
   if (bus === null) {
-    return {
-      dot: 'gw-dotUnmeasured',
-      headline: '单机 · 未接跨实例总线',
-      detail: '这台实例只做本机即时失效；跨实例要设 NEXUS_REDIS_URL。这不是"接了但没收发"。',
-      connected: false,
-    };
+    return locale === 'en'
+      ? {
+          dot: 'gw-dotUnmeasured',
+          headline: 'Standalone · cross-instance bus not wired',
+          detail: 'This instance only does local instant invalidation; for cross-instance, set NEXUS_REDIS_URL. This is not “wired but silent”.',
+          connected: false,
+        }
+      : {
+          dot: 'gw-dotUnmeasured',
+          headline: '单机 · 未接跨实例总线',
+          detail: '这台实例只做本机即时失效；跨实例要设 NEXUS_REDIS_URL。这不是"接了但没收发"。',
+          connected: false,
+        };
   }
   if (bus.errors > 0) {
-    return {
-      dot: 'gw-dotUnknown',
-      // 出站拒发是本机没让帧上线路，不能甩锅"线路"或"那几台对端"——只说账上有错。
-      headline: '已接 · 账上有错误',
-      detail: `发出 ${bus.published} · 收到 ${bus.received} · ${busErrorsNote(bus.errors)} 处置 ${bus.applied}。`,
-      connected: true,
-    };
+    return locale === 'en'
+      ? {
+          dot: 'gw-dotUnknown',
+          // 出站拒发是本机没让帧上线路，不能甩锅"线路"或"那几台对端"——只说账上有错。
+          headline: 'Wired · the ledger shows errors',
+          detail: `published ${bus.published} · received ${bus.received} · ${busErrorsNote(bus.errors, locale)} applied ${bus.applied}.`,
+          connected: true,
+        }
+      : {
+          dot: 'gw-dotUnknown',
+          // 出站拒发是本机没让帧上线路，不能甩锅"线路"或"那几台对端"——只说账上有错。
+          headline: '已接 · 账上有错误',
+          detail: `发出 ${bus.published} · 收到 ${bus.received} · ${busErrorsNote(bus.errors, locale)} 处置 ${bus.applied}。`,
+          connected: true,
+        };
   }
-  return {
-    dot: 'gw-dotUp',
-    headline: '已接 · 线路正常',
-    detail: `发出 ${bus.published} · 收到 ${bus.received} · ${busErrorsNote(0)} 处置 ${bus.applied}；跨实例是最终一致，不是瞬时强一致。`,
-    connected: true,
-  };
+  return locale === 'en'
+    ? {
+        dot: 'gw-dotUp',
+        headline: 'Wired · the wire is clean',
+        detail: `published ${bus.published} · received ${bus.received} · ${busErrorsNote(0, locale)} applied ${bus.applied}; cross-instance is eventually consistent, not instant strong consistency.`,
+        connected: true,
+      }
+    : {
+        dot: 'gw-dotUp',
+        headline: '已接 · 线路正常',
+        detail: `发出 ${bus.published} · 收到 ${bus.received} · ${busErrorsNote(0, locale)} 处置 ${bus.applied}；跨实例是最终一致，不是瞬时强一致。`,
+        connected: true,
+      };
 }
 
 /** 后台标签不轮询；只有 visible 才发。判据用字符串注入，不需要真的 document。 */
@@ -167,8 +194,10 @@ export function isKnownReadout(value: unknown): value is DiscoverCacheReadout {
  * 单调水位线那段旁注：讲清"淘汰只会多查库、不会复活拉黑前的隐私缓存"。
  * 这是把 ADR-0113 的方法论结论第一次放到运维眼前，而不是只躺在代码注释里。
  */
-export function generationNote(globalGen: number, viewerGenerations: number, maxViewers: number): string {
-  return `水位线 ${globalGen}（只增不减）· generation 表 ${viewerGenerations}/${maxViewers} 个 viewer · 被淘汰只会让那个人多查一次库，不会把他拉黑前的旧视图找回来。`;
+export function generationNote(globalGen: number, viewerGenerations: number, maxViewers: number, locale: 'zh' | 'en' = 'zh'): string {
+  return locale === 'en'
+    ? `Watermark ${globalGen} (monotonic) · generation table ${viewerGenerations}/${maxViewers} viewers · eviction only costs that person one extra library read — never resurrects their pre-ban private cache.`
+    : `水位线 ${globalGen}（只增不减）· generation 表 ${viewerGenerations}/${maxViewers} 个 viewer · 被淘汰只会让那个人多查一次库，不会把他拉黑前的旧视图找回来。`;
 }
 
 /**
@@ -176,29 +205,39 @@ export function generationNote(globalGen: number, viewerGenerations: number, max
  * 钉三件事：epoch 因何而涨（public 发布/下架/拒绝）、涨了会怎样（所有旧键作废、下一波重查库）、
  * 为什么这是**预期的冷启动尖峰**而非事故（singleflight 只合并同键、不跨键）。
  */
-export function epochNote(globalEpoch: number): string {
-  return `全局世代 ${globalEpoch}（每次 public 发布/下架/审核拒绝 +1）· 每次 +1 会让所有 sort、所有 viewer（含匿名）的旧键一次性作废，新作品无需等 TTL 就出现；代价是随后那一波会重查库——singleflight 只合并同一键的并发、不跨键，这是预期的冷启动尖峰，不是缓存故障。`;
+export function epochNote(globalEpoch: number, locale: 'zh' | 'en' = 'zh'): string {
+  return locale === 'en'
+    ? `Global epoch ${globalEpoch} (+1 per public publish / unpublish / review rejection) · every +1 invalidates all sorts and viewer keys (including anonymous) at once; new works appear without waiting for TTL; the price is the cold-start wave of re-reads that follows — singleflight merges same-key concurrency only, never across keys, so this is an expected cold-start spike, not a cache fault.`
+    : `全局世代 ${globalEpoch}（每次 public 发布/下架/审核拒绝 +1）· 每次 +1 会让所有 sort、所有 viewer（含匿名）的旧键一次性作废，新作品无需等 TTL 就出现；代价是随后那一波会重查库——singleflight 只合并同一键的并发、不跨键，这是预期的冷启动尖峰，不是缓存故障。`;
 }
 
 /**
  * §SC-45 发布冷启动波的标题判据。空波**绝不说"没有惊群"**——那会把"还没发布过 public 作品、
  * 一次都没触发过采样"说成"压测过且很平稳"。非空时给峰值，让运维一眼看到"这一波真打了几次库"。
  */
-export function wavesHeadline(waves: readonly EpochWave[]): string {
+export function wavesHeadline(waves: readonly EpochWave[], locale: 'zh' | 'en' = 'zh'): string {
   if (waves.length === 0) {
-    return '这台实例还没经历过全局失效波（还没发布/下架过 public 作品）——是尚未触发采样，不是"测过没有惊群"。';
+    return locale === 'en'
+      ? 'This instance has never gone through a global invalidation wave (no public work published or unpublished yet) — sampling has never been triggered, not "tested and calm".'
+      : '这台实例还没经历过全局失效波（还没发布/下架过 public 作品）——是尚未触发采样，不是"测过没有惊群"。';
   }
   const newest = waves[0]!; // wavesReadout 保证新的在前
   const peakLoads = waves.reduce((m, w) => Math.max(m, w.loadsDelta), 0);
   const peakFlight = waves.reduce((m, w) => Math.max(m, w.peakInFlight), 0);
-  return `${waves.length} 波 · 最新世代 ${newest.epoch} · 峰值打库 ${peakLoads} 次 · 峰值在途 ${peakFlight}（瞬时采样，非锁存的精确峰值）`;
+  return locale === 'en'
+    ? `${waves.length} wave(s) · newest epoch ${newest.epoch} · peak library hits ${peakLoads} · peak in-flight ${peakFlight} (instant sampling, not a latched exact peak)`
+    : `${waves.length} 波 · 最新世代 ${newest.epoch} · 峰值打库 ${peakLoads} 次 · 峰值在途 ${peakFlight}（瞬时采样，非锁存的精确峰值）`;
 }
 
 /**
  * 单波读数行：`firstFillMs=null` 说"窗口内无人读"，**不画 0ms**（0 会谎称"失效瞬间就有人重填"，
  * 与 `hitRate(0,0)` 不说 0% 同一条纪律）；`settled=false` 如实标"仍在采样"，读数还会变。
  */
-export function waveRow(w: EpochWave): string {
+export function waveRow(w: EpochWave, locale: 'zh' | 'en' = 'zh'): string {
+  if (locale === 'en') {
+    const first = w.firstFillMs === null ? 'nobody read in the window' : `${w.firstFillMs}ms`;
+    return `epoch ${w.epoch} · library hits ${w.loadsDelta} · peak in-flight ${w.peakInFlight} · first fill ${first} · ${w.settled ? 'settled' : 'sampling'}`;
+  }
   const first = w.firstFillMs === null ? '窗口内无人读' : `${w.firstFillMs}ms`;
   return `世代 ${w.epoch} · 打库 ${w.loadsDelta} 次 · 在途峰值 ${w.peakInFlight} · 首击 ${first} · ${w.settled ? '已定格' : '采样中'}`;
 }
@@ -210,8 +249,10 @@ export function waveRow(w: EpochWave): string {
  * ③ 刻意不加跨键闸门（会引入 permit 泄漏、排队饿死、读数失真、延迟稀释即时可见）；
  * ④ 触发阈值：只有实测峰值逼近 DB 连接池，才按预案做匿名 new 写侧预热 / 满即减载。
  */
-export function waveNote(windowMs: number, capacity: number): string {
-  return `采样窗口 ${Math.round(windowMs / 1000)}s · 环形缓冲只留最近 ${capacity} 波（有界，不随发布次数涨）· 只记不拦。常态下一次全局失效 ≈ 一次冷启动，匿名键 ≤ 4 个 sort、登录键受活跃 viewer 限，打库上界是个位数；已有三道舱壁：singleflight 只按同键合并、DB 连接池、网关 SemaphoreBulkhead——没有实测尖峰证据。这里刻意不加跨键并发闸门：会引入 permit 泄漏、排队饿死、读数失真，还会把即时可见排队稀释掉；只有当实测峰值逼近 DB 连接池，才按预案做 O(1) 匿名 new 写侧预热 / 满即减载。peakInFlight 是读后瞬时采样，不是锁存精确峰值。`;
+export function waveNote(windowMs: number, capacity: number, locale: 'zh' | 'en' = 'zh'): string {
+  return locale === 'en'
+    ? `Sampling window ${Math.round(windowMs / 1000)}s · ring buffer keeps the last ${capacity} waves only (bounded, does not grow with publish count) · observe only, never block. Under normal conditions a full invalidation ≈ one cold start; anonymous keys ≤ 4 sorts, signed-in keys bounded by active viewers and maxEntries; library-hit ceiling is single digits; three bulkheads already exist — singleflight merges same-key only / DB connection pool / gateway SemaphoreBulkhead — no measured spike evidence. A cross-key concurrency gate is deliberately NOT added: it introduces permit leaks, queue starvation, readout distortion, and dilutes the immediacy of freshness; only if measured peaks approach the DB pool do we run the pre-approved plan (O(1) anonymous-new write-side warm-up / shed-when-full). peakInFlight is an instant post-read sample, not a latched exact peak.`
+    : `采样窗口 ${Math.round(windowMs / 1000)}s · 环形缓冲只留最近 ${capacity} 波（有界，不随发布次数涨）· 只记不拦。常态下一次全局失效 ≈ 一次冷启动，匿名键 ≤ 4 个 sort、登录键受活跃 viewer 与 maxEntries 限，打库上界是个位数；已有三道舱壁：singleflight 只按同键合并、DB 连接池、网关 SemaphoreBulkhead——没有实测尖峰证据。这里刻意不加跨键并发闸门：会引入 permit 泄漏、排队饿死、读数失真，还会把即时可见排队稀释掉；只有当实测峰值逼近 DB 连接池，才按预案做 O(1) 匿名 new 写侧预热 / 满即减载。peakInFlight 是读后瞬时采样，不是锁存精确峰值。`;
 }
 
 /**
@@ -220,7 +261,10 @@ export function waveNote(windowMs: number, capacity: number): string {
  * ②旧值最多 `staleMaxMs` 毫秒、超过宁可报错；③隐私/收录失效（block/发布）后旧键不可信、**绝不端**；
  * ④无旧值就报错、不画空页，且降级对读用户透明、只在这本账里可见。
  */
-export function staleNote(staleServed: number, staleMaxMs: number): string {
+export function staleNote(staleServed: number, staleMaxMs: number, locale: 'zh' | 'en' = 'zh'): string {
+  if (locale === 'en') {
+    return `Served ${staleServed} stale page(s) when library reads failed (0 only means “it has not wobbled yet” — the ${Math.round(staleMaxMs / 1000)}s ceiling is the switch, not this counter) · old values never live longer than ${Math.round(staleMaxMs / 1000)}s or we would rather error out than pass off hours-old pages as now · once a block/publish changes a key, that stale copy may hide someone newly banned or a work newly delisted — **never served** · with no old value we error, never draw an empty page; regular visitors keep seeing cards and never notice the degradation — this ledger is only visible on the operator panel.`;
+  }
   return `上游打库失败时端出旧页 ${staleServed} 次（0 只表示还没抖过，不是降级没开——上界 ${Math.round(staleMaxMs / 1000)}s 才是开关）· 旧值最多 ${Math.round(staleMaxMs / 1000)}s，超了宁可报错也不把几小时前的页冒充此刻 · block/发布让键一变，那份旧值可能含刚拉黑的人或刚下架的作品，**绝不端** · 连旧值都没有就报错、不画空页；普通访客照常看到卡片、察觉不到这次降级，这笔账只记在运维面板里。`;
 }
 
@@ -229,16 +273,22 @@ export function staleNote(staleServed: number, staleMaxMs: number): string {
  * 打库"说成"压测过且不慢"，同 `hitRate(0,0)` / 空波榜家族。`maxLoadMs` 也只在有样本时才画，
  * 0ms 是"没量到"不是"光速查询"。有样本时给最慢值与超阈值次数，让运维一眼看到有没有秒级长尾。
  */
-export function loadTimingHeadline(loadsTimed: number, maxLoadMs: number, slowLoads: number): string {
+export function loadTimingHeadline(loadsTimed: number, maxLoadMs: number, slowLoads: number, locale: 'zh' | 'en' = 'zh'): string {
   if (loadsTimed <= 0) {
-    return '还没量到一次已 settle 的发现页打库——是尚未观测，不是"没有慢查询、都很快"。';
+    return locale === 'en'
+      ? 'No settled discover-page library hit measured yet — not observed, not “no slow queries, all fast”.'
+      : '还没量到一次已 settle 的发现页打库——是尚未观测，不是"没有慢查询、都很快"。';
   }
-  return `已计时 ${loadsTimed} 次真实打库 · 最慢 ${maxLoadMs}ms · 超过慢查询阈值 ${slowLoads} 次（只记已跑完的；卡住不返回的看下方在途差）`;
+  return locale === 'en'
+    ? `${loadsTimed} library hit(s) timed · slowest ${maxLoadMs}ms · ${slowLoads} above the slow-query threshold (only completed runs; stuck ones show in the in-flight delta below)`
+    : `已计时 ${loadsTimed} 次真实打库 · 最慢 ${maxLoadMs}ms · 超过慢查询阈值 ${slowLoads} 次（只记已跑完的；卡住不返回的看下方在途差）`;
 }
 
 /** 单条耗时样本行：成败如实标、耗时与归属世代照实，不给"很快/很慢"下结论。 */
-export function loadRow(d: LoadDuration): string {
-  return `世代 ${d.epoch} · 耗时 ${d.durationMs}ms · ${d.ok ? '成功' : '失败'}`;
+export function loadRow(d: LoadDuration, locale: 'zh' | 'en' = 'zh'): string {
+  return locale === 'en'
+    ? `epoch ${d.epoch} · ${d.durationMs}ms · ${d.ok ? 'ok' : 'failed'}`
+    : `世代 ${d.epoch} · 耗时 ${d.durationMs}ms · ${d.ok ? '成功' : '失败'}`;
 }
 
 /**
@@ -250,14 +300,25 @@ export function loadRow(d: LoadDuration): string {
  * ⑤触发阈值：真有秒级长尾也不在 race 层加软超时（hung 查询堆积雪崩），而是 `BoundedCache.abandon(key)`
  * 放弃在途、或 Postgres `statement_timeout`（波及全站、高危、单独评估）；最慢远低于阈值则 deadline 是伪需求。
  */
-export function loadNote(slowLoadMs: number, capacity: number): string {
-  return `只记不拦：包在 loader 外的墙钟只计真实打库那一次（缓存命中与 singleflight 跟随者不进包装函数），超过 ${slowLoadMs}ms 只 ++slowLoads，不超时、不 abort、不改发现页行为 · **只记已跑完的加载**——上游卡住不返回（连接池排队 / 锁等待）永远到不了 finally、不进样本，所以"最慢低于阈值"**不能**证明没有连接黑洞；要看 KPI 里"真查库 loads − 已计时 loadsTimed"与"在途合并"是否长期为正 · 环形缓冲只留最近 ${capacity} 次打库的分布（有界，不随加载次数涨）· 真出现秒级长尾也不在 Promise.race 层加软超时（race 不取消底层、hung 查询会堆积占满连接池），而是给缓存加可放弃在途的 abandon(key) 或用 Postgres statement_timeout（后者波及全站、须单独评估）；最慢远低于阈值则 deadline 是伪需求，这就是先量再治。`;
+export function loadNote(slowLoadMs: number, capacity: number, locale: 'zh' | 'en' = 'zh'): string {
+  return locale === 'en'
+    ? `Observe only, never block: the wall-clock around the loader counts only real library hits (cache hits and singleflight followers never enter the wrapper); above ${slowLoadMs}ms it only ++slowLoads, no timeout, no abort, no change to the Discover page's behavior · **only settled loads are recorded** — a stuck upstream (pool queue / lock wait) never reaches finally, never enters a sample, so “slowest below threshold” does NOT prove no connection black hole; watch the KPI “real loads − timed loadsTimed” and “in-flight merges” for a persistent positive signal · the ring buffer keeps the last ${capacity} loads (bounded, does not grow) · even a genuine second-level tail would NOT justify a Promise.race soft timeout (race does not cancel the underlying query — hung queries pile up and exhaust the pool); instead give the cache an abandonable in-flight key (BoundedCache.abandon(key)) or Postgres statement_timeout (site-wide blast radius, needs its own review); if the slowest is far below the threshold, a deadline is a fake requirement — measure first, then treat.`
+    : `只记不拦：包在 loader 外的墙钟只计真实打库那一次（缓存命中与 singleflight 跟随者不进包装函数），超过 ${slowLoadMs}ms 只 ++slowLoads，不超时、不 abort、不改发现页行为 · **只记已跑完的加载**——上游卡住不返回（连接池排队 / 锁等待）永远到不了 finally、不进样本，所以"最慢低于阈值"**不能**证明没有连接黑洞；要看 KPI 里"真查库 loads − 已计时 loadsTimed"与"在途合并"是否长期为正 · 环形缓冲只留最近 ${capacity} 次打库的分布（有界，不随加载次数涨）· 真出现秒级长尾也不在 Promise.race 层加软超时（race 不取消底层、hung 查询会堆积占满连接池），而是给缓存加可放弃在途的 abandon(key) 或用 Postgres statement_timeout（后者波及全站、须单独评估）；最慢远低于阈值则 deadline 是伪需求，这就是先量再治。`;
 }
 
 /** 页脚那句"最终一致 + 只看这台"是否该出现：接了总线就一定要说，单机也要说清边界。 */
-export function footNote(busAttached: boolean, busUrlConfigured: boolean, pollMs: number): string {
+export function footNote(busAttached: boolean, busUrlConfigured: boolean, pollMs: number, locale: 'zh' | 'en' = 'zh'): string {
   // 轮询秒数从入参来、只在 scope 出现一次；早先硬编码"每 4 秒"又在末尾拼"每 N 秒"，
   // 改 POLL_MS 时 scope 会悄悄说谎、且同一句里秒数重复两次。
+  if (locale === 'en') {
+    const scope = `polling this instance every ${pollMs / 1000} s · paused in background tabs · every instance counts for itself`;
+    if (!busAttached) {
+      return busUrlConfigured
+        ? `${scope} · Redis URL is set but the bus has not attached yet (connections are asynchronous — may attach shortly) · single-instance semantics for now`
+        : `${scope} · NEXUS_REDIS_URL unset; cross-instance invalidation disabled · local block/follow invalidation still applies instantly`;
+    }
+    return `${scope} · cross-instance invalidation rides Redis pub/sub (eventually consistent; drops in a disconnected window fall back to TTL 15s and self-heal — not instant strong consistency)`;
+  }
   const scope = `每 ${pollMs / 1000} 秒问一次本实例 · 后台标签暂停 · 多实例各算各的`;
   if (!busAttached) {
     return busUrlConfigured

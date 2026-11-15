@@ -3,6 +3,24 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { csrfHeaders } from '@/lib/csrf';
+import type { Locale } from '@/lib/i18n';
+
+const COPY = {
+  zh: {
+    failedNotice: (status: number) => `没做成（HTTP ${status}）`,
+    selfBlock: '这是你自己，改不了',
+    guestBlock: '未认领，先让他注册',
+    demote: '降为普通',
+    promote: '提为审核员',
+  },
+  en: {
+    failedNotice: (status: number) => `Did not go through (HTTP ${status})`,
+    selfBlock: 'That’s you — cannot change',
+    guestBlock: 'Not claimed yet — ask them to sign up first',
+    demote: 'Demote to creator',
+    promote: 'Promote to admin',
+  },
+} as const;
 
 /**
  * §131 的提权入口。按钮直接按当前角色给一个动作（creator → 提为审核员，admin → 降为普通），
@@ -15,13 +33,16 @@ export function RoleButton({
   role,
   self,
   guest,
+  locale = 'zh',
 }: {
   userId: string;
   handle: string | null;
   role: 'creator' | 'admin';
   self: boolean;
   guest: boolean;
+  locale?: Locale;
 }) {
+  const c = COPY[locale];
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -38,7 +59,7 @@ export function RoleButton({
       });
       const body = (await res.json().catch(() => null)) as { message?: string; reason?: string } | null;
       if (!res.ok) {
-        setNotice(body?.message ?? body?.reason ?? `没做成（HTTP ${res.status}）`);
+        setNotice(body?.message ?? body?.reason ?? c.failedNotice(res.status));
         return;
       }
       router.refresh();
@@ -50,7 +71,7 @@ export function RoleButton({
   if (self) {
     return (
       <span className="adm-capNote" data-role-self>
-        这是你自己，改不了
+        {c.selfBlock}
       </span>
     );
   }
@@ -58,7 +79,7 @@ export function RoleButton({
   if (guest && next === 'admin') {
     return (
       <span className="adm-capNote" data-role-guest>
-        未认领，先让他注册
+        {c.guestBlock}
       </span>
     );
   }
@@ -71,7 +92,7 @@ export function RoleButton({
         className="am-btn"
         data-role-set={handle ?? userId}
       >
-        {role === 'admin' ? '降为普通' : '提为审核员'}
+        {role === 'admin' ? c.demote : c.promote}
       </button>
       {notice ? (
         <span className="am-triageError" data-role-notice>

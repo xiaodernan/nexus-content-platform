@@ -2,8 +2,32 @@ import { AdminNav } from '@/components/AdminNav';
 import { currentUserOrNull } from '@/server/domain/session';
 import { fetchAiCacheStats, type AiCacheReadout } from '@/server/ai/cache-stats';
 import { AiCachePanel } from './AiCachePanel';
+import { getLocale, type Locale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
+
+const COPY: Record<Locale, {
+  deniedTitle: string;
+  deniedAnonymous: string;
+  deniedNotAdmin: (name: string, role: string) => string;
+  title: string;
+  scopeNote: string;
+}> = {
+  zh: {
+    deniedTitle: '缓存读数',
+    deniedAnonymous: '需要先登录才能看。',
+    deniedNotAdmin: (name, role) => `这个页面对 ${name}（role=${role}）不开放：缓存读数只对 role=admin 可见。`,
+    title: '缓存读数 · 三层账',
+    scopeNote: '前缀复用率（我们自己的字节）· 应用缓存命中 · provider 报账覆盖 · 每 4 秒刷新 · 仅这一台进程',
+  },
+  en: {
+    deniedTitle: 'Cache stats',
+    deniedAnonymous: 'You must sign in first.',
+    deniedNotAdmin: (name, role) => `This page is not open to ${name} (role=${role}): cache stats are visible only to role=admin.`,
+    title: 'Cache stats · three ledgers',
+    scopeNote: 'prefix reuse (our own bytes) · app-cache hits · provider reporting coverage · refresh every 4 s · this process only',
+  },
+};
 
 /**
  * §CACHE-2 `/admin/ai-cache`：把「缓存命中率为什么低」这件事变成三本可以看的账。
@@ -25,21 +49,23 @@ async function initialReadout(): Promise<{ readout: AiCacheReadout | null; error
 }
 
 export default async function AdminAiCachePage() {
+  const locale = await getLocale();
+  const c = COPY[locale];
   const user = await currentUserOrNull();
   if (!user) {
     return (
       <main className="adm-denied" data-admin-denied="anonymous">
-        <h1 className="adm-deniedTitle">缓存读数</h1>
-        <p className="adm-deniedText">需要先登录才能看。</p>
+        <h1 className="adm-deniedTitle">{c.deniedTitle}</h1>
+        <p className="adm-deniedText">{c.deniedAnonymous}</p>
       </main>
     );
   }
   if (user.role !== 'admin') {
     return (
       <main className="adm-denied" data-admin-denied="not-admin">
-        <h1 className="adm-deniedTitle">缓存读数</h1>
+        <h1 className="adm-deniedTitle">{c.deniedTitle}</h1>
         <p className="adm-deniedText">
-          这个页面对 {user.displayName}（role={user.role}）不开放：缓存读数只对 role=admin 可见。
+          {c.deniedNotAdmin(user.displayName, user.role)}
         </p>
       </main>
     );
@@ -51,15 +77,15 @@ export default async function AdminAiCachePage() {
     <main className="am-shellXl" data-ai-cache-root>
       <header className="adm-headBaseline">
         <div>
-          <h1 className="am-titleLg">缓存读数 · 三层账</h1>
+          <h1 className="am-titleLg">{c.title}</h1>
           <p className="adm-capNote" data-ai-cache-scope>
-            前缀复用率（我们自己的字节）· 应用缓存命中 · provider 报账覆盖 · 每 4 秒刷新 · 仅这一台进程
+            {c.scopeNote}
           </p>
         </div>
         <AdminNav current="ai-cache" />
       </header>
 
-      <AiCachePanel initial={readout} initialError={error} />
+      <AiCachePanel initial={readout} initialError={error} locale={locale} />
     </main>
   );
 }

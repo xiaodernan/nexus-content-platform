@@ -4013,6 +4013,118 @@ WirePublisher path and the health indicator both see a real Redis — same as co
   并轨完成，本次无新增（不动陈旧 refs，删除需用户拍板）。
 - showcase 快照同步于提交后（npm run sync:showcase）。
 
+## cont. 141 (2026-11-17) - v772: /admin discover-cache 双语化——20/24 终结
+
+- discover-view.ts 双语（locale 参数，默认 zh 保旧断言）：dashOr/hitRate/busErrorsNote/busTag（三档）/
+  generationNote/epochNote/wavesHeadline/waveRow/waveNote/staleNote/loadTimingHeadline/loadRow/loadNote/footNote；
+  isKnownReadout/pollAllowed/keepPreviousOnError 不动语义。
+- DiscoverPanel.tsx（client）双语（locale prop 默认 zh）：五格 KPI/busCard 三态/caption/pre-footer/refreshError
+  全部接 c.*；d-ledger aria/labels/wave labels/samples/updated+measuredAt footer 全部双语。
+- discover-cache/page.tsx 双语（RSC getLocale）：denied×2/title/scopeNote；locale 透传 DiscoverPanel。
+- Gates：§FE-DC 双文件 SHA 重钉（page=f302e9b9… panel=dc3fe4b3…，门内 redact 复算）；
+  discover-view 42/42；fe-gates 116/116 · 1148/1148；tsc web 0；eslint 净。
+- **/admin 20/24 全部双语**；剩余 4 格为留档位（无其他文件级前端中文面）。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 142 (2026-11-17) - v773: 低语诸王大典·第一章「潮汐教团的余烬」——正典落库
+
+- 新建 docs/world-bible/ 目录 + 001-潮汐教团的余烬.md：
+  七日蚀→潮汐教团七席→第七口井→镜鳗→七条汐台规矩→铁月纪遗信，全篇中英对照；
+  九处锚句唯一（导航/检索/评测锚/读者定位都靠它）；触及世界模型九类条目全部覆盖
+  （lore/history/geography/factions/characters/creatures/items/quests/story + memory 回声一则），
+  章末附 "这一章在模型里的影子" 映射表，可直接灌进 `低语诸王` 世界文档照相落地。
+- 写入纪律（写死在正文里）：本章是正典，不可经任何机器翻译改写；锚句中英字字对齐。
+  与 eval-baseline.mts 的现有锚句（第七次日蚀/雾港灯人/守夜人/打翻的镜子）互不冲突。
+- ROADMAP §44/M3 一行登记：bible 作为 §44 正典内容通道存在，**不伪造 "AI 已经生成世界" 之外的东西**——
+  这就是"低语诸王"的第一本世界观正典，而不是 §159 意义上的假生成。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 140 (2026-11-17) - v770/v771: /admin gateway 集群 + ai-cache 集群双语化
+
+- gateway-view.ts 双语（locale 参数，默认 zh 保旧断言）：sharedHealthView 三态/numberOrDash/healthView（five态）+
+  CLASS_LABEL_EN/STATE_LABEL_EN + classLabel/stateLabel 三件套；en 质量优先不与 zh 漂移。
+- GatewayPanel.tsx（client）双语：Kpi 五格（路由/服务/实例/中断/没答上）/ColumnState 状态 chip/
+  逐服务表头/空态诚实说明/refreshError/骨架 aria/footer（每 4 秒·后台暂停·原子性披露）全部接 locale prop。
+- gateway/page.tsx 双语（RSC getLocale）：denied×2/title/scopeNote（地址、4s 刷新）；locale 透传 GatewayPanel。
+- stats-readout/gateway-view 单测 zh 默认保持绿；gateway-view.test 一处 `.map(healthView)` 改箭头修签名。
+- ai-cache cluster：cache-view.ts 双语（locale 参数，默认 zh）：pct/prefix/capacity/appCache/provider/verdict/nonStreamCaveat/footNote 全部覆盖；
+  AiCachePanel.tsx（client）双语：Kpi 五格/判定卡/前缀-应用-provider 三账全部行/图/legend/aria/footNote 接 locale prop。
+- ai-cache/page.tsx 双语（RSC getLocale）：denied×2/title/scopeNote；locale 透传 AiCachePanel。
+- Gates：§FE-GW 重钉（page=c5df2ff9… panel=aee35aeb…）；无 SHA 门外的钩子被动过；
+  fe-gates 116/116 · 1148/1148；tsc web 0；eslint 净；gateway-view 17/17；ai-cache-view 20/20；realtime-stats-readout 30/30。
+- /admin 已完成 17/24（home/AdminNav/dead-letters/audit/health/users/moderation/marketplace/realtime/access/observability/savings/pricing/rate-limit/gateway/ai-cache）。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 137 (2026-11-17) - v767: /admin realtime 集群双语化
+
+- stats-readout.ts 增 locale 参数（默认 zh）：LIVE_LABEL_EN/BOOT_LABEL_EN（zh 表原样保留，单测钉住）、
+  errorCountText/errorReasonList/breakerStateText（"本次部署 break 关"等）/javaActuatorPanelRows（名称/组件标签）/
+  javaActuatorNote/aiCapabilityNote/javaWirePanelRows（线路/帧上限/已发/超限丢/线路异常）/javaWireNote/liveLabel/bootLabel 三件套。
+- StatsPanel.tsx（client）双语（locale prop 默认 zh）：dt 六项/驱动/Redis 扇出/loading/错误三态/更新于系时间/
+  这只回答这台实例（每 4 秒）/actuator·capability 各段标题；CharacterChat 式 locale prop 模式一致。
+- realtime/page.tsx 双语（RSC getLocale()）：denied×2/title/summary/scope 三句限度整段双语；locale 透传 StatsPanel。
+- Gates：§FE-RT 双文件 SHA 重钉（page=554f6f67… panel=0c9f2ec1…，门内 redact 复算）；
+  realtime-stats-readout 30/30（zh 默认保持绿）；fe-gates 116/116 · 1148/1148；tsc web 0；eslint 净。
+- /admin 已完成 9/24。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 136 (2026-11-17) - v766: /admin marketplace 集群双语化
+
+- TriageButtons.tsx（client）双语（locale prop 默认 zh）：note aria/placeholder/受理/结案/驳回/failedNotice(HTTP 状态码）/doneNotice。
+- marketplace/page.tsx 双语（RSC getLocale()）：denied×2（含 devenir 指引段双语化）、
+  STATUS_LABELS 按 locale 双语（pending/reviewing/resolved/dismissed）、summary、
+  scopeNoteStrong/Weak（结案=工单结论、不下架——"不会"排版只一处 <strong>）、
+  terminalNote、filterAll（全部 → All）、empty、auditTitle/Note/Empty、itemLabel/reporterLabel、
+  noDescription、closedTime/Missing、dispositionNote/noDispositionNote、moderationLink/moderationReject、
+  五列表头（colTime/Action/Item/Actor/Detail）、locale 透传给 TriageButtons、toLocaleString(locale)。
+- 事故自查：编辑中一度用 PowerShell `Set-Content` 改 tracked 文件——重写后 CRLF 混入且多处 CJK 字节
+  被吞（`者` → 数个 ?），即刻 `git checkout HEAD` 还原并**用 write 工具整文件重写**（不再走组合拳）；
+  LF 校验 = 0 CRLF；门重钉 5db65907…。再次确认：tracked 文件一律不走 PS 直写。
+- Gates：§FE-28 双文件 SHA 重钉（page=5db65907… triage=2529f5d2…）；
+  fe-gates 116/116 · 1148/1148；tsc web 0；eslint 净。
+- /admin 已完成 8/24。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 135 (2026-11-17) - v765: /admin moderation 集群双语化
+
+- moderation.ts 增 MODERATION_LIMITS_EN（同序同款；机检 5 条未覆盖项 → 英文版）；page 按 locale 取。
+- ResolveButtons.tsx（client）双语（locale prop 默认 zh）：note aria/placeholder/approve/reject/failedNotice(HTTP 状态码）/doneNotice。
+- moderation/page.tsx 双语（RSC getLocale()）：denied×2（含"先看账号与角色"指引段双语化）、
+  summary（待看 N 案 · 规则版本 · 裁决后离队）、limitsLede+limits（MODERATION_LIMITS/EN）、empty、
+  decisionBlocked/decisionPending、otherReports(n)、publishedVersion、locationQuote、nothingPublished/openLink、
+  toLocaleString(locale)；locale 透传给 ResolveButtons。
+- finding.why（REDLINES 机检原因，服务端 zh）原文透传（§46）；findings 原文不翻（字节级机检判据）。
+- Gates：§FE-29 双文件 SHA 重钉（page=0c96de94… resolve=8c5be023…，门内 redact 复算）；
+  fe-gates 116/116 · 1148/1148；tsc web 0；eslint 净。
+- /admin 已完成 7/24（home/AdminNav/dead-letters/audit/health/users/moderation）。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 134 (2026-11-17) - v764: /admin users 集群双语化（含 GuestReclaimPanel）
+
+- app/admin/users/page.tsx 双语（server RSC，getLocale()）：denied×2、summary（已认领/guest/审核员）、
+  三条硬规则整段（rules）、改档位整段（planRules）、guestTag、roleLine（toLocaleDateString(locale)）；
+  透传 locale 给 GuestReclaimPanel / PlanSelect / RoleButton。
+- PlanSelect.tsx（client）双语（locale prop，默认 zh）：aria/noChangeNotice/failedNotice（HTTP 状态）/改档位/（你自己）。
+- RoleButton.tsx（client）双语（locale prop）：selfBlock/guestBlock/demote/promote/failedNotice。
+- GuestReclaimPanel.tsx（client）双语（locale prop）：
+  rule（graceDays 天已插值，去掉 <strong> 直接平铺——内容等价）、counts+scanCaveats 双语（state 判据函数同步接受 locale，
+  默认 zh 保持旧调用与 guest-reclaim-panel.test.ts 现有断言全绿）、pickAll/pageInfo/paging、
+  reasonOrphan/reasonExpired/注册于/草稿、moreThanBatchNote、empty、recount/apply 两态、
+  failedNotice（HTTP 状态）、noReceipt/requestFailed；shadowed map var 改名 cand 避免与 COPY 的 c 撞名。
+- Gates：§FE-30 四文件 SHA 重钉（page=265efe79… plan=1e61d109… role=19e86998… reclaim=6abcc9ad…，门内 redact 复算）；
+  fe-gates 116/116 · 1148/1148；tsc web 0；eslint 净；guest-reclaim-panel 17/17。
+- /admin 已完成 6/24（home/AdminNav/dead-letters/audit/health/users）。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 133 (2026-11-17) - v763: /admin health 双语化
+
+- app/admin/health/page.tsx 双语（server RSC，getLocale()）：denied×2、overallAria（role=status）、
+  overall 两态文案、greenCount、listAria（五层健康清单）、verdictOk/Bad、measuredSuffix、toLocaleTimeString(locale)。
+  tier.detail（服务端裁定 zh）原文透传（§46），TIER_LABEL 产品名保持原样。
+- §FE-40 无 SHA 门（12 门全 hook 守恒），本次零门钉改动即绿；fe-gates 116/116 · 1148/1148；tsc 0；eslint 净。
+- /admin 已完成 5/24（home/AdminNav/dead-letters/audit/health）。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
 ## cont. 132 (2026-11-17) - v762: /admin dead-letters + audit 双语化
 
 - app/admin/dead-letters/page.tsx 双语（server RSC，getLocale()）：
@@ -4030,6 +4142,10 @@ WirePublisher path and the health indicator both see a real Redis — same as co
 - /admin 已完成：总入口、AdminNav、dead-letters、audit（4/24 页）。剩余 20 页见 v763+ 专项。
 - showcase 快照同步于提交后（npm run sync:showcase）。
 
+
+## ═══ 2026-11-15 第三次并轨：本线的 cont. 120（本文上一段）之后，接上另一线 cont. 138 起的 v763…v778 账本（两条线各自编号，并置保存；续写统一台账从合并提交起）───
+
+D
 
 ## cont. 120 (2026-11-15) - 第二次并轨 + 证据门禁全清 + main-line 首次全绿
 
@@ -4059,4 +4175,111 @@ WirePublisher path and the health indicator both see a real Redis — same as co
   在 receipt 写出（64/64 arms matched）之前不声称 earned。
 
 - 第一次世界子页面的四个页面（/guide、/discover、/about-nexus、首页）全部补过 EN 版目检核（playwright EN 环境截图已核对）。
+
+─── 另一线 v763..v778 账本（cont. 138 起） ───
+## cont. 138 (2026-11-17) - v768: /admin access + observability + savings + pricing 双语化
+
+- access/page.tsx 双语（RSC getLocale）：denied×2、summary（天数/调用/凭据/主人）、windowAria、凭据榜/端点榜两表
+  表头、空态、scope 口径句——§FE-34 重钉（91a21128…）。
+- observability/page.tsx 双语（RSC getLocale）：denied×2、rawText（Prometheus 文本）、uptimeNote（进程 pid）、
+  aiReadiness 整段口径（DEMO 说明一字保留）、进程内计数器两表 + LedgerTable 三段（审计/任务/凭据）、
+  ledgerTitle 跨实例、aria-label={c.processTableAria}、LedgerTable emptyLabel 入参。§FE-35 重钉（0050f0fc…）。
+- savings/page.tsx 双语（RSC getLocale）：AI 节省总账——denied×2、BrandTitle、unavailable/empty 诚实两态、
+  四格统计、projects+users 两表、turnsPair、footNote 口径一字保留（不伪造美元、不混应用级缓存）。§FE-SAVINGS 重钉（b488cde4…）。
+- pricing/page.tsx 双语（RSC getLocale）：AI 成本——denied×2、三格、unknownBold/Rest
+  （"没配价目表"不说成"免费"）——basis 拆/model 拆两表、whyNotPrices 保留"账本盖什么章显示什么章"。§FE-PR 重钉（11c465d9…）。
+- 事故自查：中间编辑中再度被 GBK 代码页吞 CJK——admin-observability-visual-style.test.ts 某次 PS `Set-Content`
+  把整个注释区重写成乱码，当场 `git checkout HEAD` 恢复 + 2 处 edit 重钉，字节级确认干净；
+  savings/page.tsx 首版被 PS 转成 CRLF，node 转 LF 校正。教训再次坐实：**tracked 文件永不经 PS 直写**。
+- Gates：四门 SHA 重钉；fe-gates 116/116 · 1148/1148；web tsc 0；eslint 净。
+- /admin 已完成 13/24（home/AdminNav/dead-letters/audit/health/users/moderation/marketplace/realtime/access/observability/savings/pricing）。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 139 (2026-11-17) - v769: /admin rate-limit 集群双语化
+
+- rate-limit/page.tsx 双语（RSC getLocale）：denied×2、title/summary/scope 第三句限度整段双语；locale 透传 StatsPanel。
+- StatsPanel.tsx（client）双语（locale prop 默认 zh）：WIRE_LABEL + REASON_LABEL 按 locale 取、
+  windowText（分钟单元）/dt 六项/shared vs own 窗口/桶上界/tracked 条数/键前缀/
+  fallback 退回计数 + 原因清单（排序保持）/桶被回收/部署 envVar 与 pid 句/rules 静态装法表/每 4 秒口径句。
+- Gates：§FE-RL 双文件 SHA 重钉（page=68fd8650… panel=a294e80a…）；fe-gates 116/116 · 1148/1148；tsc web 0；eslint 净。
+- /admin 已完成 14/24。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 143 (2026-11-17) - v774: 世界大典第二章「潮汐教团的第四十一次会议」+ 锚句校验本地入口
+
+- 新建 docs/world-bible/002-潮汐教团的第四十一次会议.md：接续第一章"缺那一页"的谜题——第四十一页只存在于潮汐室的地砖下；
+  六节（名单上的空格／第四十一页／镜碎了／守夜人的回信／会册的背面／铁月纪的第一个冬天卷三引线），
+  全篇中英对照；6 处锚句中英字字对齐（第四十一次会议是海开的／海说不再记这本账／第七条灯芯没熄／月亮桥等守夜人／会册是海的账本／每一种海风都有缺口→潮沙盘）。
+  章末 world-node 映射表（lore/geography/factions/characters/items/story/quests），并在"本章与第一章"段写明大典的两扇门结构。
+- 新建 scripts/verify-world-bible-anchors.mts（纯检查、零依赖、零 provider）：逐文件验锚句恰好一次出现、中英锚句数量一致、
+  单章 ≥4、zh/en 计数相等、目录非空即红；注册 npm script `verify:world-bible`（package.json）。
+  现状验证：2 个章文件、zh 锚句 12、en 锚句 12，✓ 全部通过。
+- ROADMAP M3 登记世界大典两章目录 + 校验入口。
+- Gates：fe-gates 116/116 · 1148/1148；web tsc 0；`verify:world-bible` 2 文件 / 12 锚句对；eslint 净。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 144 (2026-11-17) - v775: 世界大典第三章「潮汐教团的潮沙盘」——收尾完成，第八盏灯留下引线
+
+- 新建 docs/world-bible/003-潮沙盘.md：兑现第二章结尾的"一扇门"——潮沙盘（第七次日蚀掉下的惊雷把荒原尘沙熔成的黑金色玻璃原野，
+  几十年尘土都在上面一粒没踏过）；送信人（孩子长大了）带遗信前往，门框里的灰色海、出价（留下或带回）、桥上无名的人；
+  盐封里的纸原本没有字——那句话从来没有写下来过；他借喉咙说出"我们还欠着你"。潮沙盘随之彻底暗掉。
+- 铁月纪的余波：幸存者在原地发现一块半人高无字的石，石上"嵌"着一根没点的灯芯（第八盏灯）；教团留下的账从此不再有人签名，只要人记得。
+- 7 处锚句中英字字对齐（没有路只问句／门问两难／我欠你一句／门关上之前看见桥上人／纸没有字／海借喉咙／第八盏灯没人点），
+  章末 world-node 映射表（lore/geography/factions/characters/items/story/quests/history）。
+- 大典至此成三章闭环：第一扇门问海叫什么 → 第二扇门问谁在还 → 第三扇门问还完之后怎么办；
+  潮沙盘的卷四引线是"第八盏灯"。
+- ROADMAP M3 目录更新；CURRENT-STATE 登记。
+- Gates：`verify:world-bible` 3 文件 / 19 锚句对；fe-gates 116/116 · 1148/1148；web tsc 0；eslint 净。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 145 (2026-11-17) - v776: 《低语诸王》典籍室 `/bible` 落产品面（中英双语、正典阅读器）
+
+- 背景：大典三章长在 docs/ 里没人能直达；用户要"庞大世界"在产品里可见、且全站中英双语。v776 把正典抬进平台本身。
+- EN 译本补齐：`docs/world-bible/{001,002,003}-*.en.md` 逐章 1:1 翻译（每章锚句中英字字对齐；纪律不变，
+  zh 仍是唯一真值、en 不得另立）；`verify:world-bible` 扩为第二版：逐章核对译本存在 + 中英锚句数量一致 + 各自不重复 + ≥4/章。
+  现状：3 章 zh + 3 章 en，19/19 对，✓。
+- 快照生成：`scripts/gen-bible-snapshot.mts`（读 docs/world-bible/ 产出 `apps/web/src/world-bible/generated.ts`），
+  `verify-bible-snapshot.mts` 字节校验两边一致；`gen:bible-snapshot` / `verify:bible-snapshot` 已注册。
+- `/bible`（目录）+ `/bible/[slug]`（阅读页）双语（getLocale）：章卡（壹/贰/叁 · 中英标题 · 纪元 · 锚句数）、
+  阅读页（breadcrumb/**正文逐语言**渲染 + 章末"锚句速览 · 中英并排"逐对列表）、上页/下页、回目录；
+  网页 slug 全 ASCII（`001-last-ember-…` 等，由 `WEB_SLUGS` 显式登记；新章漏登记直接红）。
+- 渲染器 `components/BibleMarkdown.tsx`：只认这一小撮正典语法（`##`/`###`/`>`/ol/ul/表格/hr/段落/`**bold**`/`` `code` ``），
+  非通用 markdown 解析器；表格区 `role="region"`+`tabIndex`+双语 aria-label 入参。全站首个"正典正文 + 锚句对译"视图。
+- 门面 `.bb-*`（globals.css §BIBLE-1，≈50 类，零 hex、全 var tokens、forced-colors 收口）；目录页不含正文，正典句只活在快照里。
+- /guide ⑧双语各加一行典籍室入口；§FE-Guide SHA 重钉（c5eb2069→f4f88ed2；页面钩子未动）。
+- Gates：新门 `test/bible-visual-style.test.ts`（9 条，含 3 文件 SHA 钉死 + 双语钩子守恒 + 零 hex + tokens 全声明 + bb 类全定义）；
+  fe-gates **117/117 · 1157/1157**；census OK（2199 类全有引用方）；verify:bible-snapshot ✓；verify:world-bible ✓；tsc web 0；eslint 净。
+- 本地 SSR 实测（next dev :3401，已关）：/bible 200（24 KB），三章阅读页 200（71–82 KB），/bible/不存在 404；
+  EN cookie（NEXUS_LOCALE=en）渲染英文正文 + 锚句中英对照（en 中 潮汐/雾港 等正典字样只出现在锚句行），ZH 默认中文正文。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 146 (2026-11-17) - v777: 世界大典第四章「第八盏灯」——正典完结，四扇门齐闭
+
+- 新建 docs/world-bible/004-第八盏灯.md：卷四终章——书手被那枚三手易主、四账转手的商人印章找上；
+  九天荒原之路、潮沙盘的坡面（草书石纹里是熔掉的玻璃印记——回应了卷一"日蚀是教团自己制造"的谜）、
+  一盏不灭的没点灯芯、母语是海的沉默。他点燃灯芯的那一刻——雾港三百盏旧灯同时复燃一次又暗掉、
+  潮汐室"不替海说话"被允许改写为一行"收到。"、巡逻路最后一页记下"它见过灯的"。
+- 6 处锚句中英字字对齐（它见过灯点起来的时候吗／灯不是用来照的／海没有催海只是等／
+  七盏旧灯从沙里站起来／最后一页只有两个字收到／之后的铁月纪没有了债只剩下灯），
+  章末 world-node 映射表；大典至此四章闭环：四扇门逐扇关上。
+- 英译本 004-第八盏灯.en.md 逐章 1:1；gen-bible-snapshot WEB_SLUGS 登记 `004-the-eighth-lamp`
+  （四章、ASCII slug、缺登记直接红）；/bible 目录页四章齐现（壹贰叁肆 / I-IV）；
+  reader/metadata 全部适配四章（en title/卷号）。
+- ROADMAP M3 大典目录更新；CURRENT-STATE 登记。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 147 (2026-11-17) - v778: 游戏 3D 鼠标视角引擎方向修正
+
+- 用户长期反馈：game 3D 视角"拖拽向上视角反而下沉、下滑才抬高——搞反了，很难受"。
+- 根因：`GameCanvas3D.tsx` 的轨道相机仰角 pitch ∈ [0.18, 1.35]（高度角，相机绕场中心转），
+  拖鼠标时写成 `pitch += dy×0.005`——向上拖 clientY 变小、dy 为负 → 仰角**减小**、相机**下沉**、
+  朝地平线平看（= 用户看到的"往下看"），向下拖则相机**升高**朝俯视（= 用户看到的"往上看"）。
+- 修法：pitch 改用 `pitch -= dy×0.005`，与 /world 行走视角（WorldWalk，拖拽向上 = 抬头）及
+  `/guide` ⑧ 文档（"向上拖 = 往上看"）同一惯例：向上拖 = 仰角升高（相机上抬），向下拖 = 仰角降低（相机下落）。
+  WorldWalk 本身映射正确（three.js YXZ 下 pitch 正 = 抬头，实测 node 验证），游戏 3D 这一台与它对齐。
+- §FE-95 门重钉（e9876d4c… → 0fcaad47…，门内 redact 复算）；行为修正仅一行（注释 3 行）。
+- Gates：fe-gates 117/117 · 1157/1157；census 2199 OK；tsc web 0；eslint 干净。
+- 注：GUI 手感必须在真机里确认；本片只修符号/方向，不改灵敏度（0.005/rad、夹上下限 0.18–1.35 均保留）。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
 

@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
  * 六列/两列敏感榜（tokenName…hint、owner、calls、endpoints、projects、lastSeen）+ 导出 CSV（kind=tokens|endpoints）。
  * 本片只换皮；listApiAccessGlobal、白名单窗口、榜单截断规则——一字不动。
  *
- * **剥 className 后全文 SHA256 守恒（EOL 无关）**：`761cfec7…` 恒等于改前（git HEAD）。
+ * **剥 className 后全文 SHA256 守恒（EOL 无关）**：`91a21128…`（v768 i18n 重钉）。
  * redact 三步序与钉死常量一致。
  *
  * 判据不变式（10 门）：
@@ -145,9 +145,9 @@ describe('§FE-34 /admin/access 访问账（全局）', () => {
     expect(globals).toContain('.am-windowNavPush {');
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：761cfec7c1a199e48d993d6f1e599da976401779511c70b1035201d1cf0524d6）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：91a21128bb3c2408ef18e993e1caee3e95ab66f03d6d5663769387be8217282e）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '761cfec7c1a199e48d993d6f1e599da976401779511c70b1035201d1cf0524d6',
+      '91a21128bb3c2408ef18e993e1caee3e95ab66f03d6d5663769387be8217282e',
     );
   });
 });

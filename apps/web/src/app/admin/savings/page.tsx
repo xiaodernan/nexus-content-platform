@@ -1,17 +1,110 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 import type { ReactElement } from 'react';
 import { currentUserOrNull } from '@/server/domain/session';
 import { AdminNav } from '@/components/AdminNav';
 import { BrandTitle } from '@/components/BrandTitle';
 import { readTopSavingsProjects, readTopSavingsUsers, type SavingsAdminRow, type SavingsAdminUserRow } from '@/server/domain/llm-savings-admin';
 import { formatRate, formatTokensCompact, hitRate, weightedHitRate } from '@/lib/llmSavingsAdmin';
+import { getLocale, type Locale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
+
+const COPY: Record<Locale, {
+  deniedAnonymous: string;
+  deniedNotAdmin: (name: string, role: string) => string;
+  title: string;
+  scopeNote: string;
+  unavailable: string;
+  empty: string;
+  summaryTitle: string;
+  statProjects: string;
+  statRealTurns: string;
+  statCached: string;
+  statWeightedRate: string;
+  tableHeading: string;
+  tableAria: string;
+  colProject: string;
+  colOwner: string;
+  colTurns: string;
+  turnsPair: (turns: number, realTurns: number) => string;
+  colTokensIn: string;
+  colCached: string;
+  colHitRate: string;
+  barAria: (rate: string) => string;
+  footNote: string;
+  byUserTitle: string;
+  byUserUnavailable: string;
+  byUserEmpty: string;
+  userTableAria: string;
+  colUser: string;
+  userBarAria: (rate: string) => string;
+}> = {
+  zh: {
+    deniedAnonymous: '需要先登录才能看。',
+    deniedNotAdmin: (name, role) => `这个页面对 ${name}（role=${role}）不开放：节省总账只对 role=admin 可见。`,
+    title: 'AI 节省总账',
+    scopeNote: '按项目聚合 provider 前缀缓存复用的 prompt token｜只计 v692 后写入的行（更早行按 0 计）· 应用级 Redis 完成缓存不计入此数 · 只读，不消费 provider',
+    unavailable: '读不到账本（聚合失败）。这台实例可能刚重启或库正在抖——数字不瞎，刷新再看。',
+    empty: '这个库里还没有任何带 usage 的任务行——跑一次真模型请求之后，这张表会自己长出内容。',
+    summaryTitle: '这个窗口里，缓存替你省了什么',
+    statProjects: '项目数（有用量）',
+    statRealTurns: '真模型轮次合计',
+    statCached: '缓存复用合计',
+    statWeightedRate: '加权命中率',
+    tableHeading: '按缓存复用排序（前 50 个项目）',
+    tableAria: 'AI 节省总账表（可横向滚动）',
+    colProject: '项目',
+    colOwner: '所有者',
+    colTurns: '轮次（真）',
+    turnsPair: (turns, realTurns) => `${turns}（${realTurns}）`,
+    colTokensIn: 'tokensIn 合计',
+    colCached: '缓存复用',
+    colHitRate: '命中率',
+    barAria: (rate) => `缓存复用占输入 token 的 ${rate}`,
+    footNote: '口径：provider prompt_tokens_details.cached_tokens（usage jsonb）；tokensIn ≈ prompt_tokens（含缓存部分）；命中率 = cached ÷ tokensIn，封顶 1。只对 role=admin 可见；任何一行读不出来就是该行按 0 计，不让整表垮。',
+    byUserTitle: '按用户（按缓存复用排序，前 25 位）',
+    byUserUnavailable: '读不到用户维度的账（聚合失败）。项目维度不受影响，刷新再看。',
+    byUserEmpty: '还没有哪一位用户的任务行带 usage——跑一次真模型请求之后这张表会自己长出来。',
+    userTableAria: '按用户聚合的 AI 节省表（可横向滚动）',
+    colUser: '用户',
+    userBarAria: (rate) => `该用户缓存复用占输入 token 的 ${rate}`,
+  },
+  en: {
+    deniedAnonymous: 'You must sign in first.',
+    deniedNotAdmin: (name, role) => `This page is not open to ${name} (role=${role}): the savings ledger is visible only to role=admin.`,
+    title: 'AI Savings Ledger',
+    scopeNote: 'Project-aggregated prompt-token reuse from provider prefix caching | only counts rows written after v692 (older rows count as 0) · the app-level Redis completion cache is not included · read-only, no provider consumption',
+    unavailable: 'The ledger cannot be read (aggregation failed). This instance may have just restarted or the library is wobbling — the numbers do not lie, refresh and retry.',
+    empty: 'No task row with usage exists in this library yet — run one real model request and this table will grow content by itself.',
+    summaryTitle: 'What caching saved you in this window',
+    statProjects: 'Projects (with usage)',
+    statRealTurns: 'Real model turns, total',
+    statCached: 'Cached reuse, total',
+    statWeightedRate: 'Weighted hit rate',
+    tableHeading: 'Sorted by cached reuse (top 50 projects)',
+    tableAria: 'AI savings ledger table (horizontally scrollable)',
+    colProject: 'Project',
+    colOwner: 'Owner',
+    colTurns: 'Turns (real)',
+    turnsPair: (turns, realTurns) => `${turns} (${realTurns})`,
+    colTokensIn: 'tokensIn total',
+    colCached: 'Cached reuse',
+    colHitRate: 'Hit rate',
+    barAria: (rate) => `Cache reuse as share of input tokens: ${rate}`,
+    footNote: 'Definition: provider prompt_tokens_details.cached_tokens (usage jsonb); tokensIn ≈ prompt_tokens (including the cached part); hit rate = cached ÷ tokensIn, capped at 1. Visible to role=admin only; any unreadable row counts as 0 for that row — the whole table never collapses.',
+    byUserTitle: 'By user (sorted by cached reuse, top 25)',
+    byUserUnavailable: 'The per-user ledger cannot be read (aggregation failed). The per-project table is unaffected — refresh and retry.',
+    byUserEmpty: 'No user’s task rows carry usage yet — run one real model request and this table will grow by itself.',
+    userTableAria: 'Per-user AI savings table (horizontally scrollable)',
+    colUser: 'User',
+    userBarAria: (rate) => `This user’s cache reuse as share of input tokens: ${rate}`,
+  },
+};
 
 /**
  * §FE-AS `AI 节省总账`（全行 projects 聚合：运营视角）—— admin 只读。
  *
- * 绾玉槴（§3/§159，与 /credits + /tasks 同一口径）：
+ * 口径（§3/§159，与 /credits + /tasks 同一口径）：
  * - 数字全部来自 `agent_tasks.usage.cachedTokens` 的 SQL 聚合（v692 后写入的行带该字段；
  *   更早的行 cachedTokens 缺 0——按 0 计，不伪造命中）；
  * - "缓存复用" ≠ "省钱"：本仓没有价格表，不给美元金额；
@@ -19,23 +112,27 @@ export const dynamic = 'force-dynamic';
  * - 读侧失败页面照实说 "读不到"，绝不画假表。
  *
  * 只对 role=admin 可见（页面自己判一道，AdminNav 只是导航）。
+ *
+ * v768：双语（getLocale）。
  */
 export default async function AdminSavingsPage(): Promise<ReactElement> {
+  const locale = await getLocale();
+  const c = COPY[locale];
   const user = await currentUserOrNull();
   if (!user) {
     return (
       <main className="adm-denied" data-admin-denied="anonymous">
-        <h1 className="adm-deniedTitle">AI 节省总账</h1>
-        <p className="adm-deniedText">需要先登录才能看。</p>
+        <h1 className="adm-deniedTitle">{c.title}</h1>
+        <p className="adm-deniedText">{c.deniedAnonymous}</p>
       </main>
     );
   }
   if (user.role !== 'admin') {
     return (
       <main className="adm-denied" data-admin-denied="not-admin">
-        <h1 className="adm-deniedTitle">AI 节省总账</h1>
+        <h1 className="adm-deniedTitle">{c.title}</h1>
         <p className="adm-deniedText">
-          这个页面对 {user.displayName}（role={user.role}）不开放：节省总账只对 role=admin 可见。
+          {c.deniedNotAdmin(user.displayName, user.role)}
         </p>
       </main>
     );
@@ -69,9 +166,9 @@ export default async function AdminSavingsPage(): Promise<ReactElement> {
     <main className="am-shellGapXl" data-savings-root>
       <header className="adm-headBaseline">
         <div>
-          <BrandTitle>AI 节省总账</BrandTitle>
+          <BrandTitle>{c.title}</BrandTitle>
           <p className="adm-capNote" data-savings-scope>
-            按项目聚合 provider 前缀缓存复用的 prompt token｜只计 v692 后写入的行（更早行按 0 计）· 应用级 Redis 完成缓存不计入此数 · 只读，不消费 provider
+            {c.scopeNote}
           </p>
         </div>
         <AdminNav current="savings" />
@@ -79,48 +176,48 @@ export default async function AdminSavingsPage(): Promise<ReactElement> {
 
       {rows === null ? (
         <p className="adm-capNote" data-savings-unavailable>
-          读不到账本（聚合失败）。这台实例可能刚重启或库正在抖——数字不瞎，刷新再看。
+          {c.unavailable}
         </p>
       ) : aggregate === null ? null : aggregate.projects === 0 ? (
         <p className="adm-capNote" data-savings-empty>
-          这个库里还没有任何带 usage 的任务行——跑一次真模型请求之后，这张表会自己长出内容。
+          {c.empty}
         </p>
       ) : (
         <>
           <section className="am-audit" data-savings-summary>
-            <h2 className="am-sectionHeadSm">这个窗口里，缓存替你省了什么</h2>
+            <h2 className="am-sectionHeadSm">{c.summaryTitle}</h2>
             <div className="am-statGrid">
               <div className="am-statCell">
                 <p className="am-statValue" data-savings-total-projects>{aggregate.projects}</p>
-                <p className="am-statLabel">项目数（有用量）</p>
+                <p className="am-statLabel">{c.statProjects}</p>
               </div>
               <div className="am-statCell">
                 <p className="am-statValue" data-savings-total-real>{rows.reduce((a, r) => a + r.realTurns, 0)}</p>
-                <p className="am-statLabel">真模型轮次合计</p>
+                <p className="am-statLabel">{c.statRealTurns}</p>
               </div>
               <div className="am-statCell">
                 <p className="am-statValue" data-savings-total-cached>{formatTokensCompact(aggregate.cachedTokens)}</p>
-                <p className="am-statLabel">缓存复用合计</p>
+                <p className="am-statLabel">{c.statCached}</p>
               </div>
               <div className="am-statCell">
                 <p className="am-statValue" data-savings-total-weighted>{formatRate(aggregate.weighted)}</p>
-                <p className="am-statLabel">加权命中率</p>
+                <p className="am-statLabel">{c.statWeightedRate}</p>
               </div>
             </div>
           </section>
 
           <section className="am-audit">
-            <h2 className="am-sectionHeadSm" data-savings-table-heading>按缓存复用排序（前 50 个项目）</h2>
-            <div className="tl-tableScroll" tabIndex={0} role="region" aria-label="AI 节省总账表（可横向滚动）">
+            <h2 className="am-sectionHeadSm" data-savings-table-heading>{c.tableHeading}</h2>
+            <div className="tl-tableScroll" tabIndex={0} role="region" aria-label={c.tableAria}>
               <table className="am-tableNarrow">
                 <thead className="tl-thRow">
                   <tr>
-                    <th>项目</th>
-                    <th>所有者</th>
-                    <th>轮次（真）</th>
-                    <th>tokensIn 合计</th>
-                    <th>缓存复用</th>
-                    <th>命中率</th>
+                    <th>{c.colProject}</th>
+                    <th>{c.colOwner}</th>
+                    <th>{c.colTurns}</th>
+                    <th>{c.colTokensIn}</th>
+                    <th>{c.colCached}</th>
+                    <th>{c.colHitRate}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -135,7 +232,7 @@ export default async function AdminSavingsPage(): Promise<ReactElement> {
                           </Link>
                         </td>
                         <td className="am-monoCell">{row.ownerEmail ?? '—'}</td>
-                        <td>{row.turns}（{row.realTurns}）</td>
+                        <td>{c.turnsPair(row.turns, row.realTurns)}</td>
                         <td className="am-monoCell">{row.tokensIn.toLocaleString('en-US')}</td>
                         <td className="am-monoCell">{row.cachedTokens.toLocaleString('en-US')}</td>
                         <td>
@@ -143,7 +240,7 @@ export default async function AdminSavingsPage(): Promise<ReactElement> {
                           <div
                             className="sv-barTrack"
                             role="img"
-                            aria-label={`缓存复用占输入 token 的 ${formatRate(rate)}`}
+                            aria-label={c.barAria(formatRate(rate))}
                             style={{ width: '6rem', display: 'inline-block', verticalAlign: 'middle', marginLeft: 'var(--nexus-space-2)' }}
                           >
                             <div className="sv-barFill" style={{ width: `${width}%` }} />
@@ -156,31 +253,31 @@ export default async function AdminSavingsPage(): Promise<ReactElement> {
               </table>
             </div>
             <p className="adm-capNote">
-              口径：provider prompt_tokens_details.cached_tokens（usage jsonb）；tokensIn ≈ prompt_tokens（含缓存部分）；命中率 = cached ÷ tokensIn，封顶 1。只对 role=admin 可见；任何一行读不出来就是该行按 0 计，不让整表垮。
+              {c.footNote}
             </p>
           </section>
 
           <section className="am-audit" data-savings-by-user>
-            <h2 className="am-sectionHeadSm" data-savings-by-user-heading>按用户（按缓存复用排序，前 25 位）</h2>
+            <h2 className="am-sectionHeadSm" data-savings-by-user-heading>{c.byUserTitle}</h2>
             {userRows === null ? (
               <p className="adm-capNote" data-savings-by-user-unavailable>
-                读不到用户维度的账（聚合失败）。项目维度不受影响，刷新再看。
+                {c.byUserUnavailable}
               </p>
             ) : userRows.length === 0 ? (
               <p className="adm-capNote" data-savings-by-user-empty>
-                还没有哪一位用户的任务行带 usage——跑一次真模型请求之后这张表会自己长出来。
+                {c.byUserEmpty}
               </p>
             ) : (
-              <div className="tl-tableScroll" role="region" aria-label="按用户聚合的 AI 节省表（可横向滚动）" tabIndex={0}>
+              <div className="tl-tableScroll" role="region" aria-label={c.userTableAria} tabIndex={0}>
                 <table className="am-tableNarrow">
                   <thead className="tl-thRow">
                     <tr>
-                      <th>用户</th>
-                      <th>项目数</th>
-                      <th>轮次（真）</th>
-                      <th>tokensIn 合计</th>
-                      <th>缓存复用</th>
-                      <th>命中率</th>
+                      <th>{c.colUser}</th>
+                      <th>{c.statProjects}</th>
+                      <th>{c.colTurns}</th>
+                      <th>{c.colTokensIn}</th>
+                      <th>{c.colCached}</th>
+                      <th>{c.colHitRate}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -191,7 +288,7 @@ export default async function AdminSavingsPage(): Promise<ReactElement> {
                         <tr key={row.ownerId} data-savings-user-row={row.ownerId}>
                           <td className="am-monoCell">{row.ownerEmail ?? '—'}</td>
                           <td>{row.projects}</td>
-                          <td>{row.turns}（{row.realTurns}）</td>
+                          <td>{c.turnsPair(row.turns, row.realTurns)}</td>
                           <td className="am-monoCell">{row.tokensIn.toLocaleString('en-US')}</td>
                           <td className="am-monoCell">{row.cachedTokens.toLocaleString('en-US')}</td>
                           <td>
@@ -199,7 +296,7 @@ export default async function AdminSavingsPage(): Promise<ReactElement> {
                             <div
                               className="sv-barTrack"
                               role="img"
-                              aria-label={`该用户缓存复用占输入 token 的 ${formatRate(rate)}`}
+                              aria-label={c.userBarAria(formatRate(rate))}
                               style={{ width: '6rem', display: 'inline-block', verticalAlign: 'middle', marginLeft: 'var(--nexus-space-2)' }}
                             >
                               <div className="sv-barFill" style={{ width: `${width}%` }} />

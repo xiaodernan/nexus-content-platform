@@ -1,0 +1,29 @@
+merge(parallel-line): other-lane v763-v778 (29 commits incl. world-bible canon) join master - cont. 121
+
+The other lane kept working after the second consolidation; its new line
+(v763..v778, HEAD 57664aab) is consolidated into this master here.
+
+Absorbed content:
+- §v772-v778: /bible canonical world-bible room - four books (docs/world-bible/*.md,
+  bilingual sources) productized as a bilingual, anchor-pinned longform reading
+  surface for the canonical narrative of the Whisper Sea world. gen-bible-snapshot
+  + verify-bible-snapshot + world-bible anchors gate.
+- Admin i18n wave (v763-v772): access/discover-cache/gateway/marketplace/moderation/
+  pricing/observability/savings/rate-limit/realtime/users/audit/AI/dashboard + admin
+  shell — all foreign-translation-free zh/en bilingual Wave-2 shells.
+- §v778-game-mouse: game3d mouse engine direction fix.
+- §v777-bible: fourth/final chapter of the Whisper Sea canon - the completion arc.
+- FE pins refreshed on the merged tree bytes; bible visual-style suite lands (117 suites).
+- record-encoding: two island rows pinned (/guide first-wave Chinese-English road char
+  plus the v763 LEDGER seam line adb6e4dcda39e1f6 at x3) - see cont. 121 in the ledger.
+
+Conflicts resolved:
+- globals.css: both sides token- pure families kept (ours: world-sub families
+  alm-* atl-* mem-* qaz-*; theirs: bible .bb-* family) - both token-based, zero hex.
+- CURRENT-STATE.md: parallel ledgers kept (v768-v778 continuation after the third
+  batch's cont. 120; each lane's numbering preserved).
+- showcase/latest.json: regenerated after merge.
+
+Verified locally: fe-gates 117 suites / 1157 tests green; census 2330 OK; no-raw-tailwind
+clean; tsc web 0; eslint 0 on merged tree; record-encoding exit 0.
+Not claiming hosted green until the runner gives the merged ref its verdict.

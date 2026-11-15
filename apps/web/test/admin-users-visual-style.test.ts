@@ -14,7 +14,7 @@ import { describe, expect, it } from 'vitest';
  * deny-gate 全在服务端——不动。
  *
  * **剥 className 后全文 SHA256 守恒**：四文件均恒等于改前（git HEAD）。
- * redact 三步序与钉死常量一致：page=`ad3ff95d…` plan=`1d403f70…` role=`2701465c…` reclaim=`ffcfd0b0…`。
+ * redact 三步序与钉死常量一致：page=`265efe79…` plan=`1e61d109…` role=`19e86998…` reclaim=`6abcc9ad…`（v764 i18n 重钉）。
  *
  * 判据不变式（12 门）：
  *  1. page.tsx server 组件 + denied×2 + role 闸门 + AdminNav current="users"；
@@ -183,19 +183,19 @@ describe('§FE-30 /admin/users 账号与角色 + 客人回收', () => {
     expect(segment).toContain('.au-ghostBtn:hover:not(:disabled)');
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：page=ad3ff95d… · plan=1d403f70… · role=2701465c… · reclaim=ffcfd0b0…）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：page=265efe79… · plan=1e61d109… · role=19e86998… · reclaim=6abcc9ad…（v764 i18n 重钉））', () => {
     // 常量在改前（git HEAD）由真实产物 redact 算出并钉死；此门保证除 className 外一字节未动。
     expect(createHash('sha256').update(redactClasses(PAGE)).digest('hex')).toBe(
-      'ad3ff95d7b719f373ba29a2645223b70627d7f11254d8733e0796a1e320a2bbd',
+      '265efe7960f5d7841cf38c643b6f9cecb6a67f54968988012a2550ff3a882d72',
     );
     expect(createHash('sha256').update(redactClasses(PLAN)).digest('hex')).toBe(
-      '1d403f706a5f028ac66f3052d48f2b54cd7fa7c2147f464ec7bec5a9cc9d99d6',
+      '1e61d10913897bb632b6aa0431c54e269c24af5bd60550e4f8a2fa35037eb313',
     );
     expect(createHash('sha256').update(redactClasses(ROLE)).digest('hex')).toBe(
-      '2701465c4a360ec189b60352e7eb3b829a921597dd0e783872e8607e23bdea7b',
+      '19e86998e6d0b1bfc94bf07c7f38edcb3199dbcd4dcbb084ee889ac3df1104be',
     );
     expect(createHash('sha256').update(redactClasses(RECLAIM)).digest('hex')).toBe(
-      'ffcfd0b00a857e450d323bcaa71ab3a060556689e922dccc7ec1891b5b9695e7',
+      '6abcc9ad01b24648737338d9d0b93de901aed13c71bd91468dec7adf5b2bf586',
     );
   });
 });

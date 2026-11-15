@@ -4793,6 +4793,7 @@
   .ic-emptyLink:focus-visible, .ic-cardLink:focus-visible, .ic-link:focus-visible { outline-color: Highlight; }
 }
 
+
 /* ─────────────────────────────────────────────────────────────────────────
    §FE-WORLD-SUB · 世界子页家族（2026-11-15）：记忆回廊 mem-* / 寰宇图志 atl-* / 世界藏经阁 alm-* / 谜灯馆 qaz-* / 通用 world-nav*
    这四面页此前以裸 Tailwind 原子出货，按 §FE 纪律整体收为门面类。
@@ -4962,3 +4963,84 @@
   .qaz-optionRight, .qaz-optionIdle, .qaz-optionPicked, .qaz-optionDim { box-shadow: none; background: Canvas; }
 }
 .qaz-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-3); }
+/* ===================================================================
+   §BIBLE-1 低语诸王 · 典籍室（/bible + /bible/[slug]）。全部 var() tokens、零 hex。
+   正典长文排版：行宽收窄、行高 1.95、彩雾式径向底色；锚句速览中英并排 mono。
+   =================================================================== */
+.bb-root { position: relative; display: flex; flex-direction: column; gap: var(--nexus-space-4); min-height: 100dvh; padding: var(--nexus-space-6) var(--nexus-space-5); background: radial-gradient(1000px 480px at 92% -8%, color-mix(in srgb, var(--nexus-color-accent-mix) 16%, transparent) 0%, transparent 60%), radial-gradient(760px 380px at -10% 12%, color-mix(in srgb, var(--nexus-color-brand) 9%, transparent) 0%, transparent 55%), var(--nexus-color-bg-0); color: var(--nexus-color-fg-1); }
+.bb-hero { display: flex; flex-direction: column; gap: var(--nexus-space-2); }
+.bb-kicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.24em; text-transform: uppercase; color: var(--nexus-color-accent-mix); }
+.bb-title { font-size: var(--nexus-font-size-28); font-weight: 700; letter-spacing: -0.01em; line-height: 1.18; background: linear-gradient(135deg, var(--nexus-color-fg-1) 0%, var(--nexus-color-accent-mix) 55%, var(--nexus-color-accent-1) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.bb-lede { max-width: 40rem; font-size: var(--nexus-font-size-13); line-height: 1.85; color: var(--nexus-color-fg-2); }
+.bb-threeDoors { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); line-height: 2; letter-spacing: 0.08em; color: var(--nexus-color-fg-3); border-left: 2px solid var(--nexus-color-accent-mix); padding-left: var(--nexus-space-3); }
+
+.bb-chapterList { display: flex; flex-direction: column; gap: var(--nexus-space-3); padding: 0; margin: 0; max-width: 56rem; list-style: none; }
+.bb-card { display: flex; align-items: center; gap: var(--nexus-space-4); padding: var(--nexus-space-4) var(--nexus-space-5); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md); background: linear-gradient(168deg, var(--nexus-color-bg-1) 0%, var(--nexus-color-bg-2) 100%); transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease; }
+.bb-card:hover { border-color: color-mix(in srgb, var(--nexus-color-brand) 55%, transparent); transform: translateY(-2px); box-shadow: var(--nexus-shadow-md); }
+.bb-cardNum { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-28); font-weight: 700; color: var(--nexus-color-accent-mix); min-width: 2.5rem; text-align: center; font-variant-numeric: tabular-nums; }
+.bb-cardBody { flex: 1; display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+.bb-cardChapter { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.18em; text-transform: uppercase; color: var(--nexus-color-fg-3); }
+.bb-cardTitle { font-size: var(--nexus-font-size-18); font-weight: 650; letter-spacing: -0.005em; color: var(--nexus-color-fg-1); }
+.bb-cardEra { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+.bb-cardAnchors { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); }
+.bb-cardLink { font-size: var(--nexus-font-size-12); white-space: nowrap; align-self: center; color: var(--nexus-color-accent-2-ink); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--nexus-color-brand) 55%, transparent); padding-bottom: 0.12rem; }
+.bb-cardLink:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+
+.bb-breadcrumb { display: flex; gap: var(--nexus-space-2); align-items: baseline; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); }
+.bb-crumbSep { color: var(--nexus-color-fg-3); }
+.bb-crumbCurrent { color: var(--nexus-color-fg-1); }
+.bb-chapterHead { display: flex; flex-direction: column; gap: var(--nexus-space-1); padding-bottom: var(--nexus-space-3); border-bottom: 1px solid var(--nexus-color-border-subtle); }
+.bb-era { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.1em; color: var(--nexus-color-fg-3); }
+
+.bb-article { max-width: 46rem; display: flex; flex-direction: column; gap: var(--nexus-space-3); }
+.bb-h2 { font-size: var(--nexus-font-size-18); font-weight: 700; line-height: 1.4; letter-spacing: 0.01em; color: var(--nexus-color-fg-1); border-left: 3px solid var(--nexus-color-accent-mix); padding-left: var(--nexus-space-3); margin-top: var(--nexus-space-3); }
+.bb-h3 { font-size: var(--nexus-font-size-13); font-weight: 700; color: var(--nexus-color-fg-2); }
+.bb-p { font-size: var(--nexus-font-size-14); line-height: 1.95; color: var(--nexus-color-fg-1); letter-spacing: 0.01em; }
+.bb-strong { font-weight: 700; color: var(--nexus-color-fg-1); }
+.bb-code { font-family: var(--nexus-font-mono); font-size: 0.92em; background: var(--nexus-color-bg-2); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); padding: 0.08rem 0.3rem; }
+.bb-quote { border-left: 2px solid color-mix(in srgb, var(--nexus-color-accent-mix) 70%, transparent); margin: 0; padding-left: var(--nexus-space-4); color: var(--nexus-color-fg-2); }
+.bb-quoteLine { font-size: var(--nexus-font-size-14); line-height: 1.9; padding: 0.15rem 0; }
+.bb-list { padding-left: 1.5em; display: flex; flex-direction: column; gap: 0.35rem; line-height: 1.9; }
+.bb-listDash { list-style: none; padding-left: 1.1em; }
+.bb-listDash > .bb-listItem::before { content: "—"; color: var(--nexus-color-accent-mix); margin-right: 0.5em; }
+.bb-listItem { font-size: var(--nexus-font-size-14); color: var(--nexus-color-fg-1); }
+.bb-tableRegion { overflow-x: auto; border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md); }
+.bb-tableRegion:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+.bb-table { border-collapse: collapse; width: 100%; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); }
+.bb-th { text-align: left; color: var(--nexus-color-fg-2); border-bottom: 1px solid var(--nexus-color-border-subtle); padding: var(--nexus-space-2) var(--nexus-space-3); background: var(--nexus-color-bg-1); }
+.bb-td { color: var(--nexus-color-fg-1); border-bottom: 1px solid var(--nexus-color-border-subtle); padding: var(--nexus-space-2) var(--nexus-space-3); }
+.bb-td:last-child { color: var(--nexus-color-fg-3); }
+
+.bb-hr { border: none; border-top: 1px solid color-mix(in srgb, var(--nexus-color-accent-mix) 30%, transparent); margin: var(--nexus-space-4) 0; }
+
+.bb-anchorShelf { border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-4); display: flex; flex-direction: column; gap: var(--nexus-space-2); }
+.bb-anchorTitle { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.2em; text-transform: uppercase; color: var(--nexus-color-accent-mix); }
+.bb-anchorList { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; }
+.bb-anchorRow { display: grid; grid-template-columns: 2.4rem 1fr 1fr; gap: var(--nexus-space-3); align-items: baseline; border-bottom: 1px solid var(--nexus-color-border-subtle); padding: var(--nexus-space-2) 0; }
+.bb-anchorRow:first-child { border-top: 1px solid var(--nexus-color-border-subtle); }
+.bb-anchorIdx { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); font-variant-numeric: tabular-nums; }
+.bb-anchorZh { font-size: var(--nexus-font-size-12); line-height: 1.8; color: var(--nexus-color-fg-1); }
+.bb-anchorEn { font-size: var(--nexus-font-size-12); line-height: 1.8; color: var(--nexus-color-fg-2); }
+.bb-anchorNote { font-size: var(--nexus-font-size-11); line-height: 1.75; color: var(--nexus-color-fg-3); }
+
+.bb-foot { display: flex; justify-content: space-between; gap: var(--nexus-space-3); align-items: center; border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-3); flex-wrap: wrap; }
+.bb-footNote { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); max-width: 44rem; line-height: 1.75; }
+.bb-footLinks { display: flex; gap: var(--nexus-space-3); }
+.bb-footLink { font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-2-ink); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--nexus-color-brand) 55%, transparent); padding-bottom: 0.08rem; }
+.bb-footLink:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+.bb-prevNext { display: flex; gap: var(--nexus-space-3); }
+.bb-prevNextLink { font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-2-ink); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--nexus-color-brand) 55%, transparent); padding-bottom: 0.08rem; }
+.bb-prevNextLink:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+
+@media (max-width: 48rem) {
+  .bb-anchorRow { grid-template-columns: 2rem 1fr; }
+  .bb-anchorEn { grid-column: 2; padding-bottom: var(--nexus-space-2); }
+  .bb-cardNum { font-size: var(--nexus-font-size-21); min-width: 1.8rem; }
+}
+@media (forced-colors: active) {
+  .bb-root, .bb-card, .bb-tableRegion, .bb-code, .bb-breadcrumb { border-color: CanvasText; background: Canvas; color: CanvasText; }
+  .bb-title, .bb-cardTitle, .bb-cardNum, .bb-cardAnchors, .bb-cardEra, .bb-h2, .bb-h3, .bb-p, .bb-quoteLine, .bb-listItem, .bb-anchorZh, .bb-anchorEn, .bb-anchorNote, .bb-kicker, .bb-threeDoors, .bb-cardChapter, .bb-footNote, .bb-crumbCurrent, .bb-era { color: CanvasText; -webkit-text-fill-color: CanvasText; background: none; }
+  .bb-card:hover { border-color: Highlight; transform: none; }
+  .bb-cardLink:focus-visible, .bb-footLink:focus-visible, .bb-prevNextLink:focus-visible, .bb-tableRegion:focus-visible { outline-color: Highlight; }
+}
+46a

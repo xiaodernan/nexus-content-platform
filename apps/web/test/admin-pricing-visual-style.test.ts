@@ -115,9 +115,9 @@ describe('§FE-PR /admin/pricing AI 成本只读账本', () => {
     }
   });
 
-  it('SHA256 钉死（合并后的当前字节）', () => {
+  it('SHA256 钉死（v768 i18n 重钉）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'a90224479eb9cfe8fde8f80a5f0f81ee3919a64f3cedffa72f7f32780e9a3025',
+      '11c465d9607aeb3c5066c2312b07dbe07018eb11d4a66fb76e23fe692876f146',
     );
   });
 });

@@ -19,9 +19,9 @@ export function dashOr(value: number | null | undefined, fallback = '—'): stri
   return typeof value === 'number' && Number.isFinite(value) ? String(value) : fallback;
 }
 
-/** 比例 → 百分比串。`null` → `—（没有样本）`，绝不写 0%。 */
-export function pct(rate: number | null | undefined, digits = 1): string {
-  if (typeof rate !== 'number' || !Number.isFinite(rate)) return '—';
+/** 比例 → 百分比串。`null` → `—`；en 模式加注"(unmeasured)"。 */
+export function pct(rate: number | null | undefined, digits = 1, locale: 'zh' | 'en' = 'zh'): string {
+  if (typeof rate !== 'number' || !Number.isFinite(rate)) return locale === 'en' ? '— (unmeasured)' : '—';
   return `${(rate * 100).toFixed(digits)}%`;
 }
 
@@ -56,25 +56,40 @@ export function providerSplit(provider: ProviderStats): Split {
  * 96% 复用率的真实含义是"每 100 次请求里有 96 次建立在已见过的稳定前缀上"，
  * 不是"提示词有 96% 的字节被复用"。后者要靠字节审计（`npm run audit:prompt-prefix`）。
  */
-export function prefixHeadline(prefix: PrefixStats): string {
-  if (prefix.requests === 0) return '还没有请求';
-  return `${prefix.reused} / ${prefix.requests} 次建立在已见过的前缀上`;
+export function prefixHeadline(prefix: PrefixStats, locale: 'zh' | 'en' = 'zh'): string {
+  if (prefix.requests === 0) return locale === 'en' ? 'No requests yet' : '还没有请求';
+  return locale === 'en'
+    ? `${prefix.reused} / ${prefix.requests} requests built on a seen prefix`
+    : `${prefix.reused} / ${prefix.requests} 次建立在已见过的前缀上`;
 }
 
 /** 前缀账的脚注：把"这个数是什么、不是什么"说在明面上。 */
-export function prefixNote(prefix: PrefixStats): string {
+export function prefixNote(prefix: PrefixStats, locale: 'zh' | 'en' = 'zh'): string {
   if (prefix.requests === 0) {
-    return '一次请求都还没有。这一格不是 0% —— 0% 会读成"试过但全没命中"，那是另一件事。';
+    return locale === 'en'
+      ? 'Not a single request yet. This cell is not 0% — 0% would read as “tried but nothing hit”, a different thing.'
+      : '一次请求都还没有。这一格不是 0% —— 0% 会读成"试过但全没命中"，那是另一件事。';
   }
-  return (
-    `这个数由我们自己的字节算出（稳定块摘要重复出现 = 这一轮前缀与上一轮逐字节相同），` +
-    `与网关自报的 cached_tokens 无关。它数的是**请求**份额，不是字节份额：` +
-    `字节层面的读数要看 \`npm run audit:prompt-prefix\`。`
-  );
+  return locale === 'en'
+    ? 'Computed from our own bytes (identical stable-block digest means this round’s prefix is byte-for-byte the last round’s); it has nothing to do with the gateway-reported cached_tokens. It counts request share, NOT byte share — for the byte-level read use `npm run audit:prompt-prefix`.'
+    : (
+      `这个数由我们自己的字节算出（稳定块摘要重复出现 = 这一轮前缀与上一轮逐字节相同），` +
+      `与网关自报的 cached_tokens 无关。它数的是**请求**份额，不是字节份额：` +
+      `字节层面的读数要看 \`npm run audit:prompt-prefix\`。`
+    );
 }
 
 /** 容量水位：LRU 里装了多少种前缀。满了就开始淘汰，复用率会掉——那是容量信号，不是故障。 */
-export function capacityNote(prefix: PrefixStats): string {
+export function capacityNote(prefix: PrefixStats, locale: 'zh' | 'en' = 'zh'): string {
+  if (locale === 'en') {
+    if (prefix.capacity <= 0) return 'Capacity unknown (ai-service did not report it).';
+    if (prefix.uniquePrefixes >= prefix.capacity) {
+      return `At the ceiling (${prefix.uniquePrefixes}/${prefix.capacity}, ${prefix.evictions} evictions): ` +
+        `a new prefix will evict an old digest; reuse rate will drop with it. This is a capacity signal, not a fault.`;
+    }
+    return `Holding ${prefix.uniquePrefixes}/${prefix.capacity} distinct prefixes, ${prefix.evictions} evictions. ` +
+      `In-process, wiped on restart, not shared across instances.`;
+  }
   if (prefix.capacity <= 0) return '容量未知（ai-service 没报）。';
   if (prefix.uniquePrefixes >= prefix.capacity) {
     return `已顶到上界（${prefix.uniquePrefixes}/${prefix.capacity}，淘汰 ${prefix.evictions} 次）：` +
@@ -85,12 +100,26 @@ export function capacityNote(prefix: PrefixStats): string {
 }
 
 /** 应用级缓存那一格：**没启用 ≠ 零命中**，这两件事必须分开说。 */
-export function appCacheHeadline(appCache: AppCacheStats | null): string {
-  if (appCache === null) return '未启用';
-  return `${appCache.hits} 命中 / ${appCache.misses} 未命中`;
+export function appCacheHeadline(appCache: AppCacheStats | null, locale: 'zh' | 'en' = 'zh'): string {
+  if (appCache === null) return locale === 'en' ? 'Not enabled' : '未启用';
+  return locale === 'en'
+    ? `${appCache.hits} hits / ${appCache.misses} misses`
+    : `${appCache.hits} 命中 / ${appCache.misses} 未命中`;
 }
 
-export function appCacheDetail(appCache: AppCacheStats | null): string {
+export function appCacheDetail(appCache: AppCacheStats | null, locale: 'zh' | 'en' = 'zh'): string {
+  if (locale === 'en') {
+    if (appCache === null) {
+      return 'App-level completion cache is not configured (`NEXUS_LLM_COMPLETION_CACHE_URL` unset). ' +
+        'This cell is NOT “0 hits” — this pathway simply did not go through the cache at all.';
+    }
+    if (appCache.degraded === true) {
+      return 'Backend degraded: when the shared cache cannot be read, it counts as a miss and calls proceed to the provider (fail-open).';
+    }
+    const shared = appCache.shared === true ? 'shared across instances' : appCache.shared === false ? 'process-local' : 'sharing unknown';
+    const namespace = appCache.namespace ? ` · namespace ${appCache.namespace}` : '';
+    return `backend ${appCache.backend} (${shared})${namespace}; stores ${appCache.stores}, stores failed ${appCache.storesFailed}, evictions ${appCache.evictions}.`;
+  }
   if (appCache === null) {
     return '应用级 completion 缓存没开（`NEXUS_LLM_COMPLETION_CACHE_URL` 未配置）。' +
       '这一格不是"0 命中"——是这条路径根本没走缓存。';
@@ -104,25 +133,38 @@ export function appCacheDetail(appCache: AppCacheStats | null): string {
 }
 
 /** provider 那一格：分母只算报过账的样本，这句话必须写出来。 */
-export function providerNote(provider: ProviderStats): string {
+export function providerNote(provider: ProviderStats, locale: 'zh' | 'en' = 'zh'): string {
   const total = provider.reported + provider.missing;
   if (total === 0) {
-    return '还没有 provider 调用。';
+    return locale === 'en' ? 'No provider calls yet.' : '还没有 provider 调用。';
   }
   if (provider.reported === 0) {
-    return `${total} 次调用里 provider 一次都没报 cached_tokens。` +
-      '常见于冷前缀 / 首轮 / 短 prompt——「没报」不等于「命中 0」。';
+    return locale === 'en'
+      ? `Provider reported no cached_tokens across ${total} calls. Common for cold prefixes / first turns / short prompts — “not reported” is not “hit 0”.`
+      : `${total} 次调用里 provider 一次都没报 cached_tokens。` +
+        '常见于冷前缀 / 首轮 / 短 prompt——「没报」不等于「命中 0」。';
   }
-  return (
-    `${total} 次调用里 ${provider.reported} 次报账、${provider.missing} 次缺席。` +
-    `上面那个 ${pct(provider.reportedHitRate)} 的分母**只算报过账的 ${provider.reported} 次**` +
-    `（${provider.promptTokensTotal} prompt tokens），不是全部 ${total} 次。` +
-    `本仓不拿这个数做对外承诺：真机四实验里内容零重叠的两次调用也报了同一个 cached 值（ADR-0262）。`
-  );
+  return locale === 'en'
+    ? `${total} calls, ${provider.reported} reported, ${provider.missing} missing. ` +
+      `That ${pct(provider.reportedHitRate, 1, locale)} is computed over only the ${provider.reported} reporting calls ` +
+      `(${provider.promptTokensTotal} prompt tokens), not all ${total}. ` +
+      `This repo does not make an external commitment on this number: the four real-machine experiments also saw identical cached values on two zero-overlap calls (ADR-0262).`
+    : (
+      `${total} 次调用里 ${provider.reported} 次报账、${provider.missing} 次缺席。` +
+      `上面那个 ${pct(provider.reportedHitRate)} 的分母**只算报过账的 ${provider.reported} 次**` +
+      `（${provider.promptTokensTotal} prompt tokens），不是全部 ${total} 次。` +
+      `本仓不拿这个数做对外承诺：真机四实验里内容零重叠的两次调用也报了同一个 cached 值（ADR-0262）。`
+    );
 }
 
 /** 页脚：把"这是哪一台、什么时候、多久刷一次"说清。 */
-export function footNote(ok: boolean, pollMs: number, measuredAt: string | null): string {
+export function footNote(ok: boolean, pollMs: number, measuredAt: string | null, locale: 'zh' | 'en' = 'zh'): string {
+  if (locale === 'en') {
+    const scope = 'This readout is from **this one ai-service process**; it wipes on restart and does not aggregate across instances.';
+    const when = measuredAt ? `taken at ${new Date(measuredAt).toLocaleTimeString('en-US', { hour12: false })}` : 'never successfully read';
+    const cadence = `polling every ${Math.round(pollMs / 1000)} s${ok ? '' : ' (this round did not read)'}`;
+    return `${when} · ${cadence} · ${scope}`;
+  }
   const scope = '这份读数是**这一台 ai-service 进程**的读数；它进程重启即清零，不跨实例聚合。';
   const when = measuredAt ? `取于 ${new Date(measuredAt).toLocaleTimeString('zh-CN', { hour12: false })}` : '还没有成功取到过';
   const cadence = `每 ${Math.round(pollMs / 1000)} 秒问一次${ok ? '' : '（当前这一轮没取到）'}`;
@@ -142,37 +184,59 @@ export function verdictOf(readout: AiCacheReadout): CacheVerdict {
 }
 
 /** §CACHE-4-AB 警示：本进程被显式退回非流时，"命中率低"未必是 prompt 坏事。 */
-export function nonStreamCaveat(readout: AiCacheReadout): string {
+export function nonStreamCaveat(readout: AiCacheReadout, locale: 'zh' | 'en' = 'zh'): string {
   if (readout.transport?.stream === false) {
-    return '本进程的出站 LLM 被显式退回非流（NEXUS_LLM_STREAM=0）；上游对不同车道分片不共享 KV，同一车道分发器也可能把 KV 不定投进不同片——' +
-      '非流命中率会比流式低很多（同机同 digest 实测：稳态 80–83% vs 100%）。先恢复流式，再读这一栏。';
+    return locale === 'en'
+      ? 'This process’ outbound LLM traffic is explicitly degraded to non-stream (NEXUS_LLM_STREAM=0); the upstream does NOT share KV across shards per lane, and even the same lane’s distributor can scatter KV across shards — non-stream hit rates run far below stream (real machine, same digest: ~80–83% vs 100%). Restore stream before reading this column.'
+      : '本进程的出站 LLM 被显式退回非流（NEXUS_LLM_STREAM=0）；上游对不同车道分片不共享 KV，同一车道分发器也可能把 KV 不定投进不同片——' +
+        '非流命中率会比流式低很多（同机同 digest 实测：稳态 80–83% vs 100%）。先恢复流式，再读这一栏。';
   }
   return '';
 }
 
-export function verdictText(readout: AiCacheReadout): { headline: string; detail: string } {
-  const caveat = nonStreamCaveat(readout);
+export function verdictText(readout: AiCacheReadout, locale: 'zh' | 'en' = 'zh'): { headline: string; detail: string } {
+  const caveat = nonStreamCaveat(readout, locale);
   const appended = (detail: string) => (caveat ? `${detail} ${caveat}` : detail);
   switch (verdictOf(readout)) {
     case 'good':
-      return {
-        headline: '前缀稳定，前缀缓存该命中',
-        detail: appended('绝大多数请求建立在同一段稳定前缀上。provider 只要做前缀缓存，这一段就该被复用。'),
-      };
+      return locale === 'en'
+        ? {
+            headline: 'Prefix stable — the cache should hit',
+            detail: appended('The vast majority of requests build on the same stable prefix. Any provider with prefix caching should reuse this block.'),
+          }
+        : {
+            headline: '前缀稳定，前缀缓存该命中',
+            detail: appended('绝大多数请求建立在同一段稳定前缀上。provider 只要做前缀缓存，这一段就该被复用。'),
+          };
     case 'warm':
-      return {
-        headline: '前缀部分稳定',
-        detail: appended('一半左右的请求换过前缀。常见原因是每轮都在变的现场内容（选中、标注、最近改动）占比偏大。'),
-      };
+      return locale === 'en'
+        ? {
+            headline: 'Prefix partly stable',
+            detail: appended('Roughly half the requests changed their prefix. Usually the per-turn context (selection, annotations, recent edits) dominates.'),
+          }
+        : {
+            headline: '前缀部分稳定',
+            detail: appended('一半左右的请求换过前缀。常见原因是每轮都在变的现场内容（选中、标注、最近改动）占比偏大。'),
+          };
     case 'cold':
-      return {
-        headline: '前缀一直在变，缓存救不了',
-        detail: appended('不到四成请求续接了上一轮的前缀。先看载荷里哪些字段每轮都在变——字节前缀缓存遇到第一处不同就断。'),
-      };
+      return locale === 'en'
+        ? {
+            headline: 'Prefix keeps changing — the cache cannot save you',
+            detail: appended('Under four in ten requests continued the last round’s prefix. Inspect which payload fields change every turn — byte-prefix caching breaks at the first differing byte.'),
+          }
+        : {
+            headline: '前缀一直在变，缓存救不了',
+            detail: appended('不到四成请求续接了上一轮的前缀。先看载荷里哪些字段每轮都在变——字节前缀缓存遇到第一处不同就断。'),
+          };
     default:
-      return {
-        headline: '还没有样本',
-        detail: appended('这一台还没处理过请求。先跑一次真实调用，再回来看这三本账。'),
-      };
+      return locale === 'en'
+        ? {
+            headline: 'No samples yet',
+            detail: appended('This instance has not served a request yet. Run one real call and come back to the three ledgers.'),
+          }
+        : {
+            headline: '还没有样本',
+            detail: appended('这一台还没处理过请求。先跑一次真实调用，再回来看这三本账。'),
+          };
   }
 }
