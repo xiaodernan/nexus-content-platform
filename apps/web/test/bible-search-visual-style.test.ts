@@ -28,15 +28,6 @@ const generated = readFileSync(GENERATED, 'utf8');
 const BIBLE_START = globals.indexOf('§BIBLE-1');
 const bbSegment = BIBLE_START >= 0 ? globals.slice(BIBLE_START) : '';
 
-function redactClasses(source: string): string {
-  return source
-    .replace(/\r\n/g, '\n')
-    .replace(/className="[^"]*"/g, 'className="@"')
-    .replace(/className=\{`[^`]*`\}/g, 'className={@}')
-    .replace(/className=\{[^}]*\}/g, 'className={@}')
-    .replace(/className=("@"|\{@\})/g, 'className=@');
-}
-
 describe('§BIBLE-3 典籍室「直达」', () => {
   it('client 组件 + 零 provider/fetch 字面', () => {
     expect(component.slice(0, 80)).toContain('use client');
