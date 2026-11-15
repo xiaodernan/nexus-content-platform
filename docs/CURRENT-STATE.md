@@ -4648,3 +4648,18 @@ D
   /n/<handle>/<slug> 公开落点、/preview 同源镜头）；/tasks 账本口径（第几次·真/DEMO·用时）与 /credits SavingsCard
   口径（缓存替你省下的重复计算·命中率/输入 token 复用）进两条；④ 游戏怎么玩接典籍室两节；⑤ 真 provider 叙述校准到 wkapi.pro 上的 gpt-6-sol。
 - 判据：guide-visual-style SHA pin 重钉（f4f88ed2 → 7b4a306e）；7/7 绿；live 探针 :3100 用完即停，zh 与 en 各渲染 ⑪，零跨语混写；tsc 0；eslint 0。
+
+
+## cont. 135 (2026-11-15) - AI 服务 Redis 作业队列实装（本地真验证）
+
+- 背景：/v1/ai/jobs 一直实现好了两个后端，但本机一直跑 memory（健康检查里 note 说的是重启即失、不跨副本）；
+  `/v1/ai/healthz` 现在 **backend=redis**（`NEXUS_REDIS_URL=redis://localhost:56379/5`，仅本机 `.env`，未入库）。
+- 实测端到端（真调用真 provider）：
+  `POST /v1/ai/jobs` → `job_3cf6187222504774`，backend=redis → worker 从 Redis 拾起 →
+  真 `gpt-6-sol` 一句答（tokensIn=6705 / tokensOut=52，latencyMs=2797，1 次工具调用，DEMO 字面为 false）→
+  `GET /v1/ai/jobs/job_3cf6187222504774` 返回 `completed`；
+  `docker exec nexus-redis redis-cli -n 5 --scan --pattern nexus:ai:*` 找回 key `nexus:ai:job:job_3cf6187222504774`，`TTL=3585s`（与默认 3600 吻合——到期即失正如文档写的一样）。
+- /healthz 现在如实报：`queue.backend=redis pending=0 running=0 capacity=1 note=作业存在 Redis 里（带 TTL）`。
+  契约与代码一字未改——这里只是把 `NEXUS_REDIS_URL` 配上，再提交一次真实作业核对。
+- 注意：本文件 `apps/ai-service/.env` 是 gitignored，其他部署/机器不会自动带这个值；
+  若要多副本共享作业状态，各自部署处也需设同类 NEXUS_REDIS_URL 指到共享 Redis。
