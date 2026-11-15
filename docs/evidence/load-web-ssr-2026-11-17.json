@@ -1,0 +1,32 @@
+{
+  "date": "2026-11-17",
+  "machine": "Windows 11 · Node v24.15.0 · next dev -p 3401 · vmmemWSL ≈ 4.3–5 GB · free ≈ 1.1–1.5 GB",
+  "serverPath": "dev（Turbopack double-render）；不是 next start 的生产路径",
+  "run1": {
+    "script": "scripts/load-web-ssr.mts (SUPERSEDED by load-web-ssr-sweep.mts)",
+    "routes": [
+      { "label": "steady", "path": "/bible", "n": 170, "ok": 44, "errors": 126, "diagnosis": "冷编译级联：连接被硬断（≈0ms），不是 5xx" },
+      { "label": "steady", "path": "/guide", "n": 170, "ok": 54, "errors": 116, "diagnosis": "冷编译中段，同上" },
+      { "label": "steady", "path": "/about-nexus", "n": 170, "ok": 0, "errors": 170, "diagnosis": "必然 500：自 v713 (cee9a2b8) 起缺失 export default → v779 修复（§159：found a live 500 via load test）" },
+      { "label": "burst", "path": "/bible", "n": 110, "ok": 63, "errors": 47, "diagnosis": "同冷编译级联" }
+    ],
+    "note": "第一次 run 的‘高失败率’是冷编译 + about-nexus 必然 500 两件事叠加；不构成‘容量’读数。"
+  },
+  "sweep": {
+    "script": "scripts/load-web-ssr-sweep.mts",
+    "tiers": [
+      { "label": "baseline", "concurrency": 1, "requests": 30, "ok": 30, "errors": 0, "histogram": { "200": 30 }, "wallMs": 15430, "rps": 1.94, "p50": 7274.59, "p95": 14092.55, "p99": 15426.38, "max": 15426.38, "bytesTotal": 782340 },
+      { "label": "tier-6", "concurrency": 6, "requests": 100, "ok": 100, "errors": 0, "histogram": { "200": 100 }, "wallMs": 110652, "rps": 0.9, "p50": 60231.12, "p95": 105327.16, "p99": 110639.9, "max": 110639.9, "bytesTotal": 2607800 },
+      { "label": "tier-12", "concurrency": 12, "requests": 100, "ok": 100, "errors": 0, "histogram": { "200": 100 }, "wallMs": 37814, "rps": 2.64, "p50": 20234.98, "p95": 36862.3, "p99": 37804.3, "max": 37804.3, "bytesTotal": 2607800 },
+      { "label": "tier-24", "concurrency": 24, "requests": 100, "ok": 100, "errors": 0, "histogram": { "200": 100 }, "wallMs": 35425, "rps": 2.82, "p50": 19128.42, "p95": 35098.07, "p99": 35414.78, "max": 35414.78, "bytesTotal": 2607800 },
+      { "label": "tier-48", "concurrency": 48, "requests": 100, "ok": 96, "errors": 4, "histogram": { "200": 96, "0": 4 }, "wallMs": 38104, "rps": 2.62, "p50": 22328.32, "p95": 37829.76, "p99": 38093.17, "max": 38093.17, "bytesTotal": 2503488 }
+    ],
+    "summary": "500 请求，496 × 200，0 个 HTTP 5xx，只有四次连接在 tier-48 被硬断（4%）。不是 SLA。"
+  },
+  "knownBoundaries": [
+    "本篇是 dev-mode（Turbopack double-render）在受限宿主上的读数；production 构建在这一档内存里跑不干净。",
+    "测量路由一律不连业务库（/discover、/n/* 未纳入）；DB 高压结论仍以 Redis load 系列（2026-11-14/17 v733+v761）为准。",
+    "prod-path（next build + next start + 安静窗口）还欠一次真正的测量。",
+    "p50 ≈ 19–22s 是这台机器上 dev 他渲染的真实成本，不是应用缺陷清单；也不是被忽略的 SLO。"
+  ]
+}

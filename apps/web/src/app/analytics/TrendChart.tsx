@@ -1,11 +1,12 @@
 import type { ReactElement } from 'react';
 import type { DailyPoint } from '@/server/domain/analytics';
+import type { Locale } from '@/lib/i18n';
 
 /**
  * §168 的按天曲线。**服务端组件**：没有交互、没有状态，所以不需要 'use client'——
  * 浏览器那一侧一行 JS 都不为它付。
  *
- * 三条与"别把图画成谎话"有关的选择：
+ * 三条与"别把图画成谎话"有关的选择（不变）：
  *
  * 1. **三个量各画一张图，各有各的纵轴。** 打开次数是"次"、访客是"人"、时长是"秒"，
  *    挤进同一个坐标系里，读者一定会去比柱子的高矮——那个比较没有任何含义。
@@ -14,6 +15,8 @@ import type { DailyPoint } from '@/server/domain/analytics';
  *    画成连续有人来；画成满高虚线柱又会被读成"那天最高"。虚线短柱说的是"这一天没有心跳"。
  * 3. **纵轴上限就是窗口内的最大值（至少 1）**，所以一根满高的柱子永远意味着
  *    "这是这段窗口里最高的一天"，而不是"越过了某个固定阈值"。上限写在标题右边，可以直接核对。
+ *
+ * v782：双语化（locale prop，默认 zh）；文案与三轴结构映射不变。
  */
 
 const WIDTH = 720;
@@ -39,18 +42,67 @@ interface SeriesSpec {
   read: (point: DailyPoint) => string;
 }
 
+const COPY: Record<Locale, {
+  axisMaxPrefix: string;
+  opens: { title: string; maxUnit: string; read: (n: number) => string };
+  visitors: { title: string; maxUnit: string; read: (n: number) => string };
+  duration: { title: string; missingText: string; logPrefix: string; unit: string };
+}> = {
+  zh: {
+    axisMaxPrefix: '纵轴 0 → ',
+    opens: {
+      title: '每天打开次数（只数真人；爬虫/自动化的打开另计在窗口汇总里，不画进这条曲线）',
+      maxUnit: '次',
+      read: (n) => `打开 ${n} 次`,
+    },
+    visitors: {
+      title: '每天访客数（同一人同一天只算一个；这一天没有人来就是 0）',
+      maxUnit: '人',
+      read: (n) => `访客 ${n} 人`,
+    },
+    duration: {
+      title: '每天可见时长（虚线短柱 = 那一天一条心跳都没有，不是 0 秒）',
+      missingText: '未采集（这一天没有心跳）',
+      logPrefix: '可见 ',
+      unit: '秒',
+    },
+  },
+  en: {
+    axisMaxPrefix: 'Y 0 → ',
+    opens: {
+      title: 'Opens per day (humans only; crawler/automation opens are counted separately in the window totals and are NOT drawn into this curve)',
+      maxUnit: ' opens',
+      read: (n) => `${n} opens`,
+    },
+    visitors: {
+      title: 'Visitors per day (one person per day counts once; a day with no one is 0)',
+      maxUnit: ' visitors',
+      read: (n) => `${n} visitors`,
+    },
+    duration: {
+      title: 'Visible seconds per day (dashed stub = no heartbeat that day, not 0 seconds)',
+      missingText: 'Not measured (no heartbeat that day)',
+      logPrefix: 'visible ',
+      unit: 's',
+    },
+  },
+};
+
 function MiniChart({
   days,
   spec,
   height,
   showAxis,
+  locale,
 }: {
   days: readonly DailyPoint[];
   spec: SeriesSpec;
   height: number;
   /** 只在最后一张图上标日期：三张图共用同一条时间轴，标三遍只是噪音 */
   showAxis: boolean;
+  locale: Locale;
 }): ReactElement {
+  const c = COPY[locale];
   const top = 6;
   const plot = height - top - (showAxis ? 16 : 4);
   const step = (WIDTH - PAD_LEFT - PAD_RIGHT) / Math.max(days.length, 1);
@@ -68,14 +120,14 @@ function MiniChart({
       <div className="tc-head">
         <span className="tc-title">{spec.title}</span>
         <span className="tc-max" data-analytics-series-max={spec.key}>
-          纵轴 0 → {spec.formatMax(max)}
+          {c.axisMaxPrefix}{spec.formatMax(max)}
         </span>
       </div>
       <svg
         viewBox={`0 0 ${WIDTH} ${height}`}
         className="tc-svg"
         role="img"
-        aria-label={`${spec.title}：${days.length} 天，最高 ${spec.formatMax(max)}`}
+        aria-label={`${spec.title}：${days.length} ${locale === 'en' ? 'days, peak' : ' 天，最高 '} ${spec.formatMax(max)}`}
         data-analytics-series={spec.key}
       >
         <line
@@ -128,7 +180,8 @@ function MiniChart({
   );
 }
 
-export function TrendChart({ days, emptyNote }: { days: readonly DailyPoint[]; emptyNote: string }): ReactElement {
+export function TrendChart({ days, emptyNote, locale = 'zh' }: { days: readonly DailyPoint[]; emptyNote: string; locale?: Locale }): ReactElement {
+  const c = COPY[locale];
   const secondOf = (ms: number) => Math.round(ms / 1000);
   return (
     <div className="tc-root" data-analytics-charts>
@@ -136,43 +189,48 @@ export function TrendChart({ days, emptyNote }: { days: readonly DailyPoint[]; e
         days={days}
         height={92}
         showAxis={false}
+        locale={locale}
         spec={{
           key: 'opens',
-          title: '每天打开次数（只数真人；爬虫/自动化的打开另计在窗口汇总里，不画进这条曲线）',
-          formatMax: (value) => `${value} 次`,
+          title: c.opens.title,
+          formatMax: (value) => `${value}${c.opens.maxUnit}`,
           pick: (point) => point.opens,
           missing: () => false,
           color: 'var(--nexus-color-accent-2)',
-          read: (point) => `打开 ${point.opens} 次`,
+          read: (point) => c.opens.read(point.opens),
         }}
       />
       <MiniChart
         days={days}
         height={92}
         showAxis={false}
+        locale={locale}
         spec={{
           key: 'visitors',
-          title: '每天访客数（同一人同一天只算一个；这一天没有人来就是 0）',
-          formatMax: (value) => `${value} 人`,
+          title: c.visitors.title,
+          formatMax: (value) => `${value}${c.visitors.maxUnit}`,
           pick: (point) => point.visitors,
           missing: () => false,
           color: 'var(--nexus-color-brand)',
-          read: (point) => `访客 ${point.visitors} 人`,
+          read: (point) => c.visitors.read(point.visitors),
         }}
       />
       <MiniChart
         days={days}
         height={108}
         showAxis
+        locale={locale}
         spec={{
           key: 'playTimeMs',
-          title: '每天可见时长（虚线短柱 = 那一天一条心跳都没有，不是 0 秒）',
-          formatMax: (value) => `${secondOf(value)} 秒`,
+          title: c.duration.title,
+          formatMax: (value) => `${secondOf(value)}${c.duration.unit}`,
           pick: (point) => point.playTimeMs ?? 0,
           missing: (point) => point.playTimeMs === null,
           color: 'var(--nexus-color-success)',
           read: (point) =>
-            point.playTimeMs === null ? '未采集（这一天没有心跳）' : `可见 ${secondOf(point.playTimeMs)} 秒`,
+            point.playTimeMs === null
+              ? c.duration.missingText
+              : `${c.duration.logPrefix}${secondOf(point.playTimeMs)}${c.duration.unit}`,
         }}
       />
       {days.every((point) => point.visitors === 0 && point.opens === 0) ? (

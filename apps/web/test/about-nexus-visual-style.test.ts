@@ -103,7 +103,7 @@ describe('§FE-About /about-nexus 品牌页', () => {
     }
   });
 
-  it('SHA256 钉死（本线字节）', () => {
+  it('SHA256 钉死（本线字节，v779 /about-nexus 补回缺失的 default export 重钉）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
       'af4263d9267273741d0eb54dc220186f4286f1714443febce518b240652fc66c',
     );

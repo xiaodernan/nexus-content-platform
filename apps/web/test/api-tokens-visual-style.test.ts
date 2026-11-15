@@ -213,11 +213,11 @@ describe('§FE-20 /api-tokens 公开 API 凭据页', () => {
     expect(segment).toMatch(/\.at-textLink \{[^}]*text-underline-offset|\.at-backlink \{[^}]*text-underline-offset/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：6ae5d7c55c769ceb1a19f793665798f1e312a46ff6573b7592ff26a228f0904e）', () => {
-    // 常量在改前（git HEAD）由真实产物 redact 算出并钉死；此门保证除 className 之外一字节未动。
-    // 若未来行为改动需要 bump 常量：必须随 ADR 写明"行为改了什么、为什么"，不许悄摸 bump。
+  it('剥 className 后全文 SHA256 守恒（i18n 双语化重钉：2678aae7877e87d63322eb34ea7858c23ac3d09e74f28f42a0a066e6c08187f6）', () => {
+    // 常量在改前由真实产物 redact 算出并钉死；此门保证除 className 之外的字节随 ADR 一并 bump。
+    // v782：panel 双语化（COPY 分 zh/en，logic/data 钩子/className 一字未动）→ 常量重钉（门内 redact 复算）。
     expect(createHash('sha256').update(redactClasses(panel)).digest('hex')).toBe(
-      '6ae5d7c55c769ceb1a19f793665798f1e312a46ff6573b7592ff26a228f0904e',
+      '2678aae7877e87d63322eb34ea7858c23ac3d09e74f28f42a0a066e6c08187f6',
     );
   });
 

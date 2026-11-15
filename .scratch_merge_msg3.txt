@@ -1,0 +1,14 @@
+merge(parallel-line): v779-v783 canon + bible RAG + admin waves join master - cont. 122
+
+The other lane's v779-v783 line (about-nexus export fix + loadtest, world-bible RAG
+with game-model ESM TDZ root fix, bible print, api-tokens bilingual, analytics
+bilingual) is consolidated into this master.
+
+Conflicts resolved:
+- docs/showcase/latest.json: kept this line's merged truth (head=561cf9a,
+  2654 commits); regen from the now-merged tree after the commit.
+
+Verified locally: fe-gates 117 suites / 1158 tests green; census 2330 OK;
+no-raw-tailwind clean; tsc web 0; eslint 0 on the merged tree files;
+chronicle/bible visual-style suites green post-merge.
+Not claiming hosted green until the runner gives the merged ref its verdict.

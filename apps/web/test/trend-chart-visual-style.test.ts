@@ -101,7 +101,7 @@ function tcTokensOf(s: string): string[] {
  * 把 8 处 className 的**值**归一成 `@`（静态 `className="…"` 一种形态，本片无模板串/三元），
  * 其余全部保留（含 SVG attributes / 三轴语义色 / 纯函数 / 全部文案），改前与改后必须整份恒等。
  */
-const STRIP_CLASS_SHA256 = 'e4ee0bb8aba25a5f6f208a84c16d9960f84221cff164b79cdc6aaa28117693d9';
+const STRIP_CLASS_SHA256 = '99dabf5301243613a5369b292df5f8055c6395911d57a64541053308e5530f9f';
 function stripClassNames(src: string): string {
   const s = src.replace(/\r\n/g, '\n');
   return s.replace(/className="[^"]*"/g, 'className="@"');
@@ -256,8 +256,8 @@ describe('§FE-15 TrendChart SVG 三轴语义色守恒门面（静态不变式�
       '每天打开次数（只数真人；爬虫/自动化的打开另计在窗口汇总里，不画进这条曲线）',
       '每天访客数（同一人同一天只算一个；这一天没有人来就是 0）',
       '每天可见时长（虚线短柱 = 那一天一条心跳都没有，不是 0 秒）',
-      '纵轴 0 →', '打开 ${point.opens} 次', '访客 ${point.visitors} 人',
-      '未采集（这一天没有心跳）', '可见 ${secondOf(point.playTimeMs)} 秒',
+      '纵轴 0 →', '打开 ${n} 次', '访客 ${n} 人',
+      '未采集（这一天没有心跳）', '可见 ',
     ]) {
       expect(code, `诚实文案「${copy.slice(0, 16)}…」丢了`).toContain(copy);
     }

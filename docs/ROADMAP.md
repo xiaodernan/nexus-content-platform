@@ -1511,7 +1511,9 @@ warm 方向奶油字压亮橙 3.35:1、cyber 的 light 模式是深底配深字 
   `003-潮沙盘.md`（铁月纪·收尾）与 `004-第八盏灯.md`（终卷·灯已经点过了），中英对照、章末附 world-node 映射表；
   `npm run verify:world-bible` 验锚句逐字唯一。正典已落产品面：`/bible` 典籍室（v776），
   中英双语阅读页 + 锚句速览中英并排；快照 `apps/web/src/world-bible/generated.ts` 由 `gen:bible-snapshot` 生成，
-  `verify:bible-snapshot` 字节校验一致。
+  `verify:bible-snapshot` 字节校验一致。大典已入 RAG 语料：`npm run bench:world-bible`
+  灌进 `eval-world-bible-<ts>` 专用项目（`story·全篇` + 45 世界条目 → chunks=59），
+  5 个真实查询全命中（top1 正确章次），证据 `docs/evidence/world-bible-rag-2026-11-17.md`。
 - [x] World Graph 可视化 + 可拖拽节点（§45）— 关系（有向、可带标签）与拖拽位置都存在世界文档里，
   Studio 第四个视图「世界图」画出来；见下方进度记录。自动避障 / 缩放 / 多选没做，不在 §45 的验收里。
 - [~] Character System + Character Agent 对话（§46-47）— §46 档案（含关系、声音、视觉标识）已落地，

@@ -118,6 +118,20 @@ describe('§BIBLE-1 /bible 典籍室', () => {
     for (const token of usedTokens) expect(tokens, `tokens.css 没有声明 ${token}`).toContain(token);
   });
 
+  it('§BIBLE-1 段带打印成册收口（@media print：黑字纸面、导航不进纸、断页保护）', () => {
+    const printAt = bbSegment.indexOf('@media print {');
+    expect(printAt).toBeGreaterThan(0);
+    const printSegment = bbSegment.slice(printAt);
+    expect(printSegment).toContain('.bb-breadcrumb, .bb-foot');
+    expect(printSegment).toContain('display: none');
+    expect(printSegment).toContain('break-inside: avoid');
+    expect(printSegment).toContain('page-break-inside: avoid');
+    expect(printSegment).toContain('Georgia');
+    // 打印段依旧零 hex（只允许命名的 black）
+    expect(printSegment).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+    expect(bbSegment).toMatch(/@page\s*\{/);
+  });
+
   it('BibleMarkdown：表格区 role=region + tabIndex + 双语 aria-label 入参；锚句提取器成对取', () => {
     expect(component).toContain('role="region"');
     expect(component).toContain('tabIndex={0}');

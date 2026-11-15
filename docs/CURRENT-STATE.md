@@ -4282,4 +4282,88 @@ D
 - 注：GUI 手感必须在真机里确认；本片只修符号/方向，不改灵敏度（0.005/rad、夹上下限 0.18–1.35 均保留）。
 - showcase 快照同步于提交后（npm run sync:showcase）。
 
+## cont. 148 (2026-11-17) - v779: web 侧高并发实测（抓出一个 live 5xx）+ PERFORMANCE.md 归档
+
+- 触发：用户长期点名"压力测试 模拟大量用户/高并发"。
+- 首次运行（`scripts/load-web-ssr.mts`，steady 170×3 + burst 110）失败率极高 → 诊断：
+  **冷编译级联** + **`/about-nexus` 必然 500** 两件事叠加——不是"机器崩了"。
+- **真正抓出的产品 bug**：`/about-nexus` 自 v713（cee9a2b8）双语重写起缺失 `export default`
+  （Next 报 `The default export is not a React Component`）；单发也 100% 500；
+  `tsc`/eslint/fe-gates 全绿放过（typecheck 不查 Next 页面默认导出）；
+  修法：补回 `export default async function AboutPage() {`，curl 复测 200（32112 B），§FE-About SHA 重钉。
+- 重跑 sweep（`scripts/load-web-ssr-sweep.mts`，每档重启 next dev + warm，/bible 无业务库）：
+  baseline 30/30 p50 7.27s；tier-6/12/24 全 100/100；tier-48 96/100（4 次硬断，histogram {200×96, 0×4}）；
+  **500 请求 496 × 200，0 个 HTTP 5xx**。DEV 路径不是生产定容——next build 在 free≈1.1GB 跑不出稳定构建；
+  生产窗口（free≥3GB + next start）重测未完成，登记在案。
+- 证据：`docs/evidence/load-web-ssr-2026-11-17.{md,json}`；PERFORMANCE.md 尾部追加（含首发失败现场声明、
+  about-nexus 5xx 现场、sweep 全档表、生产路径未测边界）。首发脚本标 SUPERSEDED 保留。
+- Gates：fe-gates 117/117 · 1157/1157；census 2199 OK；tsc web 0；eslint 净；§FE-About 重钉（af4263d9…）。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 149 (2026-11-17) - v780: 世界大典 RAG bench 实测全绿 + game-model ESM TDZ 根治
+
+- 触发：用户点名"如果合适的话，最好用一些 RAG / LangChain / LangGraph 的知识"。
+- 取舍：本仓 RAG 语料层已经整套存在（§49：tsvector + substring + 词覆盖度融合、
+  `knowledgeChunks`、`syncProjectKnowledge` / `retrieveProjectKnowledge`）。
+  LangChain/LangGraph 是 Python 编排库，塞进 TypeScript monorepo 只会放大工作面且两边都要新约束；
+  取其**架构思想**（锚定输入 → chunk → 融合检索 → 真实查询回测），用仓库自己的引擎完成。
+- 新建 `scripts/ingest-world-bible.mts`（注册 `npm run bench:world-bible`）：
+  4 章正典逐章建 `story·全篇` 条目（body = 正文全文）+ 章末 world-node 映射表逐行建条目，
+  共 45 世界条目 → `syncProjectKnowledge` 灌 **chunks=59**；
+  5 个真实查询（潮沙盘 / 会册 / 第八盏灯 / 雾港灯人 / 第四十一次会议）走真 pgvector-backed 混合检索，
+  **top1 全是正确章次**；零 provider 依赖；throw-away 用户 `bible-canon+…@nexus.test` + throw-away 项目
+  `eval-world-bible-<ts>`（id 与时间戳在案）；exit 0。
+  证据 `docs/evidence/world-bible-rag-2026-11-17.md`。
+- 顺带根治一个真 bug：`packages/game-model` 的 barrel ↔ codegen 循环依赖把 `GAME_KINDS` 放进 TDZ，
+  任何经由 barrel 深 import 的模块首次加载即崩
+  （`ReferenceError: Cannot access 'GAME_KINDS' before initialization`）；
+  `tsc web` 与 vitest 都没红（不走那个求值序列）。修法：新建叶模块 `kinds.ts`
+  （GAME_KINDS/TERMS/GameKind），index 与 codegen 改从它引入，外部签名不变；
+  **game-model 19 文件 363/363 全绿**。
+- Gates：`verify:world-bible` 4 章 ✓；`verify:bible-snapshot` ✓；game-model 363/363；tsc 0；fe-gates 117/117 · 1157/1157；eslint 净。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 151 (2026-11-17) - v782: /api-tokens 凭据页集群双语化
+
+- 触发：用户点名"所有项目都要支持全内容中英文切换……原生英文的内容也得全部翻译为中文"。
+- 完成了两个页面的全量双语化：
+  - `api-tokens/page.tsx`：server RSC getLocale，h1、lede、返回链接；ApiTokensPanel locale 透传。
+  - `components/ApiTokensPanel.tsx`（client，locale prop 默认 zh）：SCOPE_LABELS 六标签、签发/到期/吊销
+    各状态文案（revoked/expired/expiry/active）、"试一下"流程（list/design/patch 的 detail 文案）、
+    错误与成功提示、表头（名称/前缀/签发/最近使用/最近读过/状态）、空态/列表失败/重试、
+    所有 inline 标题（daysTitle …）、footer v1 口径句（LIMITS 插值）。
+    逻辑与钩子一个字未动（zh 原字字面零变化）。
+- §FE-20 SHA 重钉（6ae5d7c5→2678aae7…，门内 redact 复算）。
+- Gates：fe-gates 117/117 · 1158/1158；census 2199 OK；tsc web 0；eslint 净。
+- SSR 实测（next dev :3401，已关）：/api-tokens zh/en cookie 各 200。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 152 (2026-11-17) - v783: /analytics 数据账本双语化
+
+- 触发：同上（最大的一块 zh-only 公开页）。
+- 完成： `app/analytics/page.tsx` 双语（getLocale + 12 项 DEFINITIONS 双语化，EN 为全量意译非直译）；
+  Cell/CompletionCell locale 参数；duration() 单位（秒/分 ↔ s/min s）；数据表 aria；
+  表头/四类"只有你自己…／未计入／截断"旗标、主次口径旁注、footer 两段长口径句（§46 分析 agent 产物仍是 zh 原文透传并明确登记）。
+- `app/analytics/TrendChart.tsx`（RSC，locale prop 默认 zh）：三轴标题、单位（次/人/秒 ↔ opens/visitors/s）、
+  空 note、aria-label（axisMaxPrefix + 标题）全部双语；SVG 行为/`stroke=-2 2`/`transparent`/`{dasharray}` 无改动。
+- Gates：§FE-14 段 A 重钉（0b1f28…→b6013374…，段 B creatorAnalytics fetch
+  链 dd0dd3ea31…逐字节不变✓）+ STRIP_CLASS 重钉（9545e9d2…，门内 stripClassNames 复算）；
+  §FE-15 STRIP_CLASS 重钉（e4ee0bb8→99dabf53…，trend gate 剥类复算）；
+  两门的 CJK 枚举计数断言更新为 24（12 zh + 12 en "label: '" 出现次数）。
+- fe-gates 117/117 · 1158/1158；census 2199 OK；tsc web 0；eslint 净；
+  SSR 实测 /analytics zh/en cookie 各 200（title 带双语惯例 cc）。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 150 (2026-11-17) - v781: 典籍室「收藏成册」打印力
+
+- 给 `/bible` 正典加 `@media print` 收口：纸面黑字（ink 用命名 black，无 hex）、hide 导航
+  （.bb-breadcrumb/.bb-foot/.bb-footLinks/.bb-prevNext/.bb-cardLink → display:none）、
+  Georgia/宋体衬线正文（中文走 Noto Serif CJK SC / Source Han Serif SC / Songti SC，回退 Georgia）、
+  断页保护（.bb-h2/.bb-h3/.bb-anchorRow/.bb-card break-inside/page-break-inside avoid、
+  h2 break-after avoid）、@page margin 0.85/1.1cm。
+- 断言进 §FE-BIBLE gate（打印段存在 + 断页保护字 + 中英字体栈 + 零 hex + @page），
+  fe-gates **117/117 · 1158/1158**。
+- 用户想打印正典收藏成册——现在真的能打印了。web 端零新增类（只用既有 bb-*）。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
 
