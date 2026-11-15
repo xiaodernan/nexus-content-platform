@@ -1,0 +1,22 @@
+feat(i18n): /marketplace, /credits, /blocks go full bilingual zh/en (cont. 128)
+
+Three more surfaces finish the public/account bilingual sweep:
+
+- /marketplace (§127/128): creator marketplace page is bilingual end to end — header, actions,
+  type filter row (ALL/Component/Template/...), empty states, my-items segment, sign-in hint and the
+  delivery-boundary footnote; MarketplaceCreateForm and MarketplaceItemRow take locale prop
+  (full dictionaries, no mixed copy; hard data like prices/ids/names verbatim); REPORT_REASON
+  EN twin dict added in lib (zh stays the CHECK-constraint source of truth, display-only).
+- /credits (§133/134): page chrome bilingual incl. anonymous-gate, lede (lang-aware date + plan chip),
+  balances grid (kind labels stay the English domain labels), CreditsBurnCard gets locale (dict for
+  burn copy/chips/aria), plans table headers + Storage/Team/Publishable headers, enforcement readout
+  EN twin (zh keeps the domain function verbatim — pinned byte-for-byte by §16 gate), ledger table
+  headers + all the human prose (no-top-up, refunds rule, grants idempotency, storage/publish math).
+  The zh-only `function costNote(kind: CreditLedgerKind): string` stays byte-identical (FE-16 pin).
+- /blocks (§132): the block/mute roster page is bilingual; UnblockButton gets locale; explainer is en twin.
+- FE pins re-measured honestly (page/row/form/burn/blocks/credits pins — each moved with the program it
+  documents); marketplace-item-row's zh-branch pins became dictionary-entry assertions (EN twin exists next to zh).
+- Gates: fe-gates 120/120 · 1181/1181; census 2399; tsc 0; eslint 0; EN renders verified live in all three pages.
+
+Ledger reasons stored in the ledger (e.g. "Free 档位 2026-11 月的 AI credits 发放") stay verbatim — they are
+sentences authored in zh at write time, not translatable without rewriting history (§159, recorded here).

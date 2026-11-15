@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * 预览资产从所选项目挑（`/api/projects/<id>/assets`）；没选项目也能上架「挂牌」——不动谓词与渐进语义。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `051c4b9bd002602eadd8d96689cc691ace4f0b3837a0d5e7da1701c8b538fcbe` 与 HEAD 字节一致。
+ * `407d1cfdbda512abe2d2d7c5428bf8039145f09289b8478b1dd7cfbb0eeb1881` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/marketplace/MarketplaceCreateForm.tsx');
@@ -102,9 +102,9 @@ describe('§FE-84 /marketplace MarketplaceCreateForm 上架表单', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：051c4b9bd002602eadd8d96689cc691ace4f0b3837a0d5e7da1701c8b538fcbe）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：407d1cfdbda512abe2d2d7c5428bf8039145f09289b8478b1dd7cfbb0eeb1881）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '051c4b9bd002602eadd8d96689cc691ace4f0b3837a0d5e7da1701c8b538fcbe',
+      '407d1cfdbda512abe2d2d7c5428bf8039145f09289b8478b1dd7cfbb0eeb1881',
     );
   });
 });

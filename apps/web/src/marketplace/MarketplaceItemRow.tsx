@@ -4,11 +4,15 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { csrfHeaders } from '@/lib/csrf';
 import { saveBlob } from '@/lib/download';
-import { REPORT_REASON_LABELS, REPORT_REASONS, type ReportReason } from '@/lib/marketplaceReports';
+import { REPORT_REASON_LABELS, REPORT_REASON_LABELS_EN, REPORT_REASONS, type ReportReason } from '@/lib/marketplaceReports';
+import type { Locale } from '@/lib/i18n';
 
 /**
  * 市场物品的一行：卡片信息 + （自己的）删除 + 下载计数。
  * §127-128 Marketplace 购买与交付：付费物品先买后下，免费物品直接下。
+ *
+ * 双语（2026-11-15）：locale 由 RSC 透传（默认 zh），COPY 中英一辞两字面；
+ * 用户内容（title、description、creatorName）原样下发，不生成译本。
  */
 
 interface ItemView {
@@ -23,6 +27,137 @@ interface ItemView {
   previewAssetId: string | null;
 }
 
+const COPY: Record<Locale, {
+  freeItem: string;
+  confirmBuy: (credits: number, title: string) => string;
+  purchaseFailed: (status: number) => string;
+  purchaseOk: string;
+  downloadBeforePurchase: string;
+  downloadFailed: (status: number) => string;
+  delivered: string;
+  removeConfirm: (title: string) => string;
+  removeFailed: (status: number) => string;
+  saveFailed: (status: number) => string;
+  saved: string;
+  reportFailed: (status: number) => string;
+  reportDone: string;
+  reportReason: string;
+  reportSubmit: string;
+  reportCancel: string;
+  reportNoteAria: string;
+  reportNotePlaceholder: string;
+  reportIntro: string;
+  reportClose: string;
+  reportOpen: string;
+  remove: string;
+  reporting: string;
+  downloadsLabel: (n: number) => string;
+  free: string;
+  purchased: string;
+  reported: string;
+  anonymousCreator: string;
+  edit: string;
+  collapse: string;
+  price: string;
+  visibility: string;
+  visPublic: string;
+  visFree: string;
+  visPrivate: string;
+  save: string;
+  purchase: string;
+  purchasing: string;
+  download: string;
+  fetching: string;
+  previewAlt: (title: string) => string;
+}> = {
+  zh: {
+    freeItem: '免费物品无需购买',
+    confirmBuy: (credits, title) => `确认花费 ${credits} credits 购买「${title}」？`,
+    purchaseFailed: (status) => `购买失败（${status}）`,
+    purchaseOk: '购买成功！现在可以下载了。',
+    downloadBeforePurchase: '请先完成购买再下载',
+    downloadFailed: (status) => `下载失败（${status}）`,
+    delivered: '包已交付（设计文档 + 代码）。',
+    removeConfirm: (title) => `下架「${title}」？`,
+    removeFailed: (status) => `下架失败（${status}）`,
+    saveFailed: (status) => `保存失败（${status}）`,
+    saved: '已保存。',
+    reportFailed: (status) => `举报失败（${status}）`,
+    reportDone: '已提交举报。审核员会在市场工单台处置；工单结案不等于下架，撤内容走人工复核台。',
+    reportReason: '原因',
+    reportSubmit: '提交举报',
+    reportCancel: '取消',
+    reportNoteAria: '举报说明',
+    reportNotePlaceholder: '补充说明（可选，最多 1000 字）',
+    reportIntro: '举报进审核员工单台；结案 / 驳回都不会自动下架物品。',
+    reportClose: '收起举报',
+    reportOpen: '举报',
+    remove: '下架',
+    reporting: '提交中...',
+    downloadsLabel: (n) => `下载（${n}）`,
+    free: '免费',
+    purchased: '已购买',
+    reported: '已举报',
+    anonymousCreator: '匿名创作者',
+    edit: '改价格/可见性',
+    collapse: '收起',
+    price: '价格',
+    visibility: '可见性',
+    visPublic: '公开在售',
+    visFree: '免费',
+    visPrivate: '私密',
+    save: '保存',
+    purchase: '购买',
+    purchasing: '购买中...',
+    download: '下载',
+    fetching: '取包中...',
+    previewAlt: (title) => `预览：${title}`,
+  },
+  en: {
+    freeItem: 'Free items require no purchase',
+    confirmBuy: (credits, title) => `Spend ${credits} credits to buy “${title}”?`,
+    purchaseFailed: (status) => `Purchase failed (HTTP ${status})`,
+    purchaseOk: 'Purchased — it is downloadable now.',
+    downloadBeforePurchase: 'Buy it first, then download',
+    downloadFailed: (status) => `Download failed (HTTP ${status})`,
+    delivered: 'Bundle delivered (design doc + code).',
+    removeConfirm: (title) => `Take “${title}” off the shelf?`,
+    removeFailed: (status) => `Take-down failed (HTTP ${status})`,
+    saveFailed: (status) => `Save failed (HTTP ${status})`,
+    saved: 'Saved.',
+    reportFailed: (status) => `Report failed (HTTP ${status})`,
+    reportDone: 'Report filed. A reviewer will work it in the marketplace triage desk — a closed verdict is not a takedown; takedowns go through the content-review desk.',
+    reportReason: 'Reason',
+    reportSubmit: 'File report',
+    reportCancel: 'Cancel',
+    reportNoteAria: 'Report details',
+    reportNotePlaceholder: 'Details (optional, up to 1000 chars)',
+    reportIntro: 'Reports land in the moderator triage desk; resolving or dismissing never takes the item down automatically.',
+    reportClose: 'Close report',
+    reportOpen: 'Report',
+    remove: 'Take down',
+    reporting: 'Filing…',
+    downloadsLabel: (n) => `Download (${n})`,
+    free: 'Free',
+    purchased: 'Purchased',
+    reported: 'Reported',
+    anonymousCreator: 'Anonymous creator',
+    edit: 'Edit price/visibility',
+    collapse: 'Collapse',
+    price: 'Price',
+    visibility: 'Visibility',
+    visPublic: 'For sale',
+    visFree: 'Free',
+    visPrivate: 'Private',
+    save: 'Save',
+    purchase: 'Buy',
+    purchasing: 'Buying…',
+    download: 'Download',
+    fetching: 'Fetching…',
+    previewAlt: (title) => `Preview: ${title}`,
+  },
+};
+
 export function MarketplaceItemRow({
   item,
   mine,
@@ -30,6 +165,7 @@ export function MarketplaceItemRow({
   alreadyReported,
   typeLabel,
   visibilityLabel,
+  locale = 'zh',
 }: {
   item: ItemView;
   mine: boolean;
@@ -39,7 +175,10 @@ export function MarketplaceItemRow({
   alreadyReported: boolean;
   typeLabel: string;
   visibilityLabel: string;
+  locale?: Locale;
 }) {
+  const c = COPY[locale];
+  const reasonLabels = locale === 'zh' ? REPORT_REASON_LABELS : REPORT_REASON_LABELS_EN;
   const router = useRouter();
   // §A11Y-2：disclosure 契约——触发键的 aria-controls 与受控面板的 id 共用同一份，
   // 派生自 item.id 让列表里多行实例互不串味；只在展开态引用、收起不留悬空引用。
@@ -60,10 +199,10 @@ export function MarketplaceItemRow({
 
   const purchase = async () => {
     if (item.priceCredits === 0) {
-      setMessage('免费物品无需购买');
+      setMessage(c.freeItem);
       return;
     }
-    if (!window.confirm(`确认花费 ${item.priceCredits} credits 购买「${item.title}」？`)) return;
+    if (!window.confirm(c.confirmBuy(item.priceCredits, item.title))) return;
     setPurchasing(true);
     try {
       const res = await fetch(`/api/marketplace/${item.id}/purchase`, {
@@ -72,11 +211,11 @@ export function MarketplaceItemRow({
       });
       if (!res.ok) {
         const json = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
-        setMessage(json?.message ?? json?.error ?? `购买失败（${res.status}）`);
+        setMessage(json?.message ?? json?.error ?? c.purchaseFailed(res.status));
         return;
       }
       setPurchased(true);
-      setMessage('购买成功！现在可以下载了。');
+      setMessage(c.purchaseOk);
     } finally {
       setPurchasing(false);
     }
@@ -85,7 +224,7 @@ export function MarketplaceItemRow({
   const download = async () => {
     // 付费物品需要先购买（除非是自己的）
     if (item.priceCredits > 0 && !mine && !purchased) {
-      setMessage('请先完成购买再下载');
+      setMessage(c.downloadBeforePurchase);
       return;
     }
     if (downloading) return;
@@ -97,13 +236,13 @@ export function MarketplaceItemRow({
       const res = await fetch(`/api/marketplace/${item.id}/content`, { credentials: 'same-origin' });
       if (!res.ok) {
         const json = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
-        setMessage(json?.message ?? json?.error ?? `下载失败（${res.status}）`);
+        setMessage(json?.message ?? json?.error ?? c.downloadFailed(res.status));
         return;
       }
       const blob = await res.blob();
       // 回收对象 URL 的时机只写在 @/lib/download 那一处（三处下载共用一份实现）
       saveBlob(`${item.title}.zip`, blob);
-      setMessage('包已交付（设计文档 + 代码）。');
+      setMessage(c.delivered);
     } finally {
       setDownloading(false);
       router.refresh();
@@ -111,14 +250,14 @@ export function MarketplaceItemRow({
   };
 
   const remove = async () => {
-    if (!window.confirm(`下架「${item.title}」？`)) return;
+    if (!window.confirm(c.removeConfirm(item.title))) return;
     const res = await fetch(`/api/marketplace/${item.id}`, {
       method: 'DELETE',
       headers: csrfHeaders(),
     });
     if (!res.ok) {
       const json = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
-      setMessage(json?.message ?? `下架失败（${res.status}）`);
+      setMessage(json?.message ?? c.removeFailed(res.status));
       return;
     }
     router.refresh();
@@ -133,11 +272,11 @@ export function MarketplaceItemRow({
     if (!res.ok) {
       // 服务端的 `error` 是稳定的机器码（not_found/forbidden），给人看的是 `message`
       const json = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
-      setMessage(json?.message ?? json?.error ?? `保存失败（${res.status}）`);
+      setMessage(json?.message ?? json?.error ?? c.saveFailed(res.status));
       return;
     }
     setEditing(false);
-    setMessage('已保存。');
+    setMessage(c.saved);
     router.refresh();
   };
 
@@ -156,7 +295,7 @@ export function MarketplaceItemRow({
       const json = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
       if (!res.ok) {
         // 409 是"已经举报过"，不是能重试的失败：入口收起，别让同一句错误再点一次
-        setMessage(json?.message ?? json?.error ?? `举报失败（${res.status}）`);
+        setMessage(json?.message ?? json?.error ?? c.reportFailed(res.status));
         if (res.status === 409) {
           setReported(true);
           setReportOpen(false);
@@ -165,7 +304,7 @@ export function MarketplaceItemRow({
       }
       setReported(true);
       setReportOpen(false);
-      setMessage('已提交举报。审核员会在市场工单台处置；工单结案不等于下架，撤内容走人工复核台。');
+      setMessage(c.reportDone);
     } finally {
       setReportBusy(false);
     }
@@ -181,7 +320,7 @@ export function MarketplaceItemRow({
           // 预览走市场自己的公开路由：素材本体在作者项目里，画布那条取图路是 owner-only 的
           <img
             src={`/api/marketplace/${item.id}/preview`}
-            alt={`预览：${item.title}`}
+            alt={c.previewAlt(item.title)}
             className="mi-preview"
             data-marketplace-preview={item.id}
           />
@@ -194,19 +333,19 @@ export function MarketplaceItemRow({
           {visibilityLabel}
         </span>
         <span className="mi-price" data-marketplace-item-price={item.priceCredits}>
-          {item.priceCredits > 0 ? `${item.priceCredits} credits` : '免费'}
+          {item.priceCredits > 0 ? `${item.priceCredits} credits` : c.free}
         </span>
         {purchased ? (
           <span className="mi-badgePurchased" data-marketplace-purchased>
-            已购买
+            {c.purchased}
           </span>
         ) : null}
         {reported ? (
           <span className="mi-badgeReported" data-marketplace-reported>
-            已举报
+            {c.reported}
           </span>
         ) : null}
-        <span className="mi-creator">{item.creatorName ?? '匿名创作者'}</span>
+        <span className="mi-creator">{item.creatorName ?? c.anonymousCreator}</span>
         {mine ? (
           <button
             type="button"
@@ -216,7 +355,7 @@ export function MarketplaceItemRow({
             aria-controls={editing ? editPanelId : undefined}
             className="mi-btn mi-btnGhost"
           >
-            {editing ? '收起' : '改价格/可见性'}
+            {editing ? c.collapse : c.edit}
           </button>
         ) : null}
         {item.priceCredits > 0 && !mine && !purchased ? (
@@ -227,7 +366,7 @@ export function MarketplaceItemRow({
             data-marketplace-purchase={item.id}
             className="mi-btn mi-btnPrimary"
           >
-            {purchasing ? '购买中...' : '购买'}
+            {purchasing ? c.purchasing : c.purchase}
           </button>
         ) : null}
         {signedIn && !mine && !reported ? (
@@ -239,7 +378,7 @@ export function MarketplaceItemRow({
             data-marketplace-report={item.id}
             className="mi-btn mi-btnDanger"
           >
-            {reportOpen ? '收起举报' : '举报'}
+            {reportOpen ? c.reportClose : c.reportOpen}
           </button>
         ) : null}
         <button
@@ -249,7 +388,7 @@ export function MarketplaceItemRow({
           data-marketplace-download={item.id}
           className="mi-btn mi-btnGhost"
         >
-          {downloading ? '取包中...' : `下载（${item.downloadCount}）`}
+          {downloading ? c.fetching : c.downloadsLabel(item.downloadCount)}
         </button>
         {mine ? (
           <button
@@ -258,14 +397,14 @@ export function MarketplaceItemRow({
             data-marketplace-remove={item.id}
             className="mi-btn mi-btnDanger"
           >
-            下架
+            {c.remove}
           </button>
         ) : null}
       </div>
       {editing ? (
         <div id={editPanelId} className="mi-panel" data-marketplace-edit-panel={item.id}>
           <label className="mi-field">
-            价格
+            {c.price}
             <input
               type="number"
               min={0}
@@ -276,16 +415,16 @@ export function MarketplaceItemRow({
             />
           </label>
           <label className="mi-field">
-            可见性
+            {c.visibility}
             <select
               value={visibility}
               onChange={(e) => setVisibility(e.target.value)}
               data-marketplace-edit-visibility={item.id}
               className="mi-select"
             >
-              <option value="public">公开在售</option>
-              <option value="free">免费</option>
-              <option value="private">私密</option>
+              <option value="public">{c.visPublic}</option>
+              <option value="free">{c.visFree}</option>
+              <option value="private">{c.visPrivate}</option>
             </select>
           </label>
           <button
@@ -294,14 +433,14 @@ export function MarketplaceItemRow({
             data-marketplace-edit-save={item.id}
             className="mi-btn mi-btnPrimary"
           >
-            保存
+            {c.save}
           </button>
         </div>
       ) : null}
       {reportOpen ? (
         <div id={reportPanelId} className="mi-panel" data-marketplace-report-panel={item.id}>
           <label className="mi-field">
-            原因
+            {c.reportReason}
             <select
               value={reportReason}
               onChange={(e) => setReportReason(e.target.value as ReportReason)}
@@ -310,16 +449,16 @@ export function MarketplaceItemRow({
             >
               {REPORT_REASONS.map((value) => (
                 <option value={value} key={value}>
-                  {REPORT_REASON_LABELS[value]}
+                  {reasonLabels[value]}
                 </option>
               ))}
             </select>
           </label>
-          <input aria-label="举报说明"
+          <input aria-label={c.reportNoteAria}
             value={reportNote}
             onChange={(e) => setReportNote(e.target.value)}
             maxLength={1000}
-            placeholder="补充说明（可选，最多 1000 字）"
+            placeholder={c.reportNotePlaceholder}
             data-marketplace-report-note={item.id}
             className="mi-input mi-inputNote"
           />
@@ -330,7 +469,7 @@ export function MarketplaceItemRow({
             data-marketplace-report-submit={item.id}
             className="mi-btn mi-btnPrimary"
           >
-            {reportBusy ? '提交中...' : '提交举报'}
+            {reportBusy ? c.reporting : c.reportSubmit}
           </button>
           <button
             type="button"
@@ -338,9 +477,9 @@ export function MarketplaceItemRow({
             data-marketplace-report-cancel={item.id}
             className="mi-btn mi-btnGhost"
           >
-            取消
+            {c.reportCancel}
           </button>
-          <span className="mi-hint">举报进审核员工单台；结案 / 驳回都不会自动下架物品。</span>
+          <span className="mi-hint">{c.reportIntro}</span>
         </div>
       ) : null}
       {item.description ? <p className="mi-desc">{item.description}</p> : null}

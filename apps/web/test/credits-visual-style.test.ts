@@ -162,7 +162,7 @@ function maskLiterals(expr: string): string {
  * `"@"`；动态 `className={…}` 平衡括号取出，字面值归一、保留 `${}`/条件/标识符/分支位置。
  * 基线（全裸）与改造后（全 `.cr-`）必须整份恒等。
  */
-const STRIP_CLASS_SHA256 = 'c38018b2a27f9bc9edee36a46446c4cf611a92f73e25fd3d54070be0cd5a1409';
+const STRIP_CLASS_SHA256 = '03db24677159fbbfab0d9ebf3ab6d1e876b4c0f694852faae65cb83062038fdd';
 function stripClassNames(src: string): string {
   const s = src.replace(/\r\n/g, '\n');
   let out = '';
@@ -347,7 +347,9 @@ describe('§FE-16 credits 额度与消费页门面（静态不变式）', () => 
       'const publishLimit = concurrentPublishLimit(view.plan);',
       '{CREDIT_KINDS.map((kind) => (',
       '{PLAN_KEYS.map((plan: PlanKey) => (',
-      '{planEnforcementReadout()}',
+      // 2026-11-15 双语 wave: zh keeps the domain function verbatim inside a conditional; en carries its own dictionary.
+      // The invariant that matters — zh is never a hand-written copy of the enforcement readout — stays pinned byte-for-byte.
+      "locale === 'zh' ? planEnforcementReadout() : c.enforcedEn",
       'export const dynamic = ',
     ]) {
       expect(code, `纯函数/语义契约「${fragment.slice(0, 36)}…」丢了`).toContain(fragment);
