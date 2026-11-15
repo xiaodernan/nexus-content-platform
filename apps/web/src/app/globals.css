@@ -4860,6 +4860,44 @@
 .bb-echoHead { display: flex; flex-direction: column; gap: var(--nexus-space-1); padding-top: var(--nexus-space-2); }
 .bb-echoTitle { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-13); letter-spacing: 0.3em; text-transform: uppercase; color: var(--nexus-color-fg-2); border-bottom: 1px solid var(--nexus-color-border-subtle); padding-bottom: var(--nexus-space-2); }
 .bb-echoLede { font-size: var(--nexus-font-size-12); line-height: 1.8; color: var(--nexus-color-fg-3); }
+
+.bb-playTrial { margin: 0; }
+.bb-playLink { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-13); letter-spacing: 0.12em; color: var(--nexus-color-accent-mix); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--nexus-color-accent-mix) 55%, transparent); padding-bottom: 0.12rem; }
+.bb-playLink:hover { color: var(--nexus-color-fg-1); border-color: var(--nexus-color-accent-mix); }
+.bb-playLink:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+.bb-quiz-root { max-width: 44rem; display: flex; flex-direction: column; gap: var(--nexus-space-3); }
+.bb-quiz-kicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.3em; text-transform: uppercase; color: var(--nexus-color-accent-mix); }
+.bb-quiz-title { font-size: var(--nexus-font-size-28); font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; background: linear-gradient(135deg, var(--nexus-color-fg-1) 0%, var(--nexus-color-accent-mix) 55%, var(--nexus-color-accent-1) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.bb-quiz-bar { height: 0.375rem; border-radius: 999px; background: var(--nexus-color-bg-2); overflow: hidden; }
+.bb-quiz-barFill { height: 100%; background: linear-gradient(90deg, var(--nexus-color-accent-mix), var(--nexus-color-brand)); border-radius: inherit; transition: width 260ms ease; }
+.bb-quiz-stepLabel { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.2em; color: var(--nexus-color-fg-3); text-transform: uppercase; }
+.bb-quiz-question { font-size: var(--nexus-font-size-18); font-weight: 650; line-height: 1.65; color: var(--nexus-color-fg-1); }
+.bb-quiz-choices { display: flex; flex-direction: column; gap: var(--nexus-space-2); }
+.bb-quiz-choice { display: flex; align-items: baseline; gap: var(--nexus-space-3); text-align: left; border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md); padding: var(--nexus-space-3) var(--nexus-space-4); background: linear-gradient(168deg, var(--nexus-color-bg-1), var(--nexus-color-bg-2)); color: var(--nexus-color-fg-1); cursor: pointer; font-size: var(--nexus-font-size-14); line-height: 1.7; letter-spacing: 0.01em; transition: border-color 160ms ease, transform 160ms ease; }
+.bb-quiz-choice:hover:not(:disabled) { border-color: color-mix(in srgb, var(--nexus-color-brand) 55%, transparent); transform: translateY(-1px); }
+.bb-quiz-choice:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+.bb-quiz-choice:disabled { cursor: default; }
+.bb-quiz-choiceIndex { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+.bb-quiz-choiceCorrect { border-color: var(--nexus-color-success); background: color-mix(in srgb, var(--nexus-color-success) 12%, var(--nexus-color-bg-1)); }
+.bb-quiz-choiceWrong { border-color: color-mix(in srgb, var(--nexus-color-danger) 65%, transparent); background: color-mix(in srgb, var(--nexus-color-danger) 10%, var(--nexus-color-bg-1)); }
+.bb-quiz-choiceText { flex: 1; }
+.bb-quiz-feedback { display: flex; justify-content: space-between; align-items: center; gap: var(--nexus-space-3); border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-3); flex-wrap: wrap; }
+.bb-quiz-feedbackOk { font-size: var(--nexus-font-size-14); color: var(--nexus-color-success); }
+.bb-quiz-feedbackBad { font-size: var(--nexus-font-size-14); color: var(--nexus-color-danger); }
+.bb-quiz-next { font-size: var(--nexus-font-size-13); color: var(--nexus-color-accent-2-ink); background: transparent; border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-2) var(--nexus-space-4); cursor: pointer; }
+.bb-quiz-next:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+.bb-quiz-score { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-28, 1.75rem); font-variant-numeric: tabular-nums; color: var(--nexus-color-accent-mix); letter-spacing: 0.05em; }
+.bb-quiz-verdict { border-left: 3px solid var(--nexus-color-accent-mix); padding-left: var(--nexus-space-4); display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+.bb-quiz-verdictText { font-size: var(--nexus-font-size-18); font-weight: 650; color: var(--nexus-color-fg-1); }
+.bb-quiz-verdictNote { font-size: var(--nexus-font-size-12); line-height: 1.8; color: var(--nexus-color-fg-2); }
+.bb-quiz-restart { align-self: flex-start; font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-2-ink); background: transparent; border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-2) var(--nexus-space-5); cursor: pointer; }
+.bb-quiz-restart:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+.bb-quiz-footer { font-size: var(--nexus-font-size-11); line-height: 1.8; color: var(--nexus-color-fg-3); margin-top: var(--nexus-space-2); }
+@media (forced-colors: active) {
+  .bb-quiz-choice, .bb-quiz-choiceCorrect, .bb-quiz-choiceWrong { border-color: CanvasText; background: Canvas; color: CanvasText; }
+  .bb-quiz-title, .bb-quiz-kicker, .bb-quiz-question, .bb-quiz-score, .bb-quiz-verdictText, .bb-quiz-verdictNote, .bb-quiz-feedbackOk, .bb-quiz-feedbackBad, .bb-quiz-footer { color: CanvasText; -webkit-text-fill-color: CanvasText; background: none; }
+  .bb-quiz-choice:focus-visible, .bb-quiz-restart:focus-visible, .bb-quiz-next:focus-visible { outline-color: Highlight; }
+}
 @media (max-width: 48rem) {
   .bb-anchorRow { grid-template-columns: 2rem 1fr; }
   .bb-anchorEn { grid-column: 2; padding-bottom: var(--nexus-space-2); }
