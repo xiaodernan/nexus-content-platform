@@ -4545,3 +4545,16 @@ D
   是中文产品面上的账本语文，不改写历史（§159 by design）。
 - main-line 队列：50dada4 / 2a76cb3 / ce62671 / c7db843 / 04f0e5d / ecc1377f 全部 SUCCESS（含本线三次合并后的加固 ref）；
   ee8b62d / d7cb1aa 仍在跑（本条提交）。CI proofs step 仍挂在 arms 那两行之上，arm-mismatch 名单将在下一次 proofs step 的 gutter 可见。
+
+
+## cont. 129 (2026-11-15) - layout 全局 chrome 双语收口
+
+- 根布局在传 locale，但内部全局小件（命令面板胶囊、快捷键速览 fab、主题 FAB）是中文：这一遍整体双语化——
+  lib/command-palette/commands 新增 PALETTE_COMMANDS_EN + GROUP_LABEL_EN（id/href/keywords 与 zh 同表，keywords 双写）；
+  CommandPalette 全套 chrome（胶囊、对话框 aria、搜索 aria、空状态、页脚）COPY 双辞典；
+  KeyboardCheatsheet 六个分组的行为文字全量 EN（键位字节不变）；ThemeToggle aria-label 双辞典；LocaleToggle 早在线。
+- layout.tsx 把 locale 透传给三个子组件（⌘⇧K/⌘K、?、?-panel、主题 FAB 均为熟手速览门禁）。
+- Gates：fe-gates 120/120 · 1181/1181；tsc 0；eslint 0；command-palette registry/score/input 与 cheatsheet 套件绿；
+  SHA pins 复算重钉（cheatsheet 4f7ba6f6、root-layout 5dd9dfdd、theme-toggle 03929ea2、i18n 972daf1b）；
+  layout-mount 断言的锚点改为 locale 形式（两种折叠空白歧义堵掉）。
+- 诚实边界：studio 深层仍有未双语的小件（TasksLedgerLive 的 zh 散文、SavingsCard 等）——下一刀明确落在那里。
