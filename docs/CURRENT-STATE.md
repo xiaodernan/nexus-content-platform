@@ -4531,3 +4531,17 @@ D
 - Gates：fe-gates 120/120 · 1181/1181；census 2399；tsc 0；eslint 0。EN 实测渲染通过（整页英文、含 ON 开关面板）。
 - 回归边界：`notify-producers.test.ts` 的注册表未被这次改动触碰；EN 字典新增的键若将来被删，它的 notify-producers
   census 会照样通过，但 FE-17 的钩子守恒仍会兜住 chrome 部分——双兜底。
+
+
+## cont. 128 (2026-11-15) - /marketplace /credits /blocks 全双语 + 前端大面收口
+
+- 三个面向用户的大页双语收口：/marketplace（§127/128 店面：header/actions/types/empty/signin hint/download
+  boundary + 上架表单 + 物品行 + REPORT_REASON EN 孪生）、/credits（§133/134 四类余额 + 燃烬卡 + 档位上限表 + 全套
+  中文散文 + enforcement readout EN 孪生；zh 的 `function costNote` 字节不改、FE-16 门持续通过）、/blocks（§132 拉黑/屏蔽名单）。
+- FE-pins 重钉：marketplace-page / item-row / create-form、credits、credits-burn、blocks 全部按"删了多少字节、新增多少字节"逐个复算改钉；
+  marketplace-item-row 的 AI 文案分支断言迁到 COPY dict 字段（zh 字节原样保留，EN 由 TSC 兜住）。
+- Gates：fe-gates 120/120 · 1181/1181；census 2399；tsc 0；eslint 0；EN 目检通过（marketplace / credits / blocks 三页）。
+- 诚实边界：credit_ledger 的 reason 串（"Free 档位 2026-11 月的 AI credits 发放" 这类）是写入时的中文散文，
+  是中文产品面上的账本语文，不改写历史（§159 by design）。
+- main-line 队列：50dada4 / 2a76cb3 / ce62671 / c7db843 / 04f0e5d / ecc1377f 全部 SUCCESS（含本线三次合并后的加固 ref）；
+  ee8b62d / d7cb1aa 仍在跑（本条提交）。CI proofs step 仍挂在 arms 那两行之上，arm-mismatch 名单将在下一次 proofs step 的 gutter 可见。
