@@ -36,6 +36,7 @@ const WEB_SLUGS: Record<string, string> = {
   '001-潮汐教团的余烬': '001-last-ember-of-the-tide-conclave',
   '002-潮汐教团的第四十一次会议': '002-the-forty-first-convocation',
   '003-潮沙盘': '003-the-tide-sand-table',
+  '004-第八盏灯': '004-the-eighth-lamp',
 };
 
 function parseTitleZh(line: string): string {

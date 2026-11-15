@@ -943,4 +943,308 @@ No answer. That is the one question this chapter cannot answer, and the thread o
 > 卷四的灯，将由下一个去到潮沙盘的人决定点不点。
 `,
   },
+  {
+    order: 4,
+    slug: '004-the-eighth-lamp',
+    titleZh: '第八盏灯',
+    titleEn: 'The Eighth Lamp',
+    eraLineZh: '纪元：铁月纪 · 春融之后。',
+    eraLineEn: 'Era: the Iron-Moon Age — after the thaw.',
+    markdownZh: `# 低语诸王 / The Whispers' Kings · World Bible · Chapter IV: The Eighth Lamp
+
+> 低语诸王正典第四章·终卷。第三章留下了一根没点的灯芯、一行没人敢回答的问话、
+> 以及一个不曾离开桌边的身影。本章兑现它们：灯终于亮回来了。
+> 本章之后，大典的四扇门全部关闭，正典由此暂告完结——续写权留给每一位到潮沙盘读过的人。
+> 正典纪律不变：锚句中英字字对齐，引用者逐字保持。
+>
+> This is the fourth canonical chapter — the final volume. Chapter III left behind an unlit wick,
+> a question no one dared answer, and a figure who never left the table's edge.
+> This chapter settles them: the lamp is lit, and at last the books close.
+> Canon discipline is unchanged — anchor sentences match word-for-word; no rephrasing.
+
+> 纪元：铁月纪 · 春融之后。
+> Era: the Iron-Moon Age — after the thaw.
+
+---
+
+## 一 · 先从问题开始
+
+铁月纪的春融之后，商队把那枚印章从货堆深处翻出来——一件没有人买得起也没有人用得起的旧物。它已经转手四回：从灰烬纪的废船，到海盗集市，到一户没有子供的铁月商人，再到这次押过盐海湾的柜子。印章的正面刻的是一个半月、一个波浪、一根灯芯；印章背面只有一句：
+
+> 它见过灯点起来的时候吗？
+
+四回转手，四遍释读：老船夫当它是海盗的黑话；海盗说它是潮汐教团余烬留下的遗物；商人说它是一笔没人记得的旧账；柜子里的鼹书记员说，它是一张收件单——缺签名。
+
+买货的不是船王，是一个不富裕的书手。他把货单拍在柜台上，对商人说了四个字：这是一份活儿。
+
+商人说：活儿要问海权，书手没有这个资格。
+
+书手笑了笑，把印章揣进腰包里：我的祖母说过，债不管鞋大不大，债主只看你肯不肯开门。商人不笑了。要是这债压根没人出现，海怎么知道收件人是谁？
+
+书手临摹了七份货单，然后说：交给我。
+
+**锚句**：它见过灯点起来的时候吗？
+
+**Anchor sentence**: did it ever see the lamp alight?
+
+---
+
+## 二 · 没人记得灯芯从何而来
+
+书手往荒原的深处走了九天。第七夜他见到了一扇倒扣在地平线上的黑金色玻璃——潮沙盘。它在夜里（而不是白天）发光——因为它压根不是在发光，是在承光。
+
+幸存者告诉他：那里是一片被熔掉的玻璃。在第七次蚀的那一夜里，教团点燃了一盏不该点的灯；海从那天起停止了喘息。幸存者总说「熔掉的」而不是「掉了」——因为没人愿意承认，有一座城市就这样被干掉的。
+
+书手走到百步之外就停住了。他看见了三件事：桌面的圆心处有一盏灯芯（雾港灯人手里那种棉絮扭捻的式样），桌边有一面沉得很慢的海，以及海和桌边之间，一个不曾离开过的身影：
+
+是那个叫「送信人」的孩子。没人见过他睡过觉，也没人见过他回过头——他站着的轮廓，比雾港任何一盏灯标记的轮廓都长一点。
+
+书手在他们互相看见对方的一瞬间，感到了自己腰包里那枚印章的重量：他发现那种感受在别处叫害怕——在潮沙盘上，那叫「认识」。
+
+守夜人在瞭望塔上用最后一眼看完他的背影消失在潮汐的亮光里。四十年来，她看过这条荒原上最孤独的三种身影：挂着盐框的那一位、停着的那一位、以及她自己这位。她只记下了那句必须留给下一个人的话：
+
+> 不是我们阻止谁开门的问题，是我们必须先记住门关上之前最后一眼看见的是什么。
+
+**锚句**：灯不是用来照的，是用来记住黑有多黑。
+
+**Anchor sentence**: the lamp is not for seeing by; it is to remember how dark the dark was.
+
+---
+
+## 三 · 火、潮与签收
+
+书手在潮沙盘的坡面上走进时，脚底发出的不是沙的声音——是一口被锁了很久的海，终于呼出了气。他没有喊，也没有给海名。只是没有任何一条路可以选：他先蹲下，再伸出手，最后把手掌放到灯芯上——只要稳住，只要记住：他不是教团，他只是一个脚下没有退路的读者。
+
+他点火的动作，跟六十年前教团不可言说的动作一模一样。不是号角，不是军令状，不是开门——只是明火。
+
+每一位雾港灯人都看见了同一件事：三百盏灯同时亮了一次——不是排灯仪式，而是斜出顺序的那一批旧灯复了照：潮汐教团熄掉的那三百盏灯，由明火再一次点亮的，是那一次——也就是第八盏。海抽了一口气——
+
+盐海做了几十年来没有过的事：它退了。它退回去的那一刻，潮声像一束光被拉成了线——先近后远，最后抵达了最后一页。
+
+**锚句**：海没有催，海只是等。
+
+**Anchor sentence**: the sea never urged; the sea only waited.
+
+---
+
+## 四 · 旧灯的吐息
+
+灯火从灯芯落到桌面时没有声音。三百盏灯同时亮了一次——每一盏都清楚自己属于从前——然后同时暗掉。书手站在潮沙盘上后退了一步——手松开了。
+
+他看见了沉在海底的那个教团——每一枚入海的器具，每一件被教团留在盐里的书本——每一枚被盐包住的器物。幸存者后来说，它看见的不是石——是一张抢救下来的纸：潮沙盘的坡面被熔成了一页。
+
+书手盯着那一页。两种字迹同时浮现，一行先后：
+
+> 收到。
+
+左边那一行，只教团的直接继承人才读得出来——那是一句被改写过的「不替海说话」；右边那一行，人间一直读得懂——签收。海收到了，而且海允许再补一句。
+
+书手把印章盖在那一行字下面。
+
+它吻合。
+
+**锚句**：书手点燃那根芯的时候，七盏旧灯从沙里站了起来。
+
+**Anchor sentence**: when the clerk lit the wick, the seven old lamps stood up from the sand.
+
+---
+
+## 五 · 余烬之后
+
+雾港灯人从此不再怵光——他们说：船夫一上船，先贴一块褪色的半月印章贴在胸前——不必是信念，只是一张签收。
+
+潮沙盘第二天暗了下来——不是熄灭，是透完。桌面只留得下一缕细烬，颜色像被盐泡淡了的黄昏。他没有再回去，也没有人再见过他。他只把随身的油纸包连同那段沉默留在了船上；船长从此拒绝接受任何与潮汐有关的委托。
+
+守夜人在巡逻路最后一页写下：「它见过灯的。」她父亲从没教过她这句话，是今夜从塔上学来的。
+
+**锚句**：最后一页上只有两个字：收到。
+
+**Anchor sentence**: the last page carries only two words: Received.
+
+---
+
+## 六 · 铁月纪之后
+
+- 后来的铁月纪没有了债主。每一个船夫上船时胸前会贴一枚褪色的半月印章——不是信仰，是一张签收。
+- 潮汐室里的第六卷被搬进博物厅最远的采光格——今天看得见的字只剩下「海还没——」三个字，其余的字自己消失了。
+- 雾港的第四盏灯没有再亮。雾港灯人从不拿它见过的第一天开玩笑。
+- 幸存者开夜会时仍然带灯——因为灯总是有的，只是没人再忘记门关上的那一刻最后看见的是什么。
+
+**锚句**：之后的铁月纪没有了债，只剩下灯。
+
+**Anchor sentence**: afterward, the Iron-Moon Age had no more debts, only the lamp.
+
+---
+
+## 七 · 模型映射（本章对应关系）
+
+| 类别 | 标题 | 对应节 |
+|---|---|---|
+| lore | 第八盏灯 · 收尾 | 一、三、四、五 |
+| geography | 潮沙盘 · 荒原 · 雾港 · 铁月港 | 二、三、五 |
+| factions | 潮汐教团余烬（全散）· 雾港灯人 · 铁月纪商人 | 一、三、五 |
+| characters | 书手（签收的守候人）· 送信人 · 守夜人 | 二、三、五 |
+| items | 商人印章（签单）· 灯芯（C第八盏）· 六卷会册 | 一、四、五 |
+| story | 第八盏灯 · 大典终卷 | 全篇 |
+| quests | 签收 · 点亮第八盏灯 | 一（卷四） |
+| history | 七次日蚀的前夜 · 还亮年代的开始 | 三、六 |
+
+> 大典的四扇门全都关上了。
+> 第一扇门问海叫什么，第二扇门问谁在还，第三扇门问还完之后怎么办，第四扇门只亮起来一件事：灯已经点过了。
+> 还有续写，不在这一本里——潮汐室里没有门，但每个读完的人都在门口站过。
+>
+> All four doors of the bible are closed now.
+> The first asked what the sea is called; the second asked who pays;
+> the third asked what happens after the ledger closes;
+> the fourth only let one thing out: the lamp has been lit.
+> The sequel is not in this book — it begins with whoever reads it.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 第四章「第八盏灯」
+
+> This is the fourth canonical chapter — the final volume. Chapter III left behind an unlit wick,
+> a question no one dared answer, and a figure who never left the table's edge.
+> This chapter settles them: the lamp is lit, and at last the books close.
+> The bible ends here; what comes next belongs to whoever reads at the tide-sand table.
+> Canon discipline is unchanged — anchor sentences match word-for-word; no rephrasing.
+>
+> 低语诸王正典第四章·终卷。第三章留下了一根没点的灯芯、一行没人敢回答的问话、以及一个不曾离开桌边的身影。本章兑现它们：灯终于亮回来了。本章之后，大典的四扇门全部关闭，正典由此暂告完结——续写权留给每一位到潮沙盘读过的人。正典纪律不变：锚句中英字字对齐，引用者逐字保持。
+
+> Era: the Iron-Moon Age — after the thaw.
+> 纪元：铁月纪 · 春融之后。
+
+---
+
+## I · Start With the Question
+
+After the thaw of the Iron-Moon Age, the caravan pulled the seal out of the deepest part of the hold — a thing no one could have bought and no one could have used. It had passed through four pairs of hands: from a wreck in the Ash Age, to a pirate market, to a childless Iron-Moon merchant, into this chest at last. The front of the seal bore a half-moon, a wave and a lamp wick; the back carried a single line:
+
+> Did it ever see the lamp alight?
+
+Four hands, four readings. Old pilots mistook it for pirate cant; the pirates said it was the last ember of the Tide Conclave's belongings; the merchant said it was an unpaid account no one remembered; the seal-keeper at the chest said no — it was a shipping receipt, missing its signature.
+
+The one who bought it was not a ship captain, nor a ship king, but an unremarkable clerk. He slapped the bill of lading on the counter and pronounced four words of his own: this is a job.
+
+The merchant said: to receive a debt from the sea you need sea rights; a dock clerk has none.
+
+The clerk smiled, slipped the seal into his belt, and answered: my grandmother taught me that a debt does not care how big your feet are — the collector only cares whether you open the door. The merchant stopped smiling. If this debt concerns no one, how would the sea know who to give the receipt to?
+
+The clerk made seven copies of the bill of lading, and said: leave it to me.
+
+**Anchor sentence**: did it ever see the lamp alight?
+
+**锚句**：它见过灯点起来的时候吗？
+
+---
+
+## II · No One Remembers Where the Wick Came From
+
+The clerk walked nine days into the waste. On the seventh night he saw the black-gold glass overturned on the horizon — the tide-sand table. It had borne no dust and been tracked by no steps since the eclipse; it glowed by night, not by day — for it did not shine at all; it carried light.
+
+The survivors had told him: that was a field of glass the eclipse had fused whole. The night of the seventh eclipse, the Conclave lit one lamp that never should have been lit; since then the sea had stopped breathing. Survivors always said fused, never fallen — because no one would have admitted a city could end that way.
+
+The clerk stopped a hundred paces from the table. He saw three things: at the centre of the tabletop lay a wick (the same twisted-cotton kind the fog-harbour lighthouse keeps in its drawer at the shore station); at its edge lay a sea that sank very slowly; and between the sea and the tabletop stood a figure who had never left —
+
+the boy called the letter-bearer. No one had ever seen him sleep; no one had ever seen him turn around. Standing there, his outline ran longer than any lighthouse silhouette in the fog harbour.
+
+In the instant they noticed each other, the clerk felt the weight of the seal in his belt — that feeling went by the name of fear elsewhere, but on the tide-sand table it was called recognition.
+
+From the watchtower the Night Watcher watched his back vanish into the table's light. In all her life she had kept count of three lone silhouettes on that waste: the one with the salt yoke; the one who stopped mid-crossing; and herself. She recorded only the words to leave for whoever came next:
+
+> We were never charged with stopping doors. We are charged with remembering the last thing seen before the door closed.
+
+**Anchor sentence**: the lamp is not for seeing by; it is to remember how dark the dark was.
+
+**锚句**：灯不是用来照的，是用来记住黑有多黑。
+
+---
+
+## III · Fire, Tide and the Receipt
+
+As the clerk stepped onto the tabletop, the ground beneath him did not sound like sand — it sounded like a sea that had been locked for a long time, finally letting its breath out. He did not shout. He gave the sea no name. There were simply no roads left to choose: he knelt, he stretched out his right hand, and at last he laid his palm on the wick — steady it, he told himself: he was not the Conclave; he was a reader who had nowhere else to kneel.
+
+The motion with which he struck the flame was unmistakably the same one the Conclave had spent one night refusing to admit. Not a horn, not a warrant, not a door — just flame.
+
+Each of the fog-harbour lighthouse keepers saw the same thing at the same moment: all three hundred lamps lit at once. This was no sequential lighting — it was the old order of the wrong lamps turning sideways, the very same three hundred lamps the Conclave had extinguished, finally relit with one flame, the eighth. The sea took a breath in —
+
+the sea did what it had not done for a lifetime: it drew back. As it did, the tide-sound stretched into a line — near first, then farther, until it reached the last page.
+
+**Anchor sentence**: the sea never urged; the sea only waited.
+
+**锚句**：海没有催，海只是等。
+
+---
+
+## IV · The Old Lamps Breathe
+
+When the flame fell from the wick onto the tabletop, there was no sound. All three hundred lamps flared once at the same moment — each lamp aware that it belonged to an earlier time — then went dark together. The clerk took one step back from the table; his hand came loose.
+
+He saw the sunken Conclave at the bottom of the sea — every instrument thrown overboard, every book the Conclave had left behind in the salt — every thing the salt had wrapped close. The survivors would say afterward: what he saw was not stone but a rescued page, the tabletop fused into a single sheet.
+
+The clerk stared at the page. Two hands appeared at once, one line behind the other:
+
+> Received.
+
+The left line only the Conclave's direct heir could read — a rewritten version of “do not speak for the sea.” The right line, man had always known how to read: a receipt. The sea had taken delivery, and the sea permitted one more line.
+
+The clerk pressed the seal under both.
+
+It fit.
+
+**Anchor sentence**: when the clerk lit the wick, the seven old lamps stood up from the sand.
+
+**锚句**：书手点燃那根芯的时候，七盏旧灯从沙里站了起来。
+
+---
+
+## V · After the Ember
+
+From that day the fog-harbour lighthouse keepers stopped fearing light — each boarding ship began to pin a faded half-moon seal on its chest; it was not faith, it was a receipt.
+
+The tide-sand table went dark the next day — not out, just through. Only a thin thread of ash remained on the tabletop, the color of dusk washed pale by salt. The clerk never went back, and no one ever saw him again. He left his oil-paper wrapping and that silence aboard the ship; the captain refused from then on to take on any assignment related to tides.
+
+On the last page of the patrol road the Night Watcher wrote: “It has seen the lamp.” Her father had never taught her that sentence; she had learned it off the tower that same night.
+
+**Anchor sentence**: the last page carries only two words: Received.
+
+**锚句**：最后一页上只有两个字：收到。
+
+---
+
+## VI · After the Iron-Moon Age
+
+- The Iron-Moon Age held no more creditors. Every boarding ship now pins a faded half-moon seal to its chest — not as faith, but as a receipt.
+- Volume Six of the minutes was moved to the farthest cabinet in the museum hall; only “the sea has not —” remains legible — the other characters faded of their own.
+- The fog-harbour lighthouse never relit its fourth lamp. The keepers never joked about the day it went out.
+- The survivors still gather by lamp — because the lamps are never scarce; what no longer happens is forgetting what was seen last before the door closed.
+
+**Anchor sentence**: afterward, the Iron-Moon Age had no more debts, only the lamp.
+
+**锚句**：之后的铁月纪没有了债，只剩下灯。
+
+---
+
+## VII · This Chapter's Shadow in the Model
+
+| Kind | Title | Where |
+|---|---|---|
+| lore | The Eighth Lamp · closing the ledger | I, III, IV, V |
+| geography | The tide-sand table · the waste · the fog harbour · the Iron-Moon harbour | II, III, V |
+| factions | The last ember of the Conclave (spent) · the fog-harbour lighthouse · the Iron-Moon merchant | I, III, V |
+| characters | The clerk (the appointed keeper) · the letter-bearer · the Night Watcher | II, III, V |
+| items | The merchant's seal (the receipt) · the wick (the eighth lamp) · Volume Six of the minutes | I, IV, V |
+| story | The Eighth Lamp · finale | the whole chapter, canonical |
+| quests | Receiving the debt · lighting the eighth lamp | I, IV |
+| history | The eve of the seventh eclipse · the beginning of the Alight years | III, VI |
+
+> All four doors of the bible are closed now.
+> The first asked what the sea is called; the second asked who pays;
+> the third asked what happens after the ledger closes;
+> the fourth only let one thing out: the lamp has been lit.
+> The sequel is not in this book — it begins with whoever reads it.
+>
+> 大典的四扇门全都关上了。
+> 第一扇门问海叫什么，第二扇门问谁在还，第三扇门问还完之后怎么办，第四扇门只亮起来一件事：灯已经点过了。
+> 还有续写，不在这一本里——潮汐室里没有门，但每个读完的人都在门口站过。
+`,
+  },
 ] as const;

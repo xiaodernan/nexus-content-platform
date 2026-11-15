@@ -3836,4 +3836,22 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   EN cookie（NEXUS_LOCALE=en）渲染英文正文 + 锚句中英对照（en 中 潮汐/雾港 等正典字样只出现在锚句行），ZH 默认中文正文。
 - showcase 快照同步于提交后（npm run sync:showcase）。
 
+## cont. 146 (2026-11-17) - v777: 世界大典第四章「第八盏灯」——正典完结，四扇门齐闭
+
+- 新建 docs/world-bible/004-第八盏灯.md：卷四终章——书手被那枚三手易主、四账转手的商人印章找上；
+  九天荒原之路、潮沙盘的坡面（草书石纹里是熔掉的玻璃印记——回应了卷一"日蚀是教团自己制造"的谜）、
+  一盏不灭的没点灯芯、母语是海的沉默。他点燃灯芯的那一刻——雾港三百盏旧灯同时复燃一次又暗掉、
+  潮汐室"不替海说话"被允许改写为一行"收到。"、巡逻路最后一页记下"它见过灯的"。
+- 6 处锚句中英字字对齐（它见过灯点起来的时候吗／灯不是用来照的／海没有催海只是等／
+  七盏旧灯从沙里站起来／最后一页只有两个字收到／之后的铁月纪没有了债只剩下灯），
+  章末 world-node 映射表；大典至此四章闭环：四扇门逐扇关上。
+- 英译本 004-第八盏灯.en.md 逐章 1:1；gen-bible-snapshot WEB_SLUGS 登记 `004-the-eighth-lamp`
+  （四章、ASCII slug、缺登记直接红）；/bible 目录页四章齐现（壹贰叁肆 / I-IV）；
+  reader/metadata 全部适配四章（en title/卷号）。
+- ROADMAP M3 大典目录更新；CURRENT-STATE 登记。
+- Gates：`verify:world-bible` 4 章 / 25 zh + 25 en 锚句对；verify:bible-snapshot ✓；
+  新增章不改 §FE-GATE 的 bb-*（仅重钉 bible 两页 SHA：44a5ed52… / 01287c92…）；
+  fe-gates 117/117 · 1157/1157；census 2199 OK；tsc web 0；eslint 净。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
 

@@ -129,10 +129,10 @@ describe('§BIBLE-1 /bible 典籍室', () => {
 
   it('SHA256 钉死（EOL 归一 + className→@）：目录页 / 阅读页 / 渲染器', () => {
     expect(createHash('sha256').update(redactClasses(index)).digest('hex')).toBe(
-      '1fb0a43689cdf0b15c766d58327f3b760e88f366f1ae5509d75f311f25f7648c',
+      '44a5ed526c9e7850cb473fe0e8ae517ed089c09776fc3d502f68aa3efffce784',
     );
     expect(createHash('sha256').update(redactClasses(reader)).digest('hex')).toBe(
-      '824875e3e2665a25c2560c5d06be566109bc0519c08ea903ed0155497ecd8572',
+      '01287c92379b70bd3171480a2e9da1cdc23a6da491a8d094b6c2d5d51b19e092',
     );
     expect(createHash('sha256').update(redactClasses(component)).digest('hex')).toBe(
       'e235ac2ab90e76ac1b3f106732465d541ee7677981a7d9ecf853cf0d3a978557',

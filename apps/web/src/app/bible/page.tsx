@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: '典籍室 · World Bible — NEXUS',
-  description: '《低语诸王》世界大典 · 三章正典，锚句中英字字对齐。/ Three canonical chapters of The Whispers’ Kings, anchor sentences verbatim in both languages.',
+  description: '《低语诸王》世界大典 · 全四章正典，锚句中英字字对齐。/ Four canonical chapters of The Whispers’ Kings, anchor sentences verbatim in both languages.',
 };
 
 /**
@@ -32,10 +32,10 @@ const COPY: Record<Locale, {
 }> = {
   zh: {
     kicker: '低语诸王 · 典籍室',
-    title: '世界大典 · 三扇门',
-    lede: '《低语诸王》自己的正典——三章，三扇门：海缄口的那一句，总要由活人来收尾。',
-    threeDoors: '第一扇门问：海叫什么？ · 第二扇门问：谁在还？ · 第三扇门问：还完之后怎么办？',
-    chapterLabel: (order) => `第${['一', '二', '三'][order - 1] ?? order}章`,
+    title: '世界大典 · 四扇门',
+    lede: '《低语诸王》自己的正典——四章，四扇门：第三章之后，第四盏灯终于亮回来了。',
+    threeDoors: '第一扇问：海叫什么？ · 第二扇问：谁在还？ · 第三扇问：还完之后？ · 第四扇：灯已经点过了。',
+    chapterLabel: (order) => `第${['一', '二', '三', '四'][order - 1] ?? order}章`,
     anchorsLine: (count) => `${count} 句锚 · 中英字字对齐`,
     readLink: '开始阅读',
     discipline: '正典由 docs/world-bible/ 维护，任何一句都不经过机器改写；正文原文如下，英译本只是同一故事的另一副嘴。',
@@ -44,10 +44,10 @@ const COPY: Record<Locale, {
   },
   en: {
     kicker: 'The Whispers’ Kings · Canon',
-    title: 'The World Bible · three doors',
-    lede: 'The Whispers’ Kings’ own canon. Three chapters of the same, unfinished sentence the Tide Conclave left behind.',
-    threeDoors: 'First door: what is the sea called? · Second door: who pays? · Third door: what happens after the ending?',
-    chapterLabel: (order) => `Chapter ${['I', 'II', 'III'][order - 1] ?? order}`,
+    title: 'The World Bible · four doors',
+    lede: 'The Whispers’ Kings’ own canon. Four doors — and at the fourth, at last, the lamp is lit.',
+    threeDoors: 'First door: what is the sea called? · Second: who pays? · Third: after the ending? · Fourth: the lamp has been lit.',
+    chapterLabel: (order) => `Chapter ${['I', 'II', 'III', 'IV'][order - 1] ?? order}`,
     anchorsLine: (count) => `${count} anchor sentences · verbatim in both languages`,
     readLink: 'Start reading',
     discipline: 'The canon is maintained in docs/world-bible/; not a single sentence passes through a machine unasked. The English is the same story with the same anchors — no other rephrasing.',
@@ -76,7 +76,7 @@ export default async function BiblePage() {
           const anchors = extractAnchors(chapter.markdownZh, chapter.markdownEn).length;
           return (
             <li key={chapter.slug} className="bb-card" data-bible-card={chapter.slug}>
-              <span className="bb-cardNum" aria-hidden="true">{['壹', '贰', '叁'][chapter.order - 1] ?? chapter.order}</span>
+              <span className="bb-cardNum" aria-hidden="true">{['壹', '贰', '叁', '肆'][chapter.order - 1] ?? chapter.order}</span>
               <div className="bb-cardBody">
                 <p className="bb-cardChapter">{c.chapterLabel(chapter.order)}</p>
                 <h2 className="bb-cardTitle">{title}</h2>
