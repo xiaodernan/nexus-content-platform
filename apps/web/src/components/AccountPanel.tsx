@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { csrfToken } from '@/lib/csrf';
+import type { Locale } from '@/lib/i18n';
 
 interface Identity {
   displayName: string;
@@ -11,7 +12,76 @@ interface Identity {
   guest: boolean;
 }
 
-export function AccountPanel({ user }: { user: Identity }) {
+const COPY: Record<Locale, {
+  guestNow: string;
+  guestVisitor: string;
+  signedIn: string;
+  registerHint: string;
+  creditsLink: string;
+  apiTokensLink: string;
+  logout: string;
+  register: string;
+  login: string;
+  displayNamePlaceholder: string;
+  displayNameAria: string;
+  emailPlaceholder: string;
+  emailAria: string;
+  passwordPlaceholderRegister: string;
+  passwordPlaceholderLogin: string;
+  passwordAria: string;
+  noticeClaimed: (n: number) => string;
+  busy: string;
+  registerCta: string;
+  loginCta: string;
+}> = {
+  zh: {
+    guestNow: '当前是',
+    guestVisitor: '游客',
+    registerHint: '注册即可把游客项目认领到自己的账号。',
+    signedIn: '已登录：',
+    creditsLink: '额度与消费',
+    apiTokensLink: 'API 凭据',
+    logout: '登出',
+    register: '注册',
+    login: '登录',
+    displayNamePlaceholder: '昵称（可选）',
+    displayNameAria: '显示名',
+    emailPlaceholder: '邮箱',
+    emailAria: '邮箱',
+    passwordPlaceholderRegister: '口令（至少 8 位）',
+    passwordPlaceholderLogin: '口令',
+    passwordAria: '口令',
+    noticeClaimed: (n) => `账号已创建，已认领 ${n} 个此前的游客项目`,
+    busy: '处理中…',
+    registerCta: '注册并认领项目',
+    loginCta: '登录',
+  },
+  en: {
+    guestNow: 'You are currently a',
+    guestVisitor: 'guest',
+    registerHint: 'an account claims your guest projects onto it.',
+    signedIn: 'Signed in as:',
+    creditsLink: 'Credits & spending',
+    apiTokensLink: 'API tokens',
+    logout: 'Sign out',
+    register: 'Register',
+    login: 'Sign in',
+    displayNamePlaceholder: 'Nickname (optional)',
+    displayNameAria: 'Display name',
+    emailPlaceholder: 'Email',
+    emailAria: 'Email',
+    passwordPlaceholderRegister: 'Password (8+ characters)',
+    passwordPlaceholderLogin: 'Password',
+    passwordAria: 'Password',
+    noticeClaimed: (n) => `Account created — ${n} earlier guest project(s) claimed`,
+    busy: 'Working…',
+    registerCta: 'Register & claim projects',
+    loginCta: 'Sign in',
+  },
+};
+
+export function AccountPanel({ user, locale = 'zh' }: { user: Identity; locale?: Locale }) {
+  const c = COPY[locale];
   const router = useRouter();
   const [mode, setMode] = useState<'register' | 'login'>('register');
   const [email, setEmail] = useState('');
@@ -39,7 +109,7 @@ export function AccountPanel({ user }: { user: Identity }) {
         | null;
       if (!res.ok) throw new Error(body?.issues?.join('；') ?? body?.message ?? `HTTP ${res.status}`);
       if (mode === 'register' && typeof body?.claimedProjects === 'number') {
-        setNotice(`账号已创建，已认领 ${body.claimedProjects} 个此前的游客项目`);
+        setNotice(c.noticeClaimed(body.claimedProjects));
       }
       setEmail('');
       setPassword('');
@@ -77,19 +147,16 @@ export function AccountPanel({ user }: { user: Identity }) {
       <div className="ac-between" data-auth-identity={user.guest ? 'guest' : 'member'}>
         <span className="ac-ident">
           {user.guest ? (
-            <>当前是<b className="ac-strong">游客</b>（{user.displayName}）。注册即可把游客项目认领到自己的账号。</>
+            <>{c.guestNow} <b className="ac-strong">{c.guestVisitor}</b>（{user.displayName}）。{c.registerHint}</>
           ) : (
-            <>已登录：<b className="ac-strong">{user.email}</b></>
+            <>{c.signedIn} <b className="ac-strong">{user.email}</b></>
           )}
-          {/* §134：游客也在被记账（一次生成扣的就是这个会话名下那 100 点），
-              所以这一页对两种身份都得进得去 */}
           <Link href="/credits" className="ac-inlineLink" data-credits-link>
-            额度与消费
+            {c.creditsLink}
           </Link>
-          {/* §188：公开 API 的凭据也是账号的一部分，游客没有可认领的项目，这一页只对登录态开 */}
           {!user.guest ? (
             <Link href="/api-tokens" className="ac-inlineLink" data-api-tokens-link>
-              API 凭据
+              {c.apiTokensLink}
             </Link>
           ) : null}
         </span>
@@ -102,7 +169,7 @@ export function AccountPanel({ user }: { user: Identity }) {
               className="ac-ghostBtnSm"
               data-auth-logout
             >
-              登出
+              {c.logout}
             </button>
           </span>
         ) : null}
@@ -117,7 +184,7 @@ export function AccountPanel({ user }: { user: Identity }) {
               className={tabClass(mode === 'register')}
               data-auth-tab="register"
             >
-              注册
+              {c.register}
             </button>
             <button
               type="button"
@@ -125,36 +192,36 @@ export function AccountPanel({ user }: { user: Identity }) {
               className={tabClass(mode === 'login')}
               data-auth-tab="login"
             >
-              登录
+              {c.login}
             </button>
           </div>
           {mode === 'register' ? (
-            <input aria-label="显示名"
+            <input aria-label={c.displayNameAria}
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="昵称（可选）"
+              placeholder={c.displayNamePlaceholder}
               maxLength={60}
               className={inputClass}
               data-auth-displayname
             />
           ) : null}
-          <input aria-label="邮箱"
+          <input aria-label={c.emailAria}
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="邮箱"
+            placeholder={c.emailPlaceholder}
             autoComplete="email"
             className={inputClass}
             data-auth-email
           />
-          <input aria-label="口令"
+          <input aria-label={c.passwordAria}
             type="password"
             required
             minLength={mode === 'register' ? 8 : 1}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder={mode === 'register' ? '口令（至少 8 位）' : '口令'}
+            placeholder={mode === 'register' ? c.passwordPlaceholderRegister : c.passwordPlaceholderLogin}
             autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
             className={inputClass}
             data-auth-password
@@ -166,7 +233,7 @@ export function AccountPanel({ user }: { user: Identity }) {
               className="ac-submitBtn"
               data-auth-submit
             >
-              {busy ? '处理中…' : mode === 'register' ? '注册并认领项目' : '登录'}
+              {busy ? c.busy : mode === 'register' ? c.registerCta : c.loginCta}
             </button>
           </div>
           {error ? <p className="ac-error" data-auth-error>{error}</p> : null}

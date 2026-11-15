@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * "剥掉了哪些元数据段"必须显示（EXIF GPS/机型不裸奔）；摘掉回到 null 首字母，不造默认图——不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `beeff3852c6d590c115c5eed71c08bf85f9a3879f743de23ff01f1a06818ae13` 与 HEAD 字节一致。
+ * `08c26fe55a7efd9d773b741e1189e6b18d969e073d5e9f4c8745d97e967396a4` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/components/AvatarEditor.tsx');
@@ -99,9 +99,9 @@ describe('§FE-86 /components AvatarEditor 头像上传', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：beeff3852c6d590c115c5eed71c08bf85f9a3879f743de23ff01f1a06818ae13）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：08c26fe55a7efd9d773b741e1189e6b18d969e073d5e9f4c8745d97e967396a4）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'beeff3852c6d590c115c5eed71c08bf85f9a3879f743de23ff01f1a06818ae13',
+      '08c26fe55a7efd9d773b741e1189e6b18d969e073d5e9f4c8745d97e967396a4',
     );
   });
 });

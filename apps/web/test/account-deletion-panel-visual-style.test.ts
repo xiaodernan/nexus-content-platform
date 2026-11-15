@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * 清单在点开时从 `GET /api/account` 现取；注销 ≠ 删除（收据）；不强制先导出——不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `c9eb10c380f18243a4ba4cdecd134037ca2547ec425cc7aa6b2c26b1aca9e714` 与 HEAD 字节一致。
+ * `9f846239e10c6d5a97afa42aed2752d244ee691dda4e835e4fce5ff68d1a1e72` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/components/AccountDeletionPanel.tsx');
@@ -98,9 +98,9 @@ describe('§FE-87 /components AccountDeletionPanel 注销账号', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：c9eb10c380f18243a4ba4cdecd134037ca2547ec425cc7aa6b2c26b1aca9e714）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：9f846239e10c6d5a97afa42aed2752d244ee691dda4e835e4fce5ff68d1a1e72）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'c9eb10c380f18243a4ba4cdecd134037ca2547ec425cc7aa6b2c26b1aca9e714',
+      '9f846239e10c6d5a97afa42aed2752d244ee691dda4e835e4fce5ff68d1a1e72',
     );
   });
 });

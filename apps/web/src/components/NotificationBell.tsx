@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { REALTIME_TEXT, useRealtime } from '@/lib/useRealtime';
+import { REALTIME_TEXT, REALTIME_TEXT_EN, useRealtime } from '@/lib/useRealtime';
+import type { Locale } from '@/lib/i18n';
 
 /**
  * §164 顶栏铃铛：只报"查到了没有"和"几条没读"。
@@ -23,7 +24,31 @@ interface Summary {
   total?: number;
 }
 
-export function NotificationBell() {
+const COPY: Record<Locale, {
+  failed: string;
+  loading: string;
+  ready: (unread: number, total: number) => string;
+  realtimePrefix: string;
+  realtimeText: Record<string, string>;
+}> = {
+  zh: {
+    failed: '通知：没读到',
+    loading: '通知：—',
+    ready: (unread, total) => (unread > 0 ? `（${unread} 条未读）` : `（${total} 条）`),
+    realtimePrefix: '实时：',
+    realtimeText: REALTIME_TEXT,
+  },
+  en: {
+    failed: 'Notifications: unreadable',
+    loading: 'Notifications: —',
+    ready: (unread, total) => (unread > 0 ? `(${unread} unread)` : `(${total})`),
+    realtimePrefix: 'live: ',
+    realtimeText: REALTIME_TEXT_EN,
+  },
+};
+
+export function NotificationBell({ locale = 'zh' }: { locale?: Locale }) {
+  const c = COPY[locale];
   const [summary, setSummary] = useState<Summary | null>(null);
   const [failed, setFailed] = useState(false);
   const [signedOut, setSignedOut] = useState(false);
@@ -60,14 +85,14 @@ export function NotificationBell() {
   if (failed) {
     return (
       <span className="nb-faint" data-notification-bell="failed">
-        通知：没读到
+        {c.failed}
       </span>
     );
   }
   if (!summary) {
     return (
       <span className="nb-faint" data-notification-bell="loading">
-        通知：—
+        {c.loading}
       </span>
     );
   }
@@ -75,10 +100,10 @@ export function NotificationBell() {
   return (
     <span className="nb-row">
       <Link href="/notifications" className="nb-link" data-notification-bell="ready">
-        通知<span data-notification-unread={unread}>{unread > 0 ? `（${unread} 条未读）` : `（${summary.total ?? 0} 条）`}</span>
+        {locale === 'zh' ? '通知' : 'Notifications'}<span data-notification-unread={unread}>{c.ready(unread, summary.total ?? 0)}</span>
       </Link>
       <span className="nb-faint" data-realtime={realtime.state}>
-        实时：{REALTIME_TEXT[realtime.state]}
+        {c.realtimePrefix}{c.realtimeText[realtime.state]}
       </span>
     </span>
   );

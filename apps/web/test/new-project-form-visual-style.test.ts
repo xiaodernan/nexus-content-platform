@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * 只有名称与类型；不生成任何"看起来像 AI 结果"的内容（§159）——不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `1c2c07cd09fa38b3abd03d6b60d6d7d4e1f8c3460e3a50fe3a15902c2674cdfd` 与 HEAD 字节一致。
+ * `c5535492181808cffced47c0fb9f0968961333d92e41d9e9abe3ddeeffc60ff2` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/components/NewProjectForm.tsx');
@@ -97,9 +97,9 @@ describe('§FE-90 /components NewProjectForm 新建项目', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：1c2c07cd09fa38b3abd03d6b60d6d7d4e1f8c3460e3a50fe3a15902c2674cdfd）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：c5535492181808cffced47c0fb9f0968961333d92e41d9e9abe3ddeeffc60ff2）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '1c2c07cd09fa38b3abd03d6b60d6d7d4e1f8c3460e3a50fe3a15902c2674cdfd',
+      'c5535492181808cffced47c0fb9f0968961333d92e41d9e9abe3ddeeffc60ff2',
     );
   });
 });

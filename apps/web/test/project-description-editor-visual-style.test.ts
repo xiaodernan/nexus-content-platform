@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
  * 本片零新毛坯类：复用 §FE-87/91 的 `.adp-*`/`.pe-*`；唯一新增 `.pe-monoHint`（计数器）与 `.adp-btnSm:disabled`（禁用态补齐）。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `15830c42919d01e746852a3dc53e349604c3e6f7c604891afbad08be8308df9b` 与 HEAD 字节一致。
+ * `440f9ddf1a36561d711b1f0756f7feb4ccd57996b3abbd5f536a7def756e51ca` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/components/ProjectDescriptionEditor.tsx');
@@ -79,9 +79,9 @@ describe('§FE-93 /components ProjectDescriptionEditor 项目简介（复用 .pe
     for (const token of used) expect(tokens, `tokens.css 没有声明 ${token}`).toContain(token);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：15830c42919d01e746852a3dc53e349604c3e6f7c604891afbad08be8308df9b）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：440f9ddf1a36561d711b1f0756f7feb4ccd57996b3abbd5f536a7def756e51ca）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '15830c42919d01e746852a3dc53e349604c3e6f7c604891afbad08be8308df9b',
+      '440f9ddf1a36561d711b1f0756f7feb4ccd57996b3abbd5f536a7def756e51ca',
     );
   });
 });

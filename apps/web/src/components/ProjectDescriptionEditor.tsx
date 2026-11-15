@@ -3,6 +3,42 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { csrfHeaders } from '@/lib/csrf';
+import type { Locale } from '@/lib/i18n';
+
+const COPY: Record<Locale, {
+  saveFailed: (reason: string) => string;
+  noDescription: string;
+  edit: string;
+  write: string;
+  placeholder: string;
+  save: string;
+  saving: string;
+  clear: string;
+  cancel: string;
+}> = {
+  zh: {
+    saveFailed: (reason) => `没保存：${reason}`,
+    noDescription: '没有简介',
+    edit: '改简介',
+    write: '写简介',
+    placeholder: '一句话说明这个项目是什么（会作为公开页的 og:description）',
+    save: '保存简介',
+    saving: '保存中…',
+    clear: '清空',
+    cancel: '取消',
+  },
+  en: {
+    saveFailed: (reason) => `Not saved: ${reason}`,
+    noDescription: 'No description',
+    edit: 'Edit description',
+    write: 'Write a description',
+    placeholder: 'One line about this project (used as og:description on the public page)',
+    save: 'Save description',
+    saving: 'Saving…',
+    clear: 'Clear',
+    cancel: 'Cancel',
+  },
+};
 
 /**
  * §49 项目简介。展开后才显示输入框，收起时只有一行状态文字——
@@ -14,10 +50,13 @@ import { csrfHeaders } from '@/lib/csrf';
 export function ProjectDescriptionEditor({
   projectId,
   initialDescription,
+  locale = 'zh',
 }: {
   projectId: string;
   initialDescription: string | null;
+  locale?: Locale;
 }) {
+  const c = COPY[locale];
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(initialDescription ?? '');
@@ -38,7 +77,7 @@ export function ProjectDescriptionEditor({
         | { ok?: boolean; message?: string; issues?: string[]; project?: { description: string | null } }
         | null;
       if (!res.ok || !body?.ok) {
-        setNotice(`没保存：${body?.issues?.join('；') ?? body?.message ?? `HTTP ${res.status}`}`);
+        setNotice(c.saveFailed(body?.issues?.join('；') ?? body?.message ?? `HTTP ${res.status}`));
         return;
       }
       setValue(body.project?.description ?? '');
@@ -53,7 +92,7 @@ export function ProjectDescriptionEditor({
     return (
       <div className="adp-row" data-project-desc-row={projectId}>
         <span className="pe-hint" data-project-desc={initialDescription ? 'set' : 'empty'}>
-          {initialDescription ?? '没有简介'}
+          {initialDescription ?? c.noDescription}
         </span>
         <button
           type="button"
@@ -64,7 +103,7 @@ export function ProjectDescriptionEditor({
           className="adp-btnSm"
           data-project-desc-edit={projectId}
         >
-          {initialDescription ? '改简介' : '写简介'}
+          {initialDescription ? c.edit : c.write}
         </button>
       </div>
     );
@@ -77,7 +116,7 @@ export function ProjectDescriptionEditor({
         onChange={(e) => setValue(e.target.value)}
         rows={2}
         maxLength={500}
-        placeholder="一句话说明这个项目是什么（会作为公开页的 og:description）"
+        placeholder={c.placeholder}
         className="pe-input"
         data-project-desc-input={projectId}
       />
@@ -89,7 +128,7 @@ export function ProjectDescriptionEditor({
           className="pe-saveBtn"
           data-project-desc-save={projectId}
         >
-          {busy ? '保存中…' : '保存简介'}
+          {busy ? c.saving : c.save}
         </button>
         <button
           type="button"
@@ -98,7 +137,7 @@ export function ProjectDescriptionEditor({
           className="adp-btnSm"
           data-project-desc-clear={projectId}
         >
-          清空
+          {c.clear}
         </button>
         <button
           type="button"
@@ -111,7 +150,7 @@ export function ProjectDescriptionEditor({
           className="adp-cancelBtn"
           data-project-desc-cancel={projectId}
         >
-          取消
+          {c.cancel}
         </button>
         <span className="pe-monoHint">{value.length}/500</span>
       </div>

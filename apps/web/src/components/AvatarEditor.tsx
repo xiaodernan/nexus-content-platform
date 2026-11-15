@@ -3,6 +3,48 @@
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { csrfHeaders } from '@/lib/csrf';
+import type { Locale } from '@/lib/i18n';
+
+const COPY: Record<Locale, {
+  uploadFailed: (reason: string) => string;
+  reused: string;
+  updated: string;
+  removeFailed: (reason: string) => string;
+  removed: string;
+  neverHad: string;
+  avatarNone: string;
+  chooseLabel: string;
+  remove: string;
+  hint: string;
+  metaStripped: (list: string) => string;
+}> = {
+  zh: {
+    uploadFailed: (reason) => `没换上：${reason}`,
+    reused: '这张之前就用过，直接复用了同一份字节',
+    updated: '头像已更新',
+    removeFailed: (reason) => `没摘掉：${reason}`,
+    removed: '头像已摘掉，主页回到首字母',
+    neverHad: '本来就没有头像',
+    avatarNone: '无',
+    chooseLabel: '选择头像图片',
+    remove: '摘掉头像',
+    hint: '只收 PNG / JPEG / WebP / GIF，按文件头判定；扩展名和浏览器说的类型不算依据。',
+    metaStripped: (list) => `上传时已剥离元数据段：${list}`,
+  },
+  en: {
+    uploadFailed: (reason) => `Not swapped: ${reason}`,
+    reused: 'This image was used before — the same bytes are being reused',
+    updated: 'Avatar updated',
+    removeFailed: (reason) => `Not removed: ${reason}`,
+    removed: 'Avatar removed; the profile falls back to your initial',
+    neverHad: 'There was no avatar to remove',
+    avatarNone: 'none',
+    chooseLabel: 'Choose an avatar image',
+    remove: 'Remove avatar',
+    hint: 'PNG / JPEG / WebP / GIF only, judged by the file header — the extension and the browser type are not evidence.',
+    metaStripped: (list) => `Metadata stripped on upload: ${list}`,
+  },
+};
 
 /**
  * §60 头像：选文件 → 上传 → 立刻看到新头像，并显示这一张被剥掉了哪些元数据段。
@@ -11,7 +53,8 @@ import { csrfHeaders } from '@/lib/csrf';
  * 而头像是全站少数几张**任何人不用登录都能看到**的图（/u/<handle> 与公开页）。
  * 不告诉用户处理过，就等于替他假设"你应该知道我们做了这件事"（§80 同一条纪律）。
  */
-export function AvatarEditor({ initialUrl }: { initialUrl: string | null }) {
+export function AvatarEditor({ initialUrl, locale = 'zh' }: { initialUrl: string | null; locale?: Locale }) {
+  const c = COPY[locale];
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState(false);
@@ -34,12 +77,12 @@ export function AvatarEditor({ initialUrl }: { initialUrl: string | null }) {
         | null;
       if (!res.ok || !body?.ok || !body.url) {
         const why = body?.issues?.length ? `：${body.issues.join('；')}` : '';
-        setNotice(`没换上：${body?.reason ?? body?.message ?? `HTTP ${res.status}`}${why}`);
+        setNotice(`${c.uploadFailed(body?.reason ?? body?.message ?? `HTTP ${res.status}`)}${why}`);
         return;
       }
       setShown(body.url);
       setMeta(body.removed ?? []);
-      setNotice(body.reused ? '这张之前就用过，直接复用了同一份字节' : '头像已更新');
+      setNotice(body.reused ? c.reused : c.updated);
       router.refresh();
     } finally {
       setPending(false);
@@ -55,13 +98,13 @@ export function AvatarEditor({ initialUrl }: { initialUrl: string | null }) {
       const res = await fetch('/api/account/avatar', { method: 'DELETE', headers: csrfHeaders() });
       const body = (await res.json().catch(() => null)) as { ok?: boolean; removed?: boolean; message?: string } | null;
       if (!res.ok || !body?.ok) {
-        setNotice(`没摘掉：${body?.message ?? `HTTP ${res.status}`}`);
+        setNotice(c.removeFailed(body?.message ?? `HTTP ${res.status}`));
         return;
       }
       setShown(null);
       setMeta([]);
       // 摘掉就回到 null，不返回一张"默认头像"：那样主页上的圆圈看着像有图，其实谁都没传过
-      setNotice(body.removed ? '头像已摘掉，主页回到首字母' : '本来就没有头像');
+      setNotice(body.removed ? c.removed : c.neverHad);
       router.refresh();
     } finally {
       setPending(false);
@@ -82,7 +125,7 @@ export function AvatarEditor({ initialUrl }: { initialUrl: string | null }) {
           className="ae-fallback"
           data-avatar-none
         >
-          无
+          {c.avatarNone}
         </span>
       )}
       <div className="ae-col">
@@ -92,7 +135,7 @@ export function AvatarEditor({ initialUrl }: { initialUrl: string | null }) {
             type="file"
             accept="image/png,image/jpeg,image/webp,image/gif"
             disabled={pending}
-            aria-label="选择头像图片"
+            aria-label={c.chooseLabel}
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) void upload(file);
@@ -108,16 +151,16 @@ export function AvatarEditor({ initialUrl }: { initialUrl: string | null }) {
               className="ae-btn"
               data-avatar-remove
             >
-              摘掉头像
+              {c.remove}
             </button>
           ) : null}
         </div>
         <p className="ae-hint" data-avatar-hint>
-          只收 PNG / JPEG / WebP / GIF，按文件头判定；扩展名和浏览器说的类型不算依据。
+          {c.hint}
         </p>
         {meta.length ? (
           <p className="ae-note" data-avatar-meta={meta.join(',')}>
-            上传时已剥离元数据段：{meta.join('、')}
+            {c.metaStripped(meta.join(locale === 'zh' ? '、' : ', '))}
           </p>
         ) : null}
         {notice ? (
