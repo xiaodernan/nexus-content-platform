@@ -12,7 +12,7 @@ import { badRequest, jsonError } from '@/server/http';
  */
 export async function GET(): Promise<NextResponse> {
   const user = await currentUserOrNull();
-  if (!user) return jsonError(401, 'unauthenticated', { message: '需要登录' });
+  if (!user) return await jsonError(401, 'unauthenticated', { message: '需要登录' });
 
   const settings = await getNotificationSettings(user.id);
   return NextResponse.json({ settings });
@@ -34,25 +34,25 @@ export async function GET(): Promise<NextResponse> {
  * - 批量：{ settings: { like: false, comment: true, ... } }
  */
 export async function PUT(req: Request): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const user = await currentUserOrNull();
-  if (!user) return jsonError(401, 'unauthenticated', { message: '需要登录' });
+  if (!user) return await jsonError(401, 'unauthenticated', { message: '需要登录' });
   const rl = await getRateLimiter().hit(rateKey('notifications/settings', clientIp(req), user.id), 60, 60_000);
   if (!rl.allowed) {
-    return jsonError(429, 'rate_limited', { message: '操作太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
+    return await jsonError(429, 'rate_limited', { message: '操作太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
   }
 
   const body = (await req.json().catch(() => null)) as
     | { settings?: unknown; kind?: unknown; enabled?: unknown }
     | null;
-  if (!body || typeof body !== 'object') return badRequest(['body: 请求体必须是 JSON 对象']);
+  if (!body || typeof body !== 'object') return await badRequest(['body: 请求体必须是 JSON 对象']);
 
   // 批量更新
   if (body.settings && typeof body.settings === 'object') {
     const entries = Object.entries(body.settings as Record<string, unknown>);
     for (const [kind, enabled] of entries) {
-      if (!NOTIFICATION_KINDS[kind as NotificationKind]) return badRequest([`未知的通知类型: ${kind}`]);
-      if (typeof enabled !== 'boolean') return badRequest([`${kind} 的值必须是布尔值`]);
+      if (!NOTIFICATION_KINDS[kind as NotificationKind]) return await badRequest([`未知的通知类型: ${kind}`]);
+      if (typeof enabled !== 'boolean') return await badRequest([`${kind} 的值必须是布尔值`]);
     }
     await updateNotificationSettings(user.id, body.settings as Partial<Record<NotificationKind, boolean>>);
     const settings = await getNotificationSettings(user.id);
@@ -62,12 +62,12 @@ export async function PUT(req: Request): Promise<NextResponse> {
   // 单个更新
   if (typeof body.kind === 'string' && typeof body.enabled === 'boolean') {
     if (!NOTIFICATION_KINDS[body.kind as NotificationKind]) {
-      return badRequest([`未知的通知类型: ${body.kind}`]);
+      return await badRequest([`未知的通知类型: ${body.kind}`]);
     }
     await updateNotificationSetting(user.id, body.kind as NotificationKind, body.enabled);
     const settings = await getNotificationSettings(user.id);
     return NextResponse.json({ settings });
   }
 
-  return badRequest(['请求体必须包含 kind+enabled 或 settings 对象']);
+  return await badRequest(['请求体必须包含 kind+enabled 或 settings 对象']);
 }

@@ -23,27 +23,27 @@ const RATE_PER_MINUTE = 20;
 const COMMENT_PER_HOUR = 30;
 
 export async function POST(req: Request): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const body = (await req.json().catch(() => null)) as { path?: unknown; action?: unknown; text?: unknown } | null;
   const action = typeof body?.action === 'string' ? body.action : '';
   const path = typeof body?.path === 'string' ? body.path : '';
-  if (!ACTIONS.includes(action as (typeof ACTIONS)[number])) return jsonError(400, 'bad_action', { message: 'action 必须是 like / comment / remix' });
-  if (!path.startsWith('/n/')) return jsonError(400, 'bad_path', { message: 'path 必须是一个公开作品地址' });
+  if (!ACTIONS.includes(action as (typeof ACTIONS)[number])) return await jsonError(400, 'bad_action', { message: 'action 必须是 like / comment / remix' });
+  if (!path.startsWith('/n/')) return await jsonError(400, 'bad_path', { message: 'path 必须是一个公开作品地址' });
 
   // §137 的 guest 自动签发：无会话客户端的 user.id 每请求都是新的，下面那道按身份的限流
   // 对它空转（marketplace 那条注释早就点破过"换 cookie 就能无限造行"）。
   // 所以这道按 IP 的闸放在 requireUser() 之前——被挡住的请求一个 guest 都不该建。
   const gate = await ipWriteGate('published/interact', req);
-  if (gate.limited) return jsonError(429, 'rate_limited', { message: '操作太频繁了，稍后再试', retryAfterMs: gate.retryAfterMs });
+  if (gate.limited) return await jsonError(429, 'rate_limited', { message: '操作太频繁了，稍后再试', retryAfterMs: gate.retryAfterMs });
 
   const user = await requireUser();
   const rl = await getRateLimiter().hit(rateKey(`published/${action}`, clientIp(req), user.id), RATE_PER_MINUTE, 60_000);
   if (!rl.allowed) {
-    return jsonError(429, 'rate_limited', { message: '操作太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
+    return await jsonError(429, 'rate_limited', { message: '操作太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
   }
 
   const ref = await publicRefByPath(path);
-  if (!ref) return jsonError(404, 'not_found', { message: '这个作品现在不公开' });
+  if (!ref) return await jsonError(404, 'not_found', { message: '这个作品现在不公开' });
 
   if (action === 'save') {
     // Save 不发通知：收藏是作者看不见、也不该看见的动作（§59 把它设计成私人书架）
@@ -54,7 +54,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   if (action === 'like') {
     const state = await toggleLike(user.id, ref.publicationId);
     // §132：被拉黑挡住的一次点赞不写库、不改计数，只回一句原因
-    if (state.blocked) return jsonError(403, 'blocked', { message: state.reason ?? '互动被挡住', reason: state.reason });
+    if (state.blocked) return await jsonError(403, 'blocked', { message: state.reason ?? '互动被挡住', reason: state.reason });
     // §164：只有"真的点赞了"才通知；取消点赞不补一条"某人取消了点赞"，那是噪音不是事件
     if (state.liked) {
       await emit({
@@ -74,7 +74,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   if (action === 'comment') {
     const crl = await getRateLimiter().hit(rateKey('published/comment', clientIp(req), user.id), COMMENT_PER_HOUR, 60 * 60_000);
     if (!crl.allowed) {
-      return jsonError(429, 'rate_limited', { message: '评论太频繁了，一小时后再试', retryAfterMs: crl.retryAfterMs });
+      return await jsonError(429, 'rate_limited', { message: '评论太频繁了，一小时后再试', retryAfterMs: crl.retryAfterMs });
     }
     const result = await addComment(user.id, ref.publicationId, typeof body?.text === 'string' ? body.text : '');
     if (!result.ok) {
@@ -102,7 +102,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   }
 
   const remix = await remixPublication(user.id, ref.publicationId);
-  if (!remix.ok) return jsonError(409, 'cannot_remix', { message: remix.reason });
+  if (!remix.ok) return await jsonError(409, 'cannot_remix', { message: remix.reason });
   await emit({
     kind: 'remix',
     recipientId: ref.ownerId,

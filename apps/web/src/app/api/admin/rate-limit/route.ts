@@ -37,9 +37,9 @@ function counterByReason(name: MetricName): Record<string, number> {
 
 export async function GET(): Promise<NextResponse> {
   const user = await currentUserOrNull();
-  if (!user) return jsonError(401, 'unauthenticated', { message: '需要先登录' });
+  if (!user) return await jsonError(401, 'unauthenticated', { message: '需要先登录' });
   if (user.role !== 'admin') {
-    return jsonError(403, 'forbidden', { message: '限流闸状态只对审核员（role=admin）开放' });
+    return await jsonError(403, 'forbidden', { message: '限流闸状态只对审核员（role=admin）开放' });
   }
   const readout = getRateLimiter().describe();
   return NextResponse.json({

@@ -22,7 +22,7 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
 
   const user = await requireUser();
   const { id } = await params;
@@ -36,13 +36,13 @@ export async function POST(
     if (!result.ok) {
       switch (result.reason) {
         case 'not_found':
-          return jsonError(404, 'not_found', { message: '物品不存在或已下架' });
+          return await jsonError(404, 'not_found', { message: '物品不存在或已下架' });
         case 'free_item':
-          return jsonError(400, 'free_item', { message: '免费物品无需购买' });
+          return await jsonError(400, 'free_item', { message: '免费物品无需购买' });
         case 'own_item':
-          return jsonError(400, 'own_item', { message: '不能购买自己的物品' });
+          return await jsonError(400, 'own_item', { message: '不能购买自己的物品' });
         case 'already_purchased':
-          return jsonError(400, 'already_purchased', { message: '已经购买过此物品' });
+          return await jsonError(400, 'already_purchased', { message: '已经购买过此物品' });
       }
     }
 
@@ -89,6 +89,6 @@ export async function POST(
     });
   } catch (error) {
     console.error('Purchase failed:', error);
-    return jsonError(500, 'purchase_failed', { message: '购买失败，请稍后重试' });
+    return await jsonError(500, 'purchase_failed', { message: '购买失败，请稍后重试' });
   }
 }

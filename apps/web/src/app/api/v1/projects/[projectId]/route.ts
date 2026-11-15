@@ -19,21 +19,21 @@ interface RouteContext {
  */
 export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse> {
   const authed = await authorizeApiRequest(req, 'projects:read');
-  if (!authed.ok) return jsonError(authed.status, authed.error, { message: authed.message });
+  if (!authed.ok) return await jsonError(authed.status, authed.error, { message: authed.message });
   const { projectId } = await ctx.params;
   try {
     const detail = await apiProjectDetail(authed.userId, projectId);
     if (!detail) {
-      return jsonError(404, 'project_not_found', {
+      return await jsonError(404, 'project_not_found', {
         message: `项目 ${projectId} 不在这一枚凭据所属的人名下，或已被删除`,
       });
     }
     const checked = ApiProjectDetailSchema.safeParse(detail);
-    if (!checked.success) return failure(new Error('项目详情不符合契约'), 'GET /api/v1/projects/[projectId]');
+    if (!checked.success) return await failure(new Error('项目详情不符合契约'), 'GET /api/v1/projects/[projectId]');
     await recordApiAccess({ tokenId: authed.token.id, endpoint: 'GET /api/v1/projects/[projectId]', projectId });
     return apiJson(checked.data, req, { headers: { 'cache-control': 'no-store' } });
   } catch (error) {
-    return failure(error, 'GET /api/v1/projects/[projectId]');
+    return await failure(error, 'GET /api/v1/projects/[projectId]');
   }
 }
 
@@ -55,19 +55,19 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
  */
 export async function DELETE(req: Request, ctx: RouteContext): Promise<NextResponse> {
   const authed = await authorizeApiRequest(req, 'projects:write');
-  if (!authed.ok) return jsonError(authed.status, authed.error, { message: authed.message });
+  if (!authed.ok) return await jsonError(authed.status, authed.error, { message: authed.message });
   const { projectId } = await ctx.params;
   const confirm = new URL(req.url).searchParams.get('confirm') ?? '';
   try {
     const result = await softDeleteProject(authed.userId, projectId, confirm);
     if (!result.ok) {
       if (result.code === 'approval_required') {
-        return jsonError(400, 'approval_required', {
+        return await jsonError(400, 'approval_required', {
           message: '确认词与项目名不一致，没有删除这个项目',
           hint: '把 ?confirm= 写成这个项目的名字，逐字一致；不知道名字先 GET /api/v1/projects',
         });
       }
-      return jsonError(404, 'project_not_found', {
+      return await jsonError(404, 'project_not_found', {
         message: `项目 ${projectId} 不在这一枚凭据所属的人名下，或已被删除`,
       });
     }
@@ -84,6 +84,6 @@ export async function DELETE(req: Request, ctx: RouteContext): Promise<NextRespo
       { status: 200, headers: { 'cache-control': 'no-store' } },
     );
   } catch (error) {
-    return failure(error, 'DELETE /api/v1/projects/[projectId]');
+    return await failure(error, 'DELETE /api/v1/projects/[projectId]');
   }
 }

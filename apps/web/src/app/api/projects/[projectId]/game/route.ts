@@ -19,31 +19,31 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();
-    if (!(await projectVisibleTo(projectId, user.id))) return notFound();
+    if (!(await projectVisibleTo(projectId, user.id))) return await notFound();
     const result = await loadGame(projectId);
-    if (result && !result.ok) return jsonError(500, 'game_unreadable', { message: result.reason });
+    if (result && !result.ok) return await jsonError(500, 'game_unreadable', { message: result.reason });
     return NextResponse.json({ ok: true, game: result?.document ?? null });
   } catch (error) {
-    return failure(error, `GET /api/projects/${projectId}/game`);
+    return await failure(error, `GET /api/projects/${projectId}/game`);
   }
 }
 
 export async function PUT(req: Request, ctx: RouteContext): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId } = await ctx.params;
   const body = await readJson(req);
-  if (!body || typeof body !== 'object') return badRequest(['请求体必须是 JSON 对象']);
+  if (!body || typeof body !== 'object') return await badRequest(['请求体必须是 JSON 对象']);
   const { document } = body as { document?: unknown };
-  if (!document) return badRequest(['缺少游戏文档 document']);
+  if (!document) return await badRequest(['缺少游戏文档 document']);
   try {
     const user = await requireUser();
     const writeAccess = await projectWriteAccess(projectId, user.id);
-    if (writeAccess === 'not_found') return notFound();
-    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
+    if (writeAccess === 'not_found') return await notFound();
+    if (writeAccess === 'read_only') return await jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
     const result = await saveGame(projectId, user.id, document);
-    if (!result.ok) return jsonError(400, 'game_rejected', { message: result.reason });
+    if (!result.ok) return await jsonError(400, 'game_rejected', { message: result.reason });
     return NextResponse.json({ ok: true, game: result.document });
   } catch (error) {
-    return failure(error, `PUT /api/projects/${projectId}/game`);
+    return await failure(error, `PUT /api/projects/${projectId}/game`);
   }
 }

@@ -14,7 +14,7 @@ const Schema = z.object({
   displayName: z.string().trim().min(1).max(60).optional(),
 });
 
-function fromError(error: AuthError): NextResponse {
+async function fromError(error: AuthError): Promise<NextResponse> {
   const message =
     error.code === 'email_taken'
       ? '该邮箱已被注册'
@@ -23,22 +23,22 @@ function fromError(error: AuthError): NextResponse {
         : error.code === 'no_identity'
           ? '会话无效'
           : '认证失败';
-  return jsonError(error.status, error.code, { message });
+  return await jsonError(error.status, error.code, { message });
 }
 
 export async function POST(req: Request): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
 
   const ip = clientIp(req);
   // 注册按 IP 限流：挡住批量建号，正常用户几乎碰不到。
   // 限流匹配同一张规则表：`auth/register` 的 limit/window 只有 registry 一份（`IP_RATE_RULES`）
   const { limit, windowMs } = IP_RATE_RULES['auth/register'];
   const rl = await getRateLimiter().hit(rateKey('auth/register', ip), limit, windowMs);
-  if (!rl.allowed) return jsonError(429, 'rate_limited', { message: '注册过于频繁，请稍后再试' });
+  if (!rl.allowed) return await jsonError(429, 'rate_limited', { message: '注册过于频繁，请稍后再试' });
 
   const body = await readJson(req);
   const parsed = Schema.safeParse(body);
-  if (!parsed.success) return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
+  if (!parsed.success) return await badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
 
   try {
     const current = await requireUser();
@@ -64,6 +64,6 @@ export async function POST(req: Request): Promise<NextResponse> {
     });
     return applySessionCookie(NextResponse.json({ user: result.user, claimedProjects: result.claimedProjects }), result.sessionToken);
   } catch (error) {
-    return failure(error, 'POST /api/auth/register');
+    return await failure(error, 'POST /api/auth/register');
   }
 }

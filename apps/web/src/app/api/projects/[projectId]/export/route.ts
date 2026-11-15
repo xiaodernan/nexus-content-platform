@@ -35,12 +35,12 @@ interface RouteContext {
 export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse> {
   // requireUser 在没有 cookie 时是**抛错**（翻成 500），而这里承诺的是 401，所以用 nullable 的那一个显式判空
   const user = await currentUserOrNull();
-  if (!user) return jsonError(401, 'unauthenticated', { message: '需要先登录' });
+  if (!user) return await jsonError(401, 'unauthenticated', { message: '需要先登录' });
   const { projectId } = await ctx.params;
 
   const parsed = QuerySchema.safeParse(Object.fromEntries(new URL(req.url).searchParams));
   if (!parsed.success) {
-    return jsonError(400, 'validation_failed', {
+    return await jsonError(400, 'validation_failed', {
       issues: parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`),
     });
   }
@@ -51,7 +51,7 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
   // 归属与"这个项目还在不在"先问一遍，再推 building：不是自己的项目、不存在的项目
   // 都连这一步都没到，不该留下"导出跑了一次"的刻度（domain 里那道检查是给直接调用方的，两道各管各的入口）
   if (!identity || !(await projectVisibleTo(projectId, user.id))) {
-    return jsonError(404, 'not_found', { message: '没有这个项目' });
+    return await jsonError(404, 'not_found', { message: '没有这个项目' });
   }
   const projectName = identity.name;
   publishBuildStatus(projectId, 'building', `导出 ${label}`);
@@ -76,12 +76,12 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
       durationMs: 0,
       detail: failure,
     });
-    return jsonError(500, 'internal', { message: `导出失败：${failure}` });
+    return await jsonError(500, 'internal', { message: `导出失败：${failure}` });
   }
 
   // 能走到这里说明项目行在、归属也对，null 只剩一种可能：文档读不出来（页一行都没有）。
   // 照旧 404 且**不推 failed**——那不是"导出跑了一次然后失败"，是"没有东西可导"（与发布那一格同一口径）
-  if (!outcome) return jsonError(404, 'not_found', { message: '没有这个项目' });
+  if (!outcome) return await jsonError(404, 'not_found', { message: '没有这个项目' });
 
   // 说明那一份 README 也在包里，但它不是"导出的内容"，所以数完内容再明说还附带一份说明
   const detail =

@@ -11,12 +11,12 @@ import { failure, jsonError } from '@/server/http';
  */
 export async function GET(req: Request): Promise<NextResponse> {
   const projectId = new URL(req.url).searchParams.get('projectId');
-  if (!projectId) return jsonError(400, 'project_required', { message: '要带 projectId' });
+  if (!projectId) return await jsonError(400, 'project_required', { message: '要带 projectId' });
   try {
     const user = await requireUser();
     const pending = await listPendingApprovals(projectId, user.id);
     return NextResponse.json({ pending }, { headers: { 'cache-control': 'no-store' } });
   } catch (error) {
-    return failure(error, 'GET /api/ai/pending-approvals');
+    return await failure(error, 'GET /api/ai/pending-approvals');
   }
 }

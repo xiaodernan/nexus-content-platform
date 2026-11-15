@@ -9,6 +9,6 @@ export async function GET(): Promise<NextResponse> {
     const user = await requireUser();
     return privateJson({ user, projectCount: await countProjects(user.id) });
   } catch (error) {
-    return failure(error, 'GET /api/auth/me');
+    return await failure(error, 'GET /api/auth/me');
   }
 }

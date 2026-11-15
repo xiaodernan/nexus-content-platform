@@ -13,22 +13,22 @@ import { badRequest, failure, jsonError, notFound, readJson } from '@/server/htt
  * 因为它只会在 owner 已经过门之后发生，说清"名册上没有这个人"不泄露任何东西。
  */
 export async function POST(req: Request, ctx: { params: Promise<{ projectId: string }> }): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId } = await ctx.params;
   const body = await readJson(req);
   const parsed = ApiMemberRoleRequestSchema.safeParse(body);
   if (!parsed.success) {
-    return badRequest(parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`));
+    return await badRequest(parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`));
   }
   try {
     const user = await requireUser();
     const result = await changeMemberRole(projectId, parsed.data.userId, user.id, parsed.data.role);
-    if (result === 'not_owner') return notFound();
+    if (result === 'not_owner') return await notFound();
     if (result === 'not_member') {
-      return jsonError(404, 'member_not_found', { message: '这个人不在项目名册上' });
+      return await jsonError(404, 'member_not_found', { message: '这个人不在项目名册上' });
     }
     return NextResponse.json({ ok: true, userId: parsed.data.userId, role: parsed.data.role });
   } catch (error) {
-    return failure(error, `POST /api/projects/${projectId}/members/role`);
+    return await failure(error, `POST /api/projects/${projectId}/members/role`);
   }
 }

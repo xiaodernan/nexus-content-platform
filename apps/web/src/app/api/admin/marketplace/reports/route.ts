@@ -41,9 +41,9 @@ const ReportSchema = z.object({
 
 export async function GET(req: Request) {
   const user = await currentUserOrNull();
-  if (!user) return jsonError(401, 'unauthenticated', { message: '需要先登录' });
+  if (!user) return await jsonError(401, 'unauthenticated', { message: '需要先登录' });
   if (user.role !== 'admin') {
-    return jsonError(403, 'forbidden', { message: '举报列表只对审核员（role=admin）开放' });
+    return await jsonError(403, 'forbidden', { message: '举报列表只对审核员（role=admin）开放' });
   }
 
   const { searchParams } = new URL(req.url);
@@ -54,7 +54,7 @@ export async function GET(req: Request) {
     offset: searchParams.get('offset') ?? undefined,
   });
   if (!parsed.success) {
-    return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'query'}: ${i.message}`));
+    return await badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'query'}: ${i.message}`));
   }
 
   try {
@@ -69,25 +69,25 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const user = await currentUserOrNull();
   if (!user) {
-    return jsonError(401, 'unauthenticated', { message: '需要登录' });
+    return await jsonError(401, 'unauthenticated', { message: '需要登录' });
   }
 
   // CSRF 校验：状态变更请求必须双提交 token（SECURITY.md「认证与授权」）
   if (!(await csrfOk(req))) {
-    return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+    return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   }
 
   try {
     const body = await req.json().catch(() => null);
     const parsed = ReportSchema.safeParse(body);
     if (!parsed.success) {
-      return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
+      return await badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
     }
 
     // 物品必须先存在（软删的也算不存在）：下架的商品不该再能挂上新举报
     const item = await getMarketplaceItem(parsed.data.itemId);
     if (!item) {
-      return jsonError(404, 'item_not_found', { message: '没有这个物品，举报无从谈起' });
+      return await jsonError(404, 'item_not_found', { message: '没有这个物品，举报无从谈起' });
     }
 
     const result = await flagSuspiciousActivity({

@@ -43,28 +43,28 @@ function pickDraft(steps: StepReport[], stepId: string | undefined): { step: Ste
 }
 
 export async function POST(req: Request, ctx: RouteContext): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();
     const writeAccess = await projectWriteAccess(projectId, user.id);
-    if (writeAccess === 'not_found') return notFound();
-    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
+    if (writeAccess === 'not_found') return await notFound();
+    if (writeAccess === 'read_only') return await jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
     const rl = await getRateLimiter().hit(rateKey('agent/draft/accept', clientIp(req), user.id), 20, 10 * 60_000);
     if (!rl.allowed) {
-      return jsonError(429, 'rate_limited', { message: '接受太频繁，稍后再试', retryAfterMs: rl.retryAfterMs });
+      return await jsonError(429, 'rate_limited', { message: '接受太频繁，稍后再试', retryAfterMs: rl.retryAfterMs });
     }
 
     const parsed = AgentDraftAcceptRequestSchema.safeParse(await readJson(req));
     if (!parsed.success) {
-      return badRequest(parsed.error.issues.map((issue) => `${issue.path.join('.') || 'body'}: ${issue.message}`));
+      return await badRequest(parsed.error.issues.map((issue) => `${issue.path.join('.') || 'body'}: ${issue.message}`));
     }
 
     const task = await plannedTask(parsed.data.taskId, user.id);
     // 别人的任务、不存在的任务、挂在别的项目上的任务给同一个答案：这一行里存着提示词摘要与草稿，
     // "存在但不给你"本身就是信息（与 readRetryableTask / decideApproval 同一口径）
     const NOT_MINE = { message: '这一步的草稿读不回来：任务不存在、不属于你，或者不属于这个项目。' };
-    if (!task || task.projectId !== projectId) return jsonError(404, 'not_found', NOT_MINE);
+    if (!task || task.projectId !== projectId) return await jsonError(404, 'not_found', NOT_MINE);
 
     const steps = StepReportSchema.array().safeParse((task.result as { steps?: unknown } | null)?.steps ?? []);
     const picked = steps.success ? pickDraft(steps.data, parsed.data.stepId) : { step: null, available: [] as string[] };
@@ -82,7 +82,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
       const where = parsed.data.stepId ? `步骤「${parsed.data.stepId}」` : '这份任务';
       // 只有真有别的选择时才报清单：写着"还有 0 个"的那句话是在教用户找一个不存在的东西
       const elsewhere = picked.available.length > 0 ? `这份任务里留下草稿的是另外 ${picked.available.length} 步（${picked.available.join('、')}）。` : '';
-      return jsonError(409, 'draft_missing', {
+      return await jsonError(409, 'draft_missing', {
         message: steps.success
           ? `${where}没有可读回的草稿——它可能没跑成（被牵连跳过或失败），或者这一行建于草稿落地之前。${elsewhere}` +
             '重新跑一次检查再来接受。'
@@ -101,7 +101,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
         detail: { reason: 'refused', message: result.reason, projectId },
         ip: clientIp(req),
       });
-      return jsonError(409, 'accept_refused', { message: result.reason });
+      return await jsonError(409, 'accept_refused', { message: result.reason });
     }
 
     await recordAudit({
@@ -115,6 +115,6 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
     });
     return NextResponse.json({ ok: true, document: result.document }, { headers: { 'cache-control': 'no-store' } });
   } catch (error) {
-    return failure(error, `POST /api/projects/${projectId}/agent/draft`);
+    return await failure(error, `POST /api/projects/${projectId}/agent/draft`);
   }
 }

@@ -18,18 +18,18 @@ interface RouteContext {
  * （恢复不是破坏性动作，§74 的审批门只管"删"那一侧）。
  */
 export async function POST(req: Request, ctx: RouteContext): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();
     const rl = await getRateLimiter().hit(rateKey('projects/restore', clientIp(req), user.id), 60, 10 * 60_000);
     if (!rl.allowed) {
-      return jsonError(429, 'rate_limited', { message: '恢复太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
+      return await jsonError(429, 'rate_limited', { message: '恢复太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
     }
     const restored = await restoreProject(user.id, projectId);
-    if (!restored) return notFound();
+    if (!restored) return await notFound();
     return NextResponse.json({ ok: true, projectId, name: restored.name, restored: true });
   } catch (error) {
-    return failure(error, `POST /api/projects/${projectId}/restore`);
+    return await failure(error, `POST /api/projects/${projectId}/restore`);
   }
 }

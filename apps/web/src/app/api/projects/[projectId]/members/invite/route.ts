@@ -13,12 +13,12 @@ import { badRequest, failure, jsonError, notFound, readJson } from '@/server/htt
  * 被拒只给 reason：调用方能做的只有改邮箱、撤旧邀请，或升级档位。
  */
 export async function POST(req: Request, ctx: { params: Promise<{ projectId: string }> }): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId } = await ctx.params;
   const body = await readJson(req);
   const parsed = ApiMemberInviteRequestSchema.safeParse(body);
   if (!parsed.success) {
-    return badRequest(parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`));
+    return await badRequest(parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`));
   }
   try {
     const user = await requireUser();
@@ -32,6 +32,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ projectId: str
     // token 只在创建这一下随响应回去：roster 永远不给它，撤回再邀才有新的一枚
     return NextResponse.json({ ok: true, invite: result.invite, token: result.token }, { status: 201 });
   } catch (error) {
-    return failure(error, `POST /api/projects/${projectId}/members/invite`);
+    return await failure(error, `POST /api/projects/${projectId}/members/invite`);
   }
 }

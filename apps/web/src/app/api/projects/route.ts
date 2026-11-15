@@ -16,20 +16,20 @@ export async function GET(): Promise<NextResponse> {
     const user = await requireUser();
     return privateJson({ projects: await listProjects(user.id) });
   } catch (error) {
-    return failure(error, 'GET /api/projects');
+    return await failure(error, 'GET /api/projects');
   }
 }
 
 export async function POST(req: Request): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   // §137 的 guest 自动签发：无会话客户端的 user.id 每请求都是新的，按身份限流对它空转。
   // 所以这道按 IP 的闸必须放在 requireUser() 之前——被挡住的请求一个 guest 都不该建。
   const gate = await ipWriteGate('projects/create', req);
-  if (gate.limited) return jsonError(429, 'rate_limited', { message: '建项目太频繁了，稍后再试', retryAfterMs: gate.retryAfterMs });
+  if (gate.limited) return await jsonError(429, 'rate_limited', { message: '建项目太频繁了，稍后再试', retryAfterMs: gate.retryAfterMs });
   const body = await readJson(req);
   const parsed = CreateProjectSchema.safeParse(body);
   if (!parsed.success) {
-    return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
+    return await badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
   }
   try {
     const user = await requireUser();
@@ -39,6 +39,6 @@ export async function POST(req: Request): Promise<NextResponse> {
     });
     return NextResponse.json({ projectId: document.id, document }, { status: 201 });
   } catch (error) {
-    return failure(error, 'POST /api/projects');
+    return await failure(error, 'POST /api/projects');
   }
 }

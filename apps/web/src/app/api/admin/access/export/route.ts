@@ -13,19 +13,19 @@ import { exportApiAccessGlobal, parseApiAccessWindowDays } from '@/server/domain
  */
 export async function GET(request: Request): Promise<NextResponse> {
   const user = await currentUserOrNull();
-  if (!user) return jsonError(401, 'unauthenticated', { message: '需要先登录' });
+  if (!user) return await jsonError(401, 'unauthenticated', { message: '需要先登录' });
   if (user.role !== 'admin') {
-    return jsonError(403, 'forbidden', { message: '访问账导出只对审核员（role=admin）开放' });
+    return await jsonError(403, 'forbidden', { message: '访问账导出只对审核员（role=admin）开放' });
   }
   const params = new URL(request.url).searchParams;
   const days = parseApiAccessWindowDays(params.get('days'));
   if (days === null) {
-    return jsonError(400, 'bad_window', { message: '窗口只认 1 / 7 / 30 天' });
+    return await jsonError(400, 'bad_window', { message: '窗口只认 1 / 7 / 30 天' });
   }
   const kindRaw = params.get('kind');
   const kind = kindRaw === null || kindRaw === '' ? 'tokens' : kindRaw;
   if (kind !== 'tokens' && kind !== 'endpoints') {
-    return jsonError(400, 'bad_kind', { message: 'kind 只认 tokens（凭据榜）/ endpoints（端点榜）' });
+    return await jsonError(400, 'bad_kind', { message: 'kind 只认 tokens（凭据榜）/ endpoints（端点榜）' });
   }
   const csv = await exportApiAccessGlobal(days, kind);
   const stamp = new Date().toISOString().slice(0, 10).replaceAll('-', '');

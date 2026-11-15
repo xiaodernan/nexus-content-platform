@@ -21,9 +21,9 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request): Promise<NextResponse> {
   const user = await currentUserOrNull();
-  if (!user) return jsonError(401, 'unauthenticated', { message: '需要先登录' });
+  if (!user) return await jsonError(401, 'unauthenticated', { message: '需要先登录' });
   if (user.role !== 'admin') {
-    return jsonError(403, 'forbidden', { message: `这个端点对 role=${user.role} 不开放，只对 role=admin 可见` });
+    return await jsonError(403, 'forbidden', { message: `这个端点对 role=${user.role} 不开放，只对 role=admin 可见` });
   }
 
   const params = new URL(req.url).searchParams;

@@ -17,9 +17,9 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
   const { handle, assetId } = await ctx.params;
   try {
     const file = await openAssetForPublicPath(handle, assetId);
-    if (!file) return notFound();
+    if (!file) return await notFound();
     return bytesResponse(file.bytes, file.mime, 'public, max-age=31536000, immutable');
   } catch (error) {
-    return failure(error, `GET /api/public/${handle}/assets/${assetId}`);
+    return await failure(error, `GET /api/public/${handle}/assets/${assetId}`);
   }
 }

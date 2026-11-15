@@ -38,26 +38,26 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
   const sourceType = params.get('sourceType')?.trim() ?? '';
   const sourceId = params.get('sourceId')?.trim() ?? '';
   if (!(sourceType in SOURCE_LABELS)) {
-    return jsonError(400, 'bad_source_type', {
+    return await jsonError(400, 'bad_source_type', {
       message: `sourceType 要在这几类里：${Object.keys(SOURCE_LABELS).join(' / ')}`,
     });
   }
   if (!sourceId || sourceId.length > 200) {
-    return jsonError(400, 'bad_source_id', { message: 'sourceId 不能为空，且最多 200 字' });
+    return await jsonError(400, 'bad_source_id', { message: 'sourceId 不能为空，且最多 200 字' });
   }
   try {
     const user = await requireUser();
-    if (!(await projectVisibleTo(projectId, user.id))) return notFound();
+    if (!(await projectVisibleTo(projectId, user.id))) return await notFound();
     const { blocks } = await readKnowledgeBlock(projectId, sourceType as KnowledgeSourceType, sourceId);
     if (!blocks.length) {
       // 说清是"库里没有这一块"而不是给一个空列表装作成功：来源被删而索引还没重建就是这个形状
-      return jsonError(404, 'block_not_found', {
+      return await jsonError(404, 'block_not_found', {
         message: '这一块的语料不在库里：可能来源已删除而索引还没重建（点「重建索引」核对）',
       });
     }
     return NextResponse.json({ ok: true, projectId, sourceType, sourceId, blocks });
   } catch (error) {
-    return failure(error, `GET /api/projects/${projectId}/knowledge/block`);
+    return await failure(error, `GET /api/projects/${projectId}/knowledge/block`);
   }
 }
 
@@ -68,13 +68,13 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
     const { projectId } = await ctx.params;
 
     if (!(await projectVisibleTo(projectId, user.id))) {
-      return jsonError(404, 'not_found', { message: '项目不存在' });
+      return await jsonError(404, 'not_found', { message: '项目不存在' });
     }
 
     const raw = await readJson(req);
     const parsed = BlockQuerySchema.safeParse(raw);
     if (!parsed.success) {
-      return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
+      return await badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
     }
 
     const { sourceType, sourceId, maxChunks = 8 } = parsed.data;
@@ -83,6 +83,6 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
 
     return NextResponse.json(result);
   } catch (_error) {
-    return jsonError(500, 'internal', { message: '读取语料块失败' });
+    return await jsonError(500, 'internal', { message: '读取语料块失败' });
   }
 }

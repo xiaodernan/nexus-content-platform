@@ -12,14 +12,14 @@ import { failure, jsonError } from '@/server/http';
  * 本机没有发信，链接由邀请人自己转交；但"谁的邮箱"这一格在库里拦着，不靠猜不到当防线。
  */
 export async function POST(req: Request, ctx: { params: Promise<{ token: string }> }): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { token } = await ctx.params;
   try {
     const user = await requireUser();
     const result = await acceptInvite(token, user.id);
-    if (!result.ok) return jsonError(400, 'invite_not_acceptable', { message: result.reason });
+    if (!result.ok) return await jsonError(400, 'invite_not_acceptable', { message: result.reason });
     return NextResponse.json({ ok: true, projectId: result.projectId });
   } catch (error) {
-    return failure(error, `POST /api/projects/invites/${token}/accept`);
+    return await failure(error, `POST /api/projects/invites/${token}/accept`);
   }
 }

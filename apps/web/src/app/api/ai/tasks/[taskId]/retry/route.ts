@@ -23,18 +23,18 @@ interface RouteContext {
  * 装配、名册、额度门、策略栏一样不少：重试不是"绕过提交那道门的后门"。
  */
 export async function POST(req: Request, ctx: RouteContext): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { taskId } = await ctx.params;
   try {
     const user = await requireUser();
     const rl = await getRateLimiter().hit(rateKey('ai/tasks/retry', clientIp(req), user.id), 20, 10 * 60_000);
     if (!rl.allowed) {
-      return jsonError(429, 'rate_limited', { message: '重试太频繁，稍后再试', retryAfterMs: rl.retryAfterMs });
+      return await jsonError(429, 'rate_limited', { message: '重试太频繁，稍后再试', retryAfterMs: rl.retryAfterMs });
     }
 
     const check = await readRetryableTask(taskId, user.id);
     if (!check.ok) {
-      return jsonError(check.status, check.status === 404 ? 'not_found' : 'validation_failed', { message: check.message });
+      return await jsonError(check.status, check.status === 404 ? 'not_found' : 'validation_failed', { message: check.message });
     }
 
     const outcome = await submitClientRequest(check.request, user.id, {
@@ -43,6 +43,6 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
     if (!outcome.ok) return outcome.response;
     return NextResponse.json(outcome.body, { status: 202, headers: outcome.headers });
   } catch (error) {
-    return failure(error, `POST /api/ai/tasks/${taskId}/retry`);
+    return await failure(error, `POST /api/ai/tasks/${taskId}/retry`);
   }
 }

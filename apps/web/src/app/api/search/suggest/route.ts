@@ -25,11 +25,11 @@ const QuerySchema = z.object({
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const parsed = QuerySchema.safeParse({ q: url.searchParams.get('q') ?? '' });
-  if (!parsed.success) return badRequest(['q 最长 200 字符']);
+  if (!parsed.success) return await badRequest(['q 最长 200 字符']);
 
   const viewer = await currentUserOrNull();
   const gate = await getRateLimiter().hit(rateKey('search/suggest', clientIp(request), viewer?.id ?? null), 120, 60_000);
-  if (!gate.allowed) return jsonError(429, 'rate_limited', { message: '打字太快了，歇一秒再试', retryAfterMs: gate.retryAfterMs });
+  if (!gate.allowed) return await jsonError(429, 'rate_limited', { message: '打字太快了，歇一秒再试', retryAfterMs: gate.retryAfterMs });
 
   const result = await searchPlatform(parsed.data.q, viewer?.id ?? null, 2);
   const suggestions = result.groups

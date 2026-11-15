@@ -39,23 +39,23 @@ function summaryOf(response: { patches?: unknown; plans?: unknown }): string | n
 }
 
 export async function POST(req: Request): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   // §137 的 guest 自动签发：无会话客户端的 user.id 每请求都是新的，按身份限流对它空转。
   // 所以这道按 IP 的闸必须放在 requireUser() 之前——被挡住的请求一个 guest 都不该建。
   const gate = await ipWriteGate('ai/run', req);
-  if (gate.limited) return jsonError(429, 'rate_limited', { message: '生成请求太频繁了，稍后再试', retryAfterMs: gate.retryAfterMs });
+  if (gate.limited) return await jsonError(429, 'rate_limited', { message: '生成请求太频繁了，稍后再试', retryAfterMs: gate.retryAfterMs });
   let raw: unknown;
   try {
     const text = await req.text();
-    if (text.length > MAX_BODY_BYTES) return jsonError(413, 'payload_too_large', { message: `请求体超过 ${MAX_BODY_BYTES / 1024 / 1024}MB 上限` });
+    if (text.length > MAX_BODY_BYTES) return await jsonError(413, 'payload_too_large', { message: `请求体超过 ${MAX_BODY_BYTES / 1024 / 1024}MB 上限` });
     raw = JSON.parse(text) as unknown;
   } catch {
-    return badRequest(['请求体必须是 JSON']);
+    return await badRequest(['请求体必须是 JSON']);
   }
 
   const parsed = AiRequestSchema.safeParse(raw);
   if (!parsed.success) {
-    return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
+    return await badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
   }
 
   // §112 / §164：一次 AI 请求 = 一行 agent_tasks。下面这几样在 try 外面声明，
@@ -115,7 +115,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     const user = await requireUser();
     requesterId = user.id;
     const assembled = await assembleAiRequest(parsed.data, user.id);
-    if (!assembled.ok) return jsonError(assembled.status, assembled.code, { message: assembled.message });
+    if (!assembled.ok) return await jsonError(assembled.status, assembled.code, { message: assembled.message });
 
     const caps = await getAiCapabilities();
     capability = caps.text === 'real' ? 'real' : 'demo';
@@ -129,7 +129,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     // 放在 startTask 之前：扣点只记在**成功**的任务上，一条从没跑起来的请求如果先落了 running 行，
     // 它就成了任务列表里一条"在跑然后失败了"的假账。
     const refusal = await refusalForRun(user.id, ledgerFields.agentKey);
-    if (refusal) return jsonError(429, 'credits_exhausted', { message: refusal });
+    if (refusal) return await jsonError(429, 'credits_exhausted', { message: refusal });
     const started = await startTask({
       projectId: parsed.data.context.projectId,
       agentKey: ledgerFields.agentKey,
@@ -203,7 +203,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (!validated.success) {
       const reason = `provider 输出不符合契约：${validated.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('；')}`;
       await settle(false, reason);
-      return failure(new Error(reason), 'POST /api/ai/run');
+      return await failure(new Error(reason), 'POST /api/ai/run');
     }
     return deliver(validated.data, taskId);
   } catch (error) {
@@ -212,6 +212,6 @@ export async function POST(req: Request): Promise<NextResponse> {
       const message = error instanceof Error ? error.message : String(error);
       await finishTask(taskId, { ok: false, error: message }).catch(() => undefined);
     }
-    return failure(error, 'POST /api/ai/run');
+    return await failure(error, 'POST /api/ai/run');
   }
 }

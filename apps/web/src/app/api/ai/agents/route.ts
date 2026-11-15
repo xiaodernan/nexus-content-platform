@@ -19,6 +19,6 @@ export async function GET(): Promise<NextResponse> {
     const roster = await loadRoster();
     return NextResponse.json(AgentRosterSchema.parse({ agents: roster }), { headers: { 'cache-control': 'no-store' } });
   } catch (error) {
-    return failure(error, 'GET /api/ai/agents');
+    return await failure(error, 'GET /api/ai/agents');
   }
 }

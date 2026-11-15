@@ -16,7 +16,7 @@ import { jsonError } from '@/server/http';
  */
 export async function GET(): Promise<Response> {
   const user = await currentUserOrNull();
-  if (!user) return jsonError(401, 'unauthenticated', { message: '需要先登录' });
+  if (!user) return await jsonError(401, 'unauthenticated', { message: '需要先登录' });
   try {
     const rows = await creatorAnalytics(user.id);
     const csv = analyticsCsv(rows);
@@ -31,6 +31,6 @@ export async function GET(): Promise<Response> {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    return jsonError(500, 'export_failed', { message: `导出失败：${message}` });
+    return await jsonError(500, 'export_failed', { message: `导出失败：${message}` });
   }
 }

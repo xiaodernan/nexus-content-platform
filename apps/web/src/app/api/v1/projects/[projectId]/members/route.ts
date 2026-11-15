@@ -23,17 +23,17 @@ interface RouteContext {
  */
 export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse> {
   const authed = await authorizeApiRequest(req, 'team:read');
-  if (!authed.ok) return jsonError(authed.status, authed.error, { message: authed.message });
+  if (!authed.ok) return await jsonError(authed.status, authed.error, { message: authed.message });
   const { projectId } = await ctx.params;
   try {
     const roster = await apiTeamRoster(authed.userId, projectId);
     if (!roster) {
-      return jsonError(404, 'project_not_found', {
+      return await jsonError(404, 'project_not_found', {
         message: `项目 ${projectId} 不在这一枚凭据所属的人名下、已被删除，或库里还没有文档`,
       });
     }
     const checked = ApiTeamRosterSchema.safeParse(roster);
-    if (!checked.success) return failure(new Error('名册报文不符合契约'), 'GET /api/v1/projects/[projectId]/members');
+    if (!checked.success) return await failure(new Error('名册报文不符合契约'), 'GET /api/v1/projects/[projectId]/members');
     await recordApiAccess({
       tokenId: authed.token.id,
       endpoint: 'GET /api/v1/projects/[projectId]/members',
@@ -41,6 +41,6 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
     });
     return apiJson(checked.data, req, { headers: { 'cache-control': 'no-store' } });
   } catch (error) {
-    return failure(error, 'GET /api/v1/projects/[projectId]/members');
+    return await failure(error, 'GET /api/v1/projects/[projectId]/members');
   }
 }

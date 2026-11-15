@@ -4609,3 +4609,25 @@ D
 - 活验（dev server, port 3100 当天启停、用完即杀）：/n 页 zh 缺省正常渲染（200），NEXUS_LOCALE=en cookie 后
   Version/Public/Report this page/creative metrics 全英文、零 zh chrome 字节（Play this version 等条件入口按该刊无 game 正确不出现）——
   curl 实测 locales 各一份；e2e 断言不受影响（缺省 zh 字节不变）。
+
+
+## cont. 132 (2026-11-15) - API 服务端错误文案双语（v3 波）
+
+- 本波把 163 条 distinct 服务端 message 散文（2026-11-15 node census 出炉）收成 `server/api-messages.ts`
+  EXACT 表（zh→en）+ 参数化 pattern 4 条（项目 id 凭据 2 形态 + 项目不存在 2 形态）；
+  `server/http.ts` 的 `jsonError`/`badRequest`/`notFound`/`failure` 收成 async：响应出口——不按调用点——
+  统一翻译 message/issues 数组（未命中表的串原样透传：宁缺毋错不错译）。
+- 110 个 import 了 server/http 的文件同步机械改写：`return jsonError(` → `return await jsonError(`
+  （badRequest/notFound/failure 同）；非函数调用位逐处人工核对（auth/login 的 retry-after 头、
+  ai/submit 结果回执 `NextResponse` 真类型）修正；2 处 helper 函数（auth login/register 的 fromError）
+  改 async。
+- 实测（dev server, port 3100，用完即停）：
+  - POST /api/blocks 无 CSRF 头 → zh: `{"error":"csrf_failed","message":"CSRF 校验未通过"}`；
+    cookie=NEXUS_LOCALE=en → `{"error":"csrf_failed","message":"CSRF check failed"}`（字节级确认）
+  - GET /api/notifications/settings 未登录 → zh `需要登录` / en `Sign-in required`
+  - GET /api/admin/access 未登录 → zh `需要先登录` / en `Sign-in required`
+- 全量测试（`npm run test:main`，8010 条）：7996 passed, 5 skipped; 9 failed——与干净 HEAD 对照，
+  **失败的 9 个判据一一相同**（db-performance-surface、discover-cross-instance、java-metrics/tracing-surface、
+  jsx-text、session-json-cache、visit-completion-honesty×2、savings-ledger 偶发）——本波零回归；
+  tsc 0；eslint 0（http.ts/api-messages.ts/submit.ts/两个 auth 路由）。
+- 强约束：缺省 = zh，与本波前字节一致——不命中表的串一律透传（不猜不编）。

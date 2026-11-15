@@ -13,13 +13,13 @@ import { listApiAccessGlobal, parseApiAccessWindowDays } from '@/server/domain/a
  */
 export async function GET(request: Request): Promise<NextResponse> {
   const user = await currentUserOrNull();
-  if (!user) return jsonError(401, 'unauthenticated', { message: '需要先登录' });
+  if (!user) return await jsonError(401, 'unauthenticated', { message: '需要先登录' });
   if (user.role !== 'admin') {
-    return jsonError(403, 'forbidden', { message: '访问账全局视图只对审核员（role=admin）开放' });
+    return await jsonError(403, 'forbidden', { message: '访问账全局视图只对审核员（role=admin）开放' });
   }
   const days = parseApiAccessWindowDays(new URL(request.url).searchParams.get('days'));
   if (days === null) {
-    return jsonError(400, 'bad_window', { message: '窗口只认 1 / 7 / 30 天' });
+    return await jsonError(400, 'bad_window', { message: '窗口只认 1 / 7 / 30 天' });
   }
   return NextResponse.json(await listApiAccessGlobal(days));
 }

@@ -29,14 +29,14 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
     const { projectId } = await ctx.params;
     const user = await requireUser();
     const result = await listProjectTasks(projectId, user.id);
-    if (!result) return jsonError(404, 'not_found', { message: '没有这个项目，或者它不属于你' });
+    if (!result) return await jsonError(404, 'not_found', { message: '没有这个项目，或者它不属于你' });
     const parsed = TasksLedgerSchema.safeParse({ ok: true, projectName: result.projectName, tasks: result.tasks });
     if (!parsed.success) {
       // 服务端自己的报文对不上契约：这是 bug，不是用户的错——照实 500，不发一份"差不多"的出去
-      return failure(new Error('任务账本报文不合 TasksLedgerSchema'), 'GET /api/projects/<id>/tasks');
+      return await failure(new Error('任务账本报文不合 TasksLedgerSchema'), 'GET /api/projects/<id>/tasks');
     }
     return apiJson(parsed.data, req);
   } catch (error) {
-    return failure(error, 'GET /api/projects/<id>/tasks');
+    return await failure(error, 'GET /api/projects/<id>/tasks');
   }
 }

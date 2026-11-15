@@ -20,19 +20,19 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
   try {
     const user = await requireUser();
     const access = await projectWriteAccess(projectId, user.id);
-    if (access === 'not_found') return notFound();
+    if (access === 'not_found') return await notFound();
     if (access === 'read_only') {
-      return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色只读；预检与发布权属于 owner 与 editor' });
+      return await jsonError(403, 'read_only_role', { message: '查看者（viewer）角色只读；预检与发布权属于 owner 与 editor' });
     }
 
     const raw = new URL(req.url).searchParams.get('visibility');
     const visibility: Visibility = raw === 'unlisted' || raw === 'private' ? raw : 'public';
 
     const report = await checkPublishPreflight(projectId, visibility);
-    if (!report) return notFound();
+    if (!report) return await notFound();
 
     return NextResponse.json(report, { headers: { 'cache-control': 'no-store' } });
   } catch (error) {
-    return failure(error, `GET /api/projects/${projectId}/publish-preflight`);
+    return await failure(error, `GET /api/projects/${projectId}/publish-preflight`);
   }
 }

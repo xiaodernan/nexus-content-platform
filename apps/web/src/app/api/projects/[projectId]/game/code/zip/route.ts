@@ -31,12 +31,12 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
     const gate = await projectGameCode(user, projectId);
     if (!gate.ok) {
       const { refusal } = gate;
-      return jsonError(refusal.status, refusal.error, 'message' in refusal ? { message: refusal.message } : {});
+      return await jsonError(refusal.status, refusal.error, 'message' in refusal ? { message: refusal.message } : {});
     }
 
     const { document, output } = gate;
     if (output.bytes > MAX_CODE_ZIP_BYTES) {
-      return jsonError(413, 'code_too_large', {
+      return await jsonError(413, 'code_too_large', {
         message: `产物 ${output.bytes} 字节，超过单次下载上限 ${MAX_CODE_ZIP_BYTES}：把这一份拆成几份设计（zip 是 store 不压缩，拆小才会真的变小）。`,
         bytes: output.bytes,
         limit: MAX_CODE_ZIP_BYTES,
@@ -69,6 +69,6 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
       },
     });
   } catch (error) {
-    return failure(error, `GET /api/projects/${projectId}/game/code/zip`);
+    return await failure(error, `GET /api/projects/${projectId}/game/code/zip`);
   }
 }

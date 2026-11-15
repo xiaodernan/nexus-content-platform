@@ -1,5 +1,6 @@
 import { gzipSync } from 'node:zlib';
 import { NextResponse } from 'next/server';
+import { apiLocale, translateApiIssues, translateApiMessage } from './api-messages';
 
 /** API 层的统一出口：错误响应不带堆栈，避免泄露内部结构（§26 / SECURITY.md） */
 
@@ -12,19 +13,33 @@ export async function readJson(req: Request): Promise<unknown> {
   }
 }
 
-export function jsonError(status: number, error: string, extra?: Record<string, unknown>): NextResponse {
-  return NextResponse.json({ error, ...extra }, { status });
+/**
+ * §API-i18n（2026-11-15）：这几个出口的 message 走 `translateApiMessage`——
+ * cookie=NEXUS_LOCALE=en 时 exact/pattern 命中即翻译，否则（incl. zh 缺省）**原文原样**。
+ * 全库 163 条 distinct message census 见 server/api-messages.ts；
+ * 未命中表的串透传（宁缺毋错，不猜）。
+ */
+export async function jsonError(status: number, error: string, extra?: Record<string, unknown>): Promise<NextResponse> {
+  const locale = await apiLocale();
+  let localizedExtra: Record<string, unknown> | undefined = extra;
+  if (extra && typeof extra.message === 'string') {
+    localizedExtra = { ...extra, message: translateApiMessage(extra.message, locale) };
+  } else if (extra && Array.isArray(extra.issues)) {
+    localizedExtra = { ...extra, issues: translateApiIssues(extra.issues as readonly unknown[], locale) };
+  }
+  return NextResponse.json({ error, ...localizedExtra }, { status });
 }
 
-export function badRequest(issues: string[]): NextResponse {
-  return jsonError(400, 'validation_failed', { issues });
+export async function badRequest(issues: string[]): Promise<NextResponse> {
+  const locale = await apiLocale();
+  return jsonError(400, 'validation_failed', { issues: locale === 'zh' ? issues : translateApiIssues(issues, locale) });
 }
 
-export function notFound(): NextResponse {
+export async function notFound(): Promise<NextResponse> {
   return jsonError(404, 'not_found');
 }
 
-export function failure(error: unknown, context: string): NextResponse {
+export async function failure(error: unknown, context: string): Promise<NextResponse> {
   const message = error instanceof Error ? error.message : String(error);
   console.error(`[api] ${context}: ${message}`);
   return jsonError(500, 'internal', { message: '服务器处理失败，请稍后重试' });

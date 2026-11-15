@@ -26,10 +26,10 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
     const user = await requireUser();
     const rl = await getRateLimiter().hit(rateKey('ai/jobs/status', clientIp(req), user.id), 600, 10 * 60_000);
     if (!rl.allowed) {
-      return jsonError(429, 'rate_limited', { message: '查询太频繁，稍后再试', retryAfterMs: rl.retryAfterMs });
+      return await jsonError(429, 'rate_limited', { message: '查询太频繁，稍后再试', retryAfterMs: rl.retryAfterMs });
     }
     const observed = await observeJob(jobId, user.id);
-    if (!observed) return notFound();
+    if (!observed) return await notFound();
     /**
      * §6：跨端报文只有 `packages/schemas` 那一份定义。这里现在装着 provider 生成的
      * `AiResponse`（可能是真模型写的），所以出口先校验一次再发——
@@ -37,13 +37,13 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
      */
     const validated = AiJobObservationSchema.safeParse(observed);
     if (!validated.success) {
-      return failure(
+      return await failure(
         new Error(`作业观察不符合契约：${validated.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('；')}`),
         `GET /api/ai/jobs/${jobId}`,
       );
     }
     return NextResponse.json(validated.data, { headers: { 'cache-control': 'no-store' } });
   } catch (error) {
-    return failure(error, `GET /api/ai/jobs/${jobId}`);
+    return await failure(error, `GET /api/ai/jobs/${jobId}`);
   }
 }

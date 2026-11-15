@@ -18,23 +18,23 @@ import { badRequest, jsonError } from '@/server/http';
 const Schema = z.object({ role: z.enum(['creator', 'admin']) });
 
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const user = await currentUserOrNull();
-  if (!user) return jsonError(401, 'unauthenticated', { message: '需要先登录' });
+  if (!user) return await jsonError(401, 'unauthenticated', { message: '需要先登录' });
   const { id } = await ctx.params;
   const body = await req.json().catch(() => null);
   const parsed = Schema.safeParse(body);
   if (!parsed.success) {
-    return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
+    return await badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
   }
   // 提权是最不该被脚本刷的一类动作：按人限流，一次误点不会把一堆账号换来换去
   const rl = await getRateLimiter().hit(rateKey('admin/users', clientIp(req), user.id), 20, 10 * 60_000);
   if (!rl.allowed) {
-    return jsonError(429, 'rate_limited', { message: '改角色太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
+    return await jsonError(429, 'rate_limited', { message: '改角色太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
   }
 
   const result = await setUserRole(user.id, id, parsed.data.role);
-  if (!result.ok) return jsonError(result.status, result.code, { message: result.reason });
+  if (!result.ok) return await jsonError(result.status, result.code, { message: result.reason });
   return NextResponse.json({
     ok: true,
     targetId: result.targetId,

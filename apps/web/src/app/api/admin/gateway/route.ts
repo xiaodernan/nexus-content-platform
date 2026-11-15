@@ -21,9 +21,9 @@ import { getGatewayClient, getGatewayStatus } from '@/server/gateway';
  */
 export async function GET(): Promise<NextResponse> {
   const user = await currentUserOrNull();
-  if (!user) return jsonError(401, 'unauthenticated', { message: '需要先登录' });
+  if (!user) return await jsonError(401, 'unauthenticated', { message: '需要先登录' });
   if (user.role !== 'admin') {
-    return jsonError(403, 'forbidden', { message: '网关态势只对审核员（role=admin）开放' });
+    return await jsonError(403, 'forbidden', { message: '网关态势只对审核员（role=admin）开放' });
   }
   try {
     const [snapshot, driver] = await Promise.all([getGatewayStatus(), Promise.resolve(getGatewayClient().describe())]);
@@ -35,6 +35,6 @@ export async function GET(): Promise<NextResponse> {
     // join 意外抛错才走到这：不说"平台不健康"（那是网关的事），只说这次读数没答上。
     const message = error instanceof Error ? error.message : String(error);
     console.error(`[admin/gateway] 读数失败: ${message}`);
-    return jsonError(503, 'readout_unavailable', { message: '这次没测到网关态势，请稍后再看' });
+    return await jsonError(503, 'readout_unavailable', { message: '这次没测到网关态势，请稍后再看' });
   }
 }

@@ -15,13 +15,13 @@ export async function GET() {
     // 全站统一：`error` 装机器可读的码、人话在 `message` 里。
     // 这里原来是 `NextResponse.json({ error: 'Unauthorized' }, { status: 401 })`——
     // 那个字段装的是一句英文人话，客户端拿不到可判别的码（与下载端点那次是同一类问题）。
-    return jsonError(401, 'unauthenticated', { message: '需要先登录' });
+    return await jsonError(401, 'unauthenticated', { message: '需要先登录' });
   }
 
   try {
     const summary = await getCreatorEarnings({ creatorId: user.id });
     return privateJson(summary);
   } catch (error) {
-    return failure(error, 'GET /api/marketplace/earnings');
+    return await failure(error, 'GET /api/marketplace/earnings');
   }
 }

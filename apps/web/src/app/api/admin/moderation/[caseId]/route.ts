@@ -22,7 +22,7 @@ const ResolveSchema = z.object({
 export async function POST(req: Request, ctx: { params: Promise<{ caseId: string }> }): Promise<NextResponse> {
   const { caseId } = await ctx.params;
   const user = await currentUserOrNull();
-  if (!user) return jsonError(401, 'unauthenticated', { message: '需要先登录' });
+  if (!user) return await jsonError(401, 'unauthenticated', { message: '需要先登录' });
   /**
    * 限流放在 admin 判定**之前**：从这个版本起，被拒的越权尝试也会写一行审计，
    * 而这条路是任何登录用户都能走的——不限流的话，一个非审核员的循环请求
@@ -30,7 +30,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ caseId: string
    */
   const rl = await getRateLimiter().hit(rateKey('admin/moderation', clientIp(req), user.id), 30, 10 * 60_000);
   if (!rl.allowed) {
-    return jsonError(429, 'rate_limited', { message: '裁决太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
+    return await jsonError(429, 'rate_limited', { message: '裁决太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
   }
   if (user.role !== 'admin') {
     // §80 / §84：被拒绝的越权尝试正是审计表存在的理由。今天它只活在一次 HTTP 响应里，
@@ -43,20 +43,20 @@ export async function POST(req: Request, ctx: { params: Promise<{ caseId: string
       allowed: false,
       detail: { reason: 'not_admin', role: user.role },
     });
-    return jsonError(403, 'forbidden', { message: '只有审核员（role=admin）能下结论' });
+    return await jsonError(403, 'forbidden', { message: '只有审核员（role=admin）能下结论' });
   }
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
 
   const parsed = ResolveSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
-    return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
+    return await badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
   }
   const result = await resolveCase(caseId, {
     adminId: user.id,
     resolution: parsed.data.resolution,
     note: parsed.data.note,
   });
-  if (!result.ok) return jsonError(409, 'cannot_resolve', { message: result.reason });
+  if (!result.ok) return await jsonError(409, 'cannot_resolve', { message: result.reason });
   return NextResponse.json({
     ...result,
     /**

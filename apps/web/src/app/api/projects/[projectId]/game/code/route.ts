@@ -33,12 +33,12 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
     const gate = await projectGameCode(user, projectId, locale);
     if (!gate.ok) {
       const { refusal } = gate;
-      return jsonError(refusal.status, refusal.error, 'message' in refusal ? { message: refusal.message } : {});
+      return await jsonError(refusal.status, refusal.error, 'message' in refusal ? { message: refusal.message } : {});
     }
 
     const { output } = gate;
     if (output.bytes > MAX_CODE_JSON_BYTES) {
-      return jsonError(413, 'code_too_large', {
+      return await jsonError(413, 'code_too_large', {
         message:
           locale === 'en'
             ? `Artifact ${output.bytes} bytes, over the single-response cap of ${MAX_CODE_JSON_BYTES}: use the zip download instead (${MAX_CODE_ZIP_BYTES} bytes) or break the design down.`
@@ -59,6 +59,6 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
       kindNote: output.kindNote,
     });
   } catch (error) {
-    return failure(error, `GET /api/projects/${projectId}/game/code`);
+    return await failure(error, `GET /api/projects/${projectId}/game/code`);
   }
 }

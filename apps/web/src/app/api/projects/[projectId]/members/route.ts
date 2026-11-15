@@ -16,7 +16,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ projectId: str
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();
-    if (!(await projectVisibleTo(projectId, user.id))) return notFound();
+    if (!(await projectVisibleTo(projectId, user.id))) return await notFound();
     const [members, invites] = await Promise.all([listMembers(projectId), listInvites(projectId)]);
     // 名额上限跟名册一起回：界面要说得出"3/5"，不能只罗列人名
     const plan = await planOf((await ownerOf(projectId)) ?? user.id);
@@ -24,6 +24,6 @@ export async function GET(_req: Request, ctx: { params: Promise<{ projectId: str
       ApiTeamRosterSchema.parse({ projectId, members, invites, teamLimit: teamMemberLimit(plan) }),
     );
   } catch (error) {
-    return failure(error, `GET /api/projects/${projectId}/members`);
+    return await failure(error, `GET /api/projects/${projectId}/members`);
   }
 }

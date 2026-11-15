@@ -22,31 +22,31 @@ export async function GET(): Promise<NextResponse> {
     const body = { tokens, access: await listApiAccessSummary(user.id) };
     // 出口也按契约过一遍：这一格是把"读过什么"摊给人看的第一处，报文得自己说得出给的是哪几本账
     const checked = ApiAccountTokensSchema.safeParse(body);
-    if (!checked.success) return failure(new Error('凭据列表不符合契约'), 'GET /api/account/api-tokens');
+    if (!checked.success) return await failure(new Error('凭据列表不符合契约'), 'GET /api/account/api-tokens');
     return NextResponse.json(checked.data, { headers: { 'cache-control': 'no-store' } });
   } catch (error) {
-    return failure(error, 'GET /api/account/api-tokens');
+    return await failure(error, 'GET /api/account/api-tokens');
   }
 }
 
 export async function POST(req: Request): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   // §137 的 guest 自动签发：无会话客户端的 user.id 每请求都是新的，按身份限流对它空转。
   // 所以这道按 IP 的闸必须放在 requireUser() 之前——被挡住的请求一个 guest 都不该建。
   const gate = await ipWriteGate('account/api-tokens', req);
-  if (gate.limited) return jsonError(429, 'rate_limited', { message: '建凭据太频繁了，稍后再试', retryAfterMs: gate.retryAfterMs });
+  if (gate.limited) return await jsonError(429, 'rate_limited', { message: '建凭据太频繁了，稍后再试', retryAfterMs: gate.retryAfterMs });
   const parsed = ApiTokenCreateRequestSchema.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
+  if (!parsed.success) return await badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
   try {
     const user = await requireUser();
     const issued = await issueApiToken({ userId: user.id, ...parsed.data });
     // 出口也按契约过一遍：明文只该出现在这一份报文里，别处多一份就是泄露
     const checked = ApiTokenIssuedSchema.safeParse(issued);
-    if (!checked.success) return failure(new Error('签发报文不符合契约'), 'POST /api/account/api-tokens');
+    if (!checked.success) return await failure(new Error('签发报文不符合契约'), 'POST /api/account/api-tokens');
     return NextResponse.json(issued, { status: 201, headers: { 'cache-control': 'no-store' } });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    if (message.includes('scope') || message.includes('名称')) return badRequest([message]);
-    return failure(error, 'POST /api/account/api-tokens');
+    if (message.includes('scope') || message.includes('名称')) return await badRequest([message]);
+    return await failure(error, 'POST /api/account/api-tokens');
   }
 }
