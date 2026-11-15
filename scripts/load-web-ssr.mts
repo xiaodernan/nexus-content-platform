@@ -1,27 +1,30 @@
 #!/usr/bin/env node
 /**
- * §LOAD-/bible 高并发 web 实测探针（evidence：docs/evidence/load-web-ssr-2026-11-17.md）。
+ * §LOAD /bible concurrent web probe (evidence: docs/evidence/load-web-ssr-2026-11-17.md).
  *
- * **SUPERSEDED by `load-web-ssr-sweep.mts`**（冷编译级联解释首发 run 的 126/170 失联：
- * dev 首次编译未就绪时并发涌入，大部分被硬断而不是 500；sweep 每档重启 + warm 后复测，
- * 496/500 真实 200）。本脚本保留作首发失败现场记录。
+ * SUPERSEDED by `load-web-ssr-sweep.mts` — the first cold-compile run saw 126/170 requests
+ * drop because the Next dev server was still compiling when the burst hit; most were hard
+ * disconnects, not 500s. The sweep restarts per tier and waits for warm, landing 496/500 real
+ * 200s. This script is kept as the first-failure scene record.
  *
- * 与 sweep 的区别：sweep 每档 spawn 新 dev server（冷缓存）+ 一次 warm 视为就绪；本脚本一次性
- * 连发 170×3 + burst（冷 / 热编译状态混在一起，错误率与"服务器扛不住"混淆）。
- */
+ * Difference vs the sweep: the sweep spawns one dev server per tier (cold cache) and waits
+ * one full warm-up before load; this script fires 170x3 + burst in one run (cold and hot
+ * compile states mixed together).
  *
- * 协议：
- *   - next dev -p 3401（本仓既有跑法；测的是 dev 路径的 SSR 层真实开销，不是生产 CDN 路径
- *     ——证据里如实说明）；
- *   - warm：每路由先 3 次顺序 GET 预热（含编译）；
- *   - steady：/bible · /guide · /about-nexus 各 170 个请求（maxSockets=48 并发池）；
- *   - burst：/bible 110 个请求（maxSockets=96）——瞬时撞库；
- *   - 路由一律选 **不连业务库** 的那几条（本机 Postgres 未必在线）；
- *   - 产出 docs/evidence/load-web-ssr-2026-11-17.{json,md}。
+ * Protocol:
+ *   - next dev -p 3401 (the repo's usual way; this measures the dev path's real SSR cost, not
+ *     the production CDN path — the evidence says so);
+ *   - warm: 3 sequential gets per route (with compile);
+ *   - steady: /bible · /guide · /about-nexus 170 requests each (maxSockets=48);
+ *   - burst: /bible 110 requests (maxSockets=96) — instant collision;
+ *   - routes are the ones that do NOT touch the business DB (local Postgres may be down);
+ *   - output docs/evidence/load-web-ssr-2026-11-17.{json,md}.
  *
- * 不看做 SLA（§159）：单次、单机、单路由；数值只记事实，不承诺。
+ * No SLA is claimed (§59): single run, single machine, single route; numbers are facts, not promises.
  */
 import { spawn } from 'node:child_process';
+
+interface BatchReport { label: string; path: string; wallMs: number; rps: number }
 import http from 'node:http';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -38,11 +41,12 @@ const child = spawn('node', ['node_modules/next/dist/bin/next', 'dev', '-p', Str
 child.stdout.on('data', () => {});
 child.stderr.on('data', () => {});
 
-const pool = (maxSockets) => new http.Agent({ keepAlive: true, maxSockets });
+interface Sample { status: number; bytes: number; ms: number }
+const pool = (maxSockets: number): http.Agent => new http.Agent({ keepAlive: true, maxSockets });
 const steadyPool = pool(48);
 const burstPool = pool(96);
 
-function get(path, agent) {
+function get(path: string, agent: http.Agent): Promise<Sample> {
   return new Promise((resolve, reject) => {
     const started = process.hrtime.bigint();
     const req = http.get(`${BASE}${path}`, { agent, timeout: 30_000 }, (res) => {
@@ -58,23 +62,25 @@ function get(path, agent) {
   });
 }
 
-async function waitForServer(timeoutMs = 120_000) {
+async function waitForServer(timeoutMs = 120_000): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     try {
-      const r = await get('/bible', pool(1));
+      const r: Sample = await get('/bible', pool(1));
       if (r.status === 200) return;
     } catch { /* not ready */ }
     await new Promise((r) => setTimeout(r, 600));
   }
-  throw new Error('dev server 未在时限内就绪');
+  throw new Error('dev server did not become ready in time');
 }
 
-function stats(samples) {
+function stats(samples: Sample[]): {
+  n: number; ok: number; errors: number; p50: number; p95: number; p99: number; mean: number; max: number; bytesTotal: number;
+} {
   const ok = samples.filter((s) => s.status >= 200 && s.status < 300).length;
   const errors = samples.length - ok;
   const msSorted = samples.map((s) => s.ms).sort((a, b) => a - b);
-  const q = (p) => msSorted[Math.min(msSorted.length - 1, Math.floor(p * msSorted.length))];
+  const q = (p: number) => msSorted[Math.min(msSorted.length - 1, Math.floor(p * msSorted.length))] ?? 0;
   const sum = msSorted.reduce((a, b) => a + b, 0);
   return {
     n: samples.length,
@@ -88,9 +94,10 @@ function stats(samples) {
     bytesTotal: samples.reduce((a, b) => a + b.bytes, 0),
   };
 }
-const round2 = (n) => Math.round(n * 100) / 100;
+const round2 = (n: number): number => Math.round(n * 100) / 100;
 
-async function runBatch(label, path, count, agent) {
+
+async function runBatch(label: string, path: string, count: number, agent: http.Agent): Promise<BatchReport & ReturnType<typeof stats>> {
   const t0 = Date.now();
   const poolTasks = new Array(count).fill(null).map(() => get(path, agent).catch(() => ({ status: 0, bytes: 0, ms: 0 })));
   const samples = await Promise.all(poolTasks);
@@ -98,12 +105,13 @@ async function runBatch(label, path, count, agent) {
   return { label, path, wallMs, rps: round2((count / wallMs) * 1000), ...stats(samples) };
 }
 
+
 try {
-  process.stdout.write('waiting for dev server…\n');
+  process.stdout.write('waiting for dev server...\n');
   await waitForServer();
   process.stdout.write('server ready\n');
 
-  // warm（编译）
+  // warm (with compile)
   for (const p of ['/bible', '/guide', '/about-nexus']) {
     for (let i = 0; i < 3; i++) await get(p, pool(1)).catch(() => {});
   }
@@ -115,15 +123,15 @@ try {
   results.push(await runBatch('burst', '/bible', 110, burstPool));
 
   const report = {
-    date: '2026-11-17', printer: 'scripts/load-web-ssr.mts', routeRationale: '无业务库路由（本机 Postgres 未必在线）；不含 /discover//n/*/search 等打库页',
-    server: 'next dev -p 3401（开发路径，含 Turbopack dev 开销；不是生产 CDN+SSR 缓存路径）',
+    date: '2026-11-17', printer: 'scripts/load-web-ssr.mts', routeRationale: 'no-business-DB routes (local Postgres may be down); excludes /discover//n/*/search pages',
+    server: 'next dev -p 3401 (dev path; Turbopack dev overhead; not the production CDN+SSR cached path)',
     results,
   };
   writeFileSync(EVIDENCE_JSON, JSON.stringify(report, null, 2), 'utf8');
-  console.log('✓ evidence 写入', EVIDENCE_JSON);
+  console.log('evidence written', EVIDENCE_JSON);
   console.log(JSON.stringify(results, null, 2));
 } catch (error) {
-  console.error('✗ 压力测试失败：', error);
+  console.error('load test failed', error);
   process.exitCode = 1;
 } finally {
   child.kill();
