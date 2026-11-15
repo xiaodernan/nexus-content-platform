@@ -127,36 +127,14 @@ export interface GameEntity {
 }
 
 /**
- * §51 的游戏类型，顺序与用词照原文：
- * `2D / 2.5D / 3D / Interactive Story / RPG prototype / Exploration / Puzzle / Visual Novel`
- *
- * 用连字符是因为它是文档字段，要同时当 zod 枚举、URL/图上的标识和 TS 字面量用；
- * 原文的英文词另存 `GAME_KIND_TERMS`，契约测试拿它对齐，漂移要在测试里炸。
+ * §51 的游戏类型权威清单在 `kinds.ts` 里（叶模块，先被 import 也不会 TDZ）。
+ * 这里仅在 import 上保持本地绑定，在导出上保持对外签名不变。
+ * 类型 GameKind 与 GAME_KIND_TERMS 同款 re-export。
  */
-export const GAME_KINDS = [
-  "2d",
-  "2.5d",
-  "3d",
-  "interactive-story",
-  "rpg-prototype",
-  "exploration",
-  "puzzle",
-  "visual-novel",
-] as const;
-
-export type GameKind = (typeof GAME_KINDS)[number];
-
-/** §51 原文的英文词，逐字：只用于契约测试与界面副标题，不是第二份清单真值 */
-export const GAME_KIND_TERMS = [
-  "2D",
-  "2.5D",
-  "3D",
-  "Interactive Story",
-  "RPG prototype",
-  "Exploration",
-  "Puzzle",
-  "Visual Novel",
-] as const;
+import { GAME_KINDS } from "./kinds";
+export { GAME_KINDS, GAME_KIND_TERMS } from "./kinds";
+import type { GameKind } from "./kinds";
+export type { GameKind } from "./kinds";
 
 /** 8 类的中文名：面板下拉与状态说明用它，和 `GAME_ENTITY_LABELS` 同一条理由 */
 export const GAME_KIND_LABELS: Record<GameKind, string> = {

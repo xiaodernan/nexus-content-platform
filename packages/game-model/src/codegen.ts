@@ -4,12 +4,10 @@ import {
   GAME_KIND_LABELS,
   GAME_KIND_STATUS,
   GAME_KIND_STATUS_EN,
-  GAME_KIND_TERMS,
-  GAME_KINDS,
   type GameDocument,
   type GameEntityKind,
-  type GameKind,
 } from "./index";
+import { GAME_KIND_TERMS, GAME_KINDS, type GameKind } from "./kinds";
 import { PLAY_KIND_SHAPES, compileGame, type GamePlan, type PlayActor, type StatSource } from "./play";
 import { compileForKind, compileStory, STORY_NO_BEATS_OUTCOME, type GameProjection, type StoryPlan } from "./story";
 import { compileRpg } from "./rpg";

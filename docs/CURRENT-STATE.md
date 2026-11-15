@@ -3881,7 +3881,31 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 证据：`docs/evidence/load-web-ssr-2026-11-17.{md,json}`；PERFORMANCE.md 尾部追加（含首发失败现场声明、
   about-nexus 5xx 现场、sweep 全档表、生产路径未测边界）。首发脚本标 SUPERSEDED 保留。
 - Gates：fe-gates 117/117 · 1157/1157；census 2199 OK；tsc web 0；eslint 净；§FE-About 重钉（af4263d9…）。
-- v778（游戏 3D 鼠标视角方向修正）本轮先落（cont. 147）。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 149 (2026-11-17) - v780: 世界大典 RAG bench 实测全绿 + game-model ESM TDZ 根治
+
+- 触发：用户点名"如果合适的话，最好用一些 RAG / LangChain / LangGraph 的知识"。
+- 取舍：本仓 RAG 语料层已经整套存在（§49：tsvector + substring + 词覆盖度融合、
+  `knowledgeChunks`、`syncProjectKnowledge` / `retrieveProjectKnowledge`）。
+  LangChain/LangGraph 是 Python 编排库，塞进 TypeScript monorepo 只会放大工作面且两边都要新约束；
+  取其**架构思想**（锚定输入 → chunk → 融合检索 → 真实查询回测），用仓库自己的引擎完成。
+- 新建 `scripts/ingest-world-bible.mts`（注册 `npm run bench:world-bible`）：
+  4 章正典逐章建 `story·全篇` 条目（body = 正文全文）+ 章末 world-node 映射表逐行建条目，
+  共 45 世界条目 → `syncProjectKnowledge` 灌 **chunks=59**；
+  5 个真实查询（潮沙盘 / 会册 / 第八盏灯 / 雾港灯人 / 第四十一次会议）走真 pgvector-backed 混合检索，
+  **top1 全是正确章次**；零 provider 依赖；throw-away 用户 `bible-canon+…@nexus.test` + throw-away 项目
+  `eval-world-bible-<ts>`（id 与时间戳在案）；exit 0。
+  证据 `docs/evidence/world-bible-rag-2026-11-17.md`。
+- 顺带根治一个真 bug：`packages/game-model` 的 barrel ↔ codegen 循环依赖把 `GAME_KINDS` 放进 TDZ，
+  任何经由 barrel 深 import 的模块首次加载即崩
+  （`ReferenceError: Cannot access 'GAME_KINDS' before initialization`）；
+  `tsc web` 与 vitest 都没红（不走那个求值序列）。修法：新建叶模块 `kinds.ts`
+  （GAME_KINDS/TERMS/GameKind），index 与 codegen 改从它引入，外部签名不变；
+  **game-model 19 文件 363/363 全绿**。
+- Gates：`verify:world-bible` 4 章 ✓；`verify:bible-snapshot` ✓；game-model 363/363；tsc 0；fe-gates 117/117 · 1157/1157；eslint 净。
+- 诚实边界：`vectorAvailable=false`（语料可用 tsvector+子串融合命中，没 fake 语义召回）；
+  大典还没有被用户世界自动消费（那是 canon-sync 另一片）；不是 perf 测量。
 - showcase 快照同步于提交后（npm run sync:showcase）。
 
 
