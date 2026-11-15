@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * `data-theme-toggle-ready`（e2e 水合屏障）一字不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `985713fd22f0a5761ce7a17e9f11f9e1dcabfb82f471c916e9b6fe7dc6f5e0d3` 与 HEAD 字节一致。
+ * `03929ea2875d13edc7596b3683ffd6fa46241b4d7da36231910e26c3cd2de9a4` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/components/ThemeToggle.tsx');
@@ -91,9 +91,9 @@ describe('§FE-85 /components ThemeToggle 主题 FAB', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：985713fd22f0a5761ce7a17e9f11f9e1dcabfb82f471c916e9b6fe7dc6f5e0d3）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：03929ea2875d13edc7596b3683ffd6fa46241b4d7da36231910e26c3cd2de9a4）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '985713fd22f0a5761ce7a17e9f11f9e1dcabfb82f471c916e9b6fe7dc6f5e0d3',
+      '03929ea2875d13edc7596b3683ffd6fa46241b4d7da36231910e26c3cd2de9a4',
     );
   });
 });

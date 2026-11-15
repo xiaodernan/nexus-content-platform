@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { isControlTarget, isEditableTarget } from '@/lib/keyboard';
+import type { Locale } from '@/lib/i18n';
 
 /**
  * §FE-KB 「?」快捷键速览——全站真实快捷键清单（2026-11-14）。
@@ -10,6 +11,9 @@ import { isControlTarget, isEditableTarget } from '@/lib/keyboard';
  * （studio/CanvasStage · studio/CommandBar · components/CommandPalette ·
  *  lib/command-palette/input · components/ConstellationPanel）。
  * 多出来的行（没人用的自造键）一个不写。少即是多：宁可短，不容假。
+ *
+ * 双语（2026-11-15）：locale 由 layout 透传，COPY 中英一辞两字面；
+ * keys 不译（快捷键本身不是语言），动作翻译；groups 数量守恒。
  */
 
 interface ShortcutRow {
@@ -23,76 +27,184 @@ interface ShortcutGroup {
   rows: ShortcutRow[];
 }
 
-const GROUPS: ShortcutGroup[] = [
-  {
-    id: 'global',
-    title: '全局',
-    scope: '任意页面',
-    rows: [
-      { keys: '⌘ K / Ctrl K', action: '打开命令面板（在输入框里只认 ⌘K）' },
-      { keys: '?', action: '打开 / 关闭本速览' },
-      { keys: 'Esc', action: '关闭命令面板（本速览也有效）' },
-    ],
+const GROUPS: Record<Locale, ShortcutGroup[]> = {
+  zh: [
+    {
+      id: 'global',
+      title: '全局',
+      scope: '任意页面',
+      rows: [
+        { keys: '⌘ K / Ctrl K', action: '打开命令面板（在输入框里只认 ⌘K）' },
+        { keys: '?', action: '打开 / 关闭本速览' },
+        { keys: 'Esc', action: '关闭命令面板（本速览也有效）' },
+      ],
+    },
+    {
+      id: 'studio',
+      title: 'Studio 画布',
+      scope: '/studio/<project>',
+      rows: [
+        { keys: 'Ctrl Z / ⌘ Z', action: '撤销' },
+        { keys: 'Ctrl Y / ⌘ Y', action: '重做' },
+        { keys: 'Ctrl S / ⌘ S', action: '保存' },
+        { keys: 'Ctrl A / ⌘ A', action: '全选顶层元素' },
+        { keys: 'Ctrl G / ⌘ G', action: '显示 / 隐藏网格' },
+        { keys: 'Shift 1 / Ctrl 0 / ⌘ 0', action: '适配窗口' },
+        { keys: 'Delete / Backspace', action: '删除选中' },
+        { keys: '方向键', action: '移动选中 1px' },
+        { keys: 'Shift + 方向键', action: '移动选中 8px' },
+        { keys: 'Esc', action: '清除选中' },
+      ],
+    },
+    {
+      id: 'palette',
+      title: '命令面板内',
+      scope: '⌘K 打开后',
+      rows: [
+        { keys: '↑ / ↓', action: '移动选择' },
+        { keys: 'Enter', action: '执行选中项' },
+        { keys: '直接输入', action: '按标签/关键字过滤（带权重排序）' },
+      ],
+    },
+    {
+      id: 'commandbar',
+      title: '提示词命令条',
+      scope: '/studio/<project>',
+      rows: [
+        { keys: '/', action: '聚焦命令条输入框' },
+        { keys: 'Enter', action: '发送' },
+        { keys: 'Shift Enter', action: '换行（不发送）' },
+      ],
+    },
+    {
+      id: 'constellation',
+      title: '人物关系星图',
+      scope: '/world/<project>/constellation',
+      rows: [
+        { keys: 'Enter / Space', action: '选 / 取消选这颗星' },
+        { keys: 'Tab', action: '按顺序游走所有星' },
+      ],
+    },
+    {
+      id: 'chronicle',
+      title: '世界编年',
+      scope: '/world/<project>/chronicle',
+      rows: [
+        { keys: 'Tab', action: '聚焦横向走廊容器，之后可用方向键（原生滚动）' },
+      ],
+    },
+  ],
+  en: [
+    {
+      id: 'global',
+      title: 'Global',
+      scope: 'Any page',
+      rows: [
+        { keys: '⌘ K / Ctrl K', action: 'Open the command palette (inputs only honor ⌘K)' },
+        { keys: '?', action: 'Toggle this sheet' },
+        { keys: 'Esc', action: 'Close the command palette (closes this sheet too)' },
+      ],
+    },
+    {
+      id: 'studio',
+      title: 'Studio canvas',
+      scope: '/studio/<project>',
+      rows: [
+        { keys: 'Ctrl Z / ⌘ Z', action: 'Undo' },
+        { keys: 'Ctrl Y / ⌘ Y', action: 'Redo' },
+        { keys: 'Ctrl S / ⌘ S', action: 'Save' },
+        { keys: 'Ctrl A / ⌘ A', action: 'Select all top-level elements' },
+        { keys: 'Ctrl G / ⌘ G', action: 'Toggle grid' },
+        { keys: 'Shift 1 / Ctrl 0 / ⌘ 0', action: 'Fit to window' },
+        { keys: 'Delete / Backspace', action: 'Delete selection' },
+        { keys: 'Arrow keys', action: 'Nudge selection 1px' },
+        { keys: 'Shift + arrow keys', action: 'Nudge selection 8px' },
+        { keys: 'Esc', action: 'Clear selection' },
+      ],
+    },
+    {
+      id: 'palette',
+      title: 'In the palette',
+      scope: 'after ⌘K',
+      rows: [
+        { keys: '↑ / ↓', action: 'Move selection' },
+        { keys: 'Enter', action: 'Run the selected item' },
+        { keys: 'Type directly', action: 'Filter by tag/keyword (weighted sort)' },
+      ],
+    },
+    {
+      id: 'commandbar',
+      title: 'Prompt command bar',
+      scope: '/studio/<project>',
+      rows: [
+        { keys: '/', action: 'Focus the command bar input' },
+        { keys: 'Enter', action: 'Send' },
+        { keys: 'Shift Enter', action: 'New line (no send)' },
+      ],
+    },
+    {
+      id: 'constellation',
+      title: 'Character constellation',
+      scope: '/world/<project>/constellation',
+      rows: [
+        { keys: 'Enter / Space', action: 'Pick / unpick this star' },
+        { keys: 'Tab', action: 'Walk all stars in order' },
+      ],
+    },
+    {
+      id: 'chronicle',
+      title: 'World chronicle',
+      scope: '/world/<project>/chronicle',
+      rows: [
+        { keys: 'Tab', action: 'Focus the horizontal corridor, then arrow keys (native scroll)' },
+      ],
+    },
+  ],
+};
+
+const COPY: Record<Locale, {
+  fabAriaOpen: string;
+  fabAriaClose: string;
+  fabTitle: string;
+  closeAria: string;
+  kicker: string;
+  title: string;
+  macHint: string;
+  otherHint: string;
+  noteTail: string;
+  dialogAria: string;
+}> = {
+  zh: {
+    fabAriaOpen: '打开快捷键速览',
+    fabAriaClose: '关闭快捷键速览',
+    fabTitle: '按 ? 也行',
+    closeAria: '关闭',
+    kicker: 'SHORTCUTS',
+    title: '快捷键速览',
+    macHint: '本机识别为 macOS · ⌘ 即 Ctrl。',
+    otherHint: '本机是 Windows / Linux · 文中 ⌘ 对应 Ctrl（Ctrl Z = ⌘Z）。',
+    noteTail: '代码里查得到的才列——少而准，不填充。不起眼的键少不了，是因为它们没有被任何地方偷偷吃掉。',
+    dialogAria: '快捷键速览',
   },
-  {
-    id: 'studio',
-    title: 'Studio 画布',
-    scope: '/studio/<project>',
-    rows: [
-      { keys: 'Ctrl Z / ⌘ Z', action: '撤销' },
-      { keys: 'Ctrl Y / ⌘ Y', action: '重做' },
-      { keys: 'Ctrl S / ⌘ S', action: '保存' },
-      { keys: 'Ctrl A / ⌘ A', action: '全选顶层元素' },
-      { keys: 'Ctrl G / ⌘ G', action: '显示 / 隐藏网格' },
-      { keys: 'Shift 1 / Ctrl 0 / ⌘ 0', action: '适配窗口' },
-      { keys: 'Delete / Backspace', action: '删除选中' },
-      { keys: '方向键', action: '移动选中 1px' },
-      { keys: 'Shift + 方向键', action: '移动选中 8px' },
-      { keys: 'Esc', action: '清除选中' },
-    ],
+  en: {
+    fabAriaOpen: 'Open the keyboard cheatsheet',
+    fabAriaClose: 'Close the keyboard cheatsheet',
+    fabTitle: 'or just press ?',
+    closeAria: 'Close',
+    kicker: 'SHORTCUTS',
+    title: 'Keyboard cheatsheet',
+    macHint: 'This machine looks like macOS · ⌘ is your Ctrl.',
+    otherHint: 'This machine looks like Windows / Linux · ⌘ in this list maps to Ctrl (Ctrl Z = ⌘Z).',
+    noteTail: 'Only keys with a code anchor are listed — few and true; the quiet ones are here because nothing secretly eats them.',
+    dialogAria: 'Keyboard cheatsheet',
   },
-  {
-    id: 'palette',
-    title: '命令面板内',
-    scope: '⌘K 打开后',
-    rows: [
-      { keys: '↑ / ↓', action: '移动选择' },
-      { keys: 'Enter', action: '执行选中项' },
-      { keys: '直接输入', action: '按标签/关键字过滤（带权重排序）' },
-    ],
-  },
-  {
-    id: 'commandbar',
-    title: '提示词命令条',
-    scope: '/studio/<project>',
-    rows: [
-      { keys: '/', action: '聚焦命令条输入框' },
-      { keys: 'Enter', action: '发送' },
-      { keys: 'Shift Enter', action: '换行（不发送）' },
-    ],
-  },
-  {
-    id: 'constellation',
-    title: '人物关系星图',
-    scope: '/world/<project>/constellation',
-    rows: [
-      { keys: 'Enter / Space', action: '选 / 取消选这颗星' },
-      { keys: 'Tab', action: '按顺序游走所有星' },
-    ],
-  },
-  {
-    id: 'chronicle',
-    title: '世界编年',
-    scope: '/world/<project>/chronicle',
-    rows: [
-      { keys: 'Tab', action: '聚焦横向走廊容器，之后可用方向键（原生滚动）' },
-    ],
-  },
-];
+};
 
 const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent);
 
-export function KeyboardCheatsheet() {
+export function KeyboardCheatsheet({ locale = 'zh' }: { locale?: Locale }) {
+  const c = COPY[locale];
+  const groups = GROUPS[locale];
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -135,12 +247,12 @@ export function KeyboardCheatsheet() {
       <button
         type="button"
         className="kb-fab"
-        aria-label={open ? '关闭快捷键速览' : '打开快捷键速览'}
+        aria-label={open ? c.fabAriaClose : c.fabAriaOpen}
         aria-expanded={open}
         aria-controls="kb-sheet"
         data-kb-fab
         onClick={() => setOpen((v) => !v)}
-        title="按 ? 也行"
+        title={c.fabTitle}
       >
         ?
       </button>
@@ -152,24 +264,21 @@ export function KeyboardCheatsheet() {
             className="kb-sheet"
             role="dialog"
             aria-modal="true"
-            aria-label="快捷键速览"
+            aria-label={c.dialogAria}
             data-kb-sheet
             onClick={(event) => event.stopPropagation()}
           >
             <header className="kb-head">
-              <p className="kb-kicker">SHORTCUTS</p>
-              <h2 className="kb-title">快捷键速览</h2>
+              <p className="kb-kicker">{c.kicker}</p>
+              <h2 className="kb-title">{c.title}</h2>
               <p className="kb-note">
-                {IS_MAC
-                  ? '本机识别为 macOS · ⌘ 即 Ctrl。'
-                  : '本机是 Windows / Linux · 文中 ⌘ 对应 Ctrl（Ctrl Z = ⌘Z）。'}
-                代码里查得到的才列——少而准，不填充。
-                不起眼的键少不了，是因为它们没有被任何地方偷偷吃掉。
+                {IS_MAC ? c.macHint : c.otherHint}
+                {c.noteTail}
               </p>
-              <button type="button" className="kb-close" onClick={() => setOpen(false)} aria-label="关闭">×</button>
+              <button type="button" className="kb-close" onClick={() => setOpen(false)} aria-label={c.closeAria}>×</button>
             </header>
             <div className="kb-groups" data-kb-groups>
-              {GROUPS.map((group) => (
+              {groups.map((group) => (
                 <section key={group.id} className="kb-group" data-kb-group={group.id} aria-label={group.title}>
                   <div className="kb-groupHead">
                     <h3 className="kb-groupTitle">{group.title}</h3>

@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
  *
  * 2026-11-13 / §CP-1：这条哈希**被有意改过**一次，改的理由写在下面，不许悄悄再改。
  * 命令面板要"哪一页都能按"，唯一挂得住的地方就是根布局；于是 `body` 里多了一行
- * `<CommandPalette />`（在 `{children}` 之后、`<ThemeToggle />` 之前）。
+ * `<CommandPalette locale={locale} />`（在 `{children}` 之后、`<ThemeToggle locale={locale} />` 之前）。
  * 除此之外布局一字未动——上一条 `§FE-71` 的判断（ThemeScript 先于内容、metadata 原样）
  * 仍然逐条成立，所以这不是"放宽门槛"，而是"门槛抓到的变化确实是这次意图"。
  * 旧读数 `42ab66aa…` 是挂到 CommandPalette 那一版；新读数 `3405cf7d…` 是追加 `<KeyboardCheatsheet/>`（§v706）之后的读数。
@@ -58,7 +58,7 @@ describe('§FE-71 /app/layout 根布局', () => {
   it('ThemeScript 同步内联进 body；metadata/viewport 进门', () => {
     expect(code).toContain('<ThemeScript />');
     expect(code).toContain('data-nexus-theme="dark"');
-    expect(code).toContain('<ThemeToggle />');
+    expect(code).toContain('<ThemeToggle locale={locale} />');
     expect(main).toContain('export const viewport');
   });
 
@@ -92,17 +92,17 @@ describe('§FE-71 /app/layout 根布局', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（§CP-1 起：50b68deae4809e3f44f6812fe698e3bba2f8753fa26c40b9af640b2e4d27a985）', () => {
+  it('剥 className 后全文 SHA256 守恒（§CP-1 起：5dd9dfdeddf6157f2ce4e15755d2dcea0e4ee8cd0757fa86edc3a88997e882db）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '50b68deae4809e3f44f6812fe698e3bba2f8753fa26c40b9af640b2e4d27a985',
+      '5dd9dfdeddf6157f2ce4e15755d2dcea0e4ee8cd0757fa86edc3a88997e882db',
     );
   });
 
   it('§CP-1 命令面板挂在 children 之后、主题开关之前（浮层顺序 = 遮挡顺序）', () => {
     expect(main).toContain("import { CommandPalette } from '@/components/CommandPalette'");
     const childrenAt = main.indexOf('{children}');
-    const paletteAt = main.indexOf('<CommandPalette />');
-    const toggleAt = main.indexOf('<ThemeToggle />');
+    const paletteAt = main.indexOf('<CommandPalette locale={locale} />');
+    const toggleAt = main.indexOf('<ThemeToggle locale={locale} />');
     expect(childrenAt).toBeGreaterThan(0);
     expect(paletteAt).toBeGreaterThan(childrenAt);
     expect(toggleAt).toBeGreaterThan(paletteAt);

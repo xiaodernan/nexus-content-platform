@@ -7,7 +7,9 @@ import type { KeyboardEvent as ReactKeyboardEvent, ReactElement, ReactNode } fro
 import {
   groupOf,
   GROUP_LABEL,
+  GROUP_LABEL_EN,
   PALETTE_COMMANDS,
+  PALETTE_COMMANDS_EN,
   type PaletteAction,
   type PaletteCommand,
 } from '@/lib/command-palette/commands';
@@ -15,6 +17,7 @@ import { clampActive, isPaletteHotkey, moveActive } from '@/lib/command-palette/
 import { shouldShowChip } from '@/lib/command-palette/placement';
 import { rank, type MatchRange, type Ranked } from '@/lib/command-palette/score';
 import { isTheme, THEME_STORAGE_KEY } from '@/lib/theme';
+import type { Locale } from '@/lib/i18n';
 
 /**
  * §CP-1 全站命令面板（⌘K / Ctrl+K）。
@@ -35,23 +38,61 @@ import { isTheme, THEME_STORAGE_KEY } from '@/lib/theme';
  * 4. **⌘K 在输入框里也开、纯 Ctrl+K 在输入框里放手**：判据在
  *    `command-palette/input.ts` 的 `isPaletteHotkey`，理由写在那个函数上。
  *
- * ## 为什么只让输入框可聚焦（而不是给每一行 tabIndex）
- *
- * 这是 WAI-ARIA 1.2 的"combobox + listbox"模式：高亮由 `aria-activedescendant` 表达，
- * 焦点始终在输入框里。好处是**不存在焦点陷阱要维护**——整个对话框只有一个可聚焦元素，
- * Tab 被就地吃掉即可。代价是列表行不能单独被 Tab 到（读屏仍会念，因为 activedescendant
- * 指过去了），这是这种控件的标准取舍。
- *
  * ## 最近使用
  *
  * `localStorage` 里存最近用过的 8 个 id，只用来**同分时加权**，不改变匹配与否。
  * 有界、失败静默（隐私模式下写不进去也不影响功能）。**不存查询串**——
  * 用户敲过什么可能包含项目名，那是内容不是偏好。
+ *
+ * 双语（2026-11-15）：locale 由 layout 透传（默认 zh），commands 与 chrome 双字典；
+ * 关键词集中英双写，**不因 locale 改匹配路径**——命令的可发现性是同一件事。
  */
+const COPY: Record<Locale, {
+  openAria: (modifier: string) => string;
+  chipText: string;
+  dialogAria: string;
+  searchAria: string;
+  placeholder: string;
+  emptyTitle: string;
+  emptyNote: string;
+  listAria: string;
+  actionHint: string;
+  footSelect: string;
+  footRun: string;
+  count: (n: number) => string;
+}> = {
+  zh: {
+    openAria: (modifier) => `打开命令面板（${modifier}+K）`,
+    chipText: '命令',
+    dialogAria: '命令面板',
+    searchAria: '搜索命令',
+    placeholder: '输入命令、页面名…',
+    emptyTitle: '没有匹配的命令',
+    emptyNote: '只匹配命令名与它的关键词（顺序敏感，比如「额度」或「token」）。面板刻意不猜你想去哪。',
+    listAria: '命令',
+    actionHint: '动作',
+    footSelect: '选择',
+    footRun: '执行',
+    count: (n) => `${n} 条`,
+  },
+  en: {
+    openAria: (modifier) => `Open the command palette (${modifier}+K)`,
+    chipText: 'Command',
+    dialogAria: 'Command palette',
+    searchAria: 'Search commands',
+    placeholder: 'Type commands, page names…',
+    emptyTitle: 'No matching command',
+    emptyNote: 'Only name and keyword matches (order-sensitive — try “credits” or “token”). The palette refuses to guess where you want to go.',
+    listAria: 'Commands',
+    actionHint: 'Action',
+    footSelect: 'Select',
+    footRun: 'Run',
+    count: (n) => `${n}`,
+  },
+};
 
 const RECENT_KEY = 'nexus.palette.recent';
 const RECENT_MAX = 8;
-/** 同分时"最近用过"能加多少。取 6：足够把一条常用命令提到同分组的首位，又翻不过一条更高分的匹配。 */
 
 function readRecent(): string[] {
   try {
@@ -92,7 +133,10 @@ function Highlight({ text, ranges }: { text: string; ranges: readonly MatchRange
   return <>{out}</>;
 }
 
-export function CommandPalette() {
+export function CommandPalette({ locale = 'zh' }: { locale?: Locale }) {
+  const c = COPY[locale];
+  const commands = locale === 'zh' ? PALETTE_COMMANDS : PALETTE_COMMANDS_EN;
+  const groupLabels = locale === 'zh' ? GROUP_LABEL : GROUP_LABEL_EN;
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -110,8 +154,8 @@ export function CommandPalette() {
 
   const results = useMemo(() => {
     const weight = new Map(recent.map((id, index) => [id, RECENT_MAX - index]));
-    return rank(PALETTE_COMMANDS, query, { boost: (command) => weight.get(command.id) ?? 0 });
-  }, [query, recent]);
+    return rank(commands, query, { boost: (command) => weight.get(command.id) ?? 0 });
+  }, [commands, query, recent]);
 
   // 渲染顺序 = 键盘顺序：先按组分块（前往 → 查看 → 动作），块内保留分数序。
   // 少了这一步，上下键的落点就会与眼睛看到的顺序不一致——那是最容易让人以为"键盘坏了"的错。
@@ -269,11 +313,11 @@ export function CommandPalette() {
           onClick={openPalette}
           className="cp-chip"
           data-command-palette-chip
-          aria-label={`打开命令面板（${modifier}+K）`}
+          aria-label={c.openAria(modifier)}
           aria-keyshortcuts={`${mac ? 'Meta' : 'Control'}+K`}
         >
           <Search size={13} aria-hidden />
-          <span className="cp-chipText">命令</span>
+          <span className="cp-chipText">{c.chipText}</span>
           <kbd className="cp-kbd">{modifier} K</kbd>
         </button>
       ) : null}
@@ -290,7 +334,7 @@ export function CommandPalette() {
             className="cp-panel"
             role="dialog"
             aria-modal="true"
-            aria-label="命令面板"
+            aria-label={c.dialogAria}
             data-command-palette-dialog
           >
             <div className="cp-search">
@@ -305,8 +349,8 @@ export function CommandPalette() {
                 aria-controls="cp-list"
                 aria-autocomplete="list"
                 aria-activedescendant={activeId}
-                aria-label="搜索命令"
-                placeholder="输入命令、页面名…"
+                aria-label={c.searchAria}
+                placeholder={c.placeholder}
                 autoComplete="off"
                 spellCheck={false}
                 value={query}
@@ -321,18 +365,15 @@ export function CommandPalette() {
 
             {ordered.length === 0 ? (
               <div className="cp-empty" data-command-palette-empty>
-                <p className="cp-emptyTitle">没有匹配的命令</p>
-                <p className="cp-emptyNote">
-                  只匹配命令名与它的关键词（顺序敏感，比如「额度」或「token」）。
-                  面板刻意不猜你想去哪。
-                </p>
+                <p className="cp-emptyTitle">{c.emptyTitle}</p>
+                <p className="cp-emptyNote">{c.emptyNote}</p>
               </div>
             ) : (
-              <div className="cp-list" id="cp-list" role="listbox" aria-label="命令">
+              <div className="cp-list" id="cp-list" role="listbox" aria-label={c.listAria}>
                 {blocks.map((block) => (
-                  <div key={block.group} className="cp-block" role="group" aria-label={GROUP_LABEL[block.group]}>
+                  <div key={block.group} className="cp-block" role="group" aria-label={groupLabels[block.group]}>
                     <div className="cp-blockHead" aria-hidden="true">
-                      {GROUP_LABEL[block.group]}
+                      {groupLabels[block.group]}
                     </div>
                     {block.items.map((entry) => {
                       const command = entry.item;
@@ -356,7 +397,7 @@ export function CommandPalette() {
                             <Highlight text={command.label} ranges={entry.ranges} />
                           </span>
                           <span className="cp-hint">
-                            {command.kind === 'nav' ? command.href : '动作'}
+                            {command.kind === 'nav' ? command.href : c.actionHint}
                           </span>
                         </div>
                       );
@@ -370,14 +411,14 @@ export function CommandPalette() {
               <span className="cp-footGroup">
                 <kbd className="cp-kbd">↑</kbd>
                 <kbd className="cp-kbd">↓</kbd>
-                选择
+                {c.footSelect}
               </span>
               <span className="cp-footGroup">
                 <kbd className="cp-kbd">↵</kbd>
-                执行
+                {c.footRun}
               </span>
               <span className="cp-count" data-command-palette-count>
-                {ordered.length} 条
+                {c.count(ordered.length)}
               </span>
             </div>
           </div>

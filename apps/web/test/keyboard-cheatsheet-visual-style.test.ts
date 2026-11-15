@@ -49,8 +49,9 @@ describe('§FE-KB 快捷键速览', () => {
     expect(code).toContain("'use client'");
     expect(code).not.toMatch(/from '@\/server/);
     const normalizedLayout = layout.replace(/\s+/g, '');
-    expect(normalizedLayout).toContain('<KeyboardCheatsheet/>');
-    expect(normalizedLayout).toContain('<CommandPalette/>');
+    // 2026-11-15: 布局挂载 <KeyboardCheatsheet locale={locale} />（双语 wave），空白折叠后没有空格
+    expect(normalizedLayout).toMatch(/<KeyboardCheatsheetlocale=\{locale\}\/>/);
+    expect(normalizedLayout).toMatch(/<CommandPalettelocale=\{locale\}\/>/);
   });
 
   it('字面 className 只认 .kb-* 族', () => {
@@ -74,7 +75,8 @@ describe('§FE-KB 快捷键速览', () => {
       expect(code, `KB 速览丢了钩子 ${hook}`).toContain(hook);
     }
     expect(code).toContain('aria-modal="true"');
-    expect(code).toContain('aria-label="快捷键速览"');
+    // 2026-11-15 双语化 wave: aria-label 从 COPY 字典下发（zh: 快捷键速览），原 zh 字节原样保留在字典里
+    expect(code).toContain("dialogAria: '快捷键速览'");
     expect(code).toContain("role=\"dialog\"");
     expect(code).toContain("'Escape'");
     expect(code).toContain("'?'");
@@ -126,7 +128,7 @@ describe('§FE-KB 快捷键速览', () => {
 
   it('SHA256 钉死（本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '57a0033fe3239f22c675bfa5ce232ca4f3df9ef4f8298abd6f483a8989095ce3',
+      '4f7ba6f6cd5b24377b616ac6468f5de7b128659ed8e765b3c7ac3d6747cfafa8',
     );
   });
 });
