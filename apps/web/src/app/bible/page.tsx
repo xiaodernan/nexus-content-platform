@@ -28,6 +28,7 @@ const COPY: Record<Locale, {
   echoLede: string;
   threeDoors: string;
   playLink: string;
+  wellLink: string;
   chapterLabel: (order: number) => string;
   anchorsLine: (count: number) => string;
   readLink: string;
@@ -41,6 +42,7 @@ const COPY: Record<Locale, {
     lede: '《低语诸王》自己的正典——四章，四扇门：第三章之后，第四盏灯终于亮回来了。',
     threeDoors: '第一扇问：海叫什么？ · 第二扇问：谁在还？ · 第三扇问：还完之后？ · 第四扇：灯已经点过了。',
     playLink: '接受潮汐挑战 →',
+    wellLink: '七口井',
     chapterLabel: (order) => `第${['一', '二', '三', '四'][order - 1] ?? order}章`,
     echoLabel: (order) => `回响 · 其${['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'][order - 1] ?? order}`,
     echoTitle: '回响 · Echoes',
@@ -57,6 +59,7 @@ const COPY: Record<Locale, {
     lede: 'The Whispers’ Kings’ own canon. Four doors — and at the fourth, at last, the lamp is lit.',
     threeDoors: 'First door: what is the sea called? · Second: who pays? · Third: after the ending? · Fourth: the lamp has been lit.',
     playLink: 'I accept the Tidal Trial →',
+    wellLink: 'The Seven Wells',
     chapterLabel: (order) => `Chapter ${['I', 'II', 'III', 'IV'][order - 1] ?? order}`,
     echoLabel: (order) => `Echo ${['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][order - 1] ?? order}`,
     echoTitle: 'Echoes',
@@ -82,6 +85,8 @@ export default async function BiblePage() {
         <p className="bb-threeDoors" data-bible-doors>{c.threeDoors}</p>
         <p className="bb-playTrial">
           <Link href="/bible/quiz" className="bb-playLink" data-bible-open-quiz>{c.playLink}</Link>
+          <span className="bb-playTrialSep" aria-hidden="true">·</span>
+          <Link href="/bible/well" className="bb-playLink" data-bible-open-well>{c.wellLink}</Link>
         </p>
         <BibleSearch locale={locale} />
       </header>

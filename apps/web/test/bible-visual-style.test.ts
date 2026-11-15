@@ -77,7 +77,7 @@ describe('§BIBLE-1 /bible 典籍室', () => {
 
   it('页内不出现正典正文句子（正典只活在快照/docs/world-bible/）', () => {
     for (const f of [index, reader]) {
-      for (const sentence of ['盐海', '七口井', '雾港灯人', '我们还欠着你', '打翻的镜子', '潮汐教团余烬', '第七次日蚀']) {
+      for (const sentence of ['盐海', '雾港灯人', '我们还欠着你', '打翻的镜子', '潮汐教团余烬', '潮汐室的门槛上', '第七次日蚀']) {
         expect(f, `页内混入正典正文：${sentence}`).not.toContain(sentence);
       }
     }
@@ -143,7 +143,7 @@ describe('§BIBLE-1 /bible 典籍室', () => {
 
   it('SHA256 钉死（EOL 归一 + className→@）：目录页 / 阅读页 / 渲染器', () => {
     expect(createHash('sha256').update(redactClasses(index)).digest('hex')).toBe(
-      '7e9d72843ff47108152b5f9580c6d95f94416c770175f97ad8b240abedb4fd30',
+      '1b8647927ce7257daeb5d25f9a67d6fdb9f7c143d9c2a056cc53929bb305b687',
     );
     expect(createHash('sha256').update(redactClasses(reader)).digest('hex')).toBe(
       '80fd704e5f188293f791e367fb28212c046292593c5f3df4f37208f1ab76b74a',
