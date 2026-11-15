@@ -84,6 +84,7 @@ const data = {
     'live-provider-cache',
     'cost-ledger',
     'evidence-census',
+    'public-reading-i18n',
   ],
   live_demo: null, // 不装部署：live demo 需要部署后的 URL。目前只在声明的事实基础上工作。
   headline: 'NEXUS Content Platform - AI Universe Studio: describe, design, build, enter.',
