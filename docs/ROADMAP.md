@@ -954,8 +954,10 @@ honest note on why pixel screenshots were substituted in this environment.
       卡在 studio 交互（当时满载 100%、同文件旧用例同样卡住），过程照实记在 `docs/TESTING.md`。
 - [~] **移动端布局体检（公开页优先）**：第一片已量（`e2e/mobile-layout.spec.ts`，第十三片）——真发布语料
       五张 × 两栏，读数在 `docs/EVALUATION.md`：帧宽全 1440、390 下要平移 1082px、首屏可见 27%、
-      `a[data-action-author]` 56×21。**还欠的是那两半**：① `resolveLayout` 没传 `breakpoint`，作者的
-      mobile 变体在发布时被丢掉；② 投影要不要按访客视口缩放（`/preview` 已有 `?zoom=` 的先例）。
+      `a[data-action-author]` 56×21。**补刀：`e2e/mobile-surfaces.spec.ts`（2026-11-15 cont. 125）**——app-chrome
+      公开落点九面 × 双宽度（手机390 / 桌面1280）：**首页/发现/创作者市场/credits/通知/guide/about-nexus/典籍室
+      全部零横向溢出、全部 2xx**（anon 语境真实渲染，而非占位）。仍**不替代**那两欠欠账：① `resolveLayout` 没传
+      `breakpoint`，作者的 mobile 变体在发布时被丢掉；② 投影要不要按访客视口缩放（`/preview` 已有 `?zoom=` 的先例）。
       **①已还（ADR-0069，2026-10-30）**：公开页读 `?viewport=`，`resolveLayout` 第一次拿到 `breakpoint`；
       **②的手动半边也接了** `?zoom=`（服务端 `<a>`，可收藏可分享）；**默认按访客视口自动选档仍欠**。
       **2026-10-30 第二十五片**：复跑完成——作品帧逐项与第十三片相同（1440 / 27% / 1082px），

@@ -4478,3 +4478,22 @@ D
   gate: fe-gates **120/120 套件 · 1181/1181 用例**；census 2399；no-raw-tailwind 干净；tsc web 0。
 - /bible 玩法在主线上已成体系：/bible（index）→ /bible/[slug]（四章 + 回响）→ /bible/quiz（v785 潮汐挑战，
   12 题+判词）→ /bible/well（v787 七口井）— 全部 zh/en 对辞（非翻译，= 两版正典的逐字锚句长相）。
+
+
+## cont. 125 (2026-11-15) - not-found 双语 404 + mobile-surfaces e2e 九面双宽度体检
+
+- 根 404（`apps/web/src/app/not-found.tsx`）中英双语化（getLocale + COPY zh/en 双辞页面；data-not-found-* 钩子不动；
+  零行为契约保持"无 hook/fetch/action、RSC、纯展示"）。gate `not-found-visual-style.test.ts` 放宽恰好一处（default export
+  允许可选 `async`——双语页需要 `await getLocale()`；其余断言不动）。EN 是真正的英文辞典，不不是直译——
+  方案是照做做了截图验证两个 locale 都渲染（404，status=200 正确原因）。
+- `e2e/mobile-surfaces.spec.ts`：公开 app-chrome 九面（/ /discover /marketplace /credits /notifications /guide /about-nexus
+  /bible /bible/quiz /bible/well —— 十张路径×双宽度）在手机 390×844 与桌面 1280 双检：
+  全部 HTTP 2xx、零横向溢出（docScrollWidth == clientWidth，±1）。本地实跑 ALL PASS (53.9s)。
+  这是 ROADMAP「移动端布局体检」那一条的第二片；第一片的两笔欠账（breakpoint 没传 → 作者 mobile 变体丢失；
+  发布投影是否按访客视口缩放）未触动——保持 [~] 并在 ROADMAP 行上标注本片不替代它。
+- 宿主 CI Lint tail 续剪：并轨后又一例 @typescript-eslint/no-unused-vars（v786 的 bible-search-visual-style.test.ts
+  把别处的 redactClasses 抄进来没用过）——删掉，8/8 suite 绿。顺带验证另一个 wave 语境文件无同类遗留。
+  三次 Lint 红现在都是同一类：**并轨时对方文件的未用符号**，处理归属本线（并轨义务，不是对方的 bug）。
+- 遗留：hosted CI 对合并树仍双红（main-line 全成功 × 多个 refs；CI quality 停在 Lint+proofs 阶段）。
+  c0770c17 在飞；0ea7c2f0 含本次聊天的双修（not-found + bible-search）的归宿可能是主线唯一 CI 全绿的 ref。
+  verify:arms 的 3 arm 失配名单将在下一次 proofs step 的 gutter 里出现（a6b7cab9 起 LAST stdout line 打印名单）。
