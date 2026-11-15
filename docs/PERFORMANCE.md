@@ -1888,4 +1888,41 @@ mjs 批首版抓到真 `prefer-const` 已修）；`verify:record-encoding` exit 
 
 读法：零错误跨越 16→256 连接；吞吐约 2.6–3.8k ops/s 平台化、时延随并发线性排队——瓶颈是**每连接单命令在途数**而非单线程 Redis 服务端；命中 8 成符合 80/20 合成值。**这不是 SLA，是本机当日容量感知 + 回归对照。**
 
+## 2026-11-17 v778 /about-nexus 公开页 5xx 现场（web 侧高并发测试抓出的一个 live bug）
+
+`load-web-ssr` 首发 run 时 `/about-nexus` 单发、并发都 **100% 500**—— Next 报
+`The default export is not a React Component in "/about-nexus/page"`：双语重写 v713（`cee9a2b8`）
+时误删了 `export default`，从此这条公开品牌页一直 500，而 `tsc`/fe-gates/eslint 全都没红
+（typecheck 不查 Next 页面默认导出，Turbopack 只在请求时报错）。
+
+**修复**（v779）：补回 `export default async function AboutPage() {`，§FE-About SHA 重钉；
+curl 两发单发全 200（32112 bytes），SSR 走的是 `BrandTitle` + EN/zh cookie。
+意义：**高并发 / 探针测试的真正产出往往不是"系统挂了"，而是"某页一直挂着而无人知道"**——
+§159 之于负载，首先是"别在内部抓不到这个错之前，把它端给用户"。
+
+## 2026-11-17 web 侧高并发实测（dev 路径；不是生产定容；§159）
+
+`scripts/load-web-ssr-sweep.mts` 按档重启 next dev 后 warm 再量（/bible，无业务库）：
+
+| tier | 并发 | 请求 | ok | p50 | p95 | p99 | wall |
+|---|---|---|---|---|---|---|---|
+| baseline | 1 | 30 | 30 | 7.27s | 14.09s | 15.43s | 15.4s |
+| tier-6 | 6 | 100 | 100 | 60.23s* | 105.33s* | 110.64s* | 110.7s |
+| tier-12 | 12 | 100 | 100 | 20.23s | 36.86s | 37.80s | 37.8s |
+| tier-24 | 24 | 100 | 100 | 19.13s | 35.10s | 35.41s | 35.4s |
+| tier-48 | 48 | 100 | 96 | 22.33s | 37.83s | 38.09s | 38.1s |
+
+\* tier-6 档那一段机器卡死（WSL2 VM ≈ 4.3 GB，free ≈ 1.1 GB）：同等档位在 tier-12/24/48 的 p50 ≈ 19–22s 稳。
+
+**三个结论（只记事实，不做 SLA）**：
+1. 500 请求 **496 × 200、0 个 HTTP 5xx**，仅 tier-48 4 次连接被硬断（4%）；tier-6/12/24 零丢失。
+2. dev 路径下整页 RSC 双渲染成本 ≈ 19–22s，与并发几乎无关（≥12 档平起平坐），瓶颈是
+   **单渲染本身（CPU）在 vmmemWSL 上的分配**，不是路由排队——任何"并发越高越慢"的直觉在这一档都被数扭转。
+3. **生产路径定容还欠**：next build 在这台机器的空闲（free ≈ 1.1–1.5 GB）出不了稳定构建；
+   需要安静窗口（free ≥ 3 GB）跑 `next start` + 同档并发重测一次，记录 p50/p95/shed 速。本片不算"压力测试完成"，
+   只把基线定在案。
+
+RAW 数据：`docs/evidence/load-web-ssr-2026-11-17.{md,json}`。首发 run 的"126/170 失联"如实保留为**失败现场**（冷编译级联 + about-nexus 必然 500 的叠加），
+不裁决成任何机器能力。
+
 榨取空间（本轮未做，属 ai-service 行为变更，须单独立片）：pipeline / 批量 ZADD（completion-cache 同 digest 三段写天然可批，不改业务语义）；多实例分片；调用方异步写。探针自身第一版曾因 call() 元组解包错误导致清理函数静默无效（「0 残留」从未被真正测量）——已修并以「残留非 0 即非零退出」锁定，详见证据篇「校准说明」。§CACHE-4-AB 测的是 provider 端 KV 命中（字节前缀稳定），本篇测**本项目应用层** Redis 命中通路容量，二者互不代替。

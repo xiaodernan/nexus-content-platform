@@ -126,7 +126,7 @@ const COPY = {
   },
 };
 
-async function AboutPage() {
+export default async function AboutPage() {
   const locale = await getLocale();
   const copy = COPY[locale];
   return (

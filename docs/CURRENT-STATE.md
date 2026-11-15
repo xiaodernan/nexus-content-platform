@@ -3865,4 +3865,23 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 注：GUI 手感必须在真机里确认；本片只修符号/方向，不改灵敏度（0.005/rad、夹上下限 0.18–1.35 均保留）。
 - showcase 快照同步于提交后（npm run sync:showcase）。
 
+## cont. 148 (2026-11-17) - v779: web 侧高并发实测（抓出一个 live 5xx）+ PERFORMANCE.md 归档
+
+- 触发：用户长期点名"压力测试 模拟大量用户/高并发"。
+- 首次运行（`scripts/load-web-ssr.mts`，steady 170×3 + burst 110）失败率极高 → 诊断：
+  **冷编译级联** + **`/about-nexus` 必然 500** 两件事叠加——不是"机器崩了"。
+- **真正抓出的产品 bug**：`/about-nexus` 自 v713（cee9a2b8）双语重写起缺失 `export default`
+  （Next 报 `The default export is not a React Component`）；单发也 100% 500；
+  `tsc`/eslint/fe-gates 全绿放过（typecheck 不查 Next 页面默认导出）；
+  修法：补回 `export default async function AboutPage() {`，curl 复测 200（32112 B），§FE-About SHA 重钉。
+- 重跑 sweep（`scripts/load-web-ssr-sweep.mts`，每档重启 next dev + warm，/bible 无业务库）：
+  baseline 30/30 p50 7.27s；tier-6/12/24 全 100/100；tier-48 96/100（4 次硬断，histogram {200×96, 0×4}）；
+  **500 请求 496 × 200，0 个 HTTP 5xx**。DEV 路径不是生产定容——next build 在 free≈1.1GB 跑不出稳定构建；
+  生产窗口（free≥3GB + next start）重测未完成，登记在案。
+- 证据：`docs/evidence/load-web-ssr-2026-11-17.{md,json}`；PERFORMANCE.md 尾部追加（含首发失败现场声明、
+  about-nexus 5xx 现场、sweep 全档表、生产路径未测边界）。首发脚本标 SUPERSEDED 保留。
+- Gates：fe-gates 117/117 · 1157/1157；census 2199 OK；tsc web 0；eslint 净；§FE-About 重钉（af4263d9…）。
+- v778（游戏 3D 鼠标视角方向修正）本轮先落（cont. 147）。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
 
