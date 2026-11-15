@@ -84,7 +84,11 @@ describe('§75 用量记账（真库）', () => {
     cacheReported: false,
     latencyMs: 42,
     costUsd: 0,
+    // §COST-1：老账本没这一栏，schema 按 unknown 读（"不知道"不是"免费"）——字面与读出后的真值一致
+    costBasis: 'unknown',
     toolCalls: 0,
+    // v690（并轨）：provider 报的推理段 token；老构造点默认 0——读出后的真值也是 0
+    reasoningTokens: 0,
     demoMode: true,
   };
 

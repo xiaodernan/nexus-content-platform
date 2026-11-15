@@ -150,3 +150,35 @@ describe('§COST-1 costText：未计价不是免费', () => {
     expect(costText({ costUsd: Number.POSITIVE_INFINITY, costBasis: 'configured' })).toBe('$0.000000');
   });
 });
+
+describe('EN twin (2026-11-15 双语 wave)：同一历史三档，英文字节落在同一函数的 locale 分支', () => {
+  it('unreported 不出现任何数字', () => {
+    const text = cacheText({ tokensIn: 5000, cachedTokens: 0, cacheReported: false }, 'en');
+    expect(text).toBe('cache unreported');
+    expect(text).not.toMatch(/\d/);
+  });
+
+  it('miss 与 zh `缓存未命中` 一一对应', () => {
+    expect(cacheText({ tokensIn: 5000, cachedTokens: 0, cacheReported: true }, 'en')).toBe('no cache hit');
+  });
+
+  it('hit 带相同分母口径', () => {
+    expect(cacheText({ tokensIn: 7410, cachedTokens: 7168, cacheReported: true }, 'en')).toBe('cache hit 7168·97%');
+    expect(cacheText({ tokensIn: 0, cachedTokens: 700, cacheReported: true }, 'en')).toBe('cache hit 700');
+  });
+
+  it('zh 缺省参数保持不变（向后兼容）', () => {
+    expect(cacheText({ tokensIn: 5000, cachedTokens: 0, cacheReported: false })).toBe('缓存读数未报');
+    expect(costText({ costUsd: 0, costBasis: 'unknown' })).toBe('未计价');
+  });
+
+  it('costText EN：unknown 不许带 $ 符号、configured 的分档不变', () => {
+    const unknownText = costText({ costUsd: 9.99, costBasis: 'unknown' }, 'en');
+    expect(unknownText).toBe('not priced');
+    expect(unknownText).not.toContain('$');
+    expect(costText({ costUsd: 3.2e-7, costBasis: 'configured' }, 'en')).toBe('under $0.000001');
+    expect(costText({ costUsd: 0.0021, costBasis: 'configured' }, 'en')).toBe('$0.002100');
+    expect(costText({ costUsd: 1.23456, costBasis: 'configured' }, 'en')).toBe('$1.2346');
+    expect(costText({ costUsd: 0, costBasis: 'configured' }, 'en')).toBe('$0.000000');
+  });
+});

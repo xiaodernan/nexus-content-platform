@@ -4558,3 +4558,35 @@ D
   SHA pins 复算重钉（cheatsheet 4f7ba6f6、root-layout 5dd9dfdd、theme-toggle 03929ea2、i18n 972daf1b）；
   layout-mount 断言的锚点改为 locale 形式（两种折叠空白歧义堵掉）。
 - 诚实边界：studio 深层仍有未双语的小件（TasksLedgerLive 的 zh 散文、SavingsCard 等）——下一刀明确落在那里。
+
+
+## cont. 130 (2026-11-15) - LLM 实机诊断（wkapi.pro gpt-6-sol，真调用）+ "非流" 传言的事实化处理
+
+- 复测：流式路径（probe-cache-stream, lane=nexus-cache-stream, 4 turns, --confirm-real）
+  turn1 cached=0，turn2-4 **cached=13056/13269 = 98.4%**——链路一直在用流（llm_stream 缺省 1）。
+- L1/L2 全绿：`probe-prompt-cache.py` exit=0，L1 cold=0 → warm=4253/5444（≥1024 判据成立），
+  L2 /v1/ai/run cold=0 → warm=6908/6908（100% 命中，`npm run probe:cache` 全绿）。
+- /v1/ai/chat 的执行路径：**无 per-project prompt_cache_key 漂移**：lane 固定 = `nexus-studio`；
+  "stable prefix" 由 system 前缀的稳定字节而不是随机 id 组成，wkapi.pro 按 128-token 块缓存。
+- llm-path-live-probe.mts 实跑两次：A cold-unique prefix-cache hit **65.7% → 79.3%**（prompt_cache_key
+  与前缀 digest 未变；run-to-run 方差来自上游分片分布，不是代码侧不稳定）；
+  B warm-repeat 第二发 5ms（app 级 Redis 完成缓存）；C llmCache 计数器真的动了（+1/+7 per round）。
+- "非流" 显示的来源：AiCachePanel 读 `/healthz` 的 `transport.stream`；当前机器 = true（`settings.llm_stream=1` 的默认值或 .env 显式 =1）。
+  之所以偶尔读到 false，是因为 NEXUS_LLM_STREAM 曾在别的机器上被置 0——展示判据层已经把这种情形写成
+  "⚠ 非流：上游 KV 分片不共享，非流命中率远低于流式"（见 cache-view.ts `nonStreamCaveat` / `AiCachePanel`
+  的 `streamOff` 徽标），并真的提醒用户去恢复 =1。
+- **结论**：缓存链路接通、可读、两次直接跑全绿；"非流" 不是当前配置——只可能是他人机器设了 NEXUS_LLM_STREAM=0 或看到了上次
+  带该标记的会话在某次面板上残留。面板上那个徽标是直读 settings.llm_stream 的即时读数，不是历史累计。
+- 决定：保持 llm_stream 默认 ON；任何要改 streaming 的决定必须按 cache 双通道评估——已落档
+  adr/0261 与 0262 两份证据（docs/ADR-0261-*.md, docs/adr/0262-*.md）不动；不改缓存工具，不改 ai-service 代码。
+- 遗留项：studio tasks ledger 界面仍展示 zh-only 散文（"等审批" 等状态文案）；这是下一刀（ADR/wave）。
+
+- 追加落地（同一天收口）：tasks ledger 双语 wave 完成——
+  - `TasksLedgerLive`/`TaskRetryButton`/`SavingsCard` 与 `/tasks/<id>/page.tsx` 全量走 COPY dict（zh/en）；
+  - `lib/usage-cache-text.ts` `cacheText`/`costText` 增 `locale='zh'|'en'` 分支（缺省 zh，既有 49 断言字节不动）；
+  - CACHE-3 判据重钉为新调用形（`cacheText(usage, locale)`，措辞仍只许 lib 单点落住）；
+  - SHA pins 三向重钉（live 41de7743… retry 5d36a86… page 2a69f5e1… / savings d9cc9509…）；
+  - `usage-cache-text.test.ts` 增补 EN twin 断言组（additive，不动既有 zh 断言）；
+  - 修复一处并轨遗留的真红测试：`tasks-ledger.integration.test.ts` 的 demoUsage 字面补 §COST-1 `costBasis` 与 v690 `reasoningTokens` 缺省字段（schema 读出即注入）；
+  - `verify:fe-gates` 120/120 · 1181/1181 全绿；census 2399 OK；tsc 0；eslint 0。
+- §CACHE 2.5 遗留不变：arms-receipt 仍需宿主（本机 16GB 5 分钟 OOM，CI 的 proofs step 尚未带打印修复的那次运行完成）。

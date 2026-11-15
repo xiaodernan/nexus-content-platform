@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import type { Locale } from '@/lib/i18n';
 import { csrfHeaders } from '@/lib/csrf';
 
 /**
@@ -14,7 +15,29 @@ import { csrfHeaders } from '@/lib/csrf';
  * `generation.progress` 事件催的重读（`TasksLedgerLive`）。两条读的是同一张表，
  * 谁先到都一样；没有乐观更新，表里的每一行都必须是库里真有的一行。
  */
-export function TaskRetryButton({ taskId }: { taskId: string }) {
+/** §162 取消/重试：任务列表里"再来一次"的按钮。 */
+const COPY: Record<Locale, {
+  retryNote: (taskId: string, backend: string) => string;
+  retryFailed: (message: string) => string;
+  retrying: string;
+  retry: string;
+}> = {
+  zh: {
+    retryNote: (taskId, backend) => `已重试：新任务 ${taskId} · 后端 ${backend}，下面会多出一行第 2 次`,
+    retryFailed: (message) => `重试没成功：${message}`,
+    retrying: '重试中…',
+    retry: '重试',
+  },
+  en: {
+    retryNote: (taskId, backend) => `Retried: new task ${taskId} · backend ${backend}. A new row will appear as attempt 2.`,
+    retryFailed: (message) => `Retry didn’t complete: ${message}`,
+    retrying: 'Retrying…',
+    retry: 'Retry',
+  },
+};
+
+export function TaskRetryButton({ taskId, locale = 'zh' }: { taskId: string; locale?: Locale }) {
+  const c = COPY[locale];
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
@@ -29,10 +52,10 @@ export function TaskRetryButton({ taskId }: { taskId: string }) {
         | { message?: string; error?: string; taskId?: string; backend?: string }
         | null;
       if (!res.ok) throw new Error(body?.message ?? body?.error ?? `HTTP ${res.status}`);
-      setNote(`已重试：新任务 ${body?.taskId?.slice(0, 8) ?? '？'} · 后端 ${body?.backend ?? '未知'}，下面会多出一行第 2 次`);
+      setNote(c.retryNote(body?.taskId?.slice(0, 8) ?? '？', body?.backend ?? '未知'));
       router.refresh();
     } catch (e) {
-      setNote(`重试没成功：${e instanceof Error ? e.message : String(e)}`);
+      setNote(c.retryFailed(e instanceof Error ? e.message : String(e)));
     } finally {
       setBusy(false);
     }
@@ -47,7 +70,7 @@ export function TaskRetryButton({ taskId }: { taskId: string }) {
         data-task-retry={taskId}
         className="tl-retryBtn"
       >
-        {busy ? '重试中…' : '重试'}
+        {busy ? c.retrying : c.retry}
       </button>
       {note ? (
         <span className="tl-retryNote" data-task-retry-note>

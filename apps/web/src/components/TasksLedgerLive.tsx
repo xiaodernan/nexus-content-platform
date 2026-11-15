@@ -7,21 +7,28 @@ import { SavingsCard } from '@/components/SavingsCard';
 import { readTasksLedger, type TasksLedgerPayload, type TaskUsage } from '@/lib/tasksLedger';
 import type { SavingsSummary } from '@/lib/savings';
 import { cacheText, cacheTotal, costText } from '@/lib/usage-cache-text';
-import { REALTIME_TEXT, useRealtime } from '@/lib/useRealtime';
+import { REALTIME_TEXT, REALTIME_TEXT_EN, useRealtime } from '@/lib/useRealtime';
+import type { Locale } from '@/lib/i18n';
 
-const STATUS_TEXT: Record<string, string> = {
-  queued: '排队中',
-  planning: '规划中',
-  running: '在跑',
-  succeeded: '完成',
-  failed: '失败',
-  cancelled: '已取消',
-  /**
-   * 枚举里这一档叫 `awaiting_approval`（0000 建库时定的），这里以前写的是 `needs_approval`。
-   * 全库没有人把任务置成等待态时，那个错 key 是看不出来的；§74 接上写入方之后，
-   * 表格里就会原样露出英文的那一个——所以这一行现在是有作者的，别再改回去。
-   */
-  awaiting_approval: '等审批',
+const STATUS_TEXT: Record<Locale, Record<string, string>> = {
+  zh: {
+    queued: '排队中',
+    planning: '规划中',
+    running: '在跑',
+    succeeded: '完成',
+    failed: '失败',
+    cancelled: '已取消',
+    awaiting_approval: '等审批',
+  },
+  en: {
+    queued: 'queued',
+    planning: 'planning',
+    running: 'running',
+    succeeded: 'succeeded',
+    failed: 'failed',
+    cancelled: 'cancelled',
+    awaiting_approval: 'awaiting approval',
+  },
 };
 
 /**
@@ -40,6 +47,8 @@ const STATUS_TEXT: Record<string, string> = {
  * - **读不到要说读不到**（§73）：重读失败时挂着一句带原因的话，绝不用上一次的数据冒充现在；
  *   连接断开时状态标签自己写着"以刷新后的数据为准"。
  * - **不造第二份真值**：这张表不参与工作区状态，重试按钮走的还是那条 POST，行只能是库里真有的行。
+ *
+ * 双语（2026-11-15）：locale 由 `/tasks/<id>/page.tsx` 透传（默认 zh），COPY 中英一辞两字面。
  */
 
 /**
@@ -50,21 +59,109 @@ function usageKind(usage: TaskUsage | null): 'missing' | 'demo' | 'real' {
   return usage === null ? 'missing' : usage.demoMode ? 'demo' : 'real';
 }
 
-/**
- * 一格用量的原文。只说 provider 真报了的数：
- * - DEMO 规则版不经过模型 ⇒ 写 0 token，不写得像一次模型调用；
- * - 费用为 0 时写「未计价」——今天的适配器还没有价格表，0 与「免费」不是一回事（§159）；
- * - 模型侧延迟与「用时」列不是同一个数：那一列是任务从开始到收尾，这一格是 provider 自己报的。
- *
- * 缓存那一格的三种说法（没报 / 未命中 / 命中 N·P%）住在 `lib/usage-cache-text.ts`：
- * 那三句话是承诺，得能被单测逐条钉住，而钉一个 JSX 表达式只能靠正则猜。
- */
-function usageText(usage: TaskUsage | null): string {
-  if (usage === null) return '未记录';
-  if (usage.demoMode) return 'DEMO 规则版不经过模型（0 token）';
+interface Copy {
+  readFailed: (reason: string) => string;
+  projectTitle: (name: string) => string;
+  summary: (total: number, counts: string) => string;
+  emptyRuns: string;
+  usageSummary: (real: number, demo: number, missing: number) => string;
+  cacheHit: (rows: number, cached: number, prompt: number, share: string) => string;
+  cacheUnreported: (total: number) => string;
+  noTasks: string;
+  scope: string;
+  tableScrollAria: string;
+  realtimePrefix: string;
+  backStudio: string;
+  thTime: string;
+  thIntent: string;
+  thAttempt: string;
+  thCapability: string;
+  thStatus: string;
+  thDuration: string;
+  thUsage: string;
+  thReason: string;
+  thAction: string;
+  attemptCount: (n: number) => string;
+  capabilityReal: string;
+  capabilityDemo: string;
+  capabilityUnknown: string;
+  durationMs: (ms: number) => string;
+}
+
+const COPY_ZH: Copy = {
+  readFailed: (reason) => `账本读不到（${reason}）：以刷新后的数据为准`,
+  projectTitle: (name) => `${name} 的任务`,
+  summary: (total, counts) => `共 ${total} 行 · ${counts || '还没有跑过一次'}`,
+  emptyRuns: '还没跑过一次',
+  usageSummary: (real, demo, missing) => `用量：真模型 ${real} 行 · DEMO 规则版 ${demo} 行 · 未记录 ${missing} 行`,
+  cacheHit: (rows, cached, prompt, share) => `缓存读数（只计 ${rows} 行报过数的真模型行）：命中 ${cached} / ${prompt} 输入 token${share ? `（占 ${share}%）` : ''} · 「未报」的行不画进这个数`,
+  cacheUnreported: () => `这页真模型行都没报缓存读数——“没报”与“命中 0”是两件事，这里绝不画 0%（ADR-0262）`,
+  noTasks: '这个项目还没有跑过任何一次 AI 请求。',
+  scope: '每一行对应一次 AI 请求（§7 命令栏发起的那种）。§112 那种多步 Agent 任务——Goal、子任务、依赖、验收——还没有执行方，所以这张表里不会出现"一个任务带六个步骤"的东西。能力那一列区分 real（真 provider）与 demo（DEMO 模板），两者不混写（§160）。「等审批」那一行是 §74 的审批门挂起来的：被扣下的补丁不在这里交回，决定要在 Studio 的命令栏里做——交回之后仍要走那一条可撤销的编辑事务，而这一页没有画布。重试（§162）开的是新行：失败的那一次留在表里不抹，「第几次」列写出这是第几回，input.retryOf 在库里把两行接起来——历史里看得见"第一次为什么失败"。「用量」列（§75）记的是 provider 真报的数：模型、token、模型侧延迟、费用与工具调用；DEMO 规则版不经过模型，写的就是 0 token，而不是拿 0 冒充一次模型调用；老行没有记账，写「未记录」——0 与没记是两件事。费用 0 写「未计价」：今天的适配器还没有价格表（§159）。状态自己变是实时事件催的重读：事件只负责"该来读一次了"，表里的每个字都来自库里（ADR-0010/0029）。',
+  tableScrollAria: '任务账本表格（可横向滚动）',
+  realtimePrefix: '实时：',
+  backStudio: '回 Studio',
+  thTime: '时间',
+  thIntent: '意图',
+  thAttempt: '第几次',
+  thCapability: '能力',
+  thStatus: '状态',
+  thDuration: '用时',
+  thUsage: '用量',
+  thReason: '结果 / 原因',
+  thAction: '操作',
+  attemptCount: (n) => `第 ${n} 次`,
+  capabilityReal: '真模型',
+  capabilityDemo: 'DEMO 模板',
+  capabilityUnknown: '未知',
+  durationMs: (ms) => `${Math.round(ms / 100) / 10} 秒`,
+};
+
+const COPY_EN: Copy = {
+  readFailed: (reason) => `Tasks ledger unreadable (${reason}) — counts shown after the next refresh`,
+  projectTitle: (name) => `Tasks · ${name}`,
+  summary: (total, counts) => `${total} rows · ${counts || 'nothing has run yet'}`,
+  emptyRuns: 'nothing has run yet',
+  usageSummary: (real, demo, missing) => `Usage: ${real} real-model rows · ${demo} DEMO rows · ${missing} unrecorded`,
+  cacheHit: (rows, cached, prompt, share) => `Cache (only ${rows} reported real-model rows): hit ${cached} of ${prompt} prompt tokens${share ? ` (${share}%)` : ''} · unreported rows stay out`,
+  cacheUnreported: () => `Every real-model row on this page went unreported on cache — “unreported” and “hit zero” are different claims, and this page won’t draw 0% (ADR-0262)`,
+  noTasks: 'This project has not run a single AI request yet.',
+  scope: 'Each row is one AI request (initiated from the §7 command bar). §112 multi-step Agent tasks — goal, subtasks, dependencies, acceptance — have no runner yet, so nothing like “one task with six steps” shows up here. The capability column distinguishes real (real provider) from demo (DEMO mock), and the two are never conflated (§160). The “awaiting approval” row is an approval gate mounted by §74: gated patches are not handed back here, the decision belongs in Studio’s command bar — revocation still requires that same undoable edit transaction, and this page has no canvas. Retry (§162) opens a NEW row: the failed run stays in the table, “attempt” names which one this is, and input.retryOf links the two rows in the store — history keeps seeing “why the first one failed”. The usage column (§75) records what the provider actually reported: model, tokens, model-side latency, cost and tool calls; DEMO rows never pass through a model, so they write 0 tokens, not a fake model call; unrecorded rows write “unrecorded” — 0 and unrecorded are different facts. Cost 0 stays “not priced”: today’s adapters carry no price table (§159). Status turning live is realtime events nudging a re-read: events only say “go read now”, every glyph in the table comes from the store (ADR-0010/0029).',
+  tableScrollAria: 'Tasks table (horizontally scrollable)',
+  realtimePrefix: 'Live: ',
+  backStudio: 'Back to Studio',
+  thTime: 'Time',
+  thIntent: 'Intent',
+  thAttempt: '#',
+  thCapability: 'Capability',
+  thStatus: 'Status',
+  thDuration: 'Duration',
+  thUsage: 'Tokens',
+  thReason: 'Result / cause',
+  thAction: 'Action',
+  attemptCount: (n) => `#${n}`,
+  capabilityReal: 'Real provider',
+  capabilityDemo: 'DEMO mock',
+  capabilityUnknown: 'Unknown',
+  durationMs: (ms) => `${Math.round(ms / 100) / 10}s`,
+};
+
+const COPY: Record<Locale, Copy> = { zh: COPY_ZH, en: COPY_EN };
+
+function usageText(usage: TaskUsage | null, locale: Locale): string {
+  if (usage === null) return locale === 'en' ? 'unrecorded' : '未记录';
+  if (usage.demoMode) return locale === 'en' ? 'DEMO mock (0 tokens)' : 'DEMO 规则版不经过模型（0 token）';
+  // 缓存/计价措辞**不再本地拼写**：一律走 lib/usage-cache-text.ts（§CACHE-3 / §COST-1 承诺层），
+  // 英文模式经同一函数的 locale 分支落住，不允许任何第二份对照表。
+  const cacheStr = cacheText(usage, locale);
+  const costStr = costText(usage, locale);
+  if (locale === 'en') {
+    const latency = `${Math.round(usage.latencyMs / 100) / 10}s`;
+    const reasoning = (usage as { reasoningTokens?: number }).reasoningTokens;
+    const reasoningStr = typeof reasoning === 'number' && reasoning > 0 ? ` · reasoning ${reasoning}` : '';
+    return `${usage.model} (${usage.provider}) · ${usage.tokensIn} in / ${usage.tokensOut} out tokens · ${cacheStr}${reasoningStr} · ${costStr} · ${usage.toolCalls} tool call(s) · model-side ${latency}`;
+  }
   const latency = `${Math.round(usage.latencyMs / 100) / 10} 秒`;
-  const cacheStr = cacheText(usage);
-  const costStr = costText(usage);
   const reasoning = (usage as { reasoningTokens?: number }).reasoningTokens;
   const reasoningStr = typeof reasoning === 'number' && reasoning > 0 ? ` · 推理 ${reasoning}` : '';
   return `${usage.model}（${usage.provider}）· ${usage.tokensIn} 进 / ${usage.tokensOut} 出 token · ${cacheStr}${reasoningStr} · ${costStr} · ${usage.toolCalls} 次工具调用 · 模型侧 ${latency}`;
@@ -74,11 +171,17 @@ export function TasksLedgerLive({
   projectId,
   initial,
   savings = null,
+  locale = 'zh',
 }: {
   projectId: string;
   initial: TasksLedgerPayload;
   savings?: SavingsSummary | null;
+  locale?: Locale;
 }) {
+  const c = COPY[locale];
+  const statusText = STATUS_TEXT[locale];
+  const usageTextL = (usage: TaskUsage | null) => usageText(usage, locale);
+  const realtimeText = locale === 'zh' ? REALTIME_TEXT : REALTIME_TEXT_EN;
   const [payload, setPayload] = useState<TasksLedgerPayload>(initial);
   const [note, setNote] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -89,9 +192,9 @@ export function TasksLedgerLive({
       setPayload(result.payload);
       setNote(null);
     } else {
-      setNote(`账本读不到（${result.reason}）：以刷新后的数据为准`);
+      setNote(c.readFailed(result.reason));
     }
-  }, [projectId]);
+  }, [projectId, c]);
 
   // 背靠背的几条事件（提交那一下 start/finish 会连着来）合并成一次重读：
   // 数请求而不是数定时器——轮询也会让数变对，但请求条数会一路涨（e2e 数的就是这个）
@@ -132,8 +235,6 @@ export function TasksLedgerLive({
     acc[task.status] = (acc[task.status] ?? 0) + 1;
     return acc;
   }, {});
-  // §75 的三档汇总：真模型 / DEMO 规则版 / 没记账。按 usage 分而不是按 capability 分——
-  // 这一行说的是"用量是不是一次模型调用"，capability 那一列说的是"这次走的是哪条路"。
   const usages = payload.tasks.reduce<Record<'real' | 'demo' | 'missing', number>>(
     (acc, task) => {
       acc[usageKind(task.usage)] += 1;
@@ -141,18 +242,6 @@ export function TasksLedgerLive({
     },
     { real: 0, demo: 0, missing: 0 },
   );
-  /**
-   * §CACHE-3：这一页真模型调用的缓存合计。
-   *
-   * **只统计 `cacheReported` 的行**。把"没报"的行按 0 加进分母，命中率会凭空变小——
-   * 那是用数据缺失伪造一个更差的读数，和伪造一个更好的读数一样不诚实。
-   * 一行都没报时 `rows === 0`，界面说"没有可用的缓存读数"，绝不画 0%。
-   */
-  /**
-   * §CACHE-3：这一页真模型调用的缓存合计。口径在 `lib/usage-cache-text.ts` 的 `cacheTotal`——
-   * **只统计 `cacheReported` 的行**，一行都没报时 `rows === 0`，界面说"没有可用的缓存读数"，
-   * 绝不画 0%（把"没报"按 0 加进分母，是在用数据缺失伪造一个更差的读数）。
-   */
   const cache = cacheTotal(payload.tasks.map((task) => task.usage).filter((usage): usage is TaskUsage => usage !== null));
 
   return (
@@ -160,49 +249,48 @@ export function TasksLedgerLive({
       <header className="tl-head">
         <div>
           <h1 className="tl-title" data-tasks-title>
-            {payload.projectName} 的任务
+            {c.projectTitle(payload.projectName)}
           </h1>
           <p className="tl-summary" data-tasks-summary>
-            共 {payload.tasks.length} 行 ·{' '}
-            {Object.entries(counts)
-              .map(([status, n]) => `${STATUS_TEXT[status] ?? status} ${n}`)
-              .join(' · ') || '还没有跑过一次'}
+            {c.summary(
+              payload.tasks.length,
+              Object.entries(counts)
+                .map(([status, n]) => `${statusText[status] ?? status} ${n}`)
+                .join(' · ') || c.emptyRuns,
+            )}
           </p>
           {payload.tasks.length > 0 ? (
             <p className="tl-summary" data-tasks-usage-summary>
-              用量：真模型 {usages.real} 行 · DEMO 规则版 {usages.demo} 行 · 未记录 {usages.missing} 行
+              {c.usageSummary(usages.real, usages.demo, usages.missing)}
             </p>
           ) : null}
           {payload.tasks.length > 0 ? (
             cache.rows > 0 ? (
               <p className="tl-summary" data-tasks-cache-summary={String(cache.cached)}>
-                缓存读数（只计 {cache.rows} 行报过数的真模型行）：命中 {cache.cached} / {cache.prompt} 输入 token
-                {cache.share === null ? '' : `（占 ${cache.share}%）`} · 「未报」的行不画进这个数
+                {c.cacheHit(cache.rows, cache.cached, cache.prompt, cache.share === null ? '' : String(cache.share))}
               </p>
             ) : (
               <p className="tl-summary" data-tasks-cache-summary="none">
-                这页真模型行都没报缓存读数——“没报”与“命中 0”是两件事，这里绝不画 0%（ADR-0262）
+                {c.cacheUnreported(0)}
               </p>
             )
           ) : null}
         </div>
         <div className="tl-tools">
           <span className="tl-realtime" data-tasks-realtime={realtime.state}>
-            实时：{REALTIME_TEXT[realtime.state]}
+            {c.realtimePrefix}{realtimeText[realtime.state]}
           </span>
-          {/* 第四十九片：这一颗是页面上唯一的返回口，原来 61×21——高度比 24 少 3px 也是低于下限。
-              文字不换行也不该靠行高凑尺寸，直接给盒高（WCAG 2.5.8）。 */}
           <Link
             href={`/studio/${projectId}`}
             className="tl-back"
             data-tasks-back
           >
-            回 Studio
+            {c.backStudio}
           </Link>
         </div>
       </header>
 
-      {savings ? <SavingsCard savings={savings} /> : null}
+      {savings ? <SavingsCard savings={savings} locale={locale} /> : null}
 
       {note ? (
         <p className="tl-note" data-tasks-live-note>
@@ -211,78 +299,63 @@ export function TasksLedgerLive({
       ) : null}
 
       <p className="tl-scope" data-tasks-scope>
-        每一行对应一次 AI 请求（§7 命令栏发起的那种）。§112 那种多步 Agent 任务——Goal、子任务、依赖、验收——
-        还没有执行方，所以这张表里不会出现"一个任务带六个步骤"的东西。
-        能力那一列区分 real（真 provider）与 demo（DEMO 模板），两者不混写（§160）。
-        「等审批」那一行是 §74 的审批门挂起来的：被扣下的补丁不在这里交回，决定要在 Studio 的命令栏里做——
-        交回之后仍要走那一条可撤销的编辑事务，而这一页没有画布。
-        重试（§162）开的是<strong>新行</strong>：失败的那一次留在表里不抹，「第几次」列写出这是第几回，
-        <code>input.retryOf</code> 在库里把两行接起来——历史里看得见"第一次为什么失败"。
-        「用量」列（§75）记的是 provider 真报的数：模型、token、模型侧延迟、费用与工具调用；
-        DEMO 规则版不经过模型，写的就是 0 token，而不是拿 0 冒充一次模型调用；
-        老行没有记账，写「未记录」——0 与没记是两件事。费用 0 写「未计价」：今天的适配器还没有价格表（§159）。
-        状态自己变是实时事件催的重读：事件只负责"该来读一次了"，表里的每个字都来自库里（ADR-0010/0029）。
+        {c.scope}
       </p>
 
       {payload.tasks.length === 0 ? (
         <p className="tl-empty" data-tasks-empty>
-          这个项目还没有跑过任何一次 AI 请求。
+          {c.noTasks}
         </p>
       ) : (
-        // 第四十九片：390 下九列被压成一列一个字（截图里「第 / 几 / 次」竖着排）。
-        // 宽度不该靠压缩列来换：给表格一个可读的下限，让它自己横滚，
-        // 而不是把每一列挤成只剩一个字符宽（表格不承担"把布局视口撑宽"的后果）。
         <div
           className="tl-tableScroll"
           data-tasks-table-scroll
-          // 横滚区自己必须是键盘停得下来的（axe: scrollable-region-focusable）。
-          // 没有这一颗 tabindex，键盘用户看得到表格却滚不到右边那几列。
           role="region"
-          aria-label="任务账本表格（可横向滚动）"
+          aria-label={c.tableScrollAria}
           tabIndex={0}
         >
         <table className="tl-table">
           <thead className="tl-thRow">
             <tr>
-              <th>时间</th>
-              <th>意图</th>
-              <th>第几次</th>
-              <th>能力</th>
-              <th>状态</th>
-              <th>用时</th>
-              <th>用量</th>
-              <th>结果 / 原因</th>
-              <th>操作</th>
+              <th>{c.thTime}</th>
+              <th>{c.thIntent}</th>
+              <th>{c.thAttempt}</th>
+              <th>{c.thCapability}</th>
+              <th>{c.thStatus}</th>
+              <th>{c.thDuration}</th>
+              <th>{c.thUsage}</th>
+              <th>{c.thReason}</th>
+              <th>{c.thAction}</th>
             </tr>
           </thead>
           <tbody>
             {payload.tasks.map((task) => (
               <tr key={task.id} data-task-row={task.id}>
                 <td
-                  data-task-time={new Date(task.createdAt).toLocaleString('zh-CN', { hour12: false })}
+                  data-task-time={new Date(task.createdAt).toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US', { hour12: false })}
                   className="tl-tdNowrap"
                   // 时间戳两套 ICU（Node 渲染 vs 浏览器）逐字节可能差一个字符，
                   // 这一格本来就随重读更新，不值得为它报一次 hydration 警告
                   suppressHydrationWarning
                 >
-                  {new Date(task.createdAt).toLocaleString('zh-CN', { hour12: false })}
+                  {new Date(task.createdAt).toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US', { hour12: false })}
                 </td>
                 <td>{task.agentKey}</td>
-                <td data-task-attempt={task.attempt}>第 {task.attempt} 次</td>
+                <td data-task-attempt={task.attempt}>{c.attemptCount(task.attempt)}</td>
                 <td data-task-capability={task.capability ?? 'unknown'}>
-                  {task.capability === 'real' ? '真模型' : task.capability === 'demo' ? 'DEMO 模板' : '未知'}
+                  {task.capability === 'real' ? c.capabilityReal : task.capability === 'demo' ? c.capabilityDemo : c.capabilityUnknown}
                 </td>
-                <td data-task-status={task.status}>{STATUS_TEXT[task.status] ?? task.status}</td>
-                <td>{task.durationMs === null ? '—' : `${Math.round(task.durationMs / 100) / 10} 秒`}</td>
+                <td data-task-status={task.status}>{statusText[task.status] ?? task.status}</td>
+                <td>{task.durationMs === null ? '—' : c.durationMs(task.durationMs)}</td>
                 <td data-task-usage={usageKind(task.usage)} className="tl-tdMuted">
-                  {usageText(task.usage)}
+                  {usageTextL(task.usage)}
                 </td>
                 <td className="tl-tdMuted">{task.error ?? '—'}</td>
                 <td>
                   {/* 只有自己的失败/取消行才有按钮：别人行上的按钮点了也只会 404，
                       与其让人点了才知道，不如不挂出来 */}
                   {task.mine && (task.status === 'failed' || task.status === 'cancelled') ? (
-                    <TaskRetryButton taskId={task.id} />
+                    <TaskRetryButton taskId={task.id} locale={locale} />
                   ) : null}
                 </td>
               </tr>

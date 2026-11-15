@@ -167,7 +167,8 @@ describe('§FE-23 /tasks/[projectId] 任务账本', () => {
     // 横滚区键盘可达（axe: scrollable-region-focusable）——行为不是样式，但进门守着
     expect(liveCode).toContain('role="region"');
     expect(liveCode).toContain('tabIndex={0}');
-    expect(liveCode).toContain('aria-label="任务账本表格（可横向滚动）"');
+    // 2026-11-15 双语化 wave: aria-label 从 COPY dict 下发（zh: 任务账本表格（可横向滚动）），原 zh 字节原样保留在字典里。
+    expect(liveCode).toContain("tableScrollAria: '任务账本表格（可横向滚动）'");
   });
 
   it('数据钩子守恒：live 14 个 + retry 2 个（data-task-retry/-note）', () => {
@@ -202,7 +203,8 @@ describe('§FE-23 /tasks/[projectId] 任务账本', () => {
     // 为什么不在组件里内联：这两处措辞一旦各写一遍，早晚会漂——一处改成"未命中"、
     // 另一处还写"命中 0"。抽成纯函数后，"哪句话是什么"只有一处定义。
     expect(liveCode).toContain("from '@/lib/usage-cache-text'");
-    expect(liveCode).toContain('cacheText(usage)');
+    // 2026-11-15 双语化 wave：locale 下传后的新调用形（措辞仍由 lib 单点落住，组件不自写）
+    expect(liveCode).toContain('cacheText(usage, locale)');
     expect(liveCode).toContain('cacheTotal(');
     // 合计格一行都没报时有独立分支，绝不画 0%
     expect(liveCode).toContain('data-tasks-cache-summary="none"');
@@ -213,13 +215,13 @@ describe('§FE-23 /tasks/[projectId] 任务账本', () => {
   it('剥 className 后全文 SHA256 钉死（live=09db66dc… 并轨 §AILIVE-9/CACHE-3 + §v699 SavingsCard 接线后的字节 · retry=b90012c2… · page=cae7a533…）', () => {
     // 常量在改前（git HEAD）由真实产物 redact 算出并钉死；此门保证除 className 外一字节未动。
     expect(createHash('sha256').update(redactClasses(live)).digest('hex')).toBe(
-      '09db66dc5fc6b3b2e23c8502be63e53cf7ff8ba2e5294e27763b9381c0c5339e',
+      '41de774399ea8c569c3e4cbdeae9d16776aab63ed7b85bb3129ed13cc1a4d35c',
     );
     expect(createHash('sha256').update(redactClasses(retry)).digest('hex')).toBe(
-      'b90012c2ad50e24a71a316610fe85fb8b9caa69607d27fc8ef89b8c91ae23801',
+      '5d36a868d8c3c8afe2d26cf84174c78acc4398da36bc154c13043be5090356a6',
     );
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      'cae7a533607f212cc3b582d0e2b115ecede5b8cdf51e3bafc63ca048dccdb81c',
+      '2a69f5e100c66b98ef3a80e4d252acceebb7f882ce1d32f841b2f0efa3235a09',
     );
   });
 });
