@@ -4026,3 +4026,13 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - showcase 快照同步于提交后（npm run sync:showcase）。
 
 
+
+## cont. 157 (2026-11-16) — v788: Studio 内置说明书（帮助抽屉）——「启动就看见」
+
+- 触发：用户要求「项目教会用户使用的说明书嵌入在项目启动一起就能看到，其中一个功能就是阅读教学说明书，不要写在项目文档里面，没有客户会去看项目文档的」。
+- 抽离共享字典：`apps/web/src/lib/guideCopy.ts`（`GUIDE_COPY` + `GuideSection`/`GuideCopy` 类型）——`/guide` 页正文真值迁出，页面变瘦壳（getLocale + metadata + GUIDE_COPY 渲染），`/guide` 与 Studio 抽屉**共用同一份内容**（不再是两份平行文案）。
+- 新增 `components/InAppGuide.tsx`（'use client'）：右侧抽屉（`.tsg-drawer`，min(92vw, 720px) `100dvh`）+ 顶部 kicker/title/lede + 搜索框（命中数实数 `hits.length / sections.length`，零伪造）+ TOC（`#anchor` 直达）+ 分章正文；Esc / F1 关闭；零 provider、零 fetch、零持久化。
+- 新增 `.tsg-*` 视觉层（globals.css §SG-2 段：drawer/head/searchRow/search/body/toc/content + forced-colors；`.sp-helpToggle` 顶栏按钮样式，零 hex，var() token + color-mix）。
+- `StudioShell.tsx`：`helpOpen` state；`<TopBar onOpenHelp={…} />`（`.sp-helpToggle`，`data-help-open`）之后渲染 `<InAppGuide>`；`shell-i18n.ts` 新增 `helpToggle` / `helpToggleTitle`（zh 帮助 / en Help）。
+- Gates：新门 `help-drawer-visual-style.test.ts`（8 条）；`/guide` SHA 重钉；StudioShell 剥类 SHA 重钉（第十七次，deb5856b…）；§FE-19 STRIP_CLASS 重钉（门自带 redact 复算 d51da7bf…）；fe-gates **121/121 · 1189/1189**；census **2287** OK；tsc web 0；eslint 干净；SSR 实测 `/guide`、`/` 200（`data-guide-root`、zh 标题皆在）。
+- showcase 快照同步于提交后（`npm run sync:showcase`）。

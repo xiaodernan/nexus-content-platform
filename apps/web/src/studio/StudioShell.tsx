@@ -5,6 +5,8 @@ import type { DesignDocument } from '@nexus/creative-model';
 import { cn } from '@/lib/cn';
 import { studio, useStudioFields } from './store';
 import { setStudioReadOnly } from './read-only';
+import { InAppGuide } from '@/components/InAppGuide';
+
 import { TopBar } from './TopBar';
 import { LayersPanel } from './LayersPanel';
 import { HistoryPanel } from './HistoryPanel';
@@ -206,6 +208,7 @@ function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zo
   // §85 第二十七片：390 下 264px 的左栏把画布压到 82px——窄视口默认收起，
   // 宽视口照旧展开。用 effect 而不是初值：服务端不知道窗口宽，写在初值里会水合不一致。
   const [railOpen, setRailOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   /**
    * §85 第四十七片：xl 起右侧属性栏是常驻 300px 内联列——1279→1280 只差 1px，
@@ -223,7 +226,8 @@ function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zo
   return (
     <>
       <Profiler id="topbar" onRender={recordRender('topbar')}>
-        <TopBar onOpenRail={() => setRailOpen((v) => !v)} credits={credits} locale={locale} />
+        <TopBar onOpenRail={() => setRailOpen((v) => !v)} credits={credits} locale={locale} onOpenHelp={() => setHelpOpen((v) => !v)} />
+        <InAppGuide open={helpOpen} locale={locale} onClose={() => setHelpOpen(false)} />
       </Profiler>
       <div className="se-frame">
         <nav className="se-rail">

@@ -1,0 +1,214 @@
+// 用户指南 / User guide — 已抽离为 shared module，供 /guide 页与 Studio 内置帮助共用。
+// 修改请改这份字典，不要在 page 里抄第二遍。
+import type { Locale } from '@/lib/i18n';
+
+const COPY: Record<Locale, { kicker: string; title: string; lede: string; sections: { heading: string; body: string[] }[] }> = {
+  zh: {
+    kicker: '用户指南',
+    title: '三分钟看懂 NEXUS · 十五分钟玩起来',
+    lede: '这不是一份帮助文档，是一册工具说明书——告诉你这里的每一项能力是什么、怎么用。中英都可，随你喜欢。',
+    sections: [
+      {
+        heading: '① 这个平台是什么？',
+        body: [
+          'NEXUS 是一个 AI Universe Studio——把你说出口的想法装配成设计模型，再变成真的可以打开的网站、游戏、视频与世界。',
+          '创建一个项目 → 在 Project 里画设计稿 → 用 AI 辅助改成你想要的样子 → 导出 / 发布 / 玩里面的游戏。',
+          '它不是"AI 写代码的玩具"：所有 AI 的改动都走可撤销的 Command 栈；所有素材都是你项目自己的素材；DEMO MODE 常驻提醒——未接真 provider 之前不假装已经能做。',
+        ],
+      },
+      {
+        heading: '② 新手快速演示·第一次跑通',
+        body: [
+          '注册 → 点"新建项目"→ 起个名字 → 自动进 Studio（左栏面板 + 中央画布 + 右检视器）。',
+          '在 Studio 画布上选中一个元素（鼠标或 Tab 都行）→ 顶栏点"新建页"加一页，或从左栏把组件拖上来。',
+          '对 AI 说一句话就行（例："把标题换成 72px 的衬线字"）——每次 AI 产出都是一个可以 ⌘Z 撤销的 Command；没有 provider 时它不假装做了，会挂 DEMO MODE。',
+          '⌘K（或 Ctrl K）打开命令面板——输入项目名或任意页面关键词（如 "发布" 或 "ship"），Enter 直接跳。',
+          'Ctrl S（Mac ⌘S）保存；按 "?" 键呼出键盘速览卡——真实清单（⌘K 面板、Ctrl Z / Ctrl Y、方向键微移、Shift+方向键 8px 网格、Ctrl+A 全选、Ctrl+G 网格、Delete 删除）。',
+          'Ctrl G 显示或隐藏对齐网格；方向键微移 1px、Shift+方向键 8px 网格、Delete 删除选中。',
+          '做完一切后先 Ctrl S 保存，再点顶栏"发布"把项目投进广场——别人才能在 /discover 发现它；此前只属于你自己。',
+          '下一站：/ship 看这次交付的每日日志；换真 provider 之后同一条流水线产出真东西。',
+          '卡住了？按 ? 键读一遍速览卡，或先看 /guide 里 ④ 游戏怎么玩、⑤ 额度 & DEMO MODE。',
+        ],
+      },
+      {
+        heading: '③ 功能地图（点进去就是那个页面）',
+        body: [
+          '/discover 广场（热门/最新/ trending / 我关注的）· /marketplace 组件/模板/资产市场 · /blocks 积木库 · /search 全站搜索',
+          '/studio/<project> 项目主场：画布/图层/设计系统/3D · /world/<id> 走进这个世界（3D 步行）· /world/<id>/digest 世界速览 · /world/<id>/integrity 世界体检 · /world/<id>/tide 世界潮汐 · /world/<id>/constellation 人物关系星图 · /world/<id>/codex 设定集（纸面投影）· /world/<id>/chronicle 编年 · /world/<id>/ephemeris 世界切片',
+          '/credits 我的额度 · /tasks 任务账本 · /api-tokens API 令牌 · /analytics 我作品的数据 · /notifications 收件箱 · /ship 交付日志 · /about-nexus 关于',
+          '/admin/* 平台管理台（role=admin）：审核台、pricing、dead-letter、ai-cache、audit、observability、users、pricing、rate-limit 等',
+        ],
+      },
+      {
+        heading: '④ 游戏怎么玩',
+        body: [
+          '动作面（/game/<id>）：WASD 或方向键移动；空格攻击；右上角 HUD 会实时显示 生命、时间、场上敌人数、拾取计数（物品 x/y）、发现量 与 激活量——把一张图完整走完再看结算。',
+          '失败了就重来：失败的结果画面上「重新开始」按钮可以一键重开，键盘上也绑了空格键；每一局固定、检查点不跨盘。',
+          '下一段的敌人布局由游戏设计系统（@nexus/game-model）接上一局的落点决定——你走到哪里、没走到哪里，下一盘的敌人就按那个坐标长出来。',
+          'RPG 冒险（/game/<id>?view=rpg）：WASD/方向键走，靠近 NPC 按空格/Enter 开始对话；上下箭头选选项、空格确认；对话的决定会写进你的世界档案。',
+          '这些游戏是项目自己长出来的：棋盘、敌人、数值全来自你项目里的设计系统/角色，没有"看价目表定死的成品"——Studio 里改数，下一盘就按新数跑。',
+          '诚实说明书：游戏本体没有云存档、没有自动保存点——每一局独立结算，交了卷就没有下一盘继承你的 HP。',
+        ],
+      },
+      {
+        heading: '⑤ 额度 & DEMO MODE 是什么？',
+        body: [
+          '每个免费账户每月有 AI 额度。真用 DeepSeek/GPT-6-sol 这样的真 provider 会扣真额度；没配真 provider 时会显示 DEMO MODE 标识——系统仍然能走通流程，只是出的东西是确定性模拟出来的"看起来像 AI 做的东西"，不是真模型的作品。',
+          '/credits 页面可以实时看消费账单：每次 AI 调用都记 token in/out/model/latency/cost——任何一笔都是真的数字，不是演出来的。',
+          '看到"缓存命中率"这个词：它反映 provider 端的 prefix cache 复用率——同一个前缀的下一次调用如果命中了，就免费少数 token；不命中也不证明你做错了，只证明分布器把你的请求放到了一个新分片。',
+        ],
+      },
+      {
+        heading: '⑥ 常见问答',
+        body: [
+          'Q：为什么我按了个按钮，整页空白了？A：这是 DEMO MODE 的特性——未配置 provider 时，生成路径不写真实代码；等到你在环境变量里配置好真实 provider 并跑通第一次真实调用，那些页就"亮"了。',
+          'Q：缓存命中率低是我的问题吗？A：不是——你在看的是 provider 端的 KV 分布片分配；把同一 lane 打满 6–10 次大概率出现 1 次未命中；可以在 /admin/ai-cache（admin）看自己的使用账。',
+          'Q：怎么让别人看到我的作品？A：顶栏发布→填标题→发布；发布后自动进广场/市场；发布前作品是私密的。',
+          'Q：数据安全吗？A：所有 AI 改动都进审计账本、可撤销 Command；公开作品随时可撤回。',
+        ],
+      },
+      {
+        heading: '⑦ 分镜怎么玩（Storyboard，§40–§42）',
+        body: [
+          '打开 Studio 底部的「分镜」Tab → 写一句话、点「切一版分镜」——这是本地确定性断句（按标点切成镜头表），不是 AI 分镜；provider 未接入前不做假生成。',
+          '镜头行可改：时长（毫秒）、机位（宽景/中景/特写/细部/跟移/航拍）、转场（硬切/淡入/叠化/划像）；点「DEMO 参考图」为本镜合成一张参考帧——像素来自本地确定性合成器，不是 AI 出图；撤销只断开引用、不删资产。',
+          '「DEMO 渲染整条分镜」会把整条分镜渲成一条 mp4 并挂回第一镜：真 ffmpeg、真额度门、真视频摄入门，成片为 DEMO（本地推演，不是 AI 生成），按钮处明码标注。',
+          '时间线可直接编辑：拖右边缘改长度（吸附 100ms、下限 200ms）、拖整块换位、双击一格在点击处切成两镜；键盘 Tab 到格子的右边缘、方向键调整（Shift 一档 500ms），Enter 落库、Esc 取消——四条路改的是同一份模型，全程可撤销。',
+        ],
+      },
+      {
+        heading: '⑧ 走进一个世界玩（World）',
+        body: [
+          '/world/<id> 进入 3D 走动视角：WASD 或方向键移动；按住鼠标左键拖拽可以环视四周（向上拖 = 往上看）；靠近 NPC 后按角色旁出现的「跟角色说话」入口对话。',
+          '/world/<id>/chronicle 编年史：故事/历史条目按纪元排开（灰灯纪/灰烬纪/铁月纪……你项目自己的纪元名），人物星图 ↔ 编年互相点亮；条目可挂「记忆回声」——纯感官刻痕，≤ 240 字，不是梗概。',
+          '/world/<id>/digest 世界速览 · /world/<id>/integrity 世界体检（只报真问题：纪元错位/回声缺失/孤儿条目，不打分不假绿）· /world/<id>/tide 世界潮汐 · /world/<id>/ephemeris 世界日历投影 · /world/<id>/codex 设定集 · /world/<id>/constellation 人物关系星图。',
+          '这些页面全部是你的项目数据的投影——世界页不是"官方故事"，是你画的世界自己的结构。',
+          '想读这个宇宙的正典文字？去 /bible 翻《潮汐教团》三章——锚句中英字字对齐的正典、可以直接收藏的典籍室。',
+        ],
+      },
+      {
+        heading: '⑨ 市场、邀请与团队',
+        body: [
+          '/marketplace 组件市场：浏览作者挂牌的东西、看谁买过、买下或退货；市场里卖的东西每一件都有真实结算路径。',
+          '/invites/<token> 接受队伍邀请：项目成员从 Studio 的 Team 面板发出邀请链接，接受后成为协作者（席位有上限；过期邀请不再占席）。',
+          '/api-tokens 自建机器人：给 CI/脚本一枚令牌，就能用程序化方式读写你的内容与作品；/tasks 里能看到每个云端任务的真实排队与状态。',
+          '/ship 每日交付日志 · /notifications 收件箱 · /analytics 你的作品数据 · /credits 你的额度账本——每个都是真实数据页。',
+        ],
+      },
+      {
+        heading: '⑩ 走错一步怎么走回来',
+        body: [
+          '⌘Z（或 Ctrl Z）一次撤销最近一个 Command——对话、画布、分镜、状态补丁、断点，全部走同一条撤销栈；重做是 ⌘⇧Z / Ctrl Y。',
+          '删除类操作（删除项目/撤发布/删镜头）都有二次确认；删掉的项目进回收站、可以恢复；公开作品随时可撤回到 private。',
+          '发布前最后一步是确认卡——没点头就不会投进广场；AI 的危险动作（删/发/花额度）同样有人审门，没批准就不执行。',
+        ],
+      },
+    ],
+  },
+  en: {
+    kicker: 'User Guide',
+    title: 'Three minutes to understand NEXUS · Fifteen to start playing',
+    lede: 'This is not just a help page — it is the manual: what every capability is, how to use it. Switch language anytime with the top-right toggle.',
+    sections: [
+      {
+        heading: '① What is this thing?',
+        body: [
+          'NEXUS is an AI Universe Studio — a place where your spoken intent becomes a design model, then real websites, games, videos and worlds that actually open.',
+          'Create a project → lay out the design → let AI assist → export / publish / play the games inside.',
+          'Not an "AI toy": every AI change goes through a revocable Command stack; every asset is yours; DEMO MODE is a standing badge — unconfigured providers are never faked as live.',
+        ],
+      },
+      {
+        heading: '② New here? A 2-minute first run-through',
+        body: [
+          'Sign up → "New project" → give it a name → you land in Studio (left panel + canvas + right inspector).',
+          'In Studio, select something on the canvas (mouse or Tab) → hit "New page" in the top bar, or drag components from the left onto the canvas.',
+          'Say one sentence to the AI (e.g. "make the title 72px serif") — every AI turn lands as a Command you can undo with Cmd/Ctrl+Z; no provider configured ⇒ no pretend magic, the DEMO MODE badge shows.',
+          'Press Cmd/Ctrl+K to open the command palette — type a project name or any path keyword ("publish", "ship", "tide") and Enter jumps straight there.',
+          'Cmd/Ctrl+S to save; press "?" to pull the speed-cheat card on screen — the whole real list (⌘K palette, Ctrl+Z / Ctrl+Y, arrow nudges, Shift+arrows 8px grid, Ctrl+A select, Ctrl+G grid, Delete).',
+          'Ctrl/Cmd+G toggles the alignment grid; arrow keys nudge 1px, Shift+arrows 8px, Delete removes the selection.',
+          'When it is right: Cmd/Ctrl+S to save, then Publish from the top bar — your project lands on /discover; before that it stays yours alone.',
+          'Next stop: /ship to see the daily delivery log; once a real provider is wired, the same pipeline produces the real stuff.',
+          'Stuck? Press ? to read the cheatsheet, or jump back to section ④ (games) / ⑤ (quota & DEMO MODE) right here.',
+        ],
+      },
+      {
+        heading: '③ Feature map (click a path, land on the page)',
+        body: [
+          '/discover feed · /marketplace components/templates/assets · /blocks library · /search global search',
+          '/studio/<project> studio · /world/<id> walk this world (3D) · /world/<id>/digest world digest · /world/<id>/integrity world checkup · /world/<id>/tide world tide · /world/<id>/constellation character graph · /world/<id>/codex paper tome · /world/<id>/chronicle timeline · /world/<id>/ephemeris 360-day page',
+          '/credits your quota · /tasks task ledger · /api-tokens API tokens · /analytics your stats · /notifications inbox · /ship ship log · /about-nexus about',
+          '/admin/* admin console (role=admin): moderation, pricing, dead-letters, ai-cache, audit, observability, users, rate-limit, etc.',
+        ],
+      },
+      {
+        heading: '④ How games work here',
+        body: [
+          'Action surface (/game/<id>): WASD or arrow keys to move; Space to attack. The HUD shows health, time, live enemies, pickups (items x/y), discoveries and activations — finish the map before judging, not by health alone.',
+          'Dead? Restart: the “Restart” button on the outcome screen re-runs (Space also bound); runs are self-contained, no cross-run checkpoints.',
+          'Next stage layout is decided by @nexus/game-model from where you ended — your previous coordinates seed the next enemy placements.',
+          'RPG adventure (/game/<id>?view=rpg): WASD/arrows to walk; Space/Enter near an NPC to talk; pick options with arrows + Space; dialogue choices write into your world file (visible in the character panel).',
+          'These games grow from YOUR project: boards, enemies and numbers come from your own design system/cast — not a pre-baked product; tweak numbers in Studio and the next run plays by them.',
+          'Honesty note: the game itself has no cloud save and no auto checkpoints — every run settles independently; once you wipe-screen out, there is no carrying HP forward.',
+        ],
+      },
+      {
+        heading: '⑤ Quota & what DEMO MODE means',
+        body: [
+          'Every free account has an AI quota. Real providers consume real quota; without one you see the DEMO MODE badge — the flow still completes, but the output is deterministic simulation, not a real model’s work.',
+          '/credits shows the live ledger: every AI call records tokens in/out, model, latency, cost. All real numbers.',
+          'About "cache-hit rate": it measures the provider’s prefix-KV hit rate. Same prefix sequence hitting twice means fewer tokens consumed; a miss is not proof of error — the distributor may have placed your request on a cold shard.',
+        ],
+      },
+      {
+        heading: '⑥ Frequently asked questions',
+        body: [
+          'Q: why did the page go blank? A: DEMO MODE short-circuit — no provider configured, so generation can’t write real code. Configure the real provider endpoint in the environment to make those pages "light up".',
+          'Q: is low cache-hit-rate my fault? A: No — it’s the provider’s KV-shard lottery. Over 6–10 identical prefix lanes expect ~1 cold shard; admins can see their per-lane bills at /admin/ai-cache.',
+          'Q: how do others see my work? A: top-bar Publish → fill title → publish; before publishing it stays private.',
+          'Q: is my data safe? A: every AI edit is in the audit ledger, revocable Command; public works recallable anytime.',
+        ],
+      },
+      {
+        heading: '⑦ How the storyboard plays (§40–§42)',
+        body: [
+          'Open the “Storyboard” tab at the bottom of Studio → write one sentence and press “Cut a storyboard”. That is local deterministic splitting by punctuation, not AI storyboarding; no fake generation before a provider is wired.',
+          'Per shot you can change: duration (ms), camera (Wide/Medium/Close-up/Detail/Tracking/Aerial), transition (Cut/Fade/Dissolve/Wipe); hit “DEMO reference” to compose a reference frame for the shot — pixels come from a local deterministic synthesizer, not AI output; undo only drops the link, it never deletes the asset.',
+          '“DEMO-render the whole storyboard” renders the entire board into one mp4 attached to the first shot: real ffmpeg, real quota door, real video-ingest gate, product is DEMO (local inference, not AI generation) and is labeled as such at the button.',
+          'The timeline is directly editable: drag a cell’s right edge to resize (snaps to 100 ms, minimum 200 ms), drag the block to reorder, double-click a cell to split at the click point; keyboard: Tab to the right edge, arrows nudge (Shift = 500 ms per step), Enter commits, Esc cancels — all four paths edit the same model and are undoable.',
+        ],
+      },
+      {
+        heading: '⑧ Step into a world',
+        body: [
+          '/world/<id> is the 3D walk view: WASD or arrow keys move; hold the left mouse button and drag to look around (drag up = look up); stand near an NPC and use the “Talk to the character” entry to converse.',
+          '/world/<id>/chronicle — story and history entries arranged by era (Grey-Lamp Age / Ash Age / Iron-Moon Age — whatever YOUR project’s eras are), characters and chronicle light each other up; entries can carry “memory echoes” — pure sensory etchings, ≤ 240 chars, not plot summaries.',
+          '/world/<id>/digest world digest · /world/<id>/integrity world checkup (reports real issues only: era drift, missing echoes, orphan entries — no fake scoring) · /world/<id>/tide world tide · /world/<id>/ephemeris world calendar projection · /world/<id>/codex the lore tome · /world/<id>/constellation the character graph.',
+          'Every one of these pages is a projection of YOUR project — the world pages are not “the official story”; they are the structure of the world you drew, rendered.',
+          'Fancy the canon text of this universe? Go to /bible — three chapters of the Tide Conclave, anchor sentences aligned word-for-word between Chinese and English.',
+        ],
+      },
+      {
+        heading: '⑨ Marketplace, invites and teams',
+        body: [
+          '/marketplace — the components bazaar: browse what authors have listed, see who bought what, buy or refund; everything listed has a real settlement path.',
+          '/invites/<token> — accept a team invite: project members send invite links from the Studio Team panel; accepted collaborators hold a seat (seats are capped; expired invites stop holding one).',
+          '/api-tokens — mint a token for CI/scripts to read and publish your content programmatically; /tasks shows the real queue and state of every cloud task.',
+          '/ship daily delivery log · /notifications inbox · /analytics your works’ stats · /credits your quota ledger — all real data pages.',
+        ],
+      },
+      {
+        heading: '⑩ Wrong turn? Walk back',
+        body: [
+          '⌘Z (or Ctrl+Z) undoes the most recent Command — chat edits, canvas, storyboard, state patches, breakpoints all run through the same undo stack; redo is ⌘⇧Z / Ctrl+Y.',
+          'Destructive actions (delete project / unpublish / delete shot / clear selection) all carry a confirmation step; deleted projects go to the recoverable trash; public works can be recalled to private anytime.',
+          'Publish’s last step is a confirmation card — nothing enters the feed without your explicit yes; dangerous AI actions (delete / publish / spend quota) are likewise human-gated and refuse to run until approved.',
+        ],
+      },
+    ],
+  },
+};
+
+export type GuideSection = { heading: string; body: string[] };
+export type GuideCopy = Record<Locale, { kicker: string; title: string; lede: string; sections: GuideSection[] }>;
+export const GUIDE_COPY: GuideCopy = COPY;

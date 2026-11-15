@@ -16,13 +16,16 @@ import { describe, expect, it } from 'vitest';
  */
 const ROOT = process.cwd();
 const REAL = join(ROOT, 'apps/web/src/app/guide/page.tsx');
+const LIB = join(ROOT, 'apps/web/src/lib/guideCopy.ts');
 const GLOBALS = join(ROOT, 'apps/web/src/app/globals.css');
 const TOKENS = join(ROOT, 'apps/web/src/styles/tokens.css');
 
 const page = readFileSync(REAL, 'utf8');
+const dictSrc = readFileSync(LIB, 'utf8');
 const globals = readFileSync(GLOBALS, 'utf8');
 const tokens = readFileSync(TOKENS, 'utf8');
 const code = page.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+const codeLib = dictSrc.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 function findOutsideComments(css: string, re: RegExp): number {
   const comments = [...css.matchAll(/\/\*[\s\S]*?\*\//g)].map((m) => [m.index!, m.index! + m[0].length] as const);
@@ -53,21 +56,25 @@ describe('§FE-Guide /guide 使用指南', () => {
     expect(code).toContain('export const dynamic');
     expect(code).toContain('export const metadata');
     expect(code).toContain("import { getLocale");
-    expect(code).toContain('const COPY');
+    // 说明书正文已抽离为共享字典（v788：/guide 页与 Studio 内置 Help Drawer 共用同一个真值）
+    expect(code).toContain('GUIDE_COPY');
+    expect(code).not.toContain('const COPY');
+    expect(codeLib).toContain('const COPY');
   });
 
   it('双语字典齐（zh + en keys）', () => {
-    const zh = code.indexOf('zh: {');
-    const en = code.indexOf('en: {');
+    const zh = codeLib.indexOf('zh: {');
+    const en = codeLib.indexOf('en: {');
     expect(zh).toBeGreaterThan(0);
     expect(en).toBeGreaterThan(0);
-    // 每 langue 必须有 10 个节标题（①-⑥ 原版 + ⑦ 分镜 / ⑧ 世界 / ⑨ 市场团队 / ⑩ 安全网）
+    // 每语必须有 10 个节标题（①-⑥ 原版 + ⑦ 分镜 / ⑧ 世界 / ⑨ 市场团队 / ⑩ 安全网）
     for (const heading of ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩']) {
-      expect(code, `双语字典缺节 ${heading}`).toContain(heading);
+      expect(codeLib, `双语字典缺节 ${heading}`).toContain(heading);
     }
     for (const key of ['kicker', 'title', 'lede', 'sections']) {
-      expect(code).toContain(key);
+      expect(codeLib).toContain(key);
     }
+    expect(codeLib).toContain('Record<Locale');
   });
 
   it('字面 className 只认 .gd-* 与 .am-linkImplicit', () => {
@@ -106,9 +113,9 @@ describe('§FE-Guide /guide 使用指南', () => {
     }
   });
 
-  it('SHA256 钉死（本线字节，v776 /bible 入口双语重钉）', () => {
+  it('SHA256 钉死（瘦壳 · v788，正文已抽进 lib/guideCopy）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      'f4f88ed20bbae9e34c70e2a80af318299fbc9ed6811cc60276c9232fd28e8159',
+      '9a25999e23b7854786c408623e743d2796b8ae8de8d7a32565f46583bb70f92e',
     );
   });
 });
