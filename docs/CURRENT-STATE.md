@@ -4443,3 +4443,38 @@ D
 - showcase 快照同步于提交后（npm run sync:showcase）。
 
 
+## cont. 122 (2026-11-15) - 第四次并轨（v784 「回响·巡逻路札记」）+ be463b09 main-line 首次全绿后的 tail
+
+- 第四次并轨（a6ca601a，master≡main≡origin 至 cd17874b）：另一线 v784（c129b0ef + 两个 showcase 含入）并入主线：
+  世界大典番外正典「回响集」（E01「巡逻路札记」，docs/world-bible/echoes/E01-*.md 双语稿）+ world-bible 锚句校验扩 29 zh/29 en 全通过
+  （npm run verify:world-bible）。auto-merge 只自动合着 docs/CURRENT-STATE.md + globals.css，latest.json 按并行账本口径手工对齐。
+  验证：fe-gates 117/117 · 1158/1158；census 2333；no-raw-tailwind 干净；tsc 0；record-encoding 复绿。
+- be463b09 main-line CI success（GBK 损坏的 load-web-ssr*.mts 两文件物理修复后第一个绿）。
+  之前的 a087d4e/561cf9a/a600e03/d0a4cb8 等多个加固 ref 已经是 main-line success；harbor ados 主线绿的节奏如下：
+  948b457 ✓ → b75d326 ✓ → 24a1429 ✓ → d0a4cb8 ✓ → a600e03 ✓ → 561cf9a ✓ → a087d4e ✓ → 3281d39 ✓ → be463b09 ✓；
+  红的主线记录为：a0d087f（GBK loading probes 被拒）与 bb43837 同因。
+- CI proofs step 剩下两个红行：verify:arms（3 arm 失配，arm-mismatch 名单以前被 row runner 的 gutter 吞掉，现已在
+  a6b7cab9 打印为 LAST stdout line，hosted proofs 会直接显示名单）+ verify:arms-freshness（arms 从未在合并树上绿过，
+  receipt 没写，诚实未 earned）。本主机本地跑 ci-wiring-arms.mjs 两次都在 ~5min 处被 OOM 杀，xhost 无法承载 64-arm 电池；
+  待 hosted runner 的 proofs step 给出 arm-mismatch 名称后根治。
+
+## cont. 123 (2026-11-15) - 第五次并轨（v785-v786 典籍室玩法波）+ CI Lint tail
+
+- 第五次并轨（46122765，master≡main≡origin）：另一线 v785（d68bc9d5 「潮汐挑战」BibleQuiz，12 题正典锚点夺徽判词，
+  零 provider 调用、零账本、全量双语）+ v786（afbaf483 「直达」BibleSearch，正典语料本地全文直读）；旗面 bible-quiz-* /
+  bb-search* 门面族（零裸 hex、可 gate）+ 两个新的 visual-style 套件；feature 变更与 GAME-MODEL 无关。
+- 由此：fe-gates **119/119 · 1174/1174**；census 2372；no-raw-tailwind 干净；tsc 0；eslint 0。
+- be463b09 之后的 CI Lint 红：scripts/ingest-world-bible.mts 的未用 import `knowledgeChunks`、
+  scripts/load-web-ssr-sweep.mts 的未用 `reject` — v779-v784 / v786 带进的两个未用符号，一个 lint 它们红了，
+  在本批次 c2dd36e9 修复（未用符号删除）。并轨纪律对队列另一线产生的 lint 红负责（这是并轨的一部分，不是对方的 bug）。
+- record-encoding（tools hosted proofs）仍稳：0 chargeable lines over 3147 graded files；v784 双语双文稿的零样例引入。
+- CI 队列上 cd17874 / 39c831e / a6b7cab / c2dd36e9 的 verdict 由 hosted runner 收着，证明 job 的 pending 状态在
+  本记录写下时尚未到达 proofs step；`arm-mismatch:` 名单将在 proofs step 的 gutter 里出现。
+
+## cont. 124 (2026-11-15) - 第六次并轨（v787 典籍室「七口井」第二玩法）
+
+- 第六次并轨（f399f2ba，master≡main≡origin）：另一线 v787（989ce0eb §v787-bible-well 「七口井 · Seven Wells」 —
+  典籍室里第二个玩法，客户端状态机 + zh/en 对辞 + 对正典章脚注直接锚定，零写库、零 provider 调用）。
+  gate: fe-gates **120/120 套件 · 1181/1181 用例**；census 2399；no-raw-tailwind 干净；tsc web 0。
+- /bible 玩法在主线上已成体系：/bible（index）→ /bible/[slug]（四章 + 回响）→ /bible/quiz（v785 潮汐挑战，
+  12 题+判词）→ /bible/well（v787 七口井）— 全部 zh/en 对辞（非翻译，= 两版正典的逐字锚句长相）。
