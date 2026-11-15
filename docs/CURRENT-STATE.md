@@ -3906,6 +3906,37 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - Gates：`verify:world-bible` 4 章 ✓；`verify:bible-snapshot` ✓；game-model 363/363；tsc 0；fe-gates 117/117 · 1157/1157；eslint 净。
 - showcase 快照同步于提交后（npm run sync:showcase）。
 
+## cont. 151 (2026-11-17) - v782: /api-tokens 凭据页集群双语化
+
+- 触发：用户点名"所有项目都要支持全内容中英文切换……原生英文的内容也得全部翻译为中文"。
+- 完成了两个页面的全量双语化：
+  - `api-tokens/page.tsx`：server RSC getLocale，h1、lede、返回链接；ApiTokensPanel locale 透传。
+  - `components/ApiTokensPanel.tsx`（client，locale prop 默认 zh）：SCOPE_LABELS 六标签、签发/到期/吊销
+    各状态文案（revoked/expired/expiry/active）、"试一下"流程（list/design/patch 的 detail 文案）、
+    错误与成功提示、表头（名称/前缀/签发/最近使用/最近读过/状态）、空态/列表失败/重试、
+    所有 inline 标题（daysTitle …）、footer v1 口径句（LIMITS 插值）。
+    逻辑与钩子一个字未动（zh 原字字面零变化）。
+- §FE-20 SHA 重钉（6ae5d7c5→2678aae7…，门内 redact 复算）。
+- Gates：fe-gates 117/117 · 1158/1158；census 2199 OK；tsc web 0；eslint 净。
+- SSR 实测（next dev :3401，已关）：/api-tokens zh/en cookie 各 200。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 152 (2026-11-17) - v783: /analytics 数据账本双语化
+
+- 触发：同上（最大的一块 zh-only 公开页）。
+- 完成： `app/analytics/page.tsx` 双语（getLocale + 12 项 DEFINITIONS 双语化，EN 为全量意译非直译）；
+  Cell/CompletionCell locale 参数；duration() 单位（秒/分 ↔ s/min s）；数据表 aria；
+  表头/四类"只有你自己…／未计入／截断"旗标、主次口径旁注、footer 两段长口径句（§46 分析 agent 产物仍是 zh 原文透传并明确登记）。
+- `app/analytics/TrendChart.tsx`（RSC，locale prop 默认 zh）：三轴标题、单位（次/人/秒 ↔ opens/visitors/s）、
+  空 note、aria-label（axisMaxPrefix + 标题）全部双语；SVG 行为/`stroke=-2 2`/`transparent`/`{dasharray}` 无改动。
+- Gates：§FE-14 段 A 重钉（0b1f28…→b6013374…，段 B creatorAnalytics fetch
+  链 dd0dd3ea31…逐字节不变✓）+ STRIP_CLASS 重钉（9545e9d2…，门内 stripClassNames 复算）；
+  §FE-15 STRIP_CLASS 重钉（e4ee0bb8→99dabf53…，trend gate 剥类复算）；
+  两门的 CJK 枚举计数断言更新为 24（12 zh + 12 en "label: '" 出现次数）。
+- fe-gates 117/117 · 1158/1158；census 2199 OK；tsc web 0；eslint 净；
+  SSR 实测 /analytics zh/en cookie 各 200（title 带双语惯例 cc）。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
 ## cont. 150 (2026-11-17) - v781: 典籍室「收藏成册」打印力
 
 - 给 `/bible` 正典加 `@media print` 收口：纸面黑字（ink 用命名 black，无 hex）、hide 导航
