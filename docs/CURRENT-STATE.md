@@ -4680,3 +4680,13 @@ D
 - 全量 test:main：8008 passed；失败 9 项与干净 HEAD 同集合（db-performance-surface、discover-cross-instance、
   java-metrics/tracing-surface、jsx-text、session-json-cache、visit-completion-honesty×2），零回归。
 - tsc 0（web + model）；eslint 0。
+
+## cont. 137/138 (2026-11-15) - 3D 画布双语 + 回响 E02「灯芯札记」
+
+- cont. 137：`GameCanvas3D` 的 probing / WebGL 不可用三全文案走 COPY dict（zh/en），由 GamePlay 透传 locale（缺省 zh）；
+  SHA pins 重钉（game-canvas-3d 0fcaad47 → 8310e25c / game-play ec00641e → a7d44d58）；两门判据 17/17 绿。
+- cont. 138：`docs/world-bible/echoes/E02-灯芯札记.md` + `.en.md`——第三、四章正典的侧写纹理（雾港第四盏灯、
+  印章四手接力 / 送信人的盐海账）；四则锚句中英逐字对齐；末尾模型映射标注与其余正典同一纪律；
+  `gen-bible-snapshot.mts` 登记 E02 → echo-002-lamp-wick-notes；`verify:bible-snapshot` 字节一致通过；
+  live 探针（:3100，用完即停）/bible 与 /bible/echo-002-lamp-wick-notes 双局 200、锚句皆命中；
+  bible 判据五件 40/40 绿；指南同步「三章」→「四章 + 两回响」，guide-visual-style SHA pin 重钉（7b4a306e → 2cd97881），7/7 绿。
