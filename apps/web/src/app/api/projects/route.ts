@@ -14,7 +14,7 @@ const CreateProjectSchema = z.object({
 export async function GET(): Promise<NextResponse> {
   try {
     const user = await requireUser();
-    return privateJson({ projects: await listProjects(user.id) });
+    return await privateJson({ projects: await listProjects(user.id) });
   } catch (error) {
     return await failure(error, 'GET /api/projects');
   }

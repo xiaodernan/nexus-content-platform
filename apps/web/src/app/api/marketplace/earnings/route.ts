@@ -20,7 +20,7 @@ export async function GET() {
 
   try {
     const summary = await getCreatorEarnings({ creatorId: user.id });
-    return privateJson(summary);
+    return await privateJson(summary);
   } catch (error) {
     return await failure(error, 'GET /api/marketplace/earnings');
   }

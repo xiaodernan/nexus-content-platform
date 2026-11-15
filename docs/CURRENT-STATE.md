@@ -4631,3 +4631,11 @@ D
   jsx-text、session-json-cache、visit-completion-honesty×2、savings-ledger 偶发）——本波零回归；
   tsc 0；eslint 0（http.ts/api-messages.ts/submit.ts/两个 auth 路由）。
 - 强约束：缺省 = zh，与本波前字节一致——不命中表的串一律透传（不猜不编）。
+
+## cont. 133 (2026-11-15) - API 出口文案双语（v4 波：reason/note/error 扁平字段 + privateJson/apiJson）
+
+- 与 cont. 132 衔接：jsonError message 已在出口翻译；本波覆盖 reason/note/error/issues 字段
+  （translateApiOutletData），并把 privateJson/apiJson 改成 async 出口——v1 凭据端点、会话/通知小响应同表。
+- 表扩充：EXACT +6；PATTERNS +4（上传/导入体积 MB 字节、admin metrics 403 模板、登录前 没有登录 经私有 JSON）。
+- 调用点 16 处（v1 端点 + 会话/通知）awaited；api-response.test.ts 26 绿；
+  全量 test:main 8000 passed；失败 9 项与干净 HEAD 同集合，零回归；tsc 0；eslint 0。

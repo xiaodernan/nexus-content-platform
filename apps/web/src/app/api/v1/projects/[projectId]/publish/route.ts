@@ -75,7 +75,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ projectId: str
       endpoint: 'POST /api/v1/projects/[projectId]/publish',
       projectId,
     });
-    return apiJson(checked.data, req, { status: 200, headers: { 'cache-control': 'no-store' } });
+    return await apiJson(checked.data, req, { status: 200, headers: { 'cache-control': 'no-store' } });
   } catch (error) {
     return await failure(error, 'POST /api/v1/projects/[projectId]/publish');
   }

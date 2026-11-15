@@ -16,11 +16,11 @@ import { privateJson } from '@/server/http';
  */
 export async function GET(req: Request): Promise<NextResponse> {
   const user = await currentUserOrNull();
-  if (!user) return privateJson({ ok: false, reason: '没有登录' }, { status: 401 });
+  if (!user) return await privateJson({ ok: false, reason: '没有登录' }, { status: 401 });
   const url = new URL(req.url);
   const limit = Number.parseInt(url.searchParams.get('limit') ?? '6', 10);
   const page = await inbox(user.id, Number.isFinite(limit) ? limit : 6);
-  return privateJson({
+  return await privateJson({
     ok: true,
     unread: page.unread,
     total: page.total,

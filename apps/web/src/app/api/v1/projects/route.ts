@@ -25,7 +25,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     const checked = ApiProjectListSchema.safeParse({ projects: list });
     if (!checked.success) return await failure(new Error('项目清单不符合契约'), 'GET /api/v1/projects');
     await recordApiAccess({ tokenId: authed.token.id, endpoint: 'GET /api/v1/projects' });
-    return apiJson(checked.data, req, {
+    return await apiJson(checked.data, req, {
       // 回一句 hint（不是凭据）：调用方拿 401 来问"是哪一枚配错了"时，界面与日志对得上同一把
       headers: { 'cache-control': 'no-store', 'x-nexus-token-hint': authed.token.hint },
     });
@@ -70,7 +70,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     const checked = ApiProjectDetailSchema.safeParse(detail);
     if (!checked.success) return await failure(new Error('项目详情不符合契约'), 'POST /api/v1/projects');
     await recordApiAccess({ tokenId: authed.token.id, endpoint: 'POST /api/v1/projects', projectId: document.id });
-    return apiJson(checked.data, req, { status: 201, headers: { 'cache-control': 'no-store' } });
+    return await apiJson(checked.data, req, { status: 201, headers: { 'cache-control': 'no-store' } });
   } catch (error) {
     return await failure(error, 'POST /api/v1/projects');
   }

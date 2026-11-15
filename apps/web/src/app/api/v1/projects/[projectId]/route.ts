@@ -31,7 +31,7 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
     const checked = ApiProjectDetailSchema.safeParse(detail);
     if (!checked.success) return await failure(new Error('项目详情不符合契约'), 'GET /api/v1/projects/[projectId]');
     await recordApiAccess({ tokenId: authed.token.id, endpoint: 'GET /api/v1/projects/[projectId]', projectId });
-    return apiJson(checked.data, req, { headers: { 'cache-control': 'no-store' } });
+    return await apiJson(checked.data, req, { headers: { 'cache-control': 'no-store' } });
   } catch (error) {
     return await failure(error, 'GET /api/v1/projects/[projectId]');
   }
@@ -72,7 +72,7 @@ export async function DELETE(req: Request, ctx: RouteContext): Promise<NextRespo
       });
     }
     await recordApiAccess({ tokenId: authed.token.id, endpoint: 'DELETE /api/v1/projects/[projectId]', projectId });
-    return apiJson(
+    return await apiJson(
       {
         deleted: true,
         id: projectId,

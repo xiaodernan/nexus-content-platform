@@ -1,6 +1,6 @@
 import { gzipSync } from 'node:zlib';
 import { NextResponse } from 'next/server';
-import { apiLocale, translateApiIssues, translateApiMessage } from './api-messages';
+import { apiLocale, translateApiIssues, translateApiOutletData } from './api-messages';
 
 /** API 层的统一出口：错误响应不带堆栈，避免泄露内部结构（§26 / SECURITY.md） */
 
@@ -21,18 +21,14 @@ export async function readJson(req: Request): Promise<unknown> {
  */
 export async function jsonError(status: number, error: string, extra?: Record<string, unknown>): Promise<NextResponse> {
   const locale = await apiLocale();
-  let localizedExtra: Record<string, unknown> | undefined = extra;
-  if (extra && typeof extra.message === 'string') {
-    localizedExtra = { ...extra, message: translateApiMessage(extra.message, locale) };
-  } else if (extra && Array.isArray(extra.issues)) {
-    localizedExtra = { ...extra, issues: translateApiIssues(extra.issues as readonly unknown[], locale) };
-  }
-  return NextResponse.json({ error, ...localizedExtra }, { status });
+  // machine code（`error`）不带散文，原样；extra 里的 message/reason/note/error/issues 扁平字段逐个翻译
+  const outletExtra = translateApiOutletData(extra ?? {}, locale) as Record<string, unknown>;
+  return NextResponse.json({ error, ...outletExtra }, { status });
 }
 
 export async function badRequest(issues: string[]): Promise<NextResponse> {
   const locale = await apiLocale();
-  return jsonError(400, 'validation_failed', { issues: locale === 'zh' ? issues : translateApiIssues(issues, locale) });
+  return jsonError(400, 'validation_failed', { issues: locale === 'zh' ? issues : translateApiIssues(issues, locale) as string[] });
 }
 
 export async function notFound(): Promise<NextResponse> {
@@ -130,12 +126,15 @@ export function sessionResponseHeaders(given?: HeadersInit): { vary: string; 'ca
 }
 
 /** `NextResponse.json` 的会话感知版本：见 `sessionResponseHeaders`。 */
-export function privateJson(data: unknown, init: ResponseInit = {}): NextResponse {
+export async function privateJson(data: unknown, init: ResponseInit = {}): Promise<NextResponse> {
+  // §API-i18n（2026-11-15）：出口一次翻译 message/reason/note/error 扁平字段（未命中透传）
+  const locale = await apiLocale();
+  const data2 = translateApiOutletData(data, locale);
   const headers = new Headers(init.headers);
   const merged = sessionResponseHeaders(headers);
   headers.set('vary', merged.vary);
   headers.set('cache-control', merged['cache-control']);
-  return NextResponse.json(data, { ...init, headers });
+  return NextResponse.json(data2, { ...init, headers });
 }
 
 /**
@@ -150,10 +149,13 @@ export function privateJson(data: unknown, init: ResponseInit = {}): NextRespons
  * `content-length` 两条路都自己写：值与体同源算出（gzip 那一路写的是**压过的**字节数），
  * 而不是指望框架补——这一格要是把原体的长度挂到压过的体上，客户端读到的是截断的 JSON。
  */
-export function apiJson(data: unknown, req: Request, init: ResponseInit = {}): NextResponse {
+export async function apiJson(data: unknown, req: Request, init: ResponseInit = {}): Promise<NextResponse> {
+  // §API-i18n（2026-11-15）：出口一次翻译 message/reason/note/error 扁平字段（未命中透传）
+  const locale = await apiLocale();
+  const data2 = translateApiOutletData(data, locale);
   const headers = new Headers(init.headers);
   if (!headers.has('cache-control')) headers.set('cache-control', 'no-store');
-  const plain = JSON.stringify(data);
+  const plain = JSON.stringify(data2);
   headers.set('content-type', 'application/json');
   if (!acceptsGzip(req) || Buffer.byteLength(plain, 'utf8') < API_GZIP_THRESHOLD_BYTES) {
     headers.set('content-length', String(Buffer.byteLength(plain, 'utf8')));

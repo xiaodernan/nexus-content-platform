@@ -214,6 +214,15 @@ export const API_MESSAGE_EXACT: Readonly<Record<string, string>> = {
   '需要登录后才能下载此物品': 'Sign in to download this item',
   '页面': 'Page',
   '项目不存在': 'Project not found',
+  '上传必须使用 multipart/form-data 的 file 字段':
+    'Upload must use multipart/form-data with a `file` field',
+  '导入必须使用 multipart/form-data 的 file 字段':
+    'Import must use multipart/form-data with a `file` field',
+  '表单里没有找到 file 字段': 'No `file` field found in the form',
+  '互动被挡住': 'This interaction is blocked',
+  '没有登录': 'Not signed in',
+  'process 那一段是本实例内存里的计数器，重启清零、多实例不合并；ledger 那一段才是跨重启的库账':
+    'The process segment is this instance’s in-memory counters, reset on restart and not shared across instances; the ledger segment is the cross-restart library total',
   '项目读不到了：发布前它刚被删掉的巧合也存在':
     'The project can no longer be read: even the coincidence that it was deleted right before the publish preflight exists',
 };
@@ -230,6 +239,10 @@ const API_MESSAGE_PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
   ],
   [/^项目 .+ 不存在$/, 'Project not found.'],
   [/^项目 .+ 不存在，或不属于你$/, 'Project not found, or not yours.'],
+  [/^上传体积 .+MB 超过上限 .+MB$/, 'Uploaded size exceeds the upload limit.'],
+  [/^整包 .+MB 超过导入上限 .+MB$/, 'Archive size exceeds the import limit.'],
+  [/^整包 .+ 字节超过导入上限 .+ 字节$/, 'Archive size exceeds the import limit.'],
+  [/^这个端点对 role=.+ 不开放，只对 role=admin 可见$/, 'This endpoint is not open to your role; admin only (role=admin).'],
 ];
 
 export type ApiMessageLocale = Locale;
@@ -260,4 +273,28 @@ export function translateApiMessage(message: string, locale: ApiMessageLocale): 
 export function translateApiIssues(issues: readonly unknown[], locale: ApiMessageLocale): unknown[] {
   if (locale === 'zh') return [...issues];
   return issues.map((item) => (typeof item === 'string' ? translateApiMessage(item, locale) : item));
+}
+
+/**
+ * 响应体 message/reason/note/error 扁平字段集中翻译（2026-11-15）：
+ * 让私有 JSON（`privateJson`）与公私边界的 `apiJson` 也走同一张表——
+ * 不必在每个路由手工做映射，未命中的串原样透传。
+ */
+export function translateApiOutletData(data: unknown, locale: ApiMessageLocale): unknown {
+  if (locale === 'zh') return data;
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return data;
+  const source = data as Record<string, unknown>;
+  const out: Record<string, unknown> = { ...source };
+  for (const key of ['message', 'reason', 'note', 'error'] as const) {
+    const value = source[key];
+    if (typeof value === 'string') {
+      out[key] = translateApiMessage(value, locale);
+    } else if (Array.isArray(value)) {
+      out[key] = translateApiIssues(value as readonly unknown[], locale);
+    }
+  }
+  if (typeof source.issues !== 'undefined') {
+    out.issues = translateApiIssues(Array.isArray(source.issues) ? (source.issues as readonly unknown[]) : [source.issues], locale);
+  }
+  return out;
 }

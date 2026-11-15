@@ -41,7 +41,7 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
       endpoint: 'GET /api/v1/projects/[projectId]/design',
       projectId,
     });
-    return apiJson(checked.data, req, { headers: { 'cache-control': 'no-store' } });
+    return await apiJson(checked.data, req, { headers: { 'cache-control': 'no-store' } });
   } catch (error) {
     return await failure(error, 'GET /api/v1/projects/[projectId]/design');
   }
@@ -88,7 +88,7 @@ export async function PATCH(req: Request, ctx: RouteContext): Promise<NextRespon
       endpoint: 'PATCH /api/v1/projects/[projectId]/design',
       projectId,
     });
-    return apiJson(checked.data, req, { headers: { 'cache-control': 'no-store' } });
+    return await apiJson(checked.data, req, { headers: { 'cache-control': 'no-store' } });
   } catch (error) {
     return await failure(error, `PATCH /api/v1/projects/${projectId}/design`);
   }

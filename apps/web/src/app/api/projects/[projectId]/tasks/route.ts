@@ -35,7 +35,7 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
       // 服务端自己的报文对不上契约：这是 bug，不是用户的错——照实 500，不发一份"差不多"的出去
       return await failure(new Error('任务账本报文不合 TasksLedgerSchema'), 'GET /api/projects/<id>/tasks');
     }
-    return apiJson(parsed.data, req);
+    return await apiJson(parsed.data, req);
   } catch (error) {
     return await failure(error, 'GET /api/projects/<id>/tasks');
   }
