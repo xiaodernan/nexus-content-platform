@@ -4868,3 +4868,23 @@
   .bb-card:hover { border-color: Highlight; transform: none; }
   .bb-cardLink:focus-visible, .bb-footLink:focus-visible, .bb-prevNextLink:focus-visible, .bb-tableRegion:focus-visible { outline-color: Highlight; }
 }
+
+/* 打印《世界大典》——收藏成册的正典；只留墨、只留字，导航与装饰不进纸面 */
+@page { margin: 0.85cm 1.1cm; }
+@media print {
+  .bb-breadcrumb, .bb-foot, .bb-footLinks, .bb-prevNext, .bb-cardLink { display: none; }
+  .bb-root { min-height: auto; padding: 0; background: none; color: black; }
+  .bb-title, .bb-cardTitle, .bb-cardNum, .bb-h2, .bb-h3, .bb-p, .bb-quoteLine, .bb-listItem,
+  .bb-anchorZh, .bb-anchorEn, .bb-anchorNote, .bb-anchorTitle, .bb-kicker, .bb-era, .bb-cardChapter,
+  .bb-cardEra, .bb-cardAnchors, .bb-footNote, .bb-strong, .bb-code {
+    color: black; -webkit-text-fill-color: black; background: none;
+  }
+  .bb-card { border: 0.5pt solid black; background: none; box-shadow: none; transform: none; break-inside: avoid; page-break-inside: avoid; }
+  .bb-article { gap: 0.35rem; }
+  .bb-h2 { break-after: avoid; page-break-after: avoid; font-size: 1.35rem; }
+  .bb-h3, .bb-quoteLine, .bb-anchorRow { break-inside: avoid; page-break-inside: avoid; }
+  .bb-tableRegion { border: 0.5pt solid black; overflow: visible; }
+  .bb-table { page-break-inside: auto; }
+  .bb-hr { border-top: 0.5pt solid black; }
+  .bb-article, .bb-anchorShelf { font-family: Georgia, "Noto Serif CJK SC", "Source Han Serif SC", "Songti SC", serif; }
+}

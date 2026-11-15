@@ -3904,8 +3904,18 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   （GAME_KINDS/TERMS/GameKind），index 与 codegen 改从它引入，外部签名不变；
   **game-model 19 文件 363/363 全绿**。
 - Gates：`verify:world-bible` 4 章 ✓；`verify:bible-snapshot` ✓；game-model 363/363；tsc 0；fe-gates 117/117 · 1157/1157；eslint 净。
-- 诚实边界：`vectorAvailable=false`（语料可用 tsvector+子串融合命中，没 fake 语义召回）；
-  大典还没有被用户世界自动消费（那是 canon-sync 另一片）；不是 perf 测量。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 150 (2026-11-17) - v781: 典籍室「收藏成册」打印力
+
+- 给 `/bible` 正典加 `@media print` 收口：纸面黑字（ink 用命名 black，无 hex）、hide 导航
+  （.bb-breadcrumb/.bb-foot/.bb-footLinks/.bb-prevNext/.bb-cardLink → display:none）、
+  Georgia/宋体衬线正文（中文走 Noto Serif CJK SC / Source Han Serif SC / Songti SC，回退 Georgia）、
+  断页保护（.bb-h2/.bb-h3/.bb-anchorRow/.bb-card break-inside/page-break-inside avoid、
+  h2 break-after avoid）、@page margin 0.85/1.1cm。
+- 断言进 §FE-BIBLE gate（打印段存在 + 断页保护字 + 中英字体栈 + 零 hex + @page），
+  fe-gates **117/117 · 1158/1158**。
+- 用户想打印正典收藏成册——现在真的能打印了。web 端零新增类（只用既有 bb-*）。
 - showcase 快照同步于提交后（npm run sync:showcase）。
 
 
