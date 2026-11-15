@@ -4029,3 +4029,34 @@ WirePublisher path and the health indicator both see a real Redis — same as co
   两处 aria-label 字面量钉 → 变量断言（断言跟读法、行为不变）；fe-gates 116/116 · 1148/1148；tsc 0；eslint 净。
 - /admin 已完成：总入口、AdminNav、dead-letters、audit（4/24 页）。剩余 20 页见 v763+ 专项。
 - showcase 快照同步于提交后（npm run sync:showcase）。
+
+
+## cont. 120 (2026-11-15) - 第二次并轨 + 证据门禁全清 + main-line 首次全绿
+
+- 第二次并会：另一条线的 v733..v762 线（41 提交，HEAD f455a1995af46b62cd5ac08956bc7843c516d1e4）
+  整体并入 master（2e494f9d + 后续清洁提交），master ≡ main ≡ origin。内容：Studio 面板双语、admin/audit/dead-letters
+  双语、guide 四章、§v760 Redis 完成缓存负载探针（Linux/Windows arm64/amd64 × 4 档 × 6000 ops 零错误）、§v754 ADR-0268
+  dead-letters 双读路径、§ECON-1 @nexus/economy 提取（credits/marketplace/settlement/refund/walletView/ledger 全域）、
+  `apps/studio/src/lib/*.ts` 收缩为重导出垫片。ADR 0148 记录决定。
+
+- main-line CI 在 948b457 首次主线全绿（gates + topology 双绿）：八模块 maven test、FE gates 116/116 · 1148/1148、
+  census 2280/2280、no-raw-tailwind 干净、evals 全绿、topology PASS。Redis 被声明进 gates 与 ci.yml proofs 两个跑 Java 测试的工作流，
+  原因：网关 /actuator/health 的 Spring Data Redis 探针无 56379 即 DOWN → 3 个 gateway 测试红（本机一直绿，因为本机有 nexus-redis）。
+  ci.yml 的 "Warm the Maven repository" 给了 Postgres：java-domain-service 的 AiHealthBreakerOpenTest 要起整个 Spring 上下文，没有库即 "Unable to determine Dialect"。
+
+- 世界子页面四件套（v733）：/almanac /atlas /memories /quiz 全站中英双语化（getLocale/Locale，逐字逐句两套文案，无中英混杂）、
+  QuizArcade 以 locale 透传，verdictFor 增英判词。4 张截图目测通过（深夜图志、回廊、藏经阁、灯廊结算页）。className 原子 →
+  全量门面类 `.alm-*`/`.atl-*`/`.mem-*`/`.qaz-*`/`.world-nav*`，FE 门面纪律不动摇：零裸 Tailwind 原子、globals.css 零新增 hex
+  （全部 token 或 color-mix，字体档位 10/15/17/20/34 全部回退到真实 tokens）。整个 FE 116/116 绿后才提交。本地 tsc/eslint/vitest 全绿。
+  record-encoding 复查通过（3119 files, 0 chargeable）。新增 2 条故意 island pin（台账中英含一词中文行 + 负载报告中英混行）。
+
+- 证据门禁红清单逐条根治（全部本地复测绿）：
+  verify:credits（shim → economy 源），verify:mutation（同），verify:m9-arms（plane 节点补 junction：node_modules/@nexus），
+  verify:table-recount（陈述引用悬空，改引 0057 自己的 v658），verify:table-recount GREEN，verify:package-counts 扩到八个包
+  （@nexus/economy 的 278/278 加回表 → 4882/4882 全绿、文件 261），verify:evidence-census（record-encoding 台账给了可读时长并重钉到今天的字节）。
+- verify:arms 仍未写出 receipt：本会话四次本地跑均于 ~5 分钟处进程消失，xhost 机=本主机；宿主 CI 760.9s 走完，但 runner 只保留最末一行（此前压根不打印 mismatched 名字）。
+  本提交给 arms 加了一行可读性修正（结尾输出 arm-mismatch 名单，不改任何断言/receipt/预算逻辑），下一次 hosted CI 会给出名字。
+  在 receipt 写出（64/64 arms matched）之前不声称 earned。
+
+- 第一次世界子页面的四个页面（/guide、/discover、/about-nexus、首页）全部补过 EN 版目检核（playwright EN 环境截图已核对）。
+
