@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { csrfHeaders } from '@/lib/csrf';
 import type { PublicationState } from '@/server/domain/social';
+import type { Locale } from '@/lib/i18n';
 
 /**
  * §59 作品页上的互动：Like / Comment / Follow / Remix / Share。
@@ -14,7 +15,77 @@ import type { PublicationState } from '@/server/domain/social';
  * - Remix 明确说是"分叉一份改编"，不是改原作者的东西（§58）；
  * - Share 就是复制链接；Save 收下的是"这一版"，作者重新发布不会把收藏里的内容换掉。
  */
-export function PublicationActions({ state }: { state: PublicationState }) {
+/**
+ * 双语 COPY（2026-11-15：公开阅读面）：zh 原字节原样保留；
+ * en 逐句对应；服务端产出的 notice/reason 原文显示（同其他面板纪律）。
+ */
+const COPY: Record<Locale, {
+  failedDo: (reason: string) => string;
+  commentPosted: string;
+  commentNotPosted: string;
+  linkCopied: string;
+  clipboardUnavailable: string;
+  like: string;
+  liked: string;
+  interactionsMeta: (comments: number, remixes: number) => string;
+  follow: string;
+  following: string;
+  remix: string;
+  save: string;
+  saved: string;
+  authorPage: string;
+  copyLink: string;
+  commentPlaceholder: string;
+  send: string;
+  noComments: string;
+  hiddenComments: (n: number) => string;
+}> = {
+  zh: {
+    failedDo: (reason) => `没做成：${reason}`,
+    commentPosted: '评论已发布',
+    commentNotPosted: '这条评论没发出去',
+    linkCopied: '链接已复制',
+    clipboardUnavailable: '这个浏览器不让脚本复制链接，地址栏里手动复制即可',
+    like: '点赞',
+    liked: '已点赞',
+    interactionsMeta: (n, m) => `${n} 条评论 · ${m} 个改编`,
+    follow: '关注作者',
+    following: '已关注',
+    remix: 'Remix 成我的改编',
+    save: '收藏这一版',
+    saved: '已收藏',
+    authorPage: '作者主页',
+    copyLink: '复制链接',
+    commentPlaceholder: '写条评论（会过一遍发布机检）',
+    send: '发送',
+    noComments: '还没有评论。',
+    hiddenComments: (n) => `另有 ${n} 条来自你已屏蔽或拉黑的人，没有显示在这里（别人仍然看得到）。`,
+  },
+  en: {
+    failedDo: (reason) => `Didn’t work out: ${reason}`,
+    commentPosted: 'Comment posted',
+    commentNotPosted: 'Comment did not go out',
+    linkCopied: 'Link copied',
+    clipboardUnavailable: 'This browser blocks scripted clipboard access — copy the link from the address bar instead.',
+    like: 'Like',
+    liked: 'Liked',
+    interactionsMeta: (n, m) => `${n} comments · ${m} remixes`,
+    follow: 'Follow author',
+    following: 'Following',
+    remix: 'Remix into my own',
+    save: 'Save this version',
+    saved: 'Saved',
+    authorPage: 'Author page',
+    copyLink: 'Copy link',
+    commentPlaceholder: 'Write a comment (goes through moderation)',
+    send: 'Send',
+    noComments: 'No comments yet.',
+    hiddenComments: (n) => `${n} comment(s) from people you blocked or filtered are hidden here (others still see them).`,
+  },
+};
+
+export function PublicationActions({ state, locale = 'zh' }: { state: PublicationState; locale?: Locale }) {
+  const c = COPY[locale];
   const router = useRouter();
   const [liked, setLiked] = useState(state.likedByMe);
   const [likeCount, setLikeCount] = useState(state.likeCount);
@@ -38,7 +109,7 @@ export function PublicationActions({ state }: { state: PublicationState }) {
       if (!res.ok) {
         // message 来自服务端，理论上可以是任何 JSON；只有字符串才是能显示的原因
         const reason = typeof body?.message === 'string' ? body.message : `HTTP ${res.status}`;
-        setNotice(`没做成：${reason}`);
+        setNotice(c.failedDo(reason));
       }
       return body;
     } finally {
@@ -61,9 +132,9 @@ export function PublicationActions({ state }: { state: PublicationState }) {
       const comment = body.comment as { id: string; body: string; author: string; createdAt: string };
       setComments([comment, ...comments]);
       setText('');
-      setNotice(typeof body.notice === 'string' ? body.notice : '评论已发布');
+      setNotice(typeof body.notice === 'string' ? body.notice : c.commentPosted);
     } else {
-      setNotice(typeof body.reason === 'string' ? body.reason : '这条评论没发出去');
+      setNotice(typeof body.reason === 'string' ? body.reason : c.commentNotPosted);
     }
   };
 
@@ -94,7 +165,7 @@ export function PublicationActions({ state }: { state: PublicationState }) {
         setFollowing(body.following === true);
         setFollowers(Number(body.followers ?? followers));
       } else {
-        setNotice(`没做成：${body?.message ?? `HTTP ${res.status}`}`);
+        setNotice(c.failedDo(body?.message ?? `HTTP ${res.status}`));
       }
     } finally {
       setBusy(false);
@@ -104,9 +175,9 @@ export function PublicationActions({ state }: { state: PublicationState }) {
   const share = async (): Promise<void> => {
     try {
       await navigator.clipboard.writeText(window.location.href);
-      setNotice('链接已复制');
+      setNotice(c.linkCopied);
     } catch {
-      setNotice('这个浏览器不让脚本复制链接，地址栏里手动复制即可');
+      setNotice(c.clipboardUnavailable);
     }
   };
 
@@ -120,10 +191,10 @@ export function PublicationActions({ state }: { state: PublicationState }) {
           className="pu-btn"
           data-action-like={liked ? 'on' : 'off'}
         >
-          {liked ? '已点赞' : '点赞'} · {likeCount}
+          {liked ? c.liked : c.like} · {likeCount}
         </button>
         <span className="pu-hint" data-comment-count>
-          {comments.length} 条评论 · {state.remixCount} 个改编
+          {c.interactionsMeta(comments.length, state.remixCount)}
         </span>
         {!state.isOwner && state.ownerHandle ? (
           <button
@@ -133,11 +204,11 @@ export function PublicationActions({ state }: { state: PublicationState }) {
             className="pu-btn"
             data-action-follow={following ? 'on' : 'off'}
           >
-            {following ? '已关注' : '关注作者'} · {followers}
+            {following ? c.following : c.follow} · {followers}
           </button>
         ) : null}
         <button type="button" disabled={busy} onClick={() => void onRemix()} className="pu-btn" data-action-remix>
-          Remix 成我的改编
+          {c.remix}
         </button>
         <button
           type="button"
@@ -146,7 +217,7 @@ export function PublicationActions({ state }: { state: PublicationState }) {
           className="pu-btn"
           data-action-save={saved ? 'on' : 'off'}
         >
-          {saved ? '已收藏' : '收藏这一版'}
+          {saved ? c.saved : c.save}
         </button>
         {state.ownerHandle ? (
           <a
@@ -154,11 +225,11 @@ export function PublicationActions({ state }: { state: PublicationState }) {
             className="pu-authorLink"
             data-action-author
           >
-            作者主页
+            {c.authorPage}
           </a>
         ) : null}
         <button type="button" onClick={() => void share()} className="pu-shareBtn" data-action-share>
-          复制链接
+          {c.copyLink}
         </button>
       </div>
 
@@ -168,7 +239,7 @@ export function PublicationActions({ state }: { state: PublicationState }) {
           onChange={(e) => setText(e.target.value)}
           rows={2}
           maxLength={2000}
-          placeholder="写条评论（会过一遍发布机检）"
+          placeholder={c.commentPlaceholder}
           className="pu-input"
           data-comment-input
         />
@@ -179,7 +250,7 @@ export function PublicationActions({ state }: { state: PublicationState }) {
           className="pu-submitBtn"
           data-comment-submit
         >
-          发送
+          {c.send}
         </button>
       </div>
       {notice ? (
@@ -194,12 +265,12 @@ export function PublicationActions({ state }: { state: PublicationState }) {
             <span className="pu-commentAuthor">{c.author}</span> {c.body}
           </li>
         ))}
-        {comments.length === 0 ? <li className="pu-hint">还没有评论。</li> : null}
+        {comments.length === 0 ? <li className="pu-hint">{c.noComments}</li> : null}
       </ul>
       {/* §132：过滤要报数。评论从 5 条变成 3 条而没有解释，人会以为评论真的少了 */}
       {state.hiddenComments > 0 ? (
         <p className="pu-hint" data-hidden-comments={state.hiddenComments}>
-          另有 {state.hiddenComments} 条来自你已屏蔽或拉黑的人，没有显示在这里（别人仍然看得到）。
+          {c.hiddenComments(state.hiddenComments)}
         </p>
       ) : null}
     </div>

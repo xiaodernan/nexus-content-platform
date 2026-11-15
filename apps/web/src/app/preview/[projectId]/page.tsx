@@ -8,6 +8,7 @@ import { nodeStyle } from '@/studio/render';
 import { stateStyleSheetFor } from '@/studio/state-styles';
 import { ViewerControls } from '@/studio/ViewerControls';
 import { breakpointFromParam, viewerHref, zoomFromParam, type ViewerQuery } from '@/studio/viewer-params';
+import { getLocale, type Locale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,33 @@ export const dynamic = 'force-dynamic';
  */
 const SIMULATED_STATES: NodeState[] = ['loading', 'error', 'success'];
 
+/**
+ * Preview 页 chrome 文案（2026-11-15 双语：公开阅读面）。
+ * 设计稿本体（节点文字、字体、颜色）= 作者的内容，保持原样；这里只翻平台自己的那几句。
+ */
+const COPY: Record<Locale, {
+  backToStudio: string;
+  statePreview: string;
+  baseState: string;
+  noteWithState: (state: NodeState) => string;
+  noteWithoutState: string;
+}> = {
+  zh: {
+    backToStudio: '回到 Studio',
+    statePreview: '状态预览',
+    baseState: '基础态',
+    noteWithState: (state) => `只有定义了 ${state} 状态的节点会变；hover / active / focus 要直接在元素上操作。`,
+    noteWithoutState: 'hover / active / focus 直接在元素上操作；这里只演示靠 data-state 兑现的三种。',
+  },
+  en: {
+    backToStudio: 'Back to Studio',
+    statePreview: 'State preview',
+    baseState: 'Base state',
+    noteWithState: (state) => `Only nodes defining a ${state} state change here; hover / active / focus must be operated directly on the element.`,
+    noteWithoutState: 'Operate hover / active / focus on the element directly; this page only demonstrates the three states backed by data-state.',
+  },
+};
+
 interface Props {
   params: Promise<{ projectId: string }>;
   searchParams: Promise<ViewerQuery>;
@@ -27,6 +55,8 @@ interface Props {
 export default async function PreviewPage({ params, searchParams }: Props) {
   const { projectId } = await params;
   const query = await searchParams;
+  const locale = await getLocale();
+  const c = COPY[locale];
   const user = await requireUser();
   if (!(await projectVisibleTo(projectId, user.id))) notFound();
   const document = (await loadDocument(projectId)) as DesignDocument | null;
@@ -59,7 +89,7 @@ export default async function PreviewPage({ params, searchParams }: Props) {
     <main className="pv-page" data-preview-root data-page={page.name}>
       <header className="pv-bar">
         <a href={`/studio/${projectId}`} className="pv-back">
-          回到 Studio
+          {c.backToStudio}
         </a>
         <span className="pv-meta">
           {document.name} · {page.name} · {layout.width}×{layout.height}
@@ -71,7 +101,7 @@ export default async function PreviewPage({ params, searchParams }: Props) {
           className="pv-statebar"
           data-state-preview
         >
-          <span className="pv-stateNote">状态预览</span>
+          <span className="pv-stateNote">{c.statePreview}</span>
           {[null, ...SIMULATED_STATES].map((value) => (
             <a
               key={value ?? 'none'}
@@ -79,18 +109,16 @@ export default async function PreviewPage({ params, searchParams }: Props) {
               data-state-preview-option={value ?? 'none'}
               className={previewState === value ? 'pv-stateOptionActive' : 'pv-stateOption'}
             >
-              {value ?? '基础态'}
+              {value ?? c.baseState}
             </a>
           ))}
           <span className="pv-stateNote" data-state-preview-note>
-            {previewState
-              ? `只有定义了 ${previewState} 状态的节点会变；hover / active / focus 要直接在元素上操作。`
-              : 'hover / active / focus 直接在元素上操作；这里只演示靠 data-state 兑现的三种。'}
+            {previewState ? c.noteWithState(previewState) : c.noteWithoutState}
           </span>
         </div>
       ) : null}
       {/* §14 / ADR-0069：与公开页同一排控件——作者在这里看到的断点/缩放就是访客那一份 */}
-      <ViewerControls base={`/preview/${projectId}`} query={query} page={page} breakpoint={breakpoint} zoom={zoom} width={layout.width} height={layout.height} />
+      <ViewerControls base={`/preview/${projectId}`} query={query} page={page} breakpoint={breakpoint} zoom={zoom} width={layout.width} height={layout.height} locale={locale} />
       <div className="pv-canvas">
         {/* 缩放用 transform，版式盒不跟着缩：外面这层按缩后的尺寸占位，
             否则画面"缩小看全"了，页面仍要横向平移一整屏（第十三片量到的就是这个） */}

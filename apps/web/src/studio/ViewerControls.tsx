@@ -1,5 +1,6 @@
 import type { BreakpointName, Page as DesignPage } from '@nexus/creative-model';
-import { liveBreakpoints, viewerHref, VIEWPORT_OPTIONS, ZOOM_STEPS, type ViewerQuery } from './viewer-params';
+import type { Locale } from '@/lib/i18n';
+import { liveBreakpoints, viewerHref, ZOOM_STEPS, viewportOptions, type ViewerQuery } from './viewer-params';
 
 interface Props {
   /** 这一页自己的路径：公开页是 `/n/<handle>/<slug>`，预览页是 `/preview/<projectId>` */
@@ -16,7 +17,39 @@ interface Props {
   auto?: boolean;
   /** 这一页有没有断点规则：没有规则时"自动"与"设计"是同一份投影，那颗按钮不摆（§159） */
   autoAvailable?: boolean;
+  /** 双语（2026-11-15 wave：公开阅读面）——与页面同一 locale；缺省 zh */
+  locale?: Locale;
 }
+
+/**
+ * 双语 COPY（2026-11-15）：零 JS 服务端渲染的这一排是访客第一眼看到的控件，
+ * 两套字面都落在这里；组件只做选择，不做第二份对照。
+ * 断点枚举名（mobile/desktop…）与 zh/en 同形，原样显示。
+ */
+const COPY: Record<Locale, {
+  autoReading: (zoom: number) => string;
+  solvedReading: (width: number, height: number, breakpoint: BreakpointName | undefined, zoom: number) => string;
+  resetZoom: string;
+  auto: string;
+  design: string;
+}> = {
+  zh: {
+    autoReading: (zoom) => `按访客视口自动选档（四档各解一份）· 以 ${zoom} 倍呈现`,
+    solvedReading: (width, height, breakpoint, zoom) =>
+      `按 ${width}×${height} 求解${breakpoint ? `（${breakpoint} 断点）` : '（设计尺寸）'} · 以 ${zoom} 倍呈现`,
+    resetZoom: '原大',
+    auto: '自动',
+    design: '设计',
+  },
+  en: {
+    autoReading: (zoom) => `Picks per visitor viewport (four projections, media query chooses) · ×${zoom}`,
+    solvedReading: (width, height, breakpoint, zoom) =>
+      `Solved at ${width}×${height}${breakpoint ? ` (${breakpoint} breakpoint)` : ' (design size)'} · ×${zoom}`,
+    resetZoom: '100%',
+    auto: 'Auto',
+    design: 'Design',
+  },
+};
 
 /** 选中/未选中两种画法，两处（缩放、断点）共用一份。
  *  行内盒 + 24px 下限：这一排是给手机上的拇指点的，WCAG 2.5.8 的下限就是 24×24，
@@ -41,7 +74,10 @@ export function ViewerControls({
   height,
   auto = false,
   autoAvailable = false,
+  locale = 'zh',
 }: Props) {
+  const c = COPY[locale];
+  const options = viewportOptions(locale);
   // 只摆真的会改变投影的那几个断点：证明不了会变的这颗按钮不摆（§159），判定见 liveBreakpoints
   const live = liveBreakpoints(page);
   const liveSet = new Set<BreakpointName>(live);
@@ -57,9 +93,7 @@ export function ViewerControls({
       data-viewer-auto={auto ? 'on' : 'off'}
     >
       <span className="ap-faint" data-viewer-reading>
-        {auto
-          ? `按访客视口自动选档（四档各解一份）· 以 ${zoom} 倍呈现`
-          : `按 ${width}×${height} 求解${breakpoint ? `（${breakpoint} 断点）` : '（设计尺寸）'} · 以 ${zoom} 倍呈现`}
+        {auto ? c.autoReading(zoom) : c.solvedReading(width, height, breakpoint, zoom)}
       </span>
       <span className="wd-row1" data-viewer-zoom-options>
         {ZOOM_STEPS.map((step) => (
@@ -69,14 +103,14 @@ export function ViewerControls({
             data-viewer-zoom-option={step}
             className={zoom === step ? active : idle}
           >
-            {step === 1 ? '原大' : `${step}×`}
+            {step === 1 ? c.resetZoom : `${step}×`}
           </a>
         ))}
       </span>
       {(() => {
         // 空按钮不摆：那一档重解出来与"按设计尺寸"逐字节相同（依据是 layout.test.ts 里那条同解见证）。
         // 访客正在看的这一档例外——它是"你现在在这"的标记，不是按钮。
-        const options = VIEWPORT_OPTIONS.filter((o) => liveSet.has(o.id) || o.id === breakpoint);
+        const visible = options.filter((o) => liveSet.has(o.id) || o.id === breakpoint);
         return (
           <span
             className="ap-wrapCenter"
@@ -89,7 +123,7 @@ export function ViewerControls({
                 data-viewer-viewport-option="auto"
                 className={auto ? active : idle}
               >
-                自动
+                {c.auto}
               </a>
             ) : null}
             <a
@@ -97,9 +131,9 @@ export function ViewerControls({
               data-viewer-viewport-option="design"
               className={!auto && breakpoint === undefined ? active : idle}
             >
-              设计
+              {c.design}
             </a>
-            {options.map((option) => (
+            {visible.map((option) => (
               <a
                 key={option.id}
                 href={viewerHref(base, query, { viewport: option.id })}

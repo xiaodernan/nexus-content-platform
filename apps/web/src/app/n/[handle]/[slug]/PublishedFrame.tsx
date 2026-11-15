@@ -2,6 +2,7 @@ import type { Page as DesignPage, ResolvedLayout, TokenStore } from '@nexus/crea
 import type { AssetUrlContext } from '@/studio/assets';
 import { nodeStyle } from '@/studio/render';
 import { stateStyleSheetFor } from '@/studio/state-styles';
+import type { Locale } from '@/lib/i18n';
 import { InteractiveHotspots, type Hotspot } from './InteractiveSurface';
 
 /**
@@ -20,6 +21,7 @@ export function PublishedFrame({
   hotspots,
   publicationPath,
   keepParams,
+  locale = 'zh',
 }: {
   layout: ResolvedLayout;
   page: DesignPage;
@@ -30,6 +32,8 @@ export function PublishedFrame({
   hotspots: Hotspot[];
   publicationPath: string;
   keepParams: Record<string, string>;
+  /** 双语（2026-11-15）——与页面同一 locale；缺省 zh */
+  locale?: Locale;
 }) {
   const stateSheet = stateStyleSheetFor(
     layout.paintOrder.map((id) => layout.nodes[id]).filter((node): node is NonNullable<typeof node> => Boolean(node)),
@@ -63,7 +67,7 @@ export function PublishedFrame({
             </div>
           );
         })}
-        <InteractiveHotspots path={publicationPath} hotspots={hotspots} keepParams={keepParams} />
+        <InteractiveHotspots path={publicationPath} hotspots={hotspots} keepParams={keepParams} locale={locale} />
       </div>
     </div>
   );

@@ -4590,3 +4590,22 @@ D
   - 修复一处并轨遗留的真红测试：`tasks-ledger.integration.test.ts` 的 demoUsage 字面补 §COST-1 `costBasis` 与 v690 `reasoningTokens` 缺省字段（schema 读出即注入）；
   - `verify:fe-gates` 120/120 · 1181/1181 全绿；census 2399 OK；tsc 0；eslint 0。
 - §CACHE 2.5 遗留不变：arms-receipt 仍需宿主（本机 16GB 5 分钟 OOM，CI 的 proofs step 尚未带打印修复的那次运行完成）。
+
+
+## cont. 131 (2026-11-15) - 公开阅读面 + Studio 深层双语（v2 波）
+
+- 落点一：Studio 深层（v2 刀）——`GameGraphView`（§54 实体引用图，StudioShell 此前漏传 locale 的唯一子页）与
+  `ViewerControls`（公开页 §14 查看器控件行，零 JS `<a>`）全量双语；StudioShell 补 `locale={locale}`；
+  `viewportOptions(locale)` 既有（v756）断点表选项直接复用，零第二套口径；GAME_ENTITY_LABELS_EN 复用 game-model 既有导出。
+- 落点二：公开阅读面（`/n/<handle>/<slug>` 落点是访客第一眼）——
+  `page.tsx` chrome（第 N 版/公开·仅链接可见/日期 ICU）、互动说明、试玩/分镜稿入口、访问度量告知、`InteractiveEnd`
+  终点页六态上报文案、`InteractiveHotspots` 热点 aria-label；`PublicationActions`（Like/Comment/Follow/Remix/Save/share 全套按钮+评论元信息+
+  hidden-comments 计接收数语）、`ReportControl`（举报理由 7 项 en 孪生、aria、提交/失败路径）、`PublishedFrame`
+  （RSC，透传 locale）全量双语；`PreviewPage`（/preview）chrome 文案 + `ViewerControls locale` 透传。
+- 作品本体保持发布快照原样（作者的内容按源语言渲染，不属于平台 chrome，纪律明说）。
+- 判据：8 个 SHA pins 全部重钉（game-graph-view f07854a1 / studio-shell 7df72455 / viewer-controls 5eab3f26 / published-page 28936a0e /
+  preview e9026987 / report-control e7c3dab1 / publication-actions 3668be93 / interactive-surface 3d2bd334）；
+  既有 100 判据 + published-style + fe-gates 120/120 · 1181/1181 + census 2399 OK；tsc 0；eslint 0。
+- 活验（dev server, port 3100 当天启停、用完即杀）：/n 页 zh 缺省正常渲染（200），NEXUS_LOCALE=en cookie 后
+  Version/Public/Report this page/creative metrics 全英文、零 zh chrome 字节（Play this version 等条件入口按该刊无 game 正确不出现）——
+  curl 实测 locales 各一份；e2e 断言不受影响（缺省 zh 字节不变）。

@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * 两句事实写在界面上（举报不会立刻撤下内容；访客不登录也能举报）——不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `590a2c657d2e2e43e968ef9b17c2825551274d4030340e094f5cb0e346173f92` 与 HEAD 字节一致。
+ * `e7c3dab1548c3aa49b32c441b68560eb898ddab95f0112d7618bbd9d8a1d4384` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/app/n/[handle]/[slug]/ReportControl.tsx');
@@ -100,9 +100,9 @@ describe('§FE-74 /n/[handle]/[slug] ReportControl 举报入口', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：590a2c657d2e2e43e968ef9b17c2825551274d4030340e094f5cb0e346173f92）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：e7c3dab1548c3aa49b32c441b68560eb898ddab95f0112d7618bbd9d8a1d4384）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '590a2c657d2e2e43e968ef9b17c2825551274d4030340e094f5cb0e346173f92',
+      'e7c3dab1548c3aa49b32c441b68560eb898ddab95f0112d7618bbd9d8a1d4384',
     );
   });
 });

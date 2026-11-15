@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   GAME_ENTITY_KINDS,
   GAME_ENTITY_LABELS,
+  GAME_ENTITY_LABELS_EN,
   linkEntities,
   referenceGraph,
   removeRef,
@@ -11,6 +12,7 @@ import {
   type GameEntityKind,
 } from '@nexus/game-model';
 import { cn } from '@/lib/cn';
+import type { Locale } from '@/lib/i18n';
 import { useStudioReady } from './store';
 import { useGame, gameStore } from './gameStore';
 
@@ -92,7 +94,86 @@ function edgePath(
   return { d: `M ${from.x} ${from.y} Q ${ctrl.x} ${ctrl.y} ${to.x} ${to.y}`, mid };
 }
 
-export function GameGraphView() {
+/**
+ * 双语（2026-11-15 wave：Studio 深层）——StudioShell 把 locale 透传进来（默认 zh）。
+ * §54 的字段名两套字面都落在这里，组件只做选择，不做第二份对照。
+ * 面板里 `snapshot.error` / `notice` 是 store 产出的消息，原样显示（与其他面板同一纪律）。
+ */
+const COPY: Record<Locale, {
+  loadingGame: string;
+  unreadableBody: (reason: string) => string;
+  noDesignBody: string;
+  defaultName: string;
+  createSkeleton: string;
+  entityCount: (entities: number, refs: number) => string;
+  selectedRef: (from: string, to: string) => string;
+  pickTwoHint: string;
+  rolePlaceholder: string;
+  roleAria: string;
+  connect: string;
+  clearSelection: string;
+  removeRef: string;
+  state: Record<string, string>;
+  columnSuffix: (count: number) => string;
+  statCount: (n: number) => string;
+  emptyStats: string;
+  noRefsHint: string;
+  note: string;
+}> = {
+  zh: {
+    loadingGame: '读取游戏设计…',
+    unreadableBody: (reason) => `读不出游戏：${reason}`,
+    noDesignBody: '这个项目还没有游戏设计。先去左侧「游戏」面板建一份模板骨架，再来这里连引用。',
+    defaultName: '未命名游戏',
+    createSkeleton: '创建游戏骨架（模板）',
+    entityCount: (entities, refs) => `${entities} 个实体 · ${refs} 条引用`,
+    selectedRef: (from, to) => `已选 ${from} → ${to}`,
+    pickTwoHint: '点两个实体就能连一条引用（顺序就是箭头方向）',
+    rolePlaceholder: '关系叫什么（可留空）',
+    roleAria: '引用关系',
+    connect: '连一条',
+    clearSelection: '取消选择',
+    removeRef: '摘掉这条引用',
+    state: { saving: '保存中…', dirty: '未保存', saved: '已保存', error: '保存失败' },
+    columnSuffix: (count) => `（${count}）`,
+    statCount: (n) => ` · ${n} 项数值`,
+    emptyStats: ' · 还没填数值',
+    noRefsHint: '还没有引用：点两个实体（顺序就是箭头方向），再点「连一条」。',
+    note:
+      '位置按 §54 的 11 类分列算出来、不存在文档里：游戏文档只记谁引用谁，不记摆在哪个像素。' +
+      '点边上的圆点（或直接点那条线）选中引用，再摘掉它。' +
+      '淡一点的是还没填过数值的实体（模板骨架里的样子）。',
+  },
+  en: {
+    loadingGame: 'Loading the game design…',
+    unreadableBody: (reason) => `Cannot read the game: ${reason}`,
+    noDesignBody:
+      'This project has no game design yet. Open the left-hand “Game” panel to create a template skeleton, then come back here and wire references.',
+    defaultName: 'Untitled game',
+    createSkeleton: 'Create game skeleton (template)',
+    entityCount: (entities, refs) => `${entities} entities · ${refs} references`,
+    selectedRef: (from, to) => `Selected ${from} → ${to}`,
+    pickTwoHint: 'Pick two entities to link a reference (pick order is the arrow direction)',
+    rolePlaceholder: 'Relationship name (optional)',
+    roleAria: 'Reference relationship',
+    connect: 'Link one',
+    clearSelection: 'Clear selection',
+    removeRef: 'Remove this reference',
+    state: { saving: 'Saving…', dirty: 'Unsaved', saved: 'Saved', error: 'Save failed' },
+    columnSuffix: (count) => ` (${count})`,
+    statCount: (n) => ` · ${n} stats`,
+    emptyStats: ' · no stats yet',
+    noRefsHint: 'No references yet: pick two entities (pick order is the arrow direction), then “Link one”.',
+    note:
+      'Positions are derived from the §54 11-kind columns and live nowhere in the document: the game document records who references whom, never pixel coordinates. ' +
+      'Click the dot on an edge (or the edge itself) to select a reference, then remove it. ' +
+      'Dimmed entities have no stats yet (the template-skeleton look).',
+  },
+};
+
+export function GameGraphView({ locale = 'zh' }: { locale?: Locale }) {
+  const c = COPY[locale];
+  const KIND_LABELS = locale === 'en' ? GAME_ENTITY_LABELS_EN : GAME_ENTITY_LABELS;
   const studio = useStudioReady();
   const snapshot = useGame();
   const [role, setRole] = useState('');
@@ -115,19 +196,19 @@ export function GameGraphView() {
       <div className="wg-emptyState" data-game-graph>
         <p className="wg-emptyLead" data-game-graph-empty>
           {snapshot.saveState === 'loading'
-            ? '读取游戏设计…'
+            ? c.loadingGame
             : snapshot.error
-              ? `读不出游戏：${snapshot.error}`
-              : '这个项目还没有游戏设计。先去左侧「游戏」面板建一份模板骨架，再来这里连引用。'}
+              ? c.unreadableBody(snapshot.error)
+              : c.noDesignBody}
         </p>
         {!snapshot.error && snapshot.saveState !== 'loading' ? (
           <button
             type="button"
-            onClick={() => void gameStore.createSkeleton(studio.document?.name ?? '未命名游戏')}
+            onClick={() => void gameStore.createSkeleton(studio.document?.name ?? c.defaultName)}
             data-game-graph-create
             className="sb-accentBtn"
           >
-            创建游戏骨架（模板）
+            {c.createSkeleton}
           </button>
         ) : null}
       </div>
@@ -181,20 +262,20 @@ export function GameGraphView() {
       {/* 工具条固定在滚动区之外：跟着画布一起横滚的话，"已保存"会在往右拖时消失 */}
       <div className="wg-head">
         <span className="ap-mono12faint" data-game-graph-count>
-          {nodes.length} 个实体 · {edges.length} 条引用
+          {c.entityCount(nodes.length, edges.length)}
         </span>
         <span className="sb-faint11" data-game-graph-selection>
           {picked.length === 2
-            ? `已选 ${nameOf(picked[0]!)} → ${nameOf(picked[1]!)}`
-            : '点两个实体就能连一条引用（顺序就是箭头方向）'}
+            ? c.selectedRef(nameOf(picked[0]!), nameOf(picked[1]!))
+            : c.pickTwoHint}
         </span>
         {picked.length === 2 ? (
           <>
             <input
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              placeholder="关系叫什么（可留空）"
-              aria-label="引用关系"
+              placeholder={c.rolePlaceholder}
+              aria-label={c.roleAria}
               data-game-graph-role
               className="wg-terrainInput"
             />
@@ -204,7 +285,7 @@ export function GameGraphView() {
               data-game-graph-connect
               className="sb-accentBtn"
             >
-              连一条
+              {c.connect}
             </button>
             <button
               type="button"
@@ -212,7 +293,7 @@ export function GameGraphView() {
               data-game-graph-clear
               className="wg-btnFaintHover"
             >
-              取消选择
+              {c.clearSelection}
             </button>
           </>
         ) : null}
@@ -223,22 +304,16 @@ export function GameGraphView() {
             data-game-graph-remove-ref
             className="wg-ghostDanger"
           >
-            摘掉这条引用
+            {c.removeRef}
           </button>
         ) : null}
         <span
           className={cn('wd-monoFaintEnd', snapshot.saveState === 'error' && 'wd-dangerText')}
           data-game-graph-state
         >
-          {snapshot.saveState === 'saving'
-            ? '保存中…'
-            : snapshot.saveState === 'dirty'
-              ? '未保存'
-              : snapshot.saveState === 'saved'
-                ? '已保存'
-                : snapshot.saveState === 'error'
-                  ? '保存失败'
-                  : ''}
+          {snapshot.saveState === 'saving' || snapshot.saveState === 'dirty' || snapshot.saveState === 'saved' || snapshot.saveState === 'error'
+            ? (c.state[snapshot.saveState] ?? '')
+            : ''}
         </span>
         <span
           data-game-graph-pending={snapshot.saveState === 'saving' || snapshot.saveState === 'dirty' ? 'true' : 'false'}
@@ -281,7 +356,7 @@ export function GameGraphView() {
                 className="wg-axis11"
                 data-game-graph-column={kind}
               >
-                {GAME_ENTITY_LABELS[kind]}（{inKind.length}）
+                {KIND_LABELS[kind]}{c.columnSuffix(inKind.length)}
               </text>
             );
           })}
@@ -349,8 +424,8 @@ export function GameGraphView() {
                   {node.name.length > 16 ? `${node.name.slice(0, 15)}…` : node.name}
                 </text>
                 <text x={12} y={35} className="wg-axis10">
-                  {GAME_ENTITY_LABELS[node.kind] ?? node.kind}
-                  {node.statCount ? ` · ${node.statCount} 项数值` : ' · 还没填数值'}
+                  {KIND_LABELS[node.kind] ?? node.kind}
+                  {node.statCount ? c.statCount(node.statCount) : c.emptyStats}
                 </text>
               </g>
             );
@@ -359,13 +434,11 @@ export function GameGraphView() {
       </div>
       {!edges.length ? (
         <p className="wg-pointerHint" data-game-graph-hint>
-          还没有引用：点两个实体（顺序就是箭头方向），再点「连一条」。
+          {c.noRefsHint}
         </p>
       ) : null}
       <p className="wg-rowFaintPad" data-game-graph-note>
-        位置按 §54 的 11 类分列算出来、不存在文档里：游戏文档只记谁引用谁，不记摆在哪个像素。
-        点边上的圆点（或直接点那条线）选中引用，再摘掉它。
-        淡一点的是还没填过数值的实体（模板骨架里的样子）。
+        {c.note}
       </p>
     </div>
   );

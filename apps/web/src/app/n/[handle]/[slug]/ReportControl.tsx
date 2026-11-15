@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { csrfHeaders } from '@/lib/csrf';
+import type { Locale } from '@/lib/i18n';
 
 /**
  * §132 举报入口：公开页上访客真能点开的东西。
@@ -10,7 +11,11 @@ import { csrfHeaders } from '@/lib/csrf';
  * - 举报**不会**立刻撤下内容，撤下是人的裁决；
  * - 访客不需要登录也能举报（这一页本来就是给匿名访客看的）。
  */
-const REASONS: { id: string; label: string }[] = [
+/**
+ * 举报理由（双语，id 是 API 枚举、两语言同 id）。
+ * 双语（2026-11-15：公开阅读面）——en 逐句对应，组件只按 locale 选。
+ */
+const REASONS_ZH: { id: string; label: string }[] = [
   { id: 'minor_safety', label: '涉及未成年人的性内容' },
   { id: 'intimate_nonconsensual', label: '非自愿亲密影像' },
   { id: 'impersonation', label: '冒充他人或机构' },
@@ -19,8 +24,54 @@ const REASONS: { id: string; label: string }[] = [
   { id: 'spam', label: '垃圾信息 / 欺诈' },
   { id: 'other', label: '其他' },
 ];
+const REASONS_EN: { id: string; label: string }[] = [
+  { id: 'minor_safety', label: 'Sexual content involving a minor' },
+  { id: 'intimate_nonconsensual', label: 'Non-consensual intimate imagery' },
+  { id: 'impersonation', label: 'Impersonation of a person or organization' },
+  { id: 'illegal', label: 'Illegal content' },
+  { id: 'ip', label: 'Copyright or trademark infringement' },
+  { id: 'spam', label: 'Spam / fraud' },
+  { id: 'other', label: 'Other' },
+];
 
-export function ReportControl({ path }: { path: string }) {
+const COPY: Record<Locale, {
+  report: string;
+  reasonAria: string;
+  detailAria: string;
+  detailPlaceholder: string;
+  submitting: string;
+  submit: string;
+  note: string;
+  submitFailed: (status: number) => string;
+  recorded: string;
+}> = {
+  zh: {
+    report: '举报此页',
+    reasonAria: '举报理由',
+    detailAria: '举报补充说明（可选）',
+    detailPlaceholder: '补充说明（可选）',
+    submitting: '提交中…',
+    submit: '提交举报',
+    note: '举报不会立刻撤下内容；是否下架由人看完决定。',
+    submitFailed: (status) => `提交失败（HTTP ${status}）`,
+    recorded: '举报已记录',
+  },
+  en: {
+    report: 'Report this page',
+    reasonAria: 'Report reason',
+    detailAria: 'Additional details (optional)',
+    detailPlaceholder: 'Additional details (optional)',
+    submitting: 'Submitting…',
+    submit: 'Submit report',
+    note: 'Filing a report does not take content down immediately; a person reviews before any takedown.',
+    submitFailed: (status) => `Submit failed (HTTP ${status})`,
+    recorded: 'Report recorded',
+  },
+};
+
+export function ReportControl({ path, locale = 'zh' }: { path: string; locale?: Locale }) {
+  const c = COPY[locale];
+  const REASONS = locale === 'en' ? REASONS_EN : REASONS_ZH;
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState(REASONS[6]!.id);
   const [detail, setDetail] = useState('');
@@ -39,10 +90,10 @@ export function ReportControl({ path }: { path: string }) {
       });
       const body = (await res.json().catch(() => null)) as { message?: string; issues?: string[] } | null;
       if (!res.ok) {
-        setError(body?.issues?.join('；') ?? body?.message ?? `提交失败（HTTP ${res.status}）`);
+        setError(body?.issues?.join(locale === 'zh' ? '；' : '; ') ?? body?.message ?? c.submitFailed(res.status));
         return;
       }
-      setNotice(body?.message ?? '举报已记录');
+      setNotice(body?.message ?? c.recorded);
       setOpen(false);
       setDetail('');
     } finally {
@@ -58,14 +109,14 @@ export function ReportControl({ path }: { path: string }) {
         className="rc-openBtn"
         data-report-open
       >
-        举报此页
+        {c.report}
       </button>
       {open ? (
         <div className="rc-form" data-report-form>
           <select
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            aria-label="举报理由"
+            aria-label={c.reasonAria}
             className="rc-select"
             data-report-reason
           >
@@ -75,10 +126,10 @@ export function ReportControl({ path }: { path: string }) {
               </option>
             ))}
           </select>
-          <input aria-label="举报补充说明（可选）"
+          <input aria-label={c.detailAria}
             value={detail}
             onChange={(e) => setDetail(e.target.value)}
-            placeholder="补充说明（可选）"
+            placeholder={c.detailPlaceholder}
             maxLength={2000}
             className="rc-input"
             data-report-detail
@@ -90,9 +141,9 @@ export function ReportControl({ path }: { path: string }) {
             className="rc-submitBtn"
             data-report-submit
           >
-            {busy ? '提交中…' : '提交举报'}
+            {busy ? c.submitting : c.submit}
           </button>
-          <p className="rc-note">举报不会立刻撤下内容；是否下架由人看完决定。</p>
+          <p className="rc-note">{c.note}</p>
         </div>
       ) : null}
       {error ? (

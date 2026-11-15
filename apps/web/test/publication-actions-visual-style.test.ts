@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * 评论过机检的回话、Remix 分叉语义、Save 收藏冻结一字不动；notice 的真话语义保留。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `23a9bb100afeb26e6bd8c43f7fabbef2655d3257ea69facefe10b2cead9b66cf` 与 HEAD 字节一致。
+ * `3668be932a68c93c937cf2d1e2be6a52966a50a8a1a16587795afac0bf426351` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/app/n/[handle]/[slug]/PublicationActions.tsx');
@@ -116,9 +116,9 @@ describe('§FE-73 /n/[handle]/[slug] PublicationActions 作品页互动', () => 
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：23a9bb100afeb26e6bd8c43f7fabbef2655d3257ea69facefe10b2cead9b66cf）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：3668be932a68c93c937cf2d1e2be6a52966a50a8a1a16587795afac0bf426351）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '23a9bb100afeb26e6bd8c43f7fabbef2655d3257ea69facefe10b2cead9b66cf',
+      '3668be932a68c93c937cf2d1e2be6a52966a50a8a1a16587795afac0bf426351',
     );
   });
 });

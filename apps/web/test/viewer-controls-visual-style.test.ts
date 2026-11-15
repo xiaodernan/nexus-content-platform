@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
  * 本片只换皮；`liveBreakpoints`、`viewerHref`、`ZOOM_STEPS` 派生全部一字不动；`pill/active/idle` 三常量就地换 facade 命名。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @ + 三组模板字符串常量雕刻 @；HEAD 雕刻 pill 一行后 byte 一致）：
- * `f5a04b02f5ec4be8d51b4dae628f3e55b9ba552f875f2ccd44145202678ddb03` 与 HEAD 雕刻字节一致。
+ * `5eab3f2663490a09e44ec2542a2dc3ba311ba00ec7ccea65993fa9add6490d85` 与 HEAD 雕刻字节一致。
  *
  * 判据不变式（10 门）：
  *  1. 'use client' 保留 + viewer params 路径进门；2. 字面 className 全 `.vc-*`/复用族（含 cn 模板分支）；
@@ -158,9 +158,9 @@ describe('§FE-65 /studio ViewerControls 查看器控件行', () => {
     expect(segment).toContain('.vc-pillOn {');
   });
 
-  it('剥 className/pill 雕刻后 SHA256 守恒（零行为：f5a04b02f5ec4be8d51b4dae628f3e55b9ba552f875f2ccd44145202678ddb03）', () => {
+  it('剥 className/pill 雕刻后 SHA256 守恒（零行为：5eab3f2663490a09e44ec2542a2dc3ba311ba00ec7ccea65993fa9add6490d85）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'f5a04b02f5ec4be8d51b4dae628f3e55b9ba552f875f2ccd44145202678ddb03',
+      '5eab3f2663490a09e44ec2542a2dc3ba311ba00ec7ccea65993fa9add6490d85',
     );
   });
 });

@@ -24,8 +24,53 @@ import { PublicationActions } from './PublicationActions';
 import { VisitMeter } from './VisitMeter';
 import { InteractiveEnd, type Hotspot } from './InteractiveSurface';
 import { PublishedFrame } from './PublishedFrame';
+import { getLocale, type Locale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * 公开页的 chrome 文案（2026-11-15 双语：公开阅读面）。
+ * 作品本体（layout/tokens/节点文字 = 作者写的内容）保持发布快照原样（保留源语言，
+ * 不属于平台 chrome，§169 只把平台自己说的那句话翻成两语）。
+ */
+const COPY: Record<Locale, {
+  edition: (version: number) => string;
+  visibilityPublic: string;
+  visibilityUnlisted: string;
+  interactiveNote: string;
+  playLink: string;
+  playHint: string;
+  storyboardLink: string;
+  storyboardHint: string;
+  visitNotice: string;
+}> = {
+  zh: {
+    edition: (version) => `第 ${version} 版`,
+    visibilityPublic: '公开',
+    visibilityUnlisted: '仅链接可见',
+    interactiveNote:
+      '这一版把「点击 → 跳到另一页」的交互跑起来了：鼠标移到可点的区域会亮一圈，点它翻到那一页；只用键盘也一样——Tab 会走到那块区域（同样亮一圈），按 Enter 翻到那一页。悬停、弹窗、状态切换等其余交互在这一版里不会发生。',
+    playLink: '试玩这一版 →',
+    playHint: '玩的是发布那一刻钉住的游戏设计，不是作者现在的工作稿',
+    storyboardLink: '查看分镜稿 →',
+    storyboardHint: '读的是发布那一刻钉住的镜头表，不是作者现在的工作稿',
+    visitNotice:
+      '这一页会统计作者的创作数据：打开次数、页面可见时的停留时长、以及最远滚到的高度比例。切走标签页的时间不计入时长。',
+  },
+  en: {
+    edition: (version) => `Version ${version}`,
+    visibilityPublic: 'Public',
+    visibilityUnlisted: 'Unlisted',
+    interactiveNote:
+      'This version demonstrates “click → navigate to another page”: hoverable hotspots highlight on pointer-over and click to the target page; keyboard-only works too — Tab reaches the region (it lights up the same), Enter navigates. Hover, popups and state switching do not happen in this version.',
+    playLink: 'Play this version →',
+    playHint: 'The game design pinned at publish time, not the author’s current working draft.',
+    storyboardLink: 'View the storyboard →',
+    storyboardHint: 'The shot list pinned at publish time, not the author’s current working draft.',
+    visitNotice:
+      'This page tracks the author’s creative metrics: open count, time on page while visible, and furthest scroll depth. Time spent on other tabs does not count.',
+  },
+};
 
 interface Props {
   params: Promise<{ handle: string; slug: string }>;
@@ -60,6 +105,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function PublishedPage({ params, searchParams }: Props) {
   const { handle, slug } = await params;
   const query = await searchParams;
+  const locale = await getLocale();
+  const c = COPY[locale];
   const found = await getPublishedPage(publishedPath(handle, slug));
   if (!found) notFound();
   const { publication, document, ownerName, projectName } = found;
@@ -132,19 +179,19 @@ export default async function PublishedPage({ params, searchParams }: Props) {
           {ownerName} / {projectName}
         </span>
         <span className="pub-meta" data-published-meta>
-          第 {publication.version} 版 ·{' '}
-          {publication.visibility === 'public' ? '公开' : '仅链接可见'} ·{' '}
-          {new Date(publication.publishedAt).toLocaleString('zh-CN', { hour12: false })}
+          {c.edition(publication.version)} ·{' '}
+          {publication.visibility === 'public' ? c.visibilityPublic : c.visibilityUnlisted} ·{' '}
+          {new Date(publication.publishedAt).toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US', { hour12: false })}
         </span>
         {/* §132：公开页要有人能举报，否则 §129 的红线只能靠作者自觉 */}
         <span className="pub-headerAside">
-          <ReportControl path={publication.path} />
+          <ReportControl path={publication.path} locale={locale} />
           <span className="pub-brand">Built with NEXUS</span>
         </span>
       </header>
       {actions ? (
         <div className="pub-actions">
-          <PublicationActions state={actions} />
+          <PublicationActions state={actions} locale={locale} />
         </div>
       ) : null}
       {/* §14 查看器控件（ADR-0069）：与 /preview 同一排、同一套参数名 */}
@@ -158,6 +205,7 @@ export default async function PublishedPage({ params, searchParams }: Props) {
         height={primary.height}
         auto={auto}
         autoAvailable={responsive}
+        locale={locale}
       />
       {/* §85 第三十一片 / ADR-0074：自动选档。四份投影同一时刻在 DOM 里，媒体查询选一份；
           隐藏的几份 display:none（不进可访问树）。零 JS 也成立，且没有第二条渲染路径。 */}
@@ -175,6 +223,7 @@ export default async function PublishedPage({ params, searchParams }: Props) {
               hotspots={hotspotsFor(layout)}
               publicationPath={publication.path}
               keepParams={keepViewerParams(query)}
+              locale={locale}
             />
           </div>
         ))}
@@ -185,12 +234,10 @@ export default async function PublishedPage({ params, searchParams }: Props) {
           不知道自己也能走通（Tab 会停在热点上、Enter 真的翻页并上报），所以照实补上。 */}
       {hotspots.length ? (
         <p className="pub-note" data-interactive-note>
-          这一版把「点击 → 跳到另一页」的交互跑起来了：鼠标移到可点的区域会亮一圈，点它翻到那一页；
-          只用键盘也一样——Tab 会走到那块区域（同样亮一圈），按 Enter 翻到那一页。
-          悬停、弹窗、状态切换等其余交互在这一版里不会发生。
+          {c.interactiveNote}
         </p>
       ) : null}
-      {terminal ? <InteractiveEnd path={publication.path} pageId={page.id} /> : null}
+      {terminal ? <InteractiveEnd path={publication.path} pageId={page.id} locale={locale} /> : null}
       {/* §50：这一版钉住了游戏设计才有这个入口。没有钉住就不出现，
           也不给一个"点进去说没有内容"的链接——那等于用入口骗一次点击 */}
       {publication.hasGame ? (
@@ -199,9 +246,9 @@ export default async function PublishedPage({ params, searchParams }: Props) {
             href={`${publication.path}/play`}
             className="pub-playLink"
           >
-            试玩这一版 →
+            {c.playLink}
           </a>
-          <span className="pub-entryHint">玩的是发布那一刻钉住的游戏设计，不是作者现在的工作稿</span>
+          <span className="pub-entryHint">{c.playHint}</span>
         </p>
       ) : null}
       {/* §40 × §56：分镜与游戏设计同一条口径——这一版钉住了分镜稿才有这个入口。
@@ -212,16 +259,15 @@ export default async function PublishedPage({ params, searchParams }: Props) {
             href={`${publication.path}/storyboard`}
             className="pub-storyboardLink"
           >
-            查看分镜稿 →
+            {c.storyboardLink}
           </a>
-          <span className="pub-entryHint">读的是发布那一刻钉住的镜头表，不是作者现在的工作稿</span>
+          <span className="pub-entryHint">{c.storyboardHint}</span>
         </p>
       ) : null}
       {/* §168：被统计这件事要写在页面上，而不是只在代码注释里。
           这句是服务端渲染的——不执行 JS 的访客也看得见自己被统计了什么 */}
       <p className="pub-notice" data-visit-notice>
-        这一页会统计作者的创作数据：打开次数、页面可见时的停留时长、以及最远滚到的高度比例。
-        切走标签页的时间不计入时长。
+        {c.visitNotice}
       </p>
       <VisitMeter path={publication.path} />
       {/* §166 JSON-LD：正文已经服务端渲染，结构化数据让抓取端不用猜哪是标题哪是作者。
