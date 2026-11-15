@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { getLocale, type Locale } from '@/lib/i18n';
 
 /**
  * §FE-9 根 404 门面（ADR-0151）：`/app/not-found.tsx`。
@@ -14,15 +15,56 @@ import Link from 'next/link';
  *  - 文案说清"这个地址没有内容"，列出可能原因，但**不替访客猜是哪一种**——
  *    链接失效、作品撤下、地址拼错都得查只有作者与服务器知道的记录才能确认（§159）。
  *
- * 视觉（`.nf-` 语义类）与结构（data-not-found-* 钩子）分离：FE-9 只上妆 + 补诚实门面，
- * 不伪造"内容曾存在"的暗示，也不把 404 说成 500 或"正在加载"。
+ * 双语（2026-11-15）：getLocale() 由 cookie 读语言，COPY 中英一辞两字面，不夹杂。
  */
-export default function NotFound() {
+const COPY: Record<Locale, {
+  eyebrow: string;
+  title: string;
+  detail: string;
+  reasons: readonly string[];
+  honesty: string;
+  discover: string;
+  home: string;
+  foot: string;
+}> = {
+  zh: {
+    eyebrow: 'NEXUS · 路标指错了',
+    title: '这个地址没有内容',
+    detail: '这不是加载慢，也不是你操作错了。服务器如实回了一句：这里没有可给的东西。常见的原因有这么几种——',
+    reasons: [
+      '这条链接已经失效，指向的作品或页面不在了；',
+      '作品被作者撤下或改成了不公开，旧分享链接就落空了；',
+      '地址里有一处拼写或复制时带进来的字符对不上。',
+    ],
+    honesty: '我们不会替你猜是哪一种：它到底有没有存在过、为什么现在取不到，得查只有作者和服务器知道的记录才说得准。这里只如实说"这个地址现在没有内容"。',
+    discover: '去发现页看看别人在做啥',
+    home: '回到首页',
+    foot: '如果你是顺着本站里的链接走到这里的，那条链接可能该修了——发现页和首页总能带你回到有内容的地方。',
+  },
+  en: {
+    eyebrow: 'NEXUS · A wrong turn',
+    title: 'No content at this address',
+    detail: 'This is not a slow load, and not your mistake. The server answered honestly: there is nothing to give at this address. The usual causes are—',
+    reasons: [
+      'This link is dead — the work or page it pointed at no longer exists;',
+      'The work was withdrawn or made private — the old share link lands nowhere;',
+      'A character in the address was mistyped or carried in while copying.',
+    ],
+    honesty: 'We will not guess which one it is: whether this address ever existed, and why it cannot be reached now, are records only the author and the server hold. All this page can honestly say: this address has no content right now.',
+    discover: 'See what people are making',
+    home: 'Back to the home page',
+    foot: 'If you arrived here via a link elsewhere on this site, that link may need repair — the discover page and the home page always lead somewhere with content.',
+  },
+};
+
+export default async function NotFound() {
+  const locale = await getLocale();
+  const c = COPY[locale];
   return (
     <main className="nf-root" data-not-found>
       <div className="nf-frame" data-not-found-frame>
         <p className="nf-eyebrow" data-not-found-eyebrow>
-          NEXUS · 路标指错了
+          {c.eyebrow}
         </p>
 
         <p className="nf-code" data-not-found-code aria-hidden="true">
@@ -30,37 +72,34 @@ export default function NotFound() {
         </p>
 
         <h1 className="nf-title" data-not-found-title>
-          这个地址没有内容
+          {c.title}
         </h1>
 
         <p className="nf-detail" data-not-found-detail>
-          这不是加载慢，也不是你操作错了。服务器如实回了一句：这里没有可给的东西。
-          常见的原因有这么几种——
+          {c.detail}
         </p>
 
         <ul className="nf-reasons" data-not-found-reasons>
-          <li className="nf-reason">这条链接已经失效，指向的作品或页面不在了；</li>
-          <li className="nf-reason">作品被作者撤下或改成了不公开，旧分享链接就落空了；</li>
-          <li className="nf-reason">地址里有一处拼写或复制时带进来的字符对不上。</li>
+          {c.reasons.map((reason, i) => (
+            <li key={i} className="nf-reason">{reason}</li>
+          ))}
         </ul>
 
         <p className="nf-honesty" data-not-found-honesty>
-          我们不会替你猜是哪一种：它到底有没有存在过、为什么现在取不到，
-          得查只有作者和服务器知道的记录才说得准。这里只如实说"这个地址现在没有内容"。
+          {c.honesty}
         </p>
 
         <div className="nf-actions" data-not-found-actions>
           <Link href="/discover" className="nf-discover" data-not-found-discover>
-            去发现页看看别人在做啥
+            {c.discover}
           </Link>
           <Link href="/" className="nf-home" data-not-found-home>
-            回到首页
+            {c.home}
           </Link>
         </div>
 
         <p className="nf-foot" data-not-found-foot>
-          如果你是顺着本站里的链接走到这里的，那条链接可能该修了——
-          发现页和首页总能带你回到有内容的地方。
+          {c.foot}
         </p>
       </div>
     </main>

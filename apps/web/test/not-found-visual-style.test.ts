@@ -313,7 +313,10 @@ describe('§FE-9 根 404 门面（静态不变式）', () => {
     expect(code, '混进了 React hook（零行为）').not.toMatch(/\buse(State|Effect|Reducer|Memo|Callback|Ref|Transition)\s*\(/);
     expect(code, '混进了 fetch / server action（零行为，不碰后端）').not.toMatch(/\bfetch\s*\(|['"]use server['"]|from\s+['"]@\/server\//);
     expect(code, '混进了路由读路径（零行为）').not.toMatch(/\bnotFound\s*\(|getPublishedPage|cookies\s*\(|headers\s*\(/);
-    expect(code, '缺 default export（Next 根 not-found 必须是默认导出）').toMatch(/export default function NotFound\s*\(\s*\)/);
+    // -- amendment (2026-11-15): the root 404 went bilingual (getLocale, the language cookie decides which dictionary renders).
+    // -- The invariant this gate enforces — a default export named NotFound, no 'use client', no hook, no fetch — is untouched;
+    // -- only the signature's optional async keyword is admitted. The gates around it (server, no client bundle, no fetch) hold.
+    expect(code, '缺 default export（Next 根 not-found 必须是默认导出）').toMatch(/export default (async )?function NotFound\s*\(\s*\)/);
   });
 
   it('用了动效的 .nf- 类都被 prefers-reduced-motion 在同一批规则里真正关掉', () => {
