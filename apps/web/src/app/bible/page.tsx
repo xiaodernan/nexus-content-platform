@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getLocale, type Locale } from '@/lib/i18n';
-import { BIBLE_CHAPTERS } from '@/world-bible/generated';
+import { BIBLE_CHAPTERS, BIBLE_ECHOES } from '@/world-bible/generated';
 import { extractAnchors } from '@/components/BibleMarkdown';
 
 export const dynamic = 'force-dynamic';
@@ -22,6 +22,9 @@ const COPY: Record<Locale, {
   kicker: string;
   title: string;
   lede: string;
+  echoLabel: (order: number) => string;
+  echoTitle: string;
+  echoLede: string;
   threeDoors: string;
   chapterLabel: (order: number) => string;
   anchorsLine: (count: number) => string;
@@ -36,6 +39,9 @@ const COPY: Record<Locale, {
     lede: '《低语诸王》自己的正典——四章，四扇门：第三章之后，第四盏灯终于亮回来了。',
     threeDoors: '第一扇问：海叫什么？ · 第二扇问：谁在还？ · 第三扇问：还完之后？ · 第四扇：灯已经点过了。',
     chapterLabel: (order) => `第${['一', '二', '三', '四'][order - 1] ?? order}章`,
+    echoLabel: (order) => `回响 · 其${['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'][order - 1] ?? order}`,
+    echoTitle: '回响 · Echoes',
+    echoLede: '正典之外的侧写——不是续篇，不是错的，只是同一块盐加了另一层纹理。',
     anchorsLine: (count) => `${count} 句锚 · 中英字字对齐`,
     readLink: '开始阅读',
     discipline: '正典由 docs/world-bible/ 维护，任何一句都不经过机器改写；正文原文如下，英译本只是同一故事的另一副嘴。',
@@ -48,6 +54,9 @@ const COPY: Record<Locale, {
     lede: 'The Whispers’ Kings’ own canon. Four doors — and at the fourth, at last, the lamp is lit.',
     threeDoors: 'First door: what is the sea called? · Second: who pays? · Third: after the ending? · Fourth: the lamp has been lit.',
     chapterLabel: (order) => `Chapter ${['I', 'II', 'III', 'IV'][order - 1] ?? order}`,
+    echoLabel: (order) => `Echo ${['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][order - 1] ?? order}`,
+    echoTitle: 'Echoes',
+    echoLede: 'Side-lights beyond the canon — not a sequel, not an error, just another layer of grain on the same salt.',
     anchorsLine: (count) => `${count} anchor sentences · verbatim in both languages`,
     readLink: 'Start reading',
     discipline: 'The canon is maintained in docs/world-bible/; not a single sentence passes through a machine unasked. The English is the same story with the same anchors — no other rephrasing.',
@@ -92,6 +101,38 @@ export default async function BiblePage() {
           );
         })}
       </ol>
+
+      {BIBLE_ECHOES.length > 0 ? (
+        <>
+          <header className="bb-echoHead">
+            <h2 className="bb-echoTitle">{c.echoTitle}</h2>
+            <p className="bb-echoLede">{c.echoLede}</p>
+          </header>
+          <ol className="bb-chapterList" data-bible-echoes>
+            {BIBLE_ECHOES.map((echo) => {
+              const title = locale === 'en' ? echo.titleEn : echo.titleZh;
+              const era = locale === 'en' ? echo.eraLineEn : echo.eraLineZh;
+              const anchors = extractAnchors(echo.markdownZh, echo.markdownEn).length;
+              return (
+                <li key={echo.slug} className="bb-card" data-bible-echo={echo.slug}>
+                  <span className="bb-cardNum" aria-hidden="true">{['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'][echo.order - 1] ?? echo.order}</span>
+                  <div className="bb-cardBody">
+                    <p className="bb-cardChapter">{c.echoLabel(echo.order)}</p>
+                    <h2 className="bb-cardTitle">{title}</h2>
+                    <p className="bb-cardEra">{era}</p>
+                    <p className="bb-cardAnchors" data-bible-anchor-count>
+                      {c.anchorsLine(anchors)}
+                    </p>
+                  </div>
+                  <Link href={`/bible/${echo.slug}`} className="bb-cardLink" data-bible-open-echo={echo.slug}>
+                    {c.readLink} <span aria-hidden="true">→</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ol>
+        </>
+      ) : null}
 
       <footer className="bb-foot">
         <p className="bb-footNote">{c.discipline}</p>

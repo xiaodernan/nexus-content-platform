@@ -10,7 +10,7 @@
  * - 快照是生成产物，禁止手改；`npm run verify:bible-snapshot` 字节比对超廉保证一致。
  * - 正文只剥掉以 `# ` 开头的首个大标题行（页面自己渲染标题），其余一字不动。
  */
-import { readFileSync, readdirSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 
 const ROOT = process.cwd();
@@ -38,6 +38,13 @@ const WEB_SLUGS: Record<string, string> = {
   '003-潮沙盘': '003-the-tide-sand-table',
   '004-第八盏灯': '004-the-eighth-lamp',
 };
+
+/** 回响网页 slug（E0N，番外，正典之外），同纪律登记 */
+const ECHO_WEB_SLUGS: Record<string, string> = {
+  'E01-巡逻路札记': 'echo-001-patrol-road-notes',
+};
+
+const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
 
 function parseTitleZh(line: string): string {
   const m = /「(.+?)」/.exec(line);
@@ -112,6 +119,57 @@ const chapters: ChapterOut[] = zhFiles.map((zh, i) => {
   };
 });
 
+/** 回响 title 从 EN 首行取": "之后的部分；回响中文章首行有"回响（其N）「title」"，抓最后一个「」 */
+function echoOrder(file: string): number {
+  const m = /^E(\d{2})-/.exec(file);
+  if (!m) throw new Error(`回响文件名须以 E0N- 开头：${file}`);
+  return Number(m[1]);
+}
+
+const echoes: ChapterOut[] = [];
+if (existsSync(ECHOES_DIR)) {
+  const echoFiles = readdirSync(ECHOES_DIR).filter((f) => f.endsWith('.md'));
+  const zhEchoes = echoFiles.filter((f) => !f.endsWith('.en.md')).sort();
+  for (const zh of zhEchoes) {
+    const en = zh.replace(/\.md$/, '.en.md');
+    if (!echoFiles.includes(en)) {
+      console.error(`✗ echoes/${zh} 缺少英文译本 ${en}`);
+      process.exit(1);
+    }
+    const zhLines = readFileSync(join(ECHOES_DIR, zh), 'utf8').replace(/\r\n/g, '\n').split('\n');
+    const enLines = readFileSync(join(ECHOES_DIR, en), 'utf8').replace(/\r\n/g, '\n').split('\n');
+    const webSlug = ECHO_WEB_SLUGS[zh.replace(/\.md$/, '')];
+    if (!webSlug) {
+      console.error(`✗ echoes/${zh} 没有登记网页 slug（在 gen-bible-snapshot.mts 的 ECHO_WEB_SLUGS 里加一行）`);
+      process.exit(1);
+    }
+    echoes.push({
+      order: echoOrder(zh),
+      slug: webSlug,
+      titleZh: parseTitleZh(zhLines[0]!),
+      titleEn: parseTitleEn(enLines[0]!),
+      eraLineZh: parseEraZh(zhLines),
+      eraLineEn: parseEraEn(enLines),
+      markdownZh: body(zhLines),
+      markdownEn: body(enLines),
+    });
+  }
+}
+
+const emitEntries = (entries: readonly ChapterOut[]): string[] =>
+  entries.map(
+    (c) => `  {
+    order: ${c.order},
+    slug: '${c.slug}',
+    titleZh: '${c.titleZh.replace(/'/g, "\\'")}',
+    titleEn: '${c.titleEn.replace(/'/g, "\\'")}',
+    eraLineZh: '${c.eraLineZh.replace(/'/g, "\\'")}',
+    eraLineEn: '${c.eraLineEn.replace(/'/g, "\\'")}',
+    markdownZh: \`${esc(c.markdownZh)}\`,
+    markdownEn: \`${esc(c.markdownEn)}\`,
+  },`,
+  );
+
 const out = [
   '// 低语诸王 · 世界大典快照 —— 由 scripts/gen-bible-snapshot.mts 生成，禁止手改。',
   '// docs/world-bible/ 是唯一真值；npm run verify:bible-snapshot 保证两边字节一致。',
@@ -128,22 +186,15 @@ const out = [
   '}',
   '',
   'export const BIBLE_CHAPTERS: readonly BibleChapter[] = [',
-  ...chapters.map(
-    (c) => `  {
-    order: ${c.order},
-    slug: '${c.slug}',
-    titleZh: '${c.titleZh.replace(/'/g, "\\'")}',
-    titleEn: '${c.titleEn.replace(/'/g, "\\'")}',
-    eraLineZh: '${c.eraLineZh.replace(/'/g, "\\'")}',
-    eraLineEn: '${c.eraLineEn.replace(/'/g, "\\'")}',
-    markdownZh: \`${esc(c.markdownZh)}\`,
-    markdownEn: \`${esc(c.markdownEn)}\`,
-  },`,
-  ),
+  ...emitEntries(chapters),
+  '] as const;',
+  '',
+  'export const BIBLE_ECHOES: readonly BibleChapter[] = [',
+  ...emitEntries(echoes),
   '] as const;',
   '',
 ].join('\n');
 
 mkdirSync(dirname(OUT), { recursive: true });
 writeFileSync(OUT, out, 'utf8');
-console.log(`✓ generated ${OUT}（${chapters.length} 章）`);
+console.log(`✓ generated ${OUT}（${chapters.length} 章 · ${echoes.length} 回响）`);

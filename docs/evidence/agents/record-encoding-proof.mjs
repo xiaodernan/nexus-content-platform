@@ -558,14 +558,15 @@ const LOOKALIKE = [{"f":"docs/decisions/0016-agent-runtime-hermetic-demo-loop.md
   // -- load-test markdown bullet. Both are person-written bilingual documentation, not damage.
   {"f":"docs/CURRENT-STATE.md","d":"adb6e4dcda39e1f6","i":[36335],"w":"REJECTED flanks cjk|punct"},
   // -- amendment (cont. 121, the THIRD consolidation): the merged parallel-ledger copied the same
-  // -- /guide bilingual line into all three ledger copies (x1 -> x3), and the GatewayPanel admin
+  // -- /guide bilingual line into three ledger copies at the time; the GatewayPanel admin
   // -- i18n wave brought in one new deliberately-bilingual row. The OLD gateway row (pinned as
   // -- e2b52dde6767c3a6 before v771) was REWRITTEN by the same wave, so its pin was moved, not kept;
   // -- both rows are person-written bilingual content by design, not damage.
-  {"f":"docs/CURRENT-STATE.md","d":"adb6e4dcda39e1f6","i":[36335],"w":"REJECTED flanks cjk|punct"},
   {"f":"docs/evidence/load-redis-completion-cache-2026-11-14.md","d":"03a7adbd583f2edb","i":[36335],"w":"REJECTED flanks cjk|cjk"},
-  {"f":"docs/CURRENT-STATE.md","d":"adb6e4dcda39e1f6","i":[36335],"w":"REJECTED flanks cjk|punct"},
-  {"f":"apps/web/src/app/admin/gateway/GatewayPanel.tsx","d":"7e16628c4435a5df","i":[36335],"w":"REJECTED flanks cjk|cjk"}
+  {"f":"apps/web/src/app/admin/gateway/GatewayPanel.tsx","d":"7e16628c4435a5df","i":[36335],"w":"REJECTED flanks cjk|cjk"},
+  // -- amendment (cont. 122, the v784 consolidation): the fourth consolidation merged the /guide line's
+  // -- three ledger copies back to ONE (the parallel ledger seam was auto-resolved). Pin re-measured
+  // -- from x3 to x1; the old extra two pins were deleted, not silently kept.
 ];
 const laKey = (e) => `${e.f}\u0000${e.d}`;
 const WITNESS_FLOOR = 4;

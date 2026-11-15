@@ -1514,6 +1514,8 @@ warm 方向奶油字压亮橙 3.35:1、cyber 的 light 模式是深底配深字 
   `verify:bible-snapshot` 字节校验一致。大典已入 RAG 语料：`npm run bench:world-bible`
   灌进 `eval-world-bible-<ts>` 专用项目（`story·全篇` + 45 世界条目 → chunks=59），
   5 个真实查询全命中（top1 正确章次），证据 `docs/evidence/world-bible-rag-2026-11-17.md`。
+  大典已扩展**回响集**（`docs/world-bible/echoes/`，番外正典，与主线同纪律）：首篇 E01「巡逻路札记」
+  （铁月纪·第二冬后，4 锚句中英对齐），并入快照、进 `/bible` 的「回响」分组、打印收口同主线。
 - [x] World Graph 可视化 + 可拖拽节点（§45）— 关系（有向、可带标签）与拖拽位置都存在世界文档里，
   Studio 第四个视图「世界图」画出来；见下方进度记录。自动避障 / 缩放 / 多选没做，不在 §45 的验收里。
 - [~] Character System + Character Agent 对话（§46-47）— §46 档案（含关系、声音、视觉标识）已落地，

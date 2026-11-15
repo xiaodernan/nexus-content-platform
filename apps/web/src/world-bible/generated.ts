@@ -1248,3 +1248,177 @@ On the last page of the patrol road the Night Watcher wrote: “It has seen the 
 `,
   },
 ] as const;
+
+export const BIBLE_ECHOES: readonly BibleChapter[] = [
+  {
+    order: 1,
+    slug: 'echo-001-patrol-road-notes',
+    titleZh: '巡逻路札记',
+    titleEn: 'Notes from the Patrol Road',
+    eraLineZh: '纪元：铁月纪 · 第二冬之后。',
+    eraLineEn: 'Era: the Iron-Moon Age — after the second winter.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 1): Notes from the Patrol Road
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐泡出来的另一层纹理。
+> 本篇写给守夜人之后出生、从没见过盐海、却仍认得巡逻路的孩子们。纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain
+> the salt grew on the same stone. Written for those born after the Night Watcher, who never
+> saw the salt sea but still know the patrol road. Same discipline: anchors verbatim.
+
+> 纪元：铁月纪 · 第二冬之后。
+> Era: the Iron-Moon Age — after the second winter.
+
+---
+
+## 一 · 没有路标
+
+巡逻路沿盐海外沿走了整整一百四十石——一石就是一趟海边围栏（沿路不数步数、只数轮到谁巡夜）。张哥说巡逻路是条路；他母亲说巡逻路是一夜一夜交班的方式；孩子们猜它是坨石头在纸上划了条不能越的线。三种说法都对。
+
+每三个月，它自己洗刷一次去年留下的痕：不是风，是盐；不是盐，是这条路从来不排除偷偷把它自己擦得一干二净。守夜人只知道「留下」和「没被留下」两种方式；没有「没记上」这一种，因为巡逻路的纸上一直不给人机会说。
+
+**锚句**：巡逻路没有路标——它每三个月自己洗刷一次去年留下的痕。
+
+**Anchor sentence**: the patrol road has no signs — every three months it scrubs the past year's marks away by itself.
+
+---
+
+## 二 · 海鸥不说
+
+第七口井边没有护栏，因为挖井的人选择相信：会飞的才值得看。
+
+每位来过的赛金子海鸥——不是神使，也不是海的嘴，只是一个活着要活下去的鸟——每天站在井的石沿上。牠不告诉别人风什么时候来。牠只是站着。守夜人说：海鸥不告诉你何时起风，它只是站在井边，静静看。
+
+**锚句**：海鸥不告诉你何时起风，它只是站在井边，静静看。
+
+**Anchor sentence**: the gull never tells you when the wind is coming; it just stands by the well, quietly watching.
+
+---
+
+## 三 · 档案里没有「日常」两个字
+
+余烬阁的书架上全是大写「大事记」——七口井的生期、王城的败约、教团的七次灯——没有一个守夜人见过「日常」两个字被单独刻出来，就像没有人会把呼吸单独列进账本。
+
+后来孩子发现，档案里那些被称为「日常」的条目，每一行都是不日常写成的日常：某年某月某日有暴风，然后某人在暴风下继续走完了路。那就是全部。没有人写下一句「这一天他还活着」——因为其中的每一行对它的记账人来说，都是有生以来最平静的日常。
+
+**锚句**：档案里从没有过「日常」两个字——都是不日常写成的日常。
+
+**Anchor sentence**: the archives never held the word "ordinary" — everything in them was the extraordinary, written in the tense of the ordinary.
+
+---
+
+## 四 · 记住与忘掉
+
+铁月纪的每一任守夜人被教过两句话：
+
+忘掉的盐不会让任何人不再看见海；
+记住的盐也不会让海再揭大名。
+
+而巡逻路自身——从来不对谁效命。在它面前，只有两种重量：记住多的那一边总是更沉一点，忘掉多的那一边总是更轻一点。守夜人说，薄薄的那一边不欠任何人、但也没有回应可言。沉的那一边——时间沉过了它，它也只能继续走。没有选择，只有记忆。
+
+**锚句**：记住的东西会变重，忘掉的东西会变轻——巡逻路什么都没选，它只是继续走。
+
+**Anchor sentence**: what is remembered grows heavier; what is forgotten grows lighter — the patrol road chose neither; it just kept walking.
+
+---
+
+## 五 · 模型映射（回响一章对应关系）
+
+| 类别 | 标题 | 对应节 |
+|---|---|---|
+| lore | 巡逻路没有路标 · 海鸥站在第七口井边 | 一、二 |
+| geography | 第七口井 · 余烬阁 · 盐海外沿 | 一、二、三 |
+| characters | 守夜人 · 张哥（铁月纪第一批孩子）· 海鸥 | 一、二、四 |
+| story | 巡逻路札记 · 回响（其一） | 全篇 |
+| items | 巡逻路 · 余烬阁记账纸 | 一、三 |
+| history | 铁月纪第二冬之后的日常 | 一至四 |
+
+> 回响里没有人名、没有年份，只有盐与手——也只有盐与手，足够一百多石的交班。
+> 它不接第二章也不接第三章。它只是潮里压过的一页，被偶尔潮回来访的孩子发现。
+>
+> An echo carries no year and no name — only salt and hands, enough for a hundred stones' worth of night shifts.
+> It follows no chapter, it answers to none. Just a page the tide pressed long ago — found by whoever comes back for it.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一）「巡逻路札记」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain
+> the salt grew on the same stone. Written for those born after the Night Watcher, who never
+> saw the salt sea but still know the patrol road. Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐泡出来的另一层纹理。本篇写给守夜人之后出生、从没见过盐海、却仍认得巡逻路的孩子们。纪律同正典。
+
+> Era: the Iron-Moon Age — after the second winter.
+> 纪元：铁月纪 · 第二冬之后。
+
+---
+
+## I · No Signs
+
+The patrol road runs one hundred and forty stone along the outer edge of the salt sea — a stone is one stretch of fencing along the shore (you do not count steps along this road; you count whose turn it is). Zhangge said the road was a way; his mother said the road was the way watch was handed over; the children guessed it was a rock that had been dragged across the paper as a boundary. All three were right.
+
+Every three months it scrubs the past year's marks away by itself. Not the wind — the salt. Not the salt — the road has never once ruled out the possibility of wiping its own slate clean. The Night Watcher only knows two states: left, or not left. There is no "not recorded" — because the paper of the patrol road never permitted anyone the space for it.
+
+**Anchor sentence**: the patrol road has no signs — every three months it scrubs the past year's marks away by itself.
+
+**锚句**：巡逻路没有路标——它每三个月自己洗刷一次去年留下的痕。
+
+---
+
+## II · The Gull Stays Quiet
+
+There is no railing at the seventh well, because the digger chose to believe: only what can fly is worth watching.
+
+Every arriving gull — not a messenger, not the sea's mouth, only a bird doing its bird-work of staying alive — stands on the stone rim of the well. It never tells anyone when the wind is coming. It just stands there. The Night Watcher said: the gull never tells you when the wind is coming; it just stands by the well, quietly watching.
+
+**Anchor sentence**: the gull never tells you when the wind is coming; it just stands by the well, quietly watching.
+
+**锚句**：海鸥不告诉你何时起风，它只是站在井边，静静看。
+
+---
+
+## III · No Page Carries the Word "Ordinary"
+
+On the shelves of the Ember Archive everything is marked "Grand Events" — the seventh convocation's seven lamps, the fall of the capital, the seven wells' birth — yet no one had ever seen the word "ordinary" carved by itself, as if no one would ever file a breath into a ledger.
+
+Later the children found that everything called "ordinary" in the archive was only the extraordinary, written down as ordinary days: on such-and-such a day a storm came, and someone kept walking through it. That was all. No one appended "and he went on" — because to the ones keeping the record, each of those rows was the calmest ordinary of their lives.
+
+**Anchor sentence**: the archives never held the word "ordinary" — everything in them was the extraordinary, written in the tense of the ordinary.
+
+**锚句**：档案里从没有过「日常」两个字——都是不日常写成的日常。
+
+---
+
+## IV · Remembering and Forgetting
+
+Every Night Watcher of the Iron-Moon Age was taught these two words:
+
+The salt forgotten cannot stop anyone else from seeing the sea;
+the salt remembered cannot call the sea by its name again.
+
+And the patrol road itself — it served no one. On its surface only two kinds of weight remain: the heavier end of remembering, and the lighter end of forgetting. The Night Watcher said: the thinner end is indebted to no one, yet it answers to no one either. The heavier end — time has sunk into it, and it can only keep walking. No choices, only memory.
+
+**Anchor sentence**: what is remembered grows heavier; what is forgotten grows lighter — the patrol road chose neither; it just kept walking.
+
+**锚句**：记住的东西会变重，忘掉的东西会变轻——巡逻路什么都没选，它只是继续走。
+
+---
+
+## V · This Echo's Shadow in the Model
+
+| Kind | Title | Where |
+|---|---|---|
+| lore | The road with no signs · the gull at the seventh well | I, II |
+| geography | The seventh well · the Ember Archive · the outer edge of the salt sea | I, II, III |
+| characters | The Night Watcher · Zhangge (first children of the Iron-Moon Age) · the gull | I, II, IV |
+| story | Notes from the Patrol Road · Echo No. 1 | the whole thing |
+| items | The patrol road · Ember Archive ledger paper | I, III |
+| history | Ordinary days after the second winter of the Iron-Moon Age | all |
+
+> An echo carries no year and no name — only salt and hands, enough for a hundred stones' worth of night shifts.
+> It follows no chapter, it answers to none. Just a page the tide pressed long ago — found by whoever comes back for it.
+>
+> 回响里没有人名、没有年份，只有盐与手——也只有盐与手，足够一百多石的交班。
+> 它不接第二章也不接第三章。它只是潮里压过的一页，被偶尔潮回来访的孩子发现。
+`,
+  },
+] as const;

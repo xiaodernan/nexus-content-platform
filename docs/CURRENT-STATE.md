@@ -4338,6 +4338,27 @@ D
 - SSR 实测（next dev :3401，已关）：/api-tokens zh/en cookie 各 200。
 - showcase 快照同步于提交后（npm run sync:showcase）。
 
+## cont. 153 (2026-11-17) - v784: 世界大典扩「回响集」——番外正典通道
+
+- 触发：用户直接要求"给出更多的无限故事 / 深度开拓还没有做的一大块"。
+- 新增番外目录 `docs/world-bible/echoes/`（E0N- 命名，与主线严格同纪律 · 锚句中英字字对齐 · ≥4 锚 · 章末 mundo-node 映射表）：
+  - **E01 回响 · 其一「巡逻路札记」**（`docs/world-bible/echoes/E01-巡逻路札记.md`）：铁月纪·第二冬之后，
+    巡逻路没有路标 / 海鸥在第七口井边不说 / 档案里没有日常两个字 / 记住变重忘掉变轻——巡逻路只接着走。
+    4 处锚句中英字字对齐（road signs/scrubs / gull never says / ordinary never in archives / remember & forget）；
+    《巡逻路札记》全篇映射表；无它不属于四扇门的任何一扇——回响不是续篇，是同一块盐加了另一层纹理。
+- 英文译本 E01-巡逻路札记.en.md 同步 1:1。
+- 校验器第二版重写（`verify-world-bible-anchors.mts`）：主线 + echoes 同一套判据 + **跨主线/回响全局唯一**
+  （锚句两线 29 zh + 29 en，零重复，全过）。
+- 快照生成器第二版：echoes 一并输出 `BIBLE_ECHOES`（WEB_SLUGS 登记纪律不变）；
+  echo slug: `echo-001-patrol-road-notes`。
+- `/bible` 目录页新增「回响 · Echoes」分组（bb-echoHead/bb-echoTitle/bb-echoLede 三门面类，进 §BIBLE-1）；
+  阅读页 `/bible/[slug]` 支持按 realm 查找、上/下一篇在同组跳转、回响簿记 breadcrumb "回响 · 其一"；
+  阅读页标题、metadata、上一页/下一页导航接 `isEcho` 分支；打印同主线。
+- Gates：`verify:world-bible` ✓ 29/29；`verify:bible-snapshot` ✓；fe-gates 117/117 · 1158/1158；
+  census OK（2202 类全有引用）；tsc web 0；eslint 净；SSR 实测 /bible + /bible/echo-001-patrol-road-notes zh/en 各 200。
+- ROADMAP M3 登记回响；CURRENT-STATE 登记。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
 ## cont. 152 (2026-11-17) - v783: /analytics 数据账本双语化
 
 - 触发：同上（最大的一块 zh-only 公开页）。
