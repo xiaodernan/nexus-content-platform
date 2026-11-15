@@ -3849,9 +3849,20 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   （四章、ASCII slug、缺登记直接红）；/bible 目录页四章齐现（壹贰叁肆 / I-IV）；
   reader/metadata 全部适配四章（en title/卷号）。
 - ROADMAP M3 大典目录更新；CURRENT-STATE 登记。
-- Gates：`verify:world-bible` 4 章 / 25 zh + 25 en 锚句对；verify:bible-snapshot ✓；
-  新增章不改 §FE-GATE 的 bb-*（仅重钉 bible 两页 SHA：44a5ed52… / 01287c92…）；
-  fe-gates 117/117 · 1157/1157；census 2199 OK；tsc web 0；eslint 净。
+- showcase 快照同步于提交后（npm run sync:showcase）。
+
+## cont. 147 (2026-11-17) - v778: 游戏 3D 鼠标视角引擎方向修正
+
+- 用户长期反馈：game 3D 视角"拖拽向上视角反而下沉、下滑才抬高——搞反了，很难受"。
+- 根因：`GameCanvas3D.tsx` 的轨道相机仰角 pitch ∈ [0.18, 1.35]（高度角，相机绕场中心转），
+  拖鼠标时写成 `pitch += dy×0.005`——向上拖 clientY 变小、dy 为负 → 仰角**减小**、相机**下沉**、
+  朝地平线平看（= 用户看到的"往下看"），向下拖则相机**升高**朝俯视（= 用户看到的"往上看"）。
+- 修法：pitch 改用 `pitch -= dy×0.005`，与 /world 行走视角（WorldWalk，拖拽向上 = 抬头）及
+  `/guide` ⑧ 文档（"向上拖 = 往上看"）同一惯例：向上拖 = 仰角升高（相机上抬），向下拖 = 仰角降低（相机下落）。
+  WorldWalk 本身映射正确（three.js YXZ 下 pitch 正 = 抬头，实测 node 验证），游戏 3D 这一台与它对齐。
+- §FE-95 门重钉（e9876d4c… → 0fcaad47…，门内 redact 复算）；行为修正仅一行（注释 3 行）。
+- Gates：fe-gates 117/117 · 1157/1157；census 2199 OK；tsc web 0；eslint 干净。
+- 注：GUI 手感必须在真机里确认；本片只修符号/方向，不改灵敏度（0.005/rad、夹上下限 0.18–1.35 均保留）。
 - showcase 快照同步于提交后（npm run sync:showcase）。
 
 
