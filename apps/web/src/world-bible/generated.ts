@@ -1787,4 +1787,176 @@ The one extra page that showed up had neither name nor address — only salt, sh
 > Whose bamboo mat was borrowed and how much salt was accounted for, the Night Watcher does not record: only the line «the lamp is not out yet».
 `,
   },
+  {
+    order: 4,
+    slug: 'echo-004-salt-waiting-for-the-tide-in-the-well',
+    titleZh: '盐在井里等潮',
+    titleEn: 'Salt Waiting for the Tide in the Well',
+    eraLineZh: '纪元：铁月纪 · 第四十一次大会之后——没有任何一次会议提到「向井里放盐」。',
+    eraLineEn: 'Era: the Iron-Moon Age — after the 41st Convocation; no meeting ever mentioned putting salt into the well.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 4): Salt Waiting for the Tide in the Well
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐泡出来的另一层纹理。
+> 本篇写给谁把盐放到井里，又从不回来取的。纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for those who set salt down into the well and never come back for it. Same discipline: anchors verbatim.
+
+> 纪元：铁月纪 · 第四十一次大会之后——没有任何一次会议提到「向井里放盐」。
+> Era: the Iron-Moon Age — after the 41st Convocation; no meeting ever mentioned putting salt into the well.
+
+---
+
+## 一 · 井里没有海水
+
+井里没有海水。因为井从不装什么东西——这是守夜人记住的第一句话。
+
+第二句：井里只有没人认领的盐。
+
+每天都会有一些人走到井边，把一小袋盐放在桶沿上，松手，走掉。他们什么都不说——说了也没法说，因为井从来不回答，也不会「装」。盐落下落地，却没有掉进底水里（井底从来没有声音）；盐只是在静静地和一起站在桶边等一个消息——「潮来了」。
+
+**锚句**：井里没有海水——井里只有没人认领的盐。
+
+**Anchor sentence**: there is no sea water inside the well — only salt that no one ever claimed.
+
+---
+
+## 二 · 盐不说话
+
+盐不说话。它只是被放下了，再也没有人把它拿走。
+
+守夜人偶尔去捞几把出来摊在石桌上晾晒——不是要用盐，也不是要数它——只是要看它是黑是白、是潮多还是潮少。潮候船回游的那一年，盐会更黑一点，像很久没擦过的银器。
+
+**锚句**：盐不说话——盐只是被放下了，再也没有人把它拿走。
+
+**Anchor sentence**: salt does not speak — it is set down once, and never lifted again.
+
+---
+
+## 三 · 潮来的时候
+
+潮候船一放，井里那些潮候船的喜欢会画下很多线。潮候院在那个月里绕圈走，因为这一年的潮候院和井之间什么都没发生。
+
+井不回答。潮不催。守夜人偶尔会去井边坐一坐，在那里静静地看自己的手——没有任何一页账本到得了这里；这里没有税，没有收税的人——这里只有盐，和它在等的潮。
+
+**锚句**：潮来的时候，井里的盐才听清楚自己被放进来的理由。
+
+**Anchor sentence**: when the tide comes in, the salt inside the well finally hears the reason it was set here.
+
+---
+
+## 四 · 守夜人不收盐，也不拒盐
+
+守夜人从来没有碰过井里的盐。放下的不动、带不走的也不动、坏的不捞、好的也不收。
+
+守夜人只数一件事：盐落下的次数。
+
+潮候院在潮候院里仍然举行每月一次的 Convocation，第八盏灯也仍亮着，粮市账仍被整齐地抄写；可在井边上，什么都没写成过账，什么都没被誊走过，也什么都没有被拒绝过——那就够了。
+
+**锚句**：守夜人不收盐、不拒盐——守夜人只记录盐落下的次数。
+
+**Anchor sentence**: the Night Watcher never takes the salt, never refuses it — he only counts the times it falls.
+
+---
+
+## 五 · 模型映射（回响四章对应关系）
+
+| 类别 | 标题 | 对应节 |
+|---|---|---|
+| lore | 盐在井里等潮 · 潮的沉默 | 一、三、四 |
+| geography | 第七口井 · 井边石台 · 潮候船坡 | 一、二、三 |
+| characters | 守夜人 · 潮候院第四十一次大会 · 无名的放盐人 | 二、三、四 |
+| story | 盐在井里等潮 · 回响（其四） | 全篇 |
+| items | 井里无人认领的盐 · 潮候院月度 Convocation | 一、二、三、四 |
+| history | 铁月纪第四十一次大会之后 · 井边的停顿 | 一至四 |
+
+> 这一章没有水可喝，没有盐可卖——井边的停顿，才是潮候院沉默的最大体量。
+> 写下来说明，也有一件事不说明：有些方程让潮候院算完了；有些永远不必算，已经自洽。
+>
+> This chapter has no water to draw, no salt to sell — the bench beside the well is the biggest body the tide-waiting institute owns.
+> Some equations the institute finishes. Some are self-steady and never needed to be computed; the silence approves of neither argument.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其四）「盐在井里等潮」
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐泡出来的另一层纹理。
+> 本篇写给谁把盐放到井里，又从不回来取的。纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for those who set salt down into the well and never come back for it. Same discipline: anchors verbatim.
+
+> 纪元：铁月纪 · 第四十一次大会之后——没有任何一次会议提到「向井里放盐」。
+> Era: the Iron-Moon Age — after the 41st Convocation; no meeting ever mentioned putting salt into the well.
+
+---
+
+## 一 · No Sea Water
+
+There is no sea water inside the well. A well never holds anything — that is the first thing the Night Watcher learns.
+
+The second: the well holds only salt nobody ever claimed.
+
+Every day, a few people walk to the well, set a small sack of salt on the rim of the bucket, let go, and walk away. They say nothing — they cannot say anything. The well never answers, and it never «fills». The salt falls and does not fall into water below (there is no sound at the bottom); it simply stands beside the bucket edge, waiting for news that the tide has come in.
+
+**锚句**：井里没有海水——井里只有没人认领的盐。
+
+**Anchor sentence**: there is no sea water inside the well — only salt that no one ever claimed.
+
+---
+
+## 二 · Salt Does Not Speak
+
+Salt does not speak. It is set down once, and never lifted again.
+
+The Night Watcher sometimes scoops a handful out onto the stone table to look at — not to use it, not to count it — just to see whether it is dark or light, whether the tide-was high or low. In the year the tide-waiting ships returned the salt came out darker — like silverware never polished.
+
+**锚句**：盐不说话——盐只是被放下了，再也没有人把它拿走。
+
+**Anchor sentence**: salt does not speak — it is set down once, and never lifted again.
+
+---
+
+## 三 · When the Tide Comes In
+
+When the tide-waiting ships put on the horizon, the tide-waiting institute draws a hundred lines. The tide-waiting institute walks circles that month; and between the institute and the well nothing at all happens.
+
+The well does not reply. The tide does not hurry. The Night Watcher sometimes goes and sits at the rim, quietly looking at his own hands — no ledger ever reaches here; there is no tax here, and no one to collect it; here there is only salt, and the tide it is waiting for.
+
+**锚句**：潮来的时候，井里的盐才听清楚自己被放进来的理由。
+
+**Anchor sentence**: when the tide comes in, the salt inside the well finally hears the reason it was set here.
+
+---
+
+## 四 · The Watcher Never Takes Nor Refuses
+
+The Night Watcher has never touched the salt in the well. Anything set down, he leaves; anything carried away, he leaves; what is spoiled, he does not scoop out; what is good, he does not collect.
+
+The Night Watcher counts exactly one thing — the number of times salt falls.
+
+The institute still holds the monthly Convocation, the Eighth Lamp still burns, the granary ledger is still copied neatly; but nothing at the rim is ever written into a book, copied out, or refused — and that is enough.
+
+**锚句**：守夜人不收盐、不拒盐——守夜人只记录盐落下的次数。
+
+**Anchor sentence**: the Night Watcher never takes the salt, never refuses it — he only counts the times it falls.
+
+---
+
+## 五 · Mapping（Echo No. 4 → world model）
+
+| Category | Title | Sections |
+|---|---|---|
+| lore | The well that holds unclaimed salt — the tide's silence | 一、三、四 |
+| geography | Seventh Well · the stone rim · the tide-waiting slope | 一、二、三 |
+| characters | The Night Watcher · the 41st Convocation in the tide-waiting institute · those who set salt and never return | 二、三、四 |
+| story | Salt Waiting for the Tide in the Well · Echo No. 4 | the whole piece |
+| items | unclaimed salt in the well · the monthly Convocation of the tide-waiting institute | 一、二、三、四 |
+| history | the Iron-Moon Age, after the 41st Convocation · the bench by the well | 一至四 |
+
+> 这一章没有水可喝，没有盐可卖——井边的停顿，才是潮候院沉默的最大体量。
+> 写下来说明，也有一件事不说明：有些方程让潮候院算完了；有些永远不必算，已经自洽。
+>
+> This chapter has no water to draw, no salt to sell — the bench beside the well is the biggest body the tide-waiting institute owns.
+> Some equations the institute finishes. Some are self-steady and never needed to be computed; the silence approves of neither argument.
+`,
+  },
 ] as const;

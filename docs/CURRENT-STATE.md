@@ -4153,3 +4153,12 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 修正：与 `/world WorldWalk`（YXZ、pitch 正 = 抬头、拖拽上=抬头）同源约定：`pitch = drag.pitch + dy*0.005` —— 向下拖 dy>0 → pitch 增大→相机升高→俯视≈「往下看」；向上拖 dy<0 → pitch 减小→相机下沉、仰视地平线≈「往上看」。clamped 0.18~1.35。
 - §FE-3D 门重钉（剥类后 SHA faf38989…，零行为）；一次全码循环验证（grep 所有 pitch 计算、与 /world 对齐、只动一条算式与一条注释）——**方向语义统一到同一惯例上**。
 - fe-gates **125/125 · 1223/1223**；census OK；tsc web 0。SSR 实测不要求（Canvas 仅 client-side 运行且交互式）。
+
+## cont. 169 (2026-11-16) — v802: 回响 · 其四《盐在井里等潮》——典籍室再 +1 块新大陆
+
+- 用户指令：「给出后续更多的无限故事 / 深度开拓还没有做的一大块部分」。
+- 新番外正典：docs/world-bible/echoes/E04-盐在井里等潮.md(+.en.md)（井里没有海水、只有没人认领的盐 / 盐不说话 / 潮来的时候 / 守夜人只记录盐落下的次数）；
+  与其余三篇回响共用主典的盐/潮/交班诗学；41/41 锚句中英逐字对齐。
+- 快照 gen 注册 echo-004-salt-waiting-for-the-tide-in-the-well；/bible「回响」分组自动收录。
+  verify:world-bible ✅ / verify:bible-snapshot ✅；SSR 实测双语 200（zh《盐在井里等潮》/ en 《Salt Waiting for the Tide in the Well》）。
+- 回响集现在：E01 巡逻路札记 · E02 潮候船上没有岸 · E03 退潮三日 · E04 盐在井里等潮；主线 4 章 + 回响 4 篇 + 潮汐挑战 + 七口井 + 直达检索；41 锚句。
