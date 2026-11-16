@@ -14292,3 +14292,10 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   5 锚句 zh/en 全局唯一（105/105）。
 - `gen-bible-snapshot.mts` 登记 `echo-018-the-cat-in-the-institute-that-never-meowed`；快照重生成（4+18 回响）。
 - verify:world-bible ✓ 105/105；verify:bible-snapshot ✓。
+
+## §GUIDE-WORLD — /guide feature map gains the four merged world pages (2026-11-17 · v830)
+
+- 并轨自 `origin` 的 `/world/<项目>/atlas|almanac|quiz|memories` 早先不可从 /guide 直接可见；本片两辞两处补：
+  - zh：《Studio 画布与世界》功能地图（三组画布行和世界行）与完整地图行收齐；
+  - en：mirrors the same; every page listed in 2 places with cost-bearing labels.
+- gates：`guide-visual-style.test.ts` 15/15；tsc web 0；fe-gates 125/125 · census 2531。

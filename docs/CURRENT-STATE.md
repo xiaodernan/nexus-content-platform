@@ -4381,3 +4381,10 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 
 - 新回响 E18（中英双文件 + 映射表）；verify:world-bible ✓ 105/105；快照 4+18 回响。
 - 世界 4+18；这是第一只出现在潮候院叙事里的动物。
+
+## cont. 195 (2026-11-17) — v830 · /guide 世界入口与「制作/测试全」同步
+
+- 第七次并轨后新增的 atlas / almanac / quiz / memories 此前只在页面可用、未出现在 /guide 的功能地图里——本片在 zh/en 两辞补齐：
+  `/world/<id>/atlas 世界全图`、`/world/<id>/almanac 世界年历`、`/world/<id>/quiz 世界问答（确定性，内容出自本项目）`、`/world/<id>/memories 世界记忆`。
+- 不改功能，不改 gate（`guide-visual-style.test.ts` / `help-drawer-visual-style.test.ts` 均不含 SHA，仅结构断言）。
+- fe-gates **125/125 · 1223/1223 · census 2531**；已同步 showcase。
