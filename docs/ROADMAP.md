@@ -14323,3 +14323,11 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   5 锚句 zh/en 全局唯一（115/115）。
 - `gen-bible-snapshot.mts` 登记 `echo-020-the-bell-that-never-rang`；快照重生成（4+20 回响）。
 - verify:world-bible ✓ 115/115；verify:bible-snapshot ✓。
+
+## §BIBLE-32 — 回响 · 其二十一《里巷子码头的七盏号灯》（2026-11-17 · v834）
+
+- 产出：`docs/world-bible/echoes/E21-里巷子码头的七盏号灯.md`（中）/ `.en.md`（英）——里巷子码头七盏号灯：
+  没有施工图、第四盏 42 年没亮、海图必须画七盏、第七盏其实是第一盏、灯的顺序就是潮沙盘的列。
+  5 锚句 zh/en 全局唯一（120/120）。
+- `gen-bible-snapshot.mts` 登记 `echo-021-the-seven-lamps-of-the-back-alley-pier`；快照重生成（4+21 回响）。
+- verify:world-bible ✓ 120/120；verify:bible-snapshot ✓。

@@ -4405,3 +4405,8 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 
 - 新回响 E20（中英双文件 + 映射表）；verify:world-bible ✓ 115/115；快照 4+20 回响。
 - 世界 4+20；E20 是第一处不是人物/物件而是一口钟——「从不响却仍在塔上的钟」。
+
+## cont. 199 (2026-11-17) — v834 · 回响 · 其二十一《里巷子码头的七盏号灯》
+
+- 新回响 E21（中英双文件 + 映射表）；verify:world-bible ✓ 120/120；快照 4+21 回响。
+- 世界 4+21；E21 追述建院最早的灯——第七盏别人不承认是父亲。

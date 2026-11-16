@@ -4970,4 +4970,195 @@ Never once has the Institute hung time from the seventy-five-year-old tower: the
 > The bell in the tower has never rung once — when the wind rises, the watchers listen to the sea.
 `,
   },
+  {
+    order: 21,
+    slug: 'echo-021-the-seven-lamps-of-the-back-alley-pier',
+    titleZh: '里巷子码头的七盏号灯',
+    titleEn: 'The Seven Lamps of the Back-Alley Pier',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——涨潮的薄暮。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; a dusk minute before high tide.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 21): The Seven Lamps of the Back-Alley Pier
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给里巷子码头的七盏号灯——灯号的顺序和潮沙盘的列一模一样；没人记得它们什么时候一起升上灯杆。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the seven beacon lamps on the back-alley pier — the order of numbers mirrors the columns of the sand table; no one remembers when they were raised.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——涨潮的薄暮。
+> Era: the Institute — after the 41st Convocation; a dusk minute before high tide.
+
+---
+
+## 一 · 七盏灯什么时候挂上去的
+
+里巷子的灯杆没有哪一张施工图上画过七盏灯。
+
+仓库里最早的潮候院东侧图只有六盏灯的编号划痕。仓库的灯杆验收册里只有六盏灯的记录——七盏灯从哪一个项目来，没有人查过。
+值守对新来的人只说：「灯就在。」灯杆的扶手被长期使用磨得发亮，像潮候院的潮汐表沙漏。
+
+**锚句**：七盏号灯没有哪一张施工图上画过它们——最早的图纸只有六盏的划痕。
+**Anchor sentence**: no construction drawing of the Institute ever showed seven lamps — the oldest drawing marks only six.
+
+---
+
+## 二 · 第四盏灯
+
+第四十二年前的台风，第四盏灯在风眼经过的那一夜熄了。
+
+第二天早上没有人去点它——油是有的，灯芯是碎的。值守长当时的记录只写了一句：「四号的芯散了。」之后整个米缸月没有人补芯。
+后来的值守发现：条船还在走第四盏灯的航线。因为熄掉的地方，被海图上的灯影替代——海员照旧按「四」来对星缝。
+
+**锚句**：第四盏灯四十二年没再亮过——值守没有按回来，岸上的人照旧念「四」。
+**Anchor sentence**: lamp No. 4 has not burned for forty-two years — no one put it back, and the shore still says "four".
+
+---
+
+## 三 · 海图上是七盏
+
+抄本员的海图上七盏灯必须同时画。
+
+这不是铁律，但抄本员之间不画少的：缺了一盏，就等于否认潮候院的潮汐表和航线之间的关系。
+某一年抄本员私下传过话：缺第四盏是错字，不是错图——海图上的灯是排布不是照明，不能少。
+
+**锚句**：抄本员的海图上七盏灯必须同时出现——缺一盏就是错的海图不是美术作品。
+**Anchor sentence**: the copyists' charts must show all seven lamps — miss one, and the chart is wrong, not artistic.
+
+---
+
+## 四 · 第七盏是第一盏
+
+值守长老了以后才跟少数接触过他的副抄本员说：
+
+第七盏灯不是第七盏——它是潮候院建院那一年挂的第一盏灯。后面六盏灯按它的间隔补的。
+潮沙盘上六条辅助的沙线是后加的，最外面那一条是最早的。值守一直传下去：
+「七盏灯里它是别的灯的父亲。」
+里巷子的值守私下都知道，第七盏灯一直在闪、或者一度不闪过——它从来没被拆过。
+
+**锚句**：第七盏灯不是第七盏，它是潮候院最早挂的那一盏——后面六盏是按它的间距补的。
+**Anchor sentence**: lamp No. 7 is not the seventh — it is the first lamp the Institute ever hung; the other six were raised in its spacing.
+
+---
+
+## 五 · 灯与潮汐表
+
+潮汐表七列的间隔和灯与灯之间的间隔一致。
+
+潮候院建院那时候没有表，只有灯——人们是靠灯来等潮的。
+后来有了潮汐表，里巷子抄本员把它抄成七列的时候从来没人质疑过这个数：「灯就是表，表就是灯。」
+现在的海员走进潮候院港湾的时候，先看的是潮沙盘的方向，不是灯高——潮比灯亮，灯比标清。
+
+**锚句**：潮沙盘七列的排法和灯的顺序一样——潮候院靠灯记潮，也靠潮记灯。
+**Anchor sentence**: the seven columns of the sand table match the order of the lamps — the Institute keeps time by the lamps, and keeps the tide by the light.
+
+---
+
+## 六 · 映射（回响二十一章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 潮沙盘的七列 · 灯的序号 · 米缸月（tide-guild 的月）| 一、三、四、五、六 |
+| geography | 里巷子码头 · 潮沙盘 · 潮候院东侧海 | 一、二、三、五、六 |
+| characters | 值守长 · 里巷子抄本员 · 条船海员 | 一、二、三、四、五 |
+| story | 七盏号灯 · 回响（其二十一） | 全篇 |
+| items | 七盏灯 · 灯芯 · 潮沙盘 · 海图 | 一、二、三、五、六 |
+| history | 四十二年前的一次潮变 · 第四十一次大会之后 | 二、四、六 |
+
+> 七盏号灯里有一盏从来没点过——潮候院靠灯知道自己还活着。
+> One of the seven lamps was never lit at all — the Institute uses the lamps to know it is still alive.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其二十一）「里巷子码头的七盏号灯」
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给里巷子码头的七盏号灯——灯号的顺序和潮沙盘的列一模一样；没人记得它们什么时候一起升上灯杆。
+> 纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the seven beacon lamps on the back-alley pier — the order of numbers mirrors the columns of the sand table; no one remembers when they were raised.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——涨潮的薄暮。
+> Era: the Institute — after the 41st Convocation; a dusk minute before high tide.
+
+---
+
+## 一 · When Were the Seven Lamps Raised
+
+No construction chart of the Institute ever showed seven lamps on the pier.
+
+The earliest east-side map in the warehouse carries the marks of only six lamp positions. The acceptance log for the pier's handrails registers six lamps — where the seventh came from, no one has ever checked.
+The watchers tell new arrivals only this: "The lamps are." The rail has been hold-worn to a shine, like the sand in the Institute's tide-tables.
+
+**锚句**：七盏号灯没有哪一张施工图上画过它们——最早的图纸只有六盏的划痕。
+**Anchor sentence**: no construction drawing of the Institute ever showed seven lamps — the oldest drawing marks only six.
+
+---
+
+## 二 · Lamp No. 4
+
+The typhoon of forty-two years ago put out lamp No. 4 in the hour the typhoon's eye passed over.
+
+No one relit it the next morning — the oil was there, the wick was in shards. The keeper's log records one line: "No. 4's wick scattered." No one replaced the wick in the following rice-jar month.
+The watchers came to know later that the ships still walk the line of lamp No. 4. Because the dark spot has been answered by a gap in the chart — the sailors steer by "the four".
+
+**锚句**：第四盏灯四十二年没再亮过——值守没有按回来，岸上的人照旧念「四」。
+**Anchor sentence**: lamp No. 4 has not burned for forty-two years — no one put it back, and the shore still says "four".
+
+---
+
+## 三 · The Chart Shows Seven
+
+The copyists' charts must show all seven lamps at once.
+
+This is not a statute, but no copyist draws fewer: to miss one is to deny the relation between the Institute's tide-tables and the shipping lanes.
+One year the alley passed word that to omit lamp No. 4 is a mistake of typography, not cartography — the lamps on the chart are layout, not light, and cannot be absent.
+
+**锚句**：抄本员的海图上七盏灯必须同时出现——缺一盏就是错的海图不是美术作品。
+**Anchor sentence**: the copyists' charts must show all seven lamps — miss one, and the chart is wrong, not artistic.
+
+---
+
+## 四 · The Seventh Is the First
+
+When the keeper grew old, he told a handful of senior copyists:
+
+the seventh lamp is not the seventh — it was the first lamp the Institute ever hung, in the year the Institute was founded. The other six were raised to match its spacing.
+The six auxiliary sand-lines on the sand table came later; the outermost line is the oldest. The watchers pass it on like this: "Lamp No. 7 is the father of the other six."
+Every watcher in the back alley knows that lamp No. 7 has been flickering, or has stopped flickering, more than once — it has never been taken down.
+
+**锚句**：第七盏灯不是第七盏，它是潮候院最早挂的那一盏——后面六盏是按它的间距补的。
+**Anchor sentence**: lamp No. 7 is not the seventh — it is the first lamp the Institute ever hung; the other six were raised in its spacing.
+
+---
+
+## 五 · The Lamps and the Tide-Tables
+
+The seven columns of the tide-tables stand at the same intervals as the seven lamps.
+
+In the year the Institute was founded there was no table — there were only lamps; people waited for the tide by the light.
+When the tide-tables came later, the copyists wrote them in seven columns, and no one ever questioned the count: the lamps are the table; the table is the lamps.
+Sailors entering the harbor today first look to the direction of the sand table, not to the lamps' height — the tide is clearer than any light, and the light is clearest when it agrees with the tide.
+
+**锚句**：潮沙盘七列的排法和灯的顺序一样——潮候院靠灯记潮，也靠潮记灯。
+**Anchor sentence**: the seven columns of the sand table match the order of the lamps — the Institute keeps time by the lamps, and keeps the tide by the light.
+
+---
+
+## 六 · Mapping（Echo No. 21 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | The seven columns · the numbering of lamps · the rice-jar month | 一、三、四、五、六 |
+| geography | The back-alley pier · the sand table · the east sea | 一、二、三、五、六 |
+| characters | The keeper · the copyists · the sailors | 一、二、三、四、五 |
+| story | The Seven Lamps · Echo No. 21 | 全篇 |
+| items | The lamps · the wick · the sand table · the charts | 一、二、三、五、六 |
+| history | The great tide-turn of forty-two years ago · after the 41st Convocation | 二、四、六 |
+
+> 七盏号灯里有一盏从来没点过——潮候院靠灯知道自己还活着。
+> One of the seven lamps was never lit at all — the Institute uses the lamps to know it is still alive.
+`,
+  },
 ] as const;
