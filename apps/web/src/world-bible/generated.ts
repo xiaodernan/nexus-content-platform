@@ -4776,4 +4776,198 @@ The copyists of the alley say their graves are the alley itself: every character
 > The copyists of the back alley wrote only what the tide dictated — none of them ever thought they were anybody.
 `,
   },
+  {
+    order: 20,
+    slug: 'echo-020-the-bell-that-never-rang',
+    titleZh: '潮候院钟楼里那口从不响的钟',
+    titleEn: 'The Bell That Never Rang in the Institute\'s Clock Tower',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——风过钟楼的夜晚。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the night the wind comes over the clock tower.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 20): The Bell That Never Rang in the Institute's Clock Tower
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院钟楼里那口钟——它至今没有响过一声；值守交接的时候不说钟的事；新来的人只能猜。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the bell in the Institute's clock tower — it has not rung once; the watchers never speak of it; the new arrivals can only guess.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——风过钟楼的夜晚。
+> Era: the Institute — after the 41st Convocation; the night the wind comes over the clock tower.
+
+---
+
+## 一 · 钟槌碎的那一天
+
+值守册子上写过：潮候院钟楼的钟槌在第十一次大会前那年碎了。
+
+当时是去敲钟开会的人发现的：敲了第一锤，第二锤根本不出声——上面的铁锤落在钟上，像落在一截船肋骨上。
+值守长当时没有报修，只是把槌换成了一串贝壳，挂在钟绳上。
+后来上报的时候也没有人主张把钟槌修好——潮候院的决定一向是留着就好。
+
+**锚句**：钟楼里的钟槌碎了很多年，钟从来没有响过。
+**Anchor sentence**: the clapper inside the bell has been broken for many years; the bell has never rung.
+
+---
+
+## 二 · 大会从不以钟声开始
+
+潮候院的第四十一次大会开幕的时候没有钟声。
+
+整个潮候院没有人找过任何一个塔去鸣钟。大会开始于潮沙盘的第一次加沙——这是值守们自然认可的传统，没有任何条文。
+第四十一次大会散会那天，值守照例在散会前关闭了钟楼的门。
+从来没有哪一本仓库的签收记录里写过钟的名字。
+
+**锚句**：潮候院的大会从不以钟声开始，也不以钟声结束。
+**Anchor sentence**: no Convocation of the Institute ever opens with a bell, nor closes with one.
+
+---
+
+## 三 · 贝壳挂在钟上
+
+值守在钟绳上挂了一串贝壳：里巷子的抄本员亲手一枚一枚选出来的。
+
+风起的时候，贝壳撞在钟壁上发出细小的响动——不是钟声，只是一种贝壳之间磨蹭的声音。
+值守们说这就是钟候院的「钟」：这不是铁碰铁，是海碰海。
+没有哪一页上写过为什么选贝壳——只是后来每一个值守都承认，这串声音已经算是潮候院钟楼的例行声音。
+
+**锚句**：风起的时候，贝壳替钟槌去了钟——潮候院叫它海碰海，不叫钟声。
+**Anchor sentence**: when the wind comes, the shells do the clapper's work — this is not bell against bell, but sea against sea.
+
+---
+
+## 四 · 新来的值守不问钟
+
+值守班有一条手册里没写的惯例：新来的值守如果注意到钟楼，值守长会等的不是答案，而是沉默。
+
+问得急了，前辈们会用别的值守知道的话题岔开——潮沙盘、潮汐表、里巷子东侧最深的那块地。
+只有少数几个值守知道，钟一向是替潮候院留着的：它不是用来叫人的，是用来在某一年候着潮。
+
+**锚句**：新来的值守从不问钟，因为前辈们已经等到沉默；问急了就是岔开别处。
+**Anchor sentence**: new watchers never ask about the bell, because the seniors have learned to wait for silence; pressing means being steered elsewhere.
+
+---
+
+## 五 · 钟楼的影子
+
+钟楼每天下午三点的影子落在潮沙盘上。
+
+潮沙盘那一刻落辟的沙最少，值守们把这个时刻记为「钟影」——这不是铁的影子，是潮的影子。
+潮起来的时候影子移动，潮落回来的时候，钟楼的影子又缩回潮沙盘的边缘。
+潮候院没有在七十五岁的钟楼上挂过时间：潮是钟候院唯一的钟案头。
+
+**锚句**：钟楼下午三点的影落在潮沙盘上——潮候院以潮候院的影子计时，不以钟。
+**Anchor sentence**: at three in the afternoon the tower's shadow falls on the sand table — the Institute tells time by its own shadow, not by any bell.
+
+---
+
+## 六 · 映射（回响二十章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 钟槌 · 贝壳取代钟声 · 第四十一次大会 | 一、二、三、四、六 |
+| geography | 潮候院钟楼 · 潮沙盘 · 里巷子东侧 | 一、三、五、六 |
+| characters | 值守长 · 新来的值守 · 里巷子抄本员 | 一、三、四、六 |
+| story | 不响的钟 · 回响（其二十） | 全篇 |
+| items | 钟 · 碎槌 · 贝壳串 · 潮沙盘 | 一、二、三、四、五、六 |
+| history | 潮候院钟楼的传统 · 第四十一次大会散会 | 一、二、四、五、六 |
+
+> 钟楼里那口钟从来没有响过——值守在风起的时候听的是海。
+> The bell in the tower has never rung once — when the wind rises, the watchers listen to the sea.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其二十）「潮候院钟楼里那口从不响的钟」
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院钟楼里那口钟——它至今没有响过一声；值守交接的时候不说钟的事；新来的人只能猜。
+> 纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the bell in the Institute's clock tower — it has not rung once; the watchers never speak of it; the new arrivals can only guess.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——风过钟楼的夜晚。
+> Era: the Institute — after the 41st Convocation; the night the wind comes over the clock tower.
+
+---
+
+## 一 · The Day the Clapper Broke
+
+The watchers' log records that the clapper of the Institute's tower bell broke the year before the 11th Convocation.
+
+It was the delegation come to ring it open who discovered it: the first blow landed, the second never voiced — the iron fell on the bell like a tap on a ship's rib.
+The keeper did not file a repair; he swapped the clapper for a string of shells, hung on the rope.
+When the matter reached the record, no one argued for the clapper to be restored — the Institute's decision has always been: leave it as it is.
+
+**锚句**：钟楼里的钟槌碎了很多年，钟从来没有响过。
+**Anchor sentence**: the clapper inside the bell has been broken for many years; the bell has never rung.
+
+---
+
+## 二 · No Convocation Opens with the Bell
+
+The 41st Convocation of the Institute never opened with the bell.
+
+No one went up to any tower to ring it. The Convocation begins on the first filling of the sand table — a tradition the watchers simply recognize, untouched by any statute.
+On the day the 41st Convocation dispersed, the watchers closed the door of the clock tower before the assembly was done, as always.
+No warehouse receipt, no binding record, ever wrote the bell's name.
+
+**锚句**：潮候院的大会从不以钟声开始，也不以钟声结束。
+**Anchor sentence**: no Convocation of the Institute ever opens with a bell, nor closes with one.
+
+---
+
+## 三 · The Shells Hung on the Bell
+
+The watchers hung a chain of shells on the bell rope — each one picked by hand by the copyists of the back alley.
+
+When the wind rises, the shells strike the bell's flank with a fine, small ringing — not a bell note, only the sound of shells worrying shells.
+The watchers say this is the Institute's "bell": not iron on iron, but sea against sea.
+No page records why shells were chosen — only that every watcher, sooner or later, admits these sounds are part of the tower's ritual.
+
+**锚句**：风起的时候，贝壳替钟槌去了钟——潮候院叫它海碰海，不叫钟声。
+**Anchor sentence**: when the wind comes, the shells do the clapper's work — this is not bell against bell, but sea against sea.
+
+---
+
+## 四 · New Watchers Never Ask About the Bell
+
+There is a hand-book rule no one ever wrote down: if a new watcher notices the tower, the seniors do not answer — they wait for silence.
+
+If the asking gets insistent, the seniors deflect to the talk of any watcher — the sand table, the tide-tables, the deepest ground in the back alley.
+Only a few of the watchers remember that the bell is kept for the Institute itself: never to summon people; only to wait for a particular year, a particular turn of the tide.
+
+**锚句**：新来的值守从不问钟，因为前辈们已经等到沉默；问急了就是岔开别处。
+**Anchor sentence**: new watchers never ask about the bell, because the seniors have learned to wait for silence; pressing means being steered elsewhere.
+
+---
+
+## 五 · The Tower's Shadow
+
+At three in the afternoon, the tower's shadow falls across the sand table.
+
+The falling sand sheds almost nothing at that hour — the watchers call this passage "the shadow of the bell" — not iron's shadow, but the tide's.
+When the tide comes in, the shadow creeps; when it goes out, the tower's shadow retrenches to the table's edge.
+Never once has the Institute hung time from the seventy-five-year-old tower: the tide is the only desk-calendar the Institute recognizes.
+
+**锚句**：钟楼下午三点的影落在潮沙盘上——潮候院以潮候院的影子计时，不以钟。
+**Anchor sentence**: at three in the afternoon the tower's shadow falls on the sand table — the Institute tells time by its own shadow, not by any bell.
+
+---
+
+## 六 · Mapping（Echo No. 20 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | The broken clapper · the shells that replaced it · the tide's clock | 一、二、三、四、六 |
+| geography | The Institute's clock tower · the sand table · east alley | 一、三、五、六 |
+| characters | The keeper · the new watchers · the copyists | 一、三、四、六 |
+| story | The Bell That Never Rang · Echo No. 20 | 全篇 |
+| items | The bell · the broken clapper · the shells · the sand table | 一、二、三、四、五、六 |
+| history | The tower's silent tradition · the dispersal of the 41st Convocation | 一、二、四、五、六 |
+
+> 钟楼里那口钟从来没有响过——值守在风起的时候听的是海。
+> The bell in the tower has never rung once — when the wind rises, the watchers listen to the sea.
+`,
+  },
 ] as const;

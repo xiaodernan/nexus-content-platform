@@ -14315,3 +14315,11 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - 该门按新后缀 `*-behavior.test.ts` 命名（行为契约族，不装成视觉门面），并扩入 `verify:fe-gates`：`fe-gates.mjs` 的收集器与 `vitest.fe.config.ts` 的 include 都认两个后缀（-visual-style / -behavior）——行为契约门和视觉门面同属「只读源码断言、零渲染、零库」，必须同闸；否则会静默掉队没人跑。
 - 明示结论：没有改动 js 方向——方向本来就是对的；这道闸是防止以后被「看起来反了就改」误伤。
 - 3D 视角的纵向方向已经是 v733/v778/v801 三轮反馈历史中修对的；再改就是重新引入已知 bug。
+
+## §BIBLE-31 — 回响 · 其二十《潮候院钟楼里那口从不响的钟》（2026-11-17 · v833）
+
+- 产出：`docs/world-bible/echoes/E20-潮候院钟楼里那口从不响的钟.md`（中）/ `.en.md`（英）——钟楼里一口不响的钟：
+  钟槌多年前碎了、值守换成贝壳挂在钟绳上；大会从不以钟声开；新来的值守不许问钟；影子落在潮沙盘上计时。
+  5 锚句 zh/en 全局唯一（115/115）。
+- `gen-bible-snapshot.mts` 登记 `echo-020-the-bell-that-never-rang`；快照重生成（4+20 回响）。
+- verify:world-bible ✓ 115/115；verify:bible-snapshot ✓。
