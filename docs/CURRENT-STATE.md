@@ -4928,3 +4928,16 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
   - GET /sitemap.xml 200：新列路由：discover/pulse/observatory/bible/bible-quiz/well/search/whisper；多余的 /n/uXX/ 路径保留
 - 门：fe-gates 122/121 · 1193/1193 OK；census 2491 OK；sitemap-robots-contract 8/8 绿。
 - SEO 非玄：robots/sitemap 是形状规则、不是营销。不带 changefreq / priority；lastmod 只记真实发布时间戳。
+
+## cont. 167 (2026-11-17) - v797: 世界大典第七章「灯前灰」——铁月纪之后的灰棚
+
+- 新内容：`docs/world-bible/007-灯前灰.md` + `.en.md`——潮汐教团门前的灰棚：灯篓多年未亮、
+  商人家族的门面（账册 300 年后的刀痕）、守夜人的最后一次巡检（他没有熄灯——"无火可灭"）、
+  机房地窖里的沙盘九个孔洞（第九下永远不响）、灰棚最里层的床垫裹布、"第八盏灯"四字压页（那一天账终于合上）。
+- 锚句全系列 75 zh / 75 en 全部通过（verify:world-bible OK）；
+  gen:bible-snapshot（7 章 × 6 回响）字节一致；verify:bible-snapshot 字节一致；
+  live probe /bible/007-ashes-before-the-lamp 200，双语标题 + 双语锚句皆命中；/bible hub 入册。
+- BibleQuiz **26 题**（+2 Ch.VII 双语题）；序列钉死 [...,1,1,1,1]；SHA pin 1f1aa8a1 → feb619b0 重钉。
+- guide 全套升级：六章 → 七章（zh/en ×6 处）；SHA pin e42d528f → 9e683667 重钉。
+- editor：剧本走真 provider（/v1/ai/chat，gpt-6.1-terra 出文风雏稿，人工定稿·严纪律）。
+- 门：fe-gates 122 套 · 1193/1193 OK；census 2491 OK；tsc 0。

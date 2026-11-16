@@ -163,6 +163,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《传灯记》里，撒贝儿往食谱上撒了几粒盐？', choices: ['八粒', '九粒', '三粒', '无数粒'], answer: 1, ref: '回响六 · 撒贝儿' },
     en: { prompt: 'In “Echo No. 6”, how many salt grains did Saer drop onto the recipe?', choices: ['eight', 'nine', 'three', 'as many as she wanted'], answer: 1, ref: 'Echo No. 6 · The Salt Grains on the Recipe' },
   },
+  {
+    zh: { prompt: '《灯前灰》里，守门的人扫灰时孩子……？', choices: ['醒了', '依然睡着', '跑开了', '哭了'], answer: 1, ref: '第七章 · 一' },
+    en: { prompt: 'In “Ashes Before the Lamp”, what does the child do when the sweeper comes?', choices: ['wakes up', 'stays asleep', 'runs away', 'cries'], answer: 1, ref: 'Chapter VII · I' },
+  },
+  {
+    zh: { prompt: '《灯前灰》最后，账房在封面写了什么？', choices: ['没写任何东西', '"第八盏灯"', '"三百年"', '"潮先行"'], answer: 1, ref: '第七章 · 六' },
+    en: { prompt: 'In “Ashes Before the Lamp”, what does the bursar write on the cover?', choices: ['nothing', '"The Eighth Lamp"', '"three hundred years"', '"the tide went first"'], answer: 1, ref: 'Chapter VII · VI' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

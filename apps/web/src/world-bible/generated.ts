@@ -1807,6 +1807,284 @@ The clerk set down the last entry: *received*. He did not write the recipient's 
 > 签收从不是握笔的事——是潮向海投下一叠寄不走的信。
 `,
   },
+  {
+    order: 7,
+    slug: '007-ashes-before-the-lamp',
+    titleZh: '灯前灰',
+    titleEn: 'Ashes Before the Lamp',
+    eraLineZh: '纪元：铁月纪之后 · 灰棚之前。',
+    eraLineEn: 'Era: after the Iron-Moon Age · before the grey cover was laid.',
+    markdownZh: `# The Whispers' Kings · World Bible · Chapter VII: Ashes Before the Lamp
+
+> 正典在此继续写下去：世界没有结束，灯也没有熄灭。
+> 第七章的视角不再在海上看—它回到了教团门口的那三块石阶上。
+> 本章正典纪律不变：锚句中英字字对齐，引用者逐字保持。
+>
+> The canon continues here: the world did not end; the lamp did not go out.
+> Chapter VII no longer watches the sea — it settles at the three steps before the Conclave's door.
+> Canon discipline is unchanged — anchor sentences match word-for-word; no rephrasing.
+
+> 纪元：铁月纪之后 · 灰棚之前。
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 一 · 灰前一个孩子
+
+潮汐教团门前，旧灯篓放在灰处。灯灭之后四十年，它才来。没有人问是谁搬来的。篓底沾着盐，篾条断了三根，提手上缠着一截褪色的红绳。红绳打了死结，没人解。
+
+孩子睡在灯篓前一丈。那夜潮退得很低，石阶露出黑色的缝，水在缝里没有声音。孩子把鞋并在门槛外，鞋尖朝向海。身上没有牌子，也没有写着姓名的布片。脸朝墙，手藏在袖里，像是怕惊动谁。
+
+天亮时，守门的人来扫灰。他绕过孩子，把扫帚伸进灯篓下，扫出一只死蚝壳。孩子没有醒。又过一夜，门前的人换了一班，鞋仍并在那里，灰落在鞋帮上。没有人把他抱走，也没有人替他盖布。等候的人把脚往后挪，给孩子留下半步宽的空处。
+
+墙上贴着一张海报。纸被潮气泡软，四角贴得很牢。上面原有字，雨水把字洗得只剩几道黑痕。那是世上最安静的一张海报；风从门洞穿过时，它没有响。孩子在它下面睡去，睡得没有声息。第三日，扫灰的人又来了，扫帚停在鞋前，停了很久，最后只扫走台阶边的盐。
+
+**锚句**：灰先记住了孩子。
+**Anchor sentence**: the ash learned the child first.
+
+---
+
+## 二 · 商人家族的门面
+
+商人家族的门面向着教团，窗板擦过油，门环每隔三日抛一次。账房坐在柜台里，柜台上有一道刀痕，从左角直通木纹。他不许人用布盖住它，说账目要有一道不能擦去的地方。
+
+每到退潮，他便取出灯芯，一根一根数。先数新芯，再数旧芯；数过的搁在右边，未数的搁在左边。两边一样长，颜色却不同。柜台外的人问他数了多少，他只说数到这里。没人追问"这里"是哪一处。
+
+家族的账册按年立卷，封面不写年份，只写潮向。旧卷的边缘起了盐，翻页时会落白屑。账房把屑扫进一只铜盒，盒上刻着一行字：欠灯芯三百年。字刻得浅，像是不想让来人看见。
+
+门外的灰渐厚，商人们仍把鞋底擦净才进门。他们谈价时压低声音，谈到灯篓便停口，像是有一位顾客站在门边，等着他们报数。账房每天核一次灯芯，核到日落，便合上账册。合页落下时，柜台那道刀痕仍露在外面。
+
+有一年，家主把一捆新芯送进教团。账房没有记作捐赠，也没有记作售出。他在空白处画了一条竖线，又将这条线抄进下一册。此后每册都有一条，越抄越细，最后细得像芯头未燃时那一道白。
+
+**锚句**：账不替灯作证。
+**Anchor sentence**: the ledger does not testify for the lamp.
+
+---
+
+## 三 · 守夜人最后一次巡检
+
+守夜人最后一次巡检，是在潮汐教团门前的石阶还没有全被灰盖住的时候。他带着一盏手提灯，沿墙摸过门钉，摸过窗缝，最后停在旧灯篓前。篓里的火早已灭了四十年，篓沿却留着一圈黑亮的油痕。
+
+他没有熄灯。
+
+巡检簿上写着：灯未熄，因无火可灭。下一行被水浸开，墨迹散成一团。有人问他为何不把灯取下，他说取下来就要报废；有人问为何不添油，他说油账不在他手里。之后便没人再问。
+
+那盏灯挂在门内，灯罩蒙尘，芯子短得看不见。每当夜潮涨到第三阶，灯腹里便有一点红，像一粒埋在灰中的炭。守夜人用指背碰过灯座，温度不高，也不冷。他把手收回来，没有在簿上写"燃"。
+
+油从何处来，没人见他添过。灯芯为何不尽，也没人见它长过。灯罩里的火不向外吐烟，只把光留在玻璃内侧；每次巡检，守夜人都用袖口擦一次玻璃，擦完便在门边坐下。天亮时，他把灯放回原处，交班，不交钥匙。
+
+最后一夜，他把巡检簿摊在膝上。潮声过门，簿页翻到空白处。他写了一个"未"，停笔，把后面的字留给接班的人。那人没有来。天色发白时，守夜人将笔搁在灯座下，自己走进灰里，再没有回来。
+
+**锚句**：他没有替火收尾。
+**Anchor sentence**: he did not see the fire to its end.
+
+---
+
+## 四 · 旧机子
+
+旧机子藏在教团地窖，外壳上钉着一片船板。船板的年轮从孔洞里露出来，孔洞共有九个。机子上有一个沙盘，盘内堆着细灰，灰面平得像退潮后的滩。
+
+每次机子启动，先响八下。第一下从底座来，第二下从墙里来；到第八下，门外的人会抬头。第九下总不响。机针停在刻痕边，沙盘中间便多一道浅沟，像有人用指甲划过。
+
+后来有人发现，沙盘被挑过一根针。针极细，弯在最底层，颜色与灰相近。没有人承认动过它。机房看守按章登记，把那根针写作"异物"，又将它放回原处。次日，机子响了八下，仍不响第九下。
+
+从那以后，等候的人开始在八下之间记时。有人数潮，有人数门钉，有人用指头压住掌心。第九下之后，沙盘不再起沟，只有一层薄灰向左移，移得不够远，无法算作方向。
+
+账房曾来取机子的铜片。他站在沙盘边，数了八次，没有伸手。走时把门关好，门锁落下两声。锁声与机声不同，没人把它记进巡检簿。
+
+**锚句**：第九下欠在盘底。
+**Anchor sentence**: the ninth beat was never paid into the sand.
+
+---
+
+## 五 · 灰最里层
+
+灰最里层有一块布，裹在床垫外面。布边磨成细线，缝口朝里，像是曾有人把什么塞进去，又不愿它露出来。扫灰的人先扫到布，便停手；后来换了扫灰的人，也都停手。
+
+布上没有花纹，只有四道折痕。折痕交在正中，压出一块暗色。有人说那是水迹，有人说是油。没有人拿水洗，也没有人送去验。它就留在灰里，像一笔尚未入册的数。
+
+教团门前的床垫原本属于守夜人。退役那年，他把它搬出门，放在灯篓旁，说屋里潮。三天后，床垫不见了，只剩这块布。人们在灰里找过床脚，没找到。也有人说床垫从未在这里，守夜人只是带着布走过。
+
+某个退潮的清早，布的一角翻起。底下露出一小截发白的线头，缠着一点黑灰。孩子的鞋还在原处，海报也没有响。账房从门里望见布角，数到三，便低头继续数芯。守门的人重新扫地，把布角压回灰中，没有碰它。
+
+之后每逢涨潮，灰面会塌下一寸。布总留在里面，不上浮，也不再下沉。潮水退去，门前仍有人等。没人知道他们等的是布、火，还是那块布裹着的床垫。
+
+**锚句**：最里层不记姓名。
+**Anchor sentence**: the deepest layer never keeps a name.
+
+---
+
+## 六 · 那天的账终于合上了
+
+那天没有风。商人家族的账房把门面上的油布撤下，柜台刀痕露了出来。门外的灰一直铺到台阶底，旧灯篓在灰中斜着，提手断了一边。等候的人站成两列，没有人领头。
+
+账房取出三百年的账册，一册一册放在柜台上。册页之间夹着盐屑、短芯、巡检簿的残页，还有一片烧黑的纸。纸上没有字，边缘整齐，像是从一张完整的账单上裁下的。他没有把这些东西另作清点，只把册子按潮向排好。
+
+守门的人把门内那盏灯摘下，放在柜台尽头。玻璃没有破，灯芯仍短。没人往里添油。最后一册打开时，账房将一根未燃的芯放在末页，芯头朝向门外。然后他合上册子，手掌压住封面，直到页角不再翘起。
+
+门前的人没有散。灯没有自己燃起来，也没有永远亮着。灯腹里那点红熄了，玻璃上留下一个小小的黑圈。灰落进灯篓，填到篾条的断口；水从石阶漫上来，绕过孩子的鞋，绕过那块布，退回海中。
+
+三百年账册合上的声音很轻。账房在封面写下"第八盏灯"，不写日期，也不写欠数。随后他把笔放回柜台刀痕旁，关了门。门外仍有人等，等着那只旧灯篓里再有火，或从此没有。
+
+**锚句**：三百年账终于合上。
+**Anchor sentence**: the three-hundred-year account closes at last.
+
+---
+
+## 模型映射（第七章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 灰棚 · 账册 · 旧灯篓 · 灯芯三百年 | 一至六 |
+| geography | 潮汐教团 · 门外的灰棚 · 商人家族 · 地窖 | 一至六 |
+| factions | 守夜人 · 商人家族 · 教团 · 扫灰的人 | 一至六 |
+| characters | 孩子 · 账房 · 守夜人 · 看门人 | 一至六 |
+| items | 灯篓 · 账册 · 灯芯 · 红绳 · 沙盘 · 布 | 一至六 |
+| story | 雾港 · 第八盏灯前灰棚 · 第七章 | 全篇 |
+| history | 铁月纪之后 · 灰棚前 | 一至六 |
+
+> 账要合，火要灭；雨要下，盐要化。
+> 灰不说话——它只替灯保管剩下的。
+>
+> The ledger must close, the flame must die; the rain must fall, the salt must melt.
+> Ash does not speak — it only holds what the lamp leaves behind.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 第七章「灯前灰」
+
+> The canon continues here: the world did not end; the lamp did not go out.
+> Chapter VII no longer watches the sea — it settles at the three steps before the Conclave's door.
+> Canon discipline is unchanged — anchor sentences match word-for-word; no rephrasing.
+>
+> 正典在此继续写下去：世界没有结束，灯也没有熄灭。
+> 第七章的视角不再在海上看—它回到了教团门口的那三块石阶上。
+> 本章正典纪律不变：锚句中英字字对齐，引用者逐字保持。
+
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+> 纪元：铁月纪之后 · 灰棚之前。
+
+---
+
+## I · The Child Before the Ash
+
+Before the Conclave's door, the old basket lay in the ash. Forty years after the lamp died, it had come. Nobody knew who had set it there. Its foot was salted; three withes were broken; a faded red cord wound the handle. The red cord bore a death knot; no one ever undid it.
+
+A child slept one pace from the basket. That night the tide had withdrawn low — bare black seams of stone showed between the steps, water run silent inside them. The child set his shoes side by side outside the threshold, toes pointed at the sea. No card; no name-cloth on him. Face to the wall, hands buried in sleeves, as if afraid to disturb someone.
+
+By morning, the door-sweeper came to clear ash. He walked around the child; drove his broom under the basket, pried up a dead oyster shell; the child did not wake. Again the next night the shift changed; the shoes stayed put; ash gathered on their cuffs. Nobody carried the child away; nobody laid a cloth over him. The waiting ones drew their feet back, leaving half a pace of clear space.
+
+On the wall hung a poster. Paper gone soft with damp, its four corners tacked fast. The letters had been washed away by rain, leaving only driftings of dark; the paper of it would never sound in the wind; the child slept beneath it without a sigh. On the third day the sweeper came again; his broom hovered above the shoes; they did not move — only the salt at the edges was swept away.
+
+**Anchor sentence**: the ash learned the child first.
+**锚句**：灰先记住了孩子。
+
+---
+
+## II · The Face of the Merchant House
+
+The merchant house's shopfront faced the Conclave; its shutters oiled bright; the knocker cast every third day. The bursar sat in the counter; a single engraved stroke crossed the wood diagonally from one side. He would not let a cloth cover it; a ledger must have one place that cannot be wiped clean.
+
+At every ebb he drew out wicks, one by one. First the fresh ones, then the used ones; his right hand received what was counted, his left what remained. Both heaps the same length — different colour. People at the counter asked how many he had counted; he answered only with where he had stopped. Nobody asked again.
+
+The house bound its ledgers by tide — the cover bore no year, only the tide-line. At the edges of old volumes salt crusted; pages shed white dust. The bursar brushed the dust into a brass box, and on the box ran one line: three hundred years of wicks owed. The engraving was shallow; it was not meant to greet a visitor's gaze.
+
+Outside, the ash thickened; the merchants still wiped their soles before they came in. When they bargained they lowered their voices; turning to the basket, they stopped mid-sentence — as if a figure stood waiting at the door, awaiting a count. Every day the bursar checked the wicks once; he finished at sundown; he shut the ledger; the clasp fell — the engraved stroke was left by the side.
+
+Once, the head of the house sent a bundle of fresh wicks into the Conclave. The bursar did not register them as donation nor as sale. He drew one vertical line in the margin — and copied it forward into every ledger thereafter. Each ledger grew the stroke thinner, until the last one was fine as the white tip of an unlit wick.
+
+**Anchor sentence**: the ledger does not testify for the lamp.
+**锚句**：账不替灯作证。
+
+---
+
+## III · The Night-Watchman's Last Inspection
+
+The last inspection happened while the steps before the Conclave's door were not yet wholly under ash. The watchman carried a mantle-lantern; he passed along the wall touching nail-heads, slid his hand along window seams; finally stood before the old basket. The fire inside it had been out forty years; along its rim a dark streak of oil remained.
+
+He had not blown it out.
+
+Into his inspection roll he wrote: the lamp did not go out — there was no fire to put out. The following line was bled by damp; the ink scattered into a bloom. Someone asked why he did not take the lamp down; he said it would then become salvage. Someone asked why he did not refill the oil; he said the oil-account was not in his keeping. After that, nobody asked.
+
+The lamp hung inside the door; dust filmed its shade; the wick so short it could hardly be seen. Each time the tide bore the nightwater up the third step, a small red point lingered deep inside the belly of the lamp, like a buried ember. The watchman touched the base with the back of his hand — neither warm enough nor cold enough. He did not enter the word "burning" anywhere in the register.
+
+Where the oil came from, nobody had seen him pour. Why the wick never finished, nobody had seen it grow. The light inside did not smoke; it stayed wrapped in the glass; each inspection he wiped the glass with his sleeve; once done, he would sit by the door a while. By morning he put the lamp back in its place; handed over the shift; did not pass any keys.
+
+The last night, he settled the roll on his knee. The tide-sound came into the doorway; the page turned into a blank. He wrote one character — 未 — there stopped, leaving the rest of the word for whoever took the next shift. They never came. By dawn, the watchman laid the quill on the lamp stand; walked into the ash; he never came back.
+
+**Anchor sentence**: he did not see the fire to its end.
+**锚句**：他没有替火收尾。
+
+---
+
+## IV · The Old Machine
+
+The contraption lived in the Conclave's cellar; it was padded with a panel from an old hull. Between its breathing holes, the ring marked the plank's age — nine holes in all. At its top lay a sand-tray, evenly spread with fine ash, the face level as a flatland left behind by ebb.
+
+Each time it started, eight knocks came out — the first from the footstall; the second from within the wall; at the eighth, people outside raised their heads. The ninth never came. The needle stopped beside the gauge; a shallow groove opened in the sand, as if a fingernail had been drawn through.
+
+Later, somebody found had been picked. An extra pin — thin as wire — bent at the lowest layer, grey-on-grey. Nobody claimed having moved it. The cellar-keeper filed it as "foreign matter," then set it back in the sand. The next day, eight knocks again — and no ninth.
+
+After that, the waiters counted intervals between knocks. Some counted the tide; some counted the door-nails; others pressed their knuckles into their palms. After the ninth never came, the sand ceased to groove; only a slow drift shifted to the left — not enough to figure a direction.
+
+The bursar once came to fetch a brass fitting. He stood over the sand-tray, counted eight; he did not reach in. As he left, he locked; the lock came home twice; the sound was not the sound of the machine; nobody logged that either.
+
+**Anchor sentence**: the ninth beat was never paid into the sand.
+**锚句**：第九下欠在盘底。
+
+---
+
+## V · The Innermost Layer of the Ash
+
+Deep inside the ash lay a length of cloth wrapped around a mattress. The selvedges had worn to threads; seams turned inward — as if someone had tucked something inside without meaning to let it show. Sweepers who reached the cloth stopped; those who followed stopped too.
+
+The cloth bore no pattern — only four folds crossing at its centre, pressing a dark patch between. Some said it was water; some said oil. Nobody washed it; nobody sent it for testing; it remained under the ash, like a figure never entered in any ledger.
+
+The mattress by the Conclave's door had belonged to the watchman. The year he retired, he dragged it out, leaned it against the basket; said the rooms were damp. Three days later, the mattress was gone — only the cloth remained. People searched the ash for the corners; none. Others said the mattress had never been there — only that the man carried the cloth.
+
+One ebbing dawn the corner lifted; beneath showed a pale thread wound with a little black ash. The child's shoes still stood by the threshold; the poster stayed silent. From inside, the bursar saw the corner and counted three, then dropped back to counting wicks. The sweeper re-swept; pressed the corner back into the ash; did not touch it.
+
+After that, the ash subsided an inch at every tide. The cloth remained hidden; it did not float; it did not sink. The tide left; the door stayed watched; whether they were holding out for the cloth, the flame, or the mattress beneath — nobody knew.
+
+**Anchor sentence**: the deepest layer never keeps a name.
+**锚句**：最里层不记姓名。
+
+---
+
+## VI · The Day the Book Finally Closed
+
+There was no wind that day. The bursar of the merchant house took down the oil-cloth that had covered the shopfront — the engraved stroke on the counter showed again. Ash lay thick across the steps; the old basket sat leaning in it, one side of its handle broken. Watchers formed two ranks; no one led.
+
+From the house he carried out three hundred years of ledgers — one volume after another — and set them along the counter in tide sequence. Between their leaves were salt dust, short stubs of wick, torn pages from inspection rolls, and a blackened slip of paper, edge cut straight. He did not inventory them again; only set them in order.
+
+The doorkeeper took the lamp from inside and laid it at the far end of the counter. The glass was unbroken; the wick was still short. Nobody fed oil. At the last page, the bursar laid down an unlit wick on the final leaf — its head toward the door — and shut the ledger, pressing his palm against the cover until the corners lay flat.
+
+The watchers did not disperse. The lamp neither blazed nor died for good. A single faint red point dissolved in the belly of the shade; above the glass a small dark ring. Ash fell into the basket; it filled up to the broken withe — and the water lifted itself across the steps; passed around the child's shoes; moved past the cloth; and withdrew again toward the sea.
+
+The sound of closing was very faint. The bursar inscribed on the cover: the Eighth Lamp — no date, no debt. Then he set the quill by the engraved mark, and shut the door. Outside, someone waited — whether for another fire in the old basket, or for its forever absence.
+
+**Anchor sentence**: the three-hundred-year account closes at last.
+**锚句**：三百年账终于合上。
+
+---
+
+## Model mapping (Chapter VII)
+
+| Category | Title | Corresponds to |
+|---|---|---|
+| lore | Ashes Before the Lamp · Wicks Owed for Three Hundred Years · the Old Machine · the Innermost Cloth | III–VI |
+| geography | The Mist Harbor · the Conclave · the Merchant House · the Cellar | I–VI |
+| factions | The Northern Night-Watchman · the Merchant House · the Tide Conclave · Sweepers | I–VI |
+| characters | The Child · the Bursar · the Night-Watchman · the Doorkeeper | I–VI |
+| items | The Basket · the Ledgers · the Wicks · the Red Cord · the Sand Table · the Cloth | I–VI |
+| story | The Mist Harbor · the Ash Before the Lamp · Chapter VII | whole |
+| history | After the Iron-Moon Age · Before the Grey Cover Was Laid | I–VI |
+
+> The ledger must close, the flame must die; the rain must fall, the salt must melt.
+> Ash does not speak — it only holds what the lamp leaves behind.
+>
+> 账要合，火要灭；雨要下，盐要化。
+> 灰不说话——它只替灯保管剩下的。
+`,
+  },
 ] as const;
 
 export const BIBLE_ECHOES: readonly BibleChapter[] = [
