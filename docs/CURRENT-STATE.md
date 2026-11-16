@@ -5379,3 +5379,23 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - live probe（dev server）：SSR `/bible` 200（13 章索引含 013 链接）；`/bible/013-the-copying` 200（Chapter XIII·第十三章·The Copying 全量出所，7 锚对齐）
 - 门：fe-gates 128 套 · **1232/1232**；census 2638 OK；tsc 0；verify:world-bible **166/166** ✓；verify:bible-snapshot 一致 ✓；verify:anchor-echo 166 ✓
 - 运维记录：本轮 3100 端口被一台遗留的 `next start` 生产服务器（03:07 启动，旧构建）占用——探测到后停掉，全新 dev server 复测通过；停 web 后才跑 fe-gates（内存纪律）
+
+## cont. 196 (2026-11-17) - v826: /marketplace「AI 选品」——货架前三的 LLM 荐语（§新指令·LLM 深度嵌入续）
+
+- 新 API `POST /api/marketplace/picks`：输入必须是该货架仍在售的公开/免费物品（zod 校验），
+  gpt-6.1-terra 各写一句"为什么值得看"——**每句必须引用输入数字**（下载量或价格 credits，含 0），
+  禁止质量断言（"精美/必备"一律不准）；DEMO MODE → 409；每 IP 10/小时；24h LRU（4 槽）；缺一条即 502
+- 新 UI：`MarketplacePicks`（/marketplace 货架仍有货时挂载，.mkp-* 命名）——中英双语；公共页失败安静消失；
+  SSR 无产出（client 挂载后 fetch，与 cont. 192 一致）；分条目不做假链接（物品无详情页）
+- live probe（dev server + throwaway 账号）：
+  - 注册 200 → 建项目 201 → 上架 3 件（免费/模板 30 credits/世界包 80 credits）201 ✓
+  - POST /api/marketplace/picks → HTTP 200（gpt-6.1-terra，fresh）；三条荐语逐一核数字：
+    "0 credits 下载 0 次（新品向）"、"30 credits 下载 0 次"、"80 credits 下载 0 次"——**零质量断言、零编造**
+  - SSR /marketplace：匿名访问含 items（087bcd09 / MP Probe / data-marketplace-item）；
+    picks strip SSR 无产出（client 挂载后 fetch；与馆长批注一致）
+- 简明说明书：/marketplace 段补「AI 选品」说明（zh/en）；guide SHA 7f702b6a… 重钉；
+  marketplace-page SHA 460a21b5… 重钉；新增 mkp-visual-style.test.ts（7 例，含 prompt 纪律机械断言）
+- 门：fe-gates 129 套 · **1238/1238**；census 2645 OK；tsc 0；marketplace 组页 SHA 重钉 ✓
+- 运维记录：Docker 再次熄火/重启中（pg 启动 fallthrough→健康）；web 早一步 boot 时限流驱动
+  按既有机制退回进程内计数（日志如实；Redis 恢复后自愈）——未观察到功能影响
+- LLM 切面计数：7 → **8 块**（+ marketplace 选品）

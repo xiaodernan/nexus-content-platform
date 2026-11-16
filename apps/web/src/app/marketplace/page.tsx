@@ -10,6 +10,7 @@ import { currentUserOrNull } from '@/server/domain/session';
 import { listProjects } from '@/server/domain/projects';
 import { MarketplaceCreateForm } from '@/marketplace/MarketplaceCreateForm';
 import { MarketplaceItemRow } from '@/marketplace/MarketplaceItemRow';
+import { MarketplacePicks } from '@/components/MarketplacePicks';
 import { getLocale, type Locale } from '@/lib/i18n';
 
 /**
@@ -187,6 +188,18 @@ export default async function MarketplacePage({
 
       <section className="mk-col2" data-marketplace-list>
         <h2 className="mk-h16">{c.onSale(items.length)}</h2>
+        {items.length > 0 ? (
+          <MarketplacePicks
+            locale={locale}
+            items={items.slice(0, 3).map((item) => ({
+              id: item.id,
+              title: item.title,
+              itemType: item.itemType,
+              priceCredits: item.priceCredits,
+              downloadCount: item.downloadCount,
+            }))}
+          />
+        ) : null}
         {items.length === 0 ? (
           <div className="dv-empty" data-marketplace-empty>
             <p>{c.nothingOnShelf}</p>

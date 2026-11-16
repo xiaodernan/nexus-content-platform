@@ -5555,3 +5555,17 @@
   .ntg-button, .ntg-buttonPrimary { border-color: CanvasText; color: CanvasText; background: Canvas; }
   .ntg-button:focus-visible, .ntg-dismiss:focus-visible { outline: 2px solid Highlight; }
 }
+
+/* ──MARKETPLACE-PICKS /marketplace "AI 选品"（cont. 196）── 全部 tokens，零 hex */
+.mkp-strip { display: flex; flex-direction: column; gap: 0.75rem; margin: 0.25rem 0 1rem; padding: 1rem 1.25rem; background: var(--nexus-color-bg-2); border: 1px solid color-mix(in srgb, var(--nexus-color-accent-2-ink) 32%, var(--nexus-color-border-subtle)); border-radius: var(--nexus-radius-md, 0.75rem); }
+.mkp-kicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.22em; text-transform: uppercase; color: var(--nexus-color-accent-2-ink); margin: 0; }
+.mkp-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 0.6rem; }
+.mkp-item { display: flex; flex-direction: column; gap: 0.3rem; background: var(--nexus-color-bg-3); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm, 0.5rem); padding: 0.7rem 0.85rem; }
+.mkp-name { display: block; font-size: 0.9rem; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mkp-noteText { display: block; font-size: 0.85rem; line-height: 1.6; color: var(--nexus-color-fg-2); overflow-wrap: anywhere; word-break: break-word; }
+.mkp-disclaimer { margin: 0; font-family: var(--nexus-font-mono); font-size: 0.68rem; color: var(--nexus-color-fg-3); overflow-wrap: anywhere; word-break: break-word; }
+
+@media (forced-colors: active) {
+  .mkp-strip, .mkp-item { border-color: CanvasText; background: Canvas; color: CanvasText; }
+  .mkp-kicker, .mkp-noteText, .mkp-disclaimer, .mkp-name { color: CanvasText; }
+}
