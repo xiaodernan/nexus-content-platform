@@ -151,6 +151,13 @@ resilience4j:
 # packaged offline truth) they are readable locally, like /platform/services — the deployment decides by
 # turning auth on.
 management:
+  # v656 — ONE trace id, W3C, and a knob not a constant: dev samples 100% (a sampled-out request
+  # has nothing to read), a deployment sets NEXUS_TRACING_SAMPLING (0.1 is a normal production number).
+  tracing:
+    sampling:
+      probability: ${NEXUS_TRACING_SAMPLING:1.0}
+    propagation:
+      type: W3C
   endpoints:
     web:
       exposure:
