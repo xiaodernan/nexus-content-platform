@@ -187,6 +187,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《封面四字》里，沙盘一直少响哪一下？', choices: ['第三下', '第六下', '第九下', '第七下'], answer: 2, ref: '回响八 · 五' },
     en: { prompt: 'In “The Four Characters”, which knock never comes?', choices: ['the third', 'the sixth', 'the ninth', 'the seventh'], answer: 2, ref: 'Echo No. 8 · V' },
   },
+  {
+    zh: { prompt: '《灰后》里，账合上的第三天，有人敲了一次门——里面……？', choices: ['开了门', '没有答复', '传出音乐', '放出了水'], answer: 1, ref: '第八章 · 一' },
+    en: { prompt: 'In “After the Ash”, on the third day after the ledger closed, someone knocked — and?', choices: ['the door opened', 'no answer came', 'music came out', 'water was poured'], answer: 1, ref: 'Chapter VIII · I' },
+  },
+  {
+    zh: { prompt: '《灰后》里，孩子的第八处名字是怎么念完的？', choices: ['有人替他写了上去', '他自己还是念完了', '纸被风吹走了', '守门人告诉了他'], answer: 1, ref: '第八章 · 三' },
+    en: { prompt: 'In “After the Ash”, how does the eighth name get finished?', choices: ['someone wrote it in for him', 'he read it himself', 'the wind took the paper', 'the doorkeeper told him'], answer: 1, ref: 'Chapter VIII · III' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

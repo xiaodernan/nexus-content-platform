@@ -40,6 +40,7 @@ const WEB_SLUGS: Record<string, string> = {
   '005-远信': '005-letters-never-posted',
   '006-最后的签收': '006-the-final-seal',
   '007-灯前灰': '007-ashes-before-the-lamp',
+  '008-灰后': '008-after-the-ash',
 };
 
 /** 回响网页 slug（E0N，番外，正典之外），同纪律登记 */

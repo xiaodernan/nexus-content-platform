@@ -2085,6 +2085,312 @@ The sound of closing was very faint. The bursar inscribed on the cover: the Eigh
 > 灰不说话——它只替灯保管剩下的。
 `,
   },
+  {
+    order: 8,
+    slug: '008-after-the-ash',
+    titleZh: '灰后',
+    titleEn: 'After the Ash',
+    eraLineZh: '纪元：铁月纪之后 · 灰棚之前。',
+    eraLineEn: 'Era: after the Iron-Moon Age · before the grey cover was laid.',
+    markdownZh: `# The Whispers' Kings · World Bible · Chapter VIII: After the Ash
+
+> 正典没有结束——它只是合上了一本账。
+> 第八章写账合之后的第三天：门没有开，灰有了去处，世界继续。
+> 本章正典纪律不变：锚句中英字字对齐，引用者逐字保持。
+>
+> The canon did not end — it only closed a ledger.
+> Chapter VIII writes the third day after: the door stayed shut, the ash found its way, the world went on.
+> Canon discipline is unchanged — anchor sentences match word-for-word; no rephrasing.
+
+> 纪元：铁月纪之后 · 灰棚之前。
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 一 · 门外的第三天
+
+账合上的第三天，门外的人仍在等。
+
+门没有开。门缝里没有灯，也没有脚步。有人把耳朵贴上去，听见的只有自己的呼吸。有人把带来的水放在门边，水面落了灰，没人擦。
+
+潮汐照常。涨时，水到石阶第三道；退时，留下细盐。等候的人日日看那道盐线，像看一笔未完的账。没有人替他们记下是谁先来，谁先走。门前的空处一日比一日宽，脚印被潮气抹平，又被新脚印压住。
+
+第三日的午后，有人敲了一次门。声音短，像指节碰上空木匣。里面没有答复。那人把手收回袖中，继续等到天黑。
+
+天黑之后，门仍关着。门外的人分成几处坐下，谁也没有把灯提到门前。
+
+**锚句**：门未开，潮未停。
+**Anchor sentence**: the door stayed shut; the tide did not.
+
+---
+
+## 二 · 灰被分走的日子
+
+第四日，有人带来布袋。
+
+他没有向门内请示，也没有向门外的人告知。他用一块薄木片，从墙根刮起灰，装了半袋，系好袋口，放进车里。车轮压过石缝时，灰从袋眼漏出，一路落到码头。
+
+第二天，又有人来。她拿的是陶罐，装得很少，只够盖住罐底。她把罐口封住，抱在胸前走了。后来有人用铁盒，有人用旧鞋，有人把灰装进折起的纸里。各自带走一份，各自记得份量。
+
+没有人禁止。也没有人允许。
+
+守门的老人站在台阶边，手里握着一串钥匙。他没问袋子里是什么，也没替任何人开路。有人经过时向他点头，他点回去。落在台阶上的灰被鞋底带走，留下一条条浅痕。
+
+那几日，门外不再只有等候的人。来的人拿走灰，留下容器的印子。夜里潮气上来，印子变软。第二天，新的容器又压在同一处。
+
+**锚句**：灰有去处，无人作主。
+**Anchor sentence**: the ash had a destination; no one gave the order.
+
+---
+
+## 三 · 孩子的名字念完了
+
+那个孩子坐在窗下，膝上摊着纸。
+
+纸上已经写了七个名字。第八处空着，空处被指腹磨得发亮。孩子每天把七个名字念一遍，念到最后，就停住。没人替他填字。有人问过，他摇头，把纸折好，压在枕头下面。
+
+今天，孩子把纸取出来。
+
+他念第一个名字，窗外有人挑水经过。念到第三个名字时，屋檐滴下一串水。第七个名字落下后，屋里静了一会儿。孩子没有合纸，也没有抬头。他把空着的那一处念完了。
+
+那声音不大，门外的人没有听见。窗台上的空盏里落进一粒灰，滚到盏底。
+
+孩子把纸折回原样，放在枕下。那一夜，他没有再念。
+
+翌日，纸上仍是七个字。第八处没有添笔，只有一道浅浅的凹痕，像曾有人用力写过。
+
+**锚句**：空处今日有声。
+**Anchor sentence**: the empty space spoke today.
+
+---
+
+## 四 · 最后一趟潮水
+
+水退得比以往都远。
+
+先露出石阶尽头，再露出旧桩的根。泥地开裂，裂缝里留着鱼骨、断绳和一枚锈钉。更远处有一道黑线，平日只在风暴后出现；这回它停在众人眼前，直到暮色落下也没有被水盖住。
+
+有人沿着湿地走过去，弯腰捡起一片碎碗。有人站在岸上，没有下脚。退潮带来的腥气压着盐味，吹过门前时，门板仍旧不动。
+
+孩子也到了岸边。他把那张纸揣在衣内，手指按着第八处凹痕。没有人问他念了什么。远处一只空船搁在泥上，船底朝天，绳索垂着。
+
+夜里，水没有按时回来。
+
+岸边的人各自回家。有人留下一盏灯，火芯烧到尽头，黑烟贴着潮湿的墙散开。第二天水才漫上来，把裂缝填满，把鱼骨推回暗处。
+
+**锚句**：水退得远，岸记得住。
+**Anchor sentence**: the tide withdrew far; the shore remembered.
+
+---
+
+## 五 · 空盏留给谁
+
+账房关门后，空盏和浅口碟还在窗台上。
+
+盏口朝上，碟沿缺了一角。没人收起它们，也没人把灰倒进去。早晨有盐雾落在盏底，午后风吹进窗缝，把几粒尘推到碟边。入夜后，窗台黑下来，盏与碟只剩两道轮廓。
+
+有人来问，空盏留给谁。
+
+守门的老人看了一眼，没有答。问话的人也没有再问。他把一段麻绳放在窗下，转身走了。绳子被潮气浸湿，贴着墙根蜷起来。
+
+后来，一个女人把半袋灰放到窗边。她没有倒进盏里，只将袋口折好，压在浅口碟旁。清晨，她回来取走袋子。碟面留下一圈灰痕，像一只未合拢的手。
+
+盏里仍然是空的。
+
+**锚句**：空盏不替谁等。
+**Anchor sentence**: the empty bowl waits for no one.
+
+---
+
+## 六 · 下一本账开始了
+
+带灰回家的人，把袋子放在门边。
+
+有人将灰分进几只小罐，贴上日期；有人把袋子搁在桌角，没有动；有人把灰撒进院里的泥土，之后洗净双手。没有两份相同，也没有人核对。
+
+一个男人取出空白册子，坐到窗下。他在第一页写下自己的名字，又写当天的潮时、袋子的重量，以及屋里还有几个人。写到末尾，他停笔听了一会儿。屋外有人搬动木桶，桶沿磕在石阶上。
+
+他没有写门内的人，也没有写第八盏灯。
+
+第二页空着。那一夜，册子没有合上。早晨的盐雾落进纸纹，墨迹没有散开。
+
+门前仍有人等。有人不再等。潮水涨过石阶，又退回旧线。窗台上的盏与碟没有移动，灰袋在各家的门边结出潮气。
+
+下一本账从一行日子开始。写账的人没有抬头。
+
+**锚句**：世上仍有未记之数。
+**Anchor sentence**: the world still holds unwritten figures.
+
+---
+
+## 模型映射（第八章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 灰后 · 灰袋 · 孩子的纸 · 空盏与浅口碟 | 一至六 |
+| geography | 潮汐教团 · 门廊 · 石阶 · 码头 · 账房窗台 | 一至六 |
+| factions | 守门人 · 候门的人 · 带灰回家的人 | 一至六 |
+| characters | 孩子 · 守门老人 · 带灰的人 | 一至六 |
+| items | 账册 · 布袋与容器 · 孩子的纸 · 空盏与浅口碟 · 空册子 | 一至六 |
+| story | 雾港 · 账合之后 · 第八章 | 全篇 |
+| history | 铁月纪之后 · 灰棚之前 | 一至六 |
+
+> 灰散了，世界没有散场；
+> 下一本账，从一行日子开始。
+>
+> The ash has scattered, and the world has not dispersed;
+> the next ledger begins with a single line of days.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 第八章「灰后」
+
+> The canon did not end — it only closed a ledger.
+> Chapter VIII writes the third day after: the door stayed shut, the ash found its way, the world went on.
+> Canon discipline is unchanged — anchor sentences match word-for-word; no rephrasing.
+>
+> 正典没有结束——它只是合上了一本账。
+> 第八章写账合之后的第三天：门没有开，灰有了去处，世界继续。
+> 本章正典纪律不变：锚句中英字字对齐，引用者逐字保持。
+
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+> 纪元：铁月纪之后 · 灰棚之前。
+
+---
+
+## I · The Third Day Outside the Door
+
+On the third day after the ledger closed, the people outside the door were still waiting.
+
+The door did not open. No light came through the seam, no footsteps behind it. Someone pressed an ear to the wood and heard nothing but their own breath. Someone set a bowl of water by the door; ash settled on the surface, and no one wiped it clean.
+
+The tide kept its hours. The water climbed the third step; on its way back it left a line of fine salt. The waiting watched that line the way one watches an unfinished column of figures. No one recorded who had come first, or who had left first. The bare patch of ground before the door widened by the day — footprints smoothed away by the damp, then pressed in again by new ones.
+
+On the third afternoon, someone knocked once. The sound was short, as if a knuckle had tapped an empty wooden box. No answer came from within. The knocker drew their sleeves over their hands and kept waiting until dark.
+
+After dark, the door still stood shut. The waiting settled into small groups, and not one of them thought to carry a lamp to the door.
+
+**Anchor sentence**: the door stayed shut; the tide did not.
+**锚句**：门未开，潮未停。
+
+---
+
+## II · The Days the Ash Was Divided
+
+On the fourth day, someone came with a cloth bag.
+
+They asked permission neither of those inside nor of those outside. With a thin wooden scraper they gathered the ash from the wall-foot, filled half a bag, tied its mouth, and set it on the cart. When the wheels crossed the stone seams, ash sifted through the weave and littered the road to the pier.
+
+The next day, another came — this one with a clay jar, holding very little, hardly enough to cover the bottom. They sealed its mouth and carried it against their chest all the way home. Then came someone with a tin box, someone with an old shoe, someone with ash folded into paper. Each carried away one portion, and each remembered its weight.
+
+No one forbade it. No one allowed it, either.
+
+The old doorkeeper stood at the step, a bunch of keys in his fist. He did not ask what the bags held, and he did not clear anyone's way. Those who passed gave him a nod; he nodded back. Carried away on shoe-soles, the ash left faint traces across the steps.
+
+In those days, the doorstep no longer held only the waiting. Those who took ash left the pale outlines of their containers behind. At night, the damp softened the outlines; by morning, new containers pressed the same spots.
+
+**Anchor sentence**: the ash had a destination; no one gave the order.
+**锚句**：灰有去处，无人作主。
+
+---
+
+## III · The Boy Finishes the Name
+
+The boy sat beneath the window, a sheet of paper across his knees.
+
+Seven names were written there already. The eighth space stood empty, polished bright by his thumb. Every day the boy read the seven names aloud, and stopped at the end. No one offered to fill it in for him. Once, when someone asked, he shook his head, folded the paper, and set it under his pillow.
+
+Today, he took the sheet out.
+
+He read the first name; someone outside passed with a water-pole. At the third name, a string of water dripped from the eaves. When the seventh name fell, the room went quiet for a moment. The boy did not close the paper, nor raise his head. He read the empty place to its end.
+
+The sound was small. Those outside the door did not hear it. A single grain of ash drifted onto the empty bowl on the sill and rattled to its base.
+
+The boy folded the paper as before and set it under the pillow. That night, he did not read it again.
+
+The next day, the seven names remained on the sheet. The eighth space carried no added stroke — only a shallow dent, as if someone had pressed very hard with a pen.
+
+**Anchor sentence**: the empty space spoke today.
+**锚句**：空处今日有声。
+
+---
+
+## IV · The Last Tide
+
+The water drew back farther than it ever had.
+
+First it uncovered the end of the steps, then the roots of the old piling-posts. The mud split open, and the cracks held fishbones, a snapped rope, and a rusted nail. Farther out, a black line appeared — one that surfaced only after storms. This time it stopped in plain sight, and even at dusk it had not been covered again.
+
+Someone walked out onto the wet flat and bent to pick up a shard of bowl. Someone else stood on the shore and did not step down. The stench of the retreat pressed against the salt wind; when it passed the door, the door-board stayed motionless.
+
+The boy walked down to the shore too, the sheet inside his coat, one finger holding the dent in the eighth space. Nobody asked him what he had read. Out on the flat, an abandoned boat rested keel-up in the mud, its mooring-rope dangling.
+
+That night, the water did not come back on time.
+
+Each of the people on the shore went home. Someone left a lamp burning; its wick burned down to the end, and the black smoke clung to the damp wall before fading. Only the next day did the water climb back, fill the cracks, and push the fishbones into the dark again.
+
+**Anchor sentence**: the tide withdrew far; the shore remembered.
+**锚句**：水退得远，岸记得住。
+
+---
+
+## V · Who Does the Empty Bowl Belong To
+
+After the bursar shut the door, the empty bowl and the shallow saucer were left on the sill.
+
+The bowl faced upward; the saucer's rim had lost a chip. No one cleared them away, and no one poured ash into them. Morning brought salt-mist onto the bowl's floor; the afternoon wind slipped through the window-seam and pushed a few grains of dust to the saucer's edge. When night fell, the sill went dark, and bowl and saucer remained only as two outlines.
+
+Someone came to ask: who does the empty bowl belong to?
+
+The old doorkeeper looked at it, and did not answer. The asker did not press further. They left a length of hempen rope beneath the window and went back the way they had come. The rope drank the damp and curled against the wall-foot.
+
+Later, a woman set half a bag of ash by the window. She did not pour it into the bowl — only folded the bag's mouth and settled it beside the saucer. In the morning, she came back and took the bag away. On the saucer's face, a ring of ash remained, like the shape of a hand that had never closed.
+
+The bowl stayed empty.
+
+**Anchor sentence**: the empty bowl waits for no one.
+**锚句**：空盏不替谁等。
+
+---
+
+## VI · The Next Ledger Begins
+
+The ones who carried ash home set their bags by their own doors.
+
+Some divided the ash into small jars and pasted dates onto them; some left the bag on the corner of a table, untouched; some scattered it over the soil of the yard and washed their hands afterwards. No two portions were alike, and no one tallied them against each other.
+
+A man took out a blank ledger and sat beneath his own window. On the first page he wrote his own name, then that day's tide-hour, the weight of the bag, and how many were alive in the house. Near the end, he stopped to listen. Outside, someone shifted a wooden tub; the rim clicked against the steps.
+
+He did not write the ones inside the door, nor the eighth lamp.
+
+The second page stayed blank. That night, the ledger did not close. In the morning, salt-mist settled into the grain of the paper; the ink did not run.
+
+Before the door, people still waited. Some no longer did. The tide climbed the steps, then withdrew to its old line. The bowl and the saucer on the sill had not moved; at every threshold, the ash-bags shone with damp.
+
+The next ledger began with a single line of days. The one writing it did not look up.
+
+**Anchor sentence**: the world still holds unwritten figures.
+**锚句**：世上仍有未记之数。
+
+---
+
+## Model mapping (Chapter VIII)
+
+| Category | Title | Corresponds to |
+|---|---|---|
+| lore | After the Ash · the Ash-Bag · the Boy's Paper · the Empty Bowl and Saucer | I–VI |
+| geography | The Tide Conclave · the Threshold · the Steps · the Pier · the Sill | I–VI |
+| factions | The Doorkeeper · the Waiting Ones · the Ones Who Took Ash Home | I–VI |
+| characters | The Boy · the Old Doorkeeper · the Ash-Carriers | I–VI |
+| items | The Ledger · Cloth Bags and Vessels · the Boy's Paper · the Bowl and Saucer · the Blank Ledger | I–VI |
+| story | The Mist Harbor · After the Ledger Closed · Chapter VIII | whole |
+| history | After the Iron-Moon Age · Before the Grey Cover Was Laid | I–VI |
+
+> The ash has scattered, and the world has not dispersed;
+> the next ledger begins with a single line of days.
+>
+> 灰散了，世界没有散场；
+> 下一本账，从一行日子开始。
+`,
+  },
 ] as const;
 
 export const BIBLE_ECHOES: readonly BibleChapter[] = [

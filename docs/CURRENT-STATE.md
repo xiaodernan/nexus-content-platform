@@ -5054,3 +5054,16 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - studio-shell SHA 493e6ede…（redact：EOL+cn+空白归一）、studio-topbar SHA 2b18cc95…
   （自写 stripClassNames 复制实现，pre-edit 哈希与旧 pin 字节一致复核）重钉
 - 门：fe-gates 123 套 · 1200/1200；census 2541 OK；tsc 0；studio-shell/topbar 25/25
+
+## cont. 176 (2026-11-17) - v806: 世界大典 第八章「灰后」——灰被分走的日子
+
+- 新内容：`docs/world-bible/008-灰后.md` + `.en.md`——第七章「灯前灰」账合之后的第三天：
+  门没有开、潮未停；第四日有人开始刮灰带走（没有人禁止，也没有人允许）；
+  孩子的第八处名字被他自己念完了（窗外无人听见，空盏里落进一粒灰）；
+  最后一趟潮水退到比以往都远；空盏留给下一个不喊名字的人；下一本账从一行日子开始——世界继续。
+- 锚句全系列 **93/93 全过**（verify:world-bible OK，zh+en 逐字对照）；gen:bible-snapshot（8 章 × 8 回响）字节一致；
+  live probe /bible/008-after-the-ash 200（双语命中）；/bible hub 入册。
+- BibleQuiz **32 题**（+2 Ch.VIII 双语题）；序列钉死 [..., 1, 1]；SHA pin e477f5af… 重钉。
+- guide 全套对齐：七章 → 八章（zh/en ×6 处）；SHA pin 56f52187… 重钉。
+- 草稿出真 provider（gpt-6.1-terra），人工定稿·严纪律。
+- 门：fe-gates 123 套 · 1200/1200 OK；census 2541 OK；tsc 0。
