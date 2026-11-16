@@ -14491,3 +14491,11 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   call#1 HTTP 200 · wall 5 019 ms · tokensIn 22 669 · cachedTokens 0 · cacheReported false；
   call#2 同 payload · wall **69 ms** · latencyMs **15** · cachedTokens **22 669/22 669** · cacheReported true；
   答案两次逐字一致：「他们在雾港口遇见了一个抄本员。（《收件人》第三节）」—— 22 k tokens 的前缀+题目，第二次的所有开销都在 L2 replay 里。
+
+## §BIBLE-42 — 回响 · 其三十《祠殿门槛下压着的那七块木板》（2026-11-17 · v848）
+
+- 产出：`docs/world-bible/echoes/E30-祠殿门槛下压着的那七块木板.md`（中）/ `.en.md`（英）——祠殿最外槛下压着的七块木板：
+  门槛下七块板；米缸月里巷子一次检修的核心记录被抄本员撕了；值守交接册里只记"板数仍然是七"；新来的值守在槛处脚步常常歪一下。
+  5 锚句 zh/en 全局唯一（170/170）。
+- `gen-bible-snapshot.mts` 登记 `echo-030-the-seven-boards-under-the-sill`；快照重生成（5+30 回响）。
+- verify:world-bible ✓ 170/170；verify:bible-snapshot ✓；fe-gates 134/134 · 1265/1265 · census 2564。

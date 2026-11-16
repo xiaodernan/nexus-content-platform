@@ -4501,3 +4501,8 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   首调 5 019 ms / 末调 69 ms（L2 replay，cachedTokens 22 669/22 669，cacheReported true）；
   回包逐字一致，且都答对「《收件人》第三节的抄本员」。
 - sibling :8000 未触碰（sidecar :8131 用完即停）；本轮 token 消耗 = 一次 fresh 22 669 in / 27 out ≈ 极小。
+
+## cont. 214 (2026-11-17) — v848 · 回响其三十
+
+- 新回响 E30（中英双文件 + 映射表）；verify:world-bible ✓ 170/170；快照 5+30。
+- 世界两位数回响（30）到达——本篇把门槛写成停泊之地，与正典第五章「收件人」的题材同频。

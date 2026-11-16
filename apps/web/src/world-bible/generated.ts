@@ -6950,4 +6950,194 @@ The copyist arriving afterwards saw nothing; the copyists later denied seeing an
 > Those who enter go barefoot — the outermost layer of the Institute is a pair of wooden clogs; leave that footwear outside.
 `,
   },
+  {
+    order: 30,
+    slug: 'echo-030-the-seven-boards-under-the-sill',
+    titleZh: '祠殿门槛下压着的那七块木板',
+    titleEn: 'The Seven Boards Buried Under the Chapel Threshold',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——石槛之下。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; beneath the sill.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 30): The Seven Boards Buried Under the Chapel Threshold
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给祠殿最外进门那条槛——槛下压着七块木板；每掘一块，都会各挑它的后继者；没有值守说过它们做什么。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the threshold of the chapel — seven boards lie beneath the lowest stone; no watcher explains what they came from, or what they are for.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——石槛之下。
+> Era: the Institute — after the 41st Convocation; some month, some day under the watcher's boots.
+
+---
+
+## 一 · 七层板
+
+祠殿最外那道槛下压着七块木板——
+
+值守交接册上第一次出现「七层」这个词，是在第十一次大会之前的米缸月。
+肩并肩排开——抄本员可以蹲下来看到其中三块的边缘。
+
+每一层都被压在石槛下——谁都不能从它们之间抽出来，除非先把石槛撬起来。
+
+**锚句**：祠殿门槛下每一进门都是石槛——石槛下堆着七块木板。
+**Anchor sentence**: under the threshold at the chapel door lie seven boards beneath the sill stone.
+
+---
+
+## 二 · 新来的值守在门槛上的一步
+
+新来的值守第一次进祠殿——脚在门槛处绊了一下。里巷子的老值守把他扶稳了。
+
+值守长后来只解释了一句："门槛下是七块不均匀的板——第一块最滑，第四块浮起来，第六块遇湿会跳。"
+
+没人说明为什么是七，也没人问还有别的什么——值守只记住了：门槛下不是岩石，是七层做的板。
+
+**锚句**：新来的值守在门槛处脚步一失都是常有的——水渗里巷子万年没干过。
+**Anchor sentence**: a new watcher stumbling at the threshold is common — the alley has never dried.
+
+---
+
+## 三 · 最底下那块的木纹
+
+抄本员只通过第七层板露出在石槛边缘的那一角目测过——板色潮候院今年三月流晒过时像晒过的一张旧半月印章。
+
+第五、第六层压过的木板里面可见潮汐图刻痕，形状和米缸月潮沙盘的第一次启用时有——抄本员们不再追问第七层的来历。
+
+**锚句**：最底下的木板的木纹谁都没看见过——抄本员也不再问了。
+**Anchor sentence**: no one has ever seen the grain of the lowest board — the copyists ask no further questions.
+
+---
+
+## 四 · 第一次看到第七层
+
+米缸月第四十二天（也就是四十一次大会散会后不久），里巷子值守一度检修祠殿石槛下面——抄本员借机看了一眼七层木板。
+
+第七层的木板最里面有一截细结凸起；抄本员原本打算量出每层木板的年代，却没能写成那一页——他回去补的那行是：「第七层木板内侧有细结；米缸月第十二日砂盘翻过一次。」——随后那一页潮沙盘被抄本员撕了，留下一个空白格。
+
+**锚句**：石槛下第一次被抄本员看见第七层木板——抄本员没能对它做记录。
+**Anchor sentence**: beneath the threshold was seen for the first time — the copyist could not keep a note of it.
+
+---
+
+## 五 · 不会更新的
+
+二十九年后值守长换新值班手册的时候——
+
+记载门槛下板数仍然是七。潮候院潮沙盘上又多了一副闸板——他们登记新建筑的时候也不会减少旧七层，它们一直都在。
+
+新来的值守第一次接触到门槛的时候，里巷子文化只说一句：「这道门槛是会过会的。」
+
+**锚句**：门槛下的七块板不会减少——潮候院不会在新建的时候多开一道祠殿。
+**Anchor sentence**: the seven boards under the threshold will not decrease — the Institute will never open a second chapel.
+
+---
+
+## 六 · 映射（回响三十章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 祠殿七层木板 · 半月章的呼吸 · 第四十一次大会之后 | 一、二、三、四、五、六 |
+| geography | 祠殿 · 里巷子门路 · 祠殿最外门 | 一、二、三、四、五、六 |
+| characters | 里巷子抄本员 · 值守长 · 新来的值守 | 一、二、三、四、五、六 |
+| story | 祠殿槛下木板 · 回响（其三十） | 全篇 |
+| items | 七块木板 · 石槛 · 米缸月潮汐表 · 微微印章 | 一、二、三、四、五、六 |
+| history | 米缸月第四十二日 · 潮候院的第六十九年 | 一、四、五、六 |
+
+> 下一次大会散会后的值班会——潮候院的人还会再次路过那条门槛。
+> After the next Convocation, the watchers will walk through that threshold again.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其三十）「祠殿门槛下压着的那七块木板」
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给祠殿最外进门那条槛——槛下压着七块木板；每掘一块，都会各挑它的后继者；没有值守说过它们做什么。
+> 纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the threshold of the chapel — seven boards lie beneath the lowest stone; no watcher explains what they came from, or what they are for.
+> Same discipline: anchors verbatim.
+
+> Era: the Institute — after the 41st Convocation; beneath the sill.
+> 纪元：潮候院 · 第四十一次大会散会之后——石槛之下。
+
+---
+
+## 一 · The Seven Boards
+
+The outermost threshold of the chapel rests on seven boards —
+
+The first mention of "the seven layers" in the watchers' hand-over book appears in the rice-jar month before the eleventh Convocation.
+The boards lie side by side — a copyist may crouch and see the rim of three of them.
+
+Every layer is pressed beneath the sill stone — none can be drawn out unless the sill is lifted first.
+
+**锚句**：祠殿门槛下每一进门都是石槛——石槛下堆着七块木板。
+**Anchor sentence**: under the threshold at the chapel door lie seven boards beneath the sill stone.
+
+---
+
+## 二 · The New Watcher's Stumble
+
+A newly arrived watcher steps into the chapel — their foot caught the threshold once. The older watchers of the back alley steadied them on the spot.
+
+The headkeeper answered once, and no more: "The sill holds seven uneven boards — the first slides, the fourth lifts, the sixth vaults wet."
+
+No one explained why seven — the watchers carry one lesson from it: the sill is not rock, but seven laid boards.
+
+**锚句**：新来的值守在门槛处脚步一失都是常有的——水渗里巷子万年没干过。
+**Anchor sentence**: a new watcher stumbling at the threshold is common — the alley has never dried.
+
+---
+
+## 三 · The Grain of the Lowest Board
+
+A copyist sighted the seventh board once — its outer face carries the dull tint of a half-moon seal left in the sun too long.
+
+The fifth and sixth boards bear weather-worn tide-chart scratches visible from the slit; the copyists no longer pursue the source of the seventh.
+
+**锚句**：最底下的木板的木纹谁都没看见过——抄本员也不再问了。
+**Anchor sentence**: no one has ever seen the grain of the lowest board — the copyists ask no further questions.
+
+---
+
+## 四 · First Sight of the Seventh Board
+
+On the forty-second day of the rice-jar month (which is to say soon after the forty-first Convocation dispersed), a watcher of the back alley opened a small inspection hatch beneath the sill — a copyist took the chance to look at the seven boards.
+
+The far inner face of the seventh board carries a fine knot; the copyist had meant to measure each board's age, but could not finish his page — the line he returned with read: "a fine knot inside board seven; the sand table turned once on the twelfth day." The page was reported and was torn out; the slot was left blank.
+
+**锚句**：石槛下第一次被抄本员看见第七层木板——抄本员没能对它做记录。
+**Anchor sentence**: beneath the threshold was seen for the first time — the copyist could not keep a note of it.
+
+---
+
+## 五 · Nothing Will Update
+
+When the headkeeper rewrote the shift-book a generation later —
+
+The seven boards are still listed as seven. A new gate is added to the tide-sand table entries in the new handbook, but the seven remain; the building plan of the Institute will not add a second chapel.
+
+When a new watcher first comes to the threshold, the culture of the back alley says one thing: "This sill hosts Convocations."
+
+**锚句**：门槛下的七块板不会减少——潮候院不会在新建的时候多开一道祠殿。
+**Anchor sentence**: the seven boards under the threshold will not decrease — the Institute will never open a second chapel.
+
+---
+
+## 六 · Mapping（Echo No. 30 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | The seven boards · half-moon's breath · after the forty-first Convocation | 一、二、三、四、五、六 |
+| geography | The chapel · the alley route · the outermost entrance of the chapel | 一、二、三、四、五、六 |
+| characters | The copyists · the headkeepers · the new arrivals | 一、二、三、四、五、六 |
+| story | The Boards Under the Threshold · Echo No. 30 | 全篇 |
+| items | The seven boards · the sill stone · the tide-tables · the seal | 一、二、三、四、五、六 |
+| history | The forty-second day of the rice-jar month · the sixty-ninth founding year | 一、四、五、六 |
+
+> 下一次大会散会后的值班会——潮候院的人还会再次路过那条门槛。
+> After the next Convocation, the watchers will walk through that threshold again.
+`,
+  },
 ] as const;

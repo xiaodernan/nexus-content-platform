@@ -71,6 +71,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E27-里巷子里刻着四十一次大会的那面墙': 'echo-027-the-wall-of-the-forty-one-convocations',
   'E28-潮候院沙漏里那枚没人拆开的结': 'echo-028-the-knot-in-the-hourglass',
   'E29-祠殿里那双没人穿的木屐': 'echo-029-the-wooden-clogs-nobody-wears',
+  'E30-祠殿门槛下压着的那七块木板': 'echo-030-the-seven-boards-under-the-sill',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
