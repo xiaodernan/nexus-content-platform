@@ -251,6 +251,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《门槛》里，守门人跨出门的时候……？', choices: ['有人送他', '门槛拦他', '无人送他，也没人问', '门开不了'], answer: 2, ref: '回响十三 · 五' },
     en: { prompt: 'In “The Threshold”, when someone crosses from inside out…?', choices: ['someone sees them off', 'the threshold stops them', 'no one sees them off, no one asks', 'the door will not open'], answer: 2, ref: 'Echo No. 13 · V' },
   },
+  {
+    zh: { prompt: '《柴》里，送柴的人敲门吗？', choices: ['敲，等有人应', '不敲，放下柴就走', '敲三下离开', '隔门报数'], answer: 1, ref: '回响十四 · 三' },
+    en: { prompt: 'In “The Firewood”, does the bearer knock?', choices: ['yes, and waits for an answer', 'no — he sets the wood down and leaves', 'three knocks, then leaves', 'he calls the tally through the door'], answer: 1, ref: 'Echo No. 14 · III' },
+  },
+  {
+    zh: { prompt: '《柴》里，柴在门槛外放几天才算归屋？', choices: ['一天', '两天', '三天', '五天'], answer: 2, ref: '回响十四 · 四' },
+    en: { prompt: 'In “The Firewood”, how many days does the wood wait beyond the threshold before it counts as brought inside?', choices: ['one day', 'two days', 'three days', 'five days'], answer: 2, ref: 'Echo No. 14 · IV' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

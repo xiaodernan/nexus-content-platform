@@ -6387,4 +6387,334 @@ It is there, until the next foot pauses.
 > 它只把每一步都留在自己的木纹里。
 `,
   },
+  {
+    order: 14,
+    slug: 'echo-014-the-firewood',
+    titleZh: '柴',
+    titleEn: 'The Firewood',
+    eraLineZh: '纪元：铁月纪之后 · 灰棚之前。',
+    eraLineEn: 'Era: after the Iron-Moon Age · before the grey cover was laid.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 14): The Firewood
+
+> 回响不替正典续写——它只盯着第十章里被放在门槛外的那捆柴。
+> 本篇写给木头从死林到门槛、再到灶膛、再到灰坑的整条路。
+> 本篇锚句，与《秤》《碗》同一纪律。
+>
+> An echo does not continue the canon — it only keeps its eyes on the firewood set beyond the threshold in Chapter X.
+> Written for wood's whole road: from the dead grove, to the door, to the stove, to the ash-pit.
+> Its anchors answer to the same discipline as the scale and the bowl.
+
+> 纪元：铁月纪之后 · 灰棚之前。
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 其一 · 死木
+
+柴不从活树上来。
+
+北坡第三道石脊以下，有一截林子死在盐风里。先死的是背阴处的松，针叶落尽，树皮仍挂在枝上；后来水退，根土露出，木头便一棵棵横在泥里。那年秋末，北风压过山口，倒了七棵。记林的人只记七，不记林还剩多少。
+
+倒木没有一齐运走。靠近路的，给村里锯成梁；滚进沟里的，等雨季冲下来。木头在水里走，撞过石头，削去枝杈，到了下游搁在一段废堤边。堤脚有旧桩，木头卡在那里，水退后露出半截。
+
+送柴的人从堤上认出它们。不是认树种，是认那些尚未剥落的黑皮。他把能搬的拖上岸，不能搬的锯开。锯口朝里，树皮朝外，省得过夜的雾浸进木心。碎枝也没有留给水。小的扎成一束，大的分作几捆，逐件过秤，再运到门前。
+
+从山上到门槛，中间有两条路。一条沿盐沟，一条经过旧井。盐沟涨水时，柴走旧井；旧井封住时，就等水退。送柴的人不向路边的人借车，也不把柴留在旁人的檐下。木头落地时，门槛外已有一道浅凹，几年车辙与拖痕压在同一处，像一条没有名字的沟。
+
+有一根木头来自林缘，没挨风倒，先死在虫眼里。它比同捆的柴轻，秤上仍照数记下。送柴的人没有把它抽出去。抽出去，便要重捆；重捆，日子就对不上。
+
+柴从死林里出来，过了水，最后到门前。它没有走进屋里。门槛替它止步，灯替账本照明。
+
+**锚句**：死木到了门外，才有斤两。
+**Anchor sentence**: only when dead wood reaches the door does it weigh anything.
+
+---
+
+## 其二 · 捆柴
+
+柴用麻绳捆。
+
+麻是旧麻，拆自一张补过三回的网。粗绳另有用处，捆柴时会勒碎细枝；草绳在潮气里松得快，过一夜便要重新打结。送柴的人把麻绳拆成两股，顺木头的长向绕过两匝，留出能穿过手腕的空隙。绳不紧贴树皮，留一点潮气散出去。
+
+结打在捆子的上面，靠近较粗的一端。搬运时，手从结下穿过，柴不会散。放到门槛外，结也朝着灯，账房的人不必翻动木头，就能看见绳头有没有断。绳结朝上，不是给后来的人看手艺，是免得结落进泥里，日子被泥遮住。
+
+每捆柴都留两截绳头。一长，一短。长头藏在结下，短头压在木缝里。若只见一截，便知道有人动过捆子；若两截都在而结松了，是雨水浸过；若长头换了方向，就要重新过秤。
+
+送柴的人不用新绳。新麻太亮，灯下一眼便认得。旧绳颜色沉，账房的人看绳的磨损，能知道这捆是否在路上拖过。若有断股，他不接。若只起毛，便照收。毛头沾着盐，放到灯下会结硬，像一小段白线。
+
+打结时，送柴的人先把细枝压到里面，再把粗木拢成一束。树皮朝外，断面朝同一边。断面不对齐，秤杆容易碰落小木片；落下的木片若归进别人的柴里，账上就多出一笔不知从何处来的斤两。
+
+账房的人不摸绳，只看结。结在上，便知柴未倒；结偏向左，便知捆子曾经翻过。没人问这些记号是谁定的。问了，也没有地方写答案。
+
+**锚句**：结朝上，手便不必翻柴。
+**Anchor sentence**: the knot faces up, so no one has to turn the wood.
+
+---
+
+## 其三 · 不敲门
+
+送柴的人不敲门。
+
+他把柴放在门槛外，退一步，等灯影落到绳结上。门内若有人，灯焰会动；若无人，灯焰不动。他不以此判断屋里有没有人，只等账本上的空白被看见。
+
+门不常锁。锁不锁，与送柴无关。门槛外的柴不能往里推，门槛内的人也不能出来接。人若伸手，便算收了；人若开口，便要问来处。来处已经记过，再问一次，账上就多一道回声。
+
+送柴的人也在规矩里。他幼时跟着父亲送过一趟，走到门前时，父亲让他把木头放下，自己走开。孩子问为何不敲门，父亲说，敲门的人要等回答；等回答的人不能保证什么时候走。后来父亲死在旧井边，名字没有写进柴账，只写在村册的空行里。
+
+如今送柴的人也不敲门。他不留脚印在门内，不借灯取火，不在屋檐下避雨。若他站得久，过路人便会问他等谁；若他说等收柴的人，下一行就要记收柴人的姓名。姓名一旦落在柴账上，日后便有人来问柴是谁烧的。
+
+他把最后一捆放下，捆与捆之间留一掌宽。中间的空处用来落水，也用来让账房的人看见每一捆的边界。然后他抖掉手上的木屑，沿原路走。雨大时，他走得慢，免得泥水溅到门槛；天黑时，他也不回头看灯。
+
+有一回，门内传出咳嗽声。他听见了，仍未敲门。咳声停后，灯芯烧短一截。第二天，柴账上多了一行收讫，没有人记那一夜屋里有没有人。
+
+送柴的人每次都离开。离开不是送完的证明，只是规矩里最后一笔。
+
+**锚句**：门前无人应，柴仍算送到。
+**Anchor sentence**: no one answers at the door; the wood still counts as delivered.
+
+---
+
+## 其四 · 三日
+
+柴先在灯下放三日。
+
+第一日，门内的人不取。账房的人来核捆，先看绳结，再看断面，最后用木尺量最长的一根。若柴上有新泥，就记下泥色；若有水珠，便把过秤的日子往后挪一天。送柴的人不在场，也不替账上的数字作证。
+
+第二日，柴仍留在门槛外。天晴时，灯下的影子缩进门内；天阴时，木头的影子一直压到路边。门内的人从柴旁经过，不踢它，也不跨过它。若绕行，脚印便会留在泥里；若跨过，衣角会碰到树皮。那三日里，柴只听见鞋底、雨水和灯芯爆开的细声。
+
+第三日黄昏，账房的人在簿上划一道短线。灯下的柴才算归屋。搬柴的人先解绳，把细枝单放，再搬粗木。顺序照旧：干柴进内，潮柴留在门槛边；短柴靠灶，长柴靠墙。若一捆里夹着泥石，泥石留在门外，斤两不从柴数里扣掉。
+
+灯下堆着柴时，门槛不能扫。灰尘也不能扫进屋。扫帚沿着柴堆外缘走一圈，停在那道浅凹前；凹里有旧叶、盐粒和上一场雨留下的细砂。收柴的人不把柴拖过凹处，免得木头在账房的眼前少一截。
+
+三日不是等柴干，也不是等门开。门开了，柴仍要等；门不开，柴也不会被退回。到第三日，账本上有了横线，屋里的人才可伸手。
+
+有些年，三日里落雪，柴上结出薄冰。有人想提前搬进灶边，账房的人将手放在木尺上，没有说话。冰化之后，柴照常入屋。那几滴水落到门槛下，没有一滴写进账。
+
+**锚句**：三日不动，才轮到灶火。
+**Anchor sentence**: three days still, and only then the stove fire.
+
+---
+
+## 其五 · 灰坑
+
+柴入灶后，先失去树皮。
+
+树皮卷起来，落进火膛，声音很轻。粗木慢烧，细枝先亮。火色由白转红，烟沿烟道上行，在屋顶的缺口处散开。灶边的人不记哪一根先烧，只记那晚用了几捆。
+
+烧过的柴留下灰、炭和钉子似的硬结。灰不立即倒。每逢灶膛清一次，灰先装进铁盆，放在门内靠西的角落，等冷透。若盆底仍有红点，便盖上湿布，不能送去灰坑。灰坑挖在门内西墙下，离门槛六步，深一尺半。坑口用两块旧砖压住，砖缝不封，雨水能渗，灰却不会随风散进屋。
+
+灰倒进坑里，先平铺，再盖一层细土。炭块另放在坑北边，有完整棱角的留到冬日点火；碎炭压进土下。送柴的人不来查看灰坑。灰坑也不记入柴账，只有清灶的人在旁边的日历上画一道斜线。
+
+坑逐年变浅。土从墙脚取来，补在灰面上；取土时，不能挖到墙基。若挖深了，潮水会沿砖缝上来，把灰结成硬壳。硬壳不再筛，也不再点火，只能留在坑里，等下一层灰盖住它。
+
+有一年，清灶的人在灰里找到半截麻绳。绳上还有结，结朝上，焦黑处却已经散开。她把它放在坑边，等账房的人来认。账房的人没有认，只把灰坑的深度添到日历背面。那半截麻绳后来和灰一起埋下，绳头没有再露出来。
+
+灶火烧尽以后，柴不再有来处。灰坑却记得它落下的位置，直到土把位置填平。
+
+**锚句**：火尽之后，灰仍占着一尺半。
+**Anchor sentence**: only after the fire dies does the ash keep its foot and a half.
+
+---
+
+## 其六 · 柴账
+
+柴账记在灯下。
+
+账房的人记送来的日子和斤两。字写在窄页上，日期靠左，重量靠右；中间空一格，留给改动。若数字写错，不涂掉，旁边另记一笔。墨干得慢，账页便压一片薄石。灯油少时，他把账本移近，不把灯移到柴堆旁。
+
+送柴的人不报斤两。他把称好的数刻在一片木签上，木签夹在绳结里，结朝上。账房的人先抄木签，再用自己的秤核对。秤砣每月校一次，放在门内柜底。秤杆裂开时，账房的人不用新杆，而把旧杆的裂口朝内，重新记下校秤的日子。
+
+谁来核对，账上也有名。每月末，管灯的人逐页念日子，另一人点过门外留下的木签。木签不齐，就去问门槛，不去问送柴的人。若有一捆在三日内被雨冲散，按送来时的数记；若被人提前搬进屋，按搬入时的数记。两种日子之间，账上留一条细线。
+
+账里有时会多一斤，少一斤。秤砣沾盐，会多压一点；木头失水，会轻一点。账房的人把误差记在页脚，不从下一捆里补。若误差超过三斤，便封住那一页，换一张新纸，旧纸仍留在册中。没人把旧数撕掉。
+
+总有一天，账上的柴会比门外实际送来的多，或少。那一天不必有人发现。只要后来的核对者把页码翻到那里，看到日子还在，斤两却无法重算，差额便算入账。没有人因此退柴，也没有人补柴。
+
+最后一册写满时，账房的人不封口。他在下一页写下日期，把灯芯剪短，等门外再有木头落地。送柴的人仍不敲门。绳结仍朝上。日子和斤两在灯下添入新行，旧行留着盐渍。
+
+**锚句**：账有差额，柴才算完。
+**Anchor sentence**: only when the ledger shows a discrepancy is the wood truly accounted for.
+
+---
+
+## 模型映射（回响十四章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 死木 · 麻绳 · 柴账 · 灰坑 | 一至六 |
+| geography | 北坡石脊 · 盐沟 · 旧井 · 门槛外 · 屋内西墙下 | 一至六 |
+| factions | 送柴的人 · 账房的人 · 清灶的人 · 管灯的人 | 一至六 |
+| characters | 送柴的人 · 其父（已故）· 账房的人 · 清灶的人 | 一至六 |
+| items | 死木 · 麻绳 · 木签 · 木尺 · 秤 · 灰坑 · 旧砖 | 一至六 |
+| story | 雾港 · 灰棚 · 回响（其十四） | 全篇 |
+| history | 铁月纪之后 · 灰棚之前 | 一至六 |
+
+> 柴到门前，账到灯下；
+> 柴进灶火，灰进坑里。
+>
+> Wood arrives at the door; the ledger stays under the lamp;
+> the wood goes into the stove; the ash goes into the pit.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其十四）「柴」
+
+> An echo does not continue the canon — it only keeps its eyes on the firewood set beyond the threshold in Chapter X.
+> Written for wood's whole road: from the dead grove, to the door, to the stove, to the ash-pit.
+> Its anchors answer to the same discipline as the scale and the bowl.
+>
+> 回响不替正典续写——它只盯着第十章里被放在门槛外的那捆柴。
+> 本篇写给木头从死林到门槛、再到灶膛、再到灰坑的整条路。
+> 本篇锚句，与《秤》《碗》同一纪律。
+
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+> 纪元：铁月纪之后 · 灰棚之前。
+
+---
+
+## I · Dead Wood
+
+Firewood does not come from living trees.
+
+Below the third stone spine of the north slope, a grove had died in the salt wind. First the pines on the shady side perished, their needles shed, their bark still hanging from the branches; later, when the water withdrew, the roots were laid bare, and the trunks lay crosswise in the mud. That autumn's late season, the north wind came over the pass and felled seven trees. The man who recorded the forest counted seven; he did not count how many remained.
+
+The fallen timber was not hauled away all at once. The ones nearest the road were sawn into beams for the village; the ones that had rolled into the gully waited to be carried down by the rainy season. The wood travelled in the water, striking stones, shedding branches, until at the lower reach it came to rest against a derelict embankment. Old pilings stood at the foot; the wood jammed there, and when the water withdrew, half of it broke the surface.
+
+The firewood-bearer recognized them from the embankment. Not by species — by the dark bark that had not yet peeled away. He dragged up to the bank what he could carry; the rest he sawn through. The cut faces faced inward, the bark outward, so the night's mist would not seep into the wood's heart. The broken branches were not left to the water either. He bound the small ones into a faggot, divided the large ones into bundles, weighed each item separately, then brought them to the door.
+
+Between the slope and the threshold ran two roads. One followed the salt gully; the other passed the old well. When the salt gully flooded, the wood went by the old well; when the old well was sealed, it waited for the water to fall. The bearer did not borrow a cart from those along the road, nor leave the wood beneath someone else's eaves. Where the wood touched the ground, a shallow hollow already stood beyond the threshold — several years of wheel-tracks and drag-marks worn into one and the same place, like a road without a name.
+
+One log had come from the grove's edge — not felled by the wind; it had died early in a beetle-hole. It was lighter than the others in the bundle; the scale still recorded it as it was. The bearer did not pick it out. Picking it out meant rebinding; rebinding meant the date would no longer match.
+
+From the dead grove, through the water, to the door — the wood never entered the house. The threshold stopped it; the lamp lit the ledger.
+
+**Anchor sentence**: only when dead wood reaches the door does it weigh anything.
+**锚句**：死木到了门外，才有斤两。
+
+---
+
+## II · The Binding
+
+The wood was bound with hemp rope.
+
+The hemp was old — unpicked from a fishing net that had been mended three times. Coarse rope served other uses; tying firewood with it would crush the fine branches. Straw rope loosened too quickly in the damp — after one night it needed re-knotting. The bearer split the hemp into two strands, wound them twice around the wood's length, and left a gap for the hand's passage. The rope did not lie flat against the bark, so the damp might still escape.
+
+The knot was set on top of the bundle, near its thicker end. In carrying, the hand passed beneath the knot and the wood would not spill. When set beyond the threshold, the knot faced the lamp as well — the keeper of the ledger could see, without turning the wood, whether a cord-end had snapped. The knot facing up was not a craftsman's display; it kept the knot out of the mud, so the date would not be hidden by earth.
+
+Every bundle kept two cord-ends: one long, one short. The long end was tucked beneath the knot; the short one pressed into a seam of the wood. If only one cord-end remained, someone had tampered with the bundle; if both remained but the knot had loosened, rainwater had steeped through; if the long end had turned direction, the bundle had to be weighed anew.
+
+The bearer used no new rope. New hemp was too bright; under the lamp it was recognized at a glance. Old rope was dark; from the wear on it the keeper of the ledger could tell whether the bundle had been dragged along the road. If strands had parted, he never spliced them. If the ends had merely frayed, it passed as it was. The frayed ends, steeped in salt, hardened under the lamp — like a thread of white.
+
+In binding, he pressed the fine branches inside first, then drew the coarse wood into a sheaf. Bark out, cut-faces all to one side. If the cut-faces were not aligned, the scale-beam easily knocked off small chips; and any chip that went into someone else's wood would appear in the ledger as a measure whose origin no one could account for.
+
+The keeper of the ledger did not touch the rope; he read only the knot. Knot up: the wood had not toppled. Knot inclining left: the bundle had once been turned. No one asked who had fixed these marks. Nor was there anywhere to write the answer.
+
+**Anchor sentence**: the knot faces up, so no one has to turn the wood.
+**锚句**：结朝上，手便不必翻柴。
+
+---
+
+## III · No Knock
+
+The firewood-bearer did not knock.
+
+He set the wood beyond the threshold, stepped back, and waited for the lamp-shadow to fall across the knot. If someone was inside, the flame would move; if not, it would stay. He did not judge by this whether anyone was in the room; he only waited for the ledger's empty line to be seen.
+
+The door was seldom locked. Locked or not had nothing to do with the wood. What lay beyond the threshold could not be pushed inside; nor could anyone inside come out to receive it. If a hand reached out, the wood was counted as received; if a voice spoke, it must ask whence the wood had come. The origin had been recorded; to ask again would add a second echo to the ledger.
+
+The bearer stood within the same rule. As a child he had gone with his father once; at the door his father had him set the wood down and walk away himself. The child asked why they did not knock; his father said: those who knock must wait for an answer; those waiting for an answer cannot promise when they will leave. Later the father died beside the old well; his name was not written into the firewood-ledger — only in one empty row of the village book.
+
+So the bearer knocked no more. He left no footprints within the house, borrowed no fire from the lamp, did not shelter under the eaves in the rain. If he stood there too long, passers-by would ask whom he waited for; if he named the wood-receiver, the next line would record the receiver's name — and once a name entered the ledger, someone would come in time to ask whose wood had been burned.
+
+He set down the last bundle, leaving a palm's width between each. The gaps served to let water pass, and to let the keeper of the ledger see the edge of every bundle. Then he shook the splinters from his hands and walked back the way he had come. When the rain ran heavy, he went slower, so mud would not splash the threshold; when night fell, he never looked back at the lamp.
+
+Once, a cough came from inside. He heard it, and did not knock. When the coughing had stopped, the wick shortened by a span. The next day one more line appeared in the ledger: received. No one recorded whether anyone had been in the house that night.
+
+The bearer departed every time. Departure was never proof of delivery — only the final stroke of the rule.
+
+**Anchor sentence**: no one answers at the door; the wood still counts as delivered.
+**锚句**：门前无人应，柴仍算送到。
+
+---
+
+## IV · Three Days
+
+The wood lay beneath the lamp for three days.
+
+On the first day, no one inside took it in. The keeper of the ledger came to inspect the bundles; he read the knot first, then the cut-faces, and finally measured the longest piece with a wooden rule. If fresh mud lay on the wood, its colour was recorded; if drops of water glistened, the day of weighing was pushed one day back. The bearer was not present, and did not testify for the ledger's figures.
+
+On the second day, the wood remained beyond the threshold. In clear weather, the shadow beneath the lamp drew in toward the room; in cloud, the wood's shadow reached all the way to the road. Those inside passed it without kicking it, without stepping over it. To walk around meant leaving footprints in the mud; to step over meant the hem of the garment brushing the bark. During those three days, the wood heard only soles, rain, and the fine sound of the wick bursting.
+
+On the third day at dusk, the keeper of the ledger drew one short stroke in the book. Only then did the wood beneath the lamp count as brought inside. Those who carried it in loosed the ropes first — the fine branches were set aside, then the coarse wood was brought in. As always before: dry wood to the interior, damp wood left by the threshold; short wood beside the stove, long wood against the wall. If mud-stones had been packed into a bundle, the mud-stones stayed outside; the weight was not deducted from the wood's tally.
+
+While the wood stood beneath the lamp, the threshold was not swept. Dust was not swept into the house either. The broom travelled one round along the wood's outer edge and stopped at the shallow hollow; inside lay old leaves, grains of salt, and the fine sand left by one earlier rain. Those carrying the wood in did not drag it across the hollow — lest the wood appear, before the keeper's eyes, to have lost a piece.
+
+The three days were not for drying the wood, nor for opening the door. Though the door opened, the wood still waited; though the door stayed shut, the wood was never returned. On the third day, the ledger held its line, and only then did hands inside reach out.
+
+Some years, snow fell within those three days and the wood crusted with thin ice. Someone wished to carry it to the stove's side early; the keeper of the ledger laid his hand upon the wooden rule, and said nothing. Once the ice had melted, the wood came in as usual. Those few drops of water fell beneath the threshold; not one of them was written into the ledger.
+
+**Anchor sentence**: three days still, and only then the stove fire.
+**锚句**：三日不动，才轮到灶火。
+
+---
+
+## V · The Ash-Pit
+
+Once the wood entered the stove, it first shed its bark.
+
+The bark curled and dropped into the fire-box, making the faintest sound. The coarse wood burned slowly; the fine branches flared first. The flame-colour shifted from white to red; the smoke rose along the flue and dispersed at the opening in the roof. Those at the stove never recorded which piece had burned first — only how many bundles had been used that night.
+
+What the wood left behind was ash, charcoal, and hard knots like nails. The ash was not poured out at once. Each time the stove-box was cleared, the ash first went into an iron basin, set in the western corner of the room, and left to cool completely. If a red spark still lived at the basin's base, it was covered with a damp cloth and could not be sent to the ash-pit. The ash-pit lay beneath the room's western wall — six paces from the threshold, a foot and a half deep. Two old bricks lay across its mouth; the seams between the bricks were not sealed, so rain could seep in, yet no wind could carry the ash into the house.
+
+The ash went into the pit — first levelled, then covered with a thin layer of soil. The charcoal was set aside on the pit's northern edge; pieces with intact edges were kept for winter kindling; the fragments were pressed down into the soil. The bearer never came to inspect the pit. The pit was not entered in the wood-ledger either; only the one who cleared the stove marked a slant-line in the calendar beside it.
+
+The pit grew shallower year by year. Soil taken from the wall-foot was added upon the ash; in digging, the wall's foundation had not to be reached. If the digging went too deep, the tide-water would rise along the brick seams and set the ash into a hard crust. The crust was never sifted again, nor burned again; it remained in the pit, waiting for the next layer to cover it.
+
+One year, the one who cleared the stove found in the ash a half-length of hemp rope. It still carried its knot — knot up — though the charred section had already fallen apart at the centre. She set it at the pit's edge and waited for the keeper of the ledger to claim it. The keeper did not claim it; he only added the pit's depth to the back of the calendar. That half-length of rope was buried with the ash in time, and its end was never uncovered again.
+
+Once the stove-fire has died, the wood has no further origin. The ash-pit, however, remembered where it had fallen — until the soil filled the place in.
+
+**Anchor sentence**: only after the fire dies does the ash keep its foot and a half.
+**锚句**：火尽之后，灰仍占着一尺半。
+
+---
+
+## VI · The Wood-Ledger
+
+The wood-ledger was kept beneath the lamp.
+
+The keeper of the ledger recorded the date of each delivery and its weight. The characters fell on a narrow page — the date to the left, the weight to the right; between them, one open column was left for corrections. If a figure had been written wrongly, it was not painted over; an additional note was set beside it. The ink dried slowly, so a thin stone was laid across the page. When the lamp-oil ran short, he brought the ledger closer; he did not carry the lamp to the wood-pile.
+
+The bearer did not declare the weight. He carved the scale's reading onto a slip of wood; the slip was threaded into the knot, knot up. The keeper first copied the slip, then weighed it again on his own scale. The weight was re-calibrated once a month, at the back of the inner cabinet. When the scale-beam split, the keeper did not use a new beam; he turned the old beam's split inward, and recorded afresh the day it had been re-calibrated.
+
+Those who audited the ledger also had their names in it. At month's end, the keeper of the lamp read the dates aloud page by page, while another counted the slips left beyond the door. If the slips did not tally, questions went to the threshold — never to the bearer. Any bundle swept away by rain within the three days was recorded at its delivered weight; any bundle carried inside ahead of time was recorded at its weight on entering. Between these two dates, the ledger kept one fine line.
+
+The ledger sometimes held a jin more, a jin less. The weight grew heavy with salt; the wood turned lighter as it lost moisture. The keeper recorded the margin at the foot of the page; he never made good the difference from the next bundle. If the error exceeded three jin, he sealed that page and opened a new one; the old page remained in the book. No one tore out the old figures.
+
+There would come a day when the ledger's wood outnumbered what the door had received, or fell short of it. No one need discover that day. So long as a later auditor, turning to that page, found the dates still there while the weight could no longer be recomputed — the difference entered the account. No one returned wood over it; no one supplied it either.
+
+When the last book was filled, the keeper did not seal its end. On the next page he wrote the date, trimmed the wick a little shorter, and waited for wood to fall beyond the door once more. The bearer still knocked not; the knot still faced up. Under the lamp, dates and weights were added to the new lines; the old lines kept their salt-stains.
+
+**Anchor sentence**: only when the ledger shows a discrepancy is the wood truly accounted for.
+**锚句**：账有差额，柴才算完。
+
+---
+
+## Model mapping (echo No. 14)
+
+| Category | Title | Corresponds to |
+|---|---|---|
+| lore | Dead Wood · Hemp Rope · the Wood-Ledger · the Ash-Pit | I–VI |
+| geography | The North Spine · the Salt Gully · the Old Well · Beyond the Threshold · the Western Wall-side | I–VI |
+| factions | The Firewood-Bearer · the Keeper of the Ledger · the Stove-Clearer · the Keeper of the Lamp | I–VI |
+| characters | The Bearer · his father (deceased) · the Keeper of the Ledger · the Stove-Clearer | I–VI |
+| items | Dead Wood · Hemp Rope · the Wooden Slip · the Wooden Rule · the Scale · the Ash-Pit · Old Bricks | I–VI |
+| story | The Mist Harbor · the Grey Cover · Echo (No. 14) | whole |
+| history | After the Iron-Moon Age · Before the Grey Cover Was Laid | I–VI |
+
+> Wood arrives at the door; the ledger stays under the lamp;
+> the wood goes into the stove; the ash goes into the pit.
+>
+> 柴到门前，账到灯下；
+> 柴进灶火，灰进坑里。
+`,
+  },
 ] as const;

@@ -818,5 +818,41 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "en": "it keeps itself; so no one keeps it.",
     "refZh": "回响（其13） · 六",
     "refEn": "Echo No. 13 · VI"
+  },
+  {
+    "zh": "死木到了门外，才有斤两。",
+    "en": "only when dead wood reaches the door does it weigh anything.",
+    "refZh": "回响（其14） · 一",
+    "refEn": "Echo No. 14 · I"
+  },
+  {
+    "zh": "结朝上，手便不必翻柴。",
+    "en": "the knot faces up, so no one has to turn the wood.",
+    "refZh": "回响（其14） · 二",
+    "refEn": "Echo No. 14 · II"
+  },
+  {
+    "zh": "门前无人应，柴仍算送到。",
+    "en": "no one answers at the door; the wood still counts as delivered.",
+    "refZh": "回响（其14） · 三",
+    "refEn": "Echo No. 14 · III"
+  },
+  {
+    "zh": "三日不动，才轮到灶火。",
+    "en": "three days still, and only then the stove fire.",
+    "refZh": "回响（其14） · 四",
+    "refEn": "Echo No. 14 · IV"
+  },
+  {
+    "zh": "火尽之后，灰仍占着一尺半。",
+    "en": "only after the fire dies does the ash keep its foot and a half.",
+    "refZh": "回响（其14） · 五",
+    "refEn": "Echo No. 14 · V"
+  },
+  {
+    "zh": "账有差额，柴才算完。",
+    "en": "only when the ledger shows a discrepancy is the wood truly accounted for.",
+    "refZh": "回响（其14） · 六",
+    "refEn": "Echo No. 14 · VI"
   }
 ] as const;

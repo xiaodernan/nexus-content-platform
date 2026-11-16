@@ -5209,3 +5209,18 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - guide 全套对齐：十二回响 → 十三回响（zh/en ×6 处）+ 游戏介绍 129 → 135 句；SHA pin b1b4fee2… 重钉。
 - 草稿出真 provider（gpt-6.1-terra），人工定稿·严纪律。
 - 门：fe-gates 124 套 · 1207/1207 OK；census 2571 OK；tsc 0。
+
+## cont. 186 (2026-11-17) - v816: 回响（其十四）「柴」—— 死木到门前，账到灯下
+
+- 新内容：`docs/world-bible/echoes/E14-柴.md` + `.en.md`——盯着第十章里被放在门槛外的柴捆：
+  死木（北坡第三道石脊，林子死在盐风里，七棵被风倒下）· 捆柴（旧麻绳，结朝上免得结落进泥里）·
+  不敲门（「敲门的人要等回答，等回答的人不能保证什么时候走」）·
+  三日不动（柴先在灯下放三日，第三日清早账上划一道短线才算归屋）·
+  灰坑（门内西墙下，离门槛六步，深一尺半）· 柴账有差额，柴才算完。
+- 锚句全系列 **141/141 全过**（verify:world-bible OK，zh+en 逐字）；gen:bible-snapshot（10 章 × 14 回响）字节一致；
+  verify:anchor-echo 字节一致（141 句）；live probe /bible/echo-014-the-firewood 200（双语命中）；/bible hub 入册。
+- BibleQuiz **48 题**（+2 E14 双语题）；序列钉死 [..., 1, 2]；SHA pin 2bd8f3a3… 重钉。
+- guide 全套对齐：十三回响 → 十四回响（zh/en ×6 处）+ 游戏介绍 135 → 141 句；SHA pin 3faa3be0… 重钉。
+- 草稿出真 provider（gpt-6.1-terra），人工定稿·严纪律。
+- 门：fe-gates 124 套 · 1207/1207 OK；census 2571 OK；tsc 0。
+- 附：Docker 熄火后 heavy gates 仍 124 套全绿；ai-service 存活（:3212 healthz real）。
