@@ -5176,3 +5176,19 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - guide 全套对齐：十一回响 → 十二回响（zh/en ×6 处）+ 游戏介绍 117 句 → 123 句；SHA pin 30a4a629… 重钉。
 - 草稿出真 provider（gpt-6.1-terra），人工定稿·严纪律。
 - 门：fe-gates 124 套 · 1207/1207 OK；census 2571 OK；tsc 0。
+
+## cont. 184 (2026-11-17) - v814: 世界大典 第十章「谁守灯」—— 灯还没灭，自己就留了下来
+
+- 新内容：`docs/world-bible/010-谁守灯.md` + `.en.md`——《灰后》《带灰回家》之后：
+  没人说要守灯，可有人进了门，留下了（他没答应，只是没走）·
+  灯不是一直亮的（暗一下也要有人等）·
+  灯不吃油，吃人一天里没说出口的话（灯吃沉默、吃没成形的敲门声）·
+  第七天门外开始轮流送柴送水——不再只经过 ·
+  守灯不是救火，不是祈祷，它不过是一段时间：有人进门留下，有人把柴放下，没人记得谁先开始，
+  账仍未合——门内有光，门外有脚印。
+- 锚句全系列 **129/129 全过**（verify:world-bible OK，zh+en 逐字）；gen:bible-snapshot（10 章 × 12 回响）字节一致；
+  verify:anchor-echo 字节一致（129 句）；live probe /bible/010-who-tends-the-lamp 200（双语命中）；/bible hub 入册。
+- BibleQuiz **44 题**（+2 Ch.X 双语题）；序列钉死 [..., 1, 1]；SHA pin f1cf6ef0… 重钉。
+- guide 全套对齐：九章 → 十章（zh/en ×6 处）+ 游戏介绍 123 → 129 句；SHA pin 347c4c16… 重钉。
+- 草稿出真 provider（gpt-6.1-terra），人工定稿·严纪律。
+- 门：fe-gates 124 套 · 1207/1207 OK；census 2571 OK；tsc 0。

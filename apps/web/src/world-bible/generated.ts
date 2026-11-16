@@ -2665,6 +2665,336 @@ The second bag leaned against the rice-jar still. No one said it would be opened
 > 计数的是斤两，秤不了的是沉默。
 `,
   },
+  {
+    order: 10,
+    slug: '010-who-tends-the-lamp',
+    titleZh: '谁守灯',
+    titleEn: 'Who Tends the Lamp',
+    eraLineZh: '纪元：铁月纪之后 · 灰棚之前。',
+    eraLineEn: 'Era: after the Iron-Moon Age · before the grey cover was laid.',
+    markdownZh: `# The Whispers' Kings · World Bible · Chapter X: Who Tends the Lamp
+
+> 正典没有结束，也没有定章——第九章之后，门里那盏灯还亮着。
+> 没人说要守灯，可有人进了门，留下了。
+> 本章正典纪律不变：锚句中英字字对齐，引用者逐字保持。
+>
+> The canon did not end, nor did it conclude — after Chapter IX, the lamp inside the door is still burning.
+> No one said they would tend it; yet someone entered, and stayed.
+> Canon discipline is unchanged — anchor sentences match word-for-word; no rephrasing.
+
+> 纪元：铁月纪之后 · 灰棚之前。
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 一 · 没人说要守灯
+
+《灰后》之后，门没有关严。《带灰回家》之后，门里还留着一盏灯。
+
+房子像一个没人说要住的地方。门槛上积着灰，墙根有盐留下的白痕，窗缝里进潮。屋里没有摆回旧物，也没有谁在门上刻下姓名。灯挂在原处，照着空桌、空椅和地上一道未扫净的灰。
+
+没人说要守灯。
+
+也没人说灯该熄了。
+
+白天，海水退到石阶以下，灯光淡得像没发生过。天黑后，它照见桌沿，照见门内一小片地。风从门缝穿过，火舌偏一下，又直起来。
+
+门外经过的人不往里看。偶尔有人停步，把鞋底的泥刮在门槛外。灯仍在那里，不等谁来认领。
+
+账上记了门，记了灯，没记守灯的人。那一栏空着，墨水干了又受潮。
+
+**锚句**：没人认领的灯，也有明灭。
+**Anchor sentence**: a lamp no one claims burns on and off as well.
+
+---
+
+## 二 · 第一个留下的人
+
+第一个走进门的人，没有带行李。他站在门边，低头看了一会儿门槛上的灰，像在辨认哪一道脚印属于自己。
+
+没人放他进去。
+
+也没人拦他。
+
+他进屋，绕过桌子，坐在离灯不远的地方。外衣还带着海水的腥气，袖口滴下几滴水，在地上洇开。他没有问这房子归谁，也没有问灯照到哪里算尽头。
+
+过了一阵，门外有人叫他。声音隔着潮声，传到门边时已经散了。他抬了一下头，没有回答。
+
+那天夜里，他没有走出来。
+
+第二天，门仍旧半掩着。桌边多了一只湿鞋，灯下多了一道坐过的痕迹。有人经过，看见屋里的人影，又把视线移开。
+
+此后，没人说他是留下来守灯的。他只是没有出来。记账的人照旧记日期，门内那一栏仍然空着。
+
+**锚句**：他没有答应，只是没走。
+**Anchor sentence**: he never agreed; he simply did not leave.
+
+---
+
+## 三 · 守灯的第一晚
+
+那盏灯不是一直亮的。
+
+夜深时，灯光忽然暗下去，像有人把手伸进屋里，轻轻掐住了火。屋内的人站起来，靠近灯，没有碰它。他听见风从门缝进来，带着湿沙，落在地板上。
+
+他等了一会儿。
+
+灯又亮了些。
+
+又暗了一下。
+
+他没有喊人，也没有把门关紧。先前，他以为守着灯，就是看住它。到那时才知道，灯暗下去的时候，房子会一同空出来。桌子不再像桌子，门也不像门。灰在暗处没有边界。
+
+他在灯下坐回去，听潮水退远。每一次灯光薄下去，他都不催它。等它重新照到桌沿，他便把手放在膝上，像接住一滴尚未落地的水。
+
+天亮时，他的眼睛发涩，鞋边结了盐。灯还亮着，照见他坐过的地方。
+
+**锚句**：暗一下，也要有人等。
+**Anchor sentence**: even the dimming, someone must wait through.
+
+---
+
+## 四 · 灯的食量
+
+灯不吃油。
+
+它吃一天里没说出口的话。有人在门外想起旧名，嘴唇动了动，最后把声音咽回去；那一点没能落地的话，到了夜里，便像灰一样落进灯下。
+
+它吃沉默。吃人在桌边坐下之后没有问的事，吃门外一声未成形的敲门声，吃那些走到喉咙边又退回胸口的话。
+
+没有人把这些送进去。它们自己来，随衣角、脚印、湿风，落在屋里。灯不挑，也不催。多时，火光薄得照不见墙；少时，桌面仍旧有一圈微黄。
+
+留下的人不再逐句数它吃了什么。他只记得，夜里有时会空得很快，清早却总有新的灰，落在旧灰上。
+
+有一天，门外的人站了很久，什么也没说。他离开时，灯光恰好稳住了。
+
+**锚句**：没说出口的，也有去处。
+**Anchor sentence**: what goes unsaid also has somewhere to go.
+
+---
+
+## 五 · 守灯第七天
+
+第七天，门外的人发现屋里有人。
+
+那人坐在灯下，背对着门，手边没有书，也没有器皿。门外的人没有进去。他们站在风里，看着门缝里漏出的光，像看一段没有写完的日期。
+
+第二天，有人把一捆柴放在门槛外。
+
+第三天，一只装水的罐子靠在墙边。水面映着天色，到傍晚时已经落进几片灰。
+
+没有人敲门说这是送给谁的。也没有人进屋问那人还要什么。送柴的人把空着的肩膀转回去，送水的人把手上的湿痕擦在衣摆上。
+
+后来，他们开始轮流来。有人送柴，有人送水。轮到谁，谁便把东西放下。若门边的东西还在，就不搬进去；若罐子空了，便换一罐满的。
+
+灯下的人没有出来道谢。门外的人也不等他道谢。
+
+夜里的灯光穿过门缝，落在柴捆的一角。潮气慢慢漫过门槛，水罐上凝出盐珠。
+
+**锚句**：门外开始轮流，不再只经过。
+**Anchor sentence**: outside, the watch began — no longer only passing by.
+
+---
+
+## 六 · 谁守灯
+
+后来，账上记下了来过的人。记下哪天有水，哪天没有柴，哪一次门口的灰被雨冲开。没人记谁先开始，也没人记谁该轮到最后。
+
+门内的人仍坐在灯下。有时他睡着，有时起身把椅子挪开，让潮水从地板上经过。灯偶尔暗一下，他照旧等着。若灯亮回来，他便坐下；若迟了些，他也没有走到门外去叫人。
+
+守灯不是救火。没人把火势报上来，也没人从水里抱出一盏灯。
+
+守灯不是祈祷。屋里没有谁向灯求什么，门外的人送来的水也不曾被说成恩典。
+
+它不过是一段时间。有人进门，留下；有人走到门口，把柴放下；有人没来，隔天补上。灯在他们之间明灭，照不到所有人的脸。
+
+记到这里，账仍未合上。门内有光，门外有脚印。潮退时露出石阶，潮来时又将它盖住。
+
+**锚句**：守灯，是把这一夜过完。
+**Anchor sentence**: tending the lamp is seeing this one night through.
+
+---
+
+## 模型映射（第十章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 灯 · 守灯的人 · 轮到谁送柴送水 · 账 | 一至六 |
+| geography | 那间灯下的屋 · 门槛 · 石阶 · 潮声 | 一至六 |
+| factions | 门外送柴送水的人 · 留在灯下的人 · 记账的人 | 一至六 |
+| characters | 第一个留下的人 · 门外送柴送水的众人 · 记账的人 | 一至六 |
+| items | 灯 · 柴 · 水罐 · 桌椅 · 湿鞋 | 一至六 |
+| story | 雾港 · 灯下的房子 · 第十章 | 全篇 |
+| history | 铁月纪之后 · 灰棚之前 | 一至六 |
+
+> 守灯不是一种职务——
+> 它只是有人发现，灯还没灭，自己就留了下来。
+>
+> Tending the lamp is not a post —
+> only someone realizing the lamp had not gone out, and staying because of that.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 第十章「谁守灯」
+
+> The canon did not end, nor did it conclude — after Chapter IX, the lamp inside the door is still burning.
+> No one said they would tend it; yet someone entered, and stayed.
+> Canon discipline is unchanged — anchor sentences match word-for-word; no rephrasing.
+>
+> 正典没有结束，也没有定章——第九章之后，门里那盏灯还亮着。
+> 没人说要守灯，可有人进了门，留下了。
+> 本章正典纪律不变：锚句中英字字对齐，引用者逐字保持。
+
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+> 纪元：铁月纪之后 · 灰棚之前。
+
+---
+
+## I · No One Said They Would Tend the Lamp
+
+After After the Ash, the door had not been shut tight. After Ash Carried Home, a lamp still remained inside.
+
+The house felt like a place no one had said they would live in. Ash gathered on the threshold; the wall-foot bore the white traces of salt; damp came in through the window-seams. Nothing of the old things had been brought back in, and no one had cut a name anywhere on the door. The lamp hung where it had always hung — lighting the empty table, the empty chair, and one unswept line of ash along the floor.
+
+No one said they would tend the lamp.
+
+No one said either that it ought to be extinguished.
+
+By day, the sea withdrew below the steps; the lamp-light faded as if it had never been. After dark, it lit the table's edge, one small patch of floor within the door. Wind came through the seams; the flame leaned, then straightened.
+
+Those who passed outside did not look in. Now and then someone paused and scraped the mud from their soles against the threshold's outer edge. The lamp stayed where it was — waiting for no one to claim it.
+
+The ledger recorded the door, and the lamp; it did not record a keeper. That column stood empty, the ink drying, then drinking the damp.
+
+**Anchor sentence**: a lamp no one claims burns on and off as well.
+**锚句**：没人认领的灯，也有明灭。
+
+---
+
+## II · The First One Who Stayed
+
+The first one who walked through the door carried no luggage. He stood at the threshold and, for a while, looked down at the ash on the floor, as if trying to tell which of the footprints was his own.
+
+No one let him in.
+
+No one stopped him, either.
+
+He entered, circled the table, and sat a short distance from the lamp. His coat still carried the sea's salt; drops from his cuffs darkened the floor where they fell. He did not ask whose house it was, nor how far the lamp's light was meant to carry.
+
+After a while, someone outside called to him. The sound came through the tide-wash; by the time it reached the doorway, it had already scattered. He lifted his head once, and did not answer.
+
+That night, he did not come out.
+
+The next day the door stood as before, half-open. By the table lay one wet shoe; beneath the lamp, the trace of someone who had sat. A passer-by caught sight of a shape inside, and turned their eyes away.
+
+After that, no one said he had stayed to keep the lamp. He had simply not come out. Those who kept the ledger went on recording the dates; the column for those inside the door stayed empty.
+
+**Anchor sentence**: he never agreed; he simply did not leave.
+**锚句**：他没有答应，只是没走。
+
+---
+
+## III · The First Night of the Keeper
+
+That lamp was not always bright.
+
+Deep in the night, its light would thin — as if a hand had reached into the room and gently closed on the flame. The one inside rose, drew closer, did not touch it. He heard the wind enter through the seams, carrying damp sand, scattering it across the floor.
+
+He waited a while.
+
+The light came back a little.
+
+Then thinned again.
+
+He did not call out, nor did he shut the door harder. Before, he had thought tending the lamp meant guarding it. Now he knew: when the light thinned, the house emptied along with it. The table stopped being a table; the door stopped being a door. In the dark, the ash had no edges.
+
+He returned to his place beneath the lamp and listened as the tide withdrew. Each time the light grew faint, he did not press it. Once it had found its way back to the table's edge, he set his hands on his knees — as if catching a drop of water that had not yet fallen.
+
+By morning his eyes were dry, salt crusting along his shoe's rim. The lamp still burned, lighting the place where he had sat.
+
+**Anchor sentence**: even the dimming, someone must wait through.
+**锚句**：暗一下，也要有人等。
+
+---
+
+## IV · The Lamp's Diet
+
+The lamp did not eat oil.
+
+It fed on the things left unsaid during the day. Someone outside might remember an old name; their lips moved, and the sound was swallowed back. Whatever could not land during the day arrived at night like ash, settling beneath the lamp.
+
+It fed on silence — on the questions not asked after someone sat down at the table, on the knock that never formed outside the door, on the words that rose to the throat and fell back into the chest.
+
+No one delivered these. They arrived of their own will — in the turn of a coat, the print of a foot, the salt-wet wind coming through the seams. The lamp neither chose nor hurried them. When there was plenty, the light grew thin enough to lose the wall; when there was little, a faint warmth still rested on the tabletop.
+
+The one who stayed stopped counting what it ate, sentence by sentence. He remembered only that some nights passed too quickly, while each morning new ash lay upon the old.
+
+One day, someone outside stood for a long while and said nothing at all. When he left, the light happened to hold steady.
+
+**Anchor sentence**: what goes unsaid also has somewhere to go.
+**锚句**：没说出口的，也有去处。
+
+---
+
+## V · The Seventh Day of the Keeper
+
+On the seventh day, those outside discovered someone was inside.
+
+That one sat beneath the lamp, back to the door, without a book or a vessel at hand. No one outside went in. They stood in the wind, watching the seam of light leak out across the floor, as if watching a date that had not been written.
+
+The next day, someone left a bundle of firewood beyond the threshold.
+
+The third day, a water-jar was set against the wall. Its surface reflected the sky; by evening, a few flakes of ash had settled on it.
+
+No one knocked to say who the gift was for. No one went in to ask what the one inside wanted next. The wood-bearer turned his empty shoulder away; the water-carrier wiped the damp from his hands onto his hem.
+
+Later they began to take turns. One carried wood; another water. Whoever's turn it was set it down. If what had been left was still there, it was not moved inside; if the jar emptied, it was replaced with a full one.
+
+The one beneath the lamp did not come out to give thanks. Those outside did not wait for it.
+
+At night the lamp-light crossed the threshold and fell across the corner of the firewood. The damp crept in over the floorboards; salt-pearls beaded along the jar's flank.
+
+**Anchor sentence**: outside, the watch began — no longer only passing by.
+**锚句**：门外开始轮流，不再只经过。
+
+---
+
+## VI · Who Tends the Lamp
+
+Afterwards, the ledger counted those who came and went. Which day there was water, which day no wood, which time the ash at the door was washed away by rain. No one recorded who had begun, nor who was last in line.
+
+The one inside still sat beneath the lamp. Sometimes he slept; sometimes he rose and moved his chair aside so the tide could pass along the floor. The light would thin once in a while; he waited as before. If it came back, he sat; if it was slow, he did not step out to call anyone.
+
+Tending the lamp was not putting out a fire. No one reported any spreading flame, nor carried a lamp from the water.
+
+Tending the lamp was not prayer. No one inside asked anything of it; what the outsiders carried in was never called grace.
+
+It was only a stretch of time. Someone entered and stayed; someone walked to the door and set firewood down; someone missing one day made up for it the next. Between them the lamp rose and fell, lighting no shared face.
+
+The ledger stays open at this page. Inside the door, light; outside, footprints. When the tide withdraws, the steps are uncovered; when it returns, it takes them under again.
+
+**Anchor sentence**: tending the lamp is seeing this one night through.
+**锚句**：守灯，是把这一夜过完。
+
+---
+
+## Model mapping (Chapter X)
+
+| Category | Title | Corresponds to |
+|---|---|---|
+| lore | The Lamp · the Keeper · the Rotating Bearers · the Ledger | I–VI |
+| geography | The Lamp-Lit Room · the Threshold · the Steps · the Sound of the Tide | I–VI |
+| factions | The Bearers Outside · the One Beneath the Lamp · the Keeper of the Ledger | I–VI |
+| characters | The First One Who Stayed · the Bearers · the Keeper of the Ledger | I–VI |
+| items | The Lamp · the Firewood · the Water-Jar · the Table and Chair · One Wet Shoe | I–VI |
+| story | The Mist Harbor · The House Beneath the Lamp · Chapter X | whole |
+| history | After the Iron-Moon Age · Before the Grey Cover Was Laid | I–VI |
+
+> Tending the lamp is not a post —
+> only someone realizing the lamp had not gone out, and staying because of that.
+>
+> 守灯不是一种职务——
+> 它只是有人发现，灯还没灭，自己就留了下来。
+`,
+  },
 ] as const;
 
 export const BIBLE_ECHOES: readonly BibleChapter[] = [

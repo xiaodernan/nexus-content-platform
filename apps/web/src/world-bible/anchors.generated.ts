@@ -340,6 +340,42 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "refEn": "Chapter IX · VI"
   },
   {
+    "zh": "没人认领的灯，也有明灭。",
+    "en": "a lamp no one claims burns on and off as well.",
+    "refZh": "第十章 · 一",
+    "refEn": "Chapter X · I"
+  },
+  {
+    "zh": "他没有答应，只是没走。",
+    "en": "he never agreed; he simply did not leave.",
+    "refZh": "第十章 · 二",
+    "refEn": "Chapter X · II"
+  },
+  {
+    "zh": "暗一下，也要有人等。",
+    "en": "even the dimming, someone must wait through.",
+    "refZh": "第十章 · 三",
+    "refEn": "Chapter X · III"
+  },
+  {
+    "zh": "没说出口的，也有去处。",
+    "en": "what goes unsaid also has somewhere to go.",
+    "refZh": "第十章 · 四",
+    "refEn": "Chapter X · IV"
+  },
+  {
+    "zh": "门外开始轮流，不再只经过。",
+    "en": "outside, the watch began — no longer only passing by.",
+    "refZh": "第十章 · 五",
+    "refEn": "Chapter X · V"
+  },
+  {
+    "zh": "守灯，是把这一夜过完。",
+    "en": "tending the lamp is seeing this one night through.",
+    "refZh": "第十章 · 六",
+    "refEn": "Chapter X · VI"
+  },
+  {
     "zh": "巡逻路没有路标——它每三个月自己洗刷一次去年留下的痕。",
     "en": "the patrol road has no signs — every three months it scrubs the past year's marks away by itself.",
     "refZh": "回响（其一） · 一",

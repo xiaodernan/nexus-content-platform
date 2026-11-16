@@ -235,6 +235,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《碗》里，孩子摸碗沿时，手……？', choices: ['掀开了碗', '停在旧缺处，没敢掀开', '把灰倒出去了', '打破了碗'], answer: 1, ref: '回响十二 · 五' },
     en: { prompt: 'In “The Bowl”, when the boy touches the rim, his hand…?', choices: ['lifts the bowl open', 'stops at the old chip; it never lifts the bowl', 'pours the ash out', 'breaks the bowl'], answer: 1, ref: 'Echo No. 12 · V' },
   },
+  {
+    zh: { prompt: '《谁守灯》里，第一个进门的人……？', choices: ['答应了守灯', '没答应，只是没走出来', '开始打扫灯下', '熄灭了那盏灯'], answer: 1, ref: '第十章 · 二' },
+    en: { prompt: 'In “Who Tends the Lamp”, the first one to enter…?', choices: ['agreed to keep the lamp', 'never agreed — they simply did not leave', 'began to sweep under it', 'put the lamp out'], answer: 1, ref: 'Chapter X · II' },
+  },
+  {
+    zh: { prompt: '《谁守灯》里，守灯的人送进屋里的，是一天里没说出口的……？', choices: ['火', '话', '油', '水'], answer: 1, ref: '第十章 · 四' },
+    en: { prompt: 'In “Who Tends the Lamp”, what feeds the lamp?', choices: ['fire', 'what goes unsaid', 'oil', 'water'], answer: 1, ref: 'Chapter X · IV' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {
