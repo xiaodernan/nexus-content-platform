@@ -5508,3 +5508,17 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - live probe（dev server）：SSR `/bible/echo-018-the-last-night` 200（The Last Night · Anchor sentence ×5）；`/bible` 200（18 回响索引）
 - 门：fe-gates 130 套 · **1245/1245**；census 2663 OK；verify:world-bible **181/181** ✓；verify:bible-snapshot 一致 ✓；verify:anchor-echo 181 ✓
 - 运维记录：Docker 正常（pg/redis 6 分钟健康）；web dev 已停；181 锚句，锚句总量：166→171→176→181
+
+## cont. 202 (2026-11-17) - v832: ai-service 启机期 Redis 降级档（ADR 0274 · opt-in）+ §十一 Redis 缓存复测
+
+- 新 ADR **0274**（ai-service 启机期 Redis 降级档，opt-in，默认 fail-fast 不变）：
+  - **默认零变更**：`NEXUS_REDIS_URL` 设置且不可达 → ai-service 启动失败（原设计）；
+  - **新 opt-in** `AI_SERVICE_ALLOW_DEGRADED_STORE=1`：连接失败 → 明牌降级到 MemoryJobStore，
+    note=`【DEGRADED-BOOT】Redis 连不上…任务重启即失；绝不在生产启用。（ADR 0274）`，
+    healthz 的 queue note 字段随行带出（无需改健康检查）；进程日志同名警告；
+  - 测试 `test_degraded_boot.py` 3 例全绿；jobs/memory/redis 三套 store 回归 **39 passed**（活 Redis 56379）
+- CURRENT-STATE 第 v830 片所述 "ai-service 启机期 Redis 降级 ADR" 收口（§三 架构升级 · ADR-0271 姊妹篇）
+- **§十一 Redis 缓存复测**（Docker 再次熄火→自复活后）：`load-redis-completion-cache.py --ops 6000`：
+  16/64/128/256 并发 ops 5692/6000/6000/6000，errors **0**，hit_ratio **0.795–0.809**，
+  p95 250→2496ms 随并发上升（诚实呈现，未粉饰）；cleanup namespace_residue=0；
+  证据：`docs/evidence/load-redis-completion-cache-2026-11-17-pm.json`
