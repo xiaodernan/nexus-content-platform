@@ -4190,3 +4190,13 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   SSR 实测 zh/en 200。
 - fe-gates **125/125 · 1223/1223** 保持全绿。
 - 回响集现在：E01..E07；主线 4 章 + 53 锚句。
+
+## cont. 173 (2026-11-16) — v806: 回响 · 其八《完颜的潮汐钟》——典籍室再 +1
+
+- 用户指令：「给出后续更多的无限故事 / 深度开拓还没有做的一大块部分」。
+- 新番外正典：docs/world-bible/echoes/E08-完颜的潮汐钟.md(+.en.md)——礼拜堂侧钟三天三夜不响，
+  潮候院只登记「完颜的沙」，没登记完颜，四世灯熄它又自己醒；57/57 锚句中英对应。
+- 快照 gen 注册 echo-008-the-wan-yan-tide-clock；/bible「回响」自动收录；verify OK；
+  SSR 实测 zh/en 200。
+- fe-gates **125/125 · 1223/1223** 保持全绿。
+- 回响集现在：E01..E08；主线 4 章 + 57 锚句。

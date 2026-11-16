@@ -2485,4 +2485,180 @@ After the charcoal lit, the brass basin across the back room glowed again — th
 > The echo is not an audit of the blade; it keeps the deep scorch — at the back of the institute's own history, one line was kept: one night, in the chapel, there was a blade.
 `,
   },
+  {
+    order: 8,
+    slug: 'echo-008-the-wan-yan-tide-clock',
+    titleZh: '完颜的潮汐钟',
+    titleEn: 'The Wan-Yan Tide Clock',
+    eraLineZh: '纪元：铁月纪 · 第四十一次大会之后的某个早晨——礼拜堂侧的壁钟三天三夜没有响，只有沙在落。',
+    eraLineEn: 'Era: the Iron-Moon Age — one morning after the 41st Convocation; the side-room clock in the chapel went three days without striking — only sand fell.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 8): The Wan-Yan Tide Clock
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐泡出来的另一层纹理。
+> 本篇写给守着潮汐钟的人——守夜人有一只自己有朝南不响的钟，他们叫它「完颜」。「钟」字潮候院从来没认过。
+> 纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the ones who stand watch over a tide clock — the institute kept a clock of its own that never struck southward; they called it "Wan-Yan." The word "clock" the institute never acknowledged.
+> Same discipline: anchors verbatim.
+
+> 纪元：铁月纪 · 第四十一次大会之后的某个早晨——礼拜堂侧的壁钟三天三夜没有响，只有沙在落。
+> Era: the Iron-Moon Age — one morning after the 41st Convocation; the side-room clock in the chapel went three days without striking — only sand fell.
+
+---
+
+## 一 · 完颜三天没响
+
+礼拜堂侧厅有一只很老的钟——守夜人不叫它「潮候院公家钟」；守夜人叫它「完颜」。
+
+第四十一次大会散会之后某一个早晨，重点有人发现完颜三天三夜没有响——没有人记得它最后一次响是什么时候——它大概觉得散尽是新的一轮潮候院的开始，它决定不响。
+
+守夜人对它说：完颜，你不响。它没回答，只有沙落。
+
+**锚句**：完颜不响了——潮候院的潮汐钟，三天三夜一声也不响。
+
+**Anchor sentence**: Wan-Yan went silent — the tide-clock of the institute went three days without a single chime.
+
+---
+
+## 二 · 守钟的不是机械
+
+守夜人把钟归类，不是机械，而是传承——完颜归了类，归在「盐砂潮」这一类；潮候院每一件「非机械」的装置，守夜人都必须按 Convocation 日期读三遍，完颜不需要：盐砂一天也必须把自己翻一次。
+
+所谓 Convocation，问的是这一件：「完颜给了我什么？我给了完颜什么？完颜三天没响给潮候院什么？」——三问都没有答案；潮候院要的从来不是答案，而是表态。
+
+**锚句**：完颜不在 Convocation 记录里——潮候院只登记「完颜的沙」。
+
+**Anchor sentence**: Wan-Yan never appears in the Convocation minutes — the institute only registers the sand of Wan-Yan.
+
+---
+
+## 三 · 三天三夜后的答复
+
+礼拜堂侧厅的钟继续不响，礼拜堂自己开始低度地异响——灯自己会往低里亮——第四天早上，礼拜堂灯亮，钟响了一下，一声。
+
+礼拜堂侧厅的所有人都停下了手头的事——灯自己往低里又亮了一下，完颜接着又响了一次，接着又是一次——只有两声。
+
+七道杠没有一道杠是礼拜堂亲笔写的——都是灯和盐落给自己写的。
+
+**锚句**：完颜的两声后礼拜堂全醒了——灯低下了一折，钟不再不响。
+
+**Anchor sentence**: after Wan-Yan's two strokes the chapel came wide awake — the lamp dimmed one fold; the clock never went silent again.
+
+---
+
+## 四 · 完颜放在哪里
+
+Convocation 时潮候院的礼拜堂把完颜摆了——它做了灯、它做了声、它做了礼拜堂的礼仪——没有任何人记得这件事：连礼拜堂里无名的守夜人都不会放过礼拜堂对它的登记——因为它已经在 Convocation 的序上了。
+
+潮候院有一套「船完颜」的节奏（在灯柱下的一些早晚，守夜人对完颜讲 Convocation：它一声、两声、三场、沉默场，潮候院称之为潮候院「一件能写进去但没写」的声学礼仪）。
+
+**锚句**：潮候院登记了完颜的沙，登记了完颜的两声，唯独没有登记完颜。
+
+**Anchor sentence**: the institute registered Wan-Yan's sand, registered Wan-Yan's two strikes — never registered Wan-Yan itself.
+
+---
+
+## 五 · 模型映射（回响八章对应关系）
+
+| 类别 | 标题 | 对应节 |
+|---|---|---|
+| lore | 完颜三天没响 · 礼拜堂侧钟 · 潮候院的沉默礼仪 | 一、二、三、四 |
+| geography | 礼拜堂侧厅 · 第八盏灯 · 钟台 | 一、二、三、四 |
+| characters | 守夜人 · 礼拜堂 · 完颜（非机械潮汐钟） | 一、二、三、四 |
+| story | 完颜的潮汐钟 · 回响（其八） | 全篇 |
+| items | 老钟 · 盐砂 · 礼拜堂自己的低度灯 | 一、二、三、四 |
+| history | 铁月纪第四十一次大会之后的那一个早晨 | 一、二、三、四 |
+
+> 这一章没有人知道完颜算不算一件机械潮汐钟——潮候院登记了它的沙、灯、两声；没有人记完。
+> 回响不在于钉住那件钟，而在于保留完颜的没有立过的碑——潮候院还挂着它。
+>
+> No one here ever knew whether Wan-Yan qualified as a mechanical tide-clock — the institute registered its sand, its lamp, its two strikes; no one kept them all.
+> The echo does not nail the clock shut; it keeps the one that simply hangs — holding the chapel's silence in place.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其八）「完颜的潮汐钟」
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐泡出来的另一层纹理。
+> 本篇写给守着潮汐钟的人——守夜人有一只自己有朝南不响的钟，他们叫它「完颜」。「钟」字潮候院从来没认过。
+> 纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the ones who stand watch over a tide clock — the institute kept a clock of its own that never struck southward; they called it "Wan-Yan." The word "clock" the institute never acknowledged.
+> Same discipline: anchors verbatim.
+
+> 纪元：铁月纪 · 第四十一次大会之后的某个早晨——礼拜堂侧的壁钟三天三夜没有响，只有沙在落。
+> Era: the Iron-Moon Age — one morning after the 41st Convocation; the side-room clock in the chapel went three days without striking — only sand fell.
+
+---
+
+## 一 · Wan-Yan Went Silent
+
+In the side room of the assembly hall hung an old clock — the Night Watchers do not call it the institute's clock; the Night Watchers call it «Wan-Yan».
+
+One morning after the 41st Convocation broke up, someone noticed that Wan-Yan had gone three days without a single chime — no one recalls the last time it struck; it apparently decided the close of business was a fresh era, and kept the silence.
+
+"Wan-Yan, why are you not striking," the watchers asked it. It did not answer — only sand fell.
+
+**锚句**：完颜不响了——潮候院的潮汐钟，三天三夜一声也不响。
+
+**Anchor sentence**: Wan-Yan went silent — the tide-clock of the institute went three days without a single chime.
+
+---
+
+## 二 · The Keeper Is Not the Mechanism
+
+The Night Watchers do not classify it as a mechanism but as a keeper — Wan-Yan sits in the salt-sand class; every «non-mechanism» at the institute must be read three times by every Convocation date, but Wan-Yan does not require any of that — the sand grains inside it know how to turn over once a day.
+
+The Convocation asks only this question: «What did Wan-Yan give us? What did we give it? What did the silence of three days give the institute?» — none of those three has an answer; the institute has never needed an answer — it needed a register.
+
+**锚句**：完颜不在 Convocation 记录里——潮候院只登记「完颜的沙」。
+
+**Anchor sentence**: Wan-Yan never appears in the Convocation minutes — the institute only registers the sand of Wan-Yan.
+
+---
+
+## 三 · The Reply After Three Days
+
+The side-room clock continued to keep its silence — the lamps in the room dimmed on their own — until, on the fourth morning, the lamp raised itself one fold: Wan-Yan struck — once.
+
+Everyone in the side room dropped what they were doing — the lamp lowered itself one more fold, Wan-Yan struck — again — and again — two strokes, that was all.
+
+No seven characters were etched by any hand — they were all the lights' and the sand's own.
+
+**锚句**：完颜的两声后礼拜堂全醒了——灯低下了一折，钟不再不响。
+
+**Anchor sentence**: after Wan-Yan's two strokes the chapel came wide awake — the lamp dimmed one fold; the clock never went silent again.
+
+---
+
+## 四 · Where Wan-Yan Was Placed
+
+During Convocation time the assembly hall places Wan-Yan where it belongs — it became light, it became sound, it became part of the chapel ritual — no one remembers this; the nameless Night Watchers never miss the registrator's snapshots — because Wan-Yan was already placed in the order of the Convocation.
+
+The institute has a rhythm called «the clock Wan-Yan» — during certain mornings at the lamp column the Night Watchers report to Wan-Yan: it strikes once, twice, triply, silently; the institute names that one of its own unlisted rituals in acoustics.
+
+**锚句**：潮候院登记了完颜的沙，登记了完颜的两声，唯独没有登记完颜。
+
+**Anchor sentence**: the institute registered Wan-Yan's sand, registered Wan-Yan's two strikes — never registered Wan-Yan itself.
+
+---
+
+## 五 · Mapping（Echo No. 8 → world model）
+
+| Category | Title | Sections |
+|---|---|---|
+| lore | Wan-Yan gone silent · the side-room clock · the institute's silence protocol | 一、二、三、四 |
+| geography | the side room of the assembly hall · the Eighth Lamp · the clock platform | 一、二、三、四 |
+| characters | the Night Watchers · the chapel · Wan-Yan (non-mechanism tide clock) | 一、二、三、四 |
+| story | The Wan-Yan Tide Clock · Echo No. 8 | the whole piece |
+| items | the old clock · sand grains · the chapel's own low lamp | 一、二、三、四 |
+| history | the morning after the 41st Convocation broke up | 一、二、三、四 |
+
+> 这一章没有人知道完颜算不算一件机械潮汐钟——潮候院登记了它的沙、灯、两声；没有人记完。
+> 回响不在于钉住那件钟，而在于保留完颜的没有立过的碑——潮候院还挂着它。
+>
+> No one here ever knew whether Wan-Yan qualified as a mechanical tide-clock — the institute registered its sand, its lamp, its two strikes; no one kept them all.
+> The echo does not nail the clock shut; it keeps the one that simply hangs — holding the chapel's silence in place.
+`,
+  },
 ] as const;
