@@ -14053,3 +14053,12 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - §MAP-1 `.map-*` 全零 hex；forced-colors 收口；compass 纯装饰；`/guide` 页脚新增「世界全图 · The Atlas →」，GUIDE_COPY 中 / 英都加了 /map 一节。
 - cp-chip（命令面板）按 §CP-1 gate 钉死保持 bottom-left，改为 <75rem/ <34rem 视口收成 36px 图标圆点；文字/kbd 隐藏。
 - Gates：fe-gates 123/123 · 1207/1207（原 1205 + 2）；census 2363 OK；tsc web 0；SSR /map zh/en 200 实测。
+
+## §E02 — 典籍室「潮候船上没有岸」（2026-11-16 / v794）
+
+用户指令：「给出后续更多的无限故事 / 深度开拓还没有做的一大块部分构思后续项目整体发展方向并且持续深度演进」。
+- 新番外正典：docs/world-bible/echoes/E02-潮候船上没有岸.md(+.en.md)：铁月纪第二冬之内、盐海潮候仪；
+  与主线诗学/盐/七口井/巡逻路一脉相承；中英锚句逐字对齐（33/33）。
+- 快照 gen 注册 `echo-002-no-shore-on-the-tide-waiting-ship`，BIBLE_ECHOES 串进 /bible 目录「回响」分组；
+  verify:world-bible ✅ / verify:bible-snapshot ✅；SSR 双语 200 实测；/bible 首页新增 E02 卡片自动渲染。
+- 生效后典籍室全集：4 章主线 + 2 回响 + 潮汐挑战 + 七口井 + 直达检索；仍为纯本地正典（零 provider、零网络）。

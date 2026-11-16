@@ -1421,4 +1421,190 @@ And the patrol road itself — it served no one. On its surface only two kinds o
 > 它不接第二章也不接第三章。它只是潮里压过的一页，被偶尔潮回来访的孩子发现。
 `,
   },
+  {
+    order: 2,
+    slug: 'echo-002-no-shore-on-the-tide-waiting-ship',
+    titleZh: '潮候船上没有岸',
+    titleEn: 'No Shore on the Tide-Waiting Ship',
+    eraLineZh: '纪元：铁月纪 · 第二冬之内——巡逻路还没有洗刷完最后一场雪的时候。',
+    eraLineEn: 'Era: the Iron-Moon Age — the middle of the second winter, while the patrol road was still scrubbing off the last snow.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 2): No Shore on the Tide-Waiting Ship
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐泡出来的另一层纹理。
+> 本篇写给那些在潮候船上长大、知道「港口」这个词却一次也没登陆过的人。纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain
+> the salt grew on the same stone. Written for those raised on tide-waiting ships, who know
+> the word "port" but never set foot in one. Same discipline: anchors verbatim.
+
+> 纪元：铁月纪 · 第二冬之内——巡逻路还没有洗刷完最后一场雪的时候。
+> Era: the Iron-Moon Age — the middle of the second winter, while the patrol road was still scrubbing off the last snow.
+
+---
+
+## 一 · 等潮的船
+
+潮候船不挂旗，也不敲钟——它只等。等潮水认出这艘船的时候，船会轻轻碰一下缆桩，
+那一声就是「可以了」：不是舵手的命令，也不是长官的裁决，是潮水自己的话。
+
+船上没有人说"我们几点开"，因为问这个问题的人是从岸上来的人。船上的人只说"船还没被潮认出来"。
+如果你问他们岸在哪里，他们会看着地平线说：岸是别人的单位，潮才是我们的。
+
+**锚句**：潮候的船不问何时开，它只问自己准备好没有——被潮水认出那一刻，它才真的开。
+
+**Anchor sentence**: the tide-waiting ship never asks when it sails; it only asks whether it is ready — once the tide recognizes it, it truly moves.
+
+---
+
+## 二 · 平衡不接受「大概」
+
+潮候船的甲板上一年到端都在挪位置。盐袋垛在左舷还是右舷，取决于昨夜的潮候表；
+谁站在桅杆前，谁就像压在秤上的那一粒铅——他的一步会改变整船的吃水。
+
+"差不多放这儿就行了"——这句话在船上活不过三息。老水手会把你请到风边看一眼：
+帆腿收得紧一点，这半袋盐就得压到船中线的右边，不然出航的时候整船都要往左舷躲。
+
+**锚句**：平衡不接受"大概"——船上的每一寸位置都要有人记住，因为忘了的代价不伸手就赔得起。
+
+**Anchor sentence**: balance does not accept "about right" — every inch of the hold is someone's memory to keep, for the price of forgetting cannot be paid by reaching out a hand.
+
+---
+
+## 三 · 盐写的字条
+
+船上没有电报，也不说"已经到了"。船与船之间交换的是折得四折的字条，纸料是潮候院自己压的，
+上面用盐卤写着：什么风、什么浪、谁了一声、谁没了一声；最下面一行总是"完好平安"。
+
+字条不是给岸上的人看的——岸上的人拿到字条也读不懂，他们只会拿去给档案官让他在登记册上盖一枚湿湿的印子。
+字条是给船上的人留的：留在风会带回来的地方，等某一趟潮把它带回来的时候，被下一位收到的人认出同一行笔迹。
+
+**锚句**：船上没有电报——只有盐写的字条，愿者放，愿者取，愿者认得同一个手迹。
+
+**Anchor sentence**: no telegraph exists on the tide-waiting ships — only salt-written notes; willingly they are left, willingly they are picked up, willingly one recognizes the same hand.
+
+---
+
+## 四 · 到岸之后
+
+潮候船靠岸之后，船上的人不上岸，岸上的人不上船。岸上的官派来的人把盐交成银子的时候，
+全船人都站在缆绳后面看——不是看银子，是看自己几十年积攒的盐怎么变成一张张面额。
+
+验票、签正、搬运、送水——在陆上官吏看来是正事，在船上的人看来只是"把潮交回人手里一会儿"。完事以后，
+岸上的人朝船挥一次手；船上的人也朝岸挥一次手。这不是告别，是把潮再交回人手里一会儿。
+
+**锚句**：到岸之后每个人都向船挥一次手——不是告别，是把潮再交回人手里一会儿。
+
+**Anchor sentence**: after landfall everyone waves at the ship once — not goodbye, but handing the tide back to human hands for a while.
+
+---
+
+## 五 · 模型映射（回响二章对应关系）
+
+| 类别 | 标题 | 对应节 |
+|---|---|---|
+| lore | 潮候文化 · 等潮成教 | 一、四 |
+| geography | 第七口井 → 潮候船坡 → 盐海外沿 | 一、二 |
+| characters | 潮候老水手 · 盐袋守护者 · 岸官 | 二、三、四 |
+| story | 潮候船上没有岸 · 回响（其二） | 全篇 |
+| items | 潮候袋（盐砝）· 盐卤字条纸 · 湿印章 | 一、二、三四 |
+| history | 铁月纪第二冬 · 潮候制度持续 | 一至四 |
+
+> 这一章没有港口，只有缆绳；没有电报，只有盐字；没有离船，只有把潮交回人手里一会儿。
+> 它不解释第一章，也不试图解释正典里的潮候章——
+> 它只把那个一定被别人记录成"船队"的事情，说成是人在等一场潮。
+>
+> There is no port in this chapter — only ropes. No telegram — only salt. No departure — only handing the tide back to human hands for a while.
+> It does not explain echo No. 1, nor the canon's tide chapters —
+> it merely says the thing others will record as "a fleet" is what people do while they wait for a tide.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其二）「潮候船上没有岸」
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐泡出来的另一层纹理。
+> 本篇写给那些在潮候船上长大、知道「港口」这个词却一次也没登陆过的人。纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain
+> the salt grew on the same stone. Written for those raised on tide-waiting ships, who know
+> the word "port" but never set foot in one. Same discipline: anchors verbatim.
+
+> 纪元：铁月纪 · 第二冬之内——巡逻路还没有洗刷完最后一场雪的时候。
+> Era: the Iron-Moon Age — the middle of the second winter, while the patrol road was still scrubbing off the last snow.
+
+---
+
+## 一 · The Ship That Waits
+
+No flag is raised on a tide-waiting ship, and no bell is rung — it only waits. When the tide recognizes the vessel, the ship gives a faint knock against the mooring post,
+and that single sound means "now": it is no helmsman's order, nor a magistrate's verdict — it is the tide speaking for itself.
+
+"What time do we sail?" is a question land people ask. The people of the ship only say: the tide has not recognized her yet.
+If you ask where the shore is, they will look toward the horizon and answer: the shore is someone else's unit; the tide is ours.
+
+**锚句**：潮候的船不问何时开，它只问自己准备好没有——被潮水认出那一刻，它才真的开。
+
+**Anchor sentence**: the tide-waiting ship never asks when it sails; it only asks whether it is ready — once the tide recognizes it, it truly moves.
+
+---
+
+## 二 · Balance Does Not Accept "About Right"
+
+The deck of a tide-waiting ship is forever being rearranged. Salt sacks ride on the port side or the starboard side according to last night's tide-table;
+whoever stands before the mast sits on the scale like the lead poise — a single step of his shifts the whole vessel's draft.
+
+"Just roughly here" — no one lives three breaths past that sentence on the ship. An old hand will walk you to the windward and tell you:
+pull the leg of the sail a touch tighter, and this half-sack of salt must sit to the right of the keel line, or the whole hull will dodge to port on departure.
+
+**锚句**：平衡不接受"大概"——船上的每一寸位置都要有人记住，因为忘了的代价不伸手就赔得起。
+
+**Anchor sentence**: balance does not accept "about right" — every inch of the hold is someone's memory to keep, for the price of forgetting cannot be paid by reaching out a hand.
+
+---
+
+## 三 · Notes Written in Salt
+
+No telegraph exists on the tide-waiting ships, and nobody says "we have arrived." Between ship and ship the exchange is a slip of paper folded in fourths;
+the paper is pressed in the Tide-Waiting Institute itself, and on it, in brine script: which wind, which swell, who nodded, who lapsed — and the final line always reads "sound and safe."
+
+The notes are never intended for shore reading — a land dweller who comes by one cannot make it out; he takes it to the notary, who stamps the ledger with a damp seal.
+The notes are for those aboard: left where the wind will carry them back, to be recognized by the next receiver — same hand, same line, same patience.
+
+**锚句**：船上没有电报——只有盐写的字条，愿者放，愿者取，愿者认得同一个手迹。
+
+**Anchor sentence**: no telegraph exists on the tide-waiting ships — only salt-written notes; willingly they are left, willingly they are picked up, willingly one recognizes the same hand.
+
+---
+
+## 四 · After Landfall
+
+Once the tide-waiting ship makes fast, the ship people do not step ashore, and the shore people do not step aboard. When the official sent by the land magistrate weighs the salt into silver,
+the entire company stands behind the mooring ropes — not to watch the silver, but to watch how decades of salt become slips of paper.
+
+Sealing, signing, weighing, water-fetching — to the land clerks routine affairs, to those aboard merely handing the tide back into human hands for a while. Afterward,
+the shore people wave at the ship once; those on board wave back once. Not goodbye — handing the tide back to human hands for a while.
+
+**锚句**：到岸之后每个人都向船挥一次手——不是告别，是把潮再交回人手里一会儿。
+
+**Anchor sentence**: after landfall everyone waves at the ship once — not goodbye, but handing the tide back to human hands for a while.
+
+---
+
+## 五 · Mapping（Echo No. 2 → world model）
+
+| Category | Title | Sections |
+|---|---|---|
+| lore | Tide-Waiting culture — learning to wait is a doctrine | 一、四 |
+| geography | Seventh Well → tide-mooring slope → salt sea outer line | 一、二 |
+| characters | Tide-waiting elder hand · sack keeper · shore magistrate | 二、三、四 |
+| story | No Shore on the Tide-Waiting Ship · Echo No. 2 | the whole piece |
+| items | Tide sack (salt ballast) · brine paper notes · the damp seal | 一、二、三、四 |
+| history | Second winter of the Iron-Moon Age · the tide-waiting institution endures | 一至四 |
+
+> 这一章没有港口，只有缆绳；没有电报，只有盐字；没有离船，只有把潮再交回人手里一会儿。
+> 它不解释第一章，也不试图解释正典里的潮候章——
+> 它只把那个一定被别人记录成"船队"的事情，说成是人在等一场潮。
+>
+> There is no port in this chapter — only ropes. No telegram — only salt. No departure — only handing the tide back to human hands for a while.
+> It does not explain the first echo, nor the canon's tide chapters —
+> it merely says the thing others will record as "a fleet" is what people do while they wait for a tide.
+`,
+  },
 ] as const;

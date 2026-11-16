@@ -4075,3 +4075,11 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - cp-chip 让位定稿：**维持 gate 钉死的 bottom-left**（`command-palette-visual-style.test.ts` 钉 胶囊左下/主题右下），改为 <75rem 或 <34rem 视口收成 36px 图标圆点（chip 是 ⌘K 爱好者的按键教学，不是覆盖主世界的海报）。
 - Gates：fe-gates **123/123 · 1207/1207**；census **2363** OK；tsc web 0；SSR 实测 /map zh/en 200；
 - showcase 同步于提交后。
+
+## cont. 161 (2026-11-16) — v794: 回响 · 其二《潮候船上没有岸》——典籍室第二块新大陆
+
+- 用户指令：「给出后续更多的无限故事。」——本轮新增一整篇番外正典。
+- docs/world-bible/echoes/E02-潮候船上没有岸.md(+.en.md)（四节：① 等潮的船 ② 平衡不接受「大概」③ 盐写的字条 ④ 到岸之后）：
+  潮候仪、盐儒手礼、盐卤字条、潮认船之声；铁月纪第二冬之内；诗学和主典一脉（盐/潮/交班/不再被留下）。
+- 33 锚句全绿；ROADMAP M6/M3 登记；快照 gen 注册 Web-slug `echo-002-no-shore-on-the-tide-waiting-ship`；/bible 立即呈现。
+- Gates 全绿（fe-gates 123/123 · 1207/1207）；SSR 双语 200 实测；无新增 CSS / 零新增类。

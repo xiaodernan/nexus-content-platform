@@ -42,6 +42,7 @@ const WEB_SLUGS: Record<string, string> = {
 /** 回响网页 slug（E0N，番外，正典之外），同纪律登记 */
 const ECHO_WEB_SLUGS: Record<string, string> = {
   'E01-巡逻路札记': 'echo-001-patrol-road-notes',
+  'E02-潮候船上没有岸': 'echo-002-no-shore-on-the-tide-waiting-ship',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
