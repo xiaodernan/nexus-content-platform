@@ -24,6 +24,7 @@ import { PublicationActions } from './PublicationActions';
 import { VisitMeter } from './VisitMeter';
 import { InteractiveEnd, type Hotspot } from './InteractiveSurface';
 import { PublishedFrame } from './PublishedFrame';
+import { getLocale, type Locale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,6 +37,36 @@ interface Props {
 function publishedPath(handle: string, slug: string): string {
   return `/n/${decodeURIComponent(handle)}/${decodeURIComponent(slug)}`;
 }
+
+/** 双语：公开作品页的每行文案按 cookie locale 选一份（中文模式全中文，英文模式全英文，不夹杂） */
+const PUB_TXT = {
+  zh: {
+    versionLabel: (v: number) => `第 ${v} 版`,
+    public: '公开',
+    unlisted: '仅链接可见',
+    interactiveNote:
+      '这一版把「点击 → 跳到另一页」的交互跑起来了：鼠标移到可点的区域会亮一圈，点它翻到那一页；只用键盘也一样——Tab 会走到那块区域（同样亮一圈），按 Enter 翻到那一页。悬停、弹窗、状态切换等其余交互在这一版里不会发生。',
+    playThis: '试玩这一版 →',
+    playPinnedHint: '玩的是发布那一刻钉住的游戏设计，不是作者现在的工作稿',
+    viewStoryboard: '查看分镜稿 →',
+    storyboardPinnedHint: '读的是发布那一刻钉住的镜头表，不是作者现在的工作稿',
+    visitNotice:
+      '这一页会统计作者的创作数据：打开次数、页面可见时的停留时长、以及最远滚到的高度比例。切走标签页的时间不计入时长。',
+  },
+  en: {
+    versionLabel: (v: number) => `Version ${v}`,
+    public: 'Public',
+    unlisted: 'Link-only',
+    interactiveNote:
+      'This version runs the "click → jump to another page" interaction: a clickable region glows on hover and flips the page; keyboard works the same — Tab reaches the region (same glow) and Enter flips too. Other interactions — hover states, dialogs, toggles — will not happen in this version.',
+    playThis: 'Play this version →',
+    playPinnedHint: 'What you play is the game design pinned at the moment of publishing — not the author’s current working draft',
+    viewStoryboard: 'View the storyboard →',
+    storyboardPinnedHint: 'What you read is the shot list pinned at the moment of publishing — not the author’s current working draft',
+    visitNotice:
+      'This page measures the author’s creative data: open count, dwell time while the page is visible, and the farthest scroll depth ratio. Time with the tab switched away is not counted.',
+  },
+} as const;
 
 /**
  * §166：公开页的 head。抓取端多数不执行 JS，所以这些标签必须服务端出——
@@ -62,6 +93,9 @@ export default async function PublishedPage({ params, searchParams }: Props) {
   const query = await searchParams;
   const found = await getPublishedPage(publishedPath(handle, slug));
   if (!found) notFound();
+  const locale = await getLocale();
+  const T = PUB_TXT[locale];
+  const intlLocale = locale === 'en' ? 'en-US' : 'zh-CN';
   const { publication, document, ownerName, projectName } = found;
   // JSON-LD 与 generateMetadata 读同一份解析结果（React cache），不为爬虫再查一次库
   const { origin } = await requestOrigin();
@@ -132,19 +166,19 @@ export default async function PublishedPage({ params, searchParams }: Props) {
           {ownerName} / {projectName}
         </span>
         <span className="pub-meta" data-published-meta>
-          第 {publication.version} 版 ·{' '}
-          {publication.visibility === 'public' ? '公开' : '仅链接可见'} ·{' '}
-          {new Date(publication.publishedAt).toLocaleString('zh-CN', { hour12: false })}
+          {T.versionLabel(publication.version)} ·{' '}
+          {publication.visibility === 'public' ? T.public : T.unlisted} ·{' '}
+          {new Date(publication.publishedAt).toLocaleString(intlLocale, { hour12: false })}
         </span>
         {/* §132：公开页要有人能举报，否则 §129 的红线只能靠作者自觉 */}
         <span className="pub-headerAside">
-          <ReportControl path={publication.path} />
+          <ReportControl path={publication.path} locale={locale} />
           <span className="pub-brand">Built with NEXUS</span>
         </span>
       </header>
       {actions ? (
         <div className="pub-actions">
-          <PublicationActions state={actions} />
+          <PublicationActions state={actions} locale={locale} />
         </div>
       ) : null}
       {/* §14 查看器控件（ADR-0069）：与 /preview 同一排、同一套参数名 */}
@@ -175,6 +209,7 @@ export default async function PublishedPage({ params, searchParams }: Props) {
               hotspots={hotspotsFor(layout)}
               publicationPath={publication.path}
               keepParams={keepViewerParams(query)}
+              locale={locale}
             />
           </div>
         ))}
@@ -185,12 +220,10 @@ export default async function PublishedPage({ params, searchParams }: Props) {
           不知道自己也能走通（Tab 会停在热点上、Enter 真的翻页并上报），所以照实补上。 */}
       {hotspots.length ? (
         <p className="pub-note" data-interactive-note>
-          这一版把「点击 → 跳到另一页」的交互跑起来了：鼠标移到可点的区域会亮一圈，点它翻到那一页；
-          只用键盘也一样——Tab 会走到那块区域（同样亮一圈），按 Enter 翻到那一页。
-          悬停、弹窗、状态切换等其余交互在这一版里不会发生。
+          {T.interactiveNote}
         </p>
       ) : null}
-      {terminal ? <InteractiveEnd path={publication.path} pageId={page.id} /> : null}
+      {terminal ? <InteractiveEnd path={publication.path} pageId={page.id} locale={locale} /> : null}
       {/* §50：这一版钉住了游戏设计才有这个入口。没有钉住就不出现，
           也不给一个"点进去说没有内容"的链接——那等于用入口骗一次点击 */}
       {publication.hasGame ? (
@@ -199,9 +232,9 @@ export default async function PublishedPage({ params, searchParams }: Props) {
             href={`${publication.path}/play`}
             className="pub-playLink"
           >
-            试玩这一版 →
+            {T.playThis}
           </a>
-          <span className="pub-entryHint">玩的是发布那一刻钉住的游戏设计，不是作者现在的工作稿</span>
+          <span className="pub-entryHint">{T.playPinnedHint}</span>
         </p>
       ) : null}
       {/* §40 × §56：分镜与游戏设计同一条口径——这一版钉住了分镜稿才有这个入口。
@@ -212,16 +245,15 @@ export default async function PublishedPage({ params, searchParams }: Props) {
             href={`${publication.path}/storyboard`}
             className="pub-storyboardLink"
           >
-            查看分镜稿 →
+            {T.viewStoryboard}
           </a>
-          <span className="pub-entryHint">读的是发布那一刻钉住的镜头表，不是作者现在的工作稿</span>
+          <span className="pub-entryHint">{T.storyboardPinnedHint}</span>
         </p>
       ) : null}
       {/* §168：被统计这件事要写在页面上，而不是只在代码注释里。
           这句是服务端渲染的——不执行 JS 的访客也看得见自己被统计了什么 */}
       <p className="pub-notice" data-visit-notice>
-        这一页会统计作者的创作数据：打开次数、页面可见时的停留时长、以及最远滚到的高度比例。
-        切走标签页的时间不计入时长。
+        {T.visitNotice}
       </p>
       <VisitMeter path={publication.path} />
       {/* §166 JSON-LD：正文已经服务端渲染，结构化数据让抓取端不用猜哪是标题哪是作者。

@@ -3,6 +3,7 @@ import type { AssetUrlContext } from '@/studio/assets';
 import { nodeStyle } from '@/studio/render';
 import { stateStyleSheetFor } from '@/studio/state-styles';
 import { InteractiveHotspots, type Hotspot } from './InteractiveSurface';
+import type { Locale } from '@/lib/i18n';
 
 /**
  * 公开页的**一份投影**：按某一档断点解出来的画框 + 热点。
@@ -20,6 +21,7 @@ export function PublishedFrame({
   hotspots,
   publicationPath,
   keepParams,
+  locale = 'zh',
 }: {
   layout: ResolvedLayout;
   page: DesignPage;
@@ -30,6 +32,7 @@ export function PublishedFrame({
   hotspots: Hotspot[];
   publicationPath: string;
   keepParams: Record<string, string>;
+  locale?: Locale;
 }) {
   const stateSheet = stateStyleSheetFor(
     layout.paintOrder.map((id) => layout.nodes[id]).filter((node): node is NonNullable<typeof node> => Boolean(node)),
@@ -63,7 +66,7 @@ export function PublishedFrame({
             </div>
           );
         })}
-        <InteractiveHotspots path={publicationPath} hotspots={hotspots} keepParams={keepParams} />
+        <InteractiveHotspots path={publicationPath} hotspots={hotspots} keepParams={keepParams} locale={locale} />
       </div>
     </div>
   );

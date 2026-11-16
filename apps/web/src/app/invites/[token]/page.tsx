@@ -2,8 +2,38 @@ import type { ReactElement } from 'react';
 import Link from 'next/link';
 import { currentUserOrNull } from '@/server/domain/session';
 import { InviteAcceptPanel } from './InviteAcceptPanel';
+import { getLocale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
+
+/** 双语：每行文案按 cookie locale 选（不夹杂） */
+const IV_TXT = {
+  zh: {
+    title: '接受项目邀请',
+    signedIn: (who: string) => (
+      <>
+        你正在以 <span className="iv-ledeStrong">{who}</span> 的身份接受邀请。如果这封邀请不是发给这个邮箱的，服务端会拒绝——换个账号登录再来。
+      </>
+    ),
+    signedOut:
+      '接受邀请需要先登录：服务端要核对你的邮箱与邀请发给的邮箱是不是同一个。登录后重新打开这条链接即可。',
+    currentUser: '当前用户',
+    backHome: '回首页登录',
+  },
+  en: {
+    title: 'Accept a project invitation',
+    signedIn: (who: string) => (
+      <>
+        You are accepting this invitation as{' '}
+        <span className="iv-ledeStrong">{who}</span>. If this invitation was not sent to that address, the server will refuse it — sign in with the matching account instead.
+      </>
+    ),
+    signedOut:
+      'Accepting an invitation requires signing in first: the server must check that your address matches the one the invitation was addressed to. Sign in, then reopen this link.',
+    currentUser: 'current user',
+    backHome: 'Back to home to sign in',
+  },
+} as const;
 
 /**
  * §133 teamCollaboration（#201-203）：兑现邀请的落地页。
@@ -15,27 +45,23 @@ export const dynamic = 'force-dynamic';
 export default async function InviteAcceptPage({ params }: { params: Promise<{ token: string }> }): Promise<ReactElement> {
   const { token } = await params;
   const user = await currentUserOrNull();
+  const locale = await getLocale();
+  const T = IV_TXT[locale];
   return (
     <main className="iv-page" data-invite-accept-page>
       <header className="iv-head">
-        <h1 className="iv-title">接受项目邀请</h1>
+        <h1 className="iv-title">{T.title}</h1>
         {user ? (
-          <p className="iv-lede">
-            你正在以 <span className="iv-ledeStrong">{user.email ?? user.displayName ?? '当前用户'}</span> 的身份接受邀请。
-            如果这封邀请不是发给这个邮箱的，服务端会拒绝——换个账号登录再来。
-          </p>
+          <p className="iv-lede">{T.signedIn(user.email ?? user.displayName ?? T.currentUser)}</p>
         ) : (
-          <p className="iv-lede">
-            接受邀请需要先登录：服务端要核对你的邮箱与邀请发给的邮箱是不是同一个。
-            登录后重新打开这条链接即可。
-          </p>
+          <p className="iv-lede">{T.signedOut}</p>
         )}
       </header>
       {user ? (
-        <InviteAcceptPanel token={token} />
+        <InviteAcceptPanel token={token} locale={locale} />
       ) : (
         <Link href="/" className="iv-backlink">
-          回首页登录
+          {T.backHome}
         </Link>
       )}
     </main>

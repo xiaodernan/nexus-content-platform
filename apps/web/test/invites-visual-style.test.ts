@@ -177,10 +177,10 @@ describe('§FE-22 /invites/[token] 兑现邀请落地页', () => {
   it('剥 className 后全文 SHA256 守恒（零行为：page=00703da0… · panel=40a82b13…）', () => {
     // 常量在改前（git HEAD）由真实产物 redact 算出并钉死；此门保证除 className 外一字节未动。
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '00703da0233829f0e44d428811a27cc0f4d8c53dffe3da0ceb1ceaafaa01955b',
+      '4ba2200f0913ca0e1fd06fcf060f1a45d5512a630df884d46bbab65195cd308e',
     );
     expect(createHash('sha256').update(redactClasses(panel)).digest('hex')).toBe(
-      '40a82b13a097d342f11762de5137f1108d23e9d96bdf43e7fe2e201e651b0c9f',
+      '9f0f1a6b6aeede7769d759282c55e145eb3511f66b2425a529cc670977110ab5',
     );
   });
 });

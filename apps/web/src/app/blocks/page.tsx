@@ -2,8 +2,37 @@ import Link from 'next/link';
 import { listBlocks } from '@/server/domain/blocks';
 import { requireUser } from '@/server/domain/session';
 import { UnblockButton } from './UnblockButton';
+import { getLocale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
+
+/** 双语：每行文案按 cookie locale 选（不夹杂） */
+const BLOCKS_TXT = {
+  zh: {
+    backHome: '回主页',
+    title: '已拉黑与已屏蔽',
+    lede:
+      '屏蔽只管你这侧的可见性：对方照样能给你留言，只是你不再看到他的内容与通知。拉黑在此基础上再挡住互动（评论、点赞、关注、改编，两个方向都拒），并解除已有的关注关系。两者都不追溯历史：拉黑之前发出去的评论还在，别人也仍然看得到——删别人的发言是审核的事，不是这里的事。',
+    blockMeta: '拉黑：互相不能互动',
+    muteMeta: '屏蔽：只是你这侧不再看到',
+    blockedSection: (n: number) => `拉黑（${n}）`,
+    mutedSection: (n: number) => `屏蔽（${n}）`,
+    emptyBlocked: '没有拉黑过任何人。',
+    emptyMuted: '没有屏蔽过任何人。',
+  },
+  en: {
+    backHome: 'Back home',
+    title: 'Blocked & muted',
+    lede:
+      'Muting governs what you see on your side: the other person can still leave you messages — you simply no longer see their content or notifications. Blocking adds mutual interaction refusal (comments, likes, follows, remixes, in both directions) and removes any existing follow. Neither is retroactive: comments posted before the block stay, and others still see them — removing someone else’s speech is a moderation matter, not this page’s.',
+    blockMeta: 'Blocked: neither side can interact',
+    muteMeta: 'Muted: just invisible on your side',
+    blockedSection: (n: number) => `Blocked (${n})`,
+    mutedSection: (n: number) => `Muted (${n})`,
+    emptyBlocked: 'No one is blocked.',
+    emptyMuted: 'No one is muted.',
+  },
+} as const;
 
 /**
  * §132 的名单页：我自己拉黑 / 屏蔽了谁。
@@ -15,6 +44,9 @@ export const dynamic = 'force-dynamic';
  */
 export default async function BlocksPage() {
   const user = await requireUser();
+  const locale = await getLocale();
+  const T = BLOCKS_TXT[locale];
+  const intlLocale = locale === 'en' ? 'en-US' : 'zh-CN';
   const blocks = await listBlocks(user.id);
   const blocked = blocks.filter((b) => b.kind === 'block');
   const muted = blocks.filter((b) => b.kind === 'mute');
@@ -27,33 +59,31 @@ export default async function BlocksPage() {
           {b.handle ? <a href={`/u/${b.handle}`} className="bk-handle">@{b.handle}</a> : null}
         </span>
         <span className="bk-rowMeta">
-          {b.kind === 'block' ? '拉黑：互相不能互动' : '屏蔽：只是你这侧不再看到'} · {new Date(b.createdAt).toLocaleDateString('zh-CN')}
+          {b.kind === 'block' ? T.blockMeta : T.muteMeta} · {new Date(b.createdAt).toLocaleDateString(intlLocale)}
         </span>
       </span>
-      <UnblockButton handle={b.handle ?? b.targetId} />
+      <UnblockButton handle={b.handle ?? b.targetId} locale={locale} />
     </li>
   );
 
   return (
     <main className="bk-page" data-blocks-root>
       <header className="bk-head">
-        <h1 className="bk-title">已拉黑与已屏蔽</h1>
+        <h1 className="bk-title">{T.title}</h1>
         <Link href="/" className="bk-backlink" data-blocks-home>
-          回主页
+          {T.backHome}
         </Link>
       </header>
 
       <p className="bk-lede" data-blocks-explainer>
-        屏蔽只管你这侧的可见性：对方照样能给你留言，只是你不再看到他的内容与通知。
-        拉黑在此基础上再挡住互动（评论、点赞、关注、改编，两个方向都拒），并解除已有的关注关系。
-        两者都不追溯历史：拉黑之前发出去的评论还在，别人也仍然看得到——删别人的发言是审核的事，不是这里的事。
+        {T.lede}
       </p>
 
       <section>
-        <h2 className="bk-sectionTitle">拉黑（{blocked.length}）</h2>
+        <h2 className="bk-sectionTitle">{T.blockedSection(blocked.length)}</h2>
         {blocked.length === 0 ? (
           <p className="bk-sectionEmpty" data-blocks-empty="block">
-            没有拉黑过任何人。
+            {T.emptyBlocked}
           </p>
         ) : (
           <ul className="bk-list" data-blocks-list="block">
@@ -63,10 +93,10 @@ export default async function BlocksPage() {
       </section>
 
       <section>
-        <h2 className="bk-sectionTitle">屏蔽（{muted.length}）</h2>
+        <h2 className="bk-sectionTitle">{T.mutedSection(muted.length)}</h2>
         {muted.length === 0 ? (
           <p className="bk-sectionEmpty" data-blocks-empty="mute">
-            没有屏蔽过任何人。
+            {T.emptyMuted}
           </p>
         ) : (
           <ul className="bk-list" data-blocks-list="mute">

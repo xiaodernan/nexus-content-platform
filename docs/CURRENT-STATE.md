@@ -4229,3 +4229,18 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 门纪律：FE-7 字面量改 `compileForKind(document, locale)`；FE-75/96/97/98/99 与 runtime-pages game SHA（6 文件）按各门自己的 redact 算法重钉；**fe-gates 125/125 · 1223/1223 · census 2394 全绿**；tsc web 0。
 - 实测（tsx 直跑游戏模型，zh/en 双语对照）：notes/why/goal/simSummary/政策标签/findings/limits/seedNote/rpgSummary/story findings 全部正确双语；zh 与改前逐字一致；两个赛道（2D/RPG/Story）胜场判定在两种语言下一致（2/4 通关，最快 1.5s——确定性）。
 - 诚实边界：Docker 未启动（nexus-postgres 停机）⇒ 本轮未跑浏览器 SSR 截图；验证走的是 tsc + fe-gates + tsx 模型直跑。Studio 面板（GamePanel 等 §52/§53 面板）文案仍为中文原文（zh 为默认工作语言）——Studio 面板双语是下一片。
+
+## cont. 177 (2026-11-16) — v812 · 公开面与主页双语（/ · /n/<h>/<s> 全组件 · /u* · /blocks · /invites）
+
+- 用户指令：「所有项目内容支持中英文一键切换，两个都得支持…不要中英文夹杂」。
+- `/`（hp- gated）：全页文案 COPY 成 HOME_TXT（zh/en），serviceLabel 三态双语；MODALITIES label 移进字典；日期 toLocaleString 按 intlLocale；门 re-pin（收窄 MODALITIES 正则、serviceLabel 契约改为双语断言、STRIP_CLASS_SHA256 重钉）。
+- `/n/<handle>/<slug>` 公开作品页（pub- gated）：页 chrome 全双语（版本行/公开性/日期/互动说明段/试玩/分镜/统计告知）；
+  子组件一并双语并带 locale 透传：PublishedFrame→InteractiveHotspots（aria-label）、InteractiveEnd（终点/「走通」六态）、PublicationActions（点赞/评论/关注/Remix/收藏/作者主页/复制链接/comment 名单·屏蔽计数）、ReportControl（7 类举报理由/表单）。
+  服务端下发的判定原文（notice/reason/message）按既定 policy 原样保留——那是服务端裁决，在本地不翻译。
+- `/u`（作者广场）+ `/u/<handle>`（主页）：页 chrome 全双语（metadata 也改 generateMetadata(locale)），FollowButton / BlockControl（COPY 双份 + upgrade/clear）双语；
+  **Worlds/Characters 空态、计数、隐私告示、游戏行（g 有 `playable` 才 `play`，否则 design-only 文案）全部双语**。
+- `/blocks`（+ UnblockButton）、`/invites/<token>`（+ InviteAcceptPanel）：整页+面板双语。
+- 门：home/pub-page/publication-actions/report-control/interactive-surface/invites-×2/blocks-×2/u-ashowcase/u-profile/follow/block-control 共 **12 个 SHA 门按各自算法重钉**；
+  fe-gates **125/125 · 1223/1223 · census 2394** 全绿。
+- 诚实边界：`marketplace*`/`notifications`/`credits`/`blocks` 已做但 `marketplace*` 四页与 `notifications` 与 `credits` 文案仍为中文（下一片）；
+  `world/[projectId]/*` 与 `preview/[projectId]`/`storyboard`/`credits`/`marketplace/*` 未做；Docker 未启动 ⇒ E2E 经 tsc+gates+模型直跑，未截 SSR 图。

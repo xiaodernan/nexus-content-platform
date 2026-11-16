@@ -144,9 +144,9 @@ function maskLiterals(expr: string): string {
 
 /**
  * **剥 className 后全文逐字节哈希**（本片最强零行为门）。
- * 基线（全裸 + FE-3 半成品门面）与改造后（全 `.hp-`）必须整份恒等 `e7050b0f…`。
+ * 基线（全裸 + FE-3 半成品门面）与改造后（全 `.hp-`）必须整份恒等；v811 全量门面双语化后重钉。
  */
-const STRIP_CLASS_SHA256 = 'e7050b0f36dfb5f5be87875917d6b058f4414597df34551258406eafddf186d5';
+const STRIP_CLASS_SHA256 = '7a50ea873110f8f729804faff4e3c59d44ef91cae6d17812304060fafdf6ec25';
 function stripClassNames(src: string): string {
   const s = src.replace(/\r\n/g, '\n');
   let out = '';
@@ -279,11 +279,13 @@ describe('§FE-18 NEXUS 首页页面门面（静态不变式）', () => {
   });
 
   it('纯函数 / 常量 / 诚实文案契约零行为', () => {
-    // MODALITIES 三元组
-    expect(code).toMatch(/const MODALITIES = \[\s*\{ key: 'text', label: '文本 \/ 设计生成' \},\s*\{ key: 'image', label: '图像生成' \},\s*\{ key: 'video', label: '视频生成' \},\s*\] as const;/);
-    // 三态判定链
+    // MODALITIES 三元组（label 已改由 HOME_TXT 双语字典按 locale 出——key 不变）
+    expect(code).toMatch(/const MODALITIES = \[\s*\{ key: 'text' \},\s*\{ key: 'image' \},\s*\{ key: 'video' \},?\s*\] as const;/);
+    // 三态判定链（serviceLabel 按 locale 双语：zh 未配置/在线/不可达，en Not configured/Online/Unreachable）
     expect(code).toContain("const serviceState = !serviceUrl ? 'missing' : health ? 'ready' : 'unreachable';");
-    expect(code).toContain("const serviceLabel = !serviceUrl ? '未配置' : health ? `在线 · ${health.capability}` : '不可达';");
+    expect(code).toContain('T.serviceNotConfigured');
+    expect(code).toContain('T.serviceOnline(health.capability)');
+    expect(code).toContain('T.serviceUnreachable');
     // 四个 map + 三态空文案（诚实边界）
     for (const s of ['projects.map(', 'deleted.map(', 'saved.map(', 'health.providers.map(']) expect(code, `丢了 ${s}`).toContain(s);
     for (const s of ['还没有项目。创建一个即可进入 Studio 画布。', '回收站是空的。', '还没有收藏。', '这里只会出现你公开过的作品']) {

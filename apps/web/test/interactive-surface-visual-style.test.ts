@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * 几何一字不动（style 上的绝对坐标照发快照），csrfHeaders / visitorKey / sessionStorage 逻辑一字不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `bc99e41107e15a8352bc183612ee922d8a8a81e436d7a9f12afae83322c13bcb` 与 HEAD 字节一致。
+ * `735d42dc9bf5f65fe6424158365f1992af5f07ca3dffaa689d37e60ef8c8f155` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/app/n/[handle]/[slug]/InteractiveSurface.tsx');
@@ -102,9 +102,9 @@ describe('§FE-72 /n/[handle]/[slug] InteractiveSurface 互动运行时', () => 
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：bc99e41107e15a8352bc183612ee922d8a8a81e436d7a9f12afae83322c13bcb）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：735d42dc9bf5f65fe6424158365f1992af5f07ca3dffaa689d37e60ef8c8f155）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'bc99e41107e15a8352bc183612ee922d8a8a81e436d7a9f12afae83322c13bcb',
+      '735d42dc9bf5f65fe6424158365f1992af5f07ca3dffaa689d37e60ef8c8f155',
     );
   });
 });

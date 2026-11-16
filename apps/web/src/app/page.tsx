@@ -13,17 +13,89 @@ import { ProjectDeleteCard } from '@/components/ProjectDeleteCard';
 import { RestoreProjectButton } from '@/components/RestoreProjectButton';
 import { NotificationBell } from '@/components/NotificationBell';
 import { accountOf, listSaves } from '@/server/domain/profile';
+import { getLocale, type Locale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
 
-const MODALITIES = [
-  { key: 'text', label: '文本 / 设计生成' },
-  { key: 'image', label: '图像生成' },
-  { key: 'video', label: '视频生成' },
-] as const;
+const MODALITIES = [{ key: 'text' }, { key: 'image' }, { key: 'video' }] as const;
+
+/** 双语：主页（登录后首页）的每行文案按 cookie locale 选一份——中文模式全中文，英文模式全英文 */
+const HOME_TXT = {
+  zh: {
+    modalityText: '文本 / 设计生成',
+    modalityImage: '图像生成',
+    modalityVideo: '视频生成',
+    ariaNav: '站点导航',
+    navSearch: '全平台搜索',
+    navDiscover: '发现',
+    navMarket: '市场',
+    navAnalytics: '创作数据',
+    navBlocks: '已拉黑与已屏蔽',
+    navNote: '公开在跑的作品与全平台的内容搜索；数据与通知只对登录后的你自己可见',
+    accountSection: '账号',
+    projectsSection: '项目',
+    emptyProjects: '还没有项目。创建一个即可进入 Studio 画布。',
+    trashSection: (n: number) => `回收站（${n}）`,
+    trashNote:
+      '删掉的项目不再出现在项目列表、搜索、发现和创作数据里，公开页与分享链接也从那一刻打不开。快照、发布记录与评论都还留着，恢复后回到上面的列表。',
+    deletedAt: (d: string) => `删除于 ${d}`,
+    trashEmpty: '回收站是空的。删除一个项目需要在上面逐字输入它的名字——这一步由服务端判定，不是界面上的弹窗。',
+    myHome: '我的主页',
+    handleNote: '这里只会出现你公开过的作品',
+    handleMissing: '你还没有可用于主页的地址（handle 在首次发布时生成）。',
+    savedTitle: (n: number) => `我收藏的版本（${n}）`,
+    savedMeta: (views: number, likes: number, d: string) => `${views} 浏览 · ${likes} 赞 · 收藏于 ${d}`,
+    savedEmpty: '还没有收藏。在任意公开作品页点「收藏这一版」，收下的就是那一刻的那一版——作者之后重新发布不会换掉它。',
+    providerReady: 'Provider 就绪状态',
+    providerNote:
+      '读取自 AI Service 的 /healthz（provider key 只存在于 ai-service 进程，web 不持有）。未配置真实 key 时，生成链路走标注过的确定性 Mock，而不是伪装成功能可用（§159-160）。',
+    serviceNotConfigured: '未配置',
+    serviceOnline: (cap: string) => `在线 · ${cap}`,
+    serviceUnreachable: '不可达',
+    serviceMissingUrl: '未配置 NEXUS_AI_SERVICE_URL',
+  },
+  en: {
+    modalityText: 'Text / design generation',
+    modalityImage: 'Image generation',
+    modalityVideo: 'Video generation',
+    ariaNav: 'Site navigation',
+    navSearch: 'Platform search',
+    navDiscover: 'Discover',
+    navMarket: 'Marketplace',
+    navAnalytics: 'Creative data',
+    navBlocks: 'Blocked & muted',
+    navNote: 'Works publicly on the platform and platform-wide search; your data and notifications are visible only to you, signed in.',
+    accountSection: 'Account',
+    projectsSection: 'Projects',
+    emptyProjects: 'No projects yet. Create one to step into the Studio canvas.',
+    trashSection: (n: number) => `Trash (${n})`,
+    trashNote:
+      'Deleted projects no longer appear in the list, search, discover or creative data, and their public pages and share links stop opening from that moment. Snapshots, publish history and comments are kept; restoring brings an item back to the list above.',
+    deletedAt: (d: string) => `deleted ${d}`,
+    trashEmpty: 'The trash is empty. Deleting a project requires typing its exact name above — that check is enforced server-side, not by a dialog in the UI.',
+    myHome: 'My home page',
+    handleNote: 'Only the works you published appear here.',
+    handleMissing: 'You do not have a profile address yet (the handle is generated on your first publish).',
+    savedTitle: (n: number) => `Saved versions (${n})`,
+    savedMeta: (views: number, likes: number, d: string) => `${views} views · ${likes} likes · saved ${d}`,
+    savedEmpty: 'Nothing saved yet. On any public work page, click "Save this version" — what you take is that exact release; later republications by the author do not replace it.',
+    providerReady: 'Provider readiness',
+    providerNote:
+      'Read from the AI Service /healthz (the provider key lives only in the ai-service process; web never holds it). Until a real key is configured, generation runs through a labelled deterministic Mock instead of pretending to work (§159-160).',
+    serviceNotConfigured: 'Not configured',
+    serviceOnline: (cap: string) => `Online · ${cap}`,
+    serviceUnreachable: 'Unreachable',
+    serviceMissingUrl: 'NEXUS_AI_SERVICE_URL not configured',
+  },
+} as const;
+const modalityLabel = (T: (typeof HOME_TXT)[Locale], key: (typeof MODALITIES)[number]['key']) =>
+  key === 'text' ? T.modalityText : key === 'image' ? T.modalityImage : T.modalityVideo;
 
 export default async function HomePage() {
   const user = await requireUser();
+  const locale = await getLocale();
+  const T = HOME_TXT[locale];
+  const intlLocale = locale === 'en' ? 'en-US' : 'zh-CN';
   const projects = await listProjects(user.id);
   // §60 / §59：主页信息与"我收藏的那些版本"。都是按当前身份读的，不是全局缓存
   // §74：回收站和上面的项目列表是同一张表的两半（deletedAt 空 / 非空），所以也要一起读
@@ -36,7 +108,9 @@ export default async function HomePage() {
   const health = serviceUrl ? await fetchAiServiceHealth() : null;
   const caps = await getAiCapabilities(health);
   const serviceState = !serviceUrl ? 'missing' : health ? 'ready' : 'unreachable';
-  const serviceLabel = !serviceUrl ? '未配置' : health ? `在线 · ${health.capability}` : '不可达';
+  const serviceLabel = !serviceUrl
+    ? T.serviceNotConfigured
+    : health ? T.serviceOnline(health.capability) : T.serviceUnreachable;
 
   return (
     <main className="hp-page">
@@ -55,28 +129,28 @@ export default async function HomePage() {
 
       {/* 这一排在 820px 的容器里放不下五个链接加一句说明：不 flex-wrap 就会被 flex 压着
           在词中间断行（"全平台搜/索"），所以链接各自 nowrap、整排允许换行。 */}
-      <nav className="hp-nav" data-site-nav aria-label="站点导航">
+      <nav className="hp-nav" data-site-nav aria-label={T.ariaNav}>
         <a href="/search" className="hp-navlink" data-nav-search>
-          全平台搜索
+          {T.navSearch}
         </a>
         <a href="/discover" className="hp-navlink" data-nav-discover>
-          发现
+          {T.navDiscover}
         </a>
         <a href="/marketplace" className="hp-navlink" data-nav-marketplace>
-          市场
+          {T.navMarket}
         </a>
         <a href="/analytics" className="hp-navlink" data-nav-analytics>
-          创作数据
+          {T.navAnalytics}
         </a>
         <a href="/blocks" className="hp-navlink" data-nav-blocks>
-          已拉黑与已屏蔽
+          {T.navBlocks}
         </a>
         <NotificationBell />
-        <span className="hp-navNote">公开在跑的作品与全平台的内容搜索；数据与通知只对登录后的你自己可见</span>
+        <span className="hp-navNote">{T.navNote}</span>
       </nav>
 
       <section className="hp-section">
-        <h2 className="hp-sectionTitle">账号</h2>
+        <h2 className="hp-sectionTitle">{T.accountSection}</h2>
         <AccountPanel user={user} />
         {/* §144 / ADR-0025：注销入口对游客与登录用户都开——游客那条也是 users 表里一行真记录，
             能登进来就能注销出去，没有理由只给注册过的账号留出口 */}
@@ -86,7 +160,7 @@ export default async function HomePage() {
       </section>
 
       <section className="hp-section">
-        <h2 className="hp-sectionTitle">项目</h2>
+        <h2 className="hp-sectionTitle">{T.projectsSection}</h2>
         <NewProjectForm />
         <ImportPanel />
         {projects.length ? (
@@ -100,7 +174,7 @@ export default async function HomePage() {
                 >
                   <span className="hp-rowName">{project.name}</span>
                   <span className="hp-rowMeta">
-                    {project.kind} · {new Date(project.updatedAt).toLocaleString('zh-CN', { hour12: false })}
+                    {project.kind} · {new Date(project.updatedAt).toLocaleString(intlLocale, { hour12: false })}
                   </span>
                 </a>
                 <div className="hp-rowInset">
@@ -114,16 +188,15 @@ export default async function HomePage() {
           </ul>
         ) : (
           <div className="hp-emptySection">
-            <p>还没有项目。创建一个即可进入 Studio 画布。</p>
+            <p>{T.emptyProjects}</p>
           </div>
         )}
       </section>
 
       <section className="hp-section">
-        <h2 className="hp-sectionTitleTight">回收站（{deleted.length}）</h2>
+        <h2 className="hp-sectionTitleTight">{T.trashSection(deleted.length)}</h2>
         <p className="hp-sectionNote">
-          删掉的项目不再出现在项目列表、搜索、发现和创作数据里，公开页与分享链接也从那一刻打不开。
-          快照、发布记录与评论都还留着，恢复后回到上面的列表。
+          {T.trashNote}
         </p>
         {deleted.length ? (
           <ul className="hp-list" data-deleted-list>
@@ -136,7 +209,7 @@ export default async function HomePage() {
                 <span className="hp-rowNameMuted">
                   {item.name}
                   <span className="hp-rowMeta">
-                    {item.kind} · 删除于 {new Date(item.deletedAt).toLocaleString('zh-CN', { hour12: false })}
+                    {item.kind} · {T.deletedAt(new Date(item.deletedAt).toLocaleString(intlLocale, { hour12: false }))}
                   </span>
                 </span>
                 <RestoreProjectButton projectId={item.id} projectName={item.name} />
@@ -145,23 +218,23 @@ export default async function HomePage() {
           </ul>
         ) : (
           <p className="hp-emptyNote" data-deleted-empty>
-            回收站是空的。删除一个项目需要在上面逐字输入它的名字——这一步由服务端判定，不是界面上的弹窗。
+            {T.trashEmpty}
           </p>
         )}
       </section>
 
       <section className="hp-section">
-        <h2 className="hp-sectionTitle">我的主页</h2>
+        <h2 className="hp-sectionTitle">{T.myHome}</h2>
         {account.handle ? (
           <p className="hp-profileLede">
             <a href={`/u/${account.handle}`} className="hp-profileLink" data-my-profile-link>
               /u/{account.handle}
             </a>
-            <span className="hp-inlineNote">这里只会出现你公开过的作品</span>
+            <span className="hp-inlineNote">{T.handleNote}</span>
           </p>
         ) : (
           <p className="hp-profileLedeMuted" data-my-profile-link="none">
-            你还没有可用于主页的地址（handle 在首次发布时生成）。
+            {T.handleMissing}
           </p>
         )}
         <AvatarEditor initialUrl={account.avatarUrl} />
@@ -170,7 +243,7 @@ export default async function HomePage() {
         </div>
 
         <h3 className="hp-subTitle">
-          我收藏的版本（{saved.length}）
+          {T.savedTitle(saved.length)}
         </h3>
         {saved.length ? (
           <ul className="hp-list" data-saved-list>
@@ -191,7 +264,7 @@ export default async function HomePage() {
                       <span className="hp-byline">by {card.owner}</span>
                     </span>
                     <span className="hp-rowMeta">
-                      {card.views} 浏览 · {card.likes} 赞 · 收藏于 {new Date(card.savedAt).toLocaleDateString('zh-CN')}
+                      {T.savedMeta(card.views, card.likes, new Date(card.savedAt).toLocaleDateString(intlLocale))}
                     </span>
                   </a>
                 )}
@@ -200,27 +273,27 @@ export default async function HomePage() {
           </ul>
         ) : (
           <p className="hp-emptyNote" data-saved-empty>
-            还没有收藏。在任意公开作品页点「收藏这一版」，收下的就是那一刻的那一版——作者之后重新发布不会换掉它。
+            {T.savedEmpty}
           </p>
         )}
       </section>
 
       <section className="hp-section">
-        <h2 className="hp-sectionTitle">Provider 就绪状态</h2>
+        <h2 className="hp-sectionTitle">{T.providerReady}</h2>
         <p className="hp-sectionNoteLoose">
-          读取自 AI Service 的 /healthz（provider key 只存在于 ai-service 进程，web 不持有）。未配置真实 key 时，生成链路走标注过的确定性 Mock，而不是伪装成功能可用（§159-160）。
+          {T.providerNote}
         </p>
         <ul className="hp-list">
           {MODALITIES.map((m) => (
             <li key={m.key} className="hp-rowCard">
-              <span className="hp-rowName">{m.label}</span>
+              <span className="hp-rowName">{modalityLabel(T, m.key)}</span>
               <span className="hp-statusBadge">{caps[m.key]}</span>
             </li>
           ))}
           <li className="hp-rowCard" data-ai-service={serviceState}>
             <span className="hp-rowName">
               AI Service
-              <span className="hp-rowMetaIndent">{serviceUrl ?? '未配置 NEXUS_AI_SERVICE_URL'}</span>
+              <span className="hp-rowMetaIndent">{serviceUrl ?? T.serviceMissingUrl}</span>
             </span>
             <span className="hp-statusBadge">{serviceLabel}</span>
           </li>
