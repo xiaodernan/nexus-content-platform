@@ -5301,3 +5301,17 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - guide SHA pin b86d1496… 重钉；fe-gates 125 套 · 1213/1213；census 2593 OK
 - 指令收尾原则延续：大典继续生长（12 章 × 15 回响 · 159 组中英锚句逐字对齐）；
   新 AI 切面（/api/ai/deep-read）上线即收录说明书（§七「说明书完整覆盖」落实）
+
+## cont. 192 (2026-11-17) - v822: /discover 热度榜「馆长批注」—— LLM 给真实作品写荐语（§新指令·LLM 深度嵌入续）
+
+- 新 API `POST /api/editor-note`：
+  - 输入：trending 榜前三的**实测指标**（名称 / 类型 / 浏览 / 赞 / 评论 / 转 / 热度分，全部来自数据库真实计数）
+  - gpt-6.1-terra 为每件作品写一句"为什么值得打开"批注——**每句必须包含输入的具体数字**（如 210 浏览·34 赞·162.5 热度）
+  - 纪律：只读指标，绝不对作品内容做任何事实断言（模型没读手稿，不能说"讲一个关于…的故事"）；
+    DEMO MODE → 409；每 IP 每小时 20 次；整批 24h LRU 缓存（省 provider 额度）；zod 全覆盖，缺一条即 502
+- 新 UI：`/discover?sort=trending` 榜首上方挂「馆长批注」条（EditorNotes，中英双语；公共页失败安静消失不渲染 5xx）
+- live probe：POST /api/editor-note → HTTP 200（gpt-6.1-terra）——三条批注全部带真实数字（
+  "210 浏览 高赞 162.5 热度 → 值这个关注度，值得伸手"、"160 浏览 22 赞 45.5 → 值这个关注度"、"140 浏览 18 赞 → 值这个默契度"）
+- 门：fe-gates 126 套 · **1219/1219**；census 2601 OK；tsc 0；discover-page SHA pin 重钉 1279e6e6…；
+  新增套件 editor-notes-visual-style.test.ts（6 例）
+- 本片是 cont. 190 之后"把 LLM 能力深度嵌入整体"的第二块——观测大厅 AI 深读（读数→建议）、发现流馆长批注（读指标→荐语）

@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * §61：Trending 按天互动序列真的能排，但算法参数与候选集上限必须连同 `result.method` 显示——不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `92d8e28ecb311ddc4a7ecff7a7014f3215f2832273ac776ead3c0b43ea7530ae` 与 HEAD 字节一致。
+ * `1279e6e6b86f947235042faffee4bb0f3e8a15b117c59e5e74a47c2e5bcb04e6` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/app/discover/page.tsx');
@@ -103,7 +103,7 @@ describe('§FE-77 /discover 发现页原子清零', () => {
 
   it('剥 className 后全文 SHA256 守恒（零行为：92d8e28ecb311ddc4a7ecff7a7014f3215f2832273ac776ead3c0b43ea7530ae）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '92d8e28ecb311ddc4a7ecff7a7014f3215f2832273ac776ead3c0b43ea7530ae',
+      '1279e6e6b86f947235042faffee4bb0f3e8a15b117c59e5e74a47c2e5bcb04e6',
     );
   });
 });
