@@ -35,6 +35,7 @@ from .contract import ContractMissing, contract_dir
 from .contract import issues as contract_issues
 from .execution import error as make_error
 from .execution import execute_ai_request, execute_chat_request, parse_request_body
+from .stategraph import run_design_stategraph
 from .latency_meter import LLM_LATENCY
 from .metrics import render_llm_metrics
 from .jobs import JobStore, Worker, build_store, job_capacity
@@ -195,6 +196,24 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
         assert payload is not None
         status, body = await execute_ai_request(payload, registry=registry)
         return JSONResponse(body, status_code=status)
+
+    @app.post("/v1/ai/design-graph")
+    async def design_graph_route(request: Request) -> JSONResponse:
+        """§LangGraph（2026-11-16）— 状态图编排的设计管线入口。
+
+        与 `/v1/ai/run` 使用**同输入、同执行语义、同契约输出**（validate → check_provider →
+        build_prefix → call_llm → cache_read → parse_and_release → assemble，失败直返 END），
+        唯一 difference：编排结构是 `langgraph.StateGraph`。编排标记只走响应头
+        `x-nexus-orchestration`（ai-response.schema.json 的 additionalProperties=false，绝不夹带私有字段）。
+        Provider 不可用时与 `/v1/ai/run` 一样如实 503，绝不拿泛化外壳冒充真模型。
+        """
+        payload, rejected = parse_request_body(await request.body(), settings.max_body_bytes)
+        if rejected is not None:
+            status, body = rejected
+            return JSONResponse(body, status_code=status)
+        assert payload is not None
+        status, body = await run_design_stategraph(payload, registry=registry)
+        return JSONResponse(body, status_code=status, headers={"x-nexus-orchestration": "stategraph"})
 
     @app.post("/v1/ai/chat")
     async def chat(request: Request) -> JSONResponse:
