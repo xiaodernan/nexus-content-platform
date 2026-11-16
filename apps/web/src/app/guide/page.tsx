@@ -59,8 +59,8 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         body: [
           '/discover 广场（热门/最新/ trending / 我关注的；为你推荐：AI 照你自己的实测阅读 myOpens 排，不替没有痕迹的人排序）· /marketplace 组件/模板/资产市场 · /blocks 积木库 · /search 全站搜索',
           '/studio/<project> 项目主场：画布/图层/设计系统/3D · /world/<id> 走进这个世界（3D 步行）· /world/<id>/digest 世界速览 · /world/<id>/integrity 世界体检 · /world/<id>/tide 世界潮汐 · /world/<id>/almanac 世界年鉴 · /world/<id>/constellation 人物关系星图 · /world/<id>/codex 设定集（纸面投影）· /world/<id>/chronicle 编年 · /world/<id>/ephemeris 世界切片',
-          '/bible 典籍室：正典精读 → 《潮汐教团》十三章 + 十七回响；/bible/search 直达（正典本地检索）· /bible/quiz 潮汐挑战（正典问答）· /bible/well 七口井（典籍室第二个玩法）',
-          '/bible 收录第三种玩法：/bible/anchors 锚句回放——176 句中英锚句逐字回放，抢答它出自哪一章（连对 / 历史最佳本地记）',
+          '/bible 典籍室：正典精读 → 《潮汐教团》十三章 + 十八回响；/bible/search 直达（正典本地检索）· /bible/quiz 潮汐挑战（正典问答）· /bible/well 七口井（典籍室第二个玩法）',
+          '/bible 收录第三种玩法：/bible/anchors 锚句回放——181 句中英锚句逐字回放，抢答它出自哪一章（连对 / 历史最佳本地记）',
           '/n/<handle>/<slug> 公开页（访客第一眼看到的是这一版）· /preview/<project> 同源只读镜头（发布前同一排断点与缩放）',
           '/tasks 任务账本（每次 AI 请求一行，含第几次、真/DEMO、用量、用时）· /credits 我的额度（SavingsCard：缓存替你省下的重复计算）· /api-tokens API 令牌 · /analytics 我作品的数据 · /pulse 观测大厅（平台聚合匿名统计，口令 123）· /notifications 收件箱 · /ship 交付日志 · /about-nexus 关于',
           '/admin/* 平台管理台（role=admin）：审核台、pricing、dead-letter、ai-cache、audit、observability、users、pricing、rate-limit 等',
@@ -111,7 +111,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           '/world/<id>/chronicle 编年史：故事/历史条目按纪元排开（灰灯纪/灰烬纪/铁月纪……你项目自己的纪元名），人物星图 ↔ 编年互相点亮；条目可挂「记忆回声」——纯感官刻痕，≤ 240 字，不是梗概。',
           '/world/<id>/digest 世界速览 · /world/<id>/integrity 世界体检（只报真问题：纪元错位/回声缺失/孤儿条目，不打分不假绿）· /world/<id>/tide 世界潮汐 · /world/<id>/ephemeris 世界日历投影 · /world/<id>/codex 设定集 · /world/<id>/constellation 人物关系星图。',
           '这些页面全部是你的项目数据的投影——世界页不是"官方故事"，是你画的世界自己的结构。',
-          '想读这个宇宙的正典文字？去 /bible 翻《潮汐教团》十三章 + 十七回响——锚句中英字字对齐的正典、可以直接收藏的典籍室。',
+          '想读这个宇宙的正典文字？去 /bible 翻《潮汐教团》十三章 + 十八回响——锚句中英字字对齐的正典、可以直接收藏的典籍室。',
         ],
       },
       {
@@ -134,7 +134,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑪ 典籍室（/bible）怎么玩',
         body: [
-          '/bible 正典精读：《潮汐教团》十三章 + 十七回响——每一章点开就能读，锚句在中英之间字对齐（zh 原字节 / en 对照，不混写）。',
+          '/bible 正典精读：《潮汐教团》十三章 + 十八回响——每一章点开就能读，锚句在中英之间字对齐（zh 原字节 / en 对照，不混写）。',
           '/bible/search 直达：在正典里按关键词做本地检索，直接读出命中的那一段（不出 AI、不出库外来源，慢一步但是真检索）。',
           '/bible/quiz 潮汐挑战：以正典出题——答错回哪一章重新对，点亮的路标留在本机（无云存档，刷新照旧）。',
           '/bible/well 七口井：典籍室的第二个玩法——顺着七条线索找回失落的七口井；找对了就开出一段地方，找不到的照实说找不到。',
@@ -189,8 +189,8 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         body: [
           '/discover feed (For You: AI ranks by your own measured reading trace — myOpens — and never ranks for people without one) · /marketplace components/templates/assets · /blocks library · /search global search',
           '/studio/<project> studio · /world/<id> walk this world (3D) · /world/<id>/digest world digest · /world/<id>/integrity world checkup · /world/<id>/tide world tide · /world/<id>/almanac world almanac · /world/<id>/constellation character graph · /world/<id>/codex paper tome · /world/<id>/chronicle timeline · /world/<id>/ephemeris 360-day page',
-          '/bible hall of canon → 《潮汐教团》 thirteen chapters + seventeen echoes; /bible/search direct hits (local canon retrieval) · /bible/quiz Tide Challenge (canon quiz) · /bible/well Seven Wells (the second game)',
-          '/bible gains a third game: /bible/anchors Anchor Echo — the 176 bilingual anchor sentences replayed verbatim; name the chapter or echo each line came from (streak and best kept locally)',
+          '/bible hall of canon → 《潮汐教团》 thirteen chapters + eighteen echoes; /bible/search direct hits (local canon retrieval) · /bible/quiz Tide Challenge (canon quiz) · /bible/well Seven Wells (the second game)',
+          '/bible gains a third game: /bible/anchors Anchor Echo — the 181 bilingual anchor sentences replayed verbatim; name the chapter or echo each line came from (streak and best kept locally)',
           '/n/<handle>/<slug> public page (what visitors see first) · /preview/<project> same-origin read-only lens (the same controls as visitors)',
           '/tasks task ledger (one AI request per row, with attempt count, real/DEMO badge, usage and latency) · /credits your quota (SavingsCard: duplicate computation the cache absorbed for you) · /api-tokens API tokens · /analytics your stats · /pulse the observatory hall (platform-wide aggregate, passphrase 123) · /notifications inbox · /ship ship log · /about-nexus about',
           '/admin/* admin console (role=admin): moderation, pricing, dead-letters, ai-cache, audit, observability, users, rate-limit, etc.',
@@ -241,7 +241,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           '/world/<id>/chronicle — story and history entries arranged by era (Grey-Lamp Age / Ash Age / Iron-Moon Age — whatever YOUR project’s eras are), characters and chronicle light each other up; entries can carry “memory echoes” — pure sensory etchings, ≤ 240 chars, not plot summaries.',
           '/world/<id>/digest world digest · /world/<id>/integrity world checkup (reports real issues only: era drift, missing echoes, orphan entries — no fake scoring) · /world/<id>/tide world tide · /world/<id>/ephemeris world calendar projection · /world/<id>/codex the lore tome · /world/<id>/constellation the character graph.',
           'Every one of these pages is a projection of YOUR project — the world pages are not “the official story”; they are the structure of the world you drew, rendered.',
-          'Fancy the canon text of this universe? Go to /bible — thirteen chapters of the Tide Conclave plus seventeen echoes, anchor sentences aligned word-for-word between Chinese and English.',
+          'Fancy the canon text of this universe? Go to /bible — thirteen chapters of the Tide Conclave plus eighteen echoes, anchor sentences aligned word-for-word between Chinese and English.',
         ],
       },
       {
@@ -264,7 +264,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑪ How the Hall of Canon works (/bible)',
         body: [
-          '/bible — the canon proper: thirteen chapters of the Tide Conclave, plus seventeen echoes; anchor sentences align word-for-word across zh and en.',
+          '/bible — the canon proper: thirteen chapters of the Tide Conclave, plus eighteen echoes; anchor sentences align word-for-word across zh and en.',
           '/bible/search — type a keyword, fetch the exact canon passage (pure local retrieval; no AI generation, no outside sources).',
           '/bible/quiz — the Tide Challenge: canon-aligned quizzes; wrong answers point back to the chapter to re-read; lit beacons stay on your machine (no cloud save; refresh keeps nothing).',
           '/bible/well — Seven Wells: the Hall’s second game — follow seven clues back to seven lost wells; found wells open the way; unfound wells honestly say they are not found.',

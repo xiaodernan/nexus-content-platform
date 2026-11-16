@@ -307,6 +307,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《蜡封》里，封井的人走石板街时，街上的人谁也没有……？', choices: ['看他们一眼', '问封井是为什么', '问封第几口', '帮他们搬蜡'], answer: 1, ref: '回响（其十七） · 一' },
     en: { prompt: 'In “The Wax Seal”, as the team walked the flagstone street, no one…?', choices: ['looked at them', 'asked why the wells were being sealed', 'asked which well was to be sealed', 'helped carry the wax'], answer: 1, ref: 'Echo No. 17 · I' },
   },
+  {
+    zh: { prompt: '《最后一夜》里，值夜的门吏听到海来到门口时，井是……？', choices: ['全都封着', '全都开着', '只有第一口开着', '第七口开着'], answer: 1, ref: '回响（其十八） · 一' },
+    en: { prompt: 'In “The Last Night”, when the doorman heard the sea reach the door, the wells were…?', choices: ['all sealed', 'all open', 'only the first open', 'only the seventh open'], answer: 1, ref: 'Echo No. 18 · I' },
+  },
+  {
+    zh: { prompt: '《最后一夜》里，天快亮时，报到的人是……？', choices: ['七盏灯报到了', '第七席的老人报到了', '没有人报到', '门吏报到了'], answer: 2, ref: '回响（其十八） · 四' },
+    en: { prompt: 'In “The Last Night”, at near-dawn, who answered to the roll?', choices: ['the seven lamps answered', 'the elder of the seventh seat answered', 'no one answered', 'the doorman answered'], answer: 2, ref: 'Echo No. 18 · IV' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

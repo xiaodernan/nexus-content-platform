@@ -8793,4 +8793,418 @@ Neither did I.
 > Wax seals wells; it cannot seal the water, nor the count.
 > 蜡封住井，封不住水，也封不住那个数。`,
   },
+  {
+    order: 18,
+    slug: 'echo-018-the-last-night',
+    titleZh: '最后一夜',
+    titleEn: 'The Last Night',
+    eraLineZh: '纪元切割线：铁月纪之后 · 灰幕之前',
+    eraLineEn: 'Era: after the Iron-Moon Age · before the grey cover was laid.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 18): The Last Night
+
+> 回响不续写正典，只记最后一夜：
+> 潮汐教团灭亡的那一夜，灰幕降下之前。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps the last night,
+> the night the Tide Conclave ended, before the grey cover fell.
+> Its anchors answer to the same discipline as the canon.
+
+> 纪元切割线：铁月纪之后 · 灰幕之前
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 一 · 风停
+
+那晚，风先停了。
+
+我在汐台守门。门没有合严。门槛上有盐，细得像一层白灰。我伸手去拢，盐从指缝漏下去，落在石板上。
+
+石板街道没有声响。平日里，风会从街道尽头来，掠过门，吹动灯火。那一夜，风不来。灯火也不动。
+
+街上的人不说话。我看见他们停在石板街道上，脸朝着汐台。没人敲门。没人问门里的人还在不在。没人越过门槛。
+
+第七席的老人坐在门槛内。他坐得很稳，手放在膝上。盐落在他鞋边。他没有拂开。我没有叫他。他也没有看我。
+
+我数了一次井。
+
+一口。两口。三口。四口。五口。六口。七口。
+
+七口井都开着。井口朝上，黑得看不见底。没有绳子垂下去，也没有桶靠在井边。井沿上留着盐。盐没有被风吹散。
+
+我又数了一次。还是七口。
+
+潮汐教团的门内没有声音。我听着。听见自己的呼吸，也听见石板下面空着。那声音很轻，像盐粒擦过石面。我不敢低头看门槛下，只把手按在门上。
+
+门是冷的。
+
+我在门外，老人坐在门内。中间隔着门槛。我守着这条线，没让任何人进来，也没让任何人出去。那一夜，门没有人敲。我却一直站着，像门上还有一只看不见的手，等着我替它把门关严。
+
+风停的时候，井都开着。
+**锚句**：风停的时候，井都开着。
+**Anchor sentence**: when the wind stopped, the wells were all open.
+
+## 二 · 点灯
+
+我点七盏灯。
+
+第一盏放在门内。第二盏放在门槛边。第三盏照着石板街道。第四盏靠近井口。第五盏放得更远。第六盏留在第七席老人身边。第七盏，我拿在手里，直到灯芯着起来，才放到门旁。
+
+我每点一盏，就看一次门。
+
+没有人来。没有人走。
+
+灯芯一开始不肯燃。我用咸壳笔挑了挑，芯上的盐落进灯盏。我再试一次，火才亮起来。火很小。七盏灯都亮了，七道光却没有照到街道尽头。
+
+我看见灯芯发潮。潮气沿着芯往上爬，贴着火的根。火没有灭，也没有变大。它只是亮着，像一直知道自己不能照得太远。
+
+灯盏里有油。我看见油面。也看见灯芯上积着的潮气。潮气比油更重，压着芯。每一盏都如此。
+
+我把盐移开，不让它碰到火。盐还是落在灯边。门槛上的盐没有化，石板上的盐也没有化。灯光落在盐上，白得发冷。
+
+我低头检查灯芯。七次。我逐一检查。七盏灯的火都在，七根灯芯都湿。我没有再挑它们。咸壳笔留在手里，笔尖上沾着一点盐。
+
+第七席的老人没有伸手。他坐在原处，看着灯。我想问他要不要把灯移近些。话到口边，我又咽了回去。
+
+灯火轻轻缩了一下。我以为是风回来了，便抬头。门外没有风。石板街道仍旧静着。门也没有动。
+
+我守着七盏灯，怕它们熄，又怕它们一直这样亮下去。我不知该守住哪一种火。只知道七盏灯不能少。我数过它们，像数井一样，一盏一盏数过去。
+
+灯芯里的潮气比油多。
+**锚句**：灯芯里的潮气比油多。
+**Anchor sentence**: the wick held more tide-damp than oil.
+
+## 三 · 夜里的水
+
+海来到门口时，我先听见了声音。
+
+那不是风。风停着。那也不是灯火。七盏灯的火都很小，静静留在灯盏里。
+
+我听见门外有水。
+
+水没有越过门槛。它停在门前，像在等我开门。我把手放在门上，掌心贴着冷木。门没有被推开，门槛上的盐也没有滚动。
+
+我听见水沿着石板街道来。它不急，也不退。声音到了门口，就停下了。门外一片暗，灯光只照到盐，照不到水的边。
+
+我没有开门。
+
+水在门外停了很久。七盏灯的火都朝着门，却没有一盏照出海的形状。门槛仍干着。盐仍在原处。我把手从门上移开，又放回去。门没有变暖。
+
+海没有进屋。
+
+我看见镜鲛浮出海面一下。它没有靠近门，也没有停留。它只浮了一下，随即又沉下去。水合上了。我看不清它去了哪里，只看见门外仍有海。
+
+我没有出声。第七席的老人也没有出声。
+
+我想起七口井。它们都开着。门外的海停在门口，井口却朝着黑暗。我没能看见井底，也没能看见水面。只听见海在门外，井在门内，隔着石板街道和一道门槛。
+
+我数灯。七盏。
+
+我数井。七口。
+
+我数到第七席时，停住了。
+
+门外的水没有退去。它也没有入室。它把夜留在门前，像盐留在石板上，像潮气留在灯芯里。我不知海看见了什么。我只知我听见它来过。
+
+那一夜，我没有打开门。也没有离开门。
+
+海把井数的那一夜记住了。
+**锚句**：海把井数的那一夜记住了。
+**Anchor sentence**: the sea remembered the night the count was made.
+
+## 四 · 天快亮
+
+天快亮时，七盏灯还在。
+
+我一盏一盏看过去。火都还亮着。没有一盏灭掉，也没有一盏照得更远。灯芯仍湿，盐仍在灯边。
+
+七口井都开着。
+
+我看了一次，又看了一次。井口没有合上。井沿没有多出东西。井边没有人。没有桶，也没有绳子。我看不见井底，便不能说井里什么也没有。
+
+第七席的老人坐在门槛内。
+
+我没有叫他。我不知他有没有听见海，也不知他有没有看见镜鲛。他一直没有挪动。灯光落到他身上，光很薄，像擦过门槛的盐。
+
+我还在门口。
+
+我睁着眼。手上有盐，袖口贴着灯油的气味。我的手没有离开过门。我以为只要我站着，门便还认得我。我也以为只要我数着，灯和井就不会少。
+
+我数了七盏灯。数了七口井。数到第七席，数到门槛，又从门槛数回门。
+
+没有人报到。
+
+没有人说自己在哪一盏灯旁。没有人应我数井的声音。第七席没有回答。门外的海没有回答。街上的人也没有回答。
+
+我仍在数。
+
+灯是一。灯是二。灯是三。数到七，我停住。井是一。井是二。井是三。数到七，我又停住。
+
+我把手按在门上。门外没有声音。门内也没有声音。天色一点点变浅，石板上的盐看得更清楚。门槛没有变宽。门也没有开。
+
+我不知道该把谁算进这一夜。
+
+我只知道灯还在，井还开着，老人还坐在那里，我还站在门前。可这四件事没有一件替我回答。我没有听见潮汐教团的人声，没有听见任何人说自己到了。
+
+我睁着眼，直到天快亮。
+
+晨起的时候，没有人报到。
+**锚句**：晨起的时候，没有人报到。
+**Anchor sentence**: at dawn, no one answered the roll.
+
+## 五 · 灰
+
+灰幕降下时，没有风。
+
+我看见灰从上面来。先是薄薄一层，落在石板街道上。再一层，落在门槛上。再一层，落在七盏灯的边沿。
+
+它没有奔跑。也没有停下。它只是一点点盖住门外的光。我抬头看时，天已经远了。灯火仍在，可它们照不穿灰。
+
+灰幕降下的速度很慢。慢得像一只手，从海那边伸来，又像从井底升起。我分不清它从哪里来。我只看见石板上的盐被盖住，门槛上的盐也被盖住。
+
+七盏灯还亮着。火变得更小。我没有去碰灯芯。七口井还开着。我没有走近井沿。第七席的老人仍坐在门槛内。我没有叫他。
+
+我站在门前。灰落在我的手背上，落在门上，也落在门外的海上。海没有退去，也没有越过门槛。它没有赢。
+
+灯在灰里亮了一夜。它们照过门，照过盐，照过石板。它们照不回那些没有回答的人，也照不出灰幕之外的天。
+
+我守着最后一盏灯，看它的火贴着湿芯。火没有一下熄灭。它缩小，又缩小。等到我看不清灯盏边沿时，我仍知道它在那里。
+
+一夜灯的时间，终于过去。
+
+灰没有声响。门没有声响。海没有声响。我伸手摸门槛，摸到盐，也摸到灰。盐还在。灰也在。两样东西压在一起，分不出先后。
+
+我没有打开门。我没有离开门。我把咸壳笔握在手里，笔上沾着盐。没有字可写。我仍把它握着，像握住最后一点灯光。
+
+后来，灰幕落满石板街道，落满七口井，落满第七席，也落在我的眼上。
+
+我没有看见风回来。
+
+我只看见那一夜留下的灯，一盏接一盏暗下去。
+
+灰幕不是一夜天，灰是一夜灯。
+**锚句**：灰幕不是一夜天，灰是一夜灯。
+**Anchor sentence**: the grey was not a night’s sky; the grey was a night’s lamp.
+
+---
+
+## 模型映射（回响十八则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 风停 · 井开 · 灰幕前夜 | 第十二章 |
+| geography | 汐台 · 七口井 · 石板街道 | 本则 |
+| factions | 潮汐教团 · 第七席 | 第一章 · 本则 |
+| characters | 门吏（把门人）· 第七席的老人 | 本则 |
+| items | 七盏灯 · 井 · 盐 · 便签 | 本则 |
+| story | 门吏记 · 回响（其十八） | 全篇 |
+| history | 纪元切割线 · 灰幕之前 | 本则 |
+
+> 井数得完，人报不了到。
+> Wells can be counted; the roll cannot answer itself.`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其十八）：「最后一夜」
+
+> An echo does not continue the canon — it only keeps the last night,
+> the night the Tide Conclave ended, before the grey cover fell.
+> Its anchors answer to the same discipline as the canon.
+>
+> 回响不续写正典，只记最后一夜：
+> 潮汐教团灭亡的那一夜，灰幕降下之前。
+> 回响的锚句，与正典同一纪律。
+
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+> 纪元切割线：铁月纪之后 · 灰幕之前
+
+---
+
+## I · When the Wind Stopped
+
+That night, the wind stopped first.
+
+I was keeping the door at the Tide Platform. The door was not quite shut. Salt lay on the threshold, fine as a layer of white ash. I reached out to gather it; the salt slipped through my fingers and fell on the flagstones.
+
+The flagstone street made no sound. Usually, the wind would come from the end of the street, pass over the door, and stir the lamplight. That night, the wind did not come. The lamplight did not move either.
+
+The people in the street said nothing. I saw them stopped on the flagstone street, their faces turned towards the Tide Platform. No one knocked. No one asked whether the people inside the door were still there. No one crossed the threshold.
+
+The old man of the Seventh Seat sat inside the threshold. He sat very steadily, his hands resting on his knees. Salt fell beside his shoes. He did not brush it away. I did not call to him. He did not look at me.
+
+I counted the wells once.
+
+One. Two. Three. Four. Five. Six. Seven.
+
+All seven wells were open. Their mouths faced upwards, black beyond sight. No rope hung down, and no bucket stood beside a well. Salt remained on the rims. The salt had not been scattered by the wind.
+
+I counted again. Still seven.
+
+There was no sound within the door of the Tide Conclave. I listened. I heard my own breathing, and I heard the emptiness beneath the flagstones. The sound was very faint, like grains of salt brushing stone. I did not dare look down beneath the threshold; I only pressed my hand against the door.
+
+The door was cold.
+
+I was outside the door, and the old man sat within it. The threshold lay between us. I kept watch over that line, letting no one enter and no one leave. That night, no one knocked at the door. Yet I stood there the whole time, as though there were still an unseen hand upon the door, waiting for me to close it tightly on its behalf.
+
+When the wind stopped, the wells were all open.
+**Anchor sentence**: when the wind stopped, the wells were all open.
+**锚句**：风停的时候，井都开着。
+
+## II · Lighting the Lamps
+
+I lit seven lamps.
+
+The first I set inside the door. The second I set beside the threshold. The third lit the flagstone street. The fourth I placed near a well-mouth. The fifth I set farther away. The sixth I left beside the old man of the Seventh Seat. The seventh I held in my hand until the wick caught, then set it beside the door.
+
+Each time I lit a lamp, I looked at the door.
+
+No one came. No one left.
+
+At first the wick refused to burn. I teased it with the salted-shell pen, and the salt on the wick fell into the lamp. I tried again, and only then did the flame rise. It was very small. All seven lamps were lit, yet the seven lights did not reach the end of the street.
+
+I saw the wicks grow damp. The damp climbed up along them, clinging to the root of the flame. The flames did not go out, nor did they grow. They simply stayed alight, as though they had always known they must not shine too far.
+
+There was oil in the lamps. I saw its surface. I also saw the damp gathered on the wicks. The damp was heavier than the oil, pressing down on the wicks. It was so with every lamp.
+
+I moved the salt away, so that it would not touch the flame. The salt still fell beside the lamps. The salt on the threshold did not melt, nor did the salt on the flagstones. The lamplight fell upon the salt, white and cold.
+
+I lowered my head and inspected the wicks. Seven times. I inspected them one by one. All seven flames were there, and all seven wicks were wet. I did not tease them again. The salted-shell pen remained in my hand, its tip touched with a little salt.
+
+The old man of the Seventh Seat did not reach out. He sat where he was, watching the lamps. I wanted to ask whether he would like me to move one nearer. The words reached my lips, and I swallowed them back.
+
+The lamplight drew in slightly. I thought the wind had returned, and looked up. There was no wind outside the door. The flagstone street remained still. The door had not moved.
+
+I kept watch over the seven lamps, afraid they would go out, and afraid they would go on burning like that for ever. I did not know which kind of flame I was meant to keep. I only knew that there must not be fewer than seven. I had counted them, as I had counted the wells, one lamp after another.
+
+The wick held more tide-damp than oil.
+**Anchor sentence**: the wick held more tide-damp than oil.
+**锚句**：灯芯里的潮气比油多。
+
+## III · The Water in the Night
+
+When the sea came to the door, I heard the sound first.
+
+It was not wind. The wind was still. Nor was it lamplight. The flames of all seven lamps were very small, quietly remaining in their bowls.
+
+I heard water outside the door.
+
+The water did not cross the threshold. It stopped before the door, as though waiting for me to open it. I placed my hand on the door, my palm against the cold wood. The door was not pushed open, and the salt on the threshold did not roll.
+
+I heard the water coming along the flagstone street. It did not hurry, and it did not retreat. When the sound reached the door, it stopped. Outside was all darkness; the lamplight reached only the salt, not the edge of the water.
+
+I did not open the door.
+
+The water remained outside for a long time. The flames of all seven lamps faced the door, yet not one lit the shape of the sea. The threshold remained dry. The salt remained where it was. I moved my hand from the door, then put it back. The door did not grow warmer.
+
+The sea did not enter the room.
+
+I saw the mirror-shark rise once from the surface of the sea. It did not come nearer the door, nor did it remain. It rose only once, then sank again. The water closed over it. I could not see where it went; I saw only that the sea was still outside the door.
+
+I made no sound. Nor did the old man of the Seventh Seat.
+
+I thought of the seven wells. They were all open. The sea outside the door stopped at the threshold, while the well-mouths faced the darkness. I could not see the bottoms of the wells, nor could I see the water's surface. I only heard the sea outside, the wells within, divided by the flagstone street and a threshold.
+
+I counted the lamps. Seven.
+
+I counted the wells. Seven.
+
+When I reached the Seventh Seat, I stopped.
+
+The water outside the door did not retreat. Nor did it enter the room. It left the night before the door, as salt remained on the flagstones, as damp remained in the wicks. I did not know what the sea had seen. I only knew that I had heard it come.
+
+That night, I did not open the door. Nor did I leave it.
+
+The sea remembered the night the count was made.
+**Anchor sentence**: the sea remembered the night the count was made.
+**锚句**：海把井数的那一夜记住了。
+
+## IV · Near Dawn
+
+When dawn drew near, the seven lamps were still there.
+
+I looked at them one by one. All the flames were still burning. Not one had gone out, and not one lit farther. The wicks were still wet, and the salt was still beside the lamps.
+
+All seven wells were open.
+
+I looked once, and then again. The well-mouths had not closed. Nothing had appeared on the rims. No one stood beside the wells. There were no buckets, and no ropes. I could not see the bottoms of the wells, so I could not say that there was nothing in them.
+
+The old man of the Seventh Seat sat inside the threshold.
+
+I did not call to him. I did not know whether he had heard the sea, nor whether he had seen the mirror-shark. He had not moved. The lamplight fell upon him, very thin, like salt brushing the threshold.
+
+I was still at the door.
+
+I kept my eyes open. There was salt on my hands, and the smell of lamp oil clung to my cuffs. My hand had not left the door. I thought that so long as I stood there, the door would still know me. I also thought that so long as I counted, the lamps and the wells would not diminish.
+
+I counted seven lamps. I counted seven wells. When I reached the Seventh Seat, I counted to the threshold, then counted back from the threshold to the door.
+
+No one answered the roll.
+
+No one said which lamp they stood beside. No one answered the sound of my counting the wells. The Seventh Seat did not answer. The sea outside the door did not answer. Nor did the people in the street.
+
+I went on counting.
+
+The lamp is one. The lamp is two. The lamp is three. When I counted to seven, I stopped. The well is one. The well is two. The well is three. When I counted to seven, I stopped again.
+
+I pressed my hand against the door. There was no sound outside. There was no sound inside. The sky grew lighter by degrees, and the salt on the flagstones became clearer. The threshold had not widened. The door had not opened.
+
+I did not know whom to count into that night.
+
+I only knew that the lamps were still there, the wells were still open, the old man was still sitting there, and I was still standing before the door. Yet not one of those four things answered on my behalf. I did not hear the voices of the Tide Conclave. I did not hear anyone say that they had arrived.
+
+I kept my eyes open until dawn drew near.
+
+At dawn, no one answered the roll.
+**Anchor sentence**: at dawn, no one answered the roll.
+**锚句**：晨起的时候，没有人报到。
+
+## V · The Grey
+
+When the grey cover fell, there was no wind.
+
+I saw the grey come from above. First a thin layer, falling on the flagstone street. Then another, falling on the threshold. Then another, falling on the rims of the seven lamps.
+
+It did not run. Nor did it stop. It simply covered the light outside by degrees. When I looked up, the sky was already far away. The flames were still there, but they could not shine through the grey.
+
+The grey cover fell very slowly. Slowly as a hand reaching from the sea, and as though rising from the bottom of a well. I could not tell where it came from. I saw only that the salt on the flagstones was covered, and the salt on the threshold was covered too.
+
+The seven lamps were still burning. The flames grew smaller. I did not touch the wicks. The seven wells were still open. I did not go nearer the rims. The old man of the Seventh Seat still sat inside the threshold. I did not call to him.
+
+I stood before the door. Grey fell on the back of my hand, on the door, and on the sea outside the door. The sea did not retreat, nor did it cross the threshold. It had not won.
+
+The lamps burned through a night in the grey. They lit the door, the salt, and the flagstones. They could not light their way back to those who had not answered, nor show the sky beyond the grey cover.
+
+I kept watch over the last lamp, watching its flame cling to the wet wick. The flame did not go out all at once. It grew smaller, and smaller again. When I could no longer see the rim of the lamp, I still knew it was there.
+
+The time of a night of lamps finally passed.
+
+The grey made no sound. The door made no sound. The sea made no sound. I reached out and touched the threshold, touching salt, and touching grey. The salt was still there. The grey was there too. The two things pressed together, impossible to tell which had come first.
+
+I did not open the door. I did not leave the door. I held the salted-shell pen in my hand, salt upon the pen. There were no words to write. I still held it, as though holding the last little light.
+
+Later, the grey cover fell over the flagstone street, over the seven wells, over the Seventh Seat, and over my eyes.
+
+I did not see the wind return.
+
+I saw only the lamps left by that night, going dark one after another.
+
+The grey was not a night's sky; the grey was a night's lamp.
+**Anchor sentence**: the grey was not a night’s sky; the grey was a night’s lamp.
+**锚句**：灰幕不是一夜天，灰是一夜灯。
+
+---
+
+## Anchor match (echo eighteen)
+
+| dimension | anchor | related chapter |
+|---|---|---|
+| lore | the wind stopped · the wells opened · the night before the grey cover | chapter twelve |
+| geography | the Tide Platform · seven wells · the flagstone street | this echo |
+| factions | the Tide Conclave · the Seventh Seat | chapter one · this echo |
+| characters | the Doorman · the old man of the Seventh Seat | this echo |
+| items | seven lamps · wells · salt · note | this echo |
+| story | The Doorman's Note · Echo (No. 18) | all of it |
+| history | the Iron-Moon Age · before the grey cover | this echo |
+
+> Wells can be counted; the roll cannot answer itself.
+> 井数得完，人报不了到。`,
+  },
 ] as const;

@@ -5482,3 +5482,29 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
   无未整合工作；stale 引用保留（零数据损失风险）；master ≡ main ≡ 1cccf9a4（本片之前）
 - **§十一 压力证据复核**：docs/evidence/stress-pulse-ai-2026-11-17.* · load-web-ssr-2026-11-17.* · load-redis-completion-cache-2026-11-17.* 均存在（2026-11-17）
 - 支线    全绿：fe-gates 130 套 · 1245/1245 · census 2663 · master ≡ main
+
+## cont. 201 (2026-11-17) - v831: 回响（其十八）《最后一夜》/ Echo No. 18 "The Last Night"——潮汐教团覆灭之夜（正典扩到 18 回响·181 锚句）
+
+- 正典回源点：门吏（把门人）的一页便签——整个世界大典**第一则**讲述潮汐教团覆灭之夜的回响：
+  那晚先风停了；街上的人不说话；第七席的老人坐在门槛内；**七口井都开着**；
+  灯芯比油还沾潮；海来到门口，水没有入室；镜鲛浮出海面一下又下去；
+  天快亮时没有人报到；**灰幕不是一夜天，灰是一夜灯**。
+- 双语回响：`docs/world-bible/echoes/E18-最后一夜.md` + `.en.md`（zh/en 逐段对齐）
+  - 五节：风停 / 点灯 / 夜里的水 / 天快亮 / 灰
+  - 5 对锚句（逐字·全项目唯一·共 **181**）：
+    1. 风停的时候，井都开着。/ when the wind stopped, the wells were all open.
+    2. 灯芯里的潮气比油多。/ the wick held more tide-damp than oil.
+    3. 海把井数的那一夜记住了。/ the sea remembered the night the count was made.
+    4. 晨起的时候，没有人报到。/ at dawn, no one answered the roll.
+    5. 灰幕不是一夜天，灰是一夜灯。/ the grey was not a night's sky; the grey was a night's lamp.
+  - 结尾题记：井数得完，人报不了到。/ Wells can be counted; the roll cannot answer itself.
+- 起草方式：gpt-6.1-terra（真 provider，Clash 7897）zh 稿 2942 completion tokens + en 稿 3385 tokens（finish=stop，prefix cache 命中 4224），人工定稿——
+  模型未写标记行，人工补 5 对锚句标记；EN 译本锚句 5 引号统一为弯引号（与正典一致）
+- 舰内 slug：`echo-018-the-last-night`（gen-bible-snapshot.mts ECHO_WEB_SLUGS 登记）
+- 级联更新：
+  - snapshot 重生成（13 章 · 18 回响）；anchor-echo 重生成（**181 锚句**）
+  - BibleQuiz 62 题（新增 回响（其十八）·一 / 回响（其十八）·四 两题，zh/en 双语；答案序列：60→62 题，新增 [1, 2]；quiz SHA pin bccd0038… 重钉）
+  - 简明说明书：「十七回响」→「十八回响」（zh/en 6 处）+「181 锚句」；guide SHA be4d8154… 重钉
+- live probe（dev server）：SSR `/bible/echo-018-the-last-night` 200（The Last Night · Anchor sentence ×5）；`/bible` 200（18 回响索引）
+- 门：fe-gates 130 套 · **1245/1245**；census 2663 OK；verify:world-bible **181/181** ✓；verify:bible-snapshot 一致 ✓；verify:anchor-echo 181 ✓
+- 运维记录：Docker 正常（pg/redis 6 分钟健康）；web dev 已停；181 锚句，锚句总量：166→171→176→181

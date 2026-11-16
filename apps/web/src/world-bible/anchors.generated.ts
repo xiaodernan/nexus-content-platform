@@ -1064,5 +1064,35 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "en": "before the grey cover, no one mentioned the seventh well again.",
     "refZh": "回响（其17） · 五",
     "refEn": "Echo No. 17 · V"
+  },
+  {
+    "zh": "风停的时候，井都开着。",
+    "en": "when the wind stopped, the wells were all open.",
+    "refZh": "回响（其18） · 一",
+    "refEn": "Echo No. 18 · I"
+  },
+  {
+    "zh": "灯芯里的潮气比油多。",
+    "en": "the wick held more tide-damp than oil.",
+    "refZh": "回响（其18） · 二",
+    "refEn": "Echo No. 18 · II"
+  },
+  {
+    "zh": "海把井数的那一夜记住了。",
+    "en": "the sea remembered the night the count was made.",
+    "refZh": "回响（其18） · 三",
+    "refEn": "Echo No. 18 · III"
+  },
+  {
+    "zh": "晨起的时候，没有人报到。",
+    "en": "at dawn, no one answered the roll.",
+    "refZh": "回响（其18） · 四",
+    "refEn": "Echo No. 18 · IV"
+  },
+  {
+    "zh": "灰幕不是一夜天，灰是一夜灯。",
+    "en": "the grey was not a night’s sky; the grey was a night’s lamp.",
+    "refZh": "回响（其18） · 五",
+    "refEn": "Echo No. 18 · V"
   }
 ] as const;
