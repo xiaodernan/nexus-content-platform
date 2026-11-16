@@ -4440,3 +4440,11 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 新回响 E25（中英双文件 + 映射表）；verify:world-bible ✓ 145/145；快照 5+25。
 - 世界 5+25；这是某夜所有灯熄的共同体记忆——米缸月月雪首次进入回响。
 - Docker Desktop 本轮第二次崩溃并手动拉起（nexus-postgres/redis 健康，sibling 的 D:\法环游戏 vitest 占用 ~900MB，不动）。
+
+## cont. 205 (2026-11-17) — v840 · 回响其二十六 + provider E2E 复验
+
+- 新回响 E26（zh/en + 映射表）：祠殿檐下的网——值守永不碰。verify:world-bible ✓ 150/150；快照 5+26。
+- §PROVED-2：/v1/ai/chat 两个真实 HTTP 200；第二次同 payload 因为 L2 命中 = 90 ms wall / 46 ms latencyMs / cachedTokens 4421/4421；
+  cache-stats: appCache hits=1 stores=1 shared=true；provider reportedHitRate=1.0。
+- 「stream vs 非流导致命中率不同」被实证否定：stream 状态与缓存命中无关；看板 transport.stream 永远诚实。
+- 兄弟项目（D:\法环游戏 vitest / 3a大作 tinypool / 站点功能）整轮未被碰；sibling :8000 未动；sidecar :8131 用完即停。

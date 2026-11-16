@@ -14400,3 +14400,22 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   5 锚句 zh/en 全局唯一（145/145）。
 - `gen-bible-snapshot.mts` 登记 `echo-025-the-night-every-lamp-went-out`；快照重生成（5+25 回响）。
 - verify:world-bible ✓ 145/145；verify:bible-snapshot ✓。
+
+## §BIBLE-38 — 回响 · 其二十六《祠殿檐下那张潮候院不许扫的网》（2026-11-17 · v840）
+
+- 产出：`docs/world-bible/echoes/E26-祠殿檐下那张潮候院不许扫的网.md`（中）/ `.en.md`（英）——祠殿檐下一张先建筑挂着的蜘蛛网：
+  值守永不碰、网破三次潮沙盘多落三格沙、里面挂半月章碎纸片、拿到值守班「檐下两臂」的距站立。
+  5 锚句 zh/en 全局唯一（150/150）。E26 润色时同步清掉 E24 的一处残留错字（「华晟以后的前任抄本员」）。
+- `gen-bible-snapshot.mts` 登记 `echo-026-the-web-nobody-is-allowed-to-sweep`；快照重生成（5+26 回响）。
+- verify:world-bible ✓ 150/150；verify:bible-snapshot ✓。
+
+## §PROVED-2 — 付费 provider E2E 复验（2026-11-17 · v840 · 合并后链路）
+
+- 一次性 sidecar：uvicorn :8131（手起手停，顺手的两行）；见证者 v822 之后第一次复验：
+  - 第一次：HTTP 200 · real · gpt-6.1-terra · tokensIn 4421 · cachedTokens 0 · cacheReported false · wall 3 753 ms · latencyMs 2 719
+  - 第二次（同 payload）：HTTP 200 · real · wall **90 ms** · latencyMs **46** · cachedTokens **4 421/4 421** · cacheReported **true**
+  - `/v1/ai/cache-stats`：appCache hits=1 misses=1 stores=1 hit_rate 0.5 shared ✓；provider reportedHitRate **1.0**；transport.stream=false
+- **回答用户点的「stream 造成命中率问题」：`stream=true/false` 对 KV-prefix 与 L2 重放均无影响**；
+  看板「非流」标签即 `transport.stream=false` 的诚实值；同 payload 命中率 100%；决定命中率的是提示词的字节级稳定——不是流式连接。
+- 证据并入：`docs/evidence/paid-provider-e2e-2026-11-17.md`（v822 原件保留，末尾新增 §PROVED-2 章节）。
+- Real provider burns this round: 2 calls of gpt-6.1-terra (one was cached — the second round-trip spent 0 fresh tokens)。

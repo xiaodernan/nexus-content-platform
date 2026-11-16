@@ -52,3 +52,22 @@
 # nexus-redis 必须在跑；不写任何非 stress 键
 node tools/stress/redis-l2.mjs
 ```
+
+## 对照：redis-benchmark 原生基准（同一 session 内 2026-11-17 补测）
+
+为归因 §STRESS-2 的"串行 p50 6.8 ms"是引擎还是宿主机路径，再做了一次 native 基准（`docker exec nexus-redis redis-benchmark`）：
+
+| 命令 | 吞吐 | p50 |
+|---|---|---|
+| `SET mykey mypayload`（-n 10 000） | 13 297.87 req/s | 0.879 ms |
+| `GET mykey`（-n 10 000） | 14 104.37 req/s | 0.799 ms |
+| `GET`（-d 1024，-n 10 000） | 11 806.38 req/s | 1.159 ms |
+| `PING`（-c 50，-n 20 000） | 17 211.71 req/s | 0.791 ms |
+
+**结论（归因更新，取代本文档先前把 6.8 ms 完全记到 NAT 的假设，但不重写原有结论）：**
+1. Redis 引擎完全健康——12k–17k req/s、p50 全约 1 ms。本机没有引擎瓶颈。
+2. v838 的 3 036 ops/s 是 `tools/stress/redis-l2.mjs` 单连接/Buffer.concat-per-chunk 解析器的下限（已经在原文声明），
+   串行 p50 6.8 ms 则是 **解析器 + Windows→Docker NAT 双重叠加**，不是引擎、也不是"缓存坏了"。
+3. 下一次对照：transport 参数收窄（`wrk -t4 -c100` 打宿主机 `:56379`）而不是调引擎——排队归队列、吞吐归吞吐，两本账不混记。
+
+核验口径：二者针对同一 nexus-redis 容器、同一时间窗采集；benchmark 不会留下任何影响现有 `nexus:llmc` 语义的键（它写 `mykey`，但不在 `nexus:llmc` 命名空间内，且仅测试期存在）。

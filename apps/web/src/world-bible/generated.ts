@@ -5805,7 +5805,7 @@ The Fog Harbor keepers met again the next day — nothing was decided, because t
 
 ## 三 · 半月章的那滴
 
-第四十一次大会散会散会之后，新来的值守主档案里抄错过一页——华晟以后的前任抄本员把「潮沙盘落了一格沙」抄成了「潮落了一格沙」。
+第四十一次大会散会之后，新来的值守补档的时候抄错过一页——前任抄本员把「潮沙盘落了一格沙」抄成了「潮落了一格沙」。
 
 改正的时候正好有人提议要给半月章再蘸一次新盐。
 
@@ -6143,6 +6143,214 @@ The copyist never fully wrote it out. The headkeeper received an unsigned letter
 
 > 灯熄的夜晚里巷子从未关门——值守说，那只是潮候了自己一次呼吸。
 > The night every lamp went out the back alley did not close its doors — the watchers say it was simply the tide holding its breath once.
+`,
+  },
+  {
+    order: 26,
+    slug: 'echo-026-the-web-nobody-is-allowed-to-sweep',
+    titleZh: '祠殿檐下那张潮候院不许扫的网',
+    titleEn: 'The Web Under the Chapel Eaves Nobody Is Allowed to Sweep',
+    eraLineZh: '纪元：潮候院 · 建院第五十四年 · 第四十一次大会散会之后——雨季的黄昏。',
+    eraLineEn: 'Era: the Institute — 54th year of its founding · after the 41st Convocation; a dusk in the wet season.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 26): The Web Under the Chapel Eaves Nobody Is Allowed to Sweep
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给祠殿檐角一张从没被收走过的蜘蛛网——值守所有扫帚经过的时候，那张网总是被刻意绕开。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the web at the corner of the chapel eaves — every broom of every watcher has stepped around it.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 建院第五十四年 · 第四十一次大会散会之后——雨季的黄昏。
+> Era: the Institute — 54th year of its founding · after the 41st Convocation; a dusk in the wet season.
+
+---
+
+## 一 · 那张网什么时候挂出来的
+
+祠殿檐下那张网挂的时间比潮候院还早——仓库最早的图纸只画了一条檐边：一条弯下来的弧线，没有任何绑定记号。
+
+铁月纪仓库留下的旧页只记下了几句短笔：「狮子不进」「鸟不啄」「灯不熄」——从那以后的值守收到的唯一一条条文是：「檐角那张网，别动。」
+
+网织线的纹理不完全像常见蛛丝——它结得比别的网密，放射状的主线上缀着细小的白色颗粒；湿季灯光打上去时那颗粒亮成了一点点的星点。
+
+**锚句**：祠殿檐下的网挂在建院之前就挂在那里——值守从来没见过它新织出来的那天。
+**Anchor sentence**: the web at the chapel corner has been there since before the Institute was founded — no watcher ever saw its first day of weaving.
+
+---
+
+## 二 · 值守的帚从没摆上线
+
+新来的值守有一次真的递过帚——值守长没有抢下来，只是站在旁边看。
+
+新来的人站了大约一炷香的时间，最后帚尖落在祠殿砖缝里，没有碰到网。前辈后来解释了一句：
+
+「你可以经过它；你没办法碰它。」
+
+从此值守班形成了新的惯例：无论祠殿大清日怎么扫，帚头经过「檐角」这个区域的时候永远贴着砖走。
+
+**锚句**：新来的值守递过一把帚——帚尖落在砖缝里，网没有被碰过。
+**Anchor sentence**: a new watcher once held out a broom — the bristles landed in the brick seams; the web was never touched.
+
+---
+
+## 三 · 三处破损与潮沙盘
+
+过去五十四年里，那张网出现过三处大的破损：
+
+建院第十年、第二十年、第五十年的米缸月中旬。每一次破损后的第三天，潮沙盘都多落了一格沙。没有人知道少一格沙和破损之间的关系，但手艺最老的抄本员私下传过：
+
+「少一根，沙多一格。」
+
+破损之后的九天内，值守不去动网——等承接的蛛丝慢慢补上去；补完的那天值守把新的一根蛛丝在纸条上画出来，不送上报、不登记册。
+
+**锚句**：网破三处、沙落一格——抄本员们只在纸条上画出新的蛛丝，从不登记它。
+**Anchor sentence**: the web broke three times, and each time a grain of sand fell too — the copyists only drew the replacement strands on paper; no register holds them.
+
+---
+
+## 四 · 网里那些落过的东西
+
+值守记录（口头而非抄本）：挂过一根白羽——像是某种从没飞进过里巷子的大鸟；一片半月章糊湿的纸——日期推不出来；一缕银黑色的毛——至今无人认出它是哪一种海生的生物。
+
+上一代的值守一度试探着想把一片半月章纸揭下来，他被值守长挡在了檐角之外——
+
+「你拿不下它。拿得下就不在那里了。」
+
+纸和网从此再没有人动过。
+
+**锚句**：网里挂过一片半月章的纸——那之后的值守谁也不敢再去揭它。
+**Anchor sentence**: a fragment of a half-moon seal stuck in the web — no one after those days dares take it down.
+
+---
+
+## 五 · 值守的班级
+
+值守班内部把「能经过檐角那张网」作为一种值守资格：被允许走近到檐下两臂以内的，算见过。
+
+值守长的默认规矩是：新来的值守进入祠殿两个月以后才带他站那一侧——不是因为怕他偷看什么，是因为前辈自己也没被允许靠近过。值守班学到的第一件事不是别的，是「知道有些东西在那里、知道没人允许我碰」。
+
+潮候院的哲学里，收件人第一章问过的一句话在这里再现了一次：潮候院不解释收件人。
+
+**锚句**：值守班的资格在于你可以走近到檐下两臂——潮候院从不说那张网属于谁。
+**Anchor sentence**: the watchers' standing is marked by how close you may walk beneath the eaves — the Institute never says whose web it is.
+
+---
+
+## 六 · 映射（回响二十六章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 祠殿檐下的网 · 半月章纸片 · 米缸月破损 | 一、二、三、四、六 |
+| geography | 祠殿檐角 · 潮沙盘 · 潮候院仓库 | 一、三、五、六 |
+| characters | 值守长 · 新来的值守 · 老抄本员 | 一、二、三、四、五 |
+| story | 那张潮候院不许扫的网 · 回响（其二十六） | 全篇 |
+| items | 檐下蜘蛛网 · 半月章纸片 · 白羽 · 银黑毛 | 一、四、五、六 |
+| history | 建院前的檐 · 第五十年、第十年破损 · 第四十一次大会后 | 一、三、四、六 |
+
+> 风夜里祠殿檐下的网自己会多出一根蛛丝——潮候院的收件人早在大风之前先听见了。
+> In windy nights a new thread appears in the web — the Institute hears its addressee before the storm arrives.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其二十六）「祠殿檐下那张潮候院不许扫的网」
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给祠殿檐角一张从没被收走过的蜘蛛网——值守所有扫帚经过的时候，那张网总是被刻意绕开。
+> 纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the web at the corner of the chapel eaves — every broom of every watcher has stepped around it.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 建院第五十四年 · 第四十一次大会散会之后——雨季的黄昏。
+> Era: the Institute — 54th year of its founding · after the 41st Convocation; a dusk in the wet season.
+
+---
+
+## 一 · When the Web Went Up
+
+The web beneath the chapel eaves predates the Institute — the earliest drawing in the warehouse plots a single arc along the eaves, with none of the usual bindings or tags.
+
+The old pages left by the Iron-Moon vault carry only a few short lines: "no lions in", "no birds pick", "no lights off" — the one ordinance passed down to every watcher since is: "the web at the eaves — leave it."
+
+The texture of the web does not quite resemble ordinary silk — it is woven denser than webs elsewhere, with fine white grains on its radial strands; in wet seasons the lamplight picks out the specks as small stars.
+
+**锚句**：祠殿檐下的网挂在建院之前就挂在那里——值守从来没见过它新织出来的那天。
+**Anchor sentence**: the web at the chapel corner has been there since before the Institute was founded — no watcher ever saw its first day of weaving.
+
+---
+
+## 二 · The Watchers' Brooms Never Touched It
+
+One of the new watchers once held a broom toward it — the headkeeper did not snatch it away. He only stood by and watched.
+
+The new watcher stood for roughly a stick of incense; the bristles finally landed inside the brick seam and never once reached the web. The seniors explained later:
+
+"You may pass by it; you cannot touch it."
+
+Since then the watchers have kept a new habit: on the great sweep days, the broom-head slides along the bricks as it passes the eaves.
+
+**锚句**：新来的值守递过一把帚——帚尖落在砖缝里，网没有被碰过。
+**Anchor sentence**: a new watcher once held out a broom — the bristles landed in the brick seams; the web was never touched.
+
+---
+
+## 三 · Three Tears and the Sand Table
+
+Over the fifty-four years the web has taken three major tears:
+
+the mile-kinds of years 10, 20, and 50 — in the middle of the rice-jar month. Each time a major tear appears, on the third day one grain of sand falls from the table. No one holds any register of connection, yet the headkeeper of the oldest craft tells a whispered phrase:
+
+"One thread short, one grain of sand more."
+
+For nine days after a tear, the watchers do not go near the web — they wait for the new silk to root. Whoever records that watcher closes the ledger on a single slip of hand-drawn silk and never registers it.
+
+**锚句**：网破三处、沙落一格——抄本员们只在纸条上画出新的蛛丝，从不登记它。
+**Anchor sentence**: the web broke three times, and each time a grain of sand fell too — the copyists only drew the replacement strands on paper; no register holds them.
+
+---
+
+## 四 · Things That Landed in the Web
+
+Recorded by ear (never written): a white feather — something unlike any seabird that enters the alley; a scrap of paper stamped in the half-moon seal, rolled with a date that refuses to come clear; a tuft of silver-black hair — no one identified which sea creature had left it.
+
+A previous watcher once dared to lift the half-moon paper, only to find himself held back outside the eaves by the headkeeper:
+
+"You cannot take it from there. If you can take it, it was never there to begin with."
+
+Nothing has been touched since; the paper and the web still hold each other.
+
+**锚句**：网里挂过一片半月章的纸——那之后的值守谁也不敢再去揭它。
+**Anchor sentence**: a fragment of a half-moon seal stuck in the web — no one after those days dares take it down.
+
+---
+
+## 五 · The Watchers' Standing
+
+The watchers privately call walking to the web "standing a night in the eaves" — accepted only when they may approach within two arm-lengths beneath the eaves.
+
+The default rule of the headkeeper: a new watcher stands on that side two months after entering the chapel — not because fear of what the new watcher might glimpse; because the seniors themselves were never allowed that close. The watchers' first craft is to know that something waits there; and to know that no one permits them to touch it.
+
+The Institute's philosophy holds the same caution the fifth chapter asked its addressee: the Institute does not interpret its Addressee.
+
+**锚句**：值守班的资格在于你可以走近到檐下两臂——潮候院从不说那张网属于谁。
+**Anchor sentence**: the watchers' standing is marked by how close you may walk beneath the eaves — the Institute never says whose web it is.
+
+---
+
+## 六 · Mapping（Echo No. 26 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | The web beneath the chapel · the half-moon paper · the rice-jar month tear | 一、二、三、四、六 |
+| geography | The eaves of the chapel · the sand table · the Institute vault | 一、三、五、六 |
+| characters | The headkeeper · the new watcher · the old copyist | 一、二、三、四、五 |
+| story | The Web Nobody Is Allowed to Sweep · Echo No. 26 | 全篇 |
+| items | The web · the half-moon paper · the white feather · the tuft of hair | 一、四、五、六 |
+| history | The eaves before the founding · the tears in years 10, 20, 50 · after the 41st Convocation | 一、三、四、六 |
+
+> 风夜里祠殿檐下的网自己会多出一根蛛丝——潮候院的收件人早在大风之前先听见了。
+> In windy nights a new thread appears in the web — the Institute hears its addressee before the storm arrives.
 `,
   },
 ] as const;
