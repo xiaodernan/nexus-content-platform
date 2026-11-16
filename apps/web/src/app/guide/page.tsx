@@ -51,6 +51,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           '有效果验证：同字节前目录的一轮二连发，prefix 缓存命中 21265/21268（≈99.99%）——实打实省下的 token，不是演示数字。/admin/savings（管理员 → Savings）能看到 tokensIn 与 cachedTokens 两列账。',
           '想更深？apps/ai-service/src/ai_service/stategraph.py 是这张图的文字实现——可读性即可教性；测试 tests/test_stategraph.py 8 臂逐一说明 validate / check_provider / dryRun / patch 非法 时直通 END 的原因。',
           '想亲手按一下试试？/stategraph —— 公开只读的 StateGraph 落点页：七个节点的旅程、失败直通 END 的条件边、以及一个真图试跑按钮（固定 critique + dryRun + fast，真 provider、真 x-nexus-orchestration 头、真计量；失败如实展示 409/429/502/503）。',
+          '生产流量也可以走这条车道了：POST /api/ai/run 带请求头 x-nexus-orchestration: stategraph（或服务端 env NEXUS_AI_ORCHESTRATION=stategraph）即整段改走 /v1/ai/design-graph；响应头如实回声车道，/admin 指标 nexus_ai_run_lane_total 计数每次分流；缺省 lane-a——一个拼写错误不会换车道。',
         ],
       },
       {
@@ -178,6 +179,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           'Measured effect: on identical byte-prefixes, back-to-back turns hit 21265/21268 cached tokens (≈99.99%) — real savings, not demo numbers. /admin/savings pairs tokensIn against cachedTokens side by side.',
           'Curious? apps/ai-service/src/ai_service/stategraph.py is the graph written out — readable source is the documentation; tests/test_stategraph.py walks the eight arms: why validate / check_provider / dryRun / invalid patches short-circuit straight to END.',
           'Want to press the button yourself? /stategraph — the public read-only StateGraph page: the seven-node journey, the fail-to-END conditional edges, and a live-probe button (fixed critique + dryRun + fast payload, real provider, real x-nexus-orchestration header, real metering; failures shown honestly as 409/429/502/503).',
+          'Production traffic can ride this lane too: POST /api/ai/run with the header x-nexus-orchestration: stategraph (or env NEXUS_AI_ORCHESTRATION=stategraph on the server) routes the whole call through /v1/ai/design-graph. The response header echoes the lane it took and the metric nexus_ai_run_lane_total counts every split; the default is lane-a — a typo never switches lanes.',
         ],
       },
       {

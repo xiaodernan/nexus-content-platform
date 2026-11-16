@@ -4975,3 +4975,21 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
   `POST /api/stategraph` 200（真 provider gpt-6.1-terra，x-nexus-orchestration: stategraph，真模型 explanation，
   tokensIn 6733 / latencyMs 6156，dryRun 不落盘）；此前 Docker 宕机窗口实测 409 demo_mode（如实失败）。
 - BibleQuiz/章节不动；showcase 将在提交后同步。
+
+## cont. 170 (2026-11-17) - v800: 编排车道接进生产入口 —— /api/ai/run 的 x-nexus-orchestration 分流
+
+- `/api/ai/run` 现在有两条车道，切换不改契约：
+  - lane-a（缺省）→ /v1/ai/run（顺序执行，零变化）
+  - stategraph → /v1/ai/design-graph（LangGraph StateGraph，七节点，条件边直通 END）
+- 解析器 `server/ai/orchestrationLane.ts`：请求头 `x-nexus-orchestration` > env `NEXUS_AI_ORCHESTRATION` > lane-a；
+  非法值按「该层无判定」回落——拼写错误绝不换车道（4 个单测钉死）。
+- 响应头 `x-nexus-orchestration` 如实回声车道（含 demo 路径）；新指标
+  `nexus_ai_run_lane_total{lane,capability}`（METRICS 登记，/admin 可直接出图）。
+- 切换是服务端 canary（env），不是客户端开关；lane-a 保留为零风险回退位；ADR 0272。
+- guide StateGraph 小节 zh/en 各加一行（生产流量也可以换道了）；guide SHA pin 3ef44b81… 重钉。
+- 新测试：`orchestration-lane.test.ts`（4 例纯函数矩阵）+ `ai-run-orchestration-lane.integration.test.ts`
+  （3 例，真 PG）：stategraph header 回声 stategraph / 缺省 lane-a / 乱传回落 lane-a —— 全绿。
+- live probe（:3100）：/stategraph 200（zh+en 全量文案齐），POST /api/stategraph 200（真 provider，
+  orchestration 头 stategraph，dryRun 不落盘）；ai-service healthz capability=real（llmLive unknown→后台补）。
+- 门：fe-gates 123 · 1200/1200；census 2540 OK；tsc 0（recentChanges 必需字段修正）；
+  ai-service 16/16（healthz 降级窗口新测试 pin）。

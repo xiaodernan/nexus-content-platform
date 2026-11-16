@@ -133,6 +133,11 @@ export const METRICS = {
     labels: { capability: ['real', 'demo', 'unavailable'], outcome: ['ok', 'failed'] },
     buckets: DURATION_BUCKETS,
   },
+  nexus_ai_run_lane_total: {
+    kind: 'counter',
+    help: '同步生成走哪条编排车道：lane-a = /v1/ai/run（顺序执行），stategraph = /v1/ai/design-graph（LangGraph 状态图）',
+    labels: { lane: ['lane-a', 'stategraph'], capability: ['real', 'demo', 'unavailable'] },
+  },
   nexus_http_errors_total: {
     kind: 'counter',
     help: 'Next 服务器捕获到的未处理请求错误数（instrumentation.onRequestError）',

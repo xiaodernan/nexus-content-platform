@@ -4,7 +4,8 @@ import { getAiCapabilities } from '@/lib/env';
 import { assembleAiRequest } from '@/server/ai/assemble';
 import { gateResponse, heldRecord, nodeNamer, WEB_APPROVAL_POLICY, DESIGN_PATCH } from '@/server/ai/approvals';
 import { mockProvider } from '@/server/ai/mock';
-import { runAiService } from '@/server/ai/client';
+import { runAiService, runDesignGraph } from '@/server/ai/client';
+import { resolveOrchestrationLane, type OrchestrationLane } from '@/server/ai/orchestrationLane';
 import { requireUser } from '@/server/domain/session';
 import { agentLedgerFields, mentionNote } from '@/server/domain/agents';
 import { finishTask, holdForApproval, recordCapabilityRefusal, recordTaskUsage, startTask, type TaskCapability } from '@/server/domain/agent-tasks';
@@ -22,8 +23,9 @@ import { badRequest, failure, jsonError } from '@/server/http';
 const MAX_BODY_BYTES = 6 * 1024 * 1024;
 
 /** 任务号与这一轮的 Agent 从响应头走：AiResponse 是 web ↔ ai-service 的契约报文，不该被 web 侧的账本字段污染 */
-function taskHeader(id: string, agentKey?: string | null, note?: string | null): Record<string, string> {
+function taskHeader(id: string, agentKey?: string | null, note?: string | null, lane?: OrchestrationLane): Record<string, string> {
   const headers: Record<string, string> = { 'x-nexus-task': id };
+  if (lane) headers['x-nexus-orchestration'] = lane;
   if (agentKey) headers['x-nexus-agent'] = agentKey;
   // 提及没解析成 Agent 时的那一句（点名点错了 / 名册没播种）。HTTP 头只能是 ASCII，所以编码一次
   if (note) headers['x-nexus-agent-note'] = encodeURIComponent(note);
@@ -40,6 +42,9 @@ function summaryOf(response: { patches?: unknown; plans?: unknown }): string | n
 
 export async function POST(req: Request): Promise<NextResponse> {
   if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  // cont. 170 · 编排车道：请求头 x-nexus-orchestration: stategraph 走 LangGraph 状态图；
+  // 否则按 env NEXUS_AI_ORCHESTRATION（缺省 lane-a）。两车道响应逐字节同构（AiResponse 契约），本车道只影响执行结构。
+  const lane = resolveOrchestrationLane(req.headers.get('x-nexus-orchestration'), process.env.NEXUS_AI_ORCHESTRATION);
   // §137 的 guest 自动签发：无会话客户端的 user.id 每请求都是新的，按身份限流对它空转。
   // 所以这道按 IP 的闸必须放在 requireUser() 之前——被挡住的请求一个 guest 都不该建。
   const gate = await ipWriteGate('ai/run', req);
@@ -118,6 +123,8 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (!assembled.ok) return await jsonError(assembled.status, assembled.code, { message: assembled.message });
 
     const caps = await getAiCapabilities();
+    // cont. 170：车道分布计数——这个指标回答"生产里到底有多少流量走了状态图"（绝不靠猜）
+    increment('nexus_ai_run_lane_total', { lane, capability: caps.text });
     capability = caps.text === 'real' ? 'real' : 'demo';
     // §112：这一轮交给谁，由服务端按名册解析（客户端只能提名）。没人被点名时 agentKey 留 null，
     // 账本那一行就退回意图类别——它比"design-agent"这种万能名字更能说明跑的是哪条路。
@@ -165,7 +172,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       if (gate.approvals.length > 0) {
         // 挂起：终态不写、§164 通知不发——"Generation complete"替一次还没人决定的事签字就是假事件
         await holdForApproval(id, heldRecord(gate, WEB_APPROVAL_POLICY));
-        return NextResponse.json(gate.delivered, { headers: taskHeader(id, agentKey, agentNote) });
+        return NextResponse.json(gate.delivered, { headers: taskHeader(id, agentKey, agentNote, lane) });
       }
       if (gate.refused && resolved.agent) {
         // §73 的后半句："越权调用直接失败**并记录审计事件**"。不写这一行的话，
@@ -184,16 +191,17 @@ export async function POST(req: Request): Promise<NextResponse> {
       // 未挂起时 `delivered` 就是 `response` 本身；被拒收时它是"补丁已抽走 + permission-denied"那一份，
       // 而终态要记的正是交回客户端的那一份说了什么——记成原始 response 就成了账本与界面两套话
       await settleFromResponse(gate.delivered);
-      return NextResponse.json(gate.delivered, { headers: taskHeader(id, agentKey, agentNote) });
+      return NextResponse.json(gate.delivered, { headers: taskHeader(id, agentKey, agentNote, lane) });
     };
 
     if (caps.text === 'real') {
       // ai-service /healthz 报告其 llm provider 就绪：交给它调真模型；拿不到服务就明确报不可用，绝不拿 Mock 冒充（§159）
       // 注意发出去的是 assembled.wire：带目录、不带整份文档（§68）
-      const result = await runAiService(assembled.wire);
+      // cont. 170：lane-a 走 /v1/ai/run；stategraph 走 /v1/ai/design-graph——两车道同构契约，按 lane 分流
+      const result = lane === 'stategraph' ? await runDesignGraph(assembled.wire) : await runAiService(assembled.wire);
       if (!result.ok) {
         await settle(false, result.error.message);
-        return NextResponse.json(result.error, { status: result.status ?? 503, headers: taskHeader(taskId, agentKey, agentNote) });
+        return NextResponse.json(result.error, { status: result.status ?? 503, headers: taskHeader(taskId, agentKey, agentNote, lane) });
       }
       return deliver(result.response, taskId);
     }
