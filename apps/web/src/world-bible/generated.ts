@@ -5761,4 +5761,192 @@ The Fog Harbor keepers met again the next day — nothing was decided, because t
 > Every dusk, Fog Harbor sees only two lights — whoever looks for the third leaves the world.
 `,
   },
+  {
+    order: 24,
+    slug: 'echo-024-the-salt-that-never-dissolved',
+    titleZh: '里巷子石槽里那粒没化的盐',
+    titleEn: 'The Salt in the Trough That Never Dissolved',
+    eraLineZh: '纪元：潮候院 · 建院第四十九年 · 第四十一次大会散会之后——潮落的时候。',
+    eraLineEn: 'Era: the Institute — 49th year of its founding · after the 41st Convocation; when the tide goes out.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 24)
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给里巷子石槽里那粒没化的盐——它漂在石槽里很多年了；抄本员把这粒盐称作「潮的签名」。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> 纪元：潮候院 · 建院第四十九年 · 第四十一次大会散会之后——潮落的时候。
+> Era: the Institute — 49th year of its founding · after the 41st Convocation; when the tide goes out.
+
+---
+
+## 一 · 那粒盐什么时候落进石槽
+
+里巷子的石槽曾经是铁月纪的人用来腌藏的潮盐盘。五百年前潮候院东侧最深处还有一片水田，候咸的人在石槽里晒残留的海水。
+
+潮沙盘第一次点灯的那天晚上，候（第四十一次大会之后的第一代抄本员）用石槽里捞起来的盐蘸了蘸他手里的半月章——签名。石槽里的水在那时退干净了，只剩下这粒不溶的盐。
+
+**锚句**：石槽里那粒盐没人知道它什么时候落进去的——它漂在潮候院最里侧的水槽里。
+**Anchor sentence**: no one knows when the grain of salt first landed in the trough — it drifts in the deepest water of the Institute.
+
+---
+
+## 二 · 水退了，盐没退
+
+后来人填了水田，石槽被改作晒米的浅池。潮候院的每一代值守上任，要经过石槽的时候，抄本员会多看一眼——
+
+「太阳照到石槽的时候，它往哪边动一下？」问过的值守都知道：它几乎不动。
+
+老抄本员说，如果哪天它漂起来、水到了顶、又漂回去了，你就知道潮候院有事了。
+
+**锚句**：水退了五百年，石槽里那粒盐至今还没人捞，也没哪一代潮候院把它收去藏起来。
+**Anchor sentence**: for five hundred years the water receded and the salt drifted on — no generation of the Institute has scooped it or stored it.
+
+---
+
+## 三 · 半月章的那滴
+
+第四十一次大会散会散会之后，新来的值守主档案里抄错过一页——华晟以后的前任抄本员把「潮沙盘落了一格沙」抄成了「潮落了一格沙」。
+
+改正的时候正好有人提议要给半月章再蘸一次新盐。
+
+抄本员没有去井里打新水，也没有开盐库——他只是蹲在石槽前，隔着日光取下那粒盐，蘸了蘸章，再把盐放回槽里。石槽里的盐沾上半月章走了一个来回，什么也没带走。
+
+**锚句**：潮候院的半月章是石槽里的这粒盐蘸过的——没人知道还有没有别的东西被蘸过。
+**Anchor sentence**: the Institute's half-moon seal is the one this salt in the trough has dampened — no one knows what else it has touched.
+
+---
+
+## 四 · 没有人想捞它
+
+新来的值守有一次忍不住问：一粒盐而已，留着做什么？
+
+里巷子里最年近的值守回答的只有一句：「一粒盐不是一粒盐，是历史不动的位置。」
+
+值守长收到档案里关于这粒盐的那份报告——石槽里没有姓名，只有一块水干了的石板和一粒两毫米的盐，报告作者在备注里写了两行：「潮沙盘落白沙」、「收件人」。此后没有人再问。
+
+**锚句**：新来的值守一度想把这粒盐捞起来问问它的来历——老抄本员说别动潮的东西。
+**Anchor sentence**: a new watcher once asked what would happen if someone lifted the salt to ask its origin — the old copyist said: leave what the tide approves of alone.
+
+---
+
+## 五 · 潮候院的尘
+
+尘落到石槽上的时候，盐吸住一层尘；尘被风吹掉，盐还在。
+
+钟楼不响的年份里面，石槽的盐上有一圈很浅的印——也许是半月章早上下落时留的印；也许不是；石槽里那只扁鸟（潮候院的某种沉默生物）可能是从槽边飞过的那年。
+
+值守知道的唯一一条关于这粒盐的规矩是：可以拿手摸它，不可以拿走它。摸过的人第二天会觉得空落落的——「像那句话还没说完就先断了」。
+
+**锚句**：潮候院的尘都没能把这粒盐带走——它只是漂在那里，拒绝化，拒绝被带走。
+**Anchor sentence**: even the dust of the Institute could not carry the grain away — it only drifts there, unwilling to dissolve and unwilling to be taken.
+
+---
+
+## 六 · 映射（回响二十四章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 石槽 · 半月章蘸盐 · 收件人 | 一、二、三、四、六 |
+| geography | 里巷子 · 东侧最深处 · 潮沙盘 | 一、二、三、四、六 |
+| characters | 里巷子抄本员 · 潮候院值守长 · 新来的值守 | 一、二、三、四、五 |
+| story | 石槽里那粒没化的盐 · 回响（其二十四） | 全篇 |
+| items | 石槽 · 半月章 · 扁鸟 · 盐库 | 一、二、三、四、五、六 |
+| history | 铁月纪至潮候院 · 第四十一次大会之后 | 一、三、四、六 |
+
+> 里巷子的石槽里那粒盐至今没人能捞——据说收件人的笔迹还没干。
+> The grain of salt holds itself in the trough — some say the addressee's hand has not yet dried.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其二十四）「里巷子石槽里那粒没化的盐」
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给里巷子石槽里那粒没化的盐——它漂在石槽里很多年了；抄本员把这粒盐称作「潮的签名」。
+> 纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the undissolved grain of salt in the trough of the back alley — it has drifted in the trough for years; the copyists call it "the tide's signature".
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 建院第四十九年 · 第四十一次大会散会之后——潮落的时候。
+> Era: the Institute — 49th year of its founding · after the 41st Convocation; when the tide goes out.
+
+---
+
+## 一 · When the Grain Fell into the Trough
+
+The trough in the back alley was originally an Iron-Moon pickle of tide-salt. Five hundred years ago, the deepest part to the east of the Institute was still flooded ground, and the salt harvesters dried residual sea salt in this trough.
+
+The night of the first sand table lighting, the first copyist — the successor of the forty-first Convocation — dipped the half-moon seal into a brine drawn from the trough and pressed it. The water in the trough evaporated clean that same night; only the single undissolved grain remained.
+
+**锚句**：石槽里那粒盐没人知道它什么时候落进去的——它漂在潮候院最里侧的水槽里。
+**Anchor sentence**: no one knows when the grain of salt first landed in the trough — it drifts in the deepest water of the Institute.
+
+---
+
+## 二 · The Water Left, the Salt Did Not
+
+Years later the flooded ground was reclaimed and the trough was reworked as a shallow winnowing pan. Every watcher climbing to their appointment passes the trough, the copyists always glance first:
+
+"When the sun reaches the trough — does it move?" Those who asked already knew: hardly at all.
+
+The oldest copyists say: if some day it drifts up, the water reaches the rim, and then back down again, you will know the Institute is in trouble.
+
+**锚句**：水退了五百年，石槽里那粒盐至今还没人捞，也没哪一代潮候院把它收去藏起来。
+**Anchor sentence**: for five hundred years the water receded and the salt drifted on — no generation of the Institute has scooped it or stored it.
+
+---
+
+## 三 · The Drop That Touched the Seal
+
+After the forty-first Convocation dispersed, a newly appointed watcher once mis-copied a line — a predecessor copyist wrote down "the tide let a grain of sand down" as "the grain of sand stopped at high tide".
+
+At the moment of correction, someone suggested dipping the half-moon seal in fresh salt.
+
+The copyist did not fetch water from the well, nor open the salt store — he knelt at the trough, reached for the grain of salt over a fine band of afternoon sun, dipped the seal, and set the salt back. The grain traveled once and brought nothing back.
+
+**锚句**：潮候院的半月章是石槽里的这粒盐蘸过的——没人知道还有没有别的东西被蘸过。
+**Anchor sentence**: the Institute's half-moon seal is the one this salt in the trough has dampened — no one knows what else it has touched.
+
+---
+
+## 四 · No One Wants to Fish It Out
+
+A newly appointed watcher once asked outright: it is a single grain of salt — what is it kept for?
+
+The oldest watcher in the back alley answered with one sentence: "A grain of salt is not a grain of salt; it is the fixed position of history."
+
+Headkeeper, in an archival note on the grain of salt — the trough holds no name; only a flat slab of dried stone and a two-millimetre grain lay on it. The note's author wrote two lines as remarks: "tide sand table let fall white sand", "addressee". After that, no one asked again.
+
+**锚句**：新来的值守一度想把这粒盐捞起来问问它的来历——老抄本员说别动潮的东西。
+**Anchor sentence**: a new watcher once asked what would happen if someone lifted the salt to ask its origin — the old copyist said: leave what the tide approves of alone.
+
+---
+
+## 五 · The Dust of the Institute
+
+Dust settles on the trough, and the salt holds a layer of it; the wind sweeps the dust off, and the grain remains.
+
+In the years the tower never rang, a shallow embossed circle appeared on the grain of salt — perhaps the stamp of an early dawn half-moon breath, perhaps not; perhaps the flat bird (one of the Institute's quiet creatures) flew across the trough that year.
+
+What the watchers know about the grain is the only rule: you may touch it with your hand; you may not take it. Whoever touched it would wake the next morning feeling weightless — "as if the sentence had broken before it finished".
+
+**锚句**：潮候院的尘都没能把这粒盐带走——它只是漂在那里，拒绝化，拒绝被带走。
+**Anchor sentence**: even the dust of the Institute could not carry the grain away — it only drifts there, unwilling to dissolve and unwilling to be taken.
+
+---
+
+## 六 · Mapping（Echo No. 24 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | The trough · the half-moon seal dipped · the addressee | 一、二、三、四、六 |
+| geography | The back alley · deepest east · the tide-sand table | 一、二、三、四、六 |
+| characters | The copyists · the keeper · the new watcher | 一、二、三、四、五 |
+| story | The Grain of Salt in the Trough · Echo No. 24 | 全篇 |
+| items | The trough · the half-moon seal · the flat bird · the salt store | 一、二、三、四、五、六 |
+| history | From Iron-Moon to the Institute · after the 41st Convocation | 一、三、四、六 |
+
+> 里巷子的石槽里那粒盐至今没人能捞——据说收件人的笔迹还没干。
+> The grain of salt holds itself in the trough — some say the addressee's hand has not yet dried.
+`,
+  },
 ] as const;

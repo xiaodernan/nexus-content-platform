@@ -14371,3 +14371,24 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   - c=64/j16：31 875 tx，0 失败，avg 20.773 ms，TPS 3 081。
 - 证据：`docs/evidence/db-stress-2026-11-17.md`；pg_stat_user_tables 显示两表 n_live_tup=0，压测只证连接/引擎在高并发下未崩，HTTP/RSC 层、Redis、写路径仍未覆盖。
 - 待办（限 RAM ≥ 6 GB）：HTTP 层真实 burst（wrk/autocannon），目前 dev server 会 OOM。
+
+## §STRESS-2 — Redis L2 补全缓存只读回放压测（2026-11-17 · v838 · 工具门）
+
+- 背景：指令第十一节要求「模拟海量用户、高并发、大数据量」。本轮在**零 provider token**、**零网络出口**下，直接压 `nexus:llmc:stress:*` 这一条读路径（与 CachedLlm 同一套 SET/GET 形态）：
+  - 写入 2 000 × 1 KB 样本（TTL 30s）：803 ms，2 491 ops/s
+  - 串行 GET ×500（单 RTT 语义）：p50 6.764 ms · p95 19.6 ms · p99 38.1 ms
+  - pipelined GET ×20 000（100/批）：6 588 ms → 3 036 ops/s
+  - 清理：SCAN + UNLINK，`keysDeleted=2000`、`keysLeft=0` ✓
+- 工具：`tools/stress/redis-l2.mjs`（纯 Node RESP，零依赖；keys 全部在 `nexus:llmc:stress:*` 下自画自收，不碰 sibling 数据）
+- **边界声明**：本机的 RESP 客户端 Buffer.concat 解析、Docker 虚拟网段时延 → 数字是 RNG 下限、不是 Redis 发行版上限；
+  证明的是「20 000 次回放 0 错误 + 回收彻底」，不是"Redis 能撑到 X 万 QPS"。Benchmark 本身不支持任何外部 SLA 声明。
+- Salient finding：serial GET p50 6.8 ms 远高于本机回环预期（Docker Desktop NAT 时延）——
+  意味着 **L2 回放的主要成本不在 Redis，而在 Windows→Docker 虚拟网段**；cache TTL 压缩或宿主机直连 redis-benchmark 才是下一步对照。
+
+## §BIBLE-36 — 回响 · 其二十四《里巷子石槽里那粒没化的盐》（2026-11-17 · v838）
+
+- 产出：`docs/world-bible/echoes/E24-里巷子石槽里那粒没化的盐.md`（中）/ `.en.md`（英）——里巷子石槽里的一粒不溶的盐：
+  五百年来从不溶解；半月章的首印是蘸过它拓的；新来的值守不许动它（「别动潮的东西」）；抄本员从不登记它。
+  5 锚句 zh/en 全局唯一（140/140）。
+- `gen-bible-snapshot.mts` 登记 `echo-024-the-salt-that-never-dissolved`；快照重生成（5+24）。
+- verify:world-bible ✓ 140/140；verify:bible-snapshot ✓。

@@ -4427,3 +4427,10 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 
 - 新回响 E23（中英双文件，135/135 锚句）；快照 5+23。
 - §STRESS-1：pgbench 只读压测 published_projects 读路径：0 失败（c=32/64）。证据在 docs/evidence/db-stress-2026-11-17.md；限定不含 HTTP/RSC 层。
+
+## cont. 203 (2026-11-17) — v838 · §STRESS-2 Redis L2 回放压测 + 回响其二十四
+
+- E24《里巷子石槽里那粒没化的盐》（中英双文件，140/140 锚句）；快照 5+24。
+- §STRESS-2 证据 `docs/evidence/redis-l2-stress-2026-11-17.md`：纯 Node RESP 直打 `nexus:llmc:stress:*`：
+  串行 p50 6.764 ms / p99 38.07 ms；pipeline 20 000 次 0 错误；SET 2 491 ops/s；回收 keysLeft=0。
+  关键发现：串行 p50 远高于回环预期——尾巴在 Windows→Docker NAT，不在 Redis 引擎。
