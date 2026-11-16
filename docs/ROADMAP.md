@@ -14392,3 +14392,11 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   5 锚句 zh/en 全局唯一（140/140）。
 - `gen-bible-snapshot.mts` 登记 `echo-024-the-salt-that-never-dissolved`；快照重生成（5+24）。
 - verify:world-bible ✓ 140/140；verify:bible-snapshot ✓。
+
+## §BIBLE-37 — 回响 · 其二十五《里巷子所有灯熄的那一夜》（2026-11-17 · v839）
+
+- 产出：`docs/world-bible/echoes/E25-里巷子所有灯熄的那一夜.md`（中）/ `.en.md`（英）——潮候院七十二年的灯熄夜：
+  所有灯同时熄灭、潮候院不设备用、潮沙盘自己空出一格白、米缸月的白晶体被称作「潮候院的月雪」、密室番号只是「空一格」。
+  5 锚句 zh/en 全局唯一（145/145）。
+- `gen-bible-snapshot.mts` 登记 `echo-025-the-night-every-lamp-went-out`；快照重生成（5+25 回响）。
+- verify:world-bible ✓ 145/145；verify:bible-snapshot ✓。

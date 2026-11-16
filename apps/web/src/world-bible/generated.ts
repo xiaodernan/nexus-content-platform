@@ -5949,4 +5949,200 @@ What the watchers know about the grain is the only rule: you may touch it with y
 > The grain of salt holds itself in the trough — some say the addressee's hand has not yet dried.
 `,
   },
+  {
+    order: 25,
+    slug: 'echo-025-the-night-every-lamp-went-out',
+    titleZh: '里巷子所有灯熄的那一夜',
+    titleEn: 'The Night Every Lamp in the Back Alley Went Out',
+    eraLineZh: '纪元：潮候院 · 建院第六十八年 · 第四十一次大会散会之后——镜里月的那一晚。',
+    eraLineEn: 'Era: the Institute — 68th year of its founding · after the 41st Convocation; the night the mirror-moon rose.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 25): The Night Every Lamp in the Back Alley Went Out
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给里巷子所有的灯熄的那一夜——那时潮候院停考了整整半天，所有灯一起熄了。值守们至今不说那个夜晚的长度。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the night every lamp in the back alley went out — the Institute stayed closed for half an afternoon; the watchers still do not name its length.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 建院第六十八年 · 第四十一次大会散会之后——镜里月的那一晚。
+> Era: the Institute — 68th year of its founding · after the 41st Convocation; the night the mirror-moon rose.
+
+---
+
+## 一 · 所有灯同时熄了
+
+六十八年前，正午刚过，里巷子的所有灯一起熄灭。
+
+晾鱼架那盏不熄的灯（一号钩附近那盏）风力下也会晃——那盏忽然熄了；潮候院值守带的灯补了第二盏，然后第三盏，灯影只闪了几下也熄了；米缸月的收成摊上那盏平时散着亮光的小灯也消失了。
+
+没有人点火，也没有风停——尘起时落下了。值守把沙漏推了推——落沙停了。
+
+**锚句**：所有的灯都熄了的那一夜，值守忘了带第二颗火——潮候院没有备用的。
+**Anchor sentence**: the night every lamp went out, the watchers forgot the second flint — the Institute keeps no spare.
+
+---
+
+## 二 · 潮候院没有紧急备用灯
+
+值守班没有备用灯的方案——潮候院的生活里不承认事故，只承认潮汐。
+
+值守长在米缸月的便签上只写了一句：「等潮再涨，看它落哪格。」剩下的值守和潮沙盘的空白被放在了潮候院的编号页面上——每一代抄本员都不敢拿空白页当试用纸。
+
+补完的时刻约晚间八点（值守私下说是「晚饭之后」）。重新亮起的同时祠殿堂方向才亮起一点光——春天的月亮还没升过来。
+
+**锚句**：潮候院没有任何灯备用方案——它相信潮自己会说完。
+**Anchor sentence**: the Institute keeps no backup for any lamp — it trusts the tide to finish its own sentence.
+
+---
+
+## 三 · 潮沙盘没说
+
+抄本员记下了当天唯一看到的现象：整整个潮沙盘中心空了一格。
+
+那一格是白的——白得像海浪在沙上退掉留下的盐渍。他抄完以后再没见过这样的白。后来的抄本员试图把那段记录归入"米缸月洁净纪录"，却找不到那一页——第四十一次大会散会后的值班册上只写了一句：「空一格记白。」
+
+值守后来不再问抄本员这个空白格的来历——米缸月的某一页被单独用双绳系住。
+
+**锚句**：潮沙盘中间空过一格的位置，原来是潮自己留的空白。
+**Anchor sentence**: the empty square in the sand table was left blank by the tide itself.
+
+---
+
+## 四 · 米缸月的答案
+
+那一晚从祠殿堂升起的第一缕白光是一种晶体——不是沙，也不是雪。
+
+抄本员取走了一点，装进米缸月大厅的值守办公室密室——白的晶体冷得像从天上掉下来的一点礼物，值守确认过它不是米——不用记入米缸月收成册，米缸月大厅的值守长自己记录：「字条——潮候院叫它——潮候院的月雪。」
+
+从此以后，里巷子的值守每逢米缸月月初都会多看一眼祠殿堂的密室门——值守们不讨论里面；抄本员只是偶尔在远处站一会儿。
+
+**锚句**：米缸月那晚出现的白，被叫作潮候院的月雪，封存在祠殿堂密室里。
+**Anchor sentence**: the white that came that rice-jar night is called the Institute's moon-snow, sealed in the inner rooms of the chapel.
+
+---
+
+## 五 · 密室的番号
+
+祠殿堂的米缸月密室在里巷子里有一个从没有公开过的编号：七十二。
+
+里巷子的值守只在每年米缸月月初来检查——关上门、点上里边的最后一盏——不加入其他值守的登记簿，也不计入值守交接册。值守长编号七十二拥有另一个秘密名：潮候院竹牍里它叫「空一格」。
+
+抄本员自己从来没有完整地写过它。值守长在四十一年前收到一封没有署名的信——落款只有一个半月印章。信上只有一句话：「在灯熄的那一夜别叫醒任何人——潮候院要知道它自己再立一次。」——此后灯自己没再熄。
+
+**锚句**：米缸月密室的番号只是「空一格」——潮候院的值守一概不出声问你里面是什么。
+**Anchor sentence**: the inner room's number is only "one empty square" — no watcher ever names aloud what is inside.
+
+---
+
+## 六 · 映射（回响二十五章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 灯熄夜 · 米缸月月雪 · 第四十一次大会之后 | 一、二、三、四、五、六 |
+| geography | 里巷子 · 米缸月大厅密室 · 潮沙盘 | 一、二、三、五、六 |
+| characters | 值守长 · 前一任抄本员 · 祠殿堂值守 | 一、二、三、四、五 |
+| story | 里巷子所有灯熄的那一夜 · 回响（其二十五） | 全篇 |
+| items | 半月章遗墨 · 米缸月月雪 · 潮沙盘 · 密室编号页 | 一、二、三、四、五、六 |
+| history | 第四十一次大会前夜 · 潮候院的沉默记录 | 一、二、三、五、六 |
+
+> 灯熄的夜晚里巷子从未关门——值守说，那只是潮候了自己一次呼吸。
+> The night every lamp went out the back alley did not close its doors — the watchers say it was simply the tide holding its breath once.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其二十五）「里巷子所有灯熄的那一夜」
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给里巷子所有的灯熄的那一夜——那时潮候院停考了整整半天，所有灯一起熄了。值守们至今不说那个夜晚的长度。
+> 纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the night every lamp in the back alley went out — the Institute stood still for half an afternoon; the watchers still do not name its length.
+> Same discipline: anchors verbatim.
+
+> Era: the Institute — 68th year of its founding · after the 41st Convocation; the night the mirror-moon rose.
+> 纪元：潮候院 · 建院第六十八年 · 第四十一次大会散会之后——镜里月的那一晚。
+
+---
+
+## 一 · Every Lamp Went Out Together
+
+Sixty-eight years ago, just past noon, every lamp in the back alley went out together.
+
+The one lamp that never went out at the drying rack — the one by the No. 1 hook — swayed in the wind for years, and then it went out at once; the watchers brought a second lamp, then a third, the lamp-shadow flickered twice and they were out as well; the small light that always glowed over the rice-jar month's produce stall vanished as well.
+
+No one lit a fire, and no wind stopped — the dust simply settled as the lamps sank. The watchers pushed the sand-glass — the sand stopped falling.
+
+**锚句**：所有的灯都熄了的那一夜，值守忘了带第二颗火——潮候院没有备用的。
+**Anchor sentence**: the night every lamp went out, the watchers forgot the second flint — the Institute keeps no spare.
+
+---
+
+## 二 · The Institute Keeps No Backup Lamps
+
+The watchers kept no backup lamp scheme — the Institute's life recognizes no accident, only tides.
+
+The keeper wrote a single line on the notebook from the rice-jar month: "Wait for the tide to rise again; see which square it fills." The rest of the watcher-handbook's blank pages stayed in the Institute's numbered bindings — no copyist dared use the blank pages as scrap.
+
+The backup light returned around eight in the evening — the watchers privately called that "after the meal." When it did come, a small gleam rose toward the chapel — the spring moon had not yet mounted.
+
+**锚句**：潮候院没有任何灯备用方案——它相信潮自己会说完。
+**Anchor sentence**: the Institute keeps no backup for any lamp — it trusts the tide to finish its own sentence.
+
+---
+
+## 三 · The Sand Table Kept Its Own Counsel
+
+The copyist recorded the only phenomenon of that day: the square at the very center of the sand table stood empty.
+
+The square was white — white as seawater's salt-shadow left on sand by a wave withdrawing. He never saw that white again. The later copyists tried to append that record to the "rice-jar month purity ledger," but the page could not be found — the duty book after the forty-first Convocation recorded one line: "empty square, noted white."
+
+Afterwards the watchers never asked the copyist about the origin of that square — a page of that rice-jar month was tied separately with two cords.
+
+**锚句**：潮沙盘中间空过一格的位置，原来是潮自己留的空白。
+**Anchor sentence**: the empty square in the sand table was left blank by the tide itself.
+
+---
+
+## 四 · The Rice-Jar Month's Answer
+
+The first ray that rose in that rice-jar night from the chapel was a kind of crystal — not sand, not snow.
+
+The copyist picked up a bit, sealed it in the inner room of the Institute's rice-jar office — the white crystal was cold as a distant gift dropped from somewhere beyond the reach of the tide. The watchers confirmed it was not rice — the rice-jar month's harvest brought it no entry; the keeper himself recorded one slip: "The Institute calls this — the moon-snow of the rice-jar month."
+
+After this, the watchers of the back alley would glance at the chapel's inner-room door at the start of every rice-jar month — not discussing the contents; the copyist sometimes only stood there a moment, never speaking.
+
+**锚句**：米缸月那晚出现的白，被叫作潮候院的月雪，封存在祠殿堂密室里。
+**Anchor sentence**: the white that came that rice-jar night is called the Institute's moon-snow, sealed in the inner rooms of the chapel.
+
+---
+
+## 五 · The Number of the Inner Room
+
+The inner room in the rice-jar office of the chapel carries a number the Institute has never made public: seventy-two.
+
+The watchers of the back alley come at the beginning of each rice-jar month — locking the room, lighting the single inner lamp — registering in no other ledger and entering no hand-over book. The keeper of the room numbered seventy-two carries a second, secret name: the bamboo slips of the Institute call it "the empty square."
+
+The copyist never fully wrote it out. The headkeeper received an unsigned letter forty-one years ago, bearing only a half-moon seal as signature. The letter holds one sentence: "Do not wake anyone on the night the lamps go out — the Institute must know it is standing for itself once more." After that, the lamps never went out on their own again.
+
+**锚句**：米缸月密室的番号只是「空一格」——潮候院的值守一概不出声问你里面是什么。
+**Anchor sentence**: the inner room's number is only "one empty square" — no watcher ever names aloud what is inside.
+
+---
+
+## 六 · Mapping（Echo No. 25 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | The night of extinguished lamps · the rice-jar month moon-snow · after the forty-first Convocation | 一、二、三、四、五、六 |
+| geography | The back alley · the inner room of the rice-jar office · the sand table | 一、二、三、五、六 |
+| characters | The headkeeper · a predecessor copyist · the chapel watchers | 一、二、三、四、五 |
+| story | The Night Every Lamp Went Out · Echo No. 25 | 全篇 |
+| items | The remnant ink of the half-moon seal · the moon-snow · the sand table · the numbered slip | 一、二、三、四、五、六 |
+| history | The night before the forty-first Convocation · the silent records of the Institute | 一、三、五、六 |
+
+> 灯熄的夜晚里巷子从未关门——值守说，那只是潮候了自己一次呼吸。
+> The night every lamp went out the back alley did not close its doors — the watchers say it was simply the tide holding its breath once.
+`,
+  },
 ] as const;

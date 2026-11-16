@@ -4434,3 +4434,9 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - §STRESS-2 证据 `docs/evidence/redis-l2-stress-2026-11-17.md`：纯 Node RESP 直打 `nexus:llmc:stress:*`：
   串行 p50 6.764 ms / p99 38.07 ms；pipeline 20 000 次 0 错误；SET 2 491 ops/s；回收 keysLeft=0。
   关键发现：串行 p50 远高于回环预期——尾巴在 Windows→Docker NAT，不在 Redis 引擎。
+
+## cont. 204 (2026-11-17) — v839 · 回响 · 其二十五《里巷子所有灯熄的那一夜》
+
+- 新回响 E25（中英双文件 + 映射表）；verify:world-bible ✓ 145/145；快照 5+25。
+- 世界 5+25；这是某夜所有灯熄的共同体记忆——米缸月月雪首次进入回响。
+- Docker Desktop 本轮第二次崩溃并手动拉起（nexus-postgres/redis 健康，sibling 的 D:\法环游戏 vitest 占用 ~900MB，不动）。

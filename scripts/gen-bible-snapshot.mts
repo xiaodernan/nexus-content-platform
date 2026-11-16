@@ -66,6 +66,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E22-里巷子晾鱼架上那条永远晾不干的鱼': 'echo-022-the-fish-that-never-dried',
   'E23-雾港里那艘只在黄昏出现的船': 'echo-023-the-ship-that-appears-only-at-dusk',
   'E24-里巷子石槽里那粒没化的盐': 'echo-024-the-salt-that-never-dissolved',
+  'E25-里巷子所有灯熄的那一夜': 'echo-025-the-night-every-lamp-went-out',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
