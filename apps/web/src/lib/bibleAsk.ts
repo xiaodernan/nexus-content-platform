@@ -28,24 +28,37 @@ export function extractAnchorTexts(markdown: string, lang?: 'zh' | 'en'): string
   return out;
 }
 
-function chapterDigest(ch: BibleChapter): string {
-  const zhAnchors = extractAnchorTexts(ch.markdownZh, 'zh');
-  const enAnchors = extractAnchorTexts(ch.markdownEn, 'en');
-  const lines = [
+/** 章节正文去掉首行 `# 标题` 后返回（快照解析器已经剥过 `#` 大标题；这里守一道防御性边界）。 */
+export function bodyWithoutTitle(markdown: string): string {
+  const idx = markdown.indexOf('\n');
+  const rest = idx === -1 ? '' : markdown.slice(idx + 1);
+  return rest.trim();
+}
+
+function chapterDigestV2(ch: BibleChapter): string {
+  const zhBody = bodyWithoutTitle(ch.markdownZh);
+  const zhAnchorLines = extractAnchorTexts(ch.markdownZh, 'zh');
+  const enAnchorLines = extractAnchorTexts(ch.markdownEn, 'en');
+  const anchorBlock = [
+    zhAnchorLines.length > 0 ? 'ANCHORS（中英字字对齐）:' : null,
+    ...zhAnchorLines.map((a, i) => `- [${i + 1}] ${a}`),
+    ...enAnchorLines.map((a, i) => `- [${i + 1}] ${a}`),
+  ].filter((l): l is string => l !== null);
+  return [
     `## Chapter ${String(ch.order).padStart(3, '0')} · ${ch.titleZh} / ${ch.titleEn} · ${ch.eraLineZh}`,
-    ...zhAnchors.map((a) => `- ${a}`),
-    ...enAnchors.map((a) => `- ${a}`),
-  ];
-  return lines.join('\n');
+    '',
+    zhBody,
+    '',
+    ...anchorBlock,
+  ].join('\n');
 }
 
 function echoDigest(echo: BibleChapter): string {
+  // Echoes: anchors only（正文留在典籍室，避免 digest 失控），title+era 足够锚点定位。
   const zhAnchors = extractAnchorTexts(echo.markdownZh, 'zh');
-  const enAnchors = extractAnchorTexts(echo.markdownEn, 'en');
   const lines = [
     `### Echo ${String(echo.order).padStart(2, '0')} · ${echo.titleZh} / ${echo.titleEn}`,
-    ...zhAnchors.map((a) => `- ${a}`),
-    ...enAnchors.map((a) => `- ${a}`),
+    ...zhAnchors.map((a, i) => `- [${i + 1}] ${a}`),
   ];
   return lines.join('\n');
 }
@@ -55,8 +68,9 @@ export function buildDigest(chapters: readonly BibleChapter[], echoes: readonly 
   return [
     '# THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)',
     'World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.',
+    'Five canonical chapters (full text below). Twenty-six echoes (anchor lines only, same book end-anchors).',
     '',
-    chapters.map(chapterDigest).join('\n\n'),
+    chapters.map(chapterDigestV2).join('\n\n'),
     '',
     '## Echoes (回响)',
     echoes.map(echoDigest).join('\n\n'),
@@ -69,17 +83,17 @@ export function buildDigest(chapters: readonly BibleChapter[], echoes: readonly 
 export const SYSTEM_PROMPT = [
   'You are the Tidekeeper of the Tide Conclave. You answer readers about the world of «The Whispers’ Kings» ONLY from the canon digest below.',
   'Hard rules:',
-  '1. Answer strictly from the digest. The rest of your knowledge of this world is forbidden.',
+  '1. Answer strictly from the digest. Everything else you know about this world is off-limits.',
   '2. If the digest does not contain the answer, say "典籍里没有 / Not in the canon" in the asker’s language, and stop. Do NOT invent.',
   '3. Answer in the language of the asker’s question. Chinese questions get Chinese answers, English get English, nothing else. No mixed-language answers.',
-  '4. Keep answers short: at most 130 words. Quote the anchor sentences you relied on, in both languages, with their chapter/echo label.',
+  '4. Keep answers short: at most 160 words. Always point at WHICH chapter or echo the answer came from (潮沙盘, 雾港, 收件人 …).',
   '5. Names that appear in the digest must stay verbatim (潮沙盘, 半月章, 雾港, 里巷子, 米缸月, 第四十一次大会…).',
   '',
   buildDigest(BIBLE_CHAPTERS, BIBLE_ECHOES),
 ].join('\n');
 
-/** 预算守卫（assert 在测试里跑）：摘要不能膨胀到超过 50k chars（≈ 18k tokens）。 */
-export const SYSTEM_PROMPT_CHAR_BUDGET = 50_000;
+/** 预算守卫（assert 在测试里跑）：摘要不能膨胀到超过 64k chars（≈ 24k tokens）。 */
+export const SYSTEM_PROMPT_CHAR_BUDGET = 64_000;
 
 /** 问答用量结构（mock-friendly — 校验跑到测试里）。 */
 export interface BibleAskResult {
