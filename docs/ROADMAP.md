@@ -14354,3 +14354,20 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - 附代码侧一小片 i18n 清洗：QuizArcade BigLantern 的 `aria-label="Lantern tally"` 硬编码英文改为 COPY 键 `lanternsAria`（zh 灯盏点亮进度 / en Lantern tally），由 `c` 透传——混合语最后一处硬编码英文 aria 收口。
 - verify:world-bible ✓ 130/130；verify:bible-snapshot ✓；tsc web 0；fe-gates 126/126 · 1227/1227 · census 2531；agent-runtime 675/675。
 - 本次**不推送 showcase**（按「有大提升再更新」，本片为增补 + 小 a11y 修，合并到下一个结构里程碑一并推送）。
+
+## §BIBLE-35 — 回响 · 其二十三《雾港里那艘只在黄昏出现的船》（2026-11-17 · v837）
+
+- 产出：`docs/world-bible/echoes/E23-雾港里那艘只在黄昏出现的船.md`（中）/ `.en.md`（英）——铁月纪雾港黄昏里那艘不登记的船：
+  第三盏灯不亮、雾港两盏灯的规矩、第二盏灯不许张望、七十二年只登记七次、雾散了就不存在。
+  5 锚句 zh/en 全局唯一（135/135）。
+- `gen-bible-snapshot.mts` 登记 `echo-023-the-ship-that-appears-only-at-dusk`；快照 5+23。
+- verify:world-bible ✓ 135/135；verify:bible-snapshot ✓。
+
+## §STRESS-1 — 只读压力实测（2026-11-17 · v837 · mcp/pgbench）
+
+- 不写任何行、不新增 token，直接打 nexus-postgres 的真实查询形态（published_projects public feed / projects count）：
+  - c=8/j4：19 069 tx，0 失败，avg 4.170 ms，TPS 1 919；
+  - c=32/j8：29 416 tx，0 失败，avg 10.745 ms，TPS 2 978；
+  - c=64/j16：31 875 tx，0 失败，avg 20.773 ms，TPS 3 081。
+- 证据：`docs/evidence/db-stress-2026-11-17.md`；pg_stat_user_tables 显示两表 n_live_tup=0，压测只证连接/引擎在高并发下未崩，HTTP/RSC 层、Redis、写路径仍未覆盖。
+- 待办（限 RAM ≥ 6 GB）：HTTP 层真实 burst（wrk/autocannon），目前 dev server 会 OOM。
