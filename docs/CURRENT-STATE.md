@@ -5082,3 +5082,19 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - 门：fe-gates 123 套 · 1200/1200 OK；census 2541 OK；tsc 0。
 - 附：8 个公开页面 DOM 级体检（水平溢出 / 裁切 / <10px 字 / 行高 / 不可见文字）全部 0 异常——
   前端系统结构干净，本轮不做盲目 UI 改动。
+
+## cont. 178 (2026-11-17 02:10) - v808: 「非流」根因定位并修复——NEXUS_LLM_STREAM=1，前缀缓存 100% 上报
+
+- 用户实报（§四）：「调用时缓存命中率很低，而且一直显示『非流』……肯定是调用方法出了问题」。
+- 根因：`apps/ai-service/.env`（未入库）第 31 行残留 `NEXUS_LLM_STREAM=0`——调试 502 风暴时留下的 opt-out；
+  config 默认 `llm_stream=True`（ADR-0265 Accepted：流式是实测获胜方，`=0` 需要 probe 级 A/B 证据，本机从未有过）。
+  非流 transport → provider 不回 `prompt_tokens_details.cached_tokens` → 命中率永远显示缺失/0。
+- 修复：`.env` 翻 `NEXUS_LLM_STREAM=1`（仅此一行），ai-service 重启。
+  验证 `/v1/ai/cache-stats` → `transport: {"stream": true}`。
+- **实测**（同请求连打 6 次，dryRun design-graph，digest 23aa0d15…）：
+  冷启动 0 cached（cacheReported=false）→ 后续 5/5 次 `cachedTokens=6724/6724`、`cacheReported=true`、**100% 命中**；
+  cache-stats：`provider reported=5 missing=1 cachedTokensTotal=33620 reportedHitRate=1.0`。
+- 附带确认：Clash Verge 连接抖动（前两次 502 ConnectError，重试后全 200）与 transport 形态无关；missing=1 为真实缺报，未粉饰。
+- 证据页：`docs/evidence/cache-stream-fix-2026-11-17.md`（方法、6 次逐次计数、现场截图级可复现步骤、诚实边界）。
+- Docker 再次熄火后重启（nexus-redis/nexus-postgres healthy），能力判定仍为 real（ADR 0271 路径生效）。
+- 门：ai-service healthz 200 capability=real；fe-gates 123 · 1200/1200（本轮无前端代码变更，避免无谓重钉）。
