@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: '潮汐挑战 · The Tidal Trial — 低语诸王',
-  description: '世界大典正典问答 · Twelve questions on the four canonical chapters of The Whispers’ Kings.',
+  description: '世界大典正典问答 · Fourteen questions on the five canonical chapters of The Whispers’ Kings.',
 };
 
 const COPY: Record<Locale, { crumb: string; back: string }> = {

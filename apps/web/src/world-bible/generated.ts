@@ -1247,6 +1247,238 @@ On the last page of the patrol road the Night Watcher wrote: “It has seen the 
 > 还有续写，不在这一本里——潮汐室里没有门，但每个读完的人都在门口站过。
 `,
   },
+  {
+    order: 5,
+    slug: '005-the-addressee',
+    titleZh: '收件人',
+    titleEn: 'The Addressee',
+    eraLineZh: '纪元：潮候院 · 建院之年。',
+    eraLineEn: 'Era: the Institute — the year of its founding.',
+    markdownZh: `# 低语诸王 / The Whispers' Kings · World Bible · Chapter V: The Addressee
+
+> 回响是正典之外的侧写；第五章是正典唯一接受续写的门——第四章门关上了，但门外的人一直站在门口。
+> 本章兑现第四章最后一行问题的答案：那张签收单究竟递给谁。
+> 本章之后，大典进入潮候院纪——所有回响都发生在那里。
+> 纪律不变：锚句中英字字对齐，引用者逐字保持。
+>
+> Where echoes are the other grain of the same stone, Chapter V is the only door the canon allowed kept open — Chapter IV shut its door, and someone was still standing there.
+> This chapter pays out the answer to the last line left open in Chapter IV: to whom the receipt was delivered.
+> After this chapter, the bible enters the Institute Age — every echo happens there.
+> Canon discipline unchanged: anchors match word-for-word; no rephrasing.
+
+> 纪元：潮候院 · 建院之年。
+> Era: the Institute — the year of its founding.
+
+---
+
+## 一 · 退过的泥滩
+
+水退了六里，九天没有涨回来。
+
+渔网打上来的是从没见过的鳞——灰的、软的、没有眼睛的那一类；鼓架里残着两滴海水，无论怎么抹也干不掉；搁浅的船在泥沙上留了一条很长的脊痕，远看像一句没写完的话。
+
+幸存者们把帐篷搬上了原来是礁石的那块泥滩。铁月纪的人照旧开夜会，但谁也不再拿「熔掉的」当玩笑——退潮的痕迹在这里，潮什么时候回来没有人敢问太情愿。
+
+**锚句**：退潮把整片泥滩晒给人看——谁也没看见那个收件人。
+**Anchor sentence**: the receding tide dried the whole mudflat for all to see — and no one saw the addressee.
+
+---
+
+## 二 · 三城各自出发的人
+
+第一个提问的人来自盐海商会。她翻了一辈子旧账，看见潮候院的位置是从前潮汐教团散落之后空下来的那块地。她带着两张抄件和一个罗盘出发。
+
+第二个提问的人来自潮沙盘学馆。他带走了第四章抄本的副本——边缘已经磨白了的那一页。他不懂签收之前的一切，但他懂怎么把纸摞整齐。
+
+第三个提问的人来自雾港灯楼。她拿着一盏从没点过的小灯——小灯的灯芯是从灯塔顶层下来的那一截，没人敢给她，她把灯芯拿走了。
+
+三路人在不同的路上遇到的是同一类人——每个 port 都有一个自称「收件人」的人：坐在门廊上的秤砣人、船坞尽头那个从来没收过货的老会计、还有卖褪色半月印章的书手。每个人都拿得出半张收据，每个人拿的都是和印章同一批的。
+
+**锚句**：三路人出发找收件人，一路上遇到的全是自称的人，没有一个是真的。
+**Anchor sentence**: three parties set out to find the addressee and met self-claimants on every road — not one was proven.
+
+---
+
+## 三 · 抄本员的白沙
+
+三路人最后在雾港口遇上了一个抄本员。
+
+抄本员没有问他们的来历——他和祖母两代人记住的规矩是：潮沙盘的位置之外，所有人都来了，所有人都会被记住。
+
+那天晚霞斜切进栈桥的时候，潮沙盘自己落了一格沙。沙是白的。白得从来没见过——白得像第八盏灯熄掉之后，海底那一张纸被水泡淡的底色。
+
+抄完最后一笔以后，船坞上的灯依照顺序亮完一排——没有人点灯。
+
+**锚句**：抄本员把半月盖上去的时候，潮沙盘自己落了一格沙。
+**Anchor sentence**: when the copyist pressed the half-moon seal down, the sand table let fall a grain of sand on its own.
+
+---
+
+## 四 · 替海签收的人
+
+三城的人终于明白：收件人不是一个人——收件人是一座建筑。
+
+潮候院在潮沙盘的位置上被定了下来。第一座房只有一间屋子，一个潮沙盘，一只潮沙盘的沙漏（从来没量过一滴水）——以及一册登记。
+
+抄本员在第一页上不写任何人的名字。他只写了一笔：
+
+「潮站了一下。」
+
+后来每一代大会抄的都是这句话的变体。抄到第四十一次大会的时候，里巷子的某一位抄本员终于少写了「一下」两个字——值守说少一个字就是少潮沙盘一半的意义——抄本员让他重新补。
+
+**锚句**：潮候院的第一页登记不写人名——到此为止，潮已经站了一下。
+**Anchor sentence**: the Institute's first register holds no name — here ends the tide standing still for a moment.
+
+---
+
+## 五 · 大典之后
+
+正典在第五章结束。后面的潮候院没有第五章——抄本员之间一直流传：
+
+> 「潮候院只负责听。」
+
+也就是说：这座建筑从来不替海说话，它只是潮的收件人。所有回响都发生在这所「听见」里面——没有人被允许替潮回答；没有巫师、没有祭司、没有先知——只有抄本员、值守、以及偶尔到里巷子走一圈的人。
+
+正典到此暂告完结。但大典之外，潮候院还在开第四十一次大会，里巷子的抄本员还在抄，潮沙盘的每一格沙都还在听。
+
+**锚句**：正典在第五章之后没有第六章——潮候院只负责替潮收住那口气。
+**Anchor sentence**: after the fifth chapter there is no sixth — the Institute only keeps the breath that was drawn in.
+
+---
+
+## 六 · 模型映射（本章对应关系）
+
+| 类别 | 标题 | 对应节 |
+|---|---|---|
+| lore | 潮候院建院 · 第八盏灯的回声 | 一、二、三、四、六 |
+| geography | 雾港口 · 里巷子 · 潮沙盘 | 一、三、四、五 |
+| factions | 潮沙盘学馆 · 盐海商会 · 里巷子抄本员 · 雾港灯楼 | 二、三、四 |
+| characters | 那一名抄本员 · 三路人 | 二、三、四、六 |
+| items | 潮沙盘 · 半月印章 · 灯芯 · 第一册登记 | 二、三、四、六 |
+| story | 收件人 · 大典续卷之一 | 全篇 |
+| quests | 签收 · 建立潮候院 | 一至四 |
+| history | 大典之后 · 潮候院四十一次大会之前 | 一、二、四、五、六 |
+
+> 退潮带来的不是沙——是一句被整整一个世纪等过的话。
+> 潮候院没有人代潮回答，值守只在风起的时候，把门按习惯关上。
+> 潮候院的人等了四十一次大会之后，海还是没有说——收件人一直在听。
+> The receding tide brought not sand — but a sentence the whole century had been waiting for.
+> No one in the Institute will ever answer for the tide; only on windy nights, the watchers pull the doors shut.
+> After forty-one Convocations, the sea still has not spoken — the addressee is listening.
+`,
+    markdownEn: `# 低语诸王 / The Whispers' Kings · World Bible · 第五章「收件人」
+
+> Where echoes are the other grain of the same stone, Chapter V is the only door the canon allowed kept open — Chapter IV shut its door, and someone was still standing there.
+> This chapter pays out the answer to the last line left open in Chapter IV: to whom the receipt was delivered.
+> After this chapter, the bible enters the Institute Age — every echo happens there.
+> Canon discipline unchanged: anchors match word-for-word; no rephrasing.
+>
+> 回响是正典之外的侧写；第五章是正典唯一接受续写的门——第四章门关上了，但门外的人一直站在门口。
+> 本章兑现第四章最后一行问题的答案：那张签收单究竟递给谁。
+> 本章之后，大典进入潮候院纪——所有回响都发生在那里。
+> 纪律不变：锚句中英字字对齐，引用者逐字保持。
+
+> Era: the Institute — the year of its founding.
+> 纪元：潮候院 · 建院之年。
+
+---
+
+## 一 · The Dried Mudflat
+
+The water drew back six liveli and did not return for nine days.
+
+The nets came up full of scales never seen before — gray, soft, eyeless; two drops of sea-water persisted in the drum-shell, which could not be dried, no matter how long people wiped; the beached ship lay on the mudflat in a long keel-mark that looked from afar like an unfinished sentence.
+
+The survivors carried their tents up to what used to be the shoal. The Iron-Moon guilds still held evening sessions, but no one laughed at "the melted" anymore — the retreat lay here for all to see, and no one dared ask when the tide would come back and be willing.
+
+**锚句**：退潮把整片泥滩晒给人看——谁也没看见那个收件人。
+**Anchor sentence**: the receding tide dried the whole mudflat for all to see — and no one saw the addressee.
+
+---
+
+## 二 · Three Cities Send Their Own
+
+The first to ask came from the Salt-Sea Guild. She had translated ledgers all her life and found that the site of the Institute was the very ground the Tide Conclave had been left vacant after its dispersion. She brought two copies and a compass.
+
+The second to ask came from the Sand-Table School. He carried the copy of Chapter IV — the page whose edges had been polished white. He understood nothing before the receipt; what he understood was how to keep paper stacked square.
+
+The third to ask came from the Lantern Tower at Fog Harbor. She carried a small unlit lamp — the wick of which had come down from the lantern-top — no one had been willing to give it to her, but she took it with her.
+
+Along the three roads they met the same kind of man: port after port had a self-appointed "Addressee" — the counterweight sitting on the porch, the old accountant at the end of the dock who never received a cargo, and the bookseller with the faded half-moon seal. Each brought a half-slip of receipt; all belonged to the same batch as the seal.
+
+**锚句**：三路人出发找收件人，一路上遇到的全是自称的人，没有一个是真的。
+**Anchor sentence**: three parties set out to find the addressee and met self-claimants on every road — not one was proven.
+
+---
+
+## 三 · The Copyist's White Sand
+
+The three parties at last met a copyist at the mouth of Fog Harbor.
+
+The copyist did not ask about their origins — the rule he had learned from two generations before him was this: everything that came to the sand table outside its location had come, and everything that came would be remembered.
+
+When the sunset cut across the pier at an angle, the sand table let one grain of sand fall on its own. The grain was white — white as the sea-bed paper soaked pale after Chapter IV, white past memory.
+
+When the copy finished the last stroke, the harbor lamps lit in order down the pier — no one lit those lamps.
+
+**锚句**：抄本员把半月盖上去的时候，潮沙盘自己落了一格沙。
+**Anchor sentence**: when the copyist pressed the half-moon seal down, the sand table let fall a grain of sand on its own.
+
+---
+
+## 四 · The One Who Signs for the Sea
+
+The three parties came to understand, at last: the Addressee was not a person — the Addressee was a building.
+
+The Institute was founded on the site of the sand table. The first room held one vessel — the sand table itself, one sand-table hourglass (its measure of time never tested by water) — and one register.
+
+The copyist wrote no name on the first page. He wrote one stroke only:
+
+"Tide stood still."
+
+Every Convocation copy was a variant of this sentence. At the forty-first Convocation some one in the back alley omitted the last two characters — the watchers said to lose a character was to lose half the sand table. The copyist was made to write it again.
+
+**锚句**：潮候院的第一页登记不写人名——到此为止，潮已经站了一下。
+**Anchor sentence**: the Institute's first register holds no name — here ends the tide standing still for a moment.
+
+---
+
+## 五 · After the Bible
+
+The canon ends with Chapter V. After that, the Institute kept no sixth chapter — only what the copyists passed between themselves:
+
+"The Institute only listens."
+
+Which is to say: the building would never speak for the sea; the building is the Addressee of the tide. The Echoes all happen inside that listening — no one is allowed to answer for the tide; there are no oracles, no priests, no prophets — only copyists, watchers, and occasional walkers through the back alley.
+
+The canon ends here, but the Institute still holds its forty-first Convocation, the copyists of the back alley still copy, and every grain of sand on the tide-sand table still listens.
+
+**锚句**：正典在第五章之后没有第六章——潮候院只负责替潮收住那口气。
+**Anchor sentence**: after the fifth chapter there is no sixth — the Institute only keeps the breath that was drawn in.
+
+---
+
+## 六 · Mapping（Chapter V → world model）
+
+| 类别 | 标题 | 对应节 |
+|---|---|---|
+| lore | The founding of the Institute · the echo of the eighth lamp | 一、二、三、四、六 |
+| geography | Fog Harbor · the back alley · the sand table | 一、三、四、五 |
+| factions | Sand-Table School · Salt-Sea Guild · Fog Harbor Lantern Guild · copyists | 二、三、四 |
+| characters | The copyist · the three parties | 二、三、四、六 |
+| items | The sand table · the half-moon seal · the wick · the first register | 二、三、四、六 |
+| story | The Addressee · the continuation of the bible | 全篇 |
+| quests | The receipt · the founding of the Institute | 一至四 |
+| history | After the bible · before the forty-first Convocation | 一、二、四、五、六 |
+
+> 退潮带来的不是沙——是一句被整整一个世纪等过的话。
+> 潮候院没有人代潮回答，值守只在风起的时候，把门按习惯关上。
+> 潮候院的人等了四十一次大会之后，海还是没有说——收件人一直在听。
+> The receding tide brought not sand — but a sentence the whole century had been waiting for.
+> No one in the Institute will ever answer for the tide; only on windy nights, the watchers pull the doors shut.
+> After forty-one Convocations, the sea still has not spoken — the addressee is listening.
+`,
+  },
 ] as const;
 
 export const BIBLE_ECHOES: readonly BibleChapter[] = [

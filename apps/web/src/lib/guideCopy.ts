@@ -85,7 +85,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           '/world/<id>/chronicle 编年史：故事/历史条目按纪元排开（灰灯纪/灰烬纪/铁月纪……你项目自己的纪元名），人物星图 ↔ 编年互相点亮；条目可挂「记忆回声」——纯感官刻痕，≤ 240 字，不是梗概。',
           '/world/<id>/digest 世界速览 · /world/<id>/integrity 世界体检（只报真问题：纪元错位/回声缺失/孤儿条目，不打分不假绿）· /world/<id>/tide 世界潮汐 · /world/<id>/ephemeris 世界日历投影 · /world/<id>/codex 设定集 · /world/<id>/constellation 人物关系星图 · /world/<id>/atlas 世界全图 · /world/<id>/almanac 世界年历 · /world/<id>/quiz 世界问答（确定性，题目出自本项目） · /world/<id>/memories 世界记忆。',
           '这些页面全部是你的项目数据的投影——世界页不是"官方故事"，是你画的世界自己的结构。',
-          '想读这个宇宙的正典文字？去 /bible 翻《潮汐教团》三章——锚句中英字字对齐的正典、可以直接收藏的典籍室。',
+          '想读这个宇宙的正典文字？去 /bible 翻《低语诸王》五章正典——锚句中英字字对齐的正典、可以直接收藏的典籍室。',
         ],
       },
       {
@@ -197,7 +197,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           '/world/<id>/chronicle — story and history entries arranged by era (Grey-Lamp Age / Ash Age / Iron-Moon Age — whatever YOUR project’s eras are), characters and chronicle light each other up; entries can carry “memory echoes” — pure sensory etchings, ≤ 240 chars, not plot summaries.',
           '/world/<id>/digest world digest · /world/<id>/integrity world checkup (reports real issues only: era drift, missing echoes, orphan entries — no fake scoring) · /world/<id>/tide world tide · /world/<id>/ephemeris world calendar projection · /world/<id>/codex the lore tome · /world/<id>/constellation the character graph · /world/<id>/atlas world atlas · /world/<id>/almanac world almanac · /world/<id>/quiz the quiz (deterministic, content from this project) · /world/<id>/memories the memories walk.',
           'Every one of these pages is a projection of YOUR project — the world pages are not “the official story”; they are the structure of the world you drew, rendered.',
-          'Fancy the canon text of this universe? Go to /bible — three chapters of the Tide Conclave, anchor sentences aligned word-for-word between Chinese and English.',
+          'Fancy the canon text of this universe? Go to /bible — five canonical chapters of The Whispers’ Kings, anchor sentences aligned word-for-word between Chinese and English.',
         ],
       },
       {

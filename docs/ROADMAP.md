@@ -14331,3 +14331,16 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   5 锚句 zh/en 全局唯一（120/120）。
 - `gen-bible-snapshot.mts` 登记 `echo-021-the-seven-lamps-of-the-back-alley-pier`；快照重生成（4+21 回响）。
 - verify:world-bible ✓ 120/120；verify:bible-snapshot ✓。
+
+## §BIBLE-33 — 正典第五章「收件人」（2026-11-17 · v835）
+
+- 产出：`docs/world-bible/005-收件人.md`（中）/ `.en.md`（英）——潮候院建院之年，正典唯一续卷：
+  第四章之后潮退六里，三路人（盐海商会 / 潮沙盘学馆 / 雾港灯楼）出发找收件人；在雾港，潮沙盘自己落一格白沙；
+  抄本员盖上半月印——盖沙之处即是「收到」的收件人；潮候院不写人名——潮本身就在站；正典至此收尾，潮候院只负责听。
+  5 锚句 zh/en 全局唯一（125/125）。
+- `gen-bible-snapshot.mts` WEB_SLUGS 登记 `005-the-addressee`；快照重生成（5 章 · 21 回响）。
+- 全站同步：/bible 四扇门 → 五扇门（chapterLabel 加 五）；/guide 两处「三章」→「五章」（救出早自 vX 起的三章陈旧货）；
+  /bible/quiz 12 题 → 14 题（新增收件人两题）；verdict 阈值 0/5/9/12/14；BibleQuiz 与页面配套更新；
+  bible-quiz-visual-style 的 12 断言改 14、答案序列改 [2,2,0,1,3,1,2,0,1,2,1,2,0,2]；
+  bible-visual-style / bible-quiz-visual-style 的 SHA256 重订（目录页、潮汐挑战页、BibleQuiz 组件）。
+- verify:world-bible ✓ 125/125；verify:bible-snapshot ✓；tsc web 0；fe-gates **126/126 · 1227/1227 · census 2531**。

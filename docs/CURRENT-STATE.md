@@ -4410,3 +4410,9 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 
 - 新回响 E21（中英双文件 + 映射表）；verify:world-bible ✓ 120/120；快照 4+21 回响。
 - 世界 4+21；E21 追述建院最早的灯——第七盏别人不承认是父亲。
+
+## cont. 200 (2026-11-17) — v835 · 正典第五章「收件人」
+
+- 新正典第五章（中英双文件 + 映射表）；verify:world-bible ✓ 125/125；快照 **5 章** · 21 回响。
+- /bible 五扇门；/bible/quiz 14 题；/guide 停留三章的旧话改成五章。
+- 大典现在有 5 章正典：第五章把第四章终卷的「签收单」落到了潮候院的建院上。
