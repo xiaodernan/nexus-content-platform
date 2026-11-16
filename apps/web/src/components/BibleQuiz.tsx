@@ -147,6 +147,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《远信》里，账房怎样记录未出匣的信？', choices: ['记作"在匣"', '记作"未成"', '两格分开、栏目之间没有路', '记作"收讫"'], answer: 2, ref: '第五章 · 一' },
     en: { prompt: 'In “Letters Never Posted”, how does the bursar record letters never dropped?', choices: ['under “in box”', 'under “never”', 'two cells apart, no road between', 'under “received”'], answer: 2, ref: 'Chapter V · I' },
   },
+  {
+    zh: { prompt: '《最后的签收》里，守夜人用什么在盐痕上按了一下？', choices: ['他的拇指', '他的食指', '一枚教团旧印', '一根羽毛'], answer: 1, ref: '末章 · 五' },
+    en: { prompt: 'In “The Final Seal”, what did the watchman press into the salt crust?', choices: ['his thumb', 'his index finger', 'an old Congregation seal', 'a feather'], answer: 1, ref: 'Final chapter · V' },
+  },
+  {
+    zh: { prompt: '《最后的签收》里，书记员在最后一栏写下了什么？', choices: ['已收 · 含收件人名', '已收 · 收件人名空白', '未收', '无人签收'], answer: 1, ref: '末章 · 六' },
+    en: { prompt: 'In “The Final Seal”, what does the clerk write in the last column?', choices: ['received, with the recipient’s name', 'received, the recipient’s name left blank', 'unreceived', 'no one signed'], answer: 1, ref: 'Final chapter · VI' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

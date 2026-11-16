@@ -1517,6 +1517,296 @@ The bursar left the first line of the new year for the recipient. That cell was 
 > 谜没有拆开。谜只允许灯记住，谁在门前站了多久。
 `,
   },
+  {
+    order: 6,
+    slug: '006-the-final-seal',
+    titleZh: '最后的签收',
+    titleEn: 'The Final Seal',
+    eraLineZh: '纪元：铁月纪的尾声 · 远信之后。',
+    eraLineEn: 'Era: the close of the Iron-Moon Age · after the letters.',
+    markdownZh: `# The Whispers' Kings · World Bible · Final Chapter: The Final Seal
+
+> 正典在此收束：潮汐教团的正典、远信与第九叩在这一章里合拢。
+> 本章不引入新设定，只按正典的既有账回写闭环；续写权仍留给你的手。
+> 正典纪律不变：锚句中英字字对齐，引用者逐字保持。
+>
+> The canon closes here: the Tide Congregation, the letters, and the ninth knock all meet in this chapter.
+> This chapter invents no new lore; it writes the loop back onto the existing ledger. The pen stays yours.
+> Canon discipline is unchanged — anchor sentences match word-for-word; no rephrasing.
+
+> 纪元：铁月纪的尾声 · 远信之后。
+> Era: the close of the Iron-Moon Age · after the letters.
+
+---
+
+## 一 · 最后的落潮
+
+第四十一次会议散席时，港里的钟还没响。桌上留着一张空白收据，边角压着盐块。没人碰它。窗外的潮水退了半里，露出旧桩、断缆和几只翻白的船。
+
+潮汐教团按例核账。水位、船数、灯油、亡者的名字，一项项抄进册里。最后一项写着"潮先行"，后面没有数目。书记员把这一栏留空，像留下一只未封口的信袋。
+
+海继续往外退。它退过外港，退过防波堤，退到地图上没有标记的泥地。人们这才看见，潮早在许多年前就从账上走了。留下的只是每月一次的水声，是照旧抄写的涨落，是所有人仍按时缴纳的那笔债。
+
+没人问债欠给谁。问了也没有收据可开。
+
+那张空白收据从桌上取下，交给下一班书记员。纸上没有署名，只有一道潮痕，从右上角斜斜划过，抵在空栏之前。
+
+**锚句**：潮先走，账才开始。
+**Anchor sentence**: the tide leaves first; only then does the ledger open.
+
+---
+
+## 二 · 最后一个收件人
+
+最北端的守夜人第一次来到港口，是在退潮后的第三日。他没有船，也没有随行的人。沿岸的人认得他的灯，却从未见过灯下的人。
+
+他走进港门时，手里提着一只旧灯罩。玻璃裂了一道，里面没有灯芯。守门人问他来收什么。他说，收一件送了很久的东西。守门人又问，凭据呢。他把空灯罩放在桌上，没有回答。
+
+潮汐教团的席位仍按旧次序摆着。守夜人的位置在末席，桌牌已经发黑，字迹被盐侵去一半。他没有坐下，只看了一遍每张桌牌，像在核对一封封寄错的信。
+
+有人要他报上姓名。他说，名字早在北端写过。那边没有人替他留副本。书记员请他再说一次，他只把灯罩往前推了一寸。
+
+港里仍有人等着签收。桌边的人看着他，仿佛只要他坐下，收件人就会有一个可供抄录的形状。
+
+他没有坐。
+
+**锚句**：收件人到了，空位仍在。
+**Anchor sentence**: the recipient arrives — the empty seat remains.
+
+---
+
+## 三 · 他打开的那本账
+
+守夜人从衣内取出一本薄账。封皮没有题名，边缘被海水泡硬。书记员接过时，手指上留下了白盐。他翻开第一页，见到的却是自己的字。
+
+第四十二次会议原簿已经抄过三遍。新本里每一行都齐整，连空白也按页数留下。唯独旧页不在档案里。有人说旧页潮湿，有人说旧页失火，也有人说它从未入库。三种说法都盖了印。
+
+守夜人把旧账摊在桌上。上面的字没有被水冲淡。第四十一次会议的末尾，记着一笔：潮先把账交给港口，港口把账交给教团，教团把账交给无人。后面还写着一行小字：若无人签收，来者即为收件人。
+
+新本没有这一行。抄录的人把它删了，又把删去的空隙补成了会议日期。每一次重抄，都是为了让那条路不再通向任何人。
+
+书记员问，旧页为何还在。守夜人把账翻到末尾。纸背上有一道浅痕，像有人曾用笔尖停在那里，迟迟没有落下。
+
+**锚句**：旧页没有失踪。
+**Anchor sentence**: the old page never disappeared.
+
+---
+
+## 四 · 第八盏灯最后一次开灯
+
+港里有八盏灯。前七盏照过栈桥、仓门、外港和议席。第八盏在潮汐教团的旧楼顶上，常年不亮。每次会议结束，守灯人都要在簿上写明灯芯未动。
+
+那夜，守夜人取出灯罩里的裂玻璃，放在桌上。守灯人先拿起火石，手停在灯芯旁。她没有点。她看向书记员。书记员看着那本旧账。账页没有翻动。
+
+先点灯的是最年轻的抄写员。他从会议桌下找到一截灯芯，剪短，放进第八盏灯里。火石擦过两次，第三次才有火。火光映在他手背上，照出一条旧伤。
+
+守灯人看着他，像看着一个终于落到纸上的字。抄写员转过头，看着守夜人。守夜人看着灯，没有看任何人。
+
+随后，众人彼此看了一遍。没人说灯是谁点的，也没人把这个名字记进簿里。第八盏灯照亮旧楼的窗，窗外没有潮水，只有露出的海床。
+
+**锚句**：灯亮时，无人替它作证。
+**Anchor sentence**: when the lamp lit, no one vouched for it.
+
+---
+
+## 五 · 他留下的那一笔签收
+
+守夜人把旧账推到桌子中央。书记员拿来收据，仍是第四十一次会议后留下的那张。纸面干燥，盐痕已结成薄壳。签名栏空着，旁边备有印泥和一枚教团旧印。
+
+守夜人没有拿笔。书记员说，收件人须画押。守夜人说，纸上没有他的名字。书记员回答，名字可以补。他说，补上的名字只归那张纸。
+
+桌边的人逐一看着他。守灯人没有移开目光。抄写员低头看着自己的手。书记员把笔放在收据上，笔尖朝向空栏，像一支没有归处的针。
+
+守夜人伸出食指，在盐痕上按了一下。没有留下指纹，只有一处微湿。水很快渗进纸里，越过签名栏，停在"收件人"三个字下方。
+
+他说："契有其形，签有其心。"
+
+书记员把这句话记进账里，没有加上引号。收据仍未画押。那道湿痕却在纸面留下了边界，像一处刚刚合拢的岸。
+
+**锚句**：不画押，也算签收。
+**Anchor sentence**: no mark was made — and it counts as received.
+
+---
+
+## 六 · 潮沙盘最后一个旋钮
+
+潮汐教团把沙盘抬进旧楼。盘面画着港口、北端和退到尽头的海。九个旋钮排在盘沿，旧制规定，会议结束后须按九下，最后一下一直由缺席者代行。
+
+第四十二次会议没有人宣读议程。守夜人站在沙盘旁，手指落在第一个旋钮上。他没有按。抄写员问，谁来按。守夜人看向守灯人。守灯人看向书记员。书记员看向那张未画押的收据。
+
+最后是书记员把手放上旋钮。他按了九下。每一下都转过半圈，沙盘上的线便退去一截。港口缩小，北端露出，八盏灯成了八个没有名字的点。
+
+第九下之后，盘面没有显出新的海岸。沙从边缘落下，堆在桌脚。众人看见盘底刻着旧页上没有抄入新本的那句话：账已交还，勿再转寄。
+
+守夜人收起旧账，提起裂了玻璃的灯罩。第八盏灯还亮着。没有人说它该亮到何时。港门敞开，外面没有潮声。
+
+书记员在最后一栏写下：已收。没有写收件人的名字。
+
+**锚句**：第九下，账止于此。
+**Anchor sentence**: at the ninth turn, the account rests.
+
+---
+
+## 模型映射（末章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 末潮 · 空位 · 旧页 · 若无人签收，来者即为收件人 | 一至六 |
+| geography | 雾港 · 海床 · 旧楼 · 北端 · 港口 | 一至六 |
+| factions | 潮汐教团 · 守灯人 · 书记员 · 最北端的守夜人 | 一至六 |
+| characters | 守夜人 · 守灯人 · 书记员 · 抄写员 | 一至六 |
+| items | 空白收据 · 旧账 · 第八盏灯 · 沙盘 · 灯罩裂玻璃 | 一至六 |
+| story | 雾港 · 第八盏灯 · 末章·最后的签收 | 全篇 |
+| history | 铁月纪的尾声 · 远信之后 · 第四十二次会议永未召集 | 一至六 |
+
+> 潮先走，账才开始；潮再来，账才永远合不上。
+> 签收从不是握笔的事——是潮向海投下一叠寄不走的信。
+>
+> The tide left first, so the ledger could finally open; the tide returns, so it never closes for good.
+> A signature was never a matter of pen and ink — it was the tide posting a stack of mail the sea never accepted.
+`,
+    markdownEn: `# 低语诸王 / The Whispers' Kings · World Bible · 末章「最后的签收」
+
+> The canon closes here: the Tide Congregation, the letters, and the ninth knock all meet in this chapter.
+> This chapter invents no new lore; it writes the loop back onto the existing ledger. The pen stays yours.
+> Canon discipline is unchanged — anchor sentences match word-for-word; no rephrasing.
+>
+> 正典在此收束：潮汐教团的正典、远信与第九叩在这一章里合拢。
+> 本章不引入新设定，只按正典的既有账回写闭环；续写权仍留给你的手。
+> 正典纪律不变：锚句中英字字对齐，引用者逐字保持。
+
+> Era: the close of the Iron-Moon Age · after the letters.
+> 纪元：铁月纪的尾声 · 远信之后。
+
+---
+
+## I · The Last Ebb
+
+When the forty-first meeting broke up, the harbor bell had not rung. On the table lay a blank receipt, a lump of salt still weighing down its corner. Nobody touched it. Beyond the windows, the tide had dropped half a li, laying bare old piles, snapped hawsers and the white bellies of overturned boats.
+
+The Tide Congregation audited the books as usual. Water levels, hull counts, lamp oil, the names of the dead — item by item into the roll. The last entry read *the tide went first*; after it, no figure. The clerk left that cell blank, like an unsealed letter.
+
+The sea kept withdrawing. It passed the outer harbor, passed the breakwater, and stopped at mud flats no map would record. Only then did the people see: the tide had departed the books years before. What remained was the monthly sound of surf; the same entries copied again and again; the debt everyone still paid on time.
+
+Nobody asked whom the debt was owed to. Even if anyone had asked — there was no receipt to issue.
+
+The blank receipt was lifted from the table and given to the next clerk. No sender, no date; only a tide-marked streak slanting over the corner, ending at the blank cell.
+
+**Anchor sentence**: the tide leaves first; only then does the ledger open.
+**锚句**：潮先走，账才开始。
+
+---
+
+## II · The Last Receiver
+
+The night-watchman from the far north end first entered the harbor on the third day after the ebb. He had no boat, no companions. The people along the shore knew his lamp — but none had ever seen the person under it.
+
+As he stepped through the gate, he carried an old lampshade in hand. One pane of its glass was cracked; inside, no wick. The gatekeeper asked what he had come to receive. He said — something that had been posted a long time. The gatekeeper asked for his warrant. He set the empty shade on the desk, and gave no answer.
+
+The Congregation's seats still stood in their old order. The watchman's stood at the very tail; his name-plate blackened, salt gnawing away half the characters. He did not sit — he only read each plate once through, like checking letters one by one that had been mislaid.
+
+Someone asked his name. He said, his name had been written at the far end a long time ago; up there, nobody kept a copy for him. The clerk asked him to say it again — he only pushed the shade one inch further across the desk.
+
+The harbor still waited for a signature. Those at the table stared as if his sitting down would give the receiver an outline fit for transcription.
+
+He did not sit.
+
+**Anchor sentence**: the recipient arrives — the empty seat remains.
+**锚句**：收件人到了，空位仍在。
+
+---
+
+## III · The Book He Opened
+
+From inside his coat the watchman drew a slim book. Its cover carried no title; seawater had stiffened the edges. When the clerk took it up, salt came away on his fingertips. He opened the first page — and found his own handwriting.
+
+The original minutes of the forty-second meeting had been copied three times over. In each new volume, every line stood straight — even the blanks preserved their page count. Only the old page never reached the archive. Some said it was damp; some said it had burned; some said it had never entered the vault. Each story wore a stamp.
+
+The watchman spread the old book out. Its letters were not washed away. At the foot of the forty-first meeting's record ran a line: *The tide hands the books to the harbor; the harbor hands them to the Congregation; the Congregation hands them to no one.* Below, a smaller line: *If no one signs to receive, the comer shall be the recipient.*
+
+The new volumes did not have that line. The copyists struck it out — then filled the space with the meeting's date. Each recopy was a way to make the path no longer lead to anyone.
+
+The clerk asked why the old page was still with them. The watchman turned to the last sheet; a shallow groove tracked along the back — as if a pen nib had paused there and never descended.
+
+**Anchor sentence**: the old page never disappeared.
+**锚句**：旧页没有失踪。
+
+---
+
+## IV · The Eighth Lamp Lit One Last Time
+
+The harbor had eight lamps. The first seven threw light over wharf, warehouse, outer harbor and council floor. The eighth stood on the roof of the old Congregation hall — and never lit. Each meeting ended with the lamp-warden entering in the register: wick never touched.
+
+That night, the watchman unpacked the shade's cracked pane onto the desk. The lamp-warden took up the flint and stopped by the wick. She did not strike. She looked to the clerk. The clerk looked at the old book. Its pages did not turn.
+
+The first to light was the youngest copyist. From beneath the conference table, he found a length of wick, trimmed it, and laid it into the Eighth's chamber. The flint sparked twice — fire on the third. Its light fell across the back of his hand, revealing an old scar.
+
+The lamp-warden watched him, as if he were a word finally set on paper. The copyist turned his head toward the watchman. The watchman looked at the lamp, and at no one.
+
+Then everyone looked at everyone else. Nobody said the lamp was lit by anyone, and no such name was entered in the register. The Eighth threw its glow over the old hall's windows; beyond them no tide remained — only an exposed sea-bed.
+
+**Anchor sentence**: when the lamp lit, no one vouched for it.
+**锚句**：灯亮时，无人替它作证。
+
+---
+
+## V · The Signature He Made
+
+The watchman pushed the old book to the center of the table. The clerk brought out the receipt — the same one left behind after the forty-first meeting. Its surface had dried; the salt rose had set into a thin shell. The signature cell stood blank; beside it sat a dish of seal paste and the Congregation's old seal.
+
+The watchman took up no pen. The clerk said the recipient must set a hand to it. The watchman said the paper carried no name of his. The clerk answered that a name could be added. He said — that the added name would belong only to that paper.
+
+The tableful of faces turned to him one by one. The lamp-warden never lowered her gaze. The copyist studied his own hands. The clerk laid the pen down on the receipt — its nib toward the blank cell, like an unhomed needle.
+
+The watchman extended his first finger and pressed it once onto the salt crust. No fingerprint surfaced — only one moist mote. The water drank through the paper, crossed the signature cell, and stopped over the words *the recipient*.
+
+He said: "A contract has its form; a signature has its heart."
+
+The clerk entered the sentence in the ledger; no quotation marks were used. The receipt was still not signed. Yet the wet streak marked the paper with a boundary — like a shore just come to a close.
+
+**Anchor sentence**: no mark was made — and it counts as received.
+**锚句**：不画押，也算签收。
+
+---
+
+## VI · The Ninth Turn of the Sand Table
+
+The Tide Congregation carried the sand table back into the old hall. Its surface showed the harbor, the north end, and the withdrawing sea. Nine knobs stood along the rim. By the old rule, the meeting ends with nine turns; the last one was always carried out by the absent.
+
+No agenda was read aloud for the forty-second meeting. The watchman stood at the table's side; his fingers rested on the first knob. He did not turn it. The copyist asked who would. The watchman looked to the lamp-warden. The lamp-warden looked to the clerk. The clerk looked at the unsigned receipt.
+
+In the end, it was the clerk who set his hand on the knob. He turned it nine times. Each turn swept half a round, and each round the lines on the face receded a notch. The harbor shrank away, the north end opened, and the eight lamps became eight unnamed points.
+
+After the ninth, no new coast emerged. Sand fell from the rim, piling at the table foot. And there it was, cut into the base: the line that the old page kept, and the new volumes always skipped — *the account is returned; it is posted no more.*
+
+The watchman gathered the old book and lifted the cracked lampshade. The Eighth was still burning. Nobody said when it would go out. The harbor gate stood wide; beyond it, no sound of tide.
+
+The clerk set down the last entry: *received*. He did not write the recipient's name.
+
+**Anchor sentence**: at the ninth turn, the account rests.
+**锚句**：第九下，账止于此。
+
+---
+
+## Model mapping (final chapter)
+
+| Category | Title | Corresponds to |
+|---|---|---|
+| lore | The Last Ebb · the Empty Seat · the Old Page · if no one receives, the comer receives | I–VI |
+| geography | The Mist Harbor · the Sea-bed · the Old Hall · the North End · the Gate | I–VI |
+| factions | The Tide Congregation · the Lamp-Warden · the Clerk · the Night-Watchman | I–VI |
+| characters | The Watchman · the Lamp-Warden · the Clerk · the Copyist | I–VI |
+| items | The Blank Receipt · the Old Book · the Eighth Lamp · the Sand Table · the Broken Shade | I–VI |
+| story | The Mist Harbor · the Eighth Lamp · final chapter · The Final Seal | whole |
+| history | The close of the Iron-Moon Age · after the letters · the forty-second meeting that never was | I–VI |
+
+> The tide left first, so the ledger could finally open; the tide returns, so it never closes for good.
+> A signature was never a matter of pen and ink — it was the tide posting a stack of mail the sea never accepted.
+>
+> 潮先走，账才开始；潮再来，账才永远合不上。
+> 签收从不是握笔的事——是潮向海投下一叠寄不走的信。
+`,
+  },
 ] as const;
 
 export const BIBLE_ECHOES: readonly BibleChapter[] = [

@@ -38,6 +38,7 @@ const WEB_SLUGS: Record<string, string> = {
   '003-潮沙盘': '003-the-tide-sand-table',
   '004-第八盏灯': '004-the-eighth-lamp',
   '005-远信': '005-letters-never-posted',
+  '006-最后的签收': '006-the-final-seal',
 };
 
 /** 回响网页 slug（E0N，番外，正典之外），同纪律登记 */
