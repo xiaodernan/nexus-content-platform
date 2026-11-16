@@ -1,4 +1,5 @@
 import { eq, gte, sql } from 'drizzle-orm';
+import { Redis } from 'ioredis';
 import { getDb } from '../db/client';
 import {
   comments,
@@ -158,6 +159,99 @@ export interface PlatformPulse extends Omit<PulseNumbers, 'opens'> {
   trend: PulseTrend;
   recommendations: PulseRecommendation[];
   generatedAt: string;
+}
+
+/**
+ * 30 秒内的请求复用同一份聚合（/pulse 是公开读仪表盘，不是计费凭据面）——不设则每次都打 15 组
+ * count/sum/distinct，洪水之下打穿连接池。门是这里唯一写入的位置，契约不变（仍是完整 PlatformPulse）。
+ */
+const PULSE_TTL_MS = 30_000;
+const PULSE_REDIS_KEY = 'nexus:pulse:aggregate:v1';
+
+let cachedPulse: { at: number; value: PlatformPulse } | null = null;
+let pulseInFlight: Promise<PlatformPulse> | null = null;
+let pulseRedis: Redis | null | undefined; // undefined = 还没试过；null = 这台没配置或用不了
+
+/** 测试用：丢弃缓存，保证用例间无泄漏（含 redis 客户端，重建一次即可） */
+export function resetPulseCache(): void {
+  cachedPulse = null;
+  pulseInFlight = null;
+}
+
+function pulseRedisClient(): Redis | null {
+  if (pulseRedis !== undefined) return pulseRedis;
+  const url = process.env.NEXUS_REDIS_URL;
+  if (!url) {
+    pulseRedis = null;
+    return null;
+  }
+  try {
+    pulseRedis = new Redis(url, {
+      enableOfflineQueue: false,
+      maxRetriesPerRequest: 1,
+      commandTimeout: 250,
+    });
+    pulseRedis.on('error', () => {
+      /* 连不上就算了：读端重算/内存飞行，不让缓存把 503 藏掉 */
+    });
+    return pulseRedis;
+  } catch {
+    pulseRedis = null;
+    return null;
+  }
+}
+
+async function redisGetPulse(): Promise<PlatformPulse | null> {
+  const client = pulseRedisClient();
+  if (!client || client.status !== 'ready') return null;
+  try {
+    const raw = await client.get(PULSE_REDIS_KEY);
+    return raw ? (JSON.parse(raw) as PlatformPulse) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function redisSetPulse(value: PlatformPulse): Promise<void> {
+  const client = pulseRedisClient();
+  if (!client || client.status !== 'ready') return;
+  try {
+    await client.set(PULSE_REDIS_KEY, JSON.stringify(value), 'PX', PULSE_TTL_MS);
+  } catch {
+    /* 写缓存失败不 fail 响应：值已经算准了 */
+  }
+}
+
+/** 测试用：丢弃缓存，保证用例间无泄漏 */
+
+export async function platformPulseCached(
+  now: () => number = Date.now,
+  load: () => Promise<PlatformPulse> = platformPulse,
+): Promise<PlatformPulse> {
+  const t = now();
+  if (cachedPulse && t - cachedPulse.at < PULSE_TTL_MS) {
+    return cachedPulse.value;
+  }
+  if (pulseInFlight) {
+    return pulseInFlight;
+  }
+
+  // 先把 in-flight 登记在案，再进入 redis 探测：并发先到者走到这里会看到非空的 pulseInFlight，
+  // 不会双双进入 load() —— 单飞是薄门的第一纪律（ADR 0094）
+  pulseInFlight = (async (): Promise<PlatformPulse> => {
+    const fromRedis = await redisGetPulse();
+    if (fromRedis) {
+      cachedPulse = { at: now(), value: fromRedis };
+      return fromRedis;
+    }
+    const value = await load();
+    cachedPulse = { at: now(), value };
+    void redisSetPulse(value);
+    return value;
+  })().finally(() => {
+    pulseInFlight = null;
+  });
+  return pulseInFlight;
 }
 
 export async function platformPulse(): Promise<PlatformPulse> {

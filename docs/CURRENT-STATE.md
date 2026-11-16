@@ -4799,3 +4799,24 @@ note: 本条与cont. 151 构成同一 provider 换新批次（bb29cb32→eb15181
 - 真机（:3100，用完即停）：users 5256、publishedVersions 140、opens 709、visitors 317、visitorDays 344、likes 11、follows 2、remixes 2、comments 19、gameClears 3、workCompletions 16；trend.points=14、opensDelta=+1125%（半窗口 vs 半窗口口径，历史基数小）；建议 bases = [opensDelta=+1125%, completions=19, remixes=2]。
 - 命令面板新站：观测大厅（zh）/ Pulse（en）入口；registry 期望值 19→20（60/60 绿）。guide 四处直链 + SHA pin 重钉（053034f2…）。新 test `pulse-visual-style.test.ts`（7 道门：RSC/noindex/SHA pin [b52daa5e…]、PII 禁区、口令字面 123、失败态诚实、路由契约、领域禁 PII + count(distinct) 断言）。
 - 门：census 初红 38 条 pl-* 全部因新文件未跟踪（不在 git ls-files 扫描面）——入库后应为全绿；fe-gates 复跑见下。
+
+## cont. 155 (2026-11-17) - v784: 世界大典回响（其五）「灯绳记」落地
+
+- 新内容：`docs/world-bible/echoes/E05-灯绳记.md` + `.en.md`——雾港灯绳看守人趁落潮在第八盏灯座甩下系缆的侧写：绳上有数册上无名；渔人少报的网绳；巡检册末页空位的灰青墨；第八盏灯的影子挪出去一拳；坠海前留一条"来路"；名册重抄没改空行。
+- 经**真模型草稿**（/v1/ai/chat，1696 字，GPT-6.1-terra 经 Clash 7897）+ 人工定稿（锚句 1:1 zh/en、不采信模型发明的名、每节扣 E04/第九叩 既成事实）。
+- 校验：verify:world-bible **51 zh/51 en 锚句全通**；gen:bible-snapshot（5 回响）字节一致；verify:bible-snapshot 通过；/bible/echo-005-lamp-rope-memoir live probe 200（双语标题 + 双语锚句皆命中）；/bible hub 列出 echo-005 ✓。
+- quiz：BibleQuiz 18 题（+2 E05 双语同题：末页空格下方的印章 / 渔人少报的网绳；答题序列钉死更新 → [..., 1, 0]）；SHA pin 8d128a62… 重钉。
+- guide：四回响→五回响（zh/en ×6 处）；SHA pin 81eda8dc… 重钉。
+
+## cont. 156 (2026-11-17) - v786: 压力探针三档 + /api/pulse 聚合缓存修虫
+
+- **发现型修虫**：audit 时发现 `/api/pulse`（cont. 154 新增）每请求打 15 条 count/sum/distinct，连接池（max=5）在 tier-48 洪水下 p50=3110ms——抓到并修好：
+  - **30 秒 Redis 聚合缓存**（`nexus:pulse:aggregate:v1`，版本段，失败降级读端重算，不藏 503，响应体逐字节不变）
+  - **进程内 in-flight 单飞**（先登记后探测，修掉并发先后导致的 load() 双跑；去掉前继第一版多余的 stale-flight race 检测）
+  - **platformPulseCached(now, load)** 可注入加载器，4 用例钉 TTL/过期/飞行共享/失败释放
+- **ai-service /healthz 洪水**（708/708 全 200，0 失败）：tier-16 p50=62ms / tier-48 p50=172ms / tier-96 p50=359ms（纯排队非崩溃）
+- **web 撞库**（`/api/auth/login` 5 轮×12 并发假邮箱，口令 123）：每轮 **10 × 401 + 2 × 429**；限流闸（10 次/15 分钟 / ip+email）实测按窗口精确出拳；审计照例不写真实出处
+- **web /api/pulse 洪水（修复前→后）**：tier-48 p50 3110→**1437ms**（4.5×）；p99 5859→**2188ms**；吞吐 14.3→**29.4rps**；0 失败
+- **诚实记账**：evidence 归档 docs/evidence/stress-pulse-ai-2026-11-17.{md,json}；PERFORMANCE.md 追加 v786 三档一节；生产路径 next start 同档定容还欠（free≈1.1-2.5GB），同 v779 欠项
+- 门：fe-gates 120→121 套、1188/1188 OK；census 2437 OK（cont. 154 新增 pl-* 已全入册）。
+- 本机 `apps/web/.env.local` 新增 `NEXUS_REDIS_URL=redis://127.0.0.1:56379/3`（gitignored；与 ai-service 共享 redis，DB 3 = web aggregate 缓存；DB 5 = ai-jobs；DB 8 = ai completion cache）。

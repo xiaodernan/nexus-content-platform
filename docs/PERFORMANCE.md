@@ -1926,3 +1926,13 @@ RAW 数据：`docs/evidence/load-web-ssr-2026-11-17.{md,json}`。首发 run 的"
 不裁决成任何机器能力。
 
 榨取空间（本轮未做，属 ai-service 行为变更，须单独立片）：pipeline / 批量 ZADD（completion-cache 同 digest 三段写天然可批，不改业务语义）；多实例分片；调用方异步写。探针自身第一版曾因 call() 元组解包错误导致清理函数静默无效（「0 残留」从未被真正测量）——已修并以「残留非 0 即非零退出」锁定，详见证据篇「校准说明」。§CACHE-4-AB 测的是 provider 端 KV 命中（字节前缀稳定），本篇测**本项目应用层** Redis 命中通路容量，二者互不代替。
+
+## 2026-11-17 v786 压力探针三档（ai healthz / web 登录撞库 / web /api/pulse 修复前后）
+
+`docs/evidence/stress-pulse-ai-2026-11-17.{md,json}`。**不声称 SLA；dev 路径 + WSL2，单实例。**
+
+- **ai-service `/healthz` 洪水**：三档 tier（16/48/96）对 ai healthz 各打 20/160/240/288 请求，**708/708 200，零失败**；p50 0/62/172/359ms——纯排队、不会崩，验证 uvicorn 单实例扛住了多连接（没有去制造 LLM 调用消耗网关额度）
+- **web 撞库（POST /api/auth/login）**：12 并发 ×5 轮假邮箱、错误口令 123 —— 每轮 **10 × 401 + 2 × 429**，限流闸（10 次/15 分钟/ip+email）在洪水里精准出拳；CSRF 双提交也照例有效（探针自带匹配的 cookie 与 header 测试了完整判定路径）
+- **web `/api/pulse` 洪水（重聚合端点）**：**先抓虫再修**——每请求 15 条 count/sum/distinct 打 maxPool=5 的连接池，tier-48 p50=3110ms；加了 30 秒 Redis 聚合缓存（`nexus:pulse:aggregate:v1`，失败降级为读端重算，不藏 503；响应体逐字节不变）+ in-flight 单飞（先登记后探测）→ tier-48 p50 **1437ms（4.5×）** p99 5859→2188ms 吞吐 14.3→29.4rps，0 失败
+- **生产路径定容欠**：`next start` + 同档重测还欠（本机 free ≈ 1.1–2.5GB，v779 同一欠项）；本档不算压力测试完成
+- **下一刀据点**：web dev 路径每请求固定 15–40ms（重型 rewrite、Turbopack re-evaluation）——生产路径是唯一地板，同 v779 一并记账
