@@ -854,5 +854,41 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "en": "only when the ledger shows a discrepancy is the wood truly accounted for.",
     "refZh": "回响（其14） · 六",
     "refEn": "Echo No. 14 · VI"
+  },
+  {
+    "zh": "旧账先于尺寸。",
+    "en": "the old ledger came before any measurement.",
+    "refZh": "回响（其15） · 一",
+    "refEn": "Echo No. 15 · I"
+  },
+  {
+    "zh": "第一镐落在雨里。",
+    "en": "the first pick fell in the rain.",
+    "refZh": "回响（其15） · 二",
+    "refEn": "Echo No. 15 · II"
+  },
+  {
+    "zh": "灰不出门。",
+    "en": "no ash leaves the house.",
+    "refZh": "回响（其15） · 三",
+    "refEn": "Echo No. 15 · III"
+  },
+  {
+    "zh": "坑底一年比一年近。",
+    "en": "the pit's floor draws closer every year.",
+    "refZh": "回响（其15） · 四",
+    "refEn": "Echo No. 15 · IV"
+  },
+  {
+    "zh": "口只留两块砖。",
+    "en": "the mouth keeps exactly two bricks.",
+    "refZh": "回响（其15） · 五",
+    "refEn": "Echo No. 15 · V"
+  },
+  {
+    "zh": "封口以后，仍记灰。",
+    "en": "after the sealing, the ash is still counted.",
+    "refZh": "回响（其15） · 六",
+    "refEn": "Echo No. 15 · VI"
   }
 ] as const;

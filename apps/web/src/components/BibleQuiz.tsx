@@ -259,6 +259,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《柴》里，柴在门槛外放几天才算归屋？', choices: ['一天', '两天', '三天', '五天'], answer: 2, ref: '回响十四 · 四' },
     en: { prompt: 'In “The Firewood”, how many days does the wood wait beyond the threshold before it counts as brought inside?', choices: ['one day', 'two days', 'three days', 'five days'], answer: 2, ref: 'Echo No. 14 · IV' },
   },
+  {
+    zh: { prompt: '《灰坑》里，灰坑在哪里，离门槛几步？', choices: ['门外东墙下，三步', '门内西墙下，六步', '门外西墙下，六步', '灶边，两步'], answer: 1, ref: '回响十五 · 一' },
+    en: { prompt: 'In “The Ash-Pit”, where does the ash-pit lie — and how many paces from the door?', choices: ['outside, by the eastern wall, three paces', 'inside, by the western wall, six paces', 'outside, by the western wall, six paces', 'beside the stove, two paces'], answer: 1, ref: 'Echo No. 15 · I' },
+  },
+  {
+    zh: { prompt: '《灰坑》里，压坑口的旧砖有几块？', choices: ['一块', '两块', '三块', '四块'], answer: 1, ref: '回响十五 · 五' },
+    en: { prompt: 'In “The Ash-Pit”, how many old bricks cover the pit’s mouth?', choices: ['one', 'two', 'three', 'four'], answer: 1, ref: 'Echo No. 15 · V' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

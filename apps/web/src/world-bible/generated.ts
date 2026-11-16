@@ -6717,4 +6717,254 @@ When the last book was filled, the keeper did not seal its end. On the next page
 > 柴进灶火，灰进坑里。
 `,
   },
+  {
+    order: 15,
+    slug: 'echo-015-the-ash-pit',
+    titleZh: '灰坑',
+    titleEn: 'The Ash-Pit',
+    eraLineZh: '纪元：铁月纪之后 · 灰棚之前。',
+    eraLineEn: 'Era: after the Iron-Moon Age · before the grey cover was laid.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 15): The Ash-Pit
+
+> 回响不替正典续写——它只盯着第十四章里，门内西墙下那个六步、一尺半深的灰坑。
+> 本篇写给铁盆从灶膛到坑口的整条路，以及最后封口的那一天。
+> 本篇锚句，与《柴》《碗》同一纪律。
+>
+> An echo does not continue the canon — it only keeps its eyes on the ash-pit six steps in, a foot and a half deep, beneath the room's western wall in Chapter XIV.
+> Written for the whole road the iron basin travels from the stove to the pit's mouth — and the day it finally closed.
+> Its anchors answer to the same discipline as the firewood and the bowl.
+
+> 纪元：铁月纪之后 · 灰棚之前。
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 其一 · 尺寸
+
+灰坑在西墙下，离门六步，深一尺半。六步不是量出来的，是门槛到墙根之间，挑水的人转身不碰灶角，抬盆的人不必侧肩，脚下刚好够走的数。最初记账的人把这段路叫六步，后来的人照着旧账走，谁也没有再量。
+
+一尺半是头一回挖出的深度。那时厨房地面还硬，锄头落下去，湿土只翻起薄薄一片。挖到一尺半，土里见盐，主人便叫停。没人知道那是地气还是旧锅洒下的盐水。尺寸从那天留下，往后只许浅，不许深。
+
+西墙在那里，因为墙后是空地，灰不必绕过屋子，也不必走到门外。灰冷了，才入坑。盆从灶边起，沿墙走，到了第六步便落下。门内的路短，门外的风长。定尺寸的人只为少走一步，后来这一步被写成规矩。
+
+**锚句**：旧账先于尺寸。
+**Anchor sentence**: the old ledger came before any measurement.
+
+---
+
+## 其二 · 第一镐
+
+第一镐是阿澄下的。那年他替灶房劈柴，手上有裂口，没人肯让他端刚出膛的灰。灰坑要挖在门内，不能由烧火的人挖；烧火的人手上总有热，挖土的人须能等。
+
+那天是退潮后的阴雨。院里的水沟露出黑石，檐下滴水没有停。阿澄把镐头靠着西墙试了两次，第三次才敲下去。墙灰落在他肩上，他没掸。挖出的土堆在门外，雨把土压实，第二天仍是一堆。
+
+他挖到一尺半，镐尖碰见一块碎碗。碎碗没有取出，埋在坑底。有人说那是灶房旧物，有人说是前院的。账上只写了：坑底有硬物，未动。阿澄在坑边蹲了片刻，手掌贴着湿土，随后把镐交给掌灶的人。
+
+后来问起第一镐是谁下的，众人都答阿澄。问为什么是他，便没人再答。那年以后，挖坑的人总是刚进门的、手上不能碰热灰的那一个。
+
+**锚句**：第一镐落在雨里。
+**Anchor sentence**: the first pick fell in the rain.
+
+---
+
+## 其三 · 铁盆
+
+铁盆挂在灶门右边，盆耳朝外。铁匠打它时留了两只宽耳，方便戴手套的人提。白天，盆搁在灶旁；夜里，若有灰要冷，便端到门内，放在门槛旁的石板上。门外不许留盆，风会把灰吹进井道。
+
+清灰的人先用短铲刮灶膛。炭块挑出来，未烧尽的柴另放；细灰扫进铁盆，扫帚由掌灶的人拿，短铲由添柴的人拿。若火熄在夜里，屋里最晚离开的人清灶。若火熄在白日，便轮到替灶的人。名字不记，手上的灰会留一阵。
+
+盆不能趁热走。掌灶的人摸盆耳，添柴的人把盆底挪到砖面；再过一段时辰，才由当班的人端起。门内的人提盆，门外的人不能接。出屋的只有旧水和厨余，灰从不越过门槛。到第六步，端盆的人蹲下，另一人掀开两块砖中的外侧一块。
+
+倒灰时，先倾盆，再用木片刮盆底。结块落在坑心，细灰铺向西墙。木片归灶房，盆回石板，压口的人把砖放回原处。灰从灶到坑，经过三双手；有时只两双，有时四双。账里没有手的数目，只记盆空、坑收。
+
+**锚句**：灰不出门。
+**Anchor sentence**: no ash leaves the house.
+
+---
+
+## 其四 · 年数
+
+灰坑用了三十七年。这个数从最后一册账里抄来，第一年写得清楚，末一年只剩半个字。中间有两年没有开灶，灰坑也没有废。停火的人仍把旧灰留在坑里，砖压着口，像把一段没烧完的日子压在墙根。
+
+坑边的砖曾经直立，后来靠着厨余。剥下来的菜叶、碎骨、鱼刺，都是厨余；它们只入墙角的堆，不准进坑。坑边砖若松，便用干土填在外侧，偶尔添一片瓦。没有人拿厨余垫砖。灰坑里有盐味，坑边也有，但两者之间隔着一掌宽的土。
+
+深度一年年变浅。旧灰不全取走，底下又有碎碗、煤块和凝住的湿灰。有人来修坑，只挖松处，不挖旧处。坑底渐高，坑沿不动；后来一尺半只剩一尺，再后来，铁盆的灰倒下去便会碰到旧灰。掌灶的人说够了，便继续用。
+
+最后几年，端盆的人不再蹲，只把灰缓缓倒入。坑面被灰抬高，西墙下多了一条暗线。每逢雨水渗进来，灰便结成薄壳，裂缝里露出旧炭。人们没有再量深度。旧账只记：浅，尚可收。
+
+**锚句**：坑底一年比一年近。
+**Anchor sentence**: the pit's floor draws closer every year.
+
+---
+
+## 其五 · 两块砖
+
+两块旧砖来自拆下的烟道。烟道改短那年，砖从墙里取出，边角带着黑烟痕。四块能用，两块送到灰坑，另两块砌回灶脚。送去的两块一长一短，长砖压内侧，短砖压外侧。外侧那块好掀，里面那块不必常动。
+
+是掌灶的罗嫂压上去的。她在旧账里只留下姓，手印却落在一页油渍上。她说灰要有口，口不能敞；若只压一块，风能掀，若压三块，开口的人便要两手同时使力，盆会落地。两块正好，一手掀一块，一只手还可扶盆。
+
+没人添第三块。不是缺砖，而是第三块压住了两块之间的缝，湿气散不出去。灰受潮会发黑，黑灰粘盆，清不干净。罗嫂把这个缘由说过一次，之后再没人问。旧砖没有刻记号，只凭烟痕朝上，缺角朝西。
+
+两块砖压了三十多年。换过位置，也被翻过面；每次放回去，长砖仍在内，短砖仍在外。后来短砖裂了一道口，裂口里积着灰。压口的人没有换砖，只把它转过去，让裂口贴着长砖。
+
+**锚句**：口只留两块砖。
+**Anchor sentence**: the mouth keeps exactly two bricks.
+
+---
+
+## 其六 · 封口
+
+灰坑填满那天，铁盆端到第六步，灰没有落下去。盆沿碰着坑边，声音很轻，像盐粒敲在空碗底。掌灶的人停住，等当班的人把两块旧砖掀开。坑面已经高过坑沿，最上层是冷灰，下面压着旧灰、碎碗和那枚没有取出的硬片。
+
+按旧账，填满之后由掌灶的人封口；若掌灶的人不在，便由接过铁盆的人封。那天掌灶的人在，她没有再倒灰，只把盆递给添柴的人。添柴的人将盆放回门槛旁的石板，随后取来干土，铺在灰面上。灰土分不出界，倒下去便各自安静。
+
+两块砖没有再压回坑口。罗嫂留下的说法是，满坑不压砖，免得后来的人以为还能开。掌灶的人把砖沿墙竖放，黑烟痕朝外。短砖裂口里藏着灰，她没有抖。添柴的人扫净第六步，扫帚上的灰倒回灶膛。
+
+封口之后，墙根留下两块砖的空印，地上留下盆底的一圈黑。账末只写：坑满，封土；砖留西墙。第二年修灶的人看见空印，照旧把铁盆挂回灶门右边。灰仍冷在门内，六步仍在门槛与西墙之间。
+
+**锚句**：封口以后，仍记灰。
+**Anchor sentence**: after the sealing, the ash is still counted.
+
+---
+
+## 模型映射（回响十五章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 灰坑 · 六步 · 铁盆 · 西墙下 · 旧砖 | 一至六 |
+| geography | 门槛 · 西墙 · 灶间 · 石板 · 坑底 | 一至六 |
+| factions | 掌灶的人 · 添柴的人 · 当班的人 · 清灶的人 | 一至六 |
+| characters | 阿澄 · 罗嫂 · 掌灶的人 · 添柴的人 | 一至六 |
+| items | 铁盆 · 短铲 · 木片 · 两块旧砖 · 灰坑 · 碎碗 | 一至六 |
+| story | 灰棚 · 灰坑 · 回响（其十五） | 全篇 |
+| history | 铁月纪之后 · 灰棚之前 | 一至六 |
+
+> 灰要出口，先得有坑；
+> 坑填到顶，灰没出门。
+>
+> Ash wants an opening; first it needs the pit;
+> the pit fills to the brim, and no ash ever left the house.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其十五）「灰坑」
+
+> An echo does not continue the canon — it only keeps its eyes on the ash-pit six steps in, a foot and a half deep, beneath the room's western wall in Chapter XIV.
+> Written for the whole road the iron basin travels from the stove to the pit's mouth — and the day it finally closed.
+> Its anchors answer to the same discipline as the firewood and the bowl.
+>
+> 回响不替正典续写——它只盯着第十四章里，门内西墙下那个六步、一尺半深的灰坑。
+> 本篇写给铁盆从灶膛到坑口的整条路，以及最后封口的那一天。
+> 本篇锚句，与《柴》《碗》同一纪律。
+
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+> 纪元：铁月纪之后 · 灰棚之前。
+
+---
+
+## I · The Measurement
+
+The ash-pit lay beneath the room's western wall — six paces from the door, a foot and a half deep. The "six paces" had never been measured; they were the distance between the doorway and the wall-foot — the turning room a water-carrier needs without brushing the stove's corner, the width a basin-bearer needs without turning sideways, just enough walking room between threshold and wall. The keeper of the ledger first named that stretch "six steps," and later generations walked it by the old account; no one measured it again.
+
+The foot and a half was the depth first dug out. Back then the kitchen floor was still firm; the hoe came down, and the wet soil rose only in thin flakes. When the digging reached a foot and a half, salt appeared in the earth, and the master called a halt. No one knew whether it was the ground-spirit or salt water spilled from some old pot. From that day the measure remained — from then on, the pit might only grow shallower, never deeper.
+
+The western wall stood there because behind it lay open ground — the ash had no need to skirt the house, nor leave the door. The ash cooled first, then entered the pit. The basin left the stove's side, ran along the wall, and was set down at the sixth step. Inside, the road was short; outside, the wind was long. Whoever fixed the measure did so only to save one step; later, that one step was written into the rule.
+
+**Anchor sentence**: the old ledger came before any measurement.
+**锚句**：旧账先于尺寸。
+
+---
+
+## II · The First Pick
+
+A-Cheng swung the first pick. That year he was splitting wood for the stove-kitchen; his hands bore cracks, and no one would let him carry freshly-drawn stove-ash. The ash-pit had to be dug inside the room, and it could not be dug by the one who fed the fire — a fire-keeper's hands always carry heat; a digger must be able to wait.
+
+The day was a grey drizzle after the ebb. The yard's water-channel showed black stones; the drip beneath the eaves did not stop. A-Cheng rested the pick's head against the western wall twice; only the third time did he strike. Wall-ash fell across his shoulder; he did not brush it off. The dug soil was heaped beyond the door; the rain packed it down, and the next day it was still one mound.
+
+He dug to a foot and a half; the pick struck a fragment of bowl. The bowl was not taken out; it was buried in the pit's base. Some said it had belonged to the stove-kitchen; others, to the front yard. The ledger recorded only: an object lies at the pit's bottom — left untouched. A-Cheng squatted by the pit's edge for a while, pressed his palm against the damp soil, then passed the pick to the one who kept the stove.
+
+Later, when people asked who had struck the first pick, all answered A-Cheng. When they asked why it had been him, no one answered again. From that year on, the one who dug the pit was always the newest hand — the one whose hands could not touch hot ash.
+
+**Anchor sentence**: the first pick fell in the rain.
+**锚句**：第一镐落在雨里。
+
+---
+
+## III · The Iron Basin
+
+The iron basin hung at the right side of the stove's mouth, its ears facing outward. The smith had left it two broad ears, so gloved hands might lift it. By day, the basin rested beside the stove; by night, if ash needed to cool, it was carried inside and set on the flag-stone by the threshold. Outside, the basin was never left — the wind would carry the ash into the well-path.
+
+The keeper of the ash first scraped the stove-box with a short shovel. The charcoal was picked out; the unburned wood set aside; the fine ash swept into the basin — the broom in the hands of the one who kept the stove, the short shovel in the hands of the one who fed it. If the fire died by night, the last one out of the room cleared the stove. If it died in daylight, the task fell to the stove's deputy. No name was recorded — the ash lingered on the hands for a while.
+
+The basin could not be carried away hot. The stove-keeper touched its ears; the wood-feeder moved its base onto brick; only after a further interval did the one on duty lift it. Those inside carried the basin; no one outside received it. Only old water or kitchen-scraps left the house — ash never crossed the threshold. At the sixth step, the basin-bearer squatted; another lifted the outer of the two bricks.
+
+In pouring, the basin tipped first; then a wooden strip scraped its base. The clods fell into the pit's centre; the fine ash spread toward the western wall. The strip returned to the kitchen; the basin to its flag-stone; the one who set the cover put the brick back. The ash passed from stove to pit through three pairs of hands — sometimes two, sometimes four. The ledger kept no count of hands; only that the basin was empty, and the pit received.
+
+**Anchor sentence**: no ash leaves the house.
+**锚句**：灰不出门。
+
+---
+
+## IV · The Years
+
+The pit served for thirty-seven years. That number was copied from the final ledger-book; its first year was written plainly, its last survives only as half a character. Two of those years saw no fire lit — and the pit was not abandoned. The ones who allowed the fire to die still kept the old ash in the pit, the brick laid upon its mouth, as if a span of half-unburned days were pressed against the wall-foot.
+
+The bricks beside the pit once stood upright; later they leaned against the kitchen-scraps. Stripped leaves, broken bones, and fish-spines were all kitchen-scraps; they went only to the heap at the wall's corner — never into the pit. If a brick at the pit's edge loosened, dry soil was packed on its outer side, and sometimes a shard of tile added. No one used kitchen-scraps to wedge a brick. The pit smelled of salt, as did its edge — but between the two lay a palm's width of earth.
+
+Depth grew shallower year by year. The old ash was never fully removed; below it lay the bowl's shard, lumps of coal, and the damp ash set firm. When someone came to mend the pit, they dug only the loose places, never the old ones. The pit's floor rose; its rim stayed put. In time the foot and a half shrank to one; later still, pouring the basin's ash in would touch the old ash. The stove-keeper said it was enough — and the pit went on in use.
+
+In the final years, the basin-bearer no longer squatted; the ash was simply poured in, slowly. The pit's surface rose; a dark line appeared beneath the western wall. Whenever rain seeped in, the ash set into a thin crust; the cracks revealed old charcoal. No one measured the depth again. The old ledger recorded only: shallow — still able to receive.
+
+**Anchor sentence**: the pit's floor draws closer every year.
+**锚句**：坑底一年比一年近。
+
+---
+
+## V · The Two Bricks
+
+The two old bricks came from the demolished flue. The year the flue was shortened, the bricks were taken out of the wall — their edges still bearing black smoke-marks. Four were fit to use; two were sent to the ash-pit; the other two were re-laid at the stove's foot. The two that went were one long, one short — the long brick pressed the inner side, the short brick the outer. The outer brick lifted easily; the inner one seldom needed to move.
+
+It was Aunt Luo, who kept the stove, who laid them there. The old ledger kept only her surname; her palm-print remained on a page stained with grease. She said the ash must have a mouth — and the mouth must not stand open; if only one brick were laid, the wind could lift it; if three were laid, whoever opened it would need both hands at once, and the basin would fall. Two was exactly right — one hand to lift a brick, the other still free to steady the basin.
+
+No third brick was ever added — not for want of bricks, but because a third would have covered the seam between the two, and the damp would not have escaped. Ash that drinks the damp turns black; black ash sticks to the basin and cannot be cleaned. Aunt Luo said this once — afterwards no one asked again. The old bricks carried no markings; they were judged only by their smoke-marks facing upward, and their missing corners facing west.
+
+The two bricks held for over thirty years. Their positions were swapped; they were turned over as well; each time they were set back, the long brick returned inside, the short brick outside. In time the short brick split along one line; ash gathered in the split. The one who set the cover did not replace the brick; he merely turned it so the split faced the long brick.
+
+**Anchor sentence**: the mouth keeps exactly two bricks.
+**锚句**：口只留两块砖。
+
+---
+
+## VI · The Sealing
+
+On the day the pit filled, the iron basin was carried to the sixth step, and the ash did not fall. The basin's rim met the pit's edge with a soft sound — like salt-grains knocking the bottom of an empty bowl. The stove-keeper stopped, and waited for the one on duty to lift the two old bricks. The pit's surface had risen above its rim; the topmost layer was cold ash, beneath it old ash, the fragment of bowl, and that unrecovered hard piece.
+
+By the old account, once the pit was full, the keeper of the stove would seal it; if the stove-keeper was absent, the one who had taken the basin would do it. That day the stove-keeper was present; she did not pour again. She passed the basin to the wood-feeder. The wood-feeder set the basin back on the flag-stone beside the threshold, then fetched dry soil and spread it over the ash. Ash and soil could not be told apart; poured together, they were each at peace.
+
+The two bricks were not laid upon the pit's mouth again. Aunt Luo had left one saying: never lay bricks on a full pit — lest those who come after believe it can still be opened. The stove-keeper set the bricks upright against the wall, their smoke-marks facing out. Ash clung in the short brick's split; she did not shake it out. The wood-feeder swept the sixth step clean; the broom's sweepings went back to the stove-box.
+
+After the sealing, two brick-shaped voids remained against the wall-foot; on the ground, one black ring from the basin's base. The ledger's final line read only: pit full — sealed with soil; bricks left at the western wall. The next year the stove's mender saw the voids, and hung the iron basin at the right side of the stove's mouth as before. The ash went on cooling inside; the six steps remained between the threshold and the western wall.
+
+**Anchor sentence**: after the sealing, the ash is still counted.
+**锚句**：封口以后，仍记灰。
+
+---
+
+## Model mapping (echo No. 15)
+
+| Category | Title | Corresponds to |
+|---|---|---|
+| lore | The Ash-Pit · Six Steps · the Iron Basin · the Western Wall · the Two Old Bricks | I–VI |
+| geography | The Threshold · the Western Wall · the Kitchen · the Flag-Stone · the Pit's Floor | I–VI |
+| factions | The Keeper of the Stove · the Wood-Feeder · the One on Duty · the One Who Cleared the Stove | I–VI |
+| characters | A-Cheng · Aunt Luo · the Stove-Keeper · the Wood-Feeder | I–VI |
+| items | The Iron Basin · the Short Shovel · the Wooden Strip · the Two Old Bricks · the Ash-Pit · the Bowl's Shard | I–VI |
+| story | The Grey Cover · the Ash-Pit · Echo (No. 15) | whole |
+| history | After the Iron-Moon Age · Before the Grey Cover Was Laid | I–VI |
+
+> Ash wants an opening; first it needs the pit;
+> the pit fills to the brim, and no ash ever left the house.
+>
+> 灰要出口，先得有坑；
+> 坑填到顶，灰没出门。
+`,
+  },
 ] as const;
