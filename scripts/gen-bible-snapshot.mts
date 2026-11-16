@@ -37,6 +37,7 @@ const WEB_SLUGS: Record<string, string> = {
   '002-潮汐教团的第四十一次会议': '002-the-forty-first-convocation',
   '003-潮沙盘': '003-the-tide-sand-table',
   '004-第八盏灯': '004-the-eighth-lamp',
+  '005-远信': '005-letters-never-posted',
 };
 
 /** 回响网页 slug（E0N，番外，正典之外），同纪律登记 */

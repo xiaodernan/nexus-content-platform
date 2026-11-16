@@ -4820,3 +4820,12 @@ note: 本条与cont. 151 构成同一 provider 换新批次（bb29cb32→eb15181
 - **诚实记账**：evidence 归档 docs/evidence/stress-pulse-ai-2026-11-17.{md,json}；PERFORMANCE.md 追加 v786 三档一节；生产路径 next start 同档定容还欠（free≈1.1-2.5GB），同 v779 欠项
 - 门：fe-gates 120→121 套、1188/1188 OK；census 2437 OK（cont. 154 新增 pl-* 已全入册）。
 - 本机 `apps/web/.env.local` 新增 `NEXUS_REDIS_URL=redis://127.0.0.1:56379/3`（gitignored；与 ai-service 共享 redis，DB 3 = web aggregate 缓存；DB 5 = ai-jobs；DB 8 = ai completion cache）。
+feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158, v788 + 157, v787）
+
+- 第五章《远信》正典落地。序章给出的纪律照旧：正典第四章把续写权交给每一个到潮沙盘的读者，本章是那笔签收的行动——「远信匣」、四道印没名字的信、守灯人没拆的信、铁月纪尾声收不走的匣、
+  6 节机器逐字 zh/en（/v1/ai/chat 真模型草稿 2121 字 + 人工定稿、锚句 6 组 ×2 语）
+- verify:world-bible 57/57（→57 +6 锚）；gen:bible-snapshot 5 章+5 回响；verify:bible-snapshot 字节一致；
+  live probe /bible/005-letters-never-posted 200；/bible hub 入集
+- BibleQuiz 20 题（+2 E05 双语题，答题序列 [..., 3, 2]）；SHA pin d01b8bc3… 重钉
+- guide：四章→五章（zh/en ×6 处）；新增双语「AI 是怎么在这里说话的（StateGraph 小课）」整节（cont. 157，单独提交 b72cd05b，pin 重钉 → a9487ae8… → 43212e0b…）
+- 门：fe-gates 121 套 1188/1188 OK；census 2437 OK

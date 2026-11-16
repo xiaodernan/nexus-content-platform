@@ -1247,6 +1247,276 @@ On the last page of the patrol road the Night Watcher wrote: “It has seen the 
 > 还有续写，不在这一本里——潮汐室里没有门，但每个读完的人都在门口站过。
 `,
   },
+  {
+    order: 5,
+    slug: '005-letters-never-posted',
+    titleZh: '远信',
+    titleEn: 'Letters Never Posted',
+    eraLineZh: '纪元：铁月纪的尾声 · 第四十一次会议之后。',
+    eraLineEn: 'Era: the close of the Iron-Moon Age · after the forty-first convocation.',
+    markdownZh: `# The Whispers' Kings / The Whispers' Kings · World Bible · Chapter V: Letters Never Posted
+
+> 大典第四章自称"终卷"，却又把续写权交给每个到潮沙盘读过的人——这一章就是那笔未完成签收的行动。
+> 第五章不是续作，是收信的延长：它不接 Oath IV 的刀，只接没人去接的那一叠信。
+> 正典纪律不变：锚句中英字字对齐，引用者逐字保持。
+>
+> Chapter IV called itself the final volume — then handed the pen to everyone who came through the table.
+> This is that trespass, carried out in slow motion: not a sequel, another day of the mail that will not go.
+> Canon discipline is unchanged — anchor sentences match word-for-word; no rephrasing.
+
+> 纪元：铁月纪的尾声 · 第四十一次会议之后。
+> Era: the close of the Iron-Moon Age · after the forty-first convocation.
+
+---
+
+## 一 · 立在灯底下的远信匣
+
+铁月纪最后几次涨潮时，海灯底下立起一只远信匣。匣身用旧船板钉成，投口向着陆地，锁孔却朝海。没有人记得是谁把它搬来，也没有人记得该由谁开锁。账房在簿上添了一行，写明其所在，不写其来处。
+
+灯一亮，就有人走近它。
+
+他们不总带着信。有的人只把手放进衣襟，按一按那张折过多次的纸；有的人站到灯灭，才转身回去。偶尔有人投下一封，听见纸落在木底，便像听见门后有人应声。夜里涨潮，匣脚泡在水中，锁孔里积着盐。天明时，来人仍照旧站在灯下。
+
+远方的人开始寄信。寄信的路却没有因此变短。海灯照得见信匣，照不见海那边的收信人。每一封信落下之前，都先在手里停过一夜；有些停到纸边发软，有些停到写信的人不再来。
+
+账房把未取的信记作在匣，把未投的信记作未成。两项之间没有路，只有灯影。
+
+**锚句**：灯亮时，匣前有人。
+**Anchor sentence**: when the lamp is lit, someone stands before the box.
+
+---
+
+## 二 · 第八盏灯的信
+
+第八盏灯这天终于有了自己的一封信。
+
+那天没有风，灯焰却偏向海面。信从匣底取出时，纸上没有署名，也没有日期。封口压着潮汐教团全会的四道印：一方在左，一方在右，两方叠在折缝上。印泥未干，纸已吸饱海气。
+
+账房不肯把它列作来信。收件人栏空着，送信人栏也空着。有人说它属于灯，有人说它属于开会的人。守灯者没有开口，只把信放到第八盏灯的底座上。灯影落在四道印上，像四扇关不严的门。
+
+会后，众人各自带走了自己的副本，唯独这封没有副本。印章的边缘压穿纸背，背面也留着四道浅痕。收件人没有来认领。第八盏灯照常点燃，照常熄灭，底座上的信没有挪动。
+
+往后的账页上，仍有空栏。账房每次翻到这一页，都把纸角压平，不在空处落笔。
+
+**锚句**：四印之下，没有姓名。
+**Anchor sentence**: beneath the four seals, no name.
+
+---
+
+## 三 · 信绳
+
+信绳起初只是新缆。海堤修补之后，送来的缆绳短而硬，表面留着船钉磨过的白痕。有人把它穿过信匣侧面的环，给投信的人留一段握手的地方。后来，绳子从环上解下，又系回去；结法换了三次，名字却留下了。
+
+送信人教人系绳。他不教结要多紧，只教绳头先绕过腕，再绕过信封。信若未能投出，手一松，绳便牵着人退回灯下；信若已经落入匣中，绳仍系在腕上，须等灯灭后才能解开。有人照做，有人把绳剪短，藏进袖口。
+
+旧账里有《灯绳记》。那时的绳连着灯，也连着守灯的人；绳断，灯下便不再有人替谁守夜。如今，绳从灯旁牵到信匣，灯没有被牵走，写信的人却学会把自己拴在信上。
+
+潮水来时，新缆在石环间轻轻摩擦。守堤人听见那声音，便知道有人试过一次，又没有投信。绳上留下盐，结里没有信。
+
+**锚句**：绳系住手，不系住路。
+**Anchor sentence**: the rope ties the hand, not the road.
+
+---
+
+## 四 · 收讫与不收讫
+
+收讫与不收讫，各有一笔账。
+
+账房看见封口完整，便写"收讫"；看见信纸未出匣，便写"不收讫"。他不问信中写了什么，也不问那道印是为谁盖的。纸送到他的桌上，便从海边的账转到账房的账。墨水干了，账页合上，信仍在原处。
+
+收件人不认印。他说印不是写给他的，信也没有叫他的名字。他将信推回桌心，手指留在纸缘，没有再碰。到夜里，他把空栏夹在一册旧账中，第二天又来问那封信是否已经寄出。
+
+送信人说，他已送到匣前。他不说投递，也不说完成。那日他站在第八盏灯下，腕上没有绳，掌心却有一道浅红。账房要他按印，他没有按。收件人要他作证，他也没有作证。
+
+三种人围着同一张纸，各自说了一个词：收讫、不收讫、送到。纸上仍没有署名。潮水退下去时，三人的影子留在桌边，谁也没有把信带走。
+
+**锚句**：三人各记一笔，无人认领。
+**Anchor sentence**: three people, three ledgers — no one claims it.
+
+---
+
+## 五 · 最后一封信的人
+
+最后一封信接收的人，是海堤最北端唯一活着的守夜人。
+
+信送到时，堤上的灯已经熄了。他在门内听见敲击，开门后只看见一段绳，绳头夹着信封。送信人不在堤上，海面也没有船。守夜人解下绳，把信带进屋，放在守夜簿旁边。屋里只有一盏油灯，火舌低得照不全纸面。
+
+信上没有称呼，也没有印。守夜人没有拆封。他先记下收到的时刻，随后划掉那一行；又在同一处写下"未收"。墨迹穿过纸背，落到下一页。那一夜他照常巡堤，每到一盏灯下便停一会儿，等远处有无回声。
+
+清晨，海堤尽头没有人来换班。他回屋，信封仍在簿旁，绳压住封口。桌上多了一道潮痕，恰好穿过他划掉的字。他把守夜簿合上，没有把信放入匣中，也没有把它丢进火里。
+
+此后，北端仍有人值夜。簿上不再写姓名，只写灯数。
+
+**锚句**：他收下信，没有拆开。
+**Anchor sentence**: he took the letter; he never opened it.
+
+---
+
+## 六 · 铁月纪的尾声，与后铁
+
+铁月纪在一张未填完的账页上结束。潮汐教团第四十一次会议之后，旧纪年没有立刻撤下。账房照旧记潮，守灯者照旧点灯，远方的人照旧把信拿到海边。寄出与否，仍取决于那只手在灯下停多久。
+
+后铁到来时，远信匣没有被收走。它曾靠在壁炉边，匣底留下烧黑的木屑；后来有人把它挪到大门口。锁孔朝向海，投口朝向陆地，匣身没有换板。门每开一次，风便把灰吹进匣内。有人扫去灰，有人不扫。
+
+大门外的路不通向邮站，只通向堤岸。灯一亮，仍有人从路上走来。他们把信握在衣襟里，站到门前，听屋内的钟响。偶尔有纸落入匣底。更多时候，来人转身离开，信还贴在胸口。
+
+账房把新纪年的第一行留给收件人。那一栏没有字。门内的匣没有移动，门外的潮水照常涨落。后来的人查账，只能查到它还在，不见哪一封真正到达。
+
+**锚句**：匣未收走，门已成岸。
+**Anchor sentence**: the box was never taken away; the gate had become the shore.
+
+---
+
+## 模型映射（第五章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 远信匣 · 四道印 · 信绳 · 收讫与不收讫 | 三、四 |
+| geography | 雾港 · 海灯 · 海堤最北端 · 大门口 | 一、三、四、五、六 |
+| factions | 雾港灯人 · 潮汐教团 · 账房 · 送信人 | 一至六 |
+| characters | 账房 · 送信人 · 收件人 · 守夜人 · 守灯者 | 一至六 |
+| items | 远信匣 · 新缆 · 守夜簿 · 印章 · 守夜绳 | 一至六 |
+| story | 雾港 · 第八盏灯 · 第五章·远信 | 全篇 |
+| history | 铁月纪的尾声 · 后铁 | 一至六 |
+
+> 谜没有第二封信。谜是第一封落下时落进了木底的那一个回声。
+> 谜没有拆开。谜只允许灯记住，谁在门前站了多久。
+>
+> The mystery hides no second letter; it hides the echo of the first as it landed.
+> The mystery does not open; it only lets the lamp register how long someone stood there.
+`,
+    markdownEn: `# 低语诸王 / The Whispers' Kings · World Bible · 第五章「远信」
+
+> Chapter IV called itself the final volume — then handed the pen to everyone who came through the table.
+> This is that trespass, carried out in slow motion: not a sequel, another day of the mail that will not go.
+> Canon discipline is unchanged — anchor sentences match word-for-word; no rephrasing.
+>
+> 大典第四章自称“终卷”，却又把续写权交给每个到潮沙盘读过的人——这一章就是那笔未完成签收的行动。
+> 第五章不是续作，是收信的延长：它不接 Oath IV 的刀，只接没人去接的那一叠信。
+> 正典纪律不变：锚句中英字字对齐，引用者逐字保持。
+
+> Era: the close of the Iron-Moon Age · after the forty-first convocation.
+> 纪元：铁月纪的尾声 · 第四十一次会议之后。
+
+---
+
+## I · The Letters-Box Set Under the Lamp-Foot
+
+In the last spring-tides of the Iron-Moon Age, a letters-box was set under the sea lamp. Its boards had been stripped from a wreck and nailed together by hand; the slot faced the land, yet the lock-eye faced the sea. Nobody remembered who had carried it there, nor who was to open it. The bursar added one line to the ledger — where it now stood, and nothing of where it came from.
+
+When the lamp was lit, someone would come to it.
+
+Not all of them carried letters. Some only set a hand to their chests — feeling a paper folded too many times already. Some stood until the lamp went out, then turned away. Every so often a letter dropped, and they listened to it land — like a voice answering from the far side of the door. At night, the tide rose over the box foot, and salt gathered in the lock-eye. By morning, the lamplight had them back.
+
+Far-off people began to post letters; the road refused to shrink. The lamp shed light on the box, never across the water. In the instant before a letter dropped, every hand paused a night — some letters softened at the corners; some never made it out again.
+
+The bursar logged undelivered letters as *in box*, unsent letters as *never*. Between the two columns there was no road — only the lamplight lying there.
+
+**Anchor sentence**: when the lamp is lit, someone stands before the box.
+**锚句**：灯亮时，匣前有人。
+
+---
+
+## II · A Letter for the Eighth Lamp
+
+On that day, the Eighth Lamp finally received its letter.
+
+No wind moved — yet the flame leaned out to sea. Drawn out from under the box boards, the page carried no sender, no date. Its seal pressed down with the four marks of the whole Conclave: one on the left, one on the right, two stacked on the fold. The wax was barely set; the paper had already drunk its share of salt air.
+
+The bursar would not list it among incoming mail. The receipt column stayed blank; the sender column stayed blank. Some said the letter belonged to the lamp, others held it belonged to those who sat in the meeting. The lamp-warden did not speak — she laid it on the Eighth Lamp's base, and the lamplight fell across the four wax marks — like four doors with warped frames.
+
+After the meeting, everyone carried their copy; this one was the only without a copy. The edges of the seal cut through the backing paper; four shallow tracks showed on its reverse. No one came to claim it. The lamp lit on schedule, died on schedule, and the letter on the base never moved.
+
+On the ledger page afterwards, there was room for the same blank cell. The bursar pressed the page corners flat when he came to it — and never wrote the empty line.
+
+**Anchor sentence**: beneath the four seals, no name.
+**锚句**：四印之下，没有姓名。
+
+---
+
+## III · The Letter-Rope
+
+The letter-rope began as new mooring line. After the dyke was repaired, the lines arrived short and hard; their surfaces still bore the white scars of boat nails. Somebody threaded one through the box's side eye — leaving enough run of line for the posting hand to hold. The rope was off and on again three times; the knots it carried were retied — its name stuck.
+
+The courier taught people how to bind it. He would not teach about tightness. He taught: pass the line over the wrist first, then around the letter-packet. If the letter never made it to the box, the hand had only to open — and the line would draw someone back toward the lamp. If the letter was already inside, the line still ran around the wrist, and could not be undone until the lamp died. Some wore it through the wrist as taught; others clipped the rope short and hid it under their sleeves.
+
+In the old-book chest lay *The Lamp-Rope Memoir* — in that one, the line bound the lamp to the lamp-watcher; when the rope snapped, the lamp stood alone on the dyke, and nobody stayed to watch. Now the rope ran from the lamp to the box instead — the lamp unneeded, the letter-writers bound to the letter.
+
+When the tide came in, the new line scuffed against the stone eyelets. The dyke-keeper heard it and knew someone had tried — again, and not dropped. Salt stayed on the rope. Knots kept no letters.
+
+**Anchor sentence**: the rope ties the hand, not the road.
+**锚句**：绳系住手，不系住路。
+
+---
+
+## IV · Received and Never Received
+
+Two ledgers were kept side by side: *received*, and *never received*.
+
+The bursar saw the seal whole, and entered *received*; saw the band still intact, and entered *not received*. He asked nothing of the paper's contents, nothing of whose authority the four stamps were. Once it reached his desk, a letter crossed from the sea-ledger to the bursar's ledger. The ink dried, the pages closed, and the letter itself remained where it had been.
+
+The recipient never accepted any seal. He said the seal was not for him; the letter had never called his name. He pushed it back into the middle of the table — one finger kept on its edge, never to touch it again. At night he folded the blank cell into an old ledger; the next morning he came back and asked if the letter had been posted.
+
+The courier said he had delivered the letter to the box. He would not say *posted*, nor *complete*. On the day, he stood beneath the Eighth Lamp, no rope on his wrist, a shallow red line across his palm. The bursar ordered him to stamp; he did not. The recipient asked him to witness; he did not witness.
+
+Three people, one paper between them — one word each: *received*, *never received*, *delivered*. The page held no sender. As the tide withdrew, three shadows lingered on the table; not one took the letter.
+
+**Anchor sentence**: three people, three ledgers — no one claims it.
+**锚句**：三人各记一笔，无人认领。
+
+---
+
+## V · The One Who Would Receive the Last Letter
+
+The receiver of the last letter was the only living night-watchman at the far north end of the sea dyke.
+
+The letter was delivered by a knock at the door after the lamps had gone out. He opened to a segment of line — a letter packet bound to its tail. The courier was not on the dyke; the sea held no boat. The watchman unthreaded the line and brought the letter inside, laying it next to the night-watch book. One oil lamp burned indoors; the flame stood so low it could not fill the page with light.
+
+The envelope carried no greeting, no mark from any seal. The watchman did not open it. He entered the hour of receipt — then struck it out; on the same line he wrote *unreceipted* — the ink went through the back alighting on the page after it. That night he walked his round; at each lamp he lingered a little — listening for an echo from afar.
+
+At daybreak, no one came to relieve him at the dyke's end. He returned to his room to find the envelope still propped against the book; the line lay across the opening. On the table there sat a damp tidal streak that crossed his struck-out words exactly. He shut the book; he did not place the letter in the box, nor throw it into the fire.
+
+Since then there have always been watchmen at the far end. The book no longer lists names — only the count of the lamps.
+
+**Anchor sentence**: he took the letter; he never opened it.
+**锚句**：他收下信，没有拆开。
+
+---
+
+## VI · Late Iron-Moon · the Days After Iron
+
+The Iron-Moon Age closed on the page of an unfinished ledger. After the forty-first meeting, the old year was not dismantled at once. The bursar kept his tide-ledgers; the lamp-watchers kept their lamps; the people kept carrying their letters to the sea. Whether a letter went through depended on how long that hand lingered below the flame.
+
+As the days after iron took root, the letters-box was never pulled down. It had leaned against a hearth; soot blackened its bottom rails; later somebody carried it to the gate mouth. The slot faced the land, the lock-eye faced the sea, boards never replaced. Each time the gate swung open, the wind whatever came through it blew ash over the slot's inside. Some swept it out; some didn't.
+
+The road from the gate ends at the dyke — it does not lead to any mail waystation. When the lamp is lit, someone still walks it. They hold letters against their chests and stand before the door listening for the clock indoors. Occasionally one slips down into the box. More often they turn away with the letter still pressed to their hearts.
+
+The bursar left the first line of the new year for the recipient. That cell was left blank. The box inside the door stayed where it was; the tide outside rose and fell on schedule. Later archivists could prove only the box itself still stood in place; they could not prove that any letter had ever arrived.
+
+**Anchor sentence**: the box was never taken away; the gate had become the shore.
+**锚句**：匣未收走，门已成岸。
+
+---
+
+## Model mapping (Chapter V)
+
+| Category | Title | Corresponds to |
+|---|---|---|
+| lore | The Letters-Box · the Four Seals · the Letter-Rope · Received / Never Received | III, IV |
+| geography | The Mist Harbor · the Lamps · the Dyke's North End · the Gate Mouth | I, III, IV, V, VI |
+| factions | The Lamp-Watchers · the Tide Congregation · the Bursar · the Couriers | I–VI |
+| characters | The Bursar · the Courier · the Recipient · the Watchman · the Lamp-Warden | I–VI |
+| items | The Letters-Box · the New Mooring · the Night-Watch Book · the Seal · the Rope | I–VI |
+| story | The Mist Harbor · the Eighth Lamp · Chapter V · Letters Never Posted | whole |
+| history | The close of the Iron-Moon Age · the days after iron | I–VI |
+
+> The mystery hides no second letter; it hides the echo of the first as it landed.
+> The mystery does not open; it only lets the lamp register how long someone stood there.
+>
+> 谜没有第二封信。谜是第一封落下时落进了木底的那一个回声。
+> 谜没有拆开。谜只允许灯记住，谁在门前站了多久。
+`,
+  },
 ] as const;
 
 export const BIBLE_ECHOES: readonly BibleChapter[] = [

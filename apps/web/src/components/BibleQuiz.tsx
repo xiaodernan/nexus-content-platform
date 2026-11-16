@@ -139,6 +139,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《灯绳记》里，渔人少报了什么？', choices: ['一段网绳', '一袋鱼鳞', '一抹湿纸', '一盏灯'], answer: 0, ref: '回响五 · 一抹湿纸' },
     en: { prompt: 'In "The Lamp-Rope Memoir", what did the fisherman under-report?', choices: ['a length of net', 'a bag of fish scales', 'a sheet of wet paper', 'a lamp'], answer: 0, ref: 'Echo No. 5 · A Smear of Wet Paper' },
   },
+  {
+    zh: { prompt: '《远信》里，第八盏灯最终收到了什么？', choices: ['没有寄出的名字', '四道印章的来信', '一张只有一个字的纸', '一封信'], answer: 3, ref: '第五章 · 二' },
+    en: { prompt: 'In “Letters Never Posted”, what did the Eighth Lamp finally receive?', choices: ['a name that never shipped', 'four sealed wax marks', 'a single-glyph sheet', 'a letter'], answer: 3, ref: 'Chapter V · II' },
+  },
+  {
+    zh: { prompt: '《远信》里，账房怎样记录未出匣的信？', choices: ['记作"在匣"', '记作"未成"', '两格分开、栏目之间没有路', '记作"收讫"'], answer: 2, ref: '第五章 · 一' },
+    en: { prompt: 'In “Letters Never Posted”, how does the bursar record letters never dropped?', choices: ['under “in box”', 'under “never”', 'two cells apart, no road between', 'under “received”'], answer: 2, ref: 'Chapter V · I' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {
