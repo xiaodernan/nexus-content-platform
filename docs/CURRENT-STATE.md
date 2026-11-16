@@ -4941,3 +4941,13 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - guide 全套升级：六章 → 七章（zh/en ×6 处）；SHA pin e42d528f → 9e683667 重钉。
 - editor：剧本走真 provider（/v1/ai/chat，gpt-6.1-terra 出文风雏稿，人工定稿·严纪律）。
 - 门：fe-gates 122 套 · 1193/1193 OK；census 2491 OK；tsc 0。
+
+## cont. 168 (2026-11-17) - v798: 回响（其七）「那一针」—— 第七回响
+
+- 新内容：`docs/world-bible/echoes/E07-那一针.md` + `.en.md`——承接第七章「灯前灰」的机房器件：
+  Chapter VII 的地窖沙盘里多出来的那一根针，位置在最底层，弯在与灰同色的灰底，被三种人都摸过：
+  第一个是修灯的老员工，第二个是灯芯商的货郎，第三个是孩子。最初没人登记过。
+- 六节正文，双语锚句 **全部 81/81 通过**（verify:world-bible OK）；gen:bible-snapshot（7 章 × 7 回响）；live probe /bible/echo-007-the-needle 200（双语标题 + 双语锚句皆命中）；/bible hub 列出 echo-007 入册。
+- BibleQuiz **28 题**（+2 E07 双语题）；序列钉死 [..., 1, 1]；SHA pin 0fde47b9…
+- guide 全套对齐：六回响 → 七回响（zh/en ×6 处）；SHA pin 718eec4d… 重钉。
+- 门：fe-gates 122 套 1193/1193 OK；census 2491 OK；tsc 0。

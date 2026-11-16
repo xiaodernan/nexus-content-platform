@@ -3441,4 +3441,212 @@ Across three hundred years, from one pair of hands to another. It remained, comp
 > 灯灯的人传灯——灯盏本身就是那棵树的果子。
 `,
   },
+  {
+    order: 7,
+    slug: 'echo-007-the-needle',
+    titleZh: '那一针',
+    titleEn: 'The Needle',
+    eraLineZh: '纪元：铁月纪之后 · 灰棚前的白昼。',
+    eraLineEn: 'Era: after the Iron-Moon Age · before the grey cover was laid.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 7): The Needle
+
+> 回响仍是正典之外的侧写——第七层纹理，不是续篇，不是批判，不是伪造。
+> 本篇写给教团地窖里那个真的多出来的东西：细到与灰同色、弯在最底层、没人承认动过的一根针。
+> 本篇锚句，与《盘底之下》《机子的八下》同一纪律。
+>
+> An echo remains a side-glance beyond the canon — the seventh grain on the same stone, not a sequel, not a critique, not a forgery.
+> Written for the one thing that really is extra: a needle so fine it shares the ash's colour, arched at the lowest layer, never admitted to by anyone.
+> Its anchors answer to the same discipline as the sand-table and the knock that never came.
+
+> 纪元：铁月纪之后 · 灰棚前的白昼。
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 其一 · 针的来历
+
+机房看守那天其实没有登记它。"异物"那一栏他写进去了，却没有填它的来路——现成的旧物，退役时裁剪下来的船钉上的一根细铁筇，或者另一根弯针。他没查。
+
+上任那一天，船钉卸下来时盘底的这一道凹痕还很新，上面有人的指甲横着抹过去留下的白雾。新任看守只在上面盖了一枚自己的印牌，就以为是前任的笔意。
+
+**锚句**：它也没人登记过。
+**Anchor sentence**: it never entered any registry.
+
+---
+
+## 其二 · 针不挑人
+
+挑过这根针的人有三个。第一个是给修神仙的工匠，他用它挑沙盘里的粗粒，修补时用过手电，朋友来了看见就走了。第二个是灯芯商的小工，他把那根针藏在袜子里送过四回——没人称赞他的袜子——然后他忘了。
+
+第三个是孩子。那个连草绿色的麻绳都系不过结的孩子。针头真的刺进去了——在他的小指关节的皮肤上，针形完好无损，没办法取，医生说放在里面「挺好也挺安全」。
+
+**锚句**：针不挑人，挑的是它自己。
+**Anchor sentence**: the needle picks no one; it picks itself.
+
+---
+
+## 其三 · 针在灰里度过第三年
+
+灯上灯油彻底干透以后，针不再发出任何声响。账房对这件事的口径是：无关一角八诵。第九下停的那一瞬，他抄账的人始终以为自己的笔抬起来了，其实永远没写上去。
+
+针落在沙盘的最底层，贴着木板和灰。木板的最下面有个小小的六角形凹点——是"留了一道活路"的意思。没人知道是谁。
+
+**锚句**：没人问它的干活是什么。
+**Anchor sentence**: no one finds out what its job is.
+
+---
+
+## 其四 · 第一个看到针的人是谁
+
+没人知道第一个看到的人是谁——它在记录里永远写着"无"。你以为是常青灯罩运行人拿去试用了，其实是灯笼边上坐的那个小姑娘最早发现它的。那时她用一根黑针扎在米粒里，做成三个一样的手电筒。
+
+手电筒指向海——向孤岛方向。她第一次从中看到了灰海之外的岛知道夜晚它还在。
+
+岛没人命她发光。她只是看见。等于那一针，被她磨过一次。
+
+**锚句**：她没把爷爷说完的话说完。
+**Anchor sentence**: she never finished the sentence her grandfather had started.
+
+---
+
+## 其五 · 最后的钟
+
+这间教团没有白天的概念，只有它们自己的时间——没人数第几次潮的第几次浪，没人数第几次第几个钟。守夜人的巡检簿上写的"未"字是他最后的字——一针撇下去。
+
+生物学上这针也没有实在的复数：一根针就是一根针，没有碎，没有再生，没办法问海。它是因为这段时间江边那座小山从正下方冲走了。
+
+**锚句**：只剩这一根针的意思就是这一根针。
+**Anchor sentence**: to say nothing else exists is to say this is the only needle.
+
+---
+
+## 其六 · 收笔
+
+商人们把那些人带进去，灯芯在政治中被遗忘，只有那一道叫做灰的铺在门口。守门的人把"未"字保存了很久——直到那一天回回墨里被划破了银箸，年底封账时他写了两行字：这本不再归我，不归船厂，只归海。
+
+账册第三百年八月六日，盘子里那根弯针撤军没人说起的那一层，海退第三次，白浪拍到台子底，潮水和山一起退去。纸上没有写，可是里封面已经干枯——这句过了，没人知道是不是潮水过来了。
+
+**锚句**：灰日终于翻页。
+**Anchor sentence**: at last the grey day turns its page.
+
+---
+
+## 模型映射（回响七章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 沙盘 · 第九针 · 三百年账 | 一至六 |
+| geography | 地窖 · 教团 · 门廊 · 沙盘 | 一至六 |
+| factions | 商人家族 · 机房 · 灯芯商 | 一至六 |
+| characters | 孩子 · 商人 · 守夜人 | 一至六 |
+| items | 针 · 灰 · 账册 · 沙盘 | 一至六 |
+| story | 雾港 · 地底机子 · 回响（其七） | 全篇 |
+| history | 铁月纪之后 · 灰棚前 | 一至六 |
+
+> 针不发言——它只是不发言。
+> 静物之所以静物，因为它只有等。
+>
+> The needle does not speak — only because it never speaks.
+> Still things are still only because they only wait.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其七）「那一针」
+
+> An echo remains a side-glance beyond the canon — the seventh grain on the same stone, not a sequel, not a critique, not a forgery.
+> Written for the one thing that really is extra: a needle so fine it shares the ash's colour, arched at the lowest layer, never admitted to by anyone.
+> Its anchors answer to the same discipline as the sand-table and the knock that never came.
+>
+> 回响仍是正典之外的侧写——第七层纹理，不是续篇，不是批判，不是伪造。
+> 本篇写给教团地窖里那个真的多出来的东西：细到与灰同色、弯在最底层、没人承认动过的一根针。
+> 本篇锚句，与《盘底之下》《机子的八下》同一纪律。
+
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+> 纪元：铁月纪之后 · 灰棚前的白昼。
+
+---
+
+## I · Where the Needle Came From
+
+On the day the new keeper took office, no one entered it in the book. The "foreign matter" field in the log was filled — but its origin field was left blank: a discarded ship's-nail or a burnt-out reed pin; nobody ever looked further.
+
+The incoming keeper merely sealed the record with his own marker instead of asking his predecessor's name; the old notch on the tray-bottom stayed sharp enough to catch the light — a fingerprint wiped across the grain, still nearly new.
+
+**Anchor sentence**: it never entered any registry.
+**锚句**：它也没人登记过。
+
+---
+
+## II · The Needle Picks No One
+
+Three hands touched that needle. The first a shipwright — he used it to pick coarse grains from the sand-tray, leaving a scratched line beneath the handle of a torch a fellow worker once had seen then forgotten. The second a wick-dealer; he wrapped the same needle in a sock, walked it through four gates, and lost it; nobody praised his sock, which has not made a reclamation process easy.
+
+The third was the boy. By the time you read this, that pin had already entered his little finger's knuckle; he could not pull it out. The physician, when asked, said it could stay there forever — that was about the safest place for a needle to be while awaiting rescue.
+
+**Anchor sentence**: the needle picks no one; it picks itself.
+**锚句**：针不挑人，挑的是它自己。
+
+---
+
+## III · The Needle's Third Year in the Ash
+
+When even the lamp oil was dry, no one heard it again. The bursar's wording for it — "it does not concern us in the least" — was entered in the margin of one ledger shortly before the ninth knock was frozen in amber and he slid the sand away with a knife.
+
+The needle sits at the tray's deepest layer, cushioned between wood and dust. Under the lowest wood layer there is a small hexagonal socket for another needle. Nobody ever named it.
+
+**Anchor sentence**: no one finds out what its job is.
+**锚句**：没人问它的干活是什么。
+
+---
+
+## IV · The One Who Found It First
+
+The first person to lay eyes on the needle never made it to any log. If you thought it was a hint left by whoever mastered the eighth lamp, you'd be wrong — it was a little girl those years ago, crafting three identical flashes from grains of rice and a black pin. Each flash aimed at the sea.
+
+That night, the girl understood at last that the sea beyond the island-glow — the one her grandfather had never explained — perhaps held nights of its own. The needle had been touched by exactly one pair of hands before longing and then forgotten.
+
+**Anchor sentence**: she never finished the sentence her grandfather had started.
+**锚句**：她没把爷爷说完的话说完。
+
+---
+
+## V · The Final Clock
+
+There was no "day" inside this Conclave — only intervals. Nobody counted a particular tide or wave; nobody counted the third stroke of anyone's watch. In the night-watchman's last book he wrote only one glyph — 未 — and his hand killed the order at the ninth.
+
+Biologically, that needle is essentially singular: no reproduction, no drift in the sea, no way to appeal to the tide from the floor. It sits beneath the very place where the shelf's foundations had already been torn open.
+
+**Anchor sentence**: to say nothing else exists is to say this is the only needle.
+**锚句**：只剩这一根针的意思就是这一根针。
+
+---
+
+## VI · When It Overran
+
+The merchants swept everyone back into their own houses, and the lamp forgot politics along the way; only that fine grey line advanced to the doorstep again and again. The doorkeeper kept the glyph 未 many years — long after the vellum was cracked with silver and the account-filer wrote two lines: this is no longer ours; it is no longer the boatyard's; it is the sea's.
+
+In the three-hundred-and-eighth year, in August, the outermost strip of that tray lifted by exactly enough to let one more step be seen; the third tide passed without wet footprints; the tide retreated past the last of the hills. There was no writing left; still, the close-up line — long — clearn, bordered, finished — and no one quite remembered whether the tide had passed through.
+
+**Anchor sentence**: at last the grey day turns its page.
+**锚句**：灰日终于翻页。
+
+---
+
+## Model mapping (echo No. 7)
+
+| Category | Title | Corresponds to |
+|---|---|---|
+| lore | The Sand Tray · the Extra Pin · three hundred years of ledger | I–VI |
+| geography | The Cellar · the Conclave · the Steps · the Sand Tray | I–VI |
+| factions | The Merchant House · the Machine Room · the Wick Dealers | I–VI |
+| characters | The Child · the Merchants · the Watchman | I–VI |
+| items | The Needle · the Ash · the Ledgers · the Sand Tray | I–VI |
+| story | The Mist Harbor · the Machine Beneath the Steps · Echo (No. 7) | whole |
+| history | After the Iron-Moon Age · Before the Grey Cover Was Laid | I–VI |
+
+> The needle does not speak — only because it never speaks.
+> Still things are still only because they only wait.
+>
+> 针不发言——它只是不发言。
+> 静物之所以静物，因为它只有等。
+`,
+  },
 ] as const;

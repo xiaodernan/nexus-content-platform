@@ -171,6 +171,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《灯前灰》最后，账房在封面写了什么？', choices: ['没写任何东西', '"第八盏灯"', '"三百年"', '"潮先行"'], answer: 1, ref: '第七章 · 六' },
     en: { prompt: 'In “Ashes Before the Lamp”, what does the bursar write on the cover?', choices: ['nothing', '"The Eighth Lamp"', '"three hundred years"', '"the tide went first"'], answer: 1, ref: 'Chapter VII · VI' },
   },
+  {
+    zh: { prompt: '《那一针》里，孩子的针扎进哪只手？', choices: ['食指', '小指', '手掌', '拇指'], answer: 1, ref: '回响七 · 二' },
+    en: { prompt: 'In “The Needle”, where the Pin stuck at the child?', choices: ['index', 'pinkie', 'palm', 'thumb'], answer: 1, ref: 'Echo No. 7 · II' },
+  },
+  {
+    zh: { prompt: '《那一针》里，守门人说的字是?', choices: ['"终"', '"未"', '"账"', '"已收"'], answer: 1, ref: '回响七 · 五' },
+    en: { prompt: 'In “The Needle”, what word did the watchman write?', choices: ['done', 'unfinished', 'the ledger', 'received'], answer: 1, ref: 'Echo No. 7 · V' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {
