@@ -2825,4 +2825,170 @@ For the institute, the chapel quietly slipped out of the habit of thinking of it
 > Echo asks for nothing of the institute except one breath of quiet.
 `,
   },
+  {
+    order: 10,
+    slug: 'echo-010-the-lamp-never-lit-when-the-tide-went-out',
+    titleZh: '灯在潮退时没有往回点',
+    titleEn: 'The Lamp Never Lit Itself When the Tide Went Out',
+    eraLineZh: '纪元：潮候院 · 礼拜堂 · 第四十一次大会散会之后——灯自始至终自己亮着。',
+    eraLineEn: 'Era: the Institute — the chapel — after the 41st Convocation; the lamp was always just lit.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 10): The Lamp Never Lit Itself When the Tide Went Out
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐泡出来的另一层纹理。
+> 本篇写给那盏从来没人主动点的灯——它只是常着；当潮退去时它从来不亮起来引你离开这里。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the lamp no one deliberately lights; it simply remains lit — and it never dims to draw you away when the tide goes out.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 礼拜堂 · 第四十一次大会散会之后——灯自始至终自己亮着。
+> Era: the Institute — the chapel — after the 41st Convocation; the lamp was always just lit.
+
+---
+
+## 一 · 灯一直亮
+
+礼拜堂的灯从潮候院最早建起，就没有关过。第四十一次大会散会后——礼拜堂里全是新的乐器，新的潮候表——但灯还是那盏灯。
+
+守夜人说，只要灯是亮的，潮候院就还像个潮候院。礼拜堂的礼仪参半，但灯从来不缺席。
+
+**锚句**：礼拜堂的灯从来没被特别点亮——它一直自己亮着。
+
+**Anchor sentence**: the chapel's lamp has never been specially lit — it simply burns on its own.
+
+---
+
+## 二 · 潮退时灯不亮给你走
+
+潮涨时礼拜堂灯亮的样子是完整的：光把盐沙盘照得一清二楚——潮候院在做记录，潮候海在照潮候院。
+
+但潮退时，礼拜堂不点额外的灯给你指路——不熄灯，也不替谁回答去向——灯始终以原来的亮度亮着，潮候海只负责退自己的潮。
+
+**锚句**：潮退时礼拜堂不为任何人额外亮灯——灯没变，退潮只是自己退了。
+
+**Anchor sentence**: when the tide receded, the chapel lit no extra lamp for anyone — the lamp did not change; the sea simply withdrew.
+
+---
+
+## 三 · 守夜人从不称呼它
+
+礼拜堂的守夜人从不给灯起名。不叫完颜、不叫第八盏灯——它就是「那盏灯」。
+
+第四十一次大会的归档里也没写过它的名字。它不属于名册；它不属于任何一场事；它就只是被看着，亮着。
+
+**锚句**：礼拜堂没有人给那盏灯起名——那盏灯从来没登记过。
+
+**Anchor sentence**: no one in the chapel ever gave the lamp a name — the lamp never made it into any register.
+
+---
+
+## 四 · 灯和潮各自为政
+
+潮候海涨退、灯始终自己亮——潮候海不为灯负责，灯也不为潮负责。
+
+灯不引导谁走，潮不请人留；完颜响不响都自己决定。潮候院从不对潮、对灯、对它自己下一道"潮退时该怎么办"的命令。
+
+潮候院 Convocation 从没有一项议程叫「潮退时的备用照明」。潮退自己退了，谁也没打扰谁。
+
+**锚句**：潮候院从不发号召——潮候海退是自己的退，灯亮是灯自己的亮。
+
+**Anchor sentence**: the institute never issues commands — the sea withdraws of its own accord; the lamp burns of its own accord.
+
+---
+
+## 五 · 模型映射（回响十章对应关系）
+
+| 类别 | 标题 | 对应节 |
+|---|---|---|
+| lore | 潮退时没有人点灯 · 潮候院灯自亮 | 一、二、四、五 |
+| geography | 礼拜堂 · 第八盏灯 · 潮候院礼拜空间 | 一、二、三、四 |
+| characters | 守夜人 · 那盏从未被名册登记的灯 | 一、三、四 |
+| story | 潮退时的礼拜堂 · 回响（其十） | 全篇 |
+| items | 那盏灯 · 潮候海 · 潮沙盘 | 一、二、三、四 |
+| history | 第四十一次大会散会后 · 礼拜堂始终亮着 | 一、二、三、四 |
+
+> 礼拜堂的灯从来没被点亮——它只是没有被熄灭过。
+> The chapel's lamp has never been lit; it just has never been unlit.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其十）「灯在潮退时没有往回点」
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐泡出来的另一层纹理。
+> 本篇写给那盏从来没人主动点的灯——它只是常着；当潮退去时它从来不亮起来引你离开这里。
+> 纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the lamp no one deliberately lights; it simply remains lit — and it never dims to draw you away when the tide goes out.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 礼拜堂 · 第四十一次大会散会之后——灯自始至终自己亮着。
+> Era: the Institute — the chapel — after the 41st Convocation; the lamp was always just lit.
+
+---
+
+## 一 · The Lamp Is Always Lit
+
+The lamp in the chapel has never been extinguished since the institute first took shape. After the 41st Convocation — the chapel filled with new instruments and new tide-tables — the lamp was still the same lamp.
+
+The Night Watchers say: while the lamp burns, the institute remains an institute. The chapel's rites are half-human, half-signal — but the lamp never fails to attend.
+
+**锚句**：礼拜堂的灯从来没被特别点亮——它一直自己亮着。
+
+**Anchor sentence**: the chapel's lamp has never been specially lit — it simply burns on its own.
+
+---
+
+## 二 · No Extra Light When the Tide Recedes
+
+When the tide is in, the lamp shows the chapel fully: the slim sand table, the tide-tables lying open. When the tide goes out, the chapel lights nothing extra for any traveler — it does not dim, it does not guide, it simply remains where it always is.
+
+The tide performs its own withdrawal, on its own schedule, in its own order. The lamp is not the sea's concern — it neither brightens to invite, nor dims to excuse leaving.
+
+**锚句**：潮退时礼拜堂不为任何人额外亮灯——灯没变，退潮只是自己退了。
+
+**Anchor sentence**: when the tide receded, the chapel lit no extra lamp for anyone — the lamp did not change; the sea simply withdrew.
+
+---
+
+## 三 · The Watchers Never Name That Lamp
+
+The Night Watchers never give the lamp a name. They do not call it Wan-Yan or the Eighth Lamp — it is just "the lamp."
+
+The 41st Convocation minutes never recorded its name either. It belongs to no register, no ceremony, no inventory; it simply exists, lit, watched.
+
+**锚句**：礼拜堂没有人给那盏灯起名——那盏灯从来没登记过。
+
+**Anchor sentence**: no one in the chapel ever gave the lamp a name — the lamp never made it into any register.
+
+---
+
+## 四 · The Lamp and the Sea Act on Their Own
+
+The sea comes and goes; the lamp remains where it is. The sea is not responsible for the lamp, nor the lamp for the sea.
+
+The lamp does not summon anyone to stay, and the tide does not invite anyone to leave. The institute never issues a decree on what must be done when the tide withdraws.
+
+The Convocation has never had an agenda item titled "spare lighting during low tide." The sea withdrew of its own accord; no one was inconvenienced.
+
+**锚句**：潮候院从不发号召——潮候海退是自己的退，灯亮是灯自己的亮。
+
+**Anchor sentence**: the institute never issues commands — the sea withdraws of its own accord; the lamp burns of its own accord.
+
+---
+
+## 五 · Mapping（Echo No. 10 → world model）
+
+| 类别 | 标题 | 对应节 |
+|---|---|---|
+| lore | 潮退时没有人点灯 · 潮候院灯自亮 | 一、二、四、五 |
+| geography | 礼拜堂 · 第八盏灯 · 潮候院礼拜空间 | 一、二、三、四 |
+| characters | 守夜人 · 那盏从未被名册登记的灯 | 一、三、四 |
+| story | Tide's Retreat at the Chapel · Echo No. 10 | 一、二、三、四、五 |
+| items | 那盏灯 · 潮候海 · 潮沙盘 | 一、二、三、四 |
+| history | 第四十一次大会散会后 · 礼拜堂始终亮着 | 一、二、三、四 |
+
+> 礼拜堂的灯从来没被点亮——它只是没有被熄灭过。
+> The chapel's lamp has never been lit; it just has never been unlit.
+`,
+  },
 ] as const;

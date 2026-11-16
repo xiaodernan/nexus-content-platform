@@ -50,6 +50,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E07-黄铜盘上刀光': 'echo-007-the-gleam-in-the-brass-basin',
   'E08-完颜的潮汐钟': 'echo-008-the-wan-yan-tide-clock',
   'E09-潮生不急': 'echo-009-the-tide-went-out-without-orders',
+  'E10-灯在潮退时没有往回点': 'echo-010-the-lamp-never-lit-when-the-tide-went-out',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

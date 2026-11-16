@@ -4208,3 +4208,12 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 快照 gen 注册 echo-009-the-tide-went-out-without-orders；/bible「回响」自动收录；verify OK；SSR 双语 200 实测。
 - fe-gates 125/125 · 1223/1223 保持全绿。
 - 回响集现在：E01..E09；主线 4 章 + 61 锚句。
+
+## cont. 175 (2026-11-16) — v810: 典籍室「潮退时的灯」回响 · 其十
+
+- 用户指令：「不要停下来 多找一些可以干的任务来做」 +「给出后续更多的无限故事」。
+- 新番外正典：docs/world-bible/echoes/E10-灯在潮退时没有往回点.md(+.en.md)——礼拜堂的灯从来不为潮退额外亮灯、不登记、不迎回、不送别：「潮候海退是自己的退，灯亮是灯自己的亮」40 锚句中英逐字对齐。
+- 快照 gen 注册 echo-010-the-lamp-never-lit-when-the-tide-went-out；/bible「回响」自动收录；
+  verify:world-bible ✅（65/65 锚句 zh/en 唯一），verify:bible-snapshot ✅；SSR 实测 zh/en 200。
+- fe-gates **125/125 · 1223/1223** 保持全绿。
+- 至此回响体系：E01..E10；主线 4 章 + 65 锚句。
