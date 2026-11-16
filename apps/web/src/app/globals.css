@@ -5488,3 +5488,34 @@
   .en-kicker, .en-noteText, .en-disclaimer { color: CanvasText; }
   .en-link:focus-visible { outline: 2px solid Highlight; box-shadow: 0 0 0 2px Highlight; }
 }
+
+/* ──CHAPTER-DIGEST /bible/[slug] "让 AI 读给你听"（cont. 193）── 全部 tokens，零 hex */
+.cdg-root { display: flex; flex-direction: column; gap: 0.65rem; max-width: 54rem; margin-top: 1.5rem; padding: 1rem 1.25rem; background: var(--nexus-color-bg-2); border: 1px solid color-mix(in srgb, var(--nexus-color-accent-2-ink) 32%, var(--nexus-color-border-subtle)); border-radius: var(--nexus-radius-md, 0.75rem); }
+.cdg-kicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.22em; text-transform: uppercase; color: var(--nexus-color-accent-2-ink); margin: 0; }
+.cdg-title { font-size: 1.05rem; font-weight: 650; margin: 0; color: var(--nexus-color-fg-1); }
+.cdg-lede { margin: 0; font-size: 0.82rem; line-height: 1.7; color: var(--nexus-color-fg-3); }
+.cdg-loading { margin: 0; font-size: 0.9rem; color: var(--nexus-color-fg-2); }
+.cdg-error { margin: 0; font-size: 0.88rem; line-height: 1.6; color: var(--nexus-color-danger-ink); overflow-wrap: anywhere; word-break: break-word; }
+.cdg-digest { display: flex; flex-direction: column; gap: 0.45rem; }
+.cdg-line { margin: 0; font-size: 0.92rem; line-height: 1.85; color: var(--nexus-color-fg-1); overflow-wrap: anywhere; word-break: break-word; }
+.cdg-ponder { display: flex; gap: 0.6rem; align-items: baseline; margin: 0; padding: 0.6rem 0.8rem; background: var(--nexus-color-bg-3); border-left: 2px solid var(--nexus-color-accent-2-ink); border-radius: var(--nexus-radius-sm, 0.5rem); }
+.cdg-ponderTag { flex: none; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.18em; color: var(--nexus-color-accent-2-ink); }
+.cdg-ponderText { font-size: 0.9rem; line-height: 1.75; color: var(--nexus-color-fg-2); overflow-wrap: anywhere; word-break: break-word; }
+.cdg-row { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
+.cdg-button { font: inherit; cursor: pointer; font-size: 0.85rem; padding: 0.42rem 1rem; border-radius: 999px; border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-1); transition: border-color 140ms, color 140ms; }
+.cdg-button:hover { border-color: var(--nexus-color-accent-2-ink); color: var(--nexus-color-accent-2-ink); }
+.cdg-button:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+.cdg-buttonPrimary { border-color: var(--nexus-color-accent-2-ink); color: var(--nexus-color-accent-2-ink); font-weight: 600; }
+.cdg-dismiss { font: inherit; cursor: pointer; font-size: 0.8rem; padding: 0.3rem 0.6rem; background: transparent; border: none; color: var(--nexus-color-fg-3); }
+.cdg-dismiss:hover { color: var(--nexus-color-fg-1); }
+.cdg-dismiss:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+.cdg-footRow { display: flex; justify-content: space-between; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+.cdg-meta { margin: 0; font-family: var(--nexus-font-mono); font-size: 0.68rem; color: var(--nexus-color-fg-3); overflow-wrap: anywhere; word-break: break-word; }
+
+@media (forced-colors: active) {
+  .cdg-root { border-color: CanvasText; background: Canvas; color: CanvasText; }
+  .cdg-ponder { border-left-color: Highlight; background: Canvas; }
+  .cdg-kicker, .cdg-lede, .cdg-loading, .cdg-line, .cdg-ponderText, .cdg-meta { color: CanvasText; }
+  .cdg-button, .cdg-buttonPrimary { border-color: CanvasText; color: CanvasText; background: Canvas; }
+  .cdg-button:focus-visible, .cdg-dismiss:focus-visible { outline: 2px solid Highlight; }
+}

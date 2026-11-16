@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { getLocale, type Locale } from '@/lib/i18n';
 import { BIBLE_CHAPTERS, BIBLE_ECHOES } from '@/world-bible/generated';
 import { BibleMarkdown, extractAnchors } from '@/components/BibleMarkdown';
+import { ChapterDigest } from '@/components/ChapterDigest';
 
 export const dynamic = 'force-dynamic';
 
@@ -118,6 +119,8 @@ export default async function BibleChapterPage({
           </ol>
           <p className="bb-anchorNote">{c.anchorShelfNote}</p>
         </section>
+
+        <ChapterDigest slug={chapter.slug} locale={locale} />
       </article>
 
       <footer className="bb-foot">

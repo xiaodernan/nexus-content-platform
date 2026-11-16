@@ -5315,3 +5315,20 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - 门：fe-gates 126 套 · **1219/1219**；census 2601 OK；tsc 0；discover-page SHA pin 重钉 1279e6e6…；
   新增套件 editor-notes-visual-style.test.ts（6 例）
 - 本片是 cont. 190 之后"把 LLM 能力深度嵌入整体"的第二块——观测大厅 AI 深读（读数→建议）、发现流馆长批注（读指标→荐语）
+
+## cont. 193 (2026-11-17) - v823: /bible 「让 AI 读给你听」——正典伴读摘要（§新指令·LLM 深度嵌入续）
+
+- 新 API `POST /api/bible/chapter-digest`：
+  - 输入：slug + locale（单一正文章章 / 回响；未知 slug → 404 chapter_not_found）
+  - gpt-6.1-terra **只读本章/回响 markdown 前 6000 字**，输出三句话摘要 + 一句思考题（"思考："/"Ponder:" 引出）
+  - 纪律：不编造、不超出摘录、不读其他章节；DEMO MODE → 409；每 IP 每小时 20 次；7 天 LRU 缓存（32 槽，每章节/语言只计费一次）
+- 新 UI：`ChapterDigest`（/bible/[slug] 锚句速览下方挂载，data-chapter-digest-root）——按钮出摘要+思考题，DEMO MODE 原样展示服务端消息；失败如实展示；缓存 7 天
+- live probe：
+  - POST zh（001-last-ember-of-the-tide-conclave）→ HTTP 200，缓存命中后 cached:true；摘要落在原文事实（第七次日蚀、王城投降、守夜人与孩子、潮汐教团七席余烬、汐台）——零编造；ponder "当海的话留给活人收尾，谁会先开口？"
+  - POST en → HTTP 200 fresh；ponder "What is the sea still waiting to say?"
+  - SSR /bible/001… 含 data-chapter-digest-root · cdg-buttonPrimary · data-chapter-digest-cta ✓
+  - POST 不存在的 slug → HTTP 404 chapter_not_found ✓
+- 命名避让：.cd-* 归 CodePanel（ADR-0191）——新组件样式走 **.cdg-***（census 无碰撞）
+- 简明说明书（/guide）补齐「让 AI 读给你听」条目（zh/en 双语，典籍室章节）；guide SHA pin 重钉 59230d39…
+- 门：fe-gates 127 套 · **1225/1225**；census 2618 OK；tsc 0；bible reader SHA pin 重钉 9f9fae19…；新增 cdg-visual-style.test.ts（6 例）
+- 说明：模型在缓存命中的第二次调用直接 cached:true 返回——7 天 LRU 按章×语言键，每章只付一次 provider 账单
