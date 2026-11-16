@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
  * §166 robots.txt。
  *
  * 只放"对所有人打开就有内容"的路径：`/n/<handle>/<slug>`（§56 发布快照）、
- * `/u/<handle>`（§60 主页）、`/discover`（§61 发现流）。
+ * `/u/<handle>`（§60 主页）、`/discover`（§61 发现流）、`/pulse`（聚合匿名观测大厅）、`/observatory`（公共观测大厅，规则外推+行动项）、`/bible` 12 卷 + 4 款游戏（quiz / well / search / whisper）。
  * 其余一律挡：
  * - `/studio`、`/world`、`/preview` 按归属判定（§80），访客点开是 404，收录了只会制造死链；
  * - `/api` 是数据与鉴权面，不是给人读的页面；
@@ -26,7 +26,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
     rules: [
       {
         userAgent: '*',
-        allow: ['/n/', '/u/', '/discover', '/'],
+        allow: ['/n/', '/u/', '/discover', '/', '/pulse', '/observatory', '/bible', '/bible/quiz', '/bible/well', '/bible/search', '/bible/echo-001-patrol-road-notes', '/bible/echo-002-lamp-wick-notes', '/bible/echo-003-salt-lamp-vigil-diary', '/bible/echo-004-ninth-knock', '/bible/echo-005-lamp-rope-memoir', '/bible/echo-006-the-handoff-of-the-lamp', '/bible/001-last-ember-of-the-tide-conclave', '/bible/002-the-forty-first-convocation', '/bible/003-the-tide-sand-table', '/bible/004-the-eighth-lamp', '/bible/005-letters-never-posted', '/bible/006-the-final-seal'],
         disallow: ['/studio', '/world', '/preview', '/api', '/admin', '/search', '/analytics', '/notifications'],
       },
     ],

@@ -33,6 +33,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     // 发现页没有"发布时间"这种东西，不拿 now() 冒充 lastmod
     { url: absolute('/discover') },
+    { url: absolute('/pulse') },
+    { url: absolute('/observatory') },
+    { url: absolute('/bible') },
+    { url: absolute('/bible/quiz') },
+    { url: absolute('/bible/well') },
+    { url: absolute('/bible/search') },
+    { url: absolute('/bible/whisper') },
     ...rows.slice(0, SITEMAP_LIMIT).map((row) => ({
       url: absolute(row.path),
       lastModified: row.publishedAt,

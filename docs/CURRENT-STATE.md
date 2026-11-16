@@ -4917,3 +4917,14 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
   - census 2491 OK；fe-gates 122 套 · 1193/1193 OK；tsc 0
   - bible-visual-style SHA 重钉 + guide SHA 重钉 + command-palette count 21→22
 - 资金链路里首次 `/api/bible/whisper`是从 BibleChat 重用 `chatWithCharacter` provider 路径——同一唯一真 provider 显，§76/§160。
+
+## cont. 166 (2026-11-17) - v796: /robots.txt + /sitemap.xml 扩容（典籍室、观测大厅、全部 12 卷正典开放给爬虫）
+
+- robots.ts allow 清单扩充：从「/ / discover / n u」三件套 → 新增 /pulse · /observatory · /bible（全 12 卷正典及全部回响/游戏：quiz · well · whisper · search）；disallow 不动；零误放行 studio/admin/api/search/analytics/notifications
+- sitemaps.ts 列 8 项新公开路由：/discover · /pulse · /observatory · /bible · /bible/quiz · /bible/well · /bible/search · /bible/whisper；公开的项目发布路径 listSitemapEntries() 照旧（历经 136 条真实发布路径，无演示假象）
+- sitemap-robots-contract.test.ts 钉新 allow 正则 + bible/sitemap/whisper 断言；旧“三开大门”预期把整个大典吸收完了
+- live probe：
+  - GET /robots.txt 200（含 /bible 全量 12 卷 + whisper/pulse/observatory）
+  - GET /sitemap.xml 200：新列路由：discover/pulse/observatory/bible/bible-quiz/well/search/whisper；多余的 /n/uXX/ 路径保留
+- 门：fe-gates 122/121 · 1193/1193 OK；census 2491 OK；sitemap-robots-contract 8/8 绿。
+- SEO 非玄：robots/sitemap 是形状规则、不是营销。不带 changefreq / priority；lastmod 只记真实发布时间戳。

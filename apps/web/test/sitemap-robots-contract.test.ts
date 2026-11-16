@@ -41,11 +41,15 @@ describe('§166 /sitemap.xml 接线', () => {
     expect(publishDomainSrc).toContain('isNull(projects.deletedAt)');
   });
 
-  it('changefreq / priority 不猜；lastmod 只用真实发布时间', () => {
+  it('changefreq / priority 不猜；lastmod 只用真实发布时间；同时新增 public 观察面板 + bible 路径', () => {
     expect(sitemapSrc).not.toMatch(/changeFrequency\s*:/);
     expect(sitemapSrc).not.toMatch(/priority\s*:/);
     expect(sitemapSrc).toContain('lastModified: row.publishedAt');
     expect(sitemapSrc).toContain('discover');
+    expect(sitemapSrc).toContain('/pulse');
+    expect(sitemapSrc).toContain('/observatory');
+    expect(sitemapSrc).toContain('/bible');
+    expect(sitemapSrc).toContain('whisper');
   });
 });
 
@@ -55,7 +59,7 @@ describe('§166 /robots.txt 接线', () => {
     expect(robotsSrc).toContain("from '@/lib/origin'");
     expect(robotsSrc).toContain('requestOrigin');
     expect(robotsSrc).not.toContain('NEXUS_SITE_ORIGIN');
-    expect(robotsSrc).toMatch(/allow: \['\/n\/', '\/u\/', '\/discover', '\/'\]/);
+    expect(robotsSrc).toMatch(/allow: \['\/n\/', '\/u\/', '\/discover', '\/', '\/pulse', '\/observatory'/);
   });
 
   it('私有/归属判定/API 面全部 disallow（含 search、analytics、notifications、admin）', () => {
