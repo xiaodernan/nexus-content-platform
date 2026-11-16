@@ -4065,3 +4065,13 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - `agents/runtime/src/stategraph.ts`（+ `stategraph.test.ts` 11 条）：LangGraph 的 BSP/channel/START/END/recursionLimit 语义逐条迁 TS；明确不做 interrupt-resume/time-travel/Python。
 - `index.ts` export；`tsc test` 干净；vitest **669/669**（原 658 + 11）；`npm run build` 干净。
 - ADR-0270 对齐表与 Non-goals；docs/ROADMAP.md §SG 登记；showcase 同步于提交后。
+
+## cont. 160 (2026-11-16) — v793: 世界全图 /map · The Atlas；cp-chip 让位方案定稿（回左下 + 窄屏/矮屏图标化）
+
+- 背景：用户明确「辽阔土地上要有足够多的细节可以探索，不要看似很大实际空荡荡；同时项目应该给用户足够充分的引导，防止迷失迷路」。
+- 新增公开页 `/map`（175×2 双语）：五组真实入口（① 大典 · ② 世界之门 · ③ 创作的日常 · ④ 学习与照料 · ⑤ 管理与观察），每格一个**真实路由**（含 `/admin/savings` 真页面存在才列；`/tasks` 已删——发现是虚链接立即撤掉换成 `/u`）。
+- `/guide` 页脚新增「世界全图 · The Atlas →」（am-linkImplicit），GUIDE_COPY 中英各补 `/map The Atlas` 一节；InAppGuide 抽屉随字典自动增长条目。
+- §MAP-1 `.map-*` 视觉层（零 hex、token + color-mix、forced-colors 收口，compass 装饰）；§MAP-2 新门 `map-visual-style.test.ts`（8 条：RSC、钩子、只认 .map-*、§MAP-1 定义齐、forced-colors、var() 全声明、**列出的每个路由在仓库里真实存在*）**；新增 knife：首页 chips 门之外避免覆盖。
+- cp-chip 让位定稿：**维持 gate 钉死的 bottom-left**（`command-palette-visual-style.test.ts` 钉 胶囊左下/主题右下），改为 <75rem 或 <34rem 视口收成 36px 图标圆点（chip 是 ⌘K 爱好者的按键教学，不是覆盖主世界的海报）。
+- Gates：fe-gates **123/123 · 1207/1207**；census **2363** OK；tsc web 0；SSR 实测 /map zh/en 200；
+- showcase 同步于提交后。

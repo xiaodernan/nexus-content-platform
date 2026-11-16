@@ -40,6 +40,7 @@ export default async function GuidePage() {
       ))}
       <footer className="gd-foot">
         <Link className="am-linkImplicit" href="/about-nexus">← {locale === 'zh' ? '关于 NEXUS' : 'About NEXUS'}</Link>
+        <Link className="am-linkImplicit" href="/map">{locale === 'zh' ? '世界全图 · The Atlas →' : 'World atlas →'}</Link>
         <Link className="am-linkImplicit" href="/discover">{locale === 'zh' ? '去广场 →' : 'Go to /discover →'}</Link>
       </footer>
     </main>

@@ -14045,3 +14045,11 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - `agents/runtime/src/stategraph.test.ts`：11/11（vitest）——线性链、条件分派未选中分支不跑、fan-out 两节点并行同 super-step 提交、reducers、recursion 上限报错、error 档、mermaid、introspect。
 - 明确不做：interrupt-resume / time-travel / Python 运行时 / Tool-call 协议本身。
 - ADR-0270 完整对齐表 + LangGraph 差距声明。
+
+## §MAP — 世界全图 /map（2026-11-16 / v793）
+
+用户指令：「辽阔的土地上要有足够多的细节可以探索，使项目不至于显得太空旷；同时项目应该给用户足够充分的引导，防止用户迷失迷路在这个世界里面，从而失去耐心。」
+- 新增公开页 `/map`（世界全图 · The Atlas）：① 大典（bible/quiz/well）② 世界之门（/world/<id> 各路由）③ 创作的日常（/, /discover, /marketplace, /blocks, /ship, /analytics, /credits, /notifications, /u, /api-tokens, /search）④ 学习与照料（/guide，F1 内置说明书）⑤ 管理与观察（/insight 口令 123、/admin、/admin/savings）——每格均为本仓真实存在的路由；门 `map-visual-style.test.ts` 逐路由核对 page.tsx 存在。
+- §MAP-1 `.map-*` 全零 hex；forced-colors 收口；compass 纯装饰；`/guide` 页脚新增「世界全图 · The Atlas →」，GUIDE_COPY 中 / 英都加了 /map 一节。
+- cp-chip（命令面板）按 §CP-1 gate 钉死保持 bottom-left，改为 <75rem/ <34rem 视口收成 36px 图标圆点；文字/kbd 隐藏。
+- Gates：fe-gates 123/123 · 1207/1207（原 1205 + 2）；census 2363 OK；tsc web 0；SSR /map zh/en 200 实测。
