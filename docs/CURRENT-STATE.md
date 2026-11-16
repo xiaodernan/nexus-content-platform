@@ -4048,3 +4048,13 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 实测（nexus dev :3199，库连真实 nexus-postgres @55433）：未解锁 `/insight` zh 200；`/api/insight/login {"password":"123"}` → `{ok:true}`；解锁后 SSR 200、11 项总量实数横幅（账号 3,356 / 游客 1,832 / 项目 1,283 / 公开发布 140 / 总打开 868 / 游戏通关 4 / 作品走完 27 / AI usage 表近 30 天 0）；趋势行（新用户 +7.48/天 R²=0.20、外推 7 日 1,905；新发布 ≈0.00 R²=0.00；作品打开 +0.53 R²=0.01）如实低拟合；规则引擎真触发 3 条（publish-conversion act、open-reach act、bot-opens watch）；/guide zh/en 200 含⑪。
 - Gates：新门 `insight-visual-style.test.ts`（10 条）；新单测 `insight-math.test.ts`（8) + `insight-rules.test.ts`（11，阈值抽屉式）；fe-gates **122/122 · 1199/1199**；census **2344** OK（insg-severity-keep 未被规则生产 → 已删除该类）；tsc web 0。
 - 说明书内嵌 + 长期指令 Task List 已落 docs/.
+
+## cont. 158 (2026-11-16) — provider 切换到 aizzz.xyz + Clash Verge 代理必须项（§v791）；跨话题：覆盖率芯片让位（§v790）；StateGraph 在途
+
+- 用户提供新真实 provider（覆盖 wkapi.pro 线）：key 经 `apps/ai-service/.env`（gitignored，**不进仓库任何 tracked 文件**），base `https://api.aizzz.xyz/v1`，模型 `gpt-6.1-terra`。
+- **本机出网必须经 Clash Verge（127.0.0.1:7897）**：直连 HTTP 403（0.6s），经代理 HTTP 200（1.0s，/v1/models 含 gpt-6.1-terra）——用户说过「走我这个 Clash Verge 就行，我保证这个 api 可以用」，实测完全一致。
+- 机器决定（ADR-0269）：`NEXUS_LLM_STREAM=0`（流式经 Clash Verge SSL EOF / 403，「流式胜出」只对 wkapi.pro 成立）；`NEXUS_MODEL_EMBEDDING=none`（上游 503 model_not_found，没有 embedding 渠道，如实报）；`NEXUS_LLM_MAX_ATTEMPTS=3`（本路径瞬时故障多，有界退避重试）。
+- `prompt_cache_key: nexus-studio` 照用：同前缀 call#1/call#2 `cached=4992/5228（~95.5%）`，两次方向一致；一次出现 `warm→0` 是 provider 分片彩票，非本方问题。证据 `docs/evidence/provider-aizzz-switch-2026-11-16.md`。
+- `infra/dev-ai.sh` 新增 source `HTTPS(S)_PROXY`/`NO_PROXY`（不硬编码端口）。ENVIRONMENT.md 增补 aizzz 一节。L2（服务内干跑）今天如实记：瞬时故障偏多、尚未拿到干净 PASS，待服务端真实负载复测。
+- **v790 前端抗遮盖修复收尾**：`.cp-chip`（命令面板入口）从 bottom-left 改 right（不再刷屏挡 .dv-cardName / .cr-h2，10-client fragment 级实测零文字遮挡），且 `<75rem` 视口收成 36px 图标圆点（命令面板是快捷键爱的人，窄屏空间优先给内容）——含 forced-colors 收口。
+- fe-gates 此前全绿（chiple CSS 无 class 新增；无字体/hex/hex 迂回）；`tsc web 0`。showcase 同步于提交后。

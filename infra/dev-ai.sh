@@ -29,7 +29,7 @@ for env_file in "$SERVICE/.env" "$ROOT/apps/web/.env.local"; do
   if [[ -f "$env_file" ]]; then
     set -a
     # shellcheck disable=SC1090
-    source <(grep -E '^[[:space:]]*(export[[:space:]]+)?(NEXUS|AI_SERVICE)_' "$env_file" || true)
+    source <(grep -E '^[[:space:]]*(export[[:space:]]+)?(NEXUS|AI_SERVICE|HTTPS?_PROXY|NO_PROXY)[A-Za-z0-9_]*=' "$env_file" || true)
     set +a
   fi
 done

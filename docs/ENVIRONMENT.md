@@ -58,6 +58,20 @@
 
 进程归属与停机纪律见 `docs/environment/port-3200-ai-service-owner.md`（3200 现由本仓 patched 实例持有）。
 
+### 2026-11-16 provider 切换到 aizzz.xyz（§AILIVE-5）
+
+wkapi.pro 线退役；新线（用户提供）：key 经 `apps/ai-service/.env`（gitignored）、`https://api.aizzz.xyz/v1`、模型 `gpt-6.1-terra`。**本机必须经 Clash Verge（`127.0.0.1:7897`）出网**，直连 aizzz.xyz 会被该服务拦（实测 HTTP 403，经代理 HTTP 200，`GET /v1/models` 列出 `gpt-6.1-terra`）。
+
+机器级决定（详见 `docs/adr/0269-provider-aizzz-switch-machine-decisions.md`）：
+
+- `NEXUS_LLM_STREAM=0` —— 流式经 Clash Verge 静态节点 **SSL EOF / 403**，wkapi 时代「流式胜出」实测不适用此线；非流式才是本机正确形状。
+- `prompt_cache_key: nexus-studio` 照用：同前缀第二次起实测 `cached=4992/5228（≈95.5%）`；出现过 `4992 → 0` 冷班车（provider 侧分片彩票，非本方问题）。
+- embedding 渠道不存在：上游 `503 model_not_found`，`NEXUS_MODEL_EMBEDDING=none` 如实报；RAG 向量泳道保持 `vectorAvailable=false`。
+- `NEXUS_LLM_MAX_ATTEMPTS=3`（瞬时 ConnectError/429/5xx 有界重试）；确定性 4xx 仍不重试。
+- `infra/dev-ai.sh` 现在也 source `.env` 里的 `HTTPS_PROXY`/`HTTP_PROXY`/`NO_PROXY`（不设端口号、不设死值）。
+- 连续三轮 `probe:cache` L1 冷→暖 PASS 稳定（4992 = 95%）；L2（服务内干跑）今天尚未拿到干净 PASS（瞬时故障偏多，如实记账，见 `docs/evidence/provider-aizzz-switch-2026-11-16.md`）。
+
+
 ## 已有容器（不属于本项目，禁止复用/删除）
 
 `careeros-postgres`(5432), `careeros-redis`, `careeros-minio`(19000), `nexus-seed-verify`(55432)。
