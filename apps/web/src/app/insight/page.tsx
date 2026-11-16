@@ -21,7 +21,9 @@ const COPY: Record<Locale, {
   title: string;
   lede: string;
   lockedNote: string;
-  s1: string; s2: string; s3: string; s4: string; s5: string; s6: string;
+  s1: string; s2: string; s3: string; s4: string; s5: string; s6: string; s7: string;
+  benchmarks: { cite: string; note: string; href: string }[];
+  benchmarksNote: string;
   totals: { users: string; guests: string; projects: string; published: string; likes: string; comments: string; follows: string; views: string; gameEnds: string; workEnds: string; aiCalls30d: string };
   trendTable: { series: string; slope: string; r2: string; projection: string };
   trendRows: { signups: string; publishes: string; opens: string };
@@ -41,7 +43,12 @@ const COPY: Record<Locale, {
     title: '管理员洞察台',
     lede: '这里摆的是全站用户的统计账实况：近 30 天日序列、线性外推、互动信号，以及一套按真实数字判定的行动建议。口令是公共口令（123）——所以这里没有任何个人信息。',
     lockedNote: '这道门挡路过的手，不挡蓄意的人；进来之后你只会看到聚合数据。',
-    s1: '① 总览', s2: '② 近 30 天趋势 · 外推', s3: '③ 行为信号', s4: '④ 大模型成本与缓存（30 天）', s5: '⑤ 深度优化建议（按账面判定）', s6: '⑥ 最受欢迎的发布作品',
+    s1: '① 总览', s2: '② 近 30 天趋势 · 外推', s3: '③ 行为信号', s4: '④ 大模型成本与缓存（30 天）', s5: '⑤ 深度优化建议（按账面判定）', s6: '⑥ 最受欢迎的发布作品', s7: '⑦ 外部公开基线（公开发表的研究 · 不是本站实测）',
+    benchmarks: [
+      { note: '79% 的被测试用户每次看到新页面都会先扫描（不逐字读）；只有 16% 会逐字读完。', cite: 'Jakob Nielsen — How Users Read on the Web · NN/g（1997）', href: 'https://www.nngroup.com/articles/how-users-read-on-the-web/' },
+      { note: '眼追踪 130,000+ 次注视、120 名参与者：用户视线停留在首屏的约 57%，停留在前两个屏内（≤2160px）的约 74%。', cite: 'Therese Fessenden — Scrolling and Attention · NN/g（2018）', href: 'https://www.nngroup.com/articles/scrolling-and-attention/' },
+    ],
+    benchmarksNote: '这两条是 NN/g 公开研究直接引用——它们用来帮你读懂本站的「打开→离开」节奏；本站自己的数字在上面，不装作哪本经典。',
     totals: { users: '账号数', guests: '游客', projects: '项目', published: '公开发布', likes: '点赞', comments: '评论', follows: '关注', views: '作品总打开', gameEnds: '游戏通关', workEnds: '作品走完', aiCalls30d: 'AI 调用（30 天）' },
     trendTable: { series: '序列', slope: '斜率/天', r2: 'R²', projection: '外推 7 日合计' },
     trendRows: { signups: '新用户', publishes: '新发布', opens: '作品打开' },
@@ -66,7 +73,12 @@ const COPY: Record<Locale, {
     title: 'Admin Insight',
     lede: 'Everything this platform knows about itself, as aggregate arithmetic: the last-30-day series, a plain linear extrapolation, the behavior signals, and a rule set that cites the numbers that triggered it. The passcode is the public one (123) — which is why nothing here identifies a person.',
     lockedNote: 'This door stops passers-by, not adversaries. Behind it you will only ever see aggregate data.',
-    s1: '1 · Overview', s2: '2 · Last 30 days · extrapolation', s3: '3 · Behavior signals', s4: '4 · LLM cost & cache (30 days)', s5: '5 · Deep optimization advice (from the ledger)', s6: '6 · Most-opened published works',
+    s1: '1 · Overview', s2: '2 · Last 30 days · extrapolation', s3: '3 · Behavior signals', s4: '4 · LLM cost & cache (30 days)', s5: '5 · Deep optimization advice (from the ledger)', s6: '6 · Most-opened published works', s7: '7 · Anchored external benchmarks (publicly published research — not this site’s own)',
+    benchmarks: [
+      { note: '79% of test participants always scan any new page they meet (16% read word by word).', cite: 'Jakob Nielsen — How Users Read on the Web · NN/g (1997)', href: 'https://www.nngroup.com/articles/how-users-read-on-the-web/' },
+      { note: '130,000+ fixations, 120 participants: ~57% of viewing time above the fold, ~74% within the first two screenfuls (≤2160px).', cite: 'Therese Fessenden — Scrolling and Attention · NN/g (2018)', href: 'https://www.nngroup.com/articles/scrolling-and-attention/' },
+    ],
+    benchmarksNote: 'Quoted from NN/g’s public articles — here they help you read this site’s opens→exits rhythm; this site’s numbers are the ones above, nothing borrowed.',
     totals: { users: 'Accounts', guests: 'Guests', projects: 'Projects', published: 'Public publishes', likes: 'Likes', comments: 'Comments', follows: 'Follows', views: 'Total work opens', gameEnds: 'Game completions', workEnds: 'Work completions', aiCalls30d: 'AI calls (30d)' },
     trendTable: { series: 'Series', slope: 'Slope / day', r2: 'R²', projection: 'Next 7 days (Σ)' },
     trendRows: { signups: 'New accounts', publishes: 'New publishes', opens: 'Work opens' },
@@ -314,6 +326,21 @@ export default async function InsightPage() {
             ))}
           </ol>
         )}
+      </section>
+
+      <section className="insg-section" aria-labelledby="insight-s7" data-insight-section="benchmarks">
+        <h2 id="insight-s7" className="insg-sectionHead">{c.s7}</h2>
+        <ul className="insg-benchList" data-insight-benchmarks>
+          {c.benchmarks.map((b) => (
+            <li key={b.cite} className="insg-benchItem">
+              <p className="insg-benchText">{b.note}</p>
+              <span className="insg-benchCite">
+                <a href={b.href} target="_blank" rel="noreferrer">{b.cite}</a>
+              </span>
+            </li>
+          ))}
+        </ul>
+        <p className="insg-footNote" data-insight-benchmarks-note>{c.benchmarksNote}</p>
       </section>
 
       <footer className="insg-foot insg-footBlock">

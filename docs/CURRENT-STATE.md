@@ -4327,3 +4327,11 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - provider 账本：prompt 8852 / cached 8650 / 97.7% prefix 复用（进程内口径）。
 - Docker 本日第四次崩；nexus-redis 拒连期间降级全部 fail-open 记账正确；重启后 200。
 - 明示：L2 hit 目前不入任务行计账链路（ADR-0119 原语义：hit 不进 usage、不计任务行、不冒充真调用）；task-line 消费面待下一片。
+
+## cont. 188 (2026-11-17) — v823 · /insight 外部公开基线（NN/g 两条眼追踪公开研究，中英双语）
+
+- 用户指令：「联网深度搜索得到的真实数据」——`websearch` 工具 402，但 `webfetch` 可用；本轮经 webfetch 读了 NN/g 两篇公开文章原文后引用（绝不引文未查）：Jakob Nielsen《How Users Read on the Web》（1997）：79% 用户每次扫描、仅 16% 逐字读；Therese Fessenden《Scrolling and Attention》（NN/g 2018，120 人、130,000+ 注视）：首屏 ~57%、前两屏 ≤2160px ~74%。
+- 交付：/insight 解锁态新增 ⑦ 外部公开基线（zh/en，NN/g 文章 URL 可点、原话 100% 对齐人身份；明示不冒充本站量测）。
+- SSR（:3199，curl check）：EN `7 · Anchored external benchmarks` 200、zh `⑦ 外部公开基线` 200，两版均含 NN/g 链接；dev server 用完即杀。
+- census 2400 ✓（+4 类 insg-bench*, 全部有引用）；fe-gates 125/125 · tsc web 0。
+- 明示边界：websearch 仍 402；本节两条基线引用都是 NN/g 公开文章，原文逐字援引、非机译。

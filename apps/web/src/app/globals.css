@@ -5118,6 +5118,12 @@
 .insg-footNote { font-size: var(--nexus-font-size-11); line-height: 1.8; color: var(--nexus-color-fg-3); }
 .insg-back { font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-2-ink); text-decoration: none; }
 .insg-back:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+  .insg-benchList { display: flex; flex-direction: column; gap: var(--nexus-space-3); list-style: none; padding: 0; margin: 0; }
+  .insg-benchItem { display: flex; flex-direction: column; gap: var(--nexus-space-1); padding: var(--nexus-space-3) var(--nexus-space-4); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-1); }
+  .insg-benchText { font-size: var(--nexus-font-size-13); line-height: 1.65; color: var(--nexus-color-fg-2); margin: 0; }
+  .insg-benchCite { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .insg-benchCite a { color: var(--nexus-color-accent-2-ink); }
+  .insg-benchCite a:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 1px; border-radius: var(--nexus-radius-sm); }
 @media (max-width: 48rem) {
   .insg-signalRow { grid-template-columns: 1fr; gap: var(--nexus-space-1); }
   .insg-signalValue { text-align: left; }

@@ -14236,3 +14236,11 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   期间 Docker 第四次崩→nexus-redis 拒连→按设计 fail-open（miss+stores_failed 记账，provider 调用不受影响）；Docker 重启后真跑通。
 - provider 账本原话：`reported=2, cachedTokensTotal=8650, promptTokensTotal=8852, reportedHitRate=0.9772`（进程内口径；与 L2 分开两本账）。
 - 证据：`docs/evidence/paid-provider-e2e-2026-11-17.md`。
+
+## §BNCH-1 — /insight 外部公开基线（2026-11-17 · v823）
+
+- 用户指令「接入真实数据」；`websearch` 402 ⇒ 改用 `webfetch` 读 NN/g 原文两篇：
+  - **Jakob Nielsen — How Users Read on the Web（NN/g, 1997-09-30）**：79% 的被测试用户每碰到一页都会先扫描；只有 16% 逐字读（原文："users always scanned any new page they came across; only 16 percent read word-by-word"）。
+  - **Therese Fessenden — Scrolling and Attention（NN/g, 2018-04-15）**：120 名参与者、130,000+ 次注视、1920×1080：首屏（above the fold）约 57% 浏览时间，前两屏 ≤2160px 约 74%。
+- 产出：/insight 解锁态新增 `⑦ 外部公开基线`（zh/en）。每条带注＋可点 NN/g URL；脚注明示"这两条是公开发表口径，非本站实测"。
+- fe-gates **125/125 · 1223/1223 · census 2400**（新增 insg-benchList/Item/Text/Cite 四类全部有引用方）；tsc web 0。
