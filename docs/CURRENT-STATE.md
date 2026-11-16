@@ -4774,3 +4774,10 @@ D
 - 真机核验（:3212，Clash 7897）：healthz 首次即 `llmLive: { state: "ok", reason: "", probes: 1 }`——探测真的经代理打到了 api.aizzz.xyz 并拿到应答（非配置推断）。
 - 测试：新 `test_llm_liveness.py` 12 臂（探测 URL/403→failed/空回复→failed/RuntimeError→failed/TTL 单飞/lifespan 起线程/healthz unknown-failed 两态/契约吸收 llmLive 键）；ai-service 全量 435/435 绿（排除 provider_live 联网臂）。
 - 门：fe 侧未动（web 无 SHA pin 受影响；`ai-health-cache` 通过）；contract byte-identity 通过；`mvn` 未涉及。
+
+## cont. 152 (2026-11-17) - v783: NO_PROXY 按主机粒度豁免（ADR 0270 三修）
+
+- registry._build_llm 在构造粘性 transport 前查 `host_bypasses_proxy(base_url)`：token 支持 `*` / `exact-host` / `.domain`（后缀，含 aizzz.xyz.evil.com 负面臂）/ 精确 IP；看不懂的 token fail-open 走代理。命中豁免则显式 inner=httpx.HTTPTransport()（直连），否则默认内层（env 代理生效）。
+- `_env_proxy()` docstring 指明豁免去向；token 解析不依赖 transport（构造期看不到 URL）。
+- test_sticky_prompt_cache.py +6 臂（58/58 绿）。使用时本机 NO_PROXY=127.0.0.1,localhost,::1 不触碰 provider 网关——默认出网仍是 Clash 7897（cont. 150 实测 78.2%→97.1% prefix cached）。
+note: 本条与cont. 151 构成同一 provider 换新批次（bb29cb32→eb151818→5fda2ac3→本提交），showcase 同步到最新位点。

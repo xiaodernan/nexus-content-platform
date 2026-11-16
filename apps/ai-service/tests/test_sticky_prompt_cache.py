@@ -26,6 +26,7 @@ from ai_service.sticky_prompt_cache import (
     TERMINAL_VOLATILE_KEYS,
     StickyPromptCacheTransport,
     _judge_sticky_body,
+    host_bypasses_proxy,
     ordered_payload,
     prompt_cache_key,
     sticky_body,
@@ -372,3 +373,42 @@ def test_live_sticky_routing_probe() -> None:
                       f"ratio={ratio} latency={c.latency_ms}ms")
         finally:
             provider.close()
+
+
+
+
+# host-level NO_PROXY exemption (cont. 152) - pure-function arms only, no network
+def test_host_bypasses_proxy_eastern_gateway_no_proxy_set(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("NO_PROXY", "127.0.0.1,localhost,::1")
+    assert host_bypasses_proxy("https://api.aizzz.xyz/v1") is False
+
+
+def test_host_bypasses_proxy_exact_host_exempts(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("NO_PROXY", "api.aizzz.xyz")
+    assert host_bypasses_proxy("https://api.aizzz.xyz/v1") is True
+
+
+def test_host_bypasses_proxy_leading_dot_suffix(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("no_proxy", ".aizzz.xyz")
+    assert host_bypasses_proxy("https://cdn.aizzz.xyz/v1") is True
+    assert host_bypasses_proxy("https://aizzz.xyz/v1") is True
+    assert host_bypasses_proxy("https://aizzz.xyz.evil.com/v1") is False
+
+
+def test_host_bypasses_proxy_star_exempts_all(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("NO_PROXY", " * ")
+    assert host_bypasses_proxy("https://api.aizzz.xyz/v1") is True
+
+
+def test_host_bypasses_proxy_unset_or_garbage_keeps_proxy(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("NO_PROXY", raising=False)
+    monkeypatch.delenv("no_proxy", raising=False)
+    assert host_bypasses_proxy("https://api.aizzz.xyz/v1") is False
+    monkeypatch.setenv("NO_PROXY", "::::garbage")
+    assert host_bypasses_proxy("https://api.aizzz.xyz/v1") is False
+
+
+def test_host_bypasses_proxy_invalid_url_keeps_proxy(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("NO_PROXY", ".aizzz.xyz")
+    assert host_bypasses_proxy(":::not-a-url") is False
+    assert host_bypasses_proxy("") is False

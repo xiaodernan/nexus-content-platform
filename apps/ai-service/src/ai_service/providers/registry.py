@@ -91,9 +91,16 @@ class Registry:
         # transport 是唯一共同出站点。禁用时传 None => httpx 自建默认 transport，字节级零回归。
         transport = None
         if settings.llm_sticky_cache_key:
-            from ..sticky_prompt_cache import StickyPromptCacheTransport
+            import httpx
 
-            transport = StickyPromptCacheTransport()
+            from ..sticky_prompt_cache import StickyPromptCacheTransport, host_bypasses_proxy
+
+            # NO_PROXY 按主机粒度豁免在这里落一次（transport 自己看不到 base_url）：
+            # 命中 → 显式 inner=httpx.HTTPTransport()（直连、不走代理）；未命中 → 默认内层（env 代理生效）
+            if host_bypasses_proxy(settings.openai_base_url):
+                transport = StickyPromptCacheTransport(inner=httpx.HTTPTransport())
+            else:
+                transport = StickyPromptCacheTransport()
         provider = OpenAICompatibleProvider(
             transport=transport,
             api_key=settings.openai_api_key or "",

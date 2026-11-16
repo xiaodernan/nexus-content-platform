@@ -157,8 +157,9 @@ def _env_proxy() -> str | None:
     transport（本模块就是），Client 不会给它补代理，出站就又变成直连——直连被 403 拦，
     一模一样的 URL+body 走代理却是 200。所以默认内层 transport 必须自己显式认这个 env。
     没登记任何代理时返回 None（行为与旧版字节级一致）。
-    注：transport 构造期看不到目标 URL，NO_PROXY 无法按主机粒度豁免——本进程唯一
-    的出站就是 provider 网关，把代理给它是显式意愿；需要㊎免时显式传 inner=。
+    注：transport 构造期看不到目标 URL，NO_PROXY 的按主机粒度豁免不在这里处理——
+    registry 在构造 transport 前用 host_bypasses_proxy() 判一眼，命中则显式传 inner=。
+    本进程唯一的出站就是 provider 网关，把代理给它是显式意愿。
     """
     for name in _PROXY_ENV_KEYS:
         value = os.environ.get(name)
@@ -172,6 +173,41 @@ def _default_inner() -> httpx.HTTPTransport:
     if proxy:
         return httpx.HTTPTransport(proxy=proxy)
     return httpx.HTTPTransport()
+
+
+def host_bypasses_proxy(base_url: str | None) -> bool:
+    """按 NO_PROXY/no_proxy 判断 base_url 的主机是否显式豁免代理。
+
+    构造期看不到 URL 的 transport 做不了按主机粒度的豁免（见模块 docstring），
+    所以 registry 在构造 transport 之前先查这一眼；豁免则显式传 inner=httpx.HTTPTransport()。
+    支持的 token 形态：`*`（全豁免）、`exact-host`、`.domain.com`（后缀，匹配子域与本域）、
+    `exact-ip`（如 127.0.0.1）。看不懂的 token 按不匹配处理（fail-open 走代理，符合
+    「豁免是例外，代理是常态」的部署默认）。
+    """
+    raw = os.environ.get("NO_PROXY") or os.environ.get("no_proxy") or ""
+    if not raw.strip():
+        return False
+    try:
+        from urllib.parse import urlsplit
+
+        host = (urlsplit(base_url or "").hostname or "").lower()
+    except Exception:
+        return False
+    if not host:
+        return False
+    for token in raw.split(","):
+        t = token.strip().lower()
+        if not t:
+            continue
+        if t == "*":
+            return True
+        if t.startswith("."):
+            if host == t[1:] or host.endswith(t):
+                return True
+            continue
+        if host == t:
+            return True
+    return False
 
 
 class StickyPromptCacheTransport(httpx.BaseTransport):
