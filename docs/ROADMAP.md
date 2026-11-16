@@ -14213,3 +14213,11 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   fe-gates 不含本新文件的 SHA 钉（unit/integration 文件不走视觉 SHA），census 无受影响类。
 - 明示边界：生产级压测（500 并发 RSC）此前以 /about-nexus 实测落库（v779，496×200/4 断 · dev-path）；
   next build 在本机（≈1.8 GB free）出不了干净构建，生产窗口重测照旧登记在案。
+
+## §BIBLE-23 — 回响 · 其十二《潮落时才有的回声》（2026-11-17 · v819）
+
+- 产出：`docs/world-bible/echoes/E12-潮落时才有的回声.md`（中）/ `.en.md`（英）——潮落时祠殿堂才有的回声：
+  潮声只报位置不说原因；守夜人从不转述；墙/门/潮/人各有归于；回声从不被认过主。
+  5 锚句 zh/en 全局唯一（75/75）。
+- `gen-bible-snapshot.mts` 登记 `echo-012-the-echo-that-only-comes-when-the-tide-is-out`；快照重生成（4+12 回响）。
+- verify:world-bible ✓ 75/75；verify:bible-snapshot ✓。

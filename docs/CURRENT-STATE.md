@@ -4303,3 +4303,8 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 
 - `/api/insight/login` 路由级集成测试 4 用例：同 IP 30×401 → 第 31 次 429（含 retryAfterMs），闸开着正确口令也 429，不同 IP 隔离，非字符串口令入桶。
 - insight 套件 33/33 全绿。
+
+## cont. 184 (2026-11-17) — v819 · 回响 · 其十二《潮落时才有的回声》
+
+- 新回响 E12（中英双文件 + 映射表），注册 slug；verify:world-bible ✓ 75/75。
+- 世界现状：主线 4 章 + 回响 12 篇。

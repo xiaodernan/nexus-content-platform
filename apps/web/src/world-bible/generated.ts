@@ -3189,4 +3189,210 @@ The door simply stands open — the way the tide does.
 > The chapel's door was never locked — when the sea returned it gave the sea an inch; when the sea withdrew, the door gave it back, unasked.
 `,
   },
+  {
+    order: 12,
+    slug: 'echo-012-the-echo-that-only-comes-when-the-tide-is-out',
+    titleZh: '潮落时才有的回声',
+    titleEn: 'The Echo That Only Comes When the Tide Is Out',
+    eraLineZh: '纪元：潮候院 · 祠殿堂 · 第四十一次大会散会之后——潮落的下午、潮候院的值守时刻。',
+    eraLineEn: 'Era: the Institute — the chapel — after the 41st Convocation; late afternoons at low tide, during the watch hours.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 12): The Echo That Only Comes When the Tide Is Out
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给祠殿堂里那道潮落时才有的回声——潮涨时什么也听不见；潮落时，什么都说得见。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the echo in the chapel that only arrives when the tide goes out — nothing can be heard at high tide; at low tide, everything is said.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 祠殿堂 · 第四十一次大会散会之后——潮落的下午、潮候院的值守时刻。
+> Era: the Institute — the chapel — after the 41st Convocation; late afternoons at low tide, during the watch hours.
+
+---
+
+## 一 · 潮落才进得来
+
+祠殿堂里的回声不是一年到头都有。
+潮候院抄的潮汐表上，一天里有两扇近乎无声的时段——潮在线，就是潮起潮落的那两个时刻，
+海面低下去，声音才肯从墙缝里走进来。
+
+涨潮的时候，祠殿堂里只有人说话的声音，没有任何回声；
+潮候院的抄本都记着：潮落下午的三刻前后，最宜听潮。
+
+**锚句**：祠殿堂的回声只在潮落时造访——涨潮时，声音走的是别的路。
+**Anchor sentence**: the chapel's echo only visits at low tide — at high tide, the voices take another road.
+
+---
+
+## 二 · 回声从不说原因
+
+听潮的人听了几年以后才渐渐确定：潮声不给他们的任何问题答话。
+它不说潮来了为什么，也不说潮去了为什么——只说海现在在哪里。
+
+有过一次守夜人记下："潮没有要解释的话，它只是在报点名。"
+听潮人里没有谁能从潮声里听到命令、安慰或威胁——听了多年以后，他们听到的是度量，不是意图。
+
+**锚句**：潮声里从来没有原因，只有位置——它只说海现在在哪里。
+**Anchor sentence**: the tide's voice never carries causes, only positions — it only says where the sea is now.
+
+---
+
+## 三 · 守夜人从不复述
+
+守夜人中最老的那位被问过潮声说了什么：
+
+他回："潮说的，是潮的。墙听见的，是墙的。这里没有谁拿潮的话做自己的话。"
+
+潮落之后，来问过潮声的客人没有人得到过一次转述；潮候院的任何档案、
+任何抄本、任何大会记录上，都找不到一句"潮说"——这是潮候院第一大忌：替别人说话。
+
+**锚句**：祠殿堂里没有转述——潮说了什么，进门的人自己听。
+**Anchor sentence**: there is no re-telling in the chapel — what the tide said, whoever came in hears it themselves.
+
+---
+
+## 四 · 墙 门 潮 人，各有归于
+
+祠殿堂的墙在回声里先说话——墙是潮候院自己运来的砖，一块一块的；
+墙比门老，比大会老，比任何一位守夜人都老。
+
+回声碰到门先矮一寸，碰到墙再老练一格，最后落到听潮人耳朵里的时候，
+已经分不出这声音是潮的、海的、墙的，还是当晚的值守漏记的打点声。
+
+听潮人里有人说，这里的回声不是建筑的——是建筑的回声。
+
+**锚句**：祠殿堂的回声不是谁的声音——它是建筑自己，照了一面海的样子。
+**Anchor sentence**: the chapel's echo belongs to no voice — the building itself, mirroring the sea in its own grain.
+
+---
+
+## 五 · 没有人给回声认过主
+
+潮候院里没有哪一页说"这片回声属于某某"；做大会记录的人写的是潮汐，不是回声。
+
+有人问过一位守夜人："潮声这样大，里面会不会有人？"
+他说："里面没有人，里面只有潮——潮落的时候才有，潮涨的时候都退了。"
+
+祠殿堂里最老的那面墙一直不问这个问题；墙做过潮，墙也见过潮走。
+回声不是人，不是海，不是墙——它只是祠殿堂在潮落时照出来的一面。
+
+**锚句**：祠殿堂的回声从来没有人认过主——它属于经过它的潮，经过它的人。
+**Anchor sentence**: the chapel's echo has never been claimed by anyone — it belongs to the tide that passes through it, and to whoever passes through it too.
+
+---
+
+## 六 · 映射（回响十二章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 潮落时才有的回声 · 潮汐的两扇静音 | 一、二、三、五 |
+| geography | 祠殿堂 · 墙缝 · 潮候院的抄本 | 一、四、六 |
+| characters | 守夜人 · 听潮人 · 查抄本的人 | 一、二、三、五 |
+| story | 潮落之声 · 回响（其十二） | 全篇 |
+| items | 潮汐表 · 值守记录本 · 墙里的盐纹 | 一、二、四 |
+| history | 第四十一次大会之后潮落的值守记录 | 一、二、五、六 |
+
+> 潮落的时候祠殿堂才有声音——潮从来不说原因，只报海的方向；回音也从来不认人。
+> When the tide is out the chapel finally speaks — the sea never says why, only where it is; the echo never says whose either.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其十二）「潮落时才有的回声」
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给祠殿堂里那道潮落时才有的回声——潮涨时什么也听不见；潮落时，什么都说得见。
+> 纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the echo in the chapel that only arrives when the tide goes out — nothing can be heard at high tide; at low tide, everything is said.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 祠殿堂 · 第四十一次大会散会之后——潮落的下午、潮候院的值守时刻。
+> Era: the Institute — the chapel — after the 41st Convocation; late afternoons at low tide, during the watch hours.
+
+---
+
+## 一 · It Only Comes In At Low Tide
+
+The echo inside the chapel is not present all year.
+On the tide-tables the Institute copies, each day has two nearly-silent hours — those arrive at the moments the sea crosses its own line, when the water withdraws, and the sound finally can walk in through the creases between stones.
+
+At high tide the chapel holds only people's voices, and no echo at all.
+The copies all mark it: the three moments after the tide turns at late afternoon — the hour most fitted for hearing.
+
+**锚句**：祠殿堂的回声只在潮落时造访——涨潮时，声音走的是别的路。
+**Anchor sentence**: the chapel's echo only visits at low tide — at high tide, the voices take another road.
+
+---
+
+## 二 · The Echo Never Says Why
+
+Whoever has listened to the tide for years comes to one certainty: the tide's voice answers no question of theirs.
+It does not say why the tide comes, nor why it goes — only where the sea is now.
+
+One watcher once noted: "the tide has nothing to explain; it is only calling the roll."
+No listener ever heard commands, consolation, or threats in the tide's voice — after years, they hear measurement, not intent.
+
+**锚句**：潮声里从来没有原因，只有位置——它只说海现在在哪里。
+**Anchor sentence**: the tide's voice never carries causes, only positions — it only says where the sea is now.
+
+---
+
+## 三 · The Watchers Never Repeat It
+
+The eldest of the Night Watchers was asked once what the tide had said:
+
+He answered: "what the tide said belongs to the tide. What the wall heard belongs to the wall. No one here takes the tide's words for their own."
+
+No visitor who asked was ever given a re-telling after a low tide; no archive of the Institute, no copy, no record of any Convocation contains a single line of "the tide said" — that is the Institute's first prohibition: to speak for another.
+
+**锚句**：祠殿堂里没有转述——潮说了什么，进门的人自己听。
+**Anchor sentence**: there is no re-telling in the chapel — what the tide said, whoever came in hears it themselves.
+
+---
+
+## 四 · Wall, Door, Tide, Person — Each Keeps to Their Own
+
+The chapel's wall came first: the brick the Institute shipped in, brick by brick.
+The wall is older than the door, older than the Convocation, older than any one of the Night Watchers by far.
+
+The echo dims a little against the door, steadies another notch against the wall, and by the time it arrives at a listener's ear, no one can tell whether that voice
+belongs to the tide, the sea, the wall, or to the watch-mark someone forgot to log that evening.
+
+Some of the listeners say: this echo does not belong to the building — it is the building's echo.
+
+**锚句**：祠殿堂的回声不是谁的声音——它是建筑自己，照了一面海的样子。
+**Anchor sentence**: the chapel's echo belongs to no voice — the building itself, mirroring the sea in its own grain.
+
+---
+
+## 五 · No One Has Ever Claimed It
+
+No page in the Institute's records ever says "this echo belongs to so-and-so"; the people keeping the Convocation minutes wrote down the tides, never the echoes.
+
+Someone asked a watcher: "if the tide gets this loud, is there anyone inside it?"
+He said: "there is no one inside — there is only the tide. It comes at low tide and withdraws at high tide."
+
+The oldest wall in the chapel has never asked that question; this wall has gone through tides, and it has seen tides go.
+The echo is not a person, not the sea, not the wall — it is the chapel's own reflection at low tide.
+
+**锚句**：祠殿堂的回声从来没有人认过主——它属于经过它的潮，经过它的人。
+**Anchor sentence**: the chapel's echo has never been claimed by anyone — it belongs to the tide that passes through it, and to whoever passes through it too.
+
+---
+
+## 六 · Mapping（Echo No. 12 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | The echo that only comes at low tide · the two silent hours of the day | 一、二、三、五 |
+| geography | The chapel · the seam between the stones · the Institute's copies | 一、四、六 |
+| characters | The Night Watchers · the listeners · the copyists | 一、二、三、五 |
+| story | The Voice at Low Tide · Echo No. 12 | 全篇 |
+| items | The tide-tables · the watch logbook · the salt-rings in the wall | 一、二、四 |
+| history | The watch entries kept after the 41st Convocation | 一、二、五、六 |
+
+> 潮落的时候祠殿堂才有声音——潮从来不说原因，只报海的方向；回音也从来不认人。
+> When the tide is out the chapel finally speaks — the sea never says why, only where it is; the echo never says whose either.
+`,
+  },
 ] as const;
