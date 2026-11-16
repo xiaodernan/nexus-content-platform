@@ -2,7 +2,14 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { REALTIME_TEXT, useRealtime } from '@/lib/useRealtime';
+import { REALTIME_TEXT, REALTIME_TEXT_EN, useRealtime } from '@/lib/useRealtime';
+import type { Locale } from '@/lib/i18n';
+
+/** 双语：铃铛的每行文案按 cookie locale 选（不夹杂）；实时状态词来自 REALTIME_TEXT(_EN) */
+const NB_TXT = {
+  zh: { failed: '通知：没读到', loading: '通知：—', bell: '通知', unreadParen: (n: number, t: number) => (n > 0 ? `（${n} 条未读）` : `（${t} 条）`), realtime: '实时：' },
+  en: { failed: 'Notifications: could not read', loading: 'Notifications: —', bell: 'Notifications', unreadParen: (n: number, t: number) => (n > 0 ? ` (${n} unread)` : ` (${t} total)`), realtime: 'Live: ' },
+} as const;
 
 /**
  * §164 顶栏铃铛：只报"查到了没有"和"几条没读"。
@@ -23,7 +30,8 @@ interface Summary {
   total?: number;
 }
 
-export function NotificationBell() {
+export function NotificationBell({ locale = 'zh' }: { locale?: Locale }) {
+  const NB = NB_TXT[locale];
   const [summary, setSummary] = useState<Summary | null>(null);
   const [failed, setFailed] = useState(false);
   const [signedOut, setSignedOut] = useState(false);
@@ -60,14 +68,14 @@ export function NotificationBell() {
   if (failed) {
     return (
       <span className="nb-faint" data-notification-bell="failed">
-        通知：没读到
+        {NB.failed}
       </span>
     );
   }
   if (!summary) {
     return (
       <span className="nb-faint" data-notification-bell="loading">
-        通知：—
+        {NB.loading}
       </span>
     );
   }
@@ -75,10 +83,10 @@ export function NotificationBell() {
   return (
     <span className="nb-row">
       <Link href="/notifications" className="nb-link" data-notification-bell="ready">
-        通知<span data-notification-unread={unread}>{unread > 0 ? `（${unread} 条未读）` : `（${summary.total ?? 0} 条）`}</span>
+        {NB.bell}<span data-notification-unread={unread}>{NB.unreadParen(unread, summary.total ?? 0)}</span>
       </Link>
       <span className="nb-faint" data-realtime={realtime.state}>
-        实时：{REALTIME_TEXT[realtime.state]}
+        {NB.realtime}{(locale === 'en' ? REALTIME_TEXT_EN : REALTIME_TEXT)[realtime.state]}
       </span>
     </span>
   );

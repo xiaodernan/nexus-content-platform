@@ -173,10 +173,10 @@ describe('§FE-25 /preview/[projectId] 只读模型投影', () => {
     }
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：1d8e84b52ecc176f737719a222aadfd57de78ae6e1f72f8b23472b349431fde2）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：b36c6fd778dd8ed203ebb5ee5922d75e26d6e08db8dc5f9b2a3144aa7cbd7ab2）', () => {
     // 常量在改前（git HEAD）由真实产物 redact 算出并钉死；此门保证除 className 外一字节未动。
     expect(createHash('sha256').update(redactClasses(src)).digest('hex')).toBe(
-      '1d8e84b52ecc176f737719a222aadfd57de78ae6e1f72f8b23472b349431fde2',
+      'b36c6fd778dd8ed203ebb5ee5922d75e26d6e08db8dc5f9b2a3144aa7cbd7ab2',
     );
   });
 });

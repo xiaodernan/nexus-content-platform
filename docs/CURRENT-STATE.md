@@ -4244,3 +4244,15 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   fe-gates **125/125 · 1223/1223 · census 2394** 全绿。
 - 诚实边界：`marketplace*`/`notifications`/`credits`/`blocks` 已做但 `marketplace*` 四页与 `notifications` 与 `credits` 文案仍为中文（下一片）；
   `world/[projectId]/*` 与 `preview/[projectId]`/`storyboard`/`credits`/`marketplace/*` 未做；Docker 未启动 ⇒ E2E 经 tsc+gates+模型直跑，未截 SSR 图。
+
+## cont. 178 (2026-11-17) — v813 · marketplace / notifications / credits / preview / storyboard 全双语
+
+- 用户指令（不停止 + 中英文全切换）：本轮把**剩余全部可见 zh-only 路由**清完——扫描器（apps 内注释行过滤 CJK）**0 条 zh-only**。
+- `/marketplace`（含 `MarketplaceItemRow`+`MarketplaceCreateForm`、purchases/earnings 拆包 RSC 壳+客户端 `PurchasesClient`/`EarningsClient`、reports 页）：整页 chrome + 客户端表单双语；react-hooks 依赖为 `[router]`（详见注释）。
+- `/notifications`（页+`NotificationBell`+`NotificationSettings`+`NotificationActions(MarkRead)`）：页面 chrome 双语；`NOTIFICATION_TERMINAL_STATE_EN` 落在 `lib/notify-plan.ts`；`KIND_LABEL` 双份字典 + zh/en REALTIME 状态词复用 v749 `REALTIME_TEXT_EN`。
+- `/credits`（`domain/credits.ts`）：`planEnforcementReadout(enforced, unenforced, locale)` 收 locale（zh 路径**逐字不变**，门绿）+ `ENFORCED_PLAN_AXE_GUARDS_EN`/`_WHY_EN` 英文镜像（gate 不动/双 pin 齐绿）。
+- `/n/<h>/<s>/storyboard` 公开分镜页：整页双语（pinned 行、镜 meta、空头比/说明、notes 保作者原文）；`storyboard-labels.ts` v755 已有 EN 表复用。
+- `/preview/<projectId>` + `ViewerControls`（公开页与预览页共用控件行）：`VC_TXT` 双语 + `viewportOptions(en)`；两页都传 locale。
+- 诚实策略：服务端下发的判定原文（message/reason/notice）不翻译（服务端裁决 policy）。
+- 门：report/preview/viewer-controls/create-form/purchases/earnings 等 **12 个 SHA 门按各自 redact 算法重钉**；fe-gates **125/125 · 1223/1223 · census 2394** 全绿。
+- 显式体面：Studio 工作台（`/studio/*` 面板）仍为中文母语（作者工作语言决策保留，未动）。

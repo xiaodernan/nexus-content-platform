@@ -145,7 +145,7 @@ export default async function HomePage() {
         <a href="/blocks" className="hp-navlink" data-nav-blocks>
           {T.navBlocks}
         </a>
-        <NotificationBell />
+        <NotificationBell locale={locale} />
         <span className="hp-navNote">{T.navNote}</span>
       </nav>
 

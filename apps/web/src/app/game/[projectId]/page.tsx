@@ -36,7 +36,7 @@ export default async function GameRuntimePage({ params }: { params: Promise<{ pr
         <h1 className="rt-title">{en ? 'This project has no game design yet' : '这个项目还没有游戏设计'}</h1>
         <p className="rt-lede">
           {en
-            ? 'The playable projection reads the §54 game design document (11 entity kinds, stats and references). Start in the Studio's "Game" panel: build the skeleton and fill in a few numbers.'
+            ? "The playable projection reads the §54 game design document (11 entity kinds, stats and references). Start in the Studio's \"Game\" panel: build the skeleton and fill in a few numbers."
             : '可玩投影读的是 §54 的游戏设计文档（11 类实体、数值与引用）。先去 Studio 的「游戏」面板建骨架、填几个数。'}
         </p>
         <Link href={`/studio/${projectId}`} className="rt-link">

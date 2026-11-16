@@ -161,7 +161,7 @@ const miReducedMotionBody = (() => {
 })();
 
 /** JS 逻辑段：从文件头到 `return (` 之前的全部字节（换行归一，跨 CRLF/LF 稳定）。 */
-const JS_SEGMENT_SHA256 = 'cf39bcd64e0bc3abd8f3bac202a25448ea08e59dd66ae358e693eea16d996dec';
+const JS_SEGMENT_SHA256 = 'af4849b87c18b6492390c1e30d4e7ed5182c54401d198d92486bc46b4862ffe7';
 function jsSegmentSha256(src: string): string {
   const normalized = src.replace(/\r\n/g, '\n');
   const idx = normalized.indexOf('  return (');
@@ -288,7 +288,7 @@ describe('§FE-11 市场交互原子门面（静态不变式）', () => {
     for (const bind of ['value={price}', 'value={visibility}', 'value={reportReason}', 'value={reportNote}', 'maxLength={1000}', 'type="number"', 'REPORT_REASONS.map']) {
       expect(code, `表单绑定 ${bind} 丢了`).toContain(bind);
     }
-    for (const copy of ["'购买中...' : '购买'", "'取包中...'", "'提交中...' : '提交举报'", "'收起' : '改价格/可见性'", "'收起举报' : '举报'"]) {
+    for (const copy of ["{purchasing ? T.purchasing : T.purchase}", "T.fetching", "{reportBusy ? T.submitting : T.submitReport}", "{editing ? T.collapse : T.editPriceVisibility}", "{reportOpen ? T.collapseReport : T.report}"]) {
       expect(code, `文案分支 ${copy} 丢了`).toContain(copy);
     }
   });

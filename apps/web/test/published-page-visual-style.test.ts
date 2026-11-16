@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
  * `getPublishedPage`/recordView/findPage/PublishedFrame 全路径一字不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @ + cn(…) 归一）：
- * `68351960a3f4923eb1733a1bf2f85c7546cf66b2894128d155446a9a677b50dd` 与 HEAD 字节一致。
+ * `1c6292073fd3035a0a5f3c4293373fdaff653a438f3840b790e9d216118ff6b4` 与 HEAD 字节一致。
  *
  * 判据不变式（10 门）：
  *  1. 'use client' 不涉及；2. 字面 className 全 `.pub-*`/`.pb-variant`（pb-variant 保留 fd 共享标记）；
@@ -138,9 +138,9 @@ describe('§FE-67 /n/[handle]/[slug] 公开分享页', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：68351960a3f4923eb1733a1bf2f85c7546cf66b2894128d155446a9a677b50dd）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：1c6292073fd3035a0a5f3c4293373fdaff653a438f3840b790e9d216118ff6b4）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '68351960a3f4923eb1733a1bf2f85c7546cf66b2894128d155446a9a677b50dd',
+      '1c6292073fd3035a0a5f3c4293373fdaff653a438f3840b790e9d216118ff6b4',
     );
   });
 });

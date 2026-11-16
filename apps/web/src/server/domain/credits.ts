@@ -97,11 +97,21 @@ export type EnforcedPlanAxis = (typeof ENFORCED_PLAN_AXES)[number];
  *
  * 入参故意可以换：测试拿它验"摘掉一格 ⇒ 句子改口说四件事，且那一格的名字与解释都不再出现"。
  * 一个忽略入参、把件数写死的实现会在那条上红——这正是这一片要补的那格牙。
+ * locale（v812）：en 用 EN 名字与 EN 解释拼同一句式；zh 逐字保留。
  */
 export function planEnforcementReadout(
   enforced: readonly EnforcedPlanAxis[] = ENFORCED_PLAN_AXES,
   unenforced: readonly string[] = UNENFORCED_PLAN_AXES,
+  locale: 'zh' | 'en' = 'zh',
 ): string {
+  if (locale === 'en') {
+    const clausesEn = enforced.map((axis) => `${axis}: ${ENFORCED_PLAN_AXE_WHY_EN[axis]}`).join('; ');
+    const tailEn = unenforced.length
+      ? `${unenforced.length} more axis/axes (${unenforced.join(', ')}) are today just numbers on this table, with no code refusing any request over them — ` +
+        'reading a limit on this table as an enforced limit would be the most expensive lie on this page.'
+      : 'If a sixth thing is ever added, put it on these two columns first, then wire the guard.';
+    return `All ${enforced.length} things the §133 list names are genuinely enforced today (${enforced.join(', ')}): ${clausesEn}. ${tailEn}`;
+  }
   const clauses = enforced.map((axis) => `${axis}：${ENFORCED_PLAN_AXE_WHY[axis]}`).join('；');
   const tail = unenforced.length
     ? `另外 ${unenforced.length} 格（${unenforced.join('、')}）目前只是这张表上的数字，还没有代码按它拒绝任何请求——` +
@@ -125,6 +135,27 @@ export const GENERATION_COST: Record<CreditLedgerKind, number> = {
   video: 5,
   compute: 1,
   marketplace: 0,
+};
+
+/**
+ * `ENFORCED_PLAN_AXE_GUARDS.why` 的英文镜像（v812）：同一五格、同一口径，界面按 locale 选一份拼句。
+ * zh 那边是唯一真值（`ENFORCED_PLAN_AXE_GUARDS`），改一处必须改另一处。
+ */
+export const ENFORCED_PLAN_AXE_GUARDS_EN: Record<EnforcedPlanAxis, string> = {
+  aiUsage: `New AI tasks are refused when the balance is short for this run's points (ai ${GENERATION_COST.ai} pt per run, image ${GENERATION_COST.image}, video ${GENERATION_COST.video})`,
+  storage: 'New assets are refused when this run’s bytes will not fit (nothing already in the library is deleted)',
+  generation: `Rendering is refused when Video credits do not cover one render (${GENERATION_COST.video} pts per render; AI tasks and renders each have their own gate)`,
+  publishing: 'New publications are refused once the concurrent-public-publish limit for the plan is met (a new version is not a slot; retracting releases the slot)',
+  teamCollaboration: 'New invitations are refused once the collaborator cap for the plan is met (members and pending, unexpired invitations occupy slots; expiry, withdrawal or removal frees them)',
+};
+
+/** 已生效那几格的英文解释——同样只能由手写的 EN 表摊平，不在别处另造一句 */
+export const ENFORCED_PLAN_AXE_WHY_EN: Record<EnforcedPlanAxis, string> = {
+  aiUsage: ENFORCED_PLAN_AXE_GUARDS_EN.aiUsage,
+  storage: ENFORCED_PLAN_AXE_GUARDS_EN.storage,
+  generation: ENFORCED_PLAN_AXE_GUARDS_EN.generation,
+  publishing: ENFORCED_PLAN_AXE_GUARDS_EN.publishing,
+  teamCollaboration: ENFORCED_PLAN_AXE_GUARDS_EN.teamCollaboration,
 };
 
 /**

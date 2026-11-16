@@ -69,7 +69,7 @@ describe('§FE-17 notifications 收件箱页', () => {
     expect(code).toContain('notif-anonymousLede');
     // anonymous 分支是在 `if (!user) { return(...) }` 里，client 组件（NotificationBell）之后的第一次出现必须排在 denied 钩子之后
     const deniedIdx = code.indexOf('data-notification-denied="anonymous"');
-    const bellIdx = code.indexOf('NotificationBell />');
+    const bellIdx = code.indexOf('<NotificationBell');
     expect(deniedIdx).toBeGreaterThan(-1);
     expect(bellIdx).toBeGreaterThanOrEqual(deniedIdx);
   });

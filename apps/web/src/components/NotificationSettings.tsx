@@ -2,25 +2,69 @@
 
 import { useEffect, useState } from 'react';
 import { csrfHeaders } from '@/lib/csrf';
+import type { Locale } from '@/lib/i18n';
 import type { NotificationKind } from '@/lib/notify-plan';
 import { NOTIFICATION_KINDS } from '@/lib/notify-plan';
 
-const KIND_LABEL: Record<NotificationKind, string> = {
-  publish: '发布完成',
-  moderation: '审核结论',
-  like: '点赞',
-  comment: '评论',
-  follow: '关注',
-  remix: '改编',
-  generation: '生成完成',
-  agent: 'Agent 任务',
-  approval: '审批作废',
-  build: '导出完成',
-  marketplace_report: '举报结论',
-  team: '成员加入',
+/** 双语：每行文案按 cookie locale 选（不夹杂） */
+const NS_TXT: Record<Locale, {
+  kindLabel: Record<NotificationKind, string>;
+  loading: string;
+  title: string;
+  desc: string;
+  on: string;
+  off: string;
+  aria: (label: string, on: boolean) => string;
+}> = {
+  zh: {
+    kindLabel: {
+      publish: '发布完成',
+      moderation: '审核结论',
+      like: '点赞',
+      comment: '评论',
+      follow: '关注',
+      remix: '改编',
+      generation: '生成完成',
+      agent: 'Agent 任务',
+      approval: '审批作废',
+      build: '导出完成',
+      marketplace_report: '举报结论',
+      team: '成员加入',
+    },
+    loading: '加载设置中…',
+    title: '通知偏好（§164）',
+    desc: '关掉某一类后，那类事件不会再往收件箱里插行。',
+    on: '开',
+    off: '关',
+    aria: (label, on) => `${label}：${on ? '开启' : '关闭'}`,
+  },
+  en: {
+    kindLabel: {
+      publish: 'Published',
+      moderation: 'Moderation verdict',
+      like: 'Like',
+      comment: 'Comment',
+      follow: 'Follow',
+      remix: 'Remix',
+      generation: 'Generation done',
+      agent: 'Agent task',
+      approval: 'Approval lapsed',
+      build: 'Export done',
+      marketplace_report: 'Report verdict',
+      team: 'Member joined',
+    },
+    loading: 'Loading settings…',
+    title: 'Notification preferences (§164)',
+    desc: 'Turn off a category and that event will never insert a row into your inbox again.',
+    on: 'On',
+    off: 'Off',
+    aria: (label, on) => `${label}: ${on ? 'on' : 'off'}`,
+  },
 };
 
-export function NotificationSettings() {
+export function NotificationSettings({ locale = 'zh' }: { locale?: Locale }) {
+  const T = NS_TXT[locale];
+  const KIND_LABEL = T.kindLabel;
   const [settings, setSettings] = useState<Record<NotificationKind, boolean> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -47,12 +91,12 @@ export function NotificationSettings() {
       .finally(() => setSaving(false));
   }
 
-  if (!settings) return <p className="ns-loading">加载设置中…</p>;
+  if (!settings) return <p className="ns-loading">{T.loading}</p>;
 
   return (
     <section className="ns-card" data-notification-settings>
-      <h2 className="ns-title">通知偏好（§164）</h2>
-      <p className="ns-desc">关掉某一类后，那类事件不会再往收件箱里插行。</p>
+      <h2 className="ns-title">{T.title}</h2>
+      <p className="ns-desc">{T.desc}</p>
       <ul className="ns-list">
         {(Object.keys(NOTIFICATION_KINDS) as NotificationKind[]).map((kind) => (
           <li key={kind} className="ns-row" data-notification-setting={kind}>
@@ -63,9 +107,9 @@ export function NotificationSettings() {
               className={`ns-toggle ${
                 settings[kind] ? 'ns-toggleOn' : 'ns-toggleOff'
               }`}
-              aria-label={`${KIND_LABEL[kind]}：${settings[kind] ? '开启' : '关闭'}`}
+              aria-label={T.aria(KIND_LABEL[kind], Boolean(settings[kind]))}
             >
-              {settings[kind] ? '开' : '关'}
+              {settings[kind] ? T.on : T.off}
             </button>
           </li>
         ))}

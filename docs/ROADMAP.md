@@ -14174,3 +14174,13 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - 报告面：playtest/playtestRpg/playtestStory/simSummary/rpgSummary/POLICY_LABELS/LIMITS/SeedNote 全双语；view notes / rule notes / provenance 表全 EN 镜像。
 - 界面面：GamePlay/RpgPlay/StoryPlay HUD+控件+playtest 表全双语；`/game/<id>` 与 `/n/<h>/<s>/play` 播放页全双语（含空态/损坏态/钉住版说明）；PlayByKind 未接线卡 + describeProjection 页首行双语。
 - 门：FE-75/96/97/98/99 + runtime-pages(game) + FE-7 字面量 一共 7 门按各自算法重钉；**fe-gates 125/125 · 1223/1223 · census 2394**。
+
+## §I18N-MK — 市场四页 + 收件箱 + 额度 + 预览/分镜双语（2026-11-17 · v813）
+
+用户指令：「中英文全量国际化」+「不停继续」。
+- Marketplace：page（含数据驱动状态类）、ItemRow、CreateForm、purchases/earnings（RSC 壳 + client 内层）、reports 全部双语（含 statusOf/zip 下载等纯函数注入 locale）。
+- Notifications：page chrome + Bell/Settings/MarkRead；`NOTIFICATION_TERMINAL_STATE_EN` 落在 notify-plan；`KIND_LABEL` 双份。
+- Credits：`planEnforcementReadout(..., locale)` 英文句式（名单同源）；`ENFORCED_PLAN_AXE_GUARDS_EN` 镜像；Enforced 段不译则不译（zh 原文逐字未动）。
+- Preview + Storyboard public + ViewerControls：双语；preview 页 SHA 重钉。
+- 扫描器最终口径：**src/app 注释行过滤 CJK 后 0 条 zh-only 路由**（Studio 工作台为独立中文母语工具除外）。
+- fe-gates **125/125 · 1223/1223 · census 2394**。

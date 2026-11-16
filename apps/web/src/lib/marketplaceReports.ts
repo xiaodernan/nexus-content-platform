@@ -14,3 +14,12 @@ export const REPORT_REASON_LABELS: Record<ReportReason, string> = {
   inappropriate: '不当内容',
   other: '其他',
 };
+
+/** REPORT_REASON_LABELS 的英文镜像（v812） */
+export const REPORT_REASON_LABELS_EN: Record<ReportReason, string> = {
+  fraud: 'Fraud / false advertising',
+  spam: 'Spam / engagement farming',
+  copyright: 'Infringement (unauthorised use of someone else’s content)',
+  inappropriate: 'Inappropriate content',
+  other: 'Other',
+};

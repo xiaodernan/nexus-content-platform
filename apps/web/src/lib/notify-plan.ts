@@ -50,6 +50,22 @@ export const NOTIFICATION_KINDS: Record<NotificationKind, true> = {
  * `Record<NotificationKind, string>` 让"加了一类没写终态"在 typecheck 就红；
  * 每类到底有没有走得通的生产者由 `apps/web/test/notify-producers.test.ts` 现算，两处都要过。
  */
+/** 每一类挂在哪一个**真终态**上——`NOTIFICATION_TERMINAL_STATE` 的英文镜像（v812）：界面按 locale 选一份，逐句一一对应 */
+export const NOTIFICATION_TERMINAL_STATE_EN: Record<NotificationKind, string> = {
+  publish: 'The version you published is genuinely in the library: the version number, the visibility tier and the public link — only then is it "published".',
+  moderation: 'A human moderator gives a verdict on a version (approved or taken down); the verdict lands on the moderation record.',
+  like: 'Someone liked your public work, recorded in the interaction table (un-liking is not a new message).',
+  comment: 'Someone left a comment on your public work.',
+  follow: 'Someone started following you (unfollows are silent too).',
+  remix: 'Someone remixed a derivative of your public work.',
+  generation: 'An AI request finishes: an image lands or an error is recorded — the notification fires only when the task row reaches a final state.',
+  agent: 'A multi-step §112 job completes: a plan lands, steps advance, a conclusion is given.',
+  approval: 'An §74 approval gate expires at its suspend deadline — not "someone agreed"; it really ended.',
+  build: 'An §144 export is packed: documents read, code emitted, assets pulled, the zip closes — only then is it done.',
+  marketplace_report: 'A report ticket reaches a final state (upheld / dismissed) — the reporter is notified once; "under review" is not a conclusion.',
+  team: 'An invitation is genuinely redeemed: someone accepts the invitation addressed to them and the member row lands — that is "someone joined your project". Sending, withdrawal or expiry do not notify.',
+};
+
 export const NOTIFICATION_TERMINAL_STATE: Record<NotificationKind, string> = {
   publish: '你发布的那一版真的落库了：第几版、给谁看的那一档、公开页的链接都拿到，才算"发布完成"。',
   moderation: '人工审核对某一版给出结论（通过或下架），结论写在那一版的审核记录上。',

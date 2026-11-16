@@ -192,6 +192,7 @@ export default async function PublishedPage({ params, searchParams }: Props) {
         height={primary.height}
         auto={auto}
         autoAvailable={responsive}
+        locale={locale}
       />
       {/* §85 第三十一片 / ADR-0074：自动选档。四份投影同一时刻在 DOM 里，媒体查询选一份；
           隐藏的几份 display:none（不进可访问树）。零 JS 也成立，且没有第二条渲染路径。 */}

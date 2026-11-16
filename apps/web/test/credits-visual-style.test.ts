@@ -162,7 +162,7 @@ function maskLiterals(expr: string): string {
  * `"@"`；动态 `className={…}` 平衡括号取出，字面值归一、保留 `${}`/条件/标识符/分支位置。
  * 基线（全裸）与改造后（全 `.cr-`）必须整份恒等。
  */
-const STRIP_CLASS_SHA256 = 'c38018b2a27f9bc9edee36a46446c4cf611a92f73e25fd3d54070be0cd5a1409';
+const STRIP_CLASS_SHA256 = '9b1d5bb072321da0e5683f7023dc17ef6fb17345f644b6639fc48405da509b19';
 function stripClassNames(src: string): string {
   const s = src.replace(/\r\n/g, '\n');
   let out = '';
@@ -315,7 +315,7 @@ describe('§FE-16 credits 额度与消费页门面（静态不变式）', () => 
     expect(crSegment, 'cr-empty 须 13px').toMatch(/\.cr-empty\s*\{[^}]*font-size:\s*var\(--nexus-font-size-13\)/);
   });
 
-  it('剥 className 后全文逐字节零行为（并轨 v700 内容：CreditsBurnCard 接入新增 readAiBurnHistory/projectBurn 调用与 section，非纯视觉；业务类调用有意加入，本次按合并代码逐字节重钉 735592fb…→c38018b2…）', () => {
+  it('剥 className 后全文逐字节零行为（并轨 v700 内容：CreditsBurnCard 接入新增 readAiBurnHistory/projectBurn 调用与 section，非纯视觉；业务类调用有意加入，本次按合并代码逐字节重钉 735592fb…→c38018b2…→v812 c38018b2…→9b1d5bb0…）', () => {
     const stripped = stripClassNames(page).trimEnd();
     expect(createHash('sha256').update(stripped).digest('hex'),
       '剥类后全文变了——改动溢出 className，纯视觉零行为承诺不成立').toBe(STRIP_CLASS_SHA256);
@@ -339,15 +339,15 @@ describe('§FE-16 credits 额度与消费页门面（静态不变式）', () => 
       "new Set<CreditLedgerKind>(['ai', 'video'])",
       'function stamp(iso: string): string {',
       'return `${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC`;',
-      'function costNote(kind: CreditLedgerKind): string {',
-      "return KINDS_WITH_A_CONSUMER.has(kind) ? `一次 ${GENERATION_COST[kind]} 点` : '今天没有消耗方';",
+      'function costNote(kind: CreditLedgerKind',
+      "return KINDS_WITH_A_CONSUMER.has(kind)",
       'const view = await readCredits(user.id);',
       'const grants = PLAN_MONTHLY_GRANTS[view.plan];',
       'const activePublications = await activePublicationCount(user.id);',
       'const publishLimit = concurrentPublishLimit(view.plan);',
       '{CREDIT_KINDS.map((kind) => (',
       '{PLAN_KEYS.map((plan: PlanKey) => (',
-      '{planEnforcementReadout()}',
+      '{planEnforcementReadout(ENFORCED_PLAN_AXES, UNENFORCED_PLAN_AXES, locale)}',
       'export const dynamic = ',
     ]) {
       expect(code, `纯函数/语义契约「${fragment.slice(0, 36)}…」丢了`).toContain(fragment);
