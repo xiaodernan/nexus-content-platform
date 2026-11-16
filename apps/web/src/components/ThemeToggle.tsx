@@ -3,6 +3,13 @@
 import { Moon, Sun } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { THEME_STORAGE_KEY, isTheme, type NexusTheme } from '@/lib/theme';
+import type { Locale } from '@/lib/i18n';
+
+/** 双语：按钮文案按 cookie locale 选（不夹杂） */
+const THEME_TXT = {
+  zh: { toLight: '切换到浅色主题', toDark: '切换到深色主题' },
+  en: { toLight: 'Switch to light theme', toDark: 'Switch to dark theme' },
+} as const;
 
 /**
  * §120 主题入口：一个按钮，暗 ↔ 浅。
@@ -11,7 +18,8 @@ import { THEME_STORAGE_KEY, isTheme, type NexusTheme } from '@/lib/theme';
  * 点下去会被静默丢掉（本仓 2026-10-28 反复踩过）。只有 useEffect 跑过才置 1。
  * 写 localStorage 失败（隐私模式）不影响本页生效，所以只在 catch 里静默——下一帧仍是新主题。
  */
-export function ThemeToggle() {
+export function ThemeToggle({ locale = 'zh' }: { locale?: Locale }) {
+  const T = THEME_TXT[locale];
   const [theme, setTheme] = useState<NexusTheme>('dark');
   const [ready, setReady] = useState(false);
 
@@ -32,7 +40,7 @@ export function ThemeToggle() {
     }
   }
 
-  const label = theme === 'dark' ? '切换到浅色主题' : '切换到深色主题';
+  const label = theme === 'dark' ? T.toLight : T.toDark;
   return (
     <button
       type="button"

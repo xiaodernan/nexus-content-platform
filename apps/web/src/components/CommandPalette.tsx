@@ -7,7 +7,9 @@ import type { KeyboardEvent as ReactKeyboardEvent, ReactElement, ReactNode } fro
 import {
   groupOf,
   GROUP_LABEL,
+  GROUP_LABEL_EN,
   PALETTE_COMMANDS,
+  PALETTE_COMMANDS_EN,
   type PaletteAction,
   type PaletteCommand,
 } from '@/lib/command-palette/commands';
@@ -93,7 +95,42 @@ function Highlight({ text, ranges }: { text: string; ranges: readonly MatchRange
   return <>{out}</>;
 }
 
-export function CommandPalette() {
+import type { Locale } from '@/lib/i18n';
+
+/** 双语：每行文案按 cookie locale 选（不夹杂）；关键词/命令 label 来自 commands(_EN) 字典 */
+const CP_TXT_ZH = {
+  openPalette: '打开命令面板',
+  chip: '命令',
+  dialog: '命令面板',
+  search: '搜索命令',
+  placeholder: '输入命令、页面名…',
+  emptyTitle: '没有匹配的命令',
+  emptyNote: '只匹配命令名与它的关键词（顺序敏感，比如「额度」或「token」）。面板刻意不猜你想去哪。',
+  listLabel: '命令',
+  kindAction: '动作',
+  selectHint: '选择',
+  runHint: '执行',
+  countSuffix: ' 条',
+} as const;
+const CP_TXT_EN = {
+  openPalette: 'Open command palette',
+  chip: 'Cmd',
+  dialog: 'Command palette',
+  search: 'Search commands',
+  placeholder: 'Command or page name…',
+  emptyTitle: 'No matching command',
+  emptyNote: 'Matches command names and their keywords, order-sensitive (e.g. “credits” or “token”). The palette deliberately does not guess what you meant.',
+  listLabel: 'Commands',
+  kindAction: 'Action',
+  selectHint: 'Select',
+  runHint: 'Run',
+  countSuffix: '',
+} as const;
+
+export function CommandPalette({ locale = 'zh' }: { locale?: Locale }) {
+  const T = locale === 'en' ? CP_TXT_EN : CP_TXT_ZH;
+  const PALETTE_COMMANDS_SEL = locale === 'en' ? PALETTE_COMMANDS_EN : PALETTE_COMMANDS;
+  const GROUP_LABEL_SEL = locale === 'en' ? GROUP_LABEL_EN : GROUP_LABEL;
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -111,8 +148,8 @@ export function CommandPalette() {
 
   const results = useMemo(() => {
     const weight = new Map(recent.map((id, index) => [id, RECENT_MAX - index]));
-    return rank(PALETTE_COMMANDS, query, { boost: (command) => weight.get(command.id) ?? 0 });
-  }, [query, recent]);
+    return rank(PALETTE_COMMANDS_SEL, query, { boost: (command) => weight.get(command.id) ?? 0 });
+  }, [query, recent, PALETTE_COMMANDS_SEL]);
 
   // 渲染顺序 = 键盘顺序：先按组分块（前往 → 查看 → 动作），块内保留分数序。
   // 少了这一步，上下键的落点就会与眼睛看到的顺序不一致——那是最容易让人以为"键盘坏了"的错。
@@ -270,11 +307,11 @@ export function CommandPalette() {
           onClick={openPalette}
           className="cp-chip"
           data-command-palette-chip
-          aria-label={`打开命令面板（${modifier}+K）`}
+          aria-label={`${T.openPalette} (${modifier}+K)`}
           aria-keyshortcuts={`${mac ? 'Meta' : 'Control'}+K`}
         >
           <Search size={13} aria-hidden />
-          <span className="cp-chipText">命令</span>
+          <span className="cp-chipText">{T.chip}</span>
           <kbd className="cp-kbd">{modifier} K</kbd>
         </button>
       ) : null}
@@ -291,7 +328,7 @@ export function CommandPalette() {
             className="cp-panel"
             role="dialog"
             aria-modal="true"
-            aria-label="命令面板"
+            aria-label={T.dialog}
             data-command-palette-dialog
           >
             <div className="cp-search">
@@ -306,8 +343,8 @@ export function CommandPalette() {
                 aria-controls="cp-list"
                 aria-autocomplete="list"
                 aria-activedescendant={activeId}
-                aria-label="搜索命令"
-                placeholder="输入命令、页面名…"
+                aria-label={T.search}
+                placeholder={T.placeholder}
                 autoComplete="off"
                 spellCheck={false}
                 value={query}
@@ -322,18 +359,17 @@ export function CommandPalette() {
 
             {ordered.length === 0 ? (
               <div className="cp-empty" data-command-palette-empty>
-                <p className="cp-emptyTitle">没有匹配的命令</p>
+                <p className="cp-emptyTitle">{T.emptyTitle}</p>
                 <p className="cp-emptyNote">
-                  只匹配命令名与它的关键词（顺序敏感，比如「额度」或「token」）。
-                  面板刻意不猜你想去哪。
+                  {T.emptyNote}
                 </p>
               </div>
             ) : (
-              <div className="cp-list" id="cp-list" role="listbox" aria-label="命令">
+              <div className="cp-list" id="cp-list" role="listbox" aria-label={T.listLabel}>
                 {blocks.map((block) => (
-                  <div key={block.group} className="cp-block" role="group" aria-label={GROUP_LABEL[block.group]}>
+                  <div key={block.group} className="cp-block" role="group" aria-label={GROUP_LABEL_SEL[block.group]}>
                     <div className="cp-blockHead" aria-hidden="true">
-                      {GROUP_LABEL[block.group]}
+                      {GROUP_LABEL_SEL[block.group]}
                     </div>
                     {block.items.map((entry) => {
                       const command = entry.item;
@@ -357,7 +393,7 @@ export function CommandPalette() {
                             <Highlight text={command.label} ranges={entry.ranges} />
                           </span>
                           <span className="cp-hint">
-                            {command.kind === 'nav' ? command.href : '动作'}
+                            {command.kind === 'nav' ? command.href : T.kindAction}
                           </span>
                         </div>
                       );
@@ -371,14 +407,14 @@ export function CommandPalette() {
               <span className="cp-footGroup">
                 <kbd className="cp-kbd">↑</kbd>
                 <kbd className="cp-kbd">↓</kbd>
-                选择
+                {T.selectHint}
               </span>
               <span className="cp-footGroup">
                 <kbd className="cp-kbd">↵</kbd>
-                执行
+                {T.runHint}
               </span>
               <span className="cp-count" data-command-palette-count>
-                {ordered.length} 条
+                {ordered.length}{T.countSuffix}
               </span>
             </div>
           </div>

@@ -28,10 +28,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <ThemeScript />
         {children}
         {/* 全局命令面板 / 快捷键速览 / 主题 / 语言：layout 收口 */}
-        <CommandPalette />
-        <KeyboardCheatsheet />
+        <CommandPalette locale={locale} />
+        <KeyboardCheatsheet locale={locale} />
         <LocaleToggle />
-        <ThemeToggle />
+        <ThemeToggle locale={locale} />
       </body>
     </html>
   );

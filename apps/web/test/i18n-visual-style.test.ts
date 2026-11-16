@@ -25,9 +25,9 @@ describe('§FE-I18N 中英切换基础设施', () => {
     expect(LAYOUT).toContain('await getLocale()');
     expect(LAYOUT).toContain('<html lang={');
     expect(LAYOUT).toContain('<LocaleToggle />');
-    expect(LAYOUT).toContain('<CommandPalette />');
-    expect(LAYOUT).toContain('<KeyboardCheatsheet />');
-    expect(LAYOUT).toContain('<ThemeToggle />');
+    expect(LAYOUT).toContain('<CommandPalette locale={locale} />');
+    expect(LAYOUT).toContain('<KeyboardCheatsheet locale={locale} />');
+    expect(LAYOUT).toContain('<ThemeToggle locale={locale} />');
   });
 
   it('lib/i18n：导出 LOCALE_COOKIE / 两个语言键 / isLocale / getLocale', () => {
@@ -63,6 +63,6 @@ describe('§FE-I18N 中英切换基础设施', () => {
     const redact = (s: string) => s
       .replace(/className="[^"]*"/g, 'className="@"')
       .replace(/\s+/g, ' ');
-    expect(createHash('sha256').update(redact(stripped)).digest('hex')).toBe('ddb0b88eaa0b26ce58cd4c1677c93763a6ca13ba948e88256c677d33d4232ef1');
+    expect(createHash('sha256').update(redact(stripped)).digest('hex')).toBe('972daf1bb659e9ff1185e2751c528bd6a84ee4223794daf2987f99d86480acd2');
   });
 });

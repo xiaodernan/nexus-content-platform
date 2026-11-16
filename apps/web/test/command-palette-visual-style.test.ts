@@ -120,7 +120,7 @@ describe('§CP-1 可访问性属性与数据钩子', () => {
   it('对话框三件：role=dialog + aria-modal + aria-label', () => {
     expect(code).toContain('role="dialog"');
     expect(code).toContain('aria-modal="true"');
-    expect(code).toContain('aria-label="命令面板"');
+    expect(code).toContain('aria-label={T.dialog}');
   });
 
   it('combobox 模式：aria-controls / aria-autocomplete / aria-activedescendant', () => {
@@ -186,10 +186,10 @@ describe('§CP-1 可访问性属性与数据钩子', () => {
 describe('§CP-1 挂载点', () => {
   it('挂在根 layout，且在 children 之后（浮层不该挡内容流）', () => {
     expect(layout).toContain("import { CommandPalette } from '@/components/CommandPalette'");
-    expect(layout).toContain('<CommandPalette />');
+    expect(layout).toContain('<CommandPalette locale={locale} />');
     const childrenAt = layout.indexOf('{children}');
-    const paletteAt = layout.indexOf('<CommandPalette />');
-    const toggleAt = layout.indexOf('<ThemeToggle />');
+    const paletteAt = layout.indexOf('<CommandPalette locale={locale} />');
+    const toggleAt = layout.indexOf('<ThemeToggle locale={locale} />');
     expect(childrenAt).toBeGreaterThan(0);
     expect(paletteAt).toBeGreaterThan(childrenAt);
     expect(toggleAt).toBeGreaterThan(paletteAt);

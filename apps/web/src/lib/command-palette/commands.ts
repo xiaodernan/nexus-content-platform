@@ -30,6 +30,13 @@ export const GROUP_LABEL: Record<PaletteGroup, string> = {
   act: '动作',
 };
 
+/** GROUP_LABEL 的英文镜像（v814） */
+export const GROUP_LABEL_EN: Record<PaletteGroup, string> = {
+  go: 'Go to',
+  view: 'View',
+  act: 'Actions',
+};
+
 /** 三个不跳走、就地生效的动作。实现在 `CommandPalette.tsx`。 */
 export type PaletteAction = 'toggle-theme' | 'copy-link' | 'scroll-top';
 
@@ -79,6 +86,29 @@ export const PALETTE_COMMANDS: readonly PaletteCommand[] = [
   { kind: 'action', id: 'toggle-theme', label: '切换主题', group: 'act', action: 'toggle-theme', keywords: ['theme', 'dark', 'light', '暗', '浅色', '深色'] },
   { kind: 'action', id: 'copy-link', label: '复制当前页链接', group: 'act', action: 'copy-link', keywords: ['copy', 'url', 'link', '链接', '分享'] },
   { kind: 'action', id: 'scroll-top', label: '回到顶部', group: 'act', action: 'scroll-top', keywords: ['top', 'scroll', '顶部', '最上'] },
+];
+
+/** PALETTE_COMMANDS 的英文镜像（v814）：label 英文；keywords 两边同词（原表里中英混合已足够双语命中，不给第二份会漂） */
+export const PALETTE_COMMANDS_EN: readonly PaletteCommand[] = [
+  { kind: 'nav', id: 'home', label: 'Home', group: 'go', href: '/', keywords: ['home', 'index', 'nexus', '开始'] },
+  { kind: 'nav', id: 'discover', label: 'Discover', group: 'go', href: '/discover', keywords: ['discover', 'explore', 'trending', '热门', '逛逛'] },
+  { kind: 'nav', id: 'search', label: 'Search', group: 'go', href: '/search', keywords: ['search', 'find', 'query', '查找', '检索'] },
+  { kind: 'nav', id: 'ship', label: 'Ship log', group: 'go', href: '/ship', keywords: ['ship', 'changelog', 'log', '日志', '发布', '更新', '进展', '刊物'] },
+  { kind: 'nav', id: 'guide', label: 'User guide', group: 'go', href: '/guide', keywords: ['guide', 'manual', 'help', 'docs', '教程', '说明书', '指南', '帮助', '手册', '怎么用'] },
+  { kind: 'nav', id: 'about', label: 'About NEXUS', group: 'go', href: '/about-nexus', keywords: ['about', 'story', 'why', '原则', '关于', '为什么', '我们是谁'] },
+  { kind: 'nav', id: 'blocks', label: 'Blocks library', group: 'go', href: '/blocks', keywords: ['blocks', 'block', '组件', '素材', '积木'] },
+  { kind: 'nav', id: 'marketplace', label: 'Marketplace', group: 'go', href: '/marketplace', keywords: ['market', 'marketplace', 'store', '商店', '市集'] },
+  { kind: 'nav', id: 'analytics', label: 'Creative data', group: 'view', href: '/analytics', keywords: ['analytics', 'stats', 'insights', '统计', '数据', '曲线'] },
+  { kind: 'nav', id: 'notifications', label: 'Notifications', group: 'view', href: '/notifications', keywords: ['notifications', 'inbox', '消息', '提醒', '铃'] },
+  { kind: 'nav', id: 'credits', label: 'Credits', group: 'view', href: '/credits', keywords: ['credits', 'quota', 'usage', '用量', '余额', '点数'] },
+  { kind: 'nav', id: 'api-tokens', label: 'API tokens', group: 'view', href: '/api-tokens', keywords: ['tokens', 'token', 'api', 'key', 'secret', '密钥', '令牌'] },
+  { kind: 'nav', id: 'profile', label: 'My page', group: 'view', href: '/u', keywords: ['profile', 'me', 'account', '个人', '主页'] },
+  { kind: 'nav', id: 'purchases', label: 'My purchases', group: 'view', href: '/marketplace/purchases', keywords: ['purchases', 'orders', '已购', '订单'] },
+  { kind: 'nav', id: 'earnings', label: 'My earnings', group: 'view', href: '/marketplace/earnings', keywords: ['earnings', 'revenue', 'income', '收入', '赚'] },
+  { kind: 'nav', id: 'reports', label: 'My reports', group: 'view', href: '/marketplace/reports', keywords: ['reports', 'tickets', '工单', '举报'] },
+  { kind: 'action', id: 'toggle-theme', label: 'Toggle theme', group: 'act', action: 'toggle-theme', keywords: ['theme', 'dark', 'light', '暗', '浅色', '深色'] },
+  { kind: 'action', id: 'copy-link', label: 'Copy link to this page', group: 'act', action: 'copy-link', keywords: ['copy', 'url', 'link', '链接', '分享'] },
+  { kind: 'action', id: 'scroll-top', label: 'Back to top', group: 'act', action: 'scroll-top', keywords: ['top', 'scroll', '顶部', '最上'] },
 ];
 
 /**

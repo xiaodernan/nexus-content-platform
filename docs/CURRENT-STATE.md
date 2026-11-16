@@ -4256,3 +4256,17 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 诚实策略：服务端下发的判定原文（message/reason/notice）不翻译（服务端裁决 policy）。
 - 门：report/preview/viewer-controls/create-form/purchases/earnings 等 **12 个 SHA 门按各自 redact 算法重钉**；fe-gates **125/125 · 1223/1223 · census 2394** 全绿。
 - 显式体面：Studio 工作台（`/studio/*` 面板）仍为中文母语（作者工作语言决策保留，未动）。
+
+## cont. 179 (2026-11-17) — v814 · 全站壳双语（命令面板 / 快捷键速览 / 主题切换 / layout 下发）
+
+- 用户指令（不停止 + 中英文全切换）：本轮把**每个页面都渲染的壳组件**收双语，任何人任何 locale 打开的第一眼就不再见中文：
+  - **`components/CommandPalette.tsx`**：chip / 对话框 / 输入 / 空态 / 分组（`GROUP_LABEL_EN`）/ 命令表（`PALETTE_COMMANDS_EN` in `lib/command-palette/commands.ts`）/ footer / count 全双语；`rank()` 走同一张关键词表，语言只换 label 不换算法。
+  - **`components/KeyboardCheatsheet.tsx`**：`GROUPS_EN` 与 `GROUPS` 逐键、逐组一一对应（同序同宽）；SSOT 由 v755 口号延续。
+  - **`components/ThemeToggle.tsx`**：仅两个 label，按 `{ locale }` 选。
+  - **`app/layout.tsx`**（`<html lang>` 已随 locale 变）：把 `locale` 下发进三个壳组件。
+- gates：command-palette / keyboard-cheatsheet / theme-toggle / root-layout / i18n 五类门（含 i18n 的 layout SHA）按各自 redact 算法重钉，2 处断言放宽为 locale-carrying prop 写法（`<CommandPalette locale={locale} />`）；fe-gates **125/125 · 1223/1223 · census 2394** 全绿；tsc web 0。
+- SSR（dev server, :3199，后因本机内存（≈2.4 GB free）被静默杀死）：
+  zh → `/guide` 200（打开命令面板/快捷键速览/切换到浅色主题 True，Switch to English 仅用于语言 FAB）；
+  en → 200（无 CJK 文案：Switch to light theme / Open command palette True；shell aria-labels 全英文）；
+  en 残余 CJK 全部为**作者原文 / 正常 bilingual 锚点 / FAVicon 字体 `中`**（语言 FAB 设计本体）。
+- 显式不做：未在发布者尚未拿到的 /play、/storyboard 做 SSR 断言（DB 当前无钉了 game/storyboard 文档的已发布项目，事实如实说）。

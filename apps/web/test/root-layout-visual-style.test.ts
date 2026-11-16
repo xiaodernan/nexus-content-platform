@@ -58,7 +58,7 @@ describe('§FE-71 /app/layout 根布局', () => {
   it('ThemeScript 同步内联进 body；metadata/viewport 进门', () => {
     expect(code).toContain('<ThemeScript />');
     expect(code).toContain('data-nexus-theme="dark"');
-    expect(code).toContain('<ThemeToggle />');
+    expect(code).toContain('<ThemeToggle locale={locale} />');
     expect(main).toContain('export const viewport');
   });
 
@@ -92,17 +92,17 @@ describe('§FE-71 /app/layout 根布局', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（§CP-1 起：50b68deae4809e3f44f6812fe698e3bba2f8753fa26c40b9af640b2e4d27a985）', () => {
+  it('剥 className 后全文 SHA256 守恒（§CP-1 起：5dd9dfdeddf6157f2ce4e15755d2dcea0e4ee8cd0757fa86edc3a88997e882db）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '50b68deae4809e3f44f6812fe698e3bba2f8753fa26c40b9af640b2e4d27a985',
+      '5dd9dfdeddf6157f2ce4e15755d2dcea0e4ee8cd0757fa86edc3a88997e882db',
     );
   });
 
   it('§CP-1 命令面板挂在 children 之后、主题开关之前（浮层顺序 = 遮挡顺序）', () => {
     expect(main).toContain("import { CommandPalette } from '@/components/CommandPalette'");
     const childrenAt = main.indexOf('{children}');
-    const paletteAt = main.indexOf('<CommandPalette />');
-    const toggleAt = main.indexOf('<ThemeToggle />');
+    const paletteAt = main.indexOf('<CommandPalette locale={locale} />');
+    const toggleAt = main.indexOf('<ThemeToggle locale={locale} />');
     expect(childrenAt).toBeGreaterThan(0);
     expect(paletteAt).toBeGreaterThan(childrenAt);
     expect(toggleAt).toBeGreaterThan(paletteAt);
