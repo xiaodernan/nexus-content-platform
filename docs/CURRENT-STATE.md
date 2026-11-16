@@ -4200,3 +4200,11 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   SSR 实测 zh/en 200。
 - fe-gates **125/125 · 1223/1223** 保持全绿。
 - 回响集现在：E01..E08；主线 4 章 + 57 锚句。
+
+## cont. 174 (2026-11-16) — v808: 回响 · 其九《潮生不急 · 潮没有指令》
+
+- 用户指令：「给出后续更多的无限故事 / 深度开拓还没有做的一大块部分」。
+- 新番外正典：docs/world-bible/echoes/E09-潮生不急.md(+.en.md)（潮候院从不对潮下令——潮自己退了；礼拜堂灯沙完颜都没追潮；礼拜堂里无人记录这个夜；Convocation 从未为此开议）；61/61 锚句中英对齐。
+- 快照 gen 注册 echo-009-the-tide-went-out-without-orders；/bible「回响」自动收录；verify OK；SSR 双语 200 实测。
+- fe-gates 125/125 · 1223/1223 保持全绿。
+- 回响集现在：E01..E09；主线 4 章 + 61 锚句。

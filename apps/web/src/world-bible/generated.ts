@@ -2661,4 +2661,168 @@ The institute has a rhythm called «the clock Wan-Yan» — during certain morni
 > The echo does not nail the clock shut; it keeps the one that simply hangs — holding the chapel's silence in place.
 `,
   },
+  {
+    order: 9,
+    slug: 'echo-009-the-tide-went-out-without-orders',
+    titleZh: '退潮了，没有潮候指令',
+    titleEn: 'The Tide Went Out Without Orders',
+    eraLineZh: '纪元：第四十一次大会散会之后又过了多日——礼拜堂什么都没记，潮自己退了。',
+    eraLineEn: 'Era: many months after the 41st; the chapel recorded nothing; the tide left on its own.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 9): The Tide Went Out Without Orders
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐泡出来的另一层纹理。
+> 本篇写给潮退的那一刻——它不打响、不举报、不报告——它只是退——退去的事实不属于潮候院，也不属于任何人。
+> 本文不是正典里的第 X 章，本文是正典没有写的空白。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> 纪元：第四十一次大会散会之后又过了多日——礼拜堂什么都没记，潮自己退了。
+> Era: many months after the 41st; the chapel recorded nothing; the tide left on its own.
+
+---
+
+## 一 · 没有人说潮来不来
+
+第四十一次大会散会之后，潮候院照常颁灯令。礼拜堂的灯照了又照，却没有人想问一件事：明天潮还会来吗。
+
+有一天，潮悄悄地退了。从这一方石退到了那一方石。礼拜堂里没有人欢呼，也没有人惊讶——礼拜堂只是安静认可一件它从来没有预料过的事。
+
+**锚句**：潮候院没有为潮下达一条指令——潮自己退潮。
+
+**Anchor sentence**: the institute never gave the tide a single order — the tide withdrew on its own.
+
+---
+
+## 二 · 灯和沙都没追
+
+礼拜堂侧厅的钟又安静了。完颜没响，沙没动，礼拜堂也没有问。灯慢慢在那儿亮着——忽明忽暗，又不太暗，但不是为潮打的。
+
+风从礼拜堂正门进来，又从原来的口出去。没有谁记过这风多大、吹了多少年、长出多少盐粒。
+
+礼拜堂的孩子们都到院子里去了。老的还在那里坐着，什么也没有做。
+
+**锚句**：灯和沙都不跟潮走——潮候院到此刻还没收到一条追潮令。
+
+**Anchor sentence**: neither the lamp nor the sand followed the tide — no chasing order has ever been issued by this institute to its sea.
+
+---
+
+## 三 · 教团没有这一项拜潮的仪
+
+潮候院的 Convocation 从来没有"庆潮退"这一项议程。没有人提过——因为没有人提过，这件事就发生了。
+
+礼拜堂里的东西都动了一下：灯亮了一下，灯暗了一下；完颜响了很久以前的一次，这一次完颜没响；沙盘没有被人拍动；第七口井没有被人叫过名字。
+
+**锚句**：礼拜堂退潮没有一盏灯亮给潮——潮退了只有灯自己亮给自己。
+
+**Anchor sentence**: the chapel lights nothing for the receding tide — when the sea withdrew, the lamp only turned on for itself.
+
+---
+
+## 四 · 没有人记录的那一刻
+
+礼拜堂的守夜人这一夜没有拿纸笔。没有记录、没有核对、没有盖章，也没有任何人去第七口井旁边守着。
+
+潮候院 Convocation 的会议记录里对这个夜一字未提——不是疏忽，是因为没有人当作这一件事。
+
+礼拜堂对潮候院来说，潮候院从“已经习惯潮”这件事里退了下来。
+
+**锚句**：潮候院退潮不需要 Convocation——潮平时就懒潮候院的 Convocation。
+
+**Anchor sentence**: the institute never needed a Convocation for the retreat — the tide was finally able to be lazy in this chapel too.
+
+---
+
+## 五 · 模型映射（回响九章对应关系）
+
+| 类别 | 标题 | 对应节 |
+|---|---|---|
+| lore | 潮候院退潮没有指令 · 晚潮的事实自理 | 一、四、五 |
+| geography | 礼拜堂 · 完颜侧厅 · 第七口井 · 第八盏灯 | 一、二、三、四 |
+| characters | 守夜人 · 礼拜堂众人 · 潮 | 一、二、三、四 |
+| story | 潮生不急 · 回响（其九） | 全篇 |
+| items | 完颜钟 · 潮沙盘 · 礼拜堂正门 · 风 | 一、二、三、四 |
+| history | 第四十一次大会散会之后 · 潮自己退了 | 一、二、三、四 |
+
+> 回响不为潮候院要一件礼拜堂写过的字痕——它为礼拜堂要一口安静。
+> Echo asks for nothing of the institute except one breath of quiet.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其九）「退潮了，没有潮候指令」
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐泡出来的另一层纹理。
+> 本篇写给潮退的那一刻——它不打响、不举报、不报告——它只是退——退去的事实不属于潮候院，也不属于任何人。
+> 本文不是正典里的第九章，本文是正典没有写的空白。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> 纪元：第四十一次大会散会之后又过了多日——礼拜堂什么都没记，潮自己退了。
+> Era: many months after the 41st; the chapel recorded nothing; the tide left on its own.
+
+---
+
+## 一 · Nobody Asked the Sea Anything
+
+After the 41st Convocation, the institute kept the lamp routines. The chapel lit, and relit, but nobody asked one simple thing: will the tide come tomorrow?
+
+One day the tide withdrew quietly. From one stone to another. No cheer, no awe — the chapel simply and quietly accepted something it had never prepared for.
+
+**锚句**：潮候院没有为潮下达一条指令——潮自己退潮。
+
+**Anchor sentence**: the institute never gave the tide a single order — the tide withdrew on its own.
+
+---
+
+## 二 · Neither the Lamp nor the Sand Followed
+
+The side-room clock kept its silence again. Wan-Yan did not strike, the sand did not move, and the chapel did not ask. The lamp kept slowly burning — dimming and brightening, not quite dark, but never lit for the tide.
+
+The wind came in through the chapel's main door and went out the same way it entered. No one recorded the magnitude of that wind, how many years it had blown, how many grains of salt it had left behind.
+
+The chapel's young ones went out into the courtyard. The old ones stayed, sitting, doing nothing.
+
+**锚句**：灯和沙都不跟潮走——潮候院到此刻还没收到一条追潮令。
+
+**Anchor sentence**: neither the lamp nor the sand followed the tide — no chasing order has ever been issued by this institute to its sea.
+
+---
+
+## 三 · An Agenda Item the Institute Never Held
+
+No Convocation has ever had "celebrate the tide withdrawal" as an agenda item. No one ever raised it — and because it was never raised, it simply happened.
+
+The things inside the chapel stirred slightly: the lamp flickered, the lamp dimmed; Wan-Yan struck once, from long ago — this time it did not strike; the sand table was never tapped; the seventh well was never called aloud again.
+
+**锚句**：礼拜堂退潮没有一盏灯亮给潮——潮退了只有灯自己亮给自己。
+
+**Anchor sentence**: the chapel lights nothing for the receding tide — when the sea withdrew, the lamp only turned on for itself.
+
+---
+
+## 四 · The Hour No One Recorded
+
+The chapel's Night Watcher did not reach for pen and paper that night. No record, no cross-check, no stamp; no one stood vigil at the seventh well either.
+
+The minutes carry nothing about this night — not out of lapse; because no one believed it mattered at all.
+
+For the institute, the chapel quietly slipped out of the habit of thinking of itself as tidal.
+
+**锚句**：潮候院退潮不需要 Convocation，潮候院勉强跟着的事——潮在潮候院也懒。
+
+**Anchor sentence**: the institute never needed a Convocation for the retreat — the tide had been lazy in this chapel all along.
+
+---
+
+## 五 · Mapping（Echo No. 9 → world model）
+
+| 类别 | 标题 | 对应节 |
+|---|---|---|
+| lore | 潮候院退潮没有指令 · 晚潮的事实自理 | 一、四、五 |
+| geography | 礼拜堂 · 完颜侧厅 · 第七口井 · 第八盏灯 | 一、二、三、四 |
+| characters | 守夜人 · 礼拜堂众人 · 潮 | 一、二、三、四 |
+| story | 潮生不急 · 回响（其九） | 全篇 |
+| items | 完颜钟 · 潮沙盘 · 礼拜堂正门 · 风 | 一、二、三、四 |
+| history | 第四十一次大会散会之后 · 潮自己退了 | 一、二、三、四 |
+
+> 回响不为潮候院要一件礼拜堂写过的字痕——它为礼拜堂要一口安静。
+> Echo asks for nothing of the institute except one breath of quiet.
+`,
+  },
 ] as const;

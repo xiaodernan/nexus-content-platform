@@ -49,6 +49,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E06-教团没有买的歌谱': 'echo-006-the-score-the-institute-never-bought',
   'E07-黄铜盘上刀光': 'echo-007-the-gleam-in-the-brass-basin',
   'E08-完颜的潮汐钟': 'echo-008-the-wan-yan-tide-clock',
+  'E09-潮生不急': 'echo-009-the-tide-went-out-without-orders',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
