@@ -4144,3 +4144,12 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 快照 gen 注册 echo-003；/bible 「回响」分组自动收录。verify:world-bible ✅ / verify:bible-snapshot ✅；SSR 实测 zh/en 200。
 - 番外集现在：E01 巡逻路札记 · E02 潮候船上没有岸 · E03 退潮三日；主线 4 章 + 回响 3 篇 + 潮汐挑战 + 七口井 + 直达检索。
 - fe-gates **125/125 · 1223/1223** 保持全绿。
+
+## cont. 168 (2026-11-16) — v801: 鼠标引擎方向再纠偏（v778 其实方向反了）
+
+- 用户再次直接反馈：「一般是往上滑是往上看的，但你这个鼠标往上滑是往下看……应该往上滑就往上看、往下滑就往下看。」
+- 细看代码：`pitch = drag.pitch - dy*0.005`（v778 修正后）——向上拖（dy<0）→ pitch **增大** → 相机**变高** → 俯视地 = 用户看到的「往下看」，恰是用户
+  一直说搞反的方向。v778 把两个约定搞反了：它以为「上滑=相机升高」=「抬头」；实际用户说的是**画面上的视线抬向天上**（相机下沉、仰靠地平线）。
+- 修正：与 `/world WorldWalk`（YXZ、pitch 正 = 抬头、拖拽上=抬头）同源约定：`pitch = drag.pitch + dy*0.005` —— 向下拖 dy>0 → pitch 增大→相机升高→俯视≈「往下看」；向上拖 dy<0 → pitch 减小→相机下沉、仰视地平线≈「往上看」。clamped 0.18~1.35。
+- §FE-3D 门重钉（剥类后 SHA faf38989…，零行为）；一次全码循环验证（grep 所有 pitch 计算、与 /world 对齐、只动一条算式与一条注释）——**方向语义统一到同一惯例上**。
+- fe-gates **125/125 · 1223/1223**；census OK；tsc web 0。SSR 实测不要求（Canvas 仅 client-side 运行且交互式）。
