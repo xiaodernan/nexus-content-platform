@@ -2810,6 +2810,10 @@
   .cb-cacheBadge[data-ai-cache='miss'] { border-color: var(--nexus-color-border-subtle); }
   .cb-cacheBadge[data-ai-cache='unreported'] { border-style: dashed; border-color: var(--nexus-color-border-subtle); color: var(--nexus-color-fg-3); }
   .cb-cacheBadge[data-ai-cache='unreported']::before { background: transparent; border: 1px solid currentColor; opacity: 0.7; }
+  /* cont. 170 · 编排车道 chip（CommandBar 生成结果行）——stategraph = LangGraph 状态图（accent 描边）；lane-a = 顺序执行（弱描边）。
+     车道由服务端 x-nexus-orchestration 响应头判定——客户端只转述，不猜。零 hex，全部 tokens。 */
+  .cb-laneChip { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-full); padding: 1px var(--nexus-space-2); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+  .cb-laneChip[data-ai-lane='stategraph'] { border-color: color-mix(in srgb, var(--nexus-color-accent-2-ink) 45%, transparent); background: color-mix(in srgb, var(--nexus-color-accent-2-ink) 12%, transparent); color: var(--nexus-color-fg-1); }
   .cb-segPill { border: 0; border-radius: var(--nexus-radius-sm); background: transparent; padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); cursor: pointer; }
   .cb-segOn { background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-1); }
   .cb-segIdle { color: var(--nexus-color-fg-3); cursor: pointer; }

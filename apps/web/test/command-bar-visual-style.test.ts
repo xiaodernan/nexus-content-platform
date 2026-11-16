@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
  * 本片只换皮；plan 派发、APPROVAL_TTL_MS 流、aiObservation 回读路径——一字不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @ + cn()整体归一 + `className=@` 归一）：
- * `528e036767d3a44b0b7973ada30321f4cd2d3a1c1b8ea9ce0b0e3a23bd42005a` 与 HEAD 字节一致。
+ * `7844879bf3d4ba80d85364d6baf349b87f7726ce11b202bebdb1d3573ab3e8e3` 与 HEAD 字节一致（cont. 170 编排车道 chip）。
  *
  * 判据不变式（12 门）：
  *  1. 'use client' 保留 + csrfHeaders/studio.flushBeforeAi 进门；2. 字面 className 全 `.cb-*`/复用族（含 cn 三元分支）；
@@ -157,9 +157,9 @@ describe('§FE-61 /studio CommandBar AI 命令栏', () => {
     }
   });
 
-  it('剥 className/cn 后全文 SHA256 守恒（2026-11-16 v749「CommandBar 双语化」重钉：528e036767d3a44b0b7973ada30321f4cd2d3a1c1b8ea9ce0b0e3a23bd42005a）', () => {
+  it('剥 className/cn 后全文 SHA256 守恒（2026-11-16 cont. 170「编排车道 chip」重钉：c17c2e807fcc8fa2686650fb7bfcb9ef16fc73c38eca23687848f25077109022）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '528e036767d3a44b0b7973ada30321f4cd2d3a1c1b8ea9ce0b0e3a23bd42005a',
+      'c17c2e807fcc8fa2686650fb7bfcb9ef16fc73c38eca23687848f25077109022',
     );
   });
 
