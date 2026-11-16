@@ -1138,6 +1138,20 @@ export const HealthResponseSchema = z.object({
     .nullable()
     .optional()
     .default(null),
+  /** cont. 151 / ADR 0270 兑现：LLM 活探针（system=ping，绕过完成缓存）最近一次结论。
+   * 未探测 → state="unknown"（unknown 不等于可用）；unknown 按不可用呈现。 */
+  llmLive: z
+    .union([
+      z.null(),
+      z.object({
+        state: z.enum(['unknown', 'ok', 'failed']),
+        reason: z.string(),
+        probes: z.number().int().min(0),
+      }),
+    ])
+    .nullable()
+    .optional()
+    .default(null),
 });
 export type HealthResponse = z.infer<typeof HealthResponseSchema>;
 

@@ -4762,3 +4762,15 @@ D
 - 环境文档：`apps/ai-service/env.example` 收录代理段说明；`docs/adr/0270-llm-transport-must-honor-env-proxy.md` 落册（含 healthz capability 仍是配置推断、NO_PROXY 粒度、Clash 节点间歇性 ConnectError EOF 这三项诚实边界与后续动作）。
 - 提交：bb29cb32（StateGraph 路由）、本提交（v781 / cont. 150）。
 - 未做：LlmLiveness（healthz 活探针，镜像 EmbeddingLiveness）；NO_PROXY 按 base_url 主机豁免；NEXUS_LLM_STREAM 落地态核对（本仓源默认 1，本机 .env 显式 0——两者并存，以 .env 为准）。
+
+## cont. 151 (2026-11-17) - v782: /healthz 增 llmLive 活探针（ADR 0270 后续兑现）
+
+- 动机：`capability: "real"` 一直是「有 key 就 real」的配置推断——§59/§160 不许把没验证的说成可用。embedding 侧早已有 EmbeddingLiveness，LLM 侧一直留白。
+- 落地：
+  - 新增 `providers/llm_liveness.py`：`LlmLiveness`（TTL 900s、`claim_refresh` 单飞）/ `LlmProber`（system=ping、user=ping、`json_mode=False`；拿注册表内层 provider 探，**绕过完成缓存**）/ `refresh_llm_in_background`（守护线程、不阻塞 healthz）。
+  - registry 增 `llm_liveness` / `llm_prober()` / `llm_live_state()`；**只对 OpenAICompatibleProvider 起探测**（测试桩 GatedProvider/FakeProvider 不给它们开网络副作用通道——首版 GatedProvider 探测消费了测试的 started 事件，`test_cancel_running_is_accepted_then_result_is_discarded` 复现失败，经根因修复修正 isinstance 门后 435/435 绿）。
+  - app.py：lifespan 启动 kick 探一次 + /healthz 每次过期 kick，新增 additive 字段 `llmLive: { state, reason, probes }`。
+- 契约（单一真值链）：zod（HealthResponseSchema 增 `llmLive`，optional+nullable+default null）→ `npm run contract:export` 重导出 health.schema.json（Python 侧 required 增加 llmLive）→ contract.test.ts 24/24 绿（含 ai-health-cache.test.ts）。web 侧新读字段向前兼容。
+- 真机核验（:3212，Clash 7897）：healthz 首次即 `llmLive: { state: "ok", reason: "", probes: 1 }`——探测真的经代理打到了 api.aizzz.xyz 并拿到应答（非配置推断）。
+- 测试：新 `test_llm_liveness.py` 12 臂（探测 URL/403→failed/空回复→failed/RuntimeError→failed/TTL 单飞/lifespan 起线程/healthz unknown-failed 两态/契约吸收 llmLive 键）；ai-service 全量 435/435 绿（排除 provider_live 联网臂）。
+- 门：fe 侧未动（web 无 SHA pin 受影响；`ai-health-cache` 通过）；contract byte-identity 通过；`mvn` 未涉及。

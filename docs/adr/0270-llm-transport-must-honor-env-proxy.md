@@ -46,9 +46,9 @@ httpx 的环境变量代理（`HTTPS_PROXY`/`HTTP_PROXY`/`ALL_PROXY`，`NO_PROXY
 - 无代理报错场景仍会 403（直连被拒），报文映射为 ProviderFailed(401/403)——这是如实的外部语义，不掩盖。
 - 任何回归在自建 `inner=` 注入下都可隔离本装饰器行为；`test_sticky_prompt_cache.py` 全套（含既有 MockTransport 臂）86/86 绿。
 
-## 后续（未做，记在这里而不是吹掉）
+## 后续
 
-- `/healthz` 的 `capability: "real"` 仍是「有 key」的配置推断，不是活探针；应镜像 `EmbeddingLiveness` 之于 embedding，引入 LlmLiveness（TTL 900s，8-token ping），只有真调用过一次才算 real。
+- `/healthz` 的 `capability: "real"` 仍是「有 key」的配置推断，不是活探针。**cont. 151 已兑现为新增字段 `llmLive: { state, reason, probes }`**（additive、schema 默认 null）：探测只打真网关的内层 provider；unknown ≠ 可用；测试桩不触发探测；`test_llm_liveness.py` 12 臂；health.schema.json 按 zod 单一真值重导出，web 侧消费向前兼容。
 - `NO_PROXY` 按主机豁免（放到 `_build_llm`：读 base_url host 与 no_proxy 列表做匹配再决定是否传 inner）。
 - Clash 出口节点质量观察到间歇性 `httpx.ConnectError: EOF occurred in violation of protocol`（HTTPS 握手被节点强断）；
   已有 `NEXUS_LLM_MAX_ATTEMPTS=3` + backoff 兜底，live 复测中 10/10 成功；与本解耦。

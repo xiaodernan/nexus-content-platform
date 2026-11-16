@@ -20,6 +20,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 
 from .providers.liveness import refresh_in_background
+from .providers.llm_liveness import refresh_llm_in_background
 
 # 加载 .env 文件（开发环境），生产环境由环境变量注入
 _env_file = Path(__file__).resolve().parent.parent.parent / ".env"
@@ -69,6 +70,9 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
         # 启动就起一次 embeddings 探测，但不在启动路径上等它：provider 慢的时候
         # 把服务拉起来的代价变成 60s 等待，不值得。第一次 /healthz 可能仍写"未验证"，
         # 那是一句实话；探测落地后下一次读到的就是网关的真答复（见 providers/liveness.py）。
+        llm_prober = registry.llm_prober()
+        if llm_prober is not None:
+            refresh_llm_in_background(registry.llm_liveness(), llm_prober)
         prober = registry.embedding_prober()
         if prober is not None:
             refresh_in_background(registry.liveness, prober)
@@ -116,6 +120,9 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
     async def healthz() -> dict[str, Any]:
         # 结论过期就后台补一次，本次仍返回上一次已知结论：healthz 的预算是毫秒，
         # 而 web 侧探测它的超时只有 1.5s（把网络等待放进健康检查，provider 一慢就整条链路变 DEMO）。
+        llm_prober = registry.llm_prober()
+        if llm_prober is not None:
+            refresh_llm_in_background(registry.llm_liveness(), llm_prober)
         prober = registry.embedding_prober()
         if prober is not None:
             refresh_in_background(registry.liveness, prober)
@@ -134,6 +141,7 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
             "queue": {**queue_report(state), "pending": pending, "running": running},
             # v690：应用级 LLM 完成缓存状态（未启则 None）；面板照实读，不许藏进配置页
             "llmCache": registry.llm_cache_state(),
+            "llmLive": registry.llm_live_state(),
             # v694：真实 provider 往返延迟（ADR 0126）。CachedLlm 在本 meter 之上：
             # 完成缓存回放不计入；进程级、重启即零、窗口 1024；不冒充全局 SLO
             "llmLatency": LLM_LATENCY.snapshot(),
