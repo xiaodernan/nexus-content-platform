@@ -5430,3 +5430,43 @@
   .ae-next, .ae-restart { background: Highlight; color: HighlightText; forced-color-adjust: auto; }
   .ae-link:focus-visible, .ae-next:focus-visible, .ae-restart:focus-visible { outline: 2px solid Highlight; box-shadow: 0 0 0 2px Highlight; }
 }
+
+/* ──AI-DEEP-READ /observatory 大厅的 AI 深读面板（cont. 190）── 全部 tokens，零 hex；forced-colors 段在文件后部 */
+.dr-root { display: flex; flex-direction: column; gap: 0.75rem; background: var(--nexus-color-bg-2); border: 1px solid color-mix(in srgb, var(--nexus-color-accent-2-ink) 40%, var(--nexus-color-border-subtle)); border-radius: var(--nexus-radius-md, 0.75rem); padding: 1.25rem; }
+.dr-kicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.22em; text-transform: uppercase; color: var(--nexus-color-accent-2-ink); margin: 0; }
+.dr-title { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+.dr-lede { color: var(--nexus-color-fg-2); font-size: 0.92rem; line-height: 1.65; margin: 0; max-width: 60ch; overflow-wrap: anywhere; word-break: break-word; }
+.dr-loading { color: var(--nexus-color-fg-2); padding: 0.75rem 0; margin: 0; font-size: 0.95rem; }
+.dr-error { color: var(--nexus-color-danger-ink); background: color-mix(in srgb, var(--nexus-color-danger-ink) 10%, var(--nexus-color-bg-3)); padding: 0.7rem 0.9rem; border-radius: var(--nexus-radius-md, 0.5rem); margin: 0; overflow-wrap: anywhere; word-break: break-word; }
+.dr-note { margin: 0; font-family: var(--nexus-font-mono); font-size: 0.72rem; color: var(--nexus-color-fg-3); overflow-wrap: anywhere; word-break: break-word; }
+.dr-button { font-size: 0.95rem; border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-1); border-radius: var(--nexus-radius-md, 0.5rem); padding: 0.55rem 0.9rem; cursor: pointer; }
+.dr-button:hover { border-color: var(--nexus-color-accent-2-ink); color: var(--nexus-color-accent-2-ink); }
+.dr-buttonPrimary { background: var(--nexus-color-brand); border-color: transparent; color: var(--nexus-color-accent-fg); font-weight: 650; padding: 0.6rem 1.1rem; align-self: flex-start; }
+.dr-buttonPrimary:hover { filter: brightness(1.1); color: var(--nexus-color-accent-fg); }
+.dr-button:focus-visible, .dr-buttonPrimary:focus-visible, .dr-dismiss:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+.dr-dismiss { background: transparent; border: 1px solid transparent; color: var(--nexus-color-fg-3); border-radius: var(--nexus-radius-md, 0.5rem); padding: 0.5rem 0.8rem; cursor: pointer; font-size: 0.9rem; }
+.dr-dismiss:hover { color: var(--nexus-color-fg-1); border-color: var(--nexus-color-border-subtle); }
+.dr-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+.dr-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.7rem; }
+.dr-item { display: flex; flex-direction: column; gap: 0.4rem; background: var(--nexus-color-bg-3); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md, 0.5rem); padding: 0.85rem 1rem; }
+.dr-itemHead { display: flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; }
+.dr-itemTitle { font-size: 1.02rem; margin: 0; letter-spacing: -0.005em; }
+.dr-conf { font-family: var(--nexus-font-mono); font-size: 0.68rem; padding: 2px var(--nexus-space-2); border-radius: 999px; letter-spacing: 0.06em; }
+.dr-confHigh { color: var(--nexus-color-success); border: 1px solid color-mix(in srgb, var(--nexus-color-success) 45%, transparent); }
+.dr-confMedium { color: var(--nexus-color-warn-ink); border: 1px solid color-mix(in srgb, var(--nexus-color-warn-ink) 45%, transparent); }
+.dr-confLow { color: var(--nexus-color-fg-3); border: 1px solid var(--nexus-color-border-subtle); }
+.dr-meta { display: flex; flex-direction: column; gap: 0.35rem; margin: 0; }
+.dr-meta div { display: grid; grid-template-columns: 3.5rem minmax(0, 1fr); gap: 0.5rem; align-items: baseline; }
+.dr-meta dt { font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--nexus-color-fg-3); margin: 0; }
+.dr-meta dd { margin: 0; color: var(--nexus-color-fg-1); line-height: 1.6; font-size: 0.92rem; overflow-wrap: anywhere; word-break: break-word; }
+.dr-footRow { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap; border-top: 1px solid var(--nexus-color-border-subtle); padding-top: 0.6rem; }
+.dr-footStamp { margin: 0; font-family: var(--nexus-font-mono); font-size: 0.72rem; color: var(--nexus-color-fg-3); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; word-break: break-word; }
+
+@media (forced-colors: active) {
+  .dr-root, .dr-item { border-color: CanvasText; background: Canvas; color: CanvasText; }
+  .dr-title, .dr-kicker, .dr-itemTitle, .dr-note, .dr-loading { color: CanvasText; }
+  .dr-error { border: 1px solid CanvasText; color: CanvasText; background: Canvas; }
+  .dr-button, .dr-buttonPrimary { background: Highlight; color: HighlightText; forced-color-adjust: auto; border-color: CanvasText; }
+  .dr-dismiss { color: CanvasText; }
+  .dr-button:focus-visible, .dr-buttonPrimary:focus-visible, .dr-dismiss:focus-visible { outline: 2px solid Highlight; box-shadow: 0 0 0 2px Highlight; }
+}

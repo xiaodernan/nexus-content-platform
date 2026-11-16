@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/i18n';
 import { fitLinear, projectForward, summarizeVolatility, buildPublicActions, type Volatility } from '@/server/domain/pulseProjection';
+import { DeepReadCard } from '@/components/DeepReadCard';
 
 /**
  * §PUB-1 公共观测大厅（/admin/public）——口令 `123` 打开
@@ -339,6 +340,8 @@ export function PulsePublicView({ locale = 'zh' }: { locale?: Locale }) {
               ))}
             </ol>
           </section>
+
+          <DeepReadCard body={body} locale={locale} />
 
           <footer className="pl-foot">
             <p className="pl-footNote">{c.footNote}</p>
