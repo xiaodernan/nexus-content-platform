@@ -5393,4 +5393,190 @@ Sailors entering the harbor today first look to the direction of the sand table,
 > One of the seven lamps was never lit at all — the Institute uses the lamps to know it is still alive.
 `,
   },
+  {
+    order: 22,
+    slug: 'echo-022-the-fish-that-never-dried',
+    titleZh: '里巷子晾鱼架上那条永远晾不干的鱼',
+    titleEn: 'The Fish That Never Dried on the Back-Alley Rack',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——挂鱼的薄暮。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; a dusk hour when the fish were hung.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 22): The Fish That Never Dried on the Back-Alley Rack
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给里巷子晾鱼架的最里面那号钩——鱼在那里挂了很久；里巷子的人不知道它的年份，也不打算数。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the innermost hook in the back alley's drying rack — the fish has hung there many years; no one knows its age, and none plans to count.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——挂鱼的薄暮。
+> Era: the Institute — after the 41st Convocation; a dusk hour when the fish were hung.
+
+---
+
+## 一 · 一号钩的来历
+
+里巷子的晾鱼架最里面那号钩是唯一不编号的钩——抄本员抄架子图纸的时候把它单独列出来：「里边的一号。」
+
+没人知道它是谁挂的。值守翻过仓库收件单里没有鱼的任何一行；米缸月那天的清扫册上也只写了四个字：「里侧钩在。」
+架子是后来几代补的，但一号钩早早就在——木材打眼的口径里，一号钩是老木料。
+
+**锚句**：里巷子晾鱼架最里侧的一号钩上，挂着一条谁都不记得是什么时候挂上去的鱼。
+**Anchor sentence**: the innermost hook of the drying racks, hook No. 1, carries a fish nobody remembers being hung there.
+
+---
+
+## 二 · 潮晾的鱼
+
+一号钩的位置是架子上唯一不晒太阳的一根——海风从石缝的缺口灌进来，先落到一号钩，最后才肯落到别处。
+
+别处的鱼缩成纸板一样薄；一号钩上的鱼不缩。它保持着一条鱼刚出水那一刻的弧度——毫无破损，盐结得密密麻麻，像里巷子某年起潮沙盘前最后一线未完的轮廓。
+
+风大的时候，鱼尾微微卷一下；风落的时候，它又回到原样。值守弯腰到它面前看的时候，总是能闻见一点潮气——不是臭，是湿的。
+
+**锚句**：一号钩上的鱼是潮晾的——从没被太阳干过，也从没被谁翻晒过。
+**Anchor sentence**: the fish on hook No. 1 is dried by the tide — never by sun, never by anyone's hand.
+
+---
+
+## 三 · 老渔夫只说是「一号钩」
+
+里巷子的渔夫每天出海之前都需要经过一号钩。年轻的一代问过：「它是鲑鱼还是海鲋？」年近的回答永远一致：「一号钩。」
+
+值守也说这句话——不是因为怕传承错，是因为这句话本身就是规矩。新来的值守第一次被带进里巷子的时候，抄本员会指一指里侧的钩：「一号钩在对面。」——谁都知道「在」的意思。
+
+**锚句**：新来的值守问这条鱼是什么种的——后辈只说一号钩，不说它的名字。
+**Anchor sentence**: new watchers ask what kind of fish that is — the older hands say only "hook No. 1", never a name.
+
+---
+
+## 四 · 抄本员为什么不抄它
+
+潮候院三四十年来最详细的名册是潮汐表副册和米缸月登记册——这两本册子没有一页记过一号钩。
+
+抄本员是这么解释的：任何一条鱼的收录都意味着它可以被点数、被分配、被被换掉，而一号钩上的鱼不打算被点数。
+值守长某年有一次想为它写一页：写完以后，整页纸上只剩「潮」字一个字，余下字都洇了——洇得和别的笔迹不同。自那以后，值守主动回避记录它。
+
+**锚句**：潮候院从没有把它登记进任何名册——被记录下来，就等于被收编了。
+**Anchor sentence**: the Institute never registered it in any roster — to be recorded is to be conscripted.
+
+---
+
+## 五 · 一号钩不能摘
+
+架子大修的那一年，匠人撤了侧架，准备把一号钩也换掉。值守们知道了一号钩不能换——最后一号钩在老架子里被整根拆出来，原样留在新架子的同一位置。
+
+抄本员在新架子图上画的依然是一号钩和别人分开的那一排。新图上「里侧钩在」四个字没有动过。
+值守告诉新来的人：架子会拆，钩不能撤——风夜经过一号钩的人总会慢半步——不是为了看，是为了怕惊到它。
+
+**锚句**：架子会换，一号钩不换——风夜经过的人总慢半步，不是为了看。
+**Anchor sentence**: racks are replaced; hook No. 1 is not — on windy nights people pass a half-step slower, not to see it.
+
+---
+
+## 六 · 映射（回响二十二章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 一号钩 · 潮晾的鱼 · 不登记 | 一、二、四、六 |
+| geography | 里巷子 · 晾鱼架 · 东侧出海口 | 一、二、三、五、六 |
+| characters | 里巷子渔夫 · 值守 · 抄本员 | 二、三、四、五、六 |
+| story | 一号钩上的鱼 · 回响（其二十二） | 全篇 |
+| items | 一号钩 · 海鲋 · 晾鱼架 · 新旧侧架 | 一、二、四、五、六 |
+| history | 架子大修 · 四十一次大会以后 | 一、四、五、六 |
+
+> 风夜经过一号钩的人总慢半步——不是想看一号钩的鱼，是怕惊到它。
+> People passing hook No. 1 on windy nights slow a half-step — not to see the fish, but to avoid startling it.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其二十二）「里巷子晾鱼架上那条永远晾不干的鱼」
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给里巷子晾鱼架的最里面那号钩——鱼在那里挂了很久；里巷子的人不知道它的年份，也不打算数。
+> 纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the innermost hook in the back alley's drying rack — the fish has hung there many years; no one knows its age, and none plans to count.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——挂鱼的薄暮。
+> Era: the Institute — after the 41st Convocation; a dusk hour when the fish were hung.
+
+---
+
+## 一 · The Hook No. 1
+
+The innermost hook of the back alley's drying rack is the only one not numbered in the drawings — when the copyists drew the rack's plans, they listed it separately: "the one inside."
+
+No one knows who hung it. The warehouse receipts contain no line item for a fish; the rice-jar month sweeping register records only four characters: "inner hook stands."
+The rack was rebuilt by generations — hook No. 1 has been there longer: the eye splice in its timber is the oldest wood of all.
+
+**锚句**：里巷子晾鱼架最里侧的一号钩上，挂着一条谁都不记得是什么时候挂上去的鱼。
+**Anchor sentence**: the innermost hook of the drying racks, hook No. 1, carries a fish nobody remembers being hung there.
+
+---
+
+## 二 · Dried by the Tide
+
+Hook No. 1 is the one place on the rack where sun never lands — the sea wind comes in through the gap in the stones, falls on No. 1 first, and only then stoops elsewhere.
+
+Fish elsewhere shrink thin as cardboard; the fish on No. 1 never does. It keeps the arc it held when it first lifted from the water — intact, sealed in salt grain upon salt grain, like an unfinished outline left on the sand table at some low tide.
+
+When the wind is strong, its tail rolls slightly; when the wind passes, it returns to its shape. Watchers bending down to look always catch the faintest thread of tide on the air — not rot; wet.
+
+**锚句**：一号钩上的鱼是潮晾的——从没被太阳干过，也从没被谁翻晒过。
+**Anchor sentence**: the fish on hook No. 1 is dried by the tide — never by sun, never by anyone's hand.
+
+---
+
+## 三 · The Old Fishermen Say Only "Hook No. 1"
+
+The fishermen of the back alley pass hook No. 1 every morning before they go out. The young ones asked: "Is it a salmon or a sea-carp?" The older generation answered the same way: "Hook No. 1."
+
+The watchers say the same words — not because they fear the mistake; because the phrase itself is the rule. When a new watcher is first brought into the back alley, the senior copyist points across to the inner hook: "Hook No. 1 is across." — and everyone knows what "is" means.
+
+**锚句**：新来的值守问这条鱼是什么种的——后辈只说一号钩，不说它的名字。
+**Anchor sentence**: new watchers ask what kind of fish that is — the older hands say only "hook No. 1", never a name.
+
+---
+
+## 四 · Why the Copyists Never Wrote It Down
+
+The Institute's two most detailed registers — the tide-table supplement and the rice-jar month record — hold no page for hook No. 1.
+
+The copyists explain it this way: any record of a fish means it can be counted, allocated, replaced — and the fish on hook No. 1 does not intend to be counted.
+One year a keeper tried to set down a page: finished writing, the page held one character — "潮" — and all the rest blurred in a different hand than any copyist's. After that, the watchers avoided recording it altogether.
+
+**锚句**：潮候院从没有把它登记进任何名册——被记录下来，就等于被收编了。
+**Anchor sentence**: the Institute never registered it in any roster — to be recorded is to be conscripted.
+
+---
+
+## 五 · Hook No. 1 Cannot Be Replaced
+
+The year the rack was rebuilt, the carpenter set out to also swap hook No. 1. The watchers made clear: hook No. 1 cannot be replaced — hook No. 1 was cut from the old rack as a single timber and left, in the exact same place, in the new.
+
+On the new drawings the copyists drew hook No. 1 apart from its row, as always, the four characters "inner hook stands" unchanged.
+Watchers tell the new arrivals: racks are swapped; the hook is not — on windy nights they pass a half-step slower, not to look at hook No. 1, but to avoid startling it.
+
+**锚句**：架子会换，一号钩不换——风夜经过的人总慢半步，不是为了看。
+**Anchor sentence**: racks are replaced; hook No. 1 is not — on windy nights people pass a half-step slower, not to see it.
+
+---
+
+## 六 · Mapping（Echo No. 22 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | Hook No. 1 · the fish dried by tide · the unregistrable | 一、二、四、六 |
+| geography | The back alley · the drying rack · the east outlet | 一、二、三、五、六 |
+| characters | The fishermen · the watchers · the copyists | 二、三、四、五、六 |
+| story | The Fish on Hook No. 1 · Echo No. 22 | 全篇 |
+| items | Hook No. 1 · the sea-carp · the rack · old and new timber | 一、二、四、五、六 |
+| history | The rack's rebuild · after the 41st Convocation | 一、四、五、六 |
+
+> 风夜经过一号钩的人总慢半步——不是想看一号钩的鱼，是怕惊到它。
+> People passing hook No. 1 on windy nights slow a half-step — not to see the fish, but to avoid startling it.
+`,
+  },
 ] as const;

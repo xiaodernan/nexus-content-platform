@@ -4416,3 +4416,9 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 新正典第五章（中英双文件 + 映射表）；verify:world-bible ✓ 125/125；快照 **5 章** · 21 回响。
 - /bible 五扇门；/bible/quiz 14 题；/guide 停留三章的旧话改成五章。
 - 大典现在有 5 章正典：第五章把第四章终卷的「签收单」落到了潮候院的建院上。
+
+## cont. 201 (2026-11-17) — v836 · 回响 · 其二十二《里巷子晾鱼架上那条永远晾不干的鱼》
+
+- 新回响 E22（中英双文件 + 映射表）；verify:world-bible ✓ 130/130；快照 5+22。
+- QuizArcade 最后一处硬编码英文 aria 清掉（lanternsAria 双语键，BigLantern 经 c 透传）。
+- 世界 5+22；showcase 未推（按指令降低更新频率，下个结构里程碑一起推）。

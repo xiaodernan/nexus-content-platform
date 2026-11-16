@@ -14344,3 +14344,13 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   bible-quiz-visual-style 的 12 断言改 14、答案序列改 [2,2,0,1,3,1,2,0,1,2,1,2,0,2]；
   bible-visual-style / bible-quiz-visual-style 的 SHA256 重订（目录页、潮汐挑战页、BibleQuiz 组件）。
 - verify:world-bible ✓ 125/125；verify:bible-snapshot ✓；tsc web 0；fe-gates **126/126 · 1227/1227 · census 2531**。
+
+## §BIBLE-34 — 回响 · 其二十二《里巷子晾鱼架上那条永远晾不干的鱼》（2026-11-17 · v836）
+
+- 产出：`docs/world-bible/echoes/E22-里巷子晾鱼架上那条永远晾不干的鱼.md`（中）/ `.en.md`（英）——晾鱼架里侧一号钩，一条从来没有干过的鱼：
+  年份没人记得、潮晾的、不被翻晒、不登记名册、架子换钩不撤，风夜慢半步。
+  5 锚句 zh/en 全局唯一（130/130）。
+- `gen-bible-snapshot.mts` 登记 `echo-022-the-fish-that-never-dried`；快照重生成（5 章 · 22 回响）。
+- 附代码侧一小片 i18n 清洗：QuizArcade BigLantern 的 `aria-label="Lantern tally"` 硬编码英文改为 COPY 键 `lanternsAria`（zh 灯盏点亮进度 / en Lantern tally），由 `c` 透传——混合语最后一处硬编码英文 aria 收口。
+- verify:world-bible ✓ 130/130；verify:bible-snapshot ✓；tsc web 0；fe-gates 126/126 · 1227/1227 · census 2531；agent-runtime 675/675。
+- 本次**不推送 showcase**（按「有大提升再更新」，本片为增补 + 小 a11y 修，合并到下一个结构里程碑一并推送）。
