@@ -1,0 +1,33 @@
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import { getLocale, type Locale } from '@/lib/i18n';
+import { BibleSearch } from '@/components/BibleSearch';
+
+export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: '正典检索 · The Canon Search — 低语诸王',
+  description: '世界大典本地检索：在正典全文里按关键词直达原文（《潮汐教团》四章 + 四回响）。The local canon search — keyword hits in the full text of the World Bible (four chapters + four echoes).',
+};
+
+const COPY: Record<Locale, { crumb: string; back: string }> = {
+  zh: { crumb: '世界大典 · 正典检索', back: '← 典籍室' },
+  en: { crumb: 'The World Bible · Canon Search', back: '← The shelf' },
+};
+
+/** §BIBLE-4 低语诸王 · 典籍室「正典检索」：指南承诺 `/bible/search` 直达（正典本地检索），此页兑现该承诺。
+    检索本体只做一件事：从快照全文里捞出含关键词的行，按序显示原文，不出 AI、不出库外来源。 */
+export default async function BibleSearchPage() {
+  const locale = await getLocale();
+  const c = COPY[locale];
+  return (
+    <main className="bb-root" data-bible-search-page data-bible-locale={locale}>
+      <nav className="bb-breadcrumb" aria-label={c.crumb}>
+        <Link href="/bible" className="bb-footLink" data-bible-search-back>{c.back}</Link>
+        <span className="bb-crumbSep" aria-hidden="true">/</span>
+        <span className="bb-crumbCurrent">{c.crumb}</span>
+      </nav>
+      <BibleSearch locale={locale} />
+    </main>
+  );
+}

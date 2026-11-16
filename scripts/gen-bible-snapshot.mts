@@ -44,6 +44,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E01-巡逻路札记': 'echo-001-patrol-road-notes',
   'E02-灯芯札记': 'echo-002-lamp-wick-notes',
   'E03-盐灯守灵日记': 'echo-003-salt-lamp-vigil-diary',
+  'E04-第九叩': 'echo-004-ninth-knock',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

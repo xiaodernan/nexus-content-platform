@@ -4781,3 +4781,11 @@ D
 - `_env_proxy()` docstring 指明豁免去向；token 解析不依赖 transport（构造期看不到 URL）。
 - test_sticky_prompt_cache.py +6 臂（58/58 绿）。使用时本机 NO_PROXY=127.0.0.1,localhost,::1 不触碰 provider 网关——默认出网仍是 Clash 7897（cont. 150 实测 78.2%→97.1% prefix cached）。
 note: 本条与cont. 151 构成同一 provider 换新批次（bb29cb32→eb151818→5fda2ac3→本提交），showcase 同步到最新位点。
+
+## cont. 153 (2026-11-17) - v784: 世界大典回响（其四）「第九叩」落成
+
+- 新内容：`docs/world-bible/echoes/E04-第九叩.md` + `.en.md`——雾港第九下叩击的侧写：沙盘第九个旋钮 / 没有人坐的第九把椅子 / 烛台上的第九格 / 报纸被印圆角擦掉的第九个脚注 / 第九个客人到来之前 / 第九下叩击响起的那一刻。六节正文，zh/en 逐字对照，6 组锚句（全系列 39→45，全部通过）。
+- 经 AI 草稿 + 人工定稿：微调内核仍由典籍室纪律收束（潮汐教团第 41 次会议之后、收件单上印着"已到"、第 42 次会议无人召集——正典新锚点，不推翻任何既有正典）。`npm run verify:world-bible` → 45 zh/45 en 全部通过；`npm run gen:bible-snapshot` → 4 回响；`npm run verify:bible-snapshot` 字节一致通过。
+- 前端接通：`BibleQuiz` 16 题（zh/en 镜像 1:1，答题序列钉死并重钉 `efe13753…`）；简明说明书 `/guide` 三处"三回响"→"四回响"、en 同步；SHA pin `5c61cf6c…` 重钉。
+- 诚实补丁：`/guide` 之前一直在指向 `/bible/search`——**该路由不存在**（ BibleSearch 只嵌在 /bible hub 上）。指南不能对用户撒谎：要么改文档，要么补功能。补功能——新增 `apps/web/src/app/bible/search/page.tsx`（§BIBLE-4，正典本地检索直达、回链、RSC + force-dynamic、沿用已定义的 bb-* 类），真机 probe `GET /bible/search` → 200，`data-bible-search-page` / `data-bible-search-input` / `data-bible-search-back` 钩子齐（live probe，用完即停 :3100）。`/bible/echo-004-ninth-knock` 200（zh/en 标题与双语锚句皆命中）；`/bible` hub 200 且 E04 入册。
+- 门：fe-gates 120/120 · 1181/1181；census 2399 OK；全链仅 2 SHA pin 重钉（quiz 组件、guide）；tsc 未在 gates 之外重跑（vitest 全绿、无 .ts 新引型）。

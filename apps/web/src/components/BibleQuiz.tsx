@@ -123,6 +123,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《盐灯守灵日记》里，守灵人数什么？', choices: ['年', '灯油的斤两', '夜', '灯芯的根数'], answer: 2, ref: '回响三 · 守灵人不数年，他数夜' },
     en: { prompt: 'In “The Salt-Lamp Vigil Diary”, what does the vigil-keeper count?', choices: ['years', 'the weight of lamp oil', 'nights', 'the strands of wick'], answer: 2, ref: 'Echo No. 3 · He does not count years — he counts nights' },
   },
+  {
+    zh: { prompt: '《第九叩》里，沙盘借出栏的指印压在什么之上？', choices: ['一页报纸', '一个空白的日期', '一本没写完的货单', '一枚收件章'], answer: 1, ref: '回响四 · 沙盘上的第九个旋钮' },
+    en: { prompt: 'In “The Ninth Knock”, what does the loan-column fingerprint on the stores ledger stamp over?', choices: ['a newspaper proof', 'a blank date', 'an unwritten invoice', 'a receipt stamp'], answer: 1, ref: 'Echo No. 4 · The Ninth Dial on the Sand Table' },
+  },
+  {
+    zh: { prompt: '《第九叩》里，报纸上的第九个脚注写的是什么？', choices: ['雾港失踪的第九人', '灯罩内侧的九道叩痕', '第四十二次会议的日期', '圆角印章的来历'], answer: 1, ref: '回响四 · 被印圆角擦掉的第九个脚注' },
+    en: { prompt: 'In “The Ninth Knock”, what does the ninth footnote in the newspaper describe?', choices: ['the ninth missing person of the mist harbor', 'nine knock-marks on the inside of a lamp shade', 'the date of the forty-second meeting', 'the origin of the corner-round seal'], answer: 1, ref: 'Echo No. 4 · The Ninth Footnote the Printer’s Corner-Seal Erased' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

@@ -1817,4 +1817,254 @@ Of the eight lamps of Mist-Port, only the Eighth has never gone dark. It owes no
 > that someone is holding the paper down so the wind cannot turn it over.
 `,
   },
+  {
+    order: 4,
+    slug: 'echo-004-ninth-knock',
+    titleZh: '第九叩',
+    titleEn: 'The Ninth Knock',
+    eraLineZh: '纪元：铁月纪之后 · 第四十二次会议无人召集的那一年。',
+    eraLineEn: 'Era: after the Iron-Moon Age · the year the forty-second meeting convened for no one.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 4): The Ninth Knock
+
+> 回响仍是正典之外的侧写——第四层纹理，不是续篇，不是批判，不是伪造。
+> 本篇写给雾港的第九下叩击：八盏灯都认得它，没有一盏承认拥有它。
+> 本篇锚句，与《潮沙盘》《第八盏灯》《盐灯守灵日记》同一纪律。
+>
+> An echo remains a side-glance beyond the canon — the fourth grain of salt on the same stone, not a sequel, not a critique, not a forgery.
+> Written for the ninth knock over the mist harbor, which every lamp knows and no lamp admits.
+> Its anchors answer to the same discipline as Chapters III and IV and Echo No. 3.
+
+> 纪元：铁月纪之后 · 第四十二次会议无人召集的那一年。
+> Era: after the Iron-Moon Age · the year the forty-second meeting convened for no one.
+
+---
+
+## 其一 · 沙盘上的第九个旋钮
+
+潮汐教团第四十一次会议散后，沙盘仍留在厅中。海岸用细盐铺成，河口压着一枚黑印，八盏灯的位置各插一根铜针。记录员逐项核对收件单，纸边受潮，名字洇成灰线。有人说，沙盘上原有九个旋钮；有人说，旋钮只是用来校正潮向，不该计数。没有人把这两句话写进会议纪要。
+
+第二天，守盘人发现盐岸多出一圈浅痕，像潮水退后留下的环。痕迹正中有个凹处，容得下一枚旋钮。库房的器物账没有第九件，借出栏却多了一枚指印，盖在空白的日期上。守盘人用袖口擦去盐末，凹处仍在。雾从窗缝进来，吹动账页，翻到末页时，纸上有九个墨点，最末一个尚未干透。
+
+会后有人取走沙盘，送往海堤内侧的旧档房。送件人只收到了八枚印章。收件单上却记着九件，最后一件写作"旋钮"，后面没有数量。档房看守拒绝签收，直到夜潮漫过门槛。那时，门内的沙盘转了一格，八根铜针齐齐朝向港外。
+
+**锚句**：盐岸留着多出的空位。
+**Anchor sentence**: the salt shore keeps the extra hollow.
+
+---
+
+## 其二 · 没有人坐的第九把椅子
+
+会议厅有八把椅子，靠墙另有一把，椅背朝着窗。每逢潮汐教团开会，书记都要在这把椅子前放一张收件单，写上日期，再压一方印章。没有人坐下，也没有人挪开它。椅脚下的地板有一圈深色，像盐水经年浸过木纹，擦也擦不净。
+
+第四十一次会议记录写着八名到席者。末行却多出一个逗号，后面空了半页。书记问过主持者，主持者把墨水瓶盖好，说那是印章压出的痕。于是书记重抄一份，逗号仍在。到散会时，椅面留下浅浅的凹陷，仿佛有人刚刚起身。窗外海堤上没有脚印，门闩也未曾响过。
+
+此后，雾港每逢大潮，守夜人都要将这把椅子搬到厅门外。椅背朝海，椅面放着一册账本，记每盏灯的燃油与更换日期。八盏灯的账目逐年累积，唯独末页总是潮湿，纸上有一道竖痕，从页首直落页脚。搬椅的人说，那不是水迹；他不肯说是什么。
+
+第四十二次会议无人召集。椅子仍在门外，收件单上印着"已到"，印泥未干。书记没有落笔。夜里，海堤上传来一声木头轻响，像椅脚在石面上挪了一寸。第二日，八把椅子各自向后退了一寸，空出的地方正对着门口。
+
+**锚句**：空席不等于无人。
+**Anchor sentence**: an empty seat is not the same as no one.
+
+---
+
+## 其三 · 烛台上的第九格
+
+旧厅的烛台只刻了八格，按八盏灯的次序排开。每次会议，书记点烛，记录员记下火芯长短，守门人收走滴蜡，连同收件单一并入账。蜡落在格里，凝成硬壳，像潮退后留在石缝里的盐。没人准许擦掉旧蜡，理由没有写进规条。
+
+第四十一次会议那晚，最后一支烛燃到尽头，烛台上却亮着九处。多出的那格在正中，细得像刀口。书记拿尺量过，说是铜面裂纹；守门人用指甲划过，指甲上没有铜屑。记录员把九处火光记作八处，写到"八"字时，笔尖折断。桌上的蜡油流过会议章，凝住了印文中的"潮"字。
+
+此后，烛台由档房保管。灯房每月送来灯芯，收件单上仍写八根；库房账本却每月少一根。看守从不追问，只在交接时数烛台上的格。八格之外，那道细痕渐渐变深，像有火在铜背后缓慢烧着。大潮涨至海堤顶端时，旧厅的窗纸映出九团光，天亮后，烛台仍冷。
+
+有一回，书记把烛台送到海边，想让盐水封住裂纹。浪只打湿了底座，九格之中的那一格仍干。回程时，他在账本上添了一行："照例归还。"字迹下方有一圈圆印，印泥从纸背透出来，像烛焰留下的暗红。
+
+**锚句**：第九格不受风吹。
+**Anchor sentence**: the ninth cell feels no wind.
+
+---
+
+## 其四 · 报纸上被印圆角擦掉的第九个脚注
+
+雾港的报纸每天三更印刷，港务、灯油、潮位和失踪的货物各占一栏。第四十一次会议之后，报馆收到一张匿名校样，纸上列着八盏灯的修缮记录，末尾另有第九个脚注。脚注写得很短，只说某盏灯罩内侧有叩痕，叩痕共九道。校对员读完，把纸送进印房。
+
+第二天发行的报纸上，脚注不见了。空处被一枚圆角印章盖住，边沿压得整齐，像潮水专挑纸页的一角退去。印章没有署名，印文也磨损得看不清。报馆查过印泥，颜色与教团会议所用相同；查过印章簿，登记的八枚都在柜中。馆长把校样收进抽屉，锁好，又在账本里记下"纸张短缺一页"。
+
+此后每逢大潮，脚注都会重现一次。它先出现在排版纸上，继而在送印前被擦掉；有时留下半个"九"字，有时只剩一条湿痕。圆角印章总比校样先到，放在版台边，印面朝下。没人敢翻看。报馆的送件人将当日报纸送到各处，收件单上写着八份，门房却总要他确认第九份是否交付。
+
+那份报纸不在任何订户名下。它被夹在账本里，纸边泛咸，日期空白，折痕朝着港口。海风把最后一页掀起时，圆角缺口正对着海堤上的八盏灯。
+
+**锚句**：删去的字仍占一栏。
+**Anchor sentence**: the struck-out line still holds its column.
+
+---
+
+## 其五 · 第九个客人到来之前
+
+雾港的客栈在大潮前关门，门板上挂着收件单，记来客姓名、房号、离港时辰。掌柜只备八间房，账本上也只有八行。第四十一次会议以后，他每逢潮汛便多摆一只杯子，杯口朝向窗外。杯底压着盐粒，没人碰它。掌柜说，那是旧账未清，不是留客。
+
+大潮将至的夜晚，海堤上先起雾，随后港口的铁链一节节绷紧。客栈门前没有车，也没有脚印。掌柜照例抄写八间房的收件单，写到末尾，笔尖却在纸上停了很久。烛台映着账页，八行之间渗出一行浅水印。那行没有姓名，没有房号，只有一处圆印，边沿缺了一个角。
+
+守夜人说，客人来前总会有人敲门。掌柜答，敲门声属于送信的，不属于客人。两人争到半夜，门外仍静。只有窗缝里进来的潮气，将桌上的纸一张张贴住。账本合不上，封皮在湿气里弯曲，像海堤外侧一段低矮的岸。
+
+天亮时，杯子仍是空的，杯底的盐却化了。掌柜把它倒进废水桶，桶里传来一声轻响，像有东西落在水底。收件单上多了一道掌纹，指节处压得最深。掌柜没有添房，也没有添名，只把门牌翻到背面，留出一块未写的木头。
+
+**锚句**：门开之前，账已记妥。
+**Anchor sentence**: before the door opens, the ledger is already settled.
+
+---
+
+## 其六 · 第九下叩击响起的那一刻
+
+大潮抵达海堤时，八盏灯都已点亮。守灯人沿堤巡过一遍，逐盏查灯油、灯芯、灯罩上的封条，再在账本上盖印。雾贴着石面行来，吞掉堤外的浪声。第九盏灯没有灯柱，也没有灯室；灯房的库存簿从未登记过它。守灯人仍在巡查单末尾留下一格，格子窄，刚好容下一枚印章。
+
+第一下叩击响起时，海面平了。第二下响起时，港里的船绳同时绷紧。第三至第八下，守灯人没有抬头，只将每一下记进账本，墨色越来越淡。灯罩上传来的声音贴着铜皮，不重，却让封条一寸寸发白。没有人站在灯下。远处的报馆熄了排字灯，客栈关紧门，旧厅那把空椅子在风中向前挪了半寸。
+
+第九下落下时，海堤上的印章裂开。印泥渗进石缝，像一滴盐水被压进账页。雾港八盏灯一齐暗了片刻，随后重新亮起。灯罩内侧留下九道叩痕，最末一道没有铜屑，只有一小片潮湿的纸。守灯人把纸取下，纸上没有字，收件栏却盖着"已收"。
+
+天将亮时，潮退到堤脚。守灯人核对灯数，仍是八盏；核对账目，仍有九行。记录簿最后一页被海风翻起，空白处压着一枚圆角印章。无人认领，也无人收回。大潮依期而来，账页没有合上。
+
+**锚句**：第九下，记在无人名下。
+**Anchor sentence**: the ninth knock is entered under no one's name.
+
+---
+
+## 模型映射（回响四章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 第九叩 · 沙盘第九旋钮 · 圆角印章 | 三、四 |
+| geography | 雾港 · 海堤 · 旧档房 · 报馆 · 客栈 · 旧厅 | 一、三、四、五 |
+| factions | 潮汐教团 · 守灯人 · 报馆 · 客栈 | 一至五 |
+| characters | 守盘人 · 书记 · 守夜人 · 掌柜 · 守灯人 | 一至六 |
+| items | 沙盘 · 第九把椅子 · 烛台 · 收件单 · 圆角印章 | 一至六 |
+| story | 雾港 · 第九叩 · 回响（其四） | 全篇 |
+| history | 铁月纪之后 · 第四十二次会议无人召集 | 一至六 |
+
+> 事情不多，九样也许不是数字——是潮水退时少还给海的那一格。
+> 九下叩击从不请求应答——它只请求被记入一册永远合不上的账。
+>
+> Nine is not a number the sea ever counted in — it is the one cell the tide never returns.
+> The ninth knock never asks for an answer — it asks only to be entered into a ledger that never closes.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其四）「第九叩」
+
+> An echo remains a side-glance beyond the canon — the fourth grain of salt on the same stone, not a sequel, not a critique, not a forgery.
+> Written for the ninth knock over the mist harbor, which every lamp knows and no lamp admits.
+> Its anchors answer to the same discipline as Chapters III and IV and Echo No. 3.
+>
+> 回响仍是正典之外的侧写——第四层纹理，不是续篇，不是批判，不是伪造。
+> 本篇写给雾港的第九下叩击：八盏灯都认得它，没有一盏承认拥有它。
+> 本篇锚句，与《潮沙盘》《第八盏灯》《盐灯守灵日记》同一纪律。
+
+> Era: after the Iron-Moon Age · the year the forty-second meeting convened for no one.
+> 纪元：铁月纪之后 · 第四十二次会议无人召集的那一年。
+
+---
+
+## I · The Ninth Dial on the Sand Table
+
+After the forty-first meeting of the Tide Congregation broke up, the sand table was left in the hall. The shore was laid in fine salt, the river mouth pressed down with a black seal, and eight copper needles marked where the eight lamps belonged. The recorder went down the receipt form line by line; the paper edges had drawn damp, and the names had bled to gray strokes. Some said the sand table had always had nine dials; some said dials were only for correcting the tide's heading, and that there was nothing to count. Neither sentence was written into the minutes.
+
+The next day, the keeper of the sand table found a fresh ring of shallow scratches in the salt shore — like the ring a tide leaves on retreating. The hollow at its center was the size of one dial. The stores ledger said there was no ninth item; the loan column bore a new fingerprint over a blank date. The keeper brushed the salt off with his sleeve. The hollow stayed. The fog came in through the window seam, worrying the ledger pages, and on the last one there were nine drops of ink, the last of them not yet dry.
+
+Later the table was carried off to the old archive room behind the sea dyke. The messenger was given only eight seals. The receipt form listed nine items; the last one read "dial", with no count after it. The archive keeper refused to sign for it, until the night tide licked over the threshold. Then, inside, the sand table turned one notch — and all eight copper needles pointed out to harbor waters.
+
+**Anchor sentence**: the salt shore keeps the extra hollow.
+**锚句**：盐岸留着多出的空位。
+
+---
+
+## II · The Ninth Chair Nobody Sat In
+
+The meeting hall has eight chairs, and one more against the wall, its back to the window. Whenever the Tide Congregation met, the clerk set a receipt form before that chair, dated it, and pressed a seal onto it. Nobody sat in it, and nobody moved it. The boards beneath the chair legs bore a dark circle, as if salt water had steeped the grain there for years and would not scrub away.
+
+The minutes of the forty-first meeting list eight attendees. The last line carries a stray comma, and the page after it is left half blank. The clerk asked the chairperson; the chairperson capped the inkwell and said the mark was where the seal had pressed. The clerk wrote the minutes out again. The comma had returned. At adjournment, the chair seat held a shallow dent, as though someone had only just risen from it. Beyond the window the sea dyke held no footprints; the door latch had not stirred.
+
+After that, whenever the big tide came to the mist harbor, the vigil-keeper dragged the chair outside to the door. Its back faced the sea; on the seat lay a ledger recording each lamp's oil consumption and service dates. The eight lamps' accounts grew thicker year by year, except the last one, which was always damp, and bore a single vertical stroke from its head to its foot. The one who carried the chair said it was not a water line. He never said what it was.
+
+The forty-second meeting was never called. The chair stayed outside the door; the receipt form on the seat was stamped "received", and the seal paste had not dried. The clerk never did write the minutes. In the night, a wooden knock came along the sea dyke — like a chair leg shifting an inch over stone. By morning, the eight chairs inside the hall had each retreated an inch, and the place they had vacated faced the doorway exactly.
+
+**Anchor sentence**: an empty seat is not the same as no one.
+**锚句**：空席不等于无人。
+
+---
+
+## III · The Ninth Notch in the Candelabra
+
+The candelabra in the old hall was engraved with only eight notches, laid out in the order of the eight lamps. At every meeting, the clerk lit the candles; the recorder tallied wick lengths; the doorkeeper swept up the dripped wax and filed it with the receipt form. The wax pooled in the notches, hardening into crusts — like salt left in stone cracks by the ebbing tide. Nobody was permitted to scrape old wax away, and the reason was never set down in the rules.
+
+On the night of the forty-first meeting, the last candle burned down — and nine flames burned at the candelabra. The ninth notch sat in the middle, fine as a knife's edge. The clerk measured it with a rule and said it was a crack in the copper surface; the doorkeeper drew his fingernail across it and came away without copper flecks. The recorder logged nine flames as eight, and at the character for "eight" his pen snapped. Wax ran across the meeting seal on the desk and froze into the character for "tide" in the imprint.
+
+After that, the candelabra was kept in the archive room. The lamp room delivered wicks monthly; the receipt form still read eight wicks — and the stores ledger lost one every month. The keeper never pursued the matter. He only counted the candelabra's notches at hand-over. Beyond the eight, the fine line kept deepening, as if a flame were slowly burning through the copper from behind. When the big tide rose to the crest of the sea dyke, the old hall's paper windows cast nine points of light; by daylight, the candelabra was still cold.
+
+Once the clerk carried it down to the shore, meaning to seal the crack with saltwater. The wave wetted only the foot; of the nine notches, one stayed dry. On the way home he entered a line in the ledger: "Returned as usual." Beneath the characters lay a round seal impression, and the seal paste bled through the back of the page like a dark red the flame had kept.
+
+**Anchor sentence**: the ninth cell feels no wind.
+**锚句**：第九格不受风吹。
+
+---
+
+## IV · The Ninth Footnote the Printer's Corner-Seal Erased
+
+The mist harbor's newspaper was printed every third watch of the night: harbor affairs, lamp oil, tide levels, and the cargo gone missing, each claiming a column. After the forty-first meeting, the printing house received an anonymous proof listing the repair log of the eight lamps — and at the foot of it, a ninth footnote. It said only that on the inside of a certain lamp shade there were nine knock-marks, and that there were nine of them. The proofreader read it, and sent the sheet into the press room.
+
+In the paper that shipped next morning, the footnote was gone. The space where it had been was covered by a corner-round seal, its edge pressed down as cleanly as a tide retreats from one corner of a sheet. The seal bore no name, and the imprint was worn past reading. The printing house checked its seal pastes: the color matched the Congregation's meeting paste. It checked its seal rolls: all eight registered were in their drawer. The manager filed the proof in a drawer, locked it, and wrote in the ledger, "one sheet short of paper."
+
+Ever after, every big tide brought the footnote back. It appeared first on the typesetting sheet, then was struck out before the sheet went to press; sometimes half a "nine" survived, sometimes only a damp line. The corner-round seal always arrived ahead of the proof, left on the edge of the typesetting table, face down. Nobody dared turn it. The office runner circulated the day's papers door to door; the receipt form showed eight copies, and the doorkeeper always made him confirm whether the ninth had been delivered.
+
+That paper is not subscribed by anyone. It sits wrapped in the ledger, its edges salt-white, its date blank, its fold facing the harbor. When the sea wind lifts the last page, the corner-round notch points squarely at the eight lamps along the sea dyke.
+
+**Anchor sentence**: the struck-out line still holds its column.
+**锚句**：删去的字仍占一栏。
+
+---
+
+## V · Before the Ninth Guest Arrives
+
+The mist harbor's inn closed its doors ahead of every big tide. A receipt form hung on the door, listing guests' names, room numbers and hours of departure. The keeper never stocked more than eight rooms, and his ledger had only eight lines. After the forty-first meeting, at every flood tide he set down one extra cup, its rim facing the window. Salt crusted the bottom; no one ever touched it. He said it was an old account still open — not a place held for a guest.
+
+On the night before the big tide, fog rose first along the sea dyke, then the harbor's iron chains drew taut link by link. No cart stood before the inn, and there were no footprints. The keeper wrote out the eight receipt forms as usual; on the last sheet his pen stopped for a long time. The candelabra threw the ledger pages into relief, and between the eight lines a faint waterline seeped through. It bore no name, no room — only a round seal, one corner worn away.
+
+The vigil-keeper said a knock at the door always precedes a guest. The innkeeper answered that knocking belongs to messengers, not guests. They argued till midnight; the door stayed silent. The tide damp that crept in through the window seam pasted every sheet on the table down flat. The ledger would not close; its cover curled in the wet, like a low bend of shore beyond the sea dyke.
+
+By daybreak the cup stood empty — its salt was gone. The keeper tipped it into the slop bucket, and the bucket answered with a faint, settled thud, as though something had reached the bottom. The receipt form on the last page carried a palm print, pressed deepest at the knuckles. He did not add a room, nor a name; he simply flipped the room sign over and left that bare piece of wood unwritten.
+
+**Anchor sentence**: before the door opens, the ledger is already settled.
+**锚句**：门开之前，账已记妥。
+
+---
+
+## VI · The Moment the Ninth Knock Falls
+
+As the big tide reached the sea dyke, all eight lamps had been lit. The lamp-warden walked the dyke with the lamp log, checking oil, wicks and the paper seal pasted inside each lampshade, then stamping his seal into the ledger. Fog came up the stones and swallowed the surf beyond. The Ninth Lamp has no pillar, no chamber; the lamp room's stores never registered it. Yet the warden still left a final box at the end of his inspection line — barely wide enough for one seal.
+
+At the first knock, the sea surface went flat. At the second, every ship's hawser in the harbor drew taut at once. From the third to the eighth, the warden did not raise his head; he entered each beat into the ledger, the ink paling as it went. The sound on the lampshades sat against the copper skin — not heavy, but it paled their seals a finger at a time. Nobody stood beneath the lamps. Off across the harbor the printing house darkened its type-setting lamps; the inn shut its door fast; in the old hall the empty chair slid half an inch closer to the sea.
+
+At the ninth knock, the seal on the sea dyke split in two. The paste bled down the stone seam, like a drop of saltwater pressed into a ledger. The eight lamps of the mist harbor dipped dark all at once — then lit again. Inside their shades, nine knock-marks remained; the last of them left no brass flecks, only a small wet scrap of paper. The warden drew it out; it held no words — but the receipt column was stamped "received".
+
+As the light came up, the tide drew back down to the dyke foot. The warden counted the lamps: still eight; checked the books: still nine lines. The last page of the inspection log was lifted by the sea wind; in the blank it pressed down a corner-round seal. No one claimed it, and no one asked to take it. The big tide kept its appointment; the ledger never closed.
+
+**Anchor sentence**: the ninth knock is entered under no one's name.
+**锚句**：第九下，记在无人名下。
+
+---
+
+## Model mapping (echo No. 4)
+
+| Category | Title | Corresponds to |
+|---|---|---|
+| lore | The Ninth Knock · the Ninth Dial · the Corner-Round Seal | III, IV |
+| geography | The Mist Harbor · the Sea Dyke · the Archive Room · the Printing House · the Inn · the Old Hall | I, III, IV, V |
+| factions | The Tide Congregation · the Lamp-Warden · the Printing House · the Inn | I–V |
+| characters | The Keeper of the Sand Table · the Clerk · the Vigil-Keeper · the Innkeeper · the Lamp-Warden | I–VI |
+| items | The Sand Table · the Ninth Chair · the Candelabra · the Receipt Form · the Corner-Round Seal | I–VI |
+| story | The Mist Harbor · The Ninth Knock · Echo (No. 4) | whole |
+| history | After the Iron-Moon Age · Forty-Second Meeting never convened | I–VI |
+
+> Nine is not a number the sea ever counted in — it is the one cell the tide never returns.
+> The ninth knock never asks for an answer — it asks only to be entered into a ledger that never closes.
+>
+> 事情不多，九样也许不是数字——是潮水退时少还给海的那一格。
+> 九下叩击从不请求应答——它只请求被记入一册永远合不上的账。
+`,
+  },
 ] as const;
