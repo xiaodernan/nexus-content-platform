@@ -6353,4 +6353,206 @@ The Institute's philosophy holds the same caution the fifth chapter asked its ad
 > In windy nights a new thread appears in the web — the Institute hears its addressee before the storm arrives.
 `,
   },
+  {
+    order: 27,
+    slug: 'echo-027-the-wall-of-the-forty-one-convocations',
+    titleZh: '里巷子里刻着四十一次大会的那面墙',
+    titleEn: 'The Wall in the Back Alley Carved with the Forty-One Convocations',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——盐风落墙。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the walls smell of salt wind.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 27): The Wall in the Back Alley Carved with the Forty-One Convocations
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给里巷子通向祠殿的那道石墙——每一次大会散会之后，墙上多一根槽；潮打浪落的时候，那些槽被海记住。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the stone wall on chapel road — after each Convocation, a groove appears; at high tide the grooves are read by the sea.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——盐风落墙。
+> Era: the Institute — after the 41st Convocation; the walls smell of salt wind.
+
+---
+
+## 一 · 四十一条槽
+
+里巷子通往祠殿的那面墙上，刻着一排笔直的槽。
+
+第四十一次大会散会之后，值守交班的时候目测了一遍，抄本员两人一组数过去，共四十一道槽。每一道都用同样的刻刀刃。
+
+新来的值守每次路过都会下意识数一遍——没人教他们数；他们自己数出来的。
+
+**锚句**：里巷子的石墙上刻着四十一条槽——海风磨了四十多年，它们还在。
+**Anchor sentence**: forty-one grooves are cut into the wall of the back alley — salt wind has worked on them for forty-odd years, and they remain.
+
+---
+
+## 二 · 最下面那一道是海刻的
+
+抄本员辨认出：最下面那道槽不是人刻的——太深了一寸，形状也不一样。
+
+没人知道它什么时候来的——潮候院最早的仓库图纸上就画了一面墙，墙位那一格留着。
+
+老值守口口相传："那不是哪次大会，是大会之意。"——意思是那道槽早于整套「大会」的轮廓。
+
+**锚句**：海刻的那道槽在最下面——它比第一次大会还早，没有值守记得它是哪一年刻的。
+**Anchor sentence**: the sea's own groove is the lowest — it is older than the first Convocation; no watcher living recalls which year it was cut.
+
+---
+
+## 三 · 第四十二条槽还没出现
+
+四十一次大会散会以后，第三天早上——新来的值守看到第 42 道位置上出现了细细的一线。
+
+没人认领那道新线。值守长检查之后说：还不能算。
+线在第二天中午消失——
+
+后来值守们私下传话：它又退回去了；或者干脆没来过。
+
+**锚句**：四十二条槽的位置有过一线——没有人认领它，第二天它自己就消失了。
+**Anchor sentence**: once, a faint groove appeared at the forty-second position — no one claimed it; by the next day it was gone by itself.
+
+---
+
+## 四 · 值守从不为海登记
+
+六十多年里，值守长每次接管交接班，都会登记：墙上刻了四十一槽。
+
+值守长们没有人回答过「42」的疑问：是不是大海还没同意。
+
+值守们的说法只有一个："墙设在那里，就让它在。"——潮候院不统计潮的工程量，也不统计海的槽。
+
+**锚句**：值守从不为海刻的那道槽登记——四十一道是人刻的，海那一道自己会数。
+**Anchor sentence**: the watchers have never registered the sea's groove — forty-one belong to hands; the sea counts its own.
+
+---
+
+## 五 · 墙的对面
+
+石墙对面不是祠殿——是一条条天然的岩缝。
+
+石槽一道一道对齐：里巷子的风、海水的浪痕和祠殿的影子的边界上距一箭——里巷子传言说：
+
+「如果有一天四十二道槽齐了，祠殿里会过会。」
+
+没有人敢讲出后半句。值守从来没大声讲过，也从来没有试图验证。
+
+**锚句**：墙对面的岩缝里正好能看见祠殿的影子——如果有一天四十二道槽齐了，潮候院会办下一次大会。
+**Anchor sentence**: the rock slits opposite the wall hold the chapel precisely in their gaps — if all forty-two grooves ever appear, the Institute will hold another Convocation.
+
+---
+
+## 六 · 映射（回响二十七章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 四十一条槽 · 海刻的第四十二道 · 石墙上的门 | 一、二、三、四、五、六 |
+| geography | 里巷子 · 祠殿 · 潮沙盘东侧出海口 | 一、二、三、四、五、六 |
+| characters | 值守长 · 里巷子抄本员 · 新来的值守 | 一、二、三、四、五、六 |
+| story | 墙刻着四十一次大会的那面墙 · 回响（其二十七） | 全篇 |
+| items | 石墙 · 小指大小的刀 · 海 · 岩缝 | 一、二、三、四、五、六 |
+| history | 四十一次大会散会之后 · 第六十八年 | 一、二、三、四、五、六 |
+
+> 海如果有一天让出第四十二条槽——潮候院的人就会为大海开一次会。
+> The day the sea offers a forty-second groove, the Institute will hold a Convocation for the sea.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其二十七）「里巷子里刻着四十一次大会的那面墙」
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给里巷子通向祠殿的那道石墙——每一次大会散会之后，墙上多一根槽；潮打浪落的时候，那些槽被海记住。
+> 纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the stone wall on chapel road — after each Convocation, a groove appears; at high tide the grooves are read by the sea.
+> Same discipline: anchors verbatim.
+
+> Era: the Institute — after the 41st Convocation; the walls smell of salt wind.
+> 纪元：潮候院 · 第四十一次大会散会之后——盐风落墙。
+
+---
+
+## 一 · The Forty-One Grooves
+
+The wall on chapel road has a row of straight vertical grooves carved into it.
+
+After the forty-first Convocation dispersed, the watchers took a turn at measuring them; the copyists counted them in pairs: forty-one. Each carried the same notch blade — small-finger depth.
+
+Every new watcher unconsciously counts them each time they pass — nobody taught them to count; they counted on their own.
+
+**锚句**：里巷子的石墙上刻着四十一条槽——海风磨了四十多年，它们还在。
+**Anchor sentence**: forty-one grooves are cut into the wall of the back alley — salt wind has worked on them for forty-odd years, and they remain.
+
+---
+
+## 二 · The Lowest Groove Is the Sea's
+
+The copyists note the lowest groove is not man-made — a full inch deeper, and of an unmatched shape.
+
+No one knows when it appeared — the earliest drawings in the Institute warehouse already held this wall with a marked blank.
+
+The oldest watchers say by word of mouth: "It is not from one Convocation; it is Convocation itself." — meaning it predates the very shape of a Convocation.
+
+**锚句**：海刻的那道槽在最下面——它比第一次大会还早，没有值守记得它是哪一年刻的。
+**Anchor sentence**: the sea's own groove is the lowest — it is older than the first Convocation; no watcher living recalls which year it was cut.
+
+---
+
+## 三 · The Forty-Second Is Not Yet
+
+On the third morning after the forty-first Convocation dispersed — a newly arrived watcher noticed a faint line at the forty-second position.
+
+No one owned that new groove. The headkeeper checked and said only: it cannot count.
+The line was gone by noon of the next day —
+
+The watchers later whispered among themselves: it had been pushed back; or it had never come.
+
+**锚句**：四十二条槽的位置有过一线——没有人认领它，第二天它自己就消失了。
+**Anchor sentence**: once, a faint groove appeared at the forty-second position — no one claimed it; by the next day it was gone by itself.
+
+---
+
+## 四 · The Watchers Never Register the Sea's
+
+For the sixty-some years since, every shift's handover logs the forty-one grooves.
+
+No watcher headkeeper answered the question of "forty-two": whether the sea had agreed.
+
+Their single saying is: "The wall is there; let it be." — the Institute does not count the sea's engineering, and it does not count the sea's grooves.
+
+**锚句**：值守从不为海刻的那道槽登记——四十一道是人刻的，海那一道自己会数。
+**Anchor sentence**: the watchers have never registered the sea's groove — forty-one belong to hands; the sea counts its own.
+
+---
+
+## 五 · Facing the Wall
+
+Opposite the wall is not the chapel — but a set of natural rock slits.
+
+The grooves face them: the wind of the back alley, the spray-line of the sea, and the shadow boundary of the chapel, in a row of one arrow's width — the back alley whisper says:
+
+"If all forty-two ever fill, the chapel will hold a Convocation."
+
+No one dares say the second half. The watchers never spoke it aloud, nor attempted to verify it.
+
+**锚句**：墙对面的岩缝里正好能看见祠殿的影子——如果有一天四十二道槽齐了，潮候院会办下一次大会。
+**Anchor sentence**: the rock slits opposite the wall hold the chapel precisely in their gaps — if all forty-two grooves ever appear, the Institute will hold another Convocation.
+
+---
+
+## 六 · Mapping（Echo No. 27 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | Forty-one grooves · the sea's forty-second · the chapel-bay | 一、二、三、四、五、六 |
+| geography | The back alley · the chapel · east of the tide-sand table | 一、二、三、四、五、六 |
+| characters | The headkeeper · the copyists · the newly arrived | 一、二、三、四、五、六 |
+| story | The Wall of the Forty-One Convocations · Echo No. 27 | 全篇 |
+| items | The stone wall · the small notch-blade · the sea · the cracks | 一、二、三、四、五、六 |
+| history | After the forty-first Convocation · in the 68th founding year | 一、二、三、四、五、六 |
+
+> 海如果有一天让出第四十二条槽——潮候院的人就会为大海开一次会。
+> The day the sea offers a forty-second groove, the Institute will hold a Convocation for the sea.
+`,
+  },
 ] as const;

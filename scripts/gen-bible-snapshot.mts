@@ -68,6 +68,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E24-里巷子石槽里那粒没化的盐': 'echo-024-the-salt-that-never-dissolved',
   'E25-里巷子所有灯熄的那一夜': 'echo-025-the-night-every-lamp-went-out',
   'E26-祠殿檐下那张潮候院不许扫的网': 'echo-026-the-web-nobody-is-allowed-to-sweep',
+  'E27-里巷子里刻着四十一次大会的那面墙': 'echo-027-the-wall-of-the-forty-one-convocations',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
