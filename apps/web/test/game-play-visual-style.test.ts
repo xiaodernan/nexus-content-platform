@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * "补齐之后回到这一页会重新编译"——不画假关卡兜底（§159）——不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `51d896edc00fc4156aecca2e471f38d8434797275129fac77b115944b8f1e6bc` 与 HEAD 字节一致。
+ * `4944f0327f89980739b3628809f0eeb1c8a578e7f7ec4f3189c2d6c62dba6a66` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/game2d/GamePlay.tsx');
@@ -95,9 +95,9 @@ describe('§FE-96 /game2d GamePlay HUD/Playtest chrome', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：51d896edc00fc4156aecca2e471f38d8434797275129fac77b115944b8f1e6bc）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：4944f0327f89980739b3628809f0eeb1c8a578e7f7ec4f3189c2d6c62dba6a66）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '51d896edc00fc4156aecca2e471f38d8434797275129fac77b115944b8f1e6bc',
+      '4944f0327f89980739b3628809f0eeb1c8a578e7f7ec4f3189c2d6c62dba6a66',
     );
   });
 });

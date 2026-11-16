@@ -26,18 +26,21 @@ export default async function GameRuntimePage({ params }: { params: Promise<{ pr
   const { projectId } = await params;
   const user = await requireUser();
   const locale = await getLocale();
+  const en = locale === 'en';
   if (!(await projectVisibleTo(projectId, user.id))) notFound();
 
   const game = await loadGame(projectId);
   if (!game) {
     return (
       <main className="rt-shell" data-game-runtime="none">
-        <h1 className="rt-title">这个项目还没有游戏设计</h1>
+        <h1 className="rt-title">{en ? 'This project has no game design yet' : '这个项目还没有游戏设计'}</h1>
         <p className="rt-lede">
-          可玩投影读的是 §54 的游戏设计文档（11 类实体、数值与引用）。先去 Studio 的「游戏」面板建骨架、填几个数。
+          {en
+            ? 'The playable projection reads the §54 game design document (11 entity kinds, stats and references). Start in the Studio's "Game" panel: build the skeleton and fill in a few numbers.'
+            : '可玩投影读的是 §54 的游戏设计文档（11 类实体、数值与引用）。先去 Studio 的「游戏」面板建骨架、填几个数。'}
         </p>
         <Link href={`/studio/${projectId}`} className="rt-link">
-          回到 Studio 的游戏面板
+          {en ? 'Back to the Studio game panel' : '回到 Studio 的游戏面板'}
         </Link>
       </main>
     );
@@ -45,18 +48,20 @@ export default async function GameRuntimePage({ params }: { params: Promise<{ pr
   if (!game.ok) {
     return (
       <main className="rt-shell" data-game-runtime="broken">
-        <h1 className="rt-title">库里的游戏设计读不出来</h1>
+        <h1 className="rt-title">{en ? 'The game design in the library cannot be read' : '库里的游戏设计读不出来'}</h1>
         <p className="rt-error" data-game-error>
           {game.reason}
         </p>
         <p className="rt-note">
-          这里不会拿一份演示关卡代替它：那看起来像"你的设计跑不起来"，而实际是读不出来，两件事差很远。
+          {en
+            ? 'No demo level is swapped in as a stand-in: that would look like "your design fails to run", when in fact it cannot be parsed — two very different failures.'
+            : '这里不会拿一份演示关卡代替它：那看起来像"你的设计跑不起来"，而实际是读不出来，两件事差很远。'}
         </p>
       </main>
     );
   }
 
-  const projection = compileForKind(game.document);
+  const projection = compileForKind(game.document, locale);
   return (
     <main className="rt-shellWide" data-game-page>
       <header className="rt-head">
@@ -65,11 +70,11 @@ export default async function GameRuntimePage({ params }: { params: Promise<{ pr
             {game.document.name}
           </h1>
           <p className="rt-subtitle" data-game-subtitle>
-            {describeProjection(game.document, projection)}
+            {describeProjection(game.document, projection, locale)}
           </p>
         </div>
         <Link href={`/studio/${projectId}`} className="rt-linkSub" data-game-back>
-          回 Studio 改设计
+          {en ? 'Back to Studio to edit the design' : '回 Studio 改设计'}
         </Link>
       </header>
       <PlayByKind document={game.document} projection={projection} locale={locale} />

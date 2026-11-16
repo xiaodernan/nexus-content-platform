@@ -5,9 +5,13 @@ import {
   ARENA,
   EXPLORATION_REVEAL_RADIUS,
   EXPLORATION_VIEW_NOTES,
+  EXPLORATION_VIEW_NOTES_EN,
   ISO_VIEW_NOTES,
+  ISO_VIEW_NOTES_EN,
   PUZZLE_VIEW_NOTES,
+  PUZZLE_VIEW_NOTES_EN,
   SIM_RULE_NOTES,
+  SIM_RULE_NOTES_EN,
   discoverableIds,
   initialState,
   isoDepth,
@@ -24,6 +28,7 @@ import {
   step,
   type GamePlan,
   type PlayActor,
+  type PlaytestLocale,
   type PlaytestReport,
   type PuzzleLink,
   type SimActor,
@@ -31,8 +36,17 @@ import {
   type SimState,
 } from '@nexus/game-model';
 import { KIND_COLORS } from './palette';
-import { PLAY_PROVENANCE_FALLBACK_TEXT, PLAY_PROVENANCE_LABELS, PLAY_PROVENANCE_SLOTS, type PlayProvenanceSlot } from '@nexus/game-model';
+import {
+  PLAY_PROVENANCE_FALLBACK_TEXT,
+  PLAY_PROVENANCE_FALLBACK_TEXT_EN,
+  PLAY_PROVENANCE_LABELS,
+  PLAY_PROVENANCE_LABELS_EN,
+  PLAY_PROVENANCE_SLOTS,
+  type PlayProvenanceSlot,
+} from '@nexus/game-model';
 import { GameCanvas3D } from './GameCanvas3D';
+import { gameEventText, gameOutcomeText } from './eventText';
+import { fmt } from './format';
 import { isControlTarget, isEditableTarget } from '@/lib/keyboard';
 import { GameTutorial } from '@/components/GameTutorial';
 import type { Locale } from '@/lib/i18n';
@@ -52,6 +66,108 @@ import type { Locale } from '@/lib/i18n';
  *   唯一的分叉点是那个 `draw`（2D 画进 canvas / 3D 交给 `GameCanvas3D` 的 three.js 场景），
  *   规则一个字都没动。
  */
+
+/** 双语（v797 起的规律，本文件接住）：HUD / 控件 / 报告的每行文案按 locale 选一份——中文模式全中文，英文模式全英文，不夹杂 */
+const HUD_TXT = {
+  zh: {
+    blockedTitle: '这一份设计跑不起来：',
+    blockedBody: '补齐之后回到这一页就会重新编译——这里没有"先给你个演示关卡"的兜底。',
+    statusPlaying: '进行中',
+    statusWon: '通关',
+    statusLost: '失败',
+    healthLabel: '生命 ',
+    secondsSuffix: ' 秒',
+    enemiesLabel: '敌人 ',
+    itemsLabel: '物品 ',
+    discoveredLabel: '发现 ',
+    activatedLabel: '机关 ',
+    restart: '重新开始',
+    controlsMove: '移动：WASD / 方向键 · 攻击：空格',
+    controlsReachNote: '（够得着才打得到；触及 {reach}px 是 {src}）',
+    reachFromDesign: '武器 range 里写的',
+    reachFallback: '投影按贴身算的',
+    controls3d: ' · 按住拖动转视角（WASD 跟着视角走，和 2D 的屏幕方向同一套语义）',
+    controlsExplore: ' · 走近才看得见：视野半径 {radius}px，看见过的会一直在',
+    controlsPuzzle: ' · 走进机关范围即激活（首次记账）；黄线是它引用的东西，没连线的机关踩了没有东西响应',
+    questsTitle: '任务（{n}）',
+    noQuests: '这份设计里没有任务实体。',
+    timeLimitEcho: ' · 限时 {t}（按秒解释）',
+    unjudgeableTail: '判不出完成条件 —— ',
+    goalsJoin: '、',
+    recentTitle: '最近发生',
+    noEvents: '还没有事情发生。',
+    playtestTitle: '自动跑一遍（Playtest）',
+    playtestRun: '跑四种走法',
+    seedLabel: '随机种子',
+    seedTitle: '只有「定种子随机游走」那一条用它：换种子=换一次抽样，规则与数值一个字都不动',
+    thPolicy: '走法',
+    thResult: '结果',
+    thSeconds: '秒数',
+    thDamage: '承伤 / 输出',
+    thPickups: '拾取',
+    thQuests: '任务',
+    timedOut: '跑到时间上限',
+    runFell: '倒下',
+    notRunYet: '还没跑。这一步不需要人操作，也不需要模型或 provider。',
+    provenanceTitle: '这份"可玩"是从哪些数算出来的',
+    provenanceHead: '场上共 {total} 个可显示个体，其中',
+    provenanceSlotOne: ' {count} 个的{label}（兜底 {fallback}）',
+    provenanceJoin: '、',
+    provenanceTail: ' 用的是投影兜底值（作者没填），不是设计的数。',
+    goalDefeat: '打倒',
+    goalCollect: '拾取',
+    goalActivate: '激活',
+  },
+  en: {
+    blockedTitle: 'This design cannot run:',
+    blockedBody: 'Fill it in and return to this page — it recompiles. There is no "give you a demo level" fallback here.',
+    statusPlaying: 'Playing',
+    statusWon: 'Cleared',
+    statusLost: 'Fell',
+    healthLabel: 'HP ',
+    secondsSuffix: 's',
+    enemiesLabel: 'Enemies ',
+    itemsLabel: 'Items ',
+    discoveredLabel: 'Discovered ',
+    activatedLabel: 'Triggers ',
+    restart: 'Restart',
+    controlsMove: 'Move: WASD / arrow keys · Attack: Space',
+    controlsReachNote: " (only what's in reach can be hit; reach {reach}px is {src})",
+    reachFromDesign: "written in the weapon's range stat",
+    reachFallback: 'an in-close projection estimate',
+    controls3d: ' · Hold and drag to turn the camera (WASD follows the camera, same screen-direction semantics as 2D)',
+    controlsExplore: ' · Seen only up close: vision radius {radius}px; what you have seen stays visible',
+    controlsPuzzle: ' · Walking into a trigger radius activates it (recorded the first time); yellow lines are what it references — an unlinked trigger answers to nothing when stepped on',
+    questsTitle: 'Quests ({n})',
+    noQuests: 'This design has no quest entities.',
+    timeLimitEcho: ' · {t}s time limit (interpreted as seconds)',
+    unjudgeableTail: 'Cannot determine a completion condition — ',
+    goalsJoin: ', ',
+    recentTitle: 'Recent events',
+    noEvents: 'Nothing has happened yet.',
+    playtestTitle: 'Auto-run (Playtest)',
+    playtestRun: 'Run all four walks',
+    seedLabel: 'Random seed',
+    seedTitle: 'Only the seeded random-walk run uses it: a new seed is a new sample; the rules and numbers do not move a character',
+    thPolicy: 'Walk',
+    thResult: 'Result',
+    thSeconds: 'Seconds',
+    thDamage: 'Dmg taken / dealt',
+    thPickups: 'Picked up',
+    thQuests: 'Quests',
+    timedOut: 'Reached the time limit',
+    runFell: 'Fell',
+    notRunYet: 'Not run yet. This step needs no person, no model, no provider.',
+    provenanceTitle: 'Where the numbers in this "playable" come from',
+    provenanceHead: 'Of the {total} displayable actors on the field,',
+    provenanceSlotOne: ' {count} × {label} (default {fallback})',
+    provenanceJoin: ', ',
+    provenanceTail: ' use projection defaults (the author never filled them), not designed numbers.',
+    goalDefeat: 'Defeat',
+    goalCollect: 'Collect',
+    goalActivate: 'Activate',
+  },
+} as const satisfies Record<Locale, Record<string, string>>;
 
 export const KEY_MAP: Record<string, [number, number]> = {
   arrowup: [0, -1],
@@ -339,6 +455,8 @@ export function GamePlay({
   /** 双语（v797）：服务端 cookie locale 下传 */
   locale?: Locale;
 }) {
+  const T = HUD_TXT[locale];
+  const en = locale === 'en';
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const keys = useRef<Record<string, boolean>>({});
   const stateRef = useRef<SimState>(initialState(plan));
@@ -452,7 +570,7 @@ export function GamePlay({
   if (!plan.playable) {
     return (
       <div className="g2-col" data-game-blocked>
-        <p className="g2-blockedTitle">这一份设计跑不起来：</p>
+        <p className="g2-blockedTitle">{T.blockedTitle}</p>
         <ul className="g2-col1">
           {plan.blockers.map((line) => (
             <li key={line} className="g2-blocker" data-game-blocker>
@@ -460,7 +578,7 @@ export function GamePlay({
             </li>
           ))}
         </ul>
-        <p className="g2-note">补齐之后回到这一页就会重新编译——这里没有"先给你个演示关卡"的兜底。</p>
+        <p className="g2-note">{T.blockedBody}</p>
       </div>
     );
   }
@@ -469,48 +587,51 @@ export function GamePlay({
     <div className="g2-col3" data-game-root data-game-view={view}>
       <div className="g2-hud" data-game-hud>
         <span data-game-status={hud.status}>
-          {hud.status === 'playing' ? '进行中' : hud.status === 'won' ? '通关' : '失败'}
+          {hud.status === 'playing' ? T.statusPlaying : hud.status === 'won' ? T.statusWon : T.statusLost}
         </span>
-        <span data-game-health={Math.max(0, hud.health)}>生命 {Math.max(0, hud.health)}</span>
+        <span data-game-health={Math.max(0, hud.health)}>{T.healthLabel}{Math.max(0, hud.health)}</span>
         <span data-game-time={(Math.round(hud.t * 10) / 10).toFixed(1)}>
-          {Math.round(hud.t * 10) / 10} 秒
+          {Math.round(hud.t * 10) / 10}{T.secondsSuffix}
         </span>
         <span data-game-enemies={hud.enemies.filter((e) => e.active).length}>
-          敌人 {hud.enemies.filter((e) => e.active).length}/{hud.enemies.length}
+          {T.enemiesLabel}{hud.enemies.filter((e) => e.active).length}/{hud.enemies.length}
         </span>
-        <span data-game-items={hud.counters.pickups}>物品 {hud.counters.pickups}/{hud.items.length}</span>
+        <span data-game-items={hud.counters.pickups}>{T.itemsLabel}{hud.counters.pickups}/{hud.items.length}</span>
         {view === 'exploration' ? (
           <span data-game-discovered={revealed.current.size}>
-            发现 {revealed.current.size}/{discoverableIds(plan).length}
+            {T.discoveredLabel}{revealed.current.size}/{discoverableIds(plan).length}
           </span>
         ) : null}
         {view === 'puzzle' ? (
           <span data-game-activated={Object.keys(hud.activated).length}>
-            机关 {Object.keys(hud.activated).length}/{hud.triggers.length}
+            {T.activatedLabel}{Object.keys(hud.activated).length}/{hud.triggers.length}
           </span>
         ) : null}
-        <span data-game-summary>{simSummary(hud)}</span>
+        <span data-game-summary>{simSummary(hud, locale)}</span>
         <button type="button" onClick={restart} className="g2-smallBtn" data-game-restart>
-          重新开始
+          {T.restart}
         </button>
       </div>
 
       <GameTutorial locale={locale} />
 
-      {hud.outcome ? (
+      {gameOutcomeText(hud, locale) ? (
         <p className="g2-blocker" data-game-outcome>
-          {hud.outcome}
+          {gameOutcomeText(hud, locale)}
         </p>
       ) : null}
 
       <p className="g2-note" data-game-controls>
-        移动：WASD / 方向键 · 攻击：空格（够得着才打得到；触及 {plan.player?.reach ?? 0}px 是
-        {plan.player?.reachIsDesign ? '武器 range 里写的' : '投影按贴身算的'}）
-        {view === '3d' ? ' · 按住拖动转视角（WASD 跟着视角走，和 2D 的屏幕方向同一套语义）' : ''}
+        {T.controlsMove}
+        {fmt(T.controlsReachNote, {
+          reach: plan.player?.reach ?? 0,
+          src: plan.player?.reachIsDesign ? T.reachFromDesign : T.reachFallback,
+        })}
+        {view === '3d' ? T.controls3d : ''}
         {view === 'exploration'
-          ? ` · 走近才看得见：视野半径 ${EXPLORATION_REVEAL_RADIUS}px，看见过的会一直在`
+          ? fmt(T.controlsExplore, { radius: EXPLORATION_REVEAL_RADIUS })
           : ''}
-        {view === 'puzzle' ? ' · 走进机关范围即激活（首次记账）；黄线是它引用的东西，没连线的机关踩了没有东西响应' : ''}
+        {view === 'puzzle' ? T.controlsPuzzle : ''}
       </p>
 
       {view === '3d' ? (
@@ -527,7 +648,7 @@ export function GamePlay({
 
       <section className="g2-twoCol">
         <div>
-          <h3 className="g2-h3">任务（{plan.quests.length}）</h3>
+          <h3 className="g2-h3">{fmt(T.questsTitle, { n: plan.quests.length })}</h3>
           <ul className="g2-mt1col">
             {plan.quests.map((quest) => {
               const doneAt = hud.questDone[quest.id];
@@ -536,26 +657,32 @@ export function GamePlay({
                   <span data-game-quest-state={doneAt === undefined ? 'todo' : 'done'}>
                     {doneAt === undefined ? '○' : '●'}
                   </span>{' '}
-                  {quest.name}：
+                  {quest.name}{en ? ': ' : '：'}
                   {quest.judgeable
-                    ? quest.goals.map((goal) => goal.label).join('、') +
-                      (quest.timeLimit !== null ? ` · 限时 ${quest.timeLimit}（按秒解释）` : '')
-                    : `判不出完成条件 —— ${quest.why}`}
+                    ? quest.goals
+                        .map((goal) => {
+                          const verb =
+                            goal.kind === 'defeat' ? T.goalDefeat : goal.kind === 'collect' ? T.goalCollect : T.goalActivate;
+                          return `${verb} ${goal.targetName}`;
+                        })
+                        .join(T.goalsJoin) +
+                      (quest.timeLimit !== null ? fmt(T.timeLimitEcho, { t: quest.timeLimit }) : '')
+                    : `${T.unjudgeableTail}${quest.why}`}
                 </li>
               );
             })}
-            {plan.quests.length === 0 ? <li className="g2-note">这份设计里没有任务实体。</li> : null}
+            {plan.quests.length === 0 ? <li className="g2-note">{T.noQuests}</li> : null}
           </ul>
         </div>
         <div>
-          <h3 className="g2-h3">最近发生</h3>
+          <h3 className="g2-h3">{T.recentTitle}</h3>
           <ul className="g2-eventList">
             {hud.events.slice(-8).reverse().map((event, index) => (
               <li key={`${event.t}-${index}`} className="g2-note" data-game-event>
-                {event.t.toFixed(1)}s · {event.text}
+                {event.t.toFixed(1)}s · {gameEventText(event, locale)}
               </li>
             ))}
-            {hud.events.length === 0 ? <li className="g2-note">还没有事情发生。</li> : null}
+            {hud.events.length === 0 ? <li className="g2-note">{T.noEvents}</li> : null}
           </ul>
         </div>
       </section>
@@ -563,17 +690,17 @@ export function GamePlay({
       {/* §53：不靠人玩也能问出"这版能不能通、按这些走法会不会一进场就死" */}
       <section className="g2-well">
         <div className="g2-wellRow">
-          <h3 className="g2-h3">自动跑一遍（Playtest）</h3>
+          <h3 className="g2-h3">{T.playtestTitle}</h3>
           <button
             type="button"
-            onClick={() => setReport(playtest(plan, PLAYTEST_POLICIES, seed))}
+            onClick={() => setReport(playtest(plan, PLAYTEST_POLICIES, seed, locale))}
             className="g2-smallBtn"
             data-playtest-run
           >
-            跑四种走法
+            {T.playtestRun}
           </button>
           <label className="g2-seedLabel">
-            随机种子
+            {T.seedLabel}
             <input
               type="number"
               value={Number.isFinite(seed) ? seed : ''}
@@ -581,7 +708,7 @@ export function GamePlay({
               onChange={(event) => setSeed(event.target.value === '' ? Number.NaN : Number(event.target.value))}
               className="g2-seedInput"
               data-playtest-seed
-              title="只有「定种子随机游走」那一条用它：换种子=换一次抽样，规则与数值一个字都不动"
+              title={T.seedTitle}
             />
           </label>
         </div>
@@ -590,12 +717,12 @@ export function GamePlay({
             <table className="g2-tableWrap">
               <thead className="g2-theadRow">
                 <tr>
-                  <th>走法</th>
-                  <th>结果</th>
-                  <th>秒数</th>
-                  <th>承伤 / 输出</th>
-                  <th>拾取</th>
-                  <th>任务</th>
+                  <th>{T.thPolicy}</th>
+                  <th>{T.thResult}</th>
+                  <th>{T.thSeconds}</th>
+                  <th>{T.thDamage}</th>
+                  <th>{T.thPickups}</th>
+                  <th>{T.thQuests}</th>
                 </tr>
               </thead>
               <tbody>
@@ -603,7 +730,7 @@ export function GamePlay({
                   <tr key={run.policy} data-playtest-run-row={run.policy}>
                     <td>{run.label}</td>
                     <td data-playtest-status={run.status}>
-                      {run.timedOut ? '跑到时间上限' : run.status === 'won' ? '通关' : '倒下'}
+                      {run.timedOut ? T.timedOut : run.status === 'won' ? T.statusWon : T.runFell}
                     </td>
                     <td>{run.seconds}</td>
                     <td>
@@ -616,7 +743,7 @@ export function GamePlay({
               </tbody>
             </table>
             <p className="g2-mt1Note" data-playtest-seed-used={report.seed}>
-              {playtestSeedNote(report.seed)}
+              {playtestSeedNote(report.seed, locale)}
             </p>
             <ul className="g2-mt2col">
               {report.findings.map((line) => (
@@ -630,23 +757,29 @@ export function GamePlay({
             </p>
           </>
         ) : (
-          <p className="g2-mt1Note">还没跑。这一步不需要人操作，也不需要模型或 provider。</p>
+          <p className="g2-mt1Note">{T.notRunYet}</p>
         )}
       </section>
 
       <section className="g2-provenanceBlock">
-        <h3 className="g2-h3">这份"可玩"是从哪些数算出来的</h3>
+        <h3 className="g2-h3">{T.provenanceTitle}</h3>
         <p className="g2-mt1Note" data-game-provenance>
-          场上共 {fallbackStats.total} 个可显示个体，其中
-          {PLAY_PROVENANCE_SLOTS.map((slot) => ` ${fallbackStats.counts[slot]} 个的${PLAY_PROVENANCE_LABELS[slot]}（兜底 ${PLAY_PROVENANCE_FALLBACK_TEXT[slot]}）`).join('、')} 用的是投影兜底值（作者没填），不是设计的数。
+          {fmt(T.provenanceHead, { total: fallbackStats.total })}
+          {PLAY_PROVENANCE_SLOTS.map((slot) =>
+            fmt(T.provenanceSlotOne, {
+              count: fallbackStats.counts[slot],
+              label: en ? PLAY_PROVENANCE_LABELS_EN[slot] : PLAY_PROVENANCE_LABELS[slot],
+              fallback: en ? PLAY_PROVENANCE_FALLBACK_TEXT_EN[slot] : PLAY_PROVENANCE_FALLBACK_TEXT[slot],
+            }),
+          ).join(T.provenanceJoin)}{T.provenanceTail}
         </p>
         <ul className="g2-mt2col">
           {[
             ...plan.notes,
-            ...(view === 'isometric' ? ISO_VIEW_NOTES : []),
-            ...(view === 'exploration' ? EXPLORATION_VIEW_NOTES : []),
-            ...(view === 'puzzle' ? PUZZLE_VIEW_NOTES : []),
-            ...SIM_RULE_NOTES,
+            ...(view === 'isometric' ? (en ? ISO_VIEW_NOTES_EN : ISO_VIEW_NOTES) : []),
+            ...(view === 'exploration' ? (en ? EXPLORATION_VIEW_NOTES_EN : EXPLORATION_VIEW_NOTES) : []),
+            ...(view === 'puzzle' ? (en ? PUZZLE_VIEW_NOTES_EN : PUZZLE_VIEW_NOTES) : []),
+            ...(en ? SIM_RULE_NOTES_EN : SIM_RULE_NOTES),
           ].map((note) => (
             <li key={note} className="g2-note" data-game-note>
               · {note}

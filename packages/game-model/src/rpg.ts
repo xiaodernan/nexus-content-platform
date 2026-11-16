@@ -1,6 +1,7 @@
 import type { GameDocument } from "./index";
 import { compileGame, type GamePlan, type StatSource } from "./play";
-import { enemyByIdOf, getPlanIndices, initialState, step, type SimInput, type SimState } from "./sim";
+import { L, type ModelLocale } from "./locale";
+import { enemyByIdOf, getPlanIndices, initialState, step, type SimEvent, type SimEventI18n, type SimInput, type SimState } from "./sim";
 
 /**
  * §51 的最后一条管线：RPG 原型——把文档串成**成长/战斗循环**。
@@ -29,6 +30,13 @@ export const RPG_RULE_NOTES = [
   `升级曲线是投影的：下一级要 ${XP_BASE} + (等级-1)×${XP_STEP} 点经验；每升一级生命上限 +${LEVEL_BONUS.maxHealth}（并回复）伤害 +${LEVEL_BONUS.damage}。模型里没有成长曲线字段。`,
   "任务上的 requiredLevel 按等级门解释：等级不够时条件满足也不结算，升到了才补记——不是丢弃，也不是提前完成。",
   "战斗规则与 2D 关卡逐字相同（同一个 step）：RPG 加的只有成长，没有背包、技能树或回合制。",
+];
+/** RPG_RULE_NOTES 的英文镜像 */
+export const RPG_RULE_NOTES_EN = [
+  `XP comes from the xpReward value written by the author: enemies without one use the projection default ${XP_PER_KILL_FALLBACK} (the HUD flags it as "default"), and quests without one award nothing — the pipeline never invents XP for the design.`,
+  `The level curve is a projection constant: the next level costs ${XP_BASE} + (level-1)×${XP_STEP} XP; each level adds +${LEVEL_BONUS.maxHealth} max health (and restores it) and +${LEVEL_BONUS.damage} damage. The model has no progression-curve field.`,
+  "The requiredLevel on a quest is read as a level gate: when the level is not met the condition is not settled even if satisfied, and it is recorded on the next frame the gate opens — not discarded, not completed early.",
+  "Combat rules are identical, character for character, to the 2D level (the same step): the RPG adds growth only — no inventory, no skill trees, no turn-based mode.",
 ];
 
 /** 一个敌人的经验设定：值与来源（design = 作者写的 xpReward，default = 投影兜底） */
@@ -83,8 +91,8 @@ export function xpToNext(plan: Pick<RpgPlan, "xpBase" | "xpStep">, level: number
  * 编译 RPG 计划。纯函数：底层是 `compileGame`（确定性有测试钉住），
  * 成长层只读数值，所以同一份文档两次编译逐字段相同。
  */
-export function compileRpg(document: GameDocument): RpgPlan {
-  const base = compileGame(document);
+export function compileRpg(document: GameDocument, locale: ModelLocale = "zh"): RpgPlan {
+  const base = compileGame(document, locale);
   const notes = base.notes.slice();
 
   const byId = new Map(document.entities.map((entity) => [entity.id, entity]));
@@ -111,17 +119,35 @@ export function compileRpg(document: GameDocument): RpgPlan {
 
   const defaulted = enemyXp.filter((enemy) => enemy.from === "default");
   if (defaulted.length) {
-    notes.push(`${defaulted.length} 个敌人的经验用的投影兜底 ${XP_PER_KILL_FALLBACK}（没写 xpReward）：HUD 会逐个标出来。`);
+    notes.push(
+      L(
+        locale,
+        `${defaulted.length} 个敌人的经验用的投影兜底 ${XP_PER_KILL_FALLBACK}（没写 xpReward）：HUD 会逐个标出来。`,
+        `${defaulted.length} enemies use the projection XP default ${XP_PER_KILL_FALLBACK} (no xpReward written): the HUD flags each of them.`,
+      ),
+    );
   }
   const gated = quests.filter((quest) => quest.requiredLevel > 1);
   if (gated.length) {
-    notes.push(`${gated.length} 条任务带 requiredLevel：等级不够时条件满足也不结算（详见等级门那条规则）。`);
+    notes.push(
+      L(
+        locale,
+        `${gated.length} 条任务带 requiredLevel：等级不够时条件满足也不结算（详见等级门那条规则）。`,
+        `${gated.length} quest(s) carry requiredLevel: when the level is not met the condition is not settled even if satisfied (see the level-gate rule).`,
+      ),
+    );
   }
   const withXp = quests.filter((quest) => quest.hasXpReward);
   if (quests.length && !withXp.length) {
-    notes.push("没有一条任务写了 xpReward：完成任务不发经验，成长只来自打倒敌人。");
+    notes.push(
+      L(
+        locale,
+        "没有一条任务写了 xpReward：完成任务不发经验，成长只来自打倒敌人。",
+        "No quest wrote xpReward: completing quests awards no XP; growth comes only from defeating enemies.",
+      ),
+    );
   }
-  notes.push(...RPG_RULE_NOTES);
+  notes.push(...(locale === "en" ? RPG_RULE_NOTES_EN : RPG_RULE_NOTES));
 
   return {
     name: base.name,
@@ -154,8 +180,12 @@ function planAtLevel(plan: RpgPlan, levelUps: number): GamePlan {
   };
 }
 
-function pushEvent(events: { t: number; text: string }[], t: number, text: string): void {
-  events.push({ t: Math.round(t * 10) / 10, text });
+/** 事件 i18n 键（sim.ts 维护联合类型；这里导出给界面做穷尽映射的参考） */
+export type RpgEventKey = "questLevelGated" | "enemyDefeatedXp" | "questDoneXp" | "levelUp";
+function pushEvent(events: SimEvent[], t: number, text: string, i18n?: SimEventI18n): void {
+  const entry: SimEvent = { t: Math.round(t * 10) / 10, text };
+  if (i18n) entry.i18n = i18n;
+  events.push(entry);
   if (events.length > 40) events.shift();
 }
 
@@ -182,11 +212,13 @@ export function rpgStep(plan: RpgPlan, state: RpgState, input: SimInput, dt: num
       next.base.events,
       next.base.t,
       `任务「${quest.name}」条件满足了，但要 ${quest.requiredLevel} 级才能交（现在 ${next.level} 级）——完成先扣住`,
+      { key: "questLevelGated", params: { name: quest.name, requiredLevel: quest.requiredLevel, level: next.level } },
     );
   }
   if (gatedThisFrame && next.base.status === "won") {
     next.base.status = "playing";
     next.base.outcome = null;
+    next.base.outcomeI18n = null;
   }
 
   // —— 经验：这一帧打倒的敌人 ——
@@ -203,6 +235,7 @@ export function rpgStep(plan: RpgPlan, state: RpgState, input: SimInput, dt: num
         next.base.events,
         next.base.t,
         `打倒 ${enemy.name} +${enemy.xp} 经验${enemy.from === "default" ? "（兜底值）" : ""}`,
+        { key: "enemyDefeatedXp", params: { name: enemy.name, xp: enemy.xp, fallback: enemy.from === "default" ? 1 : 0 } },
       );
     }
   }
@@ -213,7 +246,10 @@ export function rpgStep(plan: RpgPlan, state: RpgState, input: SimInput, dt: num
     const isDone = next.base.questDone[quest.id] !== undefined;
     if (!wasDone && isDone && quest.hasXpReward && quest.xpReward > 0) {
       gained += quest.xpReward;
-      pushEvent(next.base.events, next.base.t, `完成任务「${quest.name}」 +${quest.xpReward} 经验`);
+      pushEvent(next.base.events, next.base.t, `完成任务「${quest.name}」 +${quest.xpReward} 经验`, {
+        key: "questDoneXp",
+        params: { name: quest.name, xp: quest.xpReward },
+      });
     }
   }
 
@@ -228,6 +264,10 @@ export function rpgStep(plan: RpgPlan, state: RpgState, input: SimInput, dt: num
       next.base.events,
       next.base.t,
       `升到 ${next.level} 级：生命上限 +${plan.levelBonus.maxHealth}，伤害 +${plan.levelBonus.damage}（曲线来自投影，不是设计）`,
+      {
+        key: "levelUp",
+        params: { level: next.level, maxHealth: plan.levelBonus.maxHealth, damage: plan.levelBonus.damage },
+      },
     );
   }
 
@@ -235,14 +275,15 @@ export function rpgStep(plan: RpgPlan, state: RpgState, input: SimInput, dt: num
 }
 
 /** HUD 的一行摘要：等级、经验进度与战斗读数，不含编造的"战力分" */
-export function rpgSummary(plan: RpgPlan, state: RpgState): string {
+export function rpgSummary(plan: RpgPlan, state: RpgState, locale: ModelLocale = "zh"): string {
+  const en = locale === "en";
   return [
-    `等级 ${state.level}`,
-    `经验 ${state.xp}/${xpToNext(plan, state.level)}`,
-    `生命 ${Math.max(0, state.base.health)}`,
-    `伤害 ${plan.base.player ? plan.base.player.damage + plan.levelBonus.damage * state.levelUps : 0}`,
-    `敌人剩 ${state.base.enemies.filter((e) => e.active).length}/${state.base.enemies.length}`,
-    `任务完成 ${Object.keys(state.base.questDone).length}`,
-    state.base.status === "playing" ? "进行中" : state.base.status === "won" ? "通关" : "失败",
+    en ? `Level ${state.level}` : `等级 ${state.level}`,
+    en ? `XP ${state.xp}/${xpToNext(plan, state.level)}` : `经验 ${state.xp}/${xpToNext(plan, state.level)}`,
+    en ? `HP ${Math.max(0, state.base.health)}` : `生命 ${Math.max(0, state.base.health)}`,
+    en ? `Damage ${plan.base.player ? plan.base.player.damage + plan.levelBonus.damage * state.levelUps : 0}` : `伤害 ${plan.base.player ? plan.base.player.damage + plan.levelBonus.damage * state.levelUps : 0}`,
+    en ? `enemies left ${state.base.enemies.filter((e) => e.active).length}/${state.base.enemies.length}` : `敌人剩 ${state.base.enemies.filter((e) => e.active).length}/${state.base.enemies.length}`,
+    en ? `quests done ${Object.keys(state.base.questDone).length}` : `任务完成 ${Object.keys(state.base.questDone).length}`,
+    state.base.status === "playing" ? (en ? "Playing" : "进行中") : state.base.status === "won" ? (en ? "Cleared" : "通关") : en ? "Fell" : "失败",
   ].join(" · ");
 }

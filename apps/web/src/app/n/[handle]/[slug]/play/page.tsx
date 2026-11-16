@@ -27,19 +27,21 @@ export default async function PublicPlayPage({ params }: { params: Promise<{ han
   if (!page) notFound();
 
   // §FE-7 只动视觉：pp-* 语义类叠加，结构/文案/data-play-* 钩子/三态分支/读路径一字未改
+  const en = locale === 'en';
   const back = (
     <Link href={path} className="pp-back pp-backInk" data-play-back>
-      回到作品页
+      {en ? 'Back to the work page' : '回到作品页'}
     </Link>
   );
 
   if (page.gameDocument === null || page.gameDocument === undefined) {
     return (
       <main className="pp-root pp-empty pp-narrow" data-play="none">
-        <h1 className="pp-emptyTitle pp-h1xi">这一版没有可玩内容</h1>
+        <h1 className="pp-emptyTitle pp-h1xi">{en ? 'This version has nothing playable' : '这一版没有可玩内容'}</h1>
         <p className="pp-body13">
-          发布的时候这个项目还没有 §54 的游戏设计文档，所以这一版没钉住可玩的东西。
-          这里不会拿作者现在的工作稿顶上——那是另一份东西，而且它随时在变。
+          {en
+            ? 'At publish time this project had no §54 game design document, so this version pinned nothing playable. What will not happen: the author’s current working draft being swapped in — that is a different thing, and it changes at any moment.'
+            : '发布的时候这个项目还没有 §54 的游戏设计文档，所以这一版没钉住可玩的东西。这里不会拿作者现在的工作稿顶上——那是另一份东西，而且它随时在变。'}
         </p>
         {back}
       </main>
@@ -50,16 +52,18 @@ export default async function PublicPlayPage({ params }: { params: Promise<{ han
   if (!parsed.success) {
     return (
       <main className="pp-root pp-empty pp-broken pp-narrow" data-play="broken">
-        <h1 className="pp-emptyTitle pp-h1xi">这一版钉住的游戏读不出来</h1>
+        <h1 className="pp-emptyTitle pp-h1xi">{en ? 'The game this version pinned cannot be read' : '这一版钉住的游戏读不出来'}</h1>
         <ul className="pp-list">
           {parsed.error.issues.slice(0, 5).map((issue) => (
             <li key={`${issue.path.join('.')}-${issue.message}`} className="pp-danger12" data-play-issue>
-              {issue.path.join('.') || 'document'}：{issue.message}
+              {issue.path.join('.') || 'document'}{en ? ': ' : '：'}{issue.message}
             </li>
           ))}
         </ul>
         <p className="pp-hint11">
-          明说读不出来，比悄悄给一个空关卡诚实（§159）。这一版钉住的就是这些字节，重新发布才会换。
+          {en
+            ? 'Saying it out loud is more honest than quietly handing over an empty arena (§159). What is pinned to this version is exactly these bytes — a republish is what changes it.'
+            : '明说读不出来，比悄悄给一个空关卡诚实（§159）。这一版钉住的就是这些字节，重新发布才会换。'}
         </p>
         {back}
       </main>
@@ -68,7 +72,7 @@ export default async function PublicPlayPage({ params }: { params: Promise<{ han
 
   const document = parsed.data as GameDocument;
   const issues = validateGame(document);
-  const projection = compileForKind(document);
+  const projection = compileForKind(document, locale);
   return (
     <main className="pp-root pp-live pp-wide" data-play="live">
       <header className="pp-header pp-headerRow">
@@ -77,19 +81,21 @@ export default async function PublicPlayPage({ params }: { params: Promise<{ han
             {document.name}
           </h1>
           <p className="pp-subtitle pp-hint11" data-play-subtitle>
-            {describeProjection(document, projection)}
+            {describeProjection(document, projection, locale)}
           </p>
           <p className="pp-pinned pp-hint11" data-play-pinned>
-            {page.ownerName} 发布的第 {page.publication.version} 版 · 这一页玩的是发布那一刻钉住的游戏设计，
-            作者之后的改动不会跑到这个链接上
+            {en
+              ? `Version ${page.publication.version} published by ${page.ownerName} · what you play here is the game design pinned at the moment of publishing — later edits by the author never reach this link`
+              : `${page.ownerName} 发布的第 ${page.publication.version} 版 · 这一页玩的是发布那一刻钉住的游戏设计，作者之后的改动不会跑到这个链接上`}
           </p>
         </div>
         {back}
       </header>
       {issues.length ? (
         <p className="pp-issues pp-hint11" data-play-issues>
-          这份钉住的文档有 {issues.length} 条校验问题（{issues.slice(0, 3).map((issue) => issue.code).join(' / ')}）；
-          能投影的部分照常可玩，不假装它是干净的。
+          {en
+            ? `This pinned document has ${issues.length} validation problem(s) (${issues.slice(0, 3).map((issue) => issue.code).join(' / ')}); the projectable parts play anyway — no pretending it is clean.`
+            : `这份钉住的文档有 ${issues.length} 条校验问题（${issues.slice(0, 3).map((issue) => issue.code).join(' / ')}）；能投影的部分照常可玩，不假装它是干净的。`}
         </p>
       ) : null}
       {/* §168：通关的那一声（"玩到了结局"）——只有公开可玩页报，作者自己的工作稿不报 */}

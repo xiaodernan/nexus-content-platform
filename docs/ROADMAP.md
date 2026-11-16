@@ -14166,3 +14166,11 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 用户指令：「不要停下来」+「继续找新任务做」。
 - 回响 · 其十《灯在潮退时没有往回点》：礼拜堂那盏永远不替潮候海指方向、不登记姓名、不为潮退亮额外的灯、「潮候海退是自己的退，灯亮是灯自己的亮」40 锚句中英对齐。
 - 回响集：E01..E10（巡逻路札记 / 潮候船上没有岸 / 退潮三日 / 盐在井里等潮 / 没人动过的沙盘 / 教团没有买的歌谱 / 黄铜盘上刀光 / 完颜的潮汐钟 / 潮生不急）；主线 4 章 + 65 锚句。
+
+## §I18N-GM — 可玩投影管线全链路双语（2026-11-16 · v811）
+
+用户指令：「所有项目内容支持中英文一键切换…不要中英文夹杂」+ 继续上一轮。
+- 模型层：compileGame/compileRpg/compileStory/compileForKind 收 `locale`；`events[].i18n`/`outcomeI18n` 结构化双语（中文 text/outcome 原文保留给产物对账）；codegen 产物逐字段跟进（sim-parity 363/363）。
+- 报告面：playtest/playtestRpg/playtestStory/simSummary/rpgSummary/POLICY_LABELS/LIMITS/SeedNote 全双语；view notes / rule notes / provenance 表全 EN 镜像。
+- 界面面：GamePlay/RpgPlay/StoryPlay HUD+控件+playtest 表全双语；`/game/<id>` 与 `/n/<h>/<s>/play` 播放页全双语（含空态/损坏态/钉住版说明）；PlayByKind 未接线卡 + describeProjection 页首行双语。
+- 门：FE-75/96/97/98/99 + runtime-pages(game) + FE-7 字面量 一共 7 门按各自算法重钉；**fe-gates 125/125 · 1223/1223 · census 2394**。

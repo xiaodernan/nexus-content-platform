@@ -4217,3 +4217,15 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   verify:world-bible ✅（65/65 锚句 zh/en 唯一），verify:bible-snapshot ✅；SSR 实测 zh/en 200。
 - fe-gates **125/125 · 1223/1223** 保持全绿。
 - 至此回响体系：E01..E10；主线 4 章 + 65 锚句。
+
+## cont. 176 (2026-11-16) — v811 · 游戏/对话管线双语（2D · RPG · Story · 播放壳）
+
+- 用户指令：「所有项目内容支持中英文一键切换…不要中英文夹杂」。本轮把**可玩投影全链路**接上了 locale（此前仅 GameTutorial v797 双语）：
+- 模型层（@nexus/game-model）：新增 `locale.ts`（ModelLocale/L）；`compileGame`/`compileRpg`/`compileStory`/`compileForKind` 全部收 `locale` 第二参（默认 'zh'，旧调用方零破坏）。**产物对账（sim-parity）口径保持**：`events[].text` 仍为中文（单测按它断言），新增结构化 `i18n`（键+参数）——显示层按 locale 重组；结束语 `outcomeI18n` 同工艺（`outcome` 原文保留）。代码生成产物 `codegen.ts` 同步吐 i18n（两边逐字段对账保持绿，363/363）。
+- `GAME_KIND_LABELS_EN` / `GAME_KIND_STATUS_EN`（后者已有 v735）、`ISO|EXPLORATION|PUZZLE_VIEW_NOTES_EN`、`SIM_RULE_NOTES_EN`、`RPG_RULE_NOTES_EN`、`POLICY_LABELS_EN`、`PLAYTEST_BASE_LIMITS_EN`、`PLAY_PROVENANCE_(LABELS|FALLBACK_TEXT)_EN`、`playtest|playtestRpg|playtestStory|playtestSeedNote|simSummary|rpgSummary` 均收双语；报告 findings/limits 整份按 locale 出。
+- `PlayQuestGoal` 增加 `targetName`；目标标签显示层按 kind 重组（模型原 label 字节不动）。
+- 媒体层（apps/web）：GamePlay.tsx / RpgPlay.tsx / StoryPlay.tsx 模块级 `HUD_TXT|RPG_TXT|STORY_TXT` 双语字典 + `format.ts` 共用 fmt；HUD/控件/任务/报告/出场判定逐行双语；`eventText.ts`（gameEventText/gameOutcomeText）。
+- 播放壳：`/game/[projectId]`、`/n/<handle>/<slug>/play` 空态/损坏态/钉住版/回头链接全双语；`PlayByKind` 未接线卡片、`describeProjection` 页首行按 locale；`StoryPlay` 正式收 locale prop。
+- 门纪律：FE-7 字面量改 `compileForKind(document, locale)`；FE-75/96/97/98/99 与 runtime-pages game SHA（6 文件）按各门自己的 redact 算法重钉；**fe-gates 125/125 · 1223/1223 · census 2394 全绿**；tsc web 0。
+- 实测（tsx 直跑游戏模型，zh/en 双语对照）：notes/why/goal/simSummary/政策标签/findings/limits/seedNote/rpgSummary/story findings 全部正确双语；zh 与改前逐字一致；两个赛道（2D/RPG/Story）胜场判定在两种语言下一致（2/4 通关，最快 1.5s——确定性）。
+- 诚实边界：Docker 未启动（nexus-postgres 停机）⇒ 本轮未跑浏览器 SSR 截图；验证走的是 tsc + fe-gates + tsx 模型直跑。Studio 面板（GamePanel 等 §52/§53 面板）文案仍为中文原文（zh 为默认工作语言）——Studio 面板双语是下一片。

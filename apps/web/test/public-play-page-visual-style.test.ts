@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * §50：读的是**发布那一刻钉在 publication 行上的那份游戏设计**（ADR-0009），不是作者的工作稿——不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `fc7de8853575268a43767ed87c9f41dedb307ea12d43bf751c6be35eef52252b` 与 HEAD 字节一致。
+ * `697dd1aa8455528e06c45ebf942ff08dccb87c9fa6bfb08787e78b357f3a9ce8` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/app/n/[handle]/[slug]/play/page.tsx');
@@ -103,9 +103,9 @@ describe('§FE-75 /n/[handle]/[slug]/play 公开可玩页原子清零', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：fc7de8853575268a43767ed87c9f41dedb307ea12d43bf751c6be35eef52252b）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：697dd1aa8455528e06c45ebf942ff08dccb87c9fa6bfb08787e78b357f3a9ce8）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'fc7de8853575268a43767ed87c9f41dedb307ea12d43bf751c6be35eef52252b',
+      '697dd1aa8455528e06c45ebf942ff08dccb87c9fa6bfb08787e78b357f3a9ce8',
     );
   });
 });

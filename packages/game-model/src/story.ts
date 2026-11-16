@@ -1,8 +1,10 @@
 import {
   GAME_KIND_STATUS,
+  GAME_KIND_STATUS_EN,
   type GameDocument,
   type GameKind,
 } from "./index";
+import { L, type ModelLocale } from "./locale";
 import { compileGame, type GamePlan } from "./play";
 import { compileRpg, type RpgPlan } from "./rpg";
 import { EVENT_CAP } from "./sim";
@@ -71,9 +73,13 @@ export interface StoryPlan {
  * 5. **对话之间允许成环**：模型没有"防止死循环"的约束，播放器负责把重复走过的段落标出来，
  *    这里只负责如实把环画进图里。
  */
-export function compileStory(document: GameDocument): StoryPlan {
+export function compileStory(document: GameDocument, locale: ModelLocale = "zh"): StoryPlan {
   const notes: string[] = [
-    "正文来自对话实体的「设计说明」（notes），选择来自它指向其它对话的引用——投影不扩写、不生成、不补对话（§159）。",
+    L(
+      locale,
+      "正文来自对话实体的「设计说明」（notes），选择来自它指向其它对话的引用——投影不扩写、不生成、不补对话（§159）。",
+      "Body text comes from each dialogue entity's design note (notes); choices come from its references to other dialogues — the projection never expands, generates or completes a conversation (§159).",
+    ),
   ];
   const blockers: string[] = [];
 
@@ -81,13 +87,21 @@ export function compileStory(document: GameDocument): StoryPlan {
   const others = document.entities.length - dialogues.length;
   if (others > 0) {
     notes.push(
-      `这份设计里有 ${others} 个非对话实体（敌人/物品/任务/触发器…），这条管线一个都不读——它们只在 2D 关卡投影里有意义。`,
+      L(
+        locale,
+        `这份设计里有 ${others} 个非对话实体（敌人/物品/任务/触发器…），这条管线一个都不读——它们只在 2D 关卡投影里有意义。`,
+        `This design has ${others} non-dialogue entities (enemies/items/quests/triggers…); this pipeline reads none of them — they only matter in the 2D arena projection.`,
+      ),
     );
   }
 
   if (!dialogues.length) {
     blockers.push(
-      "这份设计里一条对话实体都没有：对话投影没有可读的内容。去 §54 的「对话」分组加至少一条，或把类型改回 2D 用俯视关卡试玩。",
+      L(
+        locale,
+        "这份设计里一条对话实体都没有：对话投影没有可读的内容。去 §54 的「对话」分组加至少一条，或把类型改回 2D 用俯视关卡试玩。",
+        "This design has not a single dialogue entity: the dialogue projection has nothing to read. Add at least one in §54's \"Dialogue\" group, or switch the kind back to 2D to playtest the top-down arena.",
+      ),
     );
     return {
       name: document.name,
@@ -146,40 +160,84 @@ export function compileStory(document: GameDocument): StoryPlan {
   const start = roots[0] ?? beats[0]!;
   if (!roots.length) {
     notes.push(
-      "每一条对话都有别的对话指向它（成环了）：没有天然入口，起点按文档顺序取第一条。",
+      L(
+        locale,
+        "每一条对话都有别的对话指向它（成环了）：没有天然入口，起点按文档顺序取第一条。",
+        "Every dialogue is pointed to by another dialogue (it loops): there is no natural entry; the start is the first one in document order.",
+      ),
     );
   } else if (roots.length > 1) {
     const unreachable = roots.slice(1).map((beat) => beat.name);
+    const listed = unreachable.slice(0, 5).join(locale === "en" ? ", " : "、");
+    const suffix =
+      unreachable.length > 5
+        ? L(locale, ` 等 ${unreachable.length} 条`, ` and ${unreachable.length - 5} more`)
+        : "";
     notes.push(
-      `这份设计有 ${roots.length} 条互不相连的对话线，起点取第一条（${start.name}），从这里走不到的 ${unreachable.length} 条是：${unreachable
-        .slice(0, 5)
-        .join("、")}${unreachable.length > 5 ? ` 等 ${unreachable.length} 条` : ""}——` +
-        `它们不是"没有内容"，是这条线没接上。`,
+      L(
+        locale,
+        `这份设计有 ${roots.length} 条互不相连的对话线，起点取第一条（${start.name}），从这里走不到的 ${unreachable.length} 条是：${listed}${suffix}——` +
+          `它们不是"没有内容"，是这条线没接上。`,
+        `This design has ${roots.length} disconnected dialogue lines; the start is the first (${start.name}); the ${unreachable.length} lines not reachable from it are: ${listed}${suffix} — ` +
+          "they are not \"missing content\", their lines were never wired up.",
+      ),
     );
   }
 
   if (offKindRefs) {
     notes.push(
-      `有 ${offKindRefs} 条引用指向的不是对话（NPC、物品、任务…），对话投影不把它们当选项：§54 说了引用是谁，没说非对话实体在故事里怎么走。`,
+      L(
+        locale,
+        `有 ${offKindRefs} 条引用指向的不是对话（NPC、物品、任务…），对话投影不把它们当选项：§54 说了引用是谁，没说非对话实体在故事里怎么走。`,
+        `${offKindRefs} references point at non-dialogue entities (NPCs, items, quests…); the dialogue projection does not treat them as options: §54 says who a reference points to, not how a non-dialogue entity moves inside a story.`,
+      ),
     );
   }
   if (danglingRefs) {
-    notes.push(`有 ${danglingRefs} 条引用指向的实体不在文档里（已被删除），这些选项被跳过——给一个点下去没反应的按钮更糟。`);
+    notes.push(
+      L(
+        locale,
+        `有 ${danglingRefs} 条引用指向的实体不在文档里（已被删除），这些选项被跳过——给一个点下去没反应的按钮更糟。`,
+        `${danglingRefs} references point at entities that are not in the document (deleted); those options are skipped — a clickable-looking button that does nothing would be worse.`,
+      ),
+    );
   }
   if (labelFallbacks) {
     notes.push(
-      `有 ${labelFallbacks} 个选项没写关系文字（引用的 role 是空的），投影拿目标对话的名字顶上——顶替来自投影，不是作者写下的选项词。`,
+      L(
+        locale,
+        `有 ${labelFallbacks} 个选项没写关系文字（引用的 role 是空的），投影拿目标对话的名字顶上——顶替来自投影，不是作者写下的选项词。`,
+        `${labelFallbacks} options carry no relation text (the reference's role is empty); the projection fills in the target dialogue's name — the substitution comes from the projection, not from the words the author wrote for the option.`,
+      ),
     );
   }
   const emptyTexts = beats.filter((beat) => beat.textEmpty).length;
   if (emptyTexts) {
-    notes.push(`有 ${emptyTexts} 条对话的设计说明是空的：正文照实为空白，投影不替作者补一句开场白。`);
+    notes.push(
+      L(
+        locale,
+        `有 ${emptyTexts} 条对话的设计说明是空的：正文照实为空白，投影不替作者补一句开场白。`,
+        `${emptyTexts} dialogues have an empty design note: the body text is blank as written; the projection will not invent an opening line for the author.`,
+      ),
+    );
   }
   const endings = beats.filter((beat) => beat.ending).length;
   if (endings) {
-    notes.push(`${endings} 条对话没有任何出边，走到那里就结束了——没有"结局画面"这种东西，只是没有下一段。`);
+    notes.push(
+      L(
+        locale,
+        `${endings} 条对话没有任何出边，走到那里就结束了——没有"结局画面"这种东西，只是没有下一段。`,
+        `${endings} dialogues have no outgoing edges; reaching one simply ends the conversation — there is no "ending screen", there is just no next segment.`,
+      ),
+    );
   }
-  notes.push("对话之间可以互相指成环：播放时重复走过的段落会被标出来，模型里没有防环约束。");
+  notes.push(
+    L(
+      locale,
+      "对话之间可以互相指成环：播放时重复走过的段落会被标出来，模型里没有防环约束。",
+      "Dialogues can reference each other in a cycle: during playback, segments walked more than once are marked; the model has no anti-cycle constraint.",
+    ),
+  );
 
   return {
     name: document.name,
@@ -315,13 +373,13 @@ export type GameProjection =
  * 内容判断会让"标了 3D 却写了一堆对话"静默降级成对话游戏，那是替作者做决定。
  * 同一条管线有几种画法（2D 俯视 / 2.5D 等轴测）也由这张状态表决定，这里只负责原样带出去。
  */
-export function compileForKind(document: GameDocument): GameProjection {
+export function compileForKind(document: GameDocument, locale: ModelLocale = "zh"): GameProjection {
   const kind: GameKind = document.kind;
   const status = GAME_KIND_STATUS[kind];
   if (status.pipeline === "topdown") {
-    return { pipeline: "topdown", view: status.view ?? "topdown", plan: compileGame(document) };
+    return { pipeline: "topdown", view: status.view ?? "topdown", plan: compileGame(document, locale) };
   }
-  if (status.pipeline === "story") return { pipeline: "story", plan: compileStory(document) };
-  if (status.pipeline === "rpg") return { pipeline: "rpg", plan: compileRpg(document) };
-  return { pipeline: null, reason: status.note };
+  if (status.pipeline === "story") return { pipeline: "story", plan: compileStory(document, locale) };
+  if (status.pipeline === "rpg") return { pipeline: "rpg", plan: compileRpg(document, locale) };
+  return { pipeline: null, reason: locale === "en" ? GAME_KIND_STATUS_EN[kind] : status.note };
 }

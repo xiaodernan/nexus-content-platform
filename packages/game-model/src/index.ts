@@ -148,6 +148,18 @@ export const GAME_KIND_LABELS: Record<GameKind, string> = {
   "visual-novel": "视觉小说",
 };
 
+/** GAME_KIND_LABELS 的英文镜像 */
+export const GAME_KIND_LABELS_EN: Record<GameKind, string> = {
+  "2d": "2D",
+  "2.5d": "2.5D",
+  "3d": "3D",
+  "interactive-story": "Interactive Story",
+  "rpg-prototype": "RPG Prototype",
+  exploration: "Exploration",
+  puzzle: "Puzzle",
+  "visual-novel": "Visual Novel",
+};
+
 export function isGameKind(value: unknown): value is GameKind {
   return typeof value === "string" && (GAME_KINDS as readonly string[]).includes(value);
 }

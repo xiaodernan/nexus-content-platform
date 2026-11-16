@@ -1,6 +1,8 @@
 import {
   GAME_KIND_LABELS,
+  GAME_KIND_LABELS_EN,
   GAME_KIND_STATUS,
+  GAME_KIND_STATUS_EN,
   isGameKind,
   type GameDocument,
   type GameProjection,
@@ -35,9 +37,11 @@ export function PlayByKind({
   /** 双语（v797）：locale 从 RSC 下传（作者工作稿页 / 公开可玩页都是 cookie 读的那一份） */
   locale?: Locale;
 }) {
+  const en = locale === 'en';
+  const kindLabels = en ? GAME_KIND_LABELS_EN : GAME_KIND_LABELS;
   const kindNote = isGameKind(document.kind) ? (
     <p className="pk-hint" data-game-kind-note={document.kind}>
-      {GAME_KIND_STATUS[document.kind].note}
+      {en ? GAME_KIND_STATUS_EN[document.kind] : GAME_KIND_STATUS[document.kind].note}
     </p>
   ) : null;
 
@@ -52,7 +56,7 @@ export function PlayByKind({
   if (projection.pipeline === 'story') {
     return (
       <>
-        <StoryPlay plan={projection.plan} onComplete={onComplete} />
+        <StoryPlay plan={projection.plan} onComplete={onComplete} locale={locale} />
         {kindNote}
       </>
     );
@@ -66,29 +70,50 @@ export function PlayByKind({
     );
   }
   // 没接：reason 本身就是状态表那句话，不重复显示第二遍
-  const label = isGameKind(document.kind) ? GAME_KIND_LABELS[document.kind] : '这一种';
+  const label = isGameKind(document.kind) ? kindLabels[document.kind] : en ? 'this kind' : '这一种';
   return (
     <div className="pk-card" data-play="kind-not-wired">
-      <h2 className="pk-h2">这一版标的类型是「{label}」，它还没有可玩的投影</h2>
+      <h2 className="pk-h2">
+        {en
+          ? `The kind this version is tagged as is "${label}", and it has no playable projection yet`
+          : `这一版标的类型是「${label}」，它还没有可玩的投影`}
+      </h2>
       <p className="pk-note12" data-play-kind-reason>
         {projection.reason}
       </p>
       <p className="pk-hint2">
-        这里不给一个空场子，也不拿别的类型的关卡顶上：那会让"平台还没接这一种"看起来像"你的设计跑出来就是这样"（§159）。
+        {en
+          ? 'No empty arena is offered, and no other kind\u2019s arena is substituted either: that would make "the platform never wired this kind" look like "this is what your design plays like" (§159).'
+          : '这里不给一个空场子，也不拿别的类型的关卡顶上：那会让"平台还没接这一种"看起来像"你的设计跑出来就是这样"（§159）。'}
       </p>
     </div>
   );
 }
 
 /** 页首那行小字：说清这一页跑的到底是哪条管线、投影出多少可读内容 */
-export function describeProjection(document: GameDocument, projection: GameProjection): string {
-  const label = isGameKind(document.kind) ? GAME_KIND_LABELS[document.kind] : '这一种';
+export function describeProjection(
+  document: GameDocument,
+  projection: GameProjection,
+  locale: Locale = 'zh',
+): string {
+  const en = locale === 'en';
+  const labels = en ? GAME_KIND_LABELS_EN : GAME_KIND_LABELS;
+  const label = isGameKind(document.kind) ? labels[document.kind] : en ? 'this kind' : '这一种';
   if (projection.pipeline === 'topdown') {
     const plan = projection.plan;
     // 画法要写进页首：2.5D / 3D 与 2D 跑的是同一条计划，差别只在这句话和画布上
     // （不写就会被读成"三种游戏"，而它们是同一个 step 算出来的同一份结果）
-    const paint =
-      projection.view === 'isometric'
+    const paint = en
+      ? projection.view === 'isometric'
+        ? 'isometric projection · '
+        : projection.view === '3d'
+          ? '3D perspective · '
+          : projection.view === 'exploration'
+            ? 'exploration view (seen only up close) · '
+            : projection.view === 'puzzle'
+              ? 'puzzle view (trigger links) · '
+              : ''
+      : projection.view === 'isometric'
         ? '等轴测投影 · '
         : projection.view === '3d'
           ? '3D 视角 · '
@@ -97,20 +122,29 @@ export function describeProjection(document: GameDocument, projection: GameProje
             : projection.view === 'puzzle'
               ? '解谜画法（机关连线） · '
               : '';
-    return `${label} · ${paint}${plan.enemies.length} 个敌人 · ${plan.items.length} 个物品 · ${plan.quests.length} 条任务 · 场地 ${plan.arena.width}×${plan.arena.height}`;
+    return en
+      ? `${label} · ${paint}${plan.enemies.length} enemies · ${plan.items.length} items · ${plan.quests.length} quests · field ${plan.arena.width}×${plan.arena.height}`
+      : `${label} · ${paint}${plan.enemies.length} 个敌人 · ${plan.items.length} 个物品 · ${plan.quests.length} 条任务 · 场地 ${plan.arena.width}×${plan.arena.height}`;
   }
   if (projection.pipeline === 'story') {
     const plan = projection.plan;
     const start = plan.beats.find((beat) => beat.id === plan.startId);
-    return `${label} · 对话投影 · ${plan.beats.length} 段可读 · 起点「${start?.name ?? '没有'}」 · ${plan.notes.length} 条如实说明`;
+    return en
+      ? `${label} · dialogue projection · ${plan.beats.length} readable segments · start "${start?.name ?? 'none'}" · ${plan.notes.length} honest notes`
+      : `${label} · 对话投影 · ${plan.beats.length} 段可读 · 起点「${start?.name ?? '没有'}」 · ${plan.notes.length} 条如实说明`;
   }
   if (projection.pipeline === 'rpg') {
     const plan = projection.plan;
     // 战斗与 2D 是同一个 step：这句话要写在页首，不然读起来像"多了一种战斗规则"
     const fallbackXp = plan.enemyXp.filter((enemy) => enemy.from === 'default').length;
+    if (en) {
+      return `${label} · RPG growth loop (combat is the same step as 2D) · ${plan.base.enemies.length} enemies · ${plan.quests.length} quests · field ${plan.base.arena.width}×${plan.base.arena.height}${
+        fallbackXp ? ` · ${fallbackXp} enemies run on default XP` : ''
+      }`;
+    }
     return `${label} · RPG 成长循环（战斗与 2D 同一个 step） · ${plan.base.enemies.length} 个敌人 · ${plan.quests.length} 条任务 · 场地 ${plan.base.arena.width}×${plan.base.arena.height}${
       fallbackXp ? ` · ${fallbackXp} 个敌人的经验是兜底值` : ''
     }`;
   }
-  return `${label} · 这条类型没有可玩投影`;
+  return en ? `${label} · this kind has no playable projection` : `${label} · 这条类型没有可玩投影`;
 }
