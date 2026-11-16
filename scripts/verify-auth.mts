@@ -199,6 +199,7 @@ async function main() {
   ok('eureka is answering');
 
   services.push({ name: 'domain-service', child: spawnJar('domain-service', domainJar, {
+    NEXUS_EUREKA_ENABLED: 'true',
     NEXUS_DOMAIN_REGISTER: 'true',
     NEXUS_DOMAIN_FETCH: 'true',
     NEXUS_DOMAIN_DB_URL: DB_URL,
@@ -220,6 +221,7 @@ async function main() {
     NEXUS_GATEWAY_AUTH_ENABLED: 'true',
     NEXUS_GATEWAY_AUTH_SECRET: SMOKE_SECRET,
     NEXUS_REGISTRY_ZONE: `http://127.0.0.1:${REGISTRY_PORT}/eureka/`,
+    NEXUS_EUREKA_ENABLED: 'true',
   }) });
   if (!(await waitFor('gateway', `http://127.0.0.1:${GATEWAY_PORT}/platform/health`, 200))) {
     await cleanup();

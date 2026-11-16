@@ -95,6 +95,13 @@ export function ChronicleView({
           <span aria-hidden="true" className="crn-headDot">·</span>
           <span>{total} {c.entryUnit}</span>
         </div>
+        <nav className="crn-nav" aria-label="世界子页导航" data-chronicle-nav>
+          <a href={`/world/${projectId}/almanac`} className="crn-navLink">世界藏经阁</a>
+          <a href={`/world/${projectId}/memories`} className="crn-navLink">记忆回廊</a>
+          <a href={`/world/${projectId}/atlas`} className="crn-navLink">寰宇图志</a>
+          <a href={`/world/${projectId}/constellation`} className="crn-navLink">角色星图</a>
+          <a href={`/world/${projectId}/quiz`} className="crn-navLink crn-navLinkQuiz">谜灯馆</a>
+        </nav>
       </header>
 
       {/* 横向编年 */}
@@ -102,6 +109,7 @@ export function ChronicleView({
         {eras.map((era, eraIndex) => (
           <section
             key={`${era.era}-${eraIndex}`}
+            id={`era-${encodeURIComponent(era.era)}`}
             className="crn-era"
             data-chronicle-era={era.era}
             aria-label={c.ariaEra(era.era)}

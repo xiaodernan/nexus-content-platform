@@ -72,7 +72,7 @@ afterAll(async () => {
   await db.delete(users).where(eq(users.id, stranger));
 });
 
-const addTask = async (usage: unknown | null) => {
+const addTask = async (usage: unknown) => {
   const started = await startTask({
     projectId,
     agentKey: 'design-edit',

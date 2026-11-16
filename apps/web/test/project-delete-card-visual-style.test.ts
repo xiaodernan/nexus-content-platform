@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
  * 本片零新 CSS：与 §FE-87 注销面板共享 `.adp-*` 语义族（确认型破坏动作卡）。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `92c28cc1d88fb1b57b28db9c7169f0690c0cc49c7a84c19593d0b7198f2c8bcc` 与 HEAD 字节一致。
+ * `14f25b6d4ee94fa1b2cbe6a994b87ea363b6ed2b71fac0188d8f6d68252f7f0d` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/components/ProjectDeleteCard.tsx');
@@ -77,9 +77,9 @@ describe('§FE-92 /components ProjectDeleteCard 删除项目（复用 §FE-87 .a
     for (const token of used) expect(tokens, `tokens.css 没有声明 ${token}`).toContain(token);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：92c28cc1d88fb1b57b28db9c7169f0690c0cc49c7a84c19593d0b7198f2c8bcc）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：14f25b6d4ee94fa1b2cbe6a994b87ea363b6ed2b71fac0188d8f6d68252f7f0d）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '92c28cc1d88fb1b57b28db9c7169f0690c0cc49c7a84c19593d0b7198f2c8bcc',
+      '14f25b6d4ee94fa1b2cbe6a994b87ea363b6ed2b71fac0188d8f6d68252f7f0d',
     );
   });
 });

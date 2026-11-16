@@ -121,6 +121,19 @@ function execFileSyncSafe(cmd: string, args: string[], cwd: string) {
 }
 
 /** Wait until a URL answers with the status we want, or the deadline passes. Polls every 2s. */
+/** Print the last `lines` of a spawned service's log so CI gets the boot story, not a bare timeout. */
+function dumpLogTail(name: string, lines = 40): void {
+  const log = path.join(LOG_DIR, `${name}.log`);
+  try {
+    const text = readFileSync(log, 'utf8');
+    const tail = text.trimEnd().split('\n').slice(-lines);
+    console.error(`${DENY} ---- tail of ${name}.log (${tail.length} lines) ----`);
+    for (const line of tail) console.error(`   ${line}`);
+  } catch {
+    console.error(`${DENY} (no log readable at ${log})`);
+  }
+}
+
 async function waitFor(label: string, url: string, want = 200, deadlineMs = 90_000) {
   const start = Date.now();
   let last = 'no response';
@@ -217,6 +230,7 @@ async function main() {
   const registry = spawnJar('registry', registryJar, { NEXUS_REGISTRY_PORT: String(REGISTRY_PORT) });
   services.push({ name: 'registry', child: registry });
   if (!(await waitFor('registry', `http://127.0.0.1:${REGISTRY_PORT}/eureka/apps`, 200))) {
+    dumpLogTail('registry');
     await cleanup();
     process.exit(1);
   }
@@ -228,6 +242,7 @@ async function main() {
   const configServer = spawnJar('nexus-config', configJar, { NEXUS_CONFIG_PORT: String(CONFIG_PORT) });
   services.push({ name: 'nexus-config', child: configServer });
   if (!(await waitFor('nexus-config', `http://127.0.0.1:${CONFIG_PORT}/actuator/health`, 200))) {
+    dumpLogTail('nexus-config');
     await cleanup();
     process.exit(1);
   }
@@ -239,6 +254,9 @@ async function main() {
     DB_PASSWORD,
     NEXUS_DOMAIN_PORT: String(DOMAIN_PORT),
     NEXUS_CONFIG_ENABLED: 'true',
+    // The baked default points at 18888; the verify-topology config door is spawned on CONFIG_PORT instead,
+    // and both the domain-service and the smoke need to agree on where the config server lives.
+    NEXUS_CONFIG_SERVER_URL: `http://127.0.0.1:${CONFIG_PORT}`,
     // §SC-62/verify: covered: probe is gated; need a known operator token to assert the positive branch.
     NEXUS_OPERATOR_TOKEN: 'verify-topology-op-token',
     // No NEXUS_DOMAIN_REGISTER/FETCH anywhere: the register-with-eureka:true this service will obey
@@ -247,6 +265,7 @@ async function main() {
   });
   services.push({ name: 'domain-service', child: domain });
   if (!(await waitFor('domain-service', `http://127.0.0.1:${DOMAIN_PORT}/actuator/health`, 200, 150_000))) {
+    dumpLogTail('domain-service');
     await cleanup();
     process.exit(1);
   }
@@ -290,10 +309,12 @@ async function main() {
     NEXUS_DB_PASSWORD: DB_PASSWORD,
     NEXUS_API_PORT: String(API_PORT),
     NEXUS_CONFIG_ENABLED: 'true',
+    NEXUS_CONFIG_SERVER_URL: `http://127.0.0.1:${CONFIG_PORT}`,
     // Same round-trip: nexus-api.yml says register-with-eureka:true — nothing in env does.
   });
   services.push({ name: 'nexus-api', child: api });
   if (!(await waitFor('nexus-api', `http://127.0.0.1:${API_PORT}/actuator/health`, 200, 150_000))) {
+    dumpLogTail('nexus-api');
     await cleanup();
     process.exit(1);
   }
@@ -301,9 +322,14 @@ async function main() {
   if (apiReg.status !== 200) bad('nexus-api registered via config server', `GET answered ${apiReg.status}`);
   else ok('eureka holds NEXUS-API (via config server, no env flags)');
 
-  const gateway = spawnJar('gateway', gatewayJar, { NEXUS_GATEWAY_PORT: String(GATEWAY_PORT), NEXUS_CONFIG_ENABLED: 'true' });
+  const gateway = spawnJar('gateway', gatewayJar, {
+    NEXUS_GATEWAY_PORT: String(GATEWAY_PORT),
+    NEXUS_CONFIG_ENABLED: 'true',
+    NEXUS_CONFIG_SERVER_URL: `http://127.0.0.1:${CONFIG_PORT}`,
+  });
   services.push({ name: 'gateway', child: gateway });
   if (!(await waitFor('gateway', `http://127.0.0.1:${GATEWAY_PORT}/platform/health`, 200))) {
+    dumpLogTail('gateway');
     await cleanup();
     process.exit(1);
   }

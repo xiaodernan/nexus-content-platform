@@ -18,6 +18,35 @@ jobs:
     # what actions/checkout needs instead of carrying the repository default.
     permissions:
       contents: read
+    services:
+      # `mvn package` on the four service modules includes the TEST phase — java-domain-service's
+      # AiHealthBreakerOpenTest boots the Spring context, and the context needs a reachable database
+      # to determine the Hibernate dialect (no SELECT 1 needed, but the connection must exist).
+      # Without this the warm-up red on a fresh runner with Unable to determine Dialect.
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: nexus
+          POSTGRES_PASSWORD: nexus_dev_only
+          POSTGRES_DB: nexus
+        ports:
+          - 55433:5432
+        options: >-
+          --health-cmd "pg_isready -U nexus -d nexus"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+      # The gateway tests (BulkheadActuatorAuthTest etc.) ride the packaged default Redis 56379,
+      # and the Spring Data Redis health indicator reports DOWN without a reachable one.
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 56379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -54,6 +83,9 @@ jobs:
             services/java-domain-service/pom.xml
             services/nexus-api/pom.xml
             services/java-config-server/pom.xml
+            services/nexus-registry/pom.xml
+            services/nexus-config/pom.xml
+            services/nexus-gateway/pom.xml
       - name: Install (workspace root)
         run: npm ci || npm install
       - name: ADR index integrity

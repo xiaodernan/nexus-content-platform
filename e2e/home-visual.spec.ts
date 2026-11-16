@@ -19,7 +19,7 @@ import { test, expect } from '@playwright/test';
  */
 const GLOBALS = join(process.cwd(), 'apps/web/src/app/globals.css');
 const TOKENS = join(process.cwd(), 'apps/web/src/styles/tokens.css');
-const pageSrc = readFileSync(join(process.cwd(), 'apps/web/src/app/page.tsx'), 'utf8');
+
 
 /** 去 globals.css 注释后提取 `.hp-` 段（同时截取 FE-3 已存 `.hp-` 段 + 本片新 `.hp-` 段；to the 下一个 `--` 锚点） */
 function extractHpSegment(css: string): string {

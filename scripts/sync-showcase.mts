@@ -12,8 +12,8 @@
  * when user has granted credentials (git push from this local machine, not from CI here).
  */
 
-import { execFileSync, execSync } from 'node:child_process';
-import { mkdirSync, cpSync, existsSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { execSync } from 'node:child_process';
+import { mkdirSync, cpSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ROOT = process.cwd();
@@ -21,11 +21,6 @@ const SHOWSPATIAL = join(ROOT, '.scratch', 'showcase-site', 'site');
 
 const sh = (cmd: string, opts: { cwd?: string } = {}): string =>
   execSync(cmd, { encoding: 'utf8', cwd: opts.cwd, stdio: ['ignore', 'pipe', 'pipe'] }).trim();
-
-function fail(msg: string): never {
-  console.error(`sync-showcase: ${msg}`);
-  process.exit(1);
-}
 
 function run(): void {
   // 1. regenerate latest.json

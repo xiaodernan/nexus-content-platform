@@ -3,9 +3,9 @@
 # Only settings that are identical for every client belong here. A value that differs per service goes in
 # that service's own file, so a reader can answer "where does this come from?" with one path.
 #
-# Exposure stays narrow (health,info) — no payload, no internal counters. A service that needs
-# more (e.g. circuitbreakers) extends it in its own file below, never here, so the shared
-# default never leaks one client's observability into every client.
+# Discovery: this lab starts against a Eureka registry, so every client registers by default here. Each
+# packaged `application.yml` keeps `enabled: false` so a standalone run stays offline-truth; the config
+# door here is the lab's shared truth that supersedes those packaged defaults.
 management:
   endpoints:
     web:
@@ -14,3 +14,10 @@ management:
   endpoint:
     health:
       show-details: never
+
+# Shared discovery enablement for the lab's services. A client's app.yml still wins when it explicitly
+# names one of these keys; the config door only supplies the defaults the lab proves otherwise.
+eureka:
+  client:
+    enabled: true
+    register-with-eureka: true

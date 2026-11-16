@@ -219,7 +219,6 @@ export function RateLimitStatsPanel({ locale = 'zh' }: { locale?: Locale }) {
       clearInterval(id);
     };
     // 仅挂载时起一次 interval；locale 变化带新字符串就够（默认值在首次渲染已定）
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (error) {

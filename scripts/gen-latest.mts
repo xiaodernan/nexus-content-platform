@@ -19,23 +19,23 @@ const ROOT = process.cwd();
 const OUT_DIR = join(ROOT, 'docs', 'showcase');
 mkdirSync(OUT_DIR, { recursive: true });
 
-const sh = (args) => {
+const sh = (args: string[]) => {
   try { return execFileSync('git', args, { encoding: 'utf8' }).trim(); } catch { return null; }
 };
 
-const countFiles = (dir, suffix = '') => {
+const countFiles = (dir: string, suffix = '') => {
   try {
     return readdirSync(dir, { withFileTypes: true }).filter((e) => (suffix ? e.name.endsWith(suffix) : e.isFile())).length;
   } catch { return null; }
 };
-const countDirs = (dir) => {
+const countDirs = (dir: string) => {
   try {
     return readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory()).length;
   } catch { return null; }
 };
-const countRecursive = (dir, match) => {
+const countRecursive = (dir: string, match: (name: string) => boolean) => {
   try {
-    const walk = (d, acc) => {
+    const walk = (d: string, acc: string[]) => {
       for (const e of readdirSync(d, { withFileTypes: true })) {
         const p = join(d, e.name);
         if (e.isDirectory()) walk(p, acc);
@@ -64,7 +64,7 @@ const data = {
   services: countDirs(join(ROOT, 'services')),
   packages: countDirs(join(ROOT, 'packages')),
   apps: countDirs(join(ROOT, 'apps')),
-  test_files: countRecursive(join(ROOT, 'apps'), (n) => n.endsWith('.test.ts') || n.endsWith('.test.tsx')),
+  test_files: countRecursive(join(ROOT, 'apps'), (n: string) => n.endsWith('.test.ts') || n.endsWith('.test.tsx')),
   feature_surface: [
     'studio',
     'design-model',

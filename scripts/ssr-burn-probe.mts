@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import React from 'react';
+﻿import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CreditsBurnCard } from '../apps/web/src/components/CreditsBurnCard';
 import type { BurnProjection } from '../apps/web/src/lib/burn-projection';

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { csrfHeaders } from '@/lib/csrf';
+import type { Locale } from '@/lib/i18n';
 
 /**
  * §144 / ADR-0025：注销账号的界面入口。
@@ -14,6 +15,9 @@ import { csrfHeaders } from '@/lib/csrf';
  *
  * 导出入口放在旁边但不强制（ADR 第二节第 2 件事）：软删的草稿在回收站里还在，
  * 但"还能恢复"和"东西在我手上"是两回事，所以给链接，不给"必须先导出才能注销"那种门槛。
+ *
+ * 双语（2026-11-15）：locale 由 RSC 透传（默认 zh）。确认词必须逐字对上服务端回传的原值——
+ * 文案只翻译"说明语言"，不碰 confirmWord / confirmField 的原值（那是服务端比对的字节）。
  */
 
 /** 字段与 `GET /api/account` 的响应一一对应；`domain/account.ts` 里改了名这里不改，界面读到的是 undefined，测试那一格会红 */
@@ -35,7 +39,82 @@ interface Receipt {
   apiTokensRevoked: number;
 }
 
-export function AccountDeletionPanel() {
+const COPY: Record<Locale, {
+  loadFailed: string;
+  refused: (reason: string) => string;
+  receiptLine: (n: { privateProjectsSoftDeleted: number; publishedWorksKept: number; sessionsRevoked: number; apiTokensRevoked: number }) => string;
+  adrNote: string;
+  receiptDone: string;
+  open: string;
+  intro: string;
+  loading: string;
+  loadError: (e: string) => string;
+  countPrivate: (n: number) => string;
+  countPublished: (n: number) => string;
+  countSessions: (n: number) => string;
+  countTokens: (n: number) => string;
+  exportOffer: string;
+  draftsTruncated: (listed: number, total: number) => string;
+  confirmFieldHandle: string;
+  confirmFieldDisplayName: string;
+  confirmAria: string;
+  confirmPlaceholder: string;
+  busyDeleting: string;
+  confirmCta: string;
+  cancel: string;
+}> = {
+  zh: {
+    loadFailed: '读不到这份清单',
+    refused: (reason) => `没注销：${reason}`,
+    receiptLine: (n) => `账号已注销。收起来了 ${n.privateProjectsSoftDeleted} 个私有草稿，留着 ${n.publishedWorksKept} 个已发布作品在公网，吊销了 ${n.sessionsRevoked} 个登录会话与 ${n.apiTokensRevoked} 个 API 凭据。`,
+    adrNote: '这不是删除：库里那条记录还在，找回账号这件事由运维在处理一侧做（ADR-0025）。',
+    receiptDone: '知道了',
+    open: '注销账号',
+    intro: '注销之后：这个人的登录入口关闭、所有会话与 API 凭据作废、私有草稿收进回收站；已发布的作品继续在公网可达，只是作者名换成「已注销的用户」。',
+    loading: '正在核对你名下的东西…',
+    loadError: (e) => `没能读到清单：${e}`,
+    countPrivate: (n) => `${n} 个私有草稿会被收进回收站（从没发布过的那些）`,
+    countPublished: (n) => `${n} 个已发布作品留在公网，不跟着走`,
+    countSessions: (n) => `${n} 个登录会话会立刻失效（包括你现在这一个）`,
+    countTokens: (n) => `${n} 个 API 凭据会被吊销`,
+    exportOffer: '想先带走的话，每个项目的 Studio 里有「导出」（design + code + assets 打成一个 zip）。这一步不强制。',
+    draftsTruncated: (listed, total) => `只列了最近改过的 ${listed} 个，一共 ${total} 个——项目列表里还有其余的。`,
+    confirmFieldHandle: '主页地址（handle）',
+    confirmFieldDisplayName: '展示名',
+    confirmAria: '逐字输入确认词',
+    confirmPlaceholder: '逐字输入确认词',
+    busyDeleting: '注销中…',
+    confirmCta: '确认注销',
+    cancel: '取消',
+  },
+  en: {
+    loadFailed: 'Could not read that list',
+    refused: (reason) => `Not deleted: ${reason}`,
+    receiptLine: (n) => `Account deactivated. ${n.privateProjectsSoftDeleted} private draft(s) shelved, ${n.publishedWorksKept} published work(s) still reachable on the public web, ${n.sessionsRevoked} sign-in session(s) and ${n.apiTokensRevoked} API token(s) revoked.`,
+    adrNote: 'This is not deletion — the record stays; recovering the account is an operations-side matter (ADR-0025).',
+    receiptDone: 'Got it',
+    open: 'Deactivate account',
+    intro: 'Once deactivated: this person’s sign-in closes, all sessions and API tokens become void, private drafts are shelved in the trash; published works stay reachable on the public web under the name “deactivated user”.',
+    loading: 'Checking what’s yours…',
+    loadError: (e) => `Could not read the list: ${e}`,
+    countPrivate: (n) => `${n} private draft(s) will be shelved (the ones never published)`,
+    countPublished: (n) => `${n} published work(s) stay public; they do not come along`,
+    countSessions: (n) => `${n} sign-in session(s) expire immediately (including this one)`,
+    countTokens: (n) => `${n} API token(s) will be revoked`,
+    exportOffer: 'Want to take something first? Every project’s Studio has Export (design + code + assets in one zip). This step is not mandatory.',
+    draftsTruncated: (listed, total) => `Only the ${listed} recently-edited are listed, of ${total} — the rest are in the project list.`,
+    confirmFieldHandle: 'profile handle',
+    confirmFieldDisplayName: 'display name',
+    confirmAria: 'Type the confirmation word',
+    confirmPlaceholder: 'Type the confirmation word',
+    busyDeleting: 'Deactivating…',
+    confirmCta: 'Confirm deactivation',
+    cancel: 'Cancel',
+  },
+};
+
+export function AccountDeletionPanel({ locale = 'zh' }: { locale?: Locale }) {
+  const c = COPY[locale];
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -60,7 +139,7 @@ export function AccountDeletionPanel() {
       }
       setPreview(body);
     } catch (cause) {
-      setLoadError(cause instanceof Error ? cause.message : '读不到这份清单');
+      setLoadError(cause instanceof Error ? cause.message : c.loadFailed);
     } finally {
       setLoading(false);
     }
@@ -83,7 +162,7 @@ export function AccountDeletionPanel() {
       });
       const body = (await res.json().catch(() => null)) as (Receipt & { ok?: boolean; message?: string; issues?: string[]; error?: string }) | null;
       if (!res.ok || !body?.ok) {
-        setNotice(`没注销：${body?.issues?.join('；') ?? body?.message ?? body?.error ?? `HTTP ${res.status}`}`);
+        setNotice(c.refused(body?.issues?.join('；') ?? body?.message ?? body?.error ?? `HTTP ${res.status}`));
         return;
       }
       // 会话已经在库里删掉了，这里先不 refresh：收据那四个数要留在屏幕上给人看一眼，
@@ -107,13 +186,8 @@ export function AccountDeletionPanel() {
         className="adp-card"
         data-account-deleted-receipt
       >
-        <p className="adp-note">
-          账号已注销。收起来了 {receipt.privateProjectsSoftDeleted} 个私有草稿，留着 {receipt.publishedWorksKept} 个已发布作品在公网，
-          吊销了 {receipt.sessionsRevoked} 个登录会话与 {receipt.apiTokensRevoked} 个 API 凭据。
-        </p>
-        <p className="adp-hint">
-          这不是删除：库里那条记录还在，找回账号这件事由运维在处理一侧做（ADR-0025）。
-        </p>
+        <p className="adp-note">{c.receiptLine(receipt)}</p>
+        <p className="adp-hint">{c.adrNote}</p>
         <button
           type="button"
           onClick={() => {
@@ -125,7 +199,7 @@ export function AccountDeletionPanel() {
           className="adp-ghostBtn"
           data-account-deleted-done
         >
-          知道了
+          {c.receiptDone}
         </button>
       </div>
     );
@@ -139,36 +213,40 @@ export function AccountDeletionPanel() {
         className="adp-btnSm"
         data-account-delete-open
       >
-        注销账号
+        {c.open}
       </button>
     );
   }
+
+  const fieldLabel = preview
+    ? preview.confirmField === 'handle'
+      ? c.confirmFieldHandle
+      : c.confirmFieldDisplayName
+    : '';
 
   return (
     <div
       className="adp-card"
       data-account-delete-card
     >
-      <p className="adp-note">注销之后：这个人的登录入口关闭、所有会话与 API 凭据作废、私有草稿收进回收站；已发布的作品继续在公网可达，只是作者名换成「已注销的用户」。</p>
-      {loading ? <p className="adp-hint" data-account-delete-loading>正在核对你名下的东西…</p> : null}
+      <p className="adp-note">{c.intro}</p>
+      {loading ? <p className="adp-hint" data-account-delete-loading>{c.loading}</p> : null}
       {loadError ? (
         <p className="adp-error" data-account-delete-load-error>
-          没能读到清单：{loadError}
+          {c.loadError(loadError)}
         </p>
       ) : null}
       {preview ? (
         <>
           <ul className="adp-counts" data-account-delete-counts>
-            <li data-account-private>{preview.privateProjects} 个私有草稿会被收进回收站（从没发布过的那些）</li>
-            <li data-account-published>{preview.publishedWorks} 个已发布作品留在公网，不跟着走</li>
-            <li data-account-sessions>{preview.liveSessions} 个登录会话会立刻失效（包括你现在这一个）</li>
-            <li data-account-tokens>{preview.liveApiTokens} 个 API 凭据会被吊销</li>
+            <li data-account-private>{c.countPrivate(preview.privateProjects)}</li>
+            <li data-account-published>{c.countPublished(preview.publishedWorks)}</li>
+            <li data-account-sessions>{c.countSessions(preview.liveSessions)}</li>
+            <li data-account-tokens>{c.countTokens(preview.liveApiTokens)}</li>
           </ul>
           {preview.privateProjects > 0 ? (
             <div className="adp-offer" data-account-export-offer>
-              <span className="adp-hint">
-                想先带走的话，每个项目的 Studio 里有「导出」（design + code + assets 打成一个 zip）。这一步不强制。
-              </span>
+              <span className="adp-hint">{c.exportOffer}</span>
               <ul className="adp-draftList">
                 {preview.drafts.map((d) => (
                   <li key={d.id}>
@@ -184,21 +262,23 @@ export function AccountDeletionPanel() {
               </ul>
               {preview.draftsTruncated ? (
                 <span className="adp-hint" data-account-export-truncated>
-                  只列了最近改过的 {preview.drafts.length} 个，一共 {preview.privateProjects} 个——项目列表里还有其余的。
+                  {c.draftsTruncated(preview.drafts.length, preview.privateProjects)}
                 </span>
               ) : null}
             </div>
           ) : null}
           <p className="adp-note">
-            逐字输入你的{preview.confirmField === 'handle' ? '主页地址（handle）' : '展示名'}{' '}
-            <span className="adp-mono" data-account-delete-expected>{preview.confirmWord}</span> 才会执行。
+            {locale === 'zh' ? '逐字输入你的' : 'Type your '}
+            {fieldLabel}{' '}
+            <span className="adp-mono" data-account-delete-expected>{preview.confirmWord}</span>
+            {locale === 'zh' ? ' 才会执行。' : ' — exactly; nothing runs without it.'}
           </p>
           <div className="adp-row">
             <input
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
-              aria-label="逐字输入确认词"
-              placeholder="逐字输入确认词"
+              aria-label={c.confirmAria}
+              placeholder={c.confirmPlaceholder}
               maxLength={2000}
               className="adp-input"
               data-account-delete-input
@@ -212,7 +292,7 @@ export function AccountDeletionPanel() {
               className="adp-confirmBtn"
               data-account-delete-confirm
             >
-              {busy ? '注销中…' : '确认注销'}
+              {busy ? c.busyDeleting : c.confirmCta}
             </button>
             <button
               type="button"
@@ -221,7 +301,7 @@ export function AccountDeletionPanel() {
               className="adp-cancelBtn"
               data-account-delete-cancel
             >
-              取消
+              {c.cancel}
             </button>
           </div>
         </>

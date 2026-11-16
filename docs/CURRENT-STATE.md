@@ -4340,3 +4340,23 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 
 - 新回响 E14（中英双文件 + 映射表）；verify:world-bible ✓ 85/85；快照 4+14 回响。
 - 世界：主线 4 章 + 14 回响（其中 E11-E14 同为本 11 月增补）。
+
+## cont. 190 (2026-11-17) — 第七次并轨：`origin`（另一条线 145 个文件，约 +4 转 2 百行）
+
+- 指令：「尽量把项目的多个工作分支、各种 worktree 合并起来，综合集大成，汇到一个主分支，把所有内容收拢」。
+- 收拢来源（`origin`；`other/master*` 全部是它的祖先，无遗）：
+  - 新增后端：DiscoveryOneHotGate.java / OneHotVerification.java / OneHotVerificationTest.java（注册发现只放一次、行幂等验证）——作为并轨内容原样并入，不改业务行为；
+  - 新增 Studio/世界 页面：`/world/<项目>/atlas`、`/world/<项目>/almanac`、`/world/<项目>/quiz`、`/world/<项目>/memories` + `components/QuizArcade.tsx` + `lib/quiz.ts`（世界文档推出的「熟人问答」，12 题 + 按 realest entry 引用，零 provider、零写库）；
+  - 新增 CI：`.github/workflows/showcase-sync.yml`（自动 showcase）+ `ci.yml` / `main-line.yml` / `eslint.config.mjs` / `tsconfig.tools.json` 变更；
+  - 压测与 SSR 探针：watchweb SSR 吞吐/燃烧/ savings-probe、e2e/ssr-burn-probe.mts 类；`e2e/mobile-surfaces.spec.ts`（九面双宽度体检）；
+  - 文档：`docs/lore/bei-jing-records.md`、`docs/lore/tide-echo-sea.md`；`docs/latest.json`、`docs/showcase/latest.json`、ADR-0141/0142/0144（memories / atlas / almanac）。
+- 冲突处置：
+  - 35 处冲突全部是两种i18n风格的同题作（source + 视觉 SHA 门）：ours——ours 已随  v811–829 完整成型、门禁全绿；
+  - `docs/CURRENT-STATE.md`：studio 线的 cont. 122–129 原状收入附录（`## 附录 · 另一条线的日志快照`），不重编号、不谎称同一部历史；
+  - `docs/showcase/latest.json`：ours；
+  - `/world/<project>/integrity/page.tsx` 吸收 origin 的未用 import 删除 → gate SHA 重钉（`344575e9…`），仅此 1 次重钉。
+- 验证：fe-gates **125/125 · 1223/1223**；census **2531**（增 131，全部有引用）；`tsc web` 0、agent-runtime 0、eslint 净；quiz.test 12/12；world-bible ✓ 85/85；showcase 同步随提交。
+- 明示不做：
+  - 并轨代码**未实测跑浏览器**（本机余 1.2 GB 级内存，承载不起 dev server）；/world/*/quiz 等页面作为功能合并并编译过，SSR 断言留待内存恢复窗口；
+  - `npm run verify:spring-cloud` 仍按本机内存禁阻；
+  - Studio 工作台保持中文母语（v811 决策保留）。

@@ -142,25 +142,26 @@ describe('è§’è‰²æ¡£æ¡ˆå¥‘çº¦ï¼ˆÂ§46ï¼‰', () => {
 });
 
 /**
- * ¡¸ÊÀ½ç³±Ï«¡¹µÄÈÅÄ£ÉùÃ÷ÆõÔ¼£¨v719-engine / ADR-0267£©¡£
- * È±Ê¡ optional£ºÀÏÊÀ½çÃ»ÓÐ pressures ÕÕÑù¹ýÃÅ£»severity Ö»ÈÏ 1/2/3 ÇÒ²»²ÎÓëÈÎºÎÍ¶Ó°¼ÆÊý¡£
+ * THE TIDE PRESSURE ENGINE (v719 / ADR-0267).
+ * Any world may carry `pressures` (opt-in; old documents without them still parse).
+ * Severity must be 1/2/3; unknown kinds are refused; the 17th pressure is refused.
  */
-describe('ÊÀ½ç³±Ï«ÈÅÄ£ÉùÃ÷ÆõÔ¼£¨¡ìv719 ¡ìB£©', () => {
-  it('kind Çåµ¥ÓëÄ£ÐÍÍêÈ«Ò»ÖÂ£¬Ë³ÐòÒ²Ëã', () => {
+describe('tide pressure engine (v719, ADR-0267)', () => {
+  it('the kind allowlist is exactly the model table, order included', () => {
     expect(TidePressureKindSchema.options).toEqual([...WORLD_TIDE_PRESSURE_KINDS]);
   });
 
-  it('ÀÏÎÄµµÃ»ÓÐ pressures ÕÕÑù×ÔÇ¢', () => {
-    const world = createWorld('ÎÞ³±Ï«', 'proj-tide');
+  it('model-built pressures pass the contract', () => {
+    const world = createWorld('tide-world', 'proj-tide');
     expect(WorldDocumentSchema.safeParse(world).success).toBe(true);
     expect(WorldSaveRequestSchema.safeParse({ document: world }).success).toBe(true);
   });
 
-  it('´øºÏ·¨ pressures µÄÊÀ½ç¹ýÃÅ£»severity Ô½½ç / label ³¬³¤ / id ¿Õ ¶¼µ²', () => {
-    const world = createWorld('ÓÐ³±Ï«', 'proj-tide-2');
+  it('pressures validate shape: severity 1/2/3 / label cap / id trimmed / kind allowlist', () => {
+    const world = createWorld('tide-tide', 'proj-tide-2');
     const pressures = [
-      { id: 'tp-1', kind: 'drought', label: '¸É¿ºËê', severity: 3 },
-      { id: 'tp-2', kind: 'murmur', label: '·çÉùÄê', severity: 1 },
+      { id: 'tp-1', kind: 'drought', label: 'the-long-day', severity: 3 },
+      { id: 'tp-2', kind: 'murmur', label: 'the-low-voice', severity: 1 },
     ];
     expect(WorldDocumentSchema.safeParse({ ...world, pressures }).success).toBe(true);
     expect(WorldSaveRequestSchema.safeParse({ document: { ...world, pressures } }).success).toBe(true);
@@ -168,8 +169,8 @@ describe('ÊÀ½ç³±Ï«ÈÅÄ£ÉùÃ÷ÆõÔ¼£¨¡ìv719 ¡ìB£©', () => {
     expect(WorldDocumentSchema.safeParse({ ...world, pressures: [{ ...pressures[0]!, label: 'x'.repeat(41) }] }).success).toBe(false);
     expect(WorldDocumentSchema.safeParse({ ...world, pressures: [{ ...pressures[0]!, id: '   ' }] }).success).toBe(false);
     expect(WorldDocumentSchema.safeParse({ ...world, pressures: [{ ...pressures[0]!, kind: 'sunburn' }] }).success).toBe(false);
-    // 17 Ìõ³¬¹ýÉÏ½ç
-    const over = Array.from({ length: 17 }, (_, i) => ({ id: `tp-${i}`, kind: 'drought', label: '¸É¿º', severity: 2 }));
+    // the 17th pressure is refused
+    const over = Array.from({ length: 17 }, (_, i) => ({ id: `tp-${i}`, kind: 'drought', label: 'drought', severity: 2 }));
     expect(WorldDocumentSchema.safeParse({ ...world, pressures: over }).success).toBe(false);
   });
 });

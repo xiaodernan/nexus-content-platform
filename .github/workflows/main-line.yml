@@ -73,6 +73,18 @@ jobs:
           --health-interval 5s
           --health-timeout 3s
           --health-retries 20
+      # The gateway's own health needs a Redis on 56379 (Spring Data Redis health indicator);
+      # without one, three gateway tests (BulkheadActuatorAuthTest, CircuitBreakerActuatorWiringTest,
+      # BulkheadActuatorWiringTest) report DOWN and turn an honest red into a false one.
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 56379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -107,8 +119,20 @@ jobs:
         with:
           distribution: temurin
           java-version: "25"
-      - name: Java config server tests (Spring Cloud Config door, ADR 0057)
-        run: mvn -B -f services/java-config-server/pom.xml test
+      - name: Maven tests — all eight service modules (§15 of verify:ci-wiring)
+        # The other-lane merge brought three more Maven modules into the tree
+        # (nexus-registry / nexus-config / nexus-gateway beside java-* and nexus-api).
+        # §15 refuses a pom the commit owns that no workflow builds with its tests;
+        # every pom below is exercised with its tests on the hosted runner.
+        run: |
+          mvn -B -f services/java-registry/pom.xml test
+          mvn -B -f services/java-config-server/pom.xml test
+          mvn -B -f services/java-domain-service/pom.xml test
+          mvn -B -f services/java-gateway/pom.xml test
+          mvn -B -f services/nexus-api/pom.xml test
+          mvn -B -f services/nexus-registry/pom.xml test
+          mvn -B -f services/nexus-config/pom.xml test
+          mvn -B -f services/nexus-gateway/pom.xml test
   topology:
     # The §SC-19/20/23 live smoke, in CI: package all three services, apply migrations, then run
     # `npm run verify:topology`. Catches the class of bug `mvn test` cannot see (test uses target/classes;
@@ -129,6 +153,17 @@ jobs:
           - 55433:5432
         options: >-
           --health-cmd "pg_isready -U nexus -d nexus"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+      # The domain service's Redis health indicator contributes to /actuator/health; a host with
+      # nothing on 56379 makes the aggregate DOWN (503) even though the datasource is fine.
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 56379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
           --health-interval 5s
           --health-timeout 3s
           --health-retries 20

@@ -242,10 +242,16 @@ const MVN_ALL_LINES = [
 // predicted `§15 read 0` is false the day the fifth module lands (this was measured: the arm was written when
 // main-line.yml carried no Maven command at all). The line is DERIVED from the shipped bytes with its premise
 // checked here, because a hand-typed needle that drifts crashes the arm at its own splice.
+// That fifth door is the config-server's Maven line in the OTHER workflow file. The merge that brought the
+// other lane's CI-wiring expansion into this tree added three more Maven modules to main-line.yml
+// (nexus-registry / nexus-config / nexus-gateway beside java-* + nexus-api), so "exactly one Maven line" no
+// longer holds. This narrows the selector to the config-server door itself, which is the line A32 grades,
+// instead of refusing the whole file for having grown.
 const MVN_MAIN_LINE = (() => {
   const lines = readSrc(MAIN_LINE).split('\n').filter((l) => !l.trim().startsWith('#') && /(?:^|\s)mvn\b/.test(l) && /(?:-f|--file)\s+\S*pom\.xml/.test(l));
-  assert.equal(lines.length, 1, `${MAIN_LINE}: expected exactly ONE \`mvn -f <pom>\` run line (the config server door), found ${lines.length} — A32 deletes this exact line to mean "every Maven line in both files"`);
-  return `${lines[0]}\n`;
+  const config = lines.filter((l) => /java-config-server/.test(l));
+  assert.equal(config.length, 1, `${MAIN_LINE}: expected exactly ONE \`mvn -f <pom>\` line naming services/java-config-server/pom.xml (the config door A32 grades), found ${config.length} of the ${lines.length} Maven line(s) present`);
+  return `${config[0]}\n`;
 })();
 // The key block is QUOTED FROM THE SHIPPED BYTES rather than re-typed in this file's own order: `splice` refuses
 // a needle that occurs zero times, and an arm that crashes at its own needle takes the whole battery with it —
@@ -700,3 +706,10 @@ if (!ok) {
   }
 }
 process.exitCode = ok ? 0 : 1;
+if (reds.length > 0) {
+  // The proof-set runner prints ONLY each row's last stdout line; everything earlier is discarded. A row that
+  // would print its verdict line early would be invisible exactly when it is not green. So this line is the very
+  // LAST one written — it names the failing arms — and it is additive readability: no assertion, receipt or
+  // budget logic changes anywhere above.
+  console.log(`arm-mismatch: ${reds.map((r) => r.tag).join(', ')}`);
+}

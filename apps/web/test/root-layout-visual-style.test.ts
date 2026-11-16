@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
  *
  * 2026-11-13 / §CP-1：这条哈希**被有意改过**一次，改的理由写在下面，不许悄悄再改。
  * 命令面板要"哪一页都能按"，唯一挂得住的地方就是根布局；于是 `body` 里多了一行
- * `<CommandPalette />`（在 `{children}` 之后、`<ThemeToggle />` 之前）。
+ * `<CommandPalette locale={locale} />`（在 `{children}` 之后、`<ThemeToggle locale={locale} />` 之前）。
  * 除此之外布局一字未动——上一条 `§FE-71` 的判断（ThemeScript 先于内容、metadata 原样）
  * 仍然逐条成立，所以这不是"放宽门槛"，而是"门槛抓到的变化确实是这次意图"。
  * 旧读数 `42ab66aa…` 是挂到 CommandPalette 那一版；新读数 `3405cf7d…` 是追加 `<KeyboardCheatsheet/>`（§v706）之后的读数。

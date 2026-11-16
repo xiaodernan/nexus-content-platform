@@ -332,6 +332,34 @@ export function WorldGraphView({ locale = 'zh' }: { locale?: Locale }) {
         </span>
         {/* §140：图上摆过的位置就是 3D 世界的地面布局，所以入口放在这里而不是另造一个页面 */}
         <a
+          href={`/world/${studio.projectId}/almanac`}
+          className="sb-btn2"
+          data-enter-almanac
+        >
+          世界藏经阁
+        </a>
+        <a
+          href={`/world/${studio.projectId}/atlas`}
+          className="sb-btn2"
+          data-enter-atlas
+        >
+          寰宇图志
+        </a>
+        <a
+          href={`/world/${studio.projectId}/memories`}
+          className="sb-btn2"
+          data-enter-memories
+        >
+          记忆回廊
+        </a>
+        <a
+          href={`/world/${studio.projectId}/quiz`}
+          className="sb-btn2"
+          data-enter-quiz
+        >
+          谜灯馆
+        </a>
+        <a
           href={`/world/${studio.projectId}/chronicle`}
           className="sb-btn2"
           data-enter-chronicle

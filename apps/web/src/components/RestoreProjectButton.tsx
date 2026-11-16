@@ -3,12 +3,31 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { csrfHeaders } from '@/lib/csrf';
+import type { Locale } from '@/lib/i18n';
+
+const COPY: Record<Locale, {
+  restoreFailed: (reason: string) => string;
+  restoring: string;
+  restore: (name: string) => string;
+}> = {
+  zh: {
+    restoreFailed: (reason) => `没恢复：${reason}`,
+    restoring: '恢复中…',
+    restore: (name) => `恢复「${name}」`,
+  },
+  en: {
+    restoreFailed: (reason) => `Not restored: ${reason}`,
+    restoring: 'Restoring…',
+    restore: (name) => `Restore “${name}”`,
+  },
+};
 
 /**
  * §74 回收站里的恢复。一句话动作，不需要审批门——§74 管的是"删"那一侧，
  * 恢复不破坏任何东西，把它也设成门槛只会让人以为删掉的项目找不回来。
  */
-export function RestoreProjectButton({ projectId, projectName }: { projectId: string; projectName: string }) {
+export function RestoreProjectButton({ projectId, projectName, locale = 'zh' }: { projectId: string; projectName: string; locale?: Locale }) {
+  const c = COPY[locale];
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -24,7 +43,7 @@ export function RestoreProjectButton({ projectId, projectName }: { projectId: st
       });
       const body = (await res.json().catch(() => null)) as { ok?: boolean; message?: string; error?: string } | null;
       if (!res.ok || !body?.ok) {
-        setNotice(`没恢复：${body?.message ?? `HTTP ${res.status}`}`);
+        setNotice(c.restoreFailed(body?.message ?? `HTTP ${res.status}`));
         return;
       }
       // 成功后不显示"已恢复"这句话：列表会因 refresh 少掉这一行，
@@ -44,7 +63,7 @@ export function RestoreProjectButton({ projectId, projectName }: { projectId: st
         className="adp-btnSm"
         data-restore-project={projectId}
       >
-        {busy ? '恢复中…' : `恢复「${projectName}」`}
+        {busy ? c.restoring : c.restore(projectName)}
       </button>
       {notice ? (
         <span className="adp-note" data-restore-notice={projectId}>

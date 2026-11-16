@@ -198,7 +198,7 @@ describe('§FE-33 /admin/rate-limit 限流闸诊断', () => {
       '68fd8650e72e87eddeff7ee764582661b5c64dcab7fdb31634350bf876cc7d45',
     );
     expect(createHash('sha256').update(redactClasses(panel)).digest('hex')).toBe(
-      'a294e80ac5bf8100cb771c03716816eee1987a423c9ae0f86d8f26647525e10b',
+      'de98b11c97d6fde543416f1bf3a2f8ffb9cb8b6d7bef02382e6c42c883cb7a15',
     );
   });
 });

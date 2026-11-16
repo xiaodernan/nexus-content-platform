@@ -147,7 +147,7 @@ describe('§FE-57 /studio WorldGraphView 世界图视图', () => {
 
   it('剥 className/cn 后全文 SHA256 守恒（2026-11-16 v753「WorldGraphView 双语化」重钉）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'aeec14b0ed57371c4986e1aa3e22c276c4a2f9aff7370c231b1d0feeeef7d3c5',
+      'bdac6b8b17307ad7611477915e40972c6594218ba9b124586aeb1f770a3f415c',
     );
   });
 });

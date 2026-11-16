@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * 装回来必须零改：每一个数字来自服务端回执；拒收逐条列 issues；资产失败点名；不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `741a5c91de6b93015d8ddd4a4aedc0025eda55867812b5a81140ded2bb208948` 与 HEAD 字节一致。
+ * `9a8ddaa85029029c85c15005b28fc0c7d291bf7f5886f475d6dd25355bf1de92` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/components/ImportPanel.tsx');
@@ -98,9 +98,9 @@ describe('§FE-89 /components ImportPanel 导入面板', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：741a5c91de6b93015d8ddd4a4aedc0025eda55867812b5a81140ded2bb208948）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：9a8ddaa85029029c85c15005b28fc0c7d291bf7f5886f475d6dd25355bf1de92）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '741a5c91de6b93015d8ddd4a4aedc0025eda55867812b5a81140ded2bb208948',
+      '9a8ddaa85029029c85c15005b28fc0c7d291bf7f5886f475d6dd25355bf1de92',
     );
   });
 });

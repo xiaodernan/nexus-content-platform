@@ -48,6 +48,11 @@ NEXUS 的 Java 侧是一个真 Spring Cloud 微服务拓扑，不是玩具 demo�
   usage 报数在通道间不一致已记录为观察项）+ `/healthz.llmLatency`（ADR 0126，provider 级，
   窗口 1024 次往返，完成缓存回放不计入）+ admin/observability 两行（calls/errors、p50/p95）。
   **仍欠**：熔断触发条件的真实量测（需跨通道持续故障注入，不造指标）；多实例聚合 SLO 属 M9 观测拓扑。
-- **P1**：redis DLQ 与真 RabbitMQ 的决定记录——市场选择前不移植 Stream 绑定器。
+- **P1（已落地 2026-11-14，ADR 0140）**：redis DLQ 与真 RabbitMQ 的决定记录——保留 Redis 有界死信，
+  不移植 Stream 绑定器；明确了重新评估 RabbitMQ 的四条触发条件（p99 enqueue > 250ms×7 天 / 两个以上独立消费者 /
+  LTRIM 挤掉 ≥ 3 条合法死信 / 运维可接入镜像队列）；在任何触发条件出现前，提议上 RabbitMQ 一律
+  视为装饰性代码（§159）。
 - **P2**：镜像 one-hot 校验（每次启动的 pod identity + discovery 对账），防"Eureka 过期条目喂旧"。
-- **P3**：DLQ 完整生命周期（v689：dead_letters() 的有界窗口分页 + 导出器 + admin 面板只读面）。
+- **P3（只读面已落地 v689，2026-11-13）**：DLQ 完整生命周期——有界窗口分页 + 导出器 + admin 面板只读面已交付；
+  「批量修复 → 重新入队」按 ADR 0140 明确不做（需要时是一次新的安全评审，不是一次重构）。完整生产化（多实例消费者广播、
+  镜像队列）等 P1 的触发条件之一成立后再启动。

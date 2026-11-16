@@ -197,7 +197,7 @@ describe('§SC-44 新作品即时进发现页（真库端到端：写路径 → 
       const authorInput = { sort: 'new' as const, viewerId: authorId, limit: 60 };
 
       // 预热缓存：此刻两份视图都缓存了，且都没有"待发布的新作品"
-      const anonBefore = await discoverCached(anonInput);
+      await discoverCached(anonInput);
       const authorBefore = await discoverCached(authorInput);
       expect(has(authorBefore, oldWork)).toBe(false); // author 屏蔽生效
       expect(authorBefore.hiddenAuthors).toBe(1);

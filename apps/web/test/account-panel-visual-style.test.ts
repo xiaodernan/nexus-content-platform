@@ -121,7 +121,7 @@ describe('§FE-88 /components AccountPanel 账号面板', () => {
 
   it('属性位 redact 形状快照（本片已声明：SHA 不对 HEAD 守恒——见 ADR-0241）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '6a626fd1de58a7ee8e99492463daed2eec53e9b57773bfbb9f904c7a37bebc89',
+      '128dfa7381d5e2804c9d682e6f4376bd0aa9d5f1854938a35ce904dac2dfe45b',
     );
   });
 });

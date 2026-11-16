@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
  * 本片零新 CSS：复用 §FE-87/93 的 `.adp-row/.adp-btnSm/.adp-note`。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `f080d95f579f468f26a5021c62cc017c27fac888f9482685ba8d14a25bd33256` 与 HEAD 字节一致。
+ * `180e30eebae5642f94d37e171fbd8b1970428473559d0db04ada0d9d5bd64b02` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/components/RestoreProjectButton.tsx');
@@ -74,9 +74,9 @@ describe('§FE-94 /components RestoreProjectButton 回收站恢复（复用 .adp
     for (const token of used) expect(tokens, `tokens.css 没有声明 ${token}`).toContain(token);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：f080d95f579f468f26a5021c62cc017c27fac888f9482685ba8d14a25bd33256）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：180e30eebae5642f94d37e171fbd8b1970428473559d0db04ada0d9d5bd64b02）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'f080d95f579f468f26a5021c62cc017c27fac888f9482685ba8d14a25bd33256',
+      '180e30eebae5642f94d37e171fbd8b1970428473559d0db04ada0d9d5bd64b02',
     );
   });
 });

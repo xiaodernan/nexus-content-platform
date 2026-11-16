@@ -22,7 +22,6 @@ import { readFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 
 process.env.FORCE_COLOR = '0';
-const cwd = process.cwd();
 const css = readFileSync('apps/web/src/app/globals.css', 'utf8');
 const clean = css.replace(/\/\*[\s\S]*?\*\//g, '');
 

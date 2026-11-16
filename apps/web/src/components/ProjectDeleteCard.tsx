@@ -3,6 +3,41 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { csrfHeaders } from '@/lib/csrf';
+import type { Locale } from '@/lib/i18n';
+
+const COPY: Record<Locale, {
+  deleteFailed: (reason: string) => string;
+  open: string;
+  nameExpected: string;
+  inputHint: string;
+  confirming: string;
+  confirm: string;
+  cancel: string;
+}> = {
+  zh: {
+    deleteFailed: (reason) => `没删除：${reason}`,
+    open: '删除项目',
+    nameExpected: '逐字输入项目名',
+    inputHint: '逐字输入项目名',
+    confirming: '删除中…',
+    confirm: '确认删除',
+    cancel: '取消',
+  },
+  en: {
+    deleteFailed: (reason) => `Not deleted: ${reason}`,
+    open: 'Delete project',
+    nameExpected: 'Type the project name',
+    inputHint: 'Type the project name',
+    confirming: 'Deleting…',
+    confirm: 'Confirm delete',
+    cancel: 'Cancel',
+  },
+};
+
+/** 只渲染一次确认词节点，避免按 locale 分叉时重复出现同一个 className 字面（§FE-92 的 9 行字面预算） */
+function ExpectedWord({ name, projectId }: { name: string; projectId: string }) {
+  return <span className="adp-mono" data-project-delete-expected={projectId}>{name}</span>;
+}
 
 /**
  * §74 删除项目。界面上要打的字和左边显示的名字是同一串，服务端比的是项目名的原值——
@@ -16,10 +51,13 @@ import { csrfHeaders } from '@/lib/csrf';
 export function ProjectDeleteCard({
   projectId,
   projectName,
+  locale = 'zh',
 }: {
   projectId: string;
   projectName: string;
+  locale?: Locale;
 }) {
+  const c = COPY[locale];
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState('');
@@ -39,7 +77,7 @@ export function ProjectDeleteCard({
         | { ok?: boolean; message?: string; issues?: string[]; error?: string }
         | null;
       if (!res.ok || !body?.ok) {
-        setNotice(`没删除：${body?.issues?.join('；') ?? body?.message ?? `HTTP ${res.status}`}`);
+        setNotice(c.deleteFailed(body?.issues?.join('；') ?? body?.message ?? `HTTP ${res.status}`));
         return;
       }
       setTyped('');
@@ -63,7 +101,7 @@ export function ProjectDeleteCard({
         className="adp-btnSm"
         data-project-delete={projectId}
       >
-        删除项目
+        {c.open}
       </button>
     );
   }
@@ -71,14 +109,17 @@ export function ProjectDeleteCard({
   return (
     <div className="adp-card" data-project-delete-card={projectId}>
       <p className="adp-note">
-        输入项目名 <span className="adp-mono" data-project-delete-expected={projectId}>{projectName}</span> 才会删除。
-        公开页会立刻打不开，快照与发布记录留着，可以在回收站恢复。
+        {locale === 'zh' ? (
+          <>输入项目名 <ExpectedWord name={projectName} projectId={projectId} /> 才会删除。公开页会立刻打不开，快照与发布记录留着，可以在回收站恢复。</>
+        ) : (
+          <>Type the project name <ExpectedWord name={projectName} projectId={projectId} /> to delete it. The public page goes dark; snapshots and publish records stay and the project can be restored from the trash.</>
+        )}
       </p>
       <div className="adp-row">
-        <input aria-label="逐字输入项目名"
+        <input aria-label={c.nameExpected}
           value={typed}
           onChange={(e) => setTyped(e.target.value)}
-          placeholder="逐字输入项目名"
+          placeholder={c.inputHint}
           maxLength={2000}
           className="adp-input"
           data-project-delete-input={projectId}
@@ -92,7 +133,7 @@ export function ProjectDeleteCard({
           className="adp-confirmBtn"
           data-project-delete-confirm={projectId}
         >
-          {busy ? '删除中…' : '确认删除'}
+          {busy ? c.confirming : c.confirm}
         </button>
         <button
           type="button"
@@ -105,7 +146,7 @@ export function ProjectDeleteCard({
           className="adp-cancelBtn"
           data-project-delete-cancel={projectId}
         >
-          取消
+          {c.cancel}
         </button>
       </div>
       {notice ? (
