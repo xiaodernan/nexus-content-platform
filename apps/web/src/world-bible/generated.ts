@@ -4010,4 +4010,190 @@ Guests heading home say nothing more; whoever did not get a pour did not go look
 > The alley lamp never lit for anyone — it only stays on; after the tide goes out, it is often remembered.
 `,
   },
+  {
+    order: 16,
+    slug: 'echo-016-the-four-small-shells-on-the-tide-sand-table',
+    titleZh: '潮沙盘上那四只小贝壳',
+    titleEn: 'The Four Small Shells on the Tide-Sand Table',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——午后潮候院抄本员整理潮沙盘的时刻。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; an afternoon for the shelf-tending shift.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 16): The Four Small Shells on the Tide-Sand Table
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮沙盘上那四只小贝壳——它们从来没有被过潮起潮落推动过；没人说得清是谁放的。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the four small shells on the tide-sand table — not shifted by the sand in centuries; nobody placed them with any hand.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——午后潮候院抄本员整理潮沙盘的时刻。
+> Era: the Institute — after the 41st Convocation; an afternoon for the shelf-tending shift.
+
+---
+
+## 一 · 沙盘上不移动的东西
+
+潮沙盘上摆着潮候院抄本员一又一代人的潮汐记录。
+
+潮沙在盘上一寸寸流走，潮沙盘的其它记录能更新的都在更新——唯独那四只贝壳从来没改变过位置。
+抄本员查过潮沙盘立院以来的每一次抄本：四只贝壳的位置与年龄早于潮沙盘本身。
+
+**锚句**：潮沙盘上那四只小贝壳从来没有被潮沙推动过一毫毫。
+**Anchor sentence**: the four small shells on the tide-sand table have never once been nudged by the sand.
+
+---
+
+## 二 · 没人摆过它们
+
+潮候院的抄本员记录过潮沙盘上摆放的每一样东西——沙、筹算、潮汐铃、灯、船止符号。
+从来没有贝壳在记录中出现。
+
+最久远的抄本员证明过一次：潮沙盘立院以来，那四只贝壳就在原位。
+
+**锚句**：四只贝壳没有时间被人摆过——它们是潮沙盘上早就有的东西。
+**Anchor sentence**: the shells were never placed by any hand — they were already there when the sand table was made.
+
+---
+
+## 三 · 守夜人两年一清
+
+守夜人每隔两年把潮沙盘上所有的器物都清点一次，唯独四只贝壳可以留在原地。
+
+哪一只出现了裂纹，也不会被挪进潮候院研究员的桌面——里巷子的抄本员把它放回沙盘原位。
+潮候院从来没拿这四只小贝壳作过实验样本：潮候院不是为贝壳，它只是潮沙盘的一部分。
+
+**锚句**：守夜人两年一清的时候，四只贝壳只能留在原地——它们从不被随手拿起。
+**Anchor sentence**: when the watchers inspect the table twice a year, the shells remain in their spots — they are never casually picked up.
+
+---
+
+## 四 · 潮候院不承认是供品
+
+潮候院一度有人提出研究提案：把贝壳定为潮沙盘上的供品。
+
+抄本员在大会上说过：潮沙盘不是供桌；供桌在第八盏灯之侧；四只贝壳不是仪式动作里摆上的东西，也不表示任何祭物。
+议题散去，大会沉默。
+
+**锚句**：潮沙盘的四只小贝壳不是供品——潮候院从来没拜它们。
+**Anchor sentence**: the four small shells on the sand table are not offerings — the Institute never worshipped them.
+
+---
+
+## 五 · 贝壳就是潮沙盘
+
+潮沙盘的作用是记录潮起潮落。
+
+潮候院的研究员一度试图给四只贝壳作志：体积、年层、腐蚀度——抄本员阻止过所有的测量；锣鸣响之后，贝壳没有分给潮沙盘的作用份额，就没有能记录的东西。
+贝壳就是潮沙盘的一部分；潮候院宁愿潮沙盘取掉贝壳也不能改贝壳。
+
+**锚句**：贝壳是潮沙盘的一部分——潮候院宁愿潮沙盘没有贝壳也不能动它们。
+**Anchor sentence**: the shells are a part of the tide-table itself — the Institute would rather the table go plain than move them.
+
+---
+
+## 六 · 映射（回响十六章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 沙盘上四只贝壳 · 潮候院的记录 · 守夜人两年一清理 | 一、二、三、六 |
+| geography | 潮候院 · 潮沙盘 · 沙盘的方位 | 一、二、三、六 |
+| characters | 潮候院抄本员 · 守夜人 · 潮汐铃的研究员 | 一、三、四、五、六 |
+| story | 潮候院上四只贝壳 · 回响（其十六） | 全篇 |
+| items | 潮沙盘 · 四只贝壳 · 潮汐表 · 潮汐铃 | 一、二、三、五、六 |
+| history | 潮候院建院以来 · 第四十一次大会的沉默散会 | 一、二、三、五、六 |
+
+> 潮沙盘上的四只小贝壳从来没被潮推动过——它们只是潮候院的一间盛天收藏。
+> The four small shells have never been moved by the tide — they are the chapel's custody of the tide.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其十六）「潮沙盘上那四只小贝壳」
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮沙盘上那四只小贝壳——它们从来没有被过潮起潮落推动过；没人说得清是谁放的。
+> 纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the four small shells on the tide-sand table — not shifted by the sand in centuries; nobody placed them with any hand.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——午后潮候院抄本员整理潮沙盘的时刻。
+> Era: the Institute — after the 41st Convocation; an afternoon for the shelf-tending shift.
+
+---
+
+## 一 · What the Sand Never Touched
+
+The tide-sand table carries records written by generations of copyists.
+
+The sand drifts across it, inch by inch, and every other record on the table can be refreshed or shifted — never those four shells.
+The copyists checked every ledger since the table was made: the shells are older than the table itself.
+
+**锚句**：潮沙盘上那四只小贝壳从来没有被潮沙推动过一毫毫。
+**Anchor sentence**: the four small shells on the tide-sand table have never once been nudged by the sand.
+
+---
+
+## 二 · Nobody Ever Placed Them
+
+The copyists recorded everything that was ever placed upon the tide-sand table — sand, counters, the tide-bell, the lamp, the marks for the boats.
+Never once have the shells appeared in those records.
+
+One of the earliest copyists established it in writing: from the day the tide-table was made, the shells have been at their places.
+
+**锚句**：四只贝壳没有时间被人摆过——它们是潮沙盘上早就有的东西。
+**Anchor sentence**: the shells were never placed by any hand — they were already there when the sand table was made.
+
+---
+
+## 三 · The Watchers Sweep Twice a Year
+
+The watchers inspect the tide-sand table every two years; everything has to be counted except the four shells, which are allowed to remain.
+
+If one shows a crack, the copyists carry it back to its spot — the Institute never takes the shells away for research;
+they are not study objects; they belong to the table itself.
+
+**锚句**：守夜人两年一清的时候，四只贝壳只能留在原地——它们从不被随手拿起。
+**Anchor sentence**: when the watchers inspect the table twice a year, the shells remain in their spots — they are never casually picked up.
+
+---
+
+## 四 · The Institute Never Called Them Offerings
+
+There was once a proposal to classify the shells as ceremonial offerings.
+
+A copyist said in the Convocation: the sand table is not an altar; the altar stands beside the Eighth Lamp; the four shells are not elements of ritual; they mean no offering at all.
+The matter was laid aside; the Convocation dispersed in silence — the shells stayed shells.
+
+**锚句**：潮沙盘的四只小贝壳不是供品——潮候院从来没拜它们。
+**Anchor sentence**: the four small shells on the sand table are not offerings — the Institute never worshipped them.
+
+---
+
+## 五 · They Are the Table
+
+The table exists to record the tides.
+
+Some researchers proposed taking measurements — size, rings, corrosion — the copyists forbade all of it; the tide-bell rings, the shells have no share in any classification; there is nothing to classify.
+The shells are part of the table; the Institute would rather the table go plain than move them.
+
+**锚句**：贝壳是潮沙盘的一部分——潮候院宁愿潮沙盘没有贝壳也不能动它们。
+**Anchor sentence**: the shells are a part of the tide-table itself — the Institute would rather the table go plain than move them.
+
+---
+
+## 六 · Mapping（Echo No. 16 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | Four shells on the table · the copyists' records · the twice-yearly sweep | 一、二、三、六 |
+| geography | The Institute · the tide-sand table · the altar beside the Eighth Lamp | 一、二、三、六 |
+| characters | The copyists · the watchers · the researchers | 一、三、四、五、六 |
+| story | The Four Shells · Echo No. 16 | 全篇 |
+| items | The tide-sand table · the shells · the ledgers · the tide-bell | 一、二、三、五、六 |
+| history | Since the Institute's founding · the silent dispersal of the 41st Convocation | 一、二、三、五、六 |
+
+> 潮沙盘上的四只小贝壳从来没被潮推动过——它们只是潮候院的一间盛天收藏。
+> The four small shells have never been moved by the tide — they are the chapel's custody of the tide.
+`,
+  },
 ] as const;

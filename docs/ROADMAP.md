@@ -14268,3 +14268,11 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   5 锚句 zh/en 全局唯一（90/90）。
 - `gen-bible-snapshot.mts` 登记 `echo-015-the-lamp-the-wine-shop-never-remembers`；快照重生成（4+15 回响）。
 - verify:world-bible ✓ 90/90；verify:bible-snapshot ✓。
+
+## §BIBLE-27 — 回响 · 其十六《潮沙盘上那四只小贝壳》（2026-11-17 · v827）
+
+- 产出：`docs/world-bible/echoes/E16-潮沙盘上那四只小贝壳.md`（中）/ `.en.md`（英）——潮沙盘上四只小贝壳：
+  没被潮沙推动过、没被任何人摆过、守夜人两年一清不动它们、不是供品；贝壳只是潮沙盘的一部分。
+  5 锚句 zh/en 全局唯一（95/95）。
+- `gen-bible-snapshot.mts` 登记 `echo-016-the-four-small-shells-on-the-tide-sand-table`；快照重生成（4+16 回响）。
+- verify:world-bible ✓ 95/95；verify:bible-snapshot ✓。
