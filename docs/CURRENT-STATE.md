@@ -5425,3 +5425,27 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
   `/bible` 200（16 回响索引含 echo-016 链接）
 - 门：fe-gates 129 套 · **1238/1238**；census 2645 OK；tsc 0；verify:world-bible **171/171** ✓；verify:bible-snapshot 一致 ✓；verify:anchor-echo 171 ✓
 - 运维记录：Docker 再次熄火并自动复活（pg 恢复后才 SSR 探测；fe-gates 不依赖 DB）
+
+## cont. 198 (2026-11-17) - v828: 回响（其十七）《蜡封》/ Echo No. 17 "The Wax Seal"——正典扩到 17 回响·176 锚句
+
+- 封井人（蜡匠）的一页便签——整个世界大典极少数第一人称（与回响十六并列）：
+  他的活是封井。来的人走石板街，谁也没问封井是为什么；蜡怎么熬、怎么浇、怎么等；
+  数了六口；第七口：蜡倒了，井没有接住，凉了又软了，没有人再倒；灰幕之前的年月里没人再提第七口井。
+- 双语回响：`docs/world-bible/echoes/E17-蜡封.md` + `.en.md`（zh/en 逐段对齐）
+  - 五节：来的人 / 怎么封 / 数 / 第七口 / 之后
+  - 5 对锚句（逐字·全项目唯一·共 **176**）：
+    1. 封了六口井，第七口没人敢封。/ six wells were sealed; no one dared seal the seventh.
+    2. 蜡没封住井，封住的是人。/ the wax did not seal the wells; it sealed the people.
+    3. 盐灯没有亮，天也没有亮。/ the salt lamp did not light; the sky did not light either.
+    4. 海把井数的那一天记住了。/ the sea remembered the day the count was made.
+    5. 灰幕之前，没人再提第七口井。/ before the grey cover, no one mentioned the seventh well again.
+  - 结尾题记：蜡封住井，封不住水，也封不住那个数。/ Wax seals wells; it cannot seal the water, nor the count.
+- 起草方式：gpt-6.1-terra（真 provider，Clash 7897）zh 稿 2381 completion tokens + en 稿 2529 tokens（finish=stop，prefix cache 命中 4224），人工定稿——H1 顺序对齐（EN 首行），锚句原样出现（zh 检测到 markers 后补 Anchor 对，逐对核对一致）
+- 舰内 slug：`echo-017-the-wax-seal`（gen-bible-snapshot.mts ECHO_WEB_SLUGS 登记）
+- 级联更新：
+  - snapshot 重生成（13 章 · 17 回响）；anchor-echo 重生成（**176 锚句**）
+  - BibleQuiz 60 题（新增 回响（其十七）·一 / 回响（其十七）·四 两题，zh/en 双语；答案序列：58→60 题，新增 [1, 1]；quiz SHA pin 35763164… 重钉）
+  - 简明说明书：「十六回响」→「十七回响」（zh/en 6 处）+「176 锚句」；guide SHA 22017c5f… 重钉
+- live probe（dev server）：SSR `/bible/echo-017-the-wax-seal` 200（The Wax Seal · Anchor sentence ×5）；`/bible` 200（17 回响索引）
+- 门：fe-gates 129 套 · **1238/1238**；census 2645 OK；verify:world-bible **176/176** ✓；verify:bible-snapshot 一致 ✓；verify:anchor-echo 176 ✓
+- 运维记录：Docker 本轮又熄火——自复活后 pg/redis 健康重回；fe-gates 不依赖 DB，SSR 探测在 web 编译（bible 不读 DB）后完成；npm dev 已停

@@ -66,6 +66,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E14-柴': 'echo-014-the-firewood',
   'E15-灰坑': 'echo-015-the-ash-pit',
   'E16-最后一栏': 'echo-016-the-last-column',
+  'E17-蜡封': 'echo-017-the-wax-seal',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

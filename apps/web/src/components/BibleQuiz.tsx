@@ -299,6 +299,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《最后一栏》里，谁来到灯边，只能数出六口井？', choices: ['账簿的守护者', '巡路人', '能背诵潮汐教团往事的孩子', '铁月纪的使者'], answer: 2, ref: '回响（其十六） · 四' },
     en: { prompt: 'In “The Last Column”, who came to the lamp and could count only six wells?', choices: ['the keeper of the ledger', 'the patrolman', 'the child who could recite the Tide Conclave’s past', 'the envoy of the Iron-Moon Age'], answer: 2, ref: 'Echo No. 16 · IV' },
   },
+  {
+    zh: { prompt: '《蜡封》里，六口井封完之后，第七口的情形是……？', choices: ['蜡倒下去就封住了', '蜡倒了，井没有接住', '有人代封了', '改天再封也行'], answer: 1, ref: '回响（其十七） · 四' },
+    en: { prompt: 'In “The Wax Seal”, after the six wells were sealed, what happened at the seventh?', choices: ['the wax set and sealed it', 'the wax was poured but the well did not take it', 'someone sealed it in their place', 'it could wait for another day'], answer: 1, ref: 'Echo No. 17 · IV' },
+  },
+  {
+    zh: { prompt: '《蜡封》里，封井的人走石板街时，街上的人谁也没有……？', choices: ['看他们一眼', '问封井是为什么', '问封第几口', '帮他们搬蜡'], answer: 1, ref: '回响（其十七） · 一' },
+    en: { prompt: 'In “The Wax Seal”, as the team walked the flagstone street, no one…?', choices: ['looked at them', 'asked why the wells were being sealed', 'asked which well was to be sealed', 'helped carry the wax'], answer: 1, ref: 'Echo No. 17 · I' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

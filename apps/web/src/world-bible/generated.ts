@@ -8329,4 +8329,468 @@ The copyist set the pen beneath the lamp — not to pick it up.
 > Wells can be counted; signatories cannot.
 > 井数得完，落款写不完。`,
   },
+  {
+    order: 17,
+    slug: 'echo-017-the-wax-seal',
+    titleZh: '蜡封',
+    titleEn: 'The Wax Seal',
+    eraLineZh: '纪元切割线：铁月纪之后 · 灰幕之前',
+    eraLineEn: 'Era: after the Iron-Moon Age · before the grey cover was laid.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 17): The Wax Seal
+
+> 回响不续写正典，只记封井之日：
+> 六口井封了，第七口没有。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps the day the wells were sealed:
+> six wells were sealed; the seventh was not.
+> Its anchors answer to the same discipline as the canon.
+
+> 纪元切割线：铁月纪之后 · 灰幕之前
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 一 · 来的人
+
+那天，我带着蜡走过石板街。
+
+蜡裹在布里。布上有盐。盐落在我的手指上，像没化开的灰。
+
+同行的人不多。我不记得他们的脸。只记得有人抱着灯，有人提着空桶。灯没有亮。桶口朝下，碰着石板，发出一声轻响。
+
+街边没有人看我们。
+
+门槛都空着。门内也没有声音。有人把门合上，木声很轻。我没有回头。
+
+海没有问为什么。海在石板尽头。风从那里来，带着盐味。我走到第一口井旁，把布放在井沿上。
+
+井口很黑。
+
+我把蜡取出来。它已经冷了。我用手捂着，等它软下去。手心出了汗。汗里有盐。蜡上留下一道白痕。
+
+有人问我，今日要封几口。
+
+我没有答。
+
+那时我只看着井口。看了很久。井边的石头很凉。灯芯垂在灯盏里，灰也没有落下来。
+
+我知道我的活是封井。
+
+不是数井。
+
+**锚句**：封了六口井，第七口没人敢封。
+**Anchor sentence**: six wells were sealed; no one dared seal the seventh.
+
+## 二 · 怎么封
+
+我把蜡熬在灯上。
+
+火不大。灯芯短，烧得慢。蜡先起皱，后来才化开。盐沾在锅边，像一圈细白的灰。
+
+第一口井没有动静。
+
+蜡落下去，贴住井沿。我等它凉。它凉得很快，硬在石头上。井里没有声响，只有灯火照不到的黑。
+
+第二口井起了水气。
+
+蜡刚碰到石头，便浮起一层薄雾。我等雾散。没人说话。雾散之后，蜡还在那里。我用指背碰了一下，指背发麻。
+
+第三口井，蜡流得很慢。
+
+我沿着井沿一点一点浇。蜡在石缝里停住，又向下淌。我没有追着它看。等它凉了，我把灯移开。
+
+第四口井，石头上有盐。
+
+蜡盖住盐，盐从边缘露出来。我没有再添。石板上留下几滴蜡。我用手指抹平，没能抹干净。
+
+第五口井，灯芯灭了一次。
+
+我挑起灯芯。火又起来。那口井不动。我把蜡倒完，等它凝住。
+
+第六口井，蜡落下时有一声轻响。
+
+我等了很久。蜡已经凉透，井里仍旧黑着。没有水声，也没有回声。同行的人各自站着，没人叫我再看一眼。
+
+每一口井都不同。
+
+我的手却一样。握蜡，等它软，等它凉。指缝里留着盐，掌纹里留着灰。
+
+我以为封住了井口。
+
+后来我才知道，蜡只留在石头上。
+
+**锚句**：蜡没封住井，封住的是人。
+**Anchor sentence**: the wax did not seal the wells; it sealed the people.
+
+## 三 · 数
+
+封井的人数井。
+
+这是我记下来的话。写在便签上时，我的手还沾着蜡。字有些歪。我没有擦掉。
+
+先是六。
+
+我数过六次。每封一口，就把数记在心里。第一口。第二口。第三口。数到第六，灯还在手里。蜡也还有一点。
+
+后来有人看着井，说还有一口。
+
+我便又数。
+
+一、二、三、四、五、六。
+
+数到六，石板街上没有人开口。空桶靠着门槛。灯芯只剩一点亮。海风从街尽头来，吹得火苗弯下去。
+
+我再数。
+
+一、二、三、四、五、六、七。
+
+那一刻，我听见蜡滴在石板上。没有别的声音。没有人替我接下去，也没有人说这个数错了。
+
+我看了看记下的数。
+
+六。
+
+我看了看井口。
+
+七。
+
+那不是同一个数。我把便签折起来，塞进衣里。折痕压过字。字没有消失。
+
+有人问我，封完了吗。
+
+我没有回答。
+
+有人又问，数到哪里了。
+
+我把灯举高。灯光落在石板上，没有照到井底。我的影子落在门槛边，像一条没有合拢的缝。
+
+我数了一遍。
+
+先六，再七，还是六。
+
+我数不清。
+
+盐灯没有亮，天也没有亮。
+
+**锚句**：盐灯没有亮，天也没有亮。
+**Anchor sentence**: the salt lamp did not light; the sky did not light either.
+
+## 四 · 第七口
+
+第七口井在石板街尽头。
+
+我走到那里时，蜡已经不多。剩下的蜡裹在布里，贴着我的手臂。布上有盐。我把它放在井边，打开。
+
+井沿很凉。
+
+我把蜡靠近灯。灯芯烧得很短。蜡没有立刻软。我等了一会儿。它慢慢弯下去，像一截失去火的灯芯。
+
+我没有看同行的人。
+
+他们站得很远。没有谁把灯递给我，也没有谁走近井沿。海风在石板上来回。风吹不动蜡，只吹动布角。
+
+我把蜡倒下去。
+
+它落在井沿，没有落进井里。
+
+我又倒了一点。蜡挂在石头上，向下垂着。井口没有接住它。那下面很深，灯照不到，也照不出边。
+
+我等它凉。
+
+蜡硬了一会儿。我刚伸手，它又软下去。热意从石头上返上来，停在指尖。我缩回手。
+
+盐粘在蜡上。白痕一条一条，像数过之后留下的刻痕。我没有添蜡，也没有把它抹掉。
+
+灯芯晃了几下。灰落在灯盏边。灯仍旧没有亮起来。
+
+有人把布合上。剩下的蜡不够再封一口。我的手空下来，掌心却还是热的。
+
+我没有再倒。
+
+我没有说那里该封，也没有说那里不该封。石板上有一小块蜡。它慢慢凉下去，又慢慢软开。
+
+后来我记得的，不是蜡落下的声音。
+
+是那口井没有接住它。
+
+**锚句**：海把井数的那一天记住了。
+**Anchor sentence**: the sea remembered the day the count was made.
+
+## 五 · 之后
+
+那天之后，我没再带蜡走过石板街。
+
+门槛仍旧在原处。灯也还在。灯芯短了，我没有换。灰落在灯盏里，积成薄薄一层。
+
+六口井都封着。
+
+我没有再去摸那几道蜡。手上留下的盐，洗过一次，又回到指缝里。掌心的热意散了。字还在便签上，折痕也还在。
+
+第七口没有封。
+
+我把便签夹在一块石板后面。石板靠着门槛，不高，也不稳。风来时，它会轻轻动一下。我没有再去看那张纸。
+
+年月往前走。灯火一天比一天低。海仍在远处。石板街上的盐被风吹散，又落回来。
+
+有人从我身边经过。
+
+他们没有问六口井，也没有问第七口。我不提。我的嘴里有盐，舌头碰着上颚，像碰到一块冷石。
+
+后来，灰幕到了。
+
+灰落在石板上，落在门槛边，落在灯芯上。那张便签仍夹在石板后面。我不知道它有没有被灰盖住。
+
+我只知道，那天之后，没有人再提第七口井。
+
+我也没有。
+
+**锚句**：灰幕之前，没人再提第七口井。
+**Anchor sentence**: before the grey cover, no one mentioned the seventh well again.
+
+---
+
+## 模型映射（回响十七则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 封井 · 第七口未封 · 留白 | 第十三章 · 第十二章 |
+| geography | 汐台 · 七口井 · 石板街道 | 本则 |
+| factions | 潮汐教团（余烬） | 往事 |
+| characters | 封井人（蜡匠）· 账簿的守护者（旧识） | 本则 |
+| items | 蜡 · 盐灯 · 便签 | 本则 |
+| story | 封井人记 · 回响（其十七） | 全篇 |
+| history | 纪元切割线 · 灰幕之前 | 本则 |
+
+> 蜡封住井，封不住水，也封不住那个数。
+> Wax seals wells; it cannot seal the water, nor the count.`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其十七）：「蜡封」
+
+> An echo does not continue the canon — it only keeps the day the wells were sealed:
+> six wells were sealed; the seventh was not.
+> Its anchors answer to the same discipline as the canon.
+>
+> 回响不续写正典，只记封井之日：
+> 六口井封了，第七口没有。
+> 回响的锚句，与正典同一纪律。
+
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+> 纪元切割线：铁月纪之后 · 灰幕之前
+
+---
+
+## I · The People Who Came
+
+That day, I carried wax along the stone-paved street.
+
+The wax was wrapped in cloth. There was salt on the cloth. Salt fell on my fingers, like ash that had not melted.
+
+There were not many with me. I do not remember their faces. I remember only that someone carried a lamp, someone else an empty bucket. The lamp did not shine. The bucket’s mouth faced down and struck the stone, making a soft sound.
+
+No one by the roadside watched us.
+
+The thresholds were all empty. There was no sound inside the doors either. Someone closed a door; the wood made a very soft sound. I did not look back.
+
+The sea did not ask why. The sea was at the end of the stone street. The wind came from there, carrying the taste of salt. I walked to the first well and laid the cloth on its rim.
+
+The mouth of the well was black.
+
+I took out the wax. It had already gone cold. I cupped it in my hands and waited for it to soften. Sweat gathered in my palms. There was salt in the sweat. A white mark remained on the wax.
+
+Someone asked me how many wells we were to seal that day.
+
+I did not answer.
+
+At the time, I only watched the mouth of the well. I watched for a long while. The stones by the well were cold. The wick hung down in the lamp; even the ash had not fallen.
+
+I knew my work was to seal wells.
+
+Not to count them.
+
+**Anchor sentence**: six wells were sealed; no one dared seal the seventh.
+**锚句**：封了六口井，第七口没人敢封。
+
+## II · How It Was Done
+
+I melted the wax over the lamp.
+
+The flame was small. The wick was short and burned slowly. The wax wrinkled first; only afterwards did it melt. Salt clung to the rim of the pot, like a fine ring of white ash.
+
+The first well made no sound.
+
+The wax fell and clung to the rim. I waited for it to cool. It cooled quickly, hardening on the stone. There was no sound from inside the well, only darkness the lamplight could not reach.
+
+The second well gave off vapour.
+
+As soon as the wax touched the stone, a thin mist rose. I waited for it to disperse. No one spoke. When the mist had gone, the wax was still there. I touched it with the back of my finger. My finger went numb.
+
+At the third well, the wax flowed very slowly.
+
+I poured it along the rim, a little at a time. The wax stopped in the cracks between the stones, then ran downwards. I did not follow it with my eyes. When it had cooled, I moved the lamp away.
+
+At the fourth well, there was salt on the stone.
+
+The wax covered the salt, but salt showed at the edges. I added no more. A few drops of wax remained on the flagstones. I smoothed them with my finger, but could not smooth them away.
+
+At the fifth well, the wick went out once.
+
+I raised the wick. The flame came back. The well did not move. I poured out the wax and waited for it to set.
+
+At the sixth well, the wax made a soft sound as it fell.
+
+I waited a long while. The wax had cooled completely, and the well was still black. There was no sound of water, no echo. Those who had come with me stood apart, each in their place. No one asked me to look again.
+
+Every well was different.
+
+But my hands were the same. Holding the wax, waiting for it to soften, waiting for it to cool. Salt remained between my fingers, ash in the lines of my palms.
+
+I thought I had sealed the mouths of the wells.
+
+Only later did I learn that the wax had remained on the stone.
+
+**Anchor sentence**: the wax did not seal the wells; it sealed the people.
+**锚句**：蜡没封住井，封住的是人。
+
+## III · The Count
+
+The ones who sealed the wells counted them.
+
+Those are the words I wrote down. When I wrote them on the note, wax was still on my hand. The letters were a little crooked. I did not rub them out.
+
+First, six.
+
+I counted six times. Each time I sealed a well, I kept the number in my mind. The first. The second. The third. By the sixth, the lamp was still in my hand. There was a little wax left too.
+
+Later, someone looked at the wells and said there was one more.
+
+So I counted again.
+
+One, two, three, four, five, six.
+
+When I reached six, no one spoke on the stone-paved street. The empty bucket leaned against a threshold. Only a little light remained in the wick. The sea wind came from the end of the street and bent the flame.
+
+I counted again.
+
+One, two, three, four, five, six, seven.
+
+At that moment, I heard wax drip onto the flagstones. There was no other sound. No one continued the count for me, and no one said the number was wrong.
+
+I looked at the number I had written down.
+
+Six.
+
+I looked at the mouths of the wells.
+
+Seven.
+
+They were not the same number. I folded the note and tucked it inside my clothes. The crease pressed across the letters. The letters did not disappear.
+
+Someone asked me if I had finished sealing them.
+
+I did not answer.
+
+Someone asked again how far I had counted.
+
+I raised the lamp. Its light fell on the flagstones, but did not reach the bottom of the well. My shadow fell beside a threshold, like a crack that had not closed.
+
+I counted once.
+
+First six, then seven, still six.
+
+I could not keep count.
+
+The salt lamp did not light; the sky did not light either.
+
+**Anchor sentence**: the salt lamp did not light; the sky did not light either.
+**锚句**：盐灯没有亮，天也没有亮。
+
+## IV · The Seventh
+
+The seventh well was at the end of the stone-paved street.
+
+By the time I reached it, there was not much wax left. What remained was wrapped in cloth, pressed against my arm. There was salt on the cloth. I set it beside the well and opened it.
+
+The rim of the well was cold.
+
+I brought the wax close to the lamp. The wick was very short. The wax did not soften at once. I waited a little. Slowly, it bent downwards, like a piece of wick that had lost its flame.
+
+I did not look at the people who had come with me.
+
+They stood far away. No one handed me a lamp, and no one came near the rim. The sea wind moved back and forth over the flagstones. The wind could not move the wax; it moved only the corner of the cloth.
+
+I poured the wax down.
+
+It fell on the rim, not into the well.
+
+I poured a little more. The wax clung to the stone and hung downwards. The mouth of the well did not catch it. Below was a great depth. The lamp could not reach it, nor show its edges.
+
+I waited for it to cool.
+
+The wax hardened for a while. As soon as I reached out, it softened again. Warmth returned from the stone and stopped at my fingertips. I drew my hand back.
+
+Salt clung to the wax. White marks, one after another, like notches left after counting. I added no wax, and I did not wipe it away.
+
+The wick wavered a few times. Ash fell by the edge of the lamp. The lamp still did not light.
+
+Someone folded the cloth closed. There was not enough wax left to seal another well. My hands were empty, but my palms were still warm.
+
+I did not pour any more.
+
+I did not say it ought to be sealed there, and I did not say it ought not to be. There was a small patch of wax on the flagstones. Slowly, it cooled, then slowly softened again.
+
+What I remembered afterwards was not the sound of the wax falling.
+
+It was that the well had not caught it.
+
+**Anchor sentence**: the sea remembered the day the count was made.
+**锚句**：海把井数的那一天记住了。
+
+## V · Afterwards
+
+After that day, I did not carry wax along the stone-paved street again.
+
+The thresholds remained where they were. The lamp was still there too. The wick had grown short; I did not replace it. Ash fell into the lamp and gathered in a thin layer.
+
+The six wells were all sealed.
+
+I did not touch those marks of wax again. The salt left on my hands was washed away once, then returned between my fingers. The warmth in my palms faded. The words were still on the note, and the crease was still there.
+
+The seventh was not sealed.
+
+I tucked the note behind a flagstone. The stone leaned against a threshold, not high, and not steady. When the wind came, it moved a little. I did not go to look at the paper again.
+
+The years went on. The lamplight grew lower day by day. The sea was still in the distance. The salt on the stone-paved street was blown away by the wind, then fell back again.
+
+Someone passed by me.
+
+They did not ask about the six wells, or about the seventh. I did not mention it. There was salt in my mouth; my tongue touched the roof of it, like touching a cold stone.
+
+Later, the grey cover came.
+
+Ash fell on the flagstones, beside the thresholds, on the wick. The note was still tucked behind the flagstone. I did not know whether the ash had covered it.
+
+I only know that after that day, no one spoke of the seventh well again.
+
+Neither did I.
+
+**Anchor sentence**: before the grey cover, no one mentioned the seventh well again.
+**锚句**：灰幕之前，没人再提第七口井。
+
+---
+
+## Anchor match (echo seventeen)
+
+| dimension | anchor | related chapter |
+|---|---|---|
+| lore | wells sealed · the seventh left unsealed · the space left blank | Chapter Thirteen · Chapter Twelve |
+| geography | Tide Terrace · seven wells · stone-paved street | this echo |
+| factions | Tide Sect (remnants) | the past |
+| characters | the Sealer (wax-worker) · keeper of the ledger (old acquaintance) | this echo |
+| items | wax · salt lamp · note | this echo |
+| story | The Sealer's Note · Echo (No. 17) | all of it |
+| history | the Iron-Moon Age · before the grey cover | this echo |
+
+> Wax seals wells; it cannot seal the water, nor the count.
+> 蜡封住井，封不住水，也封不住那个数。`,
+  },
 ] as const;

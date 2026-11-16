@@ -1034,5 +1034,35 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "en": "the copyist set the pen beneath the lamp — not to pick it up.",
     "refZh": "回响（其16） · 五",
     "refEn": "Echo No. 16 · V"
+  },
+  {
+    "zh": "封了六口井，第七口没人敢封。",
+    "en": "six wells were sealed; no one dared seal the seventh.",
+    "refZh": "回响（其17） · 一",
+    "refEn": "Echo No. 17 · I"
+  },
+  {
+    "zh": "蜡没封住井，封住的是人。",
+    "en": "the wax did not seal the wells; it sealed the people.",
+    "refZh": "回响（其17） · 二",
+    "refEn": "Echo No. 17 · II"
+  },
+  {
+    "zh": "盐灯没有亮，天也没有亮。",
+    "en": "the salt lamp did not light; the sky did not light either.",
+    "refZh": "回响（其17） · 三",
+    "refEn": "Echo No. 17 · III"
+  },
+  {
+    "zh": "海把井数的那一天记住了。",
+    "en": "the sea remembered the day the count was made.",
+    "refZh": "回响（其17） · 四",
+    "refEn": "Echo No. 17 · IV"
+  },
+  {
+    "zh": "灰幕之前，没人再提第七口井。",
+    "en": "before the grey cover, no one mentioned the seventh well again.",
+    "refZh": "回响（其17） · 五",
+    "refEn": "Echo No. 17 · V"
   }
 ] as const;
