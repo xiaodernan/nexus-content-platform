@@ -14228,3 +14228,11 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   潮候院抄潮汐表不是为叫会，是为辨认那一句"现在可以了"；大会一直没被登记，潮自己做主。5 锚句 zh/en 全局唯一（80/80）。
 - `gen-bible-snapshot.mts` 登记 `echo-013-the-convocation-nobody-called`；快照重生成（4+13 回响）。
 - verify:world-bible ✓ 80/80；verify:bible-snapshot ✓。
+
+## §CACHE-4 — 付费 provider 真实端到端：真调用 + L2 缓存免费重放（2026-11-17 · v822 · ADR 0119 续）
+
+- ad-hoc 一次性 `PORT=8131` 起自有 ai-service（：8000 是兄弟项目 careeros-ai，未动）；capability=real、llm=openai-compatible、model=gpt-6.1-terra。
+- 两次同 payload `/v1/ai/chat`：首次 18.4s 真调用（miss→store），第二次 **78ms**（L2 hits=1/stores=1，shared=true，degraded=false，零 token）。
+  期间 Docker 第四次崩→nexus-redis 拒连→按设计 fail-open（miss+stores_failed 记账，provider 调用不受影响）；Docker 重启后真跑通。
+- provider 账本原话：`reported=2, cachedTokensTotal=8650, promptTokensTotal=8852, reportedHitRate=0.9772`（进程内口径；与 L2 分开两本账）。
+- 证据：`docs/evidence/paid-provider-e2e-2026-11-17.md`。

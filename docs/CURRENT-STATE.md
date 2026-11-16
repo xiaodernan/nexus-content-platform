@@ -4320,3 +4320,10 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - Spring Cloud 复验按内存余量（最低 0.26 GB、峰值 1.85 GB）**没有重跑**——记录在 `docs/evidence/docker-and-springcloud-2026-11-17.md`，11-14 证据仍为最新一次真跑。
 - provider 探针 HTTP 200（`gpt-6.1-terra` 在列），7 个模型。
 - insight `/api/insight/login` 撞库测试（v818）4/4 绿；E11 E12 E13 已落，快照 4+13 回响。
+
+## cont. 187 (2026-11-17) — v822 · 付费 provider E2E 真测 + L2 缓存免费重放
+
+- 通过自有 ai-service（:8131 ad-hoc）打真实 `/v1/ai/chat`（:8000 是兄弟项目 careeros-ai，未触）：HTTP 200 · capability=real · gpt-6.1-terra；两次同 payload，第二次 78ms（Redis L2 hits=1）0 token 重放。
+- provider 账本：prompt 8852 / cached 8650 / 97.7% prefix 复用（进程内口径）。
+- Docker 本日第四次崩；nexus-redis 拒连期间降级全部 fail-open 记账正确；重启后 200。
+- 明示：L2 hit 目前不入任务行计账链路（ADR-0119 原语义：hit 不进 usage、不计任务行、不冒充真调用）；task-line 消费面待下一片。
