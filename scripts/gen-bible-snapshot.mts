@@ -55,6 +55,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E12-潮落时才有的回声': 'echo-012-the-echo-that-only-comes-when-the-tide-is-out',
   'E13-潮候院没有叫过的那一声会': 'echo-013-the-convocation-nobody-called',
   'E14-潮汐表的封面': 'echo-014-the-cover-of-the-tide-table',
+  'E15-巷子深处那盏没人记得的灯': 'echo-015-the-lamp-the-wine-shop-never-remembers',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

@@ -4360,3 +4360,9 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   - 并轨代码**未实测跑浏览器**（本机余 1.2 GB 级内存，承载不起 dev server）；/world/*/quiz 等页面作为功能合并并编译过，SSR 断言留待内存恢复窗口；
   - `npm run verify:spring-cloud` 仍按本机内存禁阻；
   - Studio 工作台保持中文母语（v811 决策保留）。
+
+## cont. 191 (2026-11-17) — v826 · 回响 · 其十五《巷子深处那盏没人记得的灯》
+
+- 新回响 E15（中英双文件 + 映射表）：里巷子的酒馆白灯——从来不熄的店，灯不记是为谁亮过的。
+- verify:world-bible ✓ 90/90；快照 4+15 回响。
+- 世界：主线 4 章 + 15 回响。

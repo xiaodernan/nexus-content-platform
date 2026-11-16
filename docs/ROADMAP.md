@@ -14260,3 +14260,11 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - 指令「把所有内容收拢」；`origin` 并入主线：新增后端门 DiscoveryOneHotGate/OneHotVerification（注册幂等）、世界扩展新 4 页（atlas/almanac/quiz/memories）+ `QuizArcade` + `lib/quiz`（世界文档推出的熟人问答，零 provider）、CI showcase-sync.yml、e2e mobile-surfaces。
 - 冲突处置：35 处 i18n 同题 → ours（ours 已入闸、1223/1223）；`/world/*/integrity/page.tsx` 重钉 1 门；docs/CURRENT-STATE 两线日志保留（studio 线 cont. 122–129 入附录）。
 - verify：fe-gates 125/125 · census 2531/2531；`quiz.test` 12/12；world-bible ✓ 85/85；tsc web 0；showcase 同步。
+
+## §BIBLE-26 — 回响 · 其十五《巷子深处那盏没人记得的灯》（2026-11-17 · v826）
+
+- 产出：`docs/world-bible/echoes/E15-巷子深处那盏没人记得的灯.md`（中）/ `.en.md`（英）——潮候院里巷子深处那间酒馆的白灯是为谁亮起的？
+  店主不说"去"，店的灯从来不熄；账本只有瓶数；空了的酒罐不续假酒。
+  5 锚句 zh/en 全局唯一（90/90）。
+- `gen-bible-snapshot.mts` 登记 `echo-015-the-lamp-the-wine-shop-never-remembers`；快照重生成（4+15 回响）。
+- verify:world-bible ✓ 90/90；verify:bible-snapshot ✓。

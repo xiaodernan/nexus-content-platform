@@ -3810,4 +3810,204 @@ Where the tide has passed, the cover is honesty.
 > No one ever signed a tide-table's cover — what was copied was the tide, not the Institute's copyists.
 `,
   },
+  {
+    order: 15,
+    slug: 'echo-015-the-lamp-the-wine-shop-never-remembers',
+    titleZh: '巷子深处那盏没人记得的灯',
+    titleEn: 'The Lamp the Wine Shop Never Remembers',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——酒馆白灯的傍晚。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; an evening with the wine shop\'s lamp lit.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 15): The Lamp the Wine Shop Never Remembers
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院里巷子深处那间酒馆的灯——谁哪一晚要回来，灯从来不问。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the lamp in the alley wine shop — the one night it stayed on, nobody ever knew why.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——酒馆白灯的傍晚。
+> Era: the Institute — after the 41st Convocation; an evening with the wine shop's lamp lit.
+
+---
+
+## 一 · 没人记得它是为谁亮的
+
+里巷子里有一间酒馆，白日里看不见它在哪。
+
+天刚近潮落的那刻，里巷顶头，白灯就先亮了——它一直挂得直流着。没有人记得酒馆是不是从远早时代留下的，
+也没有人记得酒馆最后一位店主是谁。酒客们进门的时候只是被一盏灯和一个不算热的场子迎进来；
+他们不会也没问为什么亮着。
+
+**锚句**：巷子里的白灯从来没为谁亮过——它只是一直亮着。
+**Anchor sentence**: the alley lamp was never lit for anyone — it simply stays on.
+
+---
+
+## 二 · 店主不劝人走
+
+里巷子的酒馆店主从来不说一个"去"字。
+
+客人喝多的时候也照给满——店主没有拒绝过谁的酒，也没人真的醉；潮落的傍晚潮候院的人常到里巷子，
+喝到最后肯定不是斗酒，是他们自己没说，或者海潮刚好到了，客人起身回去。
+
+守夜人来过几次——它从不说不欢迎；它只是一盏等人的灯。
+
+**锚句**：酒馆的店主从来没说过"去"——海潮就常常替它说出来。
+**Anchor sentence**: the wine shop's keeper never said the word "go" — the tide often said that for them.
+
+---
+
+## 三 · 从没歇业过那一夜
+
+里巷子的老本子翻了几百页，没有说酒馆有过一晚不给客人点过酒。
+
+第四十一次大会散会的时候，里巷子里的守夜人到过酒馆前的门廊，白灯还亮着；
+散会后三年里潮候院的值守从没看见白灯灭下——
+潮候院的研究生那段时间在里巷子住了一冬，写下过一句：里巷子的灯"那是它不关。"
+
+**锚句**：里巷子的酒馆从来没有哪一夜熄过灯——住在潮候院不等于进了潮候院。
+**Anchor sentence**: the alley wine shop has never had one dark night — living near the Institute is not living inside it.
+
+---
+
+## 四 · 账上只有瓶数
+
+酒馆的账本有两种。
+
+一种是客人临告别时自己记上的；另一种是店主替潮汐表里多到的客人开的——品种、瓶数；
+从来没人写过谁的名字、谁的职称、谁的官。
+
+潮候院的账簿能看见客人的身份是因为潮候院大会开的是全体潮候；酒馆连全体潮候是谁都没写。
+
+**锚句**：酒馆的账本上只有数量——客人是谁，灯替人不记。
+**Anchor sentence**: the wine shop's ledger holds only counts — who the guests were, the lamp never said.
+
+---
+
+## 五 · 它空的瓶不留续
+
+酒罐见底的时候，店主把扣下的纸翻过来让客人看——里巷子里的酒客都知道：酒没了便没了。
+
+酒馆不在空瓶里再装同一种酒，也没有哪天的白灯是用"再多一壶"来续的。
+有人出过钱想替酒馆引一批新的泉水酒，店主说不——里巷子给潮落的人开灯，酒是它自己的见礼。
+里巷子从来不会因为酒没了而散场——它本来就容得下没酒的晚上。
+
+**锚句**：瓶子空了就是空了——酒馆不会给空瓶装上什么假的酒。
+**Anchor sentence**: an emptied jar is simply empty — the shop never fills an emptied jar with any pretend wine.
+
+---
+
+## 六 · 映射（回响十五章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 白灯 · 里巷子酒馆 · 潮落的傍晚 | 一、三、五、六 |
+| geography | 里巷子 · 酒馆门廊 · 潮候院的边缘 | 一、二、四、六 |
+| characters | 酒馆白灯 · 守夜人 · 潮落时不走的客 | 二、三、四、五 |
+| story | 潮落傍晚的酒馆 · 回响（其十五） | 全篇 |
+| items | 酒罐 · 空瓶 · 账本上的瓶数 | 一、二、三、六 |
+| history | 第四十一次大会散会后 · 里巷子的档案 | 一、二、三、六 |
+
+> 里巷子里的那盏白灯从来没为谁亮过——它只是亮着，潮落之后它常常被人想起。
+> The alley lamp never lit for anyone — it only stays on; after the tide goes out, it is often remembered.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其十五）「巷子深处那盏没人记得的灯」
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院里巷子深处那间酒馆的灯——谁哪一晚要回来，灯从来不问。
+> 纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the lamp in the alley wine shop — the one night it stayed on, nobody ever knew why.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——酒馆白灯的傍晚。
+> Era: the Institute — after the 41st Convocation; an evening with the wine shop's lamp lit.
+
+---
+
+## 一 · The Lamp Is Not Remembered for Anyone
+
+Somewhere in the back alley there is a wine shop. In daylight it is impossible to say exactly where.
+
+At the hour the tide turns, the white lamp at the alley's head comes on again — it has always been hung with the same steady light. No one remembers whether this shop is older than the Institute,
+or who the last keeper was. Guests come because a light and a quiet room call them in;
+they have never asked why either.
+
+**锚句**：巷子里的白灯从来没为谁亮过——它只是一直亮着。
+**Anchor sentence**: the alley lamp was never lit for anyone — it simply stays on.
+
+---
+
+## 二 · The Keeper Never Says "Go"
+
+The keeper of the alley wine shop has never uttered the word "go."
+
+Guests who drink too much are still served — no one has ever been refused; none has truly been drunk either. The back-alley frequenters from the Institute arrive around low tide,
+and those who leave leave of their own choosing, or because the tide came.
+
+Night watchers have passed it more than once — it never once said not welcome; it is simply a lamp that waits for whoever arrives.
+
+**锚句**：酒馆的店主从来没说过"去"——海潮就常常替它说出来。
+**Anchor sentence**: the wine shop's keeper never said the word "go" — the tide often said that for them.
+
+---
+
+## 三 · The Night It Never Went Dark
+
+Pages of the older accounts were turned; there is no record of a night in which the shop did not serve a guest.
+
+When the 41st Convocation dispersed, watchers found the white lamp still lit at the shop's entry;
+in the three years after the Convocation, the lamp over the wine shop did not go out.
+A postgraduate staying in the back alley one winter wrote this: this lamp "just never closes."
+
+**锚句**：里巷子的酒馆从来没有哪一夜熄过灯——住在潮候院不等于进了潮候院。
+**Anchor sentence**: the alley wine shop has never had one dark night — living near the Institute is not living inside it.
+
+---
+
+## 四 · The Ledger Holds Only Counts
+
+The ledger of the wine shop keeps two kinds of entries.
+
+One: the guest writes what they consumed before leaving; the other: the keeper opens an account for visitors who arrive beyond measure —
+their vessels, their bottles.
+No record anywhere contains a name, a title, or an office.
+
+The Institute can see a guest's standing because it holds the full membership list of its Convocation; the wine shop never held one.
+
+**锚句**：酒馆的账本上只有数量——客人是谁，灯替人不记。
+**Anchor sentence**: the wine shop's ledger holds only counts — who the guests were, the lamp never said.
+
+---
+
+## 五 · An Emptied Jar Stays Empty
+
+When the jar runs low, the keeper turns over the paper where "empty" is written, and shows it to whoever is there — the regulars know: when it's gone, it's gone.
+
+The alley's wine shop never refills an emptied jar with another batch, and no evening in memory ended because the wine gave out — the alley has rarely had that happen.
+Guests heading home say nothing more; whoever did not get a pour did not go looking elsewhere — the alley holds a night with no wine, and the wine shop holds the people.
+
+**锚句**：瓶子空了就是空了——酒馆不会给空瓶装上什么假的酒。
+**Anchor sentence**: an emptied jar is simply empty — the shop never fills an emptied jar with any pretend wine.
+
+---
+
+## 六 · Mapping（Echo No. 15 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | The white lamp · the alley wine shop · the hour of low tide | 一、三、五、六 |
+| geography | The back alley · the wine shop's doorway · the edge of the Institute | 一、二、四、六 |
+| characters | The lamp itself · the night watchers · the guests who do not leave | 二、三、四、五 |
+| story | The Evening in the Alley · Echo No. 15 | 全篇 |
+| items | The jars · the emptied bottles · the counts in the ledger | 一、二、三、六 |
+| history | After the 41st Convocation · the back-alley file | 一、二、三、六 |
+
+> 里巷子里的那盏白灯从来没为谁亮过——它只是亮着，潮落之后它常常被人想起。
+> The alley lamp never lit for anyone — it only stays on; after the tide goes out, it is often remembered.
+`,
+  },
 ] as const;
