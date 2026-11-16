@@ -4789,3 +4789,13 @@ note: 本条与cont. 151 构成同一 provider 换新批次（bb29cb32→eb15181
 - 前端接通：`BibleQuiz` 16 题（zh/en 镜像 1:1，答题序列钉死并重钉 `efe13753…`）；简明说明书 `/guide` 三处"三回响"→"四回响"、en 同步；SHA pin `5c61cf6c…` 重钉。
 - 诚实补丁：`/guide` 之前一直在指向 `/bible/search`——**该路由不存在**（ BibleSearch 只嵌在 /bible hub 上）。指南不能对用户撒谎：要么改文档，要么补功能。补功能——新增 `apps/web/src/app/bible/search/page.tsx`（§BIBLE-4，正典本地检索直达、回链、RSC + force-dynamic、沿用已定义的 bb-* 类），真机 probe `GET /bible/search` → 200，`data-bible-search-page` / `data-bible-search-input` / `data-bible-search-back` 钩子齐（live probe，用完即停 :3100）。`/bible/echo-004-ninth-knock` 200（zh/en 标题与双语锚句皆命中）；`/bible` hub 200 且 E04 入册。
 - 门：fe-gates 120/120 · 1181/1181；census 2399 OK；全链仅 2 SHA pin 重钉（quiz 组件、guide）；tsc 未在 gates 之外重跑（vitest 全绿、无 .ts 新引型）。
+
+## cont. 154 (2026-11-17) - v785: /pulse 观测大厅——§九公开围观的聚合匿名统计
+
+- 用户明示判据：「管理员页面，密码 123 进，所有用户都知道密码也都能进，用来检测/分析/查看/观察所有用户的行为，含趋势预测与优化建议」。
+- 落地：`/pulse`（公开可访问，口令 123 是公开家规不是安全边界）+ `/api/pulse`（全站聚合匿名）+ `server/domain/pulse.ts`（一个查询打满聚合：users/admins/publishedVersions/opens/visitors/visitorDays/visibleMs/gameClears/workCompletions/likes/comments/remixes/follows + 14 天趋势 + 半窗口 delta + 4 条规则式优化建议（标注触发依据；`buildRecommendations`/`trendPoints`/`deltaPct` 纯函数，可测））。
+- 纪律：**聚合匿名、不含任何个人定位列**（无 email/id/handle 渲染路径型 token）；爬虫如实存照算（bot 行拆开算 opens/visitors）；库炸回 503，绝不用占位 0 冒充真数；`visibleMs` 口径只计真人。
+- `/pulse` 由 RSC shell（force-dynamic + noindex）+ `PulseGate` 客户端门（sessionStorage 门闩是仪式不是锁），含 KPI 14 栅格、14 柱状 SVG 轨、规则建议、诚实脚注（人·天口径）；中英双语 COPY。
+- 真机（:3100，用完即停）：users 5256、publishedVersions 140、opens 709、visitors 317、visitorDays 344、likes 11、follows 2、remixes 2、comments 19、gameClears 3、workCompletions 16；trend.points=14、opensDelta=+1125%（半窗口 vs 半窗口口径，历史基数小）；建议 bases = [opensDelta=+1125%, completions=19, remixes=2]。
+- 命令面板新站：观测大厅（zh）/ Pulse（en）入口；registry 期望值 19→20（60/60 绿）。guide 四处直链 + SHA pin 重钉（053034f2…）。新 test `pulse-visual-style.test.ts`（7 道门：RSC/noindex/SHA pin [b52daa5e…]、PII 禁区、口令字面 123、失败态诚实、路由契约、领域禁 PII + count(distinct) 断言）。
+- 门：census 初红 38 条 pl-* 全部因新文件未跟踪（不在 git ls-files 扫描面）——入库后应为全绿；fe-gates 复跑见下。

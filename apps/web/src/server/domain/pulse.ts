@@ -1,0 +1,281 @@
+import { eq, gte, sql } from 'drizzle-orm';
+import { getDb } from '../db/client';
+import {
+  comments,
+  follows,
+  gameCompletions,
+  likes,
+  publishedProjects,
+  publicationVisits,
+  remixes,
+  users,
+  workCompletions,
+} from '../db/schema';
+import { utcDay } from '@/lib/visit-meter';
+
+/**
+ * §PULSE · 平台级**聚合**读数（`/pulse` 用）
+ *
+ * 两条纪律贯穿全文件：
+ * 1. 这个视图是公开的（密码 123 是公开的）——只允许出现**聚合**数字，不允许出现
+ *    任何可定位到个人的数（无邮箱、无名称、无 ID = 这页本身没有 PII 可爆破）。
+ * 2. 读不到就让整次调用失败，不拿别的数换算一个冒充（§159 同族纪律）。
+ *    500 是一句诚实的"这里坏了"，不是一个拿别处换算的"看起来还行"。
+ */
+export interface PulseNumbers {
+  /** 全站账号数（含管理员） */
+  users: number;
+  admins: number;
+  /** 公开可见的发布版本数（visibility = public） */
+  publishedVersions: number;
+  /** 全站打开次数（含疑似爬虫）—— 位置与口径与 /analytics 一致（views 计数器） */
+  opens: number;
+  opensToday: number;
+  /** 全站访客（去重 visitorKey，all-time） */
+  visitors: number;
+  visitorsToday: number;
+  /** 人·天行数：全站按「人 × 天」计的访问行（不叫"人数"） */
+  visitorDays: number;
+  /** 可见时长（ms） */
+  visibleMs: number;
+  /** 通关/完成（游戏 + 互动稿，真人） */
+  gameClears: number;
+  workCompletions: number;
+  likes: number;
+  comments: number;
+  remixes: number;
+  follows: number;
+}
+
+export interface PulseDayPoint {
+  day: string;
+  opens: number;
+  visitorDays: number;
+}
+
+export interface PulseTrend {
+  days: number;
+  points: PulseDayPoint[];
+  /** 与前一个等长窗口相比的口径（不足两个窗口写 null，不写成 0） */
+  opensDelta: number | null;
+  visitorDaysDelta: number | null;
+}
+
+export interface PulseRecommendation {
+  zh: string;
+  en: string;
+  /** 触发这个建议的那条读数，显示在卡片上 */
+  basis: string;
+}
+
+function int(raw: string | number | bigint | null | undefined): number {
+  if (raw === null || raw === undefined) return 0;
+  const n = typeof raw === 'bigint' ? Number(raw) : Number(raw);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function iso(day: Date): string {
+  return day.toISOString().slice(0, 10);
+}
+
+export function trendPoints(
+  rows: ReadonlyArray<{ day: string; opens: number; visitorDays: number }>,
+  today: string,
+  days: number,
+): PulseDayPoint[] {
+  const byDay = new Map(rows.map((row) => [row.day, row]));
+  const cursor = new Date(`${today}T00:00:00.000Z`);
+  const out: PulseDayPoint[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(cursor);
+    d.setUTCDate(cursor.getUTCDate() - i);
+    const isoDay = iso(d);
+    const hit = byDay.get(isoDay);
+    out.push({ day: isoDay, opens: hit?.opens ?? 0, visitorDays: hit?.visitorDays ?? 0 });
+  }
+  return out;
+}
+
+export function deltaPct(points: PulseDayPoint[], field: 'opens' | 'visitorDays'): number | null {
+  const mid = Math.floor(points.length / 2);
+  const older = points.slice(0, mid).reduce((acc, p) => acc + p[field], 0);
+  const newer = points.slice(mid).reduce((acc, p) => acc + p[field], 0);
+  if (points.length < 2 || older === 0) return null;
+  return Math.round(((newer - older) / older) * 100);
+}
+
+/** 趋势 → 启发式建议。规则写死在这：每一条都注明触发依据，够明确，不装盒子里还有"AI" */
+export function buildRecommendations(
+  numbers: PulseNumbers,
+  trend: PulseTrend,
+): PulseRecommendation[] {
+  const out: PulseRecommendation[] = [];
+  if (trend.opensDelta === null) {
+    out.push({
+      zh: '流量历史太短，先把打开数稳定采集起来：每次访问都过 /api/visit 心跳（含滚动百分比），别再靠 views 计数器推测。',
+      en: 'Traffic history is too short — wire every visit through the /api/visit heartbeat (scroll % included) instead of inferring from the views counter.',
+      basis: `days=${trend.days}`,
+    });
+  } else if (trend.opensDelta < 0) {
+    out.push({
+      zh: `打开数在最近半窗口里环比下滑 ${Math.abs(trend.opensDelta)}%：把发布节奏对齐到高峰时段；优先修最近点开即走率最高的作品（先看 /discover）。`,
+      en: `Opens dropped ${Math.abs(trend.opensDelta)}% half-window-over-half-window: align publish timings to peak hours; audit the highest immediate-exit works first (see /discover).`,
+      basis: `opensDelta=${trend.opensDelta}%`,
+    });
+  } else if (trend.opensDelta >= 0) {
+    out.push({
+      zh: `打开数环比上升 ${trend.opensDelta}%：趁热度把清民游戏与编辑精选绑定（/guide 已说明耸立卡片是编辑入口），把访客留在"继续逛"而不是关闭。`,
+      en: `Opens rose ${trend.opensDelta}% half-over-half: bind the current hit to featured slots so visitors keep wandering instead of leaving.`,
+      basis: `opensDelta=+${trend.opensDelta}%`,
+    });
+  }
+
+  out.push({
+    zh: numbers.gameClears + numbers.workCompletions > 0
+      ? `完成率侧有真人走到结尾（游戏通关 ${numbers.gameClears} + 互动稿 ${numbers.workCompletions}）：把奖励集成到完成页签（/bible/well 式奖励节拍），把完成者转成关注者。`
+      : '通关/完成还没有真人行——先别急着做"流失挽回"：先在一个 demo 作品里把结局埋点从"打开即算"改成"读满 80% 才算"，让这个口径先有真数。',
+    en: numbers.gameClears + numbers.workCompletions > 0
+      ? `Real humans do finish (game clears ${numbers.gameClears} + interactive ${numbers.workCompletions}): reward the finish page, and convert finishers into followers.`
+      : 'No real finished runs yet — postpone win-back flows; first instrument a demo with an 80% completion bar so the metric gets real signal.',
+    basis: `completions=${numbers.gameClears + numbers.workCompletions}`,
+  });
+
+  out.push({
+    zh: numbers.remixes > 0
+      ? `已有 ${numbers.remixes} 次改编（remix）：remix 是最值的流量转化——每次 remix 完成后立即给改编者一张"你的作品就是入口"的转发卡，让它带来下一层的人。`
+      : 'remix 一直没有动静——作品共享页（/play）缺一个"一键改编"的按钮提示；教程里也只教了怎么通关，没有教怎么接着改。',
+    en: numbers.remixes > 0
+      ? `${numbers.remixes} remixes so far: remix is the most valuable traffic converter — after each remix, hand the remixer a “your work is the doorway” share card.`
+      : 'Remixes stay at zero — the play page lacks a prominent “remix this” affordance; the tutorial teaches finishing, not inheriting.',
+    basis: `remixes=${numbers.remixes}`,
+  });
+
+  return out;
+}
+
+export interface PlatformPulse extends Omit<PulseNumbers, 'opens'> {
+  opens: number;
+  trend: PulseTrend;
+  recommendations: PulseRecommendation[];
+  generatedAt: string;
+}
+
+export async function platformPulse(): Promise<PlatformPulse> {
+  const db = getDb();
+  const today = utcDay(new Date());
+  const windowStart = iso(new Date(Date.now() - 13 * 24 * 60 * 60 * 1000));
+
+  const [
+    [usersRow],
+    [adminsRow],
+    [worksRow],
+    [totals],
+    [totalsBot],
+    [tod],
+    [todBot],
+    [visDistinct],
+    [visDistinctBot],
+    [gameClearsRow],
+    [workCompletionsRow],
+    [likesRow],
+    [commentsRow],
+    [remixesRow],
+    [followsRow],
+    trendRows,
+  ] = await Promise.all([
+    db.select({ n: sql<string>`count(*)` }).from(users),
+    db.select({ n: sql<string>`count(*) filter (where ${eq(users.role, 'admin')})` }).from(users),
+    db
+      .select({ n: sql<string>`count(*)` })
+      .from(publishedProjects)
+      .where(sql`${publishedProjects.visibility} = 'public'`),
+    db
+      .select({
+        opens: sql<string>`coalesce(sum(${publicationVisits.opens}) filter (where not ${publicationVisits.suspectedBot}), 0)`,
+        visibleMs: sql<string>`coalesce(sum(${publicationVisits.visibleMs}) filter (where not ${publicationVisits.suspectedBot}), 0)`,
+        visitorDays: sql<string>`count(*) filter (where not ${publicationVisits.suspectedBot})`,
+      })
+      .from(publicationVisits),
+    db
+      .select({
+        opens: sql<string>`coalesce(sum(${publicationVisits.opens}) filter (where ${publicationVisits.suspectedBot}), 0)`,
+        visitorDays: sql<string>`count(*) filter (where ${publicationVisits.suspectedBot})`,
+      })
+      .from(publicationVisits),
+    db
+      .select({
+        opens: sql<string>`coalesce(sum(${publicationVisits.opens}) filter (where ${publicationVisits.day} = ${today} and not ${publicationVisits.suspectedBot}), 0)`,
+        visitorDays: sql<string>`count(*) filter (where ${publicationVisits.day} = ${today} and not ${publicationVisits.suspectedBot})`,
+        visitors: sql<string>`count(distinct ${publicationVisits.visitorKey}) filter (where ${publicationVisits.day} = ${today} and not ${publicationVisits.suspectedBot})`,
+      })
+      .from(publicationVisits),
+    db
+      .select({
+        opens: sql<string>`coalesce(sum(${publicationVisits.opens}) filter (where ${publicationVisits.day} = ${today} and ${publicationVisits.suspectedBot}), 0)`,
+      })
+      .from(publicationVisits),
+    db
+      .select({ n: sql<string>`count(distinct ${publicationVisits.visitorKey}) filter (where not ${publicationVisits.suspectedBot})` })
+      .from(publicationVisits),
+    db
+      .select({ n: sql<string>`count(distinct ${publicationVisits.visitorKey}) filter (where ${publicationVisits.suspectedBot})` })
+      .from(publicationVisits),
+    db
+      .select({ n: sql<string>`count(distinct ${gameCompletions.visitorKey}) filter (where not ${gameCompletions.suspectedBot})` })
+      .from(gameCompletions),
+    db
+      .select({ n: sql<string>`count(distinct ${workCompletions.visitorKey}) filter (where not ${workCompletions.suspectedBot})` })
+      .from(workCompletions),
+    db.select({ n: sql<string>`count(*)` }).from(likes),
+    db.select({ n: sql<string>`count(*)` }).from(comments),
+    db.select({ n: sql<string>`count(*)` }).from(remixes),
+    db.select({ n: sql<string>`count(*)` }).from(follows),
+    db
+      .select({
+        day: sql<string>`${publicationVisits.day}`,
+        opens: sql<string>`coalesce(sum(${publicationVisits.opens}) filter (where not ${publicationVisits.suspectedBot}), 0)`,
+        visitorDays: sql<string>`count(*) filter (where not ${publicationVisits.suspectedBot})`,
+      })
+      .from(publicationVisits)
+      .where(gte(publicationVisits.day, windowStart))
+      .groupBy(publicationVisits.day)
+      .orderBy(publicationVisits.day),
+  ]);
+
+  const numbers: PulseNumbers = {
+    users: int(usersRow?.n),
+    admins: int(adminsRow?.n),
+    publishedVersions: int(worksRow?.n),
+    opens: int(totals?.opens) + int(totalsBot?.opens),
+    opensToday: int(tod?.opens) + int(todBot?.opens),
+    visitors: int(visDistinct?.n) + int(visDistinctBot?.n),
+    visitorsToday: int(tod?.visitors),
+    visitorDays: int(totals?.visitorDays) + int(totalsBot?.visitorDays),
+    visibleMs: int(totals?.visibleMs),
+    gameClears: int(gameClearsRow?.n),
+    workCompletions: int(workCompletionsRow?.n),
+    likes: int(likesRow?.n),
+    comments: int(commentsRow?.n),
+    remixes: int(remixesRow?.n),
+    follows: int(followsRow?.n),
+  };
+
+  const points = trendPoints(
+    trendRows.map((r) => ({ day: String(r.day), opens: int(r.opens), visitorDays: int(r.visitorDays) })),
+    today,
+    14,
+  );
+  const trend: PulseTrend = {
+    days: 14,
+    points,
+    opensDelta: deltaPct(points, 'opens'),
+    visitorDaysDelta: deltaPct(points, 'visitorDays'),
+  };
+
+  return {
+    ...numbers,
+    trend,
+    recommendations: buildRecommendations(numbers, trend),
+    generatedAt: new Date().toISOString(),
+  };
+}

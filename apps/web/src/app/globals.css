@@ -5177,3 +5177,46 @@
   .bb-hr { border-top: 0.5pt solid black; }
   .bb-article, .bb-anchorShelf { font-family: Georgia, "Noto Serif CJK SC", "Source Han Serif SC", "Songti SC", serif; }
 }
+
+/* §PULSE-1 《观测大厅》/pulse（全站聚合匿名统计，公开围观；密码 123 是公开的不是安全边界） */
+.pl-page { min-height: 100dvh; background: var(--nexus-color-bg-0); color: var(--nexus-color-fg-1); }
+.pl-root, .pl-gate { max-width: 64rem; margin-inline: auto; padding: 2.5rem 1.25rem 4rem; display: flex; flex-direction: column; gap: 1.5rem; }
+.pl-head { display: flex; flex-direction: column; gap: 0.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--nexus-color-border-subtle); }
+.pl-kicker { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.75rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--nexus-color-accent-2-ink); margin: 0; }
+.pl-title { font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.1; font-weight: 750; letter-spacing: -0.02em; margin: 0; }
+.pl-lede { color: var(--nexus-color-fg-2); max-width: 56ch; line-height: 1.65; margin: 0; }
+.pl-gate { align-items: center; justify-content: center; min-height: 80dvh; }
+.pl-gatePanel { display: flex; flex-direction: column; gap: 0.9rem; background: var(--nexus-color-bg-2); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-lg, 1rem); padding: 2rem; max-width: 34rem; }
+.pl-gateLabel { font-size: 0.85rem; color: var(--nexus-color-fg-2); }
+.pl-gateRow { display: flex; gap: 0.5rem; }
+.pl-gateInput, .pl-gateButton { font-size: 1rem; border-radius: var(--nexus-radius-md, 0.5rem); border: 1px solid var(--nexus-color-border-subtle); padding: 0.6rem 0.9rem; background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-1); }
+.pl-gateInput { flex: 1; min-width: 0; }
+.pl-gateInput:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+.pl-gateButton { background: var(--nexus-color-brand); color: var(--nexus-color-accent-fg); border-color: transparent; cursor: pointer; font-weight: 600; }
+.pl-gateButton:hover { filter: brightness(1.1); }
+.pl-gateError { color: var(--nexus-color-danger-ink); margin: 0; }
+.pl-state { color: var(--nexus-color-fg-2); padding: 1.5rem; text-align: center; border: 1px dashed var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md, 0.5rem); display: flex; flex-direction: column; gap: 0.75rem; align-items: center; }
+.pl-kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: 0.75rem; }
+.pl-kpi { background: var(--nexus-color-bg-2); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md, 0.75rem); padding: 0.9rem 1rem; display: flex; flex-direction: column; gap: 0.35rem; }
+.pl-kpiLabel { font-size: 0.78rem; color: var(--nexus-color-fg-2); }
+.pl-kpiValue { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.pl-trend { background: var(--nexus-color-bg-2); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md, 0.75rem); padding: 1.25rem; display: flex; flex-direction: column; gap: 0.9rem; }
+.pl-trendHead { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+.pl-trendTitle { font-size: 1.1rem; margin: 0; }
+.pl-trendDeltas { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+.pl-delta { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem; color: var(--nexus-color-fg-2); border: 1px solid var(--nexus-color-border-subtle); border-radius: 999px; padding: 0.25rem 0.7rem; font-variant-numeric: tabular-nums; }
+.pl-bars { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 0.45rem; align-items: end; height: 9rem; }
+.pl-barCol { display: grid; grid-template-rows: 1fr auto auto; gap: 0.3rem; align-items: end; height: 100%; }
+.pl-bar { display: block; width: 100%; min-height: 3px; border-radius: var(--nexus-radius-sm, 0.25rem); background: linear-gradient(180deg, var(--nexus-color-accent-2-ink), var(--nexus-color-brand)); }
+.pl-barLabel, .pl-barValue { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.65rem; color: var(--nexus-color-fg-3); text-align: center; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-recs { background: var(--nexus-color-bg-2); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md, 0.75rem); padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; }
+.pl-recsTitle { font-size: 1.1rem; margin: 0; }
+.pl-recsNote { color: var(--nexus-color-fg-2); margin: 0; font-size: 0.85rem; }
+.pl-recList { margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.65rem; list-style: none; }
+.pl-rec { display: grid; gap: 0.3rem; background: var(--nexus-color-bg-3); border-radius: var(--nexus-radius-sm, 0.5rem); padding: 0.8rem 1rem; }
+.pl-recText { line-height: 1.6; color: var(--nexus-color-fg-1); }
+.pl-recBasis { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.68rem; color: var(--nexus-color-info); overflow-wrap: anywhere; }
+.pl-foot { border-top: 1px solid var(--nexus-color-border-subtle); padding-top: 1rem; display: flex; flex-direction: column; gap: 0.35rem; }
+.pl-footNote { color: var(--nexus-color-fg-2); font-size: 0.85rem; line-height: 1.6; margin: 0; }
+.pl-footStamp { color: var(--nexus-color-fg-3); font-size: 0.75rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; margin: 0; font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { .pl-gateButton:hover { filter: none; } }
