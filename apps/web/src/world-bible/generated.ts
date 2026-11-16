@@ -6045,4 +6045,346 @@ Later the paper was gone. The bowls remained on the table. The ash under the cov
 > 它只是继续盛着沉默，直到没人再问为什么。
 `,
   },
+  {
+    order: 13,
+    slug: 'echo-013-the-threshold',
+    titleZh: '门槛',
+    titleEn: 'The Threshold',
+    eraLineZh: '纪元：铁月纪之后 · 灰棚之前。',
+    eraLineEn: 'Era: after the Iron-Moon Age · before the grey cover was laid.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 13): The Threshold
+
+> 回响不替正典续写——它只盯着那道安静了几章的门槛。
+> 柴放在门槛外，水送到门槛外，灰被雨冲开，脚印没人抹掉。
+> 本篇写给门内灯火与门外潮声之间，唯一不必被看守的东西。
+> 本篇锚句，与《碗》《秤》同一纪律。
+>
+> An echo does not continue the canon — it only keeps its eyes on the threshold that has kept quiet through all these chapters.
+> Firewood set beyond it, water left beside it, ash scattered by rain, no footprints wiped away.
+> Written for the one thing between the lamp inside and the tide outside that does not need keeping.
+> Its anchors answer to the same discipline as the bowl and the scale.
+
+> 纪元：铁月纪之后 · 灰棚之前。
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 其一 · 木头
+
+门槛的木头没有来处。
+
+账上不记它的价，也不记谁把它锯成如今的宽窄。它横在那里，木纹里留着一条旧水线，像潮退后没有带走的盐。有人说它原先是树，根在灰棚后面的湿地里；也有人说那块地从来没有树，只在雨后露出一段黑木，日子久了，便被当作门槛。
+
+没人替它作证。木头不曾开口，也没有被问过。
+
+它的两端抵着墙根。墙换过几次，泥灰一层覆一层，门槛没有动。每逢修墙，搬石的人绕过它，像绕过一笔已经结清、却仍留在册上的旧账。
+
+风从门缝进来，先刮过木纹，再进屋。屋里的人只记得风，没记得木头。门槛受着来去的风，年久处起了毛刺，刺尖朝着谁，它也不挑。
+
+后来有人把灯挂在门内。灯光落到木头上，分成两截，一截暖，一截暗。门槛在两截之间，没有取其中一截。
+
+**锚句**：它没有出生的年月。
+**Anchor sentence**: it has no year of birth.
+
+---
+
+## 其二 · 未定
+
+门槛不说里外。
+
+它只认脚步还没有落定的时候。人站在门前，鞋底沾着泥，手里握着话，或什么也没握。那一刻，他还不是屋里的人，也不是门外的人。门槛只托住他的重量，等重量自己决定往哪边去。
+
+有人在上面停了很久。有人只把一只脚放下，另一只仍留在地上。也有人隔着门缝看灯，直到灯芯缩短，才转身离开。门槛没有把他们算作来过，也没有把他们算作未曾来过。
+
+雨后，木头吸饱了水，表面发暗。旱时，它裂开细缝，缝里落进灰、盐、鞋底磨下来的碎屑。那些东西没有内外之分，只有新旧之别。脚步经过，旧的压进木纹，新的覆在上面。
+
+记账的人也曾站在这里。他手里有一册薄账，封皮被灯油浸出黑边。他没有跨进来，只把账往门内递。接账的人没问他为何不进；他也没问账上为何少了一行。
+
+那一刻两个人都没有决定。门槛承住他们，一如承住门板的重量。
+
+**锚句**：它只记脚步未定时。
+**Anchor sentence**: it remembers only the moment a foot has not yet landed.
+
+---
+
+## 其三 · 柴与水
+
+柴总放在门槛外。
+
+送柴的人不敲门。他把捆扎好的枯枝搁下，绳结朝上，免得雨水积在里面。做完这些，他便走，脚印从木头边绕开。门内有人听见柴枝轻碰地面，等了片刻，才开门搬进来。
+
+灯下的账不出门。
+
+账本压着一块石头，纸页有潮气，墨迹在边角洇开。上面写柴的斤两，也写送来时的日子；不写是谁弯腰放下，也不写谁隔门听见。那些字留在灯下，像一排不肯移位的钉子。
+
+门槛先收。
+
+它先受住柴捆落地时的一震，先沾上绳纤维落下的毛，先挨那点从枯枝上抖下来的尘。屋里的人后来把柴搬走，门外的地仍留着压痕。每次送柴，压痕换一个方向，旧的便浅一些，却没有全退。
+
+送水的人也不敲门。
+
+水桶放在柴捆旁，桶沿有盐白的结痕。桶底贴地时，水面颤一下。那人松开提绳，手指在衣襟上擦过，转身离去。屋里的人开门取水，木桶提起时，门槛上会留一道短短的湿印。
+
+账上不写湿印。灯下只添一笔水的数目。
+
+门槛收下桶底的冷，也收下柴枝的刺。它从不把东西搬进屋，也不把东西推出去。每一样都由后来的人拿走，或留到天亮。
+
+**锚句**：门槛先收，账留在灯下。
+**Anchor sentence**: the threshold takes it first; the ledger stays under the lamp.
+
+---
+
+## 其四 · 雨
+
+雨冲过门槛几次，没人记全。
+
+最初那年，雨从屋檐落下来，沿着门外的灰地走，冲出一条窄沟。灰散开，露出下面的泥。有人在沟边踩过，脚印半陷半浮，像写了一行看不清的字。
+
+后来又下雨。旧沟被水填平，灰从高处流下来，重新覆住低处。水退后，灰结成薄壳，边缘起皱。门槛没有替谁擦去脚印。那些印子留着，后来被雨打散，又在别处凝回来。
+
+有一场雨落了整夜。水从门板下面挤进来，沿木纹爬了一寸，又退回去。门内有人拿布堵门缝，没有擦门槛。第二天，潮痕还在，灰棚里的人照常点灯，照常把账摊开。
+
+雨水冲过门槛，也冲过门外的柴灰。灰开了，散在沟沿；天晴之后，风把它送回墙根。再下一场雨，它又被冲开。这样几次，没人说得清灰是从哪里来，也没人说得清它为何回来。
+
+只有脚印不曾被门槛抹掉。
+
+它们被水削薄，被灰盖住，被后来的人踩乱。木头仍托着每一道留下的重量，不替谁作证，也不替谁脱身。
+
+**锚句**：雨能冲灰，不能销账。
+**Anchor sentence**: rain can scatter ash; it cannot cancel the ledger.
+
+---
+
+## 其五 · 出门的人
+
+有人从里面跨出来。
+
+那天灯还亮着，账本没有合上。屋里没有人送他，门外也没有人等他。他在门槛上停了半息，像是在听雨；其实那日没有雨，只有屋檐滴下隔夜的水。
+
+他把脚放到门外，鞋底踩进灰里。门槛没有拦他。也没有替他留住里面的暖。他走向潮地，沿着一条没有名字的路去。有人后来见过他在河口，也有人说他往北去了。两种说法都没有记进账。
+
+没人问他去做什么。
+
+没人送他。
+
+门关上时，灯影缩回屋内，门槛上只剩一道浅浅的灰痕。过了几日，送水的人把桶放在原处，桶底压住那道痕。再过几日，桶被取走，灰痕仍在那里，已经认不出属于谁。
+
+门内的人没有提起那个离开的人。门外的人也没有提起。账本上仍留着未填满的一栏，墨水干了，纸面起皱。灯照着那一栏，没有把它照成答案。
+
+门槛记得鞋底落下时的轻重。除此之外，它不记去处。
+
+**锚句**：他走了，无人替他作别。
+**Anchor sentence**: he went; no one bade him farewell.
+
+---
+
+## 其六 · 门槛在灯下
+
+门槛在灯下，也在门外。
+
+灯照到它靠里的一半，另一半受着夜里的潮气。天亮时，两边都覆着灰；天黑后，两边都留着冷。它不因光线而靠近屋里，也不因雨水而离开门外。
+
+灰棚里没有别的东西能这样留着。柴要看守，水要看守，灯要续油，账本要压石。门槛不用守。没人把它搬走，没人把它藏起，也没人替它关门。
+
+它守住自己。
+
+墙根松过，门轴坏过，棚顶漏过。修补的人把泥抹在门槛两端，留下两块新白。风吹旧了那层白，木头仍横在那里。后来有人把一张窄凳放在门边，凳脚磨出四个浅坑；凳子搬走后，坑里积灰。门槛没有多问一件东西为何来、为何去。
+
+夜深时，门里的人睡着，门外的潮声退远。门板合着，灯火未灭。门槛夹在两者之间，承住一夜的静，也承住明日尚未决定的脚步。
+
+账还摊在灯下。柴仍会送来，水仍会放在门外。雨会再落，灰会再散，脚印会留下。门槛不替谁收尾。
+
+它在那里，直到下一只脚停住。
+
+**锚句**：它守住自己，便无人守它。
+**Anchor sentence**: it keeps itself; so no one keeps it.
+
+---
+
+## 模型映射（回响十三章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 门槛 · 灯 · 柴与水 · 账 | 一至六 |
+| geography | 灰棚 · 门槛 · 门外潮地 · 门内灯下 | 一至六 |
+| factions | 屋内 · 屋外送柴送水的人 | 一至六 |
+| characters | 门里的人 · 送柴送水的众人 · 记账的人 | 一至六 |
+| items | 木头门槛 · 柴捆 · 水桶 · 账本 · 灯 | 一至六 |
+| story | 雾港 · 灰棚 · 回响（其十三） | 全篇 |
+| history | 铁月纪之后 · 灰棚之前 | 一至六 |
+
+> 门槛不说哪一边了更远——
+> 它只把每一步都留在自己的木纹里。
+>
+> The threshold does not say which side is farther —
+> it only keeps every step within its grain.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其十三）「门槛」
+
+> An echo does not continue the canon — it only keeps its eyes on the threshold that has kept quiet through all these chapters.
+> Firewood set beyond it, water left beside it, ash scattered by rain, no footprints wiped away.
+> Written for the one thing between the lamp inside and the tide outside that does not need keeping.
+> Its anchors answer to the same discipline as the bowl and the scale.
+>
+> 回响不替正典续写——它只盯着那道安静了几章的门槛。
+> 柴放在门槛外，水送到门槛外，灰被雨冲开，脚印没人抹掉。
+> 本篇写给门内灯火与门外潮声之间，唯一不必被看守的东西。
+> 本篇锚句，与《碗》《秤》同一纪律。
+
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+> 纪元：铁月纪之后 · 灰棚之前。
+
+---
+
+## I · The Wood
+
+The wood of the threshold has no origin.
+
+No ledger records its price, nor who cut it to its present width. It lies there; its grain holds one old watermark, like the salt the tide forgot to take away. Some say it had once been a tree, its roots in the wet ground behind the grey cover; others say there was never a tree there — only, after rain, a stretch of black wood showing, which in time was taken for a threshold.
+
+No one speaks for it. The wood never spoke, nor was it ever asked.
+
+Its two ends press against the wall-foot. The wall has been replaced several times; mud and lime laid one layer upon another — the threshold did not move. Each time the wall was repaired, the stone-bearers went around it, as one goes around an old account settled long ago — yet still carried on the books.
+
+The wind enters through the door-seam, brushing the grain first, then the room. Those inside remember the wind, never the wood. The threshold receives the coming and going of the wind; in the places worn by years it grew splinters — toward whom they point, it does not choose.
+
+Later, someone hung the lamp inside the door. Its light fell upon the wood and split in two — one side warm, one side dark. The threshold lay between the two and took neither.
+
+**Anchor sentence**: it has no year of birth.
+**锚句**：它没有出生的年月。
+
+---
+
+## II · Undecided
+
+The threshold does not speak of inside or out.
+
+It knows only the moment a step has not yet settled. A person stands before the door, mud on their soles, words in their hand, or nothing at all. That instant, they are neither inside nor outside. The threshold bears only their weight, and waits for the weight to decide for itself which way to go.
+
+Some stood on it for a long while. Some placed only one foot down, the other still on the ground. Others looked at the lamp through the seam until the wick shortened, then turned away. The threshold counted them neither as having visited nor as never having visited.
+
+After rain, the wood drank its fill; its surface darkened. In drought it cracked into fine lines; into the lines fell ash, salt, the dust ground from shoe-soles. These things made no distinction between inside and out — only between the new and the old. Feet passed; the old pressed into the grain, the new lay upon it.
+
+The keeper of the ledger once stood here as well. In his hand was a thin book, its cover steeped dark by lamp-oil. He did not step across; he only passed the book inside. The one who reached for it did not ask why he stayed out; nor did he ask why one line of the ledger was missing.
+
+In that moment, neither had decided. The threshold bore them, as it bore the weight of the door itself.
+
+**Anchor sentence**: it remembers only the moment a foot has not yet landed.
+**锚句**：它只记脚步未定时。
+
+---
+
+## III · Firewood and Water
+
+The firewood was always set beyond the threshold.
+
+Those who brought it did not knock. They set down the bundle of dry branches, knot up, so the rain would not pool inside. Then they left; their footprints curved around the wood. From within, someone heard the branches brush the ground, waited a while, then opened the door and carried them in.
+
+The ledger beneath the lamp did not leave the house.
+
+A stone held the ledger down; damp steeped the pages; ink bled at the corners. It recorded the weight of firewood, and the date it arrived; not who bent to lay it down, not who heard it through the door. Those words remained beneath the lamp, like a row of nails refusing to shift.
+
+The threshold took it in first.
+
+It bore the first jolt of the bundle striking earth, the first thread-fibres dropping from the knot, the first dust shaken from the branches. Later, those inside carried the wood away; outside, the ground kept the press-marks. Each delivery left them in a new direction; the old ones faded in time, though never wholly gone.
+
+Those who brought water did not knock either.
+
+The bucket sat beside the firewood, its rim crusted white with salt. As its base touched the ground, the water trembled. The bearer let go of the rope, wiped their fingers on their hem, and turned away. When those inside came out to draw it up, lifting the bucket left upon the threshold a short damp mark.
+
+The ledger recorded no damp mark. Beneath the lamp, only the water's tally was added.
+
+The threshold received the cold of the bucket's base, and the splinters of the firewood. It never carried anything in, nor pushed anything out. Whatever arrived was either taken in by later hands, or left until morning.
+
+**Anchor sentence**: the threshold takes it first; the ledger stays under the lamp.
+**锚句**：门槛先收，账留在灯下。
+
+---
+
+## IV · Rain
+
+How many times rain has washed the threshold, no one has counted in full.
+
+The first such year, rain came down from the eaves and ran along the ash outside the door, cutting a narrow channel. The ash scattered; the mud beneath showed through. Someone crossed at its edge; half of each print sank, half floated — like a line of characters no one could quite read.
+
+It rained again later. The old channel filled; ash flowed down from above and covered the low places once more. After the water withdrew, the ash set into a thin crust, its edges puckered. The threshold wiped no footprint away for anyone. Those prints stayed; later they were scattered by rain and settled again elsewhere.
+
+One rain fell through the whole night. Water forced its way in beneath the door-board, crept one inch along the grain, then withdrew. Inside, someone pressed a cloth against the seam — the threshold they did not wipe. The next day the damp-marks remained; in the grey cover, people lit the lamp as usual and opened the ledger as usual.
+
+Rain washed the threshold, and the ash beyond it as well. The ash opened, scattered along the channel's edge; once the sky cleared, the wind carried it back to the wall-foot. Yet another rain, and it was scattered again. So many times it happened that no one could say where the ash came from, nor why it always returned.
+
+Only the footprints were never wiped away by the threshold.
+
+Water thinned them; ash covered them; later feet confused them. The wood still bore each lingering weight — bearing witness for no one, and releasing no one.
+
+**Anchor sentence**: rain can scatter ash; it cannot cancel the ledger.
+**锚句**：雨能冲灰，不能销账。
+
+---
+
+## V · The One Who Left
+
+Someone crossed from the inside out.
+
+That day the lamp still burned, and the ledger had not closed. No one inside sent him off; no one outside waited for him. He paused on the threshold for half a breath, as if listening for rain — though that day held no rain, only the drip of overnight water from the eaves.
+
+He set his foot beyond the door, his sole pressing into the ash. The threshold did not stop him. Nor did it hold back the warmth of what was inside. He walked toward the tidal flats, following a road without a name. Someone later saw him at the river-mouth; others said he had gone north. Neither version entered the ledger.
+
+No one asked what he went to do.
+
+No one saw him off.
+
+When the door closed, the lamplight drew back inside; on the threshold remained one shallow line of ash. A few days later, the water-bearer set the bucket down in its accustomed place, its base pressing over that line. Later still, when the bucket was taken up, the line was still there — no longer recognizable as anyone's.
+
+The one inside did not speak of the one who had gone. Nor did those outside. In the ledger remained an unfilled column; the ink had dried, the page had puckered. The lamp fell on that column — and did not make of it an answer.
+
+The threshold remembered the weight of each landing sole. Beyond that, it kept no record of where anyone went.
+
+**Anchor sentence**: he went; no one bade him farewell.
+**锚句**：他走了，无人替他作别。
+
+---
+
+## VI · Beneath the Lamp
+
+The threshold lies beneath the lamp, and beyond the door.
+
+The lamp reaches its inner half; the other half receives the night's damp. By day, both halves carry ash; by dark, both halves hold cold. It does not drift toward the room for the light, nor abandon the door for the rain.
+
+Nothing else in the grey cover can keep itself this way. Firewood requires watching; water requires watching; the lamp requires oil; the ledger requires its stone. The threshold requires no watching. No one carries it away, no one hides it, no one shuts the door for it.
+
+It keeps itself.
+
+The wall-foot has loosened; the door-pin has broken; the roof has leaked. The menders smeared mud along the threshold's two ends, leaving two fresh white patches. Wind wore that white away; the wood still lies across. Later someone set a narrow bench by the door, its legs wearing four shallow pits; the bench was moved away; the pits gathered ash. The threshold asked nothing of why things came, or why they went.
+
+Deep in the night, those inside sleep; beyond the door, the tide-sound withdraws. The door-board rests shut; the lamplight has not died. The threshold lies between the two, bearing one night of stillness — and the still-undecided steps of tomorrow.
+
+The ledger lies open beneath the lamp. Firewood will arrive; water will be set beyond the door. Rain will fall again; ash will scatter again; footprints will remain. The threshold closes no column for anyone.
+
+It is there, until the next foot pauses.
+
+**Anchor sentence**: it keeps itself; so no one keeps it.
+**锚句**：它守住自己，便无人守它。
+
+---
+
+## Model mapping (echo No. 13)
+
+| Category | Title | Corresponds to |
+|---|---|---|
+| lore | The Threshold · the Lamp · Firewood and Water · the Ledger | I–VI |
+| geography | The Grey Cover · the Threshold · the Tidal Flats Beyond · Beneath the Lamp | I–VI |
+| factions | Those Inside · the Firewood and Water Bearers Outside | I–VI |
+| characters | The One Inside · the Bearers Outside · the Keeper of the Ledger | I–VI |
+| items | The Wooden Threshold · the Firewood · the Bucket · the Ledger · the Lamp | I–VI |
+| story | The Mist Harbor · the Grey Cover · Echo (No. 13) | whole |
+| history | After the Iron-Moon Age · Before the Grey Cover Was Laid | I–VI |
+
+> The threshold does not say which side is farther —
+> it only keeps every step within its grain.
+>
+> 门槛不说哪一边了更远——
+> 它只把每一步都留在自己的木纹里。
+`,
+  },
 ] as const;

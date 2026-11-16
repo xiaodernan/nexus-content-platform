@@ -782,5 +782,41 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "en": "what remains unrevealed enters no ledger.",
     "refZh": "回响（其十二） · 六",
     "refEn": "Echo No. 12 · VI"
+  },
+  {
+    "zh": "它没有出生的年月。",
+    "en": "it has no year of birth.",
+    "refZh": "回响（其13） · 一",
+    "refEn": "Echo No. 13 · I"
+  },
+  {
+    "zh": "它只记脚步未定时。",
+    "en": "it remembers only the moment a foot has not yet landed.",
+    "refZh": "回响（其13） · 二",
+    "refEn": "Echo No. 13 · II"
+  },
+  {
+    "zh": "门槛先收，账留在灯下。",
+    "en": "the threshold takes it first; the ledger stays under the lamp.",
+    "refZh": "回响（其13） · 三",
+    "refEn": "Echo No. 13 · III"
+  },
+  {
+    "zh": "雨能冲灰，不能销账。",
+    "en": "rain can scatter ash; it cannot cancel the ledger.",
+    "refZh": "回响（其13） · 四",
+    "refEn": "Echo No. 13 · IV"
+  },
+  {
+    "zh": "他走了，无人替他作别。",
+    "en": "he went; no one bade him farewell.",
+    "refZh": "回响（其13） · 五",
+    "refEn": "Echo No. 13 · V"
+  },
+  {
+    "zh": "它守住自己，便无人守它。",
+    "en": "it keeps itself; so no one keeps it.",
+    "refZh": "回响（其13） · 六",
+    "refEn": "Echo No. 13 · VI"
   }
 ] as const;

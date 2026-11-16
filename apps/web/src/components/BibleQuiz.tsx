@@ -243,6 +243,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《谁守灯》里，守灯的人送进屋里的，是一天里没说出口的……？', choices: ['火', '话', '油', '水'], answer: 1, ref: '第十章 · 四' },
     en: { prompt: 'In “Who Tends the Lamp”, what feeds the lamp?', choices: ['fire', 'what goes unsaid', 'oil', 'water'], answer: 1, ref: 'Chapter X · IV' },
   },
+  {
+    zh: { prompt: '《门槛》里，柴总是放在哪里？', choices: ['门内桌上', '门槛外', '梁上', '窗台上'], answer: 1, ref: '回响十三 · 三' },
+    en: { prompt: 'In “The Threshold”, where is the firewood always set?', choices: ['on the table inside', 'beyond the threshold', 'up on the beam', 'on the sill'], answer: 1, ref: 'Echo No. 13 · III' },
+  },
+  {
+    zh: { prompt: '《门槛》里，守门人跨出门的时候……？', choices: ['有人送他', '门槛拦他', '无人送他，也没人问', '门开不了'], answer: 2, ref: '回响十三 · 五' },
+    en: { prompt: 'In “The Threshold”, when someone crosses from inside out…?', choices: ['someone sees them off', 'the threshold stops them', 'no one sees them off, no one asks', 'the door will not open'], answer: 2, ref: 'Echo No. 13 · V' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {
