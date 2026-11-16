@@ -3253,6 +3253,340 @@ The ledger needed no reckoning. It had never said it was recorded correctly, nor
 > 它只是继续记下：油有人添，字有人抄，柴从那里来，雨往那里去。
 `,
   },
+  {
+    order: 12,
+    slug: '012-when-the-tide-came-up',
+    titleZh: '潮来的时候',
+    titleEn: 'When the Tide Came Up',
+    eraLineZh: '纪元：铁月纪之后 · 灰棚之前。',
+    eraLineEn: 'Era: after the Iron-Moon Age · before the grey cover was laid.',
+    markdownZh: `# The Whispers' Kings · World Bible · Chapter XII: When the Tide Came Up
+
+> 正典没有结束也没有定章——雨过第十一章之后，灯下的账仍在写。
+> 潮来的时候，门内的人先闻到盐。
+> 本章正典纪律不变：锚句中英字字对齐，引用者逐字保持。
+>
+> The canon did not end, nor did it conclude — after the rain passed Chapter XI, the ledger still went on being written.
+> When the tide came up, those inside the door smelled the salt first.
+> Canon discipline is unchanged — anchor sentences match word-for-word; no rephrasing.
+
+> 纪元：铁月纪之后 · 灰棚之前。
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 一 · 盐
+
+第十一章之后很久，灯下的账还在写。
+
+送柴的人照旧把柴放在门槛外，不进门。下雨时，柴上盖一块旧布；天晴时，旧布收回去，搭在墙钉上。门里的人不问柴从哪来，门外的人也不问账写到哪一页。灯每天明灭几次，账房的人便在页边记下几次。后来，谁也不再核对这些记号。
+
+那天傍晚，天色与往常相同。街上没有风，屋檐下的水没有滴落。盐味却先变重了。
+
+门内的人先闻到。他正在抄一笔旧欠，笔尖停在一个没有写完的字上。盐味从门缝进来，像一片看不见的潮，贴着地面，停在桌脚。屋里其余的人还在说话，直到有人尝到唇上的咸，才把话收住。
+
+账房的人抬起头，向门外看了一眼。门槛外的柴仍然干着，旧布垂在墙钉上，没有动。更远处的水声也没有变。
+
+没有人说要关门。
+
+**锚句**：盐先到了。
+**Anchor sentence**: the salt arrived first.
+
+---
+
+## 二 · 潮头
+
+潮头来得很低。
+
+街上的人起初只看见石板缝里发亮。水沿着墙根向前，没过鞋底，随后漫上门槛。没有风推它，也没有雷声替它报信。潮水只是比往常高，许多。它上来时，街上的灯还亮着，门内的灯也亮着。
+
+水里没有鱼，也没有垃圾。
+
+先撞到门槛的是一枚坏船钉。钉头弯着，铁上留有一道黑缝，像曾经咬住过木板。它在门槛边转了两圈，停下，又被水托起，送进屋里。随后是一小片褪色的布，边缘撕开，颜色已经辨不出来。布片贴上桌脚，离灯下的账还差一臂。
+
+最后来的，是一支旧笔。
+
+笔身裂开，笔管里没有墨。它从街口浮来，碰过墙，碰过门柱，穿过散开的柴枝，正好停在灯下。没人伸手去捡。潮水托着它，缓慢地转了半圈，笔尖朝着账本。
+
+屋里的人都看着它。账房的人没有认出那支笔是谁的。他只看见裂口里的盐，已经结成白线。
+
+水继续进来。
+
+**锚句**：旧物不报姓名。
+**Anchor sentence**: old things never give their names.
+
+---
+
+## 三 · 先移账
+
+水到桌边之前，账房的人先把账本往高处挪。
+
+他没有等旁人开口。两只手从桌面托起书脊，避开摊开的那一页，把账本搁上墙边的窄架。架子比桌面高一尺，木板中间有一道裂纹。他将书放稳，又从窗台取下一块压纸的石头，压在账本上。石头的底面带着灰，碰到纸页时发出一声轻响。
+
+桌上的灯盏还在燃。
+
+账房的人把灯挪到墙上。墙边钉着一只旧铁托，他把灯盏放进去，火苗贴着墙，先低了一下，又直起来。灯光照不到桌面，只照见桌沿上薄薄的一道水光。
+
+门内的人把椅子搬开。有人提起地上的纸，有人把柴枝往门外推，推到一半又停了。潮水已经盖过门槛，柴枝浮起来，彼此撞着，发出干木头的声响。没人再碰它们。
+
+账房的人回到桌边，检查空下来的那一页。墨还没干，水珠落在纸上，字的末尾散开一小圈。他用手背挡住那点湿，不去擦。
+
+水到桌脚时，屋里的人全都站着。
+
+**锚句**：先移账，再移灯。
+**Anchor sentence**: move the ledger first, then the lamp.
+
+---
+
+## 四 · 水停了
+
+水在屋里停了半夜。
+
+它没有拍门，也没有翻倒桌子。它贴着地面，到了墙角便分开，绕过椅脚，又在桌下汇合。灯盏挂在墙上，火始终没有熄。偶尔有水汽上去，灯影便短一些。
+
+天亮后，潮水落去。
+
+屋里留下盐。桌腿上有一圈白痕，门槛的木纹里塞满细粒，墙脚也结了薄薄一层。人走过时，鞋底把盐压进地板，发出轻微的脆声。谁也没有立刻扫。账房的人先到门口，看地上的脚印。
+
+门内的脚印很乱，朝着桌子，又折回门边。门外也有几行，留在送柴人的位置上。它们不深，边缘却很清楚。盐在脚印里聚成浅色的线，沿着脚掌的纹路，通向街上。
+
+账房的人回到墙边，把账本取下。石头留在页上，压出一个灰色的印子。他翻到潮来时尚未写完的那页，发现新痕落在纸边：不是水迹，像是盐粒在纤维里留下的白点。它们排成一道弯曲的线，穿过几笔欠账，绕开那句没有写完的字。
+
+他拿笔，在新痕下面写了日期。墨水渗进纸里，没有散开。
+
+门外的脚印到了街口便断了。
+
+**锚句**：盐记得脚步。
+**Anchor sentence**: salt remembers footsteps.
+
+---
+
+## 五 · 带走什么
+
+潮水带走了什么，没人知道。
+
+水落去时，桌椅都在，账本也在。门槛外的柴少了几枝，送柴的人说，原先就只有那些。他把剩下的柴靠墙放好，仍没有进门。门内的人没有问他少掉的柴去了哪里。
+
+有人数了碗，有人数了灯盏。账房的人数页数，又把每一页翻过一次。他们没有发现少掉的物件。门柱上的旧钉还在，墙上的铁托还在，椅背上那道裂痕也还在。坏船钉、褪色布片、旧笔，仍留在屋里。
+
+只有一张旧名单不见了。
+
+那张纸夹在账本最末，许多年没有人打开。没人记得纸上写过什么，也没人记得最后一次看见它是什么时候。账房的人翻过几遍，确认夹页处空着，便在清点簿上写下「少一页」。写完之后，他又把这四个字划掉。
+
+没有人问潮水是否带走了那张纸。也没有人说它一定还在。屋里的人只把留下的东西放回原处，把盐扫进簸箕，再把簸箕搁在门边。
+
+潮水不说。
+
+**锚句**：失物不留收据。
+**Anchor sentence**: lost things leave no receipt.
+
+---
+
+## 六 · 下次
+
+第二天，送柴的人照常来。
+
+他把柴放在门槛外。潮水留下的盐还没扫净，柴枝落下时，盐粒从地上弹起，落进门缝。门内的人听见了，没有出去。灯盏仍挂在墙上，账本仍压着石头。
+
+账房的人把新的一页摊开，写下潮退后的日期。墨迹干得慢，他便等。等候时，门外有人把旧布从墙钉上取下，抖了两下，又挂回去。布上有一处湿痕，边沿已经结硬。
+
+没人说下次会不会更高。
+
+他们把桌脚垫稳，把墙上的铁托检查一遍，又把窄架上的裂纹用一片木楔撑住。有人在门槛旁放了一块平石，石面朝上；有人将几只空木箱搬到墙边。账房的人把压纸的石头留在账本旁，手指在页角停了一下，随后接着写。
+
+这些准备没有写进账里。账上只记今日送来的柴，灯油用了多少，门口还欠谁一笔。灯火跳了一下，墙上的影子跟着缩短，又恢复原样。
+
+潮总会上来。
+
+柴还会送到门外。账还会写在灯下。门里的人不会知道下一次水先碰到哪一件东西，也不会知道哪一行字会留下，哪一页会空出来。他们只把账本放得更高，把灯挂得更牢，把门槛上的盐扫净。
+
+**锚句**：下次仍先闻盐。
+**Anchor sentence**: next time, smell the salt first.
+
+---
+
+## 模型映射（第十二章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 潮水 · 盐 · 账本 · 坏船钉 · 旧笔 · 褪色布 | 一至六 |
+| geography | 灯下的屋 · 门槛 · 潮水线 · 街口 | 一至六 |
+| factions | 门内的人 · 送柴的人 · 账房的人 | 一至六 |
+| characters | 账房的人 · 送柴的人 · 门内的人 | 一至六 |
+| items | 账本 · 灯盏 · 压纸石 · 墙上铁托 · 窄架 · 旧笔 · 船钉 | 一至六 |
+| story | 雾港 · 潮来的时候 · 第十二章 | 全篇 |
+| history | 铁月纪之后 · 灰棚之前 | 一至六 |
+
+> 潮水不说话，但它留下了盐；
+> 把账放得更高，把灯挂得更牢。
+>
+> The tide never speaks, but it leaves salt behind;
+> set the ledger higher, hang the lamp firmer.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 第十二章「潮来的时候」
+
+> The canon did not end, nor did it conclude — after the rain passed Chapter XI, the ledger still went on being written.
+> When the tide came up, those inside the door smelled the salt first.
+> Canon discipline is unchanged — anchor sentences match word-for-word; no rephrasing.
+>
+> 正典没有结束也没有定章——雨过第十一章之后，灯下的账仍在写。
+> 潮来的时候，门内的人先闻到盐。
+> 本章正典纪律不变：锚句中英字字对齐，引用者逐字保持。
+
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+> 纪元：铁月纪之后 · 灰棚之前。
+
+---
+
+## I · Salt
+
+Long after Chapter XI, the ledger still went on being written beneath the lamp.
+
+The bearer of firewood still set the wood beyond the threshold, never entering. When rain fell, an old cloth covered the wood; when the sky cleared, the cloth was drawn back and hung from a nail in the wall. Those inside did not ask whence the wood came; those outside did not ask which page the ledger had reached. The lamp dimmed and brightened several times a day; the keeper of the ledger marked each time at the page's margin. Later, no one reckoned those marks again.
+
+That evening, the sky looked as it always did. No wind in the street; no water falling from the eaves. Yet the salt smell grew heavier — from the start.
+
+Those inside smelled it first. The keeper of the ledger was copying out an old debt; the brush-tip halted on a character left unfinished. The salt smell came through the door-seam, like an unseen tide hugging the floor, stilling itself at the table-legs. The others in the room went on speaking — until someone tasted the salt upon their lips, and the words stopped.
+
+The keeper of the ledger raised his head and looked outward. The wood beyond the threshold was still dry; the old cloth hung upon its nail; farther off, the water's voice had not changed.
+
+No one said the door was to be shut.
+
+**Anchor sentence**: the salt arrived first.
+**锚句**：盐先到了。
+
+---
+
+## II · The Tide's Crest
+
+The crest came on very low.
+
+At first the people in the street saw only a gleam within the cracks of the flagstones. The water advanced along the wall-foot, over their shoes soles, then over the threshold. No wind drove it; no thunder heralded it. The tide was simply higher — much higher — than usual. When it rose, the lamps in the street were still lit; the lamp within the door was lit as well.
+
+There were no fish in the water, and no refuse.
+
+The first thing struck against the threshold was a broken ship's nail. Its head was bent; along the iron ran one black seam, as though it had once gripped a plank. It turned twice beside the threshold, came to rest, then was lifted by the water and carried inside. After it came a fragment of faded cloth, its edge torn, its colour gone past naming. It settled against a table-leg, one arm's length short of the ledger beneath the lamp.
+
+Last came an old brush-pen.
+
+The shaft had split; the tube held no ink. It floated in from the street-mouth, touching the wall, touching the door-post, passing through the scattered firewood, and came to rest exactly beneath the lamp. No hand reached to take it up. The water bore it with a slow half-turn — its tip toward the ledger.
+
+Everyone in the room watched it. The keeper of the ledger did not recognize whose pen it had been. He saw only the salt within the split, crusted into a white line.
+
+The water went on entering.
+
+**Anchor sentence**: old things never give their names.
+**锚句**：旧物不报姓名。
+
+---
+
+## III · Moving the Ledger First
+
+Before the water reached the table, the keeper of the ledger lifted the book to higher ground.
+
+He did not wait for anyone to speak. Both hands took the spine from the table's face — avoiding the open page — and set the ledger upon the narrow shelf by the wall. The shelf stood a foot above the table; its board carried one split down the middle. He settled the book, then took a paper-weight stone from the sill and laid it across the pages. The stone's underside bore dust; it touched the paper with a soft click.
+
+The lamp-dish on the table was still burning.
+
+The keeper of the ledger moved the lamp to the wall. An old iron bracket was nailed there; he set the dish into it; the flame leaned against the wall — first low, then upright again. The light could not reach the table; it caught only a thin rim of water along its edge.
+
+Those inside shifted the chairs aside. Some lifted the papers from the floor; others pushed the firewood toward the door — and stopped halfway. The tide had already passed the threshold; the wood floated and knocked against itself, giving off the sound of dry timber. No one touched them any more.
+
+The keeper of the ledger returned to the table, and checked the page that had been left blank. The ink had not yet dried; water-drops fell upon it, the tail of the character dispersing into a small halo. He shielded the wet with the back of his hand; he did not wipe it.
+
+When the water reached the table-legs, everyone in the room was standing.
+
+**Anchor sentence**: move the ledger first, then the lamp.
+**锚句**：先移账，再移灯。
+
+---
+
+## IV · The Water Stops
+
+The water remained inside through half the night.
+
+It did not beat upon the door, nor overturn the table. It lay along the floor, parting at the corners, passing around the chair-legs, reuniting beneath the table. The lamp-dish hung from the wall; its flame never went out. From time to time, moisture rose to it; the light would shorten.
+
+By morning, the tide went down.
+
+Salt remained inside. A white ring marked each table-leg; the wood's grain at the threshold was packed with fine grains; the wall-foot had set into a thin crust. As feet passed, soles pressed the salt into the boards with a faint cracking. No one swept at once. The keeper of the ledger went first to the doorway, to look at the footprints upon the ground.
+
+The prints inside were in disarray — toward the table, then back toward the door. Beyond the door stood several lines as well, left at the place where the bearer of firewood stood. They were not deep; their edges were clear. The salt gathered within the prints into pale lines, following the soles' ridges, leading into the street.
+
+The keeper of the ledger went back to the wall and took down the book. The stone had left a grey oval on the page. He turned to the page left unfinished when the tide came, and found new marks along its edge — not water-stains, but white points the salt had left within the fibre — running in one bent line, crossing several debts, curving around the character never completed.
+
+He took up the brush, and beneath the new marks wrote the date. The ink sank into the paper; it did not disperse.
+
+Beyond the door, the footprints broke off at the street-mouth.
+
+**Anchor sentence**: salt remembers footsteps.
+**锚句**：盐记得脚步。
+
+---
+
+## V · What It Carries
+
+What the tide carried away, no one knows.
+
+When the water went down, the table and chairs were still there; the ledger was there as well. Beyond the threshold, a few sticks of firewood were missing; the bearer said — there had only ever been those. He stacked what remained against the wall, still not entering. Those inside did not ask where the missing wood had gone.
+
+Some counted the bowls; others counted the lamp-dishes. The keeper of the ledger counted the pages, turning each one over. They found nothing missing. The old nail in the door-post remained; the iron wall-bracket remained; the crack along the chair's back remained. The broken ship's nail, the faded cloth, the old pen — all still lay inside.
+
+Only one old list was missing.
+
+That sheet of paper lay tucked at the ledger's far end; no one had opened it for years and years. No one remembered what it had carried, nor when anyone had last laid eyes upon it. The keeper of the ledger turned over the leaves several times; confirming the tucked place empty, he wrote in the tally-book: one page short. Once written, he struck those four characters through.
+
+No one asked whether the tide had taken that sheet of paper. No one said it must still exist somewhere either. Those inside only set the remaining things back in their places, swept the salt into the dust-pan, and set the dust-pan beside the door.
+
+The tide does not say.
+
+**Anchor sentence**: lost things leave no receipt.
+**锚句**：失物不留收据。
+
+---
+
+## VI · Next Time
+
+The next day, the bearer of firewood came as usual.
+
+He set the wood beyond the threshold. The salt from the tide still lay unswept; as the wood touched down, grains sprang up and fell into the door-seam. Those inside heard it; they did not go out. The lamp-dish still hung from the wall; the ledger still lay beneath its stone.
+
+The keeper of the ledger spread a fresh page, and wrote down the date after the tide's retreat. The ink dried slowly; he waited. While waiting, someone outside drew the old cloth from its nail, shook it twice, and hung it back. One damp mark remained on it, its edge already hardening.
+
+No one said whether next time would be higher.
+
+They steadied the table-legs; they checked the iron wall-bracket; they braced the split in the narrow shelf with a wooden wedge. Someone set a flat stone beside the threshold, face upward; others moved several empty chests against the wall. The keeper of the ledger left his paper-weight upon the book; his fingers paused at the page's corner, and then he went on writing.
+
+None of this preparation entered the ledger. The ledger recorded only today's delivered wood, how much lamp-oil had been spent, and which sum remained unpaid at the door. The flame leapt once; the shadows on the wall shortened — then restored themselves.
+
+The tide will always come.
+
+Wood will still be carried to the door's edge; the ledger will still be written beneath the lamp. Those inside will never know which thing the next water will touch first, nor which line will remain, nor which page will open out blank. They only place the ledger higher, hang the lamp firmer, and sweep the salt from the threshold.
+
+**Anchor sentence**: next time, smell the salt first.
+**锚句**：下次仍先闻盐。
+
+---
+
+## Model mapping (Chapter XII)
+
+| Category | Title | Corresponds to |
+|---|---|---|
+| lore | The Tide · Salt · the Ledger · the Broken Ship's Nail · the Old Pen · the Faded Cloth | I–VI |
+| geography | The Lamp-Lit Room · the Threshold · the Tide-Mark · the Street-Mouth | I–VI |
+| factions | Those Inside · the Bearer of Firewood · the Keeper of the Ledger | I–VI |
+| characters | The Keeper of the Ledger · the Bearer of Firewood · Those Inside | I–VI |
+| items | The Ledger · the Lamp-Dish · the Paper-Weight Stone · the Iron Wall-Bracket · the Narrow Shelf · the Old Pen · the Ship's Nail | I–VI |
+| story | The Mist Harbor · When the Tide Came Up · Chapter XII | whole |
+| history | After the Iron-Moon Age · Before the Grey Cover Was Laid | I–VI |
+
+> The tide never speaks, but it leaves salt behind;
+> set the ledger higher, hang the lamp firmer.
+>
+> 潮水不说话，但它留下了盐；
+> 把账放得更高，把灯挂得更牢。
+`,
+  },
 ] as const;
 
 export const BIBLE_ECHOES: readonly BibleChapter[] = [

@@ -412,6 +412,42 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "refEn": "Chapter XI · VI"
   },
   {
+    "zh": "盐先到了。",
+    "en": "the salt arrived first.",
+    "refZh": "第十二章 · 一",
+    "refEn": "Chapter XII · I"
+  },
+  {
+    "zh": "旧物不报姓名。",
+    "en": "old things never give their names.",
+    "refZh": "第十二章 · 二",
+    "refEn": "Chapter XII · II"
+  },
+  {
+    "zh": "先移账，再移灯。",
+    "en": "move the ledger first, then the lamp.",
+    "refZh": "第十二章 · 三",
+    "refEn": "Chapter XII · III"
+  },
+  {
+    "zh": "盐记得脚步。",
+    "en": "salt remembers footsteps.",
+    "refZh": "第十二章 · 四",
+    "refEn": "Chapter XII · IV"
+  },
+  {
+    "zh": "失物不留收据。",
+    "en": "lost things leave no receipt.",
+    "refZh": "第十二章 · 五",
+    "refEn": "Chapter XII · V"
+  },
+  {
+    "zh": "下次仍先闻盐。",
+    "en": "next time, smell the salt first.",
+    "refZh": "第十二章 · 六",
+    "refEn": "Chapter XII · VI"
+  },
+  {
     "zh": "巡逻路没有路标——它每三个月自己洗刷一次去年留下的痕。",
     "en": "the patrol road has no signs — every three months it scrubs the past year's marks away by itself.",
     "refZh": "回响（其一） · 一",

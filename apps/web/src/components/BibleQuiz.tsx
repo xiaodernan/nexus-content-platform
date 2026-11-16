@@ -275,6 +275,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《灯下的账》里，账上最上面那行字……？', choices: ['写着交账的人的姓名', '无人认领，像一根钉在旧木里的铁钉', '是空的，后面才开始', '被磨掉了，只剩纸纹'], answer: 1, ref: '第十一章 · 二' },
     en: { prompt: 'In “The Ledger Beneath the Lamp”, the line at the very top of the ledger…?', choices: ['carries the name of the one who handed it over', 'belongs to no one — like an iron nail in old timber', 'is blank; the writing starts below it', 'has worn away to blank paper'], answer: 1, ref: 'Chapter XI · II' },
   },
+  {
+    zh: { prompt: '《潮来的时候》里，潮头先撞到门槛的是……？', choices: ['一支旧笔', '一枚坏船钉', '一片褪色布', '一捆柴'], answer: 1, ref: '第十二章 · 二' },
+    en: { prompt: 'In “When the Tide Came Up”, the first thing struck against the threshold was…?', choices: ['an old pen', 'a broken ship’s nail', 'a faded cloth', 'a bundle of firewood'], answer: 1, ref: 'Chapter XII · II' },
+  },
+  {
+    zh: { prompt: '《潮来的时候》里，潮水带走了什么？', choices: ['桌椅都没了', '一张旧名单不见了', '账本没了', '门没了'], answer: 1, ref: '第十二章 · 五' },
+    en: { prompt: 'In “When the Tide Came Up”, what did the tide take?', choices: ['the table and chairs were gone', 'an old list went missing', 'the ledger disappeared', 'the door was gone'], answer: 1, ref: 'Chapter XII · V' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {
