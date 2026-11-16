@@ -5253,3 +5253,12 @@
 .be-profileBar { height: 0.55rem; background: var(--nexus-color-bg-2); border-radius: 999px; overflow: hidden; }
 .be-profileFill { display: block; height: 100%; background: linear-gradient(90deg, var(--nexus-color-info), var(--nexus-color-accent-2-ink)); }
 .be-profileCount { white-space: nowrap; color: var(--nexus-color-fg-2); }
+
+/* §PULSE-3 fix: long inline delta text breaks normal whitespace; KPI label overflow; pl-lede wraps Chinese lines */
+.pl-delta { white-space: normal; line-height: 1.5; text-align: left; max-width: 100%; overflow-wrap: anywhere; word-break: break-word; }
+.pl-kpiValue { overflow-wrap: anywhere; word-break: break-word; hyphens: auto; }
+.pl-lede { overflow-wrap: anywhere; word-break: break-word; hyphens: auto; }
+.pl-recText, .pl-recBasis, .pl-footNote, .pl-footStamp, .pl-barLabel, .pl-barValue { overflow-wrap: anywhere; word-break: break-word; }
+.pl-gateRow { flex-wrap: wrap; }
+.pl-gateInput { min-width: 0; flex: 1 1 9rem; }
+.pl-gateButton { flex: 0 0 auto; }

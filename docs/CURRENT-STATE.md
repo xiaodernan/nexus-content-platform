@@ -4878,3 +4878,11 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - 指南：中文 / 英文同步反映 /observatory 作为公开页入口（guide SHA pin 重钉 → e42d528f…）。
 - 全新测试 `pulse-velocity.test.ts` 增加 0/0 过滤断言（不再出现在榜 Top-3）；新 tsc 全清；新 `pulseProjection` 无单测驱动（纯函节流）
 - 门：fe-gates 122 套 · 1193/1193；census 2462；live probe :3100 → /observatory 200；/pulse 200。
+
+## cont. 163 (2026-11-17) - v793: 回响（其六）「传灯记」 + observatory & pulse 长文本 wrap 修复
+
+- 世界大典新回响 E06「传灯记」：6 节正典细节侧写——船厂里的灯笼 · 北端守夜人手按灯笼替商队让路 · 撒贝儿往食谱上撒九粒盐 · 商人家族里的下一个守灯人上任墙上多出新句 · 灯自己老了的那一天 · 世代传了三百年的灯篓（仍没人碰过缺口）。
+- 锚句全系列 6 章 × 6 回响 **双语校验 69/69 通过**；live probe /bible/echo-006-the-handoff-of-the-lamp 200（双语标题+双语锚句命中）；/bible hub 列出 echo-006。
+- Quiz **24 题**（+2 E06 双语同题，序列 [..., 1, 1]）；guide 升级到六章六回响；bible gates 33/33 全绿。
+- §PULSE-3 fix（小修大补）：pl-delta 文本溢出到边界（projectionHint 直接断行）/pl-kpiValue 长数字溢出/pl-lede 中文行字被边缘截断/pl-barLabel/pl-barValue overflow；.pl-gateRow flex-wrap 允许顶项满屏窄的屏幕上完整可输入；.pl-gateInput flex 1 1 9rem；.pl-gateButton flex 0 0 auto.
+- census 2462 OK；fe-gates 122 套 1193/1193 OK。

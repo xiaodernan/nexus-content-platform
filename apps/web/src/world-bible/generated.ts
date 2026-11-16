@@ -2853,4 +2853,314 @@ When the meeting broke up, the roll was sealed for storage, the ledger back into
 > 灯被交给潮水、交给绳、交给没合上的账；只有坠海的声音，从未被登记。
 `,
   },
+  {
+    order: 6,
+    slug: 'echo-006-the-handoff-of-the-lamp',
+    titleZh: '传灯',
+    titleEn: 'The Lamp Passed Down',
+    eraLineZh: '纪元：铁月纪之后 · 便灯节。',
+    eraLineEn: 'Era: after the Iron-Moon Age · the Lamp-passing Festival.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 6): The Lamp Passed Down
+
+> 回响仍是正典之外的侧写——第六层纹理，不是续篇，不是批判，不是伪造。
+> 本篇写给灯如何在人之间被悄悄传下去——灯灭了也没人敢猜，下一次谁点灯。
+> 本篇锚句，与《潮沙盘》《第八盏灯》《远信》《最后的签收》同一纪律。
+>
+> An echo remains a side-glance beyond the canon — the sixth grain on the same stone, not a sequel, not a critique, not a forgery.
+> Written for the way a lamp travels from one pair of hands to another — even spent, no one dares guess whose turn it is.
+> Its anchors answer to the same discipline as Chapters III to VI and Echoes No. 3 to No. 5.
+
+> 纪元：铁月纪之后 · 便灯节。
+> Era: after the Iron-Moon Age · the Lamp-passing Festival.
+
+---
+
+## 其一 · 船厂里的灯笼
+
+第五章以后，第八盏灯再没有亮起过。
+
+船厂的人不谈这件事。潮水照旧进坞，退时留下黑泥；木板照旧翻面，钉子照旧落进掌心。只有一个孩子认定，自己的灯还在路上。
+
+他每天从船架下穿过去，数那些挂在梁上的旧灯笼。数到第八盏时就停下。那盏灯笼缺了一角，灯腹里积着雨，白日看去像一只空碗。孩子说它是自己的。没人问他从哪儿听来的。
+
+夜里，他把一截麻绳系在自己的腰带上，另一端系在梁柱上。他说，若灯来了，总得有人认得他。船匠割断麻绳，叫他回屋睡。第二天，孩子又系了一根。
+
+他没有等到灯亮。船厂的灯一盏盏熄下去，只有那只缺角的灯笼挂在梁上。孩子长高了，开始帮人递木楔，仍会在经过时抬头看一眼。
+
+后来他离开船厂，腰带上还留着一段磨白的绳头。没人知道那是不是灯给他的凭据。
+
+**锚句**：他认定那盏灯属于自己。
+**Anchor sentence**: he knew that lamp was his.
+
+---
+
+## 其二 · 商队遇上北端守夜人
+
+商队走到北端时，路被夜色截断。
+
+守夜人立在石标旁，手里提一盏旧灯。商队的人没有问路，只把车停在风里。骆驼低头，铃声一阵阵落进雪中。
+
+守夜人伸手按住灯笼。灯芯没有动，灯罩也没有亮。他把灯举到身侧，空出窄窄一段路。商队从他面前经过，车轮压过冻硬的泥，留下两道黑线。
+
+最后一辆车上坐着一个病人，脸被毯子盖住，只露出嘴。守夜人没有看他，也没有问他们要去哪里。他的手一直按在灯笼上，指节冻得发白。
+
+车队走远后，石标旁只剩铃声。守夜人把灯放回原处，掌心留着一圈灯罩的凉痕。天亮时，有人看见雪地里多了几行脚印，脚印从路边绕开，又在路中央合拢。
+
+商队后来经过许多关口。有人问起北端，他们只说，那里有一个人曾把手放在灯上。
+
+**锚句**：他按住灯，替陌生人让路。
+**Anchor sentence**: he held the lamp for strangers to pass.
+
+---
+
+## 其三 · 食谱上的盐粒
+
+撒贝儿把盐撒在食谱上。
+
+她还小，够不到厨房高处的架子，就踩着一只倒扣的木盆。纸上写着鱼汤、麦饼、煮豆。她用指尖捻起盐，沿着空白处撒下九粒。
+
+母亲问她为什么。撒贝儿说，这是九次潮汐。她没有再说。盐粒落在纸上，像九处白色的破口。
+
+那晚家里煮鱼，撒贝儿守在锅边。潮声从窗缝里进来，一次接一次。每次退去，她就从食谱上取下一粒盐，放进锅里。汤尝起来咸淡不匀，母亲没有责备她，只把锅端离火口。
+
+后来那本食谱被油渍浸透，页角卷起，盐粒在纸上融成浅痕。撒贝儿长大后仍保留着它。她在别人的厨房做饭，照着旧页上的字下盐，从不说那些空白处原先有过什么。
+
+有一年，纸页被水沾湿。九道盐痕淡得看不见，她把食谱摊在窗台上，等风吹干。
+
+**锚句**：九粒盐，替她记住九次潮汐。
+**Anchor sentence**: nine grains of salt, keeping count of the tides.
+
+---
+
+## 其四 · 墙上的新句
+
+商人家族的下一个守灯人上任那天，库房没有开门。
+
+他先去看灯，再去看账册。灯油的数目与往年相同，灯罩上有一道细裂，像一条没有走完的路。他把名册放回桌上，独自留在库房里。
+
+墙上原有几行旧字。字迹被烟熏得发灰，最末一句写着：守灯的人不替灯说话。他从小见过这句话，记得每一个字的落点。
+
+那天，他发现墙角多了一句新字。
+
+墨色很浅，像是刚写下，又像在潮气里放了很久。上面写着：灯灭时，也有人经过。
+
+他用手摸了摸墙。石灰落在指尖，字没有散。他叫来家里的人，却没有问谁写的。众人站在门口看了一会儿，随后各自回去做事。
+
+新守灯人把灯挂回原处。夜里，他从库房出来，门没有锁。墙上的字留在黑暗里，像一条被水浸过的线。
+
+**锚句**：墙上有了新句，没人认领。
+**Anchor sentence**: a new line appeared; no one claimed it.
+
+---
+
+## 其五 · 灯自己走的那一天
+
+那盏灯自己老了。
+
+它的铁环松开，灯腹的铜皮变薄，风一吹就发出轻响。看守的人换过灯芯，补过裂口，也把它移到避风处。灯没有因此多亮一夜。
+
+便灯节前，潮水退得很远。岸上露出一条窄路，从仓房后面通向旧堤。天刚黑，那盏灯从挂钩上落下来，滚到门边。
+
+没人伸手去捡。
+
+它沿着旧堤往前走。灯罩碰过碎贝壳，发出一声一声的轻响。风没有替它推，潮水也没有追。它走到堤尽头，停在一截断桩旁。灯芯早已熄灭，里面没有油。
+
+第二天，人们只找到灯环。环里缠着一根褪色的麻线，像谁从很远的地方带来的。有人把它放进柜子，有人说该留在原处。最后它被挂回旧钩上，空着。
+
+往后的夜里，门边仍有一小段暗处。经过的人不绕开，也不久留。
+
+**锚句**：那一天，灯自己走了。
+**Anchor sentence**: on that day, the lamp walked away on its own.
+
+---
+
+## 其六 · 灯篓
+
+灯篓传了三百年。
+
+它由黑藤编成，底部有一处缺口，提手磨得发亮。每一代人接过它时，都要念出前一代人的名字。名字写在篓口内侧，墨迹一层压一层，最后只剩几道深浅不一的黑线。
+
+传到如今，灯篓放在商人家族的内室。门不常开，窗也不开。有人擦过它，有人替它补过藤条，没有人把手伸进缺口。
+
+便灯节那天，家里人把灯挂上，照例将灯篓摆在桌边。孩子们围着桌子，问它装过什么。老人没有回答，只把一块布盖在篓上。布角落下去，盖住那处缺口。
+
+夜深后，屋里的人都走了。桌边没有灯火，只有窗外的潮声隔着墙来去。灯篓在布下，没有动，也没有被碰过。
+
+三百年里，它从一双手传到另一双手。传到今天，还是完整地放在那里。
+
+**锚句**：传了三百年，至今无人碰过它。
+**Anchor sentence**: three hundred years passed, and no one has touched it.
+
+---
+
+## 模型映射（回响六章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 灯笼 · 守夜人 · 撒盐 · 灯 | 一至五 |
+| geography | 船厂 · 北端 · 海堤 · 仓房 · 内室 | 一至六 |
+| factions | 船厂人 · 商队 · 商人家族 · 守夜人 | 一至六 |
+| characters | 孩子 · 撒贝儿 · 商队病人 · 下一个守灯人 · 守夜人 | 一至六 |
+| items | 缺角的灯笼 · 麻绳 · 灯篓 · 盐 · 食谱 · 铁环 | 一至六 |
+| story | 雾港 · 第八盏灯熄灭之后的传灯 · 便灯节 | 全篇 |
+| history | 便灯节沿袭 · 灯灭之后 | 一至六 |
+
+> 传灯的人从不解释——他只是把它给下一个能让它继续走的人。
+> 灯灯的人传灯——灯盏本身就是那棵树的果子。
+>
+> The one who passes the lamp never explains — they simply hand it to the next who can carry it on.
+> The light carries its own keepers — the lamp is the fruit of the tree.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其六）「传灯记」
+
+> An echo remains a side-glance beyond the canon — the sixth grain on the same stone, not a sequel, not a critique, not a forgery.
+> Written for the way a lamp travels from one pair of hands to another — even spent, no one dares guess whose turn it is.
+> Its anchors answer to the same discipline as Chapters III to VI and Echoes No. 3 to No. 5.
+>
+> 回响仍是正典之外的侧写——第六层纹理，不是续篇，不是批判，不是伪造。
+> 本篇写给灯如何在人之间被悄悄传下去——灯灭了也没人敢猜，下一次谁点灯。
+> 本篇锚句，与《潮沙盘》《第八盏灯》《远信》《最后的签收》同一纪律。
+
+> Era: after the Iron-Moon Age · the Lamp-passing Festival.
+> 纪元：铁月纪之后 · 便灯节。
+
+---
+
+## I · The Lamp at the Dockyard
+
+After Chapter V, the Eighth Lamp never lit again.
+
+The people at the shipyard said nothing about it. The tide ran into the dock as usual, and withdrew leaving black mud; the planks were turned as usual; the nails fell into the hands as usual. Only one boy was certain — his own lamp was on the way.
+
+Every day he slipped beneath the hull scaffolds and counted the old lamps hooked to the beams. He always stopped at the eighth. It was missing a corner; its belly held rain that from a distance looked like an empty bowl. The boy said it was his. Nobody asked how he had come to know that.
+
+At night, he tied a length of rope to his own belt, and another end to a beam-pillar. He said, if the lamp came, someone would have to recognize him. The shipwright cut the rope and sent him to bed. The next day, the boy tied on another.
+
+He never saw the lamp lit. One by one the shipyard's lamps were put out, leaving only the missing-cornered lamp hanging from the beam. The boy grew taller; he helped carry wooden wedges — and still he looked up whenever he passed.
+
+Later he left the yard with a length of rope-whitened belt around his waist. Nobody knew whether it was proof that the lamp had kept a claim on him.
+
+**Anchor sentence**: he knew that lamp was his.
+**锚句**：他认定那盏灯属于自己。
+
+---
+
+## II · The Caravan and the Northern Night-Watchman
+
+The caravan reached the northern end at the hour when the road was cut off by night.
+
+The watchman stood by the stone beacon with an old lamp in hand. Nobody among the caravan asked for directions; they simply halted the carts in the wind. The camels lowered their heads; the bells fell into the snow in slow cascades.
+
+The watchman reached out and held the lamp. The wick did not move; the shade did not light. He raised the lamp beside his body to leave a narrow passage. The caravan passed him — the wheels rolled over the frozen mud and left two black lines.
+
+In the last cart lay a sick man, face covered by a blanket, only the mouth uncovered. The watchman did not look at him, nor ask where they were going. His hand stayed on the lamp — his knuckles white with cold.
+
+When the caravan was gone, only the bells remained at the beacon. The watchman returned the lamp to its place; the print of the shade's rim stayed on his palm. By morning, people saw fresh footprints in the snow that had skirted wide of the road, and then closed up again in the middle of it.
+
+The caravan later passed through many gates. Whenever someone asked about the northern end, they only said: there was a man who put his hand on a lamp.
+
+**Anchor sentence**: he held the lamp for strangers to pass.
+**锚句**：他按住灯，替陌生人让路。
+
+---
+
+## III · The Salt Grains on the Recipe
+
+Saer dropped salt onto the recipe.
+
+Being still too small to reach the shelf above the kitchen table, she stood on an upturned wooden basin. On the paper were written: fish soup, barley cakes, boiled beans. She pinched salt with her fingertips and dropped nine grains into the empty spaces.
+
+Her mother asked why. Saer said — these were the nine tides. She would not say more. The grains landed on the paper, like nine white ruptures.
+
+That evening they made fish soup. Saer guarded the pot. The sea-wind came in through the window crack in waves; each time it withdrew, she took a grain off the recipe and dropped it into the pot. The soup never tasted the same salt twice; her mother did not blame her — she simply moved the pot off the fire.
+
+The recipe was later soaked with oil stains; its corners curled; the grains dissolved into pale ghost-traces on the page. Saer, grown, kept it — she cooked in other people's kitchens from the old page without ever saying what those light spots had been.
+
+Once, the paper was soaked through by water. The nine ghost-lines faded past reading; she spread the page on the window sill and waited for the wind to dry it.
+
+**Anchor sentence**: nine grains of salt, keeping count of the tides.
+**锚句**：九粒盐，替她记住九次潮汐。
+
+---
+
+## IV · The New Line on the Wall
+
+On the day the next lamp-keeper of the merchant family took office, the storehouse did not open.
+
+He went first to the lamp, then to the ledger. The oil gauge matched previous years; the shade carried a hairline crack along its length — like a road that had not finished unwinding. He put the register back on the desk and remained alone in the storehouse.
+
+On the wall were several lines of older writing. The letters had been blackened by smoke, fading near the centre; the last line read: the lamp-keeper does not speak for the lamp. He had seen it since he was small; he remembered every stroke's destination.
+
+That day, he found a new line in a corner.
+
+The ink was pale — as if set down a moment ago, or as if it had been left in the damp for years. It read: when the lamp dies, someone still passes through.
+
+He reached out and touched the wall. Lime fell onto his fingertips; the letters did not lift. He called the family's people in but asked no one who had written it. The others stood at the door and looked for a while, then returned to their work.
+
+The new lamp-keeper hung the lamp back on its hook. In the night, he left the storehouse — the door was not locked. The wall-letters remained in the dark, like a line the water had crossed.
+
+**Anchor sentence**: a new line appeared; no one claimed it.
+**锚句**：墙上有了新句，没人认领。
+
+---
+
+## V · The Day the Lamp Walked on Its Own
+
+That lamp grew old by itself.
+
+Its iron hoop slackened; its copper belly thinned; a breath of wind set it shaking again. The keeper changed its wick, patched the cracks, moved it to shelter — none of it bought the lamp one more night.
+
+On the eve of the Lamp-passing Festival, the tide drew far out. The shore exposed a narrow path leading from behind the storehouse toward the old seawall. Just after dusk, the lamp dropped from its hook and rolled to the threshold.
+
+Nobody reached for it.
+
+It walked the old seawall. Its shade brushed against crushed shells, issuing a sequence of faint clicks. The wind did not push; the sea did not follow. It reached the far end — it stopped by a broken post. The wick was long dead; there was no oil inside.
+
+By morning, only the hoop remained. Inside it was wound a faded cord of rope — as if carried from a long way off. Some kept it in a drawer; others said it should stay where it had fallen. Eventually, they hung it back on the old hook — empty.
+
+In the nights that followed, the dark by the threshold was still there. People did not walk around it; they did not linger either.
+
+**Anchor sentence**: on that day, the lamp walked away on its own.
+**锚句**：那一天，灯自己走了。
+
+---
+
+## VI · The Lamp Basket
+
+The basket passed three hundred years.
+
+It was woven of black rattan, with a gap at the base and a handle worn bright. Every time a new pair of hands took it over, they would recite the names of those before them — written on the inside of the rim, layer upon layer of ink; by now, only uneven black lines remained.
+
+In the present time, the basket sat behind a merchant family's inner room. The door did not open often; neither did the window. Some wiped it; some mended its rattan — no one put a hand inside the gap.
+
+On the Lamp-passing Festival, the family hung their own lamps; they set the basket upon the table as they always did. The children encircled the table, asking what it had carried. The elders did not answer — a cloth was merely laid over the basket, covering the gap.
+
+After the house was empty, the table held no light. Beyond the wall, the sea rose and withdrew again and again. The basket stayed beneath the cloth; it did not move; it was not touched.
+
+Across three hundred years, from one pair of hands to another. It remained, completely intact, on that table.
+
+**Anchor sentence**: three hundred years passed, and no one has touched it.
+**锚句**：传了三百年，至今无人碰过它。
+
+---
+
+## Model mapping (echo No. 6)
+
+| Category | Title | Corresponds to |
+|---|---|---|
+| lore | The Lamp · the Watchman · the Salt · the Walking Lamp | I–V |
+| geography | The Shipyard · the North End · the Dock · the Storehouse · the Inner Room | I–VI |
+| factions | The Shipwrights · the Merchant Caravan · the Merchant House · the Northern Watchman | I–VI |
+| characters | The Boy · Saer · the Sick Passenger · the New Lamp-Keeper · the Watchman | I–VI |
+| items | The Broken-cornered Lamp · the Cord · the Recipe · the Salt · the Iron Ring · the Lamp Basket | I–VI |
+| story | The Mist Harbor · the Eighth Lamp after it died · the Lamp-passing Festival | whole |
+| history | The Lamp-passing Festival · after the lamp's silence | I–VI |
+
+> The one who passes the lamp never explains — they simply hand it to the next who can carry it on.
+> The light carries its own keepers — the lamp is the fruit of the tree.
+>
+> 传灯的人从不解释——他只是把它给下一个能让它继续走的人。
+> 灯灯的人传灯——灯盏本身就是那棵树的果子。
+`,
+  },
 ] as const;

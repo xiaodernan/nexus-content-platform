@@ -155,6 +155,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《最后的签收》里，书记员在最后一栏写下了什么？', choices: ['已收 · 含收件人名', '已收 · 收件人名空白', '未收', '无人签收'], answer: 1, ref: '末章 · 六' },
     en: { prompt: 'In “The Final Seal”, what does the clerk write in the last column?', choices: ['received, with the recipient’s name', 'received, the recipient’s name left blank', 'unreceived', 'no one signed'], answer: 1, ref: 'Final chapter · VI' },
   },
+  {
+    zh: { prompt: '《传灯记》里，守夜人替商队让路时塔楼上亮的是什么灯？', choices: ['海警灯', '一盏旧灯', '一口油灯', '无灯（靠手电让路）'], answer: 1, ref: '回响六 · 商队遇上北端守夜人' },
+    en: { prompt: 'In “Echo No. 6”, what did the watchman hold for the caravan?', choices: ['a signal lamp', 'an old lamp', 'an oil lamp', 'no lamp — he walked them bare-handed'], answer: 1, ref: 'Echo No. 6 · The Caravan and the Northern Night-Watchman' },
+  },
+  {
+    zh: { prompt: '《传灯记》里，撒贝儿往食谱上撒了几粒盐？', choices: ['八粒', '九粒', '三粒', '无数粒'], answer: 1, ref: '回响六 · 撒贝儿' },
+    en: { prompt: 'In “Echo No. 6”, how many salt grains did Saer drop onto the recipe?', choices: ['eight', 'nine', 'three', 'as many as she wanted'], answer: 1, ref: 'Echo No. 6 · The Salt Grains on the Recipe' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {
