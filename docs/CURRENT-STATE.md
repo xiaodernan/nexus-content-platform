@@ -5022,3 +5022,14 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - guide 全套对齐：七回响 → 八回响 / seven echoes → eight echoes（zh/en ×6 处）；SHA pin 4e909deb… 重钉。
 - 草稿出真 provider（gpt-6.1-terra），人工定稿·严纪律。
 - 门：fe-gates 123 套 · 1200/1200 OK；census 2541 OK；tsc 0。
+
+## cont. 173 (2026-11-17) - v803: 回响八更名「封面四字」——不与第四章《第八盏灯》撞名
+
+- 更名：回响（其八）「第八盏灯」→ **「封面四字 / The Four Characters」**（echo-008-the-four-characters）。
+  原因：世界大典第四章已有《第八盏灯》（卷四引线，灯要点燃、书终究要合上）——典籍室会出现两部同名，
+  搜索与 hub 混淆。回响本就讲"第七章封面上被写下的那四个字是谁、还会不会亮、门外的人为什么不散"——
+  「封面四字」更贴切，也不再撞名。
+- 锚句不变（87/87 全过）；gen:bible-snapshot 重生成（8 回响）字节一致
+- BibleQuiz 引用更新（2 zh + 2 en）；SHA pin a5ad5b40… 重钉
+- live probe：/bible/echo-008-the-four-characters 200；旧 slug 404
+- 门：fe-gates 123 套 · 1200/1200；census 2541 OK

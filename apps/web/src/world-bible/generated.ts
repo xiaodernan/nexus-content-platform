@@ -3651,9 +3651,9 @@ In the three-hundred-and-eighth year, in August, the outermost strip of that tra
   },
   {
     order: 8,
-    slug: 'echo-008-the-eighth-lamp',
-    titleZh: '第八盏灯',
-    titleEn: 'The Eighth Lamp',
+    slug: 'echo-008-the-four-characters',
+    titleZh: '封面四字',
+    titleEn: 'The Four Characters',
     eraLineZh: '纪元：铁月纪之后 · 灰棚之前。',
     eraLineEn: 'Era: after the Iron-Moon Age · before the grey cover was laid.',
     markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 8): The Eighth Lamp

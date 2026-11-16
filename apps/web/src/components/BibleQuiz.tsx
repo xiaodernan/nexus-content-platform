@@ -180,12 +180,12 @@ const QUESTIONS: Question[] = [
     en: { prompt: 'In “The Needle”, what word did the watchman write?', choices: ['done', 'unfinished', 'the ledger', 'received'], answer: 1, ref: 'Echo No. 7 · V' },
   },
   {
-    zh: { prompt: '《第八盏灯》里，账房在封面写下了什么？', choices: ['"第八盏灯"', '"三百年"', '"潮先行"', '"灯尽"'], answer: 0, ref: '回响八 · 一' },
-    en: { prompt: 'In “The Eighth Lamp”, what does the bursar write on the cover?', choices: ['“The Eighth Lamp”', '“three hundred years”', '“the tide went first”', '“the lamp is done”'], answer: 0, ref: 'Echo No. 8 · I' },
+    zh: { prompt: '《封面四字》里，账房在封面写下了什么？', choices: ['"第八盏灯"', '"三百年"', '"潮先行"', '"灯尽"'], answer: 0, ref: '回响八 · 一' },
+    en: { prompt: 'In “The Four Characters”, what does the bursar write on the cover?', choices: ['“The Eighth Lamp”', '“three hundred years”', '“the tide went first”', '“the lamp is done”'], answer: 0, ref: 'Echo No. 8 · I' },
   },
   {
-    zh: { prompt: '《第八盏灯》里，沙盘一直少响哪一下？', choices: ['第三下', '第六下', '第九下', '第七下'], answer: 2, ref: '回响八 · 五' },
-    en: { prompt: 'In “The Eighth Lamp”, which knock never comes?', choices: ['the third', 'the sixth', 'the ninth', 'the seventh'], answer: 2, ref: 'Echo No. 8 · V' },
+    zh: { prompt: '《封面四字》里，沙盘一直少响哪一下？', choices: ['第三下', '第六下', '第九下', '第七下'], answer: 2, ref: '回响八 · 五' },
+    en: { prompt: 'In “The Four Characters”, which knock never comes?', choices: ['the third', 'the sixth', 'the ninth', 'the seventh'], answer: 2, ref: 'Echo No. 8 · V' },
   },
 ];
 
