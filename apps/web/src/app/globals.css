@@ -5228,3 +5228,28 @@
 .pl-hotItem { display: flex; justify-content: space-between; align-items: center; gap: 1rem; background: var(--nexus-color-bg-3); border-radius: var(--nexus-radius-sm, 0.5rem); padding: 0.7rem 0.9rem; }
 .pl-hotName { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pl-hotMeta { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem; color: var(--nexus-color-accent-2-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* §SIM-1 《行为演练》/admin/behavior-sim（模拟真实用户的人·天流量；suspectedBot=true 入库） */
+.be-panel { display: flex; flex-direction: column; gap: 0.9rem; background: var(--nexus-color-bg-2); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md, 0.75rem); padding: 1.25rem; }
+.be-panelTitle { font-size: 1.1rem; margin: 0; }
+.be-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.be-primaryBtn { font-size: 0.95rem; border-radius: var(--nexus-radius-md, 0.5rem); border: 1px solid var(--nexus-color-border-subtle); padding: 0.55rem 0.9rem; background: var(--nexus-color-brand); color: var(--nexus-color-accent-fg); font-weight: 600; cursor: pointer; }
+.be-primaryBtn:hover { filter: brightness(1.1); }
+.be-primaryBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.be-primaryBtn:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+.be-note { color: var(--nexus-color-fg-2); margin: 0; line-height: 1.6; }
+.be-error { color: var(--nexus-color-danger-ink); margin: 0; }
+.be-result { display: flex; flex-direction: column; gap: 0.75rem; }
+.be-metaGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 0.5rem; margin: 0; }
+.be-metaCell { background: var(--nexus-color-bg-3); border-radius: var(--nexus-radius-sm, 0.5rem); padding: 0.6rem 0.8rem; display: flex; flex-direction: column; gap: 0.2rem; }
+.be-metaCell dt { font-size: 0.72rem; color: var(--nexus-color-fg-2); margin: 0; }
+.be-metaCell dd { font-size: 0.85rem; margin: 0; overflow-wrap: anywhere; }
+.be-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; }
+.be-byProfile { background: var(--nexus-color-bg-3); border-radius: var(--nexus-radius-sm, 0.5rem); padding: 0.9rem 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.be-subHead { font-size: 0.9rem; margin: 0; color: var(--nexus-color-fg-2); }
+.be-profileList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.be-profileRow { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr) auto; gap: 0.6rem; align-items: center; font-size: 0.8rem; }
+.be-profileName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.be-profileBar { height: 0.55rem; background: var(--nexus-color-bg-2); border-radius: 999px; overflow: hidden; }
+.be-profileFill { display: block; height: 100%; background: linear-gradient(90deg, var(--nexus-color-info), var(--nexus-color-accent-2-ink)); }
+.be-profileCount { white-space: nowrap; color: var(--nexus-color-fg-2); }

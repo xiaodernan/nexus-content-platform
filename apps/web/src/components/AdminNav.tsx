@@ -39,6 +39,7 @@ const LINKS = [
   { key: 'discover-cache', href: '/admin/discover-cache', labelZh: '发现页缓存', labelEn: 'Discover cache' },
   { key: 'ai-cache', href: '/admin/ai-cache', labelZh: '缓存读数', labelEn: 'AI cache' },
   { key: 'savings', href: '/admin/savings', labelZh: 'AI 节省', labelEn: 'AI savings' },
+  { key: 'behavior-sim', href: '/admin/behavior-sim', labelZh: '行为演练', labelEn: 'Behavior drill' },
   { key: 'dead-letters', href: '/admin/dead-letters', labelZh: '死信巡检', labelEn: 'Dead letters' },
   { key: 'pricing', href: '/admin/pricing', labelZh: 'AI 成本', labelEn: 'AI costs' },
   { key: 'health', href: '/admin/health', labelZh: '健康总览', labelEn: 'Health' },

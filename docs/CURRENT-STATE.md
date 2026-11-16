@@ -4850,3 +4850,16 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - 真机核验（:3100，PG 55433/Redis 56379，Docker Flapping 两次）：opensBot=571/opens=709/81%（warning kind bot-pressure，basis=botShare=81% 正确触发）；hotTop = [蜜蜜乐购·金光 mvza9nk2/fy 49 opens curr， 2 条冷门件 curr 0 prev 1]；recommendations 3 条；fe-gates 121 套 · 1188/1188 OK；census 2444 OK
 - /pulse UI 出现两个新区：需要留意（warn tiles with color-mix tints from warn-ink) + 谁在变热（每条：作品 + velocity% + curr vs prev 对比）
 - guide SHA pin 重钉（brace-fix 回补）；pulse-visual-style pin 46f78219… 重钉；至此 /pulse 全部字节锚定
+
+## cont. 161 (2026-11-17) - v791: admin 后台「行为演练」——simulate 真实用户行为（§九化解）
+
+- 用户§九明示"真实用户可能打开一个页面没耐心就关掉，可能不知道去哪就在页面上瞎点——把这些真实行为模拟出来"。落地：
+- 新 `server/domain/visitorSim.ts`（纯函数）：mulberry32 确定性 PRNG；6 种 profile（impatient 35% / clicker 25% / deep-reader 15% / rage-clicker 10% / fat-finger 10% / crawler 5%）；按 profile 不同采样可见时长、滚动深度、打开次数；simulateVisits(N≤500, seed) 冷产出人·天行，suspectedBot=true（诚实：是 bot，不可当真人算）。
+- `server/domain/visitorSimRunner.ts`：随机选一个公开作品（visibility=public 且 deletedAt IS NULL，标题/service_mode 决定模拟目标；seed 派生），按最小开销 upsert 写进 `publication_visits`（opens 累加+completionPct 取最大，与现网 recordVisit 同口径）。
+- `/api/admin/visitor-sim` POST：role=admin 门禁（与 /admin/* 其余几扇同一句话）；count 1..500、seed 可给可随机；503 带真实原因（库内无公开发布作品时）。
+- `/admin/behavior-sim` 页面：RSC gate + AdminNav（新增 behavior-sim 入口到 AdminNav、admins/name lists、home card 视为第十二格——full census 计入；admin-home-style 判例更新到 12 张卡、Pinned 16Dn 16 入口→17）
+- 新 `app/admin/behavior-sim/page.tsx` + `BehaviorSimPanel.tsx`：点 "模拟 20/60/120 个访客" 后直接呈现该次假想：seed、target（Path with chip link to Ⓡ 作品）、总访客人数、runs opens、avgVisibleMs、avgCompletionPct、profile distribution 板（profiles + 各占百分比）。
+- 新 `.be-*` facade classes（be-panel/be-panelTitle/be-actions/be-primaryBtn/be-error/be-metaGrid/be-metaCell/be-mono/be-byProfile/be-subHead/be-profileList/be-profileRow/be-profileName/be-profileBar/be-profileFill/be-profileCount）+ §SIM-1 globals.css 段。
+- 新 `test/admin-behavior-sim-visual-style.test.ts`（5 门：RSC/gate/钩子/API/SHA pins page+panel）；`test/visitor-sim.test.ts` 9 门（weights sum=100、PRNG 确定性、visibleMs/completionPct 区间、impatient 权重最大、空集安全）
+- 真机验证（:3100 30910、ON8099 net）：POST /api/admin/visitor-sim body={count:40,seed:4242} → 200 `inserted:40` 目标作品 "公开组合 mw883kie"；`/api/pulse` 即时回读 opensBot 571→660、total opens 709→798、bot-pressure `pct=83%` 诚实触发；Admin home 第十二张卡同屏上线；AdminNav 17 格。
+- 门：tsc 0；census 2444+0（新增 be-* 全计入）OK；FE-GATES 121 suites 1188/1188；AdminNav SHA pin + Admin pages 双钉更新；admin-home-style 12 张卡钉。
