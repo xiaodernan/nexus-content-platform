@@ -2067,4 +2067,230 @@ As the light came up, the tide drew back down to the dyke foot. The warden count
 > 九下叩击从不请求应答——它只请求被记入一册永远合不上的账。
 `,
   },
+  {
+    order: 5,
+    slug: 'echo-005-lamp-rope-memoir',
+    titleZh: '灯绳记',
+    titleEn: 'The Lamp-Rope Memoir',
+    eraLineZh: '纪元：铁月纪之后 · 第四十二次会议无人召集之后的第二日。',
+    eraLineEn: 'Era: after the Iron-Moon Age · the second day after the forty-second meeting convened for no one.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 5): The Lamp-Rope Memoir
+
+> 回响仍是正典之外的侧写——第五层纹理，不是续篇，不是批判，不是伪造。
+> 本篇写给第八盏灯撞见第九叩之后的那个早晨：误差被现场再次勘定的第二天。
+> 本篇锚句，与《潮沙盘》《第八盏灯》《盐灯守灵日记》《第九叩》同一纪律。
+>
+> An echo remains a side-glance beyond the canon — the fifth grain of salt on the same stone, not a sequel, not a critique, not a forgery.
+> Written for the morning after the Eighth Lamp met the Ninth Knock: the day after the error was remeasured on site.
+> Its anchors answer to the same discipline as Chapters III and IV and Echoes No. 3 and No. 4.
+
+> 纪元：铁月纪之后 · 第四十二次会议无人召集之后的第二日。
+> Era: after the Iron-Moon Age · the second day after the forty-second meeting convened for no one.
+
+---
+
+## 其一 · 灯绳的开端
+
+看守人巡查灯绳时，数的不是结，也不是灯。他数绳上留下的水痕：一道浅，一道深；一道干在堤内，一道还朝海面渗。每过一盏灯，他便把指节贴上去，等盐粒硌住皮肤，再记下那一处的潮向。绳子从堤门起，沿灯座穿过，末端收在看守人的腰间。年久以后，腰间那截磨得发白，灯座上的几截却仍有新盐。
+
+第八盏灯的绳结曾经松过一次。册上没有写明是哪一夜，只在那页边上留了一点凹痕，像有人用笔尖按住纸，等收件的人进门。看守人每回巡到那里，都把数目从头再数一遍。数到第八，他停下；数到第九，便把手从绳上拿开。
+
+**锚句**：绳上有数，册上无名。
+**Anchor sentence**: the rope keeps count; the register keeps no name.
+
+---
+
+## 其二 · 一抹湿纸
+
+撤网的渔人是在落潮后发现那抹湿纸的。纸夹在网眼里，边角卷起，沾着鱼鳞和一层薄盐。他没有把它带进港，只放在海堤的石阶上，等巡检的人收件。纸上只写着一个字：在。
+
+字迹被水吃去一半，留下的那一半仍朝上。渔人把网拖回船边，少报了一段网绳，也没问那张纸要送往哪里。值守的人来时，纸已贴在石阶上，像一枚不肯被潮水冲走的薄印。巡检册收了它，却没有收下渔人的名字。
+
+第二天，海堤外的水退得比平日慢。石阶上的纸干了，那个字仍湿着。看守人经过时没有碰它，只把它旁边的盐粒扫开，留出一圈空处。
+
+**锚句**：纸只写在，不写来处。
+**Anchor sentence**: the sheet records presence — never provenance.
+
+---
+
+## 其三 · 末页空位
+
+巡检册的末页有一格空位，栏头是灯号，栏底是收件。墨色从前几页的黑褐，淡到末页只剩灰青。看守人用同一支笔填过许多次，笔尖每回都停在第八盏灯那一格；纸上有压痕，没有字。
+
+账房说，那是留给下一次巡检的。印章盖在空格下方，印泥发暗，边缘缺了一角。无人把空位补齐，也无人把那页撕去。册子合上时，空格正好落在封皮磨损处，像一扇窄门，始终没有收到来件。
+
+那夜之后，巡检照旧。看守人记录潮位、灯焰、绳结；墨色仍旧。只有末页多了一道水线，从空格经过，停在收件二字下面。
+
+**锚句**：空位收件，不收姓名。
+**Anchor sentence**: the empty cell receives; it does not receive names.
+
+---
+
+## 其四 · 向海一拳
+
+第八盏灯的影子在堤上挪出去一拳。那时天色未明，灯还亮着，灯座没有动，影子却越过石缝，往海的方向伸长。看守人蹲下来，以拳量过一次，又退开，再量一次。第二次没有多，也没有少。
+
+他没有在册上写影子，只用靴底压住石缝边的盐壳。潮水隔着堤涌上来，退下去，留下一个浅窝。影子的末端正落在窝里，像一根没有接上的绳。看守人等到灯焰缩短，才站起来；那时影子仍在原处。
+
+第九叩之后的第二天，灯又摇了一次。不是风把它推得很远，只是灯身往海面偏了偏。看守人没有伸手扶正。灯座上的旧系缆已松，绳尾拖在湿石上，留下一道细长的黑线。
+
+**锚句**：影子先出了堤。
+**Anchor sentence**: the shadow crossed the dyke first.
+
+---
+
+## 其五 · 系缆的早晨
+
+趁落潮，看守人走出海堤。先把新绳放在灯座旁，再解开旧绳上缠住盐壳的结；他没有把旧绳丢进海里，只将它盘在石上。接着，他把新绳穿过灯座的环，拉到不碰灯身的位置，打结，再用掌根压紧。每一步都做得很慢，像要让灯知道下一步仍会来。
+
+他量了绳长，没有量灯离地多高。绳子留出一截余量，足够灯在风里摇晃，却不足以脱座坠海。结打好后，他把绳尾收进堤内，检查两遍，再把绳结朝向海。盐水漫到他的鞋边，没漫过新结。
+
+这根系缆不是要拽住灯。看守人没有把它拉直，也没有让它替灯站稳。他只在落潮最浅的时候，给灯座添了一条不能断开的来路。收工前，他把巡检册翻到末页，墨色仍是灰青，空格照旧。
+
+**锚句**：系缆留余，灯可摇。
+**Anchor sentence**: the mooring line leaves slack; the lamp may sway.
+
+---
+
+## 其六 · 第四十二次会议
+
+账本第四十二次会议名册的最后一行空着。空处没有姓名，只有纸面被反复按过的痕迹，像印章落下又被取走。那一行原本写过看守人的名字；抄录时，负责收件的人说墨色不合，便将整页重抄。新页上，末行仍空。
+
+账房没有解释为何空着。旧页留在册底，名字已经被水迹洇开，看不清笔画；新页用的是灰青墨，末行下方却盖着同一枚印章。两页之间夹了一张窄纸，写着第八盏灯，未写灯绳，也未写看守人。
+
+会议散后，名册照例封存，账本照例入柜。柜门合拢时，海堤外正涨潮。第八盏灯在水声里摇晃，系缆没有拽它，也没有替它作证。
+
+**锚句**：名册重抄，空行未改。
+**Anchor sentence**: the roll was recopied; the blank line still stands.
+
+---
+
+## 模型映射（回响五章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 灯绳·收件·影子·空行 | 三、四 |
+| geography | 雾港 · 海堤 · 石阶 · 第八盏灯灯座 | 一、三、四、五 |
+| factions | 雾港灯绳看守人 · 渔人 · 账房 | 一至六 |
+| characters | 看守人 · 渔人 · 账房 | 一至六 |
+| items | 灯绳 · 湿纸 · 巡检册 · 名册 · 印章 | 一至六 |
+| story | 雾港 · 第八盏灯 · 回响（其五） | 全篇 |
+| history | 铁月纪之后 · 第四十二次会议次日 | 一至六 |
+
+> 系缆从不替灯做任何决定——它只保证坠海的声音会先告诉大海。
+> 灯被交给潮水、交给绳、交给没合上的账；只有坠海的声音，从未被登记。
+>
+> The mooring never decides for the lamp — it only lets the sea hear the falling first.
+> The lamp is given to the tide, then to the rope, then to the open ledger; only the sound of falling is never filed.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其五）「灯绳记」
+
+> An echo remains a side-glance beyond the canon — the fifth grain of salt on the same stone, not a sequel, not a critique, not a forgery.
+> Written for the morning after the Eighth Lamp met the Ninth Knock: the day after the error was remeasured on site.
+> Its anchors answer to the same discipline as Chapters III and IV and Echoes No. 3 and No. 4.
+>
+> 回响仍是正典之外的侧写——第五层纹理，不是续篇，不是批判，不是伪造。
+> 本篇写给第八盏灯撞见第九叩之后的那个早晨：误差被现场再次勘定的第二天。
+> 本篇锚句，与《潮沙盘》《第八盏灯》《盐灯守灵日记》《第九叩》同一纪律。
+
+> Era: after the Iron-Moon Age · the second day after the forty-second meeting convened for no one.
+> 纪元：铁月纪之后 · 第四十二次会议无人召集之后的第二日。
+
+---
+
+## I · The Making of the Rope
+
+When the warden walked his rounds along the lamp lines, he counted neither knots nor lamps. He counted the watermarks the ropes carried: one shallow, one deep; one dried inside the dyke, one still weeping toward the sea. At every lamp he pressed a knuckle to the rope, waited until the grains of salt bit into his skin, and wrote down the tide's direction by that lamp. The rope ran from the dyke gate, wound through the lamp footings, and came back to his own belt. In long years the part at his waist was worn pale; at the lamps, the rope still carried fresh salt.
+
+The Eighth Lamp's knot had come loose once. The register did not say which night, only a dent at the edge of the page — as if a hand had pressed the paper flat, waiting for the receipt-keeper to come through the door. Each time he made the round he counted the entries from the top again. At eight he stopped; at nine he took his hand off the rope.
+
+**Anchor sentence**: the rope keeps count; the register keeps no name.
+**锚句**：绳上有数，册上无名。
+
+---
+
+## II · A Smear of Wet Paper
+
+Only after the ebb did the fisherman find the smear of paper in his net. Folded at the mesh, its corners curled, it wore fish scales and a film of fine salt. He did not carry it into port — he left it on the stone steps of the sea dyke, waiting for the inspector to collect it. The sheet held a single character: 在 — that is, "present."
+
+The tide had eaten half the strokes; the surviving half still faced upward. The fisherman hauled his net aboard, under-reported a healthy length of line, and never asked where the paper was bound. When the watchman came, the sheet had dried to the stone as a thin impression the sea could not lift. The inspection roll collected it — but not the fisherman's name.
+
+The following day, the water stayed beyond the stones longer than usual. The paper on the steps had dried; its one character stayed damp. The warden, passing, did not touch it. He only swept the salt aside in a ring around it, leaving the figure alone.
+
+**Anchor sentence**: the sheet records presence — never provenance.
+**锚句**：纸只写在，不写来处。
+
+---
+
+## III · The Empty Cell at the End of the Page
+
+The inspection roll's final page had a blank cell, headed "lamp number," ending at "received." The ink ran from the brown-black of earlier pages to a grey-green so faint it was barely legible. The warden had walked many pens across it; each time the nib always paused on the row for the Eighth Lamp — there was the pressure of letters, but no letters.
+
+The bursar said the cell was held for the next inspection. The seal sat below it, its paste darkened, one corner rubbed thin. Nobody closed the cell, and nobody tore the page away. When the roll shut, the cell fell exactly where the spine was worn — a narrow door that had never once received an item.
+
+The rounds continued unchanged. The warden entered the tides, the flames, the knots; the colors stayed the same. On the last page — a thin waterline had crept across the blank, and stopped at the syllables for "received."
+
+**Anchor sentence**: the empty cell receives; it does not receive names.
+**锚句**：空位收件，不收姓名。
+
+---
+
+## IV · One Fistful Toward the Sea
+
+The Eighth Lamp's shadow slid a fist's breadth farther along the dyke. The sky had not yet paled, the lamp was still lit, the base had not moved — but the shadow crossed the stones, reaching out toward open water. The warden crouched; measured with his fist, stepped back, measured again. The second span came out the same — neither longer nor shorter.
+
+He did not enter the shadow in the roll. He only pinned the salt crusting the stone seam with his boot heel. The tide brimmed over the dyke, withdrew, and left a shallow basin behind. The shadow's tip fell exactly into the bowl — like a rope never knotted. He waited until the flame shortened, then stood; the shadow had not moved.
+
+On the second day after the Ninth Knock, the lamp swayed once more. Not the wind pushing it far; only the body leaning, a hair's breadth, toward the sea. The warden did not lift a hand to right it. The old moor was slack on the footing, its tail drawn across the wet stone, leaving a long black streak of salt.
+
+**Anchor sentence**: the shadow crossed the dyke first.
+**锚句**：影子先出了堤。
+
+---
+
+## V · The Morning of the Mooring
+
+On the ebb, the warden walked out beyond the dyke. He laid the new rope by the footing first; then he worked loose the salt-scabbed knots on the old one. He did not throw the old rope into the sea — he coiled it on the stone. He fed the new line through the footing's eye, pulled it to the point it would not brush the lamp, made the knot, then pressed the whole with the heel of his hand. He took every step slowly — as if the lamp had to know the next step was coming.
+
+He measured the rope's length — never the lamp's distance from the ground. The rope kept some slack: enough for the lamp to ride out the wind, never enough to slip its footing into the water. When the knot was set he drew its tail back inside the dyke line, checked twice, turned the knot toward the sea. The water reached his shoes; it never reached the new knot.
+
+This moor was never made to hold the lamp. The warden did not straighten it; he did not ask it to stand the lamp on its own. He only laid, at the shallowest hour of the ebb, a lane the lamp could never lose. Before closing his roll he checked the last page — the ink still grey-green, the cell still blank.
+
+**Anchor sentence**: the mooring line leaves slack; the lamp may sway.
+**锚句**：系缆留余，灯可摇。
+
+---
+
+## VI · The Forty-Second Meeting
+
+The last line of the forty-second meeting's roll stayed empty. There was no name — only the ghost of repeated pressure in the paper, where a seal was set down and lifted away. That line had once carried the warden's name; when the clerk copied it out, the receipt-keeper said the ink was not correct, and the whole page was recopied. On the new page — the last line was blank again.
+
+The bursar offered no explanation. The old page rests at the back of the roll, its name bled away into rust-water and unreadable; the new page keeps its grey-green paste — and beneath the blank, the same seal as before. Folded between the two, a narrow slip of paper: the Eighth Lamp — never the rope, never the warden.
+
+When the meeting broke up, the roll was sealed for storage, the ledger back into the cabinet. As the door shut, the tide was coming in beyond the dyke. In the sound of the rise the Eighth Lamp swayed — the moor neither held it, nor vouched for it.
+
+**Anchor sentence**: the roll was recopied; the blank line still stands.
+**锚句**：名册重抄，空行未改。
+
+---
+
+## Model mapping (echo No. 5)
+
+| Category | Title | Corresponds to |
+|---|---|---|
+| lore | The Rope · the Receipt · the Shadow · the Blank Line | III, IV |
+| geography | The Mist Harbor · the Sea Dyke · the Stone Steps · the Eighth Lamp Footing | I, III, IV, V |
+| factions | The Lamp-Rope Warden · the Fishermen · the Bursar | I–VI |
+| characters | The Warden · the Fisherman · the Bursar | I–VI |
+| items | The Rope · the Wet Sheet · the Inspection Roll · the Meeting Roll · the Seal | I–VI |
+| story | The Mist Harbor · the Eighth Lamp · Echo (No. 5) | whole |
+| history | After the Iron-Moon Age · the second day after the forty-second meeting | I–VI |
+
+> The mooring never decides for the lamp — it only lets the sea hear the falling first.
+> The lamp is given to the tide, then to the rope, then to the open ledger; only the sound of falling is never filed.
+>
+> 系缆从不替灯做任何决定——它只保证坠海的声音会先告诉大海。
+> 灯被交给潮水、交给绳、交给没合上的账；只有坠海的声音，从未被登记。
+`,
+  },
 ] as const;

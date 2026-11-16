@@ -131,6 +131,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《第九叩》里，报纸上的第九个脚注写的是什么？', choices: ['雾港失踪的第九人', '灯罩内侧的九道叩痕', '第四十二次会议的日期', '圆角印章的来历'], answer: 1, ref: '回响四 · 被印圆角擦掉的第九个脚注' },
     en: { prompt: 'In “The Ninth Knock”, what does the ninth footnote in the newspaper describe?', choices: ['the ninth missing person of the mist harbor', 'nine knock-marks on the inside of a lamp shade', 'the date of the forty-second meeting', 'the origin of the corner-round seal'], answer: 1, ref: 'Echo No. 4 · The Ninth Footnote the Printer’s Corner-Seal Erased' },
   },
+  {
+    zh: { prompt: '《灯绳记》里，巡检页末页空格下方盖着什么？', choices: ['一枚黑印', '一枚边缘缺角的圆印', '一枚收件章', '一把锁'], answer: 1, ref: '回响五 · 末页空位' },
+    en: { prompt: 'In "The Lamp-Rope Memoir", what sits beneath the blank cell on the last page of the inspection roll?', choices: ['a black seal', 'a round seal with a worn corner', 'a receipt stamp', 'a lock'], answer: 1, ref: 'Echo No. 5 · The Empty Cell at the End of the Page' },
+  },
+  {
+    zh: { prompt: '《灯绳记》里，渔人少报了什么？', choices: ['一段网绳', '一袋鱼鳞', '一抹湿纸', '一盏灯'], answer: 0, ref: '回响五 · 一抹湿纸' },
+    en: { prompt: 'In "The Lamp-Rope Memoir", what did the fisherman under-report?', choices: ['a length of net', 'a bag of fish scales', 'a sheet of wet paper', 'a lamp'], answer: 0, ref: 'Echo No. 5 · A Smear of Wet Paper' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {
