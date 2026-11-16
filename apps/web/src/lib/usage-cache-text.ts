@@ -32,9 +32,16 @@ export function cacheShare(usage: CacheUsageSlice): number | null {
   return Math.round((usage.cachedTokens / usage.tokensIn) * 100);
 }
 
-export function cacheText(usage: CacheUsageSlice): string {
-  if (!usage.cacheReported) return '缓存读数未报';
-  if (usage.cachedTokens <= 0) return '缓存未命中';
+/** 双语：缓存说明——zh 原文逐字不动；en 是同一三档的英文镜像 */
+export function cacheText(usage: CacheUsageSlice, locale: "zh" | "en" = "zh"): string {
+  if (locale === "en") {
+    if (!usage.cacheReported) return "cache unreported";
+    if (usage.cachedTokens <= 0) return "cache miss";
+    const share = cacheShare(usage);
+    return share === null ? `cache hit ${usage.cachedTokens}` : `cache hit ${usage.cachedTokens} · ${share}%`;
+  }
+  if (!usage.cacheReported) return "缓存读数未报";
+  if (usage.cachedTokens <= 0) return "缓存未命中";
   const share = cacheShare(usage);
   return share === null ? `缓存命中 ${usage.cachedTokens}` : `缓存命中 ${usage.cachedTokens}·${share}%`;
 }
@@ -96,11 +103,11 @@ export function cacheTotal(
  */
 export type CostSlice = { costUsd: number; costBasis: 'unknown' | 'configured' };
 
-export function costText(usage: CostSlice): string {
-  if (usage.costBasis !== 'configured') return '未计价';
+export function costText(usage: CostSlice, locale: "zh" | "en" = "zh"): string {
+  if (usage.costBasis !== "configured") return locale === "en" ? "not priced" : "未计价";
   const amount = usage.costUsd;
-  if (!Number.isFinite(amount) || amount <= 0) return '$0.000000';
-  if (amount < 0.000001) return '不足 $0.000001';
+  if (!Number.isFinite(amount) || amount <= 0) return "$0.000000";
+  if (amount < 0.000001) return locale === "en" ? "less than $0.000001" : "不足 $0.000001";
   if (amount < 0.01) return `$${amount.toFixed(6)}`;
   return `$${amount.toFixed(4)}`;
 }

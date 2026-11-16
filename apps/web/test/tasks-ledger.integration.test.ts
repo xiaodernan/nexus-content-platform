@@ -84,8 +84,10 @@ describe('§75 用量记账（真库）', () => {
     cacheReported: false,
     latencyMs: 42,
     costUsd: 0,
+    costBasis: 'unknown',
     toolCalls: 0,
     demoMode: true,
+    reasoningTokens: 0,
   };
 
   it('记进去 → listProjectTasks 原样读出，契约也过得了（DEMO 的 0 token 是被记下来的事实）', async () => {

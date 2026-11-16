@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * §165：建议来自真的命中（同一份可见性判定）；历史只在这台设备；无 JS 时仍是原生 GET 表单——不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `dffdb64e95d503da137510dfe8bb28d0653c1b4dc71029e9455266626fee63ea` 与 HEAD 字节一致。
+ * `d48b492046291f363d81ff4ff1ce13754ff8d1481874f24cee17f207b9478781` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/app/search/SearchBox.tsx');
@@ -102,9 +102,9 @@ describe('§FE-79 /search SearchBox 搜索框原子清零', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：dffdb64e95d503da137510dfe8bb28d0653c1b4dc71029e9455266626fee63ea）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：d48b492046291f363d81ff4ff1ce13754ff8d1481874f24cee17f207b9478781）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'dffdb64e95d503da137510dfe8bb28d0653c1b4dc71029e9455266626fee63ea',
+      'd48b492046291f363d81ff4ff1ce13754ff8d1481874f24cee17f207b9478781',
     );
   });
 });

@@ -216,7 +216,7 @@ export default async function CreditsPage(): Promise<ReactElement> {
       </section>
 
       <section className="cr-section">
-        <CreditsBurnCard projection={burnProjection} balance={view.balances.ai} />
+        <CreditsBurnCard projection={burnProjection} balance={view.balances.ai} locale={locale} />
       </section>
 
       <section className="cr-section">

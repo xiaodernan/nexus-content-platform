@@ -635,7 +635,7 @@ export function GamePlay({
       </p>
 
       {view === '3d' ? (
-        <GameCanvas3D plan={plan} keys={keys} stateRef={stateRef} onHud={setHud} />
+        <GameCanvas3D plan={plan} keys={keys} stateRef={stateRef} onHud={setHud} locale={locale} />
       ) : (
         <canvas
           ref={canvas}

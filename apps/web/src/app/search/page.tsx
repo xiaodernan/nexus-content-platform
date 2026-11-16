@@ -62,7 +62,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
 
       {/* §165：建议来自真实命中（同一份可见性判定），历史只存在这台设备上。
           没有 JS 时仍是原生 GET 表单——建议与历史是增强，不是唯一入口。 */}
-      <SearchBox initialQuery={q} />
+      <SearchBox initialQuery={q} locale={locale} />
       <p className="se-suggestNote" data-search-suggest-note>
         {copy.suggestNote}
       </p>

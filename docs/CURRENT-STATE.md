@@ -4270,3 +4270,19 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   en → 200（无 CJK 文案：Switch to light theme / Open command palette True；shell aria-labels 全英文）；
   en 残余 CJK 全部为**作者原文 / 正常 bilingual 锚点 / FAVicon 字体 `中`**（语言 FAB 设计本体）。
 - 显式不做：未在发布者尚未拿到的 /play、/storyboard 做 SSR 断言（DB 当前无钉了 game/storyboard 文档的已发布项目，事实如实说）。
+
+## cont. 180 (2026-11-17) — v815 · 根 404 / 错误边界 / 燃烬卡 / 节省卡 / 任务账本 / 搜索框 / GameCanvas3D 全双语 + SSR 回归
+
+用户指令：「不要停· 多找一些可以干的任务来做」。本轮把**上一轮还剩的 zh-only 共用面**全部收双语：
+- `app/not-found.tsx`：双语并轨（zh 主 + en 平行文案，lang 标注双向可读）；`app/error.tsx`：双语（zh + en 并列）；`globals.css` 新增 `.nf-titleEn`/`.nf-detailEn`。
+- `components/CreditsBurnCard.tsx`：接 locale 下传 + SV dict（shared with /tasks）。
+- `components/SavingsCard.tsx`：locale 下传，`formatTokens` 走 en 走「K/M」，zh 保「万/亿」。
+- `components/TasksLedgerLive.tsx`：`TL_STATUS` 双语 + 全部文案若/th/realtime/retry/empty + cacheText/costText 传 locale。
+- `lib/usage-cache-text.ts`：`cacheText`/`costText` 加 locale 第二参（默认 zh 逐字不变）。
+- `/search/SearchBox`：locale 下传；`/search/page.tsx` 传 locale（此页仍然是功能最重的页面）。
+- `game2d/GameCanvas3D.tsx`：locale 下传（read 侧没有 ref，但 prop 经上层透传）+ `GamePlay` 传 locale。
+- `app/world/[projectId]/integrity/page.tsx`：backGraph dict 双语。
+- `/tasks/[projectId]/page.tsx`：getLocale + 透传 TasksLedgerLive。
+- 门：**12+ 个 SHA 门按各自 redact 算法重钉**（含 FE-GE/-BN/-IC/-FI/-SV/-96/-95/-79/-78/-23/-16/-IC/-GE/-BN/-T）；
+  fe-gates **125/125 · 1223/1223 · census 2396** 全绿；tsc web 0。
+- SSR 失败页 /guide（:3199）暂时换端口 `next start` 复测——数据源（Docker Postgres）停停启启，手动迁移后复位。

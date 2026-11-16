@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { BurnProjection } from '@/lib/burn-projection';
+import type { Locale } from '@/lib/i18n';
 
 /**
  * 「点数燃烬」（v700 / ROADMAP）—— /credits 页上的燃烬速度卡。
@@ -24,6 +25,48 @@ const PAD_X = 6;
 const PAD_TOP = 10;
 const PAD_BOTTOM = 16;
 const EXTRA_DAYS = 4; // 虚线外推几天
+
+/** 双语：SVG/文案的每行按 cookie locale 选（不夹杂） */
+const BN_TXT = {
+  zh: {
+    speedAria: '点数燃烬速度',
+    kicker: '点数燃烬 · 近 30 天',
+    aboutDays: (days: number) => `≈ ${days} 天`,
+    over9999: '9999+',
+    steady: '稳',
+    noBurnCopy: (avgPerDay: number) =>
+      `近 30 天没有下降趋势（斜率 ≥ 0）——照现在的用法，AI 额度撑得过这个整月。日均燃烬约 ${avgPerDay.toFixed(1)} 点。`,
+    noGuess: '不猜',
+    sparseCopy: (activeDays: number) =>
+      `近 30 天只有 ${activeDays} 个活跃燃烬日（< 3），样本不够算出方向——这一页就不给你编一个日期。`,
+    svgAria: (total: number) => `近 30 天每日 AI 点数燃烬，合计 ${total.toFixed(0)} 点`,
+    svgEmpty: '这 30 天没有 AI 消耗行为',
+    chipAvg: '日均燃烬',
+    chipActive: '活跃燃烬日',
+    chipTotal: '窗口合计',
+    unit: '点',
+    note: '口径：仅 AI 类、delta<0、按 UTC 日分组、近 30 天；least-squares 线性外推不是承诺；发放不计；video 类不在这条预测里。',
+  },
+  en: {
+    speedAria: 'Credits burn rate',
+    kicker: 'Burning credits · last 30 days',
+    aboutDays: (days: number) => `≈ ${days} days`,
+    over9999: '9999+',
+    steady: 'Steady',
+    noBurnCopy: (avgPerDay: number) =>
+      `No downward trend in the last 30 days (slope ≥ 0) — at this pace, AI credits last the whole month. Average burn ≈ ${avgPerDay.toFixed(1)} pts/day.`,
+    noGuess: 'Not enough data',
+    sparseCopy: (activeDays: number) =>
+      `Only ${activeDays} active burn day(s) in the last 30 days (< 3) — not enough signal to name a date, so this page refuses to invent one.`,
+    svgAria: (total: number) => `Daily AI credit burn over the last 30 days, ${total.toFixed(0)} pts in total`,
+    svgEmpty: 'No AI consumption in these 30 days',
+    chipAvg: 'Avg burn',
+    chipActive: 'Active days',
+    chipTotal: 'Window total',
+    unit: 'pts',
+    note: 'Scope: AI kind only, delta<0, grouped by UTC day, last 30 days; least-squares linear extrapolation is not a promise; grants are not counted; video credits are not part of this projection.',
+  },
+} as const;
 
 function easeOutExpo(t: number): number {
   return t >= 1 ? 1 : 1 - Math.pow(2, -7 * t);
@@ -49,7 +92,8 @@ function useCountUp(target: number, durationMs = 1100): number {
   return value;
 }
 
-export function CreditsBurnCard({ projection, balance }: { projection: BurnProjection; balance: number }) {
+export function CreditsBurnCard({ projection, balance, locale = 'zh' }: { projection: BurnProjection; balance: number; locale?: Locale }) {
+  const T = BN_TXT[locale];
   const daysLeft = projection.daysUntilEmpty;
   const animatedDays = useCountUp(daysLeft ?? 0);
   const [mounted, setMounted] = useState(false);
@@ -91,7 +135,7 @@ export function CreditsBurnCard({ projection, balance }: { projection: BurnProje
   return (
     <section
       data-burn-card
-      aria-label="点数燃烬速度"
+      aria-label={T.speedAria}
       className="bn-root"
     >
       <div aria-hidden="true" className="bn-glowRight" />
@@ -100,30 +144,36 @@ export function CreditsBurnCard({ projection, balance }: { projection: BurnProje
       <div className="bn-layout">
         <div className="bn-colLead">
           <span className="bn-kicker">
-            <FlameIcon /> 点数燃烬 · 近 30 天
+            <FlameIcon /> {T.kicker}
           </span>
           {projection.verdict === 'projecting' ? (
             <>
               <div className="bn-daysBig" data-burn-days>
-                ≈ {animatedDays >= 9999 ? '9999+' : animatedDays} 天
+                {animatedDays >= 9999 ? T.over9999 : T.aboutDays(animatedDays)}
               </div>
-              <p className="bn-copy">
-                按近 30 天的下降趋势（least-squares 线性外推），剩余<b data-burn-balance>{balanceLabel}</b> 点 AI 额度约在{' '}
-                <b data-burn-date>{projection.exhaustDate}</b> 耗尽。外推不是承诺，只是你过去的消耗照出了镜子。
-              </p>
+              {locale === 'en' ? (
+                <p className="bn-copy">
+                  Following the 30-day downward trend (least-squares linear extrapolation), your remaining <b data-burn-balance>{balanceLabel}</b> AI credits will likely run out around <b data-burn-date>{projection.exhaustDate ?? ''}</b>. Extrapolation is not a promise — it is only a mirror of your past consumption.
+                </p>
+              ) : (
+                <p className="bn-copy">
+                  按近 30 天的下降趋势（least-squares 线性外推），剩余<b data-burn-balance>{balanceLabel}</b> 点 AI 额度约在{' '}
+                  <b data-burn-date>{projection.exhaustDate}</b> 耗尽。外推不是承诺，只是你过去的消耗照出了镜子。
+                </p>
+              )}
             </>
           ) : projection.verdict === 'no-burn' ? (
             <>
-              <div className="bn-daysBig" data-burn-days>稳</div>
+              <div className="bn-daysBig" data-burn-days>{T.steady}</div>
               <p className="bn-copy">
-                近 30 天没有下降趋势（斜率 ≥ 0）——照现在的用法，AI 额度撑得过这个整月。日均燃烬约 {projection.avgPerDay.toFixed(1)} 点。
+                {T.noBurnCopy(projection.avgPerDay)}
               </p>
             </>
           ) : (
             <>
-              <div className="bn-daysBig" data-burn-days>不猜</div>
+              <div className="bn-daysBig" data-burn-days>{T.noGuess}</div>
               <p className="bn-copy">
-                近 30 天只有<b>{projection.activeDays}</b> 个活跃燃烬日（&lt; 3），样本不够算出方向——这一页就不给你编一个日期。
+                {T.sparseCopy(projection.activeDays)}
               </p>
             </>
           )}
@@ -134,7 +184,7 @@ export function CreditsBurnCard({ projection, balance }: { projection: BurnProje
             viewBox={`0 0 ${W} ${H}`}
             className="bn-svg"
             role="img"
-            aria-label={`近 30 天每日 AI 点数燃烬，合计 ${projection.totalBurned.toFixed(0)} 点`}
+            aria-label={T.svgAria(projection.totalBurned)}
             data-burn-svg
           >
             <defs>
@@ -153,7 +203,7 @@ export function CreditsBurnCard({ projection, balance }: { projection: BurnProje
                 fill="currentColor"
                 fillOpacity="0.35"
               >
-                这 30 天没有 AI 消耗行为
+                {T.svgEmpty}
               </text>
             ) : null}
             {mounted && areaPath ? <path d={areaPath} fill="url(#burnArea)" /> : null}
@@ -183,13 +233,13 @@ export function CreditsBurnCard({ projection, balance }: { projection: BurnProje
           </svg>
 
           <div className="bn-chips" data-burn-chips>
-            <Chip label="日均燃烬" value={`${projection.avgPerDay.toFixed(1)} 点`} marker="avg" />
-            <Chip label="活跃燃烬日" value={String(projection.activeDays)} marker="active" />
-            <Chip label="窗口合计" value={`${Math.round(projection.totalBurned)} 点`} marker="total" />
+            <Chip label={T.chipAvg} value={`${projection.avgPerDay.toFixed(1)} ${T.unit}`} marker="avg" />
+            <Chip label={T.chipActive} value={String(projection.activeDays)} marker="active" />
+            <Chip label={T.chipTotal} value={`${Math.round(projection.totalBurned)} ${T.unit}`} marker="total" />
           </div>
 
           <p className="bn-note">
-            口径：仅 AI 类、delta&lt;0、按 UTC 日分组、近 30 天；least-squares 线性外推不是承诺；发放不计；video 类不在这条预测里。
+            {T.note}
           </p>
         </div>
       </div>

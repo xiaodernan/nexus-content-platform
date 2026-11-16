@@ -110,7 +110,7 @@ describe('§FE-IC /world/<project>/integrity 世界体检', () => {
 
   it('SHA256 钉死（本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '32845b306b917054e3845361538fe6157f438ad0c5d40fef308e57226ec4da62',
+      'f69c495ea8cf06827711464972d6ddcb54b18c15423319cddc6654ef594b8fb6',
     );
   });
 });

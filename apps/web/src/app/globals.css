@@ -998,6 +998,8 @@
     -webkit-background-clip: text; background-clip: text; color: transparent;
   }
   .nf-detail { margin: 0; max-width: 38rem; line-height: 1.65; }
+  .nf-titleEn { margin: 0; font-size: var(--nexus-font-size-13); font-weight: 550; color: var(--nexus-color-fg-3); letter-spacing: 0.01em; text-transform: uppercase; }
+  .nf-detailEn { margin: 0; max-width: 38rem; line-height: 1.6; margin-top: var(--nexus-space-1); color: var(--nexus-color-fg-3); font-size: var(--nexus-font-size-13); }
   .nf-reasons {
     margin: var(--nexus-space-2) 0 0;
     padding: var(--nexus-space-3) var(--nexus-space-4);

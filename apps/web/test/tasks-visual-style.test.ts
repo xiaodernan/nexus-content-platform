@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
  * 本片只换 className；行为、文案、data 钩子、realtime 订阅/重读判据一字不改。
  *
  * **剥 className 后全文 SHA256 守恒**：三文件均逐字节恒等于改前（git HEAD）。
- * redact 三步序与钉死常量一致：live=`09db66dc…`（§AILIVE-9/CACHE-3 + §v699 SavingsCard 接线后的字节），retry=`b90012c2…`，page=`cae7a533…`。
+ * redact 三步序与钉死常量一致：live=`d5cb42c1…`（§AILIVE-9/CACHE-3 + §v699 SavingsCard 接线后的字节），retry=`b90012c2…`，page=`4e75c349…`。
  *
  * 判据不变式（14 门）：
  *  1. page.tsx server 组件 + force-dynamic + requireUser + listProjectTasks 钩子（零 className）；
@@ -167,7 +167,7 @@ describe('§FE-23 /tasks/[projectId] 任务账本', () => {
     // 横滚区键盘可达（axe: scrollable-region-focusable）——行为不是样式，但进门守着
     expect(liveCode).toContain('role="region"');
     expect(liveCode).toContain('tabIndex={0}');
-    expect(liveCode).toContain('aria-label="任务账本表格（可横向滚动）"');
+    expect(liveCode).toContain('aria-label={T.tableAria}');
   });
 
   it('数据钩子守恒：live 14 个 + retry 2 个（data-task-retry/-note）', () => {
@@ -202,7 +202,7 @@ describe('§FE-23 /tasks/[projectId] 任务账本', () => {
     // 为什么不在组件里内联：这两处措辞一旦各写一遍，早晚会漂——一处改成"未命中"、
     // 另一处还写"命中 0"。抽成纯函数后，"哪句话是什么"只有一处定义。
     expect(liveCode).toContain("from '@/lib/usage-cache-text'");
-    expect(liveCode).toContain('cacheText(usage)');
+    expect(liveCode).toContain('cacheText(usage, locale)');
     expect(liveCode).toContain('cacheTotal(');
     // 合计格一行都没报时有独立分支，绝不画 0%
     expect(liveCode).toContain('data-tasks-cache-summary="none"');
@@ -210,16 +210,16 @@ describe('§FE-23 /tasks/[projectId] 任务账本', () => {
     expect(liveCode).toContain('data-tasks-cache-summary={String(cache.cached)}');
   });
 
-  it('剥 className 后全文 SHA256 钉死（live=09db66dc… 并轨 §AILIVE-9/CACHE-3 + §v699 SavingsCard 接线后的字节 · retry=b90012c2… · page=cae7a533…）', () => {
+  it('剥 className 后全文 SHA256 钉死（live=d5cb42c1… 并轨 §AILIVE-9/CACHE-3 + §v699 SavingsCard 接线后的字节 · retry=b90012c2… · page=4e75c349…）', () => {
     // 常量在改前（git HEAD）由真实产物 redact 算出并钉死；此门保证除 className 外一字节未动。
     expect(createHash('sha256').update(redactClasses(live)).digest('hex')).toBe(
-      '09db66dc5fc6b3b2e23c8502be63e53cf7ff8ba2e5294e27763b9381c0c5339e',
+      'd5cb42c1b2b816e1d7b683fc8ba98fe99dd18f80772f076a8028764aee7ed61c',
     );
     expect(createHash('sha256').update(redactClasses(retry)).digest('hex')).toBe(
       'b90012c2ad50e24a71a316610fe85fb8b9caa69607d27fc8ef89b8c91ae23801',
     );
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      'cae7a533607f212cc3b582d0e2b115ecede5b8cdf51e3bafc63ca048dccdb81c',
+      '4e75c349c8dc2949cd94b3859035246f07c279752e7efe41887926ed85a42a5f',
     );
   });
 });

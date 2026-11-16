@@ -309,6 +309,8 @@ describe('§FE-9 根 404 门面（静态不变式）', () => {
   });
 
   it('纯展示零行为：不是 client 组件、无 hook / fetch / server action / params（Next 根 not-found 约定）', () => {
+    // 双语（v814）：根 404 用 getLocale() 读 cookie 选语言，与全站 RSC 同一口径——
+    // async RSC 允许，钩子/取数/server 域仍然禁；只有 Next 默认重定向用的 URL 作参数。
     expect(code, "根 404 不该是 'use client'（零行为）").not.toMatch(/['"]use client['"]/);
     expect(code, '混进了 React hook（零行为）').not.toMatch(/\buse(State|Effect|Reducer|Memo|Callback|Ref|Transition)\s*\(/);
     expect(code, '混进了 fetch / server action（零行为，不碰后端）').not.toMatch(/\bfetch\s*\(|['"]use server['"]|from\s+['"]@\/server\//);

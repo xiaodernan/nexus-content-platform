@@ -50,7 +50,7 @@ describe('§FE-GE /app/error.tsx 根级错误边界', () => {
 
   it('字面 className 全 .ge-*', () => {
     const literals = [...code.matchAll(/className="([^"]*)"/g)].map((m) => m[1]!);
-    expect(literals.length).toBe(9);
+    expect(literals.length).toBe(11);
     for (const cls of literals) {
       for (const tok of cls.split(/\s+/).filter(Boolean)) {
         expect(tok, `error.tsx 出现域外类：${tok}`).toMatch(/^ge-/);
@@ -84,9 +84,9 @@ describe('§FE-GE /app/error.tsx 根级错误边界', () => {
     expect(segment).not.toContain('color: transparent');
   });
 
-  it('剥 className 后全文 SHA256 钉死（合并后字节：1ed9d6af6a99e46990adb5900885f1c4c175d231126b454b472cf238cc67f9a7）', () => {
+  it('剥 className 后全文 SHA256 钉死（合并后字节：412ab080745aefd211e86f25402897dcfc70e0f49b827e4fff1624e7b25218d7）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '1ed9d6af6a99e46990adb5900885f1c4c175d231126b454b472cf238cc67f9a7',
+      '412ab080745aefd211e86f25402897dcfc70e0f49b827e4fff1624e7b25218d7',
     );
   });
 });

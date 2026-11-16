@@ -103,7 +103,7 @@ describe('§FE-95 /game2d GameCanvas3D 3D 视角 chrome', () => {
 
   it('剥 className 后全文 SHA256 守恒（零行为：v801 复航 v778 方向反转 faf38989…）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'faf38989e358f47468f89560c9f8a86d6d92729f9ea296896fa4de9b797420a6',
+      '9ae5b6d8baffcf97446e8455e07505f41a962ce091a34b495c27f8eb9b2c886f',
     );
   });
 });

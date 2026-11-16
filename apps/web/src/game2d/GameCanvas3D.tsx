@@ -5,6 +5,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { ARENA, step, type GamePlan, type SimInput, type SimState } from '@nexus/game-model';
 import { KIND_COLORS } from './palette';
+import type { Locale } from '@/lib/i18n';
 
 /**
  * §51 的第三种画法：`view === '3d'` 时的立体视角（three.js，与 `/world` 同一个渲染栈）。
@@ -32,7 +33,22 @@ export interface GameCanvas3DProps {
   keys: RefObject<Record<string, boolean>>;
   stateRef: RefObject<SimState>;
   onHud: (state: SimState) => void;
+  locale?: Locale;
 }
+
+/** 双语：WebGL 探针/不可用提示按 cookie locale 选（不夹杂） */
+const G3_TXT = {
+  zh: {
+    probing: '正在确认这台设备能不能用 WebGL…',
+    unavailableTitle: '这台设备/浏览器给不出 WebGL 上下文，3D 视角进不去。',
+    unavailableBody: '这里不会退回 2D 画法然后也叫「3D」。同一条关卡计划换个画法看：把文档类型改回 2D（或 2.5D），规则与数值一个字都不变。',
+  },
+  en: {
+    probing: 'Checking whether this device can run WebGL…',
+    unavailableTitle: 'This device/browser cannot provide a WebGL context — the 3D view cannot open.',
+    unavailableBody: 'There is no 2D fallback pretending to be "3D" here. Same level plan, different lens: switch the document type back to 2D (or 2.5D) and the rules and numbers stay the same, character for character.',
+  },
+} as const;
 
 /** WebGL 能不能用：与 `/world` 同一条口径——用不起来就明说，不悄悄换画法 */
 function useWebglAvailable(): boolean | null {
@@ -403,7 +419,8 @@ function PaintProbe() {
  * 3D 画法的入口：WebGL 探测 → 场景 → 相机 → 活体与循环。
  * 高度用 `aspectRatio` 锁成 1200×760，和 2D 画布占同一块地方（切换画法不会让页面跳一下）。
  */
-export function GameCanvas3D({ plan, keys, stateRef, onHud }: GameCanvas3DProps) {
+export function GameCanvas3D({ plan, keys, stateRef, onHud, locale = 'zh' }: GameCanvas3DProps) {
+  const T = G3_TXT[locale];
   const webgl = useWebglAvailable();
 
   if (webgl === null) {
@@ -413,7 +430,7 @@ export function GameCanvas3D({ plan, keys, stateRef, onHud }: GameCanvas3DProps)
         style={{ aspectRatio: `${ARENA.width} / ${ARENA.height}` }}
         data-game-3d="probing"
       >
-        正在确认这台设备能不能用 WebGL…
+        {T.probing}
       </div>
     );
   }
@@ -424,10 +441,9 @@ export function GameCanvas3D({ plan, keys, stateRef, onHud }: GameCanvas3DProps)
         style={{ aspectRatio: `${ARENA.width} / ${ARENA.height}` }}
         data-game-3d="unavailable"
       >
-        <p className="g3-lede">这台设备/浏览器给不出 WebGL 上下文，3D 视角进不去。</p>
+        <p className="g3-lede">{T.unavailableTitle}</p>
         <p className="g3-hint" data-game-3d-reason>
-          这里不会退回 2D 画法然后也叫「3D」。同一条关卡计划换个画法看：把文档类型改回 2D（或 2.5D），
-          规则与数值一个字都不变。
+          {T.unavailableBody}
         </p>
       </div>
     );
