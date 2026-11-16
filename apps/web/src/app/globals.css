@@ -3922,7 +3922,7 @@
 
 /* 触发胶囊：左下角。右下角是 `.tt-fab`（主题），两个浮层各占一侧不打架。 */
 .cp-chip {
-  position: fixed; left: var(--nexus-space-3); bottom: var(--nexus-space-3); z-index: 40;
+  position: fixed; right: var(--nexus-space-3); bottom: var(--nexus-space-3); z-index: 40;
   display: inline-flex; align-items: center; gap: var(--nexus-space-2);
   height: 2.25rem; padding: 0 var(--nexus-space-3);
   border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-full);
@@ -3937,6 +3937,11 @@
 .cp-chip:hover { color: var(--nexus-color-fg-1); border-color: var(--nexus-color-border-strong); }
 .cp-chip:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
 .cp-chipText { font-size: var(--nexus-font-size-12); }
+/* 窄视口（<75rem）收成图标圆点——命令面板是快捷键爱的人，不该盖住卡名文字（用户报「实体块重叠」） */
+@media (max-width: 75rem) {
+  .cp-chip { width: 2.25rem; justify-content: center; padding: 0; }
+  .cp-chipText, .cp-kbd { display: none; }
+}
 
 /* 键帽。三处共用（触发胶囊 / 搜索行 / 页脚），所以它是个门面类而不是局部样式。 */
 .cp-kbd {
