@@ -3649,4 +3649,338 @@ In the three-hundred-and-eighth year, in August, the outermost strip of that tra
 > 静物之所以静物，因为它只有等。
 `,
   },
+  {
+    order: 8,
+    slug: 'echo-008-the-eighth-lamp',
+    titleZh: '第八盏灯',
+    titleEn: 'The Eighth Lamp',
+    eraLineZh: '纪元：铁月纪之后 · 灰棚之前。',
+    eraLineEn: 'Era: after the Iron-Moon Age · before the grey cover was laid.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 8): The Eighth Lamp
+
+> 回响不替正典续写——它只回头看那一行被写在封面上的四个字。
+> 本篇写给灰棚里最后一盏"灯"：它从未点燃，却始终是门外的人所等的。
+> 本篇锚句，与《盘底之下》《灯前灰》同一纪律。
+>
+> An echo does not continue the canon — it looks back at the four characters written on a cover.
+> Written for the last "lamp" of the grey cover: never lit, always what the people outside were waiting for.
+> Its anchors answer to the discipline of the sand-table and the ashes before the lamp.
+
+> 纪元：铁月纪之后 · 灰棚之前。
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 其一 · 封面上的四字
+
+账房在三百年账册的封面上，写下「第八盏灯」四字。
+
+不写日期，不写欠数。
+
+他写得很慢。第一笔落下时，门外有人把湿衣袖拧了一遍；第二笔落下时，海水退到石阶底下；第三笔收锋，窗纸上的盐霜裂了一道，像有人在外头轻轻咬住了牙。
+
+四字写完，他合上册子，关了门。
+
+门闩进槽，声响不大。门外仍有人等。
+
+那四字没有题在灯台上，也没有刻进石头。它们只在封皮上，墨色沉进旧皮，像潮水把船名收进夜里。后来翻过那本账的人，有的只摸到一道浅痕，有的说笔锋很长，长过门槛，长过等候的人脚下那段干地。
+
+账房没有再出来。
+
+铁月早已沉到海底，灰棚尚未搭起。中间的年岁没有年名，只有门缝里的风，吹过一页又一页没有日期的纸。封面上的四字被手掌磨亮，字没有短，墨也没有褪，只是每次翻开，像多了一寸。
+
+无人记下那一寸属于谁。
+
+**锚句**：封面上，四字长过门槛。
+**Anchor sentence**: on the cover, four characters outgrew the threshold.
+
+---
+
+## 其二 · 灰里之影
+
+灰里没有灯。
+
+每日清早，门前却有一道影子。它从墙根起，落在湿石上，穿过门槛下的缝，到了账房停笔的桌边。日头升高，它不往西移；潮水漫上来，它也不浮。到了夜里，门外的人看不见它，脚下仍会给它让出一寸。
+
+有人拿扫帚扫灰，扫到影子的边缘，便把扫帚放下。有人提桶来洗门槛，水流到那一寸，忽然改了方向。没人指出是谁留下的影子。门里没有灯盏，门外也没有火。
+
+每一天，影子都比前一天淡一些。它淡到最后，仍能照出门槛上新旧两道刮痕：一道朝外，一道朝里。等的人只看那两道痕，不看墙，不看灰，也不看天光。
+
+一名老妇人把掌心贴在石面上，等影子落到她手背。一个孩子用盐粒排出短线，等线被风吹走。一个披渔网的人坐得最远，他把网里漏下的水一滴滴数过，数到门前便不再数。
+
+他们谁也没说看见了灯。
+
+日复一日，灰没有被扫尽。门槛上始终留着一层，薄得能分出脚印，厚得能留住影子。
+
+**锚句**：无灯之处，每日有影。
+**Anchor sentence**: where there is no lamp, a shadow falls daily.
+
+---
+
+## 其三 · 油
+
+油从来没人添过。
+
+门内的灯盏是空的，盏底积着黑色的盐渣。账房关门那夜，窗台上有一只浅口碟，碟里无油，只有一圈暗湿的边。此后每逢潮声转弱，碟边便深一分；每逢雨落，暗湿仍在。
+
+守门的人不碰它。来求债的人不碰它。曾有人带来一瓶新油，瓶口的封泥还在，放下后便忘了带走。几年过去，瓶身上的字被潮气磨没，瓶子仍是满的。没人说那是油，也没人说那不是油。
+
+他们把空盏看作灯，把碟边看作油，把没添过的事记在心里。每个人记得不同：有人记得母亲在船上留的一匙，有人记得欠账时滴在封皮上的一滴，有人只记得小时候屋里有光，后来问起，所有人都说那夜没有点灯。
+
+门内的账册合着。四字压住封面，封皮的边沿吸进潮气，渐渐发软。空盏没有动，黑盐也没有散。若有人弯腰去闻，会闻到海腥，像一盏灯刚刚熄过，又像它从未烧起。
+
+没人添油，也没人问油还在不在。
+
+**锚句**：空盏之中，油未曾有失。
+**Anchor sentence**: in the empty bowl, the oil was never lost.
+
+---
+
+## 其四 · 等的人
+
+等的人各自守着一件小事。
+
+渔网人等一条没有名字的鱼。他把补网的针穿进旧洞，又在针尖抵住门前时停下。针上没有线，网却越补越密，像海面被一张看不见的网拦住。
+
+老妇人等儿子的脚印。她记得他最后一次进门，鞋底带来的盐，一粒粒落在石阶上。潮涨过许多回，那些盐早已不在。她每天仍从门外走到门边，走到最后一粒本该在的地方，就坐下来。
+
+孩子等一个能把名字念完的人。他在纸上写了七个名字，写到第八处便空着。纸湿了，字散开，他把空处折起来，放进衣袋。后来他长大，衣袋破了，仍把那张纸贴身放着。
+
+还有一些人不说自己等什么。他们带来旧钥匙、空碗、半截桨，放在门外，不让别人收走。每到涨潮，他们把东西挪高一点；退潮后，又放回原处。
+
+没人替他们算等了多久。有人来得早，有人从别处接过位置。离开的人也有：只在某个清晨，原先坐着的地方空了，灰上留下一道窄痕。旁人没有替他补上。
+
+门外的人不散。散了，门前便只剩灰；他们留着，灰就记得每一双脚曾经停过。
+
+**锚句**：他们守着的，各不是同一盏灯。
+**Anchor sentence**: none of them kept the same lamp.
+
+---
+
+## 其五 · 第九下
+
+沙盘放在账房后屋，盘沿被许多指节磨得发白。
+
+每逢潮汐转向，屋里有人敲沙盘。第一下，沙粒落定；第二下，门外有人换脚；第三下，远处的铁钟沉入水声；再往后，敲击声一下一下过去，直到第八下。
+
+第九下从不响。
+
+敲的人不是忘了。他们的手停在盘面上方，指尖沾着细沙，像被一根无形的线系住。有人抬起手，沙便从掌纹间漏下；有人把手放回膝上，盘面仍留着一道浅坑，没被填平。
+
+账册封面上的四字，不知何时压住了那道空白。每当第八下落定，门外便有人看向门缝。没有光漏出来，门板也不动。只有灰里那道影子，短了一线。
+
+第九下不属于钟，不属于沙，也不属于敲盘的人。它像一口含在喉间的潮水，涨到齿背，始终没有越过唇。若它响起，等的人便知道该走；若它不响，他们便还坐在原处。
+
+没有人去试着敲出那一下。试过的人后来不再来，沙盘上留下的坑也无人填平。
+
+第八盏灯照到那里，便停住了。
+
+**锚句**：第九下，留在未落的指尖。
+**Anchor sentence**: the ninth beat rested on a fingertip that never fell.
+
+---
+
+## 其六 · 最后一次亮
+
+最后一次亮，是在一场退潮之后。
+
+门外的人都在。老妇人抱着空碗，渔网人把针收进袖口，孩子的纸只剩折痕。门内没有脚步，窗上没有火色，封皮上的墨仍旧发黑。
+
+天边亮起一线，极窄，像刀口映过水面。门槛上的灰显出边缘，影子从墙根伸到众人脚边，又伸回门里。没人点灯，没人推门。那一线光没有烧过灯芯，也没有落进空盏。
+
+它只照见封面四字的末笔：笔锋悬在纸皮之外，像还未写完。随后海水推上石阶，把那点亮色收走。灰留在原处，薄薄一层，仍能辨出每双脚印的去向。
+
+有人起身，走进潮水里。有人往后挪了半步，给他让出路。留下的人没有追，也没有喊。门闩仍在槽中，沙盘仍少第九下，账册仍未记日期和欠数。
+
+此后每逢退潮，门前灰里都能看见那道影子。影子没有灯，门内没有油，四字也不再添笔。人们仍来，仍等，仍把东西放在原处。
+
+灰没有被潮水带走。
+
+**锚句**：灯不再亮，灰仍替它守夜。
+**Anchor sentence**: the lamp no longer burned; the ash still kept its night watch.
+
+---
+
+## 模型映射（回响八章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 第八盏灯 · 封面四字 · 灰里的影子 · 空盏与浅口碟 | 一至六 |
+| geography | 门外的灰棚 · 教团门廊 · 账房后屋 · 石阶 | 一至六 |
+| factions | 守门人 · 候门的人 | 一至六 |
+| characters | 账房 · 老妇人 · 渔网人 · 孩子 | 一至六 |
+| items | 三百年账册 · 封面四字 · 空盏 · 浅口碟 · 沙盘 | 一至六 |
+| story | 雾港 · 灰棚 · 回响（其八） | 全篇 |
+| history | 铁月纪之后 · 灰棚之前 | 一至六 |
+
+> 第八盏灯不等人来敲门；
+> 它只等灰被写成下一页。
+>
+> The eighth lamp waits for no one to come knocking;
+> it only waits for the ash to be written into the next page.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其八）「第八盏灯」
+
+> An echo does not continue the canon — it looks back at the four characters written on a cover.
+> Written for the last "lamp" of the grey cover: never lit, always what the people outside were waiting for.
+> Its anchors answer to the discipline of the sand-table and the ashes before the lamp.
+>
+> 回响不替正典续写——它只回头看那一行被写在封面上的四个字。
+> 本篇写给灰棚里最后一盏"灯"：它从未点燃，却始终是门外的人所等的。
+> 本篇锚句，与《盘底之下》《灯前灰》同一纪律。
+
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+> 纪元：铁月纪之后 · 灰棚之前。
+
+---
+
+## I · The Four Characters on the Cover
+
+The bursar wrote four characters on the cover of the three-hundred-year ledger: 第八盏灯 — the eighth lamp.
+
+No date. No debt.
+
+He wrote them slowly. When the first stroke fell, someone outside wrung out a wet sleeve; when the second landed, the sea retreated below the steps; when the third closed, the salt-frost on the window-paper cracked — as if someone out there had bitten down, very gently, on their teeth.
+
+When the four were done, he closed the ledger and shut the door.
+
+The bar found its slot. Not loudly. Still, the people outside kept waiting.
+
+The four characters were not inscribed on any lamp-stand, nor cut into stone. They lived only on the leather cover, the ink sinking into the old hide like the sea gathering a ship's name into the night. Those who later opened the ledger touched only a shallow seam; some said the brush-work was long — longer than the threshold, longer than the dry ground beneath the feet of the waiting ones.
+
+The bursar never came out again.
+
+The Iron Moon had long since sunk to the seabed; the grey cover had yet to be laid. The years between carried no name — only the wind in the door-crack, blowing over page after page without a date. The four characters on the cover were polished bright by hands; they did not shorten, nor did the ink fade — only, every time the book opened, they seemed one inch longer.
+
+No one recorded to whom that inch belonged.
+
+**Anchor sentence**: on the cover, four characters outgrew the threshold.
+**锚句**：封面上，四字长过门槛。
+
+---
+
+## II · The Shadow in the Ash
+
+There was no lamp in the ash.
+
+Yet every morning, a shadow lay across the threshold. It rose from the wall-foot, fell across the damp stone, slipped through the seam under the door, and reached the desk where the bursar had stopped writing. As the sun climbed, it did not slide westward; as the tide came over it, it did not rise. At night, the waiting could not see it — yet their feet still made room for one inch.
+
+A sweeper working the ash reached the shadow's edge, and set his broom down. Someone came with a bucket to wash the threshold; the water reached that one inch and changed its course. No one named whose shadow it was. Inside, no lamp; outside, no fire.
+
+Each day the shadow grew fainter. At its faintest, it still lit the two old gouges on the threshold stone — one facing out, one facing in. The waiting watched only those two gouges: not the wall, not the ash, not the light of the sky.
+
+An old woman pressed her palm flat on the stone and waited for the shadow to land on the back of her hand. A boy laid salt grains in short lines and waited for the wind to take them. A man wrapped in a fishing net sat farthest out; he counted, drop by drop, the water sifting from his net — and stopped counting at the threshold.
+
+None of them said they had seen the lamp.
+
+Day upon day, the ash was never swept clean. One layer always remained on the threshold — thin enough to read footprints, thick enough to hold the shadow.
+
+**Anchor sentence**: where there is no lamp, a shadow falls daily.
+**锚句**：无灯之处，每日有影。
+
+---
+
+## III · The Oil
+
+No one ever replenished the oil.
+
+The lamp inside was empty; black salt-crust filmed its base. The night the bursar shut the door, a shallow saucer sat on the sill — no oil in it, only a ring of damp darkening at its rim. Afterwards, whenever the tide-sound weakened, the rim deepened by a shade; whenever rain came, the damp endured.
+
+The doorkeeper did not touch it. Those who came to press old debts did not touch it. Once, someone brought a new bottle of oil, its seal of wax still intact — and set it down, and forgot it. Years passed; the letters on the bottle were worn away by the salt air; the bottle remained full. No one said it was oil, and no one said it was not.
+
+They took the empty bowl for a lamp, the saucer-rim for oil, and the fact that nothing was ever added as something to keep. Each kept it differently: one remembered a spoonful her mother had left behind on the boat; one remembered a drop that had fallen on the cover as a debt was sealed; one remembered only that light had been in the house as a child — and when asked, everyone said no lamp had been lit that night.
+
+The ledger inside stayed closed. The four characters pinned its cover; the cover's edge drank the sea-damp and went soft. The empty bowl did not move; the black salt did not scatter. Anyone bending to smell would catch salt air — as though a lamp had only just gone out, or had never burned at all.
+
+No one added oil, and no one asked whether any remained.
+
+**Anchor sentence**: in the empty bowl, the oil was never lost.
+**锚句**：空盏之中，油未曾有失。
+
+---
+
+## IV · The Ones Who Waited
+
+Each of the waiting ones kept one small thing to themselves.
+
+The net-man waited for a fish with no name. He threaded his mending-needle through an old hole, and stopped each time the needle's tip came to rest on the threshold. There was no thread on the needle — yet the net grew denser and denser, as if the sea were held back by a net no one could see.
+
+The old woman waited for her son's footprint. She remembered the last time he came in — the salt on his soles, falling grain by grain onto the steps. The tide had turned many times; that salt was gone long ago. Still, every day, she walked from the door's far side to the place where the last grain should be, and sat down.
+
+The boy waited for someone who could finish saying his name. He had written seven names on a slip of paper, and left the eighth space empty. The paper went damp, the letters scattered; he folded the empty space and kept it in his pocket. Later, when his pocket wore through, he kept the slip against his skin.
+
+The others said nothing about what they were waiting for. They brought old keys, empty bowls, half a paddle — laid them outside, and would not let anyone clear them. At each tide, they moved their things a little higher; when it went out, they set them back.
+
+No one counted how long they had waited. Some came early; some took the place of others. The ones who left were few — only one morning, the seat that had always been occupied stood empty, a thin line scored into the ash. No one filled it in for them.
+
+The waiting did not disperse. If they went, only ash would remain before the door; while they stayed, the ash remembered every pair of feet that had ever stopped there.
+
+**Anchor sentence**: none of them kept the same lamp.
+**锚句**：他们守着的，各不是同一盏灯。
+
+---
+
+## V · The Ninth Knock
+
+The sand-tray stood in the bursar's back room, its rim worn white by many knuckles.
+
+Whenever the tide turned, someone inside would knock the tray. The first knock settled the grains; the second, someone outside shifted their stance; the third, a far-off iron bell sank into the water's sound; on and on it went — until the eighth.
+
+The ninth never came.
+
+It was not that the knocker forgot. Their hand hung above the tray, fingertips dusted with fine sand, as though held back by a line no one could see. Some lifted their hand and the sand sifted away through the lines of the palm; some lowered it onto their knees, leaving the tray's face with a shallow pit no one ever filled.
+
+When the four characters were written on the ledger's cover, no one noticed — they had come to press down on that very emptiness. Each time the eighth knock landed, someone outside turned to the door-seam. No light leaked out; the door-board did not move. Only the shadow in the ash grew one thread shorter.
+
+The ninth knock did not belong to the bell, nor to the sand, nor to whoever held the hand. It was like a tide held in the throat — risen to the teeth, never once crossing the lips. If it had sounded, the waiting ones would have known it was time to go; while it did not, they still sat where they were.
+
+No one ever tried to force that knock. The ones who tried did not come back afterwards, and the pit left on the tray was never filled in.
+
+The eighth lamp reached that far, and stopped.
+
+**Anchor sentence**: the ninth beat rested on a fingertip that never fell.
+**锚句**：第九下，留在未落的指尖。
+
+---
+
+## VI · The Last Time It Lit
+
+The last time it burned was after an ebb.
+
+Everyone was there. The old woman held an empty bowl; the net-man folded his needle into his sleeve; the boy's slip had worn down to a fold. Inside, no footsteps; on the window, no firelight; on the cover, the ink stayed black.
+
+A thread of light showed at the horizon — narrow as a knife-edge drawn across water. The ash on the threshold took on a rim; the shadow stretched from the wall-foot to the feet of the waiting, and back again into the door. No one lit a lamp; no one pushed the door. That thread of light never touched a wick, and never fell into the empty bowl.
+
+It lit only the last stroke of the four characters — the brush's tip still hanging off the edge of the leather, as if it had never finished. Then the sea pushed up over the steps and took the small light away with it. The ash stayed where it was, a thin grey film — still legible enough to tell where every pair of feet had gone.
+
+Some rose and walked into the tide. Others stepped back half a pace to make room. Those who stayed did not call after them. The bar still lay in its slot; the tray still missed its ninth; the ledger still carried no date, no debt.
+
+Afterwards, with every ebb, the shadow was still there in the ash before the door. A shadow with no lamp behind it; oil nowhere inside; the four characters never added to. The people kept coming, kept waiting, kept setting their things back in their places.
+
+The ash was never carried off by the tide.
+
+**Anchor sentence**: the lamp no longer burned; the ash still kept its night watch.
+**锚句**：灯不再亮，灰仍替它守夜。
+
+---
+
+## Model mapping (echo No. 8)
+
+| Category | Title | Corresponds to |
+|---|---|---|
+| lore | The Eighth Lamp · the Four Characters · the Shadow in the Ash · the Empty Bowl and the Saucer | I–VI |
+| geography | The Grey-Cover Steps · the Conclave Door · the Bursar's Back Room · the Threshold | I–VI |
+| factions | The Doorkeeper · the Waiting Ones | I–VI |
+| characters | The Bursar · the Old Woman · the Net-man · the Boy | I–VI |
+| items | The Three-Hundred-Year Ledger · the Four Characters · the Bowl · the Saucer · the Sand Tray | I–VI |
+| story | The Mist Harbor · the Grey Cover · Echo (No. 8) | whole |
+| history | After the Iron-Moon Age · Before the Grey Cover Was Laid | I–VI |
+
+> The eighth lamp waits for no one to come knocking;
+> it only waits for the ash to be written into the next page.
+>
+> 第八盏灯不等人来敲门；
+> 它只等灰被写成下一页。
+`,
+  },
 ] as const;

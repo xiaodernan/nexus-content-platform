@@ -5008,3 +5008,17 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
   route 级集成测试（响应头回声 lane-a）钉住；未做真浏览器断言。
 - 顺手清理：为手测插入的 sessions 行（Other User）已删除，不留活会话。
 
+
+## cont. 172 (2026-11-17) - v802: 回响（其八）「第八盏灯」—— 第八盏灯是谁的
+
+- 新内容：`docs/world-bible/echoes/E08-第八盏灯.md` + `.en.md`——承接第七章「灯前灰」结尾：
+  账房在三百年账册封面写下「第八盏灯」四字（不写日期、不写欠数），关了门，门外仍有人等。
+  这个回响回答：第八盏灯是谁？还会不会亮？为什么门外的人不散？——六节正文（封面四字 / 灰里之影 / 油 /
+  等的人 / 第九下 / 最后一次），全部意象化，不解释世界观。
+- 锚句全系列 **87/87 全过**（verify:world-bible OK，zh+en 逐字对照，全典籍唯一）；
+  gen:bible-snapshot（7 章 × 8 回响）字节一致；verify:bible-snapshot OK。
+- live probe :3100：/bible/echo-008-the-eighth-lamp 200（双语标题 + 双语锚句皆命中）；/bible hub 列出 echo-008。
+- BibleQuiz **30 题**（+2 E08 双语题）；序列钉死 [..., 0, 2]；SHA pin 9c9655ed… 重钉。
+- guide 全套对齐：七回响 → 八回响 / seven echoes → eight echoes（zh/en ×6 处）；SHA pin 4e909deb… 重钉。
+- 草稿出真 provider（gpt-6.1-terra），人工定稿·严纪律。
+- 门：fe-gates 123 套 · 1200/1200 OK；census 2541 OK；tsc 0。
