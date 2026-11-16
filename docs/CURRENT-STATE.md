@@ -4308,3 +4308,8 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 
 - 新回响 E12（中英双文件 + 映射表），注册 slug；verify:world-bible ✓ 75/75。
 - 世界现状：主线 4 章 + 回响 12 篇。
+
+## cont. 185 (2026-11-17) — v820 · 回响 · 其十三《潮候院没有叫过的那一声会》
+
+- 新回响 E13（中英双文件 + 映射表）+ slug 注册；verify:world-bible ✓ 80/80。
+- 世界现状：主线 4 章 + 回响 13 篇。

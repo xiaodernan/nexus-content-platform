@@ -3395,4 +3395,220 @@ The echo is not a person, not the sea, not the wall — it is the chapel's own r
 > When the tide is out the chapel finally speaks — the sea never says why, only where it is; the echo never says whose either.
 `,
   },
+  {
+    order: 13,
+    slug: 'echo-013-the-convocation-nobody-called',
+    titleZh: '潮候院没有叫过的那一声会',
+    titleEn: 'The Convocation Nobody Called',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——大会该召集的那几次潮起潮落，谁也没有召集它。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; on every tide that could have hosted it, no Convocation was ever called.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 13): The Convocation Nobody Called
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给那场潮候院想开也一直没开成的第五十一次大会——潮候院抄潮汐表，是因为大会从来不能由人召集。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the 51st Convocation the Institute wanted to hold and never could — the Institute copies tide-tables because a Convocation cannot be called by people.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——大会该召集的那几次潮起潮落，谁也没有召集它。
+> Era: the Institute — after the 41st Convocation; on every tide that could have hosted it, no Convocation was ever called.
+
+---
+
+## 一 · 叫不响的会
+
+第五十一次大会还从来没开成过。
+
+散会之后，潮候院里的人一度以为这一切会自动降临：第四十二次，第四十三次——像前面四十一个一样。
+可潮汐表上每一次潮到线，第五十一次都没有人点火。
+
+没有第四十二次，也没有第五十一次——第四十一次之后，潮候院的位上没有人叫过第五十。
+
+**锚句**：潮候院从那以后再也没有人叫过下一场大会——潮起潮落替它们把这一声叫了出去。
+**Anchor sentence**: after that, no one at the Institute ever called the next Convocation — the tides called it in their place.
+
+---
+
+## 二 · 召集函一直没写
+
+守夜人里提过一次："要不要写一封召集函？"
+
+没人应。不是不想——是没有人能替潮汐落笔第一句："现在可以了。"
+潮候院的抄本里从来没有哪一行以这句话开头。
+
+函的那一栏一直空着，潮沙盘旁边那一摊空纸一直空着——直到潮来纸就湿，潮去纸就皱了。
+
+**锚句**：第五十一次的召集函谁也没写——没有人替海落笔第一句"现在可以了"。
+**Anchor sentence**: the invitation for the 51st Convocation was never written — no one could write the sea's opening line, "now it is permitted."
+
+---
+
+## 三 · 潮汐表为什么抄了四十一遍
+
+抄潮汐表的人后来想通了一件事：潮候院抄潮汐表不是为了办什么，是为了辨认——
+辨认哪一次潮起落，足以坐下来；哪一次又只能站起来。
+
+潮汐表上一年两季的转潮记录，没有一桩是给大会用的。
+它们全是潮候院抄来的唯一一句"现在可以坐下来了"的回声。
+
+第四十一次大会坐上去的人是潮替他们决定的。潮这次也替他们决定了。
+
+**锚句**：潮候院抄潮汐表不是替大会排期——抄的是那个"现在可以了"到底是哪一天。
+**Anchor sentence**: the Institute copies tide-tables not to schedule Convocations — it copies them to know exactly which tide is "now, it is permitted."
+
+---
+
+## 四 · 守夜人在等什么
+
+守夜人里最大的那一位对新来的人说：
+
+"我们在等的不是大会召集令，是那一次潮。第五十一次潮汐到了，桌子多长、几个人坐、开到几个时辰，
+你们知道都写在哪里么？"
+
+新来的人摇头。
+
+他说，都写在潮汐表上——潮打到哪一刻落哪一刻，沙盘上的海盐醒哪一刻，
+谁都没有抄这些潮走的痕迹为了开大会的事——抄这些潮，是潮候院抄自己的生活。
+
+**锚句**：守夜人等的从来不是大会——等的是潮；潮到了，大会自然就到了。
+**Anchor sentence**: the Night Watchers never waited for a Convocation — they waited for the tide; when the tide comes, the Convocation comes with it.
+
+---
+
+## 五 · 潮候院里没有人把它算作缺席
+
+潮候院里没有人管"第五十一次算不算数"这种问题。
+
+第五十一次大会从来没召集过，也没有人把它登记、撤销或续上名册；
+它只是潮汐表上的一段潮，翻过、合上，和其他的潮一起躺在潮候院的书橱里。
+
+有一位客人问过走廊尽头的守夜人："如果一直没潮汐合适，那就永远没有第五十一次了？"
+他说："那潮候院就省下了一封函。"
+他没有说这是遗憾还是清闲——潮候院的人很少提"等"这个字。
+
+**锚句**：第五十一次大会从来不算缺席——它只是潮候院还没有遇上的一段潮。
+**Anchor sentence**: the 51st Convocation was never missed — it is only a stretch of tide the Institute has not yet met.
+
+---
+
+## 六 · 映射（回响十三章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 抄潮汐表 · 替海落笔 · 省函 | 一、三、四、五 |
+| geography | 潮候院 · 潮沙盘旁 · 书橱里的四十一本潮汐表 | 一、二、四、六 |
+| characters | 守夜人 · 新来的（没进过大会）· 潮沙盘旁 | 三、四、五 |
+| story | 潮汐表上的第五十一页 · 回响（其十三） | 全篇 |
+| items | 潮沙盘 · 四十一本潮汐表 · 湿皱的空纸 | 一、二、三 |
+| history | 第四十一次大会散会之后 · 第五十一次没有召集 | 一、二、五、六 |
+
+> 潮候院没有叫过第五十一次大会——潮候院抄潮汐表不是为了叫会，是为了辨认那一句"现在可以了"。
+> The Institute never called a 51st Convocation — it copies tide-tables not to convene anyone, but to recognise that one line, "now it is permitted."
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其十三）「潮候院没有叫过的那一声会」
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给那场潮候院想开也一直没开成的第五十一次大会——潮候院抄潮汐表，是因为大会从来不能由人召集。
+> 纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the 51st Convocation the Institute wanted to hold and never could — the Institute copies tide-tables because a Convocation cannot be called by people.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——大会该召集的那几次潮起潮落，谁也没有召集它。
+> Era: the Institute — after the 41st Convocation; on every tide that could have hosted it, no Convocation was ever called.
+
+---
+
+## 一 · The Convocation That Cannot Be Called
+
+The 51st Convocation has never been held.
+
+After it dispersed, people at the Institute imagined it would just happen, as the other forty-one had — the 42nd, the 43rd, all would arrive in order.
+On every tide that climbed to the line, nobody lit the fire for the 51st.
+
+There is no 42nd, no 51st — after the 41st Convocation, no chair left in the Institute called the 50th either.
+
+**锚句**：潮候院从那以后再也没有人叫过下一场大会——潮起潮落替它们把这一声叫了出去。
+**Anchor sentence**: after that, no one at the Institute ever called the next Convocation — the tides called it in their place.
+
+---
+
+## 二 · The Invitation Was Never Written
+
+One of the Night Watchers proposed: "Should we write an invitation?"
+
+No one answered. Not because they did not want to — but because no one there could write the sea's first line: "now it is permitted."
+No page in the Institute's copies ever begins with that sentence.
+
+That page stayed blank; the blank sheets beside the sand table stayed blank — until the tide came and dampened them, and went and curled them.
+
+**锚句**：第五十一次的召集函谁也没写——没有人替海落笔第一句"现在可以了"。
+**Anchor sentence**: the invitation for the 51st Convocation was never written — no one could write the sea's opening line, "now it is permitted."
+
+---
+
+## 三 · Why the Tide-Tables Are Copied Forty-One Times
+
+Whoever copies the tide-tables eventually understands: the Institute does not copy them to do anything — it copies them to recognise, because a Convocation cannot be called by will.
+
+Between the yearly tide lines, no single entry marks a Convocation.
+They are all just the same echo: "the moment you could be seated, and it has never come."
+
+Everyone who sat down to the 41st Convocation was placed there by the tide. This time the tide decided again.
+
+**锚句**：潮候院抄潮汐表不是替大会排期——抄的是那个"现在可以了"到底是哪一天。
+**Anchor sentence**: the Institute copies tide-tables not to schedule Convocations — it copies them to know exactly which tide is "now, it is permitted."
+
+---
+
+## 四 · What the Night Watchers Wait For
+
+The eldest of the Night Watchers said to a new arrival:
+
+"We are not waiting for a Convocation order. What we wait for is one tide. When the 51st tide arrives, when the table is set to length, who sits, and at which hour it closes — where do you think all of that is written?"
+
+The new arrival shook their head.
+
+He said: it is all written in the tide-tables. Where the tide reaches, when it withdraws, which grain of salt wakes on the sand table — nobody copies these for the Convocation's sake.
+They copy them because this is what the Institute copies to live by.
+
+**锚句**：守夜人等的从来不是大会——等的是潮；潮到了，大会自然就到了。
+**Anchor sentence**: the Night Watchers never waited for a Convocation — they waited for the tide; when the tide comes, the Convocation comes with it.
+
+---
+
+## 五 · No One Counts It as Missing
+
+No one at the Institute bothers with the question "does the 51st count as missed."
+
+It has never been called, registered, revoked, or resumed;
+it is just another tide printed into the tables the Institute keeps, turned over and closed, filed with all the others.
+
+One visitor somewhere down the corridor asked a watcher: "if the tides never come at the right hour, then there will be no 51st, ever?"
+He said: "then the Institute simply saves one invitation."
+He did not say whether that was regret or a reprieve — the people here rarely say the word "wait."
+
+**锚句**：第五十一次大会从来不算缺席——它只是潮候院还没有遇上的一段潮。
+**Anchor sentence**: the 51st Convocation was never missed — it is only a stretch of tide the Institute has not yet met.
+
+---
+
+## 六 · Mapping（Echo No. 13 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | Copying the tide-tables · writing the sea's first line · saving a letter | 一、三、四、五 |
+| geography | The Institute · the sand table · the forty-one tide-tables in the shelf | 一、二、四、六 |
+| characters | The Night Watchers · the new arrival · those who read the tables | 三、四、五 |
+| story | The 51st Page of the Tide-Table · Echo No. 13 | 全篇 |
+| items | The tide-tables · forty-one copies · the damp and curled blank sheets | 一、二、三 |
+| history | After the 41st Convocation · the 51st was never called | 一、二、五、六 |
+
+> 潮候院没有叫过第五十一次大会——潮候院抄潮汐表不是为了叫会，是为了辨认那一句"现在可以了"。
+> The Institute never called a 51st Convocation — it copies tide-tables not to convene anyone, but to recognise that one line, "now it is permitted."
+`,
+  },
 ] as const;

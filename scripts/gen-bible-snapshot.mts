@@ -53,6 +53,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E10-灯在潮退时没有往回点': 'echo-010-the-lamp-never-lit-when-the-tide-went-out',
   'E11-祠殿堂没有锁的门': 'echo-011-the-door-the-chapel-never-locked',
   'E12-潮落时才有的回声': 'echo-012-the-echo-that-only-comes-when-the-tide-is-out',
+  'E13-潮候院没有叫过的那一声会': 'echo-013-the-convocation-nobody-called',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

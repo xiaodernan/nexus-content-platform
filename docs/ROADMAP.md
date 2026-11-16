@@ -14221,3 +14221,10 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   5 锚句 zh/en 全局唯一（75/75）。
 - `gen-bible-snapshot.mts` 登记 `echo-012-the-echo-that-only-comes-when-the-tide-is-out`；快照重生成（4+12 回响）。
 - verify:world-bible ✓ 75/75；verify:bible-snapshot ✓。
+
+## §BIBLE-24 — 回响 · 其十三《潮候院没有叫过的那一声会》（2026-11-17 · v820）
+
+- 产出：`docs/world-bible/echoes/E13-潮候院没有叫过的那一声会.md`（中）/ `.en.md`（英）——第四十一次大会之后第五十一次从来没被召集：
+  潮候院抄潮汐表不是为叫会，是为辨认那一句"现在可以了"；大会一直没被登记，潮自己做主。5 锚句 zh/en 全局唯一（80/80）。
+- `gen-bible-snapshot.mts` 登记 `echo-013-the-convocation-nobody-called`；快照重生成（4+13 回响）。
+- verify:world-bible ✓ 80/80；verify:bible-snapshot ✓。
