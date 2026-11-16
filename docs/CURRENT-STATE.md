@@ -4313,3 +4313,10 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 
 - 新回响 E13（中英双文件 + 映射表）+ slug 注册；verify:world-bible ✓ 80/80。
 - 世界现状：主线 4 章 + 回响 13 篇。
+
+## cont. 186 (2026-11-17) — v821 · Docker 双启证据 + 全清单审核
+
+- Docker Desktop 本会话三次被叫起（两次崩的是空调风扇下的内存问题，侧栏 `.npipe` 只认它活着时）；nexus-postgres/nexus-redis healthy。
+- Spring Cloud 复验按内存余量（最低 0.26 GB、峰值 1.85 GB）**没有重跑**——记录在 `docs/evidence/docker-and-springcloud-2026-11-17.md`，11-14 证据仍为最新一次真跑。
+- provider 探针 HTTP 200（`gpt-6.1-terra` 在列），7 个模型。
+- insight `/api/insight/login` 撞库测试（v818）4/4 绿；E11 E12 E13 已落，快照 4+13 回响。
