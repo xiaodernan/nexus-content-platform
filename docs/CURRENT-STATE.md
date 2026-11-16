@@ -4298,3 +4298,8 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 
 - 新回响 E11（中英双文件 + 映射表），注册 slug 进快照； verify:world-bible ✓ 70/70，verify:bible-snapshot ✓，fe-gates 125/125 · census 2396 全绿。
 - 世界现有：主线 4 章 + 回响 11 篇（E01 巡逻路札记 → E11 没锁的门）。
+
+## cont. 183 (2026-11-17) — v818 · /insight 撞库场景集成测试
+
+- `/api/insight/login` 路由级集成测试 4 用例：同 IP 30×401 → 第 31 次 429（含 retryAfterMs），闸开着正确口令也 429，不同 IP 隔离，非字符串口令入桶。
+- insight 套件 33/33 全绿。

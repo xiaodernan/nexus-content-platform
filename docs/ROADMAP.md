@@ -14199,3 +14199,17 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   - `scripts/gen-bible-snapshot.mts` 登记 slug `echo-011-the-door-the-chapel-never-locked`；快照重生成（4 章主线 + 11 回响）；
   - verify:world-bible ✓（zh/en 70/70），verify:bible-snapshot ✓，fe-gates 125/125 · 1223/1223 · census 2396 全绿。
 - 映射表照例（lore/geography/characters/story/items/history），`/bible`「回响」分组自动收录，字号对齐主线。
+
+## §SEC-9 — 撞库场景集成测试（2026-11-17 · v818）
+
+- 用户在性能压力测试指令里点名了「撞库」场景：/insight 的公共口令（123）是路过的手可进的门，
+  挡它的是按 IP 30 次 / 5 分钟限流（默认 memory 驱动，生产经 NEXUS_REDIS_URL 共享）。
+- 新增 `apps/web/test/insight-login.integration.test.ts`（4 用例，真路由 + 进程内 limiter）：
+  - 同一 IP 连续 30 次错误口令得 401，第 31 次起 429 + `retryAfterMs`（≤ 5min）；
+  - 限流开着时，「123」正确口令也进不去（fail closed，cookie 不落地）；
+  - 不同 IP 不受影响（只挡那一只桶）；
+  - 非字符串/空串口令同样计入预算。
+- 与 insight-math/rules/visual-style 同跑 **33/33 全绿**；
+  fe-gates 不含本新文件的 SHA 钉（unit/integration 文件不走视觉 SHA），census 无受影响类。
+- 明示边界：生产级压测（500 并发 RSC）此前以 /about-nexus 实测落库（v779，496×200/4 断 · dev-path）；
+  next build 在本机（≈1.8 GB free）出不了干净构建，生产窗口重测照旧登记在案。
