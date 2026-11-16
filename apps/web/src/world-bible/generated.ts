@@ -2391,6 +2391,280 @@ The next ledger began with a single line of days. The one writing it did not loo
 > 下一本账，从一行日子开始。
 `,
   },
+  {
+    order: 9,
+    slug: '009-ash-carried-home',
+    titleZh: '带灰回家',
+    titleEn: 'Ash Carried Home',
+    eraLineZh: '纪元：铁月纪之后 · 灰棚之前。',
+    eraLineEn: 'Era: after the Iron-Moon Age · before the grey cover was laid.',
+    markdownZh: `# The Whispers' Kings · World Bible · Chapter IX: Ash Carried Home
+
+> 正典没有结束——第八章里被人带走的灰，在这些人家的日常里生了根。
+> 本章写一个带灰回家的人家：不是神话，是柴米油盐。
+> 本章正典纪律不变：锚句中英字字对齐，引用者逐字保持。
+>
+> The canon did not end — the ash carried out in Chapter VIII has taken root in these households.
+> This chapter writes one of them: not myth, but rice and salt.
+> Canon discipline is unchanged — anchor sentences match word-for-word; no rephrasing.
+
+> 纪元：铁月纪之后 · 灰棚之前。
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 一 · 五天
+
+他把布袋放在门边，袋口朝墙，底下垫着一块旧瓦。那天灶里还有火，妻子正淘米，水从盆沿漫出来，流到门槛前。她用鞋底擦了擦，没有挪袋子。
+
+头一天，风从河口来，吹翻门外的竹筛，吹落屋檐下两根干草。布袋没有倒。第二天风又来，盐碱地上的尘贴着墙走，袋角只动了一下。
+
+第三天，孩子出门时跨过它，鞋跟碰在袋上。孩子回头看了一眼。他父亲在井边洗手，水滴落进井圈，没说话。
+
+第四天，屋里缺柴，妻子从门边拖过柴捆，木头擦着袋面过去。她停了一下，把柴抱进灶间。袋子仍在原处。
+
+第五天，风停了。门边留下半圈灰，像潮退后未干的水线。袋子在那儿过了五天。风来了，它没有倒；人没有动它。
+
+**锚句**：五日，袋未入门。
+**Anchor sentence**: five days, and the bag had not entered the house.
+
+---
+
+## 二 · 开袋
+
+第六天早饭后，妻子先开袋。
+
+她要扫门边。布袋挡着扫帚，袋口的绳结又被潮气浸硬了。她把扫帚靠在墙上，拿剪刀剪断绳子。父亲那时正在屋后劈柴，听见剪刀合拢的声音，手里的斧头落在木墩上。
+
+妻子没有叫他。她把袋口翻开，里面的灰贴着布，结成几块，细处从缝眼漏出来。她取来一只旧瓷碗，先盛出表面的一层。没有扬起烟，只在碗沿落下一圈暗痕。
+
+孩子站在灶间门口，手里还捏着半块饼。妻子说，把门关上。孩子关了门，仍站着。
+
+父亲进屋时，袋口已经摊平。他看了看袋底，又看妻子的手。她指甲缝里有灰，便在围裙上擦了一下。桌上放着昨夜剩的咸鱼，鱼皮朝上，没人先动。
+
+**锚句**：开袋的是掌家的人。
+**Anchor sentence**: it was the one who kept the house who opened the bag.
+
+---
+
+## 三 · 称灰
+
+家里的秤挂在梁上，秤钩锈着。父亲取下来，用袖口擦过秤杆，又把一只空布兜挂上去。
+
+他们把灰称成七份，每份一斤。秤砣每次落定，妻子便用手指拢住布兜口。孩子坐在板凳上数，数到第五份时漏了一次，父亲让他从头数。
+
+第七份称完，袋底还剩一些。妻子把它倒在瓷碗里，灰铺开，浅浅压住碗底。她又称了一遍，秤杆没有平。那点灰不够一斤，也没有另装一份。
+
+七只布兜排在桌上，口都扎紧。它们的重量一样，落在桌板上的声音却不一样。父亲把秤收回梁下。妻子把剩灰盖起来，瓷碗放在灶边，离盐罐很远。
+
+孩子问，少的那一点算什么。没人答。锅里的水开了，壶盖响了三声，妻子起身添柴。
+
+**锚句**：七份足斤，余灰无数。
+**Anchor sentence**: seven full measures; what remained had no number.
+
+---
+
+## 四 · 孩子的两次触碰
+
+孩子惦记袋子的重量。
+
+第一回是开袋前。他趁大人去井边，走到门口，把手放在袋面上。布上有风干后的硬褶。他往下按了按，袋子陷进去一点，像装着一盆湿土。手拿开时，掌心是干的。他在裤腿上擦了两下，回屋吃饭。
+
+第二回是称灰后。那天他帮父亲提水，水桶碰着门槛，溅湿了他的袖口。他又到门边，碰了碰那只已经空下来的布袋。袋子比先前轻，贴着地，布边沾了水。他把手伸进去，摸到一层薄灰。掌心湿了，灰粘在指纹里，洗了两遍还在。
+
+父亲看见他洗手，没有问。孩子把手藏在桌下，吃完一碗粥。那晚他睡得晚，听见院门开合，听见井绳回到木轴上，也听见母亲把空袋叠了起来。
+
+**锚句**：两次触碰，手各不同。
+**Anchor sentence**: two touches; two different hands.
+
+---
+
+## 五 · 灰的去处
+
+次日，妻子把一份灰撒进院里的菜畦。
+
+她用旧筛子筛开结块的部分，灰落在翻过的土上。父亲提来一桶水，绕着菜根慢慢浇。小白菜还没长齐，叶上有泥点。妻子没有把灰撒得很厚，剩下的收进碗里，放回灶边。
+
+邻居来借针，看见桌上另一份，问能不能埋进枕头底下。妻子把布兜递给她。邻居没说要埋什么，也没说埋多久，只把布兜塞进篮子，压在一块补衣布下。
+
+还有两份没人拿。父亲把一份放在屋角，母亲把一份放在门内的矮柜上。她没有动它们。孩子坐在院里，看灰落在菜畦，看风把一片菜叶翻过去。那只碗里的余灰始终盖着。
+
+饭是粟米粥，鱼是前日的剩鱼。吃完后，母亲刷锅，父亲收绳，孩子把桌上的灰印擦掉。屋里留下几道浅痕，沿着木纹，擦不净。
+
+**锚句**：灰跟着各自的手走了。
+**Anchor sentence**: the ash went where each hand carried it.
+
+---
+
+## 六 · 第二袋灰
+
+屋里还留着第二袋灰。
+
+它在门内，靠着米缸，袋口系着原来的绳。没人称它，也没人把它挪到桌上。母亲每日取米，手臂从袋边经过；父亲夜里关门，门板离袋角只差半掌。
+
+孩子有时盯着它看。袋面没有新的褶，绳结也没有松。一次他问，这一袋什么时候开。父亲正把灶门里的火拨拢，没抬头。母亲在筛米，米粒落进盆里，细响不断。
+
+后来孩子不问了。家里照常添柴、淘米、补衣。雨水从屋檐滴到门外，落在那块旧瓦旁。第一袋留下的布被洗净，晾在墙上，边角仍有灰色。
+
+第二袋仍靠着米缸。没人说它要开，也没人说它不开。每日有人经过，每日都要关门。
+
+**锚句**：第二袋仍在家中。
+**Anchor sentence**: the second bag is still in the house.
+
+---
+
+## 模型映射（第九章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 灰袋 · 瓷碗余灰 · 七只布兜 · 秤与梁 | 一至六 |
+| geography | 一户人家 · 门边 · 院里菜畦 · 灶间 | 一至六 |
+| factions | 一户人家（父亲·妻子·孩子） | 一至六 |
+| characters | 父亲 · 妻子 · 孩子 · 邻居 | 一至六 |
+| items | 布袋 · 瓷碗 · 秤 · 旧筛子 · 粟米 · 咸鱼 | 一至六 |
+| story | 灰后 · 带灰回家 · 第九章 | 全篇 |
+| history | 铁月纪之后 · 灰棚之前 | 一至六 |
+
+> 灰进了人家，就入了烟火；
+> 计数的是斤两，秤不了的是沉默。
+>
+> When the ash entered a household, it entered the smoke and heat of it;
+> the scale weighs pounds — it cannot weigh silence.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 第九章「带灰回家」
+
+> The canon did not end — the ash carried out in Chapter VIII has taken root in these households.
+> This chapter writes one of them: not myth, but rice and salt.
+> Canon discipline is unchanged — anchor sentences match word-for-word; no rephrasing.
+>
+> 正典没有结束——第八章里被人带走的灰，在这些人家的日常里生了根。
+> 本章写一个带灰回家的人家：不是神话，是柴米油盐。
+> 本章正典纪律不变：锚句中英字字对齐，引用者逐字保持。
+
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+> 纪元：铁月纪之后 · 灰棚之前。
+
+---
+
+## I · Five Days
+
+He set the cloth bag by the door, mouth toward the wall, an old roof-tile beneath its foot. The stove was lit that day; his wife was rinsing rice, the water running over the basin's edge to the threshold. She wiped it with the side of her shoe, and did not move the bag.
+
+The first day, the wind came down from the river mouth — upending the bamboo sieve in the doorway, scattering two wisps of straw from the eaves. The bag did not fall. The second day, the wind returned, salt-dust creeping along the wall; the bag's corner only shifted once.
+
+On the third day, the boy stepped over it on his way out, his heel grazing the cloth. He turned to look back. His father was at the well, washing his hands; the drops fell into the well's rim; he said nothing.
+
+On the fourth day, with wood running short, the wife dragged the wood-bundle past the door, the logs brushing the bag's face. She paused, then carried the wood into the kitchen. The bag stayed where it had been set.
+
+On the fifth day, the wind stopped. A half-ring of ash remained by the door, like an uncured tide-line left on the shore. Five days the bag had sat there. Wind had come, and it had not fallen; people had passed, and it had not been moved.
+
+**Anchor sentence**: five days, and the bag had not entered the house.
+**锚句**：五日，袋未入门。
+
+---
+
+## II · Opening the Bag
+
+On the sixth day, after breakfast, his wife opened it first.
+
+She meant to sweep the doorway. The bag blocked her broom; the knot on its mouth had gone stiff with damp. She leaned the broom against the wall and took the scissors to the cord. Her husband was in the back splitting wood; he heard the blades close, and the axe dropped onto the chopping block.
+
+She did not call him. She folded back the bag's mouth; the ash inside had settled into blocks along the cloth, the fine bits slipping through the weave. She took an old porcelain bowl and scooped the outermost layer. No smoke rose; only a dark ring left along the bowl's edge.
+
+The boy stood at the kitchen door, half a flatbread still in his hand. His wife said: shut the door. The boy shut it, and stayed where he was.
+
+When the husband came in, the bag's mouth was already spread flat. He looked at the bottom of the bag, then at his wife's hands. Ash lodged beneath her fingernails; she wiped them once across her apron. On the table sat the last of last night's salted fish, skin upward; no one reached for it.
+
+**Anchor sentence**: it was the one who kept the house who opened the bag.
+**锚句**：开袋的是掌家的人。
+
+---
+
+## III · The Weighing
+
+The scale hung from a beam, its hook rusted. The husband took it down, wiped the beam with his sleeve, then hung an empty cloth pouch from it.
+
+They weighed the ash into seven portions, one jin each. As the weight settled each time, his wife gathered the pouch's mouth with her fingers. The boy sat on a stool and counted; at the fifth portion he lost count, and his father had him begin again.
+
+When the seventh portion was weighed, some ash remained at the bottom of the bag. She poured it into the porcelain bowl, the ash spreading shallow across its base. She weighed it once more; the beam would not level. Not enough for a portion — it was not portioned out again.
+
+The seven pouches stood on the table, their mouths tied. Their weight was the same, yet the sound each made on the table-board was not. The husband carried the scale back up into its beam. The wife covered what remained, and set the bowl beside the stove — far from the salt jar.
+
+The boy asked: what does the little that's left count as? No one answered. The water in the pot came to a boil; the lid knocked three times; his wife rose to add wood.
+
+**Anchor sentence**: seven full measures; what remained had no number.
+**锚句**：七份足斤，余灰无数。
+
+---
+
+## IV · The Boy's Two Touches
+
+The boy kept thinking about the bag's weight.
+
+The first time was before the bag was opened. While the adults were at the well, he went to the doorway and set his hand against the bag's face. The cloth bore hard ridges where the wind had dried it. He pressed down; the bag yielded a little, as if it held a basin of wet soil. When he lifted his hand, his palm was dry. He wiped it twice on his trouser-leg, and went back in to eat.
+
+The second time was after the weighing. That day he had helped his father carry water; the bucket had clipped the threshold, splashing his sleeve. He went to the doorway again and touched the now-emptied bag. It was lighter than before; it lay flat against the ground, its hem darkened with water. He pushed his hand inside, and found a faint film of ash. His palm came out wet; the ash had settled into the lines of his fingers, and would not wash away after two rinses.
+
+His father saw him washing his hands and did not ask. The boy kept his hands beneath the table until the bowl of gruel was gone. That night he stayed wakeful late — listening to the courtyard gate open and close, to the well-rope returning to its windlass, to his mother folding the empty bag.
+
+**Anchor sentence**: two touches; two different hands.
+**锚句**：两次触碰，手各不同。
+
+---
+
+## V · Where the Ash Went
+
+The next day, the wife scattered one portion across the vegetable beds in the yard.
+
+She ran the old sieve through the clods first, letting the ash fall onto the turned soil. Her husband brought a pail of water and poured slowly around the roots of the greens. The mustard sprouts had not yet filled out; mud speckled their leaves. She did not spread the ash thickly; what remained she gathered into the bowl and carried back to the stove side.
+
+A neighbor came to borrow a needle, and saw another portion on the table; she asked whether she might bury it beneath her pillow. The wife passed the pouch across. The neighbor did not say what she meant to bury, nor for how long; she only pressed the pouch into her basket, beneath a patch of quilt-cloth.
+
+Two portions remained, untouched. The father set one at the far corner of the house; the mother set one on the low cabinet inside the door. Neither of them moved them. The boy sat in the yard, watching the ash settle on the beds, watching the wind turn a leaf. The bowl of what remained stayed covered.
+
+Dinner was millet gruel and the salted fish of the day before. After, his mother scoured the pot, his father coiled the rope, the boy wiped the grey prints from the table. The house kept a few faint traces along the grain of the wood; they would not come out.
+
+**Anchor sentence**: the ash went where each hand carried it.
+**锚句**：灰跟着各自的手走了。
+
+---
+
+## VI · The Second Bag
+
+A second bag of ash remained in the house.
+
+It stood inside the door, leaning against the rice-jar, its mouth still tied with the original cord. No one weighed it; no one carried it to the table. Every day his mother reached for rice, her arm passed by the bag's edge; every night his father shut the door, the door-board no more than half a palm from the bag's corner.
+
+The boy sometimes watched it. No new ridges marked the cloth; the knot had not loosened. Once he asked when this one would be opened. His father was raking the fire in the stove, and did not look up. His mother was sifting rice; the grains fell into the basin, a fine continual whisper.
+
+In time the boy stopped asking. The household went on as before — wood added to the stove, rice rinsed, clothes mended. Rain dripped from the eaves onto the old roof-tile by the door. The cloth of the first bag was washed and hung on the wall, its edge still greyed.
+
+The second bag leaned against the rice-jar still. No one said it would be opened; no one said it would not. Every day someone passed it; every day the door was shut.
+
+**Anchor sentence**: the second bag is still in the house.
+**锚句**：第二袋仍在家中。
+
+---
+
+## Model mapping (Chapter IX)
+
+| Category | Title | Corresponds to |
+|---|---|---|
+| lore | The Ash-Bag · the Bowl of Remnant Ash · the Seven Pouches · the Scale and the Beam | I–VI |
+| geography | One Household · the Doorway · the Yard-Beds · the Kitchen | I–VI |
+| factions | One Household (the father · the wife · the boy) | I–VI |
+| characters | The Father · the Wife · the Boy · the Neighbor | I–VI |
+| items | The Bag · the Bowl · the Scale · the Old Sieve · the Millet · the Salted Fish | I–VI |
+| story | After the Ash · Taking the Ash Home · Chapter IX | whole |
+| history | After the Iron-Moon Age · Before the Grey Cover Was Laid | I–VI |
+
+> When the ash entered a household, it entered the smoke and heat of it;
+> the scale weighs pounds — it cannot weigh silence.
+>
+> 灰进了人家，就入了烟火；
+> 计数的是斤两，秤不了的是沉默。
+`,
+  },
 ] as const;
 
 export const BIBLE_ECHOES: readonly BibleChapter[] = [

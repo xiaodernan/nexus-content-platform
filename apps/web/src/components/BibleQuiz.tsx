@@ -211,6 +211,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《钥匙》里，守门人不试钥匙的原因是……？', choices: ['怕钥匙断了', '试了就是开门=旧账重开', '钥匙太久没用了', '上级命令'], answer: 1, ref: '回响十 · 三' },
     en: { prompt: 'In “The Keys”, why must the doorkeeper never try the keys?', choices: ['they might snap', 'trying is the first step of reopening the old ledger', 'they have been unused too long', 'orders from above'], answer: 1, ref: 'Echo No. 10 · III' },
   },
+  {
+    zh: { prompt: '《带灰回家》里，灰被称成几份，每份多少？', choices: ['七份，每份一斤', '三份，每份半斤', '五份，每份一斤', '两份，每份十两'], answer: 0, ref: '第九章 · 三' },
+    en: { prompt: 'In “Ash Carried Home”, how many portions were weighed, and how much each?', choices: ['seven, one jin each', 'three, half a jin each', 'five, one jin each', 'two, ten taels each'], answer: 0, ref: 'Chapter IX · III' },
+  },
+  {
+    zh: { prompt: '《带灰回家》里，孩子第二次摸袋子，掌心……？', choices: ['是干的', '是湿的', '在发烫', '沾了盐'], answer: 1, ref: '第九章 · 四' },
+    en: { prompt: 'In “Ash Carried Home”, the second time the boy touches the bag, his palm is…?', choices: ['dry', 'wet', 'burning', 'salted'], answer: 1, ref: 'Chapter IX · IV' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {
