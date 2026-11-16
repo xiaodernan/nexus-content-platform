@@ -30,6 +30,7 @@ const COPY: Record<Locale, {
   playLink: string;
   wellLink: string;
   whisperLink: string;
+  anchorsLink: string;
   chapterLabel: (order: number) => string;
   anchorsLine: (count: number) => string;
   readLink: string;
@@ -45,6 +46,7 @@ const COPY: Record<Locale, {
     playLink: '接受潮汐挑战 →',
     wellLink: '七口井',
     whisperLink: '答问者 · 问点书里的事',
+    anchorsLink: '锚句回放',
     chapterLabel: (order) => `第${['一', '二', '三', '四'][order - 1] ?? order}章`,
     echoLabel: (order) => `回响 · 其${['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'][order - 1] ?? order}`,
     echoTitle: '回响 · Echoes',
@@ -63,6 +65,7 @@ const COPY: Record<Locale, {
     playLink: 'I accept the Tidal Trial →',
     wellLink: 'The Seven Wells',
     whisperLink: 'The Answerer · ask one question of the book',
+    anchorsLink: 'Anchor Echo',
     chapterLabel: (order) => `Chapter ${['I', 'II', 'III', 'IV'][order - 1] ?? order}`,
     echoLabel: (order) => `Echo ${['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][order - 1] ?? order}`,
     echoTitle: 'Echoes',
@@ -90,6 +93,7 @@ export default async function BiblePage() {
           <Link href="/bible/quiz" className="bb-playLink" data-bible-open-quiz>{c.playLink}</Link>
           <span className="bb-playTrialSep" aria-hidden="true">·</span>
           <Link href="/bible/whisper" className="bb-playLink" data-bible-open-whisper>{c.whisperLink}</Link>
+          <Link href="/bible/anchors" className="bb-playLink" data-bible-open-anchors>{c.anchorsLink}</Link>
           <span className="bb-playTrialSep" aria-hidden="true">·</span>
           <Link href="/bible/well" className="bb-playLink" data-bible-open-well>{c.wellLink}</Link>
         </p>

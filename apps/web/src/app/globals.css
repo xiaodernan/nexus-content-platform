@@ -5380,3 +5380,53 @@
   .sg-tryButton { background: Highlight; color: HighlightText; forced-color-adjust: auto; }
   .sg-whereLink:focus-visible, .sg-tryButton:focus-visible, .sg-tryAgain:focus-visible { outline: 2px solid Highlight; box-shadow: 0 0 0 2px Highlight; }
 }
+
+/* ──BIBLE-ANCHOR-ECHO /bible/anchors 锚句回放（cont. 181）── 全部 tokens，零 hex；forced-colors 段在文件后部 */
+.ae-root { display: flex; flex-direction: column; gap: 1rem; max-width: 52rem; margin-inline: auto; padding: 1rem 0 2rem; }
+.ae-head { display: flex; flex-direction: column; gap: 0.5rem; }
+.ae-kicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.22em; text-transform: uppercase; color: var(--nexus-color-accent-2-ink); margin: 0; }
+.ae-title { font-size: clamp(1.5rem, 4vw, 2.25rem); line-height: 1.15; font-weight: 750; letter-spacing: -0.015em; margin: 0; }
+.ae-lede { color: var(--nexus-color-fg-2); max-width: 56ch; line-height: 1.7; margin: 0; overflow-wrap: anywhere; word-break: break-word; }
+.ae-meta { display: flex; gap: 0.75rem; align-items: center; margin-top: 0.25rem; }
+.ae-questionNo { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); font-variant-numeric: tabular-nums; }
+.ae-streak { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-2-ink); border: 1px solid color-mix(in srgb, var(--nexus-color-accent-2-ink) 40%, transparent); border-radius: 999px; padding: 2px var(--nexus-space-2); font-variant-numeric: tabular-nums; }
+.ae-progress { display: flex; gap: 0.4rem; list-style: none; padding: 0; margin: 0; }
+.ae-dot, .ae-dotDone, .ae-dotCurrent { width: 0.65rem; height: 0.65rem; border-radius: 999px; border: 1px solid var(--nexus-color-border-subtle); }
+.ae-dotDone { background: var(--nexus-color-success); border-color: var(--nexus-color-success); }
+.ae-dotCurrent { background: var(--nexus-color-accent-2-ink); border-color: var(--nexus-color-accent-2-ink); box-shadow: 0 0 0 3px color-mix(in srgb, var(--nexus-color-accent-2-ink) 30%, transparent); }
+.ae-line { margin: 0.5rem 0; border-left: 3px solid var(--nexus-color-accent-2-ink); padding: 0.75rem 1rem; background: var(--nexus-color-bg-2); border-radius: var(--nexus-radius-sm, 0.4rem); display: flex; flex-direction: column; }
+.ae-lineText { font-size: 1.2rem; line-height: 1.7; margin: 0; color: var(--nexus-color-fg-1); font-family: Georgia, "Noto Serif CJK SC", "Source Han Serif SC", "Songti SC", serif; overflow-wrap: anywhere; word-break: break-word; }
+.ae-chooseHint { margin: 0; color: var(--nexus-color-fg-3); font-size: 0.85rem; }
+.ae-options { list-style: none; padding: 0; margin: 0.25rem 0 0 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.ae-option { display: block; width: 100%; text-align: left; font-size: 0.95rem; color: var(--nexus-color-fg-1); background: var(--nexus-color-bg-2); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md, 0.5rem); padding: 0.6rem 0.85rem; cursor: pointer; transition: border-color 140ms, background 140ms; }
+.ae-option:hover:not(:disabled) { border-color: var(--nexus-color-accent-2-ink); }
+.ae-option:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+.ae-optionCorrect { border-color: var(--nexus-color-success); background: color-mix(in srgb, var(--nexus-color-success) 12%, var(--nexus-color-bg-2)); }
+.ae-optionWrong { border-color: var(--nexus-color-warn-ink); background: color-mix(in srgb, var(--nexus-color-warn-ink) 10%, var(--nexus-color-bg-2)); }
+.ae-optionDim { color: var(--nexus-color-fg-3); }
+.ae-feedback { display: flex; flex-direction: column; gap: 0.5rem; border-top: 1px solid var(--nexus-color-border-subtle); padding-top: 0.75rem; }
+.ae-correct { margin: 0; color: var(--nexus-color-success); font-weight: 650; }
+.ae-wrong { margin: 0; color: var(--nexus-color-warn-ink); font-weight: 650; overflow-wrap: anywhere; word-break: break-word; }
+.ae-next { align-self: flex-start; font-size: 0.95rem; border: 0; border-radius: var(--nexus-radius-md, 0.5rem); background: var(--nexus-color-brand); color: var(--nexus-color-accent-fg); padding: 0.55rem 1rem; font-weight: 650; cursor: pointer; }
+.ae-next:hover { filter: brightness(1.1); }
+.ae-next:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+.ae-restart { align-self: flex-start; font-size: 1rem; border: 0; border-radius: var(--nexus-radius-md, 0.5rem); background: var(--nexus-color-brand); color: var(--nexus-color-accent-fg); padding: 0.65rem 1.1rem; font-weight: 650; cursor: pointer; }
+.ae-restart:hover { filter: brightness(1.1); }
+.ae-restart:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+.ae-endRow { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
+.ae-link { font-family: var(--nexus-font-mono); font-size: 0.85rem; color: var(--nexus-color-accent-2-ink); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--nexus-color-accent-2-ink) 45%, transparent); padding-block: 0.35rem; }
+.ae-link:hover { color: var(--nexus-color-brand); border-color: var(--nexus-color-brand); }
+.ae-link:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; border-radius: var(--nexus-radius-sm, 0.25rem); }
+.ae-verdict { margin: 0; font-size: 1.05rem; color: var(--nexus-color-fg-1); line-height: 1.7; overflow-wrap: anywhere; word-break: break-word; }
+.ae-best { margin: 0; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); font-variant-numeric: tabular-nums; }
+.ae-foot { border-top: 1px solid var(--nexus-color-border-subtle); padding-top: 0.75rem; }
+.ae-footNote { margin: 0; color: var(--nexus-color-fg-3); font-size: 0.85rem; line-height: 1.6; }
+
+@media (forced-colors: active) {
+  .ae-line, .ae-option, .ae-dot, .ae-dotDone, .ae-dotCurrent { border-color: CanvasText; background: Canvas; color: CanvasText; }
+  .ae-title, .ae-kicker, .ae-lineText, .ae-correct, .ae-wrong { color: CanvasText; }
+  .ae-optionCorrect { border-color: Highlight; background: Canvas; }
+  .ae-optionWrong { border-color: CanvasText; background: Canvas; }
+  .ae-next, .ae-restart { background: Highlight; color: HighlightText; forced-color-adjust: auto; }
+  .ae-link:focus-visible, .ae-next:focus-visible, .ae-restart:focus-visible { outline: 2px solid Highlight; box-shadow: 0 0 0 2px Highlight; }
+}

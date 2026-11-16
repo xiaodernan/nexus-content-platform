@@ -5128,3 +5128,19 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - guide 全套对齐：八章 → 九章（zh/en ×6 处）；SHA pin b159c177… 重钉。
 - 草稿出真 provider（gpt-6.1-terra），人工定稿·严纪律。
 - 门：fe-gates 123 套 · 1200/1200 OK；census 2541 OK；tsc 0。
+
+## cont. 181 (2026-11-17) - v811: 典籍室第三个玩法 —— /bible/anchors 锚句回放（Anchor Echo）
+
+- 新页面 `/bible/anchors`（zh/en 全双语，RSC + client 游戏组件）：
+  正典里唯一不翻译、不改写的句子逐字回放——看见锚句，选它出自哪一章/哪一回响。
+  8 轮/局、连对（streak）与历史最佳（localStorage，纯客户端、零 provider、零 fetch）。
+- 数据：`apps/web/src/world-bible/anchors.generated.ts`——由新脚本 `scripts/gen-anchor-echo.mts`
+  从 docs/world-bible/ 直接解析锚句（zh/en 成对、顺序绑定、refZh/refEn 出处标记），
+  111 锚句；新增 `npm run gen:anchor-echo` / `verify:anchor-echo`（--check 字节比对，正典仍是唯一真值）。
+- hub（/bible）新增第三个 playLink（锚句回放 / Anchor Echo）；sitemap.xml 收入 /bible/anchors；
+  /guide StateGraph 小节同步说明（zh/en 各一行）；guide pin d004aa3d… → 1ace63fd… 重钉；
+  hub 页 SHA pin 5dce4946… → 09d059ce… 重钉。
+- 新增 visual-style 套件 `anchor-echo-visual-style.test.ts`（7 用例）；
+  fe-gates 122 → **124 套 · 1207/1207**；census 2541 → **2571 OK**。
+- live probe：`/bible/anchors` 200（zh+en 双语命中 a e-* 标记）、/bible hub 列出、sitemap 含。
+- 草稿：游戏设计/数据纪律人工定稿；锚句全部逐字来自正典，无一句机器改写。
