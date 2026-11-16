@@ -4171,3 +4171,13 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   SSR 实测 zh/en 200（/bible/echo-005-the-sand-table-no-one-touched）。
 - fe-gates **125/125 · 1223/1223** 保持全绿。
 - 回响集现在：E01 巡逻路札记 · E02 潮候船上没有岸 · E03 退潮三日 · E04 盐在井里等潮 · E05 没人动过的沙盘；主线 4 章 + 45 锚句。
+
+## cont. 171 (2026-11-16) — v804: 回响 · 其六《教团没有买的歌谱》——典籍室再 +1
+
+- 用户指令：「给出后续更多的无限故事 / 深度开拓还没有做的一大块部分」。
+- 新番外正典：docs/world-bible/echoes/E06-教团没有买的歌谱.md(+.en.md)（第八盏灯下散会的潮音；无音谱的歌谱；没人动过的沙盘自己偏了半寸；潮候院散会后没有「拍手」这一项议程）；与主典诗学一脉，45→49 锚句中英逐字对齐。
+- 快照 gen 注册 echo-006-the-score-the-institute-never-bought；/bible「回响」自动收录；verify OK；
+  SSR 实测 zh/en 200（zh 文 / en text「The Score the Institute Never Bought」）。
+- fe-gates **125/125 · 1223/1223** 保持全绿。
+- 回响集现在：E01 巡逻路札记 · E02 潮候船上没有岸 · E03 退潮三日 · E04 盐在井里等潮 · E05 没人动过的沙盘 · E06 教团没有买的歌谱；主线 4 章 + 49 锚句。
+- 顺带：Docker Desktop 今早 7:00 又掉线（nexus-postgres/redis 双健康重启后恢复）；/ 首页 500 根因是 Postgres 未就绪——已等到 200。
