@@ -85,7 +85,8 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           '/world/<id>/chronicle 编年史：故事/历史条目按纪元排开（灰灯纪/灰烬纪/铁月纪……你项目自己的纪元名），人物星图 ↔ 编年互相点亮；条目可挂「记忆回声」——纯感官刻痕，≤ 240 字，不是梗概。',
           '/world/<id>/digest 世界速览 · /world/<id>/integrity 世界体检（只报真问题：纪元错位/回声缺失/孤儿条目，不打分不假绿）· /world/<id>/tide 世界潮汐 · /world/<id>/ephemeris 世界日历投影 · /world/<id>/codex 设定集 · /world/<id>/constellation 人物关系星图 · /world/<id>/atlas 世界全图 · /world/<id>/almanac 世界年历 · /world/<id>/quiz 世界问答（确定性，题目出自本项目） · /world/<id>/memories 世界记忆。',
           '这些页面全部是你的项目数据的投影——世界页不是"官方故事"，是你画的世界自己的结构。',
-          '想读这个宇宙的正典文字？去 /bible 翻《低语诸王》五章正典——锚句中英字字对齐的正典、可以直接收藏的典籍室。',
+          '想读这个宇宙的正典文字？去 /bible 翻《低语诸王》五章正典——锚句中英字字对齐的正典、可以直接收藏的典籍室。另外还有两个按钮：「潮汐挑战」是正典小测、答对会提示是哪一章；「问典」是把正典喂给真模型——问中文答中文、问英文答英文、典籍里没有的它直接说"典籍里没有"。',
+          '想让 AI 读你的数据？/analytics 里的 Creator Agent 规则分析底下——也藏着一个「让大模型看看我的数据」按钮——它跑的是真 provider，不是模板。',
         ],
       },
       {
@@ -109,6 +110,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         heading: '⑪ 观察哨 /insight —— 管理员看全站（口令 123）',
         body: [
           '想看全站的真实账面？打开 /insight，输入口令 123 即可——这是一道公共口令门：知道 123 的人都能进，所以页面上只展示聚合数据（总量、近 30 天日序列、线性外推、互动率、爬虫占比、额度消耗、AI 成本与缓存命中率，以及按真实数字触发的深度优化建议），不含任何人的邮箱、密钥或单人明细。',
+          '观察哨第 ⑧ 格「大模型解读」：把 30 天的聚合数字喂给真实模型（gpt-6.1-terra），让它一段话讲清楚瓶颈在哪——「现象 → 证据 → 动作」三段，不出站个人字段；状态栏永远显示 cache 徽标和 provider 透传。',
           '页面上的趋势是近 30 天的最小二乘拟合外推（R² 如实标出），不是预测承诺；「深度优化建议」每条都带触发它的数字和阈值——它们是确定性规则，不是模型猜测。',
           '任何人都可以提交与讨论——口令不是秘密，数据也不涉隐私；系统会按 IP 限流防滥刷（30 次 / 5 分钟）。',
         ],
@@ -197,7 +199,8 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           '/world/<id>/chronicle — story and history entries arranged by era (Grey-Lamp Age / Ash Age / Iron-Moon Age — whatever YOUR project’s eras are), characters and chronicle light each other up; entries can carry “memory echoes” — pure sensory etchings, ≤ 240 chars, not plot summaries.',
           '/world/<id>/digest world digest · /world/<id>/integrity world checkup (reports real issues only: era drift, missing echoes, orphan entries — no fake scoring) · /world/<id>/tide world tide · /world/<id>/ephemeris world calendar projection · /world/<id>/codex the lore tome · /world/<id>/constellation the character graph · /world/<id>/atlas world atlas · /world/<id>/almanac world almanac · /world/<id>/quiz the quiz (deterministic, content from this project) · /world/<id>/memories the memories walk.',
           'Every one of these pages is a projection of YOUR project — the world pages are not “the official story”; they are the structure of the world you drew, rendered.',
-          'Fancy the canon text of this universe? Go to /bible — five canonical chapters of The Whispers’ Kings, anchor sentences aligned word-for-word between Chinese and English.',
+          'Fancy the canon text of this universe? Go to /bible — five canonical chapters of The Whispers’ Kings, anchor sentences aligned word-for-word between Chinese and English. Two buttons live below the shelf: “The Tidal Trial” — a 14-question canon quiz; and “Ask the Canon” — the canon fed to a real model (gpt-6.1-terra): ask in Chinese it answers in Chinese, ask in English it answers in English, and what the canon does not hold it says so outright.',
+          'Want the model to read your own numbers? Below the rule-based Creator Agent on /analytics you will find a button — “Let the model read my stats” — a live provider call, not a template.',
         ],
       },
       {
@@ -221,6 +224,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         heading: '⑪ The observatory at /insight — admins see the whole ledger (passcode 123)',
         body: [
           'Want the platform’s real numbers? Open /insight and enter passcode 123 — a public-door gate: anyone who knows it may walk in, so the page shows aggregate data only (totals, last-30-day series with r²-annotated least-squares extrapolation, interaction rate, bot-open share, credit burn, AI cost & cache hit rate, and deep-optimization actions triggered by the ledger) — never emails, keys or single-user rows.',
+          'Section ⑧ of the observatory — “AI reads the ledger”: the same 30-day aggregate snapshot is handed to the live model (gpt-6.1-terra) and it returns “observation → evidence → action” — no personal fields leave the process, and the cache/model badge stays visible.',
           'The trend line is least-squares over the last 30 days with R² printed beside it — reference, not a promise; every §5 “deep optimization” item lists the numbers that triggered it and its threshold — deterministic rules, not a model guess.',
           'Anyone may enter — the passcode is not a secret and the numbers are not personal; an IP rate limit (30 per 5 minutes) keeps scripts from hammering the door.',
         ],

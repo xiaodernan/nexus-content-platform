@@ -70,6 +70,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E26-祠殿檐下那张潮候院不许扫的网': 'echo-026-the-web-nobody-is-allowed-to-sweep',
   'E27-里巷子里刻着四十一次大会的那面墙': 'echo-027-the-wall-of-the-forty-one-convocations',
   'E28-潮候院沙漏里那枚没人拆开的结': 'echo-028-the-knot-in-the-hourglass',
+  'E29-祠殿里那双没人穿的木屐': 'echo-029-the-wooden-clogs-nobody-wears',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
