@@ -4472,3 +4472,13 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 新 API `agent-narrate`：creator cookie + csrf + 10/h；digest 零个人字段；503 原话。
 - evidence §PROVED-5：真实库 + 真 provider + 精确 finding → 「先补封面图」；tokensIn 5 024。
 - fe-gates 133/133 · census 2564；sibling :8000 未触碰；sidecar 用完即停。
+
+## cont. 209 (2026-11-17) — §SHOW-PAGE-1 · 个人展示页错别字修正（赵欣曈）
+
+- 用户明确反馈：个人 GitHub Pages 有多处错别字与细节问题；按用户口述核对事实（全部与页内一致）：
+  赵欣曈 / 南方科技大学本科 / 香港中文大学硕士研究生 / 计算机科学与技术×2 / 全国中学生物理竞赛铜牌 /
+  江西省一等奖、二等奖 / 法狗狗公司 · 应用工程师 / 项目叫"隐盾"（不是隐图）。
+- 修正 4 处（尖叫这四种形态）：«契约简»→契约文件（与 latest.json 契约文件数 14 相一致）；
+  本科简介「体系」→「计算机体系结构」；「全部真跑」→「全部都真跑」；江西省一等奖/二等奖 前缀「物理竞赛 ·」。
+- 隐盾记法冲突排查：`xiaodernan.github.io`（master 099984c）全文 `隐图` 零出现；Pages 发布/缓存延迟由用户硬刷新解决；raw master 已核验四处修正全部落盘。
+- 他个人页只有这一次人力修（index.html），`latest.json` 由既有自动同步脚本幂等生成。
