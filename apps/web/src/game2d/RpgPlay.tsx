@@ -18,6 +18,8 @@ import {
 } from '@nexus/game-model';
 import { KEY_MAP, drawTopdown } from './GamePlay';
 import { isControlTarget, isEditableTarget } from '@/lib/keyboard';
+import { GameTutorial } from '@/components/GameTutorial';
+import type { Locale } from '@/lib/i18n';
 
 /**
  * §51 最后一条管线的界面：RPG 原型 = 同一场战斗 + 成长读数。
@@ -29,7 +31,7 @@ import { isControlTarget, isEditableTarget } from '@/lib/keyboard';
  * - 经验来源逐个标 provenance（design = 作者写的 xpReward / default = 投影兜底）：
  *   让人以为"每击 10 经验是设计的"就是假数据（§159）。
  */
-export function RpgPlay({ plan, onComplete }: { plan: RpgPlan; onComplete?: () => void }) {
+export function RpgPlay({ plan, onComplete, locale = 'zh' }: { plan: RpgPlan; onComplete?: () => void; locale?: Locale }) {
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const keys = useRef<Record<string, boolean>>({});
   const stateRef = useRef<RpgState>(initialRpgState(plan));
@@ -152,6 +154,8 @@ export function RpgPlay({ plan, onComplete }: { plan: RpgPlan; onComplete?: () =
           重新开始
         </button>
       </div>
+
+      <GameTutorial locale={locale} />
 
       {hud.base.outcome ? (
         <p className="g2-blocker" data-rpg-outcome>

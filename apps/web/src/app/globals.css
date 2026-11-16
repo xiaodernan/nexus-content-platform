@@ -5159,4 +5159,18 @@
   .map-linkPath, .map-linkLabel, .map-link, .map-kicker, .map-title, .map-lede, .map-sectionHead, .map-sectionBody, .map-foot { color: CanvasText; -webkit-text-fill-color: CanvasText; background: none; }
   .map-compassPoint { color: CanvasText; }
   .map-link:focus-visible { outline-color: Highlight; }
+}/* ── §G2-TUT 游戏内「怎么玩」教学卡视觉层（GameTutorial.tsx） ── */
+.g2-tutBox { display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+.g2-tutToggle { align-self: flex-start; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.08em; color: var(--nexus-color-accent-2-ink); background: transparent; border: 1px solid var(--nexus-color-accent-mix); border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-1) var(--nexus-space-3); cursor: pointer; }
+.g2-tutToggle:hover { background: color-mix(in srgb, var(--nexus-color-accent-mix) 12%, transparent); }
+.g2-tutToggle:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+.g2-tutPanel { display: flex; flex-direction: column; gap: var(--nexus-space-2); margin-top: var(--nexus-space-1); padding: var(--nexus-space-3); border: 1px solid var(--nexus-color-border-subtle); border-left: 3px solid var(--nexus-color-accent-2); border-radius: var(--nexus-radius-md); background: var(--nexus-color-bg-1); max-width: 44rem; }
+.g2-tutTitle { font-size: var(--nexus-font-size-14); font-weight: 700; color: var(--nexus-color-fg-1); }
+.g2-tutSteps { display: flex; flex-direction: column; gap: var(--nexus-space-1); list-style: decimal; padding-left: 1.4rem; }
+.g2-tutStep { font-size: var(--nexus-font-size-12); line-height: 1.75; color: var(--nexus-color-fg-2); }
+.g2-tutNote { font-size: var(--nexus-font-size-11); line-height: 1.7; color: var(--nexus-color-fg-3); border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-2); }
+@media (forced-colors: active) {
+  .g2-tutPanel, .g2-tutToggle { border-color: CanvasText; background: Canvas; }
+  .g2-tutToggle, .g2-tutTitle, .g2-tutStep, .g2-tutNote { color: CanvasText; border-color: CanvasText; }
+  .g2-tutToggle:focus-visible { outline-color: Highlight; }
 }

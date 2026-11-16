@@ -14074,3 +14074,12 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - ai-service 424 passed / 18 skipped；黏性 18 passed；ADR-0271、
   ENVIRONMENT.md §AILIVE-5、证据 `docs/evidence/provider-aizzz-switch-2026-11-16.md` 已更新。
 - 「非流」对本机 aizzz.xyz 线是正确记账（SSE 段 SSL EOF/403），不是回归。
+
+## §GAME-TUT — 游戏内教学卡（2026-11-16 / v797）
+
+用户指令：「游戏要有充分游玩教程，告诉用户怎么玩」+「说明书嵌入项目启动一起就能看到」。
+- 新增 `GameTutorial.tsx`（'use client'）：「怎么玩 · 说明」（zh）/「How to play」（en）折叠卡，五条实数（WASD/空格/经验/通关/来自设计）；t zh/e en 完全双语；
+  不承诺完成率/概览虚荣数字、不编云存档（§159 明禁标）；游戏内一点就开，Escape/失焦/collapse 收起。
+- 接线两管线：`RpgPlay`（RPG 成长线）与 `GamePlay`（2D/3D/探索/解谜 全部画法）— `locale` 从 RSC 下传（`/game/<id>` 与公开可玩页 `/n/<handle>/<slug>/play`）。
+- `§G2-TUT .g2-tut*`（7 类全零 hex）；新门 7 条（钩子、双语构、只认 g2-tut*、§G2-TUT 全定义、forced-colors、var() 全声明、账户内不承诺完成率）；
+  重钉 game/rpg/PlayByKind/public-play/runtime-pages SHA 五门；fe-gates **124/124 · 1214/1214**；census 2370 OK。

@@ -2,6 +2,7 @@
 
 import { useCallback, useRef } from 'react';
 import type { GameDocument, GameProjection } from '@nexus/game-model';
+import type { Locale } from '@/lib/i18n';
 import { csrfHeaders } from '@/lib/csrf';
 import { visitorKey } from '@/lib/visitor-key';
 import { PlayByKind } from './PlayByKind';
@@ -25,11 +26,14 @@ export function PublicPlay({
   document,
   projection,
   path,
+  locale = 'zh',
 }: {
   document: GameDocument;
   projection: GameProjection;
   /** 这一版的公开路径（`/n/<handle>/<slug>`）：服务端靠它认出是哪一版 */
   path: string;
+  /** 双语（v797）：服务端 getLocale 下传 */
+  locale?: Locale;
 }) {
   const reported = useRef(false);
   const onComplete = useCallback(() => {
@@ -47,5 +51,5 @@ export function PublicPlay({
     }).catch(() => undefined);
   }, [path]);
 
-  return <PlayByKind document={document} projection={projection} onComplete={onComplete} />;
+  return <PlayByKind document={document} projection={projection} onComplete={onComplete} locale={locale} />;
 }

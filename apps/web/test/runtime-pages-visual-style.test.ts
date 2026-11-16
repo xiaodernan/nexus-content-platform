@@ -178,7 +178,7 @@ describe('§FE-24 /game 与 /world 运行时壳', () => {
   it('剥 className 后全文 SHA256 守恒（零行为：game=4dc0a0b5… · world=a007330d…（v759 i18n 重钉））', () => {
     // 常量在改前（git HEAD）由真实产物 redact 算出并钉死；此门保证除 className 外一字节未动。
     expect(createHash('sha256').update(redactClasses(game)).digest('hex')).toBe(
-      '4dc0a0b57860800784c9bc1b761175179cc9e6e7b83cff5a2563886d4322ff98',
+      '742307e209d6a14b5ce814dbde6c2ab49bf9f6efc239854cfab5d56e1bdd03cb',
     );
     expect(createHash('sha256').update(redactClasses(world)).digest('hex')).toBe(
       'a007330d42d4df44889e1db932bc3ad9e630789b5587b05f159113322a039b25',

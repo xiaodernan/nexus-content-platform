@@ -34,6 +34,8 @@ import { KIND_COLORS } from './palette';
 import { PLAY_PROVENANCE_FALLBACK_TEXT, PLAY_PROVENANCE_LABELS, PLAY_PROVENANCE_SLOTS, type PlayProvenanceSlot } from '@nexus/game-model';
 import { GameCanvas3D } from './GameCanvas3D';
 import { isControlTarget, isEditableTarget } from '@/lib/keyboard';
+import { GameTutorial } from '@/components/GameTutorial';
+import type { Locale } from '@/lib/i18n';
 
 /**
  * §50 的可玩投影：把 `compileGame` 排出来的关卡计划交给 `step` 跑，画在 2D 画布上。
@@ -328,11 +330,14 @@ export function GamePlay({
   plan,
   view = 'topdown',
   onComplete,
+  locale = 'zh',
 }: {
   plan: GamePlan;
   view?: GameView;
   /** §168：通关的那一声（公开可玩页用它上报"玩到了结局"；作者自己的工作稿不传） */
   onComplete?: () => void;
+  /** 双语（v797）：服务端 cookie locale 下传 */
+  locale?: Locale;
 }) {
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const keys = useRef<Record<string, boolean>>({});
@@ -489,6 +494,8 @@ export function GamePlay({
           重新开始
         </button>
       </div>
+
+      <GameTutorial locale={locale} />
 
       {hud.outcome ? (
         <p className="g2-blocker" data-game-outcome>

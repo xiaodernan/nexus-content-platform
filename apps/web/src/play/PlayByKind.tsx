@@ -8,6 +8,7 @@ import {
 import { GamePlay } from '@/game2d/GamePlay';
 import { RpgPlay } from '@/game2d/RpgPlay';
 import { StoryPlay } from './StoryPlay';
+import type { Locale } from '@/lib/i18n';
 
 /**
  * §51 的"类型 → 播放器"这一段，两个试玩入口共用一处（§16）：
@@ -25,11 +26,14 @@ export function PlayByKind({
   document,
   projection,
   onComplete,
+  locale = 'zh',
 }: {
   document: GameDocument;
   projection: GameProjection;
   /** §168：通关的那一声（公开可玩页用它上报；作者自己的工作稿不传 ⇒ 不记成访客） */
   onComplete?: () => void;
+  /** 双语（v797）：locale 从 RSC 下传（作者工作稿页 / 公开可玩页都是 cookie 读的那一份） */
+  locale?: Locale;
 }) {
   const kindNote = isGameKind(document.kind) ? (
     <p className="pk-hint" data-game-kind-note={document.kind}>
@@ -40,7 +44,7 @@ export function PlayByKind({
   if (projection.pipeline === 'topdown') {
     return (
       <>
-        <GamePlay plan={projection.plan} view={projection.view} onComplete={onComplete} />
+        <GamePlay plan={projection.plan} view={projection.view} onComplete={onComplete} locale={locale} />
         {kindNote}
       </>
     );
@@ -56,7 +60,7 @@ export function PlayByKind({
   if (projection.pipeline === 'rpg') {
     return (
       <>
-        <RpgPlay plan={projection.plan} onComplete={onComplete} />
+        <RpgPlay plan={projection.plan} onComplete={onComplete} locale={locale} />
         {kindNote}
       </>
     );

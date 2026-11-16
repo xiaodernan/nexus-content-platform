@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * 与 §FE-96 同族同语义——零新 CSS：与 GamePlay 共享 `.g2-*` 全套。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `fd117da3187f50877875c485ff5d47b6a02736d564879cb414213a9781b83041` 与 HEAD 字节一致。
+ * `ffdf5a291debd21b4c2cec756a92e255652c9be2b38dcc345fd598b956417f4b` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/game2d/RpgPlay.tsx');
@@ -70,9 +70,9 @@ describe('§FE-97 /game2d RpgPlay RPG 分支 chrome（复用 .g2-）', () => {
     for (const token of used) expect(tokens, `tokens.css 没有声明 ${token}`).toContain(token);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：fd117da3187f50877875c485ff5d47b6a02736d564879cb414213a9781b83041）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：ffdf5a291debd21b4c2cec756a92e255652c9be2b38dcc345fd598b956417f4b）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'fd117da3187f50877875c485ff5d47b6a02736d564879cb414213a9781b83041',
+      'ffdf5a291debd21b4c2cec756a92e255652c9be2b38dcc345fd598b956417f4b',
     );
   });
 });

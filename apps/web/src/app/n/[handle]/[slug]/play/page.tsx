@@ -6,6 +6,7 @@ import { getPublishedPage } from '@/server/domain/publish';
 import { describeProjection } from '@/play/PlayByKind';
 import { PublicPlay } from '@/play/PublicPlay';
 import { VisitMeter } from '../VisitMeter';
+import { getLocale, type Locale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +22,7 @@ export const dynamic = 'force-dynamic';
 export default async function PublicPlayPage({ params }: { params: Promise<{ handle: string; slug: string }> }) {
   const { handle, slug } = await params;
   const path = `/n/${decodeURIComponent(handle)}/${decodeURIComponent(slug)}`;
+  const locale = await getLocale();
   const page = await getPublishedPage(path);
   if (!page) notFound();
 
@@ -91,7 +93,7 @@ export default async function PublicPlayPage({ params }: { params: Promise<{ han
         </p>
       ) : null}
       {/* §168：通关的那一声（"玩到了结局"）——只有公开可玩页报，作者自己的工作稿不报 */}
-      <PublicPlay document={document} projection={projection} path={path} />
+      <PublicPlay document={document} projection={projection} path={path} locale={locale} />
       {/* §168：玩这一页就是一次真访问，心跳与作品页共用同一份口径 */}
       <VisitMeter path={path} />
     </main>

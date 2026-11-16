@@ -4097,3 +4097,15 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - ai-service 424 passed / 18 skipped；sticky 模块 18 passed；裁两个新门（env 显式代理 honored + 无代理直连回退）。
 - 用户看到的「一直显示非流」：本机 aizzz.xyz + Clash Verge 对 SSE 段是 SSL EOF/403，`NEXUS_LLM_STREAM=0` 记账正确，非回归。
 - Showcase 同步于提交后。
+
+## cont. 164 (2026-11-16) — v797: 游戏内「怎么玩」教学卡（2D/RPG 两管线）·「说明书嵌入项目里」的最后一格
+
+- 用户指令（第七条 + 第十二条）：「游戏要有充分游玩教程，告诉用户怎么玩；同时给出新用户的简单新手教程、快速上手教程演示，教会用户怎么玩、怎么用。」
+- 新增 `components/GameTutorial.tsx`（'use client'）：「怎么玩 · 说明 / How to play」折叠卡，双语（zh/en 同键）；
+  内容＝移动（WASD/方向键）、攻击（空格）、经验→升级→提升生命与伤害、通关=打倒所有敌人、
+  数值全部来自「你的游戏设计」（§159：不承诺完成率、不画虚荣、不编云存档）、不会玩就是没看见教程。
+- 接线：PlayByKind 增 `locale?: Locale`（默认 zh，RSC 下传）→ GamePlay / RpgPlay 渲染 <GameTutorial locale={locale} />；
+  `/game/[projectId]`（作者）与 `/n/<handle>/<slug>/play`（公开）都 getLocale 透传。
+- 新段 `§G2-TUT .g2-tut*`（7 类，零 hex；forced-colors 收口）；新门 `game-tutorial-visual-style.test.ts`（7 条）。
+- Gates：fe-gates **124/124 · 1214/1214**；census **2370** OK（先 git add 新文件补引用方）；tsc web 0；
+- 重钉 SHA（FE-96/97 与 FE-98/75/24）；lint clean（pre-commit）。

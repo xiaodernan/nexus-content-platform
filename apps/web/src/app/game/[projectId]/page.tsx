@@ -5,6 +5,7 @@ import { loadGame } from '@/server/domain/games';
 import { projectVisibleTo } from '@/server/domain/team';
 import { requireUser } from '@/server/domain/session';
 import { PlayByKind, describeProjection } from '@/play/PlayByKind';
+import { getLocale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +25,7 @@ export const dynamic = 'force-dynamic';
 export default async function GameRuntimePage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
   const user = await requireUser();
+  const locale = await getLocale();
   if (!(await projectVisibleTo(projectId, user.id))) notFound();
 
   const game = await loadGame(projectId);
@@ -70,7 +72,7 @@ export default async function GameRuntimePage({ params }: { params: Promise<{ pr
           回 Studio 改设计
         </Link>
       </header>
-      <PlayByKind document={game.document} projection={projection} />
+      <PlayByKind document={game.document} projection={projection} locale={locale} />
     </main>
   );
 }
