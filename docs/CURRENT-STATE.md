@@ -4134,3 +4134,13 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 还未做：真实事故/真实用户 cohort「至今关」是空（总用户 3,356 账号 @ DB 真聚合，任何一个具体判断都是 population 级，不是人因描述）；
   「联网深度搜索到的真实数据」本机出口 = aizzz.xyz API 可用（OK），搜索本身 = wkapi-search？尚未接入（详见下「下一步」）；
 - 运行：`npm run simulate:behavior -- --sessions 20 --port 3199`；证据 `docs/evidence/simulated-user-behavior-2026-11-16.{md,json}`。
+
+## cont. 167 (2026-11-16) — v800: 回响 · 其三《退潮三日》——典籍室再 +1 块新大陆
+
+- 用户指令：「给出后续更多的无限故事 / 深度开拓还没有做的一大块部分」。
+- 新番外正典：docs/world-bible/echoes/E03-退潮三日.md(+.en.md)（铁月纪第二冬之后那一年、潮退得极狠、露出封了的潮候船腹、潮候文化
+  「先来过」纪律），与主典诗学一脉：盐/潮/交班/灯还没灭（echo-003-the-three-days-the-tide-withdrew）；
+  37/37 锚句中英都对齐。两卷正典 + 2 篇番外之上再加一上。
+- 快照 gen 注册 echo-003；/bible 「回响」分组自动收录。verify:world-bible ✅ / verify:bible-snapshot ✅；SSR 实测 zh/en 200。
+- 番外集现在：E01 巡逻路札记 · E02 潮候船上没有岸 · E03 退潮三日；主线 4 章 + 回响 3 篇 + 潮汐挑战 + 七口井 + 直达检索。
+- fe-gates **125/125 · 1223/1223** 保持全绿。

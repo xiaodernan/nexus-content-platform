@@ -43,6 +43,7 @@ const WEB_SLUGS: Record<string, string> = {
 const ECHO_WEB_SLUGS: Record<string, string> = {
   'E01-巡逻路札记': 'echo-001-patrol-road-notes',
   'E02-潮候船上没有岸': 'echo-002-no-shore-on-the-tide-waiting-ship',
+  'E03-退潮三日': 'echo-003-the-three-days-the-tide-withdrew',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
