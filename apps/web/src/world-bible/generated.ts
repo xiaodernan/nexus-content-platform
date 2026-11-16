@@ -2309,4 +2309,180 @@ After the session closed, lamps lowered one by one; the wind under them never st
 > Echo is not correction; it keeps the silence no one was ever given to inspect.
 `,
   },
+  {
+    order: 7,
+    slug: 'echo-007-the-gleam-in-the-brass-basin',
+    titleZh: '黄铜盘上刀光',
+    titleEn: 'The Gleam in the Brass Basin',
+    eraLineZh: '纪元：铁月纪 · 第四十一次大会之后——黄铜盘自己烫上了一条痕，没有任何人说那痕是写上去的。',
+    eraLineEn: 'Era: the Iron-Moon Age — after the 41st Convocation; the brass basin scorched a line no one ever admitted was written.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 7): The Gleam in the Brass Basin
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐泡出来的另一层纹理。
+> 本篇写给在黄铜盘上看见过刀光的那些人：黄铜盘从来不收刀，但那一天，刀回炉了。
+> 纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for those who saw the gleam of a blade in a brass basin — the basin never accepts blades; yet one day, the blade was returned to the forge.
+> Same discipline: anchors verbatim.
+
+> 纪元：铁月纪 · 第四十一次大会之后——黄铜盘自己烫上了一条痕，没有任何人说那痕是写上去的。
+> Era: the Iron-Moon Age — after the 41st Convocation; the brass basin scorched a line no one ever admitted was written.
+
+---
+
+## 一 · 盘沿的刀柄
+
+黄铜盘放在潮候院礼拜堂后面那一间小房里——守夜人没想过用途，但它一直在。
+
+四十一次大会散会之后，后方小房的灯亮了一下——半掩着的铜门里，翻来覆去的只有一把旧刀：刀刃没锈、刀柄缠着盐、刀柄根端有一块已经磨得发亮的金属片。
+
+没有任何人记得过这把刀从哪一天来；连潮候院的守夜人交班簿上也只找到一条对应的线——「某日深夜，礼拜堂侧灯，火炉温度不对」。
+
+**锚句**：礼拜堂黄铜盘的刀柄，刀没有回家，只是滩在黄铜盘的边。
+
+**Anchor sentence**: the knife's grip on the brass basin's rim — the blade never went home; it merely lay on the rim of the basin.
+
+---
+
+## 二 · 「回炉」这件事没有记账
+
+礼拜堂后方的火炉往常只烧盐过的木头，四十一次大会散会那一晚，守夜人在炉子里看见一样从来没有被放进去过的东西：刀没有淬火——刀被放在了火口的外圈，温度刚好够让黄铜盘上台支上去一道。
+
+那道痕迹一直在，没有人问它是不是刀留下的；没有人知道。
+
+**锚句**：黄铜盘的热痕不是谁写上去的——刀只是在那里落下了一道看似温柔的光。
+
+**Anchor sentence**: the mark on the basin is not anyone's writing — the blade merely set down a deceptively gentle gleam.
+
+---
+
+## 三 · 刀的头颅
+
+黄铜盘那天亮着，刀柄上的盐一颗一颗从盘沿掉下去——没有一颗掉进火口——盐落在盘上，落在整盘的刀光里。
+
+没有人知道黄铜盘收不收刀；第四十一次大会闭会的那一天，潮候院没有哪一项章程超过它，连它自己也从来没有登记——只是那一天，照了灯，熄了火，礼拜堂自己把整件事收了进去。
+
+**锚句**：礼拜堂自记；潮候院不挂号——潮记了灯下的一盘刀光。
+
+**Anchor sentence**: the chapel records it for itself; the institute registers nothing — the sluice kept it all, the blade in the basin.
+
+---
+
+## 四 · 潮候院的灯彻夜点着的真正原因
+
+四十一次大会散会的那个夜里，礼拜堂没有人离开礼拜堂散会的人都没回酒店——守夜人描述的点灯之间的刻痕，一字一字地刻在了礼拜堂正门的横梁上，没有人觉察那字是什么意思。
+
+潮候院的档案里，没有写：守夜人礼拜后方那一夜。只在 Convocation 记录里写了一句：礼拜堂后方炉烧盐木头，自 A 日起记录——灯，灯，只一根火。
+
+后背的木炭燃起以后，礼拜堂整座石屋里的铜盘又亮了——它烫出的斑点仍留在侧后那一间；守夜人后来只记下：四十一次散会的是 D 夜；礼拜堂后方那夜有过——刀。
+
+**锚句**：灯彻夜是潮候院的规矩——潮候院没有一座礼拜堂的灯，是空落落地亮着。
+
+**Anchor sentence**: the lamp stays on all night at the institute — no chapel lamp at the institute ever shines empty.
+
+---
+
+## 五 · 模型映射（回响七章对应关系）
+
+| 类别 | 标题 | 对应节 |
+|---|---|---|
+| lore | 黄铜盘上的刀光 · 守夜人后方小屋 · 第四十一次大会散会之后 | 一、二、三、四 |
+| geography | 礼拜堂后方小屋 · 黄铜盘 · 火炉 | 一、二、三 |
+| characters | 守夜人/礼拜堂后方点灯人/无名的刀 | 一、二、三、四 |
+| story | 黄铜盘上刀光 · 回响（其七） | 全篇 |
+| items | 黄铜盘 · 旧刀柄盐粒 · 火炉 · 横梁刻在底色的灯 | 一、二、三、四 |
+| history | 铁月纪第四十一次大会散会之后的夜礼拜与火炉 | 一、二、三、四 |
+
+> 这一章没有人知道黄铜盘收不收刀；真的没人知道——潮候院只登记了灯、盐和「木头烧完了」。
+> 回响不在于追刀版，而在于保留那道深痕——在潮候院历史的背后，留一笔：礼拜堂自己的一夜，有一把刀。
+>
+> No one ever knew whether the brass basin accepts blades — the institute only etched lamp, salt and «the firewood burned to the end.»
+> The echo is not an audit of the blade; it keeps the deep scorch — at the back of the institute's own history, one line was kept: one night, in the chapel, there was a blade.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其七）「黄铜盘上刀光」
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐泡出来的另一层纹理。
+> 本篇写给在黄铜盘上看见过刀光的那些人：黄铜盘从来不收刀，但那一天，刀回炉了。
+> 纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for those who saw the gleam of a blade in a brass basin — the basin never accepts blades; yet one day, the blade was returned to the forge.
+> Same discipline: anchors verbatim.
+
+> 纪元：铁月纪 · 第四十一次大会之后——黄铜盘自己烫上了一条痕，没有任何人说那痕是写上去的。
+> Era: the Iron-Moon Age — after the 41st Convocation; the brass basin scorched a line no one ever admitted was written.
+
+---
+
+## 一 · The Knife's Grip on the Rim
+
+The brass basin lived in the small chamber behind the assembly hall's chapel — the Night Watchers used it for none. The object sat there nonetheless.
+
+On the night after the 41st, a back lamp behind the chapel wall lit — through the half-open brass door, all one could see was an old blade, blunt at the edge, a worn grip bound in salt, its metal insole polished smooth by a thumb forever.
+
+No one recorded which day it arrived; the Night Watchers' hand-off book carried one line — «a late night; a slant lamp behind the hall; the fire would not take.»
+
+**锚句**：礼拜堂黄铜盘的刀柄，刀没有回家，只是滩在黄铜盘的边。
+
+**Anchor sentence**: the knife's grip on the brass basin's rim — the blade never went home; it merely lay on the rim of the basin.
+
+---
+
+## 二 · The Scorch Nobody Dictated
+
+The charcoal furnace behind the assembly hall chapel ran only on salt-wood. On the night after the 41st, someone saw an object inside the furnace it had never held before — the blade was not quenched — only set at the outermost circle, just enough heat to leave a scorch along the brass basin's lip.
+
+The trace remains. No one asks whether the blade did that. No one knows.
+
+**锚句**：黄铜盘的热痕不是谁写上去的——刀只是在那里落下了一道看似温柔的光。
+
+**Anchor sentence**: the mark on the basin is not anyone's writing — the blade merely set down a deceptively gentle gleam.
+
+---
+
+## 三 · The Blade's Capital
+
+The lamp burned that night — the grains of salt bound to the blade-fell from the rim one by one — none fell the furnace — they dropped in the basin, among the full flame-gleam along the metal.
+
+No one ever learned whether the basin accepts knives; on the night the 41st broke up, no chapter outclassed that basin, and nothing in any book registered the fact. Only — that night, a lamp, then a silence, then the next turning of the wind.
+
+**锚句**：礼拜堂自记；潮候院不挂号——潮记了灯下的一盘刀光。
+
+**Anchor sentence**: the chapel records it for itself; the institute registers nothing — the sluice kept it all, the blade in the basin.
+
+---
+
+## 四 · The Night the Chapel Never Switched Its Lamps Off
+
+On the night after the 41st, no one left the chapel — no one went home either. The lamp-burn marks the Night Watchers carved deep into the chapel's lintel line are one such inscription — no one ever decoded the characters.
+
+The institute's archives hold nothing marked "the night behind the chapel after the Forty-first." The Convocation minutes carry exactly one line — «the furnace burned salt-wood behind the chapel; starting from day A; lamp, lamp, only one fire.»
+
+After the charcoal lit, the brass basin across the back room glowed again — those spots remain along the side wall of that back room. The Night Watchers filed afterwards only: «the Forty-first dawned on D; the back chapel held one night — a blade.»
+
+**锚句**：灯彻夜是潮候院的规矩——潮候院没有一座礼拜堂的灯，是空落落地亮着。
+
+**Anchor sentence**: the lamp stays on all night at the institute — no chapel lamp at the institute ever shines empty.
+
+---
+
+## 五 · Mapping（Echo No. 7 → world model）
+
+| Category | Title | Sections |
+|---|---|---|
+| lore | the gleam in the brass basin · the back room behind the chapel · after the 41st Convocation broke up | 一、二、三、四 |
+| geography | back room behind the chapel · the brass basin · the furnace | 一、二、三 |
+| characters | the Night Watchers / the back-room lamp-lighter / the unnamed blade | 一、二、三、四 |
+| story | The Gleam in the Brass Basin · Echo No. 7 | the whole piece |
+| items | the brass basin · the salt grains bound to the blade's grip · the charcoal furnace · the carvings on lintel | 一、二、三、四 |
+| history | the long watch behind the chapel in the night the 41st broke up | 一、二、三、四 |
+
+> 这一章没有人知道黄铜盘收不收刀；真的没人知道——潮候院只登记了灯、盐和「木头烧完了」。
+> 回响不在于追刀版，而在于保留那道深痕——在潮候院历史的背后，留一笔：礼拜堂自己的一夜，有一把刀。
+>
+> No one ever knew whether the brass basin accepts blades — the institute only etched lamp, salt and «the firewood burned to the end.»
+> The echo is not an audit of the blade; it keeps the deep scorch — at the back of the institute's own history, one line was kept: one night, in the chapel, there was a blade.
+`,
+  },
 ] as const;
