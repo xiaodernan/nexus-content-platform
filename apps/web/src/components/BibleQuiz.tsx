@@ -283,6 +283,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《潮来的时候》里，潮水带走了什么？', choices: ['桌椅都没了', '一张旧名单不见了', '账本没了', '门没了'], answer: 1, ref: '第十二章 · 五' },
     en: { prompt: 'In “When the Tide Came Up”, what did the tide take?', choices: ['the table and chairs were gone', 'an old list went missing', 'the ledger disappeared', 'the door was gone'], answer: 1, ref: 'Chapter XII · V' },
   },
+  {
+    zh: { prompt: '《誊写》里，水吃掉了某些字，抄账人定下的规矩是……？', choices: ['猜一个补一个', '誊不准的，留白', '让孩子背出来补写', '整页作废'], answer: 1, ref: '第十三章 · 四' },
+    en: { prompt: 'In “The Copying”, what rule did the keeper set after the water ate certain characters?', choices: ['guess one, write one', 'what cannot be copied for certain leaves its space blank', 'have the child recite and fill them in', 'discard the whole page'], answer: 1, ref: 'Chapter XIII · IV' },
+  },
+  {
+    zh: { prompt: '《誊写》誊完之后，人们才知道丢了什么——丢的是什么？', choices: ['与第七口井对应的整页', '那支咸壳笔', '门槛上的船钉', '木面上的盐'], answer: 0, ref: '第十三章 · 七' },
+    en: { prompt: 'In “The Copying”, only once the copying was done did anyone know what was lost — what was lost?', choices: ['the whole page tied to the seventh well', 'the salt-crusted brush-pen', 'the ship’s nail on the threshold', 'the salt on the wood'], answer: 0, ref: 'Chapter XIII · VII' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

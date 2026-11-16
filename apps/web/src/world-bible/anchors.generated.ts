@@ -448,6 +448,48 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "refEn": "Chapter XII · VI"
   },
   {
+    "zh": "潮退了，账没誊完。",
+    "en": "the tide withdrew; the ledger was not yet copied out.",
+    "refZh": "第13章 · 一",
+    "refEn": "Chapter 13 · I"
+  },
+  {
+    "zh": "水干了，盐还在。",
+    "en": "the water dried; the salt remained.",
+    "refZh": "第13章 · 二",
+    "refEn": "Chapter 13 · II"
+  },
+  {
+    "zh": "有些字被水吃掉了。",
+    "en": "the water ate certain characters.",
+    "refZh": "第13章 · 三",
+    "refEn": "Chapter 13 · III"
+  },
+  {
+    "zh": "誊不准的，留白。",
+    "en": "what cannot be copied for certain leaves its space blank.",
+    "refZh": "第13章 · 四",
+    "refEn": "Chapter 13 · IV"
+  },
+  {
+    "zh": "笔没人拿，账还是要誊。",
+    "en": "no one claimed the pen; the ledger still had to be copied.",
+    "refZh": "第13章 · 五",
+    "refEn": "Chapter 13 · V"
+  },
+  {
+    "zh": "誊完，才知道丢了什么。",
+    "en": "only once the copying was done did anyone know what had been lost.",
+    "refZh": "第13章 · 六",
+    "refEn": "Chapter 13 · VI"
+  },
+  {
+    "zh": "留白的那一页最重。",
+    "en": "the page left blank weighed the most.",
+    "refZh": "第13章 · 七",
+    "refEn": "Chapter 13 · VII"
+  },
+  {
     "zh": "巡逻路没有路标——它每三个月自己洗刷一次去年留下的痕。",
     "en": "the patrol road has no signs — every three months it scrubs the past year's marks away by itself.",
     "refZh": "回响（其一） · 一",

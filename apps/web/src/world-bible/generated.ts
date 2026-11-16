@@ -3587,6 +3587,338 @@ Wood will still be carried to the door's edge; the ledger will still be written 
 > 把账放得更高，把灯挂得更牢。
 `,
   },
+  {
+    order: 13,
+    slug: '013-the-copying',
+    titleZh: '誊写',
+    titleEn: 'The Copying',
+    eraLineZh: '纪元切割线：铁月纪之后 · 灰幕之前',
+    eraLineEn: 'Era: after the Iron-Moon Age · before the grey cover was laid.',
+    markdownZh: `# The Whispers' Kings · World Bible · Chapter XIII: The Copying
+
+> 潮没退，誊账开始。
+> 水吃了字，人补不了的地方留白。
+> 本章锚句中英字对齐，不改写、不复述。
+>
+> The tide withdrew; the copying began.
+> Where the water ate the characters, the empty spaces were left empty.
+> Canon discipline is unchanged — anchor sentences match word-for-word; no rephrasing.
+
+> 纪元切割线：铁月纪之后 · 灰幕之前
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 一 · 潮退以后
+
+潮水退到门槛外时，屋里没有人立刻进去。墙根留着一道水线，低而平，像一笔没有写完的记号。门槛湿着。石板上也湿着。灯下的人只看着它们，不说水去了哪里。
+
+船钉还在原处。布片也在原处。没有人去碰。它们贴着木，沾着盐，像是只要伸手，屋里的东西就会再动一次。守夜人站在门边，等最后一点水从石板缝里退尽。没有催促。也没有人问下一步该做什么。
+
+账簿的守护者进屋时，先看墙根，再看灯下。账簿摊在木面上。封面湿了，边角却没有散开。靠近中间的页翘起一线。那一线很窄，灯一照，纸影便落在下一页上。他伸手按住，没有把它压平。
+
+桌边的人挪开半步。没人替他翻页。没人替他把水擦掉。那页仍旧翘着，像门槛上留下的潮线。账簿的守护者把手收回来，确认灯还亮着，才坐下。
+
+他知道潮已经退了。墙根知道，门槛知道，屋里的人也知道。可账簿没有因此合上。水留下来的地方还在灯下。纸页没有干透，不能急着翻。人只能等，等纸不再粘住木面，等翘起的页角不再颤动。
+
+守夜人仍站在门边。灯下没有人叫他离开。他也没有走。屋里安静了一会儿，只有潮线慢慢失去光。账簿的守护者看着那页，不把它抚平。
+
+**锚句**：潮退了，账没誊完。
+**Anchor sentence**: the tide withdrew; the ledger was not yet copied out.
+
+## 二 · 盐的去向
+
+水干得慢。盐留下得快。墙根的水线退暗以后，门槛边仍有一层白痕。石板上有细小的盐粒，贴在缝里。人没有把它们一并扫走。他们先把能拢起的盐拢到木面上，再把木面上的盐分开。
+
+盐袋放在灯照得到的地方。袋口没有立刻扎紧。人把盐一捧一捧装进去，每捧都看一眼。若有潮湿结住的地方，便用手分开。分不开的，不塞进袋底。那些盐留在一旁，等它们干些，再作分别。
+
+没有人说这些盐该归谁。也没有人把袋子挪出屋子。守夜人看着门槛，账簿的守护者看着袋口。灯光照在盐上，照出一层浅白。人们的手在灯下进出，动作很慢。每一次伸手，都避开翘起的账页。
+
+盐袋装到一半时，有人停下来。袋身靠着木，仍旧塌着。没人催他继续。潮留下的盐不多，却不能凭着感觉分。少一捧，多一捧，都要有人记得。账簿的守护者没有在这一刻写下数目。他先等各只袋子都摆稳，再将分好的数目落在干页上。
+
+石板上的盐也没有被当成多余的东西。人把它拢起，放在另一处，不混进袋子。那一处离门槛不远，灯光落不到底。谁也没有把手伸得更深。分盐的人只记住它在哪里，没有替它定名。
+
+盐袋一只只收口。布片仍贴着原处，没有人拿来擦手。船钉也没有被挪开。屋里没有多出一件新的东西。只有袋口扎紧以后，盐的去向才暂时明了：一部分入袋，一部分留在石板边，还有一部分仍附在墙根。
+
+水已经干了。人仍能看见它走过的地方。盐没有退回去，也没有自己归到哪一只袋里。每个人都等账簿写下那几笔，才肯把手从盐旁收开。
+
+**锚句**：水干了，盐还在。
+**Anchor sentence**: the water dried; the salt remained.
+
+## 三 · 水吃掉的字
+
+账簿的守护者没有立刻掀开翘页。他先把手放在页边，等纸上的潮气不再发亮。然后，他从角落翻起一页。纸没有断。它只是黏着，跟下一页贴在一起。两页之间没有干净的缝。
+
+他把手停住。没有再用力。
+
+灯下能看清纸面，却看不清每个字。洇开的墨迹连成一道暗线，原本分开的笔画挤在一起。页边的字只剩一半，余下的部分被水拖进纸纤维里。有人俯身去辨，没辨出结果。有人移开一点，让灯照得更正。那一道暗线仍旧是暗线。
+
+一页翻过以后，下一页又粘住。账簿的守护者把指尖从纸边撤开，等它自己松动。没人替他扯开。没人说多等一会儿会有用。等候没有让字回来，却让纸页没有裂开。
+
+水留下来的印子穿过几行字。有些笔画仍看得到。有些只剩墨的影子。还有些字在页边停住，像是写到那里，手就被迫收回。抄账人没有把它们连成新的字，也没有把残下的几笔当作答案。
+
+石板街道上的人影在灯下经过，又离开。屋里没有人追出去。灯没有挪动。账簿的守护者只把能辨认的地方记在另一页上。记下之前，他又回头看了一次原页。原页上的字没有因为被看见而变清楚。
+
+黏在一起的两页终于松了一点。纸纤维仍连着。抄账人不再去翻。他在松开的边缘放下指尖，像是按着门槛，不让一页滑到另一页下面。那两页之间夹着一小片未干的纸影。谁也没能从中读出新的字。
+
+灯照着墨迹。水已经不在屋里，却仍留在每个被洇开的笔画之间。抄账人把纸页放平，不补其中的空处。他只记下哪些字已经不能辨认。
+
+**锚句**：有些字被水吃掉了。
+**Anchor sentence**: the water ate certain characters.
+
+## 四 · 留白
+
+誊写开始后，最先出现的不是完整的句子，是一处停顿。抄账人写到看不清的字，笔尖悬在纸上。灯下的人看见那一点墨没有落下。有人说，前后都在，照着意思补一个字并不难。也有人说，补了以后，便再也分不出原字和猜出来的字。
+
+他们没有争谁的声音更重。桌上只有账簿和誊写的纸。木面留着盐痕。灯芯没有换。守夜人仍守着门槛，没有走进来替谁作答。
+
+能背诵潮汐教团往事的孩子坐在一旁。他记得一些句子。那些句子在潮汐教团的往事里出现过，到了眼前这页，却未必是同一句。孩子没有把记得的字说成账簿里的字。他只是看着纸页，等账簿的守护者问。
+
+账簿的守护者问了一个地方。孩子答了前半句，没有答后半句。因为后半句在那页上已经洇开。他没有借记忆把它补齐。屋里的人听见了他的回答，也听见了之后的安静。
+
+有人又问，若读得出大意，是否能照着大意写。抄账人把笔尖落在纸边，留下一个小点，再把那一点划掉。他说，读得出大意，不等于读得出原字。账簿记的是已经写下的东西。誊写不能替它决定没有写下什么。
+
+从那时起，能认的字照着原处抄。只认得一部分的，照着那一部分抄。看不准的，不拿别处的句子来顶。若纸页黏住，先等它松开。若墨迹连成一片，不拆成几个字。若页角缺了一线，就让那一线空着。
+
+规矩没有写得很长。抄账人把它放在桌边，给每个人都看见。有人不再争辩。有人还盯着那块空处，像是只要多看一会儿，字就会从灯影里出来。灯没有替他们回答。
+
+账簿的守护者把下一页推到灯下。每个人的手都停住了。纸页仍有潮气。桌边的规矩没有改变。能抄下来的，就抄下。不能确认的，不替水说话。
+
+**锚句**：誊不准的，留白。
+**Anchor sentence**: what cannot be copied for certain leaves its space blank.
+
+## 五 · 那支笔
+
+那支咸壳笔放在灯下，没有人拿。壳上留着盐，笔身也潮过。它没有滚到门槛边，也没有被收进木匣。抄账人看见它，便把手停在半空。谁都明白它还在，却没有人先伸手。
+
+账簿的守护者把自己的笔放到纸边。那不是咸壳笔。墨也不同。两支笔之间隔着半页空白。没有人把它们换过位置，也没有人说哪一支更该写在账簿上。
+
+孩子坐在灯下，读完了那行能读的字。下一行有一处缺损。抄账人没有替他先写。孩子抬眼，看了看咸壳笔，又看向空着的纸页。守夜人仍在门边。屋里没有人叫孩子拿起那支笔。
+
+他拿起的是账簿的守护者放下的笔。手指握得不紧，笔尖落纸时，停了一下。第一笔写得浅。他看着原页，一字一字抄下能辨认的部分。碰到洇开的地方，他没有补字。他在那处停住，又照规矩留空。
+
+写完一行，他没有抬头等人称赞。账簿的守护者只把原页转回灯下，看孩子抄的字是否与能看清的部分相合。孩子写错一笔，便在誊写页上划去，重新写在旁边。没有人替他擦掉那道划痕。
+
+咸壳笔仍在原处。它的盐没有掉下来。孩子写到页末时，屋里只听见笔尖擦过纸面的声音。他没有伸手碰那支笔，也没有问它为什么一直没人拿。抄账人看着新写的一页，没有把孩子的字当成新的原账。
+
+等第一页写完，账簿的守护者把它放在灯下晾着。纸面还平。孩子退回原处，手上沾着一点墨。他没有去擦那支咸壳笔。那支笔没有在誊写页上留下一个字，却始终占着灯下的一小块地方。
+
+**锚句**：笔没人拿，账还是要誊。
+**Anchor sentence**: no one claimed the pen; the ledger still had to be copied.
+
+## 六 · 誊
+
+誊写没有在一夜之间结束。灯亮了又暗，暗了又亮。账簿的守护者每次回来，都先看上一回留下的页角。纸若仍潮，就不翻。纸若松了，才把它慢慢移到木面上。
+
+孩子从第一页开始，一行一行抄。后来，另一个人坐到桌边，接过已经核对过的页。她没有问该猜哪个字。她只按规矩抄下看得见的部分，把不能辨认的地方留着。写到页边时，她把纸挪开一点，让盐痕不碰到笔尖。
+
+守夜人没有加入誊写。他守着门槛，也守着那几件没有人动过的东西。船钉仍贴着木。布片仍在原处。盐袋已扎紧，石板边仍留着拢起的盐。每次屋里的人停笔，都会看一眼门口。门外没有新的水进来。
+
+账簿一页页变薄。誊写的页一页页叠起。每页都要照原处核对。笔画不一致时，便回到原页再看。看不清的地方不因次数多而变清楚。抄账人不让手快过眼睛，也不让眼睛把愿望看成字。
+
+能背诵潮汐教团往事的孩子，记下了那些仍能读出的句子。他没有把它们连成完整的故事。某句话缺了半行，他便让半行留着。另一人把核对过的页放到一边，不压在潮湿的页上。灯下的空处越来越多，却没有人把它们填满。
+
+几日以后，账簿的最后一叠也翻到了尽头。人们仍以为只要把最后几页誊完，账簿便会完整。账簿的守护者把誊写页与原页对齐，逐行核看。前面的页都在。最后几页也都在。只有一处没有字。
+
+那是七口井对应的一页。整页受了水，字迹没有留下可以确认的部分。纸还在。页码也在。灯下没有一行能照抄的字。抄账人把那页转过来，又转回去。没有人从旁边的页找词句，填进这一页。
+
+孩子说不出它原先记了什么。另一个人也说不出。账簿的守护者没有追问。他看见誊写已经结束，却没有说账簿已经补全。那一页的空白与前面零散的空白不同。它不是一行字缺了一角。它整页都没有可誊的字。
+
+他们把誊好的页重新核过。每处留白都能在原页上找到缘由。只有这一页，连缘由也只剩水留下的印子。抄账人把它单独放开。灯还照着纸面。没有人再落笔。
+
+**锚句**：誊完，才知道丢了什么。
+**Anchor sentence**: only once the copying was done did anyone know what had been lost.
+
+## 七 · 留白的那一页
+
+那一页没有夹回账簿。账簿的守护者把它单独放在木面上，用干净的纸覆住边角。没有字的地方露在灯下。纸面平着。页角不再翘起。
+
+守夜人站在门槛旁。孩子没有再念潮汐教团的往事。另一人把誊好的页放回账簿。没有人试着为第七口井写下一行。
+
+灯没有挪开。那页也没有被收走。石板上的盐留在原处，墙根的潮线慢慢淡了。咸壳笔仍放在灯下。没人拿它。
+
+**锚句**：留白的那一页最重。
+**Anchor sentence**: the page left blank weighed the most.
+
+---
+
+## 锚点对照（lore match）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 潮退后的誊写与留白 | 《潮来的时候》 |
+| geography | 汐台 · 七口井 · 石板街道 | 本章 |
+| factions | 潮汐教团 | 往事 |
+| characters | 守夜人 · 账簿的守护者 · 能背诵潮汐教团往事的孩子 | 本章 |
+| items | 账簿 · 咸壳笔 · 船钉 · 布片 · 盐袋 | 本章 |
+| story | 誊写 · 第十三章 | 全篇 |
+| history | 纪元切割线 · 灰幕之前 | 本章 |
+
+> 潮来无一人说话，潮退人开始誊账。
+> When the tide came, no one spoke; when it withdrew, everyone began to copy.`,
+    markdownEn: `# 低语诸王 · 世界大典 · 第十三章《誊写》
+
+> The tide withdrew; the copying began.
+> Where the water ate the characters, the empty spaces were left empty.
+> Canon discipline is unchanged — anchor sentences match word-for-word; no rephrasing.
+>
+> 潮没退，誊账开始。
+> 水吃了字，人补不了的地方留白。
+> 本章锚句中英字对齐，不改写、不复述。
+
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+> 纪元切割线：铁月纪之后 · 灰幕之前
+
+---
+
+## I · After the Tide Withdrew
+
+When the tide had withdrawn beyond the threshold, no one went inside at once. A waterline remained along the foot of the wall, low and level, like a mark left unfinished. The threshold was wet. The flagstones were wet too. Beneath the lamp, the people only looked at them. They did not say where the water had gone.
+
+The boat nail was still where it had been. So was the piece of cloth. No one touched them. They clung to the wood, salt-stained, as though the things in the room might move once more if anyone reached out. The watchman stood by the door, waiting for the last of the water to drain from the seams between the flagstones. No one hurried him. No one asked what should be done next.
+
+When the keeper of the ledger entered, he looked first at the foot of the wall, then beneath the lamp. The ledger lay open on the wooden surface. Its cover was wet, but its corners had not come apart. A page near the middle had lifted along one edge. The line was very narrow; when the lamp shone on it, the paper’s shadow fell across the page beneath. He reached out and held it down, but did not press it flat.
+
+The people beside the table moved half a step aside. No one turned the page for him. No one wiped away the water. The page remained lifted, like the tide line left on the threshold. The keeper of the ledger drew his hand back, made sure the lamp was still lit, and sat down.
+
+He knew the tide had withdrawn. The foot of the wall knew it, the threshold knew it, and the people in the room knew it too. But the ledger had not closed because of that. The place the water had left behind was still beneath the lamp. The pages were not yet dry; they could not be turned in haste. All they could do was wait: for the paper to stop sticking to the wood, for the lifted corner to stop trembling.
+
+The watchman still stood by the door. No one beneath the lamp told him to leave. He did not go. The room was quiet for a while; only the tide line slowly lost its shine. The keeper of the ledger looked at the page and did not smooth it flat.
+
+**Anchor sentence**: the tide withdrew; the ledger was not yet copied out.
+**锚句**：潮退了，账没誊完。
+
+## II · Where the Salt Went
+
+The water dried slowly. The salt remained quickly. Once the waterline at the foot of the wall had darkened and receded, a white trace still remained beside the threshold. Fine grains of salt clung in the seams between the flagstones. No one swept them all away. First they gathered the salt they could collect onto the wooden surface, then divided the salt there.
+
+The salt bags were set where the lamp could reach them. Their mouths were not tied at once. The people filled them one handful at a time, looking at each handful. Where dampness had bound the salt together, they separated it by hand. What could not be separated was not pushed to the bottom of a bag. That salt was left aside, to dry a little before it was sorted.
+
+No one said who the salt belonged to. No one moved the bags out of the room. The watchman watched the threshold; the keeper of the ledger watched the mouths of the bags. Lamplight fell on the salt and brought out a pale whiteness. Hands moved in and out beneath the lamp, very slowly. Each time someone reached out, they kept clear of the lifted page.
+
+When the bags were half full, someone stopped. The bag still sagged against the wood. No one urged them on. There was little salt left by the tide, but it could not be divided by guesswork. Someone would have to remember every handful too many or too few. The keeper of the ledger did not write down the amounts then. He waited until each bag was settled in place, then entered the divided amounts on a dry page.
+
+The salt on the flagstones was not treated as something surplus either. The people gathered it up and set it elsewhere, apart from the bags. That place was not far from the threshold, but the lamplight did not reach its bottom. No one put a hand any farther in. The person dividing the salt remembered where it was, but did not give it a name.
+
+The mouths of the bags were tied one by one. The piece of cloth still clung where it had been; no one took it to wipe their hands. The boat nail had not been moved either. Nothing new had appeared in the room. Only once the bags were tied did the salt’s destination become clear, for the time being: some had gone into bags, some remained beside the flagstones, and some still clung to the foot of the wall.
+
+The water had dried. People could still see where it had passed. The salt had not receded, nor had it gone of its own accord into any one bag. Everyone waited for the ledger to record those few entries before drawing their hands away from the salt.
+
+**Anchor sentence**: the water dried; the salt remained.
+**锚句**：水干了，盐还在。
+
+## III · The Characters the Water Ate
+
+The keeper of the ledger did not lift the raised page at once. First he laid his hand beside it, waiting until the damp on the paper no longer shone. Then he lifted a page from its corner. The paper did not tear. It was simply stuck to the page beneath. There was no clean space between them.
+
+He stopped his hand. He did not pull harder.
+
+Beneath the lamp, the page could be seen, but not every character. The spread ink had run into a dark line; strokes that had once been separate crowded together. At the edge of the page, only half the characters remained. The rest had been drawn by the water into the fibres. Someone bent close to make them out, but could not. Someone shifted aside a little, so the lamp would fall more squarely. The dark line remained a dark line.
+
+After one page was turned, the next stuck fast again. The keeper of the ledger withdrew his fingertips from the edge of the paper and waited for it to loosen on its own. No one helped him pull it apart. No one said that waiting a little longer would help. Waiting did not bring the characters back, but it kept the pages from splitting.
+
+The marks left by the water crossed several lines of writing. Some strokes could still be seen. Some were no more than shadows of ink. Other characters stopped at the edge of the page, as though the hand had been forced to withdraw there. The copyist did not join them into new characters, nor did he take the few strokes that remained for an answer.
+
+Shadows passed along the flagstone street beneath the lamp, then went away. No one in the room followed them out. The lamp was not moved. The keeper of the ledger recorded only what could be made out, on another page. Before recording it, he looked back once more at the original. The characters on it did not grow clearer for having been seen.
+
+At last, the two stuck pages loosened a little. Their fibres were still joined. The copyist did not turn them any further. He rested a fingertip on the loosened edge, as if holding the threshold, keeping one page from slipping beneath the other. Between the two pages lay a small patch of shadow from the damp paper. No one could read new characters in it.
+
+The lamp shone on the ink. The water was no longer in the room, yet it still remained between every stroke that had run. The copyist laid the page flat and did not fill its empty spaces. He recorded only which characters could no longer be made out.
+
+**Anchor sentence**: the water ate certain characters.
+**锚句**：有些字被水吃掉了。
+
+## IV · The Blank Space
+
+When the copying began, what appeared first was not a complete sentence, but a pause. The copyist reached a character he could not make out, and the tip of his brush hovered above the paper. The people beneath the lamp saw that no ink had fallen. Someone said that the writing on either side was there; it would not be difficult to supply a character from the sense. Someone else said that once it was supplied, no one would ever be able to tell the original character from the one they had guessed.
+
+They did not argue over whose voice carried more weight. On the table lay only the ledger and the paper for the copy. Salt marks remained on the wood. The wick had not been changed. The watchman still kept the threshold; he did not come in to answer for anyone.
+
+The child who could recite the Tidal Order’s past sat to one side. He remembered some sentences. They had appeared in the Tidal Order’s past, but on the page before them they might not be the same sentences. The child did not pass off remembered characters as characters in the ledger. He only watched the page, waiting for the keeper of the ledger to ask.
+
+The keeper of the ledger asked about a place. The child answered the first half of the sentence, but not the second. The second half had already run on that page. He did not use his memory to fill it in. The people in the room heard his answer, and heard the silence that followed.
+
+Someone asked again whether, if the general sense could be read, they might write from that sense. The copyist set the tip of his brush down at the edge of the paper, leaving a small dot, then crossed it out. He said that reading the general sense was not the same as reading the original characters. The ledger recorded what had been written. The copying could not decide what had not been written.
+
+From then on, the characters they could recognise were copied where they stood. Those they could recognise only in part were copied in part. What they could not be sure of was not replaced with a sentence from elsewhere. If the pages stuck together, they waited for them to loosen. If the ink ran into one mass, they did not separate it into several characters. If a corner of the page was missing, they left that line empty.
+
+The rules were not written at length. The copyist placed them beside the table, where everyone could see. Some stopped arguing. Others still stared at the empty space, as though the characters might emerge from the lamplight if they looked long enough. The lamp gave them no answer.
+
+The keeper of the ledger pushed the next page beneath the lamp. Everyone’s hands stopped. The paper was still damp. The rule beside the table had not changed. What could be copied, they would copy. What could not be confirmed, they would not speak for the water.
+
+**Anchor sentence**: what cannot be copied for certain leaves its space blank.
+**锚句**：誊不准的，留白。
+
+## V · The Brush-Pen
+
+The salt-shelled brush-pen lay beneath the lamp. No one picked it up. Salt remained on its shell, and its body too had been damp. It had not rolled to the threshold, nor had it been put away in the wooden box. When the copyist saw it, his hand stopped in mid-air. Everyone knew it was still there, but no one reached for it first.
+
+The keeper of the ledger put his own pen beside the paper. It was not the salt-shelled brush-pen. The ink was different too. Half a page of blankness lay between the two pens. No one had changed their places, and no one said which pen ought more properly to write in the ledger.
+
+The child sat beneath the lamp and finished reading the line he could read. The next line had a damaged place. The copyist did not write it for him first. The child raised his eyes, looked at the salt-shelled brush-pen, then at the blank page. The watchman was still by the door. No one in the room told the child to pick up that pen.
+
+He picked up the pen the keeper of the ledger had put down. His fingers held it loosely; when the tip touched the paper, it paused. The first stroke was faint. He looked at the original and copied, character by character, the part he could make out. When he came to the place where the ink had run, he did not supply a character. He stopped there, then left it blank, as the rule required.
+
+When he finished a line, he did not look up for praise. The keeper of the ledger turned the original back beneath the lamp and checked whether the child’s characters matched the parts that could be seen. The child made a stroke incorrectly. He crossed it out on the copy and wrote it again beside it. No one erased that crossing-out for him.
+
+The salt-shelled brush-pen remained where it was. Its salt did not fall away. When the child reached the end of the page, the only sound in the room was the tip of the brush moving across the paper. He did not reach for that pen, nor ask why no one had picked it up all this time. The copyist looked at the newly written page but did not treat the child’s characters as the original ledger anew.
+
+When the first page was finished, the keeper of the ledger set it beneath the lamp to dry. The paper lay flat. The child returned to where he had been, a little ink on his hand. He did not wipe the salt-shelled brush-pen. It had left no character on the copied page, but it still occupied a small place beneath the lamp.
+
+**Anchor sentence**: no one claimed the pen; the ledger still had to be copied.
+**锚句**：笔没人拿，账还是要誊。
+
+## VI · The Copying
+
+The copying did not end in a single night. The lamp brightened, then dimmed; dimmed, then brightened again. Each time the keeper of the ledger returned, he first looked at the corner of the page left from the previous time. If the paper was still damp, he did not turn it. If it had loosened, he moved it slowly onto the wooden surface.
+
+The child copied from the first page, line by line. Later, another person sat at the table and took over the pages that had already been checked. She did not ask which characters she should guess. She copied only the parts she could see, as the rule required, and left what could not be made out. When she reached the edge of the page, she shifted the paper a little, so the salt marks would not touch the tip of her brush.
+
+The watchman did not join the copying. He kept watch at the threshold, and over the few things no one had touched. The boat nail still clung to the wood. The piece of cloth was still where it had been. The salt bags were tied shut; the salt gathered beside the flagstones remained. Whenever the people in the room stopped writing, they looked towards the door. No new water came in from outside.
+
+The ledger grew thinner page by page. The copied pages piled up page by page. Each one had to be checked against its place in the original. When strokes did not match, they returned to the original to look again. What could not be seen did not grow clearer with repeated looking. The copyist did not let his hand move faster than his eyes, nor let his eyes mistake a wish for a character.
+
+The child who could recite the Tidal Order’s past wrote down the sentences that could still be read. He did not join them into a complete story. When a sentence was missing half a line, he left half a line empty. The other person set the checked pages aside, not on top of the damp ones. The empty spaces beneath the lamp grew more numerous, but no one filled them.
+
+Several days later, the last stack of the ledger had been turned to its end. People still thought that once the final few pages were copied, the ledger would be complete. The keeper of the ledger aligned the copied pages with the originals and checked them line by line. The earlier pages were all there. The last few pages were there too. There was only one place without writing.
+
+It was the page corresponding to the seventh well. The whole page had been soaked by water; no writing remained that could be confirmed. The paper was still there. So was the page number. Beneath the lamp there was not a single line that could be copied. The copyist turned the page one way, then back again. No one took words from the pages beside it and filled this one with them.
+
+The child could not say what it had recorded before. The other person could not say either. The keeper of the ledger did not press them. He saw that the copying had ended, but did not say the ledger had been made whole. The emptiness of that page was unlike the scattered blank spaces before it. It was not a line of writing with a corner missing. The whole page had no characters that could be copied.
+
+They checked the copied pages again. Every blank space had a reason to be found on the original. On this page alone, even the reason amounted to no more than marks left by water. The copyist set it apart. The lamp still shone on the paper. No one put brush to page again.
+
+**Anchor sentence**: only once the copying was done did anyone know what had been lost.
+**锚句**：誊完，才知道丢了什么。
+
+## VII · The Page Left Blank
+
+That page was not put back into the ledger. The keeper of the ledger laid it by itself on the wooden surface and covered its edges with clean paper. The place without writing remained exposed beneath the lamp. The paper lay flat. Its corner no longer lifted.
+
+The watchman stood beside the threshold. The child no longer recited the Tidal Order’s past. The other person returned the copied pages to the ledger. No one tried to write a line for the seventh well.
+
+The lamp was not moved. The page was not put away either. The salt on the flagstones remained where it was; the tide line at the foot of the wall slowly faded. The salt-shelled brush-pen still lay beneath the lamp. No one picked it up.
+
+**Anchor sentence**: the page left blank weighed the most.
+**锚句**：留白的那一页最重。
+
+---
+
+## Anchor match (lore)
+
+| dimension | anchor | related chapter |
+|---|---|---|
+| lore | the copying and blank spaces after the tide withdrew | “When the Tide Came” |
+| geography | Xitai · Seven Wells · flagstone street | this chapter |
+| factions | the Tidal Order | past |
+| characters | the watchman · the keeper of the ledger · the child who could recite the Tidal Order’s past | this chapter |
+| items | ledger · salt-shelled brush-pen · boat nail · piece of cloth · salt bags | this chapter |
+| story | The Copying · Chapter XIII | all of it |
+| history | the Iron-Moon Age → before the grey cover | this chapter |
+
+> When the tide came, no one spoke; when it withdrew, everyone began to copy.
+> 潮来无一人说话，潮退人开始誊账。`,
+  },
 ] as const;
 
 export const BIBLE_ECHOES: readonly BibleChapter[] = [

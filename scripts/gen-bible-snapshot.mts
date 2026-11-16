@@ -45,6 +45,7 @@ const WEB_SLUGS: Record<string, string> = {
   '010-谁守灯': '010-who-tends-the-lamp',
   '011-灯下的账': '011-the-ledger-beneath-the-lamp',
   '012-潮来的时候': '012-when-the-tide-came-up',
+  '013-誊写': '013-the-copying',
 };
 
 /** 回响网页 slug（E0N，番外，正典之外），同纪律登记 */

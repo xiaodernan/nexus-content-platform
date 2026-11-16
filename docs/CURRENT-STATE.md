@@ -5354,3 +5354,28 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - 门：fe-gates 128 套 · **1232/1232**；census 2638 OK；tsc 0；
   notifications 集成套 33/33（DB 存活）；ntg-visual-style.test.ts 新增（7 例，含"模型输入只有 kind+计数、Domain·Route 均不触碰 title/body/actor"机械断言）
 - LLM 切面计数：6 块 → **7 块**（deep-read / editor-note / chapter-digest / notif-digest + whisper / StateGraph / 锚句回放）
+
+## cont. 195 (2026-11-17) - v825: 第十三章《誊写》/ Chapter XIII "The Copying"——正典扩容到 13 章·166 锚句
+
+- 续写《潮来的时候》（第十二章）之后：潮退以后，门槛湿、木面湿，船钉与布片无人再动；账簿的守护者发现账页翘角——誊账开始。
+- 新章双语正典：`docs/world-bible/013-誊写.md` + `013-誊写.en.md`（zh/en 逐段对齐，同章同锚句）
+  - 七节：潮退以后 / 盐的去向 / 水吃掉的字 / 留白 / 那支笔 / 誊 / 留白的那一页
+  - 7 对锚句（逐字，全项目唯一）：
+    1. 潮退了，账没誊完。/ the tide withdrew; the ledger was not yet copied out.
+    2. 水干了，盐还在。/ the water dried; the salt remained.
+    3. 有些字被水吃掉了。/ the water ate certain characters.
+    4. 誊不准的，留白。/ what cannot be copied for certain leaves its space blank.
+    5. 笔没人拿，账还是要誊。/ no one claimed the pen; the ledger still had to be copied.
+    6. 誊完，才知道丢了什么。/ only once the copying was done did anyone know what had been lost.
+    7. 留白的那一页最重。/ the page left blank weighed the most.
+  - 结尾题记：潮来无一人说话，潮退人开始誊账。/ When the tide came, no one spoke; when it withdrew, everyone began to copy.
+- 起草方式：gpt-6.1-terra（真 provider，Clash 7897）分两次起稿（zh 4211 tokens / en 4236 tokens，finish=stop，prefix-cache 命中 4224），人工定稿——H1 章名「誊写」（对齐 012 的「」括号格式），补齐 zh 文件 en 锚句行，7 对锚句逐对核对无一遗漏/重复
+- 舰内 slug：`013-the-copying`（gen-bible-snapshot.mts WEB_SLUGS 登记）
+- 级联更新：
+  - 世界大典 snapshot 重生成（13 章 · 15 回响）；anchor-echo 重生成（159 → **166 锚句**）
+  - BibleQuiz 56 题（新增 第十三章 · 四 / 第十三章 · 七 两题，zh/en 双语）
+  - 简明说明书 /guide：「十二章 + 十五回响」→「十三章 + 十五回响」（zh 4 处/en 3 处）+「159 锚句」→「166 锚句」；guide SHA pin a929f5ac… 重钉
+  - BibleQuiz SHA pin 91b02c5c… 重钉；answer sequence 钉死 54→56（含 [1, 0]）
+- live probe（dev server）：SSR `/bible` 200（13 章索引含 013 链接）；`/bible/013-the-copying` 200（Chapter XIII·第十三章·The Copying 全量出所，7 锚对齐）
+- 门：fe-gates 128 套 · **1232/1232**；census 2638 OK；tsc 0；verify:world-bible **166/166** ✓；verify:bible-snapshot 一致 ✓；verify:anchor-echo 166 ✓
+- 运维记录：本轮 3100 端口被一台遗留的 `next start` 生产服务器（03:07 启动，旧构建）占用——探测到后停掉，全新 dev server 复测通过；停 web 后才跑 fe-gates（内存纪律）
