@@ -5144,3 +5144,19 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
   fe-gates 122 → **124 套 · 1207/1207**；census 2541 → **2571 OK**。
 - live probe：`/bible/anchors` 200（zh+en 双语命中 a e-* 标记）、/bible hub 列出、sitemap 含。
 - 草稿：游戏设计/数据纪律人工定稿；锚句全部逐字来自正典，无一句机器改写。
+
+## cont. 182 (2026-11-17) - v812: 回响（其十一）「秤」—— 七份灰称完了，余灰留在碗里
+
+- 新内容：`docs/world-bible/echoes/E11-秤.md` + `.en.md`——盯着第九章那架挂在梁上的锈秤：
+  秤是外祖在河口替人分鱼的旧物（十六道刻线，最末一道被刀削浅了；船棚失火后交给了父亲）·
+  秤钩先是发暗再起锈（盐先到，潮气留下来，铁没断）·
+  称灰：七份每份一斤，余灰无数（孩子数数时漏了一次，父亲让他从头来）·
+  锈不改秤的判决（铁锈只薄了铁，没有挪动刻线）·
+  孩子替父亲记过一次数（桌沿上划了七条浅痕，第四道刻线是秤砣的停处）·
+  秤回梁上，余灰留在倒扣的碗里——没人称，也没人问起。
+- 锚句全系列 **117/117 全过**（verify:world-bible OK，zh+en 逐字）；gen:bible-snapshot（9 章 × 11 回响）字节一致；
+  verify:anchor-echo 字节一致（117 句）；live probe /bible/echo-011-the-scale 200（双语命中）；/bible hub 入册。
+- BibleQuiz **40 题**（+2 E11 双语题）；序列钉死 [..., 2, 2]；SHA pin 908434c9… 重钉。
+- guide 全套对齐：十回响 → 十一回响（zh/en ×6 处）；guide 游戏介绍从 111 改 117 句；SHA pin edc3133e… 重钉。
+- 草稿出真 provider（gpt-6.1-terra），人工定稿·严纪律。
+- 门：fe-gates 124 套 · 1207/1207 OK；census 2571 OK；tsc 0。

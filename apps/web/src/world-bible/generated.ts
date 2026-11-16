@@ -5163,4 +5163,266 @@ The one who next opened the ledger added nothing to it. He closed the page, and 
 > 它只让门保持「可以被打开」的姿态。
 `,
   },
+  {
+    order: 11,
+    slug: 'echo-011-the-scale',
+    titleZh: '秤',
+    titleEn: 'The Scale',
+    eraLineZh: '纪元：铁月纪之后 · 灰棚之前。',
+    eraLineEn: 'Era: after the Iron-Moon Age · before the grey cover was laid.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 11): The Scale
+
+> 回响不替正典续写——它只盯着第九章里挂在梁上的那架锈秤。
+> 本篇写给秤钩上输给盐、没输给账的铁。
+> 本篇锚句，与《红绳》《钥匙》同一纪律。
+>
+> An echo does not continue the canon — it only keeps its eyes on the rusted scale that hung from the beam in Chapter IX.
+> Written for the iron that yielded to the salt, and never to the ledger.
+> Its anchors answer to the same discipline as the red cord and the keys.
+
+> 纪元：铁月纪之后 · 灰棚之前。
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 其一 · 旧物
+
+父亲说，这架秤原是外祖家的。外祖在河口替人分鱼，秤挂在船棚的梁下，秤杆上刻着十六道旧线，最末一道被刀削浅了。那时秤砣还黑，秤星还亮，谁家的鱼多一尾，谁家的盐少一撮，都记在那根木杆上。
+
+外祖死后，秤跟着几只空筐进了父亲家。父亲没有拿它称米，也没有拿它称肉。它被收在屋梁上，秤绳绕过钉子，秤钩朝下。年年涨潮，屋里的东西都往高处挪，只有秤留在那里，像一笔迟迟没有落下的账。
+
+父亲说秤杆是榆木的。榆木不怕压，怕火。那年船棚失火，外祖从梁上摘下秤，抱着它走过河滩。秤杆的一端熏黑，十六道线还在。后来他把秤交给父亲，只说过一句：秤过的东西，不必再拿回来。
+
+父亲没问这句话是给谁听的。
+
+**锚句**：旧账从梁上垂下。
+**Anchor sentence**: old accounts hang from the beam.
+
+---
+
+## 其二 · 锈
+
+秤钩先是发暗，后来起了锈。屋里靠海，门缝里常有盐，窗纸吸了潮，墙根的灰一层层发软。秤钩每天朝下，雨水从瓦缝滴进来，先落在钩尖，再顺着弯处停住。盐留在那里，潮气也留在那里。
+
+铁没有一下子坏。它先失了光，随后起皮，最后露出粗糙的红色。父亲用麻布擦过，布上留下几道褐痕。他又用刀背刮，锈屑落在地上，薄得像鱼鳞。钩子仍能挂住东西，只是碰到秤杆时，会发出一点轻声。
+
+那声音夜里也有。潮涨时，梁木吸水，秤绳在钉子上紧一紧；潮退时，绳子松下来，秤钩轻轻碰梁。铁钩没有断，只把自己交给盐和水，一点一点地薄下去。
+
+父亲没再擦它。擦去的锈，第二天还会长回来。
+
+**锚句**：铁输给了潮，不输给数。
+**Anchor sentence**: the iron yielded to the damp, not to the count.
+
+---
+
+## 其三 · 七份
+
+那天父亲从梁上取下秤。灰装在一只浅盆里，盆底有裂缝，缝里也存着灰。他先把秤绳理直，把秤砣放在榆木杆旁，再取一只布兜，兜口打了两道结。布兜没有洗，边上留着旧盐渍。
+
+他把灰一捧一捧装进去。每装一捧，便把布兜挂上秤钩。秤杆先低下去，秤砣沿着木杆往外走。父亲用指甲拨动秤砣，拨一下，停一下，等那根杆子不再晃，才看刻线。
+
+头一份，秤砣停在第四道。父亲把灰倒进一只碗里，另换空布兜。第二份，还是第四道。第三份也是。灰落下去时，盆底露出一块灰白的圆痕。父亲没有说话，只把每一份放在桌边，隔开一掌宽。
+
+梁头就在他上方。父亲每次抬眼，都像是在看秤杆，又像是看秤上方那截暗木。那里有旧钉孔，有虫蛀的细末，有一道被烟熏过的黑线。秤砣不看梁头。它沿着刻线移动，停下，等父亲的手离开。
+
+第四份、第五份、第六份，照旧。第七份称完，盆里还剩一点灰。父亲把它收拢，掌心拢了两次，仍不够装满一斤。他看了一眼布兜，又看了一眼秤杆，最后把那一点灰留在盆里。
+
+没有第八份。秤钩空着。
+
+**锚句**：七份落定，余数不入账。
+**Anchor sentence**: seven portions settled; the remainder never enters the ledger.
+
+---
+
+## 其四 · 仍准
+
+秤钩上的锈贴着铁长，没长到秤杆上。父亲把布兜挂好，手离开以后，钩子承住了重量。它没有扭开，也没有向一边歪。秤杆照着旧线抬起，秤砣照着旧刻停下。
+
+锈屑有几粒掉在布面上。父亲捻走它们，没有重称。孩子站在门边，看见父亲的指头在刻线旁停住。那手指没有压杆，也没有替秤砣补一分。杆的一端微微下沉，另一端从梁头的暗影里露出来。
+
+秤钩有锈，秤绳有潮，秤杆上有旧火留下的黑。可钩子挂着布兜，砣子压住刻度，木杆便把两头的轻重交在一条线上。铁锈只薄了铁，没有挪动刻线。它能吃掉钩尖，不能替一斤多出一钱，也不能把少的补齐。
+
+父亲把一份灰放进碗中。秤杆空下来，慢慢回平。那一刻，锈钩仍朝下，像一枚已经盖过的印。
+
+**锚句**：锈不改秤的判决。
+**Anchor sentence**: rust does not change the scale's verdict.
+
+---
+
+## 其五 · 记数
+
+孩子替父亲记过一次数。没有纸，他便用手指在桌沿上划。第一道，第二道，第三道。他每划完一道，就看一只碗。碗口蒙着灰，碗底还干净。七道以后，桌沿留着七条浅痕。
+
+他也记住了秤砣停在哪里。第四道，靠近那处被刀削浅的刻线。秤砣停住时，尾端有一点向下，父亲没有去扶。孩子看见秤砣的黑色，也看见木杆上的白灰。两种颜色挨在一起，谁也没有盖过谁。
+
+盆里那点余灰，他没有记成第八份。父亲把它收在盆边，手掌挡着门缝里吹来的风。灰很轻，掌心一松，便沿着盆底散开。孩子数过碗，又数过桌沿上的痕，最后把手指停在第七道之后。
+
+这件事后来没有人问他。父亲也没有说他记得对不对。孩子长大以后，仍记得那一次：秤砣停在第四道；盆里还剩一点；桌沿上有七条浅痕，没画第八条。
+
+**锚句**：少下的那一份，也有数。
+**Anchor sentence**: even the portion that falls short has its count.
+
+---
+
+## 其六 · 梁上
+
+称完以后，父亲把秤杆上的灰擦掉。秤砣放回原处，秤绳绕过梁下的钉子，锈钩朝着地面。他站在凳上，把秤挂高了一点，免得门开时碰到。梁木受了重量，响了一声，随后不响了。
+
+余灰留在浅盆里。父亲拿一只倒扣的碗盖住它，碗底没有擦干净，边缘压住盆沿。屋里潮，盆壁起了一圈水汽。灰在盖下慢慢凉下来，颜色从白变成暗灰。没有人挪动那只碗。
+
+夜里潮水进到石阶，又从石阶退回去。梁上的秤没有动，空钩仍挂着。门口的盐粒被脚踩碎，落进木缝。第二天，盆还在原处，碗也还盖着。父亲出门时没有看它，回家时没有揭开。
+
+后来屋梁换过一次，旧钉留下一个黑孔。秤被挂到旁边，木杆更旧，刻线更浅。那半碗余灰没有人问起，也没有人拿来补秤。灰在盖下结住，等到盆沿裂开，仍没人称它。
+
+**锚句**：挂回梁上，账仍未合。
+**Anchor sentence**: hung back on the beam; the account still has not closed.
+
+---
+
+## 模型映射（回响十一章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 锈秤 · 榆木杆 · 七份灰 · 余灰 · 桌沿的七道痕 | 一至六 |
+| geography | 河口船棚 · 父亲的屋梁 · 门槛 · 石阶 | 一至六 |
+| factions | 一个人家 | 一至六 |
+| characters | 父亲 · 孩子 · 外祖（回忆） | 一至六 |
+| items | 榆木秤 · 秤砣 · 浅盆 · 倒扣的碗 | 一至六 |
+| story | 灰后 · 带灰回家 · 回响（其十一） | 全篇 |
+| history | 铁月纪之后 · 灰棚之前 | 一至六 |
+
+> 秤没有说「够了」；
+> 它只把每一份过完，就回梁上。
+>
+> The scale never said "enough";
+> it only weighed every portion, then went back to the beam.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其十一）「秤」
+
+> An echo does not continue the canon — it only keeps its eyes on the rusted scale that hung from the beam in Chapter IX.
+> Written for the iron that yielded to the salt, and never to the ledger.
+> Its anchors answer to the same discipline as the red cord and the keys.
+>
+> 回响不替正典续写——它只盯着第九章里挂在梁上的那架锈秤。
+> 本篇写给秤钩上输给盐、没输给账的铁。
+> 本篇锚句，与《红绳》《钥匙》同一纪律。
+
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+> 纪元：铁月纪之后 · 灰棚之前。
+
+---
+
+## I · The Old Thing
+
+His father said the scale had come down from the grandfather's house. At the river's mouth the grandfather had divided fish for other people; the scale hung beneath the boat-shed's beam, the beam's wood incised with sixteen worn lines, the last of them pared shallow by a knife. In those days the weight was black, the star-lines bright; any extra tail on one house's fish, any one grain fewer of salt in another's pile, all of it was kept on that wooden beam.
+
+After the grandfather died, the scale came into the father's house with a few empty baskets. He never used it to weigh rice or meat. It went up onto the beam, the rope passed over a nail, the hook facing down. Each year the tide came in, and everything in the house was moved higher; only the scale stayed where it was, like an account long pending.
+
+The father said the beam was elm. Elm does not fear weight, only fire. The year the boat-shed burned, the grandfather reached up, unshipped the scale, and carried it across the flats. One end of the beam was scorched; the sixteen lines were still there. Later he passed the scale to the father with a single sentence: once something has been weighed, it need not come back for it.
+
+The father never asked to whom that sentence had been addressed.
+
+**Anchor sentence**: old accounts hang from the beam.
+**锚句**：旧账从梁上垂下。
+
+---
+
+## II · Rust
+
+First the hook dulled, then the rust bloomed on it. The house stood close to the sea; salt came through the door-seam, the window-paper drank the damp, and the wall-foot ash went soft layer on layer. Day after day the hook faced down; water dripped from the tile-seams, first onto its tip, then along its curve and into stillness. The salt stayed there, and the damp stayed with it.
+
+The iron did not fail at once. It lost its shine first, then scaled over, and finally yielded a rough red. The father wiped it with hemp cloth; brown streaks marked the cloth. He also scraped it with a knife's back; rust-flakes fell to the floor, thin as fish-scales. The hook still held weight, only brushing the beam with a light sound when it swung against it.
+
+That sound came in the night as well. When the tide rose, the beam-wood drank, the rope pulled taut against the nail; when it withdrew, the rope eased, and the hook touched the beam softly. The hook had not broken; it had simply given itself to salt and water, growing thinner by the season.
+
+The father no longer wiped it. The rust he wiped away grew back by the next day.
+
+**Anchor sentence**: the iron yielded to the damp, not to the count.
+**锚句**：铁输给了潮，不输给数。
+
+---
+
+## III · Seven Portions
+
+That day the father took the scale down from the beam. The ash lay in a shallow basin; its base had split, and ash filled the split as well. He first straightened the rope, set the weight beside the elm beam, then took a cloth pouch, the mouth of which was tied in two knots. The pouch had not been washed; the edge still kept traces of old salt.
+
+He filled it handful by handful. Each time the pouch went onto the hook, the beam dipped, and the weight travelled outward along the wood. The father moved the weight with his fingernail — one nudge, one pause, waiting until the beam's sway had settled before he read the line.
+
+The first portion settled at the fourth line. The father poured the ash into a bowl, then switched for an empty pouch. The second portion — also the fourth line. The third likewise. When the ash went down, a pale round scar showed along the basin's bottom. The father said nothing; he set each portion on the table, a palm apart.
+
+The beam's end was directly above him. Every time the father raised his eyes, he seemed to be looking at the scale's beam, or at the stretch of dark wood above it — where old nail-holes nested, where the paths of beetles left fine dust, where a black line had been left by fire. The weight paid no attention to the beam-end. It travelled along its lines, and stopped, and waited for the father's hand to leave.
+
+The fourth, the fifth, the sixth — the same. When the seventh was weighed, a little ash still remained in the basin. The father gathered it, cupped his palm over it twice, yet still it would not fill a full jin. He looked at the pouch, then at the beam, and at last left that little ash in the basin.
+
+There was no eighth portion. The hook hung empty.
+
+**Anchor sentence**: seven portions settled; the remainder never enters the ledger.
+**锚句**：七份落定，余数不入账。
+
+---
+
+## IV · Still True
+
+The rust on the hook grew against the iron; it had not climbed the beam. The father hung the pouch, and once his hand had left, the hook bore the weight. It did not twist open, nor list to one side. The beam rose according to its old lines; the weight stopped according to its old marks.
+
+A few grains of rust fell onto the cloth. The father pinched them away; he did not weigh again. The boy at the door watched his father's fingers halt beside the line. They did not press the beam; they did not make up a grain for the weight. One end of the beam sank a little; the other emerged from the darkness above.
+
+The hook was rusted, the rope was damp, the beam carried the black left by the old fire. Yet the hook held the pouch, the weight pressed the line, and the wooden beam delivered the two ends' difference across a single line. Rust had thinned only the iron; it had not shifted the marks. It could erode the hook's tip, but it could not give one jin one grain more — nor could it supply what was missing.
+
+The father put one portion of ash into the bowl. The beam lifted free, and slowly came back to level. In that moment, the rusted hook still pointed down, like a seal already set.
+
+**Anchor sentence**: rust does not change the scale's verdict.
+**锚句**：锈不改秤的判决。
+
+---
+
+## V · The Counting
+
+The boy once kept the tally for his father. No paper — he drew the lines with a fingernail along the table's edge. First line, second line, third line. After each line he looked at a bowl. The bowl's mouth was filmed with ash, its base still clean. After the seventh line, seven faint grooves remained along the table's edge.
+
+He also remembered where the weight had stopped. At the fourth line, beside the one line that had been pared shallow. When the weight came to rest, its tail ended a little low; the father did not steady it. The boy saw the black of the weight and the white dust on the beam; the two colours lay side by side, and neither covered the other.
+
+The little remainder in the basin — he did not record it as an eighth portion. His father gathered it at the basin's edge, his palm shielding it from the wind through the door-seam. The ash was very light; the palm loosened, and it scattered thin across the basin's base. The boy numbered the bowls, numbered the grooves along the table's edge, and last of all rested his finger after the seventh.
+
+No one ever asked him about it afterwards. His father never told him whether he had counted right. Long after, the boy still remembered that day: the weight settled at the fourth line; a little remained in the basin; the table's edge held seven grooves — and never an eighth.
+
+**Anchor sentence**: even the portion that falls short has its count.
+**锚句**：少下的那一份，也有数。
+
+---
+
+## VI · The Beam Again
+
+Once everything had been weighed, the father wiped the ash from the beam. He put the weight back where it had been, the rope wound again over the nail beneath the beam, the rusted hook facing down. He stood on the stool and hung the scale a little higher, out of the way of the opening door. The beam-wood took the weight and sounded once, and afterwards sounded no more.
+
+The remainder-ash lay in the shallow basin. The father laid an overturned bowl on top of it; the bowl's base was not wiped clean, its rim pressing shut over the basin. The room was damp; a ring of mist rose along the basin's wall. Beneath the cover, the ash cooled slowly, its colour shifting from white to dark grey. No one moved that bowl.
+
+At night the sea came in over the steps and went back again. The scale above did not move; the hook hung empty. Grains of salt by the door were crushed underfoot, falling into the wood-joints. The next day the basin stood where it had been, the bowl still covered. The father went out without looking at it; he came home without lifting it.
+
+Later, the beam was replaced; the old nail left behind a black hole. The scale was hung beside it, the beam more worn, the lines fainter. Of that half-bowl of remnant ash, no one asked again, and no one used it to balance the scale. The ash under the cover had hardened; when the basin's rim finally split, still no one weighed it.
+
+**Anchor sentence**: hung back on the beam; the account still has not closed.
+**锚句**：挂回梁上，账仍未合。
+
+---
+
+## Model mapping (echo No. 11)
+
+| Category | Title | Corresponds to |
+|---|---|---|
+| lore | The Rusted Scale · the Elm Beam · the Seven Portions · the Remainder · the Seven Grooves on the Table's Edge | I–VI |
+| geography | The River-Mouth Boathouse · the Beam in the Father's House · the Threshold · the Steps | I–VI |
+| factions | One household | I–VI |
+| characters | The Father · the Boy · the Grandfather (in memory) | I–VI |
+| items | The Elm Scale · the Weight · the Shallow Basin · the Overturned Bowl | I–VI |
+| story | After the Ash · Ash Carried Home · Echo (No. 11) | whole |
+| history | After the Iron-Moon Age · Before the Grey Cover Was Laid | I–VI |
+
+> The scale never said "enough";
+> it only weighed every portion, then went back to the beam.
+>
+> 秤没有说「够了」；
+> 它只把每一份过完，就回梁上。
+`,
+  },
 ] as const;

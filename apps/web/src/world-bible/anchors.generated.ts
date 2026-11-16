@@ -674,5 +674,41 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "en": "people leave; the keys do not remember.",
     "refZh": "回响（其十） · 六",
     "refEn": "Echo No. 10 · VI"
+  },
+  {
+    "zh": "旧账从梁上垂下。",
+    "en": "old accounts hang from the beam.",
+    "refZh": "回响（其十一） · 一",
+    "refEn": "Echo No. 11 · I"
+  },
+  {
+    "zh": "铁输给了潮，不输给数。",
+    "en": "the iron yielded to the damp, not to the count.",
+    "refZh": "回响（其十一） · 二",
+    "refEn": "Echo No. 11 · II"
+  },
+  {
+    "zh": "七份落定，余数不入账。",
+    "en": "seven portions settled; the remainder never enters the ledger.",
+    "refZh": "回响（其十一） · 三",
+    "refEn": "Echo No. 11 · III"
+  },
+  {
+    "zh": "锈不改秤的判决。",
+    "en": "rust does not change the scale's verdict.",
+    "refZh": "回响（其十一） · 四",
+    "refEn": "Echo No. 11 · IV"
+  },
+  {
+    "zh": "少下的那一份，也有数。",
+    "en": "even the portion that falls short has its count.",
+    "refZh": "回响（其十一） · 五",
+    "refEn": "Echo No. 11 · V"
+  },
+  {
+    "zh": "挂回梁上，账仍未合。",
+    "en": "hung back on the beam; the account still has not closed.",
+    "refZh": "回响（其十一） · 六",
+    "refEn": "Echo No. 11 · VI"
   }
 ] as const;

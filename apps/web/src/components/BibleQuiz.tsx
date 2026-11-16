@@ -219,6 +219,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《带灰回家》里，孩子第二次摸袋子，掌心……？', choices: ['是干的', '是湿的', '在发烫', '沾了盐'], answer: 1, ref: '第九章 · 四' },
     en: { prompt: 'In “Ash Carried Home”, the second time the boy touches the bag, his palm is…?', choices: ['dry', 'wet', 'burning', 'salted'], answer: 1, ref: 'Chapter IX · IV' },
   },
+  {
+    zh: { prompt: '《秤》里，秤砣每次停在第几道刻线？', choices: ['第二道', '第三道', '第四道', '第五道'], answer: 2, ref: '回响十一 · 三' },
+    en: { prompt: 'In “The Scale”, where does the weight come to rest each time?', choices: ['the second line', 'the third line', 'the fourth line', 'the fifth line'], answer: 2, ref: 'Echo No. 11 · III' },
+  },
+  {
+    zh: { prompt: '《秤》里，孩子在桌沿上划了几条浅痕？', choices: ['五条', '六条', '七条', '八条'], answer: 2, ref: '回响十一 · 五' },
+    en: { prompt: 'In “The Scale”, how many grooves did the boy mark along the table’s edge?', choices: ['five', 'six', 'seven', 'eight'], answer: 2, ref: 'Echo No. 11 · V' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {
