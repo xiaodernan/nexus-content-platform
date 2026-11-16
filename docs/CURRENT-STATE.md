@@ -5399,3 +5399,29 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - 运维记录：Docker 再次熄火/重启中（pg 启动 fallthrough→健康）；web 早一步 boot 时限流驱动
   按既有机制退回进程内计数（日志如实；Redis 恢复后自愈）——未观察到功能影响
 - LLM 切面计数：7 → **8 块**（+ marketplace 选品）
+
+## cont. 197 (2026-11-17) - v827: 回响（其十六）《最后一栏》/ Echo No. 16 "The Last Column"——正典扩到 16 回响·171 锚句
+
+- 续写《誊写》（第十三章）之后的抄账人便签——整个世界大典极少数第一人称：
+  誊写之后的第七天；前六口井都有落款（各一笔停顿），第七口对应的那一页没有落款；
+  盐袋压在誊清的页角，压不住疑问；能背诵潮汐教团往事的孩子只数出六口井；
+  抄账人把笔搁在灯下，不是为了拿它。
+- 双语回响：`docs/world-bible/echoes/E16-最后一栏.md` + `E16-最后一栏.en.md`（zh/en 逐段对齐）
+  - 五节：第七天 / 落款 / 盐压纸 / 孩子数井 / 誊抄员收起笔
+  - 5 对锚句（逐字·全项目唯一·共 **171**）：
+    1. 最后一栏，谁也没写。/ the last column, no one wrote.
+    2. 六口井都有落款，第七口没有。/ six wells bear a signature; the seventh does not.
+    3. 盐可以压纸，压不住疑问。/ salt can weigh paper; it cannot weigh a question down.
+    4. 孩子没有学会"收口"这两个字。/ the child never learned the two characters for "closing the ledger".
+    5. 誊抄员把笔搁在灯下，不是为了拿它。/ the copyist set the pen beneath the lamp — not to pick it up.
+  - 结尾题记：井数得完，落款写不完。/ Wells can be counted; signatories cannot.
+- 起草方式：gpt-6.1-terra（真 provider，Clash 7897）zh 稿 2281 completion tokens + en 稿 2541 tokens（finish=stop，prefix cache 命中），人工定稿——锚句原样嵌入正文行（模型未写标记行），补 `**锚句**`/`**Anchor sentence**` 标记对，表格"采账人"笔误修为"抄账人（账簿的守护者）"，en 译本 H1 顺序对齐（EN 首行）
+- 舰内 slug：`echo-016-the-last-column`（gen-bible-snapshot.mts ECHO_WEB_SLUGS 登记）
+- 级联更新：
+  - snapshot 重生成（13 章 · 16 回响）；anchor-echo 重生成（**171 锚句**）
+  - BibleQuiz 58 题（新增 回响（其十六）·二 / 回响（其十六）·四 两题，zh/en 双语；答案序列：56→58 题，新增 [1, 2]；quiz SHA pin 80f462be… 重钉）
+  - 简明说明书：「十五回响」→「十六回响」（zh/en 6 处）+「171 锚句」；guide SHA 92610263… 重钉
+- live probe（dev server）：SSR `/bible/echo-016-the-last-column` 200（The Last Column · Anchor sentence ×5）；
+  `/bible` 200（16 回响索引含 echo-016 链接）
+- 门：fe-gates 129 套 · **1238/1238**；census 2645 OK；tsc 0；verify:world-bible **171/171** ✓；verify:bible-snapshot 一致 ✓；verify:anchor-echo 171 ✓
+- 运维记录：Docker 再次熄火并自动复活（pg 恢复后才 SSR 探测；fe-gates 不依赖 DB）

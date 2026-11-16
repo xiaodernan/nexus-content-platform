@@ -1004,5 +1004,35 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "en": "after the sealing, the ash is still counted.",
     "refZh": "回响（其15） · 六",
     "refEn": "Echo No. 15 · VI"
+  },
+  {
+    "zh": "最后一栏，谁也没写。",
+    "en": "the last column, no one wrote.",
+    "refZh": "回响（其16） · 一",
+    "refEn": "Echo No. 16 · I"
+  },
+  {
+    "zh": "六口井都有落款，第七口没有。",
+    "en": "six wells bear a signature; the seventh does not.",
+    "refZh": "回响（其16） · 二",
+    "refEn": "Echo No. 16 · II"
+  },
+  {
+    "zh": "盐可以压纸，压不住疑问。",
+    "en": "salt can weigh paper; it cannot weigh a question down.",
+    "refZh": "回响（其16） · 三",
+    "refEn": "Echo No. 16 · III"
+  },
+  {
+    "zh": "孩子没有学会\"收口\"这两个字。",
+    "en": "the child never learned the two characters for \"closing the ledger\".",
+    "refZh": "回响（其16） · 四",
+    "refEn": "Echo No. 16 · IV"
+  },
+  {
+    "zh": "誊抄员把笔搁在灯下，不是为了拿它。",
+    "en": "the copyist set the pen beneath the lamp — not to pick it up.",
+    "refZh": "回响（其16） · 五",
+    "refEn": "Echo No. 16 · V"
   }
 ] as const;

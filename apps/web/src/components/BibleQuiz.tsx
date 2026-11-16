@@ -291,6 +291,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《誊写》誊完之后，人们才知道丢了什么——丢的是什么？', choices: ['与第七口井对应的整页', '那支咸壳笔', '门槛上的船钉', '木面上的盐'], answer: 0, ref: '第十三章 · 七' },
     en: { prompt: 'In “The Copying”, only once the copying was done did anyone know what was lost — what was lost?', choices: ['the whole page tied to the seventh well', 'the salt-crusted brush-pen', 'the ship’s nail on the threshold', 'the salt on the wood'], answer: 0, ref: 'Chapter XIII · VII' },
   },
+  {
+    zh: { prompt: '《最后一栏》里，誊抄员核对誊清的页后发现……？', choices: ['第七页少了一行', '第七口井对应的那一页没有落款', '账簿被水吃掉了', '盐袋漏了'], answer: 1, ref: '回响（其十六） · 二' },
+    en: { prompt: 'In “The Last Column”, after the copyist checked the freshly copied pages…?', choices: ['the seventh page was missing a line', 'the page tied to the seventh well bore no signature', 'the ledger had been eaten by water', 'the salt sack had torn'], answer: 1, ref: 'Echo No. 16 · II' },
+  },
+  {
+    zh: { prompt: '《最后一栏》里，谁来到灯边，只能数出六口井？', choices: ['账簿的守护者', '巡路人', '能背诵潮汐教团往事的孩子', '铁月纪的使者'], answer: 2, ref: '回响（其十六） · 四' },
+    en: { prompt: 'In “The Last Column”, who came to the lamp and could count only six wells?', choices: ['the keeper of the ledger', 'the patrolman', 'the child who could recite the Tide Conclave’s past', 'the envoy of the Iron-Moon Age'], answer: 2, ref: 'Echo No. 16 · IV' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

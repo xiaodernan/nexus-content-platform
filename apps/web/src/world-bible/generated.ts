@@ -7891,4 +7891,442 @@ After the sealing, two brick-shaped voids remained against the wall-foot; on the
 > 坑填到顶，灰没出门。
 `,
   },
+  {
+    order: 16,
+    slug: 'echo-016-the-last-column',
+    titleZh: '最后一栏',
+    titleEn: 'The Last Column',
+    eraLineZh: '纪元切割线：铁月纪之后 · 灰幕之前',
+    eraLineEn: 'Era: after the Iron-Moon Age · before the grey cover was laid.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 16): The Last Column
+
+> 回响不续写正典，只记誊写之后的一页便签：
+> 谁也没敢动那最后一栏。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps a note from the days after the copying:
+> no one dared to touch the last column.
+> Its anchors answer to the same discipline as the canon.
+
+> 纪元切割线：铁月纪之后 · 灰幕之前
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 一 · 第七天
+誊写后的第七天，潮湿还在。  
+墙根的潮线淡了些。  
+灯没有熄。  
+我把账簿放在灯下，没有翻开。  
+纸页合着。  
+蜡封仍在原处。  
+咸壳笔也在原处。  
+笔尖朝向最后一栏。  
+我没有把它转开。  
+也没有把它拿起。  
+潮湿沿着门槛停住，像是到了那里便忘了如何往前。  
+我看了很久。  
+灯光落在纸上，落在没有字的地方。  
+我以为自己能看见那一栏的边。  
+后来才知道，空白也有边。  
+它比纸页窄。  
+比井口深。  
+比我记得的潮线更难擦去。  
+我不曾在那一页写字。  
+可我记得誊写时，笔曾停在那一行上方。  
+停得不久。  
+久到灯芯轻轻偏过一次。  
+久到盐粒从纸边滚下。  
+没有人问我为何停笔。  
+我也没有说。  
+最后一栏，谁也没写。
+**锚句**：最后一栏，谁也没写。
+**Anchor sentence**: the last column, no one wrote.
+
+## 二 · 落款
+我核对誊清的页。  
+一页一页地看。  
+前六页都有落款。  
+每一处字迹都停得很稳。  
+我认得那种停顿。  
+那是写完之后，笔尖还留在纸上的一瞬。  
+六处停顿，六个落款。  
+我把它们数过两遍。  
+没有多，也没有少。  
+七口井都在账簿里。  
+可落款只到前六口。  
+第七口对应的那一页，没有落款。  
+纸上留下了空处。  
+我把账簿转向灯。  
+空处仍旧是空处。  
+我把纸页翻回来。  
+它仍旧在那里。  
+我不能把没有写下的字认作字。  
+也不能把空处说成遗漏。  
+那一页誊得很清楚。  
+每一行都在。  
+每一个字都在。  
+只是落款没有来。  
+我用指腹压住页角。  
+纸没有皱。  
+蜡封没有裂。  
+笔也没有动。  
+我曾想，在旁边写一个小记号。  
+只写一笔。  
+只让自己知道这页被看过。  
+可笔尖一落下去，便会靠近那处空白。  
+我收回手。  
+六口井都有落款，第七口没有。
+**锚句**：六口井都有落款，第七口没有。
+**Anchor sentence**: six wells bear a signature; the seventh does not.
+
+## 三 · 盐压纸
+多出来的盐装进纸袋。  
+我把纸袋压在誊清的页上。  
+不重。  
+刚好能压住纸角。  
+灯下，盐粒透出一点白。  
+我知道纸会记住它。  
+就像账簿记住每次翻动。  
+就像笔记住每次停顿。  
+压着纸，纸便不容易卷起。  
+可纸没有因此变得平整。  
+那页仍有一道浅痕。  
+我用盐袋压住它。  
+再放开。  
+痕还在。  
+我想起沉没的第四页。  
+我不去补它。  
+也不在账簿里添上它。  
+我只看着盐粒隔着纸袋挤在一起。  
+潮湿让纸袋的边变软。  
+盐没有结块。  
+它们散着。  
+像那些不能收进一行里的字。  
+我把纸袋挪到灯下，又挪回门槛内侧。  
+每次挪动，都留下一点轻响。  
+我听着那点响声，想知道它能不能盖过纸页的空白。  
+不能。  
+盐只压住了页角。  
+压住了那一瞬要翻页的风。  
+我不敢把盐倒在纸上。  
+那会留下另一种白。  
+白得更像一层封口。  
+我不敢用笔去描那道痕。  
+描过以后，它就不再是旧痕。  
+盐可以压纸，压不住疑问。
+**锚句**：盐可以压纸，压不住疑问。
+**Anchor sentence**: salt can weigh paper; it cannot weigh a question down.
+
+## 四 · 孩子数井
+能背诵潮汐教团往事的孩子来到灯边。  
+孩子没有碰账簿。  
+我也没有让孩子碰。  
+我问孩子记得几口井。  
+孩子数给我听。  
+一口。  
+又一口。  
+再一口。  
+数到第六口，孩子停了。  
+我没有替孩子接下去。  
+灯光照在孩子的手上。  
+手指收拢，又慢慢张开。  
+我问，是否还记得别的。  
+孩子说，记得往事。  
+说得很轻。  
+我知道那些往事没有少。  
+我也知道孩子没有把它们念错。  
+孩子再数了一遍。  
+仍然只有六口。  
+我看着账簿。  
+第七口写在那里。  
+那不是孩子记得的数目。  
+也是我不曾改动的数目。  
+我没有说，账簿比记忆多一口。  
+我没有说，记忆少的那口，仍在那一页上。  
+孩子的目光落在咸壳笔上。  
+笔没有动。  
+孩子问我，是否该把话说完。  
+我没有回答。  
+潮湿贴着门槛。  
+灯还亮着。  
+纸页没有翻。  
+我听见孩子把那几个字重新念了一遍。  
+念到句尾，声音停住。  
+我以为孩子会再试一次。  
+孩子只是把手放回身侧。  
+孩子没有学会"收口"这两个字。
+**锚句**：孩子没有学会"收口"这两个字。
+**Anchor sentence**: the child never learned the two characters for "closing the ledger".
+
+## 五 · 誊抄员收起笔
+我写完这张便签。  
+没有写在账簿上。  
+便签很薄。  
+灯光透过纸，最后几笔显得发浅。  
+我把它放在账簿旁边。  
+然后把笔搁在灯下。  
+笔身沾着潮气。  
+咸壳笔的尖端朝着纸。  
+我没有将它收进蜡封。  
+也没有让它靠近最后一栏。  
+有人问我，为什么不拿。  
+我没有说，手已经拿过许多次。  
+我没有说，每一次都只拿到这里。  
+我只看着笔。  
+灯照着它。  
+盐袋压着那几页誊清的纸。  
+账簿合上了。  
+门槛内侧没有潮线。  
+门槛外侧也没有多出一行字。  
+那个人等了一会儿。  
+我仍没有拿起笔。  
+有些事写过一次，就留在纸上。  
+有些事没写，却留在每次停笔的地方。  
+我不替空白补字。  
+也不替沉默添上落款。  
+若我此刻拿起笔，便会有人以为我知道该写什么。  
+我不知道。  
+我只知道灯还亮着。  
+只知道账簿没有合严。  
+只知道盐袋仍压在纸上。  
+那个人没有再问。  
+潮湿慢慢退到门槛边。  
+我让便签留在灯下。  
+誊抄员把笔搁在灯下，不是为了拿它。
+**锚句**：誊抄员把笔搁在灯下，不是为了拿它。
+**Anchor sentence**: the copyist set the pen beneath the lamp — not to pick it up.
+
+---
+
+## 模型映射（回响十六则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 最后一栏 · 未落款的第七口井 | 第十三章 |
+| geography | 汐台 · 石板街道 · 七口井 | 本则 |
+| factions | 潮汐教团 | 往事 |
+| characters | 抄账人（账簿的守护者）· 能背诵潮汐教团往事的孩子 | 本则 |
+| items | 账簿 · 咸壳笔 · 盐袋 · 便签 | 本则 |
+| story | 誊抄员记 · 回响（其十六） | 全篇 |
+| history | 纪元切割线 · 灰幕之前 | 本则 |
+
+> 井数得完，落款写不完。
+> Wells can be counted; signatories cannot.`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其十六）：「最后一栏」
+
+> An echo does not continue the canon — it only keeps a note from the days after the copying:
+> no one dared to touch the last column.
+> Its anchors answer to the same discipline as the canon.
+>
+> 回响不续写正典，只记誊写之后的一页便签：
+> 谁也没敢动那最后一栏。
+> 回响的锚句，与正典同一纪律。
+
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+> 纪元切割线：铁月纪之后 · 灰幕之前
+
+---
+
+## I · The Seventh Day
+The damp remained on the seventh day after the copying.  
+The damp line at the foot of the wall had faded a little.  
+The lamp had not gone out.  
+I set the ledger beneath the lamp and did not open it.  
+The pages stayed closed.  
+The wax seal remained where it was.  
+The salt-shell pen remained where it was.  
+Its nib pointed towards the last column.  
+I did not turn it away.  
+Nor did I pick it up.  
+The damp stopped along the threshold, as though, upon reaching there, it had forgotten how to go on.  
+I watched for a long time.  
+The lamplight fell on the paper, on the place without writing.  
+I thought I could see the edge of that column.  
+Only later did I learn that blankness, too, has an edge.  
+It was narrower than the page.  
+Deeper than a well-mouth.  
+Harder to wipe away than the damp line I remembered.  
+I had never written on that page.  
+Yet I remembered that, during the copying, the pen had stopped above that line.  
+It did not stop for long.  
+Long enough for the wick to lean gently once.  
+Long enough for a grain of salt to roll from the edge of the paper.  
+No one asked me why I had stopped writing.  
+I did not say.  
+最后一栏，谁也没写。
+**Anchor sentence**: the last column, no one wrote.  
+**锚句**：最后一栏，谁也没写。
+
+## II · The Signatories
+I checked the fair copies.  
+I looked at them page by page.  
+The first six pages all bore signatures.  
+Each piece of handwriting had stopped very steadily.  
+I knew that kind of pause.  
+It was the instant after the writing was finished, when the nib still remained on the paper.  
+Six pauses, six signatures.  
+I counted them twice.  
+There were neither more nor fewer.  
+All seven wells were in the ledger.  
+But the signatures stopped at the first six wells.  
+The page corresponding to the seventh well bore no signature.  
+A blank place remained on the paper.  
+I turned the ledger towards the lamp.  
+The blank place was still a blank place.  
+I turned the page back.  
+It was still there.  
+I could not take unwritten characters for writing.  
+Nor could I call the blank place an omission.  
+That page had been copied very clearly.  
+Every line was there.  
+Every character was there.  
+Only the signature had not come.  
+I pressed the corner of the page with my fingertip.  
+The paper did not crease.  
+The wax seal did not crack.  
+The pen did not move.  
+I had thought of writing a small mark beside it.  
+Only one stroke.  
+Only to let myself know that the page had been seen.  
+But as soon as the nib came down, it would draw near that blank place.  
+I withdrew my hand.  
+Six wells bear a signature; the seventh does not.
+**Anchor sentence**: six wells bear a signature; the seventh does not.  
+**锚句**：六口井都有落款，第七口没有。
+
+## III · Salt Weighs Paper
+The extra salt went into a paper bag.  
+I placed the paper bag on the fair-copy pages.  
+It was not heavy.  
+Just enough to hold down the corner of the paper.  
+Beneath the lamp, the grains of salt showed a little white.  
+I knew the paper would remember it.  
+As the ledger remembered every turning.  
+As the pen remembered every pause.  
+With the paper held down, it was less likely to curl.  
+But the paper did not become flat for that.  
+A shallow mark still ran across that page.  
+I held it down with the salt bag.  
+Then let it go.  
+The mark remained.  
+I thought of the sunken fourth page.  
+I did not mend it.  
+Nor did I add it to the ledger.  
+I only watched the grains of salt press together through the paper bag.  
+The damp softened the edge of the paper bag.  
+The salt did not clump.  
+It lay scattered.  
+Like those characters that could not be gathered into a single line.  
+I moved the paper bag beneath the lamp, then moved it back inside the threshold.  
+Each movement left behind a faint sound.  
+I listened to that small sound, wanting to know whether it could cover the blankness of the page.  
+It could not.  
+The salt only held down the corner of the page.  
+Held down the wind that would turn the page in that instant.  
+I did not dare pour the salt onto the paper.  
+That would leave another kind of white.  
+White more like a layer sealing it shut.  
+I did not dare trace that mark with the pen.  
+After it had been traced, it would no longer be an old mark.  
+Salt can weigh paper; it cannot weigh a question down.
+**Anchor sentence**: salt can weigh paper; it cannot weigh a question down.  
+**锚句**：盐可以压纸，压不住疑问。
+
+## IV · The Child Counts the Wells
+The child who could recite the Tide Order's history came to the lamp.  
+The child did not touch the ledger.  
+Nor did I let the child touch it.  
+I asked the child how many wells they remembered.  
+The child counted them for me.  
+One.  
+Then another.  
+Then another.  
+When the child reached the sixth well, they stopped.  
+I did not take up the count for them.  
+The lamplight fell on the child's hands.  
+The fingers closed, then slowly opened.  
+I asked whether they remembered any others.  
+The child said they remembered the history.  
+It was said very softly.  
+I knew that none of that history was missing.  
+I also knew the child had not recited it wrongly.  
+The child counted again.  
+There were still only six wells.  
+I looked at the ledger.  
+The seventh well was written there.  
+That was not the number the child remembered.  
+It was also the number I had never altered.  
+I did not say that the ledger held one well more than memory.  
+I did not say that the well missing from memory was still on that page.  
+The child's gaze fell on the salt-shell pen.  
+The pen did not move.  
+The child asked me whether the words ought to be finished.  
+I did not answer.  
+The damp clung to the threshold.  
+The lamp was still lit.  
+The pages did not turn.  
+I heard the child recite those characters once more.  
+At the end of the sentence, the voice stopped.  
+I thought the child would try once again.  
+The child only put their hands back at their sides.  
+The child never learned the two characters for "closing the ledger".
+**Anchor sentence**: the child never learned the two characters for "closing the ledger".  
+**锚句**：孩子没有学会"收口"这两个字。
+
+## V · The Copyist Puts Away the Pen
+I finished writing this note.  
+I did not write it in the ledger.  
+The note was very thin.  
+The last few strokes looked pale where the lamplight passed through the paper.  
+I placed it beside the ledger.  
+Then I set the pen beneath the lamp.  
+The body of the pen was damp.  
+The tip of the salt-shell pen pointed towards the paper.  
+I did not put it inside the wax seal.  
+Nor did I let it come near the last column.  
+Someone asked me why I did not pick it up.  
+I did not say that my hand had picked it up many times already.  
+I did not say that each time it had come only this far.  
+I only watched the pen.  
+The lamp shone on it.  
+The salt bag pressed down the fair-copy pages.  
+The ledger was closed.  
+There was no damp line inside the threshold.  
+Nor had another line of writing appeared outside it.  
+That person waited for a while.  
+I still did not pick up the pen.  
+Some things, once written, remain on the paper.  
+Some things are not written, yet remain where the pen stops each time.  
+I do not supply characters for blankness.  
+Nor do I add a signature to silence.  
+If I picked up the pen now, someone would think I knew what ought to be written.  
+I did not know.  
+I only knew that the lamp was still lit.  
+Only knew that the ledger was not fully closed.  
+Only knew that the salt bag still pressed on the paper.  
+That person did not ask again.  
+The damp slowly withdrew to the edge of the threshold.  
+I let the note remain beneath the lamp.  
+The copyist set the pen beneath the lamp — not to pick it up.
+**Anchor sentence**: the copyist set the pen beneath the lamp — not to pick it up.  
+**锚句**：誊抄员把笔搁在灯下，不是为了拿它。
+
+---
+
+## Anchor match (echo sixteen)
+
+| dimension | anchor | related chapter |
+|---|---|---|
+| lore | the last column · the seventh well without a signature | Chapter Thirteen |
+| geography | Tide Terrace · stone-paved street · seven wells | this echo |
+| factions | the Tide Order | history |
+| characters | tally-keeper (account-copyist) · the child who can recite the Tide Order's history | this echo |
+| items | ledger · salt-shell pen · salt bag · note | this echo |
+| story | The Copyist's Note · Echo (No. 16) | all of it |
+| history | the Iron-Moon Age · before the grey cover | this echo |
+
+> Wells can be counted; signatories cannot.
+> 井数得完，落款写不完。`,
+  },
 ] as const;
