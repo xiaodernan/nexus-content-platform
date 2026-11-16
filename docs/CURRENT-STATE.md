@@ -4162,3 +4162,12 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 快照 gen 注册 echo-004-salt-waiting-for-the-tide-in-the-well；/bible「回响」分组自动收录。
   verify:world-bible ✅ / verify:bible-snapshot ✅；SSR 实测双语 200（zh《盐在井里等潮》/ en 《Salt Waiting for the Tide in the Well》）。
 - 回响集现在：E01 巡逻路札记 · E02 潮候船上没有岸 · E03 退潮三日 · E04 盐在井里等潮；主线 4 章 + 回响 4 篇 + 潮汐挑战 + 七口井 + 直达检索；41 锚句。
+
+## cont. 170 (2026-11-16) — v803: 回响 · 其五《没人动过的沙盘》——典籍室再 +1
+
+- 用户指令：「给出后续更多的无限故事 / 深度开拓还没有做的一大块部分」。
+- 新番外正典：docs/world-bible/echoes/E05-没人动过的沙盘.md(+.en.md)——潮候院礼拜堂潮沙盘：灯亮那一刻沙盘自己知道自己被拿起来过 / 「排的是名单不是决定」 / 没人动过但它会自己重新排 / 潮候院算了钱但没算过自己——算不过来的那一笔在潮沙盘里；45/45 锚句中英对齐。
+- 快照 gen 注册 echo-005-the-sand-table-no-one-touched；/bible「回响」自动收录；verify OK；
+  SSR 实测 zh/en 200（/bible/echo-005-the-sand-table-no-one-touched）。
+- fe-gates **125/125 · 1223/1223** 保持全绿。
+- 回响集现在：E01 巡逻路札记 · E02 潮候船上没有岸 · E03 退潮三日 · E04 盐在井里等潮 · E05 没人动过的沙盘；主线 4 章 + 45 锚句。
