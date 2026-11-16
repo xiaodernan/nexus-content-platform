@@ -4335,3 +4335,8 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - SSR（:3199，curl check）：EN `7 · Anchored external benchmarks` 200、zh `⑦ 外部公开基线` 200，两版均含 NN/g 链接；dev server 用完即杀。
 - census 2400 ✓（+4 类 insg-bench*, 全部有引用）；fe-gates 125/125 · tsc web 0。
 - 明示边界：websearch 仍 402；本节两条基线引用都是 NN/g 公开文章，原文逐字援引、非机译。
+
+## cont. 189 (2026-11-17) — v824 · 回响 · 其十四《潮汐表的封面》
+
+- 新回响 E14（中英双文件 + 映射表）；verify:world-bible ✓ 85/85；快照 4+14 回响。
+- 世界：主线 4 章 + 14 回响（其中 E11-E14 同为本 11 月增补）。

@@ -14244,3 +14244,11 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   - **Therese Fessenden — Scrolling and Attention（NN/g, 2018-04-15）**：120 名参与者、130,000+ 次注视、1920×1080：首屏（above the fold）约 57% 浏览时间，前两屏 ≤2160px 约 74%。
 - 产出：/insight 解锁态新增 `⑦ 外部公开基线`（zh/en）。每条带注＋可点 NN/g URL；脚注明示"这两条是公开发表口径，非本站实测"。
 - fe-gates **125/125 · 1223/1223 · census 2400**（新增 insg-benchList/Item/Text/Cite 四类全部有引用方）；tsc web 0。
+
+## §BIBLE-25 — 回响 · 其十四《潮汐表的封面》（2026-11-17 · v824）
+
+- 产出：`docs/world-bible/echoes/E14-潮汐表的封面.md`（中）/ `.en.md`（英）——潮汐表封皮的故事：
+  本子从没有人署名/潮起过的地方纸站不住/封皮不是装饰/整册要、整册存——第四十一次大会以来封面"从没人写过字"的truth终于被写成一片。
+  5 锚句 zh/en 全局唯一（85/85）。
+- `gen-bible-snapshot.mts` 登记 `echo-014-the-cover-of-the-tide-table`；快照重生成（4+14 回响）。
+- verify:world-bible ✓ 85/85；verify:bible-snapshot ✓。
