@@ -4994,20 +4994,17 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - 门：fe-gates 123 · 1200/1200；census 2540 OK；tsc 0（recentChanges 必需字段修正）；
   ai-service 16/16（healthz 降级窗口新测试 pin）。
 
-## cont. 170 (2026-11-17) - v800: 编排车道接进生产入口 —— /api/ai/run 的 x-nexus-orchestration 分流
+## cont. 171 (2026-11-17) - v801: Studio CommandBar 编排车道 chip —— 车道从服务端响应头到可见徽章
 
-- `/api/ai/run` 现在有两条车道，切换不改契约：
-  - lane-a（缺省）→ /v1/ai/run（顺序执行，零变化）
-  - stategraph → /v1/ai/design-graph（LangGraph StateGraph，七节点，条件边直通 END）
-- 解析器 `server/ai/orchestrationLane.ts`：请求头 `x-nexus-orchestration` > env `NEXUS_AI_ORCHESTRATION` > lane-a；
-  非法值按「该层无判定」回落——拼写错误绝不换车道（4 个单测钉死）。
-- 响应头 `x-nexus-orchestration` 如实回声车道（含 demo 路径）；新指标
-  `nexus_ai_run_lane_total{lane,capability}`（METRICS 登记，/admin 可直接出图）。
-- 切换是服务端 canary（env），不是客户端开关；lane-a 保留为零风险回退位；ADR 0272。
-- guide StateGraph 小节 zh/en 各加一行（生产流量也可以换道了）；guide SHA pin 3ef44b81… 重钉。
-- 新测试：`orchestration-lane.test.ts`（4 例纯函数矩阵）+ `ai-run-orchestration-lane.integration.test.ts`
-  （3 例，真 PG）：stategraph header 回声 stategraph / 缺省 lane-a / 乱传回落 lane-a —— 全绿。
-- live probe（:3100）：/stategraph 200（zh+en 全量文案齐），POST /api/stategraph 200（真 provider，
-  orchestration 头 stategraph，dryRun 不落盘）；ai-service healthz capability=real（llmLive unknown→后台补）。
-- 门：fe-gates 123 · 1200/1200；census 2540 OK；tsc 0（recentChanges 必需字段修正）；
-  ai-service 16/16（healthz 降级窗口新测试 pin）。
+- CommandBar（Studio 的 AI 输入条）新增 `.cb-laneChip`：结果行里跟在 DEMO/LIVE 与缓存读数旁边，
+  显示 `STATEGRAPH`（LangGraph 状态图，accent 描边）或 `LANE-A`（顺序执行，弱描边）；
+  车道由响应头 `x-nexus-orchestration` 判定——客户端只转述不猜；头缺失/非法即不渲染。
+- 文案 zh/en 各加 `laneBadgeTitle`（tooltip 说明两条车道与判定来源）；
+  组件零 transition、零 hex、全 tokens，Chip 样式收在 `.cb-*` 段内；census 2541 OK。
+- CommandBar SHA pin c17c2e80… 重钉（test-exact redact：EOL+className+cn()+空白归一）。
+- 诚实边界：studio 的 live 点击验证没能完成——in-app 浏览器无法覆盖 HttpOnly guest cookie，
+  SSR 对该项目只吐出 loading 壳（document suspense 未 flush），chip 的接线属于
+  「响应头 → useState → 结果行条件渲染」三段式，已被 tsc + 11/11 command-bar 门 +
+  route 级集成测试（响应头回声 lane-a）钉住；未做真浏览器断言。
+- 顺手清理：为手测插入的 sessions 行（Other User）已删除，不留活会话。
+
