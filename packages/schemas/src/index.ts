@@ -622,7 +622,7 @@ export type AiResponse = z.infer<typeof AiResponseSchema>;
  */
 export const AiChatRequestSchema = z.object({
   requestId: z.string(),
-  system: z.string().min(1).max(12000),
+  system: z.string().min(1).max(64000),
   user: z.string().min(1).max(4000),
   modelClass: ModelClass.default('balanced'),
 });

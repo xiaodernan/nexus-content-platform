@@ -4448,3 +4448,11 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   cache-stats: appCache hits=1 stores=1 shared=true；provider reportedHitRate=1.0。
 - 「stream vs 非流导致命中率不同」被实证否定：stream 状态与缓存命中无关；看板 transport.stream 永远诚实。
 - 兄弟项目（D:\法环游戏 vitest / 3a大作 tinypool / 站点功能）整轮未被碰；sibling :8000 未动；sidecar :8131 用完即停。
+
+## cont. 206 (2026-11-17) — v841 · §ASK-1 问典《Ask the Canon》上线
+
+- 新页面 + API + digest（v2 正典全文）+ 合约 AiChatRequest 12k→64k（ADR-0274）。
+- 真 provider 冒烟：第二次正确率明显跃迁（错「典籍里没有」 → 对「他们遇见了一个抄本员（《收件人》第三节）」）。
+  tokens 22 293/22 out 成本 ~¥ 0.02。
+- fe-gates 129/129 全绿 · census 2544；route/digest/visual 三重门 + live provider 证据三结对证据齐。
+- sibling :8000 careeros-ai 未触碰；sidecar :8131 用完即停；D:\法环游戏 vitest 不动。

@@ -133,6 +133,17 @@ export const METRICS = {
     labels: { capability: ['real', 'demo', 'unavailable'], outcome: ['ok', 'failed'] },
     buckets: DURATION_BUCKETS,
   },
+  nexus_bible_ask_total: {
+    kind: 'counter',
+    help: '问典（POST /api/bible/q）走到终态的次数——provider 不可用也要记，别只在成功路径上埋点',
+    labels: { outcome: ['answer', 'provider-unavailable', 'error'] },
+  },
+  nexus_bible_ask_latency_ms: {
+    kind: 'histogram',
+    help: '问典从进入路由到回流的毫秒数（含 provider 往返；回放不单独算——时延里有没有 provider 调用看 tokens 就够）',
+    labels: { outcome: ['answer'] },
+    buckets: DURATION_BUCKETS,
+  },
   nexus_http_errors_total: {
     kind: 'counter',
     help: 'Next 服务器捕获到的未处理请求错误数（instrumentation.onRequestError）',

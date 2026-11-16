@@ -14419,3 +14419,17 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   看板「非流」标签即 `transport.stream=false` 的诚实值；同 payload 命中率 100%；决定命中率的是提示词的字节级稳定——不是流式连接。
 - 证据并入：`docs/evidence/paid-provider-e2e-2026-11-17.md`（v822 原件保留，末尾新增 §PROVED-2 章节）。
 - Real provider burns this round: 2 calls of gpt-6.1-terra (one was cached — the second round-trip spent 0 fresh tokens)。
+
+## §ASK-1 — 问典《Ask the Canon》（2026-11-17 · v841）
+
+- 新页面 `/bible/ask`（双语，中文母语对齐正典语气）+ 新 API `POST /api/bible/q`
+  + 新客户端 `BibleAsk` + digest lib `lib/bibleAsk.ts`（**正典全文 + 锚句 d的。常量前缀**）。
+- digest 演进：v1 = 锚句 only → 真实 provider 回答正确但保守拒收；v2 = **5 章正典全文 + 26 篇回响锚句 + 章节标签**——真实 E2E 同题转化为「他们遇见了一个抄本员（《收件人》第三节）」，与正典逐字对齐。
+  evidence：`docs/evidence/paid-provider-e2e-2026-11-17.md` §PROVED-3；复现脚本 `apps/web/scripts/bible-ask-e2e.mts`。
+- 合约上调：`AiChatRequestSchema.system` 12 000 → **64 000**（ADR-0274）；
+  contract.test 15/15；contracts/*.schema.json 同步重导出。
+- 限流/匿名门：登录用户 · ipWriteGate('bible/q') · 5 次/5min 同 ip+user。provider 不通 → 503 原话回真（§159/§160），绝不冒充。
+- 可观测：新增 `nexus_bible_ask_total{outcome}` / `nexus_bible_ask_latency_ms`（与 run 线一致的计账纪律：provider-unavailable 也入账）。
+- 发布侧：/bible 目录页加「问典 →」链接（SHA256 重钉 b64ec949…）；/map 提名 /bible/ask（zh/en）。
+- 本轮读者 E2E 证明 v2 digest 相比 v1 digest 把「正文出处类」问题的可答范围提高了一个量级（含实测答对 + 判位）。
+- fe-gates：**128 gate + 2 behavior suites = 129 · census 2544 · 1227+17 = 1244/1244**。

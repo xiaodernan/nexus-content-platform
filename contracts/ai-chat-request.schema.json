@@ -8,7 +8,7 @@
     "system": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 12000
+      "maxLength": 64000
     },
     "user": {
       "type": "string",

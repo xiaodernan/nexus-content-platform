@@ -5399,3 +5399,34 @@
   .obv-progressFill { background: Highlight; }
   .obv-stepToggle:focus-visible, .obv-stepCta:focus-visible, .obv-reset:focus-visible { outline-color: Highlight; }
 }
+
+/* ====================================================================
+   §BIBLE-4 低语诸王 · 问典（/bible/ask）——正典 Q&A 面板。全部 var() tokens、零 hex。
+   诚实三态：answer（真答案+徽标）/ loading（沙漏）/ honest（provider 不可用原话）。
+   =================================================================== */
+.bbq-panel { max-width: 52rem; display: flex; flex-direction: column; gap: var(--nexus-space-3); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md); padding: var(--nexus-space-4) var(--nexus-space-5); background: linear-gradient(168deg, var(--nexus-color-bg-1) 0%, var(--nexus-color-bg-2) 100%); }
+.bbq-label { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.2em; text-transform: uppercase; color: var(--nexus-color-fg-3); margin: 0; }
+.bbq-input { width: 100%; min-height: 5.5rem; resize: vertical; background: var(--nexus-color-bg-1); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); color: var(--nexus-color-fg-1); font-size: var(--nexus-font-size-14); line-height: 1.75; padding: var(--nexus-space-2) var(--nexus-space-3); }
+.bbq-input::placeholder { color: var(--nexus-color-fg-3); }
+.bbq-input:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; border-color: var(--nexus-color-accent-mix); }
+.bbq-examples { display: flex; flex-direction: column; gap: var(--nexus-space-2); }
+.bbq-exampleBtn { font-family: var(--nexus-font-sans); font-size: var(--nexus-font-size-12); text-align: left; color: var(--nexus-color-fg-2); background: var(--nexus-color-bg-1); border: 1px dashed var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-2) var(--nexus-space-3); cursor: pointer; transition: border-color 160ms ease, color 160ms ease; }
+.bbq-exampleBtn:hover { border-color: var(--nexus-color-accent-mix); color: var(--nexus-color-fg-1); }
+.bbq-exampleBtn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+.bbq-submit { font-size: var(--nexus-font-size-13); font-weight: 650; letter-spacing: 0.04em; align-self: flex-start; padding: var(--nexus-space-2) var(--nexus-space-5); border-radius: var(--nexus-radius-sm); border: 1px solid var(--nexus-color-accent-mix); background: color-mix(in srgb, var(--nexus-color-accent-mix) 14%, var(--nexus-color-bg-1)); color: var(--nexus-color-fg-1); cursor: pointer; transition: border-color 160ms ease, background 160ms ease; }
+.bbq-submit:hover:not(:disabled) { border-color: var(--nexus-color-brand); background: color-mix(in srgb, var(--nexus-color-accent-mix) 22%, var(--nexus-color-bg-1)); }
+.bbq-submit:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+.bbq-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+.bbq-answerHeader { display: flex; justify-content: space-between; align-items: baseline; gap: var(--nexus-space-3); flex-wrap: wrap; }
+.bbq-badge { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.08em; color: var(--nexus-color-accent-mix); border: 1px solid color-mix(in srgb, var(--nexus-color-accent-mix) 45%, transparent); border-radius: var(--nexus-radius-full); padding: 0.15rem 0.6rem; font-variant-numeric: tabular-nums; }
+.bbq-answer { font-size: var(--nexus-font-size-14); line-height: 1.9; color: var(--nexus-color-fg-1); white-space: pre-wrap; letter-spacing: 0.01em; margin: 0; }
+.bbq-honest { border-left: 2px solid color-mix(in srgb, var(--nexus-color-accent-mix) 70%, transparent); border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-2) var(--nexus-space-4); background: var(--nexus-color-bg-1); }
+.bbq-honestTitle { font-size: var(--nexus-font-size-13); font-weight: 700; color: var(--nexus-color-fg-1); margin: 0; }
+.bbq-honestBody { font-size: var(--nexus-font-size-12); line-height: 1.8; color: var(--nexus-color-fg-2); margin: var(--nexus-space-1) 0 0; }
+.bbq-foot { margin: 0; border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-2); }
+@media (forced-colors: active) {
+  .bbq-panel { border-color: CanvasText; background: Canvas; }
+  .bbq-label, .bbq-answer, .bbq-honestTitle, .bbq-honestBody, .bbq-badge { color: CanvasText; -webkit-text-fill-color: CanvasText; background: none; border-color: CanvasText; }
+  .bbq-input, .bbq-submit, .bbq-exampleBtn { border-color: CanvasText; background: Canvas; color: CanvasText; }
+  .bbq-submit:focus-visible, .bbq-input:focus-visible, .bbq-exampleBtn:focus-visible { outline-color: Highlight; }
+}

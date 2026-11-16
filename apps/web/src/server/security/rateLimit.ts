@@ -47,6 +47,7 @@ export const IP_RATE_RULES = {
   'account/avatar': { limit: 60, windowMs: 3_600_000 },
   'account/api-tokens': { limit: 10, windowMs: 3_600_000 },
   'blocks': { limit: 60, windowMs: 3_600_000 },
+'bible/q': { limit: 60, windowMs: 3_600_000 },
   'follow': { limit: 60, windowMs: 3_600_000 },
   'auth/register': { limit: 10, windowMs: 3_600_000 },
 } as const;

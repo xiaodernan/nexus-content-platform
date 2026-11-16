@@ -28,6 +28,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           { path: '/bible', labelKey: 'bible' },
           { path: '/bible/quiz', labelKey: 'quiz' },
           { path: '/bible/well', labelKey: 'well' },
+          { path: '/bible/ask', labelKey: 'ask' },
         ],
       },
       {
@@ -85,6 +86,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           { path: '/bible', labelKey: 'bible' },
           { path: '/bible/quiz', labelKey: 'quiz' },
           { path: '/bible/well', labelKey: 'well' },
+          { path: '/bible/ask', labelKey: 'ask' },
         ],
       },
       {
@@ -136,6 +138,7 @@ const LABELS = {
   bible: { zh: '典籍室 · Tide Conclave 原典', en: 'Tide Conclave canon' },
   quiz: { zh: '潮汐挑战 · The Tidal Trial', en: 'The Tidal Trial' },
   well: { zh: '七口井 · Seven Wells', en: 'The Seven Wells' },
+  ask: { zh: '问典 · Ask the Canon', en: 'Ask the Canon' },
 
   about: { zh: '关于 NEXUS · About', en: 'About NEXUS' },
   home: { zh: '首页 · 创作大厅', en: 'Home / the making hall' },

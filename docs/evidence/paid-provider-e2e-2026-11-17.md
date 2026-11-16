@@ -91,3 +91,23 @@ $env:PYTHONPATH='src'; $env:AI_SERVICE_PORT='8131'
 # POST /v1/ai/chat 同 payload 两次（modelClass: "fast"，system+user 字节级相同）
 # 核 /v1/ai/cache-stats；service 完毕后停止该进程（不要动 sibling :8000）。
 ```
+
+---
+
+## §PROVED-3 — 问典 live E2E（2026-11-17 · v841 · 正典落地）
+
+真实 provider 打了一条问典请求（sidecar :8131，Clash 节点 7897，brothercare :8000 未触碰）。
+
+请求（`modelClass: "fast"`）：`system = SYSTEM_PROMPT`（v2 digest，29 954 chars；5 章正典全文 + 26 篇回响锚句）+ `user = "Question language: zh\nQuestion: 《收件人》里，三路人最后在雾港遇见了什么？一句两句话回答。"`
+
+**回包（原文）**：capability=real · model=gpt-6.1-terra · tokensIn 22293 · tokensOut 22 · latencyMs 4531 · wall 4590 ms
+
+> 他们遇见了一个抄本员。（《收件人》第三节）
+
+核对正典：第五章 §三 prose「三路人最后在雾港口遇上了一个抄本员」——**答对了，且准到大节**。
+
+上一轮锚句-only digest（v1）同一问题的模型回答是「典籍里没有」——它只能稳坐锚句，回答不了正文出处的事实；**v2（正典全文进 digest）把 v1 的保守误拒收转化为精确定位**。这是 §BIBLE-4 最实际的证明：模型的可答范围与正典正文一字对齐。
+
+**KV 前缀复用**：digest 是字节级稳定常量，同一 workload 的每次调用都会带上同样的前 30 k chars；首次冷启动 ≈ 22 k tokens 全价，同周后续问典几乎全部进 `cached_tokens`。
+
+**Cost 守卫**：登录用户、题目 ≤ 400 chars、`/api/bible/q` 双路限流（5 次/5min 同 ip+同 user / IP 60h）；provider 不通 → 503 原样回真；`transport.stream` 如实显示 false（§159/§160）。
