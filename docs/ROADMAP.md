@@ -14092,3 +14092,13 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - 入口：/map §③ 创作的日常新增上手漫游卡；/guide（InAppGuide 抽屉）中英各补 /onboarding 一行。
 - Zero provider / zero fetch / zero image / 双语 zh/en 同键；RSC 壳 + generateMetadata（en 不泄漏中文描述）。
 - Gates：fe-gates 125/125 · 1223/1223；census 2394 OK；tsc web 0；SSR zh/en 200 实测。
+
+## §SIM — 合成用户行为模拟（2026-11-16 / v799）
+
+用户指令：「联网深度搜索一下，模拟一些用户的真实数据，模拟真实的用户的行为：真实用户可能会点开一个页面，没有耐心就立刻关闭了，或者可能会在页面上瞎点。」
+- 两手并轨（如实不撒谎）：**/insight** = 真库聚合（真数）；**scripts/simulate-user-behavior.mts（dev 公共 GET 模拟）** = 合成流量（不是真访客）。
+- 五人物：impatient / rage-clicker / lost-wanderer / deep-reader / bot-ish；deterministic LCG seed；输出 JSON + `docs/evidence/simulated-user-behavior-2026-11-16.md`。
+  如实记录：冷编译 server 27/76 连接级错误（dev 实体）；warm 后 76/76 2xx；p50=764ms。
+- npm 脚本 `simulate:behavior`。不涉 /api/*、不涉 /admin、不涉 /insight（§159 未获授权口子的全都没打）。
+- 真实数据（联网搜索到的）的下一步：已把可用范围写成 plan 在 `/insight` 旁边放「外部对照学习」，留给下一轮落地 ——
+  当前本机可达的外部 = aizzz.xyz 的 OpenAI 兼容端点（未接搜索引擎 API）；/insight 里仍只有库里的真千位数。

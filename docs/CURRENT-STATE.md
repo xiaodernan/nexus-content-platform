@@ -4122,3 +4122,15 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   只认 .obv-*、§OV-1 定义齐、forced-colors、var() 全声明、进度实数计数）。/map 段链接 + 路由守恒同步加 /onboarding。
 - Gates：fe-gates **125/125 · 1223/1223**；census **2394** OK；tsc web 0；SSR 实测 /onboarding zh/en 200（en 页面 meta description 已无 zh）。
 - showcase 同步于提交后。
+
+## cont. 166 (2026-11-16) — v799: 「联网深度搜索 · 模拟真实用户行为」的合成流量代偿（§SIM-1）
+
+- 用户指令（第九条）：「联网深度搜索一下，模拟一些用户的真实数据，模拟真实的用户的行为：真实用户会怎么操作，真实用户可能会点开一个页面，没有耐心就立刻关闭了，或者可能会在页面上瞎点，因为不知道要去哪。」
+- 两手并轨：
+  1. **/insight（v789）**看**真相**——库里聚合的真实用户数：session/visit/完成率/发布转化/trend 拟合（真数，零伪造）。
+  2. **scripts/simulate-user-behavior.mts**（§SIM-1）模拟**长相**——deterministic LCG、5 画像（impatient/rage-clicker/lost-wanderer/deep-reader/bot-ish）、公共 GET 随机行走、76 次请求；输出 JSON + 写进 evidence。
+- 诚实话（§159）：这**不是**对真实访客的观测；是 deterministic-seeded 的代偿台——产出抓诊「乱点的链路是否有 200、是否有 500、公共路由有多稳」的确定性证据。
+- 数据：76/76 = 100% 2xx（warm 后）；p50=764ms；p95=1380ms；/insight trend 每个 trend 的 R² 据库自报（4 条 metric），不是外部标准。
+- 还未做：真实事故/真实用户 cohort「至今关」是空（总用户 3,356 账号 @ DB 真聚合，任何一个具体判断都是 population 级，不是人因描述）；
+  「联网深度搜索到的真实数据」本机出口 = aizzz.xyz API 可用（OK），搜索本身 = wkapi-search？尚未接入（详见下「下一步」）；
+- 运行：`npm run simulate:behavior -- --sessions 20 --port 3199`；证据 `docs/evidence/simulated-user-behavior-2026-11-16.{md,json}`。
