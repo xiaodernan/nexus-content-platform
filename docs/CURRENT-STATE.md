@@ -4951,3 +4951,27 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - BibleQuiz **28 题**（+2 E07 双语题）；序列钉死 [..., 1, 1]；SHA pin 0fde47b9…
 - guide 全套对齐：六回响 → 七回响（zh/en ×6 处）；SHA pin 718eec4d… 重钉。
 - 门：fe-gates 122 套 1193/1193 OK；census 2491 OK；tsc 0。
+
+## cont. 169 (2026-11-17) - v799: StateGraph 做进项目里面 —— `/stategraph` 公开只读落点 + 真图试跑
+
+- 新路由 `/stategraph`（zh/en 全双语，RSC，零 hex，全部 design tokens）：
+  - 七个节点的旅程（validate → check_provider → build_prefix → call_llm → cache_read → parse_and_release → assemble），每节点：职责 + 失败分支（条件边直通 END）
+  - 「为什么值得做这张图」五条（可读 / 可测 / 可替换 / 与 /v1/ai/run 同构 / 失败是走出来的不是 catch 出来的）
+  - 「它现在坐在哪里」六条（路由 / 源文件 / x-nexus-orchestration 头 / 8 个测试用例 / /guide 说明书章节 / 首次编译行为）
+- 新 API `/api/stategraph`：公开试跑——**固定** critique + dryRun + fast 载荷，零用户输入、零 PII；
+  每 IP 6 次 / 10 分钟限流（Redis 不可达时按既有降级退回进程内计数，绝不放大额度）；
+  DEMO MODE 下 409 如实拒绝；成功也如实：返回真 provider/model、真 `x-nexus-orchestration: stategraph` 头、
+  dryRun=true、patchesApplied=0、tokensIn/cachedTokens/latencyMs/costBasis 逐项来自真回执。
+- web server-ai 客户端新增 `runDesignGraph`（与 `runAiService` 同契约，仅换路径 + 额外读响应头 `x-nexus-orchestration`）。
+- **新落点页纪律**：`/stategraph` 进 `sitemap.xml`、`/guide` StateGraph 小节双语各加一行（指向 /stategraph）；
+  guide SHA pin fab4ee2a… 重钉。
+- **故障修复（ADR 0271）**：Redis 断开时 `/healthz` 以前会 500（counts() 裸 await，redis 重试数秒后抛 ConnectionError）→
+  web 探测超时 → 全平台 AI 误判 DEMO MODE。现在 `counts()` 套 350ms wait_for，异常即显式降级
+  `counts-unavailable:<exc>`（note 标注，pending/running 如实 0，HTTP 恒 200）。新测试 pin 住该行为。
+  现场触发路径：Docker 多次熄火 → 56379 拒绝连接 → 500 → 409 demo_mode（实测复现）→ 修复后 healthz 200 / capability real。
+- 门：fe-gates **123 套 · 1200/1200**（新增 SGRAPH-1 suite 7 用例）；census **2540 OK**；tsc **0**；
+  ai-service test_health + test_stategraph **16/16**；guide-visual-style 重钉后全绿。
+- live probe（dev，:3100）：`/stategraph` 200 zh+en、`/sitemap.xml` 含 /stategraph、`/guide` 含 /stategraph；
+  `POST /api/stategraph` 200（真 provider gpt-6.1-terra，x-nexus-orchestration: stategraph，真模型 explanation，
+  tokensIn 6733 / latencyMs 6156，dryRun 不落盘）；此前 Docker 宕机窗口实测 409 demo_mode（如实失败）。
+- BibleQuiz/章节不动；showcase 将在提交后同步。

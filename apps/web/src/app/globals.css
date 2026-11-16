@@ -5303,3 +5303,76 @@
 .wx-answer { background: var(--nexus-color-bg-2); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md, 0.75rem); padding: 1.25rem 1.5rem; max-width: 52rem; display: flex; flex-direction: column; gap: 0.4rem; }
 .wx-answerTitle { font-size: 0.8rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--nexus-color-fg-2); margin: 0; }
 .wx-answerText { font-size: 1.05rem; line-height: 1.75; color: var(--nexus-color-fg-1); margin: 0; overflow-wrap: anywhere; word-break: break-word; }
+
+/* ──SGRAPH-1 /stategraph：StateGraph 公开只读落点 + 真图试跑（cont. 169）──
+   全部零 hex、全部 tokens；forced-colors 段在文件后部单列 */
+.sg-root { min-height: 100dvh; background: var(--nexus-color-bg-0); color: var(--nexus-color-fg-1); padding: 2.5rem 1.25rem 4rem; display: flex; flex-direction: column; gap: 1.5rem; max-width: 72rem; margin-inline: auto; }
+.sg-hero { display: flex; flex-direction: column; gap: 0.5rem; border-bottom: 1px solid var(--nexus-color-border-subtle); padding-bottom: 1.25rem; }
+.sg-kicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.22em; text-transform: uppercase; color: var(--nexus-color-accent-2-ink); margin: 0; }
+.sg-title { font-size: clamp(2rem, 5vw, 3rem); line-height: 1.1; font-weight: 750; letter-spacing: -0.02em; margin: 0; }
+.sg-lede { color: var(--nexus-color-fg-2); max-width: 62ch; line-height: 1.7; margin: 0; overflow-wrap: anywhere; word-break: break-word; }
+.sg-section { display: flex; flex-direction: column; gap: 0.9rem; background: var(--nexus-color-bg-1); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md, 0.75rem); padding: 1.5rem; }
+.sg-sectionTitle { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em; margin: 0; border-bottom: 1px solid var(--nexus-color-border-subtle); padding-bottom: 0.6rem; }
+.sg-sectionNote { color: var(--nexus-color-fg-2); font-size: 0.9rem; line-height: 1.7; margin: 0; max-width: 64ch; overflow-wrap: anywhere; word-break: break-word; }
+.sg-edgesTitle { font-size: 1.05rem; font-weight: 650; margin: 0.5rem 0 0 0; color: var(--nexus-color-fg-1); }
+.sg-nodes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.65rem; counter-reset: sg-node; }
+.sg-node { display: grid; grid-template-columns: 2.25rem minmax(0, 1fr); gap: 0.85rem; align-items: start; background: var(--nexus-color-bg-2); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md, 0.5rem); padding: 0.75rem 0.9rem; }
+.sg-nodeIndex { font-family: var(--nexus-font-mono); font-size: 1.35rem; font-weight: 700; color: var(--nexus-color-accent-2-ink); font-variant-numeric: tabular-nums; line-height: 1.3; }
+.sg-nodeBody { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
+.sg-nodeName { font-family: var(--nexus-font-mono); font-size: 0.85rem; color: var(--nexus-color-accent-2-ink); overflow-wrap: anywhere; }
+.sg-nodeRole { margin: 0; color: var(--nexus-color-fg-1); line-height: 1.65; font-size: 0.95rem; overflow-wrap: anywhere; word-break: break-word; }
+.sg-nodeFail { margin: 0; font-family: var(--nexus-font-mono); font-size: 0.72rem; color: var(--nexus-color-warn-ink); line-height: 1.6; overflow-wrap: anywhere; word-break: break-word; }
+.sg-why { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+.sg-whyItem { display: flex; flex-direction: column; gap: 0.25rem; background: var(--nexus-color-bg-2); border-radius: var(--nexus-radius-sm, 0.5rem); padding: 0.75rem 0.9rem; }
+.sg-whyHead { font-size: 0.98rem; color: var(--nexus-color-fg-1); }
+.sg-whyBody { color: var(--nexus-color-fg-2); line-height: 1.65; font-size: 0.92rem; overflow-wrap: anywhere; word-break: break-word; }
+.sg-where { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.sg-whereItem { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr); gap: 0.75rem; align-items: baseline; border-bottom: 1px dashed var(--nexus-color-border-subtle); padding-block: 0.45rem; }
+.sg-whereItem:last-child { border-bottom: none; }
+.sg-whereLabel { font-size: 0.82rem; color: var(--nexus-color-fg-2); }
+.sg-whereValue { font-family: var(--nexus-font-mono); font-size: 0.78rem; color: var(--nexus-color-fg-1); overflow-wrap: anywhere; word-break: break-word; }
+.sg-whereFoot { margin: 0.5rem 0 0 0; display: flex; gap: 1.25rem; flex-wrap: wrap; }
+.sg-whereLink { font-family: var(--nexus-font-mono); font-size: 0.85rem; color: var(--nexus-color-accent-2-ink); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--nexus-color-accent-2-ink) 45%, transparent); }
+.sg-whereLink:hover { color: var(--nexus-color-brand); border-color: var(--nexus-color-brand); }
+.sg-whereLink:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; border-radius: var(--nexus-radius-sm, 0.25rem); }
+.sg-foot { border-top: 1px solid var(--nexus-color-border-subtle); padding-top: 1rem; display: flex; flex-direction: column; gap: 0.3rem; }
+.sg-footNote { color: var(--nexus-color-fg-2); font-size: 0.85rem; line-height: 1.6; margin: 0; }
+.sg-footStamp { color: var(--nexus-color-fg-3); font-size: 0.75rem; font-family: var(--nexus-font-mono); margin: 0; }
+.sg-try { display: flex; flex-direction: column; gap: 0.8rem; background: var(--nexus-color-bg-2); border: 1px solid color-mix(in srgb, var(--nexus-color-accent-2-ink) 35%, var(--nexus-color-border-subtle)); border-radius: var(--nexus-radius-md, 0.75rem); padding: 1.5rem; }
+.sg-tryKicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.22em; text-transform: uppercase; color: var(--nexus-color-accent-2-ink); margin: 0; }
+.sg-tryRow { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+.sg-tryButton { font-size: 1rem; border-radius: var(--nexus-radius-md, 0.5rem); border: none; padding: 0.65rem 1.1rem; background: var(--nexus-color-brand); color: var(--nexus-color-accent-fg); font-weight: 650; cursor: pointer; max-width: 34rem; text-align: left; line-height: 1.5; }
+.sg-tryButton:hover { filter: brightness(1.1); }
+.sg-tryButton:disabled { opacity: 0.6; cursor: progress; }
+.sg-tryButton:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+.sg-tryHint { color: var(--nexus-color-fg-3); font-size: 0.82rem; line-height: 1.6; max-width: 34ch; }
+.sg-tryOk, .sg-tryFail { display: flex; flex-direction: column; gap: 0.6rem; border-radius: var(--nexus-radius-md, 0.5rem); padding: 1rem 1.1rem; }
+.sg-tryOk { background: var(--nexus-color-bg-3); border: 1px solid var(--nexus-color-border-subtle); }
+.sg-tryFail { background: color-mix(in srgb, var(--nexus-color-warn-ink) 8%, var(--nexus-color-bg-3)); border: 1px solid color-mix(in srgb, var(--nexus-color-warn-ink) 35%, var(--nexus-color-border-subtle)); }
+.sg-tryOkTitle { font-size: 1.02rem; font-weight: 650; margin: 0; }
+.sg-tryDryRun { margin: 0; font-family: var(--nexus-font-mono); font-size: 0.75rem; color: var(--nexus-color-info); overflow-wrap: anywhere; }
+.sg-tryFailTitle { font-size: 1.02rem; font-weight: 650; margin: 0; color: var(--nexus-color-warn-ink); }
+.sg-tryFailNote { margin: 0; color: var(--nexus-color-fg-2); font-size: 0.88rem; line-height: 1.6; }
+.sg-tryGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 0.5rem; margin: 0; }
+.sg-tryCell { background: var(--nexus-color-bg-2); border-radius: var(--nexus-radius-sm, 0.4rem); padding: 0.5rem 0.7rem; display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+.sg-tryCellWide { grid-column: span 2; }
+.sg-tryCell dt { font-size: 0.72rem; color: var(--nexus-color-fg-3); margin: 0; overflow-wrap: anywhere; }
+.sg-tryCell dd { font-size: 0.85rem; margin: 0; color: var(--nexus-color-fg-1); overflow-wrap: anywhere; word-break: break-word; }
+.sg-tryMono { font-family: var(--nexus-font-mono); font-variant-numeric: tabular-nums; font-size: 0.8rem; }
+.sg-tryQuote { margin: 0; border-left: 3px solid var(--nexus-color-accent-2-ink); padding: 0.6rem 0.9rem; background: var(--nexus-color-bg-2); border-radius: var(--nexus-radius-sm, 0.4rem); display: flex; flex-direction: column; gap: 0.3rem; }
+.sg-tryQuoteLabel { margin: 0; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--nexus-color-fg-3); }
+.sg-tryQuoteText { margin: 0; font-size: 0.98rem; line-height: 1.75; color: var(--nexus-color-fg-1); overflow-wrap: anywhere; word-break: break-word; }
+.sg-tryLabels { margin: 0; font-size: 0.85rem; color: var(--nexus-color-fg-2); }
+.sg-tryAgain { align-self: flex-start; background: transparent; border: 1px solid var(--nexus-color-border-subtle); color: var(--nexus-color-fg-1); padding: 0.45rem 0.9rem; border-radius: var(--nexus-radius-md, 0.5rem); cursor: pointer; font-size: 0.9rem; }
+.sg-tryAgain:hover { border-color: var(--nexus-color-accent-2-ink); color: var(--nexus-color-accent-2-ink); }
+.sg-tryAgain:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+@media (max-width: 720px) { .sg-whereItem { grid-template-columns: 1fr; gap: 0.15rem; } .sg-tryCellWide { grid-column: span 1; } .sg-node { grid-template-columns: 1.75rem minmax(0, 1fr); } }
+
+@media (forced-colors: active) {
+  .sg-root, .sg-section, .sg-node, .sg-whyItem, .sg-try, .sg-tryOk, .sg-tryFail { border-color: CanvasText; background: Canvas; color: CanvasText; }
+  .sg-title, .sg-sectionTitle, .sg-nodeName, .sg-kicker, .sg-tryKicker, .sg-tryOkTitle, .sg-tryFailTitle { color: CanvasText; }
+  .sg-lede, .sg-sectionNote, .sg-nodeRole, .sg-whyBody, .sg-footNote, .sg-tryHint, .sg-tryQuoteText { color: CanvasText; }
+  .sg-nodeFail, .sg-tryDryRun { color: CanvasText; }
+  .sg-tryButton { background: Highlight; color: HighlightText; forced-color-adjust: auto; }
+  .sg-whereLink:focus-visible, .sg-tryButton:focus-visible, .sg-tryAgain:focus-visible { outline: 2px solid Highlight; box-shadow: 0 0 0 2px Highlight; }
+}

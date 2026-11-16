@@ -48,6 +48,30 @@ def test_healthz_queue_reports_the_started_worker(monkeypatch: pytest.MonkeyPatc
     assert "重启即失" in queue["note"]
 
 
+def test_healthz_degrades_when_queue_counts_explode(monkeypatch: pytest.MonkeyPatch) -> None:
+    """真实故障窗口：服务启动时 Redis 正常，跑几分钟之后 Redis 断了。
+
+    此时 `/healthz` 是 web 每 1.5s 探测一次的热路径——Redis 抛异常绝不允许它 500，
+    必须 200 + note 显式标注 counts-unavailable，pending/running 如实填 0（不编造计数）。
+    """
+    monkeypatch.delenv("NEXUS_REDIS_URL", raising=False)
+    settings = Settings()
+    app = create_app(settings, registry=Registry(settings, llm=FakeProvider("{}")))
+    with TestClient(app) as client:
+        state = app.state.nexus  # _State 实例（lifespan 里装配的真队列）
+
+        async def boom() -> tuple[int, int]:
+            raise ConnectionError("redis is gone")
+
+        state.store.counts = boom  # 实例级覆盖类方法，模拟「启动时正常、现在断了」
+        response = client.get("/healthz")
+        assert response.status_code == 200
+        queue = response.json()["queue"]
+    assert (queue["pending"], queue["running"]) == (0, 0)
+    assert "counts-unavailable" in queue["note"]
+    assert "ConnectionError" in queue["note"]
+
+
 def test_healthz_reports_configured_provider_as_real() -> None:
     settings = Settings(openai_api_key="sk-test")
     client = TestClient(create_app(settings, registry=Registry(settings, llm=FakeProvider("{}"))))

@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import os
+import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -128,7 +129,21 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
             refresh_in_background(registry.liveness, prober)
         providers = registry.providers()
         state = runtime()
-        pending, running = await state.store.counts() if state else (0, 0)
+        # Redis 宕机时绝不 500/绝不悬住 healthz：web 的探测预算只有 1.5s，
+        # 队列计数最多等 350ms，超时/异常就以「counts-unavailable」显式降级（note 写明，§159 不编造读数）。
+        counts_note: str | None = None
+        try:
+            if state:
+                pending, running = await asyncio.wait_for(state.store.counts(), timeout=0.35)
+            else:
+                pending, running = 0, 0
+        except Exception as exc:  # noqa: BLE001 - 降级必须兜住一切（ConnectionError/TimeoutError/…）
+            pending, running = 0, 0
+            counts_note = f"counts-unavailable:{type(exc).__name__}"
+        queue = queue_report(state)
+        queue["pending"], queue["running"] = pending, running
+        if counts_note:
+            queue["note"] = f'{queue.get("note", "")} · {counts_note}（绝不编造计数；/v1/ai/jobs 仍按真实路径工作）'
         return {
             "service": settings.service,
             "version": settings.version,
@@ -137,8 +152,8 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
                 {"kind": p.kind, "name": p.name, "status": p.status, "models": p.models, "reason": p.reason}
                 for p in providers
             ],
-            # §162：这两个数来自真队列。以前 pending 写死 0，等于宣称"有一个永远空的队列"
-            "queue": {**queue_report(state), "pending": pending, "running": running},
+            # §162：这两个数来自真队列；Redis 不可达时已显式标注 counts-unavailable（上面 queue 变量），绝不装作读到了 0
+            "queue": queue,
             # v690：应用级 LLM 完成缓存状态（未启则 None）；面板照实读，不许藏进配置页
             "llmCache": registry.llm_cache_state(),
             "llmLive": registry.llm_live_state(),

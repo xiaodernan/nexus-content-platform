@@ -104,6 +104,88 @@ export async function runAiService(
   return { ok: true, response: parsed.data };
 }
 
+export type AiServiceDesignGraphResult =
+  | { ok: true; status: number; orchestration: string | null; response: AiResponse }
+  | { ok: false; status: number | null; orchestration: string | null; error: AiError };
+
+/**
+ * cont. 169 · `/v1/ai/design-graph`（LangGraph StateGraph 编排）专用客户端。
+ *
+ * 与 `runAiService` 同一契约（AiRequest → AiResponse，同一 zod 双保险），唯一区别是路径
+ * 换成 `/v1/ai/design-graph`，并且**额外读取**响应头 `x-nexus-orchestration`：
+ * 它是"这一次走的是状态图路由"的唯一公开标记 —— 图坏掉/超时/503 时，header 照样会如实
+ * 返回，页面不替它说话。真实响应由 `apps/ai-service/src/ai_service/stategraph.py` 的
+ * 7 个节点产生：validate → check_provider → build_prefix → call_llm → cache_read →
+ * parse_and_release → assemble。任一节点失败即条件边直通 END。
+ */
+export async function runDesignGraph(
+  request: AiRequest,
+  fetchImpl: typeof fetch = fetch,
+): Promise<AiServiceDesignGraphResult> {
+  const base = aiServiceUrl();
+  if (!base) {
+    return {
+      ok: false,
+      status: null,
+      orchestration: null,
+      error: localError(
+        'provider-unavailable',
+        '未配置 NEXUS_AI_SERVICE_URL',
+        '先启动 AI Service（npm run dev:ai）或在环境里补上地址。',
+      ),
+    };
+  }
+
+  let raw: Response;
+  try {
+    raw = await fetchImpl(`${base}/v1/ai/design-graph`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(request),
+      signal: AbortSignal.timeout(RUN_TIMEOUT_MS),
+      cache: 'no-store',
+    });
+  } catch (error) {
+    const reason = error instanceof Error ? error.name : 'unknown';
+    return {
+      ok: false,
+      status: null,
+      orchestration: null,
+      error: localError('provider-unavailable', `ai-service 连不上（${reason}）`, `确认 ${base} 是否在跑。`, true),
+    };
+  }
+
+  const orchestration = raw.headers.get('x-nexus-orchestration');
+  if (!raw.ok) {
+    return {
+      ok: false,
+      status: raw.status,
+      orchestration,
+      error: await readAiError(raw, raw.status === 503 ? 'provider-unavailable' : 'provider-failed'),
+    };
+  }
+
+  let body: unknown;
+  try {
+    body = await raw.json();
+  } catch {
+    return { ok: false, status: raw.status, orchestration, error: localError('internal', 'ai-service 返回了坏 JSON 响应') };
+  }
+  const parsed = AiResponseSchema.safeParse(body);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      status: raw.status,
+      orchestration,
+      error: localError(
+        'internal',
+        `ai-service 响应不符合契约（${parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('；')}）`,
+      ),
+    };
+  }
+  return { ok: true, status: raw.status, orchestration, response: parsed.data };
+}
+
 /** 就绪面板用：拿不到就返回 null，由调用方回落到本地能力判断，绝不编造状态 */
 export async function fetchAiServiceHealth(fetchImpl: typeof fetch = fetch): Promise<HealthResponse | null> {  const base = aiServiceUrl();
   if (!base) return null;
