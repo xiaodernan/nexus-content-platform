@@ -376,6 +376,42 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "refEn": "Chapter X · VI"
   },
   {
+    "zh": "账接过手，旧日仍湿。",
+    "en": "the ledger passes into new hands while the old days are still wet.",
+    "refZh": "第十一章 · 一",
+    "refEn": "Chapter XI · I"
+  },
+  {
+    "zh": "最早的名字，无人认领。",
+    "en": "the first name has never been claimed by anyone.",
+    "refZh": "第十一章 · 二",
+    "refEn": "Chapter XI · II"
+  },
+  {
+    "zh": "不写欠字，债仍在门外。",
+    "en": "the word \"debt\" is never written, yet the debts remain at the door.",
+    "refZh": "第十一章 · 三",
+    "refEn": "Chapter XI · III"
+  },
+  {
+    "zh": "油有人添，字有人抄。",
+    "en": "oil is supplied; the characters are copied.",
+    "refZh": "第十一章 · 四",
+    "refEn": "Chapter XI · IV"
+  },
+  {
+    "zh": "厚纸有声，夜里不报全名。",
+    "en": "thick paper has a voice that will not speak a full name in the dark.",
+    "refZh": "第十一章 · 五",
+    "refEn": "Chapter XI · V"
+  },
+  {
+    "zh": "无人翻账，笔仍向下。",
+    "en": "no one turns the ledger; still the brush moves downward.",
+    "refZh": "第十一章 · 六",
+    "refEn": "Chapter XI · VI"
+  },
+  {
     "zh": "巡逻路没有路标——它每三个月自己洗刷一次去年留下的痕。",
     "en": "the patrol road has no signs — every three months it scrubs the past year's marks away by itself.",
     "refZh": "回响（其一） · 一",

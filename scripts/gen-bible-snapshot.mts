@@ -43,6 +43,7 @@ const WEB_SLUGS: Record<string, string> = {
   '008-灰后': '008-after-the-ash',
   '009-带灰回家': '009-ash-carried-home',
   '010-谁守灯': '010-who-tends-the-lamp',
+  '011-灯下的账': '011-the-ledger-beneath-the-lamp',
 };
 
 /** 回响网页 slug（E0N，番外，正典之外），同纪律登记 */

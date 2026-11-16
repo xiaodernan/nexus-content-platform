@@ -267,6 +267,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《灰坑》里，压坑口的旧砖有几块？', choices: ['一块', '两块', '三块', '四块'], answer: 1, ref: '回响十五 · 五' },
     en: { prompt: 'In “The Ash-Pit”, how many old bricks cover the pit’s mouth?', choices: ['one', 'two', 'three', 'four'], answer: 1, ref: 'Echo No. 15 · V' },
   },
+  {
+    zh: { prompt: '《灯下的账》里，账房的人不记哪三个字？', choices: ['欠 · 应还 · 认领', '灯下 · 门外 · 封', '水 · 柴 · 油', '来过 · 出去 · 还留'], answer: 0, ref: '第十一章 · 三' },
+    en: { prompt: 'In “The Ledger Beneath the Lamp”, which three words does the keeper never record?', choices: ['debt · to be repaid · to be claimed', 'beneath the lamp · beyond the door · sealed', 'water · firewood · oil', 'came · went · still here'], answer: 0, ref: 'Chapter XI · III' },
+  },
+  {
+    zh: { prompt: '《灯下的账》里，账上最上面那行字……？', choices: ['写着交账的人的姓名', '无人认领，像一根钉在旧木里的铁钉', '是空的，后面才开始', '被磨掉了，只剩纸纹'], answer: 1, ref: '第十一章 · 二' },
+    en: { prompt: 'In “The Ledger Beneath the Lamp”, the line at the very top of the ledger…?', choices: ['carries the name of the one who handed it over', 'belongs to no one — like an iron nail in old timber', 'is blank; the writing starts below it', 'has worn away to blank paper'], answer: 1, ref: 'Chapter XI · II' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

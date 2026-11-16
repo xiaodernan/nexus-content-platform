@@ -2995,6 +2995,264 @@ The ledger stays open at this page. Inside the door, light; outside, footprints.
 > 它只是有人发现，灯还没灭，自己就留了下来。
 `,
   },
+  {
+    order: 11,
+    slug: '011-the-ledger-beneath-the-lamp',
+    titleZh: '灯下的账',
+    titleEn: 'The Ledger Beneath the Lamp',
+    eraLineZh: '纪元：铁月纪之后 · 灰棚之前。',
+    eraLineEn: 'Era: after the Iron-Moon Age · before the grey cover was laid.',
+    markdownZh: `# The Whispers' Kings · World Bible · Chapter XI: The Ledger Beneath the Lamp
+
+> 正典没有结束也没有定章——第十章里账仍未合上，门内有光，门外有脚印。
+> 本章写那本仍在被写下去的账：谁在接着写，谁不写，以及为什么没有人翻它。
+> 本章正典纪律不变：锚句中英字字对齐，引用者逐字保持。
+>
+> The canon did not end, nor did it conclude — in Chapter X the ledger remained unclosed, with light inside the door and footprints beyond it.
+> This chapter writes that ledger which still goes on being written: who keeps the writing, who never writes into it, and why no one ever turns its pages.
+> Canon discipline is unchanged — anchor sentences match word-for-word; no rephrasing.
+
+> 纪元：铁月纪之后 · 灰棚之前。
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 一 · 接过账
+
+账房的人接过那本账时，封皮已经泡过水。边角卷起，盐结在纸缝里，指腹一压，便落下一层白屑。交账的人没有报姓名，只把账放在桌上，说：「先前写的，都在里面。」
+
+最前面的几页记着来过的人。没有姓氏，只有时辰、衣着和鞋底留下的泥。某日来了三个人，末尾添了一笔：少一只碗。另有一日，门槛外站过一个人，未进门，停到潮退。
+
+账上也记水。哪天水桶满，哪天水只到桶底；哪天井口有绳，哪天绳断了，没人去取。柴则另占一页，记明几捆、几截、几日烧完。字迹不一，墨色有深有浅，有的被雨打散，只剩笔画的骨。
+
+还有门口的灰。某次雨后，灰被冲开，露出底下两道脚印。记账的人写下那天的日子，没有写脚印朝哪边，也没有写是谁扫的。页边留着一块空白，像是预备写什么，后来没有写。
+
+账房的人翻到最后，那里还记着一盏灯。油面降到刻痕以下，旁边没有添油的日期。再往后，纸是空的。交账的人走时，没带走桌上的灰，也没带走门外的脚印。
+
+**锚句**：账接过手，旧日仍湿。
+**Anchor sentence**: the ledger passes into new hands while the old days are still wet.
+
+---
+
+## 二 · 最上面的名字
+
+账上最上面的那行，只有一个名字。写得很轻，像笔尖没有蘸够墨。那一行没有日期，也没有来处。名字的末笔压进纸纹里，纸已磨薄，无法辨认究竟是一个字，还是两个字连在一起。
+
+账房的人问过先前管账的老人。老人说，那行字在他来时就有了。再往前问，得到的回答相同：有人记过，没人见过那个人。也没人记得谁把名字写上去。
+
+有人猜他是先到门口的人，有人说他只是那天替人提了水。另有人从字迹里认出一个姓，认完又摇头。各人都没有把猜测写进账里。笔搁在砚边，墨水干了，名字仍在最上面。
+
+账房的人照旧给那一行留出位置。后来添上的名字都挨着它往下排，先后没有错，空处却越来越窄。每次翻页，那行字都露在纸边，像一根钉在旧木里的铁钉，没人拔，也没人承认是自己钉的。
+
+**锚句**：最早的名字，无人认领。
+**Anchor sentence**: the first name has never been claimed by anyone.
+
+---
+
+## 三 · 不写的字
+
+账房的人不记「欠」。他见过这两个字写在旧页边上，墨迹被刮过，纸面仍凹着。那以后，凡是少下来的水、拿走的柴、没有归还的碗，都只记数目和日期，不记谁该补上。
+
+他也不记「应还」。这几个字一旦落纸，就会有人循着字迹来问：欠了谁，何时欠的，凭什么说是他。问到后来，便有人拿走一件东西，说那是抵偿。账房的人见过门口堆起的空桶，桶底朝天，像一只张着的嘴。
+
+「认领」也不记。有人进门指着一行字，说那是他的父亲；有人指另一行，说那是他自己。账房的人不争，只问他们要不要把名字写全。来人便停住，转身走了。那张纸上，旧墨没有增加，新墨也没有落下。
+
+还有「最后」。谁先来，账房照时辰记；谁先走，他不记。屋里有人问过，若一直等，最后一个会是谁。账房把笔尖在纸上停了一会儿，没有落字。门外有脚印，潮水涨上来，将它们抹平，又留下一道新的。
+
+**锚句**：不写欠字，债仍在门外。
+**Anchor sentence**: the word "debt" is never written, yet the debts remain at the door.
+
+---
+
+## 四 · 灯下核对
+
+每月一次，账房的人把账本摊到灯下，按页核对。来过的人数，水桶的刻痕，柴堆少去的数目，门前灰线断开的日子。他从旧页查到新页，遇见空处便停一停，不填，也不把页码跳过去。
+
+灯油越用越少，火焰矮下去时，先前管灯的人不在了。后来有人从门外进来，袖口沾着雨，提一小罐油，倒进灯盏。没人问他从哪里来。账房只在那日的末尾添上一点：油一罐。
+
+抄写的人也换过。最初是账房自己抄，手背有一道旧伤；后来换成一个看不清远字的人，字写得大，常挤到页边。再后来，抄写的位置空了几个月。账房把账本往灯前推，照着残字念，念到不认得的地方，就照原样留下空白。
+
+核对时没有人争执。有人把一捆柴放在门边，有人把空桶倒扣，有人替灯芯剪去焦黑的一截。账房照数写下，写完便合上账页。灯照着纸，没有照到门外。
+
+**锚句**：油有人添，字有人抄。
+**Anchor sentence**: oil is supplied; the characters are copied.
+
+---
+
+## 五 · 账本的声音
+
+账本一年比一年厚。封皮撑开，线脚绷紧，书脊鼓起一道硬棱。账房的人用麻绳将它束住，绳子勒进纸里，像潮痕勒进门板。每添一页，桌脚便往下陷一点。
+
+夜里，有人梦见账本在屋里走动。声音很慢，像湿纸翻过湿纸。那人醒来时，听见门外有人踩水，便以为梦还没有散。天亮后，他把梦告诉账房，账房问他听见了什么。
+
+他说，先是纸响，后来是数目。数目一个接一个，从水桶里出来，又落回水桶；从柴堆里出来，挨着门槛站着。最后有个声音停在灯下，像要报一个名字，却只报出半个音。
+
+账房没有记这个梦。那人也没再说第二遍。此后每逢夜深，桌上的账本都会发出一点细响。账房醒着时不听，睡着时也不应。绳子仍绑着，书脊仍向外鼓，声音从纸缝里出来，落在屋里，像潮水退后留下的盐。
+
+**锚句**：厚纸有声，夜里不报全名。
+**Anchor sentence**: thick paper has a voice that will not speak a full name in the dark.
+
+---
+
+## 六 · 没有人翻
+
+后来，没人翻那本账了。不是因为门口无人，也不是因为水和柴都够用。账本仍放在桌上，灯仍点着，门外的脚印一日换过一日。只是再没有人把手伸到封皮下面。
+
+账房的人不知何时离开了。桌边的椅子推得很近，笔还搁在砚上。砚里结着一层黑壳，旁边放着未用完的灯油。有人来添油时，不看账；有人来抄写时，也不翻旧页，只从空白处接着往下写。
+
+新写的字越来越短：水少，柴尽，雨过，门开。偶尔记一个人来，仍不写他是谁。笔迹有的端正，有的歪斜，有的只落一半便停。纸页被压住，边角没有翻起。
+
+账本不需要核对。它没有说过自己记得正确，也没有说过谁会来认领。桌上那盏灯照着正在写的手，门外的脚印向潮水里延伸。有人把一页写满，往后翻了一页。旧账留在底下，未曾合上。
+
+**锚句**：无人翻账，笔仍向下。
+**Anchor sentence**: no one turns the ledger; still the brush moves downward.
+
+---
+
+## 模型映射（第十一章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 账本 · 最上面的那个名字 · 灯油 · 核对 | 一至六 |
+| geography | 灯下的屋 · 门槛 · 潮声 | 一至六 |
+| factions | 账房的人 · 添油的人 · 抄写的人 · 管灯的人 | 一至六 |
+| characters | 交账的人 · 账房的人 · 添油的人 · 抄写的人 | 一至六 |
+| items | 账本 · 灯盏 · 麻绳 · 笔砚 · 薄石 | 一至六 |
+| story | 雾港 · 灯下的屋 · 第十一章 | 全篇 |
+| history | 铁月纪之后 · 灰棚之前 | 一至六 |
+
+> 账不说「应还」——
+> 它只是继续记下：油有人添，字有人抄，柴从那里来，雨往那里去。
+>
+> The ledger never says "to be repaid" —
+> it only goes on recording: oil arrives, words are copied, wood comes from there, rain goes there.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 第十一章「灯下的账」
+
+> The canon did not end, nor did it conclude — in Chapter X the ledger remained unclosed, with light inside the door and footprints beyond it.
+> This chapter writes that ledger which still goes on being written: who keeps the writing, who never writes into it, and why no one ever turns its pages.
+> Canon discipline is unchanged — anchor sentences match word-for-word; no rephrasing.
+>
+> 正典没有结束也没有定章——第十章里账仍未合上，门内有光，门外有脚印。
+> 本章写那本仍在被写下去的账：谁在接着写，谁不写，以及为什么没有人翻它。
+> 本章正典纪律不变：锚句中英字字对齐，引用者逐字保持。
+
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+> 纪元：铁月纪之后 · 灰棚之前。
+
+---
+
+## I · Handing Over the Ledger
+
+When the keeper of the ledger took the book, its cover had been soaked through. The corners curled; salt had crusted the paper's seams; a fingertip's pressure shed a layer of white dust. The one who handed it over did not give a name; he set the ledger on the table and said only: everything that came before — it is all inside.
+
+The first pages recorded those who had come and gone. No surnames — only the hour, the garment, the mud on the soles. One day three had come; at the end a line was added: one bowl short. On another day, a figure stood beyond the threshold without entering, and remained until the tide withdrew.
+
+The ledger recorded water as well. Which day the bucket filled to the brim, which day it reached only the bottom; which day the rope at the well held, which day it had snapped — and no one went to retrieve it. Firewood took another page, noting how many bundles, how many pieces, how many days they had lasted. The hand varied; the ink ran from deep to faint; some strokes had been scattered by rain, leaving only the bones of the characters.
+
+And the ash at the door. Once, after rain, the ash was washed aside, exposing two footprints beneath it. The keeper recorded that day's date; he did not write which way the prints faced, nor who had swept them. At the margin remained an empty space — as if meant for something to be written, which never was.
+
+The keeper of the ledger turned to the last page. There it still recorded a single lamp. Its oil had sunk below the notched line; no date of refilling stood beside it. Beyond that, the pages were empty. When the one who handed it over departed, he carried away neither the dust on the table nor the footprints beyond the door.
+
+**Anchor sentence**: the ledger passes into new hands while the old days are still wet.
+**锚句**：账接过手，旧日仍湿。
+
+---
+
+## II · The Name at the Top
+
+The topmost line in the ledger carried a single name. It was written lightly, as if the brush had not drunk enough ink. That line held no date, no origin. The name's final stroke pressed into the grain of the paper; the paper had worn thin, and it was impossible to tell whether it had been one character or two running together.
+
+The keeper of the ledger asked the old one who had kept it before him. The old one said the line had been there when he arrived. Asked further back, the answer was the same: someone had recorded it; no one had ever seen the person. Nor did anyone remember who had set the name down.
+
+Some guessed he had been the first to reach the door; others, that he had only carried water for someone that day. Still others claimed to recognize a surname within the strokes — and shook their heads afterwards. No one entered these guesses into the ledger. The brush rested at the inkstone's edge; the ink dried; the name remained at the top.
+
+The keeper of the ledger left that line its place as before. The names added afterwards were arranged one beneath another in their order — none displaced, yet the space narrowing steadily. Each time the page turned, that line showed along the edge — like an iron nail driven into old timber, which no one pulled out, and no one would admit to having driven in.
+
+**Anchor sentence**: the first name has never been claimed by anyone.
+**锚句**：最早的名字，无人认领。
+
+---
+
+## III · The Words Never Written
+
+The keeper of the ledger never recorded the word "debt." He had seen those two characters in the margin of an old page — the ink scraped away, the paper still bearing the dent. After that, whatever water had gone missing, whatever firewood had been carried off, whatever bowls had not returned — all were recorded as numbers and dates only, never who owed whom.
+
+Nor did he write "to be repaid." Once those characters touched the page, someone would trace the lines and come asking: owed to whom, when owed, by what right was it said to be his. After the asking, someone would carry an item away — saying it was compensation. The keeper of the ledger had seen the row of upturned buckets at the door — mouths gaping downward like open jaws.
+
+Nor did he record "to be claimed." Someone entered and pointed at one line, saying it was his father's name; another pointed at another line, saying it was his own. The keeper of the ledger did not argue; he asked only whether they would write their names in full. The visitors stopped, and turned and left. On that page, old ink was added no further, and no new ink fell either.
+
+And he never wrote "the last." Whoever arrived first, the keeper recorded by the hour; whoever left first — he did not record. Someone inside had asked: if the waiting goes on and on, who will be the last? The keeper let the brush-tip rest on the paper a while, and did not set it down. Beyond the door footprints remained; the tide rose and smoothed them away, then left a fresh one behind.
+
+**Anchor sentence**: the word "debt" is never written, yet the debts remain at the door.
+**锚句**：不写欠字，债仍在门外。
+
+---
+
+## IV · The Reckoning Beneath the Lamp
+
+Once a month, the keeper of the ledger spread the book beneath the lamp and verified it page by page. The count of those who had come; the notched marks on the water-bucket; the decrease in the firewood-pile; the days the ash-line outside the door was broken. He worked from the old pages toward the new; wherever a gap appeared, he paused — neither filling it, nor skipping over the page number.
+
+The lamp-oil diminished steadily; when the flame shortened, the one who had kept the lamp before was gone. Later someone entered from outside, rain still on the cuffs, carrying a small jar of oil and pouring it into the lamp-dish. No one asked whence it came. The keeper added one small line at that day's end: one jar of oil.
+
+The copyist had been changed as well. At first the keeper copied by his own hand — his the back of a hand bearing an old scar; later it passed to one who could not see distant characters, whose strokes ran large and often spilled into the margin. Later still, the copyist's place stood vacant for several months. The keeper drew the ledger toward the lamp's front, read aloud the broken strokes, and wherever he could not make them out, he left them exactly as they were — blank.
+
+No one disputed the reckoning. Someone set a bundle of wood at the door's edge; someone left a bucket mouth-down; someone trimmed the scorched end from the wick. The keeper recorded each as it was, and closed the page when done. The lamp fell upon the paper; it did not reach beyond the door.
+
+**Anchor sentence**: oil is supplied; the characters are copied.
+**锚句**：油有人添，字有人抄。
+
+---
+
+## V · The Voice of the Ledger
+
+The ledger grew thicker by the year. Its cover stretched; its cord-binding tightened; the spine rose into a hard ridge. The keeper of the ledger bound it with hemp rope; the rope cut into the paper like tide-marks into the door-board. Each page added, the table-legs sank a little further.
+
+In the night, someone dreamt the ledger was walking about the room. The sound was slow — like damp paper turning over damp paper. That one woke to hear someone outside stepping through water, and supposed the dream had not yet dispersed. By day he told the keeper of the ledger all he had heard. The keeper asked what he had heard.
+
+He said: first the paper sounded, then the numbers. Number upon number — issuing from the water-bucket, falling back into it; issuing from the firewood-pile, standing beside the threshold. Last of all, a voice paused beneath the lamp, as if about to call a name — and called only half a syllable.
+
+The keeper did not record the dream. That one never spoke it a second time. From then on, whenever the night deepened, the ledger on the table gave off one fine sound. The keeper did not listen when awake, nor answer when asleep. The rope stayed bound; the spine went on swelling outward; the sound issued from the seams between the pages and settled into the room — like the salt the tide leaves behind when it withdraws.
+
+**Anchor sentence**: thick paper has a voice that will not speak a full name in the dark.
+**锚句**：厚纸有声，夜里不报全名。
+
+---
+
+## VI · No One Turns the Pages
+
+Afterwards, no one turned the ledger any more. Not because the door went unvisited, nor because water and firewood were in plenty. The ledger still lay on the table; the lamp still burned; beyond the door the footprints changed daily. Only no one's hand reached beneath its cover again.
+
+The keeper of the ledger left at some point — how, no one could tell. The chair at the table's side stood drawn close in; the brush yet rested upon the inkstone. A crust of black had set within the stone; beside it stood the lamp-oil not yet used. Those who came to refill the lamp did not look at the ledger; those who came to copy did not turn the old pages either — they only took up the writing where the blanks began.
+
+The new lines grew shorter and shorter: water low; firewood exhausted; rain passed; the door opened. Now and then someone arrived — still no name was written. The hand ran steady in places, crooked in others, elsewhere stopping midway. The paper lay under weight; its corners lifted no more.
+
+The ledger needed no reckoning. It had never said it was recorded correctly, nor said who would come to claim it. The lamp on the table fell upon the writing hand; beyond the door, footprints ran out into the tide. Someone filled a page and turned to the next. The old ledger remained beneath, unclosed.
+
+**Anchor sentence**: no one turns the ledger; still the brush moves downward.
+**锚句**：无人翻账，笔仍向下。
+
+---
+
+## Model mapping (Chapter XI)
+
+| Category | Title | Corresponds to |
+|---|---|---|
+| lore | The Ledger · the Name at the Top · the Lamp-Oil · the Reckoning | I–VI |
+| geography | The Lamp-Lit Room · the Threshold · the Sound of the Tide | I–VI |
+| factions | The Keeper of the Ledger · the One Who Supplies the Oil · the Copyists · the Keeper of the Lamp | I–VI |
+| characters | The One Who Handed It Over · the Keeper of the Ledger · the Supplier of Oil · the Copyists | I–VI |
+| items | The Ledger · the Lamp-Dish · Hemp Rope · the Brush and Inkstone · the Thin Stone | I–VI |
+| story | The Mist Harbor · The Room Beneath the Lamp · Chapter XI | whole |
+| history | After the Iron-Moon Age · Before the Grey Cover Was Laid | I–VI |
+
+> The ledger never says "to be repaid" —
+> it only goes on recording: oil arrives, words are copied, wood comes from there, rain goes there.
+>
+> 账不说「应还」——
+> 它只是继续记下：油有人添，字有人抄，柴从那里来，雨往那里去。
+`,
+  },
 ] as const;
 
 export const BIBLE_ECHOES: readonly BibleChapter[] = [
