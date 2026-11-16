@@ -14464,3 +14464,18 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   5 锚句 zh/en 全局唯一（155/155）。
 - `gen-bible-snapshot.mts` 登记 `echo-027-the-wall-of-the-forty-one-convocations`；快照重生成（5+27 回响）。
 - verify:world-bible ✓ 155/155；verify:bible-snapshot ✓。
+
+## §APR-AI — 审批卡上「让模型读一眼」（§73-AI · 2026-11-17 · v845）
+
+- Studio CommandBar 挂起审批卡新增一行：「让模型读一遍 / Let the model read this」按钮（data-approval-explain-*），
+  点击 → POST `/api/ai/tasks/[taskId]/approval-explain`：csrf + ipWriteGate('ai/explain') 10/h +
+  `readApprovalTask`（已归属判断 `/created_by`+`awaiting_approval` 才喂 provider）；
+  digest 只含 **agentKey / heldOpCount / kinds 计数 / reason（截断 120 字）**——不含载荷正文；
+  provider 不可用 → 503 原话（"审批照常，只是没有模型帮你读一遍"），§159/§160；
+  模型不得指挥批准/拒绝，只能描述「这一次要改什么」；
+  新指标 `nexus_agent_explain_total` + `_latency_ms`。
+- CommandBar gate 重钉 SHA（纯新增 data-* 钩子 + 两个双语按钮文案）；
+- 新测 `approval-explain-route-behavior.test.ts` 5/5（mock provider；覆盖 200/404/409/503/digest bounds）。
+- fe-gates **134/134 · 1265/1265 · census 2564** ✓；bible-ask-behavior 同步 155 锚修正（E27 已 +5）。
+- 直连真实审批情况：按钮代码就位，真实一次性样本要等下次出现 awaiting_approval task 真跑；不烧 provider 上跑。
+- sibling :8000 未触碰。

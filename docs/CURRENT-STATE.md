@@ -4487,3 +4487,9 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 
 - 新回响 E27（中英双文件 + 映射表）；verify:world-bible ✓ 155/155；快照 5+27。
 - 世界 5+27；本篇以"四十一条槽&海刻的第四十二道"把整个 Convocation 主题推得更深。
+
+## cont. 211 (2026-11-17) — v845 · §APR-AI 审批解释上线
+
+- Studio CommandBar 挂起审批卡加「让模型读一遍」按钮；旁边一个两句解释槽 + 同 §159/§160 亚瑟横幅。
+- digest 结构事实 Only（agentKey/count/actions/reason≤120）；503 honest。
+- fe-gates 134/134 · 1265/1265 · census 2564；sibling :8000 未触碰。

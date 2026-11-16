@@ -41,6 +41,8 @@ const COPY = {
     approvalHeld: (n: number) => `这份结果含 ${n} 处需人工审批的动作，补丁已被服务端扣下，画布还没有被改动。`,
     approvalExpiry: (ttl: string, deadline: string | null) =>
       `${ttl}内未决定，这一份自动作废、被扣下的补丁不会落地${deadline ? `（截止 ${deadline}）` : ''}`,
+    explainAsk: '让模型读一遍',
+    explainBusy: '模型在读这几条……',
     approveAndReturn: '批准并交回编辑区',
     reject: '放弃',
     approvalTaskLink: '在任务列表里看这一行',
@@ -116,6 +118,8 @@ const COPY = {
     approvalHeld: (n: number) => `This result carries ${n} action(s) requiring human approval; server held the patches — the canvas is untouched.`,
     approvalExpiry: (ttl: string, deadline: string | null) =>
       `Unresolved within ${ttl}, this one expires automatically — held patches never land${deadline ? ` (deadline ${deadline})` : ''}`,
+    explainAsk: 'Let the model read this',
+    explainBusy: 'The model is reading these…',
     approveAndReturn: 'Approve and send back to the editor',
     reject: 'Reject',
     approvalTaskLink: 'Open this row in the task list',
@@ -313,6 +317,8 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
   const [held, setHeld] = useState<{ taskId: string; approvals: { action: string; reason: string }[]; expiresAt: string | null } | null>(null);
   const [approvalBusy, setApprovalBusy] = useState(false);
   const [approvalNote, setApprovalNote] = useState<string | null>(null);
+  const [approvalExplain, setApprovalExplain] = useState<string | null>(null);
+  const [approvalExplainBusy, setApprovalExplainBusy] = useState(false);
 
   /** 把一份 AI 结果打进工作区。同步那一路与"批准后交回的那一版"共用这一条：一次事务、可整体撤销（§149/§150） */
   const applyResult = (response: AiResponse, fallbackText: string): void => {
@@ -368,6 +374,38 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
       setApprovalNote(c.approveFailed(e instanceof Error ? e.message : String(e)));
     } finally {
       setApprovalBusy(false);
+    }
+  };
+
+  /**
+   * §73-AI · 让真模型读一眼这次 approvals（不动裁决代码、不动补丁）：
+   * 返回一句两句解释「这一次要改什么」+「为什么需要人点批准」。
+   * provider 不可用时原样 503——这里不生靠 translate 的模板解释。
+   */
+  const askExplain = async (): Promise<void> => {
+    if (!held || approvalExplainBusy) return;
+    setApprovalExplainBusy(true);
+    setApprovalExplain(null);
+    try {
+      const res = await fetch(`/api/ai/tasks/${held.taskId}/approval-explain`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...csrfHeaders() },
+        body: JSON.stringify({ locale }),
+      });
+      const payload = (await res.json().catch(() => null)) as { answer?: string } | null;
+      if (!res.ok || typeof payload?.answer !== 'string') {
+        setApprovalExplain(locale === 'en'
+          ? 'The model is unreachable — approval still works; the AI read is just unavailable.'
+          : '模型连不上——审批照常，只是没有模型帮你读一遍');
+        return;
+      }
+      setApprovalExplain(payload.answer.trim());
+    } catch {
+      setApprovalExplain(locale === 'en'
+        ? 'The model is unreachable — approval still works; the AI read is just unavailable.'
+        : '模型连不上——审批照常，只是没有模型帮你读一遍');
+    } finally {
+      setApprovalExplainBusy(false);
     }
   };
 
@@ -589,6 +627,22 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
               </li>
             ))}
           </ul>
+          {/* §73-AI: 先把模型读一眼这条 approvals 的结果给你看——它只描述「这一次要改什么」，
+              不指挥批谁：§74 的按钮永远决定你自己的 */}
+          <button
+            type="button"
+            className="cb-underLink"
+            onClick={() => void askExplain()}
+            disabled={approvalExplainBusy}
+            data-approval-explain
+          >
+            {approvalExplainBusy ? c.explainBusy : c.explainAsk}
+          </button>
+          {approvalExplain && (
+            <p className="sb-faint11" data-approval-explain-text>
+              {approvalExplain}
+            </p>
+          )}
           {/* §74 的时效要说在卡片上，而不是等用户按下批准才从 409 里知道：
               "这一份放着不管会自己作废"改变的是他要不要现在去看这 3 处删除，
               而那句作废的理由（补丁从未落地）与服务端写进账本的是同一句。 */}
