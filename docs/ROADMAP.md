@@ -14276,3 +14276,11 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   5 锚句 zh/en 全局唯一（95/95）。
 - `gen-bible-snapshot.mts` 登记 `echo-016-the-four-small-shells-on-the-tide-sand-table`；快照重生成（4+16 回响）。
 - verify:world-bible ✓ 95/95；verify:bible-snapshot ✓。
+
+## §BIBLE-28 — 回响 · 其十七《祠殿后那一截没有人劈开的浮木》（2026-11-17 · v828）
+
+- 产出：`docs/world-bible/echoes/E17-祠殿后那一截没有人劈开的浮木.md`（中）/ `.en.md`（英）——祠殿后那截六米浮木：
+  没人说清来历；谁都留过纹迹、谁都没擦；值守长拒绝当柴劈；里巷子规矩是它永远放在那里。
+  5 锚句 zh/en 全局唯一（100/100）。
+- `gen-bible-snapshot.mts` 登记 `echo-017-the-driftwood-nobody-split`；快照重生成（4+17 回响）。
+- verify:world-bible ✓ 100/100；verify:bible-snapshot ✓。

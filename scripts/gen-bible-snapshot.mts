@@ -57,6 +57,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E14-潮汐表的封面': 'echo-014-the-cover-of-the-tide-table',
   'E15-巷子深处那盏没人记得的灯': 'echo-015-the-lamp-the-wine-shop-never-remembers',
   'E16-潮沙盘上那四只小贝壳': 'echo-016-the-four-small-shells-on-the-tide-sand-table',
+  'E17-祠殿后那一截没有人劈开的浮木': 'echo-017-the-driftwood-nobody-split',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

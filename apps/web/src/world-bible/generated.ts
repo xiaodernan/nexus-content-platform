@@ -4196,4 +4196,200 @@ The shells are part of the table; the Institute would rather the table go plain 
 > The four small shells have never been moved by the tide — they are the chapel's custody of the tide.
 `,
   },
+  {
+    order: 17,
+    slug: 'echo-017-the-driftwood-nobody-split',
+    titleZh: '祠殿后那一截没有人劈开的浮木',
+    titleEn: 'The Driftwood Nobody Split for Firewood',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——腊月潮候院的清晨，浮木背着初雪。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; a cold-month morning, the driftwood holding the frost.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 17): The Driftwood Nobody Split for Firewood
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给祠殿后那一截来历不明的浮木——潮候院人把它叫「鲸」；
+> 很长时间之后才形成了跟它问好的规矩。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the massive driftwood behind the chapel — the Institute calls it "the Whale";
+> the habit of greeting it came only much later.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——腊月潮候院的清晨，浮木背着初雪。
+> Era: the Institute — after the 41st Convocation; a cold-month morning, the driftwood holding the frost.
+
+---
+
+## 一 · 没有人说清它是从哪里来的
+
+祠殿后的浮木是一段长大约六米的硬木，横在通往码头的小径上。
+
+早些年值守里有人说它是南方某次风暴漂来的；有人说它是潮候院建院时剩下的木材；有人说它是当年海岸漂着一整条沉船的一部分。
+每一种说法都有过支持者，没有一种说法是被证明过的。
+
+**锚句**：祠殿后的浮木，谁也不知道它是从哪里来的——它只是一截从海里来的木头。
+**Anchor sentence**: nobody knows where the driftwood behind the chapel came from — it is simply a log that arrived from the sea.
+
+---
+
+## 二 · 谁都刻了一个记号
+
+里巷子的抄本员路过浮木的时候，口袋里常常带着一把小刀。
+
+有人刻过船的轮廓；有人刻过某一届大会的年份；有人刻过一句谁的名字。
+没有人刻了之后再把那道痕迹磨掉。
+
+潮候院的规矩是：浮木是「留白」——谁想给它留点什么，浮木就接受；留什么、怎么留、留下之后谁都涉及谁，浮木不加评论。
+
+**锚句**：浮木记着每个人留下的纹迹——谁都留过，谁都没擦过。
+**Anchor sentence**: the driftwood remembers everyone's mark — every hand passed by, no hand ever rubbed it out.
+
+---
+
+## 三 · 谁都没劈过它
+
+里巷子里缺柴的那几年，里巷子里提出过用浮木当柴火。
+
+值守长的回答是：浮木不属于柴堆。
+那一次以后从来没有人再提过这件事。
+
+第四十一次大会散会后有一个新来的值守说过浮木的年轮太清，像一册没被点过的潮汐表——值守长一多没回答。
+
+**锚句**：潮候院从来没有人劈过这截浮木——里巷子只会放它在那里，不会烧它。
+**Anchor sentence**: nobody at the Institute ever split the driftwood — the alley leaves it where it lies; it is never burned.
+
+---
+
+## 四 · 浮木上慢慢长出了东西
+
+贝壳、铜片、碎瓷、几枚没有抬走的铁钉——浮木上挂着的东西越来越多。
+
+潮候院的值守两年一清的时候，贝壳成串粘在上面，撑着一年；新来的值守登记潮沙盘之前，把抄写潮沙盘残页放在浮木上。
+
+**锚句**：潮候院的浮木上慢慢长满了贝壳和碎片——它是一截会收东西的木头。
+**Anchor sentence**: the driftwood slowly filled with shells and fragments — it is a log that keeps whatever is given to it.
+
+---
+
+## 五 · 浮木永远没被拖走过
+
+第四十一次大会之后，每一次台风、每一次潮汐变动，浮木都还在原处。
+
+祠殿后的值守一度商量要把它清走以免挡路；决定拖走的那天，没人动得了——潮候院的值守之后就再没提过这件事。
+它还躺在那里，任谁来了都坐。
+
+**锚句**：浮木至今还没有被任何一批潮候院的人拖走过——潮候院最终决定留下它。
+**Anchor sentence**: the driftwood has never been hauled away by anyone — the Institute eventually decided to leave it where it is.
+
+---
+
+## 六 · 映射（回响十七章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 里巷子 · 浮木 · 第四十一次大会后的值守项 | 一、三、四、五、六 |
+| geography | 祠殿后 · 通往码头的小径 · 潮候院门廊 | 一、二、三、六 |
+| characters | 里巷子的抄本员 · 值守长 · 新来的值守 | 一、三、四、五、六 |
+| story | 祠殿后的浮木 · 回响（其十七） | 全篇 |
+| items | 浮木 · 贝壳 · 铜片 · 小刀 · 铁钉 | 一、二、三、四、六 |
+| history | 里巷子的规矩 · 第四十一次大会之后 | 一、二、三、五、六 |
+
+> 祠殿后那截浮木从来没有被劈过——潮候院把它留在那里，是里巷子整族留下的东西。
+> The driftwood behind the chapel has never been split — the Institute leaves it because the whole alley is part of it.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其十七）「祠殿后那一截没有人劈开的浮木」
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给祠殿后那一截来历不明的浮木——潮候院人把它叫「鲸」；
+> 很长时间之后才形成了跟它问好的规矩。
+> 纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the massive driftwood behind the chapel — the Institute calls it "the Whale";
+> the habit of greeting it came only much later.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——腊月潮候院的清晨，浮木背着初雪。
+> Era: the Institute — after the 41st Convocation; a cold-month morning, the driftwood holding the frost.
+
+---
+
+## 一 · Nobody Knows Where It Came From
+
+The driftwood behind the chapel is a length of hard timber, about six meters long, lying across the path to the pier.
+
+Some of the watchers said it was carried in by a storm from the south; others said it was leftover timber from when the Institute was built; others said it was part of a sunken ship once stranded off this coast.
+Each claim has had its defenders; none has been proven.
+
+**锚句**：祠殿后的浮木，谁也不知道它是从哪里来的——它只是一截从海里来的木头。
+**Anchor sentence**: nobody knows where the driftwood behind the chapel came from — it is simply a log that arrived from the sea.
+
+---
+
+## 二 · Everyone Carved a Mark on It
+
+Those who walk past the driftwood often carry a small knife in their pockets.
+
+Someone carved a ship's outline; someone carved the year of a certain Convocation; someone carved a name.
+No one carved and then rubbed it out.
+
+The Institute's rule is: the driftwood is blank — whoever wishes to leave something can leave it; what is left, how it is left, what follows — the driftwood offers no opinion.
+
+**锚句**：浮木记着每个人留下的纹迹——谁都留过，谁都没擦过。
+**Anchor sentence**: the driftwood remembers everyone's mark — every hand passed by, no hand ever rubbed it out.
+
+---
+
+## 三 · Nobody Ever Split It for Wood
+
+In the years the alley ran short of firewood, someone proposed taking the driftwood for the pile.
+
+The keeper's answer was: the driftwood is not for burning.
+No one raised the matter again.
+
+After the 41st Convocation, a newly arrived watcher observed that the driftwood's rings looked too clear, like an unopened tide-table — the keeper did not answer.
+
+**锚句**：潮候院从来没有人劈过这截浮木——里巷子只会放它在那里，不会烧它。
+**Anchor sentence**: nobody at the Institute ever split the driftwood — the alley leaves it where it lies; it is never burned.
+
+---
+
+## 四 · It Slowly Filled with Things
+
+Shells, copper plates, china shards, a few unlifted iron nails — the driftwood accumulates whatever the people of the alley leave.
+
+The watchers, doing their two-year sweep, find chains of shells holding a year inside; new watchers registering the sand table first put their sketches on the driftwood.
+
+**锚句**：潮候院的浮木上慢慢长满了贝壳和碎片——它是一截会收东西的木头。
+**Anchor sentence**: the driftwood slowly filled with shells and fragments — it is a log that keeps whatever is given to it.
+
+---
+
+## 五 · It Was Never Hauled Away
+
+After the 41st Convocation, every storm and every tide-swing left the driftwood exactly where it was.
+
+The watchers once decided to remove it to unblock the path; on the day they set out to move it, no one could shift it — after that, no one mentioned it again.
+It still lies there, and whoever comes may rest on it.
+
+**锚句**：浮木至今还没有被任何一批潮候院的人拖走过——潮候院最终决定留下它。
+**Anchor sentence**: the driftwood has never been hauled away by anyone — the Institute eventually decided to leave it where it is.
+
+---
+
+## 六 · Mapping（Echo No. 17 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | The back alley · the driftwood · the watchers' records | 一、三、四、五、六 |
+| geography | Behind the chapel · the path to the pier · the Institute's edge | 一、二、三、六 |
+| characters | The copyists · the keepers · the new arrivals | 一、三、四、五、六 |
+| story | The Driftwood Behind the Chapel · Echo No. 17 | 全篇 |
+| items | The driftwood · the shells · the knife · the nails | 一、二、三、四、六 |
+| history | The alley's habits · after the 41st Convocation | 一、二、三、五、六 |
+
+> 祠殿后那截浮木从来没有被劈过——潮候院把它留在那里，是里巷子整族留下的东西。
+> The driftwood behind the chapel has never been split — the Institute leaves it because the whole alley is part of it.
+`,
+  },
 ] as const;
