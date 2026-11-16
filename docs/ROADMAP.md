@@ -14299,3 +14299,11 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   - zh：《Studio 画布与世界》功能地图（三组画布行和世界行）与完整地图行收齐；
   - en：mirrors the same; every page listed in 2 places with cost-bearing labels.
 - gates：`guide-visual-style.test.ts` 15/15；tsc web 0；fe-gates 125/125 · census 2531。
+
+## §BIBLE-30 — 回响 · 其十九《里巷子的抄本员》（2026-11-17 · v831）
+
+- 产出：`docs/world-bible/echoes/E19-里巷子的抄本员.md`（中）/ `.en.md`（英）——里巷子里抄潮沙盘与潮汐表的抄本员：
+  不签名、按潮汐节拍写、代际字体变模糊、潮候院没人派过任务、没有名字没有葬地。
+  5 锚句 zh/en 全局唯一（110/110）。
+- `gen-bible-snapshot.mts` 登记 `echo-019-the-copyists-of-the-back-alley`；快照重生成（4+19 回响）。
+- verify:world-bible ✓ 110/110；verify:bible-snapshot ✓。

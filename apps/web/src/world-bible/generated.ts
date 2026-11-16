@@ -4578,4 +4578,202 @@ Every watcher in the chapel understands: the chapel's things have never once gon
 > The cat in the chapel has never once meowed — whoever asks is answered by the shine on the tide-sand table, never by the Institute.
 `,
   },
+  {
+    order: 19,
+    slug: 'echo-019-the-copyists-of-the-back-alley',
+    titleZh: '里巷子的抄本员',
+    titleEn: 'The Copyists of the Back Alley',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——里巷子的抄本员在初冬清晨开始一天的誊写。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the copyists of the alley begin a day\'s transcription in early winter.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 19): The Copyists of the Back Alley
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给里巷子的抄本员——他们的姓名从来不出现在抄本上；里巷子的抄本员不认为自己在写什么，只觉得自己在照着。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the copyists of the back alley — none of whom ever appeared in their own copy; the copyists of the alley never felt they were inventing, only transcribing.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——里巷子的抄本员在初冬清晨开始一天的誊写。
+> Era: the Institute — after the 41st Convocation; the copyists of the alley begin a day's transcription in early winter.
+
+---
+
+## 一 · 他们不签名
+
+里巷子的抄本员从来不在抄本上签名。
+
+讨论潮候院的案场上的时候有人问起一个某世纪捐收的潮候院抄本是谁的笔迹，值守翻出几版之后发现全是同一笔法：
+粗糙、干净、没人看见的字——里巷子的抄本员两三代传抄值守全都不签名。
+
+里巷子的抄本员不认为自己在写潮汐表：他们说自己在做「对抄」——是潮自己在写，他们只是洇得不是自己的纸。
+
+**锚句**：里巷子的抄本员从来不在抄本上签名——抄本不是谁的作品，是潮汐本体的投影。
+**Anchor sentence**: the copyists of the back alley never signed their own copy — the book is not any person's work; it is the projection of the tide itself.
+
+---
+
+## 二 · 抄法有时间节拍
+
+里巷子的抄本员抄书的时候按着节拍走：用潮汐表的节拍——潮起的时候抄潮起那两列，潮落的时候抄潮落那两列。
+
+抄本员们说这是潮在引潮沙盘：不是谁在安排时间，是潮在带他们走一整天。
+
+里巷子的抄本员每抄完一版，潮沙盘的沙落了一格——他们没有手册记录沙为什么落地，却都知道是跟着潮汐的。
+
+**锚句**：里巷子的抄本员按潮汐的节拍抄书——时间不是人定的，是潮带人们走的。
+**Anchor sentence**: the copyists of the back alley transcribe to the rhythm of the tide — the hours are not chosen by people; the tide walks the copyists through them.
+
+---
+
+## 三 · 他们的字迹在代与代之间变得越来越模糊
+
+潮候院最古远的抄本上的字是扁平、方正、铁划银钩的；再早一些的年表上的字却慢慢出现了柔软的弧度。
+
+近十三年来里巷子的值守说：他们的抄本越写越像一个老人的字迹——那是里巷子值守抄本员自己的遗蜕：字被反复临摹得再也不成规矩。
+
+抄本员不自己解释这种变：抄本员说他们只是临摹了前人的字。
+
+**锚句**：里巷子的抄本员的字在代际之间变得越来越模糊——他们只是一间临摹别人的抄本。
+**Anchor sentence**: the copyists' script has softened from generation to generation — they are simply a scripture-copy of what came before.
+
+---
+
+## 四 · 里巷子的抄本员没人找他们抄什么
+
+潮候院没有人给里巷子的抄本员派过任务。
+
+他们抄的也不是潮候院刚编的东西——他们抄的是潮候院早期的潮汐表内容；他们是里巷子的老手，只负责把潮候院给里巷子带来的内容「做一份潮抄本」。
+
+值守能进去里巷子看抄本的人也从来没告诉里巷子抄本员哪份抄本「更重要」——里巷子的抄本员记不出自己抄过哪一页。
+
+**锚句**：里巷子的抄本员没人派过任务——他们只是抄潮候院给里巷子带来的每一件东西。
+**Anchor sentence**: no one ever assigned a task to the copyists of the back alley — they simply copied whatever the Institute had left for them to copy.
+
+---
+
+## 五 · 他们没有名，也没有葬地
+
+潮候院没有为抄本员刻过姓名，也没有给他们单独建过墓。
+
+里巷子的抄本员如果在抄本完成前走掉，他们的位置第二天就有别的人坐上了——抄本员不能缺席任何一天，潮候院不承认抄本员可以请假。
+
+里巷子的抄本员说，他们的葬地是里巷子：每一本潮候院带到过里巷子的字都是他们的灵骨——如果潮候院从不再有东西让抄本员抄，里巷子只有潮沙盘。
+
+**锚句**：里巷子的抄本员没有名字也没有葬地——潮候院没有给人时间知道他们存在过。
+**Anchor sentence**: the copyists of the back alley have no names and no graves — the Institute gives them no way to know they existed.
+
+---
+
+## 六 · 映射（回响十九章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 抄本 · 潮汐节拍 · 字迹递减 | 一、二、三、六 |
+| geography | 里巷子 · 潮候院 · 抄本工坊 | 一、二、四、六 |
+| characters | 里巷子的抄本员 · 潮候院值守长 · 先生 | 一、三、四、五 |
+| story | 抄本的人 · 回响（其十九） | 全篇 |
+| items | 抄本 · 潮汐表 · 潮沙盘的金箔印 | 一、二、三、六 |
+| history | 潮候院至今没有给抄本员设过任何名字 | 一、二、四、五、六 |
+
+> 里巷子的抄本员只按照潮汐说过的话写——他们不认为自己是谁。
+> The copyists of the back alley wrote only what the tide dictated — none of them ever thought they were anybody.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其十九）「里巷子的抄本员」
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给里巷子的抄本员——他们的姓名从来不出现在抄本上；里巷子的抄本员不认为自己在写什么，只觉得自己在照着。
+> 纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the copyists of the back alley — none of whom ever appeared in their own copy;
+> the copyists of the alley never felt they were inventing, only transcribing.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——里巷子的抄本员在初冬清晨开始一天的誊写。
+> Era: the Institute — after the 41st Convocation; the copyists of the alley begin a day's transcription in early winter.
+
+---
+
+## 一 · They Never Sign
+
+The copyists of the back alley never sign their copies.
+
+When someone asked whose hand wrote a certain tide-table donated in a given century, the watchers proved after three revisions that all the pages used the same stroke — rough, clean, invisible. The copyists of the back alley across many generations never signed their copies.
+
+The copyists of the back alley do not believe they are writing the tide-tables: they say they are "copying" — the tide is writing; they merely provide the paper the tide needs.
+
+**锚句**：里巷子的抄本员从来不在抄本上签名——抄本不是谁的作品，是潮汐本体的投影。
+**Anchor sentence**: the copyists of the back alley never signed their own copy — the book is not any person's work; it is the projection of the tide itself.
+
+---
+
+## 二 · The Pace of the Tide
+
+The copyists write to the rhythm of the tide-tables: at high tide they copy the two high-tide columns; at low tide they copy the two low-tide columns.
+
+The copyists say this is the tide conserving the sand table — nobody schedules the hours; the tide walks the copyists through the day.
+
+When a page is finished, one grain of sand falls from the table; no one ever recorded why the sand fell, yet every copyist knows it follows the tide.
+
+**锚句**：里巷子的抄本员按潮汐的节拍抄书——时间不是人定的，是潮带人们走的。
+**Anchor sentence**: the copyists of the back alley transcribe to the rhythm of the tide — the hours are not chosen by people; the tide walks the copyists through them.
+
+---
+
+## 三 · Their Handwriting Has Softened Across Generations
+
+The oldest tide-tables in the Institute carry square, sharp characters; histories from earlier centuries already show gentler strokes.
+
+Over the last thirteen years the copyists said their letters had begun resembling an elderly hand — the copyists' own collective habit simply passed down; the characters have been copied until they no longer held their original shape.
+
+The copyists offer no explanation; they insist they are merely copying what came before.
+
+**锚句**：里巷子的抄本员的字在代际之间变得越来越模糊——他们只是一间临摹别人的抄本。
+**Anchor sentence**: the copyists' script has softened from generation to generation — they are simply a scripture-copy of what came before.
+
+---
+
+## 四 · Nobody Assigns Them Anything
+
+No one at the Institute ever hands a task to the copyists of the back alley.
+
+They do not copy new Institute documents — they copy the early tide-tables; they are senior in the alley, responsible only for "making copies" of whatever the Institute leaves for the alley.
+
+Even those who enter the alley to read the copies were never told which copy matters more — the copyists of the alley cannot tell you which page they themselves wrote.
+
+**锚句**：里巷子的抄本员没人派过任务——他们只是抄潮候院给里巷子带来的每一件东西。
+**Anchor sentence**: no one ever assigned a task to the copyists of the back alley — they simply copied whatever the Institute had left for them to copy.
+
+---
+
+## 五 · They Have No Names and No Tombs
+
+The Institute never carved the copyists' names, nor did it ever build them a grave.
+
+If a copyist of the alley dies before a page is finished, someone else takes the seat on the next morning — a copyist cannot miss a single day; the Institute accepts no excuses for absence.
+
+The copyists of the alley say their graves are the alley itself: every character ever carried into the alley is their tombstone — if the Institute left nothing to be copied, the alley would be nothing but the sand table.
+
+**锚句**：里巷子的抄本员没有名字也没有葬地——潮候院没有给人时间知道他们存在过。
+**Anchor sentence**: the copyists of the back alley have no names and no graves — the Institute gives them no way to know they existed.
+
+---
+
+## 六 · Mapping（Echo No. 19 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | The copy · the tide's rhythm · the softening hand | 一、二、三、六 |
+| geography | The back alley · the Institute · the copy room | 一、二、四、六 |
+| characters | The copyists · the keeper · the senior copyist | 一、三、四、五 |
+| story | The Hands of the Alley · Echo No. 19 | 全篇 |
+| items | The copies · the tide-tables · the sand-table's marks | 一、二、三、六 |
+| history | Never once in the Institute's history has anyone named a copyist | 一、二、四、五、六 |
+
+> 里巷子的抄本员只按照潮汐说过的话写——他们不认为自己是谁。
+> The copyists of the back alley wrote only what the tide dictated — none of them ever thought they were anybody.
+`,
+  },
 ] as const;

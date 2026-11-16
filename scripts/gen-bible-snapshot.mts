@@ -59,6 +59,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E16-潮沙盘上那四只小贝壳': 'echo-016-the-four-small-shells-on-the-tide-sand-table',
   'E17-祠殿后那一截没有人劈开的浮木': 'echo-017-the-driftwood-nobody-split',
   'E18-祠殿里从不叫的一只猫': 'echo-018-the-cat-in-the-institute-that-never-meowed',
+  'E19-里巷子的抄本员': 'echo-019-the-copyists-of-the-back-alley',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
