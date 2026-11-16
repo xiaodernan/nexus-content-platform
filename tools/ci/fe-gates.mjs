@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 /**
  * §FE-103 `verify:fe-gates`——FE 门面矩阵的统一入口。
- * 显式 play 遍历 apps/web/test/*-visual-style.test.ts 后交给 vitest；
+ * 显式遍历 apps/web/test 下的 `-visual-style.test.ts`（视觉门面）与 `-behavior.test.ts`（行为契约门）后交给 vitest；
  * 避免 Windows 通配符（shell 不展开 `*.test.ts`）导致 vitest 找不到文件（见 ADR-0257/ FE-103）。
+ * 行为契约门同属「只读源码做断言、零渲染、零库」的源码契约族，必须与视觉门面同一把闸一起跑——
+ * 否则它会安静地落在 fe-gates 之外，永远没人跑。
  */
 import { readdirSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -18,7 +20,7 @@ function collect() {
       const p = join(dir, name);
       const st = statSync(p);
       if (st.isDirectory()) walk(p);
-      else if (/-visual-style\.test\.ts$/.test(name)) out.push(p);
+      else if (/-(visual-style|behavior)\.test\.ts$/.test(name)) out.push(p);
     }
   };
   walk(join(root, 'apps/web/test'));
@@ -27,7 +29,7 @@ function collect() {
 
 const files = collect();
 if (files.length === 0) {
-  console.error('fe-gates: no *-visual-style.test.ts found under apps/web/test');
+  console.error('fe-gates: no *-visual-style.test.ts / *-behavior.test.ts found under apps/web/test');
   process.exit(1);
 }
 // §FE-CENSUS: globals.css 零引用门面类一毙一利（FE-6 死类清扫记账此门日后防回潮，tools/ci/facade-census.mjs）
@@ -39,7 +41,7 @@ if (census.status !== 0) {
   console.error('fe-gates: verify:census failed — globals.css 有零引用的门面类（详见上方列表）');
   process.exit(1);
 }
-console.log(`fe-gates: ${files.length} visual-style suites`);
+console.log(`fe-gates: ${files.length} gate suites`);
 /**
  * §GATE-2b：用 `vitest.fe.config.ts` 而不是根配置。
  *

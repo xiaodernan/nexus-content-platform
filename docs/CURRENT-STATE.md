@@ -4393,3 +4393,10 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 
 - 新回响 E19（中英双文件 + 映射表）；verify:world-bible ✓ 110/110；快照 4+19 回响。
 - 世界再次涨大 4+19。
+
+## cont. 197 (2026-11-17) — v832 · 画布滚轮语义钉死
+
+- 用户点名「滚轮方向反了」；代码审计结论：画布 wheel（CanvasStage 唯一）已经是「往上滑看上面、往下滑看下面」（-deltaY 反向量 → translate(pan) 内容随视向移动），与浏览器 / Figma 一致。
+- 新测试 `canvas-wheel-direction-behavior.test.ts`（4 用例）钉住 exp(-deltaY) 缩放、Shift 横移、普通纵移负号：若此后有人「感觉反了再改一次」，测试立即红；方向不一致只能以门重钉方式记录，不被静默抹掉。
+- 门按新后缀 `*-behavior.test.ts` 命名并扩入 `verify:fe-gates`（fe-gates.mjs 收集器 + vitest.fe.config.ts 的 include 同时认 -visual-style / -behavior）——行为契约门与视觉门面同族，同闸同跑，不允许静默掉队。
+- 3D 拖拽纵轴历经 v733/v778/v801 三轮修正，最终用 drag.pitch + dy*0.005 收口；不会再动。
