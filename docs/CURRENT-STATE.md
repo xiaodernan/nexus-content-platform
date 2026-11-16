@@ -4886,3 +4886,16 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - Quiz **24 题**（+2 E06 双语同题，序列 [..., 1, 1]）；guide 升级到六章六回响；bible gates 33/33 全绿。
 - §PULSE-3 fix（小修大补）：pl-delta 文本溢出到边界（projectionHint 直接断行）/pl-kpiValue 长数字溢出/pl-lede 中文行字被边缘截断/pl-barLabel/pl-barValue overflow；.pl-gateRow flex-wrap 允许顶项满屏窄的屏幕上完整可输入；.pl-gateInput flex 1 1 9rem；.pl-gateButton flex 0 0 auto.
 - census 2462 OK；fe-gates 122 套 1193/1193 OK。
+
+## cont. 164 (2026-11-17) - v794: /world 公开世界廊——两条路由都堵住 404
+
+- 根路由 `/world` 在任何没有 `/projectId` 的状态都是 404，`/preview` 同样——新玩家 grep / 路由时被甩出去，
+  `用户派发 > 尝试这两个 URL > 404 > 放弃`。这一片堵上两条：
+  - `/world`：新页（RSC，force-dynamic，零客户端，无 index）：
+    `publicWorlds()` 从 `published_projects.visibility='public'` ∩ `projects.deletedAt IS NULL` 一次拉 24 条（每个项目只保留最新的那一条粘合到 worlds 表），
+    按 publishedAt 倒序排；空态诚实（"还没人公开发过世界 – 你是第一个"），无假数据、无占位项目。
+  - `/preview`：给偶然撞进来的客人一条退路——列三张可走的出口（/world、/discover、/studio）+ 3 个 public 世界 renderer
+- 全双语 COPY[吃 pe 对应]；new §WORLD-1 globals.css 段：.wv-* 门面 18 类（shell/head/kicker/title/lede/empty/emptyTitle/emptyBody/ctaRow/cta/ctaAlt/list/card/cardLink/cardTitle/cardSummary/cardByline 等）—— 全引用
+- 无 shim UI、无共享卡（只列出现在真库里的）；无 PII（只写路径 / projectName / ownerHandle）——所有人可读，无需登录
+- tsc 0；census 2480 OK；fe-gates 122 suites · 1193/1193 OK；live probe :3100：`/world` 200
+  （开发模式编译后两个 200 都命中：`"GET /world 200 in 1048ms" / "GET /preview 200 in 1000ms"`）
