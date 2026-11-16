@@ -195,6 +195,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《灰后》里，孩子的第八处名字是怎么念完的？', choices: ['有人替他写了上去', '他自己还是念完了', '纸被风吹走了', '守门人告诉了他'], answer: 1, ref: '第八章 · 三' },
     en: { prompt: 'In “After the Ash”, how does the eighth name get finished?', choices: ['someone wrote it in for him', 'he read it himself', 'the wind took the paper', 'the doorkeeper told him'], answer: 1, ref: 'Chapter VIII · III' },
   },
+  {
+    zh: { prompt: '《红绳》里，红绳是从哪里拆下来的？', choices: ['灯篓的衬布', '一件童衣的襟口', '账房的腰带', '渔网角落'], answer: 1, ref: '回响九 · 一' },
+    en: { prompt: 'In “The Red Cord”, where was the red cord unpicked from?', choices: ['the basket liner', 'a child garment\u2019s collar', 'the bursar\u2019s belt', 'a corner of the fishing net'], answer: 1, ref: 'Echo No. 9 · I' },
+  },
+  {
+    zh: { prompt: '《红绳》里，外来官员命人剪断红绳时……？', choices: ['剪了两下，结散了', '执剪的人停了手', '陆守灯当场答应了', '官员剪开了，但绳没断'], answer: 1, ref: '回响九 · 五' },
+    en: { prompt: 'In “The Red Cord”, when the official ordered the cord cut…?', choices: ['it was cut, the knot fell apart', 'the scissors stopped before the handle', 'Lu Shousheng agreed on the spot', 'the official cut it, but the cord did not snap'], answer: 1, ref: 'Echo No. 9 · V' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

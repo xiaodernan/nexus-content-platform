@@ -4289,4 +4289,270 @@ The ash was never carried off by the tide.
 > 它只等灰被写成下一页。
 `,
   },
+  {
+    order: 9,
+    slug: 'echo-009-the-red-cord',
+    titleZh: '红绳',
+    titleEn: 'The Red Cord',
+    eraLineZh: '纪元：铁月纪之后 · 灰棚之前。',
+    eraLineEn: 'Era: after the Iron-Moon Age · before the grey cover was laid.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 9): The Red Cord
+
+> 回响不替正典续写——它只盯着灯篓提手上那一截褪色的红绳。
+> 本篇写给那个四十年没有人解开的结。
+> 本篇锚句，与《灰后》《封面四字》同一纪律。
+>
+> An echo does not continue the canon — it only keeps its eyes on the faded red cord wound around the basket's handle.
+> Written for the knot no one has untangled in forty years.
+> Its anchors answer to the same discipline as the ash and the covered ledger.
+
+> 纪元：铁月纪之后 · 灰棚之前。
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 其一 · 来处
+
+旧灯篓不是从库房里搬来的。库房的门槛低，灯篓底下有一道长裂，拖过门槛会留下木屑。那道裂从来没有经过库房。
+
+四十年前，北堤退潮，旧船坞里漂来一只空篓。篓口朝下，篾条里塞满黑泥，提手还在。搬它的人是抄水簿的陆守灯。他那晚在簿上写：潮退三尺，得旧篓一只。没有写从哪里得来。
+
+红绳绕在提手上，原先是亮红的。它从一件童衣的襟口拆下，衣服是谁的，簿上没有记。陆守灯把灯篓扛进记室时，绳尾垂着，拖过地上的盐水，留下窄窄一线。
+
+后来灯篓被挂到旧灯前。没有灯油，也没有灯芯。来往的人只记得它空着，像一口不肯收水的井。
+
+**锚句**：绳先于灯篓入账。
+**Anchor sentence**: the cord was entered before the basket.
+
+---
+
+## 其二 · 结
+
+打结的是陆守灯。
+
+那年冬潮上岸，北堤的灯一夜未灭。天亮后，七户人家各来一人，报失一名。陆守灯没有问名字，只把他们带来的衣物放进篓里。童衣的襟口缺了一段红绳。
+
+他将绳从提手上解开，缠过篾条，又绕回提手。结打得很紧，绳尾压在绳圈下面。旁人说，这样不好拆。陆守灯说，拆开就会散。
+
+他没有说明散的是什么。记室里只有潮声，敲着窗下的石槽。他将结再收了一次，指节抵住绳头，直至血色从指甲边退尽。
+
+那不是系灯用的结。它不承重，也不固定灯篓。它只是把两段绳咬在一起，不让其中一段先走。
+
+**锚句**：死结不是为了承重。
+**Anchor sentence**: the knot was never meant to bear weight.
+
+---
+
+## 其三 · 盐
+
+红绳起初是鲜红的。后来潮气从墙根进来，先浸到绳尾，再漫过结心。每逢涨潮，篓底有盐霜；每逢退潮，盐霜留在提手上，像一圈圈未写完的字。
+
+四十年里，绳色一点点褪下去。盐没有把它洗白，反而把红压成暗褐，像旧血在海水里泡久了。结心最深处仍留一线红，细得不能辨认。
+
+值夜的人替灯篓掸过灰，不碰绳。灰落在结上，吸了潮，结便更硬。有人拿湿布擦过提手，布上带下盐末，红色没有回来。
+
+此后账上写盐，不写绳。写灯篓空置，不写提手仍旧发紧。
+
+**锚句**：潮水只改了颜色。
+**Anchor sentence**: the tide changed only the color.
+
+---
+
+## 其四 · 孩子
+
+写过七个名字的孩子，见过这个结。
+
+那天他在记室门外等人。门没有关严，灯篓悬在灯前，结垂在提手内侧。他没有伸手，只盯着结心看了很久。后来他在纸上写下七个名字，字挤在一行，末尾没有句号。
+
+有人问他在哪里见过那种结。孩子说，在他家旧衣襟上。那衣服早已不在，母亲说是随潮丢了。他记得襟口也缺一截，缺处有两道针孔，像是有人拆过，又急着把线缝回去。
+
+他没有说认得红绳，只说认得结。抄簿的人将这句话记在名字后面，纸边沾了灰。七个名字没有改动，孩子也没有补上自己的名字。
+
+**锚句**：孩子认得的不是颜色。
+**Anchor sentence**: what the boy recognized was not a color.
+
+---
+
+## 其五 · 规矩
+
+记室有规矩：不解旧结。
+
+解绳等于重开旧账。旧账一开，七户的名字便要重新点数，灯前灰要重新过筛，北堤那夜的潮位要重新抄录。届时谁来写失者，谁来认领衣物，谁来承认篓中没有东西，都得有人落笔。
+
+没有人敢落笔。
+
+陆守灯死后，接手抄簿的人沿用他的字迹，也沿用他的规矩。后来的人不记得规矩从哪一页开始，只记得每次换灯，灯篓要原样挂回去。绳结不准碰，灰可以拂，提手可以擦，结心不许动。
+
+有一回，外来官员命人剪断红绳。剪子递到提手前，执剪的人停了手。官员又问了一遍，没有人回答。那把剪子后来入了器物簿，刃口未合。
+
+**锚句**：解结者须先报姓名。
+**Anchor sentence**: whoever unties it must first give their name.
+
+---
+
+## 其六 · 仍在
+
+灯篓空着。
+
+里面没有童衣，没有灯芯，也没有能交还给谁的东西。提手上的红绳仍缠着，结压在内侧，盐层沿篾纹结成薄壳。旧灯照不到它，白日里也看不清它原来的颜色。
+
+换班的人从灯前经过，按规矩看一眼灯篓，再在簿上写空置。有人写得太轻，墨被潮气拖开；有人写得太重，纸背留下凹痕。没有一页写绳结已经解开。
+
+那个孩子后来长大，名字没有添进七人那行。他来过记室一次，站在灯下，看了看提手，又把手收回袖中。抄簿人没有问他认不认得。
+
+潮汐仍按时进退。灯篓仍挂在那里。红绳褪到最后，只剩结心的一点颜色，像账页合上以后，纸里还压着一粒盐。
+
+**锚句**：篓空，结未动。
+**Anchor sentence**: the basket is empty; the knot has not moved.
+
+---
+
+## 模型映射（回响九章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 红绳 · 死结 · 旧灯篓 · 抄水簿 | 一至六 |
+| geography | 北堤 · 旧船坞 · 灯前 · 记室 | 一至六 |
+| factions | 抄水簿 · 七户人家 · 记室 | 一至六 |
+| characters | 陆守灯 · 孩子 · 抄簿人 · 换班的人 | 一至六 |
+| items | 童衣 · 红绳 · 旧灯篓 · 抄水簿 · 剪子 | 一至六 |
+| story | 雾港 · 灰棚 · 回响（其九） | 全篇 |
+| history | 铁月纪之后 · 灰棚之前 | 一至六 |
+
+> 结不解开，账不重新算；
+> 盐不说谎——它只把红磨成时间。
+>
+> The knot stays tied; the account stays shut;
+> the salt never lies — it only grinds red into time.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其九）「红绳」
+
+> An echo does not continue the canon — it only keeps its eyes on the faded red cord wound around the basket's handle.
+> Written for the knot no one has untangled in forty years.
+> Its anchors answer to the discipline of the ash and the covered ledger.
+>
+> 回响不替正典续写——它只盯着灯篓提手上那一截褪色的红绳。
+> 本篇写给那个四十年没有人解开的结。
+> 本篇锚句，与《灰后》《封面四字》同一纪律。
+
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+> 纪元：铁月纪之后 · 灰棚之前。
+
+---
+
+## I · Where It Came From
+
+The old basket had not been brought out of any storehouse. The storehouse threshold was low; a long split ran beneath the basket, and dragging it across the threshold would have left splinters in the wood. That split had never crossed the storehouse.
+
+Forty years ago, when the north dyke's tide was out, a derelict hulk drifted into the old dockyard — an empty basket, mouth down, its withes packed with black mud, its handle still sound. The man who carried it in was Lu Shousheng, keeper of the tide-log. That night he wrote: water down three feet, one old basket salvaged. He did not write where it came from.
+
+A red cord wound round the handle, once a bright red. It had been unpicked from the collar-line of a child's garment — whose garment, the log did not record. When Lu Shousheng shouldered the basket into the record room, the cord's tail dragged through the salt-water on the floor, and left a thin wet line behind him.
+
+In time the basket was hung before the old lamp. No oil fed it, no wick waited inside. Those who passed remembered only that it was empty, like a well that would not take water.
+
+**Anchor sentence**: the cord was entered before the basket.
+**锚句**：绳先于灯篓入账。
+
+---
+
+## II · The Knot
+
+The one who tied the knot was Lu Shousheng.
+
+That winter, the tide came up over the north dyke, and the lamp along it did not dim for a single night. By morning, seven households each sent one person, each reporting one missing. Lu Shousheng asked no one's name; he gathered the garments they brought and laid them into the basket. The collar of a child's garment was missing a length of red cord.
+
+He undid the cord from the handle, wound it across the withes, and wound it back to the handle. He pulled the knot very tight, tucking the cord's tail beneath the coil. People said it would not come undone. Lu Shousheng said: untie it, and everything scatters.
+
+He did not say what would scatter. Only the tide beat against the stone trough beneath the window. He tightened the knot once more, pressing his knuckles against the cord's end until the blood left his nail-beds.
+
+It was not a knot for hanging a lamp. It bore no weight; it secured nothing. It only bit two strands of cord into each other — so that neither strand could leave first.
+
+**Anchor sentence**: the knot was never meant to bear weight.
+**锚句**：死结不是为了承重。
+
+---
+
+## III · Salt
+
+The red cord was vivid at first. Later, damp came in from the wall-foot — soaking first the tail of the cord, then creeping across the knot's heart. At every high tide, salt-bloom gathered on the basket's floor; at every ebb, it settled on the handle, like lines no one had finished writing.
+
+For forty years, the red faded little by little. The salt did not bleach it white — it pressed the red down into a dark rust, like old blood steeped long in seawater. Deep in the knot's heart a thread of red still remained, too fine to make out.
+
+Night-watchers would come to dust the basket; none of them touched the cord. Ash settled onto the knot, drank the damp, and hardened it further. Once, someone wiped the handle with a damp cloth; the cloth came away flecked with salt, and the red did not return.
+
+From then on, the ledgers recorded salt, and not the cord. They recorded the empty basket, and never that the handle had not loosened.
+
+**Anchor sentence**: the tide changed only the color.
+**锚句**：潮水只改了颜色。
+
+---
+
+## IV · The Boy
+
+The boy who had written the seven names saw the knot.
+
+He had come to wait outside the record room. The door was not shut tight; the basket hung before the lamp, the knot dangling on the inner edge of the handle. He did not reach for it; he only watched the knot's heart for a long time. Later, on his paper, he wrote the seven names in a single line, and set no period at its end.
+
+Someone asked where he had seen that knot before. The boy said: on the collar of an old garment of his at home. The garment was long gone; his mother said it had gone with the tide. He remembered the collar had lacked a piece too, and that the missing place held two needle-holes — as if someone had torn it out, and then, in haste, sewn the thread back.
+
+He did not say he knew the cord; only that he knew the knot. The log-keeper wrote that down after the names, the paper's edge taking on a grey of dust. The seven names were not altered; the boy never added his own name.
+
+**Anchor sentence**: what the boy recognized was not a color.
+**锚句**：孩子认得的不是颜色。
+
+---
+
+## V · The Rule
+
+The record room had a rule: never undo an old knot.
+
+Undoing the cord meant reopening the old ledger. Once the ledger opened, the names of the seven households would have to be counted again; the ash before the lamp would have to be sifted again; the tide-height of that northern night would have to be re-entered. And then someone would have to set down, in ink, who was to write the lost, who was to claim the garments, and who was to admit that the basket held nothing.
+
+No one dared set that ink down.
+
+After Lu Shousheng died, his successors copied his hand, and kept his rule. Later keepers no longer remembered on which page the rule had begun — only that whenever the lamp was changed, the basket was to be hung back as it had been. The knot was not to be touched; the ash might be dusted, the handle might be wiped, the heart of the knot was not to be disturbed.
+
+Once, a visiting official ordered the cord cut. The shears were passed to the one holding them, and his hand stopped just short of the handle. The official asked again; no one answered. The shears were entered into the inventory later, their blades still unclosed.
+
+**Anchor sentence**: whoever unties it must first give their name.
+**锚句**：解结者须先报姓名。
+
+---
+
+## VI · Still Hung
+
+The basket is empty.
+
+Inside it are no garments, no wicks, nothing that can be handed back to anyone. The red cord remains wound on the handle, the knot low on its inner side, a crust of salt along the withes. The old lamp casts no light on it; in daylight, it is hard to tell what color it was.
+
+Those who changed shifts would pass the lamp and, per the rule, glance at the basket, then enter "empty" in the log. Some wrote so lightly the ink was dragged by the damp; some wrote so heavily the paper's back bore the mark. Not one page recorded that the knot had been undone.
+
+The boy grew up in time; his name was never added to the line of the seven. He came to the record room once, stood beneath the lamp, looked at the handle, and withdrew his hands into his sleeves. The log-keeper did not ask whether he recognized it.
+
+The tide continues its coming and going. The basket still hangs there. The cord has faded to the very last; only a point of color remains at the knot's heart — like the grain of salt pressed between pages after the ledger has closed.
+
+**Anchor sentence**: the basket is empty; the knot has not moved.
+**锚句**：篓空，结未动。
+
+---
+
+## Model mapping (echo No. 9)
+
+| Category | Title | Corresponds to |
+|---|---|---|
+| lore | The Red Cord · the Death Knot · the Empty Basket · the Tide-Log | I–VI |
+| geography | The North Dyke · the Old Dockyard · Before the Lamp · the Record Room | I–VI |
+| factions | The Tide-Log Office · the Seven Households · the Record Room | I–VI |
+| characters | Lu Shousheng · the Boy · the Log-keepers · the Shift-Workers | I–VI |
+| items | The Child's Garment · the Red Cord · the Empty Basket · the Tide-Log · the Shears | I–VI |
+| story | The Mist Harbor · the Grey Cover · Echo (No. 9) | whole |
+| history | After the Iron-Moon Age · Before the Grey Cover Was Laid | I–VI |
+
+> The knot stays tied; the account stays shut;
+> the salt never lies — it only grinds red into time.
+>
+> 结不解开，账不重新算；
+> 盐不说谎——它只把红磨成时间。
+`,
+  },
 ] as const;

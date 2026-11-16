@@ -5067,3 +5067,18 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - guide 全套对齐：七章 → 八章（zh/en ×6 处）；SHA pin 56f52187… 重钉。
 - 草稿出真 provider（gpt-6.1-terra），人工定稿·严纪律。
 - 门：fe-gates 123 套 · 1200/1200 OK；census 2541 OK；tsc 0。
+
+## cont. 177 (2026-11-17) - v807: 回响（其九）「红绳」—— 灯篓提手上那个四十年没人解的结
+
+- 新内容：`docs/world-bible/echoes/E09-红绳.md` + `.en.md`——盯着第七章灯篓提手上的褪色红绳：
+  红绳从一件童衣的襟口拆下（灯篓漂来、陆守灯打了死结、没人敢解）；
+  四十年盐把红磨成暗褐，结心仍留一线红；E08 里那个写七个名字的孩子见过它（"认得的不是颜色，是结"）；
+  记室的规矩：解绳=重开旧账——没有人敢落笔，剪子递到提手前也停了。
+- 锚句全系列 **99/99 全过**（verify:world-bible OK，zh+en 逐字）；gen:bible-snapshot（8 章 × 9 回响）字节一致；
+  live probe /bible/echo-009-the-red-cord 200（双语命中）；/bible hub 入册。
+- BibleQuiz **34 题**（+2 E09 双语题）；序列钉死 [..., 1, 1]；SHA pin 4a360834… 重钉。
+- guide 全套对齐：八回响 → 九回响 / eight echoes → nine echoes（zh/en ×6 处）；SHA pin d004aa3d… 重钉。
+- 草稿出真 provider（gpt-6.1-terra），人工定稿·严纪律。
+- 门：fe-gates 123 套 · 1200/1200 OK；census 2541 OK；tsc 0。
+- 附：8 个公开页面 DOM 级体检（水平溢出 / 裁切 / <10px 字 / 行高 / 不可见文字）全部 0 异常——
+  前端系统结构干净，本轮不做盲目 UI 改动。
