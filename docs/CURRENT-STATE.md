@@ -5332,3 +5332,25 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - 简明说明书（/guide）补齐「让 AI 读给你听」条目（zh/en 双语，典籍室章节）；guide SHA pin 重钉 59230d39…
 - 门：fe-gates 127 套 · **1225/1225**；census 2618 OK；tsc 0；bible reader SHA pin 重钉 9f9fae19…；新增 cdg-visual-style.test.ts（6 例）
 - 说明：模型在缓存命中的第二次调用直接 cached:true 返回——7 天 LRU 按章×语言键，每章只付一次 provider 账单
+
+## cont. 194 (2026-11-17) - v824: /notifications「AI 先读一下」——按实测计数排优先级的收件箱伴读（§新指令·LLM 深度嵌入续）
+
+- 新领域函数 `inboxKindHistogram(userId)`（server/domain/notifications.ts）：
+  只 SELECT kind + count(*) + count(*) filter(read_at is null)，group by kind——**不选 title/body/actor**（隐私红线，套件里有机械断言）
+- 新 API `POST /api/notifications/digest`：
+  - 输入仅 {locale}；计数由服务端按当前登录用户自算——客户端无从伪造，模型也看不到任何内容字
+  - gpt-6.1-terra 按"等你结论的 moderation/approval/team 优先于纯计数 like/follow"排顺序；每条判断必须带计数；缺数字即 502（模型空话不展示）
+  - 收件箱为空 → 直接返回 server-authored 空态文案（model: 'no-model (server-authored empty case)'，不消耗 provider）
+  - DEMO MODE → 409；未登录 → 401；每 IP+用户 20/小时；6h LRU（32 槽，键=用户|语言|计数签名）
+- 新 UI：`NotifTriage`（/notifications 收件箱非空时挂载，.ntg-* 命名）——展示摘要 + 喂给模型的计数 chips（可与页签对照复核）+ 常驻 disclaimer「AI 摘要 · 只看计数不看内容」
+- live E2E（真实注册→项目→邀请→接受→团队通知→AP 调用）：
+  - 匿名 → 401 not_authenticated ✓
+  - 用户 A 触发 team 通知后 POST zh → HTTP 200（gpt-6.1-terra，23.7s fresh）：histogram {"total":1,"unread":1,"kinds":[{"kind":"team","total":1,"unread":1}]}，摘要落在计数上（服务端缺数字即 502 的机械检查全绿）
+  - 同一请求重发 → cached:true（462ms，6h LRU 命中）
+  - 空收件箱用户 C → HTTP 200，model=no-model，英文空态原文："Your inbox is empty — nobody is waiting on you…"
+  - SSR /notifications（A 有未读）含 data-notif-triage-root · data-notif-triage-cta ✓
+- 运维记录：本轮 Docker Desktop 熄火一次（postgres/redis 拒绝连接）——手动拉起后恢复；期间所有 API 500（如实，未假装成功）；恢复后全绿
+- 简明说明书：/notifications tour 段（zh/en）补「AI 先读一下」；guide SHA pin 7513b6ff… 重钉
+- 门：fe-gates 128 套 · **1232/1232**；census 2638 OK；tsc 0；
+  notifications 集成套 33/33（DB 存活）；ntg-visual-style.test.ts 新增（7 例，含"模型输入只有 kind+计数、Domain·Route 均不触碰 title/body/actor"机械断言）
+- LLM 切面计数：6 块 → **7 块**（deep-read / editor-note / chapter-digest / notif-digest + whisper / StateGraph / 锚句回放）

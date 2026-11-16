@@ -5519,3 +5519,39 @@
   .cdg-button, .cdg-buttonPrimary { border-color: CanvasText; color: CanvasText; background: Canvas; }
   .cdg-button:focus-visible, .cdg-dismiss:focus-visible { outline: 2px solid Highlight; }
 }
+
+/* ──NOTIF-TRIAGE /notifications "AI 先读一下"（cont. 194）── 全部 tokens，零 hex */
+.ntg-root { display: flex; flex-direction: column; gap: 0.6rem; max-width: 54rem; margin-top: 0.9rem; padding: 1rem 1.25rem; background: var(--nexus-color-bg-2); border: 1px solid color-mix(in srgb, var(--nexus-color-accent-2-ink) 30%, var(--nexus-color-border-subtle)); border-radius: var(--nexus-radius-md, 0.75rem); }
+.ntg-kicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.22em; text-transform: uppercase; color: var(--nexus-color-accent-2-ink); margin: 0; }
+.ntg-title { font-size: 1.02rem; font-weight: 650; margin: 0; color: var(--nexus-color-fg-1); }
+.ntg-lede { margin: 0; font-size: 0.8rem; line-height: 1.7; color: var(--nexus-color-fg-3); }
+.ntg-loading { margin: 0; font-size: 0.9rem; color: var(--nexus-color-fg-2); }
+.ntg-error { margin: 0; font-size: 0.88rem; line-height: 1.6; color: var(--nexus-color-danger-ink); overflow-wrap: anywhere; word-break: break-word; }
+.ntg-digest { margin: 0; font-size: 0.95rem; line-height: 1.85; color: var(--nexus-color-fg-1); overflow-wrap: anywhere; word-break: break-word; }
+.ntg-basis { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.6rem 0.8rem; background: var(--nexus-color-bg-3); border-radius: var(--nexus-radius-sm, 0.5rem); }
+.ntg-basisTitle { margin: 0; font-family: var(--nexus-font-mono); font-size: 0.68rem; letter-spacing: 0.08em; color: var(--nexus-color-fg-3); overflow-wrap: anywhere; word-break: break-word; }
+.ntg-histo { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.ntg-chip { display: inline-flex; align-items: baseline; gap: 0.35rem; padding: 0.18rem 0.55rem; border: 1px solid var(--nexus-color-border-subtle); border-radius: 999px; }
+.ntg-chipKind { font-family: var(--nexus-font-mono); font-size: 0.72rem; color: var(--nexus-color-fg-2); }
+.ntg-chipCount { font-family: var(--nexus-font-mono); font-size: 0.72rem; color: var(--nexus-color-accent-2-ink); }
+.ntg-disclaimer { margin: 0; font-family: var(--nexus-font-mono); font-size: 0.68rem; color: var(--nexus-color-fg-3); overflow-wrap: anywhere; word-break: break-word; }
+.ntg-row { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
+.ntg-button { font: inherit; cursor: pointer; font-size: 0.85rem; padding: 0.42rem 1rem; border-radius: 999px; border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-1); transition: border-color 140ms, color 140ms; }
+.ntg-button:hover { border-color: var(--nexus-color-accent-2-ink); color: var(--nexus-color-accent-2-ink); }
+.ntg-button:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+.ntg-buttonPrimary { border-color: var(--nexus-color-accent-2-ink); color: var(--nexus-color-accent-2-ink); font-weight: 600; }
+.ntg-dismiss { font: inherit; cursor: pointer; font-size: 0.8rem; padding: 0.3rem 0.6rem; background: transparent; border: none; color: var(--nexus-color-fg-3); }
+.ntg-dismiss:hover { color: var(--nexus-color-fg-1); }
+.ntg-dismiss:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+.ntg-footRow { display: flex; justify-content: space-between; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+.ntg-meta { margin: 0; font-family: var(--nexus-font-mono); font-size: 0.68rem; color: var(--nexus-color-fg-3); overflow-wrap: anywhere; word-break: break-word; }
+
+@media (forced-colors: active) {
+  .ntg-root { border-color: CanvasText; background: Canvas; color: CanvasText; }
+  .ntg-basis { border: 1px solid CanvasText; background: Canvas; }
+  .ntg-kicker, .ntg-lede, .ntg-loading, .ntg-digest, .ntg-meta, .ntg-chipKind, .ntg-basisTitle, .ntg-disclaimer { color: CanvasText; }
+  .ntg-chipCount, .ntg-kicker { color: Highlight; }
+  .ntg-chip { border-color: CanvasText; }
+  .ntg-button, .ntg-buttonPrimary { border-color: CanvasText; color: CanvasText; background: Canvas; }
+  .ntg-button:focus-visible, .ntg-dismiss:focus-visible { outline: 2px solid Highlight; }
+}
