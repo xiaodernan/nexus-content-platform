@@ -5473,3 +5473,12 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - 运维记录：Docker 又两次熄火-自复活——首次 500（ECONNREFUSED）后自愈，之后全链路同一会话打通（
   register→discover→visits→interest→SSR），全部真实数据落库
 - LLM 切面计数：8 块 → **9 块**
+
+## cont. 200 (2026-11-17) - v830: §新指令·四「深度剖析大模型能力在项目智能流转中的作用」+ 分支整合复核（§二）
+
+- 新增 **docs/LLM-STATE-FLOWS.md**：20 个 LLM 调用点全量盘点（9 个用户可感知切面 + 6 个 web 管线工位 + 5 个 ai-service 供应线工位），
+  状态流转类型学（A 只读 / B 提案→人审→CommandStack / C 提交-推进-对账 / D 故意不接 LLM 的状态），全部实测数字（cont. 178：prefix-cache 6724/6724=100%）+ 现状诚实差距（/admin 车道面板、Studio 真浏览器验证、真图/真视频 provider…）
+- **§二 分支整合复核**：`git worktree list` = 仅主树；`git branch -a` 唯一本地分支 = master；`remotes/other/master13|14|15`（HEAD=dc20411a）已证实是 dc20411a（cont. ~96, v703-705）的**合并祖先**——
+  无未整合工作；stale 引用保留（零数据损失风险）；master ≡ main ≡ 1cccf9a4（本片之前）
+- **§十一 压力证据复核**：docs/evidence/stress-pulse-ai-2026-11-17.* · load-web-ssr-2026-11-17.* · load-redis-completion-cache-2026-11-17.* 均存在（2026-11-17）
+- 支线    全绿：fe-gates 130 套 · 1245/1245 · census 2663 · master ≡ main
