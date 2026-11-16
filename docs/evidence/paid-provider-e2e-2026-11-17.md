@@ -163,3 +163,44 @@ top#3="查看器夹具mvsj0rjc" path=/n/u77901fa3/查看器夹具mvsj0rjc views=
 ```bash
 cd apps/web && npx tsx scripts/insight-analyze-e2e.mts   # 前提：:8131 sidecar（Clash 7897 节点）
 ```
+
+---
+
+## §PROVED-5 — ANALYTICS-AI live E2E（2026-11-17 · v843 · 创作者数据→大模型解读）
+
+真实 provider × 真实已发布项目（dev 库一条真 `published_projects` 行，`moderation='pending'` · 封面为空 · views=8 · visitors=1 · days=3）。
+sidecar `:8131` 跑通：tsx 脚本里 import `buildCreatorFact(projectId, ownerId)`，把真实《CreatorFact + 3 条规则化 finding》整成 digest。
+
+**Digest（原文摘录，模型唯一所见）**（真库读出，不是手编）：
+```
+CREATOR FACT DIGEST
+project="发过作品又被收的s29mwedsxvi草稿0" visibility=public moderation=pending
+description=EMPTY
+hasCoverImage=false hasGame=false daysSincePublish=3
+views=8 opensToday=1 visitors=1 visitorsToday=1
+likes=0 remixes=0 followers=0
+completionAvgPct=80.0% completionOver=1
+playTimeMs=42000 cappedReports=0
+completedVisitors=0 botCompletions=0 botOpens=1 botVisitors=2
+selfOnly=false selfCompleted=false
+TITLE_LIMIT=60 chars allowed: 22 used
+RULE FINDINGS (3 items):
+finding#1 area=settings ...finding#2 area=description ...finding#3 area=thumbnail ...
+END OF FACT DIGEST
+```
+
+**模型回答（原文 · capability=real · `gpt-6.1-terra` · tokensIn=5 024 · tokensOut=241 · reasoningTokens=110 · ms 7 503）**：
+
+> ① 数据显示：作品公开 3 天，累计 8 次浏览、1 位访客（不是只有作者自己）；目前没有封面图，分享卡片也没有图片。审核状态仍为 pending。
+> ② 没有封面的分享卡片缺少视觉信息，可能降低点击意愿；当前访客数只有 1 位，但数据不足以确认原因。
+> ③ **今天只做一件事：给首屏添加一张实际显示的图片作为封面。**之后观察新增访客数是否上升；目前的访客基线是 1 位。
+
+**解读价值**：
+- 模型从 digest 里精确读出 `moderation=pending`、`hasCoverImage=false`、`views=8`、`visitors=1`、`daysSincePublish=3`——数值与 findings 原样同口径；
+- 给出的单一动作就是 **adding a cover image**——不是"做内容""搞流量"废话，是**本平台内可立即执行、且直接与 `og:image` 口径对齐**的下一步；
+- 它显式拒绝了过度、"improve UX"那类句式；reasoningTokens 110 显示它把推理放在了事实推断上，不是事实编造。
+
+**诚实限定**：这是本开发环境里自种的 fixture 草稿（publish 时间仅 3 天，moderation=pending 未裁决）；结论只指向这条记录，**不**构成对真实产品的结论。
+token 费用：≈ 5 000 input，本页面该功能的用户按钮 10/h/IP + CSRF + creator-only 锁（cookie）保护——与 marketing metric "real"一致。
+
+**复现**：`cd apps/web && npx tsx scripts/analytics-ai-e2e.mts <projectId> <ownerId>`（前提：:8131 sidecar ·Clash 7897 节点；本机网关代理）

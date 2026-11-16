@@ -67,7 +67,9 @@ function cssNoComments(css: string): string {
 }
 
 /** 去掉注释后的真实代码——契约门/结构钩子门锚它，注释不得喂绿（CRIT-1）。 */
-const code = cssNoComments(page);
+const AICA = join(ROOT, 'apps/web/src/components/AnalyticsAiNarrator.tsx');
+const aica = readFileSync(AICA, 'utf8');
+const code = cssNoComments(page + '\n' + aica);
 
 function anRules(css: string): string[] {
   return cssNoComments(css)
@@ -160,7 +162,7 @@ const anReducedMotionBody = (() => {
 })();
 
 /** 双段 JS 逻辑哈希：段 A = 文件头到 `function Cell`；段 B = creatorAnalytics 到 publicationTrend 取数链（段 B 与 v782 之前逐字节一致）。 */
-const SEG_A_SHA256 = 'b6013374e65410f77928f79dd8ec07c8a246f0fea482a01aed9ca73a7e712f3f'; // v782 i18n：DEFINITIONS/COPY 双语化重钉
+const SEG_A_SHA256 = 'f00fbef0ae6cd72c9eb102b3b1f2edabe5e3fad94fdd518b2f245674a8aee6df'; // v842 §169-AI：仅增加 import
 const SEG_B_SHA256 = 'dd0dd3ea30bac4961283608be32bbd8f398b4dcb2ff318f32fe69f813c065f63';
 
 /**
@@ -171,7 +173,7 @@ const SEG_B_SHA256 = 'dd0dd3ea30bac4961283608be32bbd8f398b4dcb2ff318f32fe69f813c
  * 与改后（.an-）必须**逐字节恒等**，从而证明"除 className 字面值外一个字节都没动"。
  * 与双段哈希互补：双段锚原样字节（段 A/B 本就零 className），此门锚剥类后的**整份**文件。
  */
-const STRIP_CLASS_SHA256 = '9545e9d26b25e174363bd000f89eb877e08fe885c5b121fb51bdc0298ae57bce';
+const STRIP_CLASS_SHA256 = '96f352193768dbb263bc3b1409644fff4400517c884402cfa40345157e99df38'; // v842 §169-AI：仅增 import + 注入 AnalyticsAiNarrator JSX（零 className 变更、零文案变更）
 function stripClassNames(src: string): string {
   const s = src.replace(/\r\n/g, '\n');
   // 三元/表达式：保留条件与 ? :，只把引号字面量归一；再吞静态 className="…"
@@ -307,6 +309,7 @@ describe('§FE-14 创作数据页门面（静态不变式）', () => {
       'data-analytics-selfonly', 'data-analytics-self-completed', 'data-analytics-self-interactive-completed',
       'data-analytics-capped', 'data-analytics-bots', 'data-analytics-bot-completions',
       'data-analytics-bot-interactive-completions', 'data-analytics-interactive', 'data-analytics-value',
+      'data-analytics-ai-narrator', 'data-analytics-ai-button', 'data-analytics-ai-output', 'data-analytics-ai-honest', 'data-analytics-ai-badge',
     ];
     const missing = expected.filter((h) => !code.includes(h));
     expect(missing, `结构/判据钩子丢了：${missing.join(', ')}`).toEqual([]);

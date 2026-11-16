@@ -155,6 +155,17 @@ export const METRICS = {
     labels: { outcome: ['answer'] },
     buckets: DURATION_BUCKETS,
   },
+  nexus_analytics_narrate_total: {
+    kind: 'counter',
+    help: '/api/analytics/agent-narrate 走到终态的次数（含 provider 不可用——绝不静默）',
+    labels: { outcome: ['answer', 'provider-unavailable'] },
+  },
+  nexus_analytics_narrate_latency_ms: {
+    kind: 'histogram',
+    help: '/api/analytics/agent-narrate 从进路由到回流的毫秒数（含 provider 往返）',
+    labels: { outcome: ['answer'] },
+    buckets: DURATION_BUCKETS,
+  },
   nexus_http_errors_total: {
     kind: 'counter',
     help: 'Next 服务器捕获到的未处理请求错误数（instrumentation.onRequestError）',

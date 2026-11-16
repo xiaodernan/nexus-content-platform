@@ -14443,3 +14443,16 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - `nexus_insight_analyze_total{answer,provider-unavailable}` + latency meter：§ metric catalog 同步扩展。
 - 3 条新门：route behavior（mock provider：403/200/503/digest-视角断言）、digest behavior（纯函数门：aggregate-only 禁止泄漏规则可测）、visual-gate 扩充挂钩（s8 + insg-ai* 定义+引用+forced-colors）。
 - fe-gates **131/131 · 1252/1252 · census 2554** ✓。
+
+## §CREATOR-AI — /analytics 创作者读账大模型解读（2026-11-17 · v843）
+
+- 新 `/analytics` 段内嵌 `AnalyticsAiNarrator`：「让大模型看看我的数据」/「Let the model read my stats」。
+- 新 API POST `/api/analytics/agent-narrate`：csrf + `ipWriteGate('analytics/agent-narrate')` 10/h + requireCreator；
+  `buildCreatorFact` 生产**零个人字段** digest（名称/visibility/moderation/天数/§168 数字/selfOnly/selfCompleted/规则发现三条）→ provider；
+  provider 不可用 → 503 原话不伪造；新增 `nexus_analytics_narrate_total{answer,provider-unavailable}` + `_latency_ms`。
+- **Live E2E 证据**：真库唯一真 published_projects 真读（无缓存 replay）→ gpt-6.1-terra 抓住
+  `moderation=pending`、`hasCoverImage=false`、`days=3`、`views=8`、`visitors=1`——
+  给出「先补封面图」这一**平台内可立即执行且 og:image 口径对齐**的单一动作；evidence §PROVED-5。
+- gates：digest behavior · route behavior（mock provider）· AnalyticsAiNarrator visual（hook+classes .an-aiNarrator）；
+  analytics-visual-style SEG_A 重钉（its own import-only projection）。
+- fe-gates **133/133 · 1260/1260 · census 2564** ✓。

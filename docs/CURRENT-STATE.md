@@ -4465,3 +4465,10 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 新 API 10/h IP gate + CSRF + insight cookie；§159/§160 纪律全默认开。
 - evidence：§PROVED-4；fe-gates 131/131 · census 2554。
 - sibling :8000 未触碰；v842 后 showcase 会同步（连带 v841b 之后所有改动）。
+
+## cont. 208 (2026-11-17) — v843 · §CREATOR-AI /analytics 大模型解读
+
+- /analytics agent 面板内加 `AnalyticsAiNarrator`：「让大模型看看我的数据」。
+- 新 API `agent-narrate`：creator cookie + csrf + 10/h；digest 零个人字段；503 原话。
+- evidence §PROVED-5：真实库 + 真 provider + 精确 finding → 「先补封面图」；tokensIn 5 024。
+- fe-gates 133/133 · census 2564；sibling :8000 未触碰；sidecar 用完即停。
