@@ -120,7 +120,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           '/marketplace 组件市场：浏览作者挂牌的东西、看谁买过、买下或退货；市场里卖的东西每一件都有真实结算路径。',
           '/invites/<token> 接受队伍邀请：项目成员从 Studio 的 Team 面板发出邀请链接，接受后成为协作者（席位有上限；过期邀请不再占席）。',
           '/api-tokens 自建机器人：给 CI/脚本一枚令牌，就能用程序化方式读写你的内容与作品；/tasks 里能看到每个云端任务的真实排队与状态。',
-          '/ship 每日交付日志 · /notifications 收件箱 · /analytics 你的作品数据 · /pulse 观测大厅（平台全站聚合匿名，口令 123）· /observatory 公共观测大厅（带规则外推预测的公开围观，口令 123）· /credits 你的额度账本——每个都是真实数据页。',
+          '/ship 每日交付日志 · /notifications 收件箱 · /analytics 你的作品数据 · /pulse 观测大厅（平台全站聚合匿名，口令 123）· /observatory 公共观测大厅（带规则外推预测的公开围观，口令 123；AI 深读：让大模型基于实测聚合数字起草四条按可操作性排序的优化建议，含依据/收益/下一步）· /credits 你的额度账本——每个都是真实数据页。',
         ],
       },
       {
@@ -249,7 +249,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           '/marketplace — the components bazaar: browse what authors have listed, see who bought what, buy or refund; everything listed has a real settlement path.',
           '/invites/<token> — accept a team invite: project members send invite links from the Studio Team panel; accepted collaborators hold a seat (seats are capped; expired invites stop holding one).',
           '/api-tokens — mint a token for CI/scripts to read and publish your content programmatically; /tasks shows the real queue and state of every cloud task.',
-          '/ship daily delivery log · /notifications inbox · /analytics your works’ stats · /pulse the observatory hall (whole platform, aggregated & anonymous, passphrase 123) · /observatory the public observation hall (rule-projected, public, passphrase 123) · /credits your quota ledger — all real data pages.',
+          '/ship daily delivery log · /notifications inbox · /analytics your works’ stats · /pulse the observatory hall (whole platform, aggregated & anonymous, passphrase 123) · /observatory the public observation hall (rule-projected, public, passphrase 123; AI deep-read: the model drafts four actionability-ranked optimization suggestions from the measured aggregates, with basis / impact / next steps) · /credits your quota ledger — all real data pages.',
         ],
       },
       {
