@@ -5425,4 +5425,294 @@ Later, the beam was replaced; the old nail left behind a black hole. The scale w
 > 它只把每一份过完，就回梁上。
 `,
   },
+  {
+    order: 12,
+    slug: 'echo-012-the-bowl',
+    titleZh: '碗',
+    titleEn: 'The Bowl',
+    eraLineZh: '纪元：铁月纪之后 · 灰棚之前。',
+    eraLineEn: 'Era: after the Iron-Moon Age · before the grey cover was laid.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 12): The Bowl
+
+> 回响不替正典续写——它只盯着第九章里那只盛灰的旧瓷碗。
+> 本篇写给盖住余灰之后，两只碗之间那条细暗缝。
+> 本篇锚句，与《秤》《钥匙》同一纪律。
+>
+> An echo does not continue the canon — it only keeps its eyes on the old porcelain bowl that held the ash in Chapter IX.
+> Written for the thin dark seam between the two bowls that closed over the remnant.
+> Its anchors answer to the same discipline as the scale and the keys.
+
+> 纪元：铁月纪之后 · 灰棚之前。
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 其一 · 来处
+
+那只碗原先不在这间屋里。
+
+它从外祖母家的灶间来。那家拆掉时，桌板先抬走，柜子留到最后。妻子把碗从柜底取出，碗里有一层陈年的面粉，擦净后，才看见白釉发青。没有人记得它是哪一年烧的，也没人说得清它原本属于谁。旧账上只写着：瓷一只，留。
+
+搬进这间屋时，碗沿已经磕过两处。一处在靠近柄似的宽边，豁口浅，手指掠过只会停一下；另一处在正对门的地方，缺得深，釉皮往里卷，像一粒被咬下的盐。妻子洗碗时，总把那处转向墙。后来她不再转了。
+
+碗底有一道旧黑线，洗不去。每逢添水，线便从釉下浮出来，像潮退后留在石上的痕迹。它不妨碍盛饭，也不漏。家里没有人把它放进破瓷堆。它一直在灶边，口朝上，等着下一次被拿起。
+
+**锚句**：旧物没有姓氏。
+**Anchor sentence**: old things have no surname.
+
+---
+
+## 其二 · 两道裂
+
+碗口那道裂，不是磕碰留下的。它从深处生出来，细细一线，穿过釉面，在缺口旁停住。妻子用指甲试过，裂缝不进指甲。她把碗放到耳边，什么也没听见。
+
+盆底也有一道缝。盆是搪瓷的，边缘掉了漆，缝藏在盆心偏外的地方。水用到半盆，缝便暗下去；水倒空，灰又慢慢显出来。两道裂不挨着，家里却总把它们放在一处：碗在盆边，盆在窗下。
+
+灰进了缝，便不肯出来。
+
+妻子用湿布擦盆，布过一遍，缝里还是有灰；再过一遍，灰似乎更深。她没用针去挑，也没把盆拿到外头倒扣。那条缝挨着底，像是从底下来的。碗口的裂也是这样，顺着烧成时留下的细纹，往釉里藏。灰落上去，不响；水经过，也不响。
+
+此后，每次扫屋，盆底总留一层薄灰。碗沿也有。她把它们当作旧物的分量，没有逐次清点。灶火熄了，屋里仍有灰。门开时，外头的潮气进来，缝却没有合上。
+
+**锚句**：裂处留灰。
+**Anchor sentence**: the crack keeps ash.
+
+---
+
+## 其三 · 盛灰
+
+那日秤完了，妻子把旧瓷碗从灶边拿下来。
+
+她没有先擦碗，也没有把碗放到干净处。屋里扫过一遍，桌面仍有灰。她用一张折起的纸，沿着桌面刮过，将表面的一层收起来。纸的边缘很快发软，她的手停得稳，没有把下头的旧灰一并刮起。
+
+她先盛表面的一层灰。
+
+灰落进碗里，轻得听不见。她的手从桌面移到碗口，纸角对着碗内，灰便顺着那道裂落下去。没有扬起烟。只在碗沿落了一圈暗痕，贴着旧釉，经过两处磕碰，又在最深的缺口旁断开。
+
+她把纸折好，放回原处。那圈暗痕留在碗沿，像盐水干后的一道边。碗里只有薄薄一层，遮不住底下黑线。妻子端着它，没叫人让路，也没有把碗举高。她走得很慢，灰没有滑向一边。
+
+盆还在窗下。盆底那道缝里，旧灰未动。她把碗搁在桌角，碗口朝上，等着屋里的事办完。后来秤盘收起，秤砣放回抽屉，纸上的数没有留在桌上。
+
+**锚句**：灰没有惊动屋子。
+**Anchor sentence**: the ash did not disturb the house.
+
+---
+
+## 其四 · 盖下
+
+余灰倒进瓷碗时，窗外正涨潮。
+
+妻子把纸上的余灰倒完，又把盆底积着的一点刮起，一并送进碗里。纸角沿着碗内转过半圈，碰到裂缝时停了一下。灰填住碗底的黑线，也盖住最深的磕口。她没有把碗装满，仍留出一截白釉，露在灰上。
+
+之后，她拿来另一只碗，倒扣在瓷碗上。两只碗的口沿相接，碰出一声钝响。上面的碗颜色更白，底部有一圈褐印，像旧水退到边沿。她对齐两只碗，没有压紧。裂开的那处留在外面，正对着盆底那道缝。
+
+那几日，水汽从盆壁起来。屋里潮，桌脚发软，窗纸贴着木框。灰凉下来，先是表面不再松动，后来连边缘也沉住。倒扣的碗盖在上面，碗底沾了水汽，又慢慢干了。没有水滴落下。
+
+没人挪动那只碗。
+
+它在桌上待着，旁边的饭碗照常拿起，盆也照常用。人经过时会绕开桌角，不碰上面的碗。潮气退了又来，碗与碗之间没有亮光，只有一条细细的暗线，从口沿走到最深的缺口。灰在里面，一日一日凉下去。
+
+**锚句**：盖下无声。
+**Anchor sentence**: beneath the cover, no sound.
+
+---
+
+## 其五 · 手
+
+孩子是在一个早晨摸到碗沿的。
+
+他先摸到上面那只碗的底，手掌贴着褐印，停了一会儿。碗没有动。他低下头，看见两只碗相扣的地方露出一圈旧釉，灰不在外面，白也不在外面。桌面边有一小道水迹，已经干了。
+
+他不敢掀开。
+
+手指沿着口沿往前，碰到瓷碗的磕碰处，便压在那里。那处缺口比别处深，边缘磨得圆了，仍能按出一点凹陷。孩子把力气放轻，又放重。指腹压在磕碰处，像压住一道不再发声的门。
+
+他没有问碗里是什么。妻子站在灶旁，把水倒进锅里。水声盖过了屋里的其余声响。孩子听见锅底碰到灶沿，手指仍压在那处缺口上，直到指尖发白。
+
+后来他松手，碗没有移位。碗沿留下一个浅浅的指印，潮气没把它留下多久。孩子离开桌边，绕过盆，脚底没有踩到灰。那道裂仍在两只碗之间，细得像没有开过。
+
+**锚句**：手停在旧缺处。
+**Anchor sentence**: the hand stops at the old chip.
+
+---
+
+## 其六 · 沉默
+
+屋梁换过之后，桌子也移过位置。
+
+旧梁抬下时，木屑落到地上，没人扫进碗里。新梁安好，屋顶压实，雨声便不再从梁缝里漏下来。桌角挪近墙边，上面的两只碗没有分开。妻子用布擦桌，擦到碗旁便收手。盆底的缝仍在窗下，里面也存着灰。
+
+碗内的灰在盖下结住了。
+
+它不再浮，不再跟着屋里走动。那只倒扣的碗压着它，褐印朝上，瓷面无缺。下头的旧碗仍有两处磕碰，口沿那道裂没有合拢。灰结在里面，贴住碗底，也贴住那道细缝。桌子偶尔受潮，碗沿起一圈暗色；等风干，暗色便退回釉里。
+
+有人来过，问桌上的两只碗要不要收走。妻子说不用。来人没有伸手。屋里只剩梁木的气味，窗外的潮水进退，盆壁干了又湿。没人称它，也没人揭开它。数目留在旧纸上，碗没有进秤。
+
+后来那张纸不见了。桌上的碗还在。灰在盖下结牢，裂口没有再长，磕碰处也没有补釉。屋梁压住屋顶，瓷碗压住灰。碗守住了沉默。
+
+**锚句**：未揭之物不入账。
+**Anchor sentence**: what remains unrevealed enters no ledger.
+
+---
+
+## 模型映射（回响十二章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 旧瓷碗 · 裂缝 · 盆底的搪瓷盆 · 盖下的余灰 | 一至六 |
+| geography | 一个普通人家的灶间 · 窗下 · 桌角 · 石阶 | 一至六 |
+| factions | 一户人家 | 一至六 |
+| characters | 妻子 · 孩子 | 一至六 |
+| items | 旧瓷碗 · 倒扣的碗 · 搪瓷盆 · 折纸 · 裂缝 | 一至六 |
+| story | 灰后 · 带灰回家 · 回响（其十二） | 全篇 |
+| history | 铁月纪之后 · 灰棚之前 | 一至六 |
+
+> 碗不揭开——
+> 它只是继续盛着沉默，直到没人再问为什么。
+>
+> The bowl is never lifted —
+> it only holds the silence a little longer, until no one asks why.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其十二）「碗」
+
+> An echo does not continue the canon — it only keeps its eyes on the old porcelain bowl that held the ash in Chapter IX.
+> Written for the thin dark seam between the two bowls that closed over the remnant.
+> Its anchors answer to the same discipline as the scale and the keys.
+>
+> 回响不替正典续写——它只盯着第九章里那只盛灰的旧瓷碗。
+> 本篇写给盖住余灰之后，两只碗之间那条细暗缝。
+> 本篇锚句，与《秤》《钥匙》同一纪律。
+
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+> 纪元：铁月纪之后 · 灰棚之前。
+
+---
+
+## I · Where It Came From
+
+The bowl had not started in this house.
+
+It had come from the grandmother's kitchen. When that house was torn down, the table-boards went first; the cupboards stayed until last. The wife drew the bowl from beneath the cabinet; a layer of aged flour coated it; once wiped clean, the white glaze showed green. No one remembered the year it had been fired, or whose it had been before. The old ledger said only: one porcelain piece, kept.
+
+When it arrived in this house, the bowl's rim already bore two chips. One lay near the wide edge that seemed almost a handle — shallow, the finger passing over it with only a pause. The other faced the door full on — deeper, the glaze curling inward, like a grain of salt bitten through. When the wife washed dishes, she turned that side toward the wall. Later, she stopped turning it.
+
+The bowl's base carried an old black line that no wiping could lift. Fill the bowl with water, and the line surfaced from beneath the glaze, like the tide-mark left on stone after the sea has withdrawn. It did not hinder meals; it did not leak. No one in the house put it among the broken porcelain. It stayed at the stove's side, mouth upward, waiting for its next turn to be lifted.
+
+**Anchor sentence**: old things have no surname.
+**锚句**：旧物没有姓氏。
+
+---
+
+## II · Two Cracks
+
+The crack along the mouth had not come from chipping. It had grown from within — a fine thread through the glaze, stopping beside the deeper chip. The wife tried it with a fingernail; the crack admitted no nail. She held the bowl to her ear; she heard nothing.
+
+The basin's base held a seam as well. The basin was enamel, its edges shed of paint; the seam hid within the inner floor, a little off-centre. Filled to half, the seam went dark; emptied, the ash surfaced again. The two cracks did not touch each other — yet in the house they were always kept together: the bowl beside the basin, the basin beneath the window.
+
+Ash found its way into the seam and would not come out.
+
+The wife wiped the basin with a damp cloth — one pass, the seam still held ash; another, the ash seemed deeper. She did not pick at it with a needle; she did not turn the basin over outdoors. The seam lay close against the base, as if it had come from underneath. The crack on the bowl ran the same way — following the fine thread left from the firing, retreating into the glaze. Ash settled on it without a sound; water passed over it without a sound.
+
+After that, each time the house was swept, a thin film of ash remained in the basin's floor. The bowl's rim kept some as well. She took these as the weight of old things; she never tallied them one by one. The stove's fire died, yet ash remained in the house. When the door opened, the damp came in from outside — the seam did not close.
+
+**Anchor sentence**: the crack keeps ash.
+**锚句**：裂处留灰。
+
+---
+
+## III · The Serving
+
+That day, once the weighing had finished, the wife took the old porcelain bowl down from beside the stove.
+
+She did not wash it first, nor set it on a clean place. The house had already been swept; the table still held ash. She took a folded sheet of paper, worked along the table's surface, and gathered the outermost layer in. The paper's edge soon went soft; her hand remained steady, and she did not sweep the older dust beneath up with it.
+
+She served the surface-layer of ash first.
+
+The ash fell into the bowl without a sound. Her hand moved from the table to the bowl's mouth; the paper's corner angled inward; the ash followed the crack downward. No smoke rose. Only a dark ring along the rim, clinging to the old glaze, crossing two chips and breaking off beside the deepest one.
+
+She folded the paper away and set it back in its place. The dark ring remained along the rim, like the edge salt-water leaves behind when it dries. The bowl held only a thin layer, scarcely hiding the black line beneath. She carried it, asking no one to make way, never lifting it high. She walked slowly; the ash did not slip to one side.
+
+The basin stayed beneath the window. The old ash in its seam had not moved. She set the bowl at the table's corner, mouth up, and waited for the house's business to finish. Later the scale-pan was put away, the weight returned to the drawer; the numbers on the paper did not stay on the table.
+
+**Anchor sentence**: the ash did not disturb the house.
+**锚句**：灰没有惊动屋子。
+
+---
+
+## IV · Beneath the Cover
+
+When the remnant ash was poured into the porcelain bowl, the tide outside was rising.
+
+The wife emptied everything from the paper, then scraped what had pooled at the basin's floor and sent it along with the rest. The paper's corner turned half a circle inside the bowl's wall, stopping once at the crack. The ash filled the black line at the base, and covered the deepest chip as well. She did not fill the bowl to the brim; a span of white glaze remained, rising above the ash.
+
+Then she took another bowl and set it mouth-down over the porcelain one. The two rims met with a dull note. The upper bowl was whiter; its base carried a ring of brown, like old water withdrawn to the edge. She aligned the two bowls without pressing. The cracked place was left outward, facing the seam in the basin's floor.
+
+Those days, mist rose from the basin's walls. The room was damp; the table-legs went soft; the window-paper clung to its frame. The ash cooled — first the surface loosened no more; in time, even the edges settled in place. The overturned bowl lay on top of it; its base drank the damp, then dried again. No drops fell.
+
+No one moved that bowl.
+
+It stayed on the table; beside it, the rice bowl was lifted as usual, the basin used as usual. People going past skirted the table's corner, not touching the upper bowl. The damp came and went; no light shone between the two bowls — only a thin dark seam, running from the rim to the deepest chip. Within, the ash cooled day by day.
+
+**Anchor sentence**: beneath the cover, no sound.
+**锚句**：盖下无声。
+
+---
+
+## V · The Hand
+
+The boy touched the rim of the bowl one morning.
+
+He first laid his palm against the upper bowl's base, staying against the brown ring a moment. The bowl did not move. He bent his head and saw, in the place where the two bowls embraced, a ring of old glaze — ash not outside, white not outside. A thin dry line of water ran along the table's edge, already dry.
+
+He did not dare lift it.
+
+His fingers travelled along the rim, and came to the chip on the porcelain bowl, and pressed there. That chip ran deeper than the others; its edges were worn round, yet still gave under pressure. The boy let his strength soften, then let it firm. His fingertip pressed the chip the way one presses a door that no longer sounds.
+
+He did not ask what was inside. The wife was at the stove, pouring water into the pot. The water's sound covered everything else in the room. The boy heard the pot's base knock against the stove's edge; his fingers kept their place on the chip until they whitened at the tips.
+
+Afterwards he let go. The bowl had not shifted. A faint fingerprint marked the rim; the damp did not keep it long. The boy left the table's side, passing around the basin, his soles not touching the ash. The crack remained between the two bowls, fine as a door never opened.
+
+**Anchor sentence**: the hand stops at the old chip.
+**锚句**：手停在旧缺处。
+
+---
+
+## VI · The Silence
+
+After the beam was replaced, the table was moved as well.
+
+When the old beam was lifted down, wood-dust spilled across the floor; no one swept it into the bowl. The new beam went up, the roof pressed tight, and rain no longer leaked down through the seams. The table's corner drew nearer the wall; the two bowls on it were not parted. The wife wiped the table with a cloth; when she reached the bowls, she drew her hand back. The basin's seam remained beneath the window, still holding its ash.
+
+Within the bowl, the ash had set beneath its cover.
+
+It no longer floated, no longer travelled with the room. The overturned bowl pressed on it, the brown ring facing up, its surface whole. The old bowl beneath still carried two chips; the crack at its rim had not closed. The ash set within it, against the base, against the fine seam. Whenever the table drank the damp, a dark ring rose along the rim; when the air dried again, it retreated into the glaze.
+
+Someone once came by, and asked whether the two bowls on the table were to be taken away. The wife said there was no need. The visitor did not reach for them. The house kept the smell of new beam-wood, the sea's coming and going through the door; the basin's wall dried, then drank, then dried again. No one weighed it; no one uncovered it. The numbers remained on the old paper; the bowl never went to the scale.
+
+Later the paper was gone. The bowls remained on the table. The ash under the cover had set fast; the crack had not grown; the chips had not been mended. The beam bore the roof; the porcelain bore the ash. The bowl kept its silence.
+
+**Anchor sentence**: what remains unrevealed enters no ledger.
+**锚句**：未揭之物不入账。
+
+---
+
+## Model mapping (echo No. 12)
+
+| Category | Title | Corresponds to |
+|---|---|---|
+| lore | The Old Bowl · the Crack · the Enamel Basin · the Covered Remnant | I–VI |
+| geography | One household's kitchen · the Window-side · the Table-corner · the Steps | I–VI |
+| factions | One household | I–VI |
+| characters | The Wife · the Boy | I–VI |
+| items | The Old Porcelain Bowl · the Overturned Bowl · the Enamel Basin · the Folded Paper · the Crack | I–VI |
+| story | After the Ash · Ash Carried Home · Echo (No. 12) | whole |
+| history | After the Iron-Moon Age · Before the Grey Cover Was Laid | I–VI |
+
+> The bowl is never lifted —
+> it only holds the silence a little longer, until no one asks why.
+>
+> 碗不揭开——
+> 它只是继续盛着沉默，直到没人再问为什么。
+`,
+  },
 ] as const;

@@ -5160,3 +5160,19 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - guide 全套对齐：十回响 → 十一回响（zh/en ×6 处）；guide 游戏介绍从 111 改 117 句；SHA pin edc3133e… 重钉。
 - 草稿出真 provider（gpt-6.1-terra），人工定稿·严纪律。
 - 门：fe-gates 124 套 · 1207/1207 OK；census 2571 OK；tsc 0。
+
+## cont. 183 (2026-11-17) - v813: 回响（其十二）「碗」—— 盖住余灰之后，两只碗之间那条细暗缝
+
+- 新内容：`docs/world-bible/echoes/E12-碗.md` + `.en.md`——盯着第九章里盛灰的旧瓷碗一生：
+  碗从外祖母灶间来，两处磕；旧账只写着「瓷一只，留」·
+  碗口那道裂从深处生出来（裂缝不进指甲，耳边也没响）；盆底也有一道缝——灰进了缝便不肯出来 ·
+  盛灰：表面一层、没有扬烟，只在碗沿落一圈暗痕 ·
+  余灰倒进瓷碗时窗外正涨潮——另一只倒扣的碗盖上，边沿相接，碰出一声钝响 ·
+  孩子早晨摸到碗沿，手停在旧缺处，没有掀开 ·
+  屋梁换过之后，两只碗仍相扣着放——灰结牢了，碗守住了沉默。
+- 锚句全系列 **123/123 全过**（verify:world-bible OK，zh+en 逐字）；gen:bible-snapshot（9 章 × 12 回响）字节一致；
+  verify:anchor-echo 字节一致（123 句）；live probe /bible/echo-012-the-bowl 200（双语命中）；/bible hub 入册。
+- BibleQuiz **42 题**（+2 E12 双语题）；序列钉死 [..., 1, 1]；SHA pin d4fe3f62… 重钉。
+- guide 全套对齐：十一回响 → 十二回响（zh/en ×6 处）+ 游戏介绍 117 句 → 123 句；SHA pin 30a4a629… 重钉。
+- 草稿出真 provider（gpt-6.1-terra），人工定稿·严纪律。
+- 门：fe-gates 124 套 · 1207/1207 OK；census 2571 OK；tsc 0。

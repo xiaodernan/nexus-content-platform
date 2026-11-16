@@ -227,6 +227,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《秤》里，孩子在桌沿上划了几条浅痕？', choices: ['五条', '六条', '七条', '八条'], answer: 2, ref: '回响十一 · 五' },
     en: { prompt: 'In “The Scale”, how many grooves did the boy mark along the table’s edge?', choices: ['five', 'six', 'seven', 'eight'], answer: 2, ref: 'Echo No. 11 · V' },
   },
+  {
+    zh: { prompt: '《碗》里，妻子盛灰时，灰……？', choices: ['扬起了烟', '没有扬起烟，只在碗沿落下一圈暗痕', '烧焦了', '散落一地'], answer: 1, ref: '回响十二 · 三' },
+    en: { prompt: 'In “The Bowl”, as she serves the ash, the ash…?', choices: ['rises as smoke', 'rises not at all, leaving only a dark ring along the rim', 'scorches', 'falls everywhere'], answer: 1, ref: 'Echo No. 12 · III' },
+  },
+  {
+    zh: { prompt: '《碗》里，孩子摸碗沿时，手……？', choices: ['掀开了碗', '停在旧缺处，没敢掀开', '把灰倒出去了', '打破了碗'], answer: 1, ref: '回响十二 · 五' },
+    en: { prompt: 'In “The Bowl”, when the boy touches the rim, his hand…?', choices: ['lifts the bowl open', 'stops at the old chip; it never lifts the bowl', 'pours the ash out', 'breaks the bowl'], answer: 1, ref: 'Echo No. 12 · V' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

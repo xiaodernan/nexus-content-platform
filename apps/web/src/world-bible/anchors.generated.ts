@@ -710,5 +710,41 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "en": "hung back on the beam; the account still has not closed.",
     "refZh": "回响（其十一） · 六",
     "refEn": "Echo No. 11 · VI"
+  },
+  {
+    "zh": "旧物没有姓氏。",
+    "en": "old things have no surname.",
+    "refZh": "回响（其十二） · 一",
+    "refEn": "Echo No. 12 · I"
+  },
+  {
+    "zh": "裂处留灰。",
+    "en": "the crack keeps ash.",
+    "refZh": "回响（其十二） · 二",
+    "refEn": "Echo No. 12 · II"
+  },
+  {
+    "zh": "灰没有惊动屋子。",
+    "en": "the ash did not disturb the house.",
+    "refZh": "回响（其十二） · 三",
+    "refEn": "Echo No. 12 · III"
+  },
+  {
+    "zh": "盖下无声。",
+    "en": "beneath the cover, no sound.",
+    "refZh": "回响（其十二） · 四",
+    "refEn": "Echo No. 12 · IV"
+  },
+  {
+    "zh": "手停在旧缺处。",
+    "en": "the hand stops at the old chip.",
+    "refZh": "回响（其十二） · 五",
+    "refEn": "Echo No. 12 · V"
+  },
+  {
+    "zh": "未揭之物不入账。",
+    "en": "what remains unrevealed enters no ledger.",
+    "refZh": "回响（其十二） · 六",
+    "refEn": "Echo No. 12 · VI"
   }
 ] as const;
