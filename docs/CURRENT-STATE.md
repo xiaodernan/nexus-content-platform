@@ -4376,3 +4376,8 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 
 - 新回响 E17（中英双文件 + 映射表）；verify:world-bible ✓ 100/100；快照 4+17 回响。
 - 世界 4+17；E17 特写祠殿后方横路径上的浮木——里巷子给它起了「鲸」的绰号，从没人劈它。
+
+## cont. 194 (2026-11-17) — v829 · 回响 · 其十八《祠殿里从不叫的一只猫》
+
+- 新回响 E18（中英双文件 + 映射表）；verify:world-bible ✓ 105/105；快照 4+18 回响。
+- 世界 4+18；这是第一只出现在潮候院叙事里的动物。

@@ -14284,3 +14284,11 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   5 锚句 zh/en 全局唯一（100/100）。
 - `gen-bible-snapshot.mts` 登记 `echo-017-the-driftwood-nobody-split`；快照重生成（4+17 回响）。
 - verify:world-bible ✓ 100/100；verify:bible-snapshot ✓。
+
+## §BIBLE-29 — 回响 · 其十八《祠殿里从不叫的一只猫》（2026-11-17 · v829）
+
+- 产出：`docs/world-bible/echoes/E18-祠殿里从不叫的一只猫.md`（中）/ `.en.md`（英）——祠殿后经常出没的那只猫：
+  潮候院没有哪一页写过它的名字；潮起时看潮沙盘、潮落时蹲米缸；没人喂它，没人收养，没人把它当标志。
+  5 锚句 zh/en 全局唯一（105/105）。
+- `gen-bible-snapshot.mts` 登记 `echo-018-the-cat-in-the-institute-that-never-meowed`；快照重生成（4+18 回响）。
+- verify:world-bible ✓ 105/105；verify:bible-snapshot ✓。
