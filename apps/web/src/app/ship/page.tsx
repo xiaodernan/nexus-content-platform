@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { getLocale } from '@/lib/i18n';
 import { SHIP_DAYS } from '../../lib/ship-manifest';
+import { ShipDigest } from '@/components/ShipDigest';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,6 +73,13 @@ function kindOf(subject: string): string {
   return 'feat';
 }
 
+const SHIP_DIGEST_INPUT = (() => {
+  const flat = days.flatMap((d) => d.entries.map((e) => ({ kind: kindOf(e.subject), subject: e.subject, date: d.date })));
+  const counts: Record<string, number> = {};
+  for (const e of flat) counts[e.kind] = (counts[e.kind] ?? 0) + 1;
+  return { shownDays: days.length, totalCommits: COMMIT_TOTAL, adrs: ADR_TOTAL, counts, latest: flat.slice(0, 12) };
+})();
+
 export default async function ShipPage() {
   const locale = await getLocale();
   const copy = COPY[locale];
@@ -111,6 +119,8 @@ export default async function ShipPage() {
             .replace('{R}', String(counts.refactor ?? 0))}
         </p>
       </header>
+
+      <ShipDigest input={SHIP_DIGEST_INPUT} locale={locale} />
 
       <div className="sh-spine" data-ship-spine>
         {shownDays.map((day) => (

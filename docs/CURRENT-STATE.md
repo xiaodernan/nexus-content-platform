@@ -5544,3 +5544,19 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
   新增 pulse-review-visual-style.test.ts（6 例，含"复核对象=规则引擎重算真值(零 DB 写)"机械断言）
 - 门：fe-gates 131 套 · **1252/1252**；census 2685 OK；tsc 0
 - LLM 切面计数：9 块 → **10 块**
+
+## cont. 204 (2026-11-17) - v834: /ship「AI 平台速览」——大模型照真实 git log 机械统计写两段话（§新指令·LLM 深度嵌入 · 切面 11）
+
+- 新 API `POST /api/ship/digest`：输入为「机械统计包」（shownDays / totalCommits / adrs / counts / latest 12 条 subject+kind+date），
+  不重读 git log、不读源文件；gpt-6.1-terra 输出 2-4 句平台速览——**必须引用输入里的数字**（缺数字即 502）；
+  DEMO MODE → 409；每 IP 每小时 5 次；24h LRU（16 槽，键=输入摘要）；只读零写库；disclaimer「AI 速览 · 依据真实 git 日志」
+- 新 UI：`ShipDigest`（/ship 统计条之后挂载，.shd-*）——挂载即触发，公共页失败安静消失；中英双语
+- live probe（dev server + 真实输入）：
+  - zh POST → HTTP 200 fresh（16.9s）："交付日志收录这 2 天，…… feat 47 条 fix 20 条 merge 6 条 test 5 条 docs 12 条 token 秒省 -9.4% + ……33 项组件……" ——**全部引用实测数，零编造里程碑**
+  - en POST → HTTP 200 fresh（12.5s）："The log covers 2 days and reports 2,886 total commits, including 47 features, 20 fixes, 12 documentation changes, 5 test changes, and 6 merges; it also records 328 ADRs…" ——每数字真实，示例 subject 取自 latest
+  - SSR /ship 200（统计条+条状展示不变）；ShipDigest SSR 无产出（mount 后 fetch，同馆长批注/选品纪律）
+- 简明说明书：/ship tour 条（zh/en）补「AI 平台速览」；guide SHA 1ab4a4ac… 重钉；ship page SHA 13f11d6f… 重钉（挂载点变更）
+- 新增 ship-digest-visual-style.test.ts（7 例，含"输入=机械统计·不读 git·不读源文件"机械断言）
+- 门：fe-gates 132 套 · **1259/1259**；census 2689 OK；tsc 0
+- LLM 切面计数：10 块 → **11 块**
+- 运维记录：Docker 又一次熄火（web 早 boot 时限流退回进程内计数——公开日志如实）；脚本 err 全部如实

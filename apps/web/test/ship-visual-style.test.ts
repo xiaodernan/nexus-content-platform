@@ -112,7 +112,7 @@ describe('§FE-Ship /ship 交付日志', () => {
 
   it('SHA256 钉死（本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '193325359a4b5e594b0a6262b705af071e62b82c32cffc87dfb4dc11c48ee8d8',
+      '13f11d6f4b28091d54373936a7a2569d0ab62a58afb3795144edd9eabe430288',
     );
   });
 });

@@ -5641,3 +5641,15 @@
   .pr-button, .pr-buttonPrimary { border-color: CanvasText; color: CanvasText; background: Canvas; }
   .pr-button:focus-visible, .pr-dismiss:focus-visible { outline: 2px solid Highlight; }
 }
+
+/* ──SHIP-DIGEST /ship "AI 平台速览"（cont. 204）── 全部 tokens，零 hex */
+.shd-strip { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 1rem; padding: 0.9rem 1.1rem; background: var(--nexus-color-bg-2); border: 1px solid color-mix(in srgb, var(--nexus-color-accent-2-ink) 30%, var(--nexus-color-border-subtle)); border-radius: var(--nexus-radius-md, 0.75rem); }
+.shd-kicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.22em; text-transform: uppercase; color: var(--nexus-color-accent-2-ink); margin: 0; }
+.shd-digest { margin: 0; font-size: 0.88rem; line-height: 1.8; color: var(--nexus-color-fg-1); overflow-wrap: anywhere; word-break: break-word; }
+.shd-disclaimer { margin: 0; font-family: var(--nexus-font-mono); font-size: 0.68rem; color: var(--nexus-color-fg-3); overflow-wrap: anywhere; word-break: break-word; }
+
+@media (forced-colors: active) {
+  .shd-strip { border-color: CanvasText; background: Canvas; color: CanvasText; }
+  .shd-kicker, .shd-digest, .shd-disclaimer { color: CanvasText; }
+  .shd-kicker { color: Highlight; }
+}
