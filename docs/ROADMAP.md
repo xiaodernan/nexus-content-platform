@@ -14083,3 +14083,12 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - 接线两管线：`RpgPlay`（RPG 成长线）与 `GamePlay`（2D/3D/探索/解谜 全部画法）— `locale` 从 RSC 下传（`/game/<id>` 与公开可玩页 `/n/<handle>/<slug>/play`）。
 - `§G2-TUT .g2-tut*`（7 类全零 hex）；新门 7 条（钩子、双语构、只认 g2-tut*、§G2-TUT 全定义、forced-colors、var() 全声明、账户内不承诺完成率）；
   重钉 game/rpg/PlayByKind/public-play/runtime-pages SHA 五门；fe-gates **124/124 · 1214/1214**；census 2370 OK。
+
+## §ONBOARD — 上手漫游 /onboarding（2026-11-16 / v798）
+
+用户指令：「给出新用户的简单新手教程快速上手演示，教会用户怎么玩、怎么用。」+ 第七条原话不作为文档而嵌入产品。
+- 新增公开页 `/onboarding`：6 步「从一句话到一台发布物」（想清楚 → 建项目 → Studio 画布 → ⌘/Ctrl+S 快照 → 发布 → /discover 找回），
+  每步卡有真实链接、「我做完了」按钮、顶部进度条+实数计数、隐私模式诚实回退（不伪造已持久化）；进度重来按钮（清 localStorage）。
+- 入口：/map §③ 创作的日常新增上手漫游卡；/guide（InAppGuide 抽屉）中英各补 /onboarding 一行。
+- Zero provider / zero fetch / zero image / 双语 zh/en 同键；RSC 壳 + generateMetadata（en 不泄漏中文描述）。
+- Gates：fe-gates 125/125 · 1223/1223；census 2394 OK；tsc web 0；SSR zh/en 200 实测。

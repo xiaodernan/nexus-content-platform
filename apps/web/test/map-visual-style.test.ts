@@ -26,7 +26,7 @@ const MAP_START = globals.indexOf('§MAP-1');
 if (MAP_START < 0) throw new Error('globals.css 里没有 §MAP-1 段');
 const mapSegment = globals.slice(MAP_START);
 
-const REQUIRED_ROUTES = ['/bible', '/bible/quiz', '/bible/well', '/about-nexus', '/', '/discover', '/marketplace', '/blocks', '/ship', '/analytics', '/credits', '/notifications', '/u', '/api-tokens', '/search', '/guide', '/insight', '/admin', '/admin/savings'];
+const REQUIRED_ROUTES = ['/bible', '/bible/quiz', '/bible/well', '/about-nexus', '/', '/discover', '/marketplace', '/blocks', '/ship', '/analytics', '/credits', '/notifications', '/u', '/api-tokens', '/search', '/guide', '/insight', '/admin', '/admin/savings', '/onboarding'];
 
 describe('§MAP-2 /map 世界全图', () => {
   it('RSC + force-dynamic + metadata + locale', () => {

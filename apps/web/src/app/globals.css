@@ -5173,4 +5173,46 @@
   .g2-tutPanel, .g2-tutToggle { border-color: CanvasText; background: Canvas; }
   .g2-tutToggle, .g2-tutTitle, .g2-tutStep, .g2-tutNote { color: CanvasText; border-color: CanvasText; }
   .g2-tutToggle:focus-visible { outline-color: Highlight; }
+}/* ── §OV-1 /onboarding 上手漫游视觉层 ── */
+.obv-root { min-height: 100dvh; padding: var(--nexus-space-6) clamp(var(--nexus-space-4), 6vw, var(--nexus-space-8)); background: radial-gradient(900px 480px at 12% -8%, color-mix(in srgb, var(--nexus-color-accent-mix) 30%, transparent) 0%, transparent 60%), radial-gradient(700px 420px at 100% 8%, color-mix(in srgb, var(--nexus-color-accent-2) 18%, transparent) 0%, transparent 60%), var(--nexus-color-bg-0); color: var(--nexus-color-fg-1); }
+.obv-hero { max-width: 64rem; margin: 0 auto; }
+.obv-kicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.3em; text-transform: uppercase; color: var(--nexus-color-accent-mix); }
+.obv-title { font-size: var(--nexus-font-size-28); font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; background: linear-gradient(135deg, var(--nexus-color-fg-1) 0%, var(--nexus-color-accent-mix) 52%, var(--nexus-color-accent-1) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.obv-lede { max-width: 46rem; margin-top: var(--nexus-space-2); font-size: var(--nexus-font-size-13); line-height: 1.8; color: var(--nexus-color-fg-2); }
+.obv-tour { max-width: 64rem; margin: var(--nexus-space-6) auto 0; display: flex; flex-direction: column; gap: var(--nexus-space-4); }
+.obv-progressRow { display: flex; align-items: center; gap: var(--nexus-space-3); }
+.obv-progressBar { flex: 1; height: 0.5rem; border-radius: 999px; background: var(--nexus-color-bg-2); overflow: hidden; }
+.obv-progressFill { display: block; height: 100%; background: linear-gradient(90deg, var(--nexus-color-accent-mix), var(--nexus-color-accent-2)); transition: width 400ms var(--nexus-motion-ease); }
+.obv-progressText { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); font-variant-numeric: tabular-nums; }
+.obv-stepList { display: flex; flex-direction: column; gap: var(--nexus-space-2); list-style: none; padding: 0; }
+.obv-stepCard { display: flex; flex-direction: column; gap: var(--nexus-space-2); padding: var(--nexus-space-3) var(--nexus-space-4); border: 1px solid var(--nexus-color-border-subtle); border-left: 3px solid var(--nexus-color-accent-mix); border-radius: var(--nexus-radius-md); background: var(--nexus-color-bg-1); transition: border-color 160ms var(--nexus-motion-ease); }
+.obv-stepCard.obv-stepDone { border-left-color: var(--nexus-color-success); }
+.obv-stepHead { display: flex; align-items: center; gap: var(--nexus-space-3); }
+.obv-stepTick { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-16); color: var(--nexus-color-accent-mix); }
+.obv-stepDone .obv-stepTick { color: var(--nexus-color-success); }
+.obv-stepTitle { font-size: var(--nexus-font-size-16); font-weight: 700; color: var(--nexus-color-fg-1); letter-spacing: -0.01em; }
+.obv-stepBody { font-size: var(--nexus-font-size-13); line-height: 1.75; color: var(--nexus-color-fg-2); padding-left: 1.75rem; }
+.obv-stepActions { display: flex; align-items: center; gap: var(--nexus-space-3); padding-left: 1.75rem; flex-wrap: wrap; }
+.obv-stepCta { font-size: var(--nexus-font-size-13); font-weight: 600; color: var(--nexus-color-accent-2-ink); text-decoration: none; }
+.obv-stepCta:hover { text-decoration: underline; }
+.obv-stepCta:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+.obv-stepToggle { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); background: transparent; border: 1px solid var(--nexus-color-border-strong); border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-1) var(--nexus-space-3); cursor: pointer; }
+.obv-stepToggle:hover { color: var(--nexus-color-fg-1); }
+.obv-stepToggle:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+.obv-stepDone .obv-stepToggle { color: var(--nexus-color-success); border-color: color-mix(in srgb, var(--nexus-color-success) 55%, transparent); }
+.obv-reset { align-self: flex-start; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); background: transparent; border: none; text-decoration: underline; cursor: pointer; padding: 0; }
+.obv-reset:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+.obv-foot { max-width: 64rem; margin: var(--nexus-space-6) auto 0; display: flex; justify-content: space-between; gap: var(--nexus-space-4); align-items: baseline; flex-wrap: wrap; border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-4); }
+.obv-footNote { font-size: var(--nexus-font-size-11); line-height: 1.8; color: var(--nexus-color-fg-3); max-width: 38rem; }
+.obv-footLink { font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-2-ink); text-decoration: none; }
+@media (max-width: 48rem) {
+  .obv-stepBody, .obv-stepActions { padding-left: var(--nexus-space-3); }
+}
+@media (forced-colors: active) {
+  .obv-stepCard { border-color: CanvasText; background: Canvas; }
+  .obv-title, .obv-lede, .obv-footNote, .obv-footLink, .obv-stepTitle, .obv-stepBody, .obv-stepTick, .obv-stepCta, .obv-stepToggle, .obv-kicker, .obv-progressText { color: CanvasText; -webkit-text-fill-color: CanvasText; background: none; border-color: CanvasText; }
+  .obv-stepCta, .obv-footLink { text-decoration: underline; }
+  .obv-progressBar { border: 1px solid CanvasText; background: Canvas; }
+  .obv-progressFill { background: Highlight; }
+  .obv-stepToggle:focus-visible, .obv-stepCta:focus-visible, .obv-reset:focus-visible { outline-color: Highlight; }
 }

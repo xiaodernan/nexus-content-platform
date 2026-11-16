@@ -58,6 +58,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         heading: '④ 学习与照料 · 说明书、教程、问答',
         body: '任何时候点 Studio 顶栏「帮助」（⌘/F1），整册说明书就压在你眼前；这里是它们的完整目录。',
         links: [
+          { path: '/onboarding', labelKey: 'onboarding' },
           { path: '/guide', labelKey: 'guide' },
         ],
       },
@@ -114,6 +115,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         heading: '4 · Study & care · the manual, the tutorial, the FAQ',
         body: 'Press “Help” in the Studio top bar (or F1) and the whole manual lands in your hands; this is its complete index.',
         links: [
+          { path: '/onboarding', labelKey: 'onboarding' },
           { path: '/guide', labelKey: 'guide' },
         ],
       },
@@ -147,6 +149,7 @@ const LABELS = {
   creators: { zh: '创作者主页 · 按 handle 公开的作品墙', en: 'Creator home — public work wall by handle' },
   apiTokens: { zh: 'API 令牌 · API tokens', en: 'API tokens' },
   search: { zh: '全平台搜索 · Search', en: 'Search' },
+  onboarding: { zh: '上手漫游 · 6 步从一句到一作', en: 'Onboarding — 6 steps, one word to one work' },
   guide: { zh: '使用指南 · User Guide', en: 'User Guide' },
   insight: { zh: '观察哨 · Insight（口令 123）', en: 'Insight (passcode 123)' },
   admin: { zh: '管理台 · Admin（role=admin）', en: 'Admin console (role=admin)' },

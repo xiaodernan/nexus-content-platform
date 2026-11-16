@@ -4109,3 +4109,16 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 新段 `§G2-TUT .g2-tut*`（7 类，零 hex；forced-colors 收口）；新门 `game-tutorial-visual-style.test.ts`（7 条）。
 - Gates：fe-gates **124/124 · 1214/1214**；census **2370** OK（先 git add 新文件补引用方）；tsc web 0；
 - 重钉 SHA（FE-96/97 与 FE-98/75/24）；lint clean（pre-commit）。
+
+## cont. 165 (2026-11-16) — v798: 上手漫游 /onboarding · 新用户的 60 秒直通车
+
+- 用户指令：「给出新用户的简单新手教程、快速上手教程演示，教会用户怎么玩、怎么用。」
+- 新增公开页 `/onboarding`：6 步走（①想清楚一句话 ②建项目 ③Studio 画画布 ④Ctrl/⌘+S 快照 ⑤发布 ⑥在 /discover/ship 找回第一台作品），
+  每步卡片带「→ 去那一步」真实链接 + 「我做完了」按钮；勾选进度按 localStorage 计数（破坏隐私模式 → 当前会话记忆，诚实不假装已记）；
+  顶部金色进度条 + 实数计数（6/6）全部来自已勾选项本身（不画假完成率）。
+- 全站入口都指路：/map §③ 创作的日常新增 /onboarding 卡；/guide 中英各补 /onboarding 一节（InAppGuide 抽屉同步拉出）。
+- RSC 壳 + generateMetadata（按 cookie 双语 title/description——en 不再泄漏 zh 描述）；client `OnboardingTour`（6 步双语 STEPS、零 provider/fetch）；
+- §OV-1 .obv-*（~20 类，零 hex，forced-colors 收口）；新门 `onboarding-visual-style.test.ts`（9 条：RSC+client、钩子、localStorage try/catch 守恒、
+  只认 .obv-*、§OV-1 定义齐、forced-colors、var() 全声明、进度实数计数）。/map 段链接 + 路由守恒同步加 /onboarding。
+- Gates：fe-gates **125/125 · 1223/1223**；census **2394** OK；tsc web 0；SSR 实测 /onboarding zh/en 200（en 页面 meta description 已无 zh）。
+- showcase 同步于提交后。
