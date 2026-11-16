@@ -5560,3 +5560,12 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - 门：fe-gates 132 套 · **1259/1259**；census 2689 OK；tsc 0
 - LLM 切面计数：10 块 → **11 块**
 - 运维记录：Docker 又一次熄火（web 早 boot 时限流退回进程内计数——公开日志如实）；脚本 err 全部如实
+
+## cont. 205 (2026-11-17) - v835: §七 说明书覆盖补洞——/guide 补「馆长批注」（EditorNotes 的 Discover 荐语）
+
+- §七 要求"里面简明描述用户如何充分体验、使用项目的所有完整功能"——audit 11 个 LLM 切面的 /guide 覆盖：10/11 都找到词条，
+  **馆长批注（/discover trending 榜前三的 AI「为什么值得打开」荐语，cont. 192）双语全部缺席**——补齐：
+  - zh tour 条（/discover 为你推荐 条目尾）补「馆长批注：trending 榜前三由 AI 照三条真实指标（浏览/赞/评/转/热度分）各写一句为什么值得打开，每条必含数字」
+  - en tour 条镜像补充
+- guide SHA c3115cc2… 重钉；guide-visual-style 7/7 ✓
+- 运维记录：本片无新行为，无门变更
