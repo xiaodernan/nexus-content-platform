@@ -21,6 +21,7 @@ function health(over: Partial<HealthResponse> = {}): HealthResponse {
     llmCache: null,
     llmLatency: null,
     llmFlight: null,
+    llmLive: null,
     ...over,
   };
 }

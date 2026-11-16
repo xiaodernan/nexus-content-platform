@@ -35,6 +35,15 @@ interface PulseBody {
     visitorDaysDelta: number | null;
   };
   recommendations: { zh: string; en: string; basis: string }[];
+  warnings: { kind: string; zh: string; en: string; basis: string }[];
+  hot: {
+    publicationId: string;
+    projectName: string;
+    path: string;
+    opensCurr: number;
+    opensPrev: number;
+    velocityPct: number;
+  }[];
   generatedAt: string;
 }
 
@@ -72,6 +81,12 @@ const COPY = {
     recommendations: '读数在动的方向——下一步优化建议',
     recommendationBasis: '触发依据',
     recommendationNote: '规则写在前台（不装"AI"）：每一条都标注了触发它的那条读数。',
+    warningsTitle: '需要留意',
+    warnBasis: '触发依据',
+    warningsCalm: '这一窗口没有危险信号——流量、来源、人·天都在安全线上。',
+    hotTitle: '谁在变热',
+    hotDelta: '速度',
+    hotEmpty: '最近没有速度翻倍的作品——推广没回路，自然不会起量。',
     footNote: '数字全部聚合匿名：不含邮箱、不含名称、不含 id、不按副本/实例拆开。人·天 = 一个访客在一天内被计为一行（不叫"活着的用户数"）。',
     generatedAt: '聚合生成于',
     hour: '小时',
@@ -109,6 +124,12 @@ const COPY = {
     recommendations: 'Where the numbers are moving — the next optimizations',
     recommendationBasis: 'triggered by',
     recommendationNote: 'The rules live in the open (no "AI" costume): each suggestion cites the readout that triggers it.',
+    warningsTitle: 'Watch out',
+    warnBasis: 'triggered by',
+    warningsCalm: 'No danger signals in this window — flow, sources, person-days all on safe ground.',
+    hotTitle: 'Warming up',
+    hotDelta: 'velocity',
+    hotEmpty: 'Nothing doubled its speed recently — no distribution loop, no lift.',
     footNote: 'Everything shown is aggregated and anonymous: no emails, no names, no ids, nothing per replica. Person-day = one anonymous visitor counted once per day — not an estimate of active users.',
     generatedAt: 'aggregated at',
     hour: 'hrs',
@@ -319,6 +340,40 @@ export function PulseGate({ locale = 'zh' }: { locale?: Locale }) {
                 </li>
               ))}
             </ol>
+          </section>
+
+          <section className="pl-warnings" data-pl-warnings aria-label={c.warningsTitle}>
+            <h2 className="pl-recsTitle">{c.warningsTitle}</h2>
+            {body.warnings.length === 0 ? (
+              <p className="pl-recsNote" data-pl-warnings-calm>{c.warningsCalm}</p>
+            ) : (
+              <ol className="pl-recList">
+                {body.warnings.map((warn, index) => (
+                  <li key={index} className="pl-warn" data-pl-warn={warn.kind}>
+                    <span className="pl-recText">{locale === 'en' ? warn.en : warn.zh}</span>
+                    <span className="pl-recBasis">{c.warnBasis}: {warn.basis}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+
+          <section className="pl-hot" data-pl-hot aria-label={c.hotTitle}>
+            <h2 className="pl-recsTitle">{c.hotTitle}</h2>
+            {body.hot.length === 0 ? (
+              <p className="pl-recsNote" data-pl-hot-empty>{c.hotEmpty}</p>
+            ) : (
+              <ol className="pl-hotList">
+                {body.hot.map((item) => (
+                  <li key={item.publicationId} className="pl-hotItem" data-pl-hotitem>
+                    <span className="pl-hotName">{item.projectName}</span>
+                    <span className="pl-hotMeta">
+                      {c.hotDelta}: {item.velocityPct >= 0 ? '+' : ''}{Math.round(item.velocityPct)}%（{formatInteger(item.opensCurr, locale)} vs {formatInteger(item.opensPrev, locale)}）
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
           </section>
 
           <footer className="pl-foot">

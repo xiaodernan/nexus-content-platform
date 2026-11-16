@@ -44,7 +44,6 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         ],
       },
       {
-      {
         heading: 'AI 是怎么在这里说话的？（StateGraph 小课）',
         body: [
           '遇到 AI 改设计时，请求会坐两条车道之一：车道 A 直发 /v1/ai/run；车道 B 走一条可推演的**状态图**——LangGraph 的显式状态机：validate（校验输入）→ check_provider（按 modelClass 选档模型）→ build_prefix（拼装稳定前缀，为了让 provider 前缀缓存打中）→ call_llm（真正打 gpt-6.1-terra）→ cache_read（命中即跳过 provider）→ parse_and_release（补丁合法性校验）→ assemble（组装契约响应）。任何失败直通 END——绝不空转。',
@@ -169,7 +168,6 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           'Stuck? Press ? to read the cheatsheet, or jump back to section ④ (games) / ⑤ (quota & DEMO MODE) right here.',
         ],
       },
-      {
       {
         heading: 'How does AI "speak" here? (StateGraph in one minute)',
         body: [

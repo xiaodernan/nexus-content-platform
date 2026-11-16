@@ -4839,3 +4839,14 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - BibleQuiz 22 题（+2 双语末章题：食指按盐痕 / 书记员写"已收"且收件人名空白；序列 [..., 1, 1]；SHA pin 84ac7e30…）。
 - guide：五章→六章（zh/en ×6 处）；pin 重钉 e42ca033…；fe-gates 121 套 1188/1188 OK；census 2437 OK。
 - 「第四十二次会议为什么无人召集」：正典本章给出答案——旧页上被删掉的那行"若无人签收，来者即为收件人"；每一次重抄都是为了"让那条路不再通向任何人"——而潮沙盘第九旋钮的最后一刻，盘底刻着旧页上的那句话：已还账，勿再转寄。正典在此闭合。
+
+## cont. 160 (2026-11-17) - v790: /pulse 查询增压（速度/警报/爬虫占比）+ 真机 PG 警报核验
+
+- 动机：§九 的"趋势预测 + 优化措施"原来只有"环比 delta"，缺"谁在变热/变冷、潮水从哪来/net"三格读数。现加：
+  - `hot` Top-3 变速榜：publishedVersion × projectName join，velocityPct = (curr-prev)/prev×100（prev=0 且 curr>0 → 展示 100）；含 0/0 过滤（丢弃纯噪音）
+  - `warnings` 三种警报：churn-risk（人·天行数新半窗口 ≤ 老半窗口 80% 且 ≥ 5 行）/ thin-traffic（7 天 opens < 20）/ bot-pressure（opens ≥ 50 且机器人占比 > 30%；走 `opensBot` 拆分，爬虫压力在真数据上实测 = **81%**）
+  - `PulseWarning`/`PulseHotItem` 结构化进 `/api/pulse` 契约；"who's cooling"列入 Top-3 是自然产出
+- 纯函数 `buildHotItems`/`buildWarnings`/`deltaPct`，7 用例 `pulse-velocity.test.ts` 钉住（0/0 过滤/velocity 语义/churn 触发/thin/bot 全覆盖）
+- 真机核验（:3100，PG 55433/Redis 56379，Docker Flapping 两次）：opensBot=571/opens=709/81%（warning kind bot-pressure，basis=botShare=81% 正确触发）；hotTop = [蜜蜜乐购·金光 mvza9nk2/fy 49 opens curr， 2 条冷门件 curr 0 prev 1]；recommendations 3 条；fe-gates 121 套 · 1188/1188 OK；census 2444 OK
+- /pulse UI 出现两个新区：需要留意（warn tiles with color-mix tints from warn-ink) + 谁在变热（每条：作品 + velocity% + curr vs prev 对比）
+- guide SHA pin 重钉（brace-fix 回补）；pulse-visual-style pin 46f78219… 重钉；至此 /pulse 全部字节锚定

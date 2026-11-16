@@ -5220,3 +5220,11 @@
 .pl-footNote { color: var(--nexus-color-fg-2); font-size: 0.85rem; line-height: 1.6; margin: 0; }
 .pl-footStamp { color: var(--nexus-color-fg-3); font-size: 0.75rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; margin: 0; font-variant-numeric: tabular-nums; }
 @media (prefers-reduced-motion: reduce) { .pl-gateButton:hover { filter: none; } }
+
+/* §PULSE-2 watch-outs & warming (gated render only after unlock) */
+.pl-warnings, .pl-hot { background: var(--nexus-color-bg-2); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md, 0.75rem); padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; }
+.pl-warn { display: grid; gap: 0.3rem; background: color-mix(in srgb, var(--nexus-color-warn-ink) 8%, var(--nexus-color-bg-3)); border: 1px solid color-mix(in srgb, var(--nexus-color-warn-ink) 35%, var(--nexus-color-border-subtle)); border-radius: var(--nexus-radius-sm, 0.5rem); padding: 0.8rem 1rem; }
+.pl-hotList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.pl-hotItem { display: flex; justify-content: space-between; align-items: center; gap: 1rem; background: var(--nexus-color-bg-3); border-radius: var(--nexus-radius-sm, 0.5rem); padding: 0.7rem 0.9rem; }
+.pl-hotName { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-hotMeta { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem; color: var(--nexus-color-accent-2-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }

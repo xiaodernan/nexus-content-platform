@@ -44,7 +44,7 @@ describe('§PULSE /pulse 观测大厅（公开 · 聚合 · 匿名）', () => {
   it('SHA256 钉死：组件字样（EOL 归一 + className→@）', () => {
     expect(createHash('sha256').update(redactClasses(component)).digest('hex')).toBe(
       // 钉死值见下方 lint 前预跑（v782/cont. 154 首钉）
-      'b52daa5ec7eab07bc73553e97fee5453de284d52bebd0a2c68071bde9b3fde60',
+      '46f7821984b48ef8a1f2c9e7ab874369cf1edaf3486bc39dda54f8d382f712bf',
     );
   });
 

@@ -1,4 +1,4 @@
-import { eq, gte, sql } from 'drizzle-orm';
+import { and, eq, isNull, gte, sql } from 'drizzle-orm';
 import { Redis } from 'ioredis';
 import { getDb } from '../db/client';
 import {
@@ -6,6 +6,7 @@ import {
   follows,
   gameCompletions,
   likes,
+  projects,
   publishedProjects,
   publicationVisits,
   remixes,
@@ -31,6 +32,8 @@ export interface PulseNumbers {
   publishedVersions: number;
   /** 全站打开次数（含疑似爬虫）—— 位置与口径与 /analytics 一致（views 计数器） */
   opens: number;
+  /** 全站爬虫打开数（suspectedBot=true）——用于咨询/评估入口黏性而非宣称真人热度 */
+  opensBot: number;
   opensToday: number;
   /** 全站访客（去重 visitorKey，all-time） */
   visitors: number;
@@ -66,6 +69,22 @@ export interface PulseRecommendation {
   zh: string;
   en: string;
   /** 触发这个建议的那条读数，显示在卡片上 */
+  basis: string;
+}
+
+export interface PulseHotItem {
+  publicationId: string;
+  projectName: string;
+  path: string;
+  opensCurr: number;
+  opensPrev: number;
+  velocityPct: number;
+}
+
+export interface PulseWarning {
+  kind: 'churn-risk' | 'thin-traffic' | 'bot-pressure';
+  zh: string;
+  en: string;
   basis: string;
 }
 
@@ -154,10 +173,76 @@ export function buildRecommendations(
   return out;
 }
 
+const pct = (n: number): string => `${n >= 0 ? '+' : ''}${Math.round(n)}%`;
+
+/** 近 14 天的『谁变热了、谁变冷了、谁在逼近危险』 */
+export function buildWarnings(numbers: PulseNumbers, trend: PulseTrend): PulseWarning[] {
+  const out: PulseWarning[] = [];
+  // 流失风险：visitorDays 最近半窗口 vs 前半窗口 -20%
+  const halfPoints = trend.points.slice(0, Math.max(1, Math.floor(trend.points.length / 2)));
+  const secondHalf = trend.points.slice(halfPoints.length);
+  const olderSum = halfPoints.reduce((acc, p) => acc + p.visitorDays, 0);
+  const newerSum = secondHalf.reduce((acc, p) => acc + p.visitorDays, 0);
+  if (olderSum >= 5) {
+    const delta = ((newerSum - olderSum) / olderSum) * 100;
+    if (delta <= -20) {
+      out.push({
+        kind: 'churn-risk',
+        zh: `人·天行数最近半窗口下滑 ${Math.abs(Math.round(delta))}%：长时间没有新鲜内容或入口黏性弱——建议本周至少引入一次显眼活动（周 challenge、新剧本），并把"返回"按钮挪到收件箱顶部。`,
+        en: `Person-day rows dropped ${Math.abs(Math.round(delta))}% in the newer half-window: either freshness is thin or return loops are weak — ship one visible late event (weekly challenge / new quest) and pin the inbox link high.`,
+        basis: `visitorDaysHalfDelta=${pct(delta)}`,
+      });
+    }
+  }
+  // 总流量太薄：进不了"为优化而优化"的阈值
+  const total7 = trend.points.slice(-7).reduce((acc, p) => acc + p.opens, 0);
+  if (total7 < 20) {
+    out.push({
+      kind: 'thin-traffic',
+      zh: `最近 7 天只有 ${total7} 次打开——先别急着做流失挽回：让自己把作品分享给 5 个真实朋友试试玩，得到第一批真人心跳再谈优化。`,
+      en: `Only ${total7} opens in the last 7 days — postpone retention work: put the link in front of five real people first, get real heartbeats, then iterate.`,
+      basis: `opens_7d=${total7}`,
+    });
+  }
+  // 爬虫压力：疑似自动化占比过 30%
+  const humanOpens = Math.max(0, numbers.opens - numbers.opensBot);
+  const botShare = numbers.opens > 0 ? numbers.opensBot / numbers.opens : 0;
+  if (numbers.opens >= 50 && botShare > 0.30) {
+    out.push({
+      kind: 'bot-pressure',
+      zh: `疑似自动化占总打开 ${Math.round(botShare * 100)}%：若再不给 public 入口加真实性校验（蜜罐 / ua+fingerprint 分类），流量数据会被定时爬虫稀释。真人参考：${humanOpens} 次打开。`,
+      en: `Suspected automation is ${Math.round(botShare * 100)}% of opens: without a realness gate (honey token + UA/fingerprint scoring), scheduled scrapers will swamp the readouts. Humans account for ${humanOpens} opens.`,
+      basis: `botShare=${Math.round(botShare * 100)}%`,
+    });
+  }
+  return out;
+}
+
+export interface VelocityRow {
+  publicationId: string;
+  projectName: string;
+  path: string;
+  opensCurr: number;
+  opensPrev: number;
+}
+
+export function buildHotItems(rows: VelocityRow[]): PulseHotItem[] {
+  return rows
+    .filter((row) => row.opensCurr + row.opensPrev > 0)
+    .map((row) => ({
+      ...row,
+      velocityPct: row.opensPrev > 0 ? ((row.opensCurr - row.opensPrev) / row.opensPrev) * 100 : row.opensCurr > 0 ? 100 : 0,
+    }))
+    .sort((a, b) => b.velocityPct - a.velocityPct)
+    .slice(0, 3);
+}
+
 export interface PlatformPulse extends Omit<PulseNumbers, 'opens'> {
   opens: number;
   trend: PulseTrend;
   recommendations: PulseRecommendation[];
+  hot: PulseHotItem[];
+  warnings: PulseWarning[];
   generatedAt: string;
 }
 
@@ -256,8 +341,9 @@ export async function platformPulseCached(
 
 export async function platformPulse(): Promise<PlatformPulse> {
   const db = getDb();
-  const today = utcDay(new Date());
-  const windowStart = iso(new Date(Date.now() - 13 * 24 * 60 * 60 * 1000));
+  const today = iso(new Date());
+  const windowStart = iso(new Date(Date.now() - 13 * 24 * 3600 * 1000));
+  const windowMid = iso(new Date(Date.now() - 6 * 24 * 3600 * 1000));
 
   const [
     [usersRow],
@@ -276,6 +362,7 @@ export async function platformPulse(): Promise<PlatformPulse> {
     [remixesRow],
     [followsRow],
     trendRows,
+    velocityRows,
   ] = await Promise.all([
     db.select({ n: sql<string>`count(*)` }).from(users),
     db.select({ n: sql<string>`count(*) filter (where ${eq(users.role, 'admin')})` }).from(users),
@@ -334,6 +421,23 @@ export async function platformPulse(): Promise<PlatformPulse> {
       .where(gte(publicationVisits.day, windowStart))
       .groupBy(publicationVisits.day)
       .orderBy(publicationVisits.day),
+    db
+      .select({
+        publicationId: publishedProjects.id,
+        projectName: projects.name,
+        path: publishedProjects.path,
+        opensCurr: sql<string>`coalesce(sum(${publicationVisits.opens}) filter (where ${publicationVisits.day} >= ${windowMid} and not ${publicationVisits.suspectedBot}), 0)`,
+        opensPrev: sql<string>`coalesce(sum(${publicationVisits.opens}) filter (where ${publicationVisits.day} < ${windowMid} and not ${publicationVisits.suspectedBot}), 0)`,
+      })
+      .from(publishedProjects)
+      .innerJoin(projects, eq(projects.id, publishedProjects.projectId))
+      .innerJoin(publicationVisits, eq(publicationVisits.publicationId, publishedProjects.id))
+      .where(and(
+        sql`${publishedProjects.visibility} = 'public'`,
+        isNull(projects.deletedAt),
+        gte(publicationVisits.day, windowStart),
+      ))
+      .groupBy(publishedProjects.id, projects.name, publishedProjects.path),
   ]);
 
   const numbers: PulseNumbers = {
@@ -341,6 +445,7 @@ export async function platformPulse(): Promise<PlatformPulse> {
     admins: int(adminsRow?.n),
     publishedVersions: int(worksRow?.n),
     opens: int(totals?.opens) + int(totalsBot?.opens),
+    opensBot: int(totalsBot?.opens),
     opensToday: int(tod?.opens) + int(todBot?.opens),
     visitors: int(visDistinct?.n) + int(visDistinctBot?.n),
     visitorsToday: int(tod?.visitors),
@@ -366,10 +471,23 @@ export async function platformPulse(): Promise<PlatformPulse> {
     visitorDaysDelta: deltaPct(points, 'visitorDays'),
   };
 
+  const hot = buildHotItems(
+    velocityRows.map((r) => ({
+      publicationId: r.publicationId,
+      projectName: r.projectName,
+      path: r.path,
+      opensCurr: int(r.opensCurr),
+      opensPrev: int(r.opensPrev),
+    })),
+  );
+  const warnings = buildWarnings(numbers, trend);
+
   return {
     ...numbers,
     trend,
     recommendations: buildRecommendations(numbers, trend),
+    hot,
+    warnings,
     generatedAt: new Date().toISOString(),
   };
 }
