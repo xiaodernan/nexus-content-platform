@@ -51,6 +51,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E08-完颜的潮汐钟': 'echo-008-the-wan-yan-tide-clock',
   'E09-潮生不急': 'echo-009-the-tide-went-out-without-orders',
   'E10-灯在潮退时没有往回点': 'echo-010-the-lamp-never-lit-when-the-tide-went-out',
+  'E11-祠殿堂没有锁的门': 'echo-011-the-door-the-chapel-never-locked',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

@@ -4293,3 +4293,8 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - Docker Desktop 在本机两次异常退出，已两次重拉；nexus-postgres / nexus-redis 均 healthy（若 `docker ps` 报错，先手动拉起 Docker Desktop 再跑 verify）。
 - v816：StateGraph 第一次进真实循环——§63 verify→fix→复验以显式 BSP 图接线（ADR-0272）；语义逐字节等价靠 agent/chain/pipeline 原样全绿证明；agents/runtime 669→**675/675**；新增 `test/verify-loop-graph.test.ts`（6 用例）。
 - 明示边界：/tasks 检查点（onStep）有缝未造消费方；/studio 的"graph 一词"交叉引用仍未做（避让 Studio 中文母语决策）。
+
+## cont. 182 (2026-11-17) — v817 · 回响 · 其十一《祠殿堂没有锁的门》
+
+- 新回响 E11（中英双文件 + 映射表），注册 slug 进快照； verify:world-bible ✓ 70/70，verify:bible-snapshot ✓，fe-gates 125/125 · census 2396 全绿。
+- 世界现有：主线 4 章 + 回响 11 篇（E01 巡逻路札记 → E11 没锁的门）。

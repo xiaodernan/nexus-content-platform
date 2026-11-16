@@ -14191,3 +14191,11 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - 交付：`agents/runtime/src/verifyFix.ts` 把 verify→有界 fix→复验 重写成显式 BSP 图（FIX_ROUND 节点 + START/环条件边）；`runTask` 逐字节等价（事件/预算/终态判定不变）；`agent.test.ts`/`chain.test.ts`/`pipeline.test.ts` 原样全绿。
 - 新增 6 个用例钉死零修/转绿/跑满/预算硬停/零轮场景；agents/runtime **675/675**；build 与 test tsconfig 全过。
 - 平路：`compile({ onStep })` 即 /tasks 审计检查点缝（未接消费方，故未造）。
+
+## §BIBLE-22 — 回响 · 其十一《祠殿堂没有锁的门》（2026-11-17 · v817）
+
+- 用户指令：「继续找新任务做」+「写新做故事、新章节」。本轮产出：
+  - `docs/world-bible/echoes/E11-祠殿堂没有锁的门.md`（中）/ `.en.md`（英）——祠殿堂那扇从来开着、从不上锁的门：潮是它唯一的钥匙；里面没有值得带走的东西；做锁匠人留下的绿氧化铁；纪律同正典（5 对锚句 zh/en，锚句跨文件唯一全局 70/70）。
+  - `scripts/gen-bible-snapshot.mts` 登记 slug `echo-011-the-door-the-chapel-never-locked`；快照重生成（4 章主线 + 11 回响）；
+  - verify:world-bible ✓（zh/en 70/70），verify:bible-snapshot ✓，fe-gates 125/125 · 1223/1223 · census 2396 全绿。
+- 映射表照例（lore/geography/characters/story/items/history），`/bible`「回响」分组自动收录，字号对齐主线。
