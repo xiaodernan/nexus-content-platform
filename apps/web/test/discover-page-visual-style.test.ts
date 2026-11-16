@@ -103,7 +103,7 @@ describe('§FE-77 /discover 发现页原子清零', () => {
 
   it('剥 className 后全文 SHA256 守恒（零行为：92d8e28ecb311ddc4a7ecff7a7014f3215f2832273ac776ead3c0b43ea7530ae）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '1279e6e6b86f947235042faffee4bb0f3e8a15b117c59e5e74a47c2e5bcb04e6',
+      '3a9eded1cb680daa5996b149b9940db9cd490465adc4d03b55282938c741a828',
     );
   });
 });

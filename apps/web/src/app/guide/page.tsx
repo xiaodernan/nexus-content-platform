@@ -57,7 +57,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '③ 功能地图（点进去就是那个页面）',
         body: [
-          '/discover 广场（热门/最新/ trending / 我关注的）· /marketplace 组件/模板/资产市场 · /blocks 积木库 · /search 全站搜索',
+          '/discover 广场（热门/最新/ trending / 我关注的；为你推荐：AI 照你自己的实测阅读 myOpens 排，不替没有痕迹的人排序）· /marketplace 组件/模板/资产市场 · /blocks 积木库 · /search 全站搜索',
           '/studio/<project> 项目主场：画布/图层/设计系统/3D · /world/<id> 走进这个世界（3D 步行）· /world/<id>/digest 世界速览 · /world/<id>/integrity 世界体检 · /world/<id>/tide 世界潮汐 · /world/<id>/almanac 世界年鉴 · /world/<id>/constellation 人物关系星图 · /world/<id>/codex 设定集（纸面投影）· /world/<id>/chronicle 编年 · /world/<id>/ephemeris 世界切片',
           '/bible 典籍室：正典精读 → 《潮汐教团》十三章 + 十七回响；/bible/search 直达（正典本地检索）· /bible/quiz 潮汐挑战（正典问答）· /bible/well 七口井（典籍室第二个玩法）',
           '/bible 收录第三种玩法：/bible/anchors 锚句回放——176 句中英锚句逐字回放，抢答它出自哪一章（连对 / 历史最佳本地记）',
@@ -187,7 +187,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '③ Feature map (click a path, land on the page)',
         body: [
-          '/discover feed · /marketplace components/templates/assets · /blocks library · /search global search',
+          '/discover feed (For You: AI ranks by your own measured reading trace — myOpens — and never ranks for people without one) · /marketplace components/templates/assets · /blocks library · /search global search',
           '/studio/<project> studio · /world/<id> walk this world (3D) · /world/<id>/digest world digest · /world/<id>/integrity world checkup · /world/<id>/tide world tide · /world/<id>/almanac world almanac · /world/<id>/constellation character graph · /world/<id>/codex paper tome · /world/<id>/chronicle timeline · /world/<id>/ephemeris 360-day page',
           '/bible hall of canon → 《潮汐教团》 thirteen chapters + seventeen echoes; /bible/search direct hits (local canon retrieval) · /bible/quiz Tide Challenge (canon quiz) · /bible/well Seven Wells (the second game)',
           '/bible gains a third game: /bible/anchors Anchor Echo — the 176 bilingual anchor sentences replayed verbatim; name the chapter or echo each line came from (streak and best kept locally)',

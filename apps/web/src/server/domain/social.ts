@@ -628,3 +628,78 @@ async function trendScores(pairs: { publicationId: string; projectId: string }[]
   for (const [publicationId, list] of buckets) scores.set(publicationId, decayedScore(list));
   return scores;
 }
+
+
+/**
+ * ──/discover「推荐位」的依据：用户自己的实测阅读信号（cont. 199）─────────────────
+ *
+ * 只回答"这个你打开过多少次"——**不猜你的心思，不造推荐理由**。
+ * 输出的卡片全部来自本平台真实库：
+ *  - 这个用户对自己在 public/free 的公开作品上的 opens 总数（按作品聚合，降序）
+ *  - 作品的真实指标（views / likes，与发现卡同一口径：published_projects.views）
+ *  - 该用户最近一次打开时间
+ *
+ * 零：行为者姓名、阅读时长、completionPct、推荐理由——都不在这里，也不进模型。
+ */
+export interface InterestSignalCard {
+  publicationId: string;
+  path: string;
+  name: string;
+  kind: string;
+  publishedAt: string;
+  views: number;
+  likes: number;
+  /** 这个用户自己：打开了这件作品几次 */
+  myOpens: number;
+  /** 这个用户自己：最近一次打开时间 */
+  myLastSeen: string;
+}
+
+export async function discoverInterestSignals(viewerId: string, limit = 3): Promise<InterestSignalCard[]> {
+  const db = getDb();
+  const rows = await db
+    .select({
+      publicationId: publishedProjects.id,
+      path: publishedProjects.path,
+      name: projects.name,
+      kind: projects.kind,
+      publishedAt: publishedProjects.publishedAt,
+      views: publishedProjects.views,
+      myOpens: sql<number>`coalesce(sum(${publicationVisits.opens}), 0)::int`,
+      myLastSeen: sql<Date>`max(${publicationVisits.updatedAt})`,
+      likes: sql<number>`(select count(*)::int from likes where likes.project_id = ${publishedProjects.projectId})`,
+    })
+    .from(publicationVisits)
+    .innerJoin(publishedProjects, eq(publishedProjects.id, publicationVisits.publicationId))
+    .innerJoin(projects, eq(projects.id, publishedProjects.projectId))
+    .where(
+      and(
+        eq(publicationVisits.userId, viewerId),
+        eq(publishedProjects.visibility, 'public'),
+        sql`${publishedProjects.moderation} <> 'rejected'`,
+        isNull(projects.deletedAt),
+      ),
+    )
+    .groupBy(
+      publishedProjects.id,
+      publishedProjects.path,
+      projects.name,
+      projects.kind,
+      publishedProjects.publishedAt,
+      publishedProjects.views,
+    )
+    .orderBy(desc(sql`sum(${publicationVisits.opens})`))
+    .limit(Math.max(1, limit));
+
+  return rows.map((row) => ({
+    publicationId: row.publicationId,
+    path: row.path,
+    name: row.name,
+    kind: row.kind,
+    publishedAt: row.publishedAt.toISOString(),
+    views: row.views,
+    likes: row.likes,
+    myOpens: row.myOpens,
+    myLastSeen: new Date(row.myLastSeen).toISOString(),
+  }));
+}

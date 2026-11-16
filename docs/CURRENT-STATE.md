@@ -5449,3 +5449,27 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - live probe（dev server）：SSR `/bible/echo-017-the-wax-seal` 200（The Wax Seal · Anchor sentence ×5）；`/bible` 200（17 回响索引）
 - 门：fe-gates 129 套 · **1238/1238**；census 2645 OK；verify:world-bible **176/176** ✓；verify:bible-snapshot 一致 ✓；verify:anchor-echo 176 ✓
 - 运维记录：Docker 本轮又熄火——自复活后 pg/redis 健康重回；fe-gates 不依赖 DB，SSR 探测在 web 编译（bible 不读 DB）后完成；npm dev 已停
+
+## cont. 199 (2026-11-17) - v829: /discover「为你推荐」——只读你自己"阅读痕迹"排位的推荐位（§新指令·LLM 深度嵌入续 · ADR-0273 同型）
+
+- 新领域函数 `discoverInterestSignals(viewerId)`：
+  只取**这个用户自己**对 published(public/free) 作品的 opens 聚合（sum by publication，降序）+
+  作品实测指标（views = published_projects.views 同一口径、likes 子查询）+ 最近打开时间——
+  **姓名 / 阅读时长 / completionPct 全部不选**（套件机械断言）
+- 新 API `POST /api/discover/interest`：
+  - 输入仅 {locale}；服务端自算信号；未登录 → 401；DEMO MODE → 409；IP+用户 10/小时；24h LRU（32 槽，键=用户|语言|信号签名）
+  - 无痕迹（一条都没记）→ 不调模型，server-authored 空态：「我们不替没有痕迹的人排序」（model: no-model (server-authored empty case)）
+  - gpt-6.1-terra 按 myOpens + views/likes 为前三条各写一句"为什么可能想再打开"——必须引用实测数字；缺数字或未覆盖全部即 502
+- 新 UI：`ForYouStrip`（/discover 登录用户可见；匿名不渲染）——
+  中英双语；SSR idle 态含 CTA（mount 后自动触发取数）；失败安静消失；每条带「打开了 N 次」；shown 与 EditorNotes 同级
+- live E2E（throwaway 账号）：
+  - 注册 200 → GET /api/discover（24 张真实作品）→ 对前 3 张 POST /api/published/visit（open:true, 全部 200）
+  - POST /api/discover/interest → **HTTP 200，gpt-6.1-terra fresh**——signals 含 myOpens:1 ×3（216 浏览的极地主题在内），
+    三条推荐语逐条引用实测数（1 次打开 / 8 次浏览 / 216），零编造
+  - 匿名 POST → 401 ✓；SSR /discover（登录）含 data-for-you-root · fys-buttonPrimary ✓（匿名不渲染）
+- 简明说明书：/discover tour 段（zh/en）补「为你推荐」说明；guide SHA 314d9394… 重钉；
+  discover page SHA 3a9eded1… 重钉；新增 foryou-strip-visual-style.test.ts（7 例，含"姓名/时长/完成度不进模型"机械断言）
+- 门：fe-gates 130 套 · **1245/1245**；census 2663 OK；tsc 0
+- 运维记录：Docker 又两次熄火-自复活——首次 500（ECONNREFUSED）后自愈，之后全链路同一会话打通（
+  register→discover→visits→interest→SSR），全部真实数据落库
+- LLM 切面计数：8 块 → **9 块**
