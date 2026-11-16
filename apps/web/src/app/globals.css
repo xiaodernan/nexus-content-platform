@@ -5262,3 +5262,28 @@
 .pl-gateRow { flex-wrap: wrap; }
 .pl-gateInput { min-width: 0; flex: 1 1 9rem; }
 .pl-gateButton { flex: 0 0 auto; }
+
+/* §WORLD-1 /world 公开世界廊（空状态 + 已公开作品 tiles） */
+.wv-shell { min-height: 100dvh; background: var(--nexus-color-bg-0); padding: 2rem 1.25rem 4rem; display: flex; flex-direction: column; gap: 1.5rem; max-width: 72rem; margin-inline: auto; }
+.wv-head { display: flex; flex-direction: column; gap: 0.5rem; border-bottom: 1px solid var(--nexus-color-border-subtle); padding-bottom: 1rem; }
+.wv-kicker { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.75rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--nexus-color-accent-2-ink); margin: 0; }
+.wv-title { font-size: clamp(2rem, 5vw, 3rem); line-height: 1.1; font-weight: 750; letter-spacing: -0.02em; margin: 0; }
+.wv-lede { color: var(--nexus-color-fg-2); max-width: 60ch; line-height: 1.65; margin: 0; }
+.wv-empty { background: var(--nexus-color-bg-2); border: 1px dashed var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md, 0.75rem); padding: 2rem; max-width: 40rem; display: flex; flex-direction: column; gap: 0.75rem; }
+.wv-emptyTitle { font-size: 1.4rem; margin: 0; }
+.wv-emptyBody { color: var(--nexus-color-fg-2); line-height: 1.65; margin: 0; }
+.wv-ctaRow { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+.wv-cta, .wv-ctaAlt { font-size: 1rem; padding: 0.6rem 1rem; border-radius: var(--nexus-radius-md, 0.5rem); text-decoration: none; font-weight: 600; }
+.wv-cta { background: var(--nexus-color-brand); color: var(--nexus-color-accent-fg); }
+.wv-cta:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+.wv-ctaAlt { color: var(--nexus-color-fg-1); border: 1px solid var(--nexus-color-border-subtle); }
+.wv-ctaAlt:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+.wv-grid { display: block; }
+.wv-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); gap: 1rem; }
+.wv-card { background: var(--nexus-color-bg-2); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md, 0.75rem); transition: transform 160ms, border-color 160ms; }
+.wv-card:hover { transform: translateY(-2px); border-color: var(--nexus-color-accent-2-ink); }
+.wv-card:focus-within { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+.wv-cardLink { display: block; padding: 1rem; text-decoration: none; color: inherit; height: 100%; }
+.wv-cardTitle { font-size: 1.1rem; margin: 0 0 0.4rem 0; }
+.wv-cardSummary { color: var(--nexus-color-fg-2); line-height: 1.55; margin: 0 0 0.4rem 0; font-size: 0.9rem; }
+.wv-cardByline { color: var(--nexus-color-accent-2-ink); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.75rem; margin: 0; }
