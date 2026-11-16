@@ -4058,3 +4058,10 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - `infra/dev-ai.sh` 新增 source `HTTPS(S)_PROXY`/`NO_PROXY`（不硬编码端口）。ENVIRONMENT.md 增补 aizzz 一节。L2（服务内干跑）今天如实记：瞬时故障偏多、尚未拿到干净 PASS，待服务端真实负载复测。
 - **v790 前端抗遮盖修复收尾**：`.cp-chip`（命令面板入口）从 bottom-left 改 right（不再刷屏挡 .dv-cardName / .cr-h2，10-client fragment 级实测零文字遮挡），且 `<75rem` 视口收成 36px 图标圆点（命令面板是快捷键爱的人，窄屏空间优先给内容）——含 forced-colors 收口。
 - fe-gates 此前全绿（chiple CSS 无 class 新增；无字体/hex/hex 迂回）；`tsc web 0`。showcase 同步于提交后。
+
+## cont. 159 (2026-11-16) — v792: StateGraph —— LangGraph 核心语义落进 TS 本仓runtime
+
+- 用户指令：「最好别忘了给项目加入stategraph的知识 内容」。
+- `agents/runtime/src/stategraph.ts`（+ `stategraph.test.ts` 11 条）：LangGraph 的 BSP/channel/START/END/recursionLimit 语义逐条迁 TS；明确不做 interrupt-resume/time-travel/Python。
+- `index.ts` export；`tsc test` 干净；vitest **669/669**（原 658 + 11）；`npm run build` 干净。
+- ADR-0270 对齐表与 Non-goals；docs/ROADMAP.md §SG 登记；showcase 同步于提交后。

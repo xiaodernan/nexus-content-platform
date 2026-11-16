@@ -250,6 +250,20 @@ export {
   type LedgerRead,
 } from './ledger.js';
 export { planTask, goalKeyword, type PlannerOptions } from './planner.js';
+// M7 v795 — StateGraph：LangGraph 语义的本仓 TS 原语（§23§25），不对 LangGraph 供应商依赖。
+export {
+  StateGraph,
+  START,
+  END,
+  StateGraphRecursionError,
+  StateGraphValidationError,
+  lastValue,
+  appendSeq,
+  binaryOp,
+  type ChannelReducer,
+  type StateNode,
+  type StateGraphNodeConfig,
+} from './stategraph.js';
 export {
   GIT_ARC_TOOLS,
   gitArcDoors,

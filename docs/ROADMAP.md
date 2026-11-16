@@ -14036,3 +14036,12 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - 实测（真库 nexus-postgres @55433）：未解锁 zh 200；登录 123 成功；解锁后 SSR 200：总量 3,356 账号 / 1,832 游客 / 1,283 项目 / 140 公开发布 / 868 总打开 / AI usage 表近 30 天 0；signup 拟合 +7.48/天 R²=0.20（外推 7 日 1,905，如实低拟合）；规则引擎真触发 publish-conversion(act) / open-reach(act) / bot-opens(watch)。/guide zh/en 200 且随 GUIDE_COPY 新增 ⑪（说明书同步嵌入）。
 - Gates：新门 `insight-visual-style.test.ts`（10 条）+ `insight-math.test.ts`（8）+ `insight-rules.test.ts`（11）；fe-gates 122/122 · 1199/1199；census 2344 OK；tsc web 0。
 - 明确边界：口令是公共口令（用户拍板），门挡的是路过的手不是蓄意的人；数据是聚合的，不构成对任何人的监视。外推不是承诺。规则建议不是模型猜测。这三句话写在页面脚注里。
+
+## §SG — StateGraph（2026-11-16 / v792，ADR-0270）
+
+- 用户指令：「最好别忘了给项目加入 stategraph 的知识 内容」。
+- 本仓不引入 Python LangGraph；而是把它的核心语义逐步迁到 TS（`agents/runtime/src/stategraph.ts`）：
+  State + channel reducers（lastValue 默认 / appendSeq / binaryOp）+ 普通边 / 条件边（含 fan-out 数组）+ BSP super-step + recursionLimit（抛错不静默）+ onStep 检查点缝 + mermaid() 渲染。
+- `agents/runtime/src/stategraph.test.ts`：11/11（vitest）——线性链、条件分派未选中分支不跑、fan-out 两节点并行同 super-step 提交、reducers、recursion 上限报错、error 档、mermaid、introspect。
+- 明确不做：interrupt-resume / time-travel / Python 运行时 / Tool-call 协议本身。
+- ADR-0270 完整对齐表 + LangGraph 差距声明。
