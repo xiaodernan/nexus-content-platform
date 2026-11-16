@@ -4493,3 +4493,11 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - Studio CommandBar 挂起审批卡加「让模型读一遍」按钮；旁边一个两句解释槽 + 同 §159/§160 亚瑟横幅。
 - digest 结构事实 Only（agentKey/count/actions/reason≤120）；503 honest。
 - fe-gates 134/134 · 1265/1265 · census 2564；sibling :8000 未触碰。
+
+## cont. 212 (2026-11-17) — v846 · 回响其二十八 + live E2E 复验
+
+- 新回响 E28（中英双文件 + 映射表）；verify:world-bible ✓ 160/160；快照 5+28。
+- live provider E2E 复验：同 payload 两次调用 →
+  首调 5 019 ms / 末调 69 ms（L2 replay，cachedTokens 22 669/22 669，cacheReported true）；
+  回包逐字一致，且都答对「《收件人》第三节的抄本员」。
+- sibling :8000 未触碰（sidecar :8131 用完即停）；本轮 token 消耗 = 一次 fresh 22 669 in / 27 out ≈ 极小。

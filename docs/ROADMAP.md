@@ -14479,3 +14479,15 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - fe-gates **134/134 · 1265/1265 · census 2564** ✓；bible-ask-behavior 同步 155 锚修正（E27 已 +5）。
 - 直连真实审批情况：按钮代码就位，真实一次性样本要等下次出现 awaiting_approval task 真跑；不烧 provider 上跑。
 - sibling :8000 未触碰。
+
+## §BIBLE-40 — 回响 · 其二十八《潮候院沙漏里那枚没人拆开的结》（2026-11-17 · v846）
+
+- 产出：`docs/world-bible/echoes/E28-潮候院沙漏里那枚没人拆开的结.md`（中）/ `.en.md`（英）——祠殿堂里沙漏腰口的一枚双股结：
+  双股结不碰玻璃、伸手即缩、沙漏旁边杖不动、米缸月第三夜只照亮沙漏的那一下光、没人登记旁系的小贝壳。
+  5 锚句 zh/en 全局唯一（160/160）。
+- `gen-bible-snapshot.mts` 登记 `echo-028-the-knot-in-the-hourglass`；快照重生成（5+28 回响）。
+- verify:world-bible ✓ 160/160；verify:bible-snapshot ✓；fe-gates 134/134 · 1265/1265 · census 2564。
+- 并行 live provider E2E（scripts/bible-ask-e2e.mts 重写为两次同 payload）：
+  call#1 HTTP 200 · wall 5 019 ms · tokensIn 22 669 · cachedTokens 0 · cacheReported false；
+  call#2 同 payload · wall **69 ms** · latencyMs **15** · cachedTokens **22 669/22 669** · cacheReported true；
+  答案两次逐字一致：「他们在雾港口遇见了一个抄本员。（《收件人》第三节）」—— 22 k tokens 的前缀+题目，第二次的所有开销都在 L2 replay 里。
