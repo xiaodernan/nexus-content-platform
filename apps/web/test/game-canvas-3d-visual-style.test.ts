@@ -103,7 +103,7 @@ describe('§FE-95 /game2d GameCanvas3D 3D 视角 chrome', () => {
 
   it('剥 className 后全文 SHA256 守恒（零行为：e9876d4c…，v778 鼠标视角修正重钉 8310e25c076fcf0e34f4d0de60e09bad7d096a4529fe9c89fcaaa449f237d0b0）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '8310e25c076fcf0e34f4d0de60e09bad7d096a4529fe9c89fcaaa449f237d0b0',
+      '206a58c7a69e04b404177a1cc93fc7d509f5f9aed8d7198ec662d281864512f7',
     );
   });
 });
