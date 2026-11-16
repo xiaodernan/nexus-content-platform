@@ -139,9 +139,9 @@ describe('§FE-66 /studio CanvasStage 画布外壳', () => {
     expect(segment).toContain('border: 1px dashed');
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：0708bc716751f200f3eee3985ff93186ea100c69af34fbfaf0ba85bc25d6f2c5）', () => {
+  it('剥 className 后全文 SHA256 守恒（cont. 174 滚轮方向修正：5ab5d6083c5a8415536eb1e60f1d8dd9373d46394115903689cad4446e05e4d7）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '0708bc716751f200f3eee3985ff93186ea100c69af34fbfaf0ba85bc25d6f2c5',
+      '5ab5d6083c5a8415536eb1e60f1d8dd9373d46394115903689cad4446e05e4d7',
     );
   });
 });

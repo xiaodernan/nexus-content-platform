@@ -5033,3 +5033,12 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - BibleQuiz 引用更新（2 zh + 2 en）；SHA pin a5ad5b40… 重钉
 - live probe：/bible/echo-008-the-four-characters 200；旧 slug 404
 - 门：fe-gates 123 套 · 1200/1200；census 2541 OK
+
+## cont. 174 (2026-11-17) - v804: 画布滚轮方向修正——往上滑往上看、往下滑往下看
+
+- 问题（§五实报）：Studio 画布滚轮方向反了，"玩着很难受"，必须修
+- 修复：`CanvasStage.tsx` onWheel 平移与 delta 同号（`panBy(-d)` → `panBy(+d)`）——
+  Ctrl/Meta+wheel 缩放不变；shift+wheel 横移一并同向；注释写明映射语义
+- 兼容性推演：标准滚轮（wheel up deltaY<0）→ 向上看；自然滚动系/反向滚轮（fingers-up deltaY>0，用户实指设备类）→ 同样向上看
+- CanvasStage SHA pin 5ab5d608… 重钉（test-exact redact，含 \\s+→' ' 归一）；canvas-stage 9/9
+- 门：fe-gates 123 套 · 1200/1200；census 2541 OK；tsc 0

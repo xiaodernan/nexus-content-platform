@@ -249,9 +249,11 @@ export function CanvasStage({ locale = 'zh' }: { locale?: Locale }) {
       event.preventDefault();
       const rect = surface.getBoundingClientRect();
       const anchor = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      // cont. 174 · 滚轮方向修正：手指/滚轮「往上滑」必须对应「往上看」，「往下滑」对应「往下看」。
+      // 此前 panBy(-deltaX, -deltaY) 在手势上反了——往上滑看到的是下面。改为同向平移。
       if (event.ctrlKey || event.metaKey) studio.zoomBy(Math.exp(-event.deltaY * 0.0015), anchor);
-      else if (event.shiftKey) studio.panBy(-event.deltaY, 0);
-      else studio.panBy(-event.deltaX, -event.deltaY);
+      else if (event.shiftKey) studio.panBy(event.deltaY, 0);
+      else studio.panBy(event.deltaX, event.deltaY);
     };
     surface.addEventListener('wheel', onWheel, { passive: false });
     return () => surface.removeEventListener('wheel', onWheel);
