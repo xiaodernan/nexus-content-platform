@@ -5287,3 +5287,19 @@
 .wv-cardTitle { font-size: 1.1rem; margin: 0 0 0.4rem 0; }
 .wv-cardSummary { color: var(--nexus-color-fg-2); line-height: 1.55; margin: 0 0 0.4rem 0; font-size: 0.9rem; }
 .wv-cardByline { color: var(--nexus-color-accent-2-ink); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.75rem; margin: 0; }
+
+/* §WHISPER-1 正典答问者 /bible/whisper */
+.wx-form { display: flex; flex-direction: column; gap: 1rem; max-width: 46rem; }
+.wx-label { display: flex; flex-direction: column; gap: 0.3rem; }
+.wx-labelText { font-size: 0.78rem; letter-spacing: 0.06em; color: var(--nexus-color-fg-2); text-transform: uppercase; }
+.wx-select, .wx-textarea { font-size: 1rem; color: var(--nexus-color-fg-1); padding: 0.55rem 0.7rem; border-radius: var(--nexus-radius-md, 0.5rem); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-2); font-family: inherit; }
+.wx-textarea { resize: vertical; min-height: 3rem; overflow-wrap: anywhere; word-break: break-word; }
+.wx-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.wx-clear { background: transparent; border: 1px solid var(--nexus-color-border-subtle); color: var(--nexus-color-fg-2); padding: 0.55rem 0.9rem; border-radius: var(--nexus-radius-md, 0.5rem); cursor: pointer; font-size: 0.95rem; }
+.wx-clear:hover { color: var(--nexus-color-fg-1); }
+.wx-clear:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+.wx-select:focus-visible, .wx-textarea:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+.wx-error { color: var(--nexus-color-danger-ink); background: color-mix(in srgb, var(--nexus-color-danger-ink) 10%, var(--nexus-color-bg-3)); padding: 0.7rem 0.9rem; border-radius: var(--nexus-radius-md, 0.5rem); max-width: 46rem; }
+.wx-answer { background: var(--nexus-color-bg-2); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md, 0.75rem); padding: 1.25rem 1.5rem; max-width: 52rem; display: flex; flex-direction: column; gap: 0.4rem; }
+.wx-answerTitle { font-size: 0.8rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--nexus-color-fg-2); margin: 0; }
+.wx-answerText { font-size: 1.05rem; line-height: 1.75; color: var(--nexus-color-fg-1); margin: 0; overflow-wrap: anywhere; word-break: break-word; }

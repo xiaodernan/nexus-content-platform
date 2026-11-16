@@ -29,6 +29,7 @@ const COPY: Record<Locale, {
   threeDoors: string;
   playLink: string;
   wellLink: string;
+  whisperLink: string;
   chapterLabel: (order: number) => string;
   anchorsLine: (count: number) => string;
   readLink: string;
@@ -43,6 +44,7 @@ const COPY: Record<Locale, {
     threeDoors: '第一扇问：海叫什么？ · 第二扇问：谁在还？ · 第三扇问：还完之后？ · 第四扇：灯已经点过了。',
     playLink: '接受潮汐挑战 →',
     wellLink: '七口井',
+    whisperLink: '答问者 · 问点书里的事',
     chapterLabel: (order) => `第${['一', '二', '三', '四'][order - 1] ?? order}章`,
     echoLabel: (order) => `回响 · 其${['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'][order - 1] ?? order}`,
     echoTitle: '回响 · Echoes',
@@ -60,6 +62,7 @@ const COPY: Record<Locale, {
     threeDoors: 'First door: what is the sea called? · Second: who pays? · Third: after the ending? · Fourth: the lamp has been lit.',
     playLink: 'I accept the Tidal Trial →',
     wellLink: 'The Seven Wells',
+    whisperLink: 'The Answerer · ask one question of the book',
     chapterLabel: (order) => `Chapter ${['I', 'II', 'III', 'IV'][order - 1] ?? order}`,
     echoLabel: (order) => `Echo ${['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][order - 1] ?? order}`,
     echoTitle: 'Echoes',
@@ -85,6 +88,8 @@ export default async function BiblePage() {
         <p className="bb-threeDoors" data-bible-doors>{c.threeDoors}</p>
         <p className="bb-playTrial">
           <Link href="/bible/quiz" className="bb-playLink" data-bible-open-quiz>{c.playLink}</Link>
+          <span className="bb-playTrialSep" aria-hidden="true">·</span>
+          <Link href="/bible/whisper" className="bb-playLink" data-bible-open-whisper>{c.whisperLink}</Link>
           <span className="bb-playTrialSep" aria-hidden="true">·</span>
           <Link href="/bible/well" className="bb-playLink" data-bible-open-well>{c.wellLink}</Link>
         </p>

@@ -108,7 +108,7 @@ describe('§FE-Guide /guide 使用指南', () => {
 
   it('SHA256 钉死（本线字节，v776 /bible 入口双语重钉）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      'e42d528fd53b8257b840b8a989ec8f14009febf21e368cc43236f2d52acc3b3e',
+      '5b48ebc8f536e7ce917e97c6ae081e4c79dd66993d1f4c532e01f625e5491618',
     );
   });
 });
