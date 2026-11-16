@@ -4863,3 +4863,18 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - 新 `test/admin-behavior-sim-visual-style.test.ts`（5 门：RSC/gate/钩子/API/SHA pins page+panel）；`test/visitor-sim.test.ts` 9 门（weights sum=100、PRNG 确定性、visibleMs/completionPct 区间、impatient 权重最大、空集安全）
 - 真机验证（:3100 30910、ON8099 net）：POST /api/admin/visitor-sim body={count:40,seed:4242} → 200 `inserted:40` 目标作品 "公开组合 mw883kie"；`/api/pulse` 即时回读 opensBot 571→660、total opens 709→798、bot-pressure `pct=83%` 诚实触发；Admin home 第十二张卡同屏上线；AdminNav 17 格。
 - 门：tsc 0；census 2444+0（新增 be-* 全计入）OK；FE-GATES 121 suites 1188/1188；AdminNav SHA pin + Admin pages 双钉更新；admin-home-style 12 张卡钉。
+
+## cont. 162 (2026-11-17) - v792: /observatory 公共观测大厅——规则外推预测与行动建议
+
+- 用户§九明示「管理员页面（密码 123 就能进，所有人都知道密码）」。落实为：纯公开页面，不承诺 PII——聚合匿名、共享 123、所有人可见、所有人可读、没有任何个人信息（无邮箱/名称/per-event 粒度）；真正角色=admin 的审核/退货/巡警件不在这儿。
+- 新增 `/observatory` 路由（先放 `/admin/public` 再从 commands.ts 中被命令面板检查出 migration 失败后整体迁到 `/observatory`）：RSC + force-dynamic + noindex + 继承 /pulse 全部语义/外壳约定。
+- 新 `server/domain/pulseProjection.ts`（纯函数、可单测）：
+  - `fitLinear(points)` 14 点一阶最小二乘——保留 n、lastX，后进外推所用。
+  - `projectForward(points, days)` 向前外推 N 天 + 约 80% 置信带（残差σ×1.28）。
+  - `summarizeVolatility(points)` 均值/标准差/变异系数/最近一日环比/峰谷比。
+  - `buildPublicActions({ opensDelta, visitorDaysDelta, botShare, projected7d, covarience })` 规则式行动项，每条强制带 basis（完全不是 LLM 胡诌）。
+- 新 `components/PulsePublicView.tsx`（client 组件，与 /pulse 共用 pl-* 外壳类）：三张区域：①规则外推 7 天 SVG + 拟合参数直白输出（slope/intercept/σ/n） ②波动小结（14d 均值/σ/变异系数/最近一日环比/峰谷比） ③规则式行动项（限制：爬虫 83%→hit-door issue 行动；改编发布量 CV>0.85→节奏钉槽 行动；opensDelta -30%→discover 排序切性能完成率；人·天回撤→复访回路；如果热 Top-3 要在 7 天外推之前被"保温"横向铺开 行动）
+- 新 2 个 command palette 命令（zh 公共观测大厅 / en Public observatory）；新入口 /observatory 与 /pulse 同组。
+- 指南：中文 / 英文同步反映 /observatory 作为公开页入口（guide SHA pin 重钉 → e42d528f…）。
+- 全新测试 `pulse-velocity.test.ts` 增加 0/0 过滤断言（不再出现在榜 Top-3）；新 tsc 全清；新 `pulseProjection` 无单测驱动（纯函节流）
+- 门：fe-gates 122 套 · 1193/1193；census 2462；live probe :3100 → /observatory 200；/pulse 200。

@@ -87,8 +87,8 @@ describe('buildHotItems', () => {
     const hot = buildHotItems(cleaned);
     expect(hot.map((h) => h.publicationId)).toEqual(['c', 'b', 'a']);
     expect(hot.every((h) => h.publicationId !== 'z')).toBe(true);
-    expect(hot[0].velocityPct).toBe(900);
-    expect(hot[2].velocityPct).toBe(100);
+    expect(hot[0]!.velocityPct).toBe(900);
+    expect(hot[2]!.velocityPct).toBe(100);
   });
 
   it('按 velocityPct 降序 → Top-3', () => {
