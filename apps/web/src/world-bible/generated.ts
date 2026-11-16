@@ -4555,4 +4555,338 @@ The tide continues its coming and going. The basket still hangs there. The cord 
 > 盐不说谎——它只把红磨成时间。
 `,
   },
+  {
+    order: 10,
+    slug: 'echo-010-the-keys',
+    titleZh: '钥匙',
+    titleEn: 'The Keys',
+    eraLineZh: '纪元：铁月纪之后 · 灰棚之前。',
+    eraLineEn: 'Era: after the Iron-Moon Age · before the grey cover was laid.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 10): The Keys
+
+> 回响不替正典续写——它只盯着守门老人手里那一串钥匙。
+> 本篇写给那间没人去开的锁、那串没人试的钥匙。
+> 本篇锚句，与《红绳》《封面四字》同一纪律。
+>
+> An echo does not continue the canon — it only keeps its eyes on the string of keys in the old doorkeeper's hand.
+> Written for the lock no one opens and the keys no one tries.
+> Its anchors answer to the same discipline as the red cord and the four covered characters.
+
+> 纪元：铁月纪之后 · 灰棚之前。
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 其一 · 来处
+
+第八章「灰后」，老人站在台阶边。门在他身后，台阶向下，海水退到看不见的地方。他手里握着一串钥匙，铁环穿过每一把的孔，久了，环也磨出了细槽。
+
+这串钥匙不是买来的。账上没有支出，库里也没有领用的印记。那间库原先收放无人认领的东西：断掉的扣子、没有寄出的信、写着人名而无人应答的牌。后来清点的人走了，门没有锁，柜子也没有搬空。
+
+钥匙是剩下的。
+
+没人来认领它们。没人说哪一把属于哪一道门。簿页上有一栏写着「暂存」，下面没有日期。再往后的纸受了潮，墨沿着纤维散开，像一条退去的水线。
+
+老人接过钥匙时，没有签名。他把它们放进掌心，带到台阶边。后来有人问他钥匙的来历，他只说，库里还剩着。
+
+那不是回答。可账上没有另一种写法。
+
+**锚句**：无人认领的，便留在原处。
+**Anchor sentence**: what no one claims stays where it is.
+
+---
+
+## 其二 · 数量
+
+老人数过钥匙。
+
+第一次，数出十九把。他把数目写在门边的木板上，写完后，海风把粉末吹进字缝。第二天他再数，是二十把。没有新钥匙送来，环上也没有空处。
+
+第三次，十七把。第四次，二十一把。老人换过指头，从环的一边数到另一边，又从另一边数回来。数目仍旧不同。
+
+他把每次的数字记进一本薄册。纸页从中间裂开，数字便落进裂口里。那以后，他在每个数目旁画一道短线，像是要把它钉在纸上。短线有长有短，越往后越像一排被潮水抹平的刻痕。
+
+有人替他数过。那人只数了一遍，报出一个数，便把钥匙放回去。老人问他还要不要再数，那人没有答。
+
+此后，老人每次记数，都不擦掉前一回。旧数压在新数下面，纸薄时，背面也能看见。册子合上，钥匙声从纸背传出来。
+
+他记了许多次。册上没有一个数，被划掉。
+
+**锚句**：数目不作证。
+**Anchor sentence**: numbers do not testify.
+
+---
+
+## 其三 · 不试
+
+门上有锁。老人没有试过钥匙。
+
+试钥匙就是开门。不是门扇转动之后才算开，也不是锁舌退去才算开。手把钥匙举到锁前，挑出一把，插入孔里，这已经是第一步。
+
+第一步之后，旧账就会重开。
+
+账本压在柜底，封皮发白。封口的线还在，线结已经松了。老人见过有人把手伸向封线，也见过那只手缩回去。没有人拆开封口，也没有人问里面记着什么。
+
+规矩不是写在门上。它只在换班时交给下一人。老人把钥匙递过去，告诉他不试。新来的守门人问，哪一把能开门。老人说，不知道。
+
+那人又问，要是知道呢。
+
+老人把钥匙环放回掌心。金属相碰，声音很轻，像锁里有水。
+
+守门的人不得试。试了，便不能再说自己只是在看门。开门的那一步不大，账页却会从头翻起。旧名字、旧欠数、旧日子的空白，都等着有人落笔。
+
+所以老人站在台阶边。锁在门上，钥匙在手里，两者之间留着一段不必丈量的距离。
+
+**锚句**：手未入锁，账未重开。
+**Anchor sentence**: a hand that has not entered the lock has not reopened the ledger.
+
+---
+
+## 其四 · 锈
+
+钥匙比锁老。
+
+老人知道这件事，不靠年表。他从库里取出钥匙时，锁已经在门上；可钥匙齿上的刻痕，早已磨圆。它们曾经开过别处的门，或者从来没有开过。账上无从查证。
+
+盐先走了。
+
+它留下白迹，沿着钥匙的凹处沉下去。后来白迹散尽，铁才开始生锈。锈从齿根起，慢慢爬向柄部。有几把钥匙的字迹被锈遮住，老人以指甲刮过，刮下来的粉末落在台阶上，第二天便不见了。
+
+他不擦钥匙。盐已经走了，擦也不能让它回来；锈既跟上来，就让它跟着。钥匙留在手里，潮气会从掌纹里钻进去，手放开时，铁环上多一圈暗色。
+
+门上的锁没有同样的颜色。它常年朝着内侧，雨水不容易落到那里。老人从未把两者并排比较。只是每次换班，他都把钥匙交给下一人，再把手收回来，掌心留下一个浅浅的圆印。
+
+那印子很快消失。钥匙上的锈没有。
+
+**锚句**：盐已退，锈才抵达。
+**Anchor sentence**: the salt had gone; only then did the rust arrive.
+
+---
+
+## 其五 · 灯前
+
+第七章的灯还亮着。
+
+老人有时望见那盏灯。它隔着门，也隔着几页账纸，落在台阶尽头。灯前没有人，只有一圈不动的光。老人握着钥匙，想象有人从暗处走来，手里没有册子，也没有名字。
+
+那人走到灯前，低头看过钥匙。没有挑选，也没有询问。他像是早已知道哪一把该在手里，又像是从来没有见过锁。
+
+老人想象他将钥匙举起。铁齿边的锈在灯下发暗，环上的旧痕一一露出。那人没有急着靠近门。他停了一会儿，仿佛在听门里面有没有潮声。
+
+然后他向前一步。
+
+钥匙尖端对着锁孔，手腕没有颤。灯火落在他的指节上，也落在门槛的灰里。老人想象那一刻很长，长到他能听见台阶下面水退回去，能看见账页的边缘微微翘起。
+
+他没有想象钥匙是否合适。也没有想象门后有什么。
+
+只想象那只手，在灯下稳稳地停住。
+
+**锚句**：灯前之事，不入账。
+**Anchor sentence**: what happens before the lamp enters no ledger.
+
+---
+
+## 其六 · 留在门边
+
+守门人换过班。
+
+有人接过钥匙，在台阶边站了几年；有人只站了一夜，天亮便不见了。老人也老去过。背弯下去，手指变细，钥匙环却仍扣着他的掌心。
+
+后来有人说他走了。也有人说他从未离开。门边没有人时，钥匙还在那里，放在台阶的石缝旁。雨水沿着石面流过，没有把它们带走。
+
+换班的人来过，又走了。每个人都知道钥匙留在门边。没有人把它拿进屋里，也没有人把它送回库中。那间库早已不在账上，门牌空着，柜子里的其余东西也无人再提。
+
+钥匙有时落在台阶上，有时挂在门边的钉子上。老人不在以后，钉子仍留着。盐从铁环上退尽，锈沿着齿缝一点点长出。门上的锁照旧。
+
+这一页没有守门人的名字。只有一行字，写在靠近边缘的地方：钥匙仍在。
+
+后来翻账的人没有加注。他把这一页合上，手指压住纸角。门边的钥匙没有响。
+
+**锚句**：人会离开，钥匙不记得。
+**Anchor sentence**: people leave; the keys do not remember.
+
+---
+
+## 模型映射（回响十章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 钥匙 · 暂存库 · 门锁 · 薄册 | 一至六 |
+| geography | 台阶 · 库房 · 账房门前 · 灯前 | 一至六 |
+| factions | 守门人 · 候门的人 | 一至六 |
+| characters | 守门老人 · 换班的守门人 · 翻账的人 | 一至六 |
+| items | 钥匙 · 铁环 · 薄册 · 封线 · 钉子 | 一至六 |
+| story | 雾港 · 灰棚 · 回响（其十） | 全篇 |
+| history | 铁月纪之后 · 灰棚之前 | 一至六 |
+
+> 钥匙不开门——
+> 它只让门保持「可以被打开」的姿态。
+>
+> The keys never open the door —
+> they only keep the door in the posture of being openable.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其十）「钥匙」
+
+> An echo does not continue the canon — it only keeps its eyes on the string of keys in the old doorkeeper's hand.
+> Written for the lock no one opens and the keys no one tries.
+> Its anchors answer to the same discipline as the red cord and the four covered characters.
+>
+> 回响不替正典续写——它只盯着守门老人手里那一串钥匙。
+> 本篇写给那间没人去开的锁、那串没人试的钥匙。
+> 本篇锚句，与《红绳》《封面四字》同一纪律。
+
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+> 纪元：铁月纪之后 · 灰棚之前。
+
+---
+
+## I · Where They Came From
+
+In Chapter VIII, After the Ash, the old man stood at the steps. The door behind him, the steps running down, the sea withdrawn beyond sight. In his hand a string of keys, an iron ring passing through every key's eye — worn smooth with time, the ring too ground to a fine groove.
+
+The keys had not been bought. No expenditure in any account, no issue-mark in any store. That store-room had once kept what no one claimed: broken buttons, letters never posted, name-tags with no one to answer them. Then the inventory clerk left; the door was not locked, the cabinets not emptied.
+
+The keys were what remained.
+
+No one came to claim them. No one said which key belonged to which door. A column in the ledger was headed "Held in trust," and beneath it no date. The paper that followed was soaked with damp; the ink dispersed along the fibres, like a tide-line withdrawing.
+
+When the old man took the keys, he signed nothing. He set them in his palm and carried them to the steps. Later, someone asked where they had come from; he answered only: "What remained of the store."
+
+It was not an answer. But the ledger had no other way to write it.
+
+**Anchor sentence**: what no one claims stays where it is.
+**锚句**：无人认领的，便留在原处。
+
+---
+
+## II · The Count
+
+The old man counted the keys.
+
+The first time, he counted nineteen. He wrote the number on the plank by the door, and the sea-wind swept the powder into the grooves of the letters. The next day he counted again — twenty. No new keys had arrived; the ring held no empty place.
+
+The third time, seventeen. The fourth, twenty-one. The old man changed fingers, counted from one side of the ring to the other, and back again. The numbers still did not agree.
+
+He recorded each count in a thin booklet. The pages had split in the middle, and the numbers had fallen into the split. Afterwards, he drew a short stroke beside every figure, as if to nail it to the page. The strokes varied in length; as time went by they looked more and more like a rank of nicks worn level by the tide.
+
+Someone once offered to count for him. That person counted only once, called out a number, and set the keys down. The old man asked whether they would count again; the offer went unanswered.
+
+From then on, the old man never wiped out the previous count. The old figures lay beneath the new ones; with the paper gone thin, the back side showed them too. When the booklet closed, the sound of keys whispered through its back cover.
+
+He recorded many times. Not a single figure in the booklet was struck through.
+
+**Anchor sentence**: numbers do not testify.
+**锚句**：数目不作证。
+
+---
+
+## III · Not Tried
+
+There was a lock on the door. The old man never tried the keys.
+
+Trying the keys was opening the door. Not after the door swung, not after the bolt withdrew — holding a key before the lock, selecting one, sliding it in: that was already the first step.
+
+After the first step, the old ledger would reopen.
+
+The ledger lay beneath the cabinet's floor, its cover gone pale. The binding-thread was still in place, its knot already loosened. The old man had seen a hand reach toward the binding, and had seen that same hand withdraw. No one cut the binding, no one asked what it held.
+
+The rule was not posted on the door. It was passed down only at each change of shift. The old man handed the keys over and said: never tried. The new doorkeeper asked which key opened the door. The old man said: I don't know.
+
+The newcomer asked: and if you did?
+
+The old man set the ring back in his palm. Metal met metal with a soft sound, like water in a lock.
+
+The doorkeeper must never try. If he did, he could never again say he had only been watching the door. The step into opening was small, but the ledger would turn from its first page. Old names, old debts, old blank days — all of them waiting for someone's hand to land on the ink.
+
+So the old man stood at the steps. The lock on the door, the keys in his hand, and between the two of them a distance not worth measuring.
+
+**Anchor sentence**: a hand that has not entered the lock has not reopened the ledger.
+**锚句**：手未入锁，账未重开。
+
+---
+
+## IV · Rust
+
+The keys are older than the lock.
+
+The old man knew it without any chronicle. When he had taken the keys from the store, the lock had already been on the door; yet the grooves on the key teeth had long since worn smooth. They had opened doors elsewhere, or they had never opened any at all. The ledger could not tell.
+
+The salt had gone first.
+
+It left white traces, sinking into the keys' grooves. Later, when the white traces had dispersed, the iron began to rust. The rust rose from the roots of the teeth, travelling slowly toward the shanks. On a few keys the lettering was hidden by rust; the old man scratched at them with a fingernail, and the powdered fall settled on the steps — gone by the next day.
+
+He did not wipe the keys. The salt had gone, and no amount of wiping could bring it back; the rust had followed, and he let it follow. The keys stayed in his hands, the sea's damp entered through the lines of his palms, and when he set them down, the iron ring was left with one more dark circle.
+
+The lock on the door wore no such color. It faced inward year-round, beyond rain's easy reach. The old man never laid the two side by side. Only, at every change of shift, he passed the keys to the next one, drew his hands back, and found on his palms a shallow round print.
+
+The print faded quickly. The rust on the keys did not.
+
+**Anchor sentence**: the salt had gone; only then did the rust arrive.
+**锚句**：盐已退，锈才抵达。
+
+---
+
+## V · Before the Lamp
+
+The lamp of Chapter VII is still lit.
+
+The old man sometimes looked toward that lamp. Seen across the door, across a few pages of ledger, it rested at the end of the steps. No one stood before it; only a circle of stillness. The old man held the keys and imagined someone coming out of the dark — a figure with no ledger, and no name.
+
+That figure walked up to the lamp, and looked down at the keys. Without selecting one, without asking. As if it had always known which one belonged in its hand, or had never seen a lock at all.
+
+The old man imagined the figure lifting a key. The rust on the iron teeth darkened under the lamp; the old marks along the ring came clear. The figure did not hurry toward the door. It paused, as if listening for the tide behind it.
+
+Then the figure stepped forward.
+
+The key's tip faced the keyhole; the wrist did not tremble. Lamp-light fell across the figure's knuckles, and across the ash along the threshold. The old man imagined that moment stretched very long — long enough to hear the water retreat far below the steps, to see the ledger's edge lift slightly.
+
+He did not imagine whether the key would fit. Nor what lay beyond the door.
+
+He only imagined that hand, held steady in the lamplight.
+
+**Anchor sentence**: what happens before the lamp enters no ledger.
+**锚句**：灯前之事，不入账。
+
+---
+
+## VI · Left at the Steps
+
+The doorkeeper changed shifts.
+
+Some received the keys and stood at the steps for years; some only for a night, and were gone by morning. The old man also aged. His back bent; his fingers thinned; yet the key-ring still closed around his palm.
+
+Later, some said he had left. Others said he had never gone. When no one stood by the door, the keys were still there, set into the seam between two stones along the steps. Water ran down the face of the steps, but did not carry them away.
+
+Those who took the shift came and went. Each of them knew the keys stayed at the steps. No one brought them indoors, and no one sent them back to the store. That store had long since left the ledger — its door-plate blank, its cabinets no longer spoken of.
+
+The keys sometimes rested on the steps, sometimes hung from a nail by the door. The old man was gone; the nail remained. The salt finished withdrawing from the iron ring; rust grew along the teeth's seams little by little. The lock on the door stayed as it was.
+
+This page bears no doorkeeper's name. Only one line, written along the margin: the keys are still there.
+
+The one who next opened the ledger added nothing to it. He closed the page, and pressed his finger on its corner. The keys beside the door rang no sound.
+
+**Anchor sentence**: people leave; the keys do not remember.
+**锚句**：人会离开，钥匙不记得。
+
+---
+
+## Model mapping (echo No. 10)
+
+| Category | Title | Corresponds to |
+|---|---|---|
+| lore | The Keys · the Held-in-Trust Store · the Lock · the Thin Booklet | I–VI |
+| geography | The Steps · the Store-Room · Before the Ledger Door · Before the Lamp | I–VI |
+| factions | The Doorkeeper · the Waiting Ones | I–VI |
+| characters | The Old Doorkeeper · the Changing Doorkeepers · the Ledger-Turner | I–VI |
+| items | The Keys · the Iron Ring · the Booklet · the Binding-Thread · the Nail | I–VI |
+| story | The Mist Harbor · the Grey Cover · Echo (No. 10) | whole |
+| history | After the Iron-Moon Age · Before the Grey Cover Was Laid | I–VI |
+
+> The keys never open the door —
+> they only keep the door in the posture of being openable.
+>
+> 钥匙不开门——
+> 它只让门保持「可以被打开」的姿态。
+`,
+  },
 ] as const;

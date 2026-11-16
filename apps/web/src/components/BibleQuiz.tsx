@@ -203,6 +203,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《红绳》里，外来官员命人剪断红绳时……？', choices: ['剪了两下，结散了', '执剪的人停了手', '陆守灯当场答应了', '官员剪开了，但绳没断'], answer: 1, ref: '回响九 · 五' },
     en: { prompt: 'In “The Red Cord”, when the official ordered the cord cut…?', choices: ['it was cut, the knot fell apart', 'the scissors stopped before the handle', 'Lu Shousheng agreed on the spot', 'the official cut it, but the cord did not snap'], answer: 1, ref: 'Echo No. 9 · V' },
   },
+  {
+    zh: { prompt: '《钥匙》里，守门老人数钥匙，每次数的数目……？', choices: ['都一样', '不一样', '总是二十把', '总是十七把'], answer: 1, ref: '回响十 · 二' },
+    en: { prompt: 'In “The Keys”, the old man counts the keys — each time the count…?', choices: ['is the same', 'is different', 'is always twenty', 'is always seventeen'], answer: 1, ref: 'Echo No. 10 · II' },
+  },
+  {
+    zh: { prompt: '《钥匙》里，守门人不试钥匙的原因是……？', choices: ['怕钥匙断了', '试了就是开门=旧账重开', '钥匙太久没用了', '上级命令'], answer: 1, ref: '回响十 · 三' },
+    en: { prompt: 'In “The Keys”, why must the doorkeeper never try the keys?', choices: ['they might snap', 'trying is the first step of reopening the old ledger', 'they have been unused too long', 'orders from above'], answer: 1, ref: 'Echo No. 10 · III' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

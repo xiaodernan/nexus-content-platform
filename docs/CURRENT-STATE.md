@@ -5098,3 +5098,18 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - 证据页：`docs/evidence/cache-stream-fix-2026-11-17.md`（方法、6 次逐次计数、现场截图级可复现步骤、诚实边界）。
 - Docker 再次熄火后重启（nexus-redis/nexus-postgres healthy），能力判定仍为 real（ADR 0271 路径生效）。
 - 门：ai-service healthz 200 capability=real；fe-gates 123 · 1200/1200（本轮无前端代码变更，避免无谓重钉）。
+
+## cont. 179 (2026-11-17) - v809: 回响（其十）「钥匙」—— 守门老人手里那串没人试的钥匙
+
+- 新内容：`docs/world-bible/echoes/E10-钥匙.md` + `.en.md`——盯着第八章守门老人手里的那串钥匙：
+  钥匙是暂存库里没人认领的遗物（不是买的）·
+  守门人每次数「十九→二十→十七→二十一」——数目从不相同，也没人划掉旧数；
+  守门人不试钥匙（手未入锁，账未重开——开门的第一步就是重开旧账）；
+  盐先走了，锈才跟上；灯前那位「不拿册子、不说名字」的人站了一回没敢出手；
+  守门人换班、老去，钥匙仍留在台阶石缝旁——人会离开，钥匙不记得。
+- 锚句全系列 **105/105 全过**（verify:world-bible OK，zh+en 逐字）；gen:bible-snapshot（8 章 × 10 回响）字节一致；
+  live probe /bible/echo-010-the-keys 200（双语命中）；/bible hub 入册。
+- BibleQuiz **36 题**（+2 E10 双语题）；序列钉死 [..., 1, 1]；SHA pin 17d91eb1… 重钉。
+- guide 全套对齐：九回响 → 十回响（zh/en ×6 处）；SHA pin 8a2d9f76… 重钉。
+- 草稿出真 provider（gpt-6.1-terra），人工定稿·严纪律。
+- 门：fe-gates 123 套 · 1200/1200 OK；census 2541 OK；tsc 0。
