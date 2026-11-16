@@ -4751,3 +4751,14 @@ D
 - 对 token 利用的结论：该仓 provider-side prefix cache 在同字节前缀下已达极限（21265/21268）；
   剩余命中率损失只能来自 stable block 变动（build_tree_digest / tokens / totals 变化），不来自谎称的「非流」。
 - 本地零改动代码（探针脚本用完即删，key 不落盘、不进仓）。
+## cont. 150 (2026-11-17) - v781: LLM 网关换新 + Clash 出网实修（ADR 0270）
+
+- 触发：用户换 provider——Base URL https://api.aizzz.xyz/v1，model gpt-6.1-terra（key 仅 env NEXUS_OPENAI_API_KEY），本机 Clash Verge（127.0.0.1:7897）出网授权（api.aizzz.xyz 对大陆直连 403「本站不对您所在的国家及地区进行商业服务」）。
+- 症状：ai-service（:3212）/v1/ai/run 与 /v1/ai/design-graph 恒 502；同一 key/URL/body 经 fresh httpx.Client（trust_env 默认）得 200，直连 403；provider 内部 `_client` 恒 403。
+- 根因（ADR 0270）：httpx 的 env 代理挂载只包**默认 transport**；一旦 Client 传入自定义 transport（StickyPromptCacheTransport），Client 不再挂代理 → 出站变直连 → 被地理拦截。
+- 修复：`StickyPromptCacheTransport` 默认内层改为 `_default_inner()`——显式读 `HTTPS_PROXY/https_proxy/HTTP_PROXY/http_proxy/ALL_PROXY/all_proxy`（取第一个非空），有则 `httpx.HTTPTransport(proxy=...)`，无则退化为零回归 `httpx.HTTPTransport()`。装饰器既有语义（注入 prompt_cache_key、尊重调用方已给键、不吞异常、流式/非流一起覆盖）一字不动。
+- 实测（真调用，2026-11-17）：`POST /v1/ai/run`（dryRun）HTTP 200——首真调 tokensIn 6712 / cached 5248（78.2%）/ latencyMs 3281；新 prompt 变体 tokensIn 6726 / cached 6528（**97.1%**）/ latencyMs 5016；同 request 二次命中 app 级 completion cache：cachedTokens=6712、latency 0–15ms、costUsd=0.0；`/v1/ai/design-graph` HTTP 200 且 `x-nexus-orchestration: stategraph`、body 与 execute_ai_request 逐字节同构。
+- 门：ai-service 相关 86/86 绿（test_sticky_prompt_cache / test_prompt / test_prompt_order / test_stategraph / test_completion_cache / test_cache_telemetry）。docker Desktop 本 session 又两次熄火；nexus-redis（56379）/ nexus-postgres（55433）多次重启后恢复；uvicorn :3212 多次冷启。
+- 环境文档：`apps/ai-service/env.example` 收录代理段说明；`docs/adr/0270-llm-transport-must-honor-env-proxy.md` 落册（含 healthz capability 仍是配置推断、NO_PROXY 粒度、Clash 节点间歇性 ConnectError EOF 这三项诚实边界与后续动作）。
+- 提交：bb29cb32（StateGraph 路由）、本提交（v781 / cont. 150）。
+- 未做：LlmLiveness（healthz 活探针，镜像 EmbeddingLiveness）；NO_PROXY 按 base_url 主机豁免；NEXUS_LLM_STREAM 落地态核对（本仓源默认 1，本机 .env 显式 0——两者并存，以 .env 为准）。

@@ -16,7 +16,7 @@ MAX_TOKENS_IN_PROMPT = 120
 MAX_NODES_IN_PROMPT = 400
 MAX_TREE_CHARS = 60_000
 
-SYSTEM_PROMPT = """你是 NEXUS Studio 的设计编辑 Agent。输入是一份设计文档摘要与一句诉求，输出必须只有一段 JSON：
+SYSTEM_PROMPT = """你是 NEXUS Studio 的设计编辑 Agent。输入是一份设计文档摘要与一句诉求，输出必须只有一个 JSON 对象——一份合法 json：
 
 {"patches":[{"pageId":"...","summary":"一句话说明","ops":[...]}],"explanation":"给用户看的中文说明","labels":["方案A"]}
 

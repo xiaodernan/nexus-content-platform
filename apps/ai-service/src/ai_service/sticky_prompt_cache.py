@@ -14,6 +14,8 @@
 2. `StickyPromptCacheTransport` —— httpx transport 装饰器，在**出站 HTTP 报文**里
    注入 `prompt_cache_key`。不改 provider 一行、不改 `complete()` 签名，
    流式与非流两条路自动都覆盖；provider 已经显式给了键就不覆盖。
+   默认内层 transport 显式尊重环境代理（HTTPS_PROXY/HTTP_PROXY/ALL_PROXY，大写小写都认）：
+   Client 的 env 代理挂载只包默认 transport，自定义 transport 必须自己接这根引线。
 
 §159 诚实边界：
 - 这个键只是**路由提示**，不是"保证命中"。通道轮转、隐藏前缀注入、TTL 过期都会让
@@ -26,6 +28,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from typing import Any, Mapping
 
 import httpx
@@ -138,6 +141,39 @@ def _judge_sticky_body(body: Mapping[str, Any], *, expected: str) -> bool:
     return isinstance(key, str) and key.startswith(KEY_PREFIX) and key == expected
 
 
+_PROXY_ENV_KEYS = (
+    "HTTPS_PROXY",
+    "https_proxy",
+    "HTTP_PROXY",
+    "http_proxy",
+    "ALL_PROXY",
+    "all_proxy",
+)
+
+
+def _env_proxy() -> str | None:
+    """读进程环境里登记的代理——顺手服务一个现实：https 出口被地理拦截时，
+    httpx `Client(trust_env=True)` 的代理挂载**只包默认 transport**；一旦传入自定义
+    transport（本模块就是），Client 不会给它补代理，出站就又变成直连——直连被 403 拦，
+    一模一样的 URL+body 走代理却是 200。所以默认内层 transport 必须自己显式认这个 env。
+    没登记任何代理时返回 None（行为与旧版字节级一致）。
+    注：transport 构造期看不到目标 URL，NO_PROXY 无法按主机粒度豁免——本进程唯一
+    的出站就是 provider 网关，把代理给它是显式意愿；需要㊎免时显式传 inner=。
+    """
+    for name in _PROXY_ENV_KEYS:
+        value = os.environ.get(name)
+        if value and value.strip():
+            return value.strip()
+    return None
+
+
+def _default_inner() -> httpx.HTTPTransport:
+    proxy = _env_proxy()
+    if proxy:
+        return httpx.HTTPTransport(proxy=proxy)
+    return httpx.HTTPTransport()
+
+
 class StickyPromptCacheTransport(httpx.BaseTransport):
     """在 POST chat/completions 的出站 JSON 里注入稳定 `prompt_cache_key`。
 
@@ -147,7 +183,7 @@ class StickyPromptCacheTransport(httpx.BaseTransport):
     """
 
     def __init__(self, inner: httpx.BaseTransport | None = None, *, enabled: bool = True) -> None:
-        self._inner = inner if inner is not None else httpx.HTTPTransport()
+        self._inner = inner if inner is not None else _default_inner()
         self.enabled = bool(enabled)
 
     @property
