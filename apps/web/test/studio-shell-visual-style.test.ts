@@ -179,9 +179,9 @@ describe('§FE-41 /studio StudioShell Studio 外壳', () => {
     expect(segment).not.toMatch(/transition:[^;}]*\d+(ms|s)\b/);
   });
 
-  it('剥 className/cn 后（EOL+空白归一）全文 SHA256 守恒（merged tree 重钉：本线世界子页入口 + v757 波系 → 7df72455…，本文件 redact 为 no-extra 口径）', () => {
+  it('剥 className/cn 后（EOL+空白归一）全文 SHA256 守恒（cont. 175 教学说明：rail tabs/view 按钮挂 tabHints/viewHints tooltip → 493e6ede…，本文件 redact 为 no-extra 口径）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '7df72455a6b58e1d2c720481b5354721e8d926c4ba61ffd29bfab63d2d8611c9',
+      '493e6ede81ece2937ca5cba107fcfbb536d20b85afcbc072d26763e1b88e5522',
     );
   });
 });

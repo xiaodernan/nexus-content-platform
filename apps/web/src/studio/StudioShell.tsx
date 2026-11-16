@@ -231,8 +231,8 @@ function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zo
             <button
               key={item.id}
               type="button"
-              title={c.tabs[item.id]}
-              aria-label={c.tabs[item.id]}
+              title={`${c.tabs[item.id]} · ${c.tabHints[item.id]}`}
+              aria-label={c.tabHints[item.id]}
               onClick={() => {
                 setTab(item.id);
                 setRailOpen(true);
@@ -302,6 +302,8 @@ function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zo
                     onClick={() => setView(id)}
                     data-view={id}
                     aria-pressed={view === id}
+                    title={c.viewHints[id]}
+                    aria-label={c.viewHints[id]}
               className={cn('se-viewBtn', view === id && 'se-viewBtnActive')}
                   >
                     {c.views[id]}

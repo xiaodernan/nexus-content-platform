@@ -5042,3 +5042,15 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - 兼容性推演：标准滚轮（wheel up deltaY<0）→ 向上看；自然滚动系/反向滚轮（fingers-up deltaY>0，用户实指设备类）→ 同样向上看
 - CanvasStage SHA pin 5ab5d608… 重钉（test-exact redact，含 \\s+→' ' 归一）；canvas-stage 9/9
 - 门：fe-gates 123 套 · 1200/1200；census 2541 OK；tsc 0
+
+## cont. 175 (2026-11-17) - v805: 主界面全量教学说明（§五）——每个按钮背后都有一句中文/英文
+
+- §五「在主界面上给各种按键和操作加上附带的教学说明」落地 Studio 主界面：
+  - 左栏 14 个 tab 全部挂 tabHints tooltip（一行中文/英文教学语：图层 / 设计系统 / 资产 /
+    世界 / 游戏 / 分镜 / 团队 / 角色 / 记忆 / 检索 / 上下文 / Agent / 历史 / 健康）
+  - 5 个视图切换（画布/方案/代码/世界图/游戏图）挂 viewHints tooltip
+  - 顶栏「面板」按钮补 railToggleTitle
+- aria-label 与 tooltip 同文（屏幕阅读器即说教学语）；class 结构零变化
+- studio-shell SHA 493e6ede…（redact：EOL+cn+空白归一）、studio-topbar SHA 2b18cc95…
+  （自写 stripClassNames 复制实现，pre-edit 哈希与旧 pin 字节一致复核）重钉
+- 门：fe-gates 123 套 · 1200/1200；census 2541 OK；tsc 0；studio-shell/topbar 25/25

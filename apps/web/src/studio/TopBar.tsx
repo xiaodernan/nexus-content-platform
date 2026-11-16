@@ -78,6 +78,8 @@ export function TopBar({ onOpenRail, credits = null, locale = 'zh' }: { onOpenRa
         type="button"
         onClick={onOpenRail}
         className="sp-railToggle"
+        title={c.railToggleTitle}
+        aria-label={c.railToggleTitle}
       >
         {c.railToggle}
       </button>
