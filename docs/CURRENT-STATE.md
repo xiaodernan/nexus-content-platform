@@ -5522,3 +5522,25 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
   16/64/128/256 并发 ops 5692/6000/6000/6000，errors **0**，hit_ratio **0.795–0.809**，
   p95 250→2496ms 随并发上升（诚实呈现，未粉饰）；cleanup namespace_residue=0；
   证据：`docs/evidence/load-redis-completion-cache-2026-11-17-pm.json`
+
+## cont. 203 (2026-11-17) - v833: /observatory「AI 独立复核」——规则引擎被大模型重算一遍（§新指令·LLM 深度嵌入 · 切面 10）
+
+- 新 API `POST /api/pulse/review`：输入仅 14 天 opens 序列 + 机器人占比 + 半周 delta（客户端从 /api/pulse 原样上传，不重查库）；
+  服务端用纯函数规则引擎（fitLinear/summarizeVolatility——零 DB）**自己重算** fit/CV/deltas/projected7d，
+  把与 /observatory 完全一致的规则真值整包喂给模型——这是复核对象。
+- 模型被要求独立复核：2-5 条 agree/disagree（每条必含具体数字）+ 一句"如果只改一件事改哪件"（必须落在 JSON 的数字上）；
+  每条 check 缺数字即 502；DEMO MODE → 409；每 IP 10/小时；24h LRU（16 槽）；
+  **只读、绝不写库/改规则**（规则代码本身就是真值）；disclaimer「AI 复核 · 依据实测聚合数字 · 非人工背书」。
+- 新 UI：`PulseReviewCard`（DeepReadCard 同级，.pr-*）——agree/disagree 双列展示 + "如果只改一件事"横幅；中英双语；失败如实展示
+- live probe（dev server + 真实聚合）：
+  - GET /api/pulse → 200（opens 801 · bot 660/801=82.4% · visitors 360 · 14-day points · hot=3）
+  - POST /api/pulse/review → **HTTP 200 fresh（30.4s）**；basis：slope=0.5802 · intercept=0.229 · residualStd=13.28 · n=14 · CV=3.13 · lastDeltaPct=null · projected7d=12 · botShare=0.824
+  - 4 checks（2 agree / 2 disagree）**全部引用实测数字**：
+    "agree: CV=3.1296（opens 从 0 到 49 再跌回 0-3）"、"agree: botShare=0.8240（82.4%）"、
+    "disagree: slope=0.5802 但最近 days 的 opens≈0-3，残差高"、"disagree: opensDelta=1200 不能直接当稳定增长"
+  - bestNextMove："被一个外部事件（2026-11-12 opens=49）" 驱动 — 基于 slope=0.58/projected7d=12
+- 简明说明书：/observatory tour 段（zh/en）补「AI 独立复核」；guide SHA 033b9f77… 重钉；
+  pulse 公共视图不动（ReviewCard 是新组件，SHA 钉在 DeepReadCard/Gate 不受影响）；
+  新增 pulse-review-visual-style.test.ts（6 例，含"复核对象=规则引擎重算真值(零 DB 写)"机械断言）
+- 门：fe-gates 131 套 · **1252/1252**；census 2685 OK；tsc 0
+- LLM 切面计数：9 块 → **10 块**

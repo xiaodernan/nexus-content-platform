@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/i18n';
 import { fitLinear, projectForward, summarizeVolatility, buildPublicActions, type Volatility } from '@/server/domain/pulseProjection';
 import { DeepReadCard } from '@/components/DeepReadCard';
+import { ReviewCard } from '@/components/PulseReviewCard';
 
 /**
  * §PUB-1 公共观测大厅（/admin/public）——口令 `123` 打开
@@ -341,7 +342,17 @@ export function PulsePublicView({ locale = 'zh' }: { locale?: Locale }) {
             </ol>
           </section>
 
-          <DeepReadCard body={body} locale={locale} />
+          <ReviewCard
+            body={{
+              points: trendPoints.map((p) => ({ day: p.day, opens: p.opens })),
+              opens: body.opens,
+              opensBot: body.opensBot,
+              opensDelta: body.trend.opensDelta ?? null,
+              visitorDaysDelta: body.trend.visitorDaysDelta ?? null,
+            }}
+            locale={locale}
+          />
+                    <DeepReadCard body={body} locale={locale} />
 
           <footer className="pl-foot">
             <p className="pl-footNote">{c.footNote}</p>

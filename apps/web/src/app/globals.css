@@ -5603,3 +5603,41 @@
   .fys-button, .fys-buttonPrimary { border-color: CanvasText; color: CanvasText; background: Canvas; }
   .fys-button:focus-visible, .fys-dismiss:focus-visible { outline: 2px solid Highlight; }
 }
+
+/* ──PULSE-REVIEW /observatory "AI 独立复核"（cont. 203）── 全部 tokens，零 hex */
+.pr-root { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 0.9rem; padding: 1rem 1.25rem; background: var(--nexus-color-bg-2); border: 1px solid color-mix(in srgb, var(--nexus-color-accent-2-ink) 32%, var(--nexus-color-border-subtle)); border-radius: var(--nexus-radius-md, 0.75rem); }
+.pr-kicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.22em; text-transform: uppercase; color: var(--nexus-color-accent-2-ink); margin: 0; }
+.pr-title { font-size: 1.02rem; font-weight: 650; margin: 0; color: var(--nexus-color-fg-1); }
+.pr-lede { margin: 0; font-size: 0.8rem; line-height: 1.7; color: var(--nexus-color-fg-3); }
+.pr-loading { margin: 0; font-size: 0.9rem; color: var(--nexus-color-fg-2); }
+.pr-error { margin: 0; font-size: 0.88rem; line-height: 1.6; color: var(--nexus-color-danger-ink); overflow-wrap: anywhere; word-break: break-word; }
+.pr-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.45rem; }
+.pr-item { display: grid; grid-template-columns: auto 1fr; gap: 0.15rem 0.75rem; align-items: baseline; padding: 0.55rem 0.75rem; background: var(--nexus-color-bg-3); border-left: 2px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm, 0.5rem); }
+.pr-itemAgrees { border-left-color: var(--nexus-color-accent-2-ink); }
+.pr-itemDisagrees { border-left-color: var(--nexus-color-danger-ink); }
+.pr-verdict { grid-row: span 2; align-self: center; font-family: var(--nexus-font-mono); font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--nexus-color-accent-2-ink); white-space: nowrap; }
+.pr-itemDisagrees .pr-verdict { color: var(--nexus-color-danger-ink); }
+.pr-claim { font-size: 0.86rem; line-height: 1.6; color: var(--nexus-color-fg-1); overflow-wrap: anywhere; word-break: break-word; }
+.pr-basis { font-size: 0.72rem; color: var(--nexus-color-fg-3); overflow-wrap: anywhere; word-break: break-word; }
+.pr-best { display: flex; gap: 0.6rem; align-items: baseline; margin: 0; padding: 0.6rem 0.8rem; background: var(--nexus-color-bg-3); border-radius: var(--nexus-radius-sm, 0.5rem); font-size: 0.9rem; line-height: 1.7; color: var(--nexus-color-fg-1); }
+.pr-bestTag { flex: none; font-family: var(--nexus-font-mono); font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--nexus-color-accent-2-ink); }
+.pr-note { margin: 0; font-family: var(--nexus-font-mono); font-size: 0.68rem; color: var(--nexus-color-fg-3); overflow-wrap: anywhere; word-break: break-word; }
+.pr-disclaimer { margin: 0; font-family: var(--nexus-font-mono); font-size: 0.68rem; color: var(--nexus-color-fg-3); overflow-wrap: anywhere; word-break: break-word; }
+.pr-row { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
+.pr-meta { margin: 0; font-family: var(--nexus-font-mono); font-size: 0.68rem; color: var(--nexus-color-fg-3); }
+.pr-button { font: inherit; cursor: pointer; font-size: 0.85rem; padding: 0.42rem 1rem; border-radius: 999px; border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-1); transition: border-color 140ms, color 140ms; }
+.pr-button:hover { border-color: var(--nexus-color-accent-2-ink); color: var(--nexus-color-accent-2-ink); }
+.pr-button:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+.pr-buttonPrimary { border-color: var(--nexus-color-accent-2-ink); color: var(--nexus-color-accent-2-ink); font-weight: 600; }
+.pr-dismiss { font: inherit; cursor: pointer; font-size: 0.8rem; padding: 0.3rem 0.6rem; background: transparent; border: none; color: var(--nexus-color-fg-3); }
+.pr-dismiss:hover { color: var(--nexus-color-fg-1); }
+.pr-dismiss:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+
+@media (forced-colors: active) {
+  .pr-root { border-color: CanvasText; background: Canvas; color: CanvasText; }
+  .pr-item { border: 1px solid CanvasText; background: Canvas; }
+  .pr-kicker, .pr-lede, .pr-loading, .pr-claim, .pr-basis, .pr-disclaimer, .pr-note { color: CanvasText; }
+  .pr-verdict, .pr-bestTag { color: Highlight; }
+  .pr-button, .pr-buttonPrimary { border-color: CanvasText; color: CanvasText; background: Canvas; }
+  .pr-button:focus-visible, .pr-dismiss:focus-visible { outline: 2px solid Highlight; }
+}
