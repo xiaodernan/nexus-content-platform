@@ -47,5 +47,6 @@
 ## 诚实话（§159）
 
 - 这次没有「100% 命中率」；也没有承诺一个可重复的 SLA。wkapi.pro 那条线旧数据仍在文档里，不迁移数字过来。
-- L2（服务内）这一格今天还没拿到干净的 PASS；只 L1 拿到了稳定数据。服务端接真请求后再补一轮 `/admin/ai-cache` 实读。
+- 2026-11-16（当日补充）：L2（服务内）**已拿到 ALL PASS**——`curl` 失败的那条路径后来定位到 `StickyPromptCacheTransport` 默认内层 `httpx.HTTPTransport()` **不读环境变量**，本机 Clash Verge 代理被静默丢弃 → 服务内出站直连 → 上游按国家拦截（403）。修复后服务内 `/v1/ai/run` cold → warm 完全回放（6707/6707 cached）。见 `docs/adr/0271-sticky-transport-env-proxy.md`。
+- 回放读数诚实分账：L2 的 100% 是 **应用级 completion cache**（CachedLlm，精确匹配回放）的数；provider 侧前缀缓存数据来自 L1 实跑（4992/5228）。两条线分别计数，不合结。
 - 流式打不通是本机节点问题，不是 aizzz.xyz 本身对所有人不支持流式——换节点或换线路后可以把 `NEXUS_LLM_STREAM` 改回 1 重新走 `probe:cache` 复测。

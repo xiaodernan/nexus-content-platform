@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from typing import Any, Mapping
 
 import httpx
@@ -117,6 +118,24 @@ def _messages(body: Mapping[str, Any]) -> tuple[str, str]:
     return "".join(system_parts), "".join(user_parts)
 
 
+def _env_proxy_transport() -> httpx.BaseTransport:
+    """从环境（HTTPS(S)_PROXY/HTTP_PROXY）读代理；读不到/不支持就退回直连。
+
+    教训（2026-11-16）：`httpx.HTTPTransport()` 本身不读环境变量——env 代理只在不给
+    `transport=` 时由 Client 兜底生效。provider 走了自定义 transport 链后，本机 Clash Verge
+    代理被静默丢弃 → 出口变成直连 → 上游按国家拦截（ aizzz.xyz 403）。所以内层默认传输
+    必须**显式**从 env 取代理；NO_PROXY 不考虑（出站的是外部 provider，不经 localhost 代理链）。
+    """
+    proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("HTTP_PROXY") or os.environ.get("https_proxy") or os.environ.get("http_proxy")
+    if not proxy:
+        return httpx.HTTPTransport()
+    try:
+        return httpx.HTTPTransport(proxy=proxy)
+    except Exception:
+        # 代理 URL 非法 / httpx 版本不认代理 → 直连（与导入前的行为一致），不静默伪造 success
+        return httpx.HTTPTransport()
+
+
 def sticky_body(body: Mapping[str, Any]) -> dict[str, Any]:
     """返回注入了 prompt_cache_key 的新 body（纯函数，不修改入参）。
 
@@ -147,7 +166,7 @@ class StickyPromptCacheTransport(httpx.BaseTransport):
     """
 
     def __init__(self, inner: httpx.BaseTransport | None = None, *, enabled: bool = True) -> None:
-        self._inner = inner if inner is not None else httpx.HTTPTransport()
+        self._inner = inner if inner is not None else _env_proxy_transport()
         self.enabled = bool(enabled)
 
     @property

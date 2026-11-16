@@ -14062,3 +14062,15 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - 快照 gen 注册 `echo-002-no-shore-on-the-tide-waiting-ship`，BIBLE_ECHOES 串进 /bible 目录「回响」分组；
   verify:world-bible ✅ / verify:bible-snapshot ✅；SSR 双语 200 实测；/bible 首页新增 E02 卡片自动渲染。
 - 生效后典籍室全集：4 章主线 + 2 回响 + 潮汐挑战 + 七口井 + 直达检索；仍为纯本地正典（零 provider、零网络）。
+
+## §STUDY-L2 — 「非流 / 低命中率」真根因（2026-11-16 / v796，ADR-0271）
+
+- 用户持续报告缓存命中率低、一直显示非流。本轮定位到机制并修复：
+  `StickyPromptCacheTransport` 默认内层 `httpx.HTTPTransport()` 不读环境变量——自定义 transport 接管后 Clash Verge 代理
+  被静默丢弃 → 直连 → aizzz.xyz 403（服务侧把 4xx 都归为「凭据被拒」，症状像 key 问题）。
+- 修复：`_env_proxy_transport()`——显式读 HTTPS(S)_PROXY/HTTP_PROXY 构造内层；没有/非法退回直连（零差异）。
+- 实测（真 key、真机器、Clash Verge）：`probe:cache` **ALL PASS**——L1 cold 0 → warm 4992；L2 /v1/ai/run call#2 **6707/6707 cached**
+  （CachedLlm 应用级回放；provider 侧前缀缓存账另算，L1 实跑 4992/5228，不掺和）。
+- ai-service 424 passed / 18 skipped；黏性 18 passed；ADR-0271、
+  ENVIRONMENT.md §AILIVE-5、证据 `docs/evidence/provider-aizzz-switch-2026-11-16.md` 已更新。
+- 「非流」对本机 aizzz.xyz 线是正确记账（SSE 段 SSL EOF/403），不是回归。

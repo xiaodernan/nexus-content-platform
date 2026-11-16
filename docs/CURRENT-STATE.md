@@ -4083,3 +4083,17 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   潮候仪、盐儒手礼、盐卤字条、潮认船之声；铁月纪第二冬之内；诗学和主典一脉（盐/潮/交班/不再被留下）。
 - 33 锚句全绿；ROADMAP M6/M3 登记；快照 gen 注册 Web-slug `echo-002-no-shore-on-the-tide-waiting-ship`；/bible 立即呈现。
 - Gates 全绿（fe-gates 123/123 · 1207/1207）；SSR 双语 200 实测；无新增 CSS / 零新增类。
+
+## cont. 163 (2026-11-16) — v796: 「非流 / 命中率低」的真根因——sticky transport 丢弃机器代理；L2 ALL PASS
+
+- 现场还原：L1 直连腿 200 但服务内 /v1/ai/run 稳定 401/403；key 完全正确。
+  唯一的真相路径：`StickyPromptCacheTransport` 默认内层 `httpx.HTTPTransport()` **不读环境变量**——
+  env 代理只在 Client 自建 transport 时由 httpx 兜底，自定义 transport 一接管就消失；出站直连 → aizzz.xyz 按国家拦截（403）。
+- 修复（ADR-0271）：`_env_proxy_transport()`——显式从 HTTPS(S)_PROXY/HTTP_PROXY 读代理构造内层，读不到/非法退回直连
+  （与导入前默认行为零差异，不静默伪造成功，不顾及 NO_PROXY 因为出站是外部 provider）。
+- FIX 后 `npm run probe:cache`（真 key + 真机器 + Clash Verge）：
+  L1 cold=0 → warm=4992 PASS；L2 /v1/ai/run cold=0 → call#2 **6707/6707 cached** PASS（回放自 CachedLlm，应用级 completion cache）；
+  数字分账记录清楚：provider 侧前缀缓存只看 L1（4992/5228）；L2 的 100% 是应用级 Redis 回放，不是 provider 两个账互不掺和。
+- ai-service 424 passed / 18 skipped；sticky 模块 18 passed；裁两个新门（env 显式代理 honored + 无代理直连回退）。
+- 用户看到的「一直显示非流」：本机 aizzz.xyz + Clash Verge 对 SSE 段是 SSL EOF/403，`NEXUS_LLM_STREAM=0` 记账正确，非回归。
+- Showcase 同步于提交后。
