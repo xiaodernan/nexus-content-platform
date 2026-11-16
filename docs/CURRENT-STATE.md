@@ -4286,3 +4286,10 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 门：**12+ 个 SHA 门按各自 redact 算法重钉**（含 FE-GE/-BN/-IC/-FI/-SV/-96/-95/-79/-78/-23/-16/-IC/-GE/-BN/-T）；
   fe-gates **125/125 · 1223/1223 · census 2396** 全绿；tsc web 0。
 - SSR 失败页 /guide（:3199）暂时换端口 `next start` 复测——数据源（Docker Postgres）停停启启，手动迁移后复位。
+
+## cont. 181 (2026-11-17) — v816 · StateGraph 接线（§63 自修环）+ provider 探针复测
+
+- provider 探针（经 Clash Verge 127.0.0.1:7897 探 `https://api.aizzz.xyz/v1/models`）：HTTP 200，7 个模型，`gpt-6.1-terra` 在列——网关健康。密钥只在环境里，不抄录。
+- Docker Desktop 在本机两次异常退出，已两次重拉；nexus-postgres / nexus-redis 均 healthy（若 `docker ps` 报错，先手动拉起 Docker Desktop 再跑 verify）。
+- v816：StateGraph 第一次进真实循环——§63 verify→fix→复验以显式 BSP 图接线（ADR-0272）；语义逐字节等价靠 agent/chain/pipeline 原样全绿证明；agents/runtime 669→**675/675**；新增 `test/verify-loop-graph.test.ts`（6 用例）。
+- 明示边界：/tasks 检查点（onStep）有缝未造消费方；/studio 的"graph 一词"交叉引用仍未做（避让 Studio 中文母语决策）。

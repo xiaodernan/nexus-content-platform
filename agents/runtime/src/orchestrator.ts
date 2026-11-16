@@ -13,6 +13,7 @@ import type {
   TaskStatus,
   ToolResult,
 } from './types.js';
+import { runVerifyFixLoop } from './verifyFix.js';
 
 export interface RunOptions {
   registry: ToolRegistry;
@@ -62,7 +63,7 @@ export async function runTask(task: AgentTask, opts: RunOptions): Promise<RunOut
     return out;
   };
   let at = 0;
-  let stepsUsed = 0;
+  const stepsUsed = { value: 0 };
   const emit = (e: AgentEventBody): void => {
     events.push({ ...e, at: at++ } as AgentEvent);
   };
@@ -94,7 +95,7 @@ export async function runTask(task: AgentTask, opts: RunOptions): Promise<RunOut
   };
 
   const invoke = async (step: Step): Promise<ToolResult> => {
-    stepsUsed++;
+    stepsUsed.value++;
     emit({ type: 'step_start', stepId: step.stepId, tool: step.tool });
     const res = await registry.invoke(
       { callId: `${task.id}:${step.stepId}`, tool: step.tool, args: resolveArgs(step) },
@@ -112,8 +113,8 @@ export async function runTask(task: AgentTask, opts: RunOptions): Promise<RunOut
 
   for (const step of plan.steps) {
     if (byStep.has(step.stepId)) continue; // v36: fix-round steps already ran inline — never twice
-    if (stepsUsed >= maxSteps) {
-      emit({ type: 'budget_exhausted', stepsUsed });
+    if (stepsUsed.value >= maxSteps) {
+      emit({ type: 'budget_exhausted', stepsUsed: stepsUsed.value });
       emit({ type: 'done', status: 'budget_exhausted' });
       return finishRun( 'budget_exhausted');
     }
@@ -128,34 +129,21 @@ export async function runTask(task: AgentTask, opts: RunOptions): Promise<RunOut
     if (step.stepId !== 'verify') continue;
     const verdict = res.output as { ok?: boolean; detail?: string };
     emit({ type: 'verify', ok: verdict.ok === true, detail: String(verdict.detail ?? '') });
-    let green = verdict.ok === true;
-    let attempt = 0;
-    // no-unmodified-loop-condition：stepsUsed 在这里**确实**在长——长在 `invoke` 里，而本循环每轮调用
-    // 它两次。这条规则只看得见循环体内的赋值，跨闭包的写对它就是「没被改过」。预算是真的在管：
-    // 每轮 fix 长两步，条件因此会停住轮次。写清原因，免得下一个人以为是漏了。
-    // eslint-disable-next-line no-unmodified-loop-condition
-    while (!green && attempt < maxFixRounds && stepsUsed < maxSteps) {
-      attempt++;
-      const fixStep: Step = {
-        stepId: `fix-${attempt}`,
-        tool: 'fs.append',
-        args: {
-          path: task.targetPath ?? dig(byStep.get('search')?.output, ['hits', 0, 'path']),
-          text: `FIX (DEMO MODE · attempt ${attempt}): goal "${task.goal}"`,
-        },
-        rationale: `auto-fix round ${attempt} after failed verification`,
-      };
-      plan.steps.push(fixStep);
-      emit({ type: 'fix', stepId: fixStep.stepId, attempt });
-      await invoke(fixStep);
-      const rerun: Step = { stepId: `verify-${attempt + 1}`, tool: 'test.run', args: {}, rationale: 're-verify' };
-      plan.steps.push(rerun);
-      const again = await invoke(rerun);
-      const v2 = again.output as { ok?: boolean; detail?: string };
-      emit({ type: 'verify', ok: v2.ok === true, detail: String(v2.detail ?? '') });
-      if (again.ok && v2.ok === true) green = true;
-    }
-    if (!green) {
+    // §v816（ADR-0272）：verify→有界自修→复验 走显式 StateGraph（带三条退出条件边），
+    // 预算仍由 invoke 写 stepsUsed.value，与原 while 逐字节等价——只写法换成图。
+    const verifyRes = await runVerifyFixLoop({
+      task,
+      plan,
+      maxFixRounds,
+      maxSteps,
+      byStep,
+      emit,
+      invoke,
+      stepsUsedRef: stepsUsed,
+      dig,
+      initialGreen: verdict.ok === true,
+    });
+    if (!verifyRes.green) {
       emit({ type: 'done', status: 'failed_verification' });
       return finishRun( 'failed_verification');
     }

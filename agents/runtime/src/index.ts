@@ -264,6 +264,8 @@ export {
   type StateNode,
   type StateGraphNodeConfig,
 } from './stategraph.js';
+// v816 — §63 的自修环以 StateGraph 接线（verify → 有界 fix → 复验；ADR-0272）。
+export { runVerifyFixLoop, type VerifyFixContext, type VerifyFixResult } from './verifyFix.js';
 export {
   GIT_ARC_TOOLS,
   gitArcDoors,

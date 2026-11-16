@@ -14184,3 +14184,10 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - Preview + Storyboard public + ViewerControls：双语；preview 页 SHA 重钉。
 - 扫描器最终口径：**src/app 注释行过滤 CJK 后 0 条 zh-only 路由**（Studio 工作台为独立中文母语工具除外）。
 - fe-gates **125/125 · 1223/1223 · census 2394**。
+
+## §SG-2 — StateGraph 接线 §63 自修环（2026-11-17 · v816 · ADR-0272）
+
+- 用户指令：「别忘了用 stategraph 来优化项目 把它做进项目里面」——此前 StateGraph 有语义无接线。
+- 交付：`agents/runtime/src/verifyFix.ts` 把 verify→有界 fix→复验 重写成显式 BSP 图（FIX_ROUND 节点 + START/环条件边）；`runTask` 逐字节等价（事件/预算/终态判定不变）；`agent.test.ts`/`chain.test.ts`/`pipeline.test.ts` 原样全绿。
+- 新增 6 个用例钉死零修/转绿/跑满/预算硬停/零轮场景；agents/runtime **675/675**；build 与 test tsconfig 全过。
+- 平路：`compile({ onStep })` 即 /tasks 审计检查点缝（未接消费方，故未造）。
