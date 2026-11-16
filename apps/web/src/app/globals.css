@@ -5299,6 +5299,19 @@
   .insg-benchCite { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
   .insg-benchCite a { color: var(--nexus-color-accent-2-ink); }
   .insg-benchCite a:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 1px; border-radius: var(--nexus-radius-sm); }
+.insg-aiCard { display: flex; flex-direction: column; gap: var(--nexus-space-2); border: 1px dashed color-mix(in srgb, var(--nexus-color-accent-mix) 55%, transparent); border-radius: var(--nexus-radius-md); padding: var(--nexus-space-3) var(--nexus-space-4); background: var(--nexus-color-bg-1); }
+.insg-aiKicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.18em; text-transform: uppercase; color: var(--nexus-color-accent-mix); margin: 0; }
+.insg-aiHint { font-size: var(--nexus-font-size-11); line-height: 1.75; color: var(--nexus-color-fg-3); margin: 0; max-width: 52rem; }
+.insg-aiBtn { align-self: flex-start; font-size: var(--nexus-font-size-12); font-weight: 700; letter-spacing: 0.04em; padding: var(--nexus-space-2) var(--nexus-space-4); border-radius: var(--nexus-radius-sm); border: 1px solid var(--nexus-color-accent-mix); background: color-mix(in srgb, var(--nexus-color-accent-mix) 14%, var(--nexus-color-bg-1)); color: var(--nexus-color-fg-1); cursor: pointer; transition: border-color 160ms ease, background 160ms ease; }
+.insg-aiBtn:hover:not(:disabled) { border-color: var(--nexus-color-brand); background: color-mix(in srgb, var(--nexus-color-accent-mix) 22%, var(--nexus-color-bg-1)); }
+.insg-aiBtn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+.insg-aiBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.insg-aiOutput { display: flex; flex-direction: column; gap: var(--nexus-space-2); border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-2); }
+.insg-aiBadge { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.08em; align-self: flex-start; color: var(--nexus-color-accent-mix); border: 1px solid color-mix(in srgb, var(--nexus-color-accent-mix) 45%, transparent); border-radius: var(--nexus-radius-sm); padding: 0.1rem 0.6rem; font-variant-numeric: tabular-nums; }
+.insg-aiText { font-size: var(--nexus-font-size-13); line-height: 1.85; color: var(--nexus-color-fg-1); white-space: pre-wrap; letter-spacing: 0.01em; margin: 0; }
+.insg-aiHonest { border-left: 2px solid color-mix(in srgb, var(--nexus-color-accent-mix) 70%, transparent); border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-2) var(--nexus-space-3); background: var(--nexus-color-bg-1); }
+.insg-aiHonestTitle { font-size: var(--nexus-font-size-12); font-weight: 700; color: var(--nexus-color-fg-1); margin: 0; }
+.insg-aiHonestBody { font-size: var(--nexus-font-size-11); line-height: 1.75; color: var(--nexus-color-fg-2); margin: var(--nexus-space-1) 0 0; }
 @media (max-width: 48rem) {
   .insg-signalRow { grid-template-columns: 1fr; gap: var(--nexus-space-1); }
   .insg-signalValue { text-align: left; }
@@ -5309,6 +5322,10 @@
   .insg-statValue, .insg-spark, .insg-signalLabel, .insg-signalValue, .insg-actionTitle, .insg-actionEvidence, .insg-actionText, .insg-footNote, .insg-kicker, .insg-trendTitle, .insg-trendMeta, .insg-trendWindow, .insg-cacheNote, .insg-refresh, .insg-severity, .insg-topName, .insg-topHandle, .insg-topViews, .insg-lockedNote, .insg-lede, .insg-title, .insg-sectionHead { color: CanvasText; -webkit-text-fill-color: CanvasText; background: none; border-color: CanvasText; }
   .insg-gateInput, .insg-gateSubmit, .insg-logout, .insg-back { color: CanvasText; border-color: CanvasText; background: Canvas; }
   .insg-signalBar { background: Canvas; border: 1px solid CanvasText; }
+  .insg-aiCard, .insg-aiOutput, .insg-aiHonest { border-color: CanvasText; background: Canvas; }
+  .insg-aiKicker, .insg-aiHint, .insg-aiText, .insg-aiHonestTitle, .insg-aiHonestBody, .insg-aiBadge { color: CanvasText; -webkit-text-fill-color: CanvasText; background: none; border-color: CanvasText; }
+  .insg-aiBtn { color: CanvasText; border-color: CanvasText; background: Canvas; }
+  .insg-aiBtn:focus-visible { outline-color: Highlight; }
   .insg-signalFill { background: Highlight; }
   .insg-gateError { color: CanvasText; }
   .insg-gateSubmit:focus-visible, .insg-gateInput:focus-visible, .insg-logout:focus-visible, .insg-back:focus-visible { outline-color: Highlight; }

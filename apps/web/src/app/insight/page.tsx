@@ -8,6 +8,7 @@ import { evaluateInsightRules, type InsightAction, type InsightSeverity } from '
 import { weightedHitRate } from '@/lib/llmSavingsAdmin';
 import { InsightGate } from '@/components/InsightGate';
 import { InsightLogoutButton } from '@/components/InsightLogoutButton';
+import { InsightAiAnalysis } from '@/components/InsightAiAnalysis';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +22,7 @@ const COPY: Record<Locale, {
   title: string;
   lede: string;
   lockedNote: string;
-  s1: string; s2: string; s3: string; s4: string; s5: string; s6: string; s7: string;
+  s1: string; s2: string; s3: string; s4: string; s5: string; s6: string; s7: string; s8: string;
   benchmarks: { cite: string; note: string; href: string }[];
   benchmarksNote: string;
   totals: { users: string; guests: string; projects: string; published: string; likes: string; comments: string; follows: string; views: string; gameEnds: string; workEnds: string; aiCalls30d: string };
@@ -43,7 +44,7 @@ const COPY: Record<Locale, {
     title: '管理员洞察台',
     lede: '这里摆的是全站用户的统计账实况：近 30 天日序列、线性外推、互动信号，以及一套按真实数字判定的行动建议。口令是公共口令（123）——所以这里没有任何个人信息。',
     lockedNote: '这道门挡路过的手，不挡蓄意的人；进来之后你只会看到聚合数据。',
-    s1: '① 总览', s2: '② 近 30 天趋势 · 外推', s3: '③ 行为信号', s4: '④ 大模型成本与缓存（30 天）', s5: '⑤ 深度优化建议（按账面判定）', s6: '⑥ 最受欢迎的发布作品', s7: '⑦ 外部公开基线（公开发表的研究 · 不是本站实测）',
+    s1: '① 总览', s2: '② 近 30 天趋势 · 外推', s3: '③ 行为信号', s4: '④ 大模型成本与缓存（30 天）', s5: '⑤ 深度优化建议（按账面判定）', s6: '⑥ 最受欢迎的发布作品', s7: '⑦ 外部公开基线（公开发表的研究 · 不是本站实测）', s8: '⑧ 大模型解读（潮汐模型现读）',
     benchmarks: [
       { note: '79% 的被测试用户每次看到新页面都会先扫描（不逐字读）；只有 16% 会逐字读完。', cite: 'Jakob Nielsen — How Users Read on the Web · NN/g（1997）', href: 'https://www.nngroup.com/articles/how-users-read-on-the-web/' },
       { note: '眼追踪 130,000+ 次注视、120 名参与者：用户视线停留在首屏的约 57%，停留在前两个屏内（≤2160px）的约 74%。', cite: 'Therese Fessenden — Scrolling and Attention · NN/g（2018）', href: 'https://www.nngroup.com/articles/scrolling-and-attention/' },
@@ -73,7 +74,7 @@ const COPY: Record<Locale, {
     title: 'Admin Insight',
     lede: 'Everything this platform knows about itself, as aggregate arithmetic: the last-30-day series, a plain linear extrapolation, the behavior signals, and a rule set that cites the numbers that triggered it. The passcode is the public one (123) — which is why nothing here identifies a person.',
     lockedNote: 'This door stops passers-by, not adversaries. Behind it you will only ever see aggregate data.',
-    s1: '1 · Overview', s2: '2 · Last 30 days · extrapolation', s3: '3 · Behavior signals', s4: '4 · LLM cost & cache (30 days)', s5: '5 · Deep optimization advice (from the ledger)', s6: '6 · Most-opened published works', s7: '7 · Anchored external benchmarks (publicly published research — not this site’s own)',
+    s1: '1 · Overview', s2: '2 · Last 30 days · extrapolation', s3: '3 · Behavior signals', s4: '4 · LLM cost & cache (30 days)', s5: '5 · Deep optimization advice (from the ledger)', s6: '6 · Most-opened published works', s7: '7 · Anchored external benchmarks (publicly published research — not this site’s own)', s8: '8 · The model speaks (live)',
     benchmarks: [
       { note: '79% of test participants always scan any new page they meet (16% read word by word).', cite: 'Jakob Nielsen — How Users Read on the Web · NN/g (1997)', href: 'https://www.nngroup.com/articles/how-users-read-on-the-web/' },
       { note: '130,000+ fixations, 120 participants: ~57% of viewing time above the fold, ~74% within the first two screenfuls (≤2160px).', cite: 'Therese Fessenden — Scrolling and Attention · NN/g (2018)', href: 'https://www.nngroup.com/articles/scrolling-and-attention/' },
@@ -341,6 +342,11 @@ export default async function InsightPage() {
           ))}
         </ul>
         <p className="insg-footNote" data-insight-benchmarks-note>{c.benchmarksNote}</p>
+      </section>
+
+      <section className="insg-section" aria-labelledby="insight-s8" data-insight-section="ai-analysis">
+        <h2 id="insight-s8" className="insg-sectionHead">{c.s8}</h2>
+        <InsightAiAnalysis locale={locale} />
       </section>
 
       <footer className="insg-foot insg-footBlock">

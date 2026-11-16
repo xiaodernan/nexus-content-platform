@@ -144,6 +144,17 @@ export const METRICS = {
     labels: { outcome: ['answer'] },
     buckets: DURATION_BUCKETS,
   },
+  nexus_insight_analyze_total: {
+    kind: 'counter',
+    help: '/api/insight/analyze 走到终态的次数（含 provider 不可用也要记，不许静默失败）',
+    labels: { outcome: ['answer', 'provider-unavailable'] },
+  },
+  nexus_insight_analyze_latency_ms: {
+    kind: 'histogram',
+    help: '/api/insight/analyze 从进路由到回流的毫秒数（含 provider 往返；快、慢都看）',
+    labels: { outcome: ['answer'] },
+    buckets: DURATION_BUCKETS,
+  },
   nexus_http_errors_total: {
     kind: 'counter',
     help: 'Next 服务器捕获到的未处理请求错误数（instrumentation.onRequestError）',

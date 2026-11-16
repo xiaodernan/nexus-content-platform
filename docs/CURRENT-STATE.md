@@ -4456,3 +4456,12 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   tokens 22 293/22 out 成本 ~¥ 0.02。
 - fe-gates 129/129 全绿 · census 2544；route/digest/visual 三重门 + live provider 证据三结对证据齐。
 - sibling :8000 careeros-ai 未触碰；sidecar :8131 用完即停；D:\法环游戏 vitest 不动。
+
+## cont. 207 (2026-11-17) — v842 · §INSIGHT-AI 观察坞接入真实大模型
+
+- /insight 新增「⑧ 大模型解读」：按钮把 30 天聚合 digest（零个人字段）交给 `gpt-6.1-terra`；
+  provider 不可用原样 banner 不伪造分析；模型回答原文留在 evidence（botShare 87.2% 精准被指出）。
+- 新评估面：监控可观测 `nexus_insight_analyze_total` / `_latency_ms`。
+- 新 API 10/h IP gate + CSRF + insight cookie；§159/§160 纪律全默认开。
+- evidence：§PROVED-4；fe-gates 131/131 · census 2554。
+- sibling :8000 未触碰；v842 后 showcase 会同步（连带 v841b 之后所有改动）。

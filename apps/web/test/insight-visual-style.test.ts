@@ -22,6 +22,7 @@ const LOGIN = join(ROOT, 'apps/web/src/app/api/insight/login/route.ts');
 const DOMAIN = join(ROOT, 'apps/web/src/server/domain/insight.ts');
 const GLOBALS = join(ROOT, 'apps/web/src/app/globals.css');
 const TOKENS = join(ROOT, 'apps/web/src/styles/tokens.css');
+const AICA = join(ROOT, 'apps/web/src/components/InsightAiAnalysis.tsx');
 
 const page = readFileSync(PAGE, 'utf8');
 const gate = readFileSync(GATE, 'utf8');
@@ -30,6 +31,7 @@ const login = readFileSync(LOGIN, 'utf8');
 const domain = readFileSync(DOMAIN, 'utf8');
 const globals = readFileSync(GLOBALS, 'utf8');
 const tokens = readFileSync(TOKENS, 'utf8');
+const aica = readFileSync(AICA, 'utf8');
 
 const INSIGHT_START = globals.indexOf('§INSIGHT-1');
 if (INSIGHT_START < 0) throw new Error('globals.css 里没有 §INSIGHT-1 段');
@@ -56,9 +58,11 @@ describe('§INSIGHT-2 /insight 观察哨', () => {
   it('双语 COPY 齐（zh/en 同键）', () => {
     expect(page).toContain('zh: {');
     expect(page).toContain('en: {');
-    for (const key of ['kicker', 'title', 'lede', 's1', 's2', 's3', 's4', 's5', 's6']) {
+    for (const key of ['kicker', 'title', 'lede', 's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8']) {
       expect(page).toContain(key + ':');
     }
+    expect(page).toContain('InsightAiAnalysis');
+    expect(aica).toContain("fetch('/api/insight/analyze'");
   });
 
   it('口令门：默认 123、环境变量可覆盖、httpOnly Cookie、IP 限流', () => {
@@ -84,16 +88,21 @@ describe('§INSIGHT-2 /insight 观察哨', () => {
       'data-insight-submit',
       'data-insight-error',
       'data-insight-logout',
+      'data-insight-ai-card',
+      'data-insight-ai-button',
+      'data-insight-ai-output',
+      'data-insight-ai-honest',
+      'data-insight-ai-badge',
     ]) {
-      expect(page + gate + logout, `Insight 丢了钩子 ${hook}`).toContain(hook);
+      expect(page + gate + logout + aica, `Insight 丢了钩子 ${hook}`).toContain(hook);
     }
   });
 
   it('字面 className 只认 .insg-*；无裸 Tailwind 原子类', () => {
-    const counts: Record<string, number> = { [PAGE]: 6, [GATE]: 1, [LOGOUT]: 1 };
-    for (const file of [page, gate, logout]) {
+    const counts: Record<string, number> = { [PAGE]: 6, [GATE]: 1, [LOGOUT]: 1, [AICA]: 4 };
+    for (const file of [page, gate, logout, aica]) {
       const literals = [...file.matchAll(/className="([^"]*)"/g)].map((m) => m[1]!);
-      const min = counts[file === page ? PAGE : file === gate ? GATE : LOGOUT]!;
+      const min = counts[file === page ? PAGE : file === gate ? GATE : file === logout ? LOGOUT : AICA]!;
       expect(literals.length).toBeGreaterThanOrEqual(min);
       for (const cls of literals) {
         for (const tok of cls.split(/\s+/).filter(Boolean)) {
@@ -122,6 +131,10 @@ describe('§INSIGHT-2 /insight 观察哨', () => {
       '.insg-gateInput',
       '.insg-logout',
       '.insg-foot',
+      '.insg-aiCard',
+      '.insg-aiBtn',
+      '.insg-aiBadge',
+      '.insg-aiHonest',
     ]) {
       expect(insSegment, `§INSIGHT-1 段没有定义 ${cls}`).toContain(cls + ' {');
     }

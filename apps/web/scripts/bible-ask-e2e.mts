@@ -33,4 +33,4 @@ async function main() {
   }, null, 2));
 }
 
-void main();
+void main().then(() => process.exit(0)).catch((e) => { console.error(e); process.exit(1); });

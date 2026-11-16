@@ -14433,3 +14433,13 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - 发布侧：/bible 目录页加「问典 →」链接（SHA256 重钉 b64ec949…）；/map 提名 /bible/ask（zh/en）。
 - 本轮读者 E2E 证明 v2 digest 相比 v1 digest 把「正文出处类」问题的可答范围提高了一个量级（含实测答对 + 判位）。
 - fe-gates：**128 gate + 2 behavior suites = 129 · census 2544 · 1227+17 = 1244/1244**。
+
+## §INSIGHT-AI — 观察坞接入真大模型：「⑧ 大模型解读」（2026-11-17 · v842）
+
+- `/insight` 第 8 段：`InsightAiAnalysis`（按钮 → 诊断输出槽 · 证据徽标 · honest 横幅）。
+- 新 API `POST /api/insight/analyze`：nexus-insight cookie + csrf + `ipWriteGate('insight/analyze')`（10/h，新加入 IP_RATE_RULES）
+  + 聚合 digest → provider 真诊断。聚合 digest 是模型唯一所见：totals/30d、ratios、leastSquares 拟合、SERIES、TOP3 works——**绝不出个人字段**。
+- 全链路 evidence：`docs/evidence/paid-provider-e2e-2026-11-17.md` §PROVED-4。真跑：tokensIn 5 215 · capability=real · 结论精准（botShare 87.2% 被 model 原话指出），原因语料是 dev sandbox fixture，不外推——如实标注。
+- `nexus_insight_analyze_total{answer,provider-unavailable}` + latency meter：§ metric catalog 同步扩展。
+- 3 条新门：route behavior（mock provider：403/200/503/digest-视角断言）、digest behavior（纯函数门：aggregate-only 禁止泄漏规则可测）、visual-gate 扩充挂钩（s8 + insg-ai* 定义+引用+forced-colors）。
+- fe-gates **131/131 · 1252/1252 · census 2554** ✓。

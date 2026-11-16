@@ -111,3 +111,55 @@ $env:PYTHONPATH='src'; $env:AI_SERVICE_PORT='8131'
 **KV 前缀复用**：digest 是字节级稳定常量，同一 workload 的每次调用都会带上同样的前 30 k chars；首次冷启动 ≈ 22 k tokens 全价，同周后续问典几乎全部进 `cached_tokens`。
 
 **Cost 守卫**：登录用户、题目 ≤ 400 chars、`/api/bible/q` 双路限流（5 次/5min 同 ip+同 user / IP 60h）；provider 不通 → 503 原样回真；`transport.stream` 如实显示 false（§159/§160）。
+
+---
+
+## §PROVED-4 — INSIGHT-AI live E2E（2026-11-17 · v842 · 观察坞真实快照分析）
+
+真实 provider × 真实 dev 库（nexus-postgres，本机 dev sandbox 里的 fixture 语料）——把《观察坞》的实时聚合 digest
+送给 `gpt-6.1-terra`，看它能否从粗粝数据里找出真正的瓶颈。
+
+**Digest（原文，LLM 唯一所见）**（本地 `buildInsightDigest` 实测输出）：
+```
+locale: zh
+=== TOTALS (all-time) ===
+users=3388 guests=1960 projects=1292 published=140 likes=11 comments=19 follows=2 opens(all-time)=868 gameCompletions=4 workCompletions=27 aiCalls30d=0
+=== LAST 30 DAYS ===
+opens=757 botOpens=660 likes=6 comments=16
+credits(granted)=19078 credits(consumed)=10431
+aiRealCalls=37 aiDemoCalls=221 tokensIn=380784 cachedTokens=20842 avgLatencyMs=5570 costEstimateUsd=0.0000
+=== DERIVED RATIOS ===
+publishRate=10.8% guestShare=36.6% interactionRate=2.9% botShare=87.2% creditBurn=54.7%
+=== TREND FITS (least-squares; null = too few days) ===
+opensSlope/day=0.82 r2=0.03 publishesSlope/day=-0.04 publishesR2=0.00
+=== SERIES (last 30 days, oldest→newest, comma-separated) ===
+signups=0,2,96,47,72,102,2,0,7,28,64,144,489,0,0,393,8,51,497,89,241,368,170,242,55,105,342,121,216,159
+publishes=0,0,1,5,6,0,0,0,0,25,6,3,4,0,0,1,0,0,16,0,0,13,8,0,0,0,2,0,0,0
+opens=0,0,3,5,3,0,0,0,0,43,50,33,189,0,0,87,0,0,64,0,20,103,11,0,3,49,2,0,0,92
+=== TOP PUBLISHED WORKS (views desc, max 3) ===
+top#1="无障碍弹层夹具mvza9nk2" path=/n/udac7ccfa/无障碍弹层夹具mvza9nk2 views=216
+top#2="断点夹具mvus7ari" path=/n/u59a80e4f/断点夹具mvus7ari views=214
+top#3="查看器夹具mvsj0rjc" path=/n/u77901fa3/查看器夹具mvsj0rjc views=203
+=== END DIGEST ===
+```
+
+**模型回答（原文，capability=real · `gpt-6.1-terra` · tokensIn=5 215 · tokensOut=181 · latencyMs=6 547）**：
+
+> ① 现象：当前最可能的增长瓶颈是内容发布不足，限制了可供访客发现和打开的作品。
+> ② 证据：近30天有 757 次打开，但 `publishRate` 仅为 10.8%；30天发布趋势斜率为 -0.04 次/天，R² 为 0.00。`botShare` 为 87.2%，因此打开量也不能直接代表真实用户增长。需注意，发布与打开数据不足以确认因果关系。
+> ③ 动作：在站内发布流程中，对已完成但未发布的作品增加明确的“发布”入口，并将其置于保存后的首要操作位置；观察发布率是否高于当前 10.8%，同时按天监测发布数与非机器人打开量。
+
+**解读价值**：
+- 模型抓住的三件事都贴近数据：`publishRate=10.8%`、`publishes slope=-0.04/R²≈0`、`botShare=87.2%`——三处全是 digest 里的确数，没有自己编出数（§159）；
+- 它主动把"757 次打开"打回真："打开量也不能直接代表真实用户增长"——暴露 bot 流量占 87% 是此库里的硬事实（夹具流量 test harness 痕迹）；
+- ③ 给出一个**站内可执行的、可验证的**单一动作（发布入口前移 + 双指标观察），不是"改进 UX"那种废话。
+
+**诚实限定**：
+- 库里是 dev sandbox 的 fixture 语料（夹具命名），结论只指该库自我治理，不外推到任何真实产品环境；
+- digest 是真的（PK metrics 忠实抄写），模型只读 digest——不存在"LLM 知道了什么额外信息"；
+- 本次调用不走缓存（cachedTokens=0），因为这是首次构造此 digest；下一轮同样 digest 调用将几乎全部命中 provider 前缀复用（+ L2 精确回放兜底）。
+
+**复现**：
+```bash
+cd apps/web && npx tsx scripts/insight-analyze-e2e.mts   # 前提：:8131 sidecar（Clash 7897 节点）
+```
