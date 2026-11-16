@@ -44,6 +44,16 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         ],
       },
       {
+      {
+        heading: 'AI 是怎么在这里说话的？（StateGraph 小课）',
+        body: [
+          '遇到 AI 改设计时，请求会坐两条车道之一：车道 A 直发 /v1/ai/run；车道 B 走一条可推演的**状态图**——LangGraph 的显式状态机：validate（校验输入）→ check_provider（按 modelClass 选档模型）→ build_prefix（拼装稳定前缀，为了让 provider 前缀缓存打中）→ call_llm（真正打 gpt-6.1-terra）→ cache_read（命中即跳过 provider）→ parse_and_release（补丁合法性校验）→ assemble（组装契约响应）。任何失败直通 END——绝不空转。',
+          '为什么要一条图而不是一根绳子？状态图把 AI 调用变成一条可以推演、可以撤销、可以局部重放的流水线，而不是一个黑盒 API。x-nexus-orchestration: stategraph 是「你刚刚看的是那条图」的唯一公开标志；响应体与车道 A 逐字节同构。',
+          '有效果验证：同字节前目录的一轮二连发，prefix 缓存命中 21265/21268（≈99.99%）——实打实省下的 token，不是演示数字。/admin/savings（管理员 → Savings）能看到 tokensIn 与 cachedTokens 两列账。',
+          '想更深？apps/ai-service/src/ai_service/stategraph.py 是这张图的文字实现——可读性即可教性；测试 tests/test_stategraph.py 8 臂逐一说明 validate / check_provider / dryRun / patch 非法 时直通 END 的原因。',
+        ],
+      },
+      {
         heading: '③ 功能地图（点进去就是那个页面）',
         body: [
           '/discover 广场（热门/最新/ trending / 我关注的）· /marketplace 组件/模板/资产市场 · /blocks 积木库 · /search 全站搜索',
@@ -157,6 +167,16 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           'When it is right: Cmd/Ctrl+S to save, then Publish from the top bar — your project lands on /discover; before that it stays yours alone.',
           'Next stop: /ship to see the daily delivery log; once a real provider is wired, the same pipeline produces the real stuff.',
           'Stuck? Press ? to read the cheatsheet, or jump back to section ④ (games) / ⑤ (quota & DEMO MODE) right here.',
+        ],
+      },
+      {
+      {
+        heading: 'How does AI "speak" here? (StateGraph in one minute)',
+        body: [
+          'When AI edits a design, the request takes one of two lanes: lane A directly POSTs /v1/ai/run; lane B runs it through an explicit **stateful graph** — LangGraph-style state machine: validate (input contract) → check_provider (pick model by modelClass) → build_prefix (lay down a byte-stable prefix so the provider\u2019s prefix cache fires) → call_llm (real call to gpt-6.1-terra) → cache_read (hit = skip provider) → parse_and_release (validate patch legality) → assemble (contract-checked response). Any failure short-circuits to END — nothing keeps spinning.',
+          'Why a graph and not a straight line? The graph makes the AI call a pipeline you can reason about, replay and partially undo — not a black-box API. x-nexus-orchestration: stategraph is the only public tell that lane B served you; the response body is byte-identical to lane A.',
+          'Measured effect: on identical byte-prefixes, back-to-back turns hit 21265/21268 cached tokens (≈99.99%) — real savings, not demo numbers. /admin/savings pairs tokensIn against cachedTokens side by side.',
+          'Curious? apps/ai-service/src/ai_service/stategraph.py is the graph written out — readable source is the documentation; tests/test_stategraph.py walks the eight arms: why validate / check_provider / dryRun / invalid patches short-circuit straight to END.',
         ],
       },
       {
