@@ -46,11 +46,8 @@ export function buildPersonaSystemPrompt(file: WhisperFile, locale: 'zh' | 'en')
     '4. 简短回答：2-5 句。正典是短片段，不需要长篇大论。',
     '5. 中文问题 → 中文答；English questions → English answers。语言不匹配时，用用户的语言作答。',
     '',
-    '--- 正典摘录（中英各一） ---',
-    file.markdownZh,
-    '---',
-    file.markdownEn,
-    '--- 正典摘录完毕 ---',
+    '--- 正典摘录（单一语言原文） ---',
+    locale === 'zh' ? file.markdownZh : file.markdownEn,
     '',
     '现在，等候读者的问题。',
   ].join('\n');

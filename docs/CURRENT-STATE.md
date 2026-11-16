@@ -4899,3 +4899,21 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - 无 shim UI、无共享卡（只列出现在真库里的）；无 PII（只写路径 / projectName / ownerHandle）——所有人可读，无需登录
 - tsc 0；census 2480 OK；fe-gates 122 suites · 1193/1193 OK；live probe :3100：`/world` 200
   （开发模式编译后两个 200 都命中：`"GET /world 200 in 1048ms" / "GET /preview 200 in 1000ms"`）
+
+## cont. 165 (2026-11-17) - v795: /bible/whisper 答问者——LLM grounded 原文问答
+
+- 开一页「正典答问者」（/bible/whisper）：挑一卷章节/回响，问一句 → LLM 答。**不可编造**：`server/domain/whisperCanon.ts` 把"你只能基于《X》作答"收成 system prompt（单一语言原文 + 严格规则 + 中文进→中文出、英文进→英文出），provider 404/其他错误 → 原样透传，**绝不编一句看起来像 AI 回答"的句子**。
+- 路过 /api/bible/whisper POST（rate-limit IP+anon 20 次/10min；contracts schema 要求 system<=12000 — 已改"只送选句 locale 的原文"承住 hard limit）。
+- 公开页面（任何人可进，刷新即"忘掉"——无记忆存储）；功能：
+  - 选一/卷正典（下拉，含全部 12 卷）
+  - 一句话问题框（最长 500 char）
+  - 点击"寄出一问" → LLM 答（带 persona rules）
+  - 不问频太滥（20/10min），11:59 再来
+- live probe :3100：
+  - `/bible` 200，link whisper 入册（SHA pin 01c8c77d → 5dce4946 重钉）
+  - `/bible/whisper` 200，Page hooks / select / textarea / button 全在
+  - `POST /api/bible/whisper` 200（`answer=253` 字，引用原文：The tide withdraws, the watchman arrives, and the Eighth Lamp is lit…@ninth turn, the account rests）
+- bitgates：
+  - census 2491 OK；fe-gates 122 套 · 1193/1193 OK；tsc 0
+  - bible-visual-style SHA 重钉 + guide SHA 重钉 + command-palette count 21→22
+- 资金链路里首次 `/api/bible/whisper`是从 BibleChat 重用 `chatWithCharacter` provider 路径——同一唯一真 provider 显，§76/§160。
