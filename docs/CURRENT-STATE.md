@@ -6163,3 +6163,9 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 > - 16 个 `xiaodernan/*` 仓库经 `git ls-remote` 逐一存在（`main` 空仓如实注；`docs`/`linuxdo-scripts` 为 fork —  attribution 保留）。
 > - API 限流（REST 403 unauth → 走代理也不过）已绕过 — ls-remote 是权威判据；不声称 star 实时读数。
 > - evidence: `docs/evidence/io-profile-identity-audit-2026-11-19.md` — 零内容改动。
+docs(readme): Spring Cloud 五服务清单对齐 ADR-0237（java-* 退役说清楚）
+
+
+README 根「Layout of the merged tree」里 services/ 一节原文还说 java-registry / java-gateway /
+java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD 删除，历史永存）。
+现在如实写成：nexus-api + java-domain-service + nexus-gateway + nexus-registry + nexus-config。
