@@ -4575,3 +4575,15 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 巡检：注册→建项目→/studio 全流程；帮助抽屉打开后正文全可读；画布 hero 无裁剪（DPR=2 复核为渲染完整）；console 0 error。
 - 附件：注册 e2e 假失败排查——真因是 bcrypt 在机器上要 ~10–22s、测试脚本等待不足造成的竞态，非产品缺陷（route 行为验证：rotateSession 生效、register 200/201、studio 200）。
 - dev server 用完已 kill；free RAM ~1.2GB；fe-gates 全绿。
+
+## cont. 225 (2026-11-17) — v858 · §AUDIT-1 Studio 22 面板截图巡检 + §PROVED-7 付费 provider 键再验证
+
+- **付费 provider 再测活**（用户再次交付 key/地址/Clash 7897）：
+  - `GET /v1/models` → 200 / 0.52s（目录含 gpt-6.1-terra）；
+  - `POST /v1/chat/completions`（model=gpt-6.1-terra，问典式 thin digest，要求"没有就说没有"）→ 200 / 2.63s；`prompt_tokens 4454 · completion_tokens 22`；
+    回答：「正典第五章『收件人』没有记载这件事的名称。」——缺少上下文时选择不编造（§159）。
+  - 新证据 §PROVED-7（docs/evidence/paid-provider-e2e-2026-11-17.md）。
+- **Studio 22 面截图巡检**：14 个 rail 面板 + 导出/发布弹层 + 世界图/游戏图/代码/方案 视图切换：全部干净渲染，console errors = 0；
+  发布弹层预检仍如实显示「预检还没跑完」、健康面板诚实标注未运行（Tests, AI QA）、代码视图如实展示投影代码与「复制/编辑代码」钩子——全部符合 §159/§160 承诺；
+  **本轮巡检未发现新的视觉缺陷**（不编。).
+- fe-gates 134/134 · 1268/1268 · census 2566。

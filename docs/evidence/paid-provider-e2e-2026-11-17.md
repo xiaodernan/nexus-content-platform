@@ -238,3 +238,17 @@ cd apps/web && npx tsx scripts/approval-explain-e2e.mts c5ebd27e-8a20-45f2-86aa-
 ```
 前提：`ai-service` sidecar `:8131`、本地 Clash verge `:7897` LISTENING；DB 为 dev fixture 的那一组
 （已标注 `mode=demo/mock` **并非 production traffic**；当前 DB 共计 114 行 `awaiting_approval` 全部属 fixture）。
+
+
+## §PROVED-7 — 付费 provider 键再验证（2026-11-17 · v858 · curl + Clash 7897）
+
+- 时间：2026-11-17 13:4x CST；路由：curl.exe → Clash Verge 7897 → https://api.aizzz.xyz/v1。
+- `GET /v1/models` → **http 200**，0.52s；返回目录中含 `gpt-6.1-terra`（用户本轮再次交付了实测路径，确认 key 未失效）。
+- `POST /v1/chat/completions`（model=`gpt-6.1-terra`，system 要求"没有就说没有"）→ **http 200**，2.63s；
+  `"usage":{"prompt_tokens":4454,"completion_tokens":22,"total_tokens":4476}`；
+  回答原文（可能有一处控制字符渲染异常）：「正典第五章『收件人』没有记载这件事的名称。」
+- 解读：模型在缺少的上下文里选择了「not recorded」而不是编造——与项目 §159 行为一致；
+  digest 本轮刻意做薄（不带正文），只验证 key/连通/计费/措辞，不烧整库。
+- 证据边界：本次走 curl 直连而非经过本项目的 CSRF+rate-limit 端点（那类 E2E 已由 §PROVED-3/4/5/6 覆盖）；
+  手工 socket 版本（Node raw CONNECT）会在 TLS 阶段被丢弃（ECONNRESET），但 curl 走同一条 7897 正常——
+  结论：代理可用，Node 裸 socket 失败不是网关/节点问题（代理对代理客户端的行为不同）。

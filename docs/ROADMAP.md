@@ -14588,3 +14588,9 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   帮助抽屉修复后逐行不再被遮盖（TOC + 说明正文全可读，11/11 命中计数实数）；console error = 0。
 - **结论**：Studio 种子项目 hero 子标题首屏时按像素确认无裁剪（先前的"看起来半截字"是低分辨率错觉）。
 - fe-gates 134/134 · 1268/1268 · census 2566 · web tsc 0。
+
+## §VERIFY-22 — Studio 22 面板截图巡检（2026-11-17 · v858 · 无新缺陷）
+
+- 覆盖：Layers/Design/Assets/World/Game/Storyboard/Team/Characters/Memory/Retrieve/Context/Agent/History/Health + Export/Publish 弹层 + World Map/Game Map/Code/Variants 视图切换；console errors = 0。
+- 发布弹层与健康面板如实展示「预检未完成 / 未运行 Tests, AI QA」——§159 诚实性锁死，不虚报。
+- 付费 provider §PROVED-7：key 经 Clash 7897 复测（models 200；chat completions 200；prompt 4454 → out 22；模型缺上下文时答「没有记载」，未编造）。
