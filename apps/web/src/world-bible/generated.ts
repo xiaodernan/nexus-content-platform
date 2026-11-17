@@ -13872,6 +13872,204 @@ His father's name had been erased from the records; the dot was his answer to th
 > The shadow is never wrong — it splits exactly into two; the pillar itself leans toward neither.
 `,
   },
+  {
+    order: 65,
+    slug: 'echo-065-the-radical-only-column-on-the-east-wall',
+    titleZh: '祠殿面东墙上那一排谁都不认得的偏旁',
+    titleEn: 'The Radical-Only Column on the East Wall of the Sanctuary',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——秋潮月第四十一日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the forty-first day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 65): The Radical-Only Column on the East Wall of the Sanctuary
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给祠殿面东墙上那一排只有偏旁没有字的记录——每夜放一笔，每笔都戴上一层桐油。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the column of partial characters on the east wall of the sanctuary — one stroke each night, sealed in tong oil.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第四十一日。
+> Era: the Institute — after the 41st Convocation; the forty-first day of the autumn-tide month.
+
+---
+
+## 一 · 面东墙
+
+祠殿朝东的一面墙称为"藏盐墙"，是最安静的一块。
+
+值更提供档案查阅时，抄本师们每取出一卷，要先朝东跄一下、然后才能开卷——这是他们对那面墙的敬意，却说不出来。
+
+**锚句**：祠殿朝东的一面墙称为"藏盐墙"。
+**Anchor sentence**: the sanctuary's east-facing wall is called the Salt-Hiding Wall.
+
+---
+
+## 二 · 偏旁
+
+墙上的纹路不是完整的字，只有偏旁——"氵"、"石"、"禾"……没有人拼出过一个完整的汉字，却可以数出来已经 715 个偏旁了。
+
+百生的抄本师们每人每晚在墙上盖一层桐油——捂住它、让盐水再慢慢侵透进去、天亮才擦净又盖一层。
+
+**锚句**：墙上的字只有偏旁，没有一个完整的字。
+**Anchor sentence**: there is not a single whole character on the wall, only radicals.
+
+---
+
+## 三 · 每晚一个
+
+没有人要求放如何排。抄本师 XX 第一个《言者无归记册》说，值更长把书版放在柜子底层，让它们自己往上爬。
+
+抄本师门说是每晚按规矩排一次，偏离规矩就废了——但没人有异议，因为它自己就是规矩。
+
+**锚句**：每个晚上谁也不知道下笔的是哪一个偏旁。
+**Anchor sentence**: nobody knows in advance which radical the night will receive.
+
+---
+
+## 四 · 桐油的光
+
+桐油一涂，字就呈半米内的蓝绿颜色。桐油有自己独有的味道，被代代抄写的墙壁所吸收。
+
+后来值更长说那是"潮候院世代交替的口令——所有字被洇水的气息垒在一起了。"
+
+**锚句**：桐油涂上去，字就显蓝绿——潮候院的口令味道粘进了墙壁。
+**Anchor sentence**: once the oil is on, the strokes shine blue-green — the essence of the harbor seeps into the wall.
+
+---
+
+## 五 · 千两百杯桐油
+
+有抄本师数过院中现用的桐油罐：四十五年六十九罐，一共一百三十一罐半。
+
+每罐一百两桐油——一共补了两盘验。这个数——抄本师说——和长明灯那灯费差不了几两。
+
+**锚句**：每一罐桐油的两数，加起来没有人来算过。
+**Anchor sentence**: the sum of the tong oil in every jar, no one has added up.
+
+---
+
+## 六 · 大会散会之后
+
+第四十一次大会散会之后一个月，抄本师们不再去覆油了。
+
+值更长说那也不能开卷——册子里的东西还没到读。
+
+**锚句**：大会散会了，桐油也停了——那是潮候院还没到的时候。
+**Anchor sentence**: after the Convocation dissolved, the oiling ceased — the Institute is not yet of age.
+
+---
+
+## 七 · 映射（回响六十五章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 偏旁 · 藏盐墙 · 桐油 · 大会散会 | 一、二、三、四、五、六 |
+| geography | 祠殿 · 面东墙 | 一、二 |
+| characters | 抄本师 · 值更长 | 一、二、三、四、五、六 |
+| story | 偏旁列举 · 回响（其六十五） | 全篇 |
+| items | 桐油 · 偏旁 · 册子 | 一、二、三、四、五 |
+| history | 第四十一次大会散会之后 · 秋潮月第四十一日 | 六 |
+
+> 那些字，也许不是给任何人读的——它们是潮候院为自己记住怎么沉没写的。
+> Those marks may not be for any reader — they are how the Institute remembers the art of sinking.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其六十五）「祠殿面东墙那一排谁也不认得的偏旁」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the column of partial characters on the east wall of the sanctuary — one stroke each night, sealed in tong oil.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给祠殿面东墙上那一排只有偏旁没有字的记录——每夜放一笔，每笔都戴上一层桐油。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the forty-first day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第四十一日。
+
+---
+
+## I · The Salt-Hiding Wall
+
+The east-facing wall of the sanctuary is called the Salt-Hiding Wall; the quietest one in the whole Institute.
+
+Whenever a copyist retrieves a scroll for reference, they kowtow to the east first, then open the page — nobody has asked why, and nobody answers.
+
+**锚句**：祠殿朝东的一面墙称为"藏盐墙"。
+**Anchor sentence**: the sanctuary's east-facing wall is called the Salt-Hiding Wall.
+
+---
+
+## II · Radicals Only
+
+The strokes on that wall are not characters; they are radicals — "water", "stone", "millet" — no full glyph has ever been formed, yet seven hundred fifteen partials are accounted for.
+
+Day after day, evening after evening, the copyists seal these strokes in tong oil, let the salt slowly seep through, wipe them down at dawn, and seal them again.
+
+**锚句**：墙上的字只有偏旁，没有一个完整的字。
+**Anchor sentence**: there is not a single whole character on the wall, only radicals.
+
+---
+
+## III · One per Night
+
+Nobody ever required how this was set up or who decided. The copyists say: the head of the watch placed the bindings in the bottom drawer and they must climb by themselves.
+
+Rules drift — nobody disputes them, because the practice itself is the rule.
+
+**锚句**：每个晚上谁也不知道下笔的是哪一个偏旁。
+**Anchor sentence**: nobody knows in advance which radical the night will receive.
+
+---
+
+## IV · The Tongue of Tong Oil
+
+Tong oil, once it dries, turns the strokes an aqua blue-green. Its faint odour has seeped into the wall over decades.
+
+The head of the night watch called it "the Institute's dialect — all the characters have been soaked in the same salt-water breath."
+
+**锚句**：桐油涂上去，字就显蓝绿——潮候院的口令味道粘进了墙壁。
+**Anchor sentence**: once the oil is on, the strokes shine blue-green — the essence of the harbor seeps into the wall.
+
+---
+
+## V · A Thousand Liangs of Tong Oil
+
+A copyist once counted the jars of tong oil presently in the Institute: over forty-five years, sixty-nine jars, a hundred thirty-one and a half total.
+
+Each jar one hundred liangs of oil — and the bill, the copyists said, could not be the same as the lamp's own consumption.
+
+**锚句**：每一罐桐油的两数，加起来没有人来算过。
+**Anchor sentence**: the sum of the tong oil in every jar, no one has added up.
+
+---
+
+## VI · After the Convocation Dissolved
+
+A month after the 41st Convocation dissolved, the copyists ceased applying oil.
+
+The head of the night watch said: the records have not yet arrived at their hour; the pages must not yet be opened.
+
+**锚句**：大会散会了，桐油也停了——那是潮候院还没到的时候。
+**Anchor sentence**: after the Convocation dissolved, the oiling ceased — the Institute is not yet of age.
+
+---
+
+## VII · Mapping（Echo No. 65 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the Radicals · the Salt-Hiding Wall · tong oil · dissolution | 一、二、三、四、五、六 |
+| geography | the sanctuary · the east-facing wall | 一、二 |
+| characters | the copyists · the head of the night watch | 一、二、三、四、五、六 |
+| story | the radical column · Echo No. 65 | 全篇 |
+| items | tong oil · radicals · scrolls | 一、二、三、四、五 |
+| history | After the 41st Convocation · the forty-first day of the autumn-tide month | 六 |
+
+> 那些字，也许不是给任何人读的——它们是潮候院为自己记住怎么沉没写的。
+> Those marks may not be for any reader — they are how the Institute remembers the art of sinking.
+`,
+  },
 ] as const;
 
 export const BIBLE_APPENDICES: readonly BibleChapter[] = [

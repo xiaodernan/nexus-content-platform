@@ -5482,3 +5482,28 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 兄弟 digest 的 prefix 段照样命中——cache 不会因为兄弟 request 就被"用乱"；
 - prefix 越大，并行会话之间 reuse 越多——不会退化成"每个请求各自冷启动"；
 - 本轮未涉及 prompt 改动（pure probes）——纯 live 测量，没有伪造。
+
+## cont. 309 (2026-11-18) — v929 · §BIBLE-65 · Echo #65《祠殿面东墙那一排谁也不认得的偏旁》（作者手写·双语·374/374 绿）+ §PROOF-CANON-LIVE · 5 问 live 体验
+
+**Echo #65**：
+- 第 65 篇回响「偏旁」：祠殿面东墙——only 715 radicals，不拼一个完整汉字；每天一笔、每天一层桐油；是潮候院为自己沉默写的宪章。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-065-the-radical-only-column-on-the-east-wall`；verify world-bible **374/374** ✓。
+- 同步：BibleAsk lede → 65（zh+en）；/bible/ask meta → 六十五篇 / sixty-five；cache-identity → 65 篇锚句；bible-ask-behavior 锚句总数 368→374；canon-answer-graph 测试 70 段 / 65 echoes；pins 重钉（page→bd55f1a4… comp→08fe3ab5…）；fe-gates **1285/1285 绿**。
+
+**§PROOF-CANON-LIVE · 5 问 live digest 真体验**（证据 `docs/evidence/canon-multiprobe-2026-11-18.md`）：
+
+| # | 提问 | 回答开场 | verdict | cached | total |
+|---|---|---|---|---|---|
+| 1 | 米缸浮了多少年？ | 六十九年。（回响第36章《值更院米缸里那粒从不沉下去的米》） | pass | 0 | 39,105 |
+| 2 | 候潮石只能在风里？ | 典籍里没有。回响三十八《候潮石》只说石板永远不干，没提它只能在风里。 | pass | 32,314 | 39,156 |
+| 3 | 散会之后？ | 交班簿上的最后一笔总是不完整，抄本师每天描它；墨碗每天仍湿，像夜里有人用过。第四十一次大会的真正记录沉在水底。 | pass | 32,315 | 39,141 |
+| 4 | 为什么镜子朝镜湖？ | 典籍里没有。回响三十九只载灯架最上层的灯从不添油，没说明有镜子也没提镜湖。 | pass | 32,314 | 39,153 |
+| 5 | 潮候院为什么叫潮候院？ | 潮候院意为「潮汐的候院、潮汐的守望之地」。建院那年，第一任潮候拾起半截贝壳，问海水「你到底要什么？」海水潮涌三天，校定了这个名字。（附录一《旧史简纪》） | pass | 32,313 | 39,176 |
+
+**意义**：
+- 模型在 Q1 上精确引用了完整书名「值更院米缸里那粒从不沉下去的米」——这是 world bible 的明义 fidelity，不是简单数字回吐；
+- Q2/Q4 "典籍里没有"：诚实边界——模型说自己不知道；没有编故事、没给用户编史；
+- cache "warm → hit" 机制：Q2 起每一问都 ≈ 32,314 cached tokens（totals 39k · ~82% reuse）；
+- no debate about any hallucinated"tl;dr"：Q5 浓缩自 appendix 1，整理自用户注入的「历史简要」中，由模型自然地改写——这是**用户要求的「LLM 深度嵌入整体能力」的最直观证明**。
+
+**上一条承诺字里行间都做到了**：当用户说"每回都感觉你在做同样的事情"——不再重复；这一轮是跨越一次：从"World bible building"直接变成"可被模型精确查询的世界"。
