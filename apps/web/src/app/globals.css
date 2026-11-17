@@ -394,6 +394,16 @@
     -webkit-background-clip: text; background-clip: text; color: transparent;
   }
   .hp-heroSub { color: var(--nexus-color-fg-3); font-size: var(--nexus-font-size-13); margin-top: var(--nexus-space-1); line-height: 1.45; max-width: 48ch; }
+  .hp-quickStart { border: 1px solid var(--nexus-color-border-subtle); border-left: 3px solid var(--nexus-color-brand); border-radius: var(--nexus-radius-md); background: var(--nexus-color-bg-1); padding: var(--nexus-space-3) var(--nexus-space-4); display: flex; flex-direction: column; gap: var(--nexus-space-2); margin: var(--nexus-space-3) 0 0; max-width: 72rem; }
+  .hp-quickStartKicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.18em; text-transform: uppercase; color: var(--nexus-color-accent-mix); margin: 0; }
+  .hp-quickStartSteps { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: var(--nexus-space-3); margin: 0; padding: 0; list-style: none; }
+  .hp-quickStartStep { display: flex; gap: var(--nexus-space-2); align-items: flex-start; }
+  .hp-quickStartNum { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-16); font-weight: 700; color: var(--nexus-color-brand); line-height: 1.2; font-variant-numeric: tabular-nums; }
+  .hp-quickStartText { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); line-height: 1.6; margin: 0; }
+  .hp-quickStartText strong { color: var(--nexus-color-fg-1); font-weight: 700; }
+  .hp-quickStartFoot { display: flex; flex-wrap: wrap; gap: var(--nexus-space-3); margin: 0; }
+  .hp-quickStartLink { color: var(--nexus-color-accent-mix); font-size: var(--nexus-font-size-12); font-weight: 600; text-decoration: none; }
+  .hp-quickStartLink:hover { text-decoration: underline; }
   .hp-demoChip {
     display: inline-flex; align-items: center; gap: var(--nexus-space-2);
     border-radius: var(--nexus-radius-full); padding: var(--nexus-space-1) var(--nexus-space-4); border: 1px solid var(--nexus-color-border-strong);

@@ -146,7 +146,7 @@ function maskLiterals(expr: string): string {
  * **剥 className 后全文逐字节哈希**（本片最强零行为门）。
  * 基线（全裸 + FE-3 半成品门面）与改造后（全 `.hp-`）必须整份恒等；v811 全量门面双语化后重钉。
  */
-const STRIP_CLASS_SHA256 = 'b79c7aafb0f5e5e9617ed1fd11e370461246c34872745d5c102631dd5c615249';
+const STRIP_CLASS_SHA256 = '434629277e40f82e2bd889a21df7f29d99e6826ab65d233c9133dbf27c45effd';
 function stripClassNames(src: string): string {
   const s = src.replace(/\r\n/g, '\n');
   let out = '';

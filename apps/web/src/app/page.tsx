@@ -32,6 +32,20 @@ const HOME_TXT = {
     navAnalytics: '创作数据',
     navBlocks: '已拉黑与已屏蔽',
     navNote: '公开在跑的作品与全平台的内容搜索；数据与通知只对登录后的你自己可见',
+    navSearchTitle: '全平台搜索引擎：搜公开作品与创作者',
+    navDiscoverTitle: '发现页：全平台公开作品流，按新鲜度与相关度',
+    navMarketTitle: '市场：公开上架的组件、页面、游戏项目与素材',
+    navAnalyticsTitle: '创作数据：你的作品浏览、通关、关注与趋势预测',
+    navBlocksTitle: '已拉黑与已屏蔽：这里集中管理屏蔽名单',
+    quickStartAria: '主界面操作速览',
+    quickStartKicker: '快速上手 · QUICK START',
+    quickStartSteps: [
+      { title: '造项目', body: '在「新建作品」里一句话或一张图讲清楚想做什么，服务端会把上下文装配好，Studio 直接开画布' },
+      { title: '推成品', body: '在画布里 @Agent 或点「让模型读一眼」，改完点发布；审批、版权记录、版本收藏都在账上' },
+      { title: '看见数据', body: '浏览、通关、收藏与趋势预测在「创作数据」和「观察坞」；口令 123，所有人都能看聚合' },
+    ],
+    quickStartGuide: '阅读简明说明书 →',
+    quickStartOnboarding: '新手教程 / 快速上手演示 →',
     accountSection: '账号',
     projectsSection: '项目',
     emptyProjects: '还没有项目。创建一个即可进入 Studio 画布。',
@@ -65,6 +79,20 @@ const HOME_TXT = {
     navAnalytics: 'Creative data',
     navBlocks: 'Blocked & muted',
     navNote: 'Works publicly on the platform and platform-wide search; your data and notifications are visible only to you, signed in.',
+    navSearchTitle: 'Platform search: find public works and creators',
+    navDiscoverTitle: 'Discover: public works across the platform, by freshness and relevance',
+    navMarketTitle: 'Marketplace: public components, pages, game projects and assets',
+    navAnalyticsTitle: 'Creative data: views, clears, follows and forecasts for your works',
+    navBlocksTitle: 'Blocked & muted: manage your block list in one place',
+    quickStartAria: 'Quick tour of this home screen',
+    quickStartKicker: 'QUICK START · 快速上手',
+    quickStartSteps: [
+      { title: 'Start a project', body: 'Describe it in words or with an image in “New project” — the server assembles the context and Studio opens the canvas' },
+      { title: 'Ship it', body: '@the agent or ask the model to look, edit, publish; approvals, attribution and saved versions all land in the ledger' },
+      { title: 'See the data', body: 'Views, clears, saves and forecasts live in “Creative data” and the “Observatory” — passphrase 123, aggregates for everyone' },
+    ],
+    quickStartGuide: 'Read the quick manual →',
+    quickStartOnboarding: 'Beginner tutorial / quick demo →',
     accountSection: 'Account',
     projectsSection: 'Projects',
     emptyProjects: 'No projects yet. Create one to step into the Studio canvas.',
@@ -130,24 +158,40 @@ export default async function HomePage() {
       {/* 这一排在 820px 的容器里放不下五个链接加一句说明：不 flex-wrap 就会被 flex 压着
           在词中间断行（"全平台搜/索"），所以链接各自 nowrap、整排允许换行。 */}
       <nav className="hp-nav" data-site-nav aria-label={T.ariaNav}>
-        <a href="/search" className="hp-navlink" data-nav-search>
+        <a href="/search" className="hp-navlink" data-nav-search title={T.navSearchTitle}>
           {T.navSearch}
         </a>
-        <a href="/discover" className="hp-navlink" data-nav-discover>
+        <a href="/discover" className="hp-navlink" data-nav-discover title={T.navDiscoverTitle}>
           {T.navDiscover}
         </a>
-        <a href="/marketplace" className="hp-navlink" data-nav-marketplace>
+        <a href="/marketplace" className="hp-navlink" data-nav-marketplace title={T.navMarketTitle}>
           {T.navMarket}
         </a>
-        <a href="/analytics" className="hp-navlink" data-nav-analytics>
+        <a href="/analytics" className="hp-navlink" data-nav-analytics title={T.navAnalyticsTitle}>
           {T.navAnalytics}
         </a>
-        <a href="/blocks" className="hp-navlink" data-nav-blocks>
+        <a href="/blocks" className="hp-navlink" data-nav-blocks title={T.navBlocksTitle}>
           {T.navBlocks}
         </a>
         <NotificationBell locale={locale} />
         <span className="hp-navNote">{T.navNote}</span>
       </nav>
+
+      <aside className="hp-quickStart" aria-label={T.quickStartAria} data-home-quickstart>
+        <p className="hp-quickStartKicker">{T.quickStartKicker}</p>
+        <ol className="hp-quickStartSteps">
+          {T.quickStartSteps.map((step, i) => (
+            <li key={i} className="hp-quickStartStep" data-home-quickstart-step={i + 1}>
+              <span className="hp-quickStartNum" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+              <p className="hp-quickStartText"><strong>{step.title}</strong> — {step.body}</p>
+            </li>
+          ))}
+        </ol>
+        <div className="hp-quickStartFoot">
+          <a className="hp-quickStartLink" href="/guide">{T.quickStartGuide}</a>
+          <a className="hp-quickStartLink" href="/onboarding">{T.quickStartOnboarding}</a>
+        </div>
+      </aside>
 
       <section className="hp-section">
         <h2 className="hp-sectionTitle">{T.accountSection}</h2>
