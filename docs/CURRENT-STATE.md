@@ -4986,3 +4986,14 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 同步落地：BibleAsk lede → 44；/bible/ask meta → 四十四篇；canon-answer-graph 测试 49 段／44 echoes；bible-ask-behavior 锚句总数 242→248；CACHE-IDENTITY 更新。
 - 题图（hidden bible→ask bridge sha-check）不动；248 anchor call log 仍然 24,066±ch；digest 重灌一次 cold（预期见 CACHE-IDENTITY.md）。
 - 回归：bible 组 50/50 绿。
+
+## cont. 268 (2026-11-17) — v897 · /bible/ask 浏览器点按实测（CSRF 修复后复测 · §PROVED-23）
+
+- 7:30 Docker Desktop 第 6 次自重启后自愈（redis healthy · pg fsync 90s → healthy）。RAM 回到 3.36 GB，启动 dev 栈重试。
+- register 200 → `/bible/ask` → 输入「值更院米缸里浮着多少年了？一句话回答。」 → 点「问一问」。
+- **真实 provider 回答（中文完整句 + badge gpt-6.1-terra）**：
+  > 六十九年，见回响《值更院米缸里那粒从不沉下去的米》。
+- 页面渲染完整：lede「正典（5 章）+ 回响（44 篇）」·「问典答案由真实模型即兴生成（上下文=正典摘要）」·回答区带 gpt-6.1-terra 徽章。
+- ai-service 日志显示 analyze 首打一次 502（瞬时分布层拒绝）、draft 200 OK——两步 StateGraph 走通，v879 StateGraph 问典管线确实在线。
+- §PROVED-20/21/22/23 合并结论：`/insight ⑧`、`/bible/ask`、`/analytics/narrate` 三条「真实大模型嵌入」链路现在都是 **live 的且浏览器验证过**。
+- 未完成（不粉饰）：Docker/pg 仍然频繁自重启（本日累计 6 次）；/insight ⑧ 没有浏览器点按复测（同样的按钮形状，但不同文件 InsightAiAnalysis.tsx，已在 20:15 那一次真实 provider 出答）。

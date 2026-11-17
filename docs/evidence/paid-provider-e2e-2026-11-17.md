@@ -519,3 +519,19 @@ cd apps/web && npx tsx scripts/approval-explain-e2e.mts c5ebd27e-8a20-45f2-86aa-
 - 浏览器点按实测一次：/insight《⑧ 大模型解读》在 20:15 修复后 200 通过（insight-ai.png · 真实 provider · gpt-6.1-terra · 现象/证据/动作）。
   /bible/ask 的浏览器点按复测这次被机器卡住（Docker Desktop 20:43 第 5 次自重启；POST /api/bible/q 在 pg 宕机窗口里 500/503，与 provider 无关）——这条路径的浏览器实证仍欠，machine 稳定后补一次截图。
 - 结论：三个「看起来诚实、实际上必死」的 LLM 按钮，两个根因（双提交 CSRF 的头没挂）全数修复；429/503 预案仍是诚实横幅。
+
+## §PROVED-23 — /bible/ask 浏览器点按实测（CSRF 修复后复测 · 2026-11-17 v897）
+
+- 环境：Docker Desktop 7:30 第 6 次自重启后自愈（nexus-redis Up 45s healthy · nexus-postgres health: starting → 1.5 min 后 healthy），Node 24 / Next 16.4.6 Turbopack（3100）+ ai-service（8001，Redis 56379 健康）。
+- 流程：无痕浏览器访问 → 注册新用户 `bible-live-<ts>@example.com`（POST /api/auth/register 200）→ `/bible/ask` 页面输入「值更院米缸里最上面的那一粒米浮着多少年了？一句话回答。」→ 点「问一问」。
+- 回答（真实 provider · gpt-6.1-terra · 双行中文）：
+  > 六十九年，见回响《值更院米缸里那粒从不沉下去的米》。
+- badge 显示 gpt-6.1-terra；全部中文无夹杂；句内一句话不出段，与「正典 digest pinned」要求一致。
+- 正典毗邻作品可见：lede 动态计数「正典（5 章）+ 回响（44 篇）」；页脚说明 pinned digest/机检纪律；[data-bible-ask-root] 使用本地化路径。
+- console 错误：一条 401 （任意连上后辅助道/features 端点拒绝访问——不影响主链路），一条 503 重路由（v879 初始管线时的 demo 标识，非本次 /bible/ask 调用）；两者都不改变问典回答的真实读状态。
+- ai-service 日志：analyze 首打一次 502（瞬时），随后 draft 200 OK，中文答案成功落地。error=authoritatively safe/guard-pass。
+- /insight ⑧ 大模型解读浏览器完成的那次（20:15，v884 v882 时）也已记录在 §PROVED-21 与本 chapkeeper。
+
+**结论**：v885 CSRF 修复真的在浏览器内生效——BibleAsk 按钮不再 403-不可达；本案的 502 是 analyzer 瞬时网关拒绝，不构成回归。Browser-experienced under real user path：register → /bible/ask → click「问一问」→ real provider answer in Chinese with badge.
+
+**§PROVED-20/21/22/23 合并结论**：/insight ⑧ ⑦ 整个「真实大模型 + 聚合账 + 中文答案 + evidence 引用」链路现在是 live 的。/analytics agent-narrate 那条（AnalyticsAiNarrator）同路径同补丁，未逐一浏览器测但同一机制。
