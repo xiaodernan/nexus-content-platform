@@ -4756,3 +4756,9 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   - transport.stream:true
 - Tech堆积：§PROVED-8/§PROVED-9/§PROVED-10/§PROVED-12/§PROVED-13/§PROVED-15 汇合成 cache-side evidence chain。
 - ai-service 用毕即 kill；sibling /home :8000 未动；free RAM ~0.9 GB。
+
+## cont. 244 (2026-11-17) — E37 中文输出再失败 · 放弃不硬着头皮
+
+- 又一次尝试回响其三十七《值更院里巷子那盏擦过七十年从未点亮的灯》；三稿均退化（与之前同一模式）。
+- 未提交任何内容：删除未成稿，verify:world-bible 仍为 200/200；快照 5 章 · 36 回响一致。
+- 记录至 ROADMAP 与本日志；等会话上下文刷新后，用全新上下文一次性写完整双文件。
