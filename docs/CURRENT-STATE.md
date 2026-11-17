@@ -6151,3 +6151,8 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 > - 锚句合计 **392 zh / 392 en** · canon digest 重生成（62,023 chars · sha256=1953f746…）。
 > - /bible 页脚 二十六/XXVI · guideCopy 同步 · quiz 80→**82**（zh/en 镜像 +2 题 E26）
 > - fe-gates 147/147 · 1353/1353 · build 绿 · SSR 实锤 /bible/echo-026-the-forty-third-convocation 200 / /tide-oracle 200。
+
+> **2026-11-19 cont. 234 · 首页快速上手条加入「问潮」——tide-oracle 从角落进到正门**
+> - page.tsx quickStartFoot 增 `<a href="/tide-oracle" data-home-quickstart-oracle>`（zh「问潮 · 潮汐预言 →」 / en「Ask the tide · The Tide Oracle →」）；
+>   说明书 `/guide` 双语已在 §TIDE-ORACLE 覆盖；SHA 片被 intentional re-pin：home-visual-style STRIP_CLASS_SHA256 `43462927…→04f88f35…`（HEAD 与现态逐字对照验证过提取算法字节一致）
+> - fe-gates 147/147 · **1353/1353**

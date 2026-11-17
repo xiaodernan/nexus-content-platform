@@ -46,6 +46,7 @@ const HOME_TXT = {
     ],
     quickStartGuide: '阅读简明说明书 →',
     quickStartOnboarding: '新手教程 / 快速上手演示 →',
+    quickStartOracle: '问潮 · 潮汐预言 →',
     accountSection: '账号',
     projectsSection: '项目',
     emptyProjects: '还没有项目。创建一个即可进入 Studio 画布。',
@@ -93,6 +94,7 @@ const HOME_TXT = {
     ],
     quickStartGuide: 'Read the quick manual →',
     quickStartOnboarding: 'Beginner tutorial / quick demo →',
+    quickStartOracle: 'Ask the tide · The Tide Oracle →',
     accountSection: 'Account',
     projectsSection: 'Projects',
     emptyProjects: 'No projects yet. Create one to step into the Studio canvas.',
@@ -190,6 +192,7 @@ export default async function HomePage() {
         <div className="hp-quickStartFoot">
           <a className="hp-quickStartLink" href="/guide">{T.quickStartGuide}</a>
           <a className="hp-quickStartLink" href="/onboarding">{T.quickStartOnboarding}</a>
+          <a className="hp-quickStartLink" href="/tide-oracle" data-home-quickstart-oracle>{T.quickStartOracle}</a>
         </div>
       </aside>
 
