@@ -90,7 +90,7 @@ describe('§BIBLE-4 /bible/ask 问典', () => {
 
   it('SHA256 钉死（EOL 归一 + className→@）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '48f739cc0b518cd4abce2a291dc0c9ea49abbab167297df956cfc25353788997',
+      'a0c53de63e2c74caa1b1c1f77b88d36dabbe714400d61fbb7b63f9cdfc59531d',
     );
     expect(createHash('sha256').update(redactClasses(component)).digest('hex')).toBe(
       '085251944f49b4a7d451ad0aecb3d642fcb1211d5fd5faea7becd2e9cb0df884',
