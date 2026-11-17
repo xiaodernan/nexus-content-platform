@@ -6034,3 +6034,17 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 >   assets/banner.svg `<desc>` 也补成包含 IELTS 6.5 · CET6 546（屏幕阅读可读取），main 79cfcd3 已推送
 > - 二者 `identity-guard` 跑过：身份字节全部对账 ✓
 > - 另外：更重要的灾难 recover 测试全部记录进 evidence
+
+> **2026-11-19 续（cont. 220 · codex 式全局正典前缀落地：agent 设计通道从 1.5k 放大到 61k 字符可缓存前缀）**
+> - ADR-0235 采纳：scripts/gen-canon-digest.mts 把 bibleAsk.SYSTEM_PROMPT（=世界大典 digest）原样写出并入库
+>   pps/ai-service/src/ai_service/canon_digest.txt + .sha256（缺文件即进程崩，不静默丢正典）；
+>   ai-service 蒸馏 SYSTEM_PROMPT = CANON_PREFIX（≈61k 字符）+ 恒定规则；uild_prompt 不再把每轮可变 agentNote 拼进 system。
+>   新增 /api/insight/chat（口令 123 + CSRF + IP 闸 10/h）与 /api/bible/q 共享同一 SYSTEM_PROMPT 字节常量（同桶同缓存）；
+>   /insight 新增「正典深问」面板（zh/en 双语，徽章实时 cached n/m tokens）；InsightAiAnalysis 补 x-csrf-token（修 403 暗病）。
+> - 实测（prod build + prod start + ai-service）：
+>   · /v1/ai/run 三连：a1 冷启 84,705/cached=0 → b1 换诉求 **cached=80,245（94.7%）** → a2 原样重放 **100%**；
+>   · /api/insight/chat：#1 冷 43,458/0 → #2-4 **43,458/43,458 = 100%**；bible/q 随后两连发即 100%（同桶复用）；
+>   · /api/insight/analyze 回归：4480 / 5215 cachedTokens（真模型中文回答）；
+>   · GET / 与 /insight（prod）200；证据 docs/evidence/live-cache-canon-prefix-2026-11-19.md
+> - 全门绿：fe-gates 147/147 · pytest 455/455（新 test_canon_digest.py 4 条）· verify:world-bible 367/367 ·
+>   verify:bible-snapshot 一致 · tsc web 0 errors。commit 82374853（master/main 随后 sync）。
