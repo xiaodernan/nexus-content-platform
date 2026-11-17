@@ -6136,3 +6136,11 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 > - `scripts/insight-login-hammer.mts`（新）：限流实锤 **INSIGHT-GATE PASSED**（30×401 → 5×429；同 IP 正确 123 也 429；跨 IP 隔离 OK · cookie 实到 nexus-insight=1）。
 > - 匿名探针：cookieless `POST /api/tide/oracle` → 403 `csrf_failed`（未到模型层 · 零 provider 配额）。
 > - evidence: `docs/evidence/stress-nextstart-2026-11-19.md` — §十一 缺口（tier-24/48）关闭；未主张任何 SLA。
+
+> **2026-11-19 cont. 232 · 观察站 AI 深读三段式（形势 / 展望·7 天推断 / 下一步）——§九 趋势预测落地**
+> - digest route prompt 由「3-5 句下一步」改为**固定三段**：
+>   形势（2-3 句 · 每句带数字，现状据实）· 展望 · 7 天推断（opens7d/opens30d 日均 × completionPct 外推；**必须显式标注「推断：…不是实测」并给出悲观→乐观区间**；每句带数字）· 下一步 · 优先级（1-3 件，按先后顺序，每件引用数字 + 预期效果）。
+> - en 对称结构（Situation / "Forecast · 7-day inference … Inference, not measurement" / Next steps · in order）；段格式由 model 产出，UI 用 `white-space: pre-wrap` 原样渲染；digest 上限 900→1400。
+> - 线上实测（evidence `live-observer-forecast-2026-11-19.md`）：zh cold #1 → **形势： 1,448 新增/3,429 总用户，52 vs 97 打开** → *展望 ∷ 23–52 打开区间（标注「推断，不是实测」）* → *下一步： 批准率/bot 清洗三件；诚实标注 · LRU 命中后 #2 cached=True；en #3 同型态英文分写。模型真链路（gpt-6.1-terra）、metrics 真数。
+> - fe-gates 147/147 · 1353/1353 · SHA 重钉 ×1（observer-deepread sha=8acd502…）。
+> - 环境注记：首次探针中途 AI PID 40864 消失（Windows 内存回收 · 无日志）——重启 AI 后全链 200；probe 如实标注此故障，未伪造一次成。

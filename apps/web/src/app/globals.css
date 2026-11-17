@@ -5796,7 +5796,7 @@
 .observer-aidr-kicker { margin: 0; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.08em; text-transform: uppercase; color: var(--nexus-color-accent-2-ink); display: flex; align-items: center; gap: var(--nexus-space-2); flex-wrap: wrap; }
 .observer-aidr-cacheTag { font-size: var(--nexus-font-size-11); font-family: var(--nexus-font-mono); color: var(--nexus-color-fg-3); border: 1px solid var(--nexus-color-border); border-radius: 999px; padding: 1px var(--nexus-space-2); text-transform: none; letter-spacing: 0; }
 .observer-aidr-hint { margin: 0; font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); line-height: 1.6; }
-.observer-aidr-digest { margin: 0; font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-1); line-height: 1.7; }
+.observer-aidr-digest { margin: 0; font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-1); line-height: 1.75; white-space: pre-wrap; }
 .observer-aidr-foot { display: flex; flex-wrap: wrap; gap: var(--nexus-space-3); align-items: baseline; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
 .observer-aidr-model code { font-family: var(--nexus-font-mono); color: var(--nexus-color-fg-2); }
 .observer-aidr-disclaimer { flex: 1; min-width: 12rem; }

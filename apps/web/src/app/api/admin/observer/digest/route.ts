@@ -127,32 +127,40 @@ export async function POST(req: Request): Promise<Response> {
         '',
         '纪律（不可违反）：',
         '1. 只允许依据这些数字与那条规则建议下断言——禁止想象任何作品内容、用户心理、竞争对手；',
-        '2. 说清楚下一步具体做什么：先做哪件事、为什么（引用数字）、预期效果、成本（几页/几天）；',
-        '3. 语气平静、克制、口语；不用营销腔；3–5 句；',
+        '2. 输出固定三段（每段 2-3 句，段首可点明段名）：',
+        '   「形势」：现在是什么形势，每句带数字；',
+        '   「展望 · 7 天推断」：基于 opens7d/opens30d 的日均与 completionPct 外推未来 7 天的走向——**显式标注这是推断不是实测**（写「推断：」开头），并给出从悲观到乐观的区间，每句带数字；',
+        '   「下一步 · 优先级」：一到三件具体行动，按先后顺序，每件引用一到两个数字说明为什么先做它、以及预期效果；',
+        '3. 语气平静、克制、口语；不用营销腔；',
         '4. 每句必须带数字；不带数字的句子一律不许出现；',
-        '5. 不替用户做结论，只排优先级与动作。',
+        '5. 不替用户做结论，只排优先级与动作；',
+        '6. 「展望」段严禁写出确定语气的承诺（如「将突破」「一定实现」——只能是「推断：…… 区间 ……」）。',
       ].join('\n')
     : [
         'You are the lead product adviser for NEXUS, reviewing the founder\'s own platform from its **measured** aggregate numbers.',
         '',
         'Rules (non-negotiable):',
         '1. Judge only from these numbers and that rule-engine input —\r NEVER invent work contents, user psychology, or competitors;',
-        '2. Say exactly what to do next: which thing first, why (cite figures), expected effect, and cost (which pages / how many days);',
-        '3. Calm, restrained, plain-spoken tone; no marketing voice; 3–5 sentences;',
+        '2. Output exactly three sections (2-3 sentences each, names optional but shape mandatory):',
+        '   “Situation” — what the numbers say right now, every sentence with figures;',
+        '   “Forecast · 7-day inference” — extrapolate opens7d/opens30d daily pace and completionPct into the next 7 days; **explicitly mark it as inference, not measurement** (open the section with “Forecast:” and give a pessimistic→optimistic range), every sentence with figures;',
+        '   “Next steps · in order” — one to three concrete actions, in sequence, each citing the one or two figures that justify the order and the expected effect;',
+        '3. Calm, restrained, plain-spoken tone; no marketing voice;',
         '4. Every sentence must carry a figure; no figureless sentences allowed;',
-        '5. Do not make decisions for the founder — rank the actions and explain the order.',
+        '5. Do not make decisions for the founder — rank the actions and explain the order;',
+        '6. The “Forecast” section must never use certainty language (no “will break through”, “will definitely convert” — only “Forecast: … range …”).',
       ].join('\n');
 
   const user = locale === 'en'
     ? [
         `Metrics (JSON, all real): ${metricsJson}`,
         `Rule engine has already raised (JSON): ${adviceJson}`,
-        'Three to five sentences, grounded in the figures, ordered by what pays back first. In English.',
+        'Output the three sections: “Situation” (figures), “Forecast · 7-day inference” (label it inference, give a range), “Next steps · in order” (figures + justification). In English.',
       ].join('\n')
     : [
         `数据（JSON，全部为真实计数）：${metricsJson}`,
         `规则引擎已经按阈值提出了（JSON）：${adviceJson}`,
-        '三到五句，落在数字上，按「最先回本」的顺序给出下一步。用中文。',
+        '按「形势（带数字）· 展望 · 7 天推断（标明推断、给区间）· 下一步 · 优先级（带数字）」三段输出，每段 2-3 句。用中文。',
       ].join('\n');
   const reqId = `observer_deepread_${Date.now().toString(36)}`;
   const chat = await chatWithCharacter({ requestId: reqId, system, user, modelClass: 'balanced' });
@@ -169,7 +177,7 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const payload: DigestPayload = {
-    digest: digest.slice(0, 900),
+    digest: digest.slice(0, 1400),
     model: chat.response.model,
     disclaimer: locale === 'zh'
       ? 'AI 深读 · 只喂实测聚合 · 每条判断带数字 · 规则引擎建议同屏对照'
