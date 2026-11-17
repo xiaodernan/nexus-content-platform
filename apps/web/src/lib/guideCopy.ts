@@ -104,6 +104,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           '⌘Z（或 Ctrl Z）一次撤销最近一个 Command——对话、画布、分镜、状态补丁、断点，全部走同一条撤销栈；重做是 ⌘⇧Z / Ctrl Y。',
           '删除类操作（删除项目/撤发布/删镜头）都有二次确认；删掉的项目进回收站、可以恢复；公开作品随时可撤回到 private。',
           '发布前最后一步是确认卡——没点头就不会投进广场；AI 的危险动作（删/发/花额度）同样有人审门，没批准就不执行。',
+          'Studio 画布右上角有一个「滚轮」开关：往上滚看上面、往下滚看下面（与网页一致）是默认；如果你的鼠标/系统本身就是反的，点一下反转，选择会被记住。空格+拖动也能抓手移动画布，Ctrl/⌘+滚轮缩放。',
         ],
       },
       {
@@ -218,6 +219,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           '⌘Z (or Ctrl+Z) undoes the most recent Command — chat edits, canvas, storyboard, state patches, breakpoints all run through the same undo stack; redo is ⌘⇧Z / Ctrl+Y.',
           'Destructive actions (delete project / unpublish / delete shot / clear selection) all carry a confirmation step; deleted projects go to the recoverable trash; public works can be recalled to private anytime.',
           'Publish’s last step is a confirmation card — nothing enters the feed without your explicit yes; dangerous AI actions (delete / publish / spend quota) are likewise human-gated and refuse to run until approved.',
+          'Top-right of the Studio canvas sits a “Wheel” toggle: by default wheel-up looks up and wheel-down looks down (page convention). If your mouse/OS itself reports reversed wheel deltas, click it once to invert — the choice is remembered. Space+drag also grab-pans, and Ctrl/⌘+wheel zooms.',
         ],
       },
       {

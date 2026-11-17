@@ -14532,3 +14532,22 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   问典页读 query param `q` 预填输入框（≤ 400 字符）——用户按「问一问」自己决定要不要烧 token；零自动 provider。
 - 零服务端阻塞；`/bible/ask` 自己缓存到 `nexus:llmc`（同 payload 可命中重放）。
 - verify:world-bible ✓ 185/185；verify:bible-snapshot ✓；fe-gates 134/134 · 1265/1265 · census 2565；tsc web 0。
+
+## §BIBLE-46 — 回响 · 其三十四 《祠殿地下室里那张旧海图》（2026-11-17 · v853）
+
+- 新回响 E34（中英双文件）：潮候院唯一的海图压在祠殿地下室最里面那只木箱里；值更每三年盘点一次，登记册写「海图，完整，不动」；
+  米缸月的值更说图画的不是海岸，是改过道的大海。六节、六锚句（zh/en 逐字对应）。
+- verify:world-bible ✓ 190/190；快照 5 章 · 34 回响；snapshot 与 docs/world-bible/ 一致。
+- 前回存在注：v852 里曾报告 E34 未能写出——本回已写成并纳入正典体系。
+
+## §UX-44 — Studio 画布滚轮方向开关 + 主界面按键教学 title（2026-11-17 · v853）
+
+- 用户点名「滚轮方向反了」：规律摸清了——画布默认保持网页惯例（往上滚看上面、往下滚看下面）；
+  若机器/系统在驱动层把 deltaY 的号翻掉，画布右上角新增「滚轮」开关（`data-wheel-direction`，aria-pressed 反映状态），
+  点一下即切换，选择持久化到 localStorage（`nexus:canvas:wheel-inverted`），无任何遥测。
+  默认/切换两态都经 §CTRL-WHEEL 锁定门钉死（`apps/web/test/canvas-wheel-direction-behavior.test.ts`）。
+- 教学 title（中英）：画布「滚轮」开关、图层「+」、视图切换五个按钮（画布/方案/代码/世界图/游戏图，每个带一句话用法说明）、
+  顶栏「面板」开关（列出它打开的十四个面板各是什么）。
+- /guide §⑩ 新增：画布右上角「滚轮」开关说明 + 空格抓手移动 + Ctrl/⌘+滚轮缩放。
+- StudioShell 视图切换按钮附 title（SHA 重钉第十八次：`4ce5cd7f...`）；TopBar 顶栏 SHA 重钉（`fabb39a2...`）;CanvasStage SHA 重钉（`38a6e525...`）。
+- fe-gates 相关套件：32/32 + wheel 7/7 + canvas-stage / keyboard-cheatsheet 17/17。

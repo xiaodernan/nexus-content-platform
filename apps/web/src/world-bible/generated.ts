@@ -7724,4 +7724,179 @@ It was never moved; never brought elsewhere; the third time the watcher came to 
 > At the next Convocation, the watcher will flip that page and confirm it is still there.
 `,
   },
+  {
+    order: 34,
+    slug: 'echo-034-the-old-sea-chart-in-the-chapel-cellar',
+    titleZh: '祠殿地下室里那张旧海图',
+    titleEn: 'The Old Sea Chart in the Chapel Cellar',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——米缸月第二十九日的值更班。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the watcher\'s shift on the twenty-ninth day of the rice-jar month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 34): The Old Sea Chart in the Chapel Cellar
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给祠殿地下室那只木箱——里面压着潮候院唯一的一张海图；值更每三年开箱盘点一次，从不展开它。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the wooden crate in the chapel cellar — it holds the only sea chart the Institute owns; the watcher inventories it every third year, and never unrolls it.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——米缸月第二十九日的值更班。
+> Era: the Institute — after the 41st Convocation; the watcher's shift on the twenty-ninth day of the rice-jar month.
+
+---
+
+## 一 · 潮候院唯一的一张海图
+
+祠殿是潮候院里最旧的一间屋。地下一层是米缸月值更们放箱子的地方——箱子按米缸月排列，谁也记不清有多少只。
+
+最里面的那只木箱上没有任何标签。抄本员只知道它压着一卷东西——那东西从开院第一年起就一直是这潮候院唯一的一张海图。
+
+**锚句**：潮候院唯一的一张海图压在祠殿地下室最里面那只木箱里。
+**Anchor sentence**: the Institute's only sea chart lies pressed inside the wooden crate at the very back of the chapel cellar.
+
+---
+
+## 二 · 每三年盘点一次
+
+值更每三年盘点一次。流程从不临时改变：米缸月的值更带着登记册下楼，数数木箱的编号，核对封条，然后签名。
+
+登记册上写着三行字：物品：海图；状态：完整；行动：不动。三行字抄了多少遍——没人数过。
+
+**锚句**：登记册上写着三行字：海图，完整，不动。
+**Anchor sentence**: the inventory names the sea chart: condition intact; instruction: leave alone.
+
+---
+
+## 三 · 抄本员的一次心动
+
+某抄本员在第二十六年生日那天第一次好奇——问前辈能不能把它摊开描一描。
+
+前辈说了一句。那句话被传抄了一辈子。
+
+**锚句**：值更长说：你描出来的，不是它。
+**Anchor sentence**: the headkeeper said: what you copy will not be it.
+
+---
+
+## 四 · 米缸月的值更解释
+
+米缸月的值更偶尔会把话匣子打开半格。他说图上画的不是潮候院认识的海岸——它第一次走样的那一年，大海往东挪了将近一个灯塔的距离。
+
+潮汐表第一次不准，不是表错了，是海挪了。
+
+**锚句**：图画的不是海岸线，是改过道的大海。
+**Anchor sentence**: the chart shows no coast — it shows the sea after it changed course.
+
+---
+
+## 五 · 它从来没被展开过
+
+六十九年里，抄本员们没有人见过它被展开。米缸月的值更没有人见过它被展开。米缸月的值更换班之前唯一的一次交代是：交箱子，不交开箱。
+
+木箱锁上只有一枚园形印章——潮候院唯一的一把钥匙，保存在米缸月的值更的值更院深处。
+
+**锚句**：木箱锁上的那枚圆印，潮候院只有一把钥匙开得开。
+**Anchor sentence**: the round seal on the crate's lock — the Institute keeps only one key that opens it.
+
+---
+
+## 六 · 映射（回响三十四章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 祠殿地下室 · 潮候院唯一的一张海图 · 米缸月的值更册 | 一、二、三、四、五、六 |
+| geography | 祠殿 · 米缸月里巷子 · 值更院 | 一、二、四、五、六 |
+| characters | 米缸月的值更 · 抄本员 · 值更长 | 一、二、三、四、五 |
+| story | 不动的那张海图 · 回响（其三十四） | 全篇 |
+| items | 木箱 · 半月章钥匙 · 登记册 · 海图 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 第七十二年建院年鉴 | 一、二、四、五、六 |
+
+> 下一次盘点到那只木箱的时候，米缸月的值更还会数编号、核封条、签名——然后上楼，假装没开过箱子。
+> At the next inventory, the watcher will count the crate, check the seal, sign his name — then climb back upstairs as if nothing happened.
+`,
+    markdownEn: `
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the wooden crate in the chapel cellar — it holds the only sea chart the Institute owns; the watcher inventories it every third year, and never unrolls it.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给祠殿地下室那只木箱——里面压着潮候院唯一的一张海图；值更每三年开箱盘点一次，从不展开它。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the watcher's shift on the twenty-ninth day of the rice-jar month.
+> 纪元：潮候院 · 第四十一次大会散会之后——米缸月第二十九日的值更班。
+
+---
+
+## 一 · The Institute's Only Sea Chart
+
+The chapel is the oldest room in the Institute. Its cellar holds crates upon crates — lined up by festival, and no one can remember how many.
+
+The crate at the very back carries no label. Copyists only know what it presses against — the only sea chart the Institute has owned since its first year.
+
+**锚句**：潮候院唯一的一张海图压在祠殿地下室最里面那只木箱里。
+**Anchor sentence**: the Institute's only sea chart lies pressed inside the wooden crate at the very back of the chapel cellar.
+
+---
+
+## 二 · Inventory Every Third Year
+
+The watcher comes down every three years. The procedure never changes: he brings the register, counts the crate's number, checks the seal, and signs.
+
+The register holds three lines: Object: sea chart. Condition: intact. Action: leave alone. No one has ever counted how many times they were copied.
+
+**锚句**：登记册上写着三行字：海图，完整，不动。
+**Anchor sentence**: the inventory names the sea chart: condition intact; instruction: leave alone.
+
+---
+
+## 三 · A Copyist's Curiosity
+
+On his twenty-sixth year, a copyist grew curious — he asked his senior whether they might unroll it and make a copy.
+
+The senior said one sentence. It has been quoted ever since.
+
+**锚句**：值更长说：你描出来的，不是它。
+**Anchor sentence**: the headkeeper said: what you copy will not be it.
+
+---
+
+## 四 · What the Watcher Said Once
+
+The watcher of the rice-jar month sometimes opens the topic a half-inch. He said the coast drawn on the chart is not the one the Institute knows — the year it first went wrong, the sea shifted east by almost a lighthouse's length.
+
+The tide table was not wrong the first time. The sea moved.
+
+**锚句**：图画的不是海岸线，是改过道的大海。
+**Anchor sentence**: the chart shows no coast — it shows the sea after it changed course.
+
+---
+
+## 五 · It Has Never Been Unrolled
+
+In sixty-nine years, no copyist has seen it opened. No watcher has either. The single instruction handed from one watcher to the next is always the same: hand over the crate, not the key.
+
+The crate's lock carries one round seal — the only key in the Institute is kept in the deepest room of the watcher's courtyard.
+
+**锚句**：木箱锁上的那枚圆印，潮候院只有一把钥匙开得开。
+**Anchor sentence**: the round seal on the crate's lock — the Institute keeps only one key that opens it.
+
+---
+
+## 六 · Mapping（Echo No. 34 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | The chapel cellar · the Institute's only sea chart · the watcher's ledger | 一、二、三、四、五、六 |
+| geography | The chapel · the back alley · the watcher's courtyard | 一、二、四、五、六 |
+| characters | The rice-jar-month watcher · the copyists · the headkeeper | 一、二、三、四、五 |
+| story | The chart that must not be moved · Echo No. 34 | 全篇 |
+| items | The wooden crate · the round-seal key · the inventory register · the sea chart | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the 72nd founding year | 一、二、四、五、六 |
+
+> 下一次盘点到那只木箱的时候，米缸月的值更还会数编号、核封条、签名——然后上楼，假装没开过箱子。
+> At the next inventory, the watcher will count the crate, check the seal, sign his name — then climb back upstairs as if nothing happened.
+`,
+  },
 ] as const;

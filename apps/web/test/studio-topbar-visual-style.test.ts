@@ -152,8 +152,9 @@ function maskLiterals(expr: string): string {
 /**
  * **剥 className 后全文逐字节哈希**（本片最强零行为门）。
  * 真值 `c1687319…`（v742-ExportPanel-localize 把 `<ExportPanel />` 改成带 locale 透传，按惯例重钉）。
+ * v853（画布滚轮方向开关 + 顶栏「滚轮」「视图教学 title」）：`fabb39a2…`。
  */
-const STRIP_CLASS_SHA256 = 'd51da7bf50b4da302eec7827ada28f0802cf0a5235b0be1e06e3d214f1ef2dde';
+const STRIP_CLASS_SHA256 = 'fabb39a2856c70e4fb4a5e22cbbaeeb2ba7bd1c597750076a1b6cd08cd35cd44';
 function stripClassNames(src: string): string {
   const s = src.replace(/\r\n/g, '\n');
   let out = '';

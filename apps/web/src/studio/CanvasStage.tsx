@@ -16,6 +16,11 @@ const COPY = {
     annotationTitle: (name: string, body: string, resolved: boolean) => `${name}：${body}${resolved ? '（已解决）' : ''}`,
     virtualized: (shown: number, total: number) => `画布按视口裁剪：显示 ${shown} / ${total}`,
     emptyPage: '空页面：用左侧 Layers 面板的“+”添加元素。画布上的每次修改都会写回设计模型，再投影成渲染与代码。',
+    wheelDirectionTitle: (inverted: boolean) =>
+      inverted
+        ? '滚轮方向：已反转（往下滚看得更靠上）。若你的滚轮方向本身又反了，点一下切回网页惯例（往上滚看上面、往下滚看下面）'
+        : '滚轮方向：网页惯例（往上滚看上面、往下滚看下面）。如果你的滚轮/系统本身方向是反的，点一下反转，之后会记住你的选择',
+    wheelDirectionLabel: (inverted: boolean) => (inverted ? '滚轮：已反转' : '滚轮：网页惯例'),
   },
   en: {
     loadCanvas: 'Loading canvas…',
@@ -24,6 +29,11 @@ const COPY = {
     annotationTitle: (name: string, body: string, resolved: boolean) => `${name}: ${body}${resolved ? ' (resolved)' : ''}`,
     virtualized: (shown: number, total: number) => `Canvas clipped to viewport: showing ${shown} / ${total}`,
     emptyPage: 'Empty page: add elements with the “+” in the Layers panel on the left. Every edit on canvas writes back to the design model, then projects to render and code.',
+    wheelDirectionTitle: (inverted: boolean) =>
+      inverted
+        ? 'Wheel direction: inverted (“wheel down reveals higher content”). If your device/system itself flips wheel direction, click to switch back to the page convention (wheel up = look up, wheel down = look down)'
+        : 'Wheel direction: page convention (wheel up = look up, wheel down = look down). If your OS/mouse itself reports reversed wheel deltas, click to invert — your choice is remembered',
+    wheelDirectionLabel: (inverted: boolean) => (inverted ? 'Wheel: Inverted' : 'Wheel: Page'),
   },
 } as const;
 
@@ -162,6 +172,10 @@ export function CanvasStage({ locale = 'zh' }: { locale?: Locale }) {
   const [editing, setEditing] = useState<{ nodeId: string; value: string } | null>(null);
   // §147：视口大小要参与渲染决策，所以它得是 state（ResizeObserver 报一次，缩放/平移时也用它算）
   const [surfaceSize, setSurfaceSize] = useState({ width: 0, height: 0 });
+  // 滚轮方向：取值看设备/系统习惯（Windows 自然滚动开关、某些鼠标的反向滚轮都会翻转 deltaY 的号）；
+  // 默认 = 网页惯例方向（往上滚看上面、往下滚看下面）；若机器本身 deltaY 方向已翻转，点一次「滚轮」按钮即可，选择会记住（localStorage，无遥测）。
+  const [wheelInverted, setWheelInverted] = useState(false);
+  const wheelInvertRef = useRef(false);
 
   const setPreview = (next: Preview) => {
     previewRef.current = next;
@@ -170,6 +184,30 @@ export function CanvasStage({ locale = 'zh' }: { locale?: Locale }) {
 
   const layout = state.layout;
   const page = state.page;
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem('nexus:canvas:wheel-inverted');
+      const next = raw === null ? false : raw === '1';
+      wheelInvertRef.current = next;
+      setWheelInverted(next);
+    } catch {
+      // localStorage 不可用（隐私模式等）：保持默认，不崩
+    }
+  }, []);
+
+  const toggleWheelInverted = () => {
+    setWheelInverted((prev) => {
+      const next = !prev;
+      wheelInvertRef.current = next;
+      try {
+        window.localStorage.setItem('nexus:canvas:wheel-inverted', next ? '1' : '0');
+      } catch {
+        // 同上：存不进去也别让 UI 出错
+      }
+      return next;
+    });
+  };
 
   const canvasPoint = useCallback((clientX: number, clientY: number) => {
     const rect = surfaceRef.current?.getBoundingClientRect();
@@ -249,9 +287,10 @@ export function CanvasStage({ locale = 'zh' }: { locale?: Locale }) {
       event.preventDefault();
       const rect = surface.getBoundingClientRect();
       const anchor = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      const dir = wheelInvertRef.current ? 1 : -1;
       if (event.ctrlKey || event.metaKey) studio.zoomBy(Math.exp(-event.deltaY * 0.0015), anchor);
-      else if (event.shiftKey) studio.panBy(-event.deltaY, 0);
-      else studio.panBy(-event.deltaX, -event.deltaY);
+      else if (event.shiftKey) studio.panBy(dir * event.deltaY, 0);
+      else studio.panBy(dir * event.deltaX, dir * event.deltaY);
     };
     surface.addEventListener('wheel', onWheel, { passive: false });
     return () => surface.removeEventListener('wheel', onWheel);
@@ -549,6 +588,17 @@ export function CanvasStage({ locale = 'zh' }: { locale?: Locale }) {
         className="cs-fitBtn"
       >
         {c.fitWindow}
+      </button>
+      <button
+        type="button"
+        data-wheel-direction
+        aria-pressed={wheelInverted}
+        title={c.wheelDirectionTitle(wheelInverted)}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={toggleWheelInverted}
+        className="cs-wheelBtn"
+      >
+        {c.wheelDirectionLabel(wheelInverted)}
       </button>
       <div
         data-canvas-frame

@@ -4529,3 +4529,12 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 新回响 E33（中英双文件）；verify:world-bible ✓ 185/185；快照 5+33。
 - 潮汐挑战「问问典籍 →」：做错 → 跳到问典带着完整题干进站内 ↘ 用户自己决定要不要调 provider。共享 `/api/bible/ask` 那一道 gate，零新路由，零副作用。
 - sibling :8000 未触碰。
+
+## cont. 219 (2026-11-17) — v853 · 回响其三十四 + Studio 滚轮方向开关 + 主界面教学 title
+
+- 新回响 E34《祠殿地下室里那张旧海图》（中英双文件 + 映射表）；verify:world-bible ✓ 190/190；快照 5 章 · 34 回响。
+- Studio 画布右上角新增「滚轮」开关（`data-wheel-direction`）：默认网页惯例（往上滚看上面）；机器/系统驱动层反向的用户一键反转并被记住（localStorage `nexus:canvas:wheel-inverted`，无遥测）。
+  - §CTRL-WHEEL 门更新：默认 dir=-1 钉死，另钉键名、aria-pressed、按钮存在。
+- 教学 title：视图切换五个按钮（canvas/variants/code/graph/gamegraph 各一句话用法）、顶栏「面板」开关列十四个面板、画布「滚轮」开关中英 title；/guide §⑩ 已加说明。
+- 个人页 GitHub Pages 本回未动（上回已修契约文件/隐盾/计科/物理竞赛表述，master=099984c）。
+- 仍积压：verify:spring-cloud（要 free RAM ≥ 6 GB，本机 ~0.5–2 GB）；origin/main push（token 无 workflow scope，走 showcase）；/insight ⑨ 之后的用量深潜。

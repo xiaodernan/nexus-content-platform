@@ -306,7 +306,8 @@ function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zo
                     onClick={() => setView(id)}
                     data-view={id}
                     aria-pressed={view === id}
-              className={cn('se-viewBtn', view === id && 'se-viewBtnActive')}
+                    title={c.viewHints[id]}
+                    className={cn('se-viewBtn', view === id && 'se-viewBtnActive')}
                   >
                     {c.views[id]}
                   </button>

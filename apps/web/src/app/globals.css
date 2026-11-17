@@ -2216,6 +2216,10 @@
   .cs-mono13 { font-family: var(--nexus-font-mono); font-size: 0.8125rem; color: var(--nexus-color-fg-3); }
   .cs-stage { position: relative; height: 100%; width: 100%; touch-action: none; overflow: clip; background: var(--nexus-color-bg-0); }
   .cs-fitBtn { position: absolute; right: var(--nexus-space-2); top: var(--nexus-space-2); z-index: 10; display: inline-flex; min-height: 1.5rem; align-items: center; border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-1); padding: 0 var(--nexus-space-2); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); cursor: pointer; }
+  .cs-wheelBtn { position: absolute; right: calc(var(--nexus-space-2) + 4.5rem); top: var(--nexus-space-2); z-index: 10; display: inline-flex; min-height: 1.5rem; align-items: center; border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-1); padding: 0 var(--nexus-space-2); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); cursor: pointer; font-variant-numeric: tabular-nums; }
+  .cs-wheelBtn:hover { color: var(--nexus-color-fg-1); border-color: var(--nexus-color-border-strong); }
+  .cs-wheelBtn[aria-pressed="true"] { color: var(--nexus-color-accent-mix); border-color: color-mix(in srgb, var(--nexus-color-accent-mix) 55%, transparent); }
+  .cs-wheelBtn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
   .cs-fitBtn:hover { color: var(--nexus-color-fg-1); }
   .cs-fitBtn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
   .cs-virtualized { position: absolute; right: var(--nexus-space-3); top: var(--nexus-space-3); display: inline-block; border-radius: var(--nexus-radius-sm); background: color-mix(in srgb, var(--nexus-color-bg-1) 90%, transparent); padding: var(--nexus-space-1) var(--nexus-space-2); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
