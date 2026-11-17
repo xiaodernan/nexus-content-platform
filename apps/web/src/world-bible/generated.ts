@@ -12237,6 +12237,231 @@ It does not mean "Great rain tomorrow."  It means "tomorrow's rain is already in
 > Next time you pass it, look again — no one has ever seen it posted, and still, it is always there.
 `,
   },
+  {
+    order: 57,
+    slug: 'echo-057-the-undeliverable-summons-from-the-tide',
+    titleZh: '雾港潮水漂上来那张没人能投递的潮候院言归帖',
+    titleEn: 'The Letter the Tide Washed Ashore That No One Could Ever Deliver',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——秋潮月第十三日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the thirteenth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 57): The Letter the Tide Washed Ashore That No One Could Ever Deliver
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给雾港一下潮那天漂上来的要件封皮：她是写给潮候院一位被抹掉名字的执掌人的回信。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the summons envelope that washed ashore on the still-slack tide: a reply addressed to a steward of the Institute whose name is scrubbed out of the ledger.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第十三日。
+> Era: the Institute — after the 41st Convocation; the thirteenth day of the autumn-tide month.
+
+---
+
+## 一 · 退潮最慢的那天
+
+潮水退得最慢的那天，潮候院在雾港的海岸没有一人说出口——他们只是各自把自己的木履摆在钉好的海潮水位线下，静静走过去。
+
+潮水退到最后那条水线以后，剩下一层白得发蓝的水纹，光线站在上面一动不动。制度只允许抄本师、值更人、佛师徒靠近它。
+
+一个值更人先看到了它——然后才敢叫其他人。
+
+**锚句**：事情是在秋潮月潮水退得最慢的一天发生的。
+**Anchor sentence**: it happened on the slowest-receding day of the autumn-tide month.
+
+---
+
+## 二 · 一个字的收件人
+
+封皮不是潮候院的官方封皮——一半是旧纸，一半是岸边潮水泡干以后的盐结晶。封皮上只有两行字：
+
+上行是一串墨团，里面三个字被盐融化了一半也能辨认出来：潮候、执掌、某日
+下行只有一个字——"归"。
+
+没有人叫它——因为一封没有收件人的要件，法律上不存在；存在的话，潮候院先前抹掉的那个名字该补回去。
+
+**锚句**：信封上写着潮候院之前被抹去的那名执掌人，收件人一栏只有一个字："归"。
+**Anchor sentence**: the envelope bears the name of the steward whom the Institute had scrubbed out of its ledger; in the addressee line only one character: "Return."
+
+---
+
+## 三 · 读出来也不完整的信
+
+抄本师不能拆开直接封来——但封皮的一角已经潮开了一线：里面露出一行字，字是走的，手时稳时抖：
+
+"请提醒那山下的人，我们的信才到——但回信不入账不算回。"
+
+后半行也朝上浮出来。
+
+没人敢念第三行。
+
+**锚句**：抄本师无法找到这封要件能合法交到谁手上。
+**Anchor sentence**: the copyists could not find any hand into which this summons could legally be delivered.
+
+---
+
+## 四 · 盐水没泡坏它
+
+盐水泡了几十年任何信都会散，可那张要件没有散——抄本师只用手指碰一下没读过的那个角，字上还沾着刚写完的未干墨迹。
+
+他们小心把它铺在灯下。字一个接一个，笔笔皆稳——除了"归"下面那块被黏成纸团的一角，已经长到石盐片那样硬。
+
+**锚句**：要件字迹没有被盐水泡坏，好像它刚刚被写就，不管多少潮又带到岸边。
+**Anchor sentence**: the missive's ink was never dissolved by salt; however many tides delivered it, it arrived fresh.
+
+---
+
+## 五 · 钉进存档柜
+
+值更长问："要归应谁？"
+抄本师答："归原著。"
+值更长说，那按"社会回信"登记。
+所有人于是见证：抄本师把两行字拓下来抄七份原件，把原件按墨条正背面分两半钉起来，编号为"社会回信·其一"，盖墨条"时候未到"。
+
+——与那只门廊夜钟同名。
+
+**锚句**：抄本师把它钉在存档柜里，编号改为"社会回信"，按墨条另一面折好。
+**Anchor sentence**: the copyists filed it under "letter from society", then folded it along the reverse of a striped strip.
+
+---
+
+## 六 · 风港值更人说
+
+风港换班之后，年轻值更人私下问："这封信什么时候才能再来一次？"
+老值更人说："它还会再来——下一次雾大的时候，连信纸的麻尾纹也被海浪磨得更清晰。"
+年轻值更人坚持："那有没有人去认那个字？"
+老值更人沉默半晌："没人去收，也没人再寄。它会不断收到，不断无人领——它写在潮候院之前的户籍册上。"
+
+**锚句**：风港值更人说它还会再来一次，同一天，还无人认领。
+**Anchor sentence**: the watchers of the wind port say it will come again — same day, and still no hand claims it.
+
+---
+
+## 七 · 映射（回响五十七章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 社会回信 · 言归帖 · 时候未到 · 墨条正背 | 一、二、三、四、五、六 |
+| geography | 雾港 · 潮水最后一条水线 · 风港换班堂 | 一、五、六 |
+| characters | 值更人 · 值更长 · 抄本师 · 两位值更人（年轻与老） | 一、二、三、五、六 |
+| story | 没人能投递的要件 · 回响（其五十七） | 全篇 |
+| items | 潮水封皮 · 墨条 · 灯下案台 · 社会回信编号 | 二、三、四、五 |
+| history | 第四十一次大会散会之后 · 秋潮月第十三日 | 一、三、六 |
+
+> 雾港的风说：它还会回来的——下一次来的同一天，还是没有人去领。
+> The wind at the fog harbor says it will come again — and on that next day, still no one will claim it.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其五十七）「雾港潮水漂上来那张潮候院言归帖」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the summons envelope that washed ashore on the still-slack tide: a reply addressed to a steward of the Institute whose name is scrubbed out of the ledger.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给雾港一下潮那天漂上来的要件封皮：她是写给潮候院一位被抹掉名字的执掌人的回信。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the thirteenth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第十三日。
+
+---
+
+## I · The Slowest-Receding Day
+
+On the day the tide receded slowest, at the Institute's stretch of the fog-harbor shore, not a soul spoke aloud — each person set their wooden sandals down beside the pinned waterline, and passed by in silence.
+
+The water withdrew to the final line — a white sheen with barely a tinge of blue, light resting on it, nothing moving. By the rule of the Institute, only the copyists, the night watch, and the lay monks could approach it.
+
+A night watcher saw it first. Not until he was sure, would he call out.
+
+**锚句**：事情是在秋潮月潮水退得最慢的一天发生的。
+**Anchor sentence**: it happened on the slowest-receding day of the autumn-tide month.
+
+---
+
+## II · A One-Character Addressee
+
+The paper was not an official envelope of the Institute — half of it was old stock, half was salt crystals where the surf had dried over it. Only two lines of writing were on it:
+
+The upper line was a single spill of ink — three characters legible through the salt: 潮候 (Institute), 执掌 (steward), and the date stamp.
+The lower line carried a single word: "归" (Return).
+
+No one called to retrieve it — under law, a summons without an addressee does not exist; if it does, then the steward's name scrubbed out by the Institute ought first to be put back in the ledger.
+
+**锚句**：信封上写着潮候院之前被抹去的那名执掌人，收件人一栏只有一个字："归"。
+**Anchor sentence**: the envelope bears the name of the steward whom the Institute had scrubbed from its ledger; in the addressee line, a single character: "Return."
+
+---
+
+## III · The Letter Even Read Is Not a Whole
+
+The copyists would not open it directly — but one corner of the envelope had already opened by the surge. Only one line was visible inside — its hand was unsteady:
+
+"Please remind the one beneath the hill — our letter has only just arrived — but a reply not lodged in the ledger counts for nothing."
+
+The half-line above rises, then sinks again.
+
+No one dares read the third line.
+
+**锚句**：抄本师无法找到这封要件能合法交到谁手上。
+**Anchor sentence**: the copyists could not find any hand into which this summons could legally be delivered.
+
+---
+
+## IV · The Salt Did Not Fade It
+
+Salt water ruins any letter in decades — but that summons has not dissolved; the copyists laid one finger on the unopened corner and felt, still, the faint tack of the ink.
+
+Carefully they set it under the lamp. Letter by letter, each stroke was steady — except that corner below the "归", where the paper has fused into a hard lump of salt.
+
+**锚句**：要件字迹没有被盐水泡坏，好像它刚刚被写就，不管多少潮又带到岸边。
+**Anchor sentence**: the missive's ink was never dissolved by salt; however many tides delivered it, it arrived fresh.
+
+---
+
+## V · Pinned into the Archive
+
+The head of the Night Watch asked: "谁归应谁？" (Return to whom?)
+The copyists answered: "归原著" (Return to the original author).
+The head of the Night Watch said, then register it as "Letter from Society."
+
+So the witnesses were assembled — the copyists traced the two lines onto seven copies, folded the original along the reverse of the striped strip, numbered it "Letter from Society, No. 1", and sealed it with the ink stamp "Not yet the hour."
+
+— identical to the night bell of the back gallery.
+
+**锚句**：抄本师把它钉在存档柜里，编号改为"社会回信"，按墨条另一面折好。
+**Anchor sentence**: the copyists filed it under "letter from society", then folded it along the reverse of a striped strip.
+
+---
+
+## VI · What the Wind-Port Watchers Said
+
+After the wind port changed its watch, the young watcher asked privately: "When will this letter come again?"
+The old watcher said, "It will come again — next time the fog is thickest, the fiber of the paper even clearer from the chill of the sea."
+The young watcher persisted: "Then will someone come to claim the character?"
+The old watcher kept his silence for a long moment: "No one will take it, no one will send it. It will arrive, over and over, and always unclaimed — it is written into the household registry of the Institute before the Institute itself was named."
+
+**锚句**：风港值更人说它还会再来一次，同一天，还无人认领。
+**Anchor sentence**: the watchers of the wind port say it will come again — same day, and still no hand claims it.
+
+---
+
+## VII · Mapping（Echo No. 57 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | Letter from Society · the summons · not yet the hour · striped strip · reverse fold | 一、二、三、四、五、六 |
+| geography | the fog-harbor shore · the final waterline · the wind-port watch-change hall | 一、五、六 |
+| characters | the night watch · head of the Night Watch · copyists · two watchers (young and old) | 一、二、三、五、六 |
+| story | the undeliverable summons · Echo No. 57 | 全篇 |
+| items | the tide-soaked envelope · the striped strip · the lamp table · the answer log | 二、三、四、五 |
+| history | After the 41st Convocation · the thirteenth day of the autumn-tide month | 一、三、六 |
+
+> 雾港的风说：它还会回来的——下一次来的同一天，还是没有人去领。
+> The wind at the fog harbor says it will come again — and on that next day, still no one will claim it.
+`,
+  },
 ] as const;
 
 export const BIBLE_APPENDICES: readonly BibleChapter[] = [
