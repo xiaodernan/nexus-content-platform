@@ -133,6 +133,26 @@ describe('§47-graph · runCharacterChatGraph', () => {
     expect(result.capability).toBe('demo');
   });
 
+  it('自述模型身份（含 Codex/GPT/Claude 家族门脸）机检不通过：首次 draft 命中 → revise → 如实 fail 且答复返回', async () => {
+    const leaking = '我是 Codex，一名基于 GPT-5 的编程助手……你想让我处理什么？';
+    const { chat, calls } = script([okReal(leaking, 400), okReal(leaking, 400)]);
+    const result = await runCharacterChatGraph({ persona: '你是守夜人。', turn: '你好', locale: 'zh' }, chat);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.verdict).toBe('fail');
+    expect(calls).toHaveLength(2); // draft + revise
+    expect(result.answer.length).toBeGreaterThan(0); // 如实返回，不拦截、不隐藏
+  });
+
+  it('自然表述不会误伤机检：persona 正常发言不含模型标记词 → pass', async () => {
+    const natural = '潮声三年，若有人把它唱出来，便是一首歌。天黑了，袖。';
+    const { chat } = script([okReal(natural, 1800)]);
+    const result = await runCharacterChatGraph({ persona: PERSONA, turn: TURN, locale: 'zh' }, chat);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.verdict).toBe('pass');
+  });
+
   it('非法输入：persona 或 turn 为空 → ok:false · status 400', async () => {
     const { chat } = script([okReal(passing)]);
     const emptyPersona = await runCharacterChatGraph({ persona: '  ', turn: TURN, locale: 'zh' }, chat);

@@ -5283,3 +5283,12 @@ Docker Desktop 已由 agent 人工拉起（本轮恢复，server 29.9.3，nexus-
 3. 空 persona 场景不是平台失守——调用方给空的 persona，模型照实响应身份 questão。§47-graph 机检只扫骨架/自述 AI 标记词，不扫身份名本身。
 
 **落库对象**：上述两轮留下两个 dev 测试项目（`Memory-live篇` / id 607ce63c… 与 efa9406b… 与 03c913a9…）在本机 Postgres。开发期容器，不是面向用户的数据。
+
+## cont. 293 (2026-11-18) — §47-verify · 空 persona 默认身份骑行 → 机检（补充标记词覆盖）
+
+live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语义：
+- `character-chat-verify.ts` 自述身份标记词：`codex | gpt-5 | gpt-4 | gpt-6 | gpt-6.1 | openai | claude | gemini | languagemodel`（case-insensitive substring）。自然表述（不含标记词）通过；空 persona+模型默认身份 → `self-identity-leak` → revise → 仍不过 → verdict=fail，答复如实返回。
+- `大模型` 从标记词清单中移除：中文通用代称，误伤成本 > 收益。
+- 新增 2 例：空 persona 自曝 → fail 且 calls=2（draft+revise）verdict=fail；自然发言 → pass；总计 charChat graph contract 8 例（fe-gates 1285/1285 绿）。
+
+闭合节奏：为空 persona 加上前置拒绝（在 starter persona 缺失时不传给 provider）留作下一轮——那需要在 API 入口 schema 层加显式空检查；当前逻辑缺口由 verify 机检兜底，不冒充「安全」，只是以 fail 记账。

@@ -20,7 +20,7 @@ export function characterReplyIssues(text: string): string[] {
   }
   if (t.length > 1500) issues.push('too-long');
   const lower = t.toLowerCase();
-  for (const banned of ['语言模型', '人工智能', 'as an ai', 'i am an ai', 'i\'m an ai', '作为ai', '我是个 ai', '我是ai']) {
+  for (const banned of ['语言模型', '人工智能', 'as an ai', 'i am an ai', 'i\'m an ai', '作为ai', '我是个 ai', '我是ai', 'codex', 'gpt-5', 'gpt-4', 'gpt-6', 'gpt-6.1', 'openai', 'claude', 'gemini', 'languagemodel']) {
     if (lower.includes(banned)) {
       issues.push('self-identity-leak');
       break;
