@@ -5433,3 +5433,9 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 第 63 篇回响「长明灯」：祠殿东偏院入口上方悬着一盏油灯——两头没有门，风从走廊穿过；它被抄本师叫「廿一更」，据记燃了至少一百二十年没人添过油；第四十一次大会散会已经过去三个月，灯仍然烧。
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-063-the-ever-burning-lamp-in-the-eastern-wing`；verify world-bible **362/362** ✓。
 - 同步：BibleAsk lede → 63（含 en）；/bible/ask meta → 六十三篇 / sixty-three；cache-identity → 63 篇锚句；bible-ask-behavior 锚句总数 356→362；canon-answer-graph 测试 68 段 / 63 echoes；pins 重钉（page→39285166… comp→250ae1b1…）；fe-gates **1285/1285 绿**。
+
+## cont. 306 (2026-11-18) — v927 · §BIBLE-64 · Echo #64《潮候院祠内那根影子自分为两半的石柱》（作者手写·双语·368/368 绿）
+
+- 第 64 篇回响「影子之石柱」：祠殿内正柱——影子永远偏左+偏右 · 抄本师一进就忘记他先前问什么 · 4 百年前「石柱鸣」 · 偷偷刻上「·」（句号）。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-064-the-split-shadowed-pillar`；verify world-bible **368/368** ✓。
+- 同步：BibleAsk lede → 64（含 en）；/bible/ask meta → 六十四篇 / sixty-four；cache-identity → 64 篇锚句；bible-ask-behavior 锚句总数 362→368；canon-answer-graph 测试 69 段 / 64 echoes；pins 重钉（page→fb16d910… comp→dffa9235…）；fe-gates **1285/1285 绿**。
