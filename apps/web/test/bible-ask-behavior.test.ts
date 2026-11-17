@@ -17,8 +17,8 @@ describe('§BIBLE-4 问典 digest 契约', () => {
       zh += extractAnchorTexts(chapter.markdownZh, 'zh').length;
       en += extractAnchorTexts(chapter.markdownEn, 'en').length;
     }
-    expect(zh).toBe(236);
-    expect(en).toBe(236);
+    expect(zh).toBe(242);
+    expect(en).toBe(242);
   });
 
   it('SYSTEM_PROMPT 长度 < 预算（≈30k chars）', () => {

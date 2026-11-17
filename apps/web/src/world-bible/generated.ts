@@ -9479,4 +9479,202 @@ No one can say what this horse is waiting for — but everyone in the fog harbor
 > On the next day the good tide comes, the staging post door opens toward the fog harbor for a while — and the horse will turn its head in that direction.
 `,
   },
+  {
+    order: 43,
+    slug: 'echo-043-the-ink-bowl-in-the-chapel-cellar-that-never-dries',
+    titleZh: '祠殿地下室那只从不干的墨碗',
+    titleEn: 'The Ink Bowl in the Chapel Cellar That Never Dries',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——子时，雾潮月第四日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hour of rat, the fourth day of the fog-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 43): The Ink Bowl in the Chapel Cellar That Never Dries
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿地下室末端石桌上那只从不干的墨碗。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the ink bowl at the far end of the chapel cellar — the one that never dries.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——子时，雾潮月第四日。
+> Era: the Institute — after the 41st Convocation; the hour of rat, the fourth day of the fog-tide month.
+
+---
+
+## 一 · 祠殿的地下室
+
+祠殿的地下室通向井底的出水口之外——那里没人住，没人进去做事。
+
+深处有一张石桌，桌角描字，写着「第四十一次大会散会那夜留」。桌子没有人搬过，桌子也没法搬。
+
+**锚句**：祠殿地下室末端有张石桌，桌上放着一只墨碗。
+**Anchor sentence**: at the end of the chapel cellar there is a stone table, and on it an ink bowl.
+
+---
+
+## 二 · 墨碗的来历
+
+石桌的角上另刻着一行小字，日期没有。意思是：会散之后，有人把这碗墨放下，然后再也没回来。
+
+没有人记得那是哪一位。账本上没有人写过那一段——抄本员们都记得，却没人记得自己记住了什么。
+
+**锚句**：桌角说墨碗是第四十一次大会散会那夜留的。
+**Anchor sentence**: the inscription says the ink bowl was left on the night of the 41st Convocation.
+
+---
+
+## 三 · 没人敢动
+
+新值更来擦清石桌，动作轻得几乎不敢呼吸。没有人把墨碗盖上、拿走或者洗干净。
+
+新值更要用到旁边的石凳，也会先看一眼墨碗——有没有人看。没有人看。
+
+**锚句**：新值更来擦清石桌，从来不敢动那只墨碗。
+**Anchor sentence**: the new watcher who comes to clean the stone table never dares touch the ink bowl.
+
+---
+
+## 四 · 它总是湿着
+
+每天早上它还是湿着的——好像夜里有人蘸过它，却没有人留下任何字。
+
+墨也不会见底。舀过一勺或者几勺，第二天它看上去又是满的。
+
+**锚句**：每天早上它还是湿着的——好像夜里有人蘸过它。
+**Anchor sentence**: every morning it is wet — as if someone had dipped into it in the night.
+
+---
+
+## 五 · 没人写字
+
+地下室里没有一张被墨迹染得发亮的纸。没人进去写过字，也从来没找到过任何一页落墨的残角。
+
+值更帽沿偶尔会带出一点点墨渍——他确定自己不在地下室坐过。
+
+**锚句**：值更的盖头上偶尔能看见湿墨痕迹。
+**Anchor sentence**: on the watcher's cap one sometimes finds a trace of wet ink.
+
+---
+
+## 六 · 留书的墨碗
+
+值更们管它叫「留书的墨碗」。不是因为它有用，是因为它在那里，在等一句话。
+
+没有人知道它在等哪一句——也也许等一辈子。也许隔几年海会变成字，也许永远不会变。
+
+**锚句**：值更们管它叫「留书的墨碗」。
+**Anchor sentence**: the watchers call it the ink bowl left for writing.
+
+---
+
+## 七 · 映射（回响四十三章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 留书的墨碗 · 等一句话 · 第四十一次大会 | 一、二、三、四、五、六、七 |
+| geography | 祠殿 · 地下室 · 子时 | 一、二、四、六、七 |
+| characters | 新值更 · 抄本员 · 没人知道的那一位 | 一、二、三、四、五、六 |
+| story | 留书的墨碗 · 回响（其四十三） | 全篇 |
+| items | 墨碗 · 石桌 · 值更帽 · 账本 | 一、二、三、四、五、六、七 |
+| history | 第四十一次大会散会之后 · 雾潮月第四日 | 一、二、四、六、七 |
+
+> 子时到了，雾潮月第四日的夜里，桌上墨碗会湿一会儿——抄本员若愿意来看，会看见那一点微光，像有句话还没写出口。
+> When the hour of rat comes, on the fourth night of the fog-tide month, the bowl will be damp for a little while — if the copyist cared to look, he would see a faint glimmer, as though a sentence has not yet been written.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其四十三）「祠殿地下室那只从不干的墨碗」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the ink bowl at the far end of the chapel cellar — the one that never dries.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿地下室末端石桌上那只从不干的墨碗。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the hour of rat, the fourth day of the fog-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后——子时，雾潮月第四日。
+
+---
+
+## 一 · The Cellar of the Chapel
+
+The chapel cellar reaches past the well's outflow — no one lives there, no one enters to work.
+
+Deep inside stands a stone table; along its edge is an inscription: "Left on the night the 41st Convocation dispersed." No one has moved it, and no one can.
+
+**锚句**：祠殿地下室末端有张石桌，桌上放着一只墨碗。
+**Anchor sentence**: at the end of the chapel cellar there is a stone table, and on it an ink bowl.
+
+---
+
+## 二 · Where the Ink Bowl Came From
+
+The table's edge carries another line, with no date. It says: after the convocation dispersed, someone set this ink bowl down, and did not come back.
+
+No one remembers which of them. The ledgers do not have that line either — the copyists all remember it, yet none can recall what they remembered.
+
+**锚句**：桌角说墨碗是第四十一次大会散会那夜留的。
+**Anchor sentence**: the inscription says the ink bowl was left on the night of the 41st Convocation.
+
+---
+
+## 三 · No One Dares Touch It
+
+The new watcher who comes to clean the stone table moves as if barely breathing. No one covers the ink bowl, takes it away, or washes it.
+
+When the new watcher has to borrow the stone stool nearby, he glances at the ink bowl first — whether anyone is watching. No one is.
+
+**锚句**：新值更来擦清石桌，从来不敢动那只墨碗。
+**Anchor sentence**: the new watcher who comes to clean the stone table never dares touch the ink bowl.
+
+---
+
+## 四 · It Is Always Wet
+
+Every morning it is wet — as if someone had dipped into it in the night, and had left nothing behind.
+
+The ink never runs out either. Someone takes a spoonful or two; the next day the bowl looks full again.
+
+**锚句**：每天早上它还是湿着的——好像夜里有人蘸过它。
+**Anchor sentence**: every morning it is wet — as if someone had dipped into it in the night.
+
+---
+
+## 五 · No One Writes
+
+No page in the cellar carries the shine of ink. No one has ever come in and written; no sheet with a trace of an end of stroke has ever been found.
+
+From time to time the watcher's cap carries a faint trace of ink — he is sure he has never sat in that room.
+
+**锚句**：值更的盖头上偶尔能看见湿墨痕迹。
+**Anchor sentence**: on the watcher's cap one sometimes finds a trace of wet ink.
+
+---
+
+## 六 · The Ink Bowl Left for Writing
+
+The watchers call it "the ink bowl left for writing." Not because it is useful, but because it is there, waiting for a sentence.
+
+No one knows which sentence it waits for — and perhaps it waits a lifetime. Perhaps someday the sea becomes a sentence; perhaps it never does.
+
+**锚句**：值更们管它叫「留书的墨碗」。
+**Anchor sentence**: the watchers call it the ink bowl left for writing.
+
+---
+
+## 七 · Mapping（Echo No. 43 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the ink bowl left for writing · waiting for one sentence · the 41st Convocation | 一、二、三、四、五、六、七 |
+| geography | the chapel · the cellar · the hour of rat | 一、二、四、六、七 |
+| characters | the new watcher · the copyist · the unknown one who left it | 一、二、三、四、五、六 |
+| story | the ink bowl left for writing · Echo No. 43 | 全篇 |
+| items | the ink bowl · the stone table · the watcher's cap · the ledgers | 一、二、三、四、五、六、七 |
+| history | After the 41st Convocation · the fourth day of the fog-tide month | 一、二、四、六、七 |
+
+> 子时到了，雾潮月第四日的夜里，桌上墨碗会湿一会儿——抄本员若愿意来看，会看见那一点微光，像有句话还没写出口。
+> When the hour of rat comes, on the fourth night of the fog-tide month, the bowl will be damp for a little while — if the copyist cared to look, he would see a faint glimmer, as though a sentence has not yet been written.
+`,
+  },
 ] as const;

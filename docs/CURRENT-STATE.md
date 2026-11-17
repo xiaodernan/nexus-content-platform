@@ -4948,3 +4948,11 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 同步落地：BibleAsk lede → 42；/bible/ask meta → 四十二篇；canon-answer-graph 测试 47 段／42 echoes；bible-ask-behavior 锚句总数 230→236；CACHE-IDENTITY 更新。
 - 顺手修一处体系漏网：整站 PUT/PATCH/DELETE 再扫一遍，纯浏览器层 POST csrfOk→csrfHeaders 全绿；服务端 call 的 MISS 均为设计如此（server→ai-service 不需要 CSRF）。
 - 回归：bible 组 32/32 绿；RAM 0.73 GB 未跑 dev 栈，只动文案与快照。
+
+## cont. 264 (2026-11-17) — v893 · §BIBLE-43 · Echo #43《祠殿地下室那只从不干的墨碗》（作者手写·双语·242/242 绿）
+
+- 第 43 篇回响「留书的墨碗」：潮候院祠殿地下室末端石桌上那只从不干的墨碗——值更们不敢盖、没人敢动；它湿着，像有人夜里蘸过，但没有任何人写下一句。
+- 承接 E34（祠殿地下室/旧海图），以"大会散会后留下的物品"母题串起一条地底暗线：墨碗等的不是字，是「一句话」。
+- 作者手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-043-the-ink-bowl-in-the-chapel-cellar-that-never-dries`；verify:bible-snapshot ✓；verify:world-bible **242/242** ✓。
+- 同步落地：BibleAsk lede → 43；/bible/ask meta → 四十三篇；canon-answer-graph 测试 48 段／43 echoes；bible-ask-behavior 锚句总数 236→242；CACHE-IDENTITY 更新。
+- 回归：bible 组 50/50 绿。
