@@ -10466,4 +10466,172 @@ After the binding closed, not one person opened the book.
 > and nothing came after.
 `,
   },
+  {
+    order: 25,
+    slug: 'echo-025-the-grey-hearth',
+    titleZh: '灰炉',
+    titleEn: 'The Grey Hearth',
+    eraLineZh: '纪元：灰封之后 · 灰炉之夜',
+    eraLineEn: 'Era: after the grey binding · the night of the grey hearth.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 25): The Grey Hearth
+
+> 回响不续写正典——它只记一份挑剩下的纪录：
+> 灰封合上之后，全馆里仍有一盏灯亮着——没人开的，也没人关的。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> After the grey binding closed, somewhere in the hall, a lamp never went out.
+> Its anchors answer to the same discipline.
+
+> 纪元：灰封之后 · 灰炉之夜
+> Era: after the grey binding · the night of the grey hearth.
+
+---
+
+## 一 · 灰炉第一夜
+
+灰封合上以后，馆里少了一只声音——灰封合上那声没有了。册子封起来，脊缝四字被压在灰幕之下。以后没有人问起（也没有人再开本子），账上仍然只是最后那一行——那一行仍是灰封前扫出来的、最后一行字。
+
+可是灰封合上之后的第三个夜里，守灯人发现东边炉架子上，那只本来只用来烧旧灯结绳头、当废纸烧掉的灰炉，没灭。他走过去摸了摸灰——灰是热的。炉壁里还压着一颗小小的金属珠子，是灰炉被逼着烧掉别人丢掉的旧灯，把金属压在灰里，压了一年。
+
+灰封过后，炉子居然是热的。
+**锚句**：灰封过后，炉子居然是热的。
+**Anchor sentence**: After the grey binding, the hearth was still warm.
+
+## 二 · 东边炉
+
+守灯人没有打算扔掉它的灯。炉底压着一块薄铁皮，被灰烧得弯弯曲曲，炉缝里穿着一条半截、半旧半新的线。线久了，人久了，没人想要了。灰是死的，铜是活的。炉里的灰跳过好多次——每当有人走过炉前，灰就跳一次。也许是风，也许是别人没关开炉风道。
+
+其实不是风，不是风吹炉，是别人没有吹；是灰里有东西在动，它还留着。
+守灯人没有弄明白那条线是从谁手里放出来的。但他没有碰它。他走过去又走回去，像一条巡逻路，以前一直走——他走完那条路，炉灰也就跳完了一次。
+
+别人没有碰它，他也没有碰它。
+**锚句**：别人没有碰它，他也没有碰它。
+**Anchor sentence**: If he never touched it, no one expected him to.
+
+## 三 · 纸烬
+
+灰炉进去之后，灰炉里的纸去哪儿了？灰炉的纸是七张——确认过一次：第一张灰纸，第二张灰纸，第三张是旧索引卡，第四张是补封的封页衬纸，第五张是信纸残角，第六张是空信封，第七张没有撕开的牛皮纸。没有人写过字的灰纸。没有人写过的字，可它比写过的字更紧——更黑，更硬，更平。
+
+守灯人一个一个拿起来翻。他发现补封衬页被烧掉以后，胶痕还在灰里清清楚楚，像早准备好人要烧它。补封衬纸是灰幕里唯一跟灰连得上的一张纸。守灯人没有动它，他把它盖回炉里，又盖上。
+
+灰纸没有出份，可灰总算被人翻过。
+**锚句**：灰纸没有出份，可灰总算被人翻过。
+**Anchor sentence**: The ash gave no report to anyone, but someone had turned it.
+
+## 四 · 守灰人
+
+守灯人那天夜里走出旧案台，又在凌晨回来——按规律，按第二天上午才会系灯的，却在那边脱下灯罩，单支灯芯放在炉前细沙上——一只活的灯，放在炉前。他没有说话。他没有记录，没有报告，没有任何人会知道。炉子比以前暖了一点。灰炉里的线还没被人动过，纸也没被人动过，灰也没被人翻过。
+
+他不为任何人守。他不为任何人照——灰炉不是他点的，也不是他灭的——它是炉子自己热的。他只是回来，看它热。他回来，但是灰炉不需要他守，它不需要任何人守。灰炉自己点，灰炉自己热。守灰人不守，灰炉也不。
+
+守灰人不守，灰炉也不。
+**锚句**：守灰人不守，灰炉也不。
+**Anchor sentence**: The keeper did not keep; neither did the hearth.
+
+## 五 · 灰炉的第二夜
+
+后来，灰炉盖上了。灰炉没人再借口烧现成灰，因为灰炉的炉壁烧秃了——烧得只剩炉壁外一层金的薄铜，和里里外外一层旧铁。后来第二夜，风起来了，风从哪儿来的没人说，风从走廊端过来了。风把灯灰吹散了几行，吹得炉灰跳了几次，没人看到那张补封衬页在炉缝里是干是湿，灰也没有飘。
+
+灰炉里的东西没人再问起。守灰人也不再来了。东边炉里连一口气也没了。再也没人见过灰炉照明，灰炉没等退潮。风也停了，灯也灭了，旧案台也空着，灰也没了，连守灰人也没了。
+
+灰炉再也没有亮过。
+**锚句**：灰炉再也没有亮过。
+**Anchor sentence**: The hearth never shone again.
+
+---
+
+## 模型映射（回响二十五则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 灰封之后 · 灰炉之夜 · 第四十三次会前夜 | 第十一章 · 第十三章 |
+| geography | 旧案台 · 东边炉 · 灰炉缝 · 走廊 | 本则 |
+| factions | 誊账人 · 守灯人 · 潮汐教团（余烬） | 第一章 · 本则 |
+| characters | 账簿的守护者 · 守灯人 · 守灰人 | 本则 · 第二十二则 · 第二十四则 |
+| items | 灰炉 · 薄铁皮 · 灰线 · 灯芯 · 补封衬页 | 本则 |
+| story | 灰炉没有熄的夜 · 回响（其二十五） | 全篇 |
+| history | 纪元切割 · 灰封之后 · 灰炉之夜 | 本则 |
+
+> 炉子不凉，
+> 灰还没承认。
+> The furnace was never cold;
+> the ash hadn't admitted it.
+`,
+    markdownEn: `
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> After the grey binding closed, somewhere in the hall, a lamp never went out.
+> Its anchors answer to the same discipline.
+
+> Era: after the grey binding · the night of the grey hearth.
+
+---
+
+## 1 · The first night of the grey hearth
+
+After the grey binding closed, the hall had one voice missing — the one sound that had never come back.
+
+The book was sealed, the four characters on the spine pressed beneath the grey cover. No one asked again. The ledger held a single last line — the one scanned out on the day the cover fell.
+
+But on the third night after the cover closed, the lampkeeper discovered the east hearth, the one where the signposts and ashes used to be thrown, was not dead. He walked over and touched the ash: it was warm. The hearth wall pressed a small metal bead — it had been pressed out by the ash from burning old lamp fragments; it had sat there for the better part of a year.
+
+After the grey binding was laid, the hearth was still warm.
+**Anchor sentence**: After the grey binding, the hearth was still warm.
+
+## 2 · The east firepit
+
+The lampkeeper had not planned to keep the lamp at the east hearth. At its base, where the ash packed against the stovepipe, sat a thin iron plate — bent in two places, the shape burned over from the heat, a seam of half-finished rope threaded through one. The rope was old and the rope was new. No one wanted it. The ash was dead, the metal was alive. The ash pulsed several times — the hearth knew every step past it: it lit for each passer.
+
+It was not the wind. It was not the wind stirring the ashes, it was something stirring inside the ashes — it was still there. The lampkeeper never understood where that string came from. He did not touch it. He walked over to it and walked back, a patrol route, always the same — after his walk the ash leapt only once.
+
+If he never touched it, no one expected him to.
+**Anchor sentence**: If he never touched it, no one expected him to.
+
+## 3 · Ash and paper
+
+After the ash went into the hearth, where did the ashes go?
+
+There were seven sheets in the hearth: the first, grey paper; the second, grey paper; the third, an old index card; the fourth, the inner foil of a rebound spine; the fifth, the corner of an old letter; the sixth, an empty envelope; the seventh, kraft paper never once opened. No paper had writing on it. The absence of writing was not the absence of meaning — the files were tighter, blacker, harder, flatter.
+
+The lampkeeper picked each one up one by one. He discovered that the glue lines from the rebound pages stayed legible inside the ash — as if someone had prepared the paper to be burned. The rebound foil was the only page that could still connect with the ash. The lampkeeper did not move it. He closed it back inside the hearth and put the lid back on.
+
+The ash gave no report to anyone, but someone had turned it.
+**Anchor sentence**: The ash gave no report to anyone, but someone had turned it.
+
+## 4 · The keeper of the ash
+
+That night the lampkeeper walked out of the old copying hall, came back before dawn — which was not the hour for the lamp to be lit. He took off the lampshade and set a single lampwick in the fine sand in front of the hearth — a living lamp, fronting the hearth. He said nothing. He did not record it, he did not report it, no one would know. The hearth got warmer. Nothing touched the string. Nothing touched the paper. Nothing touched the ash.
+
+He kept no one's watch. He kept no one's light — the hearth did not light itself, it lit nothing; it warmed itself. He only came back to watch it warm. He came back, but the hearth did not need him. It needed no keeper. The hearth lit itself; the hearth warmed itself. The keeper did not keep; neither did the hearth.
+
+The keeper did not keep; neither did the hearth.
+**Anchor sentence**: The keeper did not keep; neither did the hearth.
+
+## 5 · The second night of the grey hearth
+
+Later, the hearth was sealed. No one had found fault with the hearth again, because its walls had burned down — to a thin brass-layered old rust on the outside, dark iron on the inside. Later, the second night, the wind rose; from where it came, no one said; it came from the end of the corridor. It scattered the ashes across several rows, the ash jumped several times. No one saw whether the rebound foil inside the ash was dry or damp; the ashes did not rise.
+
+No one asks about the hearth. The keeper never comes again. The east hearth no longer has a breath. Nothing has lit anything in it again. No one has seen the hearth shine. The hearth did not wait for the tide to turn. The wind has stopped, the lamp is out, the old copying hall is empty, the ashes are gone, the keeper of the ash is gone.
+
+The hearth never shone again.
+**Anchor sentence**: The hearth never shone again.
+
+---
+
+## Echo No. 25 — dimension mapping
+
+| Dim | Anchor | Linked |
+|---|---|---|
+| lore | after the grey binding · the night of the grey hearth · before the forty-third Convocation | Ch. 11 · Ch. 13 |
+| geography | the old copying desk · the east hearth · the hearth seam · the corridor | this echo |
+| factions | the copyist · the lampkeeper · the Tide Conclave (embers) | Ch. 1 · this echo |
+| characters | the keeper of the ledger · the lampkeeper · the keeper of the ash | this echo · Echo 22 · Echo 24 |
+| items | the hearth · thin iron · the ash string · the lampwick · the rebound foil | this echo |
+| story | the night the hearth never died · Echo No. 25 | whole piece |
+| history | the era split · after the grey binding · the night of the grey hearth | this echo |
+
+> The furnace was never cold;
+> the ash hadn't admitted it.
+`,
+  },
 ] as const;

@@ -386,6 +386,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《灰封》里，那半粒盐最后落在了哪里？', choices: ['留在新封皮里', '被守灯人取出放进铁盒', '被井吞了', '随着灯火消散'], answer: 0, ref: '回响（其二十四） · 四' },
     en: { prompt: 'In “The Grey Binding”, where did the half-grain of salt end up?', choices: ['stayed inside the binding', 'the lampkeeper tucked it into an iron box', 'the well swallowed it', 'it burned away with the lamp'], answer: 0, ref: 'Echo No. 24 · IV' },
   },
+  {
+    zh: { prompt: '《灰炉》里，灰封过后你看见的仍然是什么？', choices: ['炉子居然是热的', '灯熄了', '封皮裂了', '井干了'], answer: 0, ref: '回响（其二十五） · 一' },
+    en: { prompt: 'In “The Grey Hearth”, after the grey binding laid, what did you find?', choices: ['the hearth was still warm', 'the lamp had gone out', 'the cover had split', 'the well had dried'], answer: 0, ref: 'Echo No. 25 · I' },
+  },
+  {
+    zh: { prompt: '《灰炉》里，守灰人做了什么？', choices: ['不守，灰炉也不', '加了柴', '关了灯', '报了警'], answer: 0, ref: '回响（其二十五） · 四' },
+    en: { prompt: 'In “The Grey Hearth”, what did the keeper do?', choices: ['he did not keep; neither did the hearth', 'he fed it wood', 'he put out the lamp', 'he raised the alarm'], answer: 0, ref: 'Echo No. 25 · IV' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

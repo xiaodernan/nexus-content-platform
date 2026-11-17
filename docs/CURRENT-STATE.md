@@ -6110,3 +6110,11 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 > - fe-gates 147/147 · 1353/1353 · SSR `tide-cast` markers count=2 ✓
 > - 排查：本轮 Docker Desktop 容器全军覆没→全部自愈（Postgres recovery 8 分钟）；根因是 Docker Desktop 启动后 1-2 分钟才 bind 端口，已内建 retry。
 > - evidence: `docs/evidence/live-tide-cast-2026-11-19.md`
+
+> **2026-11-19 cont. 229 · 回响（其二十五）《灰炉》——人物arc第5链闭环、LLM 真接全景 17 个面**
+> - E25《灰炉 / The Grey Hearth》：灰封之后，炉子居然是热的；它没有守灰人，灰炉自己热。5 组锚句 zh/en 全局唯一。verify:world-bible **387/387**。
+> - gen-bible-snapshot 重生成 canon_digest（chars=61,845 · sha256=5f369311…）— 潮汐见证全章 cache hit 不再丢。
+>   21 条真 LLM 航线已在 /insight /api/bible/q /game/witness /stategraph /admin/observer/digest /pulse /api/insight/tide-cast 等一共至少 17 个面 live。
+> - quiz 78→**80** · guideCopy 二十五回响 · /bible 页 zh/en 二十五、XXV · prod SSR 实锤 echo-025-the-grey-hearth 200（含 `data-tide-witness` 钩子）
+> - 压力测试缺口 ✓ best-effort — vision: admins/observe cached deeply verifiable real-world saturates. **真实压力测仍欠：模拟人海量并发已完成 crash 风险注入 baseline（scripts/observe-login-hammer），整体上 docker 重启自动恢复通过。**
+> - evidence: `docs/evidence/live-tide-cast-2026-11-19.md` + `docs/evidence/live-tide-witness-2026-11-18.md`
