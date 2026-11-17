@@ -11,7 +11,6 @@ import {
   publicationVisits,
   publishedProjects,
   users,
-  usage,
   workCompletions,
 } from '../db/schema';
 import type { InsightMetrics } from '@/lib/insight-rules';
@@ -119,7 +118,6 @@ export async function collectInsightSnapshot(now = new Date()): Promise<InsightS
     comments30Row,
     creditRow,
     aiRow,
-    usageRow,
     signupsByDay,
     publishesByDay,
     opensByDay,
@@ -151,7 +149,6 @@ export async function collectInsightSnapshot(now = new Date()): Promise<InsightS
       costEstimateUsd: sql<number>`coalesce(sum((${agentTasks.usage}->>'costEstimate')::double precision), 0)`,
       avgLatencyMs: sql<number | null>`avg((${agentTasks.usage}->>'latencyMs')::double precision)`,
     }).from(agentTasks).where(gte(agentTasks.createdAt, dayStart)),
-    db.select({ n: sql<number>`count(*)::int` }).from(usage).where(gte(usage.createdAt, dayStart)),
     db.select({ d: sql<string>`to_char(date_trunc('day', ${users.createdAt}), 'YYYY-MM-DD')`, n: sql<number>`count(*)::int` })
       .from(users).where(gte(users.createdAt, dayStart)).groupBy(sql`date_trunc('day', ${users.createdAt})`),
     db.select({ d: sql<string>`to_char(date_trunc('day', ${publishedProjects.publishedAt}), 'YYYY-MM-DD')`, n: sql<number>`count(*)::int` })
@@ -221,7 +218,7 @@ export async function collectInsightSnapshot(now = new Date()): Promise<InsightS
       viewsAllTime: toInt(viewsRow[0]!.n),
       gameCompletions: toInt(gameRow[0]!.n),
       workCompletions: toInt(workRow[0]!.n),
-      usageCalls30d: toInt(usageRow[0]!.n),
+      usageCalls30d: realCalls30d + demoCalls30d,
     },
     series30d: { days: dayKeys, signups, publishes, opens },
     credits30d: { granted: creditsGranted30d, consumed: creditsConsumed30d },

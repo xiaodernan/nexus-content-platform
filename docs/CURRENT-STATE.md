@@ -4932,3 +4932,11 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 值位同步扩展：verdict 档位（0/5/9/12/13/15）按 17 题重排；`empty` 两句全部改成"十七题"；JSDoc 的 "12 题" 口径说明纠正为 17 题。
 - 测试 SHA 钉死（page.tsx 不动：612a074a…；component 重新钉为 b67da4ed…），断言 17 prompts / 答案序列镜像一致；guideCopy ⑥ 问典说法与 /bible lede 统一定位。
 - 回归：badge ×21 绿（quiz/search/ask-behavior）。
+
+## cont. 262 (2026-11-17) — v891 · §INSIGHT · "AI 调用 (30 天)" 0 → 真数（数据诚实性修复）
+
+- 症状：`/insight` ① 总览显示「AI 调用（30 天）: **0**」，而 §④ LLM 成本与缓存（30 天）显示「真实调用 41 · DEMO 调用 221 · 416,365 tokens」——同一页两块自相矛盾，对应用户「这些数字堆出来的假数据嫌疑」的质疑。
+- 根因：两数字来自不同表 —— §④ 用 `agent_tasks.usage`（41 real + 221 demo），总览 tile 用的是孤表 `usage`（§原设计为 embeddings/外部工具调用的影子账本，全 repo 零写入方）。
+- 修复：总览 tile 与 §④ 同源，改为 `realCalls30d + demoCalls30d`（`agent_tasks.usage` 的 count filter 两档）；删除无用的 `usage` 表引用 ensure 不再读这个空账本。digest（喂模型的）里的 `aiCalls30d=` 同步获得真数——大模型解读那条链也能看见合理的非零数字。
+- 数据完整性原则不变：不虚构、不猜 0、零写入表不现。本变更只做"同源聚合"，不制造任何数字。
+- 回归：insight ×6 文件 41/41 绿。RAM 0.73 GB 未动任何 server，只动读路径。
