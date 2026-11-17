@@ -7,17 +7,20 @@ import { eq, and, desc } from 'drizzle-orm';
 import { readJson, badRequest, jsonError, notFound } from '@/server/http';
 import { z } from 'zod';
 import { getAiCapabilities } from '@/lib/env';
-import { chatWithCharacter } from '@/server/ai/client';
+import { runCharacterChatGraph } from '@/server/ai/characterChatGraph';
 import { getEmbeddingProvider, hasEmbeddingProvider } from '@/server/ai/embedding';
 import { VectorStore } from '@/server/ai/vector-store';
-import { buildContext, buildPersonaPrompt } from '@/server/domain/character-chat';
+import { buildChatTurn, buildPersonaPrompt } from '@/server/domain/character-chat';
+import { UNVERIFIED_CHARACTER_NOTE } from '@/server/domain/character-chat-verify';
 import { isUuid } from '@/server/domain/ids';
 import { csrfOk } from '@/server/security/csrf';
 import { clientIp, getRateLimiter, rateKey } from '@/server/security/rateLimit';
+import { increment, observe } from '@/server/observability';
 
 const ChatRequestSchema = z.object({
   message: z.string().min(1).max(4000),
   sessionId: z.string().optional(),
+  locale: z.enum(['zh', 'en']).optional(),
 });
 
 /**
@@ -37,6 +40,7 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ projectId: string; characterId: string }> },
 ): Promise<Response> {
+  const startedAt = Date.now();
   if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   try {
     const user = await requireUser();
@@ -57,7 +61,7 @@ export async function POST(
       return badRequest(result.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
     }
 
-    const { message, sessionId } = result.data;
+    const { message, sessionId, locale = 'zh' } = result.data;
 
     // 形状不对的 id 按"没有这个角色"处理：下面那次 eq(characters.id, …) 会撞 22P02，
     // 被这层的 catch 兜成 500「对话失败」——那句话会把请求写错说成服务端的错（domain/ids.ts）。
@@ -116,28 +120,36 @@ export async function POST(
       knowledgeContext = searchResults.map((r) => r.chunk.content).join('\n\n');
     }
 
-    // 构建完整上下文并调用模型
-    const context = buildContext(persona, characterMemories, knowledgeContext);
-    const chat = await chatWithCharacter({
-      requestId: `chat_${Date.now().toString(36)}`,
-      system: context,
-      user: message,
-      modelClass: 'balanced',
-    });
-    if (!chat.ok) {
-      return jsonError(chat.status ?? 503, chat.error.code, { message: chat.error.message });
+    // §47-graph：persona 作为 system（字节级稳定 · KV 前缀可复用），记忆/语料/这一句全部进 user 侧。
+    const turn = buildChatTurn(characterMemories, knowledgeContext, message, locale);
+
+    const chatResult = await runCharacterChatGraph({ persona, turn, locale });
+    const durationMs = Date.now() - startedAt;
+
+    if (!chatResult.ok) {
+      increment('nexus_character_chat_total', { outcome: 'provider-unavailable' });
+      return jsonError(chatResult.status ?? 503, 'provider-unavailable', { message: chatResult.error });
     }
+    const verified = chatResult.verdict === 'pass';
+    const outcome = verified ? 'answer' : 'answer-unverified';
+    increment('nexus_character_chat_total', { outcome });
+    observe('nexus_character_chat_latency_ms', durationMs, { outcome });
+    const replyText = chatResult.answer;
 
     // 只有真实回复才落记忆：用户原话 + 模型原话，一行只记一次对话
-    await saveChatMemory(projectId, characterId, user.id, character.name, message, chat.response.text);
+    await saveChatMemory(projectId, characterId, user.id, character.name, message, replyText);
 
     return NextResponse.json({
-      reply: chat.response.text,
+      reply: replyText,
       character: {
         id: character.id,
         name: character.name,
       },
       sessionId: sessionId ?? `chat_${Date.now()}`,
+      verified,
+      verifyNote: verified ? null : UNVERIFIED_CHARACTER_NOTE[locale],
+      iterations: chatResult.iterations,
+      nodesVisited: chatResult.nodesVisited,
     });
   } catch (_error) {
     return jsonError(500, 'internal', { message: '对话失败' });

@@ -25,6 +25,7 @@ const COPY = {
     inputAria: '给角色的话',
     busyThinking: '在想…',
     send: '说',
+    verifyFail: '机检提醒：这段回复漏了系统边界或自述身份——戏份为主，别全信。',
   },
   en: {
     heading: 'Talk to the character',
@@ -36,6 +37,7 @@ const COPY = {
     inputAria: 'Message for the character',
     busyThinking: 'Thinking…',
     send: 'Say',
+    verifyFail: 'Machine check: this reply slipped its boundaries or own identity — improvisation, not scripture.',
   },
 } as const;
 
@@ -51,7 +53,7 @@ export function CharacterChat({
   locale?: Locale;
 }) {
   const c = COPY[locale];
-  const [log, setLog] = useState<{ role: 'user' | 'character'; text: string }[]>([]);
+  const [log, setLog] = useState<{ role: 'user' | 'character'; text: string; verified?: boolean | null }[]>([]);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,11 +70,13 @@ export function CharacterChat({
       const res = await fetch(`/api/projects/${projectId}/characters/${characterId}/chat`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', ...csrfHeaders() },
-        body: JSON.stringify({ message: text, sessionId: sessionRef.current }),
+        body: JSON.stringify({ message: text, sessionId: sessionRef.current, locale }),
       });
-      const body = (await res.json().catch(() => null)) as { reply?: string; message?: string } | null;
+      const body = (await res.json().catch(() => null)) as
+        | { reply?: string; message?: string; verified?: boolean }
+        | null;
       if (!res.ok || !body?.reply) throw new Error(body?.message ?? `HTTP ${res.status}`);
-      setLog((prev) => [...prev, { role: 'character', text: body.reply! }]);
+      setLog((prev) => [...prev, { role: 'character', text: body.reply!, verified: body.verified ?? null }]);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -98,6 +102,9 @@ export function CharacterChat({
                 {(entry.role === 'user' ? c.speakerYou : characterName || c.speakerCharacter) + c.colon}
               </span>
               {entry.text}
+              {entry.role === 'character' && entry.verified === false ? (
+                <span className="ch-verify" data-character-chat-verify="fail">{c.verifyFail}</span>
+              ) : null}
             </li>
           ))}
         </ul>

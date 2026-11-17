@@ -147,23 +147,34 @@ export const METRICS = {
   nexus_insight_analyze_total: {
     kind: 'counter',
     help: '/api/insight/analyze 走到终态的次数（含 provider 不可用也要记，不许静默失败）',
-    labels: { outcome: ['answer', 'provider-unavailable'] },
+    labels: { outcome: ['answer', 'answer-unverified', 'provider-unavailable'] },
   },
   nexus_insight_analyze_latency_ms: {
     kind: 'histogram',
     help: '/api/insight/analyze 从进路由到回流的毫秒数（含 provider 往返；快、慢都看）',
-    labels: { outcome: ['answer'] },
+    labels: { outcome: ['answer', 'answer-unverified'] },
     buckets: DURATION_BUCKETS,
   },
   nexus_analytics_narrate_total: {
     kind: 'counter',
     help: '/api/analytics/agent-narrate 走到终态的次数（含 provider 不可用——绝不静默）',
-    labels: { outcome: ['answer', 'provider-unavailable'] },
+    labels: { outcome: ['answer', 'answer-unverified', 'provider-unavailable'] },
   },
   nexus_analytics_narrate_latency_ms: {
     kind: 'histogram',
     help: '/api/analytics/agent-narrate 从进路由到回流的毫秒数（含 provider 往返）',
-    labels: { outcome: ['answer'] },
+    labels: { outcome: ['answer', 'answer-unverified'] },
+    buckets: DURATION_BUCKETS,
+  },
+  nexus_character_chat_total: {
+    kind: 'counter',
+    help: 'POST /api/.../characters/[id]/chat 走到终态的次数（含 provider 不可用——绝不静默）',
+    labels: { outcome: ['answer', 'answer-unverified', 'provider-unavailable'] },
+  },
+  nexus_character_chat_latency_ms: {
+    kind: 'histogram',
+    help: 'POST /api/.../characters/[id]/chat 从进路由到回流的毫秒数（含 provider 往返）',
+    labels: { outcome: ['answer', 'answer-unverified'] },
     buckets: DURATION_BUCKETS,
   },
   nexus_agent_explain_total: {

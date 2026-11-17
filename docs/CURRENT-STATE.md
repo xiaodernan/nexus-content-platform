@@ -5238,3 +5238,24 @@ Docker Desktop 已由 agent 人工拉起（本轮恢复，server 29.9.3，nexus-
 - 第 57 篇回响「言归帖」：潮水某天在秋潮月退到最后一线——漂上来一件要件，上行墨团三个字被盐泡融、下行只有「归」一个字；要件无归主/无法投递/盐水不褪字迹/存档编号「社会回信·其一」；与后廊夜钟同名「时候未到」；风港值更人说：它还会再来一次，同一天，还无人认领。
 - 手写 zh+en 母语级文本；6 组逐字锚句；gen-bible-snapshot 登记 `echo-057-the-undeliverable-summons-from-the-tide`；verify world-bible **326/326** ✓。
 - 同步：BibleAsk lede → 57（含 en）；/bible/ask meta → 五十七篇 / fifty-seven；cache-identity → 57 篇锚句；bible-ask-behavior 锚句总数 320→326；canon-answer-graph 测试 62 段 / 57 echoes；pins 重钉（page→aa1d41ce… comp→43307dac…）；fe-gates **1277/1277 绿**。
+
+## cont. 291 (2026-11-18) — v915 · §47-graph · 角色对话 StateGraph 化 + HTTP 5xx gate 根治 + live 实打（cachedTokens=4504 100% 前缀复用）
+
+**目标**：把 §47 角色对话从「单次 chatJson」推进到 StateGraph——与 问典/§⑧/创作者解读同一谱系。
+
+**实现**（`apps/web/src/server/ai/characterChatGraph.ts`）：
+- 流程：`draft`（system = persona，字节级稳定 KV 前缀）→ `verify`（确定性机检 issues）→ `revise`（≤1，system 不变共用缓存）→ `finalize`
+- 机检（`character-chat-verify.ts`）：非空、≤1500 字节、自述身份泄漏（含英文/中文 of AI/语言模型/人工智能）、系统骨架泄漏（【相关记忆】/【相关语料】/【当前对话】/[/system/<|system|>）。非目标：数字/三段式——persona 回复不必先变成三段式分析。
+- 路由 `app/api/projects/[projectId]/characters/[characterId]/chat/route.ts` 改为调用 `runCharacterChatGraph`；persona 稳定做 system；记忆/语料/消息移到 `user` 侧（buildChatTurn）——同 session 同一组上下文 ⇒ KV 前缀 100% 复用。返回 `reply` + `verified` + `verifyNote` + `iterations` + `nodesVisited`；至此 `/api/.../chat` 已是 StateGraph 治理唯一出口（无单次 chatWithCharacter 直路）。
+- 客户端（`CharacterChat.tsx`）：`verify=false` 时直接在角色气泡下渲染 `verifyFail` 徽章（双语）；新 client 拥有 `locale` 透传 entry 体。新增 `data-character-chat-verify="fail"` 钩子。机检过的回复零标示、不多叨扰。
+- 测试：`character-chat-graph-behavior.test.ts`（6 例：pass-first / revise→pass（system 逐字节一致断言）/ exhausted-fail / 503 / capability 透传 / 400 验证错误）进 fe-gates；`character-chat.test.ts` 新增 `buildChatTurn` 3 例（persona 不进 user、记忆/语料截断、en 标签形态）。
+
+**根治 §FE-gate 的 «HTTP 500 误报»（11-17 §INSIGHT-6 复盘）**：`tools/ci/fe-gates.mjs` 137 套 × 命令行超 Windows `cmd.exe` 8191 字符上限——`verify:fe-gates` §GATE-2b 直 spawn `node_modules/vitest/vitest.mjs`，`shell:false`；本轮 137/137 × 1283 测试全绿。连带把 `nexus_insight_meter` / `nexus_analytics_narrate_meter` 老名称补齐 `answer-unverified` 枚举（observatory 增 `nexus_character_chat_*` 两个指标，不删不敢留 wire 空位）。
+
+**live 实打（gating the same boundary as §169-AI-GRAPH live）**：
+- 路径：tsx → runCharacterChatGraph → ai-service(8001) → aizzz.xyz / gpt-6.1-terra（当前后端经 vn proxy 命中，与 3 轮 live 同）
+- **cachedTokens=4504 / tokensIn=4504 ⇒ 100% cache hit**（同一 persona 同会话第二次打、第一次新建 KV、第二次全部命中）；
+- capability=real、verdict=pass、iterations=0、nodesVisited=draft>verify>finalize、模型回复全程第一人称保持 persona（含她自己的口头禅）。
+- 负例即时生效：故意灌「我是 AI/语言模型」类自述的回 JSON → 机检如实 fail；wire 接 verifyNote 徽章。
+
+**风险/补丁**：character-chat-verify fail-模式 ≠ 安全门——它只是 format/leak 机检；persona 回复的「品味」留给人、「准确」留给回响书籍（world-bible digest）；若模型崩溃该重写（revise 已做一轮），不冒充「AI 安全」。

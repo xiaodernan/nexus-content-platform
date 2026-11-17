@@ -83,3 +83,30 @@ export function buildContext(persona: string, memories: ChatMemoryLike[], knowle
   parts.push('【当前对话】');
   return parts.join('\n\n');
 }
+
+/**
+ * §47-graph 输入拆分（2026-11-18，cache 账本纪律）：system 只装 persona——字节级稳定；
+ * 记忆/语料/这一句话全进 user 侧。KV 前缀按前缀匹配：system 不变 ⇒ 记得换话也不必重建缓存。
+ * 返回值直接作为模型的 user 消息主体。
+ */
+export function buildChatTurn(
+  memories: ChatMemoryLike[],
+  knowledgeContext: string,
+  message: string,
+  locale: 'zh' | 'en' = 'zh',
+): string {
+  const parts: string[] = [];
+  if (memories.length > 0) {
+    parts.push('【相关记忆】');
+    memories.forEach((m) => {
+      parts.push(`- ${m.content.slice(0, 200)}`);
+    });
+  }
+  if (knowledgeContext) {
+    parts.push('【相关语料】');
+    parts.push(knowledgeContext.slice(0, 1000));
+  }
+  parts.push(locale === 'en' ? '\nCurrent exchange (with this reply):\n' : '\n【当前对话】\n');
+  parts.push(message);
+  return parts.join('\n\n');
+}
