@@ -4623,3 +4623,12 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   - 归档：ted · teedyyyy · main；fork：linuxdo-scripts · docs
 - 本地 http server + headless Chromium 实测：16 张 repo 卡片渲染、filter 三个按钮可用、console 0 error；
   截图存档确认 ✓。push master `beab505`，Pages 自动构建。
+
+## cont. 229 (2026-11-17) — v860 · §PROVED-8 应用内真实 provider E2E + Redis L2 回放实证（through the app rails）
+
+- ai-service 起在 8001（/home 兄弟占用 8000，未动）；web dev 带 NEXUS_AI_SERVICE_URL 启动。
+- /api/bible/q：#1 → 200/5.2s（cachedTokens 0）；#2 同题 → 200/74-79ms；**cachedTokens 24066**（Redis L2 命中）。
+- 证据 §PROVED-8（docs/evidence/paid-provider-e2e-2026-11-17.md）；
+  回答质量不够（"典籍里没有"）——未编，但 digest 偏薄（诚实标注）。
+- 探针完成即 kill（ai-service 8001 + dev server），/home sibling 未触碰；free RAM 回落后仍 ~2.4 GB。
+- 备忘：本机启动路径为 python -m uvicorn ai_service.app:app（应用 8001，含 Redis L2 与 .env）；web dev 要带 NEXUS_AI_SERVICE_URL=http://127.0.0.1:8001。

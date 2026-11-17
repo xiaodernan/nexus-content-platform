@@ -252,3 +252,18 @@ cd apps/web && npx tsx scripts/approval-explain-e2e.mts c5ebd27e-8a20-45f2-86aa-
 - 证据边界：本次走 curl 直连而非经过本项目的 CSRF+rate-limit 端点（那类 E2E 已由 §PROVED-3/4/5/6 覆盖）；
   手工 socket 版本（Node raw CONNECT）会在 TLS 阶段被丢弃（ECONNRESET），但 curl 走同一条 7897 正常——
   结论：代理可用，Node 裸 socket 失败不是网关/节点问题（代理对代理客户端的行为不同）。
+
+
+## §PROVED-8 — 应用内 rails 直连的真实 E2E + Redis L2 回放实证（2026-11-17 · v860 · 端到端通）
+
+- 前置：`ai-service` 此前没有跑；`/home` 兄弟项目占用 8000（AI 服务默认端口）；本探针把 ai-service 起在 8001，`NEXUS_AI_SERVICE_URL=http://127.0.0.1:8001`。
+- **先量再干**：8001 `GET /healthz` → 200；`providers[0].status=real · models=[gpt-6.1-terra] · capability=real`。
+- 经 **应用自身** `/api/bible/q`（CSRF + 按人 5 次/5 分钟限流 + IP gate + session）：
+  - #1 → `{"status":200, ms:5202, "capability":"real", "cachedTokens":0, "cacheReported":false}`
+  - #2 相同 payload → `{"status":200, ms:74–79, "capability":"real", "cachedTokens":24066, "cacheReported":true}`
+- **实证窗口**：5.2s → 74/79ms 同题重放，24,066 tokens 全部由应用侧 Redis L2（nexus:llmc）命中；
+  这是「带业务壳（CSRF+限流+会话+digest）」的真实命中率，不是 curl 裸调。
+- 诚实标注：模型这一次回答是"典籍里没有"——**没编**，但对本章题目回答质量不够（系统 prompt 尚未携带正文规模足够的检索召回）。
+  已知改进方向：问典 digest 已带 v2 全文正典（见 §PROVED-3 的 v2 实验），本路 digest 仍偏薄。
+- ai-service 8001 探针完成后已 kill（PID 17268）；/home sibling 8000 全程未触碰。
+- 结论：**付费 provider × 应用内 CSRF/IP gate/Redis L2 回放全部真实工作**；AI 服务 dev 启动路径：`npm run dev:ai` 或 python -m uvicorn ai_service.app:app（端口 8001，/home 占用 8000）。
