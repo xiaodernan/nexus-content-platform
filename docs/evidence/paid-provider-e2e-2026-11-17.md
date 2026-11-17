@@ -437,3 +437,21 @@ cd apps/web && npx tsx scripts/approval-explain-e2e.mts c5ebd27e-8a20-45f2-86aa-
 - **Codex 同路经考察**：codex 也用同个 sticky key 模型，每 session 派生一个 K = `session_id`，全流程始终不变——
   我们的 cache key（`nexus-<32hex>`）只是项目级固定值，无 new per session——mint 命中率受 distributor 路由决定；
   两栏各自 cache 各通，业内可选实现。
+
+
+## §PROVED-18 — Codex 模式：同 fingerprint 多轮对话全次 warm（2026-11-17 · v877）
+
+- 3 次同 session（messages 累积增长，prompt_cache_key 固定 `nexus-ababab…`）：
+  | turn | prompt_tokens | cached_tokens | cache_hit | ms |
+  |---|---|---|---|---|
+  | 1 | 24,053 | 22,606 | 94.0% | 3,439 |
+  | 2 | 24,109 | 22,731 | 94.3% | 3,058 |
+  | 3 | 24,158 | 22,601 | 93.6% | 3,218 |
+- **发现**：同 session 内每一轮， cached_tokens 都 ≈ 22,600（≈ 94%）；第三轮 digest 仍稳定复用——
+  模型不因为新的一问新的一答就冲掉已有 cache；这是 "codex 会话续接" cache 复用根因机制（sticky session key + 全 digest 前缀）。
+- turn 1 warm（22606）是因为之前的 parallel-5 / canon-probe 已把 System Prompt v2 digest 灌进 distributor channel；
+  如果刷进匿名的纯派头会**第一次 cold**，之后所有的是 warm。
+- **结论**：
+  - 首次调用 cold → 计 digest 保持 staging；
+  - 后续调用 cached_tokens ≥ 22,600（≈ 94%）；
+  - 这就是"为什么 codex 始终命中"的公共解法，本项目按同样的 sticky-cache 模式已跑通。

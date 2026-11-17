@@ -4788,3 +4788,13 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   - "Distributor per-channel cache" — codex 同路。
 - 用户猜测的「并行会话打乱 cache」实测不成立：同一 fingerprint，10 路同时打均走到两条 channel 各自 cache 桶。
 - 本轮 RAM 仍约 1.6 GB；零容器影响。
+
+## cont. 248 (2026-11-17) — v877 · §PROVED-18 multi-turn cache 复用公布（codex 模式）
+
+- 同一 prompt_cache_key + 累积 messages 三轮：
+  - turn 1: 22,606 / 24,053 prompt_tokens (94.0%)
+  - turn 2: 22,731 / 24,109 (94.3%)
+  - turn 3: 22,601 / 24,158 (93.6%)
+- 每轮 digest 字节完全相同，缓存命中率 93.6%-94.3%；无 trace drop。
+- 这就是 codex 引擎 ~90% 命中的同源：sticky key + 累积会话 + 完整 digest 前缀 + 全 digest 一次打入。
+- 证据 §PROVED-18 落盘；证据档至 18 节。
