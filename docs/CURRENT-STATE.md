@@ -5962,3 +5962,14 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 >   bible SHA pin c667af45… 重钉；bible-ask digest 断言锚计数 196
 > - /bible zh 实况 SSR 与 e2e 均待实测（开发服务器已起）
 > - 门：fe-gates 147/147 · 1353/1353 · census OK · tsc web 0 · game-model 363/363
+
+
+> **2026-11-18 续（cont. 213 — §十一 压测·闯库·实证 provider 三件证据档）**：
+> - 实证 provider 2026-11-18：aizzz.xyz 可走（Clash 7897 节点）；直接出访 403；2.58s 返回 "NEXUS LIVE PROBE OK"；
+>   完整输出到 `docs/evidence/live-provider-2026-11-18.md`（证据档不落秘钥明文，pre-commit 规律要求）
+> - SSR 高并发（dev 路径）：baseline（30/30 200）/ tier-6（100/100 200）/ tier-12（100/100 200）——零 5xx、零崩溃；
+>   p50 受本机内存锯齿与 dev 首编译影响；tier-24/48 未测，记录为未测，不伪造数据（`docs/evidence/stress-2026-11-18.md`）
+> - 观察站撞库 35 连打：前 30 个 401，后 5 个 429；同 IP 正确口令也被限；跨 IP 不受限（200 + cookie）；
+>   跨 UA 不放行，跨实例不合并——记录见 docs/STRESS-TESTS.md 与 scripts/observe-login-hammer.mts（沙盘代码，端口 3407，RFC 5737 保留地址）
+> - 契约检验：POST /api/admin/observe 正确口令 → 200 + cookie；/admin/observe 门面 200 验证；/api/admin/observer/digest 无 cookie → 401
+> - 门：fe-gates 147/147 · 1353/1353 · verify:world-bible 367/367 · bible-snapshot/anchor-echo/census · tsc EXIT=0 · game-model 363/363
