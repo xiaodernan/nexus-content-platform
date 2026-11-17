@@ -1,4 +1,4 @@
-// 用户指南 / User guide — 已抽离为 shared module，供 /guide 页与 Studio 内置帮助共用。
+﻿// 用户指南 / User guide — 已抽离为 shared module，供 /guide 页与 Studio 内置帮助共用。
 // 修改请改这份字典，不要在 page 里抄第二遍。
 import type { Locale } from '@/lib/i18n';
 
@@ -85,7 +85,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           '/world/<id>/chronicle 编年史：故事/历史条目按纪元排开（灰灯纪/灰烬纪/铁月纪……你项目自己的纪元名），人物星图 ↔ 编年互相点亮；条目可挂「记忆回声」——纯感官刻痕，≤ 240 字，不是梗概。',
           '/world/<id>/digest 世界速览 · /world/<id>/integrity 世界体检（只报真问题：纪元错位/回声缺失/孤儿条目，不打分不假绿）· /world/<id>/tide 世界潮汐 · /world/<id>/ephemeris 世界日历投影 · /world/<id>/codex 设定集 · /world/<id>/constellation 人物关系星图 · /world/<id>/atlas 世界全图 · /world/<id>/almanac 世界年历 · /world/<id>/quiz 世界问答（确定性，题目出自本项目） · /world/<id>/memories 世界记忆。',
           '这些页面全部是你的项目数据的投影——世界页不是"官方故事"，是你画的世界自己的结构。',
-          '想读这个宇宙的正典文字？去 /bible 翻《低语诸王》五章正典——锚句中英字字对齐的正典、可以直接收藏的典籍室。另外还有两个按钮：「潮汐挑战」是正典小测（十五题，答错带题目直通问典）；「问典」是把正典喂给真模型——问中文答中文、问英文答英文、典籍里没有的它直接说"典籍里没有"。',
+          '想读这个宇宙的正典文字？去 /bible 翻《低语诸王》五章正典——锚句中英字字对齐的正典、可以直接收藏的典籍室。另外还有两个按钮：「潮汐挑战」是正典小测（十七题，答错带题目直通问典）；「问典」是把正典喂给真模型——问中文答中文、问英文答英文、典籍里没有的它直接说"典籍里没有"。',
           '想让 AI 读你的数据？/analytics 里的 Creator Agent 规则分析底下——也藏着一个「让大模型看看我的数据」按钮——它跑的是真 provider，不是模板。',
         ],
       },

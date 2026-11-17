@@ -4925,3 +4925,10 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 作者手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-041-the-half-painted-dragon-on-the-chapel-beam`；verify:bible-snapshot ✓；verify:world-bible **230/230** ✓。
 - 同步落地：BibleAsk lede → 41；/bible/ask meta → 四十一篇回响；canon-answer-graph 测试 46 段／41 echoes；bible-ask-behavior 锚句总数 224→230；CACHE-IDENTITY 更新。
 - 回归：bible 核心 24/24 绿。
+
+## cont. 261 (2026-11-17) — v890 · 潮汐挑战扩到 17 题（回响四十/四十一进题库）+ guide 同步
+
+- BibleQuiz 新增两道服务 E40/E41 的题（q16 值更图上没人认识的名字「朔」；q17 梁上的半龙为什么不画完），zh/en 双语成对、答案分布一致；全题库 15 → **17 题**。
+- 值位同步扩展：verdict 档位（0/5/9/12/13/15）按 17 题重排；`empty` 两句全部改成"十七题"；JSDoc 的 "12 题" 口径说明纠正为 17 题。
+- 测试 SHA 钉死（page.tsx 不动：612a074a…；component 重新钉为 b67da4ed…），断言 17 prompts / 答案序列镜像一致；guideCopy ⑥ 问典说法与 /bible lede 统一定位。
+- 回归：badge ×21 绿（quiz/search/ask-behavior）。

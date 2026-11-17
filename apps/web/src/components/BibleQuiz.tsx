@@ -16,7 +16,7 @@ import type { Locale } from '@/lib/i18n';
  * - 没有"看了重做"的奖励？——答错的提示会写出处（在哪一章、哪一节），
  *   错就是错，不伪装"接近正确"；
  * - 完全中英双语；不存在半中文半英文的题目；
- * - 12 题每题 1 分；结算只是礼物：不写进任何账本、不发 achievement、不持久化。
+ * - 17 题每题 1 分；结算只是礼物：不写进任何账本、不发 achievement、不持久化。
  */
 
 const COPY = {
@@ -34,14 +34,14 @@ const COPY = {
     verdicts: [
       { at: 0, text: '漂流的木桶', note: '盐海没见过，浪只见过一口气。' },
       { at: 5, text: '半日的学徒', note: '雾港没怎么上过岗，灯火印象模糊。' },
-      { at: 9, text: '巡逻路的旅人', note: '盐味酸过了——记住的巡逻路比忘掉的多。' },
-      { at: 12, text: '守夜人传人', note: '门在关上之前你没见过，但你记住了是什么。' },
-      { at: 14, text: '潮汐大匠', note: '海还没说完的话，你已经知道是什么了。' },
-      { at: 15, text: '满分守夜人', note: '十五题全对——典籍不会忘记问倒过谁。' },
+      { at: 10, text: '巡逻路的旅人', note: '盐味酸过了——记住的巡逻路比忘掉的多。' },
+      { at: 13, text: '守夜人传人', note: '门在关上之前你没见过，但你记住了是什么。' },
+      { at: 15, text: '潮汐大匠', note: '海还没说完的话，你已经知道是什么了。' },
+      { at: 17, text: '满分守夜人', note: '十七题全对——典籍不会忘记问倒过谁。' },
     ],
     footer: '《世界大典》正典全文见典籍室（/bible）。答错的题里标了出处：错就是错，没有近似的正确。',
     scoreLine: (n: number, total: number) => `${n} / ${total}`,
-    empty: '还没答完。十五道题就是五章正典的全部问题。',
+    empty: '还没答完。十七道题就是五章正典的全部问题。',
   },
   en: {
     kicker: 'The Tidal Trial',
@@ -57,14 +57,14 @@ const COPY = {
     verdicts: [
       { at: 0, text: 'The Drifting Barrels', note: 'You have seen one breath of wave, never the sea.' },
       { at: 5, text: 'The Half-Day Apprentice', note: 'You have not kept a watch long enough to know the fog.' },
-      { at: 9, text: 'The Patrol-Road Traveller', note: 'You are more road remembered than forgotten.' },
-      { at: 12, text: 'The Successor Watcher', note: 'You have never seen the door, but you know what was behind it.' },
-      { at: 14, text: 'The Tide Master', note: 'The sea still has not finished — and you already know what it said.' },
-      { at: 15, text: 'The Full Tide', note: 'Fifteen of fifteen — the canon will not forget who asked it best.' },
+      { at: 10, text: 'The Patrol-Road Traveller', note: 'You are more road remembered than forgotten.' },
+      { at: 13, text: 'The Successor Watcher', note: 'You have never seen the door, but you know what was behind it.' },
+      { at: 15, text: 'The Tide Master', note: 'The sea still has not finished — and you already know what it said.' },
+      { at: 17, text: 'The Full Tide', note: 'Seventeen of seventeen — the canon will not forget who asked it best.' },
     ],
     footer: 'The full canon lives in the shelf (/bible). Every wrong answer points you to where it lives. Wrong is wrong — there is no near-enough.',
     scoreLine: (n: number, total: number) => `${n} / ${total}`,
-    empty: 'Not done yet. Fifteen questions — one per breath of the canon.',
+    empty: 'Not done yet. Seventeen questions — one per breath of the canon.',
   },
 } as const;
 
@@ -133,6 +133,14 @@ const QUESTIONS: Question[] = [
   {
     zh: { prompt: '值更院那只米缸里那粒一直浮在最上面的米，已经浮着多少年了？', choices: ['三年', '九年', '六十九年', '九十年'], answer: 2, ref: '回响三十六 · 那一粒月亮' },
     en: { prompt: 'How many years has the grain of rice been floating on top of the watcher’s rice jar?', choices: ['Three', 'Nine', 'Sixty-nine', 'Ninety'], answer: 2, ref: 'Echo No. 36 · The Grain the Moon Sent Down' },
+  },
+  {
+    zh: { prompt: '值更图上没人记得住的那一行，写的是哪个名字？', choices: ['望潮', '潮听', '朔', '海听'], answer: 2, ref: '回响四十 · 值更图上那个没人认识的名字' },
+    en: { prompt: 'Which name appears on the line of the duty roster that no one remembers?', choices: ['Tide-Watch', 'Tide-Hear', 'Shuo', 'Sea-Hear'], answer: 2, ref: 'Echo No. 40 · The Name on the Roster That No One Recognizes' },
+  },
+  {
+    zh: { prompt: '祠殿横梁上那条龙值更们为什么不画完？', choices: ['原作者画到一半死了没人续笔', '没有足够的朱砂颜料', '横梁上的龙守着梁下睡的人', '画龙要征得教团主席的批准'], answer: 2, ref: '回响四十一 · 横梁上的半龙' },
+    en: { prompt: 'Why did the watchers never finish the dragon on the chapel beam?', choices: ['The original painter died halfway and no one dared continue', 'There was not enough cinnabar pigment', 'The beam-dragon guards whoever sleeps below', 'Drawing a dragon requires the Conclave’s approval'], answer: 2, ref: 'Echo No. 41 · The Half-Painted Dragon' },
   },
 ];
 
