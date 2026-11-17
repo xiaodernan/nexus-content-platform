@@ -94,6 +94,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E50-祠殿南厢房那本旧目录上空着的第四十一页': 'echo-050-the-forty-first-blank-page-in-the-index',
   'E51-雾港灯塔第七级台阶上那双从来没擦掉的脚印': 'echo-051-the-footprints-on-the-seventh-step-of-the-lantern-tower-never-cleaned',
   'E52-潮候院祠殿门廊那一段摸过六十九年的门槛': 'echo-052-the-threshold-in-the-chapel-porch-worn-by-sixty-nine-years',
+  'E53-雾港渔村吹着朝号等潮的船工那颗从未离手的螺号': 'echo-053-the-whistle-keeper-never-without-his-horn',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
