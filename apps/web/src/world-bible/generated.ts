@@ -16851,6 +16851,208 @@ The copyists told others that they did not hear the crow call — but the crow w
 > The great black crow at the deepest place of the Institute — no one dares repeat what it says from its beak.
 `,
   },
+  {
+    order: 80,
+    slug: 'echo-080-the-cat-that-keeps-watch-in-the-front-court',
+    titleZh: '潮候院前庭那只永远闭着眼睛的守门猫',
+    titleEn: 'The Cat at the Institute\'s Front Court That Sleeps With Its Eyes Open',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第七十一日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the seventy-first day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 80): The Cat at the Institute's Front Court That Sleeps With Its Eyes Open
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院前庭那只从不睁眼睛的守门猫——半醒半睡——但没人知道它在不在听。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the cat at the front court of the Institute who never opens its eyes.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第七十一日。
+> Era: the Institute — after the 41st Convocation; the seventy-first day of the autumn-tide month.
+
+---
+
+## 一 · 前庭
+
+潮候院前庭是正门外一块圆形石板，环绕着院前矮墙。
+
+正门上方有一盏油灯——日复一日，灯火总是小沾了潮沫；灯顶木门横梁上蹲着一只黑猫——它从不睁眼。
+
+**锚句**：前庭油灯下蹲着一只黑猫，它从不睁眼。
+**Anchor sentence**: beneath the lamp at the front court squats a black cat — it never opens its eyes.
+
+---
+
+## 二 · 最老的东西
+
+抄本师说："这只猫是院里最老的东西。"
+
+值更长问："你怎么知道？"
+
+抄本师答："院里没人能动它——石板下方一些字比它还年轻。"
+
+**锚句**：抄本师说前庭猫是院里最老的东西——前庭没人能动它。
+**Anchor sentence**: the copyists say the cat is the oldest thing in the whole Institute — no one can move it.
+
+---
+
+## 三 · 闭着眼
+
+它闭着眼——半睁不开。
+
+大会散会那一天，有人路过看了一眼——灯下夜里猫的眼睛暗——只剩两颗星亮一会儿又暗。
+
+**锚句**：它闭着眼——灯下夜里猫的眼睛暗——只剩两颗星亮一会儿又暗。
+**Anchor sentence**: it keeps its eyes closed — under the lamp its eyes grow dim — only two stars, bright once then dark again.
+
+---
+
+## 四 · 它是什么
+
+"它不是装睡——它不需要睁眼醒着——它是不打开眼在听。"
+
+抄本师绕了一圈又回去，前庭没人说，灯又一晃；一片安静——只有偶尔有人路过被它瞟了一眼。
+
+**锚句**：抄本师说"它不是装睡——它不需要睁眼醒着"。
+**Anchor sentence**: the copyists said: "it is not pretending to sleep — it does not need to wake to watch."
+
+---
+
+## 五 · 没人喂过它
+
+浮光满前庭猫的身形——它的身后跟着几根鬓毛在地上——地上有小小的脚印——也未必是它的。
+
+院里从来没谁喂它。抄本师说的：「它不是饿的，它是为数不多的只是守。」
+
+**锚句**：抄本师说它「不是饿的，它是只守的」。
+**Anchor sentence**: the copyists said: "it is not hungry — it is only watching."
+
+---
+
+## 六 · 值更长没看它过
+
+第四十一次大会散会之后一个潮候月，值更长回前庭——他看到猫——他没走过去打量它——他蹲惯身子。
+
+猫没名字，没人记。
+
+**锚句**：值更长回前庭看见猫——他没走过去打量它。
+**Anchor sentence**: the head of the watch returns to the front court and sees the cat — he does not walk up to inspect it.
+
+---
+
+## 七 · 映射（回响八十章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 守门猫 · 油灯 · 闭着眼 · 只守的 · 不需要醒着 | 一、二、三、四、五、六、七 |
+| geography | 前庭 · 院前矮墙 · 正门外 | 一、二 |
+| characters | 抄本师 · 值更长 · 守门猫 | 一、二、三、四、五、六 |
+| story | 守门猫 · 回响（其八十） | 全篇 |
+| items | 前庭油灯 · 木门横梁 · 矮墙 | 一、二、三、四、五 |
+| history | 第四十一次大会散会之后 · 秋潮月第七十一日 | 三、六 |
+
+> 灯下一片安静——院子里的事没有人做主，只有那只猫自己知道。
+> Under the lamp, the place is silent — no one owns the affairs of the court — only that cat knows.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其八十）「潮候院前庭那只永远闭着眼睛的守门猫」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the cat at the front court of the Institute who never opens its eyes.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院前庭那只从不睁眼睛的守门猫——半醒半睡——但没人知道它在不在听。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the seventy-first day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第七十一日。
+
+---
+
+## I · The Front Court
+
+The Institute's front court is a circular stone slab beyond the main gate, surrounded by a low wall.
+
+Above the gate hangs an oil lamp — day after day, the flame shimmers with the tide — on the lintel squats a black cat; it never opens its eyes.
+
+**锚句**：前庭油灯下蹲着一只黑猫，它从不睁眼。
+**Anchor sentence**: beneath the lamp at the front court squats a black cat — it never opens its eyes.
+
+---
+
+## II · The Oldest Thing
+
+The copyists say: "this cat is the oldest thing in the whole Institute."
+
+The head of the watch asked: "how do you know?"
+
+The copyists answered: "no one in the Institute can move it — and the characters carved into the slab beneath it are younger than it."
+
+**锚句**：抄本师说前庭猫是院里最老的东西——前庭没人能动它。
+**Anchor sentence**: the copyists say the cat is the oldest thing in the whole Institute — no one can move it.
+
+---
+
+## III · Closed Eyes
+
+It keeps its eyes closed — half-open but never fully.
+
+On the day of the 41st Convocation's dissolution, someone passed and saw it — the cat's eyes were dark; only two stars flashed once and went dark again.
+
+**锚句**：它闭着眼——灯下夜里猫的眼睛暗——只剩两颗星亮一会儿又暗。
+**Anchor sentence**: it keeps its eyes closed — under the lamp its eyes grow dim — only two stars, bright once then dark again.
+
+---
+
+## IV · What It Is
+
+"It does not pretend to sleep — it simply does not need to wake to watch — it hears without opening its eyes."
+
+The copyists went around once and came back; the front court was silent; the lamp flickered; no one spoke; only the occasional passer was caught by one slow look.
+
+**锚句**：抄本师说"它不是装睡——它不需要睁眼醒着"。
+**Anchor sentence**: the copyists said: "it is not pretending to sleep — it does not need to wake to watch."
+
+---
+
+## V · No One Feeds It
+
+Floating dust lingers along the cat's silhouette — a few stray hairs on the slab — tiny prints — perhaps they are not even its.
+
+No one has fed it in the Institute; the copyists say: "it is not hungry — it is only watching."
+
+**锚句**：抄本师说它「不是饿的，它是只守的」。
+**Anchor sentence**: the copyists said: "it is not hungry — it is only watching."
+
+---
+
+## VI · He Never Looks at the Cat
+
+One month after the 41st Convocation dissolved, the head of the watch returned to the front court — he saw the cat — he did not walk over to inspect; he just settled into himself.
+
+The cat has no name; no one remembers one.
+
+**锚句**：值更长回前庭看见猫——他没走过去打量它。
+**Anchor sentence**: the head of the watch returns to the front court and sees the cat — he does not walk up to inspect it.
+
+---
+
+## VII · Mapping（Echo No. 80 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the cat · the oil lamp · closedeyes · only watching · no wake | 一、二、三、四、五、六、七 |
+| geography | the front court · the low wall · outside the main gate | 一、二 |
+| characters | the copyists · the head of the watch · the cat | 一、二、三、四、五、六 |
+| story | the cat · Echo No. 80 | 全篇 |
+| items | the oil lamp · the lintel · the low wall | 一、二、三、四、五 |
+| history | After the 41st Convocation · the seventy-first day of the autumn-tide month | 三、六 |
+
+> 灯下一片安静——院子里的事没有人做主，只有那只猫自己知道。
+> Under the lamp, the place is silent — no one owns the affairs of the court — only that cat knows.
+`,
+  },
 ] as const;
 
 export const BIBLE_APPENDICES: readonly BibleChapter[] = [
