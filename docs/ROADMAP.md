@@ -14551,3 +14551,9 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - /guide §⑩ 新增：画布右上角「滚轮」开关说明 + 空格抓手移动 + Ctrl/⌘+滚轮缩放。
 - StudioShell 视图切换按钮附 title（SHA 重钉第十八次：`4ce5cd7f...`）；TopBar 顶栏 SHA 重钉（`fabb39a2...`）;CanvasStage SHA 重钉（`38a6e525...`）。
 - fe-gates 相关套件：32/32 + wheel 7/7 + canvas-stage / keyboard-cheatsheet 17/17。
+
+## §BIBLE-47 — 回响 · 其三十五 《祠殿侧门外那只从不干的石凹》（2026-11-17 · v854）
+
+- 新回响 E35（中英双文件）：常年不干的石凹；「潮从下面上来」；半月章按在石凹边缘四次；抄本员水里唯一一次看见一枚镜子；
+  换班前最后一眼是石凹而不是别的。六节、五锚句。
+- verify:world-bible ✓ 195/195；快照 5 章 · 35 回响；bible-ask-behavior 195。

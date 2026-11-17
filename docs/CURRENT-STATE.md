@@ -4546,3 +4546,10 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   - 其余用户点名项已正确：赵欣曈 / 南方科技大学本科计科 / 香港中文大学硕士计科 / 全国中学生物理竞赛铜牌 · 江西省一等奖 · 江西省二等奖 / 法狗狗公司 · 应用工程师 / 隐盾（「隐图」全库零出现）/ 全部都真跑 / 计算机体系结构。
 - push 过程与外部同步 bot（minicc/football 等）两次撞车，均 rebase 解决并保持提交；Page build 由 GitHub 自动完成。
 - Nexus 仓库：main @ c940595a（docs 收尾后另见本条 commit），working tree 干净；showcase 已同步（含其它 bot 的 f368b39 之上）。
+
+## cont. 221 (2026-11-17) — v854 · 回响其三十五《祠殿侧门外那只从不干的石凹》
+
+- 新回响 E35（中英双文件）：祠殿侧门外那只常年不干的石凹——值更说那是满潮时潮从下面上来的；半月章在它边缘按过四次；
+  一位抄本员只见过一次水里有一枚「镜子」，也只跟一个人说了。
+- verify:world-bible ✓ 195/195；快照 5 章 · 35 回响（E34/E35 同回合同步完成）。
+- 顺带把个人页上次 push 的「接口契约」修复记录在 cont. 220。
