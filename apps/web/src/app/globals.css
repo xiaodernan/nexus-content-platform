@@ -5915,6 +5915,29 @@
   .insg-signalFill { background: Highlight; }
   .insg-gateError { color: CanvasText; }
   .insg-gateSubmit:focus-visible, .insg-gateInput:focus-visible, .insg-logout:focus-visible, .insg-back:focus-visible { outline-color: Highlight; }
+/* ── §BIBLE-5 · 潮汐见证（Tide-Eye Witness）── */
+.tide-witness { border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md); background: var(--nexus-color-bg-1); padding: var(--nexus-space-3) var(--nexus-space-4); display: flex; flex-direction: column; gap: var(--nexus-space-2); margin: var(--nexus-space-4) 0; max-width: 56rem; }
+.tide-witnessKicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.18em; text-transform: uppercase; color: var(--nexus-color-accent-mix); margin: 0; }
+.tide-witnessLedgerOrder { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-2); margin: 0; font-variant-numeric: tabular-nums; }
+.tide-witnessHint { font-size: var(--nexus-font-size-11); line-height: 1.7; color: var(--nexus-color-fg-2); margin: 0; max-width: 48rem; }
+.tide-witnessButton { align-self: flex-start; padding: var(--nexus-space-2) var(--nexus-space-4); font-size: var(--nexus-font-size-12); font-weight: 700; letter-spacing: 0.04em; border-radius: var(--nexus-radius-sm); border: 1px solid var(--nexus-color-accent-mix); background: color-mix(in srgb, var(--nexus-color-accent-mix) 14%, var(--nexus-color-bg-1)); color: var(--nexus-color-fg-1); cursor: pointer; transition: border-color 160ms ease, background 160ms ease; }
+.tide-witnessButton:hover:not(:disabled) { border-color: var(--nexus-color-brand); background: color-mix(in srgb, var(--nexus-color-accent-mix) 22%, var(--nexus-color-bg-1)); }
+.tide-witnessButton:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+.tide-witnessButton:disabled { opacity: 0.5; cursor: not-allowed; }
+.tide-witnessOutput { display: flex; flex-direction: column; gap: var(--nexus-space-2); border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-2); }
+.tide-witnessBadge { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.08em; align-self: flex-start; padding: 0.1rem 0.6rem; border: 1px solid color-mix(in srgb, var(--nexus-color-accent-mix) 45%, transparent); border-radius: var(--nexus-radius-sm); color: var(--nexus-color-accent-mix); font-variant-numeric: tabular-nums; }
+.tide-witnessLine { font-size: var(--nexus-font-size-14); line-height: 1.75; color: var(--nexus-color-fg-1); margin: 0; font-style: italic; border-left: 3px solid var(--nexus-color-accent-mix); padding-left: var(--nexus-space-3); }
+.tide-witnessLocked { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); margin: 0; }
+.tide-witnessHonest { border-left: 2px solid color-mix(in srgb, var(--nexus-color-accent-mix) 70%, transparent); border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-2) var(--nexus-space-3); background: var(--nexus-color-bg-1); }
+.tide-witnessHonestTitle { font-size: var(--nexus-font-size-12); font-weight: 700; color: var(--nexus-color-fg-1); margin: 0; }
+.tide-witnessHonestBody { font-size: var(--nexus-font-size-11); line-height: 1.75; color: var(--nexus-color-fg-2); margin: var(--nexus-space-1) 0 0; }
+@media (forced-colors: active) {
+  .tide-witness, .tide-witnessHonest { border-color: CanvasText; background: Canvas; }
+  .tide-witnessKicker, .tide-witnessHint, .tide-witnessLedgerOrder, .tide-witnessLine, .tide-witnessHonestTitle, .tide-witnessHonestBody, .tide-witnessBadge, .tide-witnessLocked { color: CanvasText; -webkit-text-fill-color: CanvasText; background: none; border-color: CanvasText; }
+  .tide-witnessButton { color: CanvasText; border-color: CanvasText; background: Canvas; }
+  .tide-witnessButton:focus-visible { outline-color: Highlight; }
+}
+
 }/* ── §MAP-1 /map 世界全图视觉层 ── */
 .map-root { min-height: 100dvh; padding: var(--nexus-space-6) clamp(var(--nexus-space-4), 5vw, var(--nexus-space-8)); background: radial-gradient(1200px 500px at 85% -10%, color-mix(in srgb, var(--nexus-color-accent-2) 18%, transparent) 0%, transparent 60%), radial-gradient(900px 500px at -10% 20%, color-mix(in srgb, var(--nexus-color-accent-mix) 22%, transparent) 0%, transparent 55%), var(--nexus-color-bg-0); color: var(--nexus-color-fg-1); position: relative; }
 .map-hero { max-width: 72rem; margin: 0 auto; }

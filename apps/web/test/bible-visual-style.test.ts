@@ -146,7 +146,7 @@ describe('§BIBLE-1 /bible 典籍室', () => {
       'bfdcf81b273e8b32d337bd9a87f5d55963bf2a3f8a43471b66e414b88f86891a',
     );
     expect(createHash('sha256').update(redactClasses(reader)).digest('hex')).toBe(
-      '9f9fae197bfca80be47879385cedf4d81d8b3efa61a7a772b7011f8828742180',
+      'b4952b62d4d1652749a1e5063f6ef3cffc1ffe53f88bb209da3fff7b2d4d0695',
     );
     expect(createHash('sha256').update(redactClasses(component)).digest('hex')).toBe(
       '5051a2bdbb11cca3f3e5369562edbcce97bbf5a53a568f8024da3fef9ac8ad82',

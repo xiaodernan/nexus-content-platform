@@ -6087,3 +6087,11 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 >   雅思 6.5 ×3 / CET6 546 ×3（并轨并行线移除→我恢复→并行线合并后再删（e1fe32b/2d72a7f）→ 我再次恢复，
 >   经 c3f0b08 + f133c63 现线上确认三处全部存在）。
 > - 证据：`docs/evidence/io-link-census-2026-11-18.md`
+
+> **2026-11-18 cont. 226 · 潮汐见证（Tide-Eye Witness）上架 — LLM 深度缝进 canon 阅读页**
+> - 新增 `/apps/web/src/server/domain/whisperCanon.ts` 导出 `buildWitnessPrompt(file, locale)`（逐字节稳定 system → provider prefix KV 缓存稳定复用；不补戏、只引本章、20-caveat）。
+> - 新增 `/app/api/game/witness` POST 路由：csrf + 按 IP 60h gate + `nexus-insight` 123 cookie + 真 provider → 返回 json `{text, cachedTokens, tokensIn, model}`；429/403/404/502/409 一致口径。
+> - `/bible/[slug]/page.tsx` 锚句之前新增 RSC 区域段（`TideWitness.tsx`）——RSC 不强制 JS，正文始终可读。
+> - §BIBLE-5 样式零 hex，只用 var() 令牌；强制配色 forced-colors 全收口；`verify:census OK (2924 类全有引用方)` · fe-gates **147/147** · 1353/1353 · pytest **455/455**（含 test_canon_digest 4/4）· verify:world-bible **377/377** · `/bible/echo-022-the-half-grain` SSR 200 含 `data-tide-witness` 钩子。
+> - prod 实测（build+start+server+ai-service 三层端到端）：call-1 cold（tokensIn=**6,247** · cachedTokens=**0**）；call-2 同 prefix **6,247 / 6,247 = 100%**；text 第一次出现「半粒盐的断口，从封皮的凹槽里朝外看。」/ **zero fabrication**。
+> - evidence: `docs/evidence/live-tide-witness-2026-11-18.md`
