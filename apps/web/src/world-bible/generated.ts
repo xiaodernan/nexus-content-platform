@@ -11651,6 +11651,204 @@ Several fishing villagers say there are more boats we don't see in the fog harbo
 > On the morning the second note is blown, everyone in the little bay hears the far shore answer in turn — no one understands it, yet every back stiffens against the window.
 `,
   },
+  {
+    order: 54,
+    slug: 'echo-054-the-night-bell-with-its-tongue-sealed',
+    titleZh: '潮候院祠殿后廊那口锁住锤舌的夜钟',
+    titleEn: 'The Night Bell in the Back Gallery Whose Tongue Was Sealed',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——秋潮月第四日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the fourth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 54): The Night Bell in the Back Gallery Whose Tongue Was Sealed
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给祠殿后廊那口被值更院封了锤舌的夜钟，和替它算债的七十二格蜡封。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the night bell in the Institute's back gallery, whose clapper was sealed by the Watch, and for the seventy-two wax seals that tally its debt.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第四日。
+> Era: the Institute — after the 41st Convocation; the fourth day of the autumn-tide month.
+
+---
+
+## 一 · 锁住锤舌的夜钟
+
+祠殿的后廊不朝南，没有日影，只有一口夜钟。钟舌用七重灰色封皮封住，封口处盖着值更院的铜印，墨都缩进去了。钟匠每年来看两次，只抬头看一眼封皮有没有松，不量、不拆、不敲。
+
+路过的人常常听见它轻轻晃动——晚秋的风从山口灌进来，钟身擦过封皮，发出比心跳还轻的钝响。没有人停下来数它响了几下。
+
+**锚句**：后廊的夜钟只能在空天的夜里听见。
+**Anchor sentence**: the back gallery's night bell is heard only on hollow-skied nights.
+
+---
+
+## 二 · 每一击的价钱
+
+院里流传最广的说法是：当年值更长亲自击钟一百零一次，第七十一次的时候夜雾退到了风港之外，第九十九次的时候镜湖第二次倒灌，第一百零一次他手停了——钟声没有出口，整座院子都听见了那一声的沉默。
+
+从那以后，守则上写下第一句也是最后一句警告：夜钟每一击都借一合水，水从镜湖、从盐线、从某个迟到者袖子里的一撮盐里支取；借满七十二合，就不得再击。
+
+**锚句**：每一声钟都借一合水，借满七十二合就不得再击。
+**Anchor sentence**: each note of the bell borrows a measure of water; when the seventy-two measures are spent, the bell must not ring again.
+
+---
+
+## 三 · 钟匠的儿子
+
+钟匠的儿子小时候把封皮的铜印当玩具，偷偷揭下一角玩了半个下午。被值更长带上祠殿，罚他跪到日落，理由只有一句：一击之下，袖子里的水要还回去，敲完账没人替他还。
+
+他后来入了抄本师的门下学刻字。他刻的一个字都不多了，但所有人都认得他的字——每一刀都带半分犹豫，像怕自己不小心多划了一道。他的刻刀上永远有一层陈旧的铜绿，洗不掉。
+
+**锚句**：钟匠的儿子再没碰过夜钟，但他的刻刀上永远带着铜绿。
+**Anchor sentence**: the bell-maker's son never touched the night bell again, yet his graver forever carried verdigris.
+
+---
+
+## 四 · 七十二格账
+
+南廊的墙上刻着一整面账：七十二格，一格对应一合水。每击一声，就在一格里抹上黑蜡封。现在七十二格全都黑了。
+
+没有人知道最后一格是在哪个夜晚被抹掉的——有的说是大会散会的年, 有的说是某个盐税进账为负的凌晨, 有的说是值更长一个人蹲在墙前抹完的。没人再去看那面账，但也没人敢填新的格子。
+
+**锚句**：南廊七十二格蜡封全都黑了，没人再看那面账。
+**Anchor sentence**: all seventy-two wax seals on the south gallery wall are black; no one looks at that ledger anymore.
+
+---
+
+## 五 · 风里的钝响
+
+风大的夜里，后廊的灯会矮一节，钟会轻轻擦一下封着的舌——像有人在袖子里压着一声没出口的咳嗽。守则里有一条只有值更人知道的：听见钝响的人不得说破它的内容，只得饮一口粥、写一行值更簿上的今天风向，然后继续站着。
+
+有的年轻值更人写完就睡了，醒来发现别人替他把那一页翻过去了。
+
+**锚句**：夜里风压低灯影，钟只是碰一下封舌，不是钟响是脉搏乱半拍。
+**Anchor sentence**: on windy nights the lamp ducks and the sealed tongue only brushes — it is not the bell ringing, only a pulse skipping half a beat.
+
+---
+
+## 六 · 等待自答的那一天
+
+院里最老的几个人说起同一件事的时候用不同的说法，但意思只剩一种：等镜湖干了、等盐线退了、等最后一合水无处可借的那一天，夜钟会自己回答——没有人动手，没有人许愿，它自己会懂得什么叫真正的响。
+
+那天到来之前，值更院的候补单上永远空着一行，位置留给那个还没轮到任何人的人。
+
+**锚句**：等镜湖干了、盐线退了，夜钟自己会回答，不需要任何人动手。
+**Anchor sentence**: when the mirror lake runs dry and the salt bounds retreat, the bell will answer on its own — no hand need be lifted.
+
+---
+
+## 七 · 映射（回响五十四章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 夜钟 · 锤舌封存 · 七十二合水 | 一、二、四、五 |
+| geography | 祠殿后廊 · 南廊七十二格账 · 镜湖 · 风港 | 一、四、六 |
+| characters | 钟匠 · 钟匠的儿子 · 值更长 · 抄本师 | 二、三 |
+| story | 锁住锤舌的夜钟 · 回响（其五十四） | 全篇 |
+| items | 夜钟 · 七重封皮 · 铜印刻刀 · 蜡封账 | 一、三、四、五 |
+| history | 第四十一次大会散会之后 · 秋潮月第四日 | 一、二、六、七 |
+
+> 后廊一直开着，封皮从没松过；真到那一夜，所有人都会先发现灯矮了一寸，然后才听见钟——而那一次，没有人站起来。
+> The back gallery stays open and the seals never loosen; when that night finally comes, everyone will first see the lamp duck an inch, and only then hear the bell — and this time, no one will stand.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其五十四）「潮候院祠殿后廊那口锁住锤舌的夜钟」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the night bell in the Institute's back gallery, whose clapper was sealed by the Watch, and for the seventy-two wax seals that tally its debt.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给祠殿后廊那口被值更院封了锤舌的夜钟，和替它算债的七十二格蜡封。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the fourth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第四日。
+
+---
+
+## I · The Bell with the Sealed Clapper
+
+The back gallery of the Hall of Sacrifice faces no direction of sun. There is one night bell there. Its tongue is sealed under seven layers of gray sealing skin, the mouth of which bears the copper seal of the Night Watch, its ink contracted into the fibers. The bell-maker comes twice a year to look, only to glance at whether the skin has loosened; he does not measure, not unseal, not strike.
+
+Passersby often hear it swaying softly — the late-autumn wind pours in from the mountain mouth, and the bell body brushes the skin with a dull note lighter than a pulse. No one stops to count how many times it sounded.
+
+**锚句**：后廊的夜钟只能在空天的夜里听见。
+**Anchor sentence**: the back gallery's night bell is heard only on hollow-skied nights.
+
+---
+
+## II · The Price of Each Strike
+
+The story best-traveled around the Institute goes thus: the head of the Night Watch struck the bell one hundred and one times in person; on the seventy-first, the fog pulled back beyond the wind port; on the ninety-ninth, the mirror lake flooded a second time; on the one hundred and first his hand stopped — the note had no exit, and the whole Institute heard that one silence.
+
+Since then the manual carried its first warning, which was also its last: each note of the night bell borrows a measure of water, and that measure is drawn from the mirror lake, from the salt bounds, or from a pinch of salt kept in the sleeve of someone arriving late; when the seventy-two measures are spent, the bell must never ring.
+
+**锚句**：每一声钟都借一合水，借满七十二合就不得再击。
+**Anchor sentence**: each note of the bell borrows a measure of water; when the seventy-two measures are spent, the bell must not ring again.
+
+---
+
+## III · The Bell-Maker's Son
+
+As a child, the bell-maker's son picked up the copper seal of the watch-skin as a toy and peeled back a corner of it, playing with it for half an afternoon. He was taken before the Convocation by the head of the Night Watch and made to kneel until sunset, for a single reason: a note of the bell sends the water from one's sleeve back where it belongs, and no one stands ready to settle the account afterward for him.
+
+He later became a disciple of the copyists and learned engraving. He engraved one character fewer than the others ever did, and everyone knew his characters at a glance — every stroke had half a measure of hesitation, as if he feared a single slip of excess depth. His graver forever carries an old layer of verdigris that no washing lightens.
+
+**锚句**：钟匠的儿子再没碰过夜钟，但他的刻刀上永远带着铜绿。
+**Anchor sentence**: the bell-maker's son never touched the night bell again, yet his graver forever carried verdigris.
+
+---
+
+## IV · The Ledger of Seventy-Two Cells
+
+A whole-wall ledger is engraved on the south gallery: seventy-two cells, one cell per measure of water. For every note struck, a black wax seal is daubed in a cell. All seventy-two cells are black now.
+
+No one knows in which night the last cell was blacked — some say in the year of the 41st Convocation; others, on some dawn when the salt tax came in negative; still others, that the head of the Night Watch knelt alone before the wall and finished it in silence. No one looks at that wall; no one dares carve a fresh cell.
+
+**锚句**：南廊七十二格蜡封全都黑了，没人再看那面账。
+**Anchor sentence**: all seventy-two wax seals on the south gallery wall are black; no one looks at that ledger anymore.
+
+---
+
+## V · The Dull Note in the Wind
+
+On nights when the wind is strong, the back gallery lamp ducks a notch, and the bell gently brushes its sealed tongue — like someone holding in a cough from inside a sleeve. The manual carries a rule only the night watchers know: the one who hears the dull note must not tell its content aloud; they must drink a bowl of porridge, note the day's wind direction in the night-watch ledger, and keep standing.
+
+Some young watchers wrote their entry and slept; they woke to find the page had been turned for them by someone else.
+
+**锚句**：夜里风压低灯影，钟只是碰一下封舌，不是钟响是脉搏乱半拍。
+**Anchor sentence**: on windy nights the lamp ducks and the sealed tongue only brushes — it is not the bell ringing, only a pulse skipping half a beat.
+
+---
+
+## VI · Waiting for the Day the Bell Answers Itself
+
+The eldest people of the Institute tell the same matter with different words, but the meaning has thinned to a single one: when the mirror lake runs dry, when the salt bounds retreat, when the last measure of water has nowhere left to be borrowed — the night bell will answer on its own. No hand set it in motion, no vow was spoken; the bell itself will understand what it means to truly sound.
+
+Until that morning arrives, the replacement line on the night-watch roll is always left blank in a single slot, a place kept for the arrival no one has met yet.
+
+**锚句**：等镜湖干了、盐线退了，夜钟自己会回答，不需要任何人动手。
+**Anchor sentence**: when the mirror lake runs dry and the salt bounds retreat, the bell will answer on its own — no hand need be lifted.
+
+---
+
+## VII · Mapping（Echo No. 54 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the night bell · the sealed tongue · the seventy-two measures | 一、二、四、五 |
+| geography | the back gallery · the south gallery ledger · the mirror lake · the wind port | 一、四、六 |
+| characters | the bell-maker · the bell-maker's son · the head of the Night Watch · the copyist | 二、三 |
+| story | the bell with the sealed clapper · Echo No. 54 | 全篇 |
+| items | the night bell · the seven seal-skins · the verdigrised graver · the wax ledger | 一、三、四、五 |
+| history | After the 41st Convocation · the fourth day of the autumn-tide month | 一、二、六、七 |
+
+> 后廊一直开着，封皮从没松过；真到那一夜，所有人都会先发现灯矮了一寸，然后才听见钟——而那一次，没有人站起来。
+> The back gallery stays open and the seals never loosen; when that night finally comes, everyone will first see the lamp duck an inch, and only then hear the bell — and this time, no one will stand.
+`,
+  },
 ] as const;
 
 export const BIBLE_APPENDICES: readonly BibleChapter[] = [

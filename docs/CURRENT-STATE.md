@@ -5121,3 +5121,12 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-053-…`；verify:bible-snapshot ✓；verify:world-bible **302/302** ✓。
 - 同步：BibleAsk lede → 53；/bible/ask meta → 五十三篇；cache-identity → 53；bible-ask-behavior 锚句总数 296→302；canon-answer-graph 测试 58 段／53 echoes。
 - 回归：bible 18/18 绿。
+
+## cont. 283 (2026-11-17) — v907 · §BIBLE-54 · Echo #54《潮候院祠殿后廊那口锁住锤舌的夜钟》（作者手写·双语·308/308 绿）
+
+- 第 54 篇回响「夜钟」：祠殿后廊夜钟锤舌被封 · 七十二合水借满不得击 · 钟匠的儿子刻刀铜绿 · 南廊七十二格蜡封全黑 · 风夜灯矮一寸的钝响 · 等镜湖干了盐线退了夜钟自答不须动手。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-054-the-night-bell-with-its-tongue-sealed`；verify world-bible **308/308** ✓；verify:bible-snapshot ✓。
+- 同步：BibleAsk lede → 54 篇（含 en）；/bible/ask meta → 五十四篇 / fifty-four；cache-identity → 54 篇锚句；bible-ask-behavior 锚句总数 302→308；canon-answer-graph 测试 59 段 / 54 echoes。
+- §INSIGHT-Verify locale-safe 化（cad7cca6）：机检改为含 现象|观察|observation|phenomenon|symptom|bottleneck + 证据|evidence + 动作|action + 必含数字，EN 答复「Symptom/Evidence/Action」三段式可直通机检；prompt rule 5 收拢为三段式序号表述。
+- §§fe-gate 钉子根治：bible-ask-visual-style redact 增加 BOM 归一（钉内容不钉编码噪声）；SHA256 重钉 page=bdf701c9… comp=a4a37dbb…；fe-gates 恢复 1272/1272 全绿。
+- 提交 550352d7(v906) 漏了 pin 重钉——本条补上；教训：每次动 bible/ask 源文件，同轮必须重钉 pins。
