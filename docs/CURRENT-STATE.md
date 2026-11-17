@@ -4858,3 +4858,13 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 兄弟项目进程全程未触碰（D:\游戏·node/vite/tsc 自然结束后 RAM 回到 9+ GB）。
 
 待办照旧：Echo #37（中文退化）· spring-cloud verify（仍等 ≥6 GB 净空）· origin/main push（workflow scope 缺失）· cache-stream 复报 channel 归因不变。
+
+## cont. 253 (2026-11-17) — v882 · §BIBLE-37 · Echo #37 落地（手写，非生成）
+
+- 第 37 篇回响《值更院米缸月最后一夜那口从不离灶的粥 / The Congee Pot That Never Leaves the Stove on the Last Night of the Rice-Jar Month》对页（双语
+  `E37-值更院米缸月最后一夜那口从不离灶的粥.md` + `.en.md`）。
+- **写法**：这次不再让 provider 直接生成中文（连续四次退化）。本篇为作者手写（中文与英文母语级文本），主题承接米缸线（E36）：粥锅/灶边钉子/只舀粥/锅巴/比大会还老的锅/守夜锅，6 组 zh/en 锚句逐字一致。
+- 快照重新生成（37 echoes），`verify:bible-snapshot` ✓，`verify:world-bible` **206/206 锚句** ✓（之前 200）。
+- 同步落地：`gen-bible-snapshot.mts` 登记 `echo-037-the-congee-pot-that-never-leaves-the-stove`；`BibleAsk.tsx` lede 双语 → 37；`/bible/ask` meta → 三十七篇；`canon-answer-graph` 测试口径 42 段/37 echoes；`bible-ask-behavior` 锚句总数 200→206；CACHE-IDENTITY 更新。
+- 回归：bible 组 50/50（含 quiz/search/visual/ask 同组）；canon-answer-graph 13/13。web typecheck ✓。
+- digest 随第 37 篇重灌：下一次真 provider 调用会有一次 cold（属预期，见 CACHE-IDENTITY.md）。
