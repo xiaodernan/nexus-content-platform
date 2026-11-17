@@ -4613,3 +4613,13 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   - hero/教育卡片/经历条/隐盾/铜牌 一字不变（与用户本人口径逐字对齐过一次）。
   - 已截图核验（首页、项目索引）渲染与 design 一致。master `216ca0b` → `cc5bac5`。
 - Pages 与 GitHub 双渠道推送均走 raw git（本 Pages 仓由 sync 脚本持有，手工 rebase 处理外部 bot 撞车 4 次）。
+
+## cont. 228 (2026-11-17) — 个人 Pages 新增「全部仓库 / ALL REPOS / 16」
+
+- 用户再次点名要求把所有项目列进个人主页：抓取 GitHub 账号全部 16 个公开仓库（按最近更新排序），分类为 主力/本站/归档/fork，
+  全部浏览器内分类过滤 + live stars badge + 一句话简介 + repo 直链：
+  - 主力：minicc-codex · crossrealm-chronicles（此前页面完全没有）· nexus-content-platform · nexus-platform · caesura · specproof · ai-career-os · football-os · football-os-web
+  - 本站：xiaodernan.github.io（本站源码）· xiaodernan（PROFILE README 源码）
+  - 归档：ted · teedyyyy · main；fork：linuxdo-scripts · docs
+- 本地 http server + headless Chromium 实测：16 张 repo 卡片渲染、filter 三个按钮可用、console 0 error；
+  截图存档确认 ✓。push master `beab505`，Pages 自动构建。
