@@ -116,6 +116,15 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           '任何人都可以提交与讨论——口令不是秘密，数据也不涉隐私；系统会按 IP 限流防滥刷（30 次 / 5 分钟）。',
         ],
       },
+      {
+        heading: '⑫ 问典与大模型——「问典」两字的来路',
+        body: [
+          '问典（/bible/ask）不是「把问题丢给模型瞎编」。它是一条 StateGraph 编排的链：先用一段短提示只抽检索词（analyze，不烧长上下文）；接着用纯算法字符二元组 Jaccard 直接命中典籍段落（retrieve，不调模型，0 token）；把正典全文和命中的证据段落一起丢给模型作答（draft）；最后用机检空答案/发明章回响/不存在的锚句引用三项（verify）——过了再说、过不了就 revise 一轮，依然过不了就如实标注「不合格」。',
+          'StateGraph 是 agents/runtime 里真正的编排原语——节点、状态、条件边，和 LangGraph 同源的「图 + 状态」模型；修订回路在图里真的走完、修订上限两轮硬封顶，不会陷入「一边改一边错」的死循环。',
+          '潮汐挑战答对就是对；问典答不出时，潮汐也答不出——典籍管它叫「典籍里没有」。绝不替典籍撒谎，绝不替潮海投机。',
+          'draft 的 system 是字节级稳定的正典摘要（五章正典全文 + 锚句中英对照），前缀复用因而 KV 命中率在 /admin/ai-cache 里看得见。',
+        ],
+      },
     ],
   },
   en: {
@@ -229,6 +238,15 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           'Section ⑧ of the observatory — “AI reads the ledger”: the same 30-day aggregate snapshot is handed to the live model (gpt-6.1-terra) and it returns “observation → evidence → action” — no personal fields leave the process, and the cache/model badge stays visible.',
           'The trend line is least-squares over the last 30 days with R² printed beside it — reference, not a promise; every §5 “deep optimization” item lists the numbers that triggered it and its threshold — deterministic rules, not a model guess.',
           'Anyone may enter — the passcode is not a secret and the numbers are not personal; an IP rate limit (30 per 5 minutes) keeps scripts from hammering the door.',
+        ],
+      },
+      {
+        heading: '⑫ Ask the Canon — how the answer is actually produced',
+        body: [
+          '“Ask the Canon” (/bible/ask) is not “throw the prompt at the model and hope”. It runs a StateGraph chain: a short prompt extracts retrieval terms (analyze — no 32k-token digest fired yet); pure-algorithm char-bigram Jaccard hits the digest blocks (retrieve — the model is not called for this step, 0 tokens); then the model answers with the full canon digest plus the matched passage as evidence (draft); then a mechanical verifier rejects empty answers / invented chapters or echoes / non-existent anchor refs (verify) — fail the gate, one revise round, and if it still fails the UI shows it failed honestly.',
+          'StateGraph is a first-class orchestration primitive in this repo’s own agent runtime (@nexus/agent-runtime, ADR-0270/0275) — nodes, state, and conditional edges, the same “state + graph” model LangGraph popularized, driving the real chain you see.',
+          'A passed quiz is that; an unanswered canon question is also “the canon does not hold this — the canon itself says so”. No model is allowed to bluff the canon.',
+          'The draft system prompt is a byte-stable digest of the five canonical chapters + the echo anchors — the whole prefix is reused, so cache hits stay around 90%+ (see /admin/ai-cache for the live read; the ledger-average reads lower precisely because short non-digest calls dominate the count).',
         ],
       },
     ],

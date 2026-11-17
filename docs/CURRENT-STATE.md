@@ -4956,3 +4956,12 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 作者手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-043-the-ink-bowl-in-the-chapel-cellar-that-never-dries`；verify:bible-snapshot ✓；verify:world-bible **242/242** ✓。
 - 同步落地：BibleAsk lede → 43；/bible/ask meta → 四十三篇；canon-answer-graph 测试 48 段／43 echoes；bible-ask-behavior 锚句总数 236→242；CACHE-IDENTITY 更新。
 - 回归：bible 组 50/50 绿。
+
+## cont. 265 (2026-11-17) — v894 · §GUIDE-12 · 使用指南补「问典与 StateGraph」⑫ 双语章节
+
+- 用户再次「把大模型能力深度嵌入项目」——使用指南里原来没有一段讲清楚「问典不是丢给模型瞎编」。
+- 新增第 ⑫ 节「问典与大模型——『问典』两字的来路」（zh+en 镜像）：
+  - 编排链逐跳讲清：analyze 短抽词（0 digest）→ retrieve 字符二元组 Jaccard（0 LLM、0 token）→ draft（正典全文+证据）→ verify 机检空答案/发明章回响/不存在锚句引用 → revise 一轮 → 不行就标注不合格。
+  - 落点：StateGraph 是 agents/runtime 里真正的编排原语（节点/状态/条件边），同 LangGraph 同源；
+  - 纪律收口：典籍说「典籍里没有」，绝不替潮海投机；正典 cache 命中在 /admin/ai-cache 看得见。
+- 本次不动 page.tsx SHA（guideCopy.ts 是正文真值，guide ⑪ 的 SHA 钉的是瘦壳，未被触碰）；guide-visual-style + bible-visual-style 17/17 绿。
