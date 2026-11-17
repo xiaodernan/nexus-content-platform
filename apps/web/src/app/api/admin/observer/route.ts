@@ -52,7 +52,7 @@ export async function POST(request: Request) {
   const password = (body as { password?: unknown } | null)?.password;
   if (typeof password !== 'string' || password !== '123') {
     const store = await cookies();
-    store.delete(OBSERVER_COOKIE);
+    store.set(OBSERVER_COOKIE, '', { path: '/admin/observe', maxAge: 0 });
     return NextResponse.json({ error: 'wrong-password' }, { status: 401 });
   }
   const store = await cookies();
@@ -67,6 +67,6 @@ export async function POST(request: Request) {
 
 export async function DELETE() {
   const store = await cookies();
-  store.delete(OBSERVER_COOKIE);
+  store.set(OBSERVER_COOKIE, '', { path: '/admin/observe', maxAge: 0 });
   return NextResponse.json({ ok: true });
 }
