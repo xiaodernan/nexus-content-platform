@@ -5997,3 +5997,10 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 > - 两个直接问（"为什么我们看起来不停掉缓存？""为什么 context 不够九万？"）都在同一 evidence 答：① distributor 渠道分桶 + sticky key 恒定 ⇒ 单 Session 连打零损失；
 >   多 Session 撞桶 ⇒ 不同渠道冷启动（已证实 p90≈95.7% / p50 0% 左右） ② 日常探针的 prompt 小是有意为之——app 实际跑的是项目上下文+callables+名册，
 >   `/api/bible/q` 是且是唯一重上下文场景（ SYSTEM_PROMPT ≈ 5k 字典 + 26 回响 digest）
+
+
+> **2026-11-18 续（cont. 216 — 问典二次连发：cachedTokens=0 → 43,354）**：
+> 同一问题连发两次《收件人》谁收到了签收单？第一问冷（cachedTokens=0）、第二问命中（cachedTokens=**43,354**），
+> SYSTEM_PROMPT 61k 字节前缀被 distributor 在 7897/Clash 节点上认出——KV 复用按字节生效，不靠任何抽象层体验。
+> live-bible-ask-probe.mts 已入库（npm run live:bible-ask-probe -- --confirm-real）。
+> evidence：docs/evidence/bible-ask-cache-2026-11-18.md
