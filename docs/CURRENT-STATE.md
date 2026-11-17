@@ -4538,3 +4538,11 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 教学 title：视图切换五个按钮（canvas/variants/code/graph/gamegraph 各一句话用法）、顶栏「面板」开关列十四个面板、画布「滚轮」开关中英 title；/guide §⑩ 已加说明。
 - 个人页 GitHub Pages 本回未动（上回已修契约文件/隐盾/计科/物理竞赛表述，master=099984c）。
 - 仍积压：verify:spring-cloud（要 free RAM ≥ 6 GB，本机 ~0.5–2 GB）；origin/main push（token 无 workflow scope，走 showcase）；/insight ⑨ 之后的用量深潜。
+
+## cont. 220 (2026-11-17) — 个人展示页错字收尾
+
+- xiaodernan.github.io（用户点名过的「还有很多错别字」页）：本次全量核对 index.html / styles.css / README.md / docs/：
+  - 残余一处 `契约文件` → **`接口契约`**（wire contracts 的准确中文，不是文件），commit f368b39，master 已 push，raw 核验已包含；
+  - 其余用户点名项已正确：赵欣曈 / 南方科技大学本科计科 / 香港中文大学硕士计科 / 全国中学生物理竞赛铜牌 · 江西省一等奖 · 江西省二等奖 / 法狗狗公司 · 应用工程师 / 隐盾（「隐图」全库零出现）/ 全部都真跑 / 计算机体系结构。
+- push 过程与外部同步 bot（minicc/football 等）两次撞车，均 rebase 解决并保持提交；Page build 由 GitHub 自动完成。
+- Nexus 仓库：main @ c940595a（docs 收尾后另见本条 commit），working tree 干净；showcase 已同步（含其它 bot 的 f368b39 之上）。
