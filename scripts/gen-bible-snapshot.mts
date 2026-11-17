@@ -109,6 +109,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E65-祠殿面东墙那一排谁也不认得的偏旁': 'echo-065-the-radical-only-column-on-the-east-wall',
   'E66-潮候院大门口那位扫了三十年的扫帚师': 'echo-066-the-sweeper-at-the-gate',
   'E67-雾港东南港口那位老交长执事': 'echo-067-the-tidekeeper-of-the-south-east-dock',
+  'E68-潮候院潮水巷里的那位陶人阿栀': 'echo-068-the-potter-of-the-tide-alley',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

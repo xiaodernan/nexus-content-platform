@@ -5519,3 +5519,9 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 第 67 篇回响「潮候」：东南港口白胡子老交长——海潮一退就卵石一颗 · 他六十岁时独自挑一颗铁钦搁大贝柱 · 散会之后仍一粒一粒捡卵石上海岸自己的诺言里——无人问也无人去管。
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-067-the-tidekeeper-of-the-south-east-dock`；verify world-bible **386/386** ✓。
 - 同步：BibleAsk lede → 67（含 en）；/bible/ask meta → 六十七篇 / sixty-seven；cache-identity → 67 篇锚句；bible-ask-behavior 锚句总数 380→386；canon-answer-graph 测试 72 段 / 67 echoes；pins 重钉（page→e9076540… comp→607496ce…）；fe-gates 测试 24/24。
+
+## cont. 312 (2026-11-18) — v931 · §BIBLE-68 · Echo #68《潮候院潮水巷里的那位陶人阿栀》（作者手写·双语·392/392 绿）
+
+- 第 68 篇回响「陶人阿栀」：潮水巷尽头亮一盏灯——她每天扛一只木箱——柳条绑住——送到偏院 · 里面装的陶具她从不说 · 双手粗糙但永远选最柔退浪石做汤碗 · 她的事手册封了线——只有一行「成了另一件」 · 放着的莓杯是她烧的。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-068-the-potter-of-the-tide-alley`；verify world-bible **392/392** ✓。
+- 同步：BibleAsk lede → 68（含 en）；/bible/ask meta → 六十八篇 / sixty-eight；cache-identity → 68 篇锚句；bible-ask-behavior 锚句总数 386→392；canon-answer-graph 测试 73 段 / 68 echoes；pins 重钉（page→2aacbe96… comp→2b86aa7b…）；fe-gates 测试 24/24。

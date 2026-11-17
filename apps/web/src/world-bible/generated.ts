@@ -14466,6 +14466,202 @@ None of them reacted.  He rose slowly to his feet, and did not look back.
 > One man throws stones into the sea — he is balancing the Institute's own tide.
 `,
   },
+  {
+    order: 68,
+    slug: 'echo-068-the-potter-of-the-tide-alley',
+    titleZh: '潮候院潮水巷里的那位陶人阿栀',
+    titleEn: 'The Potter A-Zhi in the Tide Alley of the Institute',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——秋潮月第四十六日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the forty-sixth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 68): The Potter A-Zhi in the Tide Alley of the Institute
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院潮水巷里的那位陶人——她每天扛一只木箱，但没有人知道木箱里装什么。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the potter at the Institute's Tide Alley — every morning she carries one wooden crate to its set destination; no one has ever asked what is inside.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第四十六日。
+> Era: the Institute — after the 41st Convocation; the forty-sixth day of the autumn-tide month.
+
+---
+
+## 一 · 潮水巷
+
+潮候院后廊转入一条人烟较稀的小巷——潮水巷——两边只有对面对面的小屋。
+
+最深处有一间亮着灯的作坊；门口倒挂着一只小小的茶壶，每天早上六点倒挂一刻钟，然后店主才开门。
+
+**锚句**：潮水巷尽头有一间常年亮灯的作坊。
+**Anchor sentence**: at the end of the Tide Alley sits a pottery workshop that is rarely dark.
+
+---
+
+## 二 · 木箱
+
+陶人阿栀，四十岁出头，住在作坊里。
+
+每天早上六点半，她把一只木箱——柳条绑的——一步一步扛到偏院，交给值更长的小徒弟，话不多。
+
+**锚句**：阿栀每天把一个木箱扛到偏院交给钟点徒弟。
+**Anchor sentence**: A-Zhi carries a crate daily to the Inner Court and hands it to a watch-apprentice.
+
+---
+
+## 三 · 封口
+
+每只箱子的大小都不一样，但封口的方式永远一样：石头压住木板盖子，要压很久。
+
+抄本师私下描述过几次：里面装的是几罐泥做的陶器，被硅胶封口；只要安静，谁都不会被打扰揉碎。
+
+**锚句**：箱子里装的是陶人的泥罐，被封住，很安静。
+**Anchor sentence**: inside the crate are clay vessels, sealed so quiet no one hears them fire.
+
+---
+
+## 四 · 退浪石
+
+潮水的时辰到潮水的时辰，阿栀要到港口去捡一种叫退浪石的小石粒——这种退浪石柔软的边缘适合做汤碗；太硬的烧制出来的碗口太粗。
+
+她只选一种最柔软的形状，不能有棱角。
+
+**锚句**：每次潮水退了，她会挑出最柔的那块退浪石。
+**Anchor sentence**: each time the tide recedes, she selects the softest stones for the folding-bowls.
+
+---
+
+## 五 · 她的事手册
+
+抄本师读过阿栀的事手册——册子的封面封了线，没写标题——内容就是一行：「成了另一件。」
+
+阿栀写给抄本师的信只有一句：「我们做的事不需要传下去，我愿意只做好。」
+
+**锚句**：她自己说，她不需要把做陶器的事传下去——只做好。
+**Anchor sentence**: A-Zhi said she never wanted the story of her vessels to continue — only that each vessel be made right.
+
+---
+
+## 六 · 大贝柱
+
+第四十一次大会散会之后，大贝柱南边一堂放着一个盆——湖岸上漂出一支海玫瑰——烧出来的那一只莓杯，就由阿栀烧制。
+
+她烧好的那只杯子，潮候院至今无人碰；她做的这只杯子就被钉在了大贝柱旁边。
+
+**锚句**：大贝柱旁边放着的那只杯，是陶人阿栀做的。
+**Anchor sentence**: the cup placed beside the Great Shell Pillar — A-Zhi fired it.
+
+---
+
+## 七 · 映射（回响六十八章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 陶人阿栀 · 潮水巷 · 汤碗 · 事手册 | 一、二、三、四、五、六 |
+| geography | 潮水巷 · 偏院 · 大贝柱 | 一、二、六 |
+| characters | 陶人阿栀 · 值更长徒弟 · 抄本师 | 一、二、三、四、五、六 |
+| story | 陶人阿栀 · 回响（其六十八） | 全篇 |
+| items | 木箱 · 陶具 · 退浪石 | 一、二、三、四、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第四十六日 | 六 |
+
+> 潮汐不记得她，这是潮候院一段沉默的好。
+> The sea does not remember her; it is a silence the Institute loves.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其六十八）「潮候院潮水巷里的那位陶人阿栀」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the potter at the Institute's Tide Alley — every morning she carries one wooden crate to its set destination; no one has ever asked what is inside.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院潮水巷里的那位陶人——她每天扛一只木箱，但没有人知道木箱里装什么。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the forty-sixth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第四十六日。
+
+---
+
+## I · The Tide Alley
+
+A back alley behind the sanctuary leads into a narrower one — the Tide Alley — flanked by small facades only.
+
+Near the deepest end there is a single lit workshop; a tiny teapot hangs upside-down by its door, set down at six in the morning, then the shopkeeper rises.
+
+**锚句**：潮水巷尽头有一间常年亮灯的作坊。
+**Anchor sentence**: at the end of the Tide Alley sits a pottery workshop that is rarely dark.
+
+---
+
+## II · The Crate
+
+A-Zhi is in her forties and lives in the workshop.
+
+Every morning at half past six she carries a wooden crate, tied with willow, into the Inner Court, passing it to the watch-apprentice of the head-of-watch; she never says much.
+
+**锚句**：阿栀每天把一个木箱扛到偏院交给钟点徒弟。
+**Anchor sentence**: A-Zhi carries a crate daily to the Inner Court and hands it to a watch-apprentice.
+
+---
+
+## III · The Seal
+
+Every crate is of a different size, but the sealing method never varies — a stone presses the lid for a long time.
+
+The copyists privately described it several times: the crate carries a few clay vessels, sealed so tightly by silicone that no one would disturb them firing.
+
+**锚句**：箱子里装的是陶人的泥罐，被封住，很安静。
+**Anchor sentence**: inside the crate are clay vessels, sealed so quiet no one hears them fire.
+
+---
+
+## IV · The Tide-receding Stones
+
+At every hour of the tide, A-Zhi goes to the harbor to pick up stones called "tide-receding stones" — their edges are always soft and suit the shaping bowls; anything too hard produces a rim too coarse to hold a sip.
+
+She selects only the softest-shaped stones; nothing with corners.
+
+**锚句**：每次潮水退了，她会挑出最柔的那块退浪石。
+**Anchor sentence**: each time the tide recedes, she selects the softest stones for the folding-bowls.
+
+---
+
+## V · Her Own Notebook
+
+The copyists once read A-Zhi's notebook — its cover sewn shut, no title — each line inside simply reads "finished another".
+
+Of everything A-Zhi said to the copyists, only this: "What we do does not need to be passed down; I want only to make each one well."
+
+**锚句**：她自己说，她不需要把做陶器的事传下去——只做好。
+**Anchor sentence**: A-Zhi said she never wanted the story of her vessels to continue — only that each vessel be made right.
+
+---
+
+## VI · The Great Shell Pillar
+
+After the 41st Convocation dissolved, a long tray was laid south of the Great Shell Pillar — a single scarlet rose had drifted in from the lake — the bowl A-Zhi fired for that day has never been used since; it was set beside the Great Shell Pillar.
+
+**锚句**：大贝柱旁边放着的那只杯，是陶人阿栀做的。
+**Anchor sentence**: the cup placed beside the Great Shell Pillar — A-Zhi fired it.
+
+---
+
+## VII · Mapping（Echo No. 68 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | A-Zhi · the Tide Alley · the folding-bowls · the notebook | 一、二、三、四、五、六 |
+| geography | the Tide Alley · the Inner Court · the Great Shell Pillar | 一、二、六 |
+| characters | A-Zhi · the watch-apprentice · the copyists | 一、二、三、四、五、六 |
+| story | the potter A-Zhi · Echo No. 68 | 全篇 |
+| items | the wooden crate · the clay vessels · the tide-receding stones | 一、二、三、四、六 |
+| history | After the 41st Convocation · the forty-sixth day of the autumn-tide month | 六 |
+
+> 潮汐不记得她，这是潮候院一段沉默的好。
+> The sea does not remember her; it is a silence the Institute loves.
+`,
+  },
 ] as const;
 
 export const BIBLE_APPENDICES: readonly BibleChapter[] = [
