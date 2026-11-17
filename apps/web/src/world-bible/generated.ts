@@ -16256,6 +16256,204 @@ It is still those nails and those two rooms, constantly changing direction betwe
 > The door upstairs no one wants to look at — no one wants to hear — but it has always been inside itself.
 `,
   },
+  {
+    order: 77,
+    slug: 'echo-077-the-stone-lion-who-never-sank',
+    titleZh: '潮候院南山角那只一百多年从没入沉心的石狮',
+    titleEn: 'The Stone Lion at the South-East Corner of the Institute That Forgot to Sink for a Century',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——秋潮月第六十四日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the sixty-fourth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 77): The Stone Lion at the South-East Corner of the Institute That Forgot to Sink for a Century
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院南山角那只矗立一百多年的石狮。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the stone lion standing at the south-east corner of the Institute for over a century.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第六十四日。
+> Era: the Institute — after the 41st Convocation; the sixty-fourth day of the autumn-tide month.
+
+---
+
+## 一 · 南山角
+
+南山角是潮候院主体的南东侧——背靠一座矮山——对着开门口。
+
+角落立着一只石狮——比人稍矮一头——挡南山吹来的风。
+
+**锚句**：潮候院南山角立着一只石狮，挡南山吹来的风。
+**Anchor sentence**: at the south-east corner of the Institute stands a stone lion, blocking the southern wind.
+
+---
+
+## 二 · 一百多年
+
+值更长巡班时问抄本师："这口狮子哪天来的？"抄本师把这件事告诉他——它比潮候院本身还要古老。
+
+抄本师又说："它是潮候院自己的碑——潮候院最初本来想叫它『碑』"——"潮候院的碑"——抄本师没说出口。
+
+**锚句**：抄本师说"石狮比潮候院还早"，值更长没有追问。
+**Anchor sentence**: the copyists said "the stone lion is older than the Institute itself"; the head of the watch did not press.
+
+---
+
+## 三 · 脸朝东
+
+它的脸朝东——朝向正门，固定位置，无人能动。
+
+大约百年以前，某个抄本师给它画过一只红色的腮——院里所有红色腮都是同一个女人画的。
+
+**锚句**：它的脸朝东——某百年前有人画过它的腮——没人知道是谁画的。
+**Anchor sentence**: it faces east; a century ago someone painted its cheeks red — no one knows who.
+
+---
+
+## 四 · 第四十一次大会散会之后
+
+第四十一次大会散会后，值更长经过石狮——他看到它嘴角向上歪——几乎看不见。
+
+抄本师说："石头的表情您不要再看——它有自己的心事。"
+
+**锚句**：散会之后值更长看见石狮嘴角微微上扬，抄本师说"石头有自己的心事"。
+**Anchor sentence**: after the dissolution, the head of the watch saw the lion's mouth curl slightly upward; the copyists said the stone has its own thoughts.
+
+---
+
+## 五 · 红色
+
+七十年前有人报案说有人给石狮画红腮——上报给值更长——抄本师说"那就是上一次画它腮的人；他不说名字"
+
+值更长想把那人抓起来问——抄本师劝他不要——抄本师说："抓了也没人承认；这又是一件要保存到最后的事。"
+
+**锚句**：值更长想抓那个画红腮的人，抄本师劝他"抓了也没人承认"。
+**Anchor sentence**: the head of the watch wanted to arrest the red-cheek painter; the copyists pleaded that even if he caught him, no one would speak.
+
+---
+
+## 六 · 海星
+
+抄本师发现：每年一天的午后，石狮脸上的红腮会变深一点——是潮候院的一种海星。
+
+每年那一只星变的深的那一天，雾起来得特别浓。
+
+**锚句**：每年只有一昼夜，石狮脸上红色腮会变得更红——那天雾浓得出奇。
+**Anchor sentence**: once a year for one hour stone-face reddens and the Institute swallows more fog than usual.
+
+---
+
+## 七 · 映射（回响七十七章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 石狮 · 潮候院 · 红腮 · 南山角 · 碑 | 一、二、三、四、五、六、七 |
+| geography | 南山角 · 矮山 · 雾港 | 一、二、六 |
+| characters | 抄本师 · 值更长 · 画腮的人 | 一、二、三、四、五、六 |
+| story | 石狮 · 回响（其七十七） | 全篇 |
+| items | 石狮 · 红腮 · 雾 · 海星 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第六十四日 | 四、五、六 |
+
+> 石狮不会沉下去——石狮一直都在它自己里面——它是潮候院自己的碑。
+> The lion will never sink — it has always been inside itself — it is the Institute's own monument.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其七十七）「潮候院南山角那只一百多年从没入沉心的石狮」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the stone lion standing at the south-east corner of the Institute for over a century.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院南山角那只矗立一百多年的石狮。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the sixty-fourth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第六十四日。
+
+---
+
+## I · The South-East Corner
+
+The south-east corner of the Institute is its southern-eastern flank — braced against a low rise — opening toward the main entrance.
+
+At the corner stands a stone lion — slightly shorter than a grown man — blocking the southern wind.
+
+**锚句**：潮候院南山角立着一只石狮，挡南山吹来的风。
+**Anchor sentence**: at the south-east corner of the Institute stands a stone lion, blocking the southern wind.
+
+---
+
+## II · Over a Century
+
+Once during his rounds the head of the watch asked the copyists when this lion arrived. The copyists told him — it is older than the Institute itself.
+
+The copyists continued: "It is the Institute's own monument — the Institute originally wanted to call it a monument" — "the Institute's monument" — they did not speak it aloud.
+
+**锚句**：抄本师说"石狮比潮候院还早"，值更长没有追问。
+**Anchor sentence**: the copyists said "the stone lion is older than the Institute itself"; the head of the watch did not press.
+
+---
+
+## III · East-Facing
+
+Its face always faces east — fixed toward the main gate forever — no one can move it.
+
+Roughly a century ago, a copyist painted its cheeks red — all the red cheeks in the Institute come from the same woman.
+
+**锚句**：它的脸朝东——某百年前有人画过它的腮——没人知道是谁画的。
+**Anchor sentence**: it faces east; a century ago someone painted its cheeks red — no one knows who.
+
+---
+
+## IV · After the 41st Convocation Dissolved
+
+After the 41st Convocation dissolved, the head of the watch passed by the lion; he saw its mouth curl slightly upward — barely visible.
+
+The copyists said: "do not look at the stone's expression — it has its own thoughts."
+
+**锚句**：散会之后值更长看见石狮嘴角微微上扬，抄本师说"石头有自己的心事"。
+**Anchor sentence**: after the dissolution, the head of the watch saw the lion's mouth curl slightly upward; the copyists said the stone has its own thoughts.
+
+---
+
+## V · The Red
+
+Seventy years ago, someone reported that the lion's cheeks had been painted red — the report reached the head of the watch. The copyists said, that is the same person who painted its cheeks before; no name would come out.
+
+The head of the watch wanted to catch the painter, but the copyists begged him not to — the copyists said: "Catch him and no one will speak; this is one of the things that must be preserved until the end."
+
+**锚句**：值更长想抓那个画红腮的人，抄本师劝他"抓了也没人承认"。
+**Anchor sentence**: the head of the watch wanted to arrest the red-cheek painter; the copyists pleaded that even if he caught him, no one would speak.
+
+---
+
+## VI · The Red Sea-Star
+
+The copyists notice that once a year, on a single afternoon, the red on the lion's cheeks deepens — an Institute species of sea-star.
+
+On the day the red deepens, the fog rolls thicker than usual over the Institute.
+
+**锚句**：每年只有一昼夜，石狮脸上红色腮会变得更红——那天雾浓得出奇。
+**Anchor sentence**: once a year for one hour stone-face reddens and the Institute swallows more fog than usual.
+
+---
+
+## VII · Mapping（Echo No. 77 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the stone lion · the Institute · the red cheeks · the south-east corner · the monument | 一、二、三、四、五、六、七 |
+| geography | the south-east corner · the low rise · the fog harbor | 一、二、六 |
+| characters | the copyists · the head of the watch · the red-cheek painter | 一、二、三、四、五、六 |
+| story | the stone lion · Echo No. 77 | 全篇 |
+| items | the stone lion · the red cheeks · the fog · the sea-star | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the sixty-fourth day of the autumn-tide month | 四、五、六 |
+
+> 石狮不会沉下去——石狮一直都在它自己里面——它是潮候院自己的碑。
+> The lion will never sink — it has always been inside itself — it is the Institute's own monument.
+`,
+  },
 ] as const;
 
 export const BIBLE_APPENDICES: readonly BibleChapter[] = [
