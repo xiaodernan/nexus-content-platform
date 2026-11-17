@@ -8663,4 +8663,202 @@ The first rice-jar month after the first convocation, the slab was shining like 
 > On the seventh morning of the rice-jar month, someone will come to the well for water — he will see the slab shining again, as ever, waiting for the tide.
 `,
   },
+  {
+    order: 39,
+    slug: 'echo-039-the-night-eye-at-the-top-of-the-lamp-rack',
+    titleZh: '值更院灯架最上层那盏不灭的灯',
+    titleEn: 'The Ever-Burning Lamp at the Top of the Watcher\'s Lamp Rack',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——米缸月最后一夜。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the last night of the rice-jar month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 39): The Ever-Burning Lamp at the Top of the Watcher's Lamp Rack
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院值更院灯架最上层那盏没人添油、也永远不空的灯。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the topmost lamp of the rack in the watcher's courtyard — the one no one refills, and the one that never empties.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——米缸月最后一夜。
+> Era: the Institute — after the 41st Convocation; the last night of the rice-jar month.
+
+---
+
+## 一 · 值更院的灯架
+
+值更院灯架有三层。下层是工作灯，中层是门灯，最上层只有一盏。
+
+最上层那盏灯很小，玻璃上有一道细长的裂纹，值更们从没看到过谁添过油。册子上也没有「添油」这两笔。
+
+**锚句**：灯架最上层那盏灯，油从不添，也从不少。
+**Anchor sentence**: the top lamp on the rack is never refilled, and never empties.
+
+---
+
+## 二 · 它是不是只是个装饰
+
+新来的值更第一眼看到它，会以为它只是一个装饰的旧灯壳。用了一年才知道，它不是装饰。
+
+有人用力敲了敲那盏灯，里面油声和外面一样：无声。油是满的，怎么敲都无声。值更长拦住他说：那盏不添油的灯你敲它作什么。
+
+**锚句**：看惯了的人以为它只是个装饰。
+**Anchor sentence**: those who are used to it think it is only ornament.
+
+---
+
+## 三 · 借去照过一次
+
+值更院里只有这一盏灯照过抄本员的放大镜。有一次年成不好，油盐都紧，值更长把它借给抄本员，看账本里一个小数点。
+
+放大镜底下，那个小数点清楚得能让人想哭。灯还回来的时候，油是满的——和借出去的时候一样满。
+
+**锚句**：米缸月最后一夜，有人上梯点一次灯。
+**Anchor sentence**: on the last night of the rice-jar month, someone climbs the ladder once and lights it.
+
+---
+
+## 四 · 点一次灯
+
+一年只有一次有人上梯点它。点的人不说话，也不回头。灯芯是老值更留下的，每一截新接起来的一样粗细。
+
+火从来不大。但每一双从门缝里瞥见它的眼睛，都替那一夜看进去了。火灭的时候没有声音；灭了油桶里的油却还是满的。
+
+**锚句**：火从来不大，但所有眼睛都看见了。
+**Anchor sentence**: the flame is never big, but every eye sees it.
+
+---
+
+## 五 · 油是满的
+
+天亮的时候，灯上的裂纹透出一层光，像有光在里面睡着了。抄本员登记的时候，只写一个字：「满」。
+
+写着「满」的那一年又过去了。写「满」的人老了，下一任写「满」的人，还要再从年轻时起算。
+
+**锚句**：天亮的时候油还是满的。
+**Anchor sentence**: by daylight, the oil is full again.
+
+---
+
+## 六 · 夜眼
+
+值更们管它叫夜眼。夜里有什么事要发生，它就先亮一点；夜里有什么事要过去，它就慢慢暗一点。
+
+没有人知道它靠的是什么——但每一个米缸月的最后一夜，都有一个新值更第一次爬上梯子，点它。
+
+**锚句**：值更们管它叫夜眼。
+**Anchor sentence**: the watchers call it the night eye.
+
+---
+
+## 七 · 映射（回响三十九章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 夜眼 · 不添油的灯 · 油为满的 | 一、二、三、四、五、六、七 |
+| geography | 值更院 · 灯架 · 米缸月最后一夜 | 一、二、三、四、七 |
+| characters | 值更长 · 抄本员 · 新来的值更 | 一、二、三、四、五、六 |
+| story | 夜眼 · 回响（其三十九） | 全篇 |
+| items | 灯架 · 夜眼那盏灯 · 油 · 梯子 | 一、二、三、四、五、六、七 |
+| history | 第四十一次大会散会之后 · 建院第六十九年 | 一、五、六、七 |
+
+> 米缸月最后一夜，有人爬上梯子，点亮夜眼——值更院这一夜，每一秒都被看着。
+> On the last night of the rice-jar month, someone climbs the ladder and lights the night eye — in the watcher's courtyard that night, every second is kept in view.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其三十九）「值更院灯架最上层那盏不灭的灯」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the topmost lamp of the rack in the watcher's courtyard — the one no one refills, and the one that never empties.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院值更院灯架最上层那盏没人添油、也永远不空的灯。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the last night of the rice-jar month.
+> 纪元：潮候院 · 第四十一次大会散会之后——米缸月最后一夜。
+
+---
+
+## 一 · The Lamp Rack in the Watcher's Courtyard
+
+The watcher's lamp rack has three tiers. The lowest holds the working lamps; the middle, the door lamps; the topmost, one lamp only.
+
+The topmost lamp is small, its glass carrying one long fine crack, and no watcher has ever seen anyone refill it. The register contains no entry for "refill".
+
+**锚句**：灯架最上层那盏灯，油从不添，也从不少。
+**Anchor sentence**: the top lamp on the rack is never refilled, and never empties.
+
+---
+
+## 二 · Is It Ornament
+
+A new watcher's first glance tells him: an old shell of a lamp, ornament probably. A year of service tells him otherwise.
+
+One day someone knocked on the lamp hard. Inside, the oil answered silent — and it answered silent however hard it was knocked. The headkeeper stopped him and said: the lamp nobody refills, you knock for what.
+
+**锚句**：看惯了的人以为它只是个装饰。
+**Anchor sentence**: those who are used to it think it is only ornament.
+
+---
+
+## 三 · It Was Borrowed Once
+
+In the watcher's courtyard there is only this one lamp that has shone upon the copyist's magnifier. Once, in a thin year when oil and salt were short, the headkeeper lent the lamp to the copyist so he could see one small decimal in the ledgers.
+
+Under the magnifier, that decimal was clear enough to bring tears. When the lamp was returned, its oil was full — as full as when it had been lent out.
+
+**锚句**：米缸月最后一夜，有人上梯点一次灯。
+**Anchor sentence**: on the last night of the rice-jar month, someone climbs the ladder once and lights it.
+
+---
+
+## 四 · Lighting It Once a Year
+
+Once a year, someone climbs the ladder and lights it. The one who climbs does not speak and does not turn around. The wick is inherited from an older watcher — every freshly joined length as thick as the last.
+
+The flame is never big. But every pair of eyes that glimpses it through the door crack sees deep into that night. When the flame dies there is no sound; the oil tank is full the moment after.
+
+**锚句**：火从来不大，但所有眼睛都看见了。
+**Anchor sentence**: the flame is never big, but every eye sees it.
+
+---
+
+## 五 · The Oil Is Full
+
+By daylight, through the fine crack in the glass, a light seems to have lain down inside. When the copyist records it, he writes only one character: "full".
+
+The year he wrote "full" passed. The man who writes "full" grew old; whoever writes "full" next still has to start counting from youth.
+
+**锚句**：天亮的时候油还是满的。
+**Anchor sentence**: by daylight, the oil is full again.
+
+---
+
+## 六 · The Night Eye
+
+The watchers call it the night eye. When something is about to happen in the night, the lamp brightens a little; when something in the night has passed, it dims slowly.
+
+No one knows what it burns on — but every last night of the rice-jar month, a new watcher climbs the ladder for the first time and lights it.
+
+**锚句**：值更们管它叫夜眼。
+**Anchor sentence**: the watchers call it the night eye.
+
+---
+
+## 七 · Mapping（Echo No. 39 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the night eye · the unrefilled lamp · full by daylight | 一、二、三、四、五、六、七 |
+| geography | the watcher's courtyard · the lamp rack · the last night of the rice-jar month | 一、二、三、四、七 |
+| characters | the headkeeper · the copyist · the new watcher | 一、二、三、四、五、六 |
+| story | the night eye · Echo No. 39 | 全篇 |
+| items | the lamp rack · the night-eye lamp · the oil · the ladder | 一、二、三、四、五、六、七 |
+| history | After the 41st Convocation · the 69th year of the Institute | 一、五、六、七 |
+
+> 米缸月最后一夜，有人爬上梯子，点亮夜眼——值更院这一夜，每一秒都被看着。
+> On the last night of the rice-jar month, someone climbs the ladder and lights the night eye — in the watcher's courtyard that night, every second is kept in view.
+`,
+  },
 ] as const;

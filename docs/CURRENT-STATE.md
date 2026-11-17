@@ -4903,3 +4903,11 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 同步落地：BibleAsk lede → 38；/bible/ask meta → 三十八篇；canon-answer-graph 测试 43 段／38 echoes；bible-ask-behavior 锚句总数 206→212；CACHE-IDENTITY 更新。
 - 回归：bible 组 50/50 绿。web typecheck 未跑（RAM 0.6GB，仅两处字符串 + 两处测试数值，无类型表面）。
 - digest 随第 38 篇重灌：下一次真 provider 调用一次 cold（预期，见 CACHE-IDENTITY.md）。
+
+## cont. 258 (2026-11-17) — v887 · §BIBLE-39 · Echo #39《值更院灯架最上层那盏不灭的灯》（作者手写·双语·218/218 绿）
+
+- 第 39 篇回响「夜眼」：灯架三层，最上层那盏不添油、不熄灭的灯；米缸月最后一夜，新值更上梯点一次，天亮又满。
+- 作者手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-039-the-night-eye-at-the-top-of-the-lamp-rack`；verify:bible-snapshot ✓；verify:world-bible **218/218** ✓。
+- 同步落地：BibleAsk lede → 39；/bible/ask meta → 三十九篇；canon-answer-graph 测试 44 段／39 echoes；bible-ask-behavior 锚句总数 212→218；CACHE-IDENTITY 更新。
+- 同时修 /insight §④「按账面计算的缓存命中率」读数误解（zh/en）：原注只写"口径与 /admin/savings 一致"——现在原文白纸黑字区分**digest-path ~94%（PROVED-9/13/17/18）**与**短提示短调用被计大头拉低聚合（9.3%）**两条口径。37 组回归 ✓（insight ×5 文件）。
+- 回归：bible 组 50/50 绿。Docker Desktop 自重启 ρη 仍在，手写通道照常。
