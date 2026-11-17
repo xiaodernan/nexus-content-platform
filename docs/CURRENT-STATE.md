@@ -5103,3 +5103,14 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - Spring Cloud verify — 依然等 RAM≥6 GB（此时≈4 GB）
 - origin/main push — 固定 403
 - 确定 next turn：E53+ / Pages 商标轴 / 着力搁浅 spring
+
+## cont. 281 (2026-11-17) — v905 · §APPROVAL-GRAPH-1 · 审批解释 StateGraph 上线（ADR-0275 谱系 b）
+
+- 以问典（`§GRAPH-1`）同一纪律做事：`POST /api/ai/tasks/[taskId]/approval-explain` 改走 `runApprovalExplainGraph`：draft（llm·AGENT_EXPLAIN_SYSTEM_PROMPT·audit digests）→ verify（机械检查空/禁语「批准/同意/授权/approve/refuse/reject/否决/驳回」）→ revise 一次 → verify → finalize。
+- verify 故障：修订通过 → verdict=pass 浏览时显示 `.graph.verdict` 字段 + cached/draft 双账。
+- 不可用：整条流 503 并不 hiding 模型原文，用户能看见 `graph` 遥测。
+- 机检通过时：capability real · verdict pass · iterations 0。机检不过时：iterations=1 · verdict fail。每次都会给 `cachedTokens` —— 但 draft/revise 双调用会把总 cachedTokens 翻 ____（值同一份 digest 复用时 94%）。
+- 观测：`nexus_agent_explain_total` outcome enum 扩展到 `answer-unverified`，与路由 wire 同纪律。
+- 复用 `agents/runtime` StateGraph；与问典同源的 `@node-entry/state-graph/v1` 形状（*metadata*/`nodesVisited`/`iterations`/`verdict`）。
+- 行为测试：`approval-explain-graph-behavior.test.ts` 4 案加入（happy · revise · provider挂 · revise仍fail）—— 沿用 mock chatClient 离线跑。
+- 回归：本组 9/9 绿（route-behavior 5 + graph-behavior 4）；typecheck 绿；SHA 同一切片守恒（未改 SHA 关键字）。

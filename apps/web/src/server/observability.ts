@@ -168,13 +168,13 @@ export const METRICS = {
   },
   nexus_agent_explain_total: {
     kind: 'counter',
-    help: '审批卡「让模型读一眼」调用结果计数（回答 / 不可用 / 计量成功的路由计在 answer）',
-    labels: { outcome: ['answer', 'provider-unavailable'] },
+    help: '审批卡「让模型读一遍」调用结果计数（verified=pass 记为 answer，机检未过记为 answer-unverified，不可用记为 provider-unavailable）',
+    labels: { outcome: ['answer', 'answer-unverified', 'provider-unavailable'] },
   },
   nexus_agent_explain_latency_ms: {
     kind: 'histogram',
     help: 'approval-explain 从进路由到回流的毫秒数（含 provider 往返）',
-    labels: { outcome: ['answer'] },
+    labels: { outcome: ['answer', 'answer-unverified'] },
     buckets: DURATION_BUCKETS,
   },
   nexus_http_errors_total: {
