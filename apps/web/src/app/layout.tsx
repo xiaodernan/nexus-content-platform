@@ -24,6 +24,17 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const locale = await getLocale();
   return (
     <html lang={locale === 'en' ? 'en' : 'zh-CN'} data-nexus-theme="dark" suppressHydrationWarning>
+      <head>
+        {/* 真实字体：token 声明的 Inter / JetBrains Mono 此前从未被加载（fallback 到系统字体，样式发虚）。
+            中文正文/标题走 Noto Sans SC / Noto Serif SC 兜底，避免机器无 PingFang/YaHei 时的字形断层。
+            网络不通时 fallback 栈兜住，不阻塞渲染（display=swap）。 */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;550;650;700&family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&display=swap"
+        />
+      </head>
       <body className="rx-body">
         <ThemeScript />
         {children}

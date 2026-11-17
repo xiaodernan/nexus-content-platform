@@ -14566,3 +14566,14 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   - `other/*` 共 **13 个**远程跟踪参照（master, master2–master12），经 `git rev-list --count main..other/<n>` 实测**全部 0 ahead**——它们都是 main 的祖先，内容零丢失；
   - .git/config 已不存在 `other` remote，属于历史整合产物；已全部 `git update-ref -d` 删除，远程参照只剩 origin/main、origin/master、origin。
 - fe-gates 134/134 · 1268/1268 · census 2566 · web tsc 0 · snapshots 一致。
+
+## §VIS-20 — 真实字体首次接入 + 六页真渲染巡检 + ask 页回响计数修正（2026-11-17 · v856）
+
+- **字体此前从未加载**：token 声明了 Inter / JetBrains Mono，但仓库从无 webfont 引入（全部 fallback 到系统字体，样式发虚）。
+  根布局新增 Noto Sans SC + Noto Serif SC（preconnect + display=swap），tokens 字体栈增配 Noto SC 兜底；网络不通时 fallback 栈兜住。
+  i18n 字节门（972daf1b…→3a43110d…）、root-layout SHA 门（5dd9dfde…→4b513225…）按惯例重钉。
+- **六页真渲染巡检**（next dev + headless Chromium，1440×900，zh-CN）：
+  / · /guide · /bible · /bible/quiz · /bible/ask?q=… · /insight 全部 200 且大多数时延 < 2s，**无重叠 / 无字体变形（肉眼对照）/ 无错位块**。
+  问典 `?q=` 预填确认生效（输入框内已带「收件人是谁」）；/guide（说明书入口）渲染干净；/insight 仅见公开输入壳且常驻口令说明（聚合、零个人字段）。
+- **ask 页两处事实修正**：`26 篇`/`26 pieces` → `35 篇`/`35 pieces`（此前快照留下的旧计数）； BibleAsk SHA 门重钉（bb6ba291…→8b05df41…）。
+- fe-gates 134/134 · 1268/1268 · census 2566 · web tsc 0。

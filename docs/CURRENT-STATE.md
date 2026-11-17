@@ -4560,3 +4560,11 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - **分支参照整治**：other/* 13 个全是 main 祖先（ahead=0）；已全部 update-ref -d 删除；远程参照 = origin/main · origin/master · origin。stash=0；working tree 干净。
 - E34/E35 后世界未动：5 章 · 35 回响 · 195/195 anchors。
 - 已修错误：PowerShell 直接 `-replace | Set-Content` 会把 UTF-8 的 test 文件弄成 GBK 损坏——之后一律用 edit 工具改文件，不再用 PS 重写源码文件。
+
+## cont. 223 (2026-11-17) — v856 · §VIS-20 真实字体 + 六页巡检 + 问典回响计数
+
+- token 声明的 Inter / JetBrains Mono 此前**从未被加载**（零 webfont 引入，全部 fallback 系统字体）——根布局接入 Google Fonts（Inter / JetBrains Mono / Noto Sans SC / Noto Serif SC，display=swap，失败安全 fallback 栈）。
+- headless Chromium 在 1440×900 下对 / 、/guide 、/bible 、/bible/quiz 、/bible/ask?q= 、/insight 真渲染截图巡检：六页全部正常、无重叠/错位/变形；问典 `?q=` 预填实测生效。
+- /bible/ask lede 回响篇数 26 → 35（快照遗留）；BibleAsk SHA 门重钉。
+- 字体 fallback 顺序补齐 Noto SC 兜底；两条字节门重钉。
+- dev server 使用后已 kill（PID 21644 → 28532/17784 子树）；free RAM 回升至 ~2.9 GB。
