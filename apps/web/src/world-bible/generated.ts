@@ -11849,6 +11849,204 @@ Until that morning arrives, the replacement line on the night-watch roll is alwa
 > The back gallery stays open and the seals never loosen; when that night finally comes, everyone will first see the lamp duck an inch, and only then hear the bell — and this time, no one will stand.
 `,
   },
+  {
+    order: 55,
+    slug: 'echo-055-the-doorless-room-of-the-east-wing',
+    titleZh: '潮候院东偏院那间从没装门只系铜环的房间',
+    titleEn: 'The Doorless Room of the East Wing with Only a Cloth and a Copper Ring',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——秋潮月第六日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the sixth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 55): The Doorless Room of the East Wing with Only a Cloth and a Copper Ring
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院东偏院最北的那间宗卷室：没有门，只有一道门洞、一幅麻布、一枚铜环。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the scriptorium annex at the far north of the east wing: no door, only a doorway, a length of linen, and a copper ring.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第六日。
+> Era: the Institute — after the 41st Convocation; the sixth day of the autumn-tide month.
+
+---
+
+## 一 · 没有门的房间
+
+东偏院最北的一间，无窗无檐，只有一道齐胸高的门洞，洞里横挂一幅大麻布，布上缝着一枚铜环。环不是为了拽布，是为了给走过的风一个可以回答的形状。
+
+白天布会自己晃一下；没人进去，环先替他们收了手。夜里安静——铜环在布上睡了，防风针也压了。
+
+**锚句**：东偏院最北的那间不设门，只设布和铜环。
+**Anchor sentence**: the northernmost room of the east wing has no door, only cloth and a copper ring.
+
+---
+
+## 二 · 入门的规矩
+
+不站班上的抄本师永远不知道里面放着哪一本。进去之前要向值更院报一声："进卷一次，不出声，不回头。"进去的人只看自己要抄的那一卷，退出时不准看身后的架子——这是规矩，也是免责，那一眼看到什么都算「时候未到」。
+
+只有主持过拣卷、被值更长亲口认过名字的人，才有资格穿过那道布。
+
+**锚句**：能进宗卷室的只有主持过拣卷的抄本师。
+**Anchor sentence**: only copyists who have presided over the selection of scriptures may enter the archive annex.
+
+---
+
+## 三 · 不留名字的卷宗
+
+每年四十一次大会散会之后，值更院从外院缴回的旧卷里拣出「次卷」——不是不够好，是时候未到。封入无名麻布袋，袋口只系不封；封条上不写卷号，不写年份，只写四个字："时候未到。"
+
+这些袋子排在最深处的两架之间，谁也拿不出一整袋，只被允许核一袋之中的某一卷，抄出某一句，盖一个没有年份的墨印，然后放回去。
+
+**锚句**：封袋上从不写卷号，只写「时候未到」。
+**Anchor sentence**: the slips on the wrapping never carry volume numbers; they carry only the words "not yet the hour".
+
+---
+
+## 四 · 双人核对
+
+每一次向宗卷室增入新卷，必须两位在场：一位读，一位默。读的听着白纸之外最响的那半句；默的只点头、不发言。默者若发现读者念错一个字，不能纠——能抬一下左手，那次增卷就要重来，从头再读一遍。
+
+没有人在那个房间里听到别人替自己签名。两个人同时出现，是为了让一个人替另一个人记住「今天确实增过一卷」，而不是替谁证明「那一句是真的」。
+
+**锚句**：增卷是双人核对：一人读，一人默；谁都不能替谁签字。
+**Anchor sentence**: each addition is witnessed in pairs: one reads, one holds silence; no one signs for the other.
+
+---
+
+## 五 · 铜环声音
+
+挂铜环的麻布每季上一层蜜蜡；这件事是值更院第一件公示事项，比值更换帖还早一天挂出来。铜环哑了就该换，但没有人换过——已经很久了，「哑过的铜环才留得住回声」，这是钟匠的孙子在门廊上写的原话。
+
+更早的记录里没有这条规矩。钟匠的孙子自己说，他只是把自己偷下来的那枚环带回来，放回去的时候顺便写了这么一行；没人来问他写的原因，也没人擦掉。
+
+**锚句**：挂铜环的麻布每季上一层蜜蜡，钝了也不换。
+**Anchor sentence**: the linen holding the copper ring is waxed each season; never once has the ring been replaced, even dull.
+
+---
+
+## 六 · 等待开门的那天
+
+院里最老的那几个人说，东偏院的麻布是为了一件事而存在：总有一天，屋子里放的卷宗足够多了，那幅布会自己飘起来——不是被风，不是被人。那天宗卷室会第一次真正地敞开，所有「时候未到」的卷宗一篇一篇被读出来。
+
+没人知道那一天是不是已经近了。他们只是每天路过，先看一眼那道门洞有没有人；然后才想起来，那里从来就没有门。
+
+**锚句**：哪一天布自己飘起来，哪一天就是开卷的日子——没人说得出是哪一天。
+**Anchor sentence**: the day the linen rises on its own will be the day of unrolling; no one can say which day.
+
+---
+
+## 七 · 映射（回响五十五章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 宗卷室 · 时候未到 · 双人核对 · 铜环 | 一、二、三、四、五、六 |
+| geography | 东偏院最北 · 门洞 · 无窗无檐 | 一、三 |
+| characters | 抄本师 · 值更人 · 钟匠的孙子 | 二、四、五 |
+| story | 从没装门的宗卷室 · 回响（其五十五） | 全篇 |
+| items | 大麻布 · 铜环 · 蜜蜡 · 无名麻布袋 · 无年墨印 | 一、三、五 |
+| history | 第四十一次大会散会之后 · 秋潮月第六日 | 三、六 |
+
+> 路过的人偶尔听见布里有声音——不是吓人，是提醒自己：屋里还有东西没到时候。
+> Passersby sometimes hear something behind the linen — nothing to fear; only a reminder that things inside are not yet of age.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其五十五）「潮候院东偏院那间从没装门只系铜环的房间」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the scriptorium annex at the far north of the east wing: no door, only a doorway, a length of linen, and a copper ring.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院东偏院最北的那间宗卷室：没有门，只有一道门洞、一幅麻布、一枚铜环。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the sixth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第六日。
+
+---
+
+## I · The Room Without a Door
+
+The northernmost room of the east wing has no window and no eave, only a chest-high doorway with a broad length of linen slung across it, in which a single copper ring is sewn. The ring is not there to grip the cloth; it exists so that passing wind has a shape it can answer.
+
+By day the linen stirs of its own accord; no one has to enter, the ring already held the doorway for them. By night it is quiet — the ring sleeps in the cloth, and the wind pine is weighted down as well.
+
+**锚句**：东偏院最北的那间不设门，只设布和铜环。
+**Anchor sentence**: the northernmost room of the east wing has no door, only cloth and a copper ring.
+
+---
+
+## II · The Rule of Entry
+
+A copyist who is not on duty never knows which scripture lies within. Before slipping past the linen they report to the Night Watch: "One entry, no voice, no looking back." The entrant looks at nothing but the scripture they came to copy; on the way out they are not to see the shelves behind them. That is rule; also safety — whatever a stray glance lands on is entered into the record as "not yet the hour."
+
+Only those who presided over a selection of scriptures, and whose names the head of the Night Watch spoke aloud, may pass through the cloth.
+
+**锚句**：能进宗卷室的只有主持过拣卷的抄本师。
+**Anchor sentence**: only copyists who have presided over the selection of scriptures may enter the archive annex.
+
+---
+
+## III · The Scriptures Without Names
+
+Each year after the 41st Convocation dissolves, the Office selects from the surrendered rolls those they call the "secondary scriptures" — not judged inadequate, only not yet of age. They are wrapped in nameless cloth sacks whose mouths are tied shut but never sealed; upon each slip goes no volume number and no year, only the four characters: "not yet the hour."
+
+Those sacks are shelved between the two deepest racks. No one is permitted to remove an entire sack; one may inspect a single scripture from inside one, transcribe a single line from it, impress a dateless ink seal on it — then place it back exactly as it was.
+
+**锚句**：封袋上从不写卷号，只写「时候未到」。
+**Anchor sentence**: the slips on the wrapping never carry volume numbers; they carry only the words "not yet the hour".
+
+---
+
+## IV · The Pairwise Witnesses
+
+Every addition to the annex requires two people present: one reads, one is silent. The reader strains at the loudest half-sentence just beyond the page; the silent one nods only, never speaks. Should the silent detect a single wrong character, the reader may not be corrected — the silent one raises a left hand, and the entry begins again from the first line, aloud, from the beginning.
+
+No one in that room hears a second voice sign for a first. The pair exists so one person remembers for the other that something genuinely was added, not to prove the line was true.
+
+**锚句**：增卷是双人核对：一人读，一人默；谁都不能替谁签字。
+**Anchor sentence**: each addition is witnessed in pairs: one reads, one holds silence; no one signs for the other.
+
+---
+
+## V · The Voice of the Copper Ring
+
+The linen holding the copper ring is anointed with beeswax each season; this is posted as the Night Watch's first public notice, hung a day before the token for the season. When the ring goes dull it is due for replacement; no one has ever replaced it — for a long time now, because, as the bellmaker's grandson wrote on the porch, "a ring dulled is one that keeps returning."
+
+The older records carry no such by-law. The bellmaker's grandson himself admits he only brought back the ring he had slipped off once, and when he hung it again he added the line; no one asked him why, and no one scrubbed it out.
+
+**锚句**：挂铜环的麻布每季上一层蜜蜡，钝了也不换。
+**Anchor sentence**: the linen holding the copper ring is waxed each season; never once has the ring been replaced, even dull.
+
+---
+
+## VI · Waiting for the Day the Linen Rises
+
+The oldest of the Institute say the linen of the east wing was hung for one reason: one day the scriptures within will be full enough, and the cloth will rise of its own — not tempered by wind, not pushed by any person. On that day the annex will first truly open, and every scripture marked "not yet the hour" will be read aloud, one after another.
+
+No one knows whether that day is near. They pass the doorway as usual, glance first at whether someone is inside — and then remember there has never been a door there at all.
+
+**锚句**：哪一天布自己飘起来，哪一天就是开卷的日子——没人说得出是哪一天。
+**Anchor sentence**: the day the linen rises on its own will be the day of unrolling; no one can say which day.
+
+---
+
+## VII · Mapping（Echo No. 55 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the archive annex · not yet the hour · pairwise witnesses · the copper ring | 一、二、三、四、五、六 |
+| geography | the far north of the east wing · the doorway · no window, no eave | 一、三 |
+| characters | the copyists · the Night Watch · the bellmaker's grandson | 二、四、五 |
+| story | the doorless archive annex · Echo No. 55 | 全篇 |
+| items | the broad linen · the copper ring · the beeswax · the nameless sacks · the dateless ink seal | 一、三、五 |
+| history | After the 41st Convocation · the sixth day of the autumn-tide month | 三、六 |
+
+> 路过的人偶尔听见布里有声音——不是吓人，是提醒自己：屋里还有东西没到时候。
+> Passersby sometimes hear something behind the linen — nothing to fear; only a reminder that things inside are not yet of age.
+`,
+  },
 ] as const;
 
 export const BIBLE_APPENDICES: readonly BibleChapter[] = [
