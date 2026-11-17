@@ -9875,4 +9875,404 @@ The truth: long ago the sea said, "Hold this a moment — let him finish writing
 > At the next noon, when someone looks up again, one more mark appears on the slab — and Shadi keeps its principle.
 `,
   },
+  {
+    order: 45,
+    slug: 'echo-045-the-hemp-rope-in-the-side-chapel-that-is-never-finished',
+    titleZh: '潮候院侧殿里那根永远织不完的麻绳',
+    titleEn: 'The Hemp Rope in the Side Chapel That Is Never Finished',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——建院第六十九年 · 绳日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the sixty-ninth year; the day of the rope.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 45): The Hemp Rope in the Side Chapel That Is Never Finished
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院侧殿里那根值更们守着织、谁都织不完的麻绳。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the hemp rope in the side chapel of the Institute — no watcher can ever finish it.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——建院第六十九年 · 绳日。
+> Era: the Institute — after the 41st Convocation; the sixty-ninth year; the day of the rope.
+
+---
+
+## 一 · 侧殿
+
+潮候院侧殿比主殿矮半截，门老半开，拿麻绳拴着。
+
+值更们值守的时候不到里面——只有夜里换更时，他们才把里面放一点水缸看进去。
+
+**锚句**：潮候院侧殿里有一根麻绳，没有人织得完。
+**Anchor sentence**: in the side chapel of the Institute there is a hemp rope no one can finish.
+
+---
+
+## 二 · 麻绳的来历
+
+绳是用稻草和贝壳粉捻的——值守的第六代按一种谁也听不懂的顺序捻了几段又停了。
+
+这根绳不是谁要打哪一打结要结果——是不断捻下去，直到打绳的人不见了。
+
+**锚句**：绳是用稻草和贝壳粉捻的。
+**Anchor sentence**: the rope was twisted of rice-straw and clamshell powder.
+
+---
+
+## 三 · 六十九年
+
+侧殿的门槛上刻着一行小字：
+
+建院第三年正月甲子日，始捻此绳，当不绝。
+
+绳没有断过；绳没有织完过。一年又一年，值更守着这根绳，门槛刻字在风沙里慢慢变浅。
+
+**锚句**：侧殿门槛上刻着一行小字：始捻此绳，当不绝。
+**Anchor sentence**: on the threshold is a line: let this rope begin and never end.
+
+---
+
+## 四 · 没人敢结尾
+
+每一任值更都看过这根绳——伸手捻一捻，立刻缩手。
+
+老值更的一句话代代相授：绳不是要替你结，是替死去的人织完那一段。
+
+**锚句**：老值更说绳要替死去的人织完那一段。
+**Anchor sentence**: the senior watcher says the rope must finish the part left by the dead.
+
+---
+
+## 五 · 夜间
+
+值更替绳守了六十九年。夜里海浪没打够响声的时候，值更就走到里面去——不是去看绳，是把手放在绳的上端，感动是不是下面还有点温。
+
+没有人知道它下面有什么——但六十九年，值更们从不让一盏灯照过侧殿的门口.
+
+**锚句**：值更们从不让一盏灯照过侧殿的门口。
+**Anchor sentence**: the watchers never let a single lamp shine past the side chapel doorway.
+
+---
+
+## 六 · 管它叫什么
+
+值更们管它叫「未结」。
+
+不是一个名字，是一个状态——织绳的人还在，绳就不是成品；织绳的人走了，绳就该被解。
+
+**锚句**：值更们管它叫「未结」。
+**Anchor sentence**: they call it "the unfinished knot".
+
+---
+
+## 七 · 映射（回响四十五章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 未结 · 绳的语言 · 替死去的人织完 | 一、二、三、四、五、六、七 |
+| geography | 潮候院 · 侧殿 · 绳日 | 一、二、三、六、七 |
+| characters | 值更 · 织绳的人 · 死去的哥们儿 | 一、三、四、五、六 |
+| story | 未结 · 回响（其四十五） | 全篇 |
+| items | 麻绳 · 稻草 · 贝壳粉 · 门槛 | 一、二、三、四、五、六、七 |
+| history | 第四十一次大会散会之后 · 建院第三年正月甲子 | 一、二、三、七 |
+
+> 侧殿里什么时候让别人进去，就说明此时那里不需要绳了。
+> Whenever someone is allowed into the side chapel, it means the rope is no longer needed there.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其四十五）「潮候院侧殿里那根永远织不完的麻绳」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the hemp rope in the side chapel — no watcher in this courtyard can ever finish it.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院侧殿里那根值更们守着织、谁都织不完的麻绳。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the sixty-ninth year; the day of the rope.
+> 纪元：潮候院 · 第四十一次大会散会之后——建院第六十九年 · 绳日。
+
+---
+
+## 一 · The Side Chapel
+
+The side chapel of the Institute is one half taller than the main one; its door is slightly open, tied with a hemp rope.
+
+No watcher enters it during the watch — only at the change of shifts do they put a bucket of water at the threshold and peer inside.
+
+**锚句**：潮候院侧殿里有一根麻绳，没有人织得完。
+**Anchor sentence**: in the side chapel of the Institute there is a hemp rope no one can finish.
+
+---
+
+## 二 · Where the Rope Came From
+
+The rope was twisted of rice-straw and clamshell powder — the sixth watcher twisted a few passes in a sequence no one could decipher, then stopped.
+
+The rope was never made for a knot, or a binding, or a result — it was to keep being twisted until the twisters were gone.
+
+**锚句**：绳是用稻草和贝壳粉捻的。
+**Anchor sentence**: the rope was twisted of rice-straw and clamshell powder.
+
+---
+
+## 三 · Sixty-Nine Years
+
+On the threshold of the side chapel is inscribed:
+
+On the first day, day of jia-zi, in the first month of building the Institute, begin this rope — let it not cease.
+
+The rope has never snapped; the rope was never finished. Year after year the watchers tend it; the threshold and its inscription fade in the weather.
+
+**锚句**：侧殿门槛上刻着一行小字：始捻此绳，当不绝。
+**Anchor sentence**: on the threshold is a line: let this rope begin and never end.
+
+---
+
+## 四 · No One Dares End It
+
+Every watcher has laid hands on this rope — and pulled back.
+
+A senior watcher passed it down as one sentence: the rope is not tied for you; it is tied to finish for those who died before you.
+
+**锚句**：老值更说绳要替死去的人织完那一段。
+**Anchor sentence**: the senior watcher says the rope must finish the part left by the dead.
+
+---
+
+## 五 · Night
+
+The watchers have kept watch over this rope for sixty-nine years. In the night, when the sea does not roar loudly enough, the watcher steps inside — not to look at the rope, but to rest a hand on its upper end, to feel whether it is warm below.
+
+No one knows what is beneath it — but for sixty-nine years, no watcher has ever let a lamp shine past the side chapel doorway.
+
+**锚句**：值更们从不让一盏灯照过侧殿的门口。
+**Anchor sentence**: the watchers never let a single lamp shine past the side chapel doorway.
+
+---
+
+## 六 · What They Call It
+
+The watchers call it "the unfinished knot."
+
+It is not a name, it is a state — while the twisters remain, it is unfinished; when the twisters are gone, it must be unravelled.
+
+**锚句**：值更们管它叫「未结」。
+**Anchor sentence**: they call it "the unfinished knot".
+
+---
+
+## 七 · Mapping（Echo No. 45 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the unfinished knot · the rope's language · finishing for the dead | 一、二、三、四、五、六、七 |
+| geography | the Institute · the side chapel · the day of the rope | 一、二、三、六、七 |
+| characters | the watchers · the twisters · the dead colleagues | 一、三、四、五、六 |
+| story | the unfinished knot · Echo No. 45 | 全篇 |
+| items | the hemp rope · rice-straw · clamshell powder · the threshold | 一、二、三、四、五、六、七 |
+| history | After the 41st Convocation · the first month of the Institute | 一、二、三、七 |
+
+> 侧殿里什么时候让别人进去，就说明此时那里不需要绳了。
+> Whenever someone is allowed into the side chapel, it means the rope is no longer needed there.
+`,
+  },
+  {
+    order: 46,
+    slug: 'echo-046-the-bronze-bell-on-the-tower-that-is-never-struck',
+    titleZh: '雾港钟楼上那口从来没敲过的铜钟',
+    titleEn: 'The Bronze Bell on the Fog-Harbor Bell Tower That Is Never Struck',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——雾潮月第九日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the ninth day of the fog-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 46): The Bronze Bell on the Fog-Harbor Bell Tower That Is Never Struck
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给雾港钟楼上那口铸于建院第七年、六十九年从没被人敲响过的铜钟。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the bronze bell on the fog-harbor bell tower — cast in the seventh year of the Institute; never struck in sixty-nine years.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——雾潮月第九日。
+> Era: the Institute — after the 41st Convocation; the ninth day of the fog-tide month.
+
+---
+
+## 一 · 雾港钟楼
+
+雾港钟楼是雾港最高的一件东西。底座石阶二十三级，楼上挂着一口铜钟。
+
+钟楼门开了六十九年，没有人进过。雾港人从不往里看——上面要是真的是钟，下面就该有钟声。
+
+**锚句**：雾港钟楼上立着一口铜钟，六十九年没被人敲过。
+**Anchor sentence**: the fog-harbor bell tower has a bronze bell that no one has struck in sixty-nine years.
+
+---
+
+## 二 · 建院第七年
+
+铜钟叫什么名字，雾港没有人知道。雾港也没有人打开敲敲看——钟声要是真的，六十九年前就该有了；钟声要是假的，敲了也是白敲。
+
+抄本员的笔记里写道：第七年，钟铸成了；第七年，雾港不需要时间了。
+
+**锚句**：钟是建院第七年铸成的。
+**Anchor sentence**: the bell was cast in the seventh year of the Institute.
+
+---
+
+## 三 · 雾港的时辰
+
+雾港没有时辰钟。它靠海潮、暮色和盐雾里的灯光报时。
+
+老渔夫说雾港到了哪个季节，钟该敲就会响——只是有没有人能听见是另一回事。
+
+**锚句**：雾港的时辰靠的是海潮和暮色，不是钟。
+**Anchor sentence**: the fog harbor keeps time by the tide and the dusk, not by the bell.
+
+---
+
+## 四 · 值夜者的话
+
+偶尔有直更说自己深夜里听见过一声——他虽然说听见过，但从不承认。
+
+第二天直更睡过头了。他妻子敲开门，钟楼门开着，口子上没挂任何东西。他妻子只说：你再听到一次记得回来吃饭。
+
+**锚句**：直更偶尔听见钟声，但从不承认听到过。
+**Anchor sentence**: the night watch sometimes hears the bell, but never admits to it.
+
+---
+
+## 五 · 从不响
+
+六十九年里，雾港见过的一切钟声都是海声，不是钟。
+
+只有建院第七年雾港刚收到这口钟的那个秋上午，有人在里港远眺钟楼——记不得人是谁，只记得带了一个小木锤。
+
+**锚句**：雾港所有的钟声都是海声，不是钟声。
+**Anchor sentence**: every bell-ring in the fog harbor is the sea, not the bell.
+
+---
+
+## 六 · 不散的时辰
+
+值更们管这口钟叫「不散的时辰」。
+
+它不散——它在那儿挂着，等钟该敲的那一天；等海不再响、月亮不再被雾遮住、值守换完最后一个班之后。
+
+**锚句**：值更们管这口钟叫「不散的时辰」。
+**Anchor sentence**: the watchers call the bell "the unstruck hour".
+
+---
+
+## 七 · 映射（回响四十六章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 不散的时辰 · 海声不是钟 · 建院第七年 | 一、二、三、四、五、六、七 |
+| geography | 雾港 · 钟楼 · 雾潮月第九日 | 一、二、三、六、七 |
+| characters | 直更 · 渔夫的妻子 · 不知谁敲过的钟 | 一、四、五、六 |
+| story | 不散的时辰 · 回响（其四十六） | 全篇 |
+| items | 铜钟 · 木锤 · 二十三级石阶 · 雾海 | 一、二、三、四、五、六、七 |
+| history | 第四十一次大会散会之后 · 建院第七年 · 雾潮月第九日 | 一、二、五、七 |
+
+> 未来哪一天钟自己响起来的时候，雾港人会全都停下手里的事——然后一起转过身面对钟楼。
+> The day the bell rings by itself, everyone in the fog harbor will put everything down — and turn together toward the tower.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其四十六）「雾港钟楼上那口从来没敲过的铜钟」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the bronze bell on the fog-harbor bell tower — cast in the seventh year of the Institute; it is never struck.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给雾港钟楼上那口铸于建院第七年、六十九年从没被人敲响过的铜钟。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the ninth day of the fog-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后——雾潮月第九日。
+
+---
+
+## 一 · The Bell Tower of the Fog Harbor
+
+The fog-harbor bell tower is the tallest thing in the fog harbor. Twenty-three stone steps, with a bronze bell hanging at the top.
+
+The tower door has been open for sixty-nine years, and no one has entered it. Nobody looks in — if there were truly a bell on top, there would be bell-ringing below.
+
+**锚句**：雾港钟楼上立着一口铜钟，六十九年没被人敲过。
+**Anchor sentence**: the fog-harbor bell tower has a bronze bell that no one has struck in sixty-nine years.
+
+---
+
+## 二 · The Seventh Year
+
+No one in the fog harbor knows the bell's name. No one has tried lifting a mallet either — if the bell were real, it would have rung sixty-nine years ago; if it were a fake, striking it would buy nothing.
+
+The copyist's notebook has a line: in the seventh year, the bell was cast; in the seventh year, the fog harbor no longer needed time.
+
+**锚句**：钟是建院第七年铸成的。
+**Anchor sentence**: the bell was cast in the seventh year of the Institute.
+
+---
+
+## 三 · Fog-Harbor Keeping of Time
+
+The fog harbor keeps no hours. It tells time by the tide, by the dusk, by the few lights scattered through the salt mist.
+
+The old fisherman says the fog harbor rings the bell when the season turns — but whether anyone hears it is another matter.
+
+**锚句**：雾港的时辰靠的是海潮和暮色，不是钟。
+**Anchor sentence**: the fog harbor keeps time by the tide and the dusk, not by the bell.
+
+---
+
+## 四 · The Night Watch
+
+Now and then a night watch says he heard a note in the deep night — though he says he heard one, he never admits it.
+
+The next day the watch overslept. His wife knocked on the door, and the tower door was standing open with nothing hanging in the belfry. She only said: if you hear it again, come back to eat.
+
+**锚句**：直更偶尔听见钟声，但从不承认听到过。
+**Anchor sentence**: the night watch sometimes hears the bell, but never admits to it.
+
+---
+
+## 五 · It Never Rings
+
+For sixty-nine years everything the fog harbor has mistaken for bells has been sea, not bell.
+
+Only once, the very same autumn afternoon the bell first reached the fog harbor, one person looked from the inner harbor up to the tower — nobody remembers who, only that he carried a small wooden mallet.
+
+**锚句**：雾港所有的钟声都是海声，不是钟声。
+**Anchor sentence**: every bell-ring in the fog harbor is the sea, not the bell.
+
+---
+
+## 六 · The Unstruck Hour
+
+The watchers call the bell "the unstruck hour."
+
+It does not disperse — it hangs there, waiting for the day the bell should ring; for the day the sea falls silent, the moon is no longer behind the mist, and the last watcher hands over to no one.
+
+**锚句**：值更们管这口钟叫「不散的时辰」。
+**Anchor sentence**: the watchers call the bell "the unstruck hour".
+
+---
+
+## 七 · Mapping（Echo No. 46 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the unstruck hour · the sea is not the bell · the seventh year | 一、二、三、四、五、六、七 |
+| geography | the fog harbor · the bell tower · the ninth day of the fog-tide month | 一、二、三、六、七 |
+| characters | the night watch · the wife · whoever struck no one knows | 一、四、五、六 |
+| story | the unstruck hour · Echo No. 46 | 全篇 |
+| items | the bronze bell · the wooden mallet · twenty-three steps · the sea-mist | 一、二、三、四、五、六、七 |
+| history | After the 41st Convocation · the seventh year of the Institute · the ninth day of the fog-tide month | 一、二、五、七 |
+
+> 未来哪一天钟自己响起来的时候，雾港人会全都停下手里的事——然后一起转过身面对钟楼。
+> The day the bell rings by itself, everyone in the fog harbor will put everything down — and turn together toward the tower.
+`,
+  },
 ] as const;
