@@ -4,10 +4,10 @@ import { z } from 'zod';
 import { csrfOk } from '@/server/security/csrf';
 import { ipWriteGate } from '@/server/security/rateLimit';
 import { badRequest, jsonError, readJson } from '@/server/http';
-import { chatWithCharacter } from '@/server/ai/client';
+import { runInsightAnalysisGraph } from '@/server/ai/insightGraph';
 import { collectInsightSnapshot } from '@/server/domain/insight';
-import { buildInsightDigest, INSIGHT_AI_SYSTEM_PROMPT } from '@/server/domain/insightAi';
-import { verifyInsightAnalysis, UNVERIFIED_NOTE } from '@/server/domain/insightVerify';
+import { buildInsightDigest } from '@/server/domain/insightAi';
+import { UNVERIFIED_NOTE } from '@/server/domain/insightVerify';
 import { leastSquares } from '@/lib/insight-math';
 import { increment, observe } from '@/server/observability';
 
@@ -62,12 +62,8 @@ export async function POST(req: Request): Promise<NextResponse> {
     locale,
   });
 
-  const result = await chatWithCharacter({
-    requestId: `insight-ai-${Date.now()}`,
-    system: INSIGHT_AI_SYSTEM_PROMPT,
-    user: digest,
-    modelClass: 'fast',
-  });
+  // §GRAPH-2：draft → verify → (revise → verify) → finalize 的 StateGraph；digest 进 user，system 不变。
+  const result = await runInsightAnalysisGraph({ digest, locale });
   const durationMs = Date.now() - startedAt;
 
   if (!result.ok) {
@@ -76,19 +72,21 @@ export async function POST(req: Request): Promise<NextResponse> {
       message: locale === 'zh' ? '模型连不上——解读不是继续编出来的，先去频道体检。' : 'Model is unreachable — no fake analysis on this page. Check back later.',
     });
   }
-  const answerText = (result.response.text ?? '').trim();
-  // §INSIGHT-4：模型答出来了 ≠ 它说的就是证据——机检过关才算 grounded。
-  const verified = verifyInsightAnalysis(answerText, locale === 'en' ? 'en' : 'zh');
-  increment('nexus_insight_analyze_total', { outcome: 'answer' });
-  observe('nexus_insight_analyze_latency_ms', durationMs, { outcome: 'answer' });
+  // §INSIGHT-4：机检过关才算 grounded；不过关如实标注（答复如实返回，不冒充「已核验」）。
+  const verified = result.verdict === 'pass';
+  const outcome = verified ? 'answer' : 'answer-unverified';
+  increment('nexus_insight_analyze_total', { outcome });
+  observe('nexus_insight_analyze_latency_ms', durationMs, { outcome });
   return NextResponse.json({
-    answer: answerText,
-    capability: result.response.capability,
-    provider: result.response.provider,
-    model: result.response.model,
-    cachedTokens: result.response.usage?.cachedTokens ?? 0,
-    cacheReported: result.response.usage?.cacheReported ?? false,
+    answer: result.answer,
+    capability: result.capability || 'real',
+    provider: result.provider,
+    model: result.model,
+    cachedTokens: result.usage.cachedTokens,
+    cacheReported: result.usage.cacheReported,
     verified,
     verifyNote: verified ? null : UNVERIFIED_NOTE[locale === 'en' ? 'en' : 'zh'],
+    iterations: result.iterations,
+    nodesVisited: result.nodesVisited,
   });
 }
