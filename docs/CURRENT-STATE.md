@@ -6118,3 +6118,13 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 > - quiz 78→**80** · guideCopy 二十五回响 · /bible 页 zh/en 二十五、XXV · prod SSR 实锤 echo-025-the-grey-hearth 200（含 `data-tide-witness` 钩子）
 > - 压力测试缺口 ✓ best-effort — vision: admins/observe cached deeply verifiable real-world saturates. **真实压力测仍欠：模拟人海量并发已完成 crash 风险注入 baseline（scripts/observe-login-hammer），整体上 docker 重启自动恢复通过。**
 > - evidence: `docs/evidence/live-tide-cast-2026-11-19.md` + `docs/evidence/live-tide-witness-2026-11-18.md`
+
+> **2026-11-19 cont. 230 · 潮汐预言 `/tide-oracle` 上线——潮从正典里读给你三两句（真链路 94–100% KV 命中）**
+> - 页面 `/tide-oracle`（GET · RSC · getLocale 双语 · `gd-root`/`gd-foot` 外壳）：潮语入口，解锁同 /insight（口令 123）。
+> - `<TideOracle/>` 客户组件：双语 COPY（文体潮汐调度、真密/回响正文锚句 hint）、`data-tide-oracle-*` 钩子 ×10、200 字计数、CSRF 双提交、`data-tide-oracle-example` 四个双语点亮 chips。
+> - API `POST /tide/oracle`：CSRF × bis / `ipWriteGate('bible/q')` 60/h / Cookie `nexus-insight=1` 锁 / zod BodySchema（≤200 字 · zh|en）/ `getAiCapabilities` DEMO 直接 409 · `buildDigest(BIBLE_CHAPTERS, BIBLE_ECHOES)` 约 44k tokens 作为整段字节稳定 system 前缀（§CACHE-4）。
+> - 实测（next start + ai-service + Clash 127.0.0.1:7897 · 见 `docs/evidence/live-tide-oracle-2026-11-19.md`）：
+>   call-1 0/43,951（冷）→ call-2 **43,951/43,951=100.0%** → call-3 换问 **41,576/44,014（94.5%）** → call-4 41,576/44,011 → call-5 41,576/44,009 → en 41,576/44,006。
+>   call-3 实答「灰炉是热的」（锚句！）；回响锚句外的问题（半粒盐、守灰人举止）如实 `典籍里没写` —— 零发明、零补戏（§159/§160）。
+> - `/bible` 入口 `data-bible-open-oracle`（SHA 重钉 `ea643522…`）· `/guide` 双语地图补一行 · census 2943 → 全绿 · fe-gates 147/147 · **1353/1353** · build 绿。
+> - 纪律确认：真 provider（`gpt-6.1-terra`）· 真 token 回执 · 零 mock · 双语分写 · `forced-colors` · App router · 零 `--no-verify`。

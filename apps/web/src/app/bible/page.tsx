@@ -31,6 +31,7 @@ const COPY: Record<Locale, {
   askLink: string;
   wellLink: string;
   whisperLink: string;
+  oracleLink: string;
   anchorsLink: string;
   chapterLabel: (order: number) => string;
   anchorsLine: (count: number) => string;
@@ -48,6 +49,7 @@ const COPY: Record<Locale, {
     askLink: '问典 →',
     wellLink: '七口井',
     whisperLink: '答问者 · 问点书里的事',
+    oracleLink: '问潮 · 潮汐预言',
     anchorsLink: '锚句回放',
     chapterLabel: (order) => `第${['一', '二', '三', '四', '五'][order - 1] ?? order}章`,
     echoLabel: (order) => `回响 · 其${['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十', '二十一', '二十二', '二十三', '二十四', '二十五'][order - 1] ?? order}`,
@@ -68,6 +70,7 @@ const COPY: Record<Locale, {
     askLink: 'Ask the Canon →',
     wellLink: 'The Seven Wells',
     whisperLink: 'The Answerer · ask one question of the book',
+    oracleLink: 'Ask the tide · The Tide Oracle',
     anchorsLink: 'Anchor Echo',
     chapterLabel: (order) => `Chapter ${['I', 'II', 'III', 'IV', 'V'][order - 1] ?? order}`,
     echoLabel: (order) => `Echo ${['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI', 'XXII', 'XXIII', 'XXIV', 'XXV'][order - 1] ?? order}`,
@@ -97,6 +100,7 @@ export default async function BiblePage() {
           <span className="bb-playTrialSep" aria-hidden="true">·</span>
           <Link href="/bible/whisper" className="bb-playLink" data-bible-open-whisper>{c.whisperLink}</Link>
           <Link href="/bible/anchors" className="bb-playLink" data-bible-open-anchors>{c.anchorsLink}</Link>
+          <Link href="/tide-oracle" className="bb-playLink" data-bible-open-oracle>{c.oracleLink}</Link>
           <Link href="/bible/ask" className="bb-playLink" data-bible-open-ask>{c.askLink}</Link>
           <span className="bb-playTrialSep" aria-hidden="true">·</span>
           <Link href="/bible/well" className="bb-playLink" data-bible-open-well>{c.wellLink}</Link>
