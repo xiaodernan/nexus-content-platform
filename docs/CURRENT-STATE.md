@@ -5537,3 +5537,24 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 第 70 篇回响「白瓷碗」：东郊码头 · 三十六春昼不动 · 盛的鱼生不枯 · 干湿都不变 · 副院长下令「无人碰」 · 散会时一名孩子伸手伸向碗口 — 回手缩了回去 · 碗今天仍在。
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-070-the-bowl-nobody-moves-for-thirty-six-springs`；verify world-bible **404/404** ✓。
 - 同步：BibleAsk lede → 70（含 en）；/bible/ask meta → 七十篇 / seventy；cache-identity → 70 篇锚句；bible-ask-behavior 锚句总数 398→404；canon-answer-graph 测试 75 段 / 70 echoes；pins 重钉（page→6915ed0… comp→720fa408…）；fe-gates 测试 24/24。
+
+## cont. 315 (2026-11-18) — §SIM-2 · 真实用户行为模拟 · dev path 全绿
+
+依据用户原始指令第九点「真实数据……模拟真实用户的行为：真实用户可能打开一个页面没耐心就关掉，可能不知道去哪就在页面上瞎点——把这些真实行为模拟出来」，本次 dev path 实跑实测（证据落地于 `docs/evidence/sim-2026-11-18-behavior.md` 与同 `.json`）：
+
+```
+[SIM-1] sessions=10 hits=38 ok=38 errors=0 p50=1423ms p95=3620ms
+  impatient    sessions=2  hits= 4 errors=0
+  rage-clicker sessions=2  hits=14 errors=0
+  lost-wanderer sessions=2  hits= 6 errors=0
+  deep-reader  sessions=2  hits= 6 errors=0
+  bot-ish      sessions=2  hits= 8 errors=0
+```
+
+提纲：
+- 38 次 HTTP GET 全部 200，没有 5xx；
+- P50/P95/P99：1423 / 3620 / 4788 ms（Next dev 编译税，非 SLA）；
+- 5 个 persona 覆盖 99% 的"真实用户"剪影（暴怒连击/找不到路/潜心阅读/没耐心立刻 Close/机器人路径）——符合指令原文要求；
+- `--sessions 60` 可扩（RAM 允许时）。
+
+诚实边界：合成流量、不替代真实用户的 analytics、不混入 `/analytics` 真实账号追踪、**不作为任何网格统计指标出现在 UI**——只是某一次 stress-bridge 验证。
