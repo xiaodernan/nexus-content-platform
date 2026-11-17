@@ -5624,3 +5624,24 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 第 81 篇回响「石磨盘」：墙右手半露出静默 — 三百年 · 抄本师称它"磨的不磨的" — 雾的山石 — 一条凹痕 — 父 — 没人知道磨什么。
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-081-the-millstone-that-grinds-nothing`；verify world-bible **470/470** ✓。
 - 同步：BibleAsk lede → 81（含 en）；/bible/ask meta → 八十一篇 / eighty-one；cache-identity → 81 篇锚句；bible-ask-behavior 锚句总数 464→470；canon-answer-graph 测试 86 段 / 81 echoes；pins 重钉（page→165e6f35… comp→c46020a0…）；fe-gates 测试 24/24。
+
+## cont. 328 (2026-11-18) — v946 · §PROOF-LIVE · /bible/ask live 探针
+
+**environment**: Next dev 3100 + ai-service 8001 (uvicorn) · Redis 56379 · Postgres 55433 · external provider (provider referenced only in private records) · gpt-6.1-terra。Playwright chromium 1440×900 · zh-CN。
+
+**注册**（Playwright headless）→ `POST /api/bible/q` 三问全过机检
+
+| # | 提问 | cached | 机检 | 模型答复 |
+|---|---|---|---|---|
+| 1 | 雾港灯塔那一盏一直亮着的灯 | 0 | ✓ | 『典籍里没有』—— 回响只记到值更院灯架最上层那盏不灭的灯 |
+| 2 | 候潮院最窄的一间屋子 | 35,472 | ✓ | 『典籍里没有』—— 模型主动给出来源 |
+| 3 | 潮候院为什么不打开石柱 | 35,471 | ✓ | 回响六十四只记载：『经过石柱的人会忘记自己刚才想问什么；值更长不让抄本师打开它』—— 模型不编故事 |
+
+机检+模型两方面都过。完整抄录 `docs/evidence/live-qapi-v945-2026-11-18.md`。
+
+**结论**：
+- 模型严格守正典边界；digest 找不到的事 → 如实『典籍里没有』
+- Prompt Cache 前缀（5 章 + 81 回响 + 4 附录 ≈ 44k 字节）稳定；第二次 / 第三次 cached tokens = 35,472 / 35,471（≈100% reuse）
+- 模型主动指出哪一《回响》含哪一条——从 〈雾港灯塔〉 答复说明它真的读了
+
+**未来可做**：/insight ⑨ 创作者 AI narrator 完整 live 探针 evidence（本轮未跑，RAM 紧张）。
