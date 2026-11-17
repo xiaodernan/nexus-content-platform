@@ -6100,3 +6100,13 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 > - E24 双语落库（5 组锚句 zh/en 全局唯一；story：方才第四十二次会之后，守灯人合上了欠册——灰封以后账上只剩最后一行；封皮合上后敲不下去；那半粒盐跟着封皮一起进去了；没人再开那本子了。灰幕之后·封卷之月）。
 >   verify:world-bible **382/382** · verify:bible-snapshot ✓ · canon slug `echo-024-the-grey-binding`；canon_digest.txt 重封存（61,711 chars · sha256=9f31cd26…）。
 >   /bible 页脚 zh 二十四 / en XXIV · quiz 78 题（zh/en 镜像，含 2 道 E24）· guideCopy 二十四回响 · fe-gates **147/147** 1353/1353 · SSR 全（`Echo No. 24` / `Grey Binding` / `灰封` 均在，`data-tide-witness` 钩子：三处）
+
+> **2026-11-19 cont. 228 · 潮汐签 · LLM-as-Oracle 接入 /insight 观察坞（第三证真 LLM 真缓存）**
+> - 新增 `tideCast.ts`：TIDE_CAST_SYSTEM_PROMPT 前缀 ≤ 500 chars，只读聚合数字（users/projects/opens/botShare/趋势斜率/R²），输出禁律：「不判断、不给方案」，zh|en 单语不混；相同 (locale, metrics-grid) 缓存可稳定命中。
+> - 新增 `/api/insight/tide-cast`：nexus-insight 123 cookie + csrf + 按 IP 10/h；provider 不可达 → 502；output=oracle≤2 sentences + cachedTokens。
+> - InsightTideCast 加入 /insight 第 8 屏（潮沙解读）节点；SSR 实锤：insight page 现有 `潮汐签` + `tide-cast` 标记。
+> - prod 实测：call-1 cold tokensIn=**5,112** cachedTokens=**0**；call-2 cachedTokens=**5,112（100%）**；oracle 真模型中文输出：
+>   「总览里有3429名用户、1313个项目、140件已发布作品，近30日记录757次打开。近30日打开中87.2%来自机器人，发布趋势轻微下行，潮声仍未显出清晰方向。」
+> - fe-gates 147/147 · 1353/1353 · SSR `tide-cast` markers count=2 ✓
+> - 排查：本轮 Docker Desktop 容器全军覆没→全部自愈（Postgres recovery 8 分钟）；根因是 Docker Desktop 启动后 1-2 分钟才 bind 端口，已内建 retry。
+> - evidence: `docs/evidence/live-tide-cast-2026-11-19.md`

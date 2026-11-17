@@ -10,6 +10,7 @@ import { InsightGate } from '@/components/InsightGate';
 import { InsightLogoutButton } from '@/components/InsightLogoutButton';
 import { InsightAiAnalysis } from '@/components/InsightAiAnalysis';
 import { InsightCanonChat } from '@/components/InsightCanonChat';
+import { InsightTideCast } from '@/components/InsightTideCast';
 
 export const dynamic = 'force-dynamic';
 
@@ -349,6 +350,7 @@ export default async function InsightPage() {
         <h2 id="insight-s8" className="insg-sectionHead">{c.s8}</h2>
         <InsightAiAnalysis locale={locale} />
         <InsightCanonChat locale={locale} />
+        <InsightTideCast locale={locale} />
       </section>
 
       <footer className="insg-foot insg-footBlock">
