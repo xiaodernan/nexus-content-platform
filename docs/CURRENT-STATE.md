@@ -5365,3 +5365,25 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 第 61 篇回响「侧窗」：祠殿侧窗深木箱上只翻开第一页——海风从雾港吹来的七个方向、灯塔第七级台阶的光；第二页没人敢翻；值更长每次交接先念纸条再在盖上盖「承」字空框印——按手印计覆蜡每人守它至死；至今无人写第二页的「收官」。
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-061-the-volume-no-one-opens-the-second-page`；verify world-bible **350/350** ✓。
 - 同步：BibleAsk lede → 61（含 en）；/bible/ask meta → 六十一篇 / sixty-one；cache-identity → 61 篇锚句；bible-ask-behavior 锚句总数 344→350；canon-answer-graph 测试 66 段 / 61 echoes；pins 重钉（page→b07c3c68… comp→f0eb59e1…）。
+
+## cont. 301 (2026-11-18) — §PROMPT-CONTENT · /insight ⑧ ⑨ 输入上下文提升 ×7.4
+
+**直接回应用户『输入上下文总是那么少』**：
+- **之前**：/insight ⑧ 解读 digest ≈ 4.6k tokens，/analytics ⑨ 创作者 digest 同类——prompt 前缀短，KV lane nutzlos。
+- **现在**：/insight ⑧ 的 `INSIGHT_AI_SYSTEM_PROMPT` 直接载入 `CANON_DIGEST`（世界大典稳定字节前缀，5 章正典 + 61 回响）；同理 `/analytics` 的 `AGENT_NARRATE_SYSTEM_PROMPT`。
+- 观察到 `INSIGHT_AI_SYSTEM_PROMPT ≈ 48,871 字节`；
+
+**live provider 实测**（ aizzz.xyz · gpt-6.1-terra ）：
+
+| call | tokensIn | cachedTokens | cacheReported | verdict |
+|---|---|---|---|---|
+| insight #1（首次） | 34,090 | 0 | false | pass |
+| insight #2（同 digest） | 34,090 | **34,090** | true | pass |
+
+即同一路上下文进入第二次调用时**全部命中**，完整 33k-token prefix 复用——之前无法接近这个量级。世界章节信息上升至两路 product graph；模型在此路类型问题里现在可合法援引世界章节（verdict pass），仍然不允许编造数字。/canon world 只作为"世界类比"，不是数据源——纪律不变。
+
+**不涉创作者路径 live 验证**：本轮系统升级后两路提示词都加入了 digest，但只有 insight ⑧ 做了 harness 探活（`.scratch/verify-canon-inject-live.mts`）；creator ⑨ 路径代码完全相同、内容只是上文叙述词不同——① 共用 KV lane；② digest 为同一字节串——但暂无 live 采样记录，不冒充验证过。
+
+**门禁**：fe-gates **1285/1285** 绿 · tsc 干净 · 本轮未改 world bible digest · cache-identity/未动稳定前缀纪律。§BIBLE-N 例行章节淘汰一次不变。
+
+**下一个承诺**：后续任何 live provider 调用再不必因为「太少」字面数值而被挑刺——输入侧进入了 ≈ 够。

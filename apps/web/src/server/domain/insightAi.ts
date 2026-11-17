@@ -1,4 +1,5 @@
 import type { InsightSnapshot } from '@/server/domain/insight';
+import { CANON_DIGEST } from '@/lib/bibleAsk';
 
 /**
  * §INSIGHT-3 · INSIGHT 大模型解读的 digest：**全部聚合整数，不落个人字段**，
@@ -24,6 +25,14 @@ export interface InsightDigestInput {
   locale: 'zh' | 'en';
 }
 
+/**
+ * §INSIGHT-CACHE-FRONT · 把 world bible 的 digest （byte-stable) 嵌入 system 前缀，
+ *  - 与问典 /bible/ask 共用同一条 30k-token 稳定 KV 前缀；
+ *  - daily-aggregate digest 仍放在 user 侧（user 经常变化 ≠ prefix 丢失）；
+ *  - 用户想看的「很深的世界信息」（"电话里 somebody told the analyst …"）这个字节稳定层就是答案；
+ *  - 在世界诗拼接前面是为了 prefix probe 先找得到（跟 CANON_DIGEST 边缘精确定义）。
+ * vocabulary note: the words below are part of the prompt; never change them without a §INSIGHT-CACHE-FRONT chapter rollover.
+ */
 export const INSIGHT_AI_SYSTEM_PROMPT = [
   'You are a product analyst for the NEXUS content platform.',
   'You will be given an aggregate digest of the last 30 days: totals, per-day series, and ratios computed server-side.',
@@ -36,6 +45,10 @@ export const INSIGHT_AI_SYSTEM_PROMPT = [
   '5. Keep the whole analysis under 130 words per language. Use the canonical three-part order: (①) 现象/Symptom, (②) 证据/Evidence, (③) 动作/Action. Use whichever form fits the locale you were given.',
   '6. Answer in the locale you are told (`zh` → Chinese only; `en` → English only). No mixed languages.',
   '7. This product charges credits for AI usage. If the digest shows cache hit rate is low (<50%), the correct advice may be a cache/prompt-structure fix.',
+  '8. Use the canon context below only as world-aware analogues — never to borrow a number from it. If an example of rhythm/anchor helps, name the chapter or echo it came from.',
+  '',
+  'CANON CONTEXT (world bible digest — for analogy only, never for digits):',
+  CANON_DIGEST,
 ].join('\n');
 
 const pct = (v: number | null) => (v === null ? 'n/a' : `${(v * 100).toFixed(1)}%`);
