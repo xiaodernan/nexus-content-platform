@@ -32,6 +32,16 @@ const HOME_TXT = {
     navAnalytics: '创作数据',
     navBlocks: '已拉黑与已屏蔽',
     navNote: '公开在跑的作品与全平台的内容搜索；数据与通知只对登录后的你自己可见',
+    helpKicker: '第一次来？',
+    helpText:
+      '先花两分钟走一遍 6 步上手漫游，再打开随手可用的简明说明书；Ctrl+K（Mac 用 ⌘K）随时调出命令面板，直奔任何页面。',
+    helpOnboarding: '上手漫游 · 6 步',
+    helpGuide: '简明说明书',
+    hintSearch: '全站作品、作者与内容关键词',
+    hintDiscover: '公开跑着的作品 · 按热度/最新',
+    hintMarket: '组件 / 模板 / 世界观 / 资产市场',
+    hintAnalytics: '你自己的创作节奏与漏斗',
+    hintBlocks: '你拉黑的作者与关键词',
     accountSection: '账号',
     projectsSection: '项目',
     emptyProjects: '还没有项目。创建一个即可进入 Studio 画布。',
@@ -65,6 +75,16 @@ const HOME_TXT = {
     navAnalytics: 'Creative data',
     navBlocks: 'Blocked & muted',
     navNote: 'Works publicly on the platform and platform-wide search; your data and notifications are visible only to you, signed in.',
+    helpKicker: 'First time here?',
+    helpText:
+      'Take the 6-step onboarding first, then keep the in-app guide handy; press Ctrl+K (⌘K on Mac) to pull up the command palette anywhere.',
+    helpOnboarding: 'Onboarding — 6 steps',
+    helpGuide: 'In-app guide',
+    hintSearch: 'Works, authors, keywords across the platform',
+    hintDiscover: 'Public works in motion — trending or fresh',
+    hintMarket: 'Components, templates, worlds, assets',
+    hintAnalytics: 'Your own creative funnel & rhythm',
+    hintBlocks: 'Authors & keywords you blocked',
     accountSection: 'Account',
     projectsSection: 'Projects',
     emptyProjects: 'No projects yet. Create one to step into the Studio canvas.',
@@ -127,24 +147,47 @@ export default async function HomePage() {
         </span>
       </header>
 
+      {/* 教学说明条（§五/§七）：首次来访的人不用翻文档——漫游 + 说明书 + 命令面板，三件套带路 */}
+      <p className="hp-helpStrip" data-help-strip>
+        <span className="hp-helpKicker">{T.helpKicker}</span>
+        <span className="hp-helpText">{T.helpText}</span>
+        <a href="/onboarding" className="hp-helpLink" data-help-onboarding>{T.helpOnboarding}</a>
+        <a href="/guide" className="hp-helpLink" data-help-guide>{T.helpGuide}</a>
+      </p>
+
       {/* 这一排在 820px 的容器里放不下五个链接加一句说明：不 flex-wrap 就会被 flex 压着
           在词中间断行（"全平台搜/索"），所以链接各自 nowrap、整排允许换行。 */}
       <nav className="hp-nav" data-site-nav aria-label={T.ariaNav}>
-        <a href="/search" className="hp-navlink" data-nav-search>
-          {T.navSearch}
-        </a>
-        <a href="/discover" className="hp-navlink" data-nav-discover>
-          {T.navDiscover}
-        </a>
-        <a href="/marketplace" className="hp-navlink" data-nav-marketplace>
-          {T.navMarket}
-        </a>
-        <a href="/analytics" className="hp-navlink" data-nav-analytics>
-          {T.navAnalytics}
-        </a>
-        <a href="/blocks" className="hp-navlink" data-nav-blocks>
-          {T.navBlocks}
-        </a>
+        <span className="hp-navitem">
+          <a href="/search" className="hp-navlink" data-nav-search>
+            {T.navSearch}
+          </a>
+          <span className="hp-navHint">{T.hintSearch}</span>
+        </span>
+        <span className="hp-navitem">
+          <a href="/discover" className="hp-navlink" data-nav-discover>
+            {T.navDiscover}
+          </a>
+          <span className="hp-navHint">{T.hintDiscover}</span>
+        </span>
+        <span className="hp-navitem">
+          <a href="/marketplace" className="hp-navlink" data-nav-marketplace>
+            {T.navMarket}
+          </a>
+          <span className="hp-navHint">{T.hintMarket}</span>
+        </span>
+        <span className="hp-navitem">
+          <a href="/analytics" className="hp-navlink" data-nav-analytics>
+            {T.navAnalytics}
+          </a>
+          <span className="hp-navHint">{T.hintAnalytics}</span>
+        </span>
+        <span className="hp-navitem">
+          <a href="/blocks" className="hp-navlink" data-nav-blocks>
+            {T.navBlocks}
+          </a>
+          <span className="hp-navHint">{T.hintBlocks}</span>
+        </span>
         <NotificationBell locale={locale} />
         <span className="hp-navNote">{T.navNote}</span>
       </nav>

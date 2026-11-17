@@ -146,7 +146,13 @@ function maskLiterals(expr: string): string {
  * **剥 className 后全文逐字节哈希**（本片最强零行为门）。
  * 基线（全裸 + FE-3 半成品门面）与改造后（全 `.hp-`）必须整份恒等；v811 全量门面双语化后重钉。
  */
-const STRIP_CLASS_SHA256 = 'b79c7aafb0f5e5e9617ed1fd11e370461246c34872745d5c102631dd5c615249';
+/**
+ * **剥 className 后全文哈希**（本片最强零行为门）。
+ * 基线（全瑁+FE-3 半成品门面）与改造后（全 `.hp-`）必须整体恒等；v811 全量门面双语化后重钉。
+ * 2026-11-17 §HP-HELP-1（v908）：首页增「教学说明条」（第一次来？+ /onboarding 漫游 + /guide 说明书
+ *  + Ctrl+K/⌘K 命令面板提示）与五个导航各一句副文案（§五/§七），哈希整体重钉——属显式变更，非绕门。
+ */
+const STRIP_CLASS_SHA256 = '0fcb3c08bd4b3edcd796a212146c90d63d1ef27793d1c6653c0b88d6fa19c875';
 function stripClassNames(src: string): string {
   const s = src.replace(/\r\n/g, '\n');
   let out = '';

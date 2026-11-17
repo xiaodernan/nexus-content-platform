@@ -5130,3 +5130,23 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - §INSIGHT-Verify locale-safe 化（cad7cca6）：机检改为含 现象|观察|observation|phenomenon|symptom|bottleneck + 证据|evidence + 动作|action + 必含数字，EN 答复「Symptom/Evidence/Action」三段式可直通机检；prompt rule 5 收拢为三段式序号表述。
 - §§fe-gate 钉子根治：bible-ask-visual-style redact 增加 BOM 归一（钉内容不钉编码噪声）；SHA256 重钉 page=bdf701c9… comp=a4a37dbb…；fe-gates 恢复 1272/1272 全绿。
 - 提交 550352d7(v906) 漏了 pin 重钉——本条补上；教训：每次动 bible/ask 源文件，同轮必须重钉 pins。
+
+## cont. 284 (2026-11-17) — v908 · §GRAPH-2 /insight ⑧ 解读 StateGraph 化 + §HP-HELP-1 首页教学说明条
+
+**§GRAPH-2（`runInsightAnalysisGraph`，`apps/web/src/server/ai/insightGraph.ts`）**
+- 之前的 ⑧ 是「一次 chat + 布尔机检」，失败没有反馈环。现改为 draft → verify → (revise → verify) → finalize 的 StateGraph（与 canonGraph 同谱系，`@nexus/agent-runtime` 自有实现）：
+  - draft：system=`INSIGHT_AI_SYSTEM_PROMPT`（字节级稳定，同一缓存前缀），user=digest（聚合数，无任何个人字段）；
+  - verify：确定性机检 `insightAnalysisIssues`（现象/症候 + 证据 + 动作 + ≥1 个数字；空数组 = 过）；
+  - revise（上限 1 次）：system 不变（共用 KV 前缀与缓存），user 带机检意见 + 上一稿重写；
+  - finalize：返回 answer + verdict（pass/fail）+ iterations + nodesVisited + capability（透传 provider 实值，不再硬编码 real）。
+- 路由 `/api/insight/analyze` 重接图；响应新增 `iterations` / `nodesVisited` / `verifyNote` 不变；outcome 指标 `answer-unverified` 归类失败案例。provider 不可用仍 503 如实返回（不伪造分析）。
+- 机检从布尔扩到 issues 清单（`insightAnalysisIssues`），`verifyInsightAnalysis` 保留布尔签名兼容既有调用点。
+- 实时路由测试 mock 文案改为可过机检的三段式（现象/证据/动作 + digits）——否则修订轮会触发，cachedTokens 断言不再成立；另新增 `apps/web/test/insight-analysis-graph.test.ts`（5 例：一次过 / 过修订 / 修订用尽 fail 如实返回 / provider 503 / 英文三段式 + capability 透传；含两次 LLM 请求 system 逐字节一致的缓存纪律断言）。21/21 绿（含原 16 例）。
+
+**§HP-HELP-1（`apps/web/src/app/page.tsx` + `globals.css`）**
+- 主页增教学说明条（`[data-help-strip]`）：「第一次来？」+ 文案（漫游 6 步 / 随手说明书 / Ctrl+K（Mac ⌘K）命令面板）+ 两个链接（`/onboarding` · `/guide`）；五个导航（搜索/发现/市场/创作数据/拉黑）各一句常驻副文案（`.hp-navHint`，DEMO 徽章同为常驻）；全部走 token，零写死 hex、零新增颜色 token。
+- 截图验收（1440 + 390 视口）：布局不挤压、不遮挡、换行正常；页面无 console error（390 视口一次 401 系注册前通知轮询，可忽略）。
+- FE-18 门禁的「剥 className 后全文 SHA256 零行为门」按显式变更流程整体重钉（`.scratch/home-page-sha.mts` 逐字节复算，STRIP_CLASS_SHA256 → `0fcb3c08…`），门禁注释记明 v908 §HP-HELP-1 重钉理由。
+- tsc --noEmit 干净 · fe-gates **1272/1272 全绿**（含新增 5 例 graph 测试）。
+
+**下一步**：Echo #55 增量 · /admin/ai-cache cache-hit 公众展示 · Spring Cloud verify（缺 RAM ≥6 GB 仍受阻）· `origin/main` push 仍 403（showcase 通道代持同步）。
