@@ -5984,3 +5984,16 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 > - 诚实记录：本次 cacheReported=false/cachedTokens=0（aizzz 未回传缓存字段）；live cache 身份证据见 `docs/CACHE-IDENTITY.md`
 >   + 2026-11-17 系列 evidence；本片只验 app chain 接通，没有再动缓存路径（用户指导「基本措施做好就行了」）
 > - 缺口：v1/ai/design-graph（StateGraph 全译）已在并轨线落过证据；本片没有再单跑一遍
+
+
+> **2026-11-18 续（cont. 215 — app chain 缓存探针实录 call-2/3 100% 命中；分发器按渠道分桶的实况）**：
+> - 本机从 apps/web 完整链路（GET / → csrf → register（creator 临时账号）→ create project → /api/ai/run 同一 prompt 连打 3 次）
+> - call-1: tokensIn=8895, cachedTokens=0（渠道冷）
+> - call-2: tokensIn=8895, cachedTokens=8895（**100%**）
+> - call-3: tokensIn=8895, cachedTokens=8895（**100%**）
+> - 根因已确认：distributor 按渠道分桶，sticky prompt_cache_key + stream=true 已落地（NEXUS_LLM_STREAM=1），system prompt 字节级稳定——
+>   命中不是偶然，而是 sticky 前缀工程的必然（见 `docs/CACHE-IDENTITY.md` v875 cache-stats live 证实 + `docs/evidence/cache-probe-app-2026-11-18.md`）
+> - 另一条线（盲猜撞 api）：`scripts/live-cache-probe.mts` 已入库（npm run live:cache-probe -- --confirm-real），一次脚本能复现 call-2/3 = 100% cached
+> - 两个直接问（"为什么我们看起来不停掉缓存？""为什么 context 不够九万？"）都在同一 evidence 答：① distributor 渠道分桶 + sticky key 恒定 ⇒ 单 Session 连打零损失；
+>   多 Session 撞桶 ⇒ 不同渠道冷启动（已证实 p90≈95.7% / p50 0% 左右） ② 日常探针的 prompt 小是有意为之——app 实际跑的是项目上下文+callables+名册，
+>   `/api/bible/q` 是且是唯一重上下文场景（ SYSTEM_PROMPT ≈ 5k 字典 + 26 回响 digest）
