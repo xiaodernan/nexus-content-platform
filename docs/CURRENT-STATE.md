@@ -6004,3 +6004,12 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 > SYSTEM_PROMPT 61k 字节前缀被 distributor 在 7897/Clash 节点上认出——KV 复用按字节生效，不靠任何抽象层体验。
 > live-bible-ask-probe.mts 已入库（npm run live:bible-ask-probe -- --confirm-real）。
 > evidence：docs/evidence/bible-ask-cache-2026-11-18.md
+
+
+> **2026-11-18 续（cont. 217 — 问典四连发全 100% 命中）**：
+> prod：同一问题「《收件人》里谁收到了那张签收单？」连发四次，tokensIn=43,458，cachedTokens=43,458 ×4，命中率 100%。
+> 这次实测把「cache 命中率忽高忽低」定调为 distributor channel 分配 + prompt prefix 演变——不是 stream vs 非流问题，不是链路的错。
+> 任何一次改动 world-bible source-of-truth，下一个 digest 需要一次 miss 之后即 100% 命中；call-1 在前一轮新鲜窗口中命中。
+>
+> tokensIn/tokensOut 透到了 /api/bible/q response（apps/web/src/app/api/bible/q/route.ts），让客户端能直接看到真实 43k 总数。
+> 还需用户拍板：freeform 路由要不要也改成 digest-stable（每次改上下文内容 vs 一次性 freeze-prefix 两种 trade off，对不同任务吞吐量不同）。
