@@ -5564,3 +5564,9 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 第 71 篇回响「旧账簿」：祠殿桌上一本皮壳破裂的旧账——第一页第一行开头是「没」——其余字列出一串潮候院旧人姓名；没人愿意认——抄本师私下说是「欠一个承诺」——百余年沉寂——它现在只是风的书页。
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-071-the-old-ledger-that-only-says-none`；verify world-bible **410/410** ✓。
 - 同步：BibleAsk lede → 71（含 en）；/bible/ask meta → 七十一篇 / seventy-one；cache-identity → 71 篇锚句；bible-ask-behavior 锚句总数 404→410；canon-answer-graph 测试 76 段 / 71 echoes；pins 重钉（page→4771370f… comp→65bb9b47…）；fe-gates 测试 24/24。
+
+## cont. 317 (2026-11-18) — v936 · §BIBLE-72 · Echo #72《潮候院四百年前那只被收养的雾童》（作者手写·双语·416/416 绿）
+
+- 第 72 篇回响「雾童」：四百年前大会散会那日南墙外藤蔓中的雾童——人掌大鼻白毛——醒来时潮候院上方出现四层浮岛（抄本师推断沉船）
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-072-the-fog-child-the-institute-adopted`；verify world-bible **416/416** ✓
+- 同步：BibleAsk lede → 72；/bible/ask meta → 七十二篇；cache-identity → 72 篇锚句；bible-ask-behavior 锚句总数 410→416；canon-answer-graph 测试 77 段 / 72 echoes；pins 重钉（page→5068665b… comp→cdad976…）；fe-gates 测试 24/24。
