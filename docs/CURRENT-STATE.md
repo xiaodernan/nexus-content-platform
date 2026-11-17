@@ -6048,3 +6048,14 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 >   · GET / 与 /insight（prod）200；证据 docs/evidence/live-cache-canon-prefix-2026-11-19.md
 > - 全门绿：fe-gates 147/147 · pytest 455/455（新 test_canon_digest.py 4 条）· verify:world-bible 367/367 ·
 >   verify:bible-snapshot 一致 · tsc web 0 errors。commit 82374853（master/main 随后 sync）。
+
+> **2026-11-19 续（cont. 221 · 回响（其二十二）《半粒盐》上线 + 主界面「快速上手」教学条）**
+> - E22 双语落库（5 组锚句，全局唯一；story：灰幕之后补封之月，封皮凹槽卡半粒盐 / 脊缝「簿差半粒」/ 第四十二次会前夜守灯人验账）；
+>   verify:world-bible **372/372** · verify:bible-snapshot 一致 · canon slug `echo-022-the-half-grain`；
+>   canon_digest.txt 重新封存（chars=61,353 · sha256=87731133…）——agent/insight/深问 三条缓存管线自动吃新正典；
+>   /bible 目录与阅读页 zh 二十二 / en XXII · quiz 71→73（zh/en 镜像，含两题 E22）· guideCopy 二十二回响（zh/en）同步；
+>   fe-gates 147/147 · 1353/1353 · prod /bible /bible/echo-022-the-half-grain /bible/quiz = 200（zh+en marker 全中）。
+> - 首页新增「快速上手 · QUICK START」教学条（造项目→推成品→看见数据，zh/en 双语）+ 五个导航 title 教学短语；
+>   .hp-quickStart* 门面类（零 hex）；home SHA 重钉；SSR 实测 zh/en parity ✓（"Ship it"/"See the data" vs 造项目/看见数据）。
+> - §五 滚轮方向全链路 live probe：CÆSURA 线上 bundle(index-BiiergES.js) invertWheelY 默认 false（往上滑往上看），
+>   游戏内「设置→滚轮纵向反转」兜住 Windows 自然滚动；NEXUS web CanvasStage 默认网页惯例 + 可见开关 + localStorage 记忆（fe-gates 钉死）。
