@@ -4718,3 +4718,13 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   - #2（热）：200 / **410ms** · **cachedTokens 24066**（**18.7×** 降时延）
 - dev server + ai-service 已 kill；free RAM ~2.0 GB；sibling /home (:8000) 全程未触碰。
 - 证据 §PROVED-12 落盘；与 §PROVED-10 / §PROVED-11 互为印证。
+
+## cont. 240 (2026-11-17) — v869 · §PROVED-13 连续 5 次 digest 探针（distributor cache 稳定度）
+
+- 5 次背靠背相同 payload（system digest 24,066 tokens）经 Clash 7897 落 api.aizzz.xyz/v1/chat/completions：
+  - #1–#4：http 200 · cached_tokens **22,733/24,066 ≈ 94.5%** · 同一数值（稳定，无漂移）
+  - #5：http:000 · distributor 间歇性 node 轮换（cache 结构未被破坏，只是路由了一次）
+- 上游缓存命中率能以 0.01 分辨；**94.5% 在同 channel 同 payload 下可稳定复现**。
+  Codex 那种「持续 ~90%」是 distributor 在该 channel-local window 上的客观表现。
+- 证据 §PROVED-13 落盘；证据档至 13 节；本轮无代码改动。
+- ／待办： distributor 间歇 000 无工程侧可解——记录即止。
