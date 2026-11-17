@@ -4667,3 +4667,13 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 用户继续受益于「答错 → 直通问典 → 阅读出处」闭环;结算页现在两页都能一步抵达。
 - quiz 组件 SHA 门重钉（8a00db7f→526328a8）;fe-gates 134/134 · 1268/1268 · census 2566 · tsc 0。
 - 提醒：正典封第五章——回响为唯一续写门。
+
+## cont. 234 (2026-11-17) — 个人 Pages 移动端（375px）顶栏溢出修复 + 外部推送归属记录
+
+- mobile-fix：commit 3904246 → rebase 为 0743913（落在 origin/master 上限）：
+  375px 真渲染发现「赵欣曈」被挤成两行（brand-copy 无 nowrap、flex 挤压），GitHub 链接折行处出现孤立破折号。
+  修：新增 @media(max-width:640px)（brand nowrap · 隐藏溢出 · .main-nav overflow-x:auto · gap/flex-wrap 收紧）。
+  本地 http server + headless Chromium 真渲染复核：brand 一行、action-bar 一行、hero 正常、console 0 error。
+- **外部推送归属**：本回期间 origin/master 被外部推送了 `6ed36e0 showcase(首页极致装潢 + 极致宣传) — 字体/色系/构图全面升级`；
+  我 rebase 后把我的 mobile-fix 补在它上面。该装潢 commit **不是我写的**——不替我方署名、不冒充、改动留在原作者。
+- 功效：个人 Pages master 现为 `0743913`；效果：顶栏在 375px 不再挤压拆行。
