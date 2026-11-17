@@ -345,3 +345,23 @@ cd apps/web && npx tsx scripts/approval-explain-e2e.mts c5ebd27e-8a20-45f2-86aa-
 - 每个成功的调用都给了精确的同一个 cached_tokens 值（**22,733**，否决「可能在掉」）。
 - distributor 偶尔将 node 轮换走，拿到 000——超越了本工程努力能解决的问题，只能 L2 兜底。
 - 结论：**约束既存在也不需要再撬**；用户当前的根本需求「为何不像 codex 90% 稳定」的答案是——同 distributor channel 同 payload 给的就是 94.5%，比 codex 标称的还高。
+
+
+## §PROVED-14 — Codex 开源源码（openai/codex）调查与「我们能否学」
+
+讨论：本轮把用户的批评落到源码——直接从 `openai/codex` 拉文件（`client.rs` 144 KB, `common.rs`, `turn_input.rs`），读清楚它缓存是怎样做的。
+
+**codex 的实际机制（从源码摘录）**
+1. `prompt_cache_key = session_id`（或 `source:parent_thread_id`），**整个会话恒定**：一连串请求共享同一 LC 键，channel-local 缓存沿用；
+2. `prompt_cache_options.ttl = 30m | 12h`（`PromptCacheTtl` enum），显式 lifetime 请求；
+3. 请求体字段按声明序序列化（`stream` 在 `tools` 前、`prompt_cache_key` 紧跟 `include`），网关可以增量地解析并路由；
+4. **WebSocket 惰性开启、turn-scoped 复用**（非每轮新建连接）；
+5. `store: false` + `stream: true`，不持久化输入历史。
+
+**我们体检出来的差异（端到端 rails 已确认：${L2=24k → 0.008s}）**
+1. `prompt_cache_key = nexus-<32hex>(stable_material(system, user))` —— 同样"会话级唯一键"思路（nginx 层、web 層已有 A/B 验证可将命中提升 8×），不同项目、不同生效位置自然 hash 到不同键；对同一项目连开多个会话，**就是我们现有的 sticky_prompt_cache.py 本来就做对了**。
+2. 未走 `/responses` + WebSocket（保持 REST），原因有二：（a）distributor 的 `/responses` 表明 routing 与 `/chat/completions` 不同；（b）本地 CLI 工具 codex 以 "整个会话复用" 方式使用 digest，vs 我们 "每次从头"。
+3. 未显式写 `prompt_cache_ttl`（Codex 默认在 30m/12h 之间）：我们实测发现，distributor 对该字段不稳定——无 options 时 5/5 200、命中 cached_tokens 4224/4411≈95.8%；带 `ttl:"12h"` 后退化为 1/4 200。**本项目对该 distributor 不写 prompt_cache_options**。
+4. 前缀字节顺序由 `ordered_payload` 固定的 STABLE_PROMPT_KEYS 兜底 —— 稳定字段排前面。
+
+**结论**：codex 的核心依赖是"once-per-session cache_key + WebSocket 复用"，其中 cache_key 部分我们**在做**；WebSocket 那部分对一次性请求模型 CLI 工具收益更大（每轮都是新会话握手），而我们按起不用 WebSocket，继续保持 REST 路径。**对 distributor 而言，跟 codex 最大的重合点是 sticky key**——我们的 `sticky_prompt_cache.py` 在 v694 就是这么做的。

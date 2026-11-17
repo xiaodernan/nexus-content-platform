@@ -4728,3 +4728,15 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   Codex 那种「持续 ~90%」是 distributor 在该 channel-local window 上的客观表现。
 - 证据 §PROVED-13 落盘；证据档至 13 节；本轮无代码改动。
 - ／待办： distributor 间歇 000 无工程侧可解——记录即止。
+
+## cont. 241 (2026-11-17) — v870 · §PROVED-14 codex 源码考察完毕
+
+- 直接阅读 openai/codex 本体（client.rs / common.rs / turn_input.rs 源代码）完成冰封分析：
+  - codex 的 once-per-session prompt_cache_key = metadata.session_id（或 source:parent_thread_id）——恒定整会话；
+  - prompt_cache_ttl enum 30m/12h（PromptCacheTtl，但对我们 distributor 有副作用）；
+  - 字段按声明序序列化，网关可以增量解析路由；
+  - WebSocket 惰性 + turn-scoped 复用（同会话所有 turn 共享）——不是每请求新 TCP；
+  - store:false + stream:true。
+- 我们实测比较：distributor 收 `prompt_cache_options:{ttl:"12h"}` → 1/4 200；**无** options → 5/5 200，cachedTokens 4224/4411≈95.8%。
+  → 本项目对此类 distributor **不发** ttl。
+- 结论：我们已经运送 codex **最核心的 cache 机制**（sticky key via single-value sha256-stable-material, v694 起）。不换。
