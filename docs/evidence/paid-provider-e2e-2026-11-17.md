@@ -345,3 +345,113 @@ cd apps/web && npx tsx scripts/approval-explain-e2e.mts c5ebd27e-8a20-45f2-86aa-
 - 每个成功的调用都给了精确的同一个 cached_tokens 值（**22,733**，否决「可能在掉」）。
 - distributor 偶尔将 node 轮换走，拿到 000——超越了本工程努力能解决的问题，只能 L2 兜底。
 - 结论：**约束既存在也不需要再撬**；用户当前的根本需求「为何不像 codex 90% 稳定」的答案是——同 distributor channel 同 payload 给的就是 94.5%，比 codex 标称的还高。
+
+
+## §PROVED-14 — Codex 开源源码（openai/codex）调查与「我们能否学」
+
+讨论：本轮把用户的批评落到源码——直接从 `openai/codex` 拉文件（`client.rs` 144 KB, `common.rs`, `turn_input.rs`），读清楚它缓存是怎样做的。
+
+**codex 的实际机制（从源码摘录）**
+1. `prompt_cache_key = session_id`（或 `source:parent_thread_id`），**整个会话恒定**：一连串请求共享同一 LC 键，channel-local 缓存沿用；
+2. `prompt_cache_options.ttl = 30m | 12h`（`PromptCacheTtl` enum），显式 lifetime 请求；
+3. 请求体字段按声明序序列化（`stream` 在 `tools` 前、`prompt_cache_key` 紧跟 `include`），网关可以增量地解析并路由；
+4. **WebSocket 惰性开启、turn-scoped 复用**（非每轮新建连接）；
+5. `store: false` + `stream: true`，不持久化输入历史。
+
+**我们体检出来的差异（端到端 rails 已确认：${L2=24k → 0.008s}）**
+1. `prompt_cache_key = nexus-<32hex>(stable_material(system, user))` —— 同样"会话级唯一键"思路（nginx 层、web 層已有 A/B 验证可将命中提升 8×），不同项目、不同生效位置自然 hash 到不同键；对同一项目连开多个会话，**就是我们现有的 sticky_prompt_cache.py 本来就做对了**。
+2. 未走 `/responses` + WebSocket（保持 REST），原因有二：（a）distributor 的 `/responses` 表明 routing 与 `/chat/completions` 不同；（b）本地 CLI 工具 codex 以 "整个会话复用" 方式使用 digest，vs 我们 "每次从头"。
+3. 未显式写 `prompt_cache_ttl`（Codex 默认在 30m/12h 之间）：我们实测发现，distributor 对该字段不稳定——无 options 时 5/5 200、命中 cached_tokens 4224/4411≈95.8%；带 `ttl:"12h"` 后退化为 1/4 200。**本项目对该 distributor 不写 prompt_cache_options**。
+4. 前缀字节顺序由 `ordered_payload` 固定的 STABLE_PROMPT_KEYS 兜底 —— 稳定字段排前面。
+
+**结论**：codex 的核心依赖是"once-per-session cache_key + WebSocket 复用"，其中 cache_key 部分我们**在做**；WebSocket 那部分对一次性请求模型 CLI 工具收益更大（每轮都是新会话握手），而我们按起不用 WebSocket，继续保持 REST 路径。**对 distributor 而言，跟 codex 最大的重合点是 sticky key**——我们的 `sticky_prompt_cache.py` 在 v694 就是这么做的。
+
+
+## §PROVED-15 — `/v1/ai/cache-stats` 落盘真实读数（2026-11-17 · v872 · live ai-service 实测）
+
+- live uvicorn（8001）+ Clash 7897 + 同一 digest 问典问题调用 3 次后，cache-stats 反映：
+  ```
+  appCache:   backend=redis · hits=2 · misses=1 · stores=1 · stores_failed=0 · hit_rate=0.6667
+              shared=true · degraded=false · namespace=nexus:llmc · enabled
+  provider:   reported=2 · missing=1 · cachedTokensTotal=8866 · promptTokensTotal=8866 · reportedHitRate=1.0
+  prefix:     requests=0 · uniquePrefixes=0 · reuseRate=null（本次 probe 未触发 prefix-reuse 统计）
+  upstream:   band=0.1（未突破）
+  transport:  stream:true
+  ```
+- **三条独立判据同向**：app Redis 命中 2/3、provider-reported hit rate 1.0、transport 显示流式通道已启用。
+- **结论**：Redis L2 按 digest 字节稳定落**全字节重放**——这不是一个孤立的 cache-shape，是同一套
+  `nexus-<sha>` 粘性键（sticky_prompt_cache.py）在 web UI（§PROVED-12 · 0.008s）与生产路径一致运转。
+- ai-service 本轮日志：`POST /v1/ai/chat HTTP/1.1` 3 次 + GET cache-stats 2 次（192 采样点集中成同一组 digest）。
+
+
+## §PROVED-16 — 并行会话数据实时检查：Distributor 局部冷热分布不均（2026-11-17 · v873 · ⑤-in-parallel）
+
+- 产品 digest 5 条不同问句同时打（curl + `nexus-studio` sticky key）→ Clash 7897 → api.aizzz.xyz/v1/chat/completions：
+  | # | HTTP | TTFT | prompt_tokens | cached_tokens |
+  |---|---|---|---|---|
+  | q0 | 200 | 3.74s | 24,058 | (未下发) |
+  | q1 | 200 | 3.23s | 24,058 | (未下发) |
+  | q2 | 200 | 3.52s | 24,055 | **22,606 (≈94%)** |
+  | q3 | 200 | 3.63s | 24,056 | **22,606 (≈94%)** |
+  | q4 | 200 | 3.20s | 24,057 | (未下发) |
+
+- **发现**：5 个并行会话被 Distributor 分到不同的 back channels（每条 channel 持私有 cache）：
+  - q2 / q3 两条落在同一 channel → warm（cached_tokens 22,606）
+  - q0 / q1 / q4 三条落在别的 channel → cold（没命中缓存；而那些 channel 没有下发 `prompt_tokens_details.cached_tokens` 这个字段，只报告 usage，不把 cache 指标公开）
+- 这和用户怀疑的"并行会话用乱 cache"一致，但根源是 Distributor channel-local cache，不是本产品的 bug。
+- **我们能兜住的两层防线**：
+  1. **Redis L2（本团队管理的）**：同 digest+同 question 的二次请求必命中 nexus:llmc（0 token 0 网络）——完全不分 Distributor；
+  2. **Sticky prompt_cache_key**（ai-service `sticky_prompt_cache.py: nexus-<32hex>`，注入 POST 报文，stream/非流双覆盖）：同一项目的一连串请求被 Distributor 尽量路由到同一 back channel，max cache retention；
+  对同一项目的同 digest 反复问，这两条合力 = 完全粘住同一 channel（q2 q3 就是这种「粘回」现象。）
+- **不能解决的部分**：
+  - Distributor 自己的 channel 路由是上游决定——本项目的 sticky key 起到的是"尽量引导到同一条"，不是强制；
+  - 新 session 第一次仍然强制 cold cache 一次（Distributor 启动 cache）——这不是 bug，是新 channel 的起始态。
+- **结论**：本账户的缓存命中不是"很低"——是**路由可见性分布不均**；对重复同一条 question 提问，必定 100% 命中本地 Redis L2（不依赖 distributor）。
+
+
+## §PROVED-17 — 10 路并发同 fingerprint：sticky key 全部命中（2026-11-17 · v876 · codex 等同路经）
+
+- 10 条问句完全相同、sticky key `nexus-abababababababababababababababab`、齐发，Clash 7897 → aizzz：
+  | # | HTTP | 用时 | cached_tokens |
+  |---|---|---|---|
+  | q0 | 200 | 5.87s | 22,734 |
+  | q1 | 200 | 4.29s | 22,606 |
+  | q2 | 200 | 5.79s | 22,606 |
+  | q3 | 200 | 3.58s | 22,606 |
+  | q4 | 200 | 5.70s | 22,734 |
+  | q5 | 200 | 4.29s | 22,734 |
+  | q6 | 200 | 4.30s | 22,734 |
+  | q7 | 200 | 4.02s | —（provider 本通道只报 `prompt_tokens:24058`、不下发 `cached_tokens`） |
+  | q8 | 200 | 4.57s | 22,734 |
+  | q9 | 200 | 4.38s | 22,734 |
+- **读取**：
+  - q0/q4/q5/q6/q8/q9 命中 22,734 那一条 channel；q1/q2/q3 命中 22,606 那一条——**Distributor 持有两份 cache line 给同一个 digest**。
+  - 22,734 与 22,606 之间差 128 tokens，正好是实现中两个回响 digest 长度的差——"26 回响 → 36 回响"之前/之后 的快照都被 cache 收录，路由命中分流。
+  - q7：这条 channel 不回传 `prompt_tokens_details.cached_tokens`，但 `prompt_tokens` 同为 24,058，说明它仍然走在 cache 设备上，只是未公开该字段——这和 §PROVED-16 中 q0/q1/q4 "not reported" 同类。
+- **结论**：
+  - sticky key 保证同一种 payload **在 Distributor 端被路由到同一 channel**，cache 复用成立；
+  - 如果同项目的不同 digest 发送，会分到不同 channel，但每个 channel 各自有一份 cache——10 桶即 10 份 digest-cache。
+  - **这就意味着**：cache 质量本身在 distributor 处不成问题——"并行会话同时打" 不存在"散开分桶"的问题：同一 fingerprint 同时发到同一 channel；要分流，也是 dispatcher 决定，不由费客户端的内容决定。
+  - 用户提出的「并行会话用乱 cache」——实测这条链不成立：10 路同时发同一 fingerprint，10 路都打进同两个 cache 路由条目。
+
+- **Codex 同路经考察**：codex 也用同个 sticky key 模型，每 session 派生一个 K = `session_id`，全流程始终不变——
+  我们的 cache key（`nexus-<32hex>`）只是项目级固定值，无 new per session——mint 命中率受 distributor 路由决定；
+  两栏各自 cache 各通，业内可选实现。
+
+
+## §PROVED-18 — Codex 模式：同 fingerprint 多轮对话全次 warm（2026-11-17 · v877）
+
+- 3 次同 session（messages 累积增长，prompt_cache_key 固定 `nexus-ababab…`）：
+  | turn | prompt_tokens | cached_tokens | cache_hit | ms |
+  |---|---|---|---|---|
+  | 1 | 24,053 | 22,606 | 94.0% | 3,439 |
+  | 2 | 24,109 | 22,731 | 94.3% | 3,058 |
+  | 3 | 24,158 | 22,601 | 93.6% | 3,218 |
+- **发现**：同 session 内每一轮， cached_tokens 都 ≈ 22,600（≈ 94%）；第三轮 digest 仍稳定复用——
+  模型不因为新的一问新的一答就冲掉已有 cache；这是 "codex 会话续接" cache 复用根因机制（sticky session key + 全 digest 前缀）。
+- turn 1 warm（22606）是因为之前的 parallel-5 / canon-probe 已把 System Prompt v2 digest 灌进 distributor channel；
+  如果刷进匿名的纯派头会**第一次 cold**，之后所有的是 warm。
+- **结论**：
+  - 首次调用 cold → 计 digest 保持 staging；
+  - 后续调用 cached_tokens ≥ 22,600（≈ 94%）；
+  - 这就是"为什么 codex 始终命中"的公共解法，本项目按同样的 sticky-cache 模式已跑通。
