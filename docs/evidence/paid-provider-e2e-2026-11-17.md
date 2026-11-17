@@ -204,3 +204,37 @@ END OF FACT DIGEST
 token 费用：≈ 5 000 input，本页面该功能的用户按钮 10/h/IP + CSRF + creator-only 锁（cookie）保护——与 marketing metric "real"一致。
 
 **复现**：`cd apps/web && npx tsx scripts/analytics-ai-e2e.mts <projectId> <ownerId>`（前提：:8131 sidecar ·Clash 7897 节点；本机网关代理）
+
+## §PROVED-6 — 审批挂起按钮 live E2E（2026-11-17 · v850）
+
+第一次真跑 `agent-explain` 完整路径（真库 → 真 digest → 真 provider）。挑了一行真的 `awaiting_approval` 任务（`c5ebd27e-8a20-45f2-86aa-964c02357c00`）：
+
+- design-edit 这一手真的是持有 `heldOpCount=1`、approvals=`[{ action: "delete", reason: "remove → Hero" }]`；
+- digest（原文）:
+  ```
+  agentKey=design-edit heldOpCount=1 approvals=1
+  locale=zh
+  kinds=delete:1
+  op#1 action=delete reason="remove → Hero"
+  END OF DIGEST
+  ```
+- 响应（原文）：capability=real · model=gpt-6.1-terra · tokensIn 4635 · tokensOut 44 · ms 3770
+- 模型回答（原文）：
+  > 这项待处理操作会删除 `Hero`；`heldOpCount=1`。删除可能使该对象及其内容无法恢复，摘要未提供更多细节，不够看。
+
+**解读价值**：
+- 模型识别出这操作是「删除 `Hero`」这一件事本身，并诚实地承认摘要细节不够——它没有胡编（§159），阅读：
+  - 没编别的目标 / 别的 ops；
+  - 能够在不到一行的 digest 上给出 sound 的风险提示；
+  - 输出措辞清晰、可操作、把这次决策放回给人的手里。
+- 和上下文：这是挂起的 DEMO 任务（`nexus-deterministic-v1` 生成）——模型仍能在它的结构 digest 上给出对应的人话，没有要求比 digest 更多的细节。
+- 对真实 async pipeline 的使用点：§73/§74 状态流转上模型插入了一个**解释节点**，使决定前的阅读成本下降—— approver 读的是大白话，不是 raw op list。
+
+**Cost/cache**：本首次调用 `cachedTokens=0`，预期会随同 taskId 复用上升（L2 回放 coverage）。这里不计到 L2 不满率上——identity replay coverage 真正在 30 条挂起卡里渐进。
+
+**复现**
+```
+cd apps/web && npx tsx scripts/approval-explain-e2e.mts c5ebd27e-8a20-45f2-86aa-964c02357c00
+```
+前提：`ai-service` sidecar `:8131`、本地 Clash verge `:7897` LISTENING；DB 为 dev fixture 的那一组
+（已标注 `mode=demo/mock` **并非 production traffic**；当前 DB 共计 114 行 `awaiting_approval` 全部属 fixture）。

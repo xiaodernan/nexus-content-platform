@@ -14507,3 +14507,12 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   5 锚句 zh/en 全局唯一（175/175）。
 - `gen-bible-snapshot.mts` 登记 `echo-031-the-white-stone-nobody-claimed`；快照重生成（5+31 回响）。
 - verify:world-bible ✓ 175/175；verify:bible-snapshot ✓；fe-gates 134/134 · 1265/1265 · census 2564。
+
+## §APR-AI-2 — 审批解释 node 首次 live 跑通（2026-11-17 · v850 · evidence §PROVED-6）
+
+- 真库 awaiting_approval 真任务（`c5ebd27e-8a20-45f2-86aa-964c02357c00` · design-edit · heldOpCount=1 · action=delete target=Hero）：
+  digest 原文采用 only structural facts；走 sidecar `:8131` + clash `7897`；响应原样存档 `docs/evidence/paid-provider-e2e-2026-11-17.md` §PROVED-6。
+- 响应原文：「这项待处理操作会删除 `Hero`；`heldOpCount=1`。删除可能使该对象及其内容无法恢复，摘要未提供更多细节，不够看。」
+  它只描述不指挥、没编别的目标；正反两下都在 §159 纪律上。
+- 新增 tsx 复现 `apps/web/scripts/approval-explain-e2e.mts`；sibling :8000 未触碰。
+- 用户目标完成率提示：§四 的「把大模型能力深度用起来/状态流转」延伸到了审批入口——Studio 批准按钮前的一句话此时是真模型的原话。

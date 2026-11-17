@@ -4511,3 +4511,10 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 
 - 新回响 E31（中英双文件 + 映射表）；verify:world-bible ✓ 175/175；快照 5+31。
 - 世界两位数回响（31 篇）— Anchored.
+
+## cont. 216 (2026-11-17) — v850 · §APR-AI-2 审批解释 node live 首跑
+
+- 真库 awaiting_approval 真任务 digest → 真 provider → gpt-6.1-terra 原话解释发布：原文收录 evidence §PROVED-6。
+- provider 没编东西——「不知道够不够看」原样说出；仅描述 op，没指挥批准。
+- sibling :8000 未触碰；sidecar 用完即停（35148 已杀）。
+- replay 成本阶梯仍在 L2 打空的事实上——本次 tokensIn 4635（cachedTokens=0）；多重复同一个 taskId 应能命中重放。
