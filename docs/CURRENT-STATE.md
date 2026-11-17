@@ -4685,3 +4685,16 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   2. /guide 渲染干净、无重叠、无错字（对照上一回的「十五题」修订同现）。
 - 结论：两条最新计数在页面里确实一致；v863/v864 的发布不是纸面 pin，是用户可见的值。
 - dev server 用完已 kill；free RAM ~1.7 GB；本回无代码改动。
+
+## cont. 236 (2026-11-17) — v865 · §PROVED-10 用户指控「缓存命中率不够且输入上下文太小」的取证结论
+
+- 用户指控：codex 能持续 ~90% 缓存且上下文 5-9 万 token；我们只打 2 万多。本项目调用方式"肯定还是有问题"。
+- 取证（Clash 7897）：
+  - 小 payload 无 prompt_cache_key → 用 free text 反复打 → 被 distributor 按 per-call 分到不同 channel → 我们的「缓存命中」表象漂移；
+  - 给**与 ai-service 共形**的 `nexus-<32hex>` prompt_cache_key → 5/5 200，cached_tokens 4224/4411 ≈ 95.8%；
+  - digest 复读（SYSTEM_PROMPT v2，32,470 chars）大 prompt → 同前缀第 2 次 3.83s，cached_tokens ≈ 94.5%；
+  - models 3×200，可见 gpt-6.1-terra 位于目录。
+- 本项目**已经发出共形粘性 key**（ai-service `sticky_prompt_cache.py` 注入 POST chat/completions 报文，所有路径含流/非流）；
+  若真要抬升 digest，只能改 world-bible（字节前缀会整体重打包），不系代码补丁。
+- 结论记录 §PROVED-10；无需改代码；数字与现象与 codex 同向。
+- 输入目录：byte-level 承载前缀 76%+ 稳定；整体 cache 复读可打满 distributor 路由。
