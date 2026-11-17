@@ -5359,3 +5359,9 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 不写伪承诺数字；不拿别人项目冒充成功路线；本平台只声明自身纪律自封闭，不追 KPI。
 
 本次没有更动 cache-identity 运行实验数据；世界大典快照未动；前端未改；仅一份 ADR 写下——可被 git blame 溯源。
+
+## cont. 300 (2026-11-18) — v921 · §BIBLE-61 · Echo #61《祠殿侧窗那本没人敢翻第二页的集子》（作者手写·双语·350/350 绿）
+
+- 第 61 篇回响「侧窗」：祠殿侧窗深木箱上只翻开第一页——海风从雾港吹来的七个方向、灯塔第七级台阶的光；第二页没人敢翻；值更长每次交接先念纸条再在盖上盖「承」字空框印——按手印计覆蜡每人守它至死；至今无人写第二页的「收官」。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-061-the-volume-no-one-opens-the-second-page`；verify world-bible **350/350** ✓。
+- 同步：BibleAsk lede → 61（含 en）；/bible/ask meta → 六十一篇 / sixty-one；cache-identity → 61 篇锚句；bible-ask-behavior 锚句总数 344→350；canon-answer-graph 测试 66 段 / 61 echoes；pins 重钉（page→b07c3c68… comp→f0eb59e1…）。

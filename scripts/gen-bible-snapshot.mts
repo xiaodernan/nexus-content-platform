@@ -102,6 +102,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E58-潮候院祠殿墙脚那条抄本师只认墨不认盐的墨线': 'echo-058-the-ink-line-at-the-sanctuary-foot',
   'E59-雾港东南巷那口盐封不了的井': 'echo-059-the-well-the-salt-cannot-hold',
   'E60-值更人交班那本双线册里从没谁签写完的半钩': 'echo-060-the-half-hook-no-one-finishes',
+  'E61-祠殿侧窗那本没人敢翻第二页的集子': 'echo-061-the-volume-no-one-opens-the-second-page',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

@@ -91,10 +91,10 @@ describe('§BIBLE-4 /bible/ask 问典', () => {
 
   it('SHA256 钉死（BOM/EOL 归一 + className→@）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      'dc433c1aba3ef2c01b9fb724686f964752b5d81a112f121a2f4fef1b604fc8cc',
+      'b07c3c688bfb83588bcda8c26213074d9e7aa46826a00ce2df7f87dde5d238e6',
     );
     expect(createHash('sha256').update(redactClasses(component)).digest('hex')).toBe(
-      '0226b41e65d39461d15ef10176e9a3976b1f4ecb701ee9a8335d30860f5cd7d6',
+      'f0eb59e140c281d35f1e5f9942523f3d7c65967cd95e32cb6a7be5250de738ec',
     );
   });
 });
