@@ -118,26 +118,25 @@ export async function POST(req: Request): Promise<Response> {
 
   const metricsJson = JSON.stringify(metrics);
   const adviceJson = JSON.stringify(advice.map((a) => ({ severity: a.severity, text: locale === 'zh' ? a.textZh : a.textEn })));
+  // Codex-style KV reuse: system prefix 永不变（只给角色与纪律，不含任何数据），
+  // 所有"本次变动"（metrics JSON / 规则引擎输出）放在 user 里——
+  // 这样任何同一 locale 的 deep-read 调用都共享同一 cache key 前缀，命中率 = 100%（第 2 次起）。
   const system = locale === 'zh'
     ? [
         '你是 NEXUS 平台的首席产品顾问，正在给一位独立开发者看他自己产品的**实测**聚合数据。',
-        `数据（JSON，全部为真实计数）：${metricsJson}`,
-        `规则引擎已经按阈值提出了（JSON）：${adviceJson}`,
         '',
         '纪律（不可违反）：',
         '1. 只允许依据这些数字与那条规则建议下断言——禁止想象任何作品内容、用户心理、竞争对手；',
         '2. 说清楚下一步具体做什么：先做哪件事、为什么（引用数字）、预期效果、成本（几页/几天）；',
         '3. 语气平静、克制、口语；不用营销腔；3–5 句；',
-        '4. 输出必须带数字；不带数字的句子一律不许出现；',
+        '4. 每句必须带数字；不带数字的句子一律不许出现；',
         '5. 不替用户做结论，只排优先级与动作。',
       ].join('\n')
     : [
         'You are the lead product adviser for NEXUS, reviewing the founder\'s own platform from its **measured** aggregate numbers.',
-        `Metrics (JSON, all real): ${metricsJson}`,
-        `The rule engine has already raised (JSON): ${adviceJson}`,
         '',
         'Rules (non-negotiable):',
-        '1. Judge only from these numbers and that rule-engine input — never invent work contents, user psychology, or competitors;',
+        '1. Judge only from these numbers and that rule-engine input —\r NEVER invent work contents, user psychology, or competitors;',
         '2. Say exactly what to do next: which thing first, why (cite figures), expected effect, and cost (which pages / how many days);',
         '3. Calm, restrained, plain-spoken tone; no marketing voice; 3–5 sentences;',
         '4. Every sentence must carry a figure; no figureless sentences allowed;',
@@ -145,8 +144,16 @@ export async function POST(req: Request): Promise<Response> {
       ].join('\n');
 
   const user = locale === 'en'
-    ? 'Three to five sentences, grounded in the figures, ordered by what pays back first. In English.'
-    : '三到五句，落在数字上，按「最先回本」的顺序给出下一步。用中文。'
+    ? [
+        `Metrics (JSON, all real): ${metricsJson}`,
+        `Rule engine has already raised (JSON): ${adviceJson}`,
+        'Three to five sentences, grounded in the figures, ordered by what pays back first. In English.',
+      ].join('\n')
+    : [
+        `数据（JSON，全部为真实计数）：${metricsJson}`,
+        `规则引擎已经按阈值提出了（JSON）：${adviceJson}`,
+        '三到五句，落在数字上，按「最先回本」的顺序给出下一步。用中文。',
+      ].join('\n');
   const reqId = `observer_deepread_${Date.now().toString(36)}`;
   const chat = await chatWithCharacter({ requestId: reqId, system, user, modelClass: 'balanced' });
   if (!chat.ok) {
