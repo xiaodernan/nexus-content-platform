@@ -97,6 +97,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E53-雾港渔村吹着朝号等潮的船工那颗从未离手的螺号': 'echo-053-the-whistle-keeper-never-without-his-horn',
   'E54-潮候院祠殿后廊那口锁住锤舌的夜钟': 'echo-054-the-night-bell-with-its-tongue-sealed',
   'E55-潮候院东偏院那间从没装门只系铜环的房间': 'echo-055-the-doorless-room-of-the-east-wing',
+  'E56-雾港公示牌下面那张没人认领的明日大雨': 'echo-056-the-nobody-claimed-great-rain-tomorrow',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
