@@ -8,7 +8,7 @@
  * 趋势预测：最小二乘法（n 个点的经典公式），中文管理台里叫「每日斜率 + R²」，
  * 14 天数据点上做 7 天外推。它是统计描述，不是预言 —— 样本量小的时候 R² 会诚实地塌掉。
  */
-import { sql } from 'drizzle-orm';
+import { and, gte, isNull, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { projects, sessions, users } from '../db/schema';
 import { readLedger } from './metrics';
@@ -130,7 +130,7 @@ export async function readPulseMetrics(now = new Date()): Promise<PulseMetrics> 
       n: sql<string>`count(*)`,
     })
     .from(users)
-    .where(sql`${users.deletedAt} is null and ${users.createdAt} >= ${since14}`)
+    .where(and(isNull(users.deletedAt), gte(users.createdAt, since14)))
     .groupBy(sql`to_char(${users.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`)
     .orderBy(sql`to_char(${users.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`);
 

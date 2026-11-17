@@ -4847,3 +4847,14 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 ### 提交前校验
 
 - vitest 38/38（canon-graph/bible-ask/pulse 同组）· web typecheck ✓ · 兄弟项目零触碰。
+
+## cont. 252 (2026-11-17) — v881 · §PULSE 真机通关 + pg 恢复（ADR-0276）
+
+- Docker Desktop 第三次挂掉（18:23 起）：本轮 system restart 后机器全清，9–14 GB RAM 空闲，Docker 手动重启自恢复（nexus-redis/postgres 分别在 20:01/20:03 healthy）。
+- `/admin/pulse` 真机闭环：锁屏 → 123 解锁（303 + nexus_pulse cookie）→ 库快照渲染 → 「让大模型读这份账」→ **gpt-6.1-terra 6.56s 真实生成三条带依据的优化建议**（证据 §PROVED-20 · 截图 pulse-unlocked.png / pulse-narrated.png）。
+- 修复的真 bug：`readPulseMetrics` 14 天注册查询里 JS Date 裸插 raw sql → driver 序列化成 `Wed Nov 04… GMT+0800…`，PG 解析报错 → 整页走错误分支。改用 drizzle 列映射（`gte/and/isNull`）。本机测试 33/33 绿 + web typecheck 绿。
+- 公开面板零个人字段已静态检查：`@` 仅出现于 Google Fonts `wght@` 与 RSC payload `"$@39"`，无邮箱/ID/IP。
+- 观察：缓存流式通道再次未复报（`cached_tokens=未报`），与 §PROVED-17/18/19 的 channel-dependent 规律一致。
+- 兄弟项目进程全程未触碰（D:\游戏·node/vite/tsc 自然结束后 RAM 回到 9+ GB）。
+
+待办照旧：Echo #37（中文退化）· spring-cloud verify（仍等 ≥6 GB 净空）· origin/main push（workflow scope 缺失）· cache-stream 复报 channel 归因不变。

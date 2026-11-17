@@ -476,3 +476,19 @@ cd apps/web && npx tsx scripts/approval-explain-e2e.mts c5ebd27e-8a20-45f2-86aa-
   retrieve=3、cachedTokens=22,583、verdict=pass。**中文 body 一律走 UTF-8 文件/字节数组，不再直接裸拼 PowerShell 字符串。**
 - 结论：StateGraph 管线（§GRAPH-1 · ADR-0275）在真实 provider 上跑通完整 analyze→retrieve→draft→verify→finalize；
   问典从"单次 chat + 无自检"升级为"结构化生成 + 机检"，且 digest KV 前缀完整复用。
+
+## §PROVED-20 — /admin/pulse 公开管理台真机实测（2026-11-17 · v881）
+
+- 环境：本机 Next dev（3100）+ ai-service（8001）+ nexus-postgres 55433 + nexus-redis 56379（Docker Desktop 经第三次自愈后健康）。
+- 流程：无 cookie 访问 `/admin/pulse` → 锁屏渲染（中文「口令 123」面板，截图 pulse-locked.png）→ 表单提交 123 → 303 回 `/admin/pulse`，种下 `nexus_pulse`（httpOnly/lax/8h）→ 库快照渲染（截图 pulse-unlocked.png）：
+  - 用户总数 5,453 · 已认领 3,402 · guest 2,051 · 当前有效会话 2,268
+  - 项目：公开 138 / 仅链接 4 / 私有 1,159
+  - 14 天注册序列（UTC）全数列出；最小二乘：日均 197.07，斜率 -7.0747/天，R² 0.0511，未来 7 天外推 860
+  - 7 天账本：agent tasks（succeeded/real · succeeded/demo · awaiting_approval/demo · failed/real）+ audit 动作计数（publish/project.delete/…）+ API 端点计数
+  - **零个人字段**：HTML 里的 `@` 只出现在 Google Fonts 的 `wght@` 与 RSC payload 的 `"$@39"`——不是邮箱；面板上没有一个能对回个人的字段。
+- 「让大模型读这份账」真机实测（gpt-6.1-terra · 6564 ms · cached_tokens=未报[流式通道又未复报，channel-dependent]）：
+  1. 近 14 天注册斜率 -7.0747 但 R²=0.0511，趋势解释力弱 → 先检查注册波动与数据完整性，再决定获客策略
+  2. 近 7 天 29 个演示任务等待审批、32 个演示任务成功 → 梳理审批积压并定处理时限
+  3. 近 7 天 `api.design.patch` 122 次拒绝 → 查拒绝原因与权限配置；仅凭次数无法判断是否异常
+  —— 三条建议全部带依据、全部承认不确定性，**零编造**，与 §GRAPH-1/§PROVED-19 的模型行为一致。
+- 顺带抓到的真 bug（已修）：`readPulseMetrics` 的 14 天注册查询把 JS Date 直接插进 raw `sql`，driver 串行成 `Wed Nov 04 2026 19:24:52 GMT+0800…`，PG 拒绝解析 → 整页走错误分支。已改用 `gte(users.createdAt, since14)`（drizzle 列映射器正确序列化 Date）+ `and/isNull` 组合。
