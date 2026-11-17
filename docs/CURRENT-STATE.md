@@ -4659,3 +4659,11 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   bible-ask-visual-style SHA 钉按惯例重钉（48f739cc→a0c53de6）；问典行为/视觉测试 11/11 绿。
 - 验证：verify:world-bible ✓ 200/200 · verify:bible-snapshot ✓ · verify:fe-gates 134/134 · 1268/1268 · census 2566 · web tsc 0。
 - **世界内容路线**：正典已封在第五章；回响是唯一合法的继续卷（E37+ 走双语校对通道）。
+
+## cont. 233 (2026-11-17) — v864 · 潮汐挑战结算页加「回典籍室 →」+ 手册同步 15 题
+
+- 潮汐挑战 verdict 页面新增 Link「回典籍室 → / Back to the shelf →」(与重来按钮并排,带 data-bible-quiz-verdict-bible);
+  修复手册与空态仍写「十四道题 / Fourteen questions」的陈旧文案 → 十五/Fifteen。
+- 用户继续受益于「答错 → 直通问典 → 阅读出处」闭环;结算页现在两页都能一步抵达。
+- quiz 组件 SHA 门重钉（8a00db7f→526328a8）;fe-gates 134/134 · 1268/1268 · census 2566 · tsc 0。
+- 提醒：正典封第五章——回响为唯一续写门。

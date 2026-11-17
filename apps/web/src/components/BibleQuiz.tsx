@@ -28,6 +28,7 @@ const COPY = {
     correct: '答对了——这一句你记住了。',
     wrong: (ref: string) => `错——回去读「${ref}」。`,
     restart: '重来',
+    restartBible: '回典籍室 →',
     yourScore: '你的分数',
     askButton: '问问典籍 →',
     verdicts: [
@@ -40,7 +41,7 @@ const COPY = {
     ],
     footer: '《世界大典》正典全文见典籍室（/bible）。答错的题里标了出处：错就是错，没有近似的正确。',
     scoreLine: (n: number, total: number) => `${n} / ${total}`,
-    empty: '还没答完。十四道题就是五章正典的全部问题。',
+    empty: '还没答完。十五道题就是五章正典的全部问题。',
   },
   en: {
     kicker: 'The Tidal Trial',
@@ -50,6 +51,7 @@ const COPY = {
     correct: 'Correct — you keep it.',
     wrong: (ref: string) => `Wrong — go read “${ref}”.`,
     restart: 'Try again',
+    restartBible: 'Back to the shelf →',
     yourScore: 'Your score',
     askButton: 'Ask the canon →',
     verdicts: [
@@ -62,7 +64,7 @@ const COPY = {
     ],
     footer: 'The full canon lives in the shelf (/bible). Every wrong answer points you to where it lives. Wrong is wrong — there is no near-enough.',
     scoreLine: (n: number, total: number) => `${n} / ${total}`,
-    empty: 'Not done yet. Fourteen questions — one per breath of the canon.',
+    empty: 'Not done yet. Fifteen questions — one per breath of the canon.',
   },
 } as const;
 
@@ -180,6 +182,9 @@ export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {
         <button type="button" className="bb-quiz-restart" onClick={restart} data-bible-quiz-restart>
           {c.restart}
         </button>
+        <Link className="bb-quiz-askButton" href="/bible" data-bible-quiz-verdict-bible>
+          {c.restartBible}
+        </Link>
         <p className="bb-quiz-footer">{c.footer}</p>
       </section>
     );
