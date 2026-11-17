@@ -43,7 +43,8 @@ function summaryOf(response: { patches?: unknown; plans?: unknown }): string | n
 export async function POST(req: Request): Promise<NextResponse> {
   if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   // cont. 170 · 编排车道：请求头 x-nexus-orchestration: stategraph 走 LangGraph 状态图；
-  // 否则按 env NEXUS_AI_ORCHESTRATION（缺省 lane-a）。两车道响应逐字节同构（AiResponse 契约），本车道只影响执行结构。
+  // cont. 222：默认车道 = stategraph（缺省走 /v1/ai/design-graph）。要回退顺序通道，设 NEXUS_AI_ORCHESTRATION=lane-a；
+  // 两车道响应逐字节同构（AiResponse 契约），本车道只影响执行结构。
   const lane = resolveOrchestrationLane(req.headers.get('x-nexus-orchestration'), process.env.NEXUS_AI_ORCHESTRATION);
   // §137 的 guest 自动签发：无会话客户端的 user.id 每请求都是新的，按身份限流对它空转。
   // 所以这道按 IP 的闸必须放在 requireUser() 之前——被挡住的请求一个 guest 都不该建。

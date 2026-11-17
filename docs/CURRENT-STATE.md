@@ -6059,3 +6059,9 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 >   .hp-quickStart* 门面类（零 hex）；home SHA 重钉；SSR 实测 zh/en parity ✓（"Ship it"/"See the data" vs 造项目/看见数据）。
 > - §五 滚轮方向全链路 live probe：CÆSURA 线上 bundle(index-BiiergES.js) invertWheelY 默认 false（往上滑往上看），
 >   游戏内「设置→滚轮纵向反转」兜住 Windows 自然滚动；NEXUS web CanvasStage 默认网页惯例 + 可见开关 + localStorage 记忆（fe-gates 钉死）。
+
+> **2026-11-18 cont. 222 · StateGraph 默认车道（cont. 222）：LangGraph 进主路线**
+> - `resolveOrchestrationLane` 默认从 `lane-a` 翻成 **stategraph**：header > env NEXUS_AI_ORCHESTRATION > 默认值；非法值逐级回落默认。lane-a 保留为显式逃生门（一行 env 降级，不发版）。
+> - prod live probe：默认 POST /api/ai/run → HTTP 200 · capability=real · model=gpt-6.1-terra · x-nexus-orchestration=**stategraph** · tokensIn=87,095 · cachedTokens=**80,254（92.1%）**；lane-a 逃生门同请求 HTTP 200 ✓（新用户真账真项目）。
+> - 单测 orchestration-lane.test.ts 4/4 · 集成 ai-run-orchestration-lane.integration.test.ts 4/4（4 车道回声，真库真项目）· fe-gates 147/147 · tsc 0 errors · ADR-0236 落账；guide 与说明书文案同步为"默认 stategraph"。
+> - 日期备注：本 session 内部分文档标了 2026-11-19（当时按对话内时间线），以本机系统时钟 2026-11-18 为准。

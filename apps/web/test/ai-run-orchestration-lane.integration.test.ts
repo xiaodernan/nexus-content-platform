@@ -14,8 +14,9 @@ import { agentTasks, projects, sessions, users } from '../src/server/db/schema';
  *
  * 验证的不是「走哪条 provider」（测试环境无 provider，走 demo），而是 web 层的分流纪律：
  *   - 请求头 x-nexus-orchestration: stategraph → 响应头如实回声 stategraph（并记 lane 计数）
- *   - 不传 → 如实回声 lane-a
- *   - 乱传 → 回落 lane-a（一个拼写错误绝不换车道）
+ *   - 不传 → 如实回声 stategraph（cont. 222 起默认车道 = 状态图；缺省不再猜、也不偷偷换回旧通路）
+ *   - 乱传 → 回落 stategraph（一个拼写错误绝不能把流量悄悄换回 lane-a）
+ *   - 显式逃生门：x-nexus-orchestration: lane-a（或 env NEXUS_AI_ORCHESTRATION=lane-a）
  * 真两车道（/v1/ai/run vs /v1/ai/design-graph）的字节同构由 ai-service 侧的
  * test_stategraph.py + live probe（2026-11-17，两车道皆 200 实测）保证。
  */
@@ -96,7 +97,7 @@ describe('cont. 170 · POST /api/ai/run 编排车道回声', () => {
     expect(res.headers.get('x-nexus-task')).toBeTruthy();
   }, 60_000);
 
-  it('不传请求头 → 回声 lane-a（缺省车道不偷偷换道）', async () => {
+  it('不传请求头 → 回声 stategraph（cont. 222：默认车道 = 状态图）', async () => {
     const res = await runPost(
       new Request('http://test.local/api/ai/run', {
         method: 'POST',
@@ -105,14 +106,26 @@ describe('cont. 170 · POST /api/ai/run 编排车道回声', () => {
       }),
     );
     expect(res.status).toBe(200);
-    expect(res.headers.get('x-nexus-orchestration')).toBe('lane-a');
+    expect(res.headers.get('x-nexus-orchestration')).toBe('stategraph');
   }, 60_000);
 
-  it('乱传请求头 → 回落 lane-a', async () => {
+  it('乱传请求头 → 回落 stategraph（拼写错误不给旧通路留门）', async () => {
     const res = await runPost(
       new Request('http://test.local/api/ai/run', {
         method: 'POST',
         headers: asUser('stategrap'),
+        body: JSON.stringify(wireFor(projectId)),
+      }),
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-nexus-orchestration')).toBe('stategraph');
+  }, 60_000);
+
+  it('显式逃生门：x-nexus-orchestration: lane-a → 回声 lane-a', async () => {
+    const res = await runPost(
+      new Request('http://test.local/api/ai/run', {
+        method: 'POST',
+        headers: asUser('lane-a'),
         body: JSON.stringify(wireFor(projectId)),
       }),
     );
