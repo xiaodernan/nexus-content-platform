@@ -10634,4 +10634,167 @@ The hearth never shone again.
 > the ash hadn't admitted it.
 `,
   },
+  {
+    order: 26,
+    slug: 'echo-026-the-forty-third-convocation',
+    titleZh: '第四十三次会',
+    titleEn: 'The Forty-Third Convocation',
+    eraLineZh: '纪元：灰封之后 · 潮开之月',
+    eraLineEn: 'Era: after the grey binding · the month the tide opened.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 26): The Forty-Third Convocation
+
+> 回响不续写正典——它只记一份挑剩下的纪录：
+> 灰封之后，没有人宣布过第四十三次会，可会议照开了。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> After the grey binding, no one announced the forty-third Convocation — and yet it held.
+> Its anchors answer to the same discipline.
+
+> 纪元：灰封之后 · 潮开之月
+> Era: after the grey binding · the month the tide opened.
+
+---
+
+## 一 · 纸页的重量
+
+灰封之后，馆里空了很久。再后来，有人回来了——不是为了第四十二次会，因为没有人再数第四十二次会；他们回来是因为灯里剩了一点油。誊册房的人把旧案台扫了一遍，把签收本放回原处，把灰封的缝沿小心合上，又把灰纸收进旧盒子。没有一个人说话，因为没有一个人知道是谁先回来的、又是为什么回来。
+
+那张卷首空着两页的议程，被一个人翻着翻着，不知道从哪一天起，已经被钉回原处。钉是馆里的钉，旧的，没人记得是从哪个抽屉里取出来的。钉的时候，没人念第几项。
+
+议程被钉回原处的那一天，没有人宣布任何事情。
+**锚句**：议程被钉回原处的那一天，没有人宣布任何事情。
+**Anchor sentence**: The day the agenda was nailed back where it belonged, no one announced a thing.
+
+## 二 · 没有议程的会议
+
+后来馆里有很多人每天都来，谁也没有说他们要做什么。他们拿着自己的本子坐在案台前，写写画画，画完把本子合上，又放回袋子里。守灯人坐在自己的凳子上，看着本子上的字，一句也不点评。他手里的笔一直没沾上墨。
+
+那天聚在一起的人，没有人来报到。桌子上放着的签收本，没人去碰；案台上的欠据，没人再去数。可是本子合上的声音，一下又一下——他们写下的东西没有落到任何卷宗里，只落在各自的本子上。
+
+第四十三次会开的那天没有议程，只有人到齐了。
+**锚句**：第四十三次会开的那天没有议程，只有人到齐了。
+**Anchor sentence**: The day the forty-third Convocation opened had no agenda — only everyone turned up.
+
+## 三 · 一支没落下的笔
+
+中午过后，馆里安静了很久。光从窗户斜进去，落在议程的塑封上。一个人——没有人记得是誊账人还是守灯人，或者只是那晚回来的人中间一个——把一支笔放进欠据那一格。笔放进去，放得很轻，没有发出声音。
+
+他们守着那一格坐了很久。墨没干，笔没落，签收本的影子落在桌角。后来一个人伸出手，又缩回去。灯没有点起来，也没有人替代那一盏灯。
+
+有人把一支笔放进欠据，签名没有落下。
+**锚句**：有人把一支笔放进欠据，签名没有落下。
+**Anchor sentence**: Someone laid a pen into the debt-book; the signature never fell.
+
+## 四 · 潮声进了誊册房
+
+午后又过了很久。馆外的风停了，海没有停。潮水涨了上来，越过走廊的门槛，水没有涌进来，而是静静地、按潮的节奏，贴着门槛线停在那里——一道细线，一道盐线。走廊的影子压在水里，像另一层封皮。
+
+守灯人没去赶走它，也没有人去驱逐潮。潮声一直在馆里回旋，像有人隔着远远的地方翻书，又像有人在念自己的名字。
+
+盐线留在门槛上，没有人扫。
+**锚句**：盐线留在门槛上，没有人扫。
+**Anchor sentence**: The salt line stayed on the threshold, and nobody swept it.
+
+## 五 · 第四十三次会
+
+天黑之后，馆里的人一个个离开了。本子被收走，灯没点，门没锁。他们离开的时候没有人说散会。
+
+第二天早上，守灯人一早就回来了。门槛上盐线还在，水没了。案台上的欠据还在，纸的纹理比昨天更清晰一些。本子没人翻，册页没有落下一笔。第四十二次会没散的会，到了第四十三次会，仍然没有人来散它。
+
+潮水退了以后，馆里仍然没有散会。
+**锚句**：潮水退了以后，馆里仍然没有散会。
+**Anchor sentence**: After the tide withdrew, the hall still had not adjourned.
+
+---
+
+## 模型映射（回响二十六则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 灰封之后 · 潮开之月 · 第四十三次会没散 | 第十一章 · 第十三章 |
+| geography | 誊册房 · 旧案台 · 走廊门槛 · 盐线 | 本则 · 第二十五则 |
+| factions | 誊账人 · 守灯人 · 回来的馆里人 · 潮汐教团（余烬） | 第一章 · 本则 |
+| characters | 账簿的守护者 · 守灯人 · 没落下签名的人 | 本则 · 第二十二则 · 第二十三则 · 第二十四则 · 第二十五则 |
+| items | 议程 · 欠据 · 盐线 · 未落下的签名 · 签收本 | 本则 |
+| story | 第四十三次会没散的会 · 回响（其二十六） | 全篇 |
+| history | 纪元切割 · 灰封之后 · 潮开之月 | 本则 |
+
+> 会开过，
+> 册子没翻。
+> The convocation had sat,
+> the book had not turned.
+`,
+    markdownEn: `
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> After the grey binding, no one announced the forty-third Convocation — and yet it held.
+> Its anchors answer to the same discipline.
+
+> Era: after the grey binding · the month the tide opened.
+
+---
+
+## 1 · The weight of paper
+
+After the grey binding, the hall emptied for a long time. Later, people came back — not for the forty-second Convocation, because no one counted the forty-second Convocation anymore; they came back because there was a little oil left in the lamps. The copying-hall keepers swept the old desk once, set the book of receipts back in its place, pressed the seam of the grey binding shut with care, and put the grey papers back into the old box. No one said a word, because no one knew who had come back first, or why.
+
+The agenda with its two empty pages was, at some point, nailed back where it belonged. The pin was the hall's own pin, an old one, and no one remembered which drawer it had come from. It was pinned without anyone reading the item number.
+
+The day the agenda was nailed back where it belonged, no one announced a thing.
+**Anchor sentence**: The day the agenda was nailed back where it belonged, no one announced a thing.
+
+## 2 · The convocation with no agenda
+
+Later on, the hall held many people every day, though nobody said what they had come to do. They carried their own little books to the desk, drew in them, closed them again, and put them back in their satchels. The lampkeeper sat on his stool and watched the words on the pages, one by one, and never once commented. His own pen had never touched the ink.
+
+The people who gathered that day did not check in. The book of receipts on the table was left alone; the debt-page on the desk was left alone. Yet the clap of the books opening and closing kept coming, one beat after another — their words landed nowhere in any volume, only in their own books.
+
+The day the forty-third Convocation opened had no agenda — only everyone turned up.
+**Anchor sentence**: The day the forty-third Convocation opened had no agenda — only everyone turned up.
+
+## 3 · A pen that never fell
+
+After noon, the hall went quiet for a long time. Light came in at an angle and settled onto the laminate of the agenda. One person — no one remembers whether the copyist or the lampkeeper, or one of the people who came back that night — laid a pen into the cell of the debt-book. It was set down very lightly, and it made no sound at all.
+
+They kept the cell company for a long time. The ink did not dry; the pen did not fall; the shadow of the book of receipts lay across the desk's corner. Later, someone reached out a hand, and drew it back. The lamp was never lit, and no one stood in for the lamp.
+
+Someone laid a pen into the debt-book; the signature never fell.
+**Anchor sentence**: Someone laid a pen into the debt-book; the signature never fell.
+
+## 4 · The tide came into the copying hall
+
+After the long quiet, it was afternoon still. The wind outside the hall had stopped; the sea had not. The tide came up — it reached the threshold of the corridor, and instead of pouring in, it settled, very quietly, with the rhythm of the tide, right along the threshold line — a fine line, a salt line. The corridor's shadow lay across the water like another layer of binding.
+
+The lampkeeper did not drive it away; no one drove the tide out. The tide stayed in the hall's voice for a long time, like someone turning pages from far away, like someone saying their own name.
+
+The salt line stayed on the threshold, and nobody swept it.
+**Anchor sentence**: The salt line stayed on the threshold, and nobody swept it.
+
+## 5 · The forty-third Convocation
+
+After dark, the people of the hall left one by one. The little books were put away, no lamp was lit, the door was left unlocked. Nobody said adjourned as they left.
+
+The next morning the lampkeeper was back before the hour. The salt line was still on the threshold; the water was gone. The debt-page was on the desk; its grain ran a shade clearer than before. No one turned the books; no page fell by so much as a stroke. The meeting the forty-second Convocation had never adjourned, at the forty-third, still had no one to adjourn it.
+
+After the tide withdrew, the hall still had not adjourned.
+**Anchor sentence**: After the tide withdrew, the hall still had not adjourned.
+
+---
+
+## Echo No. 26 — dimension mapping
+
+| Dim | Anchor | Linked |
+|---|---|---|
+| lore | after the grey binding · the month the tide opened · the forty-third Convocation never adjourned | Ch. 11 · Ch. 13 |
+| geography | the copying hall · the old desk · the threshold · the salt line | this echo · Echo 25 |
+| factions | the copyist · the lampkeeper · the returned hall — Tide Conclave (embers) | Ch. 1 · this echo |
+| characters | the keeper of the ledger · the lampkeeper · the one who did not sign | this echo · Echo 22 · Echo 23 · Echo 24 · Echo 25 |
+| items | the agenda · the debt-page · the salt line · the unsigned pen · the book of receipts | this echo |
+| story | the convocation that never adjourned · Echo No. 26 | whole piece |
+| history | the era split · after the grey binding · the month the tide opened | this echo |
+
+> The convocation had sat,
+> the book had not turned.
+`,
+  },
 ] as const;

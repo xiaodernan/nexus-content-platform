@@ -394,6 +394,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《灰炉》里，守灰人做了什么？', choices: ['不守，灰炉也不', '加了柴', '关了灯', '报了警'], answer: 0, ref: '回响（其二十五） · 四' },
     en: { prompt: 'In “The Grey Hearth”, what did the keeper do?', choices: ['he did not keep; neither did the hearth', 'he fed it wood', 'he put out the lamp', 'he raised the alarm'], answer: 0, ref: 'Echo No. 25 · IV' },
   },
+  {
+    zh: { prompt: '《第四十三次会》开的那天，馆里有什么？', choices: ['没有议程，只有人到齐了', '议程写得很满', '灯点得很亮', '签名落得很多'], answer: 0, ref: '回响（其二十六） · 二' },
+    en: { prompt: 'In “The Forty-Third Convocation”, what was there on the opening day?', choices: ['no agenda — only everyone turned up', 'a crowded agenda', 'lights burning bright', 'many signatures falling'], answer: 0, ref: 'Echo No. 26 · II' },
+  },
+  {
+    zh: { prompt: '《第四十三次会》里，有人把什么放进了欠据？', choices: ['一支笔，签名没有落下', '一张欠条', '一盏灯', '一粒盐'], answer: 0, ref: '回响（其二十六） · 三' },
+    en: { prompt: 'In “The Forty-Third Convocation”, what did someone lay into the debt-book?', choices: ['a pen — the signature never fell', 'a promissory note', 'a lamp', 'a grain of salt'], answer: 0, ref: 'Echo No. 26 · III' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {
