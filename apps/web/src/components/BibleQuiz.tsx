@@ -374,6 +374,18 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《第四十二次会》里，签收本最后一页的空白留给谁？', choices: ['签名', '印章', '井数', '灯火'], answer: 0, ref: '回响（其二十三） · 二' },
     en: { prompt: 'In “The Forty-Second Convocation”, who was the blank cell at the end of the book of receipts reserved for?', choices: ['the signature', 'the seal', 'the well-count', 'the lamp'], answer: 0, ref: 'Echo No. 23 · II' },
   },
+  {
+    zh: { prompt: '《第四十二次会》里，守灯人说了什么？', choices: ['没对第四十二次会说什么，也没对自己说什么', '他背了规矩', '井问了他要答案', '灯自己说出口了'], answer: 0, ref: '回响（其二十三） · 三' },
+    en: { prompt: 'In “The Forty-Second Convocation”, what did the lampkeeper say?', choices: ['said nothing to it, nor to himself', 'he recited the rules', 'the well asked him for an answer', 'the lamp spoke on its own'], answer: 0, ref: 'Echo No. 23 · III' },
+  },
+  {
+    zh: { prompt: '《灰封》里，封皮合上以后，没有再敲过谁？', choices: ['签收本', '存档的纸', '灰灯', '井壁'], answer: 0, ref: '回响（其二十四） · 二' },
+    en: { prompt: 'In “The Grey Binding”, the cover closed shut — and not one knock ever fell on what?', choices: ['the book of receipts', 'the archive paper', 'the grey lamp', 'the well wall'], answer: 0, ref: 'Echo No. 24 · II' },
+  },
+  {
+    zh: { prompt: '《灰封》里，那半粒盐最后落在了哪里？', choices: ['留在新封皮里', '被守灯人取出放进铁盒', '被井吞了', '随着灯火消散'], answer: 0, ref: '回响（其二十四） · 四' },
+    en: { prompt: 'In “The Grey Binding”, where did the half-grain of salt end up?', choices: ['stayed inside the binding', 'the lampkeeper tucked it into an iron box', 'the well swallowed it', 'it burned away with the lamp'], answer: 0, ref: 'Echo No. 24 · IV' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

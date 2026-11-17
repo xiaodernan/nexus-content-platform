@@ -6095,3 +6095,8 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 > - §BIBLE-5 样式零 hex，只用 var() 令牌；强制配色 forced-colors 全收口；`verify:census OK (2924 类全有引用方)` · fe-gates **147/147** · 1353/1353 · pytest **455/455**（含 test_canon_digest 4/4）· verify:world-bible **377/377** · `/bible/echo-022-the-half-grain` SSR 200 含 `data-tide-witness` 钩子。
 > - prod 实测（build+start+server+ai-service 三层端到端）：call-1 cold（tokensIn=**6,247** · cachedTokens=**0**）；call-2 同 prefix **6,247 / 6,247 = 100%**；text 第一次出现「半粒盐的断口，从封皮的凹槽里朝外看。」/ **zero fabrication**。
 > - evidence: `docs/evidence/live-tide-witness-2026-11-18.md`
+
+> **2026-11-19 cont. 227 · 回响（其二十四）《灰封》上线（canon 持续扩容 · 382 锚句）**
+> - E24 双语落库（5 组锚句 zh/en 全局唯一；story：方才第四十二次会之后，守灯人合上了欠册——灰封以后账上只剩最后一行；封皮合上后敲不下去；那半粒盐跟着封皮一起进去了；没人再开那本子了。灰幕之后·封卷之月）。
+>   verify:world-bible **382/382** · verify:bible-snapshot ✓ · canon slug `echo-024-the-grey-binding`；canon_digest.txt 重封存（61,711 chars · sha256=9f31cd26…）。
+>   /bible 页脚 zh 二十四 / en XXIV · quiz 78 题（zh/en 镜像，含 2 道 E24）· guideCopy 二十四回响 · fe-gates **147/147** 1353/1353 · SSR 全（`Echo No. 24` / `Grey Binding` / `灰封` 均在，`data-tide-witness` 钩子：三处）

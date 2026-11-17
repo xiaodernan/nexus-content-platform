@@ -50,7 +50,7 @@ const COPY: Record<Locale, {
     whisperLink: '答问者 · 问点书里的事',
     anchorsLink: '锚句回放',
     chapterLabel: (order) => `第${['一', '二', '三', '四', '五'][order - 1] ?? order}章`,
-    echoLabel: (order) => `回响 · 其${['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十', '二十一', '二十二', '二十三'][order - 1] ?? order}`,
+    echoLabel: (order) => `回响 · 其${['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十', '二十一', '二十二', '二十三', '二十四'][order - 1] ?? order}`,
     echoTitle: '回响 · Echoes',
     echoLede: '正典之外的侧写——不是续篇，不是错的，只是同一块盐加了另一层纹理。',
     anchorsLine: (count) => `${count} 句锚 · 中英字字对齐`,
@@ -70,7 +70,7 @@ const COPY: Record<Locale, {
     whisperLink: 'The Answerer · ask one question of the book',
     anchorsLink: 'Anchor Echo',
     chapterLabel: (order) => `Chapter ${['I', 'II', 'III', 'IV', 'V'][order - 1] ?? order}`,
-    echoLabel: (order) => `Echo ${['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI', 'XXII', 'XXIII'][order - 1] ?? order}`,
+    echoLabel: (order) => `Echo ${['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI', 'XXII', 'XXIII', 'XXIV'][order - 1] ?? order}`,
     echoTitle: 'Echoes',
     echoLede: 'Side-lights beyond the canon — not a sequel, not an error, just another layer of grain on the same salt.',
     anchorsLine: (count) => `${count} anchor sentences · verbatim in both languages`,
@@ -141,7 +141,7 @@ export default async function BiblePage() {
               const anchors = extractAnchors(echo.markdownZh, echo.markdownEn).length;
               return (
                 <li key={echo.slug} className="bb-card" data-bible-echo={echo.slug}>
-                  <span className="bb-cardNum" aria-hidden="true">{locale === 'en' ? ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI', 'XXII', 'XXIII'][echo.order - 1] ?? echo.order : ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十', '二十一', '二十二', '二十三'][echo.order - 1] ?? echo.order}</span>
+                  <span className="bb-cardNum" aria-hidden="true">{locale === 'en' ? ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI', 'XXII', 'XXIII', 'XXIV'][echo.order - 1] ?? echo.order : ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十', '二十一', '二十二', '二十三', '二十四'][echo.order - 1] ?? echo.order}</span>
                   <div className="bb-cardBody">
                     <p className="bb-cardChapter">{c.echoLabel(echo.order)}</p>
                     <h2 className="bb-cardTitle">{title}</h2>
