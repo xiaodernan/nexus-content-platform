@@ -4895,3 +4895,11 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 与 v884 合计：**这个仓库里有三个 LLM 按钮此前永远 403**——/insight ⑧、问典、分析页「大模型解读」——现在全部修复。
 - provider 侧（20:51 直测）healthy：`/v1/chat/completions` 200 · 3.2s · cached_tokens=4,224。
 - Docker Desktop 本日第 5 次自重启（20:43）——nexus 数据面 30s 内恢复 healthy；/bible/ask 浏览器复测被 pg 宕机窗口拦住（register 500 / bible/q 500），机器稳定后补一次截图证据。
+
+## cont. 257 (2026-11-17) — v886 · §BIBLE-38 · Echo #38《值更院井台边那块永远不干的石板》（作者手写·双语·6锚句·212/212 绿）
+
+- 第 38 篇回响「候潮石」：值更院井台边那块石板六十九年没干过。与米缸线（E36 米／E37 粥）同一条"不动之物"的叙事谱系。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-038-the-tide-stone-by-the-well`；verify:bible-snapshot ✓；verify:world-bible **212/212** ✓。
+- 同步落地：BibleAsk lede → 38；/bible/ask meta → 三十八篇；canon-answer-graph 测试 43 段／38 echoes；bible-ask-behavior 锚句总数 206→212；CACHE-IDENTITY 更新。
+- 回归：bible 组 50/50 绿。web typecheck 未跑（RAM 0.6GB，仅两处字符串 + 两处测试数值，无类型表面）。
+- digest 随第 38 篇重灌：下一次真 provider 调用一次 cold（预期，见 CACHE-IDENTITY.md）。

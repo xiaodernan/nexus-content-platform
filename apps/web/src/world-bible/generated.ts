@@ -8465,4 +8465,202 @@ The first rice-jar month after the first convocation, the first watcher kept it;
 > The one who stays awake on the last night of the rice-jar month will hear the bottom of the porridge pot rise one small bubble — the night-watch pot taking one glance, on the next watcher's behalf, at the passing month.
 `,
   },
+  {
+    order: 38,
+    slug: 'echo-038-the-tide-stone-by-the-well',
+    titleZh: '值更院井台边那块永远不干的石板',
+    titleEn: 'The Stone Slab by the Well That Never Dries',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——米缸月第七日的井台清早。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the well platform on a morning of the seventh day of the rice-jar month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 38): The Stone Slab by the Well That Never Dries
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院值更院井台边那块青石板——六十九年了，它一天没干过。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the green stone slab by the well in the watcher's courtyard — it has not been dry for a single day in sixty-nine years.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——米缸月第七日的井台清早。
+> Era: the Institute — after the 41st Convocation; the well platform on a morning of the seventh day of the rice-jar month.
+
+---
+
+## 一 · 值更院的老井
+
+值更院中央有一口老井。水是淡的，绳是麻的，井沿的凹痕深得能卡住手指。
+
+没人知道井是哪一年挖的。问值更长，他说：井比院子老，院子比人老，人比谁都短。
+
+**锚句**：每天清早井台上总有一层水汽。
+**Anchor sentence**: every morning there is a film of water vapor on the well platform.
+
+---
+
+## 二 · 井台边那块青石板
+
+井台靠后的位置有一块青石板，比井台本身旧一层颜色，摸上去始终是凉的。
+
+那块石板比门槛宽一뼘，不镶在台面里，是「坐」在井台上的——像一个人坐在井边，多年保持了同一个姿势。
+
+**锚句**：没有人烧过井台，也没有人浇过井台。
+**Anchor sentence**: no one has heated the well platform, and no one has watered it.
+
+---
+
+## 三 · 早上的水汽
+
+夏天正午的晒、冬天早上的霜，都碰不到那块石板。别的石头都干了，它还是泛着一层细密的水汽。
+
+有个新来的值更想用布擦干它。擦完之后布再也干不了——只能扔掉。他没敢再问，只记得老值更看了他一眼。
+
+**锚句**：值更们从不在那块石板上放任何东西。
+**Anchor sentence**: the watchers never place anything on that slab.
+
+---
+
+## 四 · 没人在上面放东西
+
+井台上什么都能放：木桶、铜壶、一盏灯、打好的草绳。唯独那块石板上什么也不放。
+
+有一年有位过路的行脚僧把自己的钵放在上面。第二天钵还在，钵空了，石板还是湿的，井台却少了一只茶碗。僧人没要回钵。
+
+**锚句**：抄本员隔几十年才记一笔：石板未干。
+**Anchor sentence**: the copyist writes once in decades: the slab has not dried.
+
+---
+
+## 五 · 抄本员的水渍
+
+井台的事情抄本员很少记。值更册上留给井台的只有一行一行的小字，间隔几十年才写一笔。
+
+那几笔字，他每一笔都写「未干」——没有一年写过「干了」。最后一个字蘸着水写的，写完墨没晕开。
+
+**锚句**：值更院里没人说的那一句——井比院子老。
+**Anchor sentence**: the one thing no one says in the watcher's courtyard: the well is older than the courtyard.
+
+---
+
+## 六 · 候潮石
+
+值更们管它叫候潮石。不是怕它，也不是拜它——是每天清早舀第一桶水的时候，顺便看一眼：它又亮了。
+
+第一个大会之后的第一个米缸月，石板就那么亮着；下一个米缸月的第七日清早，还会有人来舀第一桶水，看见它还亮着。
+
+**锚句**：值更们管它叫候潮石。
+**Anchor sentence**: the watchers call it the tide-stone.
+
+---
+
+## 七 · 映射（回响三十八章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 井台水汽 · 石板未干 · 候潮石 | 一、二、三、四、五、六、七 |
+| geography | 值更院 · 井台 · 米缸月 | 一、二、五、六、七 |
+| characters | 值更 · 值更长 · 行脚僧 · 抄本员 | 一、二、三、四、五、六 |
+| story | 候潮石 · 回响（其三十八） | 全篇 |
+| items | 老井 · 石板 · 布 · 笔墨 | 一、二、三、四、五、六、七 |
+| history | 第四十一次大会散会之后 · 建院第六十九年 | 一、五、六、七 |
+
+> 米缸月第七日的清早，有人来井台边舀水——他会看见石板又亮了，和往常一样，等着候潮。
+> On the seventh morning of the rice-jar month, someone will come to the well for water — he will see the slab shining again, as ever, waiting for the tide.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其三十八）「值更院井台边那块永远不干的石板」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the green stone slab by the well in the watcher's courtyard — it has not been dry for a single day in sixty-nine years.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院值更院井台边那块青石板——六十九年了，它一天没干过。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the well platform on a morning of the seventh day of the rice-jar month.
+> 纪元：潮候院 · 第四十一次大会散会之后——米缸月第七日的井台清早。
+
+---
+
+## 一 · The Old Well in the Watcher's Courtyard
+
+The watcher's courtyard has one old well in the middle. The water is mild, the rope is hemp, and the rope-worn groove on the well rim is deep enough to catch a finger.
+
+No one knows when the well was dug. Ask the headkeeper, and he says: the well is older than the courtyard, the courtyard is older than the people, and the people are the shortest-lived of the three.
+
+**锚句**：每天清早井台上总有一层水汽。
+**Anchor sentence**: every morning there is a film of water vapor on the well platform.
+
+---
+
+## 二 · The Green Stone Slab by the Well
+
+At the back of the well platform there is a stone slab, one shade older than the platform itself, cool to the touch always.
+
+The slab is wider than a palm span, but it is not set into the platform — it "sits" on the well's edge, as if a man had sat down beside the well sixty-nine years ago and kept the pose ever since.
+
+**锚句**：没有人烧过井台，也没有人浇过井台。
+**Anchor sentence**: no one has heated the well platform, and no one has watered it.
+
+---
+
+## 三 · The Morning Vapor
+
+The hot noon sun of summer and the white frost of winter cannot reach that slab. Every other stone in the courtyard dries; it keeps its fine film of vapor.
+
+Once a new watcher tried to wipe it dry with a cloth. Once done, the cloth never dried again — they had to throw it away. He did not ask. He only remembers the senior watcher looking at him.
+
+**锚句**：值更们从不在那块石板上放任何东西。
+**Anchor sentence**: the watchers never place anything on that slab.
+
+---
+
+## 四 · Nothing Is Set on It
+
+Anything may rest on the well platform — the water bucket, the brass pot, an oil lamp, a coil of fresh rope. Nothing is set on the slab.
+
+One year a wandering monk put his alms bowl on it. The next morning the bowl was still there, empty; the slab still damp; and one tea bowl was missing from the platform. The monk did not ask to have the bowl back.
+
+**锚句**：抄本员隔几十年才记一笔：石板未干。
+**Anchor sentence**: the copyist writes once in decades: the slab has not dried.
+
+---
+
+## 五 · The Copyist's Ink Marks
+
+The copyist rarely writes about the well platform. The register keeps only a few small lines for the well, one every few decades.
+
+Every line he wrote ends with the same two words: not dry. Not once, in all those years, did he write: dried. The last stroke he dipped in water, and the ink did not feather.
+
+**锚句**：值更院里没人说的那一句——井比院子老。
+**Anchor sentence**: the one thing no one says in the watcher's courtyard: the well is older than the courtyard.
+
+---
+
+## 六 · The Tide-Stone
+
+The watchers call it the tide-stone. They fear it not; they worship it not — they only glance at it each morning when they haul the first bucket: yes, it shines again.
+
+The first rice-jar month after the first convocation, the slab was shining like it does now; on the seventh morning of the next rice-jar month, someone will haul the first bucket of water and see it still shining.
+
+**锚句**：值更们管它叫候潮石。
+**Anchor sentence**: the watchers call it the tide-stone.
+
+---
+
+## 七 · Mapping（Echo No. 38 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the vapor on the well platform · the slab never dry · the tide-stone | 一、二、三、四、五、六、七 |
+| geography | the watcher's courtyard · the well platform · the rice-jar month | 一、二、五、六、七 |
+| characters | the watchers · the headkeeper · the wandering monk · the copyist | 一、二、三、四、五、六 |
+| story | the tide-stone · Echo No. 38 | 全篇 |
+| items | the old well · the stone slab · the cloth · ink and brush | 一、二、三、四、五、六、七 |
+| history | After the 41st Convocation · the 69th year of the Institute | 一、五、六、七 |
+
+> 米缸月第七日的清早，有人来井台边舀水——他会看见石板又亮了，和往常一样，等着候潮。
+> On the seventh morning of the rice-jar month, someone will come to the well for water — he will see the slab shining again, as ever, waiting for the tide.
+`,
+  },
 ] as const;
