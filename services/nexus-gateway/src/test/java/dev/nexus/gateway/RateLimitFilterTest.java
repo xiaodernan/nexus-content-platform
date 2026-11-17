@@ -129,6 +129,43 @@ class RateLimitFilterTest {
         assertThat(exchange.getResponse().getStatusCode()).isNull();
     }
 
+    /**
+     * §SC-37 · Redis ACL 出错报文（NOAUTH / NOPERM / WRONGPASS——Lua 的 redis.call 原样抛出的服务器错误）
+     * 经 Lettuce 包装后落到本过滤器时，判定只能是"出错 → 放行（fail-open）"：限流器是一个边界，
+     * 不是认证决定；把 ACL 拒绝读成"拒绝请求"会把 ACL 错误变成全站 49x。
+     * 报文内容只进节流日志，绝不改变判定。
+     */
+    @Test
+    void aclFlavoredRedisErrorsFailOpenNotClosed() throws Exception {
+        String[] aclMessages = {
+                "NOAUTH Authentication required.",
+                "NOPERM this user has no permissions to run the 'EVALSHA' command",
+                "WRONGPASS invalid username-password pair",
+        };
+        for (String message : aclMessages) {
+            CALLS.set(0);
+            RuntimeException aclError = new io.lettuce.core.RedisCommandExecutionException(message);
+            RateLimitBackend failing = new RateLimitBackend() {
+                @Override
+                public Mono<Boolean> tryAcquire(String clientKey) {
+                    return Mono.error(aclError);
+                }
+
+                @Override
+                public String describe() {
+                    return "redis";
+                }
+            };
+            RateLimitFilter filter = new RateLimitFilter(true, failing);
+            ServerWebExchange exchange = exchangeFrom("10.7.0.1");
+
+            filter.filter(exchange, countingChain()).block();
+
+            assertThat(CALLS.get()).as("request must pass through on %s", message).isEqualTo(1);
+            assertThat(exchange.getResponse().getStatusCode()).as("no refusal on %s", message).isNull();
+        }
+    }
+
     /** A backend that answers with nothing is "no reason to refuse", not "refused". */
     @Test
     void aBackendThatCompletesEmptyAllowsTheRequest() {

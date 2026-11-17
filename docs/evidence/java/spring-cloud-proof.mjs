@@ -1,6 +1,6 @@
 // NEXUS — the Spring Cloud topology, PROVED end to end (ADR 0054, ADR 0055).
 //
-// The unit suites in `services/java-registry` and `services/java-gateway` prove two contracts each,
+// The unit suites in `services/nexus-registry` and `services/nexus-gateway` prove two contracts each,
 // inside one process. This file proves the thing they cannot: that the services work TOGETHER as a
 // topology — that a service can find itself, that an edge can find a service it did not have an
 // address for, that one service can call another BY NAME, and that the failure shapes survive all of
@@ -104,8 +104,8 @@ const PROOF_PROJECT_SLUG = 'cloud-proof-project';
 
 /** The four services, each built in an isolated copy of its own directory. */
 const SERVICES = [
-  { id: 'registry', dir: 'services/java-registry', jar: 'nexus-registry-0.1.0-SNAPSHOT.jar', heap: '-Xmx256m' },
-  { id: 'gateway', dir: 'services/java-gateway', jar: 'nexus-gateway-0.1.0-SNAPSHOT.jar', heap: '-Xmx256m' },
+  { id: 'registry', dir: 'services/nexus-registry', jar: 'nexus-registry-0.1.0-SNAPSHOT.jar', heap: '-Xmx256m' },
+  { id: 'gateway', dir: 'services/nexus-gateway', jar: 'nexus-gateway-0.1.0-SNAPSHOT.jar', heap: '-Xmx256m' },
   { id: 'api', dir: 'services/nexus-api', jar: 'nexus-api-0.1.0-SNAPSHOT.jar', heap: '-Xmx384m' },
   { id: 'domain', dir: 'services/java-domain-service', jar: 'domain-service-1.0.0-SNAPSHOT.jar', heap: '-Xmx320m' },
 ];

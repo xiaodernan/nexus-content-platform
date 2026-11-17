@@ -88,44 +88,36 @@ services:
       timeout: 3s
       retries: 20
 
-  java-registry:
+  nexus-registry:
     build:
-      context: ../services/java-registry
-    container_name: nexus-java-registry
+      context: ../services/nexus-registry
+    container_name: nexus-registry
     profiles: ['java']
     restart: unless-stopped
-    ports: ['18761:8761']
+    ports: ['18771:8771']
     environment:
-      NEXUS_REGISTRY_PORT: '8761'
+      NEXUS_REGISTRY_PORT: '8771'
       # The registry must not spend its startup looking for peers it does not have
-      # (single node on purpose, ADR 0054); it advertises its OWN name to clients.
-      NEXUS_REGISTRY_HOST: java-registry
-      NEXUS_EUREKA_ENABLED: 'true'
-      NEXUS_EUREKA_URL: http://java-registry:8761/eureka/
-      NEXUS_CONFIG_SERVER_URL: http://java-config-server:8888
-    depends_on:
-      nexus-java-pg:
-        condition: service_started
+      # (single node on purpose); it advertises its OWN name to clients.
+      NEXUS_REGISTRY_HOST: nexus-registry
+      NEXUS_REGISTRY_SELF_PRESERVATION: 'false'
     healthcheck:
-      test: ['CMD-SHELL', 'bash -c "echo > /dev/tcp/127.0.0.1/8761" || exit 1']
+      test: ['CMD-SHELL', 'bash -c "echo > /dev/tcp/127.0.0.1/8771" || exit 1']
       interval: 5s
       timeout: 3s
       retries: 24
 
-  java-config-server:
+  nexus-config:
     build:
-      context: ../services/java-config-server
-    container_name: nexus-java-config-server
+      context: ../services/nexus-config
+    container_name: nexus-config
     profiles: ['java']
     restart: unless-stopped
+    # native profile: the served bytes are the ones committed in this repository
+    # (services/nexus-config/src/main/resources/nexus-config/*.yml), no mount needed
     ports: ['18888:8888']
     environment:
-      NEXUS_CONFIG_SERVER_PORT: '8888'
-      NEXUS_CONFIG_SEARCH: file:/etc/nexus-config/
-    volumes:
-      # the same bytes the repository serves in development, mounted read-only — the native
-      # profile resolves from the file system, not from a build
-      - ../infra/config:/etc/nexus-config:ro
+      NEXUS_CONFIG_PORT: '8888'
     healthcheck:
       test: ['CMD-SHELL', 'bash -c "echo > /dev/tcp/127.0.0.1/8888" || exit 1']
       interval: 5s
@@ -145,14 +137,15 @@ services:
       NEXUS_DB_USER: nexus
       NEXUS_DB_PASSWORD: nexus_java_only
       NEXUS_EUREKA_ENABLED: 'true'
-      NEXUS_EUREKA_URL: http://java-registry:8761/eureka/
-      NEXUS_CONFIG_SERVER_URL: http://java-config-server:8888
+      NEXUS_REGISTRY_ZONE: http://nexus-registry:8771/eureka/
+      NEXUS_CONFIG_ENABLED: 'true'
+      NEXUS_CONFIG_SERVER_URL: http://nexus-config:8888
     depends_on:
       nexus-java-pg:
         condition: service_healthy
-      java-registry:
+      nexus-registry:
         condition: service_healthy
-      java-config-server:
+      nexus-config:
         condition: service_healthy
     healthcheck:
       test: ['CMD-SHELL', 'bash -c "echo > /dev/tcp/127.0.0.1/8080" || exit 1']
@@ -173,16 +166,17 @@ services:
       NEXUS_DB_USER: nexus
       NEXUS_DB_PASSWORD: nexus_java_only
       NEXUS_EUREKA_ENABLED: 'true'
-      NEXUS_EUREKA_URL: http://java-registry:8761/eureka/
-      NEXUS_CONFIG_SERVER_URL: http://java-config-server:8888
+      NEXUS_REGISTRY_ZONE: http://nexus-registry:8771/eureka/
+      NEXUS_CONFIG_ENABLED: 'true'
+      NEXUS_CONFIG_SERVER_URL: http://nexus-config:8888
       # The proof's convention: the BOUND port is announced in a file a caller can read.
       NEXUS_PORT_FILE: /tmp/nexus-api.port
     depends_on:
       nexus-java-pg:
         condition: service_healthy
-      java-registry:
+      nexus-registry:
         condition: service_healthy
-      java-config-server:
+      nexus-config:
         condition: service_healthy
     healthcheck:
       test: ['CMD-SHELL', 'bash -c "echo > /dev/tcp/127.0.0.1/8080" || exit 1']
@@ -190,25 +184,33 @@ services:
       timeout: 3s
       retries: 24
 
-  java-gateway:
+  nexus-gateway:
     build:
-      context: ../services/java-gateway
-    container_name: nexus-java-gateway
+      context: ../services/nexus-gateway
+    container_name: nexus-gateway
     profiles: ['java']
     restart: unless-stopped
-    ports: ['18081:8080']
+    ports: ['18090:8090']
     environment:
-      NEXUS_GATEWAY_PORT: '8080'
+      NEXUS_GATEWAY_PORT: '8090'
       NEXUS_EUREKA_ENABLED: 'true'
-      NEXUS_EUREKA_URL: http://java-registry:8761/eureka/
-      NEXUS_CONFIG_SERVER_URL: http://java-config-server:8888
+      NEXUS_REGISTRY_ZONE: http://nexus-registry:8771/eureka/
+      # Optional central config; native truth stays in the jar when this errors.
+      NEXUS_CONFIG_ENABLED: 'true'
+      NEXUS_CONFIG_URL: http://nexus-config:8888
+      # memory backend: two-gateway deploys set redis explicitly (backend=NEXUS_GATEWAY_RATELIMIT_BACKEND)
+      NEXUS_GATEWAY_RATE_LIMIT_BACKEND: memory
     depends_on:
       nexus-api:
         condition: service_healthy
       java-domain-service:
         condition: service_healthy
+      nexus-registry:
+        condition: service_healthy
+      nexus-config:
+        condition: service_healthy
     healthcheck:
-      test: ['CMD-SHELL', 'bash -c "echo > /dev/tcp/127.0.0.1/8080" || exit 1']
+      test: ['CMD-SHELL', 'bash -c "echo > /dev/tcp/127.0.0.1/8090" || exit 1']
       interval: 5s
       timeout: 3s
       retries: 24

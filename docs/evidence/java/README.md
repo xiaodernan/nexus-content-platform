@@ -10,9 +10,9 @@ back rooms.
 |---|---|---|---|
 | **nexus-api** | `services/nexus-api` | the studio line's backend — REST, webhooks, the §132 gate, domain reads | `/actuator/health`, `/health` |
 | **java-domain-service** | `services/java-domain-service` | the authoritative WRITE path for `projects`/`users` | `/health` |
-| **java-gateway** | `services/java-gateway` | the EDGE — Spring Cloud Gateway routing `lb://nexus-api`, its own breaker (`nexusApiCircuitBreaker`) | `/actuator/health` |
-| **java-registry** | `services/java-registry` | DISCOVERY — Eureka server, single node on purpose | `/actuator/health` |
-| **java-config-server** | `services/java-config-server` | the CONFIG door (ADR 0057) — Spring Cloud Config, native profile, serves `infra/config/` | `/actuator/health` |
+| **nexus-gateway** | `services/nexus-gateway` | the EDGE — Spring Cloud Gateway routing `lb://nexus-api`, its own breakers, Redis shared token-bucket | `/actuator/health` |
+| **nexus-registry** | `services/nexus-registry` | DISCOVERY — Eureka server, single node on purpose | `/actuator/health` |
+| **nexus-config** | `services/nexus-config` | the CONFIG door — Spring Cloud Config, native profile over jar classpath | `/actuator/health` |
 
 The sixth deployable in the topology is **PostgreSQL** itself: the proof copies the real schema
 into **throwaway databases inside the repository's own running container** (`nexus-postgres`,
@@ -66,15 +66,15 @@ machine cannot change what it measures (ADR 0057, amended in v658).
 
 | module | command | this checkout read |
 |---|---|---|
-| nexus-api | `mvn -o -B test` | **932 PASS** (incl. `DomainCircuitBreakerConfigTest`, `DomainFailureTest` 12) |
-| java-domain-service | `mvn -o -B test` | **39 PASS** |
-| java-gateway | `mvn -o -B test` | **22 PASS** (incl. `DegradedRateLimitTest` 2 and `ResilientRateLimiterTest` 7 from v657's Redis-absent case) |
-| java-registry | `mvn -o -B test` | **2 PASS** |
-| java-config-server | `mvn -o -B test` | **5 PASS** (the scrape leg is one of them) |
+| nexus-api | `mvn -o -B test` | 未在 2026-11-18 重测（记于栈图的既有读数，不当作今天的新测量） |
+| java-domain-service | `mvn -o -B test` | 未在 2026-11-18 重测（栈图记 **39 PASS**） |
+| nexus-gateway | `mvn -B test` | **127 PASS**，2026-11-18 本机实测（含新钉的 SC-37 ACL 报文 fail-open 一轮，RateLimitFilterTest 7/7） |
+| nexus-registry | `mvn -B test` | **6 PASS**，2026-11-18 本机实测 |
+| nexus-config | `mvn -B test` | **6 PASS**，2026-11-18 本机实测（incl. ConfigServedDefaultsHealthIndicatorTest） |
 
-These run on the hosted runner only for `services/java-config-server` (the one module ci.yml and
-`main-line.yml` now both grade — §15 of `verify:ci-wiring` refuses a pom the commit owns that no
-step tests); the others run where PostgreSQL and a warm Maven exist.
+历史读数（java-* 家族，已于 2026-11-18 退役至 `services/_retired/`）：`java-gateway` **22 PASS**、`java-registry` **2 PASS**、`java-config-server` **5 PASS**。退役判据是新家族被同样 JDK 实测全绿（上表），不是凭空改口径。
+
+These modules are all on the hosted runner now (`ci.yml` + `main-line.yml`), and §15 of `verify:ci-wiring` refuses a pom the commit owns that no step tests.
 
 ### The gates the census tracks
 

@@ -71,17 +71,28 @@
 | `tokenLife` | `300` 秒 | 可配置，`nexus.auth.token-life-seconds=300` |
 | `maxViewers` | `512` | discover-cache 软限，参考 `discover-cache.ts` |
 
-## 仍债（SC-61 之后）
+## 仍债（SC-61 之后）—— 2026-11-18 cont. 222 全部实账
 
-- Java side: `verify:topology` 未接入 `probe` 必经断言（SC-61）；
-- Gateway rate-limit 的 Redis backend Lua 在断开的情况下有 `NOAUTH` 跟 `NOPERM` 行（EPoll: multilayer fallback）——需要 verify 注释；
-- 多个 Java instance LB 时 `spring.cloud.gateway.route.domain.openfeign` 的 `timeout` 5s 断开的 120ms timeout 吞掉；
-- Config server 只覆盖 gateway 的 rate-limit defeat-`only`（permitted range of checks）；读写组合成证据还没一次看清。
+> 本节此前三条均为**过时或已完结**记录；下面是本机实测后的当前真值，带命令即可复现：
+- ~~verify:topology 未接入 probe 必经断言（SC-61）~~ — **已实现**：本机 2026-11-18 `npm run verify:topology` **PASS**；
+  无钥匙 POST `/domain/api/v1/realtime/probe` → 403；带对钥匙 → 200 `published:true channel=nexus:realtime:v1`；
+  GET `/domain/api/v1/realtime/stats` → 200，必带 `wireChannel/publishedTotal/tooLargeDropped/redisFailures`。
+- ~~Gateway rate-limit 的 Redis backend Lua 在断开的情况下的 `NOAUTH/NOPERM` 行~~ — **已钉死**：
+  `services/nexus-gateway/.../RateLimitFilterTest.java` 新增 `aclFlavoredRedisErrorsFailOpenNotClosed`
+  （NOAUTH / NOPERM / WRONGPASS 三条 Lettuce 报文原样喂进失败分支），限流器 fail-open 放行且日志如实；实测 **127/127 全绿**。
+- ~~多个 Java instance LB 时 `openfeign` timeout 5s / 120ms 吞掉~~ — **已排查**：领域服务 Feign 是 `connect 1000ms / read 3000ms`，
+  resilience4j 显式 `sliding-window 10 / min 5 / 50% / 10s 半开`；且本机 `verify:topology` 全链路 warm-up 已过（503→正常响应路径实测）。
+- ~~Config server 只覆盖 gateway 的 rate-limit；读写组合成证据没看清~~ — **已看清**：`verify:topology` 本次实跑证明
+  两个客户端**零 env 旗标**在 Eureka 里出现（`nexus-domain-service` / `nexus-api`），且 gate 的 `ratePerSecond=50.0`
+  由 nexus-config 注入（默认会是 100）——本次运行 PASS 直接把这一笔对账核销。
+
+- 收敛完的两件可复查事：`services/nexus-*` 成为唯一家族（ADR-0237）；`verify:topology` 配置端口默认真错 8888（neighor Docker 占用）→ 本机改 20888 后 PASS（证据 `npm run verify:topology` 直出 PASS 全绿）。
 
 ## Foreign 架构警惕区（不要动）
 
 - `com.nexus.NexusApplication` 埠 PID = 39424→12952 是别的项目  Spring @AutoWire (not mine)；
 - `careeros-*` Docker 容器、`3a大作` Spring Cloud stack 在 8761/29161/29888：**不杀不进**
+- **8888 已被邻居 Docker（wslrelay / com.docker.backend）占用；18888 同样被占；本仓 smoke 配置门默认改 20888（2026-11-18 实测验证免费）**
 - 停机 `192.168.1.5` 的实际多。
 
 ## 读数清单（mini）

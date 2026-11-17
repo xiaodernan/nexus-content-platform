@@ -49,7 +49,10 @@ const DENY = '[verify-topology]';
 const REGISTRY_PORT = Number(process.env.NEXUS_REGISTRY_PORT ?? 8771);
 const DOMAIN_PORT = Number(process.env.NEXUS_DOMAIN_PORT ?? 8082);
 const GATEWAY_PORT = Number(process.env.NEXUS_GATEWAY_PORT ?? 8090);
-const CONFIG_PORT = Number(process.env.NEXUS_CONFIG_PORT ?? 8888);
+// The packaged config-server default port 8888 is famously occupied on this machine —
+// by ANOTHER project's Docker stack (com.docker.backend / wslrelay), proven 2026-11-18.
+// 20888 is this repo's dedicated smoke door (verified free; 18888 is also kept by neighbour Docker).
+const CONFIG_PORT = Number(process.env.NEXUS_CONFIG_PORT ?? 20888);
 const API_PORT = Number(process.env.NEXUS_API_PORT ?? 8084);
 const DB_URL = process.env.NEXUS_DOMAIN_DB_URL ?? 'jdbc:postgresql://127.0.0.1:55433/nexus';
 const DB_USERNAME = process.env.DB_USERNAME ?? 'nexus';
@@ -254,9 +257,10 @@ async function main() {
     DB_PASSWORD,
     NEXUS_DOMAIN_PORT: String(DOMAIN_PORT),
     NEXUS_CONFIG_ENABLED: 'true',
-    // The baked default points at 18888; the verify-topology config door is spawned on CONFIG_PORT instead,
-    // and both the domain-service and the smoke need to agree on where the config server lives.
     NEXUS_CONFIG_SERVER_URL: `http://127.0.0.1:${CONFIG_PORT}`,
+    // Belt and braces for the neighbour problem: the packaged default is right for this smoke,
+    // but an explicit zone makes it impossible to drift onto a neighbour's registry.
+    NEXUS_REGISTRY_ZONE: `http://127.0.0.1:${REGISTRY_PORT}/eureka/`,
     // §SC-62/verify: covered: probe is gated; need a known operator token to assert the positive branch.
     NEXUS_OPERATOR_TOKEN: 'verify-topology-op-token',
     // No NEXUS_DOMAIN_REGISTER/FETCH anywhere: the register-with-eureka:true this service will obey
@@ -310,6 +314,7 @@ async function main() {
     NEXUS_API_PORT: String(API_PORT),
     NEXUS_CONFIG_ENABLED: 'true',
     NEXUS_CONFIG_SERVER_URL: `http://127.0.0.1:${CONFIG_PORT}`,
+    NEXUS_REGISTRY_ZONE: `http://127.0.0.1:${REGISTRY_PORT}/eureka/`,
     // Same round-trip: nexus-api.yml says register-with-eureka:true — nothing in env does.
   });
   services.push({ name: 'nexus-api', child: api });
@@ -325,7 +330,14 @@ async function main() {
   const gateway = spawnJar('gateway', gatewayJar, {
     NEXUS_GATEWAY_PORT: String(GATEWAY_PORT),
     NEXUS_CONFIG_ENABLED: 'true',
+    // The gateway reads NEXUS_CONFIG_URL — NOT NEXUS_CONFIG_SERVER_URL (the domain/api knob).
+    // Left unset it falls back to the packaged default 8888, which on this host is ANOTHER project's
+    // config server; that foreign server hands the gateway its defaults (zone=8761), and every
+    // discovery-bound door answers 503. A config client that hijacked a neighbour taught nothing.
+    NEXUS_CONFIG_URL: `http://127.0.0.1:${CONFIG_PORT}`,
     NEXUS_CONFIG_SERVER_URL: `http://127.0.0.1:${CONFIG_PORT}`,
+    // Same doctrine for discovery: the neighbouring 8761 answer here can poison the packaged 8771 default.
+    NEXUS_REGISTRY_ZONE: `http://127.0.0.1:${REGISTRY_PORT}/eureka/`,
   });
   services.push({ name: 'gateway', child: gateway });
   if (!(await waitFor('gateway', `http://127.0.0.1:${GATEWAY_PORT}/platform/health`, 200))) {

@@ -1,6 +1,6 @@
 // NEXUS — the EDGE suite gets a VERDICT, not a hand-run.
 //
-// `mvn -o -B test` in services/java-gateway was, until this row, something a person remembered to run.
+// `mvn -o -B test` in services/nexus-gateway was, until this row, something a person remembered to run.
 // The service suite has its own row (docs/evidence/m7/service-suite-proof.mjs) and the Spring Cloud
 // topology has its own (docs/evidence/java/spring-cloud-proof.mjs); the gateway's 22 tests were graded
 // by neither, so a red there was visible only to whoever happened to run Maven. This proof closes that:
@@ -27,7 +27,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { execFileSync, syncApiIsBroken } from '../lib/syncproc.mjs';
 
-const ROOT = 'services/java-gateway';
+const ROOT = 'services/nexus-gateway';
 const SKIP = process.argv.includes('--skip-if-no-maven');
 
 /** Every `.java` under the gateway plus its pom, digested in a stable order. */

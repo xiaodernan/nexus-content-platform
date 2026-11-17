@@ -1,5 +1,0 @@
-# keys for `services/java-registry` only.
-
-logging:
-  level:
-    dev.nexus.registry: info

@@ -614,10 +614,10 @@ function depPathsOf(body) {
 }
 
 // ── §15 every pom the commit owns is built WITH its tests by a step of SOME workflow ───────────────
-// The hole this clause closes is §14's, wearing a different tool: the workflow reached one of the tree's four
-// Maven modules and the tree shipped four. `verify:api-tests` is disposed as COVERED by a census claim ("the
+// The hole this clause closes is §14's, wearing a different tool: the workflow reached one of the tree's poms
+// and the tree shipped more. `verify:api-tests` is disposed as COVERED by a census claim ("the
 // workflow owns its own mvn line"), and that claim was checked against the ONE pom the disposition names — so
-// the Spring Cloud trio (java-registry, java-gateway, java-domain-service) could stay unbuilt by CI while a door
+// the Spring Cloud modules (nexus-registry / nexus-gateway / java-domain-service) could stay unbuilt by CI while a door
 // printed a sentence about mvn coverage. The same silence is the second half of what `tools/ci/proof-set.mjs`
 // states as its own reason for excluding `verify:spring-cloud`: "an offline-warm Maven for the three service
 // modules the workflow never builds". A clause, not a comment: the exclusion is retired by a ci.yml change, and

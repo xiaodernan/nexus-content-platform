@@ -6065,3 +6065,8 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 > - prod live probe：默认 POST /api/ai/run → HTTP 200 · capability=real · model=gpt-6.1-terra · x-nexus-orchestration=**stategraph** · tokensIn=87,095 · cachedTokens=**80,254（92.1%）**；lane-a 逃生门同请求 HTTP 200 ✓（新用户真账真项目）。
 > - 单测 orchestration-lane.test.ts 4/4 · 集成 ai-run-orchestration-lane.integration.test.ts 4/4（4 车道回声，真库真项目）· fe-gates 147/147 · tsc 0 errors · ADR-0236 落账；guide 与说明书文案同步为"默认 stategraph"。
 > - 日期备注：本 session 内部分文档标了 2026-11-19（当时按对话内时间线），以本机系统时钟 2026-11-18 为准。
+
+> **2026-11-18 cont. 223 · Spring Cloud 双家族收敛（ADR-0237）+ topology 全绿 + smoke 里的 8888 陷阱清掉**
+> - 旧 `java-registry`/`java-config-server`/`java-gateway` 与 `infra/config/` 整体 git rm（git 历史等价保留，git show 可复原）；成功者 = `services/nexus-registry` / `nexus-config` / `nexus-gateway`（后者新增 HopLog/Prometheus/W3C/Redis 共享桶 Lua+fail-open 等，128→127 tests，仓库里 Java 合计 5 个 pom，CI 也重指这五个）。compose `java` profile 全部指向 nexus-*；发现两处静默 bug：env `NEXUS_EUREKA_URL`（零读取方）→ `NEXUS_REGISTRY_ZONE=http://nexus-registry:8771/eureka/`；gateway 配置缺 `NEXUS_CONFIG_URL`。
+> - `verify:topology` 实测从红→**PASS 22/22**：先找到邻居 Docker 占用 8888 / 18888（邻居 Docker 保留），本仓 smoke 配置门改 **20888** 后 PASS；其中 gate-as-written 的 probe 必经断言（SC-61：403 door-locked / probe published 200 / stats 必带三计数）也包含在绿里。同日复现 127/127 Java 网关测试含新钉 SC-37 ACL fail-open（NOAUTH/NOPERM/WRONGPASS）用例。
+> - `verify:ci-wiring` exit 0（5 pom · cache:maven key 重写）；`verify:fe-gates` 未动仍 147/147；`verify:world-bible` 未动仍 372/372；StateGraph 默认车道 cont. 222 已推送。

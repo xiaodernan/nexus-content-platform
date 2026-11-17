@@ -228,9 +228,9 @@ const TSC_STEP_BLOCKY = '      - name: Typecheck main line\n        run: |\n    
 const TOOLS_LEG = ' && tsc -p tsconfig.tools.json --noEmit';
 // §15's charged shapes, quoted from the shipped bytes of ci.yml: the four lines the warm-up step walks, the key
 // that hashes them, and one path the commit does not own. A GHOST module name is used rather than a typo of a
-// real one, because a needle that renames `java-registry` into `java-regisrtry` reddens TWO refusals at once and
+// real one, because a needle that renames `nexus-registry` into `java-regisrtry` reddens TWO refusals at once and
 // leaves the arm unable to say which door it opened.
-const MVN_REGISTRY_LINE = '          mvn -B -q -f services/java-registry/pom.xml package\n';
+const MVN_REGISTRY_LINE = '          mvn -B -q -f services/nexus-registry/pom.xml package\n';
 // §15's reader spans BOTH workflow files in the eight-module world, so the two arms that want a
 // module GONE from the report have to take it out of both — deleting one leaves the other's coverage standing,
 // which is exactly how A29/A30 went stale the day main-line grew its own `mvn -f …pom.xml test` line for
@@ -242,9 +242,9 @@ const mvnLinesOf = (rel) => readSrc(rel).split('\n')
 const MVN_MAIN_LINE_ALL = mvnLinesOf(MAIN_LINE);
 const MVN_CI_ALL = mvnLinesOf(WF);
 const MVN_MAIN_LINE_JAVA_REGISTRY = (() => {
-  const lines = MVN_MAIN_LINE_ALL.filter((l) => l.includes('services/java-registry/pom.xml'));
+  const lines = MVN_MAIN_LINE_ALL.filter((l) => l.includes('services/nexus-registry/pom.xml'));
   const real = lines.filter((l) => /\s+test\s*$/.test(l.trimEnd()));
-  assert.equal(real.length, 1, `${MAIN_LINE}: expected exactly ONE \`mvn -f <pom>\` test line naming services/java-registry/pom.xml (the module A29/A30 grade), found ${real.length} of the ${lines.length} line(s) present`);
+  assert.equal(real.length, 1, `${MAIN_LINE}: expected exactly ONE \`mvn -f <pom>\` test line naming services/nexus-registry/pom.xml (the module A29/A30 grade), found ${real.length} of the ${lines.length} line(s) present`);
   return real[0];
 })();
 // A32 deletes EVERY Maven line of BOTH files, because the reader is the union: a ci.yml-only deletion would
