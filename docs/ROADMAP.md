@@ -14626,3 +14626,12 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 
 - verdict 屏 Link 增加（data-bible-quiz-verdict-bible）；手册 + 空态文案同步至 15 题。
 - quiz SHA 门按惯例重钉。
+
+## §PROVIDER-1 — 非流架构：.env 钉死的真实根因（2026-11-17 · v867 · NEXUS_LLM_STREAM=0）
+
+- 实际病灶：本机 `apps/ai-service/.env` 曾把 `NEXUS_LLM_STREAM=0` 钉死——这是 opt-out，导致所有出站走**非流式**，一切都会「显示非流」。
+- 代码默认就是流式（config.py: llm_stream=True；设 0 显式退回）。ADR 0123 记下了这条决定与流式决策的实测依据。
+- 修复：`NEXUS_LLM_STREAM=0→1`（注释 inline）。验证（同次窗 ~3 分钟）：
+  - `curl → clash 7897`：stream ✓（SSE 正常 + usage + [DONE]）
+  - `ai-service 8001`：healthz real → /v1/ai/chat 第一次 502（上游间歇抖动）→ 200/2.97s（real provider，streamed）→ 200/**0.008s**（`capability:real · cachedTokens 4433/4433 = 100%` via Redis L2）
+- 用户的「一直显示非流」的判断精准——不是代码事实，而是本地 pin 锁的私有事实。冒号旁已把它写成 .env 注释，下一次不会再次被这种我之前选错的 opt-out 咬到。

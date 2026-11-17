@@ -305,3 +305,18 @@ cd apps/web && npx tsx scripts/approval-explain-e2e.mts c5ebd27e-8a20-45f2-86aa-
   - base-channel 缓存是 channel-local；distributor 挑剔 key 格式（`nexus-<32hex>` 可、`probe-*` 不可）。
   - 项目对话（/api/bible/q）的 system+user 文本 hash 就生成一个恒定 key，不同项目、不同目录自然分开；同项目粘性 key 自会同频粘住同一个 back-channel。
 - **结论**：不是 bug，不是少了功能——是 distributor 的 channel-local 沟槽 + 当前 context 选项之间已够用、够实测的平衡；若真需要更大 digest 但保持前缀稳定，也只能抬升 digest 本身（已 v2 整章），不系补丁。
+
+
+## §PROVED-11 — `NEXUS_LLM_STREAM` 钉死 0 的真相修复 + live 回归（2026-11-17 · v866）
+
+- **Bug**：`.env` 里 `NEXUS_LLM_STREAM=0`（line 21）——这是 opt-out 标志，
+  强行让 ai-service 走**非流式**路径。注释里 OpenAI 的客户端请求标 `stream:true`/`stream:false` 走得也是不同的 distributor slot。
+  用户反复指出该口号"一直显示非流"，是对的。
+- **修复**：`NEXUS_LLM_STREAM=0 → =1`（2026-11-17；旁边追加说明 comment）。
+- **验证（同次窗 ~3 分钟）**：
+  - `curl → Clash 7897`，non-stream 小请求（`"stream":false`）：3/3 200，TTFT 2.8–3.7s
+  - `curl → Clash 7897`，streaming 小请求（`"stream":true`）：2.4s；SSE 正常（`data:` deltas + usage + `[DONE]`）
+  - `curl → /v1/ai/chat`（ai-service 8001，.env 重载）：try1 502（Clash 上游抖动）→ try2 200/2.97s（streamed，real provider）→ try3 **200/0.008s**（`capability: real · cachedTokens 4433/4433 = 100% via Redis L2`，latencyMs 0.0 sentinel）
+  - Clash/mihomo 间歇性 000 仍属于上游组合事件（models 稳 200、chat 间或丢）——不是调用方式问题；UI 侧需靠 L2 粘性路径兜底。
+- **副产物**：本窗口观察到 stream channel 返回的每帧 `service_tier:"auto"`、usage 事件为 `default`；非 stream 通道则为 `default`。可据此在后续对账"哪种 channel 背 cache"。
+- **证据文件**：以上事实基于本机临时文件中的 curl 输出；证据性最强的一条是 `ai-chat try3` 的 `cachedTokens 4433/4433`。

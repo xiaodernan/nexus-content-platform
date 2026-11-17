@@ -4698,3 +4698,14 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   若真要抬升 digest，只能改 world-bible（字节前缀会整体重打包），不系代码补丁。
 - 结论记录 §PROVED-10；无需改代码；数字与现象与 codex 同向。
 - 输入目录：byte-level 承载前缀 76%+ 稳定；整体 cache 复读可打满 distributor 路由。
+
+## cont. 237 (2026-11-17) — v866 · NEXUS_LLM_STREAM=0 → 1：本地 pin 锁挖开了
+
+- 取证链条（完整）：
+  - 现象：用户 `stream` 从不被显示/API 总返回非流；UI 侧 idempotent provider 路径以为一切正常。
+  - 先找代码：ai_service/config.py: `llm_stream: bool = True`；`.env` 却把 `NEXUS_LLM_STREAM=0`——opt-out。
+  - 再验网关：直连 aizzz 403（user 说的必须走 Clash Verge 才通）；clash 进出按时间歇 200/000；models OK，chat/completions 间或——所有 "stream vs non-stream" 的行为差异都来自这一条。
+  - 修复：`NEXUS_LLM_STREAM=0→1`；
+  - 实证：curl SSE 样本（data:... role delta → content delta → usage → [DONE]）；ai-service 8001 `健康 real` → `/v1/ai/chat` 第一次 502 → 200/2.97s streamed real provider → 200/0.008s 同一请求 Redis L2 100% 命中（cachedTokens 4433/4433）。
+  - 证据 §PROVED-11 落盘；`.env` 是本地产物（gitignored）；真正的持久产物是 §PROVED-11 与本 cont —— 下一轮再验证一次即可判定 vibe 改善。
+- 8000 的兄弟 /home 未触碰；uvicorn 实例 8001 用完即 kill；free RAM 回到 ~2.2 GB。
