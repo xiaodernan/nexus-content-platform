@@ -4,6 +4,7 @@ import {
   type GameEntity,
   type GameEntityKind,
 } from "./index";
+import { L, type ModelLocale } from "./locale";
 
 /**
  * §50-§54 的第一块可玩投影：把一份游戏设计文档（11 类实体 + 自由数值 + 引用）
@@ -310,7 +311,7 @@ function ofKind(document: GameDocument, kind: GameEntityKind): GameEntity[] {
  * 编译一份游戏文档成关卡计划。纯函数：同一份文档两次调用结果逐字段相同（有测试钉这条），
  * 因为"刷新一下位置就变了"会让上面所有断言失去意义。
  */
-export function compileGame(document: GameDocument): GamePlan {
+export function compileGame(document: GameDocument, locale: ModelLocale = "zh"): GamePlan {
   const playerEnts = ofKind(document, "player");
   const player = playerEnts[0] ?? null;
   const enemyEnts = ofKind(document, "enemy");
@@ -325,30 +326,60 @@ export function compileGame(document: GameDocument): GamePlan {
   const clampedCount = authoredPlacements.filter((at) => at?.clamped).length;
   const fallbackCount = placeables.length - authoredCount;
   const placementNote = authoredCount
-    ? `场上 ${placeables.length} 个位置里有 ${authoredCount} 个来自文档里写的 ${POSITION_STAT_KEYS.x} / ${POSITION_STAT_KEYS.y}（作者摆的，或 §52 链 Level Design 那一格摆的）` +
-      (fallbackCount ? `，其余 ${fallbackCount} 个没写坐标、仍由投影按类别排在同心环上` : "，这一版没有一个位置是投影排的") +
-      "。"
-    : "位置是投影按类别排在同心环上的，不是作者摆过的关卡布局——§54 的模型里没有坐标与地形。";
+    ? L(
+        locale,
+        `场上 ${placeables.length} 个位置里有 ${authoredCount} 个来自文档里写的 ${POSITION_STAT_KEYS.x} / ${POSITION_STAT_KEYS.y}（作者摆的，或 §52 链 Level Design 那一格摆的）` +
+          (fallbackCount ? `，其余 ${fallbackCount} 个没写坐标、仍由投影按类别排在同心环上` : "，这一版没有一个位置是投影排的") +
+          "。",
+        `${authoredCount} of ${placeables.length} positions on the field come from the ${POSITION_STAT_KEYS.x} / ${POSITION_STAT_KEYS.y} written in the document (placed by the author, or by the Level Design cell of the §52 chain)` +
+          (fallbackCount
+            ? `; the other ${fallbackCount} have no coordinates written and are still placed on concentric rings by category by the projection`
+            : "; not a single position in this version was placed by the projection") +
+          ". ",
+      )
+    : L(
+        locale,
+        "位置是投影按类别排在同心环上的，不是作者摆过的关卡布局——§54 的模型里没有坐标与地形。",
+        "Positions were placed on concentric rings by category by the projection, not authored — the §54 model has no coordinates or terrain.",
+      );
 
   const notes: string[] = [
     placementNote,
-    "所有个体一样大：模型里没有尺寸或重要性字段。",
-    "形状（方块/圆/三角）只用来区分类别，不代表美术资产；§34 的 3D 模型与 §43 的动画在这里都没有。",
+    L(locale, "所有个体一样大：模型里没有尺寸或重要性字段。", "All actors are the same size: the model has no size or importance field."),
+    L(
+      locale,
+      "形状（方块/圆/三角）只用来区分类别，不代表美术资产；§34 的 3D 模型与 §43 的动画在这里都没有。",
+      "Shapes (square/circle/triangle) only distinguish categories; they are not art assets — the §34 3D models and §43 animations are absent here.",
+    ),
   ];
   if (clampedCount) {
     notes.push(
-      `有 ${clampedCount} 个写好的坐标在场外，投影把它们钳回了场地内（离每条边至少留 ${ACTOR_RADIUS} 像素，个体才不会有一半画在屏幕外）：设计里想表达"站在场外"就得换个说法。`,
+      L(
+        locale,
+        `有 ${clampedCount} 个写好的坐标在场外，投影把它们钳回了场地内（离每条边至少留 ${ACTOR_RADIUS} 像素，个体才不会有一半画在屏幕外）：设计里想表达"站在场外"就得换个说法。`,
+        `${clampedCount} written positions were off the field; the projection clamped them back inside (at least ${ACTOR_RADIUS}px from every edge, so no actor is painted half-off-screen). To express "standing off the field" in the design, use a different wording.`,
+      ),
     );
   }
 
   // `player &&` 不是第二条行为分支：`length > 1` 时第一个必定在。加它是因为不写就得写成
   // `player?.name ?? ""`，而那一臂永远走不通——覆盖率读数里它会一直占一格（§85 第十八片）。
   if (player && playerEnts.length > 1) {
-    notes.push(`文档里有 ${playerEnts.length} 个玩家实体，这一版只用第一个（${player.name}）：多玩家不是模型能表达的，是网络同步的事。`);
+    notes.push(
+      L(
+        locale,
+        `文档里有 ${playerEnts.length} 个玩家实体，这一版只用第一个（${player.name}）：多玩家不是模型能表达的，是网络同步的事。`,
+        `The document has ${playerEnts.length} player entities; this version uses the first (${player.name}): multiplayer is not something the model can express — it is a network-sync concern.`,
+      ),
+    );
   }
 
   const blockers: string[] = [];
-  if (!player) blockers.push("没有玩家实体：没有可操作的对象，这一版开不了场。");
+  if (!player) {
+    blockers.push(
+      L(locale, "没有玩家实体：没有可操作的对象，这一版开不了场。", "No player entity: there is nothing to operate — this version cannot start."),
+    );
+  }
 
   const enemies = enemyEnts.map((entity, i, all) => toActor(entity, true, i, all.length));
   const items = itemEnts.map((entity, i, all) => toActor(entity, false, i, all.length));
@@ -611,3 +642,24 @@ export const PLAY_KIND_SHAPES: Partial<Record<GameEntityKind, "circle" | "square
   item: "diamond",
   npc: "triangle",
 };
+
+/**
+ * EN 镜像（v812）：三套视图限度的英文版；与中文原文逐条对位，由 GamePlay 双语模式选择显示（并轨线带入）。
+ */
+export const ISO_VIEW_NOTES_EN = [
+  "Isometric (2.5D) is only another rendering of the same level plan: the coordinates are projected, and the rules come from the same step, character for character.",
+  "The ground grid is drawn, not collided with — adjudication still uses the top-down plane coordinates; the model has no terrain or depth.",
+  "Marker shapes don't scale with distance and don't turn: the model has no size or facing; they are category markers, not 3D models.",
+];
+
+export const EXPLORATION_VIEW_NOTES_EN = [
+  "Exploration is yet another rendering of the same level plan: you see things only when you get close, and what you've seen stays visible; the rules come from the same step, character for character.",
+  "\"Discovered\" is UI state of this run only — it never enters the document or the database: a refresh re-scouts everything, because the model has no exploration-progress field.",
+  "Only what's placed on the field can be discovered (enemies / items / NPCs / triggers): who is on the field is decided by the §54 document; exploration invents nothing new.",
+];
+
+export const PUZZLE_VIEW_NOTES_EN = [
+  "Puzzle is yet another rendering of the same level plan: it draws the trigger→affected reference lines; the rules come from the same step, character for character.",
+  "Only the references the author wired are drawn: an unwired trigger is a dead switch — stepping on it makes nothing happen; the view never invents puzzle structure.",
+  "\"Activated\" = the player entered the trigger's radius (recorded the first time); the model has no ordering field, so it does not pretend to support \"press in the correct order\" puzzles.",
+];

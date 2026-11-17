@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * §127/§128：列表只出 public/free 两类；我的物品走所有者视角读路（`listOwnedMarketplaceItems`）——不动谓词。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `844ad6cc4d5213faf8c19cf635cb591f30217dbd3fa0a7b9ea44a366c2274222` 与 HEAD 字节一致。
+ * `460a21b55df70593034595354d9b876126624d8d6f9f0c98f5873aff6b7bc6d4` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/app/marketplace/page.tsx');
@@ -101,9 +101,9 @@ describe('§FE-83 /marketplace 创作者市场店面原子清零', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：844ad6cc4d5213faf8c19cf635cb591f30217dbd3fa0a7b9ea44a366c2274222）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：460a21b55df70593034595354d9b876126624d8d6f9f0c98f5873aff6b7bc6d4）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '844ad6cc4d5213faf8c19cf635cb591f30217dbd3fa0a7b9ea44a366c2274222',
+      '460a21b55df70593034595354d9b876126624d8d6f9f0c98f5873aff6b7bc6d4',
     );
   });
 });

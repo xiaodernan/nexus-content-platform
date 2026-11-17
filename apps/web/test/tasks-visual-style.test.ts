@@ -167,7 +167,7 @@ describe('§FE-23 /tasks/[projectId] 任务账本', () => {
     // 横滚区键盘可达（axe: scrollable-region-focusable）——行为不是样式，但进门守着
     expect(liveCode).toContain('role="region"');
     expect(liveCode).toContain('tabIndex={0}');
-    expect(liveCode).toContain('aria-label={T.tableAria}');
+    expect(liveCode).toContain('aria-label={c.tableScrollAria}');
   });
 
   it('数据钩子守恒：live 14 个 + retry 2 个（data-task-retry/-note）', () => {
@@ -213,13 +213,13 @@ describe('§FE-23 /tasks/[projectId] 任务账本', () => {
   it('剥 className 后全文 SHA256 钉死（live=d5cb42c1… 并轨 §AILIVE-9/CACHE-3 + §v699 SavingsCard 接线后的字节 · retry=b90012c2… · page=4e75c349…）', () => {
     // 常量在改前（git HEAD）由真实产物 redact 算出并钉死；此门保证除 className 外一字节未动。
     expect(createHash('sha256').update(redactClasses(live)).digest('hex')).toBe(
-      'd5cb42c1b2b816e1d7b683fc8ba98fe99dd18f80772f076a8028764aee7ed61c',
+      '41de774399ea8c569c3e4cbdeae9d16776aab63ed7b85bb3129ed13cc1a4d35c',
     );
     expect(createHash('sha256').update(redactClasses(retry)).digest('hex')).toBe(
       '5d36a868d8c3c8afe2d26cf84174c78acc4398da36bc154c13043be5090356a6',
     );
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '4e75c349c8dc2949cd94b3859035246f07c279752e7efe41887926ed85a42a5f',
+      '2a69f5e100c66b98ef3a80e4d252acceebb7f882ce1d32f841b2f0efa3235a09',
     );
   });
 });

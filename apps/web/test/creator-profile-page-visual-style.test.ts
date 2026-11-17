@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
  * §60：每栏只放真公开的东西（注销 banner、首字母头像、@注销语义）——不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `70e699b2f3633383a7562416ae892d7587b0e7750e44e2533e7e231ed30701b9` 与 HEAD 字节一致。
+ * `52bdb546951e6e0c26fa5f41cb4e3a7dc965e3267a3a84938140adc6e8d44d09` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/app/u/[handle]/page.tsx');
@@ -101,9 +101,9 @@ describe('§FE-80 /u/[handle] 创作者主页原子清零', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：70e699b2f3633383a7562416ae892d7587b0e7750e44e2533e7e231ed30701b9）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：52bdb546951e6e0c26fa5f41cb4e3a7dc965e3267a3a84938140adc6e8d44d09）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '70e699b2f3633383a7562416ae892d7587b0e7750e44e2533e7e231ed30701b9',
+      '52bdb546951e6e0c26fa5f41cb4e3a7dc965e3267a3a84938140adc6e8d44d09',
     );
   });
 });

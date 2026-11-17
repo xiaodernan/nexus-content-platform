@@ -6,7 +6,6 @@ import type { Locale } from '@/lib/i18n';
 import { csrfHeaders } from '@/lib/csrf';
 import { visitorKey } from '@/lib/visitor-key';
 import { PlayByKind } from './PlayByKind';
-import type { Locale } from '@/lib/i18n';
 
 /**
  * §168：公开可玩页上的那一层——**通关了就把这一声报出去**。

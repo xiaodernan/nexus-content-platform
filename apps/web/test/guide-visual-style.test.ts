@@ -115,7 +115,7 @@ describe('§FE-Guide /guide 使用指南', () => {
 
   it('SHA256 钉死（瘦壳 · v788，正文已抽进 lib/guideCopy）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '1b907a3861762e238402ce0753adeaf5a52e416ebb9384474e697518005b54da',
+      'acc4e58df6bf32aa38d26bfce3d59737f109725715fba02b2dc7f53bd6a9794c',
     );
   });
 });

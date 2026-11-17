@@ -41,7 +41,6 @@ export default async function TasksPage({ params }: { params: Promise<{ projectI
       locale={locale}
       initial={{ ok: true, projectName: result.projectName, tasks: result.tasks }}
       savings={savings}
-      locale={locale}
     />
   );
 }

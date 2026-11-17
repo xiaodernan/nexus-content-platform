@@ -307,7 +307,6 @@ function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zo
                     data-view={id}
                     aria-pressed={view === id}
                     title={c.viewHints[id]}
-                    title={c.viewHints[id]}
                     aria-label={c.viewHints[id]}
                     className={cn('se-viewBtn', view === id && 'se-viewBtnActive')}
                   >

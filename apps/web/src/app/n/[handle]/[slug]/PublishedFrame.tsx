@@ -4,7 +4,6 @@ import { nodeStyle } from '@/studio/render';
 import { stateStyleSheetFor } from '@/studio/state-styles';
 import type { Locale } from '@/lib/i18n';
 import { InteractiveHotspots, type Hotspot } from './InteractiveSurface';
-import type { Locale } from '@/lib/i18n';
 
 /**
  * 公开页的**一份投影**：按某一档断点解出来的画框 + 热点。

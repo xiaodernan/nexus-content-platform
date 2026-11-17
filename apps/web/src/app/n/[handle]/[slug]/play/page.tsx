@@ -105,7 +105,7 @@ export default async function PublicPlayPage({ params }: { params: Promise<{ han
 
   const document = parsed.data as GameDocument;
   const issues = validateGame(document);
-  const projection = compileForKind(document);
+  const projection = compileForKind(document, locale);
   return (
     <main className="pp-root pp-live pp-wide" data-play="live">
       <header className="pp-header pp-headerRow">

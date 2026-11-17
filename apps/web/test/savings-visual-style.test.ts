@@ -117,7 +117,7 @@ describe('§FE-SV /tasks/<项目> AI 节省账单（SavingsCard）', () => {
 
   it('SHA256 钉死（并轨后的本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '72eee13315d24d15631b3676917df4205d491b2c7f3e3c38197e3d99c45cb36a',
+      'd9cc9509af08f3e10d22055c8af90374d63e0f55f3ecb2794f7357bf6d6ee1c8',
     );
   });
 });

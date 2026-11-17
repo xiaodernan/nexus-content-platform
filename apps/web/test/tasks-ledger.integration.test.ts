@@ -89,7 +89,6 @@ describe('§75 用量记账（真库）', () => {
     // v690（并轨）：provider 报的推理段 token；老构造点默认 0——读出后的真值也是 0
     reasoningTokens: 0,
     demoMode: true,
-    reasoningTokens: 0,
   };
 
   it('记进去 → listProjectTasks 原样读出，契约也过得了（DEMO 的 0 token 是被记下来的事实）', async () => {

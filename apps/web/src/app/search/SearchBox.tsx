@@ -70,8 +70,8 @@ interface Suggestion {
 
 const MIN_QUERY = 2;
 
-export function SearchBox({ initialQuery }: { initialQuery: string }) {
-  const [locale] = useState<Locale>(() => clientLocale());
+export function SearchBox({ initialQuery, locale: localeProp }: { initialQuery: string; locale?: Locale }) {
+  const [locale] = useState<Locale>(() => localeProp ?? clientLocale());
   const c = COPY[locale];
   const [value, setValue] = useState(initialQuery);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);

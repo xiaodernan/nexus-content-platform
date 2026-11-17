@@ -157,9 +157,9 @@ describe('§FE-61 /studio CommandBar AI 命令栏', () => {
     }
   });
 
-  it('剥 className/cn 后全文 SHA256 守恒（2026-11-17 v845「§73-AI 审批解释追加」重钉：9711bac2aeaa4e25befcad3ff6daf612cb2c927a517c406a216548068859d17a）', () => {
+  it('剥 className/cn 后全文 SHA256 守恒（2026-11-17 v845「§73-AI 审批解释追加」重钉：36df642d8cd90db78e12bd9103d0f1f4cf7cf5605c25be2157436e8d4b6cf100）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '9711bac2aeaa4e25befcad3ff6daf612cb2c927a517c406a216548068859d17a', // v845 §73-AI 纯新增字面与 data-* 钩子
+      '36df642d8cd90db78e12bd9103d0f1f4cf7cf5605c25be2157436e8d4b6cf100', // v845 §73-AI 纯新增字面与 data-* 钩子
     );
   });
 

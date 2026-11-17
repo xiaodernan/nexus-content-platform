@@ -62,7 +62,6 @@ export default async function InviteAcceptPage({ params }: { params: Promise<{ t
         ) : (
           <p className="iv-lede">{T.signedOut}</p>
         )}
-        )}
       </header>
       {user ? (
         <InviteAcceptPanel token={token} locale={locale} />

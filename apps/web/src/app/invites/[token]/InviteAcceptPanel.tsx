@@ -74,9 +74,6 @@ export function InviteAcceptPanel({ token, locale = 'zh' }: { token: string; loc
         <p className="iv-success">{c.joined}</p>
         <Link href={`/studio/${joinedProjectId}`} className="iv-successLink">
           {c.openProject}
-        <p className="iv-success">{c.joined}</p>
-        <Link href={`/studio/${joinedProjectId}`} className="iv-successLink">
-          {c.openProject}
         </Link>
       </div>
     );

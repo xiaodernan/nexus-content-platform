@@ -125,7 +125,7 @@ describe('§BIBLE-2 /bible/quiz 典籍室「潮汐挑战」', () => {
       '612a074adcfa22378f36197e23cebac0fbc08f1d3a99e5b96b6f862e4ed6eb92',
     );
     expect(createHash('sha256').update(redactClasses(component)).digest('hex')).toBe(
-      'ff8f062e2427520c25541fda0609c8cdd61a4a6da661261d5f66fa6c9527d532',
+      '9f83513bfc20f221ae2738f6cfb82b3dc68b4770a5b00af6eef4f4f9b4bcf8ab',
     );
   });
 });

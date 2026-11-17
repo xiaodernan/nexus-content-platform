@@ -182,7 +182,6 @@ export const METRICS = {
     labels: { outcome: ['answer'] },
     buckets: DURATION_BUCKETS,
   },
-  },
   nexus_http_errors_total: {
     kind: 'counter',
     help: 'Next 服务器捕获到的未处理请求错误数（instrumentation.onRequestError）',
