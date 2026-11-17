@@ -4911,3 +4911,10 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 同步落地：BibleAsk lede → 39；/bible/ask meta → 三十九篇；canon-answer-graph 测试 44 段／39 echoes；bible-ask-behavior 锚句总数 212→218；CACHE-IDENTITY 更新。
 - 同时修 /insight §④「按账面计算的缓存命中率」读数误解（zh/en）：原注只写"口径与 /admin/savings 一致"——现在原文白纸黑字区分**digest-path ~94%（PROVED-9/13/17/18）**与**短提示短调用被计大头拉低聚合（9.3%）**两条口径。37 组回归 ✓（insight ×5 文件）。
 - 回归：bible 组 50/50 绿。Docker Desktop 自重启 ρη 仍在，手写通道照常。
+
+## cont. 259 (2026-11-17) — v888 · §BIBLE-40 · Echo #40《值更院值更图上那个没人认识的名字》（作者手写·双语·224/224 绿）
+
+- 第 40 篇回响「多一个」：值更图上抄了几十年也没人认识的名字——每次数人永远多一个，值更院的每个人都为那一行字留着一个空格。回响线的"匿名守护者"收口。
+- 作者手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-040-the-name-on-the-roster-nobody-recognizes`；verify:bible-snapshot ✓；verify:world-bible **224/224** ✓。
+- 同步落地：BibleAsk lede → 40；/bible/ask meta → 四十篇；canon-answer-graph 测试 45 段／40 echoes；bible-ask-behavior 锚句总数 218→224；CACHE-IDENTITY 更新到 40 篇序列。
+- 回归：bible 组 50/50 绿。digest 重灌一次 cold（预期）。

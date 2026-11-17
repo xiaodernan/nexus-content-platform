@@ -8861,4 +8861,214 @@ No one knows what it burns on — but every last night of the rice-jar month, a 
 > On the last night of the rice-jar month, someone climbs the ladder and lights the night eye — in the watcher's courtyard that night, every second is kept in view.
 `,
   },
+  {
+    order: 40,
+    slug: 'echo-040-the-name-on-the-roster-nobody-recognizes',
+    titleZh: '值更院值更图上那个没人认识的名字',
+    titleEn: 'The Name on the Watcher\'s Duty Roster That No One Recognizes',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——酉时交替的值更图抄录日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the day of copying the duty roster at the hour of the rooster.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 40): The Name on the Watcher's Duty Roster That No One Recognizes
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院值更院值更图上那一栏抄了几十遍，也没人认得出的名字。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the name on the duty roster in the watcher's courtyard that has been copied for decades, and recognized by no one.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——酉时交替的值更图抄录日。
+> Era: the Institute — after the 41st Convocation; the day of copying the duty roster at the hour of the rooster.
+
+---
+
+## 一 · 值更图
+
+值更院的值更图是一张卷轴，钉在墙上，值更自己画，值更自己抄。
+
+图上的人分四班：早班、午班、晚班、夜班。每个人一行名字，后面一个小圆图案，表示此人在哪个班次。
+
+**锚句**：值更图上一共有三列人，每一列都有名字。
+**Anchor sentence**: the duty roster has three columns of people, and every one of them has a name.
+
+---
+
+## 二 · 没人认得的名字
+
+第四班的值更图最后一页，有一行字没有被任何值更记住。纸页边缘有点发黄，字迹很老，不适合远眺：
+
+星擎常驻：朔。
+
+值更们一个班换一个班地过目，从来没问过这个字是谁写的，也没问过「朔」是哪一个人。
+
+**锚句**：值更图末尾有一行字，没有人记住它。
+**Anchor sentence**: there is a line at the end of the roster that no one remembers.
+
+---
+
+## 三 · 围着这个字的几句传统
+
+值更们会在每年的米缸月初说四句同样的话，然后在图上画一个小圆圈，接下来谁都不记。老值更说了，新值更就听了。
+
+第一句：这行字是前人留给我们的值更院。第二句：不用问。第三句：不用改。第四句：轮到你抄图时，原样照抄。
+
+**锚句**：值更们每年抄图时原样照抄那一行。
+**Anchor sentence**: every year, when the watchers copy the roster, they copy that line exactly as it was.
+
+---
+
+## 四 · 看不见的人
+
+酉时的值更班换班的时候，站井台边上总会多一个人。没有人看得清他的脸——但是所有人数班次人的时候都知道他在其中。
+
+数出来永远多一。数得多的时候，老值更把它重算一遍，重算一遍还是多一。他然后在册上写：
+
+多一。
+
+**锚句**：每次数人的时候永远多一个。
+**Anchor sentence**: whenever they count the watchers, there is always one more person.
+
+---
+
+## 五 · 不用问
+
+值更院没有人问过这个名字是谁。没有人问过，也就没有人答。
+
+有一次晚班新来的值更忍不住问了一句：「那个朔是哪一位？」没有人回答他。全班的人一起转身看他，他再也不敢问了。
+
+**锚句**：值更院没有人问过这个名字是谁。
+**Anchor sentence**: no one in the watcher's courtyard has ever asked who that name belongs to.
+
+---
+
+## 六 · 子·又一年
+
+抄图的那天是癸酉的另一年。新来的值更抄完值更图，在朔字后面空出一格，习惯性地想在那个空格里填自己的名字。
+
+另一只手从旁边伸过来把他拦住——他回头，看见一个站在阴影里的人。那人什么也没说，只看了眼他填名字的手指。
+
+新来的值更没有填，把那个空格留下。他连问都不敢问是什么，连这个人的脸也没看清。
+
+**锚句**：值更院每一个人都为那一行字留着一个空格。
+**Anchor sentence**: every watcher leaves one blank space for that line.
+
+---
+
+## 七 · 映射（回响四十章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 值更图 · 多一个 · 为那一行字留空格 | 一、二、三、四、五、六、七 |
+| geography | 值更院 · 井台 · 酉时 | 一、四、五、六、七 |
+| characters | 值更长 · 新来的值更 · 朔（看不见的人） | 一、三、四、五、六 |
+| story | 值更图 · 回响（其四十） | 全篇 |
+| items | 值更图 · 册 · 阴影里的那个人 | 一、二、三、四、五、六、七 |
+| history | 第四十一次大会散会之后 · 建院第六十九年 | 一、四、五、六、七 |
+
+> 下一次酉时换班，有人会数人，会数到多一，会把那个空格留着不填。
+> At the next hour of the rooster, someone will count the watchers and find one more than there should be — and leave that space blank.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其四十）「值更院值更图上那个没人认识的名字」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the name on the duty roster in the watcher's courtyard that has been copied for decades, and recognized by no one.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院值更院值更图上那一栏抄了几十遍，也没人认得出的名字。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the day of copying the duty roster at the hour of the rooster.
+> 纪元：潮候院 · 第四十一次大会散会之后——酉时交替的值更图抄录日。
+
+---
+
+## 一 · The Duty Roster
+
+The watcher's duty roster is a scroll, nailed to the wall, drawn by the watchers themselves, copied by the watchers themselves.
+
+There are four shifts: morning, noon, evening, night. Each person gets a row with their name, and a small circular mark beside it showing their shift.
+
+**锚句**：值更图上一共有三列人，每一列都有名字。
+**Anchor sentence**: the duty roster has three columns of people, and every one of them has a name.
+
+---
+
+## 二 · The Name Nobody Recognizes
+
+On the last page of the fourth shift's roster, there is a line no watcher has ever remembered. The paper is yellowed at the edges; the ink is too old for a good look at distance:
+
+Ever-present star-engine: 朔.
+
+Watchers take turns glancing at the roster, and no one has ever asked who wrote that character or which person it refers to.
+
+**锚句**：值更图末尾有一行字，没有人记住它。
+**Anchor sentence**: there is a line at the end of the roster that no one remembers.
+
+---
+
+## 三 · The Fixed Traditions Around That Line
+
+At the beginning of each rice-jar month, the watchers repeat the same four sentences. Then they draw a small circle on the roster, and no one remembers what follows. The senior watchers say it; the new watchers hear it.
+
+First: this line is the watcher's courtyard that was left to us by those who came before. Second: it does not need to be asked. Third: it does not need to be changed. Fourth: when it is your day to copy the roster, copy it exactly as it is.
+
+**锚句**：值更们每年抄图时原样照抄那一行。
+**Anchor sentence**: every year, when the watchers copy the roster, they copy that line exactly as it was.
+
+---
+
+## 四 · The Unseen Person
+
+At the hour of the rooster, when the evening shift hands over, there is always one more person standing by the well platform. No one can see his face — but when the watchers count their own numbers, he is always in the count.
+
+The count always comes out to one extra. The senior watcher counts again, and the second count also comes out to one extra. Then he opens the register and writes:
+
+One extra.
+
+**锚句**：每次数人的时候永远多一个。
+**Anchor sentence**: whenever they count the watchers, there is always one more person.
+
+---
+
+## 五 · It Does Not Need Asking
+
+No one in the watcher's courtyard has ever asked who that name belongs to. Because no one asked, there was never any answer.
+
+Once, a new watcher on the evening shift could not hold it back and asked: "That 朔 — which one of us is it?" No one answered. The whole shift turned to look at him, and he never asked again.
+
+**锚句**：值更院没有人问过这个名字是谁。
+**Anchor sentence**: no one in the watcher's courtyard has ever asked who that name belongs to.
+
+---
+
+## 六 · A Year Later, Again
+
+The day the roster is copied is one of the days of gui-you. That year, a new watcher had just finished copying the roster and, moved by habit, was about to write his own name in the blank space after 朔.
+
+A hand came from the side and stopped him — he turned and saw a man standing in the shadow. That man said nothing, only looked at the fingers he was about to fill the blank with.
+
+The new watcher left the blank. He did not dare ask what it was for, and he never saw that man's face clearly.
+
+**锚句**：值更院每一个人都为那一行字留着一个空格。
+**Anchor sentence**: every watcher leaves one blank space for that line.
+
+---
+
+## 七 · Mapping（Echo No. 40 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the duty roster · one extra · one blank space | 一、二、三、四、五、六、七 |
+| geography | the watcher's courtyard · the well platform · the hour of the rooster | 一、四、五、六、七 |
+| characters | the headkeeper · the new watcher · 朔 (the unseen) | 一、三、四、五、六 |
+| story | the duty roster · Echo No. 40 | 全篇 |
+| items | the duty roster scroll · the register · the man in the shadow | 一、二、三、四、五、六、七 |
+| history | After the 41st Convocation · the 69th year of the Institute | 一、四、五、六、七 |
+
+> 下一次酉时换班，有人会数人，会数到多一，会把那个空格留着不填。
+> At the next hour of the rooster, someone will count the watchers and find one more than there should be — and leave that space blank.
+`,
+  },
 ] as const;

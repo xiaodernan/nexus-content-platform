@@ -81,6 +81,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E37-值更院米缸月最后一夜那口从不离灶的粥': 'echo-037-the-congee-pot-that-never-leaves-the-stove',
   'E38-值更院井台边那块永远不干的石板': 'echo-038-the-tide-stone-by-the-well',
   'E39-值更院灯架最上层那盏不灭的灯': 'echo-039-the-night-eye-at-the-top-of-the-lamp-rack',
+  'E40-值更院值更图上那个没人认识的名字': 'echo-040-the-name-on-the-roster-nobody-recognizes',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
