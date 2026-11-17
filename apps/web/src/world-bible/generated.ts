@@ -14268,6 +14268,204 @@ Nobody asks why; nobody dares say.
 > The broom is hung. Maybe he will return one day to take it; maybe the pillar will simply hold the silence — forever.
 `,
   },
+  {
+    order: 67,
+    slug: 'echo-067-the-tidekeeper-of-the-south-east-dock',
+    titleZh: '雾港岸边那位白胡子老交长执事',
+    titleEn: 'The White-Bearded Tide-Keeper at the Fog Harbor\'s Edge',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——秋潮月第四十四日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the forty-fourth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 67): The White-Bearded Tide-Keeper at the Fog Harbor's Edge
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院东南港口那位向海里送鹅卵石的老人：谁都不记得他什么时候来的。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the watchful old man at the Institute's south-east dock who walks the stones of the harbor — no one remembers when he arrived.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第四十四日。
+> Era: the Institute — after the 41st Convocation; the forty-fourth day of the autumn-tide month.
+
+---
+
+## 一 · 老交长执事
+
+潮候院最古老的一位老交长执事，专管雾港东南港口的潮水进出——没有人记得他叫什么，也没有人记得他什么时候来到的。
+
+值更长每天经过他都要慢下五步——似乎他专门站在自己脚下的石板里，专门不老。
+
+**锚句**：潮候院雾港东南港口的老交长执事专管潮水进出。
+**Anchor sentence**: the elder tide-keeper at the south-east dock of the fog harbor manages the in- and-out of the tides.
+
+---
+
+## 二 · 候潮石
+
+每次海潮推上来、退下去——他都按一定的顺序扔石头进海里。
+
+扔进这一块石头，然后立刻回头拿一块别的石头扔进下一节珊瑚水坑里。
+
+**锚句**：每次潮水退了一步，他就扔一块石头入海。
+**Anchor sentence**: each time the tide recedes one step, he throws a stone into the sea.
+
+---
+
+## 三 · 挑出来的一块
+
+几十年了，他捡的鹅卵石数量没有人记得了——大概是十万。
+
+其中只有一块是特殊的——他六十岁那一年，从珊瑚水坑里独自挑出来，搁在潮候院祠殿大贝柱旁边，没人敢动的。
+
+**锚句**：他六十岁那一年，从珊瑚水坑里独自挑出一块搁在大贝柱旁边。
+**Anchor sentence**: in his sixties, he single-handedly picked one stone out of a coral pool and placed it beside the Great Shell Pillar.
+
+---
+
+## 四 · 没人敢问
+
+几年一次，抄本师上去问他「老交长执事，你这是去哪里了？」
+
+老交长执事回答说「我在学会做潮水的事。」
+
+**锚句**：他说自己学会的是「怎么让潮水听懂它的事情」。
+**Anchor sentence**: he answered that he has learned to make the tide understand its own affairs.
+
+---
+
+## 五 · 大会散会之后
+
+第四十一次大会散会之后，潮势上也安静了——老交长执事坐在东岸的沙堆上，望着海。
+
+他嘴里一句话也没说——但是他手里仍然在慢慢地一粒一粒石子——照着他自己的规律收起来了。
+
+**锚句**：第四十一次大会散会之后，他仍然在沙堆上慢慢地一粒一粒捡石子。
+**Anchor sentence**: after the 41st Convocation dissolved, he continued, slowly, stone by stone, to gather pebbles on the sand.
+
+---
+
+## 六 · 这一颗
+
+他最终倒了一颗鹅卵石回海里——所有人老身笑了一宗——那又是一只普通的白色鹅卵石。
+
+值更长后来看到了他扔回海里那只鹅卵石的时候——他缓缓起身，没有回头。
+
+**锚句**：这一刻所有人看到他扔回海里那只鹅卵石——他缓缓起身，没有回头。
+**Anchor sentence**: that moment everyone saw him toss one pebble back into the sea — he rose slowly and did not look back.
+
+---
+
+## 七 · 映射（回响六十七章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 潮水 · 石头 · 珊瑚水坑 · 大贝柱 · 祠殿 | 一、二、三、四、五、六 |
+| geography | 东南港口 · 雾港 · 大贝柱 | 一、三、五 |
+| characters | 老交长执事 · 抄本师 · 值更长 · 第四十一次大会 | 一、二、三、四、五、六 |
+| story | 鹅卵石 · 回响（其六十七） | 全篇 |
+| items | 鹅卵石 · 珊瑚水坑 · 大贝柱 | 一、二、三、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第四十四日 | 五、六 |
+
+> 一个人往海里扔石头，就是在平衡潮候院自己的潮流。
+> One man throws stones into the sea — he is balancing the Institute's own tide.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其六十七）「雾港东南港口那位老交长执事」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the watchful old man at the Institute's south-east dock who walks the stones of the harbor — no one remembers when he arrived.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院东南港口那位向海里送鹅卵石的老人：谁都不记得他什么时候来的。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the forty-fourth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第四十四日。
+
+---
+
+## I · The Old Tide-Keeper
+
+The oldest member of the Institute, the elder tide-keeper at the south-east dock, has managed the tide for so many years — no one remembers his name, nor when he arrived.
+
+Every dawn passes he walks a little slower, seemingly held fast to the stones he himself is standing on, permanently ageless.
+
+**锚句**：潮候院雾港东南港口的老交长执事专管潮水进出。
+**Anchor sentence**: the elder tide-keeper at the south-east dock of the fog harbor manages the in- and-out of the tides.
+
+---
+
+## II · Stones at Every Turn
+
+Each time the tide slides up and lays back, he tosses a stone into the sea.
+
+Tossed, he reaches for another, places it first into the next coral pool — and then the next pool after that.
+
+**锚句**：每次潮水退了一步，他就扔一块石头入海。
+**Anchor sentence**: each time the tide recedes one step, he throws a stone into the sea.
+
+---
+
+## III · The One Stone
+
+For decades, he has tossed so many pebbles into the sea that no one has ever counted them — likely one hundred thousand.
+
+Only one among them is special.  He picked that one out of the coral basin at age sixty and set it beside the Great Shell Pillar — which no one dares to touch.
+
+**锚句**：他六十岁那一年，从珊瑚水坑里独自挑出一块搁在大贝柱旁边。
+**Anchor sentence**: in his sixties, he single-handedly picked one stone out of a coral pool and placed it beside the Great Shell Pillar.
+
+---
+
+## IV · The Question No One Asks
+
+Only a few times in life has a copyist dared approach him and ask "elder, what are you doing?"
+
+He answered: "I am learning how to make the tide understand its own affairs."
+
+**锚句**：他说自己学会的是「怎么让潮水听懂它的事情」。
+**Anchor sentence**: he answered that he has learned to make the tide understand its own affairs.
+
+---
+
+## V · After the Dissolution
+
+After the 41st Convocation dissolved, the tide went quiet — he sat on the ridge of sand on the east shore, facing the sea.
+
+No words came from his mouth — yet his hand never stopped gathering pebbles, one by one, at his own measured rhythm.
+
+**锚句**：第四十一次大会散会之后，他仍然在沙堆上慢慢地一粒一粒捡石子。
+**Anchor sentence**: after the 41st Convocation dissolved, he continued, slowly, stone by stone, to gather pebbles on the sand.
+
+---
+
+## VI · This One Pebble
+
+Eventually he tossed one pebble back into the sea — the harbor one final time — and that pebble was an ordinary white pebble.
+
+None of them reacted.  He rose slowly to his feet, and did not look back.
+
+**锚句**：这一刻所有人看到他扔回海里那只鹅卵石——他缓缓起身，没有回头。
+**Anchor sentence**: that moment everyone saw him toss one pebble back into the sea — he rose slowly and did not look back.
+
+---
+
+## VII · Mapping（Echo No. 67 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the tide · the stones · the coral pool · the Great Shell Pillar · the sanctuary | 一、二、三、四、五、六 |
+| geography | the south-east dock · the fog harbor · the Great Shell Pillar | 一、三、五 |
+| characters | the tide-keeper · the copyists · the head of the watch · the 41st Convocation | 一、二、三、四、五、六 |
+| story | the pebbles · Echo No. 67 | 全篇 |
+| items | the pebbles · the coral pool · the Great Shell Pillar | 一、二、三、五、六 |
+| history | After the 41st Convocation · the forty-fourth day of the autumn-tide month | 五、六 |
+
+> 一个人往海里扔石头，就是在平衡潮候院自己的潮流。
+> One man throws stones into the sea — he is balancing the Institute's own tide.
+`,
+  },
 ] as const;
 
 export const BIBLE_APPENDICES: readonly BibleChapter[] = [

@@ -5513,3 +5513,9 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 第 66 篇回响「扫帚师」：院外海风带来潮候——冬青树皮永远褪于月初；大门五更敲三下把门廊人叫到；三勺粥永远喝完；候会有一天无人敢把大贝柱上挂的扫帚取下——大会散之后再没人动它。
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-066-the-sweeper-at-the-gate`；verify world-bible **380/380** ✓。
 - 同步：BibleAsk lede → 66（含 en）；/bible/ask meta → 六十六篇 / sixty-six；cache-identity → 66 篇锚句；bible-ask-behavior 锚句总数 374→380；canon-answer-graph 测试 71 段 / 66 echoes；pins 重钉（page→a1ed787… comp→528b937f…）；fe-gates **1285/1285 绿**。
+
+## cont. 311 (2026-11-18) — v930 · §BIBLE-67 · Echo #67《雾港东南港口那位老交长执事》（作者手写·双语·386/386 绿）
+
+- 第 67 篇回响「潮候」：东南港口白胡子老交长——海潮一退就卵石一颗 · 他六十岁时独自挑一颗铁钦搁大贝柱 · 散会之后仍一粒一粒捡卵石上海岸自己的诺言里——无人问也无人去管。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-067-the-tidekeeper-of-the-south-east-dock`；verify world-bible **386/386** ✓。
+- 同步：BibleAsk lede → 67（含 en）；/bible/ask meta → 六十七篇 / sixty-seven；cache-identity → 67 篇锚句；bible-ask-behavior 锚句总数 380→386；canon-answer-graph 测试 72 段 / 67 echoes；pins 重钉（page→e9076540… comp→607496ce…）；fe-gates 测试 24/24。
