@@ -15,6 +15,8 @@ const COPY: Record<Locale, {
   button: string;
   busy: string;
   badge: (m: string, n: number) => string;
+  verifyPass: string;
+  verifyFail: string;
   honestTitle: string;
   honestBody: string;
   tryAgain: string;
@@ -25,6 +27,8 @@ const COPY: Record<Locale, {
     button: '让大模型看看我的数据',
     busy: '模型在读这一屏的数字……',
     badge: (m, n) => `${m}${n > 0 ? ` · cached ${n} tokens` : ''}`,
+    verifyPass: '机检通过：事实+证据+动作，含数字三段式',
+    verifyFail: '机检提醒：这段解读没带齐三段与数字，当散文读',
     honestTitle: '模型连不上',
     honestBody: '解读没法假造——稍后再来。',
     tryAgain: '再问一次',
@@ -35,6 +39,8 @@ const COPY: Record<Locale, {
     button: 'Let the model read my stats',
     busy: 'The model is reading this ledger…',
     badge: (m, n) => `${m}${n > 0 ? ` · cached ${n} tokens` : ''}`,
+    verifyPass: 'Machine check: pass — fact/evidence/action, numbers included',
+    verifyFail: 'Machine check: did not carry all three parts with numbers — treat as prose',
     honestTitle: 'Model unreachable',
     honestBody: 'No fake analysis here — try again when the provider is up.',
     tryAgain: 'Ask again',
@@ -46,11 +52,13 @@ export function AnalyticsAiNarrator({ projectId, locale = 'zh' }: { projectId: s
   const [phase, setPhase] = useState<'idle' | 'loading' | 'answered' | 'honest'>('idle');
   const [text, setText] = useState('');
   const [badge, setBadge] = useState<string | null>(null);
+  const [verified, setVerified] = useState<boolean | null>(null);
 
   const ask = useCallback(async () => {
     if (phase === 'loading') return;
     setPhase('loading');
     setBadge(null);
+    setVerified(null);
     try {
       const resp = await fetch('/api/analytics/agent-narrate', {
         method: 'POST',
@@ -61,13 +69,14 @@ export function AnalyticsAiNarrator({ projectId, locale = 'zh' }: { projectId: s
         setPhase('honest');
         return;
       }
-      const body = (await resp.json()) as { answer?: string; model?: string; cachedTokens?: number };
+      const body = (await resp.json()) as { answer?: string; model?: string; cachedTokens?: number; verified?: boolean };
       if (!resp.ok || typeof body.answer !== 'string') {
         setPhase('honest');
         return;
       }
       setText(body.answer.trim());
       setBadge(body.model ? c.badge(body.model, body.cachedTokens ?? 0) : null);
+      setVerified(typeof body.verified === 'boolean' ? body.verified : null);
       setPhase('answered');
     } catch {
       setPhase('honest');
@@ -84,6 +93,14 @@ export function AnalyticsAiNarrator({ projectId, locale = 'zh' }: { projectId: s
       {phase === 'answered' && (
         <div className="an-aiOutput" aria-live="polite" data-analytics-ai-output>
           {badge && <span className="an-aiBadge" data-analytics-ai-badge>{badge}</span>}
+          {verified !== null && (
+            <span
+              className={verified ? 'an-aiVerify an-aiVerifyPass' : 'an-aiVerify an-aiVerifyFail'}
+              data-analytics-ai-verify={verified ? 'pass' : 'fail'}
+            >
+              {verified ? c.verifyPass : c.verifyFail}
+            </span>
+          )}
           <p className="an-aiText">{text}</p>
         </div>
       )}

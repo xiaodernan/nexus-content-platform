@@ -5491,13 +5491,17 @@
 .an-aiBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 .an-aiOutput { display: flex; flex-direction: column; gap: var(--nexus-space-2); border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-2); }
 .an-aiBadge { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.08em; align-self: flex-start; color: var(--nexus-color-accent-mix); border: 1px solid color-mix(in srgb, var(--nexus-color-accent-mix) 45%, transparent); border-radius: var(--nexus-radius-sm); padding: 0.1rem 0.6rem; font-variant-numeric: tabular-nums; }
+/* §169-AI-Verify · 机检 pass/fail 标识：pass=success token，fail=warn token；咏 compose 与 an-aiBadge 同一族族语 */
+.an-aiVerify { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.06em; align-self: flex-start; border-radius: var(--nexus-radius-sm); padding: 0.1rem 0.6rem; border: 1px solid transparent; }
+.an-aiVerifyPass { color: var(--nexus-color-success); border-color: color-mix(in srgb, var(--nexus-color-success) 45%, transparent); background: color-mix(in srgb, var(--nexus-color-success) 8%, transparent); }
+.an-aiVerifyFail { color: var(--nexus-color-warn-ink); border-color: color-mix(in srgb, var(--nexus-color-warn) 45%, transparent); background: color-mix(in srgb, var(--nexus-color-warn) 8%, transparent); }
 .an-aiText { font-size: var(--nexus-font-size-13); line-height: 1.8; color: var(--nexus-color-fg-1); white-space: pre-wrap; letter-spacing: 0.01em; margin: 0; }
 .an-aiHonest { border-left: 2px solid color-mix(in srgb, var(--nexus-color-accent-mix) 70%, transparent); border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-2) var(--nexus-space-3); background: var(--nexus-color-bg-1); }
 .an-aiHonestTitle { font-size: var(--nexus-font-size-12); font-weight: 700; color: var(--nexus-color-fg-1); margin: 0; }
 .an-aiHonestBody { font-size: var(--nexus-font-size-11); line-height: 1.7; color: var(--nexus-color-fg-2); margin: var(--nexus-space-1) 0 0; }
 @media (forced-colors: active) {
   .an-aiNarrator, .an-aiOutput, .an-aiHonest { border-color: CanvasText; background: Canvas; }
-  .an-aiKicker, .an-aiHint, .an-aiText, .an-aiHonestTitle, .an-aiHonestBody, .an-aiBadge { color: CanvasText; -webkit-text-fill-color: CanvasText; background: none; border-color: CanvasText; }
+  .an-aiKicker, .an-aiHint, .an-aiText, .an-aiHonestTitle, .an-aiHonestBody, .an-aiBadge, .an-aiVerify { color: CanvasText; -webkit-text-fill-color: CanvasText; background: none; border-color: CanvasText; }
   .an-aiBtn { color: CanvasText; border-color: CanvasText; background: Canvas; }
   .an-aiBtn:focus-visible { outline-color: Highlight; }
 }
