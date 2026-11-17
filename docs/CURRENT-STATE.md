@@ -5179,3 +5179,21 @@ Docker Desktop 已由 agent 人工拉起（本轮恢复，server 29.9.3，nexus-
 
 **文件**：`.scratch/stress-batteria.mjs`（无新增依赖）· `.scratch/stress-ip-window.mjs`（限流精确命中探针）。
 **下一步**：Docker 稳定后（或 RAM ≥3 GB 的窗口）复现全量 batteria；把压测结论扩到 `/api/analytics/track` 等写库路由。
+
+## cont. 287 (2026-11-18) — §169-AI-GRAPH · /analytics 创作者数据大模型解读 StateGraph 化（booted gates, live pending）
+
+**交付**
+- 新 `apps/web/src/server/domain/analytics-verify.ts`：`creatorAnalysisIssues`（≥24 字符 · ≥1 数字 · ①②③ 三段序号齐全 · 必含「动作/action」）+ `UNVERIFIED_CREATOR_NOTE`（zh/en 双语，如实标注，不冒充「已核验」）。
+- 新 `apps/web/src/server/ai/creatorGraph.ts`：`runCreatorAnalysisGraph`，draft → verify → (revise → verify) → finalize；system=`AGENT_NARRATE_SYSTEM_PROMPT` 字节级不动（同一 KV 前缀/缓存 lane），digest 进 user；provider 不可用如实 503；capability 透传 provider 实值。
+- 路由 `agent-narrate/route.ts` 重接；响应新增 `verified`/`verifyNote`/`iterations`/`nodesVisited`；outcome 指标分 `answer`/`answer-unverified`。
+- 组件 `AnalyticsAiNarrator.tsx`：徽章文案扩 `verified`（zh「机检通过：事实+证据+动作」/机检提醒；en 同构），pass=accent-mix token、fail=warn-ink token；`data-analytics-ai-verify=pass|fail`；state 复位在重新询问时置 null。组件未列入视觉 SHA 钉子（FE-14 门只管 page.tsx，AICA 文本串仍全在 `.an-` 目录内）。
+- globals.css 增 `.an-aiVerify`/`.an-aiVerifyPass`/`.an-aiVerifyFail`（token only · forced-colors CanvasText 回落入 an-aiVerify）。
+
+**门禁**
+- fe-gates **1277/1277**（135→136 文件）：新 `creator-analysis-behavior.test.ts`（5 例：一次过/修订后过/无脑通过修订不过/provider 503/capability 透传）。
+- `analytics-ai-route-behavior`/`analytics-ai-behavior`/`analytics-visual-style` 全绿；浏览器端渲染未截（留待下一个安静窗口）。
+
+**诚实边界（§159）**
+- 本轮**没有**打 provider：Docker Desktop 11-18 会话内第 4 次崩溃（npipe 拒绝），RAM 触底 0.46 GB，连 next dev 都起不稳——live 验证（capability 透传、revise 后 cachedTokens 累计、机检文案在真模型答复上的表现）**未做**，不伪造。
+  下一个安静窗口（Docker 稳定 + ≥2.5 GB free）应当：register → 建项目 → POST /api/analytics/agent-narrate → 打印 capability/cachedTokens/verified · 与 /analytics 截图一起带走。
+- 另注意：fe-gates 只认 `-behavior.test.ts`/`-visual-style.test.ts` 两类文件名——新图测试若不按 `-behavior` 命名会被当作不存在的测试（已就此修正）。
