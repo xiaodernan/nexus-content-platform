@@ -104,6 +104,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E60-值更人交班那本双线册里从没谁签写完的半钩': 'echo-060-the-half-hook-no-one-finishes',
   'E61-祠殿侧窗那本没人敢翻第二页的集子': 'echo-061-the-volume-no-one-opens-the-second-page',
   'E62-祠殿书库那本不用灯也会亮的借光本': 'echo-062-the-borrow-light-volume-in-the-library',
+  'E63-潮候院东偏院那盏百年不曾熄过的油灯': 'echo-063-the-ever-burning-lamp-in-the-eastern-wing',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

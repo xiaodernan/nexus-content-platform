@@ -5427,3 +5427,9 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 **不动的部分**：子组件内不营造「已经英文化」这种半谎话——内部 §字典 已支持 en/zh 双值，硬编码「降为 cookie-best-effort」。NEXUS_LOCALE cookie 正确读取现在由所有这些组件继承。
 
 **下一步**：继续查 EN 模式下父页面和其他组件有无同类泄漏（/admin/*、/world、/studio、/bible/*、/bible/ask graph、/maps）。
+
+## cont. 305 (2026-11-18) — v926 · §BIBLE-63 · Echo #63《潮候院东偏院那盏百年不曾熄过的油灯》（作者手写·双语·362/362 绿）
+
+- 第 63 篇回响「长明灯」：祠殿东偏院入口上方悬着一盏油灯——两头没有门，风从走廊穿过；它被抄本师叫「廿一更」，据记燃了至少一百二十年没人添过油；第四十一次大会散会已经过去三个月，灯仍然烧。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-063-the-ever-burning-lamp-in-the-eastern-wing`；verify world-bible **362/362** ✓。
+- 同步：BibleAsk lede → 63（含 en）；/bible/ask meta → 六十三篇 / sixty-three；cache-identity → 63 篇锚句；bible-ask-behavior 锚句总数 356→362；canon-answer-graph 测试 68 段 / 63 echoes；pins 重钉（page→39285166… comp→250ae1b1…）；fe-gates **1285/1285 绿**。
