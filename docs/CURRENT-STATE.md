@@ -4506,3 +4506,8 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 
 - 新回响 E30（中英双文件 + 映射表）；verify:world-bible ✓ 170/170；快照 5+30。
 - 世界两位数回响（30）到达——本篇把门槛写成停泊之地，与正典第五章「收件人」的题材同频。
+
+## cont. 215 (2026-11-17) — v849 · 回响其三十一
+
+- 新回响 E31（中英双文件 + 映射表）；verify:world-bible ✓ 175/175；快照 5+31。
+- 世界两位数回响（31 篇）— Anchored.

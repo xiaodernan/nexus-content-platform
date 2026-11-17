@@ -7140,4 +7140,202 @@ When a new watcher first comes to the threshold, the culture of the back alley s
 > After the next Convocation, the watchers will walk through that threshold again.
 `,
   },
+  {
+    order: 31,
+    slug: 'echo-031-the-white-stone-nobody-claimed',
+    titleZh: '里巷子赌局桌上那枚没人认领的白子',
+    titleEn: 'The White Stone No One Claimed on the Alley\'s Gaming Table',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——米缸月里巷子的收档。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the rice-jar month disbursement of the back alley.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 31): The White Stone No One Claimed on the Alley's Gaming Table
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给里巷子的赌局桌上那枚白石子——赌局摆了很多年；它没有赢过、也没输过，没人拿它做过赌注。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the white stone on the alley's gaming table — the table has held it for years; it has never been a stake, it has never been played.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——米缸月里巷子的收档。
+> Era: the Institute — after the 41st Convocation; the rice-jar month disbursement of the back alley.
+
+---
+
+## 一 · 桌面上那颗石子
+
+里巷子的赌局桌摆在祠殿外侧——专供赌客押注的旧桌。
+
+某个米缸月初，值守收档的时候发现：桌面上多了一颗白色石子——嵌在黑白的间隙里。
+
+没有任何登记、没有任何一笔账里写过。
+
+**锚句**：祠殿外赌局桌上某一年多了一颗白子——它不像是谁放的。
+**Anchor sentence**: one year a white stone appeared on the alley's gaming table — it was not like anyone placed it there.
+
+---
+
+## 二 · 抄本员问过几次
+
+抄本员追问过三四次——
+
+每一轮的同卷都会被拿出去——没有人看出它是哪一类的石子：潮沙盘的、米缸月收成的、钟楼的值守存留的；没有一页回答过。
+
+值守把它叫「桌上那枚」——多出来的就是那枚，值守不说它的名字。
+
+抄本员把这个看成「潮候院不归档的那一项」。
+
+**锚句**：抄本员问过它三四次——每次都没有答案。
+**Anchor sentence**: the copyists asked about it three or four times — each time with no answer.
+
+---
+
+## 三 · 强行把它放进仓库
+
+某个米缸月的值守强行把它从赌局桌收起来、放进米缸月的仓库——米缸月第三天早上，它又回到了桌面中间。
+
+赌局桌的位置恰好不在仓库门的视线范围内——值守没有发现是谁把它放回了赌局桌。
+
+**锚句**：值守半夜把它放进仓库——第二天早上它又回到桌上。
+**Anchor sentence**: a watcher locked the stone in the warehouse overnight — the next morning it was back on the table.
+
+---
+
+## 四 · 它没赢过也没输过
+
+里巷子年纪最大的赌客中有一位问过它是谁的一枚——
+
+值守的回答只有一句："它没赢过，它也没输过。"——
+
+那位赌客后来说这句话像潮沙盘的一根沙条。值守把这一句话写进潮沙盘的一卷里，自己没再看，抄本员把它抄进了潮沙盘没有任何名字的那一页。
+
+**锚句**：它没赢过也没输过——它是潮候院「不归档」的那一枚。
+**Anchor sentence**: it has neither won nor lost — it is the one the Institute does not archive.
+
+---
+
+## 五 · 第四十一次大会散会
+
+散会那天的值守被告知：这颗白子不跟大会归档——
+
+米缸月散会之后又出现了两颗白子：一颗仍然在赌桌上、一颗不属于任何同类。里巷子的值守中没有人替它们登记；那两颗白子的页码在潮沙盘的空白里。
+
+值守交接册上多了一行：「散会后桌子上有一颗白子——它们都不归档。」
+
+**锚句**：散会以后桌子上又出现两颗白子——都不归档。
+**Anchor sentence**: after the dispersal two more white stones appeared on the table — neither was archived.
+
+---
+
+## 六 · 映射（回响三十一章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 赌局桌上的白子 · 不归档 · 潮沙盘 | 一、二、三、四、五、六 |
+| geography | 里巷子 · 祠殿外门 · 米缸月的门槛 | 一、二、三、五、六 |
+| characters | 赌局桌值守 · 抄本员 · 赌客 · 新来的值守 | 一、二、三、四、五、六 |
+| story | 桌上那枚没人认领的白子 · 回响（其三十一） | 全篇 |
+| items | 白石 · 赌局桌 · 仓库 · 潮沙盘空白格 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 潮候院的第六十九年 | 一、三、四、五、六 |
+
+> 下一次大会结束的夜晚——里巷子会知道散会那晚又多出来那颗白子是谁落下的这个问题。
+> On the evening of the next Convocation, the watchers will know whose question that white stone is.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其三十一）「里巷子赌局桌上那枚没人认领的白子」
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给里巷子的赌局桌上那枚白石子——赌局摆了很多年；它没有赢过、也没输过，没人拿它做过赌注。
+> 纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the white stone on the alley's gaming table — the table has held it for years; it has never been a stake, it has never been played.
+> Same discipline: anchors verbatim.
+
+> Era: the Institute — after the 41st Convocation; the rice-jar month disbursement of the back alley.
+> 纪元：潮候院 · 第四十一次大会散会之后——米缸月里巷子的收档。
+
+---
+
+## 一 · The Stone on the Table
+
+The alley's gaming table stands outside the chapel — a table for elders who bet on the harbor tides or the weather over the water.
+
+Some new rice-jar month, a watcher carrying the table in found on it a white stone — placed squarely in the center, between the two rows.
+
+No record on any ledger covers it; no warehouse receipt either.
+
+**锚句**：祠殿外赌局桌上某一年多了一颗白子——它不像是谁放的。
+**Anchor sentence**: one year a white stone appeared on the alley's gaming table — it was not like anyone placed it there.
+
+---
+
+## 二 · The Copyists Asked a Few Times
+
+The copyists asked about it three or four times —
+
+Each time they pulled the records — every account — none had it: not in the tide-sand table, not in the storehouse logs, not in the watcher's hand-over book.
+
+The watchers simply called it "the one on the table"; refusing to grant it a name.
+
+The copyists catalogued it as "the Institute's unarchived item."
+
+**锚句**：抄本员问过它三四次——每次都没有答案。
+**Anchor sentence**: the copyists asked about it three or four times — each time with no answer.
+
+---
+
+## 三 · Forcefully Archived, Returned the Same
+
+One rice-jar month, a watcher took the white stone from the table and locked it in the warehouse for the night —
+
+On the third day of the rice-jar month, the stone stood again on the center of the gaming table.
+
+No one saw the hand return it; the table was outside the warehouse's sight-line.
+
+**锚句**：值守半夜把它放进仓库——第二天早上它又回到桌上。
+**Anchor sentence**: a watcher locked the stone in the warehouse overnight — the next morning it was back on the table.
+
+---
+
+## 四 · It Never Won, It Never Lost
+
+The oldest bettor in the alley once asked whose stone it was —
+
+The watchers answered with a single line: "It has never won, and it has never lost."
+
+The bettor later said the line felt like a single row of sand from the sand table. A watcher entered it once in a page of the sand-table notebook; the copyist copied it into the page where no name is ever written.
+
+**锚句**：它没赢过也没输过——它是潮候院「不归档」的那一枚。
+**Anchor sentence**: it has neither won nor lost — it is the one the Institute does not archive.
+
+---
+
+## 五 · After the Forty-First Convocation
+
+On the day of the disbursement, the watchers were told: this white stone does not follow the Convocation's archive —
+
+Days later, two more white stones appeared: one on the table, one elsewhere in the alley neither classed as kin. The watchers never registered any of them; the two new lines went into a blank page of the tide-sand table.
+
+The hand-over book carries one line: "Two more on the table after the Convocation ended — none are archived."
+
+**锚句**：散会以后桌子上又出现两颗白子——都不归档。
+**Anchor sentence**: after the dispersal two more white stones appeared on the table — neither was archived.
+
+---
+
+## 六 · Mapping（Echo No. 31 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | The white stone · the unarchived · the sand table | 一、二、三、四、五、六 |
+| geography | The back alley · the chapel's outer gate · the rice-jar month | 一、二、三、五、六 |
+| characters | The betting-table watchers · the copyists · the oldest bettor | 一、二、三、四、五、六 |
+| story | The White Stone on the Table · Echo No. 31 | 全篇 |
+| items | The white stone · the gaming table · the warehouse · the blank page | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the 69th year of the Institute | 一、三、四、五、六 |
+
+> 下一次大会结束的夜晚——里巷子会知道散会那晚又多出来那颗白子是谁落下的这个问题。
+> On the evening of the next Convocation, the watchers will know whose question that white stone is.
+`,
+  },
 ] as const;

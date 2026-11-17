@@ -14499,3 +14499,11 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   5 锚句 zh/en 全局唯一（170/170）。
 - `gen-bible-snapshot.mts` 登记 `echo-030-the-seven-boards-under-the-sill`；快照重生成（5+30 回响）。
 - verify:world-bible ✓ 170/170；verify:bible-snapshot ✓；fe-gates 134/134 · 1265/1265 · census 2564。
+
+## §BIBLE-43 — 回响 · 其三十一《里巷子赌局桌上那枚没人认领的白子》（2026-11-17 · v849）
+
+- 产出：`docs/world-bible/echoes/E31-里巷子赌局桌上那枚没人认领的白子.md`（中）/ `.en.md`（英）——里巷子赌局桌上多出的一颗白石：
+  祠殿外的赌局桌上突然多了白子；仓库也放不住；输赢都没人认过——"它没赢过也没输过"；值守登记名册上从没见过这颗石子。
+  5 锚句 zh/en 全局唯一（175/175）。
+- `gen-bible-snapshot.mts` 登记 `echo-031-the-white-stone-nobody-claimed`；快照重生成（5+31 回响）。
+- verify:world-bible ✓ 175/175；verify:bible-snapshot ✓；fe-gates 134/134 · 1265/1265 · census 2564。
