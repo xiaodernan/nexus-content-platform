@@ -5531,3 +5531,9 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 第 69 篇回响「回声站」：雾港回声站——老宋说"出去别回"——五只皂绳钓带五只空坛子去雾港深处 · 抄本师听了二十年未改一声 · 四十年院中无人问他们下落 · 雷阵雨过后 echo post 连响三日。
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-069-the-tide-keepers-who-never-returned`；verify world-bible **398/398** ✓。
 - 同步：BibleAsk lede → 69（含 en）；/bible/ask meta → 六十九篇 / sixty-nine；cache-identity → 69 篇锚句；bible-ask-behavior 锚句总数 392→398；canon-answer-graph 测试 74 段 / 69 echoes；pins 重钉（page→c14f825… comp→48e2ae7…）；fe-gates 测试 24/24。
+
+## cont. 314 (2026-11-18) — v933 · §BIBLE-70 · Echo #70《潮候院东郊码头那只三十六个春昼没人动它的白瓷碗》（作者手写·双语·404/404 绿）
+
+- 第 70 篇回响「白瓷碗」：东郊码头 · 三十六春昼不动 · 盛的鱼生不枯 · 干湿都不变 · 副院长下令「无人碰」 · 散会时一名孩子伸手伸向碗口 — 回手缩了回去 · 碗今天仍在。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-070-the-bowl-nobody-moves-for-thirty-six-springs`；verify world-bible **404/404** ✓。
+- 同步：BibleAsk lede → 70（含 en）；/bible/ask meta → 七十篇 / seventy；cache-identity → 70 篇锚句；bible-ask-behavior 锚句总数 398→404；canon-answer-graph 测试 75 段 / 70 echoes；pins 重钉（page→6915ed0… comp→720fa408…）；fe-gates 测试 24/24。
