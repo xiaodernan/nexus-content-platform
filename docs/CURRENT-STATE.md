@@ -6128,3 +6128,11 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 >   call-3 实答「灰炉是热的」（锚句！）；回响锚句外的问题（半粒盐、守灰人举止）如实 `典籍里没写` —— 零发明、零补戏（§159/§160）。
 > - `/bible` 入口 `data-bible-open-oracle`（SHA 重钉 `ea643522…`）· `/guide` 双语地图补一行 · census 2943 → 全绿 · fe-gates 147/147 · **1353/1353** · build 绿。
 > - 纪律确认：真 provider（`gpt-6.1-terra`）· 真 token 回执 · 零 mock · 双语分写 · `forced-colors` · App router · 零 `--no-verify`。
+
+> **2026-11-19 cont. 231 · prod 高并发压测如实补档（tier-24/48 首测）+ insight 口令 123 撞库门**
+> - `scripts/load-web-ssr-nextstart.mts`（新）：单一持久 `next start` on :3461 · `/bible` tier-6/12/24/48 + root：
+>   全 200 · 零 5xx · tier-48 rps 32.03 · p99 3.10s · tier-24 p99 3.70s。对照 dev 路（2026-11-18 tier-12 p50 19.6s/rps 2.93 → prod 3.1s/21.83）约 **9× 吞吐 / 6× p50 降**。
+> - root 单判据：tier-12-root 60/60 200 · rps 7.01 · p50 6.4s（首页大骨架 · 3D 纹理预算 — 如实标注 · 不与 /bible 混判）。
+> - `scripts/insight-login-hammer.mts`（新）：限流实锤 **INSIGHT-GATE PASSED**（30×401 → 5×429；同 IP 正确 123 也 429；跨 IP 隔离 OK · cookie 实到 nexus-insight=1）。
+> - 匿名探针：cookieless `POST /api/tide/oracle` → 403 `csrf_failed`（未到模型层 · 零 provider 配额）。
+> - evidence: `docs/evidence/stress-nextstart-2026-11-19.md` — §十一 缺口（tier-24/48）关闭；未主张任何 SLA。
