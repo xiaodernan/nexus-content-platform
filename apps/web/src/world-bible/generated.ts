@@ -15058,6 +15058,210 @@ The bowl remains — no one knows what it waits for; the tide does not disclose 
 > Thirty-six spring days have passed — the wind ceased — the bowl remains.
 `,
   },
+  {
+    order: 71,
+    slug: 'echo-071-the-old-ledger-that-only-says-none',
+    titleZh: '潮候院祠殿里那本首行是「没',
+    titleEn: 'The Old Ledger in the Sanctuary Whose First Line Reads "None"',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——秋潮月第五十一日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the fifty-first day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 71): The Old Ledger in the Sanctuary Whose First Line Reads "None"
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿桌上那本只有「没」做开头一页的旧账，已经静置百余年不动一字。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the account book sitting on the sanctuary table since the last Convocation — its first line, still, reads "None".
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第五十一日。
+> Era: the Institute — after the 41st Convocation; the fifty-first day of the autumn-tide month.
+
+---
+
+## 一 · 祠殿桌上
+
+祠殿里有一张矮桌，桌上摆着一本旧账簿——皮皮壳破的，纸页缺少一半。
+
+这本旧账簿几百年来从不拿下来——有些来的人说是圣书，有些抄本师说是垃圾。
+
+**锚句**：祠殿桌里有一本旧账——皮皮壳破的纸页。
+**Anchor sentence**: inside the sanctuary table lies an old ledger — its leather skin cracked, its pages half gone.
+
+---
+
+## 二 · 第一个字是「没」
+
+这本账簿第一行写得还算清楚：一个"没"字开头；然后是一串名字——都是潮候院曾经的人的名字。
+
+抄本师私下查看，说已经仔细检查过寻找——没有一个字是错的；也没有人愿意在这个名册上出名。
+
+**锚句**：账簿的第一页第一行开头的字是「没」——没有一个字错。
+**Anchor sentence**: the first line of the first page begins with "None" — not a single character miswritten.
+
+---
+
+## 三 · 百年不动
+
+这本旧账簿从四十一次大会散会之前一落地就再也没动过。
+
+值更长每隔二十五天看一眼；直到他去世后，抄本师忐忐忑忑的拿起来合上——没人知道她翻到哪页。
+
+**锚句**：这本旧账簿已经百余年没有动过。
+**Anchor sentence**: this old account has not moved in over a hundred years.
+
+---
+
+## 四 · 抄本师私下读
+
+有人说，这个名册记的是潮候院欠下的东西——不是钱、不是功德——是「没有还的东西」。
+
+抄本师小声说：「它不是欠钱，是欠一个承诺。」
+
+**锚句**：私底下读过这本账的抄本师说它记录的是「欠一个承诺」。
+**Anchor sentence**: the copyist who read its contents privately said it records "a debt of a promise".
+
+---
+
+## 五 · 「没」之前的字
+
+有的老抄本师说：「没」之前还有一个字，但是已经磨掉——只有第一个字「没」还算认得。
+
+他的陈述从来没有被验证过——也没有人帮他照个镜子。
+
+**锚句**：「没」之前还有一个磨掉的第一个字，没人能确定。
+**Anchor sentence**: the first character, before the visible "None", has been ground away — no one can say what it was.
+
+---
+
+## 六 · 散会之后
+
+第四十一次大会散会后，抄本师把那本旧账挪到了西边角落——但没有人读它；只有海风偶尔翻一页，它又合上。
+
+它现在的命运只是风书一页。
+
+**锚句**：它现在只是风的书页——没人再去看它。
+**Anchor sentence**: it is a page for the wind now — no one opens it anymore.
+
+---
+
+## 七 · 映射（回响七十一章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 没 · 旧账簿 · 欠一个承诺 | 一、二、三、四、五、六 |
+| geography | 祠殿内 · 矮桌 | 一 |
+| characters | 抄本师 · 值更长 · 抄本师私下 | 二、三、四、五、六 |
+| story | 旧账簿 · 回响（其七十一） | 全篇 |
+| items | 旧账簿 · 矮桌 · 灯光 | 一、二、三、四、五 |
+| history | 第四十一次大会散会之后 · 秋潮月第五十一日 | 六 |
+
+> 潮候院第一笔账不写字「收」，只写一个「没」——这是潮候院唯一愿意保留的诚实。
+> The first entry of the Institute's ledger does not write "receive"; it writes "None" — this is the only honesty the Institute keeps.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其七十一）「潮候院祠殿桌里那本首行是「没」的旧账簿」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the account book sitting on the sanctuary table since the last Convocation — its first line, still, reads "None".
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿桌上那本只有「没」做开头一页的旧账，已经静置百余年不动一字。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the fifty-first day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第五十一日。
+
+---
+
+## I · On the Sanctuary Table
+
+Inside the sanctuary sits a low table; upon it rests an old ledger — its leather cover cracked, its pages half missing.
+
+This ledger has not been moved for centuries — some call it a holy text; a few copyists call it rubbish.
+
+**锚句**：祠殿桌里有一本旧账——皮皮壳破的纸页。
+
+**Anchor sentence**: inside the sanctuary table lies an old ledger — its leather skin cracked, its pages half gone.
+
+---
+
+## II · The First Line Says "None"
+
+The first line of this ledger, still legible, begins with a single character: "None"; after it a list of names — every name belongs to someone who once belonged to the Institute.
+
+The copyists inspected it privately — they found no character wrong, no one willing to stand inside the list.
+
+**锚句**：账簿的第一页第一行开头的字是「没」——没有一个字错。
+
+**Anchor sentence**: the first line of the first page begins with "None" — not a single character miswritten.
+
+---
+
+## III · A Hundred Years Unmoved
+
+The ledger, on the table, never moved from the day of the Convocation's dissolution.
+
+The head of the watch looked once a quarter; only after he passed did the next copyists finger it — no one knows where in the book his fingers rested.
+
+**锚句**：这本旧账簿已经百余年没有动过。
+
+**Anchor sentence**: this old account has not moved in over a hundred years.
+
+---
+
+## IV · What the Copyists Whispered
+
+Some of the older copyists said: what the ledger records are debts owed — not money, not merit — debts of something not yet repaid.
+
+The copyist who scanned the contents whispered: "It does not owe money; it owes a promise."
+
+**锚句**：私底下读过这本账的抄本师说它记录的是「欠一个承诺」。
+
+**Anchor sentence**: the copyist who read its contents privately said it records "a debt of a promise".
+
+---
+
+## V · The Lost First Character
+
+The elders say: before "None" there was another character, ground away over the years; only "None" remains legible.
+
+No one tested this; nobody wants to speculate.
+
+**锚句**：「没」之前还有一个磨掉的第一个字，没人能确定。
+
+**Anchor sentence**: the first character, before the visible "None", has been ground away — no one can say what it was.
+
+---
+
+## VI · After the Dissolution
+
+A month after the 41st Convocation dissolved, the copyists moved the ledger to a corner in the west — they did not open it; only the wind occasionally turns a page, and the book quiets itself.
+
+It is a page for the wind now.
+
+**锚句**：它现在只是风的书页——没人再去看它。
+
+**Anchor sentence**: it is a page for the wind now — no one opens it anymore.
+
+---
+
+## VII · Mapping（Echo No. 71 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | "None" · the old ledger · owed a promise | 一、二、三、四、五、六 |
+| geography | the sanctuary · the low table | 一 |
+| characters | the copyists · the head of the watch · the copyists privately | 二、三、四、五、六 |
+| story | the old ledger · Echo No. 71 | 全篇 |
+| items | the old ledger · the low table | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the fifty-first day of the autumn-tide month | 六 |
+
+> 潮候院第一笔账不写字「收」，只写一个「没」——这是潮候院唯一愿意保留的诚实。
+> The first entry of the Institute's ledger does not write "receive"; it writes "None" — this is the only honesty the Institute keeps.
+`,
+  },
 ] as const;
 
 export const BIBLE_APPENDICES: readonly BibleChapter[] = [

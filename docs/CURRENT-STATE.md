@@ -5558,3 +5558,9 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - `--sessions 60` 可扩（RAM 允许时）。
 
 诚实边界：合成流量、不替代真实用户的 analytics、不混入 `/analytics` 真实账号追踪、**不作为任何网格统计指标出现在 UI**——只是某一次 stress-bridge 验证。
+
+## cont. 316 (2026-11-18) — v935 · §BIBLE-71 · Echo #71《祠殿桌里那本首行是「没」的旧账簿》（作者手写·双语·410/410 绿）
+
+- 第 71 篇回响「旧账簿」：祠殿桌上一本皮壳破裂的旧账——第一页第一行开头是「没」——其余字列出一串潮候院旧人姓名；没人愿意认——抄本师私下说是「欠一个承诺」——百余年沉寂——它现在只是风的书页。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-071-the-old-ledger-that-only-says-none`；verify world-bible **410/410** ✓。
+- 同步：BibleAsk lede → 71（含 en）；/bible/ask meta → 七十一篇 / seventy-one；cache-identity → 71 篇锚句；bible-ask-behavior 锚句总数 404→410；canon-answer-graph 测试 76 段 / 71 echoes；pins 重钉（page→4771370f… comp→65bb9b47…）；fe-gates 测试 24/24。

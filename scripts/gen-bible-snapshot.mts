@@ -112,6 +112,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E68-潮候院潮水巷里的那位陶人阿栀': 'echo-068-the-potter-of-the-tide-alley',
   'E69-雾港回声站那一队再没有回来的潮候师': 'echo-069-the-tide-keepers-who-never-returned',
   'E70-潮候院东郊码头那只三十六个春昼没人动它的白瓷碗': 'echo-070-the-bowl-nobody-moves-for-thirty-six-springs',
+  'E71-潮候院祠殿桌里那本首行是「没」的旧账簿': 'echo-071-the-old-ledger-that-only-says-none',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
