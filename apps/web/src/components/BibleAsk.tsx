@@ -2,6 +2,7 @@
 
 import { useCallback, useState, type FormEvent } from 'react';
 import Link from 'next/link';
+import { csrfHeaders } from '@/lib/csrf';
 import type { Locale } from '@/lib/i18n';
 import { EXAMPLE_QUESTIONS } from '@/lib/bibleAsk';
 
@@ -79,7 +80,7 @@ export function BibleAsk({ locale = 'zh', initialQuestion }: { locale?: Locale; 
     try {
       const resp = await fetch('/api/bible/q', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ question: trimmed, locale }),
       });
       if (resp.status === 429) {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
+import { csrfHeaders } from '@/lib/csrf';
 import type { Locale } from '@/lib/i18n';
 
 /**
@@ -53,7 +54,7 @@ export function AnalyticsAiNarrator({ projectId, locale = 'zh' }: { projectId: s
     try {
       const resp = await fetch('/api/analytics/agent-narrate', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ projectId, locale }),
       });
       if (resp.status >= 429 || resp.status >= 500) {
