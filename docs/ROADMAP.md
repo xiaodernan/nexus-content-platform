@@ -14600,3 +14600,10 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - 新回响 E36（中英双文件 + 映射表）：米缸里那一粒米六十九年没沉过；筷子拨过一次又浮回原位；值更册一行字；月亮派下来的一粒。
 - 潮汐挑战第 15 题接入该回响（zh/en）：`那粒米已经浮着多少年？→ 六十九年`；新增 15/15 结算档；SHA `8a00db7f…`。
 - verify:world-bible ✓ 200/200；快照 5 章 · 36 回响；本回无其他改动的 fe-gate 一律保持 CEN 2566。
+
+## §CACHE-6 — provider 原生 KV 命中率实测证据 + 问典 digest 回响篇数修正（2026-11-17 · v861 · §PROVED-9）
+
+- digest 回响篇数写死 "26 echoes" → 改为按 `echoes.length` 动态（现为 36）；问典 digest 测试 5/5 绿。
+- 探针（Clash 7897 → /v1/chat/completions）：证明 v2 完整正典前缀（32,470 chars / 24,066 tokens）稳定可复用 KV —— #2 调用 cached_tokens **22,733 / 24,066 ≈ 94.5% 命中**。
+- 两层缓存实录（应用侧 Redis L2 · §PROVED-8；provider 原生 KV · §PROVED-9）。
+- 问典 digest 长度仍 32,470 chars（< 64k 预算 ✓）；verify:fe-gates 相关套件 134/134 · 1268/1268。

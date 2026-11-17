@@ -68,7 +68,7 @@ export function buildDigest(chapters: readonly BibleChapter[], echoes: readonly 
   return [
     '# THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)',
     'World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.',
-    'Five canonical chapters (full text below). Twenty-six echoes (anchor lines only, same book end-anchors).',
+    `Five canonical chapters (full text below). ${echoes.length} echoes (anchor lines only, same book end-anchors).`,
     '',
     chapters.map(chapterDigestV2).join('\n\n'),
     '',

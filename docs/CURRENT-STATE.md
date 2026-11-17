@@ -4632,3 +4632,13 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   回答质量不够（"典籍里没有"）——未编，但 digest 偏薄（诚实标注）。
 - 探针完成即 kill（ai-service 8001 + dev server），/home sibling 未触碰；free RAM 回落后仍 ~2.4 GB。
 - 备忘：本机启动路径为 python -m uvicorn ai_service.app:app（应用 8001，含 Redis L2 与 .env）；web dev 要带 NEXUS_AI_SERVICE_URL=http://127.0.0.1:8001。
+
+## cont. 230 (2026-11-17) — v861 · §PROVED-9 provider 原生 KV 94.5% 命中 + 回响篇数修正
+
+- 问典 digest 写死的 "26 echoes" 修正为按 `echoes.length` 动态渲染（现 36），digest 契约测试 5/5 绿；
+  SYSTEM_PROMPT 现 32,470 chars（含五章全文 + 36 回响锚句）。
+- 经 Clash 7897 直连付费 API 探针（model=gpt-6.1-terra）：
+  - #1（新前缀）5.05s · prompt_tokens 24066 · 0 cached；
+  - #2（间隔 14s，同前缀）3.83s · **cached_tokens 22,733 / 24,066 ≈ 94.5%**；
+  - 回答符合正典设定（收件人永远不揭晓），未编造。
+- 两层缓存证据齐备：应用侧 Redis L2 replay 5202→74-79ms 整段命中（§PROVED-8）；provider 原生 KV 占 94.5% 前缀复用（§PROVED-9）。

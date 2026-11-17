@@ -267,3 +267,20 @@ cd apps/web && npx tsx scripts/approval-explain-e2e.mts c5ebd27e-8a20-45f2-86aa-
   已知改进方向：问典 digest 已带 v2 全文正典（见 §PROVED-3 的 v2 实验），本路 digest 仍偏薄。
 - ai-service 8001 探针完成后已 kill（PID 17268）；/home sibling 8000 全程未触碰。
 - 结论：**付费 provider × 应用内 CSRF/IP gate/Redis L2 回放全部真实工作**；AI 服务 dev 启动路径：`npm run dev:ai` 或 python -m uvicorn ai_service.app:app（端口 8001，/home 占用 8000）。
+
+
+## §PROVED-9 — 付费 provider 原生 KV 前缀缓存实测（2026-11-17 · v861 · 缓存命中率不再"低"）
+
+- 探针：经 Clash 7897 直调 `https://api.aizzz.xyz/v1/chat/completions`，body = `SYSTEM_PROMPT`（v2 digest，**32,470 chars**，五章全文 + 36 回响锚句）+ user `Question language: zh\nQuestion: 正典第五章《收件人》里每天释放一封信给抄本员，这封信的收件人是谁？`。
+- **#1**（全新前缀）：`http 200, 5.05s, prompt_tokens=24066, completion_tokens=57, 无 cached_tokens`
+- **#2**（同一前缀，间隔 14 秒）：`http 200, 3.83s, prompt_tokens=24066, completion_tokens=41, prompt_tokens_details.cached_tokens=22733`
+- **缓存命中率**：22,733 / 24,066 = **94.5% 的前缀被 provider KV 复用**（有 usage 账目，不是推断）。
+- 回答：「典籍里没有人知道。《收件人》里没有人说每天只释放一封信，也没有说明这封信的收件人是谁。」——与正典设定一致（收件人姓名是 canon 主题：永远不被揭晓），没编。
+- **两层缓存分清**：
+  | 层 | 命中证据 | 位置 |
+  |---|---|---|
+  | provider 原生 KV（`prompt_tokens_details.cached_tokens`）| 22,733 / 24,066 = 94.5% @ 3.83s | 网关/模型侧 |
+  | 应用侧 Redis L2（§BIBLE-4 / `nexus:llmc`）| 同题 replay `ms 5202→74-79`，`cachedTokens 24066` | 本项目 ↔ 8001 / nexus:llmc |
+  - L2 命中时连 API 都不走；94.5% 的原生 KV 命中是"必须走 API 时的兜底"——两层都真实、都实测。
+  - 注：v2 digest 完全稳定的前缀是保持高原生缓存的前提（§CACHE-4）；改 digest = 全部前缀重打包，本次测的是 24066 分母的原样重放。
+- **结论**：缓存命中率不再"低"——不是玄学，是两层都实测证据：应用侧 24,066 tokens 整段 L2 命中、网关侧 94.5% KV 复用。剩余 5% ≈ 1,333 tokens 是系统前言之后的新内容与模型策略差异。
