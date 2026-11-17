@@ -4596,3 +4596,20 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   双语各加一档「满分守夜人 / The Full Tide」15/15 结算档；全量门重钉（15 题、答案序列、SHA `8a00db7f…`）。
 - 快照 5 章 · 36 回响；world-bible anchors 200/200 校验 ✓；bible-ask-behavior 200。
 - fe-gates 134/134 · 1268/1268 · census 2566 · web tsc 0。
+
+## cont. 227 (2026-11-17) — GitHub 个人主页 README + Pages 全面装修（v860 · 个人站 ask 直达 master c37bb5d / cc5bac5）
+
+- **GitHub 个人资料页**（`xiaodernan/xiaodernan` = PROFILE README）抓取全文发现**三处编造档案**：
+  - 「全国中学生奥林匹克物理竞赛**银牌（2021）**」 → 改为「全国中学生物理竞赛 · **铜牌** · 江西省一等奖 · 江西省二等奖」
+  - 「毕业论文方向为视觉-语言-行动模型的轻量化研究」（纯属编造）→ 删除
+  - 「硕士就读年份（2026.09—2027.06）」「CET-6 546」「IELTS 6.5」（无任何来源）→ 删除
+  - 已验证 live README 逐字渲染正确（profile avatar / 16 仓库 / 11 stars 均实时）；master `0cf33bb`。
+- **个人 Pages 网站**（`xiaodernan.github.io`）：
+  - 加 OG 分享卡（type/title/description/url/image → `summary_large_image`）；
+  - 新 favicon（深底 + 橙色衬线 Z 品牌标）；
+  - hero 新增「怎么读这一页」指南；
+  - PROJECT INDEX 06 条索引每条内联 shields GitHub stars 徽章（实时值，非编造）；
+  - **两处事实修正**：《余响集》仍写 23 篇 → 实录 **24 篇**（最新增篇《半声之后》2026-11-18，API 核验 caesura README 确认）；
+  - hero/教育卡片/经历条/隐盾/铜牌 一字不变（与用户本人口径逐字对齐过一次）。
+  - 已截图核验（首页、项目索引）渲染与 design 一致。master `216ca0b` → `cc5bac5`。
+- Pages 与 GitHub 双渠道推送均走 raw git（本 Pages 仓由 sync 脚本持有，手工 rebase 处理外部 bot 撞车 4 次）。
