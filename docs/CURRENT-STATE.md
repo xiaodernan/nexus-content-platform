@@ -5298,3 +5298,24 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 第 58 篇回响「墨线」：祠殿墙脚从内往外渗盐的细缝——盐不溯源也不止息 · 抄本师只碰不擦 · 值更长每月刷、一年长一厘米 · 抄本师入册为「盐疏」、附录第六十四页 · 值更长翻章程二十三遍、直到盐线退了墨线停。
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-058-the-ink-line-at-the-sanctuary-foot`；verify world-bible **332/332** ✓。
 - 同步：BibleAsk lede → 58（含 en）；/bible/ask meta → 五十八篇 / fifty-eight；cache-identity → 58 篇锚句；bible-ask-behavior 锚句总数 326→332；canon-answer-graph 测试 63 段 / 58 echoes；pins 重钉（page→a1cb2a3e… comp→25ebf131…）；fe-gates **1285/1285 绿**。
+
+## cont. 295 (2026-11-18) — §SPRING-CLOUD-verify · 先决条件核对 · 如实受 RAM 约束未跑
+
+依用户长期指令第三项（Spring Cloud 微服务元素），做先决核对与可跑尝试：
+
+| 项 | 结果 |
+|---|---|
+| Java 25 | `C:\Program Files\Java\jdk-25` —— 本轮其他 work 用过 ✓ |
+| Maven | 已装；`services/java-registry`、`services/java-gateway` 各含 `mvnw` 与 `pom.xml`（服务存在）✓ |
+| Docker Desktop | 11-18 第 6 次重启带入（server 29.9.3）；返回后可用 `pgvector/pgvector:pg16` 已存在本地（不需拉取）✓ |
+| 验证入口 | `npm run verify:spring-cloud` → `node docs/evidence/java/spring-cloud-proof.mjs`（源容器迁移 `infra/migrations/*.sql`；4 jar × 4 进程；~20 分钟预算） |
+| 本机内存 | Docker 起来瞬间自由内存≈ 0.6 GB（WSL2 vmmem 吃光） |
+
+**结论**：在本机 RAM 条件下不跑该验证——先决条件里唯一不够的是内存预算（建议 6–8 GB free；当前远不够）。不产出任何虚假 Spring Cloud 收据：`/healthz` 没测、route 没联、熔断器没验证、record 一律如实留白。
+
+**下一个 RAM ≥ 6 GB 的安静窗口**：
+1) `docker compose -f infra/docker-compose.yml --profile core up -d`
+2) `npm run verify:spring-cloud`
+3) 跑完即刻 `docker compose -f infra/docker-compose.yml --profile core down` 恢复内存。
+
+不碰任何其他项目的容器（`career-os-*` / `football-os-*` / `minicc-cloud-*` / `crossrealm-*` —— 2026-10-20 起占用者不是我）。
