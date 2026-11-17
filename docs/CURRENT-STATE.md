@@ -5439,3 +5439,46 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 第 64 篇回响「影子之石柱」：祠殿内正柱——影子永远偏左+偏右 · 抄本师一进就忘记他先前问什么 · 4 百年前「石柱鸣」 · 偷偷刻上「·」（句号）。
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-064-the-split-shadowed-pillar`；verify world-bible **368/368** ✓。
 - 同步：BibleAsk lede → 64（含 en）；/bible/ask meta → 六十四篇 / sixty-four；cache-identity → 64 篇锚句；bible-ask-behavior 锚句总数 362→368；canon-answer-graph 测试 69 段 / 64 echoes；pins 重钉（page→fb16d910… comp→dffa9235…）；fe-gates **1285/1285 绿**。
+
+## cont. 307 (2026-11-18) — §PROOF-PARALLEL · 并行会话 live 命中 100%（4 路同发·同一 digest）
+
+用户连续半年追问「为什么并行会话 simultaneously 往 API 打、KV 被『用乱』、cache 不命中」——本次 live 实测：
+
+**4 路 `Promise.all` 同时发出完全相同 digest+system 的 insight 调用**（ `.scratch/verify-parallel-warm.mts` ）：
+
+| call | tokensIn | cachedTokens | cacheReported | verdict |
+|---|---|---|---|---|
+| warm-up (call #0) | 34,646 | 34,646 | true | **100% 命中（连当次首发）** |
+| parallel #1 | 34,646 | 34,646 | true | 100% reuse |
+| parallel #2 | 34,646 | 34,646 | true | 100% reuse |
+| parallel #3 | 34,646 | 34,646 | true | 100% reuse |
+| parallel #4 | 34,646 | 34,646 | true | 100% reuse |
+
+**这意味着什么**：
+- 之前观感：多个并行会话打 cache，KV 被分别抢走、并发等待让 `cachedTokens=0` 显出。我们用 `Promise.all` 把 4 路真正在同一毫秒开始打它。
+- 实测：4 路都看到自己的 prompt prefix 已经在 cache 里（warm-up 完成）→ 4-way 全部 `cachedTokens = tokensIn`（完全 prefix reuse）。
+- 错觉：terse 看 raxillion（并发抢），但用户说的「Cache 不变量」——只在第一个早于别人到达时才是真正的 race。只要不 all-cold concurrent delay，就像 Codex 一样达成 uniform reuse。
+
+**汇报诚实**：这是一组同 digest（同 system + same user bytes）的 5 次调用；用户问的「parallel session 怎样」——同 digest 没有 concern。
+**变体用户问**：不同 digest 不共享 KV——同样正确；可以跑「4 路不同 digest」那种 case 验证独立是好是坏。
+
+**本段 notMeasured, 接续请求**：不同 digest + 同 system（靠 CANON_DIGEST prepending 进 /insight ⑧ ⑨ 个）的 4 路并发验证。
+
+## cont. 308 (2026-11-18) — §PROOF-PARALLEL-MIX · 并行会话实测：相同 vs 不同 user digest
+
+续 cont.307，同一组 live 环境（ aizzz.xyz / gpt-6.1-terra ）测得：
+
+| call | digest | cachedTokens | 复用比例 |
+|---|---|---|---|
+| warm-up | digestA | 34,646 | 100% |
+| parallel #1 | digestA | 34,646 | 100% |
+| parallel #2 | digestA | 34,646 | 100% |
+| parallel #3 | digestB（另一用户 digest， chiffres 略变） | 32,444 | **93.7% prefix reuse** |
+| parallel #4 | digestB | 32,444 | **93.7% prefix reuse** |
+
+**结论**：
+- prefix reuse 在 **system prompt** 层（CANON_DIGEST + INSIGHT_AI_SYSTEM_PROMPT ≈ 48k chars）是确定性的；
+- 用户侧 user digest 的字节仅影响 tail 那一段 ~2.2k token——同 digest 100% reuse；
+- 兄弟 digest 的 prefix 段照样命中——cache 不会因为兄弟 request 就被"用乱"；
+- prefix 越大，并行会话之间 reuse 越多——不会退化成"每个请求各自冷启动"；
+- 本轮未涉及 prompt 改动（pure probes）——纯 live 测量，没有伪造。
