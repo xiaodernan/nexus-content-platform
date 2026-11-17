@@ -9487,4 +9487,268 @@ The ledger recorded only six words: east wind, rain, the lamps were not out.
 > 雨从东边来，盐先化；灯不熄，账不掩。
 `,
   },
+  {
+    order: 20,
+    slug: 'echo-020-the-first-name',
+    titleZh: '第一个名字',
+    titleEn: 'The First Name',
+    eraLineZh: '纪元切割线：灰幕之后',
+    eraLineEn: 'Era: after the grey cover was laid.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 20): The First Name
+
+> 回响不续写正典，只记灰后那一行：
+> 报到簿上，灰幕以后，第一次多了一行字。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps the one line beneath the grey:
+> on the roll, after the grey cover fell, one line appeared for the first time.
+> Its anchors answer to the same discipline as the canon.
+
+> 纪元切割线：灰幕之后
+> Era: after the grey cover was laid.
+
+---
+
+## 一 · 灰后的早晨
+
+灰幕落下去之后，没有人立刻去收东西。
+
+东墙的灰棚一排一排地沉默着。屋檐上的盐早已化完了，舌头碰到上颚，只剩一点淡涩。灯是够的——那些灯从灰幕之前就燃着，一盏接一盏没有全灭。
+
+账簿的守护者进灰棚的时候，先去看翘页。
+
+翘页没有翘起来。纸比前些天平了。墨没有洇开的新痕。誊账停在哪一页，它还停在哪一页。
+
+他这才去看报到簿。
+
+报到簿平日放在右边第二格，书口朝外。灰后的早晨，它还在原处。书皮上落了一层灰，薄薄的，像压住了一页不说话的纸。他没有掸——他用布巾把它盖上，就像盖着一盏灯。
+
+灰后的第一天，报到簿还在原处。
+**锚句**：灰后的第一天，报到簿还在原处。
+**Anchor sentence**: on the first day after the grey fell, the roll was still where it had always been.
+
+## 二 · 旧手迹
+
+他把报到簿摊在灯下。
+
+灰幕以前，名字用三种手迹写。
+
+第一种，是管事的那一手：笔画平直，每一笔落得很稳，墨色淡而匀。第二种，是誊账人的那一手：略歪，常常在一竖的末端微微上扬，像一条被盐卷起的纸边。第三种，是值夜的那一手：字小，几乎是贴着纸面蹭着写过去的，一页只有几笔，字与字之间的间隔不等。
+
+名单之外还有空页。空页上只有页码，没有任何名字——那是给「还没有到的人」预备的。
+
+他从头一页一页翻过去。每翻一页，就停一次。他不记名字，只看那些字的形状、墨的深浅、笔锋落在纸纤维上停顿的位置。没有一页在灰幕以前。每一页，灰幕之前都在这里。
+
+他走到了最后一页。
+
+灰以前，名字用三种手迹写。
+**锚句**：灰以前，名字用三种手迹写。
+**Anchor sentence**: before the grey, the names were written in three hands.
+
+## 三 · 新的一行
+
+最后一页是不空的。
+
+那一页上有一行字。
+
+他认识那三种手迹。他也认识这三种手迹之外的字。前者，他和每个人都分的清；后者——那一行字，不属于灰以前在这里的任何一种。
+
+那一行字有两笔收在末端，像盐粒粘在笔尖上又甩了出去；横画拉得很长，从纸的一边快到另一边，却在收住之前微微上扬，落在那一页的右缘。字没有打底、没有描、没有涂抹——写下去的时候手是稳的、匀速的、几乎不停顿的。
+
+他不认识那个名字。
+
+他把灯挪近了看。字迹干了很久，纸上也没有盐。笔尖划过的痕迹已经嵌进纸纤维里，不可能再被手指抹掉。
+
+他把报到簿合上，又打开。
+
+那一行字还在。
+
+那一行字不属于三种手迹中的任何一种。
+**锚句**：那一行字不属于三种手迹中的任何一种。
+**Anchor sentence**: that one line was not in any of the three hands.
+
+## 四 · 问井
+
+他没有先去问人。
+
+他沿石板街道走到第七口井边。它是七口井里唯一一口没有被蜡封住的井。井缘仍湿着——雨从东边来的那天它第一次湿了一整圈，雨停之后，它还保留着一线颜色。
+
+井里没有水声。
+
+他没有往井里喊——那不是问井的方式。他蹲下来，看井缘上的水痕：它的位置、方向、凝结的位置、盐粒的分布。雨从东边来的时候，水是朝内流的——雨点来自内侧，落到井缘上以后顺着石纹往里走。可是这一次，水是反过来的：它从井缘上往外渗，停在石缝里，然后干了。
+
+井记得雨。
+
+它也记得雨以后，还有人经过了。走得很轻。没有桶、没有绳子、没有灰的扬起。那个经过的人没有停——是经过，不是驻足。
+
+第七口井记得雨后还有人走过。
+**锚句**：第七口井记得雨后还有人走过。
+**Anchor sentence**: the seventh well remembers footsteps after the rain.
+
+## 五 · 之后
+
+他回到灰棚。
+
+他没有抹掉那一行字。
+
+他也没把它抄到任何别处——誊账人没有把那一行誊进干页。它留在报到簿里，落在那个唯一不属于灰幕以前的位置上：最后一页、最后一行、空页之前那个本来是给「还没有到的人」预备的位置。
+
+后来，那个位置不再空着。
+
+又过了一些日子，有人从门外进来，袖口带着干的盐粒。他坐到灯下，看了看那一行字，又看了看自己手里那支笔。他没有说话。他把灯挪近一点，又挪近一点，然后他在那一行的下面，又写了一行。
+
+那行字也没有属于任何一种手迹——可它不是第一个名字。
+
+名字被写下的时候，报到簿还没有结束。
+**锚句**：名字被写下的时候，报到簿还没有结束。
+**Anchor sentence**: by the time the name was written, the roll was not over.
+
+---
+
+## 模型映射（回响二十则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 灰后 · 报到簿 · 第一个名字 | 第十二章 · 第十三章 |
+| geography | 灰棚 · 石板街道 · 第七口井 | 本则 |
+| factions | 潮汐教团（余烬）· 誊账人 | 第一章 · 本则 |
+| characters | 账簿的守护者 · 报到簿 | 本则 |
+| items | 报到簿 · 灯 · 盐 · 蜡 | 本则 |
+| story | 誊账人记 · 回响（其二十） | 全篇 |
+| history | 纪元切割线 · 灰幕之后 | 本则 |
+
+> 灰以前的名字没有报到，
+> 灰以后的名字，不需要登记。
+> Names before the grey did not answer;
+> names after the grey need no registration.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其二十）：「第一个名字」
+
+> An echo does not continue the canon — it only keeps the one line beneath the grey:
+> on the roll, after the grey cover fell, one line appeared for the first time.
+> Its anchors answer to the same discipline as the canon.
+>
+> 回响不续写正典，只记灰后那一行：
+> 报到簿上，灰幕以后，第一次多了一行字。
+> 回响的锚句，与正典同一纪律。
+
+> Era: after the grey cover was laid.
+> 纪元切割线：灰幕之后
+
+---
+
+## I · The Morning After the Grey
+
+After the grey cover settled, no one went to clear anything at first.
+
+The ash sheds along the eastern wall stood in silence, one after another. The salt along the eaves had long dissolved; the tongue met only a faint trace of brine on the roof of the mouth. There was enough light — those lamps had been burning since before the grey, one after another, not every one of them had gone out.
+
+When the Keeper of the Ledger entered the ash shed, he looked first at the curled page.
+
+The page was no longer curled. The paper was flatter than it had been days ago. No new feathering. The copying had stopped where it had stopped, and rested where it had rested.
+
+Only then did he go to look at the roll.
+
+The roll was normally on the second shelf to the right, spine out. On the morning after the grey, it was still where it had always been. A layer of ash lay over the cover, thin as a sheet of paper, as though it were pressing down a speechless page. He did not dust it — he covered it with a cloth instead, as one would drape a lamp.
+
+On the first day after the grey fell, the roll was still where it had always been.
+**Anchor sentence**: on the first day after the grey fell, the roll was still where it had always been.
+**锚句**：灰后的第一天，报到簿还在原处。
+
+## II · The Old Hands
+
+He laid the roll beneath the lamp.
+
+Before the grey, the names were written in three hands.
+
+The first was the hand of the steward: strokes level and even, every stroke landing with the same weight, the ink pale and uniform. The second was the hand of the copyist: slightly tilted, often lifting at the end of a vertical, like a paper's edge lifted by a grain of salt. The third was the hand of the night watch: small characters, almost brushing across the paper as they were written, only a few strokes to a page, the spacing between the characters uneven.
+
+Beyond the names there were blank pages. Blank, except for the folios — pre-kept for those who had not yet arrived.
+
+He turned the leaves one by one. Each turn, he paused. He did not read the names — he read the shapes of the strokes, the weight of the ink, the tiny hesitations where the brush had met the fibre. He found nothing from before the grey that was not already there. Every leaf had belonged to before the grey.
+
+He reached the last page.
+
+Before the grey, the names were written in three hands.
+**Anchor sentence**: before the grey, the names were written in three hands.
+**锚句**：灰以前，名字用三种手迹写。
+
+## III · The New Line
+
+The last page was not blank.
+
+There was one line on it.
+
+He knew the three hands. He also knew the characters that did not belong to them — the distinction was sharp, to him, as it was to everyone. That one line was not in any of the three hands that had lived here before the grey.
+
+The line had two strokes ending in a flick — like grains of salt that had stuck to the brush and then been shaken free; the horizontal stroke ran long, from one side of the page nearly to the other, and lifted slightly as it ended, landing near the right edge of the leaf. No guide lines, no under-drawing, no touch-ups — the hand had moved quickly and steadily, without a pause.
+
+He did not know that name.
+
+He brought the lamp closer. The ink had dried long ago; no salt clung to the paper. The strokes had already pressed themselves into the fibre, beyond any possibility of being wiped away by a finger.
+
+He closed the roll, and opened it again.
+
+The line was still there.
+
+That one line was not in any of the three hands.
+**Anchor sentence**: that one line was not in any of the three hands.
+**锚句**：那一行字不属于三种手迹中的任何一种。
+
+## IV · Asking the Well
+
+He did not go to the people first.
+
+He walked along the flagstone street to the seventh well — the one of the seven that the wax had failed to seal. Its rim still held the wet sheen — the day the rain came from the east, its rim had been wet all the way around for the first time, and after the rain stopped, it had kept a thin film of colour.
+
+There was no water-sound in the well.
+
+He did not shout into it — that was not the way to ask a well. He crouched down and looked at the marks on the rim: the position of the water-line, its direction, where the drops had settled, where the salt grains lay. The rain from the east had run inward — the drops had come from the inner side, struck the rim, and followed the stone's grain towards the centre. But this time the water had gone the other way: it had seeped outward from the rim, settled into the cracks between the stones, and dried there.
+
+The well remembered the rain.
+
+It also remembered that someone had passed by after the rain. Light footsteps. No bucket. No rope. No stir of ash. Whoever it was had not stopped — they had only passed, they had not lingered.
+
+The seventh well remembers footsteps after the rain.
+**Anchor sentence**: the seventh well remembers footsteps after the rain.
+**锚句**：第七口井记得雨后还有人走过。
+
+## V · Afterwards
+
+He returned to the ash shed.
+
+He did not erase the line.
+
+He did not copy it anywhere either — the copyist of the ledger did not transcribe it onto the dry leaves. It remained where it was: the last page of the roll, the last line on it — on the very position that had been reserved for those who had not yet arrived.
+
+Later, that position was no longer empty.
+
+Some days after, a man came in from outside, the hem of his sleeve dry with salt grains. He sat down beneath the lamp, looked once at the line, then once at the brush in his hand. He did not speak. He brought the lamp a little closer, and a little closer again, and then he wrote one line beneath the other.
+
+That line did not belong to any of the three hands either — but it was not the first name.
+
+By the time the name was written, the roll was not over.
+**Anchor sentence**: by the time the name was written, the roll was not over.
+**锚句**：名字被写下的时候，报到簿还没有结束。
+
+---
+
+## Anchor match (echo twenty)
+
+| dimension | anchor | related chapter |
+|---|---|---|
+| lore | the grey · the roll · the first name | chapter twelve · thirteen |
+| geography | the ash shed · the flagstone street · the seventh well | this echo |
+| factions | the Tide Conclave (ember) · the copyist | chapter one · this echo |
+| characters | the Keeper of the Ledger · the roll | this echo |
+| items | the roll · lamp · salt · wax | this echo |
+| story | The Copyist's Note · Echo (No. 20) | all of it |
+| history | the Iron-Moon Age · after the grey cover | this echo |
+
+> Names before the grey did not answer;
+> names after the grey need no registration.
+> 灰以前的名字没有报到，
+> 灰以后的名字，不需要登记。
+`,
+  },
 ] as const;

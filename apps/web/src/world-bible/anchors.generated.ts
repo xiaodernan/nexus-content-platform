@@ -1124,5 +1124,35 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "en": "the ledger recorded only six words: east wind, rain, the lamps were not out.",
     "refZh": "回响（其19） · 五",
     "refEn": "Echo No. 19 · V"
+  },
+  {
+    "zh": "灰后的第一天，报到簿还在原处。",
+    "en": "on the first day after the grey fell, the roll was still where it had always been.",
+    "refZh": "回响（其20） · 一",
+    "refEn": "Echo No. 20 · I"
+  },
+  {
+    "zh": "灰以前，名字用三种手迹写。",
+    "en": "before the grey, the names were written in three hands.",
+    "refZh": "回响（其20） · 二",
+    "refEn": "Echo No. 20 · II"
+  },
+  {
+    "zh": "那一行字不属于三种手迹中的任何一种。",
+    "en": "that one line was not in any of the three hands.",
+    "refZh": "回响（其20） · 三",
+    "refEn": "Echo No. 20 · III"
+  },
+  {
+    "zh": "第七口井记得雨后还有人走过。",
+    "en": "the seventh well remembers footsteps after the rain.",
+    "refZh": "回响（其20） · 四",
+    "refEn": "Echo No. 20 · IV"
+  },
+  {
+    "zh": "名字被写下的时候，报到簿还没有结束。",
+    "en": "by the time the name was written, the roll was not over.",
+    "refZh": "回响（其20） · 五",
+    "refEn": "Echo No. 20 · V"
   }
 ] as const;

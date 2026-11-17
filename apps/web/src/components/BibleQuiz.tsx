@@ -323,6 +323,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《雨从东边来》里，账簿的守护者在干页末尾落下哪六个字？', choices: ['东风 · 雨 · 灯未灭', '西风 · 雨 · 灯未灭', '盐尽 · 灯灭', '东风 · 灰 · 灯灭'], answer: 0, ref: '回响（其十九） · 五' },
     en: { prompt: 'In “The Rain Comes from the East”, what six characters did the Keeper of the Ledger set down at the end of the dry page?', choices: ['east wind · rain · the lamps were not out', 'west wind · rain · the lamps were not out', 'the salt was spent · the lamps went out', 'east wind · grey · the lamps went out'], answer: 0, ref: 'Echo No. 19 · V' },
   },
+  {
+    zh: { prompt: '《第一个名字》里，灰以前，报到簿上的名字用几种手迹写？', choices: ['一种', '两种', '三种', '七种'], answer: 2, ref: '回响（其二十） · 二' },
+    en: { prompt: 'In “The First Name”, before the grey, in how many hands were the names written?', choices: ['one hand', 'two hands', 'three hands', 'seven hands'], answer: 2, ref: 'Echo No. 20 · II' },
+  },
+  {
+    zh: { prompt: '《第一个名字》里，最后一页多出来的那一行字……？', choices: ['属于誊账人的手迹', '属于值夜人的手迹', '不属于灰以前任何一种手迹', '是页码'], answer: 2, ref: '回响（其二十） · 三' },
+    en: { prompt: 'In “The First Name”, the line that appeared on the last page…?', choices: ['was in the copyist’s hand', 'was in the night watch’s hand', 'was not in any hand that had lived here before the grey', 'was a folio number'], answer: 2, ref: 'Echo No. 20 · III' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

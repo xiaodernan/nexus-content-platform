@@ -5653,3 +5653,27 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - 新 FE 套 `observer-deepread-visual-style.test.ts`（7 例，含 "use client + 零 provider import + className 只认 .observer-aidr-* + SHA256 钉死"）；suite 7/7 ✓
 - 简明说明书/展示页 latest.json 随下一轮 sync 一并推进；LLM 切面计数：11 → **12**
 
+## cont. 210 (2026-11-18) - v840: 回响（其二十）《第一个名字》/ Echo No. 20 "The First Name"——灰后那一行（正典扩到 20 回响·191 锚句）
+
+- 正典回源点：灰幕落下以后，账簿的守护者回到灰棚去看翘页——它平了；他去看报到簿，书还在原处，
+  他没掸，覆上布巾像盖一盏灯。灰以前名字用三种手迹写；最后一页，灰以后，
+  **报到簿上多了一行不属于任何一种旧手迹的字**；誊账人没有抹它，也不誊它——又过了些日子，
+  又有人在它的下面写了一行新名字——名字被写下时，报到簿还没有结束。没有人解释、没有人决定收束它。
+- 双语回响：`docs/world-bible/echoes/E20-第一个名字.md` + `.en.md`（zh/en 逐段对齐，zh 原生撰写并译）
+  - 五节：灰后的早晨 / 旧手迹 / 新的一行 / 问井 / 之后
+  - 5 对锚句（逐字·全项目唯一·共 **191**）：
+    1. 灰后的第一天，报到簿还在原处。
+    2. 灰以前，名字用三种手迹写。
+    3. 那一行字不属于三种手迹中的任何一种。
+    4. 第七口井记得雨后还有人走过。
+    5. 名字被写下的时候，报到簿还没有结束。
+- **正典快照 / anchor-echo 重生成并通过**：verify:world-bible 191/191 ✓；gen+verify:bible-snapshot（13 章 · **20 回响**，E20 网页 slug `echo-020-the-first-name` 登记）✓；gen+verify:anchor-echo（**191 锚句**）✓
+- **典籍室（/bible）**：其一…二十 / I…XX 序数覆盖（此前已扩至 二十），E20 自动进入列表；reader 显示「其二十」
+- **BibleQuiz**：新增回响（其二十）·二 / ·三 两题（zh/en 双语；答案序列扩到 **66 题**，新增 [2, 2]；quiz SHA pin 5bfba4e4… 重钉）
+- **简明说明书**：「十九回响→二十回响」「nineteen→twenty echoes」（zh/en 各 3 处 = 6 处）；guide SHA 7ee13d87… 重钉
+- **实况 SSR 核验**：`/bible` zh 含 echo-020 slug / 其二十… / 其十九 卡（en 模式下 echo-020 + Echo XX + Echo XIX 卡 各自归位；echo page zh/en 均渲染含锚句对）
+- 双语字典 / 锚句集：E20 中文原生撰写并译，无新增英文原生内容
+- 门：verify:world-bible / verify:bible-snapshot / verify:anchor-echo ✓；BibleQuiz / guide / bible 视觉套重钉后全绿（25/25）；本片不动代码逻辑
+- 顺序约束：未推送 showcase（latest.json 随下一轮 sync）
+
+
