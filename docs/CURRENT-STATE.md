@@ -6025,3 +6025,12 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 > - `docs/adr/README.md` 未改（虽然可以指向本 ADR）
 > - 但仍然注意这点：所有 30min 窗口内「上次 docker reboot 抹除所有计数」都是 distributor zero counter，并非代码 miss；用户不要对 observed stat zero"reading 恐慌——下次跑一次真实 LLM 调用再看 dump即可
 > - 所有这一切在 master == main == bbeb6d7a 之后，与 showcase 同步到 85923cc/b594e90e
+
+
+> **2026-11-18 续（cont. 219 — 展示页 + GitHub 个人主页补编 · 雅思 6.5 · CET6 546）**：
+> - io 页（github.io）新增三处：`honors-strip` 新增 ⟨雅思 6.5 | CET6 546⟩；`<meta name="description">` + `<meta property="og:description">` 同补；
+>   site master 3aec500 收编，pages 已同步（pages 直接从 master 取 N EXUS 最新值，同样 sync-showcase 也跑过）
+> - 个人主页（xiaodernan/xiaodernan 仓）README 同补：新增**雅思 6.5 · CET6 546**徽章 + About me 段落 + 外text `CURRENT-STATE.md` 新建本地段；
+>   assets/banner.svg `<desc>` 也补成包含 IELTS 6.5 · CET6 546（屏幕阅读可读取），main 79cfcd3 已推送
+> - 二者 `identity-guard` 跑过：身份字节全部对账 ✓
+> - 另外：更重要的灾难 recover 测试全部记录进 evidence
