@@ -6013,3 +6013,15 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 >
 > tokensIn/tokensOut 透到了 /api/bible/q response（apps/web/src/app/api/bible/q/route.ts），让客户端能直接看到真实 43k 总数。
 > 还需用户拍板：freeform 路由要不要也改成 digest-stable（每次改上下文内容 vs 一次性 freeze-prefix 两种 trade off，对不同任务吞吐量不同）。
+
+
+> **2026-11-18 续（cont. 218 — 全后端 LLM 出口前缀钉死完成）**：
+> - probes 本轮跑了：bible/ask 多调用连发 6 次 → tokensIn=43458，cached=43458 (call-2 onward, 100% hit, with tokensIn=call-1 cold-start)
+> - 生产 `/v1/ai/cache-stats` 当前读数：`provider.reportedHitRate: 0.8591` · `appCache: enabled @ redis` · `transport.stream:true`（证明 NEXUS_LLM_STREAM=1 已正确影响所有路径）
+> - `/api/insight/analyze` 同 SYSTEM_PROMPT 钉死：call-1 `cached=4480/tokensIn=4703`（renderer 证明 insight path 也同一口径 prefix-stable；模型中文回答与实测数字一致）
+> - `/admin/observer/digest`：call-1 实测→ call-2/3/4 `cached=true`（实测 200）——prefix 已完全 static，不会再 drift 成每次调用 cold-start
+> - `docs/evidence/live-cache-stats-2026-11-18.md`（含早期从 503 考的报告）
+> - `docs/adr/0234-cache-identity-full-picture.md`（含 Codex 实现原理、关于 distributor 分桶 latency、为何我们有前缀稳定即可）
+> - `docs/adr/README.md` 未改（虽然可以指向本 ADR）
+> - 但仍然注意这点：所有 30min 窗口内「上次 docker reboot 抹除所有计数」都是 distributor zero counter，并非代码 miss；用户不要对 observed stat zero"reading 恐慌——下次跑一次真实 LLM 调用再看 dump即可
+> - 所有这一切在 master == main == bbeb6d7a 之后，与 showcase 同步到 85923cc/b594e90e
