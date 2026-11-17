@@ -14523,3 +14523,12 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   5 锚句 zh/en 全局唯一（180/180）。
 - `gen-bible-snapshot.mts` 登记 `echo-032-the-tide-table-with-one-row-wrong`；快照重生成（5+32 回响）。
 - verify:world-bible ✓ 180/180；verify:bible-snapshot ✓；fe-gates 134/134 · 1265/1265 · census 2564。
+
+## §BIBLE-45 — 回响 · 其三十三 + 潮汐挑战 答错 → /bible/ask?q=…（2026-11-17 · v852）
+
+- 新回响 E33《四十一次大会那天一并封起来的那封信》：潮沙盘边多了一封蜡封函，抄本员年复一年的那一页里翻看它唯独的「每个米缸月廿一日」。
+  5 锚句全局唯一（185/185）；快照 5+33。
+- 潮汐挑战新按钮：「问问典籍 →」——仅在错误答题时出现（禁用引用提示消失），点击直达 `/bible/ask?q=<encoded question>`，
+  问典页读 query param `q` 预填输入框（≤ 400 字符）——用户按「问一问」自己决定要不要烧 token；零自动 provider。
+- 零服务端阻塞；`/bible/ask` 自己缓存到 `nexus:llmc`（同 payload 可命中重放）。
+- verify:world-bible ✓ 185/185；verify:bible-snapshot ✓；fe-gates 134/134 · 1265/1265 · census 2565；tsc web 0。

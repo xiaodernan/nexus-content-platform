@@ -65,9 +65,9 @@ const COPY: Record<Locale, {
 
 type Phase = 'idle' | 'loading' | 'answered' | 'honest';
 
-export function BibleAsk({ locale = 'zh' }: { locale?: Locale }) {
+export function BibleAsk({ locale = 'zh', initialQuestion }: { locale?: Locale; initialQuestion?: string }) {
   const c = COPY[locale];
-  const [question, setQuestion] = useState('');
+  const [question, setQuestion] = useState(initialQuestion ?? '');
   const [answer, setAnswer] = useState('');
   const [badge, setBadge] = useState<{ model: string; cachedTokens: number } | null>(null);
   const [phase, setPhase] = useState<Phase>('idle');

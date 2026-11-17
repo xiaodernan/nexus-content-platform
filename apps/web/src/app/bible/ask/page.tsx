@@ -9,8 +9,12 @@ export const metadata: Metadata = {
   description: '向《低语诸王》世界大典提问：五章正典 + 二十六篇回响即时可答。/ Ask the Whispers’ Kings canon: five chapters + twenty-six echoes, answered live.',
 };
 
-/** §BIBLE-4 问典——正典 Q&A：只答典籍范围，明说没有，不编造（§159/§160）。 */
-export default async function BibleAskPage() {
-  const locale = await getLocale();
-  return <BibleAsk locale={locale} />;
+/**
+ * §BIBLE-4 问典——正典 Q&A：只答典籍范围，明说没有，不编造（§159/§160）。
+ * searchParams `q=` 如果直接带问题，先把它填进输入框——用户点"问一问"才真正调用 provider。
+ */
+export default async function BibleAskPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const [locale, query] = await Promise.all([getLocale(), searchParams]);
+  const initial = typeof query?.q === 'string' ? query.q.slice(0, 400) : undefined;
+  return <BibleAsk locale={locale} initialQuestion={initial} />;
 }

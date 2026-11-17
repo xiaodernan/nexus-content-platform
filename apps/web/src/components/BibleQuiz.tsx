@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import type { Locale } from '@/lib/i18n';
 
 /**
@@ -28,6 +29,7 @@ const COPY = {
     wrong: (ref: string) => `错——回去读「${ref}」。`,
     restart: '重来',
     yourScore: '你的分数',
+    askButton: '问问典籍 →',
     verdicts: [
       { at: 0, text: '漂流的木桶', note: '盐海没见过，浪只见过一口气。' },
       { at: 5, text: '半日的学徒', note: '雾港没怎么上过岗，灯火印象模糊。' },
@@ -48,6 +50,7 @@ const COPY = {
     wrong: (ref: string) => `Wrong — go read “${ref}”.`,
     restart: 'Try again',
     yourScore: 'Your score',
+    askButton: 'Ask the canon →',
     verdicts: [
       { at: 0, text: 'The Drifting Barrels', note: 'You have seen one breath of wave, never the sea.' },
       { at: 5, text: 'The Half-Day Apprentice', note: 'You have not kept a watch long enough to know the fog.' },
@@ -225,6 +228,11 @@ export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {
           <p className={chosen === current!.answer ? 'bb-quiz-feedbackOk' : 'bb-quiz-feedbackBad'}>
             {chosen === current!.answer ? c.correct : c.wrong(current!.ref)}
           </p>
+          {chosen !== current!.answer && (
+            <Link className="bb-quiz-askButton" href={`/bible/ask?q=${encodeURIComponent(current!.prompt)}`} data-bible-quiz-ask-button>
+              {c.askButton}
+            </Link>
+          )}
           <button type="button" className="bb-quiz-next" onClick={advance} data-bible-quiz-next>
             {locale === 'en' ? 'Next →' : '下一题 →'}
           </button>

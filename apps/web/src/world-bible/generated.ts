@@ -7530,4 +7530,198 @@ No watcher in the Institute can say what that row is — but no one can stop the
 > After the next Convocation, the watchers will be given a new tide-table — they will shelve that one row; no copyist is to move it.
 `,
   },
+  {
+    order: 33,
+    slug: 'echo-033-the-letter-of-the-forty-first-convocation',
+    titleZh: '四十一次大会那天一并封起来的那封信',
+    titleEn: 'The Letter Sealed at the Forty-First Convocation',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——米缸月第二十一日的值更班。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the watcher\'s shift on the twenty-first day of the rice-jar month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 33): The Letter Sealed at the Forty-First Convocation
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给四十一次大会散会那天被封起的那封蜡封信——抄本员每年只翻看一次；值守册上登记它的页码就是今天的事了。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the letter sealed on the day the forty-first Convocation dispersed — the copyists see it once a year; the watcher log records it as an entry.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——米缸月第二十一日的值更班。
+> Era: the Institute — after the 41st Convocation; the watcher's shift on the twenty-first day of the rice-jar month.
+
+---
+
+## 一 · 封信
+
+四十一次大会散会那天的傍晚——
+
+抄本员收档的时候，里巷子值守在潮沙盘边留了一封蜡封函。外面只有一个半月镜形的印。
+
+值守把它安置好——不开启——不送——不看。米缸月的值守记录里多了一行字：「潮沙盘处多一封，来源不明，收件人未知。」
+
+**锚句**：米缸月初收档——潮沙盘边多了一封蜡封。
+**Anchor sentence**: the rice-jar month opening shift — a sealed letter appeared on the sand table.
+
+---
+
+## 二 · 抄本员翻看它
+
+抄本员岁末清点抄本时——值守长交代潮候院所有重要的誊抄册都要对看一眼：
+
+从那一天起，记录登记册上多了一行固定条目——「米缸月廿一日初筛：原件在原处。」——米缸月第二十一天早上抄本员都要再看一眼，确认它还在原位。
+
+从未被打开过。
+
+**锚句**：米缸月廿一早上米缸月的值守总要看它——米缸月的值守总要确保它还在原处。
+**Anchor sentence**: every morning of the twenty-first of the rice-jar month, the watcher checks — it is still in place.
+
+---
+
+## 三 · 没人打开看过
+
+米缸月抄本员某年问前辈：「那封信是谁的？内容是什么？」
+
+前辈只反问了一句：「为什么要看？」
+
+潮候院第五十三年的值守把这一行誊抄完——抄本员感叹了一句：潮候院没有想要打开它的意思——潮候院也没有被允许打开它。
+
+**锚句**：值守嘱托了关于它的那一页——抄本员没人打开过它。
+**Anchor sentence**: regarding that page, the watchers relayed one instruction — no copyist ever opened it.
+
+---
+
+## 四 · 值守长在哪一年
+
+七十二年建院——某一年的值守长还是从抄本员做起的——抄本员某夜里梦见一包字、一个半月印、一只手正把它封起来。
+
+他醒来翻值班册——那封蜡封函的页码在值班册里——
+
+页码一直没翻过——抄本员第七十年没翻过——前辈只把他当抄本员审，没有任何人打开它。
+
+**锚句**：抄本员梦见了一只手封它——他睁开眼睛翻值班册——没再翻过。
+**Anchor sentence**: once a copyist dreamed a hand sealing it — he opened the register and never turned that page again.
+
+---
+
+## 五 · 给海的值守
+
+潮沙盘值守偶尔会看潮沙盘——看到那封蜡封函：
+
+它没被从米缸月拿走过、没被从里巷子带走过。米缸月值守第一遍可能以为自己记错了；米缸月第二遍可能想移过位置——第二遍后他检查了米缸月第三遍发现还是不行：
+
+那一页的抄本法特别——值守打定的意思是：潮候院米缸月米缸月米缸月里值守只能看一次——但无人知道。
+
+**锚句**：潮沙盘的值守偶尔会去看它——但潮候院的规则就是没人打开过它。
+**Anchor sentence**: watchers occasionally check on it — the Institute's rule is that no one has opened it.
+
+---
+
+## 六 · 映射（回响三十三章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 四十一次大会的蜡封信 · 米缸月的值更 · 抄本员的梦境 | 一、二、三、四、五、六 |
+| geography | 祠殿 · 里巷子 · 米缸月里巷子 · 潮候院 | 一、二、三、五、六 |
+| characters | 抄本员 · 里巷子值守长 · 米缸月的值更 | 一、二、三、四、五 |
+| story | 四十一次大会那天封起来的那封信 · 回响（其三十三） | 全篇 |
+| items | 蜡封信 · 半月镜印 · 米缸月值更 · 潮沙盘 | 一、二、三、四、五、六 |
+| history | 米缸月廿一日 · 六十九年 · 七十二年建院 | 一、二、四、五、六 |
+
+> 下一次大会——里巷子的值更会翻那一页确认它还存在。
+> At the next Convocation, the watcher will flip that page and confirm it is still there.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其三十三）「四十一次大会那天一并封起来的那封信」
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给四十一次大会散会那天被封起的那封蜡封信——抄本员每年只翻看一次；值守册上登记它的页码就是今天的事了。
+> 纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the letter sealed on the day the forty-first Convocation dispersed — the copyists see it once a year; the watcher log records it as an entry.
+> Same discipline: anchors verbatim.
+
+> Era: the Institute — after the 41st Convocation; the watcher's shift on the twenty-first day of the rice-jar month.
+> 纪元：潮候院 · 第四十一次大会散会之后——米缸月第二十一日的值更班。
+
+---
+
+## 一 · The Sealing
+
+On the evening when the forty-first Convocation dispersed —
+
+When the copyists finished their evening shift, the watcher of the back alley placed a sealed letter near the sand table. Only a half-moon stamp marked it from the outside.
+
+The watcher placed it — did not open it — did not deliver it — did not read it. That night the rice-jar month register gained a line: "An item appeared beside the sand table. Origin unknown. Addressee unknown."
+
+**锚句**：米缸月初收档——潮沙盘边多了一封蜡封。
+**Anchor sentence**: the rice-jar month opening shift — a sealed letter appeared on the sand table.
+
+---
+
+## 二 · The Copyist's Once-Yearly Check
+
+At year-end, the headkeeper reminded the copyists that all important registers must be cross-read —
+
+From that day, the register carried one fixed line: "The twenty-first of the rice-jar month, first screening: it is in place." — every twenty-first, the copyists check once more that the letter is still where it was.
+
+It has never been opened.
+
+**锚句**：米缸月廿一早上米缸月的值守总要看它——米缸月的值守总要确保它还在原处。
+**Anchor sentence**: every morning of the twenty-first of the rice-jar month, the watcher checks — it is still in place.
+
+---
+
+## 三 · Nobody Has Ever Opened It
+
+A copyist once asked his senior: "Whose letter is it? What does it say?"
+
+The senior answered only: "Why would you look?"
+
+By the fifty-third year of the Institute a watcher completed that page too — the copyist observed that the Institute had no intention of opening it, and was not permitted to.
+
+**锚句**：值守嘱托了关于它的那一页——抄本员没人打开过它。
+**Anchor sentence**: regarding that page, the watchers relayed one instruction — no copyist ever opened it.
+
+---
+
+## 四 · The Headkeeper Dreamed It
+
+The headkeeper of this year had started as a copyist — one night he dreamed of a packet, a half-moon seal, and a hand sealing it.
+
+He woke and opened the shift register — the page for that letter was there —
+
+The page was never turned; the headkeeper did not open it either. Neither he nor any copyist since that dream has.
+
+**锚句**：抄本员梦见了一只手封它——他睁开眼睛翻值班册——没再翻过。
+**Anchor sentence**: once a copyist dreamed a hand sealing it — he opened the register and never turned that page again.
+
+---
+
+## 五 · The Watchers Who Come Near It
+
+The watcher keeps an eye on the sand table — the letter is there:
+
+It was never moved; never brought elsewhere; the third time the watcher came to check, the page was still completely untouched — the Institute's watcher check is once a year, on the twenty-first of the rice-jar month.
+
+**锚句**：潮沙盘的值守偶尔会去看它——但潮候院的规则就是没人打开过它。
+**Anchor sentence**: watchers occasionally check on it — the Institute's rule is that no one has opened it.
+
+---
+
+## 六 · Mapping（Echo No. 33 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | The letter sealed during the forty-first Convocation · the rice-jar month shift · the copyist's dream | 一、二、三、四、五、六 |
+| geography | The chapel · the back alley · the rice-jar month · the Institute | 一、二、三、五、六 |
+| characters | The copyists · the headkeeper · the rice-jar month watcher | 一、二、三、四、五 |
+| story | The Letter of the Forty-First Convocation · Echo No. 33 | 全篇 |
+| items | The sealed letter · the half-moon seal · the rice-jar month shift · the sand table | 一、二、三、四、五、六 |
+| history | The twenty-first of the rice-jar month · the institute's 69th year · the 72nd founding year | 一、二、四、五、六 |
+
+> 下一次大会——里巷子的值更会翻那一页确认它还存在。
+> At the next Convocation, the watcher will flip that page and confirm it is still there.
+`,
+  },
 ] as const;

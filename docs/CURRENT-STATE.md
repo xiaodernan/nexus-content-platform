@@ -4523,3 +4523,9 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 
 - 新回响 E32（中英双文件 + 映射表）；verify:world-bible ✓ 180/180；快照 5+32。
 - 世界上的潮候院持续庞大一卷——每册潮汐表照样保留一行「东」，米缸月照样没有人纠错。
+
+## cont. 218 (2026-11-17) — v852 · 回响其三十三 + 潮汐问典联动
+
+- 新回响 E33（中英双文件）；verify:world-bible ✓ 185/185；快照 5+33。
+- 潮汐挑战「问问典籍 →」：做错 → 跳到问典带着完整题干进站内 ↘ 用户自己决定要不要调 provider。共享 `/api/bible/ask` 那一道 gate，零新路由，零副作用。
+- sibling :8000 未触碰。
