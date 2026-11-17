@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+﻿import type { Metadata } from 'next';
 import { getLocale } from '@/lib/i18n';
 import { BibleAsk } from '@/components/BibleAsk';
 
@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: '问典 · The Tidal Inquiry — 低语诸王',
-  description: '向《低语诸王》世界大典提问：五章正典 + 三十六篇回响即时可答。/ Ask the Whispers’ Kings canon: five chapters + thirty-six echoes, answered live.',
+  description: '向《低语诸王》世界大典提问：五章正典 + 三十七篇回响即时可答。/ Ask the Whispers’ Kings canon: five chapters + thirty-seven echoes, answered live.',
 };
 
 /**

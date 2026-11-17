@@ -8263,4 +8263,206 @@ He laughed after he said it. The young watchers did not answer, because no one k
 > At the next rice-jar month's watcher changeover, the new watcher will scoop the first ladle — and see that grain, still there.
 `,
   },
+  {
+    order: 37,
+    slug: 'echo-037-the-congee-pot-that-never-leaves-the-stove',
+    titleZh: '值更院米缸月最后一夜那口从不离灶的粥',
+    titleEn: 'The Congee Pot That Never Leaves the Stove on the Last Night of the Rice-Jar Month',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——米缸月的最后一夜。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the last night of the rice-jar month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 37): The Congee Pot That Never Leaves the Stove on the Last Night of the Rice-Jar Month
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院值更院米缸月的最后一夜——灶上那一口粥锅二十七年没有离开过灶台。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the last night of the rice-jar month — the one pot of porridge on the stove has not left the stove in twenty-seven years.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——米缸月的最后一夜。
+> Era: the Institute — after the 41st Convocation; the last night of the rice-jar month.
+
+---
+
+## 一 · 值更院的粥锅
+
+值更院有一口粥锅。每天夜里的值更守着它，守着灶火、守着一锅稀粥、守着整口院子里的安静。
+
+白天的米缸有早晚两班，值夜的粥锅只有一班。没人说过为什么粥锅要守夜——可能因为夜里更需要一口热的，也可能因为没人有力气多备一口。
+
+**锚句**：每天夜里的值更要守着一口粥锅。
+**Anchor sentence**: every watcher on the night shift keeps watch over a pot of porridge.
+
+---
+
+## 二 · 灶边的钉子
+
+舀粥的勺子挂在灶边同一只钉子上。勺柄磨得发亮了，挂钩的位置每年都擦，没人动过钉子。
+
+新来的值更有一次想顺手把勺子挂到别的钉子上，老值更拦住了他。后来那位新值更才知道，那只钉子是建院第二年钉上去的。
+
+**锚句**：舀粥的勺子挂在灶边同一只钉子上。
+**Anchor sentence**: the porridge ladle hangs on the same nail by the stove.
+
+---
+
+## 三 · 米缸月的勺子只舀粥
+
+米缸月的倒数第二天，有一位值更想借那把勺子给汤打个芡。他提了一句，满院子没人接话。
+
+过了很久，值更长才说了一句话：米缸月的勺子只舀粥，别的不舀。打芡的勺子在橱里，自己去拿。
+
+**锚句**：米缸月的勺子只舀粥，别的不舀。
+**Anchor sentence**: the rice-jar month ladle ladles only porridge — nothing else.
+
+---
+
+## 四 · 锅巴
+
+每一锅粥下了火之后，锅底都会留下一层薄薄的锅巴。有值更想趁着没人看到铲下来，被老值更看见了。
+
+锅巴不给人，留给下一任值更。吃了最后一口粥的锅，锅底的那一层留着，是给接班的那一位的——他舀第一勺的时候，会看到它还在。
+
+**锚句**：锅巴不许给人，留给下一任值更。
+**Anchor sentence**: the crust at the bottom is not for serving — it is left for the next watcher.
+
+---
+
+## 五 · 比大会还老的锅
+
+米缸月最后一夜，值更们围着灶火，有一位最年长的值更说：
+
+这口粥锅比第四十一次大会还老。它在的时候，大会的人还没来；它在到它不在的那天，值更院大概也就没了。
+
+他说完，灶火啪地响了一声。没人问这口锅接下来会去哪。
+
+**锚句**：这口粥锅比第四十一次大会还老。
+**Anchor sentence**: this porridge pot is older than the forty-first Convocation.
+
+---
+
+## 六 · 守夜锅
+
+值更们管它叫守夜锅。白天没人提这口锅，米缸月的夜里人人知道灶边还有一锅温温的东西。
+
+第一个大会之后的第一个米缸月，第一个值更就那么守着它；下一个米缸月的最后一夜，会有别人替他守着。
+
+**锚句**：值更们管它叫守夜锅。
+**Anchor sentence**: the watchers call it the night-watch pot.
+
+---
+
+## 七 · 映射（回响三十七章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 粥锅 · 灶边的钉子 · 锅巴 | 一、二、三、四、五、六、七 |
+| geography | 值更院 · 米缸月 · 灶台 | 一、二、三、六、七 |
+| characters | 夜值的值更 · 值更长 · 新来的值更 | 一、二、三、四、五、六 |
+| story | 守夜锅 · 回响（其三十七） | 全篇 |
+| items | 粥锅 · 勺子 · 灶边钉子 · 锅巴 | 一、二、三、四、五、六、七 |
+| history | 第四十一次大会散会之后 · 建院第六十九年 | 一、五、六、七 |
+
+> 米缸月的最后一夜醒着的那一位，会听见锅底的粥冒一个小小的泡——那是守夜锅替下一任值更，看了一眼这个月。
+> The one who stays awake on the last night of the rice-jar month will hear the bottom of the porridge pot rise one small bubble — the night-watch pot taking one glance, on the next watcher's behalf, at the passing month.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其三十七）「值更院米缸月最后一夜那口从不离灶的粥」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the last night of the rice-jar month — the one pot of porridge on the stove has not left the stove in twenty-seven years.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院值更院米缸月的最后一夜——灶上那一口粥锅二十七年没有离开过灶台。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the last night of the rice-jar month.
+> 纪元：潮候院 · 第四十一次大会散会之后——米缸月的最后一夜。
+
+---
+
+## 一 · The Congee Pot in the Watcher's Courtyard
+
+The watcher's courtyard keeps one congee pot. Through the night the watchers keep watch with it — over the stove fire, over the thin porridge, over the whole quiet courtyard.
+
+The morning rice jar has two shifts; the night congee pot has only one. No one has said why the pot keeps the night watch — perhaps because the night needs something warm more, or because no one had the strength to keep a second.
+
+**锚句**：每天夜里的值更要守着一口粥锅。
+**Anchor sentence**: every watcher on the night shift keeps watch over a pot of porridge.
+
+---
+
+## 二 · The Nail by the Stove
+
+The ladle that serves the porridge hangs on the same nail by the stove. The handle has been polished bright; the spot where it hooks is wiped down every year; no one has moved the nail.
+
+Once a new watcher almost hung it on another nail, and the senior watcher stopped him. Only later did he learn that nail had been driven in the second year of the Institute.
+
+**锚句**：舀粥的勺子挂在灶边同一只钉子上。
+**Anchor sentence**: the porridge ladle hangs on the same nail by the stove.
+
+---
+
+## 三 · The Rice-Jar Month Ladle Ladles Only Porridge
+
+On the second-to-last day of the rice-jar month, a watcher wanted to borrow that ladle to thicken a soup. He mentioned it once, and no one in the courtyard answered.
+
+It was a long time before the headkeeper said one sentence: the rice-jar month ladle ladles only porridge — nothing else. The soup spoon is in the cabinet, go take it for yourself.
+
+**锚句**：米缸月的勺子只舀粥，别的不舀。
+**Anchor sentence**: the rice-jar month ladle ladles only porridge — nothing else.
+
+---
+
+## 四 · The Crust at the Bottom
+
+Every pot of porridge, once it comes off the fire, leaves a thin crust at the bottom. Once a watcher tried to scrape it off unseen — an older watcher caught it.
+
+The crust is not for serving — it is left for the next watcher. The pot that fed the last mouthful of porridge keeps its bottom layer for the one who steps in — when he scoops the first ladle, he will see it is still there.
+
+**锚句**：锅巴不许给人，留给下一任值更。
+**Anchor sentence**: the crust at the bottom is not for serving — it is left for the next watcher.
+
+---
+
+## 五 · The Pot Older Than the Convocation
+
+On the last night of the rice-jar month, the watchers gather around the stove fire, and the eldest among them says:
+
+This porridge pot is older than the forty-first Convocation. When it was here, the convocation's men had not yet arrived; the day it ceases to be, the watcher's courtyard will probably be no more.
+
+When he finished, the fire in the stove snapped once. No one asked where the pot would go next.
+
+**锚句**：这口粥锅比第四十一次大会还老。
+**Anchor sentence**: this porridge pot is older than the forty-first Convocation.
+
+---
+
+## 六 · The Night-Watch Pot
+
+The watchers call it the night-watch pot. No one mentions it in daylight; on the nights of the rice-jar month, everyone knows there is something warm by the stove.
+
+The first rice-jar month after the first convocation, the first watcher kept it; on the last night of the next rice-jar month, someone else will keep it in his place.
+
+**锚句**：值更们管它叫守夜锅。
+**Anchor sentence**: the watchers call it the night-watch pot.
+
+---
+
+## 七 · Mapping（Echo No. 37 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the congee pot · the nail by the stove · the crust at the bottom | 一、二、三、四、五、六、七 |
+| geography | the watcher's courtyard · the rice-jar month · the stove | 一、二、三、六、七 |
+| characters | the night watchers · the headkeeper · the new watcher | 一、二、三、四、五、六 |
+| story | the night-watch pot · Echo No. 37 | 全篇 |
+| items | the congee pot · the ladle · the nail by the stove · the crust | 一、二、三、四、五、六、七 |
+| history | After the 41st Convocation · the 69th year of the Institute | 一、五、六、七 |
+
+> 米缸月的最后一夜醒着的那一位，会听见锅底的粥冒一个小小的泡——那是守夜锅替下一任值更，看了一眼这个月。
+> The one who stays awake on the last night of the rice-jar month will hear the bottom of the porridge pot rise one small bubble — the night-watch pot taking one glance, on the next watcher's behalf, at the passing month.
+`,
+  },
 ] as const;
