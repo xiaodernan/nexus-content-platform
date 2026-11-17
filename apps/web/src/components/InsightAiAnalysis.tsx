@@ -52,9 +52,13 @@ export function InsightAiAnalysis({ locale = 'zh' }: { locale?: Locale }) {
     setPhase('loading');
     setBadge(null);
     try {
+      // 双提交 CSRF：除了同源 cookie，还必须原样回传进 x-csrf-token 头（csrf.ts 双锚，§SECURITY）。
+      const csrf = typeof document !== 'undefined'
+        ? (document.cookie.match(/nexus_csrf=([^;]+)/)?.[1] ?? '')
+        : '';
       const resp = await fetch('/api/insight/analyze', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', 'x-csrf-token': csrf },
         body: JSON.stringify({ locale }),
       });
       if (resp.status >= 429 || resp.status >= 500) {

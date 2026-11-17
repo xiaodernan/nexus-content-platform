@@ -492,3 +492,15 @@ cd apps/web && npx tsx scripts/approval-explain-e2e.mts c5ebd27e-8a20-45f2-86aa-
   3. 近 7 天 `api.design.patch` 122 次拒绝 → 查拒绝原因与权限配置；仅凭次数无法判断是否异常
   —— 三条建议全部带依据、全部承认不确定性，**零编造**，与 §GRAPH-1/§PROVED-19 的模型行为一致。
 - 顺带抓到的真 bug（已修）：`readPulseMetrics` 的 14 天注册查询把 JS Date 直接插进 raw `sql`，driver 串行成 `Wed Nov 04 2026 19:24:52 GMT+0800…`，PG 拒绝解析 → 整页走错误分支。已改用 `gte(users.createdAt, since14)`（drizzle 列映射器正确序列化 Date）+ `and/isNull` 组合。
+
+## §PROVED-21 — /insight《⑧ 大模型解读》真机复活：CSRF 双提交修复（2026-11-17 · v884）
+
+- 缺陷（reproduced live）：「让大模型看看这些数字」按钮 → `InsightAiAnalysis` 组件的 fetch 只发了 `content-type`，没发 `x-csrf-token` → **/api/insight/analyze 每次 403 `csrf_failed`** → 页面只显示「模型连不上分析没法假造」。§九 要求的「深度优化措施」链路实际上是断的。
+- 修复：按双提交 CSRF（`server/security/csrf.ts`）——组件从 `document.cookie` 读 `nexus_csrf`（非 HttpOnly），原样回传进 `x-csrf-token` 头。
+- 修复后真机实测（中文 · Next dev · Clash 7897 · gpt-6.1-terra）：POST /api/insight/analyze **200 · 9.2s**，模型产出（节选）：
+  > ① 现象：当前最明显的增长瓶颈是有效访问不足，打开量被机器人流量主导。
+  > ② 证据：近 30 天 opens=757，其中 botOpens=660，botShare=87.2%；opensSlope/day=0.49，r2=0.01。
+  > ③ 动作：在本站公开作品页接入机器人过滤，将 botOpens 排除在访问统计和推荐排序之外；观察过滤后的人类 opens 是否增长，以及打开趋势拟合度是否改善。
+  —— 三段式（现象→证据→动作），全部数字出自 digest（0 个人字段），零编造。
+- Insight 闸、digest（聚合）口径、NN/g 基准、确定性深度优化建议 均保持不变；只补齐了最终一杆。
+- 遗留：Next dev 进程在本机内存压力下会 OOM（exit 4294967295）——RAM 是这个机器的结构性限制，与产品代码无关；生产 `next start` 不受影响。

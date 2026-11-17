@@ -4876,3 +4876,10 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 保留：`nexus_bible_ask_*` 的 `answer-unverified` 枚举补齐（修掉问典 verdict=fail 时必抛的指标标签越界崩溃，与页面去留无关）；「Date 裸插 raw sql」教训写入 ADR。
 - 虚乌有的重复被撤掉，产品只有一条路：公开口径 = /insight。
 - 教训：动手建并行入口前，先量一遍 `app/` 目录和 guide —— 这次瞎了。
+
+## cont. 255 (2026-11-17) — v884 · /insight ⑧ 大模型解读真机复活（CSRF 双提交修复 · §PROVED-21）
+
+- 用户授权的 §九 入口最终落在 /insight（早已存在、guide ⑪ 登记、PROVED 覆盖）。本轮对它做了一次红线体检：锁屏 gate（口令 123）→ 解锁（200）→ 库快照渲染（总账/30 天外推 sparkline/行为信号/LLM 成本与缓存/确定性深度优化建议/NN/g 基准/⑧ 大模型解读）。
+- **抓到的真 bug（与我的并轨补充无关）**：按「让大模型看看这些数字」按钮 → analyze 路由一直 403 `csrf_failed`——组件只装了 content-type，从没发 `x-csrf-token`。按双提交 CSRF（csrf.ts）读 `nexus_csrf` cookie 原样回传后 → 真机 200 · 9.2s · 三段式现象→证据→动作、全部数字来自 digest、零编造、中文、正确承认不确定性。
+- §PROVED-21 落账；截图 insight-ai.png 存档。
+- 兄弟项目进程全程未触碰；Docker Desktop 又自重启一次（20:26 起，第 4 次）——nexus 自愈正常。
