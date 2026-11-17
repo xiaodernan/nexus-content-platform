@@ -4553,3 +4553,10 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   一位抄本员只见过一次水里有一枚「镜子」，也只跟一个人说了。
 - verify:world-bible ✓ 195/195；快照 5 章 · 35 回响（E34/E35 同回合同步完成）。
 - 顺带把个人页上次 push 的「接口契约」修复记录在 cont. 220。
+
+## cont. 222 (2026-11-17) — v855 · §UX-45 + 分支收拢
+
+- 顶栏「导出」「发布」加教学 title（中英）；export/publish SHA 门重钉。
+- **分支参照整治**：other/* 13 个全是 main 祖先（ahead=0）；已全部 update-ref -d 删除；远程参照 = origin/main · origin/master · origin。stash=0；working tree 干净。
+- E34/E35 后世界未动：5 章 · 35 回响 · 195/195 anchors。
+- 已修错误：PowerShell 直接 `-replace | Set-Content` 会把 UTF-8 的 test 文件弄成 GBK 损坏——之后一律用 edit 工具改文件，不再用 PS 重写源码文件。

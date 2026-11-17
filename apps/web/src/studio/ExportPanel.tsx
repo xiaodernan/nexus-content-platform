@@ -199,6 +199,7 @@ export function ExportPanel({ locale = 'zh' }: { locale?: Locale }) {
         aria-expanded={open}
         aria-controls={open ? EXPORT_PANEL_ID : undefined}
         data-export-open
+        title={c.ariaLabel + (locale === 'zh' ? '：生成这个项目当前快照的代码/素材/设计模型压缩包，真实的、可下载的交付物' : ': build a real, downloadable archive of this project’s current snapshot (code / assets / design model)')}
         className="pb-ghostBig"
       >
         {c.trigger}

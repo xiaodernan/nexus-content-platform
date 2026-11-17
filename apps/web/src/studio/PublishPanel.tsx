@@ -232,6 +232,7 @@ export function PublishPanel({ locale = 'zh' }: { locale?: Locale }) {
         aria-expanded={open}
         aria-controls={open ? PANEL_ID : undefined}
         data-publish-open
+        title={c.ariaLabel + (locale === 'zh' ? '：把当前设计快照投放到公开广场或收回到仅自己可见；危险操作有确认门' : ': publish this snapshot to the public plaza or pull it back to private; destructive steps are confirmation-gated')}
         className={cn('pb-publishBtn', publication && publication.visibility !== 'private' ? 'pb-publishLive' : 'pb-publishIdle')}
       >
         {statusLabel}

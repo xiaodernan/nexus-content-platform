@@ -14557,3 +14557,12 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - 新回响 E35（中英双文件）：常年不干的石凹；「潮从下面上来」；半月章按在石凹边缘四次；抄本员水里唯一一次看见一枚镜子；
   换班前最后一眼是石凹而不是别的。六节、五锚句。
 - verify:world-bible ✓ 195/195；快照 5 章 · 35 回响；bible-ask-behavior 195。
+
+## §UX-45 — 顶栏「导出」「发布」按钮教学 title + 分支参照大整治（2026-11-17 · v855）
+
+- Studio 顶栏左侧两个关键动作补上一句话 title（中英双语）：ExportPanel「导出与下载：……」/ PublishPanel「发布与分享：……」。
+  与 v853 的视图切换五按钮 title 同一门：SHA 门按惯例重钉。
+- 分支/远程参照大整治（总纲 §二 收拢）：
+  - `other/*` 共 **13 个**远程跟踪参照（master, master2–master12），经 `git rev-list --count main..other/<n>` 实测**全部 0 ahead**——它们都是 main 的祖先，内容零丢失；
+  - .git/config 已不存在 `other` remote，属于历史整合产物；已全部 `git update-ref -d` 删除，远程参照只剩 origin/main、origin/master、origin。
+- fe-gates 134/134 · 1268/1268 · census 2566 · web tsc 0 · snapshots 一致。
