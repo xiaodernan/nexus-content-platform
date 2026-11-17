@@ -5402,3 +5402,9 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 不影响任何验收：测试 §Graph 5/5 全绿 · fe-gates 1285/1285。
 
 **关于"上下文"正面交还用户关切**：此前 tokensIn ≈ 4–5k，用户督促"输入上下文总是那么少"——现在**两条 product graph 各自以 ~34k-token prefix 进 provider**，和问典 /bible/ask 入口同一条 KV lane 相互影响但**不相互覆盖**——同一 digest 的命中率绝对值从有问题的 94%→ live 100%。不下赌，更贴近 codex-like行为规格。
+
+## cont. 303 (2026-11-18) — v924 · §BIBLE-62 · Echo #62《祠殿书库那本不用灯也会亮的借光本》（作者手写·双语·356/356 绿）
+
+- 第 62 篇回响「借光本」：祠殿书库最高那一柜——一直以来没人敢碰的借光之书——在没有灯的时候字也会自己亮；抄本师记得「雾港」和「不灭」两字；大会散会后，某一个夜里它自己浮起来了。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-062-the-borrow-light-volume-in-the-library`；verify world-bible **356/356** ✓。
+- 同步：BibleAsk lede → 62（含 en）；/bible/ask meta → 六十二篇 / sixty-two；cache-identity → 62 篇锚句；bible-ask-behavior 锚句总数 350→356；canon-answer-graph 测试 67 段 / 62 echoes；pins 重钉；fe-gates **1285/1285 绿**。
