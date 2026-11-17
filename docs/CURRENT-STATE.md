@@ -4868,3 +4868,11 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 同步落地：`gen-bible-snapshot.mts` 登记 `echo-037-the-congee-pot-that-never-leaves-the-stove`；`BibleAsk.tsx` lede 双语 → 37；`/bible/ask` meta → 三十七篇；`canon-answer-graph` 测试口径 42 段/37 echoes；`bible-ask-behavior` 锚句总数 200→206；CACHE-IDENTITY 更新。
 - 回归：bible 组 50/50（含 quiz/search/visual/ask 同组）；canon-answer-graph 13/13。web typecheck ✓。
 - digest 随第 37 篇重灌：下一次真 provider 调用会有一次 cold（属预期，见 CACHE-IDENTITY.md）。
+
+## cont. 254 (2026-11-17) — v883 · /admin/pulse 并轨退役（公开 123 入口收敛到 /insight · ADR-0276 定稿）
+
+- 事实：`/insight`（口令 123 · 公开全站账本：总账/30 天外推/行为信号/LLM 成本与缓存/确定性深度优化建议/NN/g 基准/⑧ 大模型解读）早已存在且功能更全，guide §⑪ 已登记、§PROVED 已覆盖其 E2E——v880/v881 的 `/admin/pulse` 是重复实现。
+- 决定（ADR-0276 定稿）：并轨到 `/insight`；删除 pulse page/route/gate/domain/tests；限流表移除 `pulse/*`；`METRICS` 移除 `nexus_pulse_narrate_*`。
+- 保留：`nexus_bible_ask_*` 的 `answer-unverified` 枚举补齐（修掉问典 verdict=fail 时必抛的指标标签越界崩溃，与页面去留无关）；「Date 裸插 raw sql」教训写入 ADR。
+- 虚乌有的重复被撤掉，产品只有一条路：公开口径 = /insight。
+- 教训：动手建并行入口前，先量一遍 `app/` 目录和 guide —— 这次瞎了。

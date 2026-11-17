@@ -155,17 +155,6 @@ export const METRICS = {
     labels: { outcome: ['answer'] },
     buckets: DURATION_BUCKETS,
   },
-  nexus_pulse_narrate_total: {
-    kind: 'counter',
-    help: '公开管理台「让大模型读这份账」（POST /api/admin/pulse/narrate）走到终态的次数（含 provider 不可用——绝不静默）',
-    labels: { outcome: ['answer', 'provider-unavailable'] },
-  },
-  nexus_pulse_narrate_latency_ms: {
-    kind: 'histogram',
-    help: '/api/admin/pulse/narrate 从进路由到回流的毫秒数（含 provider 往返；压缩 digest 通常在秒级）',
-    labels: { outcome: ['answer'] },
-    buckets: DURATION_BUCKETS,
-  },
   nexus_analytics_narrate_total: {
     kind: 'counter',
     help: '/api/analytics/agent-narrate 走到终态的次数（含 provider 不可用——绝不静默）',
