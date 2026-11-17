@@ -80,12 +80,16 @@ describe('§BIBLE-4 POST /api/bible/q', () => {
     expect(chatCalls.length).toBeGreaterThan(0);
   });
 
-  it('system 是问典 digest 前缀（KV 复用依赖字节稳定）', async () => {
+  it('draft 的 system 是问典 digest 前缀（KV 复用依赖字节稳定）', async () => {
     chatCalls.length = 0;
     await POST(req('203.0.113.56', { question: '第二章讲谁？', locale: 'zh' }));
-    const sent = chatCalls[0] as { system: string; user: string };
-    expect(sent.system).toContain('THE WORLD BIBLE — CANON DIGEST');
-    expect(sent.user).toContain('第二章讲谁？');
+    const calls = chatCalls as Array<{ system: string; user: string }>;
+    const draftCall = calls.find((c) => c.system.includes('THE WORLD BIBLE — CANON DIGEST'));
+    expect(draftCall, 'draft 调用必须带 CANON_DIGEST 前缀').toBeTruthy();
+    expect(draftCall!.user).toContain('第二章讲谁？');
+    // analyze 提示词不带 digest（KV 前缀两路分流，§CACHE-4）
+    const analyzeCall = calls.find((c) => !c.system.includes('THE WORLD BIBLE'));
+    expect(analyzeCall).toBeTruthy();
   });
 
   it('provider 不可用：503 原样 503，错误信息不编造潮汐', async () => {

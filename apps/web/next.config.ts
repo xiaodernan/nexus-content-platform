@@ -2,7 +2,7 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  transpilePackages: ['@nexus/creative-model', '@nexus/schemas', '@nexus/world-model'],
+  transpilePackages: ['@nexus/creative-model', '@nexus/schemas', '@nexus/world-model', '@nexus/agent-runtime'],
   // Next 16 默认只放行 localhost 访问 dev 资源 / HMR：从 127.0.0.1（或内网 IP）打开
   // dev server 时 /_next/hmr 会被拦下，React 水合静默失败——页面能看但点任何按钮都没反应。
   // 这是 dev 限定字段，对生产无任何影响。

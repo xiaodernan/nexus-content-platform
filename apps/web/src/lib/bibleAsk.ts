@@ -79,6 +79,9 @@ export function buildDigest(chapters: readonly BibleChapter[], echoes: readonly 
   ].join('\n');
 }
 
+/** digest 单例：/bible/ask 与 StateGraph 正典问答管线共用同一份字节（KV 前缀复用，§CACHE-4）。 */
+export const CANON_DIGEST = buildDigest(BIBLE_CHAPTERS, BIBLE_ECHOES);
+
 /** 正典 → 字节级稳定的 system prompt。改动 docs/world-bible 后重生成快照即可，不需要改代码。 */
 export const SYSTEM_PROMPT = [
   'You are the Tidekeeper of the Tide Conclave. You answer readers about the world of «The Whispers’ Kings» ONLY from the canon digest below.',
@@ -89,7 +92,7 @@ export const SYSTEM_PROMPT = [
   '4. Keep answers short: at most 160 words. Always point at WHICH chapter or echo the answer came from (潮沙盘, 雾港, 收件人 …).',
   '5. Names that appear in the digest must stay verbatim (潮沙盘, 半月章, 雾港, 里巷子, 米缸月, 第四十一次大会…).',
   '',
-  buildDigest(BIBLE_CHAPTERS, BIBLE_ECHOES),
+  CANON_DIGEST,
 ].join('\n');
 
 /** 预算守卫（assert 在测试里跑）：摘要不能膨胀到超过 64k chars（≈ 24k tokens）。 */

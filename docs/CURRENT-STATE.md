@@ -4805,3 +4805,13 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   三层结构：distributor channel-local cache + sticky `prompt_cache_key` + v2 digest（五章全文 + 锚句）+ Redis L2 重放矩阵。
 - 勘误两处错字（「2.3B」「rsy」）。
 - 下一回合：接手者读这份文档即可直接对症。
+
+## cont. 250 (2026-11-17) — v879 · §GRAPH-1 · 问典上线 StateGraph 管线（ADR-0275）
+
+- web `/api/bible/q` 从单次 `chatWithCharacter` 改为 `runCanonAnswerGraph`：analyze(LLM 短提示) → retrieve(字符二元组 Jaccard 确定性检索 top-3) → draft(system=CANON_DIGEST 字节级稳定前缀) → verify(机检：空答案/发明章回响/超界锚句) → 未尽修订上限时 revise 一轮 → finalize。
+- 新文件：`apps/web/src/server/ai/canonGraph.ts` · `apps/web/test/canon-answer-graph.test.ts`（13 测 · 24/24 同组回归绿）。
+- 真实 provider 实测（§PROVED-19）：200 / 7.3s / cachedTokens 22,583（≈94%）/ verdict=pass / retrieved=3。
+- verify 每轮对当前 draft 重算（旧 bug：修订合格稿被上一轮机检意见判 fail —— 测试先行抓到的真错）。
+- 修订分支零编造：verdict=fail 时答案如实返回并标注，不冒充「已校验」。
+- ADR-0275 拍板：不再引入 Python LangGraph（已装即卸载）；本仓 StateGraph（agents/runtime，ADR-0270）第一次接进真实用户路径。
+- web 类型检查通过；`.env` 未动；npm lock 仅新增 @nexus/agent-runtime 声明（junction 本就是根 hoisted）。

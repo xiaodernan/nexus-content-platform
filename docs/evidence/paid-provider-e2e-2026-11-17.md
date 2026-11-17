@@ -455,3 +455,24 @@ cd apps/web && npx tsx scripts/approval-explain-e2e.mts c5ebd27e-8a20-45f2-86aa-
   - 首次调用 cold → 计 digest 保持 staging；
   - 后续调用 cached_tokens ≥ 22,600（≈ 94%）；
   - 这就是"为什么 codex 始终命中"的公共解法，本项目按同样的 sticky-cache 模式已跑通。
+
+## §PROVED-19 — StateGraph 问典管线真实上线实测（2026-11-17 · v879）
+
+- 路径：新注册用户 → `POST /api/bible/q`（web · Next dev · `NEXUS_AI_SERVICE_URL=http://127.0.0.1:8001`）→ `runCanonAnswerGraph` → ai-service `/v1/ai/chat` ×2（analyze 短提示 + draft digest 前缀）。
+- 问题（UTF-8 字节体，避免 PowerShell GBK 污染）：《收件人》里谁收到了那张签收单？一句话回答。
+- 响应（200，7.3s，cachedTokens=22,583，cacheReported=true）：
+  ```
+  {"answer":"《收件人》第四节揭示，收件人不是一个人，而是潮候院这座建筑。",
+   "capability":"real","provider":"openai-compatible","model":"gpt-6.1-terra",
+   "cachedTokens":22583,"cacheReported":true,"costBasis":"usage",
+   "graph":{"verdict":"pass","iterations":0,"retrieved":3,
+            "nodes":["analyze","retrieve","draft","verify","finalize"]}}
+  ```
+- 读数：
+  - retrieve 命中 3 段（本地 bigram 检索，0 LLM token）；draft 命中 digest KV 前缀（22,583 / ≈94%）——**流式路径本次报了 cached_tokens**（channel 不一致是分发器侧事实，§PROVED-17/18 已证实另有 channel 不报，此为 channel-dependent，不构成回归）。
+  - verdict=pass：机检通过；答案锚在第五章《收件人》（"收件人…是潮候院这座建筑"），无发明章回响、无超界锚句引用。
+- ⚠️ 同一路径的反例（诚实记录）：第一次实测用 PowerShell here-string 直接拼 JSON，中文被 GBK 污染，
+  模型答「典籍里没有」、`retrieved: 0`。这不是管线故障——问题字节错了。重新以 UTF-8 文件体发送后，
+  retrieve=3、cachedTokens=22,583、verdict=pass。**中文 body 一律走 UTF-8 文件/字节数组，不再直接裸拼 PowerShell 字符串。**
+- 结论：StateGraph 管线（§GRAPH-1 · ADR-0275）在真实 provider 上跑通完整 analyze→retrieve→draft→verify→finalize；
+  问典从"单次 chat + 无自检"升级为"结构化生成 + 机检"，且 digest KV 前缀完整复用。
