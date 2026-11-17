@@ -4771,3 +4771,11 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   - "有几个并行会话打乱 cache" 用户问题：真的存在——Distributor 内部分流；这是 Distributor 自己的职责。
 - 所以：每个重复的单元经常命中本地 Redis L2；被 Distributor 分到 redis-unshared back channel 时冷启动无解。
 - sticky key + Redis L2 → 两层都覆盖；evidence §PROVED-16 落盘。
+
+## cont. 246 (2026-11-17) — Docker 崩溃恢复周期闭环（Docker Desktop 自修复）
+
+- 17:45 期间，Docker Desktop 退出（`com.docker.*` 进程重启）；redis/postgres 容器停摆。
+- 17:56 Docker 自行重启 `com.docker.backend` ×2 + `com.docker.build`；nexus-redis 先恢复 healthy， nexus-postgres 进入 90s 恢复期（"database system is starting up" × 10+ 轮；_syncing data dir_），最终 17:58 "ready to accept connections"。
+- 验证：`/` 200 ✓ / `/healthz` 200 ✓ / Redis 命中率功能恢复 ✓。
+- 本次事件教训：**Docker 任何治 crash 是 Docker's 问题，不是 sibling 容器的问题**；nexus-* 自愈较快（~4 分钟），且数据零丢失（同 `lsn 8/52BC8F10`）。记录进 ADR 或直接写在 incident log。
+- Sibling `careeros-*`/`football_os-*`/`specproof-*`：**未触碰**，零影响。
