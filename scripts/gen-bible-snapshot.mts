@@ -38,7 +38,7 @@ const WEB_SLUGS: Record<string, string> = {
   '003-潮沙盘': '003-the-tide-sand-table',
   '004-第八盏灯': '004-the-eighth-lamp',
   '005-远信': '005-letters-never-posted',
-  '006-最后的签收': '006-the-final-seal',
+  '006-最后的签收': '006-the-last-official-seal',
   '007-灯前灰': '007-ashes-before-the-lamp',
   '008-灰后': '008-after-the-ash',
   '009-带灰回家': '009-ash-carried-home',

@@ -240,7 +240,7 @@ describe('§FE-7 公开试玩页视觉段（静态不变式）', () => {
     expect(code, '强制动态渲染声明丢了').toContain("export const dynamic = 'force-dynamic'");
     expect(code, '可见性判定不再复用 getPublishedPage（会抄出第二份漂移谓词）').toContain('getPublishedPage(path)');
     expect(code, 'schema 校验丢了（读不出来要如实说，不悄悄空关卡）').toContain('GameDocumentSchema.safeParse');
-    expect(code, '投影编译丢了').toContain('compileForKind(document)');
+    expect(code, '投影编译丢了').toContain('compileForKind(document, locale)');
     expect(code, '校验问题如实列出丢了').toContain('validateGame(document)');
     expect(code, 'PublicPlay 交互组件丢了（游戏运行时本体，门面不能碰）').toContain('<PublicPlay');
     expect(code, 'VisitMeter 访问心跳丢了（与作品页同口径）').toContain('<VisitMeter');

@@ -1,36 +1,14 @@
 'use client';
 
 import { useEffect } from 'react';
-import { clientLocale } from '@/lib/client-locale';
-import type { Locale } from '@/lib/i18n';
 
-/**
- * Root error boundary — the last honest state a page can be in when something inside it threw.
+/** Root error boundary — the last honest state a page can be in when something inside it threw.
  * Shows a real message in product language; the stack trace goes to the console only (users don't
  * need it; the responder — that's a human, not an AI — can read it from there).
  *
- * 双语（2026-11-15 公开试玩面 wave）：locale 从文档 lang 同步读；缺省 zh，与 RSC 缺省一致。
+ * 双语：异常页是静态的（client 组件，SSR 期间没有 cookie/header 可读），所以两个语言都印出来；
+ * `lang` 属性分别标注，读屏按各自语言念。
  */
-const COPY: Record<Locale, {
-  title: string;
-  body: string;
-  retry: string;
-  home: string;
-}> = {
-  zh: {
-    title: '这片页面出错了',
-    body: '这不是你的操作问题——页面背后的那段代码抛了一个异常。我们已经在控制台留了痕迹，它会被下一次发布修掉。',
-    retry: '再试一次',
-    home: '回到首页',
-  },
-  en: {
-    title: 'This page broke',
-    body: 'Not your fault — something behind the page threw. The trace is in the console; the next deploy fixes it.',
-    retry: 'Try again',
-    home: 'Back to home',
-  },
-};
-
 export default function GlobalError({
   error,
   reset,
@@ -38,8 +16,6 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  // 根级错误兜底：文档语言每次挂载同步直读（零 React 状态，zh-first 缺省与服务端一致）
-  const c = COPY[clientLocale()];
   useEffect(() => {
     // §166-style: the console is where responders go, not the DOM.
     console.error('[NEXUS/app-root-error]', error);
@@ -49,9 +25,17 @@ export default function GlobalError({
     <main className="ge-shell">
       <div aria-hidden="true" className="ge-glow" />
       <span className="ge-mark">⚠</span>
-      <h1 className="ge-title">{c.title}</h1>
-      <p className="ge-body">
-        {c.body}
+      <h1 className="ge-title" lang="zh-CN">
+        这片页面出错了
+      </h1>
+      <h1 className="ge-title" lang="en">
+        This page hit an error
+      </h1>
+      <p className="ge-body" lang="zh-CN">
+        这不是你的操作问题——页面背后的那段代码抛了一个异常。我们已经在控制台留了痕迹，它会被下一次发布修掉。
+      </p>
+      <p className="ge-body" lang="en">
+        This is not something you did — the code behind this page threw an exception. A trace is already in the console, and the next release will fix it.
       </p>
       {error.digest ? (
         <p className="ge-digest">digest: {error.digest}</p>
@@ -62,13 +46,13 @@ export default function GlobalError({
           onClick={reset}
           className="ge-btnPrimary"
         >
-          {c.retry}
+          再试一次 · Try again
         </button>
         <a
           href="/"
           className="ge-btnGhost"
         >
-          {c.home}
+          回到首页 · Home
         </a>
       </div>
     </main>

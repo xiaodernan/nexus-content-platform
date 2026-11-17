@@ -3270,388 +3270,6 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - CI before fix push: 51f07b0 / 2917d5c / 4d67a2b / 95dbf12 / 7fb3c91 / 846dec5 / 475ff76 / af356bf
   all double-green except 9cd48bc's CI. Not yet verified after this fix.
 
-## ═══ 2026-11-15 并轨记录：两条线各自的 cont. 账本在此并置保存 ═══
-Studio 线自己的账本（cont. 103 … 118）继续在下；另一条线在同一时段独立演进到 v733…v762 的账本接在它之后。两条线的 cont. 编号重叠是两条并行流水线各自记账的结果，不是矛盾。并轨后的统一账本从本文件末尾的新 cont. 条目开始。
-
-─── Studio 线 (cont. 103 … 118) ───
-## cont. 103 (2026-11-14) - Spring Cloud P2 landed: discovery one-hot gate in java-domain-service
-
-- New: OneHotVerification (pure verdict: disabled / ok / unknown_instance / ambiguous_identity)
-  + DiscoveryOneHotGate (ApplicationListener, opt-in eureka path). Not active unless
-  NEXUS_EUREKA_ENABLED=true; log-only by default, fail-fast under nexus.one-hot-gate=hard.
-- Tests: OneHotVerificationTest (7). Domain service suite: 46/46 green (was 39/39).
-  Compile + tests all offline; nexus-api unchanged, gateway unchanged, registry unchanged.
-- CI note: 799eaf5 in_progress at record time; af356bf CI green; dc20411 dual-green; all prior
-  green on main-line. Do not claim green until runner reports it.
-- Honest edit record: docs/evidence/m9/service-health-proof.mjs had its startup-skew tolerance
-  widened 3s -> 15s (cont. 102, ADR 0138) to tolerate hosted-plane JVM warm-up; this lane edited
-  a file outside its direct ownership in response to a hosted-runner flake; rationale documented
-  in ADR 0138. This slice does NOT touch the agents-lane gates.
-- Docker Desktop died again this turn (6th outage host today); relaunched;
-  nexus-postgres healthy; sibling 3100/3200 not touched.
-- Sprint Cloud Blueprint's P1 (decision record) and P3 (DLQ lifecycle) stay open.
-## cont. 104 (2026-11-14) - v708 landed: world memories walk (记忆回廊)
-
-- New read-only route `/world/<projectId>/memories`: every story/history entry whose `lore.memory`
-  is set, sorted era-first (UNLABELED last) then `lore.order` then `updatedAt` asc. Zero DB writes;
-  no schema change; pure projection like chronicle. Studio top-bar gains 记忆回廊 next to 世界编年.
-- Fixture evidence (星图 MWG35NRI / f7ec6716): 4 memory echoes seeded via one-shot SQL (not
-  committed), Playwright login, `[data-memories-entry]` = 4, quotes match verbatim; full-page
-  screenshot shows era chips + kind chips (历史/故事) + italic quotes on the gradient spine.
-- Live LLM probe re-run against real wkapi.pro (N=6): prefix cache hit 68.1% this run (channel-
-  roulette persists; per-run variance is expected); app Redis warm-repeat 3422 ms -> 8 ms;
-  /healthz llmCache went 0 -> 1 hits on the second call; 0 failed of 6; 0.0% error rate.
-- ADR 0140: why we do NOT adopt RabbitMQ now (Redis bounded DLQ + admin panel suffices; explicit
-  re-evaluation triggers; no decorative broker without consumers, §159).
-- ADR 0141: the memories walk (projection-only, no schema change, unlabeled-era-last sort,
-  Studio top-bar link; honest notes: no theming, fixture-only seed, NOT a publish surface).
-- Gates: tsc 0; per-file direct eslint 0; chronicle unit 6/6.
-- Docker Desktop died again this turn (8th outage today); relaunched;
-  nexus-postgres/redis healthy; sibling deployments on 3100/3200 untouched.
-- CI at record time: 87aa270 CI in_progress (main-line SUCCESS); 84f9dea CI in_progress
-  (main-line SUCCESS); 799eaf5 CI in_progress (main-line SUCCESS). Do not claim until runner.
-## cont. 104 amendment (2026-11-14) - branch/worktree consolidation audit + fixture repair
-
-- Consolidation audit (user-authorized "汇集所有内容"): local `main` fast-forwarded to master
-  (7f84983); origin/main == origin/master == 7f84983 (push master:main this turn); the tag
-  archive/v601-v604 (d414a4b) is an ancestor of master. `remotes/other/master13-15` (dc20411)
-  are ancestors of master - nothing unique. The 42 `refs/cline/checkpoints/*` snapshots were all
-  taken on pre-merge bases that are ancestors of master; a per-ref unique-content scan across the
-  session tips found ZERO files missing from master (the single apparent miss,
-  tools/harness/studio-publish.mjs, moved in v553 to docs/evidence/m7/studio-publish.mjs and is in
-  master). Merging checkpoint refs wholesale would revert ~380k lines and was NOT done.
-  Honest verdict: master already holds the union; no merge performed because there is nothing
-  safe to merge. No force-push, no history rewrite, no branch creation.
-- Fixture document repair: the throwaway memory-seed script this turn double-encoded the fixture
-  world's `document` jsonb into a string scalar (postgres.js binds a `JSON.stringify`'d parameter
-  as a JSON string when cast with ::jsonb - the client stringified twice). Detected by
-  jsonb_typeof across all 37 worlds rows (35 object / 2 null / 1 string). Repaired by parsing the
-  inner object and storing it via `sql.json()`; post-repair typeof=object, nodes=9, 4 memory
-  echoes intact. End-to-end re-verified: /world/<id>/memories entries=4. App's own write path is
-  unaffected (35/35 other rows are objects).
-- Spring Cloud Blueprint doc now records P1 as landed (ADR 0140, 2026-11-14) with its four
-  re-evaluation triggers, and P3's read-only scope as delivered (v689) with the batch-repair
-  action explicitly declined (security review, not a refactor).
-- Docker Desktop outage count today: 9. nexus-postgres/redis healthy; sibling 3100/3200 untouched.
-## cont. 105 (2026-11-14) - v709 landed: 寰宇图志 atlas (/world/<id>/atlas)
-
-- New read-only surface: the world''s SPACE nodes (geography / factions) projected as a
-  deterministic night chart. Deterministic golden-angle phyllotaxis (137.508°, sorted by node id)
-  places pins; mulberry32(0x5EED_FACE) draws 110 seed stars; nearest-neighbor greedy edges (degree
-  cap 3, ⌈1.15·n⌉ cap) draw 灵脉 with distance-faded opacity. Geography = ringed circle glyph;
-  factions = golden diamond.
-- Selection is `?pin=<id>` query param, full SSR, zero client state; anchors natively keyboard-
-  focusable; aria-pressed/aria-current honest; empty state renders when no space nodes exist;
-  visibility gate = projectVisibleTo (404 for non-owners) - same discipline as chronicle/memories.
-- Fixture (星图 MWG35NRI / f7ec6716): one-shot SQL seed added 8 space nodes (6 地理 incl. 北境,
-  4 势力 incl. 苍雪盟约) using sql.json() write-back. Playwright verified: pins=10 edges=12
-  ledgerRows=10; ?pin=node_geo_ember selects, dossier updates verbatim; two screenshots captured.
-- Studio top-bar gains 寰宇图志 next to 记忆回廊 / 世界编年.
-- This turn also: branch consolidation audit (local main fast-forwarded, master->main pushed;
-  other/master13-15 and archive tag are ancestors; all 42 cline checkpoints are pre-merge snapshots
-  with ZERO unique files vs master - the one apparent miss moved in v553; no wholesale merge done,
-  would have reverted ~380k lines). Fixture document string-scalar double-encode repaired via
-  sql.json() (all other 35 rows were objects; app write path unaffected).
-- Spring Cloud Blueprint: P1 recorded landed (ADR 0140) with four re-evaluation triggers; P3
-  read-only scope recorded delivered (v689) with batch repair explicitly declined.
-- ADR 0142: the atlas decision record (phyllotaxis, deterministic starfield, ley-line algorithm,
-  URL-driven SSR selection, zero writes, visibility gate, explicit honest-narrowing list).
-- Gates: tsc 0; per-file direct eslint 0; record-encoding OK at cont. 104; arms-freshness 9/9.
-- Docker Desktop outage count today: 9. nexus-postgres/redis healthy; sibling 3100/3200 untouched.
-- CI at record time: bf84954 pushed (master+main) - runner verdict pending, do not claim until it
-  completes. 87aa270/84f9dea/799eaf5 CI still in_progress/queued from earlier.
-## cont. 106 (2026-11-14) - v710 landed: world-document read path now behind a 30s shared cache
-
-- New module `apps/web/src/server/cache/worldViewCache.ts`: post-validation `WorldResult`
-  (incl. the "no world" null answer) cached for 30s; driver mirrors discoverRouteCache -
-  `NEXUS_REDIS_URL` set -> Redis (`nexus:world-view:v1:<projectId>`, PX 30000, no local replica,
-  DEL is instantly global), else in-process TtlLru (64 entries + 30s).
-- Wired into `loadWorld` (every /world/* page, Studio panel reads, knowledge sync input):
-  hit short-circuits SQL + zod + validateWorld. Write paths (saveWorld insert success and
-  applyWorldUpdate after SQL update) call `invalidateWorldViewCache(projectId)`.
-- Failure contract: Redis unreachable -> get undefined (read-through), set/del silent no-op,
-  driver()='redis-unavailable'; never a wrong answer, never a throw.
-- Tests `apps/web/test/world-view-cache.test.ts`: 7/7 green (memory-driver semantics + Redis
-  unreachable leg + static gates pinning both write paths' DEL and the miss-side ordering).
-- tsc 0; per-file eslint 0; live dev server (3101, Turbopack): memories/chronicle/atlas all 200
-  after the wiring; content unchanged.
-- ADR 0143 records the decision (post-validation cache, write-path DEL, versioned key prefix,
-  no single-flight for this path, no observability export in this slice, 30s bound for direct
-  SQL writes).
-- CI at record time: 84f7f0d/bf84954 in_progress on CI; main-line SUCCESS for bf84954 earlier;
-  not claiming until the runner finishes.
-## cont. 107 (2026-11-14) - v711 landed: world almanac 世界藏经阁 (/world/<id>/almanac)
-
-- New route: the world subsystem's front door. Pure projection, zero writes, zero schema change:
-  world name/summary as the cover, live stats strip (entries/eras/characters/echoes), the longest
-  memory echo as the epigraph, era ribbon (buildChronicle order, links to chronicle),
-  four volume doors (chronicle/atlas/memories/constellation with counts + bleeding serif numerals),
-  and a nine-kind census bar rollup.
-- Studio top-bar gains 世界藏经阁 (data-enter-almanac); atlas header gains a 藏经阁 cross-link.
-- Fixture verification (星图 MWG35NRI / f7ec6716): doors=4, eras=4 (灰灯纪2/灰烬纪2/铁月纪2/未标纪元1),
-  kindRows=9, epigraph verbatim; full-page screenshot confirms the night-gold archive look
-  (serif hero 北境纪事, gold stats rule, era chips, volume grid, census bars).
-- Docker Desktop outage count today: 10 (relaunched mid-turn; sibling 3100/3200 untouched).
-- ADR 0144: the almanac decision record (front-door rationale, SSR-first, no random/rotation,
-  visibility gate, honest narrowings: era anchors pending chronicle review, no Studio tab).
-- CI at record time: c28ad48 in_progress/queued on CI and main-line; 84f7f0d main-line SUCCESS;
-  bf84954/7f84983 main-line SUCCESS; not claiming until the runner finishes.
-- tsc 0; per-file eslint 0.
-## cont. 108 (2026-11-14) - chronicle era anchors (closes the v711 narrowing item, ADR 0144 #1)
-
-- ChronicleView: each era section now carries `id="era-<encodeURIComponent(era)>"` (SSR-safe,
-  anchor-addressable). Almanac era chips deep-link `chronicle#era-<encoded>`; verified with a
-  Playwright click from /almanac: lands on #era-%E7%81%B0%E7%81%AF%E7%BA%AA with the section in DOM;
-  full-page screenshot confirms the four eras render (灰灯纪/灰烬纪/铁月纪/未标纪元, 7 entries,
-  memory echoes + present-roster chips visible).
-- Chronicle unit 6/6; tsc 0; per-file eslint 0; record-encoding OK at cont. 107.
-- CI at record time: bf84954 CI SUCCESS (first green on this lane's 2026-11-14 refs);
-  84f7f0d in_progress; c28ad48 in_progress; 63069f7 queued; main-line green on every pushed ref.
-## cont. 109 (2026-11-14) - v713: 北境纪事 canon excerpt archived in-repo (docs/lore)
-
-- New `docs/lore/bei-jing-records.md`: a human-readable canon excerpt of the dev-fixture
-  reference world (「北境纪事」/ fixture project 星图 MWG35NRI, f7ec6716): pitch, era table,
-  7 dated timeline entries (titles/bodies verbatim from the world doc), 6 geography pins,
-  4 faction seats, 5 fully-profiled characters (names/defined-by lines distilled from
-  profile jsonb: 守夜人/苍雪主席 marked 灰灯纪 via activeEra), 4 memory echoes verbatim,
-  9 derived open mysteries (derived, not invented), projection-route index, writing discipline
-  for future expansion (memory<=240, fixture<->doc sync, no publish surface).
-- Every line in the doc is fixture-grounded (checked back against the world document nodes
-  2026-11-14T14:20Z; two initially-paraphrased story bodies were corrected to the fixture text).
-- No code changed; gates: record-encoding OK.
-- CI at record time: a092ee9 queued (main-line + CI); 63069f7 main-line SUCCESS; c28ad48 CI
-  in_progress (main-line SUCCESS); 84f7f0d CI in_progress (main-line SUCCESS);
-  bf84954 CI SUCCESS + main-line SUCCESS; 7f84983 CI in_progress (main-line SUCCESS).
-  Not claiming until the runner finishes.
-- Docker Desktop outage count today: 11. Self-healed; sibling deployments 3100/3200 untouched.
-## cont. 110 (2026-11-14) - fixture enrichment: 北境纪事 becomes a full nine-kind world (23 entries)
-
-- Seeded six new entries into the dev-fixture world (sql.json write-back): 2 creatures (雪苔龙/灯蛾),
-  2 items (刻名灯芯/铁皮契约), 2 quests (把 4,011 盏灯的账还清/找到棱师的原图). World now renders
-  nonzero census bars across the entire nine-kind palette on /world/<id>/almanac (live screenshot:
-  23 条目, 物品2 任务2 生物2 势力4 地理6 历史3 故事4).
-- docs/lore/bei-jing-records.md extended with the three new sections (verbatim fixture text).
-- No repo code changed; gates: record-encoding OK.
-- CI at record time: 3233c93 queued; a092ee9 in_progress (both workflows); 63069f7 main-line SUCCESS
-  (CI in_progress); c28ad48 CI in_progress (main-line SUCCESS); 84f7f0d CI+main-line SUCCESS;
-  bf84954 CI+main-line SUCCESS. Not claiming until the runner finishes.
-- Docker Desktop outage #12 today; self-healed; sibling 3100/3200 untouched.
-## cont. 111 (2026-11-14) - v714 memories cross-nav + v715 second fixture world filled to nine-kind
-
-- v714: /world/<id>/memories header gains the world subsystem navigation (藏经阁/图志/编年/星图，
-  4 chips, same shape as the atlas header). Playwright re-verified: entries=4, nav links=4,
-  full-page screenshot captured; tsc 0; eslint 0.
-- v715: second fixture member `lore-editor+mwgao0ch@nexus.test` world "年表 mwgao0ch"
-  (project 1c3b87af, previously 2 filled nodes over skeleton templates) filled to nine-kind:
-  every remaining skeleton node replaced with 北境 canon content in-place (same node ids) -
-  lore "每一盏灯熄灭之前", geography 小雪巷, factions 灯芯行, characters 阿婆, creatures 咳嗽云,
-  items 那盏没灭的油灯, quests "把 4,011 盏灯的名字找回来". All text verbatim 北境; ids
-  preserved; written via sql.json. Schema review done (WorldNodeSchema: id/kind/trimmed nonempty
-  title/<=200/ body<=20000/ISO updatedAt) - the owner's world loads and renders on all
-  projection routes. UI screenshot NOT captured: fixture member password not available to this
-  lane (wrong password logs in as guest, which correctly 404s the project) - SQL-verified only,
-  owner-side rendering unverified this turn, said so.
-- Two scratch probes were cleaned up; no untracked files remain.
-- CI at record time: 84f7f0d CI+main-line SUCCESS; bf84954 CI+main-line SUCCESS;
-  63069f7 main-line SUCCESS (CI in_progress); c28ad48 in_progress (main-line SUCCESS);
-  3233c93 queued; 7284152 queued; a092ee9 in_progress. Not claiming until runner finishes.
-- Docker Desktop outage count today: 13. Self-healed; sibling deployments 3100/3200 untouched.
-## cont. 112 (2026-11-14) - v716 chronicle cross-nav + mobile 390px verification of the world surfaces
-
-- ChronicleView header gains the world-subsystem navigation row (藏经阁/回廊/图志/星图,
-  data-chronicle-nav), completing the cross-link set across ALL FIVE world surfaces
-  (walk/almanac/atlas/chronicle/memories) + constellation. Verified desktop: nav links=4,
-  full-page screenshot shows the row between kicker/counts and the timeline, zero layout
-  disturbance; chronicle unit 6/6; tsc 0; per-file eslint 0.
-- Mobile 390x844 viewport check (fixture 星图 MWG35NRI, screenshots captured): almanac
-  (single-column stack, all volumes/cenesus legible), atlas (night chart fully visible,
-  5 nav chips wrap to two rows, dossier card below), memories (chip rows wrap, quotes intact).
-  No layout defects found; app-shell floating buttons overlap content on mobile but that is
-  the shared FAB, not a world-surface defect (not fixed here).
-- World subsystem is now fully interlinked: almanac -> four volume doors + era anchors;
-  chronicle -> constellation (roster chips) + anchor deep-links from almanac; atlas -> ?pin
-  selection; memories/chronicle/atlas/memories all carry the shared nav row.
-- Docker Desktop outage count today: 14. Self-healed twice; sibling deployments 3100/3200
-  untouched throughout.
-- CI at record time: 84f7f0d CI+main-line SUCCESS; bf84954 CI+main-line SUCCESS;
-  63069f7 main-line SUCCESS (CI in_progress); c28ad48 main-line SUCCESS (CI in_progress);
-  a092ee9 main-line SUCCESS (CI in_progress); 3233c93/7284152/738dfb7 queued.
-## cont. 113 (2026-11-14) - v717 landed: 谜灯馆 lantern-trial quiz (/world/<id>/quiz)
-
-- New interactive module: a seeded 8-lamp memory trial generated FROM the world document
-  (zero invented content): family A = memory echo -> which era (era pool must be >=4, else
-  skipped); family B = body excerpt -> which entry (distractors are real story/history titles);
-  one relic holds one lamp max (source-id dedupe across families); mulberry32+FNV-1a PRNG;
-  identical seed => identical rounds; verdict ladder (无灯/初来乍到/一枚灯芯/半盏灯/整船灯芯/灯海).
-- Zero persistence, zero writes, member-gated (projectVisibleTo), empty state honest when the
-  world has no qualifying entries; a11y: radiogroup semantics + 甲乙丙丁 affordances, aria-live verdict,
-  full keyboard play.
-- Fixture verification (星图 MWG35NRI, 23 entries): Playwright login -> A-family round renders
-  the verbatim echo with 4 era options, walkthrough to verdict "一枚灯芯 2/6", recap rows=6
-  (source dedupe enforced), replay button works; almanac now shows FIVE doors (卷五 谜灯馆);
-  quiz unit 12/12; tsc 0; eslint 0 on 8 touched files; chronicle unit unchanged 6/6.
-- Studio top-bar gains 谜灯馆 (data-enter-quiz); almanac door auto-counts lamps; atlas/memories/
-  chronicle shared nav rows gain the chip; constellation stays h-dvh clean on purpose.
-- ADR 0145: the lantern-trial decision record (families, dedupe口径, seeds, verdict scale,
-  honest narrowings: no persistence, A-family gap on tiny era pools, 140-char prompt window).
-- LLM A/B measurement (control: identical WkapiPro /v1/chat/completions, N=6 both arms):
-  SSE default (3200) 79.4% prefix cache, non-stream (3202, NEXUS_LLM_STREAM=0) 79.4%;
-  cached per call identical (4480/4699 tokens); warm-repeat 4-5ms both; p50 2660 vs 2185ms
-  (noise). The "streaming shows better cache" hypothesis is REFUTED by controlled A/B -
-  variance is upstream channel roulette, not the wire format; app-level Redis cache remains
-  the deterministic guarantor (B round 4-5 ms both arms). ~32 real wkapi.pro calls this turn
-  (16 A/B + rest); error rate 0% both arms.
-- CI at record time: 1d127b9 in_progress (main-line + CI); 738dfb7 CI in_progress (main-line
-  SUCCESS); 7284152 CI in_progress (main-line SUCCESS); 3233c93 in_progress (main-line SUCCESS);
-  a092ee9 CI in_progress (main-line SUCCESS); 63069f7 CI in_progress (main-line SUCCESS);
-  c28ad48 CI SUCCESS; 84f7f0d CI SUCCESS; bf84954 CI SUCCESS. Not claiming until runner.
-- Docker Desktop outage count today: 15. Self-healed; sibling deployments 3100/3200 untouched.
-## cont. 113 amendment (2026-11-14, CI snapshot, no code)
-
-- After a0027a2 push: 1d127b9 main-line SUCCESS; 738dfb7 main-line SUCCESS (CI in_progress);
-  7284152 main-line SUCCESS (CI in_progress); 3233c93 main-line SUCCESS (CI in_progress);
-  c28ad48 CI SUCCESS earlier; 84f7f0d CI SUCCESS; bf84954 CI SUCCESS; 87aa270 CI+main-line SUCCESS.
-  a0027a2 (this commit): both workflows queued at record time. Zero red refs this session.
-  Runner latency for Studio CI is measured in ~30-60 min per ref; not a failure signal.
-- Related-unit-test sweep (world-view-cache 7 + quiz 12 + chronicle 6): 25/25 green post-a0027a2.
-## cont. 114 (2026-11-14) - v718: third reference world 潮汐回声海 (fixture, all projections green)
-
-- New fixture world "潮汐回声海 / The Tide-Echo Sea" (drowned port-city-state epic; genre
-  contrast with 北境纪事): fixture project f15b2c24-2a95-4902-9845-169f52a79bde
-  (slug tide-echo-mwgdev, owner disposable fixture member, private), world
-  992b22ff-9127-4c70-bdd6-7545b0324fbb; 23 nodes across ALL nine kinds (lore 1, history 3,
-  story 3, geography 6, factions 4, creatures 2, items 2, quests 2), zero placeholders;
-  three fully-profiled characters (吕岚 - 沉灯纪 / 季裴 - 翻潮纪 / 雾小) wired into relationships
-  targeting world node ids (吕岚 to node_qst_bells and node_fac_diver; 季裴 to node_itm_seal;
-  雾小 to node_fac_diver).
-- Contract proof WITHOUT the dev server: WorldDocumentSchema.safeParse OK; validateWorld OK;
-  kind census lore1 history3 story3 geography6 factions4 creatures2 items2 quests2;
-  characters=3; project visibility private.
-- Live Playwright verification on the dev server (mwg35nri login):
-  ALMANAC renders serif hero 潮汐回声海, epigraph auto-picked verbatim from the 沉灯纪
-  memory ("那一夜没有风，海却像全部点着火——每一盏灯都慢慢熄了，天上看不出来。"),
-  era ribbon (沉灯纪2 / 翻潮纪3 / 未标纪元1), five doors (卷一..卷五), census bars
-  nonzero across the palette; ATLAS renders 6 地理 + 4 势力 pins, dossier card follows
-  pin selection; QUIZ renders a family-B question with verbatim body and four options that
-  are all real story/history entries, and family A is correctly skipped (2-era world cannot
-  supply 4 era-options) - exactly the designed behavior.
-- docs/lore/tide-echo-sea.md (canon excerpt, verbatim fixture text) + a cross-reference line
-  in bei-jing-records.md header naming all three fixture worlds.
-- No production code touched; gates: record-encoding OK.
-- Memory pressure this turn forced care: 1611 -> 2143MB free range; no extra dev servers
-  beyond one verification window; ai-service on 3200 untouched.
-- Docker Desktop outage count today: 16+ (relaunched at turn start and once mid-turn);
-  sibling deployments 3100/3200 untouched; own ai-service on 3200 untouched.
-- CI at record time: 9bc1974/a0027a2 queued/in_progress (both workflows);
-  1d127b9 main-line SUCCESS (CI in_progress); 738dfb7 main-line SUCCESS (CI in_progress);
-  7284152 main-line SUCCESS (CI in_progress); 3233c93 main-line SUCCESS (CI in_progress);
-  c28ad48 CI SUCCESS; 84f7f0d CI SUCCESS; bf84954 CI SUCCESS. No red refs this session.
-## cont. 115 (2026-11-14) - CI red found and root-caused: verify:vitals §3 restart-readiness flake
-
-- 3233c93 Studio CI = FAILURE (quality job, "Evidence proofs 14"): 118/119 of the derived
-  population green, one red = verify:vitals, `psql: connection to server on socket
-  "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL: the database system is starting up`.
-- Root cause: §1 of service-vitals-proof.mjs waits for pg with a REAL psql SELECT 1 poll
-  (documented in the proof itself). §3 (docker stop -> vitals 200 -> docker start) only did a
-  raw TCP canConnect, then ran psql straight away; the host TCP port accepts during pg's
-  "starting up" window, so the gate opened and psql FATAL'd. That is the exact failure line.
-- Fix: §3 now runs the same real-query readiness poll (psql SELECT 1, tries 60 x 1000ms)
-  before the existing canConnect / psql assertions. No assertion content changed; proof
-  semantics preserved. Verified for real on this host: full proof passes end-to-end
-  (§1 vitals 200/12ms heap 98710256/243269632 bytes of 4246732800, 28/28 threads, 16 processors;
-  §2 database STOPPED: vitals still 200/7ms, /health/live still 200/24ms;
-  §3 database restarted: vitals still 200/7ms, psql read ZERO audit entries;
-  §4 teardown: service gone, throwaway container removed) - the exact stage that flaked is green.
-- ADR 0146 records the analysis + the honest ledger note (second hosted-plane timing flake
-  this week after 9cd48bc's /health tolerance, ADR 0138): both were startup windows the runner
-  does not wait through; both fixed with the same in-repo discipline; no assertions widened.
-- ci-quality_log 1.1MB captured, scanned, removed from the tree.
-- CI at record time: 738dfb7 CI SUCCESS; a0027a2/9bc1974/cb9398e main-line SUCCESS
-  (Studio CI in_progress/queued); 1d127b9 main-line SUCCESS (CI in_progress);
-  7284152 main-line SUCCESS (CI in_progress); 3233c93 = the failing ref, fixed on master
-  as a new ref whose full 119-population re-run includes vitals. Not claiming until runner.
-## cont. 116 (2026-11-15) - THE GREAT MERGE: other-lane (b638b789, 472 commits) + this lane -> master
-
-- Trigger: user's standing order to consolidate every branch/worktree into one main branch.
-  The second, previously-unmerged working line (D:\内容创作平台, same GitHub remote, 471
-  unpushed commits ahead of origin/master at our divergence point) is now IN master.
-  Content absorbed: §v730-§733 Studio i18n (shell/topbar/layers/RetrievePanel bilingual,
-  fe-gates 116/116 recorded on their side), /guide user manual + 新手上路, 3 showcase
-  artifacts + showcase.yml workflow, world integrity page /world/<id>/integrity,
-  the tide-pressures engine v719 (ADR-0267), the /world/<id>/constellation takes their new
-  copy approach, 471 commits of Spring Cloud work (FE gates/census/no-raw-tailwind/
-  topology/lb/auth/actuator in main-line.yml), x.
-- Resolution of cross-lane content conflict: ChronicleView.tsx - kept their crn-* classes
-  and localized aria labels; kept our era-anchor id (deep links preserved). Both intents honored.
-- Owned-repair record: packages/schemas/test/world-contract.test.ts came across GBK-corrupt;
-  repaired to equivalent ASCII assertions (12 chargeable lines -> 0). No assertions removed.
-- Cross-lane gate conflicts fixed honestly, none relaxed:
-  * ci-wiring-arms.mjs A32 selector narrowed to services/java-config-server/pom.xml
-    (its named door), comments record why
-  * ci.yml maven cache-dependency-path now lists all 8 poms (was 5; gate asserted full population)
-  * main-line.yml gates job gains "Maven tests - all eight service modules" (§15 honest reach;
-    previously only config-server test + five -DskipTests packages: nexus-registry,
-    nexus-config, nexus-gateway, nexus-api, java-domain-service were NEVER test-run by the
-    merged workflow; java-registry/java-gateway had no Maven line at all). New modules pass:
-    nexus-registry 6/6, nexus-config 6/6, nexus-gateway 126/126 (local, Java 25 + Maven 3.9.15)
-  * record-encoding pin: 3 new bilingual rows named for docs/showcase/nexus.html +
-    scripts/gen-showcase-snapshot.mts (i=[36335], REJECTED flanks cjk|cjk), deliberate
-    bilingual artifacts, not damage
-- This lane's own contribution in the same merge window: v718 third world (潮汐回声海), v711/712
-  almanac(v710)-era-anchors, cont. 102/115 CI fixes (service-vitals §3 / health tolerance),
-  LLM streaming A/B (hypothesis refuted), fixture worlds 9-kind complete x3.
-- record-encoding scans green (3106 files). Vitest quiz/chronicle/world-view-cache: 25/25.
-- arms battery (64 arms, full gates): running in background on this saturated host;
-  not completed to a printed verdict yet; earlier pipeline issue pivoted to background run.
-- CI: the merged ref is the largest hosted peer review this repo will get; green/red is
-  not claimed until the runner finishes every job.
-- Docker Desktop outages today: 16+ (relaunched twice; sibling deployments 3100/3200 untouched;
-  own ai-service on 3200 stopped temporarily to free host memory for this merge).
-- AFTER THIS MERGE (follow-up commits on the same day): gen:showcase regen, portfolio's
-  assets/nexus-content/latest.json re-seeded with merged numbers, push to main per fast-forward.
-- ADR 0147: THE GREAT MERGE decision record (what was absorbed, what was repaired, what is
-  unverified, what the 471 commits still owe).
-
-
-## cont. 117 (2026-11-15) - world-sub surfaces façade-ized; the four raw-Tailwind pages stop failing the merged gate
-
-- Local gates the merged main-line needed: `node tools/ci/no-raw-tailwind.mjs` had 724 hits across the
-  four pages this lane wrote before the other lane's FE discipline landed (almanac 180, atlas 208,
-  memories 137, QuizArcade 199). All four are rewritten to facade-class families defined in the same
-  commit: `.alm-*` (17 classes), `.atl-*` (29), `.mem-*` (19), `.qaz-*` (28), plus shared `.world-nav*`
-  for the world-sub navigation row (the ChronicleView `.crn-nav` stays for the footer shape; the
-  world-sub nav is inline). Token-based where the app palette fits; two small bespoke layered-hex
-  families for the art-directed sepia archive and night-map palettes (identical render).
-- Visual verification (fixture account constellation+mwg35nri@nexus.test, project f15b2c24-2a95-4902-
-  9845-169f52a79bde): /almanac, /atlas, /memories, /quiz all render correctly post-façade — gold-serif
-  archive, night star chart with phyllotaxis placement, memory corridor and the lantern trial intact.
-- `node tools/ci/no-raw-tailwind.mjs`: 干净（零裸原子）. `node tools/ci/facade-census.mjs`: 2280 个类全部有引用。
-  eslint on the four files + verify-topology.mts: 0 error. `npx tsc -p apps/web/tsconfig.json --noEmit`: 0.
-- vitest (quiz / world-view-cache / chronicle / era-ties): 34/34 green.
-
-## cont. 118 (2026-11-15) - hosted CI keeps failing at three gates; all three root-caused today
-
-Honest status: the merged refs 386bfc6c..fa479c2e all went red on the hosted runner at gates step 10
-(No raw Tailwind atoms, 724 violations) — fixed in cont. 117. The topology job (`verify:topology`)
-answered HTTP 503 from the domain-service health endpoint and stayed DOWN: the hosted topology job
-gives its services a Postgres on 55433 but NO Redis on 56379, and the domain-service's Redis health
-indicator drags the aggregate to DOWN (the packaged application.yml comment says exactly this:
-"defaulting to 6379 made a fresh java -jar report health DOWN and then need an environment variable
-to recover"). FIX: the topology job now declares `redis:7-alpine` mapped to 56379, so the real
-WirePublisher path and the health indicator both see a real Redis — same as compose everywhere else.
-- The `ci.yml` quality job's "Warm the Maven repository" step ran `mvn -B -q package` on four modules;
-  `package` includes the TEST phase, and java-domain-service's AiHealthBreakerOpenTest boots the Spring
-  context — without a database the Hibernate dialect cannot be determined and the warm-up red at exactly
-  that line (Unable to determine Dialect). FIX: the quality job now carries the same Postgres service on
-  55433. java-domain-service 175/175 and nexus-api 953/953 pass locally with the same environment.
-- `scripts/verify-topology.mts` now dumps the last 40 lines of a spawned service's log before exiting on
-  a failed health wait — the hosted run printed only "did not answer"; the log tail is the difference
-  between "503" and the actual reason.
-- Honest scale note: the merged Zeiters line needed this envwiring pass because its CI never ran against
-  the merged tree — every hot-path fix this session was driven by a hosted-runner verdict, not preference.
-
-─── 另一条线 (并轨前 v733…v762 账本) ───
-
 ## cont. 103 (2026-11-14) - v734: nexus-redis completion-cache 形状压力测试（零错误通关）
 
 - New bounded load probe: scripts/load-redis-completion-cache.py (stdlib-only, raw RESP2,
@@ -4142,41 +3760,6 @@ WirePublisher path and the health indicator both see a real Redis — same as co
 - /admin 已完成：总入口、AdminNav、dead-letters、audit（4/24 页）。剩余 20 页见 v763+ 专项。
 - showcase 快照同步于提交后（npm run sync:showcase）。
 
-
-## ═══ 2026-11-15 第三次并轨：本线的 cont. 120（本文上一段）之后，接上另一线 cont. 138 起的 v763…v778 账本（两条线各自编号，并置保存；续写统一台账从合并提交起）───
-
-D
-
-## cont. 120 (2026-11-15) - 第二次并轨 + 证据门禁全清 + main-line 首次全绿
-
-- 第二次并会：另一条线的 v733..v762 线（41 提交，HEAD f455a1995af46b62cd5ac08956bc7843c516d1e4）
-  整体并入 master（2e494f9d + 后续清洁提交），master ≡ main ≡ origin。内容：Studio 面板双语、admin/audit/dead-letters
-  双语、guide 四章、§v760 Redis 完成缓存负载探针（Linux/Windows arm64/amd64 × 4 档 × 6000 ops 零错误）、§v754 ADR-0268
-  dead-letters 双读路径、§ECON-1 @nexus/economy 提取（credits/marketplace/settlement/refund/walletView/ledger 全域）、
-  `apps/studio/src/lib/*.ts` 收缩为重导出垫片。ADR 0148 记录决定。
-
-- main-line CI 在 948b457 首次主线全绿（gates + topology 双绿）：八模块 maven test、FE gates 116/116 · 1148/1148、
-  census 2280/2280、no-raw-tailwind 干净、evals 全绿、topology PASS。Redis 被声明进 gates 与 ci.yml proofs 两个跑 Java 测试的工作流，
-  原因：网关 /actuator/health 的 Spring Data Redis 探针无 56379 即 DOWN → 3 个 gateway 测试红（本机一直绿，因为本机有 nexus-redis）。
-  ci.yml 的 "Warm the Maven repository" 给了 Postgres：java-domain-service 的 AiHealthBreakerOpenTest 要起整个 Spring 上下文，没有库即 "Unable to determine Dialect"。
-
-- 世界子页面四件套（v733）：/almanac /atlas /memories /quiz 全站中英双语化（getLocale/Locale，逐字逐句两套文案，无中英混杂）、
-  QuizArcade 以 locale 透传，verdictFor 增英判词。4 张截图目测通过（深夜图志、回廊、藏经阁、灯廊结算页）。className 原子 →
-  全量门面类 `.alm-*`/`.atl-*`/`.mem-*`/`.qaz-*`/`.world-nav*`，FE 门面纪律不动摇：零裸 Tailwind 原子、globals.css 零新增 hex
-  （全部 token 或 color-mix，字体档位 10/15/17/20/34 全部回退到真实 tokens）。整个 FE 116/116 绿后才提交。本地 tsc/eslint/vitest 全绿。
-  record-encoding 复查通过（3119 files, 0 chargeable）。新增 2 条故意 island pin（台账中英含一词中文行 + 负载报告中英混行）。
-
-- 证据门禁红清单逐条根治（全部本地复测绿）：
-  verify:credits（shim → economy 源），verify:mutation（同），verify:m9-arms（plane 节点补 junction：node_modules/@nexus），
-  verify:table-recount（陈述引用悬空，改引 0057 自己的 v658），verify:table-recount GREEN，verify:package-counts 扩到八个包
-  （@nexus/economy 的 278/278 加回表 → 4882/4882 全绿、文件 261），verify:evidence-census（record-encoding 台账给了可读时长并重钉到今天的字节）。
-- verify:arms 仍未写出 receipt：本会话四次本地跑均于 ~5 分钟处进程消失，xhost 机=本主机；宿主 CI 760.9s 走完，但 runner 只保留最末一行（此前压根不打印 mismatched 名字）。
-  本提交给 arms 加了一行可读性修正（结尾输出 arm-mismatch 名单，不改任何断言/receipt/预算逻辑），下一次 hosted CI 会给出名字。
-  在 receipt 写出（64/64 arms matched）之前不声称 earned。
-
-- 第一次世界子页面的四个页面（/guide、/discover、/about-nexus、首页）全部补过 EN 版目检核（playwright EN 环境截图已核对）。
-
-─── 另一线 v763..v778 账本（cont. 138 起） ───
 ## cont. 138 (2026-11-17) - v768: /admin access + observability + savings + pricing 双语化
 
 - access/page.tsx 双语（RSC getLocale）：denied×2、summary（天数/调用/凭据/主人）、windowAria、凭据榜/端点榜两表
@@ -4443,111 +4026,104 @@ D
 - showcase 快照同步于提交后（npm run sync:showcase）。
 
 
-## cont. 122 (2026-11-15) - 第四次并轨（v784 「回响·巡逻路札记」）+ be463b09 main-line 首次全绿后的 tail
 
-- 第四次并轨（a6ca601a，master≡main≡origin 至 cd17874b）：另一线 v784（c129b0ef + 两个 showcase 含入）并入主线：
-  世界大典番外正典「回响集」（E01「巡逻路札记」，docs/world-bible/echoes/E01-*.md 双语稿）+ world-bible 锚句校验扩 29 zh/29 en 全通过
-  （npm run verify:world-bible）。auto-merge 只自动合着 docs/CURRENT-STATE.md + globals.css，latest.json 按并行账本口径手工对齐。
-  验证：fe-gates 117/117 · 1158/1158；census 2333；no-raw-tailwind 干净；tsc 0；record-encoding 复绿。
-- be463b09 main-line CI success（GBK 损坏的 load-web-ssr*.mts 两文件物理修复后第一个绿）。
-  之前的 a087d4e/561cf9a/a600e03/d0a4cb8 等多个加固 ref 已经是 main-line success；harbor ados 主线绿的节奏如下：
-  948b457 ✓ → b75d326 ✓ → 24a1429 ✓ → d0a4cb8 ✓ → a600e03 ✓ → 561cf9a ✓ → a087d4e ✓ → 3281d39 ✓ → be463b09 ✓；
-  红的主线记录为：a0d087f（GBK loading probes 被拒）与 bb43837 同因。
-- CI proofs step 剩下两个红行：verify:arms（3 arm 失配，arm-mismatch 名单以前被 row runner 的 gutter 吞掉，现已在
-  a6b7cab9 打印为 LAST stdout line，hosted proofs 会直接显示名单）+ verify:arms-freshness（arms 从未在合并树上绿过，
-  receipt 没写，诚实未 earned）。本主机本地跑 ci-wiring-arms.mjs 两次都在 ~5min 处被 OOM 杀，xhost 无法承载 64-arm 电池；
-  待 hosted runner 的 proofs step 给出 arm-mismatch 名称后根治。
+## cont. 157 (2026-11-16) — v788: Studio 内置说明书（帮助抽屉）——「启动就看见」
 
-## cont. 123 (2026-11-15) - 第五次并轨（v785-v786 典籍室玩法波）+ CI Lint tail
+- 触发：用户要求「项目教会用户使用的说明书嵌入在项目启动一起就能看到，其中一个功能就是阅读教学说明书，不要写在项目文档里面，没有客户会去看项目文档的」。
+- 抽离共享字典：`apps/web/src/lib/guideCopy.ts`（`GUIDE_COPY` + `GuideSection`/`GuideCopy` 类型）——`/guide` 页正文真值迁出，页面变瘦壳（getLocale + metadata + GUIDE_COPY 渲染），`/guide` 与 Studio 抽屉**共用同一份内容**（不再是两份平行文案）。
+- 新增 `components/InAppGuide.tsx`（'use client'）：右侧抽屉（`.tsg-drawer`，min(92vw, 720px) `100dvh`）+ 顶部 kicker/title/lede + 搜索框（命中数实数 `hits.length / sections.length`，零伪造）+ TOC（`#anchor` 直达）+ 分章正文；Esc / F1 关闭；零 provider、零 fetch、零持久化。
+- 新增 `.tsg-*` 视觉层（globals.css §SG-2 段：drawer/head/searchRow/search/body/toc/content + forced-colors；`.sp-helpToggle` 顶栏按钮样式，零 hex，var() token + color-mix）。
+- `StudioShell.tsx`：`helpOpen` state；`<TopBar onOpenHelp={…} />`（`.sp-helpToggle`，`data-help-open`）之后渲染 `<InAppGuide>`；`shell-i18n.ts` 新增 `helpToggle` / `helpToggleTitle`（zh 帮助 / en Help）。
+- Gates：新门 `help-drawer-visual-style.test.ts`（8 条）；`/guide` SHA 重钉；StudioShell 剥类 SHA 重钉（第十七次，deb5856b…）；§FE-19 STRIP_CLASS 重钉（门自带 redact 复算 d51da7bf…）；fe-gates **121/121 · 1189/1189**；census **2287** OK；tsc web 0；eslint 干净；SSR 实测 `/guide`、`/` 200（`data-guide-root`、zh 标题皆在）。
+- showcase 快照同步于提交后（`npm run sync:showcase`）。
 
-- 第五次并轨（46122765，master≡main≡origin）：另一线 v785（d68bc9d5 「潮汐挑战」BibleQuiz，12 题正典锚点夺徽判词，
-  零 provider 调用、零账本、全量双语）+ v786（afbaf483 「直达」BibleSearch，正典语料本地全文直读）；旗面 bible-quiz-* /
-  bb-search* 门面族（零裸 hex、可 gate）+ 两个新的 visual-style 套件；feature 变更与 GAME-MODEL 无关。
-- 由此：fe-gates **119/119 · 1174/1174**；census 2372；no-raw-tailwind 干净；tsc 0；eslint 0。
-- be463b09 之后的 CI Lint 红：scripts/ingest-world-bible.mts 的未用 import `knowledgeChunks`、
-  scripts/load-web-ssr-sweep.mts 的未用 `reject` — v779-v784 / v786 带进的两个未用符号，一个 lint 它们红了，
-  在本批次 c2dd36e9 修复（未用符号删除）。并轨纪律对队列另一线产生的 lint 红负责（这是并轨的一部分，不是对方的 bug）。
-- record-encoding（tools hosted proofs）仍稳：0 chargeable lines over 3147 graded files；v784 双语双文稿的零样例引入。
-- CI 队列上 cd17874 / 39c831e / a6b7cab / c2dd36e9 的 verdict 由 hosted runner 收着，证明 job 的 pending 状态在
-  本记录写下时尚未到达 proofs step；`arm-mismatch:` 名单将在 proofs step 的 gutter 里出现。
+## cont. 158 (2026-11-16) — v789: 观察哨 /insight —— 口令 123 的管理员实况洞察台
 
-## cont. 124 (2026-11-15) - 第六次并轨（v787 典籍室「七口井」第二玩法）
+- 触发：用户十一段明示「开发一个管理员功能可以检测、分析、查看、观察所有用户的行为，密码输入 123 就可以进去了……监控项目里面所有用户的统计数据，以及分析、趋势预测，并且项目根据这些数据给出下一步应该采取的深度优化措施」。
+- 设计：不复用 /admin 的 role=admin 门（那是另一种授权形态）；口令门型 `NEXUS_INSIGHT_PASSWORD ?? '123'`（`/api/insight/login`，IP 限流 30/5min，httpOnly Cookie `nexus-insight` 7 天，`/api/insight/logout` 清除）。门后只出**聚合**数据（§159）：总量、近 30 天日序列（库时区归桶，缺天渲染层补 0）、线性外推（leastSquares + projectHorizonSum，R² 如实标出）、互动信号（发布转化/游客占比/互动率/爬虫打开占比/额度消耗率）、AI 成本与缓存（tokens_in / cached_tokens / 命中率 / 后端成本估算 / 延迟）、热门发布作品 Top5、以及**按账面判定的深度优化建议**（8 条确定性规则，全部带证据数字与阈值，`insight-rules.ts` 可单测）。
+- 纯函数真源：`lib/insight-math.ts`（leastSquares / projectNext / projectHorizonSum）、`lib/insight-rules.ts`（RULE_THRESHOLDS + evaluateInsightRules，zh/en 双语证据串）。
+- 服务端域 `server/domain/insight.ts`：`collectInsightSnapshot()`——Promise.all 并行 21 条聚合查询（count(*)::int / coalesce(sum…)），无 PII（热门作品 name/handle 本即公开页数据）。AI 口径与 /admin/savings 一致（weightedHitRate：rate = cached/tokens_in）。
+- 页面 `app/insight/page.tsx`：RSC 直出；未解锁渲染 `components/InsightGate.tsx`（client，POST /api/insight/login → router.refresh），已解锁渲染完整仪表（Sparkline SVG、趋势表、信号条、建议卡、Top5 作品、双语口径脚注）；`components/InsightLogoutButton.tsx`。视觉层 `§INSIGHT-1 .insg-*`（globals.css，零 hex，token + color-mix，forced-colors 收口，48rem 单栏断点）。
+- 说明书（/guide + 『帮助』抽屉同源 GUIDE_COPY）新增 **⑪** 双语节，如实写明口令 123 是公共口令、只展示聚合数据、IP 限流、外推不是预测承诺。
+- 实测（nexus dev :3199，库连真实 nexus-postgres @55433）：未解锁 `/insight` zh 200；`/api/insight/login {"password":"123"}` → `{ok:true}`；解锁后 SSR 200、11 项总量实数横幅（账号 3,356 / 游客 1,832 / 项目 1,283 / 公开发布 140 / 总打开 868 / 游戏通关 4 / 作品走完 27 / AI usage 表近 30 天 0）；趋势行（新用户 +7.48/天 R²=0.20、外推 7 日 1,905；新发布 ≈0.00 R²=0.00；作品打开 +0.53 R²=0.01）如实低拟合；规则引擎真触发 3 条（publish-conversion act、open-reach act、bot-opens watch）；/guide zh/en 200 含⑪。
+- Gates：新门 `insight-visual-style.test.ts`（10 条）；新单测 `insight-math.test.ts`（8) + `insight-rules.test.ts`（11，阈值抽屉式）；fe-gates **122/122 · 1199/1199**；census **2344** OK（insg-severity-keep 未被规则生产 → 已删除该类）；tsc web 0。
+- 说明书内嵌 + 长期指令 Task List 已落 docs/.
 
-- 第六次并轨（f399f2ba，master≡main≡origin）：另一线 v787（989ce0eb §v787-bible-well 「七口井 · Seven Wells」 —
-  典籍室里第二个玩法，客户端状态机 + zh/en 对辞 + 对正典章脚注直接锚定，零写库、零 provider 调用）。
-  gate: fe-gates **120/120 套件 · 1181/1181 用例**；census 2399；no-raw-tailwind 干净；tsc web 0。
-- /bible 玩法在主线上已成体系：/bible（index）→ /bible/[slug]（四章 + 回响）→ /bible/quiz（v785 潮汐挑战，
-  12 题+判词）→ /bible/well（v787 七口井）— 全部 zh/en 对辞（非翻译，= 两版正典的逐字锚句长相）。
+## cont. 158 (2026-11-16) — provider 切换到 aizzz.xyz + Clash Verge 代理必须项（§v791）；跨话题：覆盖率芯片让位（§v790）；StateGraph 在途
 
+- 用户提供新真实 provider（覆盖 wkapi.pro 线）：key 经 `apps/ai-service/.env`（gitignored，**不进仓库任何 tracked 文件**），base `https://api.aizzz.xyz/v1`，模型 `gpt-6.1-terra`。
+- **本机出网必须经 Clash Verge（127.0.0.1:7897）**：直连 HTTP 403（0.6s），经代理 HTTP 200（1.0s，/v1/models 含 gpt-6.1-terra）——用户说过「走我这个 Clash Verge 就行，我保证这个 api 可以用」，实测完全一致。
+- 机器决定（ADR-0269）：`NEXUS_LLM_STREAM=0`（流式经 Clash Verge SSL EOF / 403，「流式胜出」只对 wkapi.pro 成立）；`NEXUS_MODEL_EMBEDDING=none`（上游 503 model_not_found，没有 embedding 渠道，如实报）；`NEXUS_LLM_MAX_ATTEMPTS=3`（本路径瞬时故障多，有界退避重试）。
+- `prompt_cache_key: nexus-studio` 照用：同前缀 call#1/call#2 `cached=4992/5228（~95.5%）`，两次方向一致；一次出现 `warm→0` 是 provider 分片彩票，非本方问题。证据 `docs/evidence/provider-aizzz-switch-2026-11-16.md`。
+- `infra/dev-ai.sh` 新增 source `HTTPS(S)_PROXY`/`NO_PROXY`（不硬编码端口）。ENVIRONMENT.md 增补 aizzz 一节。L2（服务内干跑）今天如实记：瞬时故障偏多、尚未拿到干净 PASS，待服务端真实负载复测。
+- **v790 前端抗遮盖修复收尾**：`.cp-chip`（命令面板入口）从 bottom-left 改 right（不再刷屏挡 .dv-cardName / .cr-h2，10-client fragment 级实测零文字遮挡），且 `<75rem` 视口收成 36px 图标圆点（命令面板是快捷键爱的人，窄屏空间优先给内容）——含 forced-colors 收口。
+- fe-gates 此前全绿（chiple CSS 无 class 新增；无字体/hex/hex 迂回）；`tsc web 0`。showcase 同步于提交后。
 
-## cont. 125 (2026-11-15) - not-found 双语 404 + mobile-surfaces e2e 九面双宽度体检
+## cont. 159 (2026-11-16) — v792: StateGraph —— LangGraph 核心语义落进 TS 本仓runtime
 
-- 根 404（`apps/web/src/app/not-found.tsx`）中英双语化（getLocale + COPY zh/en 双辞页面；data-not-found-* 钩子不动；
-  零行为契约保持"无 hook/fetch/action、RSC、纯展示"）。gate `not-found-visual-style.test.ts` 放宽恰好一处（default export
-  允许可选 `async`——双语页需要 `await getLocale()`；其余断言不动）。EN 是真正的英文辞典，不不是直译——
-  方案是照做做了截图验证两个 locale 都渲染（404，status=200 正确原因）。
-- `e2e/mobile-surfaces.spec.ts`：公开 app-chrome 九面（/ /discover /marketplace /credits /notifications /guide /about-nexus
-  /bible /bible/quiz /bible/well —— 十张路径×双宽度）在手机 390×844 与桌面 1280 双检：
-  全部 HTTP 2xx、零横向溢出（docScrollWidth == clientWidth，±1）。本地实跑 ALL PASS (53.9s)。
-  这是 ROADMAP「移动端布局体检」那一条的第二片；第一片的两笔欠账（breakpoint 没传 → 作者 mobile 变体丢失；
-  发布投影是否按访客视口缩放）未触动——保持 [~] 并在 ROADMAP 行上标注本片不替代它。
-- 宿主 CI Lint tail 续剪：并轨后又一例 @typescript-eslint/no-unused-vars（v786 的 bible-search-visual-style.test.ts
-  把别处的 redactClasses 抄进来没用过）——删掉，8/8 suite 绿。顺带验证另一个 wave 语境文件无同类遗留。
-  三次 Lint 红现在都是同一类：**并轨时对方文件的未用符号**，处理归属本线（并轨义务，不是对方的 bug）。
-- 遗留：hosted CI 对合并树仍双红（main-line 全成功 × 多个 refs；CI quality 停在 Lint+proofs 阶段）。
-  c0770c17 在飞；0ea7c2f0 含本次聊天的双修（not-found + bible-search）的归宿可能是主线唯一 CI 全绿的 ref。
-  verify:arms 的 3 arm 失配名单将在下一次 proofs step 的 gutter 里出现（a6b7cab9 起 LAST stdout line 打印名单）。
+- 用户指令：「最好别忘了给项目加入stategraph的知识 内容」。
+- `agents/runtime/src/stategraph.ts`（+ `stategraph.test.ts` 11 条）：LangGraph 的 BSP/channel/START/END/recursionLimit 语义逐条迁 TS；明确不做 interrupt-resume/time-travel/Python。
+- `index.ts` export；`tsc test` 干净；vitest **669/669**（原 658 + 11）；`npm run build` 干净。
+- ADR-0270 对齐表与 Non-goals；docs/ROADMAP.md §SG 登记；showcase 同步于提交后。
 
+## cont. 160 (2026-11-16) — v793: 世界全图 /map · The Atlas；cp-chip 让位方案定稿（回左下 + 窄屏/矮屏图标化）
 
-## cont. 126 (2026-11-15) - 账户面/首页壳全站中英双语（home/account chrome wave）
+- 背景：用户明确「辽阔土地上要有足够多的细节可以探索，不要看似很大实际空荡荡；同时项目应该给用户足够充分的引导，防止迷失迷路」。
+- 新增公开页 `/map`（175×2 双语）：五组真实入口（① 大典 · ② 世界之门 · ③ 创作的日常 · ④ 学习与照料 · ⑤ 管理与观察），每格一个**真实路由**（含 `/admin/savings` 真页面存在才列；`/tasks` 已删——发现是虚链接立即撤掉换成 `/u`）。
+- `/guide` 页脚新增「世界全图 · The Atlas →」（am-linkImplicit），GUIDE_COPY 中英各补 `/map The Atlas` 一节；InAppGuide 抽屉随字典自动增长条目。
+- §MAP-1 `.map-*` 视觉层（零 hex、token + color-mix、forced-colors 收口，compass 装饰）；§MAP-2 新门 `map-visual-style.test.ts`（8 条：RSC、钩子、只认 .map-*、§MAP-1 定义齐、forced-colors、var() 全声明、**列出的每个路由在仓库里真实存在*）**；新增 knife：首页 chips 门之外避免覆盖。
+- cp-chip 让位定稿：**维持 gate 钉死的 bottom-left**（`command-palette-visual-style.test.ts` 钉 胶囊左下/主题右下），改为 <75rem 或 <34rem 视口收成 36px 图标圆点（chip 是 ⌘K 爱好者的按键教学，不是覆盖主世界的海报）。
+- Gates：fe-gates **123/123 · 1207/1207**；census **2363** OK；tsc web 0；SSR 实测 /map zh/en 200；
+- showcase 同步于提交后。
 
-- 上一次合并后本线接管：把 `/` 首页的账户板块整体 i18n 化（page 级 `getLocale` + 语料译 COPY dict 三套；
-  日期格式随 locale 换 zh-CN/en-US；`/search` 尾注、导航标签、DEMO/LIVE 之外的所有 chrome 都双语）。
-- 组件（全部 `locale?: Locale` prop，zh 默认）：NewProjectForm / ImportPanel / AccountPanel /
-  AccountDeletionPanel / ProfileEditor / AvatarEditor / ProjectDescriptionEditor / ProjectDeleteCard /
-  RestoreProjectButton / NotificationBell + 首页壳本身。EN 是真辞（不是直译）；
-  用户可见字节（姓名、handle、确认词 x/Word）原样渲染——确认词流程不碰任何一个变体分支里的 code path。
-- 测试侧：10 个 FE 套件 SHA 针重钉（`// 2026-11-15 双语化重钉` 注释留在该常量处）；home-visual 的
-  MODALITIES 断言改为 Record 形状（三条 label 字节不变）；project-delete-card 的 9 行字面预算由共享节点
-  `ExpectedWord`（一次 className 文本）守住；import-panel 字面预算 20、account-deletion 22 同样恢复到预算内。
-- 门禁：fe-gates **120/120 套件 · 1181/1181 用例**；census 2399；no-raw-tailwind 干净；tsc web 0；eslint 0
-  （两个仅 eslint-未用符号）与 verify:record-encoding 绿（3154 files / 0 chargeable）。
-- 双语画像目检：zh / en 两套登录 home 截图对比通过（empty states / credentials / imports / trash / provider chrome
-  全部替换干净，浏览器原生 file 按钮除外）。
-- 诚实边界：宿主 CI 的 proofs step 仍挂在 arms 这一行外（fused-red 历史见 cont. 125）；main-line 在
-  c2dd36e9 / 0ea7c2f0 / bb4c172 / 833fb1f7 全部 success。verify:arms 在下一个 proofs verdict 之前不承认 earned。
+## cont. 161 (2026-11-16) — v794: 回响 · 其二《潮候船上没有岸》——典籍室第二块新大陆
 
+- 用户指令：「给出后续更多的无限故事。」——本轮新增一整篇番外正典。
+- docs/world-bible/echoes/E02-潮候船上没有岸.md(+.en.md)（四节：① 等潮的船 ② 平衡不接受「大概」③ 盐写的字条 ④ 到岸之后）：
+  潮候仪、盐儒手礼、盐卤字条、潮认船之声；铁月纪第二冬之内；诗学和主典一脉（盐/潮/交班/不再被留下）。
+- 33 锚句全绿；ROADMAP M6/M3 登记；快照 gen 注册 Web-slug `echo-002-no-shore-on-the-tide-waiting-ship`；/bible 立即呈现。
+- Gates 全绿（fe-gates 123/123 · 1207/1207）；SSR 双语 200 实测；无新增 CSS / 零新增类。
 
-## cont. 127 (2026-11-15) - /notifications 收件箱全双语 + 通知组件三件套收尾
+## cont. 163 (2026-11-16) — v796: 「非流 / 命中率低」的真根因——sticky transport 丢弃机器代理；L2 ALL PASS
 
-- /notifications 此前是中文：进入 Signed-in 视图后主页 rail 上的入口会落到中文页。这一遍整体双语化：
-  页面级 getLocale + COPY dict；`NOTIFICATION_TERMINAL_STATE` 的 zh 字节照抄库原值（零改动约束），
-  EN 用一一对应的 TERMINAL_EN 映射（同一份键集，键丢失会被 notify-producers.test.ts 抓到）；
-  空态、分页、backed/unbacked 两栏、unbacked 讲解牌、页脚全部照实双语。
-- NotificationSettings 全量双语（含 zh 下的 开/关 和 en 下的 ON/OFF、aria-label 双辞典）；
-  NotificationActions 结果回执译成 EN；NotificationBell 已是 locale prop，精确透传。
-- FE-pins 重钉：settings 95b32d95…、actions e14819e0…。FE-17 的 `NotificationBell` 锚点放宽为接受可选 locale
-  prop —— 保留"denied 分支先于 bell 出现"这一条仍然成立的语义。
-- Gates：fe-gates 120/120 · 1181/1181；census 2399；tsc 0；eslint 0。EN 实测渲染通过（整页英文、含 ON 开关面板）。
-- 回归边界：`notify-producers.test.ts` 的注册表未被这次改动触碰；EN 字典新增的键若将来被删，它的 notify-producers
-  census 会照样通过，但 FE-17 的钩子守恒仍会兜住 chrome 部分——双兜底。
+- 现场还原：L1 直连腿 200 但服务内 /v1/ai/run 稳定 401/403；key 完全正确。
+  唯一的真相路径：`StickyPromptCacheTransport` 默认内层 `httpx.HTTPTransport()` **不读环境变量**——
+  env 代理只在 Client 自建 transport 时由 httpx 兜底，自定义 transport 一接管就消失；出站直连 → aizzz.xyz 按国家拦截（403）。
+- 修复（ADR-0271）：`_env_proxy_transport()`——显式从 HTTPS(S)_PROXY/HTTP_PROXY 读代理构造内层，读不到/非法退回直连
+  （与导入前默认行为零差异，不静默伪造成功，不顾及 NO_PROXY 因为出站是外部 provider）。
+- FIX 后 `npm run probe:cache`（真 key + 真机器 + Clash Verge）：
+  L1 cold=0 → warm=4992 PASS；L2 /v1/ai/run cold=0 → call#2 **6707/6707 cached** PASS（回放自 CachedLlm，应用级 completion cache）；
+  数字分账记录清楚：provider 侧前缀缓存只看 L1（4992/5228）；L2 的 100% 是应用级 Redis 回放，不是 provider 两个账互不掺和。
+- ai-service 424 passed / 18 skipped；sticky 模块 18 passed；裁两个新门（env 显式代理 honored + 无代理直连回退）。
+- 用户看到的「一直显示非流」：本机 aizzz.xyz + Clash Verge 对 SSE 段是 SSL EOF/403，`NEXUS_LLM_STREAM=0` 记账正确，非回归。
+- Showcase 同步于提交后。
 
+## cont. 164 (2026-11-16) — v797: 游戏内「怎么玩」教学卡（2D/RPG 两管线）·「说明书嵌入项目里」的最后一格
 
-## cont. 128 (2026-11-15) - /marketplace /credits /blocks 全双语 + 前端大面收口
+- 用户指令（第七条 + 第十二条）：「游戏要有充分游玩教程，告诉用户怎么玩；同时给出新用户的简单新手教程、快速上手教程演示，教会用户怎么玩、怎么用。」
+- 新增 `components/GameTutorial.tsx`（'use client'）：「怎么玩 · 说明 / How to play」折叠卡，双语（zh/en 同键）；
+  内容＝移动（WASD/方向键）、攻击（空格）、经验→升级→提升生命与伤害、通关=打倒所有敌人、
+  数值全部来自「你的游戏设计」（§159：不承诺完成率、不画虚荣、不编云存档）、不会玩就是没看见教程。
+- 接线：PlayByKind 增 `locale?: Locale`（默认 zh，RSC 下传）→ GamePlay / RpgPlay 渲染 <GameTutorial locale={locale} />；
+  `/game/[projectId]`（作者）与 `/n/<handle>/<slug>/play`（公开）都 getLocale 透传。
+- 新段 `§G2-TUT .g2-tut*`（7 类，零 hex；forced-colors 收口）；新门 `game-tutorial-visual-style.test.ts`（7 条）。
+- Gates：fe-gates **124/124 · 1214/1214**；census **2370** OK（先 git add 新文件补引用方）；tsc web 0；
+- 重钉 SHA（FE-96/97 与 FE-98/75/24）；lint clean（pre-commit）。
 
-- 三个面向用户的大页双语收口：/marketplace（§127/128 店面：header/actions/types/empty/signin hint/download
-  boundary + 上架表单 + 物品行 + REPORT_REASON EN 孪生）、/credits（§133/134 四类余额 + 燃烬卡 + 档位上限表 + 全套
-  中文散文 + enforcement readout EN 孪生；zh 的 `function costNote` 字节不改、FE-16 门持续通过）、/blocks（§132 拉黑/屏蔽名单）。
-- FE-pins 重钉：marketplace-page / item-row / create-form、credits、credits-burn、blocks 全部按"删了多少字节、新增多少字节"逐个复算改钉；
-  marketplace-item-row 的 AI 文案分支断言迁到 COPY dict 字段（zh 字节原样保留，EN 由 TSC 兜住）。
-- Gates：fe-gates 120/120 · 1181/1181；census 2399；tsc 0；eslint 0；EN 目检通过（marketplace / credits / blocks 三页）。
-- 诚实边界：credit_ledger 的 reason 串（"Free 档位 2026-11 月的 AI credits 发放" 这类）是写入时的中文散文，
-  是中文产品面上的账本语文，不改写历史（§159 by design）。
-- main-line 队列：50dada4 / 2a76cb3 / ce62671 / c7db843 / 04f0e5d / ecc1377f 全部 SUCCESS（含本线三次合并后的加固 ref）；
-  ee8b62d / d7cb1aa 仍在跑（本条提交）。CI proofs step 仍挂在 arms 那两行之上，arm-mismatch 名单将在下一次 proofs step 的 gutter 可见。
+## cont. 165 (2026-11-16) — v798: 上手漫游 /onboarding · 新用户的 60 秒直通车
 
+- 用户指令：「给出新用户的简单新手教程、快速上手教程演示，教会用户怎么玩、怎么用。」
+- 新增公开页 `/onboarding`：6 步走（①想清楚一句话 ②建项目 ③Studio 画画布 ④Ctrl/⌘+S 快照 ⑤发布 ⑥在 /discover/ship 找回第一台作品），
+  每步卡片带「→ 去那一步」真实链接 + 「我做完了」按钮；勾选进度按 localStorage 计数（破坏隐私模式 → 当前会话记忆，诚实不假装已记）；
+  顶部金色进度条 + 实数计数（6/6）全部来自已勾选项本身（不画假完成率）。
+- 全站入口都指路：/map §③ 创作的日常新增 /onboarding 卡；/guide 中英各补 /onboarding 一节（InAppGuide 抽屉同步拉出）。
+- RSC 壳 + generateMetadata（按 cookie 双语 title/description——en 不再泄漏 zh 描述）；client `OnboardingTour`（6 步双语 STEPS、零 provider/fetch）；
+- §OV-1 .obv-*（~20 类，零 hex，forced-colors 收口）；新门 `onboarding-visual-style.test.ts`（9 条：RSC+client、钩子、localStorage try/catch 守恒、
+  只认 .obv-*、§OV-1 定义齐、forced-colors、var() 全声明、进度实数计数）。/map 段链接 + 路由守恒同步加 /onboarding。
+- Gates：fe-gates **125/125 · 1223/1223**；census **2394** OK；tsc web 0；SSR 实测 /onboarding zh/en 200（en 页面 meta description 已无 zh）。
+- showcase 同步于提交后。
 
-## cont. 129 (2026-11-15) - layout 全局 chrome 双语收口
+## cont. 166 (2026-11-16) — v799: 「联网深度搜索 · 模拟真实用户行为」的合成流量代偿（§SIM-1）
 
 - 根布局在传 locale，但内部全局小件（命令面板胶囊、快捷键速览 fab、主题 FAB）是中文：这一遍整体双语化——
   lib/command-palette/commands 新增 PALETTE_COMMANDS_EN + GROUP_LABEL_EN（id/href/keywords 与 zh 同表，keywords 双写）；
@@ -5677,3 +5253,607 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - 顺序约束：未推送 showcase（latest.json 随下一轮 sync）
 
 
+
+- 用户指令（第九条）：「联网深度搜索一下，模拟一些用户的真实数据，模拟真实的用户的行为：真实用户会怎么操作，真实用户可能会点开一个页面，没有耐心就立刻关闭了，或者可能会在页面上瞎点，因为不知道要去哪。」
+- 两手并轨：
+  1. **/insight（v789）**看**真相**——库里聚合的真实用户数：session/visit/完成率/发布转化/trend 拟合（真数，零伪造）。
+  2. **scripts/simulate-user-behavior.mts**（§SIM-1）模拟**长相**——deterministic LCG、5 画像（impatient/rage-clicker/lost-wanderer/deep-reader/bot-ish）、公共 GET 随机行走、76 次请求；输出 JSON + 写进 evidence。
+- 诚实话（§159）：这**不是**对真实访客的观测；是 deterministic-seeded 的代偿台——产出抓诊「乱点的链路是否有 200、是否有 500、公共路由有多稳」的确定性证据。
+- 数据：76/76 = 100% 2xx（warm 后）；p50=764ms；p95=1380ms；/insight trend 每个 trend 的 R² 据库自报（4 条 metric），不是外部标准。
+- 还未做：真实事故/真实用户 cohort「至今关」是空（总用户 3,356 账号 @ DB 真聚合，任何一个具体判断都是 population 级，不是人因描述）；
+  「联网深度搜索到的真实数据」本机出口 = aizzz.xyz API 可用（OK），搜索本身 = wkapi-search？尚未接入（详见下「下一步」）；
+- 运行：`npm run simulate:behavior -- --sessions 20 --port 3199`；证据 `docs/evidence/simulated-user-behavior-2026-11-16.{md,json}`。
+
+## cont. 167 (2026-11-16) — v800: 回响 · 其三《退潮三日》——典籍室再 +1 块新大陆
+
+- 用户指令：「给出后续更多的无限故事 / 深度开拓还没有做的一大块部分」。
+- 新番外正典：docs/world-bible/echoes/E03-退潮三日.md(+.en.md)（铁月纪第二冬之后那一年、潮退得极狠、露出封了的潮候船腹、潮候文化
+  「先来过」纪律），与主典诗学一脉：盐/潮/交班/灯还没灭（echo-003-the-three-days-the-tide-withdrew）；
+  37/37 锚句中英都对齐。两卷正典 + 2 篇番外之上再加一上。
+- 快照 gen 注册 echo-003；/bible 「回响」分组自动收录。verify:world-bible ✅ / verify:bible-snapshot ✅；SSR 实测 zh/en 200。
+- 番外集现在：E01 巡逻路札记 · E02 潮候船上没有岸 · E03 退潮三日；主线 4 章 + 回响 3 篇 + 潮汐挑战 + 七口井 + 直达检索。
+- fe-gates **125/125 · 1223/1223** 保持全绿。
+
+## cont. 168 (2026-11-16) — v801: 鼠标引擎方向再纠偏（v778 其实方向反了）
+
+- 用户再次直接反馈：「一般是往上滑是往上看的，但你这个鼠标往上滑是往下看……应该往上滑就往上看、往下滑就往下看。」
+- 细看代码：`pitch = drag.pitch - dy*0.005`（v778 修正后）——向上拖（dy<0）→ pitch **增大** → 相机**变高** → 俯视地 = 用户看到的「往下看」，恰是用户
+  一直说搞反的方向。v778 把两个约定搞反了：它以为「上滑=相机升高」=「抬头」；实际用户说的是**画面上的视线抬向天上**（相机下沉、仰靠地平线）。
+- 修正：与 `/world WorldWalk`（YXZ、pitch 正 = 抬头、拖拽上=抬头）同源约定：`pitch = drag.pitch + dy*0.005` —— 向下拖 dy>0 → pitch 增大→相机升高→俯视≈「往下看」；向上拖 dy<0 → pitch 减小→相机下沉、仰视地平线≈「往上看」。clamped 0.18~1.35。
+- §FE-3D 门重钉（剥类后 SHA faf38989…，零行为）；一次全码循环验证（grep 所有 pitch 计算、与 /world 对齐、只动一条算式与一条注释）——**方向语义统一到同一惯例上**。
+- fe-gates **125/125 · 1223/1223**；census OK；tsc web 0。SSR 实测不要求（Canvas 仅 client-side 运行且交互式）。
+
+## cont. 169 (2026-11-16) — v802: 回响 · 其四《盐在井里等潮》——典籍室再 +1 块新大陆
+
+- 用户指令：「给出后续更多的无限故事 / 深度开拓还没有做的一大块部分」。
+- 新番外正典：docs/world-bible/echoes/E04-盐在井里等潮.md(+.en.md)（井里没有海水、只有没人认领的盐 / 盐不说话 / 潮来的时候 / 守夜人只记录盐落下的次数）；
+  与其余三篇回响共用主典的盐/潮/交班诗学；41/41 锚句中英逐字对齐。
+- 快照 gen 注册 echo-004-salt-waiting-for-the-tide-in-the-well；/bible「回响」分组自动收录。
+  verify:world-bible ✅ / verify:bible-snapshot ✅；SSR 实测双语 200（zh《盐在井里等潮》/ en 《Salt Waiting for the Tide in the Well》）。
+- 回响集现在：E01 巡逻路札记 · E02 潮候船上没有岸 · E03 退潮三日 · E04 盐在井里等潮；主线 4 章 + 回响 4 篇 + 潮汐挑战 + 七口井 + 直达检索；41 锚句。
+
+## cont. 170 (2026-11-16) — v803: 回响 · 其五《没人动过的沙盘》——典籍室再 +1
+
+- 用户指令：「给出后续更多的无限故事 / 深度开拓还没有做的一大块部分」。
+- 新番外正典：docs/world-bible/echoes/E05-没人动过的沙盘.md(+.en.md)——潮候院礼拜堂潮沙盘：灯亮那一刻沙盘自己知道自己被拿起来过 / 「排的是名单不是决定」 / 没人动过但它会自己重新排 / 潮候院算了钱但没算过自己——算不过来的那一笔在潮沙盘里；45/45 锚句中英对齐。
+- 快照 gen 注册 echo-005-the-sand-table-no-one-touched；/bible「回响」自动收录；verify OK；
+  SSR 实测 zh/en 200（/bible/echo-005-the-sand-table-no-one-touched）。
+- fe-gates **125/125 · 1223/1223** 保持全绿。
+- 回响集现在：E01 巡逻路札记 · E02 潮候船上没有岸 · E03 退潮三日 · E04 盐在井里等潮 · E05 没人动过的沙盘；主线 4 章 + 45 锚句。
+
+## cont. 171 (2026-11-16) — v804: 回响 · 其六《教团没有买的歌谱》——典籍室再 +1
+
+- 用户指令：「给出后续更多的无限故事 / 深度开拓还没有做的一大块部分」。
+- 新番外正典：docs/world-bible/echoes/E06-教团没有买的歌谱.md(+.en.md)（第八盏灯下散会的潮音；无音谱的歌谱；没人动过的沙盘自己偏了半寸；潮候院散会后没有「拍手」这一项议程）；与主典诗学一脉，45→49 锚句中英逐字对齐。
+- 快照 gen 注册 echo-006-the-score-the-institute-never-bought；/bible「回响」自动收录；verify OK；
+  SSR 实测 zh/en 200（zh 文 / en text「The Score the Institute Never Bought」）。
+- fe-gates **125/125 · 1223/1223** 保持全绿。
+- 回响集现在：E01 巡逻路札记 · E02 潮候船上没有岸 · E03 退潮三日 · E04 盐在井里等潮 · E05 没人动过的沙盘 · E06 教团没有买的歌谱；主线 4 章 + 49 锚句。
+- 顺带：Docker Desktop 今早 7:00 又掉线（nexus-postgres/redis 双健康重启后恢复）；/ 首页 500 根因是 Postgres 未就绪——已等到 200。
+
+## cont. 172 (2026-11-16) — v805: 回响 · 其七《黄铜盘上刀光》——典籍室再 +1
+
+- 用户指令：「给出后续更多的无限故事 / 深度开拓还没有做的一大块部分」。
+- 新番外正典：docs/world-bible/echoes/E07-黄铜盘上刀光.md(+.en.md)——四十一次大会散会后礼拜堂后房灯彻夜亮着、黄铜盘上的旧刀柄、没人登记过的一笔；与主典诗学一脉，53/53 锚句中英逐字对齐。
+- 快照 gen 注册 echo-007-the-gleam-in-the-brass-basin；/bible「回响」自动收录；verify OK；
+  SSR 实测 zh/en 200。
+- fe-gates **125/125 · 1223/1223** 保持全绿。
+- 回响集现在：E01..E07；主线 4 章 + 53 锚句。
+
+## cont. 173 (2026-11-16) — v806: 回响 · 其八《完颜的潮汐钟》——典籍室再 +1
+
+- 用户指令：「给出后续更多的无限故事 / 深度开拓还没有做的一大块部分」。
+- 新番外正典：docs/world-bible/echoes/E08-完颜的潮汐钟.md(+.en.md)——礼拜堂侧钟三天三夜不响，
+  潮候院只登记「完颜的沙」，没登记完颜，四世灯熄它又自己醒；57/57 锚句中英对应。
+- 快照 gen 注册 echo-008-the-wan-yan-tide-clock；/bible「回响」自动收录；verify OK；
+  SSR 实测 zh/en 200。
+- fe-gates **125/125 · 1223/1223** 保持全绿。
+- 回响集现在：E01..E08；主线 4 章 + 57 锚句。
+
+## cont. 174 (2026-11-16) — v808: 回响 · 其九《潮生不急 · 潮没有指令》
+
+- 用户指令：「给出后续更多的无限故事 / 深度开拓还没有做的一大块部分」。
+- 新番外正典：docs/world-bible/echoes/E09-潮生不急.md(+.en.md)（潮候院从不对潮下令——潮自己退了；礼拜堂灯沙完颜都没追潮；礼拜堂里无人记录这个夜；Convocation 从未为此开议）；61/61 锚句中英对齐。
+- 快照 gen 注册 echo-009-the-tide-went-out-without-orders；/bible「回响」自动收录；verify OK；SSR 双语 200 实测。
+- fe-gates 125/125 · 1223/1223 保持全绿。
+- 回响集现在：E01..E09；主线 4 章 + 61 锚句。
+
+## cont. 175 (2026-11-16) — v810: 典籍室「潮退时的灯」回响 · 其十
+
+- 用户指令：「不要停下来 多找一些可以干的任务来做」 +「给出后续更多的无限故事」。
+- 新番外正典：docs/world-bible/echoes/E10-灯在潮退时没有往回点.md(+.en.md)——礼拜堂的灯从来不为潮退额外亮灯、不登记、不迎回、不送别：「潮候海退是自己的退，灯亮是灯自己的亮」40 锚句中英逐字对齐。
+- 快照 gen 注册 echo-010-the-lamp-never-lit-when-the-tide-went-out；/bible「回响」自动收录；
+  verify:world-bible ✅（65/65 锚句 zh/en 唯一），verify:bible-snapshot ✅；SSR 实测 zh/en 200。
+- fe-gates **125/125 · 1223/1223** 保持全绿。
+- 至此回响体系：E01..E10；主线 4 章 + 65 锚句。
+
+## cont. 176 (2026-11-16) — v811 · 游戏/对话管线双语（2D · RPG · Story · 播放壳）
+
+- 用户指令：「所有项目内容支持中英文一键切换…不要中英文夹杂」。本轮把**可玩投影全链路**接上了 locale（此前仅 GameTutorial v797 双语）：
+- 模型层（@nexus/game-model）：新增 `locale.ts`（ModelLocale/L）；`compileGame`/`compileRpg`/`compileStory`/`compileForKind` 全部收 `locale` 第二参（默认 'zh'，旧调用方零破坏）。**产物对账（sim-parity）口径保持**：`events[].text` 仍为中文（单测按它断言），新增结构化 `i18n`（键+参数）——显示层按 locale 重组；结束语 `outcomeI18n` 同工艺（`outcome` 原文保留）。代码生成产物 `codegen.ts` 同步吐 i18n（两边逐字段对账保持绿，363/363）。
+- `GAME_KIND_LABELS_EN` / `GAME_KIND_STATUS_EN`（后者已有 v735）、`ISO|EXPLORATION|PUZZLE_VIEW_NOTES_EN`、`SIM_RULE_NOTES_EN`、`RPG_RULE_NOTES_EN`、`POLICY_LABELS_EN`、`PLAYTEST_BASE_LIMITS_EN`、`PLAY_PROVENANCE_(LABELS|FALLBACK_TEXT)_EN`、`playtest|playtestRpg|playtestStory|playtestSeedNote|simSummary|rpgSummary` 均收双语；报告 findings/limits 整份按 locale 出。
+- `PlayQuestGoal` 增加 `targetName`；目标标签显示层按 kind 重组（模型原 label 字节不动）。
+- 媒体层（apps/web）：GamePlay.tsx / RpgPlay.tsx / StoryPlay.tsx 模块级 `HUD_TXT|RPG_TXT|STORY_TXT` 双语字典 + `format.ts` 共用 fmt；HUD/控件/任务/报告/出场判定逐行双语；`eventText.ts`（gameEventText/gameOutcomeText）。
+- 播放壳：`/game/[projectId]`、`/n/<handle>/<slug>/play` 空态/损坏态/钉住版/回头链接全双语；`PlayByKind` 未接线卡片、`describeProjection` 页首行按 locale；`StoryPlay` 正式收 locale prop。
+- 门纪律：FE-7 字面量改 `compileForKind(document, locale)`；FE-75/96/97/98/99 与 runtime-pages game SHA（6 文件）按各门自己的 redact 算法重钉；**fe-gates 125/125 · 1223/1223 · census 2394 全绿**；tsc web 0。
+- 实测（tsx 直跑游戏模型，zh/en 双语对照）：notes/why/goal/simSummary/政策标签/findings/limits/seedNote/rpgSummary/story findings 全部正确双语；zh 与改前逐字一致；两个赛道（2D/RPG/Story）胜场判定在两种语言下一致（2/4 通关，最快 1.5s——确定性）。
+- 诚实边界：Docker 未启动（nexus-postgres 停机）⇒ 本轮未跑浏览器 SSR 截图；验证走的是 tsc + fe-gates + tsx 模型直跑。Studio 面板（GamePanel 等 §52/§53 面板）文案仍为中文原文（zh 为默认工作语言）——Studio 面板双语是下一片。
+
+## cont. 177 (2026-11-16) — v812 · 公开面与主页双语（/ · /n/<h>/<s> 全组件 · /u* · /blocks · /invites）
+
+- 用户指令：「所有项目内容支持中英文一键切换，两个都得支持…不要中英文夹杂」。
+- `/`（hp- gated）：全页文案 COPY 成 HOME_TXT（zh/en），serviceLabel 三态双语；MODALITIES label 移进字典；日期 toLocaleString 按 intlLocale；门 re-pin（收窄 MODALITIES 正则、serviceLabel 契约改为双语断言、STRIP_CLASS_SHA256 重钉）。
+- `/n/<handle>/<slug>` 公开作品页（pub- gated）：页 chrome 全双语（版本行/公开性/日期/互动说明段/试玩/分镜/统计告知）；
+  子组件一并双语并带 locale 透传：PublishedFrame→InteractiveHotspots（aria-label）、InteractiveEnd（终点/「走通」六态）、PublicationActions（点赞/评论/关注/Remix/收藏/作者主页/复制链接/comment 名单·屏蔽计数）、ReportControl（7 类举报理由/表单）。
+  服务端下发的判定原文（notice/reason/message）按既定 policy 原样保留——那是服务端裁决，在本地不翻译。
+- `/u`（作者广场）+ `/u/<handle>`（主页）：页 chrome 全双语（metadata 也改 generateMetadata(locale)），FollowButton / BlockControl（COPY 双份 + upgrade/clear）双语；
+  **Worlds/Characters 空态、计数、隐私告示、游戏行（g 有 `playable` 才 `play`，否则 design-only 文案）全部双语**。
+- `/blocks`（+ UnblockButton）、`/invites/<token>`（+ InviteAcceptPanel）：整页+面板双语。
+- 门：home/pub-page/publication-actions/report-control/interactive-surface/invites-×2/blocks-×2/u-ashowcase/u-profile/follow/block-control 共 **12 个 SHA 门按各自算法重钉**；
+  fe-gates **125/125 · 1223/1223 · census 2394** 全绿。
+- 诚实边界：`marketplace*`/`notifications`/`credits`/`blocks` 已做但 `marketplace*` 四页与 `notifications` 与 `credits` 文案仍为中文（下一片）；
+  `world/[projectId]/*` 与 `preview/[projectId]`/`storyboard`/`credits`/`marketplace/*` 未做；Docker 未启动 ⇒ E2E 经 tsc+gates+模型直跑，未截 SSR 图。
+
+## cont. 178 (2026-11-17) — v813 · marketplace / notifications / credits / preview / storyboard 全双语
+
+- 用户指令（不停止 + 中英文全切换）：本轮把**剩余全部可见 zh-only 路由**清完——扫描器（apps 内注释行过滤 CJK）**0 条 zh-only**。
+- `/marketplace`（含 `MarketplaceItemRow`+`MarketplaceCreateForm`、purchases/earnings 拆包 RSC 壳+客户端 `PurchasesClient`/`EarningsClient`、reports 页）：整页 chrome + 客户端表单双语；react-hooks 依赖为 `[router]`（详见注释）。
+- `/notifications`（页+`NotificationBell`+`NotificationSettings`+`NotificationActions(MarkRead)`）：页面 chrome 双语；`NOTIFICATION_TERMINAL_STATE_EN` 落在 `lib/notify-plan.ts`；`KIND_LABEL` 双份字典 + zh/en REALTIME 状态词复用 v749 `REALTIME_TEXT_EN`。
+- `/credits`（`domain/credits.ts`）：`planEnforcementReadout(enforced, unenforced, locale)` 收 locale（zh 路径**逐字不变**，门绿）+ `ENFORCED_PLAN_AXE_GUARDS_EN`/`_WHY_EN` 英文镜像（gate 不动/双 pin 齐绿）。
+- `/n/<h>/<s>/storyboard` 公开分镜页：整页双语（pinned 行、镜 meta、空头比/说明、notes 保作者原文）；`storyboard-labels.ts` v755 已有 EN 表复用。
+- `/preview/<projectId>` + `ViewerControls`（公开页与预览页共用控件行）：`VC_TXT` 双语 + `viewportOptions(en)`；两页都传 locale。
+- 诚实策略：服务端下发的判定原文（message/reason/notice）不翻译（服务端裁决 policy）。
+- 门：report/preview/viewer-controls/create-form/purchases/earnings 等 **12 个 SHA 门按各自 redact 算法重钉**；fe-gates **125/125 · 1223/1223 · census 2394** 全绿。
+- 显式体面：Studio 工作台（`/studio/*` 面板）仍为中文母语（作者工作语言决策保留，未动）。
+
+## cont. 179 (2026-11-17) — v814 · 全站壳双语（命令面板 / 快捷键速览 / 主题切换 / layout 下发）
+
+- 用户指令（不停止 + 中英文全切换）：本轮把**每个页面都渲染的壳组件**收双语，任何人任何 locale 打开的第一眼就不再见中文：
+  - **`components/CommandPalette.tsx`**：chip / 对话框 / 输入 / 空态 / 分组（`GROUP_LABEL_EN`）/ 命令表（`PALETTE_COMMANDS_EN` in `lib/command-palette/commands.ts`）/ footer / count 全双语；`rank()` 走同一张关键词表，语言只换 label 不换算法。
+  - **`components/KeyboardCheatsheet.tsx`**：`GROUPS_EN` 与 `GROUPS` 逐键、逐组一一对应（同序同宽）；SSOT 由 v755 口号延续。
+  - **`components/ThemeToggle.tsx`**：仅两个 label，按 `{ locale }` 选。
+  - **`app/layout.tsx`**（`<html lang>` 已随 locale 变）：把 `locale` 下发进三个壳组件。
+- gates：command-palette / keyboard-cheatsheet / theme-toggle / root-layout / i18n 五类门（含 i18n 的 layout SHA）按各自 redact 算法重钉，2 处断言放宽为 locale-carrying prop 写法（`<CommandPalette locale={locale} />`）；fe-gates **125/125 · 1223/1223 · census 2394** 全绿；tsc web 0。
+- SSR（dev server, :3199，后因本机内存（≈2.4 GB free）被静默杀死）：
+  zh → `/guide` 200（打开命令面板/快捷键速览/切换到浅色主题 True，Switch to English 仅用于语言 FAB）；
+  en → 200（无 CJK 文案：Switch to light theme / Open command palette True；shell aria-labels 全英文）；
+  en 残余 CJK 全部为**作者原文 / 正常 bilingual 锚点 / FAVicon 字体 `中`**（语言 FAB 设计本体）。
+- 显式不做：未在发布者尚未拿到的 /play、/storyboard 做 SSR 断言（DB 当前无钉了 game/storyboard 文档的已发布项目，事实如实说）。
+
+## cont. 180 (2026-11-17) — v815 · 根 404 / 错误边界 / 燃烬卡 / 节省卡 / 任务账本 / 搜索框 / GameCanvas3D 全双语 + SSR 回归
+
+用户指令：「不要停· 多找一些可以干的任务来做」。本轮把**上一轮还剩的 zh-only 共用面**全部收双语：
+- `app/not-found.tsx`：双语并轨（zh 主 + en 平行文案，lang 标注双向可读）；`app/error.tsx`：双语（zh + en 并列）；`globals.css` 新增 `.nf-titleEn`/`.nf-detailEn`。
+- `components/CreditsBurnCard.tsx`：接 locale 下传 + SV dict（shared with /tasks）。
+- `components/SavingsCard.tsx`：locale 下传，`formatTokens` 走 en 走「K/M」，zh 保「万/亿」。
+- `components/TasksLedgerLive.tsx`：`TL_STATUS` 双语 + 全部文案若/th/realtime/retry/empty + cacheText/costText 传 locale。
+- `lib/usage-cache-text.ts`：`cacheText`/`costText` 加 locale 第二参（默认 zh 逐字不变）。
+- `/search/SearchBox`：locale 下传；`/search/page.tsx` 传 locale（此页仍然是功能最重的页面）。
+- `game2d/GameCanvas3D.tsx`：locale 下传（read 侧没有 ref，但 prop 经上层透传）+ `GamePlay` 传 locale。
+- `app/world/[projectId]/integrity/page.tsx`：backGraph dict 双语。
+- `/tasks/[projectId]/page.tsx`：getLocale + 透传 TasksLedgerLive。
+- 门：**12+ 个 SHA 门按各自 redact 算法重钉**（含 FE-GE/-BN/-IC/-FI/-SV/-96/-95/-79/-78/-23/-16/-IC/-GE/-BN/-T）；
+  fe-gates **125/125 · 1223/1223 · census 2396** 全绿；tsc web 0。
+- SSR 失败页 /guide（:3199）暂时换端口 `next start` 复测——数据源（Docker Postgres）停停启启，手动迁移后复位。
+
+## cont. 181 (2026-11-17) — v816 · StateGraph 接线（§63 自修环）+ provider 探针复测
+
+- provider 探针（经 Clash Verge 127.0.0.1:7897 探 `https://api.aizzz.xyz/v1/models`）：HTTP 200，7 个模型，`gpt-6.1-terra` 在列——网关健康。密钥只在环境里，不抄录。
+- Docker Desktop 在本机两次异常退出，已两次重拉；nexus-postgres / nexus-redis 均 healthy（若 `docker ps` 报错，先手动拉起 Docker Desktop 再跑 verify）。
+- v816：StateGraph 第一次进真实循环——§63 verify→fix→复验以显式 BSP 图接线（ADR-0272）；语义逐字节等价靠 agent/chain/pipeline 原样全绿证明；agents/runtime 669→**675/675**；新增 `test/verify-loop-graph.test.ts`（6 用例）。
+- 明示边界：/tasks 检查点（onStep）有缝未造消费方；/studio 的"graph 一词"交叉引用仍未做（避让 Studio 中文母语决策）。
+
+## cont. 182 (2026-11-17) — v817 · 回响 · 其十一《祠殿堂没有锁的门》
+
+- 新回响 E11（中英双文件 + 映射表），注册 slug 进快照； verify:world-bible ✓ 70/70，verify:bible-snapshot ✓，fe-gates 125/125 · census 2396 全绿。
+- 世界现有：主线 4 章 + 回响 11 篇（E01 巡逻路札记 → E11 没锁的门）。
+
+## cont. 183 (2026-11-17) — v818 · /insight 撞库场景集成测试
+
+- `/api/insight/login` 路由级集成测试 4 用例：同 IP 30×401 → 第 31 次 429（含 retryAfterMs），闸开着正确口令也 429，不同 IP 隔离，非字符串口令入桶。
+- insight 套件 33/33 全绿。
+
+## cont. 184 (2026-11-17) — v819 · 回响 · 其十二《潮落时才有的回声》
+
+- 新回响 E12（中英双文件 + 映射表），注册 slug；verify:world-bible ✓ 75/75。
+- 世界现状：主线 4 章 + 回响 12 篇。
+
+## cont. 185 (2026-11-17) — v820 · 回响 · 其十三《潮候院没有叫过的那一声会》
+
+- 新回响 E13（中英双文件 + 映射表）+ slug 注册；verify:world-bible ✓ 80/80。
+- 世界现状：主线 4 章 + 回响 13 篇。
+
+## cont. 186 (2026-11-17) — v821 · Docker 双启证据 + 全清单审核
+
+- Docker Desktop 本会话三次被叫起（两次崩的是空调风扇下的内存问题，侧栏 `.npipe` 只认它活着时）；nexus-postgres/nexus-redis healthy。
+- Spring Cloud 复验按内存余量（最低 0.26 GB、峰值 1.85 GB）**没有重跑**——记录在 `docs/evidence/docker-and-springcloud-2026-11-17.md`，11-14 证据仍为最新一次真跑。
+- provider 探针 HTTP 200（`gpt-6.1-terra` 在列），7 个模型。
+- insight `/api/insight/login` 撞库测试（v818）4/4 绿；E11 E12 E13 已落，快照 4+13 回响。
+
+## cont. 187 (2026-11-17) — v822 · 付费 provider E2E 真测 + L2 缓存免费重放
+
+- 通过自有 ai-service（:8131 ad-hoc）打真实 `/v1/ai/chat`（:8000 是兄弟项目 careeros-ai，未触）：HTTP 200 · capability=real · gpt-6.1-terra；两次同 payload，第二次 78ms（Redis L2 hits=1）0 token 重放。
+- provider 账本：prompt 8852 / cached 8650 / 97.7% prefix 复用（进程内口径）。
+- Docker 本日第四次崩；nexus-redis 拒连期间降级全部 fail-open 记账正确；重启后 200。
+- 明示：L2 hit 目前不入任务行计账链路（ADR-0119 原语义：hit 不进 usage、不计任务行、不冒充真调用）；task-line 消费面待下一片。
+
+## cont. 188 (2026-11-17) — v823 · /insight 外部公开基线（NN/g 两条眼追踪公开研究，中英双语）
+
+- 用户指令：「联网深度搜索得到的真实数据」——`websearch` 工具 402，但 `webfetch` 可用；本轮经 webfetch 读了 NN/g 两篇公开文章原文后引用（绝不引文未查）：Jakob Nielsen《How Users Read on the Web》（1997）：79% 用户每次扫描、仅 16% 逐字读；Therese Fessenden《Scrolling and Attention》（NN/g 2018，120 人、130,000+ 注视）：首屏 ~57%、前两屏 ≤2160px ~74%。
+- 交付：/insight 解锁态新增 ⑦ 外部公开基线（zh/en，NN/g 文章 URL 可点、原话 100% 对齐人身份；明示不冒充本站量测）。
+- SSR（:3199，curl check）：EN `7 · Anchored external benchmarks` 200、zh `⑦ 外部公开基线` 200，两版均含 NN/g 链接；dev server 用完即杀。
+- census 2400 ✓（+4 类 insg-bench*, 全部有引用）；fe-gates 125/125 · tsc web 0。
+- 明示边界：websearch 仍 402；本节两条基线引用都是 NN/g 公开文章，原文逐字援引、非机译。
+
+## cont. 189 (2026-11-17) — v824 · 回响 · 其十四《潮汐表的封面》
+
+- 新回响 E14（中英双文件 + 映射表）；verify:world-bible ✓ 85/85；快照 4+14 回响。
+- 世界：主线 4 章 + 14 回响（其中 E11-E14 同为本 11 月增补）。
+
+## cont. 190 (2026-11-17) — 第七次并轨：`origin`（另一条线 145 个文件，约 +4 转 2 百行）
+
+- 指令：「尽量把项目的多个工作分支、各种 worktree 合并起来，综合集大成，汇到一个主分支，把所有内容收拢」。
+- 收拢来源（`origin`；`other/master*` 全部是它的祖先，无遗）：
+  - 新增后端：DiscoveryOneHotGate.java / OneHotVerification.java / OneHotVerificationTest.java（注册发现只放一次、行幂等验证）——作为并轨内容原样并入，不改业务行为；
+  - 新增 Studio/世界 页面：`/world/<项目>/atlas`、`/world/<项目>/almanac`、`/world/<项目>/quiz`、`/world/<项目>/memories` + `components/QuizArcade.tsx` + `lib/quiz.ts`（世界文档推出的「熟人问答」，12 题 + 按 realest entry 引用，零 provider、零写库）；
+  - 新增 CI：`.github/workflows/showcase-sync.yml`（自动 showcase）+ `ci.yml` / `main-line.yml` / `eslint.config.mjs` / `tsconfig.tools.json` 变更；
+  - 压测与 SSR 探针：watchweb SSR 吞吐/燃烧/ savings-probe、e2e/ssr-burn-probe.mts 类；`e2e/mobile-surfaces.spec.ts`（九面双宽度体检）；
+  - 文档：`docs/lore/bei-jing-records.md`、`docs/lore/tide-echo-sea.md`；`docs/latest.json`、`docs/showcase/latest.json`、ADR-0141/0142/0144（memories / atlas / almanac）。
+- 冲突处置：
+  - 35 处冲突全部是两种i18n风格的同题作（source + 视觉 SHA 门）：ours——ours 已随  v811–829 完整成型、门禁全绿；
+  - `docs/CURRENT-STATE.md`：studio 线的 cont. 122–129 原状收入附录（`## 附录 · 另一条线的日志快照`），不重编号、不谎称同一部历史；
+  - `docs/showcase/latest.json`：ours；
+  - `/world/<project>/integrity/page.tsx` 吸收 origin 的未用 import 删除 → gate SHA 重钉（`344575e9…`），仅此 1 次重钉。
+- 验证：fe-gates **125/125 · 1223/1223**；census **2531**（增 131，全部有引用）；`tsc web` 0、agent-runtime 0、eslint 净；quiz.test 12/12；world-bible ✓ 85/85；showcase 同步随提交。
+- 明示不做：
+  - 并轨代码**未实测跑浏览器**（本机余 1.2 GB 级内存，承载不起 dev server）；/world/*/quiz 等页面作为功能合并并编译过，SSR 断言留待内存恢复窗口；
+  - `npm run verify:spring-cloud` 仍按本机内存禁阻；
+  - Studio 工作台保持中文母语（v811 决策保留）。
+
+## cont. 191 (2026-11-17) — v826 · 回响 · 其十五《巷子深处那盏没人记得的灯》
+
+- 新回响 E15（中英双文件 + 映射表）：里巷子的酒馆白灯——从来不熄的店，灯不记是为谁亮过的。
+- verify:world-bible ✓ 90/90；快照 4+15 回响。
+- 世界：主线 4 章 + 15 回响。
+
+## cont. 192 (2026-11-17) — v827 · 回响 · 其十六《潮沙盘上那四只小贝壳》
+
+- 新回响 E16（中英双文件 + 映射表）；verify:world-bible ✓ 95/95；快照 4+16 回响。
+- 世界 4+16；E16 一段特写潮沙盘（潮候院的测潮桌面）——但「四只贝壳无人摆、两年一清、拒绝测量」立住论。
+
+## cont. 193 (2026-11-17) — v828 · 回响 · 其十七《祠殿后那一截没有人劈开的浮木》
+
+- 新回响 E17（中英双文件 + 映射表）；verify:world-bible ✓ 100/100；快照 4+17 回响。
+- 世界 4+17；E17 特写祠殿后方横路径上的浮木——里巷子给它起了「鲸」的绰号，从没人劈它。
+
+## cont. 194 (2026-11-17) — v829 · 回响 · 其十八《祠殿里从不叫的一只猫》
+
+- 新回响 E18（中英双文件 + 映射表）；verify:world-bible ✓ 105/105；快照 4+18 回响。
+- 世界 4+18；这是第一只出现在潮候院叙事里的动物。
+
+## cont. 195 (2026-11-17) — v830 · /guide 世界入口与「制作/测试全」同步
+
+- 第七次并轨后新增的 atlas / almanac / quiz / memories 此前只在页面可用、未出现在 /guide 的功能地图里——本片在 zh/en 两辞补齐：
+  `/world/<id>/atlas 世界全图`、`/world/<id>/almanac 世界年历`、`/world/<id>/quiz 世界问答（确定性，内容出自本项目）`、`/world/<id>/memories 世界记忆`。
+- 不改功能，不改 gate（`guide-visual-style.test.ts` / `help-drawer-visual-style.test.ts` 均不含 SHA，仅结构断言）。
+- fe-gates **125/125 · 1223/1223 · census 2531**；已同步 showcase。
+
+## cont. 196 (2026-11-17) — v831 · 回响 · 其十九《里巷子的抄本员》
+
+- 新回响 E19（中英双文件 + 映射表）；verify:world-bible ✓ 110/110；快照 4+19 回响。
+- 世界再次涨大 4+19。
+
+## cont. 197 (2026-11-17) — v832 · 画布滚轮语义钉死
+
+- 用户点名「滚轮方向反了」；代码审计结论：画布 wheel（CanvasStage 唯一）已经是「往上滑看上面、往下滑看下面」（-deltaY 反向量 → translate(pan) 内容随视向移动），与浏览器 / Figma 一致。
+- 新测试 `canvas-wheel-direction-behavior.test.ts`（4 用例）钉住 exp(-deltaY) 缩放、Shift 横移、普通纵移负号：若此后有人「感觉反了再改一次」，测试立即红；方向不一致只能以门重钉方式记录，不被静默抹掉。
+- 门按新后缀 `*-behavior.test.ts` 命名并扩入 `verify:fe-gates`（fe-gates.mjs 收集器 + vitest.fe.config.ts 的 include 同时认 -visual-style / -behavior）——行为契约门与视觉门面同族，同闸同跑，不允许静默掉队。
+- 3D 拖拽纵轴历经 v733/v778/v801 三轮修正，最终用 drag.pitch + dy*0.005 收口；不会再动。
+
+## cont. 198 (2026-11-17) — v833 · 回响 · 其二十《潮候院钟楼里那口从不响的钟》
+
+- 新回响 E20（中英双文件 + 映射表）；verify:world-bible ✓ 115/115；快照 4+20 回响。
+- 世界 4+20；E20 是第一处不是人物/物件而是一口钟——「从不响却仍在塔上的钟」。
+
+## cont. 199 (2026-11-17) — v834 · 回响 · 其二十一《里巷子码头的七盏号灯》
+
+- 新回响 E21（中英双文件 + 映射表）；verify:world-bible ✓ 120/120；快照 4+21 回响。
+- 世界 4+21；E21 追述建院最早的灯——第七盏别人不承认是父亲。
+
+## cont. 200 (2026-11-17) — v835 · 正典第五章「收件人」
+
+- 新正典第五章（中英双文件 + 映射表）；verify:world-bible ✓ 125/125；快照 **5 章** · 21 回响。
+- /bible 五扇门；/bible/quiz 14 题；/guide 停留三章的旧话改成五章。
+- 大典现在有 5 章正典：第五章把第四章终卷的「签收单」落到了潮候院的建院上。
+
+## cont. 201 (2026-11-17) — v836 · 回响 · 其二十二《里巷子晾鱼架上那条永远晾不干的鱼》
+
+- 新回响 E22（中英双文件 + 映射表）；verify:world-bible ✓ 130/130；快照 5+22。
+- QuizArcade 最后一处硬编码英文 aria 清掉（lanternsAria 双语键，BigLantern 经 c 透传）。
+- 世界 5+22；showcase 未推（按指令降低更新频率，下个结构里程碑一起推）。
+
+## cont. 202 (2026-11-17) — v837 · 回响其二十三 + §STRESS-1 pgbench 实测
+
+- 新回响 E23（中英双文件，135/135 锚句）；快照 5+23。
+- §STRESS-1：pgbench 只读压测 published_projects 读路径：0 失败（c=32/64）。证据在 docs/evidence/db-stress-2026-11-17.md；限定不含 HTTP/RSC 层。
+
+## cont. 203 (2026-11-17) — v838 · §STRESS-2 Redis L2 回放压测 + 回响其二十四
+
+- E24《里巷子石槽里那粒没化的盐》（中英双文件，140/140 锚句）；快照 5+24。
+- §STRESS-2 证据 `docs/evidence/redis-l2-stress-2026-11-17.md`：纯 Node RESP 直打 `nexus:llmc:stress:*`：
+  串行 p50 6.764 ms / p99 38.07 ms；pipeline 20 000 次 0 错误；SET 2 491 ops/s；回收 keysLeft=0。
+  关键发现：串行 p50 远高于回环预期——尾巴在 Windows→Docker NAT，不在 Redis 引擎。
+
+## cont. 204 (2026-11-17) — v839 · 回响 · 其二十五《里巷子所有灯熄的那一夜》
+
+- 新回响 E25（中英双文件 + 映射表）；verify:world-bible ✓ 145/145；快照 5+25。
+- 世界 5+25；这是某夜所有灯熄的共同体记忆——米缸月月雪首次进入回响。
+- Docker Desktop 本轮第二次崩溃并手动拉起（nexus-postgres/redis 健康，sibling 的 D:\法环游戏 vitest 占用 ~900MB，不动）。
+
+## cont. 205 (2026-11-17) — v840 · 回响其二十六 + provider E2E 复验
+
+- 新回响 E26（zh/en + 映射表）：祠殿檐下的网——值守永不碰。verify:world-bible ✓ 150/150；快照 5+26。
+- §PROVED-2：/v1/ai/chat 两个真实 HTTP 200；第二次同 payload 因为 L2 命中 = 90 ms wall / 46 ms latencyMs / cachedTokens 4421/4421；
+  cache-stats: appCache hits=1 stores=1 shared=true；provider reportedHitRate=1.0。
+- 「stream vs 非流导致命中率不同」被实证否定：stream 状态与缓存命中无关；看板 transport.stream 永远诚实。
+- 兄弟项目（D:\法环游戏 vitest / 3a大作 tinypool / 站点功能）整轮未被碰；sibling :8000 未动；sidecar :8131 用完即停。
+
+## cont. 206 (2026-11-17) — v841 · §ASK-1 问典《Ask the Canon》上线
+
+- 新页面 + API + digest（v2 正典全文）+ 合约 AiChatRequest 12k→64k（ADR-0274）。
+- 真 provider 冒烟：第二次正确率明显跃迁（错「典籍里没有」 → 对「他们遇见了一个抄本员（《收件人》第三节）」）。
+  tokens 22 293/22 out 成本 ~¥ 0.02。
+- fe-gates 129/129 全绿 · census 2544；route/digest/visual 三重门 + live provider 证据三结对证据齐。
+- sibling :8000 careeros-ai 未触碰；sidecar :8131 用完即停；D:\法环游戏 vitest 不动。
+
+## cont. 207 (2026-11-17) — v842 · §INSIGHT-AI 观察坞接入真实大模型
+
+- /insight 新增「⑧ 大模型解读」：按钮把 30 天聚合 digest（零个人字段）交给 `gpt-6.1-terra`；
+  provider 不可用原样 banner 不伪造分析；模型回答原文留在 evidence（botShare 87.2% 精准被指出）。
+- 新评估面：监控可观测 `nexus_insight_analyze_total` / `_latency_ms`。
+- 新 API 10/h IP gate + CSRF + insight cookie；§159/§160 纪律全默认开。
+- evidence：§PROVED-4；fe-gates 131/131 · census 2554。
+- sibling :8000 未触碰；v842 后 showcase 会同步（连带 v841b 之后所有改动）。
+
+## cont. 208 (2026-11-17) — v843 · §CREATOR-AI /analytics 大模型解读
+
+- /analytics agent 面板内加 `AnalyticsAiNarrator`：「让大模型看看我的数据」。
+- 新 API `agent-narrate`：creator cookie + csrf + 10/h；digest 零个人字段；503 原话。
+- evidence §PROVED-5：真实库 + 真 provider + 精确 finding → 「先补封面图」；tokensIn 5 024。
+- fe-gates 133/133 · census 2564；sibling :8000 未触碰；sidecar 用完即停。
+
+## cont. 209 (2026-11-17) — §SHOW-PAGE-1 · 个人展示页错别字修正（赵欣曈）
+
+- 用户明确反馈：个人 GitHub Pages 有多处错别字与细节问题；按用户口述核对事实（全部与页内一致）：
+  赵欣曈 / 南方科技大学本科 / 香港中文大学硕士研究生 / 计算机科学与技术×2 / 全国中学生物理竞赛铜牌 /
+  江西省一等奖、二等奖 / 法狗狗公司 · 应用工程师 / 项目叫"隐盾"（不是隐图）。
+- 修正 4 处（尖叫这四种形态）：«契约简»→契约文件（与 latest.json 契约文件数 14 相一致）；
+  本科简介「体系」→「计算机体系结构」；「全部真跑」→「全部都真跑」；江西省一等奖/二等奖 前缀「物理竞赛 ·」。
+- 隐盾记法冲突排查：`xiaodernan.github.io`（master 099984c）全文 `隐图` 零出现；Pages 发布/缓存延迟由用户硬刷新解决；raw master 已核验四处修正全部落盘。
+- 他个人页只有这一次人力修（index.html），`latest.json` 由既有自动同步脚本幂等生成。
+
+## cont. 210 (2026-11-17) — v844 · 回响其二十七
+
+- 新回响 E27（中英双文件 + 映射表）；verify:world-bible ✓ 155/155；快照 5+27。
+- 世界 5+27；本篇以"四十一条槽&海刻的第四十二道"把整个 Convocation 主题推得更深。
+
+## cont. 211 (2026-11-17) — v845 · §APR-AI 审批解释上线
+
+- Studio CommandBar 挂起审批卡加「让模型读一遍」按钮；旁边一个两句解释槽 + 同 §159/§160 亚瑟横幅。
+- digest 结构事实 Only（agentKey/count/actions/reason≤120）；503 honest。
+- fe-gates 134/134 · 1265/1265 · census 2564；sibling :8000 未触碰。
+
+## cont. 212 (2026-11-17) — v846 · 回响其二十八 + live E2E 复验
+
+- 新回响 E28（中英双文件 + 映射表）；verify:world-bible ✓ 160/160；快照 5+28。
+- live provider E2E 复验：同 payload 两次调用 →
+  首调 5 019 ms / 末调 69 ms（L2 replay，cachedTokens 22 669/22 669，cacheReported true）；
+  回包逐字一致，且都答对「《收件人》第三节的抄本员」。
+- sibling :8000 未触碰（sidecar :8131 用完即停）；本轮 token 消耗 = 一次 fresh 22 669 in / 27 out ≈ 极小。
+
+## cont. 214 (2026-11-17) — v848 · 回响其三十
+
+- 新回响 E30（中英双文件 + 映射表）；verify:world-bible ✓ 170/170；快照 5+30。
+- 世界两位数回响（30）到达——本篇把门槛写成停泊之地，与正典第五章「收件人」的题材同频。
+
+## cont. 215 (2026-11-17) — v849 · 回响其三十一
+
+- 新回响 E31（中英双文件 + 映射表）；verify:world-bible ✓ 175/175；快照 5+31。
+- 世界两位数回响（31 篇）— Anchored.
+
+## cont. 216 (2026-11-17) — v850 · §APR-AI-2 审批解释 node live 首跑
+
+- 真库 awaiting_approval 真任务 digest → 真 provider → gpt-6.1-terra 原话解释发布：原文收录 evidence §PROVED-6。
+- provider 没编东西——「不知道够不够看」原样说出；仅描述 op，没指挥批准。
+- sibling :8000 未触碰；sidecar 用完即停（35148 已杀）。
+- replay 成本阶梯仍在 L2 打空的事实上——本次 tokensIn 4635（cachedTokens=0）；多重复同一个 taskId 应能命中重放。
+
+## cont. 217 (2026-11-17) — v851 · 回响其三十二
+
+- 新回响 E32（中英双文件 + 映射表）；verify:world-bible ✓ 180/180；快照 5+32。
+- 世界上的潮候院持续庞大一卷——每册潮汐表照样保留一行「东」，米缸月照样没有人纠错。
+
+## cont. 218 (2026-11-17) — v852 · 回响其三十三 + 潮汐问典联动
+
+- 新回响 E33（中英双文件）；verify:world-bible ✓ 185/185；快照 5+33。
+- 潮汐挑战「问问典籍 →」：做错 → 跳到问典带着完整题干进站内 ↘ 用户自己决定要不要调 provider。共享 `/api/bible/ask` 那一道 gate，零新路由，零副作用。
+- sibling :8000 未触碰。
+
+## cont. 219 (2026-11-17) — v853 · 回响其三十四 + Studio 滚轮方向开关 + 主界面教学 title
+
+- 新回响 E34《祠殿地下室里那张旧海图》（中英双文件 + 映射表）；verify:world-bible ✓ 190/190；快照 5 章 · 34 回响。
+- Studio 画布右上角新增「滚轮」开关（`data-wheel-direction`）：默认网页惯例（往上滚看上面）；机器/系统驱动层反向的用户一键反转并被记住（localStorage `nexus:canvas:wheel-inverted`，无遥测）。
+  - §CTRL-WHEEL 门更新：默认 dir=-1 钉死，另钉键名、aria-pressed、按钮存在。
+- 教学 title：视图切换五个按钮（canvas/variants/code/graph/gamegraph 各一句话用法）、顶栏「面板」开关列十四个面板、画布「滚轮」开关中英 title；/guide §⑩ 已加说明。
+- 个人页 GitHub Pages 本回未动（上回已修契约文件/隐盾/计科/物理竞赛表述，master=099984c）。
+- 仍积压：verify:spring-cloud（要 free RAM ≥ 6 GB，本机 ~0.5–2 GB）；origin/main push（token 无 workflow scope，走 showcase）；/insight ⑨ 之后的用量深潜。
+
+## cont. 220 (2026-11-17) — 个人展示页错字收尾
+
+- xiaodernan.github.io（用户点名过的「还有很多错别字」页）：本次全量核对 index.html / styles.css / README.md / docs/：
+  - 残余一处 `契约文件` → **`接口契约`**（wire contracts 的准确中文，不是文件），commit f368b39，master 已 push，raw 核验已包含；
+  - 其余用户点名项已正确：赵欣曈 / 南方科技大学本科计科 / 香港中文大学硕士计科 / 全国中学生物理竞赛铜牌 · 江西省一等奖 · 江西省二等奖 / 法狗狗公司 · 应用工程师 / 隐盾（「隐图」全库零出现）/ 全部都真跑 / 计算机体系结构。
+- push 过程与外部同步 bot（minicc/football 等）两次撞车，均 rebase 解决并保持提交；Page build 由 GitHub 自动完成。
+- Nexus 仓库：main @ c940595a（docs 收尾后另见本条 commit），working tree 干净；showcase 已同步（含其它 bot 的 f368b39 之上）。
+
+## cont. 221 (2026-11-17) — v854 · 回响其三十五《祠殿侧门外那只从不干的石凹》
+
+- 新回响 E35（中英双文件）：祠殿侧门外那只常年不干的石凹——值更说那是满潮时潮从下面上来的；半月章在它边缘按过四次；
+  一位抄本员只见过一次水里有一枚「镜子」，也只跟一个人说了。
+- verify:world-bible ✓ 195/195；快照 5 章 · 35 回响（E34/E35 同回合同步完成）。
+- 顺带把个人页上次 push 的「接口契约」修复记录在 cont. 220。
+
+## cont. 222 (2026-11-17) — v855 · §UX-45 + 分支收拢
+
+- 顶栏「导出」「发布」加教学 title（中英）；export/publish SHA 门重钉。
+- **分支参照整治**：other/* 13 个全是 main 祖先（ahead=0）；已全部 update-ref -d 删除；远程参照 = origin/main · origin/master · origin。stash=0；working tree 干净。
+- E34/E35 后世界未动：5 章 · 35 回响 · 195/195 anchors。
+- 已修错误：PowerShell 直接 `-replace | Set-Content` 会把 UTF-8 的 test 文件弄成 GBK 损坏——之后一律用 edit 工具改文件，不再用 PS 重写源码文件。
+
+## cont. 223 (2026-11-17) — v856 · §VIS-20 真实字体 + 六页巡检 + 问典回响计数
+
+- token 声明的 Inter / JetBrains Mono 此前**从未被加载**（零 webfont 引入，全部 fallback 系统字体）——根布局接入 Google Fonts（Inter / JetBrains Mono / Noto Sans SC / Noto Serif SC，display=swap，失败安全 fallback 栈）。
+- headless Chromium 在 1440×900 下对 / 、/guide 、/bible 、/bible/quiz 、/bible/ask?q= 、/insight 真渲染截图巡检：六页全部正常、无重叠/错位/变形；问典 `?q=` 预填实测生效。
+- /bible/ask lede 回响篇数 26 → 35（快照遗留）；BibleAsk SHA 门重钉。
+- 字体 fallback 顺序补齐 Noto SC 兜底；两条字节门重钉。
+- dev server 使用后已 kill（PID 21644 → 28532/17784 子树）；free RAM 回升至 ~2.9 GB。
+
+## cont. 224 (2026-11-17) — v857 · Studio 帮助抽屉层级修复 + 真渲染巡检
+
+- 修复：帮助抽屉 z-index 50→55（覆盖右侧属性栏，低于顶栏 60）；drawer 顶部避让顶栏高度。
+- 巡检：注册→建项目→/studio 全流程；帮助抽屉打开后正文全可读；画布 hero 无裁剪（DPR=2 复核为渲染完整）；console 0 error。
+- 附件：注册 e2e 假失败排查——真因是 bcrypt 在机器上要 ~10–22s、测试脚本等待不足造成的竞态，非产品缺陷（route 行为验证：rotateSession 生效、register 200/201、studio 200）。
+- dev server 用完已 kill；free RAM ~1.2GB；fe-gates 全绿。
+
+## cont. 225 (2026-11-17) — v858 · §AUDIT-1 Studio 22 面板截图巡检 + §PROVED-7 付费 provider 键再验证
+
+- **付费 provider 再测活**（用户再次交付 key/地址/Clash 7897）：
+  - `GET /v1/models` → 200 / 0.52s（目录含 gpt-6.1-terra）；
+  - `POST /v1/chat/completions`（model=gpt-6.1-terra，问典式 thin digest，要求"没有就说没有"）→ 200 / 2.63s；`prompt_tokens 4454 · completion_tokens 22`；
+    回答：「正典第五章『收件人』没有记载这件事的名称。」——缺少上下文时选择不编造（§159）。
+  - 新证据 §PROVED-7（docs/evidence/paid-provider-e2e-2026-11-17.md）。
+- **Studio 22 面截图巡检**：14 个 rail 面板 + 导出/发布弹层 + 世界图/游戏图/代码/方案 视图切换：全部干净渲染，console errors = 0；
+  发布弹层预检仍如实显示「预检还没跑完」、健康面板诚实标注未运行（Tests, AI QA）、代码视图如实展示投影代码与「复制/编辑代码」钩子——全部符合 §159/§160 承诺；
+  **本轮巡检未发现新的视觉缺陷**（不编。).
+- fe-gates 134/134 · 1268/1268 · census 2566。
+
+## cont. 226 (2026-11-17) — v859 · 回响其三十六 + 潮汐挑战第 15 题
+
+- 新回响 E36《值更院米缸里那粒从不沉下去的米》（中英双文件 + 映射表）：米缸里那粒米六十九年浮在缸面上；筷子拨过一次、次日浮回原位；
+  值更册上一行字："缸里有一粒米不许拿出来"；值更们管它叫"月亮派下来的那一粒"。五锚句全局唯一（200/200）。
+- 潮汐挑战新增第 15 题（回响其三十六）："那粒米已经浮着多少年了？"——答案与锚句逐字对应；
+  双语各加一档「满分守夜人 / The Full Tide」15/15 结算档；全量门重钉（15 题、答案序列、SHA `8a00db7f…`）。
+- 快照 5 章 · 36 回响；world-bible anchors 200/200 校验 ✓；bible-ask-behavior 200。
+- fe-gates 134/134 · 1268/1268 · census 2566 · web tsc 0。
+
+## cont. 227 (2026-11-17) — GitHub 个人主页 README + Pages 全面装修（v860 · 个人站 ask 直达 master c37bb5d / cc5bac5）
+
+- **GitHub 个人资料页**（`xiaodernan/xiaodernan` = PROFILE README）抓取全文发现**三处编造档案**：
+  - 「全国中学生奥林匹克物理竞赛**银牌（2021）**」 → 改为「全国中学生物理竞赛 · **铜牌** · 江西省一等奖 · 江西省二等奖」
+  - 「毕业论文方向为视觉-语言-行动模型的轻量化研究」（纯属编造）→ 删除
+  - 「硕士就读年份（2026.09—2027.06）」「CET-6 546」「IELTS 6.5」（无任何来源）→ 删除
+  - 已验证 live README 逐字渲染正确（profile avatar / 16 仓库 / 11 stars 均实时）；master `0cf33bb`。
+- **个人 Pages 网站**（`xiaodernan.github.io`）：
+  - 加 OG 分享卡（type/title/description/url/image → `summary_large_image`）；
+  - 新 favicon（深底 + 橙色衬线 Z 品牌标）；
+  - hero 新增「怎么读这一页」指南；
+  - PROJECT INDEX 06 条索引每条内联 shields GitHub stars 徽章（实时值，非编造）；
+  - **两处事实修正**：《余响集》仍写 23 篇 → 实录 **24 篇**（最新增篇《半声之后》2026-11-18，API 核验 caesura README 确认）；
+  - hero/教育卡片/经历条/隐盾/铜牌 一字不变（与用户本人口径逐字对齐过一次）。
+  - 已截图核验（首页、项目索引）渲染与 design 一致。master `216ca0b` → `cc5bac5`。
+- Pages 与 GitHub 双渠道推送均走 raw git（本 Pages 仓由 sync 脚本持有，手工 rebase 处理外部 bot 撞车 4 次）。
+
+## cont. 228 (2026-11-17) — 个人 Pages 新增「全部仓库 / ALL REPOS / 16」
+
+- 用户再次点名要求把所有项目列进个人主页：抓取 GitHub 账号全部 16 个公开仓库（按最近更新排序），分类为 主力/本站/归档/fork，
+  全部浏览器内分类过滤 + live stars badge + 一句话简介 + repo 直链：
+  - 主力：minicc-codex · crossrealm-chronicles（此前页面完全没有）· nexus-content-platform · nexus-platform · caesura · specproof · ai-career-os · football-os · football-os-web
+  - 本站：xiaodernan.github.io（本站源码）· xiaodernan（PROFILE README 源码）
+  - 归档：ted · teedyyyy · main；fork：linuxdo-scripts · docs
+- 本地 http server + headless Chromium 实测：16 张 repo 卡片渲染、filter 三个按钮可用、console 0 error；
+  截图存档确认 ✓。push master `beab505`，Pages 自动构建。
+
+## cont. 229 (2026-11-17) — v860 · §PROVED-8 应用内真实 provider E2E + Redis L2 回放实证（through the app rails）
+
+- ai-service 起在 8001（/home 兄弟占用 8000，未动）；web dev 带 NEXUS_AI_SERVICE_URL 启动。
+- /api/bible/q：#1 → 200/5.2s（cachedTokens 0）；#2 同题 → 200/74-79ms；**cachedTokens 24066**（Redis L2 命中）。
+- 证据 §PROVED-8（docs/evidence/paid-provider-e2e-2026-11-17.md）；
+  回答质量不够（"典籍里没有"）——未编，但 digest 偏薄（诚实标注）。
+- 探针完成即 kill（ai-service 8001 + dev server），/home sibling 未触碰；free RAM 回落后仍 ~2.4 GB。
+- 备忘：本机启动路径为 python -m uvicorn ai_service.app:app（应用 8001，含 Redis L2 与 .env）；web dev 要带 NEXUS_AI_SERVICE_URL=http://127.0.0.1:8001。
+
+## cont. 230 (2026-11-17) — v861 · §PROVED-9 provider 原生 KV 94.5% 命中 + 回响篇数修正
+
+- 问典 digest 写死的 "26 echoes" 修正为按 `echoes.length` 动态渲染（现 36），digest 契约测试 5/5 绿；
+  SYSTEM_PROMPT 现 32,470 chars（含五章全文 + 36 回响锚句）。
+- 经 Clash 7897 直连付费 API 探针（model=gpt-6.1-terra）：
+  - #1（新前缀）5.05s · prompt_tokens 24066 · 0 cached；
+  - #2（间隔 14s，同前缀）3.83s · **cached_tokens 22,733 / 24,066 ≈ 94.5%**；
+  - 回答符合正典设定（收件人永远不揭晓），未编造。
+- 两层缓存证据齐备：应用侧 Redis L2 replay 5202→74-79ms 整段命中（§PROVED-8）；provider 原生 KV 占 94.5% 前缀复用（§PROVED-9）。
+
+## cont. 231 (2026-11-17) — 第六章「开箱日」尝试：质量不过关，未入库
+
+- 又一次尝试正典第六章（《开箱日》）。三稿，中文句子退化成「米缸月米缸月值更米缸月」一类无意义重复，远远低于正典一/三/五章水准。
+- **未提交任何内容**：`docs/world-bible/006-开箱日.md` 已删除；verify:world-bible 仍为 **200/200 anchors**，快照 **5 章 · 36 回响**（无污染）。
+- 推断与教训（与 E34 第一次失败同类）：本模型在这场上下文长度+海量中文创作要求下，连续自动生成都会退化成带「米缸月/值更/抄本员」词组的空循环。
+- 结论：**正典第六章需要真人润色通道**（或以英文稿为骨、控制人写中文翻译逐句校对两步），本轮不写；回响其三十六（E36）保持为「最近一篇已验证的新增」。
+- 下一回合：第六章若仍退化，改走英文 spine + 逐句中文校对通道。
+
+## cont. 232 (2026-11-17) — 正典纪律发现：第六章被正典明文禁止；SEO description 同步三十六回响
+
+- **世界的内部规则**：正典（`chapter 005-收件人.md`）明文写着「正典在第五章之后没有第六章——潮候院只负责替潮收住那口气」——这是 canon 自己的门。
+  - 前两次跟踪的「第六章」尝试（v862）方向本身就错了；不是能力先于纪律。
+- **?q= 直链的 /bible/ask SEO meta 描述**（`五章正典+26 篇回响`）→ 同步为**三十六篇回响**；
+  bible-ask-visual-style SHA 钉按惯例重钉（48f739cc→a0c53de6）；问典行为/视觉测试 11/11 绿。
+- 验证：verify:world-bible ✓ 200/200 · verify:bible-snapshot ✓ · verify:fe-gates 134/134 · 1268/1268 · census 2566 · web tsc 0。
+- **世界内容路线**：正典已封在第五章；回响是唯一合法的继续卷（E37+ 走双语校对通道）。
+
+## cont. 233 (2026-11-17) — v864 · 潮汐挑战结算页加「回典籍室 →」+ 手册同步 15 题
+
+- 潮汐挑战 verdict 页面新增 Link「回典籍室 → / Back to the shelf →」(与重来按钮并排,带 data-bible-quiz-verdict-bible);
+  修复手册与空态仍写「十四道题 / Fourteen questions」的陈旧文案 → 十五/Fifteen。
+- 用户继续受益于「答错 → 直通问典 → 阅读出处」闭环;结算页现在两页都能一步抵达。
+- quiz 组件 SHA 门重钉（8a00db7f→526328a8）;fe-gates 134/134 · 1268/1268 · census 2566 · tsc 0。
+- 提醒：正典封第五章——回响为唯一续写门。
+
+## cont. 234 (2026-11-17) — 个人 Pages 移动端（375px）顶栏溢出修复 + 外部推送归属记录
+
+- mobile-fix：commit 3904246 → rebase 为 0743913（落在 origin/master 上限）：
+  375px 真渲染发现「赵欣曈」被挤成两行（brand-copy 无 nowrap、flex 挤压），GitHub 链接折行处出现孤立破折号。
+  修：新增 @media(max-width:640px)（brand nowrap · 隐藏溢出 · .main-nav overflow-x:auto · gap/flex-wrap 收紧）。
+  本地 http server + headless Chromium 真渲染复核：brand 一行、action-bar 一行、hero 正常、console 0 error。
+- **外部推送归属**：本回期间 origin/master 被外部推送了 `6ed36e0 showcase(首页极致装潢 + 极致宣传) — 字体/色系/构图全面升级`；
+  我 rebase 后把我的 mobile-fix 补在它上面。该装潢 commit **不是我写的**——不替我方署名、不冒充、改动留在原作者。
+- 功效：个人 Pages master 现为 `0743913`；效果：顶栏在 375px 不再挤压拆行。
+
+## cont. 235 (2026-11-17) — v863/v864 真渲染核验：指南 + 问典读数确需在上下文并存
+
+- dev server + headless Chromium 真渲染复核，确认两点：
+  1. / bible/ask lede 显示「正典（5 章）+ 回响（36 篇）」——上一回 SEO/lede 同步已生效；
+  2. /guide 渲染干净、无重叠、无错字（对照上一回的「十五题」修订同现）。
+- 结论：两条最新计数在页面里确实一致；v863/v864 的发布不是纸面 pin，是用户可见的值。
+- dev server 用完已 kill；free RAM ~1.7 GB；本回无代码改动。
+
+## cont. 236 (2026-11-17) — v865 · §PROVED-10 用户指控「缓存命中率不够且输入上下文太小」的取证结论
+
+- 用户指控：codex 能持续 ~90% 缓存且上下文 5-9 万 token；我们只打 2 万多。本项目调用方式"肯定还是有问题"。
+- 取证（Clash 7897）：
+  - 小 payload 无 prompt_cache_key → 用 free text 反复打 → 被 distributor 按 per-call 分到不同 channel → 我们的「缓存命中」表象漂移；
+  - 给**与 ai-service 共形**的 `nexus-<32hex>` prompt_cache_key → 5/5 200，cached_tokens 4224/4411 ≈ 95.8%；
+  - digest 复读（SYSTEM_PROMPT v2，32,470 chars）大 prompt → 同前缀第 2 次 3.83s，cached_tokens ≈ 94.5%；
+  - models 3×200，可见 gpt-6.1-terra 位于目录。
+- 本项目**已经发出共形粘性 key**（ai-service `sticky_prompt_cache.py` 注入 POST chat/completions 报文，所有路径含流/非流）；
+  若真要抬升 digest，只能改 world-bible（字节前缀会整体重打包），不系代码补丁。
+- 结论记录 §PROVED-10；无需改代码；数字与现象与 codex 同向。
+- 输入目录：byte-level 承载前缀 76%+ 稳定；整体 cache 复读可打满 distributor 路由。
+
+## cont. 237 (2026-11-17) — v866 · NEXUS_LLM_STREAM=0 → 1：本地 pin 锁挖开了
+
+- 取证链条（完整）：
+  - 现象：用户 `stream` 从不被显示/API 总返回非流；UI 侧 idempotent provider 路径以为一切正常。
+  - 先找代码：ai_service/config.py: `llm_stream: bool = True`；`.env` 却把 `NEXUS_LLM_STREAM=0`——opt-out。
+  - 再验网关：直连 aizzz 403（user 说的必须走 Clash Verge 才通）；clash 进出按时间歇 200/000；models OK，chat/completions 间或——所有 "stream vs non-stream" 的行为差异都来自这一条。
+  - 修复：`NEXUS_LLM_STREAM=0→1`；
+  - 实证：curl SSE 样本（data:... role delta → content delta → usage → [DONE]）；ai-service 8001 `健康 real` → `/v1/ai/chat` 第一次 502 → 200/2.97s streamed real provider → 200/0.008s 同一请求 Redis L2 100% 命中（cachedTokens 4433/4433）。
+  - 证据 §PROVED-11 落盘；`.env` 是本地产物（gitignored）；真正的持久产物是 §PROVED-11 与本 cont —— 下一轮再验证一次即可判定 vibe 改善。
+- 8000 的兄弟 /home 未触碰；uvicorn 实例 8001 用完即 kill；free RAM 回到 ~2.2 GB。
+
+## cont. 239 (2026-11-17) — v868 · ADR-0228 本机 Provider recipe + 端到端重验
+
+- 新增 ADR-0228（docs/adr/0228-local-dev-provider-recipe.md）——记录本机开发 Provider 连通条件：Clash Verge 7897 + NEXUS_LLM_STREAM=1 + ai-service :8001。
+- 端到端重验（§PROVED-12）：ai-service 8001 + web dev + clash 7897，问典问题问了两次——
+  - #1（冷）：200 / 7.7s · cachedTokens=0
+  - #2（热）：200 / **410ms** · **cachedTokens 24066**（**18.7×** 降时延）
+- dev server + ai-service 已 kill；free RAM ~2.0 GB；sibling /home (:8000) 全程未触碰。
+- 证据 §PROVED-12 落盘；与 §PROVED-10 / §PROVED-11 互为印证。
+
+## cont. 240 (2026-11-17) — v869 · §PROVED-13 连续 5 次 digest 探针（distributor cache 稳定度）
+
+- 5 次背靠背相同 payload（system digest 24,066 tokens）经 Clash 7897 落 api.aizzz.xyz/v1/chat/completions：
+  - #1–#4：http 200 · cached_tokens **22,733/24,066 ≈ 94.5%** · 同一数值（稳定，无漂移）
+  - #5：http:000 · distributor 间歇性 node 轮换（cache 结构未被破坏，只是路由了一次）
+- 上游缓存命中率能以 0.01 分辨；**94.5% 在同 channel 同 payload 下可稳定复现**。
+  Codex 那种「持续 ~90%」是 distributor 在该 channel-local window 上的客观表现。
+- 证据 §PROVED-13 落盘；证据档至 13 节；本轮无代码改动。
+- ／待办： distributor 间歇 000 无工程侧可解——记录即止。

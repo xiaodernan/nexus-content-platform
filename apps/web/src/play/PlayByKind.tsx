@@ -13,56 +13,6 @@ import { StoryPlay } from './StoryPlay';
 import type { Locale } from '@/lib/i18n';
 
 /**
- * 双语 COPY（2026-11-15：公开试玩面）——两语组件各自只选一套。
- * 注意：`describeProjection` 的数据源是模型产出（label、plan.counts、notes），只翻平台说的那几句。
- */
-const COPY: Record<Locale, {
-  kindNotWiredTitle: (label: string) => string;
-  noFallback: string;
-  thisKind: string;
-  paintIso: string;
-  paint3d: string;
-  paintExploration: string;
-  paintPuzzle: string;
-  enemiesItemsQuests: (enemies: number, items: number, quests: number, w: number, h: number) => string;
-  dialogueProjection: (readable: number, start: string, notes: number) => string;
-  noStart: string;
-  rpgGrowthLoop: (enemies: number, quests: number, w: number, h: number, fallbackXp: number) => string;
-  noProjection: string;
-}> = {
-  zh: {
-    kindNotWiredTitle: (label) => `这一版标的类型是「${label}」，它还没有可玩的投影`,
-    noFallback: '这里不给一个空场子，也不拿别的类型的关卡顶上：那会让"平台还没接这一种"看起来像"你的设计跑出来就是这样"（§159）。',
-    thisKind: '这一种',
-    paintIso: '等轴测投影 · ',
-    paint3d: '3D 视角 · ',
-    paintExploration: '探索画法（走近才看得见） · ',
-    paintPuzzle: '解谜画法（机关连线） · ',
-    enemiesItemsQuests: (enemies, items, quests, w, h) => `${enemies} 个敌人 · ${items} 个物品 · ${quests} 条任务 · 场地 ${w}×${h}`,
-    dialogueProjection: (readable, start, notes) => `对话投影 · ${readable} 段可读 · 起点「${start}」 · ${notes} 条如实说明`,
-    noStart: '没有',
-    rpgGrowthLoop: (enemies, quests, w, h, fallbackXp) =>
-      `RPG 成长循环（战斗与 2D 同一个 step） · ${enemies} 个敌人 · ${quests} 条任务 · 场地 ${w}×${h}${fallbackXp ? ` · ${fallbackXp} 个敌人的经验是兜底值` : ''}`,
-    noProjection: '这条类型没有可玩投影',
-  },
-  en: {
-    kindNotWiredTitle: (label) => `This version is tagged “${label}”, and it has no playable projection yet`,
-    noFallback: 'There is no empty arena and no substitute level: that would make “the platform has not wired up this kind” look like “your design runs out like this” (§159).',
-    thisKind: 'this kind',
-    paintIso: 'isometric · ',
-    paint3d: '3D view · ',
-    paintExploration: 'exploration rendering (up close only) · ',
-    paintPuzzle: 'puzzle rendering (trigger wiring) · ',
-    enemiesItemsQuests: (enemies, items, quests, w, h) => `${enemies} enemies · ${items} items · ${quests} quests · arena ${w}×${h}`,
-    dialogueProjection: (readable, start, notes) => `dialogue projection · ${readable} readable beats · starts at “${start}” · ${notes} honesty notes`,
-    noStart: 'none',
-    rpgGrowthLoop: (enemies, quests, w, h, fallbackXp) =>
-      `RPG growth loop (same combat step as 2D) · ${enemies} enemies · ${quests} quests · arena ${w}×${h}${fallbackXp ? ` · ${fallbackXp} enemies run on default XP` : ''}`,
-    noProjection: 'no playable projection for this kind',
-  },
-};
-
-/**
  * §51 的"类型 → 播放器"这一段，两个试玩入口共用一处（§16）：
  * `/game/<项目>`（作者自己的工作稿）与 `/n/<handle>/<slug>/play`（发布那一刻钉住的那一版）。
  * 各写一遍判断，迟早变成"一个页面说这个类型没接、另一个页面硬跑 2D 关卡"。
@@ -84,13 +34,14 @@ export function PlayByKind({
   projection: GameProjection;
   /** §168：通关的那一声（公开可玩页用它上报；作者自己的工作稿不传 ⇒ 不记成访客） */
   onComplete?: () => void;
-  /** 双语（2026-11-15 公开试玩面）——与页面同一 locale；缺省 zh */
+  /** 双语（v797）：locale 从 RSC 下传（作者工作稿页 / 公开可玩页都是 cookie 读的那一份） */
   locale?: Locale;
 }) {
-  const c = COPY[locale];
+  const en = locale === 'en';
+  const kindLabels = en ? GAME_KIND_LABELS_EN : GAME_KIND_LABELS;
   const kindNote = isGameKind(document.kind) ? (
     <p className="pk-hint" data-game-kind-note={document.kind}>
-      {locale === 'en' ? GAME_KIND_STATUS_EN[document.kind] : GAME_KIND_STATUS[document.kind]!.note}
+      {en ? GAME_KIND_STATUS_EN[document.kind] : GAME_KIND_STATUS[document.kind].note}
     </p>
   ) : null;
 
@@ -119,51 +70,81 @@ export function PlayByKind({
     );
   }
   // 没接：reason 本身就是状态表那句话，不重复显示第二遍
-  const label = isGameKind(document.kind) ? (locale === 'en' ? GAME_KIND_LABELS_EN[document.kind] : GAME_KIND_LABELS[document.kind]) : COPY[locale].thisKind;
+  const label = isGameKind(document.kind) ? kindLabels[document.kind] : en ? 'this kind' : '这一种';
   return (
     <div className="pk-card" data-play="kind-not-wired">
-      <h2 className="pk-h2">{c.kindNotWiredTitle(label)}</h2>
+      <h2 className="pk-h2">
+        {en
+          ? `The kind this version is tagged as is "${label}", and it has no playable projection yet`
+          : `这一版标的类型是「${label}」，它还没有可玩的投影`}
+      </h2>
       <p className="pk-note12" data-play-kind-reason>
         {projection.reason}
       </p>
       <p className="pk-hint2">
-        {c.noFallback}
+        {en
+          ? 'No empty arena is offered, and no other kind\u2019s arena is substituted either: that would make "the platform never wired this kind" look like "this is what your design plays like" (§159).'
+          : '这里不给一个空场子，也不拿别的类型的关卡顶上：那会让"平台还没接这一种"看起来像"你的设计跑出来就是这样"（§159）。'}
       </p>
     </div>
   );
 }
 
 /** 页首那行小字：说清这一页跑的到底是哪条管线、投影出多少可读内容 */
-export function describeProjection(document: GameDocument, projection: GameProjection, locale: Locale = 'zh'): string {
-  const c = COPY[locale];
-  const KIND_LABELS = locale === 'en' ? GAME_KIND_LABELS_EN : GAME_KIND_LABELS;
-  const label = isGameKind(document.kind) ? KIND_LABELS[document.kind] : c.thisKind;
+export function describeProjection(
+  document: GameDocument,
+  projection: GameProjection,
+  locale: Locale = 'zh',
+): string {
+  const en = locale === 'en';
+  const labels = en ? GAME_KIND_LABELS_EN : GAME_KIND_LABELS;
+  const label = isGameKind(document.kind) ? labels[document.kind] : en ? 'this kind' : '这一种';
   if (projection.pipeline === 'topdown') {
     const plan = projection.plan;
     // 画法要写进页首：2.5D / 3D 与 2D 跑的是同一条计划，差别只在这句话和画布上
     // （不写就会被读成"三种游戏"，而它们是同一个 step 算出来的同一份结果）
-    const paint =
-      projection.view === 'isometric'
-        ? c.paintIso
+    const paint = en
+      ? projection.view === 'isometric'
+        ? 'isometric projection · '
         : projection.view === '3d'
-          ? c.paint3d
+          ? '3D perspective · '
           : projection.view === 'exploration'
-            ? c.paintExploration
+            ? 'exploration view (seen only up close) · '
             : projection.view === 'puzzle'
-              ? c.paintPuzzle
+              ? 'puzzle view (trigger links) · '
+              : ''
+      : projection.view === 'isometric'
+        ? '等轴测投影 · '
+        : projection.view === '3d'
+          ? '3D 视角 · '
+          : projection.view === 'exploration'
+            ? '探索画法（走近才看得见） · '
+            : projection.view === 'puzzle'
+              ? '解谜画法（机关连线） · '
               : '';
-    return `${label} · ${paint}${c.enemiesItemsQuests(plan.enemies.length, plan.items.length, plan.quests.length, plan.arena.width, plan.arena.height)}`;
+    return en
+      ? `${label} · ${paint}${plan.enemies.length} enemies · ${plan.items.length} items · ${plan.quests.length} quests · field ${plan.arena.width}×${plan.arena.height}`
+      : `${label} · ${paint}${plan.enemies.length} 个敌人 · ${plan.items.length} 个物品 · ${plan.quests.length} 条任务 · 场地 ${plan.arena.width}×${plan.arena.height}`;
   }
   if (projection.pipeline === 'story') {
     const plan = projection.plan;
     const start = plan.beats.find((beat) => beat.id === plan.startId);
-    return `${label} · ${c.dialogueProjection(plan.beats.length, start?.name ?? c.noStart, plan.notes.length)}`;
+    return en
+      ? `${label} · dialogue projection · ${plan.beats.length} readable segments · start "${start?.name ?? 'none'}" · ${plan.notes.length} honest notes`
+      : `${label} · 对话投影 · ${plan.beats.length} 段可读 · 起点「${start?.name ?? '没有'}」 · ${plan.notes.length} 条如实说明`;
   }
   if (projection.pipeline === 'rpg') {
     const plan = projection.plan;
     // 战斗与 2D 是同一个 step：这句话要写在页首，不然读起来像"多了一种战斗规则"
     const fallbackXp = plan.enemyXp.filter((enemy) => enemy.from === 'default').length;
-    return `${label} · ${c.rpgGrowthLoop(plan.base.enemies.length, plan.quests.length, plan.base.arena.width, plan.base.arena.height, fallbackXp)}`;
+    if (en) {
+      return `${label} · RPG growth loop (combat is the same step as 2D) · ${plan.base.enemies.length} enemies · ${plan.quests.length} quests · field ${plan.base.arena.width}×${plan.base.arena.height}${
+        fallbackXp ? ` · ${fallbackXp} enemies run on default XP` : ''
+      }`;
+    }
+    return `${label} · RPG 成长循环（战斗与 2D 同一个 step） · ${plan.base.enemies.length} 个敌人 · ${plan.quests.length} 条任务 · 场地 ${plan.base.arena.width}×${plan.base.arena.height}${
+      fallbackXp ? ` · ${fallbackXp} 个敌人的经验是兜底值` : ''
+    }`;
   }
-  return `${label} · ${c.noProjection}`;
+  return en ? `${label} · this kind has no playable projection` : `${label} · 这条类型没有可玩投影`;
 }

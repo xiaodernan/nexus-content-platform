@@ -6,37 +6,38 @@ import { getLocale, type Locale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
 
+/** 双语：每行文案按 cookie locale 选（不夹杂） */
+const IV_TXT = {
+  zh: {
+    title: '接受项目邀请',
+    signedIn: (who: string) => (
+      <>
+        你正在以 <span className="iv-ledeStrong">{who}</span> 的身份接受邀请。如果这封邀请不是发给这个邮箱的，服务端会拒绝——换个账号登录再来。
+      </>
+    ),
+    signedOut:
+      '接受邀请需要先登录：服务端要核对你的邮箱与邀请发给的邮箱是不是同一个。登录后重新打开这条链接即可。',
+    currentUser: '当前用户',
+    backHome: '回首页登录',
+  },
+  en: {
+    title: 'Accept a project invitation',
+    signedIn: (who: string) => (
+      <>
+        You are accepting this invitation as{' '}
+        <span className="iv-ledeStrong">{who}</span>. If this invitation was not sent to that address, the server will refuse it — sign in with the matching account instead.
+      </>
+    ),
+    signedOut:
+      'Accepting an invitation requires signing in first: the server must check that your address matches the one the invitation was addressed to. Sign in, then reopen this link.',
+    currentUser: 'current user',
+    backHome: 'Back to home to sign in',
+  },
+} as const;
+
 /**
  * 双语 COPY（2026-11-15 公开试玩面 wave）：zh 与 en 同构、无混写；服务端文案（lib/domain）原文渲染。
  */
-const COPY: Record<Locale, {
-  title: string;
-  asUserPrefix: string;
-  asUserSuffix: string;
-  anonymousUser: string;
-  ifNotYou: string;
-  loginFirst: string;
-  backToLogin: string;
-}> = {
-  zh: {
-    title: '接受项目邀请',
-    asUserPrefix: '你正在以 ',
-    asUserSuffix: ' 的身份接受邀请。',
-    anonymousUser: '当前用户',
-    ifNotYou: '如果这封邀请不是发给这个邮箱的，服务端会拒绝——换个账号登录再来。',
-    loginFirst: '接受邀请需要先登录：服务端要核对你的邮箱与邀请发给的邮箱是不是同一个。登录后重新打开这条链接即可。',
-    backToLogin: '回首页登录',
-  },
-  en: {
-    title: 'Accept project invitation',
-    asUserPrefix: 'You are accepting this invitation as ',
-    asUserSuffix: '.',
-    anonymousUser: 'the current user',
-    ifNotYou: 'If this invitation was not sent to this email, the server will refuse — sign in with the right account and open the link again.',
-    loginFirst: 'Sign in first — the server checks that your email matches the invite’s addressee. Sign in, then open this link again.',
-    backToLogin: 'Back to home to sign in',
-  },
-};
 
 /**
  * §133 teamCollaboration（#201-203）：兑现邀请的落地页。
@@ -50,29 +51,24 @@ const COPY: Record<Locale, {
 export default async function InviteAcceptPage({ params }: { params: Promise<{ token: string }> }): Promise<ReactElement> {
   const { token } = await params;
   const locale = await getLocale();
-  const c = COPY[locale];
   const user = await currentUserOrNull();
+  const T = IV_TXT[locale];
   return (
     <main className="iv-page" data-invite-accept-page>
       <header className="iv-head">
-        <h1 className="iv-title">{c.title}</h1>
+        <h1 className="iv-title">{T.title}</h1>
         {user ? (
-          <p className="iv-lede">
-            {c.asUserPrefix}<span className="iv-ledeStrong">{user.email ?? user.displayName ?? c.anonymousUser}</span>{c.asUserSuffix}
-            {' '}
-            {c.ifNotYou}
-          </p>
+          <p className="iv-lede">{T.signedIn(user.email ?? user.displayName ?? T.currentUser)}</p>
         ) : (
-          <p className="iv-lede">
-            {c.loginFirst}
-          </p>
+          <p className="iv-lede">{T.signedOut}</p>
+        )}
         )}
       </header>
       {user ? (
         <InviteAcceptPanel token={token} locale={locale} />
       ) : (
         <Link href="/" className="iv-backlink">
-          {c.backToLogin}
+          {T.backHome}
         </Link>
       )}
     </main>

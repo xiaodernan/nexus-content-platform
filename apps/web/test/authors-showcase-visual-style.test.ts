@@ -93,9 +93,9 @@ describe('§FE-ASH /u 作者广场', () => {
     }
   });
 
-  it('剥 className 后全文 SHA256 钉死（合并后字节：13fff9cba386556945787b3206aa647c74823d5d8c871a57b987a71350abb60d）', () => {
+  it('剥 className 后全文 SHA256 钉死（合并后字节：0d26e88b5f6204a6df55636be58aec6c9a42e69bf1a493736289dffcba6f3fec）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '13fff9cba386556945787b3206aa647c74823d5d8c871a57b987a71350abb60d',
+      '0d26e88b5f6204a6df55636be58aec6c9a42e69bf1a493736289dffcba6f3fec',
     );
   });
 });

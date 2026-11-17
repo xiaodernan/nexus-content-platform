@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: '典籍室 · World Bible — NEXUS',
-  description: '《低语诸王》世界大典 · 全四章正典，锚句中英字字对齐。/ Four canonical chapters of The Whispers’ Kings, anchor sentences verbatim in both languages.',
+  description: '《低语诸王》世界大典 · 全五章正典，锚句中英字字对齐。/ Five canonical chapters of The Whispers’ Kings, anchor sentences verbatim in both languages.',
 };
 
 /**
@@ -28,6 +28,7 @@ const COPY: Record<Locale, {
   echoLede: string;
   threeDoors: string;
   playLink: string;
+  askLink: string;
   wellLink: string;
   whisperLink: string;
   anchorsLink: string;
@@ -40,14 +41,16 @@ const COPY: Record<Locale, {
 }> = {
   zh: {
     kicker: '低语诸王 · 典籍室',
-    title: '世界大典 · 四扇门',
-    lede: '《低语诸王》自己的正典——四章，四扇门：第三章之后，第四盏灯终于亮回来了。',
-    threeDoors: '第一扇问：海叫什么？ · 第二扇问：谁在还？ · 第三扇问：还完之后？ · 第四扇：灯已经点过了。',
+    title: '世界大典 · 五扇门',
+    lede: '《低语诸王》自己的正典——五章，五扇门：第四章之后，潮候院的人替潮收下那口气。',
+    threeDoors: '第一扇问：海叫什么？ · 第二扇问：谁在还？ · 第三扇问：还完之后？ · 第四扇：灯已经点过了。 · 第五扇：谁替潮收下那口气？',
     playLink: '接受潮汐挑战 →',
+    askLink: '问典 →',
     wellLink: '七口井',
     whisperLink: '答问者 · 问点书里的事',
     anchorsLink: '锚句回放',
-    chapterLabel: (order) => `第${['一', '二', '三', '四'][order - 1] ?? order}章`,
+    askLink: '问典 →',
+    chapterLabel: (order) => `第${['一', '二', '三', '四', '五'][order - 1] ?? order}章`,
     echoLabel: (order) => `回响 · 其${['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十'][order - 1] ?? order}`,
     echoTitle: '回响 · Echoes',
     echoLede: '正典之外的侧写——不是续篇，不是错的，只是同一块盐加了另一层纹理。',
@@ -59,14 +62,16 @@ const COPY: Record<Locale, {
   },
   en: {
     kicker: 'The Whispers’ Kings · Canon',
-    title: 'The World Bible · four doors',
-    lede: 'The Whispers’ Kings’ own canon. Four doors — and at the fourth, at last, the lamp is lit.',
-    threeDoors: 'First door: what is the sea called? · Second: who pays? · Third: after the ending? · Fourth: the lamp has been lit.',
+    title: 'The World Bible · five doors',
+    lede: 'The Whispers’ Kings’ own canon. Five doors — and at the fifth, at last, someone keeps the breath the tide drew in.',
+    threeDoors: 'First door: what is the sea called? · Second: who pays? · Third: after the ending? · Fourth: the lamp has been lit. · Fifth: who keeps the breath the tide drew in?',
     playLink: 'I accept the Tidal Trial →',
+    askLink: 'Ask the Canon →',
     wellLink: 'The Seven Wells',
     whisperLink: 'The Answerer · ask one question of the book',
     anchorsLink: 'Anchor Echo',
-    chapterLabel: (order) => `Chapter ${['I', 'II', 'III', 'IV'][order - 1] ?? order}`,
+    askLink: 'Ask the Canon →',
+    chapterLabel: (order) => `Chapter ${['I', 'II', 'III', 'IV', 'V'][order - 1] ?? order}`,
     echoLabel: (order) => `Echo ${['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX'][order - 1] ?? order}`,
     echoTitle: 'Echoes',
     echoLede: 'Side-lights beyond the canon — not a sequel, not an error, just another layer of grain on the same salt.',
@@ -94,6 +99,7 @@ export default async function BiblePage() {
           <span className="bb-playTrialSep" aria-hidden="true">·</span>
           <Link href="/bible/whisper" className="bb-playLink" data-bible-open-whisper>{c.whisperLink}</Link>
           <Link href="/bible/anchors" className="bb-playLink" data-bible-open-anchors>{c.anchorsLink}</Link>
+          <Link href="/bible/ask" className="bb-playLink" data-bible-open-ask>{c.askLink}</Link>
           <span className="bb-playTrialSep" aria-hidden="true">·</span>
           <Link href="/bible/well" className="bb-playLink" data-bible-open-well>{c.wellLink}</Link>
         </p>

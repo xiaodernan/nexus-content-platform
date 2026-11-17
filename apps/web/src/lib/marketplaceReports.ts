@@ -15,11 +15,11 @@ export const REPORT_REASON_LABELS: Record<ReportReason, string> = {
   other: '其他',
 };
 
-/** EN twin — same keys, other language. The zh labels above stay the source of truth for the DB CHECK; this is display-only. */
+/** REPORT_REASON_LABELS 的英文镜像（v812） */
 export const REPORT_REASON_LABELS_EN: Record<ReportReason, string> = {
-  fraud: 'Fraud / misrepresentation',
-  spam: 'Spam / flooding',
-  copyright: 'Copyright / unauthorized use of someone else’s work',
+  fraud: 'Fraud / false advertising',
+  spam: 'Spam / engagement farming',
+  copyright: 'Infringement (unauthorised use of someone else’s content)',
   inappropriate: 'Inappropriate content',
   other: 'Other',
 };

@@ -37,7 +37,7 @@ import { describe, expect, it } from 'vitest';
  * 浏览器那一寸归 `e2e/marketplace-purchases-visual.spec.ts`（setContent 注入真实产物字节）。
  */
 const ROOT = process.cwd();
-const PAGE = join(ROOT, 'apps/web/src/app/marketplace/purchases/page.tsx');
+const PAGE = join(ROOT, 'apps/web/src/app/marketplace/purchases/PurchasesClient.tsx');
 const GLOBALS = join(ROOT, 'apps/web/src/app/globals.css');
 const TOKENS = join(ROOT, 'apps/web/src/styles/tokens.css');
 

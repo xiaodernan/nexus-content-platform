@@ -16,7 +16,7 @@ import type { Locale } from '@/lib/i18n';
  */
 
 /** §4 顶栏：Project · File · Preview · Share · Publish + 撤销/重做 + 保存状态 + viewport 切换 */
-export function TopBar({ onOpenRail, credits = null, locale = 'zh' }: { onOpenRail: () => void; credits?: { ai: number; grant: number; plan: string } | null; locale?: Locale }) {
+export function TopBar({ onOpenRail, credits = null, locale = 'zh', onOpenHelp }: { onOpenRail: () => void; credits?: { ai: number; grant: number; plan: string } | null; locale?: Locale; onOpenHelp?: () => void }) {
   const c = shellCopy(locale);
   const viewports: { id: ViewportMode; label: string; hint: string }[] = [
     { id: 'design', label: c.designViewLabel, hint: c.designViewHint },
@@ -155,6 +155,17 @@ export function TopBar({ onOpenRail, credits = null, locale = 'zh' }: { onOpenRa
         </select>
         <TopButton label={c.grid} shortcut="Ctrl+G" active={grid} onClick={() => studio.toggleGrid()} />
         <ExportPanel locale={locale} />
+        {onOpenHelp ? (
+          <button
+            type="button"
+            onClick={onOpenHelp}
+            title={c.helpToggleTitle}
+            className="sp-helpToggle"
+            data-help-open
+          >
+            {c.helpToggle}
+          </button>
+        ) : null}
         <PublishPanel locale={locale} />
         <a
           href={`/preview/${projectId}`}

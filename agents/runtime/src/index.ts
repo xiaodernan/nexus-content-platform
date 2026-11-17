@@ -250,6 +250,22 @@ export {
   type LedgerRead,
 } from './ledger.js';
 export { planTask, goalKeyword, type PlannerOptions } from './planner.js';
+// M7 v795 — StateGraph：LangGraph 语义的本仓 TS 原语（§23§25），不对 LangGraph 供应商依赖。
+export {
+  StateGraph,
+  START,
+  END,
+  StateGraphRecursionError,
+  StateGraphValidationError,
+  lastValue,
+  appendSeq,
+  binaryOp,
+  type ChannelReducer,
+  type StateNode,
+  type StateGraphNodeConfig,
+} from './stategraph.js';
+// v816 — §63 的自修环以 StateGraph 接线（verify → 有界 fix → 复验；ADR-0272）。
+export { runVerifyFixLoop, type VerifyFixContext, type VerifyFixResult } from './verifyFix.js';
 export {
   GIT_ARC_TOOLS,
   gitArcDoors,

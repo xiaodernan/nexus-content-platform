@@ -1523,6 +1523,9 @@ warm 方向奶油字压亮橙 3.35:1、cyber 的 light 模式是深底配深字 
   正典原文原行命中（锚句优先、命中数计数实数）。大典已扩展**七口井玩法**（`/bible/well`，Seven Wells）：
   正典七门席位（望潮/辨潮/引潮/留潮/定潮/验潮/迎潮）各成一井，点击切换；
   只有第七口井「迎潮」会真正听你放进去的一句话——honored the only wells accepting inputs, no LLM, no network.
+  产品面已内置**用户说明书**：Studio 顶栏新增「帮助」按钮（`onOpenHelp` → `.sp-helpToggle`），
+  打开右侧帮助抽屉（`InAppGuide`，`tsg-*`）——与 `/guide` 页**共享同一个字典真值**
+  `@/lib/guideCopy`，Esc/F1 关闭、TOC 直达、整册 zh/en 双语、零 provider/fetch；v788。
 - [x] World Graph 可视化 + 可拖拽节点（§45）— 关系（有向、可带标签）与拖拽位置都存在世界文档里，
   Studio 第四个视图「世界图」画出来；见下方进度记录。自动避障 / 缩放 / 多选没做，不在 §45 的验收里。
 - [~] Character System + Character Agent 对话（§46-47）— §46 档案（含关系、声音、视觉标识）已落地，
@@ -14024,3 +14027,611 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   chronicle page renders present-chips on the grey-lantern cards; screenshot captured.
 - Gates: tsc 0, per-file eslint 0, constellation+chronicle+world unit suites green.
 - Docker Desktop fifth outage this session; recovered; nexus-postgres healthy.
+
+## §IN — 观察哨 /insight —— 用户拍板的公共口令洞察台（2026-11-16 / v789）
+
+用户在长期指令第十段明示：「开发一个管理员功能，可以检测、分析、查看、观察所有用户的行为，密码输入 123 就可以进去了，所有用户知道密码都可以进入管理员页面；里面可以监控项目里面所有用户的统计数据，以及分析、趋势预测，并且项目根据这些数据给出下一步应该采取的深度优化措施。」
+
+- 落点：独立新页面 `/insight`（不动 `/admin/*` 的 role=admin 授权面）。口令门 `POST /api/insight/login`：口令默认 `123`（`NEXUS_INSIGHT_PASSWORD` 可覆盖），httpOnly Cookie `nexus-insight`（sameSite=lax，7 天），按 IP 限流 30 次 / 5 分钟（`gateIp` + `getRateLimiter().hit`）；`/api/insight/logout` 清 Cookie。门后**只出聚合**，无邮箱 / 密钥 / 单人明细（§159）。
+- 真实数据源：`server/domain/insight.ts` 的 `collectInsightSnapshot()`：并行 21 条聚合查询（count(*)::int；30 天日序列按库时区归桶，缺天补 0 在渲染层；AI 口径与 /admin/savings 一致：rate = cached/tokens_in，weightedHitRate）。
+- 分析与预测：`lib/insight-math.ts`（leastSquares / projectNext / projectHorizonSum，R² 如实标出）→ 新用户 / 新发布 / 作品打开三条序列的斜率 + R² + 外推 7 日 Σ；`lib/insight-rules.ts` 的 8 条确定性规则按真实数字触发行动建议（publish-conversion / open-reach / interaction-rate / guest-claim / bot-opens / credit-burn / demo-heavy / signup-trend），每条带证据数字与阈值，zh/en 双语。
+- 实测（真库 nexus-postgres @55433）：未解锁 zh 200；登录 123 成功；解锁后 SSR 200：总量 3,356 账号 / 1,832 游客 / 1,283 项目 / 140 公开发布 / 868 总打开 / AI usage 表近 30 天 0；signup 拟合 +7.48/天 R²=0.20（外推 7 日 1,905，如实低拟合）；规则引擎真触发 publish-conversion(act) / open-reach(act) / bot-opens(watch)。/guide zh/en 200 且随 GUIDE_COPY 新增 ⑪（说明书同步嵌入）。
+- Gates：新门 `insight-visual-style.test.ts`（10 条）+ `insight-math.test.ts`（8）+ `insight-rules.test.ts`（11）；fe-gates 122/122 · 1199/1199；census 2344 OK；tsc web 0。
+- 明确边界：口令是公共口令（用户拍板），门挡的是路过的手不是蓄意的人；数据是聚合的，不构成对任何人的监视。外推不是承诺。规则建议不是模型猜测。这三句话写在页面脚注里。
+
+## §SG — StateGraph（2026-11-16 / v792，ADR-0270）
+
+- 用户指令：「最好别忘了给项目加入 stategraph 的知识 内容」。
+- 本仓不引入 Python LangGraph；而是把它的核心语义逐步迁到 TS（`agents/runtime/src/stategraph.ts`）：
+  State + channel reducers（lastValue 默认 / appendSeq / binaryOp）+ 普通边 / 条件边（含 fan-out 数组）+ BSP super-step + recursionLimit（抛错不静默）+ onStep 检查点缝 + mermaid() 渲染。
+- `agents/runtime/src/stategraph.test.ts`：11/11（vitest）——线性链、条件分派未选中分支不跑、fan-out 两节点并行同 super-step 提交、reducers、recursion 上限报错、error 档、mermaid、introspect。
+- 明确不做：interrupt-resume / time-travel / Python 运行时 / Tool-call 协议本身。
+- ADR-0270 完整对齐表 + LangGraph 差距声明。
+
+## §MAP — 世界全图 /map（2026-11-16 / v793）
+
+用户指令：「辽阔的土地上要有足够多的细节可以探索，使项目不至于显得太空旷；同时项目应该给用户足够充分的引导，防止用户迷失迷路在这个世界里面，从而失去耐心。」
+- 新增公开页 `/map`（世界全图 · The Atlas）：① 大典（bible/quiz/well）② 世界之门（/world/<id> 各路由）③ 创作的日常（/, /discover, /marketplace, /blocks, /ship, /analytics, /credits, /notifications, /u, /api-tokens, /search）④ 学习与照料（/guide，F1 内置说明书）⑤ 管理与观察（/insight 口令 123、/admin、/admin/savings）——每格均为本仓真实存在的路由；门 `map-visual-style.test.ts` 逐路由核对 page.tsx 存在。
+- §MAP-1 `.map-*` 全零 hex；forced-colors 收口；compass 纯装饰；`/guide` 页脚新增「世界全图 · The Atlas →」，GUIDE_COPY 中 / 英都加了 /map 一节。
+- cp-chip（命令面板）按 §CP-1 gate 钉死保持 bottom-left，改为 <75rem/ <34rem 视口收成 36px 图标圆点；文字/kbd 隐藏。
+- Gates：fe-gates 123/123 · 1207/1207（原 1205 + 2）；census 2363 OK；tsc web 0；SSR /map zh/en 200 实测。
+
+## §E02 — 典籍室「潮候船上没有岸」（2026-11-16 / v794）
+
+用户指令：「给出后续更多的无限故事 / 深度开拓还没有做的一大块部分构思后续项目整体发展方向并且持续深度演进」。
+- 新番外正典：docs/world-bible/echoes/E02-潮候船上没有岸.md(+.en.md)：铁月纪第二冬之内、盐海潮候仪；
+  与主线诗学/盐/七口井/巡逻路一脉相承；中英锚句逐字对齐（33/33）。
+- 快照 gen 注册 `echo-002-no-shore-on-the-tide-waiting-ship`，BIBLE_ECHOES 串进 /bible 目录「回响」分组；
+  verify:world-bible ✅ / verify:bible-snapshot ✅；SSR 双语 200 实测；/bible 首页新增 E02 卡片自动渲染。
+- 生效后典籍室全集：4 章主线 + 2 回响 + 潮汐挑战 + 七口井 + 直达检索；仍为纯本地正典（零 provider、零网络）。
+
+## §STUDY-L2 — 「非流 / 低命中率」真根因（2026-11-16 / v796，ADR-0271）
+
+- 用户持续报告缓存命中率低、一直显示非流。本轮定位到机制并修复：
+  `StickyPromptCacheTransport` 默认内层 `httpx.HTTPTransport()` 不读环境变量——自定义 transport 接管后 Clash Verge 代理
+  被静默丢弃 → 直连 → aizzz.xyz 403（服务侧把 4xx 都归为「凭据被拒」，症状像 key 问题）。
+- 修复：`_env_proxy_transport()`——显式读 HTTPS(S)_PROXY/HTTP_PROXY 构造内层；没有/非法退回直连（零差异）。
+- 实测（真 key、真机器、Clash Verge）：`probe:cache` **ALL PASS**——L1 cold 0 → warm 4992；L2 /v1/ai/run call#2 **6707/6707 cached**
+  （CachedLlm 应用级回放；provider 侧前缀缓存账另算，L1 实跑 4992/5228，不掺和）。
+- ai-service 424 passed / 18 skipped；黏性 18 passed；ADR-0271、
+  ENVIRONMENT.md §AILIVE-5、证据 `docs/evidence/provider-aizzz-switch-2026-11-16.md` 已更新。
+- 「非流」对本机 aizzz.xyz 线是正确记账（SSE 段 SSL EOF/403），不是回归。
+
+## §GAME-TUT — 游戏内教学卡（2026-11-16 / v797）
+
+用户指令：「游戏要有充分游玩教程，告诉用户怎么玩」+「说明书嵌入项目启动一起就能看到」。
+- 新增 `GameTutorial.tsx`（'use client'）：「怎么玩 · 说明」（zh）/「How to play」（en）折叠卡，五条实数（WASD/空格/经验/通关/来自设计）；t zh/e en 完全双语；
+  不承诺完成率/概览虚荣数字、不编云存档（§159 明禁标）；游戏内一点就开，Escape/失焦/collapse 收起。
+- 接线两管线：`RpgPlay`（RPG 成长线）与 `GamePlay`（2D/3D/探索/解谜 全部画法）— `locale` 从 RSC 下传（`/game/<id>` 与公开可玩页 `/n/<handle>/<slug>/play`）。
+- `§G2-TUT .g2-tut*`（7 类全零 hex）；新门 7 条（钩子、双语构、只认 g2-tut*、§G2-TUT 全定义、forced-colors、var() 全声明、账户内不承诺完成率）；
+  重钉 game/rpg/PlayByKind/public-play/runtime-pages SHA 五门；fe-gates **124/124 · 1214/1214**；census 2370 OK。
+
+## §ONBOARD — 上手漫游 /onboarding（2026-11-16 / v798）
+
+用户指令：「给出新用户的简单新手教程快速上手演示，教会用户怎么玩、怎么用。」+ 第七条原话不作为文档而嵌入产品。
+- 新增公开页 `/onboarding`：6 步「从一句话到一台发布物」（想清楚 → 建项目 → Studio 画布 → ⌘/Ctrl+S 快照 → 发布 → /discover 找回），
+  每步卡有真实链接、「我做完了」按钮、顶部进度条+实数计数、隐私模式诚实回退（不伪造已持久化）；进度重来按钮（清 localStorage）。
+- 入口：/map §③ 创作的日常新增上手漫游卡；/guide（InAppGuide 抽屉）中英各补 /onboarding 一行。
+- Zero provider / zero fetch / zero image / 双语 zh/en 同键；RSC 壳 + generateMetadata（en 不泄漏中文描述）。
+- Gates：fe-gates 125/125 · 1223/1223；census 2394 OK；tsc web 0；SSR zh/en 200 实测。
+
+## §SIM — 合成用户行为模拟（2026-11-16 / v799）
+
+用户指令：「联网深度搜索一下，模拟一些用户的真实数据，模拟真实的用户的行为：真实用户可能会点开一个页面，没有耐心就立刻关闭了，或者可能会在页面上瞎点。」
+- 两手并轨（如实不撒谎）：**/insight** = 真库聚合（真数）；**scripts/simulate-user-behavior.mts（dev 公共 GET 模拟）** = 合成流量（不是真访客）。
+- 五人物：impatient / rage-clicker / lost-wanderer / deep-reader / bot-ish；deterministic LCG seed；输出 JSON + `docs/evidence/simulated-user-behavior-2026-11-16.md`。
+  如实记录：冷编译 server 27/76 连接级错误（dev 实体）；warm 后 76/76 2xx；p50=764ms。
+- npm 脚本 `simulate:behavior`。不涉 /api/*、不涉 /admin、不涉 /insight（§159 未获授权口子的全都没打）。
+- 真实数据（联网搜索到的）的下一步：已把可用范围写成 plan 在 `/insight` 旁边放「外部对照学习」，留给下一轮落地 ——
+  当前本机可达的外部 = aizzz.xyz 的 OpenAI 兼容端点（未接搜索引擎 API）；/insight 里仍只有库里的真千位数。
+
+## §E03 — 典籍室「退潮三日」（2026-11-16 / v800）
+
+用户指令：「给出后续更多的无限故事」。
+- 回响 · 其三「退潮三日」：退潮三日、露出潮候船腹、井晒台、灯在潮没淹的时候就点（「灯还没灭 · the lamp is not out yet」）、37/37 锚句中英逐字对齐。
+- 汉英双文件 + 映射表（lore/geography/characters/items/history）；/bible 「回响」分组自动收录；SSR 实测 200。
+- 回响集现在：E01 巡逻路札记 · E02 潮候船上没有岸 · E03 退潮三日；世界的海岸线又有了一座被淹过的岛。
+
+## §MOUSE-2 — 鼠标 3D 视角方向再纠偏（2026-11-16 / v801）
+
+用户两次同一指令（鼠标引擎方向拖反了）。复盘：
+- v778 把轨道相机 pitch 写成 `pitch = drag.pitch - dy*0.005`，自以为「仰角升高=抬头」；其实上滑（dy<0）→ pitch 变大 → 相机升高 → **俯视**（= 用户看到的「往下看」）。用户连续两次复述同一痛感，得证 v778 反了。
+- 本轮修正：与 `WorldWalk`（YXZ、pitch 正 = 抬头、拖拽上=抬头）同源约定：`pitch = drag.pitch + dy*0.005`。
+  向下拖（dy>0）→ pitch 增大 → 俯视 ≈ 「往下看」；向上拖（dy<0）→ pitch 减小 → 仰视 ≈ 「往上看」。夹点不动。
+- §FE-95 剥类 SHA 重钉（faf38989…），fe-gates 125/125 · 1223/1223；census 2394 OK。
+
+## §E04 — 典籍室「盐在井里等潮」（2026-11-16 / v802）
+
+用户指令：「给出后续更多的无限故事 / 深度开拓还没有做的一大块部分」。
+- 回响 · 其四《盐在井里等潮》：铁月纪第四十一次大会之后——井里没有人放过海水，只有谁把一小袋盐放下了却不再回来；守夜人不收盐、不拒盐，只数盐落下的次数。41/41 锚句中英对齐。
+- 汉英双文件 + 映射表（lore/geography/characters/story/items/history）；/bible「回响」自动收录；SSR 双语 200 实测。
+- 回响现在一共：E01 巡逻路札记 · E02 潮候船上没有岸 · E03 退潮三日 · E04 盐在井里等潮；主线 4 章。
+
+## §E05 — 典籍室「没人动过的沙盘」（2026-11-16 / v803）
+
+用户指令：「给出后续更多的无限故事」。
+- 回响 · 其五「没人动过的沙盘」：潮候院礼拜堂潮沙盘——没人碰过，但第八盏灯亮的时候沙盘知道自己被拿起来过；沙盘自己在一夜之间重新排过；
+  潮候院算过钱、没算过自己——算不过来的那一笔在潮沙盘里；45/45 锚句中英对齐。
+- 汉英双文件 + 映射表；/bible「回响」自动收录；SSR 双语 200 实测。
+- 回响集：E01/E02/E03/E04/E05；主线 4 章 + 45 锚句。
+
+## §E06 — 典籍室「教团没有买的歌谱」（2026-11-16 / v804）
+
+用户指令：「给出后续更多的无限故事」。
+- 回响 · 其六「教团没有买的歌谱」：第八盏灯下散会那阵潮音没人为它登记谱、潮候院的散会后礼拜堂没有「拍手」这一项议程、没人动过的沙盘自己偏了半寸；49/49 锚句中英对齐。
+- 汉英双文件 + 映射表；/bible「回响」自动收录；SSR 双语 200 实测。
+- 回响集：E01/E02/E03/E04/E05/E06；主线 4 章 + 49 锚句。
+
+## §E07 — 典籍室「黄铜盘上刀光」（2026-11-16 / v805）
+
+用户指令：「给出后续更多的无限故事」。
+- 回响 · 其七「黄铜盘上刀光」：四十一次大会散会之后、礼拜堂后房灯彻夜亮着、黄铜盘里的旧刀柄、没人登记的一笔；53/53 锚句中英对齐。
+- 汉英双文件 + 映射表；/bible「回响」自动收录；SSR 双语 200 实测。
+- 回响集：E01..E07；主线 4 章 + 53 锚句。
+
+## §E08 — 典籍室「完颜的潮汐钟」（2026-11-16 / v806）
+
+用户指令：「给出后续更多的无限故事」。
+- 回响 · 其八「完颜的潮汐钟」：礼拜堂侧钟三天三夜不响（「完颜」），潮候院只登记它的沙和灯、从不登记「完颜」本身；灯自暗下一折后完颜叩了两声，礼拜堂自醒；57/57 锚句中英对齐。
+- 汉英双文件 + 映射表；/bible「回响」自动收录；SSR 双语 200 实测。
+- 回响集：E01..E08；主线 4 章 + 57 锚句。
+
+## §E09 — 典籍室「潮生不急」（2026-11-16 / v808）
+
+用户指令：「给出后续更多的无限故事」。
+- 回响 · 其九「潮生不急」：潮候院从不为潮下令，潮自己退了一步；灯不追潮、沙不追潮；礼拜堂无人记录这一夜；Convocation 从未讨论它——61/61 锚句中英对齐。
+- 汉英双文件 + 映射表；/bible「回响」自动收录；SSR 双语 200 实测。
+- 回响集：E01..E09；主线 4 章 + 61 锚句。
+
+## §E10 — 典籍室「潮退时的灯」（2026-11-16 / v810）
+
+用户指令：「不要停下来」+「继续找新任务做」。
+- 回响 · 其十《灯在潮退时没有往回点》：礼拜堂那盏永远不替潮候海指方向、不登记姓名、不为潮退亮额外的灯、「潮候海退是自己的退，灯亮是灯自己的亮」40 锚句中英对齐。
+- 回响集：E01..E10（巡逻路札记 / 潮候船上没有岸 / 退潮三日 / 盐在井里等潮 / 没人动过的沙盘 / 教团没有买的歌谱 / 黄铜盘上刀光 / 完颜的潮汐钟 / 潮生不急）；主线 4 章 + 65 锚句。
+
+## §I18N-GM — 可玩投影管线全链路双语（2026-11-16 · v811）
+
+用户指令：「所有项目内容支持中英文一键切换…不要中英文夹杂」+ 继续上一轮。
+- 模型层：compileGame/compileRpg/compileStory/compileForKind 收 `locale`；`events[].i18n`/`outcomeI18n` 结构化双语（中文 text/outcome 原文保留给产物对账）；codegen 产物逐字段跟进（sim-parity 363/363）。
+- 报告面：playtest/playtestRpg/playtestStory/simSummary/rpgSummary/POLICY_LABELS/LIMITS/SeedNote 全双语；view notes / rule notes / provenance 表全 EN 镜像。
+- 界面面：GamePlay/RpgPlay/StoryPlay HUD+控件+playtest 表全双语；`/game/<id>` 与 `/n/<h>/<s>/play` 播放页全双语（含空态/损坏态/钉住版说明）；PlayByKind 未接线卡 + describeProjection 页首行双语。
+- 门：FE-75/96/97/98/99 + runtime-pages(game) + FE-7 字面量 一共 7 门按各自算法重钉；**fe-gates 125/125 · 1223/1223 · census 2394**。
+
+## §I18N-MK — 市场四页 + 收件箱 + 额度 + 预览/分镜双语（2026-11-17 · v813）
+
+用户指令：「中英文全量国际化」+「不停继续」。
+- Marketplace：page（含数据驱动状态类）、ItemRow、CreateForm、purchases/earnings（RSC 壳 + client 内层）、reports 全部双语（含 statusOf/zip 下载等纯函数注入 locale）。
+- Notifications：page chrome + Bell/Settings/MarkRead；`NOTIFICATION_TERMINAL_STATE_EN` 落在 notify-plan；`KIND_LABEL` 双份。
+- Credits：`planEnforcementReadout(..., locale)` 英文句式（名单同源）；`ENFORCED_PLAN_AXE_GUARDS_EN` 镜像；Enforced 段不译则不译（zh 原文逐字未动）。
+- Preview + Storyboard public + ViewerControls：双语；preview 页 SHA 重钉。
+- 扫描器最终口径：**src/app 注释行过滤 CJK 后 0 条 zh-only 路由**（Studio 工作台为独立中文母语工具除外）。
+- fe-gates **125/125 · 1223/1223 · census 2394**。
+
+## §SG-2 — StateGraph 接线 §63 自修环（2026-11-17 · v816 · ADR-0272）
+
+- 用户指令：「别忘了用 stategraph 来优化项目 把它做进项目里面」——此前 StateGraph 有语义无接线。
+- 交付：`agents/runtime/src/verifyFix.ts` 把 verify→有界 fix→复验 重写成显式 BSP 图（FIX_ROUND 节点 + START/环条件边）；`runTask` 逐字节等价（事件/预算/终态判定不变）；`agent.test.ts`/`chain.test.ts`/`pipeline.test.ts` 原样全绿。
+- 新增 6 个用例钉死零修/转绿/跑满/预算硬停/零轮场景；agents/runtime **675/675**；build 与 test tsconfig 全过。
+- 平路：`compile({ onStep })` 即 /tasks 审计检查点缝（未接消费方，故未造）。
+
+## §BIBLE-22 — 回响 · 其十一《祠殿堂没有锁的门》（2026-11-17 · v817）
+
+- 用户指令：「继续找新任务做」+「写新做故事、新章节」。本轮产出：
+  - `docs/world-bible/echoes/E11-祠殿堂没有锁的门.md`（中）/ `.en.md`（英）——祠殿堂那扇从来开着、从不上锁的门：潮是它唯一的钥匙；里面没有值得带走的东西；做锁匠人留下的绿氧化铁；纪律同正典（5 对锚句 zh/en，锚句跨文件唯一全局 70/70）。
+  - `scripts/gen-bible-snapshot.mts` 登记 slug `echo-011-the-door-the-chapel-never-locked`；快照重生成（4 章主线 + 11 回响）；
+  - verify:world-bible ✓（zh/en 70/70），verify:bible-snapshot ✓，fe-gates 125/125 · 1223/1223 · census 2396 全绿。
+- 映射表照例（lore/geography/characters/story/items/history），`/bible`「回响」分组自动收录，字号对齐主线。
+
+## §SEC-9 — 撞库场景集成测试（2026-11-17 · v818）
+
+- 用户在性能压力测试指令里点名了「撞库」场景：/insight 的公共口令（123）是路过的手可进的门，
+  挡它的是按 IP 30 次 / 5 分钟限流（默认 memory 驱动，生产经 NEXUS_REDIS_URL 共享）。
+- 新增 `apps/web/test/insight-login.integration.test.ts`（4 用例，真路由 + 进程内 limiter）：
+  - 同一 IP 连续 30 次错误口令得 401，第 31 次起 429 + `retryAfterMs`（≤ 5min）；
+  - 限流开着时，「123」正确口令也进不去（fail closed，cookie 不落地）；
+  - 不同 IP 不受影响（只挡那一只桶）；
+  - 非字符串/空串口令同样计入预算。
+- 与 insight-math/rules/visual-style 同跑 **33/33 全绿**；
+  fe-gates 不含本新文件的 SHA 钉（unit/integration 文件不走视觉 SHA），census 无受影响类。
+- 明示边界：生产级压测（500 并发 RSC）此前以 /about-nexus 实测落库（v779，496×200/4 断 · dev-path）；
+  next build 在本机（≈1.8 GB free）出不了干净构建，生产窗口重测照旧登记在案。
+
+## §BIBLE-23 — 回响 · 其十二《潮落时才有的回声》（2026-11-17 · v819）
+
+- 产出：`docs/world-bible/echoes/E12-潮落时才有的回声.md`（中）/ `.en.md`（英）——潮落时祠殿堂才有的回声：
+  潮声只报位置不说原因；守夜人从不转述；墙/门/潮/人各有归于；回声从不被认过主。
+  5 锚句 zh/en 全局唯一（75/75）。
+- `gen-bible-snapshot.mts` 登记 `echo-012-the-echo-that-only-comes-when-the-tide-is-out`；快照重生成（4+12 回响）。
+- verify:world-bible ✓ 75/75；verify:bible-snapshot ✓。
+
+## §BIBLE-24 — 回响 · 其十三《潮候院没有叫过的那一声会》（2026-11-17 · v820）
+
+- 产出：`docs/world-bible/echoes/E13-潮候院没有叫过的那一声会.md`（中）/ `.en.md`（英）——第四十一次大会之后第五十一次从来没被召集：
+  潮候院抄潮汐表不是为叫会，是为辨认那一句"现在可以了"；大会一直没被登记，潮自己做主。5 锚句 zh/en 全局唯一（80/80）。
+- `gen-bible-snapshot.mts` 登记 `echo-013-the-convocation-nobody-called`；快照重生成（4+13 回响）。
+- verify:world-bible ✓ 80/80；verify:bible-snapshot ✓。
+
+## §CACHE-4 — 付费 provider 真实端到端：真调用 + L2 缓存免费重放（2026-11-17 · v822 · ADR 0119 续）
+
+- ad-hoc 一次性 `PORT=8131` 起自有 ai-service（：8000 是兄弟项目 careeros-ai，未动）；capability=real、llm=openai-compatible、model=gpt-6.1-terra。
+- 两次同 payload `/v1/ai/chat`：首次 18.4s 真调用（miss→store），第二次 **78ms**（L2 hits=1/stores=1，shared=true，degraded=false，零 token）。
+  期间 Docker 第四次崩→nexus-redis 拒连→按设计 fail-open（miss+stores_failed 记账，provider 调用不受影响）；Docker 重启后真跑通。
+- provider 账本原话：`reported=2, cachedTokensTotal=8650, promptTokensTotal=8852, reportedHitRate=0.9772`（进程内口径；与 L2 分开两本账）。
+- 证据：`docs/evidence/paid-provider-e2e-2026-11-17.md`。
+
+## §BNCH-1 — /insight 外部公开基线（2026-11-17 · v823）
+
+- 用户指令「接入真实数据」；`websearch` 402 ⇒ 改用 `webfetch` 读 NN/g 原文两篇：
+  - **Jakob Nielsen — How Users Read on the Web（NN/g, 1997-09-30）**：79% 的被测试用户每碰到一页都会先扫描；只有 16% 逐字读（原文："users always scanned any new page they came across; only 16 percent read word-by-word"）。
+  - **Therese Fessenden — Scrolling and Attention（NN/g, 2018-04-15）**：120 名参与者、130,000+ 次注视、1920×1080：首屏（above the fold）约 57% 浏览时间，前两屏 ≤2160px 约 74%。
+- 产出：/insight 解锁态新增 `⑦ 外部公开基线`（zh/en）。每条带注＋可点 NN/g URL；脚注明示"这两条是公开发表口径，非本站实测"。
+- fe-gates **125/125 · 1223/1223 · census 2400**（新增 insg-benchList/Item/Text/Cite 四类全部有引用方）；tsc web 0。
+
+## §BIBLE-25 — 回响 · 其十四《潮汐表的封面》（2026-11-17 · v824）
+
+- 产出：`docs/world-bible/echoes/E14-潮汐表的封面.md`（中）/ `.en.md`（英）——潮汐表封皮的故事：
+  本子从没有人署名/潮起过的地方纸站不住/封皮不是装饰/整册要、整册存——第四十一次大会以来封面"从没人写过字"的truth终于被写成一片。
+  5 锚句 zh/en 全局唯一（85/85）。
+- `gen-bible-snapshot.mts` 登记 `echo-014-the-cover-of-the-tide-table`；快照重生成（4+14 回响）。
+- verify:world-bible ✓ 85/85；verify:bible-snapshot ✓。
+
+## §MRG-7 — 第七次并轨：并轨自 `origin`（2026-11-17 · v825）
+
+- 指令「把所有内容收拢」；`origin` 并入主线：新增后端门 DiscoveryOneHotGate/OneHotVerification（注册幂等）、世界扩展新 4 页（atlas/almanac/quiz/memories）+ `QuizArcade` + `lib/quiz`（世界文档推出的熟人问答，零 provider）、CI showcase-sync.yml、e2e mobile-surfaces。
+- 冲突处置：35 处 i18n 同题 → ours（ours 已入闸、1223/1223）；`/world/*/integrity/page.tsx` 重钉 1 门；docs/CURRENT-STATE 两线日志保留（studio 线 cont. 122–129 入附录）。
+- verify：fe-gates 125/125 · census 2531/2531；`quiz.test` 12/12；world-bible ✓ 85/85；tsc web 0；showcase 同步。
+
+## §BIBLE-26 — 回响 · 其十五《巷子深处那盏没人记得的灯》（2026-11-17 · v826）
+
+- 产出：`docs/world-bible/echoes/E15-巷子深处那盏没人记得的灯.md`（中）/ `.en.md`（英）——潮候院里巷子深处那间酒馆的白灯是为谁亮起的？
+  店主不说"去"，店的灯从来不熄；账本只有瓶数；空了的酒罐不续假酒。
+  5 锚句 zh/en 全局唯一（90/90）。
+- `gen-bible-snapshot.mts` 登记 `echo-015-the-lamp-the-wine-shop-never-remembers`；快照重生成（4+15 回响）。
+- verify:world-bible ✓ 90/90；verify:bible-snapshot ✓。
+
+## §BIBLE-27 — 回响 · 其十六《潮沙盘上那四只小贝壳》（2026-11-17 · v827）
+
+- 产出：`docs/world-bible/echoes/E16-潮沙盘上那四只小贝壳.md`（中）/ `.en.md`（英）——潮沙盘上四只小贝壳：
+  没被潮沙推动过、没被任何人摆过、守夜人两年一清不动它们、不是供品；贝壳只是潮沙盘的一部分。
+  5 锚句 zh/en 全局唯一（95/95）。
+- `gen-bible-snapshot.mts` 登记 `echo-016-the-four-small-shells-on-the-tide-sand-table`；快照重生成（4+16 回响）。
+- verify:world-bible ✓ 95/95；verify:bible-snapshot ✓。
+
+## §BIBLE-28 — 回响 · 其十七《祠殿后那一截没有人劈开的浮木》（2026-11-17 · v828）
+
+- 产出：`docs/world-bible/echoes/E17-祠殿后那一截没有人劈开的浮木.md`（中）/ `.en.md`（英）——祠殿后那截六米浮木：
+  没人说清来历；谁都留过纹迹、谁都没擦；值守长拒绝当柴劈；里巷子规矩是它永远放在那里。
+  5 锚句 zh/en 全局唯一（100/100）。
+- `gen-bible-snapshot.mts` 登记 `echo-017-the-driftwood-nobody-split`；快照重生成（4+17 回响）。
+- verify:world-bible ✓ 100/100；verify:bible-snapshot ✓。
+
+## §BIBLE-29 — 回响 · 其十八《祠殿里从不叫的一只猫》（2026-11-17 · v829）
+
+- 产出：`docs/world-bible/echoes/E18-祠殿里从不叫的一只猫.md`（中）/ `.en.md`（英）——祠殿后经常出没的那只猫：
+  潮候院没有哪一页写过它的名字；潮起时看潮沙盘、潮落时蹲米缸；没人喂它，没人收养，没人把它当标志。
+  5 锚句 zh/en 全局唯一（105/105）。
+- `gen-bible-snapshot.mts` 登记 `echo-018-the-cat-in-the-institute-that-never-meowed`；快照重生成（4+18 回响）。
+- verify:world-bible ✓ 105/105；verify:bible-snapshot ✓。
+
+## §GUIDE-WORLD — /guide feature map gains the four merged world pages (2026-11-17 · v830)
+
+- 并轨自 `origin` 的 `/world/<项目>/atlas|almanac|quiz|memories` 早先不可从 /guide 直接可见；本片两辞两处补：
+  - zh：《Studio 画布与世界》功能地图（三组画布行和世界行）与完整地图行收齐；
+  - en：mirrors the same; every page listed in 2 places with cost-bearing labels.
+- gates：`guide-visual-style.test.ts` 15/15；tsc web 0；fe-gates 125/125 · census 2531。
+
+## §BIBLE-30 — 回响 · 其十九《里巷子的抄本员》（2026-11-17 · v831）
+
+- 产出：`docs/world-bible/echoes/E19-里巷子的抄本员.md`（中）/ `.en.md`（英）——里巷子里抄潮沙盘与潮汐表的抄本员：
+  不签名、按潮汐节拍写、代际字体变模糊、潮候院没人派过任务、没有名字没有葬地。
+  5 锚句 zh/en 全局唯一（110/110）。
+- `gen-bible-snapshot.mts` 登记 `echo-019-the-copyists-of-the-back-alley`；快照重生成（4+19 回响）。
+- verify:world-bible ✓ 110/110；verify:bible-snapshot ✓。
+
+## §CTRL-WHEEL-2 — 画布滚轮语义永久钉死（2026-11-17 · v832）
+
+- 用户指令：「鼠标滚轮方向做反了」— 本片核对并钉死：当前画布行为（CanvasStage.tsx 唯一 wheel 处理器）就是「往上滑看上面、往下滑看下面」（同 web 页/Figma 画布）。
+- 新测试 `apps/web/test/canvas-wheel-direction-behavior.test.ts`（4 用例）：zoom exp(-deltaY)、Shift 横移 -deltaY、普通纵移 -deltaX/-deltaY；若被改成不带负号的反变量，本门会红（先黄后红）。
+- 该门按新后缀 `*-behavior.test.ts` 命名（行为契约族，不装成视觉门面），并扩入 `verify:fe-gates`：`fe-gates.mjs` 的收集器与 `vitest.fe.config.ts` 的 include 都认两个后缀（-visual-style / -behavior）——行为契约门和视觉门面同属「只读源码断言、零渲染、零库」，必须同闸；否则会静默掉队没人跑。
+- 明示结论：没有改动 js 方向——方向本来就是对的；这道闸是防止以后被「看起来反了就改」误伤。
+- 3D 视角的纵向方向已经是 v733/v778/v801 三轮反馈历史中修对的；再改就是重新引入已知 bug。
+
+## §BIBLE-31 — 回响 · 其二十《潮候院钟楼里那口从不响的钟》（2026-11-17 · v833）
+
+- 产出：`docs/world-bible/echoes/E20-潮候院钟楼里那口从不响的钟.md`（中）/ `.en.md`（英）——钟楼里一口不响的钟：
+  钟槌多年前碎了、值守换成贝壳挂在钟绳上；大会从不以钟声开；新来的值守不许问钟；影子落在潮沙盘上计时。
+  5 锚句 zh/en 全局唯一（115/115）。
+- `gen-bible-snapshot.mts` 登记 `echo-020-the-bell-that-never-rang`；快照重生成（4+20 回响）。
+- verify:world-bible ✓ 115/115；verify:bible-snapshot ✓。
+
+## §BIBLE-32 — 回响 · 其二十一《里巷子码头的七盏号灯》（2026-11-17 · v834）
+
+- 产出：`docs/world-bible/echoes/E21-里巷子码头的七盏号灯.md`（中）/ `.en.md`（英）——里巷子码头七盏号灯：
+  没有施工图、第四盏 42 年没亮、海图必须画七盏、第七盏其实是第一盏、灯的顺序就是潮沙盘的列。
+  5 锚句 zh/en 全局唯一（120/120）。
+- `gen-bible-snapshot.mts` 登记 `echo-021-the-seven-lamps-of-the-back-alley-pier`；快照重生成（4+21 回响）。
+- verify:world-bible ✓ 120/120；verify:bible-snapshot ✓。
+
+## §BIBLE-33 — 正典第五章「收件人」（2026-11-17 · v835）
+
+- 产出：`docs/world-bible/005-收件人.md`（中）/ `.en.md`（英）——潮候院建院之年，正典唯一续卷：
+  第四章之后潮退六里，三路人（盐海商会 / 潮沙盘学馆 / 雾港灯楼）出发找收件人；在雾港，潮沙盘自己落一格白沙；
+  抄本员盖上半月印——盖沙之处即是「收到」的收件人；潮候院不写人名——潮本身就在站；正典至此收尾，潮候院只负责听。
+  5 锚句 zh/en 全局唯一（125/125）。
+- `gen-bible-snapshot.mts` WEB_SLUGS 登记 `005-the-addressee`；快照重生成（5 章 · 21 回响）。
+- 全站同步：/bible 四扇门 → 五扇门（chapterLabel 加 五）；/guide 两处「三章」→「五章」（救出早自 vX 起的三章陈旧货）；
+  /bible/quiz 12 题 → 14 题（新增收件人两题）；verdict 阈值 0/5/9/12/14；BibleQuiz 与页面配套更新；
+  bible-quiz-visual-style 的 12 断言改 14、答案序列改 [2,2,0,1,3,1,2,0,1,2,1,2,0,2]；
+  bible-visual-style / bible-quiz-visual-style 的 SHA256 重订（目录页、潮汐挑战页、BibleQuiz 组件）。
+- verify:world-bible ✓ 125/125；verify:bible-snapshot ✓；tsc web 0；fe-gates **126/126 · 1227/1227 · census 2531**。
+
+## §BIBLE-34 — 回响 · 其二十二《里巷子晾鱼架上那条永远晾不干的鱼》（2026-11-17 · v836）
+
+- 产出：`docs/world-bible/echoes/E22-里巷子晾鱼架上那条永远晾不干的鱼.md`（中）/ `.en.md`（英）——晾鱼架里侧一号钩，一条从来没有干过的鱼：
+  年份没人记得、潮晾的、不被翻晒、不登记名册、架子换钩不撤，风夜慢半步。
+  5 锚句 zh/en 全局唯一（130/130）。
+- `gen-bible-snapshot.mts` 登记 `echo-022-the-fish-that-never-dried`；快照重生成（5 章 · 22 回响）。
+- 附代码侧一小片 i18n 清洗：QuizArcade BigLantern 的 `aria-label="Lantern tally"` 硬编码英文改为 COPY 键 `lanternsAria`（zh 灯盏点亮进度 / en Lantern tally），由 `c` 透传——混合语最后一处硬编码英文 aria 收口。
+- verify:world-bible ✓ 130/130；verify:bible-snapshot ✓；tsc web 0；fe-gates 126/126 · 1227/1227 · census 2531；agent-runtime 675/675。
+- 本次**不推送 showcase**（按「有大提升再更新」，本片为增补 + 小 a11y 修，合并到下一个结构里程碑一并推送）。
+
+## §BIBLE-35 — 回响 · 其二十三《雾港里那艘只在黄昏出现的船》（2026-11-17 · v837）
+
+- 产出：`docs/world-bible/echoes/E23-雾港里那艘只在黄昏出现的船.md`（中）/ `.en.md`（英）——铁月纪雾港黄昏里那艘不登记的船：
+  第三盏灯不亮、雾港两盏灯的规矩、第二盏灯不许张望、七十二年只登记七次、雾散了就不存在。
+  5 锚句 zh/en 全局唯一（135/135）。
+- `gen-bible-snapshot.mts` 登记 `echo-023-the-ship-that-appears-only-at-dusk`；快照 5+23。
+- verify:world-bible ✓ 135/135；verify:bible-snapshot ✓。
+
+## §STRESS-1 — 只读压力实测（2026-11-17 · v837 · mcp/pgbench）
+
+- 不写任何行、不新增 token，直接打 nexus-postgres 的真实查询形态（published_projects public feed / projects count）：
+  - c=8/j4：19 069 tx，0 失败，avg 4.170 ms，TPS 1 919；
+  - c=32/j8：29 416 tx，0 失败，avg 10.745 ms，TPS 2 978；
+  - c=64/j16：31 875 tx，0 失败，avg 20.773 ms，TPS 3 081。
+- 证据：`docs/evidence/db-stress-2026-11-17.md`；pg_stat_user_tables 显示两表 n_live_tup=0，压测只证连接/引擎在高并发下未崩，HTTP/RSC 层、Redis、写路径仍未覆盖。
+- 待办（限 RAM ≥ 6 GB）：HTTP 层真实 burst（wrk/autocannon），目前 dev server 会 OOM。
+
+## §STRESS-2 — Redis L2 补全缓存只读回放压测（2026-11-17 · v838 · 工具门）
+
+- 背景：指令第十一节要求「模拟海量用户、高并发、大数据量」。本轮在**零 provider token**、**零网络出口**下，直接压 `nexus:llmc:stress:*` 这一条读路径（与 CachedLlm 同一套 SET/GET 形态）：
+  - 写入 2 000 × 1 KB 样本（TTL 30s）：803 ms，2 491 ops/s
+  - 串行 GET ×500（单 RTT 语义）：p50 6.764 ms · p95 19.6 ms · p99 38.1 ms
+  - pipelined GET ×20 000（100/批）：6 588 ms → 3 036 ops/s
+  - 清理：SCAN + UNLINK，`keysDeleted=2000`、`keysLeft=0` ✓
+- 工具：`tools/stress/redis-l2.mjs`（纯 Node RESP，零依赖；keys 全部在 `nexus:llmc:stress:*` 下自画自收，不碰 sibling 数据）
+- **边界声明**：本机的 RESP 客户端 Buffer.concat 解析、Docker 虚拟网段时延 → 数字是 RNG 下限、不是 Redis 发行版上限；
+  证明的是「20 000 次回放 0 错误 + 回收彻底」，不是"Redis 能撑到 X 万 QPS"。Benchmark 本身不支持任何外部 SLA 声明。
+- Salient finding：serial GET p50 6.8 ms 远高于本机回环预期（Docker Desktop NAT 时延）——
+  意味着 **L2 回放的主要成本不在 Redis，而在 Windows→Docker 虚拟网段**；cache TTL 压缩或宿主机直连 redis-benchmark 才是下一步对照。
+
+## §BIBLE-36 — 回响 · 其二十四《里巷子石槽里那粒没化的盐》（2026-11-17 · v838）
+
+- 产出：`docs/world-bible/echoes/E24-里巷子石槽里那粒没化的盐.md`（中）/ `.en.md`（英）——里巷子石槽里的一粒不溶的盐：
+  五百年来从不溶解；半月章的首印是蘸过它拓的；新来的值守不许动它（「别动潮的东西」）；抄本员从不登记它。
+  5 锚句 zh/en 全局唯一（140/140）。
+- `gen-bible-snapshot.mts` 登记 `echo-024-the-salt-that-never-dissolved`；快照重生成（5+24）。
+- verify:world-bible ✓ 140/140；verify:bible-snapshot ✓。
+
+## §BIBLE-37 — 回响 · 其二十五《里巷子所有灯熄的那一夜》（2026-11-17 · v839）
+
+- 产出：`docs/world-bible/echoes/E25-里巷子所有灯熄的那一夜.md`（中）/ `.en.md`（英）——潮候院七十二年的灯熄夜：
+  所有灯同时熄灭、潮候院不设备用、潮沙盘自己空出一格白、米缸月的白晶体被称作「潮候院的月雪」、密室番号只是「空一格」。
+  5 锚句 zh/en 全局唯一（145/145）。
+- `gen-bible-snapshot.mts` 登记 `echo-025-the-night-every-lamp-went-out`；快照重生成（5+25 回响）。
+- verify:world-bible ✓ 145/145；verify:bible-snapshot ✓。
+
+## §BIBLE-38 — 回响 · 其二十六《祠殿檐下那张潮候院不许扫的网》（2026-11-17 · v840）
+
+- 产出：`docs/world-bible/echoes/E26-祠殿檐下那张潮候院不许扫的网.md`（中）/ `.en.md`（英）——祠殿檐下一张先建筑挂着的蜘蛛网：
+  值守永不碰、网破三次潮沙盘多落三格沙、里面挂半月章碎纸片、拿到值守班「檐下两臂」的距站立。
+  5 锚句 zh/en 全局唯一（150/150）。E26 润色时同步清掉 E24 的一处残留错字（「华晟以后的前任抄本员」）。
+- `gen-bible-snapshot.mts` 登记 `echo-026-the-web-nobody-is-allowed-to-sweep`；快照重生成（5+26 回响）。
+- verify:world-bible ✓ 150/150；verify:bible-snapshot ✓。
+
+## §PROVED-2 — 付费 provider E2E 复验（2026-11-17 · v840 · 合并后链路）
+
+- 一次性 sidecar：uvicorn :8131（手起手停，顺手的两行）；见证者 v822 之后第一次复验：
+  - 第一次：HTTP 200 · real · gpt-6.1-terra · tokensIn 4421 · cachedTokens 0 · cacheReported false · wall 3 753 ms · latencyMs 2 719
+  - 第二次（同 payload）：HTTP 200 · real · wall **90 ms** · latencyMs **46** · cachedTokens **4 421/4 421** · cacheReported **true**
+  - `/v1/ai/cache-stats`：appCache hits=1 misses=1 stores=1 hit_rate 0.5 shared ✓；provider reportedHitRate **1.0**；transport.stream=false
+- **回答用户点的「stream 造成命中率问题」：`stream=true/false` 对 KV-prefix 与 L2 重放均无影响**；
+  看板「非流」标签即 `transport.stream=false` 的诚实值；同 payload 命中率 100%；决定命中率的是提示词的字节级稳定——不是流式连接。
+- 证据并入：`docs/evidence/paid-provider-e2e-2026-11-17.md`（v822 原件保留，末尾新增 §PROVED-2 章节）。
+- Real provider burns this round: 2 calls of gpt-6.1-terra (one was cached — the second round-trip spent 0 fresh tokens)。
+
+## §ASK-1 — 问典《Ask the Canon》（2026-11-17 · v841）
+
+- 新页面 `/bible/ask`（双语，中文母语对齐正典语气）+ 新 API `POST /api/bible/q`
+  + 新客户端 `BibleAsk` + digest lib `lib/bibleAsk.ts`（**正典全文 + 锚句 d的。常量前缀**）。
+- digest 演进：v1 = 锚句 only → 真实 provider 回答正确但保守拒收；v2 = **5 章正典全文 + 26 篇回响锚句 + 章节标签**——真实 E2E 同题转化为「他们遇见了一个抄本员（《收件人》第三节）」，与正典逐字对齐。
+  evidence：`docs/evidence/paid-provider-e2e-2026-11-17.md` §PROVED-3；复现脚本 `apps/web/scripts/bible-ask-e2e.mts`。
+- 合约上调：`AiChatRequestSchema.system` 12 000 → **64 000**（ADR-0274）；
+  contract.test 15/15；contracts/*.schema.json 同步重导出。
+- 限流/匿名门：登录用户 · ipWriteGate('bible/q') · 5 次/5min 同 ip+user。provider 不通 → 503 原话回真（§159/§160），绝不冒充。
+- 可观测：新增 `nexus_bible_ask_total{outcome}` / `nexus_bible_ask_latency_ms`（与 run 线一致的计账纪律：provider-unavailable 也入账）。
+- 发布侧：/bible 目录页加「问典 →」链接（SHA256 重钉 b64ec949…）；/map 提名 /bible/ask（zh/en）。
+- 本轮读者 E2E 证明 v2 digest 相比 v1 digest 把「正文出处类」问题的可答范围提高了一个量级（含实测答对 + 判位）。
+- fe-gates：**128 gate + 2 behavior suites = 129 · census 2544 · 1227+17 = 1244/1244**。
+
+## §INSIGHT-AI — 观察坞接入真大模型：「⑧ 大模型解读」（2026-11-17 · v842）
+
+- `/insight` 第 8 段：`InsightAiAnalysis`（按钮 → 诊断输出槽 · 证据徽标 · honest 横幅）。
+- 新 API `POST /api/insight/analyze`：nexus-insight cookie + csrf + `ipWriteGate('insight/analyze')`（10/h，新加入 IP_RATE_RULES）
+  + 聚合 digest → provider 真诊断。聚合 digest 是模型唯一所见：totals/30d、ratios、leastSquares 拟合、SERIES、TOP3 works——**绝不出个人字段**。
+- 全链路 evidence：`docs/evidence/paid-provider-e2e-2026-11-17.md` §PROVED-4。真跑：tokensIn 5 215 · capability=real · 结论精准（botShare 87.2% 被 model 原话指出），原因语料是 dev sandbox fixture，不外推——如实标注。
+- `nexus_insight_analyze_total{answer,provider-unavailable}` + latency meter：§ metric catalog 同步扩展。
+- 3 条新门：route behavior（mock provider：403/200/503/digest-视角断言）、digest behavior（纯函数门：aggregate-only 禁止泄漏规则可测）、visual-gate 扩充挂钩（s8 + insg-ai* 定义+引用+forced-colors）。
+- fe-gates **131/131 · 1252/1252 · census 2554** ✓。
+
+## §CREATOR-AI — /analytics 创作者读账大模型解读（2026-11-17 · v843）
+
+- 新 `/analytics` 段内嵌 `AnalyticsAiNarrator`：「让大模型看看我的数据」/「Let the model read my stats」。
+- 新 API POST `/api/analytics/agent-narrate`：csrf + `ipWriteGate('analytics/agent-narrate')` 10/h + requireCreator；
+  `buildCreatorFact` 生产**零个人字段** digest（名称/visibility/moderation/天数/§168 数字/selfOnly/selfCompleted/规则发现三条）→ provider；
+  provider 不可用 → 503 原话不伪造；新增 `nexus_analytics_narrate_total{answer,provider-unavailable}` + `_latency_ms`。
+- **Live E2E 证据**：真库唯一真 published_projects 真读（无缓存 replay）→ gpt-6.1-terra 抓住
+  `moderation=pending`、`hasCoverImage=false`、`days=3`、`views=8`、`visitors=1`——
+  给出「先补封面图」这一**平台内可立即执行且 og:image 口径对齐**的单一动作；evidence §PROVED-5。
+- gates：digest behavior · route behavior（mock provider）· AnalyticsAiNarrator visual（hook+classes .an-aiNarrator）；
+  analytics-visual-style SEG_A 重钉（its own import-only projection）。
+- fe-gates **133/133 · 1260/1260 · census 2564** ✓。
+
+## §BIBLE-39 — 回响 · 其二十七《里巷子里刻着四十一次大会的那面墙》（2026-11-17 · v844）
+
+- 产出：`docs/world-bible/echoes/E27-里巷子里刻着四十一次大会的那面墙.md`（中）/ `.en.md`（英）——里巷子通往祠殿的石墙四十一条槽：
+  四十一次大会散会后一条槽、海刻的最底下一道、四十二道差点出现又自己退了、四十二道是"如果"的状态。
+  5 锚句 zh/en 全局唯一（155/155）。
+- `gen-bible-snapshot.mts` 登记 `echo-027-the-wall-of-the-forty-one-convocations`；快照重生成（5+27 回响）。
+- verify:world-bible ✓ 155/155；verify:bible-snapshot ✓。
+
+## §APR-AI — 审批卡上「让模型读一眼」（§73-AI · 2026-11-17 · v845）
+
+- Studio CommandBar 挂起审批卡新增一行：「让模型读一遍 / Let the model read this」按钮（data-approval-explain-*），
+  点击 → POST `/api/ai/tasks/[taskId]/approval-explain`：csrf + ipWriteGate('ai/explain') 10/h +
+  `readApprovalTask`（已归属判断 `/created_by`+`awaiting_approval` 才喂 provider）；
+  digest 只含 **agentKey / heldOpCount / kinds 计数 / reason（截断 120 字）**——不含载荷正文；
+  provider 不可用 → 503 原话（"审批照常，只是没有模型帮你读一遍"），§159/§160；
+  模型不得指挥批准/拒绝，只能描述「这一次要改什么」；
+  新指标 `nexus_agent_explain_total` + `_latency_ms`。
+- CommandBar gate 重钉 SHA（纯新增 data-* 钩子 + 两个双语按钮文案）；
+- 新测 `approval-explain-route-behavior.test.ts` 5/5（mock provider；覆盖 200/404/409/503/digest bounds）。
+- fe-gates **134/134 · 1265/1265 · census 2564** ✓；bible-ask-behavior 同步 155 锚修正（E27 已 +5）。
+- 直连真实审批情况：按钮代码就位，真实一次性样本要等下次出现 awaiting_approval task 真跑；不烧 provider 上跑。
+- sibling :8000 未触碰。
+
+## §BIBLE-40 — 回响 · 其二十八《潮候院沙漏里那枚没人拆开的结》（2026-11-17 · v846）
+
+- 产出：`docs/world-bible/echoes/E28-潮候院沙漏里那枚没人拆开的结.md`（中）/ `.en.md`（英）——祠殿堂里沙漏腰口的一枚双股结：
+  双股结不碰玻璃、伸手即缩、沙漏旁边杖不动、米缸月第三夜只照亮沙漏的那一下光、没人登记旁系的小贝壳。
+  5 锚句 zh/en 全局唯一（160/160）。
+- `gen-bible-snapshot.mts` 登记 `echo-028-the-knot-in-the-hourglass`；快照重生成（5+28 回响）。
+- verify:world-bible ✓ 160/160；verify:bible-snapshot ✓；fe-gates 134/134 · 1265/1265 · census 2564。
+- 并行 live provider E2E（scripts/bible-ask-e2e.mts 重写为两次同 payload）：
+  call#1 HTTP 200 · wall 5 019 ms · tokensIn 22 669 · cachedTokens 0 · cacheReported false；
+  call#2 同 payload · wall **69 ms** · latencyMs **15** · cachedTokens **22 669/22 669** · cacheReported true；
+  答案两次逐字一致：「他们在雾港口遇见了一个抄本员。（《收件人》第三节）」—— 22 k tokens 的前缀+题目，第二次的所有开销都在 L2 replay 里。
+
+## §BIBLE-42 — 回响 · 其三十《祠殿门槛下压着的那七块木板》（2026-11-17 · v848）
+
+- 产出：`docs/world-bible/echoes/E30-祠殿门槛下压着的那七块木板.md`（中）/ `.en.md`（英）——祠殿最外槛下压着的七块木板：
+  门槛下七块板；米缸月里巷子一次检修的核心记录被抄本员撕了；值守交接册里只记"板数仍然是七"；新来的值守在槛处脚步常常歪一下。
+  5 锚句 zh/en 全局唯一（170/170）。
+- `gen-bible-snapshot.mts` 登记 `echo-030-the-seven-boards-under-the-sill`；快照重生成（5+30 回响）。
+- verify:world-bible ✓ 170/170；verify:bible-snapshot ✓；fe-gates 134/134 · 1265/1265 · census 2564。
+
+## §BIBLE-43 — 回响 · 其三十一《里巷子赌局桌上那枚没人认领的白子》（2026-11-17 · v849）
+
+- 产出：`docs/world-bible/echoes/E31-里巷子赌局桌上那枚没人认领的白子.md`（中）/ `.en.md`（英）——里巷子赌局桌上多出的一颗白石：
+  祠殿外的赌局桌上突然多了白子；仓库也放不住；输赢都没人认过——"它没赢过也没输过"；值守登记名册上从没见过这颗石子。
+  5 锚句 zh/en 全局唯一（175/175）。
+- `gen-bible-snapshot.mts` 登记 `echo-031-the-white-stone-nobody-claimed`；快照重生成（5+31 回响）。
+- verify:world-bible ✓ 175/175；verify:bible-snapshot ✓；fe-gates 134/134 · 1265/1265 · census 2564。
+
+## §APR-AI-2 — 审批解释 node 首次 live 跑通（2026-11-17 · v850 · evidence §PROVED-6）
+
+- 真库 awaiting_approval 真任务（`c5ebd27e-8a20-45f2-86aa-964c02357c00` · design-edit · heldOpCount=1 · action=delete target=Hero）：
+  digest 原文采用 only structural facts；走 sidecar `:8131` + clash `7897`；响应原样存档 `docs/evidence/paid-provider-e2e-2026-11-17.md` §PROVED-6。
+- 响应原文：「这项待处理操作会删除 `Hero`；`heldOpCount=1`。删除可能使该对象及其内容无法恢复，摘要未提供更多细节，不够看。」
+  它只描述不指挥、没编别的目标；正反两下都在 §159 纪律上。
+- 新增 tsx 复现 `apps/web/scripts/approval-explain-e2e.mts`；sibling :8000 未触碰。
+- 用户目标完成率提示：§四 的「把大模型能力深度用起来/状态流转」延伸到了审批入口——Studio 批准按钮前的一句话此时是真模型的原话。
+
+## §BIBLE-44 — 回响 · 其三十二《祠殿后那张印错的潮汐表》（2026-11-17 · v851）
+
+- 产出：`docs/world-bible/echoes/E32-祠殿后那张印错的潮汐表.md`（中）/ `.en.md`（英）——每年誊抄的潮汐表都会留一行「东」向「向」，永远不动——抄本员抄到那一行永远原封，值守长从不纠。
+  5 锚句 zh/en 全局唯一（180/180）。
+- `gen-bible-snapshot.mts` 登记 `echo-032-the-tide-table-with-one-row-wrong`；快照重生成（5+32 回响）。
+- verify:world-bible ✓ 180/180；verify:bible-snapshot ✓；fe-gates 134/134 · 1265/1265 · census 2564。
+
+## §BIBLE-45 — 回响 · 其三十三 + 潮汐挑战 答错 → /bible/ask?q=…（2026-11-17 · v852）
+
+- 新回响 E33《四十一次大会那天一并封起来的那封信》：潮沙盘边多了一封蜡封函，抄本员年复一年的那一页里翻看它唯独的「每个米缸月廿一日」。
+  5 锚句全局唯一（185/185）；快照 5+33。
+- 潮汐挑战新按钮：「问问典籍 →」——仅在错误答题时出现（禁用引用提示消失），点击直达 `/bible/ask?q=<encoded question>`，
+  问典页读 query param `q` 预填输入框（≤ 400 字符）——用户按「问一问」自己决定要不要烧 token；零自动 provider。
+- 零服务端阻塞；`/bible/ask` 自己缓存到 `nexus:llmc`（同 payload 可命中重放）。
+- verify:world-bible ✓ 185/185；verify:bible-snapshot ✓；fe-gates 134/134 · 1265/1265 · census 2565；tsc web 0。
+
+## §BIBLE-46 — 回响 · 其三十四 《祠殿地下室里那张旧海图》（2026-11-17 · v853）
+
+- 新回响 E34（中英双文件）：潮候院唯一的海图压在祠殿地下室最里面那只木箱里；值更每三年盘点一次，登记册写「海图，完整，不动」；
+  米缸月的值更说图画的不是海岸，是改过道的大海。六节、六锚句（zh/en 逐字对应）。
+- verify:world-bible ✓ 190/190；快照 5 章 · 34 回响；snapshot 与 docs/world-bible/ 一致。
+- 前回存在注：v852 里曾报告 E34 未能写出——本回已写成并纳入正典体系。
+
+## §UX-44 — Studio 画布滚轮方向开关 + 主界面按键教学 title（2026-11-17 · v853）
+
+- 用户点名「滚轮方向反了」：规律摸清了——画布默认保持网页惯例（往上滚看上面、往下滚看下面）；
+  若机器/系统在驱动层把 deltaY 的号翻掉，画布右上角新增「滚轮」开关（`data-wheel-direction`，aria-pressed 反映状态），
+  点一下即切换，选择持久化到 localStorage（`nexus:canvas:wheel-inverted`），无任何遥测。
+  默认/切换两态都经 §CTRL-WHEEL 锁定门钉死（`apps/web/test/canvas-wheel-direction-behavior.test.ts`）。
+- 教学 title（中英）：画布「滚轮」开关、图层「+」、视图切换五个按钮（画布/方案/代码/世界图/游戏图，每个带一句话用法说明）、
+  顶栏「面板」开关（列出它打开的十四个面板各是什么）。
+- /guide §⑩ 新增：画布右上角「滚轮」开关说明 + 空格抓手移动 + Ctrl/⌘+滚轮缩放。
+- StudioShell 视图切换按钮附 title（SHA 重钉第十八次：`4ce5cd7f...`）；TopBar 顶栏 SHA 重钉（`fabb39a2...`）;CanvasStage SHA 重钉（`38a6e525...`）。
+- fe-gates 相关套件：32/32 + wheel 7/7 + canvas-stage / keyboard-cheatsheet 17/17。
+
+## §BIBLE-47 — 回响 · 其三十五 《祠殿侧门外那只从不干的石凹》（2026-11-17 · v854）
+
+- 新回响 E35（中英双文件）：常年不干的石凹；「潮从下面上来」；半月章按在石凹边缘四次；抄本员水里唯一一次看见一枚镜子；
+  换班前最后一眼是石凹而不是别的。六节、五锚句。
+- verify:world-bible ✓ 195/195；快照 5 章 · 35 回响；bible-ask-behavior 195。
+
+## §UX-45 — 顶栏「导出」「发布」按钮教学 title + 分支参照大整治（2026-11-17 · v855）
+
+- Studio 顶栏左侧两个关键动作补上一句话 title（中英双语）：ExportPanel「导出与下载：……」/ PublishPanel「发布与分享：……」。
+  与 v853 的视图切换五按钮 title 同一门：SHA 门按惯例重钉。
+- 分支/远程参照大整治（总纲 §二 收拢）：
+  - `other/*` 共 **13 个**远程跟踪参照（master, master2–master12），经 `git rev-list --count main..other/<n>` 实测**全部 0 ahead**——它们都是 main 的祖先，内容零丢失；
+  - .git/config 已不存在 `other` remote，属于历史整合产物；已全部 `git update-ref -d` 删除，远程参照只剩 origin/main、origin/master、origin。
+- fe-gates 134/134 · 1268/1268 · census 2566 · web tsc 0 · snapshots 一致。
+
+## §VIS-20 — 真实字体首次接入 + 六页真渲染巡检 + ask 页回响计数修正（2026-11-17 · v856）
+
+- **字体此前从未加载**：token 声明了 Inter / JetBrains Mono，但仓库从无 webfont 引入（全部 fallback 到系统字体，样式发虚）。
+  根布局新增 Noto Sans SC + Noto Serif SC（preconnect + display=swap），tokens 字体栈增配 Noto SC 兜底；网络不通时 fallback 栈兜住。
+  i18n 字节门（972daf1b…→3a43110d…）、root-layout SHA 门（5dd9dfde…→4b513225…）按惯例重钉。
+- **六页真渲染巡检**（next dev + headless Chromium，1440×900，zh-CN）：
+  / · /guide · /bible · /bible/quiz · /bible/ask?q=… · /insight 全部 200 且大多数时延 < 2s，**无重叠 / 无字体变形（肉眼对照）/ 无错位块**。
+  问典 `?q=` 预填确认生效（输入框内已带「收件人是谁」）；/guide（说明书入口）渲染干净；/insight 仅见公开输入壳且常驻口令说明（聚合、零个人字段）。
+- **ask 页两处事实修正**：`26 篇`/`26 pieces` → `35 篇`/`35 pieces`（此前快照留下的旧计数）； BibleAsk SHA 门重钉（bb6ba291…→8b05df41…）。
+- fe-gates 134/134 · 1268/1268 · census 2566 · web tsc 0。
+
+## §VIS-21 — Studio 帮助抽屉层级修复 + Studio 真渲染巡检（2026-11-17 · v857）
+
+- **缺陷**：Studio「帮助」抽屉（`.tsg-drawer`，z-index: 50）与右侧属性栏（`.se-inspector`，z-index: 50）同级且 DOM 靠前——
+  抽屉打开时右半部分被压在属性栏之下（内容文字在正文区 x>1145 处被盖住、标题/正文读不全）。
+  修：抽屉 z-index 55（>inspector 50, <topbar 60），顶部改 `top: var(--nexus-space-10)`、高度 `calc(100dvh - 10)`，让出整个顶栏。
+- **巡检**（next dev + headless Chromium，1440×900 + 设备像素比 2）：真走 注册 → 新建项目 → /studio/<id>：
+  画布首帧完整渲染（headline/subhead/CTA 无重叠、无字形变形、DEMO MODE 常驻右上角）；
+  帮助抽屉修复后逐行不再被遮盖（TOC + 说明正文全可读，11/11 命中计数实数）；console error = 0。
+- **结论**：Studio 种子项目 hero 子标题首屏时按像素确认无裁剪（先前的"看起来半截字"是低分辨率错觉）。
+- fe-gates 134/134 · 1268/1268 · census 2566 · web tsc 0。
+
+## §VERIFY-22 — Studio 22 面板截图巡检（2026-11-17 · v858 · 无新缺陷）
+
+- 覆盖：Layers/Design/Assets/World/Game/Storyboard/Team/Characters/Memory/Retrieve/Context/Agent/History/Health + Export/Publish 弹层 + World Map/Game Map/Code/Variants 视图切换；console errors = 0。
+- 发布弹层与健康面板如实展示「预检未完成 / 未运行 Tests, AI QA」——§159 诚实性锁死，不虚报。
+- 付费 provider §PROVED-7：key 经 Clash 7897 复测（models 200；chat completions 200；prompt 4454 → out 22；模型缺上下文时答「没有记载」，未编造）。
+
+## §BIBLE-48 — 回响 · 其三十六《值更院米缸里那粒从不沉下去的米》（2026-11-17 · v859）
+
+- 新回响 E36（中英双文件 + 映射表）：米缸里那一粒米六十九年没沉过；筷子拨过一次又浮回原位；值更册一行字；月亮派下来的一粒。
+- 潮汐挑战第 15 题接入该回响（zh/en）：`那粒米已经浮着多少年？→ 六十九年`；新增 15/15 结算档；SHA `8a00db7f…`。
+- verify:world-bible ✓ 200/200；快照 5 章 · 36 回响；本回无其他改动的 fe-gate 一律保持 CEN 2566。
+
+## §CACHE-6 — provider 原生 KV 命中率实测证据 + 问典 digest 回响篇数修正（2026-11-17 · v861 · §PROVED-9）
+
+- digest 回响篇数写死 "26 echoes" → 改为按 `echoes.length` 动态（现为 36）；问典 digest 测试 5/5 绿。
+- 探针（Clash 7897 → /v1/chat/completions）：证明 v2 完整正典前缀（32,470 chars / 24,066 tokens）稳定可复用 KV —— #2 调用 cached_tokens **22,733 / 24,066 ≈ 94.5% 命中**。
+- 两层缓存实录（应用侧 Redis L2 · §PROVED-8；provider 原生 KV · §PROVED-9）。
+- 问典 digest 长度仍 32,470 chars（< 64k 预算 ✓）；verify:fe-gates 相关套件 134/134 · 1268/1268。
+
+## §BIBLE-49 — 诚实记录：正典第六章本轮未入库（质量门）
+
+- 又一次尝试《开箱日》（英文 spine + 中文校对通道未达成）；三稿均退化。
+- 处理：删除未成稿，**没有污染正典**；
+  - verify:world-bible ✓ 200/200；snapshot 一致（5 章 · 36 回响）；fe-gates 134/134 · 1268/1268 · census 2566。
+- 教训：本模型在长上下文 + 海量中文文学创作时容易塌成"米缸月米缸月值更"式空循环；
+  后续正典内容的通道改为「英文 spine 先行 → 中文逐句对译 + 锚句独立校验」。
+
+## §BIBLE-50 — 正典纪律：正典在第五章封门（潮候院的界）
+
+- 正典文本内部明文：**「正典在第五章之后没有第六章——潮候院只负责替潮收住那口气。」**
+- 决定：不写第六章；「世界继续往上长」只能通过回响（echoes）继续。
+- 问 /bible/ask meta 同步三十六回响（SEO 一致性）；world-bible 命运：5 章（封）· 36 回响（开）。
+
+## §BIBLE-51 — 潮汐挑战结算页：第三条弧入口「回典籍室 →」（2026-11-17 · v864）
+
+- verdict 屏 Link 增加（data-bible-quiz-verdict-bible）；手册 + 空态文案同步至 15 题。
+- quiz SHA 门按惯例重钉。
+
+## §PROVIDER-1 — 非流架构：.env 钉死的真实根因（2026-11-17 · v867 · NEXUS_LLM_STREAM=0）
+
+- 实际病灶：本机 `apps/ai-service/.env` 曾把 `NEXUS_LLM_STREAM=0` 钉死——这是 opt-out，导致所有出站走**非流式**，一切都会「显示非流」。
+- 代码默认就是流式（config.py: llm_stream=True；设 0 显式退回）。ADR 0123 记下了这条决定与流式决策的实测依据。
+- 修复：`NEXUS_LLM_STREAM=0→1`（注释 inline）。验证（同次窗 ~3 分钟）：
+  - `curl → clash 7897`：stream ✓（SSE 正常 + usage + [DONE]）
+  - `ai-service 8001`：healthz real → /v1/ai/chat 第一次 502（上游间歇抖动）→ 200/2.97s（real provider，streamed）→ 200/**0.008s**（`capability:real · cachedTokens 4433/4433 = 100%` via Redis L2）
+- 用户的「一直显示非流」的判断精准——不是代码事实，而是本地 pin 锁的私有事实。冒号旁已把它写成 .env 注释，下一次不会再次被这种我之前选错的 opt-out 咬到。

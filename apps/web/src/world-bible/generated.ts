@@ -1519,7 +1519,7 @@ The bursar left the first line of the new year for the recipient. That cell was 
   },
   {
     order: 6,
-    slug: '006-the-final-seal',
+    slug: '006-the-last-official-seal',
     titleZh: '最后的签收',
     titleEn: 'The Final Seal',
     eraLineZh: '纪元：铁月纪的尾声 · 远信之后。',

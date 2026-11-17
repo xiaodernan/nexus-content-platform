@@ -7,21 +7,6 @@ import { ARENA, step, type GamePlan, type SimInput, type SimState } from '@nexus
 import { KIND_COLORS } from './palette';
 import type { Locale } from '@/lib/i18n';
 
-const COPY: Record<Locale, { probing: string; unavailableLede: string; unavailableHint: string }> = {
-  zh: {
-    probing: '正在确认这台设备能不能用 WebGL…',
-    unavailableLede: '这台设备/浏览器给不出 WebGL 上下文，3D 视角进不去。',
-    unavailableHint:
-      '这里不会退回 2D 画法然后也叫「3D」。同一条关卡计划换个画法看：把文档类型改回 2D（或 2.5D），规则与数值一个字都不变。',
-  },
-  en: {
-    probing: 'Checking whether this device can render WebGL…',
-    unavailableLede: 'This device/browser cannot provide a WebGL context; the 3D view cannot open here.',
-    unavailableHint:
-      'There is no fallback to 2D while still calling it “3D”. The same arena plan, seen through another rendering: switch the document back to 2D (or 2.5D) — rules and numbers stay byte-identical.',
-  },
-};
-
 /**
  * §51 的第三种画法：`view === '3d'` 时的立体视角（three.js，与 `/world` 同一个渲染栈）。
  *
@@ -48,9 +33,22 @@ export interface GameCanvas3DProps {
   keys: RefObject<Record<string, boolean>>;
   stateRef: RefObject<SimState>;
   onHud: (state: SimState) => void;
-  /** 双语（2026-11-15 试玩面）——与上层 GamePlay 同一 locale；缺省 zh */
   locale?: Locale;
 }
+
+/** 双语：WebGL 探针/不可用提示按 cookie locale 选（不夹杂） */
+const G3_TXT = {
+  zh: {
+    probing: '正在确认这台设备能不能用 WebGL…',
+    unavailableTitle: '这台设备/浏览器给不出 WebGL 上下文，3D 视角进不去。',
+    unavailableBody: '这里不会退回 2D 画法然后也叫「3D」。同一条关卡计划换个画法看：把文档类型改回 2D（或 2.5D），规则与数值一个字都不变。',
+  },
+  en: {
+    probing: 'Checking whether this device can run WebGL…',
+    unavailableTitle: 'This device/browser cannot provide a WebGL context — the 3D view cannot open.',
+    unavailableBody: 'There is no 2D fallback pretending to be "3D" here. Same level plan, different lens: switch the document type back to 2D (or 2.5D) and the rules and numbers stay the same, character for character.',
+  },
+} as const;
 
 /** WebGL 能不能用：与 `/world` 同一条口径——用不起来就明说，不悄悄换画法 */
 function useWebglAvailable(): boolean | null {
@@ -123,9 +121,8 @@ function CameraRig() {
     const onMove = (e: PointerEvent) => {
       if (!drag.current) return;
       yaw.current = drag.current.yaw - (e.clientX - drag.current.x) * 0.006;
-      // 轨道仰角 pitch∈[0.18,1.35]（绕场中心的高度角）：pitch 越小相机越低、越贴近地平线、越像"抬眼看天"。
-      // 用户长期反馈"往上滑了却像在往下看"——上滑时仰角若升高，相机反而更高、俯视更多，正是用户看到的"往下看"。
-      // 用户明确要求：往上滑就往上看（相机下沉、视线贴近地平线/略上仰），往下滑就往下看（相机上抬、俯视更多）。
+      // 习惯惯例（2026-11-16 再次反转 · v778 方向被用户逐字推翻）：往下滑 = 视角下俯（相机抬高看向地面），往上滑 = 仰视（相机贴近地平线、视线抬向天空）；
+      // 与 /world WorldWalk（YXZ，pitch 正 = 抬头）同源约定。v778 曾误判上下方向，与用户"往下滑就往下看、往上滑就往上看"反口相违。
       pitch.current = Math.min(1.35, Math.max(0.18, drag.current.pitch + (e.clientY - drag.current.y) * 0.005));
     };
     const onUp = (e: PointerEvent) => {
@@ -423,7 +420,7 @@ function PaintProbe() {
  * 高度用 `aspectRatio` 锁成 1200×760，和 2D 画布占同一块地方（切换画法不会让页面跳一下）。
  */
 export function GameCanvas3D({ plan, keys, stateRef, onHud, locale = 'zh' }: GameCanvas3DProps) {
-  const c = COPY[locale];
+  const T = G3_TXT[locale];
   const webgl = useWebglAvailable();
 
   if (webgl === null) {
@@ -433,7 +430,7 @@ export function GameCanvas3D({ plan, keys, stateRef, onHud, locale = 'zh' }: Gam
         style={{ aspectRatio: `${ARENA.width} / ${ARENA.height}` }}
         data-game-3d="probing"
       >
-        {c.probing}
+        {T.probing}
       </div>
     );
   }
@@ -444,9 +441,9 @@ export function GameCanvas3D({ plan, keys, stateRef, onHud, locale = 'zh' }: Gam
         style={{ aspectRatio: `${ARENA.width} / ${ARENA.height}` }}
         data-game-3d="unavailable"
       >
-        <p className="g3-lede">{c.unavailableLede}</p>
+        <p className="g3-lede">{T.unavailableTitle}</p>
         <p className="g3-hint" data-game-3d-reason>
-          {c.unavailableHint}
+          {T.unavailableBody}
         </p>
       </div>
     );

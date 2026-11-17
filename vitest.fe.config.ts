@@ -45,7 +45,7 @@ const from = (p: string) => fileURLToPath(new URL(p, import.meta.url));
  */
 export default defineConfig({
   test: {
-    include: ['apps/web/test/**/*-visual-style.test.ts'],
+    include: ['apps/web/test/**/*-visual-style.test.ts', 'apps/web/test/**/*-behavior.test.ts'],
     // 与根配置一致：node 环境，不开 globals（判据显式 import describe/it/expect）
     environment: 'node',
     globals: false,

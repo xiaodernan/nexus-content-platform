@@ -39,6 +39,7 @@ const COPY: Record<Locale, {
   replay: string;
   almanacBack: string;
   litAria: (score: number, total: number) => string;
+  lanternsAria: string;
 }> = {
   zh: {
     emptyTitle: '谜灯馆暂时无灯可点',
@@ -61,6 +62,7 @@ const COPY: Record<Locale, {
     replay: '再入谜灯馆',
     almanacBack: '回藏经阁 →',
     litAria: (score, total) => `已点亮 ${score} 盏，共 ${total} 盏`,
+    lanternsAria: '灯盏点亮进度',
   },
   en: {
     emptyTitle: 'No lanterns to light yet',
@@ -83,6 +85,7 @@ const COPY: Record<Locale, {
     replay: 'Re-enter the Lantern House',
     almanacBack: 'Back to the Almanac →',
     litAria: (score, total) => `${score} of ${total} lanterns lit`,
+    lanternsAria: 'Lantern tally',
   },
 };
 
@@ -227,7 +230,7 @@ export function QuizArcade({
         </section>
       ) : (
         <section className="qaz-verdict" aria-live="polite" data-quiz-verdict-root>
-          <BigLantern lit={score} total={total} />
+          <BigLantern lit={score} total={total} ariaLabel={c.lanternsAria} />
           <p className="qaz-family">{c.finalTally}</p>
           <h2 className="qaz-verdictTitle" style={{ fontFamily: "'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif" }} data-quiz-verdict-title>
             {verdict.title}
@@ -274,11 +277,11 @@ function LampMini({ lit, failed, current }: { lit: boolean; failed?: boolean; cu
   );
 }
 
-function BigLantern({ lit, total }: { lit: number; total: number }) {
+function BigLantern({ lit, total, ariaLabel }: { lit: number; total: number; ariaLabel: string }) {
   const ratio = total === 0 ? 0 : lit / total;
   const glow = 0.25 + ratio * 0.75;
   return (
-    <svg viewBox="0 0 120 150" width="150" height="188" role="img" aria-label="Lantern tally" data-quiz-lantern>
+    <svg viewBox="0 0 120 150" width="150" height="188" role="img" aria-label={ariaLabel} data-quiz-lantern>
       <defs>
         <radialGradient id="quiz-glow" cx="50%" cy="44%" r="55%">
           <stop offset="0%" stopColor="#f5edd9" stopOpacity={glow} />

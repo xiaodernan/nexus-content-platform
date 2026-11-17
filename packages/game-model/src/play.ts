@@ -160,6 +160,8 @@ export interface PlayQuestGoal {
   label: string;
   /** 同一标签的英文版（v767）：界面英文模式按它渲染 */
   labelEn: string;
+  /** 引用目标的实体名（不含动词）：界面英文模式重组标签用 */
+  targetName: string;
 }
 
 export interface PlayQuest {
@@ -404,9 +406,9 @@ export function compileGame(document: GameDocument): GamePlan {
     for (const ref of entity.refs) {
       const target = byId.get(ref.to);
       if (!target) continue;
-      if (target.kind === "enemy") goals.push({ kind: "defeat", actorId: target.id, label: `打倒 ${target.name}`, labelEn: `Defeat ${target.name}` });
-      else if (target.kind === "item") goals.push({ kind: "collect", actorId: target.id, label: `拾取 ${target.name}`, labelEn: `Collect ${target.name}` });
-      else if (target.kind === "trigger") goals.push({ kind: "activate", actorId: target.id, label: `激活 ${target.name}`, labelEn: `Activate ${target.name}` });
+      if (target.kind === "enemy") goals.push({ kind: "defeat", actorId: target.id, label: `打倒 ${target.name}`, labelEn: `Defeat ${target.name}`, targetName: target.name });
+      else if (target.kind === "item") goals.push({ kind: "collect", actorId: target.id, label: `拾取 ${target.name}`, labelEn: `Collect ${target.name}`, targetName: target.name });
+      else if (target.kind === "trigger") goals.push({ kind: "activate", actorId: target.id, label: `激活 ${target.name}`, labelEn: `Activate ${target.name}`, targetName: target.name });
     }
     const timeLimit = stat(entity, "timeLimit");
     return {

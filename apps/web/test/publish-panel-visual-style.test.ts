@@ -164,9 +164,9 @@ describe('§FE-54 /studio PublishPanel 发布面板', () => {
     }
   });
 
-  it('剥 className/cn 后全文 SHA256 守恒（2026-11-15 v739「PublishPanel 双语化」重钉：71037cfe7b5f0ba44fd152400c4a92ed232811f306b1b3d188503efa653dd5c1）', () => {
+  it('剥 className/cn 后全文 SHA256 守恒（2026-11-15 v739「PublishPanel 双语化」重钉：71037cfe7b5f0ba44fd152400c4a92ed232811f306b1b3d188503efa653dd5c1 → v855：导出/发布按钮教学 title 重钉：fa97cd9afad3170af3c1e4aade686fbbac11de9bedaec032d0f7a6157371e102）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '71037cfe7b5f0ba44fd152400c4a92ed232811f306b1b3d188503efa653dd5c1',
+      'fa97cd9afad3170af3c1e4aade686fbbac11de9bedaec032d0f7a6157371e102',
     );
   });
 });

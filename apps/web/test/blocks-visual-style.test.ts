@@ -187,10 +187,10 @@ describe('§FE-21 /blocks 账户黑名单页', () => {
   it('剥 className 后全文 SHA256 守恒（零行为：page=05890c4b… · button=6b50e8c5…）', () => {
     // 常量在改前（git HEAD）由真实产物 redact 算出并钉死；此门保证除 className 外一字节未动。
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '3c10c6b0b7c8984572f224840a6af4eb312a549d16eab12cdc49033beb4c55e9',
+      'a1b86a2c171de59e918c86a7a35ae2f8f0ad3b8a1952ad6a4fc91c7e13013d9e',
     );
     expect(createHash('sha256').update(redactClasses(button)).digest('hex')).toBe(
-      'b308fc2414455fcd113c5863de855d42b9679ae1576976c420d3d8d5ece04c96',
+      'a20aa068b5d237d55a23c4b45c4ed98ea4d5af6e9550399785d895199c4254b2',
     );
   });
 });

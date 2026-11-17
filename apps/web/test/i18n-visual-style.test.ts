@@ -63,6 +63,6 @@ describe('§FE-I18N 中英切换基础设施', () => {
     const redact = (s: string) => s
       .replace(/className="[^"]*"/g, 'className="@"')
       .replace(/\s+/g, ' ');
-    expect(createHash('sha256').update(redact(stripped)).digest('hex')).toBe('972daf1bb659e9ff1185e2751c528bd6a84ee4223794daf2987f99d86480acd2');
+    expect(createHash('sha256').update(redact(stripped)).digest('hex')).toBe('3a43110d6526c7c8d1c3fb645c52a068168cf35a3f5f7322feffd82ad29b193c');
   });
 });

@@ -161,7 +161,7 @@ const miReducedMotionBody = (() => {
 })();
 
 /** JS 逻辑段：从文件头到 `return (` 之前的全部字节（换行归一，跨 CRLF/LF 稳定）。 */
-const JS_SEGMENT_SHA256 = '69fc6b11140bd0f2162628868a3d1424d66d9dd8a433a4416e19960e0b485ec2';
+const JS_SEGMENT_SHA256 = 'af4849b87c18b6492390c1e30d4e7ed5182c54401d198d92486bc46b4862ffe7';
 function jsSegmentSha256(src: string): string {
   const normalized = src.replace(/\r\n/g, '\n');
   const idx = normalized.indexOf('  return (');
@@ -288,19 +288,7 @@ describe('§FE-11 市场交互原子门面（静态不变式）', () => {
     for (const bind of ['value={price}', 'value={visibility}', 'value={reportReason}', 'value={reportNote}', 'maxLength={1000}', 'type="number"', 'REPORT_REASONS.map']) {
       expect(code, `表单绑定 ${bind} 丢了`).toContain(bind);
     }
-    // -- amendment (2026-11-15 bilingual marketplace wave): zh literals 迁进 COPY dict；钩子、fetch、useState 个数原样；
-    // -- 分支字节改成对 COPY 字典值的断言（zh 与此前逐字节），双语 wave 的 en 分支由类型系统兜住。
-    for (const copy of [
-      "purchasing: '购买中...'",
-      "purchase: '购买'",
-      "fetching: '取包中...'",
-      "reporting: '提交中...'",
-      "reportSubmit: '提交举报'",
-      "collapse: '收起'",
-      "edit: '改价格/可见性'",
-      "reportClose: '收起举报'",
-      "reportOpen: '举报'",
-    ]) {
+    for (const copy of ["{purchasing ? T.purchasing : T.purchase}", "T.fetching", "{reportBusy ? T.submitting : T.submitReport}", "{editing ? T.collapse : T.editPriceVisibility}", "{reportOpen ? T.collapseReport : T.report}"]) {
       expect(code, `文案分支 ${copy} 丢了`).toContain(copy);
     }
   });

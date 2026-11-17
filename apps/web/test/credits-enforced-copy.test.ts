@@ -75,7 +75,7 @@ describe('页面不许把那句话再抄一遍（静态门）', () => {
     const start = PAGE_SOURCE.indexOf('data-credits-enforced');
     expect(start, '额度页找不到 [data-credits-enforced] 那一格').toBeGreaterThan(-1);
     const block = PAGE_SOURCE.slice(start, PAGE_SOURCE.indexOf('</p>', start));
-    expect(block).toContain('planEnforcementReadout()');
+    expect(block).toContain('planEnforcementReadout(');
     expect(block).not.toContain('§133');
   });
 

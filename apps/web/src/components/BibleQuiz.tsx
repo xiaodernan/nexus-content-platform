@@ -1,12 +1,13 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import type { Locale } from '@/lib/i18n';
 
 /**
  * §BIBLE-2 典籍室「潮汐挑战」——问答玩法。
  *
- * 用这个玩法把四章正典变成"可以赢的阅读"。服务端壳 RSC（if/notFound/local/getLocale）
+ * 用这个玩法把五章正典变成"可以赢的阅读"。服务端壳 RSC（if/notFound/local/getLocale）
  * 把 locale 透传下来；题库的 zh/en 在这里成对出现（与锚句同纪律：不是翻译对应，
  * 是两个版本讲同一个故事、每个版本只有一套正确答案——锚句即教材）。
  *
@@ -22,42 +23,48 @@ const COPY = {
   zh: {
     kicker: '潮汐挑战',
     title: '你配得上第八盏灯吗？',
-    lede: '四章正典的答题器。每道题的依据都能在《世界大典》里逐字找到——写下来的答案就是答案。',
+    lede: '五章正典的答题器。每道题的依据都能在《世界大典》里逐字找到——写下来的答案就是答案。',
     questionLabel: (i: number, n: number) => `第 ${i} / ${n} 题`,
     correct: '答对了——这一句你记住了。',
     wrong: (ref: string) => `错——回去读「${ref}」。`,
     restart: '重来',
+    restartBible: '回典籍室 →',
     yourScore: '你的分数',
+    askButton: '问问典籍 →',
     verdicts: [
       { at: 0, text: '漂流的木桶', note: '盐海没见过，浪只见过一口气。' },
-      { at: 4, text: '半日的学徒', note: '雾港没怎么上过岗，灯火印象模糊。' },
-      { at: 7, text: '巡逻路的旅人', note: '盐味酸过了——记住的巡逻路比忘掉的多。' },
-      { at: 10, text: '守夜人传人', note: '门在关上之前你没见过，但你记住了是什么。' },
-      { at: 12, text: '潮汐大匠', note: '海还没说完的话，你已经知道是什么了。' },
+      { at: 5, text: '半日的学徒', note: '雾港没怎么上过岗，灯火印象模糊。' },
+      { at: 9, text: '巡逻路的旅人', note: '盐味酸过了——记住的巡逻路比忘掉的多。' },
+      { at: 12, text: '守夜人传人', note: '门在关上之前你没见过，但你记住了是什么。' },
+      { at: 14, text: '潮汐大匠', note: '海还没说完的话，你已经知道是什么了。' },
+      { at: 15, text: '满分守夜人', note: '十五题全对——典籍不会忘记问倒过谁。' },
     ],
     footer: '《世界大典》正典全文见典籍室（/bible）。答错的题里标了出处：错就是错，没有近似的正确。',
     scoreLine: (n: number, total: number) => `${n} / ${total}`,
-    empty: '还没答完。十二道题就是四章正典的全部问题。',
+    empty: '还没答完。十五道题就是五章正典的全部问题。',
   },
   en: {
     kicker: 'The Tidal Trial',
     title: 'Are you worthy of the eighth lamp?',
-    lede: 'A quiz on the four canonical chapters. Every answer can be traced word-for-word in The World Bible — what is written is what is true.',
+    lede: 'A quiz on the five canonical chapters. Every answer can be traced word-for-word in The World Bible — what is written is what is true.',
     questionLabel: (i: number, n: number) => `Question ${i} / ${n}`,
     correct: 'Correct — you keep it.',
     wrong: (ref: string) => `Wrong — go read “${ref}”.`,
     restart: 'Try again',
+    restartBible: 'Back to the shelf →',
     yourScore: 'Your score',
+    askButton: 'Ask the canon →',
     verdicts: [
       { at: 0, text: 'The Drifting Barrels', note: 'You have seen one breath of wave, never the sea.' },
-      { at: 4, text: 'The Half-Day Apprentice', note: 'You have not kept a watch long enough to know the fog.' },
-      { at: 7, text: 'The Patrol-Road Traveller', note: 'You are more road remembered than forgotten.' },
-      { at: 10, text: 'The Successor Watcher', note: 'You have never seen the door, but you know what was behind it.' },
-      { at: 12, text: 'The Tide Master', note: 'The sea still has not finished — and you already know what it said.' },
+      { at: 5, text: 'The Half-Day Apprentice', note: 'You have not kept a watch long enough to know the fog.' },
+      { at: 9, text: 'The Patrol-Road Traveller', note: 'You are more road remembered than forgotten.' },
+      { at: 12, text: 'The Successor Watcher', note: 'You have never seen the door, but you know what was behind it.' },
+      { at: 14, text: 'The Tide Master', note: 'The sea still has not finished — and you already know what it said.' },
+      { at: 15, text: 'The Full Tide', note: 'Fifteen of fifteen — the canon will not forget who asked it best.' },
     ],
     footer: 'The full canon lives in the shelf (/bible). Every wrong answer points you to where it lives. Wrong is wrong — there is no near-enough.',
     scoreLine: (n: number, total: number) => `${n} / ${total}`,
-    empty: 'Not done yet. Twelve questions — one per breath of the canon.',
+    empty: 'Not done yet. Fifteen questions — one per breath of the canon.',
   },
 } as const;
 
@@ -330,6 +337,16 @@ const QUESTIONS: Question[] = [
   {
     zh: { prompt: '《第一个名字》里，最后一页多出来的那一行字……？', choices: ['属于誊账人的手迹', '属于值夜人的手迹', '不属于灰以前任何一种手迹', '是页码'], answer: 2, ref: '回响（其二十） · 三' },
     en: { prompt: 'In “The First Name”, the line that appeared on the last page…?', choices: ['was in the copyist’s hand', 'was in the night watch’s hand', 'was not in any hand that had lived here before the grey', 'was a folio number'], answer: 2, ref: 'Echo No. 20 · III' },
+    zh: { prompt: '退潮之后，本大典在哪一章说明了大典如何继续？', choices: ['第五章 · 收件人', '第四章 · 第八盏灯', '第三章 · 桥上的女人', '回响其十一 · 没有锁的门'], answer: 0, ref: '第五章 · 正典续卷' },
+    en: { prompt: 'After the tide withdrew, which chapter of the bible explains how the canon continues?', choices: ['Chapter V · The Addressee', 'Chapter IV · The Eighth Lamp', 'Chapter III · The Woman on the Bridge', 'Echo No. 11 · The Door That Never Locked'], answer: 0, ref: 'Chapter V · The Addressee' },
+  },
+  {
+    zh: { prompt: '三路人中，谁带走了灯塔顶层下来的那截灯芯？', choices: ['盐海商会的人', '潮沙盘学馆的人', '雾港灯楼的人', '里巷子的抄本员'], answer: 2, ref: '第五章 · 三城各自出发的人' },
+    en: { prompt: 'Which of the three parties took the wick that had come down from the lantern-top?', choices: ['The Salt-Sea Guild', 'The Sand-Table School', 'The Lantern Tower at Fog Harbor', 'The copyists of the back alley'], answer: 2, ref: 'Chapter V · Three Cities Send Their Own' },
+  },
+  {
+    zh: { prompt: '值更院那只米缸里那粒一直浮在最上面的米，已经浮着多少年了？', choices: ['三年', '九年', '六十九年', '九十年'], answer: 2, ref: '回响三十六 · 那一粒月亮' },
+    en: { prompt: 'How many years has the grain of rice been floating on top of the watcher’s rice jar?', choices: ['Three', 'Nine', 'Sixty-nine', 'Ninety'], answer: 2, ref: 'Echo No. 36 · The Grain the Moon Sent Down' },
   },
 ];
 
@@ -379,6 +396,9 @@ export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {
         <button type="button" className="bb-quiz-restart" onClick={restart} data-bible-quiz-restart>
           {c.restart}
         </button>
+        <Link className="bb-quiz-askButton" href="/bible" data-bible-quiz-verdict-bible>
+          {c.restartBible}
+        </Link>
         <p className="bb-quiz-footer">{c.footer}</p>
       </section>
     );
@@ -433,6 +453,11 @@ export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {
           <p className={chosen === current!.answer ? 'bb-quiz-feedbackOk' : 'bb-quiz-feedbackBad'}>
             {chosen === current!.answer ? c.correct : c.wrong(current!.ref)}
           </p>
+          {chosen !== current!.answer && (
+            <Link className="bb-quiz-askButton" href={`/bible/ask?q=${encodeURIComponent(current!.prompt)}`} data-bible-quiz-ask-button>
+              {c.askButton}
+            </Link>
+          )}
           <button type="button" className="bb-quiz-next" onClick={advance} data-bible-quiz-next>
             {locale === 'en' ? 'Next →' : '下一题 →'}
           </button>

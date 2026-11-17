@@ -25,6 +25,7 @@ from ai_service.sticky_prompt_cache import (
     STABLE_PROMPT_KEYS,
     TERMINAL_VOLATILE_KEYS,
     StickyPromptCacheTransport,
+    _env_proxy_transport,
     _judge_sticky_body,
     host_bypasses_proxy,
     ordered_payload,
@@ -201,6 +202,22 @@ def test_sticky_body_pure_and_does_not_override_caller() -> None:
     # 非 chat 请求原样放行
     no_msgs = {"model": "m", "prompt": "x"}
     assert sticky_body(no_msgs) == no_msgs
+
+
+def test_env_proxy_transport_honored(monkeypatch: pytest.MonkeyPatch) -> None:
+    """根因回归门：自定义 transport 链必须从 env 显式取代理；直连出口会被 aizzz.xyz 403。"""
+    monkeypatch.setenv("HTTPS_PROXY", "http://127.0.0.1:7897")
+    inner = _env_proxy_transport()
+    assert isinstance(inner, httpx.HTTPTransport)
+
+
+def test_env_proxy_transport_plain_without_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """没有环境代理时退回直连（与导入前的默认行为一致）；有非法代理字符串也不许崩。"""
+    for key in ("HTTPS_PROXY", "HTTP_PROXY", "https_proxy", "http_proxy"):
+        monkeypatch.delenv(key, raising=False)
+    assert isinstance(_env_proxy_transport(), httpx.HTTPTransport)
+    monkeypatch.setenv("HTTPS_PROXY", "not-a-proxy-scheme@@@")
+    assert isinstance(_env_proxy_transport(), httpx.HTTPTransport)
 
 
 # ── transport 门：流式与非流两条路都覆盖 ───────────────────────────────────

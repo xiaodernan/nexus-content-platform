@@ -138,7 +138,7 @@ describe('§FE-63 /studio ExportPanel 导出面板', () => {
 
   it('剥 className/cn 后全文 SHA256 守恒（2026-11-15 v742「ExportPanel 双语化」落地时按惯例重钉）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '3d1bfe4b0e8353628bac0bb9757caca3e4614f567b3991aa381340847629282b',
+      '60e918f9cf8e85d97035e69eea62a317b483e299f105a6045dc1ff807a8f5b00',
     );
   });
 });

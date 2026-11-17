@@ -37,7 +37,7 @@ import { describe, expect, it } from 'vitest';
  * `forced-colors-style.test.ts` 守。浏览器那一寸归 `e2e/marketplace-earnings-visual.spec.ts`。
  */
 const ROOT = process.cwd();
-const PAGE = join(ROOT, 'apps/web/src/app/marketplace/earnings/page.tsx');
+const PAGE = join(ROOT, 'apps/web/src/app/marketplace/earnings/EarningsClient.tsx');
 const GLOBALS = join(ROOT, 'apps/web/src/app/globals.css');
 const TOKENS = join(ROOT, 'apps/web/src/styles/tokens.css');
 
@@ -151,7 +151,7 @@ const meReducedMotionBody = (() => {
 })();
 
 /** JS 逻辑段：文件头到第一个 `if (loading)` 之前的全部字节（此段绝不含 className）。 */
-const JS_LOGIC_SHA256 = '61272153d2dfe389d5cd7e0cbdcabbdf72bee799a59f592a0620042eabe9d0e5';
+const JS_LOGIC_SHA256 = 'adf492127f571ff1810231beb4db943237e0d93ef629f3ab7d2382590f5b75aa';
 function jsLogicSha256(src: string): string {
   const normalized = src.replace(/\r\n/g, '\n');
   const idx = normalized.indexOf('  if (loading)');

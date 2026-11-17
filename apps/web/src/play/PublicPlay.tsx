@@ -2,6 +2,7 @@
 
 import { useCallback, useRef } from 'react';
 import type { GameDocument, GameProjection } from '@nexus/game-model';
+import type { Locale } from '@/lib/i18n';
 import { csrfHeaders } from '@/lib/csrf';
 import { visitorKey } from '@/lib/visitor-key';
 import { PlayByKind } from './PlayByKind';

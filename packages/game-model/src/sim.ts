@@ -1,4 +1,5 @@
 import type { GamePlan, PlayActor, PlayTrigger, PlayQuest } from "./index";
+import type { ModelLocale } from "./locale";
 
 /**
  * 一份 `plan` 的只读索引（§PERF）。`step` 每帧都要按 id 把 state 里的 sim actor 对回 plan 里的
@@ -197,16 +198,48 @@ export const PLAYER_ATTACK_COOLDOWN = 0.5;
  * 在它自己的模板里重打一遍就等于给了两处会分叉的真值（§16）。
  */
 export const MAX_FRAME_SECONDS = 0.1;
-/** 事件流保留上限（条）：一次长跑模拟不该攒下无界的事件 */
+/** 事件的结构化 i18n 描述：`text` 始终是中文原文（单测按它断言），界面按 `i18n` 选择本语言渲染；缺 `i18n` 时降级显示 `text` */
+export interface SimEventI18n {
+  key:
+    | "enemyHitPlayer"
+    | "enemyDefeated"
+    | "itemPicked"
+    | "questDone"
+    | "triggerStepped"
+    | "questLevelGated"
+    | "enemyDefeatedXp"
+    | "questDoneXp"
+    | "levelUp"
+    | "outcomeNoPlayer"
+    | "outcomeLostHp"
+    | "outcomeWonAll"
+    | "outcomeTimedOut";
+  params: Record<string, string | number>;
+}
+export interface SimEvent {
+  t: number;
+  text: string;
+  i18n?: SimEventI18n;
+}
+
 export const EVENT_CAP = 40;
 /** 没有玩家时 `initialState` 说的那句话。同上：产物要念的是这一句，不是抄出来的一句 */
 export const SIM_NO_PLAYER_OUTCOME = "没有玩家实体，跑不起来。";
+/** 没有玩家时 `initialState` 说的那句话的英文镜像 */
+export const SIM_NO_PLAYER_OUTCOME_EN = "There is no player entity — this cannot run.";
 
 export const SIM_RULE_NOTES = [
   `没有地形与墙：开阔场地，走到边界就停（模型里没有关卡布局）。`,
   `接触伤害每 ${CONTACT_COOLDOWN} 秒结算一次、玩家挥击每 ${PLAYER_ATTACK_COOLDOWN} 秒一次：模型里没有攻击频率字段。`,
   "触发器只记录\"被踩到\"这件事：§54 的模型说了它引用谁，没有\"触发之后发生什么\"的语义，所以不做效果。",
   "对话、动画、粒子不参与判定：它们在这一版里是设计说明，不是可执行的东西。",
+];
+/** SIM_RULE_NOTES 的英文镜像：界面按 locale 选一份，不是一半中文一半英文 */
+export const SIM_RULE_NOTES_EN = [
+  "No terrain or walls: an open field; walking into the border stops you (the model has no level layout).",
+  `Contact damage settles every ${CONTACT_COOLDOWN}s and the player's swing every ${PLAYER_ATTACK_COOLDOWN}s: the model has no attack-rate field.`,
+  "Triggers only record \"stepped on\": the §54 model says who a trigger references and has no \"what happens after\" semantics, so there is no effect.",
+  "Dialogue, animation and particles do not participate in adjudication: in this version they are design notes, not executable things.",
 ];
 
 export interface SimActor {
@@ -238,8 +271,10 @@ export interface SimState {
   status: "playing" | "won" | "lost";
   /** 为什么结束：赢/输都指得回具体规则，不留"不知道为什么就结束了" */
   outcome: string | null;
+  /** 结束原因的结构化 i18n 描述（与事件同一模式）：`outcome` 保留中文原文（产物对账钉在它上），`outcomeI18n` 给界面做双语 */
+  outcomeI18n?: SimEventI18n | null;
   /** 最近发生的事情（HUD 与 Playtest 报告都读它），有上限，不无限增长 */
-  events: { t: number; text: string }[];
+  events: SimEvent[];
   /** 累计统计：Playtest 分析难度要用，而不是靠回放事件数 */
   counters: { damageTaken: number; damageDealt: number; pickups: number; triggersFired: number; attacks: number };
 }
@@ -263,6 +298,7 @@ export function initialState(plan: GamePlan): SimState {
     activated: {},
     status: player ? "playing" : "lost",
     outcome: player ? null : SIM_NO_PLAYER_OUTCOME,
+    outcomeI18n: player ? null : { key: "outcomeNoPlayer", params: {} },
     events: [],
     counters: { damageTaken: 0, damageDealt: 0, pickups: 0, triggersFired: 0, attacks: 0 },
   };
@@ -279,8 +315,10 @@ function dist(ax: number, ay: number, bx: number, by: number): number {
   return Math.hypot(ax - bx, ay - by);
 }
 
-function push(events: { t: number; text: string }[], t: number, text: string): void {
-  events.push({ t: Math.round(t * 10) / 10, text });
+function push(events: SimEvent[], t: number, text: string, i18n?: SimEventI18n): void {
+  const entry: SimEvent = { t: Math.round(t * 10) / 10, text };
+  if (i18n) entry.i18n = i18n;
+  events.push(entry);
   // 只留最近 EVENT_CAP 条：一次长跑模拟不该攒下无界的事件流
   if (events.length > EVENT_CAP) events.shift();
 }
@@ -335,7 +373,10 @@ export function step(
       sim.readyAt = next.t + CONTACT_COOLDOWN;
       next.health -= design.damage;
       next.counters.damageTaken += design.damage;
-      push(next.events, next.t, `${design.name} 打中你 -${design.damage}`);
+      push(next.events, next.t, `${design.name} 打中你 -${design.damage}`, {
+        key: "enemyHitPlayer",
+        params: { name: design.name, damage: design.damage },
+      });
     }
   }
 
@@ -352,7 +393,10 @@ export function step(
       next.counters.damageDealt += player.damage;
       if (sim.health <= 0) {
         sim.active = false;
-        push(next.events, next.t, `打倒了 ${design.name}`);
+        push(next.events, next.t, `打倒了 ${design.name}`, {
+          key: "enemyDefeated",
+          params: { name: design.name },
+        });
       }
     }
   }
@@ -365,7 +409,10 @@ export function step(
     if (dist(next.px, next.py, sim.x, sim.y) <= design.radius + player.radius) {
       sim.active = false;
       next.counters.pickups += 1;
-      push(next.events, next.t, `拾取 ${design.name}`);
+      push(next.events, next.t, `拾取 ${design.name}`, {
+        key: "itemPicked",
+        params: { name: design.name },
+      });
     }
   }
 
@@ -383,6 +430,10 @@ export function step(
       next.events,
       next.t,
       `${first ? "激活" : "再次踩到"}触发器 ${design.name}${design.affects ? `（它引用的是 ${design.affects.name}；模型里没有"之后发生什么"）` : ""}`,
+      {
+        key: "triggerStepped",
+        params: { name: design.name, affects: design.affects ? design.affects.name : "", first: first ? 1 : 0 },
+      },
     );
   }
 
@@ -401,7 +452,10 @@ export function step(
     });
     if (!allMet) continue;
     next.questDone[quest.id] = next.t;
-    push(next.events, next.t, `完成任务「${questById.get(quest.id)!.name}」`);
+    push(next.events, next.t, `完成任务「${questById.get(quest.id)!.name}」`, {
+      key: "questDone",
+      params: { name: questById.get(quest.id)!.name },
+    });
   }
 
   // —— 结束条件 ——
@@ -409,29 +463,42 @@ export function step(
   if (next.health <= 0) {
     next.status = "lost";
     next.outcome = `生命值归零（${Math.round(next.t * 10) / 10} 秒，承受 ${next.counters.damageTaken} 点伤害）。`;
+    next.outcomeI18n = {
+      key: "outcomeLostHp",
+      params: { t: Math.round(next.t * 10) / 10, damage: next.counters.damageTaken },
+    };
   } else if (judgeable.length && judgeable.every((quest) => next.questDone[quest.id] !== undefined)) {
     next.status = "won";
     next.outcome = `${judgeable.length} 条可判定的任务全部完成（${Math.round(next.t * 10) / 10} 秒）。`;
+    next.outcomeI18n = {
+      key: "outcomeWonAll",
+      params: { count: judgeable.length, t: Math.round(next.t * 10) / 10 },
+    };
   } else {
     const expired = judgeable.find((quest) => quest.timeLimit !== null && next.t > quest.timeLimit && next.questDone[quest.id] === undefined);
     if (expired) {
       next.status = "lost";
       next.outcome = `任务「${expired.name}」超时（timeLimit=${expired.timeLimit}，按秒解释）。`;
+      next.outcomeI18n = {
+        key: "outcomeTimedOut",
+        params: { name: expired.name, timeLimit: expired.timeLimit ?? 0 },
+      };
     }
   }
   return next;
 }
 
 /** 给 Playtest / HUD 的一句话摘要：不含任何"看起来像分数"的编造指标 */
-export function simSummary(state: SimState): string {
+export function simSummary(state: SimState, locale: ModelLocale = "zh"): string {
+  const en = locale === "en";
   return [
-    `跑了 ${Math.round(state.t * 10) / 10} 秒`,
-    `生命 ${Math.max(0, state.health)}`,
-    `敌人剩 ${state.enemies.filter((e) => e.active).length}/${state.enemies.length}`,
-    `物品拾取 ${state.counters.pickups}/${state.items.length}`,
-    `任务完成 ${Object.keys(state.questDone).length}`,
-    `机关激活 ${Object.keys(state.activated).length}/${state.triggers.length}`,
-    state.status === "playing" ? "进行中" : state.status === "won" ? "通关" : "失败",
+    en ? `${Math.round(state.t * 10) / 10}s elapsed` : `跑了 ${Math.round(state.t * 10) / 10} 秒`,
+    en ? `HP ${Math.max(0, state.health)}` : `生命 ${Math.max(0, state.health)}`,
+    en ? `enemies left ${state.enemies.filter((e) => e.active).length}/${state.enemies.length}` : `敌人剩 ${state.enemies.filter((e) => e.active).length}/${state.enemies.length}`,
+    en ? `items picked up ${state.counters.pickups}/${state.items.length}` : `物品拾取 ${state.counters.pickups}/${state.items.length}`,
+    en ? `quests done ${Object.keys(state.questDone).length}` : `任务完成 ${Object.keys(state.questDone).length}`,
+    en ? `triggers on ${Object.keys(state.activated).length}/${state.triggers.length}` : `机关激活 ${Object.keys(state.activated).length}/${state.triggers.length}`,
+    state.status === "playing" ? (en ? "Playing" : "进行中") : state.status === "won" ? (en ? "Cleared" : "通关") : en ? "Fell" : "失败",
   ].join(" · ");
 }
 

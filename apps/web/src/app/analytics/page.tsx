@@ -12,6 +12,7 @@ import { analyzeCreatorFacts, buildCreatorFact } from '@/server/domain/analytics
 import { currentUserOrNull } from '@/server/domain/session';
 import { utcDay } from '@/lib/visit-meter';
 import { TrendChart } from './TrendChart';
+import { AnalyticsAiNarrator } from '@/components/AnalyticsAiNarrator';
 import { getLocale, type Locale } from '@/lib/i18n';
 
 /** 曲线能选的三段窗口。默认 30 天：看创作数据最常看的就是这一个月 */
@@ -423,6 +424,9 @@ export default async function AnalyticsPage(props: {
               ))}
             </ul>
           )}
+          {fact && projectId ? (
+            <AnalyticsAiNarrator projectId={projectId} locale={locale} />
+          ) : null}
           {trend ? (
             <p className="an-projectTrend" data-analytics-project-trend>
               {locale === 'en' ? `This version, last ${windowDays} days:` : `这一版最近 ${windowDays} 天：`}{' '}

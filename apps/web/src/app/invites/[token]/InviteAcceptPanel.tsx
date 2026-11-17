@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { csrfHeaders } from '@/lib/csrf';
 import type { Locale } from '@/lib/i18n';
 
+
 /**
  * 接受按钮：转发 POST /api/projects/invites/<token>/accept，一句话回执。
  *
@@ -73,6 +74,9 @@ export function InviteAcceptPanel({ token, locale = 'zh' }: { token: string; loc
         <p className="iv-success">{c.joined}</p>
         <Link href={`/studio/${joinedProjectId}`} className="iv-successLink">
           {c.openProject}
+        <p className="iv-success">{c.joined}</p>
+        <Link href={`/studio/${joinedProjectId}`} className="iv-successLink">
+          {c.openProject}
         </Link>
       </div>
     );
@@ -87,6 +91,7 @@ export function InviteAcceptPanel({ token, locale = 'zh' }: { token: string; loc
         data-invite-accept
         className="iv-btn"
       >
+        {busy ? c.working : c.acceptJoin}
         {busy ? c.working : c.acceptJoin}
       </button>
       {error ? (

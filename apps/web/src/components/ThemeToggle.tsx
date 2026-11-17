@@ -5,6 +5,12 @@ import { useEffect, useState } from 'react';
 import { THEME_STORAGE_KEY, isTheme, type NexusTheme } from '@/lib/theme';
 import type { Locale } from '@/lib/i18n';
 
+/** 双语：按钮文案按 cookie locale 选（不夹杂） */
+const THEME_TXT = {
+  zh: { toLight: '切换到浅色主题', toDark: '切换到深色主题' },
+  en: { toLight: 'Switch to light theme', toDark: 'Switch to dark theme' },
+} as const;
+
 /**
  * §120 主题入口：一个按钮，暗 ↔ 浅。
  *
@@ -13,6 +19,7 @@ import type { Locale } from '@/lib/i18n';
  * 写 localStorage 失败（隐私模式）不影响本页生效，所以只在 catch 里静默——下一帧仍是新主题。
  */
 export function ThemeToggle({ locale = 'zh' }: { locale?: Locale }) {
+  const T = THEME_TXT[locale];
   const [theme, setTheme] = useState<NexusTheme>('dark');
   const [ready, setReady] = useState(false);
 
@@ -33,9 +40,7 @@ export function ThemeToggle({ locale = 'zh' }: { locale?: Locale }) {
     }
   }
 
-  const label = theme === 'dark'
-    ? locale === 'zh' ? '切换到浅色主题' : 'Switch to light theme'
-    : locale === 'zh' ? '切换到深色主题' : 'Switch to dark theme';
+  const label = theme === 'dark' ? T.toLight : T.toDark;
   return (
     <button
       type="button"

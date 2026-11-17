@@ -35,13 +35,14 @@ export function cacheShare(usage: CacheUsageSlice): number | null {
 /**
  * 双语（2026-11-15）：`locale` 缺省 'zh'，英文模式措辞由同一处落住，
  * 不允许组件自行写第二份对照表——本仓先例：layout chrome / bible 页面全走 COPY dict。
+ * 双语：缓存说明——zh 原文逐字不动；en 是同一三档的英文镜像（合并于 v845）。
  */
 export function cacheText(usage: CacheUsageSlice, locale: 'zh' | 'en' = 'zh'): string {
   if (!usage.cacheReported) return locale === 'en' ? 'cache unreported' : '缓存读数未报';
-  if (usage.cachedTokens <= 0) return locale === 'en' ? 'no cache hit' : '缓存未命中';
+  if (usage.cachedTokens <= 0) return locale === 'en' ? 'cache miss' : '缓存未命中';
   const share = cacheShare(usage);
   if (locale === 'en') {
-    return share === null ? `cache hit ${usage.cachedTokens}` : `cache hit ${usage.cachedTokens}·${share}%`;
+    return share === null ? `cache hit ${usage.cachedTokens}` : `cache hit ${usage.cachedTokens} · ${share}%`;
   }
   return share === null ? `缓存命中 ${usage.cachedTokens}` : `缓存命中 ${usage.cachedTokens}·${share}%`;
 }

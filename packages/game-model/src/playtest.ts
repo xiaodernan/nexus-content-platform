@@ -30,12 +30,21 @@ import type { StoryPlan } from "./story";
  */
 
 export type PolicyKey = "idle" | "beeline" | "flee" | "wander";
+/** 报告语言：界面传 locale 进来，报告整份跟着切，不是中英混排 */
+export type PlaytestLocale = "zh" | "en";
 
 export const POLICY_LABELS: Record<PolicyKey, string> = {
   idle: "站着不动",
   beeline: "冲向最近的敌人并挥击",
   flee: "一直躲开最近的敌人",
   wander: "定种子随机游走",
+};
+/** POLICY_LABELS 的英文镜像 */
+export const POLICY_LABELS_EN: Record<PolicyKey, string> = {
+  idle: "Stand still",
+  beeline: "Rush the nearest enemy and swing",
+  flee: "Keep away from the nearest enemy",
+  wander: "Seeded random walk",
 };
 
 /**
@@ -139,7 +148,13 @@ function makePolicySource(policy: PolicyKey, plan: GamePlan, rand: () => number)
 /** 一次跑法的时间上限（秒）：到点没结束就是 timedOut，不是失败。限度那句话从这个数拼出来 */
 export const PLAYTEST_SECONDS = 60;
 
-export function runPolicy(plan: GamePlan, policy: PolicyKey, seconds = PLAYTEST_SECONDS, seed = PLAYTEST_DEFAULT_SEED): PlaytestRun {
+export function runPolicy(
+  plan: GamePlan,
+  policy: PolicyKey,
+  seconds = PLAYTEST_SECONDS,
+  seed = PLAYTEST_DEFAULT_SEED,
+  locale: PlaytestLocale = "zh",
+): PlaytestRun {
   const tick = 1 / 60;
   const inputOf = makePolicySource(policy, plan, lcg(seed));
   let state = initialState(plan);
@@ -153,7 +168,7 @@ export function runPolicy(plan: GamePlan, policy: PolicyKey, seconds = PLAYTEST_
   }
   return {
     policy,
-    label: POLICY_LABELS[policy],
+    label: (locale === "en" ? POLICY_LABELS_EN : POLICY_LABELS)[policy],
     status: state.status,
     seconds: Math.round(state.t * 10) / 10,
     damageTaken: state.counters.damageTaken,
@@ -173,31 +188,68 @@ export const PLAYTEST_BASE_LIMITS = [
   `随机游走用的是定种子（默认 ${PLAYTEST_DEFAULT_SEED}），所以同一份设计两次报告逐字段相同；换种子就是换一次抽样，不是换一套规则。`,
   `时间上限 ${PLAYTEST_SECONDS} 秒：到点没结束只记「跑到时间上限」，不写成失败。`,
 ] as const;
+/** PLAYTEST_BASE_LIMITS 的英文镜像 */
+export const PLAYTEST_BASE_LIMITS_EN = [
+  "Policies are a limited set of four walks, not an exhaustive search: 0 clears does not mean impossible, and 1 clear does not mean easy to pick up.",
+  `The random walk uses a fixed seed (default ${PLAYTEST_DEFAULT_SEED}), so the same design produces byte-identical reports; changing the seed is another sample, not another rule set.`,
+  `Time limit ${PLAYTEST_SECONDS}s: if a run hasn't ended by then it is recorded as "reached the time limit", not as a failure.`,
+] as const;
 
 /** 基础总结：四种走法跑完之后"通没通、有什么毛病"——2D 与 RPG 共用这一份口径 */
-function summarize(plan: GamePlan, runs: PlaytestRun[]): {
+function summarize(plan: GamePlan, runs: PlaytestRun[], locale: PlaytestLocale = "zh"): {
   winnableBy: number;
   diedFrom: number;
   findings: string[];
 } {
+  const en = locale === "en";
   const winnableBy = runs.filter((run) => run.status === "won").length;
   const diedFrom = runs.filter((run) => run.status === "lost").length;
   const judgeable = plan.quests.filter((quest) => quest.judgeable).length;
 
   const findings: string[] = [];
-  if (!plan.playable) findings.push(`这份设计跑不起来：${plan.blockers.join("；") || "原因未列出"}`);
-  else if (judgeable === 0) findings.push("没有任何可判定的完成条件，所以这几种走法都不会「通关」——不是难度问题，是任务没连上敌人或物品。");
-  else if (winnableBy === 0) {
+  if (!plan.playable) {
     findings.push(
-      `${runs.length} 种走法里 0 种通关（${diedFrom} 种中途倒下，${runs.length - diedFrom} 种跑到时间上限）。` +
-        "这不等于没人能通，但这几种最直接的走法都通不了。",
+      en
+        ? `This design cannot run: ${plan.blockers.join("; ") || "reason not listed"}`
+        : `这份设计跑不起来：${plan.blockers.join("；") || "原因未列出"}`,
     );
-  } else findings.push(`${runs.length} 种走法里有 ${winnableBy} 种通关，最快 ${Math.min(...runs.filter((r) => r.status === "won").map((r) => r.seconds))} 秒。`);
+  } else if (judgeable === 0) {
+    findings.push(
+      en
+        ? "There is no judgeable completion condition, so none of these walks will \"clear\" it — not a difficulty problem, the quests never connect to an enemy or an item."
+        : "没有任何可判定的完成条件，所以这几种走法都不会「通关」——不是难度问题，是任务没连上敌人或物品。",
+    );
+  } else if (winnableBy === 0) {
+    findings.push(
+      en
+        ? `${runs.length} policies, 0 clears (${diedFrom} fell mid-run, ${runs.length - diedFrom} hit the time limit). ` +
+            "This does not mean no one can clear it, but these most direct walks cannot."
+        : `${runs.length} 种走法里 0 种通关（${diedFrom} 种中途倒下，${runs.length - diedFrom} 种跑到时间上限）。` +
+            "这不等于没人能通，但这几种最直接的走法都通不了。",
+    );
+  } else {
+    const fastest = Math.min(...runs.filter((r) => r.status === "won").map((r) => r.seconds));
+    findings.push(
+      en
+        ? `${runs.length} policies, ${winnableBy} clears; fastest ${fastest}s.`
+        : `${runs.length} 种走法里有 ${winnableBy} 种通关，最快 ${fastest} 秒。`,
+    );
+  }
 
   const player = plan.player;
-  if (player && player.damage === 0) findings.push("玩家没有伤害来源：任何「打倒敌人」类的任务条件在这几种走法里都满足不了。");
+  if (player && player.damage === 0) {
+    findings.push(
+      en
+        ? "The player has no source of damage: any \"defeat an enemy\"-style quest condition cannot be satisfied by these walks."
+        : "玩家没有伤害来源：任何「打倒敌人」类的任务条件在这几种走法里都满足不了。",
+    );
+  }
   if (runs.some((run) => run.policy === "idle" && run.status === "lost")) {
-    findings.push("站着不动就会死：敌人的察觉半径或伤害至少有一项高到「不操作也活不过一会儿」。");
+    findings.push(
+      en
+        ? "Standing still gets you killed: an enemy's detection radius or damage is high enough that doing nothing ends within moments."
+        : "站着不动就会死：敌人的察觉半径或伤害至少有一项高到「不操作也活不过一会儿」。",
+    );
   }
   return { winnableBy, diedFrom, findings };
 }
@@ -207,7 +259,12 @@ function summarize(plan: GamePlan, runs: PlaytestRun[]): {
  * 是因为这句话的**真值来源必须是报告**：跑完之后输入框还能改，
  * 拿控件里的数当结论就会显示一个没跑过的种子（同一句话在 2D 与 RPG 两个面板上还得各对一次账）。
  */
-export function playtestSeedNote(seed: number): string {
+export function playtestSeedNote(seed: number, locale: PlaytestLocale = "zh"): string {
+  if (locale === "en") {
+    return seed === PLAYTEST_DEFAULT_SEED
+      ? `Seed ${seed} was used — the default one: press the button again on the same design and every field comes out the same.`
+      : `Seed ${seed} was used — not the default ${PLAYTEST_DEFAULT_SEED}: a new seed is a new sample; the rules and numbers don't move a character.`;
+  }
   return seed === PLAYTEST_DEFAULT_SEED
     ? `本次用的种子 ${seed}，就是默认那一个：同一份设计再点一次，每个字段都一样。`
     : `本次用的种子 ${seed}，不是默认的 ${PLAYTEST_DEFAULT_SEED}：换种子就是换一次抽样，规则与数值一个字都没动。`;
@@ -217,16 +274,17 @@ export function playtest(
   plan: GamePlan,
   policies: readonly PolicyKey[] = PLAYTEST_POLICIES,
   seed = PLAYTEST_DEFAULT_SEED,
+  locale: PlaytestLocale = "zh",
 ): PlaytestReport {
   const used = effectiveSeed(seed);
-  const runs = policies.map((policy) => runPolicy(plan, policy, PLAYTEST_SECONDS, used));
-  const { winnableBy, diedFrom, findings } = summarize(plan, runs);
+  const runs = policies.map((policy) => runPolicy(plan, policy, PLAYTEST_SECONDS, used, locale));
+  const { winnableBy, diedFrom, findings } = summarize(plan, runs, locale);
   return {
     runs,
     winnableBy,
     diedFrom,
     findings,
-    limits: [...PLAYTEST_BASE_LIMITS],
+    limits: locale === "en" ? [...PLAYTEST_BASE_LIMITS_EN] : [...PLAYTEST_BASE_LIMITS],
     seed: used,
   };
 }
@@ -246,7 +304,13 @@ export interface RpgPlaytestReport extends PlaytestReport {
 }
 
 /** 一条带等级门的任务在这一帧之前怎么都不该出现在这里：gate 由 rpgStep 扣，这里只读结果 */
-function runPolicyRpg(plan: RpgPlan, policy: PolicyKey, seconds = PLAYTEST_SECONDS, seed = PLAYTEST_DEFAULT_SEED): RpgPlaytestRun {
+function runPolicyRpg(
+  plan: RpgPlan,
+  policy: PolicyKey,
+  seconds = PLAYTEST_SECONDS,
+  seed = PLAYTEST_DEFAULT_SEED,
+  locale: PlaytestLocale = "zh",
+): RpgPlaytestRun {
   const tick = 1 / 60;
   const inputOf = makePolicySource(policy, plan.base, lcg(seed));
   const gated = plan.quests.filter((quest) => quest.requiredLevel > 1);
@@ -261,7 +325,7 @@ function runPolicyRpg(plan: RpgPlan, policy: PolicyKey, seconds = PLAYTEST_SECON
   }
   return {
     policy,
-    label: POLICY_LABELS[policy],
+    label: (locale === "en" ? POLICY_LABELS_EN : POLICY_LABELS)[policy],
     status: state.base.status,
     seconds: Math.round(state.base.t * 10) / 10,
     damageTaken: state.base.counters.damageTaken,
@@ -282,16 +346,20 @@ export function playtestRpg(
   plan: RpgPlan,
   policies: readonly PolicyKey[] = PLAYTEST_POLICIES,
   seed = PLAYTEST_DEFAULT_SEED,
+  locale: PlaytestLocale = "zh",
 ): RpgPlaytestReport {
   const used = effectiveSeed(seed);
-  const runs = policies.map((policy) => runPolicyRpg(plan, policy, PLAYTEST_SECONDS, used));
-  const { winnableBy, diedFrom, findings } = summarize(plan.base, runs);
+  const en = locale === "en";
+  const runs = policies.map((policy) => runPolicyRpg(plan, policy, PLAYTEST_SECONDS, used, locale));
+  const { winnableBy, diedFrom, findings } = summarize(plan.base, runs, locale);
   const maxLevel = Math.max(...runs.map((run) => run.level));
 
   const defaulted = plan.enemyXp.filter((enemy) => enemy.from === "default");
   if (defaulted.length) {
     findings.push(
-      `${defaulted.length} 个敌人的经验用的是投影兜底值（作者没写 xpReward）：报告里升到的等级有兜底经验在内，这里不拆分两部分。`,
+      en
+        ? `${defaulted.length} enemies had their XP taken from the projection default (author never wrote xpReward): the levels in this report include that default XP, and the two parts are not split here.`
+        : `${defaulted.length} 个敌人的经验用的是投影兜底值（作者没写 xpReward）：报告里升到的等级有兜底经验在内，这里不拆分两部分。`,
     );
   }
   const gated = plan.quests.filter((quest) => quest.requiredLevel > 1);
@@ -300,9 +368,13 @@ export function playtestRpg(
     const never = gated.filter((quest) => !cleared.has(quest.name));
     if (never.length) {
       findings.push(
-        `带等级门的任务这几种走法一次都没过门：${never
-          .map((quest) => `「${quest.name}」要 ${quest.requiredLevel} 级`)
-          .join("、")}（跑完时最高 ${maxLevel} 级）。等级不够、还是条件本来就没满足，报告分不开这两种。`,
+        en
+          ? `Level-gated quests were never cleared by any of these walks: ${never
+              .map((quest) => `"${quest.name}" needs level ${quest.requiredLevel}`)
+              .join(", ")} (highest level reached: ${maxLevel}). Whether it was the level or the condition itself, the report cannot tell these apart.`
+          : `带等级门的任务这几种走法一次都没过门：${never
+              .map((quest) => `「${quest.name}」要 ${quest.requiredLevel} 级`)
+              .join("、")}（跑完时最高 ${maxLevel} 级）。等级不够、还是条件本来就没满足，报告分不开这两种。`,
       );
     }
   }
@@ -314,11 +386,17 @@ export function playtestRpg(
     findings,
     maxLevel,
     seed: used,
-    limits: [
-      ...PLAYTEST_BASE_LIMITS,
-      `跑的是 rpgStep——与 HUD、手动试玩同一个函数：经验、升级与等级门都参与判定，不是只跑底层战斗。`,
-      `升级曲线是投影常量（下一级要 ${plan.xpBase} + (等级-1)×${plan.xpStep}）：等级高低有这条曲线的份，不是作者数值单独决定的。`,
-    ],
+    limits: en
+      ? [
+          ...PLAYTEST_BASE_LIMITS_EN,
+          "Runs the rpgStep — the same function the HUD and manual playtest use: XP, level-ups and level gates all participate in the verdict, not just the low-level combat.",
+          `The level curve is a projection constant (next level costs ${plan.xpBase} + (level-1)×${plan.xpStep}): how fast a run levels is shaped by this curve, not by the author's numbers alone.`,
+        ]
+      : [
+          ...PLAYTEST_BASE_LIMITS,
+          `跑的是 rpgStep——与 HUD、手动试玩同一个函数：经验、升级与等级门都参与判定，不是只跑底层战斗。`,
+          `升级曲线是投影常量（下一级要 ${plan.xpBase} + (等级-1)×${plan.xpStep}）：等级高低有这条曲线的份，不是作者数值单独决定的。`,
+        ],
   };
 }
 
@@ -338,7 +416,8 @@ export interface StoryPlaytestReport {
   limits: string[];
 }
 
-export function playtestStory(plan: StoryPlan): StoryPlaytestReport {
+export function playtestStory(plan: StoryPlan, locale: PlaytestLocale = "zh"): StoryPlaytestReport {
+  const en = locale === "en";
   const byId = new Map(plan.beats.map((beat) => [beat.id, beat]));
   const seen = new Set<string>();
   if (plan.playable && plan.startId) {
@@ -363,24 +442,47 @@ export function playtestStory(plan: StoryPlan): StoryPlaytestReport {
 
   const findings: string[] = [];
   if (!plan.playable) {
-    findings.push(`这份设计跑不起来：${plan.blockers.join("；") || "原因未列出"}`);
+    findings.push(
+      en
+        ? `This design cannot run: ${plan.blockers.join("; ") || "reason not listed"}`
+        : `这份设计跑不起来：${plan.blockers.join("；") || "原因未列出"}`,
+    );
   } else {
     if (unreachable.length) {
-      const names = unreachable.slice(0, 3).map((beat) => `「${beat.name}」`);
-      const more = unreachable.length > 3 ? ` 等 ${unreachable.length} 段` : "";
+      const names = unreachable.slice(0, 3).map((beat) => (en ? `"${beat.name}"` : `「${beat.name}」`));
+      const listed = names.join(en ? ", " : "、");
+      const more = unreachable.length > 3 ? (en ? ` and ${unreachable.length} more` : ` 等 ${unreachable.length} 段`) : "";
       findings.push(
-        `${seen.size}/${plan.beats.length} 段从起点可达：选择连不到的段落播放器永远不会显示（${names.join("、")}${more}）。`,
+        en
+          ? `${seen.size}/${plan.beats.length} segments are reachable from the start: segments the choices never link to will never display (${listed}${more}).`
+          : `${seen.size}/${plan.beats.length} 段从起点可达：选择连不到的段落播放器永远不会显示（${listed}${more}）。`,
       );
     } else {
-      findings.push(`从起点全部可达（${plan.beats.length} 段）：每一段都有一条选择路线通到。`);
+      findings.push(
+        en
+          ? `Everything is reachable from the start (${plan.beats.length} segments): each segment has at least one choice route to it.`
+          : `从起点全部可达（${plan.beats.length} 段）：每一段都有一条选择路线通到。`,
+      );
     }
     if (reachableEndings > 0) {
-      findings.push(`能停下的段落 ${reachableEndings} 段：走到那里就没有下一段了。`);
+      findings.push(
+        en
+          ? `${reachableEndings} segment(s) are reachable landings: once you reach one, there is no next segment.`
+          : `能停下的段落 ${reachableEndings} 段：走到那里就没有下一段了。`,
+      );
     } else {
-      findings.push("从起点走到的每一段都有下一段：没有一条路线会停——环之外没有出口（连不到的段落里可能有停点）。");
+      findings.push(
+        en
+          ? "Every segment reachable from the start has a next segment: no route ever stops — no exit outside the loop (the unreachable segments may hold landings)."
+          : "从起点走到的每一段都有下一段：没有一条路线会停——环之外没有出口（连不到的段落里可能有停点）。",
+      );
     }
     if (reachableEmptyText > 0) {
-      findings.push(`${reachableEmptyText} 段可达但正文为空：走到会显示「作者没写正文」，与播放器同一句话（不是加载失败）。`);
+      findings.push(
+        en
+          ? `${reachableEmptyText} reachable segment(s) have empty body text: reaching one displays "the author never wrote the body", the same sentence the player shows (not a load failure).`
+          : `${reachableEmptyText} 段可达但正文为空：走到会显示「作者没写正文」，与播放器同一句话（不是加载失败）。`,
+      );
     }
   }
 
@@ -392,10 +494,16 @@ export function playtestStory(plan: StoryPlan): StoryPlaytestReport {
     reachableEndings,
     reachableEmptyText,
     findings,
-    limits: [
-      "按引用连线算可达性：数的是「连不连得到」，不是「玩家会不会点、文案有没有问题」——发现毛病那一步（§53 的 Detect bugs）要浏览器与模型，这里没有。",
-      "成环不展开：环里每段只算一次，报告不数「绕了几圈」。",
-      "没有随机成分：同一份计划两次报告逐字段相同。",
-    ],
+    limits: en
+      ? [
+          "Reachability is computed along reference links: it counts \"can it be reached\", not \"will the player click it\" or \"is the copy sound\" — finding those (§53's Detect bugs) needs a browser and a model, and they are not here.",
+          "Loops are not unrolled: each segment in a loop is counted once; the report does not count how many laps it takes.",
+          "No randomness: the same plan produces the same report, field for field.",
+        ]
+      : [
+          "按引用连线算可达性：数的是「连不连得到」，不是「玩家会不会点、文案有没有问题」——发现毛病那一步（§53 的 Detect bugs）要浏览器与模型，这里没有。",
+          "成环不展开：环里每段只算一次，报告不数「绕了几圈」。",
+          "没有随机成分：同一份计划两次报告逐字段相同。",
+        ],
   };
 }

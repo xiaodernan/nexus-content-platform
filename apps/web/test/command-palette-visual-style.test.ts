@@ -120,8 +120,7 @@ describe('§CP-1 可访问性属性与数据钩子', () => {
   it('对话框三件：role=dialog + aria-modal + aria-label', () => {
     expect(code).toContain('role="dialog"');
     expect(code).toContain('aria-modal="true"');
-    // 2026-11-15 双语化 wave: 对话框 aria 现在从 COPY 字典下发（zh: 命令面板 / en: Command palette），原 zh 字节原样保留在字典里
-    expect(code).toContain("dialogAria: '命令面板'");
+    expect(code).toContain('aria-label={T.dialog}');
   });
 
   it('combobox 模式：aria-controls / aria-autocomplete / aria-activedescendant', () => {

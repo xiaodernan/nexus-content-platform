@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
  * 本片只换皮；fetch/useRealtime/onReconnect/resolver 五件一字不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `b5d89534e1c26a61d786bc8cd11f3b3f067d95fbd140e6f66a2d988f061155f7` 与 HEAD 字节一致。
+ * `5f71ad6d22973bae20d21e3f01dbd7969f40e57eaa6858ab5cdd38f4b47b796c` 与 HEAD 字节一致。
  *
  * 判据不变式（10 门）：
  *  1. 'use client' 保留 + useRealtime/useEffect 进门；2. 字面 className 全 `.nb-*`/复用族；
@@ -133,9 +133,9 @@ describe('§FE-68 /components NotificationBell 顶栏铃铛', () => {
     expect(segment).toContain('.nb-link {');
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：b5d89534e1c26a61d786bc8cd11f3b3f067d95fbd140e6f66a2d988f061155f7）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：5f71ad6d22973bae20d21e3f01dbd7969f40e57eaa6858ab5cdd38f4b47b796c）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'b5d89534e1c26a61d786bc8cd11f3b3f067d95fbd140e6f66a2d988f061155f7',
+      '5f71ad6d22973bae20d21e3f01dbd7969f40e57eaa6858ab5cdd38f4b47b796c',
     );
   });
 });

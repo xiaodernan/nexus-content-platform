@@ -5,6 +5,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { REALTIME_TEXT, REALTIME_TEXT_EN, useRealtime } from '@/lib/useRealtime';
 import type { Locale } from '@/lib/i18n';
 
+/** 双语：铃铛的每行文案按 cookie locale 选（不夹杂）；实时状态词来自 REALTIME_TEXT(_EN) */
+const NB_TXT = {
+  zh: { failed: '通知：没读到', loading: '通知：—', bell: '通知', unreadParen: (n: number, t: number) => (n > 0 ? `（${n} 条未读）` : `（${t} 条）`), realtime: '实时：' },
+  en: { failed: 'Notifications: could not read', loading: 'Notifications: —', bell: 'Notifications', unreadParen: (n: number, t: number) => (n > 0 ? ` (${n} unread)` : ` (${t} total)`), realtime: 'Live: ' },
+} as const;
+
 /**
  * §164 顶栏铃铛：只报"查到了没有"和"几条没读"。
  *
@@ -24,31 +30,8 @@ interface Summary {
   total?: number;
 }
 
-const COPY: Record<Locale, {
-  failed: string;
-  loading: string;
-  ready: (unread: number, total: number) => string;
-  realtimePrefix: string;
-  realtimeText: Record<string, string>;
-}> = {
-  zh: {
-    failed: '通知：没读到',
-    loading: '通知：—',
-    ready: (unread, total) => (unread > 0 ? `（${unread} 条未读）` : `（${total} 条）`),
-    realtimePrefix: '实时：',
-    realtimeText: REALTIME_TEXT,
-  },
-  en: {
-    failed: 'Notifications: unreadable',
-    loading: 'Notifications: —',
-    ready: (unread, total) => (unread > 0 ? `(${unread} unread)` : `(${total})`),
-    realtimePrefix: 'live: ',
-    realtimeText: REALTIME_TEXT_EN,
-  },
-};
-
 export function NotificationBell({ locale = 'zh' }: { locale?: Locale }) {
-  const c = COPY[locale];
+  const NB = NB_TXT[locale];
   const [summary, setSummary] = useState<Summary | null>(null);
   const [failed, setFailed] = useState(false);
   const [signedOut, setSignedOut] = useState(false);
@@ -85,14 +68,14 @@ export function NotificationBell({ locale = 'zh' }: { locale?: Locale }) {
   if (failed) {
     return (
       <span className="nb-faint" data-notification-bell="failed">
-        {c.failed}
+        {NB.failed}
       </span>
     );
   }
   if (!summary) {
     return (
       <span className="nb-faint" data-notification-bell="loading">
-        {c.loading}
+        {NB.loading}
       </span>
     );
   }
@@ -100,10 +83,10 @@ export function NotificationBell({ locale = 'zh' }: { locale?: Locale }) {
   return (
     <span className="nb-row">
       <Link href="/notifications" className="nb-link" data-notification-bell="ready">
-        {locale === 'zh' ? '通知' : 'Notifications'}<span data-notification-unread={unread}>{c.ready(unread, summary.total ?? 0)}</span>
+        {NB.bell}<span data-notification-unread={unread}>{NB.unreadParen(unread, summary.total ?? 0)}</span>
       </Link>
       <span className="nb-faint" data-realtime={realtime.state}>
-        {c.realtimePrefix}{c.realtimeText[realtime.state]}
+        {NB.realtime}{(locale === 'en' ? REALTIME_TEXT_EN : REALTIME_TEXT)[realtime.state]}
       </span>
     </span>
   );
