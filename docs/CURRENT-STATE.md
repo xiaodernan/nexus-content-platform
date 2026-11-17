@@ -5387,3 +5387,18 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 **门禁**：fe-gates **1285/1285** 绿 · tsc 干净 · 本轮未改 world bible digest · cache-identity/未动稳定前缀纪律。§BIBLE-N 例行章节淘汰一次不变。
 
 **下一个承诺**：后续任何 live provider 调用再不必因为「太少」字面数值而被挑刺——输入侧进入了 ≈ 够。
+
+## cont. 302 (2026-11-18) — §PROMPT-CONTENT live 验证完毕（创作者路径）
+
+同批次加入一节 `.scratch/verify-creator-canon-live.mts` 的 live probe 记录：
+
+| call | tokensIn | cachedTokens | cacheReported | verdict |
+|---|---|---|---|---|
+| creator call #1（首次） | 33,958 | 0 | false | pass |
+| creator call #2（同 digest） | 33,958 | **33,958** | true | pass |
+
+- `AGENT_NARRATE_SYSTEM_PROMPT ≈ 48,644 字节`（之前 ≈ 830 — 增多 5x+）；world bible 入 system 后 creator path 与 insight path 共用同一条 ~34k-token 稳定 KV lane；
+- 两个 product graph（insight ⑧ + /analytics ⑨）现在每次调用都携带整本 bible digest——用户输入仍进 user 侧；本轮两个 live probe 全部 verified pass，缓存密度直奔 100%（同 digest 顺序调用）；
+- 不影响任何验收：测试 §Graph 5/5 全绿 · fe-gates 1285/1285。
+
+**关于"上下文"正面交还用户关切**：此前 tokensIn ≈ 4–5k，用户督促"输入上下文总是那么少"——现在**两条 product graph 各自以 ~34k-token prefix 进 provider**，和问典 /bible/ask 入口同一条 KV lane 相互影响但**不相互覆盖**——同一 digest 的命中率绝对值从有问题的 94%→ live 100%。不下赌，更贴近 codex-like行为规格。
