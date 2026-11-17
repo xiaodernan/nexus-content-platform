@@ -5627,3 +5627,29 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - **中文乱码清理**：§ADMIN-13 追加 globals.css；.obs-* 全族令牌走 var(--nexus-*)，零 hex 字面量（gdSegment 零hex门继续绿）
 - guide 补 /admin/observe 词条（zh/en 各一条）；guide SHA 1dc74d29… 重钉；admin-hub SHA ×2 重钉；admin-home-style AREAS 期望更新为十三张卡并全绿
 - 门：census 2724 OK ✓；tsc --noEmit 干净 ✓；guide-visual-style 7/7 ✓；admin-home-style 10/10 ✓；admin-hub-visual-style（重钉后）待 fe-gates 矩阵验证；tsc 与新一轮 fe-gates 结果见下一条记录
+
+## cont. 209 (2026-11-18) - v839: /admin/observe 挂「AI 深读」按钮——gpt-6.1-terra 照实测聚合起草下一步（LLM 切面 12）
+
+- **动机**：§九 要求「下一步应该采取的深度优化措施」——此前只有规则引擎。现在再挂一颗按钮：
+  实测聚合（viewsTotal/opens7d/suspectedBots7d/tasksAwaitingApproval/completionPct…）喂给 gpt-6.1-terra，
+  让它把数字串成「下一步具体做什么」，每条判断必须带数字、没有数字则服务器机械拒绝展示（502）
+- **新 API `/api/admin/observer/digest`**（POST · 只读 · 零写库）：
+  - 守卫：role=admin 直通 · 口令 123（nx_observer cookie · path=/，覆盖 /admin/observe 与 /api/admin/observer/*）直通
+  - 输入只有一股 locale（客户端不带任何数据——服务器自算指标，杜绝伪造输入）
+  - **DEMO MODE 409** · 每 IP 5/小时 · 24h LRU（16 槽 · 签名键=指标摘要）· 输出必含数字否则 502
+  - 指标注入模型：聚合计数（含 114 等你批准 / 342 完成 / 4 失败 / 877 浏览 / 52/97 次 opens / 71.2% 完成度 / 94 bots / free 5,364 · studio 3），**没有行名/行内容/个人数据**
+- **新组件 `ObserverDeepRead`（components/ObserverDeepRead.tsx · 'use client'）**：按钮触发（不在挂载时烧 token），
+  idle/busy/ok/error/cache 命中徽章，失败原样展示不掩盖（网络错误、provider 502、429 全部透传错误信息）
+- **live 实测（真库 + 真 provider · 2026-11-17 15:3x +08:00）**：
+  - anon → 401；口令 123 登录 → 200；zh POST → **200 · model=gpt-6.1-terra · cached=false**
+  - zh digest 原文：「近 7 天疑似机器人流量高于有效打开（94 vs 52），先清 Bot 源头或上访客门…把 1 个作品发出去…114 个 AI 任务在等你批准，成果 342 条 / 失败 4 条，先清队列…877 总浏览，52（7 天）vs 97（30 天）…完成度 71.23%…」
+    ——**每一个数字均来自实测聚合，零编造**
+  - 第二次相同输入 → **cached=true**（24h LRU 命中，不烧 provider）✓
+  - EN POST → **200 · gpt-6.1-terra · cached=false**（English 完整派生英文输出）
+    原文：「First, review the 114 tasks awaiting approval; 342 succeeded versus 4 failed… clean suspected-bot sources before judging conversion: 94 suspected bots exceed 52 opens in 7 days… 877 total views and 11 likes, with 97 opens in 30 days and 71.2% average completion…」
+  - SSR `/admin/observe` 含 data-observer-deepread-idle/button + .observer-aidr-* ✓
+- **Cookie path 修复（同片）**：nx_observer 原 path=/admin/observe，digest 路由（/api/admin/observer/*）永远收不到 → 改 path=/ 并简化注释；DELETE 实测守门态重现
+- guide 补「AI 深读（gpt-6.1-terra · 必含数字）」zh/en 各一条；guide SHA 1dc74d29… 重钉；census 2735 OK；tsc --noEmit 干净 ✓
+- 新 FE 套 `observer-deepread-visual-style.test.ts`（7 例，含 "use client + 零 provider import + className 只认 .observer-aidr-* + SHA256 钉死"）；suite 7/7 ✓
+- 简明说明书/展示页 latest.json 随下一轮 sync 一并推进；LLM 切面计数：11 → **12**
+

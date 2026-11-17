@@ -5,6 +5,7 @@ import { getLocale, type Locale } from '@/lib/i18n';
 import { OBSERVER_COOKIE, OBSERVER_COOKIE_VALUE } from '@/app/api/admin/observer/route';
 import { AdminNav } from '@/components/AdminNav';
 import { PasswordForm } from './PasswordForm';
+import { ObserverDeepRead } from '@/components/ObserverDeepRead';
 import { readObserverMetrics, buildObserverAdvice, type ObserverMetrics } from '@/server/admin/observer';
 
 export const dynamic = 'force-dynamic';
@@ -308,6 +309,7 @@ export default async function ObserverPage() {
           ))}
         </ul>
         <p className="obs-subnote">{c.adviceFoot}</p>
+        <ObserverDeepRead locale={locale} />
       </section>
 
       <footer className="adm-foot">

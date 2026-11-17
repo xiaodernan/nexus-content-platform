@@ -9,11 +9,15 @@ export const dynamic = 'force-dynamic';
  * 为什么明文 123：这是**刻意公开**的共享口令——用户（项目负责人）明确要求
  * 「密码输入 123 就能进，所有用户都知道密码也都能进管理员页面」。它不是鉴权秘密，
  * 只是一道「你知道你在做什么」的摩擦。它不换任何权限：
- * - 成功只发 `nx_observer` 只读 cookie（path=/admin/observe），不能写、不能删、
- *   不能改角色、不能访问 role=admin 的控制面；
+ * - 成功只发 `nx_observer` 只读 cookie（path=/，root scope：/api/admin/observer/* 需要读它）；
+ *   不能写、不能删、不能改角色、不能访问 role=admin 的控制面；
  * - 失败只给 401，不记账、不引导攻击者枚举（口令本来公开，无可枚举）。
  *
  * 防刷：同一 IP 每小时 30 次尝试（进程内计数，尽力而为；跨实例不合并）。
+ *
+ * 为什么 path=/：/admin/observe 只覆盖页面自身；观察站的 JSON 由 /api/admin/observer/* 提供，
+ * cookie Path 必须同时覆盖两者，否则口令用户永远过不了 digest 那一道门。
+ * 它只被观察站相关代码读取——scope 放宽不等于任何权限扩大。
  */
 
 export const OBSERVER_COOKIE = 'nx_observer';
@@ -52,14 +56,14 @@ export async function POST(request: Request) {
   const password = (body as { password?: unknown } | null)?.password;
   if (typeof password !== 'string' || password !== '123') {
     const store = await cookies();
-    store.set(OBSERVER_COOKIE, '', { path: '/admin/observe', maxAge: 0 });
+    store.set(OBSERVER_COOKIE, '', { path: '/', maxAge: 0 });
     return NextResponse.json({ error: 'wrong-password' }, { status: 401 });
   }
   const store = await cookies();
   store.set(OBSERVER_COOKIE, OBSERVER_COOKIE_VALUE, {
     httpOnly: true,
     sameSite: 'lax',
-    path: '/admin/observe',
+    path: '/',
     maxAge: 60 * 60 * 24 * 30,
   });
   return NextResponse.json({ ok: true });
@@ -67,6 +71,6 @@ export async function POST(request: Request) {
 
 export async function DELETE() {
   const store = await cookies();
-  store.set(OBSERVER_COOKIE, '', { path: '/admin/observe', maxAge: 0 });
+  store.set(OBSERVER_COOKIE, '', { path: '/', maxAge: 0 });
   return NextResponse.json({ ok: true });
 }
