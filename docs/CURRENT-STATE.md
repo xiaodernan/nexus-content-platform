@@ -4779,3 +4779,12 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 验证：`/` 200 ✓ / `/healthz` 200 ✓ / Redis 命中率功能恢复 ✓。
 - 本次事件教训：**Docker 任何治 crash 是 Docker's 问题，不是 sibling 容器的问题**；nexus-* 自愈较快（~4 分钟），且数据零丢失（同 `lsn 8/52BC8F10`）。记录进 ADR 或直接写在 incident log。
 - Sibling `careeros-*`/`football_os-*`/`specproof-*`：**未触碰**，零影响。
+
+## cont. 247 (2026-11-17) — v876 · §PROVED-17 10 路并发并发同 fingerprint 完整命中
+
+- 同一 digest + 同一 sticky key + 10 路并行齐发：
+  - 9/10 实时 cache 命中（22606 ×3 · 22734 ×6）；q7 不回 cached_tokens 但 prompt_tokens=24058（仍为恒定 digest）。
+  - 差异为 128 字节，正是两代 digest（26→36 echoes 变更）at distributor 端两版的 bytes delta。两条 channel 各自 cache 各通。
+  - "Distributor per-channel cache" — codex 同路。
+- 用户猜测的「并行会话打乱 cache」实测不成立：同一 fingerprint，10 路同时打均走到两条 channel 各自 cache 桶。
+- 本轮 RAM 仍约 1.6 GB；零容器影响。

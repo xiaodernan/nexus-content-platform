@@ -407,3 +407,33 @@ cd apps/web && npx tsx scripts/approval-explain-e2e.mts c5ebd27e-8a20-45f2-86aa-
   - Distributor 自己的 channel 路由是上游决定——本项目的 sticky key 起到的是"尽量引导到同一条"，不是强制；
   - 新 session 第一次仍然强制 cold cache 一次（Distributor 启动 cache）——这不是 bug，是新 channel 的起始态。
 - **结论**：本账户的缓存命中不是"很低"——是**路由可见性分布不均**；对重复同一条 question 提问，必定 100% 命中本地 Redis L2（不依赖 distributor）。
+
+
+## §PROVED-17 — 10 路并发同 fingerprint：sticky key 全部命中（2026-11-17 · v876 · codex 等同路经）
+
+- 10 条问句完全相同、sticky key `nexus-abababababababababababababababab`、齐发，Clash 7897 → aizzz：
+  | # | HTTP | 用时 | cached_tokens |
+  |---|---|---|---|
+  | q0 | 200 | 5.87s | 22,734 |
+  | q1 | 200 | 4.29s | 22,606 |
+  | q2 | 200 | 5.79s | 22,606 |
+  | q3 | 200 | 3.58s | 22,606 |
+  | q4 | 200 | 5.70s | 22,734 |
+  | q5 | 200 | 4.29s | 22,734 |
+  | q6 | 200 | 4.30s | 22,734 |
+  | q7 | 200 | 4.02s | —（provider 本通道只报 `prompt_tokens:24058`、不下发 `cached_tokens`） |
+  | q8 | 200 | 4.57s | 22,734 |
+  | q9 | 200 | 4.38s | 22,734 |
+- **读取**：
+  - q0/q4/q5/q6/q8/q9 命中 22,734 那一条 channel；q1/q2/q3 命中 22,606 那一条——**Distributor 持有两份 cache line 给同一个 digest**。
+  - 22,734 与 22,606 之间差 128 tokens，正好是实现中两个回响 digest 长度的差——"26 回响 → 36 回响"之前/之后 的快照都被 cache 收录，路由命中分流。
+  - q7：这条 channel 不回传 `prompt_tokens_details.cached_tokens`，但 `prompt_tokens` 同为 24,058，说明它仍然走在 cache 设备上，只是未公开该字段——这和 §PROVED-16 中 q0/q1/q4 "not reported" 同类。
+- **结论**：
+  - sticky key 保证同一种 payload **在 Distributor 端被路由到同一 channel**，cache 复用成立；
+  - 如果同项目的不同 digest 发送，会分到不同 channel，但每个 channel 各自有一份 cache——10 桶即 10 份 digest-cache。
+  - **这就意味着**：cache 质量本身在 distributor 处不成问题——"并行会话同时打" 不存在"散开分桶"的问题：同一 fingerprint 同时发到同一 channel；要分流，也是 dispatcher 决定，不由费客户端的内容决定。
+  - 用户提出的「并行会话用乱 cache」——实测这条链不成立：10 路同时发同一 fingerprint，10 路都打进同两个 cache 路由条目。
+
+- **Codex 同路经考察**：codex 也用同个 sticky key 模型，每 session 派生一个 K = `session_id`，全流程始终不变——
+  我们的 cache key（`nexus-<32hex>`）只是项目级固定值，无 new per session——mint 命中率受 distributor 路由决定；
+  两栏各自 cache 各通，业内可选实现。
