@@ -5612,3 +5612,18 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - 双语字典 / 锚句集：无新增英文原生内容（E19 为中文原生撰写并译）
 - 门：fe-gates 132 套 · **1259/1259** ✓；census 全绿（fe-gates 内含）✓；verify:world-bible / verify:bible-snapshot / verify:anchor-echo ✓；tsc 未动（仅文案与快照）
 - 顺序约束：本片不动代码逻辑；未推送 showcase（latest.json 随下一轮 sync）
+
+## cont. 208 (2026-11-18) - v838: §九 管理员「只读观察站」（口令 123 · 公开）——看平台里所有用户的真实行为（§ADMIN-13）
+
+- **纠正自我误读**：§九 明文「密码输入 123 就能进，所有用户都知道密码也都能进管理员页面」——
+  之前把 /admin 记为「阻塞（无 admin session）」是把它当鉴权秘密，错。口令 123 是**刻意公开的共享口令**，与 CÆSURA「后台 · 口令 123」、minicc「密码 123 的共享门」同形
+- **新页 `/admin/observe`**（RSC · force-dynamic）：
+  - 准入：role=admin 直接进；任何人通过口令 123（POST `/api/admin/observer`，错误 401、IP 限频 30/h、path=/admin/observe HttpOnly cookie · Max-Age 30d · DELETE 完整撤销路径已实测）
+  - **只读**：没有任何能修改数据的按钮；数字全部来自实库（`server/admin/observer.ts`，SELECT-only）
+  - 展示：注册用户 / 游客 / 7·30 天新增 / 发布总数与已过审公开 / 总浏览 · 点赞 · 评论 · 收藏 · 关注 / 近 7 天有效打开（publication_visits，剔除 suspectedBot，7 天逐日柱状）/ 7·30 天打开与可见时长 / 近 30 天完成度（71.2% 实测）/ 任务状态（agent_tasks 按 status 聚合）/ 套餐分布 / 最热公开作品（views desc）/ **深度优化建议（规则引擎 · 非 AI——每条带可复核阈值）**
+  - 与 /admin 十三张卡互相可见（「观察站」入口卡 + denied 页直通链）；AdminNav 新增 observe 入口（LINKS 17→18）
+- **本机实测（真库 · 2026-11-18 SSR）**：注册用户 3,396 · 游客 1,971 · 7 天新增 1,235 · 30 天 4,123；发布 153 / 过审公开 0；总浏览 877 · 点赞 11 · 评论 19 · 收藏 1 · 关注 2；7 天有效打开 52（疑似机器人 94 次不进趋势）；完成度 71.2%；任务：排队 0 · 执行中 2 · **等你批准 114** · 完成 342 · 失败 4（规则建议正确触发两条：等你批准 114 · 机器人超过人流）；套餐：free 5,364 · studio 3
+- **用户指令兑现清单**：密码 123 公开共享 ✓ · 可被所有用户进入 ✓ · 检测/分析/查看/观察所有用户行为 ✓ · 统计数据 ✓ · 趋势（7 天逐日 + 30 天窗口）✓ · 深度优化措施（规则引擎建议）✓ · 本页零伪造数据（空也诚实显示 0）
+- **中文乱码清理**：§ADMIN-13 追加 globals.css；.obs-* 全族令牌走 var(--nexus-*)，零 hex 字面量（gdSegment 零hex门继续绿）
+- guide 补 /admin/observe 词条（zh/en 各一条）；guide SHA 1dc74d29… 重钉；admin-hub SHA ×2 重钉；admin-home-style AREAS 期望更新为十三张卡并全绿
+- 门：census 2724 OK ✓；tsc --noEmit 干净 ✓；guide-visual-style 7/7 ✓；admin-home-style 10/10 ✓；admin-hub-visual-style（重钉后）待 fe-gates 矩阵验证；tsc 与新一轮 fe-gates 结果见下一条记录

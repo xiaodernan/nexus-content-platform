@@ -27,6 +27,7 @@ import { getLocale, type Locale } from '@/lib/i18n';
  */
 const LINKS = [
   { key: 'home', href: '/admin', labelZh: '管理台', labelEn: 'Admin console' },
+  { key: 'observe', href: '/admin/observe', labelZh: '观察站', labelEn: 'Observer' },
   { key: 'users', href: '/admin/users', labelZh: '账号与角色', labelEn: 'Accounts & roles' },
   { key: 'moderation', href: '/admin/moderation', labelZh: '复核台', labelEn: 'Moderation' },
   { key: 'marketplace', href: '/admin/marketplace', labelZh: '市场工单', labelEn: 'Marketplace queue' },
