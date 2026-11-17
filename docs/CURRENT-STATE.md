@@ -5618,3 +5618,9 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 第 80 篇回响「守门猫」：前庭横梁上蹲着一只黑猫——它从不睁眼——值更长每次回前庭看见猫都不走过去打量它——灯下一片安静——院子里没有人做主，只有那只猫自己知道。
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-080-the-cat-that-keeps-watch-in-the-front-court`；verify world-bible **464/464** ✓。
 - 同步：BibleAsk lede → 80（含 en）；/bible/ask meta → 八十篇 / eighty；cache-identity → 80 篇锚句；bible-ask-behavior 锚句总数 458→464；canon-answer-graph 测试 85 段 / 80 echoes；pins 重钉（page→2f23fe70… comp→561ec02e…）；fe-gates **1285/1285 绿**。
+
+## cont. 326 (2026-11-18) — v945 · §BIBLE-81 · Echo #81《潮候院里老石磨盘——它磨不动任何东西》（作者手写·双语·470/470 绿）
+
+- 第 81 篇回响「石磨盘」：墙右手半露出静默 — 三百年 · 抄本师称它"磨的不磨的" — 雾的山石 — 一条凹痕 — 父 — 没人知道磨什么。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-081-the-millstone-that-grinds-nothing`；verify world-bible **470/470** ✓。
+- 同步：BibleAsk lede → 81（含 en）；/bible/ask meta → 八十一篇 / eighty-one；cache-identity → 81 篇锚句；bible-ask-behavior 锚句总数 464→470；canon-answer-graph 测试 86 段 / 81 echoes；pins 重钉（page→165e6f35… comp→c46020a0…）；fe-gates 测试 24/24。
