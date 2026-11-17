@@ -6076,3 +6076,14 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 >   verify:world-bible **377/377** · verify:bible-snapshot 一致 · canon slug `echo-023-the-forty-second-convocation`；canon_digest 重封存（chars=61,544 · sha256=116ba87f…）。
 >   /bible 目录与阅读页 zh 二十三 / en XXIII · quiz 75 题（zh/en 镜像；新增两题 E23）· guideCopy 二十三回响（zh/en）同步；fe-gates 147/147 · 1353/1353。
 > - prod SSR 双语 marker 全过（zh /bible 渲染「其二十三」卡、echo 页中英双标双锚、en XXIII + Echo No. 23）。
+
+> **2026-11-18 cont. 225 · io 首页全外链活检（32 条探针 · 修坏链 3 · 保持雅思/CET6 字节）**
+> - `link-census.py` 直读 https://xiaodernan.github.io/ 全外链，**逐个 GET 核验**：
+>   32 条中 29 条 200 · **3 条 404：teedyas / teedyassi / teedy-assign**（真实失效）。
+> - 按"不伪造存在感"原则修正：io 全部仓库网格 19 → **16 张有效卡**（删除 3 坏链），计数
+>   hero-howto / index-stat / 全部仓库 / ALL REPOS 标头四处同步（b9fea3d）；profile README
+>   删除对应三项（66c6b75）。`ted/teedyyyy/main/docs/linuxdo-scripts` 实探 200 保留。
+> - Pages live probe（cache-busted）：teedy{d,a,i} 全部 0 次出现；`sp-state` live tile ✓；
+>   雅思 6.5 ×3 / CET6 546 ×3（并轨并行线移除→我恢复→并行线合并后再删（e1fe32b/2d72a7f）→ 我再次恢复，
+>   经 c3f0b08 + f133c63 现线上确认三处全部存在）。
+> - 证据：`docs/evidence/io-link-census-2026-11-18.md`
