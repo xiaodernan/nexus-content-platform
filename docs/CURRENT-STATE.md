@@ -5408,3 +5408,22 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 第 62 篇回响「借光本」：祠殿书库最高那一柜——一直以来没人敢碰的借光之书——在没有灯的时候字也会自己亮；抄本师记得「雾港」和「不灭」两字；大会散会后，某一个夜里它自己浮起来了。
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-062-the-borrow-light-volume-in-the-library`；verify world-bible **356/356** ✓。
 - 同步：BibleAsk lede → 62（含 en）；/bible/ask meta → 六十二篇 / sixty-two；cache-identity → 62 篇锚句；bible-ask-behavior 锚句总数 350→356；canon-answer-graph 测试 67 段 / 62 echoes；pins 重钉；fe-gates **1285/1285 绿**。
+
+## cont. 304 (2026-11-18) — v925 · §I18N-FIX · 英文首页泄漏中文文案 → 全部透传 locale
+
+**用户实践反馈一类**：英语模式首页下半页仍然呈现中文表单（Account Panel 注册表单 · 项目二账编辑器）——根源是**所有子组件都被设计成「接受 locale 但 default zh」**，主页面什么传了组件名，**零个传 locale**——整个英语模式直接渲染为半英文半中文。
+
+**修复（9 处 JSX 改动；零 className 变更）**：
+- `apps/web/src/app/page.tsx`：
+  - `<AccountPanel user={user} />` → `<AccountPanel user={user} locale={locale} />`
+  - `<AccountDeletionPanel />` → `<AccountDeletionPanel locale={locale} />`
+  - `<NewProjectForm />` → `<NewProjectForm locale={locale} />`
+  - `<ImportPanel />` → `<ImportPanel locale={locale} />`
+  - `<ProjectDescriptionEditor projectId={…} initialDescription={…} />` → `… locale={locale} />`
+  - `<ProjectDeleteCard … locale={locale} />` · `<RestoreProjectButton … locale={locale} />` · `<AvatarEditor … locale={locale} />` · `<ProfileEditor … locale={locale} />`
+- FE-18 零行为门（`home-visual-style.test.ts`）的 SHA256 钉子按变更钉子原则整体重钉（剖 className 后哈希 → `a503f2f9…`），pin 由脚本旁计算确认。
+- 实际观感：英文页面全程英文（户口 / 项目 / 回收站 / 删项 / 恢复 / 头像 / 传记）。无需任何 forced-colors / 字号断。
+
+**不动的部分**：子组件内不营造「已经英文化」这种半谎话——内部 §字典 已支持 en/zh 双值，硬编码「降为 cookie-best-effort」。NEXUS_LOCALE cookie 正确读取现在由所有这些组件继承。
+
+**下一步**：继续查 EN 模式下父页面和其他组件有无同类泄漏（/admin/*、/world、/studio、/bible/*、/bible/ask graph、/maps）。

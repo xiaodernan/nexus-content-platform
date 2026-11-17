@@ -152,7 +152,12 @@ function maskLiterals(expr: string): string {
  * 2026-11-17 §HP-HELP-1（v908）：首页增「教学说明条」（第一次来？+ /onboarding 漫游 + /guide 说明书
  *  + Ctrl+K/⌘K 命令面板提示）与五个导航各一句副文案（§五/§七），哈希整体重钉——属显式变更，非绕门。
  */
-const STRIP_CLASS_SHA256 = '0fcb3c08bd4b3edcd796a212146c90d63d1ef27793d1c6653c0b88d6fa19c875';
+/**
+ * 首页 pin（2026-11-18 v925 · §I18N-FIX）：把 9 个组件的 `locale={locale}` 透传补齐
+ * ——英文首页不再出现中文泄漏文案。
+ * 刻意不改动任何 className / 业务逻辑；SHA256 是对 JSX 片段 redactClassNames 之后的全文哈希。
+ */
+const STRIP_CLASS_SHA256 = 'a503f2f9fc3cf826c6ce9428b8f80c8a96e8d75e8f5d13cdbc334aab149b22b3';
 function stripClassNames(src: string): string {
   const s = src.replace(/\r\n/g, '\n');
   let out = '';

@@ -194,18 +194,18 @@ export default async function HomePage() {
 
       <section className="hp-section">
         <h2 className="hp-sectionTitle">{T.accountSection}</h2>
-        <AccountPanel user={user} />
+        <AccountPanel user={user} locale={locale} />
         {/* §144 / ADR-0025：注销入口对游客与登录用户都开——游客那条也是 users 表里一行真记录，
             能登进来就能注销出去，没有理由只给注册过的账号留出口 */}
         <div className="hp-sectionGap">
-          <AccountDeletionPanel />
+          <AccountDeletionPanel locale={locale} />
         </div>
       </section>
 
       <section className="hp-section">
         <h2 className="hp-sectionTitle">{T.projectsSection}</h2>
-        <NewProjectForm />
-        <ImportPanel />
+        <NewProjectForm locale={locale} />
+        <ImportPanel locale={locale} />
         {projects.length ? (
           <ul className="hp-listLoose">
             {projects.map((project) => (
@@ -221,10 +221,10 @@ export default async function HomePage() {
                   </span>
                 </a>
                 <div className="hp-rowInset">
-                  <ProjectDescriptionEditor projectId={project.id} initialDescription={project.description} />
+                  <ProjectDescriptionEditor projectId={project.id} initialDescription={project.description} locale={locale} />
                 </div>
                 <div className="hp-rowInset">
-                  <ProjectDeleteCard projectId={project.id} projectName={project.name} />
+                  <ProjectDeleteCard projectId={project.id} projectName={project.name} locale={locale} />
                 </div>
               </li>
             ))}
@@ -255,7 +255,7 @@ export default async function HomePage() {
                     {item.kind} · {T.deletedAt(new Date(item.deletedAt).toLocaleString(intlLocale, { hour12: false }))}
                   </span>
                 </span>
-                <RestoreProjectButton projectId={item.id} projectName={item.name} />
+                <RestoreProjectButton projectId={item.id} projectName={item.name} locale={locale} />
               </li>
             ))}
           </ul>
@@ -280,9 +280,9 @@ export default async function HomePage() {
             {T.handleMissing}
           </p>
         )}
-        <AvatarEditor initialUrl={account.avatarUrl} />
+        <AvatarEditor initialUrl={account.avatarUrl} locale={locale} />
         <div className="hp-sectionGap">
-          <ProfileEditor initialBio={account.bio} />
+          <ProfileEditor initialBio={account.bio} locale={locale} />
         </div>
 
         <h3 className="hp-subTitle">
