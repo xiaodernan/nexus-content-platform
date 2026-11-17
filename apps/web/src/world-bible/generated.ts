@@ -12662,6 +12662,215 @@ He has now read it twenty-three times. The paper of the Treatise is soft and ben
 > Some walk past as if they cannot see the ink line; those who know it keeps growing stop for it — the line is for those willing to stop.
 `,
   },
+  {
+    order: 59,
+    slug: 'echo-059-the-well-the-salt-cannot-hold',
+    titleZh: '雾港东南巷那口盐封不了的老井',
+    titleEn: 'The Old Well in the South-east Alley the Salt Cannot Hold',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——秋潮月第二十五日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the twenty-fifth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 59): The Old Well in the South-east Alley the Salt Cannot Hold
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给雾港东南巷尽头那口盐封老井：——没人决定开它，没人愿意封它。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the salt-sealed old well at the far end of the fog-harbor south-east alley: no one decided to open it, and no one dares to seal it again.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第二十五日。
+> Era: the Institute — after the 41st Convocation; the twenty-fifth day of the autumn-tide month.
+
+---
+
+## 一 · 雾港东南巷
+
+东南巷是一条没有尽头但突然中断的路——走下去就是巷尾，再走一步就是老井。井不是井，没有水——六十年前，它就已经不像井。
+
+它比人高一拃。人们看着它的井沿都比人眼睛略低一点，坐船头时，能看见那条缝已经是白色——旧水线。
+
+**锚句**：雾港东南巷尽头那口老井，早年已经被盐封了。
+**Anchor sentence**: the old well at the far end of the south-east alley in the fog harbor was sealed with salt long ago.
+
+---
+
+## 二 · 不怕谁来看
+
+巷子很窄，两个人侧身能避开它。可是从来没有人顺便提高声音问一句——"那是什么？""
+
+值更长说，巷里来的人会停下脚步。没有人能说清为什么，也没有人不知道。不说因为讲过就漏。
+
+**锚句**：井边从不怕人看，只是谁也懒得进去。
+**Anchor sentence**: no one fears looking at it; no one bothers to step inside.
+
+---
+
+## 三 · 拎着绳下去的那个人
+
+关于这口井，有一则旧记——只有抄本师知道完整篇。
+
+有个年纪不大大的年轻人，拿了一根结了骨绳子下去探个底。下去不久，绳子断了——在他脚距井口三寸的地方；他的身体挂在缝壁上几个小时，后半夜给人拉了上来；一根骨绳，十七个绳结。
+
+他从井里带回了一样东西——半杯咸水——而且说，他是用水喝的，没用舌头试。他后来回到祠殿门前，仰头看了一会儿灯塔灯，没有说话。
+
+**锚句**：绳子下面半尺垂直的盐壳断了那个人的手指——也带了回半杯水。
+**Anchor sentence**: the perpendicular salt rind below snapped the rope at half an arm — and a half-cup of water came back with it.
+
+---
+
+## 四 · 半杯水
+
+水很咸。比海水还咸。
+
+抄本师把半杯水收了起来——他捧了两把白盐放进去，等一夜之后，水竟然收得干净，水没有淡，盐没有沉。他把这杯水又倒回去泡了一天。结果是：水还是水，盐还是盐；盐在水上停了一宿，第二天人来看，半杯水又回来了，只是没有上次那么清了。
+
+**锚句**：有人拎绳子下去，带回了半杯水；盐化验结果写了一个字：「不明」。
+**Anchor sentence**: someone went down with a rope and returned with a half-cup of water; the assay called it, in one word, "Unknown".
+
+---
+
+## 五 · 大会散会
+
+第四十一次大会散会之后，值更长站在井沿上，看了半个下午——一遍一遍刷洗刻在井沿上的字。
+
+抄本师说，有些事说不定。他问值更长说什么——他说：我没说什么。他们俩在井沿一站又一会儿，风从灯塔一边刮过来。
+
+两人离开之后，井沿上留下了一行新刻的字：
+
+**"不饮不忘；它是水。"**
+
+**锚句**：值更长留下的字在井沿上：「不饮不忘；它是水。」
+**Anchor sentence**: what the head of the watch carved on the rim reads: "Neither to drink; nor to forget — but it is water."
+
+---
+
+## 六 · 它是水
+
+四十一次大会散会的第二天，有人用桶去打，绳子下去一寸就被咬断；值更长决定盖上盐壳；但是井沿的那道痕早已硬在那里——掀不动也再封不牢。
+
+他们学会了从它面前路过但不问；水在下面，盐在它的上面。盐线再怎么退，井口永远还是巴掌大。
+
+**锚句**：不饮不忘；它是水。
+**Anchor sentence**: neither to drink; nor to forget — but it is water.
+
+---
+
+## 七 · 映射（回响五十九章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 盐封 · 半杯水 · 不饮不忘 · 盐线 · 井沿 | 一、二、三、四、五、六 |
+| geography | 雾港东南巷 · 巷尾 · 井沿 · 灯塔方向 | 一、三、五、六 |
+| characters | 抄本师 · 值更长 · 年轻人 · 绳子 | 三、四、五 |
+| story | 盐封老井 · 回响（其五十九） | 全篇 |
+| items | 骨绳 · 半杯咸水 · 井沿 · 白盐 | 三、四、六 |
+| history | 第四十一次大会散会 · 秋潮月第二十五日 | 一、二、四、五、六 |
+
+> 风雨后井里还是空，盐壳却总能从井沿上自己裂开一条线。
+> When the rain quits, the well is still empty; yet the salt shell on the rim always splits open on its own.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其五十九）「雾港东南巷那口盐封不了的井」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the salt-sealed old well at the far end of the fog-harbor south-east alley: no one decided to open it, and no one dares to seal it again.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给雾港东南巷尽头那口盐封老井：没人决定开它，没人愿意封它。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the twenty-fifth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第二十五日。
+
+---
+
+## I · The South-east Alley
+
+The south-east alley ends abruptly but oddly — walk until the last step and the whole world is a well. It is not a well now; six decades ago, it stopped being one.
+
+It stands about the height of a grown man, closer to a short one's shoulder; its rim catches the boat rider's eye the moment they round the lighthouse — since every rider on the fog comes into the harbor on that same slow ribbon of water.
+
+**锚句**：雾港东南巷尽头那口老井，早年已经被盐封了。
+**Anchor sentence**: the old well at the far end of the south-east alley in the fog harbor was sealed with salt long ago.
+
+---
+
+## II · No One Fears Approaching
+
+The alley is narrow enough for two to squeeze by sideways. Yet no one raises their voice to call into it — "what is that?"
+
+The head of the night watch says people slow a little at it. No one has ever said why; no one has ever said nothing. The Institute does not discuss it; mention once, and it spills.
+
+**锚句**：井边从不怕人看，只是谁也懒得进去。
+**Anchor sentence**: no one fears looking at it; no one bothers to step inside.
+
+---
+
+## III · He Who Descended with the Rope
+
+There is an old account — known fully only to the copyists.
+
+A young man, not yet grown into his head, had taken a rope with bone thickening and went down to the bottom. The rope snapped a handspan below the rim; he hung in the wall's shadow for some time, and sometime before midnight others answered the shout and pulled him up; the rope broke at a flail of flakes.
+
+What he brought back was small: a half-cup of saline water — and he said later that he had drunk from it, and had not bothered to use his tongue to taste. He came back to the sanctuary's gate and stood for a long time looking up at the tower light; he did not say what he saw.
+
+**锚句**：绳子下面半尺垂直的盐壳断了那个人的手指——也带了回半杯水。
+**Anchor sentence**: the perpendicular salt rind below snapped the rope at half an arm — and a half-cup of water came back with it.
+
+---
+
+## IV · A Half-Cup
+
+The water was extremely salty. More than the sea.
+
+The copyists took possession of the cup; they added two handsful of white salt, then waited until morning. Next morning, the water looked as if it had received the salt into itself with ease — the salt did not settle — the water was no clearer for it, yet the salt no longer visible. They poured it back into the well. By the time the next visitor looked, the water had not gone shallower by a drop.
+
+**锚句**：有人拎绳子下去，带回了半杯水；盐化验结果写了一个字：「不明」。
+**Anchor sentence**: someone went down with a rope and returned with a half-cup of water; the assay called it, in one word, "Unknown".
+
+---
+
+## V · After the 41st Convocation Dissolved
+
+After the 41st Convocation closed, the head of the watch walked to the rim and stood there for an afternoon — he ran a thumb over the inscription on the rim three times.
+
+The copyist asked what he saw. He said, nothing. They stayed together another while; the wind came in steady from the lighthouse side.
+
+After he left, a new line was cut into the rim:
+**"不饮不忘；它是水。"**
+
+**锚句**：值更长留下的字在井沿上：「不饮不忘；它是水。」
+**Anchor sentence**: what the head of the watch carved on the rim reads: "Neither to drink; nor to forget — but it is water."
+
+---
+
+## VI · Yet It Is Water
+
+The day after the 41st Convocation ended, someone tried to lower a bucket on a rope with weighted hook — each turn of the handle returned with the hook's tip eaten clean off.
+
+So the head of the watch resealed the rim with salt.  But the salt has never sat still on that place either — whatever new salt is laid on, the rim always splits open the same way as before, seam by seam. They learned: pass by, do not ask; the water is below the salt, the salt above it; and the well's opening is no wider than a palm.
+
+**锚句**：不饮不忘；它是水。
+**Anchor sentence**: neither to drink; nor to forget — but it is water.
+
+---
+
+## VII · Mapping（Echo No. 59 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the salt seal · a half-cup · neither to drink nor to forget · the rim | 一、二、三、四、五、六 |
+| geography | the south-east alley · the alley end · the rim · the lighthouse direction | 一、三、五、六 |
+| characters | the copyists · the head of the night watch · the young man · the rope | 三、四、五 |
+| story | the old well sealed with salt · Echo No. 59 | 全篇 |
+| items | the bone-thickened rope · the half-cup of water · the rim · the white salt | 三、四、六 |
+| history | After the 41st Convocation · the twenty-fifth day of the autumn-tide month | 一、二、四、五、六 |
+
+> 风雨后井里还是空，盐壳却总能从井沿上自己裂开一条线。
+> When the rain quits, the well is still empty; yet the salt shell on the rim always splits open on its own.
+`,
+  },
 ] as const;
 
 export const BIBLE_APPENDICES: readonly BibleChapter[] = [

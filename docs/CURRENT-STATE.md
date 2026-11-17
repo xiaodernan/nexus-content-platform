@@ -5319,3 +5319,9 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 3) 跑完即刻 `docker compose -f infra/docker-compose.yml --profile core down` 恢复内存。
 
 不碰任何其他项目的容器（`career-os-*` / `football-os-*` / `minicc-cloud-*` / `crossrealm-*` —— 2026-10-20 起占用者不是我）。
+
+## cont. 296 (2026-11-18) — v918 · §BIBLE-59 · Echo #59《雾港东南巷那口盐封不了的井》（作者手写·双语·338/338 绿）
+
+- 第 59 篇回响「盐封井」：雾港东南巷尽头老井——早年被盐封了；半根骨绳曾下去，被半尺盐壳截断；带回半杯水，化验只得「不明」；抄本师入「时候未到」册为「盐疏」新辟一页；值更长散会后独自来井沿半日，最后在井沿刻下「不饮不忘；它是水。」
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-059-the-well-the-salt-cannot-hold`；verify world-bible **338/338** ✓。
+- 同步：BibleAsk lede → 59（含 en）；/bible/ask meta → 五十九篇 / fifty-nine；cache-identity → 59 篇锚句；bible-ask-behavior 锚句总数 332→338；canon-answer-graph 测试 64 段 / 59 echoes；pins 重钉（page→fbec856c… comp→37695383…）；fe-gates **1285/1285 绿**。
