@@ -1154,5 +1154,35 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "en": "by the time the name was written, the roll was not over.",
     "refZh": "回响（其20） · 五",
     "refEn": "Echo No. 20 · V"
+  },
+  {
+    "zh": "没人问灯为什么还点着。",
+    "en": "Why the lamp stayed lit was never asked.",
+    "refZh": "回响（其21） · 一",
+    "refEn": "Echo No. 21 · I"
+  },
+  {
+    "zh": "誊第九根灯芯的时候，誊账人漏了那一盏。",
+    "en": "at the ninth wick, the copyist missed one lamp.",
+    "refZh": "回响（其21） · 二",
+    "refEn": "Echo No. 21 · II"
+  },
+  {
+    "zh": "那张纸从不参与抄誊。",
+    "en": "That page never took part in the copying.",
+    "refZh": "回响（其21） · 三",
+    "refEn": "Echo No. 21 · III"
+  },
+  {
+    "zh": "问井只问井自己的事。",
+    "en": "A well answers only about the well.",
+    "refZh": "回响（其21） · 四",
+    "refEn": "Echo No. 21 · IV"
+  },
+  {
+    "zh": "没誊完的那一页还算数。",
+    "en": "The page left untranscribed still stands.",
+    "refZh": "回响（其21） · 五",
+    "refEn": "Echo No. 21 · V"
   }
 ] as const;

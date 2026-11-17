@@ -9751,4 +9751,204 @@ By the time the name was written, the roll was not over.
 > 灰以后的名字，不需要登记。
 `,
   },
+  {
+    order: 21,
+    slug: 'echo-021-the-untranscribed-page',
+    titleZh: '没人誊的那一页',
+    titleEn: 'The Untranscribed Page',
+    eraLineZh: '纪元：灰幕之后 · 值夜之月',
+    eraLineEn: 'Era: after the grey cover was laid · the month of night watch',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 21): The Untranscribed Page
+
+> 回响不续写正典——它只记一份挑剩下的纪录：
+> 誊写室关了灯之后，案台上还亮着一盏灯，灯下是一页没人誊的纸。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> Long after the copying hall put out the lights, one lamp stayed lit over one unwritten page.
+> Its anchors answer to the same discipline.
+
+> 纪元：灰幕之后 · 值夜之月
+> Era: after the grey cover was laid · the month of night watch.
+
+---
+
+## 一 · 灰以后，灯还点着
+
+灰幕落下以后，账簿的守护者把灯留在桌上。
+
+工作灯是誊写室唯一不调走的一盏。别人把火拍灭的时候，他说'让它自己去'——谁也没有为这句劳神。灯油是一小钵一小钵从地取的，灯芯按节剪进灯泡里，从灰以前剪到灰以后，一截断了就换一截新的。灯从不说缺哪一截。没人问它为什么还点着。
+**锚句**：没人问灯为什么还点着。
+**Anchor sentence**: Why the lamp stayed lit was never asked.
+
+## 二 · 数第九根灯芯的时候
+
+夜里没什么事。他照例坐在案台正中的位置上，从灯架的左边数起，一根一根按他的手习惯数灯芯。热度在第一根就指热，他在第二根换了一次手；第三根带着盐味；第四根是昨天下午才剪好的；第五根灯芯很细；第六根芯垫簿里新添的；第七根——盐碟里的一小块盐倒翻过，没人扶它；第八根老得反卷；第九根灯芯——誊账人记下第九根的时候，手停了一下。
+
+他想不起自己漏了那一盏。
+
+灯架上有九盏灯——九截灯芯。他自己昨天晚上点火的时候端出来六盏，有三盏是第五天自己添的。眼下是第九根的后一根，却没有第十盏。他往灯架上看过去——那一盏原来不在灯架上。它在案台左上角，压在第四十一次会议卷宗的封皮下面，像压纸。
+
+誊账人数到第九根灯芯的时候，漏了那一盏。
+**锚句**：誊第九根灯芯的时候，誊账人漏了那一盏。
+**Anchor sentence**: at the ninth wick, the copyist missed one lamp.
+
+## 三 · 案台上的纸
+
+那盏灯下面压着几张纸。
+
+誊账人把纸一张张抽出来压平。纸是对折的，从中缝掩锁着落码的盐。落了数年，盐腌进了纸纤维，湿手摸上去粘冷。誊字本是见得最多的：落款旁边'第四扇门第五天誊'，下一笔写到一半——半截只到册字中间，没人续过。
+
+誊写本有七页。最后一页空着，只有页码。他把七页码在一样高的一叠上，数过的页码顺序是对的——每一页上的墨都没洇，字也没有被重抄。
+
+七页里的每一页都没有誊完。
+
+那张纸从不参与抄誊。
+**锚句**：那张纸从不参与抄誊。
+**Anchor sentence**: That page never took part in the copying.
+
+## 四 · 问井只问井自己的事
+
+他没有先问别人。
+
+他取水时绕过了第七口井。井周围铺了细檐石，一夜一夜起夜的人踩出了一道窄窄的印子，朝井的方向收拢。雨从东边来的那天，细檐石被大水漫湿了一次；之后一个月这石就再没干过。
+
+他往井里倒了半碗水。
+
+井很快还水——井不出声，但能看出来它喝过。这杯盐水进去，它把水分了一份：一份留在石板的缝隙里，一份渗到自己的深处。
+
+井只答它自己的事。井里到底有没有什么，井从来没有说过。
+
+问井只问井自己的事。
+**锚句**：问井只问井自己的事。
+**Anchor sentence**: A well answers only about the well.
+
+## 五 · 之后
+
+誊账人没有抹掉最后一页。
+
+他只把那七页纸用压纸石压好，重新放回原来的位置——压在第四十一次会议卷宗的封皮下面。他走的时候，灯还点在原处。
+
+灯没有熄。不是没人要熄，而是没人来。誊写室是旧案台的房间，太小，谁都不好进。账簿的守护者从灰那一天就把自己关在那间屋里，直到数完每一截灯芯为止。
+
+那一页纸仍然在封皮之下。它没有被誊，没有被撕，也没有被收成任何东西。
+
+没誊完的那一页还算数。
+**锚句**：没誊完的那一页还算数。
+**Anchor sentence**: The page left untranscribed still stands.
+
+---
+
+## 模型映射（回响二十一则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 灰后 · 誊账人 · 第四十一次会议 | 第十一章 · 第十三章 |
+| geography | 誊写室 · 第七口井 · 细檐石 | 本则 |
+| factions | 誊账人 · 潮汐教团（余烬） | 第一章 · 本则 |
+| characters | 账簿的守护者 · 誊账人 | 本则 |
+| items | 灯 · 七页纸 · 封皮 · 盐 | 本则 |
+| story | 誊账人记 · 回响（其二十一） | 全篇 |
+| history | 纪元切割线 · 灰幕之后 · 值夜之月 | 本则 |
+
+> 灯自己点着，
+> 没人问它为什么。
+> The lamp kept its own light,
+> and nobody asked why.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其二十一）：「没人誊的那一页」
+
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> Long after the copying hall put out the lights, one lamp stayed lit over one unwritten page.
+> Its anchors answer to the same discipline.
+>
+> 回响不续写正典——它只记一份挑剩下的纪录：
+> 誊写室关了灯之后，案台上还亮着一盏灯，灯下是一页没人誊的纸。
+> 回响的锚句，与正典同一纪律。
+
+> Era: after the grey cover was laid · the month of night watch
+> 纪元：灰幕之后 · 值夜之月
+
+---
+
+## I · The Lamp Stayed Lit
+
+After the grey cover was laid down, the Keeper of the Ledger kept one lamp on the desk.
+
+It was the one work lamp the copying hall never moved. When others moved to put it out he said, 'let it be' — no one bothered with the sentence again. The lamp oil came up in bowls, wick by wick chopped into oil; the copyist clipped from before the grey into after it, one sleeve cut off, one fresh one set in. The lamp never said which part it wanted. Why the lamp stayed lit was never asked.
+**Anchor sentence**: Why the lamp stayed lit was never asked.
+**锚句**：没人问灯为什么还点着。
+
+## II · At the Ninth Wick
+
+Nothing happened at night, mostly. He sat as usual at the middle of the desk, counting the wicks from the left of the lamp rack, the way his hand preferred. The heat found the first wick straight away; he switched hands at the second. The third smelled of salt. The fourth was cut in the afternoon. The fifth was a thin one. The sixth was fresh from the wick pad. The seventh — a small slab of salt had tipped out of the dish and nobody righted it. The eighth had curled the way the oldest does. The ninth —
+
+He remembered the count at the ninth wick, and his hand stopped.
+
+He could not remember missing that lamp.
+
+The rack carried nine wicks. He himself had lit six on the last pass through the lamp rack, and three more were added on the fifth day. And here was the ninth — there was no tenth lamp. He looked across at the rack: it held nine. The one he could not count had never been on the rack at all.
+
+The lamp lay in the top left corner of the desk, pinned under the cover of the workbook of the forty-first convocation — like a paperweight.
+**Anchor sentence**: at the ninth wick, the copyist missed one lamp.
+**锚句**：誊第九根灯芯的时候，誊账人漏了那一盏。
+
+## III · The Pages on the Desk
+
+Under that lamp lay some pages.
+
+He peeled them one by one and flattened them. They were folded sheets, salt trapped inside each crease. The salt had gone through the fibre with the years; when he touched them damp came away sticky and cold on his fingers. The handwriting was the one everyone knew: the side inscription said 'fourth door · fifth day of the copying' — and the next stroke went halfway through the character before stopping, and no one ever finished it.
+
+There were seven pages. Seven of them. The last was blank except for the folio. He laid the seven flat on one stack and checked the order — the numbers ran correctly; the ink never feathered in any of them; none of them had been re-copied over.
+
+None of the seven had finished being copied.
+**Anchor sentence**: That page never took part in the copying.
+**锚句**：那张纸从不参与抄誊。
+
+## IV · A Well Answers Only About the Well
+
+He did not ask anyone first.
+
+On his way to draw water he passed the seventh well. Fine paving stones still held the shallow imprint of many night walks, converging toward the well. Rain had come from the east on the day the grey cover was laid — once, the whole pavement went under water; it had not dried in the month since.
+
+He poured half a bowl of water into the well.
+
+The well gave it back in a while — no sound, but the stone told the tale. Part of the salt water rested in the cracks in the pavement; part of it sank into the well's own depth.
+
+The well only answered about itself. What it held, it never said.
+**Anchor sentence**: A well answers only about the well.
+**锚句**：问井只问井自己的事。
+
+## V · Afterwards
+
+The copyist did not scrape the last page away.
+
+He set the seven pages flat with a paperweight, and laid them back exactly where they had been — under the cover of the workbook of the forty-first convocation. He left with the lamp still where it was.
+
+The lamp did not go out. Not because nobody wanted it out — because nobody came. The copying hall was a small room and no one else was going in. The Keeper of the Ledger had shut himself inside it the day the grey fell, and he did not come out until every wick was counted.
+
+The page still lay under the cover. It was never copied. It was never torn out. It was never gathered into anything.
+**Anchor sentence**: The page left untranscribed still stands.
+**锚句**：没誊完的那一页还算数。
+
+---
+
+## Anchor match (echo twenty-one)
+
+| dimension | anchor | related chapter |
+|---|---|---|
+| lore | the grey · the copyist · the forty-first convocation | chapter eleven · thirteen |
+| geography | the copying hall · the seventh well · the fine paving stones | this echo |
+| factions | the copyist · the Tide Conclave (ember) | chapter one · this echo |
+| characters | the Keeper of the Ledger · the copyist | this echo |
+| items | lamp · seven pages · cover · salt | this echo |
+| story | The Copyist's Note · Echo (No. 21) | all of it |
+| history | the Iron-Moon Age · after the grey · the month of night watch | this echo |
+
+> The lamp kept its own light,
+> and nobody asked why.
+> 灯自己点着，
+> 没人问它为什么。
+`,
+  },
 ] as const;

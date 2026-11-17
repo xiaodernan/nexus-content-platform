@@ -5943,3 +5943,22 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
   三层结构：distributor channel-local cache + sticky `prompt_cache_key` + v2 digest（五章全文 + 锚句）+ Redis L2 重放矩阵。
 - 勘误两处错字（「2.3B」「rsy」）。
 - 下一回合：接手者读这份文档即可直接对症。
+
+
+> **2026-11-18 续（cont. 212 — 回响（其二十一）《没人誊的那一页》/ Echo No. 21: The Untranscribed Page）**：
+> 正典续于灰后·值夜之月——誊账人按他的手习惯数灯芯：第三根带盐味、第七根盐碟翻倒、第九根传奇的错数，
+> 发现自己漏了那一盏压在第四十一次会议卷宗封皮下的灯。账簿的守护者没有撕，也没有誊——那一页七页，第七页空着。
+> - 双语回响 `docs/world-bible/echoes/E21-没人誊的那一页.md` + `.en.md`（zh 原生撰写并译，逐段对齐）
+> - 5 对锚句（全项目唯一，共 **196** 对生效对）：
+>   1. 没人问灯为什么还点着。 / Why the lamp stayed lit was never asked.
+>   2. 誊第九根灯芯的时候，誊账人漏了那一盏。 / at the ninth wick, the copyist missed one lamp.
+>   3. 那张纸从不参与抄誊。 / That page never took part in the copying.
+>   4. 问井只问井自己的事。 / A well answers only about the well.
+>   5. 没誊完的那一页还算数。 / The page left untranscribed still stands.
+> - verify:world-bible 367/367 ✓；gen+verify:bible-snapshot（13 章 · **21 回响**，E21 网页 slug `echo-021-the-untranscribed-page` 登记）✓；
+>   gen+verify:anchor-echo（**196 锚句**，生效对数；annex 不进入 /bible 注入面）✓
+> - BibleQuiz 新增两题（上弦面板二十一·二 / ·三；答案序列扩到 **71 题**；quiz SHA pin 2d9fb77a… 重钉）
+> - 说明书「二十一回响」（zh/en 6 处）；/bible 序数 一…二十一 / I…XXI 扩展（chapterLabel/echoLabel/cardNum 全部走 locale 分支，en 模式不再显示中文序数）；
+>   bible SHA pin c667af45… 重钉；bible-ask digest 断言锚计数 196
+> - /bible zh 实况 SSR 与 e2e 均待实测（开发服务器已起）
+> - 门：fe-gates 147/147 · 1353/1353 · census OK · tsc web 0 · game-model 363/363

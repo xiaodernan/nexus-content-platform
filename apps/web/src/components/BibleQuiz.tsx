@@ -350,6 +350,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '值更院那只米缸里那粒一直浮在最上面的米，已经浮着多少年了？', choices: ['三年', '九年', '六十九年', '九十年'], answer: 2, ref: '回响三十六 · 那一粒月亮' },
     en: { prompt: 'How many years has the grain of rice been floating on top of the watcher’s rice jar?', choices: ['Three', 'Nine', 'Sixty-nine', 'Ninety'], answer: 2, ref: 'Echo No. 36 · The Grain the Moon Sent Down' },
   },
+  {
+    zh: { prompt: '《没人誊的那一页》里，誊账人数到第几根灯芯时发现自己漏了那一盏？', choices: ['第三根', '第五根', '第七根', '第九根'], answer: 3, ref: '回响（其二十一） · 二' },
+    en: { prompt: 'In “The Untranscribed Page”, at which wick did the copyist realise that he had missed one lamp?', choices: ['third wick', 'fifth wick', 'seventh wick', 'ninth wick'], answer: 3, ref: 'Echo No. 21 · II' },
+  },
+  {
+    zh: { prompt: '《没人誊的那一页》里，没人誊完的那一页最后放在什么下面？', choices: ['第四十一次会议卷宗封皮下面', '盐碟下面', '灯架下面', '井口石板下面'], answer: 0, ref: '回响（其二十一） · 三' },
+    en: { prompt: 'In “The Untranscribed Page”, where did the page left untranscribed finally end up lying?', choices: ['under the cover of the workbook of the forty-first convocation', 'under the salt dish', 'under the lamp rack', 'under the paving stones at the well'], answer: 0, ref: 'Echo No. 21 · III' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {
