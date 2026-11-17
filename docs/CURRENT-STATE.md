@@ -4940,3 +4940,11 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 修复：总览 tile 与 §④ 同源，改为 `realCalls30d + demoCalls30d`（`agent_tasks.usage` 的 count filter 两档）；删除无用的 `usage` 表引用 ensure 不再读这个空账本。digest（喂模型的）里的 `aiCalls30d=` 同步获得真数——大模型解读那条链也能看见合理的非零数字。
 - 数据完整性原则不变：不虚构、不猜 0、零写入表不现。本变更只做"同源聚合"，不制造任何数字。
 - 回归：insight ×6 文件 41/41 绿。RAM 0.73 GB 未动任何 server，只动读路径。
+
+## cont. 263 (2026-11-17) — v892 · §BIBLE-42 · Echo #42《雾港驿站那匹从不出门的马》（作者手写·双语·236/236 绿）
+
+- 第 42 篇回响「驿站马」：雾港驿站那匹从不出门、等"好潮水"的马；鞍还在、马还看着海。和前作《灯架夜眼》（E39）同属"不移动地守候"母题。
+- 作者手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-042-the-horse-at-the-staging-post-that-never-leaves`；verify:bible-snapshot ✓；verify:world-bible **236/236** ✓。
+- 同步落地：BibleAsk lede → 42；/bible/ask meta → 四十二篇；canon-answer-graph 测试 47 段／42 echoes；bible-ask-behavior 锚句总数 230→236；CACHE-IDENTITY 更新。
+- 顺手修一处体系漏网：整站 PUT/PATCH/DELETE 再扫一遍，纯浏览器层 POST csrfOk→csrfHeaders 全绿；服务端 call 的 MISS 均为设计如此（server→ai-service 不需要 CSRF）。
+- 回归：bible 组 32/32 绿；RAM 0.73 GB 未跑 dev 栈，只动文案与快照。

@@ -9281,4 +9281,202 @@ The apprentice drew only as far as the middle of the belly — the tail was neve
 > On the seventh night of the next fog-tide month, the new watcher will look at the beam again — the eyes still in the mist above it.
 `,
   },
+  {
+    order: 42,
+    slug: 'echo-042-the-horse-at-the-staging-post-that-never-leaves',
+    titleZh: '雾港驿站那匹从不出门的马',
+    titleEn: 'The Horse at the Fog-Harbor Staging Post That Never Leaves',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——雾潮月第三日的值更夜班。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the night watch on the third day of the fog-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 42): The Horse at the Fog-Harbor Staging Post That Never Leaves
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给雾港驿站那匹值夜的值班马——它不出门，眼睛望着大海，鞍挂在门口没人敢动。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the duty horse at the fog-harbor staging post — it does not go out; its eyes are on the sea; its saddle hangs by the door, untouched.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——雾潮月第三日的值更夜班。
+> Era: the Institute — after the 41st Convocation; the night watch on the third day of the fog-tide month.
+
+---
+
+## 一 · 雾港驿站
+
+雾港驿站离码头不远，一眼望得见整条盐雾路。每天酉时，马棚的卷帘会放下来——第二天卯时再掀。
+
+驿站里只有一匹马。它从不出门，也不见客——驿站也不接新客了，自从第四十一次大会散会以后就没接过。
+
+**锚句**：驿站的马棚里有一匹值班的马，但它从不出门。
+**Anchor sentence**: there is a duty horse in the staging stable, and it never leaves.
+
+---
+
+## 二 · 门口的鞍
+
+马棚门口挂着一副马鞍，鞍上压的盐渍很厚。没人动过它——驿卒不摘，磨刀人看见也不动，调马师路过也只是看一眼。
+
+鞍上的鬃毛很久没掉毛了。盐把鬃毛黏在了鞍桥上。
+
+**锚句**：马棚门口挂着一副没人摘下来的鞍。
+**Anchor sentence**: a saddle nobody removes hangs by the stable door.
+
+---
+
+## 三 · 等好潮水
+
+驿卒说这匹马等的是好潮水。好潮水来的时候，连大潮过境的那种走法都不一样——雾港有别处没有的潮，它懂得。
+
+但驿卒没说他是什么时候听说这件事的。他也不知道是谁说的事。也许这是驿站开起来的时候就压在他身上的——和那副鞍一起。
+
+**锚句**：驿卒说这匹马等的是好潮水。
+**Anchor sentence**: the post rider says the horse waits for good tide water.
+
+---
+
+## 四 · 白天
+
+白天它也站着。不动。把脖子低下来看路，把脖子伸起来看海。
+
+没有人敢走近它。新来的值更有一次想牵它走走试试，还没握到缰绳，那匹马已经往前跨了一步——新值更撤退，哭了一下午。
+
+**锚句**：白天它也站着，谁叫它走它都不走。
+**Anchor sentence**: even by day it stands; no one calls it and it walks.
+
+---
+
+## 五 · 深夜
+
+只有在深夜，驿站的卷帘门半垂，驿卒有一次值夜班——他听见马蹄轻轻地敲了一下。
+
+他以为是风吹的。可风吹的不会两下。第二下他倒听出来了，是马自己站那儿，蹄子轻轻踢了一下拴它的那根短柱子。
+
+**锚句**：深夜里驿卒听见马蹄轻敲，天亮还在那儿。
+**Anchor sentence**: in the deep night the rider hears the horse's hooves tap — and at dawn it is still there.
+
+---
+
+## 六 · 等客人的马
+
+驿站已经很久没人来投宿了。偶尔有驿卒值夜，会在马棚外面坐一会儿，看着马看海。
+
+谁也说不清这匹马在等什么——但雾港人都知道，它是等一个只有海知道的客人的。
+
+**锚句**：马棚门口像有人在等一个只有海知道的客人。
+**Anchor sentence**: the stable door looks as if someone is waiting for a guest only the sea knows.
+
+---
+
+## 七 · 映射（回响四十二章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 好潮水 · 盐雾 · 驿马 | 一、二、三、四、五、六、七 |
+| geography | 雾港 · 驿站 · 盐雾路 | 一、二、四、五、七 |
+| characters | 驿卒 · 新值更 · 那匹马 | 一、二、三、四、五、六 |
+| story | 驿站的马 · 回响（其四十二） | 全篇 |
+| items | 鞍 · 缰绳 · 短柱子 · 盐雾 | 二、三、四、五、六、七 |
+| history | 第四十一次大会散会之后 · 雾潮月第三日 | 一、三、五、七 |
+
+> 下一次好潮水来的那天，驿站的门朝着雾港开一会儿——那匹马会把头转向那个方向。
+> On the next day the good tide comes, the staging post door opens toward the fog harbor for a while — and the horse will turn its head in that direction.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其四十二）「雾港驿站那匹从不出门的马」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the duty horse at the fog-harbor staging post — it does not go out; its eyes are on the sea; its saddle hangs by the door, untouched.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给雾港驿站那匹值夜的值班马——它不出门，眼睛望着大海，鞍挂在门口没人敢动。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the night watch on the third day of the fog-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后——雾潮月第三日的值更夜班。
+
+---
+
+## 一 · The Staging Post of the Fog Harbor
+
+The staging post of the fog harbor is not far from the pier — from its gate you can see the whole salt-mist road. Every day at the hour of the rooster the shutters come down; at the hour of the rabbit they rise.
+
+There is only one horse in the staging post. It never goes out, and it receives no guests — the staging post has not taken a guest since the 41st Convocation dispersed.
+
+**锚句**：驿站的马棚里有一匹值班的马，但它从不出门。
+**Anchor sentence**: there is a duty horse in the staging stable, and it never leaves.
+
+---
+
+## 二 · The Saddle by the Door
+
+A saddle hangs by the staging-post door; the salt caked on it is thick. Nobody touches it — the post rider will not remove it; the knife-grinder, seeing it, does not touch it either; the farrier passing by only looks at it briefly.
+
+The mane caked to the saddle bridge has not shed in a long time. The salt has stuck the mane to the saddle.
+
+**锚句**：马棚门口挂着一副没人摘下来的鞍。
+**Anchor sentence**: a saddle nobody removes hangs by the stable door.
+
+---
+
+## 三 · Waiting for Good Tide Water
+
+The post rider says the horse waits for good tide water. When good tide water comes, even the way the tide-races run is different — the fog harbor has tides no other place has; the horse knows.
+
+The post rider never said when he heard this. And he does not remember who told him. Perhaps it was laid on the staging post at the very beginning — together with the saddle.
+
+**锚句**：驿卒说这匹马等的是好潮水。
+**Anchor sentence**: the post rider says the horse waits for good tide water.
+
+---
+
+## 四 · By Day
+
+Even by day it stands. Motionless. It lowers its neck to look at the road, raises it to look at the sea.
+
+No one dares come near it. Once a newly-arrived night watcher tried to lead it around — before he even reached for the reins, the horse stepped forward one stride; the new watcher retreated, and cried the whole afternoon.
+
+**锚句**：白天它也站着，谁叫它走它都不走。
+**Anchor sentence**: even by day it stands; no one calls it and it walks.
+
+---
+
+## 五 · In the Deep Night
+
+Only in the deep night, when the staging-post shutters are lowered, does the post rider on night watch hear the horse's hooves tap lightly.
+
+He thought it was the wind. But the wind does not knock twice. The second tap he could make out — the horse standing there, gently tapping the short post it was tied to.
+
+**锚句**：深夜里驿卒听见马蹄轻敲，天亮还在那儿。
+**Anchor sentence**: in the deep night the rider hears the horse's hooves tap — and at dawn it is still there.
+
+---
+
+## 六 · The Horse Waiting for a Guest
+
+It has been a long time since anyone boarded at the staging post. Occasionally when a post rider takes the night watch he will sit outside the stable, watching the horse watch the sea.
+
+No one can say what this horse is waiting for — but everyone in the fog harbor knows it waits for a guest only the sea knows.
+
+**锚句**：马棚门口像有人在等一个只有海知道的客人。
+**Anchor sentence**: the stable door looks as if someone is waiting for a guest only the sea knows.
+
+---
+
+## 七 · Mapping（Echo No. 42 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | good tide water · the salt-mist road · the staging-post horse | 一、二、三、四、五、六、七 |
+| geography | the fog harbor · the staging post · the salt-mist road | 一、二、四、五、七 |
+| characters | the post rider · the new night watcher · the horse | 一、二、三、四、五、六 |
+| story | the staging-post horse · Echo No. 42 | 全篇 |
+| items | the saddle · the reins · the short post · the salt-mist | 二、三、四、五、六、七 |
+| history | After the 41st Convocation · the third day of the fog-tide month | 一、三、五、七 |
+
+> 下一次好潮水来的那天，驿站的门朝着雾港开一会儿——那匹马会把头转向那个方向。
+> On the next day the good tide comes, the staging post door opens toward the fog harbor for a while — and the horse will turn its head in that direction.
+`,
+  },
 ] as const;
