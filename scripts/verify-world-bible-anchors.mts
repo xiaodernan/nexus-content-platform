@@ -36,7 +36,8 @@ function collect(dir: string, label: string): void {
     if (label === 'echoes') console.log('（没有回响目录，跳过 echoes 校验）');
     return;
   }
-  const files = readdirSync(dir).filter((f) => f.endsWith('.md'));
+  const files = readdirSync(dir).filter((f) => f.endsWith('.md'))
+    .filter((f) => f !== 'README.md' && f !== 'README.en.md');
   if (files.length === 0) {
     console.log(`（${label} 目录为空，跳过）`);
     return;
@@ -95,7 +96,9 @@ function collect(dir: string, label: string): void {
 }
 
 collect(join(process.cwd(), 'docs', 'world-bible'), 'bible');
+collect(join(process.cwd(), 'docs', 'world-bible', 'annex'), 'annex');
 collect(join(process.cwd(), 'docs', 'world-bible', 'echoes'), 'echoes');
+collect(join(process.cwd(), 'docs', 'world-bible', 'annex', 'echoes'), 'annex-echoes');
 
 console.log(`world-bible 锚句校验：共 ${zhAnchors.size} zh / ${enAnchors.size} en 锚句（主线 + 回响）`);
 if (failures > 0) {
