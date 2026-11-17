@@ -10275,4 +10275,396 @@ It does not disperse — it hangs there, waiting for the day the bell should rin
 > The day the bell rings by itself, everyone in the fog harbor will put everything down — and turn together toward the tower.
 `,
   },
+  {
+    order: 47,
+    slug: 'echo-047-the-dewdrop-on-the-hay-board-that-never-moves',
+    titleZh: '潮候院后院晒干草的木板上那颗从不动的露珠',
+    titleEn: 'The Dewdrop on the Hay Board in the Backyard That Never Moves',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——建院第六十九年 · 海风初霁。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the sixty-ninth year; the morning after the sea-wind clears.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 47): The Dewdrop on the Hay Board in the Backyard That Never Moves
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院后院那块晒干草的木板上停站了六十九年的露珠。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the dewdrop on the hay-drying board in the Institute's backyard — it has not moved in sixty-nine years.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——建院第六十九年 · 海风初霁。
+> Era: the Institute — after the 41st Convocation; the sixty-ninth year; the morning after the sea-wind clears.
+
+---
+
+## 一 · 潮候院的后院
+
+潮候院后院没有观览物。没有棵树种的位置，也没有水塘。
+
+院子被围墙围着，除了一扇不开的侧门——门边靠墙立着一块木板，用来晒干草（海草）。草堆很丰厚；值更们说这里是院中最偏的角落，没人来。
+
+**锚句**：潮候院后院有一块晒干草的木板。
+**Anchor sentence**: in the backyard of the Institute there is a board for drying hay.
+
+---
+
+## 二 · 那一颗露珠
+
+木板上压着一颗露珠。天晴时它还是留在同一个位置，不渗不降。
+
+抄本员说他的父亲也看见了那颗露珠，但父亲死的时候他还是看到那颗露珠没有动。
+
+**锚句**：木板上有一颗露珠，六十九年没动过。
+**Anchor sentence**: on the board is a dewdrop that has not moved in sixty-nine years.
+
+---
+
+## 三 · 早晨
+
+每天早晨初阳把雾烤散的时候，木板上的草堆会泛起一层金黄色。露珠在金黄色里会闪一下，又静下去。
+
+值更换班的时候经过后院，目光会被那颗露珠吸引一秒——然后颈椎一动回到自己该看的方向。
+
+**锚句**：每晨初阳把雾烤散的时候，木板上的露珠会闪一下，又静下去。
+**Anchor sentence**: every morning when the first sun burns off the mist, the dewdrop on the board flashes once, and goes still again.
+
+---
+
+## 四 · 六十九年的传承
+
+换干草垛的时候，值更们从来不把那颗露珠的位置动一分一毫。
+
+换的时候，木板上会留一个指甲盖大小的凹陷，是露珠六十九年来留下的印记。新的值更会小心绕开那个凹陷。
+
+**锚句**：换干草垛时，没有一个人动过露珠的位置。
+**Anchor sentence**: when the hay was changed, no one ever disturbed the dewdrop's place.
+
+---
+
+## 五 · 新家的羊羔
+
+某年院里来了一只羊羔，去后院找水喝，别的都喝了，就是那颗露珠碰都没碰——它也知道那个位置是什么。
+
+值更们到今天还说那只羊羔比人看得清楚。
+
+**锚句**：换草垛时，羊羔们都绕开了那颗露珠。
+**Anchor sentence**: when the hay was changed, even the lambs walked around that dewdrop.
+
+---
+
+## 六 · 不愿早的
+
+值更们管它叫「不愿早的」。
+
+不是说露珠「不愿早」，而是它在告诉人：有些东西不赶时间，它就是为那个位置而留下的。
+
+**锚句**：值更们管它叫「不愿早的」。
+**Anchor sentence**: they call it "the one that will not leave early".
+
+---
+
+## 七 · 映射（回响四十七章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 不愿早的 · 六十九年不动 · 海风初霁 | 一、二、三、四、五、六、七 |
+| geography | 潮候院 · 后院 · 海风初霁 | 一、二、三、四、六、七 |
+| characters | 值更 · 抄本员 · 羊羔 | 一、三、四、五、六 |
+| story | 不愿早的 · 回响（其四十七） | 全篇 |
+| items | 木板 · 露珠 · 干草 · 侧门 | 一、二、三、四、五、六、七 |
+| history | 第四十一次大会散会之后 · 建院第六十九年 | 二、四、五、六、七 |
+
+> 六十九年后的某个早晨，当院里的所有人都走了，露珠还是会落在同一个位置——它不需要谁记得它。
+> One morning sixty-nine years from now, when everyone is gone, the dewdrop will still be in the same place — it does not need to be remembered.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其四十七）「潮候院后院晒干草的木板上那颗从不动的露珠」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the dewdrop on the hay-drying board in the Institute's backyard — it has not moved in sixty-nine years.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院后院那块晒干草的木板上停站了六十九年的露珠。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the sixty-ninth year; the morning after the sea-wind clears.
+> 纪元：潮候院 · 第四十一次大会散会之后——建院第六十九年 · 海风初霁。
+
+---
+
+## 一 · The Backyard of the Institute
+
+There is nothing in the Institute's backyard. No tree, no pond.
+
+It is walled in, with one side-door that never opens — by the door stands a board leaned against the wall, for drying hay (sea-grass). The stack is generous; the watchers call it the farthest corner of the yard, and no one comes here.
+
+**锚句**：潮候院后院有一块晒干草的木板。
+**Anchor sentence**: in the backyard of the Institute there is a board for drying hay.
+
+---
+
+## 二 · The One Dewdrop
+
+Pressed on the board sits a single dewdrop. When the sky is clear it stays in the same place — it neither leaks nor sinks.
+
+The copyist says his father saw that dewdrop too, and when his father died the dewdrop was still there.
+
+**锚句**：木板上有一颗露珠，六十九年没动过。
+**Anchor sentence**: on the board is a dewdrop that has not moved in sixty-nine years.
+
+---
+
+## 三 · Morning
+
+Every morning when the first sun burns the mist away, the hay on the board turns gold. The dewdrop flashes in the gold once, and goes still again.
+
+On the change of the watch at dawn, the watchers' eyes are drawn to the dewdrop for a second — then their necks turn back to where they should be looking.
+
+**锚句**：每晨初阳把雾烤散的时候，木板上的露珠会闪一下，又静下去。
+**Anchor sentence**: every morning when the first sun burns off the mist, the dewdrop on the board flashes once, and goes still again.
+
+---
+
+## 四 · Sixty-Nine Years of Keeping
+
+When the hay was replaced, no watcher disturbed the dewdrop's place by a single grain.
+
+During the exchange the board kept a nail-size hollow — the mark the dewdrop left in sixty-nine years. The new watchers work around that hollow.
+
+**锚句**：换干草垛时，没有一个人动过露珠的位置。
+**Anchor sentence**: when the hay was changed, no one ever disturbed the dewdrop's place.
+
+---
+
+## 五 · The Lamb in the Yard
+
+One year a lamb came into the yard to look for water. It drank from everything else, but it did not touch the dewdrop — it knew what that hollow was.
+
+The watchers still say that lamb sees more clearly than people do.
+
+**锚句**：换草垛时，羊羔们都绕开了那颗露珠。
+**Anchor sentence**: when the hay was changed, even the lambs walked around that dewdrop.
+
+---
+
+## 六 · The One That Will Not Leave Early
+
+The watchers call it "the one that will not leave early."
+
+It is not that the dewdrop refuses to go early — it is saying to people: some things are not in a hurry; they stay for the place they were left at.
+
+**锚句**：值更们管它叫「不愿早的」。
+**Anchor sentence**: they call it "the one that will not leave early".
+
+---
+
+## 七 · Mapping（Echo No. 47 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the one that will not leave early · sixty-nine years unmoved · the morning after the sea-wind | 一、二、三、四、五、六、七 |
+| geography | the Institute · the backyard · after the sea-wind clears | 一、二、三、四、六、七 |
+| characters | the watchers · the copyist · the lamb | 一、三、四、五、六 |
+| story | the one that will not leave early · Echo No. 47 | 全篇 |
+| items | the board · the dewdrop · the hay · the side-door | 一、二、三、四、五、六、七 |
+| history | After the 41st Convocation · the sixty-ninth year of the Institute | 二、四、五、六、七 |
+
+> 六十九年后的某个早晨，当院里的所有人都走了，露珠还是会落在同一个位置——它不需要谁记得它。
+> One morning sixty-nine years from now, when everyone is gone, the dewdrop will still be in the same place — it does not need to be remembered.
+`,
+  },
+  {
+    order: 48,
+    slug: 'echo-048-the-waiting-passenger-on-the-fog-harbor-ferry',
+    titleZh: '雾港渡船上那位从不开口的船客',
+    titleEn: 'The Passenger on the Fog-Harbor Ferry Who Never Speaks',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——秋潮月第二日的渡口。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the second day of the autumn-tide month at the crossing.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 48): The Passenger on the Fog-Harbor Ferry Who Never Speaks
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给雾港渡船上那位坐船尾第一个座位、从来没有人问他去哪的船客。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the passenger on the fog-harbor ferry — always first seat at the stern, no one asks where he is going.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第二日的渡口。
+> Era: the Institute — after the 41st Convocation; the second day of the autumn-tide month at the crossing.
+
+---
+
+## 一 · 雾港渡口
+
+雾港渡口搭一条往另一岸的渡船，每天只有两趟——早上一趟出，傍晚一趟回。
+
+船上的事很少有人记——雾港人上船目的很明确，到岸就下。但有一个人不是这样——他上船不买票，也没有人查票。
+
+**锚句**：雾港渡船上坐着一位不说话的船客。
+**Anchor sentence**: a passenger who never speaks rides the fog-harbor ferry.
+
+---
+
+## 二 · 船尾的第一个座位
+
+每次都坐在船尾第一个座位上。座位是条旧板凳，上面铺了一块破布。
+
+没人数过他出现过几次——他每次出现的时间都不同，有时是凌晨开，有时是黄昏收。他的这件破外套还是一件。
+
+**锚句**：他每次都坐在船尾第一个座位上。
+**Anchor sentence**: he always sits on the first seat at the stern.
+
+---
+
+## 三 · 不说话
+
+船客没有开口过。他偶尔慢慢眨眼睛、看船桅杆或水面。
+
+渡船的值守问他一次他要去哪，他没抬头——起身，走到船尾，把手搭在栏杆上。
+
+**锚句**：没有人问过他要去哪——他也从没说过。
+**Anchor sentence**: no one has ever asked him where he is going — and he has never said.
+
+---
+
+## 四 · 对岸
+
+他到的那个对岸，那地方雾港人不认得。
+
+虽然渡船不开自家航线——渡船从雾港往来的都是码头和渡口之间，船不到别处。但他还是每次都走同一个座位下船。
+
+**锚句**：他到的那个对岸，没有雾港人认得。
+**Anchor sentence**: the far shore he reaches — no fog-harbor person recognizes it.
+
+---
+
+## 五 · 锈蚀的扶手
+
+船到对岸时，他都会松开手。栏杆是锈蚀的，那地方是同一块锈蚀最严重的一处。
+
+**锚句**：船到对岸时，他松开手的位置是同一个点。
+**Anchor sentence**: when the ferry docks, he lets go at the same point every time.
+
+---
+
+## 六 · 候渡人
+
+值更们管他叫「候渡人」。
+
+不是等渡船——是等一个雾港的人都在等的那个时刻：海要吞下一切之前，让这个渡口时刻铭记。
+
+**锚句**：值更们管他叫「候渡人」。
+**Anchor sentence**: the watchers call him "the waiting passenger".
+
+---
+
+## 七 · 映射（回响四十八章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 候渡人 · 锈蚀栏杆 · 对岸 | 一、二、三、四、五、六、七 |
+| geography | 雾港 · 渡口 · 秋潮月第二日 | 一、二、五、六、七 |
+| characters | 候渡人 · 渡船值守 · 没人知道他去哪 | 一、三、四、五、六 |
+| story | 候渡人 · 回响（其四十八） | 全篇 |
+| items | 破外套 · 板凳 · 锈栏杆 · 破布 | 一、二、三、四、五、六、七 |
+| history | 第四十一次大会散会之后 · 秋潮月第二日 | 一、五、六、七 |
+
+> 一旦有人敢答上话的时候，雾港的所有渡船都不会再走了——直到那一天。
+> The day someone speaks to him, no fog-harbor ferry will ever sail again — until then.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其四十八）「雾港渡船上那位从不开口的船客」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the passenger on the fog-harbor ferry — always first seat at the stern, no one asks where he is going.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给雾港渡船上那位坐船尾第一个座位、从来没有人问他去哪的船客。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the second day of the autumn-tide month at the crossing.
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第二日的渡口。
+
+---
+
+## 一 · The Crossing at the Fog Harbor
+
+The fog-harbor crossing runs one boat to the opposite shore each day — one in the morning, one in the evening.
+
+Little needs recording on the boat — fog-harbor people know exactly where they are going. But one person does not ride it that way — he comes on, no ticket; no one checks tickets.
+
+**锚句**：雾港渡船上坐着一位不说话的船客。
+**Anchor sentence**: a passenger who never speaks rides the fog-harbor ferry.
+
+---
+
+## 二 · The First Seat at the Stern
+
+He always sits on the first bench at the stern. It is an old bench with a cloth thrown over it.
+
+No one ever counted how many times he has appeared — he appears at different hours each time; sometimes at dawn to cross, sometimes at dusk to return. The coat he wears is always the same.
+
+**锚句**：他每次都坐在船尾第一个座位上。
+**Anchor sentence**: he always sits on the first seat at the stern.
+
+---
+
+## 三 · Silence
+
+The passenger has never opened his mouth. Now and then he blinks slowly and looks at the mast or the surface.
+
+Once the ferryman asked where he was headed. He did not raise his head — he stood, went to the stern, and rested his hand on the rail.
+
+**锚句**：没有人问过他要去哪——他也从没说过。
+**Anchor sentence**: no one has ever asked him where he is going — and he has never said.
+
+---
+
+## 四 · The Far Shore
+
+No fog-harbor person recognizes the side of the shore he steps onto.
+
+Though the ferry goes only between the harbor and the crossing, he always disembarks at the same seat every time.
+
+**锚句**：他到的那个对岸，没有雾港人认得。
+**Anchor sentence**: the far shore he reaches — no fog-harbor person recognizes it.
+
+---
+
+## 五 · The Rusted Rail
+
+Every time the boat docks, he lets go. The railing is rusted; he lets go at the one spot most rusted of all.
+
+**锚句**：船到对岸时，他松开手的位置是同一个点。
+**Anchor sentence**: when the ferry docks, he lets go at the same point every time.
+
+---
+
+## 六 · The Waiting Passenger
+
+The watchers call him "the waiting passenger."
+
+It is not that they wait for the ferry — they wait for the moment everyone in the fog harbor is waiting for: the last breath before the sea takes all.
+
+**锚句**：值更们管他叫「候渡人」。
+**Anchor sentence**: the watchers call him "the waiting passenger".
+
+---
+
+## 七 · Mapping（Echo No. 48 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the waiting passenger · the rusted rail · the far shore | 一、二、三、四、五、六、七 |
+| geography | the fog harbor · the crossing · the second day of the autumn-tide month | 一、二、五、六、七 |
+| characters | the waiting passenger · the ferryman · no one knows where he goes | 一、三、四、五、六 |
+| story | the waiting passenger · Echo No. 48 | 全篇 |
+| items | the coat · the bench · the rusted rail · the cloth | 一、二、三、四、五、六、七 |
+| history | After the 41st Convocation · the second day of the autumn-tide month | 一、五、六、七 |
+
+> 一旦有人敢答上话的时候，雾港的所有渡船都不会再走了——直到那一天。
+> The day someone speaks to him, no fog-harbor ferry will ever sail again — until then.
+`,
+  },
 ] as const;

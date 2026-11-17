@@ -88,6 +88,8 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E44-祠殿日影那根永远赶不上影子的指针': 'echo-044-the-shadi-that-never-catches-its-shadow',
   'E45-潮候院侧殿里那根永远织不完的麻绳': 'echo-045-the-hemp-rope-in-the-side-chapel-that-is-never-finished',
   'E46-雾港钟楼上那口从没被敲过的铜钟': 'echo-046-the-bronze-bell-on-the-tower-that-is-never-struck',
+  'E47-潮候院后院晒干草的木板上那颗从不动的露珠': 'echo-047-the-dewdrop-on-the-hay-board-that-never-moves',
+  'E48-雾港渡船上那位从不开口的船客': 'echo-048-the-waiting-passenger-on-the-fog-harbor-ferry',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

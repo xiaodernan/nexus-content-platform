@@ -5006,3 +5006,11 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 手写 zh+en 母语级文本，各 6 组逐字锚句；gen-bible-snapshot 登记 `echo-045-…`、`echo-046-…`；verify:bible-snapshot ✓；verify:world-bible **260/260** ✓。
 - 同步落地：BibleAsk lede → 46；/bible/ask meta → 四十六篇；canon-answer-graph 测试 51 段／46 echoes；bible-ask-behavior 锚句总数 248→260；CACHE-IDENTITY 更新。
 - 回归：bible 组 50/50 绿。
+
+## cont. 270 (2026-11-17) — v899 · §BIBLE-47/48 · Echo #47《潮候院后院晒干草的木板上那颗从不动的露珠》《 #48 雾港渡船上那位从不开口的船客》（作者手写·双语·272/272 绿）
+
+- 第 47 篇回响「不愿早的」：潮候院后院的木板上一颗六十九年没动过的露珠；羊羔们都绕开了那颗露珠。母题"潮候院生活物象 · 永不变动"的谱系再添两篇（E45 麻绳 / E46 铜钟 / E47 露珠 / E48 渡船船客）——声和静交织的四篇额外。
+- 第 48 篇回响「候渡人」：雾港渡船第一个座位上每次都是那位不开口的船客，不买票不离开；到对岸时他松开手的位置是同一个点。
+- 6 组逐字锚句各一篇；gen-bible-snapshot 登记 `echo-047-…`、`echo-048-…`；verify:bible-snapshot ✓；verify:world-bible **272/272** ✓。
+- 同步落地：BibleAsk lede → 48；/bible/ask meta → 四十八篇；canon-answer-graph 测试 53 段／48 echoes；bible-ask-behavior 锚句总数 260→272；CACHE-IDENTITY 更新。
+- 回归：bible 组 24/24 绿。
