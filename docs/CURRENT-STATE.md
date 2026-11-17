@@ -4965,3 +4965,16 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   - 落点：StateGraph 是 agents/runtime 里真正的编排原语（节点/状态/条件边），同 LangGraph 同源；
   - 纪律收口：典籍说「典籍里没有」，绝不替潮海投机；正典 cache 命中在 /admin/ai-cache 看得见。
 - 本次不动 page.tsx SHA（guideCopy.ts 是正文真值，guide ⑪ 的 SHA 钉的是瘦壳，未被触碰）；guide-visual-style + bible-visual-style 17/17 绿。
+
+## cont. 266 (2026-11-17) — v895 · §INSIGHT-4 · 「大模型解读」加机检门（verify layer）
+
+- 动机：/insight ⑧「大模型解读」原来是单次 LLM 调用 + 一段文本；不做任何机械核验——模型答出来了就是"答案"。
+  §159 / §74：机检不通过的回答不该以「已答」姿态出现。
+- 新增 `server/domain/insightVerify.ts`（纯函数、无 I/O）：
+  - zh：『现象』+『证据』+ ≥1 ASCII 数字；en：`observation`(或 `phenomenon`) + `evidence` + ≥1 digit；长度 ≥16；类型检查外加 `verify-analysis` 新增
+    `insight-verify.test.ts` 8 条用例。
+  - `UNVERIFIED_NOTE` 两语；verifyNote 为 null 当且仅当 verified=true。
+- 路由接入：返回 `{ verified, verifyNote }` 扩展原契约；不破坏现有 `{ answer, capability, model, cachedTokens, cacheReported }` shape（向前兼容）。
+- 组件接入（InsightAiAnalysis）：显示一行诚实摘要 —— 机检通过显示「机检通过（现象/证据+数字，三段式）」；否则显示 verifyNote
+  （仍然显示模型原文，不隐藏——§159 不 hiding 原文 ——「这不算测量，是散文」）。
+- 回归：insight 全组 49/49 绿（原 41 + 新 8）。同步保持 /insight 实测截图与 §PROVED-21 结论不变。

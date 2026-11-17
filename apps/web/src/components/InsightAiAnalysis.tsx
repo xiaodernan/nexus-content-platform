@@ -47,6 +47,8 @@ export function InsightAiAnalysis({ locale = 'zh' }: { locale?: Locale }) {
   const [phase, setPhase] = useState<'idle' | 'loading' | 'answered' | 'honest'>('idle');
   const [text, setText] = useState('');
   const [badge, setBadge] = useState<string | null>(null);
+  const [verified, setVerified] = useState(true);
+  const [verifyNote, setVerifyNote] = useState<string | null>(null);
 
   const ask = useCallback(async () => {
     if (phase === 'loading') return;
@@ -62,13 +64,15 @@ export function InsightAiAnalysis({ locale = 'zh' }: { locale?: Locale }) {
         setPhase('honest');
         return;
       }
-      const body = (await resp.json()) as { answer?: string; model?: string; cachedTokens?: number };
+      const body = (await resp.json()) as { answer?: string; model?: string; cachedTokens?: number; verified?: boolean; verifyNote?: string | null };
       if (!resp.ok || typeof body.answer !== 'string') {
         setPhase('honest');
         return;
       }
       setText(body.answer.trim());
       setBadge(body.model ? c.badge(body.model, body.cachedTokens ?? 0) : null);
+      setVerified(body.verified === true);
+      setVerifyNote(typeof body.verifyNote === 'string' ? body.verifyNote : null);
       setPhase('answered');
     } catch {
       setPhase('honest');
@@ -87,6 +91,11 @@ export function InsightAiAnalysis({ locale = 'zh' }: { locale?: Locale }) {
         <div className="insg-aiOutput" aria-live="polite" data-insight-ai-output>
           {badge && <span className="insg-aiBadge" data-insight-ai-badge>{badge}</span>}
           <p className="insg-aiText">{text}</p>
+          <p className="insg-aiHonestBody" data-insight-ai-verified={verified ? 'passed' : 'failed'}>
+            {verified
+              ? (locale === 'zh' ? '机检通过（现象/证据 + 数字，三段式）' : 'Machine check passed (observation/evidence + digits).')
+              : (verifyNote ?? (locale === 'zh' ? '机检未通过' : 'Machine check not passed.'))}
+          </p>
         </div>
       )}
       {phase === 'honest' && (

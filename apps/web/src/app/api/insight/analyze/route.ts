@@ -7,6 +7,7 @@ import { badRequest, jsonError, readJson } from '@/server/http';
 import { chatWithCharacter } from '@/server/ai/client';
 import { collectInsightSnapshot } from '@/server/domain/insight';
 import { buildInsightDigest, INSIGHT_AI_SYSTEM_PROMPT } from '@/server/domain/insightAi';
+import { verifyInsightAnalysis, UNVERIFIED_NOTE } from '@/server/domain/insightVerify';
 import { leastSquares } from '@/lib/insight-math';
 import { increment, observe } from '@/server/observability';
 
@@ -75,14 +76,19 @@ export async function POST(req: Request): Promise<NextResponse> {
       message: locale === 'zh' ? '模型连不上——解读不是继续编出来的，先去频道体检。' : 'Model is unreachable — no fake analysis on this page. Check back later.',
     });
   }
+  const answerText = (result.response.text ?? '').trim();
+  // §INSIGHT-4：模型答出来了 ≠ 它说的就是证据——机检过关才算 grounded。
+  const verified = verifyInsightAnalysis(answerText, locale === 'en' ? 'en' : 'zh');
   increment('nexus_insight_analyze_total', { outcome: 'answer' });
   observe('nexus_insight_analyze_latency_ms', durationMs, { outcome: 'answer' });
   return NextResponse.json({
-    answer: (result.response.text ?? '').trim(),
+    answer: answerText,
     capability: result.response.capability,
     provider: result.response.provider,
     model: result.response.model,
     cachedTokens: result.response.usage?.cachedTokens ?? 0,
     cacheReported: result.response.usage?.cacheReported ?? false,
+    verified,
+    verifyNote: verified ? null : UNVERIFIED_NOTE[locale === 'en' ? 'en' : 'zh'],
   });
 }
