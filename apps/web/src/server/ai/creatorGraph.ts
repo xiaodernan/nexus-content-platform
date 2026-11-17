@@ -101,10 +101,11 @@ export async function runCreatorAnalysisGraph(
     };
   };
 
+  const localeDirective = `Answer language: ${locale}\n${digest}`;
   const graph = new StateGraph<CreatorGraphState>()
     .addNode('draft', async (s) => {
       const id = nextRequestId('creator-draft');
-      const result = await chat({ requestId: id, system: AGENT_NARRATE_SYSTEM_PROMPT, user: digest, modelClass: 'fast' });
+      const result = await chat({ requestId: id, system: AGENT_NARRATE_SYSTEM_PROMPT, user: localeDirective, modelClass: 'fast' });
       const u = nextUsage(s, result);
       if (!result.ok) {
         return { draft: '', nodesVisited: [...s.nodesVisited, 'draft'], issues: ['provider-unavailable'], ...u };
@@ -134,7 +135,7 @@ export async function runCreatorAnalysisGraph(
     .addNode('revise', async (s) => {
       const id = nextRequestId('creator-revise');
       const user = [
-        digest,
+        localeDirective,
         '',
         `Your previous analysis had mechanical issues: ${s.issues.join(', ')}.`,
         'Rewrite the whole analysis as the three numbered parts the system prompt requires: what the data says, why, one action. Use ONLY numbers present in the digest, keeping units exactly as written.',

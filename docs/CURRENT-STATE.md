@@ -5204,3 +5204,31 @@ Docker Desktop 已由 agent 人工拉起（本轮恢复，server 29.9.3，nexus-
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-056-the-nobody-claimed-great-rain-tomorrow`；verify world-bible **320/320** ✓。
 - 同步：BibleAsk lede → 56（含 en）；/bible/ask meta → 五十六篇 / fifty-six；cache-identity → 56 篇锚句；bible-ask-behavior 锚句总数 314→320；canon-answer-graph 测试 61 段 / 56 echoes；pins 重钉（page→06946555… comp→1891a802…）；fe-gates **1277/1277 绿**。
 - 本轮 provider 未打（Docker 11-18 第 1、4 次崩溃；RAM 触底 0.46 GB）——cont-287 已记，凭证令待安静窗口。
+
+## cont. 289 (2026-11-18) — v913 · §169-AI-GRAPH · 创作者解读图 live provider 实打 + 硬格式契约修复
+
+**Live 验证（`.scratch/verify-creator-graph-live.mts` 直调 `runCreatorAnalysisGraph`，真实 provider gpt-6.1-terra via aizzz.xyz）**
+
+修复前第一次实打发现三个真实缺口（全都是 **unit mock 无法抓到、只有实打能抓到** 的语义问题）：
+1. digest 里没有任何「请用 EN 回答」指示 → locale=en 时模型仍用 digest 的语种（中文）回答；SYSTEM rule 5 说「Answer in the asked locale」但用户消息里根本没出现这个 asked locale。
+2. 模型完全不听「① ② ③」格式，用了「1. 数据 / 2. 原因 / 3. 今天」——严格机检如实判 fail；修订仍失败（两个轮次模型都不给 ① 动作）。
+3. `cacheReported=false` revise 弯折——draft 调用没报 cache_hit，accuracy masking。
+
+**修复（与INSIGHT胶囊同纪律）**：
+- 用户消息前置 `Answer language: ${locale}\n${digest}`（draft 与 revise 两节点同构）；
+- `AGENT_NARRATE_SYSTEM_PROMPT` rule 4 改为显式逐字格式：「zh: ① 事实：… ② 原因：… ③ 动作：…。en: ① Fact: … ② Why: … ③ Action: …。Third part MUST begin with 动作：/Action:。不许 1./2./3.」；
+- unit test 新增断言 `Answer language: zh` 出现在 sent.user；mock 文本不动仍过机检。
+
+**修复后 zh + en 全部 pass（live）**：
+| locale | verdict | iterations | capability | cachedTokens | cacheReported | 答复语种 |
+|---|---|---|---|---|---|---|
+| zh | pass | 0 | real | **4480** | true | 中文 ✓ |
+| en | pass | 0 | real | **4480** | true | 英文 ✓ |
+
+- cachedTokens=4480（≈93% of 4795 tokens-in）与之前 /insight ⑧ en run cachedTokens=4480 对上：
+  两图共享 fixed-digest system 前缀，前缀复用稳态基本一致。
+- Docker Desktop 仍反复崩溃（11-18 第 5 次）；Postgres/Redis 反复 ECONNREFUSED；
+  HTTP/JWT 路线 live 验证（register→建项目→narrate-POST）受阻；
+  直调 runCreatorAnalysisGraph 的 E2E live 验证不依赖 DB——完整转发真实 provider，只绕过鉴权/收集层，如实记录。
+
+**门禁**：fe-gates **1277/1277** 绿；tsc 干净；digest 文本未动（snapshot 320/320、ASK pins b811787e→ be267e5e→#56 已重钉）。

@@ -73,6 +73,7 @@ describe('§169-AI-GRAPH · runCreatorAnalysisGraph', () => {
     expect(result.usage.cachedTokens).toBe(1800);
     expect(calls).toHaveLength(1);
     expect((calls[0] as AiChatRequest).user).toContain('CREATOR FACT DIGEST');
+    expect((calls[0] as AiChatRequest).user).toContain('Answer language: zh');
   });
 
   it('第一稿机检不过 → revise 改对 → 第二轮 verify 通过：iterations=1 · verdict=pass', async () => {
