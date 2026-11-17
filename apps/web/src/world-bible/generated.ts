@@ -12871,6 +12871,200 @@ So the head of the watch resealed the rim with salt.  But the salt has never sat
 > When the rain quits, the well is still empty; yet the salt shell on the rim always splits open on its own.
 `,
   },
+  {
+    order: 60,
+    slug: 'echo-060-the-half-hook-no-one-finishes',
+    titleZh: '交班簿上那个谁也没写完的半钩',
+    titleEn: 'The Half-Hook No One Ever Finishes Writing',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——秋潮月第二十七日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the twenty-seventh day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 60): The Half-Hook No One Ever Finishes Writing
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给值更人交班记账簿上那个从没有人签得完的半钩——每页底留痕、形同一个没写完的钩。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the half-hook on the handover ledger that no watcher ever finishes — a hook, left unwritten at the foot of every page.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第二十七日。
+> Era: the Institute — after the 41st Convocation; the twenty-seventh day of the autumn-tide month.
+
+---
+
+## 一 · 交班簿
+
+祠殿后廊靠墙那张矮桌上，常年放着一本双线装的册子——《值更人交班簿》。
+
+交接班的时候，值更人要用自己的手蘸自己的墨，在第三页上写一行字——不多，一行。谁写的、哪一天、灯先熄的哪盏，册子不记。它只存笔尖的最后一笔。
+
+**锚句**：值更人交班的时候，要用手蘸墨，写在交班簿第三页上。
+**Anchor sentence**: when the night watchers hand over, they dip their pen in ink and write on the third page of the handover ledger.
+
+---
+
+## 二 · 半钩
+
+第四十一次大会散会之后，每一次交班，那一行字的最后一笔都不完整——抄本师的第一反应是：这不是手误，是一种同一的收笔。
+
+他叫这一笔叫「半钩」。它不像任何字的部首，却每一次都出现；四十年下来，同一个形状出现了五十八次——没有一次和下一次完全一致，但每一次都认得出是同一笔。
+
+**锚句**：第四十一次大会散会之后，交班那一行最后一笔总是不完整。
+**Anchor sentence**: after the 41st Convocation dissolved, the final stroke of the handover line always comes up incomplete.
+
+---
+
+## 三 · 描一遍
+
+抄本师每天翻一页时都会用指腹描一遍那半钩。他的学生围坐在旁边，问他描什么、说什么。
+
+他说：不知道——但这一个半钩的弧度也没到立春，今年不长。
+
+**锚句**：抄本师每天翻页都会用指腹描一遍，边描边说不知道。
+**Anchor sentence**: each day the copyists trace it once with the pad of a finger, saying, every time, that they do not know.
+
+---
+
+## 四 · 两处残迹
+
+值更长和抄本师一起核对历届散会纪要时发现：同一个半钩，也出现在部分散会纪要末尾一行；笔不写字，只留着——散会纪要只记轮次，不记人。
+
+**锚句**：散会纪要里也见过这个形状，笔不写字，只留着。
+**Anchor sentence**: this same shape also appears at the foot of some dissolution records — left by no written hand, only kept.
+
+---
+
+## 五 · 只记不启
+
+值更长和抄本师约定：册子里出现同一个半钩，不解开、不换页、不登记——它是「交班之约」里未交班的人的见证。他们用「交班之钩」命名它。
+
+**锚句**：四十一年来，没有人解开过那半钩；它一直被称为「交班之钩」。
+**Anchor sentence**: for forty-one years no one has opened that half-hook; it is known only as the "handover hook".
+
+---
+
+## 六 · 说的话
+
+抄本师的学生最后一次抄册子时问他，半钩为什么不自己长出来？
+
+他说：他在等亡人来收尾——那就是交班簿为什么从不交班。
+
+**锚句**：抄本师临走前对他的学生说：那是等亡人来收尾。
+**Anchor sentence**: before the copyists passed, they said to their student: it is waiting for the one who died to finish it.
+
+---
+
+## 七 · 映射（回响六十章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 交班簿 · 半钩 · 交班之钩 · 散会纪要 · 亡人 | 一、二、三、四、五、六 |
+| geography | 祠殿后廊矮桌 · 第四十一次大会 · 附记散会 | 一、二、四 |
+| characters | 值更人 · 抄本师 · 抄本师的学生 · 值更长 | 一、二、三、四、五、六 |
+| story | 半钩 · 回响（其六十） | 全篇 |
+| items | 双线册 · 墨笔 · 半钩 · 附记册 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第二十七日 | 二、四、五、六 |
+
+> 每个人进去写那一页的时候，都以为自己在写昨天——其实是在签明天的名。
+> Everyone who steps in to write on that page believes he is writing yesterday — he is, in fact, signing for tomorrow.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其六十）「交班簿上那个谁也没写完的半钩」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the half-hook on the handover ledger that no watcher ever finishes — a hook, left unwritten at the foot of every page.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给值更人交班记账簿上那个从没有人签得完的半钩——每页底留痕、形同一个没写完的钩。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the twenty-seventh day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第二十七日。
+
+---
+
+## I · The Handover Ledger
+
+On the low table against the wall of the back gallery there is always a bound ledger — the Ledger of the Night Watch Handover.
+
+At the hour of transfer, the watcher dips his own brush into his own ink and writes a single line on the third page — not more, one line.  Whoever wrote it, which day, which lamp went out first — the ledger remembers none of that. It keeps only the final stroke of the brush.
+
+**锚句**：值更人交班的时候，要用手蘸墨，写在交班簿第三页上。
+**Anchor sentence**: when the night watchers hand over, they dip their pen in ink and write on the third page of the handover ledger.
+
+---
+
+## II · The Half-Hook
+
+After the 41st Convocation dissolved, every handover line ends incomplete — the tip never reaches its closing curve.
+
+The copyists noticed first: it is not a slip of the hand — it is a consistent way of finishing.
+
+They named this stroke the "half-hook". It resembles no recognized stroke; yet it appears on every written line; over forty years, the same shape appeared fifty-eight times — never the same twice, yet every time recognisable.
+
+**锚句**：第四十一次大会散会之后，交班那一行最后一笔总是不完整。
+**Anchor sentence**: after the 41st Convocation dissolved, the final stroke of the handover line always comes up incomplete.
+
+---
+
+## III · Traced Once
+
+Each day when the copyists turn a page, they trace the half-hook once with the pad of a finger. Their students sit beside them and ask what he traces and what he means.
+
+He answers: I do not know — the arc of it does not shorten even at the turn of spring.
+
+**锚句**：抄本师每天翻页都会用指腹描一遍，边描边说不知道。
+**Anchor sentence**: each day the copyists trace it once with the pad of a finger, saying, every time, that they do not know.
+
+---
+
+## IV · Two Unfinished Records
+
+When the head of the watch and the copyists once checked the Convocation dissolution records, together they found the same half-hook at the foot of some of them — left by no written hand, only kept.
+
+No hand was found to have made the stroke; the ledger does not record names; it remembers only the final brush tip.
+
+**锚句**：散会纪要里也见过这个形状，笔不写字，只留着。
+**Anchor sentence**: this same shape also appears at the foot of some dissolution records — left by no written hand, only kept.
+
+---
+
+## V · Only Record, Never Open
+
+The head of the night watch and the copyists agreed: the ledger with the same half-hook is neither opened, re-paginated, nor re-registered — it is the witness of the person not yet handed over in the Handover Covenant. They name it the "Handover Hook."
+
+**锚句**：四十一年来，没有人解开过那半钩；它一直被称为「交班之钩」。
+**Anchor sentence**: for forty-one years no one has opened that half-hook; it is known only as the "handover hook".
+
+---
+
+## VI · The Words at the End
+
+When the copyists' student asked him once why the half-hook never finished itself, he answered:
+
+He is waiting for the one who died to finish it — that is why this ledger never finishes handing over.
+
+**锚句**：抄本师临走前对他的学生说：那是等亡人来收尾。
+**Anchor sentence**: before the copyists passed, they said to their student: it is waiting for the one who died to finish it.
+
+---
+
+## VII · Mapping（Echo No. 60 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the handover ledger · the half-hook · the Handover Hook · the dissolution records · the dead man | 一、二、三、四、五、六 |
+| geography | the low table at the back gallery · the 41st Convocation · the dissolution appendices | 一、二、四 |
+| characters | the night watcher · the copyists · the head of the watch · the student | 一、二、三、四、五、六 |
+| story | the half-hook · Echo No. 60 | 全篇 |
+| items | the bound ledger · the ink brush · the half-hook · the Convocation appendices | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the twenty-seventh day of the autumn-tide month | 二、四、五、六 |
+
+> 每个人进去写那一页的时候，都以为自己在写昨天——其实是在签明天的名。
+> Everyone who steps in to write on that page believes he is writing yesterday — he is, in fact, signing for tomorrow.
+`,
+  },
 ] as const;
 
 export const BIBLE_APPENDICES: readonly BibleChapter[] = [

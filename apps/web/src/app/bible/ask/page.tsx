@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: '问典 · The Tidal Inquiry — 低语诸王',
-  description: '向《低语诸王》世界大典提问：五章正典 + 五十九篇回响即时可答。/ Ask the Whispers’ Kings canon: five chapters + fifty-nine echoes, answered live.',
+  description: '向《低语诸王》世界大典提问：五章正典 + 六十篇回响即时可答。/ Ask the Whispers’ Kings canon: five chapters + sixty echoes, answered live.',
 };
 
 /**

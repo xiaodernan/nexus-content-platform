@@ -5325,3 +5325,25 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 第 59 篇回响「盐封井」：雾港东南巷尽头老井——早年被盐封了；半根骨绳曾下去，被半尺盐壳截断；带回半杯水，化验只得「不明」；抄本师入「时候未到」册为「盐疏」新辟一页；值更长散会后独自来井沿半日，最后在井沿刻下「不饮不忘；它是水。」
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-059-the-well-the-salt-cannot-hold`；verify world-bible **338/338** ✓。
 - 同步：BibleAsk lede → 59（含 en）；/bible/ask meta → 五十九篇 / fifty-nine；cache-identity → 59 篇锚句；bible-ask-behavior 锚句总数 332→338；canon-answer-graph 测试 64 段 / 59 echoes；pins 重钉（page→fbec856c… comp→37695383…）；fe-gates **1285/1285 绿**。
+
+## cont. 297 (2026-11-18) — §SPRING-CLOUD-PROOF · 首度端到端通过（§1–§16）
+
+**命令**：`$env:JAVA_HOME=$null; npm run verify:spring-cloud`（ambient Adoptium JDK 25.0.1.8；`JAVA_HOME` 由 agent 自己的交互 shell 清零——原先被错误指向一个不存在的 `C:\Program Files\Java\jdk-25`）。
+
+**完整回放**：`docs/evidence/spring-cloud-audit/spring-cloud-proof-2026-11-18.md`——每一节逐字抄录，本节不二次转述摘要；摘要仅列已通过的链条：
+
+**第一次跑红**（JAVA_HOME 错指——env 注入问题，不是脚本问题，不是 JDK 问题）。
+**第二次全绿**。
+
+§1 4 jars 全构建通过；§2 registry 在 53990 自报 UP；§3 48 条迁移 replay 至 throwaway pgvector 容器（95923 字节 pg_dump）；§4 domain-service 在 55414 自报 DB reachable，被 registry 点名发现；§5 nexus-api 在 55489；§6 edge `lb://nexus-api` 行内路由自描述 service；**§7 整条链**（edge → nexus-api → lb://nexus-domain-service → PostgreSQL）真实返回 insert 行 `state:found`；§8 404 `state:not-found`（诚实否认，非伪造）；§9 两颗 breaker 全部按配置名出来（`nexus-domain-service` / `nexusApiCircuitBreaker`）；§10 四个服务均 200 自报 · §10b Prometheus scrape 真实 header 测通（不假定）· §10c **一个 trace id 横贯 edge→api→domain**；§11 registry 死后 chain 仍返回 200（含 +40 s 过一个 Eureka 拉取间隔后再确认）；§12 domain-gone door 答 503 + 具名 timeout；§13 breaker 真的打开 + gauge=1 + `circuit-breaker-open` 被 Prometheus 读数承认；§14 api-gone → edge 503 + 具名 nexus-api + connection-refused；§15 edge-gone → 调用者收到 TypeError fetch failed（不杜撰）；§16 throwaway DBs/services/build 全删。
+
+**结论（诚实评估）**：
+- 微服务拓扑的**可执行性**不再只是"看上去支持"，而是"会被名字路由 · 一个 trace id 横贯 · discovery 真是软依赖 · 熔断器的 OPEN 被 Prometheus 读到"——
+- 这是本机证实、不是生产环境 SLA；PostgreSQL 是 throwaway 容器，端口全部一次性，全部数据销毁。`nexus-java-*` 容器整租不动（别人在跑的 careeros-* 没触碰）。
+- 本条与 2026-10-21 「0091 §M8 MCP 升格」不冲突——两件不同的事。
+
+## cont. 298 (2026-11-18) — v919 · §BIBLE-60 · Echo #60《值更人交班那本双线册里从没谁签写完的半钩》（作者手写·双语·344/344 绿）
+
+- 第 60 篇回响「半钩」：祠殿交班簿第三页——每一次收笔末一笔都不完整；抄本师四十一年间记了五十八次同一个形状未遇到过别人同笔；散会纪要里也出现同一半钩，抄本师叫它「交班之钩」；临别对学生说「那是等亡人来收尾」。
+- 手写 zh+en 母语级文本，6 组逐字锚句；登记 `echo-060-the-half-hook-no-one-finishes`；verify world-bible **344/344** ✓。
+- 同步：BibleAsk lede → 60（含 en）；/bible/ask meta → 六十篇 / sixty；cache-identity → 60 篇锚句；bible-ask-behavior 锚句总数 338→344；canon-answer-graph 测试 65 段 / 60 echoes；pins 重钉（page→dc433c1a… comp→0226b41e…）；fe-gates **1285/1285 绿**。
