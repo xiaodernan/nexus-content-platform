@@ -10863,4 +10863,202 @@ Not because it rises for half a month — but because the one it is waiting for 
 > On the next third of the autumn-tide month, someone will touch the row that should have been struck out — and leave it be.
 `,
   },
+  {
+    order: 50,
+    slug: 'echo-050-the-forty-first-blank-page-in-the-index',
+    titleZh: '祠殿南厢房那本旧目录上空着的第四十一页',
+    titleEn: 'The Forty-First Blank Page in the Old Index in the South Hall of the Chapel',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——雾潮月第十日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the tenth day of the fog-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 50): The Forty-First Blank Page in the Old Index in the South Hall of the Chapel
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿南厢房那本目录上空着看没人写的第四十一页。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the old index in the south hall of the chapel — its forty-first page is left blank, and no one has filled it.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——雾潮月第十日。
+> Era: the Institute — after the 41st Convocation; the tenth day of the fog-tide month.
+
+---
+
+## 一 · 南厢房
+
+祠殿南厢房的南窗不直对太阳直射。光从偏西进入，把地板上的影子分成纵横四片。
+
+南厢房里放着一张橡木长桌——抄本员把目录簿放在上面。书的封面是绿色，书角和书脊都磨出了米色，但纸页里面每个字都像没擦一样整齐。
+
+**锚句**：祠殿南厢房有一张橡木长桌，抄本员每天都会坐在那儿翻目录簿。
+**Anchor sentence**: the south hall of the chapel has a long oak table; every day the copyist sits there leafing through the index.
+
+---
+
+## 二 · 第四十一页
+
+目录簿的第四十一页是空的。它不是被撕掉，不是被水淹；空白从上面留到下面。
+
+抄本员的父亲曾说他年轻时见过第四十一页写满字的样子——可他没说是谁写的，也没说他有多大。抄本员没敢问。
+
+**锚句**：目录簿第四十一页是空的，从上面留到下面。
+**Anchor sentence**: the forty-first page of the index is blank, from top to bottom.
+
+---
+
+## 三 · 潜水的虫
+
+书虫没有在第四十一页里出现。
+
+抄本员翻过这页时发现两端都被虫蛀了——蛀洞在第一页和第四十二页两端，第四十一页两面都没有完整的孔。
+
+**锚句**：书虫没有在第四十一页里出现。
+**Anchor sentence**: the book-worms never appear on the forty-first page.
+
+---
+
+## 四 · 父亲的话
+
+抄本员的父亲是船舱里怎样死的没人知道，可目录里为什么空了一页却记得很清楚。
+
+抄本员问父亲「空的第四十一页是写给谁的」。父亲摇摇头，说：「留给海看的一页。海不会在第四十一页里留什么。」
+
+**锚句**：抄本员的父亲说 — 留给海看的一页——海不会在第四十一页里留什么。
+**Anchor sentence**: the copyist's father said — it is a page left open for the sea; the sea writes nothing there.
+
+---
+
+## 五 · 灯光
+
+灯没灭的时候，第四十一页完全是凉的。抄本员伸手摸上去——半块书页凉得像贴过青铜。
+
+他没见过青铜——没人能给他看它是什么颜色。他听到过青铜在夜风里柔和地鸣叫。
+
+**锚句**：抄本员伸手摸第四十一页时，它半块凉得像青铜。
+**Anchor sentence**: when the copyist lays his hand on the forty-first page, half of it is cold as bronze.
+
+---
+
+## 六 · 空页之间
+
+南厢房里的抄本员们写过每一页，每个目录的每一件事都是他们写上去的——除了第四十一页。
+
+没人知道谁能写——没人写过，也没人见过谁来写过。
+
+**锚句**：没人知道谁能写第四十一页，也没人见过谁来写过。
+**Anchor sentence**: no one knows who can write the forty-first page, nor has anyone seen anyone come to write it.
+
+---
+
+## 七 · 映射（回响五十章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 第四十一页 · 留给海看 · 空着也不写 | 一、二、三、四、五、六、七 |
+| geography | 祠殿 · 南厢房 · 雾潮月第十日 | 一、三、五、六、七 |
+| characters | 抄本员 · 抄本员的父亲 · 留给海的一页 | 一、三、四、五、六 |
+| story | 第四十一页 · 回响（其五十） | 全篇 |
+| items | 目录簿 · 橡木长桌 · 绿封面 · 书虫 | 一、二、三、四、五、六、七 |
+| history | 第四十一次大会散会之后 · 雾潮月第十日 | 二、四、六、七 |
+
+> 未来哪一次烧书的时候，第四十一页只要被留了下来——它就还会等。
+> Whenever the book is ever burned, the forty-first page — if it alone is spared — it will still wait.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其五十）「祠殿南厢房那本旧目录上空着的第四十一页」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the old index in the south hall of the chapel — its forty-first page is left blank, and no one has filled it.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿南厢房那本目录上空着看没人写的第四十一页。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the tenth day of the fog-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后——雾潮月第十日。
+
+---
+
+## 一 · The South Hall
+
+The southern window of the south hall does not take a direct strike of the sun. Light enters from a slightly west angle, dividing the floor into four long strips and their shadows.
+
+The hall holds a long oak table — the copyist places the index on it. The book is green; the corners and the spine are worn to an amber tone, but every word inside looks as if it has not been touched.
+
+**锚句**：祠殿南厢房有一张橡木长桌，抄本员每天都会坐在那儿翻目录簿。
+**Anchor sentence**: the south hall of the chapel has a long oak table; every day the copyist sits there leafing through the index.
+
+---
+
+## 二 · The Forty-First Page
+
+The forty-first page of the index is blank. It was not torn out, nor soaked; the blankness runs from page top to page bottom.
+
+The copyist's father said once that he remembered the forty-first page filled with writing when he was young — but he never said who wrote it, nor how old he was. The copyist did not dare to ask.
+
+**锚句**：目录簿第四十一页是空的，从上面留到下面。
+**Anchor sentence**: the forty-first page of the index is blank, from top to bottom.
+
+---
+
+## 三 · The Book-Worms
+
+The book-worms never appear on the forty-first page.
+
+When the copyist leafs through it, he notices the holes begin on the first page and resume on the forty-second — the forty-first is untouched on both faces.
+
+**锚句**：书虫没有在第四十一页里出现。
+**Anchor sentence**: the book-worms never appear on the forty-first page.
+
+---
+
+## 四 · The Father's Words
+
+The copyist's father — how he died in a vessel's hold no one knows — but the blank page he remembers clearly.
+
+The copyist once asked him: "Who is the forty-first page written for?" The father shook his head and said: "The forty-first is a page left open for the sea. The sea writes nothing there."
+
+**锚句**：抄本员的父亲说 — 留给海看的一页——海不会在第四十一页里留什么。
+**Anchor sentence**: the copyist's father said — it is a page left open for the sea; the sea writes nothing there.
+
+---
+
+## 五 · The Lamp Light
+
+While the lamp is lit, the forty-first page is entirely cold. The copyist lays his hand on it — half the page feels like it was lain flat on bronze.
+
+He has never seen bronze. No one can show him what color bronze is. But he has heard bronze sing faintly in the night wind.
+
+**锚句**：抄本员伸手摸第四十一页时，它半块凉得像青铜。
+**Anchor sentence**: when the copyist lays his hand on the forty-first page, half of it is cold as bronze.
+
+---
+
+## 六 · Between the Blank Pages
+
+The copyists in the south hall have written every page, every ledger entry, every act and addenda — except the forty-first page.
+
+No one knows who could write it. No one has ever written there, nor seen anyone actually come and write.
+
+**锚句**：没人知道谁能写第四十一页，也没人见过谁来写过。
+**Anchor sentence**: no one knows who can write the forty-first page, nor has anyone seen anyone come to write it.
+
+---
+
+## 七 · Mapping（Echo No. 50 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the forty-first page · left open for the sea · blank by design | 一、二、三、四、五、六、七 |
+| geography | the chapel · the south hall · the tenth day of the fog-tide month | 一、三、五、六、七 |
+| characters | the copyist · the copyist's father · the page left open for the sea | 一、三、四、五、六 |
+| story | the forty-first page · Echo No. 50 | 全篇 |
+| items | the index · the oak table · the green cover · the book-worms | 一、二、三、四、五、六、七 |
+| history | After the 41st Convocation · the tenth day of the fog-tide month | 二、四、六、七 |
+
+> 未来哪一次烧书的时候，第四十一页只要被留了下来——它就还会等。
+> Whenever the book is ever burned, the forty-first page — if it alone is spared — it will still wait.
+`,
+  },
 ] as const;

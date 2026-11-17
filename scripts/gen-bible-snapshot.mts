@@ -91,6 +91,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E47-潮候院后院晒干草的木板上那颗从不动的露珠': 'echo-047-the-dewdrop-on-the-hay-board-that-never-moves',
   'E48-雾港渡船上那位从不开口的船客': 'echo-048-the-waiting-passenger-on-the-fog-harbor-ferry',
   'E49-雾港渡口那张印错的潮汐表上从来没被划掉的那一行': 'echo-049-the-half-moon-tide-that-no-one-struck-out',
+  'E50-祠殿南厢房那本旧目录上空着的第四十一页': 'echo-050-the-forty-first-blank-page-in-the-index',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

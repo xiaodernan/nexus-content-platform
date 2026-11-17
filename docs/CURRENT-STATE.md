@@ -5039,3 +5039,10 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 同步落地：BibleAsk lede → 49；/bible/ask meta → 四十九篇；canon-answer-graph 测试 54 段／49 echoes；bible-ask-behavior 锚句总数 272→278；CACHE-IDENTITY 更新。
 - 顺带勘误：文件系统文件名（含"指挥路"之误用）勘为「雾港渡口…」；路径、生体、XML slug 同步，verify 复跑全绿。
 - 回归：bible 24/24 绿。
+
+## cont. 274 (2026-11-17) — v901 · §BIBLE-50 · Echo #50《祠殿南厢房那本旧目录上空着的第四十一页》（作者手写·双语·284/284 绿）
+
+- 第 50 篇回响「第四十一页」：南厢房橡木长桌上一本绿封面目录簿，第四十一页彻底空白——虫蛀目录簿而不到达第四十一页（同一册的第 1/42 页两端蛀痕完整）——值簪灯光下第四十一页半块凉得像青铜；抄本员的父亲说一句话：留给海看的一页——海不会在第四十一页里留什么。与回响四十《值更图》「四十一」同号呼应。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-050-the-forty-first-blank-page-in-the-index`；verify:bible-snapshot ✓；verify:world-bible **284/284** ✓。
+- 回响总数 **50 篇**；章节/锚句/测试/元数据对账全同步。
+- 回归：bible 18/18 绿。
