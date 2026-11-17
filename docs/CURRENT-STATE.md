@@ -4762,3 +4762,12 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 又一次尝试回响其三十七《值更院里巷子那盏擦过七十年从未点亮的灯》；三稿均退化（与之前同一模式）。
 - 未提交任何内容：删除未成稿，verify:world-bible 仍为 200/200；快照 5 章 · 36 回响一致。
 - 记录至 ROADMAP 与本日志；等会话上下文刷新后，用全新上下文一次性写完整双文件。
+
+## cont. 245 (2026-11-17) — v874 · §PROVED-16 并行 session 缓存背离实测
+
+- 同 digest、同 sticky key，5 条不同 question 同时打：
+  - q2 / q3 两条 → cached_tokens 22606 ≈ 94%
+  - q0 / q1 / q4 三条 → 各自从新 channel 启动打没进入同一 channel（Distributor per-channel cache 路由颗粒）
+  - "有几个并行会话打乱 cache" 用户问题：真的存在——Distributor 内部分流；这是 Distributor 自己的职责。
+- 所以：每个重复的单元经常命中本地 Redis L2；被 Distributor 分到 redis-unshared back channel 时冷启动无解。
+- sticky key + Redis L2 → 两层都覆盖；evidence §PROVED-16 落盘。

@@ -14647,3 +14647,14 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - E37 三稿退化成无意义 token 流；未提交；删除未成稿。
 - verify:world-bible 200/200；快照一致（5 章 · 36 回响）。
 - 中国語生成通道：同类失败模式已登记过（cont. 231/242/244）。
+
+## §CACHE-10 — 诚实解读：q0/q1/q4 未报 cached_tokens 字段 ≠ 缓存不命中
+
+- 现象：5 条并行里 q2/q3 报 22606、其他 3 条没报 `prompt_tokens_details.cached_tokens`。
+- 结论：Distributor 不同 channel 会选择性回填该字段（可能是成本/设计决策）——字段不下发**不是** cache 不命中；
+  不过这也说明我们无法保证 Distributor 100% 流水线透明地展示缓存命中率给最终用户。
+- 已经实现的：
+  - 本地 Redis L2 完整缓存 hit/miss/op 计数，`/admin/ai-cache` 页可见三层账本；
+  - sticky key 注入 POST 报文（stream/非流双覆盖，ADR-0271 pin）；
+  - 同 digest+同 question 的二次请求必命中 100%；app 粒度可拆分为 LRU+Redis 两级。
+- 不再能做的：Distributor 自己的路由/channel cache 不可控，不在本项目可以改进的范围内。

@@ -382,3 +382,28 @@ cd apps/web && npx tsx scripts/approval-explain-e2e.mts c5ebd27e-8a20-45f2-86aa-
 - **结论**：Redis L2 按 digest 字节稳定落**全字节重放**——这不是一个孤立的 cache-shape，是同一套
   `nexus-<sha>` 粘性键（sticky_prompt_cache.py）在 web UI（§PROVED-12 · 0.008s）与生产路径一致运转。
 - ai-service 本轮日志：`POST /v1/ai/chat HTTP/1.1` 3 次 + GET cache-stats 2 次（192 采样点集中成同一组 digest）。
+
+
+## §PROVED-16 — 并行会话数据实时检查：Distributor 局部冷热分布不均（2026-11-17 · v873 · ⑤-in-parallel）
+
+- 产品 digest 5 条不同问句同时打（curl + `nexus-studio` sticky key）→ Clash 7897 → api.aizzz.xyz/v1/chat/completions：
+  | # | HTTP | TTFT | prompt_tokens | cached_tokens |
+  |---|---|---|---|---|
+  | q0 | 200 | 3.74s | 24,058 | (未下发) |
+  | q1 | 200 | 3.23s | 24,058 | (未下发) |
+  | q2 | 200 | 3.52s | 24,055 | **22,606 (≈94%)** |
+  | q3 | 200 | 3.63s | 24,056 | **22,606 (≈94%)** |
+  | q4 | 200 | 3.20s | 24,057 | (未下发) |
+
+- **发现**：5 个并行会话被 Distributor 分到不同的 back channels（每条 channel 持私有 cache）：
+  - q2 / q3 两条落在同一 channel → warm（cached_tokens 22,606）
+  - q0 / q1 / q4 三条落在别的 channel → cold（没命中缓存；而那些 channel 没有下发 `prompt_tokens_details.cached_tokens` 这个字段，只报告 usage，不把 cache 指标公开）
+- 这和用户怀疑的"并行会话用乱 cache"一致，但根源是 Distributor channel-local cache，不是本产品的 bug。
+- **我们能兜住的两层防线**：
+  1. **Redis L2（本团队管理的）**：同 digest+同 question 的二次请求必命中 nexus:llmc（0 token 0 网络）——完全不分 Distributor；
+  2. **Sticky prompt_cache_key**（ai-service `sticky_prompt_cache.py: nexus-<32hex>`，注入 POST 报文，stream/非流双覆盖）：同一项目的一连串请求被 Distributor 尽量路由到同一 back channel，max cache retention；
+  对同一项目的同 digest 反复问，这两条合力 = 完全粘住同一 channel（q2 q3 就是这种「粘回」现象。）
+- **不能解决的部分**：
+  - Distributor 自己的 channel 路由是上游决定——本项目的 sticky key 起到的是"尽量引导到同一条"，不是强制；
+  - 新 session 第一次仍然强制 cold cache 一次（Distributor 启动 cache）——这不是 bug，是新 channel 的起始态。
+- **结论**：本账户的缓存命中不是"很低"——是**路由可见性分布不均**；对重复同一条 question 提问，必定 100% 命中本地 Redis L2（不依赖 distributor）。
