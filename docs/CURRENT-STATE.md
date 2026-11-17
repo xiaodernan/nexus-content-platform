@@ -5937,3 +5937,9 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - 这就是 codex 引擎 ~90% 命中的同源：sticky key + 累积会话 + 完整 digest 前缀 + 全 digest 一次打入。
 - 证据 §PROVED-18 落盘；证据档至 18 节。
 
+## cont. 249 (2026-11-17) — v878 · CACHE-IDENTITY.md 立项（接手者一文看懂）
+
+- 新增 `docs/CACHE-IDENTITY.md`：对外交付"为什么本项目命中 ~94%"的完整判据，不再凭空吹。
+  三层结构：distributor channel-local cache + sticky `prompt_cache_key` + v2 digest（五章全文 + 锚句）+ Redis L2 重放矩阵。
+- 勘误两处错字（「2.3B」「rsy」）。
+- 下一回合：接手者读这份文档即可直接对症。
