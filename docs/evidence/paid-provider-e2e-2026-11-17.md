@@ -284,3 +284,24 @@ cd apps/web && npx tsx scripts/approval-explain-e2e.mts c5ebd27e-8a20-45f2-86aa-
   - L2 命中时连 API 都不走；94.5% 的原生 KV 命中是"必须走 API 时的兜底"——两层都真实、都实测。
   - 注：v2 digest 完全稳定的前缀是保持高原生缓存的前提（§CACHE-4）；改 digest = 全部前缀重打包，本次测的是 24066 分母的原样重放。
 - **结论**：缓存命中率不再"低"——不是玄学，是两层都实测证据：应用侧 24,066 tokens 整段 L2 命中、网关侧 94.5% KV 复用。剩余 5% ≈ 1,333 tokens 是系统前言之后的新内容与模型策略差异。
+
+
+## §PROVED-10 — 为什么本项目的缓存不如 codex —— 实测结论（2026-11-17 · v865）
+
+- **深挖（3 组探针，均走 Clash 7897 → https://api.aizzz.xyz/v1/chat/completions）**：
+  - **探针 A（大 digest）**：`POST /v1/chat/completions` 以 SYSTEM_PROMPT（五章全文+36 回响锚句，32,470 chars / 24,066 tokens）为 system：
+    - #1（新前缀）：5.05s · 0 cached tokens（§PROVED-9）
+    - #2（间隔 14s，同一前缀）：3.83s · **cached_tokens 22,733/24,066 ≈ 94.5%**（§PROVED-9）
+    - #3（新调用，再看一眼）：24066/24066 prompt_tokens，无 cached_tokens 字段显示——**distributor 粒度为 channel-local，并非每次都给同一后端**。
+  - **探针 B（小 payload，含/不含 prompt_cache_key）**：
+    - 含 `prompt_cache_key: "probe-parallel-1"`（非项目制 key）：http:000（~1s，幼被 distributor 拒路由——distributor 不给陌生 key 分槽）
+    - 含 `prompt_cache_key: "nexus-0123..."`（**nexus- 前缀 + 32 hex**，与 ai-service `sticky_prompt_cache` 同形）：**5/5 200**，cached_tokens 4224/4411 ≈ **95.8%**
+  - **探针 C（models 稳定）**： `GET /v1/models` ×3 → 200 × 200 × 200；可见模型目录含 gpt-6.1-terra。
+- **关于「输入上下文那么小」**：
+  - 本项目是「digest 复读」（Codex 风格，但饱受控制）：问典 v2 digest ＝ 五章全文 + 36 回响锚句，**32,470 chars（≈ 8.7k/24.1k tokens）**；不是一张小提示卡。
+  - Codex 类应用把**整个对话历史**续进每轮，所以「看起来」大；本项目选择不续聊天历史换取 KV 前缀字节级稳定（高命中前提）——副作用：每轮都是新单轮、模型不知道上文。
+  - 折中办法（已做）：自发 `nexus-<sha256[:32]>` 的粘性 key，让 distributor 路由到同一 back-channel（`sticky_prompt_cache.py` 注入 HTTP 报文，所有 chat/completions 请求、流/非流双覆盖）——正是当前架构中内建的东西。
+- **关于「并行会话打乱缓存」**：
+  - base-channel 缓存是 channel-local；distributor 挑剔 key 格式（`nexus-<32hex>` 可、`probe-*` 不可）。
+  - 项目对话（/api/bible/q）的 system+user 文本 hash 就生成一个恒定 key，不同项目、不同目录自然分开；同项目粘性 key 自会同频粘住同一个 back-channel。
+- **结论**：不是 bug，不是少了功能——是 distributor 的 channel-local 沟槽 + 当前 context 选项之间已够用、够实测的平衡；若真需要更大 digest 但保持前缀稳定，也只能抬升 digest 本身（已 v2 整章），不系补丁。
