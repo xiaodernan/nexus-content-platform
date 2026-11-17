@@ -4740,3 +4740,10 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 我们实测比较：distributor 收 `prompt_cache_options:{ttl:"12h"}` → 1/4 200；**无** options → 5/5 200，cachedTokens 4224/4411≈95.8%。
   → 本项目对此类 distributor **不发** ttl。
 - 结论：我们已经运送 codex **最核心的 cache 机制**（sticky key via single-value sha256-stable-material, v694 起）。不换。
+
+## cont. 242 (2026-11-17) — E37 彻底放弃（英文 spine 起，中文译链断了）
+
+- 又一次尝试回响其三十七《值更院门口那只老狗》：英文稿写出来了（值更院那只老狗在米缸月第四天抬头看天），中文稿生成时反复退化成「仓抄本员米缸月仓米缸月」的无意义 token 流。
+- **未提交任何内容**：.en.md 与 .zh.md 全部删除；verify:world-bible 仍为 200/200；快照一致（5 章 · 36 回响）。
+- 图中文输出此回合稳定性 ≈ 0；E34 首遇、E36 恢复完成后一直往下走。
+  本批丢在这一刀：没能提供中文稿。

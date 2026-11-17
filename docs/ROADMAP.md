@@ -14635,3 +14635,9 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   - `curl → clash 7897`：stream ✓（SSE 正常 + usage + [DONE]）
   - `ai-service 8001`：healthz real → /v1/ai/chat 第一次 502（上游间歇抖动）→ 200/2.97s（real provider，streamed）→ 200/**0.008s**（`capability:real · cachedTokens 4433/4433 = 100%` via Redis L2）
 - 用户的「一直显示非流」的判断精准——不是代码事实，而是本地 pin 锁的私有事实。冒号旁已把它写成 .env 注释，下一次不会再次被这种我之前选错的 opt-out 咬到。
+
+## §BIBLE-52 — honest register: E37 本轮中文输出退化，放弃
+
+- 又一稿：英文 spine 已写出；中文译链退化成无意义 token 流；未带入任何文档。
+- verify:world-bible 200/200 保持；快照 5 章 · 36 回响；快照一致。
+- 通道：需真人（或更稳定的模型侧）介入句子级中译校验。
