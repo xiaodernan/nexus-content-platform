@@ -4677,3 +4677,11 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - **外部推送归属**：本回期间 origin/master 被外部推送了 `6ed36e0 showcase(首页极致装潢 + 极致宣传) — 字体/色系/构图全面升级`；
   我 rebase 后把我的 mobile-fix 补在它上面。该装潢 commit **不是我写的**——不替我方署名、不冒充、改动留在原作者。
 - 功效：个人 Pages master 现为 `0743913`；效果：顶栏在 375px 不再挤压拆行。
+
+## cont. 235 (2026-11-17) — v863/v864 真渲染核验：指南 + 问典读数确需在上下文并存
+
+- dev server + headless Chromium 真渲染复核，确认两点：
+  1. / bible/ask lede 显示「正典（5 章）+ 回响（36 篇）」——上一回 SEO/lede 同步已生效；
+  2. /guide 渲染干净、无重叠、无错字（对照上一回的「十五题」修订同现）。
+- 结论：两条最新计数在页面里确实一致；v863/v864 的发布不是纸面 pin，是用户可见的值。
+- dev server 用完已 kill；free RAM ~1.7 GB；本回无代码改动。
