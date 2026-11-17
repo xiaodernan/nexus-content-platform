@@ -16454,6 +16454,205 @@ On the day the red deepens, the fog rolls thicker than usual over the Institute.
 > The lion will never sink — it has always been inside itself — it is the Institute's own monument.
 `,
   },
+  {
+    order: 78,
+    slug: 'echo-078-the-wooden-box-opens-once-a-year',
+    titleZh: '潮候院底潮那只一年不开一次的木头匣',
+    titleEn: 'The Wooden Box at the North Storeroom\'s Outer Corner That Opens Once a Year',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——秋潮月第六十七日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the sixty-seventh day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 78): The Wooden Box at the South-East Corner of the Institute That Opens Once a Year
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院唯一一只一年只打开一次的木头匣的来历。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the single wooden box that opens only once a year, at the far corner of the Institute.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第六十七日。
+> Era: the Institute — after the 41st Convocation; the sixty-seventh day of the autumn-tide month.
+
+---
+
+## 一 · 那只匣
+
+潮候院北库外角，靠一块青石板放着一只木头匣——大小像一只中号鞋盒子，从外观看颜色已经灰白了。
+
+每年六十六次大会散会那天——每年一次。
+
+**锚句**：北库外角有一只木头匣，颜色已经灰白了，每年一次。
+**Anchor sentence**: at the outer corner of the north storeroom stands a wooden box, bleached gray by age, opened only once a year.
+
+---
+
+## 二 · 它自己自己开了
+
+某值更守在北库外角——他说每年一次大会散会当天——匣子自动盖开。
+
+抄本师查北库进出以后——抄本师没有查到任何人动过这个木匣。
+
+**锚句**：北库守说每年散会日匣子自己盖开；抄本师查不到人动过。
+**Anchor sentence**: the storekeeper swore the box opens itself on every Convocation dissolution day; the copyists found no one had touched it.
+
+---
+
+## 三 · 里面有什么
+
+它自己自己盖开那一瞬间，抄本师拧掉手电的灯——他只对下一位值更守说："里面不是空，但不让我记。"
+
+抄本师后来一辈子再不开口告诉过任何人。
+
+**锚句**：抄本师说"里面不是空——但不让我记。"抄本师后来一辈子不说一句。
+**Anchor sentence**: the copyist whispered: "It is not empty — but it will not let me write"; he never spoke another word about it.
+
+---
+
+## 四 · 浮岛影
+
+北库进出进出没有人能见——但这一天潮候院雾湿了。
+
+护池苔上发了一点圆形影，圆形影不动。
+
+**锚句**：那一天潮候院雾湿了——护池上圆形影沉默不动。
+**Anchor sentence**: on that day the Institute's fog was thick as soup — circular reflections lay still in the pond.
+
+---
+
+## 五 · 第八次散会
+
+第八次散会早雾湿的那一天是抄本师——他平时不肯跟值更守说一句话——悄悄回
+他悄悄回北库外角的时候——没有人能见。
+
+北库外角是潮候院最安静的地方——没有人在听。
+
+**锚句**：北库外角是潮候院最安静的地方——没有人在听。
+**Anchor sentence**: the northern storeroom's outer corner is the quietest place in the Institute — no one is listening.
+
+---
+
+## 六 · 抄本师自己
+
+抄本师一生，只说过两句话——抄本师的老师记下来了："里面不是空 "和 "不 "——"不是空"不停反复。
+
+抄本师走了以后，潮候院又多了五代抄本师——没人知道木匣里是什么。
+
+**锚句**：抄本师走了以后没人知道木匣里面是什么。
+**Anchor sentence**: after the copyist passed, no one knew what was inside the box.
+
+---
+
+## 七 · 映射（回响七十八章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 木匣 · 自己盖开 · 不让记 · 北库外角 · 大会散会 | 一、二、三、四、五、六、七 |
+| geography | 北库外角 · 青石板 · 北院 | 一、四、五、六 |
+| characters | 北库守 · 抄本师 · 潮候院师傅 | 二、三、五、六 |
+| story | 木匣 · 回响（其七十八） | 全篇 |
+| items | 木匣 · 大会散会 · 青石板 · 手电 · 手灯 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第六十七日 | 一、二、四、五 |
+
+> 它不让记。潮候院继续不记——潮候院也继续在。
+> It will not let me write. The Institute continues without writing — and the Institute continues.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其七十八）「潮候院北库外角那只一年只打开一次的木匣」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the single wooden box that opens only once a year, at the far corner of the Institute.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院唯一一只一年只打开一次的木头匣的来历。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the sixty-seventh day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第六十七日。
+
+---
+
+## I · The Box
+
+At the outer corner of the north storeroom of the Institute, next to a blue stone slab, rests a wooden box — broad as a mid-sized shoe box, bleached gray with age.
+
+Only once a year, on the dissolution day of every Convocation — it opens once.
+
+**锚句**：北库外角有一只木头匣，颜色已经灰白了，每年一次。
+**Anchor sentence**: at the outer corner of the north storeroom stands a wooden box, bleached gray by age, opened only once a year.
+
+---
+
+## II · It Opens Itself
+
+A watchkeeper of the outer corner said that on the dissolution day each year the box opens by itself.
+
+The copyists traced the entry log — and found no one had touched the box.
+
+**锚句**：北库守说每年散会日匣子自己盖开；抄本师查不到人动过。
+**Anchor sentence**: the storekeeper swore the box opens itself on every Convocation dissolution day; the copyists found no one had touched it.
+
+---
+
+## III · What Was Inside
+
+At the instant the box opens, the copyists switched off the flashlight — they only told the next watchkeeper on duty: "It is not empty, but it will not let me write."
+
+After that, the copyists never once in a lifetime spoke another word about it.
+
+**锚句**：抄本师说"里面不是空——但不让我记。"抄本师后来一辈子不说一句。
+**Anchor sentence**: the copyist whispered: "It is not empty — but it will not let me write"; he never spoke another word about it.
+
+---
+
+## IV · Floating in the Fog
+
+The entry log outside showed nobody visiting that day — but the Institute was drenched in fog.
+
+Over the heron pond lay a circular shadow, motionless.
+
+**锚句**：那一天潮候院雾湿了——护池上圆形影沉默不动。
+**Anchor sentence**: on that day the Institute's fog was thick as soup — circular reflections lay still in the pond.
+
+---
+
+## V · The Eighth Dissolution
+
+The eighth Convocation's dissolution day. A copyist — never speaking to the storekeeper — silently returned to the north storeroom's outer corner — and no one saw him go.
+
+It is the quietest place in the entire Institute — no one is listening.
+
+**锚句**：北库外角是潮候院最安静的地方——没有人在听。
+**Anchor sentence**: the northern storeroom's outer corner is the quietest place in the Institute — no one is listening.
+
+---
+
+## VI · The Only Two Sentences
+
+The copyist spoke only two sentences in his entire life. His teacher wrote them down: "It is not empty" and "not" — "not empty" and "not" — repeated endlessly.
+
+After the copyist passed, five more generations of copyists served the Institute — no one ever found out what was inside the box.
+
+**锚句**：抄本师走了以后没人知道木匣里面是什么。
+**Anchor sentence**: after the copyist passed, no one knew what was inside the box.
+
+---
+
+## VII · Mapping（Echo No. 78 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the wooden box · it opens itself · it will not let me write · the north storeroom's outer corner · the Convocation | 一、二、三、四、五、六、七 |
+| geography | the north storeroom · the blue stone slab · the northern wing | 一、四、五、六 |
+| characters | the storekeeper · the copyists · the Institute's teacher | 二、三、五、六 |
+| story | the wooden box · Echo No. 78 | 全篇 |
+| items | the wooden box · the Convocation · the blue stone slab · the flashlight | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the sixty-seventh day of the autumn-tide month | 一、二、四、五 |
+
+> 它不让记。潮候院继续不记——潮候院也继续在。
+> It will not let me write. The Institute continues without writing — and the Institute continues.
+`,
+  },
 ] as const;
 
 export const BIBLE_APPENDICES: readonly BibleChapter[] = [
