@@ -5576,3 +5576,9 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 第 73 篇回响「碑文」：祠殿内南墙——三个字「潮候归」，没签名——某些想回家的人刻给自己看的——雾天刻字若隐若现，引用牢记晨暮各去看一次 — 直至散会之后——「归」字右上方那个逗号没人敢讲。
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-073-the-three-characters-on-the-inner-wall`；verify world-bible **422/422** ✓。
 - 同步：BibleAsk lede → 73（含 en）；/bible/ask meta → 七十三篇 / seventy-three；cache-identity → 73 篇锚句；bible-ask-behavior 锚句总数 416→422；canon-answer-graph 测试 78 段 / 73 echoes；pins 重钉（page→22ac6dd7… comp→eb365502…）；fe-gates 测试 24/24。
+
+## cont. 319 (2026-11-18) — v938 · §BIBLE-74 · Echo #74《潮候院内祠三光那扇被摇摇雾吻过的窗》（作者手写·双语·428/428 绿）
+
+- 第 74 篇回响「三光雾吻」：祠殿内祠东窗——三盏常灯——散会之后只一只雾吻窥近玻璃——值更长说"不是灰——是空气被记住过"——擦不净——此后再没发生。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-074-the-fog-kissed-window-of-the-three-lamps`；verify world-bible **428/428** ✓。
+- 同步：BibleAsk lede → 74（含 en）；/bible/ask meta → 七十四篇 / seventy-four；cache-identity → 74 篇锚句；bible-ask-behavior 锚句总数 422→428；canon-answer-graph 测试 79 段 / 74 echoes；pins 重钉（page→107ef5fb… comp→89d1d9f7…）；fe-gates 测试 24/24。

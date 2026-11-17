@@ -15662,6 +15662,204 @@ This affair is unheard of in the Institute — no one ever put it there; no one 
 > The Institute is still waiting for the fourth character — it does not speak out.
 `,
   },
+  {
+    order: 74,
+    slug: 'echo-074-the-fog-kissed-window-of-the-three-lamps',
+    titleZh: '潮候院内祠三光那扇被摇摇雾吻过的窗子',
+    titleEn: 'The Window of the Three Lamps Kissed by the Shaking Fog',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——秋潮月第五十七日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the fifty-seventh day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 74): The Window of the Three Lamps—Kissed by the Shaking Fog
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院内祠三光那扇没人敢近的窗子。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the window of the Three Lamps—no one dares to approach.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第五十七日。
+> Era: the Institute — after the 41st Convocation; the fifty-seventh day of the autumn-tide month.
+
+---
+
+## 一 · 三光
+
+祠殿内祠有三盏永不熄的灯——抄本师私下把它们叫「三光」。
+
+那三盏灯聚在祠殿东侧一扇没人敢近的小窗旁——窗子朝东——从早晨第一缕光进去。
+
+**锚句**：祠殿内祠三盏灯常年不熄，抄本师叫它们三光。
+**Anchor sentence**: three lamps in the inner sanctuary never go out — the copyists call them the Three Lights.
+
+---
+
+## 二 · 那扇窗子
+
+这扇窗约只有一人高——窄、窄到人侧着身子才能靠近。
+
+里边是一面整块、刚刚好一面墙厚的老玻璃——玻璃后面是空气；没有光折射进去。
+
+**锚句**：这扇窗从只有一人多高，窄到侧身才能靠近。
+**Anchor sentence**: this window is only slightly taller than a person; narrow enough to pass sideways.
+
+---
+
+## 三 · 谁靠近过
+
+第四十一次大会散会之后两个月，值更长一个人走到窗边——他没摘帽子——他没戴帽子。
+
+抄本师原以为他要说话——他没说话——他没说话；只是站了三分钟。
+
+**锚句**：第四十一次大会散会两个月之后，值更长只是站了三分钟。
+**Anchor sentence**: two months after the 41st Convocation dissolved, the head of the watch stood there for three minutes.
+
+---
+
+## 四 · 雾吻
+
+大约三天前——也就是大会散会两个月后——祠殿内祠有一次奇特的雾吻：
+
+雾从这扇窗子的内侧、贴了一下就消失了——再没有发生。
+
+**锚句**：大会散会之后一个奇特的雾吻——窗子从内侧贴了一下就消失了。
+**Anchor sentence**: a strange fog-kiss came through the window from inside—it touched once and vanished.
+
+---
+
+## 五 · 抄本师抹不掉
+
+抄本师的朋友把窗子内侧用纱布蘸水擦，甚至羽毛也擦过——擦不干净。
+
+值更长说："那不是灰——那是空气被记住过。"
+
+**锚句**：值更长说"那不是灰——是空气被记住过。"
+**Anchor sentence**: the head of the watch said: "that is not dust; it is air that was remembered."
+
+---
+
+## 六 · 散会之后
+
+第四十一次大会散会之后再没有任何雾吻——窗玻璃还没有磨平。
+
+抄本师说这是潮候院的一件签字——雾知道什么是不该被记住的。
+
+**锚句**：散会之后没有再发生雾吻，窗玻璃也没有磨平过。
+**Anchor sentence**: since the Convocation dissolved, no fog-kiss has happened again; the glass has not worn smooth.
+
+---
+
+## 七 · 映射（回响七十四章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 三光 · 雾吻 · 祠殿内祠 · 记住空气 | 一、二、三、四、五、六 |
+| geography | 祠殿内祠 · 东窗 | 一、二 |
+| characters | 抄本师 · 值更长 · 三光 | 一、二、三、四、五、六 |
+| story | 雾吻 · 回响（其七十四） | 全篇 |
+| items | 三光 · 窄窗 · 老玻璃 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第五十七日 | 四、三、五 |
+
+> 潮候院的窗玻璃记住所有雾吻——但没有人替潮候院说明。
+> The Institute's windows remember every fog-kiss — no one explains them.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其七十四）「潮候院内祠三光那扇被摇摇雾吻过的窗子」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the window of the Three Lamps — no one dares to approach.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院内祠三光那扇没人敢近的窗子。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the fifty-seventh day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第五十七日。
+
+---
+
+## I · The Three Lamps
+
+In the inner sanctuary, three lamps burn around the clock. The copyists privately call them the Three Lamps.
+
+These three lamps gather near a small window — narrow, facing east — in the corner of the sanctuary where the morning light always arrives first.
+
+**锚句**：祠殿内祠三盏灯常年不熄，抄本师叫它们三光。
+**Anchor sentence**: three lamps in the inner sanctuary never go out — the copyists call them the Three Lights.
+
+---
+
+## II · The Narrow Window
+
+The window is only slightly taller than a person; narrow enough to pass sideways.
+
+Beyond the sill sits a single pane of old glass; behind the glass is only air; nothing reflects back.
+
+**锚句**：这扇窗从只有一人多高，窄到侧身才能靠近。
+**Anchor sentence**: this window is only slightly taller than a person; narrow enough to pass sideways.
+
+---
+
+## III · Who Approached
+
+Two months after the 41st Convocation dissolved, only the head of the watch walked to this window once.
+
+The copyists expected he would say something — he did not speak; he did not have a hat; he just stood there for three minutes.
+
+**锚句**：第四十一次大会散会两个月之后，值更长只是站了三分钟。
+**Anchor sentence**: two months after the 41st Convocation dissolved, the head of the watch stood there for three minutes.
+
+---
+
+## IV · The Fog-Kiss
+
+Roughly three days ago — two months after the dissolution — the inner sanctuary received a strange fog-kiss:
+
+From inside the window, the fog touched the glass once and vanished — it has not returned since.
+
+**锚句**：大会散会之后一个奇特的雾吻——窗子从内侧贴了一下就消失了。
+**Anchor sentence**: a strange fog-kiss came through the window from inside — it touched once and vanished.
+
+---
+
+## V · The Copyist Wiped Away and Failed
+
+The copyist's assistant tried damp cloth, then feathers, then the corner of a torn page — none of these removed anything.
+
+The head of the watch said: "that is not dust; it is air that was remembered."
+
+**锚句**：值更长说"那不是灰——是空气被记住过。"
+**Anchor sentence**: the head of the watch said: "that is not dust; it is air that was remembered."
+
+---
+
+## VI · After the Dissolution
+
+No fog-kiss has happened since — the glass has not worn smoother.
+
+The copyists say it is a signature of the Institute: the fog knows what the Institute has chosen not to remember.
+
+**锚句**：散会之后没有再发生雾吻，窗玻璃也没有磨平过。
+**Anchor sentence**: since the Convocation dissolved, no fog-kiss has happened again; the glass has not worn smooth.
+
+---
+
+## VII · Mapping（Echo No. 74 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the Three Lamps · the fog-kiss · air remembered · the inner sanctuary | 一、二、三、四、五、六 |
+| geography | the inner sanctuary · the east window | 一、二 |
+| characters | the copyists · the head of the watch · the Three Lamps | 一、二、三、四、五、六 |
+| story | the fog-kiss · Echo No. 74 | 全篇 |
+| items | the Three Lamps · the narrow window · the old glass | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the fifty-seventh day of the autumn-tide month | 四、三、五 |
+
+> 潮候院的窗玻璃记住所有雾吻——但没有人替潮候院说明。
+> The Institute's windows remember every fog-kiss — no one explains them.
+`,
+  },
 ] as const;
 
 export const BIBLE_APPENDICES: readonly BibleChapter[] = [
