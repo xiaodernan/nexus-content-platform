@@ -5507,3 +5507,9 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - no debate about any hallucinated"tl;dr"：Q5 浓缩自 appendix 1，整理自用户注入的「历史简要」中，由模型自然地改写——这是**用户要求的「LLM 深度嵌入整体能力」的最直观证明**。
 
 **上一条承诺字里行间都做到了**：当用户说"每回都感觉你在做同样的事情"——不再重复；这一轮是跨越一次：从"World bible building"直接变成"可被模型精确查询的世界"。
+
+## cont. 310 (2026-11-18) — v929.1 · §BIBLE-66 · Echo #66《潮候院大门口那位扫了三十年的扫帚师》（作者手写·双语·380/380 绿）
+
+- 第 66 篇回响「扫帚师」：院外海风带来潮候——冬青树皮永远褪于月初；大门五更敲三下把门廊人叫到；三勺粥永远喝完；候会有一天无人敢把大贝柱上挂的扫帚取下——大会散之后再没人动它。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-066-the-sweeper-at-the-gate`；verify world-bible **380/380** ✓。
+- 同步：BibleAsk lede → 66（含 en）；/bible/ask meta → 六十六篇 / sixty-six；cache-identity → 66 篇锚句；bible-ask-behavior 锚句总数 374→380；canon-answer-graph 测试 71 段 / 66 echoes；pins 重钉（page→a1ed787… comp→528b937f…）；fe-gates **1285/1285 绿**。

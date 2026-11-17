@@ -14070,6 +14070,204 @@ The head of the night watch said: the records have not yet arrived at their hour
 > Those marks may not be for any reader — they are how the Institute remembers the art of sinking.
 `,
   },
+  {
+    order: 66,
+    slug: 'echo-066-the-sweeper-at-the-gate',
+    titleZh: '潮候院大门口那位扫了三十年的扫帚师',
+    titleEn: 'The Sweeper Monk at the Institute Gate Who Has Swept for Thirty Years',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——秋潮月第四十三日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the forty-third day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 66): The Sweeper Monk at the Institute Gate Who Has Swept for Thirty Years
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院大门口那个扫了三十年门槛不曾言语一句的扫帚师。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the sweeper at the door of the Institute who has swept the threshold for three decades without saying a single word.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第四十三日。
+> Era: the Institute — after the 41st Convocation; the forty-third day of the autumn-tide month.
+
+---
+
+## 一 · 大门口
+
+潮候院的大门是一道没有锁的双扇木门，门口常年积着海风带来的盐渣和人踩碎的贝壳。
+
+每天早上五点，门扇上会被人敲三下；板子一被敲过，廊下的人就来开门——门开的时候是要值更长在门槛上喷一层薄荷汤的。
+
+**锚句**：大门永远没锁；门每天要被敲三下才开一次。
+**Anchor sentence**: the gate is never locked; each morning it opens only after three knocks.
+
+---
+
+## 二 · 扫帚师
+
+扫帚师是潮候院最早的那批人留下来的人——他的名字藏在门口石碑背后——碑上面只一个：「扫」字。
+
+他使用院外的冬青树皮褪下来的竹帚——每年冬天院里的园丁会帮他褪下一捆——他自几十年不用新买的。
+
+**锚句**：扫帚师的竹帚每年褪于院外的冬青树。
+**Anchor sentence**: the sweeper's bamboo broom is peeled every winter from the outside holly.
+
+---
+
+## 三 · 三勺
+
+扫完一米门槛后他会坐在门槛上喝三口粥；碗是陶的，灰白的，带一个不完整的环纹——没有人知道这是谁编的图。
+
+有人说他每天扫到那个高度刚好碗口里的粥沐成月亮的形状。
+
+**锚句**：他扫完一米门槛之后，他会喝三口粥。
+**Anchor sentence**: after finishing a meter of the threshold he drinks three mouthfuls of porridge.
+
+---
+
+## 四 · 不记得
+
+值更人年岁轻一点的问过他「你多久没听到潮声？」他没有回答；值和值是真的老是真的——他真的没听清。
+
+值更人问「那你是哪一年来潮候院的？」他说不记得——根本没那个印象。
+
+**锚句**：扫帚师什么时候来的潮候院，他自己也不记得了。
+**Anchor sentence**: he does not remember when he arrived at the Institute.
+
+---
+
+## 五 · 大贝柱
+
+第四十一次大会散会了那一天，扫帚师停在了门槛上，没有扫下一米——他站在那里直到天完全黑了——然后他把扫帚挂到大贝柱上。
+
+大贝柱在潮候院东北角，平时空无一物。扫帚从此再没人取下——也没有再用。
+
+**锚句**：大贝柱上挂着扫帚师的那把帚；大贝柱在东北角。
+**Anchor sentence**: his broom now hangs permanently on the Great Shell Pillar, set in the northeast corner.
+
+---
+
+## 六 · 散会之后
+
+第四十一次大会散会之后第一个月，院里有少部分的抄本师想去把扫帚取下来试试新的——但院长停止这一步，说放下的那把帚已经「到了不在用的地方」。
+
+没人问那是什么样的到了——也没人敢说。
+
+**锚句**：大会散会了，没人再去拿挂在大贝柱上的帚。
+**Anchor sentence**: after the Convocation dissolved, nobody dared touch the broom hung upon the Great Shell Pillar.
+
+---
+
+## 七 · 映射（回响六十六章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 扫帚师 · 冬青树皮 · 大贝柱 · 屋角到边 | 一、二、三、四、五、六 |
+| geography | 大门 · 东北角大贝柱 · 廊下 | 一、五 |
+| characters | 扫帚师 · 值更人 · 抄本师 · 院长 | 一、二、三、四、五、六 |
+| story | 扫帚师 · 回响（其六十六） | 全篇 |
+| items | 竹帚 · 粥碗 · 大贝柱 | 二、三、五 |
+| history | 第四十一次大会散会之后 · 秋潮月第四十三日 | 一、五、六 |
+
+> 扫帚就这么挂着了。也许他哪天回来再去拿；也许再也没有人在它提醒我们它所记住的是什么——持续地不再使用了。
+> The broom is hung. Maybe he will return one day to take it; maybe the pillar will simply hold the silence — forever.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其六十六）「潮候院大门口那位扫了三十年的扫帚师」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the sweeper at the door of the Institute who has swept the threshold for three decades without saying a single word.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院大门口那个扫了三十年门槛不曾言语一句的扫帚师。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the forty-third day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第四十三日。
+
+---
+
+## I · The Gate
+
+The gate of the Institute is a double-door of timber without any lock, thick with salt dust and broken shells from the feet that cross it.
+
+At five in the morning, three knocks land on the door — and a runner comes to open it — after which the head of the night watch sprays a thin sheet of mint broth across the threshold.
+
+**锚句**：大门永远没锁；门每天要被敲三下才开一次。
+**Anchor sentence**: the gate is never locked; each morning it opens only after three knocks.
+
+---
+
+## II · The Sweeper
+
+He is among the very first generation left from the Institute's founding; his own name is carved behind the threshold stone — a single character: "掃" (to sweep).
+
+His broom is peeled each autumn from the bark of the holly trees outside the Institute; he never buys a new one.
+
+**锚句**：扫帚师的竹帚每年褪于院外的冬青树。
+**Anchor sentence**: the sweeper's bamboo broom is peeled every winter from the outside holly.
+
+---
+
+## III · Three Mouths
+
+After each meter of threshold he sweeps, he drinks three mouthfuls of porridge from a pale pottery bowl bearing one incomplete ring of glaze — no one remembers who drew it.
+
+Some have said that by the third sip, the surface of the porridge takes the shape of a small moon.
+
+**锚句**：他扫完一米门槛之后，他会喝三口粥。
+**Anchor sentence**: after finishing a meter of the threshold he drinks three mouthfuls of porridge.
+
+---
+
+## IV · Does Not Remember
+
+A younger watcher once asked him, "How long is it since you last heard the tide?" He did not answer; whether he was too old to hear or too old to answer, no one knows.
+
+When asked when he arrived at the Institute, he said he does not remember.
+
+**锚句**：扫帚师什么时候来的潮候院，他自己也不记得了。
+**Anchor sentence**: he does not remember when he arrived at the Institute.
+
+---
+
+## V · The Great Shell Pillar
+
+On the day the 41st Convocation dissolved, he stopped mid-sweep; the line was never finished. He stood there until the light died, then hung his broom upon the Great Shell Pillar — a landmark set at the northeast corner of the Institute grounds.
+
+The broom has not been touched since.
+
+**锚句**：大贝柱上挂着扫帚师的那把帚；大贝柱在东北角。
+**Anchor sentence**: his broom now hangs permanently on the Great Shell Pillar, set in the northeast corner.
+
+---
+
+## VI · After the Dissolution
+
+In the first month after the 41st Convocation dissolved, a few copyists proposed taking the broom down and using it; the editor general refused, saying the broom belongs to "not-in-use".
+
+Nobody asks why; nobody dares say.
+
+**锚句**：大会散会了，没人再去拿挂在大贝柱上的帚。
+**Anchor sentence**: after the Convocation dissolved, nobody dared touch the broom hung upon the Great Shell Pillar.
+
+---
+
+## VII · Mapping（Echo No. 66 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the sweeper · the outer holly · the Great Shell Pillar · the corner | 一、二、三、四、五、六 |
+| geography | the gate · the northeast corner · the runner's walkway | 一、五 |
+| characters | the sweeper · the night watch · the copyists · the head of the Institute | 一、二、三、四、五、六 |
+| story | the sweeper · Echo No. 66 | 全篇 |
+| items | the bamboo broom · the porridge bowl · the Great Shell Pillar | 二、三、五 |
+| history | After the 41st Convocation · the forty-third day of the autumn-tide month | 一、五、六 |
+
+> 扫帚就这么挂着了。也许他哪天回来再去拿；也许再也没有人在它提醒我们它所记住的是什么——持续地不再使用了。
+> The broom is hung. Maybe he will return one day to take it; maybe the pillar will simply hold the silence — forever.
+`,
+  },
 ] as const;
 
 export const BIBLE_APPENDICES: readonly BibleChapter[] = [
