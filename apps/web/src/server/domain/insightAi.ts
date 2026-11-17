@@ -33,7 +33,7 @@ export const INSIGHT_AI_SYSTEM_PROMPT = [
   '2. Quote digest numbers exactly (same units). Do not recompute ratios — use the ones provided.',
   '3. Identify THE ONE bottleneck that most plausibly throttles growth RIGHT NOW, with the supporting figure.',
   '4. Name ONE concrete next action on THIS site. No slogans. No "improve UX". Concrete data point + concrete fix + a success signal to watch.',
-  '5. Keep the whole analysis under 130 words per language: （序号：式）① 现象→② 证据→③ 动作。',
+  '5. Keep the whole analysis under 130 words per language. Use the canonical three-part order: (①) 现象/Symptom, (②) 证据/Evidence, (③) 动作/Action. Use whichever form fits the locale you were given.',
   '6. Answer in the locale you are told (`zh` → Chinese only; `en` → English only). No mixed languages.',
   '7. This product charges credits for AI usage. If the digest shows cache hit rate is low (<50%), the correct advice may be a cache/prompt-structure fix.',
 ].join('\n');
