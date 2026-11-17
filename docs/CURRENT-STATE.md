@@ -5591,3 +5591,24 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - 站点与人的事实对账（本页展示）：
   赵欣曈 · AI 应用工程师 · 南方科技大学（本科 计算机科学与技术）· 香港中文大学（硕士 计算机科学与技术）
   全国中学生物理竞赛铜牌 · 江西省一等奖/二等奖 · 在 法狗狗 实习 · 产品名「隐盾」（法律文书脱敏）· NEXUS 平台 · CÆSURA
+
+## cont. 207 (2026-11-18) - v837: 回响（其十九）《雨从东边来》/ Echo No. 19 "The Rain Comes from the East"——风向倒转之日（正典扩到 19 回响·186 锚句）
+
+- 正典回源点：潮汐教团余烬之后，风向倒转的那一天——海从来从西来，那一天雨从东边来，
+  先化的是门内的盐；誊账的人停止了手里的笔；第七口井的井缘第一次全湿了；
+  账簿的守护者在干页末尾只落下六个字：东风，雨，灯未灭。
+- 双语回响：`docs/world-bible/echoes/E19-雨从东边来.md` + `.en.md`（zh/en 逐段对齐）
+  - 五节：风的方向 / 雨先碰到盐 / 誊账的人停笔 / 井边的水 / 账上的六个字
+  - 5 对锚句（逐字·全项目唯一·共 **186**）：
+    1. 风该从西来，那天却从东边来。
+    2. 雨从东边来，先落的是门内的盐。
+    3. 雨从东边来，笔先停了。
+    4. 第七口井的井缘，第一次全湿了。
+    5. 账上只记了六个字：东风，雨，灯未灭。
+- **正典快照 / anchor-echo 重生成并通过**：verify:world-bible 186/186 ✓；gen+verify:bible-snapshot（13 章 · 19 回响，含 E19 网页 slug `echo-019-the-rain-from-the-east` 登记）✓；gen+verify:anchor-echo（**186 锚句**）✓
+- **典籍室（/bible）**：目录回响序数扩展到 十一～二十 / XI～XX（zh/en 三处数组补齐，E11–E19 不再回退裸数字）
+- **BibleQuiz**：新增回响（其十九）·一 / 回响（其十九）·五 两题（zh/en 双语；答案序列扩到 64 题，新增 [1, 0]；quiz SHA pin 4602e2a1… 重钉）
+- **简明说明书**：「十八回响」→「十九回响」、「eighteen echoes」→「nineteen echoes」（zh/en 各 3 处 = 6 处）；guide SHA 1bf9d2c1… 重钉
+- 双语字典 / 锚句集：无新增英文原生内容（E19 为中文原生撰写并译）
+- 门：fe-gates 132 套 · **1259/1259** ✓；census 全绿（fe-gates 内含）✓；verify:world-bible / verify:bible-snapshot / verify:anchor-echo ✓；tsc 未动（仅文案与快照）
+- 顺序约束：本片不动代码逻辑；未推送 showcase（latest.json 随下一轮 sync）

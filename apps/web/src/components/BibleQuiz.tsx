@@ -315,6 +315,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《最后一夜》里，天快亮时，报到的人是……？', choices: ['七盏灯报到了', '第七席的老人报到了', '没有人报到', '门吏报到了'], answer: 2, ref: '回响（其十八） · 四' },
     en: { prompt: 'In “The Last Night”, at near-dawn, who answered to the roll?', choices: ['the seven lamps answered', 'the elder of the seventh seat answered', 'no one answered', 'the doorman answered'], answer: 2, ref: 'Echo No. 18 · IV' },
   },
+  {
+    zh: { prompt: '《雨从东边来》里，风向倒转那一天，灯的火苗弯向……？', choices: ['向海的方向', '向内陆的方向', '笔直朝上', '熄灭了'], answer: 1, ref: '回响（其十九） · 一' },
+    en: { prompt: 'In “The Rain Comes from the East”, on the day the wind turned, the lamp flame leaned…?', choices: ['towards the sea', 'towards the inland', 'straight upward', 'went out'], answer: 1, ref: 'Echo No. 19 · I' },
+  },
+  {
+    zh: { prompt: '《雨从东边来》里，账簿的守护者在干页末尾落下哪六个字？', choices: ['东风 · 雨 · 灯未灭', '西风 · 雨 · 灯未灭', '盐尽 · 灯灭', '东风 · 灰 · 灯灭'], answer: 0, ref: '回响（其十九） · 五' },
+    en: { prompt: 'In “The Rain Comes from the East”, what six characters did the Keeper of the Ledger set down at the end of the dry page?', choices: ['east wind · rain · the lamps were not out', 'west wind · rain · the lamps were not out', 'the salt was spent · the lamps went out', 'east wind · grey · the lamps went out'], answer: 0, ref: 'Echo No. 19 · V' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

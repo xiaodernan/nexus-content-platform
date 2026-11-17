@@ -1094,5 +1094,35 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "en": "the grey was not a night’s sky; the grey was a night’s lamp.",
     "refZh": "回响（其18） · 五",
     "refEn": "Echo No. 18 · V"
+  },
+  {
+    "zh": "风该从西来，那天却从东边来。",
+    "en": "the wind was meant to come from the west; that day it came from the east.",
+    "refZh": "回响（其19） · 一",
+    "refEn": "Echo No. 19 · I"
+  },
+  {
+    "zh": "雨从东边来，先落的是门内的盐。",
+    "en": "the rain came from the east; what it fell on first was the salt inside the door.",
+    "refZh": "回响（其19） · 二",
+    "refEn": "Echo No. 19 · II"
+  },
+  {
+    "zh": "雨从东边来，笔先停了。",
+    "en": "the rain came from the east; it was the pen that stopped first.",
+    "refZh": "回响（其19） · 三",
+    "refEn": "Echo No. 19 · III"
+  },
+  {
+    "zh": "第七口井的井缘，第一次全湿了。",
+    "en": "for the first time, the rim of the seventh well was wet all the way round.",
+    "refZh": "回响（其19） · 四",
+    "refEn": "Echo No. 19 · IV"
+  },
+  {
+    "zh": "账上只记了六个字：东风，雨，灯未灭。",
+    "en": "the ledger recorded only six words: east wind, rain, the lamps were not out.",
+    "refZh": "回响（其19） · 五",
+    "refEn": "Echo No. 19 · V"
   }
 ] as const;

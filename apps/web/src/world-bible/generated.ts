@@ -9207,4 +9207,284 @@ The grey was not a night's sky; the grey was a night's lamp.
 > Wells can be counted; the roll cannot answer itself.
 > 井数得完，人报不了到。`,
   },
+  {
+    order: 19,
+    slug: 'echo-019-the-rain-from-the-east',
+    titleZh: '雨从东边来',
+    titleEn: 'The Rain Comes from the East',
+    eraLineZh: '纪元切割线：铁月纪之后 · 灰幕之前',
+    eraLineEn: 'Era: after the Iron-Moon Age · before the grey cover was laid.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 19): The Rain Comes from the East
+
+> 回响不续写正典，只记风向变了的那一日：
+> 海的方向从来是西，那一天，雨从东边来。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps the day the wind turned:
+> the sea has always come from the west; on that day, the rain came from the east.
+> Its anchors answer to the same discipline as the canon.
+
+> 纪元切割线：铁月纪之后 · 灰幕之前
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 一 · 风的方向
+
+那天早晨，守夜人先注意到灯。
+
+火苗本来一直弯向门内，弯向海，弯向石板街道尽头。那一天，火苗弯向了外面。他看了很久，以为自己看错了。把手举过去试了两次，风从他的指缝里穿过，冷一点，干一点，方向不对。
+
+他没有出声。第七席的老人来的时候，灯还朝外弯着。老人站在门槛边，看了一眼灯，又看了一眼街尽头。他没有说变了，也没有说没变。他只把布巾往西边的石墩上铺开，当作什么也没看见。
+
+街上来了几个人。他们抬头看天，又看地上的盐线。谁也没提风。
+
+盐线从门口向西延伸，是潮汐退去时留下的那条。它由西向东，从海边一直铺到石板街的中段，然后淡下去。那条线上的灰，是被海的方向压平的。那天，线的北端，也就是靠东的一头，浮起一层细末，像被什么从下面顶了一下。
+
+没有人往东走。
+
+大家都知道东边来的是什么。东是内陆，是灰棚之后的湿地，是没人记得名字的旧堤。海从不从那边来。风也不。可是火苗弯向东，盐线东端浮起灰，灯油的气味也往东飘——所有的东西都往东偏了一寸。
+
+风该从西来，那天却从东边来。
+**锚句**：风该从西来，那天却从东边来。
+**Anchor sentence**: the wind was meant to come from the west; that day it came from the east.
+
+## 二 · 雨先碰到盐
+
+雨下起来的时候，谁都没听见落在海上的声音。
+
+它是从陆地来的。先落在后墙外的灰棚上，塔尖上，旧梁的锯口上。然后它越过屋顶，落到石板街东边的檐口。沿着墙根的影子一寸一寸往西挪，像在找一样东西。
+
+它先碰到的是盐。
+
+石板街东端，门外一角，堆着一小捧分好的盐，是分不了袋的那些，结成块，留在潮气里。雨落在那里，一触就化。水沿着石缝往西淌，把门槛边尚未干透的灰泡成浆。脚印在浆里浮起来，又被压下去。
+
+第七席的老人把灯挪到那块盐的上方。他没有盖东西。他只是看着雨把盐吃掉，看它吃了多少，看它什么时候停。
+
+雨没有停。
+
+门里的人聚到东侧的窗前。窗纸被雨洇透，从外往里看，只剩一片发亮的纸。谁也看不见谁，却知道所有人都在看。
+
+雨从东边来，先落的是门内的盐。
+**锚句**：雨从东边来，先落的是门内的盐。
+**Anchor sentence**: the rain came from the east; what it fell on first was the salt inside the door.
+
+## 三 · 誊账的人停笔
+
+账簿的守护者那天上午在誊干页。
+
+他誊的是水吃掉字的那一页。墨迹洇开的暗线，他先临过一遍，把还能辨认的字一一描下。到第三行时，他停住了——笔锋刚落到纸上，墨没有站住。它从笔尖散开，像落进了湿纸里。
+
+他把笔搁下，看了灯。灯没变化。他又看了页角，页角没有翘起——雨从东边来的时候，纸比昨天更软。
+
+他没有再动那一页。
+
+屋里的人各自找活干：有人添柴，有人去挑水，有人替灯盏换布，有人在门槛边数柴垛。没有人催他翻页。账簿的守护者坐在灯下，看着笔，看了很久。
+
+后来他把那支笔放进了盐袋旁边的布包里。布包上压了一块小石头。从那以后，他再动笔时，总是先看看东墙那边的天。
+
+有人问他停了什么。他说：不是字停了，是纸不给我写了。
+
+雨从东边来，笔先停了。
+**锚句**：雨从东边来，笔先停了。
+**Anchor sentence**: the rain came from the east; it was the pen that stopped first.
+
+## 四 · 井边的水
+
+街上的水往盐线的方向走。
+
+盐线本来是平的，从西到东。雨落下以后，线上的灰被推成一排小脊，像被什么从下面顶了一下又压了回去。谁也没去碰。
+
+到午后，水漫过石板街中段，停在盐线的另一头——井口前。七口井的井缘，第一次全部都湿了。没有人记得它们有过这样的齐头湿。井没有往里渗水，雨也没有跪进井里。水在井沿上绕了一圈，停着，看着井内。井里一片黑，没有回声。
+
+第七口井在街尽头。它的井缘以前有一道蜡没凝住的痕。雨碰到那道痕的时候，蜡面起了一层极薄的雾。雾不升到井里，也不落到石外。它只停在蜡上，像一张很小的纸。
+
+第七席的老人没有走过去。他站在三步外，看着那层雾停了很久。然后他把目光收回，看盐线，看门槛，看灰。他没有伸手，也没有让人上前。
+
+那天没有谁数井。
+
+数的人把手收了，因为这一次，轮到井记着人。
+
+第七口井的井缘，第一次全湿了。
+**锚句**：第七口井的井缘，第一次全湿了。
+**Anchor sentence**: for the first time, the rim of the seventh well was wet all the way round.
+
+## 五 · 账上的四个字
+
+天黑以前，雨停了。
+
+水从石板街东端开始退。先退灰棚下，再退檐口，最后退出门槛前的洼。退得很慢，像不确信自己该不该退。
+
+账簿的守护者把灯举高，看着灯下的那一页干页。页角仍平着。墨的边缘没有继续洇，也没有恢复。它停在那里，像一道谁也没写完的封线。
+
+他坐到灯下，蘸了盐水，在那一页的末尾，极慢地落了六个字。字很浅，压进纸纤维里极浅的地方。他没有描，也没有补。
+
+他记的不是人。不是柴。不是收柴的日子。
+
+他记的是：东风，雨，灯未灭。
+
+后来的人看见这六个字，都停住了。有人说那是凶兆——东边来的雨不是给人的，是给井的。有人说那是错写——账房写昏了，把西风写成了东风。也有人说那正是该记的东西，因为世上再没有什么别的事实比那场雨更不属于海。
+
+争吵没有结果。
+
+那一页被压在账页底下。灰幕降下之后，没有人再掀开它看。可是每逢潮气重的日子，东墙那边的天变低的时候，屋里的灯都会先亮起来——哪怕谁也没有点火。
+
+账上只记了六个字：东风，雨，灯未灭。
+**锚句**：账上只记了六个字：东风，雨，灯未灭。
+**Anchor sentence**: the ledger recorded only six words: east wind, rain, the lamps were not out.
+
+---
+
+## 模型映射（回响十九则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 风向倒转 · 雨从内陆来 · 海不承认的水 | 第十二章 · 第十三章 |
+| geography | 汐台 · 石板街道 · 盐线 · 七口井 | 本则 |
+| factions | 潮汐教团 · 账簿的守护者 · 第七席 | 第一章 · 本则 |
+| characters | 守夜人 · 账簿的守护者 · 第七席的老人 | 本则 |
+| items | 盐 · 便签 · 账页 · 灯 · 蜡 | 本则 |
+| story | 誊账人记 · 回响（其十九） | 全篇 |
+| history | 纪元切割线 · 灰幕之前 | 本则 |
+
+> 雨从东边来，盐先化；灯不熄，账不掩。
+> The rain came from the east; the salt dissolved first. The lamps did not go out; the ledger did not close.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其十九）：「雨从东边来」
+
+> An echo does not continue the canon — it only keeps the day the wind turned:
+> the sea has always come from the west; on that day, the rain came from the east.
+> Its anchors answer to the same discipline as the canon.
+>
+> 回响不续写正典，只记风向变了的那一日：
+> 海的方向从来是西，那一天，雨从东边来。
+> 回响的锚句，与正典同一纪律。
+
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+> 纪元切割线：铁月纪之后 · 灰幕之前
+
+---
+
+## I · The Direction of the Wind
+
+That morning, the night watch noticed the lamp first.
+
+The flame had always leaned inward — inward towards the room, towards the sea, towards the end of the flagstone street. That day, it leaned outward. He watched it for a long time, and thought he must have misread it. He held his hand out to the air twice. The wind passed between his fingers, a little colder, a little drier, from the wrong direction.
+
+He said nothing. When the old man of the Seventh Seat arrived, the lamp was still leaning outward. The old man stood at the threshold, looked once at the lamp, and once at the far end of the street. He did not say it had changed, and he did not say it had not. He only spread a cloth over the stone stool to the west, as though he had seen nothing at all.
+
+Several people came into the street. They looked up at the sky, then down at the line of salt. No one spoke of the wind.
+
+The line of salt ran westward from the door — the line the tide had left behind when it withdrew. It ran from the sea to the middle of the flagstone street, then faded. The grey upon that line had been pressed flat by the direction of the sea. That day, at the line's northern end, the end nearest the east, a fine dust rose, as though something below had pushed it once from underneath.
+
+No one went east.
+
+Everyone knew what was in the east. The east was the interior, the wetland beyond the grey sheds, the old dyke no one remembered the name of. The sea never came from that side. Nor did the wind. Yet the flame leaned east, dust rose at the east end of the salt line, and the smell of lamp oil drifted east — everything leaned one inch eastward.
+
+The wind was meant to come from the west; that day it came from the east.
+**Anchor sentence**: the wind was meant to come from the west; that day it came from the east.
+**锚句**：风该从西来，那天却从东边来。
+
+## II · The Rain Reached the Salt First
+
+When the rain began, no one heard it fall on the sea.
+
+It came from the land. It fell first on the grey sheds outside the back wall, on the tower point, on the sawn ends of the old beams. Then it crossed the roof and came down on the eaves along the eastern side of the flagstone street. It crept westwards along the wall's shadow an inch at a time, as though searching for something.
+
+What it reached first was the salt.
+
+At the eastern end of the flagstone street, in one corner outside the door, lay a small heap of salt that had already been divided and could not be bagged — crusted into lumps, left in the damp. The rain fell on it and dissolved it on contact. The water ran along the stone seams westward, and turned the grey before the threshold into slurry. Footprints surfaced in the slurry, then were pressed down again.
+
+The old man of the Seventh Seat moved the lamp above that heap of salt. He did not cover it. He simply watched the rain eat the salt, watched how much of it it ate, and watched when it would stop.
+
+The rain did not stop.
+
+The people inside gathered at the eastern windows. The window paper had soaked through; from outside, all that remained was a bright sheet. No one could see anyone else, and yet everyone knew that everyone was watching.
+
+The rain came from the east; what it fell on first was the salt inside the door.
+**Anchor sentence**: the rain came from the east; what it fell on first was the salt inside the door.
+**锚句**：雨从东边来，先落的是门内的盐。
+
+## III · The Copier Stopped His Pen
+
+The Keeper of the Ledger was copying onto dry pages that morning.
+
+He was copying the page the water had eaten. He had first traced over the dark tide-mark, one character at a time, transcribing everything still legible. By the third line, he stopped — just as the brush touched the paper, the ink would not stand. It spread from the tip as though it had fallen into wet paper.
+
+He set the brush down and looked at the lamp. The lamp had not changed. He looked at the page's corner; the corner was not curled — the paper, on the day the rain came from the east, was softer than it had been the day before.
+
+He did not touch that page again.
+
+People in the room found other work: some fed the fire, some went to fetch water, some changed the wick in the lamps, some stood before the threshold counting the woodpile. No one urged him to turn the page. The Keeper of the Ledger sat under the lamp, looking at the brush for a long time.
+
+Later he put the brush into the cloth bundle beside the salt bags. A small stone was laid across the bundle. After that, whenever he took up the brush again, he first looked at the sky beyond the eastern wall.
+
+Someone asked him what he had stopped. He said: it was not the characters that stopped — the paper would not have me write.
+
+The rain came from the east; it was the pen that stopped first.
+**Anchor sentence**: the rain came from the east; it was the pen that stopped first.
+**锚句**：雨从东边来，笔先停了。
+
+## IV · The Water at the Wells
+
+The water in the street ran towards the salt line.
+
+The line had been level, running west to east. Once the rain fell, the grey along it was pushed into a ridge of small crests, as though something had pressed it upward from below and then pressed it back down. No one went near it.
+
+By the afternoon, the water had spread across the middle of the flagstone street and stopped beneath the wells. For the first time, the rims of all seven wells were wet. No one remembered them ever being wet like that, all at once. The wells did not take the water in, and the rain did not kneel into them either. The water circled the rim of each well and stopped there, looking in. Inside was blackness — no echo.
+
+The seventh well stood at the far end of the street. Its rim still carried the scar where the wax had never set. When the rain touched that scar, a film of mist, thin as a sheet of very thin paper, rose on the wax surface. It did not rise into the well, and it did not fall beyond the stone. It only rested on the wax, like a very small sheet of paper.
+
+The old man of the Seventh Seat did not walk over. He stood three paces off, watching that film of mist for a long time. Then he drew his gaze back and looked at the salt line, at the threshold, at the grey. He did not reach out, and he let no one else go near.
+
+That day, no one counted the wells.
+
+The counter had withdrawn his hands, because this time it was the wells that were keeping count of the people.
+
+For the first time, the rim of the seventh well was wet all the way round.
+**Anchor sentence**: for the first time, the rim of the seventh well was wet all the way round.
+**锚句**：第七口井的井缘，第一次全湿了。
+
+## V · The Six Characters in the Ledger
+
+Before nightfall, the rain stopped.
+
+The water began to retreat from the eastern end of the flagstone street. First from beneath the grey sheds, then from the eaves, and last of all from the hollow before the threshold. It retreated slowly, as though it were not sure it should.
+
+The Keeper of the Ledger raised the lamp and looked at the dry page beneath it. The page's corner was still flat. The edge of the ink had neither spread further nor recovered. It remained there, like a boundary seam no one had finished drawing.
+
+He sat down under the lamp, dipped the brush in salt water, and at the very end of that page he set down, very slowly, six characters. The strokes were faint, pressed into the shallowest grain of the paper. He did not trace them, and he did not go over them again.
+
+What he recorded was not a person. Not wood. Not the day the wood was gathered.
+
+What he recorded was: east wind, rain, the lamps were not out.
+
+Later, those who saw the six characters all stopped. Some said it was an omen — rain from the east was not for people, it was for the wells. Some said it was a miscopy — the Keeper had lost his bearings and written east for west. And some said it was exactly what needed recording, because there was no other fact in all the world less belonging to the sea than that rain.
+
+The argument ended nowhere.
+
+That page was pressed beneath the other leaves of the ledger. After the grey cover descended, no one opened it again. Yet on days when the damp ran heavy, when the sky beyond the eastern wall sank low, the lamps in that room always lit before anyone struck a flame — even though no one had lit them.
+
+The ledger recorded only six words: east wind, rain, the lamps were not out.
+**Anchor sentence**: the ledger recorded only six words: east wind, rain, the lamps were not out.
+**锚句**：账上只记了六个字：东风，雨，灯未灭。
+
+---
+
+## Anchor match (echo nineteen)
+
+| dimension | anchor | related chapter |
+|---|---|---|
+| lore | the wind reversed · the rain came from inland · water the sea did not claim | chapter twelve · thirteen |
+| geography | the Tide Platform · the flagstone street · the salt line · the seven wells | this echo |
+| factions | the Tide Conclave · the Keeper of the Ledger · the Seventh Seat | chapter one · this echo |
+| characters | the night watch · the Keeper of the Ledger · the old man of the Seventh Seat | this echo |
+| items | salt · notes · ledger pages · lamps · wax | this echo |
+| story | The Copier's Note · Echo (No. 19) | all of it |
+| history | the Iron-Moon Age · before the grey cover | this echo |
+
+> The rain came from the east; the salt dissolved first. The lamps did not go out; the ledger did not close.
+> 雨从东边来，盐先化；灯不熄，账不掩。
+`,
+  },
 ] as const;
