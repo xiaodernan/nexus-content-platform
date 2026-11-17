@@ -5570,3 +5570,9 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 第 72 篇回响「雾童」：四百年前大会散会那日南墙外藤蔓中的雾童——人掌大鼻白毛——醒来时潮候院上方出现四层浮岛（抄本师推断沉船）
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-072-the-fog-child-the-institute-adopted`；verify world-bible **416/416** ✓
 - 同步：BibleAsk lede → 72；/bible/ask meta → 七十二篇；cache-identity → 72 篇锚句；bible-ask-behavior 锚句总数 410→416；canon-answer-graph 测试 77 段 / 72 echoes；pins 重钉（page→5068665b… comp→cdad976…）；fe-gates 测试 24/24。
+
+## cont. 318 (2026-11-18) — v937 · §BIBLE-73 · Echo #73《潮候院内外南墙上那件碑文》（作者手写·双语·422/422 绿）
+
+- 第 73 篇回响「碑文」：祠殿内南墙——三个字「潮候归」，没签名——某些想回家的人刻给自己看的——雾天刻字若隐若现，引用牢记晨暮各去看一次 — 直至散会之后——「归」字右上方那个逗号没人敢讲。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-073-the-three-characters-on-the-inner-wall`；verify world-bible **422/422** ✓。
+- 同步：BibleAsk lede → 73（含 en）；/bible/ask meta → 七十三篇 / seventy-three；cache-identity → 73 篇锚句；bible-ask-behavior 锚句总数 416→422；canon-answer-graph 测试 78 段 / 73 echoes；pins 重钉（page→22ac6dd7… comp→eb365502…）；fe-gates 测试 24/24。

@@ -114,6 +114,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E70-潮候院东郊码头那只三十六个春昼没人动它的白瓷碗': 'echo-070-the-bowl-nobody-moves-for-thirty-six-springs',
   'E71-潮候院祠殿桌里那本首行是「没」的旧账簿': 'echo-071-the-old-ledger-that-only-says-none',
   'E72-潮候院四百年前那只被收养的雾童': 'echo-072-the-fog-child-the-institute-adopted',
+  'E73-潮候院内外南墙上的第一件碑文': 'echo-073-the-three-characters-on-the-inner-wall',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
