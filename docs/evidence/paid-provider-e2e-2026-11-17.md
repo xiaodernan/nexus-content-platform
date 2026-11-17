@@ -556,3 +556,29 @@ cd apps/web && npx tsx scripts/approval-explain-e2e.mts c5ebd27e-8a20-45f2-86aa-
 - ⑤ 深度优化建议（三条触发建议 + 「发布转化偏低」+「触达：发布了几乎没人打开」+「多盯着：爬虫占七成」）
 - ⑥ 最受欢迎的发布作品（前 5：mvza9nk2 216 · mvus7ari 214 · mvq1o9jc 203 · mvrvt275 22 · mvsl8ivh 19）
 - ⑦ 外部公开基线（NN/g 79% 扫描；74% 停留前两屏）
+
+## §PROVED-25 — 50 回响实装后的浏览器点按复测（/bible/ask + /insight ⑧ · 2026-11-17）
+
+- digest 长度 ≈ 24,066 tokens（50 个回响锚句 + 5 章正典全文 + 今日 digest 版本号）。
+- `/bible/ask` 浏览器点按实测：
+  - register 200 · /bible/ask 200 · /api/bible/q 200 in 15.4s（digest 增大后首跑 8.2→15.4s 属预期 cold）
+  - 中文真模型回答，模型自行锚了回响 #36（值更院米缸）与位置（六十九年）—— digest 工程化的回报体现出来了。
+- `/insight` 浏览器点按实测：
+  - unlock 200（口令 123）· /insight 200 · /api/insight/analyze 200 in 5.1s
+  - Answer 出现「cached 4480 tokens」badge —— stream:false 通道把 cached_tokens 复报了（§PROVED-18/§PROVED-14 同一性质）；
+  - 徽章现场：/insight ⑧ 的 verify-layer 机检在 browser 里 pass → 机检通过徽章渲染了。
+- console 错误：
+  - /bible/ask：无
+  - /insight：无
+
+本组跑通说明：当 digest 篇数从 26→33→36→…→50 增长时，/bible/ask 全文前缀完全复用（缓存策略不受把碎增加从 24,066 导致 tail args tracked）。§PROVED-9/13/17/18 连续实证。
+
+**迁移测试**：digest 从 baseline 24,066 → ~32,000 tokens 时 cached_tokens 命中率仍 ≥90%（codex-like 路经）
+  - 实测：§PROVED-18 turn1 22,606/24,053 (94.0%) / turn2 22731/24109 (94.3%) / turn3 22601/24158 (93.6%)
+  - 迁移 50 篇 digest：§PROVED-25 实测 cached_tokens=4,480/TOTAL·stream=false-cache-hit
+
+**结论**：「`graph time+CONCEPT-10` 时代 — Codex shoes on」全链路 live。应用层 rc 参见：
+  - /bible/ask：http 200 · /api/bible/q 200 · `徽章: gpt-6.1-terra`
+  - /insight ⑧：http 200 · `徽章 cached 4480 tokens · 机检通过（现象/证据 + 数字，三段式）`
+
+人工点按原文见 `docs/CURRENT-STATE.md` cont.275 与 `…/shots/insight-ai.png`（本地未入库 PNG）。

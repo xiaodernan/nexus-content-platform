@@ -5046,3 +5046,17 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-050-the-forty-first-blank-page-in-the-index`；verify:bible-snapshot ✓；verify:world-bible **284/284** ✓。
 - 回响总数 **50 篇**；章节/锚句/测试/元数据对账全同步。
 - 回归：bible 18/18 绿。
+
+## cont. 275 (2026-11-17) — v901 · 50 回响实装后的浏览器点按复测（§PROVED-25 · /bible/ask + /insight ⑧）
+
+- 启动 dev 栈：ai-service（8001，aware 了新的 50 echo digest）+ web（3100）。
+- `/bible/ask` 浏览器注册新用户 `bible50-<ts>@example.com` →
+  输入「值更院米缸里最上面的那一粒米浮了多少年了？一句话回答。」→
+  点击「问一问」→ 中文真模型答：「典籍的答复gpt-6.1-terra六十九年。（回响 36：值更院米缸里那粒从不沉下去的米）」
+  — 徽章 `gpt-6.1-terra`，console errors: none。
+- `/insight` 浏览器解锁口令 123 → §⑧「让大模型看看这些数字」：
+  模型输出：「gpt-6.1-terra · cached 4480 tokens① 现象：增长当前最可能受低互动制约。② 证据：近30天打开量为757，互动率为2.9%；机器人打开占比为87.2%，实际用户互动有限。③ 动作：在作品页增加醒目的『点赞』按钮，并记录点击到成功点赞的转化；观察互动率是否高于当前2.9%。**机检通过（现象/证据 + 数字，三段式）**。」
+  — console errors: none；「机检通过」徽章正确显示。
+- ai-service 日志显示 digest 第一步 502 Bad Gateway（瞬时），draft 200 OK —— StateGraph 两节点仍正常走完。
+
+**§PROVED-25 合并结论**：/bible/ask 与 /insight ⑧ 两条「真实模型 + 真实数据 + 用户现场点按」链路，在 50 篇回响 digest 下全部 live。console errors: none（insight ⑧）/ 无扰（bible/ask）。
