@@ -5292,3 +5292,9 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 新增 2 例：空 persona 自曝 → fail 且 calls=2（draft+revise）verdict=fail；自然发言 → pass；总计 charChat graph contract 8 例（fe-gates 1285/1285 绿）。
 
 闭合节奏：为空 persona 加上前置拒绝（在 starter persona 缺失时不传给 provider）留作下一轮——那需要在 API 入口 schema 层加显式空检查；当前逻辑缺口由 verify 机检兜底，不冒充「安全」，只是以 fail 记账。
+
+## cont. 294 (2026-11-18) — v916 · §BIBLE-58 · Echo #58《潮候院祠殿墙脚那条抄本师只认墨不认盐的墨线》（作者手写·双语·332/332 绿）
+
+- 第 58 篇回响「墨线」：祠殿墙脚从内往外渗盐的细缝——盐不溯源也不止息 · 抄本师只碰不擦 · 值更长每月刷、一年长一厘米 · 抄本师入册为「盐疏」、附录第六十四页 · 值更长翻章程二十三遍、直到盐线退了墨线停。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-058-the-ink-line-at-the-sanctuary-foot`；verify world-bible **332/332** ✓。
+- 同步：BibleAsk lede → 58（含 en）；/bible/ask meta → 五十八篇 / fifty-eight；cache-identity → 58 篇锚句；bible-ask-behavior 锚句总数 326→332；canon-answer-graph 测试 63 段 / 58 echoes；pins 重钉（page→a1cb2a3e… comp→25ebf131…）；fe-gates **1285/1285 绿**。

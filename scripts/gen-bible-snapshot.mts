@@ -99,6 +99,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E55-潮候院东偏院那间从没装门只系铜环的房间': 'echo-055-the-doorless-room-of-the-east-wing',
   'E56-雾港公示牌下面那张没人认领的明日大雨': 'echo-056-the-nobody-claimed-great-rain-tomorrow',
   'E57-雾港潮水漂上来那张潮候院言归帖': 'echo-057-the-undeliverable-summons-from-the-tide',
+  'E58-潮候院祠殿墙脚那条抄本师只认墨不认盐的墨线': 'echo-058-the-ink-line-at-the-sanctuary-foot',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
