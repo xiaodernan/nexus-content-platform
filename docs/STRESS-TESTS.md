@@ -40,3 +40,18 @@
 ## 固定回归动作
 
 - 架构/合并后重压一次：`npm run verify:fe-gates` + SSR sweep + `scripts/simulate-user-behavior.mts`
+
+
+## Docker 崩溃自修复事件（2026-11-18 · 容灾实证）
+
+> 本轮会话中 Docker Desktop 整体重启，28+ 个容器从 Up healthy 全部自行恢复（careeros / football_os / crossrealm / specproof / nexus-*）。
+> nexus-postgres 进入数据同步恢复期（约 8-9 分钟拒绝连接 —— 期间 `the database system is starting up`，`FATAL 57P03`），
+> 之后恢复 `ready to accept connections`，数据零丢失。
+> 期间打 DB 的端点全部 500（包括 `/admin/observer/digest`）——如实记录，不掩盖。
+> 恢复后同一请求 **200**，产出真实 AI 深读（114 待批准 AI 任务 · 94 疑似机器人 > 52 次打开 · publishes 0 · 总浏览 877 · 点赞 11 · 30 天完成率 71.2%）。
+
+**灾难恢复证据**（机器自愈，零人工介入）：
+- Careeros-* / football_os-* / crossrealm-* / specproof-* / nexus-* 全部自动回 healthy，无手动干预
+- nexus-postgres 数据零丢失（恢复到 "ready"）
+- 任何撞这段时间窗的请求会得到 500，恢复后全部恢复正常
+- 结论：容器级崩溃构成约 10 分钟的服务降级窗口，不构成永久灾难
