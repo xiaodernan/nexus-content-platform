@@ -14662,6 +14662,204 @@ After the 41st Convocation dissolved, a long tray was laid south of the Great Sh
 > The sea does not remember her; it is a silence the Institute loves.
 `,
   },
+  {
+    order: 69,
+    slug: 'echo-069-the-tide-keepers-who-never-returned',
+    titleZh: '候潮院雾港回声站那一队再没有回来的潮候师',
+    titleEn: 'The Tide Keepers Who Sailed into the Fog and Never Came Back',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——秋潮月第四十八日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the forty-eighth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 69): The Tide Keepers Who Sailed into the Fog and Never Came Back
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院雾港回声站——那一队潮候师出海之后再也没回来。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the echo post at the fog harbor — the tide-keepers who set out and never returned.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第四十八日。
+> Era: the Institute — after the 41st Convocation; the forty-eighth day of the autumn-tide month.
+
+---
+
+## 一 · 雾港回声站
+
+雾港回声站是潮候院在雾港里最边缘的一处观察点。
+
+站长姓宋，一上任就听了奶奶的话：「出海可以——但永远别回来过。」
+
+**锚句**：潮候院雾港最外面那个回声站，从上任起就没有过值班长。
+**Anchor sentence**: at the outermost echo post of the fog harbor, no post-holder has ever served since its appointment.
+
+---
+
+## 二 · 出海
+
+第六十年的夏天，候潮院选了五位皂绳钓——每人带着一只空的坛子——绕开雷 紫石，从南线向雾港深处走。
+
+他们说要用瓶子把海风装回去——让大会散会的时候确认外面的海。
+
+**锚句**：他们带着五个空坛子去雾港深处——要把海装回来给大会。
+**Anchor sentence**: they carried five empty jars into the deep fog to bring the sea back for the Convocation.
+
+---
+
+## 三 · 没有过回信
+
+回声站不是天天有人值班的地方。抄本师一遇见有，隔一旬问一句：「听见回声了？」
+
+后来抄本师说，他已经听了二十年的同一段回声——一直是同一段。
+
+**锚句**：抄本师已经听了二十年的同一段回声——没有变过一声。
+**Anchor sentence**: the copyists have been listening to the same echo for twenty years; it has never changed once.
+
+---
+
+## 四 · 五位皂绳钓
+
+没有人知道五位皂绳钓的名字。
+
+第四十一次大会散会那天，抄本师查了一遍名册，说：「名册上没有登这五个人的名，大会无从说它是谁走的。」
+
+**锚句**：名册上没有后来五只皂绳钓的姓名——他们始终叫「五只皂绳」。
+**Anchor sentence**: names are missing from the register — since forever the five are called only "the five rope-drawers".
+
+---
+
+## 五 · 没有回来
+
+没有回头，也没有死信。
+
+值更长给抄本师说，「潮候院早晚得派一个人去找他们——但祖上一言不敢随便派。」
+
+**锚句**：四十年以来潮候院没有人愿意问一句没回来的皂绳钓怎么样。
+**Anchor sentence**: in forty years not one person of the Institute has asked after the rope-drawers who never returned.
+
+---
+
+## 六 · 回声
+
+抄本师说，每次只听见回声站那边在响；那一段回声一星期响一次；雷阵雨过后会响三天——三天之内自己不知道那回声是什么声音。
+
+他每次下完雨后，都原地思念了一次：到底要怎么等下去。
+
+**锚句**：雷阵雨过后回声站会响三天——声音值更长知道、不知道的一样——值更长永远没听明白。
+**Anchor sentence**: after every thunderstorm the echo post sounds three days of noise; the head of the watch both knows and does not know what it is.
+
+---
+
+## 七 · 映射（回响六十九章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 五位皂绳钓 · 回声站 · 空坛子 · 汤候潮院 | 一、二、三、四、五、六 |
+| geography | 雾港回声站 · 南线 · 紫石 | 一、二 |
+| characters | 站长老宋 · 抄本师 · 值更长 | 一、二、三、四、五、六 |
+| story | 皂绳钓 · 回响（其六十九） | 全篇 |
+| items | 五只空坛子 · 十根皂绳 · 回声站 | 一、二、三、四、五 |
+| history | 第四十一次大会散会之后 · 秋潮月第四十八日 | 一、五、六 |
+
+> 他们说要回去——后来没人说要回来；海风一次吹进回声站。
+> They said they would return. No one says "they returned". The wind keeps blowing into the echo post.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其六十九）「雾港回声站那一队再没有回来的潮候师」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the echo post at the fog harbor — the tide-keepers who set out and never returned.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院雾港回声站——那一队潮候师出海之后再也没回来。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the forty-eighth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第四十八日。
+
+---
+
+## I · The Echo Post at the Fog Harbor
+
+The echo post is the Institute's outermost lookout on the fog harbor.
+
+The post-holder's name is Song; since he took the post, he has heard only one instruction: "leave, but never return that way."
+
+**锚句**：潮候院雾港最外面那个回声站，从上任起就没有过值班长。
+**Anchor sentence**: at the outermost echo post of the fog harbor, no post-holder has ever served since its appointment.
+
+---
+
+## II · Setting Out
+
+In the sixtieth year, five rope-drawers of the Institute were chosen. Each was issued one empty jar. They boarded the boat to the deep fog, the southern route, past the storm-purple reef.
+
+Their declared intent: to gather sea wind into the jars and bring it back for the Convocation.
+
+**锚句**：他们带着五个空坛子去雾港深处——要把海装回来给大会。
+**Anchor sentence**: they carried five empty jars into the deep fog to bring the sea back for the Convocation.
+
+---
+
+## III · The Echo
+
+The echo post is not a position with a regular post-holder. Every ten days or so, the copyists ask: "have you heard the echo?"
+
+Eventually the copyists said: they have listened to the same echo for twenty years — it has not varied by a single note.
+
+**锚句**：抄本师已经听了二十年的同一段回声——没有变过一声。
+**Anchor sentence**: the copyists have been listening to the same echo for twenty years; it has never changed once.
+
+---
+
+## IV · The Five Rope-Drawers
+
+No one remembers their names.
+
+After the 41st Convocation dissolved, a copyist went through the register and confirmed that the names of these five do not exist anywhere; the Convocation cannot tell who they were.
+
+**锚句**：名册上没有后来五只皂绳钓的姓名——他们始终叫「五只皂绳」。
+**Anchor sentence**: names are missing from the register — since forever the five are called only "the five rope-drawers".
+
+---
+
+## V · No Return
+
+They never returned, and no letter came.
+
+The head of the watch said to the copyists: "the Institute must eventually send someone to find them — but no senior has dared appoint one."
+
+**锚句**：四十年以来潮候院没有人愿意问一句没回来的皂绳钓怎么样。
+**Anchor sentence**: in forty years not one person of the Institute has asked after the rope-drawers who never returned.
+
+---
+
+## VI · The Echo
+
+After every thunderstorm the echo post sounds for three days; the head of the watch both knows and does not know what it is.
+
+After each storm, the copyist quietly repeated to himself: how shall we wait.
+
+**锚句**：雷阵雨过后回声站会响三天——声音值更长知道、不知道的一样——值更长永远没听明白。
+**Anchor sentence**: after every thunderstorm the echo post sounds three days of noise; the head of the watch both knows and does not know what it is.
+
+---
+
+## VII · Mapping（Echo No. 69 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the five rope-drawers · the echo post · the empty jars · the Convocation | 一、二、三、四、五、六 |
+| geography | the fog harbor echo post · the southern route · the storm-purple reef | 一、二 |
+| characters | post-holder Song · the copyists · the head of the watch | 一、二、三、四、五、六 |
+| story | the rope-drawers · Echo No. 69 | 全篇 |
+| items | five empty jars · ten ropes · the echo post | 一、二、三、四、五 |
+| history | After the 41st Convocation · the forty-eighth day of the autumn-tide month | 一、五、六 |
+
+> 他们说要回去——后来没人说要回来；海风一次吹进回声站。
+> They said they would return. No one says "they returned". The wind keeps blowing into the echo post.
+`,
+  },
 ] as const;
 
 export const BIBLE_APPENDICES: readonly BibleChapter[] = [

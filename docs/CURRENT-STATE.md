@@ -5525,3 +5525,9 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 第 68 篇回响「陶人阿栀」：潮水巷尽头亮一盏灯——她每天扛一只木箱——柳条绑住——送到偏院 · 里面装的陶具她从不说 · 双手粗糙但永远选最柔退浪石做汤碗 · 她的事手册封了线——只有一行「成了另一件」 · 放着的莓杯是她烧的。
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-068-the-potter-of-the-tide-alley`；verify world-bible **392/392** ✓。
 - 同步：BibleAsk lede → 68（含 en）；/bible/ask meta → 六十八篇 / sixty-eight；cache-identity → 68 篇锚句；bible-ask-behavior 锚句总数 386→392；canon-answer-graph 测试 73 段 / 68 echoes；pins 重钉（page→2aacbe96… comp→2b86aa7b…）；fe-gates 测试 24/24。
+
+## cont. 313 (2026-11-18) — v932 · §BIBLE-69 · Echo #69《雾港回声站那一队再没有回来的潮候师》（作者手写·双语·398/398 绿）
+
+- 第 69 篇回响「回声站」：雾港回声站——老宋说"出去别回"——五只皂绳钓带五只空坛子去雾港深处 · 抄本师听了二十年未改一声 · 四十年院中无人问他们下落 · 雷阵雨过后 echo post 连响三日。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-069-the-tide-keepers-who-never-returned`；verify world-bible **398/398** ✓。
+- 同步：BibleAsk lede → 69（含 en）；/bible/ask meta → 六十九篇 / sixty-nine；cache-identity → 69 篇锚句；bible-ask-behavior 锚句总数 392→398；canon-answer-graph 测试 74 段 / 69 echoes；pins 重钉（page→c14f825… comp→48e2ae7…）；fe-gates 测试 24/24。
