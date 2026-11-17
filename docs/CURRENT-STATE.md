@@ -5072,3 +5072,12 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - digest 从 35,113 字符 → **44,372 字符（+26.3 %）≈ 28k tokens**（全篇全 zh/en 对齐，gen 登记 `BIBLE_APPENDICES`，`bibleAsk.ts` `buildDigest` 接收同一份 digest shape）。
 - 所有锚句计数守恒：verify:world-bible **284/284** ✓；snapshot 字节一致 ✓。
 - 回归：bible 组 32/32 绿；live report to user this turn（基于 codex-models reference，把"输入上下文总少"打开说——但不是凑数字填充——故只扩大到贴合并能 cached 的合理范围）。
+
+## cont. 277 (2026-11-17) — v904 · §BIBLE-51/52 · Echo #51《雾港灯塔第七级台阶上那双从来没擦掉的脚印》+ #52《祠殿门廊那一段摸过六十九年的门槛》（作者手写·双语·296/296 绿）
+
+- 第 51 篇回响「灯塔第七阶樱桃红的台阶上那双脚印」：抄本员祖爷爷"必经之路"；值更每天蘸盐水拍一下台阶；沙从没移动过。接续 E49·BaTCh 系列"物品痕迹"潮。
+- 第 52 篇回响「祠殿门廊摸过六十九年的门槛」：每一次雾港人跨过它，脚踝轻微划一下；抄本员祖爷爷是青石匠人；雾港的风刮过祠殿门廊就追着门槛走，蝗风、潮沙盘风暴都吹不烂。每次入冬的第一场雨就会亮一下，因为脚印按一下门槛就亮一亮。
+- 母题串线：每一篇 echo 都围绕"不可动的位置上默默被触摸/擦拭/踩踏/脚印/砂"——潮候院世界观真的成了一个字，不是一个章节系列。
+- gen-bible-snapshot 登记 `echo-051-…`、`echo-052-…`；verify:bible-snapshot ✓；verify:world-bible **296/296** ✓。
+- 同步落地：BibleAsk lede → 52；/bible/ask meta → 五十二篇回响；canon-answer-graph 测试 57 段／52 echoes；bible-ask-behavior 锚句总数 284→296；CACHE-IDENTITY 更新。
+- 回归：bible 32/32 绿。

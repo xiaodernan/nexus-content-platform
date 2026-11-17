@@ -11061,6 +11061,402 @@ No one knows who could write it. No one has ever written there, nor seen anyone 
 > Whenever the book is ever burned, the forty-first page — if it alone is spared — it will still wait.
 `,
   },
+  {
+    order: 51,
+    slug: 'echo-051-the-footprints-on-the-seventh-step-of-the-lantern-tower-never-cleaned',
+    titleZh: '雾港灯塔第七级台阶上那双从来没擦掉的脚印',
+    titleEn: 'The Footprints On the Seventh Step of the Fog-Harbor Lantern Tower That Are Never Cleaned',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——雾潮月第十三日的值更早班。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the thirteenth day of the fog-tide month; the morning watch.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 51): The Footprints On the Seventh Step of the Fog-Harbor Lantern Tower That Are Never Cleaned
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给雾港灯塔第七级台阶上那一双没人擦掉、也没人避的脚印。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the lantern tower of the fog harbor — the footprints on the seventh step, which no one has ever cleaned.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——雾潮月第十三日的值更早班。
+> Era: the Institute — after the 41st Convocation; the thirteenth day of the fog-tide month; the morning watch.
+
+---
+
+## 一 · 雾港灯塔
+
+雾港灯塔一直没登上去过。没有人登上去过，也就是说灯塔仍是完好——
+
+登上去的人不多，但灯塔的第七级台阶上始终有人站立的足迹。
+
+**锚句**：雾港灯塔第七级台阶上有一双没人擦掉的脚印。
+**Anchor sentence**: on the seventh step of the fog-harbor lantern tower there are footprints no one has ever cleaned.
+
+---
+
+## 二 · 不擦
+
+不擦背后的规矩，要从第一任潮候起说起。
+
+第一任潮候在建院的时候把第七级台阶专门留作登塔人的必经之路，并不是要提醒潮候，而是要每一个上去的人都把脚印留在这一级台阶上。
+
+**锚句**：雾港灯塔第一任潮候把第七级台阶留作登塔人必经之路。
+**Anchor sentence**: the first conclave kept the seventh step as the mandatory passage for all climbers.
+
+---
+
+## 三 · 没人数过
+
+没有人数过第七级台阶上的脚印数——只是每天清早值更会拿一把盐水去拍一下台阶，手一拍，脚印的深痕就更深一点。
+
+值更说：这里的脚印长期在变化。
+
+**锚句**：值更在清早拿盐水拍一下第七级台阶，脚印就更深一点。
+**Anchor sentence**: each morning the watcher dips saltwater on the seventh step; the footprints deepen a little each time.
+
+---
+
+## 四 · 砂子
+
+台阶上的砂子齐整整从来没有移动过位置。
+
+守塔人的大衣上会带一点砂子下港，砂子进了港，又被另一个守塔人带回来。
+
+**锚句**：台阶上的砂子从来没有移动过位置。
+**Anchor sentence**: the sand on the step has never shifted.
+
+---
+
+## 五 · 风
+
+雾港灯塔上的风看不见，但它会在第七级台阶上留下砂子的味道——永远是海盐和糖的味道。
+
+抄本员说，这里的风是雾港最后一口风。
+
+**锚句**：雾港灯塔上的风会在第七级台阶上留下砂子的味道。
+**Anchor sentence**: the wind atop the fog-harbor lantern tower leaves the taste of sand on the seventh step.
+
+---
+
+## 六 · 没有数
+
+没有人敢数第七级台阶上总共有多少双脚印。
+
+抄本员的祖爷爷登过塔，但抄本员从没登上去过。
+
+**锚句**：没有人敢数第七级台阶上总共有过多少双脚印。
+**Anchor sentence**: no one dares count how many footprints have walked the seventh step.
+
+---
+
+## 七 · 映射（回响五十一章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 雾港灯塔 · 第七级台阶 · 不擦的脚印 | 一、二、三、四、五、六、七 |
+| geography | 雾港 · 灯塔 · 雾潮月第十三日 | 一、二、四、六、七 |
+| characters | 第一任潮候 · 抄本员 · 抄本员的祖爷爷 | 一、二、三、四、五、六 |
+| story | 灯塔台阶 · 回响（其五十一） | 全篇 |
+| items | 台阶 · 盐水 · 砂子 · 灯塔 | 一、二、三、四、五、六、七 |
+| history | 第四十一次大会散会之后 · 雾潮月第十三日 | 一、五、六、七 |
+
+> 雾港灯塔第七级台阶上还有一双——是抄本员的后代自己留下的，他生前没看见，死后也要看见。
+> One more pair of footprints will appear one day on the seventh step — those of the copyist's descendants — whose feet will climb after they are gone.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其五十一）「雾港灯塔第七级台阶上那双从来没擦掉的脚印」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the lantern tower of the fog harbor — the footprints on the seventh step, which no one has ever cleaned.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给雾港灯塔第七级台阶上那一双没人擦掉、也没人避的脚印。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the thirteenth day of the fog-tide month; the morning watch.
+> 纪元：潮候院 · 第四十一次大会散会之后——雾潮月第十三日的值更早班。
+
+---
+
+## 一 · The Lantern Tower
+
+The fog-harbor lantern tower has never been climbed. No one has climbed it — which means the tower is intact.
+
+Few people have climbed it; but the seventh step always carries someone's footprints.
+
+**锚句**：雾港灯塔第七级台阶上有一双没人擦掉的脚印。
+**Anchor sentence**: on the seventh step of the fog-harbor lantern tower there are footprints no one has ever cleaned.
+
+---
+
+## 二 · Why They Are Never Cleaned
+
+The rule behind not cleaning goes back to the first conclave.
+
+The first conclave, building the Institute, kept the seventh step for all climbers — not to honor the climbers, but to leave their footprints there.
+
+**锚句**：雾港灯塔第一任潮候把第七级台阶留作登塔人必经之路。
+**Anchor sentence**: the first conclave kept the seventh step as the mandatory passage for all climbers.
+
+---
+
+## 三 · No One Has Counted
+
+No one has ever counted the footprints on the seventh step. Each morning the watchers dip saltwater and pat the step once — the footprints deepen a little.
+
+The watcher says: the footprints here are always changing.
+
+**锚句**：值更在清早拿盐水拍一下第七级台阶，脚印就更深一点。
+**Anchor sentence**: each morning the watcher dips saltwater on the seventh step; the footprints deepen a little each time.
+
+---
+
+## 四 · The Sand
+
+The sand on the step has never shifted.
+
+The tower keeper brings sand from the port in his coat, and another tower keeper takes it from the port back into the tower.
+
+**锚句**：台阶上的砂子从来没有移动过位置。
+**Anchor sentence**: the sand on the step has never shifted.
+
+---
+
+## 五 · The Wind
+
+The wind on the fog-harbor lantern tower cannot be seen. It leaves the taste of sand on the seventh step — forever the taste of sea salt and sugar.
+
+The copyist said: this is the last breath of the fog harbor.
+
+**锚句**：雾港灯塔上的风会在第七级台阶上留下砂子的味道。
+**Anchor sentence**: the wind atop the fog-harbor lantern tower leaves the taste of sand on the seventh step.
+
+---
+
+## 六 · Numb
+
+No one dares count how many pairs of footprints have walked the seventh step.
+
+The copyist's great-grandfather climbed the tower — but the copyist never did.
+
+**锚句**：没有人敢数第七级台阶上总共有过多少双脚印。
+**Anchor sentence**: no one dares count how many footprints have walked the seventh step.
+
+---
+
+## 七 · Mapping（Echo No. 51 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the fog-harbor lantern tower · the seventh step · uncleaned footprints | 一、二、三、四、五、六、七 |
+| geography | the fog harbor · the lantern tower · the thirteenth day of the fog-tide month | 一、二、四、六、七 |
+| characters | the first conclave · the copyist · the copyist's great-grandfather | 一、二、三、四、五、六 |
+| story | the lantern tower's step · Echo No. 51 | 全篇 |
+| items | the step · saltwater · sand · the lantern tower | 一、二、三、四、五、六、七 |
+| history | After the 41st Convocation · the thirteenth day of the fog-tide month | 一、五、六、七 |
+
+> 雾港灯塔第七级台阶上还有一双——是抄本员的后代自己留下的，他生前没看见，死后也要看见。
+> One more pair of footprints will appear one day on the seventh step — those of the copyist's descendants — whose feet will climb after they are gone.
+`,
+  },
+  {
+    order: 52,
+    slug: 'echo-052-the-threshold-in-the-chapel-porch-worn-by-sixty-nine-years',
+    titleZh: '潮候院祠殿门廊那一段摸过六十九年的门槛',
+    titleEn: 'The Threshold in the Chapel Porch That Has Been Touched for Sixty-Nine Years',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——建院第六十九年正月。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the first month of the sixty-ninth year of the Institute.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 52): The Threshold in the Chapel Porch That Has Been Touched for Sixty-Nine Years
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿门廊上那一段被无数人摸过、从来没有人数的门槛。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the threshold in the chapel porch — touched sixty-nine years, never counted.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——建院第六十九年正月。
+> Era: the Institute — after the 41st Convocation; the first month of the sixty-ninth year of the Institute.
+
+---
+
+## 一 · 祠殿门廊
+
+潮候院祠殿门廊有一段长长的石门槛。它横在门廊入口处——不是一条，是一块往外伸出六寸的青石。
+
+每一次雾港人跨进祠殿的大门，都会被门槛划一下脚踝。值守们说"这块石头授人以理"。
+
+**锚句**：祠殿门廊有一段青石门槛，每次人跨进祠殿都会被划一下脚踝。
+**Anchor sentence**: the chapel porch has a threshold; every crossing above it scratches an ankle.
+
+---
+
+## 二 · 六十九年的摸
+
+抄本员的祖爷爷是这段石头的手艺人。
+
+值更长当年看着他把青石打磨完——打磨的时候侯望人拿着笔在门槛上涂了涂。他涂完，青石在灯油下变得更软滑了一些。
+
+**锚句**：抄本员的祖爷爷是那段青石门槛的手艺人。
+**Anchor sentence**: the copyist's great-grandfather was the craftsman of the threshold.
+
+---
+
+## 三 · 没有人数
+
+没有人数过这门槛上有多少人摸过。
+
+不过每年入冬的第一场雨后，门槛都会重新被摸得发亮一点——抄本员的后人就是在这亮光里找到自己祖爷爷留下的旧刀刻印的。
+
+**锚句**：没人数过门槛上有多少人摸过它。
+**Anchor sentence**: no one has ever counted how many hands touched it.
+
+---
+
+## 四 · 刃痕
+
+门槛上有一道刃痕。
+
+抄本员的祖爷爷用一把船舵木质的小刀刻了一个符号。刻完之后，他把刀刃磨在沙子里——沙把刀刃磨平了，但那道刃痕一直留在门槛上。
+
+**锚句**：门槛上有一道刃痕。
+**Anchor sentence**: there is a single cut on the threshold.
+
+---
+
+## 五 · 风
+
+每一次雾港的风刮过祠殿门廊时，风都追着门槛走。
+
+1977年雾港大潮里，风差点把整根门槛给吹进了海里——调查组写了一篇很长的报告，院长把那道报告压在门槛下，到现在还没人搬。
+
+**锚句**：雾港的风刮过祠殿门廊时会追着门槛走。
+**Anchor sentence**: every time the wind crosses the chapel porch, it chases the threshold.
+
+---
+
+## 六 · 没人会搬它
+
+分布在潮汐表十年地震记录中的几场暴雨，都没有把这门槛打碎。
+
+院长说："这门槛命里有风，不有沙。"
+
+**锚句**：雾港潮沙盘所有风暴都没有把这门槛打碎。
+**Anchor sentence**: none of the tide-sand storms broke it.
+
+---
+
+## 七 · 映射（回响五十二章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 门槛 · 六十九年的摸 · 刃痕 | 一、二、三、四、五、六、七 |
+| geography | 潮候院 · 祠殿门廊 · 雾潮月第一日 | 一、二、四、五、六、七 |
+| characters | 抄本员祖爷爷 · 值更长 · 院长 | 一、二、四、五、六 |
+| story | 祠殿门槛 · 回响（其五十二） | 全篇 |
+| items | 门槛 · 小刀 · 风 · 雾港潮沙盘 | 一、二、四、五、六、七 |
+| history | 第四十一次大会散会之后 · 建院第六十九年正月 | 一、四、五、六、七 |
+
+> 江山有常，有风去有火回——但祠殿的门槛会一直在那，裹着一层踩过它的每一代人的脚。
+> The land endures, winds go and fires return — but the threshold of the chapel stays, holding the footsteps of every generation that crossed it.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其五十二）「潮候院祠殿门廊那一段摸过六十九年的门槛」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the threshold in the chapel porch — touched sixty-nine years, never counted.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿门廊上那一段被无数人摸过、从来没有人数的门槛。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the first month of the sixty-ninth year of the Institute.
+> 纪元：潮候院 · 第四十一次大会散会之后——建院第六十九年正月。
+
+---
+
+## 一 · The Chapel Porch
+
+The chapel porch of the Institute holds a long stone threshold. It lies at the entrance of the porch — not a line, but a slab of bluestone jutting out six inches.
+
+Every time a fog-harbor person steps across the chapel door, the slab scratches their ankle lightly. The watchers say: this slab teaches reason.
+
+**锚句**：祠殿门廊有一段青石门槛，每次人跨进祠殿都会被划一下脚踝。
+**Anchor sentence**: the chapel porch has a threshold; every crossing above it scratches an ankle.
+
+---
+
+## 二 · Sixty-Nine Years of Touch
+
+The copyist's great-grandfather was the craftsman of this slab.
+
+The head watcher once saw him polish the slab — while he was polishing, a sentry someone passing by painted a few strokes across it. He dipped it and kept walking.
+
+**锚句**：抄本员的祖爷爷是那段青石门槛的手艺人。
+**Anchor sentence**: the copyist's great-grandfather was the craftsman of the threshold.
+
+---
+
+## 三 · No Count
+
+No one has ever counted how many hands touched the threshold.
+
+After the first rain of each winter, the slab shines a little brighter — the copyist's descendants found their ancestor's old chisel mark in that sheen.
+
+**锚句**：没人数过门槛上有多少人摸过它。
+**Anchor sentence**: no one has ever counted how many hands touched it.
+
+---
+
+## 四 · The Mark
+
+A mark is engraved on the threshold.
+
+The copyist's great-grandfather took a small rudder-wood knife and cut a single glyph. After he finished, he ground the blade on sand — the sand made the blade smooth, but the mark remained on the threshold.
+
+**锚句**：门槛上有一道刃痕。
+**Anchor sentence**: there is a single cut on the threshold.
+
+---
+
+## 五 · Wind
+
+Every time the wind of the fog harbor sweeps across the chapel porch, it chases after the threshold.
+
+In 1977, during the Great Tide, the wind nearly blew the whole threshold into the sea — an investigation panel wrote a lengthy report; the director laid it under the threshold, and no one has moved it since.
+
+**锚句**：雾港的风刮过祠殿门廊时会追着门槛走。
+**Anchor sentence**: every time the wind crosses the chapel porch, it chases the threshold.
+
+---
+
+## 六 · No One Will Move It
+
+Several storms recorded in the tide-sand table over the past ten years never managed to break this slab.
+
+The director said: "This slab has wind and no sand."
+
+**锚句**：雾港潮沙盘所有风暴都没有把这门槛打碎。
+**Anchor sentence**: none of the tide-sand storms broke it.
+
+---
+
+## 七 · Mapping（Echo No. 52 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the threshold · sixty-nine years of touch · the cut | 一、二、三、四、五、六、七 |
+| geography | the Institute · the chapel porch · the fog-tide month | 一、二、四、五、六、七 |
+| characters | the copyist's great-grandfather · the head watcher · the director | 一、二、四、五、六 |
+| story | the chapel threshold · Echo No. 52 | 全篇 |
+| items | the threshold · the knife · the wind · the tide-sand table | 一、二、四、五、六、七 |
+| history | After the 41st Convocation · the first month of the sixty-ninth year | 一、四、五、六、七 |
+
+> 江山有常，有风去有火回——但祠殿的门槛会一直在那，裹着一层踩过它的每一代人的脚。
+> The land endures, winds go and fires return — but the threshold of the chapel stays, holding the footsteps of every generation that crossed it.
+`,
+  },
 ] as const;
 
 export const BIBLE_APPENDICES: readonly BibleChapter[] = [
