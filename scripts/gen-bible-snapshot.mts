@@ -77,6 +77,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E33-四十一次大会那天一并封起来的那封信': 'echo-033-the-letter-of-the-forty-first-convocation',
   'E34-祠殿地下室里那张旧海图': 'echo-034-the-old-sea-chart-in-the-chapel-cellar',
   'E35-祠殿侧门外那只从不干的石凹': 'echo-035-the-stone-basin-that-never-runs-dry',
+  'E36-值更院米缸里那粒从不沉下去的米': 'echo-036-the-grain-that-never-sinks',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

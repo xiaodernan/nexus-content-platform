@@ -36,6 +36,7 @@ const COPY = {
       { at: 9, text: '巡逻路的旅人', note: '盐味酸过了——记住的巡逻路比忘掉的多。' },
       { at: 12, text: '守夜人传人', note: '门在关上之前你没见过，但你记住了是什么。' },
       { at: 14, text: '潮汐大匠', note: '海还没说完的话，你已经知道是什么了。' },
+      { at: 15, text: '满分守夜人', note: '十五题全对——典籍不会忘记问倒过谁。' },
     ],
     footer: '《世界大典》正典全文见典籍室（/bible）。答错的题里标了出处：错就是错，没有近似的正确。',
     scoreLine: (n: number, total: number) => `${n} / ${total}`,
@@ -57,6 +58,7 @@ const COPY = {
       { at: 9, text: 'The Patrol-Road Traveller', note: 'You are more road remembered than forgotten.' },
       { at: 12, text: 'The Successor Watcher', note: 'You have never seen the door, but you know what was behind it.' },
       { at: 14, text: 'The Tide Master', note: 'The sea still has not finished — and you already know what it said.' },
+      { at: 15, text: 'The Full Tide', note: 'Fifteen of fifteen — the canon will not forget who asked it best.' },
     ],
     footer: 'The full canon lives in the shelf (/bible). Every wrong answer points you to where it lives. Wrong is wrong — there is no near-enough.',
     scoreLine: (n: number, total: number) => `${n} / ${total}`,
@@ -125,6 +127,10 @@ const QUESTIONS: Question[] = [
   {
     zh: { prompt: '三路人中，谁带走了灯塔顶层下来的那截灯芯？', choices: ['盐海商会的人', '潮沙盘学馆的人', '雾港灯楼的人', '里巷子的抄本员'], answer: 2, ref: '第五章 · 三城各自出发的人' },
     en: { prompt: 'Which of the three parties took the wick that had come down from the lantern-top?', choices: ['The Salt-Sea Guild', 'The Sand-Table School', 'The Lantern Tower at Fog Harbor', 'The copyists of the back alley'], answer: 2, ref: 'Chapter V · Three Cities Send Their Own' },
+  },
+  {
+    zh: { prompt: '值更院那只米缸里那粒一直浮在最上面的米，已经浮着多少年了？', choices: ['三年', '九年', '六十九年', '九十年'], answer: 2, ref: '回响三十六 · 那一粒月亮' },
+    en: { prompt: 'How many years has the grain of rice been floating on top of the watcher’s rice jar?', choices: ['Three', 'Nine', 'Sixty-nine', 'Ninety'], answer: 2, ref: 'Echo No. 36 · The Grain the Moon Sent Down' },
   },
 ];
 

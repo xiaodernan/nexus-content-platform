@@ -8079,4 +8079,188 @@ Before handing over, the watcher of the rice-jar month does not check the square
 > At the next drought, the watcher will bend down again — the water, most likely, will still be there.
 `,
   },
+  {
+    order: 36,
+    slug: 'echo-036-the-grain-that-never-sinks',
+    titleZh: '值更院米缸里那粒从不沉下去的米',
+    titleEn: 'The Grain of Rice in the Watcher\'s Rice Jar That Never Sinks',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——米缸月第七日的值更班。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the watcher\'s shift on the seventh day of the rice-jar month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 36): The Grain of Rice in the Watcher's Rice Jar That Never Sinks
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院值更院米缸月每天早上的那只米缸——最上面的那一粒米六十九年没有沉下去过。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the rice jar in the watcher's courtyard — the grain at its surface has not sunk in sixty-nine years.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——米缸月第七日的值更班。
+> Era: the Institute — after the 41st Convocation; the watcher's shift on the seventh day of the rice-jar month.
+
+---
+
+## 一 · 米缸的值更院
+
+值更院有一个米缸。每天早上，值更们自己来领当日的三两米，自己煮，自己吃。
+
+没人数过这个缸里还剩多少。也没人问过值更长：「这个缸子什么时候该换一缸？」
+
+**锚句**：每个值更早上来领自己的三两米。
+**Anchor sentence**: every watcher comes at morning for his own three taels of rice.
+
+---
+
+## 二 · 那一粒
+
+某个值更舀米的时候，看见缸面上有一粒米一直浮在那里——没人捞过它，它也从没沉下去过。
+
+后来的值更们见怪不怪了。轮到值更舀米的那天，大家都会多看一眼那一粒。
+
+**锚句**：那粒米浮在缸面上，六十九年没沉下去过。
+**Anchor sentence**: that one grain floats on the jar's surface — in sixty-nine years it never sinks.
+
+---
+
+## 三 · 筷子拨过一次
+
+某一年——具体是哪一年，米缸月的值更册上没写——抄本员想：「它是真的米吗？」
+
+他用筷子把那一粒拨了一下，拨出去两寸远。第二天早上，那粒米又浮回原来的位置。抄本员没跟任何人说这件事。
+
+**锚句**：筷子拨过一次，次日它又浮回原位。
+**Anchor sentence**: poked once with a pair of chopsticks — the next morning it floated back to its place.
+
+---
+
+## 四 · 值更册上的一行字
+
+米缸月第五日的值更册里有一行字。抄本员抄过那一行，他记得每一个字，写得很轻：
+
+缸里有一粒米不许拿出来。
+
+下面没有一个字的解释。米缸月过去了，那一行字也没再加字。
+
+**锚句**：米缸月第五日的值更册写着一行字：缸里有一粒米不许拿出来。
+**Anchor sentence**: the register of the fifth of the rice-jar month holds one line: do not take out that grain.
+
+---
+
+## 五 · 月亮派下来的一粒
+
+米缸月的值更有一任值更特别年长，说了一句别人至今都没接上话的话：
+
+那是月亮派下来的一粒——它替月亮看着值更院。
+
+他说完这句话就笑了。米缸月的年轻值更们谁也没接他的话，因为谁也不知道该接什么。
+
+**锚句**：值更们管它叫月亮派下来的那一粒。
+**Anchor sentence**: the watchers call it the grain the moon sent down.
+
+---
+
+## 六 · 映射（回响三十六章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 值更院米缸 · 那一粒米 · 值更册上那一行字 | 一、二、三、四、五、六 |
+| geography | 值更院 · 里巷子 · 米缸月 | 一、二、四、五、六 |
+| characters | 米缸月的值更 · 抄本员 · 值更长 | 一、二、三、四、五 |
+| story | 月亮派下来的一粒 · 回响（其三十六） | 全篇 |
+| items | 米缸 · 那一粒米 · 值更册 · 筷子 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 潮候院第六十九年 | 一、二、四、五、六 |
+
+> 下一次米缸月值更换班的时候，会有新值更舀起第一勺米——他会看到那一粒还在。
+> At the next rice-jar month's watcher changeover, the new watcher will scoop the first ladle — and see that grain, still there.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其三十六）「值更院米缸里那粒从不沉下去的米」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the rice jar in the watcher's courtyard — the grain at its surface has not sunk in sixty-nine years.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院值更院米缸月每天早上的那只米缸——最上面的那一粒米六十九年没有沉下去过。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the watcher's shift on the seventh day of the rice-jar month.
+> 纪元：潮候院 · 第四十一次大会散会之后——米缸月第七日的值更班。
+
+---
+
+## 一 · The Rice Jar in the Watcher's Courtyard
+
+The watcher's courtyard keeps a rice jar. Every morning, the watchers come for their own three taels, to boil and eat on their own.
+
+No one has counted how much is left in that jar. No one has asked the headkeeper when it should be changed.
+
+**锚句**：每个值更早上来领自己的三两米。
+**Anchor sentence**: every watcher comes at morning for his own three taels of rice.
+
+---
+
+## 二 · That One Grain
+
+Once, while scooping rice, a watcher noticed a single grain floating on the surface — untouched by every scoop, never sinking.
+
+The watchers came to take it as normal. Any day it is a watcher's turn to scoop, everyone gives that grain one extra look.
+
+**锚句**：那粒米浮在缸面上，六十九年没沉下去过。
+**Anchor sentence**: that one grain floats on the jar's surface — in sixty-nine years it never sinks.
+
+---
+
+## 三 · A Pair of Chopsticks
+
+One year — the register of the rice-jar month does not say which — a copyist wondered: is it really rice?
+
+He poked it with a pair of chopsticks, about two finger-widths. The next morning, that grain had floated back to exactly its place. He never told anyone.
+
+**锚句**：筷子拨过一次，次日它又浮回原位。
+**Anchor sentence**: poked once with a pair of chopsticks — the next morning it floated back to its place.
+
+---
+
+## 四 · The One Line in the Register
+
+In the register of the fifth of the rice-jar month, there is one line. The copyist has transcribed it — he remembers every character, written very lightly:
+
+Do not take out that grain.
+
+No explanation below it. The rice-jar month passed, and the line gained nothing after it.
+
+**锚句**：米缸月第五日的值更册写着一行字：缸里有一粒米不许拿出来。
+**Anchor sentence**: the register of the fifth of the rice-jar month holds one line: do not take out that grain.
+
+---
+
+## 五 · The Grain the Moon Sent Down
+
+One year, a very senior watcher of the rice-jar month said a thing no one has answered since:
+
+That is the grain the moon sent down — it watches over the watcher's courtyard on the moon's behalf.
+
+He laughed after he said it. The young watchers did not answer, because no one knew what an answer should look like.
+
+**锚句**：值更们管它叫月亮派下来的那一粒。
+**Anchor sentence**: the watchers call it the grain the moon sent down.
+
+---
+
+## 六 · Mapping（Echo No. 36 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | The watcher's rice jar · that one grain · the one line in the register | 一、二、三、四、五、六 |
+| geography | The watcher's courtyard · the back alley · the rice-jar month | 一、二、四、五、六 |
+| characters | The watchers of the rice-jar month · the copyists · the headkeeper | 一、二、三、四、五 |
+| story | The grain the moon sent down · Echo No. 36 | 全篇 |
+| items | The rice jar · that one grain · the watcher's register · the chopsticks | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the 69th year of the Institute | 一、二、四、五、六 |
+
+> 下一次米缸月值更换班的时候，会有新值更舀起第一勺米——他会看到那一粒还在。
+> At the next rice-jar month's watcher changeover, the new watcher will scoop the first ladle — and see that grain, still there.
+`,
+  },
 ] as const;

@@ -14594,3 +14594,9 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - 覆盖：Layers/Design/Assets/World/Game/Storyboard/Team/Characters/Memory/Retrieve/Context/Agent/History/Health + Export/Publish 弹层 + World Map/Game Map/Code/Variants 视图切换；console errors = 0。
 - 发布弹层与健康面板如实展示「预检未完成 / 未运行 Tests, AI QA」——§159 诚实性锁死，不虚报。
 - 付费 provider §PROVED-7：key 经 Clash 7897 复测（models 200；chat completions 200；prompt 4454 → out 22；模型缺上下文时答「没有记载」，未编造）。
+
+## §BIBLE-48 — 回响 · 其三十六《值更院米缸里那粒从不沉下去的米》（2026-11-17 · v859）
+
+- 新回响 E36（中英双文件 + 映射表）：米缸里那一粒米六十九年没沉过；筷子拨过一次又浮回原位；值更册一行字；月亮派下来的一粒。
+- 潮汐挑战第 15 题接入该回响（zh/en）：`那粒米已经浮着多少年？→ 六十九年`；新增 15/15 结算档；SHA `8a00db7f…`。
+- verify:world-bible ✓ 200/200；快照 5 章 · 36 回响；本回无其他改动的 fe-gate 一律保持 CEN 2566。
