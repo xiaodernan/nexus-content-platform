@@ -4918,3 +4918,10 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 作者手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-040-the-name-on-the-roster-nobody-recognizes`；verify:bible-snapshot ✓；verify:world-bible **224/224** ✓。
 - 同步落地：BibleAsk lede → 40；/bible/ask meta → 四十篇；canon-answer-graph 测试 45 段／40 echoes；bible-ask-behavior 锚句总数 218→224；CACHE-IDENTITY 更新到 40 篇序列。
 - 回归：bible 组 50/50 绿。digest 重灌一次 cold（预期）。
+
+## cont. 260 (2026-11-17) — v889 · §BIBLE-41 · Echo #41《祠殿横梁上那条画了一半的龙》（作者手写·双语·230/230 绿）
+
+- 第 41 篇回响「半龙」：祠殿横梁上那条画了一半的龙——值更们不敢画完，说它守着梁下睡的人。开篇回引正典既有意象（潮候院·第四十一次大会·米缸月），叙事血统与 E40《值更图》同源（酉时班+米缸月末/幽冥感）。
+- 作者手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-041-the-half-painted-dragon-on-the-chapel-beam`；verify:bible-snapshot ✓；verify:world-bible **230/230** ✓。
+- 同步落地：BibleAsk lede → 41；/bible/ask meta → 四十一篇回响；canon-answer-graph 测试 46 段／41 echoes；bible-ask-behavior 锚句总数 224→230；CACHE-IDENTITY 更新。
+- 回归：bible 核心 24/24 绿。
