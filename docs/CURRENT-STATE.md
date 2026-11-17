@@ -5606,3 +5606,9 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 第 78 篇回响「每年自己盖开的木匣」：潮候院北库外角——木匣看颜色灰白 · 每年大会散会日自盖开 — 北库守说没人动 · 抄本师："里面不是空——但不让我记" · 那一年护池上雾色沉默。
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-078-the-wooden-box-opens-once-a-year`；verify world-bible **452/452** ✓。
 - 同步：BibleAsk lede → 78（含 en）；/bible/ask meta → 七十八篇 / seventy-eight；cache-identity → 78 篇锚句；bible-ask-behavior 锚句总数 446→452；canon-answer-graph 测试 83 段 / 78 echoes；pins 重钉（page→afcae32a… comp→1441e7de…）；fe-gates 测试 24/24。
+
+## cont. 324 (2026-11-18) — v943 · §BIBLE-79 · Echo #79《潮候院最深处那只守了九世的大镇海木鸦》（作者手写·双语·458/458 绿）
+
+- 第 79 篇回响「大镇海木鸦」：院最深处的大屋子——屋子正中青灰大碗——一只大乌鸦——一万只脚印绕一圈——它永远不动——值更长说"一万双鞋印穿过院内"——屋子叫"那里"——没人把名字说出来——抄本师说它已经活了九世，会叫但没人真听到。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-079-the-great-crow-at-the-deepest-place`；verify world-bible **458/458** ✓。
+- 同步：BibleAsk lede → 79（含 en）；/bible/ask meta → 七十九篇 / seventy-nine；cache-identity → 79 篇锚句；bible-ask-behavior 锚句总数 452→458；canon-answer-graph 测试 84 段 / 79 echoes；pins 重钉（page→1699e2df… comp→fab85a5e…）；fe-gates 测试 24/24。

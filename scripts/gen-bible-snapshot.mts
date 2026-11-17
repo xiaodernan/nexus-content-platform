@@ -120,6 +120,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E76-潮候院顶最高处那间没人打开的封地窖': 'echo-076-the-attic-no-one-opens',
   'E77-潮候院南山角那只一百多年从没入沉心的石狮': 'echo-077-the-stone-lion-who-never-sank',
   'E78-潮候院北库外角那只一年只打开一次的木匣': 'echo-078-the-wooden-box-opens-once-a-year',
+  'E79-潮候院最深处那只守了九世的大镇海木鸦': 'echo-079-the-great-crow-at-the-deepest-place',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
