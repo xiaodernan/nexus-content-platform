@@ -1926,3 +1926,26 @@ RAW 数据：`docs/evidence/load-web-ssr-2026-11-17.{md,json}`。首发 run 的"
 不裁决成任何机器能力。
 
 榨取空间（本轮未做，属 ai-service 行为变更，须单独立片）：pipeline / 批量 ZADD（completion-cache 同 digest 三段写天然可批，不改业务语义）；多实例分片；调用方异步写。探针自身第一版曾因 call() 元组解包错误导致清理函数静默无效（「0 残留」从未被真正测量）——已修并以「残留非 0 即非零退出」锁定，详见证据篇「校准说明」。§CACHE-4-AB 测的是 provider 端 KV 命中（字节前缀稳定），本篇测**本项目应用层** Redis 命中通路容量，二者互不代替。
+
+## cont. 286 (2026-11-17) — §STRESS ① 登录门撞库/高并发本机实测（依赖无关路由 · Docker 崩溃窗口）
+
+**事故**：Docker Desktop 于本次会话中途第 3 次崩溃（docker.sock/npipe 拒绝连接），Postgres 55433/Redis 56379 随即不可用；`GET /`/`/api/notifications` 全部 ECONNREFUSED→500——全栈压测（A 读 / D 注册写库 / E 重复注册）**在此窗口无法运行，未伪造任何容量数字**。
+Docker Desktop 已由 agent 人工拉起（本轮恢复，server 29.9.3，nexus-postgres / nexus-redis 恢复 healthy），但 RAM 随即触底（0.46 GB），全量压测仍需安静窗口（≥3 GB free RAM）。
+
+**本轮真实测得**（`next dev` 路径；同批同环境；工具 `.scratch/stress-batteria.mjs` + `.scratch/stress-ip-window.mjs`）：
+
+| 场景 | 并发 | 请求 | 结果 | p50 | p95 |
+|---|---|---|---|---|---|
+| 撞库 · 15 个伪造右端 XFF 来源 · 密码全错 | 30 | 90 | **90×401**（无 200 / 无 5xx） | 1027ms | 1289ms |
+| 合法突增 · 单 IP · 密码 123 | 24 | 24 | **24×200** | 616ms | 846ms |
+| 单 IP 恒发 36 次错误密码 | 36 | 36 | 前 **30×401** · 后 **6×429**（30/5min/IP 限流精确命中） | — | — |
+
+**解读（如实）**：
+1. 登录门在 dev 路径上是稳定的；撞库 90 次零穿透，限流严格 30/5min/IP——反代信任边界（右端 XFF、缺失则断桶）已在 `rateLimit.ts` 实现并被单测钉住（§FE-gates `rateLimit` 系）。
+2. p50 ≈ 1s 是 dev 冷编译/调试路径主导，不是 handler 成本；生产容量需 `next start` + 同档并发复测（本片同样的限制见 PERFORMANCE.md "web 侧高并发实测" 一栏）。
+3. 限流429 流：`statuses:{"401":30,"429":6}` ——首 30 次 401 后严格翻 429，与 IP_RATE_RULES 的 `insight/login:{cap:30, windowMs:300000}` 对账一致。
+4. 全栈部分：待安静窗口（Docker 稳定 + ≥3 GB free RAM）重跑 A/D/E 三档（含恢复宿主后的 500 攻击面记录）。
+
+**文件**：`.scratch/stress-batteria.mjs`（无新增依赖）· `.scratch/stress-ip-window.mjs`（限流精确命中探针）。
+**下一步**：Docker 稳定后（或 RAM ≥3 GB 的窗口）复现全量 batteria；把压测结论扩到 `/api/analytics/track` 等写库路由。
+
