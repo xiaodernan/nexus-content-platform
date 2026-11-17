@@ -5973,3 +5973,14 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 >   跨 UA 不放行，跨实例不合并——记录见 docs/STRESS-TESTS.md 与 scripts/observe-login-hammer.mts（沙盘代码，端口 3407，RFC 5737 保留地址）
 > - 契约检验：POST /api/admin/observe 正确口令 → 200 + cookie；/admin/observe 门面 200 验证；/api/admin/observer/digest 无 cookie → 401
 > - 门：fe-gates 147/147 · 1353/1353 · verify:world-bible 367/367 · bible-snapshot/anchor-echo/census · tsc EXIT=0 · game-model 363/363
+
+
+> **2026-11-18 续（cont. 214 — §AILIVE-2 app chain 实测通过：web → ai-service → aizzz.xyz 真实 LLM）**：
+> - 本机起了 prod web (`next start :3100`，带 NEXUS_AI_SERVICE_URL=http://127.0.0.1:3200) 与 ai-service (uvicorn @3200)，
+>   跑 `scripts/live-ai-smoke.mts --confirm-real`：GET / CSRF cookie → register（creator 临时账号）→ create project → /api/ai/run
+>   → capability **real** · provider **openai-compatible** · model **gpt-6.1-terra** · latency 3,094 ms · tokensIn 8,896/out 46 · demoMode **false**
+>   （解释文本回的是"WCAG AA 对正文（普通大小）文字的最低对比度要求是 4.5:1。"）
+> - evidence 落盘 `docs/evidence/live-app-chain-2026-11-18.md`
+> - 诚实记录：本次 cacheReported=false/cachedTokens=0（aizzz 未回传缓存字段）；live cache 身份证据见 `docs/CACHE-IDENTITY.md`
+>   + 2026-11-17 系列 evidence；本片只验 app chain 接通，没有再动缓存路径（用户指导「基本措施做好就行了」）
+> - 缺口：v1/ai/design-graph（StateGraph 全译）已在并轨线落过证据；本片没有再单跑一遍
