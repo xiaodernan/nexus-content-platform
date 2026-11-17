@@ -15860,6 +15860,204 @@ The copyists say it is a signature of the Institute: the fog knows what the Inst
 > The Institute's windows remember every fog-kiss — no one explains them.
 `,
   },
+  {
+    order: 75,
+    slug: 'echo-075-the-one-time-fed-seabird-at-the-east-gate',
+    titleZh: '潮候院东门外那只唯一一次被喂食的幼鸟',
+    titleEn: 'The Young Seabird at the East Gate Fed Only Once',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——秋潮月第五十九日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the fifty-ninth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 75): The Young Seabird at the East Gate Fed Only Once
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院东门外那只唯一一次被喂食的幼鸟。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the young seabird at the east gate of the Institute who was fed only once.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第五十九日。
+> Era: the Institute — after the 41st Convocation; the fifty-ninth day of the autumn-tide month.
+
+---
+
+## 一 · 东门外
+
+潮候院东门是一道宽大的铁木门，门外有一片礁石。
+
+礁石根部能听到潮声——风从那里吹来时，雪花般的海腥味随气流扑进来；任何时刻，门外都有两三只海鸟蹲在那边。
+
+**锚句**：潮候院东门外常有两三只海鸟蹲在礁石根部。
+**Anchor sentence**: at the foot of the rocks outside the east gate, two or three seabirds squat all the time.
+
+---
+
+## 二 · 幼鸟
+
+第五十八回潮候院大会散会之后第七天——某个午后——值更长看见礁石上有一只幼鸟蜷着，全身浸在潮水里——嘴呼吸着——黄嘴尖还没有硬。
+
+他没动手——没办法看到怎么办；只问了一句："它能吃吗？"
+
+**锚句**：礁石上有一只幼鸟，全身浸在潮水里，黄嘴尖还没硬。
+**Anchor sentence**: a chick on the rocks, soaked by the tide, its yellow bill-tip still soft.
+
+---
+
+## 三 · 喂了一次
+
+值更长问值更院值日的孩子去拿了一瓢鱼肠渣补给。
+
+孩子把鱼肠渣放在礁石根；鸟张嘴了，吞了——一两口——没再升起。
+
+**锚句**：值更孩子把鱼肠渣放在礁石根，鸟张嘴吞了一两口。
+**Anchor sentence**: a boy from the night watch laid fish-gut scraps at the foot of the rocks; the bird opened its beak and swallowed once or twice.
+
+---
+
+## 四 · 第二天
+
+第二天，幼鸟不在礁石上——没有人知道是它飞走了还是被拿走了。
+
+值更长说，过去也见过鸟死——常在礁石或墙角。
+
+**锚句**：第二天，幼鸟不在礁石上——没人知道是飞走了还是被拿走了。
+**Anchor sentence**: the next day, the chick was no longer on the rocks — no one knows whether it flew off or was carried away.
+
+---
+
+## 五 · 鸟典
+
+抄本师私下做了一个记录，他问老值更："咱们专门收快要死的鸟吗？" 老值更说："潮候院收不收都不重要，只要潮候院知道就算。"
+
+这条问答后被抄本师写进《鸟典·潮候院篇》的非正式条——没有署名。
+
+**锚句**：抄本师私下做了包含幼鸟的鸟典记录——没有署名。
+**Anchor sentence**: the copyists privately wrote an entry including the chick — no signature; filed in the Bird Annals, Institute chapter, informal section.
+
+---
+
+## 六 · 一年
+
+再一年内，他没见过幼鸟——他也不打算再问。
+
+值更长说："吃了它就吃了它——潮候院不会再喂——也没有人追问它到底飞起来没有。"
+
+**锚句**：潮候院此后不会再喂这类死鸟，潮候院也没有追问它飞起来没有。
+**Anchor sentence**: the Institute will not feed such dying birds again; the Institute will not ask whether it ever flew.
+
+---
+
+## 七 · 映射（回响七十五章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 幼鸟 · 鱼肠渣 · 鸟典 · 礁石 | 一、二、三、四、五、六 |
+| geography | 潮候院东门 · 礁石 | 一、二 |
+| characters | 值更长 · 值更孩子 · 抄本师 · 老值更 | 二、三、四、五、六 |
+| story | 幼鸟 · 回响（其七十五） | 全篇 |
+| items | 鱼肠渣 · 黄嘴 · 礁石 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第五十九日 | 一、二 |
+
+> 潮候院东门口喂过一次就别喂了——潮候院不欠它什么。
+> The Institute fed it once; the Institute will not feed it again — it is owed nothing.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其七十五）「潮候院东门外那只唯一一次被喂食的幼鸟」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the young seabird at the east gate of the Institute who was fed only once.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院东门外那只唯一一次被喂食的幼鸟。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the fifty-ninth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第五十九日。
+
+---
+
+## I · Outside the East Gate
+
+The Institute opens its east gate onto a broad iron-and-wood door. Beyond it lies a rocky foreshore.
+
+At the base of the rocks you can hear the tide; when the wind comes from there, a snow-flake sea-brine tosses in with the air — at any hour two or three seabirds squat out there.
+
+**锚句**：潮候院东门外常有两三只海鸟蹲在礁石根部。
+**Anchor sentence**: at the foot of the rocks outside the east gate, two or three seabirds squat all the time.
+
+---
+
+## II · The Chick
+
+Seven days after the 58th Convocation dissolved, on a certain afternoon, the head of the watch spotted a chick crouching on the rocks, soaked by the sea, breathing through its beak — its yellow tip not yet hardened.
+
+He took no action. He could not decide what to do. He only asked: "can it eat?"
+
+**锚句**：礁石上有一只幼鸟，全身浸在潮水里，黄嘴尖还没硬。
+**Anchor sentence**: a chick on the rocks, soaked by the tide, its yellow bill-tip still soft.
+
+---
+
+## III · Fed Only Once
+
+The head of the watch sent a child from the night watch to bring a scoop of fish-gut scraps as a small supplement.
+
+The child laid the scraps at the base of the rocks; the chick opened its beak and swallowed once or twice — it did not raise its head again.
+
+**锚句**：值更孩子把鱼肠渣放在礁石根，鸟张嘴吞了一两口。
+**Anchor sentence**: a boy from the night watch laid fish-gut scraps at the foot of the rocks; the bird opened its beak and swallowed once or twice.
+
+---
+
+## IV · The Next Day
+
+The next day, the chick was no longer on the rocks — no one knows whether it flew off or was carried away.
+
+The head of the watch said that previous birds had been found dead — often on rocks or in corners.
+
+**锚句**：第二天，幼鸟不在礁石上——没人知道是飞走了还是被拿走了。
+**Anchor sentence**: the next day, the chick was no longer on the rocks — no one knows whether it flew off or was carried away.
+
+---
+
+## V · The Bird Annals
+
+The copyists privately made a note. They asked the senior watcher: "do we habitually rescue dying birds?"
+
+The senior watcher said: "Whether the Institute rescues or not doesn't matter — as long as the Institute knows."
+
+**锚句**：抄本师私下做了包含幼鸟的鸟典记录——没有署名。
+**Anchor sentence**: the copyists privately wrote an entry including the chick — no signature; filed in the Bird Annals, Institute chapter, informal section.
+
+---
+
+## VI · A Year
+
+Within a year he had not seen the chick again — nor did he intend to ask.
+
+The head of the watch said: "It was fed; let it be. The Institute will not feed it again — and no one will ask whether it ever flew."
+
+**锚句**：潮候院此后不会再喂这类死鸟，潮候院也没有追问它飞起来没有。
+**Anchor sentence**: the Institute will not feed such dying birds again; the Institute will not ask whether it ever flew.
+
+---
+
+## VII · Mapping（Echo No. 75 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the chick · the fish scraps · the Bird Annals · the rocks | 一、二、三、四、五、六 |
+| geography | the east gate · the rocks | 一、二 |
+| characters | the head of the watch · the child from the night watch · the copyists · the senior watcher | 二、三、四、五、六 |
+| story | the chick · Echo No. 75 | 全篇 |
+| items | the fish scraps · the yellow bill · the rocks | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the fifty-ninth day of the autumn-tide month | 一、二 |
+
+> 潮候院东门口喂过一次就别喂了——潮候院不欠它什么。
+> The Institute fed it once; the Institute will not feed it again — it is owed nothing.
+`,
+  },
 ] as const;
 
 export const BIBLE_APPENDICES: readonly BibleChapter[] = [

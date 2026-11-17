@@ -5582,3 +5582,9 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 第 74 篇回响「三光雾吻」：祠殿内祠东窗——三盏常灯——散会之后只一只雾吻窥近玻璃——值更长说"不是灰——是空气被记住过"——擦不净——此后再没发生。
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-074-the-fog-kissed-window-of-the-three-lamps`；verify world-bible **428/428** ✓。
 - 同步：BibleAsk lede → 74（含 en）；/bible/ask meta → 七十四篇 / seventy-four；cache-identity → 74 篇锚句；bible-ask-behavior 锚句总数 422→428；canon-answer-graph 测试 79 段 / 74 echoes；pins 重钉（page→107ef5fb… comp→89d1d9f7…）；fe-gates 测试 24/24。
+
+## cont. 320 (2026-11-18) — v939 · §BIBLE-75 · Echo #75《潮候院东门外那只唯一一次被喂食的幼鸟》（作者手写·双语·434/434 绿）
+
+- 第 75 篇回响「幼鸟」：潮候院东门外礁石 · 第五十八回潮大会散会后第七天，一只幼鸟全身浸在潮水里——值更长派值更孩子鱼肠渣——鸟张嘴吞两口——第二天不在礁石上了 · 幼鸟被收入鸟典：潮候院此后不会再喂这类死鸟。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-075-the-one-time-fed-seabird-at-the-east-gate`；verify world-bible **434/434** ✓。
+- 同步：BibleAsk lede → 75（含 en）；/bible/ask meta → 七十五篇 / seventy-five；cache-identity → 75 篇锚句；bible-ask-behavior 锚句总数 428→434；canon-answer-graph 测试 80 段 / 75 echoes；pins 重钉（page→f456d683… comp→8c6c5711…）；fe-gates 测试 24/24。
