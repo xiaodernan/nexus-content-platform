@@ -85,6 +85,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E41-祠殿横梁上那条画了一半的龙': 'echo-041-the-half-painted-dragon-on-the-chapel-beam',
   'E42-雾港驿站那匹从不出门的马': 'echo-042-the-horse-at-the-staging-post-that-never-leaves',
   'E43-祠殿地下室那只从不干的墨碗': 'echo-043-the-ink-bowl-in-the-chapel-cellar-that-never-dries',
+  'E44-祠殿日影那根永远赶不上影子的指针': 'echo-044-the-shadi-that-never-catches-its-shadow',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

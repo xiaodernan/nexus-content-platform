@@ -4978,3 +4978,11 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 组件接入（InsightAiAnalysis）：显示一行诚实摘要 —— 机检通过显示「机检通过（现象/证据+数字，三段式）」；否则显示 verifyNote
   （仍然显示模型原文，不隐藏——§159 不 hiding 原文 ——「这不算测量，是散文」）。
 - 回归：insight 全组 49/49 绿（原 41 + 新 8）。同步保持 /insight 实测截图与 §PROVED-21 结论不变。
+
+## cont. 267 (2026-11-17) — v896 · §BIBLE-44 · Echo #44《祠殿日影那根永远赶不上影子的指针》（作者手写·双语·248/248 绿）
+
+- 第 44 篇回响「日影」：祠殿顶那只叫"日影"的铜杆太阳钟——立于建院第三年，从不到下午也不到上午，永远停驻于正午；抄本员记它：影子每次都不同。虚实呼应 E40/E41「守夜者观察某不动之物」结构，字像光一样流动。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-044-the-shadi-that-never-catches-its-shadow`；verify:bible-snapshot ✓；verify:world-bible **248/248** ✓。
+- 同步落地：BibleAsk lede → 44；/bible/ask meta → 四十四篇；canon-answer-graph 测试 49 段／44 echoes；bible-ask-behavior 锚句总数 242→248；CACHE-IDENTITY 更新。
+- 题图（hidden bible→ask bridge sha-check）不动；248 anchor call log 仍然 24,066±ch；digest 重灌一次 cold（预期见 CACHE-IDENTITY.md）。
+- 回归：bible 组 50/50 绿。
