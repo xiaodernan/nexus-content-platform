@@ -73,6 +73,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E29-祠殿里那双没人穿的木屐': 'echo-029-the-wooden-clogs-nobody-wears',
   'E30-祠殿门槛下压着的那七块木板': 'echo-030-the-seven-boards-under-the-sill',
   'E31-里巷子赌局桌上那枚没人认领的白子': 'echo-031-the-white-stone-nobody-claimed',
+  'E32-祠殿后那张印错的潮汐表': 'echo-032-the-tide-table-with-one-row-wrong',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

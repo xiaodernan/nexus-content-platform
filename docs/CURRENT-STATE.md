@@ -4518,3 +4518,8 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - provider 没编东西——「不知道够不够看」原样说出；仅描述 op，没指挥批准。
 - sibling :8000 未触碰；sidecar 用完即停（35148 已杀）。
 - replay 成本阶梯仍在 L2 打空的事实上——本次 tokensIn 4635（cachedTokens=0）；多重复同一个 taskId 应能命中重放。
+
+## cont. 217 (2026-11-17) — v851 · 回响其三十二
+
+- 新回响 E32（中英双文件 + 映射表）；verify:world-bible ✓ 180/180；快照 5+32。
+- 世界上的潮候院持续庞大一卷——每册潮汐表照样保留一行「东」，米缸月照样没有人纠错。

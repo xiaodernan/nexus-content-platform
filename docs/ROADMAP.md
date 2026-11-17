@@ -14516,3 +14516,10 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   它只描述不指挥、没编别的目标；正反两下都在 §159 纪律上。
 - 新增 tsx 复现 `apps/web/scripts/approval-explain-e2e.mts`；sibling :8000 未触碰。
 - 用户目标完成率提示：§四 的「把大模型能力深度用起来/状态流转」延伸到了审批入口——Studio 批准按钮前的一句话此时是真模型的原话。
+
+## §BIBLE-44 — 回响 · 其三十二《祠殿后那张印错的潮汐表》（2026-11-17 · v851）
+
+- 产出：`docs/world-bible/echoes/E32-祠殿后那张印错的潮汐表.md`（中）/ `.en.md`（英）——每年誊抄的潮汐表都会留一行「东」向「向」，永远不动——抄本员抄到那一行永远原封，值守长从不纠。
+  5 锚句 zh/en 全局唯一（180/180）。
+- `gen-bible-snapshot.mts` 登记 `echo-032-the-tide-table-with-one-row-wrong`；快照重生成（5+32 回响）。
+- verify:world-bible ✓ 180/180；verify:bible-snapshot ✓；fe-gates 134/134 · 1265/1265 · census 2564。

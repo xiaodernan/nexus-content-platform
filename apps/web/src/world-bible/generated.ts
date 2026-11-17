@@ -7338,4 +7338,196 @@ The hand-over book carries one line: "Two more on the table after the Convocatio
 > On the evening of the next Convocation, the watchers will know whose question that white stone is.
 `,
   },
+  {
+    order: 32,
+    slug: 'echo-032-the-tide-table-with-one-row-wrong',
+    titleZh: '祠殿后那张印错的潮汐表',
+    titleEn: 'The Tide-Table Behind the Chapel With One Row Wrong',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——米缸月新誊抄的晨风。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the morning air of a rice-jar month transcription.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 32): The Tide-Table Behind the Chapel With One Row Wrong
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给祠殿后室里的那本潮汐表——潮候院所有抄本都留着一行永远走反的「东」/"east"——抄本员从不纠正它。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the tide-table behind the chapel — the Institute keeps one row permanently reversed ("east"); the copyists never correct it.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——米缸月新誊抄的晨风。
+> Era: the Institute — after the 41st Convocation; the morning air of a rice-jar month transcription.
+
+---
+
+## 一 · 每年那一册总会「错」一行
+
+潮候院每年抄一册潮汐表——四十一次大会散会之后，每一册都必留一行：东向的方向不对。
+
+抄本员誊写的时候——前辈从来不纠；值守长每次遇到必然点头。
+
+新来的抄本员第一遍誊抄完都会回去想：到底是不是我看错了？不——他没敢说——承认了他那一页这一行反了，前辈会让他重新誊一次——
+
+重事了。
+
+**锚句**：潮候院每册潮汐表里都有一行东向的方向不对——抄写的人没有纠错的资格。
+**Anchor sentence**: each tide-table of the Institute carries one row of "east" facing backwards — no copyist is qualified to correct it.
+
+---
+
+## 二 · 前辈说「留给它」的那一页
+
+新来的抄本员问：「这一行是不是誊错了？」
+
+前辈答一句：「潮候院只会把它留着——抄写、誊录、复印，从不改写。」——
+
+前辈们只是从上一代抄下这行的字，没有人问过"为什么是它"。潮汐表自一册抄到下一册——错的这行纸抄了四十一次以上——抄本员两次换手，行依然不对。
+
+**锚句**：前辈只简单说一句「留给它」——抄写的人从不纠正那一行。
+**Anchor sentence**: the seniors simply say "leave it" — those who transcribe never modify that row.
+
+---
+
+## 三 · 旧抄本里那行的上下各自重写
+
+潮汐表的某一册页上——抄本员抄错了一行——值守长拿着一根潮笔要抄本员拿这份重新起稿。
+
+中间的那一行——也是"错的那一行"——还是那一行：「东 — 潮 — 向西」——落笔的角度还是同一册原来的角度。
+
+前辈说：它不是错的——它是「东向的」留给潮的方向。
+
+**锚句**：抄错的人从潮笔回来补——那一行的角度本身是留给潮的。
+**Anchor sentence**: those who mis-copy return with the tide-brush — the angle of that row is reserved for the tide.
+
+---
+
+## 四 · 潮汐表从不签名
+
+潮候院的抄本员——他们知道米缸月潮候院一册册抄潮汐表：抄完不签则护住封面。毫不含混地说，这是值守长的个人分寸。
+
+潮候院的潮汐表从来没有盖缀过签章。抄本员吃饭的时候值守长接过抄完的册子——看着那一行——放下——没说：
+
+**锚句**：潮汐表每年誊抄完一次永远不会签名——潮候院的分寸值守长自己掌握。
+**Anchor sentence**: each year's finished tide-table is never signed — the Institute's discretion rests with the headkeeper alone.
+
+---
+
+## 五 · 「东向」那页不在潮沙盘里
+
+抄本员告诉了新来的值守一件事：潮候院没有人知道潮为什么留那一册潮汐表的那一行「不对」。值守长说：它是给海看；给潮候院之外的某一个东西看。
+
+没有潮候院的值守能说出"那一行是什么"——但是潮候院没有谁能拦着抄本员每年抄下去。
+
+**锚句**：那一行潮沙盘里没有人讲清过——值守长也只说是给海看的。
+**Anchor sentence**: that row is not explained at the sand table either — the headkeeper says only it is for the sea.
+
+---
+
+## 六 · 映射（回响三十二章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 潮汐表的东向 · 留给它 · 半月章 | 一、二、三、四、五、六 |
+| geography | 祠殿后室 · 里巷子誊抄堂 · 米缸月誊抄堂 | 一、二、四、五、六 |
+| characters | 抄本员 · 里巷子值守长 · 守表的人 | 一、二、三、四、五、六 |
+| story | 印错的潮汐表 · 回响（其三十二） | 全篇 |
+| items | 潮汐表 · 半月章 · 潮笔 · 错行 · 誊抄堂 | 一、二、三、四、五、六 |
+| history | 四十一次大会 · 米缸月誊抄早晨 · 潮候院 | 一、二、三、四、五、六 |
+
+> 下一次大会散会之后值守会接到一册新潮汐表——那一行里的值守看了潮汐表后会把它收起来，抄本员没第二次动过那一行。
+> After the next Convocation, the watchers will be given a new tide-table — they will shelve that one row; no copyist is to move it.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其三十二）「祠殿后那张印错的潮汐表」
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给祠殿后室里的那本潮汐表——潮候院所有抄本都留着一行永远走反的「东」/"east"——抄本员从不纠正它。
+> 纪律同正典。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the tide-table behind the chapel — the Institute keeps one row permanently reversed ("east"); the copyists never correct it.
+> Same discipline: anchors verbatim.
+
+> Era: the Institute — after the 41st Convocation; the morning air of a rice-jar month transcription.
+> 纪元：潮候院 · 第四十一次大会散会之后——米缸月新誊抄的晨风。
+
+---
+
+## 一 · Every Year's Table Misses One Row
+
+The Institute transcribes one tide-table a year — after the forty-first Convocation dispersed, every copy is bound to carry one row reading the wrong way: the "east" row, facing against the east.
+
+When the copyists transcribe — the seniors never correct — the headkeeper nods every time.
+
+The newly arrived copyist copying for the first time always wonders: did I read it upside down? — no one dares say so; admitting the row is backwards only means being asked to copy again —
+
+and it has.
+
+**锚句**：潮候院每册潮汐表里都有一行东向的方向不对——抄写的人没有纠错的资格。
+**Anchor sentence**: each tide-table of the Institute carries one row of "east" facing backwards — no copyist is qualified to correct it.
+
+---
+
+## 二 · The Page the Seniors Call "Leave It"
+
+A new copyist asks: "Is this row a mistake?"
+
+The senior answers: "The Institute leaves it — we copy, we transcribe, we reproduce — we never rewrite."
+
+The seniors copy the row forward from generation to generation — the same reversed row has been transcribed more than forty-one times — copyists have switched twice, the row still runs the wrong way.
+
+**锚句**：前辈只简单说一句「留给它」——抄写的人从不纠正那一行。
+**Anchor sentence**: the seniors simply say "leave it" — those who transcribe never modify that row.
+
+---
+
+## 三 · The Old Manuscript Where The Break Is Not A Break
+
+A page in one of the tide-tables — a copyist had produced a mis-copy — the headkeeper gave him a tide-brush and sent him back to start again.
+
+The same row — the one that "was not a mistake" — was again the same row: "east — tide — west-leaning" — the stroke angle backwards as in the original.
+
+The seniors say: it is not an error — it is "east," reserved for the tide's own direction.
+
+**锚句**：抄错的人从潮笔回来补——那一行的角度本身是留给潮的。
+**Anchor sentence**: those who mis-copy return with the tide-brush — the angle of that row is reserved for the tide.
+
+---
+
+## 四 · The Table Is Never Signed
+
+The copyists are aware that each table copied in the Institute is sealed without signature. Speaking plainly, it is the headkeeper's own discretion.
+
+No tide-table has ever been signed. The copyists set down their brush and take their hand off the page; the headkeeper takes the finished table — looks at that one row — sets it down — says nothing.
+
+**锚句**：潮汐表每年誊抄完一次永远不会签名——潮候院的分寸值守长自己掌握。
+**Anchor sentence**: each year's finished tide-table is never signed — the Institute's discretion rests with the headkeeper alone.
+
+---
+
+## 五 · The "East Row" Is Not in the Sand Table
+
+The copyists tell the new watchers one thing: no one in the Institute knows why the one row of that table "is wrong." The headkeeper says: it is given to the sea; something outside this Institute watches it.
+
+No watcher in the Institute can say what that row is — but no one can stop the copyists from transcribing it every year.
+
+**锚句**：那一行潮沙盘里没有人讲清过——值守长也只说是给海看的。
+**Anchor sentence**: that row is not explained at the sand table either — the headkeeper says only it is for the sea.
+
+---
+
+## 六 · Mapping（Echo No. 32 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | The row marked "East" · leave it be · half-moon chapter | 一、二、三、四、五、六 |
+| geography | The chapel's back room · the back-alley the scriptorium | 一、二、四、五、六 |
+| characters | The copyists · the headkeeper · those who preserve the tables | 一、二、三、四、五、六 |
+| story | The Tide-Table With the Wrong Row · Echo No. 32 | 全篇 |
+| items | The tide-table · the half-moon chapter · the tide-brush · the wrong row | 一、二、三、四、五、六 |
+| history | The forty-first Convocation · the morning of a rice-jar month transcription | 一、二、三、四、五、六 |
+
+> 下一次大会散会之后值守会接到一册新潮汐表——那一行里的值守看了潮汐表后会把它收起来，抄本员没第二次动过那一行。
+> After the next Convocation, the watchers will be given a new tide-table — they will shelve that one row; no copyist is to move it.
+`,
+  },
 ] as const;
