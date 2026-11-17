@@ -5347,3 +5347,15 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 第 60 篇回响「半钩」：祠殿交班簿第三页——每一次收笔末一笔都不完整；抄本师四十一年间记了五十八次同一个形状未遇到过别人同笔；散会纪要里也出现同一半钩，抄本师叫它「交班之钩」；临别对学生说「那是等亡人来收尾」。
 - 手写 zh+en 母语级文本，6 组逐字锚句；登记 `echo-060-the-half-hook-no-one-finishes`；verify world-bible **344/344** ✓。
 - 同步：BibleAsk lede → 60（含 en）；/bible/ask meta → 六十篇 / sixty；cache-identity → 60 篇锚句；bible-ask-behavior 锚句总数 338→344；canon-answer-graph 测试 65 段 / 60 echoes；pins 重钉（page→dc433c1a… comp→0226b41e…）；fe-gates **1285/1285 绿**。
+
+## cont. 299 (2026-11-18) — §CACHE-ADVISE · 并行会话下 Cache 纪律如实命名（非承诺数字）
+
+依用户关于 Codex/并行会话跨通路打 cache 的复核命，写下 ADR-0281（`docs/adr/0281-cache-identity-for-parallel-sessions.md`）。三个不可动摇的事实是本平台自身做的：
+
+- 唯一 prompt→cache 桥：`sticky_prompt_cache.py::prompt_cache_key`；digest 不变 → 同一 channel → live 曾观测到 ~94%（*见 `docs/evidence/paid-provider-e2e-2026-11-17.md` §PROVED-17/18*，非我造表）；
+- 用户输入**永不**拼进 system；`prompt_cache_key` 不含 session-id / timestamp / user_id / modelName / modelClass——无"并行互相失效"通道；
+- 真正会让 cache 跑掉的唯二事项：digest 变化（§BIBLE-N 章）或者 stream 断（`NEXUS_LLM_STREAM=0`）。
+
+不写伪承诺数字；不拿别人项目冒充成功路线；本平台只声明自身纪律自封闭，不追 KPI。
+
+本次没有更动 cache-identity 运行实验数据；世界大典快照未动；前端未改；仅一份 ADR 写下——可被 git blame 溯源。
