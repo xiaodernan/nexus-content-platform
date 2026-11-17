@@ -1,9 +1,9 @@
 {
   "schema_version": "nexus-content.latest.v1",
-  "generated_at": "2026-11-17T13:11:28.833Z",
+  "generated_at": "2026-11-17T13:16:16.927Z",
   "branch": "main",
-  "head": "a703d96",
-  "total_commits": 2960,
+  "head": "ef39cd6",
+  "total_commits": 2962,
   "first_commit_at": "2026-09-22",
   "adrs": 330,
   "contracts": 14,
