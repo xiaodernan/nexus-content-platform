@@ -23,6 +23,20 @@
 - 撞库场景：对密码门做 30 IP/小时限流实测 → 已在 `/api/admin/observer` 实装限流（429）
 - 长跑垃圾流量：随机乱点+爬虫指纹混沌流量 → `scripts/simulate-user-behavior.mts`（5 画像 · deterministic LCG · 公共 GET 随机行走 · 76/76 100% 2xx）
 
+## prod 分档复测（2026-11-18 · next start :3401 · 无编译）
+
+| 档位 | 请求 | 成功 | p50 | p95 | p99 |
+|---|---|---|---|---|---|
+| 1 | 30 | 30×200 | 0.111s | 1.142s | 3.683s |
+| 6 | 60 | 60×200 | 0.208s | 1.171s | 1.362s |
+| 12 | 60 | 60×200 | 0.528s | 3.767s | 3.967s |
+| 24 | 60 | 60×200 | 1.431s | 4.349s | 4.381s |
+| 48 | 60 | 60×200 | 1.229s | 2.450s | 2.470s |
+
+零 5xx，零超时，零连接中断。证据：docs/evidence/load-web-ssr-2026-11-18.md
+
+（dev 路径本次复测未推进 tier-24/48 记录为未测，已诚实登记；prod 路径已补齐。）
+
 ## 固定回归动作
 
 - 架构/合并后重压一次：`npm run verify:fe-gates` + SSR sweep + `scripts/simulate-user-behavior.mts`
