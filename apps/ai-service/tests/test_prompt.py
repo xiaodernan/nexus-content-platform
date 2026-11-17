@@ -331,7 +331,7 @@ def test_run_endpoint_delivers_the_agent_note_to_the_model() -> None:
     call = provider.calls[0]
     assert "本轮由 QA Agent 负责" in call["user"]
     assert "检查结果是否满足验收" in call["user"]
-    assert "QA Agent" in call["system"], "system 里带本轮 Agent 名——这是合并后的既定选择：同 Agent 跨轮字节一致，"
-    # 不同 Agent 自然分车道。稳定的前缀车道 = 同 Agent 连续调用 = 100% 命中；换 Agent 则冷启（但那一刻也合理）。
-    # 同一次调用里目录照旧发得出：加这一段不许把项目上下文挤掉
+    # §CACHE-2 / ADR-0126 修正：system 是全局恒定的字节前缀（世界大典 + 恒定规则），名册只活在载荷里。
+    assert "QA Agent" not in call["system"]
+    assert call["system"].startswith("You are the Tidekeeper")
     assert '"contextSource":"designIndex"' in call["user"]

@@ -49,6 +49,7 @@ export const IP_RATE_RULES = {
   'blocks': { limit: 60, windowMs: 3_600_000 },
 'bible/q': { limit: 60, windowMs: 3_600_000 },
 'insight/analyze': { limit: 10, windowMs: 3_600_000 },
+'insight/chat': { limit: 10, windowMs: 3_600_000 },
 'analytics/agent-narrate': { limit: 10, windowMs: 3_600_000 },
 'ai/explain': { limit: 10, windowMs: 3_600_000 },
   'follow': { limit: 60, windowMs: 3_600_000 },

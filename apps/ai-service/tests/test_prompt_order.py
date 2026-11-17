@@ -87,19 +87,16 @@ def test_consecutive_turns_share_a_long_byte_prefix() -> None:
     )
 
 
-def test_system_is_stable_for_same_agent_dict_across_turns() -> None:
-    """system 是整条前缀的第一段：同一（同一个 agent 字典对象）的轮次重复生成时必须逐字节一致。
+def test_system_is_globally_byte_constant_across_turns() -> None:
+    """system 是整条前缀的第一段：无论有没有 Agent、换哪个 Agent、换不换诉求，一律逐字节一致。
 
-    Agent 名册被并进去后，换 Agent 自然会改变 system（这是有意的：从同一个字节就失配，
-    让多 Agent 分车道各用各缓存）。但只要 Agent 不变（换选中/换诉求），system 必须一字不变——
-    变的只是 user 里的片段，前缀必须能一字不改地命中。"""
+    Agent 名册只活在载荷的 agent / agentNote（§CACHE-2），绝不进 system——
+    四万多 token 的世界大典前缀一旦被每轮可变内容污染，整条字节前缀失配、token 缓存全灭。
+    这是有意的全局车道：所有轮次共享同一条 KV 缓存，几十字节的名册只落在 user 尾部。"""
     base = _fixture_request()  # 这个 fixture 没有 agent
-    # turn=0/2/3 不注入 agent（同一份无 Agent 的 system）：必须逐字节一致
     same = {build_prompt(_turn(base, t))[0] for t in (0, 2, 3)}
-    assert len(same) == 1, f"无 Agent 的同一车道 system 不应随 turn 变，但得到 {len(same)} 种"
-    # 换 Agent 后一定不同（这是有意分车道）：turn=1 注入了 QA Agent
     turn1 = build_prompt(_turn(base, 1))[0]
-    assert turn1 != next(iter(same)), "turn=1 注入了 QA Agent，system 应与无 Agent 的车道不同；同一车道不应串台"
+    assert len(same | {turn1}) == 1, f"全局车道 system 必须逐字节恒定（含注入 Agent 的 turn=1），得到 {len(same | {turn1})} 种"
 
 
 def test_volatile_fields_stay_behind_the_stable_catalog() -> None:

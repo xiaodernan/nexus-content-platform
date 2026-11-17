@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import type { Locale } from '@/lib/i18n';
+import { csrfHeaders } from '@/lib/csrf';
 
 /**
  * §INSIGHT-3 · 大模型解读——按下按钮，让 `gpt-6.1-terra` 读 aggregate 快照，
@@ -54,7 +55,7 @@ export function InsightAiAnalysis({ locale = 'zh' }: { locale?: Locale }) {
     try {
       const resp = await fetch('/api/insight/analyze', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ locale }),
       });
       if (resp.status >= 429 || resp.status >= 500) {
