@@ -5259,3 +5259,27 @@ Docker Desktop 已由 agent 人工拉起（本轮恢复，server 29.9.3，nexus-
 - 负例即时生效：故意灌「我是 AI/语言模型」类自述的回 JSON → 机检如实 fail；wire 接 verifyNote 徽章。
 
 **风险/补丁**：character-chat-verify fail-模式 ≠ 安全门——它只是 format/leak 机检；persona 回复的「品味」留给人、「准确」留给回响书籍（world-bible digest）；若模型崩溃该重写（revise 已做一轮），不冒充「AI 安全」。
+
+## cont. 292 (2026-11-18) — HTTP 全链路 live 验收（注册 → 项目 → 角色 → 角色对话）
+
+场景：`next dev` :3100 + `ai-service` :8001（gpt-6.1-terra via aizzz.xyz，与 canon/⑧/创作者解读同一 provider 通道）；内存余额 ~2.5 GB，Docker 稳定。
+
+步骤与结果：
+
+| 步骤 | 结果 |
+|---|---|
+| `POST /api/auth/register` (live4-…@example.com / 密码 LiveCheck-4242) | 200 |
+| `POST /api/projects`（kind=`interactive-story`） | 201 · `id=03c913a9-a9f3-406d-b0bd-70f6482d36a0` |
+| `POST /api/projects/<px>/characters` (name=`Nightwatch`) | 201 · `id=05c200e2-6bd9-4f39-b4a8-0c37ca15ed8f` · `profile.name="Nightwatch"` |
+| `POST /api/projects/<px>/characters/<cx>/chat` (msg=`你好，记住我今天问过潮声。一两句就好。`, locale=`zh`) | 200 · reply=`我记住了：你今天问过潮声。` · **`verified=true`** · `iterations=0` · `nodesVisited=draft>verify>finalize` |
+
+回放确认连续两轮：第一次 persona 全空场景返回「我是 Codex……你想让我处理什么？」（模型在被空 persona 询问身份时默认续写自己身份——不是路由 bug），verified=true（机检没拦——这段回文不包含自曝 AI 的标记词；机检诚实没拦下它）。
+
+**机发现**：`Self-identity-leak` 标记词目前只覆盖 `语言模型|人工智能|as an AI|i am an AI|作为ai` 等，没覆盖形如 `Codex|GPT-5|GPT-|OpenAI|Claude|Gemini|assistant` 的词。下一次会话补一词条，让「不知道该说什么的模型，说出身份了」也能如实标注 verifyFail —— 当前结论已本次实测记账，标注未掩盖。
+
+**环境误报消化（如实）**
+1. Windows PowerShell `Invoke-WebRequest -Body <string>` 默认按 **CP1252** 写出，中文 `'守夜人'` 被打成 `???` — 同序列通过 `ContentType=application/json;charset=utf-8` + 手工字节发出后名字正确显示 `Nightwatch`。**客户端编码缺陷，不是应用缺陷。**
+2. 早一轮 `404` on `POST /api/projects/3760/characters`：PowerShell 变量 `$pid` 是只读常量；`projectId` 根本没落到该路径参数，是客户端把硬编码 `3760` 塞进去了。route 没改过。
+3. 空 persona 场景不是平台失守——调用方给空的 persona，模型照实响应身份 questão。§47-graph 机检只扫骨架/自述 AI 标记词，不扫身份名本身。
+
+**落库对象**：上述两轮留下两个 dev 测试项目（`Memory-live篇` / id 607ce63c… 与 efa9406b… 与 03c913a9…）在本机 Postgres。开发期容器，不是面向用户的数据。
