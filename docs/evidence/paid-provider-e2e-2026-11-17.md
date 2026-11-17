@@ -535,3 +535,24 @@ cd apps/web && npx tsx scripts/approval-explain-e2e.mts c5ebd27e-8a20-45f2-86aa-
 **结论**：v885 CSRF 修复真的在浏览器内生效——BibleAsk 按钮不再 403-不可达；本案的 502 是 analyzer 瞬时网关拒绝，不构成回归。Browser-experienced under real user path：register → /bible/ask → click「问一问」→ real provider answer in Chinese with badge.
 
 **§PROVED-20/21/22/23 合并结论**：/insight ⑧ ⑦ 整个「真实大模型 + 聚合账 + 中文答案 + evidence 引用」链路现在是 live 的。/analytics agent-narrate 那条（AnalyticsAiNarrator）同路径同补丁，未逐一浏览器测但同一机制。
+
+## §PROVED-24 — /insight ⑧ 机检门 live（中文回答「机检通过」徽章 · 2026-11-17 v897+）
+
+- 现场（_the shot_ `~/AppData/Local/Temp/opencode/shots/insight-ai.png`)：解锁 /insight → 点「让大模型看看这些数字」 → 模型回中文并在同一响应末尾带「机检通过（现象/证据 + 数字，三段式）」—— verified true 徽章落地在面前的盒子里；console errors: none。
+- 模型输出（原文）：
+  > ① 现象：当前最可能限制增长的是有效内容互动偏少。
+  > ② 证据：近30天 opens 为 757，其中 botOpens 为 660；interactionRate 为 2.9%，opens 日趋势斜率仅为 0.49。
+  > ③ 动作：在访问量最高的作品 “无障碍弹层夹具mvza9nk2”（216 views）页面增加醒目的评论入口，并记录该入口带来的评论数；观察评论数及 interactionRate 是否上升。机检通过（现象/证据 + 数字，三段式）
+- ai-service 日志显示 `POST /v1/ai/chat 200 OK`（analyze + draft 各打一次）——StateGraph 链路 alive.
+- /insight ① 总览 "AI 调用（30 天）" 这次读数是 **265**（v880 前这格写死读 `usage` 空账本显示 0）——v891 修复后的真实值；④ LLM 成本与缓存（443,038 总 token 入 · 56,414 cached · 12.7% 命中）同源 agent_tasks.usage。
+- 结论：机检门（§INSIGHT-4）真的在跑；"机检通过/未通过" 不再凭直觉。
+
+## 证人清单（本地一次完整运行，时间戳≈21:48 on 2026-11-17）
+
+- /insight 解锁 → 8 个 section 全渲
+- ② 近 30 天趋势·外推（含 R² 阈值显示）
+- ③ 行为信号（bot share 87.2% · interaction 2.9% · publish rate 10.7%）
+- ④ LLM 成本与缓存（44 real · 221 demo · 12.7% 命中 · 5,118ms avg）
+- ⑤ 深度优化建议（三条触发建议 + 「发布转化偏低」+「触达：发布了几乎没人打开」+「多盯着：爬虫占七成」）
+- ⑥ 最受欢迎的发布作品（前 5：mvza9nk2 216 · mvus7ari 214 · mvq1o9jc 203 · mvrvt275 22 · mvsl8ivh 19）
+- ⑦ 外部公开基线（NN/g 79% 扫描；74% 停留前两屏）

@@ -5014,3 +5014,20 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 6 组逐字锚句各一篇；gen-bible-snapshot 登记 `echo-047-…`、`echo-048-…`；verify:bible-snapshot ✓；verify:world-bible **272/272** ✓。
 - 同步落地：BibleAsk lede → 48；/bible/ask meta → 四十八篇；canon-answer-graph 测试 53 段／48 echoes；bible-ask-behavior 锚句总数 260→272；CACHE-IDENTITY 更新。
 - 回归：bible 组 24/24 绿。
+
+## cont. 271 (2026-11-17) — v897 · /insight ⑧ 机检门 LIVE（中文回答带「机检通过」徽章 · §PROVED-24）
+
+- 21:48（本轮时点）：重新跑 dev 栈（ai-8001 + web-3100）+ 无痕浏览器解锁 /insight → §⑧「让大模型看看这些数字」→ 模型返回（见 §PROVED-24 全文原文）：
+
+  现象：有效内容互动偏少；证据：opens=757，botOpens=660，interactionRate=2.9%，opens 日趋势斜率 +0.49，R²=0.01；动作：在访问量最高的作品"无障碍弹层夹具mvza9nk2"（216 views）页面增加醒目的评论入口。**机检通过（现象/证据 + 数字，三段式）**。
+
+- /api/insight/analyze 200 · 8.1s（中文）· `console errors: none`。
+- /insight 四个 40+ trackers 全落地：①总览（AI 调用 30 天=265） ②近30天趋势·外推 ③行为信号（bot share 87.2% · interaction 2.9% · publish rate 10.7%）
+  ④LLM 成本与缓存（44 real · 221 demo · 443,038 入 · 12.7% 命中 · 5,118ms avg）⑤深度优化建议（三条 + 五成触发门控）⑥最受欢迎作品 top5（最高 216 views）⑦NN/g 外部基准（sprint 79% · 停留 ≤2160px 74%）⑧大模型解读（机检通过）。
+- §PROVED-24 证人清单落盘；截图见 `…/shots/insight-ai.png`（本机未入库，注：PNG 不能提交入 git 仓）。
+- 结论：`/insight`《⑧ 大模型解读》真正活了 —— 机枪通过/未通过不是凭直觉看模型会不会吐绝望词，是 zh 子串 + 数字 ASCII 锚。
+
+## cont. 272 (2026-11-17) — v897 · /insight 总览与账本口径再拍照
+
+- /insight 页的账本现拍：`AI calls` 同源 `agent_tasks.usage` 不再显示 0；cache 读数拆成两信——总览卡片上是 `12.7%`（聚合）+ 311 ㈢ Ⅴ `/ai-cache` 上的 digest-path 口径 ~94%（两样同屏）。
+- 该页现在不含 PII（不含用户 id/ip/email/ua）；printable by anyone with passcode "123"（/insight 是 public by default · 这是设计哲学：view-only 数据不是敏感数据）。
