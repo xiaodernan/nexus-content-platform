@@ -8,7 +8,7 @@
  * - 正典里没有的问题，系统提示词要求模型明确说「典籍没有」、绝不编造（§159）。
  * - digest 输入来自 `@/world-bible/generated`：validator 已保证锚句成对、快照与真值一致。
  */
-import { BIBLE_CHAPTERS, BIBLE_ECHOES, type BibleChapter } from '@/world-bible/generated';
+import { BIBLE_CHAPTERS, BIBLE_ECHOES, BIBLE_APPENDICES, type BibleChapter } from '@/world-bible/generated';
 
 /** 锚句抽取：`**锚句**：` / `**Anchor sentence**:` 开头的行。可选 lang 限定语言。 */
 export function extractAnchorTexts(markdown: string, lang?: 'zh' | 'en'): string[] {
@@ -53,6 +53,20 @@ function chapterDigestV2(ch: BibleChapter): string {
   ].join('\n');
 }
 
+function bodyExcerpt(markdown: string): string {
+  const idx = markdown.indexOf('\n');
+  const rest = idx === -1 ? '' : markdown.slice(idx + 1);
+  return rest.trim();
+}
+
+function appendixDigest(app: BibleChapter): string {
+  const zhBody = bodyExcerpt(app.markdownZh);
+  return [
+    `### Appendix ${String(app.order).padStart(2, '0')} · ${app.titleZh} / ${app.titleEn}`,
+    zhBody,
+  ].join('\n');
+}
+
 function echoDigest(echo: BibleChapter): string {
   // Echoes: anchors only（正文留在典籍室，避免 digest 失控），title+era 足够锚点定位。
   const zhAnchors = extractAnchorTexts(echo.markdownZh, 'zh');
@@ -64,13 +78,20 @@ function echoDigest(echo: BibleChapter): string {
 }
 
 /** 纯 digest 构造（测试友好：传入数据而不是读全局）。 */
-export function buildDigest(chapters: readonly BibleChapter[], echoes: readonly BibleChapter[]): string {
+export function buildDigest(
+  chapters: readonly BibleChapter[],
+  echoes: readonly BibleChapter[],
+  appendices: readonly BibleChapter[] = BIBLE_APPENDICES,
+): string {
   return [
     '# THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)',
     'World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.',
-    `Five canonical chapters (full text below). ${echoes.length} echoes (anchor lines only, same book end-anchors).`,
+    `Five canonical chapters (full text below). ${echoes.length} echoes (anchor lines only, same book end-anchors). ${appendices.length} appendices (geography, glossary, chronology).`,
     '',
     chapters.map(chapterDigestV2).join('\n\n'),
+    '',
+    '## Appendices (附录)',
+    appendices.map(appendixDigest).join('\n\n'),
     '',
     '## Echoes (回响)',
     echoes.map(echoDigest).join('\n\n'),

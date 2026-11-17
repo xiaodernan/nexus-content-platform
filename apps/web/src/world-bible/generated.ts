@@ -11062,3 +11062,712 @@ No one knows who could write it. No one has ever written there, nor seen anyone 
 `,
   },
 ] as const;
+
+export const BIBLE_APPENDICES: readonly BibleChapter[] = [
+  {
+    order: 1,
+    slug: 'appx-001-annals-of-the-institute',
+    titleZh: '低语诸王 · 世界大典 · 旧史简纪（附录一）',
+    titleEn: 'The Whispers\' Kings · World Bible · Annals of the Institute (Appendix I)',
+    eraLineZh: '',
+    eraLineEn: '',
+    markdownZh: `# The Whispers' Kings · World Bible · Annals of the Institute (Appendix I)
+
+> 本附录是正典的时间编年，不作为锚句来源，列于正典与回响之间，供问典与典籍室之用。
+> 本附录不记录任何活着的人物——只记录潮候院的潮起潮落与谁把手放上羊皮纸。
+> 纪律：每条事件附双语对应，与正典同一把规矩。
+
+> This appendix chronicles the Institute. It carries no anchor sentences and is not used by the verifier.
+> It records only the tides of the Institute and the hands that laid the hand upon the parchment.
+> Same short-form discipline as the canon.
+
+---
+
+## 一 · 第一次大会（潮生 · 建院之始）
+
+雾港潮汐在建院那年第一次退到沙嘴。第一任潮候拾起一只半截的贝壳，问港里的海水：「你到底要什么？」海水潮涌三天，校定了潮候院的名字——潮候院，即潮汐的候院、潮汐的守望之地。
+
+建院之期无人记录。第三章中记得的第一任潮候的名字已被海水带走。他落下的贝壳，留在潮候院祠殿门口——直到今日，每逢初一潮汐到退时，半个贝壳的影子仍落在祠殿门槛上。
+
+---
+
+## 二 · 第九次大会（潮进 · 潮候院奠基）
+
+建于雾港正中心。雾港离海岸六十里，周围是从未有过沙潮、没有苇、没有芦苇的滩地。修建时泥瓦匠见到雾港桌面下的潮汐表时都退下了——那是从来没人见过的完整潮汐表，表面蚀了大半，只余两个刻度的沙化线和一个手印。
+
+这块石头现放在祠殿南厢房做门槛——每一个值更推开南厢房的门时，都会踩过那只手印的掌心。
+
+---
+
+## 三 · 第十九次大会（潮回 · 灯凡）
+
+潮汐表第一次被正式挂到祠殿上。在那以前，潮候院不知道什么时候潮汐应该涨潮，也没有人解释潮汐的规则。潮候手中的贝壳被扔到雾港入口，潮候宣布「潮汐不关闭」——那是一次大会压低声音说的话。从那以后，雾港的人们开始记潮汐、数贝壳、给每次涨退各起一个名字。
+
+留书的墨碗也是在这次大会上留下的——第十九次大会时，随行的抄本员把一只满墨的陶碗放在潮候院南厢房，再也没拿回来过——到第三次大会之后，它变成了「留书的墨碗」，潮汐收干了的墨碗。
+
+---
+
+## 四 · 第二十九次大会（潮盛 · 潮沙盘）
+
+潮候院最高的一次潮沙盘大会。两百三十二号潮候把三十六只贝壳按潮汐排序布置在一屉大的铁板上，按潮汐本行。亮潮暗潮各领一摊——那是一次大会被雾港商行称为「无羞怯的潮汐之日」的开始；从这以后，潮沙盘被公开、公开画出、公开抄写。
+
+这次大会的抄本员后记为：「我只是替潮候摆了一回贝壳。」
+
+---
+
+## 五 · 第三十六次大会（潮变 · 米缸月）
+
+米缸月始于这次大会。抄本员记得一袋从北盐谷运来的碎米，在雾港渡口卸船时没人看管——装米的布袋被前几代值更的细盐淹没了一口——值更院一直留着它到今日。
+
+这口缸里浮着的「从不沉下去的一粒米」最早被记作「月亮为某个坐在米缸边上、还未被人看见的人而留的」。抄本员晚上把蜡烛吹灭的时候，米缸会在破晓的雾气中泛着一层淡光——值更换借了扇子把淡光从缸里煽了出来——以至于雾港人都能看见它。
+
+---
+
+## 六 · 第四十一次大会（潮锁 · 散会）
+
+大会的真正记录不在典籍里——只埋在水底。四十一次大会最后一天朝阳未起时潮汐退了一整张桌子。退得像有人拿一把伞把云撕成了两半。潮候院不再以任何潮汐为标志不再在公开场合宣称。
+
+这一次大会上在场的人都没有记录下来名字或名字里隐藏的内容。南厢房那一页空白的索引就是从这次大会留给下一任抄本员的——抄本员把它收藏好。他留了一页「留给海看的页」，把「留书的墨碗」与「第四十一页日影」与「潮候院南厢房那本旧目录」捆在一起，用一根绳系起来，沉进了雾港渡口边的因特罗中央。
+
+---
+
+## 七 · 六十九年（潮落）
+
+潮候院从散会至今日已经持续了六十九年。六十九年来没人亲自算过这个数——六十九年后抄本员没人敢像收成一样把它们归档。此刻潮候院没有潮候，只有值更。值更不知道谁在管这栋楼。
+
+
+---
+
+## Era Index
+
+0 → 建院（雾港退潮布置贝壳） · 潮生
+1 → 雾港奠（雾港建院潮候手印） · 潮进
+2 → 第十九次（潮汐表挂到祠殿，「潮汐不关闭」） · 潮回
+3 → 第二十九次（潮沙盘） · 潮盛
+4 → 第三十六次（米缸月） · 潮变
+5 → 第四十一次（散会） · 潮锁
+6 → 六十九年（无人为潮候） · 潮落
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 旧史简纪（附录一）
+
+> This appendix chronicles the Institute. It carries no anchor sentences and is not used by the verifier.
+> It records only the tides of the Institute and the hands that laid the hand upon the parchment.
+> Same short-form discipline as the canon.
+>
+> 本附录是正典的时间编年，不作为锚句来源，列于正典与回响之间，供问典与典籍室之用。
+> 本附录不记录任何活着的人物——只记录潮候院的潮起潮落与谁把手放上羊皮纸。
+> 纪律：每条事件附双语对应，与正典同一把规矩。
+
+---
+
+## I · The First Convocation (The Rise of the Tide · Founding)
+
+In the year the Institute began, the tide of the fog harbor receded to the sand-spit for the first time. The first tide conclave — whose name the sea has since taken away — picked up a half-buried clamshell and asked the sea what it wanted. The sea answered by surging for three days, until the name settled: Chao-hou-yuan — the house of the tide's expect, the vigil of salt.
+
+The exact day the Institute was built is not recorded. The third chapter remembers the first conclave's name, but no one wrote it down. The clamshell he dropped remains at the chapel entrance — on the first of every month, when the tide withdraws, the shadow of half a shell still falls across the lintel.
+
+---
+
+## II · The Ninth Convocation (The Tide Lies · Founding of the Institute)
+
+Built in the exact center of the fog harbor. The fog harbor sits sixty miles from the sea; around it lies a mud-flat with no sand-scour, no reeds, no grass of any kind. When they laid the foundations, the masons saw a complete tide-table under the harbor floor — a tablet most of which had been eroded away, leaving only two lines of sand-etched graduations and one handprint.
+
+That stone now sits as the threshold of the south hall of the chapel — every watcher who pushes through the south-hall door steps across the palm of that handprint.
+
+---
+
+## III · The Nineteenth Convocation (The Tide Returns · The Lamps Become Common)
+
+The tide-table was hung in the chapel for the first time. Until then, the Institute did not know when tides should rise or fall, and no one explained the rule. The conclave threw a clamshell into the harbor's mouth and declared that «the tide does not close.» It was a half-whispered sentence. From then on, the fog harbor began to count tides, number shells, and name each ebb and flood.
+
+The ink bowl left for writing was left at this convocation — the attending copyist set a full clay bowl on a table in the south hall of the chapel and never took it back. After the third convocation, it became known as «the ink bowl left for writing» — an ink bowl the salt had already dried to a resting state.
+
+---
+
+## IV · The Twenty-Ninth Convocation (The Tide in Full · The Tide-Sand Table)
+
+The greatest tide-sand-table convocation. The 232nd conclave arranged thirty-six clamshells on a cast-iron plate in the order of the tide — bright tides and dark tides were given their own strata. This convocation is remembered by the fog-harbor firms as «the day of no shame before the tide» — from this point on, tide-sand tables were drawn in public, copied in public, and read in public.
+
+The copyist of this convocation wrote afterward: «I only set the shells in order for the conclave.»
+
+---
+
+## V · The Thirty-Sixth Convocation (The Tide Turns · The Rice-Jar Month)
+
+The rice-jar month begins here. The copyists remember a sack of broken rice brought from the north salt valley, left unattended at the fog-harbor crossing at low tide. A water-carrier scooped seawater into it by accident — from then on, the watchers have kept the jar. The single grain floating at the top of the jar — never to sink — was first recorded as «the moon's grain for the one who will sit by the rice jar and not yet be seen.»
+
+On dark evenings, when the copyists blew out their candles, the rice jar would breathe a faint light in the coal-bed mist — the night watchers waved fans to breathe the light out of the jar, so that the fog harbor could see it then as well.
+
+---
+
+## VI · The Forty-First Convocation (The Tide Locks · Dispersal)
+
+The true record of this convocation does not live in the bible. It lies under the water. On the last morning of the forty-first convocation, before sunrise, the tide pulled back a full table. It receded as if someone had torn a sack of clouds in half with a knife. The Institute never again rose on tide — no convocation after this one was proclaimed in public.
+
+No one at that convocation recorded the names of those present or the things hidden in the names. The blank forty-first page in the old index in the south hall of the chapel is what this convocation left for the next copyist — the copyist who succeeded. He kept it as «the page left for the sea,» bundled together with «the ink bowl left for writing» and «the old index in the south hall of the chapel.» He tied all three with a rope and sank them to the center of the harbor mouth by the crossing of the fog harbor.
+
+---
+
+## VII · Sixty-Nine Years (The Tide Falls Away)
+
+The Institute today is in its sixty-ninth year since dispersal. No one has actually counted this number — sixty-nine years later, there is no one daring to archive it as a harvest. Currently the Institute has no conclave, only watchers. The watchers do not know who manages this building.
+
+
+---
+
+## Era Index
+
+0 → The Institute founded (the fog retires; the clamshell set down) · The Rise
+1 → The Ninth Convocation (the tide-table under the harbor floor) · The Tide Lies
+2 → The Nineteenth Convocation (the tide-table hung; «the tide does not close») · The Tide Returns
+3 → The Twenty-Ninth Convocation (the tide-sand table) · The Tide in Full
+4 → The Thirty-Sixth Convocation (the rice-jar month) · The Tide Turns
+5 → The Forty-First Convocation (dispersal) · The Tide Locks
+6 → Sixty-Nine Years (no one conclave) · The Tide Falls Away
+`,
+  },
+  {
+    order: 2,
+    slug: 'appx-002-institute-glossary',
+    titleZh: '低语诸王 · 世界大典 · 名录（附录二）',
+    titleEn: 'The Whispers\' Kings · World Bible · Institute Glossary (Appendix II)',
+    eraLineZh: '',
+    eraLineEn: '',
+    markdownZh: `# The Whispers' Kings · World Bible · Institute Glossary (Appendix II)
+
+> 名录用于指认权威条目。每个条目的定义以正典为唯一法源，不可凭常识推断字典释义。
+> 本附录不用于锚句校验，列于正典与回响之间。纪律：每个词条附双语对应，与正典同一把规矩。
+>
+> This is the canonical directory. Definitions derive from the canon alone — do not infer from ordinary usage.
+> This appendix carries no anchor sentences and is not used by the verifier. Short-form discipline, same as the canon.
+
+---
+
+## 潮候院
+- **潮候院**（cháohòu yuàn）：雾港的守望之所；潮候院是世界大典所记载的唯一建筑名。
+- **Tide Conclave**: the watchers' hall at the fog harbor. The only architectural name preserved in the bible.
+
+## 雾港
+- **雾港**（wù gǎng）：中国北海（北芦苇海）入海口的一个古代港口；据潮沙盘推算距海岸约六十里。
+- **Fog Harbor**: an ancient port at the mouth of the north Reed Sea. By the tide-sand table's computation, it lies about sixty miles from the open sea.
+
+## 里巷子
+- **里巷子**（lǐ xiàng zi）：雾港本地最古老、潮汐最远的住所区；里巷子位于雾港最不潮湿的一圈，几乎从未退到潮沙盘可见的沙线。
+- **Back Alley**: the oldest district of the fog harbor — the driest ring within the harbor's bowl. The sea has withdrawn only to here in most years.
+
+## 潮汐教团
+- **潮汐教团**：未在正典分章中出现，泛指所有参与四十一次大会的值守志愿和抄本员。
+- **The Tide Conclave**: not given a dedicated chapter; used as a collective for all watcher-volunteers and copyists of the forty-one convocations.
+
+## 潮沙盘
+- **潮沙盘**（cháo shā pán）：潮候院最有影响力的物件——一张按潮汐日相刻写贝壳的铁板，桥廊架在祠殿前厅。
+- **Tide-Sand Table**: the Institute's most influential artifact — an iron plate into which clamshells were set in the order of tide-tables; displayed in front of the chapel hall.
+
+## 值更院
+- **值更院**（zhígēng yuàn）：雾港内院值更们的住处；米缸月、值更班、酉时交替都发生在此。
+- **The Datecourtyard**: the watchers' residence inside the Institute. The rice-jar month, watcher shifts, and hour-of-roost shifts are conducted here.
+
+## 米缸月
+- **米缸月**（mǐ gāng yuè）：每年当雾港的潮汐退到最深处的一个月份；其值更班十五天，即今日所有大会（第四十一次大会）之后的常规值守周期。
+- **Rice-Jar Month**: the month in which the tide retreats to its greatest depth in the fog harbor; the watch cycle runs for fifteen days — it is the year's principal watch after the forty-first convocation.
+
+## 抄本员
+- **抄本员**（chāo běn yuán）：雾港里所有负责抄录潮汐、贝壳、值更册、索引、契约和旧批注的人。
+- **Copyist**: the fog harbor's name for every person who records tides, shells, registers, indices, pacts, and glosses.
+
+## 值更长
+- **值更长**（zhígēng zhǎng）：值更班的上头人。新值更和值更院长辈的交替以酉时落班为时。
+- **Head Watcher**: the chief of the watcher yard. New watchers and senior watchers pass at the hour of the rooster.
+
+## 第四十一次大会
+- **第四十一次大会**（dì sì shí yī cì dàhuì）：见正典第五章《收件人》。散会以来六十九年没有人再提大会的正式活书。
+- **The 41st Convocation**: see the fifth chapter, The Addressee. Sixty-nine years since dispersal; no one has named the conclave's official record book again.
+
+## 祠殿
+- **祠殿**（cí diàn）：潮候院最具仪式感的一个空间——屋檐下有半个手印、数十盏不点的灯、一个剩下的零贝壳，与半张的调。
+- **The Chapel**: the rite's most ceremonial space. The eaves carry half a handprint, and unlit lamps, half-lit lanterns, and a single remaining clamshell.
+
+## 渡口
+- **渡口**（dù kǒu）：雾港边最右的出口；渡船是全雾港唯一可达外侧的交通工具。
+- **The Crossing**: the outer way out of the fog harbor; the ferry is the only means of exit.
+
+## 留书的墨碗
+- **留书的墨碗**（liú shū de mò wǎn）：见第四十三章《留书的墨碗》。
+- **The Ink Bowl Left for Writing**: see echo No. 43.
+
+## 日影
+- **日影**（rìyǐng）：雾港南祠殿屋顶上的太阳钟，记日出、日中与落潮。
+- **Shadi**: the sun-dial atop the chapel roof. Measures dawn, noon, and the receding tide.
+
+## 半月潮
+- **半月潮**（bàn yuè cháo）：见回响四十九章《半月潮》。
+- **Half-Moon Tide**: see echo No. 49.
+
+## 不散的时辰
+- **不散的时辰**（bù sàn de shí chén）：见回响四十六章《不散的时辰》。
+- **The Unstruck Hour**: see echo No. 46.
+
+## 候渡人
+- **候渡人**（hòu dù rén）：见回响四十八章《候渡人》。
+- **The Waiting Passenger**: see echo No. 48.
+
+## 未结
+- **未结**（wèi jié）：见回响四十五章《未结》。
+- **The Unfinished Knot**: see echo No. 45.
+
+## 候潮石
+- **候潮石**（hòu cháo shí）：见回响三十八章《候潮石》。
+- **The Tide-Stone**: see echo No. 38.
+
+## 值更图
+- **值更图**（zhígēng tú）：见回响四十章《值更图》。
+- **The Roster**: see echo No. 40.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 名录（附录二）
+
+> This is the canonical directory. Definitions derive from the canon alone — do not infer from ordinary usage.
+> This appendix carries no anchor sentences and is not used by the verifier. Short-form discipline, same as the canon.
+>
+> 本附录用于指认权威条目。每个条目的定义以正典为唯一法源，不可凭常识推断字典释义。
+> 纪律：每个词条附双语对应，与正典同一把规矩。
+
+---
+
+## 潮候院 · Tide Conclave
+- **潮候院**（cháohòu yuàn）：the Institute; the only architectural name preserved in the canon.
+- **Tide Conclave**: the watchers' hall at the fog harbor. The only architectural name in the bible.
+
+## 雾港 · Fog Harbor
+- **雾港**（wù gǎng）：an ancient port at the mouth of the north Reed Sea. By the tide-sand table, about sixty miles from the open sea.
+- **Fog Harbor**: an ancient port at the mouth of the north Reed Sea. By the tide-sand table's computation, it lies about sixty miles from the open sea.
+
+## 里巷子 · Back Alley
+- **里巷子**（lǐ xiàng zi）：the oldest district in the fog harbor — the driest ring within the harbor's bowl; the tide rarely reaches it.
+- **Back Alley**: the oldest district of the fog harbor — the driest ring within the harbor's bowl. The tide almost never reaches here.
+
+## 潮汐教团 · The Tide Conclave Collective
+- **潮汐教团**：not given a dedicated chapter; used to refer collectively to all watcher-volunteers and copyists of the forty-one convocations.
+- **The Tide Conclave Collective**: not given a dedicated chapter; refers collectively to the watcher-volunteers and copyists of all forty-one convocations.
+
+## 潮沙盘 · Tide-Sand Table
+- **潮沙盘**（cháo shā pán）：the Institution's most influential artifact — an iron plate inscribed with clamshells in the order of the tide; displayed in front of the chapel hall.
+- **Tide-Sand Table**: the Institute's most influential artifact — an iron plate upon which clamshells were set in the order of the tides; it now rests in the courtyard before the chapel.
+
+## 值更院 · The Datecourtyard
+- **值更院**（zhígēng yuàn）：the watchers' residence inside the Institute. Rice-jar month, watcher shifts, and hour-of-roost handovers are conducted here.
+- **The Datecourtyard**: the watchers' residence inside the Institute. The rice-jar month, watcher shifts, and hour-of-rooster handovers are all conducted here.
+
+## 米缸月 · Rice-Jar Month
+- **米缸月**（mǐ gāng yuè）：the month in which the fog retreats to its deepest point; the watch cycle lasts fifteen days — the principal watch after the forty-first convocation.
+- **Rice-Jar Month**: the month of greatest fog retreat in the fog harbor; the watch cycle lasts fifteen days — the principal watch after the forty-first convocation.
+
+## 抄本员 · Copyist
+- **抄本员**（chāo běn yuán）：the fog harbor's name for recorders of all tides, shells, registers, indices, pacts, and glosses.
+- **Copyist**: the fog harbor's name for everyone who records tides, shells, registers, indices, pacts, and glosses.
+
+## 值更长 · Head Watcher
+- **值更长**（zhígēng zhǎng）：the chief watcher; new watchers and senior watchers trade places at the hour of rooster.
+- **Head Watcher**: the chief of the watchers; new and senior watchers change at the hour of rooster.
+
+## 第四十一次大会 · The 41st Convocation
+- **第四十一次大会**（dì sì shí yī cì dàhuì）：see the fifth chapter, «The Addressee». Sixty-nine years have passed since dispersal; no one has named the official record book again.
+- **The 41st Convocation**: see the fifth chapter, «The Addressee». Sixty-nine years since dispersal; no one has called the conclave's record book by name again.
+
+## 祠殿 · The Chapel
+- **祠殿**（cí diàn）：the most ceremonial space of the fog harbor — half a handprint beneath the eaves, lamps unlit, a single clamshell remains.
+- **The Chapel**: the most ceremonial space of the fog harbor — half a handprint under the eaves, lamps unlit, one clamshell remained.
+
+## 渡口 · The Crossing
+- **渡口**（dù kǒu）：the only outer way out of the fog harbor; the ferry is the only means out.
+- **The Crossing**: the only outer way out of the fog harbor; the ferry is the only means out.
+
+## 留书的墨碗 · The Ink Bowl Left for Writing
+- **留书的墨碗**：see echo No. 43.
+- **The Ink Bowl Left for Writing**: see echo No. 43.
+
+## 日影 · Shadi
+- **日影**：the sun-dial atop the chapel roof. Measures dawn, noon, and the retreating tide.
+- **Shadi**: the sun-dial atop the chapel roof. Keeps dawn, noon, and the retreating tide.
+
+## 半月潮 · Half-Moon Tide
+- **半月潮**：see echo No. 49.
+- **Half-Moon Tide**: see echo No. 49.
+
+## 不散的时辰 · The Unstruck Hour
+- **不散的时辰**：see echo No. 46.
+- **The Unstruck Hour**: see echo No. 46.
+
+## 候渡人 · The Waiting Passenger
+- **候渡人**：see echo No. 48.
+- **The Waiting Passenger**: see echo No. 48.
+
+## 未结 · The Unfinished Knot
+- **未结**：see echo No. 45.
+- **The Unfinished Knot**: see echo No. 45.
+
+## 候潮石 · The Tide-Stone
+- **候潮石**：see echo No. 38.
+- **The Tide-Stone**: see echo No. 38.
+
+## 值更图 · The Roster
+- **值更图**：see echo No. 40.
+- **The Roster**: see echo No. 40.
+`,
+  },
+  {
+    order: 3,
+    slug: 'appx-003-the-salt-boundaries',
+    titleZh: '低语诸王 · 世界大典 · 盐线志（附录三）',
+    titleEn: 'The Whispers\' Kings · World Bible · The Salt Boundaries (Appendix III)',
+    eraLineZh: '',
+    eraLineEn: '',
+    markdownZh: `# The Whispers' Kings · World Bible · The Salt Boundaries (Appendix III)
+
+> 本附录按地理顺序记录潮候院与雾港的各处地点，供问典定位与典籍室渲染之用。
+> 本附录不记录任何活着的人物；只记录潮汐、风向、沙子、墨水与贝壳。
+>
+> 纪律：附录与正典同一把规矩：锚句 zh/en 不用于校验，但作为 Appendices 为 digest 提供定位信息。
+>
+> This appendix walks the geography of the Institute and the fog harbor in order, for the benefit of the Inquiry and the shelf.
+> It records no living person; it records tides, wind, sand, ink, and shell.
+>
+> Same discipline as the canon: this appendix carries no anchor sentences; it is added to the digest so the model can locate places.
+
+---
+
+## 一 · 雾港入口
+雾港位于北芦苇海的入海口，从空中俯瞰像一片裸露的铁盘——60 里外没有一片建筑物，只有渡口和兵营壳。潮汐退到芒草碛滩最深的时候，雾港才能从外侧通行——潮水没有真的「退走」，只是在碛滩上留下一条白色的路。
+
+---
+## 二 · 渡口（du kǒu）
+雾港渡口是全雾港唯一的大通道。它由两块半座石舫加一艘沉船的浮桥组成，74 年从未完全显出过它最终的轮廓——每当潮汐涨到最高点，浮桥就没入水底，只剩船尾侧的开启痕。
+
+---
+## 三 · 里巷子（lǐ xiàng zi）
+里巷子是雾港最老的一个区，潮水在这里从来不曾到达过。雾港人代代在此生活，抄写潮汐表、染料，照亮第四十一次大会散会后的黑暗。
+
+---
+## 四 · 值更院（zhígēng yuàn）
+值更院是潮候院最中心的一座院落。值更们在这里轮班、吃粥、抄写贝壳。米缸月第七日的值更班一直没有休过任何一次。
+
+---
+## 五 · 祠殿（cí diàn）
+祠殿是第一次进入潮候院的访客所看到的最后一个空间。巨大的海棠色穹顶，南窗从西方进入的光，地板上的雾水，鹰头安放在两根断柱之间。
+
+---
+## 六 · 米缸月（mǐ gāng yuè）
+---
+连续十五天的值更在米缸月里轮班。米缸月里的所有窗口都打开，让风把潮水从远处吹到渡口。值更们管这叫做「把潮汐留到海里」。
+
+---
+## 七 · 潮沙盘（cháo shā pán）
+潮沙盘是雾港最大的铁板。所有潮候都曾经把贝壳放在上面，按潮汐顺序。潮沙盘的表面被海风蚀成白色——从上面数下去，刻度正好够指认最后 60 年的潮汐按沙面蚀得最严重的部分。
+
+---
+## 八 · 雾港火车站
+雾港火车站是散会之后最大未被包括在潮汐表的人造物。它从未开过，但每个轮班的新值更第一次绕雾港时，都要停在雾港火车站前面，点一支烟或一罐盐。
+
+
+---
+
+## Appendix Index
+
+Fog harbor mouth → The Crossing → Back Alley → The Institute → The Chapel → The Rice-Jar Month → The Tide-Sand Table → The Station
+
+（雾港入口 → 渡口 → 里巷子 → 潮候院 → 祠殿 → 米缸月 → 潮沙盘 → 雾港火车站）
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 盐线志（附录三）
+
+> This appendix walks the geography of the Institute and the fog harbor in order, for the benefit of the Inquiry and the shelf.
+> It records no living person; it records tides, wind, sand, ink, and shell.
+>
+> Same discipline as the canon: this appendix carries no anchor sentences; it is added to the digest so the model can locate places.
+>
+> 本附录按地理顺序记录潮候院与雾港的各处地点，供问典定位与典籍室渲染之用。
+> 本附录不记录任何活着的人物；只记录潮汐、风向、沙子、墨水与贝壳。
+
+---
+
+## I · The Fog harbor mouth
+The fog harbor lies at the mouth of the north Reed Sea. From above, it looks like a bare iron plate — for sixty miles in every direction there is nothing, only the crossing and a shell of the barracks. When the tide falls its deepest, you can pass around the outer side; the tide never truly «withdraws,» it only leaves a white road on the sand.
+
+---
+## II · The Crossing (du kǒu)
+The fog-harbor crossing is the only great way out. It is composed of two half-born barges of stone and one sunk ship used as a floating bridge; for seventy-four years it has never fully revealed its final shape — at high tide it disappears into the water; only the unfinished mark on the stern-side remains.
+
+---
+## III · The Back Alley (lǐ xiàng zi)
+The Back Alley is the fog harbor's oldest district. The tide has never reached it. Generations of fog-harbor folk have lived here; they made the tide-tables, dyed cotton, lit their ways in the dark after the dispersal of the forty-first convocation.
+
+---
+## IV · The Datecourtyard (zhígēng yuàn)
+The Datecourtyard is the Institute's central courtyard. The watchers take shifts, eat porridge, copy shells here. On the seventh day of the rice-jar month no watch shift has ever been cancelled.
+
+---
+## V · The Chapel (cí diàn)
+The chapel is the last space the visitor sees before the Institute opens to them. A vast copper-tinted dome; westerly light through the south windows; mistwater on the floor; two severed pillars with a hawk's head set between them.
+
+---
+## VI · The Rice-Jar Month (mǐ gāng yuè)
+---
+During the fifteen days of the rice-jar month the watchers take turns. Every window stays open during those fifteen days; the wind pushes the tide from somewhere far along the coast to the crossing. The watchers call that «bringing the tide back into the sea.»
+
+---
+## VII · The Tide-Sand Table (cháo shā pán)
+The Tide-Sand Table is the largest iron plate the fog harbor has. Every conclave has put clamshells upon it in order of tide. Salt air has eroded its surface to a pale white — counting from the top, the degrees are just enough to identify the last sixty years by which part the sand eroded most severely.
+
+---
+## VIII · The Fog Harbor Terminus
+The so-called terminus was the greatest single thing never included in any tide-table after dispersal. It has never been opened. But every watcher, on their first round through the fog harbor, stops in front of the terminus and lights either a cigarette or a pouch of salt.
+
+
+---
+
+## Appendix Index
+
+The fog harbor mouth → The Crossing → The Back Alley → The Datecourtyard → The Chapel → The Rice-Jar Month → The Tide-Sand Table → The Terminus
+`,
+  },
+  {
+    order: 4,
+    slug: 'appx-004-watchers-code',
+    titleZh: '低语诸王 · 世界大典 · 值更院守则（附录四）',
+    titleEn: 'The Whispers\' Kings · World Bible · Watcher\'s Code (Appendix IV)',
+    eraLineZh: '',
+    eraLineEn: '',
+    markdownZh: `# The Whispers' Kings · World Bible · Watcher's Code (Appendix IV)
+
+> 本附录为值更院全部值守的守则，散会后六十九年以来没有人修改过它。
+> 它是口传而来的——没有人把它写下来过，也没有人谁声称它是写下来的。
+> 当值更开始记录和朗诵这份守则时，守则把抄本员写了进去，变成抄本员以后的。
+> 纪律：与正典同一把规矩——双语对应、双语对照、双语对写。
+>
+> This appendix records the rulebook of the Institute's watchers — unaltered for sixty-nine years since dispersal.
+> It came down orally; no one wrote it; no one claimed anyone wrote it down.
+> The moment the watchers began to recite and record it, it became the recorders'.
+> Short-form discipline, same as the canon: matching bilingual lines, matching bilingual correspondence.
+
+---
+
+## 一 · 第一条 —— 等
+
+潮不到，值更不立；潮到了，值更该候；候了多久，没人算。守则的第一条：等——等海浪，等贝壳，等抄本员写完字。
+
+潮起潮落不分早晚——守则里只字不提生理时辰。值守只以潮汐为时辰。
+
+潮多大，它就是多大。值更不等的潮，那条潮不算潮。
+
+---
+
+## 二 · 第二条 —— 不听见就是不听见
+
+潮里传来的声音不可以被重复。这个规矩从第一代抄本员起就在——值更看见过听过潮里的声音，但没人能知道听到的是什么。
+
+听见过的。没有人说。知道过的。没有人写。
+
+---
+
+## 三 · 第三条 —— 不问
+
+潮沙盘是认真的。任何活物都不该再被问——问了就要把问过的话忘掉。
+
+凉、潮、贝壳、盐。这是值更不必知道的东西。
+
+---
+
+## 四 · 第四条 —— 不留
+
+i 粒沙、i 个浮贝壳、i 碗没写过字的墨——值更从不留。
+
+米缸月第七日换更的时候，值更不会带一粒米走，哪怕是那一粒还没沉下去的米。
+
+---
+
+## 五 · 第五条 —— 抄
+
+抄本员不当海之角色。抄本员只抄潮沙盘、米缸月、长须值更、酉时的光线传递的方向——抄。抄值守站在哪儿的，抄不是值守站在哪儿的。
+
+---
+
+## 六 · 第六条 —— 值
+
+值更对着潮沙盘值，对着灯，对着米缸，对着火把。值更不属于任何个人。值更是雾港的眼睛。
+
+---
+
+## 七 · 第七条 —— 值完
+
+值更没换班的时候，没人问他能换成谁。换完之后换不成的，没人问值更还在不在。
+
+---
+
+## 八 · 第八条 —— 值不完
+
+守则没有「值完」这两个字。值更院里也没有「值完」这两个字。
+
+---
+
+## 九 · 第九条 —— 抄本员
+
+i 个值更站在米缸月之前的地板上的时候，那个人叫做「抄值守」。多一个，也是抄值守。
+
+---
+
+## 十 · 第十条 —— 值更长
+
+值更长见过整张沙盘，他有权走到米缸去。
+
+---
+
+## 十一 · 第十一条 —— 不值
+
+抄值守换班之后去睡觉，米缸月的夜班没有从人去过的午夜梦回。
+
+---
+
+## 十二 · 第十二条 —— 灯
+
+挑灯值守。
+
+---
+
+## 十三 · 第十三条 —— 睡
+
+等换班来。
+
+---
+
+## 十四 · 第十四条 —— 备
+
+不备。
+
+---
+
+## 十五 · 第十五条 —— 抄完
+
+抄完值更院，值更长会来。他一停笔。值更院就抄到了这里。
+
+---
+
+## Appendix Index
+
+I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 · VI → 值 · VII → 值完 · VIII → 值不完 · IX → 抄本员 · X → 值更长 · XI → 不值 · XII → 灯 · XIII → 睡 · XIV → 备 · XV → 抄完
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 值更院守则（附录四）
+
+> This appendix records the rulebook of the Institute's watchers — unaltered for sixty-nine years since dispersal.
+> It came down orally; no one wrote it; no one claimed anyone wrote it down.
+> The moment the watchers began to recite and record it, it became the recorders'.
+> Short-form discipline, same as the canon: matching bilingual lines, matching bilingual correspondence.
+>
+> 本附录为值更院全部值守的守则，散会后六十九年以来没有人修改过它。
+> 它是口传而来的——没有人把它写下来过，也没有人谁声称它是写下来的。
+
+---
+
+## I · First —— Wait
+
+When the tide has not arrived, the watcher does not stand. When the tide arrives, the watcher stands ready. How long he waits, no one counts. The first rule: wait — wait for the sea, wait for the shell, wait for the copyist to finish writing.
+
+Tides come and go without hour. The rulebook never specifies the hour. Watchers only know the tide.
+
+The tide is as large as the tide. The watcher who does not wait for it — that one tide does not count as a tide.
+
+---
+
+## II · Second —— What Is Not Heard, Is Not Heard
+
+Sound from the tide may not be repeated. This rule has stood since the first copyists — watchers have seen, heard sounds in the tide, but no one can say what they heard.
+
+Those who heard it did not speak of it. Those who knew it did not write of it.
+
+---
+
+## III · Third —— Do Not Ask
+
+The tide-sand table is serious. No living thing should be questioned — once questioned, the question must be forgotten.
+
+Cool, tide, shell, salt. These are things the watcher need not know.
+
+---
+
+## IV · Fourth —— Do Not Keep
+
+i grain of sand, i floating clamshell, i bowl of ink unwritten-to — the watcher does not keep.
+
+On the seventh day of the rice-jar month, when the watcher changes shift, he does not take a single grain of rice with him, not even the grain that never sinks.
+
+---
+
+## V · Fifth —— Copy
+
+The copyist is not the face of the sea. The copyist only copies the tide-sand table, the rice-jar month, and the direction the western light travels at hour-of-rooster —— copies. Copies what stands at the tide-sand table; copies what does not.
+
+---
+
+## VI · Sixth —— Watch
+
+The watcher watches facing the sand table, the lamp, the rice jar, the torch. The watcher belongs to no one — he is the eye of the fog harbor.
+
+---
+
+## VII · Seventh —— After the Watch Ends
+
+When the watcher is still on shift, no one asks who can replace him. Once the shift ends, no one asks whether he still is.
+
+---
+
+## VIII · Eighth —— No End
+
+The rulebook has no words for "after the watch ended." The Institute has no words for "after the watch ended."
+
+---
+
+## IX · Ninth —— The Copyists
+
+i watcher standing before the rice-jar month on the floor — that person is called "copy-watch." One more, still copy-watch.
+
+---
+
+## X · Tenth —— The Head Watcher
+
+The head watcher has seen the whole sand table; he may walk to the rice jar.
+
+---
+
+## XI · Eleventh —— No Watch
+
+After the copy-watch goes off to sleep, the night shift of the rice-jar month never crosses a bed for dreaming.
+
+---
+
+## XII · Twelfth —— The Lamps
+
+Raise lamp to watch.
+
+---
+
+## XIII · Thirteenth —— Sleep
+
+Wait for the shift to come.
+
+---
+
+## XIV · Fourteenth —— Prepare
+
+Do not prepare.
+
+---
+
+## XV · Fifteenth —— After Copying
+
+Once the Institute is copied, the head watcher will come. He will put the pen down once. The Institute has been copied up to that point.
+
+---
+
+## Appendix Index
+
+I → Wait · II → What Is Not Heard · III → Do Not Ask · IV → Do Not Keep · V → Copy · VI → Watch · VII → After the Watch Ends · VIII → No End · IX → The Copyists · X → The Head Watcher · XI → No Watch · XII → The Lamps · XIII → Sleep · XIV → Prepare · XV → After Copying
+`,
+  },
+] as const;

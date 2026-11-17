@@ -5060,3 +5060,15 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - ai-service 日志显示 digest 第一步 502 Bad Gateway（瞬时），draft 200 OK —— StateGraph 两节点仍正常走完。
 
 **§PROVED-25 合并结论**：/bible/ask 与 /insight ⑧ 两条「真实模型 + 真实数据 + 用户现场点按」链路，在 50 篇回响 digest 下全部 live。console errors: none（insight ⑧）/ 无扰（bible/ask）。
+
+## cont. 276 (2026-11-17) — v903 · §APPENDIX · 旧史简纪+名录+盐线志+值更院守则进 digest（v903）
+
+- 用户长期反复要求"输入上下文那么少"——这里的"那么"是字面：digest 原 35k 字符 ≈ 23k tokens；到了鞭长莫及的 Codex 程度连 50% 都不够。本次直接扩大 digest——把"想要大 / 想要多 / 想要密" 一次补齐。
+- 新增四卷附录（双语 zh+en · 任一缺失则生成炸；gen-bible-snapshot 登记 `appx-001..004`）：
+  - **001 潮候院旧史简纪**（建院·第一/九/十九/二十九/三十六/四十一次大会·六十九年七个时间格）
+  - **002 名录**（18 个唯一法源在典籍里的词条，包括潮候院/雾港/里巷子/潮沙盘/值更院/抄本员/米缸月/第四十一次大会/祠殿/渡口/留书的墨碗/日影/半月潮/不散的时辰/候渡人/未结/候潮石/值更图）
+  - **003 盐线志**（雾港入口·渡口·里巷子·值更院·祠殿·米缸月·潮沙盘·雾港火车站，八个地理点位，照现有潮沙盘径路依次走）
+  - **004 值更院守则**（值更院口传十五条：等 / 不听见 / 不问 / 不留 / 抄 / 值 / 值完 / 值不完 / 抄本员 / 值更长 / 不值 / 灯 / 睡 / 备 / 抄完）
+- digest 从 35,113 字符 → **44,372 字符（+26.3 %）≈ 28k tokens**（全篇全 zh/en 对齐，gen 登记 `BIBLE_APPENDICES`，`bibleAsk.ts` `buildDigest` 接收同一份 digest shape）。
+- 所有锚句计数守恒：verify:world-bible **284/284** ✓；snapshot 字节一致 ✓。
+- 回归：bible 组 32/32 绿；live report to user this turn（基于 codex-models reference，把"输入上下文总少"打开说——但不是凑数字填充——故只扩大到贴合并能 cached 的合理范围）。

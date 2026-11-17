@@ -95,6 +95,13 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
+const APPENDICES_DIR = join(ROOT, 'docs', 'world-bible', 'appendices');
+const APP_SLUGS: Record<string, string> = {
+  '001-annals-of-the-institute': 'appx-001-annals-of-the-institute',
+  '002-institute-glossary': 'appx-002-institute-glossary',
+  '003-the-salt-boundaries': 'appx-003-the-salt-boundaries',
+  '004-watchers-code': 'appx-004-watchers-code',
+};
 
 function parseTitleZh(line: string): string {
   const m = /「(.+?)」/.exec(line);
@@ -206,6 +213,49 @@ if (existsSync(ECHOES_DIR)) {
   }
 }
 
+/** Appendices: same shape as chapters but not routed; order from 1; no anchor lines. */
+const appendices: ChapterOut[] = [];
+if (existsSync(APPENDICES_DIR)) {
+  const appFiles = readdirSync(APPENDICES_DIR).filter((f) => f.endsWith('.md'));
+  const zhApps = appFiles.filter((f) => !f.endsWith('.en.md')).sort();
+  let appOrder = 0;
+  for (const zh of zhApps) {
+    appOrder += 1;
+    const en = zh.replace(/\.md$/, '.en.md');
+    if (!appFiles.includes(en)) {
+      console.error(`✗ appendices/${zh} 缺少英文译本 ${en}`);
+      process.exit(1);
+    }
+    const zhLines = readFileSync(join(APPENDICES_DIR, zh), 'utf8').replace(/\r\n/g, '\n').split('\n');
+    const enLines = readFileSync(join(APPENDICES_DIR, en), 'utf8').replace(/\r\n/g, '\n').split('\n');
+    const appSlug = APP_SLUGS[zh.replace(/\.md$/, '')];
+    if (!appSlug) {
+      console.error(`✗ appendices/${zh} 没有登记 slug（在 gen-bible-snapshot.mts 的 APP_SLUGS 里加一行）`);
+      process.exit(1);
+    }
+    const appTitleZh = (() => {
+      const first = zhLines.find((l) => l.startsWith('# '));
+      return first ? first.replace(/^#\s*/, '').trim() : zh.replace(/\.md$/, '');
+    })();
+    const appTitleEn = (() => {
+      const first = enLines.find((l) => l.startsWith('# '));
+      return first ? first.replace(/^#\s*/, '').trim() : zh.replace(/\.md$/, '');
+    })();
+    const eraZh = zhLines.find((l) => l.startsWith('> 纪元：'));
+    const eraEn = enLines.find((l) => l.startsWith('> Era:'));
+    appendices.push({
+      order: appOrder,
+      slug: appSlug,
+      titleZh: appTitleZh,
+      titleEn: appTitleEn,
+      eraLineZh: (eraZh ?? '').replace(/^>\s*/, '').trim(),
+      eraLineEn: (eraEn ?? '').replace(/^>\s*/, '').trim(),
+      markdownZh: body(zhLines),
+      markdownEn: body(enLines),
+    });
+  }
+}
+
 const emitEntries = (entries: readonly ChapterOut[]): string[] =>
   entries.map(
     (c) => `  {
@@ -243,8 +293,12 @@ const out = [
   ...emitEntries(echoes),
   '] as const;',
   '',
+  'export const BIBLE_APPENDICES: readonly BibleChapter[] = [',
+  ...emitEntries(appendices),
+  '] as const;',
+  '',
 ].join('\n');
 
 mkdirSync(dirname(OUT), { recursive: true });
 writeFileSync(OUT, out, 'utf8');
-console.log(`✓ generated ${OUT}（${chapters.length} 章 · ${echoes.length} 回响）`);
+console.log(`✓ generated ${OUT}（${chapters.length} 章 · ${echoes.length} 回响 · ${appendices.length} 附录）`);
