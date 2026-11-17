@@ -5857,3 +5857,13 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
   Codex 那种「持续 ~90%」是 distributor 在该 channel-local window 上的客观表现。
 - 证据 §PROVED-13 落盘；证据档至 13 节；本轮无代码改动。
 - ／待办： distributor 间歇 000 无工程侧可解——记录即止。
+
+
+> **2026-11-18 续（§merge：兄弟线 local-clone/main 171 个提交并入 master，`7fcd0ed5`；后续修复 `6417a1b3`）**：
+> 把并轨线的全部工作收编进主线——StateGraph（LangGraph 语义 TS 版，agents/runtime）、/insight 全套（login/logout/observe/analyze/深读）、
+> /api/bible/q 问典、/api/analytics/agent-narrate、/api/insight/analyze、scripts/simulate-user-behavior.mts（§SIM-1）、公开问典、e2e 五件、
+> web i18n 双语全量波次（app/bible、app/guide、studio shell-i18n、game2d、StoryPlay、RpgPlay、GamePlay、CanvasStage…）。
+> - annex（支线大典，docs/world-bible/annex/，005《收件人》 · 回响 E02–E36 · 字节级原样收录 · git 历史保留）先行并轨成 `5ed445ac`；主线正典未受污染（13 章 · 20 回响 · 191 锚句原样；全项目 362 锚句 verify:world-bible ✓）。
+> - 合并三层：先收 canon（annex）→ 再把 171 个代码提交合进 master（union 原则：observability 双侧计数、PlayQuestGoal 保 labelEn+targetName 双字段、globals.css 追加段互补合并、guide 正文抽至 lib/guideCopy.ts 共享真值）→ 逐项解锁 gates（41 处 SHA pin 全数重钉到合并后真值、bible-ask digest 断言锚计数 200→191、fe-gates.mjs 修复 Windows 8191 字符上限）。
+> - 事故记录：本轮由 agent 自己发现并修复的两处失误——a) PowerShell 重定向「git show」误把 guideCopy.ts 正文转 GBK（字典中译全坏），后用 Node 管道直取字节重写；b) game-model 并轨后 PlayQuestGoal 应同时保留双轨字段（labelEn/targetName）——测试与类型全部对齐。tsc 抓出 8 处残留重复（双键/JSX 重复属性/多余闭括号/BibleQuiz 悬挂字面量），全部归零：fe-gates 147/147 · 1353/1353 · census OK 2902 · tsc web EXIT=0 · game-model 363/363。
+> - 缺口声明：浏览器像素层验证缺席（本机无合成 Chrome）；annex 支线按设计不进 /bible 书架（直接读 markdown）。
