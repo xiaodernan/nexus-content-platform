@@ -5588,3 +5588,9 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 第 75 篇回响「幼鸟」：潮候院东门外礁石 · 第五十八回潮大会散会后第七天，一只幼鸟全身浸在潮水里——值更长派值更孩子鱼肠渣——鸟张嘴吞两口——第二天不在礁石上了 · 幼鸟被收入鸟典：潮候院此后不会再喂这类死鸟。
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-075-the-one-time-fed-seabird-at-the-east-gate`；verify world-bible **434/434** ✓。
 - 同步：BibleAsk lede → 75（含 en）；/bible/ask meta → 七十五篇 / seventy-five；cache-identity → 75 篇锚句；bible-ask-behavior 锚句总数 428→434；canon-answer-graph 测试 80 段 / 75 echoes；pins 重钉（page→f456d683… comp→8c6c5711…）；fe-gates 测试 24/24。
+
+## cont. 321 (2026-11-18) — v940 · §BIBLE-76 · Echo #76《潮候院顶最高处那间没人打开的封地窖》（作者手写·双语·440/440 绿）
+
+- 第 76 篇回响「封地窖」：钟楼顶楼三间屋（两放非正式遗物，一道古木门）——值更长敲了门两声——屋里传来两下响声——钥匙上刻「见窗旁者一人」——没人敢动。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-076-the-attic-no-one-opens`；verify world-bible **440/440** ✓。
+- 同步：BibleAsk lede → 76（含 en）；/bible/ask meta → 七十六篇 / seventy-six；cache-identity → 76 篇锚句；bible-ask-behavior 锚句总数 434→440；canon-answer-graph 测试 81 段 / 76 echoes；pins 重钉（page→3397ba92… comp→e42e4035…）；fe-gates 测试 24/24。

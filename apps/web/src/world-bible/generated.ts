@@ -16058,6 +16058,204 @@ The head of the watch said: "It was fed; let it be. The Institute will not feed 
 > The Institute fed it once; the Institute will not feed it again — it is owed nothing.
 `,
   },
+  {
+    order: 76,
+    slug: 'echo-076-the-attic-no-one-opens',
+    titleZh: '潮候院顶最高处那间没人打开的封地窖',
+    titleEn: 'The Sealed Cellar at the Top of the Institute No One Opens',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——秋潮月第六十二日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the sixty-second day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 76): The Sealed Cellar at the Top of the Institute No One Opens
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院顶最高没人打开的一间封地窖。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the sealed cellar at the top of the Institute that no one opens.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第六十二日。
+> Era: the Institute — after the 41st Convocation; the sixty-second day of the autumn-tide month.
+
+---
+
+## 一 · 顶楼
+
+潮候院最高的一座挂满雨水的钟楼楼顶，抄本师私下叫它「顶楼」——值更长叫它「那间不要开门的」。
+
+顶楼上一共三间屋——两间存放非正式遗物，一间是一道古木门。
+
+**锚句**：顶楼一共三间屋——一间是一道古木门。
+**Anchor sentence**: the attic has three rooms; one is a wooden door.
+
+---
+
+## 二 · 那道门
+
+这道门从上到下，被外面钉得密密麻麻——木板缝里长出红铜钉。
+
+风掠过堂顶的时候，可以听见这道门轻轻碰晃；但是没人知道是从内还是从外。
+
+**锚句**：顶楼那道古木门，从上到下密密麻麻被红铜钉铆过。
+**Anchor sentence**: the attic door is studded densely with red copper nails from top to bottom.
+
+---
+
+## 三 · 第四十一次大会散会后
+
+第四十一次大会散会之后，某天傍晚——值更长带着钥匙去了那道门。
+
+抄本师问他「要开吗？」；值更长答「不开，但鸣一下」——他拿一把打火狼燧一下子枪在门上，敲了两声。
+
+**锚句**：抄本师问「要开吗？」，值更长说「不开，但鸣一下」——他敲门两声。
+**Anchor sentence**: the copyist asked, "would he open it?"; the head of the watch said, "not open — just sound it" — and knocked twice.
+
+---
+
+## 四 · 应声
+
+敲门之后，屋里传来两下响声——连着敲。
+
+值更长缩回手——没有人听到响声的源头——也没有人能识别的真实情况。
+
+**锚句**：敲门之后，屋里传来两下响声——没人识别。
+**Anchor sentence**: after the knock, two answering sounds came from inside; no one could identify them.
+
+---
+
+## 五 · 钥匙
+
+值更长第二次去顶楼是散会后第九天——他想看看那把钥匙的形状。
+
+他发现那把钥匙是桶柿木做的——上面刻着「见窗旁者一人」；抄本师私下推断「见窗旁」——很可能是某个人，但谁也猜得到。
+
+**锚句**：值更长第二次去顶楼看到钥匙，上面刻着「见窗旁者一人」。
+**Anchor sentence**: on the second visit the head of the watch saw the key; it was engraved with the words "the one beside the window sees".
+
+---
+
+## 六 · 散会之后
+
+散会之后没人想看它；抄本师说「它不是用不开——它是不会自己开」。
+
+它现在还是那根木钉和那两间屋永远变了东南西北方向；没有人知道它还在不在。
+
+**锚句**：抄本师说"它不是用不开——它是不会自己开"。
+**Anchor sentence**: the copyists say it is not a matter of not opening — it is a matter of not being opened.
+
+---
+
+## 七 · 映射（回响七十六章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 顶楼 · 封地窖 · 见窗旁者一人 · 钥匙 | 一、二、三、四、五、六 |
+| geography | 钟楼 · 顶楼 · 顶楼古木门 | 一、二 |
+| characters | 值更长 · 抄本师 · 顶楼木门 | 一、二、三、四、五、六 |
+| story | 封地窖 · 回响（其七十六） | 全篇 |
+| items | 顶楼 · 古木门 · 钥匙 · 打火狼燧 | 一、二、三、四、五 |
+| history | 第四十一次大会散会之后 · 秋潮月第六十二日 | 三、四、五、六 |
+
+> 顶楼那间不开的门没有人想看，也没有人想听——但它一直在自己里边。
+> The door upstairs no one wants to look at — no one wants to hear — but it has always been inside itself.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其七十六）「潮候院顶最高处那间没人打开的封地窖」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the sealed cellar at the top of the Institute that no one opens.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院顶最高没人打开的一间封地窖。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the sixty-second day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第六十二日。
+
+---
+
+## I · The Attic
+
+The highest point of the Institute is a bell tower covered in rain — the copyists call it, privately, the attic; the head of the watch calls it "the one that must not be opened."
+
+The attic has three rooms — two store non-formal relics, and one is a wooden door.
+
+**锚句**：顶楼一共三间屋——一间是一道古木门。
+**Anchor sentence**: the attic has three rooms; one is a wooden door.
+
+---
+
+## II · The Door
+
+This door, top to bottom, is studded densely with red copper nails; the wooden seams show the nails still glowing.
+
+When the wind blows across the bell tower, one can hear this door gently shaking; no one can say whether it comes from inside or outside.
+
+**锚句**：顶楼那道古木门，从上到下密密麻麻被红铜钉铆过。
+**Anchor sentence**: the attic door is studded densely with red copper nails from top to bottom.
+
+---
+
+## III · After the 41st Convocation Dissolved
+
+Sometime after the 41st Convocation dissolved, in the evening, the head of the watch brought the key up to the door.
+
+The copyist asked, "would he open it?" — the head of the watch said, "not open — just sound it" — he took out a fire-steel and knocked twice on the door.
+
+**锚句**：抄本师问「要开吗？」，值更长说「不开，但鸣一下」——他敲门两声。
+**Anchor sentence**: the copyist asked, "would he open it?"; the head of the watch said, "not open — just sound it" — and knocked twice.
+
+---
+
+## IV · The Answer
+
+After the knock, two answering sounds came from inside — back to back.
+
+The head of the watch drew his hand back — no one had heard the source of the sound; no one could identify what it was.
+
+**锚句**：敲门之后，屋里传来两下响声——没人识别。
+**Anchor sentence**: after the knock, two answering sounds came from inside; no one could identify them.
+
+---
+
+## V · The Key
+
+The second time the head of the watch went up was nine days after the Convocation dissolved — he wanted to look at the key.
+
+He found the key was made of bucket-paw persimmon wood — engraved with the words "the one beside the window sees"; the copyists privately inferred that "the one beside the window" was probably a person, but no one can guess who.
+
+**锚句**：值更长第二次去顶楼看到钥匙，上面刻着「见窗旁者一人」。
+**Anchor sentence**: on the second visit the head of the watch saw the key; it was engraved with the words "the one beside the window sees".
+
+---
+
+## VI · After the Dissolution
+
+No one wants to see it; the copyists say it is not a matter of not opening — it is a matter of not being opened.
+
+It is still those nails and those two rooms, constantly changing direction between southeast and northwest; no one knows whether it still exists.
+
+**锚句**：抄本师说"它不是用不开——它是不会自己开"。
+**Anchor sentence**: the copyists say it is not a matter of not opening — it is a matter of not being opened.
+
+---
+
+## VII · Mapping（Echo No. 76 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the attic · the sealed cellar · "the one beside the window sees" · the key | 一、二、三、四、五、六 |
+| geography | the bell tower · the attic · the attic's wooden door | 一、二 |
+| characters | the head of the watch · the copyists · the attic door | 一、二、三、四、五、六 |
+| story | the sealed cellar · Echo No. 76 | 全篇 |
+| items | the attic · the wooden door · the key · the fire-steel | 一、二、三、四、五 |
+| history | After the 41st Convocation · the sixty-second day of the autumn-tide month | 三、四、五、六 |
+
+> 顶楼那间不开的门没有人想看，也没有人想听——但它一直在自己里边。
+> The door upstairs no one wants to look at — no one wants to hear — but it has always been inside itself.
+`,
+  },
 ] as const;
 
 export const BIBLE_APPENDICES: readonly BibleChapter[] = [

@@ -117,6 +117,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E73-潮候院内外南墙上的第一件碑文': 'echo-073-the-three-characters-on-the-inner-wall',
   'E74-潮候院内祠三光那扇被摇摇雾吻过的窗子': 'echo-074-the-fog-kissed-window-of-the-three-lamps',
   'E75-潮候院东门外那只唯一一次被喂食的幼鸟': 'echo-075-the-one-time-fed-seabird-at-the-east-gate',
+  'E76-潮候院顶最高处那间没人打开的封地窖': 'echo-076-the-attic-no-one-opens',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
