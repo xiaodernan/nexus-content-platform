@@ -5081,3 +5081,25 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - gen-bible-snapshot 登记 `echo-051-…`、`echo-052-…`；verify:bible-snapshot ✓；verify:world-bible **296/296** ✓。
 - 同步落地：BibleAsk lede → 52；/bible/ask meta → 五十二篇回响；canon-answer-graph 测试 57 段／52 echoes；bible-ask-behavior 锚句总数 284→296；CACHE-IDENTITY 更新。
 - 回归：bible 32/32 绿。
+
+## cont. 278 (2026-11-17) — v904 · /bible/ask 复测（50→52 篇回响 digest、v903 appendices、vIV 值更院守则）
+
+- 本轮启动 dev 栈（ai-8001 + web-3100） · 浏览器接问：“值更院米缸里浮了多少年”
+- 回答（v904 52 回响digest + 4 appendices）：
+  > 六十九年没沉下去过。（回响三十六章《值更院米缸里那粒从不沉下去的米》）
+- badge `gpt-6.1-terra` · 中文完整句 · 对接具体回响章节 · console: `Failed to load resource: 401`（目标 /rate、/notifications，缺本会话不影响 /bible/ask 流）—— §PROVED-23 同路径再登册。
+- lede 直接读作「正典（5 章）+ 回响（52 篇）都在桌上」，fold 完成。
+
+## cont. 279 (2026-11-17) — v904 · 本轮新建 cont 完整记录
+
+- Echo #51 · 雾港灯塔第七级台阶上那双从来没擦掉的脚印（echo-051-the-footprints-on-the-seventh-step-of-the-lantern-tower-never-cleaned）
+- Echo #52 · 祠殿门廊那一段摸过六十九年的门槛（echo-052-the-threshold-in-the-chapel-porch-worn-by-sixty-nine-years）
+- 旧史简纪+名录+盐线志+值更院守则 4 套附录被编译入 digest（v903 · 35k → 44k 字符）。
+- 51 篇/52 篇回响 + 284/296 锚句对账护栏仍绿。
+
+## cont. 280 (2026-11-17) — v904 · 下一步未决
+
+- /bible/ask `digest 4 附录 live` — 要重启服务
+- Spring Cloud verify — 依然等 RAM≥6 GB（此时≈4 GB）
+- origin/main push — 固定 403
+- 确定 next turn：E53+ / Pages 商标轴 / 着力搁浅 spring
