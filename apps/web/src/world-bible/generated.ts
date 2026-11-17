@@ -17251,6 +17251,204 @@ The head of the watch went to look at it once — the most he ever asked was: "w
 > The Institute has ground nothing — the mill has ground the Institute — it waits for a name that no day has yet given it.
 `,
   },
+  {
+    order: 82,
+    slug: 'echo-082-the-fog-strokes-the-children-copy',
+    titleZh: '潮候院孩子每天早晚抄的雾字影',
+    titleEn: 'The Fog-Strokes Copied by the Institute\'s Children at Dawn and Dusk',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第七十七日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the seventy-seventh day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 82): The Fog-Strokes Copied by the Institute's Children at Dawn and Dusk
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院孩子们每天早晚抄的那一页雾字影。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the fog-strokes the Institute's children copy at dawn and dusk.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第七十七日。
+> Era: the Institute — after the 41st Convocation; the seventy-seventh day of the autumn-tide month.
+
+---
+
+## 一 · 每天抄字
+
+潮候院有东西叫"晨光抄"——院里所有大孩子在日出前先到祠殿，一人复一笔，满地白光。
+
+抄的不是字典里的字——抄的是 "雾字影"——雾冰成的字每一根。
+
+**锚句**：院里的大孩子日出前到祠殿，一人复一笔，抄的是雾冰成的字每一根。
+**Anchor sentence**: every older child of the Institute arrives before sunrise at the sanctuary, each tracing one stroke at a time — the strokes frozen out of fog.
+
+---
+
+## 二 · 字长得
+
+抄的不是完整的字——只是部分。
+
+——比如今天抄"潮"字三画；下一天抄"候"五画。
+
+**锚句**：抄的内容不是完整的字，每天只抄一个偏旁几笔。
+**Anchor sentence**: not a single whole character; each day only a few strokes of one part.
+
+---
+
+## 三 · 雾字影
+
+雾字影本身只有当雾上去时才被看见。
+
+每年三十多天都是专为它开放的——雾字影专用**秋潮月**——孩子们最多、墨用最快。
+
+**锚句**：每年三十多天都是秋潮月——孩子们最多墨用最快。
+**Anchor sentence**: more than thirty days a year are in the autumn-tide month — that is when the children come thickest and the ink-flow fastest.
+
+---
+
+## 四 · 收的字
+
+而《雾字影录》中一共收录了多少字——抄本师说没数字；有人说四百九十个。
+
+每一字后面专门是一个时序（抄下该字的孩子）——潮候院从抄传人开始一页一页"因为有"。
+
+**锚句**：《雾字影录》中一共收了多少字，抄本师说不出数字。
+**Anchor sentence**: the Fog-Strokes Record — no one knows how many strokes it holds; the copyists cannot say a number.
+
+---
+
+## 五 · 秋潮月
+
+秋潮月抄完——抄本师把每天的字封进特制盒——上写"雾录·"+ 年号+"年"+"回"。
+
+"回"字封闭后——《雾录》正式入潮候院后廊。
+
+**锚句**："回"字封闭后，《雾录》正式入潮候院后廊。
+**Anchor sentence**: when the "return stroke" is sealed, the Fog-Strokes Record is moved into the rear gallery of the Institute.
+
+---
+
+## 六 · 抄本师
+
+抄本师一千个已经——从六岁起抄到去世。
+
+他不会教孩子，只会让孩子抄，抄饱以后抄他自己。
+
+**锚句**：抄本师从六岁起抄到去世——抄饱以后抄他自己。
+**Anchor sentence**: the copyists have been copying from age six — when they are tired of copying, they copy themselves.
+
+---
+
+## 七 · 映射（回响八十二章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 晨光抄 · 雾字影 · 雾录 · 后廊 · 秋潮月 | 一、二、三、四、五、六、七 |
+| geography | 祠殿 · 后廊 | 一、二、五 |
+| characters | 抄本师 · 大孩子们 | 一、二、三、四、五、六 |
+| story | 晨光抄 · 回响（其八十二） | 全篇 |
+| items | 雾字影 · 雾录 · 特制盒 · 抄本师 | 一、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第七十七日 | 一、三、五、六 |
+
+> 潮候院的孩子每天复的不是雾——是院自己对雾的记忆。
+> What the children copy each day is not the fog — it is the Institute's own memory of itself.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其八十二）「潮候院孩子每天早晚抄的雾字影」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the fog-strokes the Institute's children copy at dawn and dusk.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院孩子们每天早晚抄的那一页雾字影。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the seventy-seventh day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第七十七日。
+
+---
+
+## I · Morning Copying
+
+Every morning the Institute runs what it calls "dawn-copy" — all the older children arrive at the sanctuary before sunrise, each tracing one stroke at a time under the wash of dawn.
+
+The strokes they trace are not characters from any dictionary — they are fog-strokes, the shape each syllable of fog takes when it freezes on paper.
+
+**锚句**：院里的大孩子日出前到祠殿，一人复一笔，抄的是雾冰成的字每一根。
+**Anchor sentence**: every older child of the Institute arrives before sunrise at the sanctuary, each tracing one stroke at a time — the strokes frozen out of fog.
+
+---
+
+## II · Shapes
+
+They do not copy complete characters; they copy only pieces.
+
+For example, today the strokes may form the radicals of "tide" (潮) — tomorrow they may form five parts of "wait" (候).
+
+**锚句**：抄的内容不是完整的字，每天只抄一个偏旁几笔。
+**Anchor sentence**: not a single whole character; each day only a few strokes of one part.
+
+---
+
+## III · Fog-Strokes
+
+The fog-strokes become visible only when fog gathers over the Institute.
+
+More than thirty days a year are open to copying — that is the autumn-tide month — when the children come thickest and the ink-flow runs fastest.
+
+**锚句**：每年三十多天都是秋潮月——孩子们最多墨用最快。
+**Anchor sentence**: more than thirty days a year are in the autumn-tide month — that is when the children come thickest and the ink-flow fastest.
+
+---
+
+## IV · The Record
+
+The Fog-Strokes Record (Fog Annals) — no one knows exactly how many strokes it contains. Some say four hundred and ninety.
+
+After each stroke comes the name of its copier and the sequence number — the morning copyist maintains an order to the matter.
+
+**锚句**：《雾字影录》中一共收了多少字，抄本师说不出数字。
+**Anchor sentence**: the Fog-Strokes Record — no one knows how many strokes it holds; the copyists cannot say a number.
+
+---
+
+## V · Autumn-Tide Month
+
+After the autumn-tide month ends, the copyists seal each day's strokes into a special box marked "§Fog Record · year + epoch".
+
+Once the "return stroke" is sealed into the record, the Fog Annals are formally moved into the rear gallery of the Institute.
+
+**锚句**："回"字封闭后，《雾录》正式入潮候院后廊。
+**Anchor sentence**: when the "return stroke" is sealed, the Fog-Strokes Record is moved into the rear gallery of the Institute.
+
+---
+
+## VI · The Copyists
+
+There have been more than a thousand copyists in the Institute — from age six until their deaths, they copied.
+
+They do not teach the children; they simply let them copy — when the children are tired, the copyists copy themselves.
+
+**锚句**：抄本师从六岁起抄到去世——抄饱以后抄他自己。
+**Anchor sentence**: the copyists have been copying from age six — when they are tired of copying, they copy themselves.
+
+---
+
+## VII · Mapping（Echo No. 82 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | dawn-copy · fog-strokes · the Fog Annals · the rear gallery · the autumn-tide month | 一、二、三、四、五、六、七 |
+| geography | the sanctuary · the rear gallery | 一、二、五 |
+| characters | the copyists · the older children | 一、二、三、四、五、六 |
+| story | the morning copy · Echo No. 82 | 全篇 |
+| items | the fog-strokes · the Fog Annals · the special box · the copyists | 一、三、四、五、六 |
+| history | After the 41st Convocation · the seventy-seventh day of the autumn-tide month | 一、三、五、六 |
+
+> 潮候院的孩子每天复的不是雾——是院自己对雾的记忆。
+> What the children copy each day is not the fog — it is the Institute's own memory of itself.
+`,
+  },
 ] as const;
 
 export const BIBLE_APPENDICES: readonly BibleChapter[] = [

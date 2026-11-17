@@ -5645,3 +5645,9 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 模型主动指出哪一《回响》含哪一条——从 〈雾港灯塔〉 答复说明它真的读了
 
 **未来可做**：/insight ⑨ 创作者 AI narrator 完整 live 探针 evidence（本轮未跑，RAM 紧张）。
+
+## cont. 329 (2026-11-18) — v947 · §BIBLE-82 · Echo #82《潮候院孩子每天早晚抄的雾字影》（作者手写·双语·476/476 绿）
+
+- 第 82 篇回响「雾字影」：祠殿晨光抄——大孩子们一人一笔——每天只抄一个偏旁几笔——《雾字影录》抄本师说不出数字——"回"字封闭后正式入后廊——抄本师从六岁抄到去世。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-082-the-fog-strokes-the-children-copy`；verify world-bible **476/476** ✓；verify:bible-snapshot ✓。
+- 同步：BibleAsk lede → 82（含 en）；/bible/ask meta → 八十二篇 / eighty-two；cache-identity → 82 篇锚句；bible-ask-behavior 锚句总数 470→476；canon-answer-graph 测试 87 段 / 82 echoes；pins 重钉（page→86b6eb0c… comp→b9ccbb2f…）；fe-gates **1285/1285 绿**。
