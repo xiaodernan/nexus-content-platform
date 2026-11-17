@@ -6156,3 +6156,10 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 > - page.tsx quickStartFoot 增 `<a href="/tide-oracle" data-home-quickstart-oracle>`（zh「问潮 · 潮汐预言 →」 / en「Ask the tide · The Tide Oracle →」）；
 >   说明书 `/guide` 双语已在 §TIDE-ORACLE 覆盖；SHA 片被 intentional re-pin：home-visual-style STRIP_CLASS_SHA256 `43462927…→04f88f35…`（HEAD 与现态逐字对照验证过提取算法字节一致）
 > - fe-gates 147/147 · **1353/1353**
+
+> **2026-11-19 cont. 235 · IO + profile README 实锤复核（赵欣曈 · 全量身份事实一致 · 16 仓零失效）**
+> - io `index.html` & profile README & 横幅 banner.svg 三端字节级核对：赵欣曈 · 南方科技大学（本）· 香港中文大学（硕）·
+>   计算机科学与技术（双端）· 全国中学生物理竞赛铜牌 · 江西省一等奖/二等奖 · 法狗狗公司（实习）· 产品「隐盾」（**零「隐图」**）· 雅思 6.5 · CET6 546 全量落位。
+> - 16 个 `xiaodernan/*` 仓库经 `git ls-remote` 逐一存在（`main` 空仓如实注；`docs`/`linuxdo-scripts` 为 fork —  attribution 保留）。
+> - API 限流（REST 403 unauth → 走代理也不过）已绕过 — ls-remote 是权威判据；不声称 star 实时读数。
+> - evidence: `docs/evidence/io-profile-identity-audit-2026-11-19.md` — 零内容改动。
