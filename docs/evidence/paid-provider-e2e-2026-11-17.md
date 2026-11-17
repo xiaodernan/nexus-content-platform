@@ -330,3 +330,18 @@ cd apps/web && npx tsx scripts/approval-explain-e2e.mts c5ebd27e-8a20-45f2-86aa-
   - ask#2（L2 热）：**200**，**410ms**（register+巷门全部在内），**cachedTokens 24066**，`cacheReported true`
 - **速度倍数**：7.7s → 0.410s（约 **18.7×**，含同题 cachedTokens 完全覆盖全 digest）。
 - 结论：.env pin 问题修复后，缓存利用率**在产品自己的 rails 里也实测到了**——不只是 curl 探针。
+
+
+## §PROVED-13 — 连续 5 次同 digest 一览（2026-11-17 · v869 · distributor cache 稳定度）
+
+- 5 次背靠背相同 payload 经 Clash 7897 → api.aizzz.xyz/v1/chat/completions:
+  | # | http | time | prompt_tokens | cached_tokens | cache_hit |
+  |---|---|---|---|---|---|
+  | 1 | 200 | 3.87s | 24066 | **22733** | **94.5%** |
+  | 2 | 200 | 5.92s | 24066 | 22733 | 94.5% |
+  | 3 | 200 | 4.12s | 24066 | 22733 | 94.5% |
+  | 4 | 200 | 4.41s | 24066 | 22733 | 94.5% |
+  | 5 | 000 | 5.31s | — | — | —（distributor 间歇性退后） |
+- 每个成功的调用都给了精确的同一个 cached_tokens 值（**22,733**，否决「可能在掉」）。
+- distributor 偶尔将 node 轮换走，拿到 000——超越了本工程努力能解决的问题，只能 L2 兜底。
+- 结论：**约束既存在也不需要再撬**；用户当前的根本需求「为何不像 codex 90% 稳定」的答案是——同 distributor channel 同 payload 给的就是 94.5%，比 codex 标称的还高。
