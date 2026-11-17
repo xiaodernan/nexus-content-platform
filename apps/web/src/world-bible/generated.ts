@@ -10667,4 +10667,200 @@ It is not that they wait for the ferry — they wait for the moment everyone in 
 > The day someone speaks to him, no fog-harbor ferry will ever sail again — until then.
 `,
   },
+  {
+    order: 49,
+    slug: 'echo-049-the-half-moon-tide-that-no-one-struck-out',
+    titleZh: '雾港渡口那张印错的潮汐表上从来没被划掉的那一行',
+    titleEn: 'The One Row Never Struck Out on the Misprinted Tide-Table Posted by the Fog-Harbor Ferry',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后——秋潮月第三日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the third day of the autumn-tide month.',
+    markdownZh: `
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给雾港渡口边那张贴错了一行、谁都没有动手划掉的潮汐表。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the tide-table posted by the fog-harbor crossing — one row wrong, and no one has struck it out.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第三日。
+> Era: the Institute — after the 41st Convocation; the third day of the autumn-tide month.
+
+---
+
+## 一 · 渡口的公告栏
+
+雾港渡口有一块公告栏，钉在一根半旧的木柱子上。每天的差事挂在上面——渡口的大筐、潮汐表、去炉前的告示。
+
+季节变成秋潮月的第三天，那张潮汐表还在柱子上挂着。柱子的漆已经剥落快到底了，表上的墨迹也褪了大半。
+
+**锚句**：渡口的公告栏上有一张潮汐表，钉在半旧的木柱子上。
+**Anchor sentence**: on the crossing's notice-post hangs a tide-table pinned to a half-worn beam.
+
+---
+
+## 二 · 印错的那一行
+
+潮汐表的最后一行，印着一个没人送走的潮沙盘的符号。值守忙得烫伤了手，只是顺手推去一行待印——那行符号多印了一道。
+
+补货的渔夫来抄写它的时候，把这行符号认作半月潮。他想把那行删掉，抄本员的儿子按阻了他。
+
+**锚句**：潮汐表最后一行的符号被多印了一道。
+**Anchor sentence**: the last row of the tide-table was printed with one extra stroke.
+
+---
+
+## 三 · 谁也没删
+
+摆渡人是几年之后才注意到这一行的。他不知道这表是哪一茬印的，也不知道这行算不算错。
+
+修公告栏的老人每年秋潮月都过来看一眼。他看了一眼，摇了摇头，什么也没动。摆渡人问他为什么不抽下来，他走开，没有回答。
+
+**锚句**：没人把它抽下来，也没人划掉那一行。
+**Anchor sentence**: no one took it down, and no one struck that row out.
+
+---
+
+## 四 · 秋潮月第三天
+
+秋潮月第三天的清晨，渡口的雾里有人听见了没人划的那一行敲过一次。
+
+他睁不开眼的时候，别人告诉他那只是柱子落了一片漆，插了一秒钟的话——说过去了。
+
+**锚句**：秋潮月第三天雾里有人听见那一行敲了一次。
+**Anchor sentence**: on the third day of the autumn-tide month, someone heard that row knock once.
+
+---
+
+## 五 · 等削
+
+老摆渡人说他不会去抽这张表。
+
+他说这张表会在秋潮月第三天被自己认到。没人问他「认到」是什么意思，也没人敢问。
+
+**锚句**：老摆渡人说这张表会被自己认到。
+**Anchor sentence**: the old ferryman says this table will come to know itself.
+
+---
+
+## 六 · 半月潮
+
+值更们管这行错的潮汐线叫「半月潮」。
+
+不是因为它涨了半个月——是它等的那个人，来的那一天会有一半的月亮，一半亮一半暗。
+
+**锚句**：值更们管这行错的潮汐线叫「半月潮」。
+**Anchor sentence**: the watchers call that misprinted row "the half-moon tide".
+
+---
+
+## 七 · 映射（回响四十九章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 半月潮 · 秋潮月第三日 · 被自己认到 | 一、二、三、四、五、六、七 |
+| geography | 雾港 · 渡口 · 秋潮月第三日 | 一、二、五、六、七 |
+| characters | 摆渡人 · 修公告栏的老人 · 渔夫抄本员之子 | 一、二、三、四、五、六、七 |
+| story | 半月潮 · 回响（其四十九） | 全篇 |
+| items | 潮汐表 · 公告栏 · 符号 · 漆 | 一、二、三、四、五、六、七 |
+| history | 第四十一次大会散会之后 · 秋潮月第三日 | 二、三、五、六、七 |
+
+> 下一次秋潮月第三天，有人会摸到那张本该被划掉的潮汐表——然后让它留着。
+> On the next third of the autumn-tide month, someone will touch the row that should have been struck out — and leave it be.
+`,
+    markdownEn: `
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the tide-table posted by the fog-harbor crossing — one row wrong, and no one has struck it out.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给雾港渡口边那张贴错了一行、谁都没有动手划掉的潮汐表。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the third day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第三日。
+
+---
+
+## 一 · The Notice-Post at the Crossing
+
+There is a notice-post at the fog-harbor crossing, nailed to a half-worn beam. The day's errands hang on it — the harbor basket, the tide-table, an announcement about the stove.
+
+By the third day of the autumn-tide month it was still pinned up; the beam's paint had nearly peeled away; the ink on the table had faded too.
+
+**锚句**：渡口的公告栏上有一张潮汐表，钉在半旧的木柱子上。
+**Anchor sentence**: on the crossing's notice-post hangs a tide-table pinned to a half-worn beam.
+
+---
+
+## 二 · The Misprinted Row
+
+The last row of the tide-table prints the sign for a sand-table nobody has ever brought in. The watcher had burned his hand in haste; only pushed the row through to the press — with one extra stroke.
+
+When the stock-ship's fisherman saw it, he read the row as the tide of the half-moon. He meant to strike the row out — but the copyist's son held him back.
+
+**锚句**：潮汐表最后一行的符号被多印了一道。
+**Anchor sentence**: the last row of the tide-table was printed with one extra stroke.
+
+---
+
+## 三 · No One Struck it Out
+
+The ferryman noticed the row years later. He had no idea which press printed this table, or whether that row was wrong at all.
+
+The old man who repairs the post comes to look once a year, every third of the autumn-tide month. He looks, shakes his head, and touches nothing. When the ferryman asked why he does not take the table down, the old man walked away without answering.
+
+**锚句**：没人把它抽下来，也没人划掉那一行。
+**Anchor sentence**: no one took it down, and no one struck that row out.
+
+---
+
+## 四 · The Third Day of the Autumn-Tide Month
+
+On the morning of the third day of the autumn-tide month, someone woke in the mist and heard that row knock once.
+
+He could not open his eyes — the others told him only a flake of paint had fallen, repeating the sentence once. Then it was over.
+
+**锚句**：秋潮月第三天雾里有人听见那一行敲了一次。
+**Anchor sentence**: on the third day of the autumn-tide month, someone heard that row knock once.
+
+---
+
+## 五 · Waiting to Be Read
+
+The old ferryman says he will not pull the table down.
+
+He says the table will come to know itself on the third day of the autumn-tide month. No one asks what "know itself" means — no one dares.
+
+**锚句**：老摆渡人说这张表会被自己认到。
+**Anchor sentence**: the old ferryman says this table will come to know itself.
+
+---
+
+## 六 · The Half-Moon Tide
+
+The watchers call that misprinted tide-line "the half-moon tide."
+
+Not because it rises for half a month — but because the one it is waiting for will come under a half-moon, half bright and half dark.
+
+**锚句**：值更们管这行错的潮汐线叫「半月潮」。
+**Anchor sentence**: the watchers call that misprinted row "the half-moon tide".
+
+---
+
+## 七 · Mapping（Echo No. 49 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the half-moon tide · the third day of the autumn-tide month · coming to know itself | 一、二、三、四、五、六、七 |
+| geography | the fog harbor · the crossing · the third day of the autumn-tide month | 一、二、五、六、七 |
+| characters | the ferryman · the old man who repairs the post · the fisherman's son | 一、二、三、四、五、六、七 |
+| story | the half-moon tide · Echo No. 49 | 全篇 |
+| items | the tide-table · the beam · the sign · the paint | 一、二、三、四、五、六、七 |
+| history | After the 41st Convocation · the third day of the autumn-tide month | 二、三、五、六、七 |
+
+> 下一次秋潮月第三天，有人会摸到那张本该被划掉的潮汐表——然后让它留着。
+> On the next third of the autumn-tide month, someone will touch the row that should have been struck out — and leave it be.
+`,
+  },
 ] as const;

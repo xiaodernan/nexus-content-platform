@@ -5031,3 +5031,11 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 
 - /insight 页的账本现拍：`AI calls` 同源 `agent_tasks.usage` 不再显示 0；cache 读数拆成两信——总览卡片上是 `12.7%`（聚合）+ 311 ㈢ Ⅴ `/ai-cache` 上的 digest-path 口径 ~94%（两样同屏）。
 - 该页现在不含 PII（不含用户 id/ip/email/ua）；printable by anyone with passcode "123"（/insight 是 public by default · 这是设计哲学：view-only 数据不是敏感数据）。
+
+## cont. 273 (2026-11-17) — v900 · §BIBLE-49 · Echo #49《雾港渡口那张印错的潮汐表上从来没被划掉的那一行》（作者手写·双语·278/278 绿）
+
+- 第 49 篇回响「半月潮」：雾港渡口公告栏钉住的潮汐表——值更烫伤了手推过去一行待印，结果多印了一道；摆渡人的儿子按住了想删字的渔夫；没人划掉那一行。秋潮月第三天渔夫夜听有人敲过一次。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-049-the-half-moon-tide-that-no-one-struck-out`；verify:bible-snapshot ✓；verify:world-bible **278/278** ✓。
+- 同步落地：BibleAsk lede → 49；/bible/ask meta → 四十九篇；canon-answer-graph 测试 54 段／49 echoes；bible-ask-behavior 锚句总数 272→278；CACHE-IDENTITY 更新。
+- 顺带勘误：文件系统文件名（含"指挥路"之误用）勘为「雾港渡口…」；路径、生体、XML slug 同步，verify 复跑全绿。
+- 回归：bible 24/24 绿。
