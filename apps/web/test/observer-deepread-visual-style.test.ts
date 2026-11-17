@@ -68,7 +68,7 @@ describe('──OBSERVER-DEEPREAD /admin/observe "AI 深读"', () => {
   });
 
   it('模型键名：zh/en 双语提示且都要求「每句带数字」', () => {
-    expect(apiRoute).toContain('输出必须带数字');
+    expect(apiRoute).toContain('每句必须带数字');
     expect(apiRoute).toContain('Every sentence must carry a figure');
   });
 
