@@ -69,6 +69,8 @@ export async function POST(req: Request): Promise<NextResponse> {
       provider: response.provider,
       model: response.model,
       cachedTokens: response.usage?.cachedTokens ?? 0,
+      tokensIn: response.usage?.tokensIn ?? 0,
+      tokensOut: response.usage?.tokensOut ?? 0,
       cacheReported: response.usage?.cacheReported ?? false,
       costBasis: 'usage',
     });
