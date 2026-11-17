@@ -136,12 +136,12 @@ export const METRICS = {
   nexus_bible_ask_total: {
     kind: 'counter',
     help: '问典（POST /api/bible/q）走到终态的次数——provider 不可用也要记，别只在成功路径上埋点',
-    labels: { outcome: ['answer', 'provider-unavailable', 'error'] },
+    labels: { outcome: ['answer', 'answer-unverified', 'provider-unavailable', 'error'] },
   },
   nexus_bible_ask_latency_ms: {
     kind: 'histogram',
     help: '问典从进入路由到回流的毫秒数（含 provider 往返；回放不单独算——时延里有没有 provider 调用看 tokens 就够）',
-    labels: { outcome: ['answer'] },
+    labels: { outcome: ['answer', 'answer-unverified'] },
     buckets: DURATION_BUCKETS,
   },
   nexus_insight_analyze_total: {
@@ -152,6 +152,17 @@ export const METRICS = {
   nexus_insight_analyze_latency_ms: {
     kind: 'histogram',
     help: '/api/insight/analyze 从进路由到回流的毫秒数（含 provider 往返；快、慢都看）',
+    labels: { outcome: ['answer'] },
+    buckets: DURATION_BUCKETS,
+  },
+  nexus_pulse_narrate_total: {
+    kind: 'counter',
+    help: '公开管理台「让大模型读这份账」（POST /api/admin/pulse/narrate）走到终态的次数（含 provider 不可用——绝不静默）',
+    labels: { outcome: ['answer', 'provider-unavailable'] },
+  },
+  nexus_pulse_narrate_latency_ms: {
+    kind: 'histogram',
+    help: '/api/admin/pulse/narrate 从进路由到回流的毫秒数（含 provider 往返；压缩 digest 通常在秒级）',
     labels: { outcome: ['answer'] },
     buckets: DURATION_BUCKETS,
   },

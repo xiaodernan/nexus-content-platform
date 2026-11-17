@@ -51,6 +51,8 @@ export const IP_RATE_RULES = {
 'insight/analyze': { limit: 10, windowMs: 3_600_000 },
 'analytics/agent-narrate': { limit: 10, windowMs: 3_600_000 },
 'ai/explain': { limit: 10, windowMs: 3_600_000 },
+  'pulse/unlock': { limit: 30, windowMs: 600_000 },
+  'pulse/narrate': { limit: 10, windowMs: 600_000 },
   'follow': { limit: 60, windowMs: 3_600_000 },
   'auth/register': { limit: 10, windowMs: 3_600_000 },
 } as const;

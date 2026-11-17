@@ -4815,3 +4815,35 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 修订分支零编造：verdict=fail 时答案如实返回并标注，不冒充「已校验」。
 - ADR-0275 拍板：不再引入 Python LangGraph（已装即卸载）；本仓 StateGraph（agents/runtime，ADR-0270）第一次接进真实用户路径。
 - web 类型检查通过；`.env` 未动；npm lock 仅新增 @nexus/agent-runtime 声明（junction 本就是根 hoisted）。
+
+## cont. 251 (2026-11-17) — v880 · §PULSE 公开管理台上线（ADR-0276）+ 指标口径修复
+
+### 新增 `/admin/pulse`（公开面板 · 口令 123 人人可知）
+
+- 用户长期指令（三次重复）：「开发一个管理员功能（密码输入 123 就能进，所有用户都知道密码也都能进管理员页面），用来检测、分析、查看、观察所有用户的行为。管理员页面里要能监控所有用户的统计数据、做分析和趋势预测，并根据这些数据给出下一步应该采取的深度优化措施。」
+- 落地形态（§九 的合规实现，不裸奔个人数据）：
+  - 口令 123 硬编码（主人明令，`server/domain/pulse-gate.ts` 单点定义）；限额 IPC：unlock 30/10min、narrate 10/10min（`IP_RATE_RULES` 已登记 `pulse/unlock`/`pulse/narrate`）。
+  - 页面与两条 route 只出**聚合**：用户总数/guest/认领、有效会话数、项目可见性分布、14 天注册序列（UTC）、7 天任务/审计/API 账本、最小二乘外推（斜率/R²/7 天投影）。
+  - **零个人字段**：没有邮箱、昵称、userId、IP、UA；digest 喂给大模型的也全是 count/sum/avg。
+  - 「让大模型读这份账」→ `/api/admin/pulse/narrate` → 现场消化 provider，3 条带依据建议；连不上 → 503 回真（§159）。
+  - 14 单测 + 5 件回归同组全绿；web typecheck 绿。
+- **抓到并修掉的真 bug（typecheck 强制发现）**：`nexus_bible_ask_total` 标签 `outcome: 'answer-unverified'` 不在枚举里，`resolveSeriesKey` 会 **throw**——问典修订失败分支会直接把路由打挂。已把 `answer-unverified` 加进 `nexus_bible_ask_total` / `nexus_bible_ask_latency_ms` 枚举，并新增 `nexus_pulse_narrate_total` / `nexus_pulse_narrate_latency_ms` 两种指标（均登记 `METRICS`）。
+
+### 实测状态（诚实记录）
+
+- ✅ 锁屏渲染（截图 `pulse-locked.png`：中文界面完整、文案讲清公开口径）；
+- ✅ `GET /admin/pulse` 解锁后 200（Next 日志，DB 实时读渲染成功 211ms application-code）；
+- ❌ **解锁后的截图与 narrate 的在线真机验证未完成**：本机 19:20 起另一项目（D:\…游戏）多条 node/vite/tsc/playwright 同时跑，free RAM 从 2.8 GB 掉到 0.57 GB，dev server OOM 崩溃（Next 日志 `npm error code 4294967295`），页面 blank。不是代码缺陷：locked 渲染 + unlock 200 + 38 项测试 + typecheck 均绿。
+- **Docker 第二次自发重启（18:23:53）**：com.docker.backend ×2 + build 重启，docker CLI 返回 500；而数据面端口 55433（pg）/56379（redis）实测仍开放，ai-service 侧 lifespan 自愈（healthz 200）。18:58 网页面 500×2（pg CONNECT_TIMEOUT）→ 复活后 200。
+- 兄弟项目进程未被触碰。
+
+### 待补（下一次 RAM 充足时，约 ≥2 GB）
+
+1. 解锁截图 + 「让大模型读这份账」一次真实 provider 调用 → 落 `evidence §PROVED-20`；
+2. Spring Cloud verify 仍等 RAM ≥ 6 GB；
+3. Echo #37 仍未写成（中文退化）；
+4. `origin/main` 仍 403；showcase 通道照旧。
+
+### 提交前校验
+
+- vitest 38/38（canon-graph/bible-ask/pulse 同组）· web typecheck ✓ · 兄弟项目零触碰。
