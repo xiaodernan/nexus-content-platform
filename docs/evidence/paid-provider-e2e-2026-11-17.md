@@ -320,3 +320,13 @@ cd apps/web && npx tsx scripts/approval-explain-e2e.mts c5ebd27e-8a20-45f2-86aa-
   - Clash/mihomo 间歇性 000 仍属于上游组合事件（models 稳 200、chat 间或丢）——不是调用方式问题；UI 侧需靠 L2 粘性路径兜底。
 - **副产物**：本窗口观察到 stream channel 返回的每帧 `service_tier:"auto"`、usage 事件为 `default`；非 stream 通道则为 `default`。可据此在后续对账"哪种 channel 背 cache"。
 - **证据文件**：以上事实基于本机临时文件中的 curl 输出；证据性最强的一条是 `ai-chat try3` 的 `cachedTokens 4433/4433`。
+
+
+## §PROVED-12 — 端到端重验：stream-on .env 之下产品的全链路（2026-11-17 · v867 · 产品 rails）
+
+- 重现条件：ai-service 8001（新启 uvicorn），web dev `NEXUS_AI_SERVICE_URL=http://127.0.0.1:8001`，Clash 7897 路由至 `https://api.aizzz.xyz/v1`。
+- 问典相同问题连发两次（同次 digest 24,066 tokens，digest 全字节稳定）。
+  - ask#1（冷，从模型走）：**200**，7.7s，digest cold，`cachedTokens 0`
+  - ask#2（L2 热）：**200**，**410ms**（register+巷门全部在内），**cachedTokens 24066**，`cacheReported true`
+- **速度倍数**：7.7s → 0.410s（约 **18.7×**，含同题 cachedTokens 完全覆盖全 digest）。
+- 结论：.env pin 问题修复后，缓存利用率**在产品自己的 rails 里也实测到了**——不只是 curl 探针。

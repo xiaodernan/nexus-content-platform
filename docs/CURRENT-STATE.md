@@ -4709,3 +4709,12 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   - 实证：curl SSE 样本（data:... role delta → content delta → usage → [DONE]）；ai-service 8001 `健康 real` → `/v1/ai/chat` 第一次 502 → 200/2.97s streamed real provider → 200/0.008s 同一请求 Redis L2 100% 命中（cachedTokens 4433/4433）。
   - 证据 §PROVED-11 落盘；`.env` 是本地产物（gitignored）；真正的持久产物是 §PROVED-11 与本 cont —— 下一轮再验证一次即可判定 vibe 改善。
 - 8000 的兄弟 /home 未触碰；uvicorn 实例 8001 用完即 kill；free RAM 回到 ~2.2 GB。
+
+## cont. 239 (2026-11-17) — v868 · ADR-0228 本机 Provider recipe + 端到端重验
+
+- 新增 ADR-0228（docs/adr/0228-local-dev-provider-recipe.md）——记录本机开发 Provider 连通条件：Clash Verge 7897 + NEXUS_LLM_STREAM=1 + ai-service :8001。
+- 端到端重验（§PROVED-12）：ai-service 8001 + web dev + clash 7897，问典问题问了两次——
+  - #1（冷）：200 / 7.7s · cachedTokens=0
+  - #2（热）：200 / **410ms** · **cachedTokens 24066**（**18.7×** 降时延）
+- dev server + ai-service 已 kill；free RAM ~2.0 GB；sibling /home (:8000) 全程未触碰。
+- 证据 §PROVED-12 落盘；与 §PROVED-10 / §PROVED-11 互为印证。
