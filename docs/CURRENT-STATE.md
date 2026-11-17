@@ -4883,3 +4883,15 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - **抓到的真 bug（与我的并轨补充无关）**：按「让大模型看看这些数字」按钮 → analyze 路由一直 403 `csrf_failed`——组件只装了 content-type，从没发 `x-csrf-token`。按双提交 CSRF（csrf.ts）读 `nexus_csrf` cookie 原样回传后 → 真机 200 · 9.2s · 三段式现象→证据→动作、全部数字来自 digest、零编造、中文、正确承认不确定性。
 - §PROVED-21 落账；截图 insight-ai.png 存档。
 - 兄弟项目进程全程未触碰；Docker Desktop 又自重启一次（20:26 起，第 4 次）——nexus 自愈正常。
+
+## cont. 256 (2026-11-17) — v885 · §CSRF 巡检 · 整站 LLM 按钮 CSRF 大查补网（BibleAsk + AnalyticsAiNarrator）
+
+- 以「csrfOk 路由 × 客户端 fetch 无 x-csrf-token」为标准做整站扫描：`grep method:POST/PUT/PATCH/DELETE` + `csrfHeaders` 交叉
+  —— 仅剩两处浏览器死按钮：**BibleAsk.tsx（问典）**与 **AnalyticsAiNarrator.tsx（分析页「大模型解读」）**。
+  其余均已挂（CommandBar 审批 explain、CharacterChat 角色对话、InsightGate[登录门无需双提交]、LocaleToggle、InsightLogout）
+  或为纯 GET（ExportPanel/PublishPanel/WorldPanel/ContextPanel/GameCodeExport）。
+- 两处全改为共享 `csrfHeaders()`（`@/lib/csrf`）——同仓同一写法。
+- 43/43 绿 + web typecheck 绿。已提交 `310fb1f8`。
+- 与 v884 合计：**这个仓库里有三个 LLM 按钮此前永远 403**——/insight ⑧、问典、分析页「大模型解读」——现在全部修复。
+- provider 侧（20:51 直测）healthy：`/v1/chat/completions` 200 · 3.2s · cached_tokens=4,224。
+- Docker Desktop 本日第 5 次自重启（20:43）——nexus 数据面 30s 内恢复 healthy；/bible/ask 浏览器复测被 pg 宕机窗口拦住（register 500 / bible/q 500），机器稳定后补一次截图证据。

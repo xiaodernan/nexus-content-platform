@@ -504,3 +504,18 @@ cd apps/web && npx tsx scripts/approval-explain-e2e.mts c5ebd27e-8a20-45f2-86aa-
   —— 三段式（现象→证据→动作），全部数字出自 digest（0 个人字段），零编造。
 - Insight 闸、digest（聚合）口径、NN/g 基准、确定性深度优化建议 均保持不变；只补齐了最终一杆。
 - 遗留：Next dev 进程在本机内存压力下会 OOM（exit 4294967295）——RAM 是这个机器的结构性限制，与产品代码无关；生产 `next start` 不受影响。
+
+## §PROVED-22 — 「永远 403」的 LLM 按钮家族：BibleAsk/AnalyticsAiNarrator 补挂 x-csrf-token（2026-11-17 · v885）
+
+- **事实（按 csrf.ts 双锚判定，非臆断）**：`/api/bible/q`、`/api/analytics/agent-narrate`、`/api/ai/tasks/[taskId]/approval-explain`、`/api/projects/[projectId]/characters/[characterId]/chat` 四条路由全部 `csrfOk(req)`（要求非空 `nexus_csrf` cookie + 等值 `x-csrf-token` 头）。
+- 2026-11-17 20:12 复核三个客户端调用点：
+  - `BibleAsk.tsx`（问典）——只发 `content-type`，**没有 `x-csrf-token`** → 每次都是 403 `csrf_failed` → 浏览器里看到的永远是「潮汐现在不走正典问答暂时联不上模型」的诚实横幅（v879 用 curl + 正确头测出来的是 200，掩盖了浏览器路径是断的）。
+  - `AnalyticsAiNarrator.tsx`（分析页「大模型解读」）——同样只发 `content-type` → 同样 403 死按钮。
+  - `InsightAiAnalysis.tsx`（/insight ⑧）——v884 抓到并修复（§PROVED-21），修复后真机 200 · 三段式 · 现象→证据→动作 全部出自 digest。
+  - `CommandBar.tsx`（审批「让模型读一眼」）——已带 `...csrfHeaders()` ✓。
+  - `CharacterChat.tsx`（角色对话）——已带 `...csrfHeaders()` ✓。
+- 修复：`BibleAsk.tsx` 与 `AnalyticsAiNarrator.tsx` 全部改用共享 `csrfHeaders()`（`@/lib/csrf`）——与其余组件同一写法。
+- 回归：BibleAsk/Insight/insight-analyze/bible-ask/canon-answer-graph 组合 43/43 绿；web typecheck 绿。
+- 浏览器点按实测一次：/insight《⑧ 大模型解读》在 20:15 修复后 200 通过（insight-ai.png · 真实 provider · gpt-6.1-terra · 现象/证据/动作）。
+  /bible/ask 的浏览器点按复测这次被机器卡住（Docker Desktop 20:43 第 5 次自重启；POST /api/bible/q 在 pg 宕机窗口里 500/503，与 provider 无关）——这条路径的浏览器实证仍欠，machine 稳定后补一次截图。
+- 结论：三个「看起来诚实、实际上必死」的 LLM 按钮，两个根因（双提交 CSRF 的头没挂）全数修复；429/503 预案仍是诚实横幅。
