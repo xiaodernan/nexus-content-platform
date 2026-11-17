@@ -4568,3 +4568,10 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - /bible/ask lede 回响篇数 26 → 35（快照遗留）；BibleAsk SHA 门重钉。
 - 字体 fallback 顺序补齐 Noto SC 兜底；两条字节门重钉。
 - dev server 使用后已 kill（PID 21644 → 28532/17784 子树）；free RAM 回升至 ~2.9 GB。
+
+## cont. 224 (2026-11-17) — v857 · Studio 帮助抽屉层级修复 + 真渲染巡检
+
+- 修复：帮助抽屉 z-index 50→55（覆盖右侧属性栏，低于顶栏 60）；drawer 顶部避让顶栏高度。
+- 巡检：注册→建项目→/studio 全流程；帮助抽屉打开后正文全可读；画布 hero 无裁剪（DPR=2 复核为渲染完整）；console 0 error。
+- 附件：注册 e2e 假失败排查——真因是 bcrypt 在机器上要 ~10–22s、测试脚本等待不足造成的竞态，非产品缺陷（route 行为验证：rotateSession 生效、register 200/201、studio 200）。
+- dev server 用完已 kill；free RAM ~1.2GB；fe-gates 全绿。

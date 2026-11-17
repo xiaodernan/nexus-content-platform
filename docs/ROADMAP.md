@@ -14577,3 +14577,14 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   问典 `?q=` 预填确认生效（输入框内已带「收件人是谁」）；/guide（说明书入口）渲染干净；/insight 仅见公开输入壳且常驻口令说明（聚合、零个人字段）。
 - **ask 页两处事实修正**：`26 篇`/`26 pieces` → `35 篇`/`35 pieces`（此前快照留下的旧计数）； BibleAsk SHA 门重钉（bb6ba291…→8b05df41…）。
 - fe-gates 134/134 · 1268/1268 · census 2566 · web tsc 0。
+
+## §VIS-21 — Studio 帮助抽屉层级修复 + Studio 真渲染巡检（2026-11-17 · v857）
+
+- **缺陷**：Studio「帮助」抽屉（`.tsg-drawer`，z-index: 50）与右侧属性栏（`.se-inspector`，z-index: 50）同级且 DOM 靠前——
+  抽屉打开时右半部分被压在属性栏之下（内容文字在正文区 x>1145 处被盖住、标题/正文读不全）。
+  修：抽屉 z-index 55（>inspector 50, <topbar 60），顶部改 `top: var(--nexus-space-10)`、高度 `calc(100dvh - 10)`，让出整个顶栏。
+- **巡检**（next dev + headless Chromium，1440×900 + 设备像素比 2）：真走 注册 → 新建项目 → /studio/<id>：
+  画布首帧完整渲染（headline/subhead/CTA 无重叠、无字形变形、DEMO MODE 常驻右上角）；
+  帮助抽屉修复后逐行不再被遮盖（TOC + 说明正文全可读，11/11 命中计数实数）；console error = 0。
+- **结论**：Studio 种子项目 hero 子标题首屏时按像素确认无裁剪（先前的"看起来半截字"是低分辨率错觉）。
+- fe-gates 134/134 · 1268/1268 · census 2566 · web tsc 0。
