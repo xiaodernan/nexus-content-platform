@@ -358,6 +358,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《没人誊的那一页》里，没人誊完的那一页最后放在什么下面？', choices: ['第四十一次会议卷宗封皮下面', '盐碟下面', '灯架下面', '井口石板下面'], answer: 0, ref: '回响（其二十一） · 三' },
     en: { prompt: 'In “The Untranscribed Page”, where did the page left untranscribed finally end up lying?', choices: ['under the cover of the workbook of the forty-first convocation', 'under the salt dish', 'under the lamp rack', 'under the paving stones at the well'], answer: 0, ref: 'Echo No. 21 · III' },
   },
+  {
+    zh: { prompt: '《半粒盐》里，那半粒盐卡在了册子的哪里？', choices: ['封皮的木纹凹槽里', '压纸石底下', '灯架的第九格', '井口的石板缝里'], answer: 0, ref: '回响（其二十二） · 一' },
+    en: { prompt: 'In “Half a Grain of Salt”, where was the half-grain stuck?', choices: ['in the wood-grain groove of the binding', 'under the paperweight', 'in the ninth peg of the lamp rack', 'in the paving stones at the well'], answer: 0, ref: 'Echo No. 22 · I' },
+  },
+  {
+    zh: { prompt: '《半粒盐》里，誊账人在脊缝上写的四个字是哪四个？', choices: ['簿差半粒', '灯不必熄', '封皮未封', '缺一即足'], answer: 0, ref: '回响（其二十二） · 二' },
+    en: { prompt: 'In “Half a Grain of Salt”, which four characters did the copyist write on the spine?', choices: ['half a grain short', 'the lamp need not be put out', 'the binding was not closed', 'one missing is enough'], answer: 0, ref: 'Echo No. 22 · II' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

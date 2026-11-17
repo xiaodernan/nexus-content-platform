@@ -71,6 +71,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E19-雨从东边来': 'echo-019-the-rain-from-the-east',
   'E20-第一个名字': 'echo-020-the-first-name',
   'E21-没人誊的那一页': 'echo-021-the-untranscribed-page',
+  'E22-半粒盐': 'echo-022-the-half-grain',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

@@ -9951,4 +9951,187 @@ The page still lay under the cover. It was never copied. It was never torn out. 
 > 没人问它为什么。
 `,
   },
+  {
+    order: 22,
+    slug: 'echo-022-the-half-grain',
+    titleZh: '半粒盐',
+    titleEn: 'Half a Grain of Salt',
+    eraLineZh: '纪元：灰幕之后 · 补封之月',
+    eraLineEn: 'Era: after the grey cover was laid · the month of re-binding.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 22): Half a Grain of Salt
+
+> 回响不续写正典——它只记一份挑剩下的纪录：
+> 灰幕之后，封皮的凹槽里还卡着半粒盐——它是全册最干净、最微小的一处多余。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> After the grey cover was laid, the groove of a binding still held half a grain of salt —
+> the cleanest, smallest excess in the whole book.
+> Its anchors answer to the same discipline.
+
+> 纪元：灰幕之后 · 补封之月
+> Era: after the grey cover was laid · the month of re-binding.
+
+---
+
+## 一 · 压纸石下面
+
+灰幕落下以后，誊写室很少有人去。最后被留下的那间屋子，只有案台、灯、一个竹盒，还有压纸石。
+
+补封那天，誊账人把压纸石拿起来清灰。石头底下压着一张对折的纸，纸和石头之间隔了一粒东西。他先以为是沙，吹了两次没吹走，又以为是纸卷的皮，用指甲抠了一下——是盐。一粒盐从中间折成两半，一半落在纸面，另一半卡进了封皮的木纹凹槽里，断口朝外。
+
+他手里的镊子够得着断口，却钳不紧那半粒；第三次试的时候，断口上的晶面被钳口擦出了一道细线，像被记了一笔，又像被划掉了一笔。
+
+半粒盐的断口，从封皮的凹槽里朝外看。
+**锚句**：半粒盐的断口，从封皮的凹槽里朝外看。
+**Anchor sentence**: The broken face of half a grain watched out through the groove of the cover.
+
+## 二 · 簿差半粒
+
+隔了一天，他没有再试镊子。第二天用的是旧针，针尖别进凹槽，针眼撬了一下——半粒纹丝不动。盐腌进了木纤维，比木头更像木头里的东西。
+
+他找来册子旧封皮翻过来量缺口，又把当年的封皮样张一张张摊开。每一张样张的折痕都完好，树脂、麻皮、钉孔，尺寸对得上册子，却对不上那半粒盐——样张是同批做的，树心方向却都比这本册子的方向正。这说明封皮是后来选的那一块，选的人大概知道凹槽里卡着什么，却没有说明。
+
+他在脊缝上写了四个字。
+
+簿差半粒，他写在脊缝上，没给任何人解释。
+**锚句**：簿差半粒，他写在脊缝上，没给任何人解释。
+**Anchor sentence**: “Half a grain short” he wrote on the spine; he never explained it to anyone.
+
+## 三 · 第四十二次会之前
+
+第四十二次会的前夜，守灯人带着册子去旧案台补封。封皮张开的时候，木纹凹槽正对着他——半粒盐还在，晶面那道细线被灯照得发亮。
+
+守灯人看着那半粒，没有动手。他不是不会拿，而是没有权力。值夜册子自放进袖里的那一天起，每一页缺什么、多什么，都由册子自己说；脊缝上的四个字在规矩里算一条补注，补注只从欠账人那一侧补，不从查看的一侧补。
+
+他把册子轻轻合上。
+
+卡住的东西，锄不出来，刮不出来，也不忍刮。
+**锚句**：卡住的东西，锄不出来，刮不出来，也不忍刮。
+**Anchor sentence**: What is caught cannot be picked out, nor scraped out, nor brought to be scraped.
+
+## 四 · 灯灭之后
+
+封好之后，册子放回原处，灯灭了一会儿。誊写室的黑里，只有脊缝透了一丝白。
+
+守灯人回头看了一眼。他在走廊尽头停了停，又回到门口。那半粒盐的晶面比灯灭之前更亮一线——不是它自身发光，是凹槽的阴影里有一点细白，昼夜之间差别只在灯还亮不亮。
+
+没人开口问他为什么回头。走廊的另一头，灰幕压过来的风推着旧册子的响声，一下一下，像有人隔着很远的地方翻书。
+
+灯灭之后，缝里那粒盐还留着一点半透的白。
+**锚句**：灯灭之后，缝里那粒盐还留着一点半透的白。
+**Anchor sentence**: After the lamp went out, the grain in the seam still held a little translucent white.
+
+## 五 · 簿子自己的账
+
+后来守灯人在值夜册里记了这一笔。他没有写"半粒盐"三个字，只写了：
+"封皮缺一粒。缺的是断的一半。另一半还在册里，册不放。"
+
+誊抄这页的人以为是别的册子编印错版，照抄，不核对。全册从此带着这一笔残缺入库，没有人删过，也没有人补过——补不上的东西，补了才难看。
+
+簿子记得比任何人都清楚，缺了哪一半。
+**锚句**：簿子记得比任何人都清楚，缺了哪一半。
+**Anchor sentence**: A thin ledger remembers better than any person which half it lost.
+
+---
+
+## 模型映射（回响二十二则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 灰后 · 补封之月 · 第四十二次会前夜 | 第十一章 · 第十三章 |
+| geography | 誊写室 · 旧案台 · 走廊尽头 | 本则 |
+| factions | 誊账人 · 守灯人 · 潮汐教团（余烬） | 第一章 · 本则 |
+| characters | 账簿的守护者 · 守灯人 | 本则 · 第二十一则 |
+| items | 压纸石 · 盐粒 · 封皮 · 脊缝 | 本则 |
+| story | 半粒盐封入封皮 · 回响（其二十二） | 全篇 |
+| history | 纪元切割 · 灰幕之后 · 补封之月 | 本则 |
+
+> 一粒盐缺了一半，
+> 册子因此记住了自己。
+> Half a grain of salt went missing,
+> and the book remembered its own edge.
+`,
+    markdownEn: `
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> After the grey cover was laid, the groove of a binding still held half a grain of salt —
+> the cleanest, smallest excess in the whole book.
+> Its anchors answer to the same discipline.
+
+> Era: after the grey cover was laid · the month of re-binding.
+
+---
+
+## 1 · Under the paperweight
+
+After the grey cover fell, the copying hall rarely saw anyone. The room that had been left behind held a desk, a lamp, a bamboo box, and a paperweight.
+
+On the day of the re-binding, the copyist lifted the paperweight to sweep the ash from beneath it. Resting between the stone and the page was a folded sheet, and between the stone and the sheet, something. At first he thought it was sand, and blew at it twice; then he thought it was the skin of a paper wrap, and scratched it with a fingernail — it was salt. A single grain broken in two: one half lay on the page, the other half had sunk into a wood-grain groove in the cover, its broken face turned outward.
+
+His tweezers could reach the broken face, but could not grip the half-grain; on the third attempt the crystal plane was scored by the jaws with a hair-fine line — as if it had been ruled once, and then struck out once.
+
+The broken face of half a grain watched out through the groove of the cover.
+**Anchor sentence**: The broken face of half a grain watched out through the groove of the cover.
+
+## 2 · Half a grain short
+
+A day later, he did not reach for the tweezers again. The next day he tried an old needle: the tip slipped into the groove and the eye levered once — the half-grain did not move. The salt had cured into the wood's fibre; it had become more a part of the wood than the wood itself.
+
+He went looking for the sample cards of the old bindings, and spread out, sheet by sheet, every one in store. Each card's fold was intact — resin, hemp cord, pinholes; each card matched the book exactly in size — yet none of them matched the broken grain in the groove. The cards were from the same batch, but their tree grain ran true, while this binding's grain was off. This binding had been chosen later for this very book, and the person who chose it must have known what the groove held — and said nothing.
+
+He wrote four characters on the spine seam.
+
+“Half a grain short” he wrote on the spine; he never explained it to anyone.
+**Anchor sentence**: “Half a grain short” he wrote on the spine; he never explained it to anyone.
+
+## 3 · Before the forty-second Convocation
+
+On the eve of the forty-second Convocation, the lampkeeper carried the book to the old copying desk to re-bind it. When the cover opened, the wood-grain groove faced him — the half-grain was still there, the scoring on its crystal plane glinting in the lamplight.
+
+The lampkeeper looked at the half-grain and did not touch it. It was not that he could not lift it — it was that he had no standing to. From the moment a night-watch ledger was put into a sleeve, its deficits belonged to the book itself; the four characters on the spine were, by the rules, a supplementary note, and a supplementary note could only be written from the side of the debt — never from the side of the inspection.
+
+He closed the book, softly.
+
+What is caught cannot be picked out, nor scraped out, nor brought to be scraped.
+**Anchor sentence**: What is caught cannot be picked out, nor scraped out, nor brought to be scraped.
+
+## 4 · After the lamp went out
+
+After the re-binding, the book was set back in its place. For a while the lamp was out. The dark of the copying hall showed only the sliver of white where the spine seam met the light.
+
+The lampkeeper turned back for one last look. Halfway down the corridor he stopped, then returned to the doorway. The crystal plane of the half-grain was one shade brighter than before the lamp went out — not that it shone by itself, but that the shadow in the groove held a touch of fine white; the only difference between night and day was whether the lamp was still lit.
+
+No one asked him why he had turned back. At the far end of the corridor, the wind that pushed under the grey cover moved the old folios — one page at a time, like a book being quietly turned in some faraway room.
+
+After the lamp went out, the grain in the seam still held a little translucent white.
+**Anchor sentence**: After the lamp went out, the grain in the seam still held a little translucent white.
+
+## 5 · The book's own account
+
+Later, the lampkeeper entered this one line in the night-watch ledger. He did not write the three characters for "half a grain of salt." He wrote only:
+"One grain missing from the binding. The half that is missing is the broken one. The other half is still in the book. The book does not release it."
+
+The copyist of this page mistook it for a typo in an old printing of another volume, and copied it as it stood, without checking. From then on the whole ledger went into the archive bearing this one missing entry: no one struck it out, and no one filled it in — what cannot be filled in only looks worse filled in.
+
+A thin ledger remembers better than any person which half it lost.
+**Anchor sentence**: A thin ledger remembers better than any person which half it lost.
+
+---
+
+## Echo No. 22 — dimension mapping
+
+| Dim | Anchor | Linked |
+|---|---|---|
+| lore | after the grey cover was laid · month of re-binding · eve of the forty-second Convocation | Ch. 11 · Ch. 13 |
+| geography | the copying hall · the old desk · the end of the corridor | this echo |
+| factions | the copyist · the lampkeeper · the Tide Conclave (embers) | Ch. 1 · this echo |
+| characters | the ledger's keeper · the lampkeeper | this echo · Echo 21 |
+| items | the paperweight · the salt grain · the binding · the spine seam | this echo |
+| story | the half-grain sealed into the binding · Echo No. 22 | whole piece |
+| history | the era split · after the grey cover was laid · the month of re-binding | this echo |
+
+> Half a grain of salt went missing,
+> and the book remembered its own edge.
+`,
+  },
 ] as const;
