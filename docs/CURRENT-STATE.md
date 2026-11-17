@@ -4747,3 +4747,12 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - **未提交任何内容**：.en.md 与 .zh.md 全部删除；verify:world-bible 仍为 200/200；快照一致（5 章 · 36 回响）。
 - 图中文输出此回合稳定性 ≈ 0；E34 首遇、E36 恢复完成后一直往下走。
   本批丢在这一刀：没能提供中文稿。
+
+## cont. 243 (2026-11-17) — v872 · §PROVED-15 `/v1/ai/cache-stats` live 落盘
+
+- 起 ai-service 8001 + clash 7897，问典 question 同 payload 试探 3 次后采样 cache-stats：
+  - appCache (redis)：hits=2 · misses=1 · stores=1 · hit_rate 0.6667 · shared · not degraded
+  - provider-reported：cachedTokensTotal = promptTokensTotal = 8866 (one call went live, the other two were served by cache)
+  - transport.stream:true
+- Tech堆积：§PROVED-8/§PROVED-9/§PROVED-10/§PROVED-12/§PROVED-13/§PROVED-15 汇合成 cache-side evidence chain。
+- ai-service 用毕即 kill；sibling /home :8000 未动；free RAM ~0.9 GB。

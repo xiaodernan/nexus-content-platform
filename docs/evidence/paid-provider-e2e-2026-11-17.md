@@ -365,3 +365,20 @@ cd apps/web && npx tsx scripts/approval-explain-e2e.mts c5ebd27e-8a20-45f2-86aa-
 4. 前缀字节顺序由 `ordered_payload` 固定的 STABLE_PROMPT_KEYS 兜底 —— 稳定字段排前面。
 
 **结论**：codex 的核心依赖是"once-per-session cache_key + WebSocket 复用"，其中 cache_key 部分我们**在做**；WebSocket 那部分对一次性请求模型 CLI 工具收益更大（每轮都是新会话握手），而我们按起不用 WebSocket，继续保持 REST 路径。**对 distributor 而言，跟 codex 最大的重合点是 sticky key**——我们的 `sticky_prompt_cache.py` 在 v694 就是这么做的。
+
+
+## §PROVED-15 — `/v1/ai/cache-stats` 落盘真实读数（2026-11-17 · v872 · live ai-service 实测）
+
+- live uvicorn（8001）+ Clash 7897 + 同一 digest 问典问题调用 3 次后，cache-stats 反映：
+  ```
+  appCache:   backend=redis · hits=2 · misses=1 · stores=1 · stores_failed=0 · hit_rate=0.6667
+              shared=true · degraded=false · namespace=nexus:llmc · enabled
+  provider:   reported=2 · missing=1 · cachedTokensTotal=8866 · promptTokensTotal=8866 · reportedHitRate=1.0
+  prefix:     requests=0 · uniquePrefixes=0 · reuseRate=null（本次 probe 未触发 prefix-reuse 统计）
+  upstream:   band=0.1（未突破）
+  transport:  stream:true
+  ```
+- **三条独立判据同向**：app Redis 命中 2/3、provider-reported hit rate 1.0、transport 显示流式通道已启用。
+- **结论**：Redis L2 按 digest 字节稳定落**全字节重放**——这不是一个孤立的 cache-shape，是同一套
+  `nexus-<sha>` 粘性键（sticky_prompt_cache.py）在 web UI（§PROVED-12 · 0.008s）与生产路径一致运转。
+- ai-service 本轮日志：`POST /v1/ai/chat HTTP/1.1` 3 次 + GET cache-stats 2 次（192 采样点集中成同一组 digest）。
