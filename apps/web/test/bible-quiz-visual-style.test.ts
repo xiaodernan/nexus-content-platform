@@ -50,7 +50,7 @@ describe('§BIBLE-2 /bible/quiz 典籍室「潮汐挑战」', () => {
     }
   });
 
-  it('BibleQuiz 是 client 组件；零 provider/fetch；状态机覆盖 73 题', () => {
+  it('BibleQuiz 是 client 组件；零 provider/fetch；状态机覆盖 75 题', () => {
     expect(component.slice(0, 80)).toContain('use client');
     expect(component).not.toContain('fetch(');
     expect(component).not.toContain('/api/');
@@ -61,10 +61,10 @@ describe('§BIBLE-2 /bible/quiz 典籍室「潮汐挑战」', () => {
 
   it('双语题库：zh 与 en 题目数、答案序列完全相等；无 provider 字段外泄', () => {
     const zhPrompts = (component.match(/\bprompt: '/g) ?? []).length / 2;
-    expect(zhPrompts).toBe(73);
+    expect(zhPrompts).toBe(75);
     const zhAnswers = [...component.matchAll(/\banswer: (\d), ref: '/g)].map((m) => Number(m[1]));
     // 每个 element 内 zh/en 连续两次出现、答案镜像一致：zh0,en0,zh1,en1,…
-    expect(zhAnswers).toEqual([2, 2, 0, 1, 3, 1, 2, 0, 1, 2, 1, 2, 1, 2, 1, 1, 1, 0, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 0, 2, 1, 1, 1, 1, 1, 1, 0, 1, 2, 2, 1, 1, 1, 1, 1, 2, 1, 2, 1, 1, 0, 1, 1, 1, 1, 0, 1, 2, 1, 1, 1, 2, 1, 0, 2, 2, 0, 2, 2, 3, 0, 0, 0].flatMap((a) => [a, a]));
+    expect(zhAnswers).toEqual([2, 2, 0, 1, 3, 1, 2, 0, 1, 2, 1, 2, 1, 2, 1, 1, 1, 0, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 0, 2, 1, 1, 1, 1, 1, 1, 0, 1, 2, 2, 1, 1, 1, 1, 1, 2, 1, 2, 1, 1, 0, 1, 1, 1, 1, 0, 1, 2, 1, 1, 1, 2, 1, 0, 2, 2, 0, 2, 2, 3, 0, 0, 0, 0, 0].flatMap((a) => [a, a]));
     expect(component).toContain('zh:');
     expect(component).toContain('en:');
   });
@@ -125,7 +125,7 @@ describe('§BIBLE-2 /bible/quiz 典籍室「潮汐挑战」', () => {
       '612a074adcfa22378f36197e23cebac0fbc08f1d3a99e5b96b6f862e4ed6eb92',
     );
     expect(createHash('sha256').update(redactClasses(component)).digest('hex')).toBe(
-      'd2f27ee49ce033114ee2bec2204998c65542295b00583257e4a27f84101c5272',
+      '330ec76383bfa1c70f7c07a002d1bdb4f733273cc829cc6e0cef62916ec34027',
     );
   });
 });

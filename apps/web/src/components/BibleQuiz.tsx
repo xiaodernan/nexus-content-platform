@@ -366,6 +366,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《半粒盐》里，誊账人在脊缝上写的四个字是哪四个？', choices: ['簿差半粒', '灯不必熄', '封皮未封', '缺一即足'], answer: 0, ref: '回响（其二十二） · 二' },
     en: { prompt: 'In “Half a Grain of Salt”, which four characters did the copyist write on the spine?', choices: ['half a grain short', 'the lamp need not be put out', 'the binding was not closed', 'one missing is enough'], answer: 0, ref: 'Echo No. 22 · II' },
   },
+  {
+    zh: { prompt: '《第四十二次会》里，议程的第一项是什么？', choices: ['念名册', '结账', '封井', '倒灰'], answer: 0, ref: '回响（其二十三） · 一' },
+    en: { prompt: 'In “The Forty-Second Convocation”, what is the first item on the agenda?', choices: ['reading the roll', 'closing the accounts', 'sealing the wells', 'pouring the ash'], answer: 0, ref: 'Echo No. 23 · I' },
+  },
+  {
+    zh: { prompt: '《第四十二次会》里，签收本最后一页的空白留给谁？', choices: ['签名', '印章', '井数', '灯火'], answer: 0, ref: '回响（其二十三） · 二' },
+    en: { prompt: 'In “The Forty-Second Convocation”, who was the blank cell at the end of the book of receipts reserved for?', choices: ['the signature', 'the seal', 'the well-count', 'the lamp'], answer: 0, ref: 'Echo No. 23 · II' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

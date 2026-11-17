@@ -10134,4 +10134,167 @@ A thin ledger remembers better than any person which half it lost.
 > and the book remembered its own edge.
 `,
   },
+  {
+    order: 23,
+    slug: 'echo-023-the-forty-second-convocation',
+    titleZh: '第四十二次会',
+    titleEn: 'The Forty-Second Convocation',
+    eraLineZh: '纪元：灰幕之后 · 欠册之月',
+    eraLineEn: 'Era: after the grey cover was laid · the month of the outstanding book.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 23): The Forty-Second Convocation
+
+> 回响不续写正典——它只记一份挑剩下的纪录：
+> 灰幕之后，馆里没有人再数到第四十二次会，可每个人都知道它开过。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> After the grey cover was laid, no one in the hall ever counted up to a forty-second Convocation — and everyone knew it had convened.
+> Its anchors answer to the same discipline.
+
+> 纪元：灰幕之后 · 欠册之月
+> Era: after the grey cover was laid · the month of the outstanding book.
+
+---
+
+## 一 · 没有散会的时刻
+
+灰幕落下以后，誊册房里留下一只签收本。本子纸页金边，封皮在灰以前就被换过一次，封皮木纹上还留着一道没被刮掉的细痕——像是有人擦过什么，又停手了。
+
+本子卷首是一份议程：第一项，念名册；第二项，数灯；第三项，散会。议程下面空出两页，纸上的纤维在灯下看得见起伏。没有谁来清理它，没有谁来把议程合上。每一天早晨，誊册房都是开着的，守灯人把本子翻开，数一次没有签名的缺口，再关一次灯。
+
+第四十二次会没有散会的时刻，只有缺的那一格。
+**锚句**：第四十二次会没有散会的时刻，只有缺的那一格。
+**Anchor sentence**: No moment of adjournment exists for the forty-second Convocation; only the blank cell.
+
+## 二 · 卷末的欠据
+
+誊册房里的每一卷记录都有小注，注记结尾的方式都是一致的：盖印。只有签收本没有。誊账人把全馆的册子逐本核对过一次——二十三卷，二十二卷都有收尾的落款、日期、没有裂缝的封口；只有签收本最后一页空白，只有一个日期和欠据，欠据下面一格留白，按馆里最老的规矩，那一格是给签名留的。
+
+他试过各种各样的写法。他还为自己拿不定主意找过借口：也可能只是一份暂存的欠据，等补封那日再说。
+
+签收本的最后一页只有日期和欠据，没有签名。
+**锚句**：签收本的最后一页只有日期和欠据，没有签名。
+**Anchor sentence**: The last page of the book of receipts holds a date and a debt — and no signature.
+
+## 三 · 站在缺口前的人
+
+第四十二次会开的那一晚，没有人来报到。签收本是开着的，可没有人签，会议记录也是开着的，可从头到尾没有一个字。灰幕落下的那一夜，全馆都在安静中等着散会；等了整整一夜，第二天还是没有散。
+
+之后的几天，馆里来了一批熟悉的人。都来过又走了：他们要签名。他们带着各自的规矩来，带着各自手中的墨，坐在签收本前面，墨还没沾上纸，就都走了。誊账人没有拦过他。他只是把本子留在案台上——留给谁都开着。
+
+每一个想结案的人，都站在这一格前面等着。
+**锚句**：每一个想结案的人，都站在这一格前面等着。
+**Anchor sentence**: Everyone who wanted a closed case stood before that cell, waiting.
+
+## 四 · 那一盏灯一直亮着
+
+馆里没有人指示过让人留下一盏灯。誊账人也不记得自己做过什么，可签收本对面屋里的灯，是自灰幕落下后就再也没有灭过的一盏。这期间，灯油经常被续满，灯芯剪得整整齐齐，瓶子里的油从来不让它见底。
+
+那盏灯从来没有灭过，也没人告诉它什么时候灭。它只在那一晚见过签收本，把本子照成一帧灰白，然后灯下再也没有多出一笔。
+
+灯没有灭过，也没人告诉过它什么时候灭。
+**锚句**：灯没有灭过，也没人告诉过它什么时候灭。
+**Anchor sentence**: The lamp never went out, and no one told it when it should.
+
+## 五 · 第四十二次会
+
+后来馆里只保留了一种说法：第四十二次会的签字人，第四十二次会是被散掉的。可是誊账人不这么记。
+
+他听人说起过会议只是没人出席，谁都不好说散会这两个字；他看见七只手缩回去，听见椅子在地板上响了一下；他知道第四十二次会的议程依然停在纸上，没有人签名，没有人散会——欠据还挂着，而馆里所有人都还站在它前面。
+
+第四十二次会只少一个签名，正好多一个不来。
+**锚句**：第四十二次会只少一个签名，正好多一个不来。
+**Anchor sentence**: The forty-second Convocation is short one signature, and has one too many who never came.
+
+---
+
+## 模型映射（回响二十三则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 灰后 · 欠册之月 · 第四十二次会没开会 | 第十一章 · 第十三章 |
+| geography | 誊册房 · 案台 · 灰白尽头 | 本则 |
+| factions | 誊账人 · 守灯人 · 潮汐教团（余烬） | 第一章 · 本则 |
+| characters | 账簿的守护者 · 誊账人 | 本则 · 第二十二则 |
+| items | 签收本 · 欠据 · 印章 · 画帧 | 本则 |
+| story | 第四十二次会没开成 · 回响（其二十三） | 全篇 |
+| history | 纪元切割 · 灰幕之后 · 欠册之月 | 本则 |
+
+> 散不了的会，
+> 散得比谁都慢。
+> A meeting that cannot adjourn
+> adjourns more slowly than all.
+`,
+    markdownEn: `
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> After the grey cover was laid, no one in the hall ever counted up to a forty-second Convocation — and everyone knew it had convened.
+> Its anchors answer to the same discipline.
+
+> Era: after the grey cover was laid · the month of the outstanding book.
+
+---
+
+## I · The hour that never adjourned
+
+After the grey cover fell, the copying hall kept one last book — the book of receipts. Its pages were gilt-edged; its binding had been replaced once, before the ash, and the wood grain kept a hairline trace no one had scraped away — as if someone had wiped something off, and then stopped short.
+
+At the head of the book sat an agenda: first, the roll; secondly, the lamps; thirdly, adjournment. Below the agenda lay two empty pages; the fibre of the paper rippled in the lamplight, and no one had come to smooth them. Every morning the hall was opened, and every morning the lampkeeper opened the book, counted the blank cell once, and put the lamp out again.
+
+No moment of adjournment exists for the forty-second Convocation; only the blank cell.
+**Anchor sentence**: No moment of adjournment exists for the forty-second Convocation; only the blank cell.
+
+## II · The debt at the foot of the book
+
+Every volume in the copying hall carried a closing note, and every closing note was identical in form: a seal. The book of receipts alone had none. The copyist went through the whole hall and checked each volume one by one — twenty-three in all; twenty-two had a closing mark, a date, a clean end — and only the book of receipts ended in a blank page with a date and a debt, and below the debt, one more empty cell, reserved by the oldest rule of the house for the signature.
+
+He had tried every kind of wording. He had also looked for excuses to stall: perhaps it was only a temporary note of debt, to be dealt with at the month of binding.
+
+The last page of the book of receipts holds a date and a debt — and no signature.
+**Anchor sentence**: The last page of the book of receipts holds a date and a debt — and no signature.
+
+## III · The ones waiting before the cell
+
+The night of the forty-second Convocation, no one came to register. The book of receipts lay open, and no one signed; the minutes lay open, and not one character was ever written. The whole hall waited — without speech — for the adjournment; the next morning it still had not come, and it was still open.
+
+In the days that followed, familiar faces arrived. They came, and they went: each of them had come to sign. They arrived with their own rules, with their own inks, sat down before the book — and before the ink touched the page, they all got up and left. The copyist never stopped any of them. He only kept the book open on the desk — open to whoever wanted to come.
+
+Everyone who wanted a closed case stood before that cell, waiting.
+**Anchor sentence**: Everyone who wanted a closed case stood before that cell, waiting.
+
+## IV · The lamp that never went out
+
+No one in the hall had ever ordered that a lamp be kept burning. The copyist could not remember making the decision — yet ever since the grey cover fell, the lamp in the room across from the book of receipts had burned continuously. Through all that time, the oil had been refilled often, the wick trimmed evenly, and the bottle had never been allowed to empty.
+
+That lamp never went out — and no one told it when it should. It had been lit only for that one night, to hold the book of receipts up to the camera, and since that night no fresh stroke had ever been added under it.
+
+The lamp never went out, and no one told it when it should.
+**Anchor sentence**: The lamp never went out, and no one told it when it should.
+
+## V · The forty-second Convocation
+
+In the end, the hall kept only one account of it: the forty-second Convocation had adjourned. But the copyist never recorded it that way.
+
+He had been told the meeting had simply not been attended — that no one would say the word adjournment aloud. He had seen seven hands draw back, and one chair answer the floor. He knew the agenda of the forty-second Convocation remained on the table; no one signed, no one adjourned — the note of debt was still hanging, and everyone in the hall stood before it.
+
+The forty-second Convocation is short one signature, and has one too many who never came.
+**Anchor sentence**: The forty-second Convocation is short one signature, and has one too many who never came.
+
+---
+
+## Echo No. 23 — dimension mapping
+
+| Dim | Anchor | Linked |
+|---|---|---|
+| lore | after the grey cover was laid · the month of the outstanding book · the forty-second Convocation never convened | Ch. 11 · Ch. 13 |
+| geography | the copying hall · the desk · the pale end of the corridor | this echo |
+| factions | the copyist · the lampkeeper · the Tide Conclave (embers) | Ch. 1 · this echo |
+| characters | the keeper of the ledger · the copyist | this echo · Echo 22 |
+| items | the book of receipts · the note of debt · the seal · the camera stand | this echo |
+| story | the forty-second Convocation that never convened · Echo No. 23 | whole piece |
+| history | the era split · after the grey cover was laid · the month of the outstanding book | this echo |
+
+> A meeting that cannot adjourn
+> adjourns more slowly than all.
+`,
+  },
 ] as const;

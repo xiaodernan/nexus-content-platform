@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Five canonical chapters (full text below). 22 echoes (anchor lines only, same book end-anchors).
+Five canonical chapters (full text below). 23 echoes (anchor lines only, same book end-anchors).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -2265,5 +2265,12 @@ ANCHORS（中英字字对齐）:
 - [3] 卡住的东西，锄不出来，刮不出来，也不忍刮。
 - [4] 灯灭之后，缝里那粒盐还留着一点半透的白。
 - [5] 簿子记得比任何人都清楚，缺了哪一半。
+
+### Echo 23 · 第四十二次会 / The Forty-Second Convocation
+- [1] 第四十二次会没有散会的时刻，只有缺的那一格。
+- [2] 签收本的最后一页只有日期和欠据，没有签名。
+- [3] 每一个想结案的人，都站在这一格前面等着。
+- [4] 灯没有灭过，也没人告诉过它什么时候灭。
+- [5] 第四十二次会只少一个签名，正好多一个不来。
 
 END OF DIGEST

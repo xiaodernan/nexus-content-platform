@@ -6070,3 +6070,9 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 > - 旧 `java-registry`/`java-config-server`/`java-gateway` 与 `infra/config/` 整体 git rm（git 历史等价保留，git show 可复原）；成功者 = `services/nexus-registry` / `nexus-config` / `nexus-gateway`（后者新增 HopLog/Prometheus/W3C/Redis 共享桶 Lua+fail-open 等，128→127 tests，仓库里 Java 合计 5 个 pom，CI 也重指这五个）。compose `java` profile 全部指向 nexus-*；发现两处静默 bug：env `NEXUS_EUREKA_URL`（零读取方）→ `NEXUS_REGISTRY_ZONE=http://nexus-registry:8771/eureka/`；gateway 配置缺 `NEXUS_CONFIG_URL`。
 > - `verify:topology` 实测从红→**PASS 22/22**：先找到邻居 Docker 占用 8888 / 18888（邻居 Docker 保留），本仓 smoke 配置门改 **20888** 后 PASS；其中 gate-as-written 的 probe 必经断言（SC-61：403 door-locked / probe published 200 / stats 必带三计数）也包含在绿里。同日复现 127/127 Java 网关测试含新钉 SC-37 ACL fail-open（NOAUTH/NOPERM/WRONGPASS）用例。
 > - `verify:ci-wiring` exit 0（5 pom · cache:maven key 重写）；`verify:fe-gates` 未动仍 147/147；`verify:world-bible` 未动仍 372/372；StateGraph 默认车道 cont. 222 已推送。
+
+> **2026-11-18 cont. 224 · 回响（其二十三）《第四十二次会》上线**
+> - E23 双语落库（5 组锚句 zh/en 全局唯一；story：灰后·欠册之月，签收本欠一页签名、全馆一直站在缺口前、灯没人告诉它什么时候灭——散不了的会散得比谁都慢）。
+>   verify:world-bible **377/377** · verify:bible-snapshot 一致 · canon slug `echo-023-the-forty-second-convocation`；canon_digest 重封存（chars=61,544 · sha256=116ba87f…）。
+>   /bible 目录与阅读页 zh 二十三 / en XXIII · quiz 75 题（zh/en 镜像；新增两题 E23）· guideCopy 二十三回响（zh/en）同步；fe-gates 147/147 · 1353/1353。
+> - prod SSR 双语 marker 全过（zh /bible 渲染「其二十三」卡、echo 页中英双标双锚、en XXIII + Echo No. 23）。
