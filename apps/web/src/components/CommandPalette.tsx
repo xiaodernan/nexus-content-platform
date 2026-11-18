@@ -100,7 +100,7 @@ import type { Locale } from '@/lib/i18n';
 /** 双语：每行文案按 cookie locale 选（不夹杂）；关键词/命令 label 来自 commands(_EN) 字典 */
 const CP_TXT_ZH = {
   openPalette: '打开命令面板',
-  chip: '命令',
+  chip: '命令面板',
   dialog: '命令面板',
   search: '搜索命令',
   placeholder: '输入命令、页面名…',
@@ -114,7 +114,7 @@ const CP_TXT_ZH = {
 } as const;
 const CP_TXT_EN = {
   openPalette: 'Open command palette',
-  chip: 'Cmd',
+  chip: 'Palette',
   dialog: 'Command palette',
   search: 'Search commands',
   placeholder: 'Command or page name…',
@@ -307,7 +307,7 @@ export function CommandPalette({ locale = 'zh' }: { locale?: Locale }) {
           onClick={openPalette}
           className="cp-chip"
           data-command-palette-chip
-          aria-label={`${T.openPalette} (${modifier}+K)`}
+          aria-label={`${T.chip} ${modifier} K`}
           aria-keyshortcuts={`${mac ? 'Meta' : 'Control'}+K`}
         >
           <Search size={13} aria-hidden />

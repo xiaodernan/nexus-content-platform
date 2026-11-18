@@ -6191,3 +6191,14 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 >   加模块级 inflightWire：首访合并为一次调用；失败不缓存；多实例生产由 Redis replay + distributed single-flight 接力。
 > - 线上实测：try1 2.63s（provider 冷，且碎片答案留在缓存）→ try2/3 0.48/0.22s（缓存命中）。
 > - fe-gates 147/147 · 1353/1353 · census 2966 · build 绿
+
+> **2026-11-19 cont. 241 · 首页/页面 Lighthouse a11y 全绿——真正修好 overlap 与对比度（§五条目）**
+> - 起点：Home 0.93 / 五个页面 a11y 有 violations（color-contrast quickStart kicker/num/link · cp-chip label-name-mismatch · tt-fab target-size + 与 kb-fab 擦边）
+> - **双 FABs 不再叠**：kb-fab `bottom: calc(space-3 + 6rem + env(safe-area-inset-bottom))`；语言 FAB `calc(space-3 + 3.75rem)`——三条右边 FAB 竖排严丝合缝，12px 纵 gap
+> - `hp-quickStartKicker`/`hp-quickStartNum`/`hp-quickStartLink` → `--nexus-color-accent-2-ink`（AA 合格）
+> - `cp-chip`：`aria-label` 对齐可见文本（zh `命令面板 Ctrl+K` / en `Palette Ctrl+K`），不再 label-name-mismatch
+> - bb-searchKicker / cdx-tocCount / eph-counts → accent-2-ink 同翻
+> - `.tide-oracleExample`：12px 字号改 11px，`min-height: 1.5rem` + `inline-flex` 居中，按钮感知可点击区域扩大，target-size 清零
+> - `progressbar` ARIA：`aria-label={c.progressLabel}`（zh 本轮进度 / en Progress）· §FE quiz SHA 重钉
+> - 终测：10 页（含 `/tide-oracle /tide-wire /bible /bible/quiz /stategraph /guide /onboarding /pulse /discover` + 生本回家 /）——**a11y 1.0 · best-practices 1.0 · SEO 1.0 · 0 failures**
+> - evidence: `docs/evidence/lighthouse-a11y-sweep-2026-11-19.md` · fe-gates 147/147 · 1353/1353 · census 2967

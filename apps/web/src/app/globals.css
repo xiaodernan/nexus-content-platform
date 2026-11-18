@@ -395,14 +395,14 @@
   }
   .hp-heroSub { color: var(--nexus-color-fg-3); font-size: var(--nexus-font-size-13); margin-top: var(--nexus-space-1); line-height: 1.45; max-width: 48ch; }
   .hp-quickStart { border: 1px solid var(--nexus-color-border-subtle); border-left: 3px solid var(--nexus-color-brand); border-radius: var(--nexus-radius-md); background: var(--nexus-color-bg-1); padding: var(--nexus-space-3) var(--nexus-space-4); display: flex; flex-direction: column; gap: var(--nexus-space-2); margin: var(--nexus-space-3) 0 0; max-width: 72rem; }
-  .hp-quickStartKicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.18em; text-transform: uppercase; color: var(--nexus-color-accent-mix); margin: 0; }
+  .hp-quickStartKicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.18em; text-transform: uppercase; color: var(--nexus-color-accent-2-ink); margin: 0; }
   .hp-quickStartSteps { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: var(--nexus-space-3); margin: 0; padding: 0; list-style: none; }
   .hp-quickStartStep { display: flex; gap: var(--nexus-space-2); align-items: flex-start; }
-  .hp-quickStartNum { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-16); font-weight: 700; color: var(--nexus-color-brand); line-height: 1.2; font-variant-numeric: tabular-nums; }
+  .hp-quickStartNum { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-16); font-weight: 700; color: var(--nexus-color-accent-2-ink); line-height: 1.2; font-variant-numeric: tabular-nums; }
   .hp-quickStartText { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); line-height: 1.6; margin: 0; }
   .hp-quickStartText strong { color: var(--nexus-color-fg-1); font-weight: 700; }
   .hp-quickStartFoot { display: flex; flex-wrap: wrap; gap: var(--nexus-space-3); margin: 0; }
-  .hp-quickStartLink { color: var(--nexus-color-accent-mix); font-size: var(--nexus-font-size-12); font-weight: 600; text-decoration: none; }
+  .hp-quickStartLink { color: var(--nexus-color-accent-2-ink); font-size: var(--nexus-font-size-12); font-weight: 600; text-decoration: none; }
   .hp-quickStartLink:hover { text-decoration: underline; }
   .hp-demoChip {
     display: inline-flex; align-items: center; gap: var(--nexus-space-2);
@@ -2419,6 +2419,7 @@
   .tt-fab { position: fixed; right: var(--nexus-space-3); bottom: var(--nexus-space-3); z-index: 40; display: inline-flex; height: 2.25rem; width: 2.25rem; align-items: center; justify-content: center; border-radius: 9999px; border: 1px solid var(--nexus-color-border-subtle); background: color-mix(in srgb, var(--nexus-color-bg-2) 90%, transparent); color: var(--nexus-color-fg-2); box-shadow: var(--nexus-shadow-sm); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); cursor: pointer; }
   .tt-fab:hover { color: var(--nexus-color-fg-1); }
   .tt-fab:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+  .tt-fab-locale { bottom: calc(var(--nexus-space-3) + 3.75rem); }
 
   /* ── §FE-86 / ADR-0239 `AvatarEditor.tsx` `.ae-` 门面化——§60 头像上传 ──
    * "剥掉了哪些元数据段"必须显示——EXIF 的 GPS/机型不该裸奔；摘掉回到 null 首字母，不造默认图。 */
@@ -4544,7 +4545,7 @@
    §FE-KB「?快速键速览」视觉层（全局 overlay + fab）。
    全 tokens、零 hex、forced-colors 有收口。
    ───────────────────────────────────────────────────────────────────── */
-.kb-fab { position: fixed; z-index: 60; right: max(var(--nexus-space-4), env(safe-area-inset-right, var(--nexus-space-4))); bottom: max(var(--nexus-space-4), env(safe-area-inset-bottom, var(--nexus-space-4))); width: 2.5rem; height: 2.5rem; border-radius: 9999px; border: 1px solid color-mix(in srgb, var(--nexus-color-brand) 45%, transparent); background: color-mix(in srgb, var(--nexus-color-bg-1) 88%, transparent); color: var(--nexus-color-accent-mix); font-family: var(--nexus-font-mono); font-size: 1.05rem; line-height: 1; cursor: pointer; backdrop-filter: blur(8px); box-shadow: 0 0.3rem 1.1rem color-mix(in srgb, var(--nexus-color-bg-0) 70%, transparent); transition: border-color 160ms ease, transform 160ms ease; }
+.kb-fab { position: fixed; z-index: 60; right: max(var(--nexus-space-4), env(safe-area-inset-right, var(--nexus-space-4))); bottom: calc(var(--nexus-space-3) + 6rem + env(safe-area-inset-bottom, 0px)); width: 2.5rem; height: 2.5rem; border-radius: 9999px; border: 1px solid color-mix(in srgb, var(--nexus-color-brand) 45%, transparent); background: color-mix(in srgb, var(--nexus-color-bg-1) 88%, transparent); color: var(--nexus-color-accent-mix); font-family: var(--nexus-font-mono); font-size: 1.05rem; line-height: 1; cursor: pointer; backdrop-filter: blur(8px); box-shadow: 0 0.3rem 1.1rem color-mix(in srgb, var(--nexus-color-bg-0) 70%, transparent); transition: border-color 160ms ease, transform 160ms ease; }
 .kb-fab:hover, .kb-fab:focus-visible { border-color: var(--nexus-color-brand); transform: translateY(-1px); outline: none; }
 .kb-fab:focus-visible { box-shadow: 0 0 0 3px color-mix(in srgb, var(--nexus-color-brand) 40%, transparent); }
 .kb-backdrop { position: fixed; z-index: 90; inset: 0; display: flex; align-items: center; justify-content: center; padding: var(--nexus-space-4); background: color-mix(in srgb, var(--nexus-color-bg-0) 78%, transparent); backdrop-filter: blur(4px); }
@@ -4606,7 +4607,7 @@
 .cdx-tocLink:hover, .cdx-tocLink:focus-visible { background: var(--nexus-color-bg-3); }
 .cdx-tocChapter { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
 .cdx-tocName { color: var(--nexus-color-fg-1); font-size: var(--nexus-font-size-13); }
-.cdx-tocCount { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-mix); font-variant-numeric: tabular-nums; }
+.cdx-tocCount { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-2-ink); font-variant-numeric: tabular-nums; }
 .cdx-chapter { background: var(--nexus-color-bg-1); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md); padding: var(--nexus-space-5); display: flex; flex-direction: column; gap: var(--nexus-space-3); position: relative; }
 .cdx-chapter::before { content: ''; position: absolute; left: 0; top: var(--nexus-space-4); bottom: var(--nexus-space-4); width: 3px; border-radius: 2px; background: linear-gradient(180deg, var(--nexus-color-brand) 0%, var(--nexus-color-accent-2) 100%); opacity: 0.55; }
 .cdx-chapterHead { display: flex; align-items: baseline; gap: var(--nexus-space-3); border-bottom: 2px solid color-mix(in srgb, var(--nexus-color-brand) 35%, transparent); padding-bottom: var(--nexus-space-2); }
@@ -4658,7 +4659,7 @@
 .eph-title { position: relative; font-size: var(--nexus-font-size-28); font-weight: 700; letter-spacing: 0.22em; margin: 0; color: var(--nexus-color-fg-1); text-shadow: 0 0 0.6rem color-mix(in srgb, var(--nexus-color-warn-ink) 35%, transparent); }
 .eph-lede { position: relative; font-size: var(--nexus-font-size-13); line-height: 1.85; color: var(--nexus-color-fg-2); max-width: 40rem; margin: 0 auto; }
 .eph-footnote { position: relative; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
-.eph-counts { position: relative; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-mix); font-variant-numeric: tabular-nums; border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-2); margin-top: var(--nexus-space-2); letter-spacing: 0.04em; }
+.eph-counts { position: relative; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-2-ink); font-variant-numeric: tabular-nums; border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-2); margin-top: var(--nexus-space-2); letter-spacing: 0.04em; }
 .eph-empty { display: flex; flex-direction: column; align-items: center; gap: var(--nexus-space-2); text-align: center; padding: var(--nexus-space-8) var(--nexus-space-5); border: 1px dashed var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md); background: var(--nexus-color-bg-1); }
 .eph-emptyTitle { font-size: var(--nexus-font-size-18); font-weight: 650; color: var(--nexus-color-fg-1); margin: 0; }
 .eph-emptyCopy { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); line-height: 1.8; max-width: 32rem; margin: 0; }
@@ -5073,7 +5074,7 @@
 .bb-searchWrap { display: flex; flex-direction: column; gap: var(--nexus-space-2); max-width: 46rem; }
 .bb-searchBar { display: flex; align-items: center; gap: var(--nexus-space-2); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md); padding: var(--nexus-space-2) var(--nexus-space-3); background: var(--nexus-color-bg-1); transition: border-color 160ms ease; }
 .bb-searchBar:focus-within { border-color: var(--nexus-color-accent-mix); }
-.bb-searchKicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.3em; text-transform: uppercase; color: var(--nexus-color-accent-mix); white-space: nowrap; }
+.bb-searchKicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.3em; text-transform: uppercase; color: var(--nexus-color-accent-2-ink); white-space: nowrap; }
 .bb-searchInput { flex: 1; min-width: 0; background: transparent; border: none; color: var(--nexus-color-fg-1); font-size: var(--nexus-font-size-14); line-height: 1.6; padding: 0.25rem 0; }
 .bb-searchInput::placeholder { color: var(--nexus-color-fg-3); }
 .bb-searchInput:focus-visible { outline: none; }
@@ -5915,9 +5916,10 @@
   .insg-signalFill { background: Highlight; }
   .insg-gateError { color: CanvasText; }
   .insg-gateSubmit:focus-visible, .insg-gateInput:focus-visible, .insg-logout:focus-visible, .insg-back:focus-visible { outline-color: Highlight; }
+}
 /* ── §BIBLE-5 · 潮汐见证（Tide-Eye Witness）── */
 .tide-witness { border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md); background: var(--nexus-color-bg-1); padding: var(--nexus-space-3) var(--nexus-space-4); display: flex; flex-direction: column; gap: var(--nexus-space-2); margin: var(--nexus-space-4) 0; max-width: 56rem; }
-.tide-witnessKicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.18em; text-transform: uppercase; color: var(--nexus-color-accent-mix); margin: 0; }
+.tide-witnessKicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.18em; text-transform: uppercase; color: var(--nexus-color-accent-2-ink); margin: 0; }
 .tide-witnessLedgerOrder { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-2); margin: 0; font-variant-numeric: tabular-nums; }
 .tide-witnessHint { font-size: var(--nexus-font-size-11); line-height: 1.7; color: var(--nexus-color-fg-2); margin: 0; max-width: 48rem; }
 .tide-witnessButton { align-self: flex-start; padding: var(--nexus-space-2) var(--nexus-space-4); font-size: var(--nexus-font-size-12); font-weight: 700; letter-spacing: 0.04em; border-radius: var(--nexus-radius-sm); border: 1px solid var(--nexus-color-accent-mix); background: color-mix(in srgb, var(--nexus-color-accent-mix) 14%, var(--nexus-color-bg-1)); color: var(--nexus-color-fg-1); cursor: pointer; transition: border-color 160ms ease, background 160ms ease; }
@@ -5939,11 +5941,11 @@
 }
 /* ── §TIDE-ORACLE · 潮语 · 潮汐预言（问潮字句）── */
 .tide-oracle { display: flex; flex-direction: column; gap: var(--nexus-space-3); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md); background: var(--nexus-color-bg-1); padding: var(--nexus-space-4) var(--nexus-space-4); max-width: 60rem; }
-.tide-oracleKicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.18em; text-transform: uppercase; color: var(--nexus-color-accent-mix); margin: 0; }
+.tide-oracleKicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.18em; text-transform: uppercase; color: var(--nexus-color-accent-2-ink); margin: 0; }
 .tide-oracleTitle { font-size: var(--nexus-font-size-24); font-weight: 800; letter-spacing: 0.01em; line-height: 1.3; color: var(--nexus-color-fg-1); margin: 0; }
 .tide-oracleLede { font-size: var(--nexus-font-size-12); line-height: 1.85; color: var(--nexus-color-fg-2); margin: 0; max-width: 52rem; }
 .tide-oracleExamples { display: flex; flex-wrap: wrap; gap: var(--nexus-space-2); margin: 0; padding: 0; list-style: none; }
-.tide-oracleExample { font-size: var(--nexus-font-size-11); line-height: 1.6; padding: 0.2rem 0.7rem; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--nexus-color-accent-mix) 45%, transparent); color: var(--nexus-color-accent-mix); background: transparent; cursor: pointer; transition: border-color 160ms ease, color 160ms ease; }
+.tide-oracleExample { font-size: var(--nexus-font-size-11); line-height: 1.6; padding: 0.3rem var(--nexus-space-3); border-radius: 999px; border: 1px solid color-mix(in srgb, var(--nexus-color-accent-2-ink) 45%, transparent); color: var(--nexus-color-accent-2-ink); background: transparent; cursor: pointer; transition: border-color 160ms ease, color 160ms ease; min-height: 1.5rem; display: inline-flex; align-items: center; }
 .tide-oracleExample:hover { border-color: var(--nexus-color-brand); color: var(--nexus-color-brand); }
 .tide-oracleExample:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
 .tide-oracleForm { display: flex; flex-direction: column; gap: var(--nexus-space-2); }
@@ -5974,7 +5976,7 @@
 
 /* ── §TIDE-WIRE · 今日潮声 ── */
 .tide-wire { display: flex; flex-direction: column; gap: var(--nexus-space-3); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md); background: var(--nexus-color-bg-1); padding: var(--nexus-space-4) var(--nexus-space-4); max-width: 60rem; }
-.tide-wireKicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.18em; text-transform: uppercase; color: var(--nexus-color-accent-mix); margin: 0; }
+.tide-wireKicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.18em; text-transform: uppercase; color: var(--nexus-color-accent-2-ink); margin: 0; }
 .tide-wireTitle { font-size: var(--nexus-font-size-24); font-weight: 800; line-height: 1.3; letter-spacing: 0.01em; color: var(--nexus-color-fg-1); margin: 0; }
 .tide-wireLede { font-size: var(--nexus-font-size-12); line-height: 1.85; color: var(--nexus-color-fg-2); margin: 0; max-width: 52rem; }
 .tide-wireLine { font-size: var(--nexus-font-size-16); line-height: 1.85; color: var(--nexus-color-fg-1); margin: 0; font-style: italic; border-left: 3px solid var(--nexus-color-accent-mix); padding-left: var(--nexus-space-3); }
@@ -5995,7 +5997,7 @@
 
 /* ── §MODERATION-ASSIST · 复核助理（AI 帮我读一眼，只读只参考）── */
 .moderation-aidr { display: flex; flex-direction: column; gap: var(--nexus-space-1); border: 1px dashed color-mix(in srgb, var(--nexus-color-accent-mix) 45%, transparent); border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-2) var(--nexus-space-3); background: var(--nexus-color-bg-1); margin: var(--nexus-space-2) 0; }
-.moderation-aidrKicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.18em; text-transform: uppercase; color: var(--nexus-color-accent-mix); margin: 0; }
+.moderation-aidrKicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.18em; text-transform: uppercase; color: var(--nexus-color-accent-2-ink); margin: 0; }
 .moderation-aidrHint { font-size: var(--nexus-font-size-11); line-height: 1.75; color: var(--nexus-color-fg-2); margin: 0; }
 .moderation-aidrButton { align-self: flex-start; padding: var(--nexus-space-1) var(--nexus-space-3); font-size: var(--nexus-font-size-11); font-weight: 700; letter-spacing: 0.05em; border-radius: var(--nexus-radius-sm); border: 1px solid var(--nexus-color-accent-mix); background: transparent; color: var(--nexus-color-fg-1); cursor: pointer; transition: border-color 160ms ease, background 160ms ease; }
 .moderation-aidrButton:hover { border-color: var(--nexus-color-brand); background: color-mix(in srgb, var(--nexus-color-accent-mix) 14%, var(--nexus-color-bg-1)); }
@@ -6013,7 +6015,7 @@
   .moderation-aidrButton:focus-visible { outline-color: Highlight; }
 }
 
-}/* ── §MAP-1 /map 世界全图视觉层 ── */
+/* ── §MAP-1 /map 世界全图视觉层 ── */
 .map-root { min-height: 100dvh; padding: var(--nexus-space-6) clamp(var(--nexus-space-4), 5vw, var(--nexus-space-8)); background: radial-gradient(1200px 500px at 85% -10%, color-mix(in srgb, var(--nexus-color-accent-2) 18%, transparent) 0%, transparent 60%), radial-gradient(900px 500px at -10% 20%, color-mix(in srgb, var(--nexus-color-accent-mix) 22%, transparent) 0%, transparent 55%), var(--nexus-color-bg-0); color: var(--nexus-color-fg-1); position: relative; }
 .map-hero { max-width: 72rem; margin: 0 auto; }
 .map-kicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.3em; text-transform: uppercase; color: var(--nexus-color-accent-mix); }

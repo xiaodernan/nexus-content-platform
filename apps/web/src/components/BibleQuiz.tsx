@@ -25,6 +25,7 @@ const COPY = {
     title: '你配得上第八盏灯吗？',
     lede: '五章正典的答题器。每道题的依据都能在《世界大典》里逐字找到——写下来的答案就是答案。',
     questionLabel: (i: number, n: number) => `第 ${i} / ${n} 题`,
+    progressLabel: '本轮进度',
     correct: '答对了——这一句你记住了。',
     wrong: (ref: string) => `错——回去读「${ref}」。`,
     restart: '重来',
@@ -48,6 +49,7 @@ const COPY = {
     title: 'Are you worthy of the eighth lamp?',
     lede: 'A quiz on the five canonical chapters. Every answer can be traced word-for-word in The World Bible — what is written is what is true.',
     questionLabel: (i: number, n: number) => `Question ${i} / ${n}`,
+    progressLabel: 'Progress',
     correct: 'Correct — you keep it.',
     wrong: (ref: string) => `Wrong — go read “${ref}”.`,
     restart: 'Try again',
@@ -464,7 +466,7 @@ export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {
       <p className="bb-quiz-kicker">{c.kicker}</p>
       <h1 className="bb-quiz-title">{c.title}</h1>
 
-      <div className="bb-quiz-bar" role="progressbar" aria-valuenow={step + (locked ? 1 : 0)} aria-valuemin={0} aria-valuemax={total} data-bible-quiz-progress>
+      <div className="bb-quiz-bar" role="progressbar" aria-label={c.progressLabel} aria-valuenow={step + (locked ? 1 : 0)} aria-valuemin={0} aria-valuemax={total} data-bible-quiz-progress>
         <div className="bb-quiz-barFill" style={{ width: `${((step + (locked ? 1 : 0)) / total) * 100}%` }} />
       </div>
       <p className="bb-quiz-stepLabel" aria-live="polite" data-bible-quiz-step>{c.questionLabel(step + 1, total)}</p>
