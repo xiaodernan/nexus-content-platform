@@ -7516,3 +7516,17 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 新篇：「老榕 · 气生根 · 潮落前三天 · 珊瑚方言 · 礼终」— digest 现 **231,220 chars**（13 章正典 · **130 回响** · 4 annex · 锚句 798 zh / 798 en ✓）。
 - 6 anchor 双语；gen-bible-snapshot 增索引；BibleAsk lede → 130 · /bible/ask meta → 一百三十篇 · CACHE-IDENTITY × 130 · canon-answer-graph → 13 章 + 130 回响 = 143 段 · bible-ask-behavior → 793 · pin 重钉 page→ed43894b / comp→d7f12ac9。
 - fe-gates **1370/1370** ✓。
+
+## cont. 366 (2026-11-18) — v986 · §MERGE-LINEAGE4 · origin/main 续推 × 15 commit 全量吸收（cont.354–359）· 潮汐引文自检 + Echo #131《门开了一整夜》
+
+**课题**：origin/main 15 提交大幅推进：a3dcd62b《第四十五次会》（Echo #121 = 131）· 12ef0793 撞库演练落盘 · 6ae785e7 Tide-Oracle 引文自检（buildless 机检，「不用模型考模型」）· d3da1eb2 合流后 merge · f8f059cd 指针 · 1fd17896最新指针。
+
+**做法**（ADR-0288）：先 cherry-port 取必要产物回 main-line，再 `git merge origin-latest -X ours --no-edit` 关闭祖先线：
+
+1. **Echo #131《门开了一整夜》** pt 路线搬回（已手写 zh/en · 5 锚句逐字）；`verify:world-bible 803/803 ✓`；
+2. **Tide-Oracle 引文自检**：新 `apps/web/src/server/domain/oracleCitation.ts` —— `verifyAnchorCitation(answer)` 分 `cited`（逐字包含锚句）/ `declined`（「典籍里没有」）/ `not-cited` 三态；+6 测试 · `nexus_oracle_citation_total{state}` 观测 · `/api/tide/oracle` response 新 field `citation: { state, anchorsCited? }`；CSS `.tide-oracleCite` + forced-colors 收口；bible-quiz +2 questions (→89 题) · pin 重钉；
+3. **撞库演练 evidence** `docs/evidence/login-bruteforce-2026-11-19.md` 原文入库（7×401 → 429 · 30/5min/IP 滑动 · retryAfterMs=198k）；配置漂移三件套（3212→8001/5443 · NEXUS_DATABASE_URL · collation REFRESH）记账；
+4. **合流**：merge "d49bfc21" -> "a09b13bd"（去重）— origin/main 与 main-line 双端对齐；ship-manifest.json 指针对齐；`apps/web/scratch-probe-gen.mts`（git 误放入 web 下的玩物）删除。
+5. **测试**：fe-gates **1370/1370** ✓ · world-bible **803/803** ✓ · bible-snapshot ✓ · oracle-citation 6/6 ✓ · quiz-pin×3 green。
+
+**向后兼容**：潮汐 + /bible/ask 依然走 `/v1/ai/chat-graph` 状态图 lane（ cont.254 引入）；潮汐 response 增 `citation` 字段 (additive, Appendix兼容000） · 肉身 `503 provider-unavailable` 没变 · DTO `AiChatResponseSchema` 未升。
