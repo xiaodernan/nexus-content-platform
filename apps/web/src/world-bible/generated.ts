@@ -15319,13 +15319,13 @@ The last page of the watch-ledger reads: there is nothing below the door — not
 `,
   },
   {
-    order: 143,
-    slug: 'echo-143-the-book-of-unfinished-business',
+    order: 144,
+    slug: 'echo-144-the-book-of-unfinished-business',
     titleZh: '潮候院未尽事册里那些没记完的事件',
     titleEn: 'The Book of Unfinished Business in the Institute That Never Writes Anything to Its End',
-    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零九日。',
-    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hundred-and-ninth day of the autumn-tide month.',
-    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 143): The Book of Unfinished Business in the Institute That Never Writes Anything to Its End
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百一十日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hundred-and-tenth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 144): The Book of Unfinished Business in the Institute That Never Writes Anything to Its End
 
 > 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
 > 本篇写给潮候院未尽事册——每一件记事都写到一半不再继续。
@@ -15335,7 +15335,7 @@ The last page of the watch-ledger reads: there is nothing below the door — not
 > Written for the Book of Unfinished Business — every entry trails off halfway through.
 > Same discipline: anchors verbatim.
 
-> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零九日。
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百一十日。
 > Era: the Institute — after the 41st Convocation; the hundred-and-ninth day of the autumn-tide month.
 
 ---
@@ -15394,21 +15394,21 @@ The last page of the watch-ledger reads: there is nothing below the door — not
 
 ---
 
-## 七 · 映射（回响一百四十三章对应关系）
+## 七 · 映射（回响一百四十四章对应关系）
 
 | 类别 | 标题 | 对应章 |
 |---|---|---|
 | lore | 未尽事册 · 每一行断了 · 十四行"未" · 第四十一次大会 · 值更册最后一页 | 一、二、三、四、五、六、七 |
 | geography | 抄本室最深处 · 抄本室门 · 抄本室与值更室 | 一、二、三 |
 | characters | 抄本师 · 值更人 · 散会夜 · 无人知晓的人 | 一、二、三、四、五、六 |
-| story | 没写完的册子 · 回响（其一百四十三） | 全篇 |
+| story | 没写完的册子 · 回响（其一百四十四） | 全篇 |
 | items | 未尽事册 · 值更册 · 一支笔 · 值更人的最后一笔 | 一、二、三、四、五、六 |
-| history | 第四十一次大会散会之后 · 秋潮月第一百零九日 | 三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第一百一十日 | 三、四、五、六 |
 
 > 潮候院未尽事册——每一页只写到一半—它从未有结尾。
 > The Book of Unfinished Business — every page stops halfway through — and it never arrives at an ending.
 `,
-    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百四十三）「潮候院未尽事册里那些没记完的事件」
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百四十四）「潮候院未尽事册里那些没记完的事件」
 
 > An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
 > Written for the Book of Unfinished Business — every entry trails off halfway through.
@@ -15418,8 +15418,8 @@ The last page of the watch-ledger reads: there is nothing below the door — not
 > 本篇写给潮候院未尽事册——每一件记事都写到一半不再继续。
 > 纪律同正典：锚句 zh/en 逐字对应。
 
-> Era: the Institute — after the 41st Convocation; the hundred-and-ninth day of the autumn-tide month.
-> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零九日。
+> Era: the Institute — after the 41st Convocation; the hundred-and-tenth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百一十日。
 
 ---
 
@@ -15477,16 +15477,16 @@ The last page of the watch-ledger reads: as long as it stays unfinished — it i
 
 ---
 
-## VII · Mapping（Echo No. 143 → world model）
+## VII · Mapping（Echo No. 144 → world model）
 
 | 类别 | 标题 | 对应章 |
 |---|---|---|
 | lore | the Book of Unfinished Business · the entry that stops halfway · the fourteen not-yet · the dissolution · the watch-ledger | 一、二、三、四、五、六、七 |
 | geography | the deepest corner of the copyists' room · the copyists' room · the chapel corridor | 一、二、三 |
 | characters | the copyists · the head of the watch · the ones who work unseen | 一、二、三、四、五、六 |
-| story | the book that never finishes · Echo No. 143 | 全篇 |
+| story | the book that never finishes · Echo No. 144 | 全篇 |
 | items | the Book of Unfinished Business · the watch-ledger · a pen · the head of the watch's last stroke | 一、二、三、四、五、六 |
-| history | After the 41st Convocation · the hundred-and-ninth day of the autumn-tide month | 三、四、五、六 |
+| history | After the 41st Convocation · the hundred-and-tenth day of the autumn-tide month | 三、四、五、六 |
 
 > 潮候院未尽事册——每一页只写到一半—它从未有结尾。
 > The Book of Unfinished Business — every page stops halfway through — and it never arrives at an ending.

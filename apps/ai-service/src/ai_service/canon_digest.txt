@@ -2907,7 +2907,7 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [5] 墙上有一行字——没人认识——值更册里也没有它。
 - [6] 值更册最后一页："门下面没有东西——屋顶上面没有东西——东西不在屋里。"
 
-### Echo 143 · 潮候院未尽事册里那些没记完的事件 / The Book of Unfinished Business in the Institute That Never Writes Anything to Its End
+### Echo 144 · 潮候院未尽事册里那些没记完的事件 / The Book of Unfinished Business in the Institute That Never Writes Anything to Its End
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 抄本室里有一册——没有题名——抄本师叫它"未尽事册"。
 - [2] 每一件记事都只写到一半——然后断了。
