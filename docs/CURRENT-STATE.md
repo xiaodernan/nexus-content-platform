@@ -7589,3 +7589,10 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 新篇：「风向标 · 半转 · 微风 · "要走了" · 指着潮汐表」—— digest 现 **233,188 chars**（13 章正典 · **135 回响** · 4 annex · 锚句 827 zh / 827 en ✓）。
 - 6 锚句双语 · gen-bible-snapshot 增 echo-135 · BibleAsk lede → 135 · /bible/ask meta → 一百三十五篇 · CACHE-IDENTITY × 135 · canon-answer-graph → 13 章 + 135 回响 = 148 段 · bible-ask-behavior → 822 · pin 重钉 page→51412a69 / comp→eff01788。
 - fe-gates **1370/1370** ✓ · verify:world-bible 827/827 ✓。
+
+## cont. 373 (2026-11-19) — v993 · §PROOF-V992 · digest 扩容后缓存稳定性复测（12 发顺序 + 16 路并发暴发）
+
+- evidence `docs/evidence/big-context-v992-2026-11-19.md`：12 发顺序内 10×100% · 2×141,186（93.9%）· 1×冷首发 · 0×5xx；热路径 p50≈34 ms。
+- 16 路并发暴发：burst16_ok=16/16 · 0×5xx · meanCached=150,307（=tokensIn 上限，16/16 全额命中）· latMax=175 ms。
+- input=150,309 tokensIn/发，符合 5–9 万目标并超过；sticky per-lane + system-hash lane 路由（ADR-0284）在 digest 扩容后仍稳，不掉帧。
+- IO oracle 碑记刷新至 v993（Echo #135 · 827 锚句 · 233,188 字节 digest · 12+16 probe evidence）。
