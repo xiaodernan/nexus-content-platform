@@ -7602,3 +7602,10 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 根因：本机 `nexus-postgres-alt`（5443）Exited (255) → 全站 DB 路由 500；`docker start nexus-postgres-alt` 恢复后 `/` = 200。
 - 活体验证：/bible/ask 示例问句 → 真模型回答「见《远信》第二节」+ badge `缓存复用 141,182 tokens`（93.9% lane，与 cont.373 复测一致）。
 - evidence：`docs/evidence/ops-db-restore-2026-11-19.md`。本片不bump Pages（运维修复，非功能升级）。
+
+## cont. 375 (2026-11-19) — v994 · §BIBLE-136 · Echo #136《只听不说话的青铜井》(作者手写 · verify 833/833) + §VERIFY-TIDE-ORACLE-E2E 活证据
+
+- 新篇：「青铜井 · 一个低音 · 散会夜两次响起 · 只听不说话」—— digest 现 **233,613 chars**（13 章正典 · **136 回响** · 4 annex · 锚句 833 zh / 833 en ✓）。
+- 5 锚句双语 · gen-bible-snapshot 增 echo-136 · BibleAsk lede → 136 · /bible/ask meta → 一百三十六篇 · CACHE-IDENTITY × 136 · canon-answer-graph → 149 段 · bible-ask-behavior → 828 · pin 重钉 page→7a68aee9 / comp→204de3d4。
+- §VERIFY-TIDE-ORACLE-E2E evidence：`docs/evidence/tide-oracle-e2e-2026-11-19.md`（cached 7161/150400 · 引文锚句逐字对齐 ✓ · 未触发 honest fallback）。
+- fe-gates **1370/1370** ✓ · verify:world-bible 833/833 ✓。

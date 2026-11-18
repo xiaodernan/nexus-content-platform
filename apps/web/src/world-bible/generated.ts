@@ -13902,6 +13902,180 @@ The last page of the watch-ledger reads: since the Dissolution it has never chan
 `,
   },
   {
+    order: 136,
+    slug: 'echo-136-the-bronze-well-that-listens-never-speaks',
+    titleZh: '潮候院东厢那口只听不说话的青铜井',
+    titleEn: 'The Bronze Well in the East Wing of the Institute That Listens but Never Speaks',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零二日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hundred-and-second day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 136): The Bronze Well in the East Wing of the Institute That Listens but Never Speaks
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院东厢那口青铜井——它只听不说话——夜里潮退时会出一个低音。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the bronze well in the east wing of the Institute — it only listens, never speaks — and on still nights at low tide it sounds a single low note.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零二日。
+> Era: the Institute — after the 41st Convocation; the hundred-and-second day of the autumn-tide month.
+
+---
+
+## 一 · 东厢那口井
+
+潮候院东厢有一口青铜井——井缘一圈宽一掌——井口一块铜盖——中间一个小孔——值更人说它只听不说话。
+
+**锚句**：东厢那口青铜井——井口一块铜盖——中间一个小孔——值更人说它只听不说话。
+**Anchor sentence**: in the east wing sits a bronze well — a bronze cap on its mouth — a single small hole in the cap — the head of the watch says it listens but never speaks.
+
+---
+
+## 二 · 潮退的时候
+
+潮退的时候——院子里安静——井里出了一个低音——只有一个音——值更册写得清清楚楚。
+
+**锚句**：潮退的时候——井里出了一个低音——只有一个音——值更册写得清清楚楚。
+**Anchor sentence**: when the tide goes out — a low note rises from the well — only one note — and the watch-ledger records it plainly.
+
+---
+
+## 三 · 井口的孔
+
+值更人量过——小孔小到呼吸能过——其余过不去——一根羽毛平放上去——半个时辰不动。
+
+**锚句**：井口的小孔小到呼吸能过——其余过不去——一根羽毛平放上去——半个时辰不动。
+**Anchor sentence**: the hole in the cap is small enough for breath to pass through — nothing else — a feather laid across it stays still for half a watch.
+
+---
+
+## 四 · 第四十一次大会散会的夜
+
+第四十一次大会散会那一夜——井里的低音响了两次——一次在九点——一次在所有灯同时灭掉的时候。
+
+**锚句**：第四十一次大会散会那一夜——井里的低音响了两次——一次在九点——一次在所有灯同时灭掉的时候。
+**Anchor sentence**: on the night the Convocation dissolved — the low note from the well sounded twice — once at nine — and once the moment every lamp went out together.
+
+---
+
+## 五 · 没人往下投过
+
+没人往井里投过任何东西——井水的水位从来没变过——抄本师说它像一只耳。
+
+**锚句**：没人往井里投过任何东西——井水的水位从来没变过。
+**Anchor sentence**: no one has ever thrown anything into the well — the water level has never changed — the copyists say it is an ear.
+
+---
+
+## 六 · 值更册最后一页
+
+值更册最后一页写着："井一直在听——它听的是散会。"
+
+**锚句**：值更册最后一页"井一直在听——它听的是散会"。
+**Anchor sentence**: the last page of the watch-ledger reads: the well has been listening all along — it was listening to the Dissolution.
+
+---
+
+## 七 · 映射（回响一百三十六章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 青铜井 · 一个低音 · 两个时刻 · 只听不说话 · 第四十一次大会 | 一、二、三、四、五、六、七 |
+| geography | 东厢 · 潮候院 · 东廊 | 一、二、三、四 |
+| characters | 值更人 · 抄本师 · 院里所有人 | 一、二、三、四、五、六 |
+| story | 只有一个低音的井 · 回响（其一百三十六） | 全篇 |
+| items | 青铜井 · 铜盖 · 一根羽毛 · 值更册 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第一百零二日 | 四、五、六 |
+
+> 东厢那口青铜井——它不说话——它一直在听——它听的是散会的那一刻。
+> The bronze well in the east wing — it never speaks — it has been listening all along — and what it listened to was the hour of the Dissolution.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百三十六）「潮候院东厢那口只听不说话的青铜井」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the bronze well in the east wing of the Institute — it only listens, never speaks — and on still nights at low tide it sounds a single low note.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院东厢那口青铜井——它只听不说话——夜里潮退时会出一个低音。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the hundred-and-second day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零二日。
+
+---
+
+## I · The Well in the East Wing
+
+In the east wing of the Institute stands a bronze well — a palm-wide rim — a bronze cap — one small hole in the cap — the head of the watch says it listens but never speaks.
+
+**锚句**：东厢那口青铜井——井口一块铜盖——中间一个小孔——值更人说它只听不说话。
+**Anchor sentence**: in the east wing sits a bronze well — a bronze cap on its mouth — a single small hole in the cap — the head of the watch says it listens but never speaks.
+
+---
+
+## II · When the Tide Goes Out
+
+When the tide goes out — the yard falls silent — a low note rises from the well — only one note — and the watch-ledger records it plainly.
+
+**锚句**：潮退的时候——井里出了一个低音——只有一个音——值更册写得清清楚楚。
+**Anchor sentence**: when the tide goes out — a low note rises from the well — only one note — and the watch-ledger records it plainly.
+
+---
+
+## III · The Hole
+
+The head of the watch measured it — the hole is small enough for breath to pass through — nothing else — a feather laid across it stays still for half a watch.
+
+**锚句**：井口的小孔小到呼吸能过——其余过不去——一根羽毛平放上去——半个时辰不动。
+**Anchor sentence**: the hole in the cap is small enough for breath to pass through — nothing else — a feather laid across it stays still for half a watch.
+
+---
+
+## IV · The Night of the Dissolution
+
+On the night the Convocation dissolved — the low note from the well sounded twice — once at nine — and once the moment every lamp went out together.
+
+**锚句**：第四十一次大会散会那一夜——井里的低音响了两次——一次在九点——一次在所有灯同时灭掉的时候。
+**Anchor sentence**: on the night the Convocation dissolved — the low note from the well sounded twice — once at nine — and once the moment every lamp went out together.
+
+---
+
+## V · Nobody Threw Anything In
+
+No one has ever thrown anything into the well — the water level has never changed — the copyists say it is an ear.
+
+**锚句**：没人往井里投过任何东西——井水的水位从来没变过。
+**Anchor sentence**: no one has ever thrown anything into the well — the water level has never changed — the copyists say it is an ear.
+
+---
+
+## VI · The Last Page of the Watch-Ledger
+
+The last page of the watch-ledger reads: the well has been listening all along — it was listening to the Dissolution.
+
+**锚句**：值更册最后一页"井一直在听——它听的是散会"。
+**Anchor sentence**: the last page of the watch-ledger reads: the well has been listening all along — it was listening to the Dissolution.
+
+---
+
+## VII · Mapping（Echo No. 136 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the bronze well · one low note · two moments · the well that listens · the Dissolution | 一、二、三、四、五、六、七 |
+| geography | the east wing · the Institute · the east corridor | 一、二、三、四 |
+| characters | the head of the watch · the copyists · everyone in the yard | 一、二、三、四、五、六 |
+| story | the well with a single low note · Echo No. 136 | 全篇 |
+| items | the bronze well · the cap · the feather · the watch-ledger | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the hundred-and-second day of the autumn-tide month | 四、五、六 |
+
+> 东厢那口青铜井——它不说话——它一直在听——它听的是散会的那一刻。
+> The bronze well in the east wing — it never speaks — it has been listening all along — and what it listened to was the hour of the Dissolution.
+`,
+  },
+  {
     order: 14,
     slug: 'echo-014-the-cover-of-the-tide-table',
     titleZh: '潮汐表的封面',

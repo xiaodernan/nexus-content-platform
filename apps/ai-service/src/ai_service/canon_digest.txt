@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 135 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 136 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -2835,6 +2835,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 第四十一次大会散会那一夜——风向标朝反方向猛转了半圈——第二天又回来了。
 - [5] 值更人最后一次上报前说风向标有生之年唯一开过一次口——它说"要走了"。
 - [6] 值更册最后一页"散会以来它一直没有变方向——而是指着潮汐表"。
+
+### Echo 136 · 潮候院东厢那口只听不说话的青铜井 / The Bronze Well in the East Wing of the Institute That Listens but Never Speaks
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 东厢那口青铜井——井口一块铜盖——中间一个小孔——值更人说它只听不说话。
+- [2] 潮退的时候——井里出了一个低音——只有一个音——值更册写得清清楚楚。
+- [3] 井口的小孔小到呼吸能过——其余过不去——一根羽毛平放上去——半个时辰不动。
+- [4] 第四十一次大会散会那一夜——井里的低音响了两次——一次在九点——一次在所有灯同时灭掉的时候。
+- [5] 没人往井里投过任何东西——井水的水位从来没变过。
+- [6] 值更册最后一页"井一直在听——它听的是散会"。
 
 ### Echo 14 · 潮汐表的封面 / The Cover of the Tide-Table
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
