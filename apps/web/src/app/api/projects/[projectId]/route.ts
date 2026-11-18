@@ -18,30 +18,30 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();
-    if (!(await projectVisibleTo(projectId, user.id))) return notFound();
+    if (!(await projectVisibleTo(projectId, user.id))) return await notFound();
     const document = await loadDocument(projectId);
-    if (!document) return notFound();
+    if (!document) return await notFound();
     return NextResponse.json({ projectId, document });
   } catch (error) {
-    return failure(error, `GET /api/projects/${projectId}`);
+    return await failure(error, `GET /api/projects/${projectId}`);
   }
 }
 
 export async function PUT(req: Request, ctx: RouteContext): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId } = await ctx.params;
   const body = await readJson(req);
-  if (!body) return badRequest(['请求体必须是 JSON']);
+  if (!body) return await badRequest(['请求体必须是 JSON']);
   const parsed = parseDocument(body);
-  if (!parsed.ok) return badRequest(parsed.issues);
+  if (!parsed.ok) return await badRequest(parsed.issues);
   if (parsed.document.id !== projectId) {
-    return jsonError(409, 'id_mismatch', { message: '文档 id 与项目 id 不一致' });
+    return await jsonError(409, 'id_mismatch', { message: '文档 id 与项目 id 不一致' });
   }
   try {
     const user = await requireUser();
     const writeAccess = await projectWriteAccess(projectId, user.id);
-    if (writeAccess === 'not_found') return notFound();
-    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
+    if (writeAccess === 'not_found') return await notFound();
+    if (writeAccess === 'read_only') return await jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
     await saveDocument(projectId, parsed.document);
     // 不回读整份文档：这条链是自动保存，每改一个像素都会跑一次，
     // 而 4000 节点那一档量下来，"读回来再序列化发出去"就是这次请求里最大的一块。
@@ -49,7 +49,7 @@ export async function PUT(req: Request, ctx: RouteContext): Promise<NextResponse
     // 真要核对库里存了什么，走 GET 那条路（`store.load` / 压测脚本都这么做）。
     return NextResponse.json({ ok: true, savedAt: new Date().toISOString() });
   } catch (error) {
-    return failure(error, `PUT /api/projects/${projectId}`);
+    return await failure(error, `PUT /api/projects/${projectId}`);
   }
 }
 
@@ -62,29 +62,29 @@ export async function PUT(req: Request, ctx: RouteContext): Promise<NextResponse
  * 命中就不保存，不"先存下来以后再清"。
  */
 export async function PATCH(req: Request, ctx: RouteContext): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId } = await ctx.params;
   const body = await readJson(req);
-  if (!body) return badRequest(['请求体必须是 JSON']);
+  if (!body) return await badRequest(['请求体必须是 JSON']);
   const parsed = ProjectPatchRequestSchema.safeParse(body);
   if (!parsed.success) {
-    return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
+    return await badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
   }
   const description = parsed.data.description;
   if (description && scanTextForRedlines(description).length) {
-    return jsonError(400, 'description_rejected', { message: '这段简介被机检挡下，没有保存' });
+    return await jsonError(400, 'description_rejected', { message: '这段简介被机检挡下，没有保存' });
   }
   try {
     const user = await requireUser();
     const rl = await getRateLimiter().hit(rateKey('projects/patch', clientIp(req), user.id), 120, 10 * 60_000);
     if (!rl.allowed) {
-      return jsonError(429, 'rate_limited', { message: '修改太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
+      return await jsonError(429, 'rate_limited', { message: '修改太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
     }
     const updated = await updateProjectDescription(user.id, projectId, description ?? null);
-    if (!updated) return notFound();
+    if (!updated) return await notFound();
     return NextResponse.json({ ok: true, project: updated });
   } catch (error) {
-    return failure(error, `PATCH /api/projects/${projectId}`);
+    return await failure(error, `PATCH /api/projects/${projectId}`);
   }
 }
 
@@ -99,29 +99,29 @@ export async function PATCH(req: Request, ctx: RouteContext): Promise<NextRespon
  * 真要做到那一步需要一个单独的、更重的动作，而不是把这条改硬。
  */
 export async function DELETE(req: Request, ctx: RouteContext): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId } = await ctx.params;
   const body = await readJson(req);
-  if (!body) return badRequest(['请求体必须是 JSON']);
+  if (!body) return await badRequest(['请求体必须是 JSON']);
   const parsed = ProjectDeleteRequestSchema.safeParse(body);
   if (!parsed.success) {
-    return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
+    return await badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
   }
   try {
     const user = await requireUser();
     const rl = await getRateLimiter().hit(rateKey('projects/delete', clientIp(req), user.id), 20, 10 * 60_000);
     if (!rl.allowed) {
-      return jsonError(429, 'rate_limited', { message: '删除操作太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
+      return await jsonError(429, 'rate_limited', { message: '删除操作太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
     }
     const result = await softDeleteProject(user.id, projectId, parsed.data.confirm);
     if (!result.ok) {
       if (result.code === 'approval_required') {
-        return jsonError(400, 'approval_required', { message: '确认词与项目名不一致，没有删除这个项目' });
+        return await jsonError(400, 'approval_required', { message: '确认词与项目名不一致，没有删除这个项目' });
       }
-      return notFound();
+      return await notFound();
     }
     return NextResponse.json({ ok: true, projectId, name: result.name, deleted: true });
   } catch (error) {
-    return failure(error, `DELETE /api/projects/${projectId}`);
+    return await failure(error, `DELETE /api/projects/${projectId}`);
   }
 }

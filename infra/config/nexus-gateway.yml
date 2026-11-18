@@ -1,5 +1,0 @@
-# keys for `services/java-gateway` only.
-
-logging:
-  level:
-    dev.nexus.gateway: info

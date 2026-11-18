@@ -243,6 +243,47 @@ export async function inbox(userId: string, options: InboxOptions | number = {})
   return result;
 }
 
+export interface InboxHistogram {
+  /** 全部通知计数 */
+  total: number;
+  /** 未读计数 */
+  unread: number;
+  /** 按 kind 聚合的实测计数（合并未知 kind → other），按 total 降序 */
+  kinds: { kind: string; total: number; unread: number }[];
+}
+
+/**
+ * 收件箱按 kind 的**实测计数**——不含任何标题 / 正文 / 行为者姓名。
+ * 这是"让 AI 先读一下哪件重要"的输入：模型只看到计数，永远看不到内容。
+ */
+export async function inboxKindHistogram(userId: string): Promise<InboxHistogram> {
+  const db = getDb();
+  const rows = await db
+    .select({
+      kind: notifications.kind,
+      total: sql<number>`count(*)::int`,
+      unread: sql<number>`count(*) filter (where ${notifications.readAt} is null)::int`,
+    })
+    .from(notifications)
+    .where(eq(notifications.userId, userId))
+    .groupBy(notifications.kind);
+
+  const merged = new Map<string, { kind: string; total: number; unread: number }>();
+  for (const row of rows) {
+    const key = isKind(row.kind) ? row.kind : 'other';
+    const cur = merged.get(key) ?? { kind: key, total: 0, unread: 0 };
+    cur.total += row.total;
+    cur.unread += row.unread;
+    merged.set(key, cur);
+  }
+  const kinds = [...merged.values()].sort((a, b) => b.total - a.total);
+  return {
+    total: kinds.reduce((acc, k) => acc + k.total, 0),
+    unread: kinds.reduce((acc, k) => acc + k.unread, 0),
+    kinds,
+  };
+}
+
 /** 标已读只认"这个人的行"：传别人的通知 id 不会改动任何东西，返回实际标掉的条数 */
 export async function markRead(userId: string, ids: string[]): Promise<number> {
   if (!ids.length) return 0;

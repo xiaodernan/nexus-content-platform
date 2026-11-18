@@ -19,15 +19,15 @@ interface RouteContext {
 export async function GET(_req: Request, ctx: RouteContext): Promise<Response> {
   const { id } = await ctx.params;
   const item = await getMarketplaceItem(id);
-  if (!item || !item.previewAssetId) return notFound();
+  if (!item || !item.previewAssetId) return await notFound();
 
   if (item.visibility !== 'public' && item.visibility !== 'free') {
     const user = await currentUserOrNull();
-    if (!user || user.id !== item.creatorId) return notFound();
+    if (!user || user.id !== item.creatorId) return await notFound();
   }
 
   // 用创作者的身份打开素材：能上架这条目，就说明素材是他名下项目的（domain 在创建时验过）
   const file = await openAssetForOwner(item.previewAssetId, item.creatorId);
-  if (!file) return notFound();
+  if (!file) return await notFound();
   return bytesResponse(file.bytes, file.mime, 'public, max-age=3600');
 }

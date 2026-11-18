@@ -143,13 +143,13 @@ describe('§BIBLE-1 /bible 典籍室', () => {
 
   it('SHA256 钉死（EOL 归一 + className→@）：目录页 / 阅读页 / 渲染器', () => {
     expect(createHash('sha256').update(redactClasses(index)).digest('hex')).toBe(
-      'b64ec9495ba5214ba7d92fc02b4f7eaafc3261193abc3245814aa68a51bab35b',
+      '15a4aa8c042b10519d3f34e4b6374a7174a351dd94642cdb5337fbe3a694ba6a',
     );
     expect(createHash('sha256').update(redactClasses(reader)).digest('hex')).toBe(
-      '80fd704e5f188293f791e367fb28212c046292593c5f3df4f37208f1ab76b74a',
+      'b4952b62d4d1652749a1e5063f6ef3cffc1ffe53f88bb209da3fff7b2d4d0695',
     );
     expect(createHash('sha256').update(redactClasses(component)).digest('hex')).toBe(
-      'e235ac2ab90e76ac1b3f106732465d541ee7677981a7d9ecf853cf0d3a978557',
+      '5051a2bdbb11cca3f3e5369562edbcce97bbf5a53a568f8024da3fef9ac8ad82',
     );
   });
 });

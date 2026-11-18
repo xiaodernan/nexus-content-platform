@@ -1,7 +1,7 @@
 {
   "tool": "docs/evidence/ci/ci-wiring-arms.mjs",
   "scope": "full",
-  "ranAt": "2026-11-12T19:55:36.275Z",
+  "ranAt": "2026-11-15T13:16:18.262Z",
   "arms": 64,
   "matched": 64,
   "armNames": [
@@ -71,14 +71,14 @@
     "R19-a-line-at-the-bound-is-not-marked"
   ],
   "subjects": {
-    "workflow": "26b272aea0ae25dd6f976d5d2670f26f37ee336ca7b903342f1bac7235cf9dcf",
-    "mainline": "972e8a03f31055e625b92d022c70720198e35b61abfe8cf7b62c5b21355d97bc",
-    "gate": "fcbc702ec76b56b49d60cefff8468f08d53bdfa65c08852d8b7415ff7e3ebce2",
-    "arms": "236db0d6dcb9e9db4db1bd2e29e4e356e65968409d99dcfdcb03340fe55481ac",
+    "workflow": "875d578589137e4256c6943b7b6e66b9046e605ca627f286b312d8d80ccaa508",
+    "mainline": "446614dcf230029850474b22836b6883bdfaf1f485f2ca3bbd53b743e7310fdf",
+    "gate": "5f80635e381e965dcb46267a4fae0758fc3b44f002d5b800559d726b90816d75",
+    "arms": "185fa40e31be30b08c6036b8e453b2da4116bc7749e516e4764209ad74030aaf",
     "runner": "f07ce3b290949c6886cb974e5d910fa4c776bf2892259926b34b35c473c0f718",
-    "sweep": "a9904d1f3edcccd0b38b3a396474e7b6eb079a91924eeb0eed3d02ea38cd3097",
-    "scripts": "1b651470ac2dbead8088827cefe6a91f38f76355beded514bb8c9e2de576cf5f",
-    "rule": "4a38542af2c09948265f43cfa38a59e24145eabee1ffe8f1fe9e2cbb19ee1cc8"
+    "sweep": "6ffebfca491d345c520dc820d8a15abfcbb9629ec0bf4fb9d271feafde6de453",
+    "scripts": "dd5e7733a2144907b03114e4230fc335aec52b8b0d6a4f56ac389e6adda35e5b",
+    "rule": "39e38407b6310857b25c1ed3f0dcf3adc123b1fed36f0187abd8af3b54b0a068"
   },
   "population": [
     {

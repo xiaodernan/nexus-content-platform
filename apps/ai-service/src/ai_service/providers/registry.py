@@ -10,6 +10,7 @@ from ..config import Settings
 from ..pricing import PriceTable
 from ..resilience import BreakerConfig, CircuitBreaker
 from .liveness import EmbeddingLiveness, EmbeddingProber
+from .llm_liveness import LlmLiveness, LlmProber
 from .openai_compatible import OpenAICompatibleProvider, OpenAICompatibleEmbeddingProvider
 
 
@@ -35,9 +36,11 @@ class Registry:
         llm: OpenAICompatibleProvider | None | object = _UNSET,
         embedding: OpenAICompatibleEmbeddingProvider | None | object = _UNSET,
         liveness: EmbeddingLiveness | None = None,
+        llm_liveness: LlmLiveness | None = None,
     ) -> None:
         self._settings = settings
         self._liveness = liveness or EmbeddingLiveness()
+        self._llm_liveness = llm_liveness or LlmLiveness()
         # §CACHE-2：缓存读数挂在 Registry 上而不是模块全局——每个 app 一份，测试之间天然隔离。
         # 两个数：前缀复用率（我们自己的字节算的）与 provider 报账覆盖度（报没报 cached）。
         self._cache_telemetry = CacheTelemetry()
@@ -88,9 +91,16 @@ class Registry:
         # transport 是唯一共同出站点。禁用时传 None => httpx 自建默认 transport，字节级零回归。
         transport = None
         if settings.llm_sticky_cache_key:
-            from ..sticky_prompt_cache import StickyPromptCacheTransport
+            import httpx
 
-            transport = StickyPromptCacheTransport()
+            from ..sticky_prompt_cache import StickyPromptCacheTransport, host_bypasses_proxy
+
+            # NO_PROXY 按主机粒度豁免在这里落一次（transport 自己看不到 base_url）：
+            # 命中 → 显式 inner=httpx.HTTPTransport()（直连、不走代理）；未命中 → 默认内层（env 代理生效）
+            if host_bypasses_proxy(settings.openai_base_url):
+                transport = StickyPromptCacheTransport(inner=httpx.HTTPTransport())
+            else:
+                transport = StickyPromptCacheTransport()
         provider = OpenAICompatibleProvider(
             transport=transport,
             api_key=settings.openai_api_key or "",
@@ -183,6 +193,28 @@ class Registry:
         if not self._embedding:
             return None
         return EmbeddingProber(self._embedding)
+
+    def llm_liveness(self) -> LlmLiveness:
+        return self._llm_liveness
+
+    def llm_prober(self) -> LlmProber | None:
+        # 必须探**内层 provider**：CachedLlm 命中不花网络，探 CachedLlm 等于用缓存自证健康。
+        # 只对 OpenAICompatibleProvider 起探测——测试桩（GatedProvider 等）不是真网关，
+        # 不给它们开网络副作用通道（否则测试的 started/in_flight 语义会被探测偷偷消费）。
+        if not self._llm:
+            return None
+        inner = getattr(self._llm, "inner", self._llm)
+        if not isinstance(inner, OpenAICompatibleProvider):
+            return None
+        return LlmProber(inner)
+
+    def llm_live_state(self) -> dict[str, Any]:
+        liveness = self._llm_liveness
+        return {
+            "state": liveness.state,
+            "reason": liveness.reason,
+            "probes": liveness.probes,
+        }
 
     def text_status(self) -> str:
         return "real" if self._llm else "unavailable"

@@ -21,13 +21,13 @@ const PatchSchema = z.object({
 });
 
 export async function PATCH(req: Request): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const parsed = PatchSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
-    return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
+    return await badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
   }
   if (parsed.data.bio && scanTextForRedlines(parsed.data.bio).length) {
-    return jsonError(400, 'bio_rejected', { message: '这段简介被机检挡下，没有保存' });
+    return await jsonError(400, 'bio_rejected', { message: '这段简介被机检挡下，没有保存' });
   }
   const user = await requireUser();
   const saved = await updateProfile(user.id, parsed.data);
@@ -46,10 +46,10 @@ export async function GET(): Promise<NextResponse> {
   try {
     const user = await requireUser();
     const preview = await accountDeletionSummary(user.id);
-    if (!preview) return notFound();
+    if (!preview) return await notFound();
     return NextResponse.json({ ok: true, ...preview });
   } catch (error) {
-    return failure(error, 'GET /api/account');
+    return await failure(error, 'GET /api/account');
   }
 }
 
@@ -67,34 +67,34 @@ const DeleteSchema = z.object({ confirm: z.string().trim().min(1).max(2000) });
  * cookie 在会话行删掉之后一起摘走（登出那一路用的同一个 `clearSessionCookie`）。
  */
 export async function DELETE(req: Request): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const body = await readJson(req);
-  if (!body) return badRequest(['请求体必须是 JSON']);
+  if (!body) return await badRequest(['请求体必须是 JSON']);
   const parsed = DeleteSchema.safeParse(body);
   if (!parsed.success) {
-    return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
+    return await badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
   }
   try {
     const user = await requireUser();
     const rl = await getRateLimiter().hit(rateKey('account/delete', clientIp(req), user.id), 5, 10 * 60_000);
     if (!rl.allowed) {
-      return jsonError(429, 'rate_limited', { message: '注销尝试太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
+      return await jsonError(429, 'rate_limited', { message: '注销尝试太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
     }
     const result = await deleteAccount(user.id, parsed.data.confirm);
     if (!result.ok) {
       if (result.code === 'approval_required') {
         // 措辞与面板上那句"逐字输入你的……"用同一名目，别让人对着两个不同的词猜是同一件事
         const named = result.confirmField === 'handle' ? '主页地址（handle）' : '展示名';
-        return jsonError(400, 'approval_required', { message: `确认词与你的${named}不一致，这个账号一个字都没动` });
+        return await jsonError(400, 'approval_required', { message: `确认词与你的${named}不一致，这个账号一个字都没动` });
       }
       if (result.code === 'already_deleted') {
-        return jsonError(410, 'already_deleted', { message: '这个账号先前已经注销过了' });
+        return await jsonError(410, 'already_deleted', { message: '这个账号先前已经注销过了' });
       }
-      return notFound();
+      return await notFound();
     }
     // 会话行已经在事务里全删了，cookie 留着只是让浏览器多带一个指向空处的值
     return clearSessionCookie(NextResponse.json({ ok: true, ...result.counts }));
   } catch (error) {
-    return failure(error, 'DELETE /api/account');
+    return await failure(error, 'DELETE /api/account');
   }
 }

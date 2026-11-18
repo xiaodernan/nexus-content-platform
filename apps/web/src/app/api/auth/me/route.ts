@@ -7,8 +7,8 @@ import { failure, privateJson } from '@/server/http';
 export async function GET(): Promise<NextResponse> {
   try {
     const user = await requireUser();
-    return privateJson({ user, projectCount: await countProjects(user.id) });
+    return await privateJson({ user, projectCount: await countProjects(user.id) });
   } catch (error) {
-    return failure(error, 'GET /api/auth/me');
+    return await failure(error, 'GET /api/auth/me');
   }
 }

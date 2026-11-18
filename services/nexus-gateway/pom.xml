@@ -65,6 +65,17 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
+    <!-- v656 — the tracing bridge (only the bridge): this hop carries the ids the caller minted; it starts no outbound typed call of its own, so no Feign capability. -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-tracing-bridge-brave</artifactId>
+    </dependency>
+    <!-- v658 named-deployable discipline: an exposure list without the registry behind it is a door with no bearer -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+      <scope>runtime</scope>
+    </dependency>
     <!--
       SC-9 — the optional central-config client. `spring.cloud.config.enabled` defaults to false, so tests and
       the laptop run read application.yml only; a deployment sets NEXUS_CONFIG_ENABLED=true and the same jar

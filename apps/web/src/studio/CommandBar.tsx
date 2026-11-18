@@ -80,7 +80,8 @@ const COPY = {
     agentLineNamed: (name: string) => `这一轮交给 ${name}`,
     agentLineNone: '这一轮没有人被点名',
     completed: '已完成',
-    cacheBadgeTitle: '命中的是**输入** token（前缀缓存）。缓存那一段仍然计费，只是打折。',
+    cacheBadgeTitle: '命中的是输入 token（前缀缓存）。缓存那一段仍然计费，只是打折。',
+    laneBadgeTitle: '这一趟真走的编排车道：stategraph = LangGraph 状态图（七节点）；lane-a = 顺序执行。由服务端响应头判定，客户端不猜。',
     opsLine: (n: number) => `${n} 个 op · Ctrl+Z 可整体撤销本次事务`,
     undoButton: 'Ctrl+Z 可整体撤销本次事务',
     realtimePrefix: '实时通道：',
@@ -157,7 +158,8 @@ const COPY = {
     agentLineNamed: (name: string) => `This run goes to ${name}`,
     agentLineNone: 'No one is named this run',
     completed: 'Done',
-    cacheBadgeTitle: 'Hits mean **input** tokens (prefix cache). The cached segment is still billed, only at a discount.',
+    cacheBadgeTitle: 'Hits mean input tokens (prefix cache). The cached segment is still billed, only at a discount.',
+    laneBadgeTitle: 'The orchestration lane this run actually took: stategraph = LangGraph state graph (seven nodes); lane-a = sequential run. Decided by the server response header — never guessed client-side.',
     opsLine: (n: number) => `${n} ops · Ctrl+Z undoes the whole transaction`,
     undoButton: 'Ctrl+Z undoes the whole transaction',
     realtimePrefix: 'Realtime: ',
@@ -217,6 +219,8 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
   /** 用户选的（提名）那一位；服务端认不认、最后交给谁，看下面两条 */
   const [agentKey, setAgentKey] = useState('');
   const [runAgent, setRunAgent] = useState<string | null>(null);
+  /** cont. 170 · 这一趟真走的编排车道（/api/ai/run 的 x-nexus-orchestration 响应头）——stategraph = LangGraph 状态图 */
+  const [runLane, setRunLane] = useState<'stategraph' | 'lane-a' | null>(null);
   /** 提及没解析成 Agent 时服务端说的那一句（点名点错了 / 名册没播种） */
   const [agentNote, setAgentNote] = useState<string | null>(null);
   /** 组件卸载之后不许再有第二次 fetch：那会在没有界面的地方 setState。
@@ -552,6 +556,9 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
       // 头部给的是 key，界面报名字：读的人认得"QA Agent"，认得不了 `qa`
       const agentHeader = res.headers.get('x-nexus-agent');
       setRunAgent(agentHeader ? (roster.find((a) => a.key === agentHeader)?.name ?? agentHeader) : null);
+      // cont. 170：车道回声——stategraph（LangGraph 状态图）/ lane-a（顺序执行）；服务端说了算，不猜
+      const laneHeader = res.headers.get('x-nexus-orchestration');
+      setRunLane(laneHeader === 'stategraph' || laneHeader === 'lane-a' ? laneHeader : null);
       const rawNote = res.headers.get('x-nexus-agent-note');
       if (rawNote) setAgentNote(decodeURIComponent(rawNote));
       if (!res.ok || !payload) {
@@ -730,6 +737,11 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
           >
             {cacheText(result.usage)}
           </span>
+          {runLane ? (
+            <span className="cb-laneChip" data-ai-lane={runLane} title={c.laneBadgeTitle}>
+              {runLane === 'stategraph' ? 'STATEGRAPH' : 'LANE-A'}
+            </span>
+          ) : null}
           {result.patches?.length ? (
             <span className="ap-faint">
               {`${result.patches.reduce((sum, p) => sum + p.ops.length, 0)} ops · `}

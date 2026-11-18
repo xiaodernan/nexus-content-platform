@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { listReviewQueue, MODERATION_LIMITS, MODERATION_LIMITS_EN, MODERATION_RULES_VERSION } from '@/server/domain/moderation';
 import { currentUserOrNull } from '@/server/domain/session';
 import { ResolveButtons } from './ResolveButtons';
+import { ModerationAssist } from '@/components/ModerationAssist';
 import { AdminNav } from '@/components/AdminNav';
 import { getLocale, type Locale } from '@/lib/i18n';
 
@@ -183,6 +184,7 @@ export default async function AdminModerationPage() {
               {c.nothingPublished}
             </span>
           )}
+          <ModerationAssist caseId={entry.caseId} locale={locale} />
           <ResolveButtons caseId={entry.caseId} locale={locale} />
         </article>
       ))}

@@ -17,15 +17,15 @@ const ResolveSchema = z.object({ resolved: z.boolean() });
  * 所以这里不接 projectId 参数——不然就是"客户端给哪个项目就按哪个项目算"。
  */
 export async function DELETE(req: Request, ctx: RouteContext): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { annotationId } = await ctx.params;
   try {
     const user = await requireUser();
     const removed = await deleteAnnotation(user.id, annotationId);
-    if (!removed) return notFound();
+    if (!removed) return await notFound();
     return NextResponse.json({ ok: true, removed: true });
   } catch (error) {
-    return failure(error, `DELETE /api/annotations/${annotationId}`);
+    return await failure(error, `DELETE /api/annotations/${annotationId}`);
   }
 }
 
@@ -40,18 +40,18 @@ export async function DELETE(req: Request, ctx: RouteContext): Promise<NextRespo
  * 是"这个对象没有已解决这一说"，拦在界面上也会是同一条提示。
  */
 export async function PATCH(req: Request, ctx: RouteContext): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { annotationId } = await ctx.params;
   const parsed = ResolveSchema.safeParse(await readJson(req));
   if (!parsed.success) {
-    return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
+    return await badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
   }
   try {
     const user = await requireUser();
     const result = await setAnnotationResolved(user.id, annotationId, parsed.data.resolved);
     if (!result.ok) {
-      if (result.reason === 'not_found') return notFound();
-      return badRequest([
+      if (result.reason === 'not_found') return await notFound();
+      return await badRequest([
         result.reason === 'not_annotation'
           ? '回复不能单独标记：要标就标它所在的那条批注'
           : '公开评论没有「已解决」这一说：它不钉在任何元素上',
@@ -59,6 +59,6 @@ export async function PATCH(req: Request, ctx: RouteContext): Promise<NextRespon
     }
     return NextResponse.json({ ok: true, annotationId: result.annotationId, resolvedAt: result.resolvedAt });
   } catch (error) {
-    return failure(error, `PATCH /api/annotations/${annotationId}`);
+    return await failure(error, `PATCH /api/annotations/${annotationId}`);
   }
 }

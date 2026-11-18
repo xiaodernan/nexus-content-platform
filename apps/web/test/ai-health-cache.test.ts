@@ -28,6 +28,7 @@ function health(capability: 'real' | 'demo' = 'real'): HealthResponse {
     llmCache: null,
     llmLatency: null,
     llmFlight: null,
+    llmLive: null,
   };
 }
 

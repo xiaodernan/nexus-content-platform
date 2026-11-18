@@ -15,13 +15,13 @@ import { failure, jsonError } from '@/server/http';
 export async function GET(): Promise<NextResponse> {
   const user = await currentUserOrNull();
   if (!user) {
-    return jsonError(401, 'unauthenticated', { message: '需要先登录' });
+    return await jsonError(401, 'unauthenticated', { message: '需要先登录' });
   }
 
   try {
     const purchases = await listBuyerPurchases(user.id);
     return NextResponse.json({ purchases }, { headers: { 'cache-control': 'no-store' } });
   } catch (error) {
-    return failure(error, 'GET /api/marketplace/purchases');
+    return await failure(error, 'GET /api/marketplace/purchases');
   }
 }

@@ -6,3 +6,5 @@ python-dotenv==1.0.1
 # §162 作业队列的 Redis 后端（不配 NEXUS_REDIS_URL 时用内存后端，这个依赖不会被导入）
 redis==5.2.1
 pytest==9.1.1
+# §LangGraph (2026-11-16) — 状态图编排 /v1/ai/design-graph 用的运行时；缺失时状态图路径 import 失败、身份验证即红
+langgraph==1.2.22

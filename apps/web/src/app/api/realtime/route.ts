@@ -38,16 +38,16 @@ const MAX_LIFETIME_MS = Number(process.env.NEXUS_REALTIME_MAX_LIFETIME_MS ?? 0) 
 
 export async function GET(req: Request): Promise<Response> {
   const user = await currentUserOrNull();
-  if (!user) return jsonError(401, 'unauthenticated', { message: '需要先登录' });
+  if (!user) return await jsonError(401, 'unauthenticated', { message: '需要先登录' });
 
   const projectId = new URL(req.url).searchParams.get('projectId');
   if (projectId && !(await projectVisibleTo(projectId, user.id))) {
     // 与其它入口同一口径：不属于你的项目一律 404，不区分"不存在"与"不是你的"
-    return jsonError(404, 'not_found');
+    return await jsonError(404, 'not_found');
   }
 
   if (!acquireConnection(user.id)) {
-    return jsonError(429, 'too_many_streams', { message: '这个账号的实时连接太多了，先关掉几个标签页' });
+    return await jsonError(429, 'too_many_streams', { message: '这个账号的实时连接太多了，先关掉几个标签页' });
   }
 
   const bus = getRealtimeBus();
@@ -140,5 +140,5 @@ export async function GET(req: Request): Promise<Response> {
 
 /** 这条通道是只读的，写请求一律拒绝（避免有人把它当 RPC 端点用） */
 export async function POST(): Promise<NextResponse> {
-  return jsonError(405, 'method_not_allowed', { message: '实时通道只支持 GET' });
+  return await jsonError(405, 'method_not_allowed', { message: '实时通道只支持 GET' });
 }

@@ -116,8 +116,8 @@ export const SYSTEM_PROMPT = [
   CANON_DIGEST,
 ].join('\n');
 
-/** 预算守卫（assert 在测试里跑）：摘要不能膨胀到超过 64k chars（≈ 24k tokens）。 */
-export const SYSTEM_PROMPT_CHAR_BUDGET = 64_000;
+/** 预算守卫（assert 在测试里跑）：摘要不能超过 112k chars（新 canon 合流后 · ADR-0283）。 */
+export const SYSTEM_PROMPT_CHAR_BUDGET = 112_000;
 
 /** 问答用量结构（mock-friendly — 校验跑到测试里）。 */
 export interface BibleAskResult {

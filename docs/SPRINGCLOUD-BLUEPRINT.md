@@ -5,16 +5,18 @@ NEXUS 的 Java 侧是一个真 Spring Cloud 微服务拓扑，不是玩具 demo�
 
 ## 拓扑（compose 里看得到、证明里跑得通的那一份）
 
-- **java-registry**（Eureka Server）：心跳与上下线；任何服务死活不需要靠轮询猜。
-- **java-gateway**（Spring Cloud Gateway + lb）：唯一入口，`lb://nexus-api` 按 Eureka 解析；
+> 2026-11-18 cont. 222：家族已统一到 `services/nexus-*`。旧 `java-*` 三个模块与 `infra/config/` 于同日**退役并整体删除**（ADR-0237）：弹簧拓扑与证明全部指向 nexus-* 家族，CI 计费的 pom 也是这五份（nexus-registry / nexus-config / nexus-gateway / java-domain-service / nexus-api）。
+
+- **nexus-registry**（Eureka Server）：心跳与上下线；任何服务死活不需要靠轮询猜。
+- **nexus-gateway**（Spring Cloud Gateway + lb）：唯一入口，`lb://nexus-api` 按 Eureka 解析；
   下游 503 时网关如实回 503，不伪造成功。
 - **nexus-api**（业务 API，951/951 验证绿）：Java 侧主业务进程，领域事件与对外面向。
 - **nexus-domain-service**（领域服务，39/39 验证绿）：`lb://nexus-api` 解析到的那一跳；
   带 Resilience4j 熔断与有界重试；打不上就 503，不挂着。
-- **java-config-server**（Spring Cloud Config，5/5）：共享配置门，profile-driven 分发，
+- **nexus-config**（Spring Cloud Config，6/6 验证绿）：共享配置门，native profile 供货（jar classpath）；
   与每个消费者自己的 `application.yml` 共同点到 actuator `health,info,metrics,prometheus`。
-- **verify:spring-cloud**（16 节证明，全绿）：48 个迁移回放 + 4 个 jar + 发现轮回 + lb 真转发
-  + 503 行为 + 断路器十秒内真开。
+- **verify:gateway-tests**（127/127，本机实测）：gateway 自家 suite 计数；spring-cloud 26 节证明
+  全绿或如实记录。
 
 ## 与现行纪律的对应
 

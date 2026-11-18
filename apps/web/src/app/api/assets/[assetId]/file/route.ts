@@ -19,9 +19,9 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
   try {
     const user = await requireUser();
     const file = await openAssetForOwner(assetId, user.id);
-    if (!file) return notFound();
+    if (!file) return await notFound();
     return bytesResponse(file.bytes, file.mime, 'private, max-age=31536000, immutable');
   } catch (error) {
-    return failure(error, `GET /api/assets/${assetId}/file`);
+    return await failure(error, `GET /api/assets/${assetId}/file`);
   }
 }

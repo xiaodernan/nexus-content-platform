@@ -35,6 +35,10 @@ eureka:
     eviction-interval-timer-in-ms: ${NEXUS_REGISTRY_EVICTION_MS:15000}
 
 logging:
+  # v656 — the ids have to BE in the line for anyone (including a proof) to read them.
+  # Central config holds the identical pattern; this mirror keeps the local yml honest on its own.
+  pattern:
+    correlation: "[${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
   level:
     root: warn
     dev.nexus.registry: info
@@ -44,7 +48,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: never

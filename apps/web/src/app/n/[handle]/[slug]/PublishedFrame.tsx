@@ -2,8 +2,8 @@ import type { Page as DesignPage, ResolvedLayout, TokenStore } from '@nexus/crea
 import type { AssetUrlContext } from '@/studio/assets';
 import { nodeStyle } from '@/studio/render';
 import { stateStyleSheetFor } from '@/studio/state-styles';
-import { InteractiveHotspots, type Hotspot } from './InteractiveSurface';
 import type { Locale } from '@/lib/i18n';
+import { InteractiveHotspots, type Hotspot } from './InteractiveSurface';
 
 /**
  * 公开页的**一份投影**：按某一档断点解出来的画框 + 热点。
@@ -32,6 +32,7 @@ export function PublishedFrame({
   hotspots: Hotspot[];
   publicationPath: string;
   keepParams: Record<string, string>;
+  /** 双语（2026-11-15）——与页面同一 locale；缺省 zh */
   locale?: Locale;
 }) {
   const stateSheet = stateStyleSheetFor(

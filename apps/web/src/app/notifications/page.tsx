@@ -7,6 +7,7 @@ import { getLocale, type Locale } from '@/lib/i18n';
 import { MarkRead } from '@/components/NotificationActions';
 import { NotificationBell } from '@/components/NotificationBell';
 import { NotificationSettings } from '@/components/NotificationSettings';
+import { NotifTriage } from '@/components/NotifTriage';
 
 export const dynamic = 'force-dynamic';
 
@@ -193,6 +194,8 @@ export default async function NotificationsPage({ searchParams }: { searchParams
         <NotificationBell locale={locale} />
         {unreadIds.length > 0 ? <span className="notif-markreadAll"><MarkRead all label={T.markAllRead} locale={locale} /></span> : null}
       </div>
+
+      {page.items.length > 0 ? <NotifTriage locale={locale} /> : null}
 
       {page.items.length === 0 ? (
         <p className="notif-empty" data-notification-empty>

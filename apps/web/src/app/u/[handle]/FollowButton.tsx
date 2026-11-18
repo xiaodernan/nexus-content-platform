@@ -4,23 +4,29 @@ import { useState } from 'react';
 import { csrfHeaders } from '@/lib/csrf';
 import type { Locale } from '@/lib/i18n';
 
-/** 双语：每行文案按 cookie locale 选；服务端下发的判定原文（message）原样保留——那是服务端裁决 */
-const FU_TXT = {
+/**
+ * §60 主页上的关注按钮。状态从服务端带进来，这里只发请求并显示真实回话。
+ * 双语（2026-11-15 公开试玩面 wave）：服务端透传 `locale`；缺省 zh。
+ */
+const COPY: Record<Locale, {
+  follow: string;
+  following: string;
+  failed: (status: number) => string;
+}> = {
   zh: {
-    failed: (status: number) => `没做成（HTTP ${status}）`,
-    following: '已关注',
     follow: '关注',
+    following: '已关注',
+    failed: (status) => `没做成（HTTP ${status}）`,
   },
   en: {
-    failed: (status: number) => `Did not happen (HTTP ${status})`,
-    following: 'Following',
     follow: 'Follow',
+    following: 'Following',
+    failed: (status) => `Could not do that (HTTP ${status})`,
   },
-} as const;
+};
 
-/** §60 主页上的关注按钮。状态从服务端带进来，这里只发请求并显示真实回话 */
 export function FollowButton({ handle, initialFollowing, initialFollowers, locale = 'zh' }: { handle: string; initialFollowing: boolean; initialFollowers: number; locale?: Locale }) {
-  const T = FU_TXT[locale];
+  const c = COPY[locale];
   const [following, setFollowing] = useState(initialFollowing);
   const [followers, setFollowers] = useState(initialFollowers);
   const [busy, setBusy] = useState(false);
@@ -40,7 +46,7 @@ export function FollowButton({ handle, initialFollowing, initialFollowers, local
         setFollowing(body.following === true);
         setFollowers(Number(body.followers ?? followers));
       } else {
-        setError(body?.message ?? T.failed(res.status));
+        setError(body?.message ?? c.failed(res.status));
       }
     } finally {
       setBusy(false);
@@ -56,7 +62,7 @@ export function FollowButton({ handle, initialFollowing, initialFollowers, local
         data-follow-button={following ? 'on' : 'off'}
         className="fw-btn"
       >
-        {following ? T.following : T.follow} · {followers}
+        {following ? c.following : c.follow} · {followers}
       </button>
       {error ? (
         <span className="fw-error" data-follow-error>

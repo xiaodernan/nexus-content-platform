@@ -507,11 +507,20 @@ describe('静态接线门 — 生产路径真的接了 pub/sub，不是没人用
     expect(text, '订阅在构造即发出，不等第一个订阅者').toMatch(/this\.ready = this\.subscribeWire\(\)/);
   });
 
-  it('两个写路径（publish / moderation）仍调用 invalidateDiscoverRoute', () => {
-    for (const file of ['publish.ts', 'moderation.ts']) {
-      const text = readFileSync(join(process.cwd(), 'apps/web/src/server/domain', file), 'utf8');
-      expect(text, `${file} 的写路径不再失效 discover，新发布 15s 内可能不出现`).toMatch(/invalidateDiscoverRoute\(\)/);
-    }
+  it('两个写路径（publish / moderation）都使 discover 失效（路由级 + 全局级）', () => {
+    // publish 走两条：`invalidateDiscoverRoute()`（本实例窗口）+ `invalidateDiscoverGlobally()`（generation +1）。
+    // moderation 只走全局级 `invalidateDiscoverGlobally()` —— 内容是被撤下去的，
+    // 本实例的 cache-control 窗口可以由刷新自治，跨实例必须靠 generation 广播。
+    // 这里只钉"两个文件都有自己的失效出口"这一事实——钉 Nexus 串名字不钉语义就会把正当改动判红。
+    const publishText = readFileSync(join(process.cwd(), 'apps/web/src/server/domain/publish.ts'), 'utf8');
+    expect(publishText, 'publish 写路径丢了失效出口（新发布 15s 内可能不出现）').toMatch(/invalidateDiscoverRoute\(\)/);
+    expect(publishText, 'publish 写路径丢了跨实例 generation 出口（15s 内可能不被其他实例看见）').toMatch(
+      /invalidateDiscoverGlobally\(\)/,
+    );
+    const moderationText = readFileSync(join(process.cwd(), 'apps/web/src/server/domain/moderation.ts'), 'utf8');
+    expect(moderationText, 'moderation 写路径丢了失效出口（被撤下的内容 15s 后仍可能在缓存里）').toMatch(
+      /invalidateDiscoverGlobally\(\)/,
+    );
   });
 });
 

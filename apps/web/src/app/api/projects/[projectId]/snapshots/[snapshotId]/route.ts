@@ -13,11 +13,11 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
   const { projectId, snapshotId } = await ctx.params;
   try {
     const user = await requireUser();
-    if (!(await projectVisibleTo(projectId, user.id))) return notFound();
+    if (!(await projectVisibleTo(projectId, user.id))) return await notFound();
     const snapshot = await readSnapshot(projectId, snapshotId);
-    if (!snapshot) return notFound();
+    if (!snapshot) return await notFound();
     return NextResponse.json({ snapshot });
   } catch (error) {
-    return failure(error, `GET /api/projects/${projectId}/snapshots/${snapshotId}`);
+    return await failure(error, `GET /api/projects/${projectId}/snapshots/${snapshotId}`);
   }
 }

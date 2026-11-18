@@ -28,24 +28,24 @@ import { badRequest, jsonError } from '@/server/http';
  * - 爬虫照收但另计（`classifyVisit`），不进真人那一格。
  */
 export async function POST(req: Request): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   try {
     const parsed = PublishedWorkCompleteRequestSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) {
-      return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
+      return await badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
     }
     const { path, visitorKey, pageId, webdriver } = parsed.data;
 
     const rl = await getRateLimiter().hit(rateKey('published/work-complete', clientIp(req), visitorKey), 30, 60 * 60 * 1000);
-    if (!rl.allowed) return jsonError(429, 'rate_limited', { message: '上报太频繁', retryAfterMs: rl.retryAfterMs });
+    if (!rl.allowed) return await jsonError(429, 'rate_limited', { message: '上报太频繁', retryAfterMs: rl.retryAfterMs });
 
     const found = await resolvePublishedPath(path);
-    if (!found) return jsonError(404, 'not_found', { message: '没有这个公开页面，或它已经不再公开' });
+    if (!found) return await jsonError(404, 'not_found', { message: '没有这个公开页面，或它已经不再公开' });
 
     // 这一版确实有可走通的点击流程、且这一页确实是终点，才记。
     // 客户端说什么都不算：它可以把 pageId 随意填，判定只按钉住的那份文档。
     if (!isTerminalInteractivePage(found.document, pageId)) {
-      return badRequest(['pageId 不是这一版的互动终点页（或这一版没有可走通的点击流程）']);
+      return await badRequest(['pageId 不是这一版的互动终点页（或这一版没有可走通的点击流程）']);
     }
 
     const viewer = await currentUserOrNull();
@@ -56,11 +56,11 @@ export async function POST(req: Request): Promise<NextResponse> {
       pageId,
       suspectedBot: classifyVisit(req.headers.get('user-agent'), webdriver),
     });
-    if (result === 'rejected') return badRequest(['visitorKey 不合法']);
+    if (result === 'rejected') return await badRequest(['visitorKey 不合法']);
     // duplicate 也算成功：这一次没有新增，但"已经记过了"不是错误
     return NextResponse.json({ ok: true, recorded: result === 'recorded' });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    return jsonError(500, 'work_complete_failed', { message: `记这一次互动完成失败：${message}` });
+    return await jsonError(500, 'work_complete_failed', { message: `记这一次互动完成失败：${message}` });
   }
 }

@@ -30,7 +30,7 @@ import { apiJson, failure, jsonError } from '@/server/http';
  */
 export async function POST(req: Request, ctx: { params: Promise<{ projectId: string }> }): Promise<NextResponse> {
   const authed = await authorizeApiRequest(req, 'publish:write');
-  if (!authed.ok) return jsonError(authed.status, authed.error, { message: authed.message });
+  if (!authed.ok) return await jsonError(authed.status, authed.error, { message: authed.message });
   const { projectId } = await ctx.params;
   try {
     // clone 要在读之前：正文被读掉之后再 clone 只剩一句 "Body is unusable"（第一版 500 在这）
@@ -41,20 +41,20 @@ export async function POST(req: Request, ctx: { params: Promise<{ projectId: str
       // 顺便给出这一格独有的拒绝话（而不是 zod 那句模板话）
       const body = (await spare.json().catch(() => null)) as { visibility?: unknown } | null;
       if (body?.visibility === 'public') {
-        return jsonError(400, 'public_requires_human', {
+        return await jsonError(400, 'public_requires_human', {
           message:
             '公网发布（public）不在 v1 的能力里：机检与人工裁决在平台界面那条路上，' +
             '凭据背后没有可点批准的人。v1 收 unlisted（链接可达）与 private（收回发布）；' +
             '要 public 回平台「发布」面板走完那一趟。',
         });
       }
-      return jsonError(400, 'validation_failed', {
+      return await jsonError(400, 'validation_failed', {
         message: `visibility 必须是 unlisted 或 private（${parsed.error.issues.map((i) => i.message).join('；')}）`,
       });
     }
     // 归属判定复用 v1 详情那一份：同一个谓词（ownerId + 未软删），多写一份就对不齐
     if (!(await apiProjectDetail(authed.userId, projectId))) {
-      return jsonError(404, 'project_not_found', {
+      return await jsonError(404, 'project_not_found', {
         message: `项目 ${projectId} 不在这一枚凭据所属的人名下，或已被删除`,
       });
     }
@@ -62,21 +62,21 @@ export async function POST(req: Request, ctx: { params: Promise<{ projectId: str
       visibility: parsed.data.visibility,
       createdById: authed.userId,
     });
-    if (!result) return jsonError(404, 'project_not_found', { message: '项目读不到了：发布前它刚被删掉的巧合也存在' });
+    if (!result) return await jsonError(404, 'project_not_found', { message: '项目读不到了：发布前它刚被删掉的巧合也存在' });
     if (!result.ok) {
       // 门禁 / 机检挡下：只给 reason 与 blockers，不把整份 scan 面板结构倒出来——
       // 外面人能做的只有把 health 修好再来，而那些数字在 Studio 里看得到
-      return jsonError(400, 'publish_blocked', { message: result.reason });
+      return await jsonError(400, 'publish_blocked', { message: result.reason });
     }
     const checked = ApiPublicationSchema.safeParse(result.publication);
-    if (!checked.success) return failure(new Error('发布回执不符合契约'), 'POST /api/v1/projects/[projectId]/publish');
+    if (!checked.success) return await failure(new Error('发布回执不符合契约'), 'POST /api/v1/projects/[projectId]/publish');
     await recordApiAccess({
       tokenId: authed.token.id,
       endpoint: 'POST /api/v1/projects/[projectId]/publish',
       projectId,
     });
-    return apiJson(checked.data, req, { status: 200, headers: { 'cache-control': 'no-store' } });
+    return await apiJson(checked.data, req, { status: 200, headers: { 'cache-control': 'no-store' } });
   } catch (error) {
-    return failure(error, 'POST /api/v1/projects/[projectId]/publish');
+    return await failure(error, 'POST /api/v1/projects/[projectId]/publish');
   }
 }

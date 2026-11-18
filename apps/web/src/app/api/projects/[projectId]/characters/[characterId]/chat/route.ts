@@ -47,25 +47,25 @@ export async function POST(
     const { projectId, characterId } = await params;
 
     const writeAccess = await projectWriteAccess(projectId, user.id);
-    if (writeAccess === 'not_found') return notFound();
-    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
+    if (writeAccess === 'not_found') return await notFound();
+    if (writeAccess === 'read_only') return await jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
 
     const rl = await getRateLimiter().hit(rateKey('character-chat', clientIp(req), user.id), 20, 10 * 60_000);
     if (!rl.allowed) {
-      return jsonError(429, 'rate_limited', { message: '对话太频繁，稍后再试', retryAfterMs: rl.retryAfterMs });
+      return await jsonError(429, 'rate_limited', { message: '对话太频繁，稍后再试', retryAfterMs: rl.retryAfterMs });
     }
 
     const parsed = await readJson(req);
     const result = ChatRequestSchema.safeParse(parsed);
     if (!result.success) {
-      return badRequest(result.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
+      return await badRequest(result.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
     }
 
     const { message, sessionId, locale = 'zh' } = result.data;
 
     // 形状不对的 id 按"没有这个角色"处理：下面那次 eq(characters.id, …) 会撞 22P02，
     // 被这层的 catch 兜成 500「对话失败」——那句话会把请求写错说成服务端的错（domain/ids.ts）。
-    if (!isUuid(characterId)) return notFound();
+    if (!isUuid(characterId)) return await notFound();
     // 验证角色存在且属于该项目（404 优先于 409：不存在的东西不谈"能不能聊"）
     const db = getDb();
     const [character] = await db
@@ -74,12 +74,12 @@ export async function POST(
       .where(and(eq(characters.id, characterId), eq(characters.projectId, projectId)))
       .limit(1);
 
-    if (!character) return notFound();
+    if (!character) return await notFound();
 
     // DEMO MODE 不生成回复：确定性模板假装是角色在说话，违反"没接真 provider 不做假对话"
     const caps = await getAiCapabilities();
     if (caps.text !== 'real') {
-      return jsonError(409, 'demo_mode', {
+      return await jsonError(409, 'demo_mode', {
         message: '角色对话需要接上真 provider 的 AI Service。当前是 DEMO MODE：不生成回复，也不落对话记忆。',
       });
     }
@@ -159,7 +159,7 @@ export async function POST(
       },
     });
   } catch (_error) {
-    return jsonError(500, 'internal', { message: '对话失败' });
+    return await jsonError(500, 'internal', { message: '对话失败' });
   }
 }
 

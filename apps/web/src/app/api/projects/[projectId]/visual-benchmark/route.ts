@@ -19,35 +19,35 @@ interface RouteContext {
  * 任何调用方都能离线复算这一页的结果。
  */
 export async function POST(req: Request, ctx: RouteContext): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId } = await ctx.params;
   const body = await readJson(req);
   const parsed = VisualBenchmarkRequestSchema.safeParse(body);
   if (!parsed.success) {
-    return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
+    return await badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
   }
   try {
     const user = await requireUser();
-    if (!(await projectVisibleTo(projectId, user.id))) return notFound();
+    if (!(await projectVisibleTo(projectId, user.id))) return await notFound();
     for (const assetId of [parsed.data.referenceAssetId, parsed.data.candidateAssetId]) {
-      if ((await assetProjectId(assetId)) !== projectId) return notFound();
+      if ((await assetProjectId(assetId)) !== projectId) return await notFound();
     }
     const refFile = await openAssetFile(parsed.data.referenceAssetId);
-    if (!refFile) return jsonError(404, 'asset_bytes_missing', { message: '参考图在清单里，但存储里的字节不见了' });
+    if (!refFile) return await jsonError(404, 'asset_bytes_missing', { message: '参考图在清单里，但存储里的字节不见了' });
     const candFile = await openAssetFile(parsed.data.candidateAssetId);
-    if (!candFile) return jsonError(404, 'asset_bytes_missing', { message: '生成图在清单里，但存储里的字节不见了' });
+    if (!candFile) return await jsonError(404, 'asset_bytes_missing', { message: '生成图在清单里，但存储里的字节不见了' });
     for (const [role, file] of [
       ['参考图', refFile],
       ['生成图', candFile],
     ] as const) {
       if (file.mime !== 'image/png') {
-        return jsonError(415, 'unsupported_for_benchmark', {
+        return await jsonError(415, 'unsupported_for_benchmark', {
           message: `本地像素比较目前只支持 PNG，${role}是 ${file.mime}`,
         });
       }
     }
     const compared = compareVisuals(refFile.bytes, candFile.bytes);
-    if (!compared.ok) return jsonError(422, 'visual_benchmark_failed', { message: compared.reason });
+    if (!compared.ok) return await jsonError(422, 'visual_benchmark_failed', { message: compared.reason });
     return NextResponse.json({
       ok: true,
       referenceAssetId: parsed.data.referenceAssetId,
@@ -55,6 +55,6 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
       ...compared.result,
     });
   } catch (error) {
-    return failure(error, `POST /api/projects/${projectId}/visual-benchmark`);
+    return await failure(error, `POST /api/projects/${projectId}/visual-benchmark`);
   }
 }

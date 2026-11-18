@@ -1,7 +1,6 @@
-﻿// 用户指南 / User guide — 已抽离为 shared module，供 /guide 页与 Studio 内置帮助共用。
-// 修改请改这份字典，不要在 page 里抄第二遍。
+// 用户说明书 / User guide —— 说明书与 Studio 内置帮助抽屉（InAppGuide）共用这同一份字典
+// （v788 起抽离为 shared module；改文案只改这里，不改页面里）
 import type { Locale } from '@/lib/i18n';
-
 const COPY: Record<Locale, { kicker: string; title: string; lede: string; sections: { heading: string; body: string[] }[] }> = {
   zh: {
     kicker: '用户指南',
@@ -31,14 +30,27 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         ],
       },
       {
+        heading: 'AI 是怎么在这里说话的？（StateGraph 小课）',
+        body: [
+          '遇到 AI 改设计时，请求会坐两条车道之一：车道 A 直发 /v1/ai/run；车道 B 走一条可推演的**状态图**——LangGraph 的显式状态机：validate（校验输入）→ check_provider（按 modelClass 选档模型）→ build_prefix（拼装稳定前缀，为了让 provider 前缀缓存打中）→ call_llm（真正打 gpt-6.1-terra）→ cache_read（命中即跳过 provider）→ parse_and_release（补丁合法性校验）→ assemble（组装契约响应）。任何失败直通 END——绝不空转。',
+          '为什么要一条图而不是一根绳子？状态图把 AI 调用变成一条可以推演、可以撤销、可以局部重放的流水线，而不是一个黑盒 API。x-nexus-orchestration: stategraph 是「你刚刚看的是那条图」的唯一公开标志；响应体与车道 A 逐字节同构。',
+          '有效果验证：同字节前目录的一轮二连发，prefix 缓存命中 21265/21268（≈99.99%）——实打实省下的 token，不是演示数字。/admin/savings（管理员 → Savings）能看到 tokensIn 与 cachedTokens 两列账。',
+          '想更深？apps/ai-service/src/ai_service/stategraph.py 是这张图的文字实现——可读性即可教性；测试 tests/test_stategraph.py 8 臂逐一说明 validate / check_provider / dryRun / patch 非法 时直通 END 的原因。',
+          '想亲手按一下试试？/stategraph —— 公开只读的 StateGraph 落点页：七个节点的旅程、失败直通 END 的条件边、以及一个真图试跑按钮（固定 critique + dryRun + fast，真 provider、真 x-nexus-orchestration 头、真计量；失败如实展示 409/429/502/503）。',
+          'LangGraph 是默认车道（cont. 222）：POST /api/ai/run 缺省即走 /v1/ai/design-graph（validate → check_provider → build_prefix → call_llm → cache_read → parse_and_release → assemble）；要降级回顺序执行，带请求头 x-nexus-orchestration: lane-a 或设服务端 env NEXUS_AI_ORCHESTRATION=lane-a；响应头如实回声车道，/admin 指标 nexus_ai_run_lane_total 计数每次分流；拼写错误绝不悄悄换道。',
+        ],
+      },
+      {
         heading: '③ 功能地图（点进去就是那个页面）',
         body: [
-          '/discover 广场（热门/最新/ trending / 我关注的）· /marketplace 组件/模板/资产市场 · /blocks 积木库 · /search 全站搜索',
-          '/map 世界全图 · The Atlas ——迷路时的全景航行图（每格都是真实路由，按区域分好：大典 / 世界之门 / 创作日常 / 学习照料 / 管理观察）',
-          '/onboarding 上手漫游 · 6 步走完从一句话到一个作品（新用户必看，人均向）',
-          '/world/<id> 走进这个世界（3D 步行）· /world/<id>/digest 世界速览 · /world/<id>/integrity 世界体检 · /world/<id>/tide 世界潮汐 · /world/<id>/constellation 人物关系星图 · /world/<id>/codex 设定集（纸面投影）· /world/<id>/chronicle 编年 · /world/<id>/ephemeris 世界切片 · /world/<id>/atlas 世界全图 · /world/<id>/almanac 世界年历 · /world/<id>/quiz 世界问答（确定性，内容出自本项目） · /world/<id>/memories 世界记忆',
-          '/credits 我的额度 · /tasks 任务账本 · /api-tokens API 令牌 · /analytics 我作品的数据 · /notifications 收件箱 · /ship 交付日志 · /about-nexus 关于',
+          '/discover 广场（热门/最新/ trending / 我关注的；为你推荐：AI 照你自己的实测阅读 myOpens 排；馆长批注：trending 榜前三由 AI 照三条真实指标（浏览/赞/评/转/热度分）各写一句为什么值得打开，每条必含数字）· /marketplace 组件/模板/资产市场 · /blocks 积木库 · /search 全站搜索',
+          '/studio/<project> 项目主场：画布/图层/设计系统/3D · /world/<id> 走进这个世界（3D 步行）· /world/<id>/digest 世界速览 · /world/<id>/integrity 世界体检 · /world/<id>/tide 世界潮汐 · /world/<id>/almanac 世界年鉴 · /world/<id>/constellation 人物关系星图 · /world/<id>/codex 设定集（纸面投影）· /world/<id>/chronicle 编年 · /world/<id>/ephemeris 世界切片',
+          '/bible 典籍室：正典精读 → 《潮汐教团》十三章 + 二十六回响；/bible/search 直达（正典本地检索）· /bible/quiz 潮汐挑战（正典问答）· /bible/well 七口井（典籍室第二个玩法）',
+          '/bible 收录第三种玩法：/bible/anchors 锚句回放——181 句中英锚句逐字回放，抢答它出自哪一章（连对 / 历史最佳本地记）',
+          '/n/<handle>/<slug> 公开页（访客第一眼看到的是这一版）· /preview/<project> 同源只读镜头（发布前同一排断点与缩放）',
+          '/tasks 任务账本（每次 AI 请求一行，含第几次、真/DEMO、用量、用时）· /credits 我的额度（SavingsCard：缓存替你省下的重复计算）· /api-tokens API 令牌 · /analytics 我作品的数据 · /pulse 观测大厅（平台聚合匿名统计，口令 123）· /notifications 收件箱 · /ship 交付日志 · /about-nexus 关于',
           '/admin/* 平台管理台（role=admin）：审核台、pricing、dead-letter、ai-cache、audit、observability、users、pricing、rate-limit 等',
+          '/admin/observe 只读观察站（口令 123 · 口令公开）：看平台所有用户的真实行为——注册、打开、点赞、评论、收藏、任务结局、套餐分布、7 天打开趋势图与下行规则建议；「AI 深读」按钮（gpt-6.1-terra，输出必含数字，否则服务器原样拒绝展示）/admin 里也摆着「观察站」入口与直通链',
         ],
       },
       {
@@ -49,14 +61,15 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           '下一段的敌人布局由游戏设计系统（@nexus/game-model）接上一局的落点决定——你走到哪里、没走到哪里，下一盘的敌人就按那个坐标长出来。',
           'RPG 冒险（/game/<id>?view=rpg）：WASD/方向键走，靠近 NPC 按空格/Enter 开始对话；上下箭头选选项、空格确认；对话的决定会写进你的世界档案。',
           '这些游戏是项目自己长出来的：棋盘、敌人、数值全来自你项目里的设计系统/角色，没有"看价目表定死的成品"——Studio 里改数，下一盘就按新数跑。',
+          '典籍室里也收着游戏：/bible/quiz 潮汐挑战（正典问答，答对点亮路标）与 /bible/well 七口井（凭线索找回失落的七口井）——见 ⑪',
           '诚实说明书：游戏本体没有云存档、没有自动保存点——每一局独立结算，交了卷就没有下一盘继承你的 HP。',
         ],
       },
       {
         heading: '⑤ 额度 & DEMO MODE 是什么？',
         body: [
-          '每个免费账户每月有 AI 额度。真用 DeepSeek/GPT-6-sol 这样的真 provider 会扣真额度；没配真 provider 时会显示 DEMO MODE 标识——系统仍然能走通流程，只是出的东西是确定性模拟出来的"看起来像 AI 做的东西"，不是真模型的作品。',
-          '/credits 页面可以实时看消费账单：每次 AI 调用都记 token in/out/model/latency/cost——任何一笔都是真的数字，不是演出来的。',
+          '每个免费账户每月有 AI 额度。真用 wkapi.pro 上的 gpt-6-sol 这类真 provider 会扣真额度；没配真 provider 时会显示 DEMO MODE 标识——系统仍然能走通流程，只是出的东西是确定性模拟出来的"看起来像 AI 做的东西"，不是真模型的作品。',
+          '/credits 页面可以实时看消费账单：每次 AI 调用都记 token in/out/model/latency/cost——任何一笔都是真的数字，不是演出来的；账本里的 SavingsCard 会把"缓存替你省下的重复计算"摊给你看（命中率、输入 token 复用、真模型/DEMO 轮次分得清）。',
           '看到"缓存命中率"这个词：它反映 provider 端的 prefix cache 复用率——同一个前缀的下一次调用如果命中了，就免费少数 token；不命中也不证明你做错了，只证明分布器把你的请求放到了一个新分片。',
         ],
       },
@@ -83,7 +96,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         body: [
           '/world/<id> 进入 3D 走动视角：WASD 或方向键移动；按住鼠标左键拖拽可以环视四周（向上拖 = 往上看）；靠近 NPC 后按角色旁出现的「跟角色说话」入口对话。',
           '/world/<id>/chronicle 编年史：故事/历史条目按纪元排开（灰灯纪/灰烬纪/铁月纪……你项目自己的纪元名），人物星图 ↔ 编年互相点亮；条目可挂「记忆回声」——纯感官刻痕，≤ 240 字，不是梗概。',
-          '/world/<id>/digest 世界速览 · /world/<id>/integrity 世界体检（只报真问题：纪元错位/回声缺失/孤儿条目，不打分不假绿）· /world/<id>/tide 世界潮汐 · /world/<id>/ephemeris 世界日历投影 · /world/<id>/codex 设定集 · /world/<id>/constellation 人物关系星图 · /world/<id>/atlas 世界全图 · /world/<id>/almanac 世界年历 · /world/<id>/quiz 世界问答（确定性，题目出自本项目） · /world/<id>/memories 世界记忆。',
+          '/world/<id>/digest 世界速览 · /world/<id>/integrity 世界体检（只报真问题：纪元错位/回声缺失/孤儿条目，不打分不假绿）· /world/<id>/tide 世界潮汐 · /world/<id>/ephemeris 世界日历投影 · /world/<id>/codex 设定集 · /world/<id>/constellation 人物关系星图。',
           '这些页面全部是你的项目数据的投影——世界页不是"官方故事"，是你画的世界自己的结构。',
           '想读这个宇宙的正典文字？去 /bible 翻《低语诸王》五章正典——锚句中英字字对齐的正典、可以直接收藏的典籍室。另外还有两个按钮：「潮汐挑战」是正典小测（十七题，答错带题目直通问典）；「问典」是把正典喂给真模型——问中文答中文、问英文答英文、典籍里没有的它直接说"典籍里没有"。',
           '想让 AI 读你的数据？/analytics 里的 Creator Agent 规则分析底下——也藏着一个「让大模型看看我的数据」按钮——它跑的是真 provider，不是模板。',
@@ -92,10 +105,10 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑨ 市场、邀请与团队',
         body: [
-          '/marketplace 组件市场：浏览作者挂牌的东西、看谁买过、买下或退货；市场里卖的东西每一件都有真实结算路径。',
+          '/marketplace 组件市场：浏览作者挂牌的东西、看谁买过、买下或退货；市场里卖的东西每一件都有真实结算路径。顶部的「AI 选品」会让大模型读货架前三件的实测字段（价格 / 下载量），各写一句为什么值得看——价格与下载量都是真的，作品质量模型不碰。',
           '/invites/<token> 接受队伍邀请：项目成员从 Studio 的 Team 面板发出邀请链接，接受后成为协作者（席位有上限；过期邀请不再占席）。',
           '/api-tokens 自建机器人：给 CI/脚本一枚令牌，就能用程序化方式读写你的内容与作品；/tasks 里能看到每个云端任务的真实排队与状态。',
-          '/ship 每日交付日志 · /notifications 收件箱 · /analytics 你的作品数据 · /credits 你的额度账本——每个都是真实数据页。',
+          '/ship 每日交付日志（AI 平台速览：大模型照真实 git log 机械统计写两段话——2 天 90 次提交、feat 47/fix 20/docs 12/merge 6/test 5/328 ADR 之类的数字都是真的，文字是它写的）· /notifications 收件箱（AI 先读一下：模型只看按类型聚合的实测计数——等你结论的 moderation/approval/team 优先，like/follow 最后；标题 / 正文一个字都不进模型）· /analytics 你的作品数据 · /pulse 观测大厅（平台全站聚合匿名，口令 123）· /observatory 公共观测大厅（带规则外推预测的公开围观，口令 123；AI 深读：让大模型基于实测聚合数字起草四条按可操作性排序的优化建议；AI 独立复核：让大模型把展板上的数字重算一遍，逐条判 agree/disagree（每条必含数字））· /credits 你的额度账本——每个都是真实数据页。',
         ],
       },
       {
@@ -104,16 +117,21 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           '⌘Z（或 Ctrl Z）一次撤销最近一个 Command——对话、画布、分镜、状态补丁、断点，全部走同一条撤销栈；重做是 ⌘⇧Z / Ctrl Y。',
           '删除类操作（删除项目/撤发布/删镜头）都有二次确认；删掉的项目进回收站、可以恢复；公开作品随时可撤回到 private。',
           '发布前最后一步是确认卡——没点头就不会投进广场；AI 的危险动作（删/发/花额度）同样有人审门，没批准就不执行。',
-          'Studio 画布右上角有一个「滚轮」开关：往上滚看上面、往下滚看下面（与网页一致）是默认；如果你的鼠标/系统本身就是反的，点一下反转，选择会被记住。空格+拖动也能抓手移动画布，Ctrl/⌘+滚轮缩放。',
         ],
       },
       {
-        heading: '⑪ 观察哨 /insight —— 管理员看全站（口令 123）',
+        heading: '⑪ 典籍室（/bible）怎么玩',
         body: [
-          '想看全站的真实账面？打开 /insight，输入口令 123 即可——这是一道公共口令门：知道 123 的人都能进，所以页面上只展示聚合数据（总量、近 30 天日序列、线性外推、互动率、爬虫占比、额度消耗、AI 成本与缓存命中率，以及按真实数字触发的深度优化建议），不含任何人的邮箱、密钥或单人明细。',
-          '观察哨第 ⑧ 格「大模型解读」：把 30 天的聚合数字喂给真实模型（gpt-6.1-terra），让它一段话讲清楚瓶颈在哪——「现象 → 证据 → 动作」三段，不出站个人字段；状态栏永远显示 cache 徽标和 provider 透传。',
-          '页面上的趋势是近 30 天的最小二乘拟合外推（R² 如实标出），不是预测承诺；「深度优化建议」每条都带触发它的数字和阈值——它们是确定性规则，不是模型猜测。',
-          '任何人都可以提交与讨论——口令不是秘密，数据也不涉隐私；系统会按 IP 限流防滥刷（30 次 / 5 分钟）。',
+          '/bible 正典精读：《潮汐教团》十三章 + 二十六回响——每一章点开就能读，锚句在中英之间字对齐（zh 原字节 / en 对照，不混写）。',
+          '/bible/search 直达：在正典里按关键词做本地检索，直接读出命中的那一段（不出 AI、不出库外来源，慢一步但是真检索）。',
+          '/bible/quiz 潮汐挑战：以正典出题——答错回哪一章重新对，点亮的路标留在本机（无云存档，刷新照旧）。',
+          '/bible/well 七口井：典籍室的第二个玩法——顺着七条线索找回失落的七口井；找对了就开出一段地方，找不到的照实说找不到。',
+          '/bible/whisper 答问者：挑一卷正典再问一句——典籍里有写的就照它写的答，没写的就直说没写。零持久化、零记忆，刷新就是忘了。',
+          '/tide-oracle 潮语 · 潮汐预言：向潮问一句话，潮从正典里读给潮说的那句话——两句以内；不预言、不投资、不替你拿主意，正典里没有的一个字也不编。解锁同 /insight（口令 123）。',
+          '/tide-wire 今日潮声：公开页，真实平台聚合数字上潮说两句（不预言、不认项目）；计数来自实库，模型每小时最多被问一次，空平台诚实留白。',
+          '/bible 每章末尾还有「让 AI 读给你听」：模型只读本章原文摘录，三句话说清这章，最后递一句思考题（不替你回答）；同一章 / 同语言 7 天内缓存，不重复计费。',
+          '回声（Echoes）：给正典条目挂一条纯感官的微刻痕（≤ 240 字，不是梗概），它能在星图与编年里互相点亮——星图↔编年彼此唤醒。',
+          '以上都是私有玩的地方：读不需要登陆（只有运行时计数）；不把你的选项藏在 AI 里——它只为你指出路在哪。',
         ],
       },
       {
@@ -155,14 +173,27 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         ],
       },
       {
+        heading: 'How does AI "speak" here? (StateGraph in one minute)',
+        body: [
+          'When AI edits a design, the request takes one of two lanes: lane A directly POSTs /v1/ai/run; lane B runs it through an explicit **stateful graph** — LangGraph-style state machine: validate (input contract) → check_provider (pick model by modelClass) → build_prefix (lay down a byte-stable prefix so the provider\u2019s prefix cache fires) → call_llm (real call to gpt-6.1-terra) → cache_read (hit = skip provider) → parse_and_release (validate patch legality) → assemble (contract-checked response). Any failure short-circuits to END — nothing keeps spinning.',
+          'Why a graph and not a straight line? The graph makes the AI call a pipeline you can reason about, replay and partially undo — not a black-box API. x-nexus-orchestration: stategraph is the only public tell that lane B served you; the response body is byte-identical to lane A.',
+          'Measured effect: on identical byte-prefixes, back-to-back turns hit 21265/21268 cached tokens (≈99.99%) — real savings, not demo numbers. /admin/savings pairs tokensIn against cachedTokens side by side.',
+          'Curious? apps/ai-service/src/ai_service/stategraph.py is the graph written out — readable source is the documentation; tests/test_stategraph.py walks the eight arms: why validate / check_provider / dryRun / invalid patches short-circuit straight to END.',
+          'Want to press the button yourself? /stategraph — the public read-only StateGraph page: the seven-node journey, the fail-to-END conditional edges, and a live-probe button (fixed critique + dryRun + fast payload, real provider, real x-nexus-orchestration header, real metering; failures shown honestly as 409/429/502/503).',
+          'LangGraph is the default lane as of cont. 222: POST /api/ai/run goes through /v1/ai/design-graph (validate → check_provider → build_prefix → call_llm → cache_read → parse_and_release → assemble) unless you ask for the sequential lane with the header x-nexus-orchestration: lane-a (or env NEXUS_AI_ORCHESTRATION=lane-a on the server). The response header echoes the lane it took and the metric nexus_ai_run_lane_total counts every split; a typo never silently switches lanes.',
+        ],
+      },
+      {
         heading: '③ Feature map (click a path, land on the page)',
         body: [
-          '/discover feed · /marketplace components/templates/assets · /blocks library · /search global search',
-          '/map The Atlas — the full-land chart, one link per live route',
-          '/onboarding — a 6-step walk from one sentence to one published work (new-user essential)',
-          '/studio/<project> studio · /world/<id> walk this world (3D) · /world/<id>/digest world digest · /world/<id>/integrity world checkup · /world/<id>/tide world tide · /world/<id>/constellation character graph · /world/<id>/codex paper tome · /world/<id>/chronicle timeline · /world/<id>/ephemeris 360-day page · /world/<id>/atlas world atlas · /world/<id>/almanac world almanac · /world/<id>/quiz the quiz (deterministic, content straight from this project) · /world/<id>/memories the memories walk',
-          '/credits your quota · /tasks task ledger · /api-tokens API tokens · /analytics your stats · /notifications inbox · /ship ship log · /about-nexus about',
+          '/discover feed (For You: AI ranks by your own measured reading trace — myOpens — and never ranks for people without one; the curator’s note: the top-3 trending cards get one “why open this” each, written by AI from three real metrics (views / likes / comments / remixes / heat), every line citing figures) · /marketplace components/templates/assets · /blocks library · /search global search',
+          '/studio/<project> studio · /world/<id> walk this world (3D) · /world/<id>/digest world digest · /world/<id>/integrity world checkup · /world/<id>/tide world tide · /world/<id>/almanac world almanac · /world/<id>/constellation character graph · /world/<id>/codex paper tome · /world/<id>/chronicle timeline · /world/<id>/ephemeris 360-day page',
+          '/bible hall of canon → 《潮汐教团》 thirteen chapters + twenty-five echoes; /bible/search direct hits (local canon retrieval) · /bible/quiz Tide Challenge (canon quiz) · /bible/well Seven Wells (the second game)',
+          '/bible gains a third game: /bible/anchors Anchor Echo — the 181 bilingual anchor sentences replayed verbatim; name the chapter or echo each line came from (streak and best kept locally)',
+          '/n/<handle>/<slug> public page (what visitors see first) · /preview/<project> same-origin read-only lens (the same controls as visitors)',
+          '/tasks task ledger (one AI request per row, with attempt count, real/DEMO badge, usage and latency) · /credits your quota (SavingsCard: duplicate computation the cache absorbed for you) · /api-tokens API tokens · /analytics your stats · /pulse the observatory hall (platform-wide aggregate, passphrase 123) · /notifications inbox · /ship ship log · /about-nexus about',
           '/admin/* admin console (role=admin): moderation, pricing, dead-letters, ai-cache, audit, observability, users, rate-limit, etc.',
+          '/admin/observe the read-only observer (password 123 — the password is public): every real user’s behavior on the platform — signups, opens, likes, comments, saves, task outcomes, plan distribution, the 7-day opens trend and rule-engine advice; the “AI deep-read” button (gpt-6.1-terra — output must carry figures or the server refuses to render it); a direct link on /admin too',
         ],
       },
       {
@@ -173,6 +204,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           'Next stage layout is decided by @nexus/game-model from where you ended — your previous coordinates seed the next enemy placements.',
           'RPG adventure (/game/<id>?view=rpg): WASD/arrows to walk; Space/Enter near an NPC to talk; pick options with arrows + Space; dialogue choices write into your world file (visible in the character panel).',
           'These games grow from YOUR project: boards, enemies and numbers come from your own design system/cast — not a pre-baked product; tweak numbers in Studio and the next run plays by them.',
+          'The Hall of Canon ships games too: /bible/quiz (Tide Challenge — canon quizzes, lit beacons) and /bible/well (Seven Wells) — see ⑪.',
           'Honesty note: the game itself has no cloud save and no auto checkpoints — every run settles independently; once you wipe-screen out, there is no carrying HP forward.',
         ],
       },
@@ -180,7 +212,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         heading: '⑤ Quota & what DEMO MODE means',
         body: [
           'Every free account has an AI quota. Real providers consume real quota; without one you see the DEMO MODE badge — the flow still completes, but the output is deterministic simulation, not a real model’s work.',
-          '/credits shows the live ledger: every AI call records tokens in/out, model, latency, cost. All real numbers.',
+          '/credits shows the live ledger: every AI call records tokens in/out, model, latency, cost. All real numbers; SavingsCard on that page tallies how much duplicate computation the cache absorbed for you (hit rate, prompt-token reuse, real vs DEMO turns).',
           'About "cache-hit rate": it measures the provider’s prefix-KV hit rate. Same prefix sequence hitting twice means fewer tokens consumed; a miss is not proof of error — the distributor may have placed your request on a cold shard.',
         ],
       },
@@ -207,19 +239,18 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         body: [
           '/world/<id> is the 3D walk view: WASD or arrow keys move; hold the left mouse button and drag to look around (drag up = look up); stand near an NPC and use the “Talk to the character” entry to converse.',
           '/world/<id>/chronicle — story and history entries arranged by era (Grey-Lamp Age / Ash Age / Iron-Moon Age — whatever YOUR project’s eras are), characters and chronicle light each other up; entries can carry “memory echoes” — pure sensory etchings, ≤ 240 chars, not plot summaries.',
-          '/world/<id>/digest world digest · /world/<id>/integrity world checkup (reports real issues only: era drift, missing echoes, orphan entries — no fake scoring) · /world/<id>/tide world tide · /world/<id>/ephemeris world calendar projection · /world/<id>/codex the lore tome · /world/<id>/constellation the character graph · /world/<id>/atlas world atlas · /world/<id>/almanac world almanac · /world/<id>/quiz the quiz (deterministic, content from this project) · /world/<id>/memories the memories walk.',
+          '/world/<id>/digest world digest · /world/<id>/integrity world checkup (reports real issues only: era drift, missing echoes, orphan entries — no fake scoring) · /world/<id>/tide world tide · /world/<id>/ephemeris world calendar projection · /world/<id>/codex the lore tome · /world/<id>/constellation the character graph.',
           'Every one of these pages is a projection of YOUR project — the world pages are not “the official story”; they are the structure of the world you drew, rendered.',
-          'Fancy the canon text of this universe? Go to /bible — five canonical chapters of The Whispers’ Kings, anchor sentences aligned word-for-word between Chinese and English. Two buttons live below the shelf: “The Tidal Trial” — a fifteen-question canon quiz (a wrong answer hands you a straight route to Ask the Canon); and “Ask the Canon” — the canon fed to a real model (gpt-6.1-terra): ask in Chinese it answers in Chinese, ask in English it answers in English, and what the canon does not hold it says so outright.',
-          'Want the model to read your own numbers? Below the rule-based Creator Agent on /analytics you will find a button — “Let the model read my stats” — a live provider call, not a template.',
+          'Fancy the canon text of this universe? Go to /bible — thirteen chapters of the Tide Conclave plus twenty-five echoes, anchor sentences aligned word-for-word between Chinese and English.',
         ],
       },
       {
         heading: '⑨ Marketplace, invites and teams',
         body: [
-          '/marketplace — the components bazaar: browse what authors have listed, see who bought what, buy or refund; everything listed has a real settlement path.',
+          '/marketplace — the components bazaar: browse what authors have listed, see who bought what, buy or refund; everything listed has a real settlement path. The “AI picks” strip up top has the model read measured fields of the first three shelf items (price / downloads) and write one line each on why they deserve a look — prices and download counts are real; the model never claims quality.',
           '/invites/<token> — accept a team invite: project members send invite links from the Studio Team panel; accepted collaborators hold a seat (seats are capped; expired invites stop holding one).',
           '/api-tokens — mint a token for CI/scripts to read and publish your content programmatically; /tasks shows the real queue and state of every cloud task.',
-          '/ship daily delivery log · /notifications inbox · /analytics your works’ stats · /credits your quota ledger — all real data pages.',
+          '/ship daily delivery log (AI at-a-glance: the model writes 2-4 sentences straight from mechanically counted git-log figures — real numbers, model-written words) · /notifications inbox (Let AI read it first — counts-only triage: moderation/approval/team outrank likes and follows; no title or body ever reaches the model) · /analytics your works’ stats · /pulse the observatory hall (whole platform, aggregated & anonymous, passphrase 123) · /observatory the public observation hall (rule-projected, public, passphrase 123; AI deep-read: the model drafts four actionability-ranked optimization suggestions from the measured aggregates, with basis / impact / next steps; AI independent review: the model recomputes the board and rules agrees / disagrees per line (every line cites figures)) · /credits your quota ledger — all real data pages.',
         ],
       },
       {
@@ -228,16 +259,21 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           '⌘Z (or Ctrl+Z) undoes the most recent Command — chat edits, canvas, storyboard, state patches, breakpoints all run through the same undo stack; redo is ⌘⇧Z / Ctrl+Y.',
           'Destructive actions (delete project / unpublish / delete shot / clear selection) all carry a confirmation step; deleted projects go to the recoverable trash; public works can be recalled to private anytime.',
           'Publish’s last step is a confirmation card — nothing enters the feed without your explicit yes; dangerous AI actions (delete / publish / spend quota) are likewise human-gated and refuse to run until approved.',
-          'Top-right of the Studio canvas sits a “Wheel” toggle: by default wheel-up looks up and wheel-down looks down (page convention). If your mouse/OS itself reports reversed wheel deltas, click it once to invert — the choice is remembered. Space+drag also grab-pans, and Ctrl/⌘+wheel zooms.',
         ],
       },
       {
-        heading: '⑪ The observatory at /insight — admins see the whole ledger (passcode 123)',
+        heading: '⑪ How the Hall of Canon works (/bible)',
         body: [
-          'Want the platform’s real numbers? Open /insight and enter passcode 123 — a public-door gate: anyone who knows it may walk in, so the page shows aggregate data only (totals, last-30-day series with r²-annotated least-squares extrapolation, interaction rate, bot-open share, credit burn, AI cost & cache hit rate, and deep-optimization actions triggered by the ledger) — never emails, keys or single-user rows.',
-          'Section ⑧ of the observatory — “AI reads the ledger”: the same 30-day aggregate snapshot is handed to the live model (gpt-6.1-terra) and it returns “observation → evidence → action” — no personal fields leave the process, and the cache/model badge stays visible.',
-          'The trend line is least-squares over the last 30 days with R² printed beside it — reference, not a promise; every §5 “deep optimization” item lists the numbers that triggered it and its threshold — deterministic rules, not a model guess.',
-          'Anyone may enter — the passcode is not a secret and the numbers are not personal; an IP rate limit (30 per 5 minutes) keeps scripts from hammering the door.',
+          '/bible — the canon proper: thirteen chapters of the Tide Conclave, plus twenty-five echoes; anchor sentences align word-for-word across zh and en.',
+          '/bible/search — type a keyword, fetch the exact canon passage (pure local retrieval; no AI generation, no outside sources).',
+          '/bible/quiz — the Tide Challenge: canon-aligned quizzes; wrong answers point back to the chapter to re-read; lit beacons stay on your machine (no cloud save; refresh keeps nothing).',
+          '/bible/well — Seven Wells: the Hall’s second game — follow seven clues back to seven lost wells; found wells open the way; unfound wells honestly say they are not found.',
+          '/bible/whisper — the Answerer: pick any chapter (or echo), ask one line; if the canon answers it answers in the chosen language; if not, it says so plainly. No persistence — refresh is silence.',
+          '/tide-oracle — The Tide Oracle: ask the tide one thing; the tide reads the World Bible and says what the canon holds — two sentences at most. No prophecy, no advice, no invented facts. Unlock with /insight (passphrase 123).',
+          '/tide-wire — Today’s tide wire: a public page where the tide says two sentences over the real aggregate counts of the platform (no prophecy, no project names); counts come from the real database, the model is asked at most once per hour, a quiet platform stays honestly quiet.',
+          '/bible also carries “Let AI read it to you” at the end of every chapter: the model reads only an excerpt of that chapter, says it in three sentences, then hands you one question (never the answer) — cached per chapter and language for 7 days, so it never double-bills.',
+          'Echoes: hang micro-sensory etchings (≤ 240 chars, not summaries) onto canon entries; they light each other up across the star-graph and the chronicle.',
+          'Everything here is a private playroom: reading needs no sign-in (runtime counters only); nothing pulls you into the plot — it only points at where the road goes.',
         ],
       },
       {

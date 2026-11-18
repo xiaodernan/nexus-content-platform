@@ -184,7 +184,7 @@ describe('§FE-29 /admin/moderation 人工复核台', () => {
   it('剥 className 后全文 SHA256 守恒（零行为：page=0c96de94… · resolve=8c5be023…（v765 i18n 重钉））', () => {
     // 常量在改前（git HEAD）由真实产物 redact 算出并钉死；此门保证除 className 外一字节未动。
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '0c96de94e988ec9a6cd9a0e588ade98ee25cdcc54a0ace4ab1997c9d020eded7',
+      'a19bc8d1c275bc94e31c05861ef2b6c4f1025440a33eb1960d5f4cdee5b344fa',
     );
     expect(createHash('sha256').update(redactClasses(resolve)).digest('hex')).toBe(
       '8c5be023064eaa0dfa58245ce43ced24cf0b6ae42a19516b4da2e7f3fbf6a670',

@@ -28,11 +28,11 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
   const { projectId } = await ctx.params;
   const branchParam = new URL(req.url).searchParams.get('branch');
   if (branchParam !== null && branchParam !== 'current') {
-    return badRequest(['branch 参数只接受 current；这个入口不支持按指定分支 id 筛']);
+    return await badRequest(['branch 参数只接受 current；这个入口不支持按指定分支 id 筛']);
   }
   try {
     const user = await requireUser();
-    if (!(await projectVisibleTo(projectId, user.id))) return notFound();
+    if (!(await projectVisibleTo(projectId, user.id))) return await notFound();
     // 先取分支、再取快照，两处都是为了让"当前"只有一个答案：
     // ① 筛选用的是同一份 branchList 里标了 current 的那条，面板高亮与列表内容不会各算一次而分叉
     //    （currentBranchId() 与 listBranches 的 tie-break 规则并不完全同源：一个按 createdAt，一个先按 isDefault）；
@@ -45,7 +45,7 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
     const snapshotList = await listSnapshots(projectId, branchParam === null ? undefined : { branchId: currentId });
     return NextResponse.json({ snapshots: snapshotList, branches: branchList });
   } catch (error) {
-    return failure(error, `GET /api/projects/${projectId}/snapshots`);
+    return await failure(error, `GET /api/projects/${projectId}/snapshots`);
   }
 }
 
@@ -53,28 +53,28 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
 const CLIENT_SOURCES = new Set(['manual', 'ai']);
 
 export async function POST(req: Request, ctx: RouteContext): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId } = await ctx.params;
   const body = await readJson(req);
-  if (!body || typeof body !== 'object') return badRequest(['请求体必须是 JSON 对象']);
+  if (!body || typeof body !== 'object') return await badRequest(['请求体必须是 JSON 对象']);
   const { document, label, summary, source } = body as {
     document?: unknown;
     label?: unknown;
     summary?: unknown;
     source?: unknown;
   };
-  if (!document) return badRequest(['缺少 document']);
+  if (!document) return await badRequest(['缺少 document']);
   const parsed = parseDocument(document);
-  if (!parsed.ok) return badRequest(parsed.issues);
+  if (!parsed.ok) return await badRequest(parsed.issues);
   if (parsed.document.id !== projectId) {
-    return jsonError(409, 'id_mismatch', { message: '文档 id 与项目 id 不一致' });
+    return await jsonError(409, 'id_mismatch', { message: '文档 id 与项目 id 不一致' });
   }
   const kind = typeof source === 'string' && CLIENT_SOURCES.has(source) ? source : 'manual';
   try {
     const user = await requireUser();
     const writeAccess = await projectWriteAccess(projectId, user.id);
-    if (writeAccess === 'not_found') return notFound();
-    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
+    if (writeAccess === 'not_found') return await notFound();
+    if (writeAccess === 'read_only') return await jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
     const snapshot = await createSnapshot(projectId, {
       document: parsed.document,
       source: kind as 'manual' | 'ai',
@@ -87,6 +87,6 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
     });
     return NextResponse.json({ ok: true, snapshot });
   } catch (error) {
-    return failure(error, `POST /api/projects/${projectId}/snapshots`);
+    return await failure(error, `POST /api/projects/${projectId}/snapshots`);
   }
 }

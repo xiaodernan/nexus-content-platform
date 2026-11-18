@@ -8,6 +8,44 @@ import {
   writeSearchHistory,
 } from './search-history';
 import { pauseMsFromResponse, remainingSeconds } from './suggest-pause';
+import { clientLocale } from '@/lib/client-locale';
+import type { Locale } from '@/lib/i18n';
+
+/**
+ * 双语 COPY（2026-11-15 公开试玩面 wave）：判据严苛的 aria/占位/按钮文案同源 zh-en 对齐；
+ * 服务端产生的 suggestion.label 已经随 locale 出口翻译（/api/search/suggest 同一张表）。
+ */
+const COPY: Record<Locale, {
+  searchAria: string;
+  placeholder: string;
+  submit: string;
+  pauseNote: (seconds: number) => string;
+  suggestionsAria: string;
+  recentLabel: string;
+  removeAria: (query: string) => string;
+  clear: string;
+}> = {
+  zh: {
+    searchAria: '搜索内容',
+    placeholder: '项目 / 用户 / 世界 / 游戏 / 角色 / 设计稿 / 组件 / 资产',
+    submit: '搜',
+    pauseNote: (seconds) => `建议暂停 ${seconds} 秒——打字太快被限流；结果页照常能搜。`,
+    suggestionsAria: '搜索建议',
+    recentLabel: '最近的搜索（只存在这台设备上）',
+    removeAria: (query) => `删除最近搜索 ${query}`,
+    clear: '清空',
+  },
+  en: {
+    searchAria: 'Search everything',
+    placeholder: 'projects / people / worlds / games / characters / designs / components / assets',
+    submit: 'Search',
+    pauseNote: (seconds) => `Suggestions paused for ${seconds}s — too many requests; results page still works.`,
+    suggestionsAria: 'Suggestions',
+    recentLabel: 'Recent searches (this device only)',
+    removeAria: (query) => `Remove recent search ${query}`,
+    clear: 'Clear',
+  },
+};
 
 /**
  * §165 搜索框：建议 + 历史。
@@ -32,30 +70,9 @@ interface Suggestion {
 
 const MIN_QUERY = 2;
 
-/** 双语：每行文案按 cookie locale 选（不夹杂） */
-const SEARCHBOX_TXT_ZH = {
-  searchAria: '搜索内容',
-  placeholder: '项目 / 用户 / 世界 / 游戏 / 角色 / 设计稿 / 组件 / 资产',
-  submit: '搜',
-  pause: (seconds: number) => `建议暂停 ${seconds} 秒——打字太快被限流；结果页照常能搜。`,
-  suggestionsAria: '搜索建议',
-  historyHint: '最近的搜索（只存在这台设备上）',
-  historyRemove: (query: string) => `删除最近搜索 ${query}`,
-  clear: '清空',
-} as const;
-const SEARCHBOX_TXT_EN = {
-  searchAria: 'Search content',
-  placeholder: 'Project / user / world / game / character / design / block / asset',
-  submit: 'Go',
-  pause: (seconds: number) => `Suggestions paused for ${seconds}s — typing too fast was rate-limited; the results page still searches fine.`,
-  suggestionsAria: 'Search suggestions',
-  historyHint: 'Recent searches (this device only)',
-  historyRemove: (query: string) => `Remove recent search “${query}”`,
-  clear: 'Clear',
-} as const;
-
-export function SearchBox({ initialQuery, locale = 'zh' }: { initialQuery: string; locale?: 'zh' | 'en' }) {
-  const T = locale === 'en' ? SEARCHBOX_TXT_EN : SEARCHBOX_TXT_ZH;
+export function SearchBox({ initialQuery, locale: localeProp }: { initialQuery: string; locale?: Locale }) {
+  const [locale] = useState<Locale>(() => localeProp ?? clientLocale());
+  const c = COPY[locale];
   const [value, setValue] = useState(initialQuery);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
@@ -189,7 +206,7 @@ export function SearchBox({ initialQuery, locale = 'zh' }: { initialQuery: strin
           onChange={(event) => setValue(event.target.value)}
           onKeyDown={onKeyDown}
           onBlur={() => window.setTimeout(() => setOpen(false), 120)}
-          aria-label={T.searchAria}
+          aria-label={c.searchAria}
           role="combobox"
           aria-expanded={open && suggestions.length > 0}
           aria-controls="search-suggestions"
@@ -197,17 +214,17 @@ export function SearchBox({ initialQuery, locale = 'zh' }: { initialQuery: strin
           aria-activedescendant={active >= 0 ? `search-suggestion-${active}` : undefined}
           autoComplete="off"
           data-search-input
-          placeholder={T.placeholder}
+          placeholder={c.placeholder}
           className="se-input"
         />
         <button type="submit" data-search-submit className="se-submit">
-          {T.submit}
+          {c.submit}
         </button>
       </form>
 
       {pauseSeconds > 0 ? (
         <p data-search-suggest-pause role="status" className="se-pauseNote">
-          {T.pause(pauseSeconds)}
+          {c.pauseNote(pauseSeconds)}
         </p>
       ) : null}
 
@@ -215,7 +232,7 @@ export function SearchBox({ initialQuery, locale = 'zh' }: { initialQuery: strin
         <ul
           id="search-suggestions"
           role="listbox"
-          aria-label={T.suggestionsAria}
+          aria-label={c.suggestionsAria}
           data-search-suggest
           className="se-suggest"
         >
@@ -238,7 +255,7 @@ export function SearchBox({ initialQuery, locale = 'zh' }: { initialQuery: strin
 
       {showHistory ? (
         <div className="se-historyRow" data-search-history>
-          <span className="se-hint11">{T.historyHint}</span>
+          <span className="se-hint11">{c.recentLabel}</span>
           {history.map((query) => (
             <span key={query} className="se-historyChip">
               <a
@@ -250,7 +267,7 @@ export function SearchBox({ initialQuery, locale = 'zh' }: { initialQuery: strin
               </a>
               <button
                 type="button"
-                aria-label={T.historyRemove(query)}
+                aria-label={c.removeAria(query)}
                 data-search-history-remove={query}
                 onClick={() => {
                   const next = removeSearchHistory(readSearchHistory(window.localStorage), query);
@@ -272,7 +289,7 @@ export function SearchBox({ initialQuery, locale = 'zh' }: { initialQuery: strin
             }}
             className="se-clearBtn"
           >
-            {T.clear}
+                {c.clear}
           </button>
         </div>
       ) : null}

@@ -622,7 +622,7 @@ export type AiResponse = z.infer<typeof AiResponseSchema>;
  */
 export const AiChatRequestSchema = z.object({
   requestId: z.string(),
-  system: z.string().min(1).max(64000),
+  system: z.string().min(1).max(112_000),
   user: z.string().min(1).max(4000),
   modelClass: ModelClass.default('balanced'),
 });
@@ -1133,6 +1133,20 @@ export const HealthResponseSchema = z.object({
         ]),
         provider_calls: z.number().int().min(0),
         note: z.string(),
+      }),
+    ])
+    .nullable()
+    .optional()
+    .default(null),
+  /** cont. 151 / ADR 0270 兑现：LLM 活探针（system=ping，绕过完成缓存）最近一次结论。
+   * 未探测 → state="unknown"（unknown 不等于可用）；unknown 按不可用呈现。 */
+  llmLive: z
+    .union([
+      z.null(),
+      z.object({
+        state: z.enum(['unknown', 'ok', 'failed']),
+        reason: z.string(),
+        probes: z.number().int().min(0),
       }),
     ])
     .nullable()

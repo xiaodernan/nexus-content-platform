@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
  * 本片只换皮；plan 派发、APPROVAL_TTL_MS 流、aiObservation 回读路径——一字不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @ + cn()整体归一 + `className=@` 归一）：
- * `559ab1e2186695d1f36676e22c827fa24b28419c84411e40ff33510ac7e69227` 与 HEAD 字节一致。
+ * `7844879bf3d4ba80d85364d6baf349b87f7726ce11b202bebdb1d3573ab3e8e3` 与 HEAD 字节一致（cont. 170 编排车道 chip）。
  *
  * 判据不变式（12 门）：
  *  1. 'use client' 保留 + csrfHeaders/studio.flushBeforeAi 进门；2. 字面 className 全 `.cb-*`/复用族（含 cn 三元分支）；
@@ -157,9 +157,9 @@ describe('§FE-61 /studio CommandBar AI 命令栏', () => {
     }
   });
 
-  it('剥 className/cn 后全文 SHA256 守恒（2026-11-17 v845「§73-AI 审批解释追加」重钉：9711bac2aeaa4e25befcad3ff6daf612cb2c927a517c406a216548068859d17a）', () => {
+  it('剥 className/cn 后全文 SHA256 守恒（2026-11-17 v845「§73-AI 审批解释追加」重钉：36df642d8cd90db78e12bd9103d0f1f4cf7cf5605c25be2157436e8d4b6cf100）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '9711bac2aeaa4e25befcad3ff6daf612cb2c927a517c406a216548068859d17a', // v845 §73-AI 纯新增字面与 data-* 钩子
+      '36df642d8cd90db78e12bd9103d0f1f4cf7cf5605c25be2157436e8d4b6cf100', // v845 §73-AI 纯新增字面与 data-* 钩子
     );
   });
 

@@ -37,6 +37,15 @@ const WEB_SLUGS: Record<string, string> = {
   '002-潮汐教团的第四十一次会议': '002-the-forty-first-convocation',
   '003-潮沙盘': '003-the-tide-sand-table',
   '004-第八盏灯': '004-the-eighth-lamp',
+  '005-远信': '005-the-distant-letter',
+  '006-最后的签收': '006-the-last-signing',
+  '007-灯前灰': '007-ash-before-the-lamp',
+  '008-灰后': '008-after-the-grey',
+  '009-带灰回家': '009-taking-the-grey-back-home',
+  '010-谁守灯': '010-who-keeps-the-lamp',
+  '011-灯下的账': '011-the-ledger-under-the-lamp',
+  '012-潮来的时候': '012-when-the-tide-comes',
+  '013-誊写': '013-the-fair-copy',
   '005-收件人': '005-the-addressee',
 };
 
@@ -129,6 +138,31 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E85-潮候院祠殿屋脊上那对永远不孵蛋的铜斑鸽': 'echo-085-the-bronze-pigeons-on-the-ridge',
   'E86-潮候院东厢那根永远不凉的火箸': 'echo-086-the-tongs-that-never-go-cold',
   'E87-潮候院祠殿东山脚下那条从没人见过也走不到的暗河': 'echo-087-the-hidden-river-no-one-has-reached',
+  'E88-灯芯札记': 'echo-088-notes-on-the-wick',
+  'E89-盐灯守灵日记': 'echo-089-the-salt-lamp-vigil-diary',
+  'E90-第九叩': 'echo-090-the-ninth-knock',
+  'E91-灯绳记': 'echo-091-the-lamp-rope-memoir',
+  'E92-传灯记': 'echo-092-the-passing-of-the-lamp',
+  'E93-那一针': 'echo-093-that-one-stitch',
+  'E94-封面四字': 'echo-094-four-characters-on-the-cover',
+  'E95-红绳': 'echo-095-the-red-thread',
+  'E96-钥匙': 'echo-096-the-key',
+  'E97-秤': 'echo-097-the-scale',
+  'E98-碗': 'echo-098-the-bowl',
+  'E99-门槛': 'echo-099-the-threshold',
+  'E100-柴': 'echo-100-the-kindling',
+  'E101-灰坑': 'echo-101-the-ash-pit',
+  'E102-最后一栏': 'echo-102-the-last-column',
+  'E103-蜡封': 'echo-103-the-wax-seal',
+  'E104-最后一夜': 'echo-104-the-last-night',
+  'E105-雨从东边来': 'echo-105-the-rain-from-the-east',
+  'E106-第一个名字': 'echo-106-the-first-name',
+  'E107-没人誊的那一页': 'echo-107-the-untranscribed-page',
+  'E108-半粒盐': 'echo-108-half-a-grain-of-salt',
+  'E109-第四十二次会': 'echo-109-the-forty-second-convocation',
+  'E110-灰封': 'echo-110-the-grey-binding',
+  'E111-灰炉': 'echo-111-the-grey-hearth',
+  'E112-第四十三次会': 'echo-112-the-forty-third-convocation',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
@@ -215,7 +249,7 @@ const chapters: ChapterOut[] = zhFiles.map((zh, i) => {
 
 /** 回响 title 从 EN 首行取": "之后的部分；回响中文章首行有"回响（其N）「title」"，抓最后一个「」 */
 function echoOrder(file: string): number {
-  const m = /^E(\d{2})-/.exec(file);
+  const m = /^E(\d{2,3})-/.exec(file);
   if (!m) throw new Error(`回响文件名须以 E0N- 开头：${file}`);
   return Number(m[1]);
 }

@@ -17,28 +17,28 @@ import { badRequest, jsonError } from '@/server/http';
 const ReportSchema = AbuseReportRequestSchema;
 
 export async function POST(req: Request): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   // §137 的 guest 自动签发：无会话客户端的 user.id 每请求都是新的，按身份限流对它空转。
   // 所以这道按 IP 的闸必须放在 requireUser() 之前——被挡住的请求一个 guest 都不该建。
   const gate = await ipWriteGate('published/report', req);
-  if (gate.limited) return jsonError(429, 'rate_limited', { message: '举报太频繁了，稍后再试', retryAfterMs: gate.retryAfterMs });
+  if (gate.limited) return await jsonError(429, 'rate_limited', { message: '举报太频繁了，稍后再试', retryAfterMs: gate.retryAfterMs });
   const parsed = ReportSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
-    return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
+    return await badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
   }
 
   const user = await requireUser();
   // 举报是被别人点开的入口，必须限流：同一身份 + IP 每小时 10 次
   const rl = await getRateLimiter().hit(rateKey('published/report', clientIp(req), user.id), 10, 60 * 60 * 1000);
   if (!rl.allowed) {
-    return jsonError(429, 'rate_limited', {
+    return await jsonError(429, 'rate_limited', {
       message: `举报太频繁，请 ${Math.ceil(rl.retryAfterMs / 60_000)} 分钟后再试`,
       retryAfterMs: rl.retryAfterMs,
     });
   }
 
   const publication = await findPublicPath(parsed.data.path);
-  if (!publication) return jsonError(404, 'not_found', { message: '没有这个公开页面，或它已经不再公开' });
+  if (!publication) return await jsonError(404, 'not_found', { message: '没有这个公开页面，或它已经不再公开' });
 
   const report = await fileReport({
     publicationId: publication.id,

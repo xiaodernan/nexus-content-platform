@@ -10,14 +10,14 @@ import { failure, jsonError, notFound } from '@/server/http';
  * 撤回立刻释放名额：邀请没兑现也占位，收回就不占。
  */
 export async function POST(req: Request, ctx: { params: Promise<{ projectId: string; inviteId: string }> }): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId, inviteId } = await ctx.params;
   try {
     const user = await requireUser();
     const revoked = await revokeInvite(projectId, inviteId, user.id);
-    if (!revoked) return notFound();
+    if (!revoked) return await notFound();
     return NextResponse.json({ ok: true });
   } catch (error) {
-    return failure(error, `POST /api/projects/${projectId}/invites/${inviteId}/revoke`);
+    return await failure(error, `POST /api/projects/${projectId}/invites/${inviteId}/revoke`);
   }
 }

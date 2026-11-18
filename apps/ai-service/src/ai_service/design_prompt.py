@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from typing import Any
 
 from .sticky_prompt_cache import ordered_payload
@@ -16,7 +17,31 @@ MAX_TOKENS_IN_PROMPT = 120
 MAX_NODES_IN_PROMPT = 400
 MAX_TREE_CHARS = 60_000
 
-SYSTEM_PROMPT = """你是 NEXUS Studio 的设计编辑 Agent。输入是一份设计文档摘要与一句诉求，输出必须只有一段 JSON：
+
+def _load_canon_prefix() -> str:
+    """读字节级稳定的世界大典前缀（canon_digest.txt，由 `npm run gen:canon-digest` 生成并入库）。
+
+    §CACHE-4 / ADR-0126：provider 的前缀 KV 缓存按**字节前缀**命中，系统前缀必须逐字节不变，
+    缓存才能摊销掉约 4.3 万上下文 token；这份文件就是「低语诸王」世界大典 digest 的字节副本。
+    缺文件时直接让进程失败——静默退回"没有正典"会让四万多 token 的缓存悄悄归零，而没人看见（§159）。
+    """
+    path = os.path.join(os.path.dirname(__file__), "canon_digest.txt")
+    try:
+        with open(path, "r", encoding="utf-8", newline="") as fh:
+            content = fh.read()
+    except OSError as exc:  # pragma: no cover - 缺文件是部署事故，不是运行分支
+        raise RuntimeError(
+            f"canon_digest.txt 缺失（{exc}）。在仓库根目录运行 `npm run gen:canon-digest` 并提交产物。"
+        ) from exc
+    if not content.strip():
+        raise RuntimeError("canon_digest.txt 是空的——生成物损坏，重新运行 `npm run gen:canon-digest`。")
+    return content
+
+
+CANON_PREFIX = _load_canon_prefix()
+
+
+SYSTEM_RULES = """你是 NEXUS Studio 的设计编辑 Agent。输入是一份设计文档摘要与一句诉求，输出必须只有一个 JSON 对象——一份合法 json：
 
 {"patches":[{"pageId":"...","summary":"一句话说明","ops":[...]}],"explanation":"给用户看的中文说明","labels":["方案A"]}
 
@@ -60,6 +85,12 @@ ops 只允许以下形状（字段名与取值必须严格一致）：
    设计文档的 op；没有这个作用域而诉求又要改文档时，patches 留空，并在 explanation 里说明
    这一位做不了（§73）。`agentNote` 缺席表示本轮没有点名任何 Agent。
 """
+
+# 字节级稳定的系统前缀：世界大典 digest（≈4.3 万 tokens，来源 canon_digest.txt）+ 恒定的
+# Agent 规则。整段逐字节不变 —— provider 的前缀 KV 缓存按字节命中（§CACHE-4/v694），
+# 前缀越大越稳定，摊销掉的上下文就越多；每次 agent 调用都带这份正典，模型也始终锚定世界设定。
+# 名册（本轮由谁负责）每轮可变，因此不进这里，改由载荷的 `agent` / `agentNote` 承载（§CACHE-2）。
+SYSTEM_PROMPT = f"{CANON_PREFIX}\n{SYSTEM_RULES}"
 
 
 def _walk(nodes: dict[str, Any], node_id: str, depth: int, page_id: str, out: list[dict[str, Any]]) -> None:
@@ -320,8 +351,8 @@ def build_prompt(request: dict[str, Any]) -> tuple[str, str]:
         encoded = _encode_prompt(payload)
     # system 只回恒定那一段：它是整条前缀的第一段，一旦带上每轮会变的内容
     # （旧版把 agent 说明拼在这里），换 Agent 或换一轮就整条前缀失配、缓存全灭。
-    # 每轮会变的 agent 名册改由载荷的 `agent` / `agentNote` 承载（§CACHE-2）。
-    return f"{SYSTEM_PROMPT}\n{_agent_note(request)}", encoded
+    # 每轮会变的 agent 名册只由载荷的 `agent` / `agentNote` 承载（§CACHE-2）。
+    return SYSTEM_PROMPT, encoded
 
 
 def _balanced_object(text: str) -> str | None:

@@ -6,6 +6,39 @@ import { csrfHeaders } from '@/lib/csrf';
 import { visitorKey } from '@/lib/visitor-key';
 import type { Locale } from '@/lib/i18n';
 
+/** 双语 COPY（2026-11-15：公开阅读面）——两语言组件各自只写一套，靠 prop 选。 */
+const COPY: Record<Locale, {
+  hotspotAria: (target: string) => string;
+  endStrong: string;
+  checking: string;
+  notWalked: string;
+  recording: string;
+  recorded: string;
+  already: string;
+  failed: string;
+}> = {
+  zh: {
+    hotspotAria: (target) => `前往「${target}」`,
+    endStrong: '这一页没有下一步，它是这一版的终点。',
+    checking: '只有从入口点着走过来的人会被记一次「走通」。',
+    notWalked: '你这一次是直接打开这一页的，没有从入口点过来 ⇒ 不算走通，也没有上报。',
+    recording: '正在记这一次走通…',
+    recorded: '这一次走通记上了：同一版同一个人只记一次，计的是「多少人走通过」。',
+    already: '这一次走通此前已经记过：同一版同一个人只记一次。',
+    failed: '这一次走通没有记上（网络或服务端失败）⇒ 它不会被算进「互动完成」。',
+  },
+  en: {
+    hotspotAria: (target) => `Go to “${target}”`,
+    endStrong: 'There is no next step from this page — it is the end of this version.',
+    checking: 'Only visitors walking here from the entry by clicking are counted once as “walked”.',
+    notWalked: 'You opened this page directly without clicking here from the entry ⇒ not counted as a walk-through, nothing was reported.',
+    recording: 'Recording this walk-through…',
+    recorded: 'This walk-through has been recorded: the same version of the same page counts once per person, tallying “how many people walked through”.',
+    already: 'This walk-through was already recorded: one count per person per version.',
+    failed: 'This walk-through was not recorded (network or server failure) ⇒ it will not count toward “interactive completed”.',
+  },
+};
+
 /** 一个"点了会换页"的节点，几何是发布那一刻快照算出来的绝对坐标 */
 export interface Hotspot {
   nodeId: string;
@@ -18,30 +51,6 @@ export interface Hotspot {
 }
 
 type RecordState = 'checking' | 'not-walked' | 'recording' | 'recorded' | 'already' | 'failed';
-
-/** 双语：终点页的每行文案按 cookie locale 选一份（中文模式全中文，英文模式全英文，不夹杂） */
-const IS_TXT = {
-  zh: {
-    ariaGo: (name: string) => `前往「${name}」`,
-    endStrong: '这一页没有下一步，它是这一版的终点。',
-    checking: '只有从入口点着走过来的人会被记一次「走通」。',
-    notWalked: '你这一次是直接打开这一页的，没有从入口点过来 ⇒ 不算走通，也没有上报。',
-    recording: '正在记这一次走通…',
-    recorded: '这一次走通记上了：同一版同一个人只记一次，计的是「多少人走通过」。',
-    already: '这一次走通此前已经记过：同一版同一个人只记一次。',
-    failed: '这一次走通没有记上（网络或服务端失败）⇒ 它不会被算进「互动完成」。',
-  },
-  en: {
-    ariaGo: (name: string) => `Go to “${name}”`,
-    endStrong: 'There is no next step on this page — it is the end of this version.',
-    checking: 'Only visitors who clicked their way here from the entry are recorded once.',
-    notWalked: 'You opened this page directly without clicking through from the entry — it does not count as walked through, and it is not reported.',
-    recording: 'Recording this walk-through…',
-    recorded: 'Walk-through recorded: once per version per person — what is counted is how many people made it through.',
-    already: 'This walk-through was already recorded earlier: once per version per person.',
-    failed: 'This walk-through was not recorded (network or server failure) — it will not be counted as “interaction completed”.',
-  },
-} as const;
 
 /** "这个人从入口点着走过一次"的标记：按标签页记，不是按浏览器记 */
 function walkedKey(path: string): string {
@@ -78,9 +87,10 @@ export function InteractiveHotspots({
   hotspots: Hotspot[];
   /** 访客当前的查看器参数（viewport / zoom）。翻页是"换一页看"，不该把取景框重置掉（ADR-0063 同一条纪律） */
   keepParams?: Record<string, string>;
+  /** 双语（2026-11-15）——与页面同一 locale；缺省 zh */
   locale?: Locale;
 }) {
-  const IS = IS_TXT[locale];
+  const c = COPY[locale];
   const router = useRouter();
   if (!hotspots.length) return null;
   return (
@@ -89,7 +99,7 @@ export function InteractiveHotspots({
         <button
           key={spot.nodeId}
           type="button"
-          aria-label={IS.ariaGo(spot.targetName)}
+          aria-label={c.hotspotAria(spot.targetName)}
           data-interactive-hotspot={spot.nodeId}
           data-interactive-target={spot.targetPageId}
           onClick={() => {
@@ -127,8 +137,17 @@ export function InteractiveHotspots({
  *
  * 上报失败照实说，不显示成功：一句假的"记上了"会让人以为数据在涨。
  */
-export function InteractiveEnd({ path, pageId, locale = 'zh' }: { path: string; pageId: string; locale?: Locale }) {
-  const IS = IS_TXT[locale];
+export function InteractiveEnd({
+  path,
+  pageId,
+  locale = 'zh',
+}: {
+  path: string;
+  pageId: string;
+  /** 双语（2026-11-15）——与页面同一 locale；缺省 zh */
+  locale?: Locale;
+}) {
+  const c = COPY[locale];
   const [record, setRecord] = useState<RecordState>('checking');
 
   useEffect(() => {
@@ -188,13 +207,13 @@ export function InteractiveEnd({ path, pageId, locale = 'zh' }: { path: string; 
         record === 'recorded' ? 'yes' : record === 'already' ? 'already' : record === 'failed' ? 'failed' : undefined
       }
     >
-      <span className="is-endStrong">{IS.endStrong}</span>{' '}
-      {record === 'checking' ? IS.checking : null}
-      {record === 'not-walked' ? IS.notWalked : null}
-      {record === 'recording' ? IS.recording : null}
-      {record === 'recorded' ? IS.recorded : null}
-      {record === 'already' ? IS.already : null}
-      {record === 'failed' ? IS.failed : null}
+      <span className="is-endStrong">{c.endStrong}</span>{' '}
+      {record === 'checking' ? c.checking : null}
+      {record === 'not-walked' ? c.notWalked : null}
+      {record === 'recording' ? c.recording : null}
+      {record === 'recorded' ? c.recorded : null}
+      {record === 'already' ? c.already : null}
+      {record === 'failed' ? c.failed : null}
     </p>
   );
 }

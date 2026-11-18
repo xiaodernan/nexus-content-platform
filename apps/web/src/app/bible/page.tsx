@@ -30,6 +30,9 @@ const COPY: Record<Locale, {
   playLink: string;
   askLink: string;
   wellLink: string;
+  whisperLink: string;
+  oracleLink: string;
+  anchorsLink: string;
   chapterLabel: (order: number) => string;
   anchorsLine: (count: number) => string;
   readLink: string;
@@ -45,8 +48,11 @@ const COPY: Record<Locale, {
     playLink: '接受潮汐挑战 →',
     askLink: '问典 →',
     wellLink: '七口井',
+    whisperLink: '答问者 · 问点书里的事',
+    oracleLink: '问潮 · 潮汐预言',
+    anchorsLink: '锚句回放',
     chapterLabel: (order) => `第${['一', '二', '三', '四', '五'][order - 1] ?? order}章`,
-    echoLabel: (order) => `回响 · 其${['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'][order - 1] ?? order}`,
+    echoLabel: (order) => `回响 · 其${['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十', '二十一', '二十二', '二十三', '二十四', '二十六'][order - 1] ?? order}`,
     echoTitle: '回响 · Echoes',
     echoLede: '正典之外的侧写——不是续篇，不是错的，只是同一块盐加了另一层纹理。',
     anchorsLine: (count) => `${count} 句锚 · 中英字字对齐`,
@@ -63,8 +69,11 @@ const COPY: Record<Locale, {
     playLink: 'I accept the Tidal Trial →',
     askLink: 'Ask the Canon →',
     wellLink: 'The Seven Wells',
+    whisperLink: 'The Answerer · ask one question of the book',
+    oracleLink: 'Ask the tide · The Tide Oracle',
+    anchorsLink: 'Anchor Echo',
     chapterLabel: (order) => `Chapter ${['I', 'II', 'III', 'IV', 'V'][order - 1] ?? order}`,
-    echoLabel: (order) => `Echo ${['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][order - 1] ?? order}`,
+    echoLabel: (order) => `Echo ${['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI', 'XXII', 'XXIII', 'XXIV', 'XXVI'][order - 1] ?? order}`,
     echoTitle: 'Echoes',
     echoLede: 'Side-lights beyond the canon — not a sequel, not an error, just another layer of grain on the same salt.',
     anchorsLine: (count) => `${count} anchor sentences · verbatim in both languages`,
@@ -89,6 +98,9 @@ export default async function BiblePage() {
         <p className="bb-playTrial">
           <Link href="/bible/quiz" className="bb-playLink" data-bible-open-quiz>{c.playLink}</Link>
           <span className="bb-playTrialSep" aria-hidden="true">·</span>
+          <Link href="/bible/whisper" className="bb-playLink" data-bible-open-whisper>{c.whisperLink}</Link>
+          <Link href="/bible/anchors" className="bb-playLink" data-bible-open-anchors>{c.anchorsLink}</Link>
+          <Link href="/tide-oracle" className="bb-playLink" data-bible-open-oracle>{c.oracleLink}</Link>
           <Link href="/bible/ask" className="bb-playLink" data-bible-open-ask>{c.askLink}</Link>
           <span className="bb-playTrialSep" aria-hidden="true">·</span>
           <Link href="/bible/well" className="bb-playLink" data-bible-open-well>{c.wellLink}</Link>
@@ -103,7 +115,7 @@ export default async function BiblePage() {
           const anchors = extractAnchors(chapter.markdownZh, chapter.markdownEn).length;
           return (
             <li key={chapter.slug} className="bb-card" data-bible-card={chapter.slug}>
-              <span className="bb-cardNum" aria-hidden="true">{['壹', '贰', '叁', '肆'][chapter.order - 1] ?? chapter.order}</span>
+              <span className="bb-cardNum" aria-hidden="true">{locale === 'en' ? ['I', 'II', 'III', 'IV', 'V'][chapter.order - 1] ?? chapter.order : ['壹', '贰', '叁', '肆', '伍'][chapter.order - 1] ?? chapter.order}</span>
               <div className="bb-cardBody">
                 <p className="bb-cardChapter">{c.chapterLabel(chapter.order)}</p>
                 <h2 className="bb-cardTitle">{title}</h2>
@@ -133,7 +145,7 @@ export default async function BiblePage() {
               const anchors = extractAnchors(echo.markdownZh, echo.markdownEn).length;
               return (
                 <li key={echo.slug} className="bb-card" data-bible-echo={echo.slug}>
-                  <span className="bb-cardNum" aria-hidden="true">{['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'][echo.order - 1] ?? echo.order}</span>
+                  <span className="bb-cardNum" aria-hidden="true">{locale === 'en' ? ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI', 'XXII', 'XXIII', 'XXIV', 'XXVI'][echo.order - 1] ?? echo.order : ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十', '二十一', '二十二', '二十三', '二十四', '二十六'][echo.order - 1] ?? echo.order}</span>
                   <div className="bb-cardBody">
                     <p className="bb-cardChapter">{c.echoLabel(echo.order)}</p>
                     <h2 className="bb-cardTitle">{title}</h2>

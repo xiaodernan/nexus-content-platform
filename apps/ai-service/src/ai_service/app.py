@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import os
+import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 
 from .providers.liveness import refresh_in_background
+from .providers.llm_liveness import refresh_llm_in_background
 
 # 加载 .env 文件（开发环境），生产环境由环境变量注入
 _env_file = Path(__file__).resolve().parent.parent.parent / ".env"
@@ -35,6 +37,7 @@ from .contract import ContractMissing, contract_dir
 from .contract import issues as contract_issues
 from .execution import error as make_error
 from .execution import execute_ai_request, execute_chat_request, parse_request_body
+from .stategraph import run_design_stategraph
 from .latency_meter import LLM_LATENCY
 from .metrics import render_llm_metrics
 from .jobs import JobStore, Worker, build_store, job_capacity
@@ -68,6 +71,9 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
         # 启动就起一次 embeddings 探测，但不在启动路径上等它：provider 慢的时候
         # 把服务拉起来的代价变成 60s 等待，不值得。第一次 /healthz 可能仍写"未验证"，
         # 那是一句实话；探测落地后下一次读到的就是网关的真答复（见 providers/liveness.py）。
+        llm_prober = registry.llm_prober()
+        if llm_prober is not None:
+            refresh_llm_in_background(registry.llm_liveness(), llm_prober)
         prober = registry.embedding_prober()
         if prober is not None:
             refresh_in_background(registry.liveness, prober)
@@ -115,12 +121,29 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
     async def healthz() -> dict[str, Any]:
         # 结论过期就后台补一次，本次仍返回上一次已知结论：healthz 的预算是毫秒，
         # 而 web 侧探测它的超时只有 1.5s（把网络等待放进健康检查，provider 一慢就整条链路变 DEMO）。
+        llm_prober = registry.llm_prober()
+        if llm_prober is not None:
+            refresh_llm_in_background(registry.llm_liveness(), llm_prober)
         prober = registry.embedding_prober()
         if prober is not None:
             refresh_in_background(registry.liveness, prober)
         providers = registry.providers()
         state = runtime()
-        pending, running = await state.store.counts() if state else (0, 0)
+        # Redis 宕机时绝不 500/绝不悬住 healthz：web 的探测预算只有 1.5s，
+        # 队列计数最多等 350ms，超时/异常就以「counts-unavailable」显式降级（note 写明，§159 不编造读数）。
+        counts_note: str | None = None
+        try:
+            if state:
+                pending, running = await asyncio.wait_for(state.store.counts(), timeout=0.35)
+            else:
+                pending, running = 0, 0
+        except Exception as exc:  # noqa: BLE001 - 降级必须兜住一切（ConnectionError/TimeoutError/…）
+            pending, running = 0, 0
+            counts_note = f"counts-unavailable:{type(exc).__name__}"
+        queue = queue_report(state)
+        queue["pending"], queue["running"] = pending, running
+        if counts_note:
+            queue["note"] = f'{queue.get("note", "")} · {counts_note}（绝不编造计数；/v1/ai/jobs 仍按真实路径工作）'
         return {
             "service": settings.service,
             "version": settings.version,
@@ -129,10 +152,11 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
                 {"kind": p.kind, "name": p.name, "status": p.status, "models": p.models, "reason": p.reason}
                 for p in providers
             ],
-            # §162：这两个数来自真队列。以前 pending 写死 0，等于宣称"有一个永远空的队列"
-            "queue": {**queue_report(state), "pending": pending, "running": running},
+            # §162：这两个数来自真队列；Redis 不可达时已显式标注 counts-unavailable（上面 queue 变量），绝不装作读到了 0
+            "queue": queue,
             # v690：应用级 LLM 完成缓存状态（未启则 None）；面板照实读，不许藏进配置页
             "llmCache": registry.llm_cache_state(),
+            "llmLive": registry.llm_live_state(),
             # v694：真实 provider 往返延迟（ADR 0126）。CachedLlm 在本 meter 之上：
             # 完成缓存回放不计入；进程级、重启即零、窗口 1024；不冒充全局 SLO
             "llmLatency": LLM_LATENCY.snapshot(),
@@ -195,6 +219,24 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
         assert payload is not None
         status, body = await execute_ai_request(payload, registry=registry)
         return JSONResponse(body, status_code=status)
+
+    @app.post("/v1/ai/design-graph")
+    async def design_graph_route(request: Request) -> JSONResponse:
+        """§LangGraph（2026-11-16）— 状态图编排的设计管线入口。
+
+        与 `/v1/ai/run` 使用**同输入、同执行语义、同契约输出**（validate → check_provider →
+        build_prefix → call_llm → cache_read → parse_and_release → assemble，失败直返 END），
+        唯一 difference：编排结构是 `langgraph.StateGraph`。编排标记只走响应头
+        `x-nexus-orchestration`（ai-response.schema.json 的 additionalProperties=false，绝不夹带私有字段）。
+        Provider 不可用时与 `/v1/ai/run` 一样如实 503，绝不拿泛化外壳冒充真模型。
+        """
+        payload, rejected = parse_request_body(await request.body(), settings.max_body_bytes)
+        if rejected is not None:
+            status, body = rejected
+            return JSONResponse(body, status_code=status)
+        assert payload is not None
+        status, body = await run_design_stategraph(payload, registry=registry)
+        return JSONResponse(body, status_code=status, headers={"x-nexus-orchestration": "stategraph"})
 
     @app.post("/v1/ai/chat")
     async def chat(request: Request) -> JSONResponse:

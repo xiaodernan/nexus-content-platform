@@ -16,14 +16,14 @@ interface RouteContext {
  * 界面提示里把这一点写明白，不让它悄悄发生（§159）。
  */
 export async function DELETE(req: Request, ctx: RouteContext): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { assetId } = await ctx.params;
   try {
     const user = await requireUser();
     const removed = await deleteAsset(assetId, user.id);
-    if (!removed) return notFound();
+    if (!removed) return await notFound();
     return NextResponse.json({ ok: true, removed: assetId });
   } catch (error) {
-    return failure(error, `DELETE /api/assets/${assetId}`);
+    return await failure(error, `DELETE /api/assets/${assetId}`);
   }
 }

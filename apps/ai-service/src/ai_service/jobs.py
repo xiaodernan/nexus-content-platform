@@ -509,11 +509,40 @@ def _max_attempts(env: Mapping[str, str] | None = None) -> int:
         return 1
 
 
+def _degraded_store_allowed(source: Mapping[str, str]) -> bool:
+    """§降级档：默认 fail-fast（绝不静默退回内存）；AI_SERVICE_ALLOW_DEGRADED_STORE=1 显式 opt-in 才走 DEGRADED-BOOT。"""
+    return (source.get("AI_SERVICE_ALLOW_DEGRADED_STORE") or "").strip() == "1"
+
+
+def _degraded_memory_store(source: Mapping[str, str], exc: BaseException) -> MemoryJobStore:
+    store = MemoryJobStore(
+        max_attempts=_max_attempts(source),
+        max_dead_letters=parse_max_dead_letters(source),
+    )
+    store.note = (
+        f"【DEGRADED-BOOT】Redis 连不上（{type(exc).__name__}），已退回内存后端——"
+        "任务重启即失；绝不在生产启用。（ADR 0274）"
+    )
+    return store
+
+
 async def build_store(env: Mapping[str, str] | None = None, *, prefix: str = "nexus:ai") -> JobStore:
-    """配了 NEXUS_REDIS_URL 就用 Redis；连不上就抛出让服务启动失败，绝不悄悄退回内存后端。"""
+    """配了 NEXUS_REDIS_URL 就用 Redis；连不上就抛出让服务启动失败，绝不悄悄退回内存后端。
+
+    例外只有一条：显式 `AI_SERVICE_ALLOW_DEGRADED_STORE=1` 的 opt-in（见 ADR 0274）——
+    仍然启动，但 healthz 会把 note 写成【DEGRADED-BOOT】明牌，绝不是静默降级。
+    """
     source = env if env is not None else os.environ
     url = (source.get("NEXUS_REDIS_URL") or "").strip()
     if not url:
         return MemoryJobStore(max_attempts=_max_attempts(source), max_dead_letters=parse_max_dead_letters(source))
     ttl = int(source.get("AI_SERVICE_JOB_TTL_S", "3600") or "3600")
-    return await RedisJobStore.connect(url, prefix=prefix, ttl_s=max(60, ttl), max_attempts=_max_attempts(source), max_dead_letters=parse_max_dead_letters(source))
+    if not _degraded_store_allowed(source):
+        return await RedisJobStore.connect(url, prefix=prefix, ttl_s=max(60, ttl), max_attempts=_max_attempts(source), max_dead_letters=parse_max_dead_letters(source))
+    try:
+        return await RedisJobStore.connect(url, prefix=prefix, ttl_s=max(60, ttl), max_attempts=_max_attempts(source), max_dead_letters=parse_max_dead_letters(source))
+    except Exception as exc:  # noqa: BLE001 — 明牌降级必须捕获一切连接期错误
+        # 明牌打印给进程日志；healthz 侧 note 也会带【DEGRADED-BOOT】（_State.store.note 已实装）
+        print(f"[ai-service][DEGRADED-BOOT] Redis unreachable ({type(exc).__name__}: {exc}); "
+              f"AI_SERVICE_ALLOW_DEGRADED_STORE=1 → MemoryJobStore. 任务重启即失；绝不在生产启用。（ADR 0274）")
+        return _degraded_memory_store(source, exc)

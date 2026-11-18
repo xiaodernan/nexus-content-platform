@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { currentUserOrNull } from '@/server/domain/session';
-import { searchPlatform } from '@/server/domain/search';
+import { searchPlatform, SEARCH_GROUP_LABELS_EN } from '@/server/domain/search';
 import { clientIp, getRateLimiter, rateKey } from '@/server/security/rateLimit';
 import { badRequest, jsonError } from '@/server/http';
+import { apiLocale } from '@/server/api-messages';
 
 /**
  * §165 搜索建议（键入时那一条）。
@@ -25,15 +26,17 @@ const QuerySchema = z.object({
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const parsed = QuerySchema.safeParse({ q: url.searchParams.get('q') ?? '' });
-  if (!parsed.success) return badRequest(['q 最长 200 字符']);
+  if (!parsed.success) return await badRequest(['q 最长 200 字符']);
 
   const viewer = await currentUserOrNull();
   const gate = await getRateLimiter().hit(rateKey('search/suggest', clientIp(request), viewer?.id ?? null), 120, 60_000);
-  if (!gate.allowed) return jsonError(429, 'rate_limited', { message: '打字太快了，歇一秒再试', retryAfterMs: gate.retryAfterMs });
+  if (!gate.allowed) return await jsonError(429, 'rate_limited', { message: '打字太快了，歇一秒再试', retryAfterMs: gate.retryAfterMs });
 
   const result = await searchPlatform(parsed.data.q, viewer?.id ?? null, 2);
+  const locale = await apiLocale();
   const suggestions = result.groups
-    .flatMap((group) => group.hits.map((hit) => ({ ...hit, group: group.key, label: group.label })))
+    .flatMap((group) =>
+      group.hits.map((hit) => ({ ...hit, group: group.key, label: locale === 'en' ? SEARCH_GROUP_LABELS_EN[group.key] : group.label })))
     .slice(0, 6);
 
   return NextResponse.json(

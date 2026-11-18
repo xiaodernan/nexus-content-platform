@@ -16,40 +16,40 @@ interface RouteContext {
  */
 
 export async function PATCH(req: Request, ctx: RouteContext): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId, characterId } = await ctx.params;
   const body = await readJson(req);
-  if (!body || typeof body !== 'object') return badRequest(['请求体必须是 JSON 对象']);
+  if (!body || typeof body !== 'object') return await badRequest(['请求体必须是 JSON 对象']);
   const { profile } = body as { profile?: unknown };
   const parsed = CharacterProfileSchema.safeParse(profile);
   if (!parsed.success) {
-    return badRequest(parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`));
+    return await badRequest(parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`));
   }
   try {
     const user = await requireUser();
     const writeAccess = await projectWriteAccess(projectId, user.id);
-    if (writeAccess === 'not_found') return notFound();
-    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
+    if (writeAccess === 'not_found') return await notFound();
+    if (writeAccess === 'read_only') return await jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
     const result = await updateCharacterProfile(characterId, projectId, parsed.data);
-    if (!result.ok) return jsonError(400, 'character_rejected', { message: result.reason });
+    if (!result.ok) return await jsonError(400, 'character_rejected', { message: result.reason });
     return NextResponse.json({ ok: true, character: result.character });
   } catch (error) {
-    return failure(error, `PATCH /api/projects/${projectId}/characters/${characterId}`);
+    return await failure(error, `PATCH /api/projects/${projectId}/characters/${characterId}`);
   }
 }
 
 export async function DELETE(req: Request, ctx: RouteContext): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId, characterId } = await ctx.params;
   try {
     const user = await requireUser();
     const writeAccess = await projectWriteAccess(projectId, user.id);
-    if (writeAccess === 'not_found') return notFound();
-    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
+    if (writeAccess === 'not_found') return await notFound();
+    if (writeAccess === 'read_only') return await jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
     const removed = await deleteCharacter(characterId, projectId);
-    if (!removed) return notFound();
+    if (!removed) return await notFound();
     return NextResponse.json({ ok: true, removed: true });
   } catch (error) {
-    return failure(error, `DELETE /api/projects/${projectId}/characters/${characterId}`);
+    return await failure(error, `DELETE /api/projects/${projectId}/characters/${characterId}`);
   }
 }

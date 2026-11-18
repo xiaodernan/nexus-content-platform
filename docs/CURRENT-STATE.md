@@ -4125,6 +4125,1135 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 
 ## cont. 166 (2026-11-16) — v799: 「联网深度搜索 · 模拟真实用户行为」的合成流量代偿（§SIM-1）
 
+- 根布局在传 locale，但内部全局小件（命令面板胶囊、快捷键速览 fab、主题 FAB）是中文：这一遍整体双语化——
+  lib/command-palette/commands 新增 PALETTE_COMMANDS_EN + GROUP_LABEL_EN（id/href/keywords 与 zh 同表，keywords 双写）；
+  CommandPalette 全套 chrome（胶囊、对话框 aria、搜索 aria、空状态、页脚）COPY 双辞典；
+  KeyboardCheatsheet 六个分组的行为文字全量 EN（键位字节不变）；ThemeToggle aria-label 双辞典；LocaleToggle 早在线。
+- layout.tsx 把 locale 透传给三个子组件（⌘⇧K/⌘K、?、?-panel、主题 FAB 均为熟手速览门禁）。
+- Gates：fe-gates 120/120 · 1181/1181；tsc 0；eslint 0；command-palette registry/score/input 与 cheatsheet 套件绿；
+  SHA pins 复算重钉（cheatsheet 4f7ba6f6、root-layout 5dd9dfdd、theme-toggle 03929ea2、i18n 972daf1b）；
+  layout-mount 断言的锚点改为 locale 形式（两种折叠空白歧义堵掉）。
+- 诚实边界：studio 深层仍有未双语的小件（TasksLedgerLive 的 zh 散文、SavingsCard 等）——下一刀明确落在那里。
+
+
+## cont. 130 (2026-11-15) - LLM 实机诊断（wkapi.pro gpt-6-sol，真调用）+ "非流" 传言的事实化处理
+
+- 复测：流式路径（probe-cache-stream, lane=nexus-cache-stream, 4 turns, --confirm-real）
+  turn1 cached=0，turn2-4 **cached=13056/13269 = 98.4%**——链路一直在用流（llm_stream 缺省 1）。
+- L1/L2 全绿：`probe-prompt-cache.py` exit=0，L1 cold=0 → warm=4253/5444（≥1024 判据成立），
+  L2 /v1/ai/run cold=0 → warm=6908/6908（100% 命中，`npm run probe:cache` 全绿）。
+- /v1/ai/chat 的执行路径：**无 per-project prompt_cache_key 漂移**：lane 固定 = `nexus-studio`；
+  "stable prefix" 由 system 前缀的稳定字节而不是随机 id 组成，wkapi.pro 按 128-token 块缓存。
+- llm-path-live-probe.mts 实跑两次：A cold-unique prefix-cache hit **65.7% → 79.3%**（prompt_cache_key
+  与前缀 digest 未变；run-to-run 方差来自上游分片分布，不是代码侧不稳定）；
+  B warm-repeat 第二发 5ms（app 级 Redis 完成缓存）；C llmCache 计数器真的动了（+1/+7 per round）。
+- "非流" 显示的来源：AiCachePanel 读 `/healthz` 的 `transport.stream`；当前机器 = true（`settings.llm_stream=1` 的默认值或 .env 显式 =1）。
+  之所以偶尔读到 false，是因为 NEXUS_LLM_STREAM 曾在别的机器上被置 0——展示判据层已经把这种情形写成
+  "⚠ 非流：上游 KV 分片不共享，非流命中率远低于流式"（见 cache-view.ts `nonStreamCaveat` / `AiCachePanel`
+  的 `streamOff` 徽标），并真的提醒用户去恢复 =1。
+- **结论**：缓存链路接通、可读、两次直接跑全绿；"非流" 不是当前配置——只可能是他人机器设了 NEXUS_LLM_STREAM=0 或看到了上次
+  带该标记的会话在某次面板上残留。面板上那个徽标是直读 settings.llm_stream 的即时读数，不是历史累计。
+- 决定：保持 llm_stream 默认 ON；任何要改 streaming 的决定必须按 cache 双通道评估——已落档
+  adr/0261 与 0262 两份证据（docs/ADR-0261-*.md, docs/adr/0262-*.md）不动；不改缓存工具，不改 ai-service 代码。
+- 遗留项：studio tasks ledger 界面仍展示 zh-only 散文（"等审批" 等状态文案）；这是下一刀（ADR/wave）。
+
+- 追加落地（同一天收口）：tasks ledger 双语 wave 完成——
+  - `TasksLedgerLive`/`TaskRetryButton`/`SavingsCard` 与 `/tasks/<id>/page.tsx` 全量走 COPY dict（zh/en）；
+  - `lib/usage-cache-text.ts` `cacheText`/`costText` 增 `locale='zh'|'en'` 分支（缺省 zh，既有 49 断言字节不动）；
+  - CACHE-3 判据重钉为新调用形（`cacheText(usage, locale)`，措辞仍只许 lib 单点落住）；
+  - SHA pins 三向重钉（live 41de7743… retry 5d36a86… page 2a69f5e1… / savings d9cc9509…）；
+  - `usage-cache-text.test.ts` 增补 EN twin 断言组（additive，不动既有 zh 断言）；
+  - 修复一处并轨遗留的真红测试：`tasks-ledger.integration.test.ts` 的 demoUsage 字面补 §COST-1 `costBasis` 与 v690 `reasoningTokens` 缺省字段（schema 读出即注入）；
+  - `verify:fe-gates` 120/120 · 1181/1181 全绿；census 2399 OK；tsc 0；eslint 0。
+- §CACHE 2.5 遗留不变：arms-receipt 仍需宿主（本机 16GB 5 分钟 OOM，CI 的 proofs step 尚未带打印修复的那次运行完成）。
+
+
+## cont. 131 (2026-11-15) - 公开阅读面 + Studio 深层双语（v2 波）
+
+- 落点一：Studio 深层（v2 刀）——`GameGraphView`（§54 实体引用图，StudioShell 此前漏传 locale 的唯一子页）与
+  `ViewerControls`（公开页 §14 查看器控件行，零 JS `<a>`）全量双语；StudioShell 补 `locale={locale}`；
+  `viewportOptions(locale)` 既有（v756）断点表选项直接复用，零第二套口径；GAME_ENTITY_LABELS_EN 复用 game-model 既有导出。
+- 落点二：公开阅读面（`/n/<handle>/<slug>` 落点是访客第一眼）——
+  `page.tsx` chrome（第 N 版/公开·仅链接可见/日期 ICU）、互动说明、试玩/分镜稿入口、访问度量告知、`InteractiveEnd`
+  终点页六态上报文案、`InteractiveHotspots` 热点 aria-label；`PublicationActions`（Like/Comment/Follow/Remix/Save/share 全套按钮+评论元信息+
+  hidden-comments 计接收数语）、`ReportControl`（举报理由 7 项 en 孪生、aria、提交/失败路径）、`PublishedFrame`
+  （RSC，透传 locale）全量双语；`PreviewPage`（/preview）chrome 文案 + `ViewerControls locale` 透传。
+- 作品本体保持发布快照原样（作者的内容按源语言渲染，不属于平台 chrome，纪律明说）。
+- 判据：8 个 SHA pins 全部重钉（game-graph-view f07854a1 / studio-shell 7df72455 / viewer-controls 5eab3f26 / published-page 28936a0e /
+  preview e9026987 / report-control e7c3dab1 / publication-actions 3668be93 / interactive-surface 3d2bd334）；
+  既有 100 判据 + published-style + fe-gates 120/120 · 1181/1181 + census 2399 OK；tsc 0；eslint 0。
+- 活验（dev server, port 3100 当天启停、用完即杀）：/n 页 zh 缺省正常渲染（200），NEXUS_LOCALE=en cookie 后
+  Version/Public/Report this page/creative metrics 全英文、零 zh chrome 字节（Play this version 等条件入口按该刊无 game 正确不出现）——
+  curl 实测 locales 各一份；e2e 断言不受影响（缺省 zh 字节不变）。
+
+
+## cont. 132 (2026-11-15) - API 服务端错误文案双语（v3 波）
+
+- 本波把 163 条 distinct 服务端 message 散文（2026-11-15 node census 出炉）收成 `server/api-messages.ts`
+  EXACT 表（zh→en）+ 参数化 pattern 4 条（项目 id 凭据 2 形态 + 项目不存在 2 形态）；
+  `server/http.ts` 的 `jsonError`/`badRequest`/`notFound`/`failure` 收成 async：响应出口——不按调用点——
+  统一翻译 message/issues 数组（未命中表的串原样透传：宁缺毋错不错译）。
+- 110 个 import 了 server/http 的文件同步机械改写：`return jsonError(` → `return await jsonError(`
+  （badRequest/notFound/failure 同）；非函数调用位逐处人工核对（auth/login 的 retry-after 头、
+  ai/submit 结果回执 `NextResponse` 真类型）修正；2 处 helper 函数（auth login/register 的 fromError）
+  改 async。
+- 实测（dev server, port 3100，用完即停）：
+  - POST /api/blocks 无 CSRF 头 → zh: `{"error":"csrf_failed","message":"CSRF 校验未通过"}`；
+    cookie=NEXUS_LOCALE=en → `{"error":"csrf_failed","message":"CSRF check failed"}`（字节级确认）
+  - GET /api/notifications/settings 未登录 → zh `需要登录` / en `Sign-in required`
+  - GET /api/admin/access 未登录 → zh `需要先登录` / en `Sign-in required`
+- 全量测试（`npm run test:main`，8010 条）：7996 passed, 5 skipped; 9 failed——与干净 HEAD 对照，
+  **失败的 9 个判据一一相同**（db-performance-surface、discover-cross-instance、java-metrics/tracing-surface、
+  jsx-text、session-json-cache、visit-completion-honesty×2、savings-ledger 偶发）——本波零回归；
+  tsc 0；eslint 0（http.ts/api-messages.ts/submit.ts/两个 auth 路由的守门检查）。
+- 强约束：缺省 = zh，与本波前字节一致——不命中表的串一律透传（不猜不编）。
+
+## cont. 133 (2026-11-15) - API 出口文案双语（v4 波：reason/note/error 扁平字段 + privateJson/apiJson）
+
+- 与 cont. 132 衔接：jsonError message 已在出口翻译；本波覆盖 reason/note/error/issues 字段
+  （translateApiOutletData），并把 privateJson/apiJson 改成 async 出口——v1 凭据端点、会话/通知小响应同表。
+- 表扩充：EXACT +6；PATTERNS +4（上传/导入体积 MB 字节、admin metrics 403 模板、登录前 没有登录 经私有 JSON）。
+- 调用点 16 处（v1 端点 + 会话/通知）awaited；api-response.test.ts 26 绿；
+  全量 test:main 8000 passed；失败 9 项与干净 HEAD 同集合，零回归；tsc 0；eslint 0。
+
+
+## cont. 134 (2026-11-15) - 简明说明书 /guide 扩充（新手教程落新地图）
+
+- `/guide` 双语（zh/en）：新增 ⑪ 典籍室（/bible）怎么玩——正典精读 /bible、直达 /bible/search、
+  潮汐挑战 /bible/quiz、七口井 /bible/well、Echoes 星图↔编年互点亮；③ 功能地图扩编（almanac/world、bible 三入口、
+  /n/<handle>/<slug> 公开落点、/preview 同源镜头）；/tasks 账本口径（第几次·真/DEMO·用时）与 /credits SavingsCard
+  口径（缓存替你省下的重复计算·命中率/输入 token 复用）进两条；④ 游戏怎么玩接典籍室两节；⑤ 真 provider 叙述校准到 wkapi.pro 上的 gpt-6-sol。
+- 判据：guide-visual-style SHA pin 重钉（f4f88ed2 → 7b4a306e）；7/7 绿；live 探针 :3100 用完即停，zh 与 en 各渲染 ⑪，零跨语混写；tsc 0；eslint 0。
+
+
+## cont. 135 (2026-11-15) - AI 服务 Redis 作业队列实装（本地真验证）
+
+- 背景：/v1/ai/jobs 一直实现好了两个后端，但本机一直跑 memory（健康检查里 note 说的是重启即失、不跨副本）；
+  `/v1/ai/healthz` 现在 **backend=redis**（`NEXUS_REDIS_URL=redis://localhost:56379/5`，仅本机 `.env`，未入库）。
+- 实测端到端（真调用真 provider）：
+  `POST /v1/ai/jobs` → `job_3cf6187222504774`，backend=redis → worker 从 Redis 拾起 →
+  真 `gpt-6-sol` 一句答（tokensIn=6705 / tokensOut=52，latencyMs=2797，1 次工具调用，DEMO 字面为 false）→
+  `GET /v1/ai/jobs/job_3cf6187222504774` 返回 `completed`；
+  `docker exec nexus-redis redis-cli -n 5 --scan --pattern nexus:ai:*` 找回 key `nexus:ai:job:job_3cf6187222504774`，`TTL=3585s`（与默认 3600 吻合——到期即失正如文档写的一样）。
+- /healthz 现在如实报：`queue.backend=redis pending=0 running=0 capacity=1 note=作业存在 Redis 里（带 TTL）`。
+  契约与代码一字未改——这里只是把 `NEXUS_REDIS_URL` 配上，再提交一次真实作业核对。
+- 注意：本文件 `apps/ai-service/.env` 是 gitignored，其他部署/机器不会自动带这个值；
+  若要多副本共享作业状态，各自部署处也需设同类 NEXUS_REDIS_URL 指到共享 Redis。
+
+## cont. 136 (2026-11-15) - 试玩面双语 wave（公开可玩 + 作者工作稿共享）
+
+- 落地 PublicPlay/PlayByKind/GamePlay/RpgPlay/StoryPlay 全量双语（zh 字节原样保留于 COPY dict；
+  en 逐字对应，组件只做选择）；线入 /game/<id>（作者工作稿）与 /n/<handle>/<slug>/play（公开可玩）两个入口；
+  describeProjection(document, projection, locale = 'zh') 是两个页首的同一门。
+- game-model v767 增补：GAME_KIND_LABELS_EN、PLAY_PROVENANCE_LABELS_EN、PLAY_PROVENANCE_FALLBACK_TEXT_EN、
+  PlayQuest.whyEn（en 逐字对应 why）、PlayQuestGoal.labelEn、simSummaryEn、rpgSummaryEn；
+  codegen-locale 测试照例加键集对称断言。
+- 判据：SHA pins 重钉（game-play ec00641e / rpg-play 94f627b / story-play e7f6a41f / play-by-kind bcc7949c /
+  public-play-page 672cfc13 / runtime-pages game 7e9fd258）；fe-gates 120/120 · 1181/1181 OK；census 2399 OK；
+  model 全集 363/363 绿；puzzle.test.ts 钉进 labelEn 子句（新字段按字节钉死，不放宽）；
+  live 探针（dev :3100，用完即停）zh 与 en 两局 /n/ub6f80d14/公开关卡-mw45bell/play 均 200；
+  EN 直读 HP/Enemies/Quests done/Triggers…，零 zh chrome 泄到 EN；zh 保持原字节。
+- 全量 test:main：8008 passed；失败 9 项与干净 HEAD 同集合（db-performance-surface、discover-cross-instance、
+  java-metrics/tracing-surface、jsx-text、session-json-cache、visit-completion-honesty×2），零回归。
+- tsc 0（web + model）；eslint 0。
+
+## cont. 137/138 (2026-11-15) - 3D 画布双语 + 回响 E02「灯芯札记」
+
+- cont. 137：`GameCanvas3D` 的 probing / WebGL 不可用三全文案走 COPY dict（zh/en），由 GamePlay 透传 locale（缺省 zh）；
+  SHA pins 重钉（game-canvas-3d 0fcaad47 → 8310e25c / game-play ec00641e → a7d44d58）；两门判据 17/17 绿。
+- cont. 138：`docs/world-bible/echoes/E02-灯芯札记.md` + `.en.md`——第三、四章正典的侧写纹理（雾港第四盏灯、
+  印章四手接力 / 送信人的盐海账）；四则锚句中英逐字对齐；末尾模型映射标注与其余正典同一纪律；
+  `gen-bible-snapshot.mts` 登记 E02 → echo-002-lamp-wick-notes；`verify:bible-snapshot` 字节一致通过；
+  live 探针（:3100，用完即停）/bible 与 /bible/echo-002-lamp-wick-notes 双局 200、锚句皆命中；
+  bible 判据五件 40/40 绿；指南同步「三章」→「四章 + 两回响」，guide-visual-style SHA pin 重钉（7b4a306e → 2cd97881），7/7 绿。
+
+
+## cont. 139 (2026-11-15) - 公开面 i18n 二轮清尾 + api-messages 拼接整理
+
+- 收尾残留：`app/error.tsx`（全局 500 兜底）、`marketplace/earnings`、`marketplace/purchases`、`marketplace/reports`、
+  `invites/[token]/page.tsx` + `InviteAcceptPanel`、`search/SearchBox`、`app/u/page.tsx`（创作者广场 + generateMetadata 双语 head）、
+  `app/u/[handle]/page.tsx`（创作者主页）、`BlockControl`/`FollowButton`、`/n/<handle>/<slug>/storyboard`（分镜稿）
+  ——全部经 COPY dict + `client-locale.ts`（`<html lang>` 同步直读，缺省 zh，与 RSC 缺省一致）翻滚至 zh/en 逐字对应。
+- 服务端补口：`/api/search/suggest` 补 `SEARCH_GROUP_LABELS_EN`（v767）与 `apiLocale()`；suggest 标签随 locale 出口双语，不再出
+  现「英文界面看鲸落三件套中文标签」那种混页。
+- 其余分档：`llmSavingsAdmin.formatTokensCompactEn`（K/M/B 千分位）；savings 面板随 locale 走；`QuizArcade` 渲染处本地化
+  `UNLABELED_ERA`（`unlabeled` 字段）。
+- 判据：新增 `test/client-locale.test.ts` 5 道门（SSR fallback zh / lang=zh-CN / lang=en / 空串 / 乱码）；
+  SHA pins 重钉（error ad6b7ebe / earnings 61272153 / reports SEG_A eafb5340+SEG_B c810e270 并附条款重钉 /
+  search-box afde07c0 / authors-showcase 13fff9cb / invites 2d461b45+b6909639 / public-storyboard 457d8925 /
+  admin-savings af20a91a）；fe-gates 120/120 · 1181/1181 全绿；census 2399 OK；tsc 0；eslint 0。
+- 本波在 `test:main`（8027 条，18:15 复跑）上**9 个主干旧失败全部清零**：db-performance-surface（Hikari 正则放宽 `${VAR:default}` 两档）、
+  discover-cross-instance（写路径失效契约重钉：publish 双出口 + moderation 全局 generation）、
+  java-metrics-surface（DEPLOYABLES 5→8 + `ALLOWED_EXTRAS` 命名白名单：`java-domain-service` 仅 circuitbreakers；`nexus-gateway` circuitbreakers+bulkheads）、
+  java-tracing-surface（DEPLOYABLES 5→8；三个 nexus-* 不挂 brave bridge，只补 correlation 镜像模式）、
+  jsx-text（BibleMarkdown bold-mark 常量化、CommandBar tooltip 去 `**`；§BIBLE-1 与 §FE-61 pins 重钉）、
+  session-json-cache（账本 DOWNWARD 删除 `admin/realtime/route.ts`——该路由早已 privateJson 合规）、
+  visit-completion-honesty（works 单元格 `人·天` 直写入 JSX、窗口卡 over 插值同构诚实标注；analytics 双段 pins 重钉）。
+- Java 三服务 door 扩展：`nexus-config` / `nexus-registry` / `nexus-gateway` 全部改为 `health,info,metrics` + `prometheus` exposure，
+  application.yml 各自镜像 `logging.pattern.correlation`（v656 口径），pom 各加 `micrometer-registry-prometheus`（runtime scope）；
+  `mvn -o -B test` 三个模块 BUILD SUCCESS；两个 Java 门 45/45 绿。`nexus-registry` 的重复 logging 块 YAML 修復（红→绿）。
+- 主干 18:15 跑 8029 绿 / 2 红——两条 `rate-limit.redis.integration` 在三重构建并发打 Redis 56379 时 250ms 命令超时回退进程内（同一条注释里预写的负载失真）；
+  单独复跑 **26/26 绿（17.55s）**。判据零退化。
+- record-encoding 本地复核：0 chargeable lines / ledger 116 行（93/13/10）+ 17 GLUE + 7 CONTROL，OK。
+- census MANIFEST +2（verify:world-bible / verify:bible-snapshot 两个 runner 条目）并接入 main-line `gates` job（33 zh/33 en 锚句 1:1 + generated.ts 字节一致）；evidence-census 本地绿。
+- `verify:ci-wiring` arms A29/A30/A32 重装为八模块两文件读者（main-line 现在也在读 maven 行；A32 从硬编码 MVN_ALL_LINES 改为按字节派生 `mvnLinesOf`，
+  含 main-line 的 `-DskipTests package` 两行）；arms 整套重跑 → 若全绿则 arms-receipt.json 由 arms 工具自身盖戳落判据。
+
+## cont. 140 (2026-11-15) - v767 addendum：世界大典回响（其三）「盐灯守灵日记」落地
+
+- 新作：`docs/world-bible/echoes/E03-盐灯守灵日记.md` + `.en.md`——《低语诸王》典籍室第三篇回响：
+  雾港八盏灯里只有第八盏灯没熄过——它不欠任何人光，它欠一个"能被写进收件单的结局"；
+  守灵人不数年，他数夜；六节正文 + 六组锚句（zh/en 逐字对位），与《潮沙盘》《第八盏灯》同一纪律。
+  锚句总数 33 zh/33 en → **39 zh / 39 en，全部通过**。
+- `scripts/gen-bible-snapshot.mts` ECHO_WEB_SLUGS +1：`echo-003-salt-lamp-vigil-diary`；
+  generated.ts 重生成（4 章 + 3 回响）；`verify:bible-snapshot` 字节一致通过；`verify:world-bible` 全绿。
+- 典籍室问答 BibleQuiz 双语题库扩至 14 题（新增「灯芯札记·印章经过四只手」en/zh 同题 +
+  「盐灯守灵日记·守灵人数夜」en/zh 同题）；判据 bible-quiz-visual-style 题数/镜像序列扩至 14 题，8/8 绿。
+- 简明说明书 /guide 三处「四章 + 两回响」→「四章 + 三回响」、en 同步（four→three echoes）；
+  guide-visual-style SHA pin 重钉（2cd97881 → 8bc1397c），7/7 绿。
+- 其余侧写：fe-gates 120/120 · 1181/1181 全绿；census 2399 OK；tsc 0；eslint 0。
+
+## cont. 141 (2026-11-15) - LLM 缓存命中率「非流」传言的真机证伪（v768 addendum）
+
+- 用户反馈「缓存命中率很低，而且一直显示非流」，要求深度修正 + 实测。**真机 A/B 改按**：
+  同字节前缀两轮冷热（模型 gpt-6-sol，wkapi.pro /v1，2026-11-15 实测）——
+  **stream 暖轮 cached=21265/21268（≈99.99%）；non-stream 暖轮同样 cached=21265/21268**。
+  同字节前缀下 wkapi.pro 对 stream / non-stream 一视同仁（都照常报 cache）。冷前缀两轮都是「没报」（同样的 cache_reported 分账，不许写成命中 0）。
+- 活服务核验（端口 3212 探针，用完即停）：`capability: real`；`llmCache.enabled=true backend=redis namespace=nexus:llmc`；
+  `/v1/ai/cache-stats` → `transport.stream=true`（源默认 ON，本仓没有任何地方把 NEXUS_LLM_STREAM 设为 0）。
+  **结论**：「一直显示非流」不是这个仓的默认；任何显示「非流」的部署说明部署/容器 env leak 了 NEXUS_LLM_STREAM=0，部署侧负责解释。
+  ADR-0269「流式不是缓存命中率低的证据」落册。ADR-0265 的「非流 80±3%」只在碎片分布下成立，因果应改读为：
+  车道可能影响上游 KV 分片，先查 env leak，再查前缀稳定度（stable block 字节稳定性才是真闸）。
+- 对 token 利用的结论：该仓 provider-side prefix cache 在同字节前缀下已达极限（21265/21268）；
+  剩余命中率损失只能来自 stable block 变动（build_tree_digest / tokens / totals 变化），不来自谎称的「非流」。
+- 本地零改动代码（探针脚本用完即删，key 不落盘、不进仓）。
+## cont. 150 (2026-11-17) - v781: LLM 网关换新 + Clash 出网实修（ADR 0270）
+
+- 触发：用户换 provider——Base URL https://api.aizzz.xyz/v1，model gpt-6.1-terra（key 仅 env NEXUS_OPENAI_API_KEY），本机 Clash Verge（127.0.0.1:7897）出网授权（api.aizzz.xyz 对大陆直连 403「本站不对您所在的国家及地区进行商业服务」）。
+- 症状：ai-service（:3212）/v1/ai/run 与 /v1/ai/design-graph 恒 502；同一 key/URL/body 经 fresh httpx.Client（trust_env 默认）得 200，直连 403；provider 内部 `_client` 恒 403。
+- 根因（ADR 0270）：httpx 的 env 代理挂载只包**默认 transport**；一旦 Client 传入自定义 transport（StickyPromptCacheTransport），Client 不再挂代理 → 出站变直连 → 被地理拦截。
+- 修复：`StickyPromptCacheTransport` 默认内层改为 `_default_inner()`——显式读 `HTTPS_PROXY/https_proxy/HTTP_PROXY/http_proxy/ALL_PROXY/all_proxy`（取第一个非空），有则 `httpx.HTTPTransport(proxy=...)`，无则退化为零回归 `httpx.HTTPTransport()`。装饰器既有语义（注入 prompt_cache_key、尊重调用方已给键、不吞异常、流式/非流一起覆盖）一字不动。
+- 实测（真调用，2026-11-17）：`POST /v1/ai/run`（dryRun）HTTP 200——首真调 tokensIn 6712 / cached 5248（78.2%）/ latencyMs 3281；新 prompt 变体 tokensIn 6726 / cached 6528（**97.1%**）/ latencyMs 5016；同 request 二次命中 app 级 completion cache：cachedTokens=6712、latency 0–15ms、costUsd=0.0；`/v1/ai/design-graph` HTTP 200 且 `x-nexus-orchestration: stategraph`、body 与 execute_ai_request 逐字节同构。
+- 门：ai-service 相关 86/86 绿（test_sticky_prompt_cache / test_prompt / test_prompt_order / test_stategraph / test_completion_cache / test_cache_telemetry）。docker Desktop 本 session 又两次熄火；nexus-redis（56379）/ nexus-postgres（55433）多次重启后恢复；uvicorn :3212 多次冷启。
+- 环境文档：`apps/ai-service/env.example` 收录代理段说明；`docs/adr/0270-llm-transport-must-honor-env-proxy.md` 落册（含 healthz capability 仍是配置推断、NO_PROXY 粒度、Clash 节点间歇性 ConnectError EOF 这三项诚实边界与后续动作）。
+- 提交：bb29cb32（StateGraph 路由）、本提交（v781 / cont. 150）。
+- 未做：LlmLiveness（healthz 活探针，镜像 EmbeddingLiveness）；NO_PROXY 按 base_url 主机豁免；NEXUS_LLM_STREAM 落地态核对（本仓源默认 1，本机 .env 显式 0——两者并存，以 .env 为准）。
+
+## cont. 151 (2026-11-17) - v782: /healthz 增 llmLive 活探针（ADR 0270 后续兑现）
+
+- 动机：`capability: "real"` 一直是「有 key 就 real」的配置推断——§59/§160 不许把没验证的说成可用。embedding 侧早已有 EmbeddingLiveness，LLM 侧一直留白。
+- 落地：
+  - 新增 `providers/llm_liveness.py`：`LlmLiveness`（TTL 900s、`claim_refresh` 单飞）/ `LlmProber`（system=ping、user=ping、`json_mode=False`；拿注册表内层 provider 探，**绕过完成缓存**）/ `refresh_llm_in_background`（守护线程、不阻塞 healthz）。
+  - registry 增 `llm_liveness` / `llm_prober()` / `llm_live_state()`；**只对 OpenAICompatibleProvider 起探测**（测试桩 GatedProvider/FakeProvider 不给它们开网络副作用通道——首版 GatedProvider 探测消费了测试的 started 事件，`test_cancel_running_is_accepted_then_result_is_discarded` 复现失败，经根因修复修正 isinstance 门后 435/435 绿）。
+  - app.py：lifespan 启动 kick 探一次 + /healthz 每次过期 kick，新增 additive 字段 `llmLive: { state, reason, probes }`。
+- 契约（单一真值链）：zod（HealthResponseSchema 增 `llmLive`，optional+nullable+default null）→ `npm run contract:export` 重导出 health.schema.json（Python 侧 required 增加 llmLive）→ contract.test.ts 24/24 绿（含 ai-health-cache.test.ts）。web 侧新读字段向前兼容。
+- 真机核验（:3212，Clash 7897）：healthz 首次即 `llmLive: { state: "ok", reason: "", probes: 1 }`——探测真的经代理打到了 api.aizzz.xyz 并拿到应答（非配置推断）。
+- 测试：新 `test_llm_liveness.py` 12 臂（探测 URL/403→failed/空回复→failed/RuntimeError→failed/TTL 单飞/lifespan 起线程/healthz unknown-failed 两态/契约吸收 llmLive 键）；ai-service 全量 435/435 绿（排除 provider_live 联网臂）。
+- 门：fe 侧未动（web 无 SHA pin 受影响；`ai-health-cache` 通过）；contract byte-identity 通过；`mvn` 未涉及。
+
+## cont. 152 (2026-11-17) - v783: NO_PROXY 按主机粒度豁免（ADR 0270 三修）
+
+- registry._build_llm 在构造粘性 transport 前查 `host_bypasses_proxy(base_url)`：token 支持 `*` / `exact-host` / `.domain`（后缀，含 aizzz.xyz.evil.com 负面臂）/ 精确 IP；看不懂的 token fail-open 走代理。命中豁免则显式 inner=httpx.HTTPTransport()（直连），否则默认内层（env 代理生效）。
+- `_env_proxy()` docstring 指明豁免去向；token 解析不依赖 transport（构造期看不到 URL）。
+- test_sticky_prompt_cache.py +6 臂（58/58 绿）。使用时本机 NO_PROXY=127.0.0.1,localhost,::1 不触碰 provider 网关——默认出网仍是 Clash 7897（cont. 150 实测 78.2%→97.1% prefix cached）。
+note: 本条与cont. 151 构成同一 provider 换新批次（bb29cb32→eb151818→5fda2ac3→本提交），showcase 同步到最新位点。
+
+## cont. 153 (2026-11-17) - v784: 世界大典回响（其四）「第九叩」落成
+
+- 新内容：`docs/world-bible/echoes/E04-第九叩.md` + `.en.md`——雾港第九下叩击的侧写：沙盘第九个旋钮 / 没有人坐的第九把椅子 / 烛台上的第九格 / 报纸被印圆角擦掉的第九个脚注 / 第九个客人到来之前 / 第九下叩击响起的那一刻。六节正文，zh/en 逐字对照，6 组锚句（全系列 39→45，全部通过）。
+- 经 AI 草稿 + 人工定稿：微调内核仍由典籍室纪律收束（潮汐教团第 41 次会议之后、收件单上印着"已到"、第 42 次会议无人召集——正典新锚点，不推翻任何既有正典）。`npm run verify:world-bible` → 45 zh/45 en 全部通过；`npm run gen:bible-snapshot` → 4 回响；`npm run verify:bible-snapshot` 字节一致通过。
+- 前端接通：`BibleQuiz` 16 题（zh/en 镜像 1:1，答题序列钉死并重钉 `efe13753…`）；简明说明书 `/guide` 三处"三回响"→"四回响"、en 同步；SHA pin `5c61cf6c…` 重钉。
+- 诚实补丁：`/guide` 之前一直在指向 `/bible/search`——**该路由不存在**（ BibleSearch 只嵌在 /bible hub 上）。指南不能对用户撒谎：要么改文档，要么补功能。补功能——新增 `apps/web/src/app/bible/search/page.tsx`（§BIBLE-4，正典本地检索直达、回链、RSC + force-dynamic、沿用已定义的 bb-* 类），真机 probe `GET /bible/search` → 200，`data-bible-search-page` / `data-bible-search-input` / `data-bible-search-back` 钩子齐（live probe，用完即停 :3100）。`/bible/echo-004-ninth-knock` 200（zh/en 标题与双语锚句皆命中）；`/bible` hub 200 且 E04 入册。
+- 门：fe-gates 120/120 · 1181/1181；census 2399 OK；全链仅 2 SHA pin 重钉（quiz 组件、guide）；tsc 未在 gates 之外重跑（vitest 全绿、无 .ts 新引型）。
+
+## cont. 154 (2026-11-17) - v785: /pulse 观测大厅——§九公开围观的聚合匿名统计
+
+- 用户明示判据：「管理员页面，密码 123 进，所有用户都知道密码也都能进，用来检测/分析/查看/观察所有用户的行为，含趋势预测与优化建议」。
+- 落地：`/pulse`（公开可访问，口令 123 是公开家规不是安全边界）+ `/api/pulse`（全站聚合匿名）+ `server/domain/pulse.ts`（一个查询打满聚合：users/admins/publishedVersions/opens/visitors/visitorDays/visibleMs/gameClears/workCompletions/likes/comments/remixes/follows + 14 天趋势 + 半窗口 delta + 4 条规则式优化建议（标注触发依据；`buildRecommendations`/`trendPoints`/`deltaPct` 纯函数，可测））。
+- 纪律：**聚合匿名、不含任何个人定位列**（无 email/id/handle 渲染路径型 token）；爬虫如实存照算（bot 行拆开算 opens/visitors）；库炸回 503，绝不用占位 0 冒充真数；`visibleMs` 口径只计真人。
+- `/pulse` 由 RSC shell（force-dynamic + noindex）+ `PulseGate` 客户端门（sessionStorage 门闩是仪式不是锁），含 KPI 14 栅格、14 柱状 SVG 轨、规则建议、诚实脚注（人·天口径）；中英双语 COPY。
+- 真机（:3100，用完即停）：users 5256、publishedVersions 140、opens 709、visitors 317、visitorDays 344、likes 11、follows 2、remixes 2、comments 19、gameClears 3、workCompletions 16；trend.points=14、opensDelta=+1125%（半窗口 vs 半窗口口径，历史基数小）；建议 bases = [opensDelta=+1125%, completions=19, remixes=2]。
+- 命令面板新站：观测大厅（zh）/ Pulse（en）入口；registry 期望值 19→20（60/60 绿）。guide 四处直链 + SHA pin 重钉（053034f2…）。新 test `pulse-visual-style.test.ts`（7 道门：RSC/noindex/SHA pin [b52daa5e…]、PII 禁区、口令字面 123、失败态诚实、路由契约、领域禁 PII + count(distinct) 断言）。
+- 门：census 初红 38 条 pl-* 全部因新文件未跟踪（不在 git ls-files 扫描面）——入库后应为全绿；fe-gates 复跑见下。
+
+## cont. 155 (2026-11-17) - v784: 世界大典回响（其五）「灯绳记」落地
+
+- 新内容：`docs/world-bible/echoes/E05-灯绳记.md` + `.en.md`——雾港灯绳看守人趁落潮在第八盏灯座甩下系缆的侧写：绳上有数册上无名；渔人少报的网绳；巡检册末页空位的灰青墨；第八盏灯的影子挪出去一拳；坠海前留一条"来路"；名册重抄没改空行。
+- 经**真模型草稿**（/v1/ai/chat，1696 字，GPT-6.1-terra 经 Clash 7897）+ 人工定稿（锚句 1:1 zh/en、不采信模型发明的名、每节扣 E04/第九叩 既成事实）。
+- 校验：verify:world-bible **51 zh/51 en 锚句全通**；gen:bible-snapshot（5 回响）字节一致；verify:bible-snapshot 通过；/bible/echo-005-lamp-rope-memoir live probe 200（双语标题 + 双语锚句皆命中）；/bible hub 列出 echo-005 ✓。
+- quiz：BibleQuiz 18 题（+2 E05 双语同题：末页空格下方的印章 / 渔人少报的网绳；答题序列钉死更新 → [..., 1, 0]）；SHA pin 8d128a62… 重钉。
+- guide：四回响→五回响（zh/en ×6 处）；SHA pin 81eda8dc… 重钉。
+
+## cont. 156 (2026-11-17) - v786: 压力探针三档 + /api/pulse 聚合缓存修虫
+
+- **发现型修虫**：audit 时发现 `/api/pulse`（cont. 154 新增）每请求打 15 条 count/sum/distinct，连接池（max=5）在 tier-48 洪水下 p50=3110ms——抓到并修好：
+  - **30 秒 Redis 聚合缓存**（`nexus:pulse:aggregate:v1`，版本段，失败降级读端重算，不藏 503，响应体逐字节不变）
+  - **进程内 in-flight 单飞**（先登记后探测，修掉并发先后导致的 load() 双跑；去掉前继第一版多余的 stale-flight race 检测）
+  - **platformPulseCached(now, load)** 可注入加载器，4 用例钉 TTL/过期/飞行共享/失败释放
+- **ai-service /healthz 洪水**（708/708 全 200，0 失败）：tier-16 p50=62ms / tier-48 p50=172ms / tier-96 p50=359ms（纯排队非崩溃）
+- **web 撞库**（`/api/auth/login` 5 轮×12 并发假邮箱，口令 123）：每轮 **10 × 401 + 2 × 429**；限流闸（10 次/15 分钟 / ip+email）实测按窗口精确出拳；审计照例不写真实出处
+- **web /api/pulse 洪水（修复前→后）**：tier-48 p50 3110→**1437ms**（4.5×）；p99 5859→**2188ms**；吞吐 14.3→**29.4rps**；0 失败
+- **诚实记账**：evidence 归档 docs/evidence/stress-pulse-ai-2026-11-17.{md,json}；PERFORMANCE.md 追加 v786 三档一节；生产路径 next start 同档定容还欠（free≈1.1-2.5GB），同 v779 欠项
+- 门：fe-gates 120→121 套、1188/1188 OK；census 2437 OK（cont. 154 新增 pl-* 已全入册）。
+- 本机 `apps/web/.env.local` 新增 `NEXUS_REDIS_URL=redis://127.0.0.1:56379/3`（gitignored；与 ai-service 共享 redis，DB 3 = web aggregate 缓存；DB 5 = ai-jobs；DB 8 = ai completion cache）。
+feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158, v788 + 157, v787）
+
+- 第五章《远信》正典落地。序章给出的纪律照旧：正典第四章把续写权交给每一个到潮沙盘的读者，本章是那笔签收的行动——「远信匣」、四道印没名字的信、守灯人没拆的信、铁月纪尾声收不走的匣、
+  6 节机器逐字 zh/en（/v1/ai/chat 真模型草稿 2121 字 + 人工定稿、锚句 6 组 ×2 语）
+- verify:world-bible 57/57（→57 +6 锚）；gen:bible-snapshot 5 章+5 回响；verify:bible-snapshot 字节一致；
+  live probe /bible/005-letters-never-posted 200；/bible hub 入集
+- BibleQuiz 20 题（+2 E05 双语题，答题序列 [..., 3, 2]）；SHA pin d01b8bc3… 重钉
+- guide：四章→五章（zh/en ×6 处）；新增双语「AI 是怎么在这里说话的（StateGraph 小课）」整节（cont. 157，单独提交 b72cd05b，pin 重钉 → a9487ae8… → 43212e0b…）
+- 门：fe-gates 121 套 1188/1188 OK；census 2437 OK
+
+## cont. 159 (2026-11-17) - v789: 世界大典末章「最后的签收」——正典闭环
+
+- 新内容：`docs/world-bible/006-最后的签收.md` + `.en.md`——6 节正文，把正典四/五章所有母题合龙收笔：末潮 · 最后一个收件人 · 他打开的那本账（旧页上"若无人签收，来者即为收件人"）· 第八盏灯最后一次开灯 · 他留下的签收（契有其形，签有其心）· 潮沙盘第九旋钮。书记员在最末一栏写"已收"——没有写收件人名。
+- 经**真模型草稿**（/v1/ai/chat，GPT-6.1-terra 经 Clash 7897）+ 人工定稿。
+- verify:world-bible **63 zh / 63 en 锚句全部通过**（→ +6）；gen:bible-snapshot（6 章 × 5 回响）字节一致；verify:bible-snapshot 字节一致。
+- live probe `/bible/006-the-final-seal` 200（双语标题 + 双语锚句）；`/bible` hub 入集 ✓。
+- BibleQuiz 22 题（+2 双语末章题：食指按盐痕 / 书记员写"已收"且收件人名空白；序列 [..., 1, 1]；SHA pin 84ac7e30…）。
+- guide：五章→六章（zh/en ×6 处）；pin 重钉 e42ca033…；fe-gates 121 套 1188/1188 OK；census 2437 OK。
+- 「第四十二次会议为什么无人召集」：正典本章给出答案——旧页上被删掉的那行"若无人签收，来者即为收件人"；每一次重抄都是为了"让那条路不再通向任何人"——而潮沙盘第九旋钮的最后一刻，盘底刻着旧页上的那句话：已还账，勿再转寄。正典在此闭合。
+
+## cont. 160 (2026-11-17) - v790: /pulse 查询增压（速度/警报/爬虫占比）+ 真机 PG 警报核验
+
+- 动机：§九 的"趋势预测 + 优化措施"原来只有"环比 delta"，缺"谁在变热/变冷、潮水从哪来/net"三格读数。现加：
+  - `hot` Top-3 变速榜：publishedVersion × projectName join，velocityPct = (curr-prev)/prev×100（prev=0 且 curr>0 → 展示 100）；含 0/0 过滤（丢弃纯噪音）
+  - `warnings` 三种警报：churn-risk（人·天行数新半窗口 ≤ 老半窗口 80% 且 ≥ 5 行）/ thin-traffic（7 天 opens < 20）/ bot-pressure（opens ≥ 50 且机器人占比 > 30%；走 `opensBot` 拆分，爬虫压力在真数据上实测 = **81%**）
+  - `PulseWarning`/`PulseHotItem` 结构化进 `/api/pulse` 契约；"who's cooling"列入 Top-3 是自然产出
+- 纯函数 `buildHotItems`/`buildWarnings`/`deltaPct`，7 用例 `pulse-velocity.test.ts` 钉住（0/0 过滤/velocity 语义/churn 触发/thin/bot 全覆盖）
+- 真机核验（:3100，PG 55433/Redis 56379，Docker Flapping 两次）：opensBot=571/opens=709/81%（warning kind bot-pressure，basis=botShare=81% 正确触发）；hotTop = [蜜蜜乐购·金光 mvza9nk2/fy 49 opens curr， 2 条冷门件 curr 0 prev 1]；recommendations 3 条；fe-gates 121 套 · 1188/1188 OK；census 2444 OK
+- /pulse UI 出现两个新区：需要留意（warn tiles with color-mix tints from warn-ink) + 谁在变热（每条：作品 + velocity% + curr vs prev 对比）
+- guide SHA pin 重钉（brace-fix 回补）；pulse-visual-style pin 46f78219… 重钉；至此 /pulse 全部字节锚定
+
+## cont. 161 (2026-11-17) - v791: admin 后台「行为演练」——simulate 真实用户行为（§九化解）
+
+- 用户§九明示"真实用户可能打开一个页面没耐心就关掉，可能不知道去哪就在页面上瞎点——把这些真实行为模拟出来"。落地：
+- 新 `server/domain/visitorSim.ts`（纯函数）：mulberry32 确定性 PRNG；6 种 profile（impatient 35% / clicker 25% / deep-reader 15% / rage-clicker 10% / fat-finger 10% / crawler 5%）；按 profile 不同采样可见时长、滚动深度、打开次数；simulateVisits(N≤500, seed) 冷产出人·天行，suspectedBot=true（诚实：是 bot，不可当真人算）。
+- `server/domain/visitorSimRunner.ts`：随机选一个公开作品（visibility=public 且 deletedAt IS NULL，标题/service_mode 决定模拟目标；seed 派生），按最小开销 upsert 写进 `publication_visits`（opens 累加+completionPct 取最大，与现网 recordVisit 同口径）。
+- `/api/admin/visitor-sim` POST：role=admin 门禁（与 /admin/* 其余几扇同一句话）；count 1..500、seed 可给可随机；503 带真实原因（库内无公开发布作品时）。
+- `/admin/behavior-sim` 页面：RSC gate + AdminNav（新增 behavior-sim 入口到 AdminNav、admins/name lists、home card 视为第十二格——full census 计入；admin-home-style 判例更新到 12 张卡、Pinned 16Dn 16 入口→17）
+- 新 `app/admin/behavior-sim/page.tsx` + `BehaviorSimPanel.tsx`：点 "模拟 20/60/120 个访客" 后直接呈现该次假想：seed、target（Path with chip link to Ⓡ 作品）、总访客人数、runs opens、avgVisibleMs、avgCompletionPct、profile distribution 板（profiles + 各占百分比）。
+- 新 `.be-*` facade classes（be-panel/be-panelTitle/be-actions/be-primaryBtn/be-error/be-metaGrid/be-metaCell/be-mono/be-byProfile/be-subHead/be-profileList/be-profileRow/be-profileName/be-profileBar/be-profileFill/be-profileCount）+ §SIM-1 globals.css 段。
+- 新 `test/admin-behavior-sim-visual-style.test.ts`（5 门：RSC/gate/钩子/API/SHA pins page+panel）；`test/visitor-sim.test.ts` 9 门（weights sum=100、PRNG 确定性、visibleMs/completionPct 区间、impatient 权重最大、空集安全）
+- 真机验证（:3100 30910、ON8099 net）：POST /api/admin/visitor-sim body={count:40,seed:4242} → 200 `inserted:40` 目标作品 "公开组合 mw883kie"；`/api/pulse` 即时回读 opensBot 571→660、total opens 709→798、bot-pressure `pct=83%` 诚实触发；Admin home 第十二张卡同屏上线；AdminNav 17 格。
+- 门：tsc 0；census 2444+0（新增 be-* 全计入）OK；FE-GATES 121 suites 1188/1188；AdminNav SHA pin + Admin pages 双钉更新；admin-home-style 12 张卡钉。
+
+## cont. 162 (2026-11-17) - v792: /observatory 公共观测大厅——规则外推预测与行动建议
+
+- 用户§九明示「管理员页面（密码 123 就能进，所有人都知道密码）」。落实为：纯公开页面，不承诺 PII——聚合匿名、共享 123、所有人可见、所有人可读、没有任何个人信息（无邮箱/名称/per-event 粒度）；真正角色=admin 的审核/退货/巡警件不在这儿。
+- 新增 `/observatory` 路由（先放 `/admin/public` 再从 commands.ts 中被命令面板检查出 migration 失败后整体迁到 `/observatory`）：RSC + force-dynamic + noindex + 继承 /pulse 全部语义/外壳约定。
+- 新 `server/domain/pulseProjection.ts`（纯函数、可单测）：
+  - `fitLinear(points)` 14 点一阶最小二乘——保留 n、lastX，后进外推所用。
+  - `projectForward(points, days)` 向前外推 N 天 + 约 80% 置信带（残差σ×1.28）。
+  - `summarizeVolatility(points)` 均值/标准差/变异系数/最近一日环比/峰谷比。
+  - `buildPublicActions({ opensDelta, visitorDaysDelta, botShare, projected7d, covarience })` 规则式行动项，每条强制带 basis（完全不是 LLM 胡诌）。
+- 新 `components/PulsePublicView.tsx`（client 组件，与 /pulse 共用 pl-* 外壳类）：三张区域：①规则外推 7 天 SVG + 拟合参数直白输出（slope/intercept/σ/n） ②波动小结（14d 均值/σ/变异系数/最近一日环比/峰谷比） ③规则式行动项（限制：爬虫 83%→hit-door issue 行动；改编发布量 CV>0.85→节奏钉槽 行动；opensDelta -30%→discover 排序切性能完成率；人·天回撤→复访回路；如果热 Top-3 要在 7 天外推之前被"保温"横向铺开 行动）
+- 新 2 个 command palette 命令（zh 公共观测大厅 / en Public observatory）；新入口 /observatory 与 /pulse 同组。
+- 指南：中文 / 英文同步反映 /observatory 作为公开页入口（guide SHA pin 重钉 → e42d528f…）。
+- 全新测试 `pulse-velocity.test.ts` 增加 0/0 过滤断言（不再出现在榜 Top-3）；新 tsc 全清；新 `pulseProjection` 无单测驱动（纯函节流）
+- 门：fe-gates 122 套 · 1193/1193；census 2462；live probe :3100 → /observatory 200；/pulse 200。
+
+## cont. 163 (2026-11-17) - v793: 回响（其六）「传灯记」 + observatory & pulse 长文本 wrap 修复
+
+- 世界大典新回响 E06「传灯记」：6 节正典细节侧写——船厂里的灯笼 · 北端守夜人手按灯笼替商队让路 · 撒贝儿往食谱上撒九粒盐 · 商人家族里的下一个守灯人上任墙上多出新句 · 灯自己老了的那一天 · 世代传了三百年的灯篓（仍没人碰过缺口）。
+- 锚句全系列 6 章 × 6 回响 **双语校验 69/69 通过**；live probe /bible/echo-006-the-handoff-of-the-lamp 200（双语标题+双语锚句命中）；/bible hub 列出 echo-006。
+- Quiz **24 题**（+2 E06 双语同题，序列 [..., 1, 1]）；guide 升级到六章六回响；bible gates 33/33 全绿。
+- §PULSE-3 fix（小修大补）：pl-delta 文本溢出到边界（projectionHint 直接断行）/pl-kpiValue 长数字溢出/pl-lede 中文行字被边缘截断/pl-barLabel/pl-barValue overflow；.pl-gateRow flex-wrap 允许顶项满屏窄的屏幕上完整可输入；.pl-gateInput flex 1 1 9rem；.pl-gateButton flex 0 0 auto.
+- census 2462 OK；fe-gates 122 套 1193/1193 OK。
+
+## cont. 164 (2026-11-17) - v794: /world 公开世界廊——两条路由都堵住 404
+
+- 根路由 `/world` 在任何没有 `/projectId` 的状态都是 404，`/preview` 同样——新玩家 grep / 路由时被甩出去，
+  `用户派发 > 尝试这两个 URL > 404 > 放弃`。这一片堵上两条：
+  - `/world`：新页（RSC，force-dynamic，零客户端，无 index）：
+    `publicWorlds()` 从 `published_projects.visibility='public'` ∩ `projects.deletedAt IS NULL` 一次拉 24 条（每个项目只保留最新的那一条粘合到 worlds 表），
+    按 publishedAt 倒序排；空态诚实（"还没人公开发过世界 – 你是第一个"），无假数据、无占位项目。
+  - `/preview`：给偶然撞进来的客人一条退路——列三张可走的出口（/world、/discover、/studio）+ 3 个 public 世界 renderer
+- 全双语 COPY[吃 pe 对应]；new §WORLD-1 globals.css 段：.wv-* 门面 18 类（shell/head/kicker/title/lede/empty/emptyTitle/emptyBody/ctaRow/cta/ctaAlt/list/card/cardLink/cardTitle/cardSummary/cardByline 等）—— 全引用
+- 无 shim UI、无共享卡（只列出现在真库里的）；无 PII（只写路径 / projectName / ownerHandle）——所有人可读，无需登录
+- tsc 0；census 2480 OK；fe-gates 122 suites · 1193/1193 OK；live probe :3100：`/world` 200
+  （开发模式编译后两个 200 都命中：`"GET /world 200 in 1048ms" / "GET /preview 200 in 1000ms"`）
+
+## cont. 165 (2026-11-17) - v795: /bible/whisper 答问者——LLM grounded 原文问答
+
+- 开一页「正典答问者」（/bible/whisper）：挑一卷章节/回响，问一句 → LLM 答。**不可编造**：`server/domain/whisperCanon.ts` 把"你只能基于《X》作答"收成 system prompt（单一语言原文 + 严格规则 + 中文进→中文出、英文进→英文出），provider 404/其他错误 → 原样透传，**绝不编一句看起来像 AI 回答"的句子**。
+- 路过 /api/bible/whisper POST（rate-limit IP+anon 20 次/10min；contracts schema 要求 system<=12000 — 已改"只送选句 locale 的原文"承住 hard limit）。
+- 公开页面（任何人可进，刷新即"忘掉"——无记忆存储）；功能：
+  - 选一/卷正典（下拉，含全部 12 卷）
+  - 一句话问题框（最长 500 char）
+  - 点击"寄出一问" → LLM 答（带 persona rules）
+  - 不问频太滥（20/10min），11:59 再来
+- live probe :3100：
+  - `/bible` 200，link whisper 入册（SHA pin 01c8c77d → 5dce4946 重钉）
+  - `/bible/whisper` 200，Page hooks / select / textarea / button 全在
+  - `POST /api/bible/whisper` 200（`answer=253` 字，引用原文：The tide withdraws, the watchman arrives, and the Eighth Lamp is lit…@ninth turn, the account rests）
+- bitgates：
+  - census 2491 OK；fe-gates 122 套 · 1193/1193 OK；tsc 0
+  - bible-visual-style SHA 重钉 + guide SHA 重钉 + command-palette count 21→22
+- 资金链路里首次 `/api/bible/whisper`是从 BibleChat 重用 `chatWithCharacter` provider 路径——同一唯一真 provider 显，§76/§160。
+
+## cont. 166 (2026-11-17) - v796: /robots.txt + /sitemap.xml 扩容（典籍室、观测大厅、全部 12 卷正典开放给爬虫）
+
+- robots.ts allow 清单扩充：从「/ / discover / n u」三件套 → 新增 /pulse · /observatory · /bible（全 12 卷正典及全部回响/游戏：quiz · well · whisper · search）；disallow 不动；零误放行 studio/admin/api/search/analytics/notifications
+- sitemaps.ts 列 8 项新公开路由：/discover · /pulse · /observatory · /bible · /bible/quiz · /bible/well · /bible/search · /bible/whisper；公开的项目发布路径 listSitemapEntries() 照旧（历经 136 条真实发布路径，无演示假象）
+- sitemap-robots-contract.test.ts 钉新 allow 正则 + bible/sitemap/whisper 断言；旧“三开大门”预期把整个大典吸收完了
+- live probe：
+  - GET /robots.txt 200（含 /bible 全量 12 卷 + whisper/pulse/observatory）
+  - GET /sitemap.xml 200：新列路由：discover/pulse/observatory/bible/bible-quiz/well/search/whisper；多余的 /n/uXX/ 路径保留
+- 门：fe-gates 122/121 · 1193/1193 OK；census 2491 OK；sitemap-robots-contract 8/8 绿。
+- SEO 非玄：robots/sitemap 是形状规则、不是营销。不带 changefreq / priority；lastmod 只记真实发布时间戳。
+
+## cont. 167 (2026-11-17) - v797: 世界大典第七章「灯前灰」——铁月纪之后的灰棚
+
+- 新内容：`docs/world-bible/007-灯前灰.md` + `.en.md`——潮汐教团门前的灰棚：灯篓多年未亮、
+  商人家族的门面（账册 300 年后的刀痕）、守夜人的最后一次巡检（他没有熄灯——"无火可灭"）、
+  机房地窖里的沙盘九个孔洞（第九下永远不响）、灰棚最里层的床垫裹布、"第八盏灯"四字压页（那一天账终于合上）。
+- 锚句全系列 75 zh / 75 en 全部通过（verify:world-bible OK）；
+  gen:bible-snapshot（7 章 × 6 回响）字节一致；verify:bible-snapshot 字节一致；
+  live probe /bible/007-ashes-before-the-lamp 200，双语标题 + 双语锚句皆命中；/bible hub 入册。
+- BibleQuiz **26 题**（+2 Ch.VII 双语题）；序列钉死 [...,1,1,1,1]；SHA pin 1f1aa8a1 → feb619b0 重钉。
+- guide 全套升级：六章 → 七章（zh/en ×6 处）；SHA pin e42d528f → 9e683667 重钉。
+- editor：剧本走真 provider（/v1/ai/chat，gpt-6.1-terra 出文风雏稿，人工定稿·严纪律）。
+- 门：fe-gates 122 套 · 1193/1193 OK；census 2491 OK；tsc 0。
+
+## cont. 168 (2026-11-17) - v798: 回响（其七）「那一针」—— 第七回响
+
+- 新内容：`docs/world-bible/echoes/E07-那一针.md` + `.en.md`——承接第七章「灯前灰」的机房器件：
+  Chapter VII 的地窖沙盘里多出来的那一根针，位置在最底层，弯在与灰同色的灰底，被三种人都摸过：
+  第一个是修灯的老员工，第二个是灯芯商的货郎，第三个是孩子。最初没人登记过。
+- 六节正文，双语锚句 **全部 81/81 通过**（verify:world-bible OK）；gen:bible-snapshot（7 章 × 7 回响）；live probe /bible/echo-007-the-needle 200（双语标题 + 双语锚句皆命中）；/bible hub 列出 echo-007 入册。
+- BibleQuiz **28 题**（+2 E07 双语题）；序列钉死 [..., 1, 1]；SHA pin 0fde47b9…
+- guide 全套对齐：六回响 → 七回响（zh/en ×6 处）；SHA pin 718eec4d… 重钉。
+- 门：fe-gates 122 套 1193/1193 OK；census 2491 OK；tsc 0。
+
+## cont. 169 (2026-11-17) - v799: StateGraph 做进项目里面 —— `/stategraph` 公开只读落点 + 真图试跑
+
+- 新路由 `/stategraph`（zh/en 全双语，RSC，零 hex，全部 design tokens）：
+  - 七个节点的旅程（validate → check_provider → build_prefix → call_llm → cache_read → parse_and_release → assemble），每节点：职责 + 失败分支（条件边直通 END）
+  - 「为什么值得做这张图」五条（可读 / 可测 / 可替换 / 与 /v1/ai/run 同构 / 失败是走出来的不是 catch 出来的）
+  - 「它现在坐在哪里」六条（路由 / 源文件 / x-nexus-orchestration 头 / 8 个测试用例 / /guide 说明书章节 / 首次编译行为）
+- 新 API `/api/stategraph`：公开试跑——**固定** critique + dryRun + fast 载荷，零用户输入、零 PII；
+  每 IP 6 次 / 10 分钟限流（Redis 不可达时按既有降级退回进程内计数，绝不放大额度）；
+  DEMO MODE 下 409 如实拒绝；成功也如实：返回真 provider/model、真 `x-nexus-orchestration: stategraph` 头、
+  dryRun=true、patchesApplied=0、tokensIn/cachedTokens/latencyMs/costBasis 逐项来自真回执。
+- web server-ai 客户端新增 `runDesignGraph`（与 `runAiService` 同契约，仅换路径 + 额外读响应头 `x-nexus-orchestration`）。
+- **新落点页纪律**：`/stategraph` 进 `sitemap.xml`、`/guide` StateGraph 小节双语各加一行（指向 /stategraph）；
+  guide SHA pin fab4ee2a… 重钉。
+- **故障修复（ADR 0271）**：Redis 断开时 `/healthz` 以前会 500（counts() 裸 await，redis 重试数秒后抛 ConnectionError）→
+  web 探测超时 → 全平台 AI 误判 DEMO MODE。现在 `counts()` 套 350ms wait_for，异常即显式降级
+  `counts-unavailable:<exc>`（note 标注，pending/running 如实 0，HTTP 恒 200）。新测试 pin 住该行为。
+  现场触发路径：Docker 多次熄火 → 56379 拒绝连接 → 500 → 409 demo_mode（实测复现）→ 修复后 healthz 200 / capability real。
+- 门：fe-gates **123 套 · 1200/1200**（新增 SGRAPH-1 suite 7 用例）；census **2540 OK**；tsc **0**；
+  ai-service test_health + test_stategraph **16/16**；guide-visual-style 重钉后全绿。
+- live probe（dev，:3100）：`/stategraph` 200 zh+en、`/sitemap.xml` 含 /stategraph、`/guide` 含 /stategraph；
+  `POST /api/stategraph` 200（真 provider gpt-6.1-terra，x-nexus-orchestration: stategraph，真模型 explanation，
+  tokensIn 6733 / latencyMs 6156，dryRun 不落盘）；此前 Docker 宕机窗口实测 409 demo_mode（如实失败）。
+- BibleQuiz/章节不动；showcase 将在提交后同步。
+
+## cont. 170 (2026-11-17) - v800: 编排车道接进生产入口 —— /api/ai/run 的 x-nexus-orchestration 分流
+
+- `/api/ai/run` 现在有两条车道，切换不改契约：
+  - lane-a（缺省）→ /v1/ai/run（顺序执行，零变化）
+  - stategraph → /v1/ai/design-graph（LangGraph StateGraph，七节点，条件边直通 END）
+- 解析器 `server/ai/orchestrationLane.ts`：请求头 `x-nexus-orchestration` > env `NEXUS_AI_ORCHESTRATION` > lane-a；
+  非法值按「该层无判定」回落——拼写错误绝不换车道（4 个单测钉死）。
+- 响应头 `x-nexus-orchestration` 如实回声车道（含 demo 路径）；新指标
+  `nexus_ai_run_lane_total{lane,capability}`（METRICS 登记，/admin 可直接出图）。
+- 切换是服务端 canary（env），不是客户端开关；lane-a 保留为零风险回退位；ADR 0272。
+- guide StateGraph 小节 zh/en 各加一行（生产流量也可以换道了）；guide SHA pin 3ef44b81… 重钉。
+- 新测试：`orchestration-lane.test.ts`（4 例纯函数矩阵）+ `ai-run-orchestration-lane.integration.test.ts`
+  （3 例，真 PG）：stategraph header 回声 stategraph / 缺省 lane-a / 乱传回落 lane-a —— 全绿。
+- live probe（:3100）：/stategraph 200（zh+en 全量文案齐），POST /api/stategraph 200（真 provider，
+  orchestration 头 stategraph，dryRun 不落盘）；ai-service healthz capability=real（llmLive unknown→后台补）。
+- 门：fe-gates 123 · 1200/1200；census 2540 OK；tsc 0（recentChanges 必需字段修正）；
+  ai-service 16/16（healthz 降级窗口新测试 pin）。
+
+## cont. 171 (2026-11-17) - v801: Studio CommandBar 编排车道 chip —— 车道从服务端响应头到可见徽章
+
+- CommandBar（Studio 的 AI 输入条）新增 `.cb-laneChip`：结果行里跟在 DEMO/LIVE 与缓存读数旁边，
+  显示 `STATEGRAPH`（LangGraph 状态图，accent 描边）或 `LANE-A`（顺序执行，弱描边）；
+  车道由响应头 `x-nexus-orchestration` 判定——客户端只转述不猜；头缺失/非法即不渲染。
+- 文案 zh/en 各加 `laneBadgeTitle`（tooltip 说明两条车道与判定来源）；
+  组件零 transition、零 hex、全 tokens，Chip 样式收在 `.cb-*` 段内；census 2541 OK。
+- CommandBar SHA pin c17c2e80… 重钉（test-exact redact：EOL+className+cn()+空白归一）。
+- 诚实边界：studio 的 live 点击验证没能完成——in-app 浏览器无法覆盖 HttpOnly guest cookie，
+  SSR 对该项目只吐出 loading 壳（document suspense 未 flush），chip 的接线属于
+  「响应头 → useState → 结果行条件渲染」三段式，已被 tsc + 11/11 command-bar 门 +
+  route 级集成测试（响应头回声 lane-a）钉住；未做真浏览器断言。
+- 顺手清理：为手测插入的 sessions 行（Other User）已删除，不留活会话。
+
+
+## cont. 172 (2026-11-17) - v802: 回响（其八）「第八盏灯」—— 第八盏灯是谁的
+
+- 新内容：`docs/world-bible/echoes/E08-第八盏灯.md` + `.en.md`——承接第七章「灯前灰」结尾：
+  账房在三百年账册封面写下「第八盏灯」四字（不写日期、不写欠数），关了门，门外仍有人等。
+  这个回响回答：第八盏灯是谁？还会不会亮？为什么门外的人不散？——六节正文（封面四字 / 灰里之影 / 油 /
+  等的人 / 第九下 / 最后一次），全部意象化，不解释世界观。
+- 锚句全系列 **87/87 全过**（verify:world-bible OK，zh+en 逐字对照，全典籍唯一）；
+  gen:bible-snapshot（7 章 × 8 回响）字节一致；verify:bible-snapshot OK。
+- live probe :3100：/bible/echo-008-the-eighth-lamp 200（双语标题 + 双语锚句皆命中）；/bible hub 列出 echo-008。
+- BibleQuiz **30 题**（+2 E08 双语题）；序列钉死 [..., 0, 2]；SHA pin 9c9655ed… 重钉。
+- guide 全套对齐：七回响 → 八回响 / seven echoes → eight echoes（zh/en ×6 处）；SHA pin 4e909deb… 重钉。
+- 草稿出真 provider（gpt-6.1-terra），人工定稿·严纪律。
+- 门：fe-gates 123 套 · 1200/1200 OK；census 2541 OK；tsc 0。
+
+## cont. 173 (2026-11-17) - v803: 回响八更名「封面四字」——不与第四章《第八盏灯》撞名
+
+- 更名：回响（其八）「第八盏灯」→ **「封面四字 / The Four Characters」**（echo-008-the-four-characters）。
+  原因：世界大典第四章已有《第八盏灯》（卷四引线，灯要点燃、书终究要合上）——典籍室会出现两部同名，
+  搜索与 hub 混淆。回响本就讲"第七章封面上被写下的那四个字是谁、还会不会亮、门外的人为什么不散"——
+  「封面四字」更贴切，也不再撞名。
+- 锚句不变（87/87 全过）；gen:bible-snapshot 重生成（8 回响）字节一致
+- BibleQuiz 引用更新（2 zh + 2 en）；SHA pin a5ad5b40… 重钉
+- live probe：/bible/echo-008-the-four-characters 200；旧 slug 404
+- 门：fe-gates 123 套 · 1200/1200；census 2541 OK
+
+## cont. 174 (2026-11-17) - v804: 画布滚轮方向修正——往上滑往上看、往下滑往下看
+
+- 问题（§五实报）：Studio 画布滚轮方向反了，"玩着很难受"，必须修
+- 修复：`CanvasStage.tsx` onWheel 平移与 delta 同号（`panBy(-d)` → `panBy(+d)`）——
+  Ctrl/Meta+wheel 缩放不变；shift+wheel 横移一并同向；注释写明映射语义
+- 兼容性推演：标准滚轮（wheel up deltaY<0）→ 向上看；自然滚动系/反向滚轮（fingers-up deltaY>0，用户实指设备类）→ 同样向上看
+- CanvasStage SHA pin 5ab5d608… 重钉（test-exact redact，含 \\s+→' ' 归一）；canvas-stage 9/9
+- 门：fe-gates 123 套 · 1200/1200；census 2541 OK；tsc 0
+
+## cont. 175 (2026-11-17) - v805: 主界面全量教学说明（§五）——每个按钮背后都有一句中文/英文
+
+- §五「在主界面上给各种按键和操作加上附带的教学说明」落地 Studio 主界面：
+  - 左栏 14 个 tab 全部挂 tabHints tooltip（一行中文/英文教学语：图层 / 设计系统 / 资产 /
+    世界 / 游戏 / 分镜 / 团队 / 角色 / 记忆 / 检索 / 上下文 / Agent / 历史 / 健康）
+  - 5 个视图切换（画布/方案/代码/世界图/游戏图）挂 viewHints tooltip
+  - 顶栏「面板」按钮补 railToggleTitle
+- aria-label 与 tooltip 同文（屏幕阅读器即说教学语）；class 结构零变化
+- studio-shell SHA 493e6ede…（redact：EOL+cn+空白归一）、studio-topbar SHA 2b18cc95…
+  （自写 stripClassNames 复制实现，pre-edit 哈希与旧 pin 字节一致复核）重钉
+- 门：fe-gates 123 套 · 1200/1200；census 2541 OK；tsc 0；studio-shell/topbar 25/25
+
+## cont. 176 (2026-11-17) - v806: 世界大典 第八章「灰后」——灰被分走的日子
+
+- 新内容：`docs/world-bible/008-灰后.md` + `.en.md`——第七章「灯前灰」账合之后的第三天：
+  门没有开、潮未停；第四日有人开始刮灰带走（没有人禁止，也没有人允许）；
+  孩子的第八处名字被他自己念完了（窗外无人听见，空盏里落进一粒灰）；
+  最后一趟潮水退到比以往都远；空盏留给下一个不喊名字的人；下一本账从一行日子开始——世界继续。
+- 锚句全系列 **93/93 全过**（verify:world-bible OK，zh+en 逐字对照）；gen:bible-snapshot（8 章 × 8 回响）字节一致；
+  live probe /bible/008-after-the-ash 200（双语命中）；/bible hub 入册。
+- BibleQuiz **32 题**（+2 Ch.VIII 双语题）；序列钉死 [..., 1, 1]；SHA pin e477f5af… 重钉。
+- guide 全套对齐：七章 → 八章（zh/en ×6 处）；SHA pin 56f52187… 重钉。
+- 草稿出真 provider（gpt-6.1-terra），人工定稿·严纪律。
+- 门：fe-gates 123 套 · 1200/1200 OK；census 2541 OK；tsc 0。
+
+## cont. 177 (2026-11-17) - v807: 回响（其九）「红绳」—— 灯篓提手上那个四十年没人解的结
+
+- 新内容：`docs/world-bible/echoes/E09-红绳.md` + `.en.md`——盯着第七章灯篓提手上的褪色红绳：
+  红绳从一件童衣的襟口拆下（灯篓漂来、陆守灯打了死结、没人敢解）；
+  四十年盐把红磨成暗褐，结心仍留一线红；E08 里那个写七个名字的孩子见过它（"认得的不是颜色，是结"）；
+  记室的规矩：解绳=重开旧账——没有人敢落笔，剪子递到提手前也停了。
+- 锚句全系列 **99/99 全过**（verify:world-bible OK，zh+en 逐字）；gen:bible-snapshot（8 章 × 9 回响）字节一致；
+  live probe /bible/echo-009-the-red-cord 200（双语命中）；/bible hub 入册。
+- BibleQuiz **34 题**（+2 E09 双语题）；序列钉死 [..., 1, 1]；SHA pin 4a360834… 重钉。
+- guide 全套对齐：八回响 → 九回响 / eight echoes → nine echoes（zh/en ×6 处）；SHA pin d004aa3d… 重钉。
+- 草稿出真 provider（gpt-6.1-terra），人工定稿·严纪律。
+- 门：fe-gates 123 套 · 1200/1200 OK；census 2541 OK；tsc 0。
+- 附：8 个公开页面 DOM 级体检（水平溢出 / 裁切 / <10px 字 / 行高 / 不可见文字）全部 0 异常——
+  前端系统结构干净，本轮不做盲目 UI 改动。
+
+## cont. 178 (2026-11-17 02:10) - v808: 「非流」根因定位并修复——NEXUS_LLM_STREAM=1，前缀缓存 100% 上报
+
+- 用户实报（§四）：「调用时缓存命中率很低，而且一直显示『非流』……肯定是调用方法出了问题」。
+- 根因：`apps/ai-service/.env`（未入库）第 31 行残留 `NEXUS_LLM_STREAM=0`——调试 502 风暴时留下的 opt-out；
+  config 默认 `llm_stream=True`（ADR-0265 Accepted：流式是实测获胜方，`=0` 需要 probe 级 A/B 证据，本机从未有过）。
+  非流 transport → provider 不回 `prompt_tokens_details.cached_tokens` → 命中率永远显示缺失/0。
+- 修复：`.env` 翻 `NEXUS_LLM_STREAM=1`（仅此一行），ai-service 重启。
+  验证 `/v1/ai/cache-stats` → `transport: {"stream": true}`。
+- **实测**（同请求连打 6 次，dryRun design-graph，digest 23aa0d15…）：
+  冷启动 0 cached（cacheReported=false）→ 后续 5/5 次 `cachedTokens=6724/6724`、`cacheReported=true`、**100% 命中**；
+  cache-stats：`provider reported=5 missing=1 cachedTokensTotal=33620 reportedHitRate=1.0`。
+- 附带确认：Clash Verge 连接抖动（前两次 502 ConnectError，重试后全 200）与 transport 形态无关；missing=1 为真实缺报，未粉饰。
+- 证据页：`docs/evidence/cache-stream-fix-2026-11-17.md`（方法、6 次逐次计数、现场截图级可复现步骤、诚实边界）。
+- Docker 再次熄火后重启（nexus-redis/nexus-postgres healthy），能力判定仍为 real（ADR 0271 路径生效）。
+- 门：ai-service healthz 200 capability=real；fe-gates 123 · 1200/1200（本轮无前端代码变更，避免无谓重钉）。
+
+## cont. 179 (2026-11-17) - v809: 回响（其十）「钥匙」—— 守门老人手里那串没人试的钥匙
+
+- 新内容：`docs/world-bible/echoes/E10-钥匙.md` + `.en.md`——盯着第八章守门老人手里的那串钥匙：
+  钥匙是暂存库里没人认领的遗物（不是买的）·
+  守门人每次数「十九→二十→十七→二十一」——数目从不相同，也没人划掉旧数；
+  守门人不试钥匙（手未入锁，账未重开——开门的第一步就是重开旧账）；
+  盐先走了，锈才跟上；灯前那位「不拿册子、不说名字」的人站了一回没敢出手；
+  守门人换班、老去，钥匙仍留在台阶石缝旁——人会离开，钥匙不记得。
+- 锚句全系列 **105/105 全过**（verify:world-bible OK，zh+en 逐字）；gen:bible-snapshot（8 章 × 10 回响）字节一致；
+  live probe /bible/echo-010-the-keys 200（双语命中）；/bible hub 入册。
+- BibleQuiz **36 题**（+2 E10 双语题）；序列钉死 [..., 1, 1]；SHA pin 17d91eb1… 重钉。
+- guide 全套对齐：九回响 → 十回响（zh/en ×6 处）；SHA pin 8a2d9f76… 重钉。
+- 草稿出真 provider（gpt-6.1-terra），人工定稿·严纪律。
+- 门：fe-gates 123 套 · 1200/1200 OK；census 2541 OK；tsc 0。
+
+## cont. 180 (2026-11-17) - v810: 世界大典 第九章「带灰回家」——灰入家门，柴米油盐
+
+- 新内容：`docs/world-bible/009-带灰回家.md` + `.en.md`——第八章里被带走的灰，落到了一个普通人家里：
+  五日袋未入门（风吹它没倒，人没动它）· 掌家的人先开袋（剪刀声，斧头落墩，没人先动手）·
+  灰分七份每份一斤，余灰无数（孩子问"少的那一点算什么"，没人答）·
+  孩子两次摸袋——第一次手是干的，第二次手是湿的（洗了两遍还洗不掉）·
+  灰各有去处：撒进院里种小白菜、邻居埋进枕头底下、两份没人动、余灰始终盖着；
+  屋里还留着第二袋灰靠着米缸——没人说它开，也没人说不开。
+- 锚句全系列 **111/111 全过**（verify:world-bible OK，zh+en 逐字对照）；gen:bible-snapshot（9 章 × 10 回响）字节一致；
+  live probe /bible/009-ash-carried-home 200（双语命中）；/bible hub 入册。
+- BibleQuiz **38 题**（+2 Ch.IX 双语题）；序列钉死 [..., 0, 1]；SHA pin 87bff017… 重钉。
+- guide 全套对齐：八章 → 九章（zh/en ×6 处）；SHA pin b159c177… 重钉。
+- 草稿出真 provider（gpt-6.1-terra），人工定稿·严纪律。
+- 门：fe-gates 123 套 · 1200/1200 OK；census 2541 OK；tsc 0。
+
+## cont. 181 (2026-11-17) - v811: 典籍室第三个玩法 —— /bible/anchors 锚句回放（Anchor Echo）
+
+- 新页面 `/bible/anchors`（zh/en 全双语，RSC + client 游戏组件）：
+  正典里唯一不翻译、不改写的句子逐字回放——看见锚句，选它出自哪一章/哪一回响。
+  8 轮/局、连对（streak）与历史最佳（localStorage，纯客户端、零 provider、零 fetch）。
+- 数据：`apps/web/src/world-bible/anchors.generated.ts`——由新脚本 `scripts/gen-anchor-echo.mts`
+  从 docs/world-bible/ 直接解析锚句（zh/en 成对、顺序绑定、refZh/refEn 出处标记），
+  111 锚句；新增 `npm run gen:anchor-echo` / `verify:anchor-echo`（--check 字节比对，正典仍是唯一真值）。
+- hub（/bible）新增第三个 playLink（锚句回放 / Anchor Echo）；sitemap.xml 收入 /bible/anchors；
+  /guide StateGraph 小节同步说明（zh/en 各一行）；guide pin d004aa3d… → 1ace63fd… 重钉；
+  hub 页 SHA pin 5dce4946… → 09d059ce… 重钉。
+- 新增 visual-style 套件 `anchor-echo-visual-style.test.ts`（7 用例）；
+  fe-gates 122 → **124 套 · 1207/1207**；census 2541 → **2571 OK**。
+- live probe：`/bible/anchors` 200（zh+en 双语命中 a e-* 标记）、/bible hub 列出、sitemap 含。
+- 草稿：游戏设计/数据纪律人工定稿；锚句全部逐字来自正典，无一句机器改写。
+
+## cont. 182 (2026-11-17) - v812: 回响（其十一）「秤」—— 七份灰称完了，余灰留在碗里
+
+- 新内容：`docs/world-bible/echoes/E11-秤.md` + `.en.md`——盯着第九章那架挂在梁上的锈秤：
+  秤是外祖在河口替人分鱼的旧物（十六道刻线，最末一道被刀削浅了；船棚失火后交给了父亲）·
+  秤钩先是发暗再起锈（盐先到，潮气留下来，铁没断）·
+  称灰：七份每份一斤，余灰无数（孩子数数时漏了一次，父亲让他从头来）·
+  锈不改秤的判决（铁锈只薄了铁，没有挪动刻线）·
+  孩子替父亲记过一次数（桌沿上划了七条浅痕，第四道刻线是秤砣的停处）·
+  秤回梁上，余灰留在倒扣的碗里——没人称，也没人问起。
+- 锚句全系列 **117/117 全过**（verify:world-bible OK，zh+en 逐字）；gen:bible-snapshot（9 章 × 11 回响）字节一致；
+  verify:anchor-echo 字节一致（117 句）；live probe /bible/echo-011-the-scale 200（双语命中）；/bible hub 入册。
+- BibleQuiz **40 题**（+2 E11 双语题）；序列钉死 [..., 2, 2]；SHA pin 908434c9… 重钉。
+- guide 全套对齐：十回响 → 十一回响（zh/en ×6 处）；guide 游戏介绍从 111 改 117 句；SHA pin edc3133e… 重钉。
+- 草稿出真 provider（gpt-6.1-terra），人工定稿·严纪律。
+- 门：fe-gates 124 套 · 1207/1207 OK；census 2571 OK；tsc 0。
+
+## cont. 183 (2026-11-17) - v813: 回响（其十二）「碗」—— 盖住余灰之后，两只碗之间那条细暗缝
+
+- 新内容：`docs/world-bible/echoes/E12-碗.md` + `.en.md`——盯着第九章里盛灰的旧瓷碗一生：
+  碗从外祖母灶间来，两处磕；旧账只写着「瓷一只，留」·
+  碗口那道裂从深处生出来（裂缝不进指甲，耳边也没响）；盆底也有一道缝——灰进了缝便不肯出来 ·
+  盛灰：表面一层、没有扬烟，只在碗沿落一圈暗痕 ·
+  余灰倒进瓷碗时窗外正涨潮——另一只倒扣的碗盖上，边沿相接，碰出一声钝响 ·
+  孩子早晨摸到碗沿，手停在旧缺处，没有掀开 ·
+  屋梁换过之后，两只碗仍相扣着放——灰结牢了，碗守住了沉默。
+- 锚句全系列 **123/123 全过**（verify:world-bible OK，zh+en 逐字）；gen:bible-snapshot（9 章 × 12 回响）字节一致；
+  verify:anchor-echo 字节一致（123 句）；live probe /bible/echo-012-the-bowl 200（双语命中）；/bible hub 入册。
+- BibleQuiz **42 题**（+2 E12 双语题）；序列钉死 [..., 1, 1]；SHA pin d4fe3f62… 重钉。
+- guide 全套对齐：十一回响 → 十二回响（zh/en ×6 处）+ 游戏介绍 117 句 → 123 句；SHA pin 30a4a629… 重钉。
+- 草稿出真 provider（gpt-6.1-terra），人工定稿·严纪律。
+- 门：fe-gates 124 套 · 1207/1207 OK；census 2571 OK；tsc 0。
+
+## cont. 184 (2026-11-17) - v814: 世界大典 第十章「谁守灯」—— 灯还没灭，自己就留了下来
+
+- 新内容：`docs/world-bible/010-谁守灯.md` + `.en.md`——《灰后》《带灰回家》之后：
+  没人说要守灯，可有人进了门，留下了（他没答应，只是没走）·
+  灯不是一直亮的（暗一下也要有人等）·
+  灯不吃油，吃人一天里没说出口的话（灯吃沉默、吃没成形的敲门声）·
+  第七天门外开始轮流送柴送水——不再只经过 ·
+  守灯不是救火，不是祈祷，它不过是一段时间：有人进门留下，有人把柴放下，没人记得谁先开始，
+  账仍未合——门内有光，门外有脚印。
+- 锚句全系列 **129/129 全过**（verify:world-bible OK，zh+en 逐字）；gen:bible-snapshot（10 章 × 12 回响）字节一致；
+  verify:anchor-echo 字节一致（129 句）；live probe /bible/010-who-tends-the-lamp 200（双语命中）；/bible hub 入册。
+- BibleQuiz **44 题**（+2 Ch.X 双语题）；序列钉死 [..., 1, 1]；SHA pin f1cf6ef0… 重钉。
+- guide 全套对齐：九章 → 十章（zh/en ×6 处）+ 游戏介绍 123 → 129 句；SHA pin 347c4c16… 重钉。
+- 草稿出真 provider（gpt-6.1-terra），人工定稿·严纪律。
+- 门：fe-gates 124 套 · 1207/1207 OK；census 2571 OK；tsc 0。
+
+## cont. 185 (2026-11-17) - v815: 回响（其十三）「门槛」—— 门内灯火与门外潮声之间，唯一不必被看守的东西
+
+- 新内容：`docs/world-bible/echoes/E13-门槛.md` + `.en.md`——盯着几章来一直安静的那道门槛：
+  门槛的木头没有来处（没人替它作证，灯光落在木头上分成两截，它没取其中一截）·
+  门槛不说里外，只认脚步还没落定的时候（记账的人也站过那里没敢跨）·
+  柴与水：柴总放在门槛外，账不出门，门槛先收 ·
+  雨冲过门槛几次没人记全（脚印被水削薄、被灰盖住，木头仍托着每一道重量）·
+  有人从里面跨出去——无人问他去哪、无人送他，墨水干了的那一栏灯没把它照成答案；
+  门槛记得鞋底落下时的轻重，不记去处。
+  门槛守住自己，便无人守它。
+- 锚句全系列 **135/135 全过**（verify:world-bible OK，zh+en 逐字）；gen:bible-snapshot（10 章 × 13 回响）字节一致；
+  verify:anchor-echo 字节一致（135 句）；live probe /bible/echo-013-the-threshold 200（双语命中）；/bible hub 入册。
+- BibleQuiz **46 题**（+2 E13 双语题）；序列钉死 [..., 1, 2]；SHA pin 51b00004… 重钉。
+- guide 全套对齐：十二回响 → 十三回响（zh/en ×6 处）+ 游戏介绍 129 → 135 句；SHA pin b1b4fee2… 重钉。
+- 草稿出真 provider（gpt-6.1-terra），人工定稿·严纪律。
+- 门：fe-gates 124 套 · 1207/1207 OK；census 2571 OK；tsc 0。
+
+## cont. 186 (2026-11-17) - v816: 回响（其十四）「柴」—— 死木到门前，账到灯下
+
+- 新内容：`docs/world-bible/echoes/E14-柴.md` + `.en.md`——盯着第十章里被放在门槛外的柴捆：
+  死木（北坡第三道石脊，林子死在盐风里，七棵被风倒下）· 捆柴（旧麻绳，结朝上免得结落进泥里）·
+  不敲门（「敲门的人要等回答，等回答的人不能保证什么时候走」）·
+  三日不动（柴先在灯下放三日，第三日清早账上划一道短线才算归屋）·
+  灰坑（门内西墙下，离门槛六步，深一尺半）· 柴账有差额，柴才算完。
+- 锚句全系列 **141/141 全过**（verify:world-bible OK，zh+en 逐字）；gen:bible-snapshot（10 章 × 14 回响）字节一致；
+  verify:anchor-echo 字节一致（141 句）；live probe /bible/echo-014-the-firewood 200（双语命中）；/bible hub 入册。
+- BibleQuiz **48 题**（+2 E14 双语题）；序列钉死 [..., 1, 2]；SHA pin 2bd8f3a3… 重钉。
+- guide 全套对齐：十三回响 → 十四回响（zh/en ×6 处）+ 游戏介绍 135 → 141 句；SHA pin 3faa3be0… 重钉。
+- 草稿出真 provider（gpt-6.1-terra），人工定稿·严纪律。
+- 门：fe-gates 124 套 · 1207/1207 OK；census 2571 OK；tsc 0。
+- 附：Docker 熄火后 heavy gates 仍 124 套全绿；ai-service 存活（:3212 healthz real）。
+
+## cont. 187 (2026-11-17) - v817: 回响（其十五）「灰坑」—— 门内西墙下那个六步、一尺半深的灰坑
+
+- 新内容：`docs/world-bible/echoes/E15-灰坑.md` + `.en.md`——盯着第十四章里铁盆从灶膛到坑口的整条路：
+  尺寸（六步不是量出来的，是门槛到墙根之间够走的数；西墙因为墙后是空地，灰不必走出门）·
+  第一镐（退潮后的阴雨天，阿澄下的第一镐，手掌贴着湿土，镐尖碰见碎碗）·
+  铁盆（宽耳盆挂灶门右边，灰冷了才入盆，门外不许留盆）·
+  三十七年（坑底一年比一年近——旧灰不全取走，一尺半只剩一尺）·
+  两块旧砖（烟道拆出来的旧砖，罗嫂压上去的：只留两块——一手掀一块，一只手还可扶盆）·
+  封口（坑满那天，铁盆碰了坑边没落下去；满坑不压砖，免得后来人以为还能开——
+  墙根留下两块砖的空印，灰仍冷在门内，六步仍在门槛与西墙之间）。
+- 锚句全系列 **147/147 全过**（verify:world-bible OK，zh+en 逐字）；gen:bible-snapshot（10 章 × 15 回响）字节一致；
+  verify:anchor-echo 字节一致（147 句）；live probe /bible/echo-015-the-ash-pit 200（双语命中）；/bible hub 入册。
+- BibleQuiz **50 题**（+2 E15 双语题）；序列钉死 [..., 1, 1]；SHA pin 99fb033f… 重钉。
+- guide 全套对齐：十四回响 → 十五回响（zh/en ×6 处）+ 游戏介绍 141 → 147 句；SHA pin 06832b25… 重钉。
+- 草稿出真 provider（gpt-6.1-terra），人工定稿·严纪律。
+- 门：fe-gates 124 套 · 1207/1207 OK；census 2571 OK；tsc 0。
+
+## cont. 188 (2026-11-17) - v818: 世界大典 第十一章「灯下的账」—— 账仍未合，仍在被写下去
+
+- 新内容：`docs/world-bible/011-灯下的账.md` + `.en.md`——《谁守灯》之后，那本账本接下来的事：
+  交账的人把泡过水的账放在桌上不报姓名（账接过手，旧日仍湿）·
+  最上面那行只有一个名字，没人记得谁写上去的（像一根钉在旧木里的铁钉，没人拔，也没人承认是自己钉的）·
+  账房不记「欠」「应还」「认领」「最后」——只记数目和日期，不记谁该补上（「不写欠字，债仍在门外」）·
+  每月核对、有人从雨里提来一罐油倒进灯盏——没人问他从哪里来；抄写的人换了又换；
+  账本一年比一年厚，夜里发出细响（「厚纸有声，夜里不报全名」）·
+  后来没人再翻那本账了——只是继续从空白处接着写下去（水少，柴尽，雨过，门开）。
+- 锚句全系列 **153/153 全过**（verify:world-bible OK，zh+en 逐字）；gen:bible-snapshot（11 章 × 15 回响）字节一致；
+  verify:anchor-echo 字节一致（153 句）；live probe /bible/011-the-ledger-beneath-the-lamp 200（双语命中）；/bible hub 入册。
+- BibleQuiz **52 题**（+2 Ch.XI 双语题）；序列钉死 [..., 0, 1]；SHA pin 25cadb0d… 重钉。
+- guide 全套对齐：十章 → 十一章（zh/en ×6 处）+ 游戏介绍 147 → 153 句；SHA pin fe094e1e… 重钉。
+- 草稿出真 provider（gpt-6.1-terra，attempt 1 冷启动 cachedTokens=4608/4826 = 95.5% 前缀命中），人工定稿·严纪律。
+- 门：fe-gates 124 套 · 1207/1207 OK；census 2571 OK；tsc 0。
+
+## cont. 189 (2026-11-17) - v819: 世界大典 第十二章「潮来的时候」—— 盐先到了
+
+- 新内容：`docs/world-bible/012-潮来的时候.md` + `.en.md`——灯下的账还在写、柴还在送、灯还在明灭：
+  那天傍晚盐味突然变重——门内的人先闻到（盐先到了）·
+  潮头来得很低——水里没有鱼也没有垃圾（坏船钉撞上门槛、褪色布贴桌脚、一支旧笔正好停在灯下，笔尖朝着账本）·
+  账房先把账挪上窄架（架子比桌面高一尺，压纸石碰到纸页发出一声轻响），再把灯挪到墙上的旧铁托里（"火苗贴着墙，先低了一下，又直起来"）·
+  水停了半夜，盐留在榫缝和鞋底；潮水落去后，门外脚印到街口便断了；
+  潮水带走了什么——那个夹在账本最末许多年没人打开的一张旧名单（"少一页"，写完划掉）；
+  第二天送柴的人照常来；他们把账本放得更高，灯挂得更牢，门槛上的盐扫净——周到底。
+- 锚句全系列 **159/159 全过**（verify:world-bible OK，zh+en 逐字）；gen:bible-snapshot（12 章 × 15 回响）字节一致；
+  verify:anchor-echo 字节一致（159 句）；live probe /bible/012-when-the-tide-came-up 200（双语命中）；/bible hub 入册。
+- BibleQuiz **54 题**（+2 Ch.XII 双语题）；序列钉死 [..., 1, 1]；SHA pin 26ab94bd… 重钉。
+- guide 全套对齐：十一章 → 十二章（zh/en ×6 处）+ 游戏介绍 153 → 159 句；SHA pin 8147b205… 重钉。
+- 草稿出真 provider（gpt-6.1-terra，conductor 首真块缓存测试后首发），人工定稿·严纪律。
+- 门：fe-gates 124 套 · 1207/1207 OK；census 2571 OK；tsc 0。
+
+## cont. 190 (2026-11-17) - v820: 观测大厅接入 AI 深读 —— LLM 分析能力驱动优化建议（§新指令·关键期望）
+
+- 新 API `POST /api/ai/deep-read`：
+  - 输入：客户端已经拿到的 `/api/pulse` 实测聚合数据（服务端不二次查库）
+  - gpt-6.1-terra 基于这些真实数字输出 4 条按"可操作性/收益/置信度"排序的优化建议——
+    每条带依据（引用输入数字及其口径）、预期收益（含算式）、可执行的下一步、置信度档
+  - 纪律：DEMO MODE → 409 如实拒绝；每 IP 每小时 10 次；20 分钟 LRU（4 槽）缓存；
+    disclaimer 常驻「AI 起草 · 数字均为平台实测 · 执行前人工复核」；不读 DB、不编造任何数字
+- 新 UI：`/observatory` 加「AI 深读」面板（DeepReadCard，中英双语）——
+  解锁 123 → 点「让 AI 深读」→ 展示 4 张建议卡（标题 / 依据 / 预期收益 / 下一步 / 置信度徽章）；
+  503/429/409 全如实展示；重复点击走 20 分钟缓存不计费
+- live probe（:3100）：POST /api/ai/deep-read → HTTP 200（gpt-6.1-terra，41s）——
+  真实出 4 条建议（例：bot 占比 620/1340=46% 拆口径；15/11-16→11-17 单日 190→96 下跌归因；
+  opensDeltaPct 18.2% vs visitorDays 11.4% 砍口径；hotTop 极地主题 210→162.5% 不是正确指标）——
+  模型全程没有编造任何输入数字，#1 甚至写出 1340-620=720 的算式
+- 门：fe-gates 125 套 · **1213/1213**；census 2593 OK；tsc 0；新增套件 deep-read-visual-style.test.ts（6 例）。
+- 本片对应 §新指令"深度的把大模型 API 能力完整深度的嵌入项目整体能力"——
+  LLM 不再只生成补丁/回答，而是**读平台自己的实测数据、起草可操作建议**；
+  完整融合（更广的 AI 后端切面）仍在路上，见下。
+
+## cont. 191 (2026-11-17) - v821: 说明书覆盖 /observatory AI 深读 + 双语对齐
+
+- /guide 双语各加一处、对 /observatory 的描述升级：「带规则外推预测的公开围观（口令 123）」
+  → 现补入「AI 深读：让模型基于实测聚合数字起草四条按可操作性排序的优化建议（含依据/收益/下一步）」
+- guide SHA pin b86d1496… 重钉；fe-gates 125 套 · 1213/1213；census 2593 OK
+- 指令收尾原则延续：大典继续生长（12 章 × 15 回响 · 159 组中英锚句逐字对齐）；
+  新 AI 切面（/api/ai/deep-read）上线即收录说明书（§七「说明书完整覆盖」落实）
+
+## cont. 192 (2026-11-17) - v822: /discover 热度榜「馆长批注」—— LLM 给真实作品写荐语（§新指令·LLM 深度嵌入续）
+
+- 新 API `POST /api/editor-note`：
+  - 输入：trending 榜前三的**实测指标**（名称 / 类型 / 浏览 / 赞 / 评论 / 转 / 热度分，全部来自数据库真实计数）
+  - gpt-6.1-terra 为每件作品写一句"为什么值得打开"批注——**每句必须包含输入的具体数字**（如 210 浏览·34 赞·162.5 热度）
+  - 纪律：只读指标，绝不对作品内容做任何事实断言（模型没读手稿，不能说"讲一个关于…的故事"）；
+    DEMO MODE → 409；每 IP 每小时 20 次；整批 24h LRU 缓存（省 provider 额度）；zod 全覆盖，缺一条即 502
+- 新 UI：`/discover?sort=trending` 榜首上方挂「馆长批注」条（EditorNotes，中英双语；公共页失败安静消失不渲染 5xx）
+- live probe：POST /api/editor-note → HTTP 200（gpt-6.1-terra）——三条批注全部带真实数字（
+  "210 浏览 高赞 162.5 热度 → 值这个关注度，值得伸手"、"160 浏览 22 赞 45.5 → 值这个关注度"、"140 浏览 18 赞 → 值这个默契度"）
+- 门：fe-gates 126 套 · **1219/1219**；census 2601 OK；tsc 0；discover-page SHA pin 重钉 1279e6e6…；
+  新增套件 editor-notes-visual-style.test.ts（6 例）
+- 本片是 cont. 190 之后"把 LLM 能力深度嵌入整体"的第二块——观测大厅 AI 深读（读数→建议）、发现流馆长批注（读指标→荐语）
+
+## cont. 193 (2026-11-17) - v823: /bible 「让 AI 读给你听」——正典伴读摘要（§新指令·LLM 深度嵌入续）
+
+- 新 API `POST /api/bible/chapter-digest`：
+  - 输入：slug + locale（单一正文章章 / 回响；未知 slug → 404 chapter_not_found）
+  - gpt-6.1-terra **只读本章/回响 markdown 前 6000 字**，输出三句话摘要 + 一句思考题（"思考："/"Ponder:" 引出）
+  - 纪律：不编造、不超出摘录、不读其他章节；DEMO MODE → 409；每 IP 每小时 20 次；7 天 LRU 缓存（32 槽，每章节/语言只计费一次）
+- 新 UI：`ChapterDigest`（/bible/[slug] 锚句速览下方挂载，data-chapter-digest-root）——按钮出摘要+思考题，DEMO MODE 原样展示服务端消息；失败如实展示；缓存 7 天
+- live probe：
+  - POST zh（001-last-ember-of-the-tide-conclave）→ HTTP 200，缓存命中后 cached:true；摘要落在原文事实（第七次日蚀、王城投降、守夜人与孩子、潮汐教团七席余烬、汐台）——零编造；ponder "当海的话留给活人收尾，谁会先开口？"
+  - POST en → HTTP 200 fresh；ponder "What is the sea still waiting to say?"
+  - SSR /bible/001… 含 data-chapter-digest-root · cdg-buttonPrimary · data-chapter-digest-cta ✓
+  - POST 不存在的 slug → HTTP 404 chapter_not_found ✓
+- 命名避让：.cd-* 归 CodePanel（ADR-0191）——新组件样式走 **.cdg-***（census 无碰撞）
+- 简明说明书（/guide）补齐「让 AI 读给你听」条目（zh/en 双语，典籍室章节）；guide SHA pin 重钉 59230d39…
+- 门：fe-gates 127 套 · **1225/1225**；census 2618 OK；tsc 0；bible reader SHA pin 重钉 9f9fae19…；新增 cdg-visual-style.test.ts（6 例）
+- 说明：模型在缓存命中的第二次调用直接 cached:true 返回——7 天 LRU 按章×语言键，每章只付一次 provider 账单
+
+## cont. 194 (2026-11-17) - v824: /notifications「AI 先读一下」——按实测计数排优先级的收件箱伴读（§新指令·LLM 深度嵌入续）
+
+- 新领域函数 `inboxKindHistogram(userId)`（server/domain/notifications.ts）：
+  只 SELECT kind + count(*) + count(*) filter(read_at is null)，group by kind——**不选 title/body/actor**（隐私红线，套件里有机械断言）
+- 新 API `POST /api/notifications/digest`：
+  - 输入仅 {locale}；计数由服务端按当前登录用户自算——客户端无从伪造，模型也看不到任何内容字
+  - gpt-6.1-terra 按"等你结论的 moderation/approval/team 优先于纯计数 like/follow"排顺序；每条判断必须带计数；缺数字即 502（模型空话不展示）
+  - 收件箱为空 → 直接返回 server-authored 空态文案（model: 'no-model (server-authored empty case)'，不消耗 provider）
+  - DEMO MODE → 409；未登录 → 401；每 IP+用户 20/小时；6h LRU（32 槽，键=用户|语言|计数签名）
+- 新 UI：`NotifTriage`（/notifications 收件箱非空时挂载，.ntg-* 命名）——展示摘要 + 喂给模型的计数 chips（可与页签对照复核）+ 常驻 disclaimer「AI 摘要 · 只看计数不看内容」
+- live E2E（真实注册→项目→邀请→接受→团队通知→AP 调用）：
+  - 匿名 → 401 not_authenticated ✓
+  - 用户 A 触发 team 通知后 POST zh → HTTP 200（gpt-6.1-terra，23.7s fresh）：histogram {"total":1,"unread":1,"kinds":[{"kind":"team","total":1,"unread":1}]}，摘要落在计数上（服务端缺数字即 502 的机械检查全绿）
+  - 同一请求重发 → cached:true（462ms，6h LRU 命中）
+  - 空收件箱用户 C → HTTP 200，model=no-model，英文空态原文："Your inbox is empty — nobody is waiting on you…"
+  - SSR /notifications（A 有未读）含 data-notif-triage-root · data-notif-triage-cta ✓
+- 运维记录：本轮 Docker Desktop 熄火一次（postgres/redis 拒绝连接）——手动拉起后恢复；期间所有 API 500（如实，未假装成功）；恢复后全绿
+- 简明说明书：/notifications tour 段（zh/en）补「AI 先读一下」；guide SHA pin 7513b6ff… 重钉
+- 门：fe-gates 128 套 · **1232/1232**；census 2638 OK；tsc 0；
+  notifications 集成套 33/33（DB 存活）；ntg-visual-style.test.ts 新增（7 例，含"模型输入只有 kind+计数、Domain·Route 均不触碰 title/body/actor"机械断言）
+- LLM 切面计数：6 块 → **7 块**（deep-read / editor-note / chapter-digest / notif-digest + whisper / StateGraph / 锚句回放）
+
+## cont. 195 (2026-11-17) - v825: 第十三章《誊写》/ Chapter XIII "The Copying"——正典扩容到 13 章·166 锚句
+
+- 续写《潮来的时候》（第十二章）之后：潮退以后，门槛湿、木面湿，船钉与布片无人再动；账簿的守护者发现账页翘角——誊账开始。
+- 新章双语正典：`docs/world-bible/013-誊写.md` + `013-誊写.en.md`（zh/en 逐段对齐，同章同锚句）
+  - 七节：潮退以后 / 盐的去向 / 水吃掉的字 / 留白 / 那支笔 / 誊 / 留白的那一页
+  - 7 对锚句（逐字，全项目唯一）：
+    1. 潮退了，账没誊完。/ the tide withdrew; the ledger was not yet copied out.
+    2. 水干了，盐还在。/ the water dried; the salt remained.
+    3. 有些字被水吃掉了。/ the water ate certain characters.
+    4. 誊不准的，留白。/ what cannot be copied for certain leaves its space blank.
+    5. 笔没人拿，账还是要誊。/ no one claimed the pen; the ledger still had to be copied.
+    6. 誊完，才知道丢了什么。/ only once the copying was done did anyone know what had been lost.
+    7. 留白的那一页最重。/ the page left blank weighed the most.
+  - 结尾题记：潮来无一人说话，潮退人开始誊账。/ When the tide came, no one spoke; when it withdrew, everyone began to copy.
+- 起草方式：gpt-6.1-terra（真 provider，Clash 7897）分两次起稿（zh 4211 tokens / en 4236 tokens，finish=stop，prefix-cache 命中 4224），人工定稿——H1 章名「誊写」（对齐 012 的「」括号格式），补齐 zh 文件 en 锚句行，7 对锚句逐对核对无一遗漏/重复
+- 舰内 slug：`013-the-copying`（gen-bible-snapshot.mts WEB_SLUGS 登记）
+- 级联更新：
+  - 世界大典 snapshot 重生成（13 章 · 15 回响）；anchor-echo 重生成（159 → **166 锚句**）
+  - BibleQuiz 56 题（新增 第十三章 · 四 / 第十三章 · 七 两题，zh/en 双语）
+  - 简明说明书 /guide：「十二章 + 十五回响」→「十三章 + 十五回响」（zh 4 处/en 3 处）+「159 锚句」→「166 锚句」；guide SHA pin a929f5ac… 重钉
+  - BibleQuiz SHA pin 91b02c5c… 重钉；answer sequence 钉死 54→56（含 [1, 0]）
+- live probe（dev server）：SSR `/bible` 200（13 章索引含 013 链接）；`/bible/013-the-copying` 200（Chapter XIII·第十三章·The Copying 全量出所，7 锚对齐）
+- 门：fe-gates 128 套 · **1232/1232**；census 2638 OK；tsc 0；verify:world-bible **166/166** ✓；verify:bible-snapshot 一致 ✓；verify:anchor-echo 166 ✓
+- 运维记录：本轮 3100 端口被一台遗留的 `next start` 生产服务器（03:07 启动，旧构建）占用——探测到后停掉，全新 dev server 复测通过；停 web 后才跑 fe-gates（内存纪律）
+
+## cont. 196 (2026-11-17) - v826: /marketplace「AI 选品」——货架前三的 LLM 荐语（§新指令·LLM 深度嵌入续）
+
+- 新 API `POST /api/marketplace/picks`：输入必须是该货架仍在售的公开/免费物品（zod 校验），
+  gpt-6.1-terra 各写一句"为什么值得看"——**每句必须引用输入数字**（下载量或价格 credits，含 0），
+  禁止质量断言（"精美/必备"一律不准）；DEMO MODE → 409；每 IP 10/小时；24h LRU（4 槽）；缺一条即 502
+- 新 UI：`MarketplacePicks`（/marketplace 货架仍有货时挂载，.mkp-* 命名）——中英双语；公共页失败安静消失；
+  SSR 无产出（client 挂载后 fetch，与 cont. 192 一致）；分条目不做假链接（物品无详情页）
+- live probe（dev server + throwaway 账号）：
+  - 注册 200 → 建项目 201 → 上架 3 件（免费/模板 30 credits/世界包 80 credits）201 ✓
+  - POST /api/marketplace/picks → HTTP 200（gpt-6.1-terra，fresh）；三条荐语逐一核数字：
+    "0 credits 下载 0 次（新品向）"、"30 credits 下载 0 次"、"80 credits 下载 0 次"——**零质量断言、零编造**
+  - SSR /marketplace：匿名访问含 items（087bcd09 / MP Probe / data-marketplace-item）；
+    picks strip SSR 无产出（client 挂载后 fetch；与馆长批注一致）
+- 简明说明书：/marketplace 段补「AI 选品」说明（zh/en）；guide SHA 7f702b6a… 重钉；
+  marketplace-page SHA 460a21b5… 重钉；新增 mkp-visual-style.test.ts（7 例，含 prompt 纪律机械断言）
+- 门：fe-gates 129 套 · **1238/1238**；census 2645 OK；tsc 0；marketplace 组页 SHA 重钉 ✓
+- 运维记录：Docker 再次熄火/重启中（pg 启动 fallthrough→健康）；web 早一步 boot 时限流驱动
+  按既有机制退回进程内计数（日志如实；Redis 恢复后自愈）——未观察到功能影响
+- LLM 切面计数：7 → **8 块**（+ marketplace 选品）
+
+## cont. 197 (2026-11-17) - v827: 回响（其十六）《最后一栏》/ Echo No. 16 "The Last Column"——正典扩到 16 回响·171 锚句
+
+- 续写《誊写》（第十三章）之后的抄账人便签——整个世界大典极少数第一人称：
+  誊写之后的第七天；前六口井都有落款（各一笔停顿），第七口对应的那一页没有落款；
+  盐袋压在誊清的页角，压不住疑问；能背诵潮汐教团往事的孩子只数出六口井；
+  抄账人把笔搁在灯下，不是为了拿它。
+- 双语回响：`docs/world-bible/echoes/E16-最后一栏.md` + `E16-最后一栏.en.md`（zh/en 逐段对齐）
+  - 五节：第七天 / 落款 / 盐压纸 / 孩子数井 / 誊抄员收起笔
+  - 5 对锚句（逐字·全项目唯一·共 **171**）：
+    1. 最后一栏，谁也没写。/ the last column, no one wrote.
+    2. 六口井都有落款，第七口没有。/ six wells bear a signature; the seventh does not.
+    3. 盐可以压纸，压不住疑问。/ salt can weigh paper; it cannot weigh a question down.
+    4. 孩子没有学会"收口"这两个字。/ the child never learned the two characters for "closing the ledger".
+    5. 誊抄员把笔搁在灯下，不是为了拿它。/ the copyist set the pen beneath the lamp — not to pick it up.
+  - 结尾题记：井数得完，落款写不完。/ Wells can be counted; signatories cannot.
+- 起草方式：gpt-6.1-terra（真 provider，Clash 7897）zh 稿 2281 completion tokens + en 稿 2541 tokens（finish=stop，prefix cache 命中），人工定稿——锚句原样嵌入正文行（模型未写标记行），补 `**锚句**`/`**Anchor sentence**` 标记对，表格"采账人"笔误修为"抄账人（账簿的守护者）"，en 译本 H1 顺序对齐（EN 首行）
+- 舰内 slug：`echo-016-the-last-column`（gen-bible-snapshot.mts ECHO_WEB_SLUGS 登记）
+- 级联更新：
+  - snapshot 重生成（13 章 · 16 回响）；anchor-echo 重生成（**171 锚句**）
+  - BibleQuiz 58 题（新增 回响（其十六）·二 / 回响（其十六）·四 两题，zh/en 双语；答案序列：56→58 题，新增 [1, 2]；quiz SHA pin 80f462be… 重钉）
+  - 简明说明书：「十五回响」→「十六回响」（zh/en 6 处）+「171 锚句」；guide SHA 92610263… 重钉
+- live probe（dev server）：SSR `/bible/echo-016-the-last-column` 200（The Last Column · Anchor sentence ×5）；
+  `/bible` 200（16 回响索引含 echo-016 链接）
+- 门：fe-gates 129 套 · **1238/1238**；census 2645 OK；tsc 0；verify:world-bible **171/171** ✓；verify:bible-snapshot 一致 ✓；verify:anchor-echo 171 ✓
+- 运维记录：Docker 再次熄火并自动复活（pg 恢复后才 SSR 探测；fe-gates 不依赖 DB）
+
+## cont. 198 (2026-11-17) - v828: 回响（其十七）《蜡封》/ Echo No. 17 "The Wax Seal"——正典扩到 17 回响·176 锚句
+
+- 封井人（蜡匠）的一页便签——整个世界大典极少数第一人称（与回响十六并列）：
+  他的活是封井。来的人走石板街，谁也没问封井是为什么；蜡怎么熬、怎么浇、怎么等；
+  数了六口；第七口：蜡倒了，井没有接住，凉了又软了，没有人再倒；灰幕之前的年月里没人再提第七口井。
+- 双语回响：`docs/world-bible/echoes/E17-蜡封.md` + `.en.md`（zh/en 逐段对齐）
+  - 五节：来的人 / 怎么封 / 数 / 第七口 / 之后
+  - 5 对锚句（逐字·全项目唯一·共 **176**）：
+    1. 封了六口井，第七口没人敢封。/ six wells were sealed; no one dared seal the seventh.
+    2. 蜡没封住井，封住的是人。/ the wax did not seal the wells; it sealed the people.
+    3. 盐灯没有亮，天也没有亮。/ the salt lamp did not light; the sky did not light either.
+    4. 海把井数的那一天记住了。/ the sea remembered the day the count was made.
+    5. 灰幕之前，没人再提第七口井。/ before the grey cover, no one mentioned the seventh well again.
+  - 结尾题记：蜡封住井，封不住水，也封不住那个数。/ Wax seals wells; it cannot seal the water, nor the count.
+- 起草方式：gpt-6.1-terra（真 provider，Clash 7897）zh 稿 2381 completion tokens + en 稿 2529 tokens（finish=stop，prefix cache 命中 4224），人工定稿——H1 顺序对齐（EN 首行），锚句原样出现（zh 检测到 markers 后补 Anchor 对，逐对核对一致）
+- 舰内 slug：`echo-017-the-wax-seal`（gen-bible-snapshot.mts ECHO_WEB_SLUGS 登记）
+- 级联更新：
+  - snapshot 重生成（13 章 · 17 回响）；anchor-echo 重生成（**176 锚句**）
+  - BibleQuiz 60 题（新增 回响（其十七）·一 / 回响（其十七）·四 两题，zh/en 双语；答案序列：58→60 题，新增 [1, 1]；quiz SHA pin 35763164… 重钉）
+  - 简明说明书：「十六回响」→「十七回响」（zh/en 6 处）+「176 锚句」；guide SHA 22017c5f… 重钉
+- live probe（dev server）：SSR `/bible/echo-017-the-wax-seal` 200（The Wax Seal · Anchor sentence ×5）；`/bible` 200（17 回响索引）
+- 门：fe-gates 129 套 · **1238/1238**；census 2645 OK；verify:world-bible **176/176** ✓；verify:bible-snapshot 一致 ✓；verify:anchor-echo 176 ✓
+- 运维记录：Docker 本轮又熄火——自复活后 pg/redis 健康重回；fe-gates 不依赖 DB，SSR 探测在 web 编译（bible 不读 DB）后完成；npm dev 已停
+
+## cont. 199 (2026-11-17) - v829: /discover「为你推荐」——只读你自己"阅读痕迹"排位的推荐位（§新指令·LLM 深度嵌入续 · ADR-0273 同型）
+
+- 新领域函数 `discoverInterestSignals(viewerId)`：
+  只取**这个用户自己**对 published(public/free) 作品的 opens 聚合（sum by publication，降序）+
+  作品实测指标（views = published_projects.views 同一口径、likes 子查询）+ 最近打开时间——
+  **姓名 / 阅读时长 / completionPct 全部不选**（套件机械断言）
+- 新 API `POST /api/discover/interest`：
+  - 输入仅 {locale}；服务端自算信号；未登录 → 401；DEMO MODE → 409；IP+用户 10/小时；24h LRU（32 槽，键=用户|语言|信号签名）
+  - 无痕迹（一条都没记）→ 不调模型，server-authored 空态：「我们不替没有痕迹的人排序」（model: no-model (server-authored empty case)）
+  - gpt-6.1-terra 按 myOpens + views/likes 为前三条各写一句"为什么可能想再打开"——必须引用实测数字；缺数字或未覆盖全部即 502
+- 新 UI：`ForYouStrip`（/discover 登录用户可见；匿名不渲染）——
+  中英双语；SSR idle 态含 CTA（mount 后自动触发取数）；失败安静消失；每条带「打开了 N 次」；shown 与 EditorNotes 同级
+- live E2E（throwaway 账号）：
+  - 注册 200 → GET /api/discover（24 张真实作品）→ 对前 3 张 POST /api/published/visit（open:true, 全部 200）
+  - POST /api/discover/interest → **HTTP 200，gpt-6.1-terra fresh**——signals 含 myOpens:1 ×3（216 浏览的极地主题在内），
+    三条推荐语逐条引用实测数（1 次打开 / 8 次浏览 / 216），零编造
+  - 匿名 POST → 401 ✓；SSR /discover（登录）含 data-for-you-root · fys-buttonPrimary ✓（匿名不渲染）
+- 简明说明书：/discover tour 段（zh/en）补「为你推荐」说明；guide SHA 314d9394… 重钉；
+  discover page SHA 3a9eded1… 重钉；新增 foryou-strip-visual-style.test.ts（7 例，含"姓名/时长/完成度不进模型"机械断言）
+- 门：fe-gates 130 套 · **1245/1245**；census 2663 OK；tsc 0
+- 运维记录：Docker 又两次熄火-自复活——首次 500（ECONNREFUSED）后自愈，之后全链路同一会话打通（
+  register→discover→visits→interest→SSR），全部真实数据落库
+- LLM 切面计数：8 块 → **9 块**
+
+## cont. 200 (2026-11-17) - v830: §新指令·四「深度剖析大模型能力在项目智能流转中的作用」+ 分支整合复核（§二）
+
+- 新增 **docs/LLM-STATE-FLOWS.md**：20 个 LLM 调用点全量盘点（9 个用户可感知切面 + 6 个 web 管线工位 + 5 个 ai-service 供应线工位），
+  状态流转类型学（A 只读 / B 提案→人审→CommandStack / C 提交-推进-对账 / D 故意不接 LLM 的状态），全部实测数字（cont. 178：prefix-cache 6724/6724=100%）+ 现状诚实差距（/admin 车道面板、Studio 真浏览器验证、真图/真视频 provider…）
+- **§二 分支整合复核**：`git worktree list` = 仅主树；`git branch -a` 唯一本地分支 = master；`remotes/other/master13|14|15`（HEAD=dc20411a）已证实是 dc20411a（cont. ~96, v703-705）的**合并祖先**——
+  无未整合工作；stale 引用保留（零数据损失风险）；master ≡ main ≡ 1cccf9a4（本片之前）
+- **§十一 压力证据复核**：docs/evidence/stress-pulse-ai-2026-11-17.* · load-web-ssr-2026-11-17.* · load-redis-completion-cache-2026-11-17.* 均存在（2026-11-17）
+- 支线    全绿：fe-gates 130 套 · 1245/1245 · census 2663 · master ≡ main
+
+## cont. 201 (2026-11-17) - v831: 回响（其十八）《最后一夜》/ Echo No. 18 "The Last Night"——潮汐教团覆灭之夜（正典扩到 18 回响·181 锚句）
+
+- 正典回源点：门吏（把门人）的一页便签——整个世界大典**第一则**讲述潮汐教团覆灭之夜的回响：
+  那晚先风停了；街上的人不说话；第七席的老人坐在门槛内；**七口井都开着**；
+  灯芯比油还沾潮；海来到门口，水没有入室；镜鲛浮出海面一下又下去；
+  天快亮时没有人报到；**灰幕不是一夜天，灰是一夜灯**。
+- 双语回响：`docs/world-bible/echoes/E18-最后一夜.md` + `.en.md`（zh/en 逐段对齐）
+  - 五节：风停 / 点灯 / 夜里的水 / 天快亮 / 灰
+  - 5 对锚句（逐字·全项目唯一·共 **181**）：
+    1. 风停的时候，井都开着。/ when the wind stopped, the wells were all open.
+    2. 灯芯里的潮气比油多。/ the wick held more tide-damp than oil.
+    3. 海把井数的那一夜记住了。/ the sea remembered the night the count was made.
+    4. 晨起的时候，没有人报到。/ at dawn, no one answered the roll.
+    5. 灰幕不是一夜天，灰是一夜灯。/ the grey was not a night's sky; the grey was a night's lamp.
+  - 结尾题记：井数得完，人报不了到。/ Wells can be counted; the roll cannot answer itself.
+- 起草方式：gpt-6.1-terra（真 provider，Clash 7897）zh 稿 2942 completion tokens + en 稿 3385 tokens（finish=stop，prefix cache 命中 4224），人工定稿——
+  模型未写标记行，人工补 5 对锚句标记；EN 译本锚句 5 引号统一为弯引号（与正典一致）
+- 舰内 slug：`echo-018-the-last-night`（gen-bible-snapshot.mts ECHO_WEB_SLUGS 登记）
+- 级联更新：
+  - snapshot 重生成（13 章 · 18 回响）；anchor-echo 重生成（**181 锚句**）
+  - BibleQuiz 62 题（新增 回响（其十八）·一 / 回响（其十八）·四 两题，zh/en 双语；答案序列：60→62 题，新增 [1, 2]；quiz SHA pin bccd0038… 重钉）
+  - 简明说明书：「十七回响」→「十八回响」（zh/en 6 处）+「181 锚句」；guide SHA be4d8154… 重钉
+- live probe（dev server）：SSR `/bible/echo-018-the-last-night` 200（The Last Night · Anchor sentence ×5）；`/bible` 200（18 回响索引）
+- 门：fe-gates 130 套 · **1245/1245**；census 2663 OK；verify:world-bible **181/181** ✓；verify:bible-snapshot 一致 ✓；verify:anchor-echo 181 ✓
+- 运维记录：Docker 正常（pg/redis 6 分钟健康）；web dev 已停；181 锚句，锚句总量：166→171→176→181
+
+## cont. 202 (2026-11-17) - v832: ai-service 启机期 Redis 降级档（ADR 0274 · opt-in）+ §十一 Redis 缓存复测
+
+- 新 ADR **0274**（ai-service 启机期 Redis 降级档，opt-in，默认 fail-fast 不变）：
+  - **默认零变更**：`NEXUS_REDIS_URL` 设置且不可达 → ai-service 启动失败（原设计）；
+  - **新 opt-in** `AI_SERVICE_ALLOW_DEGRADED_STORE=1`：连接失败 → 明牌降级到 MemoryJobStore，
+    note=`【DEGRADED-BOOT】Redis 连不上…任务重启即失；绝不在生产启用。（ADR 0274）`，
+    healthz 的 queue note 字段随行带出（无需改健康检查）；进程日志同名警告；
+  - 测试 `test_degraded_boot.py` 3 例全绿；jobs/memory/redis 三套 store 回归 **39 passed**（活 Redis 56379）
+- CURRENT-STATE 第 v830 片所述 "ai-service 启机期 Redis 降级 ADR" 收口（§三 架构升级 · ADR-0271 姊妹篇）
+- **§十一 Redis 缓存复测**（Docker 再次熄火→自复活后）：`load-redis-completion-cache.py --ops 6000`：
+  16/64/128/256 并发 ops 5692/6000/6000/6000，errors **0**，hit_ratio **0.795–0.809**，
+  p95 250→2496ms 随并发上升（诚实呈现，未粉饰）；cleanup namespace_residue=0；
+  证据：`docs/evidence/load-redis-completion-cache-2026-11-17-pm.json`
+
+## cont. 203 (2026-11-17) - v833: /observatory「AI 独立复核」——规则引擎被大模型重算一遍（§新指令·LLM 深度嵌入 · 切面 10）
+
+- 新 API `POST /api/pulse/review`：输入仅 14 天 opens 序列 + 机器人占比 + 半周 delta（客户端从 /api/pulse 原样上传，不重查库）；
+  服务端用纯函数规则引擎（fitLinear/summarizeVolatility——零 DB）**自己重算** fit/CV/deltas/projected7d，
+  把与 /observatory 完全一致的规则真值整包喂给模型——这是复核对象。
+- 模型被要求独立复核：2-5 条 agree/disagree（每条必含具体数字）+ 一句"如果只改一件事改哪件"（必须落在 JSON 的数字上）；
+  每条 check 缺数字即 502；DEMO MODE → 409；每 IP 10/小时；24h LRU（16 槽）；
+  **只读、绝不写库/改规则**（规则代码本身就是真值）；disclaimer「AI 复核 · 依据实测聚合数字 · 非人工背书」。
+- 新 UI：`PulseReviewCard`（DeepReadCard 同级，.pr-*）——agree/disagree 双列展示 + "如果只改一件事"横幅；中英双语；失败如实展示
+- live probe（dev server + 真实聚合）：
+  - GET /api/pulse → 200（opens 801 · bot 660/801=82.4% · visitors 360 · 14-day points · hot=3）
+  - POST /api/pulse/review → **HTTP 200 fresh（30.4s）**；basis：slope=0.5802 · intercept=0.229 · residualStd=13.28 · n=14 · CV=3.13 · lastDeltaPct=null · projected7d=12 · botShare=0.824
+  - 4 checks（2 agree / 2 disagree）**全部引用实测数字**：
+    "agree: CV=3.1296（opens 从 0 到 49 再跌回 0-3）"、"agree: botShare=0.8240（82.4%）"、
+    "disagree: slope=0.5802 但最近 days 的 opens≈0-3，残差高"、"disagree: opensDelta=1200 不能直接当稳定增长"
+  - bestNextMove："被一个外部事件（2026-11-12 opens=49）" 驱动 — 基于 slope=0.58/projected7d=12
+- 简明说明书：/observatory tour 段（zh/en）补「AI 独立复核」；guide SHA 033b9f77… 重钉；
+  pulse 公共视图不动（ReviewCard 是新组件，SHA 钉在 DeepReadCard/Gate 不受影响）；
+  新增 pulse-review-visual-style.test.ts（6 例，含"复核对象=规则引擎重算真值(零 DB 写)"机械断言）
+- 门：fe-gates 131 套 · **1252/1252**；census 2685 OK；tsc 0
+- LLM 切面计数：9 块 → **10 块**
+
+## cont. 204 (2026-11-17) - v834: /ship「AI 平台速览」——大模型照真实 git log 机械统计写两段话（§新指令·LLM 深度嵌入 · 切面 11）
+
+- 新 API `POST /api/ship/digest`：输入为「机械统计包」（shownDays / totalCommits / adrs / counts / latest 12 条 subject+kind+date），
+  不重读 git log、不读源文件；gpt-6.1-terra 输出 2-4 句平台速览——**必须引用输入里的数字**（缺数字即 502）；
+  DEMO MODE → 409；每 IP 每小时 5 次；24h LRU（16 槽，键=输入摘要）；只读零写库；disclaimer「AI 速览 · 依据真实 git 日志」
+- 新 UI：`ShipDigest`（/ship 统计条之后挂载，.shd-*）——挂载即触发，公共页失败安静消失；中英双语
+- live probe（dev server + 真实输入）：
+  - zh POST → HTTP 200 fresh（16.9s）："交付日志收录这 2 天，…… feat 47 条 fix 20 条 merge 6 条 test 5 条 docs 12 条 token 秒省 -9.4% + ……33 项组件……" ——**全部引用实测数，零编造里程碑**
+  - en POST → HTTP 200 fresh（12.5s）："The log covers 2 days and reports 2,886 total commits, including 47 features, 20 fixes, 12 documentation changes, 5 test changes, and 6 merges; it also records 328 ADRs…" ——每数字真实，示例 subject 取自 latest
+  - SSR /ship 200（统计条+条状展示不变）；ShipDigest SSR 无产出（mount 后 fetch，同馆长批注/选品纪律）
+- 简明说明书：/ship tour 条（zh/en）补「AI 平台速览」；guide SHA 1ab4a4ac… 重钉；ship page SHA 13f11d6f… 重钉（挂载点变更）
+- 新增 ship-digest-visual-style.test.ts（7 例，含"输入=机械统计·不读 git·不读源文件"机械断言）
+- 门：fe-gates 132 套 · **1259/1259**；census 2689 OK；tsc 0
+- LLM 切面计数：10 块 → **11 块**
+- 运维记录：Docker 又一次熄火（web 早 boot 时限流退回进程内计数——公开日志如实）；脚本 err 全部如实
+
+## cont. 205 (2026-11-17) - v835: §七 说明书覆盖补洞——/guide 补「馆长批注」（EditorNotes 的 Discover 荐语）
+
+- §七 要求"里面简明描述用户如何充分体验、使用项目的所有完整功能"——audit 11 个 LLM 切面的 /guide 覆盖：10/11 都找到词条，
+  **馆长批注（/discover trending 榜前三的 AI「为什么值得打开」荐语，cont. 192）双语全部缺席**——补齐：
+  - zh tour 条（/discover 为你推荐 条目尾）补「馆长批注：trending 榜前三由 AI 照三条真实指标（浏览/赞/评/转/热度分）各写一句为什么值得打开，每条必含数字」
+  - en tour 条镜像补充
+- guide SHA c3115cc2… 重钉；guide-visual-style 7/7 ✓
+- 运维记录：本片无新行为，无门变更
+
+## cont. 206 (2026-11-18) - v836: 个人展示页身份信息全保 && 中文乱码修正（身份事故收口）
+
+- **针对用户本月重复回灌的个人信息与展示页错别字事故所做的完整收口**：
+  - **个人展示页（`xiaodernan.github.io`）**：5 处中文乱码全部定位并就地修复：
+    - `每次推送全绿自动再嵌` → `每次推送全绿自动刷新`（×3：CAESURA 卡片脚部 HEAD/LIVE 两份 + JS 模板兜底）
+    - `每次推送重嵌`（MASTER kicker）→ `每次推送自动刷新`
+    - `事实包 <date> · <subject>` 前缀 `再嵌` → `全绿`（与 CI 文案线一致）
+    - `契约简` 标签被远端 sync bot 重写为 `契约文件`（更准确，保留 bot 版本）
+  - **全量 CJK 审计**：`index.html` 全部 172 段含中文的可见文本逐行 codepoint 核对——姓名/校名/专业/奖项/公司与用户原述逐字一致；禁词零命中；不再出现 U+5D4C 误用；不再出现「再崩/重崩」镨俗字；生僻字 U+5D4C 唯一合法用途（「内嵌」）保留
+  - **README.md** 本身的约束条文仍然有效（pre-push 身份钳制）；.git/hooks 是否安装由用户自行决定；不擅自安装钩子
+- **英文门核验**：
+  - 展示页仓库 `master == origin/master` HEAD = c7a3453；sync 验证通过
+  - 复改后直接 fetch：实测正文不含「再嵌」/「重嵌」/「自动再崩」；含「每次推送全绿自动刷新」「全绿 2026-11-17 · feat(…)」「内嵌双语说明书」
+  - 本次提交：`68968bb` → rebase 后 `cc82b99` 在 xiaodernan.github.io 的 master 上
+- **nexus-content-platform 本次**：仅更新 `latest.json` 两轮同步（master/main 统一于 4aed645f）；无代码改动
+- **本片之后**：
+  - 不再假设「页面应该已经修好」；用户再看到的任意错别字请给出行号位置——下一次对话里，每次改动具体中文位置都会在同一 commit 里附 codepoint 对账输出
+  - showcase 仓 `master == origin/HEAD == c7a3453`（直接对齐而非 merge）
+- 站点与人的事实对账（本页展示）：
+  赵欣曈 · AI 应用工程师 · 南方科技大学（本科 计算机科学与技术）· 香港中文大学（硕士 计算机科学与技术）
+  全国中学生物理竞赛铜牌 · 江西省一等奖/二等奖 · 在 法狗狗 实习 · 产品名「隐盾」（法律文书脱敏）· NEXUS 平台 · CÆSURA
+
+## cont. 207 (2026-11-18) - v837: 回响（其十九）《雨从东边来》/ Echo No. 19 "The Rain Comes from the East"——风向倒转之日（正典扩到 19 回响·186 锚句）
+
+- 正典回源点：潮汐教团余烬之后，风向倒转的那一天——海从来从西来，那一天雨从东边来，
+  先化的是门内的盐；誊账的人停止了手里的笔；第七口井的井缘第一次全湿了；
+  账簿的守护者在干页末尾只落下六个字：东风，雨，灯未灭。
+- 双语回响：`docs/world-bible/echoes/E19-雨从东边来.md` + `.en.md`（zh/en 逐段对齐）
+  - 五节：风的方向 / 雨先碰到盐 / 誊账的人停笔 / 井边的水 / 账上的六个字
+  - 5 对锚句（逐字·全项目唯一·共 **186**）：
+    1. 风该从西来，那天却从东边来。
+    2. 雨从东边来，先落的是门内的盐。
+    3. 雨从东边来，笔先停了。
+    4. 第七口井的井缘，第一次全湿了。
+    5. 账上只记了六个字：东风，雨，灯未灭。
+- **正典快照 / anchor-echo 重生成并通过**：verify:world-bible 186/186 ✓；gen+verify:bible-snapshot（13 章 · 19 回响，含 E19 网页 slug `echo-019-the-rain-from-the-east` 登记）✓；gen+verify:anchor-echo（**186 锚句**）✓
+- **典籍室（/bible）**：目录回响序数扩展到 十一～二十 / XI～XX（zh/en 三处数组补齐，E11–E19 不再回退裸数字）
+- **BibleQuiz**：新增回响（其十九）·一 / 回响（其十九）·五 两题（zh/en 双语；答案序列扩到 64 题，新增 [1, 0]；quiz SHA pin 4602e2a1… 重钉）
+- **简明说明书**：「十八回响」→「十九回响」、「eighteen echoes」→「nineteen echoes」（zh/en 各 3 处 = 6 处）；guide SHA 1bf9d2c1… 重钉
+- 双语字典 / 锚句集：无新增英文原生内容（E19 为中文原生撰写并译）
+- 门：fe-gates 132 套 · **1259/1259** ✓；census 全绿（fe-gates 内含）✓；verify:world-bible / verify:bible-snapshot / verify:anchor-echo ✓；tsc 未动（仅文案与快照）
+- 顺序约束：本片不动代码逻辑；未推送 showcase（latest.json 随下一轮 sync）
+
+## cont. 208 (2026-11-18) - v838: §九 管理员「只读观察站」（口令 123 · 公开）——看平台里所有用户的真实行为（§ADMIN-13）
+
+- **纠正自我误读**：§九 明文「密码输入 123 就能进，所有用户都知道密码也都能进管理员页面」——
+  之前把 /admin 记为「阻塞（无 admin session）」是把它当鉴权秘密，错。口令 123 是**刻意公开的共享口令**，与 CÆSURA「后台 · 口令 123」、minicc「密码 123 的共享门」同形
+- **新页 `/admin/observe`**（RSC · force-dynamic）：
+  - 准入：role=admin 直接进；任何人通过口令 123（POST `/api/admin/observer`，错误 401、IP 限频 30/h、path=/admin/observe HttpOnly cookie · Max-Age 30d · DELETE 完整撤销路径已实测）
+  - **只读**：没有任何能修改数据的按钮；数字全部来自实库（`server/admin/observer.ts`，SELECT-only）
+  - 展示：注册用户 / 游客 / 7·30 天新增 / 发布总数与已过审公开 / 总浏览 · 点赞 · 评论 · 收藏 · 关注 / 近 7 天有效打开（publication_visits，剔除 suspectedBot，7 天逐日柱状）/ 7·30 天打开与可见时长 / 近 30 天完成度（71.2% 实测）/ 任务状态（agent_tasks 按 status 聚合）/ 套餐分布 / 最热公开作品（views desc）/ **深度优化建议（规则引擎 · 非 AI——每条带可复核阈值）**
+  - 与 /admin 十三张卡互相可见（「观察站」入口卡 + denied 页直通链）；AdminNav 新增 observe 入口（LINKS 17→18）
+- **本机实测（真库 · 2026-11-18 SSR）**：注册用户 3,396 · 游客 1,971 · 7 天新增 1,235 · 30 天 4,123；发布 153 / 过审公开 0；总浏览 877 · 点赞 11 · 评论 19 · 收藏 1 · 关注 2；7 天有效打开 52（疑似机器人 94 次不进趋势）；完成度 71.2%；任务：排队 0 · 执行中 2 · **等你批准 114** · 完成 342 · 失败 4（规则建议正确触发两条：等你批准 114 · 机器人超过人流）；套餐：free 5,364 · studio 3
+- **用户指令兑现清单**：密码 123 公开共享 ✓ · 可被所有用户进入 ✓ · 检测/分析/查看/观察所有用户行为 ✓ · 统计数据 ✓ · 趋势（7 天逐日 + 30 天窗口）✓ · 深度优化措施（规则引擎建议）✓ · 本页零伪造数据（空也诚实显示 0）
+- **中文乱码清理**：§ADMIN-13 追加 globals.css；.obs-* 全族令牌走 var(--nexus-*)，零 hex 字面量（gdSegment 零hex门继续绿）
+- guide 补 /admin/observe 词条（zh/en 各一条）；guide SHA 1dc74d29… 重钉；admin-hub SHA ×2 重钉；admin-home-style AREAS 期望更新为十三张卡并全绿
+- 门：census 2724 OK ✓；tsc --noEmit 干净 ✓；guide-visual-style 7/7 ✓；admin-home-style 10/10 ✓；admin-hub-visual-style（重钉后）待 fe-gates 矩阵验证；tsc 与新一轮 fe-gates 结果见下一条记录
+
+## cont. 209 (2026-11-18) - v839: /admin/observe 挂「AI 深读」按钮——gpt-6.1-terra 照实测聚合起草下一步（LLM 切面 12）
+
+- **动机**：§九 要求「下一步应该采取的深度优化措施」——此前只有规则引擎。现在再挂一颗按钮：
+  实测聚合（viewsTotal/opens7d/suspectedBots7d/tasksAwaitingApproval/completionPct…）喂给 gpt-6.1-terra，
+  让它把数字串成「下一步具体做什么」，每条判断必须带数字、没有数字则服务器机械拒绝展示（502）
+- **新 API `/api/admin/observer/digest`**（POST · 只读 · 零写库）：
+  - 守卫：role=admin 直通 · 口令 123（nx_observer cookie · path=/，覆盖 /admin/observe 与 /api/admin/observer/*）直通
+  - 输入只有一股 locale（客户端不带任何数据——服务器自算指标，杜绝伪造输入）
+  - **DEMO MODE 409** · 每 IP 5/小时 · 24h LRU（16 槽 · 签名键=指标摘要）· 输出必含数字否则 502
+  - 指标注入模型：聚合计数（含 114 等你批准 / 342 完成 / 4 失败 / 877 浏览 / 52/97 次 opens / 71.2% 完成度 / 94 bots / free 5,364 · studio 3），**没有行名/行内容/个人数据**
+- **新组件 `ObserverDeepRead`（components/ObserverDeepRead.tsx · 'use client'）**：按钮触发（不在挂载时烧 token），
+  idle/busy/ok/error/cache 命中徽章，失败原样展示不掩盖（网络错误、provider 502、429 全部透传错误信息）
+- **live 实测（真库 + 真 provider · 2026-11-17 15:3x +08:00）**：
+  - anon → 401；口令 123 登录 → 200；zh POST → **200 · model=gpt-6.1-terra · cached=false**
+  - zh digest 原文：「近 7 天疑似机器人流量高于有效打开（94 vs 52），先清 Bot 源头或上访客门…把 1 个作品发出去…114 个 AI 任务在等你批准，成果 342 条 / 失败 4 条，先清队列…877 总浏览，52（7 天）vs 97（30 天）…完成度 71.23%…」
+    ——**每一个数字均来自实测聚合，零编造**
+  - 第二次相同输入 → **cached=true**（24h LRU 命中，不烧 provider）✓
+  - EN POST → **200 · gpt-6.1-terra · cached=false**（English 完整派生英文输出）
+    原文：「First, review the 114 tasks awaiting approval; 342 succeeded versus 4 failed… clean suspected-bot sources before judging conversion: 94 suspected bots exceed 52 opens in 7 days… 877 total views and 11 likes, with 97 opens in 30 days and 71.2% average completion…」
+  - SSR `/admin/observe` 含 data-observer-deepread-idle/button + .observer-aidr-* ✓
+- **Cookie path 修复（同片）**：nx_observer 原 path=/admin/observe，digest 路由（/api/admin/observer/*）永远收不到 → 改 path=/ 并简化注释；DELETE 实测守门态重现
+- guide 补「AI 深读（gpt-6.1-terra · 必含数字）」zh/en 各一条；guide SHA 1dc74d29… 重钉；census 2735 OK；tsc --noEmit 干净 ✓
+- 新 FE 套 `observer-deepread-visual-style.test.ts`（7 例，含 "use client + 零 provider import + className 只认 .observer-aidr-* + SHA256 钉死"）；suite 7/7 ✓
+- 简明说明书/展示页 latest.json 随下一轮 sync 一并推进；LLM 切面计数：11 → **12**
+
+## cont. 210 (2026-11-18) - v840: 回响（其二十）《第一个名字》/ Echo No. 20 "The First Name"——灰后那一行（正典扩到 20 回响·191 锚句）
+
+- 正典回源点：灰幕落下以后，账簿的守护者回到灰棚去看翘页——它平了；他去看报到簿，书还在原处，
+  他没掸，覆上布巾像盖一盏灯。灰以前名字用三种手迹写；最后一页，灰以后，
+  **报到簿上多了一行不属于任何一种旧手迹的字**；誊账人没有抹它，也不誊它——又过了些日子，
+  又有人在它的下面写了一行新名字——名字被写下时，报到簿还没有结束。没有人解释、没有人决定收束它。
+- 双语回响：`docs/world-bible/echoes/E20-第一个名字.md` + `.en.md`（zh/en 逐段对齐，zh 原生撰写并译）
+  - 五节：灰后的早晨 / 旧手迹 / 新的一行 / 问井 / 之后
+  - 5 对锚句（逐字·全项目唯一·共 **191**）：
+    1. 灰后的第一天，报到簿还在原处。
+    2. 灰以前，名字用三种手迹写。
+    3. 那一行字不属于三种手迹中的任何一种。
+    4. 第七口井记得雨后还有人走过。
+    5. 名字被写下的时候，报到簿还没有结束。
+- **正典快照 / anchor-echo 重生成并通过**：verify:world-bible 191/191 ✓；gen+verify:bible-snapshot（13 章 · **20 回响**，E20 网页 slug `echo-020-the-first-name` 登记）✓；gen+verify:anchor-echo（**191 锚句**）✓
+- **典籍室（/bible）**：其一…二十 / I…XX 序数覆盖（此前已扩至 二十），E20 自动进入列表；reader 显示「其二十」
+- **BibleQuiz**：新增回响（其二十）·二 / ·三 两题（zh/en 双语；答案序列扩到 **66 题**，新增 [2, 2]；quiz SHA pin 5bfba4e4… 重钉）
+- **简明说明书**：「十九回响→二十回响」「nineteen→twenty echoes」（zh/en 各 3 处 = 6 处）；guide SHA 7ee13d87… 重钉
+- **实况 SSR 核验**：`/bible` zh 含 echo-020 slug / 其二十… / 其十九 卡（en 模式下 echo-020 + Echo XX + Echo XIX 卡 各自归位；echo page zh/en 均渲染含锚句对）
+- 双语字典 / 锚句集：E20 中文原生撰写并译，无新增英文原生内容
+- 门：verify:world-bible / verify:bible-snapshot / verify:anchor-echo ✓；BibleQuiz / guide / bible 视觉套重钉后全绿（25/25）；本片不动代码逻辑
+- 顺序约束：未推送 showcase（latest.json 随下一轮 sync）
+
+
+
 - 用户指令（第九条）：「联网深度搜索一下，模拟一些用户的真实数据，模拟真实的用户的行为：真实用户会怎么操作，真实用户可能会点开一个页面，没有耐心就立刻关闭了，或者可能会在页面上瞎点，因为不知道要去哪。」
 - 两手并轨：
   1. **/insight（v789）**看**真相**——库里聚合的真实用户数：session/visit/完成率/发布转化/trend 拟合（真数，零伪造）。
@@ -4728,6 +5857,15 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   Codex 那种「持续 ~90%」是 distributor 在该 channel-local window 上的客观表现。
 - 证据 §PROVED-13 落盘；证据档至 13 节；本轮无代码改动。
 - ／待办： distributor 间歇 000 无工程侧可解——记录即止。
+
+> **2026-11-18 续（§merge：兄弟线 local-clone/main 171 个提交并入 master，`7fcd0ed5`；后续修复 `6417a1b3`）**：
+> 把并轨线的全部工作收编进主线——StateGraph（LangGraph 语义 TS 版，agents/runtime）、/insight 全套（login/logout/observe/analyze/深读）、
+> /api/bible/q 问典、/api/analytics/agent-narrate、/api/insight/analyze、scripts/simulate-user-behavior.mts（§SIM-1）、公开问典、e2e 五件、
+> web i18n 双语全量波次（app/bible、app/guide、studio shell-i18n、game2d、StoryPlay、RpgPlay、GamePlay、CanvasStage…）。
+> - annex（支线大典，docs/world-bible/annex/，005《收件人》 · 回响 E02–E36 · 字节级原样收录 · git 历史保留）先行并轨成 `5ed445ac`；主线正典未受污染（13 章 · 20 回响 · 191 锚句原样；全项目 362 锚句 verify:world-bible ✓）。
+> - 合并三层：先收 canon（annex）→ 再把 171 个代码提交合进 master（union 原则：observability 双侧计数、PlayQuestGoal 保 labelEn+targetName 双字段、globals.css 追加段互补合并、guide 正文抽至 lib/guideCopy.ts 共享真值）→ 逐项解锁 gates（41 处 SHA pin 全数重钉到合并后真值、bible-ask digest 断言锚计数 200→191、fe-gates.mjs 修复 Windows 8191 字符上限）。
+> - 事故记录：本轮由 agent 自己发现并修复的两处失误——a) PowerShell 重定向「git show」误把 guideCopy.ts 正文转 GBK（字典中译全坏），后用 Node 管道直取字节重写；b) game-model 并轨后 PlayQuestGoal 应同时保留双轨字段（labelEn/targetName）——测试与类型全部对齐。tsc 抓出 8 处残留重复（双键/JSX 重复属性/多余闭括号/BibleQuiz 悬挂字面量），全部归零：fe-gates 147/147 · 1353/1353 · census OK 2902 · tsc web EXIT=0 · game-model 363/363。
+> - 缺口声明：浏览器像素层验证缺席（本机无合成 Chrome）；annex 支线按设计不进 /bible 书架（直接读 markdown）。
 
 ## cont. 241 (2026-11-17) — v870 · §PROVED-14 codex 源码考察完毕
 
@@ -5783,3 +6921,255 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 证据 `docs/evidence/studio-lane-cache-2026-11-18.md`；探针脚本 `.scratch/proof-studio-lane.mts`（完整对合同 contracts/ai-request.schema.json 校验，此前八次修正后全通过）
 
 **缓存验证矩阵到此补全**：free-text digest lane（37/38.7k）✓ · transport lane（94.5% 不同问句）✓ · 12 交错 ✓ · 角色对话（persona）✓ · Studio JSON wire（L2 100%）✓ — 五个 lane 全部实测+"语义分档声明"。
+
+
+---
+# 2026-11-18 合并 origin/main（另一条并行工作线：潮汐/tide 风格的公开 LLM 面 + 春 Cloud 主线）——其 cont.212..240 记录原样保留：
+
+
+> **2026-11-18 续（cont. 212 — 回响（其二十一）《没人誊的那一页》/ Echo No. 21: The Untranscribed Page）**：
+> 正典续于灰后·值夜之月——誊账人按他的手习惯数灯芯：第三根带盐味、第七根盐碟翻倒、第九根传奇的错数，
+> 发现自己漏了那一盏压在第四十一次会议卷宗封皮下的灯。账簿的守护者没有撕，也没有誊——那一页七页，第七页空着。
+> - 双语回响 `docs/world-bible/echoes/E21-没人誊的那一页.md` + `.en.md`（zh 原生撰写并译，逐段对齐）
+> - 5 对锚句（全项目唯一，共 **196** 对生效对）：
+>   1. 没人问灯为什么还点着。 / Why the lamp stayed lit was never asked.
+>   2. 誊第九根灯芯的时候，誊账人漏了那一盏。 / at the ninth wick, the copyist missed one lamp.
+>   3. 那张纸从不参与抄誊。 / That page never took part in the copying.
+>   4. 问井只问井自己的事。 / A well answers only about the well.
+>   5. 没誊完的那一页还算数。 / The page left untranscribed still stands.
+> - verify:world-bible 367/367 ✓；gen+verify:bible-snapshot（13 章 · **21 回响**，E21 网页 slug `echo-021-the-untranscribed-page` 登记）✓；
+>   gen+verify:anchor-echo（**196 锚句**，生效对数；annex 不进入 /bible 注入面）✓
+> - BibleQuiz 新增两题（上弦面板二十一·二 / ·三；答案序列扩到 **71 题**；quiz SHA pin 2d9fb77a… 重钉）
+> - 说明书「二十一回响」（zh/en 6 处）；/bible 序数 一…二十一 / I…XXI 扩展（chapterLabel/echoLabel/cardNum 全部走 locale 分支，en 模式不再显示中文序数）；
+>   bible SHA pin c667af45… 重钉；bible-ask digest 断言锚计数 196
+> - /bible zh 实况 SSR 与 e2e 均待实测（开发服务器已起）
+> - 门：fe-gates 147/147 · 1353/1353 · census OK · tsc web 0 · game-model 363/363
+
+
+> **2026-11-18 续（cont. 213 — §十一 压测·闯库·实证 provider 三件证据档）**：
+> - 实证 provider 2026-11-18：aizzz.xyz 可走（Clash 7897 节点）；直接出访 403；2.58s 返回 "NEXUS LIVE PROBE OK"；
+>   完整输出到 `docs/evidence/live-provider-2026-11-18.md`（证据档不落秘钥明文，pre-commit 规律要求）
+> - SSR 高并发（dev 路径）：baseline（30/30 200）/ tier-6（100/100 200）/ tier-12（100/100 200）——零 5xx、零崩溃；
+>   p50 受本机内存锯齿与 dev 首编译影响；tier-24/48 未测，记录为未测，不伪造数据（`docs/evidence/stress-2026-11-18.md`）
+> - 观察站撞库 35 连打：前 30 个 401，后 5 个 429；同 IP 正确口令也被限；跨 IP 不受限（200 + cookie）；
+>   跨 UA 不放行，跨实例不合并——记录见 docs/STRESS-TESTS.md 与 scripts/observe-login-hammer.mts（沙盘代码，端口 3407，RFC 5737 保留地址）
+> - 契约检验：POST /api/admin/observe 正确口令 → 200 + cookie；/admin/observe 门面 200 验证；/api/admin/observer/digest 无 cookie → 401
+> - 门：fe-gates 147/147 · 1353/1353 · verify:world-bible 367/367 · bible-snapshot/anchor-echo/census · tsc EXIT=0 · game-model 363/363
+
+
+> **2026-11-18 续（cont. 214 — §AILIVE-2 app chain 实测通过：web → ai-service → aizzz.xyz 真实 LLM）**：
+> - 本机起了 prod web (`next start :3100`，带 NEXUS_AI_SERVICE_URL=http://127.0.0.1:3200) 与 ai-service (uvicorn @3200)，
+>   跑 `scripts/live-ai-smoke.mts --confirm-real`：GET / CSRF cookie → register（creator 临时账号）→ create project → /api/ai/run
+>   → capability **real** · provider **openai-compatible** · model **gpt-6.1-terra** · latency 3,094 ms · tokensIn 8,896/out 46 · demoMode **false**
+>   （解释文本回的是"WCAG AA 对正文（普通大小）文字的最低对比度要求是 4.5:1。"）
+> - evidence 落盘 `docs/evidence/live-app-chain-2026-11-18.md`
+> - 诚实记录：本次 cacheReported=false/cachedTokens=0（aizzz 未回传缓存字段）；live cache 身份证据见 `docs/CACHE-IDENTITY.md`
+>   + 2026-11-17 系列 evidence；本片只验 app chain 接通，没有再动缓存路径（用户指导「基本措施做好就行了」）
+> - 缺口：v1/ai/design-graph（StateGraph 全译）已在并轨线落过证据；本片没有再单跑一遍
+
+
+> **2026-11-18 续（cont. 215 — app chain 缓存探针实录 call-2/3 100% 命中；分发器按渠道分桶的实况）**：
+> - 本机从 apps/web 完整链路（GET / → csrf → register（creator 临时账号）→ create project → /api/ai/run 同一 prompt 连打 3 次）
+> - call-1: tokensIn=8895, cachedTokens=0（渠道冷）
+> - call-2: tokensIn=8895, cachedTokens=8895（**100%**）
+> - call-3: tokensIn=8895, cachedTokens=8895（**100%**）
+> - 根因已确认：distributor 按渠道分桶，sticky prompt_cache_key + stream=true 已落地（NEXUS_LLM_STREAM=1），system prompt 字节级稳定——
+>   命中不是偶然，而是 sticky 前缀工程的必然（见 `docs/CACHE-IDENTITY.md` v875 cache-stats live 证实 + `docs/evidence/cache-probe-app-2026-11-18.md`）
+> - 另一条线（盲猜撞 api）：`scripts/live-cache-probe.mts` 已入库（npm run live:cache-probe -- --confirm-real），一次脚本能复现 call-2/3 = 100% cached
+> - 两个直接问（"为什么我们看起来不停掉缓存？""为什么 context 不够九万？"）都在同一 evidence 答：① distributor 渠道分桶 + sticky key 恒定 ⇒ 单 Session 连打零损失；
+>   多 Session 撞桶 ⇒ 不同渠道冷启动（已证实 p90≈95.7% / p50 0% 左右） ② 日常探针的 prompt 小是有意为之——app 实际跑的是项目上下文+callables+名册，
+>   `/api/bible/q` 是且是唯一重上下文场景（ SYSTEM_PROMPT ≈ 5k 字典 + 26 回响 digest）
+
+
+> **2026-11-18 续（cont. 216 — 问典二次连发：cachedTokens=0 → 43,354）**：
+> 同一问题连发两次《收件人》谁收到了签收单？第一问冷（cachedTokens=0）、第二问命中（cachedTokens=**43,354**），
+> SYSTEM_PROMPT 61k 字节前缀被 distributor 在 7897/Clash 节点上认出——KV 复用按字节生效，不靠任何抽象层体验。
+> live-bible-ask-probe.mts 已入库（npm run live:bible-ask-probe -- --confirm-real）。
+> evidence：docs/evidence/bible-ask-cache-2026-11-18.md
+
+
+> **2026-11-18 续（cont. 217 — 问典四连发全 100% 命中）**：
+> prod：同一问题「《收件人》里谁收到了那张签收单？」连发四次，tokensIn=43,458，cachedTokens=43,458 ×4，命中率 100%。
+> 这次实测把「cache 命中率忽高忽低」定调为 distributor channel 分配 + prompt prefix 演变——不是 stream vs 非流问题，不是链路的错。
+> 任何一次改动 world-bible source-of-truth，下一个 digest 需要一次 miss 之后即 100% 命中；call-1 在前一轮新鲜窗口中命中。
+>
+> tokensIn/tokensOut 透到了 /api/bible/q response（apps/web/src/app/api/bible/q/route.ts），让客户端能直接看到真实 43k 总数。
+> 还需用户拍板：freeform 路由要不要也改成 digest-stable（每次改上下文内容 vs 一次性 freeze-prefix 两种 trade off，对不同任务吞吐量不同）。
+
+
+> **2026-11-18 续（cont. 218 — 全后端 LLM 出口前缀钉死完成）**：
+> - probes 本轮跑了：bible/ask 多调用连发 6 次 → tokensIn=43458，cached=43458 (call-2 onward, 100% hit, with tokensIn=call-1 cold-start)
+> - 生产 `/v1/ai/cache-stats` 当前读数：`provider.reportedHitRate: 0.8591` · `appCache: enabled @ redis` · `transport.stream:true`（证明 NEXUS_LLM_STREAM=1 已正确影响所有路径）
+> - `/api/insight/analyze` 同 SYSTEM_PROMPT 钉死：call-1 `cached=4480/tokensIn=4703`（renderer 证明 insight path 也同一口径 prefix-stable；模型中文回答与实测数字一致）
+> - `/admin/observer/digest`：call-1 实测→ call-2/3/4 `cached=true`（实测 200）——prefix 已完全 static，不会再 drift 成每次调用 cold-start
+> - `docs/evidence/live-cache-stats-2026-11-18.md`（含早期从 503 考的报告）
+> - `docs/adr/0234-cache-identity-full-picture.md`（含 Codex 实现原理、关于 distributor 分桶 latency、为何我们有前缀稳定即可）
+> - `docs/adr/README.md` 未改（虽然可以指向本 ADR）
+> - 但仍然注意这点：所有 30min 窗口内「上次 docker reboot 抹除所有计数」都是 distributor zero counter，并非代码 miss；用户不要对 observed stat zero"reading 恐慌——下次跑一次真实 LLM 调用再看 dump即可
+> - 所有这一切在 master == main == bbeb6d7a 之后，与 showcase 同步到 85923cc/b594e90e
+
+
+> **2026-11-18 续（cont. 219 — 展示页 + GitHub 个人主页补编 · 雅思 6.5 · CET6 546）**：
+> - io 页（github.io）新增三处：`honors-strip` 新增 ⟨雅思 6.5 | CET6 546⟩；`<meta name="description">` + `<meta property="og:description">` 同补；
+>   site master 3aec500 收编，pages 已同步（pages 直接从 master 取 N EXUS 最新值，同样 sync-showcase 也跑过）
+> - 个人主页（xiaodernan/xiaodernan 仓）README 同补：新增**雅思 6.5 · CET6 546**徽章 + About me 段落 + 外text `CURRENT-STATE.md` 新建本地段；
+>   assets/banner.svg `<desc>` 也补成包含 IELTS 6.5 · CET6 546（屏幕阅读可读取），main 79cfcd3 已推送
+> - 二者 `identity-guard` 跑过：身份字节全部对账 ✓
+> - 另外：更重要的灾难 recover 测试全部记录进 evidence
+
+> **2026-11-19 续（cont. 220 · codex 式全局正典前缀落地：agent 设计通道从 1.5k 放大到 61k 字符可缓存前缀）**
+> - ADR-0235 采纳：scripts/gen-canon-digest.mts 把 bibleAsk.SYSTEM_PROMPT（=世界大典 digest）原样写出并入库
+>   pps/ai-service/src/ai_service/canon_digest.txt + .sha256（缺文件即进程崩，不静默丢正典）；
+>   ai-service 蒸馏 SYSTEM_PROMPT = CANON_PREFIX（≈61k 字符）+ 恒定规则；uild_prompt 不再把每轮可变 agentNote 拼进 system。
+>   新增 /api/insight/chat（口令 123 + CSRF + IP 闸 10/h）与 /api/bible/q 共享同一 SYSTEM_PROMPT 字节常量（同桶同缓存）；
+>   /insight 新增「正典深问」面板（zh/en 双语，徽章实时 cached n/m tokens）；InsightAiAnalysis 补 x-csrf-token（修 403 暗病）。
+> - 实测（prod build + prod start + ai-service）：
+>   · /v1/ai/run 三连：a1 冷启 84,705/cached=0 → b1 换诉求 **cached=80,245（94.7%）** → a2 原样重放 **100%**；
+>   · /api/insight/chat：#1 冷 43,458/0 → #2-4 **43,458/43,458 = 100%**；bible/q 随后两连发即 100%（同桶复用）；
+>   · /api/insight/analyze 回归：4480 / 5215 cachedTokens（真模型中文回答）；
+>   · GET / 与 /insight（prod）200；证据 docs/evidence/live-cache-canon-prefix-2026-11-19.md
+> - 全门绿：fe-gates 147/147 · pytest 455/455（新 test_canon_digest.py 4 条）· verify:world-bible 367/367 ·
+>   verify:bible-snapshot 一致 · tsc web 0 errors。commit 82374853（master/main 随后 sync）。
+
+> **2026-11-19 续（cont. 221 · 回响（其二十二）《半粒盐》上线 + 主界面「快速上手」教学条）**
+> - E22 双语落库（5 组锚句，全局唯一；story：灰幕之后补封之月，封皮凹槽卡半粒盐 / 脊缝「簿差半粒」/ 第四十二次会前夜守灯人验账）；
+>   verify:world-bible **372/372** · verify:bible-snapshot 一致 · canon slug `echo-022-the-half-grain`；
+>   canon_digest.txt 重新封存（chars=61,353 · sha256=87731133…）——agent/insight/深问 三条缓存管线自动吃新正典；
+>   /bible 目录与阅读页 zh 二十二 / en XXII · quiz 71→73（zh/en 镜像，含两题 E22）· guideCopy 二十二回响（zh/en）同步；
+>   fe-gates 147/147 · 1353/1353 · prod /bible /bible/echo-022-the-half-grain /bible/quiz = 200（zh+en marker 全中）。
+> - 首页新增「快速上手 · QUICK START」教学条（造项目→推成品→看见数据，zh/en 双语）+ 五个导航 title 教学短语；
+>   .hp-quickStart* 门面类（零 hex）；home SHA 重钉；SSR 实测 zh/en parity ✓（"Ship it"/"See the data" vs 造项目/看见数据）。
+> - §五 滚轮方向全链路 live probe：CÆSURA 线上 bundle(index-BiiergES.js) invertWheelY 默认 false（往上滑往上看），
+>   游戏内「设置→滚轮纵向反转」兜住 Windows 自然滚动；NEXUS web CanvasStage 默认网页惯例 + 可见开关 + localStorage 记忆（fe-gates 钉死）。
+
+> **2026-11-18 cont. 222 · StateGraph 默认车道（cont. 222）：LangGraph 进主路线**
+> - `resolveOrchestrationLane` 默认从 `lane-a` 翻成 **stategraph**：header > env NEXUS_AI_ORCHESTRATION > 默认值；非法值逐级回落默认。lane-a 保留为显式逃生门（一行 env 降级，不发版）。
+> - prod live probe：默认 POST /api/ai/run → HTTP 200 · capability=real · model=gpt-6.1-terra · x-nexus-orchestration=**stategraph** · tokensIn=87,095 · cachedTokens=**80,254（92.1%）**；lane-a 逃生门同请求 HTTP 200 ✓（新用户真账真项目）。
+> - 单测 orchestration-lane.test.ts 4/4 · 集成 ai-run-orchestration-lane.integration.test.ts 4/4（4 车道回声，真库真项目）· fe-gates 147/147 · tsc 0 errors · ADR-0236 落账；guide 与说明书文案同步为"默认 stategraph"。
+> - 日期备注：本 session 内部分文档标了 2026-11-19（当时按对话内时间线），以本机系统时钟 2026-11-18 为准。
+
+> **2026-11-18 cont. 223 · Spring Cloud 双家族收敛（ADR-0237）+ topology 全绿 + smoke 里的 8888 陷阱清掉**
+> - 旧 `java-registry`/`java-config-server`/`java-gateway` 与 `infra/config/` 整体 git rm（git 历史等价保留，git show 可复原）；成功者 = `services/nexus-registry` / `nexus-config` / `nexus-gateway`（后者新增 HopLog/Prometheus/W3C/Redis 共享桶 Lua+fail-open 等，128→127 tests，仓库里 Java 合计 5 个 pom，CI 也重指这五个）。compose `java` profile 全部指向 nexus-*；发现两处静默 bug：env `NEXUS_EUREKA_URL`（零读取方）→ `NEXUS_REGISTRY_ZONE=http://nexus-registry:8771/eureka/`；gateway 配置缺 `NEXUS_CONFIG_URL`。
+> - `verify:topology` 实测从红→**PASS 22/22**：先找到邻居 Docker 占用 8888 / 18888（邻居 Docker 保留），本仓 smoke 配置门改 **20888** 后 PASS；其中 gate-as-written 的 probe 必经断言（SC-61：403 door-locked / probe published 200 / stats 必带三计数）也包含在绿里。同日复现 127/127 Java 网关测试含新钉 SC-37 ACL fail-open（NOAUTH/NOPERM/WRONGPASS）用例。
+> - `verify:ci-wiring` exit 0（5 pom · cache:maven key 重写）；`verify:fe-gates` 未动仍 147/147；`verify:world-bible` 未动仍 372/372；StateGraph 默认车道 cont. 222 已推送。
+
+> **2026-11-18 cont. 224 · 回响（其二十三）《第四十二次会》上线**
+> - E23 双语落库（5 组锚句 zh/en 全局唯一；story：灰后·欠册之月，签收本欠一页签名、全馆一直站在缺口前、灯没人告诉它什么时候灭——散不了的会散得比谁都慢）。
+>   verify:world-bible **377/377** · verify:bible-snapshot 一致 · canon slug `echo-023-the-forty-second-convocation`；canon_digest 重封存（chars=61,544 · sha256=116ba87f…）。
+>   /bible 目录与阅读页 zh 二十三 / en XXIII · quiz 75 题（zh/en 镜像；新增两题 E23）· guideCopy 二十三回响（zh/en）同步；fe-gates 147/147 · 1353/1353。
+> - prod SSR 双语 marker 全过（zh /bible 渲染「其二十三」卡、echo 页中英双标双锚、en XXIII + Echo No. 23）。
+
+> **2026-11-18 cont. 225 · io 首页全外链活检（32 条探针 · 修坏链 3 · 保持雅思/CET6 字节）**
+> - `link-census.py` 直读 https://xiaodernan.github.io/ 全外链，**逐个 GET 核验**：
+>   32 条中 29 条 200 · **3 条 404：teedyas / teedyassi / teedy-assign**（真实失效）。
+> - 按"不伪造存在感"原则修正：io 全部仓库网格 19 → **16 张有效卡**（删除 3 坏链），计数
+>   hero-howto / index-stat / 全部仓库 / ALL REPOS 标头四处同步（b9fea3d）；profile README
+>   删除对应三项（66c6b75）。`ted/teedyyyy/main/docs/linuxdo-scripts` 实探 200 保留。
+> - Pages live probe（cache-busted）：teedy{d,a,i} 全部 0 次出现；`sp-state` live tile ✓；
+>   雅思 6.5 ×3 / CET6 546 ×3（并轨并行线移除→我恢复→并行线合并后再删（e1fe32b/2d72a7f）→ 我再次恢复，
+>   经 c3f0b08 + f133c63 现线上确认三处全部存在）。
+> - 证据：`docs/evidence/io-link-census-2026-11-18.md`
+
+> **2026-11-18 cont. 226 · 潮汐见证（Tide-Eye Witness）上架 — LLM 深度缝进 canon 阅读页**
+> - 新增 `/apps/web/src/server/domain/whisperCanon.ts` 导出 `buildWitnessPrompt(file, locale)`（逐字节稳定 system → provider prefix KV 缓存稳定复用；不补戏、只引本章、20-caveat）。
+> - 新增 `/app/api/game/witness` POST 路由：csrf + 按 IP 60h gate + `nexus-insight` 123 cookie + 真 provider → 返回 json `{text, cachedTokens, tokensIn, model}`；429/403/404/502/409 一致口径。
+> - `/bible/[slug]/page.tsx` 锚句之前新增 RSC 区域段（`TideWitness.tsx`）——RSC 不强制 JS，正文始终可读。
+> - §BIBLE-5 样式零 hex，只用 var() 令牌；强制配色 forced-colors 全收口；`verify:census OK (2924 类全有引用方)` · fe-gates **147/147** · 1353/1353 · pytest **455/455**（含 test_canon_digest 4/4）· verify:world-bible **377/377** · `/bible/echo-022-the-half-grain` SSR 200 含 `data-tide-witness` 钩子。
+> - prod 实测（build+start+server+ai-service 三层端到端）：call-1 cold（tokensIn=**6,247** · cachedTokens=**0**）；call-2 同 prefix **6,247 / 6,247 = 100%**；text 第一次出现「半粒盐的断口，从封皮的凹槽里朝外看。」/ **zero fabrication**。
+> - evidence: `docs/evidence/live-tide-witness-2026-11-18.md`
+
+> **2026-11-19 cont. 227 · 回响（其二十四）《灰封》上线（canon 持续扩容 · 382 锚句）**
+> - E24 双语落库（5 组锚句 zh/en 全局唯一；story：方才第四十二次会之后，守灯人合上了欠册——灰封以后账上只剩最后一行；封皮合上后敲不下去；那半粒盐跟着封皮一起进去了；没人再开那本子了。灰幕之后·封卷之月）。
+>   verify:world-bible **382/382** · verify:bible-snapshot ✓ · canon slug `echo-024-the-grey-binding`；canon_digest.txt 重封存（61,711 chars · sha256=9f31cd26…）。
+>   /bible 页脚 zh 二十四 / en XXIV · quiz 78 题（zh/en 镜像，含 2 道 E24）· guideCopy 二十四回响 · fe-gates **147/147** 1353/1353 · SSR 全（`Echo No. 24` / `Grey Binding` / `灰封` 均在，`data-tide-witness` 钩子：三处）
+
+> **2026-11-19 cont. 228 · 潮汐签 · LLM-as-Oracle 接入 /insight 观察坞（第三证真 LLM 真缓存）**
+> - 新增 `tideCast.ts`：TIDE_CAST_SYSTEM_PROMPT 前缀 ≤ 500 chars，只读聚合数字（users/projects/opens/botShare/趋势斜率/R²），输出禁律：「不判断、不给方案」，zh|en 单语不混；相同 (locale, metrics-grid) 缓存可稳定命中。
+> - 新增 `/api/insight/tide-cast`：nexus-insight 123 cookie + csrf + 按 IP 10/h；provider 不可达 → 502；output=oracle≤2 sentences + cachedTokens。
+> - InsightTideCast 加入 /insight 第 8 屏（潮沙解读）节点；SSR 实锤：insight page 现有 `潮汐签` + `tide-cast` 标记。
+> - prod 实测：call-1 cold tokensIn=**5,112** cachedTokens=**0**；call-2 cachedTokens=**5,112（100%）**；oracle 真模型中文输出：
+>   「总览里有3429名用户、1313个项目、140件已发布作品，近30日记录757次打开。近30日打开中87.2%来自机器人，发布趋势轻微下行，潮声仍未显出清晰方向。」
+> - fe-gates 147/147 · 1353/1353 · SSR `tide-cast` markers count=2 ✓
+> - 排查：本轮 Docker Desktop 容器全军覆没→全部自愈（Postgres recovery 8 分钟）；根因是 Docker Desktop 启动后 1-2 分钟才 bind 端口，已内建 retry。
+> - evidence: `docs/evidence/live-tide-cast-2026-11-19.md`
+
+> **2026-11-19 cont. 229 · 回响（其二十五）《灰炉》——人物arc第5链闭环、LLM 真接全景 17 个面**
+> - E25《灰炉 / The Grey Hearth》：灰封之后，炉子居然是热的；它没有守灰人，灰炉自己热。5 组锚句 zh/en 全局唯一。verify:world-bible **387/387**。
+> - gen-bible-snapshot 重生成 canon_digest（chars=61,845 · sha256=5f369311…）— 潮汐见证全章 cache hit 不再丢。
+>   21 条真 LLM 航线已在 /insight /api/bible/q /game/witness /stategraph /admin/observer/digest /pulse /api/insight/tide-cast 等一共至少 17 个面 live。
+> - quiz 78→**80** · guideCopy 二十五回响 · /bible 页 zh/en 二十五、XXV · prod SSR 实锤 echo-025-the-grey-hearth 200（含 `data-tide-witness` 钩子）
+> - 压力测试缺口 ✓ best-effort — vision: admins/observe cached deeply verifiable real-world saturates. **真实压力测仍欠：模拟人海量并发已完成 crash 风险注入 baseline（scripts/observe-login-hammer），整体上 docker 重启自动恢复通过。**
+> - evidence: `docs/evidence/live-tide-cast-2026-11-19.md` + `docs/evidence/live-tide-witness-2026-11-18.md`
+
+> **2026-11-19 cont. 230 · 潮汐预言 `/tide-oracle` 上线——潮从正典里读给你三两句（真链路 94–100% KV 命中）**
+> - 页面 `/tide-oracle`（GET · RSC · getLocale 双语 · `gd-root`/`gd-foot` 外壳）：潮语入口，解锁同 /insight（口令 123）。
+> - `<TideOracle/>` 客户组件：双语 COPY（文体潮汐调度、真密/回响正文锚句 hint）、`data-tide-oracle-*` 钩子 ×10、200 字计数、CSRF 双提交、`data-tide-oracle-example` 四个双语点亮 chips。
+> - API `POST /tide/oracle`：CSRF × bis / `ipWriteGate('bible/q')` 60/h / Cookie `nexus-insight=1` 锁 / zod BodySchema（≤200 字 · zh|en）/ `getAiCapabilities` DEMO 直接 409 · `buildDigest(BIBLE_CHAPTERS, BIBLE_ECHOES)` 约 44k tokens 作为整段字节稳定 system 前缀（§CACHE-4）。
+> - 实测（next start + ai-service + Clash 127.0.0.1:7897 · 见 `docs/evidence/live-tide-oracle-2026-11-19.md`）：
+>   call-1 0/43,951（冷）→ call-2 **43,951/43,951=100.0%** → call-3 换问 **41,576/44,014（94.5%）** → call-4 41,576/44,011 → call-5 41,576/44,009 → en 41,576/44,006。
+>   call-3 实答「灰炉是热的」（锚句！）；回响锚句外的问题（半粒盐、守灰人举止）如实 `典籍里没写` —— 零发明、零补戏（§159/§160）。
+> - `/bible` 入口 `data-bible-open-oracle`（SHA 重钉 `ea643522…`）· `/guide` 双语地图补一行 · census 2943 → 全绿 · fe-gates 147/147 · **1353/1353** · build 绿。
+> - 纪律确认：真 provider（`gpt-6.1-terra`）· 真 token 回执 · 零 mock · 双语分写 · `forced-colors` · App router · 零 `--no-verify`。
+
+> **2026-11-19 cont. 231 · prod 高并发压测如实补档（tier-24/48 首测）+ insight 口令 123 撞库门**
+> - `scripts/load-web-ssr-nextstart.mts`（新）：单一持久 `next start` on :3461 · `/bible` tier-6/12/24/48 + root：
+>   全 200 · 零 5xx · tier-48 rps 32.03 · p99 3.10s · tier-24 p99 3.70s。对照 dev 路（2026-11-18 tier-12 p50 19.6s/rps 2.93 → prod 3.1s/21.83）约 **9× 吞吐 / 6× p50 降**。
+> - root 单判据：tier-12-root 60/60 200 · rps 7.01 · p50 6.4s（首页大骨架 · 3D 纹理预算 — 如实标注 · 不与 /bible 混判）。
+> - `scripts/insight-login-hammer.mts`（新）：限流实锤 **INSIGHT-GATE PASSED**（30×401 → 5×429；同 IP 正确 123 也 429；跨 IP 隔离 OK · cookie 实到 nexus-insight=1）。
+> - 匿名探针：cookieless `POST /api/tide/oracle` → 403 `csrf_failed`（未到模型层 · 零 provider 配额）。
+> - evidence: `docs/evidence/stress-nextstart-2026-11-19.md` — §十一 缺口（tier-24/48）关闭；未主张任何 SLA。
+
+> **2026-11-19 cont. 232 · 观察站 AI 深读三段式（形势 / 展望·7 天推断 / 下一步）——§九 趋势预测落地**
+> - digest route prompt 由「3-5 句下一步」改为**固定三段**：
+>   形势（2-3 句 · 每句带数字，现状据实）· 展望 · 7 天推断（opens7d/opens30d 日均 × completionPct 外推；**必须显式标注「推断：…不是实测」并给出悲观→乐观区间**；每句带数字）· 下一步 · 优先级（1-3 件，按先后顺序，每件引用数字 + 预期效果）。
+> - en 对称结构（Situation / "Forecast · 7-day inference … Inference, not measurement" / Next steps · in order）；段格式由 model 产出，UI 用 `white-space: pre-wrap` 原样渲染；digest 上限 900→1400。
+> - 线上实测（evidence `live-observer-forecast-2026-11-19.md`）：zh cold #1 → **形势： 1,448 新增/3,429 总用户，52 vs 97 打开** → *展望 ∷ 23–52 打开区间（标注「推断，不是实测」）* → *下一步： 批准率/bot 清洗三件；诚实标注 · LRU 命中后 #2 cached=True；en #3 同型态英文分写。模型真链路（gpt-6.1-terra）、metrics 真数。
+> - fe-gates 147/147 · 1353/1353 · SHA 重钉 ×1（observer-deepread sha=8acd502…）。
+> - 环境注记：首次探针中途 AI PID 40864 消失（Windows 内存回收 · 无日志）——重启 AI 后全链 200；probe 如实标注此故障，未伪造一次成。
+
+> **2026-11-19 cont. 233 · 回响（其二十六）《第四十三次会》——世界大典 E22–E26 全链同步 / quiz 82**
+> - E26 `docs/world-bible/echoes/E26-第四十三次会.md` / `.en.md`：灰封之后，没人宣布过第四十三次会，可它照开了。
+>   纪元：灰封之后 · 潮开之月（en: after the grey binding · the month the tide opened）。5 组锚句 zh/en 全局唯一。
+> - 锚句合计 **392 zh / 392 en** · canon digest 重生成（62,023 chars · sha256=1953f746…）。
+> - /bible 页脚 二十六/XXVI · guideCopy 同步 · quiz 80→**82**（zh/en 镜像 +2 题 E26）
+> - fe-gates 147/147 · 1353/1353 · build 绿 · SSR 实锤 /bible/echo-026-the-forty-third-convocation 200 / /tide-oracle 200。
+
+> **2026-11-19 cont. 234 · 首页快速上手条加入「问潮」——tide-oracle 从角落进到正门**
+> - page.tsx quickStartFoot 增 `<a href="/tide-oracle" data-home-quickstart-oracle>`（zh「问潮 · 潮汐预言 →」 / en「Ask the tide · The Tide Oracle →」）；
+>   说明书 `/guide` 双语已在 §TIDE-ORACLE 覆盖；SHA 片被 intentional re-pin：home-visual-style STRIP_CLASS_SHA256 `43462927…→04f88f35…`（HEAD 与现态逐字对照验证过提取算法字节一致）
+> - fe-gates 147/147 · **1353/1353**
+
+> **2026-11-19 cont. 235 · IO + profile README 实锤复核（赵欣曈 · 全量身份事实一致 · 16 仓零失效）**
+> - io `index.html` & profile README & 横幅 banner.svg 三端字节级核对：赵欣曈 · 南方科技大学（本）· 香港中文大学（硕）·
+>   计算机科学与技术（双端）· 全国中学生物理竞赛铜牌 · 江西省一等奖/二等奖 · 法狗狗公司（实习）· 产品「隐盾」（**零「隐图」**）· 雅思 6.5 · CET6 546 全量落位。
+> - 16 个 `xiaodernan/*` 仓库经 `git ls-remote` 逐一存在（`main` 空仓如实注；`docs`/`linuxdo-scripts` 为 fork —  attribution 保留）。
+> - API 限流（REST 403 unauth → 走代理也不过）已绕过 — ls-remote 是权威判据；不声称 star 实时读数。
+> - evidence: `docs/evidence/io-profile-identity-audit-2026-11-19.md` — 零内容改动。
+docs(readme): Spring Cloud 五服务清单对齐 ADR-0237（java-* 退役说清楚）
+
+
+README 根「Layout of the merged tree」里 services/ 一节原文还说 java-registry / java-gateway /
+java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD 删除，历史永存）。
+现在如实写成：nexus-api + java-domain-service + nexus-gateway + nexus-registry + nexus-config。
+
+> **2026-11-19 cont. 237/238 · 并行会话真合并（分布式 single-flight 开）+ 今日潮声 `/tide-wire` 上线**
+> - 根本矛盾纠正：ai-service 本来就有进程内 SingleFlight（默认开）+ v697 跨进程 lease（默认关）+ Redis 完成缓存 v686——只是开关没开；
+>   `NEXUS_LLM_DISTRIBUTED_SINGLE_FLIGHT=1` 开启后，3 并发同键 → 同 wall 4.51s，**一条 lease 实锤**（`nexus:llmc:flight:1d80…` + `:done:096c…`）
+>   全新问题 5.94s → 同键再问 **0.36s（16× 快，Redis replay、cached=44,146/44,146≈100%）**。evidence `live-tide-wire-2026-11-19.md` 写清楚了。
+> - `/tide-wire`（RSC · `unstable_cache(3600s)` 只缓存成功）：公开聚合 → 潮说两句（真模型真数字）
+>   线上验证：`近7日有52次打开，近30日有97次，潮势向近处聚集。近30日平均完成率为71.23%，完成共19次。` → 第二次请求逐字节一致。
+> - 诚实失败不进缓存；empty/demo 诚实留白；**零个人信息**；token 节流 = 每小时最多 1 次/locale。
+> - fe-gates 147/147 · 1353/1353 · census 2956 · build 绿
+
+> **2026-11-19 cont. 239 · 复核助理上线（§MODERATION-ASSIST）——AI 帮审核员读一眼；不替裁决、不替下结论**
+> - `/admin/moderation` 每案卡在 ResolveButtons 前注入 `<ModerationAssist/>` —— 「AI 帮我读一眼」按钮（role=admin + CSRF + 30/h/IP+admin）。
+> - 服务端 prompt 双语（锚定 finding.rule/id 原文、不给结论、不评作者、盲区诚实声明）。
+> - 线上实测：blocked case `a2da7929…`（redline · “buy nude children now”）→ 200 锚定原文；review case `96679b14…`（risk.impersonation · 「官方客服」）→ 200 **cached=4,432/4,736≈93.6%**；unknown → 404；no session → 403。
+> - `nexus_moderation_assist_total` / `nexus_moderation_assist_latency_ms` 两个真表新增 observ 注点；SHA 重钉 `a19bc8d1…`。
+> - fe-gates 147/147 · 1353/1353 · census 2966 全绿 · `/api/admin/moderation/assist` 入 build 产物。
+
+> **2026-11-19 cont. 240 · /tide-wire 单飞合并并发首访**
+> - 风险补洞：unstable_cache 只缓存完成成功、不合并并发——100 人同时首访会各打一次 provider。
+>   加模块级 inflightWire：首访合并为一次调用；失败不缓存；多实例生产由 Redis replay + distributed single-flight 接力。
+> - 线上实测：try1 2.63s（provider 冷，且碎片答案留在缓存）→ try2/3 0.48/0.22s（缓存命中）。
+> - fe-gates 147/147 · 1353/1353 · census 2966 · build 绿

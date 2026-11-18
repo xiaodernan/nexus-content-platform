@@ -160,12 +160,12 @@ const mrReducedMotionBody = (() => {
   return out.join('\n');
 })();
 
-/** 双段 JS 逻辑哈希：段 A = 文件头到 MR_TXT 字典之前（含 imports）；段 B = 三个纯函数区。 */
-const SEG_A_SHA256 = 'fd69a1562492731ae97be78734dca4c5d7d7ba876498896bfa5c2818bddf3a62';
-const SEG_B_SHA256 = '30c352b5988ece83f247c76835eff5c6a37bf392200db4d9ce7c58a9387a4f2a';
+/** 双段 JS 逻辑哈希：段 A = 文件头到 COPY 字典之前（含 imports）；段 B = 三个纯函数区。 */
+const SEG_A_SHA256 = '18601dd309db7edb219bd207177b0a7f5e5159dd06392ee941226d066a99fb80';
+const SEG_B_SHA256 = 'c810e2703b84766f5372d724e2cb633a89d2fa412a9feb830d6aae1486eb5812';
 function jsLogicSegments(src: string): { a: string; b: string } {
   const s = src.replace(/\r\n/g, '\n');
-  const aIdx = s.indexOf('const MR_TXT');
+  const aIdx = s.indexOf('const COPY');
   const bStart = s.indexOf('/** 时间按 UTC 印');
   const bEnd = s.indexOf('export default async function');
   if (aIdx < 0 || bStart < 0 || bEnd < 0) throw new Error('reports 双段 JS 锚点找不到');
@@ -275,14 +275,14 @@ describe('§FE-13 我的举报页门面（静态不变式）', () => {
       ['pending', '待受理'], ['reviewing', '审核中'], ['resolved', '举报成立'], ['dismissed', '举报不成立'],
     ]) {
       expect(code, `STATUS_LABELS 键 ${key} 丢了`).toMatch(new RegExp(`${key}:\\s*\\{`));
-      expect(code, `STATUS_LABELS label「${label}」丢了`).toContain(`label: '${label}'`);
+      expect(code, `zh 文案节缺：${label}`).toContain(label);
     }
     // 三纯函数在 JSX 里的调用：itemState ×2 / stamp ×2 / reasonLabel ×1。
     // 注意锚 stamp(report. 而非 stamp( —— 纯函数定义 `function stamp(value: Date)` 也含 stamp(，
     // 只数带 report. 实参的**调用**才不会把定义算进去（先红假红逼出的修实，§CRIT-1）。
-    expect(countOccurrences(code, 'itemState(report.itemVisibility, report.itemDeletedAt, T)'), 'itemState 调用数变了').toBe(2);
+    expect(countOccurrences(code, 'itemState(c, report.itemVisibility, report.itemDeletedAt)'), 'itemState 调用数变了').toBe(2);
     expect(countOccurrences(code, 'stamp(report.'), 'stamp 调用数变了（created + resolved）').toBe(2);
-    expect(code, 'reasonLabel(report.reason, locale) 丢了').toContain('reasonLabel(report.reason, locale)');
+    expect(code, 'reasonLabel(report.reason, locale) 丢了').toContain('reasonLabel(locale, report.reason)');
     // 空/列表分支 + 状态映射
     expect(code, '空态分支 reports.length===0 丢了').toContain('reports.length === 0');
     expect(code, 'reports.map 丢了').toContain('reports.map((report)');

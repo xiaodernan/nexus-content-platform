@@ -19,9 +19,9 @@ interface RouteContext {
 
 export async function GET(_req: Request, ctx: RouteContext): Promise<NextResponse> {
   const { userId, file } = await ctx.params;
-  if (!isUuid(userId)) return notFound();
+  if (!isUuid(userId)) return await notFound();
   const found = await openAvatar(userId, decodeURIComponent(file));
-  if (!found) return notFound();
+  if (!found) return await notFound();
   // 私有素材要 private，头像本来就是给所有人看的；nosniff 与 CSP 由同一个 helper 带上
   return bytesResponse(found.bytes, found.contentType, 'public, max-age=31536000, immutable');
 }

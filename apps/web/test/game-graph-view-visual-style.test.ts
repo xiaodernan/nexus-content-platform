@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
  * 唯一代码变更：`ml-auto font-mono text-11` cn 三元 → `.wd-monoFaintEnd` + `wd-dangerText`（cx/gp-segOn→selOn 的同口径映射扩展）。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @ + cn()整体归一 + `className=@` 归一）：
- * `75c1fd00a82746799bdcee944fdb31652ddc10b7f9081b19ef679bc510acd4d7`。
+ * `f07854a1439689518f533871f00e9d752de53fd199150470c826c272a279050f`。
  *
  * 判据不变式（9 门）：
  *  1. 'use client' 保留 + updateDragState/graph 派发；2. 字面 className 全 `.wg-*`/复用族；
@@ -127,9 +127,9 @@ describe('§FE-58 /studio GameGraphView 游戏设计系统图视图', () => {
     }
   });
 
-  it('剥 className/cn 后全文 SHA256 守恒（零行为：75c1fd00a82746799bdcee944fdb31652ddc10b7f9081b19ef679bc510acd4d7）', () => {
+  it('剥 className/cn 后全文 SHA256 守恒（零行为：f07854a1439689518f533871f00e9d752de53fd199150470c826c272a279050f）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '75c1fd00a82746799bdcee944fdb31652ddc10b7f9081b19ef679bc510acd4d7',
+      'f07854a1439689518f533871f00e9d752de53fd199150470c826c272a279050f',
     );
   });
 });

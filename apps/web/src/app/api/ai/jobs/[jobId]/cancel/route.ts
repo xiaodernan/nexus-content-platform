@@ -18,17 +18,17 @@ interface RouteContext {
  * 但 `taskStatus` 已经落成 `cancelled`——界面要把"已受理"与"已取消"分开说。
  */
 export async function POST(req: Request, ctx: RouteContext): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { jobId } = await ctx.params;
   try {
     const user = await requireUser();
     const rl = await getRateLimiter().hit(rateKey('ai/jobs/cancel', clientIp(req), user.id), 30, 10 * 60_000);
     if (!rl.allowed) {
-      return jsonError(429, 'rate_limited', { message: '取消太频繁，稍后再试', retryAfterMs: rl.retryAfterMs });
+      return await jsonError(429, 'rate_limited', { message: '取消太频繁，稍后再试', retryAfterMs: rl.retryAfterMs });
     }
     const outcome = await cancelJob(jobId, user.id, clientIp(req));
     if (!outcome.ok) {
-      return jsonError(outcome.status, outcome.error.code, {
+      return await jsonError(outcome.status, outcome.error.code, {
         message: outcome.error.message,
         ...(outcome.error.hint ? { hint: outcome.error.hint } : {}),
         retryable: outcome.error.retryable,
@@ -36,6 +36,6 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
     }
     return NextResponse.json(outcome, { headers: { 'cache-control': 'no-store' } });
   } catch (error) {
-    return failure(error, `POST /api/ai/jobs/${jobId}/cancel`);
+    return await failure(error, `POST /api/ai/jobs/${jobId}/cancel`);
   }
 }

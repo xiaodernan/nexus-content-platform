@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
  * 本片只换 className；鉴权（requireUser + projectVisibleTo + notFound）、断点/缩放解析、
  * paintOrder、stateStyleSheetFor、内联 style（nodeStyle/scale transform）一字不改。
  *
- * **剥 className 后全文 SHA256 守恒**：改后与改前（git HEAD）逐字节一致（`1d8e84b5…`）——
+ * **剥 className 后全文 SHA256 守恒**：改后与改前（git HEAD）逐字节一致（`e9026987…`）——
  * 内联 style 与 ViewerControls 挂载点不属于 className，redact 天然覆盖。
  *
  * 判据不变式（12 门）：
@@ -173,10 +173,10 @@ describe('§FE-25 /preview/[projectId] 只读模型投影', () => {
     }
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：b36c6fd778dd8ed203ebb5ee5922d75e26d6e08db8dc5f9b2a3144aa7cbd7ab2）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：e90269879fa0dd6e0fa9934d911851ff653d07e27481fa0295cc9ef2a9c71a19）', () => {
     // 常量在改前（git HEAD）由真实产物 redact 算出并钉死；此门保证除 className 外一字节未动。
     expect(createHash('sha256').update(redactClasses(src)).digest('hex')).toBe(
-      'b36c6fd778dd8ed203ebb5ee5922d75e26d6e08db8dc5f9b2a3144aa7cbd7ab2',
+      'e90269879fa0dd6e0fa9934d911851ff653d07e27481fa0295cc9ef2a9c71a19',
     );
   });
 });

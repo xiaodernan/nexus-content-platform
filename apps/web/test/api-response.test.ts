@@ -77,7 +77,7 @@ describe('apiJson：够大且对方收得住才压', () => {
 
   it('声明 gzip 且过阈值：回 gzip，解开是原样那一份 JSON，且线上真的比原体短', async () => {
     const body = payloadOfJsonLength(API_GZIP_THRESHOLD_BYTES);
-    const res = apiJson(body, reqWith('gzip, br'));
+    const res = await apiJson(body, reqWith('gzip, br'));
     const raw = Buffer.from(await res.arrayBuffer());
     expect(res.headers.get('content-encoding')).toBe('gzip');
     expect(res.headers.get('content-type')).toContain('application/json');
@@ -89,12 +89,12 @@ describe('apiJson：够大且对方收得住才压', () => {
   it('两条路的 content-length 说的都是这一次真正发出去的字节', async () => {
     const body = payloadOfJsonLength(API_GZIP_THRESHOLD_BYTES * 3);
     const expectedPlain = Buffer.byteLength(JSON.stringify(body), 'utf8');
-    const gz = apiJson(body, reqWith('gzip'));
+    const gz = await apiJson(body, reqWith('gzip'));
     const gzBytes = Buffer.from(await gz.arrayBuffer());
     // 挂原体的长度是最坏的一种错：客户端按头读，读回来的是截断的 JSON
     expect(Number(gz.headers.get('content-length'))).toBe(gzBytes.length);
     expect(gzBytes.length).toBeLessThan(expectedPlain);
-    const plain = apiJson(body, reqWith('identity'));
+    const plain = await apiJson(body, reqWith('identity'));
     const plainBytes = Buffer.from(await plain.arrayBuffer());
     expect(plain.headers.get('content-encoding')).toBeNull();
     expect(Number(plain.headers.get('content-length'))).toBe(plainBytes.length);
@@ -103,7 +103,7 @@ describe('apiJson：够大且对方收得住才压', () => {
 
   it('没声明 gzip：同样的大报文走 identity，一个字节都不压', async () => {
     const body = payloadOfJsonLength(API_GZIP_THRESHOLD_BYTES * 4);
-    const res = apiJson(body, reqWith('br'));
+    const res = await apiJson(body, reqWith('br'));
     expect(res.headers.get('content-encoding')).toBeNull();
     expect(await textOf(res)).toBe(JSON.stringify(body));
   });
@@ -113,8 +113,8 @@ describe('apiJson：够大且对方收得住才压', () => {
     const at = payloadOfJsonLength(API_GZIP_THRESHOLD_BYTES);
     expect(Buffer.byteLength(JSON.stringify(below), 'utf8')).toBe(API_GZIP_THRESHOLD_BYTES - 1);
     expect(Buffer.byteLength(JSON.stringify(at), 'utf8')).toBe(API_GZIP_THRESHOLD_BYTES);
-    const r1 = apiJson(below, reqWith('gzip'));
-    const r2 = apiJson(at, reqWith('gzip'));
+    const r1 = await apiJson(below, reqWith('gzip'));
+    const r2 = await apiJson(at, reqWith('gzip'));
     expect(r1.headers.get('content-encoding')).toBeNull();
     expect(r2.headers.get('content-encoding')).toBe('gzip');
     expect(await textOf(r2)).toBe(JSON.stringify(at));
@@ -126,13 +126,13 @@ describe('apiJson：够大且对方收得住才压', () => {
     const body = { text: '中'.repeat(chars) };
     expect(JSON.stringify(body).length).toBeLessThan(API_GZIP_THRESHOLD_BYTES);
     expect(Buffer.byteLength(JSON.stringify(body), 'utf8')).toBeGreaterThan(API_GZIP_THRESHOLD_BYTES);
-    const res = apiJson(body, reqWith('gzip'));
+    const res = await apiJson(body, reqWith('gzip'));
     expect(res.headers.get('content-encoding')).toBe('gzip');
     expect(await textOf(res)).toBe(JSON.stringify(body));
     // 同一份 CJK 报文走 identity 那一路也得有见证：头里的长度必须是 utf8 字节数。
     // 上面那条"两条路的 content-length"用的是 ASCII 报文，字符数==字节数，看不见"把 utf16
     // 字符数当长度挂上去"那种错——变异探针 A2 就是这么露出来的（改 production 的那一行，26 条全绿）。
-    const unpressed = apiJson(body, reqWith('identity'));
+    const unpressed = await apiJson(body, reqWith('identity'));
     const unpressedBytes = Buffer.from(await unpressed.arrayBuffer());
     expect(unpressed.headers.get('content-encoding')).toBeNull();
     expect(Number(unpressed.headers.get('content-length'))).toBe(unpressedBytes.length);
@@ -141,18 +141,18 @@ describe('apiJson：够大且对方收得住才压', () => {
   });
 
   it('两条路都带着 no-store，除非调用方自己写了别的', async () => {
-    expect(apiJson(plain, reqWith()).headers.get('cache-control')).toBe('no-store');
-    const big = apiJson(payloadOfJsonLength(API_GZIP_THRESHOLD_BYTES * 3), reqWith('gzip'));
+    expect((await apiJson(plain, reqWith())).headers.get('cache-control')).toBe('no-store');
+    const big = await apiJson(payloadOfJsonLength(API_GZIP_THRESHOLD_BYTES * 3), reqWith('gzip'));
     expect(big.headers.get('cache-control')).toBe('no-store');
     expect(await textOf(big)).toBe(JSON.stringify(payloadOfJsonLength(API_GZIP_THRESHOLD_BYTES * 3)));
-    const explicit = apiJson(plain, reqWith(), { headers: { 'cache-control': 'private' } });
+    const explicit = await apiJson(plain, reqWith(), { headers: { 'cache-control': 'private' } });
     expect(explicit.headers.get('cache-control')).toBe('private');
   });
 
-  it('vary 里补上 Accept-Encoding，但不吃掉调用方已有的那一串', () => {
-    const gzip = apiJson(payloadOfJsonLength(API_GZIP_THRESHOLD_BYTES * 2), reqWith('gzip'));
+  it('vary 里补上 Accept-Encoding，但不吃掉调用方已有的那一串', async () => {
+    const gzip = await apiJson(payloadOfJsonLength(API_GZIP_THRESHOLD_BYTES * 2), reqWith('gzip'));
     expect(String(gzip.headers.get('vary'))).toMatch(/accept-encoding/i);
-    const withVary = apiJson(payloadOfJsonLength(API_GZIP_THRESHOLD_BYTES * 2), reqWith('gzip'), {
+    const withVary = await apiJson(payloadOfJsonLength(API_GZIP_THRESHOLD_BYTES * 2), reqWith('gzip'), {
       headers: { vary: 'X-Custom' },
     });
     expect(String(withVary.headers.get('vary'))).toMatch(/X-Custom/i);
@@ -163,7 +163,7 @@ describe('apiJson：够大且对方收得住才压', () => {
     // 头值从生产那一枚真凭据的形状取，不自己编：HTTP 头只收 Latin1，随手写的省略号会让这一格红在
     // 一个生产根本不会出现的值上（第一遍跑就是 `'abcd…9'`，红的是 Headers，不是 apiJson）
     const hint = newApiToken().slice(TOKEN_PREFIX.length, TOKEN_PREFIX.length + 8);
-    const res = apiJson(plain, reqWith(), { status: 201, headers: { 'x-nexus-token-hint': hint } });
+    const res = await apiJson(plain, reqWith(), { status: 201, headers: { 'x-nexus-token-hint': hint } });
     expect(res.status).toBe(201);
     expect(res.headers.get('x-nexus-token-hint')).toBe(hint);
     expect(await textOf(res)).toBe(JSON.stringify(plain));

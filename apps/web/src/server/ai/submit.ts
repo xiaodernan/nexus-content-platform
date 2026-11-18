@@ -30,7 +30,7 @@ export async function submitClientRequest(
 ): Promise<AsyncSubmitOutcome> {
   const assembled = await assembleAiRequest(request, userId);
   if (!assembled.ok) {
-    return { ok: false, response: jsonError(assembled.status, assembled.code, { message: assembled.message }) };
+    return { ok: false, response: await jsonError(assembled.status, assembled.code, { message: assembled.message }) };
   }
 
   const caps = await getAiCapabilities();
@@ -40,7 +40,7 @@ export async function submitClientRequest(
   const fields = agentLedgerFields(assembled.agent, { askedAgentKey: request.agentKey, fallbackKey: request.intent });
   // §134：同一道额度门。放在提交之前而不是收尾之后——作业交给队列就收不回来了
   const refusal = await refusalForRun(userId, fields.agentKey);
-  if (refusal) return { ok: false, response: jsonError(429, 'credits_exhausted', { message: refusal }) };
+  if (refusal) return { ok: false, response: await jsonError(429, 'credits_exhausted', { message: refusal }) };
 
   const submitted = await submitJob({
     wire: assembled.wire,
@@ -58,7 +58,7 @@ export async function submitClientRequest(
     increment('nexus_ai_jobs_submitted_total', { capability: isDemo ? 'demo' : 'real', outcome: 'rejected' });
     return {
       ok: false,
-      response: jsonError(submitted.status ?? 503, submitted.error.code, {
+      response: await jsonError(submitted.status ?? 503, submitted.error.code, {
         message: submitted.error.message,
         retryable: submitted.error.retryable,
       }),

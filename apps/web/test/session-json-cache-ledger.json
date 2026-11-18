@@ -17,7 +17,6 @@
     "apps/web/src/app/api/admin/marketplace/reports/route.ts",
     "apps/web/src/app/api/admin/moderation/route.ts",
     "apps/web/src/app/api/admin/rate-limit/route.ts",
-    "apps/web/src/app/api/admin/realtime/route.ts",
     "apps/web/src/app/api/notifications/settings/route.ts",
     "apps/web/src/app/api/projects/[projectId]/annotations/route.ts",
     "apps/web/src/app/api/projects/[projectId]/assets/route.ts",

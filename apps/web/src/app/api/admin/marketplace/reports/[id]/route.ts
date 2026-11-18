@@ -49,12 +49,12 @@ export async function PATCH(
 ): Promise<NextResponse> {
   const { id } = await ctx.params;
   const user = await currentUserOrNull();
-  if (!user) return jsonError(401, 'unauthenticated', { message: '需要先登录' });
+  if (!user) return await jsonError(401, 'unauthenticated', { message: '需要先登录' });
 
   const ip = clientIp(req);
   const rl = await getRateLimiter().hit(rateKey('admin/marketplace/reports', ip, user.id), 30, 10 * 60_000);
   if (!rl.allowed) {
-    return jsonError(429, 'rate_limited', { message: '处置太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
+    return await jsonError(429, 'rate_limited', { message: '处置太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
   }
 
   if (user.role !== 'admin') {
@@ -67,13 +67,13 @@ export async function PATCH(
       detail: { reason: 'not_admin', role: user.role },
       ip,
     });
-    return jsonError(403, 'forbidden', { message: '只有审核员（role=admin）能处置举报' });
+    return await jsonError(403, 'forbidden', { message: '只有审核员（role=admin）能处置举报' });
   }
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
 
   const parsed = UpdateReportSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
-    return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
+    return await badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
   }
 
   const result = await updateReportStatus({
@@ -87,9 +87,9 @@ export async function PATCH(
   if (!result.ok) {
     if (result.reason === 'not_found') {
       // 形状不对的 id 也走这里（域层的 isUuid）：没有这个工单，不是一个服务器故障
-      return jsonError(404, 'report_not_found', { message: '没有这个举报工单' });
+      return await jsonError(404, 'report_not_found', { message: '没有这个举报工单' });
     }
-    return jsonError(409, 'already_closed', {
+    return await jsonError(409, 'already_closed', {
       message: `这个工单当前是「${STATUS_LABELS[result.status]}」，结案记录不再改写`,
       status: result.status,
     });

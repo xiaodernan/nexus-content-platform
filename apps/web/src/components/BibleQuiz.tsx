@@ -123,6 +123,222 @@ const QUESTIONS: Question[] = [
     en: { prompt: 'Notes from the Patrol Road says the archives never held which word?', choices: ['“lighthouse keepers”', '“eclipse”', '“ordinary”', '“home”'], answer: 2, ref: 'Echo No. 1 · No Page Carries the Word “Ordinary”' },
   },
   {
+    zh: { prompt: '《灯芯札记》里，印章经过四只手——每只手都以为什么？', choices: ['自己拿到了死神的契书', '自己报完了账', '自己打开了第八盏灯', '自己找到了国王'], answer: 1, ref: '回响二 · 印章经过四只手' },
+    en: { prompt: 'In “Notes from the Lamp Wick”, the stamp passed through four hands — what did each hand believe?', choices: ['that they had received a death contract', 'that they had closed the books', 'that they had lit the Eighth Lamp', 'that they had found the King'], answer: 1, ref: 'Echo No. 2 · The Stamp Passed Through Four Hands' },
+  },
+  {
+    zh: { prompt: '《盐灯守灵日记》里，守灵人数什么？', choices: ['年', '灯油的斤两', '夜', '灯芯的根数'], answer: 2, ref: '回响三 · 守灵人不数年，他数夜' },
+    en: { prompt: 'In “The Salt-Lamp Vigil Diary”, what does the vigil-keeper count?', choices: ['years', 'the weight of lamp oil', 'nights', 'the strands of wick'], answer: 2, ref: 'Echo No. 3 · He does not count years — he counts nights' },
+  },
+  {
+    zh: { prompt: '《第九叩》里，沙盘借出栏的指印压在什么之上？', choices: ['一页报纸', '一个空白的日期', '一本没写完的货单', '一枚收件章'], answer: 1, ref: '回响四 · 沙盘上的第九个旋钮' },
+    en: { prompt: 'In “The Ninth Knock”, what does the loan-column fingerprint on the stores ledger stamp over?', choices: ['a newspaper proof', 'a blank date', 'an unwritten invoice', 'a receipt stamp'], answer: 1, ref: 'Echo No. 4 · The Ninth Dial on the Sand Table' },
+  },
+  {
+    zh: { prompt: '《第九叩》里，报纸上的第九个脚注写的是什么？', choices: ['雾港失踪的第九人', '灯罩内侧的九道叩痕', '第四十二次会议的日期', '圆角印章的来历'], answer: 1, ref: '回响四 · 被印圆角擦掉的第九个脚注' },
+    en: { prompt: 'In “The Ninth Knock”, what does the ninth footnote in the newspaper describe?', choices: ['the ninth missing person of the mist harbor', 'nine knock-marks on the inside of a lamp shade', 'the date of the forty-second meeting', 'the origin of the corner-round seal'], answer: 1, ref: 'Echo No. 4 · The Ninth Footnote the Printer’s Corner-Seal Erased' },
+  },
+  {
+    zh: { prompt: '《灯绳记》里，巡检页末页空格下方盖着什么？', choices: ['一枚黑印', '一枚边缘缺角的圆印', '一枚收件章', '一把锁'], answer: 1, ref: '回响五 · 末页空位' },
+    en: { prompt: 'In "The Lamp-Rope Memoir", what sits beneath the blank cell on the last page of the inspection roll?', choices: ['a black seal', 'a round seal with a worn corner', 'a receipt stamp', 'a lock'], answer: 1, ref: 'Echo No. 5 · The Empty Cell at the End of the Page' },
+  },
+  {
+    zh: { prompt: '《灯绳记》里，渔人少报了什么？', choices: ['一段网绳', '一袋鱼鳞', '一抹湿纸', '一盏灯'], answer: 0, ref: '回响五 · 一抹湿纸' },
+    en: { prompt: 'In "The Lamp-Rope Memoir", what did the fisherman under-report?', choices: ['a length of net', 'a bag of fish scales', 'a sheet of wet paper', 'a lamp'], answer: 0, ref: 'Echo No. 5 · A Smear of Wet Paper' },
+  },
+  {
+    zh: { prompt: '《远信》里，第八盏灯最终收到了什么？', choices: ['没有寄出的名字', '四道印章的来信', '一张只有一个字的纸', '一封信'], answer: 3, ref: '第五章 · 二' },
+    en: { prompt: 'In “Letters Never Posted”, what did the Eighth Lamp finally receive?', choices: ['a name that never shipped', 'four sealed wax marks', 'a single-glyph sheet', 'a letter'], answer: 3, ref: 'Chapter V · II' },
+  },
+  {
+    zh: { prompt: '《远信》里，账房怎样记录未出匣的信？', choices: ['记作"在匣"', '记作"未成"', '两格分开、栏目之间没有路', '记作"收讫"'], answer: 2, ref: '第五章 · 一' },
+    en: { prompt: 'In “Letters Never Posted”, how does the bursar record letters never dropped?', choices: ['under “in box”', 'under “never”', 'two cells apart, no road between', 'under “received”'], answer: 2, ref: 'Chapter V · I' },
+  },
+  {
+    zh: { prompt: '《最后的签收》里，守夜人用什么在盐痕上按了一下？', choices: ['他的拇指', '他的食指', '一枚教团旧印', '一根羽毛'], answer: 1, ref: '末章 · 五' },
+    en: { prompt: 'In “The Final Seal”, what did the watchman press into the salt crust?', choices: ['his thumb', 'his index finger', 'an old Congregation seal', 'a feather'], answer: 1, ref: 'Final chapter · V' },
+  },
+  {
+    zh: { prompt: '《最后的签收》里，书记员在最后一栏写下了什么？', choices: ['已收 · 含收件人名', '已收 · 收件人名空白', '未收', '无人签收'], answer: 1, ref: '末章 · 六' },
+    en: { prompt: 'In “The Final Seal”, what does the clerk write in the last column?', choices: ['received, with the recipient’s name', 'received, the recipient’s name left blank', 'unreceived', 'no one signed'], answer: 1, ref: 'Final chapter · VI' },
+  },
+  {
+    zh: { prompt: '《传灯记》里，守夜人替商队让路时塔楼上亮的是什么灯？', choices: ['海警灯', '一盏旧灯', '一口油灯', '无灯（靠手电让路）'], answer: 1, ref: '回响六 · 商队遇上北端守夜人' },
+    en: { prompt: 'In “Echo No. 6”, what did the watchman hold for the caravan?', choices: ['a signal lamp', 'an old lamp', 'an oil lamp', 'no lamp — he walked them bare-handed'], answer: 1, ref: 'Echo No. 6 · The Caravan and the Northern Night-Watchman' },
+  },
+  {
+    zh: { prompt: '《传灯记》里，撒贝儿往食谱上撒了几粒盐？', choices: ['八粒', '九粒', '三粒', '无数粒'], answer: 1, ref: '回响六 · 撒贝儿' },
+    en: { prompt: 'In “Echo No. 6”, how many salt grains did Saer drop onto the recipe?', choices: ['eight', 'nine', 'three', 'as many as she wanted'], answer: 1, ref: 'Echo No. 6 · The Salt Grains on the Recipe' },
+  },
+  {
+    zh: { prompt: '《灯前灰》里，守门的人扫灰时孩子……？', choices: ['醒了', '依然睡着', '跑开了', '哭了'], answer: 1, ref: '第七章 · 一' },
+    en: { prompt: 'In “Ashes Before the Lamp”, what does the child do when the sweeper comes?', choices: ['wakes up', 'stays asleep', 'runs away', 'cries'], answer: 1, ref: 'Chapter VII · I' },
+  },
+  {
+    zh: { prompt: '《灯前灰》最后，账房在封面写了什么？', choices: ['没写任何东西', '"第八盏灯"', '"三百年"', '"潮先行"'], answer: 1, ref: '第七章 · 六' },
+    en: { prompt: 'In “Ashes Before the Lamp”, what does the bursar write on the cover?', choices: ['nothing', '"The Eighth Lamp"', '"three hundred years"', '"the tide went first"'], answer: 1, ref: 'Chapter VII · VI' },
+  },
+  {
+    zh: { prompt: '《那一针》里，孩子的针扎进哪只手？', choices: ['食指', '小指', '手掌', '拇指'], answer: 1, ref: '回响七 · 二' },
+    en: { prompt: 'In “The Needle”, where the Pin stuck at the child?', choices: ['index', 'pinkie', 'palm', 'thumb'], answer: 1, ref: 'Echo No. 7 · II' },
+  },
+  {
+    zh: { prompt: '《那一针》里，守门人说的字是?', choices: ['"终"', '"未"', '"账"', '"已收"'], answer: 1, ref: '回响七 · 五' },
+    en: { prompt: 'In “The Needle”, what word did the watchman write?', choices: ['done', 'unfinished', 'the ledger', 'received'], answer: 1, ref: 'Echo No. 7 · V' },
+  },
+  {
+    zh: { prompt: '《封面四字》里，账房在封面写下了什么？', choices: ['"第八盏灯"', '"三百年"', '"潮先行"', '"灯尽"'], answer: 0, ref: '回响八 · 一' },
+    en: { prompt: 'In “The Four Characters”, what does the bursar write on the cover?', choices: ['“The Eighth Lamp”', '“three hundred years”', '“the tide went first”', '“the lamp is done”'], answer: 0, ref: 'Echo No. 8 · I' },
+  },
+  {
+    zh: { prompt: '《封面四字》里，沙盘一直少响哪一下？', choices: ['第三下', '第六下', '第九下', '第七下'], answer: 2, ref: '回响八 · 五' },
+    en: { prompt: 'In “The Four Characters”, which knock never comes?', choices: ['the third', 'the sixth', 'the ninth', 'the seventh'], answer: 2, ref: 'Echo No. 8 · V' },
+  },
+  {
+    zh: { prompt: '《灰后》里，账合上的第三天，有人敲了一次门——里面……？', choices: ['开了门', '没有答复', '传出音乐', '放出了水'], answer: 1, ref: '第八章 · 一' },
+    en: { prompt: 'In “After the Ash”, on the third day after the ledger closed, someone knocked — and?', choices: ['the door opened', 'no answer came', 'music came out', 'water was poured'], answer: 1, ref: 'Chapter VIII · I' },
+  },
+  {
+    zh: { prompt: '《灰后》里，孩子的第八处名字是怎么念完的？', choices: ['有人替他写了上去', '他自己还是念完了', '纸被风吹走了', '守门人告诉了他'], answer: 1, ref: '第八章 · 三' },
+    en: { prompt: 'In “After the Ash”, how does the eighth name get finished?', choices: ['someone wrote it in for him', 'he read it himself', 'the wind took the paper', 'the doorkeeper told him'], answer: 1, ref: 'Chapter VIII · III' },
+  },
+  {
+    zh: { prompt: '《红绳》里，红绳是从哪里拆下来的？', choices: ['灯篓的衬布', '一件童衣的襟口', '账房的腰带', '渔网角落'], answer: 1, ref: '回响九 · 一' },
+    en: { prompt: 'In “The Red Cord”, where was the red cord unpicked from?', choices: ['the basket liner', 'a child garment\u2019s collar', 'the bursar\u2019s belt', 'a corner of the fishing net'], answer: 1, ref: 'Echo No. 9 · I' },
+  },
+  {
+    zh: { prompt: '《红绳》里，外来官员命人剪断红绳时……？', choices: ['剪了两下，结散了', '执剪的人停了手', '陆守灯当场答应了', '官员剪开了，但绳没断'], answer: 1, ref: '回响九 · 五' },
+    en: { prompt: 'In “The Red Cord”, when the official ordered the cord cut…?', choices: ['it was cut, the knot fell apart', 'the scissors stopped before the handle', 'Lu Shousheng agreed on the spot', 'the official cut it, but the cord did not snap'], answer: 1, ref: 'Echo No. 9 · V' },
+  },
+  {
+    zh: { prompt: '《钥匙》里，守门老人数钥匙，每次数的数目……？', choices: ['都一样', '不一样', '总是二十把', '总是十七把'], answer: 1, ref: '回响十 · 二' },
+    en: { prompt: 'In “The Keys”, the old man counts the keys — each time the count…?', choices: ['is the same', 'is different', 'is always twenty', 'is always seventeen'], answer: 1, ref: 'Echo No. 10 · II' },
+  },
+  {
+    zh: { prompt: '《钥匙》里，守门人不试钥匙的原因是……？', choices: ['怕钥匙断了', '试了就是开门=旧账重开', '钥匙太久没用了', '上级命令'], answer: 1, ref: '回响十 · 三' },
+    en: { prompt: 'In “The Keys”, why must the doorkeeper never try the keys?', choices: ['they might snap', 'trying is the first step of reopening the old ledger', 'they have been unused too long', 'orders from above'], answer: 1, ref: 'Echo No. 10 · III' },
+  },
+  {
+    zh: { prompt: '《带灰回家》里，灰被称成几份，每份多少？', choices: ['七份，每份一斤', '三份，每份半斤', '五份，每份一斤', '两份，每份十两'], answer: 0, ref: '第九章 · 三' },
+    en: { prompt: 'In “Ash Carried Home”, how many portions were weighed, and how much each?', choices: ['seven, one jin each', 'three, half a jin each', 'five, one jin each', 'two, ten taels each'], answer: 0, ref: 'Chapter IX · III' },
+  },
+  {
+    zh: { prompt: '《带灰回家》里，孩子第二次摸袋子，掌心……？', choices: ['是干的', '是湿的', '在发烫', '沾了盐'], answer: 1, ref: '第九章 · 四' },
+    en: { prompt: 'In “Ash Carried Home”, the second time the boy touches the bag, his palm is…?', choices: ['dry', 'wet', 'burning', 'salted'], answer: 1, ref: 'Chapter IX · IV' },
+  },
+  {
+    zh: { prompt: '《秤》里，秤砣每次停在第几道刻线？', choices: ['第二道', '第三道', '第四道', '第五道'], answer: 2, ref: '回响十一 · 三' },
+    en: { prompt: 'In “The Scale”, where does the weight come to rest each time?', choices: ['the second line', 'the third line', 'the fourth line', 'the fifth line'], answer: 2, ref: 'Echo No. 11 · III' },
+  },
+  {
+    zh: { prompt: '《秤》里，孩子在桌沿上划了几条浅痕？', choices: ['五条', '六条', '七条', '八条'], answer: 2, ref: '回响十一 · 五' },
+    en: { prompt: 'In “The Scale”, how many grooves did the boy mark along the table’s edge?', choices: ['five', 'six', 'seven', 'eight'], answer: 2, ref: 'Echo No. 11 · V' },
+  },
+  {
+    zh: { prompt: '《碗》里，妻子盛灰时，灰……？', choices: ['扬起了烟', '没有扬起烟，只在碗沿落下一圈暗痕', '烧焦了', '散落一地'], answer: 1, ref: '回响十二 · 三' },
+    en: { prompt: 'In “The Bowl”, as she serves the ash, the ash…?', choices: ['rises as smoke', 'rises not at all, leaving only a dark ring along the rim', 'scorches', 'falls everywhere'], answer: 1, ref: 'Echo No. 12 · III' },
+  },
+  {
+    zh: { prompt: '《碗》里，孩子摸碗沿时，手……？', choices: ['掀开了碗', '停在旧缺处，没敢掀开', '把灰倒出去了', '打破了碗'], answer: 1, ref: '回响十二 · 五' },
+    en: { prompt: 'In “The Bowl”, when the boy touches the rim, his hand…?', choices: ['lifts the bowl open', 'stops at the old chip; it never lifts the bowl', 'pours the ash out', 'breaks the bowl'], answer: 1, ref: 'Echo No. 12 · V' },
+  },
+  {
+    zh: { prompt: '《谁守灯》里，第一个进门的人……？', choices: ['答应了守灯', '没答应，只是没走出来', '开始打扫灯下', '熄灭了那盏灯'], answer: 1, ref: '第十章 · 二' },
+    en: { prompt: 'In “Who Tends the Lamp”, the first one to enter…?', choices: ['agreed to keep the lamp', 'never agreed — they simply did not leave', 'began to sweep under it', 'put the lamp out'], answer: 1, ref: 'Chapter X · II' },
+  },
+  {
+    zh: { prompt: '《谁守灯》里，守灯的人送进屋里的，是一天里没说出口的……？', choices: ['火', '话', '油', '水'], answer: 1, ref: '第十章 · 四' },
+    en: { prompt: 'In “Who Tends the Lamp”, what feeds the lamp?', choices: ['fire', 'what goes unsaid', 'oil', 'water'], answer: 1, ref: 'Chapter X · IV' },
+  },
+  {
+    zh: { prompt: '《门槛》里，柴总是放在哪里？', choices: ['门内桌上', '门槛外', '梁上', '窗台上'], answer: 1, ref: '回响十三 · 三' },
+    en: { prompt: 'In “The Threshold”, where is the firewood always set?', choices: ['on the table inside', 'beyond the threshold', 'up on the beam', 'on the sill'], answer: 1, ref: 'Echo No. 13 · III' },
+  },
+  {
+    zh: { prompt: '《门槛》里，守门人跨出门的时候……？', choices: ['有人送他', '门槛拦他', '无人送他，也没人问', '门开不了'], answer: 2, ref: '回响十三 · 五' },
+    en: { prompt: 'In “The Threshold”, when someone crosses from inside out…?', choices: ['someone sees them off', 'the threshold stops them', 'no one sees them off, no one asks', 'the door will not open'], answer: 2, ref: 'Echo No. 13 · V' },
+  },
+  {
+    zh: { prompt: '《柴》里，送柴的人敲门吗？', choices: ['敲，等有人应', '不敲，放下柴就走', '敲三下离开', '隔门报数'], answer: 1, ref: '回响十四 · 三' },
+    en: { prompt: 'In “The Firewood”, does the bearer knock?', choices: ['yes, and waits for an answer', 'no — he sets the wood down and leaves', 'three knocks, then leaves', 'he calls the tally through the door'], answer: 1, ref: 'Echo No. 14 · III' },
+  },
+  {
+    zh: { prompt: '《柴》里，柴在门槛外放几天才算归屋？', choices: ['一天', '两天', '三天', '五天'], answer: 2, ref: '回响十四 · 四' },
+    en: { prompt: 'In “The Firewood”, how many days does the wood wait beyond the threshold before it counts as brought inside?', choices: ['one day', 'two days', 'three days', 'five days'], answer: 2, ref: 'Echo No. 14 · IV' },
+  },
+  {
+    zh: { prompt: '《灰坑》里，灰坑在哪里，离门槛几步？', choices: ['门外东墙下，三步', '门内西墙下，六步', '门外西墙下，六步', '灶边，两步'], answer: 1, ref: '回响十五 · 一' },
+    en: { prompt: 'In “The Ash-Pit”, where does the ash-pit lie — and how many paces from the door?', choices: ['outside, by the eastern wall, three paces', 'inside, by the western wall, six paces', 'outside, by the western wall, six paces', 'beside the stove, two paces'], answer: 1, ref: 'Echo No. 15 · I' },
+  },
+  {
+    zh: { prompt: '《灰坑》里，压坑口的旧砖有几块？', choices: ['一块', '两块', '三块', '四块'], answer: 1, ref: '回响十五 · 五' },
+    en: { prompt: 'In “The Ash-Pit”, how many old bricks cover the pit’s mouth?', choices: ['one', 'two', 'three', 'four'], answer: 1, ref: 'Echo No. 15 · V' },
+  },
+  {
+    zh: { prompt: '《灯下的账》里，账房的人不记哪三个字？', choices: ['欠 · 应还 · 认领', '灯下 · 门外 · 封', '水 · 柴 · 油', '来过 · 出去 · 还留'], answer: 0, ref: '第十一章 · 三' },
+    en: { prompt: 'In “The Ledger Beneath the Lamp”, which three words does the keeper never record?', choices: ['debt · to be repaid · to be claimed', 'beneath the lamp · beyond the door · sealed', 'water · firewood · oil', 'came · went · still here'], answer: 0, ref: 'Chapter XI · III' },
+  },
+  {
+    zh: { prompt: '《灯下的账》里，账上最上面那行字……？', choices: ['写着交账的人的姓名', '无人认领，像一根钉在旧木里的铁钉', '是空的，后面才开始', '被磨掉了，只剩纸纹'], answer: 1, ref: '第十一章 · 二' },
+    en: { prompt: 'In “The Ledger Beneath the Lamp”, the line at the very top of the ledger…?', choices: ['carries the name of the one who handed it over', 'belongs to no one — like an iron nail in old timber', 'is blank; the writing starts below it', 'has worn away to blank paper'], answer: 1, ref: 'Chapter XI · II' },
+  },
+  {
+    zh: { prompt: '《潮来的时候》里，潮头先撞到门槛的是……？', choices: ['一支旧笔', '一枚坏船钉', '一片褪色布', '一捆柴'], answer: 1, ref: '第十二章 · 二' },
+    en: { prompt: 'In “When the Tide Came Up”, the first thing struck against the threshold was…?', choices: ['an old pen', 'a broken ship’s nail', 'a faded cloth', 'a bundle of firewood'], answer: 1, ref: 'Chapter XII · II' },
+  },
+  {
+    zh: { prompt: '《潮来的时候》里，潮水带走了什么？', choices: ['桌椅都没了', '一张旧名单不见了', '账本没了', '门没了'], answer: 1, ref: '第十二章 · 五' },
+    en: { prompt: 'In “When the Tide Came Up”, what did the tide take?', choices: ['the table and chairs were gone', 'an old list went missing', 'the ledger disappeared', 'the door was gone'], answer: 1, ref: 'Chapter XII · V' },
+  },
+  {
+    zh: { prompt: '《誊写》里，水吃掉了某些字，抄账人定下的规矩是……？', choices: ['猜一个补一个', '誊不准的，留白', '让孩子背出来补写', '整页作废'], answer: 1, ref: '第十三章 · 四' },
+    en: { prompt: 'In “The Copying”, what rule did the keeper set after the water ate certain characters?', choices: ['guess one, write one', 'what cannot be copied for certain leaves its space blank', 'have the child recite and fill them in', 'discard the whole page'], answer: 1, ref: 'Chapter XIII · IV' },
+  },
+  {
+    zh: { prompt: '《誊写》誊完之后，人们才知道丢了什么——丢的是什么？', choices: ['与第七口井对应的整页', '那支咸壳笔', '门槛上的船钉', '木面上的盐'], answer: 0, ref: '第十三章 · 七' },
+    en: { prompt: 'In “The Copying”, only once the copying was done did anyone know what was lost — what was lost?', choices: ['the whole page tied to the seventh well', 'the salt-crusted brush-pen', 'the ship’s nail on the threshold', 'the salt on the wood'], answer: 0, ref: 'Chapter XIII · VII' },
+  },
+  {
+    zh: { prompt: '《最后一栏》里，誊抄员核对誊清的页后发现……？', choices: ['第七页少了一行', '第七口井对应的那一页没有落款', '账簿被水吃掉了', '盐袋漏了'], answer: 1, ref: '回响（其十六） · 二' },
+    en: { prompt: 'In “The Last Column”, after the copyist checked the freshly copied pages…?', choices: ['the seventh page was missing a line', 'the page tied to the seventh well bore no signature', 'the ledger had been eaten by water', 'the salt sack had torn'], answer: 1, ref: 'Echo No. 16 · II' },
+  },
+  {
+    zh: { prompt: '《最后一栏》里，谁来到灯边，只能数出六口井？', choices: ['账簿的守护者', '巡路人', '能背诵潮汐教团往事的孩子', '铁月纪的使者'], answer: 2, ref: '回响（其十六） · 四' },
+    en: { prompt: 'In “The Last Column”, who came to the lamp and could count only six wells?', choices: ['the keeper of the ledger', 'the patrolman', 'the child who could recite the Tide Conclave’s past', 'the envoy of the Iron-Moon Age'], answer: 2, ref: 'Echo No. 16 · IV' },
+  },
+  {
+    zh: { prompt: '《蜡封》里，六口井封完之后，第七口的情形是……？', choices: ['蜡倒下去就封住了', '蜡倒了，井没有接住', '有人代封了', '改天再封也行'], answer: 1, ref: '回响（其十七） · 四' },
+    en: { prompt: 'In “The Wax Seal”, after the six wells were sealed, what happened at the seventh?', choices: ['the wax set and sealed it', 'the wax was poured but the well did not take it', 'someone sealed it in their place', 'it could wait for another day'], answer: 1, ref: 'Echo No. 17 · IV' },
+  },
+  {
+    zh: { prompt: '《蜡封》里，封井的人走石板街时，街上的人谁也没有……？', choices: ['看他们一眼', '问封井是为什么', '问封第几口', '帮他们搬蜡'], answer: 1, ref: '回响（其十七） · 一' },
+    en: { prompt: 'In “The Wax Seal”, as the team walked the flagstone street, no one…?', choices: ['looked at them', 'asked why the wells were being sealed', 'asked which well was to be sealed', 'helped carry the wax'], answer: 1, ref: 'Echo No. 17 · I' },
+  },
+  {
+    zh: { prompt: '《最后一夜》里，值夜的门吏听到海来到门口时，井是……？', choices: ['全都封着', '全都开着', '只有第一口开着', '第七口开着'], answer: 1, ref: '回响（其十八） · 一' },
+    en: { prompt: 'In “The Last Night”, when the doorman heard the sea reach the door, the wells were…?', choices: ['all sealed', 'all open', 'only the first open', 'only the seventh open'], answer: 1, ref: 'Echo No. 18 · I' },
+  },
+  {
+    zh: { prompt: '《最后一夜》里，天快亮时，报到的人是……？', choices: ['七盏灯报到了', '第七席的老人报到了', '没有人报到', '门吏报到了'], answer: 2, ref: '回响（其十八） · 四' },
+    en: { prompt: 'In “The Last Night”, at near-dawn, who answered to the roll?', choices: ['the seven lamps answered', 'the elder of the seventh seat answered', 'no one answered', 'the doorman answered'], answer: 2, ref: 'Echo No. 18 · IV' },
+  },
+  {
+    zh: { prompt: '《雨从东边来》里，风向倒转那一天，灯的火苗弯向……？', choices: ['向海的方向', '向内陆的方向', '笔直朝上', '熄灭了'], answer: 1, ref: '回响（其十九） · 一' },
+    en: { prompt: 'In “The Rain Comes from the East”, on the day the wind turned, the lamp flame leaned…?', choices: ['towards the sea', 'towards the inland', 'straight upward', 'went out'], answer: 1, ref: 'Echo No. 19 · I' },
+  },
+  {
+    zh: { prompt: '《雨从东边来》里，账簿的守护者在干页末尾落下哪六个字？', choices: ['东风 · 雨 · 灯未灭', '西风 · 雨 · 灯未灭', '盐尽 · 灯灭', '东风 · 灰 · 灯灭'], answer: 0, ref: '回响（其十九） · 五' },
+    en: { prompt: 'In “The Rain Comes from the East”, what six characters did the Keeper of the Ledger set down at the end of the dry page?', choices: ['east wind · rain · the lamps were not out', 'west wind · rain · the lamps were not out', 'the salt was spent · the lamps went out', 'east wind · grey · the lamps went out'], answer: 0, ref: 'Echo No. 19 · V' },
+  },
+  {
+    zh: { prompt: '《第一个名字》里，灰以前，报到簿上的名字用几种手迹写？', choices: ['一种', '两种', '三种', '七种'], answer: 2, ref: '回响（其二十） · 二' },
+    en: { prompt: 'In “The First Name”, before the grey, in how many hands were the names written?', choices: ['one hand', 'two hands', 'three hands', 'seven hands'], answer: 2, ref: 'Echo No. 20 · II' },
+  },
+  {
+    zh: { prompt: '《第一个名字》里，最后一页多出来的那一行字……？', choices: ['属于誊账人的手迹', '属于值夜人的手迹', '不属于灰以前任何一种手迹', '是页码'], answer: 2, ref: '回响（其二十） · 三' },
+    en: { prompt: 'In “The First Name”, the line that appeared on the last page…?', choices: ['was in the copyist’s hand', 'was in the night watch’s hand', 'was not in any hand that had lived here before the grey', 'was a folio number'], answer: 2, ref: 'Echo No. 20 · III' },
+  },
+  {
     zh: { prompt: '退潮之后，本大典在哪一章说明了大典如何继续？', choices: ['第五章 · 收件人', '第四章 · 第八盏灯', '第三章 · 桥上的女人', '回响其十一 · 没有锁的门'], answer: 0, ref: '第五章 · 正典续卷' },
     en: { prompt: 'After the tide withdrew, which chapter of the bible explains how the canon continues?', choices: ['Chapter V · The Addressee', 'Chapter IV · The Eighth Lamp', 'Chapter III · The Woman on the Bridge', 'Echo No. 11 · The Door That Never Locked'], answer: 0, ref: 'Chapter V · The Addressee' },
   },

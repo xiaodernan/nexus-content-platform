@@ -36,17 +36,17 @@ interface RouteContext {
 }
 
 export async function POST(req: Request, ctx: RouteContext): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();
     const writeAccess = await projectWriteAccess(projectId, user.id);
-    if (writeAccess === 'not_found') return notFound();
-    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
+    if (writeAccess === 'not_found') return await notFound();
+    if (writeAccess === 'read_only') return await jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
 
     const parsed = RequestBody.safeParse(await req.json().catch(() => null));
     if (!parsed.success) {
-      return badRequest(parsed.error.issues.map((issue) => `${issue.path.join('.') || 'body'}：${issue.message}`));
+      return await badRequest(parsed.error.issues.map((issue) => `${issue.path.join('.') || 'body'}：${issue.message}`));
     }
 
     const result = await generateDemoImage({
@@ -66,13 +66,13 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
       // 三种拒法各给一个状态码：额度用尽 429、存储放不下 413、其余是请求写错了 400
       const status =
         result.code === 'credits_exhausted' ? 429 : result.code === 'storage_exhausted' ? 413 : 400;
-      return jsonError(status, result.code, { message: result.message, issues: result.issues ?? [] });
+      return await jsonError(status, result.code, { message: result.message, issues: result.issues ?? [] });
     }
     return NextResponse.json(
       { ok: true, asset: result.asset, taskId: result.taskId, reused: result.reused, removed: result.removed },
       { status: result.reused ? 200 : 201 },
     );
   } catch (error) {
-    return failure(error, `POST /api/projects/${projectId}/images`);
+    return await failure(error, `POST /api/projects/${projectId}/images`);
   }
 }

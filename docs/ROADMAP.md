@@ -24,7 +24,8 @@ family README section) and a door that reddens the sentence it repairs:
         and the topology proof run on the runner — the second plane for the crown proof.
   v654  the six deployables enter infra/docker-compose.yml (registry, gateway, api,
         domain, config, postgres) with healthchecks and a compose smoke leg; TODAY NO
-        compose file names a Java service (java-config-server/README.md:105-106).
+        compose file names a Java service (java-config-server/README.md:105-106;
+        superseded 2026-11-18 — the java-* row was retired into nexus-*, ADR-0237).
   v655  the Java evidence README (docs/evidence/java/README.md) and the live docs
         (CURRENT-STATE, root README) tell the SIX-service truth (#337, #338).
   v656  distributed tracing across gateway -> api -> Feign -> domain: Micrometer

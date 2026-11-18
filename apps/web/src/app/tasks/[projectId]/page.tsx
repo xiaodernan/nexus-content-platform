@@ -26,8 +26,7 @@ export const dynamic = 'force-dynamic';
  */
 export default async function TasksPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const locale = await getLocale();
-  const user = await requireUser();
+  const [user, locale] = await Promise.all([requireUser(), getLocale()]);
   // 两条读侧各自判一道项目 owner 门（projectSavings 不复用 listProjectTasks 的判权——
   // 它以后还会被别的页面单独用，门不能省）。Promise.all 并行：同一道门、两条独立查询。
   const [result, savings] = await Promise.all([
@@ -39,9 +38,9 @@ export default async function TasksPage({ params }: { params: Promise<{ projectI
   return (
     <TasksLedgerLive
       projectId={projectId}
+      locale={locale}
       initial={{ ok: true, projectName: result.projectName, tasks: result.tasks }}
       savings={savings}
-      locale={locale}
     />
   );
 }

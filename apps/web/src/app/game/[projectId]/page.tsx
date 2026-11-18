@@ -5,7 +5,38 @@ import { loadGame } from '@/server/domain/games';
 import { projectVisibleTo } from '@/server/domain/team';
 import { requireUser } from '@/server/domain/session';
 import { PlayByKind, describeProjection } from '@/play/PlayByKind';
-import { getLocale } from '@/lib/i18n';
+import { getLocale, type Locale } from '@/lib/i18n';
+
+/** 双语 COPY（2026-11-15 公开试玩面）——全屏三态文案。 */
+const COPY: Record<Locale, {
+  noneGameTitle: string;
+  noneGameLede: string;
+  backToStudioGame: string;
+  brokenGameTitle: string;
+  gameErrorNote: string;
+  backToStudioEdit: string;
+}> = {
+  zh: {
+    noneGameTitle: '这个项目还没有游戏设计',
+    noneGameLede:
+      '可玩投影读的是 §54 的游戏设计文档（11 类实体、数值与引用）。先去 Studio 的「游戏」面板建骨架、填几个数。',
+    backToStudioGame: '回到 Studio 的游戏面板',
+    brokenGameTitle: '库里的游戏设计读不出来',
+    gameErrorNote:
+      '这里不会拿一份演示关卡代替它：那看起来像"你的设计跑不起来"，而实际是读不出来，两件事差很远。',
+    backToStudioEdit: '← Studio 改设计',
+  },
+  en: {
+    noneGameTitle: 'This project has no game design yet',
+    noneGameLede:
+      'The playable projection reads the §54 game design document (11 entity kinds, stats and references). Go create a skeleton in Studio’s “Game” panel and fill in a few numbers first.',
+    backToStudioGame: 'Back to the Game panel in Studio',
+    brokenGameTitle: 'The game design could not be read',
+    gameErrorNote:
+      'No demo level is substituted here: that would look like “your design does not run”, when in fact it simply could not be read — those are different things.',
+    backToStudioEdit: '← Studio: edit the design',
+  },
+};
 
 export const dynamic = 'force-dynamic';
 
@@ -24,23 +55,20 @@ export const dynamic = 'force-dynamic';
  */
 export default async function GameRuntimePage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const user = await requireUser();
-  const locale = await getLocale();
-  const en = locale === 'en';
+  const [user, locale] = await Promise.all([requireUser(), getLocale()]);
+  const c = COPY[locale];
   if (!(await projectVisibleTo(projectId, user.id))) notFound();
 
   const game = await loadGame(projectId);
   if (!game) {
     return (
       <main className="rt-shell" data-game-runtime="none">
-        <h1 className="rt-title">{en ? 'This project has no game design yet' : '这个项目还没有游戏设计'}</h1>
+        <h1 className="rt-title">{c.noneGameTitle}</h1>
         <p className="rt-lede">
-          {en
-            ? "The playable projection reads the §54 game design document (11 entity kinds, stats and references). Start in the Studio's \"Game\" panel: build the skeleton and fill in a few numbers."
-            : '可玩投影读的是 §54 的游戏设计文档（11 类实体、数值与引用）。先去 Studio 的「游戏」面板建骨架、填几个数。'}
+          {c.noneGameLede}
         </p>
         <Link href={`/studio/${projectId}`} className="rt-link">
-          {en ? 'Back to the Studio game panel' : '回到 Studio 的游戏面板'}
+          {c.backToStudioGame}
         </Link>
       </main>
     );
@@ -48,20 +76,18 @@ export default async function GameRuntimePage({ params }: { params: Promise<{ pr
   if (!game.ok) {
     return (
       <main className="rt-shell" data-game-runtime="broken">
-        <h1 className="rt-title">{en ? 'The game design in the library cannot be read' : '库里的游戏设计读不出来'}</h1>
+        <h1 className="rt-title">{c.brokenGameTitle}</h1>
         <p className="rt-error" data-game-error>
           {game.reason}
         </p>
         <p className="rt-note">
-          {en
-            ? 'No demo level is swapped in as a stand-in: that would look like "your design fails to run", when in fact it cannot be parsed — two very different failures.'
-            : '这里不会拿一份演示关卡代替它：那看起来像"你的设计跑不起来"，而实际是读不出来，两件事差很远。'}
+          {c.gameErrorNote}
         </p>
       </main>
     );
   }
 
-  const projection = compileForKind(game.document, locale);
+  const projection = compileForKind(game.document);
   return (
     <main className="rt-shellWide" data-game-page>
       <header className="rt-head">
@@ -74,7 +100,7 @@ export default async function GameRuntimePage({ params }: { params: Promise<{ pr
           </p>
         </div>
         <Link href={`/studio/${projectId}`} className="rt-linkSub" data-game-back>
-          {en ? 'Back to Studio to edit the design' : '回 Studio 改设计'}
+          {c.backToStudioEdit}
         </Link>
       </header>
       <PlayByKind document={game.document} projection={projection} locale={locale} />

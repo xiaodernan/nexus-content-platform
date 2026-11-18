@@ -16,16 +16,16 @@ interface RouteContext {
  * 而不是"存在但不给你吊销"。
  */
 export async function POST(req: Request, ctx: RouteContext): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { tokenId } = await ctx.params;
   try {
     const user = await requireUser();
     const result = await revokeApiToken(tokenId, user.id);
-    if (!result.ok) return notFound();
+    if (!result.ok) return await notFound();
     return NextResponse.json({ record: result.record, ...(result.note ? { note: result.note } : {}) }, {
       headers: { 'cache-control': 'no-store' },
     });
   } catch (error) {
-    return failure(error, 'POST /api/account/api-tokens/[tokenId]/revoke');
+    return await failure(error, 'POST /api/account/api-tokens/[tokenId]/revoke');
   }
 }

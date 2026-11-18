@@ -45,29 +45,29 @@ export async function GET(
     60 * 60 * 1000,
   );
   if (!rl.allowed) {
-    return jsonError(429, 'rate_limited', { message: '下载太频繁', retryAfterMs: rl.retryAfterMs });
+    return await jsonError(429, 'rate_limited', { message: '下载太频繁', retryAfterMs: rl.retryAfterMs });
   }
 
   const item = await getMarketplaceItem(id);
   // 不存在、已下架、以及**形状根本不对的 id** 给同一个答案（404）：403 会泄露"这个 id 存在但你看不到"。
   // 形状那道门在 `getMarketplaceItem` 里（domain/ids.ts）——这里曾经临时挡过一道，收进域层后
   // 详情、预览图、交付三条读路共用同一处，不必每条路由各抄一遍
-  if (!item) return jsonError(404, 'not_found', { message: '没有这个条目，或它已经下架' });
+  if (!item) return await jsonError(404, 'not_found', { message: '没有这个条目，或它已经下架' });
   const user = await currentUserOrNull();
   const isCreator = !!user && item.creatorId === user.id;
 
   // 免费之外的那两档（在售 / 私密）都要身份：私密已不能再被新买（见 purchase 那道门），
   // 这里对匿名一律 401，对登录但未购买的人 403
   if (item.visibility !== 'free' && !isCreator) {
-    if (!user) return jsonError(401, 'unauthorized', { message: '需要登录后才能下载此物品' });
+    if (!user) return await jsonError(401, 'unauthorized', { message: '需要登录后才能下载此物品' });
     if (!(await hasPurchased(id, user.id))) {
-      return jsonError(403, 'not_purchased', { message: '尚未购买此物品，请先完成购买' });
+      return await jsonError(403, 'not_purchased', { message: '尚未购买此物品，请先完成购买' });
     }
   }
 
   // 先建包，建成了才记数——失败那三条路径一行都不写
   if (!item.sourceProjectId) {
-    return jsonError(404, 'no_source', { message: '该物品没有可导出的源项目' });
+    return await jsonError(404, 'no_source', { message: '该物品没有可导出的源项目' });
   }
   // 建包这一步自己会抛（库坏了、字节读不出来），抛了就是没交付：500 照旧给可判别的码，计数一行都不写
   let zipped: Awaited<ReturnType<typeof buildProjectExport>>;
@@ -77,10 +77,10 @@ export async function GET(
     // "只有作者自己能下"——买家扣了点数却永远拿到 404，正是这一格存在的理由被推翻。
     zipped = await buildProjectExport(item.sourceProjectId, item.creatorId, ['design', 'code', 'assets']);
   } catch {
-    return jsonError(500, 'export_failed', { message: '导出失败，请稍后重试' });
+    return await jsonError(500, 'export_failed', { message: '导出失败，请稍后重试' });
   }
   if (!zipped) {
-    return jsonError(404, 'export_failed', { message: '导出失败，源项目不存在或无权访问' });
+    return await jsonError(404, 'export_failed', { message: '导出失败，源项目不存在或无权访问' });
   }
 
   // 先把手上的包做成一个**能发出去的响应**，再写计数与审计：

@@ -7,7 +7,10 @@ import type { Locale } from '@/lib/i18n';
 
 type Kind = 'block' | 'mute';
 
-/** 双语：每行文案按 cookie locale 选（不夹杂） */
+/**
+ * §132 双档治理文案（2026-11-15 双语试玩面 wave 之一）：zh 优先、en 逐字对应。
+ * 两个动作的区别正是本页要给按钮旁边的那句话——藏起来等于让人凭感觉选动作。
+ */
 const COPY: Record<Locale, Record<Kind, { button: string; done: string; note: string }>> = {
   zh: {
     mute: {
@@ -25,20 +28,28 @@ const COPY: Record<Locale, Record<Kind, { button: string; done: string; note: st
     mute: {
       button: 'Mute',
       done: 'Muted',
-      note: 'Their content and notifications no longer appear on your side, and their comments are filtered out — but they can still leave you messages; muting is not a ban.',
+      note: 'Their content and notifications no longer reach you, and their comments are filtered out of your lists — but they can still leave you comments; muting is not banning.',
     },
     block: {
       button: 'Block',
       done: 'Blocked',
-      note: 'In addition to muting, you cannot comment, like, follow or remix each other; existing follow relationships are removed.',
+      note: 'Beyond muting’s effects, neither of you can comment, like, follow or remix anymore, and any existing follows between you are severed.',
     },
   },
 };
 
-const UI = {
-  zh: { upgrade: '升级为拉黑', clear: '解除', failed: (status: number) => `没做成（HTTP ${status}）` },
-  en: { upgrade: 'Escalate to block', clear: 'Undo', failed: (status: number) => `Did not happen (HTTP ${status})` },
-} as const;
+const FEED: Record<Locale, { upgradeToBlock: string; clear: string; failed: (status: number) => string }> = {
+  zh: {
+    upgradeToBlock: '升级为拉黑',
+    clear: '解除',
+    failed: (status) => `没做成（HTTP ${status}）`,
+  },
+  en: {
+    upgradeToBlock: 'Upgrade to block',
+    clear: 'Lift',
+    failed: (status) => `Could not do that (HTTP ${status})`,
+  },
+};
 
 /**
  * §132 主页上的自助治理。两个按钮都摆在明面上而不是收进一个菜单：
@@ -46,9 +57,9 @@ const UI = {
  * 藏起来就等于让人凭感觉选一个更重的动作。
  */
 export function BlockControl({ handle, initial, locale = 'zh' }: { handle: string; initial: Kind | null; locale?: Locale }) {
-  const copy = COPY[locale];
-  const ui = UI[locale];
   const router = useRouter();
+  const c = COPY[locale];
+  const feed = FEED[locale];
   const [kind, setKind] = useState<Kind | null>(initial);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -70,7 +81,7 @@ export function BlockControl({ handle, initial, locale = 'zh' }: { handle: strin
         // 屏蔽名单影响发现页与作品页上已经渲染的内容，不刷新就还是旧的一份
         router.refresh();
       } else {
-        setNotice(data?.message ?? data?.reason ?? ui.failed(res.status));
+        setNotice(data?.message ?? data?.reason ?? feed.failed(res.status));
       }
     } finally {
       setBusy(false);
@@ -83,7 +94,7 @@ export function BlockControl({ handle, initial, locale = 'zh' }: { handle: strin
         {kind ? (
           <>
             <span className="bc-hint11" data-block-state={kind}>
-              {copy[kind].done} @{handle}
+              {c[kind].done} @{handle}
             </span>
             {kind === 'mute' ? (
               <button
@@ -93,7 +104,7 @@ export function BlockControl({ handle, initial, locale = 'zh' }: { handle: strin
                 className="bc-btn"
                 data-block-set="block"
               >
-                {ui.upgrade}
+                {feed.upgradeToBlock}
               </button>
             ) : null}
             <button
@@ -103,7 +114,7 @@ export function BlockControl({ handle, initial, locale = 'zh' }: { handle: strin
               className="bc-btn"
               data-block-clear
             >
-              {ui.clear}
+              {feed.clear}
             </button>
           </>
         ) : (
@@ -116,12 +127,12 @@ export function BlockControl({ handle, initial, locale = 'zh' }: { handle: strin
               className="bc-btn"
               data-block-set={k}
             >
-              {copy[k].button} @{handle}
+              {c[k].button} @{handle}
             </button>
           ))
         )}
       </div>
-      {kind ? <p className="bc-note" data-block-note>{copy[kind].note}</p> : null}
+      {kind ? <p className="bc-note" data-block-note>{c[kind].note}</p> : null}
       {notice ? (
         <p className="bc-error" data-block-notice>
           {notice}

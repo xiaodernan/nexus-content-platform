@@ -21,15 +21,15 @@ import { describeDiscoverCache } from '@/server/domain/discover-cache';
  */
 export async function GET(): Promise<NextResponse> {
   const user = await currentUserOrNull();
-  if (!user) return jsonError(401, 'unauthenticated', { message: '需要先登录' });
+  if (!user) return await jsonError(401, 'unauthenticated', { message: '需要先登录' });
   if (user.role !== 'admin') {
-    return jsonError(403, 'forbidden', { message: '缓存读数只对审核员（role=admin）开放' });
+    return await jsonError(403, 'forbidden', { message: '缓存读数只对审核员（role=admin）开放' });
   }
   try {
     return NextResponse.json(describeDiscoverCache(), { headers: { 'cache-control': 'no-store' } });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`[admin/discover-cache] 读数失败: ${message}`);
-    return jsonError(503, 'readout_unavailable', { message: '这次没测到缓存读数，请稍后再看' });
+    return await jsonError(503, 'readout_unavailable', { message: '这次没测到缓存读数，请稍后再看' });
   }
 }

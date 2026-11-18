@@ -8,7 +8,7 @@ import { nodeStyle } from '@/studio/render';
 import { stateStyleSheetFor } from '@/studio/state-styles';
 import { ViewerControls } from '@/studio/ViewerControls';
 import { breakpointFromParam, viewerHref, zoomFromParam, type ViewerQuery } from '@/studio/viewer-params';
-import { getLocale } from '@/lib/i18n';
+import { getLocale, type Locale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,25 +17,34 @@ export const dynamic = 'force-dynamic';
  * hover / active / focus 是浏览器伪类，伪造属性不会触发；disabled 要真实表单控件。
  * 链接只列真能演示的三个，不假装其余状态也能在这里"预览"。
  */
-/** 双语：每行文案按 cookie locale 选（不夹杂） */
-const PV_TXT = {
+const SIMULATED_STATES: NodeState[] = ['loading', 'error', 'success'];
+
+/**
+ * Preview 页 chrome 文案（2026-11-15 双语：公开阅读面）。
+ * 设计稿本体（节点文字、字体、颜色）= 作者的内容，保持原样；这里只翻平台自己的那几句。
+ */
+const COPY: Record<Locale, {
+  backToStudio: string;
+  statePreview: string;
+  baseState: string;
+  noteWithState: (state: NodeState) => string;
+  noteWithoutState: string;
+}> = {
   zh: {
-    back: '回到 Studio',
+    backToStudio: '回到 Studio',
     statePreview: '状态预览',
     baseState: '基础态',
-    stateNoteActive: (state: string) => `只有定义了 ${state} 状态的节点会变；hover / active / focus 要直接在元素上操作。`,
-    stateNoteIdle: 'hover / active / focus 直接在元素上操作；这里只演示靠 data-state 兑现的三种。',
+    noteWithState: (state) => `只有定义了 ${state} 状态的节点会变；hover / active / focus 要直接在元素上操作。`,
+    noteWithoutState: 'hover / active / focus 直接在元素上操作；这里只演示靠 data-state 兑现的三种。',
   },
   en: {
-    back: 'Back to Studio',
+    backToStudio: 'Back to Studio',
     statePreview: 'State preview',
-    baseState: 'Base',
-    stateNoteActive: (state: string) => `Only nodes with a defined ${state} state change; hover / active / focus must be exercised directly on elements.`,
-    stateNoteIdle: 'hover / active / focus are exercised directly on elements; this only demonstrates the three data-state-driven ones.',
+    baseState: 'Base state',
+    noteWithState: (state) => `Only nodes defining a ${state} state change here; hover / active / focus must be operated directly on the element.`,
+    noteWithoutState: 'Operate hover / active / focus on the element directly; this page only demonstrates the three states backed by data-state.',
   },
-} as const;
-
-const SIMULATED_STATES: NodeState[] = ['loading', 'error', 'success'];
+};
 
 interface Props {
   params: Promise<{ projectId: string }>;
@@ -47,7 +56,7 @@ export default async function PreviewPage({ params, searchParams }: Props) {
   const { projectId } = await params;
   const query = await searchParams;
   const locale = await getLocale();
-  const T = PV_TXT[locale];
+  const c = COPY[locale];
   const user = await requireUser();
   if (!(await projectVisibleTo(projectId, user.id))) notFound();
   const document = (await loadDocument(projectId)) as DesignDocument | null;
@@ -80,7 +89,7 @@ export default async function PreviewPage({ params, searchParams }: Props) {
     <main className="pv-page" data-preview-root data-page={page.name}>
       <header className="pv-bar">
         <a href={`/studio/${projectId}`} className="pv-back">
-          {T.back}
+          {c.backToStudio}
         </a>
         <span className="pv-meta">
           {document.name} · {page.name} · {layout.width}×{layout.height}
@@ -92,7 +101,7 @@ export default async function PreviewPage({ params, searchParams }: Props) {
           className="pv-statebar"
           data-state-preview
         >
-          <span className="pv-stateNote">{T.statePreview}</span>
+          <span className="pv-stateNote">{c.statePreview}</span>
           {[null, ...SIMULATED_STATES].map((value) => (
             <a
               key={value ?? 'none'}
@@ -100,13 +109,11 @@ export default async function PreviewPage({ params, searchParams }: Props) {
               data-state-preview-option={value ?? 'none'}
               className={previewState === value ? 'pv-stateOptionActive' : 'pv-stateOption'}
             >
-              {value ?? T.baseState}
+              {value ?? c.baseState}
             </a>
           ))}
           <span className="pv-stateNote" data-state-preview-note>
-            {previewState
-              ? T.stateNoteActive(previewState)
-              : T.stateNoteIdle}
+            {previewState ? c.noteWithState(previewState) : c.noteWithoutState}
           </span>
         </div>
       ) : null}

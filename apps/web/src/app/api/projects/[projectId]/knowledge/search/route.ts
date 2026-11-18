@@ -26,13 +26,13 @@ export async function POST(
     const { projectId } = await params;
 
     if (!(await projectVisibleTo(projectId, user.id))) {
-      return jsonError(404, 'not_found', { message: '项目不存在' });
+      return await jsonError(404, 'not_found', { message: '项目不存在' });
     }
 
     const raw = await readJson(req);
     const parsed = SearchQuerySchema.safeParse(raw);
     if (!parsed.success) {
-      return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
+      return await badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
     }
 
     const { q, vectorWeight, textWeight, vectorK, textK, limit, sourceType } = parsed.data;
@@ -70,6 +70,6 @@ export async function POST(
       results,
     });
   } catch (_error) {
-    return jsonError(500, 'internal', { message: '检索失败' });
+    return await jsonError(500, 'internal', { message: '检索失败' });
   }
 }

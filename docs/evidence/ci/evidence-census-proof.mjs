@@ -615,6 +615,18 @@ export const MANIFEST = [
     why: 'the raw-atom scrub: every className must come from the facade families, no arbitrary Tailwind atoms. Added to the gates job of main-line.yml at v651 with its two siblings; without it the gates job would typecheck, lint and eval the tree and never notice a page silently re-acquiring raw atoms — the drift nobody sees when it is nobody\'s job',
   },
   {
+    name: 'verify:world-bible',
+    class: 'runner',
+    run: 'npm run verify:world-bible',
+    why: 'the gates job of main-line.yml runs it: every anchor sentence the bible marks (33 zh / 33 en) is present verbatim in both languages of the source docs, and the script refuses otherwise. Adding the door means the anchor drift (a chapter edited on one side without its pair) fails the build at the same step as the rest of the gates',
+  },
+  {
+    name: 'verify:bible-snapshot',
+    class: 'runner',
+    run: 'npm run verify:bible-snapshot',
+    why: 'the gates job of main-line.yml runs it: the generated snapshot apps/web/src/world-bible/generated.ts must byte-match the sources in docs/world-bible/ (BIBLE_CHAPTERS + BIBLE_ECHOES, 4 chapters + 2 echoes as of 2026-11-15); a drift reddens the snapshot door just as a locale drift would redden the gates',
+  },
+  {
     name: 'verify:cost-ledger',
     class: 'runner',
     run: 'npm run verify:cost-ledger',

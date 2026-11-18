@@ -24,7 +24,7 @@ export async function GET(
   const item = await getMarketplaceItem(id);
 
   if (!item) {
-    return jsonError(404, 'not_found', { message: '物品不存在或已下架' });
+    return await jsonError(404, 'not_found', { message: '物品不存在或已下架' });
   }
 
   // 私有草稿只有创作者本人能看：与预览路由同一口径（[id]/preview 对 private 只放创作者）。
@@ -32,7 +32,7 @@ export async function GET(
   if (item.visibility === 'private') {
     const viewer = await currentUserOrNull();
     if (!viewer || viewer.id !== item.creatorId) {
-      return jsonError(404, 'not_found', { message: '物品不存在或已下架' });
+      return await jsonError(404, 'not_found', { message: '物品不存在或已下架' });
     }
   }
 
@@ -59,13 +59,13 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const user = await requireUser();
   const { id } = await params;
   const body = await req.json().catch(() => null);
   const parsed = UpdateItemSchema.safeParse(body);
   if (!parsed.success) {
-    return badRequest(parsed.error.issues.map((issue) => `${issue.path.join('.') || 'body'}: ${issue.message}`));
+    return await badRequest(parsed.error.issues.map((issue) => `${issue.path.join('.') || 'body'}: ${issue.message}`));
   }
 
   // 内容安全：如果更新了标题/描述/标签，过发布机检同一份红线词表
@@ -83,17 +83,17 @@ export async function PATCH(
     if (!result.ok) {
       if (result.reason === 'not_found') {
         // 不存在、已下架、形状不对、别人的私有条目：同一个 404。403 会告诉陌生人"这个 id 存在"
-        return jsonError(404, 'not_found', { message: '没有这个物品，或它已经下架' });
+        return await jsonError(404, 'not_found', { message: '没有这个物品，或它已经下架' });
       }
       if (result.reason === 'forbidden') {
-        return jsonError(403, 'forbidden', { message: '只有创作者本人能修改这个物品' });
+        return await jsonError(403, 'forbidden', { message: '只有创作者本人能修改这个物品' });
       }
-      return badRequest(['previewAssetId: 这个素材不存在']);
+      return await badRequest(['previewAssetId: 这个素材不存在']);
     }
 
     return NextResponse.json({ item: result.item });
   } catch (error) {
-    return failure(error, 'marketplace patch');
+    return await failure(error, 'marketplace patch');
   }
 }
 
@@ -101,7 +101,7 @@ export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const user = await requireUser();
   const { id } = await params;
 
@@ -115,6 +115,6 @@ export async function DELETE(
     }
     return NextResponse.json({ item: result.item });
   } catch (error) {
-    return failure(error, 'marketplace delete');
+    return await failure(error, 'marketplace delete');
   }
 }

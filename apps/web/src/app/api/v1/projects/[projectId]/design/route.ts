@@ -25,25 +25,25 @@ interface RouteContext {
  */
 export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse> {
   const authed = await authorizeApiRequest(req, 'design:read');
-  if (!authed.ok) return jsonError(authed.status, authed.error, { message: authed.message });
+  if (!authed.ok) return await jsonError(authed.status, authed.error, { message: authed.message });
   const { projectId } = await ctx.params;
   try {
     const payload = await apiDesignDocument(authed.userId, projectId);
     if (!payload) {
-      return jsonError(404, 'project_not_found', {
+      return await jsonError(404, 'project_not_found', {
         message: `项目 ${projectId} 不在这一枚凭据所属的人名下、已被删除，或库里还没有文档`,
       });
     }
     const checked = ApiDesignDocumentSchema.safeParse(payload);
-    if (!checked.success) return failure(new Error('设计文档报文不符合契约'), 'GET /api/v1/projects/[projectId]/design');
+    if (!checked.success) return await failure(new Error('设计文档报文不符合契约'), 'GET /api/v1/projects/[projectId]/design');
     await recordApiAccess({
       tokenId: authed.token.id,
       endpoint: 'GET /api/v1/projects/[projectId]/design',
       projectId,
     });
-    return apiJson(checked.data, req, { headers: { 'cache-control': 'no-store' } });
+    return await apiJson(checked.data, req, { headers: { 'cache-control': 'no-store' } });
   } catch (error) {
-    return failure(error, 'GET /api/v1/projects/[projectId]/design');
+    return await failure(error, 'GET /api/v1/projects/[projectId]/design');
   }
 }
 
@@ -61,12 +61,12 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
  */
 export async function PATCH(req: Request, ctx: RouteContext): Promise<NextResponse> {
   const authed = await authorizeApiRequest(req, 'design:write');
-  if (!authed.ok) return jsonError(authed.status, authed.error, { message: authed.message });
+  if (!authed.ok) return await jsonError(authed.status, authed.error, { message: authed.message });
   const { projectId } = await ctx.params;
   const body = await readJson(req);
   const parsed = ApiDesignPatchRequestSchema.safeParse(body);
   if (!parsed.success) {
-    return jsonError(400, 'invalid_patch', {
+    return await jsonError(400, 'invalid_patch', {
       message: `补丁报文不符合契约：${parsed.error.issues
         .slice(0, 5)
         .map((i) => `${i.path.join('.') || 'body'}: ${i.message}`)
@@ -79,17 +79,17 @@ export async function PATCH(req: Request, ctx: RouteContext): Promise<NextRespon
       projectId,
       parsed.data,
     );
-    if (!outcome.ok) return jsonError(outcome.status, outcome.error, { message: outcome.message });
+    if (!outcome.ok) return await jsonError(outcome.status, outcome.error, { message: outcome.message });
     const checked = ApiDesignPatchResultSchema.safeParse(outcome.result);
-    if (!checked.success) return failure(new Error('补丁回执不符合契约'), 'PATCH /api/v1/projects/[projectId]/design');
+    if (!checked.success) return await failure(new Error('补丁回执不符合契约'), 'PATCH /api/v1/projects/[projectId]/design');
     // 写也记在同一本账上：面板问的是“这枚凭据碰过哪些项目”，读与写不该分两本账
     await recordApiAccess({
       tokenId: authed.token.id,
       endpoint: 'PATCH /api/v1/projects/[projectId]/design',
       projectId,
     });
-    return apiJson(checked.data, req, { headers: { 'cache-control': 'no-store' } });
+    return await apiJson(checked.data, req, { headers: { 'cache-control': 'no-store' } });
   } catch (error) {
-    return failure(error, `PATCH /api/v1/projects/${projectId}/design`);
+    return await failure(error, `PATCH /api/v1/projects/${projectId}/design`);
   }
 }

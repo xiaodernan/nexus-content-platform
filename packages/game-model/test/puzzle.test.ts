@@ -89,7 +89,7 @@ describe("解谜画法（§51 Puzzle）", () => {
     if (!quest) throw new Error("测试前提不成立：任务没有编译出来");
     const trigger = plan.triggers.find((t) => t.id === triggerId)!;
     expect(quest.judgeable).toBe(true);
-    expect(quest.goals).toEqual([{ kind: "activate", actorId: triggerId, label: `激活 ${trigger.name}`, targetName: trigger.name }]);
+    expect(quest.goals).toEqual([{ kind: "activate", actorId: triggerId, label: `激活 ${trigger.name}`, labelEn: `Activate ${trigger.name}`, targetName: trigger.name }]);
   });
 
   it("引用 NPC / 对话的任务仍然判不出：why 要说清触发器如今是可判定的、这两类不是", () => {

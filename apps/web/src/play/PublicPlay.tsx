@@ -32,7 +32,7 @@ export function PublicPlay({
   projection: GameProjection;
   /** 这一版的公开路径（`/n/<handle>/<slug>`）：服务端靠它认出是哪一版 */
   path: string;
-  /** 双语（v797）：服务端 getLocale 下传 */
+  /** 双语（2026-11-15 公开试玩面）——与页面同一 locale；缺省 zh */
   locale?: Locale;
 }) {
   const reported = useRef(false);

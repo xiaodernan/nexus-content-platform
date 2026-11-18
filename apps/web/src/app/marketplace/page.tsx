@@ -8,9 +8,10 @@ import {
 } from '@/server/domain/marketplace';
 import { currentUserOrNull } from '@/server/domain/session';
 import { listProjects } from '@/server/domain/projects';
-import { getLocale } from '@/lib/i18n';
 import { MarketplaceCreateForm } from '@/marketplace/MarketplaceCreateForm';
 import { MarketplaceItemRow } from '@/marketplace/MarketplaceItemRow';
+import { MarketplacePicks } from '@/components/MarketplacePicks';
+import { getLocale, type Locale } from '@/lib/i18n';
 
 /**
  * §127/§128 创作者市场（M7）的店面。
@@ -22,79 +23,90 @@ import { MarketplaceItemRow } from '@/marketplace/MarketplaceItemRow';
  * 工程文件本体的交付**已经接上了**（#120）：
  * 「下载」走 `GET /api/marketplace/<id>/content`，拿到的就是条目源项目的那一份导出包，
  * 页面上那句限度念的是这一格今天真实的边界（交付哪两档、数字怎么来的、匿名不留审计）。
+ *
+ * 双语（2026-11-15）：getLocale() 由 RSC 透传，TYPE/VISIBILITY 标签与界面文案本地化；
+ * 物品内容（title/description/creatorName）原样下发。
  */
-
-/** 双语：每行文案按 cookie locale 选（不夹杂） */
-const MK_TXT = {
+const TYPE_LABELS: Record<Locale, Record<MarketplaceItemType, string>> = {
   zh: {
-    TYPE_LABELS: {
-      component: '组件',
-      template: '模板',
-      design_system: '设计系统',
-      asset: '素材',
-      world: '世界',
-      game: '游戏',
-      character: 'AI 角色',
-    } as Record<MarketplaceItemType, string>,
-    VISIBILITY_LABELS: {
-      public: '在售',
-      free: '免费',
-      private: '私密',
-    } as Record<string, string>,
+    component: '组件',
+    template: '模板',
+    design_system: '设计系统',
+    asset: '素材',
+    world: '世界',
+    game: '游戏',
+    character: 'AI 角色',
+  },
+  en: {
+    component: 'Component',
+    template: 'Template',
+    design_system: 'Design system',
+    asset: 'Asset',
+    world: 'World',
+    game: 'Game',
+    character: 'AI character',
+  },
+};
+
+const VISIBILITY_LABELS: Record<Locale, Record<string, string>> = {
+  zh: {
+    public: '在售',
+    free: '免费',
+    private: '私密',
+  },
+  en: {
+    public: 'For sale',
+    free: 'Free',
+    private: 'Private',
+  },
+};
+
+const COPY: Record<Locale, {
+  title: string;
+  subtitle: string;
+  myEarnings: string;
+  myPurchases: string;
+  myReports: string;
+  backHome: string;
+  navAria: string;
+  all: string;
+  onSale: (n: number) => string;
+  nothingOnShelf: string;
+  mine: (n: number) => string;
+  signinHint: string;
+  downloadLimits: (limit: number) => string;
+}> = {
+  zh: {
     title: '创作者市场',
     subtitle: '组件 / 模板 / 设计系统 / 素材 / 世界 / 游戏 / AI 角色。列表只显示公开在售与免费的物品。',
     myEarnings: '我的收入',
     myPurchases: '我的购买',
     myReports: '我的举报',
     backHome: '回首页',
-    ariaTypeNav: '市场类型',
+    navAria: '市场类型',
     all: '全部',
-    onSaleSection: (n: number) => `在售（${n}）`,
-    emptyCategory: '还没有这一类的物品在售。',
-    myItemsSection: (n: number) => `我的物品（${n}）`,
-    signinHint: '上架与举报需要先登录（顶栏「账号」）。',
-    limitsNotePart1: '交付已经接上了，这一格的边界是这些：下载拿到的是条目源项目的',
-    limitsNotePart2: '（§144 导出包的形状），不含素材字节；条目没挂源项目就下不出来。「下载（N）」里的 N 是',
-    limitsNotePart3: '——包没建成不计数，同一个人对同一个条目一小时最多拿',
-    limitsNotePart4: '份；匿名下载免费物品不留审计行（那一格记的是身份）。预览图走的是市场自己的公开路由，与私有素材的取图路径分开。',
-    strongDownload: '设计文档 + 代码',
-    strongCount: '成功交付的次数',
+    onSale: (n) => `在售（${n}）`,
+    nothingOnShelf: '还没有这一类的物品在售。',
+    mine: (n) => `我的物品（${n}）`,
+    signinHint: '上架与举报需要先登录（顶栏、账号）。',
+    downloadLimits: (limit) => `交付已经接上了，这一格的边界是这些：下载拿到的是条目源项目的设计文档 + 代码两份（§144 导出包的形状），不含素材字节；项目没挂源项目就下不出来。“下载（N）”里的 N 是成功交付的次数——包没建成不计数，同一个人对同一个条目一小时最多拿 ${limit} 份；匿名下载免费物品不留审计（那一格记的是身份）。预览图走的市场自己的公开路由，与私有素材的取图路分开。`,
   },
   en: {
-    TYPE_LABELS: {
-      component: 'Component',
-      template: 'Template',
-      design_system: 'Design system',
-      asset: 'Asset',
-      world: 'World',
-      game: 'Game',
-      character: 'AI character',
-    } as Record<MarketplaceItemType, string>,
-    VISIBILITY_LABELS: {
-      public: 'On sale',
-      free: 'Free',
-      private: 'Private',
-    } as Record<string, string>,
-    title: 'Creator Marketplace',
-    subtitle: 'Components / templates / design systems / assets / worlds / games / AI characters. The list shows only publicly on-sale and free items.',
+    title: 'Creator marketplace',
+    subtitle: 'Components / templates / design systems / assets / worlds / games / AI characters. Only public, for-sale and free items are listed.',
     myEarnings: 'My earnings',
     myPurchases: 'My purchases',
     myReports: 'My reports',
-    backHome: 'Back to home',
-    ariaTypeNav: 'Marketplace types',
+    backHome: 'Home',
+    navAria: 'Marketplace type',
     all: 'All',
-    onSaleSection: (n: number) => `On sale (${n})`,
-    emptyCategory: 'No items of this type listed yet.',
-    myItemsSection: (n: number) => `My items (${n})`,
-    signinHint: 'Listing and reporting require signing in (the “Account” menu in the top bar).',
-    limitsNotePart1: 'Delivery is wired up; the boundaries of this cell are these: a download hands you the item’s source project’s ',
-    limitsNotePart2: ' (the shape of an §144 export), without the asset bytes; an item not linked to a source project cannot be downloaded at all. The N in “Download (N)” is ',
-    limitsNotePart3: ' — failed packages are not counted, and one person can take at most ',
-    limitsNotePart4: ' copies of the same item per hour; anonymous downloads of free items leave no audit row (that cell records identity). Preview images come through the marketplace’s own public route, separate from the private asset path.',
-    strongDownload: 'design docs + code',
-    strongCount: 'the number of successful deliveries',
+    onSale: (n) => `On sale (${n})`,
+    nothingOnShelf: 'No items of this type are on sale yet.',
+    mine: (n) => `My items (${n})`,
+    signinHint: 'Listing or reporting requires signing in first (top bar, account).',
+    downloadLimits: (limit) => `Delivery is wired up; the honest boundaries are these: downloading gets you the design document + code of the item’s source project (the §144 export shape), not the asset bytes themselves; an item without a source project can’t be downloaded. The N in “Download (N)” counts successful deliveries — an unbuilt bundle is never counted; a person can take at most ${limit} of the same item per hour; anonymous downloads of free items leave no audit (that slot records identity). Preview images ride the marketplace’s own public route, split from the private-asset fetch path.`,
   },
-} as const;
+};
 
 export const dynamic = 'force-dynamic';
 
@@ -103,11 +115,10 @@ export default async function MarketplacePage({
 }: {
   searchParams: Promise<{ type?: string }>;
 }) {
-  const { type } = await searchParams;
-  const locale = await getLocale();
-  const T = MK_TXT[locale];
-  const TYPE_LABELS = T.TYPE_LABELS;
-  const VISIBILITY_LABELS = T.VISIBILITY_LABELS;
+  const [{ type }, locale] = await Promise.all([searchParams, getLocale()]);
+  const c = COPY[locale];
+  const typeLabels = TYPE_LABELS[locale];
+  const visibilityLabels = VISIBILITY_LABELS[locale];
   const itemType = MARKETPLACE_ITEM_TYPES.includes(type as MarketplaceItemType)
     ? (type as MarketplaceItemType)
     : undefined;
@@ -126,34 +137,32 @@ export default async function MarketplacePage({
     <main className="mk-pageRoot">
       <header className="mk-header">
         <div>
-          <h1 className="mk-title" data-marketplace-title>{T.title}</h1>
-          <p className="mk-subtitle">
-            {T.subtitle}
-          </p>
+          <h1 className="mk-title" data-marketplace-title>{c.title}</h1>
+          <p className="mk-subtitle">{c.subtitle}</p>
         </div>
         <div className="mk-actions">
           {user ? (
             <Link href="/marketplace/earnings" className="dv-searchPill" data-marketplace-earnings>
-              {T.myEarnings}
+              {c.myEarnings}
             </Link>
           ) : null}
           {user ? (
             <Link href="/marketplace/purchases" className="dv-searchPill" data-marketplace-purchases>
-              {T.myPurchases}
+              {c.myPurchases}
             </Link>
           ) : null}
           {user ? (
             <Link href="/marketplace/reports" className="dv-searchPill" data-marketplace-reports>
-              {T.myReports}
+              {c.myReports}
             </Link>
           ) : null}
           <Link href="/" className="dv-searchPill" data-marketplace-back>
-            {T.backHome}
+            {c.backHome}
           </Link>
         </div>
       </header>
 
-      <nav className="mk-typeRow" data-marketplace-type-nav aria-label={T.ariaTypeNav}>
+      <nav className="mk-typeRow" data-marketplace-type-nav aria-label={c.navAria}>
         <Link
           href="/marketplace"
           data-marketplace-type="all"
@@ -161,7 +170,7 @@ export default async function MarketplacePage({
           className={`mk-type ${itemType === undefined ? 'mk-typeActive' : ''}`}
           aria-current={itemType === undefined ? 'page' : undefined}
         >
-          {T.all}
+          {c.all}
         </Link>
         {MARKETPLACE_ITEM_TYPES.map((t) => (
           <Link
@@ -172,16 +181,28 @@ export default async function MarketplacePage({
             className={`mk-type ${itemType === t ? 'mk-typeActive' : ''}`}
             aria-current={itemType === t ? 'page' : undefined}
           >
-            {TYPE_LABELS[t]}
+            {typeLabels[t]}
           </Link>
         ))}
       </nav>
 
       <section className="mk-col2" data-marketplace-list>
-        <h2 className="mk-h16">{T.onSaleSection(items.length)}</h2>
+        <h2 className="mk-h16">{c.onSale(items.length)}</h2>
+        {items.length > 0 ? (
+          <MarketplacePicks
+            locale={locale}
+            items={items.slice(0, 3).map((item) => ({
+              id: item.id,
+              title: item.title,
+              itemType: item.itemType,
+              priceCredits: item.priceCredits,
+              downloadCount: item.downloadCount,
+            }))}
+          />
+        ) : null}
         {items.length === 0 ? (
           <div className="dv-empty" data-marketplace-empty>
-            <p>{T.emptyCategory}</p>
+            <p>{c.nothingOnShelf}</p>
           </div>
         ) : (
           <ul className="mk-grid">
@@ -202,8 +223,8 @@ export default async function MarketplacePage({
                 mine={Boolean(user && item.creatorId === user.id)}
                 signedIn={Boolean(user)}
                 alreadyReported={reportedIds.has(item.id)}
-                typeLabel={TYPE_LABELS[item.itemType] ?? item.itemType}
-                visibilityLabel={VISIBILITY_LABELS[item.visibility] ?? item.visibility}
+                typeLabel={typeLabels[item.itemType] ?? item.itemType}
+                visibilityLabel={visibilityLabels[item.visibility] ?? item.visibility}
                 locale={locale}
               />
             ))}
@@ -219,7 +240,7 @@ export default async function MarketplacePage({
           />
           {mine.length ? (
             <div className="mk-mt4" data-marketplace-mine>
-              <h2 className="mk-h16">{T.myItemsSection(mine.length)}</h2>
+              <h2 className="mk-h16">{c.mine(mine.length)}</h2>
               <ul className="mk-mineList">
                 {mine.map((item) => (
                   <MarketplaceItemRow
@@ -238,8 +259,8 @@ export default async function MarketplacePage({
                     mine
                     signedIn={Boolean(user)}
                     alreadyReported={reportedIds.has(item.id)}
-                    typeLabel={TYPE_LABELS[item.itemType] ?? item.itemType}
-                    visibilityLabel={VISIBILITY_LABELS[item.visibility] ?? item.visibility}
+                    typeLabel={typeLabels[item.itemType] ?? item.itemType}
+                    visibilityLabel={visibilityLabels[item.visibility] ?? item.visibility}
                     locale={locale}
                   />
                 ))}
@@ -249,14 +270,12 @@ export default async function MarketplacePage({
         </section>
       ) : (
         <p className="mk-sectionTop mk-hint12" data-marketplace-signin-hint>
-          {T.signinHint}
+          {c.signinHint}
         </p>
       )}
 
       <p className="mk-hint11" data-marketplace-limits>
-        {T.limitsNotePart1}<strong>{T.strongDownload}</strong>{T.limitsNotePart2}
-        <strong>{T.strongCount}</strong>{T.limitsNotePart3}
-        {MARKETPLACE_DOWNLOAD_LIMIT_PER_HOUR}{T.limitsNotePart4}
+        {c.downloadLimits(MARKETPLACE_DOWNLOAD_LIMIT_PER_HOUR)}
       </p>
     </main>
   );

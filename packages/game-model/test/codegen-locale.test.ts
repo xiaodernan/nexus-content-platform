@@ -5,8 +5,14 @@ import {
   CODEGEN_LIMITS_EN,
   GAME_KIND_STATUS,
   GAME_KIND_STATUS_EN,
+  GAME_KIND_LABELS,
+  GAME_KIND_LABELS_EN,
   GAME_ENTITY_LABELS,
   GAME_ENTITY_LABELS_EN,
+  PLAY_PROVENANCE_LABELS,
+  PLAY_PROVENANCE_LABELS_EN,
+  PLAY_PROVENANCE_FALLBACK_TEXT,
+  PLAY_PROVENANCE_FALLBACK_TEXT_EN,
   addEntity,
   artifactChainOf,
   artifactChainSentence,
@@ -83,6 +89,9 @@ describe('v735 双语产物读数面', () => {
     expect(CODEGEN_LIMITS_EN).toHaveLength(CODEGEN_LIMITS.length);
     expect(Object.keys(GAME_KIND_STATUS_EN).sort()).toEqual(Object.keys(GAME_KIND_STATUS).sort());
     expect(Object.keys(GAME_ENTITY_LABELS_EN).sort()).toEqual(Object.keys(GAME_ENTITY_LABELS).sort());
+    expect(Object.keys(GAME_KIND_LABELS_EN).sort()).toEqual(Object.keys(GAME_KIND_LABELS).sort());
+    expect(Object.keys(PLAY_PROVENANCE_LABELS_EN).sort()).toEqual(Object.keys(PLAY_PROVENANCE_LABELS).sort());
+    expect(Object.keys(PLAY_PROVENANCE_FALLBACK_TEXT_EN).sort()).toEqual(Object.keys(PLAY_PROVENANCE_FALLBACK_TEXT).sort());
   });
 
   it('ARTIFACT_CHAINS 三条链都有 artifactChainSentence', () => {

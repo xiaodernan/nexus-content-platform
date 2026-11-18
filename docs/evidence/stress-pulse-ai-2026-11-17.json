@@ -1,0 +1,37 @@
+{
+  "healthz": [
+    { "tier": "baseline", "concurrency": 1,  "requests": 20,  "ok": 20,  "failed": 0, "p50_ms": 0.0,   "p95_ms": 16.0,   "p99_ms": 16.0,   "wall_s": 0.30, "req_per_s": 67.3 },
+    { "tier": "tier-16",  "concurrency": 16, "requests": 160, "ok": 160, "failed": 0, "p50_ms": 62.0,  "p95_ms": 156.0,  "p99_ms": 203.0,  "wall_s": 0.70, "req_per_s": 227.6 },
+    { "tier": "tier-48",  "concurrency": 48, "requests": 240, "ok": 240, "failed": 0, "p50_ms": 172.0, "p95_ms": 593.0,  "p99_ms": 797.0,  "wall_s": 1.23, "req_per_s": 194.5 },
+    { "tier": "tier-96",  "concurrency": 96, "requests": 288, "ok": 288, "failed": 0, "p50_ms": 359.0, "p95_ms": 1093.0, "p99_ms": 1438.0, "wall_s": 1.64, "req_per_s": 175.5 }
+  ],
+  "loginBurst": [
+    { "round": 1, "email": "burst-*-r1@example.com", "status_counts": { "401": 10, "429": 2 } },
+    { "round": 2, "email": "burst-*-r2@example.com", "status_counts": { "401": 10, "429": 2 } },
+    { "round": 3, "email": "burst-*-r3@example.com", "status_counts": { "401": 10, "429": 2 } },
+    { "round": 4, "email": "burst-*-r4@example.com", "status_counts": { "401": 10, "429": 2 } },
+    { "round": 5, "email": "burst-*-r5@example.com", "status_counts": { "401": 10, "429": 2 } }
+  ],
+  "pulseFloodBeforeCache": [
+    { "tier": "pulse-baseline", "concurrency": 1,  "requests": 10, "ok": 10, "failed": 0, "p50_ms": 62.0,   "p95_ms": 141.0,  "p99_ms": 141.0,  "wall_s": 4.16, "req_per_s": 2.4 },
+    { "tier": "pulse-tier-16",  "concurrency": 16, "requests": 48, "ok": 48, "failed": 0, "p50_ms": 718.0,  "p95_ms": 1235.0, "p99_ms": 1360.0, "wall_s": 2.31, "req_per_s": 20.8 },
+    { "tier": "pulse-tier-48",  "concurrency": 48, "requests": 96, "ok": 96, "failed": 0, "p50_ms": 3110.0, "p95_ms": 5656.0, "p99_ms": 5859.0, "wall_s": 6.72, "req_per_s": 14.3 }
+  ],
+  "pulseFloodAfterCache": [
+    { "tier": "pulse-baseline", "concurrency": 1,  "requests": 10, "ok": 10, "failed": 0, "p50_ms": 31.0,   "p95_ms": 47.0,   "p99_ms": 47.0,   "wall_s": 0.5,  "req_per_s": 20.0 },
+    { "tier": "pulse-tier-16",  "concurrency": 16, "requests": 48, "ok": 48, "failed": 0, "p50_ms": 547.0,  "p95_ms": 750.0,  "p99_ms": 813.0,  "wall_s": 1.78, "req_per_s": 26.9 },
+    { "tier": "pulse-tier-48",  "concurrency": 48, "requests": 96, "ok": 96, "failed": 0, "p50_ms": 1437.0, "p95_ms": 2000.0, "p99_ms": 2188.0, "wall_s": 3.26, "req_per_s": 29.4 }
+  ],
+  "environment": {
+    "host": "Windows 11, 16GB RAM, free ≈ 1.1–2.5GB (WSL2 vmmem), single instance of each service",
+    "aiService": "uvicorn 1 instance (in-process jobs worker, capacity=1)",
+    "web": "next dev -p 3100 (Turbopack), proxy.ts in chain",
+    "redis": "localhost:56379 (nexus-redis healthy, DB 5 = ai jobs, DB 3 = web aggregate cache, DB 8 = ai completion cache)",
+    "postgres": "localhost:55433 (nexus-postgres healthy; pools: web max=5, ai-service Hikari/Hikari-Java separately)",
+    "notes": [
+      "web dev 路径下 RSC/route 的每请求固定成本 ≈ 15–40ms 即使缓存命中——p50 不可能到 ai-service 的地板",
+      "生产路径 next start 需要 ≥3GB 空闲——本机 free 长期 1.1–2.5GB，无法可靠构建；定容欠（与 v779 同一欠项）",
+      "ai-service /healthz 零失败 708/708——不�?SLA，是本机当日容量感知"
+    ]
+  }
+}

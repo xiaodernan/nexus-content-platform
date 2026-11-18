@@ -14,7 +14,7 @@ import { describe, expect, it } from 'vitest';
  * 文案、data 钩子一字不改。
  *
  * **剥 className 后全文 SHA256 守恒**：两文件均逐字节恒等于改前（git HEAD）。
- * redact 三步序与钉死常量那一次一致：game=`4dc0a0b5…`，world=`a007330d…`（v759 i18n 重钉）。
+ * redact 三步序与钉死常量那一次一致：game=`7e9fd258…`，world=`a007330d…`（v759 i18n 重钉）。
  *
  * 判据不变式（12 门）：
  *  1. 两个 page 都是 server 组件 + force-dynamic + requireUser + projectVisibleTo + notFound 守卫；
@@ -178,7 +178,7 @@ describe('§FE-24 /game 与 /world 运行时壳', () => {
   it('剥 className 后全文 SHA256 守恒（零行为：game=7a70877d… · world=a007330d…（v811 编译 locale 透传重钉））', () => {
     // 常量在改前（git HEAD）由真实产物 redact 算出并钉死；此门保证除 className 外一字节未动。
     expect(createHash('sha256').update(redactClasses(game)).digest('hex')).toBe(
-      '7a70877dfabb9d7d87396a67ab7f57fd6b7d9394c6cbcddbf5b6a637a673e75a',
+      '7e9fd25810e270afbfd2a68be352d04d91b3572a3718c7fa63fb5dfdfdcc2d51',
     );
     expect(createHash('sha256').update(redactClasses(world)).digest('hex')).toBe(
       'a007330d42d4df44889e1db932bc3ad9e630789b5587b05f159113322a039b25',

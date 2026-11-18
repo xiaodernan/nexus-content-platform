@@ -19,18 +19,18 @@ import { apiJson, failure, jsonError } from '@/server/http';
  */
 export async function GET(req: Request): Promise<NextResponse> {
   const authed = await authorizeApiRequest(req, 'projects:read');
-  if (!authed.ok) return jsonError(authed.status, authed.error, { message: authed.message });
+  if (!authed.ok) return await jsonError(authed.status, authed.error, { message: authed.message });
   try {
     const list = await apiProjectList(authed.userId);
     const checked = ApiProjectListSchema.safeParse({ projects: list });
-    if (!checked.success) return failure(new Error('项目清单不符合契约'), 'GET /api/v1/projects');
+    if (!checked.success) return await failure(new Error('项目清单不符合契约'), 'GET /api/v1/projects');
     await recordApiAccess({ tokenId: authed.token.id, endpoint: 'GET /api/v1/projects' });
-    return apiJson(checked.data, req, {
+    return await apiJson(checked.data, req, {
       // 回一句 hint（不是凭据）：调用方拿 401 来问"是哪一枚配错了"时，界面与日志对得上同一把
       headers: { 'cache-control': 'no-store', 'x-nexus-token-hint': authed.token.hint },
     });
   } catch (error) {
-    return failure(error, 'GET /api/v1/projects');
+    return await failure(error, 'GET /api/v1/projects');
   }
 }
 
@@ -49,29 +49,29 @@ export async function GET(req: Request): Promise<NextResponse> {
  */
 export async function POST(req: Request): Promise<NextResponse> {
   const authed = await authorizeApiRequest(req, 'projects:write');
-  if (!authed.ok) return jsonError(authed.status, authed.error, { message: authed.message });
+  if (!authed.ok) return await jsonError(authed.status, authed.error, { message: authed.message });
   try {
     const parsed = ApiProjectCreateRequestSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) {
-      return jsonError(400, 'validation_failed', {
+      return await jsonError(400, 'validation_failed', {
         message: parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`).join('；'),
       });
     }
     const { name, kind } = parsed.data;
     if (kind !== undefined && !(PROJECT_KINDS as string[]).includes(kind)) {
-      return jsonError(400, 'unknown_kind', {
+      return await jsonError(400, 'unknown_kind', {
         message: `没有 ${kind} 这个项目类型`,
         allowed: [...PROJECT_KINDS],
       });
     }
     const document = await createProject(authed.userId, { name, kind: kindToProjectType(kind ?? 'website') });
     const detail = await apiProjectDetail(authed.userId, document.id);
-    if (!detail) return failure(new Error('刚建好的项目读不回来'), 'POST /api/v1/projects');
+    if (!detail) return await failure(new Error('刚建好的项目读不回来'), 'POST /api/v1/projects');
     const checked = ApiProjectDetailSchema.safeParse(detail);
-    if (!checked.success) return failure(new Error('项目详情不符合契约'), 'POST /api/v1/projects');
+    if (!checked.success) return await failure(new Error('项目详情不符合契约'), 'POST /api/v1/projects');
     await recordApiAccess({ tokenId: authed.token.id, endpoint: 'POST /api/v1/projects', projectId: document.id });
-    return apiJson(checked.data, req, { status: 201, headers: { 'cache-control': 'no-store' } });
+    return await apiJson(checked.data, req, { status: 201, headers: { 'cache-control': 'no-store' } });
   } catch (error) {
-    return failure(error, 'POST /api/v1/projects');
+    return await failure(error, 'POST /api/v1/projects');
   }
 }

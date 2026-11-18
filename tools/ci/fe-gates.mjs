@@ -53,6 +53,9 @@ console.log(`fe-gates: ${files.length} gate suites`);
  * 仍然显式传文件列表：如果那份配置的 `include` 哪天写错，这里会因为"传了 96 个文件
  * 却 filter 出 0 个"而红，而不是安静地跑 0 套、报绿。
  */
+// 直接用 process.execPath 跑 vitest.mjs（不经 cmd shell）：
+// 全部绝对路径拼成的命令行超过 cmd.exe 的 8191 字符上限，shell:true 会直接炸「命令太长」。
+// CreateProcess 上限是 32767，绰绰有余。
 const vitestEntry = join(root, 'node_modules', 'vitest', 'vitest.mjs');
 const result = spawnSync(
   process.execPath,
@@ -60,7 +63,6 @@ const result = spawnSync(
   {
     cwd: root,
     stdio: 'inherit',
-    // 137 套判据直接不过 cmd 的 8191 字符上限（npx+shell 会炸）；直接用 node 调 vitest 入口。
     shell: false,
   },
 );

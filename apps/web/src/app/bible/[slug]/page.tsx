@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation';
 import { getLocale, type Locale } from '@/lib/i18n';
 import { BIBLE_CHAPTERS, BIBLE_ECHOES } from '@/world-bible/generated';
 import { BibleMarkdown, extractAnchors } from '@/components/BibleMarkdown';
+import { ChapterDigest } from '@/components/ChapterDigest';
+import { TideWitness } from '@/components/TideWitness';
 
 export const dynamic = 'force-dynamic';
 
@@ -105,6 +107,8 @@ export default async function BibleChapterPage({
 
         <BibleMarkdown markdown={markdown} tableRegionAria={c.tableRegionAria} />
 
+        <TideWitness slug={chapter.slug} locale={locale} order={chapter.order} />
+
         <section className="bb-anchorShelf" aria-label={c.anchorShelfTitle} data-bible-anchors>
           <h2 className="bb-anchorTitle">{c.anchorShelfTitle}</h2>
           <ol className="bb-anchorList">
@@ -118,6 +122,8 @@ export default async function BibleChapterPage({
           </ol>
           <p className="bb-anchorNote">{c.anchorShelfNote}</p>
         </section>
+
+        <ChapterDigest slug={chapter.slug} locale={locale} />
       </article>
 
       <footer className="bb-foot">

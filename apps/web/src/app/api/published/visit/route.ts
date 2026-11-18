@@ -23,18 +23,18 @@ import { badRequest, jsonError } from '@/server/http';
  * 这里只把结论随行入库——可疑的照收，另计不进真人的数。
  */
 export async function POST(req: Request): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const parsed = PublishedVisitRequestSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
-    return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
+    return await badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
   }
   const { path, visitorKey, open, visibleMs, completionPct, webdriver } = parsed.data;
 
   const rl = await getRateLimiter().hit(rateKey('published/visit', clientIp(req), visitorKey), 240, 60 * 60 * 1000);
-  if (!rl.allowed) return jsonError(429, 'rate_limited', { message: '上报太频繁', retryAfterMs: rl.retryAfterMs });
+  if (!rl.allowed) return await jsonError(429, 'rate_limited', { message: '上报太频繁', retryAfterMs: rl.retryAfterMs });
 
   const publication = await findPublicPath(path);
-  if (!publication) return jsonError(404, 'not_found', { message: '没有这个公开页面，或它已经不再公开' });
+  if (!publication) return await jsonError(404, 'not_found', { message: '没有这个公开页面，或它已经不再公开' });
 
   const viewer = await currentUserOrNull();
   const result = await recordVisit({
@@ -46,6 +46,6 @@ export async function POST(req: Request): Promise<NextResponse> {
     completionPct,
     suspectedBot: classifyVisit(req.headers.get('user-agent'), webdriver),
   });
-  if (result === 'rejected') return badRequest(['visitorKey 不合法']);
+  if (result === 'rejected') return await badRequest(['visitorKey 不合法']);
   return NextResponse.json({ ok: true });
 }

@@ -42,18 +42,31 @@ const SHARED_DOOR = join(REPO_ROOT, 'infra', 'config', 'application.yml');
  * The hops a request actually crosses, in order. NAMED, and the count is asserted.
  *
  * The registry and the config server are deliberately NOT here: one is discovery and the other is
- * boot-time configuration, and neither sees a project read. A new service that starts serving traffic
- * has to be added to this list — the friction is the feature (the same rule v658's door file follows).
+ * boot-time configuration, and neither sees a project read. Neither are the Spring Cloud nexus-*
+ * modules (nexus-registry discovery, nexus-config boot-time config, nexus-gateway optional edge):
+ * none of them carries the brave bridge, and none of them is on the request path a read crosses.
+ * A new service that starts serving traffic has to be added to this list — the friction is the
+ * feature (the same rule v658's door file follows).
  */
 const TRAFFIC_HOPS = ['java-gateway', 'nexus-api', 'java-domain-service'] as const;
 
-/** Every deployable must print the correlation segment, whether or not it is a hop. */
+/**
+ * Every deployable must print the correlation segment, whether or not it is a hop.
+ *
+ * The three nexus-* Spring Cloud modules were added 2026-11-15 after they landed in the tree: they are
+ * not counted as traffic hops (no request-traffic axis of their own — discovery / boot-time config /
+ * optional edge), but they still boot, and a boot line without ids is a discovery/config door you cannot
+ * grep. They carry the same local `logging.pattern.correlation` as the central document does.
+ */
 const DEPLOYABLES = [
   'java-config-server',
   'java-domain-service',
   'java-gateway',
   'java-registry',
   'nexus-api',
+  'nexus-config',
+  'nexus-gateway',
+  'nexus-registry',
 ] as const;
 
 const configOf = (service: string) =>
@@ -75,7 +88,7 @@ function propagationType(file: string): string | null {
   return null;
 }
 
-/** The deployables on disk — required to be exactly the named five, as in the door file. */
+/** The eight deployables on disk — required to be exactly the named eight, as in the door file. */
 function deployablesOnDisk(): string[] {
   return readdirSync(SERVICES_DIR, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
@@ -85,7 +98,7 @@ function deployablesOnDisk(): string[] {
 }
 
 describe('one trace id crosses every hop (v656)', () => {
-  it('finds exactly the five deployables it is about — a sixth would have to be written down', () => {
+  it('finds exactly the eight deployables it is about — a ninth would have to be written down', () => {
     expect(deployablesOnDisk()).toEqual([...DEPLOYABLES].sort());
   });
 

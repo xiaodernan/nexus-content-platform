@@ -26,13 +26,13 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
   const raw = params.get('indexChars');
   const requested = raw === null ? undefined : Number(raw);
   if (requested !== undefined && (!Number.isFinite(requested) || requested < 0)) {
-    return jsonError(400, 'bad_index_chars', {
+    return await jsonError(400, 'bad_index_chars', {
       message: locale === 'en' ? 'indexChars must be a non-negative integer' : 'indexChars 要是一个非负整数',
     });
   }
   const corpusQuery = params.get('corpusQuery')?.trim() ?? '';
   if (corpusQuery.length > 200) {
-    return jsonError(400, 'bad_corpus_query', {
+    return await jsonError(400, 'bad_corpus_query', {
       message:
         locale === 'en'
           ? 'corpusQuery is at most 200 characters: it is a query term, not the whole document'
@@ -41,7 +41,7 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
   }
   try {
     const user = await requireUser();
-    if (!(await projectVisibleTo(projectId, user.id))) return notFound();
+    if (!(await projectVisibleTo(projectId, user.id))) return await notFound();
     const result = await buildProjectContext(
       projectId,
       user.id,
@@ -51,9 +51,9 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
       },
       locale,
     );
-    if (!result.ok) return jsonError(409, 'context_unavailable', { message: result.reason });
+    if (!result.ok) return await jsonError(409, 'context_unavailable', { message: result.reason });
     return NextResponse.json({ ok: true, context: result.context });
   } catch (error) {
-    return failure(error, `GET /api/projects/${projectId}/context`);
+    return await failure(error, `GET /api/projects/${projectId}/context`);
   }
 }

@@ -14,8 +14,8 @@ const DL_MAX_EXPORT_ITEMS = 1000;
  */
 export async function GET(req: Request): Promise<Response> {
   const user = await currentUserOrNull();
-  if (!user) return jsonError(401, 'unauthenticated', { message: '需要先登录' });
-  if (user.role !== 'admin') return jsonError(403, 'forbidden', { message: '死信只对审核员（role=admin）开放' });
+  if (!user) return await jsonError(401, 'unauthenticated', { message: '需要先登录' });
+  if (user.role !== 'admin') return await jsonError(403, 'forbidden', { message: '死信只对审核员（role=admin）开放' });
 
   const url = new URL(req.url);
   const download = url.searchParams.get('download') === '1';
@@ -27,7 +27,7 @@ export async function GET(req: Request): Promise<Response> {
     const maxItems = Math.min(DL_MAX_EXPORT_ITEMS, Math.max(1, Number(url.searchParams.get('maxItems') ?? '500') || 500));
     const exported = await exportDeadLettersJsonl({ maxItems });
     if (!('items' in exported)) {
-      return jsonError(503, 'redis-unconfigured', { message: '未配置 NEXUS_REDIS_URL，导出不可用' });
+      return await jsonError(503, 'redis-unconfigured', { message: '未配置 NEXUS_REDIS_URL，导出不可用' });
     }
     const body = exported.items.map((item) => JSON.stringify(item)).join('\n') + (exported.items.length ? '\n' : '');
     const now = new Date();
@@ -43,10 +43,10 @@ export async function GET(req: Request): Promise<Response> {
   }
 
   const result = await readDeadLettersPage({ cursor, limit });
-  if (result.kind === 'unavailable') return jsonError(503, 'redis-unconfigured', { message: result.note });
-  if (result.kind === 'invalid-cursor') return jsonError(400, 'invalid-cursor', { message: '无法解析 cursor（或被改写）' });
-  if (result.kind === 'snapshot-stale') return jsonError(409, 'snapshot-stale', { message: 'dead 列表在本次分页内已被头部 LPUSH 改写；请刷新重来（tail 相对下标整体平移）' });
-  if (result.kind === 'read-error') return jsonError(502, 'redis-read-error', { message: result.note });
+  if (result.kind === 'unavailable') return await jsonError(503, 'redis-unconfigured', { message: result.note });
+  if (result.kind === 'invalid-cursor') return await jsonError(400, 'invalid-cursor', { message: '无法解析 cursor（或被改写）' });
+  if (result.kind === 'snapshot-stale') return await jsonError(409, 'snapshot-stale', { message: 'dead 列表在本次分页内已被头部 LPUSH 改写；请刷新重来（tail 相对下标整体平移）' });
+  if (result.kind === 'read-error') return await jsonError(502, 'redis-read-error', { message: result.note });
 
   return NextResponse.json({
     snapshotSize: result.snapshotSize,

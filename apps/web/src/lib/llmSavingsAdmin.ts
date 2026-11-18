@@ -22,7 +22,7 @@ export function weightedHitRate(rows: readonly { tokensIn: number; cachedTokens:
   return hitRate(totalIn, totalCached);
 }
 
-/** 万级 token 的紧凑展示（中英字形都安全）。 */
+/** 万级 token 的紧凑展示（中英字形都安全）——zh 模式的「万/亿」读法（存量字节不改）。 */
 export function formatTokensCompact(n: number): string {
   if (!Number.isFinite(n)) return '0';
   const safe = Math.max(0, n);
@@ -32,4 +32,14 @@ export function formatTokensCompact(n: number): string {
     return `${wan >= 100 ? wan.toFixed(0) : wan.toFixed(1)} 万`;
   }
   return `${(safe / 100_000_000).toFixed(2)} 亿`;
+}
+
+/** 英文界面的同一分档：K/M/B（1000 进制，§CACHE-3 同口径）。 */
+export function formatTokensCompactEn(n: number): string {
+  if (!Number.isFinite(n)) return '0';
+  const safe = Math.max(0, n);
+  if (safe < 1_000) return String(Math.round(safe));
+  if (safe < 1_000_000) return `${(safe / 1_000).toFixed(safe < 10_000 ? 1 : 0)}K`;
+  if (safe < 1_000_000_000) return `${(safe / 1_000_000).toFixed(safe < 10_000_000 ? 2 : 1)}M`;
+  return `${(safe / 1_000_000_000).toFixed(2)}B`;
 }

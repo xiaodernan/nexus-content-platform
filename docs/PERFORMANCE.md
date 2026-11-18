@@ -1949,3 +1949,16 @@ Docker Desktop 已由 agent 人工拉起（本轮恢复，server 29.9.3，nexus-
 **文件**：`.scratch/stress-batteria.mjs`（无新增依赖）· `.scratch/stress-ip-window.mjs`（限流精确命中探针）。
 **下一步**：Docker 稳定后（或 RAM ≥3 GB 的窗口）复现全量 batteria；把压测结论扩到 `/api/analytics/track` 等写库路由。
 
+
+---
+# 以下为 origin/main（并行工作线）的压力探针记录，原样保留：
+
+## 2026-11-17 v786 压力探针三档（ai healthz / web 登录撞库 / web /api/pulse 修复前后）
+
+`docs/evidence/stress-pulse-ai-2026-11-17.{md,json}`。**不声称 SLA；dev 路径 + WSL2，单实例。**
+
+- **ai-service `/healthz` 洪水**：三档 tier（16/48/96）对 ai healthz 各打 20/160/240/288 请求，**708/708 200，零失败**；p50 0/62/172/359ms——纯排队、不会崩，验证 uvicorn 单实例扛住了多连接（没有去制造 LLM 调用消耗网关额度）
+- **web 撞库（POST /api/auth/login）**：12 并发 ×5 轮假邮箱、错误口令 123 —— 每轮 **10 × 401 + 2 × 429**，限流闸（10 次/15 分钟/ip+email）在洪水里精准出拳；CSRF 双提交也照例有效（探针自带匹配的 cookie 与 header 测试了完整判定路径）
+- **web `/api/pulse` 洪水（重聚合端点）**：**先抓虫再修**——每请求 15 条 count/sum/distinct 打 maxPool=5 的连接池，tier-48 p50=3110ms；加了 30 秒 Redis 聚合缓存（`nexus:pulse:aggregate:v1`，失败降级为读端重算，不藏 503；响应体逐字节不变）+ in-flight 单飞（先登记后探测）→ tier-48 p50 **1437ms（4.5×）** p99 5859→2188ms 吞吐 14.3→29.4rps，0 失败
+- **生产路径定容欠**：`next start` + 同档重测还欠（本机 free ≈ 1.1–2.5GB，v779 同一欠项）；本档不算压力测试完成
+- **下一刀据点**：web dev 路径每请求固定 15–40ms（重型 rewrite、Turbopack re-evaluation）——生产路径是唯一地板，同 v779 一并记账

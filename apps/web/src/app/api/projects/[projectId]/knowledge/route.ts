@@ -15,11 +15,11 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();
-    if (!(await projectVisibleTo(projectId, user.id))) return notFound();
+    if (!(await projectVisibleTo(projectId, user.id))) return await notFound();
     const stats = await knowledgeStats(projectId);
     return NextResponse.json({ ok: true, ...stats, vectorAvailable: stats.vectorized > 0 });
   } catch (error) {
-    return failure(error, `GET /api/projects/${projectId}/knowledge`);
+    return await failure(error, `GET /api/projects/${projectId}/knowledge`);
   }
 }
 
@@ -31,16 +31,16 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
  * 所以**这批内容进库之前建好的项目**只能靠这里补上第一块（§49 清单最后一格 Documents）。
  */
 export async function POST(req: Request, ctx: RouteContext): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();
     const writeAccess = await projectWriteAccess(projectId, user.id);
-    if (writeAccess === 'not_found') return notFound();
-    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
+    if (writeAccess === 'not_found') return await notFound();
+    if (writeAccess === 'read_only') return await jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
     const result = await syncProjectKnowledge(projectId, { includeDesign: true });
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
-    return failure(error, `POST /api/projects/${projectId}/knowledge/sync`);
+    return await failure(error, `POST /api/projects/${projectId}/knowledge/sync`);
   }
 }

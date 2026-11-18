@@ -4,50 +4,6 @@ import { useState } from 'react';
 import { csrfHeaders } from '@/lib/csrf';
 import type { Locale } from '@/lib/i18n';
 
-/** 双语：每行文案按 cookie locale 选；服务端返的判定原文（message/issues）原样保留——那是服务端裁决，不是本地文案 */
-const RC_TXT = {
-  zh: {
-    reasons: [
-      { id: 'minor_safety', label: '涉及未成年人的性内容' },
-      { id: 'intimate_nonconsensual', label: '非自愿亲密影像' },
-      { id: 'impersonation', label: '冒充他人或机构' },
-      { id: 'illegal', label: '违法内容' },
-      { id: 'ip', label: '侵犯版权或商标' },
-      { id: 'spam', label: '垃圾信息 / 欺诈' },
-      { id: 'other', label: '其他' },
-    ],
-    submitFailed: (status: number) => `提交失败（HTTP ${status}）`,
-    reportRecorded: '举报已记录',
-    reportThisPage: '举报此页',
-    ariaReason: '举报理由',
-    ariaDetail: '举报补充说明（可选）',
-    detailPlaceholder: '补充说明（可选）',
-    submitting: '提交中…',
-    submit: '提交举报',
-    note: '举报不会立刻撤下内容；是否下架由人看完决定。',
-  },
-  en: {
-    reasons: [
-      { id: 'minor_safety', label: 'Sexual content involving minors' },
-      { id: 'intimate_nonconsensual', label: 'Non-consensual intimate imagery' },
-      { id: 'impersonation', label: 'Impersonation of a person or organization' },
-      { id: 'illegal', label: 'Illegal content' },
-      { id: 'ip', label: 'Copyright or trademark infringement' },
-      { id: 'spam', label: 'Spam / fraud' },
-      { id: 'other', label: 'Other' },
-    ],
-    submitFailed: (status: number) => `Submit failed (HTTP ${status})`,
-    reportRecorded: 'Report recorded',
-    reportThisPage: 'Report this page',
-    ariaReason: 'Report reason',
-    ariaDetail: 'Report detail (optional)',
-    detailPlaceholder: 'Detail (optional)',
-    submitting: 'Submitting…',
-    submit: 'Submit report',
-    note: 'A report does not take the content down; whether it stays up is decided by a person.',
-  },
-} as const;
-
 /**
  * §132 举报入口：公开页上访客真能点开的东西。
  *
@@ -55,11 +11,69 @@ const RC_TXT = {
  * - 举报**不会**立刻撤下内容，撤下是人的裁决；
  * - 访客不需要登录也能举报（这一页本来就是给匿名访客看的）。
  */
+/**
+ * 举报理由（双语，id 是 API 枚举、两语言同 id）。
+ * 双语（2026-11-15：公开阅读面）——en 逐句对应，组件只按 locale 选。
+ */
+const REASONS_ZH: { id: string; label: string }[] = [
+  { id: 'minor_safety', label: '涉及未成年人的性内容' },
+  { id: 'intimate_nonconsensual', label: '非自愿亲密影像' },
+  { id: 'impersonation', label: '冒充他人或机构' },
+  { id: 'illegal', label: '违法内容' },
+  { id: 'ip', label: '侵犯版权或商标' },
+  { id: 'spam', label: '垃圾信息 / 欺诈' },
+  { id: 'other', label: '其他' },
+];
+const REASONS_EN: { id: string; label: string }[] = [
+  { id: 'minor_safety', label: 'Sexual content involving a minor' },
+  { id: 'intimate_nonconsensual', label: 'Non-consensual intimate imagery' },
+  { id: 'impersonation', label: 'Impersonation of a person or organization' },
+  { id: 'illegal', label: 'Illegal content' },
+  { id: 'ip', label: 'Copyright or trademark infringement' },
+  { id: 'spam', label: 'Spam / fraud' },
+  { id: 'other', label: 'Other' },
+];
+
+const COPY: Record<Locale, {
+  report: string;
+  reasonAria: string;
+  detailAria: string;
+  detailPlaceholder: string;
+  submitting: string;
+  submit: string;
+  note: string;
+  submitFailed: (status: number) => string;
+  recorded: string;
+}> = {
+  zh: {
+    report: '举报此页',
+    reasonAria: '举报理由',
+    detailAria: '举报补充说明（可选）',
+    detailPlaceholder: '补充说明（可选）',
+    submitting: '提交中…',
+    submit: '提交举报',
+    note: '举报不会立刻撤下内容；是否下架由人看完决定。',
+    submitFailed: (status) => `提交失败（HTTP ${status}）`,
+    recorded: '举报已记录',
+  },
+  en: {
+    report: 'Report this page',
+    reasonAria: 'Report reason',
+    detailAria: 'Additional details (optional)',
+    detailPlaceholder: 'Additional details (optional)',
+    submitting: 'Submitting…',
+    submit: 'Submit report',
+    note: 'Filing a report does not take content down immediately; a person reviews before any takedown.',
+    submitFailed: (status) => `Submit failed (HTTP ${status})`,
+    recorded: 'Report recorded',
+  },
+};
+
 export function ReportControl({ path, locale = 'zh' }: { path: string; locale?: Locale }) {
-  const RC = RC_TXT[locale];
-  const REASONS = RC.reasons;
+  const c = COPY[locale];
+  const REASONS = locale === 'en' ? REASONS_EN : REASONS_ZH;
   const [open, setOpen] = useState(false);
-  const [reason, setReason] = useState<string>(REASONS[6]!.id);
+  const [reason, setReason] = useState(REASONS[6]!.id);
   const [detail, setDetail] = useState('');
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -76,10 +90,10 @@ export function ReportControl({ path, locale = 'zh' }: { path: string; locale?: 
       });
       const body = (await res.json().catch(() => null)) as { message?: string; issues?: string[] } | null;
       if (!res.ok) {
-        setError(body?.issues?.join(locale === 'en' ? '; ' : '；') ?? body?.message ?? RC.submitFailed(res.status));
+        setError(body?.issues?.join(locale === 'zh' ? '；' : '; ') ?? body?.message ?? c.submitFailed(res.status));
         return;
       }
-      setNotice(body?.message ?? RC.reportRecorded);
+      setNotice(body?.message ?? c.recorded);
       setOpen(false);
       setDetail('');
     } finally {
@@ -95,14 +109,14 @@ export function ReportControl({ path, locale = 'zh' }: { path: string; locale?: 
         className="rc-openBtn"
         data-report-open
       >
-        {RC.reportThisPage}
+        {c.report}
       </button>
       {open ? (
         <div className="rc-form" data-report-form>
           <select
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            aria-label={RC.ariaReason}
+            aria-label={c.reasonAria}
             className="rc-select"
             data-report-reason
           >
@@ -112,10 +126,10 @@ export function ReportControl({ path, locale = 'zh' }: { path: string; locale?: 
               </option>
             ))}
           </select>
-          <input aria-label={RC.ariaDetail}
+          <input aria-label={c.detailAria}
             value={detail}
             onChange={(e) => setDetail(e.target.value)}
-            placeholder={RC.detailPlaceholder}
+            placeholder={c.detailPlaceholder}
             maxLength={2000}
             className="rc-input"
             data-report-detail
@@ -127,9 +141,9 @@ export function ReportControl({ path, locale = 'zh' }: { path: string; locale?: 
             className="rc-submitBtn"
             data-report-submit
           >
-            {busy ? RC.submitting : RC.submit}
+            {busy ? c.submitting : c.submit}
           </button>
-          <p className="rc-note">{RC.note}</p>
+          <p className="rc-note">{c.note}</p>
         </div>
       ) : null}
       {error ? (

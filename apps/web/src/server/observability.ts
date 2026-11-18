@@ -133,6 +133,11 @@ export const METRICS = {
     labels: { capability: ['real', 'demo', 'unavailable'], outcome: ['ok', 'failed'] },
     buckets: DURATION_BUCKETS,
   },
+  nexus_ai_run_lane_total: {
+    kind: 'counter',
+    help: '同步生成走哪条编排车道：lane-a = /v1/ai/run（顺序执行），stategraph = /v1/ai/design-graph（LangGraph 状态图）',
+    labels: { lane: ['lane-a', 'stategraph'], capability: ['real', 'demo', 'unavailable'] },
+  },
   nexus_bible_ask_total: {
     kind: 'counter',
     help: '问典（POST /api/bible/q）走到终态的次数——provider 不可用也要记，别只在成功路径上埋点',
@@ -153,6 +158,28 @@ export const METRICS = {
     kind: 'histogram',
     help: '/api/insight/analyze 从进路由到回流的毫秒数（含 provider 往返；快、慢都看）',
     labels: { outcome: ['answer', 'answer-unverified'] },
+    buckets: DURATION_BUCKETS,
+  },
+  nexus_moderation_assist_total: {
+    kind: 'counter',
+    help: '复核助理（POST /api/admin/moderation/assist）走到终态的次数（含 provider 不可用——绝不静默）',
+    labels: { outcome: ['answer', 'provider-unavailable', 'error'] },
+  },
+  nexus_moderation_assist_latency_ms: {
+    kind: 'histogram',
+    help: '复核助理从进路由到回流的毫秒数（含 provider 往返；快、慢都看）',
+    labels: { outcome: ['answer'] },
+    buckets: DURATION_BUCKETS,
+  },
+  nexus_insight_chat_total: {
+    kind: 'counter',
+    help: '/api/insight/chat 正典深问走到终态的次数（含 provider 不可用与意外错误，不许静默失败）',
+    labels: { outcome: ['answer', 'provider-unavailable', 'error'] },
+  },
+  nexus_insight_chat_latency_ms: {
+    kind: 'histogram',
+    help: '/api/insight/chat 正典深问从进路由到回流的毫秒数（含 provider 往返；快、慢都看）',
+    labels: { outcome: ['answer'] },
     buckets: DURATION_BUCKETS,
   },
   nexus_analytics_narrate_total: {

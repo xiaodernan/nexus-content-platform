@@ -35,7 +35,7 @@ name: main-line
 #      genuinely SELECTs against Postgres) plus `/actuator/info` carrying maven build-info artifact +
 #      component, plus domain-service's ai-service circuit-breaker surface. Same stale-jar-class defence
 #      as the three steps above.
-#   7. the Spring Cloud config server (`services/java-config-server`, Maven) — the one Java module
+#   7. the Spring Cloud config server (`services/nexus-config`, Maven) — the one Java module
 #      with no other workflow covering it: ci.yml builds none of the Maven modules on the hosted
 #      runner, and §15 of `verify:ci-wiring` refuses a pom the commit owns that no step tests.
 #
@@ -115,24 +115,24 @@ jobs:
         run: npm run verify:cost-ledger
         env:
           NEXUS_DATABASE_URL: postgres://nexus:nexus_dev_only@localhost:55433/nexus
+      - name: Bible anchors (bilingual anchor sentences present 1:1, both locales)
+        run: npm run verify:world-bible
+      - name: Bible snapshot (generated.ts byte-equals docs/world-bible sources)
+        run: npm run verify:bible-snapshot
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "25"
-      - name: Maven tests — all eight service modules (§15 of verify:ci-wiring)
-        # The other-lane merge brought three more Maven modules into the tree
-        # (nexus-registry / nexus-config / nexus-gateway beside java-* and nexus-api).
-        # §15 refuses a pom the commit owns that no workflow builds with its tests;
+      - name: Maven tests — all five service modules (§15 of verify:ci-wiring)
+        # The 2026-11-18 retirement (ADR-0237) collapsed the java-* family into nexus-*; the tree now tracks
+        # five poms. §15 refuses a pom the commit owns that no workflow builds with its tests;
         # every pom below is exercised with its tests on the hosted runner.
         run: |
-          mvn -B -f services/java-registry/pom.xml test
-          mvn -B -f services/java-config-server/pom.xml test
-          mvn -B -f services/java-domain-service/pom.xml test
-          mvn -B -f services/java-gateway/pom.xml test
-          mvn -B -f services/nexus-api/pom.xml test
           mvn -B -f services/nexus-registry/pom.xml test
           mvn -B -f services/nexus-config/pom.xml test
           mvn -B -f services/nexus-gateway/pom.xml test
+          mvn -B -f services/java-domain-service/pom.xml test
+          mvn -B -f services/nexus-api/pom.xml test
   topology:
     # The §SC-19/20/23 live smoke, in CI: package all three services, apply migrations, then run
     # `npm run verify:topology`. Catches the class of bug `mvn test` cannot see (test uses target/classes;

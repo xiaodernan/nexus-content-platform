@@ -59,13 +59,14 @@ export const PLAY_PROVENANCE_LABELS: Record<PlayProvenanceSlot, string> = {
   senseRadius: "察觉/交互半径",
   position: "位置",
 };
-/** PLAY_PROVENANCE_LABELS 的英文镜像 */
+
+/** 同一张表的英文版（v767）：键集与 `PLAY_PROVENANCE_LABELS` 逐一一致；界面英文模式照这张表写。 */
 export const PLAY_PROVENANCE_LABELS_EN: Record<PlayProvenanceSlot, string> = {
-  health: "health",
-  damage: "damage",
-  speed: "speed",
-  senseRadius: "sense/interaction radius",
-  position: "position",
+  health: "HP",
+  damage: "Damage",
+  speed: "Speed",
+  senseRadius: "Sense / interact radius",
+  position: "Position",
 };
 
 /** 摆回场地内：贴边的个体会有一半画在屏幕外，所以按半径钳，不是按 0 钳 */
@@ -96,13 +97,14 @@ export const PLAY_PROVENANCE_FALLBACK_TEXT: Record<PlayProvenanceSlot, string> =
   senseRadius: `${PLAY_DEFAULTS.senseRadius} 像素`,
   position: '按类别排在同心环上',
 };
-/** PLAY_PROVENANCE_FALLBACK_TEXT 的英文镜像 */
+
+/** 同一张表的英文版（v767）：与 `PLAY_PROVENANCE_FALLBACK_TEXT` 逐一对应。 */
 export const PLAY_PROVENANCE_FALLBACK_TEXT_EN: Record<PlayProvenanceSlot, string> = {
   health: String(PLAY_DEFAULTS.health),
   damage: String(PLAY_DEFAULTS.damage),
   speed: `${PLAY_DEFAULTS.speed} px/s`,
   senseRadius: `${PLAY_DEFAULTS.senseRadius} px`,
-  position: 'placed on concentric rings by category',
+  position: "arranged in concentric rings by kind",
 };
 
 export type StatSource = "design" | "default";
@@ -156,8 +158,9 @@ export interface PlayQuestGoal {
   /** activate = 引用到了触发器：踩进它的范围就算达成（§54 里触发器唯一可判定的语义） */
   kind: "defeat" | "collect" | "activate";
   actorId: string;
-  /** 中文标签，保留给旧界面/单测；界面双语时按 kind + targetName 重组 */
   label: string;
+  /** 同一标签的英文版（v767）：界面英文模式按它渲染 */
+  labelEn: string;
   /** 引用目标的实体名（不含动词）：界面英文模式重组标签用 */
   targetName: string;
 }
@@ -169,6 +172,8 @@ export interface PlayQuest {
   /** 一条可判定的引用都没有就是 false —— 这种任务不会推动"赢" */
   judgeable: boolean;
   why: string;
+  /** 同一口径的英文版（v767）：两模式中任一读同一事实——只是说法按界面选择；缺省=zh 原文 */
+  whyEn: string;
   /** 秒。模型没有单位约定，这里按秒解释，并在 notes 里写明这个解释 */
   timeLimit: number | null;
 }
@@ -208,7 +213,6 @@ function pick(entity: GameEntity, key: string, fallback: number): { value: numbe
 function playerOffense(
   document: GameDocument,
   player: GameEntity,
-  locale: ModelLocale = "zh",
 ): { damage: number; from: StatSource; reach: number; reachIsDesign: boolean; note: string | null } {
   const weapon = document.entities.find((entity) => entity.kind === "weapon" && entity.refs.some((ref) => ref.to === player.id));
   const own = stat(player, "attackPower");
@@ -220,13 +224,9 @@ function playerOffense(
       from: "default",
       reach: reach ?? 0,
       reachIsDesign: reach !== null,
-      note: L(
-        locale,
+      note:
         "玩家没有任何伤害来源：文档里既没有 player.attackPower，也没有引用到玩家身上的武器 damage。" +
-          "这一版只能躲、不能打——投影不替设计编一个攻击力。",
-        "The player has no source of damage: the document carries neither player.attackPower nor a weapon damage referenced onto the player. " +
-          "This version can only dodge, never strike — the projection will not invent an attack power for the design.",
-      ),
+        "这一版只能躲、不能打——投影不替设计编一个攻击力。",
     };
   }
   return { damage, from: "design", reach: reach ?? 0, reachIsDesign: reach !== null, note: null };
@@ -388,7 +388,7 @@ export function compileGame(document: GameDocument, locale: ModelLocale = "zh"):
   let playerDamageNote: string | null = null;
   let playActor: PlayActor | null = null;
   if (player) {
-    const offense = playerOffense(document, player, locale);
+    const offense = playerOffense(document, player);
     playerDamageNote = offense.note;
     const placed = toActor(player, false, 0, 1);
     // 玩家没摆过位置就站在场地正中：他是参照物，环都绕着他排（toActor 给的环位对玩家没意义）；
@@ -437,9 +437,9 @@ export function compileGame(document: GameDocument, locale: ModelLocale = "zh"):
     for (const ref of entity.refs) {
       const target = byId.get(ref.to);
       if (!target) continue;
-      if (target.kind === "enemy") goals.push({ kind: "defeat", actorId: target.id, label: `打倒 ${target.name}`, targetName: target.name });
-      else if (target.kind === "item") goals.push({ kind: "collect", actorId: target.id, label: `拾取 ${target.name}`, targetName: target.name });
-      else if (target.kind === "trigger") goals.push({ kind: "activate", actorId: target.id, label: `激活 ${target.name}`, targetName: target.name });
+      if (target.kind === "enemy") goals.push({ kind: "defeat", actorId: target.id, label: `打倒 ${target.name}`, labelEn: `Defeat ${target.name}`, targetName: target.name });
+      else if (target.kind === "item") goals.push({ kind: "collect", actorId: target.id, label: `拾取 ${target.name}`, labelEn: `Collect ${target.name}`, targetName: target.name });
+      else if (target.kind === "trigger") goals.push({ kind: "activate", actorId: target.id, label: `激活 ${target.name}`, labelEn: `Activate ${target.name}`, targetName: target.name });
     }
     const timeLimit = stat(entity, "timeLimit");
     return {
@@ -448,56 +448,35 @@ export function compileGame(document: GameDocument, locale: ModelLocale = "zh"):
       goals,
       judgeable: goals.length > 0,
       why: goals.length
-        ? L(locale, `引用了 ${goals.length} 个可判定的对象`, `References ${goals.length} judgeable object(s)`)
+        ? `引用了 ${goals.length} 个可判定的对象`
         : entity.refs.length
-          ? L(
-              locale,
-              "引用的不是敌人、物品或触发器（可能是对话、NPC 或已删除的实体）——投影判不出这条任务什么时候算完成。",
-              "The references are not enemies, items or triggers (they may be dialogue, NPCs or deleted entities) — the projection cannot tell when this quest is complete.",
-            )
-          : L(locale, "这条任务没有引用任何对象，没有可判定的完成条件。", "This quest references nothing; there is no judgeable completion condition."),
+          ? "引用的不是敌人、物品或触发器（可能是对话、NPC 或已删除的实体）——投影判不出这条任务什么时候算完成。"
+          : "这条任务没有引用任何对象，没有可判定的完成条件。",
+      whyEn: goals.length
+        ? `references ${goals.length} judgeable object${goals.length === 1 ? '' : 's'}`
+        : entity.refs.length
+          ? "references something other than an enemy, item or trigger (likely a dialogue, NPC or deleted entity) — the projection cannot judge when this quest is done."
+          : "this quest references nothing; there is no completion condition to judge.",
       timeLimit: timeLimit === null ? null : Math.max(0, timeLimit),
     };
   });
 
   const judgeable = quests.filter((quest) => quest.judgeable);
   if (quests.length && !judgeable.length) {
-    notes.push(
-      L(
-        locale,
-        "没有任何可判定的完成条件，所以这一版没有\"赢\"——只有活着或倒下。",
-        "There is no judgeable completion condition, so this version has no \"win\" — only survival or falling.",
-      ),
-    );
+    notes.push("没有任何可判定的完成条件，所以这一版没有\"赢\"——只有活着或倒下。");
   }
   if (!enemies.length && !items.length && !judgeable.length && !triggers.length) {
-    notes.push(
-      L(
-        locale,
-        "场上没有可交互的东西（没有敌人、物品、可判定的任务或触发器）：能走动，但没有任何事情会发生。",
-        "There is nothing to interact with on the field (no enemies, items, judgeable quests or triggers): you can walk around, but nothing will ever happen.",
-      ),
-    );
+    notes.push("场上没有可交互的东西（没有敌人、物品、可判定的任务或触发器）：能走动，但没有任何事情会发生。");
   }
   if (quests.some((quest) => quest.timeLimit !== null)) {
-    notes.push(
-      L(
-        locale,
-        "有任务带 timeLimit：模型没有单位约定，投影按**秒**解释它。设计里想表达别的单位就在 notes 里写清。",
-        "A quest carries timeLimit: the model has no unit convention; the projection interprets it as **seconds**. To mean anything else, say so in the notes.",
-      ),
-    );
+    notes.push("有任务带 timeLimit：模型没有单位约定，投影按**秒**解释它。设计里想表达别的单位就在 notes 里写清。");
   }
 
   // createGame 会预置 11 类模板实体，所以"场上有东西"很可能只是"模板名字还在"
   const templateCount = [playActor, ...enemies, ...items, ...npcs].filter((actor) => actor?.template).length;
   if (templateCount) {
     notes.push(
-      L(
-        locale,
-        `场上有 ${templateCount} 个实体一个数值都没填（只是 §54 预置的模板名字）：它们跑起来用的是投影的兜底值，不是作者设计的数值。`,
-        `${templateCount} entities on the field have no numbers at all (only §54 preset template names): they run on projection defaults, not on values the author designed.`,
-      ),
+      `场上有 ${templateCount} 个实体一个数值都没填（只是 §54 预置的模板名字）：它们跑起来用的是投影的兜底值，不是作者设计的数值。`,
     );
   }
 
@@ -568,12 +547,6 @@ export const ISO_VIEW_NOTES = [
   "地面网格是画出来的，不参与碰撞——判定仍然按俯视那套平面坐标算，模型里没有地形与纵深。",
   "标记形状不随远近缩放、没有转身：模型里没有尺寸与朝向，它们仍然是类别标记，不是 3D 模型。",
 ];
-/** ISO_VIEW_NOTES 的英文镜像 */
-export const ISO_VIEW_NOTES_EN = [
-  "Isometric (2.5D) is only another rendering of the same level plan: the coordinates are projected, and the rules come from the same step, character for character.",
-  "The ground grid is drawn, not collided with — adjudication still uses the top-down plane coordinates; the model has no terrain or depth.",
-  "Marker shapes don't scale with distance and don't turn: the model has no size or facing; they are category markers, not 3D models.",
-];
 
 /**
  * 探索画法（§51 的 Exploration）：同一份计划，走近才看得见。
@@ -586,12 +559,6 @@ export const EXPLORATION_VIEW_NOTES = [
   "探索只是同一份关卡计划的又一种画法：走近才看得见，看见了就一直看得见；规则与 2D 走同一个 step，逐字相同。",
   "「发现」是这一局界面上的状态，不进文档也不进库：刷新就重摸一遍，因为模型里没有探索进度这个字段。",
   "可发现的只有摆上场的东西（敌人 / 物品 / NPC / 触发器）：谁在场上由 §54 文档决定，探索不发明新的东西。",
-];
-/** EXPLORATION_VIEW_NOTES 的英文镜像 */
-export const EXPLORATION_VIEW_NOTES_EN = [
-  "Exploration is yet another rendering of the same level plan: you see things only when you get close, and what you've seen stays visible; the rules come from the same step, character for character.",
-  "\"Discovered\" is UI state of this run only — it never enters the document or the database: a refresh re-scouts everything, because the model has no exploration-progress field.",
-  "Only what's placed on the field can be discovered (enemies / items / NPCs / triggers): who is on the field is decided by the §54 document; exploration invents nothing new.",
 ];
 
 /** 这一局总共有哪些可发现的东西：revealedNow 扫的是同一份清单，HUD 的分母也从这里来 */
@@ -612,12 +579,6 @@ export const PUZZLE_VIEW_NOTES = [
   "解谜只是同一份关卡计划的又一种画法：把机关→影响的引用连线画出来，规则与 2D 走同一个 step，逐字相同。",
   "连线只画作者连了的引用：没连的机关就是孤立的开关，踩了没有任何东西响应——画法不替设计补谜题。",
   "「激活」= 玩家踩进机关的范围（首次记账）；模型里没有表达顺序的字段，不假装支持「按正确顺序踩」的谜题。",
-];
-/** PUZZLE_VIEW_NOTES 的英文镜像 */
-export const PUZZLE_VIEW_NOTES_EN = [
-  "Puzzle is yet another rendering of the same level plan: it draws the trigger→affected reference lines; the rules come from the same step, character for character.",
-  "Only the references the author wired are drawn: an unwired trigger is a dead switch — stepping on it makes nothing happen; the view never invents puzzle structure.",
-  "\"Activated\" = the player entered the trigger's radius (recorded the first time); the model has no ordering field, so it does not pretend to support \"press in the correct order\" puzzles.",
 ];
 
 /** 一条谜题连线：机关 → 它引用的目标（两端坐标都是投影摆的位置）。目标不在场上就没有这条线 */
@@ -681,3 +642,24 @@ export const PLAY_KIND_SHAPES: Partial<Record<GameEntityKind, "circle" | "square
   item: "diamond",
   npc: "triangle",
 };
+
+/**
+ * EN 镜像（v812）：三套视图限度的英文版；与中文原文逐条对位，由 GamePlay 双语模式选择显示（并轨线带入）。
+ */
+export const ISO_VIEW_NOTES_EN = [
+  "Isometric (2.5D) is only another rendering of the same level plan: the coordinates are projected, and the rules come from the same step, character for character.",
+  "The ground grid is drawn, not collided with — adjudication still uses the top-down plane coordinates; the model has no terrain or depth.",
+  "Marker shapes don't scale with distance and don't turn: the model has no size or facing; they are category markers, not 3D models.",
+];
+
+export const EXPLORATION_VIEW_NOTES_EN = [
+  "Exploration is yet another rendering of the same level plan: you see things only when you get close, and what you've seen stays visible; the rules come from the same step, character for character.",
+  "\"Discovered\" is UI state of this run only — it never enters the document or the database: a refresh re-scouts everything, because the model has no exploration-progress field.",
+  "Only what's placed on the field can be discovered (enemies / items / NPCs / triggers): who is on the field is decided by the §54 document; exploration invents nothing new.",
+];
+
+export const PUZZLE_VIEW_NOTES_EN = [
+  "Puzzle is yet another rendering of the same level plan: it draws the trigger→affected reference lines; the rules come from the same step, character for character.",
+  "Only the references the author wired are drawn: an unwired trigger is a dead switch — stepping on it makes nothing happen; the view never invents puzzle structure.",
+  "\"Activated\" = the player entered the trigger's radius (recorded the first time); the model has no ordering field, so it does not pretend to support \"press in the correct order\" puzzles.",
+];

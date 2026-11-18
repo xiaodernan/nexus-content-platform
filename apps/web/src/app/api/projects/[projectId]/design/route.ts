@@ -20,19 +20,19 @@ interface RouteContext {
  * §74 的门拦的是 AI 与公开 API 的删除，不是人自己的撤销栈。
  */
 export async function PATCH(req: Request, ctx: RouteContext): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId } = await ctx.params;
   const body = await readJson(req);
-  if (!body) return badRequest(['请求体必须是 JSON']);
+  if (!body) return await badRequest(['请求体必须是 JSON']);
   const parsed = ProjectDesignPatchRequestSchema.safeParse(body);
   if (!parsed.success) {
-    return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
+    return await badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
   }
   try {
     const user = await requireUser();
     const writeAccess = await projectWriteAccess(projectId, user.id);
-    if (writeAccess === 'not_found') return notFound();
-    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
+    if (writeAccess === 'not_found') return await notFound();
+    if (writeAccess === 'read_only') return await jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
     // wire 上的 ops 只能是 record（schemas 不依赖 design-model）；模型侧同一条桥接见 api-tokens.ts
     const patches: DesignPatch[] = parsed.data.patches.map((patch: DesignPatchPayload) => ({
       ...patch,
@@ -40,14 +40,14 @@ export async function PATCH(req: Request, ctx: RouteContext): Promise<NextRespon
     }));
     const outcome = await patchProjectDocument(projectId, patches);
     if (!outcome.ok) {
-      if (outcome.code === 'not_found') return notFound();
+      if (outcome.code === 'not_found') return await notFound();
       if (outcome.code === 'ops_skipped') {
-        return jsonError(409, 'ops_skipped', {
+        return await jsonError(409, 'ops_skipped', {
           message: '有补丁没有落到目标上（可能对应的内容已被别处改掉），这一批一条都没写',
           skipped: outcome.skipped,
         });
       }
-      return jsonError(400, 'document_rejected', {
+      return await jsonError(400, 'document_rejected', {
         message: '补丁打完后的文档过不了规模/形状门，这一批一条都没写',
         issues: outcome.issues,
       });
@@ -55,6 +55,6 @@ export async function PATCH(req: Request, ctx: RouteContext): Promise<NextRespon
     // 与 PUT 同一条纪律：不回读整份文档，客户端要的只是"存上了没有 + 存于何时"
     return NextResponse.json({ ok: true, savedAt: new Date().toISOString() });
   } catch (error) {
-    return failure(error, `PATCH /api/projects/${projectId}/design`);
+    return await failure(error, `PATCH /api/projects/${projectId}/design`);
   }
 }

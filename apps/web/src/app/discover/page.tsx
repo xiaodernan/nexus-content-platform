@@ -4,6 +4,8 @@ import { discoverCached, type DiscoverSort } from '@/server/domain/social';
 import { currentUserOrNull } from '@/server/domain/session';
 import { publicAssetUrl } from '@/studio/assets';
 import { getLocale } from '@/lib/i18n';
+import { EditorNotes } from '@/components/EditorNotes';
+import { ForYouStrip } from '@/components/ForYouStrip';
 
 export const dynamic = 'force-dynamic';
 
@@ -119,6 +121,12 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
         <p className="dv-method" data-discover-method>
           {copy.methodPrefix}{result.method}
         </p>
+      ) : null}
+
+      {viewer ? <ForYouStrip locale={locale} /> : null}
+
+      {result.sort === 'trending' && result.cards.length > 0 ? (
+        <EditorNotes locale={locale} cards={result.cards.slice(0, 3)} />
       ) : null}
 
       <ul className="dv-cardGrid" data-discover-grid>

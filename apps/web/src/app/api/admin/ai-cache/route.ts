@@ -18,14 +18,14 @@ import { jsonError } from '@/server/http';
  */
 export async function GET(): Promise<NextResponse> {
   const user = await currentUserOrNull();
-  if (!user) return jsonError(401, 'unauthenticated', { message: '需要先登录' });
+  if (!user) return await jsonError(401, 'unauthenticated', { message: '需要先登录' });
   if (user.role !== 'admin') {
-    return jsonError(403, 'forbidden', { message: '缓存读数只对审核员（role=admin）开放' });
+    return await jsonError(403, 'forbidden', { message: '缓存读数只对审核员（role=admin）开放' });
   }
   const result = await fetchAiCacheStats();
   if (!result.ok) {
     console.error(`[admin/ai-cache] ${result.error}`);
-    return jsonError(503, 'readout_unavailable', { message: result.error });
+    return await jsonError(503, 'readout_unavailable', { message: result.error });
   }
   return NextResponse.json(result.readout, { headers: { 'cache-control': 'no-store' } });
 }

@@ -33,9 +33,9 @@ const AuditQuerySchema = z.object({
 
 export async function GET(req: Request) {
   const user = await currentUserOrNull();
-  if (!user) return jsonError(401, 'unauthenticated', { message: '需要先登录' });
+  if (!user) return await jsonError(401, 'unauthenticated', { message: '需要先登录' });
   if (user.role !== 'admin') {
-    return jsonError(403, 'forbidden', { message: '市场审计日志只对审核员（role=admin）开放' });
+    return await jsonError(403, 'forbidden', { message: '市场审计日志只对审核员（role=admin）开放' });
   }
 
   const { searchParams } = new URL(req.url);
@@ -49,7 +49,7 @@ export async function GET(req: Request) {
     offset: searchParams.get('offset') ?? undefined,
   });
   if (!parsed.success) {
-    return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'query'}: ${i.message}`));
+    return await badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'query'}: ${i.message}`));
   }
 
   try {

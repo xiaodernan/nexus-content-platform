@@ -19,6 +19,7 @@ export const dynamic = 'force-dynamic';
  * v760：全双语（zh/en 同序同义，按 cookie getLocale 取）。
  */
 const AREAS = [
+  { slug: 'observe', href: '/admin/observe', titleZh: '观察站（只读 · 口令 123）', titleEn: 'Observer (read-only · pass 123)', noteZh: '口令 123 公开进入。看平台所有用户的真实行为——注册、打开、点赞、评论、收藏、任务结局与规则建议', noteEn: 'Pass 123 to enter. What every real user on the platform does — signups, opens, likes, comments, saves, task outcomes, rule-based advice.' },
   { slug: 'users', href: '/admin/users', titleZh: '账号与角色', titleEn: 'Accounts & roles', noteZh: '看账号、改角色与套餐、回收游客账号——营业员的眼睛，不会误删。', noteEn: 'Browse accounts, change roles and plans, reclaim guest accounts — the operator’s view, built not to misfire.' },
   { slug: 'moderation', href: '/admin/moderation', titleZh: '复核台', titleEn: 'Moderation', noteZh: '违规与被举报的内容逐条过眼：接受、驳回、保持——每一票带读屏可见标签。', noteEn: 'Walk every violating or reported item one by one: accept, reject, hold — with screen-reader labels on every vote.' },
   { slug: 'marketplace', href: '/admin/marketplace', titleZh: '市场工单', titleEn: 'Marketplace queue', noteZh: '售后争议（退款、投诉、交付）人工结案——客服队列的硬门。', noteEn: 'Post-sale disputes — refunds, complaints, fulfillment — get a manual verdict. The human gate on the queue.' },
@@ -29,12 +30,14 @@ const AREAS = [
   { slug: 'observability', href: '/admin/observability', titleZh: '观测', titleEn: 'Observability', noteZh: '进程计数器（本实例）+ 库里三账（跨重启）——两半，别合并。', noteEn: 'Process counters (this instance) + the library’s three ledgers (across restarts) — two halves, never merged.' },
   { slug: 'gateway', href: '/admin/gateway', titleZh: '网关态势', titleEn: 'Gateway', noteZh: '网关此刻给谁路由、注册中心记着谁、每实例还活不活——错处自现。', noteEn: 'Who the gateway routes to right now, which registry members it remembers, whether each instance is alive — misroutes reveal themselves.' },
   { slug: 'discover-cache', href: '/admin/discover-cache', titleZh: '发现页缓存', titleEn: 'Discover cache', noteZh: '/discover 缓存的命中/水位/失效总线心跳——读缓存，不动缓存。', noteEn: 'Hit/watermark/invalidation heartbeat of the /discover cache — read it, never touch it.' },
+  { slug: 'behavior-sim', href: '/admin/behavior-sim', titleZh: '行为演练', titleEn: 'Behavior drill', noteZh: '真实用户行为模拟——没耐心就关掉、乱点、深读者…… 灌进疑似爬虫口径；用真实仪表盘接住。', noteEn: 'Simulate rushers and idle readers — into the bot-tally so real dashboards feel them.' },
   { slug: 'health', href: '/admin/health', titleZh: '健康总览', titleEn: 'Health', noteZh: 'ai/java/gateway/redis/postgres 五层一致性——拿不到就是“未测到”，不是down；每层独立超时。', noteEn: 'ai/java/gateway/redis/postgres five-layer consistency — unreachable means “unmeasured”, never down; each layer has its own timeout.' },
 ] as const;
 
 const COPY: Record<Locale, {
   deniedAnonymous: string;
   deniedNotAdmin: (name: string, role: string) => string;
+  observerLine: string;
   kicker: string;
   title: string;
   lede: string;
@@ -45,20 +48,22 @@ const COPY: Record<Locale, {
   zh: {
     deniedAnonymous: '需要先登录才能看。',
     deniedNotAdmin: (name, role) => `这个页面对 ${name}（role=${role}）不开放：控制台只对 role=admin 可见。`,
+    observerLine: '只读观察站：口令 123（公开）→ /admin/observe',
     kicker: 'admin console',
     title: '管理台',
-    lede: '控制面上你能做的每一件事，今安静地摆在十一张卡里；单击进入前，先读卡的一句话。先看读数（观测 / 审计 / 访问账），再动手（删 / 复核 / 拉黑 / 轮换凭据）——本页不为任何人决定该不该点，只说清那一格是干什么的。',
-    cardsAria: '管理台十一处入口',
+    lede: '控制面上你能做的每一件事，今安静地摆在十三张卡里；单击进入前，先读卡的一句话。先看读数（观测 / 审计 / 访问账），再动手（删 / 复核 / 拉黑 / 轮换凭据）——本页不为任何人决定该不该点，只说清那一格是干什么的。',
+    cardsAria: '管理台十三处入口',
     footLine1: '控制面只对 role=admin 可见；不给非 admin 任何读数——本页也不会。',
     footLine2: '想知道"刚才谁干了什么"：审计事件 ∣ 想知道"系统现在崩了吗"：观测 ∣ 想知道"谁在扫我这台"：访问账。',
   },
   en: {
     deniedAnonymous: 'You must sign in first.',
     deniedNotAdmin: (name, role) => `This page is not open to ${name} (role=${role}): the console is visible only to role=admin.`,
+    observerLine: 'Read-only observer: pass 123 (public) → /admin/observe',
     kicker: 'admin console',
     title: 'Admin console',
-    lede: 'Everything you can do on the control plane sits quietly in eleven cards; read the one-liner on a card before you click in. Read first (observability / audit / access log), act second (delete / review / ban / rotate credentials) — this page never decides for you whether to click, it only says what each cell does.',
-    cardsAria: 'Eleven entries into the admin console',
+    lede: 'Everything you can do on the control plane sits quietly in thirteen cards; read the one-liner on a card before you click in. Read first (observability / audit / access log), act second (delete / review / ban / rotate credentials) — this page never decides for you whether to click, it only says what each cell does.',
+    cardsAria: 'Thirteen entries into the admin console',
     footLine1: 'The control plane is visible only to role=admin; no reads go to non-admins — this page included.',
     footLine2: 'Want to know “who did what just now”: Audit events ∣ “Is the system down right now”: Observability ∣ “Who is scanning this host”: Access log.',
   },
@@ -73,6 +78,9 @@ export default async function AdminHomePage() {
       <main className="adm-denied" data-admin-denied="anonymous">
         <h1 className="adm-deniedTitle">{c.title}</h1>
         <p className="adm-deniedText">{c.deniedAnonymous}</p>
+        <p className="adm-deniedObserver">
+          <Link href="/admin/observe" data-admin-denied-observe>{c.observerLine}</Link>
+        </p>
       </main>
     );
   }
@@ -82,6 +90,9 @@ export default async function AdminHomePage() {
         <h1 className="adm-deniedTitle">{c.title}</h1>
         <p className="adm-deniedText">
           {c.deniedNotAdmin(user.displayName, user.role)}
+        </p>
+        <p className="adm-deniedObserver">
+          <Link href="/admin/observe" data-admin-denied-observe>{c.observerLine}</Link>
         </p>
       </main>
     );

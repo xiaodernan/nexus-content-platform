@@ -17,10 +17,10 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();
-    if (!(await projectVisibleTo(projectId, user.id))) return notFound();
+    if (!(await projectVisibleTo(projectId, user.id))) return await notFound();
     return NextResponse.json({ ok: true, publication: await getPublication(projectId) });
   } catch (error) {
-    return failure(error, `GET /api/projects/${projectId}/publish`);
+    return await failure(error, `GET /api/projects/${projectId}/publish`);
   }
 }
 
@@ -30,21 +30,21 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
  * 两种回话都把 scan 原样带回去（含 limits），让"机检看到了什么、看不到什么"是能在 UI 上核对的。
  */
 export async function POST(req: Request, ctx: RouteContext): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId } = await ctx.params;
   const body = await readJson(req);
-  if (!body || typeof body !== 'object' || Array.isArray(body)) return badRequest(['请求体必须是 JSON 对象']);
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return await badRequest(['请求体必须是 JSON 对象']);
   const { visibility } = body as { visibility?: unknown };
   if (typeof visibility !== 'string' || !VISIBILITIES.includes(visibility as Visibility)) {
-    return badRequest(['visibility 必须是 private / unlisted / public']);
+    return await badRequest(['visibility 必须是 private / unlisted / public']);
   }
   try {
     const user = await requireUser();
     const writeAccess = await projectWriteAccess(projectId, user.id);
-    if (writeAccess === 'not_found') return notFound();
-    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
+    if (writeAccess === 'not_found') return await notFound();
+    if (writeAccess === 'read_only') return await jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
     const result = await publishProject(projectId, { visibility: visibility as Visibility, createdById: user.id });
-    if (!result) return notFound();
+    if (!result) return await notFound();
     if (!result.ok) {
       return NextResponse.json(
         { ok: false, message: result.reason, gate: result.gate, scan: result.scan },
@@ -53,21 +53,21 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
     }
     return NextResponse.json({ ok: true, publication: result.publication, gate: result.gate, scan: result.scan });
   } catch (error) {
-    return failure(error, `POST /api/projects/${projectId}/publish`);
+    return await failure(error, `POST /api/projects/${projectId}/publish`);
   }
 }
 
 /** 取消发布：URL 立刻失效，历史快照留着 */
 export async function DELETE(req: Request, ctx: RouteContext): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();
     const writeAccess = await projectWriteAccess(projectId, user.id);
-    if (writeAccess === 'not_found') return notFound();
-    if (writeAccess === 'read_only') return jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
+    if (writeAccess === 'not_found') return await notFound();
+    if (writeAccess === 'read_only') return await jsonError(403, 'read_only_role', { message: '查看者（viewer）角色对这个项目只读；写入权限在 owner 与 editor 手里' });
     return NextResponse.json({ ok: true, unpublished: await unpublishProject(projectId, user.id) });
   } catch (error) {
-    return failure(error, `DELETE /api/projects/${projectId}/publish`);
+    return await failure(error, `DELETE /api/projects/${projectId}/publish`);
   }
 }

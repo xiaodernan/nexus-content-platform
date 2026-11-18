@@ -22,25 +22,25 @@ interface RouteContext {
  * - **报文里没有 taskId 之外的自报字段**：任务号在路径上，归属由账本的 `created_by` 判。
  */
 export async function POST(req: Request, ctx: RouteContext): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { taskId } = await ctx.params;
   const body = await readJson(req);
-  if (!body) return badRequest(['请求体必须是 JSON']);
+  if (!body) return await badRequest(['请求体必须是 JSON']);
   const parsed = AiTaskApprovalRequestSchema.safeParse(body);
   if (!parsed.success) {
-    return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
+    return await badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
   }
   try {
     const user = await requireUser();
     // 30 / 10 分钟：审批不是高频操作，但"点错了一直重试"的人不该被锁死在一条已决定的任务上
     const rl = await getRateLimiter().hit(rateKey('ai/approval', clientIp(req), user.id), 30, 10 * 60_000);
     if (!rl.allowed) {
-      return jsonError(429, 'rate_limited', { message: '审批太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
+      return await jsonError(429, 'rate_limited', { message: '审批太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
     }
     const result = await decideApproval(taskId, user.id, parsed.data.decision, clientIp(req));
     if (!result.ok) {
-      if (result.code === 'not_found') return notFound();
-      return jsonError(409, 'not_pending', { message: result.message });
+      if (result.code === 'not_found') return await notFound();
+      return await jsonError(409, 'not_pending', { message: result.message });
     }
     const payload = {
       taskId,
@@ -54,14 +54,14 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
     // 交回之前再过一次契约：库里的 jsonb 是当初校验过的那一份，但"当初"可能是改格式之前
     const validated = AiTaskApprovalResultSchema.safeParse(payload);
     if (!validated.success) {
-      return failure(
+      return await failure(
         new Error(`审批回执不符合契约：${validated.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('；')}`),
         `POST /api/ai/tasks/${taskId}/approval`,
       );
     }
     return NextResponse.json(validated.data, { headers: { 'cache-control': 'no-store' } });
   } catch (error) {
-    return failure(error, `POST /api/ai/tasks/${taskId}/approval`);
+    return await failure(error, `POST /api/ai/tasks/${taskId}/approval`);
   }
 }
 
@@ -74,9 +74,9 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
   try {
     const user = await requireUser();
     const task = await readApprovalTask(taskId, user.id);
-    if (!task) return notFound();
+    if (!task) return await notFound();
     return NextResponse.json(task, { headers: { 'cache-control': 'no-store' } });
   } catch (error) {
-    return failure(error, `GET /api/ai/tasks/${taskId}/approval`);
+    return await failure(error, `GET /api/ai/tasks/${taskId}/approval`);
   }
 }

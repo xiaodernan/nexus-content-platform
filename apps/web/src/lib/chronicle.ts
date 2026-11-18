@@ -11,6 +11,7 @@
 
 import { WORLD_KIND_LABELS, type WorldKind } from '@nexus/world-model';
 
+export const UNLABELED_ERA_EN = 'Unmarked era';
 export const UNLABELED_ERA = '未标纪元';
 const MAX_ORDER = Number.MAX_SAFE_INTEGER;
 

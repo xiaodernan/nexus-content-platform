@@ -22,33 +22,33 @@ import { failure, jsonError } from '@/server/http';
  * （"清单与包内容对不上"这种话，少了那几行路径就无从下手）。
  */
 export async function POST(req: Request): Promise<NextResponse> {
-  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   try {
     // 用 nullable 那一个而不是 requireUser：后者在没有 cookie 时**抛错**，
     // 于是"没登录 401"这句注释会变成永远不会走的分支——未登录的请求拿到的是 500。
     // 这一格要的是真的 401，所以显式判空。
     const user = await currentUserOrNull();
-    if (!user) return jsonError(401, 'unauthenticated', { message: '需要先登录' });
+    if (!user) return await jsonError(401, 'unauthenticated', { message: '需要先登录' });
 
     const declared = Number(req.headers.get('content-length') ?? '0');
     if (declared > IMPORT_MAX_ZIP_BYTES) {
-      return jsonError(413, 'too_large', {
+      return await jsonError(413, 'too_large', {
         reason: `整包 ${Math.round(declared / 1024 / 1024)}MB 超过导入上限 ${Math.round(IMPORT_MAX_ZIP_BYTES / 1024 / 1024)}MB`,
       });
     }
 
     const contentType = req.headers.get('content-type') ?? '';
     if (!contentType.includes('multipart/form-data')) {
-      return jsonError(400, 'unsupported_media_type', { reason: '导入必须使用 multipart/form-data 的 file 字段' });
+      return await jsonError(400, 'unsupported_media_type', { reason: '导入必须使用 multipart/form-data 的 file 字段' });
     }
     const form = await req.formData();
     const file = form.get('file');
-    if (!(file instanceof File)) return jsonError(400, 'no_file', { reason: '表单里没有找到 file 字段' });
+    if (!(file instanceof File)) return await jsonError(400, 'no_file', { reason: '表单里没有找到 file 字段' });
 
     const bytes = new Uint8Array(await file.arrayBuffer());
     // 上限在这里再判一次：Content-Length 是客户端自己写的，不作数
     if (bytes.length > IMPORT_MAX_ZIP_BYTES) {
-      return jsonError(413, 'too_large', {
+      return await jsonError(413, 'too_large', {
         reason: `整包 ${bytes.length} 字节超过导入上限 ${IMPORT_MAX_ZIP_BYTES} 字节`,
       });
     }
@@ -57,11 +57,11 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (!outcome.ok) {
       // 415 而不是 400：绝大多数拒收是"这份包不是本平台这个格式的包"，
       // 与"你表单填错了"是两件事，界面对这两件事的提示语完全不同
-      return jsonError(415, 'import_refused', { reason: outcome.reason, issues: outcome.issues });
+      return await jsonError(415, 'import_refused', { reason: outcome.reason, issues: outcome.issues });
     }
     // outcome 里已经带了 ok:true，不再补一个（重复的键会被展开的那个覆盖，等于这里写了两遍同一件事）
     return NextResponse.json(outcome, { status: 201 });
   } catch (error) {
-    return failure(error, 'POST /api/projects/import');
+    return await failure(error, 'POST /api/projects/import');
   }
 }
