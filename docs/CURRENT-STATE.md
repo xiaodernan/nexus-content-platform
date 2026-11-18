@@ -7750,9 +7750,15 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 6 锚句双语 · gen-bible-snapshot 增 echo-145 · BibleAsk lede → 145 · /bible/ask meta → 一百四十五篇 · CACHE-IDENTITY × 145 · canon-answer-graph → 158 段 · bible-ask-behavior → 881 · pin 重钉 page→b6f41377 / comp→fd329a22 · InsightCanonChat hint 同步至 145 · verify:world-bible 886/886 ✓。
 - fe-gates **1370/1370** ✓ · 入后 digest 继续 15 万 tokensIn 区间（验证 813K-150K 稳定 band：已 12 轮 digest 扩容后缓存稳定）。
 
-## cont. 390 (2026-11-19) · §BIBLE-144 ✓ §BIBLE-145 ✓ §BIBLE-146 · 双线三次合流 · Echo #146《潮候院只收一个字的信》
+## cont. 390 (2026-11-19) · §BIBLE-144 ✓ §BIBLE-145 ✓ §BIBLE-146 · 双线三次合流 · Echo #147《潮候院只收一个字的信》
 
 - 合流后：digest **237,369 chars · sha256=90e2a49e…** · 13 章 · **146 回响** · 4 附录 · verify:world-bible **891/891** · snapshot OK · anchors OK
-- 本线《潮候院只收一个字的信》重排 E144 → E145 → **E146**——并行线三连发 E144《未尽事册》/ E145《闭馆台只朝门口的水钟》
-- quiz 93 题 · answers pin 186/186 · bible-ask-behavior pin **886** · BibleQuiz pin cef89eff
+- 本线《潮候院只收一个字的信》重排 E144 → E145 → E146 → **E147**——并行线三连发 E144《未尽事册》/ E145《闭馆台只朝门口的水钟》
+- quiz 93 题 · answers pin 186/186 · bible-ask-behavior pin **886** · BibleQuiz pin 13f71a26
 - fe-gates 150/150 · 1370/1370 · census 2989 · Tide-Oracle cache-stability 88 问实测*稳 ≥93.8%*：详见 `docs/evidence/cache-stability-2026-11-19.md`
+
+## cont. 391 (2026-11-19) — v1032 · §BIBLE-146 · Echo #146《祠殿后墙外那一排盐盘》(作者手写 · verify 892/892)
+
+- 新篇：「祠殿后墙外那排盐盘 · 每天多一枚 · 散会夜自己冒烟 · 它们在等某个人经过」—— digest 现 **237,472 chars**（13 章正典 · **146 回响** · 4 annex · 锚句 892 zh / 892 en ✓）。
+- 6 锚句双语 · gen-bible-snapshot 增 echo-146 · BibleAsk lede → 146 · /bible/ask meta → 一百四十六篇 · CACHE-IDENTITY × 146 · canon-answer-graph → 159 段 · bible-ask-behavior → 887 · pin 重钉 page→c45c6b1d / comp→6062254e · InsightCanonChat hint 同步至 146。
+- fe-gates **1370/1370** ✓ · verify:world-bible 892/892 ✓。
