@@ -14971,6 +14971,180 @@ The last page of the watch-ledger reads: as long as someone in the Institute cop
 `,
   },
   {
+    order: 141,
+    slug: 'echo-141-the-book-of-the-never-admitted',
+    titleZh: '潮候院门岗那本只记未入的访客籍',
+    titleEn: 'The Visitors\' Book at the Institute\'s Gate That Records Only the Names of Those Who Never Entered',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零七日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hundred-and-seventh day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 141): The Visitors' Book at the Institute's Gate That Records Only the Names of Those Who Never Entered
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院门岗那本访客籍——它只收名字，不见人。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the visitors' book at the Institute's gate — every name in it belongs to someone who never got in.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零七日。
+> Era: the Institute — after the 41st Convocation; the hundred-and-seventh day of the autumn-tide month.
+
+---
+
+## 一 · 门岗那本籍
+
+潮候院门岗的值更人每天把访客的名单写进一本籍——但是书里没有一个人真正进入潮候院。
+
+**锚句**：潮候院门岗的值更人每天把访客的名单写进一本籍——书里没有一个人真正进入潮候院。
+**Anchor sentence**: every day the head of the watch at the gate enters the names of visitors into a book — and none of those names ever crossed the threshold.
+
+---
+
+## 二 · 它怎么写
+
+怎么写入籍：来了、问了、被告知此处不收访客、走了。值更册的最后一行只记两个字："未入。"
+
+**锚句**：怎么写入籍——来了——问了——被告知此处不收访客——走了——值更册的最后一行只记两个字"未入"。
+**Anchor sentence**: the entry rule is: came, asked, was told visitors are not received, left — and the final line of the ledger records only two words: not admitted.
+
+---
+
+## 三 · 有没有来过院门的抄本师
+
+老抄本师说：四十年前有一个小孩来过——问的值更人没有回答——第二天籍上多了一句："那个小孩头上不见影子。"
+
+**锚句**：四十年前有一个小孩来过——第二天籍上多了一句"那个小孩头上不见影子"。
+**Anchor sentence**: forty years ago a child came — and the next day the book gained one line: the child's head cast no shadow.
+
+---
+
+## 四 · 散会夜
+
+散会那一夜——值更人把整本籍合上——第二天他翻开——没有再翻到今天——值更册写着"散会后它不再记"。
+
+**锚句**：散会那一夜——值更人把整本籍合上——第二天他翻开——值更册写着"散会后它不再记"。
+**Anchor sentence**: on the night the Convocation dissolved — the head of the watch closed the whole book — and when he opened it the next day the watch-ledger said: it no longer records, after the Dissolution.
+
+---
+
+## 五 · 那些从没有被接收过的访客是谁
+
+没人问过那些名字里的人是什么样的人——有人说是活着的人——有人说只是海边潮退后留在沙滩上的梦——连值更人也不问。
+
+**锚句**：没人问过那些名字里的人是什么样的人——连值更人也不问。
+**Anchor sentence**: no one has ever asked what manner of people those names belong to — not even the head of the watch.
+
+---
+
+## 六 · 值更册最后一页
+
+值更册最后一页："它只记未入——没记进的就是这一百四十一——零一。"
+
+**锚句**：值更册最后一页："它只记未入——没记完的就是这一百四十一人。"
+**Anchor sentence**: the last page of the watch-ledger reads: it records only the not-admitted — and the count it holds — one hundred forty-one — is unfinished.
+
+---
+
+## 七 · 映射（回响一百四十一章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 访客籍 · 不入 · 小孩的影子 · 散会夜合上书 · 值更册最后一页 | 一、二、三、四、五、六、七 |
+| geography | 门岗 · 潮候院门 · 院门外 | 一、二、三、四 |
+| characters | 值更人 · 抄本师 · 那些名字里的人 | 一、二、三、四、五 |
+| story | 从未入过的名册 · 回响（其一百四十一） | 全篇 |
+| items | 访客籍 · 值更册 · 笔 · 门岗的板凳 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第一百零七日 | 三、四、五、六 |
+
+> 门岗那本籍——它没有一个人真进过潮候院——值更册最后一行写着"未入"。
+> The book at the gate — no one whose name is in it ever crossed into the Institute — and its final line reads: not admitted.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百四十一）「潮候院门岗那本只记未入的访客籍」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the visitors' book at the Institute's gate — every name in it belongs to someone who never got in.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院门岗那本访客籍——它只收名字，不见人。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the hundred-and-seventh day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零七日。
+
+---
+
+## I · The Book at the Gate
+
+Every day the head of the watch at the gate enters the names of visitors into a book — and none of those names ever crossed the threshold.
+
+**锚句**：潮候院门岗的值更人每天把访客的名单写进一本籍——书里没有一个人真正进入潮候院。
+**Anchor sentence**: every day the head of the watch at the gate enters the names of visitors into a book — and none of those names ever crossed the threshold.
+
+---
+
+## II · How the Book Is Kept
+
+The entry rule is: came, asked, was told visitors are not received, left — and the final line of the ledger records only two words: not admitted.
+
+**锚句**：怎么写入籍——来了——问了——被告知此处不收访客——走了——值更册的最后一行只记两个字"未入"。
+**Anchor sentence**: the entry rule is: came, asked, was told visitors are not received, left — and the final line of the ledger records only two words: not admitted.
+
+---
+
+## III · The Child Who Cast No Shadow
+
+Forty years ago a child came — and the next day the book gained one line: the child's head cast no shadow.
+
+**锚句**：四十年前有一个小孩来过——第二天籍上多了一句"那个小孩头上不见影子"。
+**Anchor sentence**: forty years ago a child came — and the next day the book gained one line: the child's head cast no shadow.
+
+---
+
+## IV · The Night the Book Was Closed
+
+On the night the Convocation dissolved — the head of the watch closed the whole book — and when he opened it the next day the watch-ledger said: it no longer records, after the Dissolution.
+
+**锚句**：散会那一夜——值更人把整本籍合上——第二天他翻开——值更册写着"散会后它不再记"。
+**Anchor sentence**: on the night the Convocation dissolved — the head of the watch closed the whole book — and when he opened it the next day the watch-ledger said: it no longer records, after the Dissolution.
+
+---
+
+## V · Who They Were
+
+No one has ever asked what manner of people those names belong to — not even the head of the watch.
+
+**锚句**：没人问过那些名字里的人是什么样的人——连值更人也不问。
+**Anchor sentence**: no one has ever asked what manner of people those names belong to — not even the head of the watch.
+
+---
+
+## VI · The Last Page of the Watch-Ledger
+
+The last page of the watch-ledger reads: it records only the not-admitted — and the count it holds — one hundred forty-one — is unfinished.
+
+**锚句**：值更册最后一页："它只记未入——没记完的就是这一百四十一人。"
+**Anchor sentence**: the last page of the watch-ledger reads: it records only the not-admitted — and the count it holds — one hundred forty-one — is unfinished.
+
+---
+
+## VII · Mapping（Echo No. 141 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the visitors' book · not admitted · the child without a shadow · the night the book closed · the watch-ledger | 一、二、三、四、五、六、七 |
+| geography | the gate · the Institute door · the outside of the gate | 一、二、三、四 |
+| characters | the head of the watch · the copyists · the ones the names belong to | 一、二、三、四、五 |
+| story | the book of never-admitted visitors · Echo No. 141 | 全篇 |
+| items | the visitors' book · the watch-ledger · the pen · the stool at the gate | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the hundred-and-seventh day of the autumn-tide month | 三、四、五、六 |
+
+> 门岗那本籍——它没有一个人真进过潮候院——值更册最后一行写着"未入"。
+> The book at the gate — no one whose name is in it ever crossed into the Institute — and its final line reads: not admitted.
+`,
+  },
+  {
     order: 15,
     slug: 'echo-015-the-lamp-the-wine-shop-never-remembers',
     titleZh: '巷子深处那盏没人记得的灯',

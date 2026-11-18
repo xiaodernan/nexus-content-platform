@@ -7681,3 +7681,9 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - evidence `docs/evidence/probe-v1001-2026-11-19.md`：12 发 seq 9×100% · 2×142,450（93.9%）· 1×冷首发 · 0×5xx；phase B 暴发 16/16 全额 cached（totalCached==totalIn=2,426,666）· 0×5xx · latMax=194 ms · p50≈36 ms。
 - 与 cont.373 (v992) / cont.382 (AILIVE-4) 一并支撑 branch：当前 digest（Echo #140）在 16 路并发下零 miss —— Codex 式 90% 缓存命中率稳定可达成且无退化。
 - input=151,668 tokensIn/发。IO 不 bump（本片为证据收录片）。
+
+## cont. 385 (2026-11-19) — v1002 · §BIBLE-141 · Echo #141《门岗那本只记未入的访客籍》(作者手写 · verify 863/863)
+
+- 新篇：「门岗访客籍 · 没有一个人进来过 · 小孩头上不见影子 · 散会后它不再记」—— digest 现 **235,610 chars**（13 章正典 · **141 回响** · 4 annex · 锚句 863 zh / 863 en ✓）。
+- 6 锚句双语 · gen-bible-snapshot 增 echo-141 · BibleAsk lede → 141 · /bible/ask meta → 一百四十一篇 · CACHE-IDENTITY × 141 · canon-answer-graph → 154 段 · bible-ask-behavior → 858 · pin 重钉 page→feb2ff26 / comp→f2e5148b · InsightCanonChat hint 同步 141。
+- fe-gates **1370/1370** ✓ · verify:world-bible 863/863 ✓。
