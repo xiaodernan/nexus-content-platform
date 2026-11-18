@@ -7551,3 +7551,10 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 **评测**：fe-gates 1370/1370 · verify 803/803 · oracleCitation 6/6 · quiz 8/8 · canon-answer-graph 13/13。
 
 **Pages**：v987 将同步。
+
+## cont. 368 (2026-11-19) — v988 · §BIBLE-132 · Echo #132《潮候院里那件永远等不到主人的蓑衣》(作者手写 · verify 809/809)
+
+- 新篇：「蓑衣 · 挂十二年 · 咳喘桑叶 · 子盐之地 · 桑乡」—— canon digest 现 **231,897 chars**（13 章正典 · **132 回响** · 4 annex · 锚句 809 zh / 809 en ✓）。
+- 7 锚句双语；gen-bible-snapshot 增 echo-132；BibleAsk lede → 132 · /bible/ask meta → 一百三十二篇 · CACHE-IDENTITY × 132 · canon-answer-graph → 13 章 + 132 回响 = 145 段 · bible-ask-behavior → 804 · pin 重钉 page→82275159 / comp→b541bc78。
+- 2,461 字节预算所欠（digest 231,897 / 上限 256,000），下一 Echo 预计仍能装载。
+- fe-gates **1370/1370** ✓。

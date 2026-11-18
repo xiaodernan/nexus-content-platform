@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 131 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 132 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -2799,6 +2799,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 潮纸签在桌脚，不是风吹到的。
 - [4] 那行字没有写完，他没有替别人写完。
 - [5] 关门的时候，他留了一指宽。
+
+### Echo 132 · 潮候院里那件永远等不到主人的蓑衣 / The Straw Rain Cape in the Institute That Has Waited Twelve Years for Its Owner
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 西廊尽头挂着一件蓑衣——蓑草干了很久——风从东廊过去的时候它还会动一下。
+- [2] 值更册说这件蓑衣是第四十一次大会散会那天挂上去的——挂的人没有人认得他。
+- [3] 值更人经过时听见蓑衣低声说了一句什么——他贴着墙听——好像在念一段"我要回桑地了"。
+- [4] 值更册最后一页"它等的是谁——我们不知道——我们也没问过——可能它等的就是这一天"。
+- [5] 抄本师说蓑衣下面的地面今天被雨淋了一遍——但没有泥——只有盐。
+- [6] 某个傍晚值更人看见东廊顶上多了一片桑叶——他不敢碰——后来那片也不见了。
 
 ### Echo 14 · 潮汐表的封面 / The Cover of the Tide-Table
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
