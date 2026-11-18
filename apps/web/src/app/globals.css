@@ -5999,6 +5999,7 @@
 .tide-oracleButton:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
 .tide-oracleButton:disabled { opacity: 0.45; cursor: not-allowed; }
 .tide-oracleOutput { display: flex; flex-direction: column; gap: var(--nexus-space-2); border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-3); }
+.tide-oracleCite { align-self: flex-start; font-size: var(--nexus-font-size-11); font-family: var(--nexus-font-sans); letter-spacing: 0.02em; color: var(--nexus-color-fg-2); border: 1px dashed color-mix(in srgb, var(--nexus-color-accent-mix) 35%, transparent); border-radius: var(--nexus-radius-sm); padding: 0.08rem 0.5rem; font-variant-numeric: tabular-nums; }
 .tide-oracleBadge { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.08em; align-self: flex-start; padding: 0.1rem 0.6rem; border: 1px solid color-mix(in srgb, var(--nexus-color-accent-mix) 45%, transparent); border-radius: var(--nexus-radius-sm); color: var(--nexus-color-accent-mix); font-variant-numeric: tabular-nums; }
 .tide-oracleLine { font-size: var(--nexus-font-size-16); line-height: 1.85; color: var(--nexus-color-fg-1); margin: 0; font-style: italic; border-left: 3px solid var(--nexus-color-accent-mix); padding-left: var(--nexus-space-3); }
 .tide-oracleHonest { border-left: 2px solid color-mix(in srgb, var(--nexus-color-accent-mix) 70%, transparent); border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-2) var(--nexus-space-3); background: var(--nexus-color-bg-1); }
@@ -6009,7 +6010,7 @@
 .tide-oracleFoot { font-size: var(--nexus-font-size-11); line-height: 1.8; color: var(--nexus-color-fg-3); margin: 0; border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-3); }
 @media (forced-colors: active) {
   .tide-oracle { border-color: CanvasText; background: Canvas; }
-  .tide-oracleKicker, .tide-oracleTitle, .tide-oracleLede, .tide-oracleLine, .tide-oracleCounter, .tide-oracleHonestTitle, .tide-oracleHonestBody, .tide-oracleLocked, .tide-oracleFoot, .tide-oracleBadge { color: CanvasText; -webkit-text-fill-color: CanvasText; background: none; border-color: CanvasText; }
+  .tide-oracleKicker, .tide-oracleTitle, .tide-oracleLede, .tide-oracleLine, .tide-oracleCounter, .tide-oracleHonestTitle, .tide-oracleHonestBody, .tide-oracleLocked, .tide-oracleFoot, .tide-oracleBadge, .tide-oracleCite { color: CanvasText; -webkit-text-fill-color: CanvasText; background: none; border-color: CanvasText; }
   .tide-oracleExample, .tide-oracleInput, .tide-oracleButton { color: CanvasText; border-color: CanvasText; background: Canvas; }
   .tide-oracleButton:focus-visible, .tide-oracleInput:focus-visible, .tide-oracleExample:focus-visible { outline-color: Highlight; }
 }

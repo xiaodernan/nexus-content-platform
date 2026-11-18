@@ -143,6 +143,11 @@ export const METRICS = {
     help: '角色对话走哪条编排车道：lane-a = /v1/ai/chat（顺序执行），stategraph = /v1/ai/chat-graph（LangGraph 状态图，cont.254）',
     labels: { lane: ['lane-a', 'stategraph'] },
   },
+  nexus_oracle_citation_total: {
+    kind: 'counter',
+    help: '潮汐预言（POST /tide/oracle）的引文自检结果——cited 引了正典锚句 / declined 正典没写就如实说没有 / not-cited 自由作答。确定性字符串对齐，不用模型评价模型',
+    labels: { state: ['cited', 'not-cited', 'declined'] },
+  },
   nexus_bible_ask_total: {
     kind: 'counter',
     help: '问典（POST /api/bible/q）走到终态的次数——provider 不可用也要记，别只在成功路径上埋点',

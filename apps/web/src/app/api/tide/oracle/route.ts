@@ -6,6 +6,7 @@ import { ipWriteGate } from '@/server/security/rateLimit';
 import { badRequest, jsonError, readJson } from '@/server/http';
 import { chatWithCharacter } from '@/server/ai/client';
 import { resolveOrchestrationLane } from '@/server/ai/orchestrationLane';
+import { verifyAnchorCitation } from '@/server/domain/oracleCitation';
 import { getAiCapabilities } from '@/lib/env';
 import { buildDigest } from '@/lib/bibleAsk';
 import { BIBLE_CHAPTERS, BIBLE_ECHOES } from '@/world-bible/generated';
@@ -83,13 +84,22 @@ export async function POST(req: Request): Promise<NextResponse> {
     observe('nexus_bible_ask_latency_ms', durationMs, { outcome: 'answer' });
     increment('nexus_bible_ask_total', { outcome: 'answer' });
     const { response } = result;
+    const answerText = (response.text ?? '').trim();
+    const citation = verifyAnchorCitation(answerText);
+    const citationState = citation.clause === 'cited' ? 'cited' : citation.clause;
+    increment('nexus_oracle_citation_total', { state: citationState });
     return NextResponse.json(
       {
-        answer: (response.text ?? '').trim(),
+        answer: answerText,
         model: response.model,
         cachedTokens: response.usage?.cachedTokens ?? 0,
         tokensIn: response.usage?.tokensIn ?? 0,
         cacheReported: response.usage?.cacheReported ?? false,
+        // §TIDE-ORACLE-VERIFY：provider 的回答有没有逐字引典，由确定性字符串对齐机检——
+        // 引了→ cited（带条数）/ 正典没写的诚实拒答 → declined / 其他 → not-cited（如实，不伪造引经据典）
+        citation: citation.clause === 'cited'
+          ? { state: 'cited' as const, anchorsCited: citation.anchors.length }
+          : { state: citation.clause },
       },
       { headers: { 'x-nexus-orchestration': result.orchestration ?? lane } },
     );

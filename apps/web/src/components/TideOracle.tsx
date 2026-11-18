@@ -24,6 +24,7 @@ const COPY: Record<Locale, {
   locked: string;
   counter: (n: number, max: number) => string;
   foot: string;
+  citeLabel: { cited: (n: number) => string; declined: string; notCited: string };
 }> = {
   zh: {
     kicker: 'THE TIDE ORACLE · 潮语',
@@ -40,6 +41,7 @@ const COPY: Record<Locale, {
     locked: '这片水面未到你眼前——先去 /insight 解锁（口令 123），再回来问。',
     counter: (n, max) => `${n} / ${max}`,
     foot: '潮语只是潮的回声：它不预言、不投资建议、不替你拿主意；它不隐瞒自己的来路——每次都走真实模型，从不编造。',
+    citeLabel: { cited: (n) => `引经据典 · 正典锚句逐字对齐 ✓（${n} 条）`, declined: '正典没写 · 潮如实给出没有的答复', notCited: '自由作答 · 未逐字引典' },
   },
   en: {
     kicker: 'THE TIDE ORACLE · 潮语',
@@ -56,6 +58,7 @@ const COPY: Record<Locale, {
     locked: 'This water has not reached you — unlock /insight (passphrase 123) and return.',
     counter: (n, max) => `${n} / ${max}`,
     foot: 'Tide words are tide echoes: no prophecy, no investment advice, no decisions made for you — and never fabricated noise: every reading walks the real model.',
+    citeLabel: { cited: (n) => `Quoting the canon verbatim ✓ (${n})`, declined: 'Not in the canon — the tide says so honestly', notCited: 'Free answer — no verbatim anchor from the canon' },
   },
 };
 
@@ -67,6 +70,7 @@ export function TideOracle({ locale = 'zh' }: { locale?: Locale }) {
   const [phase, setPhase] = useState<'idle' | 'loading' | 'answered' | 'honest' | 'locked'>('idle');
   const [answer, setAnswer] = useState('');
   const [badge, setBadge] = useState<string | null>(null);
+  const [cite, setCite] = useState<{ state: 'cited' | 'declined' | 'not-cited'; anchorsCited?: number } | null>(null);
 
   const canSubmit = useMemo(() => question.trim().length > 0 && question.trim().length <= MAX_QUESTION && phase !== 'loading', [question, phase]);
 
@@ -76,6 +80,7 @@ export function TideOracle({ locale = 'zh' }: { locale?: Locale }) {
     setPhase('loading');
     setAnswer('');
     setBadge(null);
+    setCite(null);
     try {
       const tryOnce = () =>
         fetch('/api/tide/oracle', {
@@ -92,8 +97,10 @@ export function TideOracle({ locale = 'zh' }: { locale?: Locale }) {
       }
       if (resp.status === 403) { setPhase('locked'); return; }
       if (resp.status >= 429) { setPhase('honest'); return; }
-      const body = await resp.json() as { answer?: string; model?: string; cachedTokens?: number; tokensIn?: number };
+      const body = await resp.json() as { answer?: string; model?: string; cachedTokens?: number; tokensIn?: number; citation?: { state?: string; anchorsCited?: number } };
       if (!resp.ok || typeof body.answer !== 'string') { setPhase('honest'); return; }
+      const citState = body.citation?.state;
+      setCite(citState === 'cited' || citState === 'declined' || citState === 'not-cited' ? { state: citState, anchorsCited: body.citation?.anchorsCited } : null);
       setAnswer(body.answer.trim());
       setBadge(body.model ? c.badge(body.model, body.cachedTokens ?? 0, body.tokensIn ?? 0) : null);
       setPhase('answered');
@@ -145,6 +152,11 @@ export function TideOracle({ locale = 'zh' }: { locale?: Locale }) {
       {phase === 'answered' && (
         <div className="tide-oracleOutput" aria-live="polite" data-tide-oracle-output>
           {badge && <span className="tide-oracleBadge" data-tide-oracle-badge>{badge}</span>}
+          {cite && (
+            <p className="tide-oracleCite" data-tide-oracle-cite={cite.state}>
+              {cite.state === 'cited' ? c.citeLabel.cited(cite.anchorsCited ?? 1) : cite.state === 'declined' ? c.citeLabel.declined : c.citeLabel.notCited}
+            </p>
+          )}
           <blockquote className="tide-oracleLine">{answer}</blockquote>
         </div>
       )}

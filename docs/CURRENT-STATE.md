@@ -7533,3 +7533,10 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 > - fe-gates 150/150 · 1370/1370 · census 2985
 > - evidence: `docs/evidence/echo-131-2026-11-19.md`
 >> SSR 实锤 /bible/echo-131-the-door-stood-open-all-night 200 37,680 bytes（含「门开了一整夜」字面）· opus 仅 3461 端口旧 stale listener（28348 → 已换 30944）
+
+> **2026-11-19 cont. 359 · 潮汐预言引文自检（citation truth）— provider 的回答会不会逐字引用正典锚句，用确定性字符串对齐机检，不用模型考模型**
+> - 新 `apps/web/src/server/domain/oracleCitation.ts`：`verifyAnchorCitation(answer)` → cited（逐字包含 ≥1 条锚句）/ declined（「典籍里没有／没写」+ `not in the canon` 各书写体）/ not-cited；锚句归一化（去空白 + 去引号书名号 + 英文小写 + NFKC）后包含匹配，MIN_ANCHOR=8 字符；
+> - `/api/tide/oracle` 响应新增 `citation: { state, anchorsCited? }` · 新 counter `nexus_oracle_citation_total{state}` · 前端 `<TideOracle>` 显示「引经据典 · 正典锚句逐字对齐 ✓（N 条）」/「正典没写 · 潮如实给出没有的答复」/「自由作答 · 未逐字引典」(zh/en 镜像 · `.tide-oracleCite` 入 globals.css §FORCED-COLORS 含回退 · census 2986 全引用)
+> - 实测：Q：「灰烬里蹲着的是什么？」→ declined（tokensIn=149049 · cached=149049 · 100%）；Q：「今天星期几？」→ not-cited（out-of-scope，如实）；所有回答**绝不冒充引经据典**；
+> - 本轮还发现并修了上一个 milestone 的实施缺口（诚实记账）：`--nexus-font-body` 不存在 → `--nexus-font-sans`（27 个 visual-style 套件因此红→复绿 150/150·1370/1370）；
+> - 重要教训（本轮第三次踩）：3461 端口被上一轮会话的 stale listener 占用 → 探针打在旧包上 → SSR 404/缓存不符；查 `Get-NetTCPConnection -LocalPort 3461`  owner 后才找出——流程化后每次起实例前先查并清 stale owner；evidence 记下
