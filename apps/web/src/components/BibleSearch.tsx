@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { BIBLE_CHAPTERS, BIBLE_ECHOES } from '@/world-bible/generated';
+import { csrfHeaders } from '@/lib/csrf';
 import type { Locale } from '@/lib/i18n';
 
 /**
@@ -30,6 +31,15 @@ const COPY = {
     headingKind: '标题',
     bodyKind: '正文',
     anchorKind: '锚句',
+    askButton: '问典（StateGraph · 模型释义）',
+    askPlaceholder: '模型只会解释你搜到的 · 不会跳出典籍',
+    askBusy: '模型翻看中…',
+    askEmpty: '输入点什么先搜索，再点问典。模型只解释你搜到的东西。',
+    askNetworkDown: '模型现在下线——这不是你输错了字，是通路断了。',
+    askUnverified: '未通过机检（模型的草稿不接受），如实标错，不冒充通过。',
+    askVerified: '✓ StateGraph 通过 · 看典籍里说的（非模型即兴）',
+    askUnauth: '先登录再问。注销身份是保密的——这个按钮要登录。',
+    askBadge: (m: string, cached: number) => cached > 0 ? `${m} · cached ${cached}` : m,
   },
   en: {
     kicker: 'Jump to',
@@ -42,6 +52,15 @@ const COPY = {
     headingKind: 'Heading',
     bodyKind: 'Body',
     anchorKind: 'Anchor',
+    askButton: 'Ask the canon (StateGraph · model paraphrase)',
+    askPlaceholder: 'The model explains only what the canon contains — never invents beyond it',
+    askBusy: 'The model is reading…',
+    askEmpty: 'Search for something first, then ask. The model only explains what you found.',
+    askNetworkDown: 'The model is offline right now — not a typo, a network or gateway issue.',
+    askUnverified: 'Did not pass the mechanical check — the draft is marked as such, not passed off as clean.',
+    askVerified: '✓ StateGraph pass · read canon-verified, not improvised',
+    askUnauth: 'Sign in first. Identity is not required by the canon, but this button demands an authenticated session.',
+    askBadge: (m: string, cached: number) => cached > 0 ? `${m} · cached ${cached}` : m,
   },
 } as const;
 
@@ -94,6 +113,11 @@ export function BibleSearch({ locale = 'zh' }: { locale?: Locale }) {
   const c = COPY[locale];
   const corpus = useMemo(() => buildCorpus(locale), [locale]);
   const [q, setQ] = useState('');
+  const [askPhase, setAskPhase] = useState<'idle' | 'loading' | 'answered' | 'honest' | 'unauth'>('idle');
+  const [askAnswer, setAskAnswer] = useState<string>('');
+  const [askVerdict, setAskVerdict] = useState<'pass' | 'unverified' | null>(null);
+  const [askCached, setAskCached] = useState<number | null>(null);
+  const [askModel, setAskModel] = useState<string | null>(null);
 
   const hits = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -103,6 +127,43 @@ export function BibleSearch({ locale = 'zh' }: { locale?: Locale }) {
       .sort((a, b) => b.score - a.score || a.order - b.order || a.realm.localeCompare(b.realm))
       .slice(0, 14);
   }, [q, corpus]);
+
+  const ask = useCallback(async () => {
+    const needle = q.trim();
+    if (!needle || askPhase === 'loading') return;
+    setAskPhase('loading');
+    setAskAnswer('');
+    setAskVerdict(null);
+    setAskCached(null);
+    setAskModel(null);
+    const tryOnce = () =>
+      fetch('/api/bible/q', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...csrfHeaders() },
+        body: JSON.stringify({ question: needle, locale: locale === 'zh' ? 'zh' : 'en' }),
+      });
+    let resp: Response;
+    try {
+      resp = await tryOnce();
+      // §LLM-RETRY-ONCE · 5xx 一次性自动重试（与 chatWithCharacter 同纪律）；4xx/429 不重试。
+      if (resp.status >= 500) {
+        await new Promise((r) => setTimeout(r, 800));
+        resp = await tryOnce();
+      }
+    } catch {
+      setAskPhase('honest');
+      return;
+    }
+    if (resp.status === 401 || resp.status === 403) { setAskPhase('unauth'); return; }
+    if (resp.status === 429 || resp.status >= 500) { setAskPhase('honest'); return; }
+    const body = (await resp.json().catch(() => null)) as { answer?: string; model?: string; cachedTokens?: number; graph?: { verdict?: string } } | null;
+    if (!resp.ok || typeof body?.answer !== 'string') { setAskPhase('honest'); return; }
+    setAskAnswer(body.answer.trim());
+    setAskVerdict(body?.graph?.verdict === 'pass' ? 'pass' : 'unverified');
+    setAskCached(typeof body?.cachedTokens === 'number' ? body.cachedTokens : null);
+    setAskModel(typeof body?.model === 'string' ? body.model : null);
+    setAskPhase('answered');
+  }, [q, askPhase, locale]);
 
   return (
     <section className="bb-searchWrap" data-bible-search-root>
@@ -121,6 +182,37 @@ export function BibleSearch({ locale = 'zh' }: { locale?: Locale }) {
           <span className="bb-searchCount" data-bible-search-count>
             {c.hitCount(hits.length)}
           </span>
+        ) : null}
+      </div>
+      <div className="bb-searchAsk" data-bible-search-ask>
+        <button
+          type="button"
+          className="bb-searchAskButton"
+          onClick={() => void ask()}
+          disabled={q.trim().length === 0 || askPhase === 'loading'}
+          data-bible-search-ask-button
+          title={c.askPlaceholder}
+        >
+          {askPhase === 'loading' ? c.askBusy : c.askButton}
+        </button>
+        {askPhase === 'answered' && askAnswer ? (
+          <div className="bb-searchAskOutput" data-bible-search-ask-output>
+            <p className="bb-searchAskVerdict" data-bible-search-ask-verdict data-verdict={askVerdict ?? 'unverified'}>
+              {askVerdict === 'pass' ? c.askVerified : c.askUnverified}
+            </p>
+            <p className="bb-searchAskAnswer">{askAnswer}</p>
+            {askModel && askCached !== null ? (
+              <p className="bb-searchAskBadge" data-bible-search-ask-badge>
+                {c.askBadge(askModel, askCached)}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+        {askPhase === 'honest' ? (
+          <p className="bb-searchAskHonest" data-bible-search-ask-honest>{c.askNetworkDown}</p>
+        ) : null}
+        {askPhase === 'unauth' ? (
+          <p className="bb-searchAskHonest" data-bible-search-ask-unauth>{c.askUnauth}</p>
         ) : null}
       </div>
       {q.trim().length === 0 ? (

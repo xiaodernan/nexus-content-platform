@@ -7484,3 +7484,29 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - meanCached=125,074；`cacheReported=true`；`ai_service/log:POST /v1/ai/chat 200 × 12/12` · 0 5xx。
 
 **意义**：用户长期关注的「几个并行会话同时打乱缓存」这个问题在最新 digest 上——完全没再出现；与 §INSIGHT-LANE-RETEST v973 双印：冷是冷一次，后面 10 发全额复用，零波动。
+
+## cont. 364 (2026-11-18) — v984 · §BIBLE-SEARCH-ASK · 正典检索直达的「问典」按钮（StateGraph 终端）· 浏览器端到端绿
+
+**动机**：用户反复强调「把模型 API 嵌到项目最深处」——此前 `/bible/search` 是纯 substring 检索，没有 LLM 交互。本片追加一个真按钮「问典（StateGraph · 模型释义）」：点一下即走 `analyze → retrieve → draft → verify → finalize` 车道（与 `/bible/ask` 同一 `runCanonAnswerGraph`），返回的 answer + verdict badge + cached token badge 直接显示在搜索结果上方。
+
+**为什么要**：直达页上的每条命中（不管是什么）都是模型可参照的 ground——用户不再被迫切换上下文，问"完整这段是什么意思"直接在搜页面内完成。`verify` 过机检（rule=pass）才绿，否则「未通过机检」诚实警示。
+
+**End-to-end（2026-11-18 · 浏览器在本机）**：
+
+- 输入「盐」→ 14 行命中
+- 按下「问典（StateGraph · 模型释义）」→ `POST /api/bible/q 200` in 42s（冷启；每一级 = 2 个 LLM calls + 146K digest token 热/冷）
+- 返回 ✓ verifier `verdict: pass` · `graph.nodesVisited=5`（缓存最近 v973 预热）
+- badge: `gpt-6.1-terra · cached 146,759` → 全digest复用（前缀都吃 byte-stable）
+
+**新文件 / 改了**：
+
+- `apps/web/src/components/BibleSearch.tsx`：
+  - 双语 COPY 增补 8 个 string（askButton/askPlaceholder/askBusy/askEmpty/askNetworkDown/askUnverified/askVerified/askUnauth/askBadge）
+  - `'use client'` + `useCallback` ask() wrapper；csrf → 单次 5xx retry；401/403 → unauth state；其余失败 → honest 状态（pass mode）
+  - Ask UI 渲染 verdict badge · cached badge（`gpt-6.1-terra · cached N tokens`）；
+- `apps/web/src/app/globals.css`：`§BIBLE-3+ASK` 段（`.bb-searchAsk*`）；与拍手各 `--nexus-font-size-*` · 零 hex · 强制色模式经 .bb-search* 段连接。
+- `apps/web/test/bible-search-visual-style.test.ts`：covenant 改写：从「零 fetch」改为「只走 /api/bible/q（唯一已验证车道）」——所有 fetch 字面必须等于 /api/bible/q；否则叛逃 §159。
+
+**测试**：fe-gates **1370/1370** ✓ · bible-search-visual-style.test.ts 8/8 ✓ · verify snapshot ✓ · **眼见为实的浏览器实测**：browser snapshot（@e140717=input · @e140725=ask），innerText 包含 `✓ STATEGRAPH 通过 · 看典籍里说的（非模型即兴）`，`gpt-6.1-terra · cached 146,759`。
+
+**Pages**：Pages master 将在 `v984` 后推进 latest.json；IO sync 将紧随其后。
