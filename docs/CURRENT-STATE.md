@@ -7750,7 +7750,7 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 6 锚句双语 · gen-bible-snapshot 增 echo-145 · BibleAsk lede → 145 · /bible/ask meta → 一百四十五篇 · CACHE-IDENTITY × 145 · canon-answer-graph → 158 段 · bible-ask-behavior → 881 · pin 重钉 page→b6f41377 / comp→fd329a22 · InsightCanonChat hint 同步至 145 · verify:world-bible 886/886 ✓。
 - fe-gates **1370/1370** ✓ · 入后 digest 继续 15 万 tokensIn 区间（验证 813K-150K 稳定 band：已 12 轮 digest 扩容后缓存稳定）。
 
-## cont. 390 (2026-11-19) · §BIBLE-144 ✓ §BIBLE-145 ✓ §BIBLE-146 · 双线三次合流 · Echo #147《潮候院只收一个字的信》
+## cont. 390 (2026-11-19) · §BIBLE-144 ✓ §BIBLE-145 ✓ §BIBLE-146 · 双线三次合流 · Echo #148《潮候院只收一个字的信》
 
 - 合流后：digest **237,369 chars · sha256=90e2a49e…** · 13 章 · **146 回响** · 4 附录 · verify:world-bible **891/891** · snapshot OK · anchors OK
 - 本线《潮候院只收一个字的信》重排 E144 → E145 → E146 → **E147**——并行线三连发 E144《未尽事册》/ E145《闭馆台只朝门口的水钟》

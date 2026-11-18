@@ -2942,7 +2942,7 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [5] 抄本师说它们不是给供盐的——也不给膳盐——没人拿它们。
 - [6] 值更册最后一页："它们在等某个人经过——它们还在等。"
 
-### Echo 147 · 潮候院只收一个字的信 / The Letter That Holds One Character
+### Echo 148 · 潮候院只收一个字的信 / The Letter That Holds One Character
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 潮候院收到的那封信里只有一个字：「走」。
 - [2] 没有人知道是谁寄的——字「走」也不是任何人的笔迹。
