@@ -15145,6 +15145,180 @@ The last page of the watch-ledger reads: it records only the not-admitted — an
 `,
   },
   {
+    order: 142,
+    slug: 'echo-142-the-room-that-no-one-remembers-opening',
+    titleZh: '祠殿最底层那间从没有人记得开过的空房间',
+    titleEn: 'The Room at the Bottom of the Chapel That No One Remembers Opening',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零八日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hundred-and-eighth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 142): The Room at the Bottom of the Chapel That No One Remembers Opening
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给祠殿最底层那间房间——值更册里不存在它。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the room at the very bottom of the chapel — which the watch-ledger does not contain.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零八日。
+> Era: the Institute — after the 41st Convocation; the hundred-and-eighth day of the autumn-tide month.
+
+---
+
+## 一 · 最底层那间房间
+
+祠殿最底层有一间房间——门上没有凹痕——没有人记得谁打开过它。
+
+**锚句**：祠殿最底层有一间房间——门上没有凹痕——没有人记得谁打开过它。
+**Anchor sentence**: at the very bottom of the chapel there is a room — its door bears no scratches — and no one remembers who ever opened it.
+
+---
+
+## 二 · 门锁
+
+门锁已经锈了——抄本师试过——打不开——值更人说它不需要被打开。
+
+**锚句**：门锁已经锈了——抄本师试过打不开——值更人说它不需要被打开。
+**Anchor sentence**: the lock has rusted through — the copyists have tried and cannot open it — the head of the watch says it does not need to be opened.
+
+---
+
+## 三 · 散会夜
+
+散会那一夜所有人都看见这一间房间开过——但第二天早晨门是关着的。
+
+**锚句**：散会那一夜所有人都看见这间房间开过——第二天早晨门是关着的。
+**Anchor sentence**: on the night the Convocation dissolved everyone saw this room open — and in the morning the door was already closed.
+
+---
+
+## 四 · 灯
+
+抄本师说它里面只是一盏灯——灯从没亮过——它一直都关着。
+
+**锚句**：抄本师说它里面只是一盏灯——灯从没亮过。
+**Anchor sentence**: the copyists say that inside there is only a lamp — and the lamp has never once been lit.
+
+---
+
+## 五 · 墙上的字
+
+墙上有一行字——没人认识——值更册里也没有它——抄本师说它一直在那里。
+
+**锚句**：墙上有一行字——没人认识——值更册里也没有它。
+**Anchor sentence**: on the wall runs a line of characters — no one can read it — and the watch-ledger holds nothing about it.
+
+---
+
+## 六 · 值更册最后一页
+
+值更册最后一页写着："门下面没有东西——屋顶上面没有东西——东西不在屋里。"
+
+**锚句**：值更册最后一页："门下面没有东西——屋顶上面没有东西——东西不在屋里。"
+**Anchor sentence**: the last page of the watch-ledger reads: there is nothing below the door — nothing above the roof — and nothing inside the room.
+
+---
+
+## 七 · 映射（回响一百四十二章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 最底层那间房间 · 没开的锁 · 散会夜开过 · 从未亮的灯 · 值更册最后一页 | 一、二、三、四、五、六、七 |
+| geography | 祠殿最底层 · 院门 · 祈祷区 | 一、二、三、四 |
+| characters | 抄本师 · 值更人 · 散会夜所有人 | 一、二、三、四、五 |
+| story | 没人记得的空房间 · 回响（其一百四十二） | 全篇 |
+| items | 最底层那门的锁 · 一盏从没亮的灯 · 值更册 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第一百零八日 | 三、四、五、六 |
+
+> 祠殿最底层那间从没有人打开过的空房间——门一直关着——门下面没有东西。
+> The room at the bottom of the chapel that no one ever opened — the door always shut — and beneath the door, nothing.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百四十二）「祠殿最底层那间从没有人记得开过的空房间」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the room at the very bottom of the chapel — which the watch-ledger does not contain.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给祠殿最底层那间房间——值更册里不存在它。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the hundred-and-eighth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零八日。
+
+---
+
+## I · The Room at the Bottom
+
+At the very bottom of the chapel there is a room — its door bears no scratches — and no one remembers who ever opened it.
+
+**锚句**：祠殿最底层有一间房间——门上没有凹痕——没有人记得谁打开过它。
+**Anchor sentence**: at the very bottom of the chapel there is a room — its door bears no scratches — and no one remembers who ever opened it.
+
+---
+
+## II · The Lock
+
+The lock has rusted through — the copyists have tried and cannot open it — the head of the watch says it does not need to be opened.
+
+**锚句**：门锁已经锈了——抄本师试过打不开——值更人说它不需要被打开。
+**Anchor sentence**: the lock has rusted through — the copyists have tried and cannot open it — the head of the watch says it does not need to be opened.
+
+---
+
+## III · The Night of the Dissolution
+
+On the night the Convocation dissolved everyone saw this room open — and in the morning the door was already closed.
+
+**锚句**：散会那一夜所有人都看见这间房间开过——第二天早晨门是关着的。
+**Anchor sentence**: on the night the Convocation dissolved everyone saw this room open — and in the morning the door was already closed.
+
+---
+
+## IV · The Lamp
+
+The copyists say that inside there is only a lamp — and the lamp has never once been lit.
+
+**锚句**：抄本师说它里面只是一盏灯——灯从没亮过。
+**Anchor sentence**: the copyists say that inside there is only a lamp — and the lamp has never once been lit.
+
+---
+
+## V · The Line on the Wall
+
+On the wall runs a line of characters — no one can read it — and the watch-ledger holds nothing about it.
+
+**锚句**：墙上有一行字——没人认识——值更册里也没有它。
+**Anchor sentence**: on the wall runs a line of characters — no one can read it — and the watch-ledger holds nothing about it.
+
+---
+
+## VI · The Last Page of the Watch-Ledger
+
+The last page of the watch-ledger reads: there is nothing below the door — nothing above the roof — and nothing inside the room.
+
+**锚句**：值更册最后一页："门下面没有东西——屋顶上面没有东西——东西不在屋里。"
+**Anchor sentence**: the last page of the watch-ledger reads: there is nothing below the door — nothing above the roof — and nothing inside the room.
+
+---
+
+## VII · Mapping（Echo No. 142 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the room at the bottom · the rusted lock · the opened door on the night of Dissolution · the never-lit lamp · the line on the wall | 一、二、三、四、五、六、七 |
+| geography | the bottom of the chapel · the chapel door · the prayer zone | 一、二、三、四 |
+| characters | the copyists · the head of the watch · everyone at the Dissolution | 一、二、三、四、五 |
+| story | the room no one remembers opening · Echo No. 142 | 全篇 |
+| items | the lock · the lamp that never lit · the watch-ledger | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the hundred-and-eighth day of the autumn-tide month | 三、四、五、六 |
+
+> 祠殿最底层那间从没有人打开过的空房间——门一直关着——门下面没有东西。
+> The room at the bottom of the chapel that no one ever opened — the door always shut — and beneath the door, nothing.
+`,
+  },
+  {
     order: 143,
     slug: 'echo-143-the-rain-book-of-the-chapel-of-the-tide',
     titleZh: '潮候院雨书',

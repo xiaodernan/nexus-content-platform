@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 142 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 143 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -2897,6 +2897,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 散会那一夜——值更人把整本籍合上——第二天他翻开——值更册写着"散会后它不再记"。
 - [5] 没人问过那些名字里的人是什么样的人——连值更人也不问。
 - [6] 值更册最后一页："它只记未入——没记完的就是这一百四十一人。"
+
+### Echo 142 · 祠殿最底层那间从没有人记得开过的空房间 / The Room at the Bottom of the Chapel That No One Remembers Opening
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 祠殿最底层有一间房间——门上没有凹痕——没有人记得谁打开过它。
+- [2] 门锁已经锈了——抄本师试过打不开——值更人说它不需要被打开。
+- [3] 散会那一夜所有人都看见这间房间开过——第二天早晨门是关着的。
+- [4] 抄本师说它里面只是一盏灯——灯从没亮过。
+- [5] 墙上有一行字——没人认识——值更册里也没有它。
+- [6] 值更册最后一页："门下面没有东西——屋顶上面没有东西——东西不在屋里。"
 
 ### Echo 143 · 潮候院雨书 / The Rain-Book of the Tide-Watch Chapel
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

@@ -145,7 +145,7 @@ export const METRICS = {
   },
   nexus_oracle_citation_total: {
     kind: 'counter',
-    help: 'tide-oracle 的回答被逐字引典的次数：cited=引了/declined=正典没写·诚实答复/not-cited=自由作答',
+    help: 'tide-oracle / bible-ask 的回答被逐字引典的次数（潮语+问典两车道汇总）：cited=引了/declined=正典没写·诚实答复/not-cited=自由作答',
     labels: { state: ['cited', 'declined', 'not-cited'] },
   },
   nexus_bible_ask_total: {
