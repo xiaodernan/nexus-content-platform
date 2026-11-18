@@ -7675,3 +7675,9 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 新篇：「抄本室那盏灯 · 没人添过油 · 散会夜先灭一闪 · 它只要家传声册里有人抄它的光」—— digest 现 **235,147 chars**（13 章正典 · **140 回响** · 4 annex · 锚句 857 zh / 857 en ✓）。
 - 6 锚句 bilingual · gen-bible-snapshot 增 echo-140 · BibleAsk lede → 140 · /bible/ask meta → 一百四十篇 · CACHE-IDENTITY × 140 · canon-answer-graph → 153 段 · bible-ask-behavior → 852 · pin 重钉 page→87a27f25 / comp→98d1c660 · InsightCanonChat hint 同步 140 回响。
 - fe-gates **1370/1370** ✓ · verify:world-bible 857/857 ✓。
+
+## cont. 384 (2026-11-19) — §PROOF-V1001 · digest 235,147 缓存复测（12 发 seq + 16 路并发）
+
+- evidence `docs/evidence/probe-v1001-2026-11-19.md`：12 发 seq 9×100% · 2×142,450（93.9%）· 1×冷首发 · 0×5xx；phase B 暴发 16/16 全额 cached（totalCached==totalIn=2,426,666）· 0×5xx · latMax=194 ms · p50≈36 ms。
+- 与 cont.373 (v992) / cont.382 (AILIVE-4) 一并支撑 branch：当前 digest（Echo #140）在 16 路并发下零 miss —— Codex 式 90% 缓存命中率稳定可达成且无退化。
+- input=151,668 tokensIn/发。IO 不 bump（本片为证据收录片）。
