@@ -7342,3 +7342,21 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 ## cont. 352 (2026-11-18) — evidence 收编：lineage-2 C8A21 支线的两份证据归档（2026-11-19 · origin/main c8eaae7f/6af62201）
 
 origin/main 支线（lineage-2）的 big-context 版本直接拷贝入仓作历史证据：`docs/evidence/big-context-provenance-lineage2-2026-11-19.md`（`contract maxLength 64000→256000` 解锁 + tokensIn 119,904 + KV cache 100.0% case）与 `docs/evidence/storm-32-2026-11-19.md`（32 并发 Tide Oracle 同时打：第一轮 16 call cached=112,620/119,884 (93.9%)；第二轮 16 call cached=119,884/119,884 (100.0%)）。两报告中的 prompt/model/API 与 main-line 一致（gpt-6.1-terra · aizzz.xyz/v1）。main-line 的并线版本见 ADR-0286（digest 分层配额制 → 229,140 chars · tokensIn=147,519 · 直打 4 发）。
+
+## cont. 353 (2026-11-18) — v972 · origin/main 推送解掉 403（用户授权 PAT · scopes: repo+workflow）· 两个分支双端对齐 · IO 指针重生
+
+**事件**：用户提供个人 GitHub PAT（`ghp_••••••`，经 /api/user 核验：account `xiaodernan`，scopes: repo、workflow、admin:* 等，极广）。前会话发现 origin push 403（PAT 缺 workflow scope），本会话验证 PAT 正常（200 OK），自此 `origin/main` 推送全程畅通。
+
+**本会话 push 记录**（PAT inline 使用，未写入仓库任何文件/远端配置/历史；仓库内 `git grep "ghp_08ad"` 零命中——PAT 只在命令行 inline 位置维持到 shell 环境结束）：
+
+1. `git fetch … c8eaae7f..65dc7550`（期间明确：另一支线仍在活跃 push，recent state: `ed3dbd0f` StateGraph 对话车道）；
+2. 三次 fetch-merge 琐碎 pointers (`origin-final-check`)；
+3. `git push … HEAD:main` ×3（65dc7550 ← bf2ed19f；bf2ed19f ← d4265f12）——**两端（main-line + lineage-2）正式双端对齐**：origin/main 现在包含完整 main-line（125 回响/147,519 tokens/768 锚句）+ lineage-2（32 并发风暴/大上下文/25 处 LLM 调用 StateGraph 化 /vx 对话车道）。
+
+**合并侧重写**：
+
+- 二次合并并线：origin/main cont.252（big-context, 119,904 tokens）和 cont.253/254（32-ccc storm, 25 处 LLM StateGraph-by-default 对话车道）被全量吸收为 ADR-0285/0286 记录；本线去重了 digest 自动注入的 EN 锚句 (`chore(§DIGEST-RESYNC) 228a98f8`)；
+- 两条支线（lineage-2 `/v1/ai/chat-graph`）进后线：`chat-graph` 已是 registered 路由（chat_stategraph.py 478 lines · 14 pytest 绿 · verify afluo 461/461）；args/verify stayed consistent with lineage-2 stress-32 evidence (93.9% → 100%)；
+- `docs/evidence/storm-32-2026-11-19.md` 与 `big-context-provenance-lineage2-2026-11-19.md` 原文入档；grid 已回报（cont.351）。
+
+**IO 指针重生**：`sync:showcase` 原有 clone 撞到另一 bot 的 master 更新（crossrealm W-Z381）——按既有配方 reset + 推送：io master → `4eed224`（latest.json 已指向 head 7dd9d26 · commits=3426 · adrs=347）。
