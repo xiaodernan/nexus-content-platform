@@ -28,7 +28,7 @@ export type AnchorCitation =
   | { readonly clause: 'declined' }
   | { readonly clause: 'not-cited' };
 
-let _normalizedCache: readonly string[] | null = null;
+let _normalizedCache: readonly { normalized: string; original: string }[] | null = null;
 
 function normalizedQuote(source: string): string {
   return source
@@ -38,14 +38,14 @@ function normalizedQuote(source: string): string {
     .toLowerCase();
 }
 
-function anchorCorpus(): readonly string[] {
+function anchorCorpus(): readonly { normalized: string; original: string }[] {
   if (_normalizedCache) return _normalizedCache;
-  const all: string[] = [];
+  const all: { normalized: string; original: string }[] = [];
   for (const entry of [...BIBLE_CHAPTERS, ...BIBLE_ECHOES]) {
-    all.push(...extractAnchorTexts(entry.markdownZh, 'zh'));
-    all.push(...extractAnchorTexts(entry.markdownEn, 'en'));
+    all.push(...extractAnchorTexts(entry.markdownZh, 'zh').map((a) => ({ normalized: normalizedQuote(a), original: a })));
+    all.push(...extractAnchorTexts(entry.markdownEn, 'en').map((a) => ({ normalized: normalizedQuote(a), original: a })));
   }
-  _normalizedCache = all.map(normalizedQuote).filter((s) => s.length >= MIN_ANCHOR);
+  _normalizedCache = all.filter((a) => a.normalized.length >= MIN_ANCHOR);
   return _normalizedCache;
 }
 
@@ -58,7 +58,7 @@ export function verifyAnchorCitation(answer: string): AnchorCitation {
   }
   const anchors: string[] = [];
   for (const anchor of anchorCorpus()) {
-    if (text.includes(anchor)) anchors.push(anchor);
+    if (text.includes(anchor.normalized)) anchors.push(anchor.original);
     if (anchors.length >= 6) break; // 前 6 条足够说明；避免极端长回答 O(N·A)
   }
   return anchors.length > 0 ? { clause: 'cited', anchors } : { clause: 'not-cited' };

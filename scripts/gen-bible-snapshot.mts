@@ -194,6 +194,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E141-潮候院门岗那本只记未入的访客籍': 'echo-141-the-book-of-the-never-admitted',
   'E142-祠殿最底层那间从没有人记得开过的空房间': 'echo-142-the-room-that-no-one-remembers-opening',
   'E143-潮候院雨书': 'echo-143-the-rain-book-of-the-chapel-of-the-tide',
+  'E144-潮候院未尽事册里那些没记完的事件': 'echo-144-the-book-of-unfinished-business',
   'E145-潮候院只收一个字的信': 'echo-145-the-letter-that-holds-one-character',
 };
 

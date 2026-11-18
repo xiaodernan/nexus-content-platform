@@ -79,6 +79,7 @@ describe('§BIBLE-4 POST /api/bible/q', () => {
     expect(body.answer).toContain('收件人');
     expect(body.citation, 'citation 必须透出确定性判定字符串').toMatch(/cited|declined|not-cited/);
     expect(typeof body.anchorsCited).toBe('number');
+    expect(Array.isArray((body as unknown as { citationAnchors?: unknown }).citationAnchors), 'citationAnchors 必须是数组').toBe(true);
     expect(chatCalls.length).toBeGreaterThan(0);
   });
 

@@ -79,6 +79,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       },
       citation: citation.clause,
       anchorsCited,
+      citationAnchors: citation.clause === 'cited' ? citation.anchors.slice(0, 3) : [],
     });
   } catch (_error) {
     increment('nexus_bible_ask_total', { outcome: 'error' });

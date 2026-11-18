@@ -7718,7 +7718,26 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 
 ## cont. 389 (2026-11-19) · 双线合流 v1003+ · Echo #144《潮候院只收一个字的信》 · 一封潮候院没人寄、没人认、没人开的字信
 
-- 新篇「一个字的潮信」… 潮候院被潮带进来的一封信只有一个字「走」— 没有寄信人、没人认领、没人敢打开；最后停在门槛前一夜。E144-潮候院只收一个字的信.{md,en.md}
-- digest regenerated：**236,616 chars** sha256 = 9b9876b2… · 13 章 + **144 回响** · 4 附录 · verify:world-bible **879/879** · anchor-echo OK · quiz 91→**93 题**（zh/en 镜像 +2 · Echo #144）
+- 新篇「一个字的潮信」… 潮候院被潮带进来的一封信只有一个字「走」— 没有寄信人、没人认领、没人敢打开；最后停在门槛前一夜。E145-潮候院只收一个字的信.{md,en.md}
+- digest regenerated：**236,616 chars** sha256 = 9b9876b2… · 13 章 + **144 回响** · 4 附录 · verify:world-bible **879/879** · anchor-echo OK · quiz 91→93 题（zh/en 镜像 +2 · Echo #145《潮候院只收一个字的信》）
 - cache 稳定性 probe keep：**25-question（不同问句）warmup 复测稳定 ≥93.8%**，外部 503 transient 一次 → retry 通过（見 evidence/cache-stability-2026-11-19.md）
 - fe-gates 150/150 · 1370/1370 · census 2988
+## cont. 388 (2026-11-19) — v1005 · §BIBLE-143 · Echo #143《未尽事册》(作者手写 · verify 875/875) + §ASK-ANCHOR-EXPAND
+
+- 新篇：「未尽事册 · 每一页只写到一半 · 散会夜多了十四行"未" · 值更册最后一页："它只要保持未尽——它就是写完的"」—— digest 现 **236,391 chars**（13 章正典 · **143 回响** · 4 annex · 锚句 875 zh / 875 en ✓）。
+- 6 锚句双语 · gen-bible-snapshot 增 echo-143 · BibleAsk lede → 143 · /bible/ask meta → 一百四十三篇 · CACHE-IDENTITY × 143 · canon-answer-graph → 156 段 · bible-ask-behavior → 870 · pin 重钉 page→f3bce4c1 / comp→13604a5a · InsightCanonChat hint 同步 143。
+- §ASK-ANCHOR-EXPAND（问典引文 chip 折叠展开）：
+  - `oracleCitation.verifyAnchorCitation` cited 分支现在返回**锚句原文**（含标点、原引号、原文大小写）而非小写化归一串；`/api/bible/q` 新出 `citationAnchors: string[]`（最多 3 条原文）。
+  - BibleAsk 答复区在 cited 分支下渲染可折叠 `<details class="bbq-citeExpand" data-bible-ask-cite-expand>` 列 3 条原文；
+    zh/en 双语 summary `${n} 条锚句（点开查看）`。
+  - route 契约测试新增断言：citationAnchors 必为数组；chip 增加 `data-bible-ask-cite-expand` hook；.bbq-citeExpand 进 GLOBALS（both pin 重算）。
+- fe-gates **1370/1370** ✓ · verify:world-bible 875/875 ✓ · 浏览器 live 验证：chip「自由作答 · 未逐字引用锚句」真实显示（§159 诚实机检）。
+
+## cont. 389 (2026-11-19) — v1030 · §CANON-MERGE · 与并行线《潮候院雨书》对齐 + Echo #144 入 digest
+
+- 并行线（agent B）提前落了 Echo #142《潮候院雨书》（sha0d2f）+ Echo #141 for #141; 本线 echo 编号 → #144 to avoid collision
+- 合并 origin/main 11 commits（包含 their echo renumber E142→E143, digest restoration 875/875 锚句；E142 SHA 5636ceff…）
+- Digest now=236,713 chars（13 章 + **144 回响** + 4 annex · 880 zh/en 锚句 ✓）
+- lede/span 143→144 处（BibleAsk/guideCopy/CACHE-IDENTITY/canon-answer-graph/InsightCanonChat hint 同步 · page pins 重钉 page→9508b19a / comp→3afe8308；bible-quiz 测试自行过）
+- fe-gates **1370/1370** ✓ · verify:world-bible 880/880 ✓ · verify:bible-snapshot 一致 ✅ · digest 与文档一致 ✅
+- 注意《潮候院雨书》来自并行线原创，本回合没有作者声明冲突——仅吸收摘要内容将号码归位为 143；另 evidence/cache-stability-2026-11-19.md 原样并入，未重写。
