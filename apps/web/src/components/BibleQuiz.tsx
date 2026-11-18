@@ -404,6 +404,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《第四十三次会》里，有人把什么放进了欠据？', choices: ['一支笔，签名没有落下', '一张欠条', '一盏灯', '一粒盐'], answer: 0, ref: '回响（其二十六） · 三' },
     en: { prompt: 'In “The Forty-Third Convocation”, what did someone lay into the debt-book?', choices: ['a pen — the signature never fell', 'a promissory note', 'a lamp', 'a grain of salt'], answer: 0, ref: 'Echo No. 26 · III' },
   },
+  {
+    zh: { prompt: '《退潮之后》第二天早上，守灯人看到门槛上留下了什么？', choices: ['一道盐线', '一封信', '一盏没灭的灯', '一张欠据'], answer: 0, ref: '回响（其二十七） · 一' },
+    en: { prompt: 'In “After the Tide”, what did the lampkeeper find on the threshold the morning after?', choices: ['a line of salt', 'a letter', 'a lamp still lit', 'a debt note'], answer: 0, ref: 'Echo No. 27 · I' },
+  },
+  {
+    zh: { prompt: '《退潮之后》里，守灯人只做的是什么？', choices: ['每天早上把盐抹掉', '把椅子摆回去', '给每个人发一杯水', '找东西吃'], answer: 0, ref: '回响（其二十七） · 五' },
+    en: { prompt: 'In “After the Tide”, what did the lampkeeper do?', choices: ['each morning, he wiped the salt', 'he moved the chairs back', 'he handed out water', 'he went for food'], answer: 0, ref: 'Echo No. 27 · V' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

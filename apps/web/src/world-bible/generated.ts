@@ -10797,4 +10797,181 @@ After the tide withdrew, the hall still had not adjourned.
 > the book had not turned.
 `,
   },
+  {
+    order: 27,
+    slug: 'echo-027-after-the-tide',
+    titleZh: '退潮之后',
+    titleEn: 'After the Tide',
+    eraLineZh: '纪元：潮开之后 · 潮落后之月',
+    eraLineEn: 'Era: after the tide opened · the month after the ebb.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 27): After the Tide
+
+> 回响不续写正典——它只记一份挑剩下的纪录：
+> 第四十三次会散了以后（没有散会），潮水退去，盐线留在门槛上。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> After the forty-third Convocation (which never adjourned), the tide withdrew — the salt line stayed on the threshold.
+> Its anchors answer to the same discipline.
+
+> 纪元：潮开之后 · 潮落后之月
+> Era: after the tide opened · the month after the ebb.
+
+---
+
+## 一 · 门槛上的盐线
+
+潮水退了。不是一点一点退的，是整个晚上退了出去，退到画框外，退到没有人看见的地方。馆里的灯没有人点过，可是光是从门口那点水折射进来的。早上，守灯人打开门。
+
+门槛上一道盐线，白白的，宽度和他袖口一样。盐是湿的。盐贴着木纹，贴得很紧，像是烙上去的。守灯人弯腰摸了一下，收回手。手上有盐粒，还有一点潮的凉。他站在原地站了一会儿，然后去找扫帚。
+
+守灯人摸了一下门槛上的盐，收回手。
+**锚句**：守灯人摸了一下门槛上的盐，收回手。
+**Anchor sentence**: The lampkeeper touched the salt on the threshold, and drew his hand back.
+
+## 二 · 桌子底下
+
+第四十三次会的第二天，没有人来。
+
+第三天还是没有人来。第四天也没有。
+
+守灯人在桌子底下找到一只折过的纸条。那是一只便签，放在桌脚旁，纸的折痕很旧，字迹用软铅写的，内容是："本子里留空的，下次填满——不替谁填。"守灯人看了很久。他把便签放回去，原样。他记下这一条，没记时间。
+
+守灯人记下这一条，没记时间。
+**锚句**：守灯人记下这一条，没记时间。
+**Anchor sentence**: The lampkeeper noted this one line, and did not note the time.
+
+## 三 · 那排没有人坐的椅子
+
+第四十三次会的第二天早上，守灯人数椅子。
+
+椅子原来是一排一排的，现在是东倒西歪的。没有人动过。风从侧门进来，把椅子推起来，又放下。有两把椅子的角度是反的，坐深比其余都深。守灯人没有把它们摆回去。
+
+有两把椅子的坐深比其他都深，他没有摆回去。
+**锚句**：有两把椅子的坐深比其余都深，他没有摆回去。
+**Anchor sentence**: Two chairs sat deeper than the others; he did not move them back.
+
+## 四 · 月光落在签收本上
+
+那晚没有月亮。
+
+守灯人带了一盏没有灯芯的灯坐在案台边。他打开了签收本。本子里面是空的——每一页都是空的，可是纸张不是全新的。用力按了一下，纸底有纹路——人写过，字迹被撕掉了，痕迹压在纸里。
+
+签名的位置是空的。
+守灯人没有写。
+
+签名的位置是空的，守灯人没有写。
+**锚句**：签名的位置是空的，守灯人没有写。
+**Anchor sentence**: The space for a signature stood open; the lampkeeper did not write it.
+
+## 五 · 第四十四次会之前
+
+后来馆里开始有固定来的人。
+
+守灯人没有记录他们的名字。他们来了，在原来的椅子上坐下，面对空本子。没有人说话。有时候有人倒了一杯水，放在案台上，没有人喝。这些是收到了却没有人登记的事。
+
+守灯人只做一件事：每天早上把盐抹掉，第二天再把盐抹掉。
+
+守灯人只做一件事：每天早上把盐抹掉。
+**锚句**：守灯人只做一件事：每天早上把盐抹掉。
+**Anchor sentence**: The lampkeeper did one thing: each morning, he wiped the salt.
+
+---
+
+## 模型映射（回响二十七则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 潮开之后 · 潮落后之月 · 第四十三次会没散 | 第十一章 · 第十三章 |
+| geography | 誊册房 · 门槛 · 盐线 · 椅子 | 本则 · 第二十五则 · 第二十七则 |
+| factions | 守灯人 · 誊账人 · 回来的馆里人 · 潮汐教团（余烬） | 第一章 · 本则 |
+| characters | 守灯人 · 不复述的记录者 | 本则 · 第二十五则 · 第二十六则 |
+| items | 盐线 · 折过的纸条 · 椅子 · 月光 | 本则 |
+| story | 潮退之后 · 回响（其二十七） | 全篇 |
+| history | 潮开之后 · 潮落后之月 · 第四十三次会的第二天 | 本则 |
+
+> 潮退走了，
+> 盐留在门槛上。
+> The tide withdrew;
+> the salt stayed on the threshold.
+`,
+    markdownEn: `
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> After the forty-third Convocation (which never adjourned), the tide withdrew — the salt line stayed on the threshold.
+> Its anchors answer to the same discipline.
+
+> Era: after the tide opened · the month after the ebb.
+
+---
+
+## 1 · The salt line on the threshold
+
+The tide had gone out. It didn’t go gradually; it went all at once, out beyond the frame, out where no eye reached it. No one had lit the lamp in the hall. But light came in from the water that stood at the door. In the morning, the lampkeeper opened the door.
+
+On the threshold there was a line of salt — white, wide as his sleeve. The salt was damp. It clung to the grain of the wood as though engraved into it. The lampkeeper bent down and touched it, then withdrew his hand. There were grains of salt on his fingers, and a touch of the tide’s chill. He stood there a while, and then went to find a broom.
+
+The lampkeeper touched the salt on the threshold, and drew his hand back.
+**Anchor sentence**: The lampkeeper touched the salt on the threshold, and drew his hand back.
+
+## 2 · Under the table
+
+On the second day after the forty-third Convocation, no one came.
+
+The third day, no one came either. The fourth day, no one came.
+
+Under the table, the lampkeeper found a folded slip of paper — a note, lying at the foot of a chair leg. The folds were old; the writing was done with a soft pencil: "The ones left blank in the book — fill them next time — do not fill in for anyone." The lampkeeper studied it for a long time. He put it back as it was. He wrote one line about it, without a date.
+
+The lampkeeper noted this one line, and did not note the time.
+**Anchor sentence**: The lampkeeper noted this one line, and did not note the time.
+
+## 3 · The chairs no one ever sat in
+
+On the second morning after the forty-third Convocation, the lampkeeper counted the chairs.
+
+Once they had been rows. Now they were scattered. No one had moved them. Wind came through the side door and pushed them up, and set them down again. Two chairs sat at the opposite angle — those two had gone deeper than the others. The lampkeeper did not set them back.
+
+Two chairs sat deeper than the others; he did not move them back.
+**Anchor sentence**: Two chairs sat deeper than the others; he did not move them back.
+
+## 4 · Moonlight on the book of receipts
+
+There was no moon that night.
+
+The lampkeeper brought a lamp with no wick and set it beside the desk. He opened the book of receipts. Every page was blank — every page — but the paper was not new. Pressing the grain, he felt the lines: writing had once been there, and then it had been torn out; the pressure marks were buried in the sheet.
+
+The space for a signature stood open.
+The lampkeeper did not write it.
+
+The space for a signature stood open; the lampkeeper did not write it.
+**Anchor sentence**: The space for a signature stood open; the lampkeeper did not write it.
+
+## 5 · Before the forty-fourth
+
+Later, people began coming to the hall again on a fixed day.
+
+The lampkeeper did not record their names. They came, sat in the chairs, and faced the empty book. No one spoke. Sometimes someone set a glass of water on the desk that nobody drank. These were entries that arrived and were never registered.
+
+The lampkeeper did one thing: each morning, he wiped the salt.
+
+The lampkeeper did one thing: each morning, he wiped the salt.
+**Anchor sentence**: The lampkeeper did one thing: each morning, he wiped the salt.
+
+---
+
+## Echo No. 27 — dimension mapping
+
+| Dim | Anchor | Linked |
+|---|---|---|
+| lore | after the tide opened · the month after the ebb · the forty-third Convocation never adjourned | Ch. 11 · Ch. 13 |
+| geography | the copying hall · the threshold · the salt line · the chairs | this echo · Echo 25 · Echo 26 |
+| factions | the lampkeeper · the copyist · the returning hall · Tide Conclave (embers) | Ch. 1 · this echo |
+| characters | the lampkeeper · the unnamed recorder | this echo · Echo 25 · Echo 26 |
+| items | the salt line · the folded note · the chairs · moonlight | this echo |
+| story | after the ebb · Echo No. 27 | whole piece |
+| history | after the tide · the month after the ebb · the second day of the forty-third Convocation | this echo |
+
+> The tide withdrew;
+> the salt stayed on the threshold.
+`,
+  },
 ] as const;

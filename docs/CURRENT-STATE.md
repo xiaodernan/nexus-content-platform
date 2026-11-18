@@ -6202,3 +6202,10 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 > - `progressbar` ARIA：`aria-label={c.progressLabel}`（zh 本轮进度 / en Progress）· §FE quiz SHA 重钉
 > - 终测：10 页（含 `/tide-oracle /tide-wire /bible /bible/quiz /stategraph /guide /onboarding /pulse /discover` + 生本回家 /）——**a11y 1.0 · best-practices 1.0 · SEO 1.0 · 0 failures**
 > - evidence: `docs/evidence/lighthouse-a11y-sweep-2026-11-19.md` · fe-gates 147/147 · 1353/1353 · census 2967
+
+> **2026-11-19 cont. 242 · 回响（其二十七）《退潮之后》——潮落后留下一线盐**
+> - 纪元：潮开之后 · 潮落后之月（en: after the tide opened · the month after the ebb）。潮退了，签收本是空的，守灯人每天抹掉门槛上的盐线。
+> - 5 组锚句 zh/en 全局唯一 · **世界大典 397 zh / 397 en 全绿** · canon digest 重封存（62,181 chars · sha256=3548807b…）
+> - /bible 页脚 二十七/XXVII · guideCopy 同步 · quiz 82→**84**（zh/en 镜像 +2 题 E27）· SHA 重钉 ×2
+> - 顺带修复：echo ordinal 数组缺一（“二十七替换二十五” bug）——E1–E27 全部对齐，/bible 展示不再错号
+> - fe-gates 147/147 · 1353/1353 · build 绿 · SSR 实锤 echo-027-after-the-tide 200 · /bible 200 · /bible/quiz 200
