@@ -1,15 +1,10 @@
-/** 由 scripts/gen-ship-manifest.mts 机械生成——勿手改。生成于 2026-11-18T13:23:47.612Z (f8f059cd) */
+/** 由 scripts/gen-ship-manifest.mts 机械生成——勿手改。生成于 2026-11-18T13:36:18.446Z (d44cbd18) */
 export interface ShipEntry { hash: string; date: string; subject: string }
 export interface ShipDay { date: string; entries: ShipEntry[] }
 export const SHIP_DAYS: ShipDay[] = [
   {
     "date": "2026-11-18",
     "entries": [
-      {
-        "hash": "a4a9a0de69",
-        "date": "2026-11-18",
-        "subject": "feat(§SIM-3): 合成流量复跑 · 76/76 2xx · en/zh 双模式全页核验 · 0 汉字残留"
-      },
       {
         "hash": "400103bd88",
         "date": "2026-11-18",
@@ -454,6 +449,11 @@ export const SHIP_DAYS: ShipDay[] = [
         "hash": "f8f059cd91",
         "date": "2026-11-18",
         "subject": "sync(showcase): latest.json 指到 d3da1eb2（两线合流 v984 · /bible/search StateGraph 上线）"
+      },
+      {
+        "hash": "dfc3fdd7b7",
+        "date": "2026-11-18",
+        "subject": "sync(ship-manifest): 指向 f8f059cd（两线合流后 v984 / search-StateGraph）"
       }
     ]
   }
