@@ -176,7 +176,7 @@ async function main() {
   writeFileSync(OUT_JSON, JSON.stringify(payload, null, 2), 'utf8');
   console.log('[SIM-1] sessions=' + results.length + ' hits=' + allHits.length + ' ok=' + ok + ' errors=' + errors + ' p50=' + payload.ms.p50 + 'ms p95=' + payload.ms.p95 + 'ms');
   for (const persona of PERSONAS) {
-    const s = byPersona[persona];
+    const s = byPersona[persona]!;
     console.log('  ' + persona + ': sessions=' + s.sessions + ' hits=' + s.hits + ' errors=' + s.errors);
   }
   console.log('wrote', OUT_JSON);
