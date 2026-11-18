@@ -15812,6 +15812,180 @@ The last page of the watch-ledger reads: what it sees at the door is every perso
 `,
   },
   {
+    order: 146,
+    slug: 'echo-146-the-salt-trays-that-wait',
+    titleZh: '祠殿后墙外那一排从未被动过的盐盘',
+    titleEn: 'The Row of Salt Trays Behind the Chapel\'s Back Wall That No One Has Ever Touched',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百一十二日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hundred-and-twelfth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 146): The Row of Salt Trays Behind the Chapel's Back Wall That No One Has Ever Touched
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿后墙外那排盐盘——它们只在没人看的时候多了一枚。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the row of salt trays behind the chapel — they gain one grain a day, always when no one is watching.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百一十二日。
+> Era: the Institute — after the 41st Convocation; the hundred-and-twelfth day of the autumn-tide month.
+
+---
+
+## 一 · 后墙外那排盐盘
+
+祠殿后墙外有一排盐盘——槽是木质的——抄本师清晨去收——它们从不被用过。
+
+**锚句**：祠殿后墙外有一排盐盘——槽是木质的——抄本师清晨去收——它们从不被用过。
+**Anchor sentence**: along the chapel's back wall stands a row of salt trays — the trays are wooden — the copyists come at dawn to collect — and no one has ever taken anything from them.
+
+---
+
+## 二 · 它们怎么排的
+
+没有人记得谁摆的——值更册不写——抄本师说应该前一个大会散会时就摆了。
+
+**锚句**：没人记得谁摆的——值更册不写——抄本师说散会时就摆了。
+**Anchor sentence**: no one remembers who set them out — the watch-ledger says nothing — the copyists say they were arranged on the day of the Dissolution.
+
+---
+
+## 三 · 盐盘每天多一枚
+
+抄本师说盐盘里的盐每天多了一枚——没有人去添过——也没有人拿。
+
+**锚句**：抄本师说盐盘里的盐每天多了一枚——没人添也没人拿。
+**Anchor sentence**: the copyists say the trays gain one grain of salt a day — no one refills them — and no one takes from them.
+
+---
+
+## 四 · 散会夜的冒烟
+
+散会那一夜——盐盘开始自己冒烟——抄本师没敢看——第二天盐全是温的。
+
+**锚句**：散会那一夜——盐盘开始自己冒烟——抄本师没敢看——第二天盐全是温的。
+**Anchor sentence**: on the night the Convocation dissolved — the salt trays began to steam on their own — the copyists did not dare to look — and in the morning the salt was warm.
+
+---
+
+## 五 · 它们不是给人用的
+
+抄本师说它们不是给潮候院供盐的——也不给膳盐——没人拿它一枚——它们就只是摆在那里。
+
+**锚句**：抄本师说它们不是给供盐的——也不给膳盐——没人拿它们。
+**Anchor sentence**: the copyists say these trays are not for the chapel's consecrated salt — nor for the kitchen — they are just there — and no one takes from them.
+
+---
+
+## 六 · 值更册最后一页
+
+值更册最后一页写着："它们在等某个人经过——它们还在等。"
+
+**锚句**：值更册最后一页："它们在等某个人经过——它们还在等。"
+**Anchor sentence**: the last page of the watch-ledger reads: they are waiting for someone to pass by — and they are still waiting.
+
+---
+
+## 七 · 映射（回响一百四十六章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 盐盘 · 散会夜冒烟 · 每天多一枚 · 等人经过 · 供盐与膳盐之别 | 一、二、三、四、五、六、七 |
+| geography | 祠殿后墙外 · 祈祷区后廊 | 一、二、三、四 |
+| characters | 抄本师 · 值更人 · 散会的人 | 一、二、三、四、五、六 |
+| story | 从未被动的一排盐盘 · 回响（其一百四十六） | 全篇 |
+| items | 盐盘 · 值更册 · 供盐 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第一百一十二日 | 三、四、五、六 |
+
+> 祠殿后墙外那排盐盘——没人动它们——每天它们只多一枚。
+> The salt trays behind the chapel's back wall — no one touches them — and every day they gain one grain.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百四十六）「祠殿后墙外那一排从未被动过的盐盘」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the row of salt trays behind the chapel — they gain one grain a day, always when no one is watching.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿后墙外那排盐盘——它们只在没人看的时候多了一枚。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the hundred-and-twelfth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百一十二日。
+
+---
+
+## I · The Row of Salt Trays
+
+Along the chapel's back wall stands a row of salt trays — the trays are wooden — the copyists come at dawn to collect — and no one has ever taken anything from them.
+
+**锚句**：祠殿后墙外有一排盐盘——槽是木质的——抄本师清晨去收——它们从不被用过。
+**Anchor sentence**: along the chapel's back wall stands a row of salt trays — the trays are wooden — the copyists come at dawn to collect — and no one has ever taken anything from them.
+
+---
+
+## II · Who Set Them Out
+
+No one remembers who set them out — the watch-ledger says nothing — the copyists say they were arranged on the day of the Dissolution.
+
+**锚句**：没人记得谁摆的——值更册不写——抄本师说散会时就摆了。
+**Anchor sentence**: no one remembers who set them out — the watch-ledger says nothing — the copyists say they were arranged on the day of the Dissolution.
+
+---
+
+## III · One Grain Every Day
+
+The copyists say the trays gain one grain of salt a day — no one refills them — and no one takes from them.
+
+**锚句**：抄本师说盐盘里的盐每天多了一枚——没人添也没人拿。
+**Anchor sentence**: the copyists say the trays gain one grain of salt a day — no one refills them — and no one takes from them.
+
+---
+
+## IV · The Night of the Dissolution
+
+On the night the Convocation dissolved — the salt trays began to steam on their own — the copyists did not dare to look — and in the morning the salt was warm.
+
+**锚句**：散会那一夜——盐盘开始自己冒烟——抄本师没敢看——第二天盐全是温的。
+**Anchor sentence**: on the night the Convocation dissolved — the salt trays began to steam on their own — the copyists did not dare to look — and in the morning the salt was warm.
+
+---
+
+## V · They Are Not for Use
+
+The copyists say these trays are not for the chapel's consecrated salt — nor for the kitchen — they are just there — and no one takes from them.
+
+**锚句**：抄本师说它们不是给供盐的——也不给膳盐——没人拿它们。
+**Anchor sentence**: the copyists say these trays are not for the chapel's consecrated salt — nor for the kitchen — they are just there — and no one takes from them.
+
+---
+
+## VI · The Last Page of the Watch-Ledger
+
+The last page of the watch-ledger reads: they are waiting for someone to pass by — and they are still waiting.
+
+**锚句**：值更册最后一页："它们在等某个人经过——它们还在等。"
+**Anchor sentence**: the last page of the watch-ledger reads: they are waiting for someone to pass by — and they are still waiting.
+
+---
+
+## VII · Mapping（Echo No. 146 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the salt trays · one grain a day · the steam · the waiting · the chapel's back wall | 一、二、三、四、五、六、七 |
+| geography | the chapel's back wall · the prayer corridor · the eastern edge | 一、二、三、四 |
+| characters | the copyists · the head of the watch · whoever passed by | 一、二、三、四、五、六 |
+| story | the salt trays no one has touched · Echo No. 146 | 全篇 |
+| items | the salt trays · the watch-ledger · the consecrated salt | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the hundred-and-twelfth day of the autumn-tide month | 三、四、五、六 |
+
+> 祠殿后墙外那排盐盘——没人动它们——每天它们只多一枚。
+> The salt trays behind the chapel's back wall — no one touches them — and every day they gain one grain.
+`,
+  },
+  {
     order: 15,
     slug: 'echo-015-the-lamp-the-wine-shop-never-remembers',
     titleZh: '巷子深处那盏没人记得的灯',

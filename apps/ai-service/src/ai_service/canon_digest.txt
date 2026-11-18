@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 145 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 146 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -2932,6 +2932,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 散会那一夜水钟指到第十三圈——然后停住。
 - [5] 没有人给水钟加过水——抄本师说它自己吃自己。
 - [6] 值更册最后一页："它朝门看见的就是成为门的每个人。"
+
+### Echo 146 · 祠殿后墙外那一排从未被动过的盐盘 / The Row of Salt Trays Behind the Chapel's Back Wall That No One Has Ever Touched
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 祠殿后墙外有一排盐盘——槽是木质的——抄本师清晨去收——它们从不被用过。
+- [2] 没人记得谁摆的——值更册不写——抄本师说散会时就摆了。
+- [3] 抄本师说盐盘里的盐每天多了一枚——没人添也没人拿。
+- [4] 散会那一夜——盐盘开始自己冒烟——抄本师没敢看——第二天盐全是温的。
+- [5] 抄本师说它们不是给供盐的——也不给膳盐——没人拿它们。
+- [6] 值更册最后一页："它们在等某个人经过——它们还在等。"
 
 ### Echo 15 · 巷子深处那盏没人记得的灯 / The Lamp the Wine Shop Never Remembers
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

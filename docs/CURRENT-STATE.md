@@ -7741,3 +7741,9 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 新篇：「闭馆台朝门的水钟 · 它只剩两个字"还剩" · 散会夜停在第十三圈 · 它只要有人经过门，它就只看见门」—— digest 现 **237,070 chars**（13 章正典 · **145 回响** · 4 annex · 锚句 886 zh / 886 en ✓ · verify pin 同同步 881 anchors）。
 - 6 锚句双语 · gen-bible-snapshot 增 echo-145 · BibleAsk lede → 145 · /bible/ask meta → 一百四十五篇 · CACHE-IDENTITY × 145 · canon-answer-graph → 158 段 · bible-ask-behavior → 881 · pin 重钉 page→b6f41377 / comp→fd329a22 · InsightCanonChat hint 同步至 145 · verify:world-bible 886/886 ✓。
 - fe-gates **1370/1370** ✓ · 入后 digest 继续 15 万 tokensIn 区间（验证 813K-150K 稳定 band：已 12 轮 digest 扩容后缓存稳定）。
+
+## cont. 391 (2026-11-19) — v1032 · §BIBLE-146 · Echo #146《祠殿后墙外那一排盐盘》(作者手写 · verify 892/892)
+
+- 新篇：「祠殿后墙外那排盐盘 · 每天多一枚 · 散会夜自己冒烟 · 它们在等某个人经过」—— digest 现 **237,472 chars**（13 章正典 · **146 回响** · 4 annex · 锚句 892 zh / 892 en ✓）。
+- 6 锚句双语 · gen-bible-snapshot 增 echo-146 · BibleAsk lede → 146 · /bible/ask meta → 一百四十六篇 · CACHE-IDENTITY × 146 · canon-answer-graph → 159 段 · bible-ask-behavior → 887 · pin 重钉 page→c45c6b1d / comp→6062254e · InsightCanonChat hint 同步至 146。
+- fe-gates **1370/1370** ✓ · verify:world-bible 892/892 ✓。
