@@ -11324,4 +11324,165 @@ The Conclave did not adjourn. The forty-fourth Convocation is still proceeding.
 > it rose twice.
 `,
   },
+  {
+    order: 30,
+    slug: 'echo-030-the-chair-nearest-the-door',
+    titleZh: '靠门的椅子',
+    titleEn: 'The Chair Nearest the Door',
+    eraLineZh: '纪元：潮落之月 · 第四十四次会的第四天',
+    eraLineEn: 'Era: the month of tides · the fourth day of the forty-fourth Convocation.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 30): The Chair Nearest the Door
+
+> 回响不续写正典——它只记一份挑剩下的纪录：
+> 第四十四次会还没有散。守灯人坐在最靠门的椅子上，看那只从外面进来的年轻人的背影。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> The forty-fourth Convocation still had not adjourned. The lampkeeper sat in the chair nearest the door, watching the young man's back as he came and went.
+> Its anchors answer to the same discipline.
+
+> 纪元：潮落之月 · 第四十四次会的第四天
+> Era: the month of tides · the fourth day of the forty-fourth Convocation.
+
+---
+
+## 一 · 那把靠门的椅子
+
+那个年轻人走进第四十四次会的时候，在所有的椅子里选中最靠门的一把。
+
+椅子是旧的，皮面已经磨得光滑。他坐下的时候，椅子没有发出声音。守灯人靠着桌子站着，盯着他的背影。
+
+他选中了最靠门的一把椅子，其他人都没有动过。
+**锚句**：他选中了最靠门的一把椅子，其他人都没有动过。
+**Anchor sentence**: He had chosen the chair nearest the door; no one else had moved.
+
+## 二 · 背影
+
+年轻人背对着守灯人，坐了很久。守灯人看不见他的脸。
+
+守灯人看了一眼时刻表，潮正起。他看了一眼年轻人——年轻人的背影不像他记得的任何一个人。
+
+他记不清年轻人的脸。
+**锚句**：他记不清年轻人的脸。
+**Anchor sentence**: He could not recall the young man's face.
+
+## 三 · 第四天
+
+第四十四次会的第四天，潮又在最深处。
+
+守灯人没有说话。那位坐在最靠门的人也没有说话。两人都没有提议散会。
+
+两人都没有提议散会。
+**锚句**：两人都没有提议散会。
+**Anchor sentence**: Neither of them proposed adjournment.
+
+## 四 · 潮起来
+
+潮又涨了一次。
+
+守灯人看向那把椅子时，发现它还是空着。潮汐时刻表的纸上多了一笔的纪录：「潮起 — 第七次 — 落下 — 起来」。
+
+潮汐时刻表上又多了一笔纪录。
+**锚句**：潮汐时刻表上又多了一笔纪录。
+**Anchor sentence**: One more entry was added to the tide timetable.
+
+## 五 · 守灯人没有离开
+
+守灯人没有站起来。即使两次涨潮都记录在册上，按规矩潮落的那一刻他也没有离开椅子。
+
+潮退的时候，守灯人也没有离开椅子。
+**锚句**：潮退的时候，守灯人也没有离开椅子。
+**Anchor sentence**: When the tide withdrew, the lampkeeper still had not left the chair.
+
+---
+
+## 模型映射（回响三十则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 潮落之月 · 第四十四次会第四天 · 潮汐教团之记 | 第十一章 · 第十三章 |
+| geography | 誊册房 · 门锥 · 最靠门的椅子 · 案台 | 本则 · 第二十六则 · 第二十八则 · 第二十九则 |
+| factions | 守灯人 · 年轻人 · 潮汐教团（重铸的章） | 第一章 · 本则 |
+| characters | 守灯人 · 不记得的年轻人 · 靠门的椅子 | 本则 · 第二十九则 |
+| items | 最靠门的椅子 · 潮汐时刻表 · 潮 | 本则 |
+| story | 靠门的椅子 · 回响（其三十） | 全篇 |
+| history | 潮落之月 · 第四十四次会第四天 · 潮汐教团之记 | 本则 |
+
+> 靠门的椅子从未动过，
+> 坐它的人去了哪里——
+The chair nearest the door never moved;
+the one who sat in it —
+he was never asked.
+`,
+    markdownEn: `
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> The forty-fourth Convocation still had not adjourned. The lampkeeper sat in the chair nearest the door, watching the young man's back as he came and went.
+> Its anchors answer to the same discipline.
+
+> Era: the month of tides · the fourth day of the forty-fourth Convocation.
+
+---
+
+## 1 · The chair nearest the door
+
+When the young man walked into the forty-fourth Convocation, he chose the chair nearest the door.
+
+The chair was old; its leather had worn smooth. He did not make a sound when he sat. The lampkeeper leaned against the desk, watching his back.
+
+He had chosen the chair nearest the door; no one else had moved.
+**Anchor sentence**: He had chosen the chair nearest the door; no one else had moved.
+
+## 2 · His back
+
+The young man sat for a long time, with his back to the lampkeeper. The lampkeeper could not see his face.
+
+The lampkeeper looked at the timetable; the tide was rising. He looked at the young man again — his figure did not match anyone the lampkeeper remembered.
+
+He could not recall the young man's face.
+**Anchor sentence**: He could not recall the young man's face.
+
+## 3 · The fourth day
+
+On the fourth day of the forty-fourth Convocation, the tide was deepest again.
+
+The lampkeeper did not speak. The one seated nearest the door did not speak either. Neither of them proposed adjournment.
+
+Neither of them proposed adjournment.
+**Anchor sentence**: Neither of them proposed adjournment.
+
+## 4 · The tide rises
+
+The tide rose again.
+
+The lampkeeper looked at the chair and found it empty. A new line had been added to the tide timetable: "the seventh rising — falling — rising again."
+
+One more entry was added to the tide timetable.
+**Anchor sentence**: One more entry was added to the tide timetable.
+
+## 5 · The lampkeeper did not leave
+
+The lampkeeper did not stand. Even after two tides were recorded in the book, he did not leave the chair when the tide fell.
+
+When the tide withdrew, the lampkeeper still had not left the chair.
+**Anchor sentence**: When the tide withdrew, the lampkeeper still had not left the chair.
+
+---
+
+## Echo No. 30 — dimension mapping
+
+| Dim | Anchor | Linked |
+|---|---|---|
+| lore | the month of tides · the fourth day of the forty-fourth Convocation · the Tide Conclave record | Ch. 11 · Ch. 13 |
+| geography | the copying hall · the door pillar · the chair nearest the door · the desk | this echo · Echo 26 · Echo 28 · Echo 29 |
+| factions | the lampkeeper · the young man · Tide Conclave (re-cast seal) | Ch. 1 · this echo |
+| characters | the lampkeeper · the young man he cannot recall · the chair nearest the door | this echo · Echo 29 |
+| items | the chair nearest the door · the tide timetable · the tide | this echo |
+| story | the chair nearest the door · Echo No. 30 | whole piece |
+| history | the month of tides · the fourth day of the forty-fourth Convocation · the Tide Conclave record | this echo |
+
+> The chair nearest the door never moved;
+> the one who sat in it —
+> he was never asked.
+`,
+  },
 ] as const;

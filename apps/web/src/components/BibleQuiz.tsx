@@ -428,6 +428,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《第四十四次会》里，最靠门的椅子里坐的是谁？', choices: ['一个新来的潮汐教团记录员', '守灯人自己', '没人', '第四十三次会停在原地的那个人'], answer: 0, ref: '回响（其二十九） · 四' },
     en: { prompt: 'In “The Forty-Fourth Convocation”, who sat in the chair nearest the door?', choices: ['an unfamiliar young man from the shore', 'the lampkeeper himself', 'no one', 'the man who had frozen mid-meeting'], answer: 0, ref: 'Echo No. 29 · IV' },
   },
+  {
+    zh: { prompt: '《靠门的椅子》里，坐那个椅子的人说了什么？', choices: ['什么都没有说', '问了守灯人来自什么地方', '催促守灯人散会', '留下一张字条'], answer: 0, ref: '回响（其三十） · 一' },
+    en: { prompt: 'In “The Chair Nearest the Door”, what did the seated man say?', choices: ['he did not speak at all', 'he asked where the lampkeeper was from', 'he urged the lampkeeper to adjourn', 'he left a note'], answer: 0, ref: 'Echo No. 30 · I' },
+  },
+  {
+    zh: { prompt: '《靠门的椅子》里，潮潮退的时候，守灯人做了什么？', choices: ['没有离开椅子', '回了自己的桌子', '关门', '去擦潮汐时刻表'], answer: 0, ref: '回响（其三十） · 五' },
+    en: { prompt: 'In “The Chair Nearest the Door”, what did the lampkeeper do as the tide receded?', choices: ['he did not leave the chair', 'he went back to his desk', 'he closed the door', 'he wiped the tide timetable'], answer: 0, ref: 'Echo No. 30 · V' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

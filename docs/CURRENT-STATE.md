@@ -6240,3 +6240,10 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 > - /bible 页脚 二十九/XXIX · guideCopy 同步 · quiz 86→**88**（zh/en 镜像 +2 题 E29）
 > - SHA 重钉 ×2（bible index 74c5e61b · BibleQuiz fc2589ab）· fe-gates 147/147 · 1353/1353 · build 绿
 > - SSR 实锤 /bible · /bible/echo-029-the-forty-fourth-convocation · /tide-oracle · /tide-wire 全 200
+
+> **2026-11-19 cont. 247 · 回响（其三十）《靠门的椅子》——潮起了两次，年轻人走进来没被问名字**
+> - 纪元：潮落之月 · 第四十四次会第四天（en: the month of tides · the fourth day of the forty-fourth Convocation）
+> - 5 组锚句 zh/en 全局唯一 · **世界大典 412 zh / 412 en 全绿** · canon digest 重封存（62,673 chars · sha256=74368032…）
+> - /bible 页脚 三十/XXX · guideCopy 同步 · quiz 88→**90**（zh/en 镜像 +2 题 E30）
+> - SHA 重钉 ×2 · fe-gates 147/147 · 1353/1353 · build 绿
+> - SSR 实锤 /bible /echo-030-the-chair-nearest-the-door 200 · /tide-oracle /tide-wire 全 200
