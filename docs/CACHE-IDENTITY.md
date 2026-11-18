@@ -21,6 +21,7 @@
 - `user`（free text）= `(system, system-only)`
 - `user`（JSON 业务 payload）= `(system, canonical(stable_keys))`
 - 散列出 `sha256` → 稳定 `nexus-<hex>` — 注入每个 POST `/v1/chat/completions` 的出站 JSON
+- **2026-11-18 起已是本仓缺省**（ADR-0284）：`NEXUS_OPENAI_PROMPT_CACHE_KEY` 不设置/空 → sticky per-lane 即生效；此前 provider 先钉常量 `nexus-studio` 把 sticky 路径废掉，实测常量 lane 12 发交替 **6 次 502**、sticky lane **12/12 200 · cached≈100%**（evidence `docs/evidence/cache-key-ab-2026-11-18.md`）。
 
 ### c. 应用侧 Redis L2
 来源：`apps/ai-service/src/ai_service/redis_completion_cache.py`

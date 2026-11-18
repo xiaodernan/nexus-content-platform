@@ -45,8 +45,10 @@ class Settings:
     openai_api_key: str | None = None
     openai_base_url: str = "https://api.openai.com/v1"
     json_mode: bool = True
-    # OpenAI 官方 prompt_cache_key 固定路由键（workload 维度）——空串表示不带
-    openai_prompt_cache_key: str | None = "nexus-studio"
+    # prompt_cache_key 路由：unset 或显式空串 → sticky per-lane
+    # （nexus-<sha256(system)>，见 sticky_prompt_cache.py / ADR-0284；按后端通道分片、同前缀同车道）；
+    # 设为常量（如 "nexus-studio"）→ 常量 lane（v865 行为，wkapi.pro 侧 8/8 证）
+    openai_prompt_cache_key: str | None = None
     models: Mapping[str, str] = field(default_factory=lambda: dict(DEFAULT_MODELS))
     # embedding 独立门：有些 provider 网关只有 chat 没有 embedding 模型（§159 不谎称能用）。
     # NEXUS_MODEL_EMBEDDING=none 时如实报 unavailable，不创建 embedding 客户端、不给出假的 "real" 就绪。
@@ -227,8 +229,9 @@ def load_settings(environ: Mapping[str, str] | None = None) -> Settings:
         openai_base_url=get("NEXUS_OPENAI_BASE_URL", "https://api.openai.com/v1")
         or "https://api.openai.com/v1",
         json_mode=(get("NEXUS_LLM_JSON_MODE", "1") or "1") != "0",
-        # 显式空串 = 关闭 prompt_cache_key 路由（unset → "nexus-studio" 缺省开启）
-        openai_prompt_cache_key=get_or_default("NEXUS_OPENAI_PROMPT_CACHE_KEY", "nexus-studio"),
+        # unset / 显式空串 = sticky per-lane 路由（provider 不填键 → StickyPromptCacheTransport 注入
+        # nexus-<sha256(system)>，ADR-0284/2026-11-18 A/B 实测 12·12 同问句命中 100%、0 次 502）
+        openai_prompt_cache_key=get_or_default("NEXUS_OPENAI_PROMPT_CACHE_KEY", None),
         models=models,
         unsupported_text_keys=unsupported,
         embedding_enabled=embedding_enabled,

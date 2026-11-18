@@ -7287,3 +7287,18 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 - 7 个 anchor 双语对齐；gen-bible-snapshot 现 117 条；verify:world-bible **728/728** ✓；bible snapshot 一致。
 - 完整同步：BibleAsk lede → 117 · /bible/ask meta → 一百一十七篇 (one hundred seventeen) · guideCopy 全语种 → 116→117 · CACHE-IDENTITY × 117 · canon-answer-graph → 13 章 + 117 回响 = 130 段 · bible-ask-behavior.test → 723 · pin 重钉 page→e5b1066c / comp→1e8c1565。
 - fe-gates **1370/1370** ✓；Pages 指针同步。
+
+## cont. 349 (2026-11-18) — v969 · §CACHE-KEY-STICKY-DEFAULT · prompt_cache_key 缺省翻转 + 问题归档实测（12/12 · 100% · 7–13ms）
+
+**问题**（用户长期诟病·现场复现）：全站 LLM 调用统一发常量 `prompt_cache_key="nexus-studio"`（v865 缺省）——aizzz.xyz 网关上并行/交替请求按 hash 落到两个后端，其中一个整段时窗不可用，12 发交替 **6 次 502**（奇数发 200/100% cached，偶数发全部 `502 Bad Gateway`，模式可复现）。
+
+**修法**：`config.py` 缺省 `NEXUS_OPENAI_PROMPT_CACHE_KEY` unset→None（provider 不填键）→ `StickyPromptCacheTransport` 注入 `nexus-<sha256(system)>` per-lane 键（同 digest 同车道、不同 product graph 自然分片；与 Codex 的 session-derived 键同理，ADR-0282 路线落地）。常量 lane 仍可 `=nexus-studio` 显式选择；`NEXUS_LLM_STICKY_CACHE_KEY=0` 可全局关 sticky。
+
+**实测（`docs/evidence/cache-key-ab-2026-11-18.md`）**：
+- A 常量：i=2/i=4/i=6 全 502（~50% 失败率，P1 级）
+- B sticky per-lane：**12/12 200** · cachedTokens≈69,300（≈100%）· p50 9–13 ms
+- DEFAULT（新缺省）：**12/12 200** · cachedTokens≈69,300 · p50 7–12 ms
+
+**顺带**：requirements.txt 声明 langgraph==1.2.22 漏装 → `pip install` 补齐后 stategraph 8/8 转绿；全量 pytest **455 passed / 18 skipped**。
+
+**改动**：config.py 缺省 · README.md · .env.example · ENVIRONMENT.md · CACHE-IDENTITY.md · ADR-0284 · evidence `cache-key-ab-2026-11-18.md`。ADR 文档同步；前端零改动。
