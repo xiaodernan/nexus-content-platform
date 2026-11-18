@@ -29,10 +29,17 @@ const BIBLE_START = globals.indexOf('§BIBLE-1');
 const bbSegment = BIBLE_START >= 0 ? globals.slice(BIBLE_START) : '';
 
 describe('§BIBLE-3 典籍室「直达」', () => {
-  it('client 组件 + 零 provider/fetch 字面', () => {
+  it('client 组件 + LLM 只走 /api/bible/q（唯一已验证的正典问典车道）', () => {
     expect(component.slice(0, 80)).toContain('use client');
-    expect(component).not.toContain('fetch(');
-    expect(component).not.toContain('/api/');
+    // §BIBLE-3+ASK：直达之上的一手 GUI LLM 集成——问典只走 /api/bible/q
+    // （§BIBLE-4 的 StateGraph 正典问答车道：analyze → retrieve → draft → verify；CSRF · 限流 · 不扣 credits · 不写库）。
+    // 任何其他 fetch 目标出现都算叛逃：§159。
+    const fetchLiteral = /fetch\(\s*['"`]([^'"`]+)['"`]/g;
+    const targets = [...component.matchAll(fetchLiteral)].map((m) => m[1]);
+    expect(targets.length, 'BibleSearch 一次都没发 fetch（至少应该有 ask 的 /api/bible/q 一次）').toBeGreaterThan(0);
+    for (const t of targets) {
+      expect(t, 'BibleSearch 出现非问典通道：' + t).toBe('/api/bible/q');
+    }
     expect(component).not.toContain('provider');
   });
 
