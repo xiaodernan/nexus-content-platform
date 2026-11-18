@@ -7381,6 +7381,6 @@ origin/main 支线（lineage-2）的 big-context 版本直接拷贝入仓作历�
 - lane 002 (same): cached=148,228 (**100%**) · **17 ms**
 - lane 003 (variant): cached=138,651 (**93.6%**) · 8.1 s
 
-provider 侧 5xx 抖动消失；INCIDENCE-of `INSIGHT_AI_SYSTEM_PROMPT` regen 后 229,800 chars（CANON_DIGEST embed）。cacheReported=true；verifications 都保持一致，与 §STRESS-16 双印互证 KV 车道稳定性。未改任何 web 代码。
+provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYSTEM_PROMPT` regen 后 229,800 chars（CANON_DIGEST embed）。cacheReported=true；verify 两层字段都保持一致，与 §STRESS-16 双印互证 KV 车道稳定性。未改任何 web 代码。
 
 证据存档：`docs/evidence/insight-lane-v973-2026-11-19.md`。
