@@ -94,7 +94,7 @@ describe('──MARKETPLACE-PICKS /marketplace "AI 选品"', () => {
 
   it('SHA256 钉死：MarketplacePicks（className 脱敏后）', () => {
     expect(createHash('sha256').update(redactClasses(card)).digest('hex')).toBe(
-      '67da04a37c5542c844f442ba780ee38259415349beb353936890fe1dfd02d13a',
+      '1b510ffc49688f2cc6eeb7ab16869048f477ff9152684b712c72a9ae6ea261a5',
     );
   });
 });

@@ -38,11 +38,11 @@ const COPY = {
       { at: 10, text: '巡逻路的旅人', note: '盐味酸过了——记住的巡逻路比忘掉的多。' },
       { at: 13, text: '守夜人传人', note: '门在关上之前你没见过，但你记住了是什么。' },
       { at: 15, text: '潮汐大匠', note: '海还没说完的话，你已经知道是什么了。' },
-      { at: 87, text: '满分守夜人', note: '八十七题全对——典籍不会忘记问倒过谁。' },
+      { at: 91, text: '满分守夜人', note: '九十一题全对——典籍不会忘记问倒过谁。' },
     ],
     footer: '《世界大典》正典全文见典籍室（/bible）。答错的题里标了出处：错就是错，没有近似的正确。',
     scoreLine: (n: number, total: number) => `${n} / ${total}`,
-    empty: '还没答完。八十七道题就是十三章正典的全部问题。',
+    empty: '还没答完。九十一道题就是十三章正典与回响的全部问题。',
   },
   en: {
     kicker: 'The Tidal Trial',
@@ -62,11 +62,11 @@ const COPY = {
       { at: 10, text: 'The Patrol-Road Traveller', note: 'You are more road remembered than forgotten.' },
       { at: 13, text: 'The Successor Watcher', note: 'You have never seen the door, but you know what was behind it.' },
       { at: 15, text: 'The Tide Master', note: 'The sea still has not finished — and you already know what it said.' },
-      { at: 87, text: 'The Full Tide', note: 'Eighty-seven of eighty-seven — the canon will not forget who asked it best.' },
+      { at: 91, text: 'The Full Tide', note: 'Ninety-one of ninety-one — the canon will not forget who asked it best.' },
     ],
     footer: 'The full canon lives in the shelf (/bible). Every wrong answer points you to where it lives. Wrong is wrong — there is no near-enough.',
     scoreLine: (n: number, total: number) => `${n} / ${total}`,
-    empty: 'Not done yet. Eighty-seven questions — one per breath of the canon and the echoes.',
+    empty: 'Not done yet. Ninety-one questions — one per breath of the canon and the echoes.',
   },
 } as const;
 
@@ -426,14 +426,6 @@ const QUESTIONS: Question[] = [
     en: { prompt: 'In “The Hour the Tide Rose”, what was the extra inch on the timetable?', choices: ['the tide’s rising mark, added without hands', 'the Conclave’s seal', 'the old ledger’s tide-line', 'another’s hand-added mark'], answer: 0, ref: 'Echo No. 125 · V' },
   },
 
-  {
-    zh: { prompt: '《第四十五次会》里，门是谁开的？', choices: ['没有人留下名字', '潮汐教团的主事人', '念册的人', '守灯人'], answer: 0, ref: '回响（其一百三十） · 一' },
-    en: { prompt: 'In “The Forty-Fifth Convocation”, who opened the door?', choices: ['no one — the name was never kept', 'the Conclave’s chief', 'the reader', 'the lampkeeper'], answer: 0, ref: 'Echo No. 130 · I' },
-  },
-  {
-    zh: { prompt: '《第四十五次会》里，潮纸签最后停在哪里？', choices: ['案台上，贴着旧册子', '守灯人的口袋里', '潮汐时刻表下面', '没有人抽走它，它停在门锥旁'], answer: 0, ref: '回响（其一百三十） · 四' },
-    en: { prompt: 'In “The Forty-Fifth Convocation”, where did the tide-paper tag come to rest?', choices: ['on the table, against the old ledger', 'in the lampkeeper’s pocket', 'under the tide timetable', 'no hand took it; it stopped beside the door pillar'], answer: 0, ref: 'Echo No. 130 · IV' },
-  },
   {
     zh: { prompt: '《门开了一整夜》里，椅子数过几遍，共几把？', choices: ['数了三遍，每次都是四十五把（含靠门借来的那一把）', '数了两遍，每次四十四把', '数了三遍，每次都是四十四把', '数了一遍，共四十三把'], answer: 0, ref: '回响（其一百三十一） · 二' },
     en: { prompt: 'In “The Door Stood Open All Night”, how many times did he count the chairs, and how many were there?', choices: ['three times; forty-five each time (including the borrowed one by the door)', 'twice; forty-four each time', 'three times; forty-four each time', 'once; forty-three chairs'], answer: 0, ref: 'Echo No. 131 · II' },

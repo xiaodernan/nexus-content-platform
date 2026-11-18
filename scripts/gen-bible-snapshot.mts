@@ -180,8 +180,12 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E127-潮候院档案室最底层那本永远找不到的第十二册': 'echo-127-the-twelfth-volume-she-never-finds',
   'E128-潮候院里那只从不停的小鼓': 'echo-128-the-little-drum-that-never-stops',
   'E129-潮候院祠殿檐下那根永远不得响的木牌': 'echo-129-the-wooden-plaque-that-decides',
-  'E130-第四十五次会': 'echo-130-the-forty-fifth-convocation',
+  'E130-潮候院后院那棵永远讲潮落的老榕': 'echo-130-the-banyan-that-tells-of-the-ebb',
   'E131-门开了一整夜': 'echo-131-the-door-stood-open-all-night',
+  'E132-潮候院里那件永远等不到主人的蓑衣': 'echo-132-the-rain-cape-that-never-came-home',
+  'E133-潮候院东院那棵从不下果的沉香树': 'echo-133-the-agarwood-that-bloomed-once',
+  'E134-潮候院里那箱只装坏表的箱子': 'echo-134-the-box-of-broken-watches',
+  'E135-潮候院里那只永远看向潮汐表的废风向标': 'echo-135-the-rusted-wind-vane-pointing-at-the-tide-table',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

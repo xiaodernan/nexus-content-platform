@@ -100,7 +100,9 @@ export function TideOracle({ locale = 'zh' }: { locale?: Locale }) {
       const body = await resp.json() as { answer?: string; model?: string; cachedTokens?: number; tokensIn?: number; citation?: { state?: string; anchorsCited?: number } };
       if (!resp.ok || typeof body.answer !== 'string') { setPhase('honest'); return; }
       const citState = body.citation?.state;
-      setCite(citState === 'cited' || citState === 'declined' || citState === 'not-cited' ? { state: citState, anchorsCited: body.citation?.anchorsCited } : null);
+      setCite((citState === 'cited' || citState === 'declined' || citState === 'not-cited')
+        ? { state: citState as 'cited' | 'declined' | 'not-cited', anchorsCited: body.citation?.anchorsCited }
+        : null);
       setAnswer(body.answer.trim());
       setBadge(body.model ? c.badge(body.model, body.cachedTokens ?? 0, body.tokensIn ?? 0) : null);
       setPhase('answered');

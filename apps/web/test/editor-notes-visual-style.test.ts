@@ -92,7 +92,7 @@ describe('──EDITOR-NOTES /discover "馆长批注"', () => {
 
   it('SHA256 钉死：EditorNotes（className 脱敏后）', () => {
     expect(createHash('sha256').update(redactClasses(card)).digest('hex')).toBe(
-      '416e6875049b62a87ca64e463b7b502334c906f24caa1c7b66f7a7039579b384',
+      '26c05039899489d9c2a5f621853ca78c5bff57aa29c148efab234d8cecfbbb0f',
     );
   });
 });

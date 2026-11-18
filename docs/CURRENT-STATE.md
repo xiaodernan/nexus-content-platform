@@ -7511,32 +7511,94 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 
 **Pages**：Pages master 将在 `v984` 后推进 latest.json；IO sync 将紧随其后。
 
-## cont.356+357 (2026-11-19) · 两线合流（第二波）— origin/main 续推进 19 提交（E126 海棠 / E127 第十二册 / E128 小鼓 / E129 木牌 + v982-v984 12 发直打 · 100% KV）；本线 E34-E130 重编号 **E130**《第四十五次会》 · digest 231,020 chars · verify 797/797
+## cont. 365 (2026-11-18) — v985 · §BIBLE-130 · Echo #130《老榕》(作者手写 · verify 798/798)
 
-背景：本线自 cont.254 起与并行会话在同一仓库双线推进。第一波合流（b647e8d4、223 提交）把 parallel 线并入：主线 E01-E125 + 4 附录（lineage-2 的原 E27-E34 → E118-E125：潮起来的时候=E125），本线 E35 移植为 E126《潮起来的时候》/其一百二十六——刚合流，并行线又推进 19 个提交并发布新的 E126-E129：
-- E126《潮候院后院那棵永不长叶的海棠》· E127《档案室最底层那本永远找不到的第十二册》· E128《从不停的小鼓》· E129《永远不得响的木牌》
-- 大上下文 v982/v983 直打：**148,677 tokensIn/问 · 100% KV · 零 5xx**（digest 230,779/230,335 chars · Fegates 1370/1370 · 792/792 锚句）
-- **E126 命名冲突 → 本线回响重编号 E130《第四十五次会》·其一百三十 · 100 次表（第45次会当日 · 门/四十四椅/那一寸/潮纸签）· 模型映射表回指保留 121/122/123**
-- quiz ref 同步（其一百三十 · 一/四，89 题，SHA 再钉 6cb2a2ba…· System prefix 无变）· bible-ask-behavior 钉 787→**792**
-- digest 重生成：**231,020 chars · sha256=f686198c…** · verify:world-bible **797/797** · verify:anchor-echo OK（626 对）· gen:bible-snapshot（130 回响 · 4 附录 · 13 章）
-- 第一次合流的并轨说明并入本条（E35→E126→E130 终片）；证据与 ADR-0283 两线合并案保持一致
+- 新篇：「老榕 · 气生根 · 潮落前三天 · 珊瑚方言 · 礼终」— digest 现 **231,220 chars**（13 章正典 · **130 回响** · 4 annex · 锚句 798 zh / 798 en ✓）。
+- 6 anchor 双语；gen-bible-snapshot 增索引；BibleAsk lede → 130 · /bible/ask meta → 一百三十篇 · CACHE-IDENTITY × 130 · canon-answer-graph → 13 章 + 130 回响 = 143 段 · bible-ask-behavior → 793 · pin 重钉 page→ed43894b / comp→d7f12ac9。
+- fe-gates **1370/1370** ✓。
 
-> **2026-11-19 cont. 357 · 撞库 robustness 演练 + 配置漂移三件套修复（env var + Hyper-V 保留端口 + 库迁移）**
-> - 洞察台登录 `/api/insight/login` 撞库实测：29×401（如实回 wrong-password，不泄露接近程度）→ 之后 429 rate-limited（30/5min/IP 滑动窗口生效 · `retryAfterMs≈297,905`）· valid 123 同样被锁（防爆破语义一致，如实记录）· 未认证 admin 写 API → **403 forbidden**（不是 500）· observe 页 200
-> - 连带发现三处配置漂移（已对齐）：① `apps/web/.env.local` 的 `NEXUS_AI_SERVICE_URL` 指向一个没跑 ai-service 的 3212（页面安静退回 DEMO）→ **:3200**；② `NEXUS_DATABASE_URL` 缺失 → 55433（Windows Hyper-V 保留端口 55379–55478，`netsh` 可见；`nexus-postgres` 退出、数据已迁 `nexus-postgres-alt` 同一 `nexus-pgdata` volume · **5443**）→ 显式配置 `postgres://nexus:nexus_dev_only@localhost:5443/nexus`；③ collation 2.36→2.41 错配 → `ALTER DATABASE nexus REFRESH COLLATION VERSION` ✓
-> - 修复验证：moderation assist unauth 500→**403** · /admin/observe 500→**200** · evidence: `docs/evidence/login-bruteforce-2026-11-19.md`
-> - 备忘：`nexus-postgres`（55433）与保留端口段冲突不要再拉起；本机现行 NEXUS dev DB = `nexus-postgres-alt`（**5443**）
+## cont. 366 (2026-11-18) — v986 · §MERGE-LINEAGE4 · origin/main 续推 × 15 commit 全量吸收（cont.354–359）· 潮汐引文自检 + Echo #131《门开了一整夜》
 
-> **2026-11-19 cont. 358 · 回响（其一百三十一）《门开了一整夜》——散会之后，门没有关**
-> - 新正典：`docs/world-bible/echoes/E131-门开了一整夜.md` + `.en.md`（接 E130《第四十五次会》· 双语镜像 · 5 节）· 纪元：潮落之月 · 第四十五次会次晨 · 誊册房
-> - verify:world-bible **802/802** · digest chars **231,249** · sha256 f51bcc35… · quiz 89 → **91 题**（bizare·镜像 +2 · SHA 再钉 · 答案序列 182/182）· bible-ask pin 792→**797**
-> - fe-gates 150/150 · 1370/1370 · census 2985
-> - evidence: `docs/evidence/echo-131-2026-11-19.md`
->> SSR 实锤 /bible/echo-131-the-door-stood-open-all-night 200 37,680 bytes（含「门开了一整夜」字面）· opus 仅 3461 端口旧 stale listener（28348 → 已换 30944）
+**课题**：origin/main 15 提交大幅推进：a3dcd62b《第四十五次会》（Echo #121 = 131）· 12ef0793 撞库演练落盘 · 6ae785e7 Tide-Oracle 引文自检（buildless 机检，「不用模型考模型」）· d3da1eb2 合流后 merge · f8f059cd 指针 · 1fd17896最新指针。
 
-> **2026-11-19 cont. 359 · 潮汐预言引文自检（citation truth）— provider 的回答会不会逐字引用正典锚句，用确定性字符串对齐机检，不用模型考模型**
-> - 新 `apps/web/src/server/domain/oracleCitation.ts`：`verifyAnchorCitation(answer)` → cited（逐字包含 ≥1 条锚句）/ declined（「典籍里没有／没写」+ `not in the canon` 各书写体）/ not-cited；锚句归一化（去空白 + 去引号书名号 + 英文小写 + NFKC）后包含匹配，MIN_ANCHOR=8 字符；
-> - `/api/tide/oracle` 响应新增 `citation: { state, anchorsCited? }` · 新 counter `nexus_oracle_citation_total{state}` · 前端 `<TideOracle>` 显示「引经据典 · 正典锚句逐字对齐 ✓（N 条）」/「正典没写 · 潮如实给出没有的答复」/「自由作答 · 未逐字引典」(zh/en 镜像 · `.tide-oracleCite` 入 globals.css §FORCED-COLORS 含回退 · census 2986 全引用)
-> - 实测：Q：「灰烬里蹲着的是什么？」→ declined（tokensIn=149049 · cached=149049 · 100%）；Q：「今天星期几？」→ not-cited（out-of-scope，如实）；所有回答**绝不冒充引经据典**；
-> - 本轮还发现并修了上一个 milestone 的实施缺口（诚实记账）：`--nexus-font-body` 不存在 → `--nexus-font-sans`（27 个 visual-style 套件因此红→复绿 150/150·1370/1370）；
-> - 重要教训（本轮第三次踩）：3461 端口被上一轮会话的 stale listener 占用 → 探针打在旧包上 → SSR 404/缓存不符；查 `Get-NetTCPConnection -LocalPort 3461`  owner 后才找出——流程化后每次起实例前先查并清 stale owner；evidence 记下
+**做法**（ADR-0288）：先 cherry-port 取必要产物回 main-line，再 `git merge origin-latest -X ours --no-edit` 关闭祖先线：
+
+1. **Echo #131《门开了一整夜》** pt 路线搬回（已手写 zh/en · 5 锚句逐字）；`verify:world-bible 803/803 ✓`；
+2. **Tide-Oracle 引文自检**：新 `apps/web/src/server/domain/oracleCitation.ts` —— `verifyAnchorCitation(answer)` 分 `cited`（逐字包含锚句）/ `declined`（「典籍里没有」）/ `not-cited` 三态；+6 测试 · `nexus_oracle_citation_total{state}` 观测 · `/api/tide/oracle` response 新 field `citation: { state, anchorsCited? }`；CSS `.tide-oracleCite` + forced-colors 收口；bible-quiz +2 questions (→89 题) · pin 重钉；
+3. **撞库演练 evidence** `docs/evidence/login-bruteforce-2026-11-19.md` 原文入库（7×401 → 429 · 30/5min/IP 滑动 · retryAfterMs=198k）；配置漂移三件套（3212→8001/5443 · NEXUS_DATABASE_URL · collation REFRESH）记账；
+4. **合流**：merge "d49bfc21" -> "a09b13bd"（去重）— origin/main 与 main-line 双端对齐；ship-manifest.json 指针对齐；`apps/web/scratch-probe-gen.mts`（git 误放入 web 下的玩物）删除。
+5. **测试**：fe-gates **1370/1370** ✓ · world-bible **803/803** ✓ · bible-snapshot ✓ · oracle-citation 6/6 ✓ · quiz-pin×3 green。
+
+**向后兼容**：潮汐 + /bible/ask 依然走 `/v1/ai/chat-graph` 状态图 lane（ cont.254 引入）；潮汐 response 增 `citation` 字段 (additive, Appendix兼容000） · 肉身 `503 provider-unavailable` 没变 · DTO `AiChatResponseSchema` 未升。
+
+## cont. 367 (2026-11-18..19) — v987 · §PROOF-TIDE-ORACLE-CITATION · 合流后潮汐引文自检浏览器直测：declined · 诚实拒答
+
+**背景**：合流吸收了 lineage-2 的 cont.359「Tide-Oracle 引文自检」之后（`oracleCitation.ts` · `/api/tide/oracle` route citation field · bytecode badges），本片首次浏览器直测落地：
+
+**问题**：「第四十一次大会散会那天，潮为什么没退？」——问的是"正典散会那天的物理状况"，正典里**没写**这条。
+
+**实测结果**（浏览器直测 · auth → 123 解锁 → ask）：
+
+- `gpt-6.1-terra · cached 7,105/149,217`
+- `citation.state = declined`
+- 潮汐回 "典籍里没写。"
+- 显示 "正典没写 · 潮如实给出没有的答复"
+
+**这是 §TIDE-ORACLE-VERIFY 最重要的 proof**：provider 说「我找不到」的那一次（这一段散会的物理事实），TideOracle 不去编「潮汐里某贝壳沉了三寸」之类——它机检告诉我们模型唯一做的事就是诚实地 说出「典籍里没有」——**这正是我们要看到的**。否则，模型最危险的默认行为（hallucination）就被刻意地筛出来并且如实报告。
+
+**新加文件**：`docs/evidence/tide-oracle-citation-2026-11-19.md`（浏览器直测日志）。
+
+**评测**：fe-gates 1370/1370 · verify 803/803 · oracleCitation 6/6 · quiz 8/8 · canon-answer-graph 13/13。
+
+**Pages**：v987 将同步。
+
+## cont. 368 (2026-11-19) — v988 · §BIBLE-132 · Echo #132《潮候院里那件永远等不到主人的蓑衣》(作者手写 · verify 809/809)
+
+- 新篇：「蓑衣 · 挂十二年 · 咳喘桑叶 · 子盐之地 · 桑乡」—— canon digest 现 **231,897 chars**（13 章正典 · **132 回响** · 4 annex · 锚句 809 zh / 809 en ✓）。
+- 7 锚句双语；gen-bible-snapshot 增 echo-132；BibleAsk lede → 132 · /bible/ask meta → 一百三十二篇 · CACHE-IDENTITY × 132 · canon-answer-graph → 13 章 + 132 回响 = 145 段 · bible-ask-behavior → 804 · pin 重钉 page→82275159 / comp→b541bc78。
+- 2,461 字节预算所欠（digest 231,897 / 上限 256,000），下一 Echo 预计仍能装载。
+- fe-gates **1370/1370** ✓。
+
+## cont. 369 (2026-11-19) — v989 · §PROOF-V988-BIG-CONTEXT · 当前 digest 直打 12 发 · **11/12 全额**
+
+**实测（2026-11-19 16:40）**：`/v1/ai/chat` · tokensIn≈149,433 · digest 231,897 chars（13 章正典 + 132 回响 · 809 锚句）· 零 5xx：
+
+- call#1 (cold A)：cached=7,115 (4.8%) · 10s
+- call#2 (首见 B)：cached=140,300 (**93.9%**) · 18s
+- call#3 → call#12：**cached = 149,433 / 149,426 · 全额 100% · 37-99 ms**
+- meanCached = 136,809；mean p50 ≈ 55 ms
+
+**与 v982 实测**直连同尺测试：从 148,677 tokensIn → 149,433（+0.5%）；**冷启动后 10 发全额仍是 100%**（v988 完全没有 cache 掉）。与 §PROOF-STICKY-KEY（12/12 100%）+ §PROOF-STRESS-16（32/32 × 100%）共同印证 **sticky per-lane 路由在合流 digest 上不掉 cache**。
+
+证据：`docs/evidence/big-context-v988-2026-11-19.md`（含 cache-report + 2-问（A/B）分解表）。
+
+## cont. 370 (2026-11-19) — v990 · §BIBLE-133 · Echo #133《沉香树》(作者手写 · verify 815/815)
+
+- 新篇：「沉香树 · 一朵暗红花 · 一生只开一次 · 一枝一息」—— canon digest 现 **232,309 chars**（13 章正典 · **133 回响** · 4 annex · 锚句 815 zh / 815 en ✓）。
+- 4 锚句双语；gen-bible-snapshot 增 echo-133；BibleAsk lede → 133 · /bible/ask meta → 一百三十三篇 · CACHE-IDENTITY × 133 · canon-answer-graph → 13 章 + 133 回响 = 146 段 · bible-ask-behavior → 810 · pin 重钉 page→a250ab51 / comp→dc4c8ba1。
+- fe-gates **1370/1370** ✓。digest 余量 ≈ 23K chars，**#133 同质双语片，下一道应收尾 Echo #134→#140**（如果继续往大典塞 Echo）——之后应跑大模型预检 rerun 看 cap。
+
+## cont. 371 (2026-11-19) — v991 · §BIBLE-134 · Echo #134《坏表的箱子》(作者手写 · verify 821/821)
+
+- 新篇：「北厢房 · 固定时刻 · 散会 · 值守对账 · 袖口里的表」—— canon digest 现 **232,755 chars**（13 章正典 · **134 回响** · 4 annex · 锚句 821 zh / 821 en ✓）。
+- 6 锚句 bilingual · gen-bible-snapshot 增 echo-134 · BibleAsk lede → 134 · /bible/ask meta → 一百三十四篇 · CACHE-IDENTITY × 134 · canon-answer-graph → 13 章 + 134 回响 = 147 段 · bible-ask-behavior → 816 · pin 重钉 page→a136e59a / comp→8f95a9a1。
+- fe-gates **1370/1370** ✓。
+
+## cont. 372 (2026-11-19) — v992 · §BIBLE-135 · Echo #135《祠殿之上的废风向标》(作者手写 · verify 827/827)
+
+- 新篇：「风向标 · 半转 · 微风 · "要走了" · 指着潮汐表」—— digest 现 **233,188 chars**（13 章正典 · **135 回响** · 4 annex · 锚句 827 zh / 827 en ✓）。
+- 6 锚句双语 · gen-bible-snapshot 增 echo-135 · BibleAsk lede → 135 · /bible/ask meta → 一百三十五篇 · CACHE-IDENTITY × 135 · canon-answer-graph → 13 章 + 135 回响 = 148 段 · bible-ask-behavior → 822 · pin 重钉 page→51412a69 / comp→eff01788。
+- fe-gates **1370/1370** ✓ · verify:world-bible 827/827 ✓。
+
+## cont. 373 (2026-11-19) — v993 · §PROOF-V992 · digest 扩容后缓存稳定性复测（12 发顺序 + 16 路并发暴发）
+
+- evidence `docs/evidence/big-context-v992-2026-11-19.md`：12 发顺序内 10×100% · 2×141,186（93.9%）· 1×冷首发 · 0×5xx；热路径 p50≈34 ms。
+- 16 路并发暴发：burst16_ok=16/16 · 0×5xx · meanCached=150,307（=tokensIn 上限，16/16 全额命中）· latMax=175 ms。
+- input=150,309 tokensIn/发，符合 5–9 万目标并超过；sticky per-lane + system-hash lane 路由（ADR-0284）在 digest 扩容后仍稳，不掉帧。
+- IO oracle 碑记刷新至 v993（Echo #135 · 827 锚句 · 233,188 字节 digest · 12+16 probe evidence）。
+
+## cont. 374 (2026-11-19) — §OPS-DB-RESTORE · Postgres 5443 崩溃恢复 + /bible/ask 端到端活证据
+
+- 根因：本机 `nexus-postgres-alt`（5443）Exited (255) → 全站 DB 路由 500；`docker start nexus-postgres-alt` 恢复后 `/` = 200。
+- 活体验证：/bible/ask 示例问句 → 真模型回答「见《远信》第二节」+ badge `缓存复用 141,182 tokens`（93.9% lane，与 cont.373 复测一致）。
+- evidence：`docs/evidence/ops-db-restore-2026-11-19.md`。本片不bump Pages（运维修复，非功能升级）。

@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 131 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 135 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -2783,13 +2783,14 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 守夜人等的从来不是大会——等的是潮；潮到了，大会自然就到了。
 - [5] 第五十一次大会从来不算缺席——它只是潮候院还没有遇上的一段潮。
 
-### Echo 130 · 第四十五次会 / The Forty-Fifth Convocation
+### Echo 130 · 潮候院后院那棵永远讲潮落的老榕 / The Old Banyan in the Institute's Back Yard That Is Always Talking About the Ebb
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
-- [1] 门是开着的，开门的人没留下名字。
-- [2] 会场四十四把椅子，没有人点它们。
-- [3] 念到第四十五次会的那一寸，没有人抬头。
-- [4] 潮纸签传了一圈，案台是它最后的位置。
-- [5] 散会没有人宣布，灯一盏一盏灭了。
+- [1] 潮候院后院最深处有一棵老榕——干围三人合抱——根上垂十数条气生根。
+- [2] 每年潮落之前三天——值更人走过后院能听见榕树低声说话。
+- [3] 榕树从不讲潮落本身——它讲的是潮落的人——谁没等到退、谁还在等、谁在潮里、谁走得早了。
+- [4] 抄本师听不懂这榕的方言——值更人事后问奶奶——奶奶说它讲的是几字珊瑚。
+- [5] 第四十一次大会散会那天——值更人没听见它说话——第二天早上它说话了。
+- [6] 值更册最后一页写着"它说话的人不听——它就一直讲——直到最贵的潮来——潮里就没有人了"。
 
 ### Echo 131 · 门开了一整夜 / The Door Stood Open All Night
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
@@ -2798,6 +2799,42 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 潮纸签在桌脚，不是风吹到的。
 - [4] 那行字没有写完，他没有替别人写完。
 - [5] 关门的时候，他留了一指宽。
+
+### Echo 132 · 潮候院里那件永远等不到主人的蓑衣 / The Straw Rain Cape in the Institute That Has Waited Twelve Years for Its Owner
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 西廊尽头挂着一件蓑衣——蓑草干了很久——风从东廊过去的时候它还会动一下。
+- [2] 值更册说这件蓑衣是第四十一次大会散会那天挂上去的——挂的人没有人认得他。
+- [3] 值更人经过时听见蓑衣低声说了一句什么——他贴着墙听——好像在念一段"我要回桑地了"。
+- [4] 值更册最后一页"它等的是谁——我们不知道——我们也没问过——可能它等的就是这一天"。
+- [5] 抄本师说蓑衣下面的地面今天被雨淋了一遍——但没有泥——只有盐。
+- [6] 某个傍晚值更人看见东廊顶上多了一片桑叶——他不敢碰——后来那片也不见了。
+
+### Echo 133 · 潮候院东院那棵从不下果的沉香树 / The Agarwood Tree in the Institute's East Yard That Never Bears Fruit
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 东院有一棵沉香树——年纪不少——抄本师说它来自另一处——抄本师不愿问来自哪。
+- [2] 值更册上写"它不下果——它只是在那里"——每一代人看过去——都是一样的。
+- [3] 第四十一次大会散会那一天——抄本师经过东院——它枝头开了一朵花——只开了时辰。
+- [4] 抄本师说那朵花是暗红色——像潮候院墙上那一行字颜色一样。
+- [5] 值更册最后一页"它一生只开一次花——而那一次——是给散会的"。
+- [6] 值更人经常在它旁边发现一段新枝——长出来——又收掉。
+
+### Echo 134 · 潮候院里那箱只装坏表的箱子 / The Box in the Institute That Holds Only Broken Watches
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院北厢房里有一只旧箱子——箱子里装着很多坏表——没有一只表对过——也没有一只走过一整夜。
+- [2] 某个抄本师偷偷开看过——第二天她手腕上多了一块表——她不认得——也不知道怎么来的。
+- [3] 箱子里的表每一只都停在第四十一次大会散会的那一刻——分秒不差——没有人知道为什么。
+- [4] 抄本师试着修一只——修好了——后来又停了——停的时间就是其他表停止的时间。
+- [5] 值更册最后一页写着"第四十一次大会散会那天——所有人都抬起了袖子——袖口里面——是这么一只表"。
+- [6] 散会那天傍晚值守对账——发现所有人的表——全都离对了——对的不是昼夜。
+
+### Echo 135 · 潮候院里那只永远看向潮汐表的废风向标 / The Rusted Wind Vane in the Institute That Always Faces the Tide Table
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 祠殿顶上有一只废风向标——铸铁的——常年起锈——值更人说看它像看一个不肯低头的老人。
+- [2] 海风东北南吹——它不动——只有微风来的时候偏向祠殿里那张潮汐表的方向。
+- [3] 抄本师登上去看过——它没有指北的针——只有一个粗略的小箭头对着祠殿内部。
+- [4] 第四十一次大会散会那一夜——风向标朝反方向猛转了半圈——第二天又回来了。
+- [5] 值更人最后一次上报前说风向标有生之年唯一开过一次口——它说"要走了"。
+- [6] 值更册最后一页"散会以来它一直没有变方向——而是指着潮汐表"。
 
 ### Echo 14 · 潮汐表的封面 / The Cover of the Tide-Table
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

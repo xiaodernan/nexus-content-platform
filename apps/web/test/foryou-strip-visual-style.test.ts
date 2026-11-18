@@ -106,7 +106,7 @@ describe('──FOR-YOU-STRIP /discover "推荐位"', () => {
 
   it('SHA256 钉死：ForYouStrip（className 脱敏后）', () => {
     expect(createHash('sha256').update(redactClasses(card)).digest('hex')).toBe(
-      '731d799d6840931094fe3c8acaf6664003aa69098b9b8a87b9a0b326090648a9',
+      '08dc41d85eaa224564b4d8cf15d998eb83dbc5cefcdf5c7f66c0c1f068f4c8ea',
     );
   });
 });

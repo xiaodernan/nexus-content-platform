@@ -145,8 +145,8 @@ export const METRICS = {
   },
   nexus_oracle_citation_total: {
     kind: 'counter',
-    help: '潮汐预言（POST /tide/oracle）的引文自检结果——cited 引了正典锚句 / declined 正典没写就如实说没有 / not-cited 自由作答。确定性字符串对齐，不用模型评价模型',
-    labels: { state: ['cited', 'not-cited', 'declined'] },
+    help: 'tide-oracle 的回答被逐字引典的次数：cited=引了/declined=正典没写·诚实答复/not-cited=自由作答',
+    labels: { state: ['cited', 'declined', 'not-cited'] },
   },
   nexus_bible_ask_total: {
     kind: 'counter',

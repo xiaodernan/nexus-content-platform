@@ -96,7 +96,7 @@ describe('──OBSERVER-DEEPREAD /admin/observe "AI 深读"', () => {
 
   it('SHA256 钉死（EOL 归一 + className→@）：组件', () => {
     expect(createHash('sha256').update(redactClasses(card)).digest('hex')).toBe(
-      '8acd50227d9caaa8d3bf575eae928e1b9830c504a9406fa03b5df0666a548ebe',
+      '34535a75f493562174e32ffb990b8d1580582d8ce8e3c355df97547dceb616e4',
     );
   });
 });

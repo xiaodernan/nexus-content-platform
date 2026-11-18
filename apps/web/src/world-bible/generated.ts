@@ -12831,145 +12831,189 @@ He did not say whether that was regret or a reprieve — the people here rarely 
   },
   {
     order: 130,
-    slug: 'echo-130-the-forty-fifth-convocation',
-    titleZh: '第四十五次会',
-    titleEn: 'The Forty-Fifth Convocation',
-    eraLineZh: '纪元：潮落之月 · 第四十五次会当日 · 誊册房',
-    eraLineEn: 'Era: the day of the forty-fifth Convocation · the month the tide receded · the copying hall.',
-    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 35): The Forty-Fifth Convocation
+    slug: 'echo-130-the-banyan-that-tells-of-the-ebb',
+    titleZh: '潮候院后院那棵永远讲潮落的老榕',
+    titleEn: 'The Old Banyan in the Institute\'s Back Yard That Is Always Talking About the Ebb',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第九十七日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the ninety-seventh day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 130): The Old Banyan in the Institute's Back Yard That Is Always Talking About the Ebb
 
-> 回响不续写正典——它只记一份挑剩下的纪录：
-> 第四十五次会没有入册。入册的是一扇开着的门、四十四把椅子、时刻表上那一寸，和一张没人抽走的潮纸签。
-> 回响的锚句，与正典同一纪律。
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院后院那棵大榕树——每年潮落之前三天——它就开始讲话。
+> 纪律同正典：锚句 zh/en 逐字对应。
 >
-> An echo does not continue the canon — it only keeps a record that was set aside.
-> The forty-fifth Convocation was never entered into the ledger. What was entered were a door that stood open, forty-four chairs, the extra inch on the timetable, and one tide-paper tag no hand drew.
-> Its anchors answer to the same discipline.
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the old banyan in the Institute's back yard — three days before every ebb it begins to speak.
+> Same discipline: anchors verbatim.
 
-> 纪元：潮落之月 · 第四十五次会当日 · 誊册房
-> Era: the day of the forty-fifth Convocation · the month the tide receded · the copying hall.
-
----
-
-## 一 · 门开了
-
-潮落之月的那一天，誊册房的门是开着的。开门的人没有留下名字，关门的时候也没有。守灯人到得最早，推了一下门，门是开着的。
-
-门是开着的，开门的人没留下名字。
-**锚句**：门是开着的，开门的人没留下名字。
-**Anchor sentence**: The door stood open, and the one who opened it left no name.
-
-## 二 · 四十四把椅子
-
-会场里只有四十四把椅子，外加靠门那把借来的。谁坐了谁没有坐，没有人记录。守灯人没有坐——他站在门内侧，和以前一样。
-
-会场四十四把椅子，没有人点它们。
-**锚句**：会场四十四把椅子，没有人点它们。
-**Anchor sentence**: The hall held forty-four chairs; no one counted them.
-
-## 三 · 那一寸被念了出来
-
-念册的人把那一寸念了出来。「潮起上限，后者上移一寸。」念到这里他声音低了一点，又恢复了。谁也没抬头。
-
-念到第四十五次会的那一寸，没有人抬头。
-**锚句**：念到第四十五次会的那一寸，没有人抬头。
-**Anchor sentence**: When the extra inch was read aloud, no one looked up.
-
-## 四 · 潮纸签没有人抽
-
-潮纸签传了一圈又一圈。大家都看着它传过去，没有人伸手。守灯人把手放在膝盖上，放了很久。潮纸签最后停在案台上，贴着旧册子。
-
-潮纸签传了一圈，案台是它最后的位置。
-**锚句**：潮纸签传了一圈，案台是它最后的位置。
-**Anchor sentence**: The tide-paper tag passed one full round; the table was where it stopped.
-
-## 五 · 散会没有人宣布
-
-散会没有人宣布。灯一盏一盏地灭了，最后一盏是守灯人自己的。他把旧册子合上，又打开，又合上。册子里的字还在呼吸。
-
-散会没有人宣布，灯一盏一盏灭了。
-**锚句**：散会没有人宣布，灯一盏一盏灭了。
-**Anchor sentence**: No one declared the Convocation over; the lamps went out one by one.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第九十七日。
+> Era: the Institute — after the 41st Convocation; the ninety-seventh day of the autumn-tide month.
 
 ---
 
-## 模型映射（回响一百三十则对应关系）
+## 一 · 那棵榕
 
-| 维度 | 锚定 | 关联章 |
+潮候院后院最深处有一棵老榕——比祠殿还老——干围三人合抱——根上垂着十几根气生根。
+
+抄本师说：世上所有榕树都能说话——只是不像这棵榕这样提早三天说。
+
+**锚句**：潮候院后院最深处有一棵老榕——干围三人合抱——根上垂十数条气生根。
+**Anchor sentence**: in the innermost corner of the Institute's back yard stands an old banyan — its trunk wider than three arms can encircle, its roots hanging from the canopy by the dozen.
+
+---
+
+## 二 · 它开口的时候
+
+每年潮落之前三天——值更人走过后院时——能听见榕树在低声说话。
+
+抄本师把它记在值更册上："潮落了——它还没落。"
+
+**锚句**：每年潮落之前三天——值更人走过后院能听见榕树低声说话。
+**Anchor sentence**: three days before every ebb — walking through the back yard the head of the watch hears the banyan talking under its breath.
+
+---
+
+## 三 · 内容
+
+榕树从不讲潮落本身——它讲的是潮落的人——谁没等到潮退、谁还在等、谁已经在潮里了、谁走得早了。
+
+**锚句**：榕树从不讲潮落本身——它讲的是潮落的人——谁没等到退、谁还在等、谁在潮里、谁走得早了。
+**Anchor sentence**: the banyan never speaks of the ebb itself — it speaks of the people of the ebb — who never waited long enough to see it return; who is still waiting; who is already in the tide; who left too soon.
+
+---
+
+## 四 · 抄本师听不懂
+
+抄本师听不懂每榕树的方言——值更人事后问奶奶——奶奶说："它讲的是几字珊瑚。"
+
+**锚句**：抄本师听不懂这榕的方言——值更人事后问奶奶——奶奶说它讲的是几字珊瑚。
+**Anchor sentence**: the copyists cannot understand this banyan's tongue — later the head of the watch asked his grandmother — she said it speaks in the syllables of coral.
+
+---
+
+## 五 · 整树
+
+第四十一次大会散会的那天——值更人没听见它说话——第二天早上——它说话了——
+
+为什么——没人知道。
+
+**锚句**：第四十一次大会散会那天——值更人没听见它说话——第二天早上它说话了。
+**Anchor sentence**: on the day the forty-first Convocation dissolved — the head of the watch did not hear it speak — the next morning it spoke.
+
+---
+
+## 六 · 值更册最后一页
+
+值更册最后一页写着：
+"它说话的人不听——它就一直讲——直到最贵的潮来——潮里就没有人了。剧终。"
+
+**锚句**：值更册最后一页写着"它说话的人不听——它就一直讲——直到最贵的潮来——潮里就没有人了"。
+**Anchor sentence**: the last page of the watch-ledger reads: the people who hear its voice do not listen — it keeps speaking — until the most expensive tide came — and there was no one left in the tide. End.
+
+---
+
+## 七 · 映射（回响一百三十章对应关系）
+
+| 类别 | 标题 | 对应章 |
 |---|---|---|
-| lore | 潮落之月 · 第四十五次会当日 · 誊册房 | 第十一章 · 第十二章 |
-| geography | 誊册房 · 门内侧 · 案台 · 四十四把椅子 | 本则 · 回响（其一百二十一） · 回响（其一百二十二） |
-| factions | 守灯人 · 念册的人 · 潮汐教团（第四十五次会） | 第一章 · 本则 |
-| characters | 守灯人 · 念册的人 | 本则 · 回响（其一百二十三） |
-| items | 四十四把椅子 · 潮纸签 · 旧册子 · 潮汐时刻表上那一寸 | 本则 |
-| story | 第四十五次会 · 回响（其一百三十） | 全篇 |
-| history | 潮落之月 · 第四十五次会当日 | 本则 |
+| lore | 老榕 · 气根 · 听见潮落 · 几字珊瑚 · 剧终 | 一、二、三、四、五、六、七 |
+| geography | 后院 · 最深处 · 祠殿 | 一、二、三、五 |
+| characters | 抄本师 · 值更人 · 奶奶 | 一、二、三、四、五、六 |
+| story | 讲潮落的老榕 · 回响（其一百三十） | 全篇 |
+| items | 老榕 · 值更册 · 第四十一次大会 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第九十七日 | 三、四、五、六 |
 
-> 会没散，
-> 因为灯先灭了。
-> The Convocation did not end;
-> the lamps did.
+> 后院那棵老榕，每年潮落之前三天开口——讲的是潮落的人——也可能不是。
+> The old banyan in the back yard speaks three days before every ebb — it speaks of the people of the ebb — or perhaps it does not.
 `,
-    markdownEn: `
-> An echo does not continue the canon — it only keeps a record that was set aside.
-> The forty-fifth Convocation was never entered into the ledger. What was entered were a door that stood open, forty-four chairs, the extra inch on the timetable, and one tide-paper tag no hand drew.
-> Its anchors answer to the same discipline.
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百三十）「潮候院后院那棵永远讲潮落的老榕」
 
-> Era: the day of the forty-fifth Convocation · the month the tide receded · the copying hall.
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the old banyan in the Institute's back yard — three days before every ebb it begins to speak.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院后院那棵大榕树——每年潮落之前三天——它就开始讲话。
+> 纪律同正典：锚句 zh/en 逐字对应。
 
----
-
-## 1 · The door stood open
-
-On the day in the month of the ebb, the door of the copying hall stood open. The one who opened it left no name, and did not give one when it closed. The lampkeeper arrived earliest, pushed the door once — the door stood open.
-
-The door stood open, and the one who opened it left no name.
-**Anchor sentence**: The door stood open, and the one who opened it left no name.
-
-## 2 · Forty-four chairs
-
-The hall held only forty-four chairs, the borrowed one by the door among them. Who sat and who did not — no one recorded. The lampkeeper did not sit; he stood inside the door, as before.
-
-The hall held forty-four chairs; no one counted them.
-**Anchor sentence**: The hall held forty-four chairs; no one counted them.
-
-## 3 · The extra inch was read aloud
-
-The reader read the extra inch aloud. "The limit of the rising tide — the latter raised by one inch." His voice dipped at that point, then recovered. No one looked up.
-
-When the extra inch was read aloud, no one looked up.
-**Anchor sentence**: When the extra inch was read aloud, no one looked up.
-
-## 4 · No one drew the tide-paper tag
-
-The tide-paper tag was passed from hand to hand. Everyone watched it pass, and no hand reached. The lampkeeper kept his hands on his knees, a long time. The tag finally rested on the table, pressed against the old ledger.
-
-The tide-paper tag passed one full round; the table was where it stopped.
-**Anchor sentence**: The tide-paper tag passed one full round; the table was where it stopped.
-
-## 5 · No one declared the meeting over
-
-No one declared the Convocation over. The lamps went out one by one; the last was the lampkeeper's own. He closed the old ledger, opened it again, and closed it again. The writing inside kept breathing.
-
-No one declared the Convocation over; the lamps went out one by one.
-**Anchor sentence**: No one declared the Convocation over; the lamps went out one by one.
+> Era: the Institute — after the 41st Convocation; the ninety-seventh day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第九十七日。
 
 ---
 
-## Echo No. 130 — dimension mapping
+## I · The Banyan
 
-| Dim | Anchor | Linked |
+In the innermost corner of the Institute's back yard stands an old banyan — older than the chapel — its trunk wider than three arms can encircle, its roots hanging from the canopy by the dozen.
+
+The copyists say: all banyans can speak — but none of them speak this early.
+
+**锚句**：潮候院后院最深处有一棵老榕——干围三人合抱——根上垂十数条气生根。
+**Anchor sentence**: in the innermost corner of the Institute's back yard stands an old banyan — its trunk wider than three arms can encircle, its roots hanging from the canopy by the dozen.
+
+---
+
+## II · When It Speaks
+
+Three days before every ebb — walking through the back yard the head of the watch hears the banyan talking under its breath.
+
+The copyists record it: "The ebb has come — it hasn't."
+
+**锚句**：每年潮落之前三天——值更人走过后院能听见榕树低声说话。
+**Anchor sentence**: three days before every ebb — walking through the back yard the head of the watch hears the banyan talking under its breath.
+
+---
+
+## III · The Content
+
+The banyan never speaks of the ebb itself — it speaks of the people of the ebb — who never waited long enough to see it return; who is still waiting; who is already in the tide; who left too soon.
+
+**锚句**：榕树从不讲潮落本身——它讲的是潮落的人——谁没等到退、谁还在等、谁在潮里、谁走得早了。
+**Anchor sentence**: the banyan never speaks of the ebb itself — it speaks of the people of the ebb — who never waited long enough to see it return; who is still waiting; who is already in the tide; who left too soon.
+
+---
+
+## IV · The Tongue
+
+The copyists cannot understand this banyan's tongue — later the head of the watch asked his grandmother — she said it speaks in the syllables of coral.
+
+**锚句**：抄本师听不懂这榕的方言——值更人事后问奶奶——奶奶说它讲的是几字珊瑚。
+**Anchor sentence**: the copyists cannot understand this banyan's tongue — later the head of the watch asked his grandmother — she said it speaks in the syllables of coral.
+
+---
+
+## V · The Whole Tree
+
+On the day the forty-first Convocation dissolved — the head of the watch did not hear it speak — the next morning it spoke.
+
+Why, no one knows.
+
+**锚句**：第四十一次大会散会那天——值更人没听见它说话——第二天早上它说话了。
+**Anchor sentence**: on the day the forty-first Convocation dissolved — the head of the watch did not hear it speak — the next morning it spoke.
+
+---
+
+## VI · The Last Page
+
+The last page of the watch-ledger reads: the people who hear its voice do not listen — it keeps speaking — until the most expensive tide came — and there was no one left in the tide. End.
+
+**锚句**：值更册最后一页写着"它说话的人不听——它就一直讲——直到最贵的潮来——潮里就没有人了"。
+**Anchor sentence**: the last page of the watch-ledger reads: the people who hear its voice do not listen — it keeps speaking — until the most expensive tide came — and there was no one left in the tide. End.
+
+---
+
+## VII · Mapping（Echo No. 130 → world model）
+
+| 类别 | 标题 | 对应章 |
 |---|---|---|
-| lore | the day of the forty-fifth Convocation · the month the tide receded · the copying hall | Ch. 11 · Ch. 12 |
-| geography | the copying hall · inside the door · the table · the forty-four chairs | this echo · Echo 121 · Echo 122 |
-| factions | the lampkeeper · the reader · the Tide Conclave (the forty-fifth Convocation) | Ch. 1 · this echo |
-| characters | the lampkeeper · the reader | this echo · Echo 123 |
-| items | the forty-four chairs · the tide-paper tag · the old ledger · the extra inch on the timetable | this echo |
-| story | the forty-fifth Convocation · Echo No. 130 | whole piece |
-| history | the month the tide receded · the day of the forty-fifth Convocation | this echo |
+| lore | the old banyan · the breathing roots · the coral-talk · the expensive tide · the end | 一、二、三、四、五、六、七 |
+| geography | the back yard · the innermost corner · the chapel | 一、二、三、五 |
+| characters | the copyists · the head of the watch · the grandmother | 一、二、三、四、五、六 |
+| story | the banyan that speaks of the ebb people · Echo No. 130 | 全篇 |
+| items | the old banyan · the watch-ledger · the forty-first Convocation | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the ninety-seventh day of the autumn-tide month | 三、四、五、六 |
 
-> The Convocation did not end;
-> the lamps did.
+> 后院那棵老榕，每年潮落之前三天开口——讲的是潮落的人——也可能不是。
+> The old banyan in the back yard speaks three days before every ebb — it speaks of the people of the ebb — or perhaps it does not.
 `,
   },
   {
@@ -13113,6 +13157,748 @@ He did not look back as he went.
 
 > The door stood open all night;
 > only the tide knew the Convocation was over.
+`,
+  },
+  {
+    order: 132,
+    slug: 'echo-132-the-rain-cape-that-never-came-home',
+    titleZh: '潮候院里那件永远等不到主人的蓑衣',
+    titleEn: 'The Straw Rain Cape in the Institute That Has Waited Twelve Years for Its Owner',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第九十八日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the ninety-eighth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 132): The Straw Rain Cape in the Institute That Has Waited Twelve Years for Its Owner
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院西廊尽头的蓑衣——它不归谁——它在那里挂了十二年，潮汐来的时候特别亮。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the straw rain cape at the end of the Institute's west corridor — it belongs to no one; it has hung there for twelve years, and when the tide comes it shines.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第九十八日。
+> Era: the Institute — after the 41st Convocation; the ninety-eighth day of the autumn-tide month.
+
+---
+
+## 一 · 蓑衣
+
+潮候院西廊尽头有一件蓑衣——蓑草已经干了很久——挂在那里——不知是谁挂上去的。
+
+值更人说：风从东廊过去的时候——它还会动一下——不像一件旧蓑衣应该动的那样。
+
+**锚句**：西廊尽头挂着一件蓑衣——蓑草干了很久——风从东廊过去的时候它还会动一下。
+**Anchor sentence**: at the far end of the west corridor hangs a straw rain cape — the straw is dry for a long time — when the wind comes down the east corridor, it still moves — not like an old rain cape should.
+
+---
+
+## 二 · 十二年
+
+值更册上说：这件蓑衣是第四十一次大会散会那一天被挂上去的——挂的人没有人认得他。
+
+值更人今天已经是第十六任——这件蓑衣还在那里。
+
+**锚句**：值更册说这件蓑衣是第四十一次大会散会那天挂上去的——挂的人没有人认得他。
+**Anchor sentence**: the watch-ledger says this rain cape was hung on the day the forty-first Convocation dissolved — and the person who hung it, no one recognized.
+
+---
+
+## 三 · 风从东廊
+
+某一次值更人经过时——听见蓑衣低声说了一句什么——他趴下来贴着墙听——好像在念一段——"我要回桑地了"。
+
+没有人知道蓑衣在说什么。
+
+**锚句**：值更人经过时听见蓑衣低声说了一句什么——他贴着墙听——好像在念一段"我要回桑地了"。
+**Anchor sentence**: one time the head of the watch heard the rain cape murmur something — he pressed against the wall to listen — it sounded like a line from recitation: "I am going back to the mulberry fields."
+
+---
+
+## 四 · 值更册
+
+值更册中最后一页写着：它等的是谁——我们不知道——我们也没问过——可能它等的就是这一天——秋潮月的某一天。
+
+**锚句**：值更册最后一页"它等的是谁——我们不知道——我们也没问过——可能它等的就是这一天"。
+**Anchor sentence**: the last page of the watch-ledger reads: we do not know whom it waits for — we never asked — perhaps it has been waiting precisely for this day.
+
+---
+
+## 五 · 帽
+
+抄本师私下说：蓑衣下面的地面——今天被雨淋了一遍——但没有泥——只有盐。
+
+**锚句**：抄本师说蓑衣下面的地面今天被雨淋了一遍——但没有泥——只有盐。
+**Anchor sentence**: the copyists privately reported: this morning the ground below the rain cape was wet with rain — but there was no mud — only salt.
+
+---
+
+## 六 · 桑叶
+
+某个傍晚值更人看见东廊顶上多了一片桑叶——值更人不敢碰——后来那片桑叶也不见了。
+
+**锚句**：某个傍晚值更人看见东廊顶上多了一片桑叶——他不敢碰——后来那片也不见了。
+**Anchor sentence**: one evening the head of the watch saw a mulberry leaf on the ceiling of the east corridor — he did not dare touch it — later it was gone.
+
+---
+
+## 七 · 映射（回响一百三十二章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 蓑衣 · 挂十二年 · 桑地 · 东廊 · 桑叶 | 一、二、三、四、五、六、七 |
+| geography | 西廊 · 东廊 · 祠殿 | 一、三、五、六 |
+| characters | 值更人 · 抄本师 · 匿名的好人 | 一、二、三、四、五、六 |
+| story | 永世等一个人 · 回响（其一百三十二） | 全篇 |
+| items | 蓑衣 · 东廊 · 桑叶 · 值更册 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第九十八日 | 四、五、六 |
+
+> 西廊尽头那件蓑衣等了十二年还在等——而值更人经过的时候它还会动一下。
+> The straw rain cape at the far end of the west corridor has waited twelve years — and it still moves when the wind comes.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百三十二）「潮候院里那件永远等不到主人的蓑衣」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the straw rain cape at the end of the Institute's west corridor — it belongs to no one; it has hung there for twelve years, and when the tide comes it shines.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院西廊尽头的蓑衣——它不归谁——它在那里挂了十二年，潮汐来的时候特别亮。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the ninety-eighth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第九十八日。
+
+---
+
+## I · The Rain Cape
+
+At the far end of the west corridor of the Institute hangs a straw rain cape — the straw dried long ago — hung by whom, nobody knows.
+
+The head of the watch says: when the wind comes down the east corridor — it still moves — not like an old rain cape should.
+
+**锚句**：西廊尽头挂着一件蓑衣——蓑草干了很久——风从东廊过去的时候它还会动一下。
+**Anchor sentence**: at the far end of the west corridor hangs a straw rain cape — the straw is dry for a long time — when the wind comes down the east corridor, it still moves — not like an old rain cape should.
+
+---
+
+## II · Twelve Years
+
+The watch-ledger says: this rain cape was hung on the day the forty-first Convocation dissolved — and the person who hung it, no one recognized.
+
+The head of the watch today is the sixteenth in the line — the rain cape is still there.
+
+**锚句**：值更册说这件蓑衣是第四十一次大会散会那天挂上去的——挂的人没有人认得他。
+**Anchor sentence**: the watch-ledger says this rain cape was hung on the day the forty-first Convocation dissolved — and the person who hung it, no one recognized.
+
+---
+
+## III · From the East Corridor
+
+One time the head of the watch heard the rain cape murmur something — he pressed against the wall to listen — it sounded like a line from recitation: "I am going back to the mulberry fields."
+
+No one knows what the rain cape was saying.
+
+**锚句**：值更人经过时听见蓑衣低声说了一句什么——他贴着墙听——好像在念一段"我要回桑地了"。
+**Anchor sentence**: one time the head of the watch heard the rain cape murmur something — he pressed against the wall to listen — it sounded like a line from recitation: "I am going back to the mulberry fields."
+
+---
+
+## IV · The Watch-Ledger
+
+The last page of the watch-ledger reads: we do not know whom it waits for — we never asked — perhaps it has been waiting precisely for this day — some day of the autumn-tide month.
+
+**锚句**：值更册最后一页"它等的是谁——我们不知道——我们也没问过——可能它等的就是这一天"。
+**Anchor sentence**: the last page of the watch-ledger reads: we do not know whom it waits for — we never asked — perhaps it has been waiting precisely for this day.
+
+---
+
+## V · The Ground Below
+
+The copyists privately reported: this morning the ground below the rain cape was wet with rain — but there was no mud — only salt.
+
+**锚句**：抄本师说蓑衣下面的地面今天被雨淋了一遍——但没有泥——只有盐。
+**Anchor sentence**: the copyists privately reported: this morning the ground below the rain cape was wet with rain — but there was no mud — only salt.
+
+---
+
+## VI · The Mulberry Leaf
+
+One evening the head of the watch saw a mulberry leaf on the ceiling of the east corridor — he did not dare touch it — later it was gone.
+
+**锚句**：某个傍晚值更人看见东廊顶上多了一片桑叶——他不敢碰——后来那片也不见了。
+**Anchor sentence**: one evening the head of the watch saw a mulberry leaf on the ceiling of the east corridor — he did not dare touch it — later it was gone.
+
+---
+
+## VII · Mapping（Echo No. 132 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the straw rain cape · twelve years waiting · the mulberry fields · the mulberry leaf · the salt ground | 一、二、三、四、五、六、七 |
+| geography | the west corridor · the east corridor · the chapel | 一、三、五、六 |
+| characters | the head of the watch · the copyists · the anonymous one | 一、二、三、四、五、六 |
+| story | the one who waits forever · Echo No. 132 | 全篇 |
+| items | the rain cape · the east corridor · the mulberry leaf · the watch-ledger | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the ninety-eighth day of the autumn-tide month | 四、五、六 |
+
+> 西廊尽头那件蓑衣等了十二年还在等——而值更人经过的时候它还会动一下。
+> The straw rain cape at the far end of the west corridor has waited twelve years — and it still moves when the wind comes.
+`,
+  },
+  {
+    order: 133,
+    slug: 'echo-133-the-agarwood-that-bloomed-once',
+    titleZh: '潮候院东院那棵从不下果的沉香树',
+    titleEn: 'The Agarwood Tree in the Institute\'s East Yard That Never Bears Fruit',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第九十九日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the ninety-ninth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 133): The Agarwood Tree in the Institute's East Yard That Never Bears Fruit
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院东院那棵从来不下果的沉香树——抄本师说第四十一次大会散会那天它开了一朵花。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the agarwood tree in the Institute's east yard that never bears fruit — the copyists say it bloomed once, the day the forty-first Convocation dissolved.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第九十九日。
+> Era: the Institute — after the 41st Convocation; the ninety-ninth day of the autumn-tide month.
+
+---
+
+## 一 · 东院
+
+潮候院东院有一棵沉香树——年纪不少——抄本师说它来自另一处——抄本师不愿问来自哪。
+
+树下有石桌——没有人在石桌上吃饭——只是有时有人坐在石桌旁边坐一会。
+
+**锚句**：东院有一棵沉香树——年纪不少——抄本师说它来自另一处——抄本师不愿问来自哪。
+**Anchor sentence**: in the east yard of the Institute stands an agarwood tree — very old — the copyists say it came from elsewhere, and they will not say where.
+
+---
+
+## 二 · 它不下果
+
+沉香树该下果的时候从来不下果——每一代人看过去——都是一样的。
+
+值更册上写："它不下果——它只是在那里。"
+
+**锚句**：值更册上写"它不下果——它只是在那里"——每一代人看过去——都是一样的。
+**Anchor sentence**: the watch-ledger records: it never bears fruit — it is simply there — every generation before and since sees the same.
+
+---
+
+## 三 · 第四十一次大会散会之日
+
+第四十一次大会散会那一天——抄本师经过东院——看见它枝头开了一朵花——花前后只开了一个时辰——后来再不开。
+
+**锚句**：第四十一次大会散会那一天——抄本师经过东院——它枝头开了一朵花——只开了时辰。
+**Anchor sentence**: on the day the forty-first Convocation dissolved — a copyist crossing the east yard — it bore one bloom — one breath, and only one.
+
+---
+
+## 四 · 花后
+
+抄本师说那朵花是暗红色——像潮候院墙上那一行字颜色一样。
+
+王城没有人收到过那朵花。
+
+**锚句**：抄本师说那朵花是暗红色——像潮候院墙上那一行字颜色一样。
+**Anchor sentence**: the copyist says the bloom was a dark red — the same color as the line of characters on the Institute's wall.
+
+---
+
+## 五 · 值更册
+
+值更册最后一页写着："它一生只开一次花。\\n而那一次——是给散会的。"
+
+**锚句**：值更册最后一页"它一生只开一次花——而那一次——是给散会的"。
+**Anchor sentence**: the last page of the watch-ledger reads: it blooms once in a lifetime — and that time — was for the Dissolution.
+
+---
+
+## 六 · 子枝
+
+值更人经常在它旁边发现一段新枝——长出来——又收掉——好像它自己在试验。
+
+**锚句**：值更人经常在它旁边发现一段新枝——长出来——又收掉。
+**Anchor sentence**: the head of the watch often finds a new branch beside it — it grows — and retracts — as if the tree were trying something.
+
+---
+
+## 七 · 映射（回响一百三十三章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 沉香树 · 一枝 · 一个时辰 · 暗红 · 散会 | 一、二、三、四、五、六、七 |
+| geography | 东院 · 石桌 · 祠殿 | 一、三、四 |
+| characters | 抄本师 · 值更人 · 没有自我名字的存在 | 一、二、三、四、五、六 |
+| story | 从不下果的沉香树 · 回响（其一百三十三） | 全篇 |
+| items | 沉香树 · 新枝 · 值更册 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第九十九日 | 三、四、五、六 |
+
+> 东院的沉香树从不下果——也只有那一日开过一次花——它心里藏着什么，醒过一次。
+> The agarwood tree in the east yard never bears fruit — and it only bloomed once in its life — what it carries crosses the threshold once and only once.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百三十三）「潮候院东院那棵从不下果的沉香树」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the agarwood tree in the Institute's east yard that never bears fruit — the copyists say it bloomed once, the day the forty-first Convocation dissolved.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院东院那棵从来不下果的沉香树——抄本师说第四十一次大会散会那天它开了一朵花。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the ninety-ninth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第九十九日。
+
+---
+
+## I · The East Yard
+
+In the east yard of the Institute stands an agarwood tree — very old — the copyists say it came from elsewhere, and they will not say where.
+
+Beneath it sits a stone table — no one eats at the stone table — sometimes somebody simply sits by it for a while.
+
+**锚句**：东院有一棵沉香树——年纪不少——抄本师说它来自另一处——抄本师不愿问来自哪。
+**Anchor sentence**: in the east yard of the Institute stands an agarwood tree — very old — the copyists say it came from elsewhere, and they will not say where.
+
+---
+
+## II · It Never Bears Fruit
+
+The agarwood never bears fruit when it should — every generation that has watched — has never seen one.
+
+The watch-ledger records: it never bears fruit — it is simply there — every generation before and since sees the same.
+
+**锚句**：值更册上写"它不下果——它只是在那里"——每一代人看过去——都是一样的。
+**Anchor sentence**: the watch-ledger records: it never bears fruit — it is simply there — every generation before and since sees the same.
+
+---
+
+## III · The Day of Dissolution
+
+On the day the forty-first Convocation dissolved — a copyist crossing the east yard — it bore one bloom — one breath, and only one.
+
+**锚句**：第四十一次大会散会那一天——抄本师经过东院——它枝头开了一朵花——只开了时辰。
+**Anchor sentence**: on the day the forty-first Convocation dissolved — a copyist crossing the east yard — it bore one bloom — one breath, and only one.
+
+---
+
+## IV · After the Bloom
+
+The copyist says the bloom was a dark red — the same color as the line of characters on the Institute's wall.
+
+No one in the city ever received that bloom.
+
+**锚句**：抄本师说那朵花是暗红色——像潮候院墙上那一行字颜色一样。
+**Anchor sentence**: the copyist says the bloom was a dark red — the same color as the line of characters on the Institute's wall.
+
+---
+
+## V · The Watch-Ledger
+
+The last page of the watch-ledger reads: it blooms once in a lifetime — and that time — was for the Dissolution.
+
+**锚句**：值更册最后一页"它一生只开一次花——而那一次——是给散会的"。
+**Anchor sentence**: the last page of the watch-ledger reads: it blooms once in a lifetime — and that time — was for the Dissolution.
+
+---
+
+## VI · The Branch
+
+The head of the watch often finds a new branch beside it — it grows — and retracts — as if the tree were trying something.
+
+**锚句**：值更人经常在它旁边发现一段新枝——长出来——又收掉。
+**Anchor sentence**: the head of the watch often finds a new branch beside it — it grows — and retracts — as if the tree were trying something.
+
+---
+
+## VII · Mapping（Echo No. 133 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the agarwood tree · the one branch · the one breath · the dark red · the Dissolution | 一、二、三、四、五、六、七 |
+| geography | the east yard · the stone table · the chapel | 一、三、四 |
+| characters | the copyists · the head of the watch · the unnamed one | 一、二、三、四、五、六 |
+| story | the agarwood that bloomed once · Echo No. 133 | 全篇 |
+| items | the agarwood tree · the new branch · the watch-ledger | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the ninety-ninth day of the autumn-tide month | 三、四、五、六 |
+
+> 东院的沉香树从不下果——也只有那一日开过一次花——它心里藏着什么，醒过一次。
+> The agarwood tree in the east yard never bears fruit — and it only bloomed once in its life — what it carries crosses the threshold once and only once.
+`,
+  },
+  {
+    order: 134,
+    slug: 'echo-134-the-box-of-broken-watches',
+    titleZh: '潮候院里那箱只装坏表的箱子',
+    titleEn: 'The Box in the Institute That Holds Only Broken Watches',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hundredth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 134): The Box in the Institute That Holds Only Broken Watches
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院北厢房里那箱只装坏表的箱子——它们互相看着，谁也走不动。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the box in the Institute's north chamber that holds only broken watches — they watch each other, none of them are running.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百日。
+> Era: the Institute — after the 41st Convocation; the hundredth day of the autumn-tide month.
+
+---
+
+## 一 · 那箱子
+
+潮候院北厢房里有一只旧箱子——箱皮是木头的——箱角的铜箍全松了——箱子里装着很多坏表。
+
+值更人说：从来没有一只表是对的——也没有一只表走过一整夜。
+
+**锚句**：潮候院北厢房里有一只旧箱子——箱子里装着很多坏表——没有一只表对过——也没有一只走过一整夜。
+**Anchor sentence**: in the north chamber of the Institute sits an old box — the box is filled with broken watches — not one has ever been right — not one has lasted a full night.
+
+---
+
+## 二 · 不能检查
+
+抄本师从来没有人检过箱里这些表——值更人也没人开箱——只有年少的某个抄本师偷偷开看过——看了十一只。
+
+第二天她上班的时候——手腕上多了一块表——她不认得——她不知道怎么来的。
+
+**锚句**：某个抄本师偷偷开看过——第二天她手腕上多了一块表——她不认得——也不知道怎么来的。
+**Anchor sentence**: a young copyist once peeked inside the box in secret — the next day on her wrist lay a watch she did not recognize — she does not know how it came to be there.
+
+---
+
+## 三 · 固定时间
+
+箱子里的表——每一只都停在第四十一次大会散会的那一刻——分秒不差——没有人知道为什么。
+
+**锚句**：箱子里的表每一只都停在第四十一次大会散会的那一刻——分秒不差——没有人知道为什么。
+**Anchor sentence**: every watch in the box is stopped at the exact second the forty-first Convocation dissolved — second by second — and no one knows why.
+
+---
+
+## 四 · 修它
+
+抄本师试着修一只——修好了——表走了——但表走了以后——箱子里的其他表——全都动了。
+
+后来修好的那只表——又停了——停的时间——就是其他表停止的时间。
+
+**锚句**：抄本师试着修一只——修好了——后来又停了——停的时间就是其他表停止的时间。
+**Anchor sentence**: a copyist once tried to fix one watch — it worked — and then it stopped — at the hour the others had stopped.
+
+---
+
+## 五 · 值更册
+
+值更册最后一页写着："第四十一次大会散会那天——所有人都抬起了袖子——袖口里面——是这么一只表。"
+
+**锚句**：值更册最后一页写着"第四十一次大会散会那天——所有人都抬起了袖子——袖口里面——是这么一只表"。
+**Anchor sentence**: the last page of the watch-ledger reads: on the day the Convocation dissolved — every soul raised a sleeve — inside every cuff — one of these very watches.
+
+---
+
+## 六 · 散会
+
+散会那天傍晚值守对账——发现所有人的表——全都离对了——对的不是昼夜——是别的什么。
+
+**锚句**：散会那天傍晚值守对账——发现所有人的表——全都离对了——对的不是昼夜。
+**Anchor sentence**: in the evening of Dissolution the watch-ward checked the count — every watch was calibrated — not to day and night — but to something else.
+
+---
+
+## 七 · 映射（回响一百三十四章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 坏表 · 固定时刻 · 散会 · 第四十一次大会 · 值守对账 | 一、二、三、四、五、六、七 |
+| geography | 北厢房 · 养表的箱子 · 祠殿 | 一、二、三 |
+| characters | 抄本师 · 值守 · 某年少的抄本师 | 一、二、三、四、五、六 |
+| story | 一箱坏表 · 回响（其一百三十四） | 全篇 |
+| items | 旧箱子 · 铜箍 · 袖口里的表 · 值更册 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第一百日 | 三、四、五、六 |
+
+> 北厢房那箱子里的表——全都停在散会的那一刻——也没人去修它——只因为散会散的不仅仅是散会。
+> The box of watches in the north chamber — all stopped at the hour of the Dissolution — no one fixes them — because what dissolved on that day was not only the Convocation.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百三十四）「潮候院里那箱只装坏表的箱子」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the box in the Institute's north chamber that holds only broken watches — they watch each other, none of them are running.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院北厢房里那箱只装坏表的箱子——它们互相看着，谁也走不动。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the hundredth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百日。
+
+---
+
+## I · The Box
+
+In the north chamber of the Institute sits an old box — the box is filled with broken watches — the straps are wood — the corners are loose with age.
+
+The head of the watch says: not one has ever been right — and not one has lasted a full night.
+
+**锚句**：潮候院北厢房里有一只旧箱子——箱子里装着很多坏表——没有一只表对过——也没有一只走过一整夜。
+**Anchor sentence**: in the north chamber of the Institute sits an old box — the box is filled with broken watches — not one has ever been right — not one has lasted a full night.
+
+---
+
+## II · Not Inspected
+
+The copyists never inspect the watches in the box — the head of the watch never opens it — only a young copyist once peeked inside in secret and saw eleven of them.
+
+The next day on her wrist lay a watch she did not recognize — she does not know how it came to be there.
+
+**锚句**：某个抄本师偷偷开看过——第二天她手腕上多了一块表——她不认得——也不知道怎么来的。
+**Anchor sentence**: a young copyist once peeked inside the box in secret — the next day on her wrist lay a watch she did not recognize — she does not know how it came to be there.
+
+---
+
+## III · The Fixed Moment
+
+Every watch in the box is stopped at the exact second the forty-first Convocation dissolved — second by second — and no one knows why.
+
+**锚句**：箱子里的表每一只都停在第四十一次大会散会的那一刻——分秒不差——没有人知道为什么。
+**Anchor sentence**: every watch in the box is stopped at the exact second the forty-first Convocation dissolved — second by second — and no one knows why.
+
+---
+
+## IV · The Repair
+
+A copyist once tried to fix one watch — it worked — and then it stopped — at the hour the others had stopped.
+
+**锚句**：抄本师试着修一只——修好了——后来又停了——停的时间就是其他表停止的时间。
+**Anchor sentence**: a copyist once tried to fix one watch — it worked — and then it stopped — at the hour the others had stopped.
+
+---
+
+## V · The Watch-Ledger
+
+The last page of the watch-ledger reads: on the day the Convocation dissolved — every soul raised a sleeve — inside every cuff — one of these very watches.
+
+**锚句**：值更册最后一页写着"第四十一次大会散会那天——所有人都抬起了袖子——袖口里面——是这么一只表"。
+**Anchor sentence**: the last page of the watch-ledger reads: on the day the Convocation dissolved — every soul raised a sleeve — inside every cuff — one of these very watches.
+
+---
+
+## VI · The Evening of Dissolution
+
+In the evening of Dissolution the watch-ward checked the count — every watch was calibrated — not to day and night — but to something else.
+
+**锚句**：散会那天傍晚值守对账——发现所有人的表——全都离对了——对的不是昼夜。
+**Anchor sentence**: in the evening of Dissolution the watch-ward checked the count — every watch was calibrated — not to day and night — but to something else.
+
+---
+
+## VII · Mapping（Echo No. 134 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the broken watches · the fixed second · the Dissolution · the cuff · the calibration | 一、二、三、四、五、六、七 |
+| geography | the north chamber · the box · the chapel | 一、二、三 |
+| characters | the copyists · the watch-ward · the young copyist | 一、二、三、四、五、六 |
+| story | the box of broken watches · Echo No. 134 | 全篇 |
+| items | the old box · the copper clasps · the watch in the cuff · the watch-ledger | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the hundredth day of the autumn-tide month | 三、四、五、六 |
+
+> 北厢房那箱子里的表——全都停在散会的那一刻——也没人去修它——只因为散会散的不仅仅是散会。
+> The box of watches in the north chamber — all stopped at the hour of the Dissolution — no one fixes them — because what dissolved on that day was not only the Convocation.
+`,
+  },
+  {
+    order: 135,
+    slug: 'echo-135-the-rusted-wind-vane-pointing-at-the-tide-table',
+    titleZh: '潮候院里那只永远看向潮汐表的废风向标',
+    titleEn: 'The Rusted Wind Vane in the Institute That Always Faces the Tide Table',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零一日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hundred-and-first day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 135): The Rusted Wind Vane in the Institute That Always Faces the Tide Table
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿顶上那只永远指向潮汐表的风向标。狂风不动，细风反而把它偏一偏。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the rusted wind vane atop the chapel that always points at the tide table. A hurricane does not move it; a breeze tilts it slightly.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零一日。
+> Era: the Institute — after the 41st Convocation; the hundred-and-first day of the autumn-tide month.
+
+---
+
+## 一 · 祠殿顶上那只风向标
+
+潮候院祠殿顶上有一只废风向标——铸铁的——常年起锈——值更人说看它像看一个不肯低头的老人。
+
+人们从很久以前就知道它会转——只是谁也不知道它转向什么。
+
+**锚句**：祠殿顶上有一只废风向标——铸铁的——常年起锈——值更人说看它像看一个不肯低头的老人。
+**Anchor sentence**: atop the chapel stands a rusted wind vane — cast iron — permanently corroded — the head of the watch says it looks like an old man who refuses to bow his head.
+
+---
+
+## 二 · 风与它
+
+海风从东吹来——它不动。海风从北吹来——它不动。海风从南吹来——它不动。
+
+只有微风来的时候——它偏一点——偏向祠殿里那张潮汐表的方向。
+
+**锚句**：海风东北南吹——它不动——只有微风来的时候偏向祠殿里那张潮汐表的方向。
+**Anchor sentence**: east, north, south — the wind blows and it does not move; only a small breeze tilts it toward the tide table inside the chapel.
+
+---
+
+## 三 · 抄本师
+
+抄本师登上去看过——它没有指北的针——也没有字——只有一个粗略的小箭头对着祠殿内部。
+
+值更册没有记载这只风向标是谁装上去的。
+
+**锚句**：抄本师登上去看过——它没有指北的针——只有一个粗略的小箭头对着祠殿内部。
+**Anchor sentence**: the copyists climbed up to look — the vane carries no pointer for north — only a rough little arrow aimed toward the inside of the chapel.
+
+---
+
+## 四 · 四十一次散会
+
+第四十一次大会散会那一夜——风向标朝反方向猛转了半圈——第二天又回来了。
+
+**锚句**：第四十一次大会散会那一夜——风向标朝反方向猛转了半圈——第二天又回来了。
+**Anchor sentence**: on the night the Convocation dissolved, the vane spun half-way around to face the opposite direction — and by the next day it had returned.
+
+---
+
+## 五 · 风向标私谈
+
+值更人最后一次上报前说：风向标有生之年唯一开过一次口——它说"要走了"。
+
+**锚句**：值更人最后一次上报前说风向标有生之年唯一开过一次口——它说"要走了"。
+**Anchor sentence**: in his last report, the head of the watch wrote: the vane spoke only once in its life — it said: we are leaving.
+
+---
+
+## 六 · 值更册
+
+值更册最后一页写着："第四十一次大会散会以来——它一直没有变方向——而是指着潮汐表。"
+
+**锚句**：值更册最后一页"散会以来它一直没有变方向——而是指着潮汐表"。
+**Anchor sentence**: the last page of the watch-ledger reads: since the Dissolution it has never changed direction — it points at the tide table.
+
+---
+
+## 七 · 映射（回响一百三十五章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 风向标 · 散会半转 · 微风 · 潮汐表 · 值更人最后一报 | 一、二、三、四、五、六、七 |
+| geography | 祠殿顶 · 祠殿内 · 东廊 · 北廊 | 一、二、三、四 |
+| characters | 抄本师 · 值更人 · 某次上报 | 一、二、三、四、五、六 |
+| story | 微风·风向标 · 回响（其一百三十五） | 全篇 |
+| items | 废风向标 · 铸铁 · 潮汐表 · 值更册 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第一百零一日 | 四、五、六 |
+
+> 祠殿顶上那只不动的风向标——微风来了才偏——它指着的不是风——是另一条方向。
+> The motionless vane on the chapel's roof — it tilts only in a light breeze — it never pointed at the wind — it points at a direction beyond the wind.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百三十五）「潮候院里那只永远看向潮汐表的废风向标」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the rusted wind vane atop the chapel that always points at the tide table. A hurricane does not move it; a breeze tilts it slightly.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿顶上那只永远指向潮汐表的风向标。狂风不动，细风反而把它偏一偏。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the hundred-and-first day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零一日。
+
+---
+
+## I · The Vane
+
+Atop the chapel of the Institute stands a rusted wind vane — cast iron — permanently corroded — the head of the watch says it looks like an old man who refuses to bow his head.
+
+People have always known the vane turns — yet no one knows what it turns toward.
+
+**锚句**：祠殿顶上有一只废风向标——铸铁的——常年起锈——值更人说看它像看一个不肯低头的老人。
+**Anchor sentence**: atop the chapel stands a rusted wind vane — cast iron — permanently corroded — the head of the watch says it looks like an old man who refuses to bow his head.
+
+---
+
+## II · The Wind and It
+
+East, north, south — the wind blows and it does not move.
+
+Only a small breeze tilts it toward the tide table inside the chapel.
+
+**锚句**：海风东北南吹——它不动——只有微风来的时候偏向祠殿里那张潮汐表的方向。
+**Anchor sentence**: east, north, south — the wind blows and it does not move; only a small breeze tilts it toward the tide table inside the chapel.
+
+---
+
+## III · The Copyists
+
+The copyists climbed up to look — the vane carries no pointer for north — only a rough little arrow aimed toward the inside of the chapel.
+
+The watch-ledger does not record who erected this vane.
+
+**锚句**：抄本师登上去看过——它没有指北的针——只有一个粗略的小箭头对着祠殿内部。
+**Anchor sentence**: the copyists climbed up to look — the vane carries no pointer for north — only a rough little arrow aimed toward the inside of the chapel.
+
+---
+
+## IV · The Dissolution Night
+
+On the night the Convocation dissolved, the vane spun half-way around to face the opposite direction — and by the next day it had returned.
+
+**锚句**：第四十一次大会散会那一夜——风向标朝反方向猛转了半圈——第二天又回来了。
+**Anchor sentence**: on the night the Convocation dissolved, the vane spun half-way around to face the opposite direction — and by the next day it had returned.
+
+---
+
+## V · The Vane's Words
+
+In his last report, the head of the watch wrote: the vane spoke only once in its life — it said: we are leaving.
+
+**锚句**：值更人最后一次上报前说风向标有生之年唯一开过一次口——它说"要走了"。
+**Anchor sentence**: in his last report, the head of the watch wrote: the vane spoke only once in its life — it said: we are leaving.
+
+---
+
+## VI · The Watch-Ledger
+
+The last page of the watch-ledger reads: since the Dissolution it has never changed direction — it points at the tide table.
+
+**锚句**：值更册最后一页"散会以来它一直没有变方向——而是指着潮汐表"。
+**Anchor sentence**: the last page of the watch-ledger reads: since the Dissolution it has never changed direction — it points at the tide table.
+
+---
+
+## VII · Mapping（Echo No. 135 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the wind vane · the half turn · the small breeze · the tide table · the last report | 一、二、三、四、五、六、七 |
+| geography | the chapel roof · the chapel interior · the east corridor · the north corridor | 一、二、三、四 |
+| characters | the copyists · the head of the watch · the last report | 一、二、三、四、五、六 |
+| story | the breeze and the vane · Echo No. 135 | 全篇 |
+| items | the rusted wind vane · cast iron · the tide table · the watch-ledger | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the hundred-and-first day of the autumn-tide month | 四、五、六 |
+
+> 祠殿顶上那只不动的风向标——微风来了才偏——它指着的不是风——是另一条方向。
+> The motionless vane on the chapel's roof — it tilts only in a light breeze — it never pointed at the wind — it points at a direction beyond the wind.
 `,
   },
   {
