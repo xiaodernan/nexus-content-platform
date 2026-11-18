@@ -30,6 +30,7 @@ const script = (replies: readonly AiChatResult[]): { chat: ChatFn; calls: AiChat
 
 const okReal = (text: string, cachedTokens = 2400): AiChatResult => ({
   ok: true,
+  orchestration: 'stategraph',
   response: {
     requestId: 'graph-test',
     capability: 'real',
@@ -55,6 +56,7 @@ const okReal = (text: string, cachedTokens = 2400): AiChatResult => ({
 });
 const down503: AiChatResult = {
   ok: false,
+  orchestration: 'stategraph',
   status: 503,
   error: { code: 'provider-unavailable', message: 'nope', hint: '', retryable: true },
 };
@@ -103,6 +105,7 @@ describe('§47-graph · runCharacterChatGraph', () => {
   it('capability 如实透传（不硬编码 real）', async () => {
     const demoRun: AiChatResult = {
       ok: true,
+      orchestration: 'stategraph',
       response: {
         requestId: 'graph-test',
         capability: 'demo',

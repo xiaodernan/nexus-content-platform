@@ -33,6 +33,7 @@ const script = (replies: readonly AiChatResult[]): { chat: ChatFn; calls: AiChat
 
 const okReal = (text: string, cachedTokens = 2048): AiChatResult => ({
   ok: true,
+  orchestration: 'stategraph',
   response: {
     requestId: 'graph-test',
     capability: 'real',
@@ -58,6 +59,7 @@ const okReal = (text: string, cachedTokens = 2048): AiChatResult => ({
 });
 const down503: AiChatResult = {
   ok: false,
+  orchestration: 'stategraph',
   status: 503,
   error: { code: 'provider-unavailable', message: 'nope', hint: '', retryable: true },
 };

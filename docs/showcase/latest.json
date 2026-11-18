@@ -7,10 +7,10 @@
   "first_commit_at": "2026-09-22",
   "adrs": 347,
   "contracts": 14,
-  "services": 6,
+  "services": 5,
   "packages": 10,
   "apps": 4,
-  "test_files": 585,
+  "test_files": 569,
   "feature_surface": [
     "studio",
     "design-model",

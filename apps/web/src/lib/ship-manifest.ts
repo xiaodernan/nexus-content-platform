@@ -1,4 +1,4 @@
-/** 由 scripts/gen-ship-manifest.mts 机械生成——勿手改。生成于 2026-11-18T12:12:26.486Z (eb6a3be9) */
+/** 由 scripts/gen-ship-manifest.mts 机械生成——勿手改。生成于 2026-11-18T14:19:17.964Z (6e966049) */
 export interface ShipEntry { hash: string; date: string; subject: string }
 export interface ShipDay { date: string; entries: ShipEntry[] }
 export const SHIP_DAYS: ShipDay[] = [
@@ -6,74 +6,44 @@ export const SHIP_DAYS: ShipDay[] = [
     "date": "2026-11-18",
     "entries": [
       {
-        "hash": "a48ace3026",
+        "hash": "200c647328",
         "date": "2026-11-18",
-        "subject": "feat(ai): LangGraph StateGraph 成为 /api/ai/run 默认车道（cont. 222 / ADR-0236）"
+        "subject": "feat(§BIBLE-84): Echo #84 (作者手写·双语·488/488 绿)"
       },
       {
-        "hash": "12bd9b38ef",
+        "hash": "2c7172f022",
         "date": "2026-11-18",
-        "subject": "merge(spring-cloud): java-* 退役 → nexus-* 唯一家族（ADR-0237），topology 22/22 PASS"
+        "subject": "docs(§showcase): v951 后指针快照 (head=200c6473)"
       },
       {
-        "hash": "86101b04f3",
+        "hash": "653acfdaa7",
         "date": "2026-11-18",
-        "subject": "feat(canon): 回响（其二十三）《第四十二次会 / The Forty-Second Convocation》上线"
+        "subject": "docs(§SESSION-952): v947→v951 总账 · 个人页 live 核对逐字 · EN/zh 全页 0 汉字残留"
       },
       {
-        "hash": "47ba6313dd",
+        "hash": "b32aa16986",
         "date": "2026-11-18",
-        "subject": "feat(canon): 潮汐见证 Tide-Eye Witness 接入 /bible 章节阅读页（LLM 真链路 · 100% cache 命中）"
+        "subject": "docs(§showcase): v952 后指针快照 (head=653acfda)"
       },
       {
-        "hash": "de80ce2c13",
+        "hash": "94b9f4cd78",
         "date": "2026-11-18",
-        "subject": "feat(canon): 回响（其二十四）《灰封》上线 · 潮汐见证链全层兑现"
+        "subject": "feat(§BIBLE-85): Echo #85 (作者手写·双语·494/494 绿)"
       },
       {
-        "hash": "907d89afd3",
+        "hash": "eaea619238",
         "date": "2026-11-18",
-        "subject": "feat(insight): 潮汐签 · Tide Cast 接入 /insight（LLM 真链路 · 真实 star @ gpt-6.1-terra · 100% cache hit）"
+        "subject": "docs(§showcase): v953 后指针快照 (head=94b9f4cd)"
       },
       {
-        "hash": "d5f39b4ba4",
+        "hash": "aaf3c83968",
         "date": "2026-11-18",
-        "subject": "feat(canon): 回响（其二十五）《灰炉》上线 · LLM 真接全景完善"
+        "subject": "feat(§BIBLE-86): Echo #86 (作者手写·双语·500/500 绿)"
       },
       {
-        "hash": "6fd55bf077",
+        "hash": "8875a2124c",
         "date": "2026-11-18",
-        "subject": "feat(canon): 潮汐预言 `/tide-oracle` 上线 · canon LLM 公开入口（真链路 100% 首响 KV / 94–100%）"
-      },
-      {
-        "hash": "71b9d83cce",
-        "date": "2026-11-18",
-        "subject": "feat(stress): prod next start 高并发压测如实补档 · insight 口令 123 撞库门（§十一/§九）"
-      },
-      {
-        "hash": "9bad9d671e",
-        "date": "2026-11-18",
-        "subject": "feat(admin): 观察站 AI 深读升级「形势 · 展望 · 7 天推断 · 下一步」三段（§九 趋势预测落地）"
-      },
-      {
-        "hash": "d42c07bf98",
-        "date": "2026-11-18",
-        "subject": "feat(canon): 回响（其二十六）《第四十三次会》上线 · 世界大典 E22–E26 全链同步"
-      },
-      {
-        "hash": "3a376b932d",
-        "date": "2026-11-18",
-        "subject": "feat(home): 首页快速上手条加入「问潮 · 潮汐预言」入口（tide-oracle 可见性）"
-      },
-      {
-        "hash": "d459715030",
-        "date": "2026-11-18",
-        "subject": "docs(readme): services 五服务清单对齐 ADR-0237（java-* 退役如实说明）"
-      },
-      {
-        "hash": "ba194558f1",
-        "date": "2026-11-18",
-        "subject": "feat(tide): 并行会话分布式 single-flight 开启 + /tide-wire 今日潮声 · 公开聚合 LLM 面"
+        "subject": "docs(§showcase): v954 后指针快照 (head=aaf3c839)"
       },
       {
         "hash": "bba89f1e9a",
@@ -86,6 +56,46 @@ export const SHIP_DAYS: ShipDay[] = [
         "subject": "fix(tide): /tide-wire 进程内单飞——并发首访合并为一次 provider 调用"
       },
       {
+        "hash": "08e994515e",
+        "date": "2026-11-18",
+        "subject": "feat(§PROOF-CHARACTER-CHAT): 角色对话 live 端到端（注册→项目→角色→3 连问×2 次）· usage 透传 + 对话框缓存徽章 · 91-94% provider KV 复用 · 100% L2 精确命中如实标注"
+      },
+      {
+        "hash": "9ca07fdce9",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v955 后指针快照 (head=08e99451)"
+      },
+      {
+        "hash": "3318fce2af",
+        "date": "2026-11-18",
+        "subject": "feat(§PROOF-BURST-12·ADR-0282): 交错提问缓存稳定性实证 · 11/12 命中 · 交替 Q1/Q2 不破坏 digest lane · Codex 对照成文"
+      },
+      {
+        "hash": "a76329463d",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v956 后指针快照 (head=3318fce2)"
+      },
+      {
+        "hash": "7e580d8303",
+        "date": "2026-11-18",
+        "subject": "feat(§BIBLE-87): Echo #87 (作者手写·双语·506/506 绿)"
+      },
+      {
+        "hash": "473c5426a9",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v957 后指针快照 (head=7e580d83)"
+      },
+      {
+        "hash": "02d0463069",
+        "date": "2026-11-18",
+        "subject": "feat(§PROOF-STUDIO-LANE-CACHE): Studio 主生成路径（/v1/ai/run · JSON wire）缓存实测 · L2 100% 精确回放 + 冷发 provider 0 分理清 · 5 lane 缓存矩阵连贯补全"
+      },
+      {
+        "hash": "56dd00f42d",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v958 后指针快照 (head=02d04630)"
+      },
+      {
         "hash": "8e92c7f26d",
         "date": "2026-11-18",
         "subject": "feat(frontend): Lighthouse a11y 全线 1.0——真重叠/对比度/可读名修复（§五）"
@@ -96,9 +106,29 @@ export const SHIP_DAYS: ShipDay[] = [
         "subject": "feat(canon): 回响（其二十七）《退潮之后》上线 · 世界大典 E22–E27 全链同步"
       },
       {
+        "hash": "0efa01d239",
+        "date": "2026-11-18",
+        "subject": "feat(§MERGE-TWO-ORIGIN-MAIN): 合流 remote 并行线 · origin/main 013 章 + 26 回响融入 · verify 698/698 · fe-gates 1370/1370 · digest 13 章 + 112 回响 + 4 annex"
+      },
+      {
+        "hash": "b9b24caf76",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v959 后指针快照 (head=0c0d9cd7)"
+      },
+      {
         "hash": "b69a689b67",
         "date": "2026-11-18",
         "subject": "fix(tide-wire): 统计查询段 `unstable_cache(stats)` 化"
+      },
+      {
+        "hash": "040289cfa1",
+        "date": "2026-11-18",
+        "subject": "fix(§I18N-MERGE-LEDGER): v960 · 13 章正典 / 112 回响 全量文案对齐 · 题库 71 题 · 5 处 pins 重钉 · digest/pin 一致性"
+      },
+      {
+        "hash": "5b7e939a68",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v960 后指针快照 (head=040289cf)"
       },
       {
         "hash": "127ed2e963",
@@ -106,9 +136,39 @@ export const SHIP_DAYS: ShipDay[] = [
         "subject": "feat(canon): 回响（其二十八）《潮信》上线 · 世界大典 E22–E28 全链同步"
       },
       {
+        "hash": "4202fa50bd",
+        "date": "2026-11-18",
+        "subject": "feat(§BIBLE-113): Echo #113《后墙那道裂》(作者手写·双语·704/704 绿) · 合流后首测 live probe · 93.8% prefix reuse · 100% 同问题复用"
+      },
+      {
+        "hash": "7db4cf867e",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v961 后指针快照 (head=4202fa50)"
+      },
+      {
+        "hash": "4dd20e5030",
+        "date": "2026-11-18",
+        "subject": "feat(§PROOF-POST-MERGE-LIVE): 合流后 live 全链路探针 · 注册→/bible/ask→provider real asks · cachedTokens=64,076 (93.8%·缓存矩阵第六 lane)"
+      },
+      {
+        "hash": "725979a688",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v962 后指针快照 (head=4dd20e50)"
+      },
+      {
         "hash": "f7e6a47db7",
         "date": "2026-11-18",
         "subject": "feat(canon): 回响（其二十九）《第四十四次会》上线 · 世界大典 E22–E29 全链同步"
+      },
+      {
+        "hash": "1181db417c",
+        "date": "2026-11-18",
+        "subject": "fix(§BIBLE-ASK-RETRY): 浏览器 5xx → 内部重试一次 (800ms) 成功率↑ · 首个 5xx 不再 false-阳性 honest 状态"
+      },
+      {
+        "hash": "ea5f81d35a",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v963 后指针快照 (head=1181db41)"
       },
       {
         "hash": "06ea809f72",
@@ -116,9 +176,39 @@ export const SHIP_DAYS: ShipDay[] = [
         "subject": "feat(canon): 回响（其三十）《靠门的椅子》上线 · 世界大典 E22–E30 全链同步"
       },
       {
+        "hash": "98701ed13c",
+        "date": "2026-11-18",
+        "subject": "feat(§BIBLE-114): Echo #114《西厢黑皮账》(作者手写·双语·710/710 绿) · digest 94,373 chars · fe-gates 1370/1370"
+      },
+      {
+        "hash": "bf986387b0",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v964 后指针快照 (head=9c063cd5)"
+      },
+      {
         "hash": "145a860fa1",
         "date": "2026-11-18",
         "subject": "feat(canon): 回响（其三十一）《借椅子》上线 · 世界大典 E22–E31 全链同步"
+      },
+      {
+        "hash": "a435fffa80",
+        "date": "2026-11-18",
+        "subject": "feat(§BIBLE-115): Echo #115《北库铜熨斗》(作者手写·双语·716/716 绿) · digest 94,650 chars · fe-gates 1370/1370"
+      },
+      {
+        "hash": "b73050f38b",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v965 后指针快照 (head=a435fffa)"
+      },
+      {
+        "hash": "4a1df5c881",
+        "date": "2026-11-18",
+        "subject": "fix(§CACHE-POST-MERGE): 合流后新 digest 缓存实测 · 同问句 100% · 异问 93.7%"
+      },
+      {
+        "hash": "b25f414745",
+        "date": "2026-11-18",
+        "subject": "fix(§I18N-GUIDECOPY-COUNTS): /guide 说明书里的章节/回响/锚句数字与真值对齐 (13 章 · 115 回响 · 196 锚句 · thirteen + one hundred fifteen)"
       },
       {
         "hash": "47cef78ea1",
@@ -126,9 +216,29 @@ export const SHIP_DAYS: ShipDay[] = [
         "subject": "feat(canon): 回响（其三十二）《潮的名字》上线 · 世界大典 E22–E32 全链同步"
       },
       {
+        "hash": "c5a7f5cc24",
+        "date": "2026-11-18",
+        "subject": "feat(§BIBLE-116): Echo #116《北长廊》(作者手写·双语·722/722 绿) · digest 94,996 chars · fe-gates 1370/1370 · /guide stale counts fixed"
+      },
+      {
+        "hash": "52aacc756d",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v966 后指针快照 (head=c5a7f5cc)"
+      },
+      {
         "hash": "1f8d357759",
         "date": "2026-11-18",
         "subject": "feat(canon): 回响（其三十三）《旧册子里的名字》上线 · 世界大典 E22–E33 全链同步"
+      },
+      {
+        "hash": "684958612d",
+        "date": "2026-11-18",
+        "subject": "feat(§LLM-RETRY-ONCE): 全站浏览器侧 LLM 端点 5xx 自动重试一次 (800ms) · §PROOF-INSIGHT-LANE 探针证据"
+      },
+      {
+        "hash": "4270db0e58",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v967 后指针快照 (head=68495861)"
       },
       {
         "hash": "fa21c5d127",
@@ -136,329 +246,214 @@ export const SHIP_DAYS: ShipDay[] = [
         "subject": "feat(canon): 回响（其三十四）《潮起来的时候》上线 · 世界大典 E22–E34 全链同步"
       },
       {
+        "hash": "3af949e431",
+        "date": "2026-11-18",
+        "subject": "feat(§BIBLE-117): Echo #117《第九潮汐表》(作者手写·双语·728/728 绿) · digest 95,336 chars · fe-gates 1370/1370"
+      },
+      {
+        "hash": "27db8a561b",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v968 后指针快照 (head=3af949e4)"
+      },
+      {
+        "hash": "c3209343f7",
+        "date": "2026-11-18",
+        "subject": "fix(§CACHE-KEY-STICKY-DEFAULT): prompt_cache_key 缺省翻转为 sticky per-lane · 常量 lane 实测 6/11 次 502 → sticky 12/12 200 · cached≈100% (ADR-0284) · pytest 455/455 · stategraph 因 langgraph 漏装转绿"
+      },
+      {
+        "hash": "e2d719ef58",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v969 后指针快照 (head=c3209343)"
+      },
+      {
         "hash": "c8eaae7ff8",
         "date": "2026-11-18",
         "subject": "feat(ai): 大上下文落地 — Tide-Oracle 能进 119,904 tokens + KV cache 100% 稳定"
       },
       {
+        "hash": "86c0b4218a",
+        "date": "2026-11-18",
+        "subject": "feat(§BIBLE-MERGE-ORIGIN-2): origin/main cont.241-251 并行成果接入 · 8 新回响（E118-E125 · blob 逐字 · 768/768 绿）· Lighthouse a11y（§五：对比度/可读名/真重叠修复 + tt-fab-locale + kb-fab 避让 + forced-colors 闭括号补齐）· /tide-wire unstable_cache · quiz 71→87 · 锚句 196→626 · digest 96,679 chars · fe-gates 1370/1370"
+      },
+      {
+        "hash": "bbbbe7feb9",
+        "date": "2026-11-18",
+        "subject": "Merge remote-tracking branch 'origin/main'"
+      },
+      {
+        "hash": "23cea656f5",
+        "date": "2026-11-18",
+        "subject": "feat(§BIG-CONTEXT): digest 2.37× 扩容 (96,679 → 229,140 chars · ≈148K tokens) · newest-first 回响配额(125k zh chars) · AiChatRequestSchema.system.max 112k→256k · 直打实测 147,519 tokensIn · cache 100% · verify 768/768 · fe-gates 1370/1370"
+      },
+      {
         "hash": "ed3dbd0f1e",
         "date": "2026-11-18",
         "subject": "feat(ai): 对话车道上图 — 25 处 LLM 调用默认走 StateGraph（/v1/ai/chat-graph）"
-      }
-    ]
-  },
-  {
-    "date": "2026-11-17",
-    "entries": [
-      {
-        "hash": "560d7a1f42",
-        "date": "2026-11-17",
-        "subject": "docs(§showcase): v855 后指针快照 (head=5af15d1f)"
       },
       {
-        "hash": "c5af9bd5cd",
-        "date": "2026-11-17",
-        "subject": "feat(§v856-vis-fonts): 真实字体接入（Inter/JetBrains Mono/Noto SC）+ 六页真渲染巡检 + 问典回响计数 26→35"
+        "hash": "2d09a79359",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v970 后指针快照 (head=23cea656 · big-context 147K tokens)"
       },
       {
-        "hash": "4e1f0a433a",
-        "date": "2026-11-17",
-        "subject": "docs(§showcase): v856 后指针快照 (head=c5af9bd5)"
+        "hash": "8bb586c3c8",
+        "date": "2026-11-18",
+        "subject": "Merge remote-tracking branch 'origin-main-pat2'"
       },
       {
-        "hash": "844a6a7e64",
-        "date": "2026-11-17",
-        "subject": "fix(§v857-help-drawer-zindex): Studio 帮助抽屉层级高于属性栏（50→55）并避让顶栏"
+        "hash": "bf2ed19f9a",
+        "date": "2026-11-18",
+        "subject": "Merge remote-tracking branch 'origin-final-check'"
       },
       {
-        "hash": "cdbc6ec803",
-        "date": "2026-11-17",
-        "subject": "docs(§showcase): v857 后指针快照 (head=844a6a7e)"
+        "hash": "a442b70da1",
+        "date": "2026-11-18",
+        "subject": "feat(§STRESS-16): 16 并发风暴（合流 digest · 147K tokens/发）· 100% KV cache 全额 · wall 173-176ms · 0 5xx"
       },
       {
-        "hash": "284fbe7a60",
-        "date": "2026-11-17",
-        "subject": "docs(§v858-audit-proved7): Studio 22 面板巡检（无新缺陷）+ 付费 provider §PROVED-7 复测"
+        "hash": "27ad0a8dcf",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v973 后指针快照 (head=a442b70d · §STRESS-16 100% KV)"
       },
       {
-        "hash": "7cd1b90fab",
-        "date": "2026-11-17",
-        "subject": "docs(§showcase): v858 后指针快照 (head=284fbe7a)"
+        "hash": "172e7309be",
+        "date": "2026-11-18",
+        "subject": "feat(§INSIGHT-LANE-RETEST): /insight ⑧ 车道合流后重探 · 全绿（100% same / 93.6% variant / 4.8% cold）· 证据 满载 tokensIn=148,228 · 此前 502 自愈"
       },
       {
-        "hash": "c66b34e99b",
-        "date": "2026-11-17",
-        "subject": "feat(§v859-bible-echo-36): 回响其三十六 + 潮汐挑战第 15 题 + 15/15 结算档"
+        "hash": "b74544b341",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v974 后指针快照 (head=a8644ffa · insight-lane-retest 全绿 100%/93.6%)"
       },
       {
-        "hash": "478b3ab045",
-        "date": "2026-11-17",
-        "subject": "docs(§showcase): v859 后指针快照 (head=c66b34e9)"
+        "hash": "a3dcd62b4b",
+        "date": "2026-11-18",
+        "subject": "feat(canon): 回响（其三十五）《第四十五次会》上线 · 世界大典 E22–E35 全链同步"
       },
       {
-        "hash": "a5fea41b84",
-        "date": "2026-11-17",
-        "subject": "fix(§v859p-bible-ask-36): 问典 lede 回响篇数 35→36（E36 落库后同步）"
+        "hash": "7e7f15fa6b",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v975 后指针快照 (head=78254ece · E2E-RETEST 端到端绿)"
       },
       {
-        "hash": "1b73eb678c",
-        "date": "2026-11-17",
-        "subject": "docs(§showcase): v859p 后指针快照 (head=a5fea41b)"
+        "hash": "a17a5cd3b8",
+        "date": "2026-11-18",
+        "subject": "feat(§BIBLE-126): Echo #126《后院永不长叶的海棠》(作者手写·双语·774/774 绿) · digest 229,553 chars · fe-gates 1370/1370"
       },
       {
-        "hash": "4e3bd4a758",
-        "date": "2026-11-17",
-        "subject": "docs(§v860-proved8): 应用内 CSRF+IP gate+Redis L2 回放的真实 E2E 落库"
+        "hash": "358392b243",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v976 后指针快照 (head=a17a5cd3 · Echo #126 · 774 锚句)"
       },
       {
-        "hash": "d103598a29",
-        "date": "2026-11-17",
-        "subject": "docs(§showcase): v860 后指针快照 (head=4e3bd4a7)"
+        "hash": "f1fa24d913",
+        "date": "2026-11-18",
+        "subject": "feat(§CHAT-GRAPH-RETRY): 服务器侧 chatWithCharacter 5xx → 800ms 重试一次 · tide-wire sentence key→v2 避开 Redis 空行 · 新增 500→200 / 500→500 两个用例 · fe-gates 1370/1370"
       },
       {
-        "hash": "3f5541058c",
-        "date": "2026-11-17",
-        "subject": "docs(§v861-proved9): provider 原生 KV 命中率实测（22733/24066 ≈ 94.5%）+ 回响篇数动态渲染"
+        "hash": "88d3af5fff",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v977 后指针快照 (head=f1fa24d9 · 服务器侧 5xx 重试 × 4 调用方全受益)"
       },
       {
-        "hash": "8d31712e7e",
-        "date": "2026-11-17",
-        "subject": "docs(§showcase): v861 后指针快照 (head=3f554105)"
+        "hash": "cb612fd356",
+        "date": "2026-11-18",
+        "subject": "feat(§BIBLE-127): Echo #127《档案室第十二册》(作者手写·双语·780/780 绿) · digest 229,974 chars · fe-gates 1370/1370"
       },
       {
-        "hash": "7f54f17366",
-        "date": "2026-11-17",
-        "subject": "docs(§v862-blocked): 诚实记录正典第六章本轮质量不达标，未入库，门全绿"
+        "hash": "9a698b8ae8",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v978 后指针快照 (head=cb612fd3 · Echo #127 · 780 锚句)"
       },
       {
-        "hash": "c27e732f38",
-        "date": "2026-11-17",
-        "subject": "fix(§v863): 问典 meta description 26 回响改为 36 回响, 正典纪律记录"
+        "hash": "79d59bd743",
+        "date": "2026-11-18",
+        "subject": "feat(§FE-14-TEACHINGS): marketplace 行 4 个按键加 title 教学注入（编辑价格/举报/购买/下载）· 中文英文齐活 · fe-gates 1370/1370"
       },
       {
-        "hash": "4e25cc54bd",
-        "date": "2026-11-17",
-        "subject": "docs(§v863): cont.232 正典封门纪律写入台账"
+        "hash": "6906873a66",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v979 后指针快照 (head=79d59bd7 · 市场按键教学 title 注入)"
       },
       {
-        "hash": "cba644c7ab",
-        "date": "2026-11-17",
-        "subject": "docs(§showcase): v863 后指针快照 (head=4e25cc54)"
+        "hash": "dd4c61d249",
+        "date": "2026-11-18",
+        "subject": "feat(§FE-15-TEACHINGS-2): 注销面板 4 颗按键教学 title 注入（中文/英文双语 · zh/en）· fe-gates 1370/1370"
       },
       {
-        "hash": "4418d4cbb5",
-        "date": "2026-11-17",
-        "subject": "feat(§v864-quiz-verdict-shelf): 潮汐挑战 verdict 加「回典籍室 →」链接 + 手册/空态同步十五题"
+        "hash": "19a3acf415",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v980 后指针快照 (head=dd4c61d2 · 注销面板 4 按键教学)"
       },
       {
-        "hash": "09740d904a",
-        "date": "2026-11-17",
-        "subject": "docs(§showcase): v864 后指针快照 (head=4418d4cb)"
+        "hash": "ff2b3ead84",
+        "date": "2026-11-18",
+        "subject": "feat(§BIBLE-128): Echo #128《走廊小鼓》(作者手写·双语·786/786 绿) · digest 230,335 chars · fe-gates 1370/1370"
       },
       {
-        "hash": "0d276f34ae",
-        "date": "2026-11-17",
-        "subject": "feat(admin): §九 只读观察站 /admin/observe——口令 123（公开）· 全用户行为实库读数"
+        "hash": "bae56fee5f",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v981 后指针快照 (head=ff2b3ead · Echo #128 · 786 锚句)"
       },
       {
-        "hash": "635410edda",
-        "date": "2026-11-17",
-        "subject": "fix(observer): 撤销口令 cookie 带正确 path（/admin/observe）与 Max-Age=0——DELETE 后守门态必须重现"
+        "hash": "4c07be4c2d",
+        "date": "2026-11-18",
+        "subject": "feat(§BIBLE-129): Echo #129《祠殿檐下的木牌》(作者手写·双语·792/792 绿) · digest 230,779 chars · fe-gates 1370/1370"
       },
       {
-        "hash": "ef9edec89f",
-        "date": "2026-11-17",
-        "subject": "docs(§v865-proved10): distributor 沟槽与 sticky key 取证"
+        "hash": "c6d24a9cf5",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v982 后指针快照 (head=4c07be4c · Echo #129 · 792 锚句)"
       },
       {
-        "hash": "c45a8e0fe7",
-        "date": "2026-11-17",
-        "subject": "docs(§showcase): v865 后指针快照 (head=29a7b08e)"
+        "hash": "b647e8d453",
+        "date": "2026-11-18",
+        "subject": "Merge remote-tracking branch 'origin/main'"
       },
       {
-        "hash": "a8db4f6632",
-        "date": "2026-11-17",
-        "subject": "feat(observer): /admin/observe 挂「AI 深读」——gpt-6.1-terra 照实测聚合起草下一步（LLM 切面 12）"
+        "hash": "688c221ad1",
+        "date": "2026-11-18",
+        "subject": "feat(§PROOF-BIG-CONTEXT-V982): 合流 digest 12 发直打 · 100% 稳态 · 零 5xx · 148,677 tokensIn/问 · cacheReported=true"
       },
       {
-        "hash": "e9958b6dc5",
-        "date": "2026-11-17",
-        "subject": "docs(§v867-stream-fix): NEXUS_LLM_STREAM=0 to 1（修复漂移）"
+        "hash": "68978668b1",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v983 后指针快照 (head=688c221a · 当前 digest 直打 12-发 · 100%)"
       },
       {
-        "hash": "2c5ead7498",
-        "date": "2026-11-17",
-        "subject": "docs(§showcase): v867 后指针快照 (head=e9958b6d)"
+        "hash": "4bd3c4a51a",
+        "date": "2026-11-18",
+        "subject": "feat(§BIBLE-SEARCH-ASK): /bible/search 直+上问典按钮 · StateGraph 小模型释义 button · 146,759 cached · fe-gates 1370/1370 · 浏览器实测绿"
       },
       {
-        "hash": "03856add8a",
-        "date": "2026-11-17",
-        "subject": "feat(canon): 回响（其二十）《第一个名字》 / Echo No. 20 — 灰后那一行（20 回响 · 191 锚句）"
+        "hash": "4915d5d8cb",
+        "date": "2026-11-18",
+        "subject": "docs(§showcase): v984 后指针快照 (head=4bd3c4a5 · /bible/search 嵌 StateGraph 问典 · 浏览器实测 cached=146,759 · 100% digest 复用)"
       },
       {
-        "hash": "db7acf5248",
-        "date": "2026-11-17",
-        "subject": "docs(§v868): 端到端重验 + ADR-0228 本机 Provider 连通 recipe"
+        "hash": "560b2dcfc9",
+        "date": "2026-11-18",
+        "subject": "Merge remote-tracking branch 'origin/main'"
       },
       {
-        "hash": "75448da565",
-        "date": "2026-11-17",
-        "subject": "docs(§showcase): v868 后指针快照 (head=db7acf52)"
+        "hash": "d3da1eb220",
+        "date": "2026-11-18",
+        "subject": "Merge remote-tracking branch 'origin/main'"
       },
       {
-        "hash": "8efc6f5ba4",
-        "date": "2026-11-17",
-        "subject": "docs(§v869-proved13): distributor 22,733/24,066 命中稳定复现"
+        "hash": "f8f059cd91",
+        "date": "2026-11-18",
+        "subject": "sync(showcase): latest.json 指到 d3da1eb2（两线合流 v984 · /bible/search StateGraph 上线）"
       },
       {
-        "hash": "2373a76b31",
-        "date": "2026-11-17",
-        "subject": "docs(§showcase): v869 后指针快照 (head=cf46d3e8)"
+        "hash": "dfc3fdd7b7",
+        "date": "2026-11-18",
+        "subject": "sync(ship-manifest): 指向 f8f059cd（两线合流后 v984 / search-StateGraph）"
       },
       {
-        "hash": "7fcd0ed50f",
-        "date": "2026-11-17",
-        "subject": "merge: 把 local-clone/main 的 171 个提交并入 master（annex 支线大典已先行收编）"
-      },
-      {
-        "hash": "663374a195",
-        "date": "2026-11-17",
-        "subject": "docs(§v870-proved14): codex 源码调研完成 - sticky key 已落地"
-      },
-      {
-        "hash": "5cded7484f",
-        "date": "2026-11-17",
-        "subject": "docs(§showcase): v870 后指针快照 (head=663374a1)"
-      },
-      {
-        "hash": "f08d65a460",
-        "date": "2026-11-17",
-        "subject": "docs(§v871-e37-failed): honest register of failed E37 Chinese output"
-      },
-      {
-        "hash": "2d1ffa5329",
-        "date": "2026-11-17",
-        "subject": "docs(§v872-proved15): cache-stats live 落盘 - redis L2 命中 + stream live"
-      },
-      {
-        "hash": "17da042156",
-        "date": "2026-11-17",
-        "subject": "docs(§showcase): v872 后指针快照 (head=2d1ffa53)"
-      },
-      {
-        "hash": "0e2908dd61",
-        "date": "2026-11-17",
-        "subject": "docs(§v873-e37-failed): 记录 E37 中文通道退化"
-      },
-      {
-        "hash": "5132ea7631",
-        "date": "2026-11-17",
-        "subject": "docs(§showcase): v873 后指针快照 (head=0e2908dd)"
-      },
-      {
-        "hash": "32d38986fa",
-        "date": "2026-11-17",
-        "subject": "docs(§v874-proved16): 5 路并行缓存背离登记"
-      },
-      {
-        "hash": "9d6e04500c",
-        "date": "2026-11-17",
-        "subject": "docs(§showcase): v874 后指针快照 (head=32d38986)"
-      },
-      {
-        "hash": "8d01974807",
-        "date": "2026-11-17",
-        "subject": "docs(§showcase): v875 后指针快照 (head=dbf65b1d)"
-      },
-      {
-        "hash": "6417a1b31b",
-        "date": "2026-11-17",
-        "subject": "fix(merge-followups): 合并后的六件后续——fe-gates 命令行修复、Guide 真值修复、tsc 清零、契约门对齐、game-model 双语笔记"
-      },
-      {
-        "hash": "878f185313",
-        "date": "2026-11-17",
-        "subject": "docs(§v876-proved17): 10 条并行同 fingerprint cache 全命中（q7 通道不下报字段）"
-      },
-      {
-        "hash": "f2999c6c43",
-        "date": "2026-11-17",
-        "subject": "docs(§showcase): v876 后指针快照 (head=878f1853)"
-      },
-      {
-        "hash": "bc6d2a40b0",
-        "date": "2026-11-17",
-        "subject": "docs(§v877-proved18): multi-turn cache stickiness live: 每轮≈94%"
-      },
-      {
-        "hash": "35c782dc4b",
-        "date": "2026-11-17",
-        "subject": "docs(§showcase): v877 后指针快照 (head=bc6d2a40)"
-      },
-      {
-        "hash": "774ea52935",
-        "date": "2026-11-17",
-        "subject": "docs(§v878): CACHE-IDENTITY 文档上线"
-      },
-      {
-        "hash": "da8c7c4f10",
-        "date": "2026-11-17",
-        "subject": "docs(§showcase): v878 后指针快照 (head=0f965311)"
-      },
-      {
-        "hash": "0ac2c4a894",
-        "date": "2026-11-17",
-        "subject": "merge: 并轨线剩余 16 个提交并入 master（v870-v877 · cache 取证 + E37 两次退化记录 + Docker 自恢复闭环）"
-      },
-      {
-        "hash": "6b0e47fae9",
-        "date": "2026-11-17",
-        "subject": "merge: 并轨线剩余 3 个提交并入 master（v878 · CACHE-IDENTITY 文档）"
-      },
-      {
-        "hash": "1065166a18",
-        "date": "2026-11-17",
-        "subject": "feat(canon): 回响（其二十一）《没人誊的那一页》/ Echo No. 21 — the lamp left lit over the unwritten page"
-      },
-      {
-        "hash": "913aee1aed",
-        "date": "2026-11-17",
-        "subject": "docs+scripts: §AILIVE-5 app-chain 缓存探针实录（call-2/3 100% 命中 tokensIn=8895 cached=8895 · ON/still: v874 证明 distributor 按渠道分桶，single-user 连打零损失）"
-      },
-      {
-        "hash": "f4aabcf916",
-        "date": "2026-11-17",
-        "subject": "feat(bible-q): 通透 tokensIn/tokensOut（/api/bible/q 原报文回给客户端，含 digest 实字节计）"
-      },
-      {
-        "hash": "d9a25ae3a2",
-        "date": "2026-11-17",
-        "subject": "feat(observer): digest 系统前缀锁定 + 数据全部下沉到 user；KV 复用第 2 次起命中；实测 cached=True×3 连发"
-      },
-      {
-        "hash": "251407ec43",
-        "date": "2026-11-17",
-        "subject": "test(observer-deepread): SHA pin 跟随 admin observer digest refactored prompt（每句必须带数字）"
-      },
-      {
-        "hash": "b594e90e8a",
-        "date": "2026-11-17",
-        "subject": "sync(showcase): latest.json 指到 85923cc8（live /v1/ai/cache-stats 当前计数器实测落盘 + ADR 0234）"
-      },
-      {
-        "hash": "82374853a3",
-        "date": "2026-11-17",
-        "subject": "feat(ai): 全局字节级正典前缀 + /api/insight/chat 正典深问（ADR-0235）"
-      },
-      {
-        "hash": "30ba6efec8",
-        "date": "2026-11-17",
-        "subject": "feat(web): 主界面「快速上手」教学条 + 导航 title 教学生词（§五·主界面教学说明）"
-      },
-      {
-        "hash": "12d6f332e8",
-        "date": "2026-11-17",
-        "subject": "feat(canon): 回响（其二十二）《半粒盐》——正典扩容 + 全链路落盘"
+        "hash": "c850d56baa",
+        "date": "2026-11-18",
+        "subject": "feat(canon): 回响（其一百三十一）《门开了一整夜》上线 · 其一百三十一把收声"
       }
     ]
   }
