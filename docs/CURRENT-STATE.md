@@ -7280,3 +7280,10 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 **测试**：insight-visual-style / tide-oracle 无 SHA256 钉子（hook 钩子检查全过）；BibleWhisperClient 无钉；fe-gates **1370/1370** ✓。
 
 **process 机**：ai-service 已停；next dev 未启动；内存峰值 2.5 GB。
+
+## cont. 348 (2026-11-18) — v968 · §BIBLE-117 · Echo #117《第九潮汐表》(作者手写 · verify 728/728)
+
+- 新篇：「雾港第九张潮汐表 · 没潮 · 墨缩成盐 · 抄本师定的规矩：不修、不注、不论」— canon digest 现 **95,336 chars**（13 章正典 · 117 回响 · 4 annex）。
+- 7 个 anchor 双语对齐；gen-bible-snapshot 现 117 条；verify:world-bible **728/728** ✓；bible snapshot 一致。
+- 完整同步：BibleAsk lede → 117 · /bible/ask meta → 一百一十七篇 (one hundred seventeen) · guideCopy 全语种 → 116→117 · CACHE-IDENTITY × 117 · canon-answer-graph → 13 章 + 117 回响 = 130 段 · bible-ask-behavior.test → 723 · pin 重钉 page→e5b1066c / comp→1e8c1565。
+- fe-gates **1370/1370** ✓；Pages 指针同步。

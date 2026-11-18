@@ -167,6 +167,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E114-潮候院西厢灯下那本永远翻到第四十二页的账': 'echo-114-the-ledger-forever-on-page-forty-two',
   'E115-潮候院北库那只永远积着尘的旧铜熨斗': 'echo-115-the-copper-iron-nobody-uses',
   'E116-潮候院北长廊每次大会散会就多一盏的灯': 'echo-116-the-colonnade-lamp-that-multiplies',
+  'E117-雾港第九潮汐表上那行谁也划不掉的日期': 'echo-117-the-ninth-tide-almanac',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

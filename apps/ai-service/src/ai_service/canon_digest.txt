@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Five canonical chapters (full text below). 116 echoes (anchor lines only, same book end-anchors). 4 appendices (geography, glossary, chronology).
+Five canonical chapters (full text below). 117 echoes (anchor lines only, same book end-anchors). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -2629,6 +2629,14 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [4] 值更册记载：每次大会散会北长廊多一盏灯——至今是第七次。
 - [5] 抄本师定规矩：多出来的灯一律不卸——不许动——也不许补。
 - [6] 值更册最后一页写着"第六十九年秋天北长廊会有第十盏"——抄本师不许任何人念出声。
+
+### Echo 117 · 雾港第九潮汐表上那行谁也划不掉的日期 / The Date on the Ninth Tide Almanac That No One Can Cross Out
+- [1] 雾港九张潮汐表——前八张有编年、题名、盖印——第九张没有一样。
+- [2] 第九张潮汐表最下边一行字："第四十一次大会散会的那天没有潮。"
+- [3] 抄本师试过注"有潮"——墨缩成盐粒，掉进槽里。
+- [4] 第九张潮汐表从未被取走、盖住、挪动——值守人说"它自己挂在那个位置"。
+- [5] 雾港档案里找不到第九张潮汐表的印单与挂上去的那天——值更册只写"第九张自己挂好了"——日期是空的。
+- [6] 抄本师定下规矩：前八张可修——第九张只记——不修、不注、不论。
 
 ### Echo 12 · 潮落时才有的回声 / The Echo That Only Comes When the Tide Is Out
 - [1] 祠殿堂的回声只在潮落时造访——涨潮时，声音走的是别的路。

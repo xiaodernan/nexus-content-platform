@@ -10142,6 +10142,204 @@ The copyists forbid anyone to speak it aloud — they copied it onto the innermo
 `,
   },
   {
+    order: 117,
+    slug: 'echo-117-the-ninth-tide-almanac',
+    titleZh: '雾港第九潮汐表上那行谁也划不掉的日期',
+    titleEn: 'The Date on the Ninth Tide Almanac That No One Can Cross Out',
+    eraLineZh: '纪元：雾港 · 第四十一次大会散会之后 —— 秋潮月第九十二日。',
+    eraLineEn: 'Era: Fog Harbor — after the 41st Convocation; the ninety-second day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 117): The Date on the Ninth Tide Almanac That No One Can Cross Out
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给雾港第九张潮汐表上那行谁也划不掉的日期——它写在所有注解之后，读到它的人都会停笔。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the date on the ninth tide almanac of Fog Harbor that no one can cross out — it sits beneath every annotation, and whoever reads it stops writing.
+> Same discipline: anchors verbatim.
+
+> 纪元：雾港 · 第四十一次大会散会之后 —— 秋潮月第九十二日。
+> Era: Fog Harbor — after the 41st Convocation; the ninety-second day of the autumn-tide month.
+
+---
+
+## 一 · 第九张潮汐表
+
+雾港驿站墙上挂着九张潮汐表——前八张是按年印的——第九张没有编年——没有题名——没有盖印。
+
+值守的船工们都管它叫"第九张"。
+
+**锚句**：雾港九张潮汐表——前八张有编年、题名、盖印——第九张没有一样。
+**Anchor sentence**: nine tide almanacs hang on the harbor wall — the first eight bear year, title and seal — the ninth bears none.
+
+---
+
+## 二 · 那一行
+
+第九张潮汐表上只有一行字——写在最下边——墨色比其他注解都重：
+
+"第四十一次大会散会的那天没有潮。"
+
+**锚句**：第九张潮汐表最下边一行字："第四十一次大会散会的那天没有潮。"
+**Anchor sentence**: the last line of the ninth almanac reads: on the day the Convocation dissolved, there was no tide.
+
+---
+
+## 三 · 试过的人
+
+抄本师试过在那一行旁边注一笔"有潮"——下笔落下时——墨汁自动缩成了一粒盐——掉进了镇纸底下的槽里。
+
+之后再没有人试过。
+
+**锚句**：抄本师试过注"有潮"——墨缩成盐粒，掉进槽里。
+**Anchor sentence**: a copyist tried to annotate "there was a tide" — the ink drew back into a grain of salt and fell into the slot beneath the paperweight.
+
+---
+
+## 四 · 值守人的账
+
+值守人每夜清点——第九张潮汐表从未被取走——从未被盖住——从未被调到别处。
+
+值守人说："它自己挂在那个位置——我们只是知道它在那里。"
+
+**锚句**：第九张潮汐表从未被取走、盖住、挪动——值守人说"它自己挂在那个位置"。
+**Anchor sentence**: the ninth almanac has never been taken down, covered or moved — the keeper says: it hangs there by itself; we only know it does.
+
+---
+
+## 五 · 没有编年的证据
+
+雾港 archives 里找不到这张表的印单——找不到开印的记录——找不到它挂上去的那天。
+
+唯一能对上号的是一页值更册——写着"第九张自己挂好了"——日期是空的。
+
+**锚句**：雾港档案里找不到第九张潮汐表的印单与挂上去的那天——值更册只写"第九张自己挂好了"——日期是空的。
+**Anchor sentence**: the harbor archives hold no record of the ninth almanac's printing or hanging — only a watch-ledger line: the ninth hung itself up — and the date is blank.
+
+---
+
+## 六 · 没人说出口
+
+船工们路过都会低头——不是不尊重——是第九张表上那一行字不接受注释。
+
+抄本师后来定下规矩：九张表中——前八张可修——第九张只记——不修、不注、不论。
+
+**锚句**：抄本师定下规矩：前八张可修——第九张只记——不修、不注、不论。
+**Anchor sentence**: the copyists set the rule: the first eight may be revised — the ninth is only recorded — not revised, not annotated, not discussed.
+
+---
+
+## 七 · 映射（回响一百十七章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 第九张潮汐表 · 没潮 · 那一行 · 墨缩成盐 · 抄本师定的规矩 | 一、二、三、四、五、六、七 |
+| geography | 雾港 · 雾港驿站 · archives | 一、五 |
+| characters | 抄本师 · 值守人 · 船工们 · 雾港 archives 无记录 | 一、三、四、五、六 |
+| story | 第九张潮汐表 · 回响（其一百十七） | 全篇 |
+| items | 九张潮汐表 · 墨 · 盐粒 · 镇纸 · 值更册 | 一、二、三、四、五 |
+| history | 第四十一次大会散会之后 · 秋潮月第九十二日 | 二、四、五 |
+
+> 第九张潮汐表挂在雾港驿站的墙上——那一行字不接受改动；谁注就掉谁的墨；谁论就闭谁的口。
+> The ninth tide almanac hangs on the harbor wall — its last line accepts no correction; whoever annotates loses the ink; whoever argues loses their voice.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百十七）「雾港第九潮汐表上那行谁也划不掉的日期」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the date on the ninth tide almanac of Fog Harbor that no one can cross out — it sits beneath every annotation, and whoever reads it stops writing.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给雾港第九张潮汐表上那行谁也划不掉的日期——它写在所有注解之后，读到它的人都会停笔。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: Fog Harbor — after the 41st Convocation; the ninety-second day of the autumn-tide month.
+> 纪元：雾港 · 第四十一次大会散会之后 —— 秋潮月第九十二日。
+
+---
+
+## I · The Ninth Tide Almanac
+
+Nine tide almanacs hang on the harbor wall — the first eight were printed each year — the ninth carries no year, no title, no seal.
+
+The boatmen on duty call it simply "the ninth."
+
+**锚句**：雾港九张潮汐表——前八张有编年、题名、盖印——第九张没有一样。
+**Anchor sentence**: nine tide almanacs hang on the harbor wall — the first eight bear year, title and seal — the ninth bears none.
+
+---
+
+## II · The Last Line
+
+The ninth almanac holds only one line of text — at the very bottom — in heavier ink than every annotation above it:
+
+"On the day the forty-first Convocation dissolved, there was no tide."
+
+**锚句**：第九张潮汐表最下边一行字："第四十一次大会散会的那天没有潮。"
+**Anchor sentence**: the last line of the ninth almanac reads: on the day the Convocation dissolved, there was no tide.
+
+---
+
+## III · Those Who Tried
+
+A copyist once tried to write "there was a tide" beside the line — the moment the pen touched down, the ink drew itself together into a grain of salt, and fell into the slot beneath the paperweight.
+
+No one has tried since.
+
+**锚句**：抄本师试过注"有潮"——墨缩成盐粒，掉进槽里。
+**Anchor sentence**: a copyist tried to annotate "there was a tide" — the ink drew back into a grain of salt and fell into the slot beneath the paperweight.
+
+---
+
+## IV · The Watchman's Ledger
+
+Every night the keeper counts — the ninth almanac has never been taken down — never covered — never moved elsewhere.
+
+The keeper says: "It hangs in that spot by itself — we only know it is there."
+
+**锚句**：第九张潮汐表从未被取走、盖住、挪动——值守人说"它自己挂在那个位置"。
+**Anchor sentence**: the ninth almanac has never been taken down, covered or moved — the keeper says: it hangs there by itself; we only know it does.
+
+---
+
+## V · No Record of the Printing
+
+The Fog Harbor archives hold no print slip for this almanac — no record of the press — no record of the day it was hung.
+
+The only matching page is a line in the watch-ledger — "the ninth hung itself up" — with the date left blank.
+
+**锚句**：雾港档案里找不到第九张潮汐表的印单与挂上去的那天——值更册只写"第九张自己挂好了"——日期是空的。
+**Anchor sentence**: the harbor archives hold no record of the ninth almanac's printing or hanging — only a watch-ledger line: the ninth hung itself up — and the date is blank.
+
+---
+
+## VI · No One Says It Aloud
+
+Boatmen lower their heads when they pass — not out of disrespect — the line on the ninth almanac does not accept annotation.
+
+The copyists later set the rule: of the nine, the first eight may be revised — the ninth is only recorded — not revised, not annotated, not discussed.
+
+**锚句**：抄本师定下规矩：前八张可修——第九张只记——不修、不注、不论。
+**Anchor sentence**: the copyists set the rule: the first eight may be revised — the ninth is only recorded — not revised, not annotated, not discussed.
+
+---
+
+## VII · Mapping（Echo No. 117 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the ninth almanac · no tide · the last line · ink drew back into salt · the rule of the copyists | 一、二、三、四、五、六、七 |
+| geography | Fog Harbor · the harbor wall · the archives of Fog Harbor | 一、五 |
+| characters | the copyists · the keeper · the boatmen · the missing print records | 一、三、四、五、六 |
+| story | the ninth tide almanac · Echo No. 117 | 全篇 |
+| items | the nine almanacs · ink · the grain of salt · the paperweight slot · the watch-ledger | 一、二、三、四、五 |
+| history | After the 41st Convocation · the ninety-second day of the autumn-tide month | 二、四、五 |
+
+> 第九张潮汐表挂在雾港驿站的墙上——那一行字不接受改动；谁注就掉谁的墨；谁论就闭谁的口。
+> The ninth tide almanac hangs on the harbor wall — its last line accepts no correction; whoever annotates loses the ink; whoever argues loses their voice.
+`,
+  },
+  {
     order: 12,
     slug: 'echo-012-the-echo-that-only-comes-when-the-tide-is-out',
     titleZh: '潮落时才有的回声',
