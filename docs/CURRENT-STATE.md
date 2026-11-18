@@ -7715,3 +7715,10 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 6 锚句双语 · gen-bible-snapshot 增 echo-142 · BibleAsk lede → 142 · /bible/ask meta → 一百四十二篇 · CACHE-IDENTITY × 142 · canon-answer-graph → 155 段 · bible-ask-behavior → 864 · pin 重钉 page→60f16fde / comp→c089ba6c · InsightCanonChat hint 同步 142。
 - §ASK-CITE-TALLY（顺带）：问典 route 现也 `increment('nexus_oracle_citation_total', { state })`——与 /tide-oracle 同一归一桶（tide+ask 汇总）；`nexus_oracle_citation_total` help 文案同步「潮语+问典两车道汇总」。
 - fe-gates **1370/1370** ✓ · verify:world-bible 869/869 ✓。
+
+## cont. 389 (2026-11-19) · 双线合流 v1003+ · Echo #144《潮候院只收一个字的信》 · 一封潮候院没人寄、没人认、没人开的字信
+
+- 新篇「一个字的潮信」… 潮候院被潮带进来的一封信只有一个字「走」— 没有寄信人、没人认领、没人敢打开；最后停在门槛前一夜。E144-潮候院只收一个字的信.{md,en.md}
+- digest regenerated：**236,616 chars** sha256 = 9b9876b2… · 13 章 + **144 回响** · 4 附录 · verify:world-bible **879/879** · anchor-echo OK · quiz 91→**93 题**（zh/en 镜像 +2 · Echo #144）
+- cache 稳定性 probe keep：**25-question（不同问句）warmup 复测稳定 ≥93.8%**，外部 503 transient 一次 → retry 通过（見 evidence/cache-stability-2026-11-19.md）
+- fe-gates 150/150 · 1370/1370 · census 2988

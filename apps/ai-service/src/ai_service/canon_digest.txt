@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 143 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 144 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -2914,6 +2914,14 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 潮落时有一把伞被海送上来——棚骨完好无损——却找不到主人。
 - [4] 守灯人的灯比别人的亮——不是因为灯油多，是因为没有别的灯可以凭。
 - [5] 雨书的最后一页上写的是「今夜无雨」四个字——但是谁也不敢翻过那一页。
+
+### Echo 144 · 潮候院只收一个字的信 / The Letter That Holds One Character
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院收到的那封信里只有一个字：「走」。
+- [2] 没有人知道是谁寄的——字「走」也不是任何人的笔迹。
+- [3] 「走」字那个信谁都没认——大家只用沙把它压住，没有盖住。
+- [4] 「走」字那封信在门槛之前放了一夜，潮都起来了——字还在原处。
+- [5] 没有人打开那封信——大家只是说——有些话不是用来被读的。
 
 ### Echo 15 · 巷子深处那盏没人记得的灯 / The Lamp the Wine Shop Never Remembers
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

@@ -15464,6 +15464,153 @@ The final page of the rain-book says: "no rain tonight." The chapel was full of 
 `,
   },
   {
+    order: 144,
+    slug: 'echo-144-the-letter-that-holds-one-character',
+    titleZh: '潮候院只收一个字的信',
+    titleEn: 'The Letter That Holds One Character',
+    eraLineZh: '纪元：潮候院 · 第四十二届大会散会之后 · 秋潮月第九十二日',
+    eraLineEn: 'Era: the Chapel of the Tide · after the forty-second Convocation · the ninety-second day of the autumn tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 144): The Letter That Reads Only One Word
+
+> 回响不续写正典——它只记下被潮捎来的东西。
+> 写一封潮候院里没人寄出、也没人认领的信——只有一个字。
+> 纪律不变：锚句 zh/en 逐字志 · 映射在后。
+>
+> An echo does not continue the canon — it only keeps what the tide carried in.
+> A letter arrived at the chapel that no one sent, and no one claimed — it holds exactly one word.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十二届大会散会之后 · 秋潮月第九十二日
+> Era: the Chapel of the Tide · after the forty-second Convocation · the ninety-second day of the autumn tide month.
+
+---
+
+## 一 · 一个字的信
+
+潮候院里没有人记得那封信是谁叠好的。纸是黄海的厚纸，封口没有蜡也没有印，只用指甲划了一道。内页只有一个字：「走」。
+**锚句**：潮候院收到的那封信里只有一个字：「走」。
+**Anchor sentence**: the letter that arrived at the chapel held exactly one word — q走q, to leave.
+
+---
+
+## 二 · 没有人寄
+
+誊册房的字迹是工工整整的。驿卒问过退潮的信鸽还有谁在外面发信，没人回。字「走」不是驿卒的字，也不是誊册房的字，也不是值更人的字。潮把它吹在门口的石阶上，谁也没动手去拾。
+**锚句**：没有人知道是谁寄的——字「走」也不是任何人的笔迹。
+**Anchor sentence**: nobody knew who sent it — the character q走q does not belong to anyone's hand.
+
+---
+
+## 三 · 没有人认领
+
+寄件方那一栏是空的。驿卒在日志上写「无名指走信一封」。没人来认，没人开，大家只是留下了它。值更人替它压了一点沙，没有用石——怕潮风下次吹走的时候带不动。
+**锚句**：「走」字那个信谁都没认——大家只用沙把它压住，没有盖住。
+**Anchor sentence**: nobody claimed the letter — people only pressed it with sand, they did not cover it.
+
+---
+
+## 四 · 潮送到了没有？
+
+秋潮月第九十二日早上，潮又起来了，但「走」字还在门槛之前。驿卒再一次开了信鸽——那只鸽子飞回来的时候肚子底下搭着一根细绳，什么都没系在上面。魇在芦苇和盐泥之间。
+**锚句**：「走」字那封信在门槛之前放了一夜，潮都起来了——字还在原处。
+**Anchor sentence**: the letter did not move overnight — the tide rose, and the character q走q remained where it was.
+
+---
+
+## 五 · 没有人打开它
+
+没人打开那封信。大家也没再撕任何信。值更人只翻遍了整个潮候院，不断把信鸽飞出去又飞回来。最后一项常识是：有些「写出去的话」根本没打算被别人收下来。但邮件和石阶上还留着那一个字。
+**锚句**：没有人打开那封信——大家只是说——有些话不是用来被读的。
+**Anchor sentence**: no one opened the letter — it was said that some things are not meant to be read.
+
+---
+
+## 六 · 映射（回响其一百四十四 · 对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 一个字的信 · 潮候院 · 秋潮月第九十二日 | 一、二、三、四 |
+| geography | 潮候院 · 石阶 · 风口 | 一、三、四 |
+| characters | 誊册房 · 驿卒 · 值更人 | 一、二、三、五 |
+| story | 一个字的信 · 回响（其一百四十四） | 全篇 |
+| items | 厚纸信 · 细绳 · 沙 | 一、三、四 |
+| history | 第四十二届大会散会之后 · 秋潮月第九十二日 | 全文 |
+
+> 潮候院开过的会，
+> 影子都比人的字写得清楚。
+> The chapel held its convocations;
+> their shadows were clearer than any handwriting.
+`,
+    markdownEn: `
+> An echo does not continue the canon — it only keeps what the tide carried in.
+> A letter arrived at the chapel, sent by no one, claimed by no one, holding one character.
+> Same discipline: anchors verbatim.
+
+> Era: the Chapel of the Tide · after the forty-second Convocation · the ninety-second day of the autumn tide month.
+
+---
+
+## I · A letter of one character
+
+No one at the chapel remembered who had folded the letter. The paper was a heavy yellow sea-paper, sealed neither with wax nor stamp, only a single line cut with a fingernail across the flap. Inside it held one character: 走.
+
+**Anchor sentence**: the letter that arrived at the chapel held exactly one character — 走.
+**Anchor sentence (zh)**: 潮候院收到的那封信里只有一个字：「走」。
+
+---
+
+## II · No one sent it
+
+The chancellery's writing was always straight and disciplined. The courier asked the tide-loosed carrier pigeons whether any outside word had arrived — none had come back. That character was not the chancellery's hand, nor the copyists', nor the night-watch's. The tide had blown it onto the stone steps at the door, and no hand went to pick it up.
+
+**Anchor sentence**: nobody knew who sent it — the character 走 does not belong to anyone's hand.
+**Anchor sentence (zh)**: 没有人知道是谁寄的——字「走」也不是任何人的笔迹。
+
+---
+
+## III · No one claimed it
+
+The sender's column was left blank. The courier wrote in the ledger: "one anonymous mail — the character 走." No one came to claim it, no one opened it. The night-watch weighted it down with sand — not a stone, lest the tide rise and the letter disappear.
+
+**Anchor sentence**: nobody claimed the letter — people only pressed it with sand, they did not cover it.
+**Anchor sentence (zh)**: 「走」字那个信谁都没认——大家只用沙把它压住，没有盖住它。
+
+---
+
+## IV · The tide came, the letter remained
+
+On the morning of the ninety-second day of the autumn tide month, the tide rose as always — but the character 走 was still there at the doorstep before first light. The courier sent the carrier pigeon out again; it came back without anything tied underneath. The salt-mud licked at the courier's ankles.
+
+**Anchor sentence**: the letter did not move overnight — the tide rose, and the character 走 remained where it was.
+**Anchor sentence (zh)**: 「走」字那封信在门槛之前放了一夜，潮都起来了——字还在原处。
+
+---
+
+## V · No one opened it
+
+No one opened the letter. No one tore it apart either. The night-watch only sent the pigeons out and brought them back, again and again. The last thing anyone understood was: some words that are written are not meant to be gathered in. The one character remained on the steps.
+
+**Anchor sentence**: no one opened the letter — it was said that some things are not meant to be read.
+**Anchor sentence (zh)**: 没有人打开那封信——大家只是说——有些话不是用来被读的。
+
+---
+
+## VI · Mapping (Echo No. 144 · world model)
+
+| Dimension | Anchor | Linked |
+|---|---|---|
+| lore | the one-word letter · the chapel · the ninety-second day of the autumn tide month | I · II · III · IV |
+| geography | the chapel steps · the wind opening · the salt wind | I · III · IV |
+| characters | the chancellery · the courier · the night-watch | I · II · III · V |
+| story | the one-word letter · Echo No. 144 | whole piece |
+| items | the thick-yellow paper · the twine · the sand | I · III · IV |
+| history | after the forty-second Convocation · the ninety-second day of the autumn tide month | whole piece |
+
+> The chapel held its convocations;
+> their shadows were clearer than any handwriting.
+`,
+  },
+  {
     order: 15,
     slug: 'echo-015-the-lamp-the-wine-shop-never-remembers',
     titleZh: '巷子深处那盏没人记得的灯',
