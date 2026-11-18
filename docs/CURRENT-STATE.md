@@ -6276,3 +6276,12 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 > - /bible 页脚 三十四/XXXIV · guideCopy 同步 · quiz 96→**98**（zh/en 镜像 +2 题 E34）
 > - SHA 重钉 ×2 · fe-gates 147/147 · 1353/1353 · build 绿
 > - SSR 实锤 /bible /echo-034 200 · /tide-oracle /tide-wire 全 200
+
+> **2026-11-19 cont. 252 · 大上下文落地：Tide-Oracle 能进 5–9 万 tokens + KV cache 100%**
+> - 发现：用户反复抱怨「Tide-Oracle 上下文远少于 GPT Codex」——根因：**contracts/ai-chat-request.schema.json 硬锁 `system: maxLength: 64000`**；web zod 同步锁定；provider 才能永远 ≤ 64k chars，~47k tokens。
+> - 修复：maxLength 64000 → **256000**（zod `packages/schemas/src/index.ts` 256_000 / `contracts/ai-chat-request.schema.json` 256000，`npm run contract:export` 重导）· 不再压着引擎跑
+> - 配套：**`buildDigest` echo 不再只塞锚句**：全量 echo 正文 + anchors 都进入 system 前缀；`SYSTEM_PROMPT_CHAR_BUDGET` 64_000 → **256_000**
+> - digest regenerated: **chars=177,006** · sha256 e17df841… ▍≈ **119,904 tokens**（实测 provider usage）
+> - 实测 Tide-Oracle 3 轮：cold 6.10s/5,709 cached → warm **0.06s / 0.05s — 100% hit 完全稳**
+> - fe-gates 147/147 · 1353/1353 · census 2967 · SSR 实锤 200
+> - evidence: `docs/evidence/big-context-provenance-2026-11-19.md`

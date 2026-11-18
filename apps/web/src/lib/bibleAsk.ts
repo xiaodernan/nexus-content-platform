@@ -54,13 +54,21 @@ function chapterDigestV2(ch: BibleChapter): string {
 }
 
 function echoDigest(echo: BibleChapter): string {
-  // Echoes: anchors only（正文留在典籍室，避免 digest 失控），title+era 足够锚点定位。
+  // Echoes: include full zh body for now (大 digest 路线：每一次 answer 都自带全部正典原文，
+  // 上下文推到 5–9 万 tokens，让 provider 的 KV 缓存和注意力同时把 anchor-AND-body 都看见，
+  // 不再为了"短一点"做不必要的表演优化；升 budget 到 256k chars 即可装得下。
+  const zhBody = bodyWithoutTitle(echo.markdownZh);
   const zhAnchors = extractAnchorTexts(echo.markdownZh, 'zh');
-  const lines = [
-    `### Echo ${String(echo.order).padStart(2, '0')} · ${echo.titleZh} / ${echo.titleEn}`,
+  const enAnchors = extractAnchorTexts(echo.markdownEn, 'en');
+  return [
+    `### Echo ${String(echo.order).padStart(2, '0')} · ${echo.titleZh} / ${echo.titleEn} · ${echo.eraLineZh}`,
+    '',
+    zhBody,
+    '',
+    'ANCHORS（中英字字对齐）:',
     ...zhAnchors.map((a, i) => `- [${i + 1}] ${a}`),
-  ];
-  return lines.join('\n');
+    ...enAnchors.map((a, i) => `- [${i + 1}] ${a}`),
+  ].join('\n');
 }
 
 /** 纯 digest 构造（测试友好：传入数据而不是读全局）。 */
@@ -93,7 +101,7 @@ export const SYSTEM_PROMPT = [
 ].join('\n');
 
 /** 预算守卫（assert 在测试里跑）：摘要不能膨胀到超过 64k chars（≈ 24k tokens）。 */
-export const SYSTEM_PROMPT_CHAR_BUDGET = 64_000;
+export const SYSTEM_PROMPT_CHAR_BUDGET = 256_000;
 
 /** 问答用量结构（mock-friendly — 校验跑到测试里）。 */
 export interface BibleAskResult {
