@@ -6223,3 +6223,13 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 > - 入口：/bible 页脚 二十八/XXVIII · guideCopy 同步（**同时修复英文页一直写 twenty-five echoes 的陈旧 bug**）· quiz 84→**86**（zh/en 镜像 +2 题 E28）
 > - SHA 重钉 2 处（bible index e082004b · BibleQuiz 44e79678）
 > - fe-gates 147/147 · 1353/1353 · build 绿 · SSR 实锤 /bible /echo-028-the-tide-letter /tide-oracle /tide-wire 全 200
+
+> **2026-11-19 cont. 245 · IO 页面极致装修 — ORACLE strip 上线（配 E27《退潮之后》）**
+> - `<section class="oracle-strip">` 插在 hero → signal-rail 之间：左格世界大典锚句引用（「守灯人记下这一条，没记时间。」+ 署名《回响（其二十七）· 潮落后之月》）
+>   + 右格碑记「28」大字 + 「回响」+ 26 章正典 / 5 章史 + `402 锚句 · 中英字对齐 · Lighthouse 1.0 · LLM 真链路 · Tide-Eye Witness` 三件套
+>   + CTA「→ 公开此行 · NEXUS Content Platform」
+> - 纯 CSS，黑金碑刻（#0f131b 底 · #f5a623 数字 · #d6b87a 字样 · #20262f 分隔线）· 桌面 7/3 栅格 · ≤900px 单列 · 零 JS
+> - identity-guard PASS · commit `0623a17` · push
+> - 线上 3 次探活实锤 `oracle-strip` 标识真实；所有现有 CTA 未动
+> - 身份字节核：南科大 · 港中大 · 隐盾（非隐图）· 雅思 6.5 · CET6 546 全部完整可见
+> - evidence: `docs/evidence/io-oracle-strip-2026-11-19.md`
