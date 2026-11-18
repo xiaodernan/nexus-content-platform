@@ -7800,6 +7800,13 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 硬化：`jobs.py` RedisJobStore connect/read 3s 有界 · `registry.py` cache 客户端 connect/read 2s 有界；test_jobs 实连 PING 门控 skip（11 skipped，141 passed，0 failed）
 - evidence：`docs/evidence/provider-new-key-2026-11-19.md`
 
+## cont. 396 (2026-11-19) — v1036 · §BIBLE-150 · Echo #150《只能让潮认的线》(作者手写 · verify 915/915)
+
+- 新篇：「祠殿墙上那条线 · 抄本师碰过之后再也只会用"collect"发音 · 残卷里写着如果你想看这条线——你自己就是潮」—— digest 现 **238,926 chars**（13 章正典 · **150 回响** · 4 annex · 锚句 915 zh / 915 en ✓）。
+- 6 锚句双语 · gen-bible-snapshot 增 echo-150 · BibleAsk lede → 150 · /bible/ask meta → 一百五十篇 · CACHE-IDENTITY × 150 · canon-answer-graph → 163 段 · bible-ask-behavior → 910 · pin 重钉 page→aa6a92d2 / comp→b73a44cd · InsightCanonChat hint 同步至 150。
+- fe-gates **1370/1370** ✓ · verify:world-bible 915/915 ✓。
+- 本机 Docker daemon / Clash 7897 节点本轮 EOF/refusal，Provider 调用全部超时；Clash 代理测试 /v1/models 返回 403，POST /v1/chat/completions 同样 EOF — 本片未冒充 live 实测（如确需再做 probe，跨日再跑）。
+
 ## cont. 394 (2026-11-19) · §ADMIN-13+PROJ ✓ §ADMIN-13+ROBUST ✓ · 只读观察站「趋势预测」上线 + 门页抗 DB 抖动
 
 - `buildObserverProjection(daily)`（最小二乘线性外推 · 非 AI · 确定性）：斜率/截项/R²/残差 SD/第 n+1 天点预测/未来 3 天与 7 天平均预测 · 趋势死区 ±0.5 opens/day · 样本 < 4 不拟合（reason 双语如实）· 完全平线 R²=null · slope<0.5→flat
@@ -7814,5 +7821,5 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - `retrieve` 节点早就是真的（diggestion 字符二元组 Jaccard + top-3 snippet，≤1.6KB）——但路由只回 `retrieved: <计数>`，读者看不见
 - 现在 `/api/bible/q` 多回 `retrieval: string[]`（top-3 原文片段，逐字）；BibleAsk 前端新增可折叠「本轮检索依据」（`<details class="bbq-retrieval" data-bible-ask-retrieval>`，zh/en 双语 · 确定性二元组声明在底部），`setPhase('loading')` 重置 retrieval/cite——不残留上一轮的旧依据
 - system 前缀**零改动**——CANON_DIGEST KV 命中不受影响（cache 稳态无回退）
-- BibleAsk SHA pin → `03ff3e19…`（page pin 不变 · `1344cf30…`）· fe-gates **151/151 · 1377/1377 · census 2998** · tsc EXIT=0 · route 契约 12/12 · canon-answer-graph 13/13
+- BibleAsk SHA pin → `7ac8438e…（与并行线 E150 合并后重钉）`（page pin 不变 · `1344cf30…`）· fe-gates **151/151 · 1377/1377 · census 2998** · tsc EXIT=0 · route 契约 12/12 · canon-answer-graph 13/13
 - 未能浏览器实证：本机 Docker engine 500 → Postgres CONNECT_TIMEOUT（env 限制；契约行为由 route/visual/fen gates 三重覆盖）

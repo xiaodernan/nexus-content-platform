@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 149 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 150 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -2975,6 +2975,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 里巷子的酒馆从来没有哪一夜熄过灯——住在潮候院不等于进了潮候院。
 - [4] 酒馆的账本上只有数量——客人是谁，灯替人不记。
 - [5] 瓶子空了就是空了——酒馆不会给空瓶装上什么假的酒。
+
+### Echo 150 · 祠殿风吹铃前那条只能由潮认的线 / The Line in the Chapel Only the Tide Can Read — Beneath the Wind Before the Bell
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 祠殿墙上一条细线——从挂点到铃——没有任何东西可以碰到它——只有潮能碰到。
+- [2] 值更人说风碰过——风碰过的铃一定响——那个线上没有铃。
+- [3] 残卷上有一句——"你想看这条线——你自己就是潮。"
+- [4] 散会那一夜——线像潮退一样往下移动了一次——第二天回到同一位置。
+- [5] 抄本师曾伸手碰过这条线——第二天她说不出这个字"潮"。
+- [6] 值更册最后一页："线不在墙上——线在读里。"
 
 ### Echo 16 · 潮沙盘上那四只小贝壳 / The Four Small Shells on the Tide-Sand Table
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
