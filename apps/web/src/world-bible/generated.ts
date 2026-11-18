@@ -14250,6 +14250,180 @@ Since that night — the chair has been empty again — no one dares replace it 
 `,
   },
   {
+    order: 138,
+    slug: 'echo-138-the-one-wrong-character-on-the-chapel-wall',
+    titleZh: '潮候院祠殿外墙上那一行字里唯一写错的字',
+    titleEn: 'The One Wrong Character on the Wall Outside the Chapel',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零四日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hundred-and-fourth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 138): The One Wrong Character on the Wall Outside the Chapel
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿外墙上那一行字里唯一写错的字——所有人都看见过——只有一个抄本师指出。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the one wrong character in the long line inscribed outside the chapel — seen by everyone, corrected by no one.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零四日。
+> Era: the Institute — after the 41st Convocation; the hundred-and-fourth day of the autumn-tide month.
+
+---
+
+## 一 · 墙上那一行字
+
+祠殿外墙上有一行字——字很长——抄本师说是散会那天被人写上去的——没人敢念完。
+
+**锚句**：祠殿外墙上有一行字——字很长——抄本师说是散会那天写上去的——没人敢念完。
+**Anchor sentence**: upon the outer wall of the chapel runs a long line of characters — the copyists say it was written on the day of the Dissolution — and no one dares read it to its end.
+
+---
+
+## 二 · 残卷对照
+
+某抄本师夜里把这行字与残卷对照——发现其中的第九个字写错了——只有一个字错了。
+
+**锚句**：抄本师夜里把这行字与残卷对照——发现第九个字写错了——只有一个。
+**Anchor sentence**: one night a copyist collated the wall against a broken manuscript — and found the ninth character is wrong — only one is.
+
+---
+
+## 三 · 这个错
+
+错在"潮"字的三点水少了一点——抄本师说这叫"潮缺一点，潮就没了"。
+
+**锚句**：错在"潮"字的三点水少了一点——抄本师说"潮缺一点，潮就没了"。
+**Anchor sentence**: the error is in the character "潮" — one dot too few in its water radical — the copyists say: a tide missing one dot is no longer the tide.
+
+---
+
+## 四 · 为什么没人改
+
+值更人说没有人被授权改——值更册里写着"它散过会——墙上就是这个"。
+
+**锚句**：值更人说没人被授权改——值更册里写着"它散过会——墙上就是这个"。
+**Anchor sentence**: the head of the watch says no one is authorized to correct it — the watch-ledger records: it has already dissolved — the wall stands as written.
+
+---
+
+## 五 · 散会夜
+
+散会那一夜所有人都看见了这行字——但是没有人看见那个错——包括抄本师。
+
+**锚句**：散会那一夜所有人都看见了这行字——没有人看见那个错。
+**Anchor sentence**: on the night of the Dissolution everyone saw the line of characters on the wall — and no one noticed the error.
+
+---
+
+## 六 · 值更册最后一页
+
+值更册最后一页写着："墙上有一个字是错的——它一直是错的——它也将一直是错的。"
+
+**锚句**：值更册最后一页"墙上有一个字是错的——它一直是错的——它也将一直是错的"。
+**Anchor sentence**: the last page of the watch-ledger reads: one character on the wall is wrong — it has always been wrong — and it will remain so.
+
+---
+
+## 七 · 映射（回响一百三十八章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 墙上那行字 · 第九个错 · 潮缺一点 · 第四十一次大会 · 值更人 | 一、二、三、四、五、六、七 |
+| geography | 祠殿外墙 · 祠殿门廊 · 院中 | 一、二、三、四 |
+| characters | 抄本师 · 值更人 · 散会夜所有人 | 一、二、三、四、五、六 |
+| story | 墙上那一个错 · 回响（其一百三十八） | 全篇 |
+| items | 残卷 · 值更册 · 潮字三点 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第一百零四日 | 三、四、五、六 |
+
+> 祠殿外墙上那一行字——只有一个字是错的——潮缺一点——潮就没了。
+> The long line of characters outside the chapel — only one of them is wrong — the tide with one dot missing is no longer the tide.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百三十八）「潮候院祠殿外墙上那一行字里唯一写错的字」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the one wrong character in the long line inscribed outside the chapel — seen by everyone, corrected by no one.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿外墙上那一行字里唯一写错的字——所有人都看见过——只有一个抄本师指出。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the hundred-and-fourth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零四日。
+
+---
+
+## I · The Line on the Wall
+
+Upon the outer wall of the chapel runs a long line of characters — the copyists say it was written on the day of the Dissolution — and no one dares read it to its end.
+
+**锚句**：祠殿外墙上有一行字——字很长——抄本师说是散会那天写上去的——没人敢念完。
+**Anchor sentence**: upon the outer wall of the chapel runs a long line of characters — the copyists say it was written on the day of the Dissolution — and no one dares read it to its end.
+
+---
+
+## II · Collation Against the Broken Manuscript
+
+One night a copyist collated the wall against a broken manuscript — and found the ninth character is wrong — only one is.
+
+**锚句**：抄本师夜里把这行字与残卷对照——发现第九个字写错了——只有一个。
+**Anchor sentence**: one night a copyist collated the wall against a broken manuscript — and found the ninth character is wrong — only one is.
+
+---
+
+## III · The Error
+
+The error is in the character "潮" — one dot too few in its water radical — the copyists say: a tide missing one dot is no longer the tide.
+
+**锚句**：错在"潮"字的三点水少了一点——抄本师说"潮缺一点，潮就没了"。
+**Anchor sentence**: the error is in the character "潮" — one dot too few in its water radical — the copyists say: a tide missing one dot is no longer the tide.
+
+---
+
+## IV · Why No One Corrects It
+
+The head of the watch says no one is authorized to correct it — the watch-ledger records: it has already dissolved — the wall stands as written.
+
+**锚句**：值更人说没人被授权改——值更册里写着"它散过会——墙上就是这个"。
+**Anchor sentence**: the head of the watch says no one is authorized to correct it — the watch-ledger records: it has already dissolved — the wall stands as written.
+
+---
+
+## V · The Night of Dissolution
+
+On the night of the Dissolution everyone saw the line of characters on the wall — and no one noticed the error.
+
+**锚句**：散会那一夜所有人都看见了这行字——没有人看见那个错。
+**Anchor sentence**: on the night of the Dissolution everyone saw the line of characters on the wall — and no one noticed the error.
+
+---
+
+## VI · The Last Page of the Watch-Ledger
+
+The last page of the watch-ledger reads: one character on the wall is wrong — it has always been wrong — and it will remain so.
+
+**锚句**：值更册最后一页"墙上有一个字是错的——它一直是错的——它也将一直是错的"。
+**Anchor sentence**: the last page of the watch-ledger reads: one character on the wall is wrong — it has always been wrong — and it will remain so.
+
+---
+
+## VII · Mapping（Echo No. 138 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the line on the wall · the ninth error · the tide missing one dot · the Dissolution · the head of the watch | 一、二、三、四、五、六、七 |
+| geography | the chapel outer wall · the chapel porch · the yard | 一、二、三、四 |
+| characters | the copyists · the head of the watch · everyone at the Dissolution | 一、二、三、四、五、六 |
+| story | the one wrong character on the wall · Echo No. 138 | 全篇 |
+| items | the broken manuscript · the watch-ledger · the character 潮 | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the hundred-and-fourth day of the autumn-tide month | 三、四、五、六 |
+
+> 祠殿外墙上那一行字——只有一个字是错的——潮缺一点——潮就没了。
+> The long line of characters outside the chapel — only one of them is wrong — the tide with one dot missing is no longer the tide.
+`,
+  },
+  {
     order: 14,
     slug: 'echo-014-the-cover-of-the-tide-table',
     titleZh: '潮汐表的封面',
