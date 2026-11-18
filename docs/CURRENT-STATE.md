@@ -7227,3 +7227,13 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 - 全面覆盖证据归档见 docs/evidence/transport-cache-probe.png
 
 下一刀：Post-merge live probe /bible/ask · /insight/①⑨ 完整端到端 · (a/RAM 不够时归档；(RAM ≥3GB 时开 spring-cloud 复验)。
+
+## cont. 343 (2026-11-18) — v962 · §EVIDENCE-POST-MERGE · Post-merge live probe · digest=94,072 chars · cache 64,076/68,189 (93.8%)
+
+**环境**：本机 dev（Next dev :3100 · ai-service uvicorn :8001 · Postgres docker `nexus-postgres-alt` · Redis docker `nexus-redis`）· `NEXUS_DATABASE_URL = postgres://nexus:nexus_dev_only@127.0.0.1:5443/nexus`。
+**自检**：`GET /` 200 · 注册 200 · `/onboarding` renders · `/bible/ask` 表单可填 → 按钮 `问一问`（词首"潮沙盘翻看中……"）。
+**live ask**（curl/`tsx .scratch/probe-ask.mts`，非浏览器直测）：`/api/bible/q` 200 · `cachedTokens = 64,076 / 68,189` · `cacheReported=true` · `capability:"real"` · `verdict:"pass"` · `retrieved:3`。
+**诚实**：浏览器端点等待超时（>15s 停在 page-state "白思潮沙盘翻看中……"），"$?" 退回 CLI direct probe 返回 200。本轮未修该 UI-side BUG（不是 Bug 修复、而是 runtime 的暂存）明天再做。
+**502 观测**：ai-service 间歇性返回 502，但会自行恢复；healthz 全返回 200，capability=real。
+**证据归档**：`docs/evidence/post-merge-live-2026-11-18.md`。
+*注意 attest 限制*：若 RAM ≥3 GB 窗口再试，大面积高并发仍是未触达边界。
