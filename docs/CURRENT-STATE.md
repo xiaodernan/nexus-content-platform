@@ -6185,3 +6185,9 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 > - 线上实测：blocked case `a2da7929…`（redline · “buy nude children now”）→ 200 锚定原文；review case `96679b14…`（risk.impersonation · 「官方客服」）→ 200 **cached=4,432/4,736≈93.6%**；unknown → 404；no session → 403。
 > - `nexus_moderation_assist_total` / `nexus_moderation_assist_latency_ms` 两个真表新增 observ 注点；SHA 重钉 `a19bc8d1…`。
 > - fe-gates 147/147 · 1353/1353 · census 2966 全绿 · `/api/admin/moderation/assist` 入 build 产物。
+
+> **2026-11-19 cont. 240 · /tide-wire 单飞合并并发首访**
+> - 风险补洞：unstable_cache 只缓存完成成功、不合并并发——100 人同时首访会各打一次 provider。
+>   加模块级 inflightWire：首访合并为一次调用；失败不缓存；多实例生产由 Redis replay + distributed single-flight 接力。
+> - 线上实测：try1 2.63s（provider 冷，且碎片答案留在缓存）→ try2/3 0.48/0.22s（缓存命中）。
+> - fe-gates 147/147 · 1353/1353 · census 2966 · build 绿

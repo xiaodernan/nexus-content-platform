@@ -110,26 +110,37 @@ const getTideSentence = unstable_cache(
   { revalidate: 3600, tags: ['tide-wire'] },
 );
 
+let inflightWire: Promise<TideWireData> | null = null;
 async function composeTideWire(locale: Locale, dayStamp: string): Promise<TideWireData> {
-  const m = await readObserverMetrics();
-  const stats = compactTideStats(m);
-  const generatedAt = new Date().toISOString();
-  if (tideWireIsEmpty(stats)) {
-    return { stats, sentence: null, status: 'empty', generatedAt };
-  }
-  const caps = await getAiCapabilities();
-  if (caps.text !== 'real') {
-    return { stats, sentence: null, status: 'demo', generatedAt };
-  }
-  try {
-    const sentence = await getTideSentence(locale, dayStamp, stats);
-    if (!sentence) {
+  // 同一进程内的并发首访合并：100 人同时打开本页，只打一次 provider
+  // （生产多实例由 distributed single-flight + Redis replay 接力；本层是单进程单飞保险，失败不缓存）
+  if (inflightWire) return inflightWire;
+  inflightWire = (async (): Promise<TideWireData> => {
+    const m = await readObserverMetrics();
+    const stats = compactTideStats(m);
+    const generatedAt = new Date().toISOString();
+    if (tideWireIsEmpty(stats)) {
+      return { stats, sentence: null, status: 'empty', generatedAt };
+    }
+    const caps = await getAiCapabilities();
+    if (caps.text !== 'real') {
+      return { stats, sentence: null, status: 'demo', generatedAt };
+    }
+    try {
+      const sentence = await getTideSentence(locale, dayStamp, stats);
+      if (!sentence) {
+        return { stats, sentence: null, status: 'honest', generatedAt };
+      }
+      return { stats, sentence, status: 'ok', generatedAt };
+    } catch {
+      // 失败不写进缓存槽——"暂时说不了" 不是定局（下一小时自愈）
       return { stats, sentence: null, status: 'honest', generatedAt };
     }
-    return { stats, sentence, status: 'ok', generatedAt };
-  } catch {
-    // 失败不写这个缓存槽——"暂时说不了" 不是 "潮退了" 定局（重试下一小时自愈）
-    return { stats, sentence: null, status: 'honest', generatedAt };
+  })();
+  try {
+    return await inflightWire;
+  } finally {
+    inflightWire = null;
   }
 }
 
