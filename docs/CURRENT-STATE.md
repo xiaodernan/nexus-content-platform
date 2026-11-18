@@ -7318,3 +7318,23 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 **测试**：pins 重钉（bible-ask ×2、bible-ask-visual ×2、bible-quiz ×2…），fe-gates **1370/1370** 绿；verify:fe-gates 最终一次跑通；world-bible **768/768**。
 
 **git**：本日 PAT 已生效（scopes: repo + workflow），合流完成后将 `git push origin HEAD:main` 快进推送；`.scratch/ab-cache-key.mts` 是本轮 `prompt_cache_key` A/B 依据（ADR-0284）。
+
+## cont. 351 (2026-11-18) — v971 · §BIG-CONTEXT · 输入上下文 67K→147K tokens（digest 分层配额制 · 实测 100% cache）+ origin/main 三提交吸收
+
+**起点**：origin/main 新提 3 个提交（c8eaae7f feat(ai) · 4411758f sync · 6af62201 stress）：Codex-type big context 119,904 tokensIn · cache 100% · 32 并发 93.9%→100% — lineage-2 支线同日恢复。main-line 没接过来。
+
+**做法**（见 ADR-0286 `docs/adr/0286-big-context-digest-quota.md`）：
+
+1. 合约解锁：`AiChatRequestSchema.system.max` 112_000 → **256_000**（packages/schemas + contracts/ai-chat-request.schema.json）；`contract:export` 重导。
+2. buildDigest 重构（正文守恒 · 注释剪掉冗余）：
+   - 13 章正典全文/附录完整保留（58K + 9K）；
+   - 125 篇回响：**newest-first 配额制** zh 正文 ≤ 125k chars；其余篇（含 E78..E117）题名 + zh 锚句编号（机检 unknown-anchor 所需即够）；
+   - EN anchor 留 world bible 作对照，digest 只留 zh 锚句（canon-answer-graph 13/13 绿不受影响）；
+3. 重生成 digest：**229,140 chars**（此前 96,679 · 2.37×）；`verify:world-bible ✓ 768/768` · `verify:bible-snapshot ✓` · fe-gates **1370/1370** ✓。
+4. **直打 probe**（`docs/evidence/big-context-token-2026-11-18.md`）：147,519 tokensIn/call；call2=138,531 (93.9%) · call3=147,519 (100%, 29ms) · call4=147,521 (100%, 54ms — 不同问题）。
+
+**结果**：用户诉求「输入上下文远少于 Codex 5-9 万」收官：**实测 147,519 tokensIn · 100% KV 缓存复用 · 46–54ms 二轮首字**。
+
+**token 采购成本说明**：digest 2.37×，但 cache lane 稳态 100%，摊销后每问成本 ≈ 每 $0.276 vs 旧 digest 每问 $0.116 (gpt-6.1-terra usage 报的真值；用户授权此路线，不妥协）。
+
+**git**：origin/main 推送（PAT 权限）今日完成；Pages 指针同步推进。

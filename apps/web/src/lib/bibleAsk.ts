@@ -67,14 +67,33 @@ function appendixDigest(app: BibleChapter): string {
   ].join('\n');
 }
 
+// Echoes: 全量正文配额制（newest-first）。zh 正文合计 ≤ 160k chars；装不下的旧篇只留题名 + 中英锚句。
+// 预算常数见 SYSTEM_PROMPT_CHAR_BUDGET（256k chars contract 上限）。
+// 为什么配额制：全部 125 篇正文 ≈ 490k chars（≈330K tokens，已实测装不进 256k 字符契约，也超 provider 窗口）；
+// 最近的《典籍》篇（最近 45–50 篇）是出问答最直接的现场证源，旧篇由锚句覆盖定位即可。
+const ECHO_BODY_CHAR_BUDGET = 125_000;
+const fullEchoOrders = (() => {
+  let budget = ECHO_BODY_CHAR_BUDGET;
+  const acc = new Set<number>();
+  for (const e of [...BIBLE_ECHOES].reverse()) {
+    const zh = bodyExcerpt(e.markdownZh).length;
+    if (budget - zh < 0) break;
+    budget -= zh;
+    acc.add(e.order);
+  }
+  return acc;
+})();
 function echoDigest(echo: BibleChapter): string {
-  // Echoes: anchors only（正文留在典籍室，避免 digest 失控），title+era 足够锚点定位。
+  // Echoes: 配额选中的篇（newest-first）全量正文 + 锚句；其余保留题名 + 锚句（zh/en）。
+  const zhBody = bodyExcerpt(echo.markdownZh);
   const zhAnchors = extractAnchorTexts(echo.markdownZh, 'zh');
-  const lines = [
+  const full = fullEchoOrders.has(echo.order);
+  return [
     `### Echo ${String(echo.order).padStart(2, '0')} · ${echo.titleZh} / ${echo.titleEn}`,
+    ...(full ? ['', zhBody, ''] : []),
+    'ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):',
     ...zhAnchors.map((a, i) => `- [${i + 1}] ${a}`),
-  ];
-  return lines.join('\n');
+  ].join('\n');
 }
 
 /** 纯 digest 构造（测试友好：传入数据而不是读全局）。 */
@@ -86,7 +105,7 @@ export function buildDigest(
   return [
     '# THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)',
     'World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.',
-    `Five canonical chapters (full text below). ${echoes.length} echoes (anchor lines only, same book end-anchors). ${appendices.length} appendices (geography, glossary, chronology).`,
+    `Thirteen canonical chapters (full text below). ${echoes.length} echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). ${appendices.length} appendices (geography, glossary, chronology).`,
     '',
     chapters.map(chapterDigestV2).join('\n\n'),
     '',
@@ -116,8 +135,8 @@ export const SYSTEM_PROMPT = [
   CANON_DIGEST,
 ].join('\n');
 
-/** 预算守卫（assert 在测试里跑）：摘要不能超过 112k chars（新 canon 合流后 · ADR-0283）。 */
-export const SYSTEM_PROMPT_CHAR_BUDGET = 112_000;
+/** 预算守卫（assert 在测试里跑）：全量正文 + 锚句，总 digest 仍需装进 256k chars（≈ 100-120k tokens）。 */
+export const SYSTEM_PROMPT_CHAR_BUDGET = 256_000;
 
 /** 问答用量结构（mock-friendly — 校验跑到测试里）。 */
 export interface BibleAskResult {

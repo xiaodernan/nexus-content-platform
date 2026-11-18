@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Five canonical chapters (full text below). 125 echoes (anchor lines only, same book end-anchors). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 125 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -2439,66 +2439,77 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 
 ## Echoes (回响)
 ### Echo 01 · 巡逻路札记 / Notes from the Patrol Road
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 巡逻路没有路标——它每三个月自己洗刷一次去年留下的痕。
 - [2] 海鸥不告诉你何时起风，它只是站在井边，静静看。
 - [3] 档案里从没有过「日常」两个字——都是不日常写成的日常。
 - [4] 记住的东西会变重，忘掉的东西会变轻——巡逻路什么都没选，它只是继续走。
 
 ### Echo 02 · 潮候船上没有岸 / No Shore on the Tide-Waiting Ship
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 潮候的船不问何时开，它只问自己准备好没有——被潮水认出那一刻，它才真的开。
 - [2] 平衡不接受"大概"——船上的每一寸位置都要有人记住，因为忘了的代价不伸手就赔得起。
 - [3] 船上没有电报——只有盐写的字条，愿者放，愿者取，愿者认得同一个手迹。
 - [4] 到岸之后每个人都向船挥一次手——不是告别，是把潮再交回人手里一会儿。
 
 ### Echo 03 · 退潮三日 / The Three Days the Tide Withdrew
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 潮退以后不是为了离开，是为了先来过。
 - [2] 井在地面上晒了三天三夜——直到灯亮了那一刻，才算醒过来。
 - [3] 灯在潮没淹的时候就点上了——不是为了光，是为了让明天还认得这里。
 - [4] 潮收集了一个地方能给出的一切安静，然后把它还给谁。
 
 ### Echo 04 · 盐在井里等潮 / Salt Waiting for the Tide in the Well
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 井里没有海水——井里只有没人认领的盐。
 - [2] 盐不说话——盐只是被放下了，再也没有人把它拿走。
 - [3] 潮来的时候，井里的盐才听清楚自己被放进来的理由。
 - [4] 守夜人不收盐、不拒盐——守夜人只记录盐落下的次数。
 
 ### Echo 05 · 没人动过的沙盘 / The Sand Table No One Touched
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 潮候院的一回灯亮，沙就知道自己被拿起来过了。
 - [2] 潮候院在沙盘上排的是「名单」，不是「决定」。
 - [3] 潮沙盘不会说话，但潮沙盘会自己重新排好。
 - [4] 潮候院在沙盘外算过钱，但没算过自己——算不过来的那一笔在潮沙盘里。
 
 ### Echo 06 · 教团没有买的歌谱 / The Score the Institute Never Bought
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 潮候院没有为自己收到一首歌谱——但散会后的那一阵潮音，谁也没听见它是怎么结束的。
 - [2] 潮候院没人动过沙盘，却没人记得它为什么自己偏了半寸。
 - [3] 潮候院散会后没有「拍手」这一项议程——潮候院只把晚会的灯落下来，灯下什么都没留。
 - [4] 潮候院从来没有买过一首歌的谱——它从来没有买过一首歌的谱。
 
 ### Echo 07 · 黄铜盘上刀光 / The Gleam in the Brass Basin
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 礼拜堂黄铜盘的刀柄，刀没有回家，只是滩在黄铜盘的边。
 - [2] 黄铜盘的热痕不是谁写上去的——刀只是在那里落下了一道看似温柔的光。
 - [3] 礼拜堂自记；潮候院不挂号——潮记了灯下的一盘刀光。
 - [4] 灯彻夜是潮候院的规矩——潮候院没有一座礼拜堂的灯，是空落落地亮着。
 
 ### Echo 08 · 完颜的潮汐钟 / The Wan-Yan Tide Clock
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 完颜不响了——潮候院的潮汐钟，三天三夜一声也不响。
 - [2] 完颜不在 Convocation 记录里——潮候院只登记「完颜的沙」。
 - [3] 完颜的两声后礼拜堂全醒了——灯低下了一折，钟不再不响。
 - [4] 潮候院登记了完颜的沙，登记了完颜的两声，唯独没有登记完颜。
 
 ### Echo 09 · 退潮了，没有潮候指令 / The Tide Went Out Without Orders
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 潮候院没有为潮下达一条指令——潮自己退潮。
 - [2] 灯和沙都不跟潮走——潮候院到此刻还没收到一条追潮令。
 - [3] 礼拜堂退潮没有一盏灯亮给潮——潮退了只有灯自己亮给自己。
 - [4] 潮候院退潮不需要 Convocation——潮平时就懒潮候院的 Convocation。
 
 ### Echo 10 · 灯在潮退时没有往回点 / The Lamp Never Lit Itself When the Tide Went Out
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 礼拜堂的灯从来没被特别点亮——它一直自己亮着。
 - [2] 潮退时礼拜堂不为任何人额外亮灯——灯没变，退潮只是自己退了。
 - [3] 礼拜堂没有人给那盏灯起名——那盏灯从来没登记过。
 - [4] 潮候院从不发号召——潮候海退是自己的退，灯亮是灯自己的亮。
 
 ### Echo 100 · 柴 / The Firewood
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 死木到了门外，才有斤两。
 - [2] 结朝上，手便不必翻柴。
 - [3] 门前无人应，柴仍算送到。
@@ -2507,6 +2518,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 账有差额，柴才算完。
 
 ### Echo 101 · 灰坑 / The Ash-Pit
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 旧账先于尺寸。
 - [2] 第一镐落在雨里。
 - [3] 灰不出门。
@@ -2515,6 +2527,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 封口以后，仍记灰。
 
 ### Echo 102 · 最后一栏 / The Last Column
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 最后一栏，谁也没写。
 - [2] 六口井都有落款，第七口没有。
 - [3] 盐可以压纸，压不住疑问。
@@ -2522,6 +2535,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 誊抄员把笔搁在灯下，不是为了拿它。
 
 ### Echo 103 · 蜡封 / The Wax Seal
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 封了六口井，第七口没人敢封。
 - [2] 蜡没封住井，封住的是人。
 - [3] 盐灯没有亮，天也没有亮。
@@ -2529,6 +2543,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 灰幕之前，没人再提第七口井。
 
 ### Echo 104 · 最后一夜 / The Last Night
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 风停的时候，井都开着。
 - [2] 灯芯里的潮气比油多。
 - [3] 海把井数的那一夜记住了。
@@ -2536,6 +2551,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 灰幕不是一夜天，灰是一夜灯。
 
 ### Echo 105 · 雨从东边来 / The Rain Comes from the East
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 风该从西来，那天却从东边来。
 - [2] 雨从东边来，先落的是门内的盐。
 - [3] 雨从东边来，笔先停了。
@@ -2543,6 +2559,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 账上只记了六个字：东风，雨，灯未灭。
 
 ### Echo 106 · 第一个名字 / The First Name
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 灰后的第一天，报到簿还在原处。
 - [2] 灰以前，名字用三种手迹写。
 - [3] 那一行字不属于三种手迹中的任何一种。
@@ -2550,6 +2567,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 名字被写下的时候，报到簿还没有结束。
 
 ### Echo 107 · 没人誊的那一页 / The Untranscribed Page
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 没人问灯为什么还点着。
 - [2] 誊第九根灯芯的时候，誊账人漏了那一盏。
 - [3] 那张纸从不参与抄誊。
@@ -2557,6 +2575,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 没誊完的那一页还算数。
 
 ### Echo 108 · 半粒盐 / Half a Grain of Salt
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 半粒盐的断口，从封皮的凹槽里朝外看。
 - [2] 簿差半粒，他写在脊缝上，没给任何人解释。
 - [3] 卡住的东西，锄不出来，刮不出来，也不忍刮。
@@ -2564,6 +2583,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 簿子记得比任何人都清楚，缺了哪一半。
 
 ### Echo 109 · 第四十二次会 / The Forty-Second Convocation
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 第四十二次会没有散会的时刻，只有缺的那一格。
 - [2] 签收本的最后一页只有日期和欠据，没有签名。
 - [3] 每一个想结案的人，都站在这一格前面等着。
@@ -2571,6 +2591,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 第四十二次会只少一个签名，正好多一个不来。
 
 ### Echo 11 · 祠殿堂没有锁的门 / The Door the Chapel Never Locked
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 祠殿堂的门从来不是为别人开的——它只是没有被关上。
 - [2] 祠殿堂里没有值得带走的东西——能被带走的，不值得留下。
 - [3] 祠殿堂的门只认一把钥匙——潮。涨潮时进不来的人，退潮时也不必急着进。
@@ -2578,6 +2599,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 祠殿堂的门从来没有被写进过什么规矩——它只是开着，像潮一样。
 
 ### Echo 110 · 灰封 / The Grey Binding
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 灰封以后，账上只剩最后一行。
 - [2] 封皮合上以后，没有再敲过任何地方。
 - [3] 守灯人没有对第四十二次会说什么，也没有对自己说什么。
@@ -2585,6 +2607,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 封皮合上后，没人开本子了。
 
 ### Echo 111 · 灰炉 / The Grey Hearth
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 灰封过后，炉子居然是热的。
 - [2] 别人没有碰它，他也没有碰它。
 - [3] 灰纸没有出份，可灰总算被人翻过。
@@ -2592,6 +2615,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 灰炉再也没有亮过。
 
 ### Echo 112 · 第四十三次会 / The Forty-Third Convocation
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 议程被钉回原处的那一天，没有人宣布任何事情。
 - [2] 第四十三次会开的那天没有议程，只有人到齐了。
 - [3] 有人把一支笔放进欠据，签名没有落下。
@@ -2599,6 +2623,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 潮水退了以后，馆里仍然没有散会。
 
 ### Echo 113 · 潮候院后墙不修的那一道裂痕 / The Crack in the Institute's Back Wall That No One Repairs
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 后墙上的横裂一百多年没修过——值更册里没有原因。
 - [2] 后墙这件事不是维护，是纪念。
 - [3] 雨水在裂口里收集——抄本本说盯裂缝的人会长一岁。
@@ -2607,6 +2632,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 值更人禁止填裂——填了，就什么都没了。
 
 ### Echo 114 · 潮候院西厢灯下那本永远翻到第四十二页的账 / The Ledger in the West Annex Lamp Light That Is Always Open to Page Forty-Two
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 桌上有一本黑皮账——永远停在第四十二页。
 - [2] 账师说他每次开账都会翻到第四十二页——不记得是自己翻过去的。
 - [3] 值更人第一次进西厢看见灯亮着——不是被他点的。
@@ -2615,6 +2641,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 值更人去问典问第四十二页——问典没有答复。
 
 ### Echo 115 · 潮候院北库那只永远积着尘的旧铜熨斗 / The Old Copper Iron in the North Storeroom That Is Always Dusty
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 北库最里头有一只铜熨斗——铜皮起绿，盖口不紧。
 - [2] 北库这只铜熨斗永远比别的脏——但它不是用过的。
 - [3] 北库角落熨斗底子上有微微水痕——再看时干了。
@@ -2623,6 +2650,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 抄本师把熨斗移到正中间——当年螺钉脱落。
 
 ### Echo 116 · 潮候院北长廊每次大会散会就多一盏的灯 / The Lamp That Appears on the North Colonnade After Every Dissolved Convocation
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 北长廊值更人夜夜走一遍——灯三十盏，一盏不多，一盏不少。
 - [2] 第四十一次大会散会之后——值更人第二晚数到第三十一盏灯。
 - [3] 第三十一盏灯油满、灯芯新、灯罩旧——没有一样是新的，只有灯芯是单独新的。
@@ -2631,6 +2659,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 值更册最后一页写着"第六十九年秋天北长廊会有第十盏"——抄本师不许任何人念出声。
 
 ### Echo 117 · 雾港第九潮汐表上那行谁也划不掉的日期 / The Date on the Ninth Tide Almanac That No One Can Cross Out
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 雾港九张潮汐表——前八张有编年、题名、盖印——第九张没有一样。
 - [2] 第九张潮汐表最下边一行字："第四十一次大会散会的那天没有潮。"
 - [3] 抄本师试过注"有潮"——墨缩成盐粒，掉进槽里。
@@ -2639,6 +2668,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 抄本师定下规矩：前八张可修——第九张只记——不修、不注、不论。
 
 ### Echo 118 · 退潮之后 / After the Tide
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 守灯人摸了一下门槛上的盐，收回手。
 - [2] 守灯人记下这一条，没记时间。
 - [3] 有两把椅子的坐深比其余都深，他没有摆回去。
@@ -2646,6 +2676,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 守灯人只做一件事：每天早上把盐抹掉。
 
 ### Echo 119 · 潮信 / The Tide's Letter
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 潮汐教团没有章了一百年了，这只是一只新倒的章。
 - [2] 这一封信里没有字。
 - [3] 潮汐时刻表被人这样挂在门锥上。
@@ -2653,6 +2684,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 盐又在门槛上——每个人都踩过去，没有人弯腰。
 
 ### Echo 12 · 潮落时才有的回声 / The Echo That Only Comes When the Tide Is Out
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 祠殿堂的回声只在潮落时造访——涨潮时，声音走的是别的路。
 - [2] 潮声里从来没有原因，只有位置——它只说海现在在哪里。
 - [3] 祠殿堂里没有转述——潮说了什么，进门的人自己听。
@@ -2660,6 +2692,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 祠殿堂的回声从来没有人认过主——它属于经过它的潮，经过它的人。
 
 ### Echo 120 · 第四十四次会 / The Forty-Fourth Convocation
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 时刻表挂在门锥上——只有潮来潮去，没有别的。
 - [2] 潮，怎么算，跟守灯人对上了。
 - [3] 潮来了，不答——不解释，不邀请。
@@ -2667,6 +2700,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 潮汐教团没有散会。第四十四次会还在继续。
 
 ### Echo 121 · 靠门的椅子 / The Chair Nearest the Door
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 他选中了最靠门的一把椅子，其他人都没有动过。
 - [2] 他记不清年轻人的脸。
 - [3] 两人都没有提议散会。
@@ -2674,6 +2708,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 潮退的时候，守灯人也没有离开椅子。
 
 ### Echo 122 · 借椅子 / The Borrowed Chair
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 守灯人比以前更晚醒。
 - [2] 第四天以后，没有人知道是谁说了"不要来"。
 - [3] 潮退一厘米，时刻表纸上多一道横线。
@@ -2681,6 +2716,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 潮还没有退，守灯人还没有回家。
 
 ### Echo 123 · 潮的名字 / The Name of the Tide
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 潮汐起的时候总是先看见潮的名字。
 - [2] 他又往下看，发现是无字的——没有人问过潮为什么要有名字。
 - [3] 他只是在潮落下去的时候，把那一行字揉成了一团纸，扔进了潮纸篓。
@@ -2688,6 +2724,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 他没有发现纸篓里那一团纸被撕开。
 
 ### Echo 124 · 旧册子里的名字 / The Name in the Old Ledger
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 封面上的名字已经被海水泡得看不清了，只剩下每页都写着一行潮字。
 - [2] 那本旧册子究竟谁打开过？没有人记得。
 - [3] 每一页都没有告诉潮什么时候才真的退去。
@@ -2695,6 +2732,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 守灯人把旧册子放回了抽屉里。
 
 ### Echo 125 · 潮起来的时候 / The Hour the Tide Rose
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 这些字迹每页只有一句，无一句重复，全潮一色。
 - [2] 守灯人站在门锥前，没有添笔。
 - [3] 第四十五次会要开了，谁也没敲他的门。
@@ -2702,6 +2740,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 守灯人不知道是谁量的。
 
 ### Echo 13 · 潮候院没有叫过的那一声会 / The Convocation Nobody Called
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 潮候院从那以后再也没有人叫过下一场大会——潮起潮落替它们把这一声叫了出去。
 - [2] 第五十一次的召集函谁也没写——没有人替海落笔第一句"现在可以了"。
 - [3] 潮候院抄潮汐表不是替大会排期——抄的是那个"现在可以了"到底是哪一天。
@@ -2709,6 +2748,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 第五十一次大会从来不算缺席——它只是潮候院还没有遇上的一段潮。
 
 ### Echo 14 · 潮汐表的封面 / The Cover of the Tide-Table
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 潮候院抄的每一本潮汐表，封面上从来没有写过任何人的名。
 - [2] 潮汐表的封皮不是纸——潮起过的地方，纸站不住；潮候院用石头做封面。
 - [3] 潮候院的封面上没有名字——抄是潮候的事，不是抄的人的事。
@@ -2716,6 +2756,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 潮汐表的封面不是装饰——它是潮候院为每一次潮起写下的那一行不会被海带走的字。
 
 ### Echo 15 · 巷子深处那盏没人记得的灯 / The Lamp the Wine Shop Never Remembers
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 巷子里的白灯从来没为谁亮过——它只是一直亮着。
 - [2] 酒馆的店主从来没说过"去"——海潮就常常替它说出来。
 - [3] 里巷子的酒馆从来没有哪一夜熄过灯——住在潮候院不等于进了潮候院。
@@ -2723,6 +2764,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 瓶子空了就是空了——酒馆不会给空瓶装上什么假的酒。
 
 ### Echo 16 · 潮沙盘上那四只小贝壳 / The Four Small Shells on the Tide-Sand Table
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 潮沙盘上那四只小贝壳从来没有被潮沙推动过一毫毫。
 - [2] 四只贝壳没有时间被人摆过——它们是潮沙盘上早就有的东西。
 - [3] 守夜人两年一清的时候，四只贝壳只能留在原地——它们从不被随手拿起。
@@ -2730,6 +2772,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 贝壳是潮沙盘的一部分——潮候院宁愿潮沙盘没有贝壳也不能动它们。
 
 ### Echo 17 · 祠殿后那一截没有人劈开的浮木 / The Driftwood Nobody Split for Firewood
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 祠殿后的浮木，谁也不知道它是从哪里来的——它只是一截从海里来的木头。
 - [2] 浮木记着每个人留下的纹迹——谁都留过，谁都没擦过。
 - [3] 潮候院从来没有人劈过这截浮木——里巷子只会放它在那里，不会烧它。
@@ -2737,6 +2780,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 浮木至今还没有被任何一批潮候院的人拖走过——潮候院最终决定留下它。
 
 ### Echo 18 · 祠殿里从不叫的一只猫 / The Cat in the Institute That Never Meowed
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 祠殿堂的人从没叫它的名字——祠殿院没有哪一页上出现它的代称。
 - [2] 潮起的时候猫在潮沙盘边看沙落，潮落的时候它蹲在老米缸旁边。
 - [3] 祠殿堂里没有哪一个人喂过这只猫——它吃的是潮候院留下的碎片。
@@ -2744,6 +2788,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 祠殿堂里的值守心里都知道——它不偷东西，它只是在。
 
 ### Echo 19 · 里巷子的抄本员 / The Copyists of the Back Alley
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 里巷子的抄本员从来不在抄本上签名——抄本不是谁的作品，是潮汐本体的投影。
 - [2] 里巷子的抄本员按潮汐的节拍抄书——时间不是人定的，是潮带人们走的。
 - [3] 里巷子的抄本员的字在代际之间变得越来越模糊——他们只是一间临摹别人的抄本。
@@ -2751,6 +2796,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 里巷子的抄本员没有名字也没有葬地——潮候院没有给人时间知道他们存在过。
 
 ### Echo 20 · 潮候院钟楼里那口从不响的钟 / The Bell That Never Rang in the Institute's Clock Tower
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 钟楼里的钟槌碎了很多年，钟从来没有响过。
 - [2] 潮候院的大会从不以钟声开始，也不以钟声结束。
 - [3] 风起的时候，贝壳替钟槌去了钟——潮候院叫它海碰海，不叫钟声。
@@ -2758,6 +2804,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 钟楼下午三点的影落在潮沙盘上——潮候院以潮候院的影子计时，不以钟。
 
 ### Echo 21 · 里巷子码头的七盏号灯 / The Seven Lamps of the Back-Alley Pier
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 七盏号灯没有哪一张施工图上画过它们——最早的图纸只有六盏的划痕。
 - [2] 第四盏灯四十二年没再亮过——值守没有按回来，岸上的人照旧念「四」。
 - [3] 抄本员的海图上七盏灯必须同时出现——缺一盏就是错的海图不是美术作品。
@@ -2765,6 +2812,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 潮沙盘七列的排法和灯的顺序一样——潮候院靠灯记潮，也靠潮记灯。
 
 ### Echo 22 · 里巷子晾鱼架上那条永远晾不干的鱼 / The Fish That Never Dried on the Back-Alley Rack
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 里巷子晾鱼架最里侧的一号钩上，挂着一条谁都不记得是什么时候挂上去的鱼。
 - [2] 一号钩上的鱼是潮晾的——从没被太阳干过，也从没被谁翻晒过。
 - [3] 新来的值守问这条鱼是什么种的——后辈只说一号钩，不说它的名字。
@@ -2772,6 +2820,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 架子会换，一号钩不换——风夜经过的人总慢半步，不是为了看。
 
 ### Echo 23 · 雾港里那艘只在黄昏出现的船 / The Ship That Appears Only at Dusk in Fog Harbor
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 雾港黄昏起雾的时候，码头口总有一艘船不在值守的名册上。
 - [2] 灯人从不往雾港方向张望第二盏——看到它的人看不见第二天的雾港。
 - [3] 这条船从不停泊、从不收锚、从不给任何人上船——它没名字，也从不需要。
@@ -2779,6 +2828,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 雾散了这艘船就不存在——潮候院不需要一艘没有答案的船。
 
 ### Echo 24 · 里巷子石槽里那粒没化的盐 / The Salt in the Trough That Never Dissolved
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 石槽里那粒盐没人知道它什么时候落进去的——它漂在潮候院最里侧的水槽里。
 - [2] 水退了五百年，石槽里那粒盐至今还没人捞，也没哪一代潮候院把它收去藏起来。
 - [3] 潮候院的半月章是石槽里的这粒盐蘸过的——没人知道还有没有别的东西被蘸过。
@@ -2786,6 +2836,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 潮候院的尘都没能把这粒盐带走——它只是漂在那里，拒绝化，拒绝被带走。
 
 ### Echo 25 · 里巷子所有灯熄的那一夜 / The Night Every Lamp in the Back Alley Went Out
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 所有的灯都熄了的那一夜，值守忘了带第二颗火——潮候院没有备用的。
 - [2] 潮候院没有任何灯备用方案——它相信潮自己会说完。
 - [3] 潮沙盘中间空过一格的位置，原来是潮自己留的空白。
@@ -2793,6 +2844,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 米缸月密室的番号只是「空一格」——潮候院的值守一概不出声问你里面是什么。
 
 ### Echo 26 · 祠殿檐下那张潮候院不许扫的网 / The Web Under the Chapel Eaves Nobody Is Allowed to Sweep
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 祠殿檐下的网挂在建院之前就挂在那里——值守从来没见过它新织出来的那天。
 - [2] 新来的值守递过一把帚——帚尖落在砖缝里，网没有被碰过。
 - [3] 网破三处、沙落一格——抄本员们只在纸条上画出新的蛛丝，从不登记它。
@@ -2800,6 +2852,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 值守班的资格在于你可以走近到檐下两臂——潮候院从不说那张网属于谁。
 
 ### Echo 27 · 里巷子里刻着四十一次大会的那面墙 / The Wall in the Back Alley Carved with the Forty-One Convocations
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 里巷子的石墙上刻着四十一条槽——海风磨了四十多年，它们还在。
 - [2] 海刻的那道槽在最下面——它比第一次大会还早，没有值守记得它是哪一年刻的。
 - [3] 四十二条槽的位置有过一线——没有人认领它，第二天它自己就消失了。
@@ -2807,6 +2860,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 墙对面的岩缝里正好能看见祠殿的影子——如果有一天四十二道槽齐了，潮候院会办下一次大会。
 
 ### Echo 28 · 潮候院沙漏里那枚没人拆开的结 / The Knot in the Institute's Hourglass That Nobody Opens
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 沙漏正中心的那枚双股结没有人拆过——没人敢拆。
 - [2] 新来的值守伸手接近那枚结——指尖就缩回来了。
 - [3] 沙漏旁边有一枝木棍——值守长只指着沙漏而已，从没动过它。
@@ -2814,6 +2868,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 米缸月第三天晚上——里巷子看见的光从里巷子方向亮了一下——只照亮沙漏。
 
 ### Echo 29 · 祠殿里那双没人穿的木屐 / The Wooden Clogs Inside the Chapel That No One Wears
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 祠殿最外进门处放着一双木屐——每年开春那一天都会多出一双。
 - [2] 值守从不登记祠殿门口那双木屐——抄本员说的只有一句：那是门。
 - [3] 进去的人要光脚——潮候院里没有谁被允许穿过别人的东西。
@@ -2821,6 +2876,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 散会后的某个深夜——祠殿进门那双新的木屐亮了一瞬间。
 
 ### Echo 30 · 祠殿门槛下压着的那七块木板 / The Seven Boards Buried Under the Chapel Threshold
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 祠殿门槛下每一进门都是石槛——石槛下堆着七块木板。
 - [2] 新来的值守在门槛处脚步一失都是常有的——水渗里巷子万年没干过。
 - [3] 最底下的木板的木纹谁都没看见过——抄本员也不再问了。
@@ -2828,6 +2884,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 门槛下的七块板不会减少——潮候院不会在新建的时候多开一道祠殿。
 
 ### Echo 31 · 里巷子赌局桌上那枚没人认领的白子 / The White Stone No One Claimed on the Alley's Gaming Table
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 祠殿外赌局桌上某一年多了一颗白子——它不像是谁放的。
 - [2] 抄本员问过它三四次——每次都没有答案。
 - [3] 值守半夜把它放进仓库——第二天早上它又回到桌上。
@@ -2835,6 +2892,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 散会以后桌子上又出现两颗白子——都不归档。
 
 ### Echo 32 · 祠殿后那张印错的潮汐表 / The Tide-Table Behind the Chapel With One Row Wrong
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 潮候院每册潮汐表里都有一行东向的方向不对——抄写的人没有纠错的资格。
 - [2] 前辈只简单说一句「留给它」——抄写的人从不纠正那一行。
 - [3] 抄错的人从潮笔回来补——那一行的角度本身是留给潮的。
@@ -2842,6 +2900,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 那一行潮沙盘里没有人讲清过——值守长也只说是给海看的。
 
 ### Echo 33 · 四十一次大会那天一并封起来的那封信 / The Letter Sealed at the Forty-First Convocation
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 米缸月初收档——潮沙盘边多了一封蜡封。
 - [2] 米缸月廿一早上米缸月的值守总要看它——米缸月的值守总要确保它还在原处。
 - [3] 值守嘱托了关于它的那一页——抄本员没人打开过它。
@@ -2849,6 +2908,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 潮沙盘的值守偶尔会去看它——但潮候院的规则就是没人打开过它。
 
 ### Echo 34 · 祠殿地下室里那张旧海图 / The Old Sea Chart in the Chapel Cellar
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 潮候院唯一的一张海图压在祠殿地下室最里面那只木箱里。
 - [2] 登记册上写着三行字：海图，完整，不动。
 - [3] 值更长说：你描出来的，不是它。
@@ -2856,6 +2916,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 木箱锁上的那枚圆印，潮候院只有一把钥匙开得开。
 
 ### Echo 35 · 祠殿侧门外那只从不干的石凹 / The Stone Basin Beside the Side Door of the Chapel That Never Runs Dry
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 祠殿侧门外那只石凹，米缸月的值更六十九年没见它干过。
 - [2] 值更说：那是满潮的那一刻，潮从下面上来的。
 - [3] 值更册登记着半月章在石凹边盖的次数：四次。
@@ -2863,6 +2924,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 米缸月的值更换班前最后一眼，落在那只石凹上。
 
 ### Echo 36 · 值更院米缸里那粒从不沉下去的米 / The Grain of Rice in the Watcher's Rice Jar That Never Sinks
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 每个值更早上来领自己的三两米。
 - [2] 那粒米浮在缸面上，六十九年没沉下去过。
 - [3] 筷子拨过一次，次日它又浮回原位。
@@ -2870,6 +2932,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [5] 值更们管它叫月亮派下来的那一粒。
 
 ### Echo 37 · 值更院米缸月最后一夜那口从不离灶的粥 / The Congee Pot That Never Leaves the Stove on the Last Night of the Rice-Jar Month
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 每天夜里的值更要守着一口粥锅。
 - [2] 舀粥的勺子挂在灶边同一只钉子上。
 - [3] 米缸月的勺子只舀粥，别的不舀。
@@ -2878,6 +2941,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 值更们管它叫守夜锅。
 
 ### Echo 38 · 值更院井台边那块永远不干的石板 / The Stone Slab by the Well That Never Dries
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 每天清早井台上总有一层水汽。
 - [2] 没有人烧过井台，也没有人浇过井台。
 - [3] 值更们从不在那块石板上放任何东西。
@@ -2886,6 +2950,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 值更们管它叫候潮石。
 
 ### Echo 39 · 值更院灯架最上层那盏不灭的灯 / The Ever-Burning Lamp at the Top of the Watcher's Lamp Rack
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 灯架最上层那盏灯，油从不添，也从不少。
 - [2] 看惯了的人以为它只是个装饰。
 - [3] 米缸月最后一夜，有人上梯点一次灯。
@@ -2894,6 +2959,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 值更们管它叫夜眼。
 
 ### Echo 40 · 值更院值更图上那个没人认识的名字 / The Name on the Watcher's Duty Roster That No One Recognizes
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 值更图上一共有三列人，每一列都有名字。
 - [2] 值更图末尾有一行字，没有人记住它。
 - [3] 值更们每年抄图时原样照抄那一行。
@@ -2902,6 +2968,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 值更院每一个人都为那一行字留着一个空格。
 
 ### Echo 41 · 祠殿横梁上那条画了一半的龙 / The Half-Painted Dragon on the Chapel Beam
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 祠殿横梁上那条龙只画了一半。
 - [2] 值更们不画完那条龙，说它守着梁下睡的人。
 - [3] 祠殿横梁下没有人敢睡觉。
@@ -2910,6 +2977,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 值更们管它叫半龙。
 
 ### Echo 42 · 雾港驿站那匹从不出门的马 / The Horse at the Fog-Harbor Staging Post That Never Leaves
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 驿站的马棚里有一匹值班的马，但它从不出门。
 - [2] 马棚门口挂着一副没人摘下来的鞍。
 - [3] 驿卒说这匹马等的是好潮水。
@@ -2918,6 +2986,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 马棚门口像有人在等一个只有海知道的客人。
 
 ### Echo 43 · 祠殿地下室那只从不干的墨碗 / The Ink Bowl in the Chapel Cellar That Never Dries
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 祠殿地下室末端有张石桌，桌上放着一只墨碗。
 - [2] 桌角说墨碗是第四十一次大会散会那夜留的。
 - [3] 新值更来擦清石桌，从来不敢动那只墨碗。
@@ -2926,6 +2995,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 值更们管它叫「留书的墨碗」。
 
 ### Echo 44 · 祠殿太阳钟上那根永远赶不上影子的指针 / The Hand on the Chapel Sun-Dial That Never Catches Its Shadow
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 祠殿顶上立着一只叫「日影」的太阳钟。
 - [2] 白石板上既有最古老的刻度，也有最年轻的刻度。
 - [3] 日影从不到下午，也从不到上午——它长年卡在正午。
@@ -2934,6 +3004,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 日影是海写字时候的停笔。
 
 ### Echo 45 · 潮候院侧殿里那根永远织不完的麻绳 / The Hemp Rope in the Side Chapel That Is Never Finished
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 潮候院侧殿里有一根麻绳，没有人织得完。
 - [2] 绳是用稻草和贝壳粉捻的。
 - [3] 侧殿门槛上刻着一行小字：始捻此绳，当不绝。
@@ -2942,6 +3013,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 值更们管它叫「未结」。
 
 ### Echo 46 · 雾港钟楼上那口从来没敲过的铜钟 / The Bronze Bell on the Fog-Harbor Bell Tower That Is Never Struck
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 雾港钟楼上立着一口铜钟，六十九年没被人敲过。
 - [2] 钟是建院第七年铸成的。
 - [3] 雾港的时辰靠的是海潮和暮色，不是钟。
@@ -2950,6 +3022,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 值更们管这口钟叫「不散的时辰」。
 
 ### Echo 47 · 潮候院后院晒干草的木板上那颗从不动的露珠 / The Dewdrop on the Hay Board in the Backyard That Never Moves
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 潮候院后院有一块晒干草的木板。
 - [2] 木板上有一颗露珠，六十九年没动过。
 - [3] 每晨初阳把雾烤散的时候，木板上的露珠会闪一下，又静下去。
@@ -2958,6 +3031,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 值更们管它叫「不愿早的」。
 
 ### Echo 48 · 雾港渡船上那位从不开口的船客 / The Passenger on the Fog-Harbor Ferry Who Never Speaks
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 雾港渡船上坐着一位不说话的船客。
 - [2] 他每次都坐在船尾第一个座位上。
 - [3] 没有人问过他要去哪——他也从没说过。
@@ -2966,6 +3040,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 值更们管他叫「候渡人」。
 
 ### Echo 49 · 雾港渡口那张印错的潮汐表上从来没被划掉的那一行 / The One Row Never Struck Out on the Misprinted Tide-Table Posted by the Fog-Harbor Ferry
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 渡口的公告栏上有一张潮汐表，钉在半旧的木柱子上。
 - [2] 潮汐表最后一行的符号被多印了一道。
 - [3] 没人把它抽下来，也没人划掉那一行。
@@ -2974,6 +3049,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 值更们管这行错的潮汐线叫「半月潮」。
 
 ### Echo 50 · 祠殿南厢房那本旧目录上空着的第四十一页 / The Forty-First Blank Page in the Old Index in the South Hall of the Chapel
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 祠殿南厢房有一张橡木长桌，抄本员每天都会坐在那儿翻目录簿。
 - [2] 目录簿第四十一页是空的，从上面留到下面。
 - [3] 书虫没有在第四十一页里出现。
@@ -2982,6 +3058,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 没人知道谁能写第四十一页，也没人见过谁来写过。
 
 ### Echo 51 · 雾港灯塔第七级台阶上那双从来没擦掉的脚印 / The Footprints On the Seventh Step of the Fog-Harbor Lantern Tower That Are Never Cleaned
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 雾港灯塔第七级台阶上有一双没人擦掉的脚印。
 - [2] 雾港灯塔第一任潮候把第七级台阶留作登塔人必经之路。
 - [3] 值更在清早拿盐水拍一下第七级台阶，脚印就更深一点。
@@ -2990,6 +3067,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 没有人敢数第七级台阶上总共有过多少双脚印。
 
 ### Echo 52 · 潮候院祠殿门廊那一段摸过六十九年的门槛 / The Threshold in the Chapel Porch That Has Been Touched for Sixty-Nine Years
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 祠殿门廊有一段青石门槛，每次人跨进祠殿都会被划一下脚踝。
 - [2] 抄本员的祖爷爷是那段青石门槛的手艺人。
 - [3] 没人数过门槛上有多少人摸过它。
@@ -2998,6 +3076,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 雾港潮沙盘所有风暴都没有把这门槛打碎。
 
 ### Echo 53 · 渔村船工吹着首响的那一下潮——留下的螺口 / The Whistle Left by the Fisherman's Call on the Tide
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 雾港渔村吹的是朝号，吹朝号才能赶潮。
 - [2] 螺号的口永远朝上，因为风从这边经过，口高才传得远。
 - [3] 船工听不见自己的号声，但他能听见远岸回来的那一声。
@@ -3006,6 +3085,7 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 小海湾里所有的船都只在风港做单程。
 
 ### Echo 54 · 潮候院祠殿后廊那口锁住锤舌的夜钟 / The Night Bell in the Back Gallery Whose Tongue Was Sealed
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 后廊的夜钟只能在空天的夜里听见。
 - [2] 每一声钟都借一合水，借满七十二合就不得再击。
 - [3] 钟匠的儿子再没碰过夜钟，但他的刻刀上永远带着铜绿。
@@ -3014,6 +3094,101 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 等镜湖干了、盐线退了，夜钟自己会回答，不需要任何人动手。
 
 ### Echo 55 · 潮候院东偏院那间从没装门只系铜环的房间 / The Doorless Room of the East Wing with Only a Cloth and a Copper Ring
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院东偏院最北的那间宗卷室：没有门，只有一道门洞、一幅麻布、一枚铜环。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the scriptorium annex at the far north of the east wing: no door, only a doorway, a length of linen, and a copper ring.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第六日。
+> Era: the Institute — after the 41st Convocation; the sixth day of the autumn-tide month.
+
+---
+
+## 一 · 没有门的房间
+
+东偏院最北的一间，无窗无檐，只有一道齐胸高的门洞，洞里横挂一幅大麻布，布上缝着一枚铜环。环不是为了拽布，是为了给走过的风一个可以回答的形状。
+
+白天布会自己晃一下；没人进去，环先替他们收了手。夜里安静——铜环在布上睡了，防风针也压了。
+
+**锚句**：东偏院最北的那间不设门，只设布和铜环。
+**Anchor sentence**: the northernmost room of the east wing has no door, only cloth and a copper ring.
+
+---
+
+## 二 · 入门的规矩
+
+不站班上的抄本师永远不知道里面放着哪一本。进去之前要向值更院报一声："进卷一次，不出声，不回头。"进去的人只看自己要抄的那一卷，退出时不准看身后的架子——这是规矩，也是免责，那一眼看到什么都算「时候未到」。
+
+只有主持过拣卷、被值更长亲口认过名字的人，才有资格穿过那道布。
+
+**锚句**：能进宗卷室的只有主持过拣卷的抄本师。
+**Anchor sentence**: only copyists who have presided over the selection of scriptures may enter the archive annex.
+
+---
+
+## 三 · 不留名字的卷宗
+
+每年四十一次大会散会之后，值更院从外院缴回的旧卷里拣出「次卷」——不是不够好，是时候未到。封入无名麻布袋，袋口只系不封；封条上不写卷号，不写年份，只写四个字："时候未到。"
+
+这些袋子排在最深处的两架之间，谁也拿不出一整袋，只被允许核一袋之中的某一卷，抄出某一句，盖一个没有年份的墨印，然后放回去。
+
+**锚句**：封袋上从不写卷号，只写「时候未到」。
+**Anchor sentence**: the slips on the wrapping never carry volume numbers; they carry only the words "not yet the hour".
+
+---
+
+## 四 · 双人核对
+
+每一次向宗卷室增入新卷，必须两位在场：一位读，一位默。读的听着白纸之外最响的那半句；默的只点头、不发言。默者若发现读者念错一个字，不能纠——能抬一下左手，那次增卷就要重来，从头再读一遍。
+
+没有人在那个房间里听到别人替自己签名。两个人同时出现，是为了让一个人替另一个人记住「今天确实增过一卷」，而不是替谁证明「那一句是真的」。
+
+**锚句**：增卷是双人核对：一人读，一人默；谁都不能替谁签字。
+**Anchor sentence**: each addition is witnessed in pairs: one reads, one holds silence; no one signs for the other.
+
+---
+
+## 五 · 铜环声音
+
+挂铜环的麻布每季上一层蜜蜡；这件事是值更院第一件公示事项，比值更换帖还早一天挂出来。铜环哑了就该换，但没有人换过——已经很久了，「哑过的铜环才留得住回声」，这是钟匠的孙子在门廊上写的原话。
+
+更早的记录里没有这条规矩。钟匠的孙子自己说，他只是把自己偷下来的那枚环带回来，放回去的时候顺便写了这么一行；没人来问他写的原因，也没人擦掉。
+
+**锚句**：挂铜环的麻布每季上一层蜜蜡，钝了也不换。
+**Anchor sentence**: the linen holding the copper ring is waxed each season; never once has the ring been replaced, even dull.
+
+---
+
+## 六 · 等待开门的那天
+
+院里最老的那几个人说，东偏院的麻布是为了一件事而存在：总有一天，屋子里放的卷宗足够多了，那幅布会自己飘起来——不是被风，不是被人。那天宗卷室会第一次真正地敞开，所有「时候未到」的卷宗一篇一篇被读出来。
+
+没人知道那一天是不是已经近了。他们只是每天路过，先看一眼那道门洞有没有人；然后才想起来，那里从来就没有门。
+
+**锚句**：哪一天布自己飘起来，哪一天就是开卷的日子——没人说得出是哪一天。
+**Anchor sentence**: the day the linen rises on its own will be the day of unrolling; no one can say which day.
+
+---
+
+## 七 · 映射（回响五十五章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 宗卷室 · 时候未到 · 双人核对 · 铜环 | 一、二、三、四、五、六 |
+| geography | 东偏院最北 · 门洞 · 无窗无檐 | 一、三 |
+| characters | 抄本师 · 值更人 · 钟匠的孙子 | 二、四、五 |
+| story | 从没装门的宗卷室 · 回响（其五十五） | 全篇 |
+| items | 大麻布 · 铜环 · 蜜蜡 · 无名麻布袋 · 无年墨印 | 一、三、五 |
+| history | 第四十一次大会散会之后 · 秋潮月第六日 | 三、六 |
+
+> 路过的人偶尔听见布里有声音——不是吓人，是提醒自己：屋里还有东西没到时候。
+> Passersby sometimes hear something behind the linen — nothing to fear; only a reminder that things inside are not yet of age.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 东偏院最北的那间不设门，只设布和铜环。
 - [2] 能进宗卷室的只有主持过拣卷的抄本师。
 - [3] 封袋上从不写卷号，只写「时候未到」。
@@ -3022,6 +3197,97 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 哪一天布自己飘起来，哪一天就是开卷的日子——没人说得出是哪一天。
 
 ### Echo 56 · 雾港公示牌下面那张从没有人认领的明日大雨 / The Slip on the Harbor Bulletin That Nobody Ever Claimed
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给雾港公示牌下面那张无主署名的纸条："明日大雨。"
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the nameless slip tacked beneath the fog-harbor bulletin: "Great rain tomorrow."
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第九日。
+> Era: the Institute — after the 41st Convocation; the ninth day of the autumn-tide month.
+
+---
+
+## 一 · 公示牌的位置
+
+雾港公示牌立在风港入与灯塔之间的拐角，站两个人要侧身。牌上的通知按序从上到下排：先是当季当月的水尺对账单，再是值更院的回帖换卡，最后才是一张纸——写着"明日大雨"，没有署名，没有角，没有落款。
+
+谁都会先看见最上面那份正式的，再看见最下面那张不正式的东西——从某个秋潮月开始，它从未缺席过一天。
+
+**锚句**：公示牌下面有一张没有署名的纸条，写着明日大雨。
+**Anchor sentence**: tacked at the very bottom of the bulletin board is an unsigned slip reading "Great rain tomorrow".
+
+---
+
+## 二 · 盐水也咬不掉的纸
+
+雾港的风里有盐。风一吹，公告纸角朝下翘起，第二天下坠。可那张纸条——对着风口贴了一整个秋天，盐蹭得发硬，墨泡皱起来，字迹却一个也不含糊。
+
+值更人站在它前面吹口哨说：那张纸不是纸，是墓碑——每年把最后一场雨的账记上去。
+
+**锚句**：纸条贴在公示牌正中，盐水泡皱了也不掉。
+**Anchor sentence**: the slip is tacked to the center of the board; soaked in brine and curled, it never falls.
+
+---
+
+## 三 · 反复
+
+有人每月更换公告时把它撕下来当反例教材。撕下的当晚只有风声，第二天它就在原位重新贴着，墨迹还是那几笔。
+
+值更长记录过三次撕下交接--第四次没有记录。第四次以后，他们改成只在牌上上当季水尺，不动那一角。
+
+**锚句**：每次有人取下它，第二天一早又会贴上一张新的。
+**Anchor sentence**: each time someone takes it down, by the morning of the next day a fresh one appears in its place.
+
+---
+
+## 四 · 没人认领
+
+有人在牌边守了三个晚上，没看到任何人贴它，根本是他没见到人来也没见到天亮之前的动静。他交了一份报告上去，结论一时激动，被值更院退回重写——重写的是："没有人承认是自己贴的，也没有人说见过它被贴上去。"
+
+**锚句**：没有人承认是自己贴的，也没有人说见过它被贴上去。
+**Anchor sentence**: nobody admits to having posted it, and nobody says they have ever seen it being posted.
+
+---
+
+## 五 · 压不过去的位置
+
+当季的正式通知本来该排在最下面，最下面的位置得归属下一期公示。可自从那张纸条开始出现的年份起，正式通知无论多重多大，都总是贴在它上面——没有通知把它压死过，也没有通知愿意替它换位置。公示牌最顶上的钉子在下雨天会发软，钉不住下一期的水尺表，纸就往下滑——但"明日大雨"从不滑。
+
+**锚句**：公示牌上正式通知下方的纸条从来不往上移，官方站上去盖也压不住。
+**Anchor sentence**: the slip beneath the official notices never moves up; however hard the office pins over it, it cannot be pressed flat.
+
+---
+
+## 六 · 账不是预告
+
+抄本师研究过这不是什么预言：它不报日期，不报雨量，不报风向。每年入秋潮月之后便开始出现——与开账的窗口完全吻合。他们认为这是公示牌上最后一张原稿：按潮候院古老的做法，下一条没做成的账预先付于牌上，为的是交接时不至于遗失。
+
+所以它不是"明日大雨"，是"明日有雨的那一天已经记入潮候公账"。只是时间不到，字迹不出名。
+
+**锚句**：抄本师说那不是预告，是账——云那天其实早就记进去了。
+**Anchor sentence**: the copyists say it is not a forecast but a ledger entry — the day already in the ledger book of the Institute for the day that is yet to come.
+
+---
+
+## 七 · 映射（回响五十六章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 明日大雨 · 公示牌 · 账 vs 预言 · 秋潮月 | 一、二、三、四、五、六 |
+| geography | 风港入 · 灯塔拐角 · 雾港公示牌 | 一、五 |
+| characters | 值更人 · 值更长 · 抄本师 · 那个守了三夜的人 | 二、三、四、六 |
+| story | 明日大雨 · 回响（其五十六） | 全篇 |
+| items | 无名纸条 · 盐水 · 水尺 · 墨 | 一、二、三 |
+| history | 第四十一次大会散会之后 · 秋潮月第九日 | 一、三、六 |
+
+> 下一次你路过的时候，看看它还贴在那里——没人见过它被贴上去，但它总是在。
+> Next time you pass it, look again — no one has ever seen it posted, and still, it is always there.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 公示牌下面有一张没有署名的纸条，写着明日大雨。
 - [2] 纸条贴在公示牌正中，盐水泡皱了也不掉。
 - [3] 每次有人取下它，第二天一早又会贴上一张新的。
@@ -3030,6 +3296,114 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 抄本师说那不是预告，是账——云那天其实早就记进去了。
 
 ### Echo 57 · 雾港潮水漂上来那张没人能投递的潮候院言归帖 / The Letter the Tide Washed Ashore That No One Could Ever Deliver
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给雾港一下潮那天漂上来的要件封皮：她是写给潮候院一位被抹掉名字的执掌人的回信。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the summons envelope that washed ashore on the still-slack tide: a reply addressed to a steward of the Institute whose name is scrubbed out of the ledger.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第十三日。
+> Era: the Institute — after the 41st Convocation; the thirteenth day of the autumn-tide month.
+
+---
+
+## 一 · 退潮最慢的那天
+
+潮水退得最慢的那天，潮候院在雾港的海岸没有一人说出口——他们只是各自把自己的木履摆在钉好的海潮水位线下，静静走过去。
+
+潮水退到最后那条水线以后，剩下一层白得发蓝的水纹，光线站在上面一动不动。制度只允许抄本师、值更人、佛师徒靠近它。
+
+一个值更人先看到了它——然后才敢叫其他人。
+
+**锚句**：事情是在秋潮月潮水退得最慢的一天发生的。
+**Anchor sentence**: it happened on the slowest-receding day of the autumn-tide month.
+
+---
+
+## 二 · 一个字的收件人
+
+封皮不是潮候院的官方封皮——一半是旧纸，一半是岸边潮水泡干以后的盐结晶。封皮上只有两行字：
+
+上行是一串墨团，里面三个字被盐融化了一半也能辨认出来：潮候、执掌、某日
+下行只有一个字——"归"。
+
+没有人叫它——因为一封没有收件人的要件，法律上不存在；存在的话，潮候院先前抹掉的那个名字该补回去。
+
+**锚句**：信封上写着潮候院之前被抹去的那名执掌人，收件人一栏只有一个字："归"。
+**Anchor sentence**: the envelope bears the name of the steward whom the Institute had scrubbed out of its ledger; in the addressee line only one character: "Return."
+
+---
+
+## 三 · 读出来也不完整的信
+
+抄本师不能拆开直接封来——但封皮的一角已经潮开了一线：里面露出一行字，字是走的，手时稳时抖：
+
+"请提醒那山下的人，我们的信才到——但回信不入账不算回。"
+
+后半行也朝上浮出来。
+
+没人敢念第三行。
+
+**锚句**：抄本师无法找到这封要件能合法交到谁手上。
+**Anchor sentence**: the copyists could not find any hand into which this summons could legally be delivered.
+
+---
+
+## 四 · 盐水没泡坏它
+
+盐水泡了几十年任何信都会散，可那张要件没有散——抄本师只用手指碰一下没读过的那个角，字上还沾着刚写完的未干墨迹。
+
+他们小心把它铺在灯下。字一个接一个，笔笔皆稳——除了"归"下面那块被黏成纸团的一角，已经长到石盐片那样硬。
+
+**锚句**：要件字迹没有被盐水泡坏，好像它刚刚被写就，不管多少潮又带到岸边。
+**Anchor sentence**: the missive's ink was never dissolved by salt; however many tides delivered it, it arrived fresh.
+
+---
+
+## 五 · 钉进存档柜
+
+值更长问："要归应谁？"
+抄本师答："归原著。"
+值更长说，那按"社会回信"登记。
+所有人于是见证：抄本师把两行字拓下来抄七份原件，把原件按墨条正背面分两半钉起来，编号为"社会回信·其一"，盖墨条"时候未到"。
+
+——与那只门廊夜钟同名。
+
+**锚句**：抄本师把它钉在存档柜里，编号改为"社会回信"，按墨条另一面折好。
+**Anchor sentence**: the copyists filed it under "letter from society", then folded it along the reverse of a striped strip.
+
+---
+
+## 六 · 风港值更人说
+
+风港换班之后，年轻值更人私下问："这封信什么时候才能再来一次？"
+老值更人说："它还会再来——下一次雾大的时候，连信纸的麻尾纹也被海浪磨得更清晰。"
+年轻值更人坚持："那有没有人去认那个字？"
+老值更人沉默半晌："没人去收，也没人再寄。它会不断收到，不断无人领——它写在潮候院之前的户籍册上。"
+
+**锚句**：风港值更人说它还会再来一次，同一天，还无人认领。
+**Anchor sentence**: the watchers of the wind port say it will come again — same day, and still no hand claims it.
+
+---
+
+## 七 · 映射（回响五十七章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 社会回信 · 言归帖 · 时候未到 · 墨条正背 | 一、二、三、四、五、六 |
+| geography | 雾港 · 潮水最后一条水线 · 风港换班堂 | 一、五、六 |
+| characters | 值更人 · 值更长 · 抄本师 · 两位值更人（年轻与老） | 一、二、三、五、六 |
+| story | 没人能投递的要件 · 回响（其五十七） | 全篇 |
+| items | 潮水封皮 · 墨条 · 灯下案台 · 社会回信编号 | 二、三、四、五 |
+| history | 第四十一次大会散会之后 · 秋潮月第十三日 | 一、三、六 |
+
+> 雾港的风说：它还会回来的——下一次来的同一天，还是没有人去领。
+> The wind at the fog harbor says it will come again — and on that next day, still no one will claim it.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 事情是在秋潮月潮水退得最慢的一天发生的。
 - [2] 信封上写着潮候院之前被抹去的那名执掌人，收件人一栏只有一个字："归"。
 - [3] 抄本师无法找到这封要件能合法交到谁手上。
@@ -3038,6 +3412,103 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 风港值更人说它还会再来一次，同一天，还无人认领。
 
 ### Echo 58 · 祠殿墙脚那条抄本师只认墨不认盐的墨线 / The Ink Line at the Sanctuary's Foot That the Copyists Never Called a Crack
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给祠殿墙脚那条从内而外渗盐的细缝——抄本师叫它"墨线"，不叫别的。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the seam at the sanctuary's foot that seeps salt outward — the copyists call it the "ink line" and nothing else.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第二十日。
+> Era: the Institute — after the 41st Convocation; the twentieth day of the autumn-tide month.
+
+---
+
+## 一 · 墨线
+
+祠殿墙脚的东边有一条细缝——位置很近盐线那一侧，方向自内朝外。缝不深，人指摸上去只到第一节关节，但手指上会挂一层白。
+
+抄本师不叫它裂缝，叫它墨线。规定里不是说命名趣味，是所有描述它的话，抄本师都打成墨字，值更长回帖也都墨字批回——没人写它的真名。
+
+**锚句**：祠殿墙脚有一条缝，抄本师叫它「墨线」。
+**Anchor sentence**: at the sanctuary's foot sits a seam the copyists call the "ink line".
+
+---
+
+## 二 · 从内向外渗出
+
+值更人测过：刮下来的盐不是风从外面带来的——方向是错的，是从祠殿里面渗出来的。
+
+院里有人说那是祠殿内壁"干涸的迹象"。也有人说那是"账册多年没更新一页，自己渗出的墨"——到底层哪一句是真是假，潮候院从没找到过证人。
+
+**锚句**：盐是祠殿里往外渗的，不是风吹进来的——里面正在干。
+**Anchor sentence**: salt seeps outward from the sanctuary's interior; the wind brings none in — the inside is drying.
+
+---
+
+## 三 · 先碰不能擦掉
+
+抄本师的教条分三步。第一步：先用手指轻轻碰一下——感受凉还是不凉；第二步：用指腹沿着白迹的外缘描一圈，够不够硬；第三步，永远不用刷子、干布去抹——抹了两次以上，第三人就在跟前看它，判它已经墨线对不住了。判读之后，由抄本师开一份「判线回执」，抄给值更院公署，附录第六十四页，不再补笔。
+
+值更院拿回执存进现行章程附录——那是第六十四页。
+
+**锚句**：抄本师说要先碰不能擦掉——打磨了墨线就没了。
+**Anchor sentence**: the copyists say to touch first and never polish — the ink line is gone once polished.
+
+---
+
+## 四 · 每月刷一次、一年长一厘米
+
+值更长每月要站在墨线前用小刷清一次盐壳——不是为了干净，是为了能看见"它还在长"。
+
+测量登记在公示牌角落一行：每年长一厘米——一九八四年，盐线内缩了整条湿盐带（公示牌的厚表全部作废重做了四次）——但墨线数字依旧是一年一厘米。"它不赶时间，"这是抄本师原话。
+
+**锚句**：值更长每月刷一次，盐还在涨——一年长一厘米。
+**Anchor sentence**: the head watch brushes it monthly; the salt keeps rising — a centimeter a year.
+
+---
+
+## 五 · 盐疏
+
+抄本师把所有关于墨线的观察都归入了"时候未到"账册——新开了一页，叫"盐疏"。首页写一行字：
+
+"此页不结，不结即到，到即不必已。"
+
+墨线每动一次，盐疏就多抄一羁记——每记为一个抄本师一生只能填的那一行。近期盐疏第十一行落款，值更长的名字押下——上一笔是四十二年前的上一任。
+
+**锚句**：抄本师把它收进「时候未到」账，特地分一页，叫「盐疏」。
+**Anchor sentence**: the copyists entered it into the "not yet the hour" ledger, on its own page, the Salt Treatise.
+
+---
+
+## 六 · 章程要翻二十三遍的那一天
+
+值更长有一项秘制：盐疏上多一笔，他就要把现行章程再翻一遍，一字不漏。不是他记不得条文，是章程规定每次盐疏更新都要校对一次「第四十一次大会散会决议」——潮候院没有宪法，就以大会决议代之。
+
+他已经翻了二十三遍。盐疏纸软，边角叠成了自己的形状——抄本师说那是盐线自己退了，墨线自己便停了。
+
+**锚句**：每次盐疏更新，值更长要翻一遍现行章程——直到盐线自己退了，墨线自己便停了。
+**Anchor sentence**: each Salt Treatise update, the head watch must re-read the current manual — until the salt line retreats, and the ink line halts.
+
+---
+
+## 七 · 映射（回响五十八章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 墨线 · 时候未到 · 盐疏 · 章程宪法 | 一、二、三、四、五、六 |
+| geography | 祠殿东墙脚 · 盐线一侧 · 附录第六十四页 | 一、二、四 |
+| characters | 抄本师 · 值更长 · 值更长前任 | 一、二、三、四、五、六 |
+| story | 盐从里往外渗的墨线 · 回响（其五十八） | 全篇 |
+| items | 盐结晶 · 墨字批回 · 判线回执 | 一、三、四、五 |
+| history | 第四十一次大会散会之后 · 秋潮月第二十日 | 一、二、三、四、六 |
+
+> 有人假装看不见那条墨线，走过去；有人知道它在长，所以停下来——墨线是给愿意停的人看的。
+> Some walk past as if they cannot see the ink line; those who know it keeps growing stop for it — the line is for those willing to stop.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 祠殿墙脚有一条缝，抄本师叫它「墨线」。
 - [2] 盐是祠殿里往外渗的，不是风吹进来的——里面正在干。
 - [3] 抄本师说要先碰不能擦掉——打磨了墨线就没了。
@@ -3046,6 +3517,107 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 每次盐疏更新，值更长要翻一遍现行章程——直到盐线自己退了，墨线自己便停了。
 
 ### Echo 59 · 雾港东南巷那口盐封不了的老井 / The Old Well in the South-east Alley the Salt Cannot Hold
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给雾港东南巷尽头那口盐封老井：——没人决定开它，没人愿意封它。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the salt-sealed old well at the far end of the fog-harbor south-east alley: no one decided to open it, and no one dares to seal it again.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第二十五日。
+> Era: the Institute — after the 41st Convocation; the twenty-fifth day of the autumn-tide month.
+
+---
+
+## 一 · 雾港东南巷
+
+东南巷是一条没有尽头但突然中断的路——走下去就是巷尾，再走一步就是老井。井不是井，没有水——六十年前，它就已经不像井。
+
+它比人高一拃。人们看着它的井沿都比人眼睛略低一点，坐船头时，能看见那条缝已经是白色——旧水线。
+
+**锚句**：雾港东南巷尽头那口老井，早年已经被盐封了。
+**Anchor sentence**: the old well at the far end of the south-east alley in the fog harbor was sealed with salt long ago.
+
+---
+
+## 二 · 不怕谁来看
+
+巷子很窄，两个人侧身能避开它。可是从来没有人顺便提高声音问一句——"那是什么？""
+
+值更长说，巷里来的人会停下脚步。没有人能说清为什么，也没有人不知道。不说因为讲过就漏。
+
+**锚句**：井边从不怕人看，只是谁也懒得进去。
+**Anchor sentence**: no one fears looking at it; no one bothers to step inside.
+
+---
+
+## 三 · 拎着绳下去的那个人
+
+关于这口井，有一则旧记——只有抄本师知道完整篇。
+
+有个年纪不大大的年轻人，拿了一根结了骨绳子下去探个底。下去不久，绳子断了——在他脚距井口三寸的地方；他的身体挂在缝壁上几个小时，后半夜给人拉了上来；一根骨绳，十七个绳结。
+
+他从井里带回了一样东西——半杯咸水——而且说，他是用水喝的，没用舌头试。他后来回到祠殿门前，仰头看了一会儿灯塔灯，没有说话。
+
+**锚句**：绳子下面半尺垂直的盐壳断了那个人的手指——也带了回半杯水。
+**Anchor sentence**: the perpendicular salt rind below snapped the rope at half an arm — and a half-cup of water came back with it.
+
+---
+
+## 四 · 半杯水
+
+水很咸。比海水还咸。
+
+抄本师把半杯水收了起来——他捧了两把白盐放进去，等一夜之后，水竟然收得干净，水没有淡，盐没有沉。他把这杯水又倒回去泡了一天。结果是：水还是水，盐还是盐；盐在水上停了一宿，第二天人来看，半杯水又回来了，只是没有上次那么清了。
+
+**锚句**：有人拎绳子下去，带回了半杯水；盐化验结果写了一个字：「不明」。
+**Anchor sentence**: someone went down with a rope and returned with a half-cup of water; the assay called it, in one word, "Unknown".
+
+---
+
+## 五 · 大会散会
+
+第四十一次大会散会之后，值更长站在井沿上，看了半个下午——一遍一遍刷洗刻在井沿上的字。
+
+抄本师说，有些事说不定。他问值更长说什么——他说：我没说什么。他们俩在井沿一站又一会儿，风从灯塔一边刮过来。
+
+两人离开之后，井沿上留下了一行新刻的字：
+
+**"不饮不忘；它是水。"**
+
+**锚句**：值更长留下的字在井沿上：「不饮不忘；它是水。」
+**Anchor sentence**: what the head of the watch carved on the rim reads: "Neither to drink; nor to forget — but it is water."
+
+---
+
+## 六 · 它是水
+
+四十一次大会散会的第二天，有人用桶去打，绳子下去一寸就被咬断；值更长决定盖上盐壳；但是井沿的那道痕早已硬在那里——掀不动也再封不牢。
+
+他们学会了从它面前路过但不问；水在下面，盐在它的上面。盐线再怎么退，井口永远还是巴掌大。
+
+**锚句**：不饮不忘；它是水。
+**Anchor sentence**: neither to drink; nor to forget — but it is water.
+
+---
+
+## 七 · 映射（回响五十九章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 盐封 · 半杯水 · 不饮不忘 · 盐线 · 井沿 | 一、二、三、四、五、六 |
+| geography | 雾港东南巷 · 巷尾 · 井沿 · 灯塔方向 | 一、三、五、六 |
+| characters | 抄本师 · 值更长 · 年轻人 · 绳子 | 三、四、五 |
+| story | 盐封老井 · 回响（其五十九） | 全篇 |
+| items | 骨绳 · 半杯咸水 · 井沿 · 白盐 | 三、四、六 |
+| history | 第四十一次大会散会 · 秋潮月第二十五日 | 一、二、四、五、六 |
+
+> 风雨后井里还是空，盐壳却总能从井沿上自己裂开一条线。
+> When the rain quits, the well is still empty; yet the salt shell on the rim always splits open on its own.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 雾港东南巷尽头那口老井，早年已经被盐封了。
 - [2] 井边从不怕人看，只是谁也懒得进去。
 - [3] 绳子下面半尺垂直的盐壳断了那个人的手指——也带了回半杯水。
@@ -3054,6 +3626,97 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 不饮不忘；它是水。
 
 ### Echo 60 · 交班簿上那个谁也没写完的半钩 / The Half-Hook No One Ever Finishes Writing
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给值更人交班记账簿上那个从没有人签得完的半钩——每页底留痕、形同一个没写完的钩。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the half-hook on the handover ledger that no watcher ever finishes — a hook, left unwritten at the foot of every page.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第二十七日。
+> Era: the Institute — after the 41st Convocation; the twenty-seventh day of the autumn-tide month.
+
+---
+
+## 一 · 交班簿
+
+祠殿后廊靠墙那张矮桌上，常年放着一本双线装的册子——《值更人交班簿》。
+
+交接班的时候，值更人要用自己的手蘸自己的墨，在第三页上写一行字——不多，一行。谁写的、哪一天、灯先熄的哪盏，册子不记。它只存笔尖的最后一笔。
+
+**锚句**：值更人交班的时候，要用手蘸墨，写在交班簿第三页上。
+**Anchor sentence**: when the night watchers hand over, they dip their pen in ink and write on the third page of the handover ledger.
+
+---
+
+## 二 · 半钩
+
+第四十一次大会散会之后，每一次交班，那一行字的最后一笔都不完整——抄本师的第一反应是：这不是手误，是一种同一的收笔。
+
+他叫这一笔叫「半钩」。它不像任何字的部首，却每一次都出现；四十年下来，同一个形状出现了五十八次——没有一次和下一次完全一致，但每一次都认得出是同一笔。
+
+**锚句**：第四十一次大会散会之后，交班那一行最后一笔总是不完整。
+**Anchor sentence**: after the 41st Convocation dissolved, the final stroke of the handover line always comes up incomplete.
+
+---
+
+## 三 · 描一遍
+
+抄本师每天翻一页时都会用指腹描一遍那半钩。他的学生围坐在旁边，问他描什么、说什么。
+
+他说：不知道——但这一个半钩的弧度也没到立春，今年不长。
+
+**锚句**：抄本师每天翻页都会用指腹描一遍，边描边说不知道。
+**Anchor sentence**: each day the copyists trace it once with the pad of a finger, saying, every time, that they do not know.
+
+---
+
+## 四 · 两处残迹
+
+值更长和抄本师一起核对历届散会纪要时发现：同一个半钩，也出现在部分散会纪要末尾一行；笔不写字，只留着——散会纪要只记轮次，不记人。
+
+**锚句**：散会纪要里也见过这个形状，笔不写字，只留着。
+**Anchor sentence**: this same shape also appears at the foot of some dissolution records — left by no written hand, only kept.
+
+---
+
+## 五 · 只记不启
+
+值更长和抄本师约定：册子里出现同一个半钩，不解开、不换页、不登记——它是「交班之约」里未交班的人的见证。他们用「交班之钩」命名它。
+
+**锚句**：四十一年来，没有人解开过那半钩；它一直被称为「交班之钩」。
+**Anchor sentence**: for forty-one years no one has opened that half-hook; it is known only as the "handover hook".
+
+---
+
+## 六 · 说的话
+
+抄本师的学生最后一次抄册子时问他，半钩为什么不自己长出来？
+
+他说：他在等亡人来收尾——那就是交班簿为什么从不交班。
+
+**锚句**：抄本师临走前对他的学生说：那是等亡人来收尾。
+**Anchor sentence**: before the copyists passed, they said to their student: it is waiting for the one who died to finish it.
+
+---
+
+## 七 · 映射（回响六十章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 交班簿 · 半钩 · 交班之钩 · 散会纪要 · 亡人 | 一、二、三、四、五、六 |
+| geography | 祠殿后廊矮桌 · 第四十一次大会 · 附记散会 | 一、二、四 |
+| characters | 值更人 · 抄本师 · 抄本师的学生 · 值更长 | 一、二、三、四、五、六 |
+| story | 半钩 · 回响（其六十） | 全篇 |
+| items | 双线册 · 墨笔 · 半钩 · 附记册 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第二十七日 | 二、四、五、六 |
+
+> 每个人进去写那一页的时候，都以为自己在写昨天——其实是在签明天的名。
+> Everyone who steps in to write on that page believes he is writing yesterday — he is, in fact, signing for tomorrow.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 值更人交班的时候，要用手蘸墨，写在交班簿第三页上。
 - [2] 第四十一次大会散会之后，交班那一行最后一笔总是不完整。
 - [3] 抄本师每天翻页都会用指腹描一遍，边描边说不知道。
@@ -3062,6 +3725,104 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 抄本师临走前对他的学生说：那是等亡人来收尾。
 
 ### Echo 61 · 祠殿侧窗那本没人敢翻第二页的集子 / The Volume Beside the Sanctuary Window Whose Second Page No One Dares Open
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给祠殿侧窗书架上那只从没有人翻开第二页的集子。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the volume on the shelf beside the sanctuary window whose second page no one dares to open.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第二十九日。
+> Era: the Institute — after the 41st Convocation; the twenty-ninth day of the autumn-tide month.
+
+---
+
+## 一 · 侧窗
+
+祠殿侧窗是值更长换班时才会去的窗——窗边摆着一排深色的长木箱，每一只都是潮候院保存室收官的集子。
+
+其中一只比其他水箱矮一点，不顶在墙上，用深色的布盖了好多年——它上面没有刻名，也没有登记过号码。
+
+**锚句**：祠殿侧窗书架上摆着一只深木箱，每个人都怕碰到它。
+**Anchor sentence**: beside the sanctuary window stands a deep wooden chest that everyone fears to touch.
+
+---
+
+## 二 · 第一页
+
+普通人第一眼只能读第一页——封扉的这一页是敞开的：海风从雾港吹进来的七个方向、波浪的弧度、灯塔第七级台阶那段怎样被盐啃出光——值更长把这些按掌心的刻度写进了纸。写得太精当了，精当到让人心虚。
+
+**锚句**：第一页画着海风从雾港吹来的七个方向。灯塔七级台阶的风向都被记住了。
+**Anchor sentence**: the first page charts the seven winds that enter the fog harbor; the seventh step of the lighthouse remembers every one.
+
+---
+
+## 三 · 没人打开它
+
+值更长自己也承认——他们都不知道里面第二页写了什么。
+
+四十一年前，上一任值更长把这只木箱摆出来的时候，在它上面钉过一条纸条：
+「里面只有真实的记录，需要后世来收官。」
+
+每个人看过这纸条，都停了一下——不是不敢犯别人的错，是不敢答应一个要求后人收官的提问。
+
+**锚句**：没被打开的第二页上，只有一条抄本师们都认得的横线。
+**Anchor sentence**: on the second, unopened page rests a horizontal stroke every copyist recognises.
+
+---
+
+## 四 · 每年覆蜡
+
+抄本师定期走过来看它，但从不打开——每次只按章程给它上一层蜡。
+
+他说：不是为了防水，是防再被任何人翻开——那些字需要在这张桌上继续存放，不是在任何人的手心里读过去。他的包里只有蜂蜡，没有纸巾；他每次都选在没人能看见他桌上的光时才来。
+
+**锚句**：抄本师定期给它上蜡，只守着不打开它。
+**Anchor sentence**: the copyists wax it on a schedule, yet never open it themselves.
+
+---
+
+## 五 · 每次交接的人都要回得去
+
+值更长立下了一条规矩：每一个新交接班的值更人，须先读一遍那只木箱上钉着的纸条，然后在箱盖内侧盖一枚印——印里刻的不是字，是一个"承"字的空框。盖过印的人不算收箱，是算入族——能认这个字，就得认那只箱。
+
+两百岁之后的后一代说，箱盖上的印已经堆成了一个小山尖。
+
+**锚句**：值更长说，翻开第二页的人，自己回头补完一页。
+**Anchor sentence**: the head of the watch said whoever opens the second page must write the missing one themselves.
+
+---
+
+## 六 · 散会那一天
+
+第四十一次大会散会那一天，所有人列队经过它——没有人停。
+
+抄本师临走时对旁人说：「它不是水养宠着，也不是风借走消息；它是大会散会日那一天没有熄灭的那盏灯——照了还在燃，没人能看见它。」
+
+第二天再看，木箱回到角落，仍不属任何人。
+
+**锚句**：记得的第四十一次大会散会，抄本师们又把它放回原位。
+**Anchor sentence**: after the 41st Convocation dissolved, the copyists put the volume back exactly where it had been.
+
+---
+
+## 七 · 映射（回响六十一章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 侧窗 · 第二页 · 收官 · 覆蜡 · 交班之约 | 一、二、三、四、五、六 |
+| geography | 祠殿侧窗 · 灯塔第七级台阶 · 雾港 | 一、二、三、四、五、六 |
+| characters | 值更长 · 抄本师 · 上任值更长 · 交班值更人 | 一、三、四、五、六 |
+| story | 侧窗的集子 · 回响（其六十一） | 全篇 |
+| items | 深木箱 · 蜡 · 七风方向图 · 七级台阶 · 承印 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会 · 秋潮月第二十九日 | 三、四、五、六 |
+
+> 没有名字的木箱不属于任何集子——它就是整本书籍的扉页。
+> A chest without a name belongs to no shelf — it is the title page of the whole library.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 祠殿侧窗书架上摆着一只深木箱，每个人都怕碰到它。
 - [2] 第一页画着海风从雾港吹来的七个方向。灯塔七级台阶的风向都被记住了。
 - [3] 没被打开的第二页上，只有一条抄本师们都认得的横线。
@@ -3070,6 +3831,105 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 记得的第四十一次大会散会，抄本师们又把它放回原位。
 
 ### Echo 62 · 祠殿书库那本不要灯也会亮的借光本 / The Borrow-Light Volume in the Sanctuary Library That Shines Without a Lamp
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给祠殿书库最高那一柜：没封面、没题签、却在没有灯的时候字会自己亮起的一只集子。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the topmost shelf of the Sanctuary Library: a book with no cover and no inscription whose characters lift themselves into the dark.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第三十二日。
+> Era: the Institute — after the 41st Convocation; the thirty-second day of the autumn-tide month.
+
+---
+
+## 一 · 最高的一柜
+
+祠殿书库最高一层，是不用灯火也要爬到梯子顶上才拿得到的位置。里边只有那一只集子，没有人记得它什么时候来的——它比抄本师的父亲还早。
+
+木箱里边没有绣花囊，只有一副空心的金属扣。值更长一代之间，代代规定只有在值完最后一岗的人，才有权力去看这一本。
+
+**锚句**：祠殿书库最高那一柜，摆着一只没有封面的集子。
+**Anchor sentence**: on the topmost shelf of the Sanctuary Library sits a volume with no cover.
+
+---
+
+## 二 · 借光
+
+每当夜深人静、关着灯，伙房的人经过书库时——都能看到书架上某一个位置透出一丝微光。
+
+不是书架缝隙漏出来的——那是一本集子在内部把字迹自己写了出来。抄本师说那是"借光"——火没借什么别人的，字迹自己直接从暗中显化出来。
+
+**锚句**：它在没有灯的时候，字也会自己亮起来。
+**Anchor sentence**: without any lamp, the characters of the volume lift themselves into the dark.
+
+---
+
+## 三 · 封面上的字
+
+集子的封皮朝里，不是不用印字，是有印字但抄本师们没人认得那张拓片的字样。
+
+有的抄本师说那是灯塔投影，有的说那是第四十一次大会散会之前第一个散会的家族纹路。
+
+但所有人都认出了同一个故事——只要此集在某个不亮的晚上被打开，里边的字就会浮出来。
+
+**锚句**：封面上有一枚没人认得的印记，代代都翻过，没人开封。
+**Anchor sentence**: on the cover rests a mark no one has ever recognised, which generation after generation has flipped without opening.
+
+---
+
+## 四 · 抄本师进来试过
+
+有一位抄本师在摸到年老时，最后一次经过那个柜时，摸座了封皮——字迹浮上来了一行，他记了下来——没记全，只记了几个字——"雾港"和"不灭"。
+
+他出来后跟值更长说：那里面有个故事是好的。值更长说：那就封了吧。说完后，两个人再也没谈过它。
+
+**锚句**：抄本师试过进来，只记住了「雾港」和「不灭」。
+**Anchor sentence**: the copyists came once to witness; they remembered only "Fog Harbor" and "never extinguished".
+
+---
+
+## 五 · 烛包
+
+其后几代抄本师把结论写在公示牌上：
+
+「这本集子不要碰——封面借光，内页不可看。」
+
+每一个经过那口书架的人都要走过去放下一只双手，但没人把它们移动——从第一次摆出来到现在，那一只集子没有移动过一下位置。
+
+**锚句**：它没有封面，但它能借光，但没有人去翻它。
+**Anchor sentence**: it has no cover, it can borrow light, yet no one ever turned it over.
+
+---
+
+## 六 · 第四十一次大会散会之后
+
+第四十一次大会散会后三天，某个夜里书库全灭，灯影借光本自己升起来了——抄本师听到的。
+
+他们后来才敢悄悄去看——字迹还在，灯影不减少一维。值更长带灯去看，灯不够强，要字自己发光。
+
+**锚句**：第四十一次大会散会之后，某一夜灯影借光本自己浮起来了。
+**Anchor sentence**: after the 41st Convocation dissolved, on one night the borrow-light volume rose on its own.
+
+---
+
+## 七 · 映射（回响六十二章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 灯影借光 · 书库 | 一、二、三、四、五、六 |
+| geography | 祠殿书库 · 灯塔第七级台阶 | 一、三、四 |
+| characters | 抄本师 · 值更长 | 四、五、六 |
+| story | 借光本 · 回响（其六十二） | 全篇 |
+| items | 深木箱 · 封皮 · 不字拓片 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散散之后 · 秋潮月第三十二日 | 三、四、五、六 |
+
+> 集子自己会发光的时候，就别再问它是不是书——它是雾港收到的一封寄存。
+> When the volume itself lights up, do not ask whether it is a book — it is a parcel the fog harbor was asked to keep.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 祠殿书库最高那一柜，摆着一只没有封面的集子。
 - [2] 它在没有灯的时候，字也会自己亮起来。
 - [3] 封面上有一枚没人认得的印记，代代都翻过，没人开封。
@@ -3078,6 +3938,101 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 第四十一次大会散会之后，某一夜灯影借光本自己浮起来了。
 
 ### Echo 63 · 潮候院东偏院那盏百年不曾熄过的油灯 / The Ever-Burning Lamp in the Eastern Wing That No One Has Put Out
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院东偏院门窗上方那一盏据记从未熄过的灯。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the lamp above the door of the east wing that, by every account, has not been put out once.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第三十五日。
+> Era: the Institute — after the 41st Convocation; the thirty-fifth day of the autumn-tide month.
+
+---
+
+## 一 · 祠殿东偏院
+
+祠殿东偏院是抄本师们日常穿行的一段回廊——两头没有门，只是风的通道。
+
+墙是用最薄的白石板干砌的，间缝里有一次潮汐送过来的盐花。
+
+**锚句**：东偏院走廊两端都没有门，只是一段风顺着过去。
+**Anchor sentence**: the corridor at the east wing has no door at either end — only a passage for the wind.
+
+---
+
+## 二 · 那盏灯
+
+入口门楣上方悬着一盏油灯——抄本师的手迹里说它是"在最高位置为所有人记着好的那一盏"。
+
+第一枚炷是谁放上去的，抄本师的手稿里只有一句——"伏笔"。
+
+**锚句**："祠殿东偏院入口上方悬着一盏油灯。"
+**Anchor sentence**: "above the entrance of the east wing hangs a lamp."
+
+---
+
+## 三 · 百年不熄
+
+百多年没人换过；百多年它自己烧。
+
+灯芯是写在一段经卷里夹着的。百年的气流从回廊两端穿过——灯火仍然是直的。
+
+**锚句**：它已经烧了连续一百二十年，没有人来加过油。
+**Anchor sentence**: it has burned continuously for one hundred and twenty years; no one has added oil.
+
+---
+
+## 四 · 廿一更
+
+抄本师私底下叫它"廿一更"。一更是半夜，它跨过了所有的更。
+
+值更长年轻时在一个月圆之夜爬上梯子亲眼看过——灯的火焰不摇动，但温度会升高。
+
+**锚句**：值更长叫它"廿一更"，据说它事实上已经烧过了所有的时间。
+**Anchor sentence**: the head of the watch called it the twenty-one watches; by every measure it has burned through all of them.
+
+---
+
+## 五 · 每一百年重新点燃
+
+值更长换班，抄本师换册，火焰仍在。
+
+第四十一次大会散会之后，没人再去记录这盏灯有多亮——他们不再数灯，他们数夜的余留字迹。
+
+**锚句**：每一个百年它都会重新点亮——那百年已经过完一次了。
+**Anchor sentence**: once every hundred years it is re-lit — the hundred years are already done once.
+
+---
+
+## 六 · 秋潮月散会之后
+
+第四十一次大会散会已经过去三个月——灯仍然在烧。
+
+抄本师们说：它不是火需要重新点——它是某种被遗忘的寄托里面装的一层自己的命。
+
+**锚句**：它只是一直烧——不需要点，大家就知道了。
+**Anchor sentence**: it simply keeps burning — no one lights it; everyone knows it is lit.
+
+---
+
+## 七 · 映射（回响六十三章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 长明 · 廿一更 · 油灯 | 一、二、三、四、五、六 |
+| geography | 东偏院 · 叙事回廊 · 祠殿 | 一、二、六 |
+| characters | 抄本师 · 值更长 | 二、四、五、六 |
+| story | 长明油灯 · 回响（其六十三） | 全篇 |
+| items | 油灯 · 灯芯 · 经卷 | 二、三、四、五 |
+| history | 第四十一次大会散会之后 · 秋潮月第三十五日 | 六 |
+
+> 灯亮着不是为了别人的路好走，是为了灯自己不会忘记安置在那儿的意图。
+> The lamp burns not to light the passage for others — it burns to remember its own purpose for being set there.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 东偏院走廊两端都没有门，只是一段风顺着过去。
 - [2] "祠殿东偏院入口上方悬着一盏油灯。"
 - [3] 它已经烧了连续一百二十年，没有人来加过油。
@@ -3086,6 +4041,101 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 它只是一直烧——不需要点，大家就知道了。
 
 ### Echo 64 · 潮候院祠内那根影子自分为两半的石柱 / The Split-Shadowed Pillar Inside the Sanctuary That Made Everyone Forget Who They Were
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿内正中那根影子永远分为两股的石柱。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the central stone pillar inside the sanctuary — the one whose shadow is always in two halves.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第三十八日。
+> Era: the Institute — after the 41st Convocation; the thirty-eighth day of the autumn-tide month.
+
+---
+
+## 一 · 祠殿正中
+
+祠殿是潮候院最高的那一间，只供值更长一个人进。
+
+正中一根石柱——量过它直径一米二，型状是两头稍窄、中间稍微外鼓的。没听说它有来历。
+
+**锚句**：祠殿是潮候院最高的那一间，只有值更长一个人能进。
+**Anchor sentence**: the sanctuary is the tallest of the Institute's rooms, and only the head of the watch may enter it.
+
+---
+
+## 二 · 影子的两股
+
+起阳光，柱身分影子——一个朝南歪左，一股朝北偏右，好像被从中间掰开似的。
+
+抄本师说：光线怎么打入来，影子就怎么分开，什么时候朝一个方向都不会动。
+
+**锚句**：影子总是朝南偏左和北偏右各自独立。
+**Anchor sentence**: the pillar's shadow always leans north-west and south-east at the same time.
+
+---
+
+## 三 · 谁也记不得刚刚在说什么
+
+值更长的新人代代都记不住最后的告别词。抄本师说那根石柱的分影落到地上，大致会让自己的语气变低——甚至他刚刚要说的两句就只剩下一句。
+
+一旦谁走过石柱，日历骂人都叫不上名字。
+
+**锚句**：谁经过石柱，谁就忘记自己刚才想问什么。
+**Anchor sentence**: anyone who steps past the pillar forgets what they were about to ask.
+
+---
+
+## 四 · 老事
+
+四百年前，大会散会前三天，有一位抄本师忘记了他来这里来做什么。他闭上眼，听见了石柱里发出一阵风声。
+
+抄本师后来把这件事写进《图书》里——"石柱鸣"。
+
+**锚句**：抄本师后来把它的事入典——"石柱鸣"。
+**Anchor sentence**: the copyists recorded it later — "the pillar's note".
+
+---
+
+## 五 · 去质问
+
+抄本师想拆开石柱来看底座，值更长不允许。抄本师说拆帽，值更长不答。抄本师第二次递了它——"露出去看看里边没有字？"
+
+值更长说了一样的话。
+
+**锚句**：抄本师想打开石柱看看里边有什么——值更长不让他动。
+**Anchor sentence**: the copyists asked whether the base of the pillar could be opened; the head of the watch said no.
+
+---
+
+## 六 · 灯火在散尽之后
+
+第四十一次大会散会，抄本师在最后的日子里做了一件事——他在他父亲名字被改掉的那部分字迹石底，刻到了柱上——一个"·"。
+
+如果这件事今后被写进《图书》，抄本师一代以后的人会说那是一个句号。
+
+**锚句**：第四十一次大会散会之后，抄本师偷偷在柱脚旁边刻了一个「·」。
+**Anchor sentence**: after the 41st Convocation dissolved, the copyists secretly engraved a single full stop at the base of the pillar.
+
+---
+
+## 七 · 映射（回响六十四章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 石柱鸣 · 分影 · 句号 · 值更长 | 一、二、三、四、五、六 |
+| geography | 祠殿 | 一、五 |
+| characters | 抄本师 · 值更长 · 抄本师的父亲 | 二、三、四、五、六 |
+| story | 分影 · 回响（其六十四） | 全篇 |
+| items | 石柱 · 刻书 · 句号 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第三十八日 | 六 |
+
+> 影子不会是错的；影子的偏向总是控了两种东西地，而石柱不偏。
+> The shadow is never wrong — it splits exactly into two; the pillar itself leans toward neither.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 祠殿是潮候院最高的那一间，只有值更长一个人能进。
 - [2] 影子总是朝南偏左和北偏右各自独立。
 - [3] 谁经过石柱，谁就忘记自己刚才想问什么。
@@ -3094,6 +4144,101 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 第四十一次大会散会之后，抄本师偷偷在柱脚旁边刻了一个「·」。
 
 ### Echo 65 · 祠殿面东墙上那一排谁都不认得的偏旁 / The Radical-Only Column on the East Wall of the Sanctuary
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给祠殿面东墙上那一排只有偏旁没有字的记录——每夜放一笔，每笔都戴上一层桐油。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the column of partial characters on the east wall of the sanctuary — one stroke each night, sealed in tong oil.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第四十一日。
+> Era: the Institute — after the 41st Convocation; the forty-first day of the autumn-tide month.
+
+---
+
+## 一 · 面东墙
+
+祠殿朝东的一面墙称为"藏盐墙"，是最安静的一块。
+
+值更提供档案查阅时，抄本师们每取出一卷，要先朝东跄一下、然后才能开卷——这是他们对那面墙的敬意，却说不出来。
+
+**锚句**：祠殿朝东的一面墙称为"藏盐墙"。
+**Anchor sentence**: the sanctuary's east-facing wall is called the Salt-Hiding Wall.
+
+---
+
+## 二 · 偏旁
+
+墙上的纹路不是完整的字，只有偏旁——"氵"、"石"、"禾"……没有人拼出过一个完整的汉字，却可以数出来已经 715 个偏旁了。
+
+百生的抄本师们每人每晚在墙上盖一层桐油——捂住它、让盐水再慢慢侵透进去、天亮才擦净又盖一层。
+
+**锚句**：墙上的字只有偏旁，没有一个完整的字。
+**Anchor sentence**: there is not a single whole character on the wall, only radicals.
+
+---
+
+## 三 · 每晚一个
+
+没有人要求放如何排。抄本师 XX 第一个《言者无归记册》说，值更长把书版放在柜子底层，让它们自己往上爬。
+
+抄本师门说是每晚按规矩排一次，偏离规矩就废了——但没人有异议，因为它自己就是规矩。
+
+**锚句**：每个晚上谁也不知道下笔的是哪一个偏旁。
+**Anchor sentence**: nobody knows in advance which radical the night will receive.
+
+---
+
+## 四 · 桐油的光
+
+桐油一涂，字就呈半米内的蓝绿颜色。桐油有自己独有的味道，被代代抄写的墙壁所吸收。
+
+后来值更长说那是"潮候院世代交替的口令——所有字被洇水的气息垒在一起了。"
+
+**锚句**：桐油涂上去，字就显蓝绿——潮候院的口令味道粘进了墙壁。
+**Anchor sentence**: once the oil is on, the strokes shine blue-green — the essence of the harbor seeps into the wall.
+
+---
+
+## 五 · 千两百杯桐油
+
+有抄本师数过院中现用的桐油罐：四十五年六十九罐，一共一百三十一罐半。
+
+每罐一百两桐油——一共补了两盘验。这个数——抄本师说——和长明灯那灯费差不了几两。
+
+**锚句**：每一罐桐油的两数，加起来没有人来算过。
+**Anchor sentence**: the sum of the tong oil in every jar, no one has added up.
+
+---
+
+## 六 · 大会散会之后
+
+第四十一次大会散会之后一个月，抄本师们不再去覆油了。
+
+值更长说那也不能开卷——册子里的东西还没到读。
+
+**锚句**：大会散会了，桐油也停了——那是潮候院还没到的时候。
+**Anchor sentence**: after the Convocation dissolved, the oiling ceased — the Institute is not yet of age.
+
+---
+
+## 七 · 映射（回响六十五章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 偏旁 · 藏盐墙 · 桐油 · 大会散会 | 一、二、三、四、五、六 |
+| geography | 祠殿 · 面东墙 | 一、二 |
+| characters | 抄本师 · 值更长 | 一、二、三、四、五、六 |
+| story | 偏旁列举 · 回响（其六十五） | 全篇 |
+| items | 桐油 · 偏旁 · 册子 | 一、二、三、四、五 |
+| history | 第四十一次大会散会之后 · 秋潮月第四十一日 | 六 |
+
+> 那些字，也许不是给任何人读的——它们是潮候院为自己记住怎么沉没写的。
+> Those marks may not be for any reader — they are how the Institute remembers the art of sinking.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 祠殿朝东的一面墙称为"藏盐墙"。
 - [2] 墙上的字只有偏旁，没有一个完整的字。
 - [3] 每个晚上谁也不知道下笔的是哪一个偏旁。
@@ -3102,6 +4247,101 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 大会散会了，桐油也停了——那是潮候院还没到的时候。
 
 ### Echo 66 · 潮候院大门口那位扫了三十年的扫帚师 / The Sweeper Monk at the Institute Gate Who Has Swept for Thirty Years
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院大门口那个扫了三十年门槛不曾言语一句的扫帚师。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the sweeper at the door of the Institute who has swept the threshold for three decades without saying a single word.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第四十三日。
+> Era: the Institute — after the 41st Convocation; the forty-third day of the autumn-tide month.
+
+---
+
+## 一 · 大门口
+
+潮候院的大门是一道没有锁的双扇木门，门口常年积着海风带来的盐渣和人踩碎的贝壳。
+
+每天早上五点，门扇上会被人敲三下；板子一被敲过，廊下的人就来开门——门开的时候是要值更长在门槛上喷一层薄荷汤的。
+
+**锚句**：大门永远没锁；门每天要被敲三下才开一次。
+**Anchor sentence**: the gate is never locked; each morning it opens only after three knocks.
+
+---
+
+## 二 · 扫帚师
+
+扫帚师是潮候院最早的那批人留下来的人——他的名字藏在门口石碑背后——碑上面只一个：「扫」字。
+
+他使用院外的冬青树皮褪下来的竹帚——每年冬天院里的园丁会帮他褪下一捆——他自几十年不用新买的。
+
+**锚句**：扫帚师的竹帚每年褪于院外的冬青树。
+**Anchor sentence**: the sweeper's bamboo broom is peeled every winter from the outside holly.
+
+---
+
+## 三 · 三勺
+
+扫完一米门槛后他会坐在门槛上喝三口粥；碗是陶的，灰白的，带一个不完整的环纹——没有人知道这是谁编的图。
+
+有人说他每天扫到那个高度刚好碗口里的粥沐成月亮的形状。
+
+**锚句**：他扫完一米门槛之后，他会喝三口粥。
+**Anchor sentence**: after finishing a meter of the threshold he drinks three mouthfuls of porridge.
+
+---
+
+## 四 · 不记得
+
+值更人年岁轻一点的问过他「你多久没听到潮声？」他没有回答；值和值是真的老是真的——他真的没听清。
+
+值更人问「那你是哪一年来潮候院的？」他说不记得——根本没那个印象。
+
+**锚句**：扫帚师什么时候来的潮候院，他自己也不记得了。
+**Anchor sentence**: he does not remember when he arrived at the Institute.
+
+---
+
+## 五 · 大贝柱
+
+第四十一次大会散会了那一天，扫帚师停在了门槛上，没有扫下一米——他站在那里直到天完全黑了——然后他把扫帚挂到大贝柱上。
+
+大贝柱在潮候院东北角，平时空无一物。扫帚从此再没人取下——也没有再用。
+
+**锚句**：大贝柱上挂着扫帚师的那把帚；大贝柱在东北角。
+**Anchor sentence**: his broom now hangs permanently on the Great Shell Pillar, set in the northeast corner.
+
+---
+
+## 六 · 散会之后
+
+第四十一次大会散会之后第一个月，院里有少部分的抄本师想去把扫帚取下来试试新的——但院长停止这一步，说放下的那把帚已经「到了不在用的地方」。
+
+没人问那是什么样的到了——也没人敢说。
+
+**锚句**：大会散会了，没人再去拿挂在大贝柱上的帚。
+**Anchor sentence**: after the Convocation dissolved, nobody dared touch the broom hung upon the Great Shell Pillar.
+
+---
+
+## 七 · 映射（回响六十六章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 扫帚师 · 冬青树皮 · 大贝柱 · 屋角到边 | 一、二、三、四、五、六 |
+| geography | 大门 · 东北角大贝柱 · 廊下 | 一、五 |
+| characters | 扫帚师 · 值更人 · 抄本师 · 院长 | 一、二、三、四、五、六 |
+| story | 扫帚师 · 回响（其六十六） | 全篇 |
+| items | 竹帚 · 粥碗 · 大贝柱 | 二、三、五 |
+| history | 第四十一次大会散会之后 · 秋潮月第四十三日 | 一、五、六 |
+
+> 扫帚就这么挂着了。也许他哪天回来再去拿；也许再也没有人在它提醒我们它所记住的是什么——持续地不再使用了。
+> The broom is hung. Maybe he will return one day to take it; maybe the pillar will simply hold the silence — forever.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 大门永远没锁；门每天要被敲三下才开一次。
 - [2] 扫帚师的竹帚每年褪于院外的冬青树。
 - [3] 他扫完一米门槛之后，他会喝三口粥。
@@ -3110,6 +4350,101 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 大会散会了，没人再去拿挂在大贝柱上的帚。
 
 ### Echo 67 · 雾港岸边那位白胡子老交长执事 / The White-Bearded Tide-Keeper at the Fog Harbor's Edge
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院东南港口那位向海里送鹅卵石的老人：谁都不记得他什么时候来的。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the watchful old man at the Institute's south-east dock who walks the stones of the harbor — no one remembers when he arrived.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第四十四日。
+> Era: the Institute — after the 41st Convocation; the forty-fourth day of the autumn-tide month.
+
+---
+
+## 一 · 老交长执事
+
+潮候院最古老的一位老交长执事，专管雾港东南港口的潮水进出——没有人记得他叫什么，也没有人记得他什么时候来到的。
+
+值更长每天经过他都要慢下五步——似乎他专门站在自己脚下的石板里，专门不老。
+
+**锚句**：潮候院雾港东南港口的老交长执事专管潮水进出。
+**Anchor sentence**: the elder tide-keeper at the south-east dock of the fog harbor manages the in- and-out of the tides.
+
+---
+
+## 二 · 候潮石
+
+每次海潮推上来、退下去——他都按一定的顺序扔石头进海里。
+
+扔进这一块石头，然后立刻回头拿一块别的石头扔进下一节珊瑚水坑里。
+
+**锚句**：每次潮水退了一步，他就扔一块石头入海。
+**Anchor sentence**: each time the tide recedes one step, he throws a stone into the sea.
+
+---
+
+## 三 · 挑出来的一块
+
+几十年了，他捡的鹅卵石数量没有人记得了——大概是十万。
+
+其中只有一块是特殊的——他六十岁那一年，从珊瑚水坑里独自挑出来，搁在潮候院祠殿大贝柱旁边，没人敢动的。
+
+**锚句**：他六十岁那一年，从珊瑚水坑里独自挑出一块搁在大贝柱旁边。
+**Anchor sentence**: in his sixties, he single-handedly picked one stone out of a coral pool and placed it beside the Great Shell Pillar.
+
+---
+
+## 四 · 没人敢问
+
+几年一次，抄本师上去问他「老交长执事，你这是去哪里了？」
+
+老交长执事回答说「我在学会做潮水的事。」
+
+**锚句**：他说自己学会的是「怎么让潮水听懂它的事情」。
+**Anchor sentence**: he answered that he has learned to make the tide understand its own affairs.
+
+---
+
+## 五 · 大会散会之后
+
+第四十一次大会散会之后，潮势上也安静了——老交长执事坐在东岸的沙堆上，望着海。
+
+他嘴里一句话也没说——但是他手里仍然在慢慢地一粒一粒石子——照着他自己的规律收起来了。
+
+**锚句**：第四十一次大会散会之后，他仍然在沙堆上慢慢地一粒一粒捡石子。
+**Anchor sentence**: after the 41st Convocation dissolved, he continued, slowly, stone by stone, to gather pebbles on the sand.
+
+---
+
+## 六 · 这一颗
+
+他最终倒了一颗鹅卵石回海里——所有人老身笑了一宗——那又是一只普通的白色鹅卵石。
+
+值更长后来看到了他扔回海里那只鹅卵石的时候——他缓缓起身，没有回头。
+
+**锚句**：这一刻所有人看到他扔回海里那只鹅卵石——他缓缓起身，没有回头。
+**Anchor sentence**: that moment everyone saw him toss one pebble back into the sea — he rose slowly and did not look back.
+
+---
+
+## 七 · 映射（回响六十七章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 潮水 · 石头 · 珊瑚水坑 · 大贝柱 · 祠殿 | 一、二、三、四、五、六 |
+| geography | 东南港口 · 雾港 · 大贝柱 | 一、三、五 |
+| characters | 老交长执事 · 抄本师 · 值更长 · 第四十一次大会 | 一、二、三、四、五、六 |
+| story | 鹅卵石 · 回响（其六十七） | 全篇 |
+| items | 鹅卵石 · 珊瑚水坑 · 大贝柱 | 一、二、三、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第四十四日 | 五、六 |
+
+> 一个人往海里扔石头，就是在平衡潮候院自己的潮流。
+> One man throws stones into the sea — he is balancing the Institute's own tide.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 潮候院雾港东南港口的老交长执事专管潮水进出。
 - [2] 每次潮水退了一步，他就扔一块石头入海。
 - [3] 他六十岁那一年，从珊瑚水坑里独自挑出一块搁在大贝柱旁边。
@@ -3118,6 +4453,101 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 这一刻所有人看到他扔回海里那只鹅卵石——他缓缓起身，没有回头。
 
 ### Echo 68 · 潮候院潮水巷里的那位陶人阿栀 / The Potter A-Zhi in the Tide Alley of the Institute
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院潮水巷里的那位陶人——她每天扛一只木箱，但没有人知道木箱里装什么。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the potter at the Institute's Tide Alley — every morning she carries one wooden crate to its set destination; no one has ever asked what is inside.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第四十六日。
+> Era: the Institute — after the 41st Convocation; the forty-sixth day of the autumn-tide month.
+
+---
+
+## 一 · 潮水巷
+
+潮候院后廊转入一条人烟较稀的小巷——潮水巷——两边只有对面对面的小屋。
+
+最深处有一间亮着灯的作坊；门口倒挂着一只小小的茶壶，每天早上六点倒挂一刻钟，然后店主才开门。
+
+**锚句**：潮水巷尽头有一间常年亮灯的作坊。
+**Anchor sentence**: at the end of the Tide Alley sits a pottery workshop that is rarely dark.
+
+---
+
+## 二 · 木箱
+
+陶人阿栀，四十岁出头，住在作坊里。
+
+每天早上六点半，她把一只木箱——柳条绑的——一步一步扛到偏院，交给值更长的小徒弟，话不多。
+
+**锚句**：阿栀每天把一个木箱扛到偏院交给钟点徒弟。
+**Anchor sentence**: A-Zhi carries a crate daily to the Inner Court and hands it to a watch-apprentice.
+
+---
+
+## 三 · 封口
+
+每只箱子的大小都不一样，但封口的方式永远一样：石头压住木板盖子，要压很久。
+
+抄本师私下描述过几次：里面装的是几罐泥做的陶器，被硅胶封口；只要安静，谁都不会被打扰揉碎。
+
+**锚句**：箱子里装的是陶人的泥罐，被封住，很安静。
+**Anchor sentence**: inside the crate are clay vessels, sealed so quiet no one hears them fire.
+
+---
+
+## 四 · 退浪石
+
+潮水的时辰到潮水的时辰，阿栀要到港口去捡一种叫退浪石的小石粒——这种退浪石柔软的边缘适合做汤碗；太硬的烧制出来的碗口太粗。
+
+她只选一种最柔软的形状，不能有棱角。
+
+**锚句**：每次潮水退了，她会挑出最柔的那块退浪石。
+**Anchor sentence**: each time the tide recedes, she selects the softest stones for the folding-bowls.
+
+---
+
+## 五 · 她的事手册
+
+抄本师读过阿栀的事手册——册子的封面封了线，没写标题——内容就是一行：「成了另一件。」
+
+阿栀写给抄本师的信只有一句：「我们做的事不需要传下去，我愿意只做好。」
+
+**锚句**：她自己说，她不需要把做陶器的事传下去——只做好。
+**Anchor sentence**: A-Zhi said she never wanted the story of her vessels to continue — only that each vessel be made right.
+
+---
+
+## 六 · 大贝柱
+
+第四十一次大会散会之后，大贝柱南边一堂放着一个盆——湖岸上漂出一支海玫瑰——烧出来的那一只莓杯，就由阿栀烧制。
+
+她烧好的那只杯子，潮候院至今无人碰；她做的这只杯子就被钉在了大贝柱旁边。
+
+**锚句**：大贝柱旁边放着的那只杯，是陶人阿栀做的。
+**Anchor sentence**: the cup placed beside the Great Shell Pillar — A-Zhi fired it.
+
+---
+
+## 七 · 映射（回响六十八章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 陶人阿栀 · 潮水巷 · 汤碗 · 事手册 | 一、二、三、四、五、六 |
+| geography | 潮水巷 · 偏院 · 大贝柱 | 一、二、六 |
+| characters | 陶人阿栀 · 值更长徒弟 · 抄本师 | 一、二、三、四、五、六 |
+| story | 陶人阿栀 · 回响（其六十八） | 全篇 |
+| items | 木箱 · 陶具 · 退浪石 | 一、二、三、四、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第四十六日 | 六 |
+
+> 潮汐不记得她，这是潮候院一段沉默的好。
+> The sea does not remember her; it is a silence the Institute loves.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 潮水巷尽头有一间常年亮灯的作坊。
 - [2] 阿栀每天把一个木箱扛到偏院交给钟点徒弟。
 - [3] 箱子里装的是陶人的泥罐，被封住，很安静。
@@ -3126,6 +4556,101 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 大贝柱旁边放着的那只杯，是陶人阿栀做的。
 
 ### Echo 69 · 候潮院雾港回声站那一队再没有回来的潮候师 / The Tide Keepers Who Sailed into the Fog and Never Came Back
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院雾港回声站——那一队潮候师出海之后再也没回来。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the echo post at the fog harbor — the tide-keepers who set out and never returned.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第四十八日。
+> Era: the Institute — after the 41st Convocation; the forty-eighth day of the autumn-tide month.
+
+---
+
+## 一 · 雾港回声站
+
+雾港回声站是潮候院在雾港里最边缘的一处观察点。
+
+站长姓宋，一上任就听了奶奶的话：「出海可以——但永远别回来过。」
+
+**锚句**：潮候院雾港最外面那个回声站，从上任起就没有过值班长。
+**Anchor sentence**: at the outermost echo post of the fog harbor, no post-holder has ever served since its appointment.
+
+---
+
+## 二 · 出海
+
+第六十年的夏天，候潮院选了五位皂绳钓——每人带着一只空的坛子——绕开雷 紫石，从南线向雾港深处走。
+
+他们说要用瓶子把海风装回去——让大会散会的时候确认外面的海。
+
+**锚句**：他们带着五个空坛子去雾港深处——要把海装回来给大会。
+**Anchor sentence**: they carried five empty jars into the deep fog to bring the sea back for the Convocation.
+
+---
+
+## 三 · 没有过回信
+
+回声站不是天天有人值班的地方。抄本师一遇见有，隔一旬问一句：「听见回声了？」
+
+后来抄本师说，他已经听了二十年的同一段回声——一直是同一段。
+
+**锚句**：抄本师已经听了二十年的同一段回声——没有变过一声。
+**Anchor sentence**: the copyists have been listening to the same echo for twenty years; it has never changed once.
+
+---
+
+## 四 · 五位皂绳钓
+
+没有人知道五位皂绳钓的名字。
+
+第四十一次大会散会那天，抄本师查了一遍名册，说：「名册上没有登这五个人的名，大会无从说它是谁走的。」
+
+**锚句**：名册上没有后来五只皂绳钓的姓名——他们始终叫「五只皂绳」。
+**Anchor sentence**: names are missing from the register — since forever the five are called only "the five rope-drawers".
+
+---
+
+## 五 · 没有回来
+
+没有回头，也没有死信。
+
+值更长给抄本师说，「潮候院早晚得派一个人去找他们——但祖上一言不敢随便派。」
+
+**锚句**：四十年以来潮候院没有人愿意问一句没回来的皂绳钓怎么样。
+**Anchor sentence**: in forty years not one person of the Institute has asked after the rope-drawers who never returned.
+
+---
+
+## 六 · 回声
+
+抄本师说，每次只听见回声站那边在响；那一段回声一星期响一次；雷阵雨过后会响三天——三天之内自己不知道那回声是什么声音。
+
+他每次下完雨后，都原地思念了一次：到底要怎么等下去。
+
+**锚句**：雷阵雨过后回声站会响三天——声音值更长知道、不知道的一样——值更长永远没听明白。
+**Anchor sentence**: after every thunderstorm the echo post sounds three days of noise; the head of the watch both knows and does not know what it is.
+
+---
+
+## 七 · 映射（回响六十九章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 五位皂绳钓 · 回声站 · 空坛子 · 汤候潮院 | 一、二、三、四、五、六 |
+| geography | 雾港回声站 · 南线 · 紫石 | 一、二 |
+| characters | 站长老宋 · 抄本师 · 值更长 | 一、二、三、四、五、六 |
+| story | 皂绳钓 · 回响（其六十九） | 全篇 |
+| items | 五只空坛子 · 十根皂绳 · 回声站 | 一、二、三、四、五 |
+| history | 第四十一次大会散会之后 · 秋潮月第四十八日 | 一、五、六 |
+
+> 他们说要回去——后来没人说要回来；海风一次吹进回声站。
+> They said they would return. No one says "they returned". The wind keeps blowing into the echo post.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 潮候院雾港最外面那个回声站，从上任起就没有过值班长。
 - [2] 他们带着五个空坛子去雾港深处——要把海装回来给大会。
 - [3] 抄本师已经听了二十年的同一段回声——没有变过一声。
@@ -3134,6 +4659,101 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 雷阵雨过后回声站会响三天——声音值更长知道、不知道的一样——值更长永远没听明白。
 
 ### Echo 70 · 潮候院东郊码头那只三十六个春昼没人动它的白瓷碗 / The White Porcelain Bowl at the East-Grounds Dock That No One Has Touched for Thirty-Six Spring Days
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院东郊码头那只没人敢动的白瓷碗。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the white porcelain bowl at the east-grounds dock that no hand has moved in thirty-six spring days.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第四十九日。
+> Era: the Institute — after the 41st Convocation; the forty-ninth day of the autumn-tide month.
+
+---
+
+## 一 · 东郊码头
+
+东郊码头是潮候院最东的一座木头码头——船靠了四百年。
+
+码头南沿有一条石板路平铺到尽头——下首摆着一只白瓷碗，盛满了白鱼生——看起来像真的。
+
+**锚句**：东郊码头是潮候院最东的一座木头码头。
+**Anchor sentence**: the east-grounds dock at the Institute's far east is a wooden wharf.
+
+---
+
+## 二 · 三十六个春昼
+
+三十六个春昼以来，这只白瓷碗没人动过。
+
+值更长看了又看——鱼生没干，但手摸也没有腥味——完完全全像放了三十六天的白瓷——干净得奇怪。
+
+**锚句**：这只白瓷碗里的鱼生已经三十六个春昼没人动过。
+**Anchor sentence**: this white porcelain bowl of fish has not been moved in thirty-six spring days.
+
+---
+
+## 三 · 陶人阿栀的事手册说过
+
+抄本师私下说过：这是潮候院第一次收到的「待送」。
+
+摆上来的目的没人说清——可能只是错，可能是潮候院从没有做过。
+
+**锚句**：这是祭，不是鱼——潮候院第一次收到「待送」。
+**Anchor sentence**: this is an offering, not fish — the first "pending" offering the Institute has ever received.
+
+---
+
+## 四 · 它自己就没干过
+
+如果碗里真的是鱼生——它早就干了，风干。
+
+可它摸起来一直是湿的，闻起来也是湿的——抄本师说，他天天来看，天阴天晴它都是这个样子。
+
+**锚句**：碗里的湿度三十六个春昼没有下降一分。
+**Anchor sentence**: the bowl's moisture has not dropped a fraction in thirty-six spring days.
+
+---
+
+## 五 · 那双手
+
+第四十一次大会散会那一天，一名孩子路过——南院来的，年纪很小——他伸出手想摸那只碗口。
+
+就在他伸过来的时候——没人听见风声——他的手似乎又缩了回去，大会散会之后再也没人见过他。
+
+**锚句**：散会那天，一个孩子伸向了白瓷碗——他的手缩了回去。
+**Anchor sentence**: on the day of the Convocation's dissolution, a child reached for the bowl — his hand drew back.
+
+---
+
+## 六 · 全院都没人来得及说什么
+
+副院长听说了这件事——下令谁也不能碰这只碗。
+
+可碗至今还在——没人知道它在等什么，潮也没人猜得透停下来的方向——只是它还在，还在。
+
+**锚句**：白瓷碗至今还在东郊码头——没人知道它在等什么。
+**Anchor sentence**: the bowl is still there — no one knows what it waits for.
+
+---
+
+## 七 · 映射（回响七十章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 东郊码头 · 白瓷碗 · 祭 · 待送 | 一、二、三、四、五、六 |
+| geography | 东郊码头 · 石板路 · 木桥 | 一、二 |
+| characters | 值更长 · 抄本师 · 副院长 · 孩子 | 二、三、四、五、六 |
+| story | 白瓷碗 · 回响（其七十） | 全篇 |
+| items | 白瓷碗 · 石板路 · 鱼生 | 一、二、三、四、五 |
+| history | 第四十一次大会散会之后 · 秋潮月第四十九日 | 五、六 |
+
+> 三十六个春昼过去了——风停了——碗还在。
+> Thirty-six spring days have passed — the wind ceased — the bowl remains.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 东郊码头是潮候院最东的一座木头码头。
 - [2] 这只白瓷碗里的鱼生已经三十六个春昼没人动过。
 - [3] 这是祭，不是鱼——潮候院第一次收到「待送」。
@@ -3142,6 +4762,101 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 白瓷碗至今还在东郊码头——没人知道它在等什么。
 
 ### Echo 71 · 潮候院祠殿里那本首行是「没 / The Old Ledger in the Sanctuary Whose First Line Reads "None"
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿桌上那本只有「没」做开头一页的旧账，已经静置百余年不动一字。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the account book sitting on the sanctuary table since the last Convocation — its first line, still, reads "None".
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第五十一日。
+> Era: the Institute — after the 41st Convocation; the fifty-first day of the autumn-tide month.
+
+---
+
+## 一 · 祠殿桌上
+
+祠殿里有一张矮桌，桌上摆着一本旧账簿——皮皮壳破的，纸页缺少一半。
+
+这本旧账簿几百年来从不拿下来——有些来的人说是圣书，有些抄本师说是垃圾。
+
+**锚句**：祠殿桌里有一本旧账——皮皮壳破的纸页。
+**Anchor sentence**: inside the sanctuary table lies an old ledger — its leather skin cracked, its pages half gone.
+
+---
+
+## 二 · 第一个字是「没」
+
+这本账簿第一行写得还算清楚：一个"没"字开头；然后是一串名字——都是潮候院曾经的人的名字。
+
+抄本师私下查看，说已经仔细检查过寻找——没有一个字是错的；也没有人愿意在这个名册上出名。
+
+**锚句**：账簿的第一页第一行开头的字是「没」——没有一个字错。
+**Anchor sentence**: the first line of the first page begins with "None" — not a single character miswritten.
+
+---
+
+## 三 · 百年不动
+
+这本旧账簿从四十一次大会散会之前一落地就再也没动过。
+
+值更长每隔二十五天看一眼；直到他去世后，抄本师忐忐忑忑的拿起来合上——没人知道她翻到哪页。
+
+**锚句**：这本旧账簿已经百余年没有动过。
+**Anchor sentence**: this old account has not moved in over a hundred years.
+
+---
+
+## 四 · 抄本师私下读
+
+有人说，这个名册记的是潮候院欠下的东西——不是钱、不是功德——是「没有还的东西」。
+
+抄本师小声说：「它不是欠钱，是欠一个承诺。」
+
+**锚句**：私底下读过这本账的抄本师说它记录的是「欠一个承诺」。
+**Anchor sentence**: the copyist who read its contents privately said it records "a debt of a promise".
+
+---
+
+## 五 · 「没」之前的字
+
+有的老抄本师说：「没」之前还有一个字，但是已经磨掉——只有第一个字「没」还算认得。
+
+他的陈述从来没有被验证过——也没有人帮他照个镜子。
+
+**锚句**：「没」之前还有一个磨掉的第一个字，没人能确定。
+**Anchor sentence**: the first character, before the visible "None", has been ground away — no one can say what it was.
+
+---
+
+## 六 · 散会之后
+
+第四十一次大会散会后，抄本师把那本旧账挪到了西边角落——但没有人读它；只有海风偶尔翻一页，它又合上。
+
+它现在的命运只是风书一页。
+
+**锚句**：它现在只是风的书页——没人再去看它。
+**Anchor sentence**: it is a page for the wind now — no one opens it anymore.
+
+---
+
+## 七 · 映射（回响七十一章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 没 · 旧账簿 · 欠一个承诺 | 一、二、三、四、五、六 |
+| geography | 祠殿内 · 矮桌 | 一 |
+| characters | 抄本师 · 值更长 · 抄本师私下 | 二、三、四、五、六 |
+| story | 旧账簿 · 回响（其七十一） | 全篇 |
+| items | 旧账簿 · 矮桌 · 灯光 | 一、二、三、四、五 |
+| history | 第四十一次大会散会之后 · 秋潮月第五十一日 | 六 |
+
+> 潮候院第一笔账不写字「收」，只写一个「没」——这是潮候院唯一愿意保留的诚实。
+> The first entry of the Institute's ledger does not write "receive"; it writes "None" — this is the only honesty the Institute keeps.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 祠殿桌里有一本旧账——皮皮壳破的纸页。
 - [2] 账簿的第一页第一行开头的字是「没」——没有一个字错。
 - [3] 这本旧账簿已经百余年没有动过。
@@ -3150,6 +4865,101 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 它现在只是风的书页——没人再去看它。
 
 ### Echo 72 · 潮候院四百年前那只被收养的雾童 / The Fog Child the Institute Adopted Four Hundred Years Ago
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院四百年前捡来的那只雾童——大会散会后第一个长大的人。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the fog child the Institute adopted four hundred years ago — the first to grow up after the Convocation dissolved.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第五十三日。
+> Era: the Institute — after the 41st Convocation; the fifty-third day of the autumn-tide month.
+
+---
+
+## 一 · 捡来
+
+四百年前的秋潮月大会散会那一天，值更长听到了南墙外一阵细小的哭泣。
+
+他擦过去发现一只藤蔓缠着的小怪物——很小，人掌那么大，整个雾港的雾气一下子凝住了。
+
+**锚句**：四百年前大会散会的那一天，南墙外藤蔓缠着一只小怪物。
+**Anchor sentence**: four hundred years ago, on the day the Convocation dissolved, a small thing lay wrapped in vines beyond the southern wall.
+
+---
+
+## 二 · 雾童
+
+抄本师第二次进南墙的时候，雾气外头已经舒展开，小怪物的眼睛张着——人脚那么大——鼻子尖有一撮白毛。
+
+抄本师认出来——这是只雾童。他取下藤蔓，带他回祠殿——值更长抬头看着他，他抬头看值更长。
+
+**锚句**：藤尺缠着小怪物眼睛——抄本师认出来是只雾童。
+**Anchor sentence**: the little thing's eyes opened — the copyists named it a fog child.
+
+---
+
+## 三 · 浮岛
+
+雾童第一次醒的时候雾港上出现浮岛——四层一圈四层的圆托状。
+
+抄本师私下推断——这些浮岛是潮候院几百年前在那一天沉下去的沉船——漂浮出来的影像。
+
+**锚句**：雾童醒雾港上浮现浮岛——抄本师推算是沉船。
+**Anchor sentence**: when the fog child wakes, floating islands appear above the fog harbor — the copyists calculate they are sunken ships.
+
+---
+
+## 四 · 大会散会那日
+
+第四十一次大会散会那日听到南墙一下子安静。
+
+值更长看了一眼雾童所在的南墙——藤蔓自己缠了上来；没有人说捡它又不动。
+
+**锚句**：第四十一次大会散会那日，值更长去南墙没有人随。
+**Anchor sentence**: on the day the 41st Convocation dissolved, the head of the watch went to the southern wall and no one followed.
+
+---
+
+## 五 · 名字
+
+「不记名，雾童自己。」抄本师说；没人记他；没有穷人记他；也没有老值更长记得他。
+
+抄本师私下做的最后的工作——是把他记到《潮候院人》的书上——但也没有名字——只记「南墙缠着的那只」。
+
+**锚句**：抄本师把雾童记在《潮候院人》最后一页——只记「南墙缠着的那只」。
+**Anchor sentence**: the copyists recorded the fog child on the last page of the Institute's roster of names — only as "the one wrapped beyond the southern wall".
+
+---
+
+## 六 · 灯
+
+雾童今天 — 雾散雾落 — 潮候院醒来每一只雾港海鸟都在飞过来。
+
+抄本师说，他醒了那一天会有很多光又会有第一次潮候院没有潮候。
+
+**锚句**：雾童醒了的时候就是雾港的灯落下。
+**Anchor sentence**: when the fog child wakes, the fog harbor's lamp falls with the light.
+
+---
+
+## 七 · 映射（回响七十二章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 雾童 · 浮岛 · 沉船 · 雾港 · 藤蔓 | 一、二、三、四、五、六 |
+| geography | 南墙 · 雾港 · 祠殿 | 一、三、四 |
+| characters | 抄本师 · 值更长 · 雾童 | 一、二、三、四、五、六 |
+| story | 雾童 · 回响（其七十二） | 全篇 |
+| items | 藤蔓 · 浮岛 · 雾港海鸟 | 一、二、三、四 |
+| history | 第四十一次大会散会之后 · 秋潮月第五十三日 | 一、四、六 |
+
+> 雾散之后潮候会自己点亮——雾童一直没醒——但潮候院一直在等它醒。
+> After the fog clears the Institute will light itself — the fog child has not woken yet — the Institute is still waiting for him.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 四百年前大会散会的那一天，南墙外藤蔓缠着一只小怪物。
 - [2] 藤尺缠着小怪物眼睛——抄本师认出来是只雾童。
 - [3] 雾童醒雾港上浮现浮岛——抄本师推算是沉船。
@@ -3158,6 +4968,104 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 雾童醒了的时候就是雾港的灯落下。
 
 ### Echo 73 · 潮候院内外南墙上的第一件碑文——三个字 / The First Inscription on the Inner Southern Wall — Three Characters
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院内外南墙一方没有署名的纸——碑文上只有三个字。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the carved panel on the southern inner-outer wall — three characters, no signature.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第五十五日。
+> Era: the Institute — after the 41st Convocation; the fifty-fifth day of the autumn-tide month.
+
+---
+
+## 一 · 内外南墙
+
+潮候院内外南墙是值更长和抄本师私下叫的俗名——南墙有两道。
+
+内南墙是祠殿南墙：抄本师在这里登记值班。
+外南墙是潮候院正门南墙外挡墙：胡椒荡的常见围墙。
+
+**锚句**：潮候院内外南墙是值更长和抄本师私下叫的俗名。
+**Anchor sentence**: the inner-outer southern wall is what the head of the watch and the copyists call it, privately.
+
+---
+
+## 二 · 碑文
+
+内南墙上有刻着三个字的小碑——没人记得谁刻的，谁也不让动它；碑上的字边缘被海风磨得发软。
+
+三个字："潮，候，归。"
+
+**锚句**：内南墙上有三个字的小碑："潮，候，归。"
+**Anchor sentence**: on the inner southern wall is a small panel with three characters: "Tide, Wait, Return".
+
+---
+
+## 三 · 那个一直没有名字的刻碑人
+
+抄本师猜——这是某位值更长或者抄本师儿子写的；没有记载名字。
+
+第四十一次大会散会之后，抄本师私下说："那三个字是某一位想回家的人刻给自己看的。"
+
+**锚句**：抄本师私下说「那三个字是某一位想回家的人刻给自己看的」。
+**Anchor sentence**: the copyists whispered privately that the three characters are for someone who wanted to go home — carved by themselves.
+
+---
+
+## 四 · 在雾里读
+
+值更长说他在雾起的早晨踏过——这三个字的光会比别处的环境暗淡一点点。
+
+他没说——也没告诉抄本师。抄本师猜原因：可能雾想看谁听懂。
+
+**锚句**：雾天踏过内南墙，刻的字总会比别处更暗淡一点点。
+**Anchor sentence**: on foggy mornings, the characters on the inner southern wall appear ever so slightly darker than their surroundings.
+
+---
+
+## 五 · 第四十一次大会散会之后
+
+第四十一次大会散会之后，值更长每天早晚各一次都去看那三个字。
+
+他现在没讲——但抄本师只知道他每天来看两遍——也许他等另一个字出现。
+
+**锚句**：第四十一次大会散会之后，值更长每天早晚各来看这三个字一次。
+**Anchor sentence**: after the 41st Convocation dissolved, the head of the watch visited the three characters twice daily, every day.
+
+---
+
+## 六 · 石头继续
+
+有一天、抄本师经过内南墙——"归"字右上方多了一个「，」。
+
+这件事抄本师闻所未闻——没人加过它——它就再也没人来认领；三个字变成一个逗号——潮，候，归，
+
+值更长说："它想继续说。"
+
+**锚句**：第四十一次大会散会之后，「归」字右上方多了一个逗号没人来认。
+**Anchor sentence**: after the 41st Convocation dissolved, a comma appeared above the "Return" — no one has claimed it.
+
+---
+
+## 七 · 映射（回响七十三章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 内南墙 · 三个字 · 潮候归 · 逗号 · 想回家的人 | 一、二、三、四、五、六 |
+| geography | 祠殿 · 内南墙 · 胡椒荡 | 一、二 |
+| characters | 抄本师 · 值更长 · 某人想回家 | 一、二、三、四、五、六 |
+| story | 碑文 · 回响（其七十三） | 全篇 |
+| items | 石碑 · 内南墙 | 一、二、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第五十五日 | 一、四、五、六 |
+
+> 潮候院一直在等第四个字——它说不出口。
+> The Institute is still waiting for the fourth character — it does not speak out.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 潮候院内外南墙是值更长和抄本师私下叫的俗名。
 - [2] 内南墙上有三个字的小碑："潮，候，归。"
 - [3] 抄本师私下说「那三个字是某一位想回家的人刻给自己看的」。
@@ -3166,6 +5074,101 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 第四十一次大会散会之后，「归」字右上方多了一个逗号没人来认。
 
 ### Echo 74 · 潮候院内祠三光那扇被摇摇雾吻过的窗子 / The Window of the Three Lamps Kissed by the Shaking Fog
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院内祠三光那扇没人敢近的窗子。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the window of the Three Lamps—no one dares to approach.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第五十七日。
+> Era: the Institute — after the 41st Convocation; the fifty-seventh day of the autumn-tide month.
+
+---
+
+## 一 · 三光
+
+祠殿内祠有三盏永不熄的灯——抄本师私下把它们叫「三光」。
+
+那三盏灯聚在祠殿东侧一扇没人敢近的小窗旁——窗子朝东——从早晨第一缕光进去。
+
+**锚句**：祠殿内祠三盏灯常年不熄，抄本师叫它们三光。
+**Anchor sentence**: three lamps in the inner sanctuary never go out — the copyists call them the Three Lights.
+
+---
+
+## 二 · 那扇窗子
+
+这扇窗约只有一人高——窄、窄到人侧着身子才能靠近。
+
+里边是一面整块、刚刚好一面墙厚的老玻璃——玻璃后面是空气；没有光折射进去。
+
+**锚句**：这扇窗从只有一人多高，窄到侧身才能靠近。
+**Anchor sentence**: this window is only slightly taller than a person; narrow enough to pass sideways.
+
+---
+
+## 三 · 谁靠近过
+
+第四十一次大会散会之后两个月，值更长一个人走到窗边——他没摘帽子——他没戴帽子。
+
+抄本师原以为他要说话——他没说话——他没说话；只是站了三分钟。
+
+**锚句**：第四十一次大会散会两个月之后，值更长只是站了三分钟。
+**Anchor sentence**: two months after the 41st Convocation dissolved, the head of the watch stood there for three minutes.
+
+---
+
+## 四 · 雾吻
+
+大约三天前——也就是大会散会两个月后——祠殿内祠有一次奇特的雾吻：
+
+雾从这扇窗子的内侧、贴了一下就消失了——再没有发生。
+
+**锚句**：大会散会之后一个奇特的雾吻——窗子从内侧贴了一下就消失了。
+**Anchor sentence**: a strange fog-kiss came through the window from inside—it touched once and vanished.
+
+---
+
+## 五 · 抄本师抹不掉
+
+抄本师的朋友把窗子内侧用纱布蘸水擦，甚至羽毛也擦过——擦不干净。
+
+值更长说："那不是灰——那是空气被记住过。"
+
+**锚句**：值更长说"那不是灰——是空气被记住过。"
+**Anchor sentence**: the head of the watch said: "that is not dust; it is air that was remembered."
+
+---
+
+## 六 · 散会之后
+
+第四十一次大会散会之后再没有任何雾吻——窗玻璃还没有磨平。
+
+抄本师说这是潮候院的一件签字——雾知道什么是不该被记住的。
+
+**锚句**：散会之后没有再发生雾吻，窗玻璃也没有磨平过。
+**Anchor sentence**: since the Convocation dissolved, no fog-kiss has happened again; the glass has not worn smooth.
+
+---
+
+## 七 · 映射（回响七十四章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 三光 · 雾吻 · 祠殿内祠 · 记住空气 | 一、二、三、四、五、六 |
+| geography | 祠殿内祠 · 东窗 | 一、二 |
+| characters | 抄本师 · 值更长 · 三光 | 一、二、三、四、五、六 |
+| story | 雾吻 · 回响（其七十四） | 全篇 |
+| items | 三光 · 窄窗 · 老玻璃 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第五十七日 | 四、三、五 |
+
+> 潮候院的窗玻璃记住所有雾吻——但没有人替潮候院说明。
+> The Institute's windows remember every fog-kiss — no one explains them.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 祠殿内祠三盏灯常年不熄，抄本师叫它们三光。
 - [2] 这扇窗从只有一人多高，窄到侧身才能靠近。
 - [3] 第四十一次大会散会两个月之后，值更长只是站了三分钟。
@@ -3174,6 +5177,101 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 散会之后没有再发生雾吻，窗玻璃也没有磨平过。
 
 ### Echo 75 · 潮候院东门外那只唯一一次被喂食的幼鸟 / The Young Seabird at the East Gate Fed Only Once
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院东门外那只唯一一次被喂食的幼鸟。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the young seabird at the east gate of the Institute who was fed only once.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第五十九日。
+> Era: the Institute — after the 41st Convocation; the fifty-ninth day of the autumn-tide month.
+
+---
+
+## 一 · 东门外
+
+潮候院东门是一道宽大的铁木门，门外有一片礁石。
+
+礁石根部能听到潮声——风从那里吹来时，雪花般的海腥味随气流扑进来；任何时刻，门外都有两三只海鸟蹲在那边。
+
+**锚句**：潮候院东门外常有两三只海鸟蹲在礁石根部。
+**Anchor sentence**: at the foot of the rocks outside the east gate, two or three seabirds squat all the time.
+
+---
+
+## 二 · 幼鸟
+
+第五十八回潮候院大会散会之后第七天——某个午后——值更长看见礁石上有一只幼鸟蜷着，全身浸在潮水里——嘴呼吸着——黄嘴尖还没有硬。
+
+他没动手——没办法看到怎么办；只问了一句："它能吃吗？"
+
+**锚句**：礁石上有一只幼鸟，全身浸在潮水里，黄嘴尖还没硬。
+**Anchor sentence**: a chick on the rocks, soaked by the tide, its yellow bill-tip still soft.
+
+---
+
+## 三 · 喂了一次
+
+值更长问值更院值日的孩子去拿了一瓢鱼肠渣补给。
+
+孩子把鱼肠渣放在礁石根；鸟张嘴了，吞了——一两口——没再升起。
+
+**锚句**：值更孩子把鱼肠渣放在礁石根，鸟张嘴吞了一两口。
+**Anchor sentence**: a boy from the night watch laid fish-gut scraps at the foot of the rocks; the bird opened its beak and swallowed once or twice.
+
+---
+
+## 四 · 第二天
+
+第二天，幼鸟不在礁石上——没有人知道是它飞走了还是被拿走了。
+
+值更长说，过去也见过鸟死——常在礁石或墙角。
+
+**锚句**：第二天，幼鸟不在礁石上——没人知道是飞走了还是被拿走了。
+**Anchor sentence**: the next day, the chick was no longer on the rocks — no one knows whether it flew off or was carried away.
+
+---
+
+## 五 · 鸟典
+
+抄本师私下做了一个记录，他问老值更："咱们专门收快要死的鸟吗？" 老值更说："潮候院收不收都不重要，只要潮候院知道就算。"
+
+这条问答后被抄本师写进《鸟典·潮候院篇》的非正式条——没有署名。
+
+**锚句**：抄本师私下做了包含幼鸟的鸟典记录——没有署名。
+**Anchor sentence**: the copyists privately wrote an entry including the chick — no signature; filed in the Bird Annals, Institute chapter, informal section.
+
+---
+
+## 六 · 一年
+
+再一年内，他没见过幼鸟——他也不打算再问。
+
+值更长说："吃了它就吃了它——潮候院不会再喂——也没有人追问它到底飞起来没有。"
+
+**锚句**：潮候院此后不会再喂这类死鸟，潮候院也没有追问它飞起来没有。
+**Anchor sentence**: the Institute will not feed such dying birds again; the Institute will not ask whether it ever flew.
+
+---
+
+## 七 · 映射（回响七十五章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 幼鸟 · 鱼肠渣 · 鸟典 · 礁石 | 一、二、三、四、五、六 |
+| geography | 潮候院东门 · 礁石 | 一、二 |
+| characters | 值更长 · 值更孩子 · 抄本师 · 老值更 | 二、三、四、五、六 |
+| story | 幼鸟 · 回响（其七十五） | 全篇 |
+| items | 鱼肠渣 · 黄嘴 · 礁石 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第五十九日 | 一、二 |
+
+> 潮候院东门口喂过一次就别喂了——潮候院不欠它什么。
+> The Institute fed it once; the Institute will not feed it again — it is owed nothing.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 潮候院东门外常有两三只海鸟蹲在礁石根部。
 - [2] 礁石上有一只幼鸟，全身浸在潮水里，黄嘴尖还没硬。
 - [3] 值更孩子把鱼肠渣放在礁石根，鸟张嘴吞了一两口。
@@ -3182,6 +5280,101 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 潮候院此后不会再喂这类死鸟，潮候院也没有追问它飞起来没有。
 
 ### Echo 76 · 潮候院顶最高处那间没人打开的封地窖 / The Sealed Cellar at the Top of the Institute No One Opens
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院顶最高没人打开的一间封地窖。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the sealed cellar at the top of the Institute that no one opens.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第六十二日。
+> Era: the Institute — after the 41st Convocation; the sixty-second day of the autumn-tide month.
+
+---
+
+## 一 · 顶楼
+
+潮候院最高的一座挂满雨水的钟楼楼顶，抄本师私下叫它「顶楼」——值更长叫它「那间不要开门的」。
+
+顶楼上一共三间屋——两间存放非正式遗物，一间是一道古木门。
+
+**锚句**：顶楼一共三间屋——一间是一道古木门。
+**Anchor sentence**: the attic has three rooms; one is a wooden door.
+
+---
+
+## 二 · 那道门
+
+这道门从上到下，被外面钉得密密麻麻——木板缝里长出红铜钉。
+
+风掠过堂顶的时候，可以听见这道门轻轻碰晃；但是没人知道是从内还是从外。
+
+**锚句**：顶楼那道古木门，从上到下密密麻麻被红铜钉铆过。
+**Anchor sentence**: the attic door is studded densely with red copper nails from top to bottom.
+
+---
+
+## 三 · 第四十一次大会散会后
+
+第四十一次大会散会之后，某天傍晚——值更长带着钥匙去了那道门。
+
+抄本师问他「要开吗？」；值更长答「不开，但鸣一下」——他拿一把打火狼燧一下子枪在门上，敲了两声。
+
+**锚句**：抄本师问「要开吗？」，值更长说「不开，但鸣一下」——他敲门两声。
+**Anchor sentence**: the copyist asked, "would he open it?"; the head of the watch said, "not open — just sound it" — and knocked twice.
+
+---
+
+## 四 · 应声
+
+敲门之后，屋里传来两下响声——连着敲。
+
+值更长缩回手——没有人听到响声的源头——也没有人能识别的真实情况。
+
+**锚句**：敲门之后，屋里传来两下响声——没人识别。
+**Anchor sentence**: after the knock, two answering sounds came from inside; no one could identify them.
+
+---
+
+## 五 · 钥匙
+
+值更长第二次去顶楼是散会后第九天——他想看看那把钥匙的形状。
+
+他发现那把钥匙是桶柿木做的——上面刻着「见窗旁者一人」；抄本师私下推断「见窗旁」——很可能是某个人，但谁也猜得到。
+
+**锚句**：值更长第二次去顶楼看到钥匙，上面刻着「见窗旁者一人」。
+**Anchor sentence**: on the second visit the head of the watch saw the key; it was engraved with the words "the one beside the window sees".
+
+---
+
+## 六 · 散会之后
+
+散会之后没人想看它；抄本师说「它不是用不开——它是不会自己开」。
+
+它现在还是那根木钉和那两间屋永远变了东南西北方向；没有人知道它还在不在。
+
+**锚句**：抄本师说"它不是用不开——它是不会自己开"。
+**Anchor sentence**: the copyists say it is not a matter of not opening — it is a matter of not being opened.
+
+---
+
+## 七 · 映射（回响七十六章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 顶楼 · 封地窖 · 见窗旁者一人 · 钥匙 | 一、二、三、四、五、六 |
+| geography | 钟楼 · 顶楼 · 顶楼古木门 | 一、二 |
+| characters | 值更长 · 抄本师 · 顶楼木门 | 一、二、三、四、五、六 |
+| story | 封地窖 · 回响（其七十六） | 全篇 |
+| items | 顶楼 · 古木门 · 钥匙 · 打火狼燧 | 一、二、三、四、五 |
+| history | 第四十一次大会散会之后 · 秋潮月第六十二日 | 三、四、五、六 |
+
+> 顶楼那间不开的门没有人想看，也没有人想听——但它一直在自己里边。
+> The door upstairs no one wants to look at — no one wants to hear — but it has always been inside itself.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 顶楼一共三间屋——一间是一道古木门。
 - [2] 顶楼那道古木门，从上到下密密麻麻被红铜钉铆过。
 - [3] 抄本师问「要开吗？」，值更长说「不开，但鸣一下」——他敲门两声。
@@ -3190,6 +5383,101 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 抄本师说"它不是用不开——它是不会自己开"。
 
 ### Echo 77 · 潮候院南山角那只一百多年从没入沉心的石狮 / The Stone Lion at the South-East Corner of the Institute That Forgot to Sink for a Century
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院南山角那只矗立一百多年的石狮。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the stone lion standing at the south-east corner of the Institute for over a century.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第六十四日。
+> Era: the Institute — after the 41st Convocation; the sixty-fourth day of the autumn-tide month.
+
+---
+
+## 一 · 南山角
+
+南山角是潮候院主体的南东侧——背靠一座矮山——对着开门口。
+
+角落立着一只石狮——比人稍矮一头——挡南山吹来的风。
+
+**锚句**：潮候院南山角立着一只石狮，挡南山吹来的风。
+**Anchor sentence**: at the south-east corner of the Institute stands a stone lion, blocking the southern wind.
+
+---
+
+## 二 · 一百多年
+
+值更长巡班时问抄本师："这口狮子哪天来的？"抄本师把这件事告诉他——它比潮候院本身还要古老。
+
+抄本师又说："它是潮候院自己的碑——潮候院最初本来想叫它『碑』"——"潮候院的碑"——抄本师没说出口。
+
+**锚句**：抄本师说"石狮比潮候院还早"，值更长没有追问。
+**Anchor sentence**: the copyists said "the stone lion is older than the Institute itself"; the head of the watch did not press.
+
+---
+
+## 三 · 脸朝东
+
+它的脸朝东——朝向正门，固定位置，无人能动。
+
+大约百年以前，某个抄本师给它画过一只红色的腮——院里所有红色腮都是同一个女人画的。
+
+**锚句**：它的脸朝东——某百年前有人画过它的腮——没人知道是谁画的。
+**Anchor sentence**: it faces east; a century ago someone painted its cheeks red — no one knows who.
+
+---
+
+## 四 · 第四十一次大会散会之后
+
+第四十一次大会散会后，值更长经过石狮——他看到它嘴角向上歪——几乎看不见。
+
+抄本师说："石头的表情您不要再看——它有自己的心事。"
+
+**锚句**：散会之后值更长看见石狮嘴角微微上扬，抄本师说"石头有自己的心事"。
+**Anchor sentence**: after the dissolution, the head of the watch saw the lion's mouth curl slightly upward; the copyists said the stone has its own thoughts.
+
+---
+
+## 五 · 红色
+
+七十年前有人报案说有人给石狮画红腮——上报给值更长——抄本师说"那就是上一次画它腮的人；他不说名字"
+
+值更长想把那人抓起来问——抄本师劝他不要——抄本师说："抓了也没人承认；这又是一件要保存到最后的事。"
+
+**锚句**：值更长想抓那个画红腮的人，抄本师劝他"抓了也没人承认"。
+**Anchor sentence**: the head of the watch wanted to arrest the red-cheek painter; the copyists pleaded that even if he caught him, no one would speak.
+
+---
+
+## 六 · 海星
+
+抄本师发现：每年一天的午后，石狮脸上的红腮会变深一点——是潮候院的一种海星。
+
+每年那一只星变的深的那一天，雾起来得特别浓。
+
+**锚句**：每年只有一昼夜，石狮脸上红色腮会变得更红——那天雾浓得出奇。
+**Anchor sentence**: once a year for one hour stone-face reddens and the Institute swallows more fog than usual.
+
+---
+
+## 七 · 映射（回响七十七章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 石狮 · 潮候院 · 红腮 · 南山角 · 碑 | 一、二、三、四、五、六、七 |
+| geography | 南山角 · 矮山 · 雾港 | 一、二、六 |
+| characters | 抄本师 · 值更长 · 画腮的人 | 一、二、三、四、五、六 |
+| story | 石狮 · 回响（其七十七） | 全篇 |
+| items | 石狮 · 红腮 · 雾 · 海星 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第六十四日 | 四、五、六 |
+
+> 石狮不会沉下去——石狮一直都在它自己里面——它是潮候院自己的碑。
+> The lion will never sink — it has always been inside itself — it is the Institute's own monument.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 潮候院南山角立着一只石狮，挡南山吹来的风。
 - [2] 抄本师说"石狮比潮候院还早"，值更长没有追问。
 - [3] 它的脸朝东——某百年前有人画过它的腮——没人知道是谁画的。
@@ -3198,6 +5486,102 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 每年只有一昼夜，石狮脸上红色腮会变得更红——那天雾浓得出奇。
 
 ### Echo 78 · 潮候院底潮那只一年不开一次的木头匣 / The Wooden Box at the North Storeroom's Outer Corner That Opens Once a Year
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院唯一一只一年只打开一次的木头匣的来历。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the single wooden box that opens only once a year, at the far corner of the Institute.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第六十七日。
+> Era: the Institute — after the 41st Convocation; the sixty-seventh day of the autumn-tide month.
+
+---
+
+## 一 · 那只匣
+
+潮候院北库外角，靠一块青石板放着一只木头匣——大小像一只中号鞋盒子，从外观看颜色已经灰白了。
+
+每年六十六次大会散会那天——每年一次。
+
+**锚句**：北库外角有一只木头匣，颜色已经灰白了，每年一次。
+**Anchor sentence**: at the outer corner of the north storeroom stands a wooden box, bleached gray by age, opened only once a year.
+
+---
+
+## 二 · 它自己自己开了
+
+某值更守在北库外角——他说每年一次大会散会当天——匣子自动盖开。
+
+抄本师查北库进出以后——抄本师没有查到任何人动过这个木匣。
+
+**锚句**：北库守说每年散会日匣子自己盖开；抄本师查不到人动过。
+**Anchor sentence**: the storekeeper swore the box opens itself on every Convocation dissolution day; the copyists found no one had touched it.
+
+---
+
+## 三 · 里面有什么
+
+它自己自己盖开那一瞬间，抄本师拧掉手电的灯——他只对下一位值更守说："里面不是空，但不让我记。"
+
+抄本师后来一辈子再不开口告诉过任何人。
+
+**锚句**：抄本师说"里面不是空——但不让我记。"抄本师后来一辈子不说一句。
+**Anchor sentence**: the copyist whispered: "It is not empty — but it will not let me write"; he never spoke another word about it.
+
+---
+
+## 四 · 浮岛影
+
+北库进出进出没有人能见——但这一天潮候院雾湿了。
+
+护池苔上发了一点圆形影，圆形影不动。
+
+**锚句**：那一天潮候院雾湿了——护池上圆形影沉默不动。
+**Anchor sentence**: on that day the Institute's fog was thick as soup — circular reflections lay still in the pond.
+
+---
+
+## 五 · 第八次散会
+
+第八次散会早雾湿的那一天是抄本师——他平时不肯跟值更守说一句话——悄悄回
+他悄悄回北库外角的时候——没有人能见。
+
+北库外角是潮候院最安静的地方——没有人在听。
+
+**锚句**：北库外角是潮候院最安静的地方——没有人在听。
+**Anchor sentence**: the northern storeroom's outer corner is the quietest place in the Institute — no one is listening.
+
+---
+
+## 六 · 抄本师自己
+
+抄本师一生，只说过两句话——抄本师的老师记下来了："里面不是空 "和 "不 "——"不是空"不停反复。
+
+抄本师走了以后，潮候院又多了五代抄本师——没人知道木匣里是什么。
+
+**锚句**：抄本师走了以后没人知道木匣里面是什么。
+**Anchor sentence**: after the copyist passed, no one knew what was inside the box.
+
+---
+
+## 七 · 映射（回响七十八章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 木匣 · 自己盖开 · 不让记 · 北库外角 · 大会散会 | 一、二、三、四、五、六、七 |
+| geography | 北库外角 · 青石板 · 北院 | 一、四、五、六 |
+| characters | 北库守 · 抄本师 · 潮候院师傅 | 二、三、五、六 |
+| story | 木匣 · 回响（其七十八） | 全篇 |
+| items | 木匣 · 大会散会 · 青石板 · 手电 · 手灯 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第六十七日 | 一、二、四、五 |
+
+> 它不让记。潮候院继续不记——潮候院也继续在。
+> It will not let me write. The Institute continues without writing — and the Institute continues.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 北库外角有一只木头匣，颜色已经灰白了，每年一次。
 - [2] 北库守说每年散会日匣子自己盖开；抄本师查不到人动过。
 - [3] 抄本师说"里面不是空——但不让我记。"抄本师后来一辈子不说一句。
@@ -3206,6 +5590,101 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 抄本师走了以后没人知道木匣里面是什么。
 
 ### Echo 79 · 潮候院最深处那只守了九世的大镇海木鸦 / The Great Black Crow of Calming the Sea at the Center of the Institute
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院最深处那只守了九世的大镇海木鸦——没人敢说出它的名字。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the great black crow at the center of the Institute — no one dares speak its name.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后——秋潮月第六十九日。
+> Era: the Institute — after the 41st Convocation; the sixty-ninth day of the autumn-tide month.
+
+---
+
+## 一 · 最深处
+
+潮候院最深处——一间只属于第二列倒影的屋子，门楣上方有一对对称的"鸟踪"符号；抄本师把它叫"屋子上端"。
+
+一只大乌鸦，站在屋子正中一只青灰大碗里，一万只脚印环绕着——它从来不动。
+
+**锚句**：屋子正中方有一只大乌鸦装在青灰大碗里，四周环绕一万只脚印——它从来不动。
+**Anchor sentence**: in the center of the room sits a great black crow in an ash-gray bowl, ten thousand footprints circling it — and it never moves.
+
+---
+
+## 二 · 九世
+
+抄本师推算，这只乌鸦——它被放在这个屋子里——已经九九辈子夜。
+
+"九世"——抄本师私下说——意思不是"用了九次"，而是"它自己活了九世"。
+
+**锚句**：这只乌鸦站了九世——抄本师私下说"九世是它自己活了九世"。
+**Anchor sentence**: the crow has stood for ninety generation-cycles — the copyists privately wonder whether he has lived nine lives of his own.
+
+---
+
+## 三 · 屋名前不说
+
+"大镇海木鸦"是抄本师私下的叫法——没有人外波语。
+
+屋子的名字到现在也没有：抄本师叫"那里"。
+
+**锚句**：屋子的名字叫"那里"，屋子之内的名字——没人说。
+**Anchor sentence**: the room's name is "there" — no one speaks the name inside it.
+
+---
+
+## 四 · 脚印
+
+一万只脚印绕一只乌鸦——值更长巡完仓库回来说：他巡完了所有仓库——他发现院内各角落的鞋印正好也是一万双的标本。
+
+值更长说："一万只脚印绕它；一万双鞋印穿过院内"
+
+**锚句**：值更长说院内一万双鞋印穿过院内"。
+**Anchor sentence**: the head of the watch noticed that exactly ten thousand pairs of prints had walked through the Institute.
+
+---
+
+## 五 · 没有食物
+
+大镇海木鸦不吃东西——没人喂它过；也从不朝外叫；也从不挪一寸。
+
+抄本师说——屋子里的乌鸦和一只木乌鸦——没有人分得清；但它的眼睛在看。
+
+**锚句**：屋子里的乌鸦和一只木乌鸦长得相似——没人分得清；但它的眼睛一直在看。
+**Anchor sentence**: the crow and the wooden crow look the same; no one can tell them apart — but its eyes are always watching.
+
+---
+
+## 六 · 散会之后
+
+第四十一次大会散会之后——抄本师第二次去那屋——他在它跟前说了一句"天下人"——他停一秒——乌鸦忽然朝外看了一下。
+
+抄本师跟别人说，他没有听到鸟叫——但乌鸦活的啊。
+
+**锚句**："天下人"那一刻之后，抄本师说他看见鸟叫——但没有听见鸟叫。
+**Anchor sentence**: after he uttered the words "the people of the world", the copyists say they saw the crow call — but they did not hear the crow call.
+
+---
+
+## 七 · 映射（回响七十九章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 大镇海木鸦 · 九世 · 脚印 · 青灰大碗 · 屋子 | 一、二、三、四、五、六、七 |
+| geography | 屋子 · 倒影的屋子 · 潮候院 | 一、二、五 |
+| characters | 抄本师 · 值更长 · 大镇海木鸦 | 一、二、三、四、五、六 |
+| story | 大镇海木鸦 · 回响（其七十九） | 全篇 |
+| items | 青灰大碗 · 大鸟 · 屋子里没有名字 | 一、二、三、四、五 |
+| history | 第四十一次大会散会之后 · 秋潮月第六十九日 | 二、四、六 |
+
+> 潮候院最深处的一只大镇海木鸦，没人敢把它嘴里的事说出来。
+> The great black crow at the deepest place of the Institute — no one dares repeat what it says from its beak.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 屋子正中方有一只大乌鸦装在青灰大碗里，四周环绕一万只脚印——它从来不动。
 - [2] 这只乌鸦站了九世——抄本师私下说"九世是它自己活了九世"。
 - [3] 屋子的名字叫"那里"，屋子之内的名字——没人说。
@@ -3214,6 +5693,103 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] "天下人"那一刻之后，抄本师说他看见鸟叫——但没有听见鸟叫。
 
 ### Echo 80 · 潮候院前庭那只永远闭着眼睛的守门猫 / The Cat at the Institute's Front Court That Sleeps With Its Eyes Open
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院前庭那只从不睁眼睛的守门猫——半醒半睡——但没人知道它在不在听。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the cat at the front court of the Institute who never opens its eyes.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第七十一日。
+> Era: the Institute — after the 41st Convocation; the seventy-first day of the autumn-tide month.
+
+---
+
+## 一 · 前庭
+
+潮候院前庭是正门外一块圆形石板，环绕着院前矮墙。
+
+正门上方有一盏油灯——日复一日，灯火总是小沾了潮沫；灯顶木门横梁上蹲着一只黑猫——它从不睁眼。
+
+**锚句**：前庭油灯下蹲着一只黑猫，它从不睁眼。
+**Anchor sentence**: beneath the lamp at the front court squats a black cat — it never opens its eyes.
+
+---
+
+## 二 · 最老的东西
+
+抄本师说："这只猫是院里最老的东西。"
+
+值更长问："你怎么知道？"
+
+抄本师答："院里没人能动它——石板下方一些字比它还年轻。"
+
+**锚句**：抄本师说前庭猫是院里最老的东西——前庭没人能动它。
+**Anchor sentence**: the copyists say the cat is the oldest thing in the whole Institute — no one can move it.
+
+---
+
+## 三 · 闭着眼
+
+它闭着眼——半睁不开。
+
+大会散会那一天，有人路过看了一眼——灯下夜里猫的眼睛暗——只剩两颗星亮一会儿又暗。
+
+**锚句**：它闭着眼——灯下夜里猫的眼睛暗——只剩两颗星亮一会儿又暗。
+**Anchor sentence**: it keeps its eyes closed — under the lamp its eyes grow dim — only two stars, bright once then dark again.
+
+---
+
+## 四 · 它是什么
+
+"它不是装睡——它不需要睁眼醒着——它是不打开眼在听。"
+
+抄本师绕了一圈又回去，前庭没人说，灯又一晃；一片安静——只有偶尔有人路过被它瞟了一眼。
+
+**锚句**：抄本师说"它不是装睡——它不需要睁眼醒着"。
+**Anchor sentence**: the copyists said: "it is not pretending to sleep — it does not need to wake to watch."
+
+---
+
+## 五 · 没人喂过它
+
+浮光满前庭猫的身形——它的身后跟着几根鬓毛在地上——地上有小小的脚印——也未必是它的。
+
+院里从来没谁喂它。抄本师说的：「它不是饿的，它是为数不多的只是守。」
+
+**锚句**：抄本师说它「不是饿的，它是只守的」。
+**Anchor sentence**: the copyists said: "it is not hungry — it is only watching."
+
+---
+
+## 六 · 值更长没看它过
+
+第四十一次大会散会之后一个潮候月，值更长回前庭——他看到猫——他没走过去打量它——他蹲惯身子。
+
+猫没名字，没人记。
+
+**锚句**：值更长回前庭看见猫——他没走过去打量它。
+**Anchor sentence**: the head of the watch returns to the front court and sees the cat — he does not walk up to inspect it.
+
+---
+
+## 七 · 映射（回响八十章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 守门猫 · 油灯 · 闭着眼 · 只守的 · 不需要醒着 | 一、二、三、四、五、六、七 |
+| geography | 前庭 · 院前矮墙 · 正门外 | 一、二 |
+| characters | 抄本师 · 值更长 · 守门猫 | 一、二、三、四、五、六 |
+| story | 守门猫 · 回响（其八十） | 全篇 |
+| items | 前庭油灯 · 木门横梁 · 矮墙 | 一、二、三、四、五 |
+| history | 第四十一次大会散会之后 · 秋潮月第七十一日 | 三、六 |
+
+> 灯下一片安静——院子里的事没有人做主，只有那只猫自己知道。
+> Under the lamp, the place is silent — no one owns the affairs of the court — only that cat knows.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 前庭油灯下蹲着一只黑猫，它从不睁眼。
 - [2] 抄本师说前庭猫是院里最老的东西——前庭没人能动它。
 - [3] 它闭着眼——灯下夜里猫的眼睛暗——只剩两颗星亮一会儿又暗。
@@ -3222,6 +5798,101 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 值更长回前庭看见猫——他没走过去打量它。
 
 ### Echo 81 · 潮候院老石磨盘——它磨不动任何东西 / The Old Stone Millstone of the Institute That Grinds Nothing
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院老石磨盘——地上钉一百多年的那口磨盘悄悄地磨——它不磨它自己的什么。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the old stone millstone of the Institute — it grinds nothing.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第七十五日。
+> Era: the Institute — after the 41st Convocation; the seventy-fifth day of the autumn-tide month.
+
+---
+
+## 一 · 老磨盘
+
+潮候院大门走廊右手边——半露在墙上——一座老石磨盘。
+
+墙都是白灰；磨盘石是径黑的碎石；没人把它用来磨什么。
+
+**锚句**：潮候院走廊右手边半露出一座老磨盘——没人磨什么。
+**Anchor sentence**: at the corner of the corridor outside the main gate lies an old stone mill — it grinds nothing.
+
+---
+
+## 二 · 三百年
+
+这口磨盘有三百年——比大会散会年代早；抄本师说——"它磨的不是潮候院今天的东西"——它磨的只是潮候院原本没有任何需要磨的东西。
+
+抄本师一天站在它跟前——抄本师不会说有声音的——但抄本师觉得它老。
+
+**锚句**：抄本师说"它磨的不是潮候院今天的东西——磨的只是原本没有磨的东西"。
+**Anchor sentence**: the copyists said, "it grinds not what the Institute grinds today — it grinds what was never ground."
+
+---
+
+## 三 · 纹路
+
+老磨盘中间凹，但没被任何人磨过。
+
+院里老人说，它本来是一块自然山石——它不是被磨盘变成了磨盘——是山自己被雾磨了。
+
+**锚句**：老磨盘中间凹但没被人磨过——它本来就是自然的山石。
+**Anchor sentence**: the mill's middle dips, but no one has ground it — it was always a natural fieldstone shaped by fog.
+
+---
+
+## 四 · 三百年来
+
+大会散会之前一百年、潮候院的祖父抄本师在这老石磨画一个字——什么字没人交代。
+
+后来字没了——只剩凹痕——凹痕的颜色比周围深一点——以雾的形式留在石上。
+
+**锚句**：三百年来每一代抄本师都不摸老石磨——凹痕颜色比周围深——像雾留下的。
+**Anchor sentence**: every copyist's generation has passed, no one touching it — the single groove darker than the stone — left behind like fog.
+
+---
+
+## 五 · 雾散了的名
+
+大会散会之后——抄本师发现这老磨盘叫"父"——院秘书隐约说，但偷偷藏着他的嘴——他哪都没说。
+
+抄本师说，它要磨的不是咸鱼干——它要磨的是"大半辈子的名"。
+
+**锚句**：大会散会之后抄本师发现老磨盘叫"父"——院秘书说"它磨的是大半辈子的名"。
+**Anchor sentence**: after the Convocation dissolved, the copyists found a name for the old mill — "Father" — the Institute secretary said, "it grinds the name of a long life."
+
+---
+
+## 六 · 没人磨
+
+三百年来没人磨它。
+
+潮候院觉得它是"一块匪石"——值更长去看它，最多次问："那东西磨什么？"——抄本师说："它磨不知道。"
+
+**锚句**：三百年没人磨它——它磨的没人知道。
+**Anchor sentence**: for three hundred years no one has ground it — what it grinds, no one knows.
+
+---
+
+## 七 · 映射（回响八十一章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 老磨盘 · 三百年 · 匪石 · 雾磨 · 父 | 一、二、三、四、五、六、七 |
+| geography | 大门走廊 · 墙 | 一、二、四 |
+| characters | 抄本师 · 值更长 · 院秘书 | 二、三、四、五、六 |
+| story | 老磨盘 · 回响（其八十一） | 全篇 |
+| items | 老磨盘 · 匪石 · 凹痕 · 雾色 | 一、二、三、四、五 |
+| history | 第四十一次大会散会之后 · 秋潮月第七十五日 | 四、五、六 |
+
+> 潮候院没磨过什么——潮候院被磨过——磨盘在那等今天没有任何的名。
+> The Institute has ground nothing — the mill has ground the Institute — it waits for a name that no day has yet given it.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 潮候院走廊右手边半露出一座老磨盘——没人磨什么。
 - [2] 抄本师说"它磨的不是潮候院今天的东西——磨的只是原本没有磨的东西"。
 - [3] 老磨盘中间凹但没被人磨过——它本来就是自然的山石。
@@ -3230,6 +5901,101 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 三百年没人磨它——它磨的没人知道。
 
 ### Echo 82 · 潮候院孩子每天早晚抄的雾字影 / The Fog-Strokes Copied by the Institute's Children at Dawn and Dusk
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院孩子们每天早晚抄的那一页雾字影。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the fog-strokes the Institute's children copy at dawn and dusk.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第七十七日。
+> Era: the Institute — after the 41st Convocation; the seventy-seventh day of the autumn-tide month.
+
+---
+
+## 一 · 每天抄字
+
+潮候院有东西叫"晨光抄"——院里所有大孩子在日出前先到祠殿，一人复一笔，满地白光。
+
+抄的不是字典里的字——抄的是 "雾字影"——雾冰成的字每一根。
+
+**锚句**：院里的大孩子日出前到祠殿，一人复一笔，抄的是雾冰成的字每一根。
+**Anchor sentence**: every older child of the Institute arrives before sunrise at the sanctuary, each tracing one stroke at a time — the strokes frozen out of fog.
+
+---
+
+## 二 · 字长得
+
+抄的不是完整的字——只是部分。
+
+——比如今天抄"潮"字三画；下一天抄"候"五画。
+
+**锚句**：抄的内容不是完整的字，每天只抄一个偏旁几笔。
+**Anchor sentence**: not a single whole character; each day only a few strokes of one part.
+
+---
+
+## 三 · 雾字影
+
+雾字影本身只有当雾上去时才被看见。
+
+每年三十多天都是专为它开放的——雾字影专用**秋潮月**——孩子们最多、墨用最快。
+
+**锚句**：每年三十多天都是秋潮月——孩子们最多墨用最快。
+**Anchor sentence**: more than thirty days a year are in the autumn-tide month — that is when the children come thickest and the ink-flow fastest.
+
+---
+
+## 四 · 收的字
+
+而《雾字影录》中一共收录了多少字——抄本师说没数字；有人说四百九十个。
+
+每一字后面专门是一个时序（抄下该字的孩子）——潮候院从抄传人开始一页一页"因为有"。
+
+**锚句**：《雾字影录》中一共收了多少字，抄本师说不出数字。
+**Anchor sentence**: the Fog-Strokes Record — no one knows how many strokes it holds; the copyists cannot say a number.
+
+---
+
+## 五 · 秋潮月
+
+秋潮月抄完——抄本师把每天的字封进特制盒——上写"雾录·"+ 年号+"年"+"回"。
+
+"回"字封闭后——《雾录》正式入潮候院后廊。
+
+**锚句**："回"字封闭后，《雾录》正式入潮候院后廊。
+**Anchor sentence**: when the "return stroke" is sealed, the Fog-Strokes Record is moved into the rear gallery of the Institute.
+
+---
+
+## 六 · 抄本师
+
+抄本师一千个已经——从六岁起抄到去世。
+
+他不会教孩子，只会让孩子抄，抄饱以后抄他自己。
+
+**锚句**：抄本师从六岁起抄到去世——抄饱以后抄他自己。
+**Anchor sentence**: the copyists have been copying from age six — when they are tired of copying, they copy themselves.
+
+---
+
+## 七 · 映射（回响八十二章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 晨光抄 · 雾字影 · 雾录 · 后廊 · 秋潮月 | 一、二、三、四、五、六、七 |
+| geography | 祠殿 · 后廊 | 一、二、五 |
+| characters | 抄本师 · 大孩子们 | 一、二、三、四、五、六 |
+| story | 晨光抄 · 回响（其八十二） | 全篇 |
+| items | 雾字影 · 雾录 · 特制盒 · 抄本师 | 一、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第七十七日 | 一、三、五、六 |
+
+> 潮候院的孩子每天复的不是雾——是院自己对雾的记忆。
+> What the children copy each day is not the fog — it is the Institute's own memory of itself.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 院里的大孩子日出前到祠殿，一人复一笔，抄的是雾冰成的字每一根。
 - [2] 抄的内容不是完整的字，每天只抄一个偏旁几笔。
 - [3] 每年三十多天都是秋潮月——孩子们最多墨用最快。
@@ -3238,6 +6004,101 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 抄本师从六岁起抄到去世——抄饱以后抄他自己。
 
 ### Echo 83 · 潮候院祠殿后那一汪从不照见任何东西的水潭 / The Pool Behind the Sanctuary That Reflects Nothing
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿后院那一汪水——风吹过它，它连一圈纹都不肯露。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the pool behind the sanctuary of the Institute — even wind will not ripple it.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第七十八日。
+> Era: the Institute — after the 41st Convocation; the seventy-eighth day of the autumn-tide month.
+
+---
+
+## 一 · 后院
+
+祠殿后院有一汪水——不宽，人伸手能够到边缘那块白石。
+
+水面是黑的、平的——日头照下来，水面不亮——像一张收了底色的纸。
+
+**锚句**：祠殿后有一汪水——它从不映出任何东西。
+**Anchor sentence**: behind the sanctuary a small pool gives no reflection.
+
+---
+
+## 二 · 风也不敢
+
+抄本师说顺着院墙吹过来的风撞到潭上——它拐弯了。
+
+没有人见过潭上有纹——从值更人记事那天起——最老的抄本师只说："它不是风不吹它，是它不动。"
+
+**锚句**：抄本师说风吹过也不起一圈纹。
+**Anchor sentence**: the copyists said wind does not even ripple the pool.
+
+---
+
+## 三 · 青叶
+
+四十年前有人往潭里丢了一片青叶——那人后悔——第二天抄本师来看：潭里没有叶子，也没有影子。
+
+砚台里的墨都比它会动。
+
+**锚句**：四十年前有人往潭里丢过一片青叶——第二天潭里没有叶子，也没有影子。
+**Anchor sentence**: a man once cast a green leaf into the pool; by dawn the pool held no leaf and no shadow.
+
+---
+
+## 四 · 米缸月
+
+米缸月里没人去潭边——连后院洗手的抄本师也绕开走。
+
+抄本师说那一个月的潭水最老——老得不像是刚从地里渗出来的。
+
+**锚句**：米缸月里没人去潭边——抄本师说那时的潭水最老。
+**Anchor sentence**: no one goes near the pool during the rice-jar month — the water is oldest then.
+
+---
+
+## 五 · 他看见自己了
+
+散会之后某一晚，走着回家的那位抄本师说他在潭里看见了自己的脸——他没有靠近——只说了一句话就回去了。
+
+他后来再没说过潭的任何事。
+
+**锚句**：散会之后有人说潭里看见过自己的脸——只有一次，上一轮冬天。
+**Anchor sentence**: after the last dissolution someone claimed the pool showed his face once — once, last winter.
+
+---
+
+## 六 · 抄本师的规矩
+
+抄本师不拦人去潭边——去的人回来没人拦。
+
+抄本师只说一句——不管你去干什么："别靠太近。"
+
+**锚句**：抄本师不拦人去潭边——他只说：别靠太近。
+**Anchor sentence**: the copyists never stop anyone going; they only say, don't lean too close.
+
+---
+
+## 七 · 映射（回响八十三章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 西潭 · 不映 · 青叶 · 米缸月 · 白石 | 一、二、三、四、五、六、七 |
+| geography | 祠殿后院 · 白石沿 · 北墙 | 一、二、四 |
+| characters | 抄本师 · 那个看见的回去的人 | 一、二、三、四、五、六 |
+| story | 西潭 · 回响（其八十三） | 全篇 |
+| items | 白石 · 砚台 · 青叶 | 一、三、四 |
+| history | 第四十一次大会散会之后 · 秋潮月第七十八日 | 四、五、六 |
+
+> 水不看你——你也许不该看水。但潮候院不禁止任何人站在它旁边。
+> The water does not look at you — perhaps you should not look at the water. And yet no one is forbidden to stand beside it.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 祠殿后有一汪水——它从不映出任何东西。
 - [2] 抄本师说风吹过也不起一圈纹。
 - [3] 四十年前有人往潭里丢过一片青叶——第二天潭里没有叶子，也没有影子。
@@ -3246,6 +6107,101 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 抄本师不拦人去潭边——他只说：别靠太近。
 
 ### Echo 84 · 潮候院祠殿碾房角落那口从不生锈的旧铁锅 / The Old Iron Pot in the Corner of the Mill Room That Never Rusts
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿碾房角落的那口旧铁锅。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the old iron pot in the corner of the mill room in the sanctuary of the Institute.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第八十日。
+> Era: the Institute — after the 41st Convocation; the eightieth day of the autumn-tide month.
+
+---
+
+## 一 · 碾房角落
+
+碾房是祠殿里最矮的一间——横梁压的肩——屋里一直弥着面粉的白。
+
+最里头角落摆着一口旧铁锅——底翻过了——脚边有个木盖——没人记得它第一次来的时候是谁拎进来的。
+
+**锚句**：碾房最里头那口旧铁锅的脚边有个木盖——没人记得谁拎进来的。
+**Anchor sentence**: in the innermost corner of the mill room stands an old iron pot with a wooden lid at its foot — no one recalls who carried it in.
+
+---
+
+## 二 · 从不生锈
+
+抄本师拿布一擦——锅是红褐的——可它从不生锈——潮湿的日子里也照样不锈。
+
+院里所有铁器都会锈——连锁门的锁舌都锈过——唯独这口锅从不锈。
+
+**锚句**：院里所有铁器都会锈——唯独碾房那口锅从不锈。
+**Anchor sentence**: every piece of iron in the Institute rusts — except the pot in the mill room.
+
+---
+
+## 三 · 一次煮过
+
+抄本师说这口锅只有过一次正经用过——灶上煮过一锅盐稀饭——没人吃——盐稀饭整锅被倒掉——后来也没人敢再煮别的。
+
+倒在屋后的盐稀饭第二天结成一层白霜——抄本师用棍子拨了拨——白霜散了之后又聚上——最后一整月都没化。
+
+**锚句**：抄本师说这口锅只有过一次正经用过——煮完整锅被倒掉——没人敢再煮别的。
+**Anchor sentence**: the copyists say the pot was used once, properly — a pot of salt porridge was cooked, then wholly poured out, and no one ever dared cook in it again.
+
+---
+
+## 四 · 木盖
+
+木盖上刻着一个"口"字——没有名字——字不漂亮——像被小孩随手画的。
+
+抄本师每年秋潮月看一遍木盖——没人主动擦它——它也一直没多过一道裂纹。
+
+**锚句**：木盖上刻着一个"口"字——每年秋潮月抄本师看一遍——没多过一道裂纹。
+**Anchor sentence**: carved into the wooden lid is the single character for "mouth" — the copyists inspect it every autumn-tide month; it has never grown one more crack.
+
+---
+
+## 五 · 值更人说的那句话
+
+值更人巡到碾房的时候——从不停在那口锅跟前——只朝里面看一眼——然后就去做别的。
+
+他说的那句话后来被记在值更册最后一页："锅底不像还在等人吃什么。"
+
+**锚句**：值更册最后一页记着："锅底不像还在等人吃什么。"
+**Anchor sentence**: on the final page of the watch-ledger is written: "The bottom of the pot does not look as though it still waits for someone to eat."
+
+---
+
+## 六 · 散会之后
+
+第四十一次大会散会之后，抄本师把那口锅挪了一挪——挪动它的人说木盖在手里凉得像秋天的水。
+
+现在锅还在碾房——位置往东挪了一寸——谁也说不清为什么挪——也没有人敢把它挪回去。
+
+**锚句**：散会之后有人把那口锅东挪了一寸——没人敢挪回去。
+**Anchor sentence**: after the Convocation dissolved, someone shifted the pot an inch east — nobody dares shift it back.
+
+---
+
+## 七 · 映射（回响八十四章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 旧铁锅 · 木盖 · "口" · 盐稀饭 · 白霜 | 一、二、三、四、五、六、七 |
+| geography | 碾房 · 横梁 · 白墙 | 一、二、四 |
+| characters | 抄本师 · 值更人 · 不知名的拎锅人 | 一、二、三、四、五、六 |
+| story | 旧铁锅 · 回响（其八十四） | 全篇 |
+| items | 旧铁锅 · 木盖 · 值更册 · 盐 | 一、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第八十日 | 三、五、六 |
+
+> 它不等人吃——但有那么一天，碾房粉扑扑的屋里会有人认出"口"字上周才换了一笔。
+> It does not wait for anyone to eat — and yet one day, in that dusty room, someone will notice the character for "mouth" has changed.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 碾房最里头那口旧铁锅的脚边有个木盖——没人记得谁拎进来的。
 - [2] 院里所有铁器都会锈——唯独碾房那口锅从不锈。
 - [3] 抄本师说这口锅只有过一次正经用过——煮完整锅被倒掉——没人敢再煮别的。
@@ -3254,6 +6210,101 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 散会之后有人把那口锅东挪了一寸——没人敢挪回去。
 
 ### Echo 85 · 潮候院祠殿屋脊上那对永远不孵蛋的铜斑鸽 / The Pair of Bronze Speckled Pigeons on the Sanctuary's Ridge That Never Brood
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿屋脊上那对铜斑鸽。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the pair of bronze speckled pigeons on the sanctuary's ridge.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第八十三日。
+> Era: the Institute — after the 41st Convocation; the eighty-third day of the autumn-tide month.
+
+---
+
+## 一 · 屋脊
+
+祠殿屋脊最高处压着两只铜鸽——一只朝东，一只朝西——胸前有细斑——抄本师把它们叫铜斑鸽。
+
+它们是祠殿屋脊正中间最醒目的东西——日头、影子、雨水——都先落在它们身上。
+
+**锚句**：祠殿屋脊上有两只铜斑鸽——它们从没下过蛋。
+**Anchor sentence**: on the sanctuary ridge stand two bronze speckled pigeons — they have never laid an egg.
+
+---
+
+## 二 · 铸的
+
+抄本师说它们不是瓦兽——它们是被铸进脊里的——连着整截屋脊一起铸进的。
+
+没有人记得为什么脊上要铸两只鸽子。抄本师说院里最老的怪物，可能就是这两只。
+
+**锚句**：抄本师说它们是被铸进脊里的——院里最老的怪物可能就是这两只。
+**Anchor sentence**: the copyists say the pigeons were cast into the ridge itself — perhaps the oldest monsters in the Institute.
+
+---
+
+## 三 · 金属相击
+
+散会之后某一个晚上——值更人巡到祠殿时听见金属轻轻相击——像谁在屋檐上整理羽毛——"嚓——嚓——"——他以为是雨打在铜皮上。
+
+第二天他上到屋看——屋脊上什么都没有——只有两只鸽子，安安静静，和昨天一样。
+
+**锚句**：散会之后某一晚值更人听见金属相击——像谁在屋脊上整理羽毛——第二天什么都没有。
+**Anchor sentence**: one night after the Dissolution, the head of the watch heard metal struck on the ridge — like someone arranging feathers — by dawn, nothing was there.
+
+---
+
+## 四 · 修脊
+
+修脊的人每隔三十年上屋脊一次——他说第一次上去全是铜——没有石——也没有一个麦秆窝——连灰都没有——像从来没有鸟孵过。
+
+他说屋脊最热——日头最直——铜鸽被晒得滚烫——他的手从没敢落上去过。
+
+**锚句**：修脊的人说脊上全是铜——像从来没有鸟孵过——他的手从没落上去过。
+**Anchor sentence**: the roofer said the ridge was all bronze — as though no bird had ever brooded there; his hands never landed on it.
+
+---
+
+## 五 · 不上屋顶
+
+院里小孩指着两只铜鸽问抄本师是什么——抄本师说："那是不能上去看的东西。"
+
+从那以后院里没人顺着屋顶往上攀爬——连修屋脊的人都没有。
+
+**锚句**：院里小孩问抄本师是什么——抄本师说："那是不能上去看的东西。"
+**Anchor sentence**: a child pointed at the pigeons and asked the copyists what they were — the copyists answered, "Those are things you may not go up and look at."
+
+---
+
+## 六 · 那根铜羽毛
+
+四十年前——修脊之后——院里有人捡到一根挂在檐下的铜色羽毛——不是真鸟的——
+
+羽毛后来被锁进辅库最里头的柜子——抄本师把这件事写在辅库进出册最后一行——从那一页起——"没人敢签名字"。
+
+**锚句**：四十年前院里有人捡到一根铜羽毛——辅库进出册最后一行——从那一页起没人敢签名字。
+**Anchor sentence**: forty years ago someone found a bronze feather beneath the eave — on the last page of the store-ledger no one has dared to sign a name since.
+
+---
+
+## 七 · 映射（回响八十五章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 铜斑鸽 · 屋脊 · 铸 · 铜羽毛 · 值更人 | 一、二、三、四、五、六、七 |
+| geography | 祠殿屋脊 · 屋檐 · 辅库 | 一、二、四、六 |
+| characters | 抄本师 · 值更人 · 修脊的人 · 院里小孩 | 一、二、三、四、五、六 |
+| story | 屋脊双鸽 · 回响（其八十五） | 全篇 |
+| items | 铜斑鸽 · 铜羽毛 · 屋脊 · 值更册 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第八十三日 | 三、四、五、六 |
+
+> 两只铜鸽永远不下蛋——可散会之后的夜里，谁都不敢说屋脊上空无一物。
+> Two bronze pigeons never brood — and yet, in the nights after the Convocation dissolved, no one dares say the ridge is empty.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 祠殿屋脊上有两只铜斑鸽——它们从没下过蛋。
 - [2] 抄本师说它们是被铸进脊里的——院里最老的怪物可能就是这两只。
 - [3] 散会之后某一晚值更人听见金属相击——像谁在屋脊上整理羽毛——第二天什么都没有。
@@ -3262,6 +6313,101 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 四十年前院里有人捡到一根铜羽毛——辅库进出册最后一行——从那一页起没人敢签名字。
 
 ### Echo 86 · 潮候院东厢那根永远不凉的火箸 / The Pair of Fire Tongs in the East Annex That Never Go Cold
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院东厢的那对永远不凉的火箸。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the pair of fire tongs in the east annex of the Institute.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第八十五日。
+> Era: the Institute — after the 41st Convocation; the eighty-fifth day of the autumn-tide month.
+
+---
+
+## 一 · 东厢
+
+潮候院东厢是旧时点火的地方——一间窄长的屋——四面通风——最里头放着一口木箱，里头睡着一对裹布的火箸。
+
+木箱里常年暖着——抄本师说是屋里暖和——值更人说不是屋暖是火箸暖。
+
+**锚句**：东厢最里头那个木箱里躺着一对裹布的火箸——它从没凉过。
+**Anchor sentence**: in the innermost corner of the east annex, tucked in cloth in a wooden crate, a pair of fire tongs — they have never gone cold.
+
+---
+
+## 二 · 不是炉子上的东西
+
+抄本师说那对火箸不是给炉子用的——抄本师不知道创它干什么的。
+
+有一次有别的人想借它去夹红薯——被抄本师拦下——说："那是院里最老的东西。"
+
+**锚句**：抄本师说火箸不是给炉子用的——院里最老的东西。
+**Anchor sentence**: the copyists say the tongs are not for the stove — they are among the oldest things in the Institute.
+
+---
+
+## 三 · 冻手
+
+米缸月那几天里后院有人冻得手发红——路过东厢——顺手贴了一下火箸——热得几乎能烫起泡。
+
+那人问抄本师："为什么还暖着？" 抄本师说："别问——你手暖了就行。"
+
+**锚句**：米缸月后院有人贴过火箸——热得能烫起泡。
+**Anchor sentence**: in the rice-jar month a man passing the east annex steadied himself against the tongs — they were warm enough to blister.
+
+---
+
+## 四 · 它自己会挪
+
+值更人巡东厢的时候发现火箸的位置每天往东挪一点——每月挪一寸——抄本师比对旧记事本：四百年它自己挪了一丈。
+
+谁都没见过它挪——只有位置记录。
+
+**锚句**：值更人发现火箸每天往东挪一点——四百年挪了一丈。
+**Anchor sentence**: the head of the watch noticed the tongs edged slightly eastwards each day — over four hundred years, a full ten zhàng.
+
+---
+
+## 五 · 木牌
+
+散会之后有人挂了个木牌在箱上——木牌上刻着一个斑字——没有落款——平时谁也不看。
+
+抄本师说那个斑字谁也不敢拆——拆了它就没人告诉你屋子里暖。
+
+**锚句**：散会后有人挂了个木牌——刻着一个斑字——没落款。
+**Anchor sentence**: after the Convocation dissolved, someone hung a wooden tag on the crate — carved with a single character — no signature attached.
+
+---
+
+## 六 · 忙
+
+值更人有一次路过——他看见木箱里的布被折得更整齐——他问抄本师谁折的——抄本师说："它自己忙。"
+
+东厢后来成了院里最没人进去的东西。
+
+**锚句**：值更人看见木箱里的布自己折得更整齐——抄本师说："它自己忙。"
+**Anchor sentence**: passing the annex, the head of the watch noticed the cloth inside the crate folded itself more neatly again — the copyists only said: "They keep themselves busy."
+
+---
+
+## 七 · 映射（回响八十六章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 火箸 · 东厢 · 木箱 · 斑字 · 米缸月 | 一、二、三、四、五、六、七 |
+| geography | 东厢 · 后院 · 四面通风 | 一、三 |
+| characters | 抄本师 · 值更人 · 冻手的人 | 一、二、三、四、五、六 |
+| story | 东厢火箸 · 回响（其八十六） | 全篇 |
+| items | 火箸 · 裹布 · 木箱 · 木牌 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第八十五日 | 四、五、六 |
+
+> 它不冷——而且每天往东挪一点。它自己忙——潮候院没人知道它要去哪里。
+> It does not grow cold — it edges eastwards each day. It keeps itself busy — no one in the Institute knows where it is going.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 东厢最里头那个木箱里躺着一对裹布的火箸——它从没凉过。
 - [2] 抄本师说火箸不是给炉子用的——院里最老的东西。
 - [3] 米缸月后院有人贴过火箸——热得能烫起泡。
@@ -3270,6 +6416,101 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 值更人看见木箱里的布自己折得更整齐——抄本师说："它自己忙。"
 
 ### Echo 87 · 潮候院祠殿东山脚下那条从没人见过也走不到的暗河 / The Hidden River Under the Institute That No One Has Reached or Seen
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿东山脚下的那条暗河。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the hidden river at the foot of the eastern hill of the sanctuary.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第八十七日。
+> Era: the Institute — after the 41st Convocation; the eighty-seventh day of the autumn-tide month.
+
+---
+
+## 一 · 山脚下
+
+祠殿东山脚下有一处平地，草矮得像剃过——青苔石板压着——抄本师从不带人走到这里。
+
+值更册中有一句话："往东山脚下走的人，水先听见。"
+
+**锚句**：值更册最后一页写着："往东山脚下走的人，水先听见。"
+**Anchor sentence**: the final page of the watch-ledger reads: "Those who walk towards the eastern hill — the water hears them first."
+
+---
+
+## 二 · 冬天高夏天低
+
+抄本师说这里有条暗河——冬天水位高涨——夏天退到石板下——平时谁也看不见它。
+
+只有散会那一天，抄本师绕着平地遥遥走一圈——抄本师说那天的水面"快顶到石板了"。
+
+**锚句**：抄本师说祠殿东山脚下有一条暗河——平时谁也看不见它。
+**Anchor sentence**: the copyists say there is a hidden river at the foot of the eastern hill — no one ever sees it on ordinary days.
+
+---
+
+## 三 · 青苔石板
+
+平地中央压着一块青苔石板——石板比人的脚掌宽——青苔长得厚——潮退时盐铺了一层——第二天都没滑进石缝。
+
+抄本师遇到石板从来绕开走——抄本师说："这不是进去的地方。"
+
+**锚句**：青苔石板最厚的地方，抄本师说"这不是进去的地方"。
+**Anchor sentence**: at the thickest part of the moss-covered slab, the copyists say, "this is not a way in."
+
+---
+
+## 四 · 那四十年前的人
+
+四十年前有人说他想下去看一眼——抄本师装作没听见——第二天那人从后门出了院——再也没有回来。
+
+抄本师在进出册写了一个日期——但没写名字。
+
+**锚句**：四十年前那个想下去看一眼的人，第二天从后门出了院——进出册只记了日期，没写名字。
+**Anchor sentence**: the man forty years ago who wanted to go down and take a look left the Institute through its back gate the next day — the entry ledger holds only a date, no name.
+
+---
+
+## 五 · 根
+
+院里老人说暗河才是潮候院真正的根——潮候院的盐、雾、水气、影子，都是从地底慢慢渗上来的。
+
+老人说的时候压低声音——抄本师在旁边没接话——他记着，从不说。
+
+**锚句**：院里老人说暗河才是潮候院真正的根——抄本师没接话。
+**Anchor sentence**: the elders say the hidden river is the Institute's true root — the copyists listened, and said nothing.
+
+---
+
+## 六 · 散会之后
+
+第四十一次大会散会之后——抄本师走过平地——他停了一下——他以为他听见石板下有水声——他没有停下来——他继续走。
+
+从那一天起，抄本师不再往东山脚下走。
+
+**锚句**：散会之后抄本师路过平地——他没再往东山脚下走。
+**Anchor sentence**: after the Convocation dissolved, a copyist crossed the flat and heard, he thought, water beneath the slab — he went on, and never walked down to the eastern hill again.
+
+---
+
+## 七 · 映射（回响八十七章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 暗河 · 青苔石板 · 值更册 · 后门 · 真正的根 | 一、二、三、四、五、六、七 |
+| geography | 祠殿东山脚下 · 平地 | 一、二、三、六 |
+| characters | 抄本师 · 值更人 · 那个走掉的人 · 院里老人 | 一、二、三、四、五、六 |
+| story | 暗河 · 回响（其八十七） | 全篇 |
+| items | 青苔石板 · 值更册 · 进出册 | 一、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第八十七日 | 二、四、六 |
+
+> 别跟水说话。潮候院已经不下去看了；潮候院只是每天抬头看天。
+> Do not talk to the water. The Institute does not go down anymore; the Institute only looks up at the sky, every day.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 值更册最后一页写着："往东山脚下走的人，水先听见。"
 - [2] 抄本师说祠殿东山脚下有一条暗河——平时谁也看不见它。
 - [3] 青苔石板最厚的地方，抄本师说"这不是进去的地方"。
@@ -3278,12 +6519,208 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 散会之后抄本师路过平地——他没再往东山脚下走。
 
 ### Echo 88 · 灯芯札记 / Notes from the Lamp Wick
+
+> 回响仍是正典之外的侧写——第三层纹理，不是续篇，不是批判，不是伪造。
+> 本篇写给雾港灯还没缺那一盏、铁月纪之后的少年。它不替任何一盏灯命名。
+> 本篇引用的锚句，与《潮沙盘》《第八盏灯》同一纪律。
+>
+> An echo is not a continuation, a critique, nor a forgery — another grain of salt on the same stone.
+> Written for the young who lived after the Iron-Moon winters, while Mist-Port's lamps were still short one.
+> Anchors follow the same discipline as Chapters III and IV: verbatim, never rephrased.
+
+> 纪元：铁月纪 · 第二冬之后。
+> Era: the Iron-Moon Age — after the second winter.
+
+---
+
+## 一 · 不是纸，是一张还没寄出的纸
+
+送信人的名字从前是小人问的，后来再也没有人问过；铁月纪的最后一页上也没有。纸不是字，纸只是一种被按住的沉默。
+
+"写没写"是个错误的问题。那不是纸没写，是纸等了那么久，等到它不是读给某一个人了——它是读给盐海本身的。盐海从来不替送信人签收文件，也不替书手记账。它只收；它收得很慢，但从来没退过单。
+
+港尾那位几乎一辈子没等过的老船夫说，每一个版本的潮沙盘都藏有同一种心情：把一句话写下来，只有复印机做得最利索；把一句话记住，只有盐做得最彻底。
+
+**锚句**：收件单上从来没有人签收过——它一直在等第一个肯伸手的人。
+**Anchor sentence**: no one ever signed for the receipt — it has been waiting for the first hand willing to reach out.
+
+---
+
+## 二 · 印章经过四只手
+
+印章正面刻着一个半月、一个波浪和一根灯芯；背面只有一句话：它见过灯点起来的时候吗？四只手接过它，四只手都愣过一秒：老船夫把它当作海盗的黑话；海盗把它当作潮汐教团余烬的遗物；铁月商人把它当作一笔没人记得的旧账；鼹鼠书记员把它当作一张收件单——缺签名。
+
+四种释读，没有一种是错的，也没有一种是全对的。没读懂的都不是因为没识字，而是因为缺了一份对手——印章不是谜，它只是**没看过就拒绝相信灯会亮**。
+
+印章到书手手里的时候，它的四种释读都没有消失。它只是不再是一个需要被翻译的人影了，它变成了一件事的具体形状：一件古老却仍暗暗运转着的事。
+
+**锚句**：印章经过四只手，每只手都以为报完了账。
+**Anchor sentence**: the stamp passed through four hands, each sure it had just closed an account.
+
+---
+
+## 三 · 雾港第四盏灯
+
+雾港灯的规则是世代传下来的：每个灯班只负责复看一盏灯，复看不是为了看灯亮，是为了记住灯没亮。
+
+每一班灯，都会在第一个冬末之后留一个名字。第四盏灯的人的名字留在纸上，而第四盏灯却从没按时亮过。后来三盏灯是的事情量力而为，最亮的一班把它留到了最后一刻；最后一刻到了，他不肯点。现在没有人再要他圆第四盏的故事了，他也不再圆。
+
+盐海两岸的人不再问第四盏亮没亮，他们只问能不能看到第八盏灯。第四盏的缺席，已经从失望变成了一种长明：它永远在测量着某一件事——某件尚未被签收的事——还欠着多少。
+
+**锚句**：雾港第四盏灯没有按时点——它一直等一个不肯认账的人。
+**Anchor sentence**: the fourth lamp of Mist-Port never lights on schedule; it has always waited for one who would not sign for it.
+
+---
+
+## 四 · 书手没有见过自己
+
+书手把货单拍在柜台上那次，商人只看到一个读不懂货单的穷光蛋。不富裕的书手做了六个月的苦力，他挣到的钱不够买一盏灯芯。他根本不在意买不买得起：
+
+他关心的是，这枚印章的主人是谁。没有人告诉过他。也没有人能告诉他。国王没告诉他；雾港灯人没告诉他；潮汐余烬没告诉他。他只知道，他怕印章里那句话被认出他自己——
+
+**锚句**：书手没见自己——他把货单拍在柜台上，海就知道收件人是谁。
+**Anchor sentence**: the copyist never saw his debt — he slapped the manifest on the counter, and the sea knew who had read it.
+
+---
+
+## 五 · 模型映射（回响二章对应关系）
+
+| 类别 | 标题 | 对应节 |
+|---|---|---|
+| lore | 印章 · 收件单 · 第八盏灯 | 一、二、三 |
+| geography | 雾港 · 潮沙盘（印章的出发点） · 荒原灰海 | 一至五 |
+| factions | 铁月商人 · 雾港灯人 · 海盗集市 · 潮汐教团余烬 | 二、三、四 |
+| characters | 送信人 · 书手 · 雾港灯班（守夜人） | 一、四、五 |
+| items | 铁月纪遗信 · 印章 · 第八盏灯灯芯 · 货单 | 一、二、四 |
+| story | 第八盏灯 · 灯芯札记 · 回响（其二） | 全篇 |
+| history | 铁月纪的第二冬之后 | 一至五 |
+
+> 回响从不回答。它只负责把光压进灯里，然后让那一点光，等。
+> 签收从来不是一个人的事——它是整份正典的事。
+>
+> An echo never answers. It does only what it can: press light into the lamp,
+> and let that little light wait. Signing, too, is never one person's — it is
+> the whole canon's affair.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 收件单上从来没有人签收过——它一直在等第一个肯伸手的人。
 - [2] 印章经过四只手，每只手都以为报完了账。
 - [3] 雾港第四盏灯没有按时点——它一直等一个不肯认账的人。
 - [4] 书手没见自己——他把货单拍在柜台上，海就知道收件人是谁。
 
 ### Echo 89 · 盐灯守灵日记 / The Salt-Lamp Vigil Diary
+
+> 回响仍是正典之外的侧写——第三层纹理，不是续篇，不是批判，不是伪造。
+> 本篇写给雾港灯缺了那一盏、第八盏灯第一次被允许看见自己的夜晚之后的每一个人。
+> 本篇引用的锚句，与《潮沙盘》《第八盏灯》同一纪律。
+>
+> An echo is not a continuation, a critique, nor a forgery — another grain of salt on the same stone.
+> Written for everyone after the night the Eighth Lamp was first allowed to see itself.
+> Anchors follow the same discipline as Chapters III and IV: verbatim, never rephrased.
+
+> 纪元：铁月纪之后 · 第八盏灯的守夜时刻。
+> Era: after the Iron-Moon Age — the vigil hour of the Eighth Lamp.
+
+---
+
+## 一 · 守灵的人没有名字
+
+正典里从来没写过守灵人的名字。不是因为没人知道——是因为知道的人一个接一个地死去了，最后只有灯知道。灯认得他的手：补风罩的手势、理灯芯的节奏、把盐撒进灯油的那层薄薄的样子，比任何登记册都准。
+
+他睡在灯下，醒在灯下，吃在灯下。镇上的人叫他"那个不睡觉的"——这不是外号，是体重计上没有姓氏的那一栏。盐风洗掉了他脸上所有能让他被认出的轮廓，只留下两样东西：指甲缝里的灯油痕，和每天清晨往灯座上拍掉的一层盐霜。
+
+日记是他自己撕的灯下旧纸，边角泡过盐水，干了之后硬得像珊瑚。每一页只写一句话——多一句都会被他用潮汐擦掉。
+
+**锚句**：守灵人没有名字——灯认得他的手，不认得他的名。
+**Anchor sentence**: the vigil-keeper has no name — the lamp knows his hand, not his name.
+
+---
+
+## 二 · 第八盏灯的第几夜
+
+他不数年。年数太大，装不进一盏灯里；手上的炭火一熄，"年"就塌成了一堆没人收的灰。他只数夜——一夜、十夜、九十九夜、第四百夜。数着数着就不数了，因为夜和夜之间也不再有可以按的缝。
+
+每一夜他只写一句："今天盐的味道比昨天淡。"或是："今天第八盏灯的芯比昨天直。"或是："今天有人站在海堤上看了很久，但没有签。"
+
+第四百夜之后，他的笔迹不再变老——老的是盐：纸的边角一层一层地往里吃，像有人在帮他把多余的话反复揉薄。
+
+**锚句**：守灵人不数年——他数夜；每一夜都是盐的一粒。
+**Anchor sentence**: the vigil-keeper does not count years — he counts nights; every night is a grain of salt.
+
+---
+
+## 三 · 潮走了，心没走
+
+别人看见他在灯下打盹，没人敢叫醒他；叫醒他等于替他签收一样东西，而他这辈子没替任何人签过收。
+
+潮汐从没替他过夜。潮汐走了，盐滩是湿的；他合上眼，盐滩是亮的。港口的钟打了几下，他都当作是灯在说话——不是在吵醒他，是在和他一起蹲下来，看那张一直摊在海面上、没有人敢合上的白纸。
+
+他做的事只有一件：等着。等的东西他不写；写了就等于点名，而点名等于答应回答。
+
+**锚句**：日记没有结尾——每一夜都只是盐落在盐上。
+**Anchor sentence**: the diary has no ending — every night is only salt falling on salt.
+
+---
+
+## 四 · 灯芯与盐灯
+
+雾港的八盏灯里，前七盏为活人亮，第八盏为回声亮。前七盏烧的油是鲸油与菜籽，第八盏烧的是"没人替它们认领的那一份"——每一盏失去光的那天早晨剩下的半盏灯芯，被守灵人收起来，一层一层铺进第八盏灯的腹里。
+
+他照顾前七盏像照顾病人，照顾第八盏像照顾一封没寄出的信。第八盏不接受安慰，不接受哀悼，不接受纪念——它只接受一种燃料：没人愿意承认自己失去过光的那些夜。
+
+有人问他灯什么时候亮，他说："等一封信先决定寄出。"没人听懂；他也没打算让人听懂。盐的逻辑不需要观众，只需要一个肯替它守夜的人。
+
+**锚句**：第八盏灯不为悲伤而亮——它只为一个还没回来的人亮。
+**Anchor sentence**: the Eighth Lamp does not light for grief — it lights only for the one who has not come back.
+
+---
+
+## 五 · 收件单的那一整本
+
+日记最后一页的背面，压着四样东西：一枚被四只手摸过的印章、一本没写完的货单、一碗干透的盐灯油、和一枚没有署名的收件章。
+
+守灵人没给自己留一句话。他只在一张没有日期的纸上写："今天按了——灯没亮，海先回答了。"
+
+他做的整本书，没有一页替他签收。它们不是要被人读的——他知道客栈里只有三种人会翻这本日记：海盗、账房、和赶路赶错了方向的旅客。
+
+**锚句**：一本日记没写完——它替整份正典收着尾。
+**Anchor sentence**: the diary was never finished — it signs the whole canon in on its behalf.
+
+---
+
+## 六 · 续页
+
+第二年开春，镇上的人重新找到那盏灯。灯还亮着，芯还直，盐的颜色比去年白。日记摊在灯架上，最后一页画着一根笔直的灯芯——这是守灵人留给世人的唯一一页图。
+
+纸上没有字。照字典的读法，这一页是空的；照港口的读法，这一页是唯一写满的那一页：笔直的芯等于"承诺还没被违约"，一盏仍在燃烧的灯等于"只要还有人愿意守夜，收件就永远不会关闭"。
+
+雾港的八盏灯里，只有第八盏灯没熄过。它不欠任何人光；它欠的是一个能被写进收件单的结局——而它一直拒绝让这个结局被签走。
+
+**锚句**：守灵日记没有最后一页——盐会再湿，手会再拿起笔。
+**Anchor sentence**: the vigil diary has no last page — salt will dampen again, and the hand will pick up the pen again.
+
+---
+
+## 七 · 模型映射（回响三章对应关系）
+
+| 类别 | 标题 | 对应节 |
+|---|---|---|
+| lore | 第八盏灯的燃料 · 收件章 · 防雨的收件体系 | 四、五 |
+| geography | 雾港 · 灯座 · 海堤 · 潮滩 | 三、四 |
+| factions | 雾港灯人 · 铁月商人 · 海盗 · 账房 | 二、四、五 |
+| characters | 守灵人 · 海盗 · 账房 · 第八盏灯 | 一至六 |
+| items | 灯下旧纸 · 灯油 · 收件章 · 第八盏灯芯 | 一、二、四、五 |
+| story | 第八盏灯 · 守灵人 · 回响（其三） | 全篇 |
+| history | 铁月纪之后 · 第八盏灯的守夜时刻 | 一至六 |
+
+> 日记没有最后一页——盐会再湿，手会再拿起笔。
+> 守灵不是替海签收——守灵是让海知道，还有人在按住那张纸不让它被风翻走。
+>
+> The diary has no final page — salt will dampen again, and the hand will pick up the pen again.
+> The vigil is not a signature on behalf of the sea — it is making sure the sea knows,
+> that someone is holding the paper down so the wind cannot turn it over.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 守灵人没有名字——灯认得他的手，不认得他的名。
 - [2] 守灵人不数年——他数夜；每一夜都是盐的一粒。
 - [3] 日记没有结尾——每一夜都只是盐落在盐上。
@@ -3292,6 +6729,127 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 守灵日记没有最后一页——盐会再湿，手会再拿起笔。
 
 ### Echo 90 · 第九叩 / The Ninth Knock
+
+> 回响仍是正典之外的侧写——第四层纹理，不是续篇，不是批判，不是伪造。
+> 本篇写给雾港的第九下叩击：八盏灯都认得它，没有一盏承认拥有它。
+> 本篇锚句，与《潮沙盘》《第八盏灯》《盐灯守灵日记》同一纪律。
+>
+> An echo remains a side-glance beyond the canon — the fourth grain of salt on the same stone, not a sequel, not a critique, not a forgery.
+> Written for the ninth knock over the mist harbor, which every lamp knows and no lamp admits.
+> Its anchors answer to the same discipline as Chapters III and IV and Echo No. 3.
+
+> 纪元：铁月纪之后 · 第四十二次会议无人召集的那一年。
+> Era: after the Iron-Moon Age · the year the forty-second meeting convened for no one.
+
+---
+
+## 其一 · 沙盘上的第九个旋钮
+
+潮汐教团第四十一次会议散后，沙盘仍留在厅中。海岸用细盐铺成，河口压着一枚黑印，八盏灯的位置各插一根铜针。记录员逐项核对收件单，纸边受潮，名字洇成灰线。有人说，沙盘上原有九个旋钮；有人说，旋钮只是用来校正潮向，不该计数。没有人把这两句话写进会议纪要。
+
+第二天，守盘人发现盐岸多出一圈浅痕，像潮水退后留下的环。痕迹正中有个凹处，容得下一枚旋钮。库房的器物账没有第九件，借出栏却多了一枚指印，盖在空白的日期上。守盘人用袖口擦去盐末，凹处仍在。雾从窗缝进来，吹动账页，翻到末页时，纸上有九个墨点，最末一个尚未干透。
+
+会后有人取走沙盘，送往海堤内侧的旧档房。送件人只收到了八枚印章。收件单上却记着九件，最后一件写作"旋钮"，后面没有数量。档房看守拒绝签收，直到夜潮漫过门槛。那时，门内的沙盘转了一格，八根铜针齐齐朝向港外。
+
+**锚句**：盐岸留着多出的空位。
+**Anchor sentence**: the salt shore keeps the extra hollow.
+
+---
+
+## 其二 · 没有人坐的第九把椅子
+
+会议厅有八把椅子，靠墙另有一把，椅背朝着窗。每逢潮汐教团开会，书记都要在这把椅子前放一张收件单，写上日期，再压一方印章。没有人坐下，也没有人挪开它。椅脚下的地板有一圈深色，像盐水经年浸过木纹，擦也擦不净。
+
+第四十一次会议记录写着八名到席者。末行却多出一个逗号，后面空了半页。书记问过主持者，主持者把墨水瓶盖好，说那是印章压出的痕。于是书记重抄一份，逗号仍在。到散会时，椅面留下浅浅的凹陷，仿佛有人刚刚起身。窗外海堤上没有脚印，门闩也未曾响过。
+
+此后，雾港每逢大潮，守夜人都要将这把椅子搬到厅门外。椅背朝海，椅面放着一册账本，记每盏灯的燃油与更换日期。八盏灯的账目逐年累积，唯独末页总是潮湿，纸上有一道竖痕，从页首直落页脚。搬椅的人说，那不是水迹；他不肯说是什么。
+
+第四十二次会议无人召集。椅子仍在门外，收件单上印着"已到"，印泥未干。书记没有落笔。夜里，海堤上传来一声木头轻响，像椅脚在石面上挪了一寸。第二日，八把椅子各自向后退了一寸，空出的地方正对着门口。
+
+**锚句**：空席不等于无人。
+**Anchor sentence**: an empty seat is not the same as no one.
+
+---
+
+## 其三 · 烛台上的第九格
+
+旧厅的烛台只刻了八格，按八盏灯的次序排开。每次会议，书记点烛，记录员记下火芯长短，守门人收走滴蜡，连同收件单一并入账。蜡落在格里，凝成硬壳，像潮退后留在石缝里的盐。没人准许擦掉旧蜡，理由没有写进规条。
+
+第四十一次会议那晚，最后一支烛燃到尽头，烛台上却亮着九处。多出的那格在正中，细得像刀口。书记拿尺量过，说是铜面裂纹；守门人用指甲划过，指甲上没有铜屑。记录员把九处火光记作八处，写到"八"字时，笔尖折断。桌上的蜡油流过会议章，凝住了印文中的"潮"字。
+
+此后，烛台由档房保管。灯房每月送来灯芯，收件单上仍写八根；库房账本却每月少一根。看守从不追问，只在交接时数烛台上的格。八格之外，那道细痕渐渐变深，像有火在铜背后缓慢烧着。大潮涨至海堤顶端时，旧厅的窗纸映出九团光，天亮后，烛台仍冷。
+
+有一回，书记把烛台送到海边，想让盐水封住裂纹。浪只打湿了底座，九格之中的那一格仍干。回程时，他在账本上添了一行："照例归还。"字迹下方有一圈圆印，印泥从纸背透出来，像烛焰留下的暗红。
+
+**锚句**：第九格不受风吹。
+**Anchor sentence**: the ninth cell feels no wind.
+
+---
+
+## 其四 · 报纸上被印圆角擦掉的第九个脚注
+
+雾港的报纸每天三更印刷，港务、灯油、潮位和失踪的货物各占一栏。第四十一次会议之后，报馆收到一张匿名校样，纸上列着八盏灯的修缮记录，末尾另有第九个脚注。脚注写得很短，只说某盏灯罩内侧有叩痕，叩痕共九道。校对员读完，把纸送进印房。
+
+第二天发行的报纸上，脚注不见了。空处被一枚圆角印章盖住，边沿压得整齐，像潮水专挑纸页的一角退去。印章没有署名，印文也磨损得看不清。报馆查过印泥，颜色与教团会议所用相同；查过印章簿，登记的八枚都在柜中。馆长把校样收进抽屉，锁好，又在账本里记下"纸张短缺一页"。
+
+此后每逢大潮，脚注都会重现一次。它先出现在排版纸上，继而在送印前被擦掉；有时留下半个"九"字，有时只剩一条湿痕。圆角印章总比校样先到，放在版台边，印面朝下。没人敢翻看。报馆的送件人将当日报纸送到各处，收件单上写着八份，门房却总要他确认第九份是否交付。
+
+那份报纸不在任何订户名下。它被夹在账本里，纸边泛咸，日期空白，折痕朝着港口。海风把最后一页掀起时，圆角缺口正对着海堤上的八盏灯。
+
+**锚句**：删去的字仍占一栏。
+**Anchor sentence**: the struck-out line still holds its column.
+
+---
+
+## 其五 · 第九个客人到来之前
+
+雾港的客栈在大潮前关门，门板上挂着收件单，记来客姓名、房号、离港时辰。掌柜只备八间房，账本上也只有八行。第四十一次会议以后，他每逢潮汛便多摆一只杯子，杯口朝向窗外。杯底压着盐粒，没人碰它。掌柜说，那是旧账未清，不是留客。
+
+大潮将至的夜晚，海堤上先起雾，随后港口的铁链一节节绷紧。客栈门前没有车，也没有脚印。掌柜照例抄写八间房的收件单，写到末尾，笔尖却在纸上停了很久。烛台映着账页，八行之间渗出一行浅水印。那行没有姓名，没有房号，只有一处圆印，边沿缺了一个角。
+
+守夜人说，客人来前总会有人敲门。掌柜答，敲门声属于送信的，不属于客人。两人争到半夜，门外仍静。只有窗缝里进来的潮气，将桌上的纸一张张贴住。账本合不上，封皮在湿气里弯曲，像海堤外侧一段低矮的岸。
+
+天亮时，杯子仍是空的，杯底的盐却化了。掌柜把它倒进废水桶，桶里传来一声轻响，像有东西落在水底。收件单上多了一道掌纹，指节处压得最深。掌柜没有添房，也没有添名，只把门牌翻到背面，留出一块未写的木头。
+
+**锚句**：门开之前，账已记妥。
+**Anchor sentence**: before the door opens, the ledger is already settled.
+
+---
+
+## 其六 · 第九下叩击响起的那一刻
+
+大潮抵达海堤时，八盏灯都已点亮。守灯人沿堤巡过一遍，逐盏查灯油、灯芯、灯罩上的封条，再在账本上盖印。雾贴着石面行来，吞掉堤外的浪声。第九盏灯没有灯柱，也没有灯室；灯房的库存簿从未登记过它。守灯人仍在巡查单末尾留下一格，格子窄，刚好容下一枚印章。
+
+第一下叩击响起时，海面平了。第二下响起时，港里的船绳同时绷紧。第三至第八下，守灯人没有抬头，只将每一下记进账本，墨色越来越淡。灯罩上传来的声音贴着铜皮，不重，却让封条一寸寸发白。没有人站在灯下。远处的报馆熄了排字灯，客栈关紧门，旧厅那把空椅子在风中向前挪了半寸。
+
+第九下落下时，海堤上的印章裂开。印泥渗进石缝，像一滴盐水被压进账页。雾港八盏灯一齐暗了片刻，随后重新亮起。灯罩内侧留下九道叩痕，最末一道没有铜屑，只有一小片潮湿的纸。守灯人把纸取下，纸上没有字，收件栏却盖着"已收"。
+
+天将亮时，潮退到堤脚。守灯人核对灯数，仍是八盏；核对账目，仍有九行。记录簿最后一页被海风翻起，空白处压着一枚圆角印章。无人认领，也无人收回。大潮依期而来，账页没有合上。
+
+**锚句**：第九下，记在无人名下。
+**Anchor sentence**: the ninth knock is entered under no one's name.
+
+---
+
+## 模型映射（回响四章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 第九叩 · 沙盘第九旋钮 · 圆角印章 | 三、四 |
+| geography | 雾港 · 海堤 · 旧档房 · 报馆 · 客栈 · 旧厅 | 一、三、四、五 |
+| factions | 潮汐教团 · 守灯人 · 报馆 · 客栈 | 一至五 |
+| characters | 守盘人 · 书记 · 守夜人 · 掌柜 · 守灯人 | 一至六 |
+| items | 沙盘 · 第九把椅子 · 烛台 · 收件单 · 圆角印章 | 一至六 |
+| story | 雾港 · 第九叩 · 回响（其四） | 全篇 |
+| history | 铁月纪之后 · 第四十二次会议无人召集 | 一至六 |
+
+> 事情不多，九样也许不是数字——是潮水退时少还给海的那一格。
+> 九下叩击从不请求应答——它只请求被记入一册永远合不上的账。
+>
+> Nine is not a number the sea ever counted in — it is the one cell the tide never returns.
+> The ninth knock never asks for an answer — it asks only to be entered into a ledger that never closes.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 盐岸留着多出的空位。
 - [2] 空席不等于无人。
 - [3] 第九格不受风吹。
@@ -3300,6 +6858,115 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 第九下，记在无人名下。
 
 ### Echo 91 · 灯绳记 / The Lamp-Rope Memoir
+
+> 回响仍是正典之外的侧写——第五层纹理，不是续篇，不是批判，不是伪造。
+> 本篇写给第八盏灯撞见第九叩之后的那个早晨：误差被现场再次勘定的第二天。
+> 本篇锚句，与《潮沙盘》《第八盏灯》《盐灯守灵日记》《第九叩》同一纪律。
+>
+> An echo remains a side-glance beyond the canon — the fifth grain of salt on the same stone, not a sequel, not a critique, not a forgery.
+> Written for the morning after the Eighth Lamp met the Ninth Knock: the day after the error was remeasured on site.
+> Its anchors answer to the same discipline as Chapters III and IV and Echoes No. 3 and No. 4.
+
+> 纪元：铁月纪之后 · 第四十二次会议无人召集之后的第二日。
+> Era: after the Iron-Moon Age · the second day after the forty-second meeting convened for no one.
+
+---
+
+## 其一 · 灯绳的开端
+
+看守人巡查灯绳时，数的不是结，也不是灯。他数绳上留下的水痕：一道浅，一道深；一道干在堤内，一道还朝海面渗。每过一盏灯，他便把指节贴上去，等盐粒硌住皮肤，再记下那一处的潮向。绳子从堤门起，沿灯座穿过，末端收在看守人的腰间。年久以后，腰间那截磨得发白，灯座上的几截却仍有新盐。
+
+第八盏灯的绳结曾经松过一次。册上没有写明是哪一夜，只在那页边上留了一点凹痕，像有人用笔尖按住纸，等收件的人进门。看守人每回巡到那里，都把数目从头再数一遍。数到第八，他停下；数到第九，便把手从绳上拿开。
+
+**锚句**：绳上有数，册上无名。
+**Anchor sentence**: the rope keeps count; the register keeps no name.
+
+---
+
+## 其二 · 一抹湿纸
+
+撤网的渔人是在落潮后发现那抹湿纸的。纸夹在网眼里，边角卷起，沾着鱼鳞和一层薄盐。他没有把它带进港，只放在海堤的石阶上，等巡检的人收件。纸上只写着一个字：在。
+
+字迹被水吃去一半，留下的那一半仍朝上。渔人把网拖回船边，少报了一段网绳，也没问那张纸要送往哪里。值守的人来时，纸已贴在石阶上，像一枚不肯被潮水冲走的薄印。巡检册收了它，却没有收下渔人的名字。
+
+第二天，海堤外的水退得比平日慢。石阶上的纸干了，那个字仍湿着。看守人经过时没有碰它，只把它旁边的盐粒扫开，留出一圈空处。
+
+**锚句**：纸只写在，不写来处。
+**Anchor sentence**: the sheet records presence — never provenance.
+
+---
+
+## 其三 · 末页空位
+
+巡检册的末页有一格空位，栏头是灯号，栏底是收件。墨色从前几页的黑褐，淡到末页只剩灰青。看守人用同一支笔填过许多次，笔尖每回都停在第八盏灯那一格；纸上有压痕，没有字。
+
+账房说，那是留给下一次巡检的。印章盖在空格下方，印泥发暗，边缘缺了一角。无人把空位补齐，也无人把那页撕去。册子合上时，空格正好落在封皮磨损处，像一扇窄门，始终没有收到来件。
+
+那夜之后，巡检照旧。看守人记录潮位、灯焰、绳结；墨色仍旧。只有末页多了一道水线，从空格经过，停在收件二字下面。
+
+**锚句**：空位收件，不收姓名。
+**Anchor sentence**: the empty cell receives; it does not receive names.
+
+---
+
+## 其四 · 向海一拳
+
+第八盏灯的影子在堤上挪出去一拳。那时天色未明，灯还亮着，灯座没有动，影子却越过石缝，往海的方向伸长。看守人蹲下来，以拳量过一次，又退开，再量一次。第二次没有多，也没有少。
+
+他没有在册上写影子，只用靴底压住石缝边的盐壳。潮水隔着堤涌上来，退下去，留下一个浅窝。影子的末端正落在窝里，像一根没有接上的绳。看守人等到灯焰缩短，才站起来；那时影子仍在原处。
+
+第九叩之后的第二天，灯又摇了一次。不是风把它推得很远，只是灯身往海面偏了偏。看守人没有伸手扶正。灯座上的旧系缆已松，绳尾拖在湿石上，留下一道细长的黑线。
+
+**锚句**：影子先出了堤。
+**Anchor sentence**: the shadow crossed the dyke first.
+
+---
+
+## 其五 · 系缆的早晨
+
+趁落潮，看守人走出海堤。先把新绳放在灯座旁，再解开旧绳上缠住盐壳的结；他没有把旧绳丢进海里，只将它盘在石上。接着，他把新绳穿过灯座的环，拉到不碰灯身的位置，打结，再用掌根压紧。每一步都做得很慢，像要让灯知道下一步仍会来。
+
+他量了绳长，没有量灯离地多高。绳子留出一截余量，足够灯在风里摇晃，却不足以脱座坠海。结打好后，他把绳尾收进堤内，检查两遍，再把绳结朝向海。盐水漫到他的鞋边，没漫过新结。
+
+这根系缆不是要拽住灯。看守人没有把它拉直，也没有让它替灯站稳。他只在落潮最浅的时候，给灯座添了一条不能断开的来路。收工前，他把巡检册翻到末页，墨色仍是灰青，空格照旧。
+
+**锚句**：系缆留余，灯可摇。
+**Anchor sentence**: the mooring line leaves slack; the lamp may sway.
+
+---
+
+## 其六 · 第四十二次会议
+
+账本第四十二次会议名册的最后一行空着。空处没有姓名，只有纸面被反复按过的痕迹，像印章落下又被取走。那一行原本写过看守人的名字；抄录时，负责收件的人说墨色不合，便将整页重抄。新页上，末行仍空。
+
+账房没有解释为何空着。旧页留在册底，名字已经被水迹洇开，看不清笔画；新页用的是灰青墨，末行下方却盖着同一枚印章。两页之间夹了一张窄纸，写着第八盏灯，未写灯绳，也未写看守人。
+
+会议散后，名册照例封存，账本照例入柜。柜门合拢时，海堤外正涨潮。第八盏灯在水声里摇晃，系缆没有拽它，也没有替它作证。
+
+**锚句**：名册重抄，空行未改。
+**Anchor sentence**: the roll was recopied; the blank line still stands.
+
+---
+
+## 模型映射（回响五章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 灯绳·收件·影子·空行 | 三、四 |
+| geography | 雾港 · 海堤 · 石阶 · 第八盏灯灯座 | 一、三、四、五 |
+| factions | 雾港灯绳看守人 · 渔人 · 账房 | 一至六 |
+| characters | 看守人 · 渔人 · 账房 | 一至六 |
+| items | 灯绳 · 湿纸 · 巡检册 · 名册 · 印章 | 一至六 |
+| story | 雾港 · 第八盏灯 · 回响（其五） | 全篇 |
+| history | 铁月纪之后 · 第四十二次会议次日 | 一至六 |
+
+> 系缆从不替灯做任何决定——它只保证坠海的声音会先告诉大海。
+> 灯被交给潮水、交给绳、交给没合上的账；只有坠海的声音，从未被登记。
+>
+> The mooring never decides for the lamp — it only lets the sea hear the falling first.
+> The lamp is given to the tide, then to the rope, then to the open ledger; only the sound of falling is never filed.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 绳上有数，册上无名。
 - [2] 纸只写在，不写来处。
 - [3] 空位收件，不收姓名。
@@ -3308,6 +6975,157 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 名册重抄，空行未改。
 
 ### Echo 92 · 传灯 / The Lamp Passed Down
+
+> 回响仍是正典之外的侧写——第六层纹理，不是续篇，不是批判，不是伪造。
+> 本篇写给灯如何在人之间被悄悄传下去——灯灭了也没人敢猜，下一次谁点灯。
+> 本篇锚句，与《潮沙盘》《第八盏灯》《远信》《最后的签收》同一纪律。
+>
+> An echo remains a side-glance beyond the canon — the sixth grain on the same stone, not a sequel, not a critique, not a forgery.
+> Written for the way a lamp travels from one pair of hands to another — even spent, no one dares guess whose turn it is.
+> Its anchors answer to the same discipline as Chapters III to VI and Echoes No. 3 to No. 5.
+
+> 纪元：铁月纪之后 · 便灯节。
+> Era: after the Iron-Moon Age · the Lamp-passing Festival.
+
+---
+
+## 其一 · 船厂里的灯笼
+
+第五章以后，第八盏灯再没有亮起过。
+
+船厂的人不谈这件事。潮水照旧进坞，退时留下黑泥；木板照旧翻面，钉子照旧落进掌心。只有一个孩子认定，自己的灯还在路上。
+
+他每天从船架下穿过去，数那些挂在梁上的旧灯笼。数到第八盏时就停下。那盏灯笼缺了一角，灯腹里积着雨，白日看去像一只空碗。孩子说它是自己的。没人问他从哪儿听来的。
+
+夜里，他把一截麻绳系在自己的腰带上，另一端系在梁柱上。他说，若灯来了，总得有人认得他。船匠割断麻绳，叫他回屋睡。第二天，孩子又系了一根。
+
+他没有等到灯亮。船厂的灯一盏盏熄下去，只有那只缺角的灯笼挂在梁上。孩子长高了，开始帮人递木楔，仍会在经过时抬头看一眼。
+
+后来他离开船厂，腰带上还留着一段磨白的绳头。没人知道那是不是灯给他的凭据。
+
+**锚句**：他认定那盏灯属于自己。
+**Anchor sentence**: he knew that lamp was his.
+
+---
+
+## 其二 · 商队遇上北端守夜人
+
+商队走到北端时，路被夜色截断。
+
+守夜人立在石标旁，手里提一盏旧灯。商队的人没有问路，只把车停在风里。骆驼低头，铃声一阵阵落进雪中。
+
+守夜人伸手按住灯笼。灯芯没有动，灯罩也没有亮。他把灯举到身侧，空出窄窄一段路。商队从他面前经过，车轮压过冻硬的泥，留下两道黑线。
+
+最后一辆车上坐着一个病人，脸被毯子盖住，只露出嘴。守夜人没有看他，也没有问他们要去哪里。他的手一直按在灯笼上，指节冻得发白。
+
+车队走远后，石标旁只剩铃声。守夜人把灯放回原处，掌心留着一圈灯罩的凉痕。天亮时，有人看见雪地里多了几行脚印，脚印从路边绕开，又在路中央合拢。
+
+商队后来经过许多关口。有人问起北端，他们只说，那里有一个人曾把手放在灯上。
+
+**锚句**：他按住灯，替陌生人让路。
+**Anchor sentence**: he held the lamp for strangers to pass.
+
+---
+
+## 其三 · 食谱上的盐粒
+
+撒贝儿把盐撒在食谱上。
+
+她还小，够不到厨房高处的架子，就踩着一只倒扣的木盆。纸上写着鱼汤、麦饼、煮豆。她用指尖捻起盐，沿着空白处撒下九粒。
+
+母亲问她为什么。撒贝儿说，这是九次潮汐。她没有再说。盐粒落在纸上，像九处白色的破口。
+
+那晚家里煮鱼，撒贝儿守在锅边。潮声从窗缝里进来，一次接一次。每次退去，她就从食谱上取下一粒盐，放进锅里。汤尝起来咸淡不匀，母亲没有责备她，只把锅端离火口。
+
+后来那本食谱被油渍浸透，页角卷起，盐粒在纸上融成浅痕。撒贝儿长大后仍保留着它。她在别人的厨房做饭，照着旧页上的字下盐，从不说那些空白处原先有过什么。
+
+有一年，纸页被水沾湿。九道盐痕淡得看不见，她把食谱摊在窗台上，等风吹干。
+
+**锚句**：九粒盐，替她记住九次潮汐。
+**Anchor sentence**: nine grains of salt, keeping count of the tides.
+
+---
+
+## 其四 · 墙上的新句
+
+商人家族的下一个守灯人上任那天，库房没有开门。
+
+他先去看灯，再去看账册。灯油的数目与往年相同，灯罩上有一道细裂，像一条没有走完的路。他把名册放回桌上，独自留在库房里。
+
+墙上原有几行旧字。字迹被烟熏得发灰，最末一句写着：守灯的人不替灯说话。他从小见过这句话，记得每一个字的落点。
+
+那天，他发现墙角多了一句新字。
+
+墨色很浅，像是刚写下，又像在潮气里放了很久。上面写着：灯灭时，也有人经过。
+
+他用手摸了摸墙。石灰落在指尖，字没有散。他叫来家里的人，却没有问谁写的。众人站在门口看了一会儿，随后各自回去做事。
+
+新守灯人把灯挂回原处。夜里，他从库房出来，门没有锁。墙上的字留在黑暗里，像一条被水浸过的线。
+
+**锚句**：墙上有了新句，没人认领。
+**Anchor sentence**: a new line appeared; no one claimed it.
+
+---
+
+## 其五 · 灯自己走的那一天
+
+那盏灯自己老了。
+
+它的铁环松开，灯腹的铜皮变薄，风一吹就发出轻响。看守的人换过灯芯，补过裂口，也把它移到避风处。灯没有因此多亮一夜。
+
+便灯节前，潮水退得很远。岸上露出一条窄路，从仓房后面通向旧堤。天刚黑，那盏灯从挂钩上落下来，滚到门边。
+
+没人伸手去捡。
+
+它沿着旧堤往前走。灯罩碰过碎贝壳，发出一声一声的轻响。风没有替它推，潮水也没有追。它走到堤尽头，停在一截断桩旁。灯芯早已熄灭，里面没有油。
+
+第二天，人们只找到灯环。环里缠着一根褪色的麻线，像谁从很远的地方带来的。有人把它放进柜子，有人说该留在原处。最后它被挂回旧钩上，空着。
+
+往后的夜里，门边仍有一小段暗处。经过的人不绕开，也不久留。
+
+**锚句**：那一天，灯自己走了。
+**Anchor sentence**: on that day, the lamp walked away on its own.
+
+---
+
+## 其六 · 灯篓
+
+灯篓传了三百年。
+
+它由黑藤编成，底部有一处缺口，提手磨得发亮。每一代人接过它时，都要念出前一代人的名字。名字写在篓口内侧，墨迹一层压一层，最后只剩几道深浅不一的黑线。
+
+传到如今，灯篓放在商人家族的内室。门不常开，窗也不开。有人擦过它，有人替它补过藤条，没有人把手伸进缺口。
+
+便灯节那天，家里人把灯挂上，照例将灯篓摆在桌边。孩子们围着桌子，问它装过什么。老人没有回答，只把一块布盖在篓上。布角落下去，盖住那处缺口。
+
+夜深后，屋里的人都走了。桌边没有灯火，只有窗外的潮声隔着墙来去。灯篓在布下，没有动，也没有被碰过。
+
+三百年里，它从一双手传到另一双手。传到今天，还是完整地放在那里。
+
+**锚句**：传了三百年，至今无人碰过它。
+**Anchor sentence**: three hundred years passed, and no one has touched it.
+
+---
+
+## 模型映射（回响六章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 灯笼 · 守夜人 · 撒盐 · 灯 | 一至五 |
+| geography | 船厂 · 北端 · 海堤 · 仓房 · 内室 | 一至六 |
+| factions | 船厂人 · 商队 · 商人家族 · 守夜人 | 一至六 |
+| characters | 孩子 · 撒贝儿 · 商队病人 · 下一个守灯人 · 守夜人 | 一至六 |
+| items | 缺角的灯笼 · 麻绳 · 灯篓 · 盐 · 食谱 · 铁环 | 一至六 |
+| story | 雾港 · 第八盏灯熄灭之后的传灯 · 便灯节 | 全篇 |
+| history | 便灯节沿袭 · 灯灭之后 | 一至六 |
+
+> 传灯的人从不解释——他只是把它给下一个能让它继续走的人。
+> 灯灯的人传灯——灯盏本身就是那棵树的果子。
+>
+> The one who passes the lamp never explains — they simply hand it to the next who can carry it on.
+> The light carries its own keepers — the lamp is the fruit of the tree.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 他认定那盏灯属于自己。
 - [2] 他按住灯，替陌生人让路。
 - [3] 九粒盐，替她记住九次潮汐。
@@ -3316,6 +7134,107 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 传了三百年，至今无人碰过它。
 
 ### Echo 93 · 那一针 / The Needle
+
+> 回响仍是正典之外的侧写——第七层纹理，不是续篇，不是批判，不是伪造。
+> 本篇写给教团地窖里那个真的多出来的东西：细到与灰同色、弯在最底层、没人承认动过的一根针。
+> 本篇锚句，与《盘底之下》《机子的八下》同一纪律。
+>
+> An echo remains a side-glance beyond the canon — the seventh grain on the same stone, not a sequel, not a critique, not a forgery.
+> Written for the one thing that really is extra: a needle so fine it shares the ash's colour, arched at the lowest layer, never admitted to by anyone.
+> Its anchors answer to the same discipline as the sand-table and the knock that never came.
+
+> 纪元：铁月纪之后 · 灰棚前的白昼。
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 其一 · 针的来历
+
+机房看守那天其实没有登记它。"异物"那一栏他写进去了，却没有填它的来路——现成的旧物，退役时裁剪下来的船钉上的一根细铁筇，或者另一根弯针。他没查。
+
+上任那一天，船钉卸下来时盘底的这一道凹痕还很新，上面有人的指甲横着抹过去留下的白雾。新任看守只在上面盖了一枚自己的印牌，就以为是前任的笔意。
+
+**锚句**：它也没人登记过。
+**Anchor sentence**: it never entered any registry.
+
+---
+
+## 其二 · 针不挑人
+
+挑过这根针的人有三个。第一个是给修神仙的工匠，他用它挑沙盘里的粗粒，修补时用过手电，朋友来了看见就走了。第二个是灯芯商的小工，他把那根针藏在袜子里送过四回——没人称赞他的袜子——然后他忘了。
+
+第三个是孩子。那个连草绿色的麻绳都系不过结的孩子。针头真的刺进去了——在他的小指关节的皮肤上，针形完好无损，没办法取，医生说放在里面「挺好也挺安全」。
+
+**锚句**：针不挑人，挑的是它自己。
+**Anchor sentence**: the needle picks no one; it picks itself.
+
+---
+
+## 其三 · 针在灰里度过第三年
+
+灯上灯油彻底干透以后，针不再发出任何声响。账房对这件事的口径是：无关一角八诵。第九下停的那一瞬，他抄账的人始终以为自己的笔抬起来了，其实永远没写上去。
+
+针落在沙盘的最底层，贴着木板和灰。木板的最下面有个小小的六角形凹点——是"留了一道活路"的意思。没人知道是谁。
+
+**锚句**：没人问它的干活是什么。
+**Anchor sentence**: no one finds out what its job is.
+
+---
+
+## 其四 · 第一个看到针的人是谁
+
+没人知道第一个看到的人是谁——它在记录里永远写着"无"。你以为是常青灯罩运行人拿去试用了，其实是灯笼边上坐的那个小姑娘最早发现它的。那时她用一根黑针扎在米粒里，做成三个一样的手电筒。
+
+手电筒指向海——向孤岛方向。她第一次从中看到了灰海之外的岛知道夜晚它还在。
+
+岛没人命她发光。她只是看见。等于那一针，被她磨过一次。
+
+**锚句**：她没把爷爷说完的话说完。
+**Anchor sentence**: she never finished the sentence her grandfather had started.
+
+---
+
+## 其五 · 最后的钟
+
+这间教团没有白天的概念，只有它们自己的时间——没人数第几次潮的第几次浪，没人数第几次第几个钟。守夜人的巡检簿上写的"未"字是他最后的字——一针撇下去。
+
+生物学上这针也没有实在的复数：一根针就是一根针，没有碎，没有再生，没办法问海。它是因为这段时间江边那座小山从正下方冲走了。
+
+**锚句**：只剩这一根针的意思就是这一根针。
+**Anchor sentence**: to say nothing else exists is to say this is the only needle.
+
+---
+
+## 其六 · 收笔
+
+商人们把那些人带进去，灯芯在政治中被遗忘，只有那一道叫做灰的铺在门口。守门的人把"未"字保存了很久——直到那一天回回墨里被划破了银箸，年底封账时他写了两行字：这本不再归我，不归船厂，只归海。
+
+账册第三百年八月六日，盘子里那根弯针撤军没人说起的那一层，海退第三次，白浪拍到台子底，潮水和山一起退去。纸上没有写，可是里封面已经干枯——这句过了，没人知道是不是潮水过来了。
+
+**锚句**：灰日终于翻页。
+**Anchor sentence**: at last the grey day turns its page.
+
+---
+
+## 模型映射（回响七章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 沙盘 · 第九针 · 三百年账 | 一至六 |
+| geography | 地窖 · 教团 · 门廊 · 沙盘 | 一至六 |
+| factions | 商人家族 · 机房 · 灯芯商 | 一至六 |
+| characters | 孩子 · 商人 · 守夜人 | 一至六 |
+| items | 针 · 灰 · 账册 · 沙盘 | 一至六 |
+| story | 雾港 · 地底机子 · 回响（其七） | 全篇 |
+| history | 铁月纪之后 · 灰棚前 | 一至六 |
+
+> 针不发言——它只是不发言。
+> 静物之所以静物，因为它只有等。
+>
+> The needle does not speak — only because it never speaks.
+> Still things are still only because they only wait.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 它也没人登记过。
 - [2] 针不挑人，挑的是它自己。
 - [3] 没人问它的干活是什么。
@@ -3324,6 +7243,169 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 灰日终于翻页。
 
 ### Echo 94 · 封面四字 / The Four Characters
+
+> 回响不替正典续写——它只回头看那一行被写在封面上的四个字。
+> 本篇写给灰棚里最后一盏"灯"：它从未点燃，却始终是门外的人所等的。
+> 本篇锚句，与《盘底之下》《灯前灰》同一纪律。
+>
+> An echo does not continue the canon — it looks back at the four characters written on a cover.
+> Written for the last "lamp" of the grey cover: never lit, always what the people outside were waiting for.
+> Its anchors answer to the discipline of the sand-table and the ashes before the lamp.
+
+> 纪元：铁月纪之后 · 灰棚之前。
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 其一 · 封面上的四字
+
+账房在三百年账册的封面上，写下「第八盏灯」四字。
+
+不写日期，不写欠数。
+
+他写得很慢。第一笔落下时，门外有人把湿衣袖拧了一遍；第二笔落下时，海水退到石阶底下；第三笔收锋，窗纸上的盐霜裂了一道，像有人在外头轻轻咬住了牙。
+
+四字写完，他合上册子，关了门。
+
+门闩进槽，声响不大。门外仍有人等。
+
+那四字没有题在灯台上，也没有刻进石头。它们只在封皮上，墨色沉进旧皮，像潮水把船名收进夜里。后来翻过那本账的人，有的只摸到一道浅痕，有的说笔锋很长，长过门槛，长过等候的人脚下那段干地。
+
+账房没有再出来。
+
+铁月早已沉到海底，灰棚尚未搭起。中间的年岁没有年名，只有门缝里的风，吹过一页又一页没有日期的纸。封面上的四字被手掌磨亮，字没有短，墨也没有褪，只是每次翻开，像多了一寸。
+
+无人记下那一寸属于谁。
+
+**锚句**：封面上，四字长过门槛。
+**Anchor sentence**: on the cover, four characters outgrew the threshold.
+
+---
+
+## 其二 · 灰里之影
+
+灰里没有灯。
+
+每日清早，门前却有一道影子。它从墙根起，落在湿石上，穿过门槛下的缝，到了账房停笔的桌边。日头升高，它不往西移；潮水漫上来，它也不浮。到了夜里，门外的人看不见它，脚下仍会给它让出一寸。
+
+有人拿扫帚扫灰，扫到影子的边缘，便把扫帚放下。有人提桶来洗门槛，水流到那一寸，忽然改了方向。没人指出是谁留下的影子。门里没有灯盏，门外也没有火。
+
+每一天，影子都比前一天淡一些。它淡到最后，仍能照出门槛上新旧两道刮痕：一道朝外，一道朝里。等的人只看那两道痕，不看墙，不看灰，也不看天光。
+
+一名老妇人把掌心贴在石面上，等影子落到她手背。一个孩子用盐粒排出短线，等线被风吹走。一个披渔网的人坐得最远，他把网里漏下的水一滴滴数过，数到门前便不再数。
+
+他们谁也没说看见了灯。
+
+日复一日，灰没有被扫尽。门槛上始终留着一层，薄得能分出脚印，厚得能留住影子。
+
+**锚句**：无灯之处，每日有影。
+**Anchor sentence**: where there is no lamp, a shadow falls daily.
+
+---
+
+## 其三 · 油
+
+油从来没人添过。
+
+门内的灯盏是空的，盏底积着黑色的盐渣。账房关门那夜，窗台上有一只浅口碟，碟里无油，只有一圈暗湿的边。此后每逢潮声转弱，碟边便深一分；每逢雨落，暗湿仍在。
+
+守门的人不碰它。来求债的人不碰它。曾有人带来一瓶新油，瓶口的封泥还在，放下后便忘了带走。几年过去，瓶身上的字被潮气磨没，瓶子仍是满的。没人说那是油，也没人说那不是油。
+
+他们把空盏看作灯，把碟边看作油，把没添过的事记在心里。每个人记得不同：有人记得母亲在船上留的一匙，有人记得欠账时滴在封皮上的一滴，有人只记得小时候屋里有光，后来问起，所有人都说那夜没有点灯。
+
+门内的账册合着。四字压住封面，封皮的边沿吸进潮气，渐渐发软。空盏没有动，黑盐也没有散。若有人弯腰去闻，会闻到海腥，像一盏灯刚刚熄过，又像它从未烧起。
+
+没人添油，也没人问油还在不在。
+
+**锚句**：空盏之中，油未曾有失。
+**Anchor sentence**: in the empty bowl, the oil was never lost.
+
+---
+
+## 其四 · 等的人
+
+等的人各自守着一件小事。
+
+渔网人等一条没有名字的鱼。他把补网的针穿进旧洞，又在针尖抵住门前时停下。针上没有线，网却越补越密，像海面被一张看不见的网拦住。
+
+老妇人等儿子的脚印。她记得他最后一次进门，鞋底带来的盐，一粒粒落在石阶上。潮涨过许多回，那些盐早已不在。她每天仍从门外走到门边，走到最后一粒本该在的地方，就坐下来。
+
+孩子等一个能把名字念完的人。他在纸上写了七个名字，写到第八处便空着。纸湿了，字散开，他把空处折起来，放进衣袋。后来他长大，衣袋破了，仍把那张纸贴身放着。
+
+还有一些人不说自己等什么。他们带来旧钥匙、空碗、半截桨，放在门外，不让别人收走。每到涨潮，他们把东西挪高一点；退潮后，又放回原处。
+
+没人替他们算等了多久。有人来得早，有人从别处接过位置。离开的人也有：只在某个清晨，原先坐着的地方空了，灰上留下一道窄痕。旁人没有替他补上。
+
+门外的人不散。散了，门前便只剩灰；他们留着，灰就记得每一双脚曾经停过。
+
+**锚句**：他们守着的，各不是同一盏灯。
+**Anchor sentence**: none of them kept the same lamp.
+
+---
+
+## 其五 · 第九下
+
+沙盘放在账房后屋，盘沿被许多指节磨得发白。
+
+每逢潮汐转向，屋里有人敲沙盘。第一下，沙粒落定；第二下，门外有人换脚；第三下，远处的铁钟沉入水声；再往后，敲击声一下一下过去，直到第八下。
+
+第九下从不响。
+
+敲的人不是忘了。他们的手停在盘面上方，指尖沾着细沙，像被一根无形的线系住。有人抬起手，沙便从掌纹间漏下；有人把手放回膝上，盘面仍留着一道浅坑，没被填平。
+
+账册封面上的四字，不知何时压住了那道空白。每当第八下落定，门外便有人看向门缝。没有光漏出来，门板也不动。只有灰里那道影子，短了一线。
+
+第九下不属于钟，不属于沙，也不属于敲盘的人。它像一口含在喉间的潮水，涨到齿背，始终没有越过唇。若它响起，等的人便知道该走；若它不响，他们便还坐在原处。
+
+没有人去试着敲出那一下。试过的人后来不再来，沙盘上留下的坑也无人填平。
+
+第八盏灯照到那里，便停住了。
+
+**锚句**：第九下，留在未落的指尖。
+**Anchor sentence**: the ninth beat rested on a fingertip that never fell.
+
+---
+
+## 其六 · 最后一次亮
+
+最后一次亮，是在一场退潮之后。
+
+门外的人都在。老妇人抱着空碗，渔网人把针收进袖口，孩子的纸只剩折痕。门内没有脚步，窗上没有火色，封皮上的墨仍旧发黑。
+
+天边亮起一线，极窄，像刀口映过水面。门槛上的灰显出边缘，影子从墙根伸到众人脚边，又伸回门里。没人点灯，没人推门。那一线光没有烧过灯芯，也没有落进空盏。
+
+它只照见封面四字的末笔：笔锋悬在纸皮之外，像还未写完。随后海水推上石阶，把那点亮色收走。灰留在原处，薄薄一层，仍能辨出每双脚印的去向。
+
+有人起身，走进潮水里。有人往后挪了半步，给他让出路。留下的人没有追，也没有喊。门闩仍在槽中，沙盘仍少第九下，账册仍未记日期和欠数。
+
+此后每逢退潮，门前灰里都能看见那道影子。影子没有灯，门内没有油，四字也不再添笔。人们仍来，仍等，仍把东西放在原处。
+
+灰没有被潮水带走。
+
+**锚句**：灯不再亮，灰仍替它守夜。
+**Anchor sentence**: the lamp no longer burned; the ash still kept its night watch.
+
+---
+
+## 模型映射（回响八章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 第八盏灯 · 封面四字 · 灰里的影子 · 空盏与浅口碟 | 一至六 |
+| geography | 门外的灰棚 · 教团门廊 · 账房后屋 · 石阶 | 一至六 |
+| factions | 守门人 · 候门的人 | 一至六 |
+| characters | 账房 · 老妇人 · 渔网人 · 孩子 | 一至六 |
+| items | 三百年账册 · 封面四字 · 空盏 · 浅口碟 · 沙盘 | 一至六 |
+| story | 雾港 · 灰棚 · 回响（其八） | 全篇 |
+| history | 铁月纪之后 · 灰棚之前 | 一至六 |
+
+> 第八盏灯不等人来敲门；
+> 它只等灰被写成下一页。
+>
+> The eighth lamp waits for no one to come knocking;
+> it only waits for the ash to be written into the next page.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 封面上，四字长过门槛。
 - [2] 无灯之处，每日有影。
 - [3] 空盏之中，油未曾有失。
@@ -3332,6 +7414,135 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 灯不再亮，灰仍替它守夜。
 
 ### Echo 95 · 红绳 / The Red Cord
+
+> 回响不替正典续写——它只盯着灯篓提手上那一截褪色的红绳。
+> 本篇写给那个四十年没有人解开的结。
+> 本篇锚句，与《灰后》《封面四字》同一纪律。
+>
+> An echo does not continue the canon — it only keeps its eyes on the faded red cord wound around the basket's handle.
+> Written for the knot no one has untangled in forty years.
+> Its anchors answer to the same discipline as the ash and the covered ledger.
+
+> 纪元：铁月纪之后 · 灰棚之前。
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 其一 · 来处
+
+旧灯篓不是从库房里搬来的。库房的门槛低，灯篓底下有一道长裂，拖过门槛会留下木屑。那道裂从来没有经过库房。
+
+四十年前，北堤退潮，旧船坞里漂来一只空篓。篓口朝下，篾条里塞满黑泥，提手还在。搬它的人是抄水簿的陆守灯。他那晚在簿上写：潮退三尺，得旧篓一只。没有写从哪里得来。
+
+红绳绕在提手上，原先是亮红的。它从一件童衣的襟口拆下，衣服是谁的，簿上没有记。陆守灯把灯篓扛进记室时，绳尾垂着，拖过地上的盐水，留下窄窄一线。
+
+后来灯篓被挂到旧灯前。没有灯油，也没有灯芯。来往的人只记得它空着，像一口不肯收水的井。
+
+**锚句**：绳先于灯篓入账。
+**Anchor sentence**: the cord was entered before the basket.
+
+---
+
+## 其二 · 结
+
+打结的是陆守灯。
+
+那年冬潮上岸，北堤的灯一夜未灭。天亮后，七户人家各来一人，报失一名。陆守灯没有问名字，只把他们带来的衣物放进篓里。童衣的襟口缺了一段红绳。
+
+他将绳从提手上解开，缠过篾条，又绕回提手。结打得很紧，绳尾压在绳圈下面。旁人说，这样不好拆。陆守灯说，拆开就会散。
+
+他没有说明散的是什么。记室里只有潮声，敲着窗下的石槽。他将结再收了一次，指节抵住绳头，直至血色从指甲边退尽。
+
+那不是系灯用的结。它不承重，也不固定灯篓。它只是把两段绳咬在一起，不让其中一段先走。
+
+**锚句**：死结不是为了承重。
+**Anchor sentence**: the knot was never meant to bear weight.
+
+---
+
+## 其三 · 盐
+
+红绳起初是鲜红的。后来潮气从墙根进来，先浸到绳尾，再漫过结心。每逢涨潮，篓底有盐霜；每逢退潮，盐霜留在提手上，像一圈圈未写完的字。
+
+四十年里，绳色一点点褪下去。盐没有把它洗白，反而把红压成暗褐，像旧血在海水里泡久了。结心最深处仍留一线红，细得不能辨认。
+
+值夜的人替灯篓掸过灰，不碰绳。灰落在结上，吸了潮，结便更硬。有人拿湿布擦过提手，布上带下盐末，红色没有回来。
+
+此后账上写盐，不写绳。写灯篓空置，不写提手仍旧发紧。
+
+**锚句**：潮水只改了颜色。
+**Anchor sentence**: the tide changed only the color.
+
+---
+
+## 其四 · 孩子
+
+写过七个名字的孩子，见过这个结。
+
+那天他在记室门外等人。门没有关严，灯篓悬在灯前，结垂在提手内侧。他没有伸手，只盯着结心看了很久。后来他在纸上写下七个名字，字挤在一行，末尾没有句号。
+
+有人问他在哪里见过那种结。孩子说，在他家旧衣襟上。那衣服早已不在，母亲说是随潮丢了。他记得襟口也缺一截，缺处有两道针孔，像是有人拆过，又急着把线缝回去。
+
+他没有说认得红绳，只说认得结。抄簿的人将这句话记在名字后面，纸边沾了灰。七个名字没有改动，孩子也没有补上自己的名字。
+
+**锚句**：孩子认得的不是颜色。
+**Anchor sentence**: what the boy recognized was not a color.
+
+---
+
+## 其五 · 规矩
+
+记室有规矩：不解旧结。
+
+解绳等于重开旧账。旧账一开，七户的名字便要重新点数，灯前灰要重新过筛，北堤那夜的潮位要重新抄录。届时谁来写失者，谁来认领衣物，谁来承认篓中没有东西，都得有人落笔。
+
+没有人敢落笔。
+
+陆守灯死后，接手抄簿的人沿用他的字迹，也沿用他的规矩。后来的人不记得规矩从哪一页开始，只记得每次换灯，灯篓要原样挂回去。绳结不准碰，灰可以拂，提手可以擦，结心不许动。
+
+有一回，外来官员命人剪断红绳。剪子递到提手前，执剪的人停了手。官员又问了一遍，没有人回答。那把剪子后来入了器物簿，刃口未合。
+
+**锚句**：解结者须先报姓名。
+**Anchor sentence**: whoever unties it must first give their name.
+
+---
+
+## 其六 · 仍在
+
+灯篓空着。
+
+里面没有童衣，没有灯芯，也没有能交还给谁的东西。提手上的红绳仍缠着，结压在内侧，盐层沿篾纹结成薄壳。旧灯照不到它，白日里也看不清它原来的颜色。
+
+换班的人从灯前经过，按规矩看一眼灯篓，再在簿上写空置。有人写得太轻，墨被潮气拖开；有人写得太重，纸背留下凹痕。没有一页写绳结已经解开。
+
+那个孩子后来长大，名字没有添进七人那行。他来过记室一次，站在灯下，看了看提手，又把手收回袖中。抄簿人没有问他认不认得。
+
+潮汐仍按时进退。灯篓仍挂在那里。红绳褪到最后，只剩结心的一点颜色，像账页合上以后，纸里还压着一粒盐。
+
+**锚句**：篓空，结未动。
+**Anchor sentence**: the basket is empty; the knot has not moved.
+
+---
+
+## 模型映射（回响九章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 红绳 · 死结 · 旧灯篓 · 抄水簿 | 一至六 |
+| geography | 北堤 · 旧船坞 · 灯前 · 记室 | 一至六 |
+| factions | 抄水簿 · 七户人家 · 记室 | 一至六 |
+| characters | 陆守灯 · 孩子 · 抄簿人 · 换班的人 | 一至六 |
+| items | 童衣 · 红绳 · 旧灯篓 · 抄水簿 · 剪子 | 一至六 |
+| story | 雾港 · 灰棚 · 回响（其九） | 全篇 |
+| history | 铁月纪之后 · 灰棚之前 | 一至六 |
+
+> 结不解开，账不重新算；
+> 盐不说谎——它只把红磨成时间。
+>
+> The knot stays tied; the account stays shut;
+> the salt never lies — it only grinds red into time.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 绳先于灯篓入账。
 - [2] 死结不是为了承重。
 - [3] 潮水只改了颜色。
@@ -3340,6 +7551,169 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 篓空，结未动。
 
 ### Echo 96 · 钥匙 / The Keys
+
+> 回响不替正典续写——它只盯着守门老人手里那一串钥匙。
+> 本篇写给那间没人去开的锁、那串没人试的钥匙。
+> 本篇锚句，与《红绳》《封面四字》同一纪律。
+>
+> An echo does not continue the canon — it only keeps its eyes on the string of keys in the old doorkeeper's hand.
+> Written for the lock no one opens and the keys no one tries.
+> Its anchors answer to the same discipline as the red cord and the four covered characters.
+
+> 纪元：铁月纪之后 · 灰棚之前。
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 其一 · 来处
+
+第八章「灰后」，老人站在台阶边。门在他身后，台阶向下，海水退到看不见的地方。他手里握着一串钥匙，铁环穿过每一把的孔，久了，环也磨出了细槽。
+
+这串钥匙不是买来的。账上没有支出，库里也没有领用的印记。那间库原先收放无人认领的东西：断掉的扣子、没有寄出的信、写着人名而无人应答的牌。后来清点的人走了，门没有锁，柜子也没有搬空。
+
+钥匙是剩下的。
+
+没人来认领它们。没人说哪一把属于哪一道门。簿页上有一栏写着「暂存」，下面没有日期。再往后的纸受了潮，墨沿着纤维散开，像一条退去的水线。
+
+老人接过钥匙时，没有签名。他把它们放进掌心，带到台阶边。后来有人问他钥匙的来历，他只说，库里还剩着。
+
+那不是回答。可账上没有另一种写法。
+
+**锚句**：无人认领的，便留在原处。
+**Anchor sentence**: what no one claims stays where it is.
+
+---
+
+## 其二 · 数量
+
+老人数过钥匙。
+
+第一次，数出十九把。他把数目写在门边的木板上，写完后，海风把粉末吹进字缝。第二天他再数，是二十把。没有新钥匙送来，环上也没有空处。
+
+第三次，十七把。第四次，二十一把。老人换过指头，从环的一边数到另一边，又从另一边数回来。数目仍旧不同。
+
+他把每次的数字记进一本薄册。纸页从中间裂开，数字便落进裂口里。那以后，他在每个数目旁画一道短线，像是要把它钉在纸上。短线有长有短，越往后越像一排被潮水抹平的刻痕。
+
+有人替他数过。那人只数了一遍，报出一个数，便把钥匙放回去。老人问他还要不要再数，那人没有答。
+
+此后，老人每次记数，都不擦掉前一回。旧数压在新数下面，纸薄时，背面也能看见。册子合上，钥匙声从纸背传出来。
+
+他记了许多次。册上没有一个数，被划掉。
+
+**锚句**：数目不作证。
+**Anchor sentence**: numbers do not testify.
+
+---
+
+## 其三 · 不试
+
+门上有锁。老人没有试过钥匙。
+
+试钥匙就是开门。不是门扇转动之后才算开，也不是锁舌退去才算开。手把钥匙举到锁前，挑出一把，插入孔里，这已经是第一步。
+
+第一步之后，旧账就会重开。
+
+账本压在柜底，封皮发白。封口的线还在，线结已经松了。老人见过有人把手伸向封线，也见过那只手缩回去。没有人拆开封口，也没有人问里面记着什么。
+
+规矩不是写在门上。它只在换班时交给下一人。老人把钥匙递过去，告诉他不试。新来的守门人问，哪一把能开门。老人说，不知道。
+
+那人又问，要是知道呢。
+
+老人把钥匙环放回掌心。金属相碰，声音很轻，像锁里有水。
+
+守门的人不得试。试了，便不能再说自己只是在看门。开门的那一步不大，账页却会从头翻起。旧名字、旧欠数、旧日子的空白，都等着有人落笔。
+
+所以老人站在台阶边。锁在门上，钥匙在手里，两者之间留着一段不必丈量的距离。
+
+**锚句**：手未入锁，账未重开。
+**Anchor sentence**: a hand that has not entered the lock has not reopened the ledger.
+
+---
+
+## 其四 · 锈
+
+钥匙比锁老。
+
+老人知道这件事，不靠年表。他从库里取出钥匙时，锁已经在门上；可钥匙齿上的刻痕，早已磨圆。它们曾经开过别处的门，或者从来没有开过。账上无从查证。
+
+盐先走了。
+
+它留下白迹，沿着钥匙的凹处沉下去。后来白迹散尽，铁才开始生锈。锈从齿根起，慢慢爬向柄部。有几把钥匙的字迹被锈遮住，老人以指甲刮过，刮下来的粉末落在台阶上，第二天便不见了。
+
+他不擦钥匙。盐已经走了，擦也不能让它回来；锈既跟上来，就让它跟着。钥匙留在手里，潮气会从掌纹里钻进去，手放开时，铁环上多一圈暗色。
+
+门上的锁没有同样的颜色。它常年朝着内侧，雨水不容易落到那里。老人从未把两者并排比较。只是每次换班，他都把钥匙交给下一人，再把手收回来，掌心留下一个浅浅的圆印。
+
+那印子很快消失。钥匙上的锈没有。
+
+**锚句**：盐已退，锈才抵达。
+**Anchor sentence**: the salt had gone; only then did the rust arrive.
+
+---
+
+## 其五 · 灯前
+
+第七章的灯还亮着。
+
+老人有时望见那盏灯。它隔着门，也隔着几页账纸，落在台阶尽头。灯前没有人，只有一圈不动的光。老人握着钥匙，想象有人从暗处走来，手里没有册子，也没有名字。
+
+那人走到灯前，低头看过钥匙。没有挑选，也没有询问。他像是早已知道哪一把该在手里，又像是从来没有见过锁。
+
+老人想象他将钥匙举起。铁齿边的锈在灯下发暗，环上的旧痕一一露出。那人没有急着靠近门。他停了一会儿，仿佛在听门里面有没有潮声。
+
+然后他向前一步。
+
+钥匙尖端对着锁孔，手腕没有颤。灯火落在他的指节上，也落在门槛的灰里。老人想象那一刻很长，长到他能听见台阶下面水退回去，能看见账页的边缘微微翘起。
+
+他没有想象钥匙是否合适。也没有想象门后有什么。
+
+只想象那只手，在灯下稳稳地停住。
+
+**锚句**：灯前之事，不入账。
+**Anchor sentence**: what happens before the lamp enters no ledger.
+
+---
+
+## 其六 · 留在门边
+
+守门人换过班。
+
+有人接过钥匙，在台阶边站了几年；有人只站了一夜，天亮便不见了。老人也老去过。背弯下去，手指变细，钥匙环却仍扣着他的掌心。
+
+后来有人说他走了。也有人说他从未离开。门边没有人时，钥匙还在那里，放在台阶的石缝旁。雨水沿着石面流过，没有把它们带走。
+
+换班的人来过，又走了。每个人都知道钥匙留在门边。没有人把它拿进屋里，也没有人把它送回库中。那间库早已不在账上，门牌空着，柜子里的其余东西也无人再提。
+
+钥匙有时落在台阶上，有时挂在门边的钉子上。老人不在以后，钉子仍留着。盐从铁环上退尽，锈沿着齿缝一点点长出。门上的锁照旧。
+
+这一页没有守门人的名字。只有一行字，写在靠近边缘的地方：钥匙仍在。
+
+后来翻账的人没有加注。他把这一页合上，手指压住纸角。门边的钥匙没有响。
+
+**锚句**：人会离开，钥匙不记得。
+**Anchor sentence**: people leave; the keys do not remember.
+
+---
+
+## 模型映射（回响十章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 钥匙 · 暂存库 · 门锁 · 薄册 | 一至六 |
+| geography | 台阶 · 库房 · 账房门前 · 灯前 | 一至六 |
+| factions | 守门人 · 候门的人 | 一至六 |
+| characters | 守门老人 · 换班的守门人 · 翻账的人 | 一至六 |
+| items | 钥匙 · 铁环 · 薄册 · 封线 · 钉子 | 一至六 |
+| story | 雾港 · 灰棚 · 回响（其十） | 全篇 |
+| history | 铁月纪之后 · 灰棚之前 | 一至六 |
+
+> 钥匙不开门——
+> 它只让门保持「可以被打开」的姿态。
+>
+> The keys never open the door —
+> they only keep the door in the posture of being openable.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 无人认领的，便留在原处。
 - [2] 数目不作证。
 - [3] 手未入锁，账未重开。
@@ -3348,6 +7722,133 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 人会离开，钥匙不记得。
 
 ### Echo 97 · 秤 / The Scale
+
+> 回响不替正典续写——它只盯着第九章里挂在梁上的那架锈秤。
+> 本篇写给秤钩上输给盐、没输给账的铁。
+> 本篇锚句，与《红绳》《钥匙》同一纪律。
+>
+> An echo does not continue the canon — it only keeps its eyes on the rusted scale that hung from the beam in Chapter IX.
+> Written for the iron that yielded to the salt, and never to the ledger.
+> Its anchors answer to the same discipline as the red cord and the keys.
+
+> 纪元：铁月纪之后 · 灰棚之前。
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 其一 · 旧物
+
+父亲说，这架秤原是外祖家的。外祖在河口替人分鱼，秤挂在船棚的梁下，秤杆上刻着十六道旧线，最末一道被刀削浅了。那时秤砣还黑，秤星还亮，谁家的鱼多一尾，谁家的盐少一撮，都记在那根木杆上。
+
+外祖死后，秤跟着几只空筐进了父亲家。父亲没有拿它称米，也没有拿它称肉。它被收在屋梁上，秤绳绕过钉子，秤钩朝下。年年涨潮，屋里的东西都往高处挪，只有秤留在那里，像一笔迟迟没有落下的账。
+
+父亲说秤杆是榆木的。榆木不怕压，怕火。那年船棚失火，外祖从梁上摘下秤，抱着它走过河滩。秤杆的一端熏黑，十六道线还在。后来他把秤交给父亲，只说过一句：秤过的东西，不必再拿回来。
+
+父亲没问这句话是给谁听的。
+
+**锚句**：旧账从梁上垂下。
+**Anchor sentence**: old accounts hang from the beam.
+
+---
+
+## 其二 · 锈
+
+秤钩先是发暗，后来起了锈。屋里靠海，门缝里常有盐，窗纸吸了潮，墙根的灰一层层发软。秤钩每天朝下，雨水从瓦缝滴进来，先落在钩尖，再顺着弯处停住。盐留在那里，潮气也留在那里。
+
+铁没有一下子坏。它先失了光，随后起皮，最后露出粗糙的红色。父亲用麻布擦过，布上留下几道褐痕。他又用刀背刮，锈屑落在地上，薄得像鱼鳞。钩子仍能挂住东西，只是碰到秤杆时，会发出一点轻声。
+
+那声音夜里也有。潮涨时，梁木吸水，秤绳在钉子上紧一紧；潮退时，绳子松下来，秤钩轻轻碰梁。铁钩没有断，只把自己交给盐和水，一点一点地薄下去。
+
+父亲没再擦它。擦去的锈，第二天还会长回来。
+
+**锚句**：铁输给了潮，不输给数。
+**Anchor sentence**: the iron yielded to the damp, not to the count.
+
+---
+
+## 其三 · 七份
+
+那天父亲从梁上取下秤。灰装在一只浅盆里，盆底有裂缝，缝里也存着灰。他先把秤绳理直，把秤砣放在榆木杆旁，再取一只布兜，兜口打了两道结。布兜没有洗，边上留着旧盐渍。
+
+他把灰一捧一捧装进去。每装一捧，便把布兜挂上秤钩。秤杆先低下去，秤砣沿着木杆往外走。父亲用指甲拨动秤砣，拨一下，停一下，等那根杆子不再晃，才看刻线。
+
+头一份，秤砣停在第四道。父亲把灰倒进一只碗里，另换空布兜。第二份，还是第四道。第三份也是。灰落下去时，盆底露出一块灰白的圆痕。父亲没有说话，只把每一份放在桌边，隔开一掌宽。
+
+梁头就在他上方。父亲每次抬眼，都像是在看秤杆，又像是看秤上方那截暗木。那里有旧钉孔，有虫蛀的细末，有一道被烟熏过的黑线。秤砣不看梁头。它沿着刻线移动，停下，等父亲的手离开。
+
+第四份、第五份、第六份，照旧。第七份称完，盆里还剩一点灰。父亲把它收拢，掌心拢了两次，仍不够装满一斤。他看了一眼布兜，又看了一眼秤杆，最后把那一点灰留在盆里。
+
+没有第八份。秤钩空着。
+
+**锚句**：七份落定，余数不入账。
+**Anchor sentence**: seven portions settled; the remainder never enters the ledger.
+
+---
+
+## 其四 · 仍准
+
+秤钩上的锈贴着铁长，没长到秤杆上。父亲把布兜挂好，手离开以后，钩子承住了重量。它没有扭开，也没有向一边歪。秤杆照着旧线抬起，秤砣照着旧刻停下。
+
+锈屑有几粒掉在布面上。父亲捻走它们，没有重称。孩子站在门边，看见父亲的指头在刻线旁停住。那手指没有压杆，也没有替秤砣补一分。杆的一端微微下沉，另一端从梁头的暗影里露出来。
+
+秤钩有锈，秤绳有潮，秤杆上有旧火留下的黑。可钩子挂着布兜，砣子压住刻度，木杆便把两头的轻重交在一条线上。铁锈只薄了铁，没有挪动刻线。它能吃掉钩尖，不能替一斤多出一钱，也不能把少的补齐。
+
+父亲把一份灰放进碗中。秤杆空下来，慢慢回平。那一刻，锈钩仍朝下，像一枚已经盖过的印。
+
+**锚句**：锈不改秤的判决。
+**Anchor sentence**: rust does not change the scale's verdict.
+
+---
+
+## 其五 · 记数
+
+孩子替父亲记过一次数。没有纸，他便用手指在桌沿上划。第一道，第二道，第三道。他每划完一道，就看一只碗。碗口蒙着灰，碗底还干净。七道以后，桌沿留着七条浅痕。
+
+他也记住了秤砣停在哪里。第四道，靠近那处被刀削浅的刻线。秤砣停住时，尾端有一点向下，父亲没有去扶。孩子看见秤砣的黑色，也看见木杆上的白灰。两种颜色挨在一起，谁也没有盖过谁。
+
+盆里那点余灰，他没有记成第八份。父亲把它收在盆边，手掌挡着门缝里吹来的风。灰很轻，掌心一松，便沿着盆底散开。孩子数过碗，又数过桌沿上的痕，最后把手指停在第七道之后。
+
+这件事后来没有人问他。父亲也没有说他记得对不对。孩子长大以后，仍记得那一次：秤砣停在第四道；盆里还剩一点；桌沿上有七条浅痕，没画第八条。
+
+**锚句**：少下的那一份，也有数。
+**Anchor sentence**: even the portion that falls short has its count.
+
+---
+
+## 其六 · 梁上
+
+称完以后，父亲把秤杆上的灰擦掉。秤砣放回原处，秤绳绕过梁下的钉子，锈钩朝着地面。他站在凳上，把秤挂高了一点，免得门开时碰到。梁木受了重量，响了一声，随后不响了。
+
+余灰留在浅盆里。父亲拿一只倒扣的碗盖住它，碗底没有擦干净，边缘压住盆沿。屋里潮，盆壁起了一圈水汽。灰在盖下慢慢凉下来，颜色从白变成暗灰。没有人挪动那只碗。
+
+夜里潮水进到石阶，又从石阶退回去。梁上的秤没有动，空钩仍挂着。门口的盐粒被脚踩碎，落进木缝。第二天，盆还在原处，碗也还盖着。父亲出门时没有看它，回家时没有揭开。
+
+后来屋梁换过一次，旧钉留下一个黑孔。秤被挂到旁边，木杆更旧，刻线更浅。那半碗余灰没有人问起，也没有人拿来补秤。灰在盖下结住，等到盆沿裂开，仍没人称它。
+
+**锚句**：挂回梁上，账仍未合。
+**Anchor sentence**: hung back on the beam; the account still has not closed.
+
+---
+
+## 模型映射（回响十一章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 锈秤 · 榆木杆 · 七份灰 · 余灰 · 桌沿的七道痕 | 一至六 |
+| geography | 河口船棚 · 父亲的屋梁 · 门槛 · 石阶 | 一至六 |
+| factions | 一个人家 | 一至六 |
+| characters | 父亲 · 孩子 · 外祖（回忆） | 一至六 |
+| items | 榆木秤 · 秤砣 · 浅盆 · 倒扣的碗 | 一至六 |
+| story | 灰后 · 带灰回家 · 回响（其十一） | 全篇 |
+| history | 铁月纪之后 · 灰棚之前 | 一至六 |
+
+> 秤没有说「够了」；
+> 它只把每一份过完，就回梁上。
+>
+> The scale never said "enough";
+> it only weighed every portion, then went back to the beam.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 旧账从梁上垂下。
 - [2] 铁输给了潮，不输给数。
 - [3] 七份落定，余数不入账。
@@ -3356,6 +7857,147 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 挂回梁上，账仍未合。
 
 ### Echo 98 · 碗 / The Bowl
+
+> 回响不替正典续写——它只盯着第九章里那只盛灰的旧瓷碗。
+> 本篇写给盖住余灰之后，两只碗之间那条细暗缝。
+> 本篇锚句，与《秤》《钥匙》同一纪律。
+>
+> An echo does not continue the canon — it only keeps its eyes on the old porcelain bowl that held the ash in Chapter IX.
+> Written for the thin dark seam between the two bowls that closed over the remnant.
+> Its anchors answer to the same discipline as the scale and the keys.
+
+> 纪元：铁月纪之后 · 灰棚之前。
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 其一 · 来处
+
+那只碗原先不在这间屋里。
+
+它从外祖母家的灶间来。那家拆掉时，桌板先抬走，柜子留到最后。妻子把碗从柜底取出，碗里有一层陈年的面粉，擦净后，才看见白釉发青。没有人记得它是哪一年烧的，也没人说得清它原本属于谁。旧账上只写着：瓷一只，留。
+
+搬进这间屋时，碗沿已经磕过两处。一处在靠近柄似的宽边，豁口浅，手指掠过只会停一下；另一处在正对门的地方，缺得深，釉皮往里卷，像一粒被咬下的盐。妻子洗碗时，总把那处转向墙。后来她不再转了。
+
+碗底有一道旧黑线，洗不去。每逢添水，线便从釉下浮出来，像潮退后留在石上的痕迹。它不妨碍盛饭，也不漏。家里没有人把它放进破瓷堆。它一直在灶边，口朝上，等着下一次被拿起。
+
+**锚句**：旧物没有姓氏。
+**Anchor sentence**: old things have no surname.
+
+---
+
+## 其二 · 两道裂
+
+碗口那道裂，不是磕碰留下的。它从深处生出来，细细一线，穿过釉面，在缺口旁停住。妻子用指甲试过，裂缝不进指甲。她把碗放到耳边，什么也没听见。
+
+盆底也有一道缝。盆是搪瓷的，边缘掉了漆，缝藏在盆心偏外的地方。水用到半盆，缝便暗下去；水倒空，灰又慢慢显出来。两道裂不挨着，家里却总把它们放在一处：碗在盆边，盆在窗下。
+
+灰进了缝，便不肯出来。
+
+妻子用湿布擦盆，布过一遍，缝里还是有灰；再过一遍，灰似乎更深。她没用针去挑，也没把盆拿到外头倒扣。那条缝挨着底，像是从底下来的。碗口的裂也是这样，顺着烧成时留下的细纹，往釉里藏。灰落上去，不响；水经过，也不响。
+
+此后，每次扫屋，盆底总留一层薄灰。碗沿也有。她把它们当作旧物的分量，没有逐次清点。灶火熄了，屋里仍有灰。门开时，外头的潮气进来，缝却没有合上。
+
+**锚句**：裂处留灰。
+**Anchor sentence**: the crack keeps ash.
+
+---
+
+## 其三 · 盛灰
+
+那日秤完了，妻子把旧瓷碗从灶边拿下来。
+
+她没有先擦碗，也没有把碗放到干净处。屋里扫过一遍，桌面仍有灰。她用一张折起的纸，沿着桌面刮过，将表面的一层收起来。纸的边缘很快发软，她的手停得稳，没有把下头的旧灰一并刮起。
+
+她先盛表面的一层灰。
+
+灰落进碗里，轻得听不见。她的手从桌面移到碗口，纸角对着碗内，灰便顺着那道裂落下去。没有扬起烟。只在碗沿落了一圈暗痕，贴着旧釉，经过两处磕碰，又在最深的缺口旁断开。
+
+她把纸折好，放回原处。那圈暗痕留在碗沿，像盐水干后的一道边。碗里只有薄薄一层，遮不住底下黑线。妻子端着它，没叫人让路，也没有把碗举高。她走得很慢，灰没有滑向一边。
+
+盆还在窗下。盆底那道缝里，旧灰未动。她把碗搁在桌角，碗口朝上，等着屋里的事办完。后来秤盘收起，秤砣放回抽屉，纸上的数没有留在桌上。
+
+**锚句**：灰没有惊动屋子。
+**Anchor sentence**: the ash did not disturb the house.
+
+---
+
+## 其四 · 盖下
+
+余灰倒进瓷碗时，窗外正涨潮。
+
+妻子把纸上的余灰倒完，又把盆底积着的一点刮起，一并送进碗里。纸角沿着碗内转过半圈，碰到裂缝时停了一下。灰填住碗底的黑线，也盖住最深的磕口。她没有把碗装满，仍留出一截白釉，露在灰上。
+
+之后，她拿来另一只碗，倒扣在瓷碗上。两只碗的口沿相接，碰出一声钝响。上面的碗颜色更白，底部有一圈褐印，像旧水退到边沿。她对齐两只碗，没有压紧。裂开的那处留在外面，正对着盆底那道缝。
+
+那几日，水汽从盆壁起来。屋里潮，桌脚发软，窗纸贴着木框。灰凉下来，先是表面不再松动，后来连边缘也沉住。倒扣的碗盖在上面，碗底沾了水汽，又慢慢干了。没有水滴落下。
+
+没人挪动那只碗。
+
+它在桌上待着，旁边的饭碗照常拿起，盆也照常用。人经过时会绕开桌角，不碰上面的碗。潮气退了又来，碗与碗之间没有亮光，只有一条细细的暗线，从口沿走到最深的缺口。灰在里面，一日一日凉下去。
+
+**锚句**：盖下无声。
+**Anchor sentence**: beneath the cover, no sound.
+
+---
+
+## 其五 · 手
+
+孩子是在一个早晨摸到碗沿的。
+
+他先摸到上面那只碗的底，手掌贴着褐印，停了一会儿。碗没有动。他低下头，看见两只碗相扣的地方露出一圈旧釉，灰不在外面，白也不在外面。桌面边有一小道水迹，已经干了。
+
+他不敢掀开。
+
+手指沿着口沿往前，碰到瓷碗的磕碰处，便压在那里。那处缺口比别处深，边缘磨得圆了，仍能按出一点凹陷。孩子把力气放轻，又放重。指腹压在磕碰处，像压住一道不再发声的门。
+
+他没有问碗里是什么。妻子站在灶旁，把水倒进锅里。水声盖过了屋里的其余声响。孩子听见锅底碰到灶沿，手指仍压在那处缺口上，直到指尖发白。
+
+后来他松手，碗没有移位。碗沿留下一个浅浅的指印，潮气没把它留下多久。孩子离开桌边，绕过盆，脚底没有踩到灰。那道裂仍在两只碗之间，细得像没有开过。
+
+**锚句**：手停在旧缺处。
+**Anchor sentence**: the hand stops at the old chip.
+
+---
+
+## 其六 · 沉默
+
+屋梁换过之后，桌子也移过位置。
+
+旧梁抬下时，木屑落到地上，没人扫进碗里。新梁安好，屋顶压实，雨声便不再从梁缝里漏下来。桌角挪近墙边，上面的两只碗没有分开。妻子用布擦桌，擦到碗旁便收手。盆底的缝仍在窗下，里面也存着灰。
+
+碗内的灰在盖下结住了。
+
+它不再浮，不再跟着屋里走动。那只倒扣的碗压着它，褐印朝上，瓷面无缺。下头的旧碗仍有两处磕碰，口沿那道裂没有合拢。灰结在里面，贴住碗底，也贴住那道细缝。桌子偶尔受潮，碗沿起一圈暗色；等风干，暗色便退回釉里。
+
+有人来过，问桌上的两只碗要不要收走。妻子说不用。来人没有伸手。屋里只剩梁木的气味，窗外的潮水进退，盆壁干了又湿。没人称它，也没人揭开它。数目留在旧纸上，碗没有进秤。
+
+后来那张纸不见了。桌上的碗还在。灰在盖下结牢，裂口没有再长，磕碰处也没有补釉。屋梁压住屋顶，瓷碗压住灰。碗守住了沉默。
+
+**锚句**：未揭之物不入账。
+**Anchor sentence**: what remains unrevealed enters no ledger.
+
+---
+
+## 模型映射（回响十二章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 旧瓷碗 · 裂缝 · 盆底的搪瓷盆 · 盖下的余灰 | 一至六 |
+| geography | 一个普通人家的灶间 · 窗下 · 桌角 · 石阶 | 一至六 |
+| factions | 一户人家 | 一至六 |
+| characters | 妻子 · 孩子 | 一至六 |
+| items | 旧瓷碗 · 倒扣的碗 · 搪瓷盆 · 折纸 · 裂缝 | 一至六 |
+| story | 灰后 · 带灰回家 · 回响（其十二） | 全篇 |
+| history | 铁月纪之后 · 灰棚之前 | 一至六 |
+
+> 碗不揭开——
+> 它只是继续盛着沉默，直到没人再问为什么。
+>
+> The bowl is never lifted —
+> it only holds the silence a little longer, until no one asks why.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 旧物没有姓氏。
 - [2] 裂处留灰。
 - [3] 灰没有惊动屋子。
@@ -3364,6 +8006,173 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [6] 未揭之物不入账。
 
 ### Echo 99 · 门槛 / The Threshold
+
+> 回响不替正典续写——它只盯着那道安静了几章的门槛。
+> 柴放在门槛外，水送到门槛外，灰被雨冲开，脚印没人抹掉。
+> 本篇写给门内灯火与门外潮声之间，唯一不必被看守的东西。
+> 本篇锚句，与《碗》《秤》同一纪律。
+>
+> An echo does not continue the canon — it only keeps its eyes on the threshold that has kept quiet through all these chapters.
+> Firewood set beyond it, water left beside it, ash scattered by rain, no footprints wiped away.
+> Written for the one thing between the lamp inside and the tide outside that does not need keeping.
+> Its anchors answer to the same discipline as the bowl and the scale.
+
+> 纪元：铁月纪之后 · 灰棚之前。
+> Era: after the Iron-Moon Age · before the grey cover was laid.
+
+---
+
+## 其一 · 木头
+
+门槛的木头没有来处。
+
+账上不记它的价，也不记谁把它锯成如今的宽窄。它横在那里，木纹里留着一条旧水线，像潮退后没有带走的盐。有人说它原先是树，根在灰棚后面的湿地里；也有人说那块地从来没有树，只在雨后露出一段黑木，日子久了，便被当作门槛。
+
+没人替它作证。木头不曾开口，也没有被问过。
+
+它的两端抵着墙根。墙换过几次，泥灰一层覆一层，门槛没有动。每逢修墙，搬石的人绕过它，像绕过一笔已经结清、却仍留在册上的旧账。
+
+风从门缝进来，先刮过木纹，再进屋。屋里的人只记得风，没记得木头。门槛受着来去的风，年久处起了毛刺，刺尖朝着谁，它也不挑。
+
+后来有人把灯挂在门内。灯光落到木头上，分成两截，一截暖，一截暗。门槛在两截之间，没有取其中一截。
+
+**锚句**：它没有出生的年月。
+**Anchor sentence**: it has no year of birth.
+
+---
+
+## 其二 · 未定
+
+门槛不说里外。
+
+它只认脚步还没有落定的时候。人站在门前，鞋底沾着泥，手里握着话，或什么也没握。那一刻，他还不是屋里的人，也不是门外的人。门槛只托住他的重量，等重量自己决定往哪边去。
+
+有人在上面停了很久。有人只把一只脚放下，另一只仍留在地上。也有人隔着门缝看灯，直到灯芯缩短，才转身离开。门槛没有把他们算作来过，也没有把他们算作未曾来过。
+
+雨后，木头吸饱了水，表面发暗。旱时，它裂开细缝，缝里落进灰、盐、鞋底磨下来的碎屑。那些东西没有内外之分，只有新旧之别。脚步经过，旧的压进木纹，新的覆在上面。
+
+记账的人也曾站在这里。他手里有一册薄账，封皮被灯油浸出黑边。他没有跨进来，只把账往门内递。接账的人没问他为何不进；他也没问账上为何少了一行。
+
+那一刻两个人都没有决定。门槛承住他们，一如承住门板的重量。
+
+**锚句**：它只记脚步未定时。
+**Anchor sentence**: it remembers only the moment a foot has not yet landed.
+
+---
+
+## 其三 · 柴与水
+
+柴总放在门槛外。
+
+送柴的人不敲门。他把捆扎好的枯枝搁下，绳结朝上，免得雨水积在里面。做完这些，他便走，脚印从木头边绕开。门内有人听见柴枝轻碰地面，等了片刻，才开门搬进来。
+
+灯下的账不出门。
+
+账本压着一块石头，纸页有潮气，墨迹在边角洇开。上面写柴的斤两，也写送来时的日子；不写是谁弯腰放下，也不写谁隔门听见。那些字留在灯下，像一排不肯移位的钉子。
+
+门槛先收。
+
+它先受住柴捆落地时的一震，先沾上绳纤维落下的毛，先挨那点从枯枝上抖下来的尘。屋里的人后来把柴搬走，门外的地仍留着压痕。每次送柴，压痕换一个方向，旧的便浅一些，却没有全退。
+
+送水的人也不敲门。
+
+水桶放在柴捆旁，桶沿有盐白的结痕。桶底贴地时，水面颤一下。那人松开提绳，手指在衣襟上擦过，转身离去。屋里的人开门取水，木桶提起时，门槛上会留一道短短的湿印。
+
+账上不写湿印。灯下只添一笔水的数目。
+
+门槛收下桶底的冷，也收下柴枝的刺。它从不把东西搬进屋，也不把东西推出去。每一样都由后来的人拿走，或留到天亮。
+
+**锚句**：门槛先收，账留在灯下。
+**Anchor sentence**: the threshold takes it first; the ledger stays under the lamp.
+
+---
+
+## 其四 · 雨
+
+雨冲过门槛几次，没人记全。
+
+最初那年，雨从屋檐落下来，沿着门外的灰地走，冲出一条窄沟。灰散开，露出下面的泥。有人在沟边踩过，脚印半陷半浮，像写了一行看不清的字。
+
+后来又下雨。旧沟被水填平，灰从高处流下来，重新覆住低处。水退后，灰结成薄壳，边缘起皱。门槛没有替谁擦去脚印。那些印子留着，后来被雨打散，又在别处凝回来。
+
+有一场雨落了整夜。水从门板下面挤进来，沿木纹爬了一寸，又退回去。门内有人拿布堵门缝，没有擦门槛。第二天，潮痕还在，灰棚里的人照常点灯，照常把账摊开。
+
+雨水冲过门槛，也冲过门外的柴灰。灰开了，散在沟沿；天晴之后，风把它送回墙根。再下一场雨，它又被冲开。这样几次，没人说得清灰是从哪里来，也没人说得清它为何回来。
+
+只有脚印不曾被门槛抹掉。
+
+它们被水削薄，被灰盖住，被后来的人踩乱。木头仍托着每一道留下的重量，不替谁作证，也不替谁脱身。
+
+**锚句**：雨能冲灰，不能销账。
+**Anchor sentence**: rain can scatter ash; it cannot cancel the ledger.
+
+---
+
+## 其五 · 出门的人
+
+有人从里面跨出来。
+
+那天灯还亮着，账本没有合上。屋里没有人送他，门外也没有人等他。他在门槛上停了半息，像是在听雨；其实那日没有雨，只有屋檐滴下隔夜的水。
+
+他把脚放到门外，鞋底踩进灰里。门槛没有拦他。也没有替他留住里面的暖。他走向潮地，沿着一条没有名字的路去。有人后来见过他在河口，也有人说他往北去了。两种说法都没有记进账。
+
+没人问他去做什么。
+
+没人送他。
+
+门关上时，灯影缩回屋内，门槛上只剩一道浅浅的灰痕。过了几日，送水的人把桶放在原处，桶底压住那道痕。再过几日，桶被取走，灰痕仍在那里，已经认不出属于谁。
+
+门内的人没有提起那个离开的人。门外的人也没有提起。账本上仍留着未填满的一栏，墨水干了，纸面起皱。灯照着那一栏，没有把它照成答案。
+
+门槛记得鞋底落下时的轻重。除此之外，它不记去处。
+
+**锚句**：他走了，无人替他作别。
+**Anchor sentence**: he went; no one bade him farewell.
+
+---
+
+## 其六 · 门槛在灯下
+
+门槛在灯下，也在门外。
+
+灯照到它靠里的一半，另一半受着夜里的潮气。天亮时，两边都覆着灰；天黑后，两边都留着冷。它不因光线而靠近屋里，也不因雨水而离开门外。
+
+灰棚里没有别的东西能这样留着。柴要看守，水要看守，灯要续油，账本要压石。门槛不用守。没人把它搬走，没人把它藏起，也没人替它关门。
+
+它守住自己。
+
+墙根松过，门轴坏过，棚顶漏过。修补的人把泥抹在门槛两端，留下两块新白。风吹旧了那层白，木头仍横在那里。后来有人把一张窄凳放在门边，凳脚磨出四个浅坑；凳子搬走后，坑里积灰。门槛没有多问一件东西为何来、为何去。
+
+夜深时，门里的人睡着，门外的潮声退远。门板合着，灯火未灭。门槛夹在两者之间，承住一夜的静，也承住明日尚未决定的脚步。
+
+账还摊在灯下。柴仍会送来，水仍会放在门外。雨会再落，灰会再散，脚印会留下。门槛不替谁收尾。
+
+它在那里，直到下一只脚停住。
+
+**锚句**：它守住自己，便无人守它。
+**Anchor sentence**: it keeps itself; so no one keeps it.
+
+---
+
+## 模型映射（回响十三章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 门槛 · 灯 · 柴与水 · 账 | 一至六 |
+| geography | 灰棚 · 门槛 · 门外潮地 · 门内灯下 | 一至六 |
+| factions | 屋内 · 屋外送柴送水的人 | 一至六 |
+| characters | 门里的人 · 送柴送水的众人 · 记账的人 | 一至六 |
+| items | 木头门槛 · 柴捆 · 水桶 · 账本 · 灯 | 一至六 |
+| story | 雾港 · 灰棚 · 回响（其十三） | 全篇 |
+| history | 铁月纪之后 · 灰棚之前 | 一至六 |
+
+> 门槛不说哪一边了更远——
+> 它只把每一步都留在自己的木纹里。
+>
+> The threshold does not say which side is farther —
+> it only keeps every step within its grain.
+
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 它没有出生的年月。
 - [2] 它只记脚步未定时。
 - [3] 门槛先收，账留在灯下。
