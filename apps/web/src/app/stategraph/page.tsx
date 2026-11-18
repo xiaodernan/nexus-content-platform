@@ -73,7 +73,7 @@ const COPY: Record<
     whereTitle: '它现在坐在哪里',
     whereNote: '源码是唯一真值；下面的每一条都能在仓库里直接搜到。',
     where: [
-      { label: '路由（API）', value: 'POST /v1/ai/design-graph（ai-service :3212；经 web 同源转发为 /api/stategraph）' },
+      { label: '路由（API）', value: 'POST /v1/ai/design-graph（ai-service :3200；经 web 同源转发为 /api/stategraph）' },
       { label: '源文件', value: 'apps/ai-service/src/ai_service/stategraph.py（build_design_graph / run_design_stategraph）' },
       { label: '响应头', value: 'x-nexus-orchestration: stategraph —— 图真实执行的唯一公开标记，失败时同样返回' },
       { label: '测试', value: 'apps/ai-service/tests/test_stategraph.py · 8 用例全绿' },
@@ -112,7 +112,7 @@ const COPY: Record<
     whereTitle: 'Where it sits right now',
     whereNote: 'The source is the single source of truth; every line below can be greped in the repo.',
     where: [
-      { label: 'Route (API)', value: 'POST /v1/ai/design-graph (ai-service :3212; fronted same-origin by /api/stategraph)' },
+      { label: 'Route (API)', value: 'POST /v1/ai/design-graph (ai-service :3200; fronted same-origin by /api/stategraph)' },
       { label: 'Source file', value: 'apps/ai-service/src/ai_service/stategraph.py (build_design_graph / run_design_stategraph)' },
       { label: 'Marker header', value: 'x-nexus-orchestration: stategraph — the only public proof the graph ran, returned on failures too' },
       { label: 'Tests', value: 'apps/ai-service/tests/test_stategraph.py · 8 cases green' },
