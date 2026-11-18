@@ -7558,3 +7558,16 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 7 锚句双语；gen-bible-snapshot 增 echo-132；BibleAsk lede → 132 · /bible/ask meta → 一百三十二篇 · CACHE-IDENTITY × 132 · canon-answer-graph → 13 章 + 132 回响 = 145 段 · bible-ask-behavior → 804 · pin 重钉 page→82275159 / comp→b541bc78。
 - 2,461 字节预算所欠（digest 231,897 / 上限 256,000），下一 Echo 预计仍能装载。
 - fe-gates **1370/1370** ✓。
+
+## cont. 369 (2026-11-19) — v989 · §PROOF-V988-BIG-CONTEXT · 当前 digest 直打 12 发 · **11/12 全额**
+
+**实测（2026-11-19 16:40）**：`/v1/ai/chat` · tokensIn≈149,433 · digest 231,897 chars（13 章正典 + 132 回响 · 809 锚句）· 零 5xx：
+
+- call#1 (cold A)：cached=7,115 (4.8%) · 10s
+- call#2 (首见 B)：cached=140,300 (**93.9%**) · 18s
+- call#3 → call#12：**cached = 149,433 / 149,426 · 全额 100% · 37-99 ms**
+- meanCached = 136,809；mean p50 ≈ 55 ms
+
+**与 v982 实测**直连同尺测试：从 148,677 tokensIn → 149,433（+0.5%）；**冷启动后 10 发全额仍是 100%**（v988 完全没有 cache 掉）。与 §PROOF-STICKY-KEY（12/12 100%）+ §PROOF-STRESS-16（32/32 × 100%）共同印证 **sticky per-lane 路由在合流 digest 上不掉 cache**。
+
+证据：`docs/evidence/big-context-v988-2026-11-19.md`（含 cache-report + 2-问（A/B）分解表）。
