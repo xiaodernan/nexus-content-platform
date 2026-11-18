@@ -7,7 +7,7 @@ import type { Locale } from '@/lib/i18n';
 /**
  * §BIBLE-2 典籍室「潮汐挑战」——问答玩法。
  *
- * 用这个玩法把五章正典变成"可以赢的阅读"。服务端壳 RSC（if/notFound/local/getLocale）
+ * 用这个玩法把十三章正典变成"可以赢的阅读"。服务端壳 RSC（if/notFound/local/getLocale）
  * 把 locale 透传下来；题库的 zh/en 在这里成对出现（与锚句同纪律：不是翻译对应，
  * 是两个版本讲同一个故事、每个版本只有一套正确答案——锚句即教材）。
  *
@@ -16,14 +16,14 @@ import type { Locale } from '@/lib/i18n';
  * - 没有"看了重做"的奖励？——答错的提示会写出处（在哪一章、哪一节），
  *   错就是错，不伪装"接近正确"；
  * - 完全中英双语；不存在半中文半英文的题目；
- * - 17 题每题 1 分；结算只是礼物：不写进任何账本、不发 achievement、不持久化。
+ * - 71 题每题 1 分；结算只是礼物：不写进任何账本、不发 achievement、不持久化。
  */
 
 const COPY = {
   zh: {
     kicker: '潮汐挑战',
     title: '你配得上第八盏灯吗？',
-    lede: '五章正典的答题器。每道题的依据都能在《世界大典》里逐字找到——写下来的答案就是答案。',
+    lede: '十三章正典的答题器。每道题的依据都能在《世界大典》里逐字找到——写下来的答案就是答案。',
     questionLabel: (i: number, n: number) => `第 ${i} / ${n} 题`,
     correct: '答对了——这一句你记住了。',
     wrong: (ref: string) => `错——回去读「${ref}」。`,
@@ -37,11 +37,11 @@ const COPY = {
       { at: 10, text: '巡逻路的旅人', note: '盐味酸过了——记住的巡逻路比忘掉的多。' },
       { at: 13, text: '守夜人传人', note: '门在关上之前你没见过，但你记住了是什么。' },
       { at: 15, text: '潮汐大匠', note: '海还没说完的话，你已经知道是什么了。' },
-      { at: 17, text: '满分守夜人', note: '十七题全对——典籍不会忘记问倒过谁。' },
+      { at: 71, text: '满分守夜人', note: '七十一题全对——典籍不会忘记问倒过谁。' },
     ],
     footer: '《世界大典》正典全文见典籍室（/bible）。答错的题里标了出处：错就是错，没有近似的正确。',
     scoreLine: (n: number, total: number) => `${n} / ${total}`,
-    empty: '还没答完。十七道题就是五章正典的全部问题。',
+    empty: '还没答完。七十一道题就是十三章正典的全部问题。',
   },
   en: {
     kicker: 'The Tidal Trial',
@@ -60,11 +60,11 @@ const COPY = {
       { at: 10, text: 'The Patrol-Road Traveller', note: 'You are more road remembered than forgotten.' },
       { at: 13, text: 'The Successor Watcher', note: 'You have never seen the door, but you know what was behind it.' },
       { at: 15, text: 'The Tide Master', note: 'The sea still has not finished — and you already know what it said.' },
-      { at: 17, text: 'The Full Tide', note: 'Seventeen of seventeen — the canon will not forget who asked it best.' },
+      { at: 71, text: 'The Full Tide', note: 'Seventy-one of seventy-one — the canon will not forget who asked it best.' },
     ],
     footer: 'The full canon lives in the shelf (/bible). Every wrong answer points you to where it lives. Wrong is wrong — there is no near-enough.',
     scoreLine: (n: number, total: number) => `${n} / ${total}`,
-    empty: 'Not done yet. Seventeen questions — one per breath of the canon.',
+    empty: 'Not done yet. Seventy-one questions — one per breath of the canon.',
   },
 } as const;
 
