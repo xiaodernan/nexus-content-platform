@@ -7808,3 +7808,11 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - `observer-projection-behavior.test.ts` 7/7：完美线（y=2x+10）· 全零平线 · 下降线 · 噪声（R²∈(0,1)）· 死区 flat · n<4 拒拟合 · 输出契约
 - fe-gates **151/151 · 1377/1377 · census 2996** · tsc web EXIT=0 · gate 页 HTTP 200 + 浏览器无障碍快照零 error（带内数字区：实库全零数据时平线预测，R²=null）
 - 未能浏览器实证投影带本身：本机 Docker 挂掉致 Postgres 不可达（env 限制，非代码缺陷）；proj 带在 Docker 恢复后首次进库即显
+
+## cont. 395 (2026-11-19) · §RAG-LINEAGE ✓ · 问典把检索依据摊开给读者看
+
+- `retrieve` 节点早就是真的（diggestion 字符二元组 Jaccard + top-3 snippet，≤1.6KB）——但路由只回 `retrieved: <计数>`，读者看不见
+- 现在 `/api/bible/q` 多回 `retrieval: string[]`（top-3 原文片段，逐字）；BibleAsk 前端新增可折叠「本轮检索依据」（`<details class="bbq-retrieval" data-bible-ask-retrieval>`，zh/en 双语 · 确定性二元组声明在底部），`setPhase('loading')` 重置 retrieval/cite——不残留上一轮的旧依据
+- system 前缀**零改动**——CANON_DIGEST KV 命中不受影响（cache 稳态无回退）
+- BibleAsk SHA pin → `03ff3e19…`（page pin 不变 · `1344cf30…`）· fe-gates **151/151 · 1377/1377 · census 2998** · tsc EXIT=0 · route 契约 12/12 · canon-answer-graph 13/13
+- 未能浏览器实证：本机 Docker engine 500 → Postgres CONNECT_TIMEOUT（env 限制；契约行为由 route/visual/fen gates 三重覆盖）

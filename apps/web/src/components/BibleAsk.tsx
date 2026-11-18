@@ -31,6 +31,8 @@ const COPY: Record<Locale, {
   back: string;
   citeLabel: { cited: (n: number) => string; declined: string; notCited: string };
   citeAnchorSummary: (n: number) => string;
+  retrievalSummary: (n: number) => string;
+  retrievalHint: string;
 }> = {
   zh: {
     kicker: '问典 · The Tidal Inquiry',
@@ -49,6 +51,8 @@ const COPY: Record<Locale, {
     back: '← 回到典籍室',
     citeLabel: { cited: (n) => `引经据典 · 逐字对齐 ✓（${n} 条）`, declined: '正典没写 · 如实说没有的答复', notCited: '自由作答 · 未逐字引用锚句' },
     citeAnchorSummary: (n) => `本次答复引到以下 ${n} 条（点击展开）：`,
+    retrievalSummary: (n) => `本轮检索依据 · top-${n}（确定性二元组检索，点开看原文）`,
+    retrievalHint: '模型写答案之前，检索层先替它挑出这几段——这就是答案的底气来源。',
   },
   en: {
     kicker: 'The Tidal Inquiry',
@@ -67,6 +71,8 @@ const COPY: Record<Locale, {
     back: '← Back to the shelf',
     citeLabel: { cited: (n) => `Quoting the canon verbatim ✓ (${n})`, declined: 'Not in the canon — the Inquiry says so honestly', notCited: 'Free answer — no verbatim anchor from the canon' },
     citeAnchorSummary: (n) => `This answer quotes ${n} canon line${n === 1 ? '' : 's'} (click to expand):`,
+    retrievalSummary: (n) => `Retrieval evidence · top-${n} (deterministic bigram ranking, expand to read)`,
+    retrievalHint: 'Before the model wrote a word, the retriever chose these passages — this is where the answer gets its footing.',
   },
 };
 
@@ -78,12 +84,15 @@ export function BibleAsk({ locale = 'zh', initialQuestion }: { locale?: Locale; 
   const [answer, setAnswer] = useState('');
   const [badge, setBadge] = useState<{ model: string; cachedTokens: number } | null>(null);
   const [cite, setCite] = useState<{ clause: 'cited' | 'declined' | 'not-cited'; anchorsCited?: number; citationAnchors?: string[] } | null>(null);
+  const [retrieval, setRetrieval] = useState<string[]>([]);
   const [phase, setPhase] = useState<Phase>('idle');
 
   const ask = useCallback(async (q: string) => {
     const trimmed = q.trim();
     if (!trimmed || phase === 'loading') return;
     setPhase('loading');
+    setRetrieval([]);
+    setCite(null);
     try {
       // §159 诚实边界：provider 通道抖动会让 ai-service 偶发 502/503（上游限流），
       // 停机 800ms 后重试一次——单线程 1 次内重试成功率 ≈ 90%+；两次都失败才走 honest，不硬塞缓存。
@@ -114,6 +123,7 @@ export function BibleAsk({ locale = 'zh', initialQuestion }: { locale?: Locale; 
         citation?: 'cited' | 'declined' | 'not-cited' | 'unknown';
         anchorsCited?: number;
         citationAnchors?: string[];
+        retrieval?: string[];
       };
       if (!resp.ok || typeof body.answer !== 'string') {
         setPhase('honest');
@@ -124,6 +134,7 @@ export function BibleAsk({ locale = 'zh', initialQuestion }: { locale?: Locale; 
       setCite((body.citation === 'cited' || body.citation === 'declined' || body.citation === 'not-cited')
         ? { clause: body.citation, anchorsCited: body.anchorsCited, citationAnchors: body.citationAnchors }
         : null);
+      setRetrieval(Array.isArray(body.retrieval) ? body.retrieval.filter((s) => typeof s === 'string') : []);
       setPhase('answered');
     } catch {
       setPhase('honest');
@@ -210,6 +221,17 @@ export function BibleAsk({ locale = 'zh', initialQuestion }: { locale?: Locale; 
                     <li key={line}>{line}</li>
                   ))}
                 </ul>
+              </details>
+            ) : null}
+            {retrieval.length > 0 ? (
+              <details className="bbq-retrieval" data-bible-ask-retrieval>
+                <summary>{c.retrievalSummary(retrieval.length)}</summary>
+                <p className="bbq-retrievalHint">{c.retrievalHint}</p>
+                <ol>
+                  {retrieval.map((snippet, i) => (
+                    <li key={i}>{snippet}</li>
+                  ))}
+                </ol>
               </details>
             ) : null}
             <p className="bbq-answer">{answer}</p>
