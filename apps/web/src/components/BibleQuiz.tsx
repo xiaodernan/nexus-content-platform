@@ -444,6 +444,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《借椅子》里，潮汐时刻表上潮退时变成了什么？', choices: ['多了一道横线', '变成一片空白', '变成一行字', '完全消失了'], answer: 0, ref: '回响（其三十一） · 三' },
     en: { prompt: 'In “The Borrowed Chair”, what happened to the tide timetable each time the tide receded?', choices: ['it gained a line', 'it went blank', 'it became a sentence', 'it vanished'], answer: 0, ref: 'Echo No. 31 · III' },
   },
+  {
+    zh: { prompt: '《潮的名字》里，纸上先写出了什么字？', choices: ['潮', '潮落', '潮起', '潮汐'], answer: 0, ref: '回响（其三十二） · 一' },
+    en: { prompt: 'In “The Name of the Tide”, what did the paper write first?', choices: ['tide', 'ebb', 'rising tide', 'tide and moon'], answer: 0, ref: 'Echo No. 32 · I' },
+  },
+  {
+    zh: { prompt: '《潮的名字》里，潮纸篓里放的是什么？', choices: ['一捆潮纸，每张纸上都是一个潮字', '一沓欠条', '潮的签字', '潮的名字'], answer: 0, ref: '回响（其三十二） · 四' },
+    en: { prompt: 'In “The Name of the Tide”, what did the tide-wastebasket hold?', choices: ['a bundle of tide-papers, each bearing the character for tide', 'a stack of IOU notes', 'the tide’s signature', 'a list of names'], answer: 0, ref: 'Echo No. 32 · IV' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

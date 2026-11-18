@@ -11648,4 +11648,160 @@ The tide had not receded; the lampkeeper had not gone home.
 > The tide never arrived.
 `,
   },
+  {
+    order: 32,
+    slug: 'echo-032-the-name-of-the-tide',
+    titleZh: '潮的名字',
+    titleEn: 'The Name of the Tide',
+    eraLineZh: '纪元：潮上之夜 · 潮到下次退之前',
+    eraLineEn: 'Era: the night the tide rose · the hour before the tide next receded.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 32): The Name of the Tide
+
+> 回响不续写正典——它只记一份挑剩下的纪录：
+> 潮起来的时候，总是先看见潮的名字；潮落后，守灯人就再也找不到那张写着潮名字的纸。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> When the tide rose, its name appeared first; after the tide withdrew, the lampkeeper could never find the paper that bore the name.
+> Its anchors answer to the same discipline.
+
+> 纪元：潮上之夜 · 潮到下次退之前
+> Era: the night the tide rose · the hour before the tide next receded.
+
+---
+
+## 一 · 潮的名字
+
+潮汐的本身从来没有叫过自己的名字。可是时刻表上某一个夜晚，守灯人看见潮起来了——从册子里滑落的那一张写着"潮"字的旧册页，然后潮才起来。
+
+那一夜潮起来了。它从纸上滑落的那一刻，开始了。
+潮汐起的时候总是先看见潮的名字。
+**锚句**：潮汐起的时候总是先看见潮的名字。
+**Anchor sentence**: When the tide rose, it was the name that appeared first.
+
+## 二 · 潮汐时刻表的声音
+
+潮汐起来的时候时候，有一段时间走廊里传来很轻的声音——那是一种摩擦，像谁在用指甲划纸。守灯人循着声音走到门锥前。潮汐时刻表的"潮名"那一栏已经写着了。
+
+那一栏上写着："潮"。
+
+守灯人没有动。他又往下看，发现是无字的——没有人问过潮为什么要有名字。
+**锚句**：他又往下看，发现是无字的——没有人问过潮为什么要有名字。
+**Anchor sentence**: He looked further down — no words; no one had asked why the tide should have a name.
+
+## 三 · 名字什么时候消失了
+
+潮落下来以后，潮的名字也不见了。
+
+时刻表上的那一行字什么时候没了——守灯人没有记住。
+他只是在潮落下去的时候，把那一行字揉成了一团纸，扔进了潮纸篓。
+**锚句**：他只是在潮落下去的时候，把那一行字揉成了一团纸，扔进了潮纸篓。
+**Anchor sentence**: He folded that line of words into a ball and dropped it into the tide-wastebasket.
+
+## 四 · 潮纸篓
+
+潮纸篓在案台内侧，守灯人每天去清理它。纸篓里有一捆潮纸。每一张都是一些潮字。每张纸上只有一个潮字。
+
+潮纸篓里每一张纸都是一个潮字。
+**锚句**：潮纸篓里每一张纸都是一个潮字。
+**Anchor sentence**: Every piece of paper in the tide-wastebasket bore a single word: tide.
+
+## 五 · 潮在等
+
+潮等了一整夜，也没等到第二笔。
+
+守灯人继续守着时刻表。
+他没有发现纸篓里那一团纸被撕开。
+**锚句**：他没有发现纸篓里那一团纸被撕开。
+**Anchor sentence**: He did not find the paper in the wastebasket had been torn open.
+
+---
+
+## 模型映射（回响三十二则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 潮上之夜 · 潮名字 · 时刻表里那张无字的纸 | 第十一章 · 第十三章 |
+| geography | 誊册房 · 门锥 · 案台 · 潮纸篓 · 走廊 | 本则 · 第三十一则 |
+| factions | 守灯人 · 潮汐教团（重铸的章） | 第一章 · 本则 |
+| characters | 守灯人 · 潮的名字 | 本则 · 第三十一则 |
+| items | 潮纸篓 · 潮字纸 · 门锥 · 时刻表 | 本则 |
+| story | 潮的名字 · 回响（其三十二） | 全篇 |
+| history | 潮上之夜 · 潮名字时刻表 · 无字的理由没人问 | 本则 |
+
+> 潮自己没起名字，
+> 起名字的是一张纸。
+> The tide never named itself;
+> the name came from a piece of paper.
+`,
+    markdownEn: `
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> When the tide rose, its name appeared first; after the tide withdrew, the lampkeeper could never find the paper that bore the name.
+> Its anchors answer to the same discipline.
+
+> Era: the night the tide rose · the hour before the tide next receded.
+
+---
+
+## 1 · The name of the tide
+
+The tide never called itself by a name. And yet, on one night, as the lampkeeper opened the desk-ledger, the page that slipped from the binding bore one character: "tide." That very moment the tide came in.
+
+The tide came in. It had begun that very moment the page slipped.
+
+When the tide rose, it was the name that appeared first.
+**Anchor sentence**: When the tide rose, it was the name that appeared first.
+
+## 2 · The sound of the timetable
+
+When the tide began, there was a period when a faint sound travelled the corridor — a scraping, as though someone were running a fingernail across paper. The lampkeeper followed the sound to the door pillar. The timetable's "tide-name" line already read, in its own hand: "tide."
+
+No one had quest-asked the tide why it should have a name.
+
+He looked further down — no words; no one had asked why the tide should have a name.
+**Anchor sentence**: He looked further down — no words; no one had asked why the tide should have a name.
+
+## 3 · When the name disappeared
+
+The tide receded. The name was gone with it.
+
+The lampkeeper did not note when the line disappeared from the timetable. He simply took that line of words, crumpled it into a ball, and dropped it into the tide-wastebasket.
+
+He folded that line of words into a ball and dropped it into the tide-wastebasket.
+**Anchor sentence**: He folded that line of words into a ball and dropped it into the tide-wastebasket.
+
+## 4 · The tide-wastebasket
+
+The tide-wastebasket stood inside the desk. The lampkeeper emptied it every day. In it were bundles of tide-papers. Every piece of paper in it held a single word: tide.
+
+Every piece of paper in the tide-wastebasket bore a single word: tide.
+**Anchor sentence**: Every piece of paper in the tide-wastebasket bore a single word: tide.
+
+## 5 · The tide waited
+
+The tide waited all night, and no second stroke came.
+
+The lampkeeper stayed at the timetable. He did not find the ball of paper in the wastebasket had been torn open.
+
+He did not find the paper in the wastebasket had been torn open.
+**Anchor sentence**: He did not find the paper in the wastebasket had been torn open.
+
+---
+
+## Echo No. 32 — dimension mapping
+
+| Dim | Anchor | Linked |
+|---|---|---|
+| lore | the night the tide rose · the name of the tide · the unexplained line in the timetable | Ch. 11 · Ch. 13 |
+| geography | the copying hall · the door pillar · the desk · the tide-wastebasket · the corridor | this echo · Echo 31 |
+| factions | the lampkeeper · the Tide Conclave (re-cast seal) | Ch. 1 · this echo |
+| characters | the lampkeeper · the name of the tide | this echo · Echo 31 |
+| items | the tide-wastebasket · the tide-paper · the door pillar · the timetable | this echo |
+| story | the name of the tide · Echo No. 32 | whole piece |
+| history | the night the tide rose · the unexplained reason the "name" line | this echo |
+
+> The tide never named itself;
+> the name came from a piece of paper.
+`,
+  },
 ] as const;

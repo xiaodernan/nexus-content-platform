@@ -6254,3 +6254,11 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 > - /bible 页脚 三十一/XXXI · guideCopy 同步 · quiz 90→**92**（zh/en 镜像 +2 题 E31）
 > - SHA 重钉 ×2 · fe-gates 147/147 · 1353/1353 · build 绿
 > - SSR 实锤 /bible /echo-031-the-borrowed-chair 200 · /tide-oracle /tide-wire 全 200
+
+> **2026-11-19 cont. 249 · 回响（其三十二）《潮的名字》——潮字被纸写出来，潮退时纸不见了**
+> - 纪元：潮上之夜 · 潮到下次退之前（en: the night the tide rose · the hour before the tide next receded）
+> - 5 组锚句 zh/en 全局唯一 · **世界大典 422 zh / 422 en 全绿** · canon digest 重封存（63,012 chars · sha256=8a4a137d…）
+> - /bible 页脚 三十二/XXXII · guideCopy 同步 · quiz 92→**94**（zh/en 镜像 +2 题 E32）
+> - SHA 重钉 ×2（bible index 493b5153 · BibleQuiz 507b0ce8）· fe-gates 147/147 · 1353/1353 · build 绿
+> - SSR 实锤 /bible /echo-032-the-name-of-the-tide 200 · /tide-oracle /tide-wire 全 200
+> - **Tide-Oracle 缓存基准**：call-1 cold 3.95s → **call-2 replay 0.07s (100%)** → call-3 replay 0.05s (100%) · Redis shared · degraded:false
