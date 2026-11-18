@@ -29,6 +29,7 @@ const COPY: Record<Locale, {
   exampleKicker: string;
   footer: string;
   back: string;
+  citeLabel: { cited: (n: number) => string; declined: string; notCited: string };
 }> = {
   zh: {
     kicker: '问典 · The Tidal Inquiry',
@@ -45,6 +46,7 @@ const COPY: Record<Locale, {
     exampleKicker: '不知道问什么？试试这几句',
     footer: '问典答案由真实模型即兴生成（上下文 = 正典摘要），范围限于「低语诸王」；典籍里没有的，会明确说"典籍里没有"。',
     back: '← 回到典籍室',
+    citeLabel: { cited: (n) => `引经据典 · 逐字对齐 ✓（${n} 条）`, declined: '正典没写 · 如实说没有的答复', notCited: '自由作答 · 未逐字引用锚句' },
   },
   en: {
     kicker: 'The Tidal Inquiry',
@@ -61,6 +63,7 @@ const COPY: Record<Locale, {
     exampleKicker: 'Not sure what to ask? Try these',
     footer: 'Answers are generated live from the canon digest (nothing outside "The Whispers’ Kings"); what the canon does not hold, the Inquiry says so honestly.',
     back: '← Back to the shelf',
+    citeLabel: { cited: (n) => `Quoting the canon verbatim ✓ (${n})`, declined: 'Not in the canon — the Inquiry says so honestly', notCited: 'Free answer — no verbatim anchor from the canon' },
   },
 };
 
@@ -71,6 +74,7 @@ export function BibleAsk({ locale = 'zh', initialQuestion }: { locale?: Locale; 
   const [question, setQuestion] = useState(initialQuestion ?? '');
   const [answer, setAnswer] = useState('');
   const [badge, setBadge] = useState<{ model: string; cachedTokens: number } | null>(null);
+  const [cite, setCite] = useState<{ clause: 'cited' | 'declined' | 'not-cited'; anchorsCited?: number } | null>(null);
   const [phase, setPhase] = useState<Phase>('idle');
 
   const ask = useCallback(async (q: string) => {
@@ -104,6 +108,8 @@ export function BibleAsk({ locale = 'zh', initialQuestion }: { locale?: Locale; 
         ok?: boolean;
         model?: string;
         cachedTokens?: number;
+        citation?: 'cited' | 'declined' | 'not-cited' | 'unknown';
+        anchorsCited?: number;
       };
       if (!resp.ok || typeof body.answer !== 'string') {
         setPhase('honest');
@@ -111,6 +117,9 @@ export function BibleAsk({ locale = 'zh', initialQuestion }: { locale?: Locale; 
       }
       setAnswer(body.answer.trim());
       setBadge({ model: body.model ?? 'gpt-6.1-terra', cachedTokens: body.cachedTokens ?? 0 });
+      setCite((body.citation === 'cited' || body.citation === 'declined' || body.citation === 'not-cited')
+        ? { clause: body.citation, anchorsCited: body.anchorsCited }
+        : null);
       setPhase('answered');
     } catch {
       setPhase('honest');
@@ -184,6 +193,11 @@ export function BibleAsk({ locale = 'zh', initialQuestion }: { locale?: Locale; 
                 </span>
               )}
             </div>
+            {cite && (
+              <p className="bbq-cite" data-bible-ask-cite={cite.clause}>
+                {cite.clause === 'cited' ? c.citeLabel.cited(cite.anchorsCited ?? 1) : cite.clause === 'declined' ? c.citeLabel.declined : c.citeLabel.notCited}
+              </p>
+            )}
             <p className="bbq-answer">{answer}</p>
           </div>
         )}

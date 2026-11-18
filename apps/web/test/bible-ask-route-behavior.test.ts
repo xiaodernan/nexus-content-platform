@@ -69,14 +69,16 @@ beforeAll(() => {
 afterAll(() => setRateLimiter(undefined));
 
 describe('§BIBLE-4 POST /api/bible/q', () => {
-  it('正常一问一答：200 · capability=real · cachedTokens 透传', async () => {
+  it('正常一问一答：200 · capability=real · cachedTokens 透传 · citation 透出确定性判定', async () => {
     forceUnavailable = false;
     const res = await POST(req('203.0.113.55', { question: '《收件人》里谁收到了签收单？', locale: 'zh' }));
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { capability: string; cachedTokens: number; answer: string };
+    const body = (await res.json()) as { capability: string; cachedTokens: number; answer: string; citation?: string; anchorsCited?: number };
     expect(body.capability).toBe('real');
     expect(body.cachedTokens).toBe(4421);
     expect(body.answer).toContain('收件人');
+    expect(body.citation, 'citation 必须透出确定性判定字符串').toMatch(/cited|declined|not-cited/);
+    expect(typeof body.anchorsCited).toBe('number');
     expect(chatCalls.length).toBeGreaterThan(0);
   });
 
