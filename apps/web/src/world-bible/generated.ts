@@ -16160,6 +16160,180 @@ The last page of the watch-ledger reads: who waits? It waits — it waits for so
 `,
   },
   {
+    order: 148,
+    slug: 'echo-148-the-half-shoe-that-knows-footsteps',
+    titleZh: '祠殿门槛下那半只只认脚步的鞋',
+    titleEn: 'The Half-Shoe Beneath the Chapel Threshold That Only Knows Footsteps',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百一十四日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hundred-and-fourteenth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 148): The Half-Shoe Beneath the Chapel Threshold That Only Knows Footsteps
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给祠殿门槛下那半只鞋——它只认过门的人，不认待着的人。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the half-shoe beneath the chapel threshold — it recognizes only those who pass over it.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百一十四日。
+> Era: the Institute — after the 41st Convocation; the hundred-and-fourteenth day of the autumn-tide month.
+
+---
+
+## 一 · 门槛下的半只鞋
+
+抄本师膝上皮带滑下去——抄本师低头弯腰去捡——发现门槛下面有半只鞋——只有右半只——皮的颜色像老皮。
+
+**锚句**：门槛下面有半只鞋——只有右半只——皮的颜色像老皮。
+**Anchor sentence**: beneath the threshold there is a half-shoe — only the right half — and its leather resembles old, worn skin.
+
+---
+
+## 二 · 谁留下的
+
+没有人记得什么时候有一只鞋落在门槛下面——值更册没写——抄本师说会不会是散会那晚有人跑得快了一步。
+
+**锚句**：没人记得鞋什么时候落门槛下面——值更册没写。
+**Anchor sentence**: no one knows when the shoe came to rest beneath the threshold — the watch-ledger carries no entry.
+
+---
+
+## 三 · 它只认脚步
+
+值更人试过几次把鞋带走——鞋会在第二天回来——抄本师说它只认过门的脚步——它只认门槛。
+
+**锚句**：它只认过门的脚步——它只认门槛。
+**Anchor sentence**: it recognizes only the footsteps that cross the doorway — and it recognizes only the threshold.
+
+---
+
+## 四 · 散会夜
+
+散会那一夜——门槛上方有人停了一下——鞋从门槛下冒出半只——然后又进了回去。
+
+**锚句**：散会那一夜——门槛上方有人停了一下——鞋从门槛下冒出半只——然后又进了回去。
+**Anchor sentence**: on the night the Convocation dissolved — someone stopped at the threshold — the half-shoe rose from beneath it — and then it sank back out of sight.
+
+---
+
+## 五 · 它会替谁等
+
+抄本师说它在替某位还没进过这扇门的人等——值更人说不知道——值更册说不知道。
+
+**锚句**：被替它等的是还没进过这扇门的人——值更册不知道。
+**Anchor sentence**: it awaits someone who has not yet entered through this door — and the watch-ledger does not know.
+
+---
+
+## 六 · 值更册最后一页
+
+值更册最后一页："门槛不空——门槛下面有一只鞋——它在等一只脚。"
+
+**锚句**：值更册最后一页："门槛下面有一只鞋——它在等一只脚。"
+**Anchor sentence**: the last page of the watch-ledger reads: beneath the threshold there is a shoe — and it is waiting for one foot.
+
+---
+
+## 七 · 映射（回响一百四十八章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 半只鞋 · 门槛 · 散会夜它冒出来又回去 · 它等的那一只脚 | 一、二、三、四、五、六、七 |
+| geography | 祠殿门外 · 祠殿门槛 · 门槛内外 | 一、二、三 |
+| characters | 抄本师 · 值更人 · 散会那天所有过门的人 | 一、二、三、四、五、六 |
+| story | 半只鞋在门槛下 · 回响（其一百四十八） | 全篇 |
+| items | 半只鞋 · 值更册 · 门槛 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第一百一十四日 | 三、四、五、六 |
+
+> 祠殿门槛下那半只鞋——它只认门——它只认过门的人。
+> The half-shoe beneath the threshold — it knows only the threshold — it knows only those who pass through.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百四十八）「祠殿门槛下那半只只认脚步的鞋」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the half-shoe beneath the chapel threshold — it recognizes only those who pass over it.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给祠殿门槛下那半只鞋——它只认过门的人，不认待着的人。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the hundred-and-fourteenth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百一十四日。
+
+---
+
+## I · The Half-Shoe Under the Threshold
+
+Beneath the chapel threshold lies a half-shoe — only the right side — its leather the color of old, worn skin.
+
+**锚句**：门槛下面有半只鞋——只有右半只——皮的颜色像老皮。
+**Anchor sentence**: beneath the threshold there is a half-shoe — only the right half — and its leather resembles old, worn skin.
+
+---
+
+## II · No One Remembers
+
+No one knows when the shoe came to rest beneath the threshold — the watch-ledger carries no entry — the copyists wonder whether a runner from the Dissolution stumbled.
+
+**锚句**：没人记得鞋什么时候落门槛下面——值更册没写。
+**Anchor sentence**: no one knows when the shoe came to rest beneath the threshold — the watch-ledger carries no entry.
+
+---
+
+## III · It Recognizes Only Footsteps
+
+The head of the watch has tried to remove the shoe — and it returns to the same spot — the copyists say it only recognizes the footsteps at the doorway.
+
+**锚句**：它只认过门的脚步——它只认门槛。
+**Anchor sentence**: it recognizes only the footsteps that cross the doorway — and it recognizes only the threshold.
+
+---
+
+## IV · The Night of the Dissolution
+
+On the night the Convocation dissolved — someone stopped at the threshold — the half-shoe rose from beneath it — and then it sank back out of sight.
+
+**锚句**：散会那一夜——门槛上方有人停了一下——鞋从门槛下冒出半只——然后又进了回去。
+**Anchor sentence**: on the night the Convocation dissolved — someone stopped at the threshold — the half-shoe rose from beneath it — and then it sank back out of sight.
+
+---
+
+## V · It Waits
+
+The copyists say it is waiting for someone who has not yet entered through this door — the head of the watch does not know — the watch-ledger does not know.
+
+**锚句**：被替它等的是还没进过这扇门的人——值更册不知道。
+**Anchor sentence**: it awaits someone who has not yet entered through this door — and the watch-ledger does not know.
+
+---
+
+## VI · The Last Page of the Watch-Ledger
+
+The last page of the watch-ledger reads: beneath the threshold there is a shoe — and it is waiting for one foot.
+
+**锚句**：值更册最后一页："门槛下面有一只鞋——它在等一只脚。"
+**Anchor sentence**: the last page of the watch-ledger reads: beneath the threshold there is a shoe — and it is waiting for one foot.
+
+---
+
+## VII · Mapping（Echo No. 148 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the half-shoe · the threshold · the night at the doorway · the shoe that recognizes footsteps · the one foot | 一、二、三、四、五、六、七 |
+| geography | the threshold outside the chapel · the chapel door · the chapel interior | 一、二、三 |
+| characters | the copyists · the head of the watch · everyone passing through | 一、二、三、四、五、六 |
+| story | the half-shoe beneath the threshold · Echo No. 148 | 全篇 |
+| items | the half-shoe · the watch-ledger · the threshold | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the hundred-and-fourteenth day of the autumn-tide month | 三、四、五、六 |
+
+> 祠殿门槛下那半只鞋——它只认门——它只认过门的人。
+> The half-shoe beneath the threshold — it knows only the threshold — it knows only those who pass through.
+`,
+  },
+  {
     order: 15,
     slug: 'echo-015-the-lamp-the-wine-shop-never-remembers',
     titleZh: '巷子深处那盏没人记得的灯',
