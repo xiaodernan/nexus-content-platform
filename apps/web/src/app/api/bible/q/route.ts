@@ -5,6 +5,7 @@ import { csrfOk } from '@/server/security/csrf';
 import { clientIp, getRateLimiter, ipWriteGate, rateKey } from '@/server/security/rateLimit';
 import { badRequest, jsonError, readJson } from '@/server/http';
 import { runCanonAnswerGraph } from '@/server/ai/canonGraph';
+import { verifyAnchorCitation } from '@/server/domain/oracleCitation';
 import { increment, observe } from '@/server/observability';
 
 /**
@@ -58,6 +59,9 @@ export async function POST(req: Request): Promise<NextResponse> {
     const verified = result.verdict === 'pass';
     observe('nexus_bible_ask_latency_ms', durationMs, { outcome: verified ? 'answer' : 'answer-unverified' });
     increment('nexus_bible_ask_total', { outcome: verified ? 'answer' : 'answer-unverified' });
+    // §TIDE-ORACLE-VERIFY（ cont.359 延伸）· 潮语/问典同一条：确定性地逐字检测回答有没有出自典籍的锚句
+    const citation = verifyAnchorCitation(result.answer);
+    const anchorsCited = citation.clause === 'cited' ? citation.anchors.length : 0;
     return NextResponse.json({
       answer: result.answer,
       capability: 'real',
@@ -72,6 +76,8 @@ export async function POST(req: Request): Promise<NextResponse> {
         retrieved: result.retrieved.length,
         nodes: result.nodesVisited,
       },
+      citation: citation.clause,
+      anchorsCited,
     });
   } catch (_error) {
     increment('nexus_bible_ask_total', { outcome: 'error' });

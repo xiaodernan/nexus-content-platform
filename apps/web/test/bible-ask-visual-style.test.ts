@@ -53,6 +53,7 @@ describe('§BIBLE-4 /bible/ask 问典', () => {
     expect(component).toContain('data-bible-ask-submit');
     expect(component).toContain('data-bible-ask-badge');
     expect(component).toContain('data-bible-ask-example');
+    expect(component).toContain('data-bible-ask-cite');
     expect(component).toContain('EXAMPLE_QUESTIONS');
     expect(component).toContain('503');
   });
@@ -94,7 +95,7 @@ describe('§BIBLE-4 /bible/ask 问典', () => {
       'feb2ff26800407e0fcec93271ae796c3920f0ab501c82291cd4971222915f2fe',
     );
     expect(createHash('sha256').update(redactClasses(component)).digest('hex')).toBe(
-      'f2e5148b7b4b81e9dc7c96f35f0cf08fb7533aa85f225c566187335e7957373c',
+      'd8df196672d61d6e42a03a9b4269bfdfaec82bf461f8f9bcca9690842352edb8',
     );
   });
 });

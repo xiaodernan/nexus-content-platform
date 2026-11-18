@@ -7692,9 +7692,19 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 新篇：「门岗访客籍 · 没有一个人进来过 · 小孩头上不见影子 · 散会后它不再记」—— digest 现 **235,610 chars**（13 章正典 · **141 回响** · 4 annex · 锚句 863 zh / 863 en ✓）。
 - 6 锚句双语 · gen-bible-snapshot 增 echo-141 · BibleAsk lede → 141 · /bible/ask meta → 一百四十一篇 · CACHE-IDENTITY × 141 · canon-answer-graph → 154 段 · bible-ask-behavior → 858 · pin 重钉 page→feb2ff26 / comp→f2e5148b · InsightCanonChat hint 同步 141。
 - fe-gates **1370/1370** ✓ · verify:world-bible 863/863 ✓。
-## cont. 382 (2026-11-19) · 两线双生合流 — Echo #140《潮候院雨书》并入 lineage · 并线重生 digest · /canon digest 完整 240k chars
+## cont. 382+383 (2026-11-19) · 双线双生二次合流 — Echo #139/#140/#141 并入 lineage · 本线 Echo #140重排 → **Echo #142《潮候院雨书》**
 
-- 并行线先落成 Echo #139《只望雾港的望远镜》· 本线新内容《潮候院雨书》重排为 Echo #140，与其线并行而非冲突（gen-bible-snapshot 章节校准）
-- digest chars **235,117** · sha256 `efbfe122…` · 13 章正典 · **140 回响** · 4 附录 · verify:world-bible **856/856** · anchor-echo OK · verify:bible-snapshot OK
-- 合流结果保留两边 canon（双方均完成各自 CI 修复·合流后 lint + fe-gates 1370/1370）
-- 缓存稳定性再次量测（25 问）：steady-state **93.84% hit · never dropped below, full hit on call #2 (rising = 100%)**`: docs/evidence/cache-stability-2026-11-19.md`
+- 第一次合流（cont.378-381）：本线 Echo #140《潮候院雨书》重排为 E140，并行线《只望雾港的望远镜》先落 E139。
+- 第二次合流：并行线又落 E140《抄本室那盏从不熄灭的灯》· E141《门岗那本只记未入的访客籍》。
+- 本线《潮候院雨书》重排为 **Echo #142**，文件重命名 E142-潮候院雨书.{md,en.md} · gen-bible-snapshot 重登 · BibleQuiz ref 同步 ·digest **235,932 chars · 142 回响 · 4 附录**
+- verify:world-bible **868/868** · snapshot OK · anchors OK 626 · bible-ask-behavior pin **863** · BibleQuiz pin f2282a10
+- fe-gates 150/150 · 1370/1370 · census 2987 · 合线后 lint gate exit 0
+
+## cont. 386 (2026-11-19) — v1003 · §ASK-CITE · /api/bible/q 接返引文机检 + 问典答复 chip
+
+- 问典现在也透出确定性的锚句引文判定（cont.359 §TIDE-ORACLE-VERIFY 之于 Ask lane 同一纪律）：
+  `verifyAnchorCitation(result.answer)` 同步跑 → 回报 `citation: cited | declined | not-cited` + `anchorsCited: number`。
+- UI：问典答复区渲染 `.bbq-cite` chip — `引经据典 · 逐字对齐 ✓（N 条）` / `正典没写 · 如实说没有的答复` / `自由作答 · 未逐字引用锚句` · zh/en 双语。
+- 路由契约 test（bible-ask-route-behavior）新增断言：`citation` 必为三态字符串 · `anchorsCited` 必为 number；`bible-ask-visual-style` pin 重钉 page→feb2ff26 / comp→d8df1966 · `.bbq-cite` 进 GLOBALS · data hook `data-bible-ask-cite`。
+- 浏览器 live 验证：问典「《收件人》里谁收到了那张签收单？」→ cached 7252 tokens · chip 显示**自由作答 · 未逐字引用锚句**（模型没逐字引正典时如实说没有 — §159 诚实边界生效）。
+- fe-gates **1370/1370** ✓。
