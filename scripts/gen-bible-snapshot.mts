@@ -127,6 +127,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E83-潮候院祠殿后那一汪从不照见任何东西的水潭': 'echo-083-the-pool-that-shows-nothing',
   'E84-潮候院祠殿碾房角落那口从不生锈的旧铁锅': 'echo-084-the-pot-that-never-rusts',
   'E85-潮候院祠殿屋脊上那对永远不孵蛋的铜斑鸽': 'echo-085-the-bronze-pigeons-on-the-ridge',
+  'E86-潮候院东厢那根永远不凉的火箸': 'echo-086-the-tongs-that-never-go-cold',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

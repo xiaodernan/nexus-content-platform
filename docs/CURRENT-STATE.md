@@ -5728,3 +5728,10 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 第 85 篇回响「铜斑鸽」：屋脊上两只铸进整个屋脊的铜鸽——东西各一只——散会后某一晚值更人听见金属相击——像谁在屋脊上整理羽毛——修脊人说“脊上全是铜——像从来没有鸟孵过”——院里小孩问抄本师是什么——辅库进出册最后一行从那一页起没人敢签名字。
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-085-the-bronze-pigeons-on-the-ridge`；verify world-bible **494/494** ✓；verify:bible-snapshot ✓。
 - 同步：BibleAsk lede → 85（含 en）；/bible/ask meta → 八十五篇 / eighty-five；cache-identity → 85 篇锚句；bible-ask-behavior 锚句总数 488→494；canon-answer-graph 测试 90 段 / 85 echoes；pins 重钉（page→3befbe38… comp→c3b5447d…）· 相关测试 24/24。
+
+## cont. 336 (2026-11-18) — v954 · §BIBLE-86 · Echo #86《潮候院东厢那根永远不凉的火箸》（作者手写·双语·500/500 绿）
+
+- 第 86 篇回响「火箸」：东厢最里头的木箱里裹布睡着一对火箸——它从没凉过——米缸月冻手的人贴上去几乎能烫起泡——值更人发现它每天往东挪一点——四百年挪了一丈——散会后有人挂了个木牌刻着一个斑字——抄本师说："它自己忙。"
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-086-the-tongs-that-never-go-cold`；verify world-bible **500/500** ✓ · verify:bible-snapshot ✓。
+- 里程碑：锚句总数破五百（500 zh / 500 en）。
+- 同步：BibleAsk lede → 86（含 en）；/bible/ask meta → 八十六篇 / eighty-six；cache-identity → 86 篇锚句；bible-ask-behavior 锚句总数 494→500；canon-answer-graph 测试 91 段 / 86 echoes；pins 重钉（page→f8233aa2… comp→986a4cdc…）· 相关测试 24/24；fe-gates 1285/1285（v953 全跑确认）。
