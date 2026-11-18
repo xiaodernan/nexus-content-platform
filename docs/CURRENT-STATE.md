@@ -7669,3 +7669,9 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
   L2 design lane（dryRun stub）：cold=0 → warm=299,393/299,393（103 ms，100% cached）PASS。
 - §AILIVE-4 证据 `docs/evidence/probe-ailive4-2026-11-19.md`（边界如实记录：L2 tokens_in 口径 ≈ digest×2；model/gpt-6.1-terra 同 system 不同车道的 input 账目口径需留意；真实 studio 会话仍待细测）。
 - IO 不 bump（本轮为探针收录片）。
+
+## cont. 383 (2026-11-19) — v1001 · §BIBLE-140 · Echo #140《抄本室那盏灯》(作者手写 · verify 857/857)
+
+- 新篇：「抄本室那盏灯 · 没人添过油 · 散会夜先灭一闪 · 它只要家传声册里有人抄它的光」—— digest 现 **235,147 chars**（13 章正典 · **140 回响** · 4 annex · 锚句 857 zh / 857 en ✓）。
+- 6 锚句 bilingual · gen-bible-snapshot 增 echo-140 · BibleAsk lede → 140 · /bible/ask meta → 一百四十篇 · CACHE-IDENTITY × 140 · canon-answer-graph → 153 段 · bible-ask-behavior → 852 · pin 重钉 page→87a27f25 / comp→98d1c660 · InsightCanonChat hint 同步 140 回响。
+- fe-gates **1370/1370** ✓ · verify:world-bible 857/857 ✓。
