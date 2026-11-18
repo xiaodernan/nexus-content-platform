@@ -7372,3 +7372,15 @@ origin/main 支线（lineage-2）的 big-context 版本直接拷贝入仓作历�
 
 0 次 502 / 0 次超时 / 0 次掉缓存。根因：sticky cache lane（ADR-0284）让同 digest 同问题在并发下落到同一健康通道；provider 行为完全可预测。
 **意义**：以本文 freshness 为证，§十一 压力测试 已并至 lineage evidence 台账（见 evidence 文件 + lineage-2 `storm-32` 双闸互证）。
+
+## cont. 355 (2026-11-18) — v974 · §INSIGHT-LANE-RETEST · /insight ⑧ 车道合流后重探：全绿 93.6% / 100% · 此前的 provider 502 已自愈
+
+此前 cont.347 如实记账：lane 003（变体问句）三次被 provider 502 掐断，那时无法证明该车道跨 prompts 复用能力。合流后 big-context digest（ADR-0286 · tokensIn≈148,228 / call）重跑同一探针，三次全 200：
+
+- lane 001 (cold): tokensIn=148,228 · cached=7,058 (4.8%) · 9.8 s
+- lane 002 (same): cached=148,228 (**100%**) · **17 ms**
+- lane 003 (variant): cached=138,651 (**93.6%**) · 8.1 s
+
+provider 侧 5xx 抖动消失；INCIDENCE-of `INSIGHT_AI_SYSTEM_PROMPT` regen 后 229,800 chars（CANON_DIGEST embed）。cacheReported=true；verifications 都保持一致，与 §STRESS-16 双印互证 KV 车道稳定性。未改任何 web 代码。
+
+证据存档：`docs/evidence/insight-lane-v973-2026-11-19.md`。
