@@ -15986,6 +15986,180 @@ The last page of the watch-ledger reads: they are waiting for someone to pass by
 `,
   },
   {
+    order: 147,
+    slug: 'echo-147-the-old-gate-that-waits-for-the-fourteenth-vigil-keeper',
+    titleZh: '潮候院外郊那道只等第十四位守灵人的旧木门',
+    titleEn: 'The Old Gate Outside the Institute That Only Awaits the Fourteenth Vigil-Keeper',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百一十三日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hundred-and-thirteenth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 147): The Old Gate Outside the Institute That Only Awaits the Fourteenth Vigil-Keeper
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院外郊那道旧木门——谁也说不清它通向哪里——也许只通向第十四位守灵人的到来。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the old gate outside the Institute — no one knows where it leads — perhaps only to the arrival of the fourteenth vigil-keeper.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百一十三日。
+> Era: the Institute — after the 41st Convocation; the hundred-and-thirteenth day of the autumn-tide month.
+
+---
+
+## 一 · 老门只朝向外
+
+潮候院外郊有一道老门——木头的——漆早褪了——它朝外开，不朝潮沙盘，不朝潮候院方向，也不朝任何门。
+
+**锚句**：潮候院外郊有一道老门——木头的——漆早褪了——它朝外开。
+**Anchor sentence**: outside the Institute stands an old gate — wood — its paint has long since faded — it opens outward only.
+
+---
+
+## 二 · 不是对谁开的
+
+值更人说它对谁也不开——包括值更人——包括抄本师——包括院里活过的每一个人。
+
+**锚句**：值更人说它对谁也不开——包括值更人。
+**Anchor sentence**: the head of the watch says it opens for no one — not even for him.
+
+---
+
+## 三 · 它醒过一次
+
+散会那一夜——门从里面打开过一次——没人去过——值更册没有记这件事——但是第二天早晨它是关着的。
+
+**锚句**：散会那一夜——门从里面打开过一次——第二天早晨它是关着的。
+**Anchor sentence**: on the night the Convocation dissolved — from inside the gate opened once — and in the morning it was closed.
+
+---
+
+## 四 · 抄本师的猜测
+
+抄本师说那道门只为第十四位守灵人开——第一位到第十三位已经在了——第十四位还在路上。
+
+**锚句**：抄本师说那道门只为第十四位守灵人开——第一位到第十三位已经在了。
+**Anchor sentence**: the copyists say the gate opens only for the fourteenth vigil-keeper — the thirteen before him are already here.
+
+---
+
+## 五 · 门上没有锁
+
+没有人给门上过锁——也没人看见谁去掉过锁——抄本师说它自己会决定什么时候关、什么时候开。
+
+**锚句**：没人上过锁——也没人看见谁去掉过锁——它自己决定什么时候开。
+**Anchor sentence**: no lock has ever been placed on it — no one has been seen removing one either — it alone decides when to open.
+
+---
+
+## 六 · 值更册最后一页
+
+值更册最后一页："谁在等？它在等——它在等某个人过这道门——谁过——它自己知道。"
+
+**锚句**：值更册最后一页："谁在等？它在等——它在等某个人过这道门。"
+**Anchor sentence**: the last page of the watch-ledger reads: who waits? It waits — it waits for someone to pass through this gate.
+
+---
+
+## 七 · 映射（回响一百四十七章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 老门 · 第十四位守灵人 · 散会夜它自己开一次 · 没有锁 · 它知道谁会过 | 一、二、三、四、五、六、七 |
+| geography | 外郊 · 院墙外 · 郊野方向 · 雾港外沿 | 一、二、三、四 |
+| characters | 抄本师 · 值更人 · 散会所有人 · 第十四位守灵人（未到） | 一、二、三、四、五、六 |
+| story | 只为第十四位守灵人开的老门 · 回响（其一百四十七） | 全篇 |
+| items | 老门 · 值更册 · 守灵人的手 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第一百一十三日 | 三、四、五、六 |
+
+> 潮候院外郊那道老门——它只朝外开——它只等第十四位守灵人。
+> The old gate outside the Institute — it opens only outward — and it waits only for the fourteenth vigil-keeper.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百四十七）「潮候院外郊那道只等第十四位守灵人的旧木门」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the old gate outside the Institute — no one knows where it leads — perhaps only to the arrival of the fourteenth vigil-keeper.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院外郊那道旧木门——谁也说不清它通向哪里——也许只通向第十四位守灵人的到来。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the hundred-and-thirteenth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百一十三日。
+
+---
+
+## I · The Gate Opens Outward
+
+Outside the Institute stands an old gate — wood — its paint has long since faded — it opens outward only.
+
+**锚句**：潮候院外郊有一道老门——木头的——漆早褪了——它朝外开。
+**Anchor sentence**: outside the Institute stands an old gate — wood — its paint has long since faded — it opens outward only.
+
+---
+
+## II · It Opens For No One
+
+The head of the watch says it opens for no one — not even for him — not for the copyists — not for anyone who has lived here.
+
+**锚句**：值更人说它对谁也不开——包括值更人。
+**Anchor sentence**: the head of the watch says it opens for no one — not even for him.
+
+---
+
+## III · The One Time It Woke
+
+On the night the Convocation dissolved — from inside the gate opened once — and in the morning it was closed.
+
+**锚句**：散会那一夜——门从里面打开过一次——第二天早晨它是关着的。
+**Anchor sentence**: on the night the Convocation dissolved — from inside the gate opened once — and in the morning it was closed.
+
+---
+
+## IV · The Fourteenth Vigil-Keeper
+
+The copyists say the gate opens only for the fourteenth vigil-keeper — the thirteen before him are already here.
+
+**锚句**：抄本师说那道门只为第十四位守灵人开——第一位到第十三位已经在了。
+**Anchor sentence**: the copyists say the gate opens only for the fourteenth vigil-keeper — the thirteen before him are already here.
+
+---
+
+## V · There Is No Lock
+
+No lock has ever been placed on it — no one has been seen removing one either — it alone decides when to open.
+
+**锚句**：没人上过锁——也没人看见谁去掉过锁——它自己决定什么时候开。
+**Anchor sentence**: no lock has ever been placed on it — no one has been seen removing one either — it alone decides when to open.
+
+---
+
+## VI · The Last Page of the Watch-Ledger
+
+The last page of the watch-ledger reads: who waits? It waits — it waits for someone to pass through this gate.
+
+**锚句**：值更册最后一页："谁在等？它在等——它在等某个人过这道门。"
+**Anchor sentence**: the last page of the watch-ledger reads: who waits? It waits — it waits for someone to pass through this gate.
+
+---
+
+## VII · Mapping（Echo No. 147 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the old gate · the fourteenth vigil-keeper · the night it opened once · the missing lock | 一、二、三、四、五、六、七 |
+| geography | the outer edge · beyond the wall · toward the tide-flats | 一、二、三、四 |
+| characters | the copyists · the head of the watch · everyone at the Dissolution · the fourteenth vigil-keeper who has not yet arrived | 一、二、三、四、五、六 |
+| story | the gate that waits for the fourteenth · Echo No. 147 | 全篇 |
+| items | the old gate · the watch-ledger · the vigil-keeper's hand | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the hundred-and-thirteenth day of the autumn-tide month | 三、四、五、六 |
+
+> 潮候院外郊那道老门——它只朝外开——它只等第十四位守灵人。
+> The old gate outside the Institute — it opens only outward — and it waits only for the fourteenth vigil-keeper.
+`,
+  },
+  {
     order: 148,
     slug: 'echo-148-the-letter-that-holds-one-character',
     titleZh: '潮候院只收一个字的信',

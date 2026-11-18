@@ -7753,8 +7753,8 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 ## cont. 390 (2026-11-19) · §BIBLE-144 ✓ §BIBLE-145 ✓ §BIBLE-146 · 双线三次合流 · Echo #148《潮候院只收一个字的信》
 
 - 合流后：digest **237,369 chars · sha256=90e2a49e…** · 13 章 · **146 回响** · 4 附录 · verify:world-bible **891/891** · snapshot OK · anchors OK
-- 本线《潮候院只收一个字的信》重排 E144 → E145 → E146 → **E147**——并行线三连发 E144《未尽事册》/ E145《闭馆台只朝门口的水钟》
-- quiz 93 题 · answers pin 186/186 · bible-ask-behavior pin **886** · BibleQuiz pin 13f71a26
+- 本线《潮候院只收一个字的信》重排 E144 → E145 → E146 → E147 → **E148**——并行线三连发 E144《未尽事册》/ E145《闭馆台只朝门口的水钟》
+- quiz 93 题 · answers pin 186/186 · bible-ask-behavior pin **886** · BibleQuiz pin f8915d7d
 - fe-gates 150/150 · 1370/1370 · census 2989 · Tide-Oracle cache-stability 88 问实测*稳 ≥93.8%*：详见 `docs/evidence/cache-stability-2026-11-19.md`
 
 ## cont. 391 (2026-11-19) — v1032 · §BIBLE-146 · Echo #146《祠殿后墙外那一排盐盘》(作者手写 · verify 892/892)
@@ -7762,3 +7762,20 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 新篇：「祠殿后墙外那排盐盘 · 每天多一枚 · 散会夜自己冒烟 · 它们在等某个人经过」—— digest 现 **237,472 chars**（13 章正典 · **146 回响** · 4 annex · 锚句 892 zh / 892 en ✓）。
 - 6 锚句双语 · gen-bible-snapshot 增 echo-146 · BibleAsk lede → 146 · /bible/ask meta → 一百四十六篇 · CACHE-IDENTITY × 146 · canon-answer-graph → 159 段 · bible-ask-behavior → 887 · pin 重钉 page→c45c6b1d / comp→6062254e · InsightCanonChat hint 同步至 146。
 - fe-gates **1370/1370** ✓ · verify:world-bible 892/892 ✓。
+
+## cont. 392 (2026-11-19) — v1033 · §BIBLE-147 · Echo #147《只等第十四位守灵人的旧木门》(作者手写 · verify 898/898)
+
+- 新篇：「外郊老门 · 它朝外开 · 散会夜自己打开一次 · 抄本师说它只为第十四位守灵人开」—— digest 现 **237,868 chars**（13 章正典 · **147 回响** · 4 annex · 锚句 898 zh / 898 en ✓）— 当前 machine unbounded RAM 内存只能继续扩 a few 小步长扩容 digest。
+- 6 锚句双语 · gen-bible-snapshot 增 echo-147 · BibleAsk lede → 147 · /bible/ask meta → 一百四十七篇 · CACHE-IDENTITY × 147 · canon-answer-graph → 160 段 · bible-ask-behavior → 893 · pin 重钉 page→67aeff44 / comp→8af392ee · InsightCanonChat hint 同步至 147。
+
+## cont. 392 (2026-11-19) — v1033 · §BIBLE-147 · Echo #147《只等第十四位守灵人的旧木门》(作者手写 · verify 898/898)
+
+- 新篇：「外郊老门 · 它朝外开 · 散会夜自己打开一次 · 抄本师说它只为第十四位守灵人开」—— digest 现 **237,868 chars**（13 章正典 · **147 回响** · 4 annex · 锚句 898 zh / 898 en ✓）— 当前 machine unbounded RAM 内存只能继续扩 a few 小步长扩容 digest。
+- 6 锚句双语 · gen-bible-snapshot 增 echo-147 · BibleAsk lede → 147 · /bible/ask meta → 一百四十七篇 · CACHE-IDENTITY × 147 · canon-answer-graph → 160 段 · bible-ask-behavior → 893 · pin 重钉 page→67aeff44 / comp→8af392ee · InsightCanonChat hint 同步至 147。
+
+## cont. 392 (2026-11-19) · §BIBLE-147 ✓ §BIBLE-148 · 双线第五次合流 · 本线篇现 **Echo #148《潮候院只收一个字的信》**
+
+- 并行线再落 E147《只等第十四位守灵人的旧木门》（v1033 · 898/898 · digest 237,868）→ 本线篇连续第五次让位：E144 → E145 → E146 → E147 → **E148**（潮候院只有一个字「走」的信 · E148-潮候院只收一个字的信.{md,en.md}）
+- digest regenerated 合并后：**238,167 chars · sha256=a3985b5b…** · 13 章 · **148 回响** · 4 附录 · verify:world-bible **903/903** · snapshot OK · anchors OK
+- bible-ask-behavior pin **898** · BibleQuiz pin `f8915d7d…` · quiz 93 题 · answers pin 186/186 · census 2989
+- fe-gates **150/150 · 1370/1370** · 本线不再与并行线抢 echo 编号——后续改走 back log（/guide 扩展 · /admin 预测面板 · RAG 深化），canon 让位
