@@ -11485,4 +11485,167 @@ When the tide withdrew, the lampkeeper still had not left the chair.
 > he was never asked.
 `,
   },
+  {
+    order: 31,
+    slug: 'echo-031-the-borrowed-chair',
+    titleZh: '借椅子',
+    titleEn: 'The Borrowed Chair',
+    eraLineZh: '纪元：潮落之月 · 潮上之夜',
+    eraLineEn: 'Era: the month of tides · the night the tide rose.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 31): The Borrowed Chair
+
+> 回响不续写正典——它只记一份挑剩下的纪录：
+> 潮还没有退。年轻人走了，没有带走那张椅子；守灯人没有问他叫什么。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> The tide had not receded. The young man left without taking the chair; the lampkeeper did not ask his name.
+> Its anchors answer to the same discipline.
+
+> 纪元：潮落之月 · 潮上之夜
+> Era: the month of tides · the night the tide rose.
+
+---
+
+## 一 · 那把空的椅子
+
+第四十四次会的第四天守灯人醒来以后，发现那把最靠门的椅子还是空的——但比他昨晚记得的位置更靠近桌子一点。他昨晚倒并不是在桌子前守着他的；他只是沿着门锥站了一整晚。没有人把那把椅子推回去。
+
+守灯人比以前更晚醒。窗被潮从外面拍了一下。
+
+守灯人比以前更晚醒。
+**锚句**：守灯人比以前更晚醒。
+**Anchor sentence**: The lampkeeper woke later than before.
+
+## 二 · 没有人来过的那夜
+
+那晚没有潮汐教团的人。也没有外来的人。第四天以后，成员接到了一个通知——叫他们不要来。没有人知道谁发出的这个通知。
+
+守灯人一个人在案台边坐了一整夜，偶尔看向门锥，然后看回桌子。没有人来过。
+
+第四天以后，没有人知道是谁说了"不要来"。
+**锚句**：第四天以后，没有人知道是谁说了"不要来"。
+**Anchor sentence**: After the fourth day, no one knew who had said "do not come."
+
+## 三 · 守着的潮水
+
+潮来潮又退，周而复始。每退一厘米，誊册房门锥的潮汐时刻表纸上就多一道横线。
+
+守灯人不会念那些横线。
+
+潮退一厘米，时刻表纸上多一道横线。
+**锚句**：潮退一厘米，时刻表纸上多一道横线。
+**Anchor sentence**: Each centimeter the tide receded, the timetable on the door pillar gained a line.
+
+## 四 · 年轻人
+
+他再也没有回来。守灯人没有写下他的名字，因为守灯人连他叫什么都不知道。
+
+守灯人没有算过时刻表的"一寸"跟"一厘"之间的距离。
+
+他不知道那一寸跟一厘有什么不一样。
+**锚句**：他不知道那一寸跟一厘有什么不一样。
+**Anchor sentence**: He did not know what the difference between an inch and a centimeter was.
+
+## 五 · 潮汐时刻表没有写完
+
+潮还没有退。
+
+守灯人没有回家。桌子上纸上、草稿上的笔头都不见了。守灯人坐在案台边，面对时刻表，面对那把空椅子。
+
+潮还没有退，守灯人还没有回家。
+**锚句**：潮还没有退，守灯人还没有回家。
+**Anchor sentence**: The tide had not receded; the lampkeeper had not gone home.
+
+---
+
+## 模型映射（回响三十一则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 潮落之月 · 潮上之夜 · 第四十四次会第四天之后 | 第十一章 · 第十三章 |
+| geography | 誊册房 · 门锥 · 案台 · 靠门的椅子 | 本则 · 第二十六则 · 第二十九则 · 第三十则 |
+| factions | 守灯人 · 未知来人 · 潮汐教团（重铸的章） | 第一章 · 本则 |
+| characters | 守灯人 · 没被问名字的年轻人 | 本则 · 第二十九则 · 第三十则 |
+| items | 靠门的空椅子 · 潮汐时刻表 · 桌上的笔 · 门锥 | 本则 |
+| story | 借了一把不用的椅子 · 回响（其三十一） | 全篇 |
+| history | 潮落之月 · 第四十四次会之后 · 没人再叫过"不要来" | 本则 |
+
+> 椅子借用，
+> 退潮未到。
+> The chair had been borrowed.
+> The tide never arrived.
+`,
+    markdownEn: `
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> The tide had not receded. The young man left without taking the chair; the lampkeeper did not ask his name.
+> Its anchors answer to the same discipline.
+
+> Era: the month of tides · the night the tide rose.
+
+---
+
+## 1 · The empty chair
+
+On the morning of the fourth day of the forty-fourth Convocation, the lampkeeper woke to find the chair nearest the door still empty — but it was a touch closer to the desk than he remembered from the night before. He had not kept vigil over the desk. He had stood along the door pillar all night. No one had pushed the chair back.
+
+The lampkeeper had woken later than before. The window had been tapped from outside by the tide.
+
+The lampkeeper woke later than before.
+**Anchor sentence**: The lampkeeper woke later than before.
+
+## 2 · The night no one came
+
+That night, no one from the Tide Conclave came; no strangers either. After the fourth day, the members received a notice — do not come. No one knew who issued the notice.
+
+The lampkeeper sat alone beside the desk all night, looking from time to time at the door pillar, then back at the table. No one came.
+
+After the fourth day, no one knew who had said "do not come."
+**Anchor sentence**: After the fourth day, no one knew who had said "do not come."
+
+## 3 · The tide he kept
+
+The tide came and went; it rose again and fell again. Each centimeter it receded, the tide timetable on the door pillar kept a fresh line.
+
+The lampkeeper could not read those lines.
+
+Each centimeter the tide receded, the timetable on the door pillar gained a line.
+**Anchor sentence**: Each centimeter the tide receded, the timetable on the door pillar gained a line.
+
+## 4 · The young man
+
+He did not come back. The lampkeeper had not written down his name — he had never known it.
+
+The lampkeeper had not calculated the difference between an inch and a centimeter on the timetable.
+
+He did not know what the difference between an inch and a centimeter was.
+**Anchor sentence**: He did not know what the difference between an inch and a centimeter was.
+
+## 5 · The tide timetable unfinished
+
+The tide has not receded.
+
+The lampkeeper has not gone home. The pen and the scrap of paper are missing from the desk. The lampkeeper sits by the desk, facing the timetable, facing the empty chair.
+
+The tide had not receded; the lampkeeper had not gone home.
+**Anchor sentence**: The tide had not receded; the lampkeeper had not gone home.
+
+---
+
+## Echo No. 31 — dimension mapping
+
+| Dim | Anchor | Linked |
+|---|---|---|
+| lore | the month of tides · the night the tide rose · after the fourth day of the forty-fourth Convocation | Ch. 11 · Ch. 13 |
+| geography | the copying hall · the door pillar · the desk · the chair nearest the door | this echo · Echo 26 · Echo 29 · Echo 30 |
+| factions | the lampkeeper · the unknown visitor · Tide Conclave (re-cast seal) | Ch. 1 · this echo |
+| characters | the lampkeeper · the young man he never knew by name | this echo · Echo 29 · Echo 30 |
+| items | the empty chair nearest the door · the tide timetable · the pen on the desk · the door pillar | this echo |
+| story | the borrowed chair, never returned · Echo No. 31 | whole piece |
+| history | the month of tides · after the forty-fourth Convocation · no one ever said "do not come" again | this echo |
+
+> The chair had been borrowed.
+> The tide never arrived.
+`,
+  },
 ] as const;

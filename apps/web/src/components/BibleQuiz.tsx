@@ -436,6 +436,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《靠门的椅子》里，潮潮退的时候，守灯人做了什么？', choices: ['没有离开椅子', '回了自己的桌子', '关门', '去擦潮汐时刻表'], answer: 0, ref: '回响（其三十） · 五' },
     en: { prompt: 'In “The Chair Nearest the Door”, what did the lampkeeper do as the tide receded?', choices: ['he did not leave the chair', 'he went back to his desk', 'he closed the door', 'he wiped the tide timetable'], answer: 0, ref: 'Echo No. 30 · V' },
   },
+  {
+    zh: { prompt: '《借椅子》里，守灯人知道那个年轻人叫什么吗？', choices: ['不知道——他从未被问过名字', '知道，叫潮', '知道，是潮侯', '知道，但守灯人记不住了'], answer: 0, ref: '回响（其三十一） · 一' },
+    en: { prompt: 'In “The Borrowed Chair”, what did the lampkeeper know about the young man?', choices: ['he never knew his name; he had never been asked', 'he knew it — the man was called Tide', 'he knew it — the man was called the tide-keeper', 'he knew it but forgot'], answer: 0, ref: 'Echo No. 31 · I' },
+  },
+  {
+    zh: { prompt: '《借椅子》里，潮汐时刻表上潮退时变成了什么？', choices: ['多了一道横线', '变成一片空白', '变成一行字', '完全消失了'], answer: 0, ref: '回响（其三十一） · 三' },
+    en: { prompt: 'In “The Borrowed Chair”, what happened to the tide timetable each time the tide receded?', choices: ['it gained a line', 'it went blank', 'it became a sentence', 'it vanished'], answer: 0, ref: 'Echo No. 31 · III' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

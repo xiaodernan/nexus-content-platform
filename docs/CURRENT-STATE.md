@@ -6247,3 +6247,10 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 > - /bible 页脚 三十/XXX · guideCopy 同步 · quiz 88→**90**（zh/en 镜像 +2 题 E30）
 > - SHA 重钉 ×2 · fe-gates 147/147 · 1353/1353 · build 绿
 > - SSR 实锤 /bible /echo-030-the-chair-nearest-the-door 200 · /tide-oracle /tide-wire 全 200
+
+> **2026-11-19 cont. 248 · 回响（其三十一）《借椅子》——潮退一厘，纸上多一道横线；守灯人不会认字**
+> - 纪元：潮落之月 · 潮上之夜（en: the month of tides · the night the tide rose）
+> - 5 组锚句 zh/en 全局唯一 · **世界大典 417 zh / 417 en 全绿** · canon digest 重封存（62,828 chars · sha256=dfed19ac…）
+> - /bible 页脚 三十一/XXXI · guideCopy 同步 · quiz 90→**92**（zh/en 镜像 +2 题 E31）
+> - SHA 重钉 ×2 · fe-gates 147/147 · 1353/1353 · build 绿
+> - SSR 实锤 /bible /echo-031-the-borrowed-chair 200 · /tide-oracle /tide-wire 全 200
