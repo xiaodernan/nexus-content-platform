@@ -7530,3 +7530,24 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 5. **测试**：fe-gates **1370/1370** ✓ · world-bible **803/803** ✓ · bible-snapshot ✓ · oracle-citation 6/6 ✓ · quiz-pin×3 green。
 
 **向后兼容**：潮汐 + /bible/ask 依然走 `/v1/ai/chat-graph` 状态图 lane（ cont.254 引入）；潮汐 response 增 `citation` 字段 (additive, Appendix兼容000） · 肉身 `503 provider-unavailable` 没变 · DTO `AiChatResponseSchema` 未升。
+
+## cont. 367 (2026-11-18..19) — v987 · §PROOF-TIDE-ORACLE-CITATION · 合流后潮汐引文自检浏览器直测：declined · 诚实拒答
+
+**背景**：合流吸收了 lineage-2 的 cont.359「Tide-Oracle 引文自检」之后（`oracleCitation.ts` · `/api/tide/oracle` route citation field · bytecode badges），本片首次浏览器直测落地：
+
+**问题**：「第四十一次大会散会那天，潮为什么没退？」——问的是"正典散会那天的物理状况"，正典里**没写**这条。
+
+**实测结果**（浏览器直测 · auth → 123 解锁 → ask）：
+
+- `gpt-6.1-terra · cached 7,105/149,217`
+- `citation.state = declined`
+- 潮汐回 "典籍里没写。"
+- 显示 "正典没写 · 潮如实给出没有的答复"
+
+**这是 §TIDE-ORACLE-VERIFY 最重要的 proof**：provider 说「我找不到」的那一次（这一段散会的物理事实），TideOracle 不去编「潮汐里某贝壳沉了三寸」之类——它机检告诉我们模型唯一做的事就是诚实地 说出「典籍里没有」——**这正是我们要看到的**。否则，模型最危险的默认行为（hallucination）就被刻意地筛出来并且如实报告。
+
+**新加文件**：`docs/evidence/tide-oracle-citation-2026-11-19.md`（浏览器直测日志）。
+
+**评测**：fe-gates 1370/1370 · verify 803/803 · oracleCitation 6/6 · quiz 8/8 · canon-answer-graph 13/13。
+
+**Pages**：v987 将同步。
