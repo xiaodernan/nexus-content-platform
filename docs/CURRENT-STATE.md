@@ -7661,3 +7661,11 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 门禁：discover-page-visual-style pin 重钉（literal 27→28 · hook 加入 · SHA→7e7f7c130d39…）。
 - 测试：discover* 全绿（111）；社会集成测试红→重跑绿（concurrent 并发断言偶发 flakey，本轮重跑 10/10）。集成测试期间 `nexus-postgres-alt`(5443) Exited(255)，启动恢复；`nexus-redis` 同步。
 - fe-gates **1370/1370** ✓。
+
+## cont. 382 (2026-11-19) — §AILIVE-4-PROBE · design lane 缓存探针复测全 PASS
+
+- `scripts/probe-prompt-cache.py --service http://127.0.0.1:8001`（python@venv · Clash 代理）：
+  L1 直连 provider：cold=0 → warm=4,939/5,226 PASS；
+  L2 design lane（dryRun stub）：cold=0 → warm=299,393/299,393（103 ms，100% cached）PASS。
+- §AILIVE-4 证据 `docs/evidence/probe-ailive4-2026-11-19.md`（边界如实记录：L2 tokens_in 口径 ≈ digest×2；model/gpt-6.1-terra 同 system 不同车道的 input 账目口径需留意；真实 studio 会话仍待细测）。
+- IO 不 bump（本轮为探针收录片）。
