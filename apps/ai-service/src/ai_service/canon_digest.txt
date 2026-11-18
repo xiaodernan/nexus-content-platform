@@ -2915,7 +2915,7 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 守灯人的灯比别人的亮——不是因为灯油多，是因为没有别的灯可以凭。
 - [5] 雨书的最后一页上写的是「今夜无雨」四个字——但是谁也不敢翻过那一页。
 
-### Echo 144 · 潮候院只收一个字的信 / The Letter That Holds One Character
+### Echo 145 · 潮候院只收一个字的信 / The Letter That Holds One Character
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 潮候院收到的那封信里只有一个字：「走」。
 - [2] 没有人知道是谁寄的——字「走」也不是任何人的笔迹。
