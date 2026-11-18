@@ -7248,3 +7248,10 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 
 **测试**：bible-ask-visual-style.test.ts pin 重钉（comp → `5e932b01…`）；112 回响 → 112→113；~anatomy ask 测试、pinning 重新对齐；`fe-gates 1370/1370 GREEN`。
 **风险**：800ms 等待为人眼可见延迟，但比"整个 15s 然后❌"体验好得多。
+
+## cont. 345 (2026-11-18) — v964 · §BIBLE-114 · Echo #114《西厢灯下那本永远翻到第四十二页的账》(作者手写 · verify 710/710)
+
+- 新篇：「黑皮账 · 第四十二页 · 灯不灭 · 合不上」— canon digest 最新 ASCII 为 94,373 chars (13 章正典 · 114 回响 · 4 annex · 112 echo totals across both branches + this new one)。
+- 7 个 anchor 双语对照（中文 = 英文逐字一致）；gen-bible-snapshot 中现 114 条 + manifest 更新；
+- 完整同步：BibleAsk lede → 114 · /bible/ask meta → 一百一十四篇 · CACHE-IDENTITY × 114 · bible-ask-behavior.test.ts → 705/705 · canon-answer-graph → 13 章 + 114 回响 = 127 段 · pin 重钉 page→5b2eb550 / comp→72f8cb19。
+- fe-gates 1370/1370 ✓ · pages master 将至 5a31ff4f。

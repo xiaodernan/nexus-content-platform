@@ -9546,6 +9546,206 @@ No one has filled it.
 `,
   },
   {
+    order: 114,
+    slug: 'echo-114-the-ledger-forever-on-page-forty-two',
+    titleZh: '潮候院西厢灯下那本永远翻到第四十二页的账',
+    titleEn: 'The Ledger in the West Annex Lamp Light That Is Always Open to Page Forty-Two',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第八十八日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the eighty-eighth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 114): The Ledger in the West Annex Lamp Light That Is Always Open to Page Forty-Two
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院西厢灯下那本永远翻到第四十二页的账。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the ledger in the west annex lamp light that is always open to page forty-two.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第八十八日。
+> Era: the Institute — after the 41st Convocation; the eighty-eighth day of the autumn-tide month.
+
+---
+
+## 一 · 西厢
+
+潮候院西厢是办公处——账师在白天这里做账，傍晚这里等灯。
+
+桌上有一本黑皮账——值更人经过的时候，它永远停在第四十二页。
+
+**锚句**：桌上有一本黑皮账——永远停在第四十二页。
+**Anchor sentence**: on the desk lies a black-bound ledger — forever open to page forty-two.
+
+---
+
+## 二 · 第四十二页
+
+第四十二页准确内容，抄本师只说是 "第四十一次大会最后一次散会的总账"——没有人翻走过它。
+
+账师自己也承认：他每次开账都会翻到第四十二页——但他不记得是自己翻过去的，还是账本给翻回来的。
+
+**锚句**：账师说他每次开账都会翻到第四十二页——不记得是自己翻过去的。
+**Anchor sentence**: the ledger-keeper says he opens the ledger to page forty-two each time — and cannot remember whether he turned there himself.
+
+---
+
+## 三 · 灯不灭
+
+西厢灯白天不亮——只有傍晚有值更人进来，灯才开。
+
+值更人说他一次进去看见那盏灯不是被他点的：它先亮着。
+
+**锚句**：值更人第一次进西厢看见灯亮着——不是被他点的。
+**Anchor sentence**: on his first entrance into the west annex, the head of the watch found the lamp already lit — not by him.
+
+---
+
+## 四 · 第四十二年
+
+值更册上有这句话：
+"第四十二年的夜里，所有账师都会梦到那一页。"
+
+没人解释这句话是什么意思——也没人敢说它不是预言。
+
+**锚句**：值更册上说"第四十二年的夜里，所有账师都会梦到那一页"。
+**Anchor sentence**: the watch-ledger says: in the year forty-two, every ledger-keeper dreams of that page.
+
+---
+
+## 五 · 合页的动作
+
+每次抄本师试图合上账本——账页总会在最后一下停住。
+
+抄本师后来不再试了——因为他觉得账本反倒是在替他做抄表的工作。
+
+**锚句**：抄本师合账的最后一下被卡住——他不再试。
+**Anchor sentence**: the copyist's final motion in closing the ledger is always caught — and he no longer tries.
+
+---
+
+## 六 · 问典答不上
+
+值更人去问典问："第四十二页写了什么？"
+
+问典没有答复，问典后来自己也关闭了——直到第四十三一次散会之后，问典才重新开门。
+
+**锚句**：值更人去问典问第四十二页——问典没有答复。
+**Anchor sentence**: the head of the watch went to the Inquiry asking about page forty-two — the Inquiry gave no answer.
+
+---
+
+## 七 · 映射（回响一百一十四章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 西厢 · 黑皮账 · 第四十二页 · 梦到那一页 · 让 | 一、二、三、四、五、六、七 |
+| geography | 西厢 · 灯 · 黑皮账 | 一、三、五 |
+| characters | 抄本师 · 账师 · 值更人 | 一、二、三、四、五、六 |
+| story | 西厢黑皮账 · 回响（其一百十四） | 全篇 |
+| items | 黑皮账 · 西厢灯 · 抄本师用的笔 | 一、二、三、四、五 |
+| history | 第四十一次大会散会之后 · 秋潮月第八十八日 | 三、四、六 |
+
+> 账本停在某一页，灯也停；西厢再也不亮、也再没走出过那一页。
+> The ledger rests on a certain page. The lamp rests. The west annex has never again been lit, nor has it ever left that page.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百十四）「潮候院西厢灯下那本永远翻到第四十二页的账」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the ledger in the west annex lamp light that is always open to page forty-two.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院西厢灯下那本永远翻到第四十二页的账。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the eighty-eighth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第八十八日。
+
+---
+
+## I · The West Annex
+
+The west annex of the Institute is where the ledger-keepers work by day — and where they wait for the lamp in the evening.
+
+On the desk lies a black-bound ledger — whenever the head of the watch passes, it is always open to page forty-two.
+
+**锚句**：桌上有一本黑皮账——永远停在第四十二页。
+**Anchor sentence**: on the desk lies a black-bound ledger — forever open to page forty-two.
+
+---
+
+## II · Page Forty-Two
+
+The exact content of page forty-two — the copyists will only say that it is the "final reckoning of the forty-first Convocation" — no one has turned it in years.
+
+The ledger-keeper himself admits: every time he opens the ledger he turns to page forty-two — and he cannot remember whether he turned there himself, or the ledger turned itself back.
+
+**锚句**：账师说他每次开账都会翻到第四十二页——不记得是自己翻过去的。
+**Anchor sentence**: the ledger-keeper says he opens the ledger to page forty-two each time — and cannot remember whether he turned there himself.
+
+---
+
+## III · The Lamp
+
+The west annex lamp is unlit by day — only when the head of the watch enters in the evening does the lamp go on.
+
+The head of the watch says that on his first entrance into the west annex, the lamp was already lit — not by him.
+
+**锚句**：值更人第一次进西厢看见灯亮着——不是被他点的。
+**Anchor sentence**: on his first entrance into the west annex, the head of the watch found the lamp already lit — not by him.
+
+---
+
+## IV · Year Forty-Two
+
+The watch-ledger bears this line:
+"In the year forty-two, every ledger-keeper dreams of that page."
+
+No one explains what this line means — and no one dares say it is not a prophecy.
+
+**锚句**：值更册上说"第四十二年的夜里，所有账师都会梦到那一页"。
+**Anchor sentence**: the watch-ledger says: in the year forty-two, every ledger-keeper dreams of that page.
+
+---
+
+## V · The Reflex
+
+Every time the copyists attempt to close the ledger — the page always stops at the final motion.
+
+The copyists have stopped trying — because they feel the ledger is actually doing the copy-work for them.
+
+**锚句**：抄本师合账的最后一下被卡住——他不再试。
+**Anchor sentence**: the copyist's final motion in closing the ledger is always caught — and he no longer tries.
+
+---
+
+## VI · The Inquiry Gives No Answer
+
+The head of the watch went to the Inquiry and asked: "What is written on page forty-two?"
+
+The Inquiry gave no answer — the Inquiry later closed itself — and did not reopen until after the forty-third Convocation had dissolved.
+
+**锚句**：值更人去问典问第四十二页——问典没有答复。
+**Anchor sentence**: the head of the watch went to the Inquiry asking about page forty-two — the Inquiry gave no answer.
+
+---
+
+## VII · Mapping（Echo No. 114 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the west annex · the black-bound ledger · page forty-two · the dream · the reflex | 一、二、三、四、五、六、七 |
+| geography | the west annex · the lamp · the black-bound ledger | 一、三、五 |
+| characters | the copyists · the ledger-keeper · the head of the watch | 一、二、三、四、五、六 |
+| story | the west annex ledger · Echo No. 114 | 全篇 |
+| items | the black-bound ledger · the annex lamp · the copyist's brush | 一、二、三、四、五 |
+| history | After the 41st Convocation · the eighty-eighth day of the autumn-tide month | 三、四、六 |
+
+> 账本停在某一页，灯也停；西厢再也不亮、也再没走出过那一页。
+> The ledger rests on a certain page. The lamp rests. The west annex has never again been lit, nor has it ever left that page.
+`,
+  },
+  {
     order: 12,
     slug: 'echo-012-the-echo-that-only-comes-when-the-tide-is-out',
     titleZh: '潮落时才有的回声',
