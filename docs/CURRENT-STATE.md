@@ -7596,3 +7596,9 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 16 路并发暴发：burst16_ok=16/16 · 0×5xx · meanCached=150,307（=tokensIn 上限，16/16 全额命中）· latMax=175 ms。
 - input=150,309 tokensIn/发，符合 5–9 万目标并超过；sticky per-lane + system-hash lane 路由（ADR-0284）在 digest 扩容后仍稳，不掉帧。
 - IO oracle 碑记刷新至 v993（Echo #135 · 827 锚句 · 233,188 字节 digest · 12+16 probe evidence）。
+
+## cont. 374 (2026-11-19) — §OPS-DB-RESTORE · Postgres 5443 崩溃恢复 + /bible/ask 端到端活证据
+
+- 根因：本机 `nexus-postgres-alt`（5443）Exited (255) → 全站 DB 路由 500；`docker start nexus-postgres-alt` 恢复后 `/` = 200。
+- 活体验证：/bible/ask 示例问句 → 真模型回答「见《远信》第二节」+ badge `缓存复用 141,182 tokens`（93.9% lane，与 cont.373 复测一致）。
+- evidence：`docs/evidence/ops-db-restore-2026-11-19.md`。本片不bump Pages（运维修复，非功能升级）。
