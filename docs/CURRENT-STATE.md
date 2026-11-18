@@ -7360,3 +7360,15 @@ origin/main 支线（lineage-2）的 big-context 版本直接拷贝入仓作历�
 - `docs/evidence/storm-32-2026-11-19.md` 与 `big-context-provenance-lineage2-2026-11-19.md` 原文入档；grid 已回报（cont.351）。
 
 **IO 指针重生**：`sync:showcase` 原有 clone 撞到另一 bot 的 master 更新（crossrealm W-Z381）——按既有配方 reset + 推送：io master → `4eed224`（latest.json 已指向 head 7dd9d26 · commits=3426 · adrs=347）。
+
+## cont. 354 (2026-11-18) — v973 · §STRESS-16 · 16 并发风暴验证 · 合流后 digest 在并发下 KV 缓存全额 100%
+
+**背景**：用户反复问「并行会话打乱缓存导致命中率抖动」。lineage-2 此前做过 32 发（首轮 cache 93.9%、次轮 100%）；main-line 合流后 big-context digest（147,519 tokens）用同一发式独立复现：
+
+**实测（`docs/evidence/stress-16-concurrent-2026-11-18.md`）**：
+- warm-up：cached=138,532 / 147,519 (**93.9%**) · 9.8 s
+- burst-1（**16 并发 · 同问题**）：cached=2,360,304 / 2,360,304 (**100%**) · wall **176 ms** · 全 147,519-hit
+- burst-2（再来 16 并发）：cached=2,360,304 / 2,360,304 (**100%**) · wall **173 ms**
+
+0 次 502 / 0 次超时 / 0 次掉缓存。根因：sticky cache lane（ADR-0284）让同 digest 同问题在并发下落到同一健康通道；provider 行为完全可预测。
+**意义**：以本文 freshness 为证，§十一 压力测试 已并至 lineage evidence 台账（见 evidence 文件 + lineage-2 `storm-32` 双闸互证）。
