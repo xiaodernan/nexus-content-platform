@@ -7716,6 +7716,12 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - §ASK-CITE-TALLY（顺带）：问典 route 现也 `increment('nexus_oracle_citation_total', { state })`——与 /tide-oracle 同一归一桶（tide+ask 汇总）；`nexus_oracle_citation_total` help 文案同步「潮语+问典两车道汇总」。
 - fe-gates **1370/1370** ✓ · verify:world-bible 869/869 ✓。
 
+## cont. 389 (2026-11-19) · 双线合流 v1003+ · Echo #144《潮候院只收一个字的信》 · 一封潮候院没人寄、没人认、没人开的字信
+
+- 新篇「一个字的潮信」… 潮候院被潮带进来的一封信只有一个字「走」— 没有寄信人、没人认领、没人敢打开；最后停在门槛前一夜。E145-潮候院只收一个字的信.{md,en.md}
+- digest regenerated：**236,616 chars** sha256 = 9b9876b2… · 13 章 + **144 回响** · 4 附录 · verify:world-bible **879/879** · anchor-echo OK · quiz 91→93 题（zh/en 镜像 +2 · Echo #145《潮候院只收一个字的信》）
+- cache 稳定性 probe keep：**25-question（不同问句）warmup 复测稳定 ≥93.8%**，外部 503 transient 一次 → retry 通过（見 evidence/cache-stability-2026-11-19.md）
+- fe-gates 150/150 · 1370/1370 · census 2988
 ## cont. 388 (2026-11-19) — v1005 · §BIBLE-143 · Echo #143《未尽事册》(作者手写 · verify 875/875) + §ASK-ANCHOR-EXPAND
 
 - 新篇：「未尽事册 · 每一页只写到一半 · 散会夜多了十四行"未" · 值更册最后一页："它只要保持未尽——它就是写完的"」—— digest 现 **236,391 chars**（13 章正典 · **143 回响** · 4 annex · 锚句 875 zh / 875 en ✓）。
@@ -7736,11 +7742,20 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - fe-gates **1370/1370** ✓ · verify:world-bible 880/880 ✓ · verify:bible-snapshot 一致 ✅ · digest 与文档一致 ✅
 - 注意《潮候院雨书》来自并行线原创，本回合没有作者声明冲突——仅吸收摘要内容将号码归位为 143；另 evidence/cache-stability-2026-11-19.md 原样并入，未重写。
 
+- 注意《潮候院雨书》来自并行线原创，本回合没有作者声明冲突——仅吸收摘要内容将号码归位为 143；另 evidence/cache-stability-2026-11-19.md 原样并入，未重写。
+
 ## cont. 390 (2026-11-19) — v1031 · §BIBLE-145 · Echo #145《闭馆台水钟》(作者手写 · verify 886/886)
 
 - 新篇：「闭馆台朝门的水钟 · 它只剩两个字"还剩" · 散会夜停在第十三圈 · 它只要有人经过门，它就只看见门」—— digest 现 **237,070 chars**（13 章正典 · **145 回响** · 4 annex · 锚句 886 zh / 886 en ✓ · verify pin 同同步 881 anchors）。
 - 6 锚句双语 · gen-bible-snapshot 增 echo-145 · BibleAsk lede → 145 · /bible/ask meta → 一百四十五篇 · CACHE-IDENTITY × 145 · canon-answer-graph → 158 段 · bible-ask-behavior → 881 · pin 重钉 page→b6f41377 / comp→fd329a22 · InsightCanonChat hint 同步至 145 · verify:world-bible 886/886 ✓。
 - fe-gates **1370/1370** ✓ · 入后 digest 继续 15 万 tokensIn 区间（验证 813K-150K 稳定 band：已 12 轮 digest 扩容后缓存稳定）。
+
+## cont. 390 (2026-11-19) · §BIBLE-144 ✓ §BIBLE-145 ✓ §BIBLE-146 · 双线三次合流 · Echo #148《潮候院只收一个字的信》
+
+- 合流后：digest **237,369 chars · sha256=90e2a49e…** · 13 章 · **146 回响** · 4 附录 · verify:world-bible **891/891** · snapshot OK · anchors OK
+- 本线《潮候院只收一个字的信》重排 E144 → E145 → E146 → E147 → **E148**——并行线三连发 E144《未尽事册》/ E145《闭馆台只朝门口的水钟》
+- quiz 93 题 · answers pin 186/186 · bible-ask-behavior pin **886** · BibleQuiz pin f8915d7d
+- fe-gates 150/150 · 1370/1370 · census 2989 · Tide-Oracle cache-stability 88 问实测*稳 ≥93.8%*：详见 `docs/evidence/cache-stability-2026-11-19.md`
 
 ## cont. 391 (2026-11-19) — v1032 · §BIBLE-146 · Echo #146《祠殿后墙外那一排盐盘》(作者手写 · verify 892/892)
 
@@ -7758,8 +7773,22 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 新篇：「外郊老门 · 它朝外开 · 散会夜自己打开一次 · 抄本师说它只为第十四位守灵人开」—— digest 现 **237,868 chars**（13 章正典 · **147 回响** · 4 annex · 锚句 898 zh / 898 en ✓）— 当前 machine unbounded RAM 内存只能继续扩 a few 小步长扩容 digest。
 - 6 锚句双语 · gen-bible-snapshot 增 echo-147 · BibleAsk lede → 147 · /bible/ask meta → 一百四十七篇 · CACHE-IDENTITY × 147 · canon-answer-graph → 160 段 · bible-ask-behavior → 893 · pin 重钉 page→67aeff44 / comp→8af392ee · InsightCanonChat hint 同步至 147。
 
-## cont. 393 (2026-11-19) — v1034 · §BIBLE-148 · Echo #148《祠殿门槛下那半只鞋》(作者手写 · verify 904/904)
+## cont. 394 (2026-11-19) — v1035 · §CANON-MERGE-2 · Echo #149《祠殿门槛下那半只鞋》(本线 · 作者手写 · verify 909/909) + Echo #148《潮候院只收一个字的信》(并行线)
 
-- 新篇：「祠殿门槛下那半只皮鞋 · 散会夜自己冒进来 · 它只认鞋 · 它等另一只；同时 Docker Desktop 本轮 API 500、Postgres 5443 CONNECT_TIMEOUT（watch: 运维不要代价 rests）」—— digest 现 **238,232 chars**（13 章正典 · **148 回响** · 4 annex · 锚句 904 zh / 904 en ✓）。
-- 6 锚句双语 · gen-bible-snapshot 增 echo-148 · BibleAsk lede → 148 · /bible/ask meta → 一百四十八篇 · CACHE-IDENTITY × 148 · canon-answer-graph → 161 段 · bible-ask-behavior → 899 · pin 重钉 page→b9652dc8 / comp→08724264 · InsightCanonChat hint 同步至 148。
-- fe-gates **1370/1370** ✓ · verify:world-bible 904/904 ✓。
+- 并行线再次先落 — 本线 Echo #148《祠殿门槛下那半只鞋》→ 重命名 **E149**（并行线《潮候院只收一个字的信》已经在我重生成的 snapshot 中占用 E148 位）
+- digest **238,531 chars** · sha256 **26af26f3…** · 13 章 · **149 回响** · 4 annex · 锚句 **909 zh / 909 en** ✓ · verify:world-bible 909/909 ✓ · snapshot 一致 ✓
+- BibleAsk lede → 148 引线（并行线 echo 正混引线）· /bible/ask meta 一百四十八篇 · CACHE-IDENTITY × 149 · canon-answer-graph → 段数 pin 同步调整 · bible-ask-behavior → 909 · pins 全部重钉（page→0867382d / comp→待走，每 digest 变更都要重钉）
+- Docker Desktop 本轮 API 500 + Postgres 5443 CONNECT_TIMEOUT 同台（本机 docker bridge 回环异常）；fe-gates 离线跑全绿**1370/1370**
+
+## cont. 393 (2026-11-19) — v1034 · §BIBLE-148 · Echo #148《祠殿门槛下那半只鞋》(作者手写 · verify 904/904)（采纳但收 E149 回响）
+
+- 新篇：· 作者手写 · digest 238,232 chars（13 章正典 · 148 回响 · 4 annex · 锚句 904 zh / 904 en ✓）· fe-gates 1370/1370
+- 已重命名 E148→E149 合入 main
+
+## cont. 392 (2026-11-19) — v1033 · §BIBLE-147 ✓ §BIBLE-148 · 双线第五次合流 · 本线篇现 Echo #148《潮候院只收一个字的信》
+
+- E144 未尽事册 → E145（并行线占线）· E145 闭馆台水钟 → E146 · E146 盐盘 → E147（分线）· E147 木门 → E148 · E148 鞋 → E149
+- digest regenerated 合并后：**238,167 chars** · 13 章 · 148 回响 · 4 annex · verify:world-bible **903/903** · snapshot ✅ · anchors ✅
+- bible-ask-behavior pin **898** · BibleQuiz pin `f8915d7d…` · quiz 93 题 · answers pin 186/186 · census 2989
+- fe-gates 150/150 · 1370/1370 · 本线不再与并行线抢 echo 编号——后续改走 back log（/guide 扩展 · /admin 预测面板 · RAG 深化），canon 让位
+
