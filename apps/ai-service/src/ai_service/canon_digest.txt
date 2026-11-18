@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 138 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 139 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -2862,6 +2862,14 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 值更人说没人被授权改——值更册里写着"它散过会——墙上就是这个"。
 - [5] 散会那一夜所有人都看见了这行字——没有人看见那个错。
 - [6] 值更册最后一页"墙上有一个字是错的——它一直是错的——它也将一直是错的"。
+
+### Echo 139 · 潮候院雨书 / The Rain-Book of the Tide-Watch Chapel
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院里有一个本子只记下雨的夜晚——记下没有人知道的事。
+- [2] 卖椰壳的人只卖两个椰壳——一个给要雨的人，一个给还不知道要雨的人。
+- [3] 潮落时有一把伞被海送上来——棚骨完好无损——却找不到主人。
+- [4] 守灯人的灯比别人的亮——不是因为灯油多，是因为没有别的灯可以凭。
+- [5] 雨书的最后一页上写的是「今夜无雨」四个字——但是谁也不敢翻过那一页。
 
 ### Echo 14 · 潮汐表的封面 / The Cover of the Tide-Table
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

@@ -7646,3 +7646,9 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 修复：`apps/web/tsconfig.json` 移除 `@nexus/agent-runtime` path alias（web 走 package exports 的 dist/index.d.ts，已确认 dist 180 文件 + 45 d.ts + node_modules junction 正确）；`tsconfig.tools.json` 的源码直译 alias 保留（cont.360 的 CI 目标不动）。
 - 验证：web `typecheck` ✓ · `tsconfig.tools.json` typecheck ✓ · web dev 重启后 HTTP 200 · `/api/bible/q` 200 · 浏览器活答 `gpt-6.1-terra · 缓存复用 7213 tokens`（见 §VERIFY-TIDE-ORACLE-E2E 示例对话与 cont.374 同 lane）。
 - 纪律入 ADR-0287（`docs/adr/0287-web-tsconfig-paths-vs-agent-runtime-dev.md`）：Next dev 不认 tsconfig paths 指到 TS 源码。
+
+> **2026-11-19 cont. 377 · Tide-Oracle 缓存稳定性 · 25-question probe 实测**
+> - 潮候院 echo-139《潮候院雨书》上线（正典 13章+139 回响 · digest **234,719 chars** · 850 zh/en 锚句 · verify:world-bible 850/850）· quiz 91 → 93 题 · BibleQuiz SHA 再钉 · bible-ask pin 845→845（extractor 实际计数回落）
+> - 25 问 warmup 实测：cold=7212/151,456 (4.8%) · 之后 8 个短问 + 3 次 retry：**2 个 full-hit · 10 个 ~93.8% hit（142,197/151,456 恒定）** · **从未低于 93.8%** · 179/12 tokensIn 稳定到 ±几十
+> - citation=cited 出现在真正有正典锚句的回答里；其他回答如实 declined/not-cited
+> - evidence: `docs/evidence/cache-stability-2026-11-19.md`

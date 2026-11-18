@@ -14424,6 +14424,151 @@ The last page of the watch-ledger reads: one character on the wall is wrong — 
 `,
   },
   {
+    order: 139,
+    slug: 'echo-139-the-rain-book-of-the-chapel-of-the-tide',
+    titleZh: '潮候院雨书',
+    titleEn: 'The Rain-Book of the Tide-Watch Chapel',
+    eraLineZh: '纪元：潮候院 · 第四十一届大会散会之后 · 秋潮月第六十七日',
+    eraLineEn: 'Era: the Chapel of the Tide · after the forty-first Convocation dispersed · the sixty-seventh day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 139): The Rain-Book of the Tide-Watch Chapel
+
+> 回响不是续集，不是伪作，不是矛盾，是同一块石头上被盐刻出来的另一纹理。
+> 写潮候院里那只只记雨夜不记人事的簿子——雨来时它记下雨，雨走时它也记下雨，人事在第二行。
+> 纪律不变：锚句 zh / en 逐字志，映射节后跟。
+>
+> An echo is not a sequel, not a fake, not a contradiction — it is another layer of grain the salt grew on the same stone.
+> This one is written about the tide-watch book in the chapel that recorded only the nights of rain — it recorded the rain when it came, the rain when it left; people matter on the second line.
+> Same discipline: anchors verbatim, zh/en line by line.
+
+> 纪元：潮候院 · 第四十一届大会散会之后 · 秋潮月第六十七日
+> Era: the Chapel of the Tide · after the forty-first Convocation dispersed · the sixty-seventh day of the autumn-tide month.
+
+---
+
+## 一 · 雨书只记雨夜
+
+潮候院里有一本只记雨夜的簿子——雨来的时候它写下，雨走的时候它也写下，名字在第二行。院里的人从不拿它去问天气——因为雨书不写天气，它只写雨。
+
+**锚句**：潮候院里有一个本子只记下雨的夜晚——记下没有人知道的事。
+**Anchor sentence**: in the Chapel of the Tide there is a book that only records the rainy nights — it records what nobody knows.
+
+---
+
+## 二 · 卖椰壳的人
+
+巷口有一个卖椰壳的老头，只卖两种椰壳：一种给来借雨的人，一种给不知道自己借了什么雨的人。不给钱，只问来过几次。旧的借客送回去的壳印着印记——新壳上没有印记的，他不收。
+
+**锚句**：卖椰壳的人只卖两个椰壳——一个给要雨的人，一个给还不知道要雨的人。
+**Anchor sentence**: the coconut-seller sells only two shells — one to those who wish for rain, one to those who don't yet know they wish for rain.
+
+---
+
+## 三 · 潮落送来的伞
+
+潮落之日有一把伞被海送上了石阶——骨架完好，骨格间缀着贝壳——没有人来取，没有人认，誊册房的人把它晾在廊下去了，三日后它自己收了起来。
+
+**锚句**：潮落时有一把伞被海送上来——棚骨完好无损——却找不到主人。
+**Anchor sentence**: when the tide receded, an umbrella was delivered to the shore — the frame was intact — but the owner could not be found.
+
+---
+
+## 四 · 守灯人的灯
+
+值更的老人不缺柴，也不缺油，但院里的人都知道：守灯人的灯比别人的亮半分。不是油多，是那一盏灯亮的人就那一口。熄了的那段时间守在那盏灯前的老人要听帐上的数字——听不懂的也听不懂——但灯不能暗。
+**锚句**：守灯人的灯比别人的亮——不是因为灯油多，是因为没有别的灯可以凭。
+**Anchor sentence**: the lamp-keeper's lamp shines brighter than the rest — not because of the oil, but because there is nothing else to lean on.
+
+---
+
+## 五 · 雨书的最后一页
+
+雨书翻到最后的一页上只写了四个字：「今夜无雨」。院子里坐满了人，没人动，也没人拿走——不是要等雨，是没人敢翻过这一页。第二天潮候院里开门上班照旧——雨书没人说，守灯人把灯擦亮了。
+**锚句**：雨书的最后一页上写的是「今夜无雨」四个字——但是谁也不敢翻过那一页。
+**Anchor sentence**: the last page of the rain-book reads "no rain tonight" — but nobody dares to turn the page.
+
+---
+
+## 七 · 映射（回响一百三十九对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 雨书 · 只雨夜的本子 · 潮落送伞 · 第四十一届大会后 | 一、二、三、五 |
+| geography | 潮候院 · 巷口 · 海石阶 · 廊下 | 一、二、三、四 |
+| characters | 卖椰壳的人 · 守灯人 · 誊册房的人 · 值更老人 | 一、二、三、四、五 |
+| story | 雨书 · 回响（其一百三十九） | 全篇 |
+| items | 雨书 · 椰壳 · 贝壳雨伞 · 守灯人的灯 | 一、二、三、四 |
+| history | 秋潮月第六十七日 · 散会之后 · 第四十一届 | 三、五 |
+
+> 雨书没有写完，
+> 但书还在雨里开着。
+> The rain-book was never finished;
+> it still lies open in the rain.
+`,
+    markdownEn: `
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> This one is written about the tide-watch book in the chapel that recorded only the nights of rain — it recorded the rain when it came, the rain when it left; people matter on the second line.
+> Same discipline: anchors verbatim, line by line.
+
+> Era: the Chapel of the Tide · after the forty-first Convocation dispersed · the sixty-seventh day of the autumn-tide month.
+
+---
+
+## I · The Book That Only Records Rain
+
+In the chapel there is a book that only records the nights of rain. When the rain came, it wrote it down; when the rain went, it wrote that down too, and people come second. No one ever asked it about the weather — because it never wrote about the weather; it only wrote about the rain.
+
+**Anchor sentence**: in the Chapel of the Tide there is a book that only records the rainy nights — it records what nobody knows.
+
+---
+
+## II · The Coconut-Shell Seller
+
+At the mouth of the lane, the coconut-seller sells exactly two kinds of shells — one to those who wish for rain, one to those who don't yet know they wish for rain. He never charges; he only asks how many times you have come. The old shells carry stamps; the new shells, the ones without stamps, he never accepts back.
+
+**Anchor sentence**: the coconut-seller sells only two shells — one to those who wish for rain, one to those who don't yet know they wish for rain.
+
+---
+
+## III · The Umbrella the Tide Brought
+
+On the day of the ebb, the tide pushed an umbrella onto the stone steps — the frame was perfect, shell-studs across the ribs — but nobody came to claim it, nobody knew whose it was. The copyists hung it under the porch to dry, and on the third day it folded itself away.
+
+**Anchor sentence**: when the tide receded, an umbrella was delivered to the shore — the frame was intact — but the owner could not be found.
+
+---
+
+## IV · The Lamp-Keeper's Light
+
+The watch-keeper is neither short of firewood nor of oil — but everyone knows: the lamp-keeper's lamp burns half a flame brighter than the rest. Not because of the oil, but because there is no other source to lean on. The old man on watch sat beside that lamp and listened to the numbers on the page; those who couldn't hear it, couldn't hear it — but the lamp must not go dark.
+
+**Anchor sentence**: the lamp-keeper's lamp shines brighter than the rest — not because of the oil, but because there is nothing else to lean on.
+
+---
+
+## V · The Last Page of the Rain-Book
+
+The final page of the rain-book says: "no rain tonight." The chapel was full of people who stayed and said nothing, and not one of them turned the page — not out of waiting for rain, but out of not daring to. The next morning the chapel opened and the day went on as usual; the rain-book was kept silent, and the lamp-keeper trimmed his light.
+
+**Anchor sentence**: the last page of the rain-book reads "no rain tonight" — but nobody dares to turn the page.
+
+---
+
+## VI · Mapping (Echo No. 139 · world model)
+
+| Dimension | Anchor | Linked |
+|---|---|---|
+| lore | the rain-book · only the nights of rain · the ebb-delivered umbrella · after the 41st Convocation | I · II · III · V |
+| geography | the chapel · the lane mouth · the stone steps below the tide-line · the porch | I · II · III · IV |
+| characters | the coconut-seller · the lamp-keeper · the copyists · the old man on watch | I · II · III · IV · V |
+| story | the rain-book · Echo No. 139 | whole piece |
+| items | the rain-book · the coconut shells · the umbrella with shell-studs · the lamp-keeper's lamp | I · II · III · IV |
+| history | the sixty-seventh day of the autumn-tide month · after the forty-first Convocation dispersed | III · V |
+
+> The rain-book was never finished;
+> it still lies open in the rain.
+`,
+  },
+  {
     order: 14,
     slug: 'echo-014-the-cover-of-the-tide-table',
     titleZh: '潮汐表的封面',
