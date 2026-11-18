@@ -1184,5 +1184,425 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "en": "The page left untranscribed still stands.",
     "refZh": "回响（其21） · 五",
     "refEn": "Echo No. 21 · V"
+  },
+  {
+    "zh": "半粒盐的断口，从封皮的凹槽里朝外看。",
+    "en": "The broken face of half a grain watched out through the groove of the cover.",
+    "refZh": "回响（其22） · 一",
+    "refEn": "Echo No. 22 · I"
+  },
+  {
+    "zh": "簿差半粒，他写在脊缝上，没给任何人解释。",
+    "en": "“Half a grain short” he wrote on the spine; he never explained it to anyone.",
+    "refZh": "回响（其22） · 二",
+    "refEn": "Echo No. 22 · II"
+  },
+  {
+    "zh": "卡住的东西，锄不出来，刮不出来，也不忍刮。",
+    "en": "What is caught cannot be picked out, nor scraped out, nor brought to be scraped.",
+    "refZh": "回响（其22） · 三",
+    "refEn": "Echo No. 22 · III"
+  },
+  {
+    "zh": "灯灭之后，缝里那粒盐还留着一点半透的白。",
+    "en": "After the lamp went out, the grain in the seam still held a little translucent white.",
+    "refZh": "回响（其22） · 四",
+    "refEn": "Echo No. 22 · IV"
+  },
+  {
+    "zh": "簿子记得比任何人都清楚，缺了哪一半。",
+    "en": "A thin ledger remembers better than any person which half it lost.",
+    "refZh": "回响（其22） · 五",
+    "refEn": "Echo No. 22 · V"
+  },
+  {
+    "zh": "第四十二次会没有散会的时刻，只有缺的那一格。",
+    "en": "No moment of adjournment exists for the forty-second Convocation; only the blank cell.",
+    "refZh": "回响（其23） · 一",
+    "refEn": "Echo No. 23 · I"
+  },
+  {
+    "zh": "签收本的最后一页只有日期和欠据，没有签名。",
+    "en": "The last page of the book of receipts holds a date and a debt — and no signature.",
+    "refZh": "回响（其23） · 二",
+    "refEn": "Echo No. 23 · II"
+  },
+  {
+    "zh": "每一个想结案的人，都站在这一格前面等着。",
+    "en": "Everyone who wanted a closed case stood before that cell, waiting.",
+    "refZh": "回响（其23） · 三",
+    "refEn": "Echo No. 23 · III"
+  },
+  {
+    "zh": "灯没有灭过，也没人告诉过它什么时候灭。",
+    "en": "The lamp never went out, and no one told it when it should.",
+    "refZh": "回响（其23） · 四",
+    "refEn": "Echo No. 23 · IV"
+  },
+  {
+    "zh": "第四十二次会只少一个签名，正好多一个不来。",
+    "en": "The forty-second Convocation is short one signature, and has one too many who never came.",
+    "refZh": "回响（其23） · 五",
+    "refEn": "Echo No. 23 · V"
+  },
+  {
+    "zh": "灰封以后，账上只剩最后一行。",
+    "en": "After the grey binding, the ledger holds only the last line.",
+    "refZh": "回响（其24） · 一",
+    "refEn": "Echo No. 24 · I"
+  },
+  {
+    "zh": "封皮合上以后，没有再敲过任何地方。",
+    "en": "After the cover closed, not one knock fell again.",
+    "refZh": "回响（其24） · 二",
+    "refEn": "Echo No. 24 · II"
+  },
+  {
+    "zh": "守灯人没有对第四十二次会说什么，也没有对自己说什么。",
+    "en": "The lampkeeper said nothing to the forty-second Convocation, nor to himself.",
+    "refZh": "回响（其24） · 三",
+    "refEn": "Echo No. 24 · III"
+  },
+  {
+    "zh": "那半粒盐跟着封皮进去了，被留在里面，被留在册子里。",
+    "en": "The half-grain went into the binding, stayed inside, was left in the book.",
+    "refZh": "回响（其24） · 四",
+    "refEn": "Echo No. 24 · IV"
+  },
+  {
+    "zh": "封皮合上后，没人开本子了。",
+    "en": "After the binding closed, not one person opened the book.",
+    "refZh": "回响（其24） · 五",
+    "refEn": "Echo No. 24 · V"
+  },
+  {
+    "zh": "灰封过后，炉子居然是热的。",
+    "en": "After the grey binding, the hearth was still warm.",
+    "refZh": "回响（其25） · 一",
+    "refEn": "Echo No. 25 · I"
+  },
+  {
+    "zh": "别人没有碰它，他也没有碰它。",
+    "en": "If he never touched it, no one expected him to.",
+    "refZh": "回响（其25） · 二",
+    "refEn": "Echo No. 25 · II"
+  },
+  {
+    "zh": "灰纸没有出份，可灰总算被人翻过。",
+    "en": "The ash gave no report to anyone, but someone had turned it.",
+    "refZh": "回响（其25） · 三",
+    "refEn": "Echo No. 25 · III"
+  },
+  {
+    "zh": "守灰人不守，灰炉也不。",
+    "en": "The keeper did not keep; neither did the hearth.",
+    "refZh": "回响（其25） · 四",
+    "refEn": "Echo No. 25 · IV"
+  },
+  {
+    "zh": "灰炉再也没有亮过。",
+    "en": "The hearth never shone again.",
+    "refZh": "回响（其25） · 五",
+    "refEn": "Echo No. 25 · V"
+  },
+  {
+    "zh": "议程被钉回原处的那一天，没有人宣布任何事情。",
+    "en": "The day the agenda was nailed back where it belonged, no one announced a thing.",
+    "refZh": "回响（其26） · 一",
+    "refEn": "Echo No. 26 · I"
+  },
+  {
+    "zh": "第四十三次会开的那天没有议程，只有人到齐了。",
+    "en": "The day the forty-third Convocation opened had no agenda — only everyone turned up.",
+    "refZh": "回响（其26） · 二",
+    "refEn": "Echo No. 26 · II"
+  },
+  {
+    "zh": "有人把一支笔放进欠据，签名没有落下。",
+    "en": "Someone laid a pen into the debt-book; the signature never fell.",
+    "refZh": "回响（其26） · 三",
+    "refEn": "Echo No. 26 · III"
+  },
+  {
+    "zh": "盐线留在门槛上，没有人扫。",
+    "en": "The salt line stayed on the threshold, and nobody swept it.",
+    "refZh": "回响（其26） · 四",
+    "refEn": "Echo No. 26 · IV"
+  },
+  {
+    "zh": "潮水退了以后，馆里仍然没有散会。",
+    "en": "After the tide withdrew, the hall still had not adjourned.",
+    "refZh": "回响（其26） · 五",
+    "refEn": "Echo No. 26 · V"
+  },
+  {
+    "zh": "守灯人摸了一下门槛上的盐，收回手。",
+    "en": "The lampkeeper touched the salt on the threshold, and drew his hand back.",
+    "refZh": "回响（其27） · 一",
+    "refEn": "Echo No. 27 · I"
+  },
+  {
+    "zh": "守灯人记下这一条，没记时间。",
+    "en": "The lampkeeper noted this one line, and did not note the time.",
+    "refZh": "回响（其27） · 二",
+    "refEn": "Echo No. 27 · II"
+  },
+  {
+    "zh": "有两把椅子的坐深比其余都深，他没有摆回去。",
+    "en": "Two chairs sat deeper than the others; he did not move them back.",
+    "refZh": "回响（其27） · 三",
+    "refEn": "Echo No. 27 · III"
+  },
+  {
+    "zh": "签名的位置是空的，守灯人没有写。",
+    "en": "The space for a signature stood open; the lampkeeper did not write it.",
+    "refZh": "回响（其27） · 四",
+    "refEn": "Echo No. 27 · IV"
+  },
+  {
+    "zh": "守灯人只做一件事：每天早上把盐抹掉。",
+    "en": "The lampkeeper did one thing: each morning, he wiped the salt.",
+    "refZh": "回响（其27） · 五",
+    "refEn": "Echo No. 27 · V"
+  },
+  {
+    "zh": "潮汐教团没有章了一百年了，这只是一只新倒的章。",
+    "en": "The Tide Conclave had not borne a seal in a hundred years; this one was newly cast.",
+    "refZh": "回响（其28） · 一",
+    "refEn": "Echo No. 28 · I"
+  },
+  {
+    "zh": "这一封信里没有字。",
+    "en": "This letter held no words.",
+    "refZh": "回响（其28） · 二",
+    "refEn": "Echo No. 28 · II"
+  },
+  {
+    "zh": "潮汐时刻表被人这样挂在门锥上。",
+    "en": "The timetable hung on the door pillar, pinned there without ceremony.",
+    "refZh": "回响（其28） · 三",
+    "refEn": "Echo No. 28 · III"
+  },
+  {
+    "zh": "潮汐教团一百年前没有的章，现在用上了。",
+    "en": "The seal the Conclave had lacked a hundred years ago was in use again.",
+    "refZh": "回响（其28） · 四",
+    "refEn": "Echo No. 28 · IV"
+  },
+  {
+    "zh": "盐又在门槛上——每个人都踩过去，没有人弯腰。",
+    "en": "The salt was back on the threshold; each person stepped over it, and no one bent down.",
+    "refZh": "回响（其28） · 五",
+    "refEn": "Echo No. 28 · V"
+  },
+  {
+    "zh": "时刻表挂在门锥上——只有潮来潮去，没有别的。",
+    "en": "The timetable was pinned to the door pillar — tide in, tide out, nothing else.",
+    "refZh": "回响（其29） · 一",
+    "refEn": "Echo No. 29 · I"
+  },
+  {
+    "zh": "潮，怎么算，跟守灯人对上了。",
+    "en": "How the tide was measured — the lampkeeper fell in step with it.",
+    "refZh": "回响（其29） · 二",
+    "refEn": "Echo No. 29 · II"
+  },
+  {
+    "zh": "潮来了，不答——不解释，不邀请。",
+    "en": "When the tide came, it did not answer — it did not explain, it did not invite.",
+    "refZh": "回响（其29） · 三",
+    "refEn": "Echo No. 29 · III"
+  },
+  {
+    "zh": "坐在最靠门的椅子里的是谁？",
+    "en": "Who sat in the chair nearest the door?",
+    "refZh": "回响（其29） · 四",
+    "refEn": "Echo No. 29 · IV"
+  },
+  {
+    "zh": "潮汐教团没有散会。第四十四次会还在继续。",
+    "en": "The Conclave did not adjourn. The forty-fourth Convocation is still proceeding.",
+    "refZh": "回响（其29） · 五",
+    "refEn": "Echo No. 29 · V"
+  },
+  {
+    "zh": "他选中了最靠门的一把椅子，其他人都没有动过。",
+    "en": "He had chosen the chair nearest the door; no one else had moved.",
+    "refZh": "回响（其30） · 一",
+    "refEn": "Echo No. 30 · I"
+  },
+  {
+    "zh": "他记不清年轻人的脸。",
+    "en": "He could not recall the young man's face.",
+    "refZh": "回响（其30） · 二",
+    "refEn": "Echo No. 30 · II"
+  },
+  {
+    "zh": "两人都没有提议散会。",
+    "en": "Neither of them proposed adjournment.",
+    "refZh": "回响（其30） · 三",
+    "refEn": "Echo No. 30 · III"
+  },
+  {
+    "zh": "潮汐时刻表上又多了一笔纪录。",
+    "en": "One more entry was added to the tide timetable.",
+    "refZh": "回响（其30） · 四",
+    "refEn": "Echo No. 30 · IV"
+  },
+  {
+    "zh": "潮退的时候，守灯人也没有离开椅子。",
+    "en": "When the tide withdrew, the lampkeeper still had not left the chair.",
+    "refZh": "回响（其30） · 五",
+    "refEn": "Echo No. 30 · V"
+  },
+  {
+    "zh": "守灯人比以前更晚醒。",
+    "en": "The lampkeeper woke later than before.",
+    "refZh": "回响（其31） · 一",
+    "refEn": "Echo No. 31 · I"
+  },
+  {
+    "zh": "第四天以后，没有人知道是谁说了\"不要来\"。",
+    "en": "After the fourth day, no one knew who had said \"do not come.\"",
+    "refZh": "回响（其31） · 二",
+    "refEn": "Echo No. 31 · II"
+  },
+  {
+    "zh": "潮退一厘米，时刻表纸上多一道横线。",
+    "en": "Each centimeter the tide receded, the timetable on the door pillar gained a line.",
+    "refZh": "回响（其31） · 三",
+    "refEn": "Echo No. 31 · III"
+  },
+  {
+    "zh": "他不知道那一寸跟一厘有什么不一样。",
+    "en": "He did not know what the difference between an inch and a centimeter was.",
+    "refZh": "回响（其31） · 四",
+    "refEn": "Echo No. 31 · IV"
+  },
+  {
+    "zh": "潮还没有退，守灯人还没有回家。",
+    "en": "The tide had not receded; the lampkeeper had not gone home.",
+    "refZh": "回响（其31） · 五",
+    "refEn": "Echo No. 31 · V"
+  },
+  {
+    "zh": "潮汐起的时候总是先看见潮的名字。",
+    "en": "When the tide rose, it was the name that appeared first.",
+    "refZh": "回响（其32） · 一",
+    "refEn": "Echo No. 32 · I"
+  },
+  {
+    "zh": "他又往下看，发现是无字的——没有人问过潮为什么要有名字。",
+    "en": "He looked further down — no words; no one had asked why the tide should have a name.",
+    "refZh": "回响（其32） · 二",
+    "refEn": "Echo No. 32 · II"
+  },
+  {
+    "zh": "他只是在潮落下去的时候，把那一行字揉成了一团纸，扔进了潮纸篓。",
+    "en": "He folded that line of words into a ball and dropped it into the tide-wastebasket.",
+    "refZh": "回响（其32） · 三",
+    "refEn": "Echo No. 32 · III"
+  },
+  {
+    "zh": "潮纸篓里每一张纸都是一个潮字。",
+    "en": "Every piece of paper in the tide-wastebasket bore a single word: tide.",
+    "refZh": "回响（其32） · 四",
+    "refEn": "Echo No. 32 · IV"
+  },
+  {
+    "zh": "他没有发现纸篓里那一团纸被撕开。",
+    "en": "He did not find the paper in the wastebasket had been torn open.",
+    "refZh": "回响（其32） · 五",
+    "refEn": "Echo No. 32 · V"
+  },
+  {
+    "zh": "封面上的名字已经被海水泡得看不清了，只剩下每页都写着一行潮字。",
+    "en": "The cover had been washed illegible by the sea; each page still held the same tide-line: rising, falling, rising, falling.",
+    "refZh": "回响（其33） · 一",
+    "refEn": "Echo No. 33 · I"
+  },
+  {
+    "zh": "那本旧册子究竟谁打开过？没有人记得。",
+    "en": "Who had opened the ledger — no one remembered.",
+    "refZh": "回响（其33） · 二",
+    "refEn": "Echo No. 33 · II"
+  },
+  {
+    "zh": "每一页都没有告诉潮什么时候才真的退去。",
+    "en": "Every page refused to say when the tide would truly ebb.",
+    "refZh": "回响（其33） · 三",
+    "refEn": "Echo No. 33 · III"
+  },
+  {
+    "zh": "守灯人没有撕掉那一页。",
+    "en": "The lampkeeper did not tear that page out.",
+    "refZh": "回响（其33） · 四",
+    "refEn": "Echo No. 33 · IV"
+  },
+  {
+    "zh": "守灯人把旧册子放回了抽屉里。",
+    "en": "The lampkeeper returned the old ledger to the drawer.",
+    "refZh": "回响（其33） · 五",
+    "refEn": "Echo No. 33 · V"
+  },
+  {
+    "zh": "这些字迹每页只有一句，无一句重复，全潮一色。",
+    "en": "In the old book, each page bore a single line — none repeated, all tide.",
+    "refZh": "回响（其34） · 一",
+    "refEn": "Echo No. 34 · I"
+  },
+  {
+    "zh": "守灯人站在门锥前，没有添笔。",
+    "en": "The lampkeeper stood at the door pillar and added nothing to the line.",
+    "refZh": "回响（其34） · 二",
+    "refEn": "Echo No. 34 · II"
+  },
+  {
+    "zh": "第四十五次会要开了，谁也没敲他的门。",
+    "en": "The forty-fifth Convocation approached, and no one knocked.",
+    "refZh": "回响（其34） · 三",
+    "refEn": "Echo No. 34 · III"
+  },
+  {
+    "zh": "守灯人看了很久，还是没有把它添进册子。",
+    "en": "The lampkeeper looked at it for a long time, and still did not add it to the book.",
+    "refZh": "回响（其34） · 四",
+    "refEn": "Echo No. 34 · IV"
+  },
+  {
+    "zh": "守灯人不知道是谁量的。",
+    "en": "The lampkeeper did not know who measured it.",
+    "refZh": "回响（其34） · 五",
+    "refEn": "Echo No. 34 · V"
+  },
+  {
+    "zh": "门是开着的，开门的人没留下名字。",
+    "en": "The door stood open, and the one who opened it left no name.",
+    "refZh": "回响（其35） · 一",
+    "refEn": "Echo No. 35 · I"
+  },
+  {
+    "zh": "会场四十四把椅子，没有人点它们。",
+    "en": "The hall held forty-four chairs; no one counted them.",
+    "refZh": "回响（其35） · 二",
+    "refEn": "Echo No. 35 · II"
+  },
+  {
+    "zh": "念到第四十五次会的那一寸，没有人抬头。",
+    "en": "When the extra inch was read aloud, no one looked up.",
+    "refZh": "回响（其35） · 三",
+    "refEn": "Echo No. 35 · III"
+  },
+  {
+    "zh": "潮纸签传了一圈，案台是它最后的位置。",
+    "en": "The tide-paper tag passed one full round; the table was where it stopped.",
+    "refZh": "回响（其35） · 四",
+    "refEn": "Echo No. 35 · IV"
+  },
+  {
+    "zh": "散会没有人宣布，灯一盏一盏灭了。",
+    "en": "No one declared the Convocation over; the lamps went out one by one.",
+    "refZh": "回响（其35） · 五",
+    "refEn": "Echo No. 35 · V"
   }
 ] as const;

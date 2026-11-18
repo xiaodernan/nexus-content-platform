@@ -468,6 +468,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《潮起来的时候》里，潮汐时刻表里多出来的那一寸是什么？', choices: ['一个潮起的高度，没人添的', '潮汐教团之印', '旧册子的潮痕', '别人在潮落时偷偷加的'], answer: 0, ref: '回响（其三十四） · 五' },
     en: { prompt: 'In “The Hour the Tide Rose”, what was the extra inch on the timetable?', choices: ['the tide’s rising mark, added without hands', 'the Conclave’s seal', 'the old ledger’s tide-line', 'another’s hand-added mark'], answer: 0, ref: 'Echo No. 34 · V' },
   },
+  {
+    zh: { prompt: '《第四十五次会》里，门是谁开的？', choices: ['没有人留下名字', '潮汐教团的主事人', '念册的人', '守灯人'], answer: 0, ref: '回响（其三十五） · 一' },
+    en: { prompt: 'In “The Forty-Fifth Convocation”, who opened the door?', choices: ['no one — the name was never kept', 'the Conclave’s chief', 'the reader', 'the lampkeeper'], answer: 0, ref: 'Echo No. 35 · I' },
+  },
+  {
+    zh: { prompt: '《第四十五次会》里，潮纸签最后停在哪里？', choices: ['案台上，贴着旧册子', '守灯人的口袋里', '潮汐时刻表下面', '没有人抽走它，它停在门锥旁'], answer: 0, ref: '回响（其三十五） · 四' },
+    en: { prompt: 'In “The Forty-Fifth Convocation”, where did the tide-paper tag come to rest?', choices: ['on the table, against the old ledger', 'in the lampkeeper’s pocket', 'under the tide timetable', 'no hand took it; it stopped beside the door pillar'], answer: 0, ref: 'Echo No. 35 · IV' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

@@ -12109,4 +12109,147 @@ The lampkeeper did not know who measured it.
 > it knew it.
 `,
   },
+  {
+    order: 35,
+    slug: 'echo-035-the-forty-fifth-convocation',
+    titleZh: '第四十五次会',
+    titleEn: 'The Forty-Fifth Convocation',
+    eraLineZh: '纪元：潮落之月 · 第四十五次会当日 · 誊册房',
+    eraLineEn: 'Era: the day of the forty-fifth Convocation · the month the tide receded · the copying hall.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 35): The Forty-Fifth Convocation
+
+> 回响不续写正典——它只记一份挑剩下的纪录：
+> 第四十五次会没有入册。入册的是一扇开着的门、四十四把椅子、时刻表上那一寸，和一张没人抽走的潮纸签。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> The forty-fifth Convocation was never entered into the ledger. What was entered were a door that stood open, forty-four chairs, the extra inch on the timetable, and one tide-paper tag no hand drew.
+> Its anchors answer to the same discipline.
+
+> 纪元：潮落之月 · 第四十五次会当日 · 誊册房
+> Era: the day of the forty-fifth Convocation · the month the tide receded · the copying hall.
+
+---
+
+## 一 · 门开了
+
+潮落之月的那一天，誊册房的门是开着的。开门的人没有留下名字，关门的时候也没有。守灯人到得最早，推了一下门，门是开着的。
+
+门是开着的，开门的人没留下名字。
+**锚句**：门是开着的，开门的人没留下名字。
+**Anchor sentence**: The door stood open, and the one who opened it left no name.
+
+## 二 · 四十四把椅子
+
+会场里只有四十四把椅子，外加靠门那把借来的。谁坐了谁没有坐，没有人记录。守灯人没有坐——他站在门内侧，和以前一样。
+
+会场四十四把椅子，没有人点它们。
+**锚句**：会场四十四把椅子，没有人点它们。
+**Anchor sentence**: The hall held forty-four chairs; no one counted them.
+
+## 三 · 那一寸被念了出来
+
+念册的人把那一寸念了出来。「潮起上限，后者上移一寸。」念到这里他声音低了一点，又恢复了。谁也没抬头。
+
+念到第四十五次会的那一寸，没有人抬头。
+**锚句**：念到第四十五次会的那一寸，没有人抬头。
+**Anchor sentence**: When the extra inch was read aloud, no one looked up.
+
+## 四 · 潮纸签没有人抽
+
+潮纸签传了一圈又一圈。大家都看着它传过去，没有人伸手。守灯人把手放在膝盖上，放了很久。潮纸签最后停在案台上，贴着旧册子。
+
+潮纸签传了一圈，案台是它最后的位置。
+**锚句**：潮纸签传了一圈，案台是它最后的位置。
+**Anchor sentence**: The tide-paper tag passed one full round; the table was where it stopped.
+
+## 五 · 散会没有人宣布
+
+散会没有人宣布。灯一盏一盏地灭了，最后一盏是守灯人自己的。他把旧册子合上，又打开，又合上。册子里的字还在呼吸。
+
+散会没有人宣布，灯一盏一盏灭了。
+**锚句**：散会没有人宣布，灯一盏一盏灭了。
+**Anchor sentence**: No one declared the Convocation over; the lamps went out one by one.
+
+---
+
+## 模型映射（回响三十五则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 潮落之月 · 第四十五次会当日 · 誊册房 | 第十一章 · 第十二章 |
+| geography | 誊册房 · 门内侧 · 案台 · 四十四把椅子 | 本则 · 第三十则 · 第三十一则 |
+| factions | 守灯人 · 念册的人 · 潮汐教团（第四十五次会） | 第一章 · 本则 |
+| characters | 守灯人 · 念册的人 | 本则 · 第三十二则 |
+| items | 四十四把椅子 · 潮纸签 · 旧册子 · 潮汐时刻表上那一寸 | 本则 |
+| story | 第四十五次会 · 回响（其三十五） | 全篇 |
+| history | 潮落之月 · 第四十五次会当日 | 本则 |
+
+> 会没散，
+> 因为灯先灭了。
+> The Convocation did not end;
+> the lamps did.
+`,
+    markdownEn: `
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> The forty-fifth Convocation was never entered into the ledger. What was entered were a door that stood open, forty-four chairs, the extra inch on the timetable, and one tide-paper tag no hand drew.
+> Its anchors answer to the same discipline.
+
+> Era: the day of the forty-fifth Convocation · the month the tide receded · the copying hall.
+
+---
+
+## 1 · The door stood open
+
+On the day in the month of the ebb, the door of the copying hall stood open. The one who opened it left no name, and did not give one when it closed. The lampkeeper arrived earliest, pushed the door once — the door stood open.
+
+The door stood open, and the one who opened it left no name.
+**Anchor sentence**: The door stood open, and the one who opened it left no name.
+
+## 2 · Forty-four chairs
+
+The hall held only forty-four chairs, the borrowed one by the door among them. Who sat and who did not — no one recorded. The lampkeeper did not sit; he stood inside the door, as before.
+
+The hall held forty-four chairs; no one counted them.
+**Anchor sentence**: The hall held forty-four chairs; no one counted them.
+
+## 3 · The extra inch was read aloud
+
+The reader read the extra inch aloud. "The limit of the rising tide — the latter raised by one inch." His voice dipped at that point, then recovered. No one looked up.
+
+When the extra inch was read aloud, no one looked up.
+**Anchor sentence**: When the extra inch was read aloud, no one looked up.
+
+## 4 · No one drew the tide-paper tag
+
+The tide-paper tag was passed from hand to hand. Everyone watched it pass, and no hand reached. The lampkeeper kept his hands on his knees, a long time. The tag finally rested on the table, pressed against the old ledger.
+
+The tide-paper tag passed one full round; the table was where it stopped.
+**Anchor sentence**: The tide-paper tag passed one full round; the table was where it stopped.
+
+## 5 · No one declared the meeting over
+
+No one declared the Convocation over. The lamps went out one by one; the last was the lampkeeper's own. He closed the old ledger, opened it again, and closed it again. The writing inside kept breathing.
+
+No one declared the Convocation over; the lamps went out one by one.
+**Anchor sentence**: No one declared the Convocation over; the lamps went out one by one.
+
+---
+
+## Echo No. 35 — dimension mapping
+
+| Dim | Anchor | Linked |
+|---|---|---|
+| lore | the day of the forty-fifth Convocation · the month the tide receded · the copying hall | Ch. 11 · Ch. 12 |
+| geography | the copying hall · inside the door · the table · the forty-four chairs | this echo · Echo 30 · Echo 31 |
+| factions | the lampkeeper · the reader · the Tide Conclave (the forty-fifth Convocation) | Ch. 1 · this echo |
+| characters | the lampkeeper · the reader | this echo · Echo 32 |
+| items | the forty-four chairs · the tide-paper tag · the old ledger · the extra inch on the timetable | this echo |
+| story | the forty-fifth Convocation · Echo No. 35 | whole piece |
+| history | the month the tide receded · the day of the forty-fifth Convocation | this echo |
+
+> The Convocation did not end;
+> the lamps did.
+`,
+  },
 ] as const;
