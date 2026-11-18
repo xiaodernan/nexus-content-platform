@@ -17,8 +17,7 @@
       "@nexus/schemas": ["./packages/schemas/src/index.ts"],
       "@nexus/world-model": ["./packages/world-model/src/index.ts"],
       "@nexus/game-model": ["./packages/game-model/src/index.ts"],
-      "@nexus/video-model": ["./packages/video-model/src/index.ts"],
-      "@nexus/agent-runtime": ["./agents/runtime/src/index.ts"]
+      "@nexus/video-model": ["./packages/video-model/src/index.ts"]
     }
   },
   "include": [

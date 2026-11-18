@@ -95,6 +95,8 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci || npm install
+      - name: Build agent-runtime + ai-providers (their dist is gitignored; npm ci alone won't produce it)
+        run: npx turbo run build --filter=@nexus/agent-runtime --filter=@nexus/ai-providers
       - name: Migrate the database (evals need the `users` table)
         run: npm run db:migrate
         env:
