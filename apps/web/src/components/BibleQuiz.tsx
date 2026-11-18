@@ -420,6 +420,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《潮信》里，潮汐时刻表被钉在哪儿？', choices: ['门锥上', '案台抽屉里', '册页背面', '灯罩内侧'], answer: 0, ref: '回响（其二十八） · 三' },
     en: { prompt: 'In “The Tide’s Letter”, where was the timetable pinned?', choices: ['on the door pillar', 'in the desk drawer', 'behind the book’s cover', 'inside the lamp shade'], answer: 0, ref: 'Echo No. 28 · III' },
   },
+  {
+    zh: { prompt: '《第四十四次会》里，潮还是不是正常退了？', choices: ['潮没有退，潮又起了两次', '潮正常退了', 'Tide 拍门闩', 'Tide 在干涸'], answer: 0, ref: '回响（其二十九） · 五' },
+    en: { prompt: 'In “The Forty-Fourth Convocation”, did the tide recede normally?', choices: ['the tide never receded; it rose twice', 'the tide receded normally', 'the tide cracked the door', 'the tide dried up'], answer: 0, ref: 'Echo No. 29 · V' },
+  },
+  {
+    zh: { prompt: '《第四十四次会》里，最靠门的椅子里坐的是谁？', choices: ['一个新来的潮汐教团记录员', '守灯人自己', '没人', '第四十三次会停在原地的那个人'], answer: 0, ref: '回响（其二十九） · 四' },
+    en: { prompt: 'In “The Forty-Fourth Convocation”, who sat in the chair nearest the door?', choices: ['an unfamiliar young man from the shore', 'the lampkeeper himself', 'no one', 'the man who had frozen mid-meeting'], answer: 0, ref: 'Echo No. 29 · IV' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

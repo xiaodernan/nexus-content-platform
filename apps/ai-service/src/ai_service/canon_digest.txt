@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Five canonical chapters (full text below). 28 echoes (anchor lines only, same book end-anchors).
+Five canonical chapters (full text below). 29 echoes (anchor lines only, same book end-anchors).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -2307,5 +2307,12 @@ ANCHORS（中英字字对齐）:
 - [3] 潮汐时刻表被人这样挂在门锥上。
 - [4] 潮汐教团一百年前没有的章，现在用上了。
 - [5] 盐又在门槛上——每个人都踩过去，没有人弯腰。
+
+### Echo 29 · 第四十四次会 / The Forty-Fourth Convocation
+- [1] 时刻表挂在门锥上——只有潮来潮去，没有别的。
+- [2] 潮，怎么算，跟守灯人对上了。
+- [3] 潮来了，不答——不解释，不邀请。
+- [4] 坐在最靠门的椅子里的是谁？
+- [5] 潮汐教团没有散会。第四十四次会还在继续。
 
 END OF DIGEST

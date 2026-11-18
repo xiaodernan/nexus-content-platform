@@ -11151,4 +11151,177 @@ The salt was back on the threshold; each person stepped over it, and no one bent
 > it had just been re-lit.
 `,
   },
+  {
+    order: 29,
+    slug: 'echo-029-the-forty-fourth-convocation',
+    titleZh: '第四十四次会',
+    titleEn: 'The Forty-Fourth Convocation',
+    eraLineZh: '纪元：潮落之月 · 潮汐教团之记',
+    eraLineEn: 'Era: the month of tides · the Tide Conclave record.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 29): The Forty-Fourth Convocation
+
+> 回响不续写正典——它只记一份挑剩下的纪录：
+> 第四十四次会开的时候，门锥上的时刻表还挂着；纸上潮来潮去的记号留了两百年。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> The forty-fourth Convocation opened under the timetable still hanging on the door pillar; the tide's marks on paper had been there for two centuries.
+> Its anchors answer to the same discipline.
+
+> 纪元：潮落之月 · 潮汐教团之记
+> Era: the month of tides · the Tide Conclave record.
+
+---
+
+## 一 · 时刻表还挂着
+
+第四十四次会开的时候，守灯人还在门锥上挂着潮汐时刻表。上面写着：潮退、潮落、潮起、潮平、潮退。
+
+守灯人每天看一遍，把它擦得干干净净。他没有问任何人是谁挂的，也没有人问他。
+
+时刻表挂在门锥上——只有潮来潮去，没有别的。
+**锚句**：时刻表挂在门锥上——只有潮来潮去，没有别的。
+**Anchor sentence**: The timetable was pinned to the door pillar — tide in, tide out, nothing else.
+
+## 二 · 怎么换算
+
+潮，怎么算？没有人知道怎么算。
+
+守灯人打开了案台最上面的那本没有名字的本子，本子里只有一张纸条："潮起三段，满两寸；潮落两段，走一弧。"守灯人看了很久以后，到潮水边站了半个上午，最后在时刻表最下面写了一行："潮起三段，潮落后走一弧。"
+
+他跟潮对上了。他对上之后没有汇报，也没人问。
+
+潮，怎么算，跟守灯人对上了。
+**锚句**：潮，怎么算，跟守灯人对上了。
+**Anchor sentence**: How the tide was measured — the lampkeeper fell in step with it.
+
+## 三 · 一百年没打开的那本
+
+潮汐教团的旧册子，藏在潮汐教团里老档案最下面的那一排。
+
+守灯人没有把它取出来。他只是在潮起到的那一秒，顺手打开了它。第一页上写：潮来了，不答——不解释，不邀请，不问，不答。第二页上是一行空白。第三页上写：每个人到来之后，都问是怎么来的。这本册子是留下给第四十四次会的人看的。
+
+潮来了，不答——不解释，不邀请。
+**锚句**：潮来了，不答——不解释，不邀请。
+**Anchor sentence**: When the tide came, it did not answer — it did not explain, it did not invite.
+
+## 四 · 午后
+
+潮落到一半的时候，矿井一样的走廊里有一个人走了出去。没有别人。
+
+守灯人听到脚步声，抬头看了一眼。那是一个没见过面的人：年轻，年轻得像海边来的小伙子。他坐在最靠门的一把椅子上，没有说话。庭审一样。
+
+坐在最靠门的椅子里的是谁？
+**锚句**：坐在最靠门的椅子里的是谁？
+**Anchor sentence**: Who sat in the chair nearest the door?
+
+## 五 · 第四十四次会
+
+第四十四次会开到第四天，有人走进来对他说，"潮退了，你该走走。"守灯人没有走。
+
+潮退迟迟没退，潮一会儿在最深处，潮水又起了潮汐。他走出去又走进来，只见了那个年轻人一次。年轻人说："潮没有退。"
+
+守灯人抬头，最后看了一眼时刻表。潮汐时刻表写着："潮退 — 潮落 — 潮起 — 潮平 — 潮退"。守灯人没有合上本子。他只是看了很久，然后合上它，回到自己的桌边。门锥上的时刻表还是那张纸条。
+
+潮汐教团没有散会。第四十四次会还在继续。
+**锚句**：潮汐教团没有散会。第四十四次会还在继续。
+**Anchor sentence**: The Conclave did not adjourn. The forty-fourth Convocation is still proceeding.
+
+---
+
+## 模型映射（回响二十九则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 潮落之月 · 潮汐教团之记 · 第四十四次会 | 第十一章 · 第十三章 |
+| geography | 誊册房 · 门锥 · 案台 · 走廊 | 本则 · 第二十六则 · 第二十八则 |
+| factions | 守灯人 · 年轻人 · 潮汐教团（重铸的章） | 第一章 · 本则 |
+| characters | 守灯人 · 不声张的记录者 · 最靠门的那个 | 本则 · 第二十七则 · 第二十八则 |
+| items | 时刻表 · 旧册子 · 潮汐册 · 门锥 · 年轻人 | 本则 |
+| story | 第四十四次会继续开 · 回响（其二十九） | 全篇 |
+| history | 潮落之月 · 第四十四次会第四天 · 一百年没开过的那本册子的分量 | 本则 |
+
+> 潮没有退，
+> 潮起了两次。
+> The tide never receded;
+> it rose twice.
+`,
+    markdownEn: `
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> The forty-fourth Convocation opened under the timetable still hanging on the door pillar; the tide's marks on paper had been there for two centuries.
+> Its anchors answer to the same discipline.
+
+> Era: the month of tides · the Tide Conclave record.
+
+---
+
+## 1 · The timetable is still hanging
+
+When the forty-fourth Convocation opened, the lampkeeper still had the timetable pinned to the door pillar. On it was written: tide recedes, tide falls, tide rises, tide stills, tide recedes.
+
+The lampkeeper looked at it every day, and polished it until it shone. He never asked who had hung it. No one ever asked him.
+
+The timetable was pinned to the door pillar — tide in, tide out, nothing else.
+**Anchor sentence**: The timetable was pinned to the door pillar — tide in, tide out, nothing else.
+
+## 2 · How was the tide measured?
+
+How was the tide measured? No one knew.
+
+The lampkeeper opened the uppermost unnamed ledger on the desk. Inside there was one slip of paper: "When the tide rises three parts, it fills two inches; when it falls two parts, it traces an arc." The lampkeeper studied it for a long time, then stood by the water for half a morning, and finally wrote at the foot of the timetable: "Tide rising three parts, then the arc — after the fall."
+
+He had matched the tide. He did not report it, and no one asked.
+
+How the tide was measured — the lampkeeper fell in step with it.
+**Anchor sentence**: How the tide was measured — the lampkeeper fell in step with it.
+
+## 3 · The ledger left unopened for a hundred years
+
+The Tide Conclave's old ledgers were stacked at the bottom of the copy chamber's old archive.
+
+The lampkeeper did not take it out. He only, at the second the tide rose, reached out and opened it. The first page was inscribed: "When the tide came, it did not answer — it did not explain, it did not invite, it did not ask, it did not answer." The second page was blank. The third page said: "Everyone who arrives may ask — how they arrived." That booklet was left for the people of the forty-fourth Convocation to see.
+
+When the tide came, it did not answer — it did not explain, it did not invite.
+**Anchor sentence**: When the tide came, it did not answer — it did not explain, it did not invite.
+
+## 4 · Afternoon
+
+Mid-ebb, someone walked down the corridor like a shaft of wood-smoke. No one else.
+
+The lampkeeper heard the footsteps and looked up. It was someone he had never seen: young, young as the tide's own boys from the shore. He sat in the chair nearest the door and said nothing. Like a tribunal.
+
+Who sat in the chair nearest the door?
+**Anchor sentence**: Who sat in the chair nearest the door?
+
+## 5 · The forty-fourth Convocation
+
+On the fourth day of the forty-fourth Convocation, someone walked in and said, "The tide has receded. You may go."
+
+The lampkeeper did not go.
+
+The tide lingered — the sea was at the deepest; then the tide rose a second time. He came out and went back in, meeting the young man only once. The young man said: "The tide has not receded."
+
+The lampkeeper looked up, once more at the timetable. It read: "tide recedes — tide falls — tide rises — tide stills — tide recedes." The lampkeeper did not close the ledger. He simply looked for a long time, then closed it and returned to his desk. The timetable on the door pillar is the same slip of paper.
+
+The Conclave did not adjourn. The forty-fourth Convocation is still proceeding.
+**Anchor sentence**: The Conclave did not adjourn. The forty-fourth Convocation is still proceeding.
+
+---
+
+## Echo No. 29 — dimension mapping
+
+| Dim | Anchor | Linked |
+|---|---|---|
+| lore | the month of tides · the Tide Conclave record · the forty-fourth Convocation | Ch. 11 · Ch. 13 |
+| geography | the copying hall · the door pillar · the desk · the corridor | this echo · Echo 26 · Echo 28 |
+| factions | the lampkeeper · the young man · Tide Conclave (re-cast seal) | Ch. 1 · this echo |
+| characters | the lampkeeper · the unsigned recorder · the one nearest the door | this echo · Echo 27 · Echo 28 |
+| items | the timetable · the old ledger · the tide book · the door pillar · the young man | this echo |
+| story | the forty-fourth Convocation still proceeds · Echo No. 29 | whole piece |
+| history | the month of tides · the fourth day of the forty-fourth Convocation · the weight of the book unopened for a hundred years | this echo |
+
+> The tide never receded;
+> it rose twice.
+`,
+  },
 ] as const;
