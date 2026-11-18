@@ -2898,7 +2898,7 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [5] 没人问过那些名字里的人是什么样的人——连值更人也不问。
 - [6] 值更册最后一页："它只记未入——没记完的就是这一百四十一人。"
 
-### Echo 142 · 潮候院雨书 / The Rain-Book of the Tide-Watch Chapel
+### Echo 143 · 潮候院雨书 / The Rain-Book of the Tide-Watch Chapel
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 潮候院里有一个本子只记下雨的夜晚——记下没有人知道的事。
 - [2] 卖椰壳的人只卖两个椰壳——一个给要雨的人，一个给还不知道要雨的人。
