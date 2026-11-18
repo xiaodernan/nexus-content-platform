@@ -7338,3 +7338,7 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 **token 采购成本说明**：digest 2.37×，但 cache lane 稳态 100%，摊销后每问成本 ≈ 每 $0.276 vs 旧 digest 每问 $0.116 (gpt-6.1-terra usage 报的真值；用户授权此路线，不妥协）。
 
 **git**：origin/main 推送（PAT 权限）今日完成；Pages 指针同步推进。
+
+## cont. 352 (2026-11-18) — evidence 收编：lineage-2 C8A21 支线的两份证据归档（2026-11-19 · origin/main c8eaae7f/6af62201）
+
+origin/main 支线（lineage-2）的 big-context 版本直接拷贝入仓作历史证据：`docs/evidence/big-context-provenance-lineage2-2026-11-19.md`（`contract maxLength 64000→256000` 解锁 + tokensIn 119,904 + KV cache 100.0% case）与 `docs/evidence/storm-32-2026-11-19.md`（32 并发 Tide Oracle 同时打：第一轮 16 call cached=112,620/119,884 (93.9%)；第二轮 16 call cached=119,884/119,884 (100.0%)）。两报告中的 prompt/model/API 与 main-line 一致（gpt-6.1-terra · aizzz.xyz/v1）。main-line 的并线版本见 ADR-0286（digest 分层配额制 → 229,140 chars · tokensIn=147,519 · 直打 4 发）。
