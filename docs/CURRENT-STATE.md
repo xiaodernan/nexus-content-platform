@@ -7674,6 +7674,24 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
   L2 design lane（dryRun stub）：cold=0 → warm=299,393/299,393（103 ms，100% cached）PASS。
 - §AILIVE-4 证据 `docs/evidence/probe-ailive4-2026-11-19.md`（边界如实记录：L2 tokens_in 口径 ≈ digest×2；model/gpt-6.1-terra 同 system 不同车道的 input 账目口径需留意；真实 studio 会话仍待细测）。
 - IO 不 bump（本轮为探针收录片）。
+
+## cont. 383 (2026-11-19) — v1001 · §BIBLE-140 · Echo #140《抄本室那盏灯》(作者手写 · verify 857/857)
+
+- 新篇：「抄本室那盏灯 · 没人添过油 · 散会夜先灭一闪 · 它只要家传声册里有人抄它的光」—— digest 现 **235,147 chars**（13 章正典 · **140 回响** · 4 annex · 锚句 857 zh / 857 en ✓）。
+- 6 锚句 bilingual · gen-bible-snapshot 增 echo-140 · BibleAsk lede → 140 · /bible/ask meta → 一百四十篇 · CACHE-IDENTITY × 140 · canon-answer-graph → 153 段 · bible-ask-behavior → 852 · pin 重钉 page→87a27f25 / comp→98d1c660 · InsightCanonChat hint 同步 140 回响。
+- fe-gates **1370/1370** ✓ · verify:world-bible 857/857 ✓。
+
+## cont. 384 (2026-11-19) — §PROOF-V1001 · digest 235,147 缓存复测（12 发 seq + 16 路并发）
+
+- evidence `docs/evidence/probe-v1001-2026-11-19.md`：12 发 seq 9×100% · 2×142,450（93.9%）· 1×冷首发 · 0×5xx；phase B 暴发 16/16 全额 cached（totalCached==totalIn=2,426,666）· 0×5xx · latMax=194 ms · p50≈36 ms。
+- 与 cont.373 (v992) / cont.382 (AILIVE-4) 一并支撑 branch：当前 digest（Echo #140）在 16 路并发下零 miss —— Codex 式 90% 缓存命中率稳定可达成且无退化。
+- input=151,668 tokensIn/发。IO 不 bump（本片为证据收录片）。
+
+## cont. 385 (2026-11-19) — v1002 · §BIBLE-141 · Echo #141《门岗那本只记未入的访客籍》(作者手写 · verify 863/863)
+
+- 新篇：「门岗访客籍 · 没有一个人进来过 · 小孩头上不见影子 · 散会后它不再记」—— digest 现 **235,610 chars**（13 章正典 · **141 回响** · 4 annex · 锚句 863 zh / 863 en ✓）。
+- 6 锚句双语 · gen-bible-snapshot 增 echo-141 · BibleAsk lede → 141 · /bible/ask meta → 一百四十一篇 · CACHE-IDENTITY × 141 · canon-answer-graph → 154 段 · bible-ask-behavior → 858 · pin 重钉 page→feb2ff26 / comp→f2e5148b · InsightCanonChat hint 同步 141。
+- fe-gates **1370/1370** ✓ · verify:world-bible 863/863 ✓。
 ## cont. 382 (2026-11-19) · 两线双生合流 — Echo #140《潮候院雨书》并入 lineage · 并线重生 digest · /canon digest 完整 240k chars
 
 - 并行线先落成 Echo #139《只望雾港的望远镜》· 本线新内容《潮候院雨书》重排为 Echo #140，与其线并行而非冲突（gen-bible-snapshot 章节校准）

@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 140 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 142 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -2879,6 +2879,24 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 潮候院的封面上没有名字——抄是潮候的事，不是抄的人的事。
 - [4] 坏了的潮汐表不重抄——潮候院只整册要、整册存，从没跟潮讨价还价。
 - [5] 潮汐表的封面不是装饰——它是潮候院为每一次潮起写下的那一行不会被海带走的字。
+
+### Echo 140 · 潮候院抄本室里那盏从不熄灭的灯 / The Lamp in the Copyists' Room That Never Goes Out
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 抄本室最深处有一盏灯——它从来不灭。
+- [2] 没人添过油——也没人问——值更册只有一句"它自己亮着"。
+- [3] 散会那一夜——灯先灭了一下又亮——值更册记："那一闪没有人问。"
+- [4] 它的光不照桌面——只照字——抄本师说灯是写字的。
+- [5] 雾港的风来的时候——灯会晃——它从来没有灭过。
+- [6] 值更册最后一页："它只要家传声册里有人抄它的光——它就不会灭。"
+
+### Echo 141 · 潮候院门岗那本只记未入的访客籍 / The Visitors' Book at the Institute's Gate That Records Only the Names of Those Who Never Entered
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院门岗的值更人每天把访客的名单写进一本籍——书里没有一个人真正进入潮候院。
+- [2] 怎么写入籍——来了——问了——被告知此处不收访客——走了——值更册的最后一行只记两个字"未入"。
+- [3] 四十年前有一个小孩来过——第二天籍上多了一句"那个小孩头上不见影子"。
+- [4] 散会那一夜——值更人把整本籍合上——第二天他翻开——值更册写着"散会后它不再记"。
+- [5] 没人问过那些名字里的人是什么样的人——连值更人也不问。
+- [6] 值更册最后一页："它只记未入——没记完的就是这一百四十一人。"
 
 ### Echo 142 · 潮候院雨书 / The Rain-Book of the Tide-Watch Chapel
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
