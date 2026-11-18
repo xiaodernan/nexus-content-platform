@@ -8567,7 +8567,7 @@ A thin ledger remembers better than any person which half it lost.
 | lore | 灰后 · 欠册之月 · 第四十二次会没开会 | 第十一章 · 第十三章 |
 | geography | 誊册房 · 案台 · 灰白尽头 | 本则 |
 | factions | 誊账人 · 守灯人 · 潮汐教团（余烬） | 第一章 · 本则 |
-| characters | 账簿的守护者 · 誊账人 | 本则 · 第二十二则 |
+| characters | 账簿的守护者 · 誊账人 | 本则 · 第一百零八则 |
 | items | 签收本 · 欠据 · 印章 · 画帧 | 本则 |
 | story | 第四十二次会没开成 · 回响（其二十三） | 全篇 |
 | history | 纪元切割 · 灰幕之后 · 欠册之月 | 本则 |
@@ -8931,7 +8931,7 @@ The door simply stands open — the way the tide does.
 | lore | 灰后 · 封卷之月 · 第四十二次会之后 | 第十一章 · 第十三章 |
 | geography | 旧案台 · 灰幕 · 书架尽头 | 本则 |
 | factions | 誊账人 · 守灯人 · 潮汐教团（余烬） | 第一章 · 本则 |
-| characters | 账簿的守护者 · 守灯人 | 本则 · 第二十二则 · 第二十三则 |
+| characters | 账簿的守护者 · 守灯人 | 本则 · 第一百零八则 · 第一百零九则 |
 | items | 签收本 · 灰纸 · 快沙 · 半粒盐 | 本则 |
 | story | 合上的封皮 · 回响（其二十四） | 全篇 |
 | history | 纪元切割 · 灰幕之后 · 封卷之月 | 本则 |
@@ -9098,7 +9098,7 @@ After the binding closed, not one person opened the book.
 | lore | 灰封之后 · 灰炉之夜 · 第四十三次会前夜 | 第十一章 · 第十三章 |
 | geography | 旧案台 · 东边炉 · 灰炉缝 · 走廊 | 本则 |
 | factions | 誊账人 · 守灯人 · 潮汐教团（余烬） | 第一章 · 本则 |
-| characters | 账簿的守护者 · 守灯人 · 守灰人 | 本则 · 第二十二则 · 第二十四则 |
+| characters | 账簿的守护者 · 守灯人 · 守灰人 | 本则 · 第一百零八则 · 第一百十则 |
 | items | 灰炉 · 薄铁皮 · 灰线 · 灯芯 · 补封衬页 | 本则 |
 | story | 灰炉没有熄的夜 · 回响（其二十五） | 全篇 |
 | history | 纪元切割 · 灰封之后 · 灰炉之夜 | 本则 |
@@ -9263,9 +9263,9 @@ The hearth never shone again.
 | 维度 | 锚定 | 关联章 |
 |---|---|---|
 | lore | 灰封之后 · 潮开之月 · 第四十三次会没散 | 第十一章 · 第十三章 |
-| geography | 誊册房 · 旧案台 · 走廊门槛 · 盐线 | 本则 · 第二十五则 |
+| geography | 誊册房 · 旧案台 · 走廊门槛 · 盐线 | 本则 · 第一百十一则 |
 | factions | 誊账人 · 守灯人 · 回来的馆里人 · 潮汐教团（余烬） | 第一章 · 本则 |
-| characters | 账簿的守护者 · 守灯人 · 没落下签名的人 | 本则 · 第二十二则 · 第二十三则 · 第二十四则 · 第二十五则 |
+| characters | 账簿的守护者 · 守灯人 · 没落下签名的人 | 本则 · 第一百零八则 · 第一百零九则 · 第一百十则 · 第一百十一则 |
 | items | 议程 · 欠据 · 盐线 · 未落下的签名 · 签收本 | 本则 |
 | story | 第四十三次会没散的会 · 回响（其二十六） | 全篇 |
 | history | 纪元切割 · 灰封之后 · 潮开之月 | 本则 |
@@ -10340,6 +10340,360 @@ The copyists later set the rule: of the nine, the first eight may be revised —
 `,
   },
   {
+    order: 118,
+    slug: 'echo-118-after-the-tide',
+    titleZh: '退潮之后',
+    titleEn: 'After the Tide',
+    eraLineZh: '纪元：潮开之后 · 潮落后之月',
+    eraLineEn: 'Era: after the tide opened · the month after the ebb.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 118): After the Tide
+
+> 回响不续写正典——它只记一份挑剩下的纪录：
+> 第四十三次会散了以后（没有散会），潮水退去，盐线留在门槛上。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> After the forty-third Convocation (which never adjourned), the tide withdrew — the salt line stayed on the threshold.
+> Its anchors answer to the same discipline.
+
+> 纪元：潮开之后 · 潮落后之月
+> Era: after the tide opened · the month after the ebb.
+
+---
+
+## 一 · 门槛上的盐线
+
+潮水退了。不是一点一点退的，是整个晚上退了出去，退到画框外，退到没有人看见的地方。馆里的灯没有人点过，可是光是从门口那点水折射进来的。早上，守灯人打开门。
+
+门槛上一道盐线，白白的，宽度和他袖口一样。盐是湿的。盐贴着木纹，贴得很紧，像是烙上去的。守灯人弯腰摸了一下，收回手。手上有盐粒，还有一点潮的凉。他站在原地站了一会儿，然后去找扫帚。
+
+守灯人摸了一下门槛上的盐，收回手。
+**锚句**：守灯人摸了一下门槛上的盐，收回手。
+**Anchor sentence**: The lampkeeper touched the salt on the threshold, and drew his hand back.
+
+## 二 · 桌子底下
+
+第四十三次会的第二天，没有人来。
+
+第三天还是没有人来。第四天也没有。
+
+守灯人在桌子底下找到一只折过的纸条。那是一只便签，放在桌脚旁，纸的折痕很旧，字迹用软铅写的，内容是："本子里留空的，下次填满——不替谁填。"守灯人看了很久。他把便签放回去，原样。他记下这一条，没记时间。
+
+守灯人记下这一条，没记时间。
+**锚句**：守灯人记下这一条，没记时间。
+**Anchor sentence**: The lampkeeper noted this one line, and did not note the time.
+
+## 三 · 那排没有人坐的椅子
+
+第四十三次会的第二天早上，守灯人数椅子。
+
+椅子原来是一排一排的，现在是东倒西歪的。没有人动过。风从侧门进来，把椅子推起来，又放下。有两把椅子的角度是反的，坐深比其余都深。守灯人没有把它们摆回去。
+
+有两把椅子的坐深比其他都深，他没有摆回去。
+**锚句**：有两把椅子的坐深比其余都深，他没有摆回去。
+**Anchor sentence**: Two chairs sat deeper than the others; he did not move them back.
+
+## 四 · 月光落在签收本上
+
+那晚没有月亮。
+
+守灯人带了一盏没有灯芯的灯坐在案台边。他打开了签收本。本子里面是空的——每一页都是空的，可是纸张不是全新的。用力按了一下，纸底有纹路——人写过，字迹被撕掉了，痕迹压在纸里。
+
+签名的位置是空的。
+守灯人没有写。
+
+签名的位置是空的，守灯人没有写。
+**锚句**：签名的位置是空的，守灯人没有写。
+**Anchor sentence**: The space for a signature stood open; the lampkeeper did not write it.
+
+## 五 · 第四十四次会之前
+
+后来馆里开始有固定来的人。
+
+守灯人没有记录他们的名字。他们来了，在原来的椅子上坐下，面对空本子。没有人说话。有时候有人倒了一杯水，放在案台上，没有人喝。这些是收到了却没有人登记的事。
+
+守灯人只做一件事：每天早上把盐抹掉，第二天再把盐抹掉。
+
+守灯人只做一件事：每天早上把盐抹掉。
+**锚句**：守灯人只做一件事：每天早上把盐抹掉。
+**Anchor sentence**: The lampkeeper did one thing: each morning, he wiped the salt.
+
+---
+
+## 模型映射（回响二十七则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 潮开之后 · 潮落后之月 · 第四十三次会没散 | 第十一章 · 第十三章 |
+| geography | 誊册房 · 门槛 · 盐线 · 椅子 | 本则 · 第一百十一则 · 第一百十八则 |
+| factions | 守灯人 · 誊账人 · 回来的馆里人 · 潮汐教团（余烬） | 第一章 · 本则 |
+| characters | 守灯人 · 不复述的记录者 | 本则 · 第一百十一则 · 第一百十二则 |
+| items | 盐线 · 折过的纸条 · 椅子 · 月光 | 本则 |
+| story | 潮退之后 · 回响（其一百十八） | 全篇 |
+| history | 潮开之后 · 潮落后之月 · 第四十三次会的第二天 | 本则 |
+
+> 潮退走了，
+> 盐留在门槛上。
+> The tide withdrew;
+> the salt stayed on the threshold.
+`,
+    markdownEn: `
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> After the forty-third Convocation (which never adjourned), the tide withdrew — the salt line stayed on the threshold.
+> Its anchors answer to the same discipline.
+
+> Era: after the tide opened · the month after the ebb.
+
+---
+
+## 1 · The salt line on the threshold
+
+The tide had gone out. It didn’t go gradually; it went all at once, out beyond the frame, out where no eye reached it. No one had lit the lamp in the hall. But light came in from the water that stood at the door. In the morning, the lampkeeper opened the door.
+
+On the threshold there was a line of salt — white, wide as his sleeve. The salt was damp. It clung to the grain of the wood as though engraved into it. The lampkeeper bent down and touched it, then withdrew his hand. There were grains of salt on his fingers, and a touch of the tide’s chill. He stood there a while, and then went to find a broom.
+
+The lampkeeper touched the salt on the threshold, and drew his hand back.
+**Anchor sentence**: The lampkeeper touched the salt on the threshold, and drew his hand back.
+
+## 2 · Under the table
+
+On the second day after the forty-third Convocation, no one came.
+
+The third day, no one came either. The fourth day, no one came.
+
+Under the table, the lampkeeper found a folded slip of paper — a note, lying at the foot of a chair leg. The folds were old; the writing was done with a soft pencil: "The ones left blank in the book — fill them next time — do not fill in for anyone." The lampkeeper studied it for a long time. He put it back as it was. He wrote one line about it, without a date.
+
+The lampkeeper noted this one line, and did not note the time.
+**Anchor sentence**: The lampkeeper noted this one line, and did not note the time.
+
+## 3 · The chairs no one ever sat in
+
+On the second morning after the forty-third Convocation, the lampkeeper counted the chairs.
+
+Once they had been rows. Now they were scattered. No one had moved them. Wind came through the side door and pushed them up, and set them down again. Two chairs sat at the opposite angle — those two had gone deeper than the others. The lampkeeper did not set them back.
+
+Two chairs sat deeper than the others; he did not move them back.
+**Anchor sentence**: Two chairs sat deeper than the others; he did not move them back.
+
+## 4 · Moonlight on the book of receipts
+
+There was no moon that night.
+
+The lampkeeper brought a lamp with no wick and set it beside the desk. He opened the book of receipts. Every page was blank — every page — but the paper was not new. Pressing the grain, he felt the lines: writing had once been there, and then it had been torn out; the pressure marks were buried in the sheet.
+
+The space for a signature stood open.
+The lampkeeper did not write it.
+
+The space for a signature stood open; the lampkeeper did not write it.
+**Anchor sentence**: The space for a signature stood open; the lampkeeper did not write it.
+
+## 5 · Before the forty-fourth
+
+Later, people began coming to the hall again on a fixed day.
+
+The lampkeeper did not record their names. They came, sat in the chairs, and faced the empty book. No one spoke. Sometimes someone set a glass of water on the desk that nobody drank. These were entries that arrived and were never registered.
+
+The lampkeeper did one thing: each morning, he wiped the salt.
+
+The lampkeeper did one thing: each morning, he wiped the salt.
+**Anchor sentence**: The lampkeeper did one thing: each morning, he wiped the salt.
+
+---
+
+## Echo No. 118 — dimension mapping
+
+| Dim | Anchor | Linked |
+|---|---|---|
+| lore | after the tide opened · the month after the ebb · the forty-third Convocation never adjourned | Ch. 11 · Ch. 13 |
+| geography | the copying hall · the threshold · the salt line · the chairs | this echo · Echo 111 · Echo 112 |
+| factions | the lampkeeper · the copyist · the returning hall · Tide Conclave (embers) | Ch. 1 · this echo |
+| characters | the lampkeeper · the unnamed recorder | this echo · Echo 111 · Echo 112 |
+| items | the salt line · the folded note · the chairs · moonlight | this echo |
+| story | after the ebb · Echo No. 118 | whole piece |
+| history | after the tide · the month after the ebb · the second day of the forty-third Convocation | this echo |
+
+> The tide withdrew;
+> the salt stayed on the threshold.
+`,
+  },
+  {
+    order: 119,
+    slug: 'echo-119-the-tide-letter',
+    titleZh: '潮信',
+    titleEn: 'The Tide\'s Letter',
+    eraLineZh: '纪元：潮落后之月 · 汐来之时',
+    eraLineEn: 'Era: after the ebb · the arrival of the tide-letter.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 119): The Tide's Letter
+
+> 回响不续写正典——它只记一份挑剩下的纪录：
+> 潮退之后，门槛上的盐还是被抹掉了，可是这一次抹的不是盐——是一封信。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> After the tide was gone, the salt was wiped each morning — but this time it was not salt. It was a letter.
+> Its anchors answer to the same discipline.
+
+> 纪元：潮落后之月 · 汐来之时
+> Era: after the ebb · the arrival of the tide-letter.
+
+---
+
+## 一 · 那封折起来的信
+
+第四十四次会之前的那几天，守灯人在门槛上发现了一封信。
+
+信是折起来的，边缘被盐泡过，纸还是湿的。封面上没有字。没有收件人，没有寄件人，也没有邮戳。只是盖了一个章：潮汐教团没有章了一百年了。这是一只新倒的章。
+
+信是给守灯人的——每一个发现潮的人都知道，信还是那封旧信。
+
+潮汐教团没有章了一百年了，这只是一只新倒的章。
+**锚句**：潮汐教团没有章了一百年了，这只是一只新倒的章。
+**Anchor sentence**: The Tide Conclave had not borne a seal in a hundred years; this one was newly cast.
+
+## 二 · 折起来的信
+
+信里没有字。
+
+守灯人把它摊开，一整张纸上都是一条一条的纹路——像是海水在退潮后留下的印记，看上去像一种书写的痕迹，可又不是字。守灯人盯着看了很久，没有看懂。
+
+这一封信里没有字。
+守灯人看了一整天，只看到了潮的痕迹。
+**锚句**：这一封信里没有字。
+**Anchor sentence**: This letter held no words.
+
+## 三 · 潮汐时刻表
+
+后来潮汐教团决定把它贴在门锥上。
+
+他们没有解释什么。只是把那一张信纸夹在一块潮汐时刻表面板的后面，一壁面板上写"潮汐时刻表"四个字，每天更新。潮退了几时几时，潮起了几时几时。守灯人负责每天去看潮的刻度。
+
+潮时刻表并没有什么人遵守。只是在门锥上被人这样挂着。
+
+潮汐时刻表被人这样挂在门锥上。
+**锚句**：潮汐时刻表被人这样挂在门锥上。
+**Anchor sentence**: The timetable hung on the door pillar, pinned there without ceremony.
+
+## 四 · 信是谁的
+
+信是谁的？没有人问。
+
+问的是别人。每次谁问起，守灯人都说："问我也问不出。"
+
+潮汐教团一百年前没有的章，现在用上了。旧规矩可以这样过期：过期以后，还能用——用起来不一致。没有人规定。
+
+潮汐教团一百年前没有的章，现在用上了。
+**锚句**：潮汐教团一百年前没有的章，现在用上了。
+**Anchor sentence**: The seal the Conclave had lacked a hundred years ago was in use again.
+
+## 五 · 第四十四次会之后
+
+第四十四次会开的时候，盐已经抹完了。
+
+守灯人把门重新打开。信还是那封旧信——现在人人都认识它。潮汐退了，门槛上又是一道盐线。每个人都踩过去，没有人弯腰。信还在时刻表面板上。
+
+盐又在门槛上——每个人都踩过去，没有人弯腰。
+**锚句**：盐又在门槛上——每个人都踩过去，没有人弯腰。
+**Anchor sentence**: The salt was back on the threshold; each person stepped over it, and no one bent down.
+
+---
+
+## 模型映射（回响二十八则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 潮落后之月 · 汐来之时 · 第四十四次会之前 | 第十一章 · 第十三章 |
+| geography | 誊册房 · 门锥 · 潮汐时刻表面板 · 门槛 | 本则 · 第一百十八则 |
+| factions | 守灯人 · 誊账人 · 回来的馆里人 · 潮汐教团（重铸的章） | 第一章 · 本则 |
+| characters | 守灯人 · 无名写信人 | 本则 · 第一百十二则 · 第一百十八则 |
+| items | 折起来的信 · 潮汐时刻表面板 · 门锥 · 新章 | 本则 |
+| story | 潮信来了 · 回响（其一百十九） | 全篇 |
+| history | 潮落后之月 · 潮汐时刻表 · 第四十四次会之前 | 本则 |
+
+> 潮章没有了一百年，
+> 刚刚又亮起来。
+> The seal was missing for a hundred years;
+> it had just been re-lit.
+`,
+    markdownEn: `
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> After the tide was gone, the salt was wiped each morning — but this time it was not salt. It was a letter.
+> Its anchors answer to the same discipline.
+
+> Era: after the ebb · the arrival of the tide-letter.
+
+---
+
+## 1 · The folded letter
+
+In the days before the forty-fourth Convocation, the lampkeeper found a letter on the threshold.
+
+The letter was folded, its edges swollen with salt. The paper was still damp. No addressee, no sender, no postmark. Only a seal had been pressed onto it — a seal the Tide Conclave had not borne in a hundred years. It was a newly-cast seal.
+
+The letter was for the lampkeeper — every person who sees the tide knows it as the same old letter.
+
+The Tide Conclave had not borne a seal in a hundred years; this one was newly cast.
+**Anchor sentence**: The Tide Conclave had not borne a seal in a hundred years; this one was newly cast.
+
+## 2 · The folded letter (continued)
+
+The letter held no words.
+
+The lampkeeper spread it open — the whole sheet was covered in lines and ridges, impressions the tide had left as it withdrew. It looked like a kind of handwriting, but it was not. He studied it for a long time without understanding a single part.
+
+This letter held no words.
+The lampkeeper studied it for a whole day and saw only the tide's own marks.
+**Anchor sentence**: This letter held no words.
+
+## 3 · The tide timetable
+
+Later, the Tide Conclave pinned it to the door pillar.
+
+No one explained anything. They pinned the sheet behind a board labeled "Tide Times," refreshed daily. When the tide went out, the hour was written; when the tide came in, the hour was written. The lampkeeper's job was to check the tide scale every day.
+
+The tide timetable is not followed by anyone. It simply hangs on the door pillar like that.
+
+The timetable hung on the door pillar, pinned there without ceremony.
+**Anchor sentence**: The timetable hung on the door pillar, pinned there without ceremony.
+
+## 4 · Whose letter is it?
+
+Whose letter is this? No one asked.
+
+It was others who asked. Each time someone asked, the lampkeeper answered: "Don't ask me — I don't know either."
+
+The seal the Conclave lacked a hundred years ago — in use again now. Old rules can simply expire: after they expire, they may be used again — inconsistent with anything. No one decrees it.
+
+The seal the Conclave had lacked a hundred years ago was in use again.
+**Anchor sentence**: The seal the Conclave had lacked a hundred years ago was in use again.
+
+## 5 · After the forty-fourth
+
+By the day of the forty-fourth Convocation, the salt had already been wiped away.
+
+The lampkeeper opened the hall door. The letter was still that same letter — everyone knew it now. The tide went out again, and the salt returned to the threshold. People stepped over it without bending down.
+
+The salt was back on the threshold; each person stepped over it, and no one bent down.
+**Anchor sentence**: The salt was back on the threshold; each person stepped over it, and no one bent down.
+
+---
+
+## Echo No. 119 — dimension mapping
+
+| Dim | Anchor | Linked |
+|---|---|---|
+| lore | after the ebb · the arrival of the tide-letter · before the forty-fourth Convocation | Ch. 11 · Ch. 13 |
+| geography | the copying hall · the door pillar · the tide timetable board · the threshold | this echo · Echo 118 |
+| factions | the lampkeeper · the copyist · the returning hall · Tide Conclave (re-cast seal) | Ch. 1 · this echo |
+| characters | the lampkeeper · the unnamed letter-writer | this echo · Echo 112 · Echo 118 |
+| items | the folded letter · the timetable board · the door pillar · the newly-cast seal | this echo |
+| story | the tide's letter arrives · Echo No. 119 | whole piece |
+| history | after the ebb · the timetable · before the forty-fourth Convocation | this echo |
+
+> The seal was missing for a hundred years;
+> it had just been re-lit.
+`,
+  },
+  {
     order: 12,
     slug: 'echo-012-the-echo-that-only-comes-when-the-tide-is-out',
     titleZh: '潮落时才有的回声',
@@ -10543,6 +10897,964 @@ The echo is not a person, not the sea, not the wall — it is the chapel's own r
 
 > 潮落的时候祠殿堂才有声音——潮从来不说原因，只报海的方向；回音也从来不认人。
 > When the tide is out the chapel finally speaks — the sea never says why, only where it is; the echo never says whose either.
+`,
+  },
+  {
+    order: 120,
+    slug: 'echo-120-the-forty-fourth-convocation',
+    titleZh: '第四十四次会',
+    titleEn: 'The Forty-Fourth Convocation',
+    eraLineZh: '纪元：潮落之月 · 潮汐教团之记',
+    eraLineEn: 'Era: the month of tides · the Tide Conclave record.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 120): The Forty-Fourth Convocation
+
+> 回响不续写正典——它只记一份挑剩下的纪录：
+> 第四十四次会开的时候，门锥上的时刻表还挂着；纸上潮来潮去的记号留了两百年。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> The forty-fourth Convocation opened under the timetable still hanging on the door pillar; the tide's marks on paper had been there for two centuries.
+> Its anchors answer to the same discipline.
+
+> 纪元：潮落之月 · 潮汐教团之记
+> Era: the month of tides · the Tide Conclave record.
+
+---
+
+## 一 · 时刻表还挂着
+
+第四十四次会开的时候，守灯人还在门锥上挂着潮汐时刻表。上面写着：潮退、潮落、潮起、潮平、潮退。
+
+守灯人每天看一遍，把它擦得干干净净。他没有问任何人是谁挂的，也没有人问他。
+
+时刻表挂在门锥上——只有潮来潮去，没有别的。
+**锚句**：时刻表挂在门锥上——只有潮来潮去，没有别的。
+**Anchor sentence**: The timetable was pinned to the door pillar — tide in, tide out, nothing else.
+
+## 二 · 怎么换算
+
+潮，怎么算？没有人知道怎么算。
+
+守灯人打开了案台最上面的那本没有名字的本子，本子里只有一张纸条："潮起三段，满两寸；潮落两段，走一弧。"守灯人看了很久以后，到潮水边站了半个上午，最后在时刻表最下面写了一行："潮起三段，潮落后走一弧。"
+
+他跟潮对上了。他对上之后没有汇报，也没人问。
+
+潮，怎么算，跟守灯人对上了。
+**锚句**：潮，怎么算，跟守灯人对上了。
+**Anchor sentence**: How the tide was measured — the lampkeeper fell in step with it.
+
+## 三 · 一百年没打开的那本
+
+潮汐教团的旧册子，藏在潮汐教团里老档案最下面的那一排。
+
+守灯人没有把它取出来。他只是在潮起到的那一秒，顺手打开了它。第一页上写：潮来了，不答——不解释，不邀请，不问，不答。第二页上是一行空白。第三页上写：每个人到来之后，都问是怎么来的。这本册子是留下给第四十四次会的人看的。
+
+潮来了，不答——不解释，不邀请。
+**锚句**：潮来了，不答——不解释，不邀请。
+**Anchor sentence**: When the tide came, it did not answer — it did not explain, it did not invite.
+
+## 四 · 午后
+
+潮落到一半的时候，矿井一样的走廊里有一个人走了出去。没有别人。
+
+守灯人听到脚步声，抬头看了一眼。那是一个没见过面的人：年轻，年轻得像海边来的小伙子。他坐在最靠门的一把椅子上，没有说话。庭审一样。
+
+坐在最靠门的椅子里的是谁？
+**锚句**：坐在最靠门的椅子里的是谁？
+**Anchor sentence**: Who sat in the chair nearest the door?
+
+## 五 · 第四十四次会
+
+第四十四次会开到第四天，有人走进来对他说，"潮退了，你该走走。"守灯人没有走。
+
+潮退迟迟没退，潮一会儿在最深处，潮水又起了潮汐。他走出去又走进来，只见了那个年轻人一次。年轻人说："潮没有退。"
+
+守灯人抬头，最后看了一眼时刻表。潮汐时刻表写着："潮退 — 潮落 — 潮起 — 潮平 — 潮退"。守灯人没有合上本子。他只是看了很久，然后合上它，回到自己的桌边。门锥上的时刻表还是那张纸条。
+
+潮汐教团没有散会。第四十四次会还在继续。
+**锚句**：潮汐教团没有散会。第四十四次会还在继续。
+**Anchor sentence**: The Conclave did not adjourn. The forty-fourth Convocation is still proceeding.
+
+---
+
+## 模型映射（回响二十九则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 潮落之月 · 潮汐教团之记 · 第四十四次会 | 第十一章 · 第十三章 |
+| geography | 誊册房 · 门锥 · 案台 · 走廊 | 本则 · 第一百十二则 · 第一百十九则 |
+| factions | 守灯人 · 年轻人 · 潮汐教团（重铸的章） | 第一章 · 本则 |
+| characters | 守灯人 · 不声张的记录者 · 最靠门的那个 | 本则 · 第一百十八则 · 第一百十九则 |
+| items | 时刻表 · 旧册子 · 潮汐册 · 门锥 · 年轻人 | 本则 |
+| story | 第四十四次会继续开 · 回响（其一百二十） | 全篇 |
+| history | 潮落之月 · 第四十四次会第四天 · 一百年没开过的那本册子的分量 | 本则 |
+
+> 潮没有退，
+> 潮起了两次。
+> The tide never receded;
+> it rose twice.
+`,
+    markdownEn: `
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> The forty-fourth Convocation opened under the timetable still hanging on the door pillar; the tide's marks on paper had been there for two centuries.
+> Its anchors answer to the same discipline.
+
+> Era: the month of tides · the Tide Conclave record.
+
+---
+
+## 1 · The timetable is still hanging
+
+When the forty-fourth Convocation opened, the lampkeeper still had the timetable pinned to the door pillar. On it was written: tide recedes, tide falls, tide rises, tide stills, tide recedes.
+
+The lampkeeper looked at it every day, and polished it until it shone. He never asked who had hung it. No one ever asked him.
+
+The timetable was pinned to the door pillar — tide in, tide out, nothing else.
+**Anchor sentence**: The timetable was pinned to the door pillar — tide in, tide out, nothing else.
+
+## 2 · How was the tide measured?
+
+How was the tide measured? No one knew.
+
+The lampkeeper opened the uppermost unnamed ledger on the desk. Inside there was one slip of paper: "When the tide rises three parts, it fills two inches; when it falls two parts, it traces an arc." The lampkeeper studied it for a long time, then stood by the water for half a morning, and finally wrote at the foot of the timetable: "Tide rising three parts, then the arc — after the fall."
+
+He had matched the tide. He did not report it, and no one asked.
+
+How the tide was measured — the lampkeeper fell in step with it.
+**Anchor sentence**: How the tide was measured — the lampkeeper fell in step with it.
+
+## 3 · The ledger left unopened for a hundred years
+
+The Tide Conclave's old ledgers were stacked at the bottom of the copy chamber's old archive.
+
+The lampkeeper did not take it out. He only, at the second the tide rose, reached out and opened it. The first page was inscribed: "When the tide came, it did not answer — it did not explain, it did not invite, it did not ask, it did not answer." The second page was blank. The third page said: "Everyone who arrives may ask — how they arrived." That booklet was left for the people of the forty-fourth Convocation to see.
+
+When the tide came, it did not answer — it did not explain, it did not invite.
+**Anchor sentence**: When the tide came, it did not answer — it did not explain, it did not invite.
+
+## 4 · Afternoon
+
+Mid-ebb, someone walked down the corridor like a shaft of wood-smoke. No one else.
+
+The lampkeeper heard the footsteps and looked up. It was someone he had never seen: young, young as the tide's own boys from the shore. He sat in the chair nearest the door and said nothing. Like a tribunal.
+
+Who sat in the chair nearest the door?
+**Anchor sentence**: Who sat in the chair nearest the door?
+
+## 5 · The forty-fourth Convocation
+
+On the fourth day of the forty-fourth Convocation, someone walked in and said, "The tide has receded. You may go."
+
+The lampkeeper did not go.
+
+The tide lingered — the sea was at the deepest; then the tide rose a second time. He came out and went back in, meeting the young man only once. The young man said: "The tide has not receded."
+
+The lampkeeper looked up, once more at the timetable. It read: "tide recedes — tide falls — tide rises — tide stills — tide recedes." The lampkeeper did not close the ledger. He simply looked for a long time, then closed it and returned to his desk. The timetable on the door pillar is the same slip of paper.
+
+The Conclave did not adjourn. The forty-fourth Convocation is still proceeding.
+**Anchor sentence**: The Conclave did not adjourn. The forty-fourth Convocation is still proceeding.
+
+---
+
+## Echo No. 120 — dimension mapping
+
+| Dim | Anchor | Linked |
+|---|---|---|
+| lore | the month of tides · the Tide Conclave record · the forty-fourth Convocation | Ch. 11 · Ch. 13 |
+| geography | the copying hall · the door pillar · the desk · the corridor | this echo · Echo 112 · Echo 119 |
+| factions | the lampkeeper · the young man · Tide Conclave (re-cast seal) | Ch. 1 · this echo |
+| characters | the lampkeeper · the unsigned recorder · the one nearest the door | this echo · Echo 118 · Echo 119 |
+| items | the timetable · the old ledger · the tide book · the door pillar · the young man | this echo |
+| story | the forty-fourth Convocation still proceeds · Echo No. 120 | whole piece |
+| history | the month of tides · the fourth day of the forty-fourth Convocation · the weight of the book unopened for a hundred years | this echo |
+
+> The tide never receded;
+> it rose twice.
+`,
+  },
+  {
+    order: 121,
+    slug: 'echo-121-the-chair-nearest-the-door',
+    titleZh: '靠门的椅子',
+    titleEn: 'The Chair Nearest the Door',
+    eraLineZh: '纪元：潮落之月 · 第四十四次会的第四天',
+    eraLineEn: 'Era: the month of tides · the fourth day of the forty-fourth Convocation.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 121): The Chair Nearest the Door
+
+> 回响不续写正典——它只记一份挑剩下的纪录：
+> 第四十四次会还没有散。守灯人坐在最靠门的椅子上，看那只从外面进来的年轻人的背影。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> The forty-fourth Convocation still had not adjourned. The lampkeeper sat in the chair nearest the door, watching the young man's back as he came and went.
+> Its anchors answer to the same discipline.
+
+> 纪元：潮落之月 · 第四十四次会的第四天
+> Era: the month of tides · the fourth day of the forty-fourth Convocation.
+
+---
+
+## 一 · 那把靠门的椅子
+
+那个年轻人走进第四十四次会的时候，在所有的椅子里选中最靠门的一把。
+
+椅子是旧的，皮面已经磨得光滑。他坐下的时候，椅子没有发出声音。守灯人靠着桌子站着，盯着他的背影。
+
+他选中了最靠门的一把椅子，其他人都没有动过。
+**锚句**：他选中了最靠门的一把椅子，其他人都没有动过。
+**Anchor sentence**: He had chosen the chair nearest the door; no one else had moved.
+
+## 二 · 背影
+
+年轻人背对着守灯人，坐了很久。守灯人看不见他的脸。
+
+守灯人看了一眼时刻表，潮正起。他看了一眼年轻人——年轻人的背影不像他记得的任何一个人。
+
+他记不清年轻人的脸。
+**锚句**：他记不清年轻人的脸。
+**Anchor sentence**: He could not recall the young man's face.
+
+## 三 · 第四天
+
+第四十四次会的第四天，潮又在最深处。
+
+守灯人没有说话。那位坐在最靠门的人也没有说话。两人都没有提议散会。
+
+两人都没有提议散会。
+**锚句**：两人都没有提议散会。
+**Anchor sentence**: Neither of them proposed adjournment.
+
+## 四 · 潮起来
+
+潮又涨了一次。
+
+守灯人看向那把椅子时，发现它还是空着。潮汐时刻表的纸上多了一笔的纪录：「潮起 — 第七次 — 落下 — 起来」。
+
+潮汐时刻表上又多了一笔纪录。
+**锚句**：潮汐时刻表上又多了一笔纪录。
+**Anchor sentence**: One more entry was added to the tide timetable.
+
+## 五 · 守灯人没有离开
+
+守灯人没有站起来。即使两次涨潮都记录在册上，按规矩潮落的那一刻他也没有离开椅子。
+
+潮退的时候，守灯人也没有离开椅子。
+**锚句**：潮退的时候，守灯人也没有离开椅子。
+**Anchor sentence**: When the tide withdrew, the lampkeeper still had not left the chair.
+
+---
+
+## 模型映射（回响三十则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 潮落之月 · 第四十四次会第四天 · 潮汐教团之记 | 第十一章 · 第十三章 |
+| geography | 誊册房 · 门锥 · 最靠门的椅子 · 案台 | 本则 · 第一百十二则 · 第一百十九则 · 第一百二十则 |
+| factions | 守灯人 · 年轻人 · 潮汐教团（重铸的章） | 第一章 · 本则 |
+| characters | 守灯人 · 不记得的年轻人 · 靠门的椅子 | 本则 · 第一百二十则 |
+| items | 最靠门的椅子 · 潮汐时刻表 · 潮 | 本则 |
+| story | 靠门的椅子 · 回响（其一百二十一） | 全篇 |
+| history | 潮落之月 · 第四十四次会第四天 · 潮汐教团之记 | 本则 |
+
+> 靠门的椅子从未动过，
+> 坐它的人去了哪里——
+The chair nearest the door never moved;
+the one who sat in it —
+he was never asked.
+`,
+    markdownEn: `
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> The forty-fourth Convocation still had not adjourned. The lampkeeper sat in the chair nearest the door, watching the young man's back as he came and went.
+> Its anchors answer to the same discipline.
+
+> Era: the month of tides · the fourth day of the forty-fourth Convocation.
+
+---
+
+## 1 · The chair nearest the door
+
+When the young man walked into the forty-fourth Convocation, he chose the chair nearest the door.
+
+The chair was old; its leather had worn smooth. He did not make a sound when he sat. The lampkeeper leaned against the desk, watching his back.
+
+He had chosen the chair nearest the door; no one else had moved.
+**Anchor sentence**: He had chosen the chair nearest the door; no one else had moved.
+
+## 2 · His back
+
+The young man sat for a long time, with his back to the lampkeeper. The lampkeeper could not see his face.
+
+The lampkeeper looked at the timetable; the tide was rising. He looked at the young man again — his figure did not match anyone the lampkeeper remembered.
+
+He could not recall the young man's face.
+**Anchor sentence**: He could not recall the young man's face.
+
+## 3 · The fourth day
+
+On the fourth day of the forty-fourth Convocation, the tide was deepest again.
+
+The lampkeeper did not speak. The one seated nearest the door did not speak either. Neither of them proposed adjournment.
+
+Neither of them proposed adjournment.
+**Anchor sentence**: Neither of them proposed adjournment.
+
+## 4 · The tide rises
+
+The tide rose again.
+
+The lampkeeper looked at the chair and found it empty. A new line had been added to the tide timetable: "the seventh rising — falling — rising again."
+
+One more entry was added to the tide timetable.
+**Anchor sentence**: One more entry was added to the tide timetable.
+
+## 5 · The lampkeeper did not leave
+
+The lampkeeper did not stand. Even after two tides were recorded in the book, he did not leave the chair when the tide fell.
+
+When the tide withdrew, the lampkeeper still had not left the chair.
+**Anchor sentence**: When the tide withdrew, the lampkeeper still had not left the chair.
+
+---
+
+## Echo No. 121 — dimension mapping
+
+| Dim | Anchor | Linked |
+|---|---|---|
+| lore | the month of tides · the fourth day of the forty-fourth Convocation · the Tide Conclave record | Ch. 11 · Ch. 13 |
+| geography | the copying hall · the door pillar · the chair nearest the door · the desk | this echo · Echo 112 · Echo 119 · Echo 120 |
+| factions | the lampkeeper · the young man · Tide Conclave (re-cast seal) | Ch. 1 · this echo |
+| characters | the lampkeeper · the young man he cannot recall · the chair nearest the door | this echo · Echo 120 |
+| items | the chair nearest the door · the tide timetable · the tide | this echo |
+| story | the chair nearest the door · Echo No. 121 | whole piece |
+| history | the month of tides · the fourth day of the forty-fourth Convocation · the Tide Conclave record | this echo |
+
+> The chair nearest the door never moved;
+> the one who sat in it —
+> he was never asked.
+`,
+  },
+  {
+    order: 122,
+    slug: 'echo-122-the-borrowed-chair',
+    titleZh: '借椅子',
+    titleEn: 'The Borrowed Chair',
+    eraLineZh: '纪元：潮落之月 · 潮上之夜',
+    eraLineEn: 'Era: the month of tides · the night the tide rose.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 122): The Borrowed Chair
+
+> 回响不续写正典——它只记一份挑剩下的纪录：
+> 潮还没有退。年轻人走了，没有带走那张椅子；守灯人没有问他叫什么。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> The tide had not receded. The young man left without taking the chair; the lampkeeper did not ask his name.
+> Its anchors answer to the same discipline.
+
+> 纪元：潮落之月 · 潮上之夜
+> Era: the month of tides · the night the tide rose.
+
+---
+
+## 一 · 那把空的椅子
+
+第四十四次会的第四天守灯人醒来以后，发现那把最靠门的椅子还是空的——但比他昨晚记得的位置更靠近桌子一点。他昨晚倒并不是在桌子前守着他的；他只是沿着门锥站了一整晚。没有人把那把椅子推回去。
+
+守灯人比以前更晚醒。窗被潮从外面拍了一下。
+
+守灯人比以前更晚醒。
+**锚句**：守灯人比以前更晚醒。
+**Anchor sentence**: The lampkeeper woke later than before.
+
+## 二 · 没有人来过的那夜
+
+那晚没有潮汐教团的人。也没有外来的人。第四天以后，成员接到了一个通知——叫他们不要来。没有人知道谁发出的这个通知。
+
+守灯人一个人在案台边坐了一整夜，偶尔看向门锥，然后看回桌子。没有人来过。
+
+第四天以后，没有人知道是谁说了"不要来"。
+**锚句**：第四天以后，没有人知道是谁说了"不要来"。
+**Anchor sentence**: After the fourth day, no one knew who had said "do not come."
+
+## 三 · 守着的潮水
+
+潮来潮又退，周而复始。每退一厘米，誊册房门锥的潮汐时刻表纸上就多一道横线。
+
+守灯人不会念那些横线。
+
+潮退一厘米，时刻表纸上多一道横线。
+**锚句**：潮退一厘米，时刻表纸上多一道横线。
+**Anchor sentence**: Each centimeter the tide receded, the timetable on the door pillar gained a line.
+
+## 四 · 年轻人
+
+他再也没有回来。守灯人没有写下他的名字，因为守灯人连他叫什么都不知道。
+
+守灯人没有算过时刻表的"一寸"跟"一厘"之间的距离。
+
+他不知道那一寸跟一厘有什么不一样。
+**锚句**：他不知道那一寸跟一厘有什么不一样。
+**Anchor sentence**: He did not know what the difference between an inch and a centimeter was.
+
+## 五 · 潮汐时刻表没有写完
+
+潮还没有退。
+
+守灯人没有回家。桌子上纸上、草稿上的笔头都不见了。守灯人坐在案台边，面对时刻表，面对那把空椅子。
+
+潮还没有退，守灯人还没有回家。
+**锚句**：潮还没有退，守灯人还没有回家。
+**Anchor sentence**: The tide had not receded; the lampkeeper had not gone home.
+
+---
+
+## 模型映射（回响三十一则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 潮落之月 · 潮上之夜 · 第四十四次会第四天之后 | 第十一章 · 第十三章 |
+| geography | 誊册房 · 门锥 · 案台 · 靠门的椅子 | 本则 · 第一百十二则 · 第一百二十则 · 第一百二十一则 |
+| factions | 守灯人 · 未知来人 · 潮汐教团（重铸的章） | 第一章 · 本则 |
+| characters | 守灯人 · 没被问名字的年轻人 | 本则 · 第一百二十则 · 第一百二十一则 |
+| items | 靠门的空椅子 · 潮汐时刻表 · 桌上的笔 · 门锥 | 本则 |
+| story | 借了一把不用的椅子 · 回响（其一百二十二） | 全篇 |
+| history | 潮落之月 · 第四十四次会之后 · 没人再叫过"不要来" | 本则 |
+
+> 椅子借用，
+> 退潮未到。
+> The chair had been borrowed.
+> The tide never arrived.
+`,
+    markdownEn: `
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> The tide had not receded. The young man left without taking the chair; the lampkeeper did not ask his name.
+> Its anchors answer to the same discipline.
+
+> Era: the month of tides · the night the tide rose.
+
+---
+
+## 1 · The empty chair
+
+On the morning of the fourth day of the forty-fourth Convocation, the lampkeeper woke to find the chair nearest the door still empty — but it was a touch closer to the desk than he remembered from the night before. He had not kept vigil over the desk. He had stood along the door pillar all night. No one had pushed the chair back.
+
+The lampkeeper had woken later than before. The window had been tapped from outside by the tide.
+
+The lampkeeper woke later than before.
+**Anchor sentence**: The lampkeeper woke later than before.
+
+## 2 · The night no one came
+
+That night, no one from the Tide Conclave came; no strangers either. After the fourth day, the members received a notice — do not come. No one knew who issued the notice.
+
+The lampkeeper sat alone beside the desk all night, looking from time to time at the door pillar, then back at the table. No one came.
+
+After the fourth day, no one knew who had said "do not come."
+**Anchor sentence**: After the fourth day, no one knew who had said "do not come."
+
+## 3 · The tide he kept
+
+The tide came and went; it rose again and fell again. Each centimeter it receded, the tide timetable on the door pillar kept a fresh line.
+
+The lampkeeper could not read those lines.
+
+Each centimeter the tide receded, the timetable on the door pillar gained a line.
+**Anchor sentence**: Each centimeter the tide receded, the timetable on the door pillar gained a line.
+
+## 4 · The young man
+
+He did not come back. The lampkeeper had not written down his name — he had never known it.
+
+The lampkeeper had not calculated the difference between an inch and a centimeter on the timetable.
+
+He did not know what the difference between an inch and a centimeter was.
+**Anchor sentence**: He did not know what the difference between an inch and a centimeter was.
+
+## 5 · The tide timetable unfinished
+
+The tide has not receded.
+
+The lampkeeper has not gone home. The pen and the scrap of paper are missing from the desk. The lampkeeper sits by the desk, facing the timetable, facing the empty chair.
+
+The tide had not receded; the lampkeeper had not gone home.
+**Anchor sentence**: The tide had not receded; the lampkeeper had not gone home.
+
+---
+
+## Echo No. 122 — dimension mapping
+
+| Dim | Anchor | Linked |
+|---|---|---|
+| lore | the month of tides · the night the tide rose · after the fourth day of the forty-fourth Convocation | Ch. 11 · Ch. 13 |
+| geography | the copying hall · the door pillar · the desk · the chair nearest the door | this echo · Echo 112 · Echo 120 · Echo 121 |
+| factions | the lampkeeper · the unknown visitor · Tide Conclave (re-cast seal) | Ch. 1 · this echo |
+| characters | the lampkeeper · the young man he never knew by name | this echo · Echo 120 · Echo 121 |
+| items | the empty chair nearest the door · the tide timetable · the pen on the desk · the door pillar | this echo |
+| story | the borrowed chair, never returned · Echo No. 122 | whole piece |
+| history | the month of tides · after the forty-fourth Convocation · no one ever said "do not come" again | this echo |
+
+> The chair had been borrowed.
+> The tide never arrived.
+`,
+  },
+  {
+    order: 123,
+    slug: 'echo-123-the-name-of-the-tide',
+    titleZh: '潮的名字',
+    titleEn: 'The Name of the Tide',
+    eraLineZh: '纪元：潮上之夜 · 潮到下次退之前',
+    eraLineEn: 'Era: the night the tide rose · the hour before the tide next receded.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 123): The Name of the Tide
+
+> 回响不续写正典——它只记一份挑剩下的纪录：
+> 潮起来的时候，总是先看见潮的名字；潮落后，守灯人就再也找不到那张写着潮名字的纸。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> When the tide rose, its name appeared first; after the tide withdrew, the lampkeeper could never find the paper that bore the name.
+> Its anchors answer to the same discipline.
+
+> 纪元：潮上之夜 · 潮到下次退之前
+> Era: the night the tide rose · the hour before the tide next receded.
+
+---
+
+## 一 · 潮的名字
+
+潮汐的本身从来没有叫过自己的名字。可是时刻表上某一个夜晚，守灯人看见潮起来了——从册子里滑落的那一张写着"潮"字的旧册页，然后潮才起来。
+
+那一夜潮起来了。它从纸上滑落的那一刻，开始了。
+潮汐起的时候总是先看见潮的名字。
+**锚句**：潮汐起的时候总是先看见潮的名字。
+**Anchor sentence**: When the tide rose, it was the name that appeared first.
+
+## 二 · 潮汐时刻表的声音
+
+潮汐起来的时候时候，有一段时间走廊里传来很轻的声音——那是一种摩擦，像谁在用指甲划纸。守灯人循着声音走到门锥前。潮汐时刻表的"潮名"那一栏已经写着了。
+
+那一栏上写着："潮"。
+
+守灯人没有动。他又往下看，发现是无字的——没有人问过潮为什么要有名字。
+**锚句**：他又往下看，发现是无字的——没有人问过潮为什么要有名字。
+**Anchor sentence**: He looked further down — no words; no one had asked why the tide should have a name.
+
+## 三 · 名字什么时候消失了
+
+潮落下来以后，潮的名字也不见了。
+
+时刻表上的那一行字什么时候没了——守灯人没有记住。
+他只是在潮落下去的时候，把那一行字揉成了一团纸，扔进了潮纸篓。
+**锚句**：他只是在潮落下去的时候，把那一行字揉成了一团纸，扔进了潮纸篓。
+**Anchor sentence**: He folded that line of words into a ball and dropped it into the tide-wastebasket.
+
+## 四 · 潮纸篓
+
+潮纸篓在案台内侧，守灯人每天去清理它。纸篓里有一捆潮纸。每一张都是一些潮字。每张纸上只有一个潮字。
+
+潮纸篓里每一张纸都是一个潮字。
+**锚句**：潮纸篓里每一张纸都是一个潮字。
+**Anchor sentence**: Every piece of paper in the tide-wastebasket bore a single word: tide.
+
+## 五 · 潮在等
+
+潮等了一整夜，也没等到第二笔。
+
+守灯人继续守着时刻表。
+他没有发现纸篓里那一团纸被撕开。
+**锚句**：他没有发现纸篓里那一团纸被撕开。
+**Anchor sentence**: He did not find the paper in the wastebasket had been torn open.
+
+---
+
+## 模型映射（回响三十二则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 潮上之夜 · 潮名字 · 时刻表里那张无字的纸 | 第十一章 · 第十三章 |
+| geography | 誊册房 · 门锥 · 案台 · 潮纸篓 · 走廊 | 本则 · 第一百二十二则 |
+| factions | 守灯人 · 潮汐教团（重铸的章） | 第一章 · 本则 |
+| characters | 守灯人 · 潮的名字 | 本则 · 第一百二十二则 |
+| items | 潮纸篓 · 潮字纸 · 门锥 · 时刻表 | 本则 |
+| story | 潮的名字 · 回响（其一百二十三） | 全篇 |
+| history | 潮上之夜 · 潮名字时刻表 · 无字的理由没人问 | 本则 |
+
+> 潮自己没起名字，
+> 起名字的是一张纸。
+> The tide never named itself;
+> the name came from a piece of paper.
+`,
+    markdownEn: `
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> When the tide rose, its name appeared first; after the tide withdrew, the lampkeeper could never find the paper that bore the name.
+> Its anchors answer to the same discipline.
+
+> Era: the night the tide rose · the hour before the tide next receded.
+
+---
+
+## 1 · The name of the tide
+
+The tide never called itself by a name. And yet, on one night, as the lampkeeper opened the desk-ledger, the page that slipped from the binding bore one character: "tide." That very moment the tide came in.
+
+The tide came in. It had begun that very moment the page slipped.
+
+When the tide rose, it was the name that appeared first.
+**Anchor sentence**: When the tide rose, it was the name that appeared first.
+
+## 2 · The sound of the timetable
+
+When the tide began, there was a period when a faint sound travelled the corridor — a scraping, as though someone were running a fingernail across paper. The lampkeeper followed the sound to the door pillar. The timetable's "tide-name" line already read, in its own hand: "tide."
+
+No one had quest-asked the tide why it should have a name.
+
+He looked further down — no words; no one had asked why the tide should have a name.
+**Anchor sentence**: He looked further down — no words; no one had asked why the tide should have a name.
+
+## 3 · When the name disappeared
+
+The tide receded. The name was gone with it.
+
+The lampkeeper did not note when the line disappeared from the timetable. He simply took that line of words, crumpled it into a ball, and dropped it into the tide-wastebasket.
+
+He folded that line of words into a ball and dropped it into the tide-wastebasket.
+**Anchor sentence**: He folded that line of words into a ball and dropped it into the tide-wastebasket.
+
+## 4 · The tide-wastebasket
+
+The tide-wastebasket stood inside the desk. The lampkeeper emptied it every day. In it were bundles of tide-papers. Every piece of paper in it held a single word: tide.
+
+Every piece of paper in the tide-wastebasket bore a single word: tide.
+**Anchor sentence**: Every piece of paper in the tide-wastebasket bore a single word: tide.
+
+## 5 · The tide waited
+
+The tide waited all night, and no second stroke came.
+
+The lampkeeper stayed at the timetable. He did not find the ball of paper in the wastebasket had been torn open.
+
+He did not find the paper in the wastebasket had been torn open.
+**Anchor sentence**: He did not find the paper in the wastebasket had been torn open.
+
+---
+
+## Echo No. 123 — dimension mapping
+
+| Dim | Anchor | Linked |
+|---|---|---|
+| lore | the night the tide rose · the name of the tide · the unexplained line in the timetable | Ch. 11 · Ch. 13 |
+| geography | the copying hall · the door pillar · the desk · the tide-wastebasket · the corridor | this echo · Echo 122 |
+| factions | the lampkeeper · the Tide Conclave (re-cast seal) | Ch. 1 · this echo |
+| characters | the lampkeeper · the name of the tide | this echo · Echo 122 |
+| items | the tide-wastebasket · the tide-paper · the door pillar · the timetable | this echo |
+| story | the name of the tide · Echo No. 123 | whole piece |
+| history | the night the tide rose · the unexplained reason the "name" line | this echo |
+
+> The tide never named itself;
+> the name came from a piece of paper.
+`,
+  },
+  {
+    order: 124,
+    slug: 'echo-124-the-name-in-the-old-ledger',
+    titleZh: '旧册子里的名字',
+    titleEn: 'The Name in the Old Ledger',
+    eraLineZh: '纪元：潮上之夜 · 潮落之月 · 旧册打开的日子',
+    eraLineEn: 'Era: the night the tide rose · the month the tide receded · the day the old book was opened.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 124): The Name in the Old Ledger
+
+> 回响不续写正典——它只记一份挑剩下的纪录：
+> 潮汐教团的旧册子躺在案台最下面的抽屉里；守灯人的笔迹没有写上一个字。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> The old ledger of the Tide Conclave lay at the bottom of the desk drawer; not a word in it was written in the lampkeeper's hand.
+> Its anchors answer to the same discipline.
+
+> 纪元：潮上之夜 · 潮落之月 · 旧册打开的日子
+> Era: the night the tide rose · the month the tide receded · the day the old book was opened.
+
+---
+
+## 一 · 旧册子打开了
+
+那晚守灯人在案台最下面的抽屉里找到了一本旧册子。封面上的名字已经被海水泡得看不清楚，但里面每一页都被仔细的人用指甲划过一道。守灯人翻了很久，只看见每页正中写着一行字：
+
+「潮起，潮落；潮起，潮落。」
+
+没有人签名，也没有人写上潮落第几次。
+
+封面上的名字已经被海水泡得看不清了，只剩下每页都写着一行潮字。
+**锚句**：封面上的名字已经被海水泡得看不清了，只剩下每页都写着一行潮字。
+**Anchor sentence**: The cover had been washed illegible by the sea; each page still held the same tide-line: rising, falling, rising, falling.
+
+## 二 · 谁打开了
+
+守灯人问过了誊账人。誊账人说他一辈子都没有碰过那本旧册子。守灯人问自己 — 自己打开过吗？自己也不记得了。
+
+那本旧册子究竟谁打开过？没有人记得。
+**锚句**：那本旧册子究竟谁打开过？没有人记得。
+**Anchor sentence**: Who had opened the ledger — no one remembered.
+
+## 三 · 每页正中的字
+
+每页正中都是「潮起，潮落」。每页都有一行字，但每页都没有告诉守灯人潮什么时候不会再起，也不告诉他潮什么时候会给出答案。
+
+每一页都没有告诉潮什么时候才真的退去。
+**锚句**：每一页都没有告诉潮什么时候才真的退去。
+**Anchor sentence**: Every page refused to say when the tide would truly ebb.
+
+## 四 · 名字被擦掉
+
+守灯人又翻到中间的一页，看到正中写着一句：
+
+「潮的名字雾散前，潮的名字已经上浮。」
+
+守灯人再仔细看，发现上面的一行字被人用指甲擦掉了——字迹还在，但墨水被潮的水气洇开了，融成了一片深一片浅的海水。守灯人没有撕掉那一页。
+
+守灯人没有撕掉那一页。
+**锚句**：守灯人没有撕掉那一页。
+**Anchor sentence**: The lampkeeper did not tear that page out.
+
+## 五 · 潮落下以后
+
+潮落下来以后，守灯人把旧册子放回了抽屉里。他没有写完最后一个字。
+
+守灯人把旧册子放回了抽屉里。
+**锚句**：守灯人把旧册子放回了抽屉里。
+**Anchor sentence**: The lampkeeper returned the old ledger to the drawer.
+
+---
+
+## 模型映射（回响三十三则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 潮上之夜 · 潮落之月 · 旧册打开的日子 | 第十一章 · 第十三章 |
+| geography | 誊册房 · 案台 · 抽屉 · 潮汐时刻表 | 本则 · 第一百二十则 · 第一百二十三则 |
+| factions | 守灯人 · 誊账人 · 潮汐教团（重铸的章） | 第一章 · 本则 |
+| characters | 守灯人 · 不记得谁打开过旧册子的人 | 本则 · 第一百二十一则 · 第一百二十二则 · 第一百二十三则 |
+| items | 旧册子 · 案台抽屉 · 潮汐时刻表 · 潮汐潮痕 | 本则 |
+| story | 旧册子里的名字 · 回响（其一百二十四） | 全篇 |
+| history | 潮上之夜 · 潮落之月 · 海水泡过的封面 | 本则 |
+
+> 潮起潮将至，
+> 哪一页是封底？
+> The tide rises, the tide falls;
+> which page is the back cover?
+`,
+    markdownEn: `
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> The old ledger of the Tide Conclave lay at the bottom of the desk drawer; not a word in it was written in the lampkeeper's hand.
+> Its anchors answer to the same discipline.
+
+> Era: the night the tide rose · the month the tide receded · the day the old book was opened.
+
+---
+
+## 1 · The old ledger opened
+
+That night, the lampkeeper found an old ledger at the bottom of the desk drawer. The cover's title had been washed illegible by the sea, but every page inside it had been worn by many careful fingers. He paged through and saw, on each page, one line centered:
+
+"The tide rises, the tide falls. Tide rises, tide falls."
+
+No signature. No count of the risings.
+
+The cover had been washed illegible by the sea; each page still held the same tide-line: rising, falling, rising, falling.
+**Anchor sentence**: The cover had been washed illegible by the sea; each page still held the same tide-line: rising, falling, rising, falling.
+
+## 2 · Who had opened it?
+
+The lampkeeper asked the copyist. The copyist said he had never touched the ledger in his whole life. The lampkeeper asked himself — had he? He did not remember.
+Who had opened the ledger — no one remembered.
+**Anchor sentence**: Who had opened the ledger — no one remembered.
+
+## 3 · The centred lines
+
+Every page held the same line. Every page told him the same thing. No page told him when the tide would not rise again, nor promised him anything about the tide answering.
+
+Every page refused to say when the tide would truly ebb.
+**Anchor sentence**: Every page refused to say when the tide would truly ebb.
+
+## 4 · The name wiped away
+
+He turned to a page in the middle and saw one line:
+
+"The tide-name had risen before the sea fog cleared."
+
+He looked very closely — one line had been scratched with a fingernail. The strokes were still there, but the ink had bloomed into the tide's dampness — softened into a field of deep and pale. He did not tear the page out.
+
+The lampkeeper did not tear that page out.
+**Anchor sentence**: The lampkeeper did not tear that page out.
+
+## 5 · After the tide withdrew
+
+After the tide receded, the lampkeeper returned the ledger to the drawer. He did not finish the last line.
+
+The lampkeeper returned the old ledger to the drawer.
+**Anchor sentence**: The lampkeeper returned the old ledger to the drawer.
+
+---
+
+## Echo No. 124 — dimension mapping
+
+| Dim | Anchor | Linked |
+|---|---|---|
+| lore | the night the tide rose · the month the tide receded · the day the old book was opened | Ch. 11 · Ch. 13 |
+| geography | the copying hall · the desk · the drawer · the tide timetable | this echo · Echo 120 · Echo 123 |
+| factions | the lampkeeper · the copyist · the Tide Conclave (re-cast seal) | Ch. 1 · this echo |
+| characters | the lampkeeper · the one who does not remember ever opening the book | this echo · Echo 121 · Echo 122 · Echo 123 |
+| items | the old ledger · the desk drawer · the tide timetable · the tide's mark | this echo |
+| story | the name in the old ledger · Echo No. 124 | whole piece |
+| history | the night the tide rose · the month the tide receded · the cover washed by the sea | this echo |
+
+> The tide rises, the tide falls;
+> which page is the back cover?
+`,
+  },
+  {
+    order: 125,
+    slug: 'echo-125-the-hour-the-tide-rose',
+    titleZh: '潮起来的时候',
+    titleEn: 'The Hour the Tide Rose',
+    eraLineZh: '纪元：潮上之夜 · 潮落之月 · 第四十五次会前夜',
+    eraLineEn: 'Era: the night the tide rose · the month the tide receded · the eve of the forty-fifth Convocation.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 125): The Hour the Tide Rose
+
+> 回响不续写正典——它只记一份挑剩下的纪录：
+> 潮汐教团之后，誊册房里的时刻表从来不翻转——潮起潮落，它自己知道自己几点现身。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> After the Conclave, the timetable in the copying hall never turns over; the tide arrives knowing its own hour.
+> Its anchors answer to the same discipline.
+
+> 纪元：潮上之夜 · 潮落之月 · 第四十五次会前夜
+> Era: the night the tide rose · the month the tide receded · the eve of the forty-fifth Convocation.
+
+---
+
+## 一 · 册子一页
+
+潮汐教团的旧册子在案台最下抽屉里静静地发出潮水的声音。每张纸上都写着一句话，字迹会跟潮水一起呼吸：潮起，潮落。潮起，潮落。
+
+这些字迹每页只有一句，无一句重复，全潮一色。
+**锚句**：这些字迹每页只有一句，无一句重复，全潮一色。
+**Anchor sentence**: In the old book, each page bore a single line — none repeated, all tide.
+
+## 二 · 潮汐时刻表的最后一行
+
+潮汐时刻表的"去潮时间"那一行到了最后一晚忽然自己涨上去了。守灯人发现的时候并没有动手，潮落三厘米，就停了。
+
+守灯人站在门锥前，没有添笔。
+**锚句**：守灯人站在门锥前，没有添笔。
+**Anchor sentence**: The lampkeeper stood at the door pillar and added nothing to the line.
+
+## 三 · 第四十五会前夜
+
+潮落之月的哪一天，第四十五次会要开了。
+
+谁也没去敲他的门，谁也没写邀请。潮潮熙熙地慢下来，把海的声音搬进誊册房。守灯人没有合上本子。
+
+第四十五次会要开了，谁也没敲他的门。
+**锚句**：第四十五次会要开了，谁也没敲他的门。
+**Anchor sentence**: The forty-fifth Convocation approached, and no one knocked.
+
+## 四 · 潮纸签
+
+谁也没有留下名字。只有册子里有一张潮纸签，那张潮纸签里印着一个字「离」——有点像「潮」——也像「潮」的一半。
+
+守灯人看了很久，还是没有把它添进册子。
+**锚句**：守灯人看了很久，还是没有把它添进册子。
+**Anchor sentence**: The lampkeeper looked at it for a long time, and still did not add it to the book.
+
+## 五 · 潮落以后
+
+潮落以后，潮汐时刻表的潮起的上限多了一寸。守灯人不知道是谁量的。
+
+守灯人不知道是谁量的。
+**锚句**：守灯人不知道是谁量的。
+**Anchor sentence**: The lampkeeper did not know who measured it.
+
+---
+
+## 模型映射（回响三十四则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 潮上之夜 · 潮落之月 · 第四十五会前夜 | 第十一章 · 第十三章 |
+| geography | 誊册房 · 门锥 · 案台抽屉 · 潮汐时刻表 | 本则 · 第一百二十则 · 第一百二十三则 · 第一百二十四则 |
+| factions | 守灯人 · 潮汐教团（重铸的章） | 第一章 · 本则 |
+| characters | 守灯人 · 潮汐教团 | 本则 · 第一百二十四则 |
+| items | 旧册子 · 潮纸签 · 潮汐时刻表 · 潮落上限 | 本则 |
+| story | 潮起来的时候 · 回响（其一百二十五） | 全篇 |
+| history | 潮上之夜 · 老册子 · 第四十五次会前夜 | 本则 |
+
+> 潮没问过时间，
+> 它自己知道。
+> The tide never asked the hour;
+> it knew it.
+`,
+    markdownEn: `
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> After the Conclave, the timetable in the copying hall never turns over; the tide arrives knowing its own hour.
+> Its anchors answer to the same discipline.
+
+> Era: the night the tide rose · the month the tide receded · the eve of the forty-fifth Convocation.
+
+---
+
+## 1 · A page of the old book
+
+The old ledger of the Tide Conclave lay quietly in the bottom drawer of the desk, breathing with the sound of the tide. Each page held one sentence, and the hand it was written in seemed to move with the tide: the tide rises, the tide falls. Rising, falling.
+
+In the old book, each page bore a single line — none repeated, all tide.
+**Anchor sentence**: In the old book, each page bore a single line — none repeated, all tide.
+
+## 2 · The last line of the tide timetable
+
+On the timetable, the line for "the hour of withdrawal" suddenly rose itself one night. The lampkeeper did not touch it. When the tide receded three centimeters, it stopped.
+
+The lampkeeper stood at the door pillar and added nothing to the line.
+**Anchor sentence**: The lampkeeper stood at the door pillar and added nothing to the line.
+
+## 3 · The eve of the forty-fifth Convocation
+
+Which day of the month of the ebb the forty-fifth Convocation would open — nobody knew.
+
+No one knocked on his door. No one sent an invitation. The tide crept up slowly, carrying the sound of the sea into the copying hall. The lampkeeper did not close the book.
+
+The forty-fifth Convocation approached, and no one knocked.
+**Anchor sentence**: The forty-fifth Convocation approached, and no one knocked.
+
+## 4 · The tide-paper slip
+
+No one left a name. Only one slip of tide-paper in the ledger bore the character "离" — it looked like "tide," or perhaps "tide" halved.
+
+The lampkeeper looked at it for a long time. He still did not add it to the book.
+**Anchor sentence**: The lampkeeper looked at it for a long time, and still did not add it to the book.
+
+## 5 · After the tide withdrew
+
+After the tide receded, the line for the height of the rising tide on the timetable was one inch taller. The lampkeeper did not know who had measured it.
+
+The lampkeeper did not know who measured it.
+**Anchor sentence**: The lampkeeper did not know who measured it.
+
+---
+
+## Echo No. 125 — dimension mapping
+
+| Dim | Anchor | Linked |
+|---|---|---|
+| lore | the night the tide rose · the month the tide receded · the eve of the forty-fifth Convocation | Ch. 11 · Ch. 13 |
+| geography | the copying hall · the door pillar · the desk drawer · the tide timetable | this echo · Echo 120 · Echo 123 · Echo 124 |
+| factions | the lampkeeper · the Tide Conclave (re-cast seal) | Ch. 1 · this echo |
+| characters | the lampkeeper · the Tide Conclave | this echo · Echo 124 |
+| items | the old ledger · the tide-paper slip · the tide timetable · the height of the tide | this echo |
+| story | the hour the tide rose · Echo No. 125 | whole piece |
+| history | the night the tide rose · the old book · the eve of the forty-fifth Convocation | this echo |
+
+> The tide never asked the hour;
+> it knew it.
 `,
   },
   {

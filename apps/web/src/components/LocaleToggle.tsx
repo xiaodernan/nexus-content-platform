@@ -43,7 +43,7 @@ export function LocaleToggle() {
       data-locale-toggle-ready={ready ? '1' : undefined}
       aria-label={label}
       title={label}
-      className="tt-fab"
+      className="tt-fab tt-fab-locale"
     >
       {locale === 'zh' ? 'EN' : '中'}
     </button>

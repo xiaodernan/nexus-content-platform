@@ -168,6 +168,14 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E115-潮候院北库那只永远积着尘的旧铜熨斗': 'echo-115-the-copper-iron-nobody-uses',
   'E116-潮候院北长廊每次大会散会就多一盏的灯': 'echo-116-the-colonnade-lamp-that-multiplies',
   'E117-雾港第九潮汐表上那行谁也划不掉的日期': 'echo-117-the-ninth-tide-almanac',
+  'E118-退潮之后': 'echo-118-after-the-tide',
+  'E119-潮信': 'echo-119-the-tide-letter',
+  'E120-第四十四次会': 'echo-120-the-forty-fourth-convocation',
+  'E121-靠门的椅子': 'echo-121-the-chair-nearest-the-door',
+  'E122-借椅子': 'echo-122-the-borrowed-chair',
+  'E123-潮的名字': 'echo-123-the-name-of-the-tide',
+  'E124-旧册子里的名字': 'echo-124-the-name-in-the-old-ledger',
+  'E125-潮起来的时候': 'echo-125-the-hour-the-tide-rose',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

@@ -173,7 +173,7 @@ export default async function BiblePage() {
               const anchors = extractAnchors(echo.markdownZh, echo.markdownEn).length;
               return (
                 <li key={echo.slug} className="bb-card" data-bible-echo={echo.slug}>
-                  <span className="bb-cardNum" aria-hidden="true">{locale === 'en' ? ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI', 'XXII', 'XXIII', 'XXIV', 'XXVI'][echo.order - 1] ?? echo.order : ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十', '二十一', '二十二', '二十三', '二十四', '二十六'][echo.order - 1] ?? echo.order}</span>
+                  <span className="bb-cardNum" aria-hidden="true">{locale === 'en' ? _roman(echo.order) : _cn(echo.order)}</span>
                   <div className="bb-cardBody">
                     <p className="bb-cardChapter">{c.echoLabel(echo.order)}</p>
                     <h2 className="bb-cardTitle">{title}</h2>

@@ -93,6 +93,12 @@ interface TideWireData {
   generatedAt: string;
 }
 
+const observationMetrics = unstable_cache(
+  async (): Promise<TideWireStats> => compactTideStats(await readObserverMetrics()),
+  ['tide-wire-stats-v1'],
+  { revalidate: 3600, tags: ['tide-wire'] },
+);
+
 const getTideSentence = unstable_cache(
   async (locale: Locale, dayStamp: string, stats: TideWireStats): Promise<string> => {
     const chat = await chatWithCharacter({
@@ -116,8 +122,7 @@ async function composeTideWire(locale: Locale, dayStamp: string): Promise<TideWi
   // （生产多实例由 distributed single-flight + Redis replay 接力；本层是单进程单飞保险，失败不缓存）
   if (inflightWire) return inflightWire;
   inflightWire = (async (): Promise<TideWireData> => {
-    const m = await readObserverMetrics();
-    const stats = compactTideStats(m);
+    const stats = await observationMetrics();
     const generatedAt = new Date().toISOString();
     if (tideWireIsEmpty(stats)) {
       return { stats, sentence: null, status: 'empty', generatedAt };

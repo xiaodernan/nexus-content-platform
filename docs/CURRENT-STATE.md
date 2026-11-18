@@ -7302,3 +7302,19 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 **顺带**：requirements.txt 声明 langgraph==1.2.22 漏装 → `pip install` 补齐后 stategraph 8/8 转绿；全量 pytest **455 passed / 18 skipped**。
 
 **改动**：config.py 缺省 · README.md · .env.example · ENVIRONMENT.md · CACHE-IDENTITY.md · ADR-0284 · evidence `cache-key-ab-2026-11-18.md`。ADR 文档同步；前端零改动。
+
+## cont. 350 (2026-11-18) — v970 · §BIBLE-MERGE-ORIGIN-2 · origin/main cont.241–251 并行成果回收（E27–E34 → E118–E125）+ Lighthouse a11y + quiz 87 题 + 626 锚句
+
+**起点**：origin/main（lineage-2）在 main-line 合流后又涌出 22 个提交（cont.241–251）：8 个新回响《退潮之后》《潮信》《第四十四次会》《靠门的椅子》《借椅子》《潮的名字》《旧册子里的名字》《潮起来的时候》+ Lighthouse a11y + /tide-wire unstable_cache + CommandPalette/LocaleToggle 可读标签 + globals.css 两个残缺闭括号。
+
+**做法（ADR-0285）**：
+
+1. 8 个新回响 blob 逐字提取 → 重映射（其二十七→其一百一十八 /其三十四→其一百二十五：E-number/slug/锚句 `Echo No.`/章节号/映射互指/quiz ref 全部一致性）；新增映射表补充在 `gen-bible-snapshot.mts`（echo-118-…echo-125-…）。文件名同步补丁。
+2. Digest 重建：**96,679 chars**（13 章正典 · **125 回响** · 4 annex · 768 zh / 768 en 锚句）；`verify:world-bible ✓ · verify:bible-snapshot ✓`；`anchors.generated.ts` 重生成 **626 锚句（196 → 626）**。
+3. Quiz：16 道题（2/篇 × 8 篇）zh/en 成对植入 main-line（依赖支线原文忠实，答案序列核验一致）→ 总题 **71 → 87**；verdict 满分门槛 87；en lede stale「five canonical chapters」修正。
+4. 前端可读性（Lighthouse a11y）接入：.tt-fab-locale 独立定位（不盖 Menu 按钮）/.kb-fab 向上避让/.insg-signalFill 的 `CanvasText`、`-webkit-text-fill-color`、`max-height` 覆盖路径、`@media forced-colors` 缺失闭括号补齐、§MAP-1 前多余 `}` 删除、`.hp-quickStart*`/`.cdx-tocCount`/`.eph-counts`/`.bb-searchKicker`/`.tide-wireKicker` 等对比度从 `accent-mix` 收口到 `accent-2-ink`、`.tide-oracleExample` 触控目标放大到 1.5rem（190px）。
+5. `.bb-quiz-bar` aria-label 挂 `progressLabel`。
+
+**测试**：pins 重钉（bible-ask ×2、bible-ask-visual ×2、bible-quiz ×2…），fe-gates **1370/1370** 绿；verify:fe-gates 最终一次跑通；world-bible **768/768**。
+
+**git**：本日 PAT 已生效（scopes: repo + workflow），合流完成后将 `git push origin HEAD:main` 快进推送；`.scratch/ab-cache-key.mts` 是本轮 `prompt_cache_key` A/B 依据（ADR-0284）。
