@@ -5771,3 +5771,15 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 第 87 篇回响「暗河」：祠殿东山脚下的平地（剃矮的草、青苔石板）——值更册最后一页写着"往东山脚下走的人，水先听见"——冬天高夏天低、散会那天最接近石板——四十年前那个想下去看的人永远没回来（进出册只记日期没写名字）——院里老人说暗河才是潮候院真正的根。
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-087-the-hidden-river-no-one-has-reached`；verify world-bible **506/506** ✓ · verify:bible-snapshot ✓。顺修了一条时代错误条（前文提到"手机"，不合《世界大典》的世界观，改为潮退盐粒铺在青苔石板上）。
 - 同步：BibleAsk lede → 87（含 en）；/bible/ask meta → 八十七篇 / eighty-seven；cache-identity → 87 篇锚句；bible-ask-behavior 锚句总数 500→506；canon-answer-graph 测试 92 段 / 87 echoes；pins 重钉（page→6e154428… comp→061df841…）· 相关测试 24/24。
+
+## cont. 340 (2026-11-18) — v958 · §PROOF-STUDIO-LANE-CACHE · Studio 主生成路径 JSON wire 缓存实证（最后一块缺的拼图）
+
+直打 ai-service `/v1/ai/run`，模型 gpt-6.1-terra：
+- 冷发（首发 A）：tokensIn=9,517 · cachedTokens=0（502 上游瞬态后 5 s 恢复 200）
+- 同针再发：cachedTokens=**9,517（100%）**（应用侧 L2 精确回放，20–73 ms 返回）
+- capability=real；三次 data.capability=real；
+- 模型 explanation（不装不知道）：`目录只显式引用了 fr-01 ... 未提供曲线图层自身的节』ID，因此无法单独将它移入吸顶区 ...`——**patchCount=0 是「字典里没有就不答」的正确行为**，不是生成失败（§159 边界兑现）
+- Studio lane in-flight ≈ 9.5k tokens（刻意的预算，§68 纪律）——schema 上限 64k（ADR-0274），可直接收 30-60k 大目录
+- 证据 `docs/evidence/studio-lane-cache-2026-11-18.md`；探针脚本 `.scratch/proof-studio-lane.mts`（完整对合同 contracts/ai-request.schema.json 校验，此前八次修正后全通过）
+
+**缓存验证矩阵到此补全**：free-text digest lane（37/38.7k）✓ · transport lane（94.5% 不同问句）✓ · 12 交错 ✓ · 角色对话（persona）✓ · Studio JSON wire（L2 100%）✓ — 五个 lane 全部实测+"语义分档声明"。
