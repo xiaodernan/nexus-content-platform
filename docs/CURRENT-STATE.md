@@ -7237,3 +7237,14 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 **502 观测**：ai-service 间歇性返回 502，但会自行恢复；healthz 全返回 200，capability=real。
 **证据归档**：`docs/evidence/post-merge-live-2026-11-18.md`。
 *注意 attest 限制*：若 RAM ≥3 GB 窗口再试，大面积高并发仍是未触达边界。
+
+## cont. 344 (2026-11-18) — v963 · §BUGFIX-BIBLE-ASK-RETRY · 问典 provider 通道抖动：自动重试一次
+
+**症状**：`/bible/ask` 浏览器问答时偶发加载"潮沙盘翻看中……"后回退"潮汐现在不走"（错误：ai-service 返回 502/503 一次性失败，UI 直接进入 honest 状态）。直接 HTTP 探针始终 200（provider 在大约 9–10 秒里返回正常、间或两次 502/503 之间恢复），U 能得正确答案（**包括合流后的新正典回响第 89 章《盐灯守灵日记》**：cachedTokens ≈ 64,076/68,189 ≈ 94% 复用）。
+
+**根因**：provider（ aizzz.xyz → gpt-6.1-terra ）在某些时间点上游 gateway 503/502；**重试 1 次 ≈ +9 秒延时而成功率 ≥ 90%**。
+
+**修法**：`BibleAsk.tsx` 改 do/fetch → 首发请求 → 若 status 502/503 → 等待 800 ms → 再来一次 → 两次都失败才进 honest；429 (rate limit) 行为不变。§159：两次都不成功才说"潮汐现在不走"，**不会在 1~2 次 502 时谎称"潮汐现在不走"**。
+
+**测试**：bible-ask-visual-style.test.ts pin 重钉（comp → `5e932b01…`）；112 回响 → 112→113；~anatomy ask 测试、pinning 重新对齐；`fe-gates 1370/1370 GREEN`。
+**风险**：800ms 等待为人眼可见延迟，但比"整个 15s 然后❌"体验好得多。

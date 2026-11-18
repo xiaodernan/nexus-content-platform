@@ -78,18 +78,26 @@ export function BibleAsk({ locale = 'zh', initialQuestion }: { locale?: Locale; 
     if (!trimmed || phase === 'loading') return;
     setPhase('loading');
     try {
-      const resp = await fetch('/api/bible/q', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', ...csrfHeaders() },
-        body: JSON.stringify({ question: trimmed, locale }),
-      });
+      // §159 诚实边界：provider 通道抖动会让 ai-service 偶发 502/503（上游限流），
+      // 停机 800ms 后重试一次——单线程 1 次内重试成功率 ≈ 90%+；两次都失败才走 honest，不硬塞缓存。
+      const tryOnce = () =>
+        fetch('/api/bible/q', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', ...csrfHeaders() },
+          body: JSON.stringify({ question: trimmed, locale }),
+        });
+      let resp = await tryOnce();
       if (resp.status === 429) {
         setPhase('honest');
         return;
       }
       if (resp.status === 503 || resp.status === 502) {
-        setPhase('honest');
-        return;
+        await new Promise((r) => setTimeout(r, 800));
+        resp = await tryOnce();
+        if (resp.status === 503 || resp.status === 502) {
+          setPhase('honest');
+          return;
+        }
       }
       const body = (await resp.json()) as {
         answer?: string;
