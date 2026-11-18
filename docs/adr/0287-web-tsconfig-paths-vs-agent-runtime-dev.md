@@ -22,12 +22,13 @@
 
 ## 决定
 
-- `apps/web/tsconfig.json` 保持 **无** `@nexus/agent-runtime` alias
-  （packages 走 package exports，web typecheck 通过）。
-- `tsconfig.tools.json` 保留 `@nexus/agent-runtime → ./agents/runtime/src/index.ts`
-  直译（cont.360 的 CI 目标保留）。
-- CI 若以后想让 web 也从源码直译，必须在 next.config 里做正式的、可验证的
-  extensionAlias 或 transpile + 源码条件（`development` exports），不能靠 tsconfig alias。
+- **首版决定（cont.379）**：`apps/web/tsconfig.json` 不带 `@nexus/agent-runtime` alias
+  （web 走 package exports 的 dist/index.d.ts）；`tsconfig.tools.json` 保留源码直译 alias
+  （cont.360 CI 目标保留）。
+- **最终形态（cont.380 · 并行线 cont.373 · `6e5b04c4`）**：连 `tsconfig.tools.json` 也撤回源码
+  alias —— **两侧都不从源码直译**；`.github/workflows/main-line.yml` 在 typecheck 前
+  预构建 `@nexus/agent-runtime` 与 `@nexus/ai-providers` 的 dist。
+  本 ADR 同时修正记录这一修订。
 
 ## 后果
 
@@ -35,6 +36,9 @@
   浏览器实测 `gpt-6.1-terra · 缓存复用 7213 tokens · （问典活答）`。
 - `typecheck:main` 与 web `typecheck` 都通过。
 - 纪律：**Next dev 不得通过 tsconfig paths 指向 TS 源码**。任何"改源码路径直译"
-  的改动只能放进 `tsconfig.tools.json` 一侧。
+  的改动只能放进 `tsconfig.tools.json` 一侧——且现在两侧都已撤回，
+  统一改由 CI workflow 预构建 dist。
+- 后续实测（2026-11-19 cont.380 合并后）：web `typecheck` ✓ · `tsc -p tsconfig.tools.json --noEmit` ✓ ·
+  集成/行为测试不受影响。
 - 教训收据：web dev 3502→3504 之间的中断里 Ser side log 恰好展示了完整 40+ 个解析失败；
   记录放 `docs/evidence/insight-live-2026-11-19.md` 副本路径。
