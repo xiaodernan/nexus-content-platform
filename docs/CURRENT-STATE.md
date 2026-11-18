@@ -5697,3 +5697,28 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-084-the-pot-that-never-rusts`；verify world-bible **488/488** ✓ · verify:bible-snapshot ✓。
 - 同步：BibleAsk lede → 84（含 en）；/bible/ask meta → 八十四篇 / eighty-four；cache-identity → 84 篇锚句；bible-ask-behavior 锚句总数 482→488；canon-answer-graph 测试 89 段 / 84 echoes；pins 重钉（page→95adbe7e… comp→e25bab25…）· 相关测试 24/24。
 - 顺带：模拟 evidence 一字修正（模擬 → 模拟），v950 记录闭环。
+
+## cont. 334 (2026-11-18) — v952 · §BIBLE-cycle 收尾 + EN/ZH 核验闭环 · 本轮（v947→v951）总账
+
+**本会话（窗口 oh-restart 后）已提交**：
+
+| 版本 | 内容 | 校验 |
+|---|---|---|
+| v947 | §BIBLE-82《雾字影》 | 476/476 · fe-gates 1285 |
+| v948 | §PROOF-TRANSPORT-CACHE · ai-service 直打 /v1/ai/chat（同 digest 不同问句复用 94.5% prefix） | `docs/evidence/transport-cache-v947-2026-11-18.md` · CACHE-IDENTITY §3 |
+| v949 | §BIBLE-83《祠殿后不映水潭》 | 482/482 · fe-gates 1285 |
+| v950 | §SIM-3 · 合成流量复跑 76/76 2xx · EN/zh 双模式全页核验 | `simulated-user-behavior-2026-11-18.*` · EN 逐页 cjk=0 |
+| v951 | §BIBLE-84《碾房旧铁锅》 | 488/488 · 24/24（三份 pin 测试） |
+
+**个人页**回读一次（live, 2026-11-18）：身份信息逐字核对 ——
+赵欣曈 · 南方科技大学本科 → 香港中文大学硕士 · 计算机科学与技术；
+全国中学生物理竞赛铜牌 · 江西省一等奖 · 江西省二等奖；法狗狗公司 · 应用工程师；
+隐盾（OCR+NER 法律文书脱敏，公网直入）；IELTS 6.5 · CET6 546 —— 全部在页 ✓；
+雅思/六级标号存在（"雅思 6.5 · IELTS 6.5 · 六级 546 · CET6 546"）✓；「隐盾」未出现错成「隐图」✓。
+
+**遗留（诚实记账）**：
+- 本轮试了 / 字体排版体检脚本（tiny-fs / negative-tracking / clipped-text）——in-app Chromium 在本机内存压力（~0.5-1 GB 可用）下 reload 超时，**未能给出像素级结论**；前一轮验证（console 0 错、无横溢、无脱出块、body 高 2086 px）作为目前证据保留。
+- 真实生产并发撞库（≥ 数百核对）→ 本机不允许，仍待真实部署窗口验证。
+- Docker fleet 全时段冷启动后内存长期不足 2 GB；spring-cloud proof 未重跑（16/16 绿证据文件仍有效，2026-11-18 证词在案）。
+
+**后续**：Echo #85 · §STRESS 复测（RAM≥3 GB 时）· /insight ⑧ 创作者 live 探针复核。
