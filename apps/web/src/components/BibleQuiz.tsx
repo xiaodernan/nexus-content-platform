@@ -434,6 +434,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《第四十五次会》里，潮纸签最后停在哪里？', choices: ['案台上，贴着旧册子', '守灯人的口袋里', '潮汐时刻表下面', '没有人抽走它，它停在门锥旁'], answer: 0, ref: '回响（其一百三十） · 四' },
     en: { prompt: 'In “The Forty-Fifth Convocation”, where did the tide-paper tag come to rest?', choices: ['on the table, against the old ledger', 'in the lampkeeper’s pocket', 'under the tide timetable', 'no hand took it; it stopped beside the door pillar'], answer: 0, ref: 'Echo No. 130 · IV' },
   },
+  {
+    zh: { prompt: '《门开了一整夜》里，椅子数过几遍，共几把？', choices: ['数了三遍，每次都是四十五把（含靠门借来的那一把）', '数了两遍，每次四十四把', '数了三遍，每次都是四十四把', '数了一遍，共四十三把'], answer: 0, ref: '回响（其一百三十一） · 二' },
+    en: { prompt: 'In “The Door Stood Open All Night”, how many times did he count the chairs, and how many were there?', choices: ['three times; forty-five each time (including the borrowed one by the door)', 'twice; forty-four each time', 'three times; forty-four each time', 'once; forty-three chairs'], answer: 0, ref: 'Echo No. 131 · II' },
+  },
+  {
+    zh: { prompt: '《门开了一整夜》里，离开时誊册房的人把门关成了什么样？', choices: ['关了一指宽（留了一指宽的门缝）', '完全关上了', '大开着没有关', '关了一掌宽'], answer: 0, ref: '回响（其一百三十一） · 五' },
+    en: { prompt: 'In “The Door Stood Open All Night”, how did the copyist finally leave the door?', choices: ['closed except a finger’s width', 'fully closed', 'swinging open and not closed at all', 'closed except a palm’s width'], answer: 0, ref: 'Echo No. 131 · V' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

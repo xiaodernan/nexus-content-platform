@@ -7526,3 +7526,10 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 > - 连带发现三处配置漂移（已对齐）：① `apps/web/.env.local` 的 `NEXUS_AI_SERVICE_URL` 指向一个没跑 ai-service 的 3212（页面安静退回 DEMO）→ **:3200**；② `NEXUS_DATABASE_URL` 缺失 → 55433（Windows Hyper-V 保留端口 55379–55478，`netsh` 可见；`nexus-postgres` 退出、数据已迁 `nexus-postgres-alt` 同一 `nexus-pgdata` volume · **5443**）→ 显式配置 `postgres://nexus:nexus_dev_only@localhost:5443/nexus`；③ collation 2.36→2.41 错配 → `ALTER DATABASE nexus REFRESH COLLATION VERSION` ✓
 > - 修复验证：moderation assist unauth 500→**403** · /admin/observe 500→**200** · evidence: `docs/evidence/login-bruteforce-2026-11-19.md`
 > - 备忘：`nexus-postgres`（55433）与保留端口段冲突不要再拉起；本机现行 NEXUS dev DB = `nexus-postgres-alt`（**5443**）
+
+> **2026-11-19 cont. 358 · 回响（其一百三十一）《门开了一整夜》——散会之后，门没有关**
+> - 新正典：`docs/world-bible/echoes/E131-门开了一整夜.md` + `.en.md`（接 E130《第四十五次会》· 双语镜像 · 5 节）· 纪元：潮落之月 · 第四十五次会次晨 · 誊册房
+> - verify:world-bible **802/802** · digest chars **231,249** · sha256 f51bcc35… · quiz 89 → **91 题**（bizare·镜像 +2 · SHA 再钉 · 答案序列 182/182）· bible-ask pin 792→**797**
+> - fe-gates 150/150 · 1370/1370 · census 2985
+> - evidence: `docs/evidence/echo-131-2026-11-19.md`
+>> SSR 实锤 /bible/echo-131-the-door-stood-open-all-night 200 37,680 bytes（含「门开了一整夜」字面）· opus 仅 3461 端口旧 stale listener（28348 → 已换 30944）

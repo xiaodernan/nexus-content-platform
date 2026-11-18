@@ -181,6 +181,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E128-潮候院里那只从不停的小鼓': 'echo-128-the-little-drum-that-never-stops',
   'E129-潮候院祠殿檐下那根永远不得响的木牌': 'echo-129-the-wooden-plaque-that-decides',
   'E130-第四十五次会': 'echo-130-the-forty-fifth-convocation',
+  'E131-门开了一整夜': 'echo-131-the-door-stood-open-all-night',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
