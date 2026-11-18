@@ -9348,6 +9348,204 @@ After the tide withdrew, the hall still had not adjourned.
 `,
   },
   {
+    order: 113,
+    slug: 'echo-113-the-wall-crack-no-one-repairs',
+    titleZh: '潮候院后墙不修的那一道裂痕',
+    titleEn: 'The Crack in the Institute\'s Back Wall That No One Repairs',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第八十八日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the eighty-eighth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 113): The Crack in the Institute's Back Wall That No One Repairs
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院后墙那一百多年没有人修过的裂痕。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the crack in the back wall of the Institute that no one has repaired for over a century.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第八十八日。
+> Era: the Institute — after the 41st Convocation; the eighty-eighth day of the autumn-tide month.
+
+---
+
+## 一 · 后墙
+
+潮候院后墙是砖砌的——夯土白灰——墙脚有个瓦片。
+
+墙上一百多年前出现了一条横裂——值更册里没人记得原因，也没人知道是停在什么时候的。
+
+**锚句**：后墙上的横裂一百多年没修过——值更册里没有原因。
+**Anchor sentence**: the horizontal crack in the back wall has been left unrepaired for over a century — the watch-ledger holds no reason.
+
+---
+
+## 二 · 没补过
+
+院里所有建筑都修过——连旧屋都翻过新灰——唯独后墙那道裂从没人补过。
+
+抄本师私下说："后墙这件事不是维护，是纪念。"
+
+**锚句**：后墙这件事不是维护，是纪念。
+**Anchor sentence**: the back wall is not upkeep — it is a memorial.
+
+---
+
+## 三 · 雨水
+
+雨水在墙裂里收集——夏天有人在裂口上看见沉积的青苔——却没人伸手去抹。
+
+抄本师抄抄本本说，盯着裂缝的人会产生"年纪长了一下"的错觉。
+
+**锚句**：雨水在裂口里收集——抄本本说盯裂缝的人会长一岁。
+**Anchor sentence**: the rain gathers inside the crack — the copyists say anyone who stares into it grows older by a year.
+
+---
+
+## 四 · 值更巡视
+
+第四十一次大会散会之后的值更人巡完后墙发现，裂缝最近以肉眼可见速度向下移动。
+
+他只在后墙脸上做了一个标记——明年如果继续下移，就得打报告。
+
+**锚句**：后墙裂缝下移值更人没上报——明年再看。
+**Anchor sentence**: the shift in the crack has not yet been reported by the head of the watch — check the year after.
+
+---
+
+## 五 · 底下的东西
+
+抄本师说后墙下面是"一脉老水"——墙的人没有一个敢说它是空的。
+
+抄本师说裂缝不是墙坏了是墙在透气。
+
+**锚句**：抄本师说裂缝不是墙坏了是墙在透气。
+**Anchor sentence**: the copyists say the crack is not the wall failing — the wall is breathing.
+
+---
+
+## 六 · 禁止填
+
+值更人禁止任何人往裂缝里填灰浆——抄本师说："填了，就什么都没了。"
+
+院里没人填过。
+
+**锚句**：值更人禁止填裂——填了，就什么都没了。
+**Anchor sentence**: the head of the watch forbids anyone from plastering the crack — fill it, and nothing remains.
+
+---
+
+## 七 · 映射（回响一百一十三章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 后墙 · 裂 · 老水 · 透气 · 墙在纪念 | 一、二、三、四、五、六、七 |
+| geography | 后墙 · 潮候院后院 | 一、五 |
+| characters | 抄本师 · 值更人 | 二、三、四、五、六 |
+| story | 后墙裂缝 · 回响（其一百十三） | 全篇 |
+| items | 后墙 · 灰浆 · 青苔 | 一、三、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第八十八日 | 三、四、五、六 |
+
+> 墙裂百年，院子还在；后墙一直这样，直到它自己散了——如果它自己还愿意散。
+> The wall has cracked for a hundred years, and the Institute endures; the back wall stays as it is, until it decides to fall — if it still wishes to fall.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百十三）「潮候院后墙不修的那一道裂痕」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the crack in the back wall of the Institute that no one has repaired for over a century.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院后墙那一百多年没有人修过的裂痕。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the eighty-eighth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第八十八日。
+
+---
+
+## I · The Back Wall
+
+The back wall of the Institute is brick — rammed earth whitewashed — at the foot, a shard of roof-tile.
+
+A horizontal crack appeared in that wall over a century ago — the watch-ledger holds no cause, and no one knows when the crack stopped spreading.
+
+**锚句**：后墙上的横裂一百多年没修过——值更册里没有原因。
+**Anchor sentence**: the horizontal crack in the back wall has been left unrepaired for over a century — the watch-ledger holds no reason.
+
+---
+
+## II · Never Patched
+
+Every building in the Institute has been repaired — even the old dormitory has fresh lime — and only the back wall has never been patched.
+
+The copyists privately say: the back wall is not upkeep — it is a memorial.
+
+**锚句**：后墙这件事不是维护，是纪念。
+**Anchor sentence**: the back wall is not upkeep — it is a memorial.
+
+---
+
+## III · The Rain
+
+Rain gathers in the crack — in summer someone sees moss forming on the lips of the fissure — and no one reaches out to scrub it away.
+
+The copyists say that anyone who stares into the crack begins to feel they are growing older.
+
+**锚句**：雨水在裂口里收集——抄本本说盯裂缝的人会长一岁。
+**Anchor sentence**: the rain gathers inside the crack — the copyists say anyone who stares into it grows older by a year.
+
+---
+
+## IV · The Rounds
+
+After the 41st Convocation dissolved, the head of the watch walked the back wall and noticed that the crack had shifted downward at a visible speed.
+
+He only made one mark on the wall — next year, if it continues to creep lower, he will file a report.
+
+**锚句**：后墙裂缝下移值更人没上报——明年再看。
+**Anchor sentence**: the shift in the crack has not yet been reported by the head of the watch — check the year after.
+
+---
+
+## V · What Lies Below
+
+The copyists say the ground beneath the back wall is "one old vein of water" — no one in the Institute dares say it is empty.
+
+The copyists also say the crack is not the wall failing — the wall is breathing.
+
+**锚句**：抄本师说裂缝不是墙坏了是墙在透气。
+**Anchor sentence**: the copyists say the crack is not the wall failing — the wall is breathing.
+
+---
+
+## VI · Forbidden to Fill
+
+The head of the watch forbids anyone to fill the crack with mortar — the copyists say: "fill it, and nothing remains."
+
+No one has filled it.
+
+**锚句**：值更人禁止填裂——填了，就什么都没了。
+**Anchor sentence**: the head of the watch forbids anyone from plastering the crack — fill it, and nothing remains.
+
+---
+
+## VII · Mapping（Echo No. 113 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the back wall · the crack · the old vein · the breathing wall · memorial | 一、二、三、四、五、六、七 |
+| geography | the back wall · the back yard of the Institute | 一、五 |
+| characters | the copyists · the head of the watch | 二、三、四、五、六 |
+| story | the crack in the back wall · Echo No. 113 | 全篇 |
+| items | the back wall · the mortar · the moss | 一、三、六 |
+| history | After the 41st Convocation · the eighty-eighth day of the autumn-tide month | 三、四、五、六 |
+
+> 墙裂百年，院子还在；后墙一直这样，直到它自己散了——如果它自己还愿意散。
+> The wall has cracked for a hundred years, and the Institute endures; the back wall stays as it is, until it decides to fall — if it still wishes to fall.
+`,
+  },
+  {
     order: 12,
     slug: 'echo-012-the-echo-that-only-comes-when-the-tide-is-out',
     titleZh: '潮落时才有的回声',

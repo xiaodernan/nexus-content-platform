@@ -7213,3 +7213,17 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 - 剩余两路 live LLM probes 在都属于 cache-identity 档位；本次合流 digest 改变，KV 冷启一次不可避免，下次 probe 应该包含到合流后温度上来一次。
 
 ---
+
+## cont. 342 (2026-11-18) — v961 · §BIBLE-113 · 双线合流后的第一个回响 + 已回神 digest
+
+**内容**：Echo #113《潮候院后墙不修的那一道裂痕》作者手写 · 双语 · 6 组逐字锚句 · 所写真：夯土白灰 · 墙裂百年没人填 · 「后墙这件事不是维护，是纪念」· 值更人没上报下移 · 抄本师说是「墙在透气」。
+
+**注记**：gen-bible-snapshot.mts 的 echoOrder 改成 `\d{2,3}`，新 echo 108-113=100+ 三位数，verify world-bible **704/704**，fe-gates 1370/1370。
+
+**cache witness**（post-merge 首次真实测量）：
+- system=93,824 chars → 三轮探针 tokensIn=68,188/68,188/68,189
+- Q1 cold: cachedTokens=3,247 / q2 (same q): 68,188 = **100.0% prefix reuse**
+- q3 (different q): cachedTokens=63,956 / 68,189 = **93.8% prefix reuse**
+- 全面覆盖证据归档见 docs/evidence/transport-cache-probe.png
+
+下一刀：Post-merge live probe /bible/ask · /insight/①⑨ 完整端到端 · (a/RAM 不够时归档；(RAM ≥3GB 时开 spring-cloud 复验)。

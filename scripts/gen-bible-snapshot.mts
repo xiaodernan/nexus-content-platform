@@ -163,6 +163,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E110-灰封': 'echo-110-the-grey-binding',
   'E111-灰炉': 'echo-111-the-grey-hearth',
   'E112-第四十三次会': 'echo-112-the-forty-third-convocation',
+  'E113-潮候院后墙不修的那一道裂痕': 'echo-113-the-wall-crack-no-one-repairs',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
