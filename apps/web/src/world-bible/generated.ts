@@ -11804,4 +11804,162 @@ He did not find the paper in the wastebasket had been torn open.
 > the name came from a piece of paper.
 `,
   },
+  {
+    order: 33,
+    slug: 'echo-033-the-name-in-the-old-ledger',
+    titleZh: '旧册子里的名字',
+    titleEn: 'The Name in the Old Ledger',
+    eraLineZh: '纪元：潮上之夜 · 潮落之月 · 旧册打开的日子',
+    eraLineEn: 'Era: the night the tide rose · the month the tide receded · the day the old book was opened.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 33): The Name in the Old Ledger
+
+> 回响不续写正典——它只记一份挑剩下的纪录：
+> 潮汐教团的旧册子躺在案台最下面的抽屉里；守灯人的笔迹没有写上一个字。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> The old ledger of the Tide Conclave lay at the bottom of the desk drawer; not a word in it was written in the lampkeeper's hand.
+> Its anchors answer to the same discipline.
+
+> 纪元：潮上之夜 · 潮落之月 · 旧册打开的日子
+> Era: the night the tide rose · the month the tide receded · the day the old book was opened.
+
+---
+
+## 一 · 旧册子打开了
+
+那晚守灯人在案台最下面的抽屉里找到了一本旧册子。封面上的名字已经被海水泡得看不清楚，但里面每一页都被仔细的人用指甲划过一道。守灯人翻了很久，只看见每页正中写着一行字：
+
+「潮起，潮落；潮起，潮落。」
+
+没有人签名，也没有人写上潮落第几次。
+
+封面上的名字已经被海水泡得看不清了，只剩下每页都写着一行潮字。
+**锚句**：封面上的名字已经被海水泡得看不清了，只剩下每页都写着一行潮字。
+**Anchor sentence**: The cover had been washed illegible by the sea; each page still held the same tide-line: rising, falling, rising, falling.
+
+## 二 · 谁打开了
+
+守灯人问过了誊账人。誊账人说他一辈子都没有碰过那本旧册子。守灯人问自己 — 自己打开过吗？自己也不记得了。
+
+那本旧册子究竟谁打开过？没有人记得。
+**锚句**：那本旧册子究竟谁打开过？没有人记得。
+**Anchor sentence**: Who had opened the ledger — no one remembered.
+
+## 三 · 每页正中的字
+
+每页正中都是「潮起，潮落」。每页都有一行字，但每页都没有告诉守灯人潮什么时候不会再起，也不告诉他潮什么时候会给出答案。
+
+每一页都没有告诉潮什么时候才真的退去。
+**锚句**：每一页都没有告诉潮什么时候才真的退去。
+**Anchor sentence**: Every page refused to say when the tide would truly ebb.
+
+## 四 · 名字被擦掉
+
+守灯人又翻到中间的一页，看到正中写着一句：
+
+「潮的名字雾散前，潮的名字已经上浮。」
+
+守灯人再仔细看，发现上面的一行字被人用指甲擦掉了——字迹还在，但墨水被潮的水气洇开了，融成了一片深一片浅的海水。守灯人没有撕掉那一页。
+
+守灯人没有撕掉那一页。
+**锚句**：守灯人没有撕掉那一页。
+**Anchor sentence**: The lampkeeper did not tear that page out.
+
+## 五 · 潮落下以后
+
+潮落下来以后，守灯人把旧册子放回了抽屉里。他没有写完最后一个字。
+
+守灯人把旧册子放回了抽屉里。
+**锚句**：守灯人把旧册子放回了抽屉里。
+**Anchor sentence**: The lampkeeper returned the old ledger to the drawer.
+
+---
+
+## 模型映射（回响三十三则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 潮上之夜 · 潮落之月 · 旧册打开的日子 | 第十一章 · 第十三章 |
+| geography | 誊册房 · 案台 · 抽屉 · 潮汐时刻表 | 本则 · 第二十九则 · 第三十二则 |
+| factions | 守灯人 · 誊账人 · 潮汐教团（重铸的章） | 第一章 · 本则 |
+| characters | 守灯人 · 不记得谁打开过旧册子的人 | 本则 · 第三零则 · 第三一则 · 第三二则 |
+| items | 旧册子 · 案台抽屉 · 潮汐时刻表 · 潮汐潮痕 | 本则 |
+| story | 旧册子里的名字 · 回响（其三十三） | 全篇 |
+| history | 潮上之夜 · 潮落之月 · 海水泡过的封面 | 本则 |
+
+> 潮起潮将至，
+> 哪一页是封底？
+> The tide rises, the tide falls;
+> which page is the back cover?
+`,
+    markdownEn: `
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> The old ledger of the Tide Conclave lay at the bottom of the desk drawer; not a word in it was written in the lampkeeper's hand.
+> Its anchors answer to the same discipline.
+
+> Era: the night the tide rose · the month the tide receded · the day the old book was opened.
+
+---
+
+## 1 · The old ledger opened
+
+That night, the lampkeeper found an old ledger at the bottom of the desk drawer. The cover's title had been washed illegible by the sea, but every page inside it had been worn by many careful fingers. He paged through and saw, on each page, one line centered:
+
+"The tide rises, the tide falls. Tide rises, tide falls."
+
+No signature. No count of the risings.
+
+The cover had been washed illegible by the sea; each page still held the same tide-line: rising, falling, rising, falling.
+**Anchor sentence**: The cover had been washed illegible by the sea; each page still held the same tide-line: rising, falling, rising, falling.
+
+## 2 · Who had opened it?
+
+The lampkeeper asked the copyist. The copyist said he had never touched the ledger in his whole life. The lampkeeper asked himself — had he? He did not remember.
+Who had opened the ledger — no one remembered.
+**Anchor sentence**: Who had opened the ledger — no one remembered.
+
+## 3 · The centred lines
+
+Every page held the same line. Every page told him the same thing. No page told him when the tide would not rise again, nor promised him anything about the tide answering.
+
+Every page refused to say when the tide would truly ebb.
+**Anchor sentence**: Every page refused to say when the tide would truly ebb.
+
+## 4 · The name wiped away
+
+He turned to a page in the middle and saw one line:
+
+"The tide-name had risen before the sea fog cleared."
+
+He looked very closely — one line had been scratched with a fingernail. The strokes were still there, but the ink had bloomed into the tide's dampness — softened into a field of deep and pale. He did not tear the page out.
+
+The lampkeeper did not tear that page out.
+**Anchor sentence**: The lampkeeper did not tear that page out.
+
+## 5 · After the tide withdrew
+
+After the tide receded, the lampkeeper returned the ledger to the drawer. He did not finish the last line.
+
+The lampkeeper returned the old ledger to the drawer.
+**Anchor sentence**: The lampkeeper returned the old ledger to the drawer.
+
+---
+
+## Echo No. 33 — dimension mapping
+
+| Dim | Anchor | Linked |
+|---|---|---|
+| lore | the night the tide rose · the month the tide receded · the day the old book was opened | Ch. 11 · Ch. 13 |
+| geography | the copying hall · the desk · the drawer · the tide timetable | this echo · Echo 29 · Echo 32 |
+| factions | the lampkeeper · the copyist · the Tide Conclave (re-cast seal) | Ch. 1 · this echo |
+| characters | the lampkeeper · the one who does not remember ever opening the book | this echo · Echo 30 · Echo 31 · Echo 32 |
+| items | the old ledger · the desk drawer · the tide timetable · the tide's mark | this echo |
+| story | the name in the old ledger · Echo No. 33 | whole piece |
+| history | the night the tide rose · the month the tide receded · the cover washed by the sea | this echo |
+
+> The tide rises, the tide falls;
+> which page is the back cover?
+`,
+  },
 ] as const;

@@ -452,6 +452,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《潮的名字》里，潮纸篓里放的是什么？', choices: ['一捆潮纸，每张纸上都是一个潮字', '一沓欠条', '潮的签字', '潮的名字'], answer: 0, ref: '回响（其三十二） · 四' },
     en: { prompt: 'In “The Name of the Tide”, what did the tide-wastebasket hold?', choices: ['a bundle of tide-papers, each bearing the character for tide', 'a stack of IOU notes', 'the tide’s signature', 'a list of names'], answer: 0, ref: 'Echo No. 32 · IV' },
   },
+  {
+    zh: { prompt: '《旧册子里的名字》里，封面上的名字被什么冲掉了？', choices: ['海水', '潮汐时刻表', '指甲', '旧册子'], answer: 0, ref: '回响（其三十三） · 一' },
+    en: { prompt: 'In “The Name in the Old Ledger”, what washed the title off the cover?', choices: ['the sea', 'the tide timetable', 'his fingernail', 'the old ledger itself'], answer: 0, ref: 'Echo No. 33 · I' },
+  },
+  {
+    zh: { prompt: '《旧册子里的名字》里，潮的名字被什么盖住了？', choices: ['潮的水气', '时间', '潮汐教团之印', '别的名字'], answer: 0, ref: '回响（其三十三） · 四' },
+    en: { prompt: 'In “The Name in the Old Ledger”, what covered the tide’s name?', choices: ['the tide’s own dampness', 'time', 'the Conclave’s seal', 'another name'], answer: 0, ref: 'Echo No. 33 · IV' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

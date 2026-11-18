@@ -6262,3 +6262,10 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 > - SHA 重钉 ×2（bible index 493b5153 · BibleQuiz 507b0ce8）· fe-gates 147/147 · 1353/1353 · build 绿
 > - SSR 实锤 /bible /echo-032-the-name-of-the-tide 200 · /tide-oracle /tide-wire 全 200
 > - **Tide-Oracle 缓存基准**：call-1 cold 3.95s → **call-2 replay 0.07s (100%)** → call-3 replay 0.05s (100%) · Redis shared · degraded:false
+
+> **2026-11-19 cont. 250 · 回响（其三十三）《旧册子里的名字》——旧册子被潮泡得看不清，潮起落的声音没有人签名**
+> - 纪元：潮上之夜 · 潮落之月 · 旧册打开的日子（en: the night the tide rose · the month the tide receded · the day the old book was opened）
+> - 5 组锚句 zh/en 全局唯一 · **世界大典 427 zh / 427 en 全绿** · canon digest 重封存（63,192 chars · sha256=c37fbd5e…）
+> - /bible 页脚 三十三/XXXIII · guideCopy 同步 · quiz 94→**96**（zh/en 镜像 +2 题 E33）
+> - SHA 重钉 ×2 · fe-gates 147/147 · 1353/1353 · build 绿
+> - SSR 实锤 /bible /echo-033 200 · /tide-oracle /tide-wire 全 200
