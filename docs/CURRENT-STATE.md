@@ -5735,3 +5735,18 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-086-the-tongs-that-never-go-cold`；verify world-bible **500/500** ✓ · verify:bible-snapshot ✓。
 - 里程碑：锚句总数破五百（500 zh / 500 en）。
 - 同步：BibleAsk lede → 86（含 en）；/bible/ask meta → 八十六篇 / eighty-six；cache-identity → 86 篇锚句；bible-ask-behavior 锚句总数 494→500；canon-answer-graph 测试 91 段 / 86 echoes；pins 重钉（page→f8233aa2… comp→986a4cdc…）· 相关测试 24/24；fe-gates 1285/1285（v953 全跑确认）。
+
+## cont. 337 (2026-11-18) — v955 · §PROOF-CHARACTER-CHAT · 角色对话 live 端到端 + 缓存徽章落地
+
+**新功能**：角色聊天响应新增 `usage { tokensIn, tokensOut, cachedTokens, cacheReported }`（routes/[id]/chat/route.ts）；CharacterChat 对话框在角色消息下显示 mono 缓存徽章（zh「缓存复用 X / Y tokens」· en「cache reuse X / Y tokens」· data-character-chat-cache）；globals.css 新增 `.ch-cache`（mono · fg-3 · 无边框＝脚注，不警报）。
+
+**Live 全链路实测**（本机 dev 路径，gpt-6.1-terra 真模型）：
+- 注册 → 201 建项目 → 201 建角色 → @PATCH 档案 → 3 连问 × 两次（两次全新项目、同 persona 字节）
+- tokensIn：4631 → 4699 → 4767 → 4853
+- 第一次：0 · 4,433(94.3%) · 0（通道轮换） 
+- 第二次：**4,631(100%, L2) · 4,699(100%, L2) · 4,767(100%, L2) · 4,431(91.3%, provider KV)**
+- 模型守护人设：「五岁那封信，我没回」· catchphrases「记下了」「盐里有数」逐字被用出；四次全 verified=true、机检一次通过；没自曝 AI、没编造。
+- 完整抄录：`docs/evidence/character-chat-live-v955-2026-11-18.md`
+
+**测试**：角色聊天相关 28/28 · **fe-gates 1285/1285** · visual-style pin 重钉（comp → e322795c…）。
+**风险**：`/studio` 角色对话组件 SHA 重钉需随接下来的任何改动再重钉；100% 命中中含 L2 精确命中语义，两者在 evidence 中单独声明，不冒充。

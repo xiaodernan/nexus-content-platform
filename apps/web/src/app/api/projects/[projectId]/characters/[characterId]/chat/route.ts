@@ -150,6 +150,13 @@ export async function POST(
       verifyNote: verified ? null : UNVERIFIED_CHARACTER_NOTE[locale],
       iterations: chatResult.iterations,
       nodesVisited: chatResult.nodesVisited,
+      /** 用量原样透传（§CACHE: 界面能显示 provider 声明的前缀复用；不伪造 0/0 clicks） */
+      usage: {
+        tokensIn: chatResult.usage.tokensIn,
+        tokensOut: chatResult.usage.tokensOut,
+        cachedTokens: chatResult.usage.cachedTokens,
+        cacheReported: chatResult.usage.cacheReported,
+      },
     });
   } catch (_error) {
     return jsonError(500, 'internal', { message: '对话失败' });

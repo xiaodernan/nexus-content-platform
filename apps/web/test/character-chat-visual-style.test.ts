@@ -173,7 +173,7 @@ describe('§FE-37 /studio CharacterChat 角色对话框', () => {
 
   it('剥 className 后 SHA256 守恒（2026-11-18 v915·§47-graph verifyFail 徽章显式重钉，前轴 2026-11-16 v747）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'e4383c363322357eef2e7d44bccb63507351f2822193b007720449469bf8364f',
+      'e322795c0cc608e1eac55e756df544dec09cc0cfa01796cec81ffac9f2af07ac',
     );
   });
 });

@@ -26,6 +26,8 @@ const COPY = {
     busyThinking: '在想…',
     send: '说',
     verifyFail: '机检提醒：这段回复漏了系统边界或自述身份——戏份为主，别全信。',
+    cacheLine: (u: { tokensIn: number; cachedTokens: number }) =>
+      `缓存复用 ${u.cachedTokens.toLocaleString()} / ${u.tokensIn.toLocaleString()} tokens`,
   },
   en: {
     heading: 'Talk to the character',
@@ -38,6 +40,8 @@ const COPY = {
     busyThinking: 'Thinking…',
     send: 'Say',
     verifyFail: 'Machine check: this reply slipped its boundaries or own identity — improvisation, not scripture.',
+    cacheLine: (u: { tokensIn: number; cachedTokens: number }) =>
+      `cache reuse ${u.cachedTokens.toLocaleString()} / ${u.tokensIn.toLocaleString()} tokens`,
   },
 } as const;
 
@@ -53,7 +57,7 @@ export function CharacterChat({
   locale?: Locale;
 }) {
   const c = COPY[locale];
-  const [log, setLog] = useState<{ role: 'user' | 'character'; text: string; verified?: boolean | null }[]>([]);
+  const [log, setLog] = useState<{ role: 'user' | 'character'; text: string; verified?: boolean | null; usage?: { tokensIn: number; tokensOut: number; cachedTokens: number; cacheReported: boolean } }[]>([]);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,10 +77,15 @@ export function CharacterChat({
         body: JSON.stringify({ message: text, sessionId: sessionRef.current, locale }),
       });
       const body = (await res.json().catch(() => null)) as
-        | { reply?: string; message?: string; verified?: boolean }
+        | {
+            reply?: string;
+            message?: string;
+            verified?: boolean;
+            usage?: { tokensIn: number; tokensOut: number; cachedTokens: number; cacheReported: boolean };
+          }
         | null;
       if (!res.ok || !body?.reply) throw new Error(body?.message ?? `HTTP ${res.status}`);
-      setLog((prev) => [...prev, { role: 'character', text: body.reply!, verified: body.verified ?? null }]);
+      setLog((prev) => [...prev, { role: 'character', text: body.reply!, verified: body.verified ?? null, usage: body.usage }]);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -104,6 +113,9 @@ export function CharacterChat({
               {entry.text}
               {entry.role === 'character' && entry.verified === false ? (
                 <span className="ch-verify" data-character-chat-verify="fail">{c.verifyFail}</span>
+              ) : null}
+              {entry.role === 'character' && entry.usage?.cacheReported ? (
+                <span className="ch-cache" data-character-chat-cache>{c.cacheLine(entry.usage)}</span>
               ) : null}
             </li>
           ))}
