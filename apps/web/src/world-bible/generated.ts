@@ -14076,6 +14076,180 @@ The last page of the watch-ledger reads: the well has been listening all along �
 `,
   },
   {
+    order: 137,
+    slug: 'echo-137-the-nameless-chair-of-the-dissolution',
+    titleZh: '潮候院祠殿里那把只在散会时有人坐的木椅',
+    titleEn: 'The Wooden Chair in the Chapel Reserved for the Dissolution',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零三日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hundred-and-third day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 137): The Wooden Chair in the Chapel Reserved for the Dissolution
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿里那把永远空着的木椅——只有散会的时候有人坐了一晚上。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the always-empty wooden chair in the chapel — and for the one night during the Dissolution when somebody sat in it.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零三日。
+> Era: the Institute — after the 41st Convocation; the hundred-and-third day of the autumn-tide month.
+
+---
+
+## 一 · 那把木椅
+
+祠殿正中有一把木椅——椅子是木头的——椅面一层淡灰——常年空着——值更人不说它是为谁留的。
+
+**锚句**：祠殿正中有一把木椅——常年空着——值更人不说它为谁留的。
+**Anchor sentence**: in the very center of the chapel stands a wooden chair — always empty — and the head of the watch will not say for whom it is being kept.
+
+---
+
+## 二 · 没人坐
+
+很多年过去——抄本师轮班的时候看过——任何人都没坐。年老的抄本师说从前有人坐过——后来不再坐了——不说是什么时候。
+
+**锚句**：任何人都没坐过——连老抄本师也不说从前坐没坐过。
+**Anchor sentence**: no one sits in it — not even the oldest copyists will say whether anyone ever did.
+
+---
+
+## 三 · 散会夜
+
+第四十一次大会散会那一夜——有人在这把椅子上坐了一晚上——值更册只写了这样一句：'那晚坐椅子的人没有名字'。
+
+**锚句**：散会那一夜有人坐了这把椅子——值更册只写了一句'那晚坐椅子的人没有名字'。
+**Anchor sentence**: on the night of the Dissolution somebody sat in this chair — and the watch-ledger records only one line: the person who sat that night had no name.
+
+---
+
+## 四 · 第二天
+
+第二天早朝——所有人都看见椅子歪了一点——椅面的灰也乱了——值更人没有扶正——他说：'它散过了'。
+
+**锚句**：第二天早朝——椅子歪了一点——值更人没有扶正——他说'它散过了'。
+**Anchor sentence**: the next morning at first watch — the chair leaned slightly — and the head of the watch did not straighten it — he only said: it has already dissolved.
+
+---
+
+## 五 · 椅下
+
+抄本师在椅子底下发现一粒不知名的盐——不是潮候院的供盐——也不是膳盐——是深黑色的——很重。
+
+**锚句**：抄本师在椅子底下发现一粒深黑色的盐——不是供盐——也不是膳盐。
+**Anchor sentence**: beneath the chair the copyists found a single grain of salt — dark black — not the chapel's consecrated salt — and not the kitchen's.
+
+---
+
+## 六 · 又空了
+
+自那一夜以后——椅子又空了——但没人敢把它换成新的——值更册最后一页：'它没有名字——谁去坐都一样'。
+
+**锚句**：值更册最后一页'它没有名字——谁去坐都一样'。
+**Anchor sentence**: the last page of the watch-ledger reads: it has no name — it does not matter who sits in it.
+
+---
+
+## 七 · 映射（回响一百三十七章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 空椅子 · 深黑色的盐 · 散会夜 · 没有名字 · 值更人 | 一、二、三、四、五、六、七 |
+| geography | 祠殿正殿 · 祠殿门 · 祈祷区 | 一、二、三、四 |
+| characters | 值更人 · 抄本师 · 无名的人 | 一、二、三、四、五、六 |
+| story | 散会夜唯一坐下的椅子 · 回响（其一百三十七） | 全篇 |
+| items | 木椅 · 椅面淡灰 · 深黑色的盐 · 值更册 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第一百零三日 | 三、四、五、六 |
+
+> 祠殿正中那把空椅子——散会的那一夜有人坐过——第二天没人说那个人是谁——也没有人问。
+> The empty chair in the chapel — someone sat in it on the night of the Dissolution — and no one speaks of who that was — and no one asks.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百三十七）「潮候院祠殿里那把只在散会时有人坐的木椅」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the always-empty wooden chair in the chapel — and for the one night during the Dissolution when somebody sat in it.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿里那把永远空着的木椅——只有散会的时候有人坐了一晚上。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the hundred-and-third day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零三日。
+
+---
+
+## I · The Chair
+
+In the very center of the chapel stands a wooden chair — wood — a pale grey seat — always empty — and the head of the watch will not say for whom it is being kept.
+
+**锚句**：祠殿正中有一把木椅——常年空着——值更人不说它为谁留的。
+**Anchor sentence**: in the very center of the chapel stands a wooden chair — always empty — and the head of the watch will not say for whom it is being kept.
+
+---
+
+## II · No One Sits
+
+Years passed — the copyists checked during their watch — no one sits in it. The oldest copyists say somebody sat once — then stopped — they will not say when.
+
+**锚句**：任何人都没坐过——连老抄本师也不说从前坐没坐过。
+**Anchor sentence**: no one sits in it — not even the oldest copyists will say whether anyone ever did.
+
+---
+
+## III · The Night of Dissolution
+
+On the night the Convocation dissolved — somebody sat in this chair the whole night — the watch-ledger records only one line: the person who sat that night had no name.
+
+**锚句**：散会那一夜有人坐了这把椅子——值更册只写了一句'那晚坐椅子的人没有名字'。
+**Anchor sentence**: on the night of the Dissolution somebody sat in this chair — and the watch-ledger records only one line: the person who sat that night had no name.
+
+---
+
+## IV · The Next Morning
+
+The next morning at first watch — the chair leaned slightly — the dust on the seat was disturbed — the head of the watch did not straighten it — he only said: it has already dissolved.
+
+**锚句**：第二天早朝——椅子歪了一点——值更人没有扶正——他说'它散过了'。
+**Anchor sentence**: the next morning at first watch — the chair leaned slightly — and the head of the watch did not straighten it — he only said: it has already dissolved.
+
+---
+
+## V · Beneath the Chair
+
+Beneath the chair the copyists found a single grain of salt — not the chapel's consecrated salt — and not the kitchen's — deep black — heavy for its size.
+
+**锚句**：抄本师在椅子底下发现一粒深黑色的盐——不是供盐——也不是膳盐。
+**Anchor sentence**: beneath the chair the copyists found a single grain of salt — dark black — not the chapel's consecrated salt — and not the kitchen's.
+
+---
+
+## VI · Empty Again
+
+Since that night — the chair has been empty again — no one dares replace it with a new one — the last page of the watch-ledger: it has no name — it does not matter who sits in it.
+
+**锚句**：值更册最后一页'它没有名字——谁去坐都一样'。
+**Anchor sentence**: the last page of the watch-ledger reads: it has no name — it does not matter who sits in it.
+
+---
+
+## VII · Mapping（Echo No. 137 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the empty chair · the black salt · the night of Dissolution · the nameless one · the head of the watch | 一、二、三、四、五、六、七 |
+| geography | the chapel hall · the chapel door · the prayer zone | 一、二、三、四 |
+| characters | the head of the watch · the copyists · the nameless one | 一、二、三、四、五、六 |
+| story | the chair someone sat in on the night of Dissolution · Echo No. 137 | 全篇 |
+| items | the wooden chair · the pale grey seat · the black salt · the watch-ledger | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the hundred-and-third day of the autumn-tide month | 三、四、五、六 |
+
+> 祠殿正中那把空椅子——散会的那一夜有人坐过——第二天没人说那个人是谁——也没有人问。
+> The empty chair in the chapel — someone sat in it on the night of the Dissolution — and no one speaks of who that was — and no one asks.
+`,
+  },
+  {
     order: 14,
     slug: 'echo-014-the-cover-of-the-tide-table',
     titleZh: '潮汐表的封面',

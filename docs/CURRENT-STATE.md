@@ -7609,3 +7609,9 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 5 锚句双语 · gen-bible-snapshot 增 echo-136 · BibleAsk lede → 136 · /bible/ask meta → 一百三十六篇 · CACHE-IDENTITY × 136 · canon-answer-graph → 149 段 · bible-ask-behavior → 828 · pin 重钉 page→7a68aee9 / comp→204de3d4。
 - §VERIFY-TIDE-ORACLE-E2E evidence：`docs/evidence/tide-oracle-e2e-2026-11-19.md`（cached 7161/150400 · 引文锚句逐字对齐 ✓ · 未触发 honest fallback）。
 - fe-gates **1370/1370** ✓ · verify:world-bible 833/833 ✓。
+
+## cont. 376 (2026-11-19) — v995 · §BIBLE-137 · Echo #137《名字那把空椅子》(作者手写 · verify 839/839)
+
+- 新篇：「祠殿空椅子 · 深黑盐 · 散会夜 · '无名'」—— digest 现 **233,997 chars**（13 章正典 · **137 回响** · 4 annex · 锚句 839 zh / 839 en ✓）。
+- 5 锚句双语 · gen-bible-snapshot 增 echo-137 · BibleAsk lede → 137 · /bible/ask meta → 一百三十七篇 · CACHE-IDENTITY × 137 · canon-answer-graph → 150 段 · bible-ask-behavior → 834 · pin 重钉 page→d5dc5cab / comp→45ceccbd。
+- fe-gates **1370/1370** ✓ · verify:world-bible 839/839 ✓。
