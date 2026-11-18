@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 129 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 130 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -2782,6 +2782,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 潮候院抄潮汐表不是替大会排期——抄的是那个"现在可以了"到底是哪一天。
 - [4] 守夜人等的从来不是大会——等的是潮；潮到了，大会自然就到了。
 - [5] 第五十一次大会从来不算缺席——它只是潮候院还没有遇上的一段潮。
+
+### Echo 130 · 潮候院后院那棵永远讲潮落的老榕 / The Old Banyan in the Institute's Back Yard That Is Always Talking About the Ebb
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院后院最深处有一棵老榕——干围三人合抱——根上垂十数条气生根。
+- [2] 每年潮落之前三天——值更人走过后院能听见榕树低声说话。
+- [3] 榕树从不讲潮落本身——它讲的是潮落的人——谁没等到退、谁还在等、谁在潮里、谁走得早了。
+- [4] 抄本师听不懂这榕的方言——值更人事后问奶奶——奶奶说它讲的是几字珊瑚。
+- [5] 第四十一次大会散会那天——值更人没听见它说话——第二天早上它说话了。
+- [6] 值更册最后一页写着"它说话的人不听——它就一直讲——直到最贵的潮来——潮里就没有人了"。
 
 ### Echo 14 · 潮汐表的封面 / The Cover of the Tide-Table
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
