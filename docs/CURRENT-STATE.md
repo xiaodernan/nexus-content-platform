@@ -5665,3 +5665,9 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 结论：Codex 式 ~90% 命中率成立的机理在本栈同样兑现——system 字节稳定 + transport 注入 `nexus-<sha256>` 路由键 + 问句 tail 独立于前缀。换问句仍 94.5% prefix 复用；证据 `docs/evidence/transport-cache-v947-2026-11-18.md`。`docs/CACHE-IDENTITY.md` §3 同步更新。
 
 页面同步：Pages master 维持 `54c191e`（v947 指针已推）。下一步：E83+ 继续；或 admin /stress 端到端压测（RAM 允许时）。
+
+## cont. 331 (2026-11-18) — v949 · §BIBLE-83 · Echo #83《潮候院祠殿后那一汪从不照见任何东西的水潭》（作者手写·双语·482/482 绿）
+
+- 第 83 篇回响「西潭」：祠殿后一汪 black water——风拐弯它纹也不起——四十年前有人丢青叶，第二天叶子和影子都不见了；米缸月潭最老；散会之后有人说只看见过一次自己的脸；抄本师不拦任何人——只说"别靠太近"。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-083-the-pool-that-shows-nothing`；verify world-bible **482/482** ✓ · verify:bible-snapshot ✓。
+- 同步：BibleAsk lede → 83（含 en）；/bible/ask meta → 八十三篇 / eighty-three；cache-identity → 83 篇锚句；bible-ask-behavior 锚句总数 476→482；canon-answer-graph 测试 88 段 / 83 echoes；pins 重钉（page→ed159a04… comp→1b19be0b…）；fe-gates **1285/1285 绿**。

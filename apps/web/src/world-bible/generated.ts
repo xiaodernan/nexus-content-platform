@@ -17449,6 +17449,204 @@ They do not teach the children; they simply let them copy — when the children 
 > What the children copy each day is not the fog — it is the Institute's own memory of itself.
 `,
   },
+  {
+    order: 83,
+    slug: 'echo-083-the-pool-that-shows-nothing',
+    titleZh: '潮候院祠殿后那一汪从不照见任何东西的水潭',
+    titleEn: 'The Pool Behind the Sanctuary That Reflects Nothing',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第七十八日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the seventy-eighth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 83): The Pool Behind the Sanctuary That Reflects Nothing
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿后院那一汪水——风吹过它，它连一圈纹都不肯露。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the pool behind the sanctuary of the Institute — even wind will not ripple it.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第七十八日。
+> Era: the Institute — after the 41st Convocation; the seventy-eighth day of the autumn-tide month.
+
+---
+
+## 一 · 后院
+
+祠殿后院有一汪水——不宽，人伸手能够到边缘那块白石。
+
+水面是黑的、平的——日头照下来，水面不亮——像一张收了底色的纸。
+
+**锚句**：祠殿后有一汪水——它从不映出任何东西。
+**Anchor sentence**: behind the sanctuary a small pool gives no reflection.
+
+---
+
+## 二 · 风也不敢
+
+抄本师说顺着院墙吹过来的风撞到潭上——它拐弯了。
+
+没有人见过潭上有纹——从值更人记事那天起——最老的抄本师只说："它不是风不吹它，是它不动。"
+
+**锚句**：抄本师说风吹过也不起一圈纹。
+**Anchor sentence**: the copyists said wind does not even ripple the pool.
+
+---
+
+## 三 · 青叶
+
+四十年前有人往潭里丢了一片青叶——那人后悔——第二天抄本师来看：潭里没有叶子，也没有影子。
+
+砚台里的墨都比它会动。
+
+**锚句**：四十年前有人往潭里丢过一片青叶——第二天潭里没有叶子，也没有影子。
+**Anchor sentence**: a man once cast a green leaf into the pool; by dawn the pool held no leaf and no shadow.
+
+---
+
+## 四 · 米缸月
+
+米缸月里没人去潭边——连后院洗手的抄本师也绕开走。
+
+抄本师说那一个月的潭水最老——老得不像是刚从地里渗出来的。
+
+**锚句**：米缸月里没人去潭边——抄本师说那时的潭水最老。
+**Anchor sentence**: no one goes near the pool during the rice-jar month — the water is oldest then.
+
+---
+
+## 五 · 他看见自己了
+
+散会之后某一晚，走着回家的那位抄本师说他在潭里看见了自己的脸——他没有靠近——只说了一句话就回去了。
+
+他后来再没说过潭的任何事。
+
+**锚句**：散会之后有人说潭里看见过自己的脸——只有一次，上一轮冬天。
+**Anchor sentence**: after the last dissolution someone claimed the pool showed his face once — once, last winter.
+
+---
+
+## 六 · 抄本师的规矩
+
+抄本师不拦人去潭边——去的人回来没人拦。
+
+抄本师只说一句——不管你去干什么："别靠太近。"
+
+**锚句**：抄本师不拦人去潭边——他只说：别靠太近。
+**Anchor sentence**: the copyists never stop anyone going; they only say, don't lean too close.
+
+---
+
+## 七 · 映射（回响八十三章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 西潭 · 不映 · 青叶 · 米缸月 · 白石 | 一、二、三、四、五、六、七 |
+| geography | 祠殿后院 · 白石沿 · 北墙 | 一、二、四 |
+| characters | 抄本师 · 那个看见的回去的人 | 一、二、三、四、五、六 |
+| story | 西潭 · 回响（其八十三） | 全篇 |
+| items | 白石 · 砚台 · 青叶 | 一、三、四 |
+| history | 第四十一次大会散会之后 · 秋潮月第七十八日 | 四、五、六 |
+
+> 水不看你——你也许不该看水。但潮候院不禁止任何人站在它旁边。
+> The water does not look at you — perhaps you should not look at the water. And yet no one is forbidden to stand beside it.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其八十三）「潮候院祠殿后那一汪从不照见任何东西的水潭」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the pool behind the sanctuary of the Institute — even wind will not ripple it.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿后院那一汪水——风吹过它，它连一圈纹都不肯露。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the seventy-eighth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第七十八日。
+
+---
+
+## I · The Pool
+
+Behind the sanctuary stands a pool of still water — narrow enough that a hand can reach the rim of white stone that borders it.
+
+The surface is black and perfectly level — when the sun falls on it, the pool does not gleam; it is a piece of paper with its color drained.
+
+**锚句**：祠殿后有一汪水——它从不映出任何东西。
+**Anchor sentence**: behind the sanctuary a small pool gives no reflection.
+
+---
+
+## II · Even the Wind
+
+The copyists say the wind coming along the wall always turns aside when it reaches the pool.
+
+No one has ever seen a ripple on its surface since record-keeping began. The oldest copyists will only say: "It does not refuse the wind — it does not move."
+
+**锚句**：抄本师说风吹过也不起一圈纹。
+**Anchor sentence**: the copyists said wind does not even ripple the pool.
+
+---
+
+## III · The Leaf
+
+Forty years ago a man cast a green leaf into the pool — and regretted it. The next dawn the copyists came to look: the pool held no leaf, and no shadow.
+
+The ink in an inkwell moves more readily.
+
+**锚句**：四十年前有人往潭里丢过一片青叶——第二天潭里没有叶子，也没有影子。
+**Anchor sentence**: a man once cast a green leaf into the pool; by dawn the pool held no leaf and no shadow.
+
+---
+
+## IV · The Rice-Jar Month
+
+During the rice-jar month no one goes near the pool — even the copyists who wash their hands in the back yard take the long way around.
+
+The copyists say the pool's water is oldest that month — older than anything that has drained up from the ground in living memory.
+
+**锚句**：米缸月里没人去潭边——抄本师说那时的潭水最老。
+**Anchor sentence**: no one goes near the pool during the rice-jar month — the water is oldest then.
+
+---
+
+## V · One Face
+
+One night after the Convocation dissolved, a copyist walking home claimed the pool showed him his own face. He did not step closer — he said one sentence, and turned back.
+
+Afterwards, he never again spoke of the pool.
+
+**锚句**：散会之后有人说潭里看见过自己的脸——只有一次，上一轮冬天。
+**Anchor sentence**: after the last dissolution someone claimed the pool showed his face once — once, last winter.
+
+---
+
+## VI · The Copyists' Rule
+
+The copyists never forbid anyone to stand at the pool — those who return are not stopped.
+
+They only say, no matter what you have come to do: "do not lean too close."
+
+**锚句**：抄本师不拦人去潭边——他只说：别靠太近。
+**Anchor sentence**: the copyists never stop anyone going; they only say, don't lean too close.
+
+---
+
+## VII · Mapping（Echo No. 83 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the pool · no reflection · the leaf · the rice-jar month · the white rim | 一、二、三、四、五、六、七 |
+| geography | behind the sanctuary · the white stone rim · the north wall | 一、二、四 |
+| characters | the copyists · the one who saw and went back | 一、二、三、四、五、六 |
+| story | the pool · Echo No. 83 | 全篇 |
+| items | the white rim · the inkwell · the green leaf | 一、三、四 |
+| history | After the 41st Convocation · the seventy-eighth day of the autumn-tide month | 四、五、六 |
+
+> 水不看你——你也许不该看水。但潮候院不禁止任何人站在它旁边。
+> The water does not look at you — perhaps you should not look at the water. And yet no one is forbidden to stand beside it.
+`,
+  },
 ] as const;
 
 export const BIBLE_APPENDICES: readonly BibleChapter[] = [
