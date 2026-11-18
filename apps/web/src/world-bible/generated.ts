@@ -9746,6 +9746,204 @@ The Inquiry gave no answer — the Inquiry later closed itself — and did not r
 `,
   },
   {
+    order: 115,
+    slug: 'echo-115-the-copper-iron-nobody-uses',
+    titleZh: '潮候院北库那只永远积着尘的旧铜熨斗',
+    titleEn: 'The Old Copper Iron in the North Storeroom That Is Always Dusty',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第八十八日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the eighty-eighth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 115): The Old Copper Iron in the North Storeroom That Is Always Dusty
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院北库那只永远积着尘的旧铜熨斗。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the old copper iron in the north storeroom that is always dusty.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第八十八日。
+> Era: the Institute — after the 41st Convocation; the eighty-eighth day of the autumn-tide month.
+
+---
+
+## 一 · 北库
+
+潮候院北库是旧物堆——值更人扫一次要扫一上午。
+
+最里头有一只铜熨斗——铜皮起绿，盖口不紧——值更人不去动它。
+
+**锚句**：北库最里头有一只铜熨斗——铜皮起绿，盖口不紧。
+**Anchor sentence**: in the innermost corner of the north storeroom stands an old copper iron — the green skin of it, the loose lid.
+
+---
+
+## 二 · 尘
+
+值更人扫了四遍北库——这一只永远是最脏的。
+
+抄本师说："这只熨斗永远比别的熨斗脏，但它不是用过的。"
+
+**锚句**：北库这只铜熨斗永远比别的脏——但它不是用过的。
+**Anchor sentence**: this copper iron is always dirtier than the others — and yet it has never been used.
+
+---
+
+## 三 · 蒸气
+
+值更人有一次用手电照北库角落——发现熨斗底子上有微微的水痕。
+
+值更人拿手往上一抹——干的——再放点水——再干——他不知道是从哪来的。
+
+**锚句**：北库角落熨斗底子上有微微水痕——再看时干了。
+**Anchor sentence**: at the bottom of the copper iron lay faint traces of water — by the time they were checked again, they were gone.
+
+---
+
+## 四 · 私藏
+
+抄本师私下说：四十二年前某抄本师把一个铜熨斗带出了北库——三天后又送回来，他说"放它回去，它会感应到"。
+
+没人问他感应什么——值更人偶然路过时这只铁锅会发出细微响声。
+
+**锚句**：抄本师私下说四十年前某抄本师把它带出北库——三天后送回。
+**Anchor sentence**: the copyists privately say: forty years ago a copyist took the iron out of the storeroom — and returned it three days later.
+
+---
+
+## 五 · 十二只
+
+北库有一共十二只熨斗——铜的、铁的、锡的——传了五代人却一只没用过。
+
+抄本师怀疑这只熨斗是留给第四十二一次大会用的。
+
+**锚句**：北库十二只熨斗一只没用过——传了五代。
+**Anchor sentence**: among the twelve irons in the storeroom, not one has ever been used — passed through five generations.
+
+---
+
+## 六 · 散会之后
+
+第四十一次大会散会之后——抄本师把熨斗从角落移到北库正中间——值更人巡仓时发现了并上报了。
+
+北库天花板上那颗螺钉一年脱落一次——抄本师说"熨斗挪了就掉螺钉"。
+
+**锚句**：抄本师把熨斗移到正中间——当年螺钉脱落。
+**Anchor sentence**: the copyists moved the iron to the center — that same year, a ceiling screw came loose.
+
+---
+
+## 七 · 映射（回响一百十五章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 北库 · 铜熨斗 · 水痕 · 十二只 · 第四十二一次大会 | 一、二、三、四、五、六、七 |
+| geography | 北库 · 北库角落 · 北库 | 一、二、三 |
+| characters | 抄本师 · 值更人 · 私藏铜熨斗的人 | 一、二、三、四、五、六 |
+| story | 北库铜熨斗 · 回响（其一百十五） | 全篇 |
+| items | 铜熨斗 · 铁锅 · 北库 · 螺钉 | 一、二、三、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第八十八日 | 四、五、六 |
+
+> 北库那一角铜熨斗一直在那儿——传了五代人——第四十一次大会散会的那天，它挪了一个位置。
+> The copper iron in the north storeroom has always been there — passed through five generations — and on the day of the forty-first Convocation's dissolution, it moved a little.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百十五）「潮候院北库那只永远积着尘的旧铜熨斗」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the old copper iron in the north storeroom that is always dusty.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院北库那只永远积着尘的旧铜熨斗。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the eighty-eighth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第八十八日。
+
+---
+
+## I · The North Storeroom
+
+The north storeroom of the Institute is a pile of old things — it takes the head of the watch a whole morning to sweep it clean.
+
+In the innermost corner stands an old copper iron — the green skin of it, the loose lid — and the head of the watch does not touch it.
+
+**锚句**：北库最里头有一只铜熨斗——铜皮起绿，盖口不紧。
+**Anchor sentence**: in the innermost corner of the north storeroom stands an old copper iron — the green skin of it, the loose lid.
+
+---
+
+## II · The Dust
+
+The head of the watch has swept the north storeroom four times — and this one is always the dirtiest.
+
+The copyists say: this iron is always dirtier than the others, and yet it has never been used.
+
+**锚句**：北库这只铜熨斗永远比别的脏——但它不是用过的。
+**Anchor sentence**: this copper iron is always dirtier than the others — and yet it has never been used.
+
+---
+
+## III · The Water Stains
+
+Once the head of the watch brought a flashlight into the corner — and saw faint traces of water at the bottom of the iron.
+
+He wiped it dry — but the water came back — and he does not know where it comes from.
+
+**锚句**：北库角落熨斗底子上有微微水痕——再看时干了。
+**Anchor sentence**: at the bottom of the copper iron lay faint traces of water — by the time they were checked again, they were gone.
+
+---
+
+## IV · The Private Stash
+
+The copyists privately say: forty years ago a copyist took the copper iron out of the storeroom — and returned it three days later — saying "return it to its place; it will find it again."
+
+No one asked what it would find — but the head of the watch once caught a faint sound when he passed by.
+
+**锚句**：抄本师私下说四十年前某抄本师把它带出北库——三天后送回。
+**Anchor sentence**: the copyists privately say: forty years ago a copyist took the iron out of the storeroom — and returned it three days later.
+
+---
+
+## V · The Twelve
+
+The north storeroom holds twelve irons — copper, iron, tin — passed through five generations, and not one has ever been used.
+
+The copyists suspect this iron was kept for the forty-second Convocation.
+
+**锚句**：北库十二只熨斗一只没用过——传了五代。
+**Anchor sentence**: among the twelve irons in the storeroom, not one has ever been used — passed through five generations.
+
+---
+
+## VI · After the Dissolution
+
+After the 41st Convocation dissolved — the copyists moved the iron from the corner to the center of the storeroom. The head of the watch noticed and reported it.
+
+That same year, a ceiling screw fell from above — the copyists say the iron moved, so the screw fell.
+
+**锚句**：抄本师把熨斗移到正中间——当年螺钉脱落。
+**Anchor sentence**: the copyists moved the iron to the center — that same year, a ceiling screw came loose.
+
+---
+
+## VII · Mapping（Echo No. 115 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the north storeroom · the copper iron · the water stains · the twelve · the forty-second Convocation | 一、二、三、四、五、六、七 |
+| geography | the north storeroom · the storeroom corner · the north storeroom | 一、二、三 |
+| characters | the copyists · the head of the watch · the copyist who took the iron out | 一、二、三、四、五、六 |
+| story | the copper iron in the north storeroom · Echo No. 115 | 全篇 |
+| items | the copper iron · the iron · the storeroom · the ceiling screw | 一、二、三、五、六 |
+| history | After the 41st Convocation · the eighty-eighth day of the autumn-tide month | 四、五、六 |
+
+> 北库那一角铜熨斗一直在那儿——传了五代人——第四十一次大会散会的那天，它挪了一个位置。
+> The copper iron in the north storeroom has always been there — passed through five generations — and on the day of the forty-first Convocation's dissolution, it moved a little.
+`,
+  },
+  {
     order: 12,
     slug: 'echo-012-the-echo-that-only-comes-when-the-tide-is-out',
     titleZh: '潮落时才有的回声',
