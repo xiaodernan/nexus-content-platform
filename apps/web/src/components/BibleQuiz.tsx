@@ -412,6 +412,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《退潮之后》里，守灯人只做的是什么？', choices: ['每天早上把盐抹掉', '把椅子摆回去', '给每个人发一杯水', '找东西吃'], answer: 0, ref: '回响（其二十七） · 五' },
     en: { prompt: 'In “After the Tide”, what did the lampkeeper do?', choices: ['each morning, he wiped the salt', 'he moved the chairs back', 'he handed out water', 'he went for food'], answer: 0, ref: 'Echo No. 27 · V' },
   },
+  {
+    zh: { prompt: '《潮信》里，守灯人在门槛上找到什么？', choices: ['一封盖着旧潮汐教团章的信', '一张欠据', '一张门票', '一杯水'], answer: 0, ref: '回响（其二十八） · 一' },
+    en: { prompt: 'In “The Tide’s Letter”, what did the lampkeeper find on the threshold?', choices: ['a letter sealed with the old Conclave’s seal', 'a debt note', 'a ticket', 'a glass of water'], answer: 0, ref: 'Echo No. 28 · I' },
+  },
+  {
+    zh: { prompt: '《潮信》里，潮汐时刻表被钉在哪儿？', choices: ['门锥上', '案台抽屉里', '册页背面', '灯罩内侧'], answer: 0, ref: '回响（其二十八） · 三' },
+    en: { prompt: 'In “The Tide’s Letter”, where was the timetable pinned?', choices: ['on the door pillar', 'in the desk drawer', 'behind the book’s cover', 'inside the lamp shade'], answer: 0, ref: 'Echo No. 28 · III' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

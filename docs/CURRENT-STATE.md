@@ -6216,3 +6216,10 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 > - 修复：`observationMetrics` wrapper 加 `unstable_cache`（3600s revalidate），stats 每小时取一次；DEMO/honest 态不缓存（逐窗自愈）
 > - 重构后实测 2→0.03s；后续重启时 DEMO 优雅降级、页面不拖死
 > - fe-gates 147/147 · 1353/1353 · 2967 census 全绿
+
+> **2026-11-19 cont. 244 · 回响（其二十八）《潮信》——潮的信、潮汐教团的新章、时刻表背后的水退了又抹的盐**
+> - 纪元：潮落后之月 · 汐来之时（en: after the ebb · the arrival of the tide-letter）
+> - 5 组锚句 zh/en 全局唯一 · **世界大典 402 zh / 402 en 全绿** · canon digest 重封存（62,342 chars · sha256=d755d668…）
+> - 入口：/bible 页脚 二十八/XXVIII · guideCopy 同步（**同时修复英文页一直写 twenty-five echoes 的陈旧 bug**）· quiz 84→**86**（zh/en 镜像 +2 题 E28）
+> - SHA 重钉 2 处（bible index e082004b · BibleQuiz 44e79678）
+> - fe-gates 147/147 · 1353/1353 · build 绿 · SSR 实锤 /bible /echo-028-the-tide-letter /tide-oracle /tide-wire 全 200

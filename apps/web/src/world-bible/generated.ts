@@ -10974,4 +10974,181 @@ The lampkeeper did one thing: each morning, he wiped the salt.
 > the salt stayed on the threshold.
 `,
   },
+  {
+    order: 28,
+    slug: 'echo-028-the-tide-letter',
+    titleZh: '潮信',
+    titleEn: 'The Tide\'s Letter',
+    eraLineZh: '纪元：潮落后之月 · 汐来之时',
+    eraLineEn: 'Era: after the ebb · the arrival of the tide-letter.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 28): The Tide's Letter
+
+> 回响不续写正典——它只记一份挑剩下的纪录：
+> 潮退之后，门槛上的盐还是被抹掉了，可是这一次抹的不是盐——是一封信。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> After the tide was gone, the salt was wiped each morning — but this time it was not salt. It was a letter.
+> Its anchors answer to the same discipline.
+
+> 纪元：潮落后之月 · 汐来之时
+> Era: after the ebb · the arrival of the tide-letter.
+
+---
+
+## 一 · 那封折起来的信
+
+第四十四次会之前的那几天，守灯人在门槛上发现了一封信。
+
+信是折起来的，边缘被盐泡过，纸还是湿的。封面上没有字。没有收件人，没有寄件人，也没有邮戳。只是盖了一个章：潮汐教团没有章了一百年了。这是一只新倒的章。
+
+信是给守灯人的——每一个发现潮的人都知道，信还是那封旧信。
+
+潮汐教团没有章了一百年了，这只是一只新倒的章。
+**锚句**：潮汐教团没有章了一百年了，这只是一只新倒的章。
+**Anchor sentence**: The Tide Conclave had not borne a seal in a hundred years; this one was newly cast.
+
+## 二 · 折起来的信
+
+信里没有字。
+
+守灯人把它摊开，一整张纸上都是一条一条的纹路——像是海水在退潮后留下的印记，看上去像一种书写的痕迹，可又不是字。守灯人盯着看了很久，没有看懂。
+
+这一封信里没有字。
+守灯人看了一整天，只看到了潮的痕迹。
+**锚句**：这一封信里没有字。
+**Anchor sentence**: This letter held no words.
+
+## 三 · 潮汐时刻表
+
+后来潮汐教团决定把它贴在门锥上。
+
+他们没有解释什么。只是把那一张信纸夹在一块潮汐时刻表面板的后面，一壁面板上写"潮汐时刻表"四个字，每天更新。潮退了几时几时，潮起了几时几时。守灯人负责每天去看潮的刻度。
+
+潮时刻表并没有什么人遵守。只是在门锥上被人这样挂着。
+
+潮汐时刻表被人这样挂在门锥上。
+**锚句**：潮汐时刻表被人这样挂在门锥上。
+**Anchor sentence**: The timetable hung on the door pillar, pinned there without ceremony.
+
+## 四 · 信是谁的
+
+信是谁的？没有人问。
+
+问的是别人。每次谁问起，守灯人都说："问我也问不出。"
+
+潮汐教团一百年前没有的章，现在用上了。旧规矩可以这样过期：过期以后，还能用——用起来不一致。没有人规定。
+
+潮汐教团一百年前没有的章，现在用上了。
+**锚句**：潮汐教团一百年前没有的章，现在用上了。
+**Anchor sentence**: The seal the Conclave had lacked a hundred years ago was in use again.
+
+## 五 · 第四十四次会之后
+
+第四十四次会开的时候，盐已经抹完了。
+
+守灯人把门重新打开。信还是那封旧信——现在人人都认识它。潮汐退了，门槛上又是一道盐线。每个人都踩过去，没有人弯腰。信还在时刻表面板上。
+
+盐又在门槛上——每个人都踩过去，没有人弯腰。
+**锚句**：盐又在门槛上——每个人都踩过去，没有人弯腰。
+**Anchor sentence**: The salt was back on the threshold; each person stepped over it, and no one bent down.
+
+---
+
+## 模型映射（回响二十八则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 潮落后之月 · 汐来之时 · 第四十四次会之前 | 第十一章 · 第十三章 |
+| geography | 誊册房 · 门锥 · 潮汐时刻表面板 · 门槛 | 本则 · 第二十七则 |
+| factions | 守灯人 · 誊账人 · 回来的馆里人 · 潮汐教团（重铸的章） | 第一章 · 本则 |
+| characters | 守灯人 · 无名写信人 | 本则 · 第二十六则 · 第二十七则 |
+| items | 折起来的信 · 潮汐时刻表面板 · 门锥 · 新章 | 本则 |
+| story | 潮信来了 · 回响（其二十八） | 全篇 |
+| history | 潮落后之月 · 潮汐时刻表 · 第四十四次会之前 | 本则 |
+
+> 潮章没有了一百年，
+> 刚刚又亮起来。
+> The seal was missing for a hundred years;
+> it had just been re-lit.
+`,
+    markdownEn: `
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> After the tide was gone, the salt was wiped each morning — but this time it was not salt. It was a letter.
+> Its anchors answer to the same discipline.
+
+> Era: after the ebb · the arrival of the tide-letter.
+
+---
+
+## 1 · The folded letter
+
+In the days before the forty-fourth Convocation, the lampkeeper found a letter on the threshold.
+
+The letter was folded, its edges swollen with salt. The paper was still damp. No addressee, no sender, no postmark. Only a seal had been pressed onto it — a seal the Tide Conclave had not borne in a hundred years. It was a newly-cast seal.
+
+The letter was for the lampkeeper — every person who sees the tide knows it as the same old letter.
+
+The Tide Conclave had not borne a seal in a hundred years; this one was newly cast.
+**Anchor sentence**: The Tide Conclave had not borne a seal in a hundred years; this one was newly cast.
+
+## 2 · The folded letter (continued)
+
+The letter held no words.
+
+The lampkeeper spread it open — the whole sheet was covered in lines and ridges, impressions the tide had left as it withdrew. It looked like a kind of handwriting, but it was not. He studied it for a long time without understanding a single part.
+
+This letter held no words.
+The lampkeeper studied it for a whole day and saw only the tide's own marks.
+**Anchor sentence**: This letter held no words.
+
+## 3 · The tide timetable
+
+Later, the Tide Conclave pinned it to the door pillar.
+
+No one explained anything. They pinned the sheet behind a board labeled "Tide Times," refreshed daily. When the tide went out, the hour was written; when the tide came in, the hour was written. The lampkeeper's job was to check the tide scale every day.
+
+The tide timetable is not followed by anyone. It simply hangs on the door pillar like that.
+
+The timetable hung on the door pillar, pinned there without ceremony.
+**Anchor sentence**: The timetable hung on the door pillar, pinned there without ceremony.
+
+## 4 · Whose letter is it?
+
+Whose letter is this? No one asked.
+
+It was others who asked. Each time someone asked, the lampkeeper answered: "Don't ask me — I don't know either."
+
+The seal the Conclave lacked a hundred years ago — in use again now. Old rules can simply expire: after they expire, they may be used again — inconsistent with anything. No one decrees it.
+
+The seal the Conclave had lacked a hundred years ago was in use again.
+**Anchor sentence**: The seal the Conclave had lacked a hundred years ago was in use again.
+
+## 5 · After the forty-fourth
+
+By the day of the forty-fourth Convocation, the salt had already been wiped away.
+
+The lampkeeper opened the hall door. The letter was still that same letter — everyone knew it now. The tide went out again, and the salt returned to the threshold. People stepped over it without bending down.
+
+The salt was back on the threshold; each person stepped over it, and no one bent down.
+**Anchor sentence**: The salt was back on the threshold; each person stepped over it, and no one bent down.
+
+---
+
+## Echo No. 28 — dimension mapping
+
+| Dim | Anchor | Linked |
+|---|---|---|
+| lore | after the ebb · the arrival of the tide-letter · before the forty-fourth Convocation | Ch. 11 · Ch. 13 |
+| geography | the copying hall · the door pillar · the tide timetable board · the threshold | this echo · Echo 27 |
+| factions | the lampkeeper · the copyist · the returning hall · Tide Conclave (re-cast seal) | Ch. 1 · this echo |
+| characters | the lampkeeper · the unnamed letter-writer | this echo · Echo 26 · Echo 27 |
+| items | the folded letter · the timetable board · the door pillar · the newly-cast seal | this echo |
+| story | the tide's letter arrives · Echo No. 28 | whole piece |
+| history | after the ebb · the timetable · before the forty-fourth Convocation | this echo |
+
+> The seal was missing for a hundred years;
+> it had just been re-lit.
+`,
+  },
 ] as const;
