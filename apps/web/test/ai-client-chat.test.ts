@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AiChatRequest, AiChatResponse } from '@nexus/schemas';
 import { chatWithCharacter } from '@/server/ai/client';
 
@@ -127,6 +127,37 @@ describe('chatWithCharacter', () => {
       if (result.ok) return;
       expect(result.status).toBe(503);
       expect(result.error.code).toBe('provider-unavailable');
+    });
+  });
+
+  it('首次 5xx、重试 200 —— 返回 ok 且共发两次请求（lane cling）', async () => {
+    const seq: number[] = [503, 200];
+    const impl = vi.fn().mockImplementation(async () => {
+      const code = seq.shift() ?? 200;
+      return new Response(JSON.stringify(response()), {
+        status: code,
+        headers: { 'content-type': 'application/json' },
+      }) as unknown as Response;
+    }) as unknown as typeof fetch;
+    await withUrl('http://ai-service:3200', async () => {
+      const result = await chatWithCharacter(request, impl);
+      expect(result.ok).toBe(true);
+      expect(impl).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('首次 5xx、重试仍 5xx —— error 报 provider-unavailable，calls=2', async () => {
+    const impl = vi.fn().mockImplementation(async () =>
+      new Response(JSON.stringify({ code: 'provider-unavailable', message: 'boom', retryable: true }), {
+        status: 503,
+        headers: { 'content-type': 'application/json' },
+      })) as unknown as typeof fetch;
+    await withUrl('http://ai-service:3200', async () => {
+      const result = await chatWithCharacter(request, impl);
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.status).toBe(503);
+      expect(impl).toHaveBeenCalledTimes(2);
     });
   });
 

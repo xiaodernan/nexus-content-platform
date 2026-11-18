@@ -7409,3 +7409,18 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 映射/章节标签/ quiz task 同步加；新增 git track 之一：`E126-潮候院后院那棵永不长叶的海棠`。
 - 同步：BibleAsk lede → 126 · /bible/ask meta → 一百二十六篇 · guideCopy 双语数字更新 · CACHE-IDENTITY × 126 · canon-answer-graph → 13 章 + 126 回响 = 139 段 · bible-ask-behavior.test → 769 · pin 重钉 page→c95a1c06 / comp→40d89c1f。
 - fe-gates **1370/1370** ✓ 持有。
+
+## cont. 357 (2026-11-18) — v977 · §CHAT-GRAPH-RETRY · 服务器侧 chatWithCharacter 5xx 自动重试一次（800ms）· tide-wire 页 v2 key 强制换新
+
+**问题**：/tide-wire 等"服务端"组件在 provider 上游 5xx 时（上游网关间歇 502），整页诚实降级为"潮在说空话"——首发 5xx 时该页今日 tide sentence 永不显示（并沉入 Redis 的 `unstable_cache(…revalidate:3600)`，直到次日或 cache key 旋转才回）。
+
+**修法**：
+1. `apps/web/src/server/ai/client.ts` 的 `chatWithCharacter()` 内部加入 5xx 单发重试（800ms，与 §LLM-RETRY-ONCE 浏览器端同纪律 · 4xx/429 绝不重试）；返回前一份；所有调用者（tide-wire · ship/digest · marketplace/picks · insight/tide-cast · canon-graph）同享收益。
+2. unstable_cache key `tide-wire-sentence-v1` → `v2`，自愈此前落 Redis 的空/honest 行。
+3. `ai-client-chat.test.ts` 新增"500→200 → ok（2 次 fetch）"与"500→500 → provider-unavailable（2 次 fetch）"两个用例；existing 7 个用例全绿。
+
+**正确项**：5xx 重试≠否则毫无理由增加流量；本次实机测得 chat-graph provider 在 ~半时段返回 502，本片对每个 5xx 打一次按量——**预期绝大多数潮汐句首问直接 200**，偶发 Miss 由 handle-by-hand 的 800ms 冷却期解决。
+
+**细节实据**：ai-service 日志截至本片落盘共 5 发 `POST /v1/ai/chat-graph 200 OK`；本机终端探针实测返回 textLen=60（"近7日打开52次，近30日97次…"）。tide-wire 完成传显 true。
+**风险**：5xx 单发加 ~800ms 延迟；`tide-wire-sentence-v2` 让次日 topic 自然重载无副作用。
+**token 记账**：fe-gates 1370/1370 · ai-client-chat 9/9；Pages 指针将随 v977 推进。
