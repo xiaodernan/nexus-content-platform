@@ -6285,3 +6285,10 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 > - 实测 Tide-Oracle 3 轮：cold 6.10s/5,709 cached → warm **0.06s / 0.05s — 100% hit 完全稳**
 > - fe-gates 147/147 · 1353/1353 · census 2967 · SSR 实锤 200
 > - evidence: `docs/evidence/big-context-provenance-2026-11-19.md`
+
+> **2026-11-19 cont. 253 · 32 并发 Tide-Oracle 风暴落地 — 没有 503/429/drop · 命中率稳 ≥ 93.9%**
+> - 32 个并发 `/api/tide/oracle` 同时打同一 question · 前提 `NEXUS_LLM_DISTRIBUTED_SINGLE_FLIGHT=1`（cont.237）
+> - 全部 **200** · wall 10.77s · 0 fail
+> - 16 call: `cachedTokens = 112,620/119,884 ≈ 93.9%` · 16 call: 100%
+> - tokensIn 恒星味 119,884 → Codex-type 120k context OK · 用户反复抱怨「远少于 5–9 万」彻底关闭
+> - evidence: `docs/evidence/storm-32-2026-11-19.md`
