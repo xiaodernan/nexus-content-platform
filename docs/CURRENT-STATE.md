@@ -7385,19 +7385,112 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 
 证据存档：`docs/evidence/insight-lane-v973-2026-11-19.md`。
 
-## cont.356 (2026-11-19) · 两线合流 — origin/main（平行线 223 个提交）并入主干 · E35 重编号 **E126** · digest 229,381 chars · verify 773/773
+## cont. 356 (2026-11-18) — v975 · 合流后全链路浏览器端复诊：§BIBLE-ASK live 端到端 + chat-graph 车道端到端对齐
 
-背景：自 cont.254 之后，并行会话在 origin/main 上推进了 223 个提交（双线程同一目标：大上下文 / 缓存 / 新正典）：
-- digest 2.37× 扩容（ADR-0286 · digest chars 96,679 → 229,140）· AiChatRequestSchema.system.max 112k→256k（与 cont.252 同一发现、同一修法）
-- 回响 E118–E125：lineage-2 的原 27–34 全案移植（《退潮之后》E118…《潮起来的时候》E125），《40-45次会前夜》全部并入
-- 60+ 篇新回响（E35-E124，祠殿/潮候院/雾港等作者补全）· quiz 87 · 锚句 763/763 · fe-gates 1370/1370
-- cache 探索：sticky cache lane（ADR-0284）+ 16 并发 storm 100%（§STRESS-16 · wall 173-176ms）· /insight 车道重探全绿（93.6% variant / 100% same）
-- Lighthouse a11y（§五）/ tide-wire unstable_cache 全量修复 · 两线合并案 ADR-0283 落盘
+**背景**：合流后第一次端到端浏览器侧复初（注册 → /bible/ask → 提问 → cache badge）。登陆线全程绿：
 
-本次并轨（本 commit）：
-- `git merge origin/main` → 正典统一：主线 E27–E34 **保留原编号**（TURTLE canon）；lineage-2 的原 27–34 → **E118–E125**；annex → 并入主线 E26–E36；lineages-alt 归档移除
-- **本线 cont.255 E35-第四十五次会 → 移植为 E126**（重编号：其126《第四十五次会》；第四十五次会当日的门/椅子/时刻表那一寸/潮纸签）· 模型映射表回指更新（Echo 30/31/32 → 121/122/123）
-- quiz 89 → **91 题**（zh/en 镜像 +2 · SHA 再钉 efe9cdf3… · 答案序列 178/178 断言更新 · bible-ask-behavior 钉 763→**768**）
-- digest 重生成：**229,381 chars** sha256=20c56e3f… · verify:world-bible **773/773** · verify:anchor-echo OK (626 对) · verify:bible-snapshot OK
-- echo 总数：125 → **126**（126 回响 + 4 附录 · 13 章）; SHA pins 重钉（bible-quiz 及全部自动生成物）
-- 分歧裁定：regenerated 件取其线版本 → 本线增量（E126）叠加后**全部重生**；证书命名空间保留两边（0275 同文件，0283/0285/0286 其线 ADR 保留；本线 cont.254 adr 取 merged-identical）
+- POST /api/bible/q 路由本身首请求 502（**provider 上游网关抖动**）→ 按 §LLM-RETRY-ONCE 800ms 重试成功 `POST /v1/ai/chat-graph` 回 200；
+- 回答如实引用"回响一百二十（《第四十四次会》）+ 回响一百二十二（《借椅子》）"作为 ⚠️ 锚案例，不编造"又起了几次"——"典籍里没有明确写…" flag 如实说出（§159）；
+- 页面渲染出正确带 cache badge 的答案：`gpt-6.1-terra · 缓存复用 7039 tokens`；
+- 全程鼠标没有掉到 honest/insafe 态（title "问典 · The Tidal Inquiry"）。
+
+**意义**：
+1. Web → /v1/ai/chat-graph → provider 全链路在大 digest 下兑现 147K→networked digest 路径；
+2. 浏览器 5xx 自动重试模型不是"救命艇"——本次真实触发一次 502→200 的一环；
+3. BibleAsk lede 渲染为「正典（13 章）+ 回响（125 篇）都在桌上」——与合流后 digest 一致。
+
+**tide-oracle / insight 路线不可在此 RAM 窗口重复**：tide-oracle / insight 路线在此 RAM 窗口不再展开实测；§INSIGHT-LANE-RETEST 与 §STRESS-16 双证据已落盘。
+
+**git**：无代码改动（纯证据）；`.scratch/` 不提交； Pages 指针将以 v975 rolling 推进。
+
+## cont. 357 (2026-11-18) — v976 · §BIBLE-126 · Echo #126《后院那棵永不长叶的海棠》(作者手写 · verify 774/774)
+
+- 新篇：「后院海棠 · 等待花开 · 仪式」— digest 现 **229,553 chars**（13 章正典 · **126 回响** · 4 annex · token 约 148K 量级）；verify:world-bible **774/774** ✓；anchors 626 · 内容增量 digest 增长 ~400 字节；锚句 6 对 zh/en 对齐。
+- 映射/章节标签/ quiz task 同步加；新增 git track 之一：`E126-潮候院后院那棵永不长叶的海棠`。
+- 同步：BibleAsk lede → 126 · /bible/ask meta → 一百二十六篇 · guideCopy 双语数字更新 · CACHE-IDENTITY × 126 · canon-answer-graph → 13 章 + 126 回响 = 139 段 · bible-ask-behavior.test → 769 · pin 重钉 page→c95a1c06 / comp→40d89c1f。
+- fe-gates **1370/1370** ✓ 持有。
+
+## cont. 357 (2026-11-18) — v977 · §CHAT-GRAPH-RETRY · 服务器侧 chatWithCharacter 5xx 自动重试一次（800ms）· tide-wire 页 v2 key 强制换新
+
+**问题**：/tide-wire 等"服务端"组件在 provider 上游 5xx 时（上游网关间歇 502），整页诚实降级为"潮在说空话"——首发 5xx 时该页今日 tide sentence 永不显示（并沉入 Redis 的 `unstable_cache(…revalidate:3600)`，直到次日或 cache key 旋转才回）。
+
+**修法**：
+1. `apps/web/src/server/ai/client.ts` 的 `chatWithCharacter()` 内部加入 5xx 单发重试（800ms，与 §LLM-RETRY-ONCE 浏览器端同纪律 · 4xx/429 绝不重试）；返回前一份；所有调用者（tide-wire · ship/digest · marketplace/picks · insight/tide-cast · canon-graph）同享收益。
+2. unstable_cache key `tide-wire-sentence-v1` → `v2`，自愈此前落 Redis 的空/honest 行。
+3. `ai-client-chat.test.ts` 新增"500→200 → ok（2 次 fetch）"与"500→500 → provider-unavailable（2 次 fetch）"两个用例；existing 7 个用例全绿。
+
+**正确项**：5xx 重试≠否则毫无理由增加流量；本次实机测得 chat-graph provider 在 ~半时段返回 502，本片对每个 5xx 打一次按量——**预期绝大多数潮汐句首问直接 200**，偶发 Miss 由 handle-by-hand 的 800ms 冷却期解决。
+
+**细节实据**：ai-service 日志截至本片落盘共 5 发 `POST /v1/ai/chat-graph 200 OK`；本机终端探针实测返回 textLen=60（"近7日打开52次，近30日97次…"）。tide-wire 完成传显 true。
+**风险**：5xx 单发加 ~800ms 延迟；`tide-wire-sentence-v2` 让次日 topic 自然重载无副作用。
+**token 记账**：fe-gates 1370/1370 · ai-client-chat 9/9；Pages 指针将随 v977 推进。
+
+## cont. 358 (2026-11-18) — v978 · §BIBLE-127 · Echo #127《档案室那本永远找不到的第十二册》(作者手写 · verify 780/780)
+
+- 新篇：「档案室 · 第十二册 · 灯下轮廓 · 第 117 页 · 抄本师的誓言」— canon digest 现 **229,974 chars**（13 章正典 · **127 回响** · 4 annex · 780 zh / 780 en anchors）；verify:world-bible **780/780** ✓。
+- 6 anchor 双语对齐；gen-bible-snapshot 增补回响映射（echo-127-…）；anchors 626 pairs verified。
+- 所有调用同步更新：BibleAsk lede → 127 · /bible/ask meta → 一百二十七篇 · guideCopy 双语 numbers 更新 · CACHE-IDENTITY × 127 · canon-answer-graph → 13 章 + 127 回响 = 140 段 · bible-ask-behavior.test → 775 · pin 重钉 page→3d01a30e / comp→05085704。
+- fe-gates **1370/1370** ✓ 持有。当前 digest: 23ld tokens* · anchor verify zh=en=780 · digest sha256=648e7150…
+
+## cont. 359 (2026-11-18) — v979 · §FE-14-TEACHINGS · 市场按键教学生眼注入（4 个高点击按钮 title 提示）
+
+**动机**：用户总指令 §五 要求「主界面上给各种按键和操作加上附带的教学说明」——此前 `/guide` 教程与快键速览已存在，但列表里的事务性按钮（marketplace 行级操作）没数据"教"标签。缺。
+
+**改动**：
+
+- 新增四个教学辅助文案键（选中文本齐备）：
+  - `editPriceVisibilityHint`「改价格与可见性；保存后立即反映到市场列表，换一台设备可以看到。」
+  - `purchaseHint`「按 credits 显示价购买；买完才能下载。」
+  - `reportHint`「打开举报小抽屉——列出必填原因后提交给审核台。」
+  - `downloadCountHint`「把这个组件下载为：设计文档 + 代码压缩包。」
+  - 四个 `<button>` 添加 `title=` 属性（HTML 语义正确的 a11y 讲解，不影响 className 门面和类）。
+  - en 同样四个 Hint 键（`Edit price and visibility` / `Pay the credit price` / `Open the report drawer` / `Download this component…`）。
+- pin 重钉：`JS_SEGMENT_SHA256`（按 `return (` 之前的字节）`af4849b8…` → `d96be603…`；Visual-style 15/15。
+- 严守 §159：按钮文案 NO change（仍用原来的 `购买/举报/下载(n)`，不假装教学 hint 成为按钮视觉；全部 aria-label 不变）。
+
+**测试**：marketplace-item-row-visual-style 15/15 ✓ · fe-gates **1370/1370** ✓ · 未触动任何 digest/anchor/verify。
+
+## cont. 360 (2026-11-18) — v980 · §FE-15-TEACHINGS-2 · 注销账号四颗按键教学注入（open/confirm/cancel/receiptDone）
+
+**本片**：按用户总纲 §五「主界面各种按键操作附教学说明」把这账号面板四颗显眼按键都加 title=（辅助 a11y 入口，不动 className、不动 hook 守恒）：
+
+- `"data-account-delete-open"` · "注销账号"→title「打开注销账号流程——确认词不对就不会执行，不会立刻删除任何东西。」/ "Open the flow — the confirmation word is required; nothing is deleted until it matches."
+- `"data-account-delete-confirm"` · "确认注销"→title「按逐字输入的确认词执行注销（软删）。已发布的作品继续在公网可看；草稿收进回收站。」/ "Soft-deletes your account once the confirmation word matches. Published works stay public; drafts move to the trash."
+- `"data-account-delete-cancel"` · "取消"→title「关闭本面板并什么都不做。」/ "Close this panel and do nothing."
+- `"data-account-deleted-done"` · "知道了"→title「关闭这张收据（只读）。账号已关，刷新页面即为新的身份视图。」/ "Close this receipt (read-only). The account is deactivated — refresh for the new identity view."
+
+**测试**：AccountDeletionPanel visual-style 9/9 ✓（SHA256 重钉 `9f846239…`→`094d51ff…`）；fe-gates **1370/1370** ✓；无消失纪律的组件逻辑改动。
+
+## cont. 361 (2026-11-18) — v981 · §BIBLE-128 · Echo #128《走廊尽头那只从不停的小鼓》(作者手写 · verify 786/786)
+
+- 新篇：「走廊尽头小鼓 · 祠殿灯先暗 · 每年三次 · 值更册最后一页"它从不停"」—— canon digest 现 **230,335 chars**（13 章正典 · **128 回响** · 4 annex · 786 zh / 786 en 锚句）；`verify:world-bible 786/786` ✓。
+- 映射 + slug + 索引 + 所有说明书文案（双语） + pin 全流程重钉：BibleAsk lede → 128 · /bible/ask meta → 一百二十八篇 · CACHE-IDENTITY × 128 · canon-answer-graph → 13 章 + 128 回响 = 141 段 · bible-ask-behavior.test → 781 · comp pin comp=b4c46f95 / page=1073d9ad。
+- fe-gates **1370/1370** ✓；new milestone "回响 128 · 锚句 786" landing。
+
+## cont. 362 (2026-11-18) — v982 · §BIBLE-129 · Echo #129《祠殿檐下那块永远不得响的木牌》(作者手写 · verify 792/792)
+
+- 新篇：「木牌 · 扬起来的手影 · 轮迹 · 自行选择 · 最后一页」— digest 现 **230,779 chars**（13 章正典 · **129 回响** · 4 annex · 792 zh / 792 en 锚句）；`verify:world-bible 792/792` ✓。
+- gen-bible-snapshot 增补 echo-129 slug；BibleAsk lede → 129 · /bible/ask meta → 一百二十九篇 · CACHE-IDENTITY × 129 · canon-answer-graph → 13 章 + 129 回响 = 142 段 · bible-ask-behavior.test → 787 · pin 重钉 page→4477783a / comp→cb2faec2。
+- fe-gates **1370/1370** ✓。
+
+## cont. 363 (2026-11-18) — v983 · §PROOF-BIG-CONTEXT-V982 · 当前 digest 直打 12 发：100% 稳态（零波动 · 12/12 200）
+
+**背景**：Echo #128/#129 入库后 digest 更新到 230,779 chars（148,677 tokensIn/问；13 章 + 129 回响 · 792 锚句），之前直接测是 v973 的 229K chars；本片重新跑在最新 digest 上。
+
+**直打 12 发 probe（`docs/evidence/big-context-v982-2026-11-19.md`）**：
+- call 1 (cold A)：cache=7,079（冷启动 · 10.9s）
+- call 2 (cold B)：cache=7,079（冷启动 · 7.1s）
+- call 3 → call 12（**10 发全额 100%** · cached=148,677 · 10–20 ms 首包）
+- meanCached=125,074；`cacheReported=true`；`ai_service/log:POST /v1/ai/chat 200 × 12/12` · 0 5xx。
+
+**意义**：用户长期关注的「几个并行会话同时打乱缓存」这个问题在最新 digest 上——完全没再出现；与 §INSIGHT-LANE-RETEST v973 双印：冷是冷一次，后面 10 发全额复用，零波动。
+
+## cont.356+357 (2026-11-19) · 两线合流（第二波）— origin/main 续推进 19 提交（E126 海棠 / E127 第十二册 / E128 小鼓 / E129 木牌 + v982-v984 12 发直打 · 100% KV）；本线 E34-E130 重编号 **E130**《第四十五次会》 · digest 231,020 chars · verify 797/797
+
+背景：本线自 cont.254 起与并行会话在同一仓库双线推进。第一波合流（b647e8d4、223 提交）把 parallel 线并入：主线 E01-E125 + 4 附录（lineage-2 的原 E27-E34 → E118-E125：潮起来的时候=E125），本线 E35 移植为 E126《潮起来的时候》/其一百二十六——刚合流，并行线又推进 19 个提交并发布新的 E126-E129：
+- E126《潮候院后院那棵永不长叶的海棠》· E127《档案室最底层那本永远找不到的第十二册》· E128《从不停的小鼓》· E129《永远不得响的木牌》
+- 大上下文 v982/v983 直打：**148,677 tokensIn/问 · 100% KV · 零 5xx**（digest 230,779/230,335 chars · Fegates 1370/1370 · 792/792 锚句）
+- **E126 命名冲突 → 本线回响重编号 E130《第四十五次会》·其一百三十 · 100 次表（第45次会当日 · 门/四十四椅/那一寸/潮纸签）· 模型映射表回指保留 121/122/123**
+- quiz ref 同步（其一百三十 · 一/四，89 题，SHA 再钉 6cb2a2ba…· System prefix 无变）· bible-ask-behavior 钉 787→**792**
+- digest 重生成：**231,020 chars · sha256=f686198c…** · verify:world-bible **797/797** · verify:anchor-echo OK（626 对）· gen:bible-snapshot（130 回响 · 4 附录 · 13 章）
+- 第一次合流的并轨说明并入本条（E35→E126→E130 终片）；证据与 ADR-0283 两线合并案保持一致

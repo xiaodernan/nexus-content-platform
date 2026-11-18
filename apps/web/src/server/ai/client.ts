@@ -279,15 +279,21 @@ export async function chatWithCharacter(
     };
   }
 
-  let raw: Response;
-  try {
-    raw = await fetchImpl(`${base}${path}`, {
+  // §159 诚实边界：provider 5xx 抖动（网关间歇 502/503）→ 800ms 后重试一次；
+  // 4xx/429 不重试（参数错或限速是确定性错误，重打只会更难抢容量）；
+  // 重试仍失败才把这次失败交还给调用方，让它按自己的取向走 honest/demo/hard-fail。
+  const doPost = (): Promise<Response> =>
+    fetchImpl(`${base}${path}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(request),
       signal: AbortSignal.timeout(RUN_TIMEOUT_MS),
       cache: 'no-store',
     });
+
+  let raw: Response;
+  try {
+    raw = await doPost();
   } catch (error) {
     const reason = error instanceof Error ? error.name : 'unknown';
     return {
@@ -296,6 +302,20 @@ export async function chatWithCharacter(
       status: null,
       error: localError('provider-unavailable', `ai-service 不可达（${reason}）`, `确认 ${base} 是否在运行。`, true),
     };
+  }
+  if (raw.status >= 500) {
+    await new Promise((r) => setTimeout(r, 800));
+    try {
+      raw = await doPost();
+    } catch (error) {
+      const reason = error instanceof Error ? error.name : 'unknown';
+      return {
+        orchestration: lane,
+        ok: false,
+        status: null,
+        error: localError('provider-unavailable', `ai-service 不可达（${reason} after one retry）`, `确认 ${base} 是否在运行。`, true),
+      };
+    }
   }
 
   const orchestration = raw.headers.get('x-nexus-orchestration') ?? lane;

@@ -112,7 +112,7 @@ const getTideSentence = unstable_cache(
     }
     return (chat.response.text ?? '').trim();
   },
-  ['tide-wire-sentence-v1'],
+  ['tide-wire-sentence-v2'],
   { revalidate: 3600, tags: ['tide-wire'] },
 );
 

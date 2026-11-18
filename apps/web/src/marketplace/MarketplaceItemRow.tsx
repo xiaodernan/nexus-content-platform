@@ -30,12 +30,16 @@ const MI_TXT = {
     anonymousCreator: '匿名创作者',
     collapse: '收起',
     editPriceVisibility: '改价格/可见性',
+    editPriceVisibilityHint: '改价格与可见性；保存后立即反映到市场列表，换一台设备可以看到。',
     purchasing: '购买中...',
     purchase: '购买',
+    purchaseHint: '按 credits 显示价购买；买完才能下载。',
     collapseReport: '收起举报',
     report: '举报',
+    reportHint: '打开举报小抽屉——列出必填原因后提交给审核台。',
     fetching: '取包中...',
     downloadCount: (n: number) => `下载（${n}）`,
+    downloadCountHint: '把这个组件下载为：设计文档 + 代码压缩包。',
     delist: '下架',
     price: '价格',
     visibility: '可见性',
@@ -72,12 +76,16 @@ const MI_TXT = {
     anonymousCreator: 'anonymous creator',
     collapse: 'Collapse',
     editPriceVisibility: 'Edit price / visibility',
+    editPriceVisibilityHint: 'Edit price and visibility; takes effect the moment you save.',
     purchasing: 'Purchasing...',
     purchase: 'Buy',
+    purchaseHint: 'Pay the credit price; you can only download after buying.',
     collapseReport: 'Collapse report',
     report: 'Report',
+    reportHint: 'Open the report drawer — pick a required reason, then submit to the review desk.',
     fetching: 'Fetching...',
     downloadCount: (n: number) => `Download (${n})`,
+    downloadCountHint: 'Download this component as a bundle: design docs + code.',
     delist: 'Delist',
     price: 'Price',
     visibility: 'Visibility',
@@ -308,6 +316,7 @@ export function MarketplaceItemRow({
             aria-expanded={editing}
             aria-controls={editing ? editPanelId : undefined}
             className="mi-btn mi-btnGhost"
+            title={T.editPriceVisibilityHint}
           >
             {editing ? T.collapse : T.editPriceVisibility}
           </button>
@@ -319,6 +328,7 @@ export function MarketplaceItemRow({
             disabled={purchasing}
             data-marketplace-purchase={item.id}
             className="mi-btn mi-btnPrimary"
+            title={T.purchaseHint}
           >
             {purchasing ? T.purchasing : T.purchase}
           </button>
@@ -331,6 +341,7 @@ export function MarketplaceItemRow({
             aria-controls={reportOpen ? reportPanelId : undefined}
             data-marketplace-report={item.id}
             className="mi-btn mi-btnDanger"
+            title={T.reportHint}
           >
             {reportOpen ? T.collapseReport : T.report}
           </button>
@@ -341,6 +352,7 @@ export function MarketplaceItemRow({
           disabled={downloading}
           data-marketplace-download={item.id}
           className="mi-btn mi-btnGhost"
+          title={T.downloadCountHint}
         >
           {downloading ? T.fetching : T.downloadCount(item.downloadCount)}
         </button>

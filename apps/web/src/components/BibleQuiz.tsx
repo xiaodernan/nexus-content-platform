@@ -427,12 +427,12 @@ const QUESTIONS: Question[] = [
   },
 
   {
-    zh: { prompt: '《第四十五次会》里，门是谁开的？', choices: ['没有人留下名字', '潮汐教团的主事人', '念册的人', '守灯人'], answer: 0, ref: '回响（其一百二十六） · 一' },
-    en: { prompt: 'In “The Forty-Fifth Convocation”, who opened the door?', choices: ['no one — the name was never kept', 'the Conclave’s chief', 'the reader', 'the lampkeeper'], answer: 0, ref: 'Echo No. 126 · I' },
+    zh: { prompt: '《第四十五次会》里，门是谁开的？', choices: ['没有人留下名字', '潮汐教团的主事人', '念册的人', '守灯人'], answer: 0, ref: '回响（其一百三十） · 一' },
+    en: { prompt: 'In “The Forty-Fifth Convocation”, who opened the door?', choices: ['no one — the name was never kept', 'the Conclave’s chief', 'the reader', 'the lampkeeper'], answer: 0, ref: 'Echo No. 130 · I' },
   },
   {
-    zh: { prompt: '《第四十五次会》里，潮纸签最后停在哪里？', choices: ['案台上，贴着旧册子', '守灯人的口袋里', '潮汐时刻表下面', '没有人抽走它，它停在门锥旁'], answer: 0, ref: '回响（其一百二十六） · 四' },
-    en: { prompt: 'In “The Forty-Fifth Convocation”, where did the tide-paper tag come to rest?', choices: ['on the table, against the old ledger', 'in the lampkeeper’s pocket', 'under the tide timetable', 'no hand took it; it stopped beside the door pillar'], answer: 0, ref: 'Echo No. 126 · IV' },
+    zh: { prompt: '《第四十五次会》里，潮纸签最后停在哪里？', choices: ['案台上，贴着旧册子', '守灯人的口袋里', '潮汐时刻表下面', '没有人抽走它，它停在门锥旁'], answer: 0, ref: '回响（其一百三十） · 四' },
+    en: { prompt: 'In “The Forty-Fifth Convocation”, where did the tide-paper tag come to rest?', choices: ['on the table, against the old ledger', 'in the lampkeeper’s pocket', 'under the tide timetable', 'no hand took it; it stopped beside the door pillar'], answer: 0, ref: 'Echo No. 130 · IV' },
   },
 ];
 

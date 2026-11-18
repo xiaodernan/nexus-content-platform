@@ -161,7 +161,7 @@ const miReducedMotionBody = (() => {
 })();
 
 /** JS 逻辑段：从文件头到 `return (` 之前的全部字节（换行归一，跨 CRLF/LF 稳定）。 */
-const JS_SEGMENT_SHA256 = 'af4849b87c18b6492390c1e30d4e7ed5182c54401d198d92486bc46b4862ffe7';
+const JS_SEGMENT_SHA256 = 'd96be603bd816f1a3873fffa309aac06e00a07aad3d6c706f16ddcac7f72c522';
 function jsSegmentSha256(src: string): string {
   const normalized = src.replace(/\r\n/g, '\n');
   const idx = normalized.indexOf('  return (');

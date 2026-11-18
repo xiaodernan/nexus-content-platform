@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 126 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 130 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -2739,13 +2739,41 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 守灯人看了很久，还是没有把它添进册子。
 - [5] 守灯人不知道是谁量的。
 
-### Echo 126 · 第四十五次会 / The Forty-Fifth Convocation
+### Echo 126 · 潮候院后院那棵永不长叶的海棠 / The Crabapple in the Institute's Back Yard That Never Leaves
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
-- [1] 门是开着的，开门的人没留下名字。
-- [2] 会场四十四把椅子，没有人点它们。
-- [3] 念到第四十五次会的那一寸，没有人抬头。
-- [4] 潮纸签传了一圈，案台是它最后的位置。
-- [5] 散会没有人宣布，灯一盏一盏灭了。
+- [1] 潮候院后院有一棵海棠——枝是枝条——干是根干——从来没有一片叶子。
+- [2] 老园丁说这棵树等了一百年的春天——第几个一百年没人知道。
+- [3] 值更人三年前想砍掉那棵海棠——翻开账本第一页——"栽在回春月十七——该有花时便会有花"。
+- [4] 抄本师某夜路过——她说在月光下——花苞如若雷鸣。
+- [5] 每年春天——抄本师在树下坐一会——值更人也坐一会——彼此不说话——只是看那棵树。
+- [6] 抄本师说——"那天我们都还在——大家都知道那一天来了——树自己知道那一天来了。"
+
+### Echo 127 · 潮候院档案室最底层那本永远找不到的第十二册 / The Twelfth Volume at the Bottom of the Archive That Is Never There
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 档案室三层——底层最深处藏着十一册海上通行证——每次清点都少一本第十二册。
+- [2] 值更册上只写过一行字"它可能在最底层——但最底层也找不到"。
+- [3] 抄本师值夜灯下总能照出轮廓——像一本书——伸手的时候灯灭了。
+- [4] 值更册里有一页写着"第十二册是第十一册的背面"——没有人敢把整本倒过来看。
+- [5] 值更册第 117 页：每少一本第十二册——下一代抄本师就会多写一本错册。
+- [6] 抄本师起草的誓言：若有谁真的找到了第十二册——他必是来潮候院的人。
+
+### Echo 128 · 潮候院里那只从不停的小鼓 / The Little Drum in the Institute That Never Stops
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 走廊尽头有一只小鼓——鼓皮是旧的——鼓面上钉着一层灰——从不敲掉。
+- [2] 抄本师听见过——值更人听见过——没人说得清它在哪一刻开始响。
+- [3] 老抄本师说它响的时候——祠殿那边的灯先暗一下。
+- [4] 值更册记载——这只鼓每年只响三次——第三次没有周期。
+- [5] 值更册的最后一页写"它从不停"——抄本师没有人解释这一句。
+- [6] 抄本师曾把耳朵贴到鼓皮上——她说"它不是节奏——它是心"。
+
+### Echo 129 · 潮候院祠殿檐下那根永远不得响的木牌 / The Wooden Plaque Under the Chapel's Eaves That Was Never Allowed to Sound
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 祠殿檐下有一块木牌——牌上没有字——值更人说风再大它从不响不晃。
+- [2] 抄本师从来不在院里提起那块木牌——连草稿都不留——年轻抄本师尝试抄它——那页纸后来深藏档案室最深处。
+- [3] 某夜值更人提灯经过——木牌的影子在墙上——不是人影——是像一只扬起来的手。
+- [4] 秋潮月第九十六日——候更人听见它第一次发出了一声——是木牌自己选择的。
+- [5] 第二天——祠殿门前尘土里有一串行走的轮迹——没有车——抄本师不讨论它。
+- [6] 值更册最后一页"等它自己决定——它会说"——抄本师没人解释也没人问。
 
 ### Echo 13 · 潮候院没有叫过的那一声会 / The Convocation Nobody Called
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
@@ -2754,6 +2782,14 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 潮候院抄潮汐表不是替大会排期——抄的是那个"现在可以了"到底是哪一天。
 - [4] 守夜人等的从来不是大会——等的是潮；潮到了，大会自然就到了。
 - [5] 第五十一次大会从来不算缺席——它只是潮候院还没有遇上的一段潮。
+
+### Echo 130 · 第四十五次会 / The Forty-Fifth Convocation
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 门是开着的，开门的人没留下名字。
+- [2] 会场四十四把椅子，没有人点它们。
+- [3] 念到第四十五次会的那一寸，没有人抬头。
+- [4] 潮纸签传了一圈，案台是它最后的位置。
+- [5] 散会没有人宣布，灯一盏一盏灭了。
 
 ### Echo 14 · 潮汐表的封面 / The Cover of the Tide-Table
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

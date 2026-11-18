@@ -176,7 +176,11 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E123-潮的名字': 'echo-123-the-name-of-the-tide',
   'E124-旧册子里的名字': 'echo-124-the-name-in-the-old-ledger',
   'E125-潮起来的时候': 'echo-125-the-hour-the-tide-rose',
-  'E126-第四十五次会': 'echo-126-the-forty-fifth-convocation',
+  'E126-潮候院后院那棵永不长叶的海棠': 'echo-126-the-crabapple-that-never-leaves',
+  'E127-潮候院档案室最底层那本永远找不到的第十二册': 'echo-127-the-twelfth-volume-she-never-finds',
+  'E128-潮候院里那只从不停的小鼓': 'echo-128-the-little-drum-that-never-stops',
+  'E129-潮候院祠殿檐下那根永远不得响的木牌': 'echo-129-the-wooden-plaque-that-decides',
+  'E130-第四十五次会': 'echo-130-the-forty-fifth-convocation',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
