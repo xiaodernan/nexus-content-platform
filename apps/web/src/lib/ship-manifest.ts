@@ -1,4 +1,4 @@
-/** 由 scripts/gen-ship-manifest.mts 机械生成——勿手改。生成于 2026-11-18T13:51:43.276Z (1280ab4e) */
+/** 由 scripts/gen-ship-manifest.mts 机械生成——勿手改。生成于 2026-11-18T14:19:17.964Z (6e966049) */
 export interface ShipEntry { hash: string; date: string; subject: string }
 export interface ShipDay { date: string; entries: ShipEntry[] }
 export const SHIP_DAYS: ShipDay[] = [
