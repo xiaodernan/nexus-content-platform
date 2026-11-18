@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 126 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 127 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -2747,6 +2747,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 抄本师某夜路过——她说在月光下——花苞如若雷鸣。
 - [5] 每年春天——抄本师在树下坐一会——值更人也坐一会——彼此不说话——只是看那棵树。
 - [6] 抄本师说——"那天我们都还在——大家都知道那一天来了——树自己知道那一天来了。"
+
+### Echo 127 · 潮候院档案室最底层那本永远找不到的第十二册 / The Twelfth Volume at the Bottom of the Archive That Is Never There
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 档案室三层——底层最深处藏着十一册海上通行证——每次清点都少一本第十二册。
+- [2] 值更册上只写过一行字"它可能在最底层——但最底层也找不到"。
+- [3] 抄本师值夜灯下总能照出轮廓——像一本书——伸手的时候灯灭了。
+- [4] 值更册里有一页写着"第十二册是第十一册的背面"——没有人敢把整本倒过来看。
+- [5] 值更册第 117 页：每少一本第十二册——下一代抄本师就会多写一本错册。
+- [6] 抄本师起草的誓言：若有谁真的找到了第十二册——他必是来潮候院的人。
 
 ### Echo 13 · 潮候院没有叫过的那一声会 / The Convocation Nobody Called
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

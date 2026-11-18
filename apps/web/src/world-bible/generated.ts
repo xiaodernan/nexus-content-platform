@@ -12054,6 +12054,202 @@ The copyists say: "When that day comes, we will all still be here — and everyo
 `,
   },
   {
+    order: 127,
+    slug: 'echo-127-the-twelfth-volume-she-never-finds',
+    titleZh: '潮候院档案室最底层那本永远找不到的第十二册',
+    titleEn: 'The Twelfth Volume at the Bottom of the Archive That Is Never There',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第九十四日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the ninety-fourth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 127): The Twelfth Volume at the Bottom of the Archive That Is Never There
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院档案室最底层那本永远找不到的第十二册。每一任抄本师都按册数清点过——总是少一本。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the twelfth volume at the bottom of the Institute's archive that is never there.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第九十四日。
+> Era: the Institute — after the 41st Convocation; the ninety-fourth day of the autumn-tide month.
+
+---
+
+## 一 · 档案室
+
+潮候院档案室有三层——底层最深处，藏着往届抄本师誊完的十一册海上通行证。
+
+抄本师交班时总要清点——每次都少一本第十二册。
+
+**锚句**：档案室三层——底层最深处藏着十一册海上通行证——每次清点都少一本第十二册。
+**Anchor sentence**: three levels to the archive — the deepest holds eleven volumes of sea transit credentials — and every count falls one short of the twelfth.
+
+---
+
+## 二 · 第十二册
+
+没有人写过第十二册的内容——也没有人说它存在。
+
+值更册上只写过一行字："它可能在最底层——但最底层也找不到。"
+
+**锚句**：值更册上只写过一行字"它可能在最底层——但最底层也找不到"。
+**Anchor sentence**: the watch-ledger records one line only: it is perhaps on the bottom level — and even the bottom level does not hold it.
+
+---
+
+## 三 · 灯
+
+抄本师值夜时——灯下总能照出一个轮廓——像一本书放在最底层的最深处。
+
+伸手的时候——灯灭了。
+
+**锚句**：抄本师值夜灯下总能照出轮廓——像一本书——伸手的时候灯灭了。
+**Anchor sentence**: during night duty a copyist always sees a shape under the lamp — like a book at the far end of the bottom level — and when she reaches, the lamp dies.
+
+---
+
+## 四 · 数字
+
+值更册的第几本合订里有一页——写着"第十二册是第十一册的背面"——没有人敢把整本倒过来看。
+
+**锚句**：值更册里有一页写着"第十二册是第十一册的背面"——没有人敢把整本倒过来看。
+**Anchor sentence**: one page of the watch-ledger says: the twelfth volume is the back of the eleventh — and no one dares turn the whole book face-down.
+
+---
+
+## 五 · 遗失越久
+
+值更册第 117 页写着：每少一本第十二册——下一代抄本师就会多写一本错册。
+
+抄本师拒绝承认这句话——抄本师也没有推翻它。
+
+**锚句**：值更册第 117 页：每少一本第十二册——下一代抄本师就会多写一本错册。
+**Anchor sentence**: the watch-ledger on page 117 says: for every missing twelfth volume — the next generation of copyists will write one more mistake.
+
+---
+
+## 六 · 抄本师的誓言
+
+抄本师第七次发现少一本——起草了誓言："若有谁真的找到了第十二册——他必是来潮候院的人。"
+
+> 抄本师立下的誓言，是唯一一份没人敢说它真的成立过的东西。
+> The oath the copyists drafted is the only document no one dares claim to be real.
+
+**锚句**：抄本师起草的誓言：若有谁真的找到了第十二册——他必是来潮候院的人。
+**Anchor sentence**: the copyists' oath reads: whoever truly finds the twelfth volume — he must be a man of the Institute.
+
+---
+
+## 七 · 映射（回响一百二十七章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 档案室 · 第十二册 · 第 117 页 · 灯下轮廓 · 抄本师的誓言 | 一、二、三、四、五、六、七 |
+| geography | 档案室 · 底层 · 最深处 · 最底层 | 一、二、三 |
+| characters | 抄本师 · 值更人 · 老抄本师（交班册作者） | 一、二、三、四、五、六 |
+| story | 第十二册 · 回响（其一百二十七） | 全篇 |
+| items | 第十二册（不存在） · 油灯 · 第 117 页 · 合订册 | 一、二、三、四、五 |
+| history | 第四十一次大会散会之后 · 秋潮月第九十四日 | 三、四、五、六 |
+
+> 潮候院院档案室最底层那本永远找不到的第十二册——它可能在——抄本师只敢说可能在——直到有一天，有人敢把第十一册整本倒过来看。
+> The twelfth volume at the bottom of the archive that is never there — it is perhaps there — the copyists say it is perhaps there — until the day someone dares turn the eleventh face-down.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百二十七）「潮候院档案室最底层那本永远找不到的第十二册」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the twelfth volume at the bottom of the Institute's archive that is never there.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院档案室最底层那本永远找不到的第十二册。每一任抄本师都按册数清点过——总是少一本。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the ninety-fourth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第九十四日。
+
+---
+
+## I · The Archive
+
+The Institute's archive holds three levels — and in the innermost corner of the lowest level lie eleven volumes of sea transit credentials.
+
+Every handover count falls one twelfth volume short.
+
+**锚句**：档案室三层——底层最深处藏着十一册海上通行证——每次清点都少一本第十二册。
+**Anchor sentence**: three levels to the archive — the deepest holds eleven volumes of sea transit credentials — and every count falls one short of the twelfth.
+
+---
+
+## II · The Twelfth Volume
+
+No one has ever written what the twelfth volume contains — and no one has ever said it exists.
+
+The watch-ledger records one line only: it is perhaps on the bottom level — and even the bottom level does not hold it.
+
+**锚句**：值更册上只写过一行字"它可能在最底层——但最底层也找不到"。
+**Anchor sentence**: the watch-ledger records one line only: it is perhaps on the bottom level — and even the bottom level does not hold it.
+
+---
+
+## III · The Lamp
+
+During night duty a copyist always sees a shape under the lamp — like a book at the far end of the bottom level.
+
+When she reaches for it — the lamp dies.
+
+**锚句**：抄本师值夜灯下总能照出轮廓——像一本书——伸手的时候灯灭了。
+**Anchor sentence**: during night duty a copyist always sees a shape under the lamp — like a book at the far end of the bottom level — and when she reaches, the lamp dies.
+
+---
+
+## IV · The Number
+
+In one bound volume of the watch-ledger stands a page —: the twelfth volume is the back of the eleventh — and no one dares turn the whole book face-down.
+
+**锚句**：值更册里有一页写着"第十二册是第十一册的背面"——没有人敢把整本倒过来看。
+**Anchor sentence**: one page of the watch-ledger says: the twelfth volume is the back of the eleventh — and no one dares turn the whole book face-down.
+
+---
+
+## V · The Longer It Is Missing
+
+Page 117 of the watch-ledger says: for every missing twelfth volume — the next generation of copyists will write one more mistake.
+
+The copyists refused to accept this line — and the copyists never refuted it either.
+
+**锚句**：值更册第 117 页：每少一本第十二册——下一代抄本师就会多写一本错册。
+**Anchor sentence**: the watch-ledger on page 117 says: for every missing twelfth volume — the next generation of copyists will write one more mistake.
+
+---
+
+## VI · The Copyists' Oath
+
+On the seventh miss of the twelfth volume — the copyists drafted an oath: whoever truly finds the twelfth volume — he must be a man of the Institute.
+
+> 抄本师立下的誓言，是唯一一份没人敢说它真的成立过的东西。
+> The oath the copyists drafted is the only document no one dares claim to be real.
+
+**锚句**：抄本师起草的誓言：若有谁真的找到了第十二册——他必是来潮候院的人。
+**Anchor sentence**: the copyists' oath reads: whoever truly finds the twelfth volume — he must be a man of the Institute.
+
+---
+
+## VII · Mapping（Echo No. 127 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the archive · the twelfth volume · page 117 · the lamp-shape · the copyists' oath | 一、二、三、四、五、六、七 |
+| geography | the archive · the bottom level · the innermost corner · the bottom level | 一、二、三 |
+| characters | the copyists · the head of the watch · the old copyist (author of the handover-ledger) | 一、二、三、四、五、六 |
+| story | the twelfth volume · Echo No. 127 | 全篇 |
+| items | the twelfth volume (does not exist) · the oil lamp · page 117 · the bound volume | 一、二、三、四、五 |
+| history | After the 41st Convocation · the ninety-fourth day of the autumn-tide month | 三、四、五、六 |
+
+> 潮候院档案室最底层那本永远找不到的第十二册——它可能在——抄本师只敢说可能在——直到有一天，有人敢把第十一册整本倒过来看。
+> The twelfth volume at the bottom of the archive that is never there — it is perhaps there — the copyists say it is perhaps there — until the day someone dares turn the eleventh face-down.
+`,
+  },
+  {
     order: 13,
     slug: 'echo-013-the-convocation-nobody-called',
     titleZh: '潮候院没有叫过的那一声会',

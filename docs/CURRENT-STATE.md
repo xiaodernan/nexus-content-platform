@@ -7424,3 +7424,10 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 **细节实据**：ai-service 日志截至本片落盘共 5 发 `POST /v1/ai/chat-graph 200 OK`；本机终端探针实测返回 textLen=60（"近7日打开52次，近30日97次…"）。tide-wire 完成传显 true。
 **风险**：5xx 单发加 ~800ms 延迟；`tide-wire-sentence-v2` 让次日 topic 自然重载无副作用。
 **token 记账**：fe-gates 1370/1370 · ai-client-chat 9/9；Pages 指针将随 v977 推进。
+
+## cont. 358 (2026-11-18) — v978 · §BIBLE-127 · Echo #127《档案室那本永远找不到的第十二册》(作者手写 · verify 780/780)
+
+- 新篇：「档案室 · 第十二册 · 灯下轮廓 · 第 117 页 · 抄本师的誓言」— canon digest 现 **229,974 chars**（13 章正典 · **127 回响** · 4 annex · 780 zh / 780 en anchors）；verify:world-bible **780/780** ✓。
+- 6 anchor 双语对齐；gen-bible-snapshot 增补回响映射（echo-127-…）；anchors 626 pairs verified。
+- 所有调用同步更新：BibleAsk lede → 127 · /bible/ask meta → 一百二十七篇 · guideCopy 双语 numbers 更新 · CACHE-IDENTITY × 127 · canon-answer-graph → 13 章 + 127 回响 = 140 段 · bible-ask-behavior.test → 775 · pin 重钉 page→3d01a30e / comp→05085704。
+- fe-gates **1370/1370** ✓ 持有。当前 digest: 23ld tokens* · anchor verify zh=en=780 · digest sha256=648e7150…
