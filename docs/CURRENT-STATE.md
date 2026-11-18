@@ -7384,3 +7384,21 @@ origin/main 支线（lineage-2）的 big-context 版本直接拷贝入仓作历�
 provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYSTEM_PROMPT` regen 后 229,800 chars（CANON_DIGEST embed）。cacheReported=true；verify 两层字段都保持一致，与 §STRESS-16 双印互证 KV 车道稳定性。未改任何 web 代码。
 
 证据存档：`docs/evidence/insight-lane-v973-2026-11-19.md`。
+
+## cont. 356 (2026-11-18) — v975 · 合流后全链路浏览器端复诊：§BIBLE-ASK live 端到端 + chat-graph 车道端到端对齐
+
+**背景**：合流后第一次端到端浏览器侧复初（注册 → /bible/ask → 提问 → cache badge）。登陆线全程绿：
+
+- POST /api/bible/q 路由本身首请求 502（**provider 上游网关抖动**）→ 按 §LLM-RETRY-ONCE 800ms 重试成功 `POST /v1/ai/chat-graph` 回 200；
+- 回答如实引用"回响一百二十（《第四十四次会》）+ 回响一百二十二（《借椅子》）"作为 ⚠️ 锚案例，不编造"又起了几次"——"典籍里没有明确写…" flag 如实说出（§159）；
+- 页面渲染出正确带 cache badge 的答案：`gpt-6.1-terra · 缓存复用 7039 tokens`；
+- 全程鼠标没有掉到 honest/insafe 态（title "问典 · The Tidal Inquiry"）。
+
+**意义**：
+1. Web → /v1/ai/chat-graph → provider 全链路在大 digest 下兑现 147K→networked digest 路径；
+2. 浏览器 5xx 自动重试模型不是"救命艇"——本次真实触发一次 502→200 的一环；
+3. BibleAsk lede 渲染为「正典（13 章）+ 回响（125 篇）都在桌上」——与合流后 digest 一致。
+
+**tide-oracle / insight 路线不可在此 RAM 窗口重复**：tide-oracle / insight 路线在此 RAM 窗口不再展开实测；§INSIGHT-LANE-RETEST 与 §STRESS-16 双证据已落盘。
+
+**git**：无代码改动（纯证据）；`.scratch/` 不提交； Pages 指针将以 v975 rolling 推进。
