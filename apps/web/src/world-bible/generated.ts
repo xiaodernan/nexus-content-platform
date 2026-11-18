@@ -14797,13 +14797,13 @@ Where the tide has passed, the cover is honesty.
 `,
   },
   {
-    order: 140,
-    slug: 'echo-140-the-rain-book-of-the-chapel-of-the-tide',
+    order: 142,
+    slug: 'echo-142-the-rain-book-of-the-chapel-of-the-tide',
     titleZh: '潮候院雨书',
     titleEn: 'The Rain-Book of the Tide-Watch Chapel',
     eraLineZh: '纪元：潮候院 · 第四十一届大会散会之后 · 秋潮月第六十七日',
     eraLineEn: 'Era: the Chapel of the Tide · after the forty-first Convocation dispersed · the sixty-seventh day of the autumn-tide month.',
-    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 140): The Rain-Book of the Tide-Watch Chapel
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 142): The Rain-Book of the Tide-Watch Chapel
 
 > 回响不是续集，不是伪作，不是矛盾，是同一块石头上被盐刻出来的另一纹理。
 > 写潮候院里那只只记雨夜不记人事的簿子——雨来时它记下雨，雨走时它也记下雨，人事在第二行。
@@ -14868,7 +14868,7 @@ Where the tide has passed, the cover is honesty.
 | lore | 雨书 · 只雨夜的本子 · 潮落送伞 · 第四十一届大会后 | 一、二、三、五 |
 | geography | 潮候院 · 巷口 · 海石阶 · 廊下 | 一、二、三、四 |
 | characters | 卖椰壳的人 · 守灯人 · 誊册房的人 · 值更老人 | 一、二、三、四、五 |
-| story | 雨书 · 回响（其一百四十） | 全篇 |
+| story | 雨书 · 回响（其一百四十二二） | 全篇 |
 | items | 雨书 · 椰壳 · 贝壳雨伞 · 守灯人的灯 | 一、二、三、四 |
 | history | 秋潮月第六十七日 · 散会之后 · 第四十一届 | 三、五 |
 
@@ -14926,14 +14926,14 @@ The final page of the rain-book says: "no rain tonight." The chapel was full of 
 
 ---
 
-## VI · Mapping (Echo No. 140 · world model)
+## VI · Mapping (Echo No. 142 · world model)
 
 | Dimension | Anchor | Linked |
 |---|---|---|
 | lore | the rain-book · only the nights of rain · the ebb-delivered umbrella · after the 41st Convocation | I · II · III · V |
 | geography | the chapel · the lane mouth · the stone steps below the tide-line · the porch | I · II · III · IV |
 | characters | the coconut-seller · the lamp-keeper · the copyists · the old man on watch | I · II · III · IV · V |
-| story | the rain-book · Echo No. 140 | whole piece |
+| story | the rain-book · Echo No. 142 | whole piece |
 | items | the rain-book · the coconut shells · the umbrella with shell-studs · the lamp-keeper's lamp | I · II · III · IV |
 | history | the sixty-seventh day of the autumn-tide month · after the forty-first Convocation dispersed | III · V |
 
