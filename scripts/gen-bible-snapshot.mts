@@ -176,6 +176,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E123-潮的名字': 'echo-123-the-name-of-the-tide',
   'E124-旧册子里的名字': 'echo-124-the-name-in-the-old-ledger',
   'E125-潮起来的时候': 'echo-125-the-hour-the-tide-rose',
+  'E126-潮候院后院那棵永不长叶的海棠': 'echo-126-the-crabapple-that-never-leaves',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

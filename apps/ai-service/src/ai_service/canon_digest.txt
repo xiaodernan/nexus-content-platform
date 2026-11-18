@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 125 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 126 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -2738,6 +2738,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 第四十五次会要开了，谁也没敲他的门。
 - [4] 守灯人看了很久，还是没有把它添进册子。
 - [5] 守灯人不知道是谁量的。
+
+### Echo 126 · 潮候院后院那棵永不长叶的海棠 / The Crabapple in the Institute's Back Yard That Never Leaves
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院后院有一棵海棠——枝是枝条——干是根干——从来没有一片叶子。
+- [2] 老园丁说这棵树等了一百年的春天——第几个一百年没人知道。
+- [3] 值更人三年前想砍掉那棵海棠——翻开账本第一页——"栽在回春月十七——该有花时便会有花"。
+- [4] 抄本师某夜路过——她说在月光下——花苞如若雷鸣。
+- [5] 每年春天——抄本师在树下坐一会——值更人也坐一会——彼此不说话——只是看那棵树。
+- [6] 抄本师说——"那天我们都还在——大家都知道那一天来了——树自己知道那一天来了。"
 
 ### Echo 13 · 潮候院没有叫过的那一声会 / The Convocation Nobody Called
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

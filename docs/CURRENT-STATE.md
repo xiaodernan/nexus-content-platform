@@ -7402,3 +7402,10 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 **tide-oracle / insight 路线不可在此 RAM 窗口重复**：tide-oracle / insight 路线在此 RAM 窗口不再展开实测；§INSIGHT-LANE-RETEST 与 §STRESS-16 双证据已落盘。
 
 **git**：无代码改动（纯证据）；`.scratch/` 不提交； Pages 指针将以 v975 rolling 推进。
+
+## cont. 357 (2026-11-18) — v976 · §BIBLE-126 · Echo #126《后院那棵永不长叶的海棠》(作者手写 · verify 774/774)
+
+- 新篇：「后院海棠 · 等待花开 · 仪式」— digest 现 **229,553 chars**（13 章正典 · **126 回响** · 4 annex · token 约 148K 量级）；verify:world-bible **774/774** ✓；anchors 626 · 内容增量 digest 增长 ~400 字节；锚句 6 对 zh/en 对齐。
+- 映射/章节标签/ quiz task 同步加；新增 git track 之一：`E126-潮候院后院那棵永不长叶的海棠`。
+- 同步：BibleAsk lede → 126 · /bible/ask meta → 一百二十六篇 · guideCopy 双语数字更新 · CACHE-IDENTITY × 126 · canon-answer-graph → 13 章 + 126 回响 = 139 段 · bible-ask-behavior.test → 769 · pin 重钉 page→c95a1c06 / comp→40d89c1f。
+- fe-gates **1370/1370** ✓ 持有。

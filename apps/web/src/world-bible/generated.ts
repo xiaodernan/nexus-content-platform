@@ -11858,6 +11858,202 @@ The lampkeeper did not know who measured it.
 `,
   },
   {
+    order: 126,
+    slug: 'echo-126-the-crabapple-that-never-leaves',
+    titleZh: '潮候院后院那棵永不长叶的海棠',
+    titleEn: 'The Crabapple in the Institute\'s Back Yard That Never Leaves',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第九十三日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the ninety-third day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 126): The Crabapple in the Institute's Back Yard That Never Leaves
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院后院那棵从未长出叶子的海棠——老园丁说它还没到春天，等来了就会有叶。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the crabapple in the Institute's back yard that the generations have tended without once seeing it in leaf.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第九十三日。
+> Era: the Institute — after the 41st Convocation; the ninety-third day of the autumn-tide month.
+
+---
+
+## 一 · 后院
+
+潮候院后院有一棵海棠——值更人巡园时看见它——枝是枝条——干是根干——从来没有一片叶子。
+
+**锚句**：潮候院后院有一棵海棠——枝是枝条——干是根干——从来没有一片叶子。
+**Anchor sentence**: in the Institute's back yard stands a crabapple — branches that are branches, a trunk that is a trunk — and never a single leaf.
+
+---
+
+## 二 · 老园丁的话
+
+老园丁（值更院交班册中叫他"种树人"）说：这棵树等了一百年的春天——那时它就会有叶。
+
+没人知道第几个一百年是它的一百年。
+
+**锚句**：老园丁说这棵树等了一百年的春天——第几个一百年没人知道。
+**Anchor sentence**: the old gardener says this tree has waited a hundred years for its spring — and no one knows which hundredth will be its hundredth.
+
+---
+
+## 三 · 冬天
+
+值更人三年前想砍掉这棵树——上面压了一本老账——他翻到第一页：
+
+"栽在回春月十七——该有花时便会有花。"
+
+抄本师翻了翻残页——没找到裁定的是谁——但那一年的花期后——值更人没有再提砍树的事。
+
+**锚句**：值更人三年前想砍掉那棵海棠——翻开账本第一页——"栽在回春月十七——该有花时便会有花"。
+**Anchor sentence**: three years ago the head of the watch tried to cut the crabapple down — inside its trunk lay the first page: planted on the seventeenth of the returning-spring month; when its time comes, it will flower.
+
+---
+
+## 四 · 夜里
+
+抄本师自述：某夜路过后院——在月光下——花苞如若雷鸣——"它自己知道——它比我们都早一千年知道自己是一棵树"。
+
+没人相信他说的话——但也没人否认他眼神里的认真。
+
+**锚句**：抄本师某夜路过——她说在月光下——花苞如若雷鸣。
+**Anchor sentence**: a copyist once passing in the moonlight swore she heard the buds rumble like thunder.
+
+---
+
+## 五 · 每年树下
+
+每年春天抄本师在树下坐一会——值更人也坐一会——他们彼此不说话——只是看那棵树。
+
+潮候院无人说这是仪式——也没人否认它是仪式。
+
+**锚句**：每年春天——抄本师在树下坐一会——值更人也坐一会——彼此不说话——只是看那棵树。
+**Anchor sentence**: every year when spring comes, the copyists and the head of the watch sit beneath it in silence — and no one says it is a ritual, and no one denies it is a ritual.
+
+---
+
+## 六 · 花期
+
+抄本师说："那天我们都还在——我们都还不认识——但大家都知道那一天来了——树自己知道那一天来了。"
+
+**锚句**：抄本师说——"那天我们都还在——大家都知道那一天来了——树自己知道那一天来了。"
+**Anchor sentence**: the copyists say: when that day comes, we will all still be here — and everyone will know it has come — the tree will know it before we do.
+
+---
+
+## 七 · 映射（回响一百二十六章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 后院海棠 · 老园丁 · 春天 · 花期 · 仪式" | 一、二、三、四、五、六 |
+| geography | 潮候院后院 · 值更院 · 抄本院 | 一、四、五 |
+| characters | 老园丁（种树人） · 值更人 · 抄本师 | 一、二、三、四、五、六 |
+| story | 等待花开 · 回响（其一百二十六） | 全篇 |
+| items | 海棠 · 老账本 · 残页 · 花苞 | 一、二、三、四、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第九十三日 | 三、四、五 |
+
+> 潮候院后院那棵永不长叶的海棠，还没到春天——到了的那天，所有未来都会来到院里。
+> The crabapple in the Institute's back yard has never grown a leaf — and on the day it blooms, all the future will come into the yard at once.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百二十六）「潮候院后院那棵永不长叶的海棠」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the crabapple in the Institute's back yard that the generations have tended without once seeing it in leaf.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院后院那棵从未长出叶子的海棠——老园丁说它还没到春天，等来了就会有叶。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the ninety-third day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第九十三日。
+
+---
+
+## I · The Back Yard
+
+In the Institute's back yard stands a crabapple — the head of the watch sees it on every patrol — branches that are branches, a trunk that is a trunk — and never a single leaf.
+
+**锚句**：潮候院后院有一棵海棠——枝是枝条——干是根干——从来没有一片叶子。
+**Anchor sentence**: in the Institute's back yard stands a crabapple — branches that are branches, a trunk that is a trunk — and never a single leaf.
+
+---
+
+## II · The Old Gardener's Word
+
+The old gardener (referred to as "the tree-man" in the watch-register) says: this tree has waited a hundred years for its spring — when it comes, the leaves will be here.
+
+No one knows which hundred years will be its hundred years.
+
+**锚句**：老园丁说这棵树等了一百年的春天——第几个一百年没人知道。
+**Anchor sentence**: the old gardener says this tree has waited a hundred years for its spring — and no one knows which hundredth will be its hundredth.
+
+---
+
+## III · The Winter
+
+Three years ago the head of the watch tried to cut the crabapple down — the old ledger lay beneath it — he opened the first page:
+
+"Planted on the seventeenth of the returning-spring month — when its time comes, it will flower."
+
+The copyists turned the remaining pages — they could not find who had ruled — but after the flowering month had passed that year, the head of the watch abandoned the plan to cut it.
+
+**锚句**：值更人三年前想砍掉那棵海棠——翻开账本第一页——"栽在回春月十七——该有花时便会有花"。
+**Anchor sentence**: three years ago the head of the watch tried to cut the crabapple down — inside its trunk lay the first page: planted on the seventeenth of the returning-spring month; when its time comes, it will flower.
+
+---
+
+## IV · The Night
+
+A copyist once wrote in her private record: passing behind the Institute at night — in the moonlight — she heard the buds rumble like thunder.
+
+"It knows more than any of us," she wrote — "it has known it is a tree for a thousand years before we were here."
+
+No one believed her — but no one denied the gravity of her eyes.
+
+**锚句**：抄本师某夜路过——她说在月光下——花苞如若雷鸣。
+**Anchor sentence**: a copyist once passing in the moonlight swore she heard the buds rumble like thunder.
+
+---
+
+## V · Every Spring Under the Tree
+
+Every spring the copyists sit beneath it for a while — the head of the watch sits with them — neither speaks — they only watch the tree.
+
+No one calls it a ritual — and no one denies it is a ritual.
+
+**锚句**：每年春天——抄本师在树下坐一会——值更人也坐一会——彼此不说话——只是看那棵树。
+**Anchor sentence**: every year when spring comes, the copyists and the head of the watch sit beneath it in silence — and no one says it is a ritual, and no one denies it is a ritual.
+
+---
+
+## VI · The Day of Flowering
+
+The copyists say: "When that day comes, we will all still be here — and everyone will know it — and the tree will know it first."
+
+**锚句**：抄本师说——"那天我们都还在——大家都知道那一天来了——树自己知道那一天来了。"
+**Anchor sentence**: the copyists say: when that day comes, we will all still be here — and everyone will know it has come — the tree will know it before we do.
+
+---
+
+## VII · Mapping（Echo No. 126 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the back yard crabapple · the old gardener · the spring · the flowering day · the ritual | 一、二、三、四、五、六、七 |
+| geography | the back yard · the watch-keep yard · the copyists' hall | 一、四、五 |
+| characters | the old gardener (the tree-man) · the head of the watch · the copyists | 一、二、三、四、五、六 |
+| story | the wait for flowering · Echo No. 126 | 全篇 |
+| items | the crabapple · the old ledger · the torn page · the moon | 一、二、三、四、六 |
+| history | After the 41st Convocation · the ninety-third day of the autumn-tide month | 三、四、五 |
+
+> 潮候院后院那棵永不长叶的海棠，还没到春天——到了的那天，所有未来都会来到院里。
+> The crabapple in the Institute's back yard has never grown a leaf — and on the day it blooms, all the future will come into the yard at once.
+`,
+  },
+  {
     order: 13,
     slug: 'echo-013-the-convocation-nobody-called',
     titleZh: '潮候院没有叫过的那一声会',
