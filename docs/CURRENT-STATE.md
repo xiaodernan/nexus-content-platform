@@ -5750,3 +5750,18 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 
 **测试**：角色聊天相关 28/28 · **fe-gates 1285/1285** · visual-style pin 重钉（comp → e322795c…）。
 **风险**：`/studio` 角色对话组件 SHA 重钉需随接下来的任何改动再重钉；100% 命中中含 L2 精确命中语义，两者在 evidence 中单独声明，不冒充。
+
+## cont. 338 (2026-11-18) — v956 · §PROOF-BURST-12 ・ ADR-0282 · 并行打乱问题的实锤答复
+
+**交替提问缓存稳定性实测**（12 发交替 Q1/Q2，同 digest，system 字节一致，38,712 tokens）：
+- 命中 **11/12**；provider 前缀 KV（冷场景，n2，不同问句）**36,205 / 38,714 = 93.5%**
+- n3–n12 全部 L2 精确命中，cachedTokens = 100%（应用侧 replay，evidence 已分别声明两种语义）
+- **交错提问不破坏 lane**，同 digest workload 全部聚拢在同一把 `prompt_cache_key`（system-only free-text → hash(system)）
+- 证据 `docs/evidence/burst-interleave-12-2026-11-18.md`
+
+**ADR-0282 · 与 Codex 的对照：这把 relay 上能对齐什么、不能对齐什么**（`docs/adr/0282-codex-parity-and-cache-boundaries.md`，accepted）
+- Codex 实读 client.rs：PromptCacheKey::SessionDerived(thread_id) · `x-codex-turn-state` 服务器亲和 · WS prewarm `generate=false` · `previous_response_id` 增量续连 · `responses_request_properties_mismatch`
+- 本 relay（aizzz → gpt-6.1-terra，chat/completions）不吐上述任一项 → **这三样不能对齐，能对齐的另外四样都做了**
+- 我们做到的对齐：稳定前缀在前 · Content-hash key（项目级聚拢，比 thread key 更适合多会话 workload）· payload 排序（STABLE_PROMPT_KEYS）· 浏览器 visible `cache reuse` 徽章
+- 我们的弱点（诚实）：不能 prewarm · 不能续连 · 不能服务器亲和 · 每发全量重发 input
+- 丢失归因：ADR-0126/0127/0281 三篇公理；通道轮换与 TTL 不由 client 控制
