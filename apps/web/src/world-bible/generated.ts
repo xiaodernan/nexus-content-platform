@@ -17845,6 +17845,204 @@ Now the pot still stands in the mill room — an inch further east than it used 
 > It does not wait for anyone to eat — and yet one day, in that dusty room, someone will notice the character for "mouth" has changed.
 `,
   },
+  {
+    order: 85,
+    slug: 'echo-085-the-bronze-pigeons-on-the-ridge',
+    titleZh: '潮候院祠殿屋脊上那对永远不孵蛋的铜斑鸽',
+    titleEn: 'The Pair of Bronze Speckled Pigeons on the Sanctuary\'s Ridge That Never Brood',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第八十三日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the eighty-third day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 85): The Pair of Bronze Speckled Pigeons on the Sanctuary's Ridge That Never Brood
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿屋脊上那对铜斑鸽。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the pair of bronze speckled pigeons on the sanctuary's ridge.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第八十三日。
+> Era: the Institute — after the 41st Convocation; the eighty-third day of the autumn-tide month.
+
+---
+
+## 一 · 屋脊
+
+祠殿屋脊最高处压着两只铜鸽——一只朝东，一只朝西——胸前有细斑——抄本师把它们叫铜斑鸽。
+
+它们是祠殿屋脊正中间最醒目的东西——日头、影子、雨水——都先落在它们身上。
+
+**锚句**：祠殿屋脊上有两只铜斑鸽——它们从没下过蛋。
+**Anchor sentence**: on the sanctuary ridge stand two bronze speckled pigeons — they have never laid an egg.
+
+---
+
+## 二 · 铸的
+
+抄本师说它们不是瓦兽——它们是被铸进脊里的——连着整截屋脊一起铸进的。
+
+没有人记得为什么脊上要铸两只鸽子。抄本师说院里最老的怪物，可能就是这两只。
+
+**锚句**：抄本师说它们是被铸进脊里的——院里最老的怪物可能就是这两只。
+**Anchor sentence**: the copyists say the pigeons were cast into the ridge itself — perhaps the oldest monsters in the Institute.
+
+---
+
+## 三 · 金属相击
+
+散会之后某一个晚上——值更人巡到祠殿时听见金属轻轻相击——像谁在屋檐上整理羽毛——"嚓——嚓——"——他以为是雨打在铜皮上。
+
+第二天他上到屋看——屋脊上什么都没有——只有两只鸽子，安安静静，和昨天一样。
+
+**锚句**：散会之后某一晚值更人听见金属相击——像谁在屋脊上整理羽毛——第二天什么都没有。
+**Anchor sentence**: one night after the Dissolution, the head of the watch heard metal struck on the ridge — like someone arranging feathers — by dawn, nothing was there.
+
+---
+
+## 四 · 修脊
+
+修脊的人每隔三十年上屋脊一次——他说第一次上去全是铜——没有石——也没有一个麦秆窝——连灰都没有——像从来没有鸟孵过。
+
+他说屋脊最热——日头最直——铜鸽被晒得滚烫——他的手从没敢落上去过。
+
+**锚句**：修脊的人说脊上全是铜——像从来没有鸟孵过——他的手从没落上去过。
+**Anchor sentence**: the roofer said the ridge was all bronze — as though no bird had ever brooded there; his hands never landed on it.
+
+---
+
+## 五 · 不上屋顶
+
+院里小孩指着两只铜鸽问抄本师是什么——抄本师说："那是不能上去看的东西。"
+
+从那以后院里没人顺着屋顶往上攀爬——连修屋脊的人都没有。
+
+**锚句**：院里小孩问抄本师是什么——抄本师说："那是不能上去看的东西。"
+**Anchor sentence**: a child pointed at the pigeons and asked the copyists what they were — the copyists answered, "Those are things you may not go up and look at."
+
+---
+
+## 六 · 那根铜羽毛
+
+四十年前——修脊之后——院里有人捡到一根挂在檐下的铜色羽毛——不是真鸟的——
+
+羽毛后来被锁进辅库最里头的柜子——抄本师把这件事写在辅库进出册最后一行——从那一页起——"没人敢签名字"。
+
+**锚句**：四十年前院里有人捡到一根铜羽毛——辅库进出册最后一行——从那一页起没人敢签名字。
+**Anchor sentence**: forty years ago someone found a bronze feather beneath the eave — on the last page of the store-ledger no one has dared to sign a name since.
+
+---
+
+## 七 · 映射（回响八十五章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 铜斑鸽 · 屋脊 · 铸 · 铜羽毛 · 值更人 | 一、二、三、四、五、六、七 |
+| geography | 祠殿屋脊 · 屋檐 · 辅库 | 一、二、四、六 |
+| characters | 抄本师 · 值更人 · 修脊的人 · 院里小孩 | 一、二、三、四、五、六 |
+| story | 屋脊双鸽 · 回响（其八十五） | 全篇 |
+| items | 铜斑鸽 · 铜羽毛 · 屋脊 · 值更册 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第八十三日 | 三、四、五、六 |
+
+> 两只铜鸽永远不下蛋——可散会之后的夜里，谁都不敢说屋脊上空无一物。
+> Two bronze pigeons never brood — and yet, in the nights after the Convocation dissolved, no one dares say the ridge is empty.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其八十五）「潮候院祠殿屋脊上那对永远不孵蛋的铜斑鸽」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the pair of bronze speckled pigeons on the sanctuary's ridge.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿屋脊上那对铜斑鸽。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the eighty-third day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第八十三日。
+
+---
+
+## I · The Ridge
+
+At the very top of the sanctuary's ridge rest two bronze pigeons — one facing east, one facing west — each speckled across its breast with fine markings. The copyists call them the speckled pigeons.
+
+They are the most visible things on the ridge — sunlight, shadow and rain touch them before anything else.
+
+**锚句**：祠殿屋脊上有两只铜斑鸽——它们从没下过蛋。
+**Anchor sentence**: on the sanctuary ridge stand two bronze speckled pigeons — they have never laid an egg.
+
+---
+
+## II · Cast
+
+The copyists say they are not roof-guardians — they were cast into the ridge itself, cast in one piece with the whole length of it.
+
+No one recalls why two pigeons should have been cast into the ridge. The copyists say the oldest monsters in the Institute may be these two.
+
+**锚句**：抄本师说它们是被铸进脊里的——院里最老的怪物可能就是这两只。
+**Anchor sentence**: the copyists say the pigeons were cast into the ridge itself — perhaps the oldest monsters in the Institute.
+
+---
+
+## III · Metal Struck
+
+One night after the Convocation dissolved, the head of the watch, on his rounds past the sanctuary, heard metal struck faintly on metal — like someone up on the eaves arranging feathers — caah, caah — he assumed it was rain on the bronze.
+
+The next morning he went up to the roof. Nothing was there — only the two pigeons, perfectly still, as they had always been.
+
+**锚句**：散会之后某一晚值更人听见金属相击——像谁在屋脊上整理羽毛——第二天什么都没有。
+**Anchor sentence**: one night after the Dissolution, the head of the watch heard metal struck on the ridge — like someone arranging feathers — by dawn, nothing was there.
+
+---
+
+## IV · Roofing
+
+The roofer goes up to the ridge once every thirty years — he said the first time he went up, the whole thing was bronze — no stone, no straw nest, not even dust — as if no bird had ever brooded there.
+
+He said the ridge is the hottest place after noon — the copper pigeons burn the fingers — his hands never once landed on them.
+
+**锚句**：修脊的人说脊上全是铜——像从来没有鸟孵过——他的手从没落上去过。
+**Anchor sentence**: the roofer said the ridge was all bronze — as though no bird had ever brooded there; his hands never landed on it.
+
+---
+
+## V · Not Allowed Up
+
+A child in the Institute pointed at the two pigeons and asked the copyists what they were — the copyists answered, "Those are things you may not go up and look at."
+
+Since then, no one in the Institute has climbed up the roof ridge — not even the roofer, since then.
+
+**锚句**：院里小孩问抄本师是什么——抄本师说："那是不能上去看的东西。"
+**Anchor sentence**: a child pointed at the pigeons and asked the copyists what they were — the copyists answered, "Those are things you may not go up and look at."
+
+---
+
+## VI · The Bronze Feather
+
+Forty years ago — after the roofer last went up — someone found a copper-colored feather hanging from the eave — not a real bird's feather.
+
+The feather was locked in the innermost cupboard of the secondary store — the copyists wrote the incident on the final line of the secondary store ledger — from that page onwards, no one has dared to sign a name.
+
+**锚句**：四十年前院里有人捡到一根铜羽毛——辅库进出册最后一行——从那一页起没人敢签名字。
+**Anchor sentence**: forty years ago someone found a bronze feather beneath the eave — on the last page of the store-ledger no one has dared to sign a name since.
+
+---
+
+## VII · Mapping（Echo No. 85 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the speckled pigeons · the ridge · cast · the bronze feather · the head of the watch | 一、二、三、四、五、六、七 |
+| geography | the sanctuary ridge · the eave · the secondary store | 一、二、四、六 |
+| characters | the copyists · the head of the watch · the roofer · the child | 一、二、三、四、五、六 |
+| story | the ridge-pigeons · Echo No. 85 | 全篇 |
+| items | the bronze pigeons · the bronze feather · the ridge · the watch-ledger | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the eighty-third day of the autumn-tide month | 三、四、五、六 |
+
+> 两只铜鸽永远不下蛋——可散会之后的夜里，谁都不敢说屋脊上空无一物。
+> Two bronze pigeons never brood — and yet, in the nights after the Convocation dissolved, no one dares say the ridge is empty.
+`,
+  },
 ] as const;
 
 export const BIBLE_APPENDICES: readonly BibleChapter[] = [

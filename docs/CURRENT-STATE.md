@@ -5722,3 +5722,9 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - Docker fleet 全时段冷启动后内存长期不足 2 GB；spring-cloud proof 未重跑（16/16 绿证据文件仍有效，2026-11-18 证词在案）。
 
 **后续**：Echo #85 · §STRESS 复测（RAM≥3 GB 时）· /insight ⑧ 创作者 live 探针复核。
+
+## cont. 335 (2026-11-18) — v953 · §BIBLE-85 · Echo #85《潮候院祠殿屋脊上那对永远不孵蛋的铜斑鸽》（作者手写·双语·494/494 绿）
+
+- 第 85 篇回响「铜斑鸽」：屋脊上两只铸进整个屋脊的铜鸽——东西各一只——散会后某一晚值更人听见金属相击——像谁在屋脊上整理羽毛——修脊人说“脊上全是铜——像从来没有鸟孵过”——院里小孩问抄本师是什么——辅库进出册最后一行从那一页起没人敢签名字。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-085-the-bronze-pigeons-on-the-ridge`；verify world-bible **494/494** ✓；verify:bible-snapshot ✓。
+- 同步：BibleAsk lede → 85（含 en）；/bible/ask meta → 八十五篇 / eighty-five；cache-identity → 85 篇锚句；bible-ask-behavior 锚句总数 488→494；canon-answer-graph 测试 90 段 / 85 echoes；pins 重钉（page→3befbe38… comp→c3b5447d…）· 相关测试 24/24。

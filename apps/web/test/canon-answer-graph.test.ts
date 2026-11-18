@@ -70,12 +70,12 @@ describe('§GRAPH-1 检索与机检（确定性，不烧 token）', () => {
     expect(charBigrams('').size).toBe(0);
   });
 
-  it('digest 段落切分出 5 章 + 84 回响 = 89 段', () => {
+  it('digest 段落切分出 5 章 + 85 回响 = 90 段', () => {
     const segments = splitDigestSegments(CANON_DIGEST);
     const chapters = segments.filter((s) => s.startsWith('## Chapter'));
     const echoes = segments.filter((s) => s.startsWith('### Echo'));
     expect(chapters).toHaveLength(5);
-    expect(echoes).toHaveLength(84);
+    expect(echoes).toHaveLength(85);
   });
 
   it('「米缸」问句命中米缸回响 Echo 36（而不是随机段落）', () => {
