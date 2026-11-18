@@ -7449,3 +7449,14 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 严守 §159：按钮文案 NO change（仍用原来的 `购买/举报/下载(n)`，不假装教学 hint 成为按钮视觉；全部 aria-label 不变）。
 
 **测试**：marketplace-item-row-visual-style 15/15 ✓ · fe-gates **1370/1370** ✓ · 未触动任何 digest/anchor/verify。
+
+## cont. 360 (2026-11-18) — v980 · §FE-15-TEACHINGS-2 · 注销账号四颗按键教学注入（open/confirm/cancel/receiptDone）
+
+**本片**：按用户总纲 §五「主界面各种按键操作附教学说明」把这账号面板四颗显眼按键都加 title=（辅助 a11y 入口，不动 className、不动 hook 守恒）：
+
+- `"data-account-delete-open"` · "注销账号"→title「打开注销账号流程——确认词不对就不会执行，不会立刻删除任何东西。」/ "Open the flow — the confirmation word is required; nothing is deleted until it matches."
+- `"data-account-delete-confirm"` · "确认注销"→title「按逐字输入的确认词执行注销（软删）。已发布的作品继续在公网可看；草稿收进回收站。」/ "Soft-deletes your account once the confirmation word matches. Published works stay public; drafts move to the trash."
+- `"data-account-delete-cancel"` · "取消"→title「关闭本面板并什么都不做。」/ "Close this panel and do nothing."
+- `"data-account-deleted-done"` · "知道了"→title「关闭这张收据（只读）。账号已关，刷新页面即为新的身份视图。」/ "Close this receipt (read-only). The account is deactivated — refresh for the new identity view."
+
+**测试**：AccountDeletionPanel visual-style 9/9 ✓（SHA256 重钉 `9f846239…`→`094d51ff…`）；fe-gates **1370/1370** ✓；无消失纪律的组件逻辑改动。

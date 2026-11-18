@@ -45,7 +45,9 @@ const COPY: Record<Locale, {
   receiptLine: (n: { privateProjectsSoftDeleted: number; publishedWorksKept: number; sessionsRevoked: number; apiTokensRevoked: number }) => string;
   adrNote: string;
   receiptDone: string;
+  receiptHint: string;
   open: string;
+  openHint: string;
   intro: string;
   loading: string;
   loadError: (e: string) => string;
@@ -61,7 +63,9 @@ const COPY: Record<Locale, {
   confirmPlaceholder: string;
   busyDeleting: string;
   confirmCta: string;
+  confirmHint: string;
   cancel: string;
+  cancelHint: string;
 }> = {
   zh: {
     loadFailed: '读不到这份清单',
@@ -69,7 +73,9 @@ const COPY: Record<Locale, {
     receiptLine: (n) => `账号已注销。收起来了 ${n.privateProjectsSoftDeleted} 个私有草稿，留着 ${n.publishedWorksKept} 个已发布作品在公网，吊销了 ${n.sessionsRevoked} 个登录会话与 ${n.apiTokensRevoked} 个 API 凭据。`,
     adrNote: '这不是删除：库里那条记录还在，找回账号这件事由运维在处理一侧做（ADR-0025）。',
     receiptDone: '知道了',
+    receiptHint: '关闭这张收据（只读）。账号已关，刷新页面即为新的身份视图。',
     open: '注销账号',
+    openHint: '打开注销账号流程——确认词不对就不会执行，不会立刻删除任何东西。',
     intro: '注销之后：这个人的登录入口关闭、所有会话与 API 凭据作废、私有草稿收进回收站；已发布的作品继续在公网可达，只是作者名换成「已注销的用户」。',
     loading: '正在核对你名下的东西…',
     loadError: (e) => `没能读到清单：${e}`,
@@ -85,7 +91,9 @@ const COPY: Record<Locale, {
     confirmPlaceholder: '逐字输入确认词',
     busyDeleting: '注销中…',
     confirmCta: '确认注销',
+    confirmHint: '按逐字输入的确认词执行注销（软删）。已发布的作品继续在公网可看；草稿收进回收站。',
     cancel: '取消',
+    cancelHint: '关闭本面板并什么都不做。',
   },
   en: {
     loadFailed: 'Could not read that list',
@@ -93,7 +101,9 @@ const COPY: Record<Locale, {
     receiptLine: (n) => `Account deactivated. ${n.privateProjectsSoftDeleted} private draft(s) shelved, ${n.publishedWorksKept} published work(s) still reachable on the public web, ${n.sessionsRevoked} sign-in session(s) and ${n.apiTokensRevoked} API token(s) revoked.`,
     adrNote: 'This is not deletion — the record stays; recovering the account is an operations-side matter (ADR-0025).',
     receiptDone: 'Got it',
+    receiptHint: 'Close this receipt (read-only). The account is deactivated — refresh for the new identity view.',
     open: 'Deactivate account',
+    openHint: 'Open the flow — the confirmation word is required; nothing is deleted until it matches.',
     intro: 'Once deactivated: this person’s sign-in closes, all sessions and API tokens become void, private drafts are shelved in the trash; published works stay reachable on the public web under the name “deactivated user”.',
     loading: 'Checking what’s yours…',
     loadError: (e) => `Could not read the list: ${e}`,
@@ -109,7 +119,9 @@ const COPY: Record<Locale, {
     confirmPlaceholder: 'Type the confirmation word',
     busyDeleting: 'Deactivating…',
     confirmCta: 'Confirm deactivation',
+    confirmHint: 'Soft-deletes your account once the confirmation word matches. Published works stay public; drafts move to the trash.',
     cancel: 'Cancel',
+    cancelHint: 'Close this panel and do nothing.',
   },
 };
 
@@ -198,6 +210,7 @@ export function AccountDeletionPanel({ locale = 'zh' }: { locale?: Locale }) {
           }}
           className="adp-ghostBtn"
           data-account-deleted-done
+          title={c.receiptHint}
         >
           {c.receiptDone}
         </button>
@@ -212,6 +225,7 @@ export function AccountDeletionPanel({ locale = 'zh' }: { locale?: Locale }) {
         onClick={() => void start()}
         className="adp-btnSm"
         data-account-delete-open
+        title={c.openHint}
       >
         {c.open}
       </button>
@@ -291,6 +305,7 @@ export function AccountDeletionPanel({ locale = 'zh' }: { locale?: Locale }) {
               onClick={() => void remove()}
               className="adp-confirmBtn"
               data-account-delete-confirm
+              title={c.confirmHint}
             >
               {busy ? c.busyDeleting : c.confirmCta}
             </button>
@@ -300,6 +315,7 @@ export function AccountDeletionPanel({ locale = 'zh' }: { locale?: Locale }) {
               onClick={close}
               className="adp-cancelBtn"
               data-account-delete-cancel
+              title={c.cancelHint}
             >
               {c.cancel}
             </button>
