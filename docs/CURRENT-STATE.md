@@ -6209,3 +6209,10 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 > - /bible 页脚 二十七/XXVII · guideCopy 同步 · quiz 82→**84**（zh/en 镜像 +2 题 E27）· SHA 重钉 ×2
 > - 顺带修复：echo ordinal 数组缺一（“二十七替换二十五” bug）——E1–E27 全部对齐，/bible 展示不再错号
 > - fe-gates 147/147 · 1353/1353 · build 绿 · SSR 实锤 echo-027-after-the-tide 200 · /bible 200 · /bible/quiz 200
+
+> **2026-11-19 cont. 243 · /tide-wire 统计段 `unstable_cache` — 压测发现 + 修复**
+> - 新发现 bug：64 hits × 16 concurrency → 全部 60s timeout、61 条无法返回（全 host 的 Windows OOM 链）
+> - 根因拆解：`readObserverMetrics()` 单次 20+ SELECT，每次 RSC 渲染都打一遍 — 1000+/s 峰值让 PG/uvicorn 耗尽
+> - 修复：`observationMetrics` wrapper 加 `unstable_cache`（3600s revalidate），stats 每小时取一次；DEMO/honest 态不缓存（逐窗自愈）
+> - 重构后实测 2→0.03s；后续重启时 DEMO 优雅降级、页面不拖死
+> - fe-gates 147/147 · 1353/1353 · 2967 census 全绿
