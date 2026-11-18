@@ -7571,3 +7571,9 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 **与 v982 实测**直连同尺测试：从 148,677 tokensIn → 149,433（+0.5%）；**冷启动后 10 发全额仍是 100%**（v988 完全没有 cache 掉）。与 §PROOF-STICKY-KEY（12/12 100%）+ §PROOF-STRESS-16（32/32 × 100%）共同印证 **sticky per-lane 路由在合流 digest 上不掉 cache**。
 
 证据：`docs/evidence/big-context-v988-2026-11-19.md`（含 cache-report + 2-问（A/B）分解表）。
+
+## cont. 370 (2026-11-19) — v990 · §BIBLE-133 · Echo #133《沉香树》(作者手写 · verify 815/815)
+
+- 新篇：「沉香树 · 一朵暗红花 · 一生只开一次 · 一枝一息」—— canon digest 现 **232,309 chars**（13 章正典 · **133 回响** · 4 annex · 锚句 815 zh / 815 en ✓）。
+- 4 锚句双语；gen-bible-snapshot 增 echo-133；BibleAsk lede → 133 · /bible/ask meta → 一百三十三篇 · CACHE-IDENTITY × 133 · canon-answer-graph → 13 章 + 133 回响 = 146 段 · bible-ask-behavior → 810 · pin 重钉 page→a250ab51 / comp→dc4c8ba1。
+- fe-gates **1370/1370** ✓。digest 余量 ≈ 23K chars，**#133 同质双语片，下一道应收尾 Echo #134→#140**（如果继续往大典塞 Echo）——之后应跑大模型预检 rerun 看 cap。

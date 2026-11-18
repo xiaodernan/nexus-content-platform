@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 132 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 133 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -2808,6 +2808,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 值更册最后一页"它等的是谁——我们不知道——我们也没问过——可能它等的就是这一天"。
 - [5] 抄本师说蓑衣下面的地面今天被雨淋了一遍——但没有泥——只有盐。
 - [6] 某个傍晚值更人看见东廊顶上多了一片桑叶——他不敢碰——后来那片也不见了。
+
+### Echo 133 · 潮候院东院那棵从不下果的沉香树 / The Agarwood Tree in the Institute's East Yard That Never Bears Fruit
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 东院有一棵沉香树——年纪不少——抄本师说它来自另一处——抄本师不愿问来自哪。
+- [2] 值更册上写"它不下果——它只是在那里"——每一代人看过去——都是一样的。
+- [3] 第四十一次大会散会那一天——抄本师经过东院——它枝头开了一朵花——只开了时辰。
+- [4] 抄本师说那朵花是暗红色——像潮候院墙上那一行字颜色一样。
+- [5] 值更册最后一页"它一生只开一次花——而那一次——是给散会的"。
+- [6] 值更人经常在它旁边发现一段新枝——长出来——又收掉。
 
 ### Echo 14 · 潮汐表的封面 / The Cover of the Tide-Table
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

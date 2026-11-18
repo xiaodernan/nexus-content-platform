@@ -183,6 +183,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E130-潮候院后院那棵永远讲潮落的老榕': 'echo-130-the-banyan-that-tells-of-the-ebb',
   'E131-门开了一整夜': 'echo-131-the-door-stood-open-all-night',
   'E132-潮候院里那件永远等不到主人的蓑衣': 'echo-132-the-rain-cape-that-never-came-home',
+  'E133-潮候院东院那棵从不下果的沉香树': 'echo-133-the-agarwood-that-bloomed-once',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
