@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 150 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 151 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -2984,6 +2984,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 散会那一夜——线像潮退一样往下移动了一次——第二天回到同一位置。
 - [5] 抄本师曾伸手碰过这条线——第二天她说不出这个字"潮"。
 - [6] 值更册最后一页："线不在墙上——线在读里。"
+
+### Echo 151 · 祠殿风方门边那只只够围坐六个人的圆桌 / The Round Table Beside the Chapel Door That Only Seats Six
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 祠殿风方门边有一张圆桌——木头的——六把靠背——没有一把是铁做的。
+- [2] 抄本师问风方门边那张桌为谁留的——抄本师的母亲说——"给还没到的人留的"。
+- [3] 木头桌面不扫就带盐——潮候院里只有风方门这个角落带盐。
+- [4] 抄本师数过这张桌坐过零个人——但是椅子总有一把会偏——好像刚刚有人坐过。
+- [5] 抄本师发现第六把椅子是新加的——风方门老爷子不知道它从哪里来。
+- [6] 值更册最后一页："它坐了六个人——也才留了一把椅子给你。"
 
 ### Echo 16 · 潮沙盘上那四只小贝壳 / The Four Small Shells on the Tide-Sand Table
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
