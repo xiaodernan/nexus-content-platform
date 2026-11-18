@@ -7615,3 +7615,20 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 新篇：「祠殿空椅子 · 深黑盐 · 散会夜 · '无名'」—— digest 现 **233,997 chars**（13 章正典 · **137 回响** · 4 annex · 锚句 839 zh / 839 en ✓）。
 - 5 锚句双语 · gen-bible-snapshot 增 echo-137 · BibleAsk lede → 137 · /bible/ask meta → 一百三十七篇 · CACHE-IDENTITY × 137 · canon-answer-graph → 150 段 · bible-ask-behavior → 834 · pin 重钉 page→d5dc5cab / comp→45ceccbd。
 - fe-gates **1370/1370** ✓ · verify:world-bible 839/839 ✓。
+
+## cont. 377 (2026-11-19) — §VERIFY-INSIGHT-LIVE + §CACHE-6-AUDIT + §INSIGHT-BOTS 落地 + PGVECTOR-RESTORE
+
+- sticky transport 审计全绿：仅一个 OpenAICompatible 客户端出站（registry 注入 SSE/非流通用注入器），web 侧无 provider 直连（embedding 未启用 · aizzz 无 embed 模型）。
+- ⑧「让大模型看看这些数字」浏览器端点实测：`gpt-6.1-terra · cached 7191 · 机检通过（现象/证据 + 数字，三段式）`；
+  模型结论：`机器人占 87.2%（660/757 近 30 天）`，真人排序建议 → 已落地 §INSIGHT-BOTS。
+- **§INSIGHT-BOTS**（本片实现）：
+  - `/discover popular` 排序：raw `views + likes` → **近 30 天真人打开（suspectedBot=false）+ 点赞**（social.ts）。
+  - `trending` 的 `open` 桶去掉 suspectedBot（social.ts trendScores）。
+  - `/insight` 的 TOP works 查询加 `humanOpens30d`（insight.ts）并 order by 人流；
+    digest prints `top#N="…" path=… views=… humanOpens30d=…`（insightAi.ts · 可选字段，无则不输出）。
+  - 集成测试更新（social.integration.test.ts）：Popular 断言改为真人打开口径；
+    **全套通过（10/10）**；trending-cap-db ✓；insight digest 契约 ✓；fe-gates 1370/1370。
+- **§OPS-PGVECTOR-RESTORE**：`nexus-postgres-alt`（postgres:16）缺 pgvector .so → knowledge_chunks 查询炸：`could not access file "$libdir/vector"`。
+  在容器里 `apt-get install -y postgresql-16-pgvector` → `vector 0.8.6` 就位、`knowledge_chunks` 可查；无需重建镜像、无需动数据卷。
+  这是集成测试从此能跑基线。
+- evidence: `docs/evidence/insight-live-2026-11-19.md`。Pages 不 bump（本片为洞察落地片）。

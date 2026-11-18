@@ -62,7 +62,7 @@ export function buildInsightDigest(input: InsightDigestInput): string {
   const seriesPublishes = snapshot.series30d.publishes.join(',');
   const seriesOpens = snapshot.series30d.opens.join(',');
   const topWorksBlock = snapshot.topWorks.length > 0
-    ? snapshot.topWorks.slice(0, 3).map((w, i) => `top#${i + 1}="${w.projectName}" path=${w.path} views=${w.views}`).join('\n')
+    ? snapshot.topWorks.slice(0, 3).map((w, i) => `top#${i + 1}="${w.projectName}" path=${w.path} views=${w.views}${typeof w.humanOpens === 'number' ? ` humanOpens30d=${w.humanOpens}` : ''}`).join('\n')
     : 'n/a';
 
   return [

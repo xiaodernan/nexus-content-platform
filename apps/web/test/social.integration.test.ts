@@ -15,7 +15,7 @@ import {
 import { publishProject } from '../src/server/domain/publish';
 import { createProject, loadDocument, saveDocument } from '../src/server/domain/projects';
 import { getDb } from '../src/server/db/client';
-import { projects, publishedProjects, remixes, users } from '../src/server/db/schema';
+import { projects, publicationVisits, publishedProjects, remixes, users } from '../src/server/db/schema';
 
 /**
  * §59 / §61 社区动作与发现列表。打真库：点赞去重、关注关系、分叉出来的到底是哪一版，
@@ -204,6 +204,15 @@ describe('discover（§61）', () => {
     await toggleLike(fanId, a.publicationId);
     await toggleLike(otherId, a.publicationId);
     await getDb().update(publishedProjects).set({ views: 800 }).where(eq(publishedProjects.path, b.path));
+    // §INSIGHT-BOTS：Popular 只按「近 30 天真人打开 + 点赞」排名。给两件作品各塞一行
+    // 真人打开（suspectedBot=false），确保环境噪声冲不掉断言；爬虫不计分。
+    const today = new Date().toISOString().slice(0, 10);
+    await getDb()
+      .insert(publicationVisits)
+      .values([
+        { publicationId: a.publicationId, visitorKey: `popular-a-${Date.now()}`, day: today, opens: 900, suspectedBot: false },
+        { publicationId: b.publicationId, visitorKey: `popular-b-${Date.now()}`, day: today, opens: 800, suspectedBot: false },
+      ]);
 
     // 这台开发库里有别的测试留下的公开版本，所以不断言"第几名"，只断言
     // 两张卡都在列表里、并且各自的排序确实按各自说的那件事排
