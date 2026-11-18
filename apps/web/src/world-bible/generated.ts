@@ -15638,13 +15638,13 @@ The last page of the watch-ledger reads: as long as it stays unfinished — it i
 `,
   },
   {
-    order: 145,
-    slug: 'echo-145-the-letter-that-holds-one-character',
+    order: 146,
+    slug: 'echo-146-the-letter-that-holds-one-character',
     titleZh: '潮候院只收一个字的信',
     titleEn: 'The Letter That Holds One Character',
     eraLineZh: '纪元：潮候院 · 第四十二届大会散会之后 · 秋潮月第九十二日',
     eraLineEn: 'Era: the Chapel of the Tide · after the forty-second Convocation · the ninety-second day of the autumn tide month.',
-    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 145): The Letter That Reads Only One Word
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 146): The Letter That Reads Only One Word
 
 > 回响不续写正典——它只记下被潮捎来的东西。
 > 写一封潮候院里没人寄出、也没人认领的信——只有一个字。
@@ -15699,14 +15699,14 @@ The last page of the watch-ledger reads: as long as it stays unfinished — it i
 
 ---
 
-## 六 · 映射（回响其一百四十五 · 对应关系）
+## 六 · 映射（回响其一百四十六 · 对应关系）
 
 | 类别 | 标题 | 对应章 |
 |---|---|---|
 | lore | 一个字的信 · 潮候院 · 秋潮月第九十二日 | 一、二、三、四 |
 | geography | 潮候院 · 石阶 · 风口 | 一、三、四 |
 | characters | 誊册房 · 驿卒 · 值更人 | 一、二、三、五 |
-| story | 一个字的信 · 回响（其一百四十五） | 全篇 |
+| story | 一个字的信 · 回响（其一百四十六） | 全篇 |
 | items | 厚纸信 · 细绳 · 沙 | 一、三、四 |
 | history | 第四十二届大会散会之后 · 秋潮月第九十二日 | 全文 |
 
@@ -15769,14 +15769,14 @@ No one opened the letter. No one tore it apart either. The night-watch only sent
 
 ---
 
-## VI · Mapping (Echo No. 145 · world model)
+## VI · Mapping (Echo No. 146 · world model)
 
 | Dimension | Anchor | Linked |
 |---|---|---|
 | lore | the one-word letter · the chapel · the ninety-second day of the autumn tide month | I · II · III · IV |
 | geography | the chapel steps · the wind opening · the salt wind | I · III · IV |
 | characters | the chancellery · the courier · the night-watch | I · II · III · V |
-| story | the one-word letter · Echo No. 145 | whole piece |
+| story | the one-word letter · Echo No. 146 | whole piece |
 | items | the thick-yellow paper · the twine · the sand | I · III · IV |
 | history | after the forty-second Convocation · the ninety-second day of the autumn tide month | whole piece |
 

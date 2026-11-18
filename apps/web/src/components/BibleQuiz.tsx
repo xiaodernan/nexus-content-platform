@@ -443,12 +443,12 @@ const QUESTIONS: Question[] = [
     en: { prompt: 'In “The Rain-Book”, what did the tide bring up when it receded?', choices: ['an umbrella, intact', 'an unsigned tide-slip', 'half a timetable', 'an extinguished lamp'], answer: 0, ref: 'Echo No. 143 · III' },
   },
   {
-    zh: { prompt: '《潮候院只收一个字的信》里，信里只有哪一个字？', choices: ['走', '留', '来', '归'], answer: 0, ref: '回响（其一百四十五） · 一' },
-    en: { prompt: 'In “The Letter of One Word”, which single character was on the letter?', choices: ['走 (gone / to leave)', '留 (to stay)', '来 (to come)', '归 (to return)'], answer: 0, ref: 'Echo No. 145 · I' },
+    zh: { prompt: '《潮候院只收一个字的信》里，信里只有哪一个字？', choices: ['走', '留', '来', '归'], answer: 0, ref: '回响（其一百四十六） · 一' },
+    en: { prompt: 'In “The Letter of One Word”, which single character was on the letter?', choices: ['走 (gone / to leave)', '留 (to stay)', '来 (to come)', '归 (to return)'], answer: 0, ref: 'Echo No. 146 · I' },
   },
   {
-    zh: { prompt: '《潮候院只收一个字的信》里，谁认领了那封信？', choices: ['没有人', '驿卒按照日志认走', '值更人用沙压住并认走', '誊册房的主事人'], answer: 0, ref: '回响（其一百四十五） · 三' },
-    en: { prompt: 'In “The Letter of One Word”, who claimed the letter?', choices: ['no one — nobody claimed it or opened it', 'the courier for the ledger', 'the night-watch, by weighing it down with sand', 'the chief of the chancellery'], answer: 0, ref: 'Echo No. 145 · III' },
+    zh: { prompt: '《潮候院只收一个字的信》里，谁认领了那封信？', choices: ['没有人', '驿卒按照日志认走', '值更人用沙压住并认走', '誊册房的主事人'], answer: 0, ref: '回响（其一百四十六） · 三' },
+    en: { prompt: 'In “The Letter of One Word”, who claimed the letter?', choices: ['no one — nobody claimed it or opened it', 'the courier for the ledger', 'the night-watch, by weighing it down with sand', 'the chief of the chancellery'], answer: 0, ref: 'Echo No. 146 · III' },
   },
 ];
 
