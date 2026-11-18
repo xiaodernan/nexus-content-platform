@@ -13017,6 +13017,149 @@ The last page of the watch-ledger reads: the people who hear its voice do not li
 `,
   },
   {
+    order: 131,
+    slug: 'echo-131-the-door-stood-open-all-night',
+    titleZh: '门开了一整夜',
+    titleEn: 'The Door Stood Open All Night',
+    eraLineZh: '纪元：潮落之月 · 第四十五次会次晨 · 誊册房',
+    eraLineEn: 'Era: the morning after the forty-fifth Convocation · the month the tide receded · the copying hall.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 131): The Door Stood Open All Night
+
+> 回响不续写正典——它只记一份挑剩下的纪录：
+> 第四十五次会散去以后，门没有关。天亮以后，誊册房里留下了谁也没有交代的东西。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> After the forty-fifth Convocation dispersed, the door was never closed. What the copying hall kept the next morning, no one gave an account of.
+> Its anchors answer to the same discipline.
+
+> 纪元：潮落之月 · 第四十五次会次晨 · 誊册房
+> Era: the morning after the forty-fifth Convocation · the copying hall · the month the tide receded.
+
+---
+
+## 一 · 开门的人没有走
+
+天亮以后，誊册房的门还开着。里面没有人。推门的那一缕风把灯下面的纸页掀起来，再放下去，一页一页，很轻。
+
+门开着，里面没有人。
+**锚句**：门开着，里面没有人。
+**Anchor sentence**: The door stood open; nobody was inside.
+
+## 二 · 椅子数了三遍
+
+天亮以后，誊册房里的椅子一把不少。誊册房的人数了三遍：四十五，四十五，四十五。里头多出来的那一把，靠门借来的那一把，没人来领。
+
+他把借来的那一把竖在门边。竖好了也不知道为什么。
+**锚句**：椅子他数了三遍，每次都是四十五把。
+**Anchor sentence**: He counted the chairs three times; every time, forty-five.
+
+## 三 · 潮纸签在桌脚
+
+桌子下面有一张潮纸签。它贴着椅脚躺着，方向对着门。他弯腰捡起来看了看，上面的字是那天一个人也没有落的笔迹，一个「离」。
+
+他把它洗了洗，又晾了。
+**锚句**：潮纸签在桌脚，不是风吹到的。
+**Anchor sentence**: The tide-paper tag lay at the table's foot; the wind had not carried it there.
+
+## 四 · 那行字没有写完
+
+旧账册的最后一页，潮落之月那页，「第四十五次会」下面，还有一行空着。是念册的人留下的，或者是谁留下的，没有人知道。誊册房的人握着笔在那一行前面站了很久，没有落笔。他不是替别人写字的人，他是看着字的人。
+
+那行字没有写完。他没有替任何人写完。
+**锚句**：那行字没有写完，他没有替别人写完。
+**Anchor sentence**: The line was never finished, and he finished it for no one.
+
+## 五 · 关门留了一指宽
+
+临走的时候，他把门关了。关了又想了一想，又把门推开了一指宽。他不能说为什么。门缝里透进潮气，潮气沿墙根往屋里上了一寸。旧册子的纸页又吸了一口潮，字又浮起来一次。
+
+他走的时候没有回头。
+**锚句**：关门的时候，他留了一指宽。
+**Anchor sentence**: When he closed the door, he left it open a finger's width.
+
+---
+
+## 模型映射（回响一百三十一则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 潮落之月 · 第四十五次会次晨 · 誊册房 | 第十一章 · 第十二章 |
+| geography | 誊册房 · 门 · 案台 · 桌脚 · 门拱 | 本则 · 回响（其一百二十六） · 回响（其一百三十） |
+| factions | 誊册房的人 · 念册的人 · 潮汐教团 | 第一章 · 本则 |
+| characters | 誊册房的人 · 第四十五次会 · 念册的人 | 本则 · 回响（其一百三十） |
+| items | 四十四把椅子 · 靠门借来的那一把 · 潮纸签「离」 · 旧账册那一行 | 本则 |
+| story | 散会之后 · 门开了一整夜 · 回响（其一百三十一） | 全篇 |
+| history | 潮落之月 · 第四十五次会次晨 · 门关与门开 | 本则 |
+
+> 门开了一整夜，
+> 潮水才知道自己散会了。
+> The door stood open all night;
+> only the tide knew the Convocation was over.
+`,
+    markdownEn: `
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> After the forty-fifth Convocation dispersed, the door was never closed. What the copying hall kept the next morning, no one gave an account of.
+> Its anchors answer to the same discipline.
+
+> Era: the morning after the forty-fifth Convocation · the month the tide receded · the copying hall.
+
+---
+
+## 1 · The one who opened it never left
+
+After the sky brightened, the copying hall's door was still open. Nobody was inside. The draught tipped the pages on the desk over one by one — lightly, almost gently.
+
+The door stood open; nobody was inside.
+**Anchor sentence**: The door stood open; nobody was inside.
+
+## 2 · He counted the chairs three times
+
+After the sky brightened, the chairs were all accounted for. The copyist counted them three times: forty-five, forty-five, forty-five. The borrowed one by the door — no one came to claim it.
+
+He set the borrowed chair back upright beside the door, and did not know why.
+**Anchor sentence**: He counted the chairs three times; every time, forty-five.
+
+## 3 · The tide-paper tag at the table's foot
+
+Beneath the table lay a tide-paper tag. It lay against a chair leg, its face turned toward the door. The hand that had written it had belonged to no one present — the character was 「离」.
+
+He washed it, dried it, and set it back where he had found it.
+**Anchor sentence**: The tide-paper tag lay at the table's foot; the wind had not carried it there.
+
+## 4 · The line was never finished
+
+On the last page of the old ledger, in the month of the ebb — beneath the line that read "the forty-fifth Convocation" — a single line went unfinished. Perhaps the reader had left it; perhaps someone else had. The copyist stood before it holding his pen for a long time, and did not write. He was not a man who wrote for others; he was a man who watched the writing.
+
+The line was never finished; he finished it for no one.
+**Anchor sentence**: The line was never finished, and he finished it for no one.
+
+## 5 · He left a finger's width
+
+When the time came to leave, he closed the door. Then he thought about it, and opened it again a finger's width. He could not say why. The damp came in through the gap and climbed one inch up the wall-foot. The pages of the old ledger drank it, and the writing rose to the surface once more.
+
+He did not look back as he went.
+**Anchor sentence**: When he closed the door, he left it open a finger's width.
+
+---
+
+## Echo No. 131 — dimension mapping
+
+| Dim | Anchor | Linked |
+|---|---|---|
+| lore | the morning after the forty-fifth Convocation · the month the tide receded · the copying hall | Ch. 11 · Ch. 12 |
+| geography | the copying hall · the door · the table's foot · the arch | this echo · Echo 126 · Echo 130 |
+| factions | the copyist · the reader · the Tide Conclave | Ch. 1 · this echo |
+| characters | the copyist · the forty-fifth Convocation · the reader | this echo · Echo 130 |
+| items | the forty-four chairs · the borrowed one by the door · the tide-paper tag 「离」· the unfinished line of the ledger | this echo |
+| story | after the Convocation · the door stood open all night · Echo No. 131 | whole piece |
+| history | the month the tide receded · the morning after the forty-fifth Convocation · the door open and shut | this echo |
+
+> The door stood open all night;
+> only the tide knew the Convocation was over.
+`,
+  },
+  {
     order: 14,
     slug: 'echo-014-the-cover-of-the-tide-table',
     titleZh: '潮汐表的封面',
