@@ -32,12 +32,12 @@ export const PROFILE_WEIGHTS = {
 
 /** 单次造访里每个人··天会产生几次打开 */
 const OPEN_COUNT: Record<VisitorProfile, (r: () => number) => number> = {
-  impatient: (r) => 1,
+  impatient: (_r) => 1,
   clicker: (r) => 2 + Math.floor(r() * 4),
-  'deep-reader': (r) => 1,
+  'deep-reader': (_r) => 1,
   'rage-clicker': (r) => 3 + Math.floor(r() * 4),
-  'fat-finger': (r) => 1,
-  crawler: (r) => 1,
+  'fat-finger': (_r) => 1,
+  crawler: (_r) => 1,
 };
 
 /** 人·天行数的持续时间（可见毫秒），按轮廓不同分布 */
@@ -60,7 +60,7 @@ const COMPLETION_PCT: Record<VisitorProfile, (r: () => number) => number> = {
   'deep-reader': (r) => Math.floor(85 + r() * 15),
   'rage-clicker': (r) => Math.floor(r() * 12),
   'fat-finger': (r) => (r() < 0.33 ? 95 + Math.floor(r() * 5) : Math.floor(10 + r() * 40)),
-  crawler: (r) => 0,
+  crawler: (_r) => 0,
 };
 
 export interface SimulatedVisit {

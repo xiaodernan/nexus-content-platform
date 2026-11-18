@@ -25,7 +25,7 @@
 
 export const START = '__start__';
 export const END = '__end__';
-export type NodeName = string | typeof START | typeof END;
+export type NodeName = string;
 
 export class StateGraphRecursionError extends Error {
   constructor(readonly step: number) {
@@ -96,7 +96,7 @@ const deepFreeze = <T extends AnyState>(obj: T): Readonly<T> => Object.freeze({ 
 export class StateGraph<State extends AnyState> {
   private readonly nodes = new Map<string, StateNode<State>>();
   private readonly edges = new Map<string, string[]>();
-  private readonly conditionalEdges = new Map<string, (state: Readonly<State>) => string | string[] | typeof END>();
+  private readonly conditionalEdges = new Map<string, (state: Readonly<State>) => string | string[]>();
   private reducers: Record<string, ChannelReducer<unknown>> = {};
   private entryAdded = false;
 
@@ -119,7 +119,7 @@ export class StateGraph<State extends AnyState> {
   }
 
   /** 条件边：`path(state)` 返回下一节点名（string）、一个数组（fan-out）或 `END`。 */
-  addConditionalEdges(from: NodeName, path: (state: Readonly<State>) => string | string[] | typeof END): this {
+  addConditionalEdges(from: NodeName, path: (state: Readonly<State>) => string | string[]): this {
     this.checkNode(from, false, true);
     if (from === START) this.entryAdded = true;
     this.conditionalEdges.set(from as string, path);
@@ -173,7 +173,7 @@ export class StateGraph<State extends AnyState> {
             return { name, partial: (await fn(deepFreeze({ ...state } as State))) as AnyState };
           }),
         );
-        for (const { name, partial } of partials) {
+        for (const { partial } of partials) {
           state = await mergeUpdate(state, partial, reducers);
         }
         config.onStep?.(state as Readonly<Record<string, unknown>>, step, runAt);

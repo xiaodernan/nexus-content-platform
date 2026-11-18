@@ -2,7 +2,7 @@ import type { ReactElement } from 'react';
 import Link from 'next/link';
 import { currentUserOrNull } from '@/server/domain/session';
 import { InviteAcceptPanel } from './InviteAcceptPanel';
-import { getLocale, type Locale } from '@/lib/i18n';
+import { getLocale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
 

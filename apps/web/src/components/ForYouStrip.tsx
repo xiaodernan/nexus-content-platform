@@ -125,7 +125,6 @@ export function ForYouStrip({ locale }: { locale: Locale }) {
   // 打开页面就自动触发一次——推荐位是静默的（公共页，SSR 无产出，client mount 后取数）
   useEffect(() => {
     void run();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (phase === 'loading') {

@@ -96,7 +96,7 @@ describe('──SHIP-DIGEST /ship "AI 平台速览"', () => {
 
   it('SHA256 钉死：ShipDigest（className 脱敏后）', () => {
     expect(createHash('sha256').update(redactClasses(card)).digest('hex')).toBe(
-      '67a243cd43a884a53e1805ac4420e66ca8a736ecdaa31a64c004a278bd73aee8',
+      'f083d5d557d7bfa45aad315205ea1d1db34df99b812ee38ed0457ee42dbac8e1',
     );
   });
 });

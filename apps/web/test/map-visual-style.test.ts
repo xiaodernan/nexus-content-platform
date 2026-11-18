@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -76,7 +76,6 @@ describe('§MAP-2 /map 世界全图', () => {
   });
 
   it('列出的每个路由在本仓库真实存在（只认 src/app/<route> 映射）', () => {
-    const fs = require('node:fs') as typeof import('node:fs');
     const APP = join(ROOT, 'apps/web/src/app');
     for (const route of REQUIRED_ROUTES) {
       const dir =
@@ -84,7 +83,7 @@ describe('§MAP-2 /map 世界全图', () => {
           ? join(APP)
           : join(APP, route.slice(1));
       const direct = join(dir, 'page.tsx');
-      expect(fs.existsSync(direct), `/map 里写了 ${route} 但 ${direct} 不存在`).toBe(true);
+      expect(existsSync(direct), `/map 里写了 ${route} 但 ${direct} 不存在`).toBe(true);
     }
   });
 

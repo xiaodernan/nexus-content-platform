@@ -69,7 +69,7 @@ export function InAppGuide({ locale = 'zh', open, onClose }: { locale?: Locale; 
       </div>
       <div className="tsg-body">
         <nav className="tsg-toc" aria-label={locale === 'zh' ? '目录' : 'TOC'} data-help-toc>
-          {copy.sections.map((section, idx) => {
+          {copy.sections.map((section) => {
             const id = section.heading.slice(2).replace(/\s+/g, '-');
             return (
               <a key={section.heading} href={`#${id}`} className="tsg-tocLink">

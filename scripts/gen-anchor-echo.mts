@@ -60,7 +60,6 @@ for (const zhName of echoFiles) {
   if (!existsSync(join(ECHOES_DIR, enName))) throw new Error(`缺英文译本 ${enName}`);
   const n = parseInt(zhName.slice(1, 3), 10);
   const zhNum = ZH_NUM[n - 1] ?? String(n);
-  const roman = ROMAN[n - 1] ?? String(n);
   out.push(...pairFor(join(ECHOES_DIR, zhName), join(ECHOES_DIR, enName), `回响（其${zhNum}）`, `Echo No. ${n}`));
 }
 

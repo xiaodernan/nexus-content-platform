@@ -177,7 +177,7 @@ describe('§FE-22 /invites/[token] 兑现邀请落地页', () => {
   it('剥 className 后全文 SHA256 守恒（零行为：page=00703da0… · panel=40a82b13…）', () => {
     // 常量在改前（git HEAD）由真实产物 redact 算出并钉死；此门保证除 className 外一字节未动。
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '06520475a8acdd8c0e8609610baf4ed0a240de0d838ab46b0fe7f993062af6d5',
+      'a6f398fde7f8363f096bf3c9a2f03efa9a4ba4cd7a5a505fa2dd2105cfcb43ba',
     );
     expect(createHash('sha256').update(redactClasses(panel)).digest('hex')).toBe(
       'f465aa8b786fafc339cfbe712ec1b5711812b516aa27836af06562f58d09a75c',

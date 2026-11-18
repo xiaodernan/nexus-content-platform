@@ -41,7 +41,7 @@ describe('stategraph 核心语义', () => {
     const g = new StateGraph<TestState>()
       .addNode('decide', () => ({}))
       .addNode('bump', (s) => { ran.bump++; return { counter: s.counter + 1 }; })
-      .addNode('stop', (s) => { ran.stop++; return { done: true }; })
+      .addNode('stop', (_s) => { ran.stop++; return { done: true }; })
       .addEdge(START, 'decide')
       .addConditionalEdges('decide', (s) => (s.counter >= 2 ? 'stop' : 'bump'))
       .addEdge('bump', 'decide')

@@ -39,10 +39,8 @@ afterAll(() => setRateLimiter(undefined));
 
 describe('§九 /api/insight/login 撞库（IP 限流 30/5min 真门）', () => {
   it('同一 IP 连续 30 次错误口令得 401，第 31 次起得 429 与 retryAfterMs', async () => {
-    let lastStatus = 0;
     for (let i = 0; i < 30; i += 1) {
       const res = await login(req('203.0.113.101', '000'));
-      lastStatus = res.status;
       expect(res.status, `第 ${i + 1} 次错误口令应为 401`).toBe(401);
     }
     expect(jar.size, '没有一次成功登录，cookie 不该落地').toBe(0);

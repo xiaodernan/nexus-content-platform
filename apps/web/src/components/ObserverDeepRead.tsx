@@ -84,7 +84,7 @@ export function ObserverDeepRead({ locale }: { locale: Locale }) {
           <p className="observer-aidr-kicker">{c.kicker}</p>
           <p className="observer-aidr-hint">{c.idle}</p>
         </div>
-        <button type="button" className="observer-aidr-button" onClick={generate} data-observer-deepread-button>
+        <button type="button" className="observer-aidr-button" onClick={() => { void generate(); }} data-observer-deepread-button>
           {c.generate}
         </button>
       </div>
@@ -105,7 +105,7 @@ export function ObserverDeepRead({ locale }: { locale: Locale }) {
       <div className="observer-aidr observer-aidr-error" data-observer-deepread-error role="alert">
         <p className="observer-aidr-kicker">{c.kicker}</p>
         <p className="observer-aidr-hint">{state.message}</p>
-        <button type="button" className="observer-aidr-button" onClick={generate} data-observer-deepread-retry>
+        <button type="button" className="observer-aidr-button" onClick={() => { void generate(); }} data-observer-deepread-retry>
           {c.retry}
         </button>
       </div>

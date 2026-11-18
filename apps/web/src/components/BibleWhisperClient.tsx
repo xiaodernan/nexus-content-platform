@@ -103,7 +103,6 @@ export default function BibleWhisperClient({ locale = 'zh' }: { locale?: Locale 
   useEffect(() => {
     // 只选一个默认 tome，方便用户开口问
     if (!slug && files[0]) setSlug(files[0].slug);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -114,7 +113,7 @@ export default function BibleWhisperClient({ locale = 'zh' }: { locale?: Locale 
         <p className="wv-lede">{c.lede}</p>
       </header>
 
-      <form className="wx-form" onSubmit={submission} data-whisper-form>
+      <form className="wx-form" onSubmit={(event) => { void submission(event); }} data-whisper-form>
         <label className="wx-label">
           <span className="wx-labelText">{c.fileLabel}</span>
           <select

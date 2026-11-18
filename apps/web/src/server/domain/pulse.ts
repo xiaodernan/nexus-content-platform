@@ -13,7 +13,6 @@ import {
   users,
   workCompletions,
 } from '../db/schema';
-import { utcDay } from '@/lib/visit-meter';
 
 /**
  * §PULSE · 平台级**聚合**读数（`/pulse` 用）

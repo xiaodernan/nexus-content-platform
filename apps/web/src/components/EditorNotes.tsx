@@ -76,7 +76,6 @@ export function EditorNotes({ cards, locale }: { cards: EditorNoteCardInput[]; l
       alive = false;
     };
     // 只在挂载时触发一次——同一张榜的批注由服务端 24h LRU 兜底
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!ok) return null;

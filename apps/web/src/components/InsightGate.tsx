@@ -43,7 +43,7 @@ export function InsightGate({ locale }: { locale: Locale }) {
   };
 
   return (
-    <form className="insg-gate" onSubmit={onSubmit} data-insight-gate>
+    <form className="insg-gate" onSubmit={(event) => { void onSubmit(event); }} data-insight-gate>
       <label className="insg-gateLabel" htmlFor="insight-password">{copy.label}</label>
       <div className="insg-gateRow">
         <input

@@ -120,7 +120,6 @@ export function PurchasesClient({ locale = 'zh' }: { locale?: Locale }) {
         setError(cause instanceof Error ? cause.message : T.readFailedShort);
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   const download = async (row: PurchaseRow): Promise<void> => {

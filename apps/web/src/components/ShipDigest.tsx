@@ -67,7 +67,6 @@ export function ShipDigest({ input, locale }: { input: ShipGlanceInput; locale: 
       alive = false;
     };
     // 只在挂载时触发——新提交会改变输入摘要，服务端 24h LRU 按输入计费
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!ok) return null;

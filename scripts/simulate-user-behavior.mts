@@ -26,13 +26,16 @@ const PORT = Number(process.argv[process.argv.indexOf('--port') + 1] ?? 3199);
 const SESSIONS = Number(process.argv[process.argv.indexOf('--sessions') + 1] ?? 24);
 const BASE = `http://127.0.0.1:${PORT}`;
 const OUT_JSON = join(process.cwd(), 'docs', 'evidence', 'simulated-user-behavior-2026-11-16.json');
-const OUT_MD = join(process.cwd(), 'docs', 'evidence', 'simulated-user-behavior-2026-11-16.md');
 
 // ── deterministic LCG（so the evidence is rerun-identical）
-let seed = 0x2545F4914B6EC;
+let seed = 0x2545F4914b6ecn;
+const TWO_P64 = 1n << 64n;
+const MASK64 = TWO_P64 - 1n;
+const MUL = 6364136223846793005n;
+const INC = 1442695040888963407n;
 function rand(): number {
-  seed = (Math.imul(seed, 6364136223846793005) + 1442695040888963407) >>> 0;
-  return seed / 0x100000000;
+  seed = (seed * MUL + INC) & MASK64;
+  return Number(seed >> 11n) / 2 ** 53;
 }
 const pick = <T,>(arr: readonly T[]): T => arr[Math.floor(rand() * arr.length)]!;
 

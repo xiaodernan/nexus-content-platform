@@ -20,7 +20,7 @@ beforeEach(() => {
 
 describe('platformPulseCached', () => {
   it('TTL 内命中：loader 只调一次，两次拿的是同一份结果', async () => {
-    let t = 1_000_000;
+    const t = 1_000_000;
     const now = () => t;
     const load = vi.fn(async () => fakePulse('a'));
     const first = await platformPulseCached(now, load);
