@@ -7431,3 +7431,21 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 6 anchor 双语对齐；gen-bible-snapshot 增补回响映射（echo-127-…）；anchors 626 pairs verified。
 - 所有调用同步更新：BibleAsk lede → 127 · /bible/ask meta → 一百二十七篇 · guideCopy 双语 numbers 更新 · CACHE-IDENTITY × 127 · canon-answer-graph → 13 章 + 127 回响 = 140 段 · bible-ask-behavior.test → 775 · pin 重钉 page→3d01a30e / comp→05085704。
 - fe-gates **1370/1370** ✓ 持有。当前 digest: 23ld tokens* · anchor verify zh=en=780 · digest sha256=648e7150…
+
+## cont. 359 (2026-11-18) — v979 · §FE-14-TEACHINGS · 市场按键教学生眼注入（4 个高点击按钮 title 提示）
+
+**动机**：用户总指令 §五 要求「主界面上给各种按键和操作加上附带的教学说明」——此前 `/guide` 教程与快键速览已存在，但列表里的事务性按钮（marketplace 行级操作）没数据"教"标签。缺。
+
+**改动**：
+
+- 新增四个教学辅助文案键（选中文本齐备）：
+  - `editPriceVisibilityHint`「改价格与可见性；保存后立即反映到市场列表，换一台设备可以看到。」
+  - `purchaseHint`「按 credits 显示价购买；买完才能下载。」
+  - `reportHint`「打开举报小抽屉——列出必填原因后提交给审核台。」
+  - `downloadCountHint`「把这个组件下载为：设计文档 + 代码压缩包。」
+  - 四个 `<button>` 添加 `title=` 属性（HTML 语义正确的 a11y 讲解，不影响 className 门面和类）。
+  - en 同样四个 Hint 键（`Edit price and visibility` / `Pay the credit price` / `Open the report drawer` / `Download this component…`）。
+- pin 重钉：`JS_SEGMENT_SHA256`（按 `return (` 之前的字节）`af4849b8…` → `d96be603…`；Visual-style 15/15。
+- 严守 §159：按钮文案 NO change（仍用原来的 `购买/举报/下载(n)`，不假装教学 hint 成为按钮视觉；全部 aria-label 不变）。
+
+**测试**：marketplace-item-row-visual-style 15/15 ✓ · fe-gates **1370/1370** ✓ · 未触动任何 digest/anchor/verify。
