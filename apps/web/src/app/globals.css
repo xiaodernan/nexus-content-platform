@@ -5993,6 +5993,26 @@
   .tide-wireHonest { border-color: CanvasText; background: Canvas; }
 }
 
+/* ── §MODERATION-ASSIST · 复核助理（AI 帮我读一眼，只读只参考）── */
+.moderation-aidr { display: flex; flex-direction: column; gap: var(--nexus-space-1); border: 1px dashed color-mix(in srgb, var(--nexus-color-accent-mix) 45%, transparent); border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-2) var(--nexus-space-3); background: var(--nexus-color-bg-1); margin: var(--nexus-space-2) 0; }
+.moderation-aidrKicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.18em; text-transform: uppercase; color: var(--nexus-color-accent-mix); margin: 0; }
+.moderation-aidrHint { font-size: var(--nexus-font-size-11); line-height: 1.75; color: var(--nexus-color-fg-2); margin: 0; }
+.moderation-aidrButton { align-self: flex-start; padding: var(--nexus-space-1) var(--nexus-space-3); font-size: var(--nexus-font-size-11); font-weight: 700; letter-spacing: 0.05em; border-radius: var(--nexus-radius-sm); border: 1px solid var(--nexus-color-accent-mix); background: transparent; color: var(--nexus-color-fg-1); cursor: pointer; transition: border-color 160ms ease, background 160ms ease; }
+.moderation-aidrButton:hover { border-color: var(--nexus-color-brand); background: color-mix(in srgb, var(--nexus-color-accent-mix) 14%, var(--nexus-color-bg-1)); }
+.moderation-aidrButton:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
+.moderation-aidr-busy { opacity: 0.75; }
+.moderation-aidrBadge { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.08em; align-self: flex-start; padding: 0.1rem 0.6rem; margin-left: var(--nexus-space-2); border: 1px solid color-mix(in srgb, var(--nexus-color-accent-mix) 40%, transparent); border-radius: var(--nexus-radius-sm); color: var(--nexus-color-accent-mix); font-variant-numeric: tabular-nums; }
+.moderation-aidrText { font-size: var(--nexus-font-size-12); line-height: 1.8; color: var(--nexus-color-fg-1); white-space: pre-wrap; margin: 0; }
+.moderation-aidrHonest { border-left: 2px solid color-mix(in srgb, var(--nexus-color-accent-mix) 70%, transparent); padding-left: var(--nexus-space-2); display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+.moderation-aidrHonestTitle { font-size: var(--nexus-font-size-12); font-weight: 700; color: var(--nexus-color-fg-1); margin: 0; }
+.moderation-aidrHonestBody { font-size: var(--nexus-font-size-11); line-height: 1.75; color: var(--nexus-color-fg-2); margin: 0; }
+@media (forced-colors: active) {
+  .moderation-aidr { border-color: CanvasText; background: Canvas; }
+  .moderation-aidrKicker, .moderation-aidrHint, .moderation-aidrText, .moderation-aidrHonestTitle, .moderation-aidrHonestBody, .moderation-aidrBadge { color: CanvasText; -webkit-text-fill-color: CanvasText; background: none; border-color: CanvasText; }
+  .moderation-aidrButton { color: CanvasText; border-color: CanvasText; background: Canvas; }
+  .moderation-aidrButton:focus-visible { outline-color: Highlight; }
+}
+
 }/* ── §MAP-1 /map 世界全图视觉层 ── */
 .map-root { min-height: 100dvh; padding: var(--nexus-space-6) clamp(var(--nexus-space-4), 5vw, var(--nexus-space-8)); background: radial-gradient(1200px 500px at 85% -10%, color-mix(in srgb, var(--nexus-color-accent-2) 18%, transparent) 0%, transparent 60%), radial-gradient(900px 500px at -10% 20%, color-mix(in srgb, var(--nexus-color-accent-mix) 22%, transparent) 0%, transparent 55%), var(--nexus-color-bg-0); color: var(--nexus-color-fg-1); position: relative; }
 .map-hero { max-width: 72rem; margin: 0 auto; }

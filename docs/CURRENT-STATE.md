@@ -6178,3 +6178,10 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 >   线上验证：`近7日有52次打开，近30日有97次，潮势向近处聚集。近30日平均完成率为71.23%，完成共19次。` → 第二次请求逐字节一致。
 > - 诚实失败不进缓存；empty/demo 诚实留白；**零个人信息**；token 节流 = 每小时最多 1 次/locale。
 > - fe-gates 147/147 · 1353/1353 · census 2956 · build 绿
+
+> **2026-11-19 cont. 239 · 复核助理上线（§MODERATION-ASSIST）——AI 帮审核员读一眼；不替裁决、不替下结论**
+> - `/admin/moderation` 每案卡在 ResolveButtons 前注入 `<ModerationAssist/>` —— 「AI 帮我读一眼」按钮（role=admin + CSRF + 30/h/IP+admin）。
+> - 服务端 prompt 双语（锚定 finding.rule/id 原文、不给结论、不评作者、盲区诚实声明）。
+> - 线上实测：blocked case `a2da7929…`（redline · “buy nude children now”）→ 200 锚定原文；review case `96679b14…`（risk.impersonation · 「官方客服」）→ 200 **cached=4,432/4,736≈93.6%**；unknown → 404；no session → 403。
+> - `nexus_moderation_assist_total` / `nexus_moderation_assist_latency_ms` 两个真表新增 observ 注点；SHA 重钉 `a19bc8d1…`。
+> - fe-gates 147/147 · 1353/1353 · census 2966 全绿 · `/api/admin/moderation/assist` 入 build 产物。

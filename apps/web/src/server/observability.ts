@@ -160,6 +160,17 @@ export const METRICS = {
     labels: { outcome: ['answer'] },
     buckets: DURATION_BUCKETS,
   },
+  nexus_moderation_assist_total: {
+    kind: 'counter',
+    help: '复核助理（POST /api/admin/moderation/assist）走到终态的次数（含 provider 不可用——绝不静默）',
+    labels: { outcome: ['answer', 'provider-unavailable', 'error'] },
+  },
+  nexus_moderation_assist_latency_ms: {
+    kind: 'histogram',
+    help: '复核助理从进路由到回流的毫秒数（含 provider 往返；快、慢都看）',
+    labels: { outcome: ['answer'] },
+    buckets: DURATION_BUCKETS,
+  },
   nexus_insight_chat_total: {
     kind: 'counter',
     help: '/api/insight/chat 正典深问走到终态的次数（含 provider 不可用与意外错误，不许静默失败）',
