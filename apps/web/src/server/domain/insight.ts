@@ -30,7 +30,10 @@ export interface InsightTopWork {
   path: string;
   projectName: string;
   handle: string | null;
+  /** 累计原始浏览（含爬虫），展示口径不变 */
   views: number;
+  /** §INSIGHT-BOTS：近 30 天真人打开（suspectedBot=false）；缺席时 digest 不报该格 */
+  humanOpens?: number;
 }
 
 export interface InsightSnapshot {
@@ -160,11 +163,12 @@ export async function collectInsightSnapshot(now = new Date()): Promise<InsightS
       projectName: projects.name,
       handle: users.handle,
       views: sql<number>`${publishedProjects.views}::bigint`,
+      humanOpens: sql<number>`coalesce((select sum(opens)::bigint from publication_visits where publication_visits.publication_id = ${publishedProjects.id} and publication_visits.suspected_bot = false and publication_visits.day >= (current_date - interval '30 days')::date), 0)`,
     }).from(publishedProjects)
       .innerJoin(projects, sql`${projects.id} = ${publishedProjects.projectId}`)
       .innerJoin(users, sql`${users.id} = ${projects.ownerId}`)
       .where(sql`${publishedProjects.visibility} = 'public'`)
-      .orderBy(sql`${publishedProjects.views} desc`)
+      .orderBy(sql`(select coalesce(sum(opens), 0)::bigint from publication_visits where publication_visits.publication_id = ${publishedProjects.id} and publication_visits.suspected_bot = false and publication_visits.day >= (current_date - interval '30 days')::date) desc`)
       .limit(5),
   ]);
 
@@ -239,6 +243,7 @@ export async function collectInsightSnapshot(now = new Date()): Promise<InsightS
       projectName: r.projectName,
       handle: r.handle,
       views: toInt(r.views),
+      humanOpens: toInt(r.humanOpens),
     })),
     metrics,
   };

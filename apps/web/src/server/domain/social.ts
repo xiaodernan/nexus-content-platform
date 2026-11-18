@@ -31,7 +31,7 @@ import {
  *   别人点 Remix 时拿到的是快照里的文档，作者没公开的东西不会因为有人想 remix 就漏出去。
  * - **评论走发布机检同一份红线词表**（§129）：命中就不发出去。
  *   没命中也**不**等于安全——这句话随回执一起给调用方，不只在代码注释里。
- * - **发现列表只排真有的信号**：New 按发布时间、Popular 按累计浏览与点赞、Following 按关注关系。
+ * - **发现列表只排真有的信号**：New 按发布时间、Popular 按近 30 天真人打开与点赞（suspectedBot 不入排名，§INSIGHT-BOTS）、Following 按关注关系。
  *   Trending 要的是互动时间序列（我们现在只有累计数），AI Picks 要的是模型——
  *   两者都列进 `unavailable` 而不是拿累计数换个名字冒充。
  * - **§132 的 block / mute 在这里生效**（判定与理由在 `domain/blocks.ts`）：block 挡住会落到
@@ -473,7 +473,10 @@ export async function discover(input: { sort: DiscoverSort; viewerId?: string | 
     .where(where)
     .orderBy(
       input.sort === 'popular'
-        ? desc(sql`${publishedProjects.views} + (select count(*) from likes where likes.project_id = ${publishedProjects.projectId})`)
+        // §INSIGHT-BOTS（cont.377 大模型解读指出的瓶颈）：Popular 只按「近 30 天真人打开」
+        // + 点赞排名。爬虫/自动化的打开（suspectedBot）已从排名信号里剔除——
+        // 否则机器人护航的卡片会一直往前排。展示字面 views 仍为累计值，口径不变。
+        ? desc(sql`(select coalesce(sum(opens), 0)::bigint from publication_visits where publication_visits.publication_id = ${publishedProjects.id} and publication_visits.suspected_bot = false and publication_visits.day >= (current_date - interval '30 days')::date) + (select count(*) from likes where likes.project_id = ${publishedProjects.projectId})`)
         : desc(publishedProjects.publishedAt),
     )
     // trending 要在"最近这么多条公开版本"里算分：候选集就是这一句，页面上也照这句话写
@@ -612,7 +615,7 @@ async function trendScores(pairs: { publicationId: string; projectId: string }[]
         opens: sql<number>`coalesce(sum(${publicationVisits.opens}), 0)::int`,
       })
       .from(publicationVisits)
-      .where(gte(publicationVisits.day, since.toISOString().slice(0, 10)))
+      .where(and(gte(publicationVisits.day, since.toISOString().slice(0, 10)), eq(publicationVisits.suspectedBot, false)))
       .groupBy(publicationVisits.publicationId, publicationVisits.day),
   ]);
 
