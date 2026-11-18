@@ -7460,3 +7460,9 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - `"data-account-deleted-done"` · "知道了"→title「关闭这张收据（只读）。账号已关，刷新页面即为新的身份视图。」/ "Close this receipt (read-only). The account is deactivated — refresh for the new identity view."
 
 **测试**：AccountDeletionPanel visual-style 9/9 ✓（SHA256 重钉 `9f846239…`→`094d51ff…`）；fe-gates **1370/1370** ✓；无消失纪律的组件逻辑改动。
+
+## cont. 361 (2026-11-18) — v981 · §BIBLE-128 · Echo #128《走廊尽头那只从不停的小鼓》(作者手写 · verify 786/786)
+
+- 新篇：「走廊尽头小鼓 · 祠殿灯先暗 · 每年三次 · 值更册最后一页"它从不停"」—— canon digest 现 **230,335 chars**（13 章正典 · **128 回响** · 4 annex · 786 zh / 786 en 锚句）；`verify:world-bible 786/786` ✓。
+- 映射 + slug + 索引 + 所有说明书文案（双语） + pin 全流程重钉：BibleAsk lede → 128 · /bible/ask meta → 一百二十八篇 · CACHE-IDENTITY × 128 · canon-answer-graph → 13 章 + 128 回响 = 141 段 · bible-ask-behavior.test → 781 · comp pin comp=b4c46f95 / page=1073d9ad。
+- fe-gates **1370/1370** ✓；new milestone "回响 128 · 锚句 786" landing。

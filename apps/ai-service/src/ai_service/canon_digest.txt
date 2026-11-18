@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 127 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 128 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -2756,6 +2756,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 值更册里有一页写着"第十二册是第十一册的背面"——没有人敢把整本倒过来看。
 - [5] 值更册第 117 页：每少一本第十二册——下一代抄本师就会多写一本错册。
 - [6] 抄本师起草的誓言：若有谁真的找到了第十二册——他必是来潮候院的人。
+
+### Echo 128 · 潮候院里那只从不停的小鼓 / The Little Drum in the Institute That Never Stops
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 走廊尽头有一只小鼓——鼓皮是旧的——鼓面上钉着一层灰——从不敲掉。
+- [2] 抄本师听见过——值更人听见过——没人说得清它在哪一刻开始响。
+- [3] 老抄本师说它响的时候——祠殿那边的灯先暗一下。
+- [4] 值更册记载——这只鼓每年只响三次——第三次没有周期。
+- [5] 值更册的最后一页写"它从不停"——抄本师没有人解释这一句。
+- [6] 抄本师曾把耳朵贴到鼓皮上——她说"它不是节奏——它是心"。
 
 ### Echo 13 · 潮候院没有叫过的那一声会 / The Convocation Nobody Called
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
