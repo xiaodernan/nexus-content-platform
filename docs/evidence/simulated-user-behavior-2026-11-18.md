@@ -1,6 +1,6 @@
 # 真实用户行为 *模拟*（合成流量，20 会话 × 5 画像）· 2026-11-18 实录
 
-> 方法（§159 明示）：这是**合成**的行为模擬——deterministic seed (LCG)，以本机 dev server（Next dev，端口 3100）为靶，按脚本的假设画像跑；**不是**对真实访客的观测数据。真实口径看 /insight（库聚合的真数）。
+> 方法（§159 明示）：这是**合成**的行为模拟——deterministic seed (LCG)，以本机 dev server（Next dev，端口 3100）为靶，按脚本的假设画像跑；**不是**对真实访客的观测数据。真实口径看 /insight（库聚合的真数）。
 > 只打 GET 公共路由（不经 /api/、/studio、/insight、/admin）。冷编译期的 404 不计入（dev 特性）。
 > JSON 明细：`simulated-user-behavior-2026-11-18.json`（脚本原样产出）。
 

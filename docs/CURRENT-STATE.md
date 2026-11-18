@@ -5690,3 +5690,10 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - dev server 已停（端口释放）
 
 **未处理**：真实生产端到端撞库（≥ 数百并发）仍需真实部署窗口——本机内存不允许；Simulation ≠ SLA，记录在案。
+
+## cont. 333 (2026-11-18) — v951 · §BIBLE-84 · Echo #84《潮候院祠殿碾房角落那口从不生锈的旧铁锅》（作者手写·双语·488/488 绿）
+
+- 第 84 篇回响「旧铁锅」：碾房角落那口锅——木盖刻"口"字——只有过一次正经用过（盐稀饭倒掉）——从不生锈——散会后被东挪一寸——没人敢挪回去。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-084-the-pot-that-never-rusts`；verify world-bible **488/488** ✓ · verify:bible-snapshot ✓。
+- 同步：BibleAsk lede → 84（含 en）；/bible/ask meta → 八十四篇 / eighty-four；cache-identity → 84 篇锚句；bible-ask-behavior 锚句总数 482→488；canon-answer-graph 测试 89 段 / 84 echoes；pins 重钉（page→95adbe7e… comp→e25bab25…）· 相关测试 24/24。
+- 顺带：模拟 evidence 一字修正（模擬 → 模拟），v950 记录闭环。

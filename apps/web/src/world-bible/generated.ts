@@ -17647,6 +17647,204 @@ They only say, no matter what you have come to do: "do not lean too close."
 > The water does not look at you — perhaps you should not look at the water. And yet no one is forbidden to stand beside it.
 `,
   },
+  {
+    order: 84,
+    slug: 'echo-084-the-pot-that-never-rusts',
+    titleZh: '潮候院祠殿碾房角落那口从不生锈的旧铁锅',
+    titleEn: 'The Old Iron Pot in the Corner of the Mill Room That Never Rusts',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第八十日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the eightieth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 84): The Old Iron Pot in the Corner of the Mill Room That Never Rusts
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿碾房角落的那口旧铁锅。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the old iron pot in the corner of the mill room in the sanctuary of the Institute.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第八十日。
+> Era: the Institute — after the 41st Convocation; the eightieth day of the autumn-tide month.
+
+---
+
+## 一 · 碾房角落
+
+碾房是祠殿里最矮的一间——横梁压的肩——屋里一直弥着面粉的白。
+
+最里头角落摆着一口旧铁锅——底翻过了——脚边有个木盖——没人记得它第一次来的时候是谁拎进来的。
+
+**锚句**：碾房最里头那口旧铁锅的脚边有个木盖——没人记得谁拎进来的。
+**Anchor sentence**: in the innermost corner of the mill room stands an old iron pot with a wooden lid at its foot — no one recalls who carried it in.
+
+---
+
+## 二 · 从不生锈
+
+抄本师拿布一擦——锅是红褐的——可它从不生锈——潮湿的日子里也照样不锈。
+
+院里所有铁器都会锈——连锁门的锁舌都锈过——唯独这口锅从不锈。
+
+**锚句**：院里所有铁器都会锈——唯独碾房那口锅从不锈。
+**Anchor sentence**: every piece of iron in the Institute rusts — except the pot in the mill room.
+
+---
+
+## 三 · 一次煮过
+
+抄本师说这口锅只有过一次正经用过——灶上煮过一锅盐稀饭——没人吃——盐稀饭整锅被倒掉——后来也没人敢再煮别的。
+
+倒在屋后的盐稀饭第二天结成一层白霜——抄本师用棍子拨了拨——白霜散了之后又聚上——最后一整月都没化。
+
+**锚句**：抄本师说这口锅只有过一次正经用过——煮完整锅被倒掉——没人敢再煮别的。
+**Anchor sentence**: the copyists say the pot was used once, properly — a pot of salt porridge was cooked, then wholly poured out, and no one ever dared cook in it again.
+
+---
+
+## 四 · 木盖
+
+木盖上刻着一个"口"字——没有名字——字不漂亮——像被小孩随手画的。
+
+抄本师每年秋潮月看一遍木盖——没人主动擦它——它也一直没多过一道裂纹。
+
+**锚句**：木盖上刻着一个"口"字——每年秋潮月抄本师看一遍——没多过一道裂纹。
+**Anchor sentence**: carved into the wooden lid is the single character for "mouth" — the copyists inspect it every autumn-tide month; it has never grown one more crack.
+
+---
+
+## 五 · 值更人说的那句话
+
+值更人巡到碾房的时候——从不停在那口锅跟前——只朝里面看一眼——然后就去做别的。
+
+他说的那句话后来被记在值更册最后一页："锅底不像还在等人吃什么。"
+
+**锚句**：值更册最后一页记着："锅底不像还在等人吃什么。"
+**Anchor sentence**: on the final page of the watch-ledger is written: "The bottom of the pot does not look as though it still waits for someone to eat."
+
+---
+
+## 六 · 散会之后
+
+第四十一次大会散会之后，抄本师把那口锅挪了一挪——挪动它的人说木盖在手里凉得像秋天的水。
+
+现在锅还在碾房——位置往东挪了一寸——谁也说不清为什么挪——也没有人敢把它挪回去。
+
+**锚句**：散会之后有人把那口锅东挪了一寸——没人敢挪回去。
+**Anchor sentence**: after the Convocation dissolved, someone shifted the pot an inch east — nobody dares shift it back.
+
+---
+
+## 七 · 映射（回响八十四章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 旧铁锅 · 木盖 · "口" · 盐稀饭 · 白霜 | 一、二、三、四、五、六、七 |
+| geography | 碾房 · 横梁 · 白墙 | 一、二、四 |
+| characters | 抄本师 · 值更人 · 不知名的拎锅人 | 一、二、三、四、五、六 |
+| story | 旧铁锅 · 回响（其八十四） | 全篇 |
+| items | 旧铁锅 · 木盖 · 值更册 · 盐 | 一、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第八十日 | 三、五、六 |
+
+> 它不等人吃——但有那么一天，碾房粉扑扑的屋里会有人认出"口"字上周才换了一笔。
+> It does not wait for anyone to eat — and yet one day, in that dusty room, someone will notice the character for "mouth" has changed.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其八十四）「潮候院祠殿碾房角落那口从不生锈的旧铁锅」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the old iron pot in the corner of the mill room in the sanctuary of the Institute.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿碾房角落的那口旧铁锅。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the eightieth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第八十日。
+
+---
+
+## I · The Corner
+
+The mill room is the squattest room in the sanctuary — shoulders stoop beneath the beams, and the air always hangs thick with white flour dust.
+
+In the innermost corner sits an old iron pot — its bottom long since turned over — a wooden lid at its foot. No one recalls who carried it in.
+
+**锚句**：碾房最里头那口旧铁锅的脚边有个木盖——没人记得谁拎进来的。
+**Anchor sentence**: in the innermost corner of the mill room stands an old iron pot with a wooden lid at its foot — no one recalls who carried it in.
+
+---
+
+## II · No Rust
+
+The copyists touch it once with a rag — the iron is red-brown — yet it never rusts, not even on the dampest days of the year.
+
+Every piece of iron in the Institute rusts — even the tongue of the gate lock rusts. Only this pot does not.
+
+**锚句**：院里所有铁器都会锈——唯独碾房那口锅从不锈。
+**Anchor sentence**: every piece of iron in the Institute rusts — except the pot in the mill room.
+
+---
+
+## III · The One Cooking
+
+The copyists say the pot was used once, properly — a pot of salt porridge was cooked on the stove — no one ate it — the whole pot was poured out, and no one has dared to cook in it since.
+
+Spilled behind the room, the salt porridge hardened overnight into a white crust — the copyists poked it with a stick; the crust dispersed, then gathered again — and it never melted all that month.
+
+**锚句**：抄本师说这口锅只有过一次正经用过——煮完整锅被倒掉——没人敢再煮别的。
+**Anchor sentence**: the copyists say the pot was used once, properly — a pot of salt porridge was cooked, then wholly poured out, and no one ever dared cook in it again.
+
+---
+
+## IV · The Wooden Lid
+
+Carved into the lid is the single character for "mouth" — with no name attached — carved clumsily, as a child might.
+
+The copyists visit it once each autumn-tide month — no one ever wipes it down, and it has never grown one more crack.
+
+**锚句**：木盖上刻着一个"口"字——每年秋潮月抄本师看一遍——没多过一道裂纹。
+**Anchor sentence**: carved into the wooden lid is the single character for "mouth" — the copyists inspect it every autumn-tide month; it has never grown one more crack.
+
+---
+
+## V · One Line in the Watch-Ledger
+
+The head of the watch never stops at the pot on his rounds — he only glances inside, then moves on to other duties.
+
+His remark was added to the last page of the watch-ledger: "The bottom of the pot does not look as though it still waits for someone to eat."
+
+**锚句**：值更册最后一页记着："锅底不像还在等人吃什么。"
+**Anchor sentence**: on the final page of the watch-ledger is written: "The bottom of the pot does not look as though it still waits for someone to eat."
+
+---
+
+## VI · After the Dissolution
+
+After the 41st Convocation dissolved, a copyist moved the pot — the one who moved it said the wooden lid felt as cold in his hand as autumn water.
+
+Now the pot still stands in the mill room — an inch further east than it used to be — no one can say why it was moved — and no one dares to move it back.
+
+**锚句**：散会之后有人把那口锅东挪了一寸——没人敢挪回去。
+**Anchor sentence**: after the Convocation dissolved, someone shifted the pot an inch east — nobody dares shift it back.
+
+---
+
+## VII · Mapping（Echo No. 84 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the old pot · the wooden lid · the character for "mouth" · salt porridge · white crust | 一、二、三、四、五、六、七 |
+| geography | the mill room · the beam · the white wall | 一、二、四 |
+| characters | the copyists · the head of the watch · the unknown porter | 一、二、三、四、五、六 |
+| story | the old pot · Echo No. 84 | 全篇 |
+| items | the pot · the lid · the watch-ledger · the salt | 一、三、四、五、六 |
+| history | After the 41st Convocation · the eightieth day of the autumn-tide month | 三、五、六 |
+
+> 它不等人吃——但有那么一天，碾房粉扑扑的屋里会有人认出"口"字上周才换了一笔。
+> It does not wait for anyone to eat — and yet one day, in that dusty room, someone will notice the character for "mouth" has changed.
+`,
+  },
 ] as const;
 
 export const BIBLE_APPENDICES: readonly BibleChapter[] = [
