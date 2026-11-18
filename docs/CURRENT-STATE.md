@@ -7263,3 +7263,20 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 - pin 重钉 page→edf2e331 / comp→67ade817（bible-ask-visual-style 全绿）。
 - 额外：guideCopy stale 数字清理（「181 句」→「196 句」、five canonical chapters → thirteen；过去遗留的 one hundred twelve echoes → one hundred sixteen echoes · 五章正典全文 → 十三章正典全文）。
 - fe-gates **1370/1370** ✓ · Pages 指针将同步。
+
+## cont. 347 (2026-11-18) — v967 · §LLM-RETRY-ONCE · 全站 LLM 端点浏览器侧 5xx 自动重试一次 + §PROOF-INSIGHT-LANE 探针记录（lane 001→100% / lane 003 provider 502 三次：诚实记账）
+
+**动机**：provider（aizzz.xyz → gpt-6.1-terra）网关间歇 502/503。现场观测：/insight 聊天与潮语两次 live probe 被上游当场挂断（536ms → 127s 后 502）。→ 所有浏览器侧 LLM 端点在第一次 5xx 时 800ms 重试一次，之后仍失败走 honest 态 — 与 §BIBLE-ASK-RETRY 同款纪律。
+
+**改动**：
+- /insight analyze、/insight canon chat、/insight tide-cast、/tide-oracle、/bible/whisper → 全部加 `tryOnce + 800ms + retry-once`；两次皆 5xx 才 honest。§159：不会在单次失败就谎报"潮汐现在不走 / 不肯说话"。
+- 429 行为不变。
+
+**证据**：`docs/evidence/insight-lane-cache-2026-11-18.md`：
+- lane 001（cold）：tokensIn=69,745 · cached=3,321 (4.8%) · 6.7s
+- lane 002（同 system + 同问句）：**cachedTokens=69,745 (100%)** · 88ms
+- lane 003（变体问句）：连续 3 次 provider 502（上游挂断）— 本轮不虚报命中率；canon 车道 002 结果与之前一致（100% / 93.8%）。
+
+**测试**：insight-visual-style / tide-oracle 无 SHA256 钉子（hook 钩子检查全过）；BibleWhisperClient 无钉；fe-gates **1370/1370** ✓。
+
+**process 机**：ai-service 已停；next dev 未启动；内存峰值 2.5 GB。

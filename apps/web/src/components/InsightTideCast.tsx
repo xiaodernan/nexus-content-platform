@@ -51,12 +51,23 @@ export function InsightTideCast({ locale = 'zh' }: { locale?: Locale }) {
     setOracle('');
     setBadge(null);
     try {
-      const resp = await fetch('/api/insight/tide-cast', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', ...csrfHeaders() },
-        body: JSON.stringify({ locale }),
-      });
-      if (resp.status >= 429 || resp.status >= 500) {
+      const tryOnce = () =>
+        fetch('/api/insight/tide-cast', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', ...csrfHeaders() },
+          body: JSON.stringify({ locale }),
+        });
+      let resp = await tryOnce();
+      if (resp.status >= 500) {
+        // §159 诚实边界：provider 上游 5xx 抖动 → 800ms 后重试一次；两次都失败才走 honest。
+        await new Promise((r) => setTimeout(r, 800));
+        resp = await tryOnce();
+        if (resp.status >= 500) {
+          setPhase('honest');
+          return;
+        }
+      }
+      if (resp.status >= 429) {
         setPhase('honest');
         return;
       }
