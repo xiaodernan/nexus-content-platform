@@ -193,6 +193,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E140-潮候院抄本室里那盏从不熄灭的灯': 'echo-140-the-lamp-that-never-goes-out',
   'E141-潮候院门岗那本只记未入的访客籍': 'echo-141-the-book-of-the-never-admitted',
   'E142-祠殿最底层那间从没有人记得开过的空房间': 'echo-142-the-room-that-no-one-remembers-opening',
+  'E143-潮候院未尽事册里那些没记完的事件': 'echo-143-the-book-of-unfinished-business',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

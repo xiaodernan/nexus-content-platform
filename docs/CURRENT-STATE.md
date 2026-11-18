@@ -7703,3 +7703,14 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 6 锚句双语 · gen-bible-snapshot 增 echo-142 · BibleAsk lede → 142 · /bible/ask meta → 一百四十二篇 · CACHE-IDENTITY × 142 · canon-answer-graph → 155 段 · bible-ask-behavior → 864 · pin 重钉 page→60f16fde / comp→c089ba6c · InsightCanonChat hint 同步 142。
 - §ASK-CITE-TALLY（顺带）：问典 route 现也 `increment('nexus_oracle_citation_total', { state })`——与 /tide-oracle 同一归一桶（tide+ask 汇总）；`nexus_oracle_citation_total` help 文案同步「潮语+问典两车道汇总」。
 - fe-gates **1370/1370** ✓ · verify:world-bible 869/869 ✓。
+
+## cont. 388 (2026-11-19) — v1005 · §BIBLE-143 · Echo #143《未尽事册》(作者手写 · verify 875/875) + §ASK-ANCHOR-EXPAND
+
+- 新篇：「未尽事册 · 每一页只写到一半 · 散会夜多了十四行"未" · 值更册最后一页："它只要保持未尽——它就是写完的"」—— digest 现 **236,391 chars**（13 章正典 · **143 回响** · 4 annex · 锚句 875 zh / 875 en ✓）。
+- 6 锚句双语 · gen-bible-snapshot 增 echo-143 · BibleAsk lede → 143 · /bible/ask meta → 一百四十三篇 · CACHE-IDENTITY × 143 · canon-answer-graph → 156 段 · bible-ask-behavior → 870 · pin 重钉 page→f3bce4c1 / comp→13604a5a · InsightCanonChat hint 同步 143。
+- §ASK-ANCHOR-EXPAND（问典引文 chip 折叠展开）：
+  - `oracleCitation.verifyAnchorCitation` cited 分支现在返回**锚句原文**（含标点、原引号、原文大小写）而非小写化归一串；`/api/bible/q` 新出 `citationAnchors: string[]`（最多 3 条原文）。
+  - BibleAsk 答复区在 cited 分支下渲染可折叠 `<details class="bbq-citeExpand" data-bible-ask-cite-expand>` 列 3 条原文；
+    zh/en 双语 summary `${n} 条锚句（点开查看）`。
+  - route 契约测试新增断言：citationAnchors 必为数组；chip 增加 `data-bible-ask-cite-expand` hook；.bbq-citeExpand 进 GLOBALS（both pin 重算）。
+- fe-gates **1370/1370** ✓ · verify:world-bible 875/875 ✓ · 浏览器 live 验证：chip「自由作答 · 未逐字引用锚句」真实显示（§159 诚实机检）。

@@ -6167,6 +6167,10 @@
 .bbq-badge { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.08em; color: var(--nexus-color-accent-mix); border: 1px solid color-mix(in srgb, var(--nexus-color-accent-mix) 45%, transparent); border-radius: var(--nexus-radius-full); padding: 0.15rem 0.6rem; font-variant-numeric: tabular-nums; }
 .bbq-cite { font-size: var(--nexus-font-size-11); font-family: var(--nexus-font-mono); color: var(--nexus-color-fg-3); margin: 0.35rem 0 0; }
 .bbq-cite[data-bible-ask-cite='cited'] { color: var(--nexus-color-success); }
+.bbq-citeExpand { margin: 0.2rem 0 0; font-size: var(--nexus-font-size-11); font-family: var(--nexus-font-mono); color: var(--nexus-color-fg-3); }
+.bbq-citeExpand summary { cursor: pointer; user-select: none; }
+.bbq-citeExpand ul { margin: 0.35rem 0 0.25rem 1.25rem; padding: 0; }
+.bbq-citeExpand li { margin: 0.15rem 0; }
 .bbq-answer { font-size: var(--nexus-font-size-14); line-height: 1.9; color: var(--nexus-color-fg-1); white-space: pre-wrap; letter-spacing: 0.01em; margin: 0; }
 .bbq-honest { border-left: 2px solid color-mix(in srgb, var(--nexus-color-accent-mix) 70%, transparent); border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-2) var(--nexus-space-4); background: var(--nexus-color-bg-1); }
 .bbq-honestTitle { font-size: var(--nexus-font-size-13); font-weight: 700; color: var(--nexus-color-fg-1); margin: 0; }

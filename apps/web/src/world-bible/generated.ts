@@ -15319,6 +15319,180 @@ The last page of the watch-ledger reads: there is nothing below the door — not
 `,
   },
   {
+    order: 143,
+    slug: 'echo-143-the-book-of-unfinished-business',
+    titleZh: '潮候院未尽事册里那些没记完的事件',
+    titleEn: 'The Book of Unfinished Business in the Institute That Never Writes Anything to Its End',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零九日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hundred-and-ninth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 143): The Book of Unfinished Business in the Institute That Never Writes Anything to Its End
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院未尽事册——每一件记事都写到一半不再继续。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the Book of Unfinished Business — every entry trails off halfway through.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零九日。
+> Era: the Institute — after the 41st Convocation; the hundred-and-ninth day of the autumn-tide month.
+
+---
+
+## 一 · 未尽事册
+
+潮候院抄本室里有一册——没有题名——抄本师私下叫它"未尽事册"。
+
+**锚句**：抄本室里有一册——没有题名——抄本师叫它"未尽事册"。
+**Anchor sentence**: deep in the copyists' room lives a volume — it carries no title — the copyists call it the Book of Unfinished Business.
+
+---
+
+## 二 · 每一件记事都只写到一半
+
+每一件记事都写到一半——然后停下——后面不是有内容被删掉了也不是字迹潦草——就是断了。
+
+**锚句**：每一件记事都只写到一半——然后断了。
+**Anchor sentence**: every entry stops halfway through — and then it ends.
+
+---
+
+## 三 · 值更人
+
+值更人说从来没人读过这册子的结尾——抄本师说因为没有结尾。
+
+**锚句**：值更人说从来没人读过它的结尾——抄本师说因为没有结尾。
+**Anchor sentence**: the head of the watch says no one has ever read the end of it — the copyists say there is no end to read.
+
+---
+
+## 四 · 散会夜
+
+散会那一夜没人往册子里添字——但是册子上多了十四行。十四行全部是同一个字："未"。
+
+**锚句**：散会那一夜——没人添字——册子上多了十四行——十四行都是同一个字"未"。
+**Anchor sentence**: on the night the Convocation dissolved no one added anything to it — and yet the volume gained fourteen lines — fourteen lines of the same single character: not-yet.
+
+---
+
+## 五 · 抄本师的念头
+
+抄本师开玩笑说：如果哪一天它写完了——第四十一次大会才真正散完。
+
+**锚句**：抄本师说——如果哪一天它写完了——第四十一次大会才真正散完。
+**Anchor sentence**: the copyists joke — if one day it is finished — the forty-first Convocation will have truly dissolved.
+
+---
+
+## 六 · 值更册最后一页
+
+值更册最后一页："它只要保持未尽——它就是写完的。"
+
+**锚句**：值更册最后一页："它只要保持未尽——它就是写完的。"
+**Anchor sentence**: the last page of the watch-ledger reads: as long as it stays unfinished — it is already a finished work.
+
+---
+
+## 七 · 映射（回响一百四十三章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 未尽事册 · 每一行断了 · 十四行"未" · 第四十一次大会 · 值更册最后一页 | 一、二、三、四、五、六、七 |
+| geography | 抄本室最深处 · 抄本室门 · 抄本室与值更室 | 一、二、三 |
+| characters | 抄本师 · 值更人 · 散会夜 · 无人知晓的人 | 一、二、三、四、五、六 |
+| story | 没写完的册子 · 回响（其一百四十三） | 全篇 |
+| items | 未尽事册 · 值更册 · 一支笔 · 值更人的最后一笔 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第一百零九日 | 三、四、五、六 |
+
+> 潮候院未尽事册——每一页只写到一半—它从未有结尾。
+> The Book of Unfinished Business — every page stops halfway through — and it never arrives at an ending.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百四十三）「潮候院未尽事册里那些没记完的事件」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the Book of Unfinished Business — every entry trails off halfway through.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院未尽事册——每一件记事都写到一半不再继续。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the hundred-and-ninth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零九日。
+
+---
+
+## I · The Book of Unfinished Business
+
+Deep in the copyists' room lives a volume — it carries no title — the copyists call it the Book of Unfinished Business.
+
+**锚句**：抄本室里有一册——没有题名——抄本师叫它"未尽事册"。
+**Anchor sentence**: deep in the copyists' room lives a volume — it carries no title — the copyists call it the Book of Unfinished Business.
+
+---
+
+## II · Every Entry Stops Halfway
+
+Every entry stops halfway through — and then it ends.
+
+**锚句**：每一件记事都只写到一半——然后断了。
+**Anchor sentence**: every entry stops halfway through — and then it ends.
+
+---
+
+## III · The Head of the Watch
+
+The head of the watch says no one has ever read the end of it — the copyists say there is no end to read.
+
+**锚句**：值更人说从来没人读过它的结尾——抄本师说因为没有结尾。
+**Anchor sentence**: the head of the watch says no one has ever read the end of it — the copyists say there is no end to read.
+
+---
+
+## IV · The Night of the Dissolution
+
+On the night the Convocation dissolved no one added anything to it — and yet the volume gained fourteen lines — fourteen lines of the same single character: not-yet.
+
+**锚句**：散会那一夜——没人添字——册子上多了十四行——十四行都是同一个字"未"。
+**Anchor sentence**: on the night the Convocation dissolved no one added anything to it — and yet the volume gained fourteen lines — fourteen lines of the same single character: not-yet.
+
+---
+
+## V · What the Copyists Say
+
+The copyists joke — if one day it is finished — the forty-first Convocation will have truly dissolved.
+
+**锚句**：抄本师说——如果哪一天它写完了——第四十一次大会才真正散完。
+**Anchor sentence**: the copyists joke — if one day it is finished — the forty-first Convocation will have truly dissolved.
+
+---
+
+## VI · The Last Page of the Watch-Ledger
+
+The last page of the watch-ledger reads: as long as it stays unfinished — it is already a finished work.
+
+**锚句**：值更册最后一页："它只要保持未尽——它就是写完的。"
+**Anchor sentence**: the last page of the watch-ledger reads: as long as it stays unfinished — it is already a finished work.
+
+---
+
+## VII · Mapping（Echo No. 143 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the Book of Unfinished Business · the entry that stops halfway · the fourteen not-yet · the dissolution · the watch-ledger | 一、二、三、四、五、六、七 |
+| geography | the deepest corner of the copyists' room · the copyists' room · the chapel corridor | 一、二、三 |
+| characters | the copyists · the head of the watch · the ones who work unseen | 一、二、三、四、五、六 |
+| story | the book that never finishes · Echo No. 143 | 全篇 |
+| items | the Book of Unfinished Business · the watch-ledger · a pen · the head of the watch's last stroke | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the hundred-and-ninth day of the autumn-tide month | 三、四、五、六 |
+
+> 潮候院未尽事册——每一页只写到一半—它从未有结尾。
+> The Book of Unfinished Business — every page stops halfway through — and it never arrives at an ending.
+`,
+  },
+  {
     order: 15,
     slug: 'echo-015-the-lamp-the-wine-shop-never-remembers',
     titleZh: '巷子深处那盏没人记得的灯',

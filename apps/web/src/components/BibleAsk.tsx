@@ -30,11 +30,12 @@ const COPY: Record<Locale, {
   footer: string;
   back: string;
   citeLabel: { cited: (n: number) => string; declined: string; notCited: string };
+  citeAnchorSummary: (n: number) => string;
 }> = {
   zh: {
     kicker: '问典 · The Tidal Inquiry',
     title: '问潮问问 · 向《低语诸王》提问',
-    lede: '正典（13 章）+ 回响（142 篇）都在桌上——用中文或英文问，任何问题；问典只答潮候院范围内的事。',
+    lede: '正典（13 章）+ 回响（143 篇）都在桌上——用中文或英文问，任何问题；问典只答潮候院范围内的事。',
     label: '你的问题',
     placeholder: '例如：第四十一次大会散会后谁执笔……',
     ask: '问一问',
@@ -47,11 +48,12 @@ const COPY: Record<Locale, {
     footer: '问典答案由真实模型即兴生成（上下文 = 正典摘要），范围限于「低语诸王」；典籍里没有的，会明确说"典籍里没有"。',
     back: '← 回到典籍室',
     citeLabel: { cited: (n) => `引经据典 · 逐字对齐 ✓（${n} 条）`, declined: '正典没写 · 如实说没有的答复', notCited: '自由作答 · 未逐字引用锚句' },
+    citeAnchorSummary: (n) => `本次答复引到以下 ${n} 条（点击展开）：`,
   },
   en: {
     kicker: 'The Tidal Inquiry',
     title: 'Ask the Canon · Ask the Tides',
-    lede: 'The canon (13 chapters) and every echo (142 pieces) sit on the same table — question away, in Chinese or in English. The Inquiry stays inside the Institute.',
+    lede: 'The canon (13 chapters) and every echo (143 pieces) sit on the same table — question away, in Chinese or in English. The Inquiry stays inside the Institute.',
     label: 'Your question',
     placeholder: 'e.g. Who wrote the forty-first page after the forty-first Convocation?…',
     ask: 'Ask the canon',
@@ -64,6 +66,7 @@ const COPY: Record<Locale, {
     footer: 'Answers are generated live from the canon digest (nothing outside "The Whispers’ Kings"); what the canon does not hold, the Inquiry says so honestly.',
     back: '← Back to the shelf',
     citeLabel: { cited: (n) => `Quoting the canon verbatim ✓ (${n})`, declined: 'Not in the canon — the Inquiry says so honestly', notCited: 'Free answer — no verbatim anchor from the canon' },
+    citeAnchorSummary: (n) => `This answer quotes ${n} canon line${n === 1 ? '' : 's'} (click to expand):`,
   },
 };
 
@@ -74,7 +77,7 @@ export function BibleAsk({ locale = 'zh', initialQuestion }: { locale?: Locale; 
   const [question, setQuestion] = useState(initialQuestion ?? '');
   const [answer, setAnswer] = useState('');
   const [badge, setBadge] = useState<{ model: string; cachedTokens: number } | null>(null);
-  const [cite, setCite] = useState<{ clause: 'cited' | 'declined' | 'not-cited'; anchorsCited?: number } | null>(null);
+  const [cite, setCite] = useState<{ clause: 'cited' | 'declined' | 'not-cited'; anchorsCited?: number; citationAnchors?: string[] } | null>(null);
   const [phase, setPhase] = useState<Phase>('idle');
 
   const ask = useCallback(async (q: string) => {
@@ -110,6 +113,7 @@ export function BibleAsk({ locale = 'zh', initialQuestion }: { locale?: Locale; 
         cachedTokens?: number;
         citation?: 'cited' | 'declined' | 'not-cited' | 'unknown';
         anchorsCited?: number;
+        citationAnchors?: string[];
       };
       if (!resp.ok || typeof body.answer !== 'string') {
         setPhase('honest');
@@ -118,7 +122,7 @@ export function BibleAsk({ locale = 'zh', initialQuestion }: { locale?: Locale; 
       setAnswer(body.answer.trim());
       setBadge({ model: body.model ?? 'gpt-6.1-terra', cachedTokens: body.cachedTokens ?? 0 });
       setCite((body.citation === 'cited' || body.citation === 'declined' || body.citation === 'not-cited')
-        ? { clause: body.citation, anchorsCited: body.anchorsCited }
+        ? { clause: body.citation, anchorsCited: body.anchorsCited, citationAnchors: body.citationAnchors }
         : null);
       setPhase('answered');
     } catch {
@@ -198,6 +202,16 @@ export function BibleAsk({ locale = 'zh', initialQuestion }: { locale?: Locale; 
                 {cite.clause === 'cited' ? c.citeLabel.cited(cite.anchorsCited ?? 1) : cite.clause === 'declined' ? c.citeLabel.declined : c.citeLabel.notCited}
               </p>
             )}
+            {cite?.clause === 'cited' && cite.citationAnchors && cite.citationAnchors.length > 0 ? (
+              <details className="bbq-citeExpand" data-bible-ask-cite-expand>
+                <summary>{c.citeAnchorSummary(cite.citationAnchors.length)}</summary>
+                <ul>
+                  {cite.citationAnchors.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+              </details>
+            ) : null}
             <p className="bbq-answer">{answer}</p>
           </div>
         )}
