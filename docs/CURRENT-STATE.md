@@ -5651,3 +5651,17 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 第 82 篇回响「雾字影」：祠殿晨光抄——大孩子们一人一笔——每天只抄一个偏旁几笔——《雾字影录》抄本师说不出数字——"回"字封闭后正式入后廊——抄本师从六岁抄到去世。
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-082-the-fog-strokes-the-children-copy`；verify world-bible **476/476** ✓；verify:bible-snapshot ✓。
 - 同步：BibleAsk lede → 82（含 en）；/bible/ask meta → 八十二篇 / eighty-two；cache-identity → 82 篇锚句；bible-ask-behavior 锚句总数 470→476；canon-answer-graph 测试 87 段 / 82 echoes；pins 重钉（page→86b6eb0c… comp→b9ccbb2f…）；fe-gates **1285/1285 绿**。
+
+## cont. 330 (2026-11-18) — v948 · §PROOF-TRANSPORT-CACHE · ai-service 传输层前缀缓存实录
+
+直打 ai-service `/v1/ai/chat`（不经 Next dev、不经 StateGraph），`SYSTEM_PROMPT` 54,233 字符整字节、`modelClass=balanced`、stream=1：
+
+| # | 输入 | tokensIn | cachedTokens | cacheReported |
+|---|---|---|---|---|
+| 1 | 雾港灯塔那盏常亮的灯叫什么名字？ | 37,830 | 0 | false |
+| 2 | 同上 | 37,830 | **37,830（100%）** | true |
+| 3 | **不同问题**（石狮腮画家） | 37,831 | **35,741（94.5%）** | true |
+
+结论：Codex 式 ~90% 命中率成立的机理在本栈同样兑现——system 字节稳定 + transport 注入 `nexus-<sha256>` 路由键 + 问句 tail 独立于前缀。换问句仍 94.5% prefix 复用；证据 `docs/evidence/transport-cache-v947-2026-11-18.md`。`docs/CACHE-IDENTITY.md` §3 同步更新。
+
+页面同步：Pages master 维持 `54c191e`（v947 指针已推）。下一步：E83+ 继续；或 admin /stress 端到端压测（RAM 允许时）。

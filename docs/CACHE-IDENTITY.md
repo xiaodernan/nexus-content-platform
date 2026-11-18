@@ -34,6 +34,13 @@
 ## 3. 实测命中
 每次实测命中心：**22,600 / 24,066 ≈ 94%**（见 /docs/evidence/paid-provider-e2e-2026-11-17.md §PROVED-9/13/17/18 连续四次实测）。
 
+第二次实录（2026-11-18，evidence `docs/evidence/transport-cache-v947-2026-11-18.md`，直打 ai-service `/v1/ai/chat`，不经 Next dev）：
+- call#1 (cold)：tokensIn=37,830，cachedTokens=0
+- call#2 (同一问题再问)：cachedTokens=37,830（100%，应用侧 L2 命中，延迟 ~103 ms）
+- call#3（**不同的问题**，同一 digest）：cachedTokens=35,741 / tokensIn=37,831（**94.5%** prefix 复用，冷→暖一次成型，与 Codex 行为一致）
+
+结论：同一 digest 前缀（system 字节一致）+ 不同问题尾巴 → prefix reuse 94.5%；前缀缓存在 channel 上成立，不依赖"问题完全相同"。
+
 ## 4. 为什么有（罕见）的不命中时期
 回响篇数 4 次更新（26 → 33 → 36 → 37 → 38 → 39 → 40 → 41 → 42 → 43 → 44 → 45 → 46 → 47 → 48）各自改变了 digest 字节，每次都对应 cache 淘汰冷启动一次——正常；对齐后回归 94%。
 
