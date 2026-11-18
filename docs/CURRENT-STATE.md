@@ -7173,3 +7173,43 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 >   加模块级 inflightWire：首访合并为一次调用；失败不缓存；多实例生产由 Redis replay + distributed single-flight 接力。
 > - 线上实测：try1 2.63s（provider 冷，且碎片答案留在缓存）→ try2/3 0.48/0.22s（缓存命中）。
 > - fe-gates 147/147 · 1353/1353 · census 2966 · build 绿
+
+## cont. 341 (2026-11-18) — v959 · §MERGE-ORIGIN-MAIN · 双线正典合流入主支
+
+**背景**：用户总馈令「尽量把项目的多个工作分支、各种 worktree 合并起来，综合集大成，汇到一个主分支」——本场发现本地主支与 origin/main 已经悄然分叉（remote 独占的 248 提交 + 主线持续扩写）。决定入库为正史，不做覆盖。
+
+**做法**：
+
+1. 对齐：grep 审计本地与 origin 的差异，发现两条线同属《低语诸王》同一作者字系；另一支扩写出 5-13 章与 26 篇回响（"没人誊的那一页"、"泡沫里那粒米"、"潮汐教团连续签名页"是关键词，不是两套不同的宇宙）。
+2. 物流步骤：先 lineage-alt 保全另一支、再逐文件核对 001..004、clean-merge 两个不同名但同句锚句，解决下列冲突：CURRENT-STATE.md / PERFORMANCE.md / latest.json / gen-bible-snapshot.mts / InsightAiAnalysis.tsx / page.tsx / BibleQuiz.tsx / chat route.ts / characters route.ts / guideCopy.ts 等共 17 处。
+3. 飞轮：schema 把 `AiChatRequest.system.max` 从 64,000 提至 112,000；SystemPrompt 当前 93,822 chars，断言仍稳。
+4. verify 重算：world-bible **698 zh/en**（原 506 zh→506 en）全部通过；bible-snapshot 一致；bible-ask 693；canon-graph 125 段（13 章 + 112 回响）；fe-gates **1370/1370**；全套 visual-style pins 按真实产物重钉（guide 1b90…；home e9c2…；invites-page 0652…；invites-panel f465…；quiz e18d…）。
+5. Pages 同步后最新 master 指针 d752f19（latest.json 带 v959 合流状态）。
+
+**未做 = 诚实清单**：
+- `origin/main` 的推送从未授权（PAT 403，工作流范围不足）——别把它当根因装成做了。
+- Spring Cloud proof 本地没再跑（RAM 峰值约束）——这条一直欠；v958 已经记过 evidence。
+- lineages-alt 还在，将来若想剔掉、必须走一次显式迁移提交；本条授权下，归档保留 = 内容仍然闭环可用，只是 digest 不读它。
+- 剩余两路 live LLM probes 在都属于 cache-identity 档位；本次合流 digest 改变，KV 冷启一次不可避免，下次 probe 应该包含到合流后温度上来一次。
+
+---
+
+## cont. 341 (2026-11-18) — v959 · §MERGE-ORIGIN-MAIN · 双线正典合流入主支
+
+**背景**：用户总馈令「尽量把项目的多个工作分支、各种 worktree 合并起来，综合集大成，汇到一个主分支」——本场发现本地主支与 origin/main 已经悄然分叉（remote 独占的 248 提交 + 主线持续扩写）。决定入库为正史，不做覆盖。
+
+**做法**：
+
+1. 对齐：grep 审计本地与 origin 的差异，发现两条线同属《低语诸王》同一作者字系；另一支扩写出 5-13 章与 26 篇回响（"没人誊的那一页"、"泡沫里那粒米"、"潮汐教团连续签名页"是关键词，不是两套不同的宇宙）。
+2. 物流步骤：先 lineage-alt 保全另一支、再逐文件核对 001..004、clean-merge 两个不同名但同句锚句，解决下列冲突：CURRENT-STATE.md / PERFORMANCE.md / latest.json / gen-bible-snapshot.mts / InsightAiAnalysis.tsx / page.tsx / BibleQuiz.tsx / chat route.ts / characters route.ts / guideCopy.ts 等共 17 处。
+3. 飞轮：schema 把 `AiChatRequest.system.max` 从 64,000 提至 112,000；SystemPrompt 当前 93,822 chars，断言仍稳。
+4. verify 重算：world-bible **698 zh/en**（原 506 zh→506 en）全部通过；bible-snapshot 一致；bible-ask 693；canon-graph 125 段（13 章 + 112 回响）；fe-gates **1370/1370**；全套 visual-style pins 按真实产物重钉（guide 1b90…；home e9c2…；invites-page 0652…；invites-panel f465…；quiz e18d…）。
+5. Pages 同步后最新 master 指针 d752f19（latest.json 带 v959 合流状态）。
+
+**未做 = 诚实清单**：
+- `origin/main` 的推送从未授权（PAT 403，工作流范围不足）——别把它当根因装成做了。
+- Spring Cloud proof 本地没再跑（RAM 峰值约束）——这条一直欠；v958 已经记过 evidence。
+- lineages-alt 还在，将来若想剔掉、必须走一次显式迁移提交；本条授权下，归档保留 = 内容仍然闭环可用，只是 digest 不读它。
+- 剩余两路 live LLM probes 在都属于 cache-identity 档位；本次合流 digest 改变，KV 冷启一次不可避免，下次 probe 应该包含到合流后温度上来一次。
+
+---
