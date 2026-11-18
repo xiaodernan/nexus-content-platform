@@ -460,6 +460,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《旧册子里的名字》里，潮的名字被什么盖住了？', choices: ['潮的水气', '时间', '潮汐教团之印', '别的名字'], answer: 0, ref: '回响（其三十三） · 四' },
     en: { prompt: 'In “The Name in the Old Ledger”, what covered the tide’s name?', choices: ['the tide’s own dampness', 'time', 'the Conclave’s seal', 'another name'], answer: 0, ref: 'Echo No. 33 · IV' },
   },
+  {
+    zh: { prompt: '《潮起来的时候》里，谁敲了守灯人的门？', choices: ['没有人，邀约没有送达', '潮汐教团', '年轻人的影子', '潮起来了以后守灯人自己敲自己的门'], answer: 0, ref: '回响（其三十四） · 三' },
+    en: { prompt: 'In “The Hour the Tide Rose”, who knocked on the lampkeeper’s door?', choices: ['no one; no invitation had been sent', 'the Tide Conclave', 'the young man’s shadow', 'the lampkeeper knocked on his own door'], answer: 0, ref: 'Echo No. 34 · III' },
+  },
+  {
+    zh: { prompt: '《潮起来的时候》里，潮汐时刻表里多出来的那一寸是什么？', choices: ['一个潮起的高度，没人添的', '潮汐教团之印', '旧册子的潮痕', '别人在潮落时偷偷加的'], answer: 0, ref: '回响（其三十四） · 五' },
+    en: { prompt: 'In “The Hour the Tide Rose”, what was the extra inch on the timetable?', choices: ['the tide’s rising mark, added without hands', 'the Conclave’s seal', 'the old ledger’s tide-line', 'another’s hand-added mark'], answer: 0, ref: 'Echo No. 34 · V' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

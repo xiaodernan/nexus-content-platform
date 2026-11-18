@@ -6269,3 +6269,10 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 > - /bible 页脚 三十三/XXXIII · guideCopy 同步 · quiz 94→**96**（zh/en 镜像 +2 题 E33）
 > - SHA 重钉 ×2 · fe-gates 147/147 · 1353/1353 · build 绿
 > - SSR 实锤 /bible /echo-033 200 · /tide-oracle /tide-wire 全 200
+
+> **2026-11-19 cont. 251 · 回响（其三十四）《潮起来的时候》——潮起来谁都不来敲门**
+> - 纪元：潮上之夜 · 潮落之月 · 第四十五会前夜（en: the night the tide rose · the month the tide receded · the eve of the forty-fifth Convocation）
+> - 5 组锚句 zh/en 全局唯一 · **世界大典 432 zh / 432 en 全绿** · canon digest 重封存（63,358 chars · sha256=190b1c91…）
+> - /bible 页脚 三十四/XXXIV · guideCopy 同步 · quiz 96→**98**（zh/en 镜像 +2 题 E34）
+> - SHA 重钉 ×2 · fe-gates 147/147 · 1353/1353 · build 绿
+> - SSR 实锤 /bible /echo-034 200 · /tide-oracle /tide-wire 全 200

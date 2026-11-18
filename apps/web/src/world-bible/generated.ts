@@ -11962,4 +11962,151 @@ The lampkeeper returned the old ledger to the drawer.
 > which page is the back cover?
 `,
   },
+  {
+    order: 34,
+    slug: 'echo-034-the-hour-the-tide-rose',
+    titleZh: '潮起来的时候',
+    titleEn: 'The Hour the Tide Rose',
+    eraLineZh: '纪元：潮上之夜 · 潮落之月 · 第四十五次会前夜',
+    eraLineEn: 'Era: the night the tide rose · the month the tide receded · the eve of the forty-fifth Convocation.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 34): The Hour the Tide Rose
+
+> 回响不续写正典——它只记一份挑剩下的纪录：
+> 潮汐教团之后，誊册房里的时刻表从来不翻转——潮起潮落，它自己知道自己几点现身。
+> 回响的锚句，与正典同一纪律。
+>
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> After the Conclave, the timetable in the copying hall never turns over; the tide arrives knowing its own hour.
+> Its anchors answer to the same discipline.
+
+> 纪元：潮上之夜 · 潮落之月 · 第四十五次会前夜
+> Era: the night the tide rose · the month the tide receded · the eve of the forty-fifth Convocation.
+
+---
+
+## 一 · 册子一页
+
+潮汐教团的旧册子在案台最下抽屉里静静地发出潮水的声音。每张纸上都写着一句话，字迹会跟潮水一起呼吸：潮起，潮落。潮起，潮落。
+
+这些字迹每页只有一句，无一句重复，全潮一色。
+**锚句**：这些字迹每页只有一句，无一句重复，全潮一色。
+**Anchor sentence**: In the old book, each page bore a single line — none repeated, all tide.
+
+## 二 · 潮汐时刻表的最后一行
+
+潮汐时刻表的"去潮时间"那一行到了最后一晚忽然自己涨上去了。守灯人发现的时候并没有动手，潮落三厘米，就停了。
+
+守灯人站在门锥前，没有添笔。
+**锚句**：守灯人站在门锥前，没有添笔。
+**Anchor sentence**: The lampkeeper stood at the door pillar and added nothing to the line.
+
+## 三 · 第四十五会前夜
+
+潮落之月的哪一天，第四十五次会要开了。
+
+谁也没去敲他的门，谁也没写邀请。潮潮熙熙地慢下来，把海的声音搬进誊册房。守灯人没有合上本子。
+
+第四十五次会要开了，谁也没敲他的门。
+**锚句**：第四十五次会要开了，谁也没敲他的门。
+**Anchor sentence**: The forty-fifth Convocation approached, and no one knocked.
+
+## 四 · 潮纸签
+
+谁也没有留下名字。只有册子里有一张潮纸签，那张潮纸签里印着一个字「离」——有点像「潮」——也像「潮」的一半。
+
+守灯人看了很久，还是没有把它添进册子。
+**锚句**：守灯人看了很久，还是没有把它添进册子。
+**Anchor sentence**: The lampkeeper looked at it for a long time, and still did not add it to the book.
+
+## 五 · 潮落以后
+
+潮落以后，潮汐时刻表的潮起的上限多了一寸。守灯人不知道是谁量的。
+
+守灯人不知道是谁量的。
+**锚句**：守灯人不知道是谁量的。
+**Anchor sentence**: The lampkeeper did not know who measured it.
+
+---
+
+## 模型映射（回响三十四则对应关系）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 潮上之夜 · 潮落之月 · 第四十五会前夜 | 第十一章 · 第十三章 |
+| geography | 誊册房 · 门锥 · 案台抽屉 · 潮汐时刻表 | 本则 · 第二十九则 · 第三十二则 · 第三十三则 |
+| factions | 守灯人 · 潮汐教团（重铸的章） | 第一章 · 本则 |
+| characters | 守灯人 · 潮汐教团 | 本则 · 第三三则 |
+| items | 旧册子 · 潮纸签 · 潮汐时刻表 · 潮落上限 | 本则 |
+| story | 潮起来的时候 · 回响（其三十四） | 全篇 |
+| history | 潮上之夜 · 老册子 · 第四十五次会前夜 | 本则 |
+
+> 潮没问过时间，
+> 它自己知道。
+> The tide never asked the hour;
+> it knew it.
+`,
+    markdownEn: `
+> An echo does not continue the canon — it only keeps a record that was set aside.
+> After the Conclave, the timetable in the copying hall never turns over; the tide arrives knowing its own hour.
+> Its anchors answer to the same discipline.
+
+> Era: the night the tide rose · the month the tide receded · the eve of the forty-fifth Convocation.
+
+---
+
+## 1 · A page of the old book
+
+The old ledger of the Tide Conclave lay quietly in the bottom drawer of the desk, breathing with the sound of the tide. Each page held one sentence, and the hand it was written in seemed to move with the tide: the tide rises, the tide falls. Rising, falling.
+
+In the old book, each page bore a single line — none repeated, all tide.
+**Anchor sentence**: In the old book, each page bore a single line — none repeated, all tide.
+
+## 2 · The last line of the tide timetable
+
+On the timetable, the line for "the hour of withdrawal" suddenly rose itself one night. The lampkeeper did not touch it. When the tide receded three centimeters, it stopped.
+
+The lampkeeper stood at the door pillar and added nothing to the line.
+**Anchor sentence**: The lampkeeper stood at the door pillar and added nothing to the line.
+
+## 3 · The eve of the forty-fifth Convocation
+
+Which day of the month of the ebb the forty-fifth Convocation would open — nobody knew.
+
+No one knocked on his door. No one sent an invitation. The tide crept up slowly, carrying the sound of the sea into the copying hall. The lampkeeper did not close the book.
+
+The forty-fifth Convocation approached, and no one knocked.
+**Anchor sentence**: The forty-fifth Convocation approached, and no one knocked.
+
+## 4 · The tide-paper slip
+
+No one left a name. Only one slip of tide-paper in the ledger bore the character "离" — it looked like "tide," or perhaps "tide" halved.
+
+The lampkeeper looked at it for a long time. He still did not add it to the book.
+**Anchor sentence**: The lampkeeper looked at it for a long time, and still did not add it to the book.
+
+## 5 · After the tide withdrew
+
+After the tide receded, the line for the height of the rising tide on the timetable was one inch taller. The lampkeeper did not know who had measured it.
+
+The lampkeeper did not know who measured it.
+**Anchor sentence**: The lampkeeper did not know who measured it.
+
+---
+
+## Echo No. 34 — dimension mapping
+
+| Dim | Anchor | Linked |
+|---|---|---|
+| lore | the night the tide rose · the month the tide receded · the eve of the forty-fifth Convocation | Ch. 11 · Ch. 13 |
+| geography | the copying hall · the door pillar · the desk drawer · the tide timetable | this echo · Echo 29 · Echo 32 · Echo 33 |
+| factions | the lampkeeper · the Tide Conclave (re-cast seal) | Ch. 1 · this echo |
+| characters | the lampkeeper · the Tide Conclave | this echo · Echo 33 |
+| items | the old ledger · the tide-paper slip · the tide timetable · the height of the tide | this echo |
+| story | the hour the tide rose · Echo No. 34 | whole piece |
+| history | the night the tide rose · the old book · the eve of the forty-fifth Convocation | this echo |
+
+> The tide never asked the hour;
+> it knew it.
+`,
+  },
 ] as const;
