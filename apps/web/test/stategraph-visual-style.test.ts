@@ -127,7 +127,7 @@ describe('──SGRAPH-1 /stategraph StateGraph 公开只读落点', () => {
 
   it('SHA256 钉页（className 脱敏后）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '664e35ce3c9c3296221f76b45b11b22ff590e7b116be337e5082b7fd7951d171',
+      '6bdf804fe66831b616f0ca5c43cf693599c6db3c219e1e51e9032f3ceff8265f',
     );
   });
 });

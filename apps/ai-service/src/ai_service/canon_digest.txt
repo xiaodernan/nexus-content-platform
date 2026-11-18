@@ -2444,6 +2444,10 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [2] 海鸥不告诉你何时起风，它只是站在井边，静静看。
 - [3] 档案里从没有过「日常」两个字——都是不日常写成的日常。
 - [4] 记住的东西会变重，忘掉的东西会变轻——巡逻路什么都没选，它只是继续走。
+- [1] the patrol road has no signs — every three months it scrubs the past year's marks away by itself.
+- [2] the gull never tells you when the wind is coming; it just stands by the well, quietly watching.
+- [3] the archives never held the word "ordinary" — everything in them was the extraordinary, written in the tense of the ordinary.
+- [4] what is remembered grows heavier; what is forgotten grows lighter — the patrol road chose neither; it just kept walking.
 
 ### Echo 02 · 潮候船上没有岸 / No Shore on the Tide-Waiting Ship
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
@@ -2516,6 +2520,12 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 三日不动，才轮到灶火。
 - [5] 火尽之后，灰仍占着一尺半。
 - [6] 账有差额，柴才算完。
+- [1] only when dead wood reaches the door does it weigh anything.
+- [2] the knot faces up, so no one has to turn the wood.
+- [3] no one answers at the door; the wood still counts as delivered.
+- [4] three days still, and only then the stove fire.
+- [5] only after the fire dies does the ash keep its foot and a half.
+- [6] only when the ledger shows a discrepancy is the wood truly accounted for.
 
 ### Echo 101 · 灰坑 / The Ash-Pit
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
@@ -2525,6 +2535,12 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 坑底一年比一年近。
 - [5] 口只留两块砖。
 - [6] 封口以后，仍记灰。
+- [1] the old ledger came before any measurement.
+- [2] the first pick fell in the rain.
+- [3] no ash leaves the house.
+- [4] the pit's floor draws closer every year.
+- [5] the mouth keeps exactly two bricks.
+- [6] after the sealing, the ash is still counted.
 
 ### Echo 102 · 最后一栏 / The Last Column
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
@@ -2533,6 +2549,11 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 盐可以压纸，压不住疑问。
 - [4] 孩子没有学会"收口"这两个字。
 - [5] 誊抄员把笔搁在灯下，不是为了拿它。
+- [1] the last column, no one wrote.
+- [2] six wells bear a signature; the seventh does not.
+- [3] salt can weigh paper; it cannot weigh a question down.
+- [4] the child never learned the two characters for "closing the ledger".
+- [5] the copyist set the pen beneath the lamp — not to pick it up.
 
 ### Echo 103 · 蜡封 / The Wax Seal
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
@@ -2541,6 +2562,11 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 盐灯没有亮，天也没有亮。
 - [4] 海把井数的那一天记住了。
 - [5] 灰幕之前，没人再提第七口井。
+- [1] six wells were sealed; no one dared seal the seventh.
+- [2] the wax did not seal the wells; it sealed the people.
+- [3] the salt lamp did not light; the sky did not light either.
+- [4] the sea remembered the day the count was made.
+- [5] before the grey cover, no one mentioned the seventh well again.
 
 ### Echo 104 · 最后一夜 / The Last Night
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
@@ -2549,6 +2575,11 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 海把井数的那一夜记住了。
 - [4] 晨起的时候，没有人报到。
 - [5] 灰幕不是一夜天，灰是一夜灯。
+- [1] when the wind stopped, the wells were all open.
+- [2] the wick held more tide-damp than oil.
+- [3] the sea remembered the night the count was made.
+- [4] at dawn, no one answered the roll.
+- [5] the grey was not a night’s sky; the grey was a night’s lamp.
 
 ### Echo 105 · 雨从东边来 / The Rain Comes from the East
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
@@ -2557,6 +2588,11 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 雨从东边来，笔先停了。
 - [4] 第七口井的井缘，第一次全湿了。
 - [5] 账上只记了六个字：东风，雨，灯未灭。
+- [1] the wind was meant to come from the west; that day it came from the east.
+- [2] the rain came from the east; what it fell on first was the salt inside the door.
+- [3] the rain came from the east; it was the pen that stopped first.
+- [4] for the first time, the rim of the seventh well was wet all the way round.
+- [5] the ledger recorded only six words: east wind, rain, the lamps were not out.
 
 ### Echo 106 · 第一个名字 / The First Name
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
@@ -2565,6 +2601,11 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 那一行字不属于三种手迹中的任何一种。
 - [4] 第七口井记得雨后还有人走过。
 - [5] 名字被写下的时候，报到簿还没有结束。
+- [1] on the first day after the grey fell, the roll was still where it had always been.
+- [2] before the grey, the names were written in three hands.
+- [3] that one line was not in any of the three hands.
+- [4] the seventh well remembers footsteps after the rain.
+- [5] by the time the name was written, the roll was not over.
 
 ### Echo 107 · 没人誊的那一页 / The Untranscribed Page
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
@@ -2573,6 +2614,11 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 那张纸从不参与抄誊。
 - [4] 问井只问井自己的事。
 - [5] 没誊完的那一页还算数。
+- [1] Why the lamp stayed lit was never asked.
+- [2] at the ninth wick, the copyist missed one lamp.
+- [3] That page never took part in the copying.
+- [4] A well answers only about the well.
+- [5] The page left untranscribed still stands.
 
 ### Echo 108 · 半粒盐 / Half a Grain of Salt
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
@@ -2581,6 +2627,11 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 卡住的东西，锄不出来，刮不出来，也不忍刮。
 - [4] 灯灭之后，缝里那粒盐还留着一点半透的白。
 - [5] 簿子记得比任何人都清楚，缺了哪一半。
+- [1] The broken face of half a grain watched out through the groove of the cover.
+- [2] “Half a grain short” he wrote on the spine; he never explained it to anyone.
+- [3] What is caught cannot be picked out, nor scraped out, nor brought to be scraped.
+- [4] After the lamp went out, the grain in the seam still held a little translucent white.
+- [5] A thin ledger remembers better than any person which half it lost.
 
 ### Echo 109 · 第四十二次会 / The Forty-Second Convocation
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
@@ -2589,6 +2640,11 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 每一个想结案的人，都站在这一格前面等着。
 - [4] 灯没有灭过，也没人告诉过它什么时候灭。
 - [5] 第四十二次会只少一个签名，正好多一个不来。
+- [1] No moment of adjournment exists for the forty-second Convocation; only the blank cell.
+- [2] The last page of the book of receipts holds a date and a debt — and no signature.
+- [3] Everyone who wanted a closed case stood before that cell, waiting.
+- [4] The lamp never went out, and no one told it when it should.
+- [5] The forty-second Convocation is short one signature, and has one too many who never came.
 
 ### Echo 11 · 祠殿堂没有锁的门 / The Door the Chapel Never Locked
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
@@ -2605,6 +2661,11 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 守灯人没有对第四十二次会说什么，也没有对自己说什么。
 - [4] 那半粒盐跟着封皮进去了，被留在里面，被留在册子里。
 - [5] 封皮合上后，没人开本子了。
+- [1] After the grey binding, the ledger holds only the last line.
+- [2] After the cover closed, not one knock fell again.
+- [3] The lampkeeper said nothing to the forty-second Convocation, nor to himself.
+- [4] The half-grain went into the binding, stayed inside, was left in the book.
+- [5] After the binding closed, not one person opened the book.
 
 ### Echo 111 · 灰炉 / The Grey Hearth
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
@@ -2613,6 +2674,11 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 灰纸没有出份，可灰总算被人翻过。
 - [4] 守灰人不守，灰炉也不。
 - [5] 灰炉再也没有亮过。
+- [1] After the grey binding, the hearth was still warm.
+- [2] If he never touched it, no one expected him to.
+- [3] The ash gave no report to anyone, but someone had turned it.
+- [4] The keeper did not keep; neither did the hearth.
+- [5] The hearth never shone again.
 
 ### Echo 112 · 第四十三次会 / The Forty-Third Convocation
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
@@ -2621,6 +2687,11 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 有人把一支笔放进欠据，签名没有落下。
 - [4] 盐线留在门槛上，没有人扫。
 - [5] 潮水退了以后，馆里仍然没有散会。
+- [1] The day the agenda was nailed back where it belonged, no one announced a thing.
+- [2] The day the forty-third Convocation opened had no agenda — only everyone turned up.
+- [3] Someone laid a pen into the debt-book; the signature never fell.
+- [4] The salt line stayed on the threshold, and nobody swept it.
+- [5] After the tide withdrew, the hall still had not adjourned.
 
 ### Echo 113 · 潮候院后墙不修的那一道裂痕 / The Crack in the Institute's Back Wall That No One Repairs
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
@@ -2674,6 +2745,11 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 有两把椅子的坐深比其余都深，他没有摆回去。
 - [4] 签名的位置是空的，守灯人没有写。
 - [5] 守灯人只做一件事：每天早上把盐抹掉。
+- [1] The lampkeeper touched the salt on the threshold, and drew his hand back.
+- [2] The lampkeeper noted this one line, and did not note the time.
+- [3] Two chairs sat deeper than the others; he did not move them back.
+- [4] The space for a signature stood open; the lampkeeper did not write it.
+- [5] The lampkeeper did one thing: each morning, he wiped the salt.
 
 ### Echo 119 · 潮信 / The Tide's Letter
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
@@ -2682,6 +2758,11 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 潮汐时刻表被人这样挂在门锥上。
 - [4] 潮汐教团一百年前没有的章，现在用上了。
 - [5] 盐又在门槛上——每个人都踩过去，没有人弯腰。
+- [1] The Tide Conclave had not borne a seal in a hundred years; this one was newly cast.
+- [2] This letter held no words.
+- [3] The timetable hung on the door pillar, pinned there without ceremony.
+- [4] The seal the Conclave had lacked a hundred years ago was in use again.
+- [5] The salt was back on the threshold; each person stepped over it, and no one bent down.
 
 ### Echo 12 · 潮落时才有的回声 / The Echo That Only Comes When the Tide Is Out
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
@@ -2698,6 +2779,11 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 潮来了，不答——不解释，不邀请。
 - [4] 坐在最靠门的椅子里的是谁？
 - [5] 潮汐教团没有散会。第四十四次会还在继续。
+- [1] The timetable was pinned to the door pillar — tide in, tide out, nothing else.
+- [2] How the tide was measured — the lampkeeper fell in step with it.
+- [3] When the tide came, it did not answer — it did not explain, it did not invite.
+- [4] Who sat in the chair nearest the door?
+- [5] The Conclave did not adjourn. The forty-fourth Convocation is still proceeding.
 
 ### Echo 121 · 靠门的椅子 / The Chair Nearest the Door
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
@@ -2706,6 +2792,11 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 两人都没有提议散会。
 - [4] 潮汐时刻表上又多了一笔纪录。
 - [5] 潮退的时候，守灯人也没有离开椅子。
+- [1] He had chosen the chair nearest the door; no one else had moved.
+- [2] He could not recall the young man's face.
+- [3] Neither of them proposed adjournment.
+- [4] One more entry was added to the tide timetable.
+- [5] When the tide withdrew, the lampkeeper still had not left the chair.
 
 ### Echo 122 · 借椅子 / The Borrowed Chair
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
@@ -2714,6 +2805,11 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 潮退一厘米，时刻表纸上多一道横线。
 - [4] 他不知道那一寸跟一厘有什么不一样。
 - [5] 潮还没有退，守灯人还没有回家。
+- [1] The lampkeeper woke later than before.
+- [2] After the fourth day, no one knew who had said "do not come."
+- [3] Each centimeter the tide receded, the timetable on the door pillar gained a line.
+- [4] He did not know what the difference between an inch and a centimeter was.
+- [5] The tide had not receded; the lampkeeper had not gone home.
 
 ### Echo 123 · 潮的名字 / The Name of the Tide
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
@@ -2722,6 +2818,11 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 他只是在潮落下去的时候，把那一行字揉成了一团纸，扔进了潮纸篓。
 - [4] 潮纸篓里每一张纸都是一个潮字。
 - [5] 他没有发现纸篓里那一团纸被撕开。
+- [1] When the tide rose, it was the name that appeared first.
+- [2] He looked further down — no words; no one had asked why the tide should have a name.
+- [3] He folded that line of words into a ball and dropped it into the tide-wastebasket.
+- [4] Every piece of paper in the tide-wastebasket bore a single word: tide.
+- [5] He did not find the paper in the wastebasket had been torn open.
 
 ### Echo 124 · 旧册子里的名字 / The Name in the Old Ledger
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
@@ -2730,6 +2831,11 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 每一页都没有告诉潮什么时候才真的退去。
 - [4] 守灯人没有撕掉那一页。
 - [5] 守灯人把旧册子放回了抽屉里。
+- [1] The cover had been washed illegible by the sea; each page still held the same tide-line: rising, falling, rising, falling.
+- [2] Who had opened the ledger — no one remembered.
+- [3] Every page refused to say when the tide would truly ebb.
+- [4] The lampkeeper did not tear that page out.
+- [5] The lampkeeper returned the old ledger to the drawer.
 
 ### Echo 125 · 潮起来的时候 / The Hour the Tide Rose
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
@@ -2738,6 +2844,11 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 第四十五次会要开了，谁也没敲他的门。
 - [4] 守灯人看了很久，还是没有把它添进册子。
 - [5] 守灯人不知道是谁量的。
+- [1] In the old book, each page bore a single line — none repeated, all tide.
+- [2] The lampkeeper stood at the door pillar and added nothing to the line.
+- [3] The forty-fifth Convocation approached, and no one knocked.
+- [4] The lampkeeper looked at it for a long time, and still did not add it to the book.
+- [5] The lampkeeper did not know who measured it.
 
 ### Echo 13 · 潮候院没有叫过的那一声会 / The Convocation Nobody Called
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

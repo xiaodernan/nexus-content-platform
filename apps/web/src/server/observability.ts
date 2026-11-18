@@ -138,6 +138,11 @@ export const METRICS = {
     help: '同步生成走哪条编排车道：lane-a = /v1/ai/run（顺序执行），stategraph = /v1/ai/design-graph（LangGraph 状态图）',
     labels: { lane: ['lane-a', 'stategraph'], capability: ['real', 'demo', 'unavailable'] },
   },
+  nexus_chat_lane_total: {
+    kind: 'counter',
+    help: '角色对话走哪条编排车道：lane-a = /v1/ai/chat（顺序执行），stategraph = /v1/ai/chat-graph（LangGraph 状态图，cont.254）',
+    labels: { lane: ['lane-a', 'stategraph'] },
+  },
   nexus_bible_ask_total: {
     kind: 'counter',
     help: '问典（POST /api/bible/q）走到终态的次数——provider 不可用也要记，别只在成功路径上埋点',

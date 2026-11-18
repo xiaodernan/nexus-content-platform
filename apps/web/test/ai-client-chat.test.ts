@@ -3,11 +3,14 @@ import type { AiChatRequest, AiChatResponse } from '@nexus/schemas';
 import { chatWithCharacter } from '@/server/ai/client';
 
 /**
- * §47 web → ai-service `/v1/ai/chat` 的边界：拿不到真实回复时明确报不可用，
+ * §47 web → ai-service 对话车道的边界：拿不到真实回复时明确报不可用，
  * 绝不在这里拼一句模板回复冒充角色说话（§159）。
+ * cont.254：默认车道 stategraph → `/v1/ai/chat-graph`；显式逃生门 lane-a → `/v1/ai/chat`。
  */
 const ENV_KEY = 'NEXUS_AI_SERVICE_URL';
+const ORCH_KEY = 'NEXUS_AI_CHAT_ORCHESTRATION';
 const previous = process.env[ENV_KEY];
+const previousOrch = process.env[ORCH_KEY];
 
 function withUrl(url: string | undefined, run: () => Promise<void>): Promise<void> {
   if (url === undefined) delete process.env[ENV_KEY];
@@ -68,6 +71,8 @@ function jsonResponse(body: unknown, status = 200): Response {
 afterEach(() => {
   if (previous === undefined) delete process.env[ENV_KEY];
   else process.env[ENV_KEY] = previous;
+  if (previousOrch === undefined) delete process.env[ORCH_KEY];
+  else process.env[ORCH_KEY] = previousOrch;
 });
 
 describe('chatWithCharacter', () => {
@@ -79,7 +84,7 @@ describe('chatWithCharacter', () => {
       if (!result.ok) return;
       expect(result.response.text).toBe('山口安静，风里没有马蹄声。');
       expect(calls).toHaveLength(1);
-      expect(calls[0]!.url).toBe('http://ai-service:3200/v1/ai/chat');
+      expect(calls[0]!.url).toBe('http://ai-service:3200/v1/ai/chat-graph');
       const rawBody = calls[0]!.options?.body;
       expect(typeof rawBody).toBe('string');
       const sent = JSON.parse(rawBody as string) as Record<string, unknown>;
@@ -132,6 +137,30 @@ describe('chatWithCharacter', () => {
       expect(result.ok).toBe(false);
       if (result.ok) return;
       expect(result.error.code).toBe('internal');
+    });
+  });
+  it('lane-a opt-out falls back to /v1/ai/chat', async () => {
+    process.env[ORCH_KEY] = 'lane-a';
+    const { impl, calls } = stubFetch(() => jsonResponse(response()));
+    await withUrl('http://ai-service:3200', async () => {
+      const result = await chatWithCharacter(request, impl);
+      expect(result.ok).toBe(true);
+      expect(calls).toHaveLength(1);
+      expect(calls[0]!.url).toBe('http://ai-service:3200/v1/ai/chat');
+    });
+    delete process.env[ORCH_KEY];
+  });
+
+  it('x-nexus-orchestration response header rides through (stategraph)', async () => {
+    const impl = (async () =>
+      new Response(JSON.stringify(response()), {
+        status: 200,
+        headers: { 'content-type': 'application/json', 'x-nexus-orchestration': 'stategraph' },
+      })) as unknown as typeof fetch;
+    await withUrl('http://ai-service:3200', async () => {
+      const result = await chatWithCharacter(request, impl);
+      expect(result.ok).toBe(true);
+      expect(result.orchestration).toBe('stategraph');
     });
   });
 });
