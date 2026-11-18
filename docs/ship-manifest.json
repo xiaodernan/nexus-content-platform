@@ -1,467 +1,467 @@
 {
-  "generatedAt": "2026-11-14T07:00:02.230Z",
+  "generatedAt": "2026-11-18T12:12:26.486Z",
   "window": {
-    "commitsScanned": 2487,
-    "kept": 2001
+    "commitsScanned": 3209,
+    "kept": 2508
   },
   "days": [
     {
-      "date": "2026-11-14",
+      "date": "2026-11-18",
       "entries": [
         {
-          "hash": "206279e39b",
-          "date": "2026-11-14",
-          "subject": "feat(§CACHE-2): token 剔空 -9.4% + 应用缓存命中如实记账（1 次真调 → 122× 回放）"
+          "hash": "a48ace3026",
+          "date": "2026-11-18",
+          "subject": "feat(ai): LangGraph StateGraph 成为 /api/ai/run 默认车道（cont. 222 / ADR-0236）"
         },
         {
-          "hash": "085239e490",
-          "date": "2026-11-14",
-          "subject": "docs(§CACHE-2): ADR-0262 + 证据 + 三处索引 + env.example 口径"
+          "hash": "12bd9b38ef",
+          "date": "2026-11-18",
+          "subject": "merge(spring-cloud): java-* 退役 → nexus-* 唯一家族（ADR-0237），topology 22/22 PASS"
         },
         {
-          "hash": "dd9fb83771",
-          "date": "2026-11-14",
-          "subject": "feat(ai): provider-level LLM round-trip latency in /healthz (v694, ADR 0126)"
+          "hash": "86101b04f3",
+          "date": "2026-11-18",
+          "subject": "feat(canon): 回响（其二十三）《第四十二次会 / The Forty-Second Convocation》上线"
         },
         {
-          "hash": "15bc31b72a",
-          "date": "2026-11-14",
-          "subject": "feat(§CACHE-2): 缓存读数可观测化——三层账本 + /v1/ai/cache-stats，并据实修正流式结论"
+          "hash": "47ba6313dd",
+          "date": "2026-11-18",
+          "subject": "feat(canon): 潮汐见证 Tide-Eye Witness 接入 /bible 章节阅读页（LLM 真链路 · 100% cache 命中）"
         },
         {
-          "hash": "14e58d3038",
-          "date": "2026-11-14",
-          "subject": "feat(ai-service): fix LLM prefix-cache hit rate via sticky routing + prompt order (v695, ADR 0127)"
+          "hash": "de80ce2c13",
+          "date": "2026-11-18",
+          "subject": "feat(canon): 回响（其二十四）《灰封》上线 · 潮汐见证链全层兑现"
         },
         {
-          "hash": "a2118c4645",
-          "date": "2026-11-14",
-          "subject": "feat(§CP-1 + §CACHE-2): 全站命令面板 ⌘K + 缓存三层读数面板"
+          "hash": "907d89afd3",
+          "date": "2026-11-18",
+          "subject": "feat(insight): 潮汐签 · Tide Cast 接入 /insight（LLM 真链路 · 真实 star @ gpt-6.1-terra · 100% cache hit）"
         },
         {
-          "hash": "be83f94506",
-          "date": "2026-11-14",
-          "subject": "fix(§CACHE-2): 形状校验劈成两半——上游报文没有 measuredAt，面板会永远\"形状不认识\""
+          "hash": "d5f39b4ba4",
+          "date": "2026-11-18",
+          "subject": "feat(canon): 回响（其二十五）《灰炉》上线 · LLM 真接全景完善"
         },
         {
-          "hash": "467a68e582",
-          "date": "2026-11-14",
-          "subject": "test(§FE-26): AdminNav 名单 12 → 14，签字人是这两格（dead-letters / ai-cache）"
+          "hash": "6fd55bf077",
+          "date": "2026-11-18",
+          "subject": "feat(canon): 潮汐预言 `/tide-oracle` 上线 · canon LLM 公开入口（真链路 100% 首响 KV / 94–100%）"
         },
         {
-          "hash": "f49ecadd2b",
-          "date": "2026-11-14",
-          "subject": "feat(ai-service): coalesce concurrent LLM cache misses with single-flight (v696, ADR 0128)"
+          "hash": "71b9d83cce",
+          "date": "2026-11-18",
+          "subject": "feat(stress): prod next start 高并发压测如实补档 · insight 口令 123 撞库门（§十一/§九）"
         },
         {
-          "hash": "dfc17f9ee5",
-          "date": "2026-11-14",
-          "subject": "feat(ai-service): cross-process single-flight over Redis lease (v697, ADR 0129)"
+          "hash": "9bad9d671e",
+          "date": "2026-11-18",
+          "subject": "feat(admin): 观察站 AI 深读升级「形势 · 展望 · 7 天推断 · 下一步」三段（§九 趋势预测落地）"
         },
         {
-          "hash": "3321278546",
-          "date": "2026-11-14",
-          "subject": "fix(§AILIVE-9): 并轨收官尾巴——main 上 Java 三测试钉合并后事实 + 三整页门面化 + 契约三字段"
+          "hash": "d42c07bf98",
+          "date": "2026-11-18",
+          "subject": "feat(canon): 回响（其二十六）《第四十三次会》上线 · 世界大典 E22–E26 全链同步"
         },
         {
-          "hash": "48f4f4b845",
-          "date": "2026-11-14",
-          "subject": "fix(§GATE-2) + feat(§CACHE-3): 门禁死循环（33 分钟→4 分钟）+ 缓存读数送到用户眼前"
+          "hash": "3a376b932d",
+          "date": "2026-11-18",
+          "subject": "feat(home): 首页快速上手条加入「问潮 · 潮汐预言」入口（tide-oracle 可见性）"
         },
         {
-          "hash": "60f985c4e8",
-          "date": "2026-11-14",
-          "subject": "feat(§CACHE-3): cacheReported 三态缓存格收官尾巴——「没报」永不冒充「报了 0」"
+          "hash": "d459715030",
+          "date": "2026-11-18",
+          "subject": "docs(readme): services 五服务清单对齐 ADR-0237（java-* 退役如实说明）"
         },
         {
-          "hash": "30c59b5c0b",
-          "date": "2026-11-14",
-          "subject": "feat(§CACHE-3): CommandBar 结果行缓存读数 chip——hit/miss/unreported 三态（studio 第一屏可见）"
+          "hash": "ba194558f1",
+          "date": "2026-11-18",
+          "subject": "feat(tide): 并行会话分布式 single-flight 开启 + /tide-wire 今日潮声 · 公开聚合 LLM 面"
         },
         {
-          "hash": "78efe46bb5",
-          "date": "2026-11-14",
-          "subject": "feat(§CACHE-3): 画布上那一枚缓存 chip——三态视觉刻意分开"
+          "hash": "bba89f1e9a",
+          "date": "2026-11-18",
+          "subject": "feat(admin): 复核助理 §MODERATION-ASSIST — AI 帮审核员读一眼（只读·不裁决）"
         },
         {
-          "hash": "369efb502b",
-          "date": "2026-11-14",
-          "subject": "feat(observability): unified LLM savings ledger in healthz, metrics and admin (v698, ADR 0130)"
+          "hash": "378636d13f",
+          "date": "2026-11-18",
+          "subject": "fix(tide): /tide-wire 进程内单飞——并发首访合并为一次 provider 调用"
         },
         {
-          "hash": "da9e93d0a6",
-          "date": "2026-11-14",
-          "subject": "fix(§COST-1): 三个 usage fixture 补 costBasis='unknown'（§COST-1 并轨尾巴）"
+          "hash": "8e92c7f26d",
+          "date": "2026-11-18",
+          "subject": "feat(frontend): Lighthouse a11y 全线 1.0——真重叠/对比度/可读名修复（§五）"
         },
         {
-          "hash": "fe67893e68",
-          "date": "2026-11-14",
-          "subject": "feat(§COST-1): 单价表——「未计价」不等于「免费」"
+          "hash": "c359c95d9a",
+          "date": "2026-11-18",
+          "subject": "feat(canon): 回响（其二十七）《退潮之后》上线 · 世界大典 E22–E27 全链同步"
         },
         {
-          "hash": "543a3c0430",
-          "date": "2026-11-14",
-          "subject": "feat(§CACHE-4): 上游漂移检测——同一段前缀被数成几个数，是「读数不可比」不是「我们的前缀在变」"
+          "hash": "b69a689b67",
+          "date": "2026-11-18",
+          "subject": "fix(tide-wire): 统计查询段 `unstable_cache(stats)` 化"
         },
         {
-          "hash": "c3b91f0b2c",
-          "date": "2026-11-14",
-          "subject": "feat(§FE-GE/ASH/DL): 三页合并后门面化补齐视觉判据——Gate 成对，合入不无门"
+          "hash": "127ed2e963",
+          "date": "2026-11-18",
+          "subject": "feat(canon): 回响（其二十八）《潮信》上线 · 世界大典 E22–E28 全链同步"
         },
         {
-          "hash": "b38b5588ad",
-          "date": "2026-11-14",
-          "subject": "test(§COST-1 wire): 从 env 到报文的完整链路判据——costBasis='configured' 必须真的进 wire"
+          "hash": "f7e6a47db7",
+          "date": "2026-11-18",
+          "subject": "feat(canon): 回响（其二十九）《第四十四次会》上线 · 世界大典 E22–E29 全链同步"
         },
         {
-          "hash": "e046b16530",
-          "date": "2026-11-14",
-          "subject": "feat(§COST-1): /admin/pricing AI 成本·§COST-1 账本读侧——按 basis 把\"钱是从哪来的\"抄进来"
+          "hash": "06ea809f72",
+          "date": "2026-11-18",
+          "subject": "feat(canon): 回响（其三十）《靠门的椅子》上线 · 世界大典 E22–E30 全链同步"
         },
         {
-          "hash": "f9a3b12416",
-          "date": "2026-11-14",
-          "subject": "test(§COST-1): readCostLedger 真库对账——三个口径混编时按 basis 拆得对不对"
+          "hash": "145a860fa1",
+          "date": "2026-11-18",
+          "subject": "feat(canon): 回响（其三十一）《借椅子》上线 · 世界大典 E22–E31 全链同步"
         },
         {
-          "hash": "024de62f25",
-          "date": "2026-11-14",
-          "subject": "merge(LLM 计量): 并轨 D:\\终极项目 v691–v698 —— 缓存命中可计、单飞合并、分层账本"
+          "hash": "47cef78ea1",
+          "date": "2026-11-18",
+          "subject": "feat(canon): 回响（其三十二）《潮的名字》上线 · 世界大典 E22–E32 全链同步"
         },
         {
-          "hash": "9c4e15afba",
-          "date": "2026-11-14",
-          "subject": "docs(CURRENT-STATE): 第二次并轨 v691–v698 记账——LLM 计量账本/单飞/粘滞路由进主线（024de62f）"
+          "hash": "1f8d357759",
+          "date": "2026-11-18",
+          "subject": "feat(canon): 回响（其三十三）《旧册子里的名字》上线 · 世界大典 E22–E33 全链同步"
         },
         {
-          "hash": "8528722e50",
-          "date": "2026-11-14",
-          "subject": "feat(web): user-facing AI savings card on /tasks/<project> (v699, ADR 0131)"
+          "hash": "fa21c5d127",
+          "date": "2026-11-18",
+          "subject": "feat(canon): 回响（其三十四）《潮起来的时候》上线 · 世界大典 E22–E34 全链同步"
         },
         {
-          "hash": "28633834dc",
-          "date": "2026-11-14",
-          "subject": "feat(ci): verify:evidence-census 从红到绿——两处门缝一验事实核实+一measure+删除死件"
+          "hash": "c8eaae7ff8",
+          "date": "2026-11-18",
+          "subject": "feat(ai): 大上下文落地 — Tide-Oracle 能进 119,904 tokens + KV cache 100% 稳定"
         },
         {
-          "hash": "102bd0f02a",
-          "date": "2026-11-14",
-          "subject": "merge(并轨): v691–v698 提交图合并——并行线的历史真正接上本线"
-        },
-        {
-          "hash": "ddfe91a977",
-          "date": "2026-11-14",
-          "subject": "feat(§v699-SV): /tasks AI 节省账单并轨——门面化 .sv-* 族 + 真库判据 + 双 SHA 重钉"
-        },
-        {
-          "hash": "4a12b6738d",
-          "date": "2026-11-14",
-          "subject": "docs(CURRENT-STATE): §v699 并轨收官 + evidence-census 从红到绿（28633834 ddfe91a9）记账"
-        },
-        {
-          "hash": "4185301565",
-          "date": "2026-11-14",
-          "subject": "feat(web): /credits burn-rate prediction card (v700, ADR 0132)"
-        },
-        {
-          "hash": "45a22033bd",
-          "date": "2026-11-14",
-          "subject": "fix(main-line): cost-ledger 接进主线门禁 + SV SSR 探针落地"
-        },
-        {
-          "hash": "135f5c8c8a",
-          "date": "2026-11-14",
-          "subject": "feat(evals): 第十三套 cost-ledger——§COST-1 线账入 §85 评测矩阵（23/23 全绿）"
-        },
-        {
-          "hash": "fc952c5a84",
-          "date": "2026-11-14",
-          "subject": "docs(ROADMAP/ADR-0131): 并轨 v699 下半场记账——SSR 探针/双 SHA/并轨图补缺/census EXIT=0/cache-warm 100%×3"
-        },
-        {
-          "hash": "846dec5cfc",
-          "date": "2026-11-14",
-          "subject": "fix(web): dev-mode hydration unblocked + v700 burn card zero-state (cont. 91)"
-        },
-        {
-          "hash": "9882b24802",
-          "date": "2026-11-14",
-          "subject": "feat(§v700-BN): /credits 燃烬速度卡并轨——门面化 .bn-* 族 + SVG 零 hex + SSR 三态判据"
-        },
-        {
-          "hash": "6adb667576",
-          "date": "2026-11-14",
-          "subject": "merge parallel lane v700.1 (1 commit): dev hydration unblocked + burn card zero-state"
-        },
-        {
-          "hash": "339fe5f5bd",
-          "date": "2026-11-14",
-          "subject": "test(§FE-BN): v700.1 零态水印并入后 SHA 重钉（d0deadaa… → 73d81b9f…）"
-        },
-        {
-          "hash": "fe7388348b",
-          "date": "2026-11-14",
-          "subject": "docs(CURRENT-STATE): 第三次并轨收官（v700 + v700.1）——burn 卡门面化·SSR 三态·SHA 双钉·hydration 修实并入"
-        },
-        {
-          "hash": "7fb3c912e1",
-          "date": "2026-11-14",
-          "subject": "fix(ai-service): Redis completion-cache replay keeps cached/reasoning tokens (v701, ADR 0133)"
-        },
-        {
-          "hash": "6fe3611718",
-          "date": "2026-11-14",
-          "subject": "fix(§ai-cache): 并轨 v701（ADR 0133）——Redis 完成缓存回放保住 cached/reasoning tokens"
-        },
-        {
-          "hash": "ae3121e14a",
-          "date": "2026-11-14",
-          "subject": "docs(CURRENT-STATE): v701（Redis 回放丢两格）并轨记账——pytest 417/18 skipped"
-        },
-        {
-          "hash": "475ff762c0",
-          "date": "2026-11-14",
-          "subject": "feat(web): admin cross-project AI savings ledger - /admin/savings (v702, ADR 0134)"
-        },
-        {
-          "hash": "c6d52601b9",
-          "date": "2026-11-14",
-          "subject": "feat(§v702-AS): 并行线未提交的 admin/savings「AI 节省总账」接手完成——运维聚合视图上线"
-        },
-        {
-          "hash": "2215e71c13",
-          "date": "2026-11-14",
-          "subject": "docs(CURRENT-STATE): v702 接手（/admin/savings 上线）+ spring-cloud proof 参数名修真记账"
-        },
-        {
-          "hash": "95dbf12a28",
-          "date": "2026-11-14",
-          "subject": "fix(web): lint debt in /admin/savings slice (v702.1)"
-        },
-        {
-          "hash": "8f3e1fe5e4",
-          "date": "2026-11-14",
-          "subject": "merge(并轨): v702+v702.1 同人同工合并——并行线 /admin/savings 进主线（同片 v702 接手落库）"
-        },
-        {
-          "hash": "971184cb01",
-          "date": "2026-11-14",
-          "subject": "test(§FE-AS): merge 后字节重钉 SHA（489e81b4… → 1c886ac4…，lint 两行合并入）——7/7"
-        },
-        {
-          "hash": "4d67a2b6ed",
-          "date": "2026-11-14",
-          "subject": "feat(web): /admin/savings per-user pivot (v702.2)"
-        },
-        {
-          "hash": "7f575f106c",
-          "date": "2026-11-14",
-          "subject": "docs(CURRENT-STATE): v702.2 由兄弟线自建（按用户维度）——本线不抢/不复制/不打扰；562 ahead 未 push"
-        },
-        {
-          "hash": "16e551ee16",
-          "date": "2026-11-14",
-          "subject": "merge(并轨): v702.2 per-user pivot on /admin/savings"
-        },
-        {
-          "hash": "10d12a1374",
-          "date": "2026-11-14",
-          "subject": "feat(§v702.2-AS): per-user pivot on /admin/savings — facade ized + gate re-pinned"
-        },
-        {
-          "hash": "c68f4cf46b",
-          "date": "2026-11-14",
-          "subject": "docs(CURRENT-STATE): v702.2 并轨落主线记账（10d12a13）——fe-gates 1060/1060 / census 1818"
+          "hash": "ed3dbd0f1e",
+          "date": "2026-11-18",
+          "subject": "feat(ai): 对话车道上图 — 25 处 LLM 调用默认走 StateGraph（/v1/ai/chat-graph）"
         }
       ]
     },
     {
-      "date": "2026-11-13",
+      "date": "2026-11-17",
       "entries": [
         {
-          "hash": "948d8b9637",
-          "date": "2026-11-13",
-          "subject": "feat(§FE-98): 未接线空态 `PlayByKind.tsx` `.pk-` 门面化"
+          "hash": "560d7a1f42",
+          "date": "2026-11-17",
+          "subject": "docs(§showcase): v855 后指针快照 (head=5af15d1f)"
         },
         {
-          "hash": "8309c90af4",
-          "date": "2026-11-13",
-          "subject": "feat(§FE-99): 互动叙事 `StoryPlay.tsx` `.st-` 门面化"
+          "hash": "c5af9bd5cd",
+          "date": "2026-11-17",
+          "subject": "feat(§v856-vis-fonts): 真实字体接入（Inter/JetBrains Mono/Noto SC）+ 六页真渲染巡检 + 问典回响计数 26→35"
         },
         {
-          "hash": "4cbe1cd899",
-          "date": "2026-11-13",
-          "subject": "feat(§FE-100): 3D 行走 `WorldWalk.tsx` `.ww-` 门面化"
+          "hash": "4e1f0a433a",
+          "date": "2026-11-17",
+          "subject": "docs(§showcase): v856 后指针快照 (head=c5af9bd5)"
         },
         {
-          "hash": "0e843d6323",
-          "date": "2026-11-13",
-          "subject": "feat(§FE-101): AgentPanel 残余裸原子收尾 `.ag-monoOnly`"
+          "hash": "844a6a7e64",
+          "date": "2026-11-17",
+          "subject": "fix(§v857-help-drawer-zindex): Studio 帮助抽屉层级高于属性栏（50→55）并避让顶栏"
         },
         {
-          "hash": "e46ed316aa",
-          "date": "2026-11-13",
-          "subject": "feat(§FE-102): `tools/ci/no-raw-tailwind.mjs`——全树零裸原子钉成可执行门禁"
+          "hash": "cdbc6ec803",
+          "date": "2026-11-17",
+          "subject": "docs(§showcase): v857 后指针快照 (head=844a6a7e)"
         },
         {
-          "hash": "13df01c20f",
-          "date": "2026-11-13",
-          "subject": "feat(§ECON-1): 提炼 apps/studio 经济域引擎为 @nexus/economy 包"
+          "hash": "284fbe7a60",
+          "date": "2026-11-17",
+          "subject": "docs(§v858-audit-proved7): Studio 22 面板巡检（无新缺陷）+ 付费 provider §PROVED-7 复测"
         },
         {
-          "hash": "1b712d4b81",
-          "date": "2026-11-13",
-          "subject": "feat(§FE-103/§FE-104): 门面矩阵钉成可执行门禁 + 修复三类静默守恒判据错误 + 一个 AA 违例"
+          "hash": "7cd1b90fab",
+          "date": "2026-11-17",
+          "subject": "docs(§showcase): v858 后指针快照 (head=284fbe7a)"
         },
         {
-          "hash": "1e1f5b818c",
-          "date": "2026-11-13",
-          "subject": "docs(SC-§SC-72/ADR-0011): §SC-72 actuator live probe captured — 5/5 NEXUS JVMs boot healthy"
+          "hash": "c66b34e99b",
+          "date": "2026-11-17",
+          "subject": "feat(§v859-bible-echo-36): 回响其三十六 + 潮汐挑战第 15 题 + 15/15 结算档"
         },
         {
-          "hash": "f745559d39",
-          "date": "2026-11-13",
-          "subject": "fix(§FE-67): published page `.np-`→`.pub-` 命名统一——§FE-6/§FE-67 判据合流发布态"
+          "hash": "478b3ab045",
+          "date": "2026-11-17",
+          "subject": "docs(§showcase): v859 后指针快照 (head=c66b34e9)"
         },
         {
-          "hash": "595d346d6f",
-          "date": "2026-11-13",
-          "subject": "fix(lint): 3 proof-script TS-assert in .mjs — fix TS8016 via JSDoc @type"
+          "hash": "a5fea41b84",
+          "date": "2026-11-17",
+          "subject": "fix(§v859p-bible-ask-36): 问典 lede 回响篇数 35→36（E36 落库后同步）"
         },
         {
-          "hash": "218e26a589",
-          "date": "2026-11-13",
-          "subject": "fix(tools): tsconfig.tools.json 归零——9 个 .mts proof/verify 脚本全补类型标注"
+          "hash": "1b73eb678c",
+          "date": "2026-11-17",
+          "subject": "docs(§showcase): v859p 后指针快照 (head=a5fea41b)"
         },
         {
-          "hash": "9c060de88c",
-          "date": "2026-11-13",
-          "subject": "fix(§A11Y-1): 渐变墨字高对比度回退漏了 FE-67 发布页的 .pub-title"
+          "hash": "4e3bd4a758",
+          "date": "2026-11-17",
+          "subject": "docs(§v860-proved8): 应用内 CSRF+IP gate+Redis L2 回放的真实 E2E 落库"
         },
         {
-          "hash": "3390d0c037",
-          "date": "2026-11-13",
-          "subject": "fix(e2e): published-visual.spec.ts 的 .pb-* 选择器追到 §FE-67 的 .pub-*"
+          "hash": "d103598a29",
+          "date": "2026-11-17",
+          "subject": "docs(§showcase): v860 后指针快照 (head=4e3bd4a7)"
         },
         {
-          "hash": "4f19f5e7b6",
-          "date": "2026-11-13",
-          "subject": "docs: §SC-12 wire 复现的诚实表述——ADR-0095 早有双实例 HTTP 见证，本片不是首创"
+          "hash": "3f5541058c",
+          "date": "2026-11-17",
+          "subject": "docs(§v861-proved9): provider 原生 KV 命中率实测（22733/24066 ≈ 94.5%）+ 回响篇数动态渲染"
         },
         {
-          "hash": "bef2c27cdb",
-          "date": "2026-11-13",
-          "subject": "feat(§FE-60/fe-close): 删除 FE-6 遗留 .pb-* 死类族（ADR-0260，supersedes ADR-0220 §2）"
+          "hash": "8d31712e7e",
+          "date": "2026-11-17",
+          "subject": "docs(§showcase): v861 后指针快照 (head=3f554105)"
         },
         {
-          "hash": "4d7b2f9af0",
-          "date": "2026-11-13",
-          "subject": "feat(§FE-102/fe-census): 全树外观类 census 歸零——10 个零引用残留类删除"
+          "hash": "7f54f17366",
+          "date": "2026-11-17",
+          "subject": "docs(§v862-blocked): 诚实记录正典第六章本轮质量不达标，未入库，门全绿"
         },
         {
-          "hash": "b8a7d7a591",
-          "date": "2026-11-13",
-          "subject": "feat(§49/§93): pgvector wire bench——HNSW top-20 个位数毫秒、Seq Scan 217ms，索引 234MiB；maintenance_work_mem 64MB 是建图瓶颈"
+          "hash": "c27e732f38",
+          "date": "2026-11-17",
+          "subject": "fix(§v863): 问典 meta description 26 回响改为 36 回响, 正典纪律记录"
         },
         {
-          "hash": "ba38e05a94",
-          "date": "2026-11-13",
-          "subject": "feat(§FE-102): verify:census — globals.css 门面类全树 census 钉门"
+          "hash": "4e25cc54bd",
+          "date": "2026-11-17",
+          "subject": "docs(§v863): cont.232 正典封门纪律写入台账"
         },
         {
-          "hash": "349dd6c872",
-          "date": "2026-11-13",
-          "subject": "feat(web): read-only DLQ inspector - admin page + JSON/NDJSON export (v689, ADR 0122)"
+          "hash": "cba644c7ab",
+          "date": "2026-11-17",
+          "subject": "docs(§showcase): v863 后指针快照 (head=4e25cc54)"
         },
         {
-          "hash": "eb6e63ae11",
-          "date": "2026-11-13",
-          "subject": "fix(pgvector-bench): 类型收窄 4 处（§49 wire bench 的 typecheck 修复）"
+          "hash": "4418d4cbb5",
+          "date": "2026-11-17",
+          "subject": "feat(§v864-quiz-verdict-shelf): 潮汐挑战 verdict 加「回典籍室 →」链接 + 手册/空态同步十五题"
         },
         {
-          "hash": "bd1093b905",
-          "date": "2026-11-13",
-          "subject": "feat(§AILIVE-4): LLM 通路接入 prompt_cache_key——wire 级 done，live cached_tokens 97%"
+          "hash": "09740d904a",
+          "date": "2026-11-17",
+          "subject": "docs(§showcase): v864 后指针快照 (head=4418d4cb)"
         },
         {
-          "hash": "e9bbd3cf80",
-          "date": "2026-11-13",
-          "subject": "feat(§FE-103): verify:fe-gates 并入 verify:census——门禁矩阵一次命令全过"
+          "hash": "0d276f34ae",
+          "date": "2026-11-17",
+          "subject": "feat(admin): §九 只读观察站 /admin/observe——口令 123（公开）· 全用户行为实库读数"
         },
         {
-          "hash": "9d0cea89e4",
-          "date": "2026-11-13",
-          "subject": "fix(web/test): tasks-ledger fixture 补 cachedTokens——§AILIVE-4 新增字段的受害者"
+          "hash": "635410edda",
+          "date": "2026-11-17",
+          "subject": "fix(observer): 撤销口令 cookie 带正确 path（/admin/observe）与 Max-Age=0——DELETE 后守门态必须重现"
         },
         {
-          "hash": "04de8b89f7",
-          "date": "2026-11-13",
-          "subject": "feat(§AILIVE-4): probe:cache 固化为命令——`npm run probe:cache`"
+          "hash": "ef9edec89f",
+          "date": "2026-11-17",
+          "subject": "docs(§v865-proved10): distributor 沟槽与 sticky key 取证"
         },
         {
-          "hash": "be97bc8668",
-          "date": "2026-11-13",
-          "subject": "feat(ai-service): LLM streaming default ON + Redis completion cache wiring + prompt prefix reorder (v690, ADR 0123)"
+          "hash": "c45a8e0fe7",
+          "date": "2026-11-17",
+          "subject": "docs(§showcase): v865 后指针快照 (head=29a7b08e)"
         },
         {
-          "hash": "73e7bac9ac",
-          "date": "2026-11-13",
-          "subject": "feat(§75): 用量列展示缓存命中——LLMs 账本第一屏就可读"
+          "hash": "a8db4f6632",
+          "date": "2026-11-17",
+          "subject": "feat(observer): /admin/observe 挂「AI 深读」——gpt-6.1-terra 照实测聚合起草下一步（LLM 切面 12）"
         },
         {
-          "hash": "f79a42631e",
-          "date": "2026-11-13",
-          "subject": "fix(web): remove unused afterEach import + disconnect field from dead-letters gate (cont. 73)"
+          "hash": "e9958b6dc5",
+          "date": "2026-11-17",
+          "subject": "docs(§v867-stream-fix): NEXUS_LLM_STREAM=0 to 1（修复漂移）"
         },
         {
-          "hash": "3452104868",
-          "date": "2026-11-13",
-          "subject": "fix(ai-service): §47 角色对话 400/502 真因——provider json_mode=True 碰到非 JSON 用词被拒"
+          "hash": "2c5ead7498",
+          "date": "2026-11-17",
+          "subject": "docs(§showcase): v867 后指针快照 (head=e9958b6d)"
         },
         {
-          "hash": "fcf3406bb3",
-          "date": "2026-11-13",
-          "subject": "fix(ai-service,web): raise app-side read budget to 180s for heavy agent routes + cont. 75"
+          "hash": "03856add8a",
+          "date": "2026-11-17",
+          "subject": "feat(canon): 回响（其二十）《第一个名字》 / Echo No. 20 — 灰后那一行（20 回响 · 191 锚句）"
         },
         {
-          "hash": "0ad9680537",
-          "date": "2026-11-13",
-          "subject": "feat(web): single-source the brand gradient h1 into BrandTitle (cont. 76)"
+          "hash": "db7acf5248",
+          "date": "2026-11-17",
+          "subject": "docs(§v868): 端到端重验 + ADR-0228 本机 Provider 连通 recipe"
         },
         {
-          "hash": "b6e9b7d447",
-          "date": "2026-11-13",
-          "subject": "feat(observability): AI readiness panel now shows Redis completion-cache liveness (cont. 79)"
+          "hash": "75448da565",
+          "date": "2026-11-17",
+          "subject": "docs(§showcase): v868 后指针快照 (head=db7acf52)"
         },
         {
-          "hash": "f5cee920c6",
-          "date": "2026-11-13",
-          "subject": "feat(contract): AiUsage wire carries cached_tokens + reasoning_tokens end-to-end (v691, ADR 0124)"
+          "hash": "8efc6f5ba4",
+          "date": "2026-11-17",
+          "subject": "docs(§v869-proved13): distributor 22,733/24,066 命中稳定复现"
         },
         {
-          "hash": "e1021e8cb3",
-          "date": "2026-11-13",
-          "subject": "feat(web): /tasks/[projectId] renders cached/reasoning tokens in usage tile (v692)"
+          "hash": "2373a76b31",
+          "date": "2026-11-17",
+          "subject": "docs(§showcase): v869 后指针快照 (head=cf46d3e8)"
         },
         {
-          "hash": "f66f874acf",
-          "date": "2026-11-13",
-          "subject": "docs(state): record cont. 86 - cache/reasoning tokens inline on /tasks usage tile (v692 landed)"
+          "hash": "7fcd0ed50f",
+          "date": "2026-11-17",
+          "subject": "merge: 把 local-clone/main 的 171 个提交并入 master（annex 支线大典已先行收编）"
         },
         {
-          "hash": "4921545241",
-          "date": "2026-11-13",
-          "subject": "feat(perf): live LLM-path probe + ADR 0125 - three rounds, 27 real gpt-6-sol calls, 0 errors"
+          "hash": "663374a195",
+          "date": "2026-11-17",
+          "subject": "docs(§v870-proved14): codex 源码调研完成 - sticky key 已落地"
         },
         {
-          "hash": "e64ed9ee50",
-          "date": "2026-11-13",
-          "subject": "merge parallel-line master 162 commits into main line"
+          "hash": "5cded7484f",
+          "date": "2026-11-17",
+          "subject": "docs(§showcase): v870 后指针快照 (head=663374a1)"
         },
         {
-          "hash": "0e7adda10d",
-          "date": "2026-11-13",
-          "subject": "fix(§CACHE-2): 提示词载荷重排——稳定大目录进前缀，真实多轮前缀复用率 0.45%→96%"
+          "hash": "f08d65a460",
+          "date": "2026-11-17",
+          "subject": "docs(§v871-e37-failed): honest register of failed E37 Chinese output"
+        },
+        {
+          "hash": "2d1ffa5329",
+          "date": "2026-11-17",
+          "subject": "docs(§v872-proved15): cache-stats live 落盘 - redis L2 命中 + stream live"
+        },
+        {
+          "hash": "17da042156",
+          "date": "2026-11-17",
+          "subject": "docs(§showcase): v872 后指针快照 (head=2d1ffa53)"
+        },
+        {
+          "hash": "0e2908dd61",
+          "date": "2026-11-17",
+          "subject": "docs(§v873-e37-failed): 记录 E37 中文通道退化"
+        },
+        {
+          "hash": "5132ea7631",
+          "date": "2026-11-17",
+          "subject": "docs(§showcase): v873 后指针快照 (head=0e2908dd)"
+        },
+        {
+          "hash": "32d38986fa",
+          "date": "2026-11-17",
+          "subject": "docs(§v874-proved16): 5 路并行缓存背离登记"
+        },
+        {
+          "hash": "9d6e04500c",
+          "date": "2026-11-17",
+          "subject": "docs(§showcase): v874 后指针快照 (head=32d38986)"
+        },
+        {
+          "hash": "8d01974807",
+          "date": "2026-11-17",
+          "subject": "docs(§showcase): v875 后指针快照 (head=dbf65b1d)"
+        },
+        {
+          "hash": "6417a1b31b",
+          "date": "2026-11-17",
+          "subject": "fix(merge-followups): 合并后的六件后续——fe-gates 命令行修复、Guide 真值修复、tsc 清零、契约门对齐、game-model 双语笔记"
+        },
+        {
+          "hash": "878f185313",
+          "date": "2026-11-17",
+          "subject": "docs(§v876-proved17): 10 条并行同 fingerprint cache 全命中（q7 通道不下报字段）"
+        },
+        {
+          "hash": "f2999c6c43",
+          "date": "2026-11-17",
+          "subject": "docs(§showcase): v876 后指针快照 (head=878f1853)"
+        },
+        {
+          "hash": "bc6d2a40b0",
+          "date": "2026-11-17",
+          "subject": "docs(§v877-proved18): multi-turn cache stickiness live: 每轮≈94%"
+        },
+        {
+          "hash": "35c782dc4b",
+          "date": "2026-11-17",
+          "subject": "docs(§showcase): v877 后指针快照 (head=bc6d2a40)"
+        },
+        {
+          "hash": "774ea52935",
+          "date": "2026-11-17",
+          "subject": "docs(§v878): CACHE-IDENTITY 文档上线"
+        },
+        {
+          "hash": "da8c7c4f10",
+          "date": "2026-11-17",
+          "subject": "docs(§showcase): v878 后指针快照 (head=0f965311)"
+        },
+        {
+          "hash": "0ac2c4a894",
+          "date": "2026-11-17",
+          "subject": "merge: 并轨线剩余 16 个提交并入 master（v870-v877 · cache 取证 + E37 两次退化记录 + Docker 自恢复闭环）"
+        },
+        {
+          "hash": "6b0e47fae9",
+          "date": "2026-11-17",
+          "subject": "merge: 并轨线剩余 3 个提交并入 master（v878 · CACHE-IDENTITY 文档）"
+        },
+        {
+          "hash": "1065166a18",
+          "date": "2026-11-17",
+          "subject": "feat(canon): 回响（其二十一）《没人誊的那一页》/ Echo No. 21 — the lamp left lit over the unwritten page"
+        },
+        {
+          "hash": "913aee1aed",
+          "date": "2026-11-17",
+          "subject": "docs+scripts: §AILIVE-5 app-chain 缓存探针实录（call-2/3 100% 命中 tokensIn=8895 cached=8895 · ON/still: v874 证明 distributor 按渠道分桶，single-user 连打零损失）"
+        },
+        {
+          "hash": "f4aabcf916",
+          "date": "2026-11-17",
+          "subject": "feat(bible-q): 通透 tokensIn/tokensOut（/api/bible/q 原报文回给客户端，含 digest 实字节计）"
+        },
+        {
+          "hash": "d9a25ae3a2",
+          "date": "2026-11-17",
+          "subject": "feat(observer): digest 系统前缀锁定 + 数据全部下沉到 user；KV 复用第 2 次起命中；实测 cached=True×3 连发"
+        },
+        {
+          "hash": "251407ec43",
+          "date": "2026-11-17",
+          "subject": "test(observer-deepread): SHA pin 跟随 admin observer digest refactored prompt（每句必须带数字）"
+        },
+        {
+          "hash": "b594e90e8a",
+          "date": "2026-11-17",
+          "subject": "sync(showcase): latest.json 指到 85923cc8（live /v1/ai/cache-stats 当前计数器实测落盘 + ADR 0234）"
+        },
+        {
+          "hash": "82374853a3",
+          "date": "2026-11-17",
+          "subject": "feat(ai): 全局字节级正典前缀 + /api/insight/chat 正典深问（ADR-0235）"
+        },
+        {
+          "hash": "30ba6efec8",
+          "date": "2026-11-17",
+          "subject": "feat(web): 主界面「快速上手」教学条 + 导航 title 教学生词（§五·主界面教学说明）"
+        },
+        {
+          "hash": "12d6f332e8",
+          "date": "2026-11-17",
+          "subject": "feat(canon): 回响（其二十二）《半粒盐》——正典扩容 + 全链路落盘"
         }
       ]
     }
