@@ -5765,3 +5765,9 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 我们做到的对齐：稳定前缀在前 · Content-hash key（项目级聚拢，比 thread key 更适合多会话 workload）· payload 排序（STABLE_PROMPT_KEYS）· 浏览器 visible `cache reuse` 徽章
 - 我们的弱点（诚实）：不能 prewarm · 不能续连 · 不能服务器亲和 · 每发全量重发 input
 - 丢失归因：ADR-0126/0127/0281 三篇公理；通道轮换与 TTL 不由 client 控制
+
+## cont. 339 (2026-11-18) — v957 · §BIBLE-87 · Echo #87《潮候院祠殿东山脚下那条从没人见过也走不到的暗河》（作者手写·双语·506/506 绿）
+
+- 第 87 篇回响「暗河」：祠殿东山脚下的平地（剃矮的草、青苔石板）——值更册最后一页写着"往东山脚下走的人，水先听见"——冬天高夏天低、散会那天最接近石板——四十年前那个想下去看的人永远没回来（进出册只记日期没写名字）——院里老人说暗河才是潮候院真正的根。
+- 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-087-the-hidden-river-no-one-has-reached`；verify world-bible **506/506** ✓ · verify:bible-snapshot ✓。顺修了一条时代错误条（前文提到"手机"，不合《世界大典》的世界观，改为潮退盐粒铺在青苔石板上）。
+- 同步：BibleAsk lede → 87（含 en）；/bible/ask meta → 八十七篇 / eighty-seven；cache-identity → 87 篇锚句；bible-ask-behavior 锚句总数 500→506；canon-answer-graph 测试 92 段 / 87 echoes；pins 重钉（page→6e154428… comp→061df841…）· 相关测试 24/24。

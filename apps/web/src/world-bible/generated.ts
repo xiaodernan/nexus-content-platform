@@ -18241,6 +18241,204 @@ The east annex has been the most untouched room in the Institute since then.
 > It does not grow cold — it edges eastwards each day. It keeps itself busy — no one in the Institute knows where it is going.
 `,
   },
+  {
+    order: 87,
+    slug: 'echo-087-the-hidden-river-no-one-has-reached',
+    titleZh: '潮候院祠殿东山脚下那条从没人见过也走不到的暗河',
+    titleEn: 'The Hidden River Under the Institute That No One Has Reached or Seen',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第八十七日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the eighty-seventh day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 87): The Hidden River Under the Institute That No One Has Reached or Seen
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿东山脚下的那条暗河。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the hidden river at the foot of the eastern hill of the sanctuary.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第八十七日。
+> Era: the Institute — after the 41st Convocation; the eighty-seventh day of the autumn-tide month.
+
+---
+
+## 一 · 山脚下
+
+祠殿东山脚下有一处平地，草矮得像剃过——青苔石板压着——抄本师从不带人走到这里。
+
+值更册中有一句话："往东山脚下走的人，水先听见。"
+
+**锚句**：值更册最后一页写着："往东山脚下走的人，水先听见。"
+**Anchor sentence**: the final page of the watch-ledger reads: "Those who walk towards the eastern hill — the water hears them first."
+
+---
+
+## 二 · 冬天高夏天低
+
+抄本师说这里有条暗河——冬天水位高涨——夏天退到石板下——平时谁也看不见它。
+
+只有散会那一天，抄本师绕着平地遥遥走一圈——抄本师说那天的水面"快顶到石板了"。
+
+**锚句**：抄本师说祠殿东山脚下有一条暗河——平时谁也看不见它。
+**Anchor sentence**: the copyists say there is a hidden river at the foot of the eastern hill — no one ever sees it on ordinary days.
+
+---
+
+## 三 · 青苔石板
+
+平地中央压着一块青苔石板——石板比人的脚掌宽——青苔长得厚——潮退时盐铺了一层——第二天都没滑进石缝。
+
+抄本师遇到石板从来绕开走——抄本师说："这不是进去的地方。"
+
+**锚句**：青苔石板最厚的地方，抄本师说"这不是进去的地方"。
+**Anchor sentence**: at the thickest part of the moss-covered slab, the copyists say, "this is not a way in."
+
+---
+
+## 四 · 那四十年前的人
+
+四十年前有人说他想下去看一眼——抄本师装作没听见——第二天那人从后门出了院——再也没有回来。
+
+抄本师在进出册写了一个日期——但没写名字。
+
+**锚句**：四十年前那个想下去看一眼的人，第二天从后门出了院——进出册只记了日期，没写名字。
+**Anchor sentence**: the man forty years ago who wanted to go down and take a look left the Institute through its back gate the next day — the entry ledger holds only a date, no name.
+
+---
+
+## 五 · 根
+
+院里老人说暗河才是潮候院真正的根——潮候院的盐、雾、水气、影子，都是从地底慢慢渗上来的。
+
+老人说的时候压低声音——抄本师在旁边没接话——他记着，从不说。
+
+**锚句**：院里老人说暗河才是潮候院真正的根——抄本师没接话。
+**Anchor sentence**: the elders say the hidden river is the Institute's true root — the copyists listened, and said nothing.
+
+---
+
+## 六 · 散会之后
+
+第四十一次大会散会之后——抄本师走过平地——他停了一下——他以为他听见石板下有水声——他没有停下来——他继续走。
+
+从那一天起，抄本师不再往东山脚下走。
+
+**锚句**：散会之后抄本师路过平地——他没再往东山脚下走。
+**Anchor sentence**: after the Convocation dissolved, a copyist crossed the flat and heard, he thought, water beneath the slab — he went on, and never walked down to the eastern hill again.
+
+---
+
+## 七 · 映射（回响八十七章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 暗河 · 青苔石板 · 值更册 · 后门 · 真正的根 | 一、二、三、四、五、六、七 |
+| geography | 祠殿东山脚下 · 平地 | 一、二、三、六 |
+| characters | 抄本师 · 值更人 · 那个走掉的人 · 院里老人 | 一、二、三、四、五、六 |
+| story | 暗河 · 回响（其八十七） | 全篇 |
+| items | 青苔石板 · 值更册 · 进出册 | 一、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第八十七日 | 二、四、六 |
+
+> 别跟水说话。潮候院已经不下去看了；潮候院只是每天抬头看天。
+> Do not talk to the water. The Institute does not go down anymore; the Institute only looks up at the sky, every day.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其八十七）「潮候院祠殿东山脚下那条从没人见过也走不到的暗河」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the hidden river at the foot of the eastern hill of the sanctuary.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿东山脚下的那条暗河。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the eighty-seventh day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第八十七日。
+
+---
+
+## I · The Foot of the Hill
+
+At the foot of the eastern hill of the sanctuary lies a flat of closely cropped grass — a moss-covered slab rests upon it — the copyists never bring anyone here.
+
+On the final page of the watch-ledger appears a single line: "Those who walk towards the eastern hill — the water hears them first."
+
+**锚句**：值更册最后一页写着："往东山脚下走的人，水先听见。"
+**Anchor sentence**: the final page of the watch-ledger reads: "Those who walk towards the eastern hill — the water hears them first."
+
+---
+
+## II · High in Winter, Low in Summer
+
+The copyists say there is a hidden river here — in winter the water rises high — in summer it sinks beneath the slab — no one ever sees it on ordinary days.
+
+Only on the day of the Convocation, they make one distant pass around the flat — the copyists say, on that day, "the surface nearly reaches the stones."
+
+**锚句**：抄本师说祠殿东山脚下有一条暗河——平时谁也看不见它。
+**Anchor sentence**: the copyists say there is a hidden river at the foot of the eastern hill — no one ever sees it on ordinary days.
+
+---
+
+## III · The Slab of Moss
+
+At the center of the flat rests a slab of mossy stone — wider than a man's foot and broader still — the moss grows thick — when the tide recedes, salt spreads over it — by the next day, not one grain has slipped into the seams.
+
+Whenever the copyists pass the slab they take the long way around — the copyists say, "this is not a way in."
+
+**锚句**：青苔石板最厚的地方，抄本师说"这不是进去的地方"。
+**Anchor sentence**: at the thickest part of the moss-covered slab, the copyists say, "this is not a way in."
+
+---
+
+## IV · The One From Forty Years Ago
+
+Forty years ago a man said that he wanted to go down and take a look — the copyists pretended not to have heard — the next day, the man left the Institute through its back gate — and never returned.
+
+On the entry ledger the copyists wrote a date — but no name.
+
+**锚句**：四十年前那个想下去看一眼的人，第二天从后门出了院——进出册只记了日期，没写名字。
+**Anchor sentence**: the man forty years ago who wanted to go down and take a look left the Institute through its back gate the next day — the entry ledger holds only a date, no name.
+
+---
+
+## V · The Root
+
+The elders say the hidden river is the Institute's true root — the salt, the mist, the moisture, the shadows, all of these seep up slowly through the earth over centuries.
+
+The elders only whisper these words — the copyists beside them did not speak — they remember, and they do not tell.
+
+**锚句**：院里老人说暗河才是潮候院真正的根——抄本师没接话。
+**Anchor sentence**: the elders say the hidden river is the Institute's true root — the copyists listened, and said nothing.
+
+---
+
+## VI · After the Dissolution
+
+After the 41st Convocation dissolved, a copyist crossed the flat — he stopped for a moment — he thought he heard water beneath the slab — he did not stop again — he kept walking.
+
+From that day on, the copyists no longer walk down to the eastern hill.
+
+**锚句**：散会之后抄本师路过平地——他没再往东山脚下走。
+**Anchor sentence**: after the Convocation dissolved, a copyist crossed the flat and heard, he thought, water beneath the slab — he went on, and never walked down to the eastern hill again.
+
+---
+
+## VII · Mapping（Echo No. 87 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the hidden river · the moss slab · the watch-ledger · the back gate · the true root | 一、二、三、四、五、六、七 |
+| geography | the foot of the eastern hill · the flat | 一、二、三、六 |
+| characters | the copyists · the head of the watch · the man who left · the elders | 一、二、三、四、五、六 |
+| story | the hidden river · Echo No. 87 | 全篇 |
+| items | the moss slab · the watch-ledger · the entry ledger | 一、三、四、五、六 |
+| history | After the 41st Convocation · the eighty-seventh day of the autumn-tide month | 二、四、六 |
+
+> 别跟水说话。潮候院已经不下去看了；潮候院只是每天抬头看天。
+> Do not talk to the water. The Institute does not go down anymore; the Institute only looks up at the sky, every day.
+`,
+  },
 ] as const;
 
 export const BIBLE_APPENDICES: readonly BibleChapter[] = [
