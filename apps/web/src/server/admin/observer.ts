@@ -157,6 +157,83 @@ export async function readObserverMetrics(): Promise<ObserverMetrics> {
 
 export type ObserverAdviceSeverity = 'good' | 'warn' | 'bad';
 
+export interface ObserverProjection {
+  /** 样本量 < 4 或方差 0 时不做预测——先承认不知道，别编一个曲线 */
+  valid: boolean;
+  reasonZh: string | null;
+  reasonEn: string | null;
+  /** 最小二乘斜率（opens/day）；valid=false 时为 null */
+  slopePerDay: number | null;
+  intercept: number | null;
+  /** R²：线性拟合解释的方差比例（0–1）；完全平直线时为 null（除以 0 没有意义） */
+  r2: number | null;
+  /** 残差标准差（样本，ddof=2）——预测误差的量纲是 opens/day */
+  residualStdDev: number | null;
+  /** 第 n+1 天的点预测（opens） */
+  next1: number | null;
+  /** 未来 3 天的平均点预测 */
+  next3: number | null;
+  /** 未来 7 天的平均点预测 */
+  next7: number | null;
+  /** 斜率死区 ±0.5 opens/day 以内算平 */
+  trend: 'up' | 'flat' | 'down' | null;
+}
+
+/**
+ * 线性外推（最小二乘）——纯函数，确定性，零 AI。
+ * 输入只认实库来的 daily[]（按天升序的打开数）；不掺任何前瞻偏差、不加平滑幻觉。
+ * 空区间（全 0）也算"有效预测"（斜率 0、平线），但理由是真的平线，不是"没数据"。
+ */
+export function buildObserverProjection(daily: ObserverDailyPoint[]): ObserverProjection {
+  const n = daily.length;
+  if (n < 4) {
+    return {
+      valid: false,
+      reasonZh: `只采到 ${n} 天——少于 4 天不拟合，免得把噪声当趋势画给你。`,
+      reasonEn: `Only ${n} day(s) sampled — fewer than 4 days is not fitted, so noise is never drawn as a trend.`,
+      slopePerDay: null,
+      intercept: null,
+      r2: null,
+      residualStdDev: null,
+      next1: null,
+      next3: null,
+      next7: null,
+      trend: null,
+    };
+  }
+  const xs = daily.map((_, i) => i);
+  const ys = daily.map((d) => d.opens);
+  const meanX = xs.reduce((a, b) => a + b, 0) / n;
+  const meanY = ys.reduce((a, b) => a + b, 0) / n;
+  const sxy = xs.reduce((acc, x, i) => acc + (x - meanX) * (ys[i]! - meanY), 0);
+  const sxx = xs.reduce((acc, x) => acc + (x - meanX) ** 2, 0);
+  const slope = sxx === 0 ? 0 : sxy / sxx;
+  const intercept = meanY - slope * meanX;
+  const residuals = ys.map((y, i) => y - (slope * xs[i]! + intercept));
+  const sst = ys.reduce((acc, y) => acc + (y - meanY) ** 2, 0);
+  const sse = residuals.reduce((acc, r) => acc + r * r, 0);
+  const r2 = sst === 0 ? null : Math.max(0, 1 - sse / sst);
+  const residualStdDev = Math.sqrt(sse / Math.max(1, n - 2));
+  const predict = (x: number) => slope * x + intercept;
+  const next1 = predict(n);
+  const next3 = (predict(n) + predict(n + 1) + predict(n + 2)) / 3;
+  const next7 = [n, n + 1, n + 2, n + 3, n + 4, n + 5, n + 6].map(predict).reduce((a, b) => a + b, 0) / 7;
+  const trend: 'up' | 'flat' | 'down' = slope > 0.5 ? 'up' : slope < -0.5 ? 'down' : 'flat';
+  return {
+    valid: true,
+    reasonZh: null,
+    reasonEn: null,
+    slopePerDay: slope,
+    intercept,
+    r2,
+    residualStdDev,
+    next1,
+    next3,
+    next7,
+    trend,
+  };
+}
+
 export interface ObserverAdvice {
   severity: ObserverAdviceSeverity;
   textZh: string;

@@ -6,7 +6,7 @@ import { OBSERVER_COOKIE, OBSERVER_COOKIE_VALUE } from '@/app/api/admin/observer
 import { AdminNav } from '@/components/AdminNav';
 import { PasswordForm } from './PasswordForm';
 import { ObserverDeepRead } from '@/components/ObserverDeepRead';
-import { readObserverMetrics, buildObserverAdvice } from '@/server/admin/observer';
+import { readObserverMetrics, buildObserverAdvice, buildObserverProjection } from '@/server/admin/observer';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,6 +55,18 @@ const COPY: Record<Locale, {
   planUnknown: string;
   trendTitle: string;
   trendAria: string;
+  projTitle: string;
+  projEmpty: string;
+  projNext1: string;
+  projNext3: string;
+  projNext7: string;
+  projSlope: string;
+  projR2: string;
+  projResidual: string;
+  projTrendUp: string;
+  projTrendFlat: string;
+  projTrendDown: string;
+  projFoot: string;
   topTitle: string;
   topHead: [string, string, string, string];
   topEmpty: string;
@@ -96,6 +108,18 @@ const COPY: Record<Locale, {
     planUnknown: '未知档',
     trendTitle: '近 7 天有效打开（按天）',
     trendAria: '近 7 天有效打开趋势柱状图',
+    projTitle: '趋势预测（最小二乘线性外推 · 非 AI）',
+    projEmpty: '样本不足，不做预测',
+    projNext1: '第 8 天点预测（opens）',
+    projNext3: '未来 3 天平均预测',
+    projNext7: '未来 7 天平均预测',
+    projSlope: '斜率（opens/day）',
+    projR2: 'R²（拟合解释度）',
+    projResidual: '残差标准差',
+    projTrendUp: '上升趋势',
+    projTrendFlat: '平线',
+    projTrendDown: '下降趋势',
+    projFoot: '公式：对 daily.opens 做 y = slope·x + intercept 最小二乘拟合（x 从 0 起）；residual SD = √(SSE/(n−2))；趋势死区 ±0.5 opens/day。样本 < 4 天不拟合——先承认不知道。',
     topTitle: '最热的公开作品',
     topHead: ['作品', '浏览', '点赞', '路径'],
     topEmpty: '还没有通过审核的公开作品。',
@@ -137,6 +161,18 @@ const COPY: Record<Locale, {
     planUnknown: 'unknown',
     trendTitle: 'Effective opens, last 7 days (by day)',
     trendAria: 'Bar chart of effective opens over the last 7 days',
+    projTitle: 'Trend projection (least-squares linear extrapolation · not AI)',
+    projEmpty: 'Not enough samples — no projection',
+    projNext1: 'Day 8 point forecast (opens)',
+    projNext3: 'Avg forecast, next 3 days',
+    projNext7: 'Avg forecast, next 7 days',
+    projSlope: 'Slope (opens/day)',
+    projR2: 'R² (variance explained)',
+    projResidual: 'Residual SD',
+    projTrendUp: 'Rising trend',
+    projTrendFlat: 'Flat line',
+    projTrendDown: 'Falling trend',
+    projFoot: 'Method: least-squares fit of daily.opens to y = slope·x + intercept (x from 0); residual SD = √(SSE/(n−2)); trend deadband ±0.5 opens/day. Under 4 days of samples there is no fit — unknown is admitted, never invented.',
     topTitle: 'Hottest public works',
     topHead: ['Work', 'Views', 'Likes', 'Path'],
     topEmpty: 'No approved public works yet.',
@@ -148,10 +184,17 @@ const COPY: Record<Locale, {
 };
 
 async function isObserverAllowed(): Promise<boolean> {
-  const user = await currentUserOrNull();
-  if (user?.role === 'admin') return true;
+  // 先查本地 cookie（零 IO）——公开口令 123 是这扇门的主路径；
+  // 再问 DB（admin 会话）。DB 抖动/挂掉时返回 false（门没开、gate 页照常渲染），
+  // 而不是整页 500——"知道不了"要如实呈现，不要一声没响就崩。
   const store = await cookies();
-  return store.get(OBSERVER_COOKIE)?.value === OBSERVER_COOKIE_VALUE;
+  if (store.get(OBSERVER_COOKIE)?.value === OBSERVER_COOKIE_VALUE) return true;
+  try {
+    const user = await currentUserOrNull();
+    return user?.role === 'admin';
+  } catch {
+    return false;
+  }
 }
 
 export default async function ObserverPage() {
@@ -175,6 +218,7 @@ export default async function ObserverPage() {
 
   const m = await readObserverMetrics();
   const advice = buildObserverAdvice(m);
+  const projection = buildObserverProjection(m.daily);
   const maxOpens = Math.max(1, ...m.daily.map((d) => d.opens));
   const fmt = new Intl.NumberFormat(locale === 'zh' ? 'zh-CN' : 'en-US');
 
@@ -242,6 +286,39 @@ export default async function ObserverPage() {
           {c.botsNote(m.suspectedBots7d)}
         </p>
         <p className="obs-subnote">{c.completionFoot}</p>
+      </section>
+
+      <section className="obs-band" aria-label={c.projTitle} data-observer-projection>
+        <h2 className="obs-sectionTitle">{c.projTitle}</h2>
+        {projection.valid ? (
+          <>
+            <div className="obs-projGrid">
+              <div className="obs-projCell">
+                <span className="obs-projNum">{fmt.format(Math.max(0, Math.round(projection.next1 ?? 0)))}</span>
+                <span className="obs-projLabel">{c.projNext1}</span>
+              </div>
+              <div className="obs-projCell">
+                <span className="obs-projNum">{fmt.format(Math.max(0, Math.round(projection.next3 ?? 0)))}</span>
+                <span className="obs-projLabel">{c.projNext3}</span>
+              </div>
+              <div className="obs-projCell">
+                <span className="obs-projNum">{fmt.format(Math.max(0, Math.round(projection.next7 ?? 0)))}</span>
+                <span className="obs-projLabel">{c.projNext7}</span>
+              </div>
+            </div>
+            <div className="obs-projMeta">
+              <span className="obs-projChip" data-trend={projection.trend}>
+                {projection.trend === 'up' ? c.projTrendUp : projection.trend === 'down' ? c.projTrendDown : c.projTrendFlat}
+              </span>
+              <span className="obs-projStat">{c.projSlope}: <b>{(projection.slopePerDay ?? 0).toFixed(2)}</b></span>
+              <span className="obs-projStat">{c.projR2}: <b>{projection.r2 === null ? '—' : projection.r2.toFixed(2)}</b></span>
+              <span className="obs-projStat">{c.projResidual}: <b>{(projection.residualStdDev ?? 0).toFixed(2)}</b></span>
+            </div>
+          </>
+        ) : (
+          <p className="obs-subnote" data-observer-projection-empty>{locale === 'zh' ? projection.reasonZh : projection.reasonEn}</p>
+        )}
+        <p className="obs-subnote">{c.projFoot}</p>
       </section>
 
       <section className="obs-band" aria-label={c.tasksTitle}>

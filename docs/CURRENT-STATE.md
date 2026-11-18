@@ -7787,3 +7787,12 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - **Redis 黑洞**：`localhost:56379` TCP 可连、永不回包；Docker engine API 500；未动 Docker（其它项目的容器在里头）
 - 硬化：`jobs.py` RedisJobStore connect/read 3s 有界 · `registry.py` cache 客户端 connect/read 2s 有界——黑洞再也拖不死启动/缓存主路；test_jobs 实连 PING 门控 skip（11 skipped，141 passed，0 failed）· ADR-0274 DEGRADED-BOOT 名牌照常生效（本机 redis 活过来后无须任何代码变更即恢复）
 - evidence：`docs/evidence/provider-new-key-2026-11-19.md`
+
+## cont. 394 (2026-11-19) · §ADMIN-13+PROJ ✓ §ADMIN-13+ROBUST ✓ · 只读观察站「趋势预测」上线 + 门页抗 DB 抖动
+
+- `buildObserverProjection(daily)`（最小二乘线性外推 · 非 AI · 确定性）：斜率/截项/R²/残差 SD/第 n+1 天点预测/未来 3 天与 7 天平均预测 · 趋势死区 ±0.5 opens/day · 样本 < 4 不拟合（reason 双语如实）· 完全平线 R²=null · slope<0.5→flat
+- /admin/observe 新增「趋势预测」带（projGrid/projMeta/projChip[data-trend]）· 公式明文在底部 · zh/en 双语全套
+- `isObserverAllowed` 硬化：cookie 本地先查、admin 会话 DB 失败 → gate 页照常渲染（此前 DB 挂掉会整页 500 — 本机 2026-11-19 亲历：Docker Desktop engine 500 → Postgres 5443 CONNECT_TIMEOUT）
+- `observer-projection-behavior.test.ts` 7/7：完美线（y=2x+10）· 全零平线 · 下降线 · 噪声（R²∈(0,1)）· 死区 flat · n<4 拒拟合 · 输出契约
+- fe-gates **151/151 · 1377/1377 · census 2996** · tsc web EXIT=0 · gate 页 HTTP 200 + 浏览器无障碍快照零 error（带内数字区：实库全零数据时平线预测，R²=null）
+- 未能浏览器实证投影带本身：本机 Docker 挂掉致 Postgres 不可达（env 限制，非代码缺陷）；proj 带在 Docker 恢复后首次进库即显
