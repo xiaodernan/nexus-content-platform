@@ -13532,6 +13532,190 @@ The head of the watch often finds a new branch beside it — it grows — and re
 `,
   },
   {
+    order: 134,
+    slug: 'echo-134-the-box-of-broken-watches',
+    titleZh: '潮候院里那箱只装坏表的箱子',
+    titleEn: 'The Box in the Institute That Holds Only Broken Watches',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hundredth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 134): The Box in the Institute That Holds Only Broken Watches
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院北厢房里那箱只装坏表的箱子——它们互相看着，谁也走不动。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the box in the Institute's north chamber that holds only broken watches — they watch each other, none of them are running.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百日。
+> Era: the Institute — after the 41st Convocation; the hundredth day of the autumn-tide month.
+
+---
+
+## 一 · 那箱子
+
+潮候院北厢房里有一只旧箱子——箱皮是木头的——箱角的铜箍全松了——箱子里装着很多坏表。
+
+值更人说：从来没有一只表是对的——也没有一只表走过一整夜。
+
+**锚句**：潮候院北厢房里有一只旧箱子——箱子里装着很多坏表——没有一只表对过——也没有一只走过一整夜。
+**Anchor sentence**: in the north chamber of the Institute sits an old box — the box is filled with broken watches — not one has ever been right — not one has lasted a full night.
+
+---
+
+## 二 · 不能检查
+
+抄本师从来没有人检过箱里这些表——值更人也没人开箱——只有年少的某个抄本师偷偷开看过——看了十一只。
+
+第二天她上班的时候——手腕上多了一块表——她不认得——她不知道怎么来的。
+
+**锚句**：某个抄本师偷偷开看过——第二天她手腕上多了一块表——她不认得——也不知道怎么来的。
+**Anchor sentence**: a young copyist once peeked inside the box in secret — the next day on her wrist lay a watch she did not recognize — she does not know how it came to be there.
+
+---
+
+## 三 · 固定时间
+
+箱子里的表——每一只都停在第四十一次大会散会的那一刻——分秒不差——没有人知道为什么。
+
+**锚句**：箱子里的表每一只都停在第四十一次大会散会的那一刻——分秒不差——没有人知道为什么。
+**Anchor sentence**: every watch in the box is stopped at the exact second the forty-first Convocation dissolved — second by second — and no one knows why.
+
+---
+
+## 四 · 修它
+
+抄本师试着修一只——修好了——表走了——但表走了以后——箱子里的其他表——全都动了。
+
+后来修好的那只表——又停了——停的时间——就是其他表停止的时间。
+
+**锚句**：抄本师试着修一只——修好了——后来又停了——停的时间就是其他表停止的时间。
+**Anchor sentence**: a copyist once tried to fix one watch — it worked — and then it stopped — at the hour the others had stopped.
+
+---
+
+## 五 · 值更册
+
+值更册最后一页写着："第四十一次大会散会那天——所有人都抬起了袖子——袖口里面——是这么一只表。"
+
+**锚句**：值更册最后一页写着"第四十一次大会散会那天——所有人都抬起了袖子——袖口里面——是这么一只表"。
+**Anchor sentence**: the last page of the watch-ledger reads: on the day the Convocation dissolved — every soul raised a sleeve — inside every cuff — one of these very watches.
+
+---
+
+## 六 · 散会
+
+散会那天傍晚值守对账——发现所有人的表——全都离对了——对的不是昼夜——是别的什么。
+
+**锚句**：散会那天傍晚值守对账——发现所有人的表——全都离对了——对的不是昼夜。
+**Anchor sentence**: in the evening of Dissolution the watch-ward checked the count — every watch was calibrated — not to day and night — but to something else.
+
+---
+
+## 七 · 映射（回响一百三十四章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 坏表 · 固定时刻 · 散会 · 第四十一次大会 · 值守对账 | 一、二、三、四、五、六、七 |
+| geography | 北厢房 · 养表的箱子 · 祠殿 | 一、二、三 |
+| characters | 抄本师 · 值守 · 某年少的抄本师 | 一、二、三、四、五、六 |
+| story | 一箱坏表 · 回响（其一百三十四） | 全篇 |
+| items | 旧箱子 · 铜箍 · 袖口里的表 · 值更册 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第一百日 | 三、四、五、六 |
+
+> 北厢房那箱子里的表——全都停在散会的那一刻——也没人去修它——只因为散会散的不仅仅是散会。
+> The box of watches in the north chamber — all stopped at the hour of the Dissolution — no one fixes them — because what dissolved on that day was not only the Convocation.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百三十四）「潮候院里那箱只装坏表的箱子」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the box in the Institute's north chamber that holds only broken watches — they watch each other, none of them are running.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院北厢房里那箱只装坏表的箱子——它们互相看着，谁也走不动。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the hundredth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百日。
+
+---
+
+## I · The Box
+
+In the north chamber of the Institute sits an old box — the box is filled with broken watches — the straps are wood — the corners are loose with age.
+
+The head of the watch says: not one has ever been right — and not one has lasted a full night.
+
+**锚句**：潮候院北厢房里有一只旧箱子——箱子里装着很多坏表——没有一只表对过——也没有一只走过一整夜。
+**Anchor sentence**: in the north chamber of the Institute sits an old box — the box is filled with broken watches — not one has ever been right — not one has lasted a full night.
+
+---
+
+## II · Not Inspected
+
+The copyists never inspect the watches in the box — the head of the watch never opens it — only a young copyist once peeked inside in secret and saw eleven of them.
+
+The next day on her wrist lay a watch she did not recognize — she does not know how it came to be there.
+
+**锚句**：某个抄本师偷偷开看过——第二天她手腕上多了一块表——她不认得——也不知道怎么来的。
+**Anchor sentence**: a young copyist once peeked inside the box in secret — the next day on her wrist lay a watch she did not recognize — she does not know how it came to be there.
+
+---
+
+## III · The Fixed Moment
+
+Every watch in the box is stopped at the exact second the forty-first Convocation dissolved — second by second — and no one knows why.
+
+**锚句**：箱子里的表每一只都停在第四十一次大会散会的那一刻——分秒不差——没有人知道为什么。
+**Anchor sentence**: every watch in the box is stopped at the exact second the forty-first Convocation dissolved — second by second — and no one knows why.
+
+---
+
+## IV · The Repair
+
+A copyist once tried to fix one watch — it worked — and then it stopped — at the hour the others had stopped.
+
+**锚句**：抄本师试着修一只——修好了——后来又停了——停的时间就是其他表停止的时间。
+**Anchor sentence**: a copyist once tried to fix one watch — it worked — and then it stopped — at the hour the others had stopped.
+
+---
+
+## V · The Watch-Ledger
+
+The last page of the watch-ledger reads: on the day the Convocation dissolved — every soul raised a sleeve — inside every cuff — one of these very watches.
+
+**锚句**：值更册最后一页写着"第四十一次大会散会那天——所有人都抬起了袖子——袖口里面——是这么一只表"。
+**Anchor sentence**: the last page of the watch-ledger reads: on the day the Convocation dissolved — every soul raised a sleeve — inside every cuff — one of these very watches.
+
+---
+
+## VI · The Evening of Dissolution
+
+In the evening of Dissolution the watch-ward checked the count — every watch was calibrated — not to day and night — but to something else.
+
+**锚句**：散会那天傍晚值守对账——发现所有人的表——全都离对了——对的不是昼夜。
+**Anchor sentence**: in the evening of Dissolution the watch-ward checked the count — every watch was calibrated — not to day and night — but to something else.
+
+---
+
+## VII · Mapping（Echo No. 134 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the broken watches · the fixed second · the Dissolution · the cuff · the calibration | 一、二、三、四、五、六、七 |
+| geography | the north chamber · the box · the chapel | 一、二、三 |
+| characters | the copyists · the watch-ward · the young copyist | 一、二、三、四、五、六 |
+| story | the box of broken watches · Echo No. 134 | 全篇 |
+| items | the old box · the copper clasps · the watch in the cuff · the watch-ledger | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the hundredth day of the autumn-tide month | 三、四、五、六 |
+
+> 北厢房那箱子里的表——全都停在散会的那一刻——也没人去修它——只因为散会散的不仅仅是散会。
+> The box of watches in the north chamber — all stopped at the hour of the Dissolution — no one fixes them — because what dissolved on that day was not only the Convocation.
+`,
+  },
+  {
     order: 14,
     slug: 'echo-014-the-cover-of-the-tide-table',
     titleZh: '潮汐表的封面',

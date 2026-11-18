@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 133 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 134 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -2817,6 +2817,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 抄本师说那朵花是暗红色——像潮候院墙上那一行字颜色一样。
 - [5] 值更册最后一页"它一生只开一次花——而那一次——是给散会的"。
 - [6] 值更人经常在它旁边发现一段新枝——长出来——又收掉。
+
+### Echo 134 · 潮候院里那箱只装坏表的箱子 / The Box in the Institute That Holds Only Broken Watches
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院北厢房里有一只旧箱子——箱子里装着很多坏表——没有一只表对过——也没有一只走过一整夜。
+- [2] 某个抄本师偷偷开看过——第二天她手腕上多了一块表——她不认得——也不知道怎么来的。
+- [3] 箱子里的表每一只都停在第四十一次大会散会的那一刻——分秒不差——没有人知道为什么。
+- [4] 抄本师试着修一只——修好了——后来又停了——停的时间就是其他表停止的时间。
+- [5] 值更册最后一页写着"第四十一次大会散会那天——所有人都抬起了袖子——袖口里面——是这么一只表"。
+- [6] 散会那天傍晚值守对账——发现所有人的表——全都离对了——对的不是昼夜。
 
 ### Echo 14 · 潮汐表的封面 / The Cover of the Tide-Table
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

@@ -184,6 +184,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E131-门开了一整夜': 'echo-131-the-door-stood-open-all-night',
   'E132-潮候院里那件永远等不到主人的蓑衣': 'echo-132-the-rain-cape-that-never-came-home',
   'E133-潮候院东院那棵从不下果的沉香树': 'echo-133-the-agarwood-that-bloomed-once',
+  'E134-潮候院里那箱只装坏表的箱子': 'echo-134-the-box-of-broken-watches',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

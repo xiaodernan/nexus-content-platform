@@ -7577,3 +7577,9 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 新篇：「沉香树 · 一朵暗红花 · 一生只开一次 · 一枝一息」—— canon digest 现 **232,309 chars**（13 章正典 · **133 回响** · 4 annex · 锚句 815 zh / 815 en ✓）。
 - 4 锚句双语；gen-bible-snapshot 增 echo-133；BibleAsk lede → 133 · /bible/ask meta → 一百三十三篇 · CACHE-IDENTITY × 133 · canon-answer-graph → 13 章 + 133 回响 = 146 段 · bible-ask-behavior → 810 · pin 重钉 page→a250ab51 / comp→dc4c8ba1。
 - fe-gates **1370/1370** ✓。digest 余量 ≈ 23K chars，**#133 同质双语片，下一道应收尾 Echo #134→#140**（如果继续往大典塞 Echo）——之后应跑大模型预检 rerun 看 cap。
+
+## cont. 371 (2026-11-19) — v991 · §BIBLE-134 · Echo #134《坏表的箱子》(作者手写 · verify 821/821)
+
+- 新篇：「北厢房 · 固定时刻 · 散会 · 值守对账 · 袖口里的表」—— canon digest 现 **232,755 chars**（13 章正典 · **134 回响** · 4 annex · 锚句 821 zh / 821 en ✓）。
+- 6 锚句 bilingual · gen-bible-snapshot 增 echo-134 · BibleAsk lede → 134 · /bible/ask meta → 一百三十四篇 · CACHE-IDENTITY × 134 · canon-answer-graph → 13 章 + 134 回响 = 147 段 · bible-ask-behavior → 816 · pin 重钉 page→a136e59a / comp→8f95a9a1。
+- fe-gates **1370/1370** ✓。
