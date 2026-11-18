@@ -73,7 +73,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         nodes: result.nodesVisited,
       },
     });
-  } catch (error) {
+  } catch (_error) {
     increment('nexus_bible_ask_total', { outcome: 'error' });
     return jsonError(500, 'internal', { message: '问典遇到意外错误，稍后再问' });
   }

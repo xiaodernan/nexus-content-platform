@@ -28,7 +28,6 @@ import {
   step,
   type GamePlan,
   type PlayActor,
-  type PlaytestLocale,
   type PlaytestReport,
   type PuzzleLink,
   type SimActor,

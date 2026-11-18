@@ -136,11 +136,13 @@ export function StategraphTry({ locale }: { locale: Locale }) {
         setResult(body as TryResult);
       } else {
         const b = body as Record<string, unknown>;
+        const asString = (v: unknown): string =>
+          typeof v === 'string' ? v : v == null ? '' : JSON.stringify(v);
         setFailure({
           ok: false,
           status: response.status,
-          code: String(b.error ?? b.code ?? 'unknown'),
-          message: String(b.message ?? b.error ?? ''),
+          code: asString(b.error ?? b.code) || 'unknown',
+          message: asString(b.message ?? b.error),
           hint: typeof b.hint === 'string' ? b.hint : undefined,
           orchestrationHeader: (b.orchestrationHeader as string | null | undefined) ?? null,
         });
@@ -156,7 +158,7 @@ export function StategraphTry({ locale }: { locale: Locale }) {
     <section className="sg-try" data-stategraph-try>
       <p className="sg-tryKicker">{c.kicker}</p>
       <div className="sg-tryRow">
-        <button type="button" className="sg-tryButton" onClick={run} disabled={busy} data-stategraph-run>
+        <button type="button" className="sg-tryButton" onClick={() => { void run(); }} disabled={busy} data-stategraph-run>
           {busy ? c.running : c.button}
         </button>
         <span className="sg-tryHint">{c.hint}</span>
@@ -180,7 +182,7 @@ export function StategraphTry({ locale }: { locale: Locale }) {
             <div className="sg-tryCell sg-tryCellWide"><dt>{c.message}</dt><dd>{failure.message}</dd></div>
             {failure.hint ? <div className="sg-tryCell sg-tryCellWide"><dt>{c.hintLabel}</dt><dd>{failure.hint}</dd></div> : null}
           </dl>
-          <button type="button" className="sg-tryAgain" onClick={run} disabled={busy}>{c.again}</button>
+          <button type="button" className="sg-tryAgain" onClick={() => { void run(); }} disabled={busy}>{c.again}</button>
         </div>
       ) : null}
 
@@ -209,7 +211,7 @@ export function StategraphTry({ locale }: { locale: Locale }) {
           {result.labels.length > 0 ? (
             <p className="sg-tryLabels">{c.labels}: <span className="sg-tryMono">{result.labels.join(' · ')}</span></p>
           ) : null}
-          <button type="button" className="sg-tryAgain" onClick={run} disabled={busy}>{c.again}</button>
+          <button type="button" className="sg-tryAgain" onClick={() => { void run(); }} disabled={busy}>{c.again}</button>
         </div>
       ) : null}
     </section>

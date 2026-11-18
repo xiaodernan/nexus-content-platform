@@ -1,4 +1,4 @@
-﻿import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 import { buildDigest, SYSTEM_PROMPT, SYSTEM_PROMPT_CHAR_BUDGET, extractAnchorTexts } from '../src/lib/bibleAsk';
 import { BIBLE_CHAPTERS, BIBLE_ECHOES } from '../src/world-bible/generated';
 

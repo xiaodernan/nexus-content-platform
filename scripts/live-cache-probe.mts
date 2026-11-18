@@ -9,7 +9,6 @@
  *
  * --confirm-real 才会真计费任何 token。
  */
-import { strict as assert } from 'node:assert';
 
 const BASE = process.env.NEXUS_WEB_URL ?? 'http://127.0.0.1:3100';
 const PASSWORD = process.env.NEXUS_SMOKE_PASSWORD ?? 'smoke-password-2026-11-18';

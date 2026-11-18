@@ -97,7 +97,7 @@ function confidenceLabel(level: Suggestion['confidence'], c: { confidenceHigh: s
   return level === 'high' ? c.confidenceHigh : level === 'medium' ? c.confidenceMedium : c.confidenceLow;
 }
 
-export function DeepReadCard({ body, locale }: { body: unknown | null; locale: Locale }) {
+export function DeepReadCard({ body, locale }: { body: unknown; locale: Locale }) {
   const c = COPY[locale];
   const [phase, setPhase] = useState<Phase>('idle');
   const [ok, setOk] = useState<DeepReadOk | null>(null);

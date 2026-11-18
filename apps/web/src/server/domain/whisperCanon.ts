@@ -1,4 +1,4 @@
-import { BIBLE_CHAPTERS, BIBLE_ECHOES, type BibleChapter } from '@/world-bible/generated';
+import { BIBLE_CHAPTERS, BIBLE_ECHOES } from '@/world-bible/generated';
 
 /**
  * §BIBLE-WHISPER · 把一章正典打包成 LLM 的「你只能回答的关于正典的问题」——

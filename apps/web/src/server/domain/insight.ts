@@ -97,7 +97,6 @@ const toNum = (v: unknown): number => {
 
 export async function collectInsightSnapshot(now = new Date()): Promise<InsightSnapshot> {
   const db = getDb();
-  const since = new Date(now.getTime() - 30 * DAY_MS);
   const dayKeys = dayKeysUTC(now, 30);
   const dayStart = new Date(`${dayKeys[0]!}T00:00:00.000Z`);
 

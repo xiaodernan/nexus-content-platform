@@ -75,12 +75,6 @@ export const EXEMPT_AREAS = [
       "load under the root's eslint 10 (measured at the parent's bytes: exit 2 in 4.5 s, and no line of its " +
       'output names a file), so the root run may not descend into it.',
   },
-  {
-    dir: '.scratch',
-    reason:
-      "the agents' own byte probes, ignored by the root config next to scratch-*.mjs; each probe is graded by the " +
-      'arm that spawns it (the docs/evidence/*/*-arms.mjs batteries), not by a lint pass over a directory that is rewritten mid-run.',
-  },
 ];
 
 /** One tracked file -> the area it is linted in: its package dir, its top-level dir, or `(root)`. */

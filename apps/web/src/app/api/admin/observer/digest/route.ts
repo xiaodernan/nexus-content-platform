@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { readJson, jsonError, badRequest } from '@/server/http';
+import { readJson, jsonError } from '@/server/http';
 import { getRateLimiter, rateKey, clientIp } from '@/server/security/rateLimit';
 import { getAiCapabilities } from '@/lib/env';
 import { chatWithCharacter } from '@/server/ai/client';

@@ -6,7 +6,7 @@ import { OBSERVER_COOKIE, OBSERVER_COOKIE_VALUE } from '@/app/api/admin/observer
 import { AdminNav } from '@/components/AdminNav';
 import { PasswordForm } from './PasswordForm';
 import { ObserverDeepRead } from '@/components/ObserverDeepRead';
-import { readObserverMetrics, buildObserverAdvice, type ObserverMetrics } from '@/server/admin/observer';
+import { readObserverMetrics, buildObserverAdvice } from '@/server/admin/observer';
 
 export const dynamic = 'force-dynamic';
 

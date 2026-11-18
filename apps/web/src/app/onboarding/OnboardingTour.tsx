@@ -108,7 +108,6 @@ const STORAGE_KEY = 'nexus-onboarding-done';
 export function OnboardingTour({ locale = 'zh' }: { locale?: Locale }) {
   const steps = STEPS[locale];
   const [done, setDone] = useState<Record<string, boolean>>({});
-  const [opened, setOpened] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     try {
@@ -158,7 +157,7 @@ export function OnboardingTour({ locale = 'zh' }: { locale?: Locale }) {
               </div>
               {step.body.map((line, i) => <p key={i} className="obv-stepBody">{line}</p>)}
               <div className="obv-stepActions">
-                <a className="obv-stepCta" href={step.href} data-onboarding-cta onClick={() => setOpened((p) => ({ ...p, [step.key]: true }))}>
+                <a className="obv-stepCta" href={step.href} data-onboarding-cta>
                   {step.cta} →
                 </a>
                 <button type="button" className="obv-stepToggle" onClick={() => toggleDone(step.key)} data-onboarding-done aria-pressed={isDone}>

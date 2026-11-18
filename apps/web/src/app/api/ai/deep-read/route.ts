@@ -188,7 +188,7 @@ export async function POST(req: Request): Promise<Response> {
   let suggestions: z.infer<typeof Suggestion>[];
   try {
     suggestions = parseSuggestions(chat.response.text);
-  } catch (error) {
+  } catch (_error) {
     return await jsonError(502, 'provider_failed', {
       message: '模型输出未达到可展示的质量（没有解析出 ≥2 条合规建议）。请稍后重试。',
     });

@@ -74,7 +74,6 @@ export function MarketplacePicks({ items, locale }: { items: MarketplacePickInpu
       alive = false;
     };
     // 只在挂载时触发一次——同一货架的荐语由服务端 24h LRU 兜底
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!ok) return null;

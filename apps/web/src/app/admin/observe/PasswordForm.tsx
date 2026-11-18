@@ -35,7 +35,7 @@ export function PasswordForm({ locale }: { locale: 'zh' | 'en' }) {
   }
 
   return (
-    <form className="obs-gateForm" onSubmit={submit} data-observer-gate-form>
+    <form className="obs-gateForm" onSubmit={(event) => { void submit(event); }} data-observer-gate-form>
       <label className="obs-gateLabel" htmlFor="observer-password">
         {COPY.hint}
       </label>
