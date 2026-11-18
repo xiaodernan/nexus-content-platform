@@ -5671,3 +5671,22 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - 第 83 篇回响「西潭」：祠殿后一汪 black water——风拐弯它纹也不起——四十年前有人丢青叶，第二天叶子和影子都不见了；米缸月潭最老；散会之后有人说只看见过一次自己的脸；抄本师不拦任何人——只说"别靠太近"。
 - 手写 zh+en 母语级文本，6 组逐字锚句；gen-bible-snapshot 登记 `echo-083-the-pool-that-shows-nothing`；verify world-bible **482/482** ✓ · verify:bible-snapshot ✓。
 - 同步：BibleAsk lede → 83（含 en）；/bible/ask meta → 八十三篇 / eighty-three；cache-identity → 83 篇锚句；bible-ask-behavior 锚句总数 476→482；canon-answer-graph 测试 88 段 / 83 echoes；pins 重钉（page→ed159a04… comp→1b19be0b…）；fe-gates **1285/1285 绿**。
+
+## cont. 332 (2026-11-18) — v950 · §VERIFY-EN-ZH + §SIM-3 · 全页核验 + 合成流量复跑实录
+
+**A. 浏览器实测（in-app Chromium，zh/en 双模式逐一过）**：
+- `/` zh 模式：586 个汉字 · console 0 错误 · 无横向溢出（scrollWidth 985 < innerWidth 1000）· 无脱出块 · 仅保留品牌/技术词（NEXUS、LIVE PROVIDER、Ctrl+K 等）
+- `/` en 模式（POST `/api/locale` {locale:'en'} → reload 后 `htmlLang=en`）：**中文残字 = 0**（仅 FAB 的"中"切换字形一个字符，属切换 UI 而非内容）
+- `/bible/ask` zh：正典5章+回响（83 篇）；en：**0 个汉字**，显示 "every echo (83 pieces)"
+- `/insight`（管理员公共口令 123 入口）zh/en 双语渲染、口令说明正确、console 0 错误
+- `/guide` en：0 汉字
+- 404：双语静态页、显式 `lang` 属性（ADR-0151 存档决策）
+- LocaleToggle（"Switch to English"）：组件逻辑核对正确；点击未切换 cookie 的确认 → 经 API 切换路径；以 reload 后 `htmlLang=en` 验证切换全链路有效
+
+**B. §SIM-3 合成流量复跑**（dev 路径，端口 3100，24→20 会话 × 5 画像，76 hits）：
+- **76/76 2xx · 0 错误**
+- p50=2,417 ms · p95=11,317 ms（对照 v934 的 764/1380 ms——差异来自本机内存压力（全时 docker fleet 冷启动后仅 ~1 GB 可用），证据同步归档 `docs/evidence/simulated-user-behavior-2026-11-18.{md,json}`）
+- 画像带：rage-clicker 28 hits 零 5xx、lost-wanderer p95≈12.9 s（冷编译单次命中）
+- dev server 已停（端口释放）
+
+**未处理**：真实生产端到端撞库（≥ 数百并发）仍需真实部署窗口——本机内存不允许；Simulation ≠ SLA，记录在案。
