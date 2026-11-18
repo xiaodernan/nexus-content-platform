@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Five canonical chapters (full text below). 115 echoes (anchor lines only, same book end-anchors). 4 appendices (geography, glossary, chronology).
+Five canonical chapters (full text below). 116 echoes (anchor lines only, same book end-anchors). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -2621,6 +2621,14 @@ I → 等 · II → 不听见 · III → 不问 · IV → 不留 · V → 抄 ·
 - [4] 抄本师私下说四十年前某抄本师把它带出北库——三天后送回。
 - [5] 北库十二只熨斗一只没用过——传了五代。
 - [6] 抄本师把熨斗移到正中间——当年螺钉脱落。
+
+### Echo 116 · 潮候院北长廊每次大会散会就多一盏的灯 / The Lamp That Appears on the North Colonnade After Every Dissolved Convocation
+- [1] 北长廊值更人夜夜走一遍——灯三十盏，一盏不多，一盏不少。
+- [2] 第四十一次大会散会之后——值更人第二晚数到第三十一盏灯。
+- [3] 第三十一盏灯油满、灯芯新、灯罩旧——没有一样是新的，只有灯芯是单独新的。
+- [4] 值更册记载：每次大会散会北长廊多一盏灯——至今是第七次。
+- [5] 抄本师定规矩：多出来的灯一律不卸——不许动——也不许补。
+- [6] 值更册最后一页写着"第六十九年秋天北长廊会有第十盏"——抄本师不许任何人念出声。
 
 ### Echo 12 · 潮落时才有的回声 / The Echo That Only Comes When the Tide Is Out
 - [1] 祠殿堂的回声只在潮落时造访——涨潮时，声音走的是别的路。

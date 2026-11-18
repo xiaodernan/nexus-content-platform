@@ -7255,3 +7255,11 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 - 7 个 anchor 双语对照（中文 = 英文逐字一致）；gen-bible-snapshot 中现 114 条 + manifest 更新；
 - 完整同步：BibleAsk lede → 114 · /bible/ask meta → 一百一十四篇 · CACHE-IDENTITY × 114 · bible-ask-behavior.test.ts → 705/705 · canon-answer-graph → 13 章 + 114 回响 = 127 段 · pin 重钉 page→5b2eb550 / comp→72f8cb19。
 - fe-gates 1370/1370 ✓ · pages master 将至 5a31ff4f。
+
+## cont. 346 (2026-11-18) — v966 · §BIBLE-116 · Echo #116《北长廊每次大会散会就多一盏的灯》(作者手写 · verify 722/722) + /guide stale counts fixed (196 anchors · 116 echoes)
+
+- 新篇：「北长廊 · 三十盏灯 · 大会散会多一盏 · 第六十九年秋天会有第十盏」— canon digest 现在 **94,996 chars**（13 章正典 · 116 回响 · 4 annex · 锚句 722 zh / 722 en ✓）。
+- 6 个 anchor 双语逐字对齐；gen-bible-snapshot 现 116 条映射；`/bible/ask` lede 与 meta → 一百一十六篇；CACHE-IDENTITY × 116；canon-answer-graph → 13 章 + 116 回响 = 129 段；guideCopy 全语种 stale → fresh；bible-ask-behavior.test → 717。
+- pin 重钉 page→edf2e331 / comp→67ade817（bible-ask-visual-style 全绿）。
+- 额外：guideCopy stale 数字清理（「181 句」→「196 句」、five canonical chapters → thirteen；过去遗留的 one hundred twelve echoes → one hundred sixteen echoes · 五章正典全文 → 十三章正典全文）。
+- fe-gates **1370/1370** ✓ · Pages 指针将同步。
