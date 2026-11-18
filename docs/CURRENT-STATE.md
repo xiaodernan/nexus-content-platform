@@ -7632,3 +7632,10 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
   在容器里 `apt-get install -y postgresql-16-pgvector` → `vector 0.8.6` 就位、`knowledge_chunks` 可查；无需重建镜像、无需动数据卷。
   这是集成测试从此能跑基线。
 - evidence: `docs/evidence/insight-live-2026-11-19.md`。Pages 不 bump（本片为洞察落地片）。
+
+## cont. 378 (2026-11-19) — v996 · §BIBLE-138 · Echo #138《墙上那一个错字》(作者手写 · verify 845/845) + §INSIGHT-CACHE-COPY 文案纠偏
+
+- 新篇：「墙上那一行字 · 第九个错 · 潮缺一点 · 值更册最后一页」—— digest 现 **234,397 chars**（13 章正典 · **138 回响** · 4 annex · 锚句 845 zh / 845 en ✓）。
+- 6 锚句 bilingual · gen-bible-snapshot 增 echo-138 · BibleAsk lede → 138 · /bible/ask meta → 一百三十八篇 · CACHE-IDENTITY × 138 · canon-answer-graph → 151 段 · bible-ask-behavior → 840 · pin 重钉 page→7afb0b7a / comp→260efa8e。
+- §INSIGHT-CACHE-COPY：观察坞⑧ 正典深问 hint "≈4.3 万 / ≈43k" → "≈15 万 / ≈150k"；rate note 也同步真实 digest 尺寸与 §PROOF-V992 实测数字。中英两处都改。
+- fe-gates **1370/1370** ✓ · verify:world-bible 845/845 ✓ · 集成/行契约测试全绿。

@@ -6,7 +6,7 @@ import { csrfHeaders } from '@/lib/csrf';
 
 /**
  * §INSIGHT-4 · 正典深问——观察坞里的「问典」直通通道。
- * 与 /api/insight/chat 对应：system 前缀 = 世界大典 digest（≈4.3 万 tokens，字节恒定），
+ * 与 /api/insight/chat 对应：system 前缀 = 世界大典 digest（≈15 万 tokens，字节恒定），
  * 多轮 / 多人共享同一份 provider 前缀缓存。模型能看到的只有正典 + 你这句问题。
  * provider 不可达时如实告知，不编造（§159/§160）。
  */
@@ -23,7 +23,7 @@ const COPY: Record<Locale, {
 }> = {
   zh: {
     kicker: '正典深问 · CANON DEEP-ASK',
-    hint: '整部《低语诸王》世界大典作为字节级稳定的系统前缀随每次提问发送（≈4.3 万 tokens，多轮多人共享同一份 KV 缓存，不丢不换）。模型只认典籍，典籍里没有的就直说，不编。',
+    hint: '整部《低语诸王》世界大典作为字节级稳定的系统前缀随每次提问发送（≈15 万 tokens · 13 章 + 138 回响 + 4 annex，多轮多人共享同一份 KV 缓存，不丢不换；16 路并发实测 16/16 全额命中）。模型只认典籍，典籍里没有的就直说，不编。',
     placeholder: '问一个典籍里的问题：比如「《收件人》里谁签收了那张单？」',
     button: '问典籍',
     busy: '潮汐在读典籍…',
@@ -34,7 +34,7 @@ const COPY: Record<Locale, {
   },
   en: {
     kicker: 'CANON DEEP-ASK',
-    hint: 'The full Tide-Conclave canon ships as a byte-stable system prefix with every question (≈43k tokens; many rounds and many readers share the same KV cache). The model answers strictly from the ledger and says "not in the canon" when it is not there.',
+    hint: 'The full Tide-Conclave canon ships as a byte-stable system prefix with every question (≈150k tokens: 13 chapters + 138 echoes + 4 appendices; many rounds and many readers share the same KV cache; 16/16 full hits under a 16-way burst). The model answers strictly from the ledger and says "not in the canon" when it is not there.',
     placeholder: 'Ask something from the ledger — e.g. “Who signed the receipt in The Addressee?”',
     button: 'Ask the ledger',
     busy: 'The tide is reading…',

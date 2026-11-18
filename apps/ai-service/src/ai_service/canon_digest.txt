@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 137 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 138 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -2853,6 +2853,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 第二天早朝——椅子歪了一点——值更人没有扶正——他说'它散过了'。
 - [5] 抄本师在椅子底下发现一粒深黑色的盐——不是供盐——也不是膳盐。
 - [6] 值更册最后一页'它没有名字——谁去坐都一样'。
+
+### Echo 138 · 潮候院祠殿外墙上那一行字里唯一写错的字 / The One Wrong Character on the Wall Outside the Chapel
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 祠殿外墙上有一行字——字很长——抄本师说是散会那天写上去的——没人敢念完。
+- [2] 抄本师夜里把这行字与残卷对照——发现第九个字写错了——只有一个。
+- [3] 错在"潮"字的三点水少了一点——抄本师说"潮缺一点，潮就没了"。
+- [4] 值更人说没人被授权改——值更册里写着"它散过会——墙上就是这个"。
+- [5] 散会那一夜所有人都看见了这行字——没有人看见那个错。
+- [6] 值更册最后一页"墙上有一个字是错的——它一直是错的——它也将一直是错的"。
 
 ### Echo 14 · 潮汐表的封面 / The Cover of the Tide-Table
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

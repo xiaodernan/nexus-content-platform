@@ -188,6 +188,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E135-潮候院里那只永远看向潮汐表的废风向标': 'echo-135-the-rusted-wind-vane-pointing-at-the-tide-table',
   'E136-潮候院东厢那口只听不说话的青铜井': 'echo-136-the-bronze-well-that-listens-never-speaks',
   'E137-潮候院祠殿里那把只在散会时有人坐的木椅': 'echo-137-the-nameless-chair-of-the-dissolution',
+  'E138-潮候院祠殿外墙上那一行字里唯一写错的字': 'echo-138-the-one-wrong-character-on-the-chapel-wall',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
