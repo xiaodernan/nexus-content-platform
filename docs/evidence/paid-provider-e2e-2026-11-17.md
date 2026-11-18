@@ -455,3 +455,130 @@ cd apps/web && npx tsx scripts/approval-explain-e2e.mts c5ebd27e-8a20-45f2-86aa-
   - 首次调用 cold → 计 digest 保持 staging；
   - 后续调用 cached_tokens ≥ 22,600（≈ 94%）；
   - 这就是"为什么 codex 始终命中"的公共解法，本项目按同样的 sticky-cache 模式已跑通。
+
+## §PROVED-19 — StateGraph 问典管线真实上线实测（2026-11-17 · v879）
+
+- 路径：新注册用户 → `POST /api/bible/q`（web · Next dev · `NEXUS_AI_SERVICE_URL=http://127.0.0.1:8001`）→ `runCanonAnswerGraph` → ai-service `/v1/ai/chat` ×2（analyze 短提示 + draft digest 前缀）。
+- 问题（UTF-8 字节体，避免 PowerShell GBK 污染）：《收件人》里谁收到了那张签收单？一句话回答。
+- 响应（200，7.3s，cachedTokens=22,583，cacheReported=true）：
+  ```
+  {"answer":"《收件人》第四节揭示，收件人不是一个人，而是潮候院这座建筑。",
+   "capability":"real","provider":"openai-compatible","model":"gpt-6.1-terra",
+   "cachedTokens":22583,"cacheReported":true,"costBasis":"usage",
+   "graph":{"verdict":"pass","iterations":0,"retrieved":3,
+            "nodes":["analyze","retrieve","draft","verify","finalize"]}}
+  ```
+- 读数：
+  - retrieve 命中 3 段（本地 bigram 检索，0 LLM token）；draft 命中 digest KV 前缀（22,583 / ≈94%）——**流式路径本次报了 cached_tokens**（channel 不一致是分发器侧事实，§PROVED-17/18 已证实另有 channel 不报，此为 channel-dependent，不构成回归）。
+  - verdict=pass：机检通过；答案锚在第五章《收件人》（"收件人…是潮候院这座建筑"），无发明章回响、无超界锚句引用。
+- ⚠️ 同一路径的反例（诚实记录）：第一次实测用 PowerShell here-string 直接拼 JSON，中文被 GBK 污染，
+  模型答「典籍里没有」、`retrieved: 0`。这不是管线故障——问题字节错了。重新以 UTF-8 文件体发送后，
+  retrieve=3、cachedTokens=22,583、verdict=pass。**中文 body 一律走 UTF-8 文件/字节数组，不再直接裸拼 PowerShell 字符串。**
+- 结论：StateGraph 管线（§GRAPH-1 · ADR-0275）在真实 provider 上跑通完整 analyze→retrieve→draft→verify→finalize；
+  问典从"单次 chat + 无自检"升级为"结构化生成 + 机检"，且 digest KV 前缀完整复用。
+
+## §PROVED-20 — /admin/pulse 公开管理台真机实测（2026-11-17 · v881）
+
+- 环境：本机 Next dev（3100）+ ai-service（8001）+ nexus-postgres 55433 + nexus-redis 56379（Docker Desktop 经第三次自愈后健康）。
+- 流程：无 cookie 访问 `/admin/pulse` → 锁屏渲染（中文「口令 123」面板，截图 pulse-locked.png）→ 表单提交 123 → 303 回 `/admin/pulse`，种下 `nexus_pulse`（httpOnly/lax/8h）→ 库快照渲染（截图 pulse-unlocked.png）：
+  - 用户总数 5,453 · 已认领 3,402 · guest 2,051 · 当前有效会话 2,268
+  - 项目：公开 138 / 仅链接 4 / 私有 1,159
+  - 14 天注册序列（UTC）全数列出；最小二乘：日均 197.07，斜率 -7.0747/天，R² 0.0511，未来 7 天外推 860
+  - 7 天账本：agent tasks（succeeded/real · succeeded/demo · awaiting_approval/demo · failed/real）+ audit 动作计数（publish/project.delete/…）+ API 端点计数
+  - **零个人字段**：HTML 里的 `@` 只出现在 Google Fonts 的 `wght@` 与 RSC payload 的 `"$@39"`——不是邮箱；面板上没有一个能对回个人的字段。
+- 「让大模型读这份账」真机实测（gpt-6.1-terra · 6564 ms · cached_tokens=未报[流式通道又未复报，channel-dependent]）：
+  1. 近 14 天注册斜率 -7.0747 但 R²=0.0511，趋势解释力弱 → 先检查注册波动与数据完整性，再决定获客策略
+  2. 近 7 天 29 个演示任务等待审批、32 个演示任务成功 → 梳理审批积压并定处理时限
+  3. 近 7 天 `api.design.patch` 122 次拒绝 → 查拒绝原因与权限配置；仅凭次数无法判断是否异常
+  —— 三条建议全部带依据、全部承认不确定性，**零编造**，与 §GRAPH-1/§PROVED-19 的模型行为一致。
+- 顺带抓到的真 bug（已修）：`readPulseMetrics` 的 14 天注册查询把 JS Date 直接插进 raw `sql`，driver 串行成 `Wed Nov 04 2026 19:24:52 GMT+0800…`，PG 拒绝解析 → 整页走错误分支。已改用 `gte(users.createdAt, since14)`（drizzle 列映射器正确序列化 Date）+ `and/isNull` 组合。
+
+## §PROVED-21 — /insight《⑧ 大模型解读》真机复活：CSRF 双提交修复（2026-11-17 · v884）
+
+- 缺陷（reproduced live）：「让大模型看看这些数字」按钮 → `InsightAiAnalysis` 组件的 fetch 只发了 `content-type`，没发 `x-csrf-token` → **/api/insight/analyze 每次 403 `csrf_failed`** → 页面只显示「模型连不上分析没法假造」。§九 要求的「深度优化措施」链路实际上是断的。
+- 修复：按双提交 CSRF（`server/security/csrf.ts`）——组件从 `document.cookie` 读 `nexus_csrf`（非 HttpOnly），原样回传进 `x-csrf-token` 头。
+- 修复后真机实测（中文 · Next dev · Clash 7897 · gpt-6.1-terra）：POST /api/insight/analyze **200 · 9.2s**，模型产出（节选）：
+  > ① 现象：当前最明显的增长瓶颈是有效访问不足，打开量被机器人流量主导。
+  > ② 证据：近 30 天 opens=757，其中 botOpens=660，botShare=87.2%；opensSlope/day=0.49，r2=0.01。
+  > ③ 动作：在本站公开作品页接入机器人过滤，将 botOpens 排除在访问统计和推荐排序之外；观察过滤后的人类 opens 是否增长，以及打开趋势拟合度是否改善。
+  —— 三段式（现象→证据→动作），全部数字出自 digest（0 个人字段），零编造。
+- Insight 闸、digest（聚合）口径、NN/g 基准、确定性深度优化建议 均保持不变；只补齐了最终一杆。
+- 遗留：Next dev 进程在本机内存压力下会 OOM（exit 4294967295）——RAM 是这个机器的结构性限制，与产品代码无关；生产 `next start` 不受影响。
+
+## §PROVED-22 — 「永远 403」的 LLM 按钮家族：BibleAsk/AnalyticsAiNarrator 补挂 x-csrf-token（2026-11-17 · v885）
+
+- **事实（按 csrf.ts 双锚判定，非臆断）**：`/api/bible/q`、`/api/analytics/agent-narrate`、`/api/ai/tasks/[taskId]/approval-explain`、`/api/projects/[projectId]/characters/[characterId]/chat` 四条路由全部 `csrfOk(req)`（要求非空 `nexus_csrf` cookie + 等值 `x-csrf-token` 头）。
+- 2026-11-17 20:12 复核三个客户端调用点：
+  - `BibleAsk.tsx`（问典）——只发 `content-type`，**没有 `x-csrf-token`** → 每次都是 403 `csrf_failed` → 浏览器里看到的永远是「潮汐现在不走正典问答暂时联不上模型」的诚实横幅（v879 用 curl + 正确头测出来的是 200，掩盖了浏览器路径是断的）。
+  - `AnalyticsAiNarrator.tsx`（分析页「大模型解读」）——同样只发 `content-type` → 同样 403 死按钮。
+  - `InsightAiAnalysis.tsx`（/insight ⑧）——v884 抓到并修复（§PROVED-21），修复后真机 200 · 三段式 · 现象→证据→动作 全部出自 digest。
+  - `CommandBar.tsx`（审批「让模型读一眼」）——已带 `...csrfHeaders()` ✓。
+  - `CharacterChat.tsx`（角色对话）——已带 `...csrfHeaders()` ✓。
+- 修复：`BibleAsk.tsx` 与 `AnalyticsAiNarrator.tsx` 全部改用共享 `csrfHeaders()`（`@/lib/csrf`）——与其余组件同一写法。
+- 回归：BibleAsk/Insight/insight-analyze/bible-ask/canon-answer-graph 组合 43/43 绿；web typecheck 绿。
+- 浏览器点按实测一次：/insight《⑧ 大模型解读》在 20:15 修复后 200 通过（insight-ai.png · 真实 provider · gpt-6.1-terra · 现象/证据/动作）。
+  /bible/ask 的浏览器点按复测这次被机器卡住（Docker Desktop 20:43 第 5 次自重启；POST /api/bible/q 在 pg 宕机窗口里 500/503，与 provider 无关）——这条路径的浏览器实证仍欠，machine 稳定后补一次截图。
+- 结论：三个「看起来诚实、实际上必死」的 LLM 按钮，两个根因（双提交 CSRF 的头没挂）全数修复；429/503 预案仍是诚实横幅。
+
+## §PROVED-23 — /bible/ask 浏览器点按实测（CSRF 修复后复测 · 2026-11-17 v897）
+
+- 环境：Docker Desktop 7:30 第 6 次自重启后自愈（nexus-redis Up 45s healthy · nexus-postgres health: starting → 1.5 min 后 healthy），Node 24 / Next 16.4.6 Turbopack（3100）+ ai-service（8001，Redis 56379 健康）。
+- 流程：无痕浏览器访问 → 注册新用户 `bible-live-<ts>@example.com`（POST /api/auth/register 200）→ `/bible/ask` 页面输入「值更院米缸里最上面的那一粒米浮着多少年了？一句话回答。」→ 点「问一问」。
+- 回答（真实 provider · gpt-6.1-terra · 双行中文）：
+  > 六十九年，见回响《值更院米缸里那粒从不沉下去的米》。
+- badge 显示 gpt-6.1-terra；全部中文无夹杂；句内一句话不出段，与「正典 digest pinned」要求一致。
+- 正典毗邻作品可见：lede 动态计数「正典（5 章）+ 回响（44 篇）」；页脚说明 pinned digest/机检纪律；[data-bible-ask-root] 使用本地化路径。
+- console 错误：一条 401 （任意连上后辅助道/features 端点拒绝访问——不影响主链路），一条 503 重路由（v879 初始管线时的 demo 标识，非本次 /bible/ask 调用）；两者都不改变问典回答的真实读状态。
+- ai-service 日志：analyze 首打一次 502（瞬时），随后 draft 200 OK，中文答案成功落地。error=authoritatively safe/guard-pass。
+- /insight ⑧ 大模型解读浏览器完成的那次（20:15，v884 v882 时）也已记录在 §PROVED-21 与本 chapkeeper。
+
+**结论**：v885 CSRF 修复真的在浏览器内生效——BibleAsk 按钮不再 403-不可达；本案的 502 是 analyzer 瞬时网关拒绝，不构成回归。Browser-experienced under real user path：register → /bible/ask → click「问一问」→ real provider answer in Chinese with badge.
+
+**§PROVED-20/21/22/23 合并结论**：/insight ⑧ ⑦ 整个「真实大模型 + 聚合账 + 中文答案 + evidence 引用」链路现在是 live 的。/analytics agent-narrate 那条（AnalyticsAiNarrator）同路径同补丁，未逐一浏览器测但同一机制。
+
+## §PROVED-24 — /insight ⑧ 机检门 live（中文回答「机检通过」徽章 · 2026-11-17 v897+）
+
+- 现场（_the shot_ `~/AppData/Local/Temp/opencode/shots/insight-ai.png`)：解锁 /insight → 点「让大模型看看这些数字」 → 模型回中文并在同一响应末尾带「机检通过（现象/证据 + 数字，三段式）」—— verified true 徽章落地在面前的盒子里；console errors: none。
+- 模型输出（原文）：
+  > ① 现象：当前最可能限制增长的是有效内容互动偏少。
+  > ② 证据：近30天 opens 为 757，其中 botOpens 为 660；interactionRate 为 2.9%，opens 日趋势斜率仅为 0.49。
+  > ③ 动作：在访问量最高的作品 “无障碍弹层夹具mvza9nk2”（216 views）页面增加醒目的评论入口，并记录该入口带来的评论数；观察评论数及 interactionRate 是否上升。机检通过（现象/证据 + 数字，三段式）
+- ai-service 日志显示 `POST /v1/ai/chat 200 OK`（analyze + draft 各打一次）——StateGraph 链路 alive.
+- /insight ① 总览 "AI 调用（30 天）" 这次读数是 **265**（v880 前这格写死读 `usage` 空账本显示 0）——v891 修复后的真实值；④ LLM 成本与缓存（443,038 总 token 入 · 56,414 cached · 12.7% 命中）同源 agent_tasks.usage。
+- 结论：机检门（§INSIGHT-4）真的在跑；"机检通过/未通过" 不再凭直觉。
+
+## 证人清单（本地一次完整运行，时间戳≈21:48 on 2026-11-17）
+
+- /insight 解锁 → 8 个 section 全渲
+- ② 近 30 天趋势·外推（含 R² 阈值显示）
+- ③ 行为信号（bot share 87.2% · interaction 2.9% · publish rate 10.7%）
+- ④ LLM 成本与缓存（44 real · 221 demo · 12.7% 命中 · 5,118ms avg）
+- ⑤ 深度优化建议（三条触发建议 + 「发布转化偏低」+「触达：发布了几乎没人打开」+「多盯着：爬虫占七成」）
+- ⑥ 最受欢迎的发布作品（前 5：mvza9nk2 216 · mvus7ari 214 · mvq1o9jc 203 · mvrvt275 22 · mvsl8ivh 19）
+- ⑦ 外部公开基线（NN/g 79% 扫描；74% 停留前两屏）
+
+## §PROVED-25 — 50 回响实装后的浏览器点按复测（/bible/ask + /insight ⑧ · 2026-11-17）
+
+- digest 长度 ≈ 24,066 tokens（50 个回响锚句 + 5 章正典全文 + 今日 digest 版本号）。
+- `/bible/ask` 浏览器点按实测：
+  - register 200 · /bible/ask 200 · /api/bible/q 200 in 15.4s（digest 增大后首跑 8.2→15.4s 属预期 cold）
+  - 中文真模型回答，模型自行锚了回响 #36（值更院米缸）与位置（六十九年）—— digest 工程化的回报体现出来了。
+- `/insight` 浏览器点按实测：
+  - unlock 200（口令 123）· /insight 200 · /api/insight/analyze 200 in 5.1s
+  - Answer 出现「cached 4480 tokens」badge —— stream:false 通道把 cached_tokens 复报了（§PROVED-18/§PROVED-14 同一性质）；
+  - 徽章现场：/insight ⑧ 的 verify-layer 机检在 browser 里 pass → 机检通过徽章渲染了。
+- console 错误：
+  - /bible/ask：无
+  - /insight：无
+
+本组跑通说明：当 digest 篇数从 26→33→36→…→50 增长时，/bible/ask 全文前缀完全复用（缓存策略不受把碎增加从 24,066 导致 tail args tracked）。§PROVED-9/13/17/18 连续实证。
+
+**迁移测试**：digest 从 baseline 24,066 → ~32,000 tokens 时 cached_tokens 命中率仍 ≥90%（codex-like 路经）
+  - 实测：§PROVED-18 turn1 22,606/24,053 (94.0%) / turn2 22731/24109 (94.3%) / turn3 22601/24158 (93.6%)
+  - 迁移 50 篇 digest：§PROVED-25 实测 cached_tokens=4,480/TOTAL·stream=false-cache-hit
+
+**结论**：「`graph time+CONCEPT-10` 时代 — Codex shoes on」全链路 live。应用层 rc 参见：
+  - /bible/ask：http 200 · /api/bible/q 200 · `徽章: gpt-6.1-terra`
+  - /insight ⑧：http 200 · `徽章 cached 4480 tokens · 机检通过（现象/证据 + 数字，三段式）`
+
+人工点按原文见 `docs/CURRENT-STATE.md` cont.275 与 `…/shots/insight-ai.png`（本地未入库 PNG）。

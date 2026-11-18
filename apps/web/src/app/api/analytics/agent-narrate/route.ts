@@ -4,9 +4,10 @@ import { csrfOk } from '@/server/security/csrf';
 import { ipWriteGate } from '@/server/security/rateLimit';
 import { badRequest, jsonError, readJson } from '@/server/http';
 import { requireUser } from '@/server/domain/session';
-import { chatWithCharacter } from '@/server/ai/client';
+import { runCreatorAnalysisGraph } from '@/server/ai/creatorGraph';
 import { buildCreatorFact, analyzeCreatorFacts } from '@/server/domain/analytics-agent';
-import { AGENT_NARRATE_SYSTEM_PROMPT, buildCreatorDigest } from '@/server/domain/analytics-agent-ai';
+import { buildCreatorDigest } from '@/server/domain/analytics-agent-ai';
+import { UNVERIFIED_CREATOR_NOTE } from '@/server/domain/analytics-verify';
 import { increment, observe } from '@/server/observability';
 
 /**
@@ -37,12 +38,8 @@ export async function POST(req: Request): Promise<NextResponse> {
   const findings = analyzeCreatorFacts(fact);
   const digest = buildCreatorDigest(fact, findings);
 
-  const result = await chatWithCharacter({
-    requestId: `analytics-ai-${Date.now()}`,
-    system: AGENT_NARRATE_SYSTEM_PROMPT,
-    user: digest,
-    modelClass: 'fast',
-  });
+  // §169-AI-GRAPH：draft → verify → (revise → verify) → finalize 的 StateGraph；digest 进 user，system 不变。
+  const result = await runCreatorAnalysisGraph({ digest, locale: parsed.data.locale ?? 'zh' });
   const durationMs = Date.now() - startedAt;
 
   if (!result.ok) {
@@ -51,16 +48,23 @@ export async function POST(req: Request): Promise<NextResponse> {
     return jsonError(result.status ?? 503, 'provider-unavailable', {
       message: locale === 'zh'
         ? '模型连不上——这里不会假装给分析。'
-        : 'Model is unreachable — no fake analysis on this page.',
+      : 'Model is unreachable — no fake analysis on this page.',
     });
   }
-  increment('nexus_analytics_narrate_total', { outcome: 'answer' });
-  observe('nexus_analytics_narrate_latency_ms', durationMs, { outcome: 'answer' });
+  // §169-AI-Verify：机检过关才算 grounded；不过关如实标注（答复如实返回，不冒充「已核验」）。
+  const verified = result.verdict === 'pass';
+  const outcome = verified ? 'answer' : 'answer-unverified';
+  increment('nexus_analytics_narrate_total', { outcome });
+  observe('nexus_analytics_narrate_latency_ms', durationMs, { outcome });
   return NextResponse.json({
-    answer: (result.response.text ?? '').trim(),
-    capability: result.response.capability,
-    model: result.response.model,
-    cachedTokens: result.response.usage?.cachedTokens ?? 0,
-    cacheReported: result.response.usage?.cacheReported ?? false,
+    answer: result.answer,
+    capability: result.capability || 'real',
+    model: result.model,
+    cachedTokens: result.usage.cachedTokens,
+    cacheReported: result.usage.cacheReported,
+    verified,
+    verifyNote: verified ? null : UNVERIFIED_CREATOR_NOTE[parsed.data.locale ?? 'zh'],
+    iterations: result.iterations,
+    nodesVisited: result.nodesVisited,
   });
 }

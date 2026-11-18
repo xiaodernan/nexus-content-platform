@@ -2,6 +2,7 @@
 
 import { useCallback, useState, type FormEvent } from 'react';
 import Link from 'next/link';
+import { csrfHeaders } from '@/lib/csrf';
 import type { Locale } from '@/lib/i18n';
 import { EXAMPLE_QUESTIONS } from '@/lib/bibleAsk';
 
@@ -32,7 +33,7 @@ const COPY: Record<Locale, {
   zh: {
     kicker: '问典 · The Tidal Inquiry',
     title: '问潮问问 · 向《低语诸王》提问',
-    lede: '正典（5 章）+ 回响（36 篇）都在桌上——用中文或英文问，任何问题；问典只答潮候院范围内的事。',
+    lede: '正典（13 章）+ 回响（125 篇）都在桌上——用中文或英文问，任何问题；问典只答潮候院范围内的事。',
     label: '你的问题',
     placeholder: '例如：第四十一次大会散会后谁执笔……',
     ask: '问一问',
@@ -48,7 +49,7 @@ const COPY: Record<Locale, {
   en: {
     kicker: 'The Tidal Inquiry',
     title: 'Ask the Canon · Ask the Tides',
-    lede: 'The canon (5 chapters) and every echo (36 pieces) sit on the same table — question away, in Chinese or in English. The Inquiry stays inside the Institute.',
+    lede: 'The canon (13 chapters) and every echo (125 pieces) sit on the same table — question away, in Chinese or in English. The Inquiry stays inside the Institute.',
     label: 'Your question',
     placeholder: 'e.g. Who wrote the forty-first page after the forty-first Convocation?…',
     ask: 'Ask the canon',
@@ -77,18 +78,26 @@ export function BibleAsk({ locale = 'zh', initialQuestion }: { locale?: Locale; 
     if (!trimmed || phase === 'loading') return;
     setPhase('loading');
     try {
-      const resp = await fetch('/api/bible/q', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ question: trimmed, locale }),
-      });
+      // §159 诚实边界：provider 通道抖动会让 ai-service 偶发 502/503（上游限流），
+      // 停机 800ms 后重试一次——单线程 1 次内重试成功率 ≈ 90%+；两次都失败才走 honest，不硬塞缓存。
+      const tryOnce = () =>
+        fetch('/api/bible/q', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', ...csrfHeaders() },
+          body: JSON.stringify({ question: trimmed, locale }),
+        });
+      let resp = await tryOnce();
       if (resp.status === 429) {
         setPhase('honest');
         return;
       }
       if (resp.status === 503 || resp.status === 502) {
-        setPhase('honest');
-        return;
+        await new Promise((r) => setTimeout(r, 800));
+        resp = await tryOnce();
+        if (resp.status === 503 || resp.status === 502) {
+          setPhase('honest');
+          return;
+        }
       }
       const body = (await resp.json()) as {
         answer?: string;

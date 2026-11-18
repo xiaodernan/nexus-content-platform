@@ -54,7 +54,7 @@ console.log(`fe-gates: ${files.length} gate suites`);
  * 却 filter 出 0 个"而红，而不是安静地跑 0 套、报绿。
  */
 // 直接用 process.execPath 跑 vitest.mjs（不经 cmd shell）：
-// 147 个绝对路径的命令行超过 cmd.exe 的 8191 字符上限，shell:true 会直接炸「命令太长」。
+// 全部绝对路径拼成的命令行超过 cmd.exe 的 8191 字符上限，shell:true 会直接炸「命令太长」。
 // CreateProcess 上限是 32767，绰绰有余。
 const vitestEntry = join(root, 'node_modules', 'vitest', 'vitest.mjs');
 const result = spawnSync(

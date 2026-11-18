@@ -5,8 +5,7 @@ import { requireUser } from '@/server/domain/session';
 import { csrfOk } from '@/server/security/csrf';
 import { ipWriteGate } from '@/server/security/rateLimit';
 import { badRequest, jsonError, readJson } from '@/server/http';
-import { chatWithCharacter } from '@/server/ai/client';
-import { AGENT_EXPLAIN_SYSTEM_PROMPT, buildApprovalDigest } from '@/server/domain/agent-explain';
+import { runApprovalExplainGraph } from '@/server/domain/approvalGraph';
 import { increment, observe } from '@/server/observability';
 
 /**
@@ -37,14 +36,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ taskId:
   if (task.status !== 'awaiting_approval') {
     return jsonError(409, 'not_pending', { message: '这条任务现在不在等审批' });
   }
-  const digest = buildApprovalDigest(task, locale);
-
-  const result = await chatWithCharacter({
-    requestId: `approval-ai-${Date.now()}`,
-    system: AGENT_EXPLAIN_SYSTEM_PROMPT,
-    user: digest.user,
-    modelClass: 'fast',
-  });
+  const result = await runApprovalExplainGraph({ task, locale });
   const durationMs = Date.now() - startedAt;
 
   if (!result.ok) {
@@ -53,13 +45,20 @@ export async function POST(req: Request, { params }: { params: Promise<{ taskId:
       message: locale === 'zh' ? '模型连不上——审批照常，只是没有模型帮你读一遍' : 'Model is unreachable — approval still works; the AI read is just unavailable.',
     });
   }
-  increment('nexus_agent_explain_total', { outcome: 'answer' });
-  observe('nexus_agent_explain_latency_ms', durationMs, { outcome: 'answer' });
+  const outcome = result.verdict === 'pass' ? 'answer' : 'answer-unverified';
+  increment('nexus_agent_explain_total', { outcome });
+  observe('nexus_agent_explain_latency_ms', durationMs, { outcome });
   return NextResponse.json({
-    answer: (result.response.text ?? '').trim(),
-    capability: result.response.capability,
-    model: result.response.model,
-    cachedTokens: result.response.usage?.cachedTokens ?? 0,
-    cacheReported: result.response.usage?.cacheReported ?? false,
+    answer: result.answer,
+    capability: 'real',
+    provider: result.provider,
+    model: result.model,
+    cachedTokens: result.usage.cachedTokens,
+    cacheReported: result.usage.cacheReported,
+    graph: {
+      verdict: result.verdict,
+      iterations: result.iterations,
+      nodes: result.nodesVisited,
+    },
   });
 }

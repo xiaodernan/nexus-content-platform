@@ -43,7 +43,7 @@ vi.mock('../src/server/ai/client', () => ({
         capability: 'real' as const,
         provider: 'openai-compatible',
         model: 'gpt-6.1-terra',
-        text: '这几处会删掉画布根节点的三条级联、然后新增两页。不批准的话画布不会被改。',
+        text: '这几处会删掉画布根节点的三条级联、然后新增两页。未落地的话画布不会被改。',
         usage: { tokensIn: 900, cachedTokens: 700, cacheReported: true, tokensOut: 42, provider: 'openai-compatible', model: 'gpt-6.1-terra', modelClass: 'fast', latencyMs: 1200, demoMode: false, costBasis: 'unknown', toolCalls: 0, costUsd: 0, reasoningTokens: 0 },
       },
     };

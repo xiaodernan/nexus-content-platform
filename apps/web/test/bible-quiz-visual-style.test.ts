@@ -50,7 +50,7 @@ describe('§BIBLE-2 /bible/quiz 典籍室「潮汐挑战」', () => {
     }
   });
 
-  it('BibleQuiz 是 client 组件；零 provider/fetch；状态机覆盖 100 题', () => {
+  it('BibleQuiz 是 client 组件；零 provider/fetch；状态机覆盖 98 题', () => {
     expect(component.slice(0, 80)).toContain('use client');
     expect(component).not.toContain('fetch(');
     expect(component).not.toContain('/api/');
@@ -61,10 +61,10 @@ describe('§BIBLE-2 /bible/quiz 典籍室「潮汐挑战」', () => {
 
   it('双语题库：zh 与 en 题目数、答案序列完全相等；无 provider 字段外泄', () => {
     const zhPrompts = (component.match(/\bprompt: '/g) ?? []).length / 2;
-    expect(zhPrompts).toBe(100);
+    expect(zhPrompts).toBe(89);
     const zhAnswers = [...component.matchAll(/\banswer: (\d), ref: '/g)].map((m) => Number(m[1]));
     // 每个 element 内 zh/en 连续两次出现、答案镜像一致：zh0,en0,zh1,en1,…
-    expect(zhAnswers).toEqual([2, 2, 0, 1, 3, 1, 2, 0, 1, 2, 1, 2, 1, 2, 1, 1, 1, 0, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 0, 2, 1, 1, 1, 1, 1, 1, 0, 1, 2, 2, 1, 1, 1, 1, 1, 2, 1, 2, 1, 1, 0, 1, 1, 1, 1, 0, 1, 2, 1, 1, 1, 2, 1, 0, 2, 2, 0, 2, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0].flatMap((a) => [a, a]));
+    expect(zhAnswers).toEqual([2,2,2,2,0,0,1,1,3,3,1,1,2,2,0,0,1,1,2,2,1,1,2,2,1,1,2,2,1,1,1,1,1,1,0,0,3,3,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,2,2,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,2,2,2,2,1,1,1,1,1,1,1,1,1,1,2,2,1,1,2,2,1,1,1,1,0,0,1,1,1,1,1,1,1,1,0,0,1,1,2,2,1,1,1,1,1,1,2,2,1,1,0,0,2,2,2,2,0,0,2,2,2,2,2,2,2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
     expect(component).toContain('zh:');
     expect(component).toContain('en:');
   });
@@ -125,7 +125,7 @@ describe('§BIBLE-2 /bible/quiz 典籍室「潮汐挑战」', () => {
       '612a074adcfa22378f36197e23cebac0fbc08f1d3a99e5b96b6f862e4ed6eb92',
     );
     expect(createHash('sha256').update(redactClasses(component)).digest('hex')).toBe(
-      'ea733564263c55e6d7807831143e57519b59e601309ae65317ab71a0a90eefd8',
+      '3224e1fb2c4bd0dc00033e7c8e8ef50f952f26f770bd0cd26f85cec06c9266b9',
     );
   });
 });

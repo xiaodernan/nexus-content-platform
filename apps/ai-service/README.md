@@ -14,7 +14,7 @@ bash infra/dev-ai.sh          # http://127.0.0.1:3200  (AI_SERVICE_PORT 可覆�
 |---|---|---|
 | `NEXUS_OPENAI_API_KEY` | 无 | 要真 provider 才填；没填则 `capability=unavailable`，**诚实，不冒充** |
 | `NEXUS_OPENAI_BASE_URL` | `https://api.openai.com/v1` | 本机开发目前指向 `https://wkapi.pro/v1` |
-| `NEXUS_OPENAI_PROMPT_CACHE_KEY` | `nexus-studio` | **prompt caching lane**：unset→缺省 `nexus-studio`；显式空串→关 |
+| `NEXUS_OPENAI_PROMPT_CACHE_KEY` | sticky per-lane | **prompt caching lane**（ADR-0284）：unset/空串→sticky per-lane（`nexus-<sha256(system)>`，同前缀同片）；`nexus-studio`→常量 lane（v865 旧缺省） |
 | `NEXUS_MODEL_{FAST,BALANCED,REASONING,VISION,EMBEDDING}` | 见 `config.py:DEFAULT_MODELS` | 本机实测 ws unavailable（wkapi.pro 仅 exposed chat models） |
 | `NEXUS_LLM_JSON_MODE` | `1` | response_format json_object |
 | `NEXUS_REDIS_URL` | 无 | 配置则启用 Redis 队列（`nexus:ai:*` + TTL）；连不上**启动失败**（不静默降级） |
@@ -40,7 +40,7 @@ bash infra/dev-ai.sh          # http://127.0.0.1:3200  (AI_SERVICE_PORT 可覆�
 
 OpenAI 兼容网关若命中 128-token 块前缀，自动缓存（prefix-identical）；本服务按 OpenAI 官方参数 `prompt_cache_key` 发 lane，把同一 workload 的补丁推到同一分片，命中后网关在 `usage.prompt_tokens_details.cached_tokens` 报数。实测：同 payload 第二次 `cached_tokens=6272/6413（97.8%）`；`stream_options include_usage` 的结尾帧被网关砍掉——非 stream 接口拿不到不能读数。
 
-- 缺省 lane = `nexus-studio`；`NEXUS_OPENAI_PROMPT_CACHE_KEY=`（显式空串）关
+- 缺省 lane = sticky per-lane（`nexus-<sha256(system)>`）；`NEXUS_OPENAI_PROMPT_CACHE_KEY=nexus-studio`→旧常量 lane；2026-11-18 A/B：常量 lane 6/11 次 502；sticky per-lane 12/12 200 · cached≈100%（`docs/evidence/cache-key-ab-2026-11-18.md` · ADR-0284）
 - usage 契约新增 `cachedTokens`（default 0），加法兼容，没字段的 provider 一律记 0
 - 验证：`npm run probe:cache`（L1 直连 / L2 /v1/ai/run 都 `ALL PASS` 才算宣称接通）
 - 详见 `apps/ai-service/.env.example`（必填项明示）、`docs/adr/0261-prompt-cache-key-wire-proof.md`、evidence、ADR

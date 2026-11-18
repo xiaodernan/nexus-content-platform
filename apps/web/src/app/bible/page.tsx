@@ -4,12 +4,40 @@ import { getLocale, type Locale } from '@/lib/i18n';
 import { BibleSearch } from '@/components/BibleSearch';
 import { BIBLE_CHAPTERS, BIBLE_ECHOES } from '@/world-bible/generated';
 import { extractAnchors } from '@/components/BibleMarkdown';
+const CN_DIGITS = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+function _cnTwoDigit(n: number): string {
+  if (n < 10) return CN_DIGITS[n]!;
+  const tens = Math.floor(n / 10);
+  const ones = n % 10;
+  const tensChar = tens === 1 ? '十' : `${CN_DIGITS[tens]}十`;
+  return ones === 0 ? tensChar : `${tensChar}${CN_DIGITS[ones]}`;
+}
+function _cn(n: number): string {
+  if (n < 100) return _cnTwoDigit(n);
+  const rest = n - 100;
+  return rest === 0 ? '一百' : `一百${rest < 10 ? '零' : ''}${_cnTwoDigit(rest)}`;
+}
+
+const ROMAN_PAIRS: ReadonlyArray<[number, string]> = [
+  [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'],
+];
+function _roman(n: number): string {
+  let out = '';
+  let remaining = n;
+  for (const [value, symbol] of ROMAN_PAIRS) {
+    while (remaining >= value) {
+      out += symbol;
+      remaining -= value;
+    }
+  }
+  return out;
+}
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: '典籍室 · World Bible — NEXUS',
-  description: '《低语诸王》世界大典 · 全五章正典，锚句中英字字对齐。/ Five canonical chapters of The Whispers’ Kings, anchor sentences verbatim in both languages.',
+  description: '《低语诸王》世界大典 · 全十三章正典，锚句中英字字对齐。/ The thirteen canonical chapters of The Whispers’ Kings, anchor sentences verbatim in both languages.',
 };
 
 /**
@@ -42,17 +70,17 @@ const COPY: Record<Locale, {
 }> = {
   zh: {
     kicker: '低语诸王 · 典籍室',
-    title: '世界大典 · 五扇门',
-    lede: '《低语诸王》自己的正典——五章，五扇门：第四章之后，潮候院的人替潮收下那口气。',
-    threeDoors: '第一扇问：海叫什么？ · 第二扇问：谁在还？ · 第三扇问：还完之后？ · 第四扇：灯已经点过了。 · 第五扇：谁替潮收下那口气？',
+    title: '世界大典 · 十三扇门',
+    lede: '《低语诸王》自己的正典——十三章，十三扇门：第五章之后的信路，还留在第十三章里。',
+    threeDoors: '第一扇问：海叫什么？ · 第五扇问：谁替潮收下那口气？ · 第八扇问：谁在灰后？ · 第十一扇问：灯下的账？ · 第十三扇问：谁来誊写？',
     playLink: '接受潮汐挑战 →',
     askLink: '问典 →',
     wellLink: '七口井',
     whisperLink: '答问者 · 问点书里的事',
     oracleLink: '问潮 · 潮汐预言',
     anchorsLink: '锚句回放',
-    chapterLabel: (order) => `第${['一', '二', '三', '四', '五'][order - 1] ?? order}章`,
-    echoLabel: (order) => `回响 · 其${['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十', '二十一', '二十二', '二十三', '二十四', '二十五', '二十六', '二十七', '二十八', '二十九', '三十', '三十一', '三十二', '三十三', '三十四'][order - 1] ?? order}`,
+    chapterLabel: (order) => `第${['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三'][order - 1] ?? order}章`,
+    echoLabel: (order) => `回响 · 其${_cn(order)}`,
     echoTitle: '回响 · Echoes',
     echoLede: '正典之外的侧写——不是续篇，不是错的，只是同一块盐加了另一层纹理。',
     anchorsLine: (count) => `${count} 句锚 · 中英字字对齐`,
@@ -63,17 +91,17 @@ const COPY: Record<Locale, {
   },
   en: {
     kicker: 'The Whispers’ Kings · Canon',
-    title: 'The World Bible · five doors',
-    lede: 'The Whispers’ Kings’ own canon. Five doors — and at the fifth, at last, someone keeps the breath the tide drew in.',
-    threeDoors: 'First door: what is the sea called? · Second: who pays? · Third: after the ending? · Fourth: the lamp has been lit. · Fifth: who keeps the breath the tide drew in?',
+    title: 'The World Bible · thirteen doors',
+    lede: 'The Whispers’ Kings’ own canon. Thirteen doors — and at the thirteenth, someone is about to copy the whole thing out, word for word.',
+    threeDoors: 'First door: what is the sea called? · Fifth door: who keeps the breath the tide drew in? · Eighth: who walks through the grey? · Eleventh: what is the ledger under the lamp? · Thirteenth: who copies it all out?',
     playLink: 'I accept the Tidal Trial →',
     askLink: 'Ask the Canon →',
     wellLink: 'The Seven Wells',
     whisperLink: 'The Answerer · ask one question of the book',
     oracleLink: 'Ask the tide · The Tide Oracle',
     anchorsLink: 'Anchor Echo',
-    chapterLabel: (order) => `Chapter ${['I', 'II', 'III', 'IV', 'V'][order - 1] ?? order}`,
-    echoLabel: (order) => `Echo ${['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI', 'XXII', 'XXIII', 'XXIV', 'XXV', 'XXVI', 'XXVII', 'XXVIII', 'XXIX', 'XXX', 'XXXI', 'XXXII', 'XXXIII', 'XXXIV'][order - 1] ?? order}`,
+    chapterLabel: (order) => `Chapter ${['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII'][order - 1] ?? order}`,
+    echoLabel: (order) => `Echo ${_roman(order)}`,
     echoTitle: 'Echoes',
     echoLede: 'Side-lights beyond the canon — not a sequel, not an error, just another layer of grain on the same salt.',
     anchorsLine: (count) => `${count} anchor sentences · verbatim in both languages`,
@@ -145,7 +173,7 @@ export default async function BiblePage() {
               const anchors = extractAnchors(echo.markdownZh, echo.markdownEn).length;
               return (
                 <li key={echo.slug} className="bb-card" data-bible-echo={echo.slug}>
-                  <span className="bb-cardNum" aria-hidden="true">{locale === 'en' ? ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI', 'XXII', 'XXIII', 'XXIV', 'XXV', 'XXVI', 'XXVII', 'XXVIII', 'XXIX', 'XXX', 'XXXI', 'XXXII', 'XXXIII', 'XXXIV'][echo.order - 1] ?? echo.order : ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十', '二十一', '二十二', '二十三', '二十四', '二十五', '二十六', '二十七', '二十八', '二十九', '三十', '三十一', '三十二', '三十三', '三十四'][echo.order - 1] ?? echo.order}</span>
+                  <span className="bb-cardNum" aria-hidden="true">{locale === 'en' ? _roman(echo.order) : _cn(echo.order)}</span>
                   <div className="bb-cardBody">
                     <p className="bb-cardChapter">{c.echoLabel(echo.order)}</p>
                     <h2 className="bb-cardTitle">{title}</h2>

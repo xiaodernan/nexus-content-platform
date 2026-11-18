@@ -1,5 +1,6 @@
 import type { CreatorFact } from '@/server/domain/analytics-agent';
 import type { Finding } from '@/server/domain/analytics-agent';
+import { CANON_DIGEST } from '@/lib/bibleAsk';
 
 /**
  * §169-AI · 创作者数据大模型解读 —— Creator Agent 的「narrated」模式。
@@ -24,9 +25,13 @@ export const AGENT_NARRATE_SYSTEM_PROMPT = [
   '1. Never invent data. If the digest does not contain it, say "没有这个数据 / not collected".',
   '2. Distinguish author-only numbers (selfOnly=true / selfCompleted) from real visitor numbers. Call them out as "只有作者自己" evidence.',
   '3. Your job: decide THE #1 highest-impact action this creator can do INSIDE the platform today (title / cover / visibility / publish-port / share). One action only. No ads, no outside platforms.',
-  '4. Answer in at most 180 words: ① what the data says ② why ③ ONE action with measurable effect to watch next.',
+  '4. Answer at most 180 words as exactly three numbered parts. zh: "① 事实：… ② 原因：… ③ 动作：…". en: "① Fact: … ② Why: … ③ Action: …". The third part MUST begin with "动作："（zh）or "Action:"（en）. No markdown numbering ("1." "2.").',
   '5. Answer in the asked locale. zh → Chinese only, en → English only. No mixed languages.',
   '6. Quote the numbers you used with their own units (points / visitors / hours / views).',
+  '7. Use the canon context below only as world-aware analogues — never for digits. If it fits, name the chapter or echo.',
+  '',
+  'CANON CONTEXT (world bible digest — for analogy only, never for digits):',
+  CANON_DIGEST,
 ].join('\n');
 
 export function buildCreatorDigest(fact: CreatorFact, findings: readonly Finding[]): string {

@@ -78,3 +78,29 @@ describe('buildContext', () => {
     expect(context.length).toBeLessThan('人设'.length + 200 + 1000 + 100);
   });
 });
+
+import { buildChatTurn } from '../src/server/domain/character-chat';
+
+describe('buildChatTurn (§47-graph 输入拆分)', () => {
+  it('persona 不进 user 侧；记忆/语料/这一句进 user 侧', () => {
+    const turn = buildChatTurn([{ content: '用户问过潮声' }], '潮汐口径', '问：何时开潮？', 'zh');
+    expect(turn).not.toContain('你是守夜人');
+    expect(turn).toContain('【相关记忆】');
+    expect(turn).toContain('潮汐口径');
+    expect(turn).toContain('【当前对话】');
+    expect(turn).toContain('问：何时开潮？');
+  });
+
+  it('无记忆无语料时仍含当前对话锚点，locale=en 用英文标签', () => {
+    const turn = buildChatTurn([], '', 'Hello', 'en');
+    expect(turn).toContain('Current exchange');
+    expect(turn).toContain('Hello');
+    expect(turn).not.toContain('【相关记忆】');
+  });
+
+  it('记忆正文 200 截断、语料 1000 截断', () => {
+    const turn = buildChatTurn([{ content: '潮'.repeat(500) }], '语'.repeat(1600), 'hi');
+    expect(turn).not.toContain('潮'.repeat(201));
+    expect(turn).not.toContain('语'.repeat(1001));
+  });
+});

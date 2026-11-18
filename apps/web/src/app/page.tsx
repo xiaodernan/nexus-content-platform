@@ -32,6 +32,16 @@ const HOME_TXT = {
     navAnalytics: '创作数据',
     navBlocks: '已拉黑与已屏蔽',
     navNote: '公开在跑的作品与全平台的内容搜索；数据与通知只对登录后的你自己可见',
+    helpKicker: '第一次来？',
+    helpText:
+      '先花两分钟走一遍 6 步上手漫游，再打开随手可用的简明说明书；Ctrl+K（Mac 用 ⌘K）随时调出命令面板，直奔任何页面。',
+    helpOnboarding: '上手漫游 · 6 步',
+    helpGuide: '简明说明书',
+    hintSearch: '全站作品、作者与内容关键词',
+    hintDiscover: '公开跑着的作品 · 按热度/最新',
+    hintMarket: '组件 / 模板 / 世界观 / 资产市场',
+    hintAnalytics: '你自己的创作节奏与漏斗',
+    hintBlocks: '你拉黑的作者与关键词',
     navSearchTitle: '全平台搜索引擎：搜公开作品与创作者',
     navDiscoverTitle: '发现页：全平台公开作品流，按新鲜度与相关度',
     navMarketTitle: '市场：公开上架的组件、页面、游戏项目与素材',
@@ -80,6 +90,16 @@ const HOME_TXT = {
     navAnalytics: 'Creative data',
     navBlocks: 'Blocked & muted',
     navNote: 'Works publicly on the platform and platform-wide search; your data and notifications are visible only to you, signed in.',
+    helpKicker: 'First time here?',
+    helpText:
+      'Take the 6-step onboarding first, then keep the in-app guide handy; press Ctrl+K (⌘K on Mac) to pull up the command palette anywhere.',
+    helpOnboarding: 'Onboarding — 6 steps',
+    helpGuide: 'In-app guide',
+    hintSearch: 'Works, authors, keywords across the platform',
+    hintDiscover: 'Public works in motion — trending or fresh',
+    hintMarket: 'Components, templates, worlds, assets',
+    hintAnalytics: 'Your own creative funnel & rhythm',
+    hintBlocks: 'Authors & keywords you blocked',
     navSearchTitle: 'Platform search: find public works and creators',
     navDiscoverTitle: 'Discover: public works across the platform, by freshness and relevance',
     navMarketTitle: 'Marketplace: public components, pages, game projects and assets',
@@ -157,24 +177,47 @@ export default async function HomePage() {
         </span>
       </header>
 
+      {/* 教学说明条（§五/§七）：首次来访的人不用翻文档——漫游 + 说明书 + 命令面板，三件套带路 */}
+      <p className="hp-helpStrip" data-help-strip>
+        <span className="hp-helpKicker">{T.helpKicker}</span>
+        <span className="hp-helpText">{T.helpText}</span>
+        <a href="/onboarding" className="hp-helpLink" data-help-onboarding>{T.helpOnboarding}</a>
+        <a href="/guide" className="hp-helpLink" data-help-guide>{T.helpGuide}</a>
+      </p>
+
       {/* 这一排在 820px 的容器里放不下五个链接加一句说明：不 flex-wrap 就会被 flex 压着
           在词中间断行（"全平台搜/索"），所以链接各自 nowrap、整排允许换行。 */}
       <nav className="hp-nav" data-site-nav aria-label={T.ariaNav}>
-        <a href="/search" className="hp-navlink" data-nav-search title={T.navSearchTitle}>
-          {T.navSearch}
-        </a>
-        <a href="/discover" className="hp-navlink" data-nav-discover title={T.navDiscoverTitle}>
-          {T.navDiscover}
-        </a>
-        <a href="/marketplace" className="hp-navlink" data-nav-marketplace title={T.navMarketTitle}>
-          {T.navMarket}
-        </a>
-        <a href="/analytics" className="hp-navlink" data-nav-analytics title={T.navAnalyticsTitle}>
-          {T.navAnalytics}
-        </a>
-        <a href="/blocks" className="hp-navlink" data-nav-blocks title={T.navBlocksTitle}>
-          {T.navBlocks}
-        </a>
+        <span className="hp-navitem">
+          <a href="/search" className="hp-navlink" data-nav-search title={T.navSearchTitle}>
+            {T.navSearch}
+          </a>
+          <span className="hp-navHint">{T.hintSearch}</span>
+        </span>
+        <span className="hp-navitem">
+          <a href="/discover" className="hp-navlink" data-nav-discover title={T.navDiscoverTitle}>
+            {T.navDiscover}
+          </a>
+          <span className="hp-navHint">{T.hintDiscover}</span>
+        </span>
+        <span className="hp-navitem">
+          <a href="/marketplace" className="hp-navlink" data-nav-marketplace title={T.navMarketTitle}>
+            {T.navMarket}
+          </a>
+          <span className="hp-navHint">{T.hintMarket}</span>
+        </span>
+        <span className="hp-navitem">
+          <a href="/analytics" className="hp-navlink" data-nav-analytics title={T.navAnalyticsTitle}>
+            {T.navAnalytics}
+          </a>
+          <span className="hp-navHint">{T.hintAnalytics}</span>
+        </span>
+        <span className="hp-navitem">
+          <a href="/blocks" className="hp-navlink" data-nav-blocks title={T.navBlocksTitle}>
+            {T.navBlocks}
+          </a>
+          <span className="hp-navHint">{T.hintBlocks}</span>
+        </span>
         <NotificationBell locale={locale} />
         <span className="hp-navNote">{T.navNote}</span>
       </nav>
@@ -198,18 +241,18 @@ export default async function HomePage() {
 
       <section className="hp-section">
         <h2 className="hp-sectionTitle">{T.accountSection}</h2>
-        <AccountPanel user={user} />
+        <AccountPanel user={user} locale={locale} />
         {/* §144 / ADR-0025：注销入口对游客与登录用户都开——游客那条也是 users 表里一行真记录，
             能登进来就能注销出去，没有理由只给注册过的账号留出口 */}
         <div className="hp-sectionGap">
-          <AccountDeletionPanel />
+          <AccountDeletionPanel locale={locale} />
         </div>
       </section>
 
       <section className="hp-section">
         <h2 className="hp-sectionTitle">{T.projectsSection}</h2>
-        <NewProjectForm />
-        <ImportPanel />
+        <NewProjectForm locale={locale} />
+        <ImportPanel locale={locale} />
         {projects.length ? (
           <ul className="hp-listLoose">
             {projects.map((project) => (
@@ -225,10 +268,10 @@ export default async function HomePage() {
                   </span>
                 </a>
                 <div className="hp-rowInset">
-                  <ProjectDescriptionEditor projectId={project.id} initialDescription={project.description} />
+                  <ProjectDescriptionEditor projectId={project.id} initialDescription={project.description} locale={locale} />
                 </div>
                 <div className="hp-rowInset">
-                  <ProjectDeleteCard projectId={project.id} projectName={project.name} />
+                  <ProjectDeleteCard projectId={project.id} projectName={project.name} locale={locale} />
                 </div>
               </li>
             ))}
@@ -259,7 +302,7 @@ export default async function HomePage() {
                     {item.kind} · {T.deletedAt(new Date(item.deletedAt).toLocaleString(intlLocale, { hour12: false }))}
                   </span>
                 </span>
-                <RestoreProjectButton projectId={item.id} projectName={item.name} />
+                <RestoreProjectButton projectId={item.id} projectName={item.name} locale={locale} />
               </li>
             ))}
           </ul>
@@ -284,9 +327,9 @@ export default async function HomePage() {
             {T.handleMissing}
           </p>
         )}
-        <AvatarEditor initialUrl={account.avatarUrl} />
+        <AvatarEditor initialUrl={account.avatarUrl} locale={locale} />
         <div className="hp-sectionGap">
-          <ProfileEditor initialBio={account.bio} />
+          <ProfileEditor initialBio={account.bio} locale={locale} />
         </div>
 
         <h3 className="hp-subTitle">

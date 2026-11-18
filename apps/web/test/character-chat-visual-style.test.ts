@@ -171,9 +171,9 @@ describe('§FE-37 /studio CharacterChat 角色对话框', () => {
     expect(segment).not.toContain('@keyframes');
   });
 
-  it('剥 className 后 SHA256 守恒（2026-11-16 v747「CharacterChat 双语化」重钉）', () => {
+  it('剥 className 后 SHA256 守恒（2026-11-18 v915·§47-graph verifyFail 徽章显式重钉，前轴 2026-11-16 v747）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '4d7617d73d1533e5e75f3c899eeb73e6f136ff467dd6c04b08e9ae5a40578cef',
+      'e322795c0cc608e1eac55e756df544dec09cc0cfa01796cec81ffac9f2af07ac',
     );
   });
 });

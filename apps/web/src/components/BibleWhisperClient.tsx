@@ -75,11 +75,18 @@ export default function BibleWhisperClient({ locale = 'zh' }: { locale?: Locale 
     setError(null);
     setAnswer('');
     try {
-      const res = await fetch('/api/bible/whisper', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ slug, question: question.trim(), locale }),
-      });
+      const tryOnce = () =>
+        fetch('/api/bible/whisper', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ slug, question: question.trim(), locale }),
+        });
+      let res = await tryOnce();
+      if (res.status >= 500) {
+        // §159 诚实边界：provider 上游 5xx 抖动 → 800ms 后重试一次；两次都失败才进入错误态。
+        await new Promise((r) => setTimeout(r, 800));
+        res = await tryOnce();
+      }
       const payload = (await res.json()) as { answer?: string; message?: string };
       if (!res.ok) {
         setError(payload.message ?? 'The canon did not answer.');

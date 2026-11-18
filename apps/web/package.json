@@ -12,6 +12,7 @@
   "dependencies": {
     "@nexus/creative-model": "*",
     "@nexus/schemas": "*",
+    "@nexus/agent-runtime": "*",
     "@react-three/fiber": "^9.8.0",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",

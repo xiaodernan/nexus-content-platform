@@ -7,7 +7,7 @@ import type { Locale } from '@/lib/i18n';
 /**
  * §BIBLE-2 典籍室「潮汐挑战」——问答玩法。
  *
- * 用这个玩法把五章正典变成"可以赢的阅读"。服务端壳 RSC（if/notFound/local/getLocale）
+ * 用这个玩法把十三章正典变成"可以赢的阅读"。服务端壳 RSC（if/notFound/local/getLocale）
  * 把 locale 透传下来；题库的 zh/en 在这里成对出现（与锚句同纪律：不是翻译对应，
  * 是两个版本讲同一个故事、每个版本只有一套正确答案——锚句即教材）。
  *
@@ -16,16 +16,16 @@ import type { Locale } from '@/lib/i18n';
  * - 没有"看了重做"的奖励？——答错的提示会写出处（在哪一章、哪一节），
  *   错就是错，不伪装"接近正确"；
  * - 完全中英双语；不存在半中文半英文的题目；
- * - 12 题每题 1 分；结算只是礼物：不写进任何账本、不发 achievement、不持久化。
+ * - 71 题每题 1 分；结算只是礼物：不写进任何账本、不发 achievement、不持久化。
  */
 
 const COPY = {
   zh: {
     kicker: '潮汐挑战',
     title: '你配得上第八盏灯吗？',
-    lede: '五章正典的答题器。每道题的依据都能在《世界大典》里逐字找到——写下来的答案就是答案。',
-    questionLabel: (i: number, n: number) => `第 ${i} / ${n} 题`,
+    lede: '十三章正典的答题器。每道题的依据都能在《世界大典》里逐字找到——写下来的答案就是答案。',
     progressLabel: '本轮进度',
+    questionLabel: (i: number, n: number) => `第 ${i} / ${n} 题`,
     correct: '答对了——这一句你记住了。',
     wrong: (ref: string) => `错——回去读「${ref}」。`,
     restart: '重来',
@@ -35,21 +35,21 @@ const COPY = {
     verdicts: [
       { at: 0, text: '漂流的木桶', note: '盐海没见过，浪只见过一口气。' },
       { at: 5, text: '半日的学徒', note: '雾港没怎么上过岗，灯火印象模糊。' },
-      { at: 9, text: '巡逻路的旅人', note: '盐味酸过了——记住的巡逻路比忘掉的多。' },
-      { at: 12, text: '守夜人传人', note: '门在关上之前你没见过，但你记住了是什么。' },
-      { at: 14, text: '潮汐大匠', note: '海还没说完的话，你已经知道是什么了。' },
-      { at: 15, text: '满分守夜人', note: '十五题全对——典籍不会忘记问倒过谁。' },
+      { at: 10, text: '巡逻路的旅人', note: '盐味酸过了——记住的巡逻路比忘掉的多。' },
+      { at: 13, text: '守夜人传人', note: '门在关上之前你没见过，但你记住了是什么。' },
+      { at: 15, text: '潮汐大匠', note: '海还没说完的话，你已经知道是什么了。' },
+      { at: 87, text: '满分守夜人', note: '八十七题全对——典籍不会忘记问倒过谁。' },
     ],
     footer: '《世界大典》正典全文见典籍室（/bible）。答错的题里标了出处：错就是错，没有近似的正确。',
     scoreLine: (n: number, total: number) => `${n} / ${total}`,
-    empty: '还没答完。十五道题就是五章正典的全部问题。',
+    empty: '还没答完。八十七道题就是十三章正典的全部问题。',
   },
   en: {
     kicker: 'The Tidal Trial',
     title: 'Are you worthy of the eighth lamp?',
-    lede: 'A quiz on the five canonical chapters. Every answer can be traced word-for-word in The World Bible — what is written is what is true.',
-    questionLabel: (i: number, n: number) => `Question ${i} / ${n}`,
+    lede: 'A quiz on the thirteen canonical chapters and every echo. Every answer can be traced word-for-word in The World Bible — what is written is what is true.',
     progressLabel: 'Progress',
+    questionLabel: (i: number, n: number) => `Question ${i} / ${n}`,
     correct: 'Correct — you keep it.',
     wrong: (ref: string) => `Wrong — go read “${ref}”.`,
     restart: 'Try again',
@@ -59,14 +59,14 @@ const COPY = {
     verdicts: [
       { at: 0, text: 'The Drifting Barrels', note: 'You have seen one breath of wave, never the sea.' },
       { at: 5, text: 'The Half-Day Apprentice', note: 'You have not kept a watch long enough to know the fog.' },
-      { at: 9, text: 'The Patrol-Road Traveller', note: 'You are more road remembered than forgotten.' },
-      { at: 12, text: 'The Successor Watcher', note: 'You have never seen the door, but you know what was behind it.' },
-      { at: 14, text: 'The Tide Master', note: 'The sea still has not finished — and you already know what it said.' },
-      { at: 15, text: 'The Full Tide', note: 'Fifteen of fifteen — the canon will not forget who asked it best.' },
+      { at: 10, text: 'The Patrol-Road Traveller', note: 'You are more road remembered than forgotten.' },
+      { at: 13, text: 'The Successor Watcher', note: 'You have never seen the door, but you know what was behind it.' },
+      { at: 15, text: 'The Tide Master', note: 'The sea still has not finished — and you already know what it said.' },
+      { at: 87, text: 'The Full Tide', note: 'Eighty-seven of eighty-seven — the canon will not forget who asked it best.' },
     ],
     footer: 'The full canon lives in the shelf (/bible). Every wrong answer points you to where it lives. Wrong is wrong — there is no near-enough.',
     scoreLine: (n: number, total: number) => `${n} / ${total}`,
-    empty: 'Not done yet. Fifteen questions — one per breath of the canon.',
+    empty: 'Not done yet. Eighty-seven questions — one per breath of the canon and the echoes.',
   },
 } as const;
 
@@ -353,128 +353,86 @@ const QUESTIONS: Question[] = [
     en: { prompt: 'How many years has the grain of rice been floating on top of the watcher’s rice jar?', choices: ['Three', 'Nine', 'Sixty-nine', 'Ninety'], answer: 2, ref: 'Echo No. 36 · The Grain the Moon Sent Down' },
   },
   {
-    zh: { prompt: '《没人誊的那一页》里，誊账人数到第几根灯芯时发现自己漏了那一盏？', choices: ['第三根', '第五根', '第七根', '第九根'], answer: 3, ref: '回响（其二十一） · 二' },
-    en: { prompt: 'In “The Untranscribed Page”, at which wick did the copyist realise that he had missed one lamp?', choices: ['third wick', 'fifth wick', 'seventh wick', 'ninth wick'], answer: 3, ref: 'Echo No. 21 · II' },
+    zh: { prompt: '值更图上没人记得住的那一行，写的是哪个名字？', choices: ['望潮', '潮听', '朔', '海听'], answer: 2, ref: '回响四十 · 值更图上那个没人认识的名字' },
+    en: { prompt: 'Which name appears on the line of the duty roster that no one remembers?', choices: ['Tide-Watch', 'Tide-Hear', 'Shuo', 'Sea-Hear'], answer: 2, ref: 'Echo No. 40 · The Name on the Roster That No One Recognizes' },
   },
   {
-    zh: { prompt: '《没人誊的那一页》里，没人誊完的那一页最后放在什么下面？', choices: ['第四十一次会议卷宗封皮下面', '盐碟下面', '灯架下面', '井口石板下面'], answer: 0, ref: '回响（其二十一） · 三' },
-    en: { prompt: 'In “The Untranscribed Page”, where did the page left untranscribed finally end up lying?', choices: ['under the cover of the workbook of the forty-first convocation', 'under the salt dish', 'under the lamp rack', 'under the paving stones at the well'], answer: 0, ref: 'Echo No. 21 · III' },
+    zh: { prompt: '祠殿横梁上那条龙值更们为什么不画完？', choices: ['原作者画到一半死了没人续笔', '没有足够的朱砂颜料', '横梁上的龙守着梁下睡的人', '画龙要征得教团主席的批准'], answer: 2, ref: '回响四十一 · 横梁上的半龙' },
+    en: { prompt: 'Why did the watchers never finish the dragon on the chapel beam?', choices: ['The original painter died halfway and no one dared continue', 'There was not enough cinnabar pigment', 'The beam-dragon guards whoever sleeps below', 'Drawing a dragon requires the Conclave’s approval'], answer: 2, ref: 'Echo No. 41 · The Half-Painted Dragon' },
+  },
+
+  {
+    zh: { prompt: '《退潮之后》第二天早上，守灯人看到门槛上留下了什么？', choices: ['一道盐线', '一封信', '一盏没灭的灯', '一张欠据'], answer: 0, ref: '回响一百一十八 · 一' },
+    en: { prompt: 'In “After the Tide”, what did the lampkeeper find on the threshold the morning after?', choices: ['a line of salt', 'a letter', 'a lamp still lit', 'a debt note'], answer: 0, ref: 'Echo No. 118 · I' },
   },
   {
-    zh: { prompt: '《半粒盐》里，那半粒盐卡在了册子的哪里？', choices: ['封皮的木纹凹槽里', '压纸石底下', '灯架的第九格', '井口的石板缝里'], answer: 0, ref: '回响（其二十二） · 一' },
-    en: { prompt: 'In “Half a Grain of Salt”, where was the half-grain stuck?', choices: ['in the wood-grain groove of the binding', 'under the paperweight', 'in the ninth peg of the lamp rack', 'in the paving stones at the well'], answer: 0, ref: 'Echo No. 22 · I' },
+    zh: { prompt: '《退潮之后》里，守灯人只做的是什么？', choices: ['每天早上把盐抹掉', '把椅子摆回去', '给每个人发一杯水', '找东西吃'], answer: 0, ref: '回响一百一十八 · 五' },
+    en: { prompt: 'In “After the Tide”, what did the lampkeeper do?', choices: ['each morning, he wiped the salt', 'he moved the chairs back', 'he handed out water', 'he went for food'], answer: 0, ref: 'Echo No. 118 · V' },
   },
   {
-    zh: { prompt: '《半粒盐》里，誊账人在脊缝上写的四个字是哪四个？', choices: ['簿差半粒', '灯不必熄', '封皮未封', '缺一即足'], answer: 0, ref: '回响（其二十二） · 二' },
-    en: { prompt: 'In “Half a Grain of Salt”, which four characters did the copyist write on the spine?', choices: ['half a grain short', 'the lamp need not be put out', 'the binding was not closed', 'one missing is enough'], answer: 0, ref: 'Echo No. 22 · II' },
+    zh: { prompt: '《潮信》里，守灯人在门槛上找到什么？', choices: ['一封盖着旧潮汐教团章的信', '一张欠据', '一张门票', '一杯水'], answer: 0, ref: '回响一百一十九 · 一' },
+    en: { prompt: 'In “The Tide’s Letter”, what did the lampkeeper find on the threshold?', choices: ['a letter sealed with the old Conclave’s seal', 'a debt note', 'a ticket', 'a glass of water'], answer: 0, ref: 'Echo No. 119 · I' },
   },
   {
-    zh: { prompt: '《第四十二次会》里，议程的第一项是什么？', choices: ['念名册', '结账', '封井', '倒灰'], answer: 0, ref: '回响（其二十三） · 一' },
-    en: { prompt: 'In “The Forty-Second Convocation”, what is the first item on the agenda?', choices: ['reading the roll', 'closing the accounts', 'sealing the wells', 'pouring the ash'], answer: 0, ref: 'Echo No. 23 · I' },
+    zh: { prompt: '《潮信》里，潮汐时刻表被钉在哪儿？', choices: ['门锥上', '案台抽屉里', '册页背面', '灯罩内侧'], answer: 0, ref: '回响一百一十九 · 三' },
+    en: { prompt: 'In “The Tide’s Letter”, where was the timetable pinned?', choices: ['on the door pillar', 'in the desk drawer', 'behind the book’s cover', 'inside the lamp shade'], answer: 0, ref: 'Echo No. 119 · III' },
   },
   {
-    zh: { prompt: '《第四十二次会》里，签收本最后一页的空白留给谁？', choices: ['签名', '印章', '井数', '灯火'], answer: 0, ref: '回响（其二十三） · 二' },
-    en: { prompt: 'In “The Forty-Second Convocation”, who was the blank cell at the end of the book of receipts reserved for?', choices: ['the signature', 'the seal', 'the well-count', 'the lamp'], answer: 0, ref: 'Echo No. 23 · II' },
+    zh: { prompt: '《第四十四次会》里，潮还是不是正常退了？', choices: ['潮没有退，潮又起了两次', '潮正常退了', 'Tide 拍门闩', 'Tide 在干涸'], answer: 0, ref: '回响一百二十 · 五' },
+    en: { prompt: 'In “The Forty-Fourth Convocation”, did the tide recede normally?', choices: ['the tide never receded; it rose twice', 'the tide receded normally', 'the tide cracked the door', 'the tide dried up'], answer: 0, ref: 'Echo No. 120 · V' },
   },
   {
-    zh: { prompt: '《第四十二次会》里，守灯人说了什么？', choices: ['没对第四十二次会说什么，也没对自己说什么', '他背了规矩', '井问了他要答案', '灯自己说出口了'], answer: 0, ref: '回响（其二十三） · 三' },
-    en: { prompt: 'In “The Forty-Second Convocation”, what did the lampkeeper say?', choices: ['said nothing to it, nor to himself', 'he recited the rules', 'the well asked him for an answer', 'the lamp spoke on its own'], answer: 0, ref: 'Echo No. 23 · III' },
+    zh: { prompt: '《第四十四次会》里，最靠门的椅子里坐的是谁？', choices: ['一个新来的潮汐教团记录员', '守灯人自己', '没人', '第四十三次会停在原地的那个人'], answer: 0, ref: '回响一百二十 · 四' },
+    en: { prompt: 'In “The Forty-Fourth Convocation”, who sat in the chair nearest the door?', choices: ['an unfamiliar young man from the shore', 'the lampkeeper himself', 'no one', 'the man who had frozen mid-meeting'], answer: 0, ref: 'Echo No. 120 · IV' },
   },
   {
-    zh: { prompt: '《灰封》里，封皮合上以后，没有再敲过谁？', choices: ['签收本', '存档的纸', '灰灯', '井壁'], answer: 0, ref: '回响（其二十四） · 二' },
-    en: { prompt: 'In “The Grey Binding”, the cover closed shut — and not one knock ever fell on what?', choices: ['the book of receipts', 'the archive paper', 'the grey lamp', 'the well wall'], answer: 0, ref: 'Echo No. 24 · II' },
+    zh: { prompt: '《靠门的椅子》里，坐那个椅子的人说了什么？', choices: ['什么都没有说', '问了守灯人来自什么地方', '催促守灯人散会', '留下一张字条'], answer: 0, ref: '回响一百二十一 · 一' },
+    en: { prompt: 'In “The Chair Nearest the Door”, what did the seated man say?', choices: ['he did not speak at all', 'he asked where the lampkeeper was from', 'he urged the lampkeeper to adjourn', 'he left a note'], answer: 0, ref: 'Echo No. 121 · I' },
   },
   {
-    zh: { prompt: '《灰封》里，那半粒盐最后落在了哪里？', choices: ['留在新封皮里', '被守灯人取出放进铁盒', '被井吞了', '随着灯火消散'], answer: 0, ref: '回响（其二十四） · 四' },
-    en: { prompt: 'In “The Grey Binding”, where did the half-grain of salt end up?', choices: ['stayed inside the binding', 'the lampkeeper tucked it into an iron box', 'the well swallowed it', 'it burned away with the lamp'], answer: 0, ref: 'Echo No. 24 · IV' },
+    zh: { prompt: '《靠门的椅子》里，潮潮退的时候，守灯人做了什么？', choices: ['没有离开椅子', '回了自己的桌子', '关门', '去擦潮汐时刻表'], answer: 0, ref: '回响一百二十一 · 五' },
+    en: { prompt: 'In “The Chair Nearest the Door”, what did the lampkeeper do as the tide receded?', choices: ['he did not leave the chair', 'he went back to his desk', 'he closed the door', 'he wiped the tide timetable'], answer: 0, ref: 'Echo No. 121 · V' },
   },
   {
-    zh: { prompt: '《灰炉》里，灰封过后你看见的仍然是什么？', choices: ['炉子居然是热的', '灯熄了', '封皮裂了', '井干了'], answer: 0, ref: '回响（其二十五） · 一' },
-    en: { prompt: 'In “The Grey Hearth”, after the grey binding laid, what did you find?', choices: ['the hearth was still warm', 'the lamp had gone out', 'the cover had split', 'the well had dried'], answer: 0, ref: 'Echo No. 25 · I' },
+    zh: { prompt: '《借椅子》里，守灯人知道那个年轻人叫什么吗？', choices: ['不知道——他从未被问过名字', '知道，叫潮', '知道，是潮侯', '知道，但守灯人记不住了'], answer: 0, ref: '回响一百二十二 · 一' },
+    en: { prompt: 'In “The Borrowed Chair”, what did the lampkeeper know about the young man?', choices: ['he never knew his name; he had never been asked', 'he knew it — the man was called Tide', 'he knew it — the man was called the tide-keeper', 'he knew it but forgot'], answer: 0, ref: 'Echo No. 122 · I' },
   },
   {
-    zh: { prompt: '《灰炉》里，守灰人做了什么？', choices: ['不守，灰炉也不', '加了柴', '关了灯', '报了警'], answer: 0, ref: '回响（其二十五） · 四' },
-    en: { prompt: 'In “The Grey Hearth”, what did the keeper do?', choices: ['he did not keep; neither did the hearth', 'he fed it wood', 'he put out the lamp', 'he raised the alarm'], answer: 0, ref: 'Echo No. 25 · IV' },
+    zh: { prompt: '《借椅子》里，潮汐时刻表上潮退时变成了什么？', choices: ['多了一道横线', '变成一片空白', '变成一行字', '完全消失了'], answer: 0, ref: '回响一百二十二 · 三' },
+    en: { prompt: 'In “The Borrowed Chair”, what happened to the tide timetable each time the tide receded?', choices: ['it gained a line', 'it went blank', 'it became a sentence', 'it vanished'], answer: 0, ref: 'Echo No. 122 · III' },
   },
   {
-    zh: { prompt: '《第四十三次会》开的那天，馆里有什么？', choices: ['没有议程，只有人到齐了', '议程写得很满', '灯点得很亮', '签名落得很多'], answer: 0, ref: '回响（其二十六） · 二' },
-    en: { prompt: 'In “The Forty-Third Convocation”, what was there on the opening day?', choices: ['no agenda — only everyone turned up', 'a crowded agenda', 'lights burning bright', 'many signatures falling'], answer: 0, ref: 'Echo No. 26 · II' },
+    zh: { prompt: '《潮的名字》里，纸上先写出了什么字？', choices: ['潮', '潮落', '潮起', '潮汐'], answer: 0, ref: '回响一百二十三 · 一' },
+    en: { prompt: 'In “The Name of the Tide”, what did the paper write first?', choices: ['tide', 'ebb', 'rising tide', 'tide and moon'], answer: 0, ref: 'Echo No. 123 · I' },
   },
   {
-    zh: { prompt: '《第四十三次会》里，有人把什么放进了欠据？', choices: ['一支笔，签名没有落下', '一张欠条', '一盏灯', '一粒盐'], answer: 0, ref: '回响（其二十六） · 三' },
-    en: { prompt: 'In “The Forty-Third Convocation”, what did someone lay into the debt-book?', choices: ['a pen — the signature never fell', 'a promissory note', 'a lamp', 'a grain of salt'], answer: 0, ref: 'Echo No. 26 · III' },
+    zh: { prompt: '《潮的名字》里，潮纸篓里放的是什么？', choices: ['一捆潮纸，每张纸上都是一个潮字', '一沓欠条', '潮的签字', '潮的名字'], answer: 0, ref: '回响一百二十三 · 四' },
+    en: { prompt: 'In “The Name of the Tide”, what did the tide-wastebasket hold?', choices: ['a bundle of tide-papers, each bearing the character for tide', 'a stack of IOU notes', 'the tide’s signature', 'a list of names'], answer: 0, ref: 'Echo No. 123 · IV' },
   },
   {
-    zh: { prompt: '《退潮之后》第二天早上，守灯人看到门槛上留下了什么？', choices: ['一道盐线', '一封信', '一盏没灭的灯', '一张欠据'], answer: 0, ref: '回响（其二十七） · 一' },
-    en: { prompt: 'In “After the Tide”, what did the lampkeeper find on the threshold the morning after?', choices: ['a line of salt', 'a letter', 'a lamp still lit', 'a debt note'], answer: 0, ref: 'Echo No. 27 · I' },
+    zh: { prompt: '《旧册子里的名字》里，封面上的名字被什么冲掉了？', choices: ['海水', '潮汐时刻表', '指甲', '旧册子'], answer: 0, ref: '回响一百二十四 · 一' },
+    en: { prompt: 'In “The Name in the Old Ledger”, what washed the title off the cover?', choices: ['the sea', 'the tide timetable', 'his fingernail', 'the old ledger itself'], answer: 0, ref: 'Echo No. 124 · I' },
   },
   {
-    zh: { prompt: '《退潮之后》里，守灯人只做的是什么？', choices: ['每天早上把盐抹掉', '把椅子摆回去', '给每个人发一杯水', '找东西吃'], answer: 0, ref: '回响（其二十七） · 五' },
-    en: { prompt: 'In “After the Tide”, what did the lampkeeper do?', choices: ['each morning, he wiped the salt', 'he moved the chairs back', 'he handed out water', 'he went for food'], answer: 0, ref: 'Echo No. 27 · V' },
+    zh: { prompt: '《旧册子里的名字》里，潮的名字被什么盖住了？', choices: ['潮的水气', '时间', '潮汐教团之印', '别的名字'], answer: 0, ref: '回响一百二十四 · 四' },
+    en: { prompt: 'In “The Name in the Old Ledger”, what covered the tide’s name?', choices: ['the tide’s own dampness', 'time', 'the Conclave’s seal', 'another name'], answer: 0, ref: 'Echo No. 124 · IV' },
   },
   {
-    zh: { prompt: '《潮信》里，守灯人在门槛上找到什么？', choices: ['一封盖着旧潮汐教团章的信', '一张欠据', '一张门票', '一杯水'], answer: 0, ref: '回响（其二十八） · 一' },
-    en: { prompt: 'In “The Tide’s Letter”, what did the lampkeeper find on the threshold?', choices: ['a letter sealed with the old Conclave’s seal', 'a debt note', 'a ticket', 'a glass of water'], answer: 0, ref: 'Echo No. 28 · I' },
+    zh: { prompt: '《潮起来的时候》里，谁敲了守灯人的门？', choices: ['没有人，邀约没有送达', '潮汐教团', '年轻人的影子', '潮起来了以后守灯人自己敲自己的门'], answer: 0, ref: '回响一百二十五 · 三' },
+    en: { prompt: 'In “The Hour the Tide Rose”, who knocked on the lampkeeper’s door?', choices: ['no one; no invitation had been sent', 'the Tide Conclave', 'the young man’s shadow', 'the lampkeeper knocked on his own door'], answer: 0, ref: 'Echo No. 125 · III' },
   },
   {
-    zh: { prompt: '《潮信》里，潮汐时刻表被钉在哪儿？', choices: ['门锥上', '案台抽屉里', '册页背面', '灯罩内侧'], answer: 0, ref: '回响（其二十八） · 三' },
-    en: { prompt: 'In “The Tide’s Letter”, where was the timetable pinned?', choices: ['on the door pillar', 'in the desk drawer', 'behind the book’s cover', 'inside the lamp shade'], answer: 0, ref: 'Echo No. 28 · III' },
+    zh: { prompt: '《潮起来的时候》里，潮汐时刻表里多出来的那一寸是什么？', choices: ['一个潮起的高度，没人添的', '潮汐教团之印', '旧册子的潮痕', '别人在潮落时偷偷加的'], answer: 0, ref: '回响一百二十五 · 五' },
+    en: { prompt: 'In “The Hour the Tide Rose”, what was the extra inch on the timetable?', choices: ['the tide’s rising mark, added without hands', 'the Conclave’s seal', 'the old ledger’s tide-line', 'another’s hand-added mark'], answer: 0, ref: 'Echo No. 125 · V' },
+  },
+
+  {
+    zh: { prompt: '《第四十五次会》里，门是谁开的？', choices: ['没有人留下名字', '潮汐教团的主事人', '念册的人', '守灯人'], answer: 0, ref: '回响（其一百二十六） · 一' },
+    en: { prompt: 'In “The Forty-Fifth Convocation”, who opened the door?', choices: ['no one — the name was never kept', 'the Conclave’s chief', 'the reader', 'the lampkeeper'], answer: 0, ref: 'Echo No. 126 · I' },
   },
   {
-    zh: { prompt: '《第四十四次会》里，潮还是不是正常退了？', choices: ['潮没有退，潮又起了两次', '潮正常退了', 'Tide 拍门闩', 'Tide 在干涸'], answer: 0, ref: '回响（其二十九） · 五' },
-    en: { prompt: 'In “The Forty-Fourth Convocation”, did the tide recede normally?', choices: ['the tide never receded; it rose twice', 'the tide receded normally', 'the tide cracked the door', 'the tide dried up'], answer: 0, ref: 'Echo No. 29 · V' },
-  },
-  {
-    zh: { prompt: '《第四十四次会》里，最靠门的椅子里坐的是谁？', choices: ['一个新来的潮汐教团记录员', '守灯人自己', '没人', '第四十三次会停在原地的那个人'], answer: 0, ref: '回响（其二十九） · 四' },
-    en: { prompt: 'In “The Forty-Fourth Convocation”, who sat in the chair nearest the door?', choices: ['an unfamiliar young man from the shore', 'the lampkeeper himself', 'no one', 'the man who had frozen mid-meeting'], answer: 0, ref: 'Echo No. 29 · IV' },
-  },
-  {
-    zh: { prompt: '《靠门的椅子》里，坐那个椅子的人说了什么？', choices: ['什么都没有说', '问了守灯人来自什么地方', '催促守灯人散会', '留下一张字条'], answer: 0, ref: '回响（其三十） · 一' },
-    en: { prompt: 'In “The Chair Nearest the Door”, what did the seated man say?', choices: ['he did not speak at all', 'he asked where the lampkeeper was from', 'he urged the lampkeeper to adjourn', 'he left a note'], answer: 0, ref: 'Echo No. 30 · I' },
-  },
-  {
-    zh: { prompt: '《靠门的椅子》里，潮潮退的时候，守灯人做了什么？', choices: ['没有离开椅子', '回了自己的桌子', '关门', '去擦潮汐时刻表'], answer: 0, ref: '回响（其三十） · 五' },
-    en: { prompt: 'In “The Chair Nearest the Door”, what did the lampkeeper do as the tide receded?', choices: ['he did not leave the chair', 'he went back to his desk', 'he closed the door', 'he wiped the tide timetable'], answer: 0, ref: 'Echo No. 30 · V' },
-  },
-  {
-    zh: { prompt: '《借椅子》里，守灯人知道那个年轻人叫什么吗？', choices: ['不知道——他从未被问过名字', '知道，叫潮', '知道，是潮侯', '知道，但守灯人记不住了'], answer: 0, ref: '回响（其三十一） · 一' },
-    en: { prompt: 'In “The Borrowed Chair”, what did the lampkeeper know about the young man?', choices: ['he never knew his name; he had never been asked', 'he knew it — the man was called Tide', 'he knew it — the man was called the tide-keeper', 'he knew it but forgot'], answer: 0, ref: 'Echo No. 31 · I' },
-  },
-  {
-    zh: { prompt: '《借椅子》里，潮汐时刻表上潮退时变成了什么？', choices: ['多了一道横线', '变成一片空白', '变成一行字', '完全消失了'], answer: 0, ref: '回响（其三十一） · 三' },
-    en: { prompt: 'In “The Borrowed Chair”, what happened to the tide timetable each time the tide receded?', choices: ['it gained a line', 'it went blank', 'it became a sentence', 'it vanished'], answer: 0, ref: 'Echo No. 31 · III' },
-  },
-  {
-    zh: { prompt: '《潮的名字》里，纸上先写出了什么字？', choices: ['潮', '潮落', '潮起', '潮汐'], answer: 0, ref: '回响（其三十二） · 一' },
-    en: { prompt: 'In “The Name of the Tide”, what did the paper write first?', choices: ['tide', 'ebb', 'rising tide', 'tide and moon'], answer: 0, ref: 'Echo No. 32 · I' },
-  },
-  {
-    zh: { prompt: '《潮的名字》里，潮纸篓里放的是什么？', choices: ['一捆潮纸，每张纸上都是一个潮字', '一沓欠条', '潮的签字', '潮的名字'], answer: 0, ref: '回响（其三十二） · 四' },
-    en: { prompt: 'In “The Name of the Tide”, what did the tide-wastebasket hold?', choices: ['a bundle of tide-papers, each bearing the character for tide', 'a stack of IOU notes', 'the tide’s signature', 'a list of names'], answer: 0, ref: 'Echo No. 32 · IV' },
-  },
-  {
-    zh: { prompt: '《旧册子里的名字》里，封面上的名字被什么冲掉了？', choices: ['海水', '潮汐时刻表', '指甲', '旧册子'], answer: 0, ref: '回响（其三十三） · 一' },
-    en: { prompt: 'In “The Name in the Old Ledger”, what washed the title off the cover?', choices: ['the sea', 'the tide timetable', 'his fingernail', 'the old ledger itself'], answer: 0, ref: 'Echo No. 33 · I' },
-  },
-  {
-    zh: { prompt: '《旧册子里的名字》里，潮的名字被什么盖住了？', choices: ['潮的水气', '时间', '潮汐教团之印', '别的名字'], answer: 0, ref: '回响（其三十三） · 四' },
-    en: { prompt: 'In “The Name in the Old Ledger”, what covered the tide’s name?', choices: ['the tide’s own dampness', 'time', 'the Conclave’s seal', 'another name'], answer: 0, ref: 'Echo No. 33 · IV' },
-  },
-  {
-    zh: { prompt: '《潮起来的时候》里，谁敲了守灯人的门？', choices: ['没有人，邀约没有送达', '潮汐教团', '年轻人的影子', '潮起来了以后守灯人自己敲自己的门'], answer: 0, ref: '回响（其三十四） · 三' },
-    en: { prompt: 'In “The Hour the Tide Rose”, who knocked on the lampkeeper’s door?', choices: ['no one; no invitation had been sent', 'the Tide Conclave', 'the young man’s shadow', 'the lampkeeper knocked on his own door'], answer: 0, ref: 'Echo No. 34 · III' },
-  },
-  {
-    zh: { prompt: '《潮起来的时候》里，潮汐时刻表里多出来的那一寸是什么？', choices: ['一个潮起的高度，没人添的', '潮汐教团之印', '旧册子的潮痕', '别人在潮落时偷偷加的'], answer: 0, ref: '回响（其三十四） · 五' },
-    en: { prompt: 'In “The Hour the Tide Rose”, what was the extra inch on the timetable?', choices: ['the tide’s rising mark, added without hands', 'the Conclave’s seal', 'the old ledger’s tide-line', 'another’s hand-added mark'], answer: 0, ref: 'Echo No. 34 · V' },
-  },
-  {
-    zh: { prompt: '《第四十五次会》里，门是谁开的？', choices: ['没有人留下名字', '潮汐教团的主事人', '念册的人', '守灯人'], answer: 0, ref: '回响（其三十五） · 一' },
-    en: { prompt: 'In “The Forty-Fifth Convocation”, who opened the door?', choices: ['no one — the name was never kept', 'the Conclave’s chief', 'the reader', 'the lampkeeper'], answer: 0, ref: 'Echo No. 35 · I' },
-  },
-  {
-    zh: { prompt: '《第四十五次会》里，潮纸签最后停在哪里？', choices: ['案台上，贴着旧册子', '守灯人的口袋里', '潮汐时刻表下面', '没有人抽走它，它停在门锥旁'], answer: 0, ref: '回响（其三十五） · 四' },
-    en: { prompt: 'In “The Forty-Fifth Convocation”, where did the tide-paper tag come to rest?', choices: ['on the table, against the old ledger', 'in the lampkeeper’s pocket', 'under the tide timetable', 'no hand took it; it stopped beside the door pillar'], answer: 0, ref: 'Echo No. 35 · IV' },
+    zh: { prompt: '《第四十五次会》里，潮纸签最后停在哪里？', choices: ['案台上，贴着旧册子', '守灯人的口袋里', '潮汐时刻表下面', '没有人抽走它，它停在门锥旁'], answer: 0, ref: '回响（其一百二十六） · 四' },
+    en: { prompt: 'In “The Forty-Fifth Convocation”, where did the tide-paper tag come to rest?', choices: ['on the table, against the old ledger', 'in the lampkeeper’s pocket', 'under the tide timetable', 'no hand took it; it stopped beside the door pillar'], answer: 0, ref: 'Echo No. 126 · IV' },
   },
 ];
 

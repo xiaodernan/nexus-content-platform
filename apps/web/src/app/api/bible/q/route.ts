@@ -4,8 +4,7 @@ import { requireUser } from '@/server/domain/session';
 import { csrfOk } from '@/server/security/csrf';
 import { clientIp, getRateLimiter, ipWriteGate, rateKey } from '@/server/security/rateLimit';
 import { badRequest, jsonError, readJson } from '@/server/http';
-import { chatWithCharacter } from '@/server/ai/client';
-import { SYSTEM_PROMPT } from '@/lib/bibleAsk';
+import { runCanonAnswerGraph } from '@/server/ai/canonGraph';
 import { increment, observe } from '@/server/observability';
 
 /**
@@ -15,7 +14,7 @@ import { increment, observe } from '@/server/observability';
  * - 只接受已登录用户（密钥扛不住匿名流量，§137/§160）；
  * - csrf + 按人 5 次/5 分钟限流 + 按 IP 的入口 gate 三层；
  * - provider 不可用 → 503 原样回真，不演示 AI 瞎编的答案（§159）；
- * - question 400 字以内；system 是字节级稳定的 SYSTEM_PROMPT（KV 前缀复用，§CACHE-4）；
+ * - question 400 字以内；draft/revise 的 system 是字节级稳定的 CANON_DIGEST（KV 前缀复用，§CACHE-4）；
  * - 不写库、不写 usage、不扣 credit（这是一次阅读，不是一次生成作业）。
  */
 const AskBodySchema = z.object({
@@ -43,15 +42,11 @@ export async function POST(req: Request): Promise<NextResponse> {
   }
 
   const { question } = parsed.data;
-  // 用英文前缀把语言钉在 user 侧（zh/en 分别带固定标签，system 永远不变 → KV 前缀稳定）
-  const wrapped = `Question language: ${parsed.data.locale === 'zh' ? 'zh' : 'en'}\nQuestion: ${question}`;
+  const wrapLanguage = parsed.data.locale === 'zh' ? 'zh' : 'en';
+  // §GRAPH-1 正典问答走 StateGraph（analyze → retrieve → draft → verify/revise）；
+  // draft/revise 的 system 仍是字节级稳定的 CANON_DIGEST，KV 前缀与旧路径同源。
   try {
-    const result = await chatWithCharacter({
-      requestId: `bible-ask-${user.id.slice(0, 8)}-${Date.now()}`,
-      system: SYSTEM_PROMPT,
-      user: wrapped,
-      modelClass: 'fast',
-    });
+    const result = await runCanonAnswerGraph({ question, locale: wrapLanguage });
     const durationMs = Date.now() - startedAt;
     if (!result.ok) {
       increment('nexus_bible_ask_total', { outcome: 'provider-unavailable' });
@@ -60,19 +55,23 @@ export async function POST(req: Request): Promise<NextResponse> {
         message: '潮汐现在不走 —— 正典问答暂时不可用，请稍后再来。',
       });
     }
-    observe('nexus_bible_ask_latency_ms', durationMs, { outcome: 'answer' });
-    increment('nexus_bible_ask_total', { outcome: 'answer' });
-    const { response } = result;
+    const verified = result.verdict === 'pass';
+    observe('nexus_bible_ask_latency_ms', durationMs, { outcome: verified ? 'answer' : 'answer-unverified' });
+    increment('nexus_bible_ask_total', { outcome: verified ? 'answer' : 'answer-unverified' });
     return NextResponse.json({
-      answer: (response.text ?? '').trim(),
-      capability: response.capability,
-      provider: response.provider,
-      model: response.model,
-      cachedTokens: response.usage?.cachedTokens ?? 0,
-      tokensIn: response.usage?.tokensIn ?? 0,
-      tokensOut: response.usage?.tokensOut ?? 0,
-      cacheReported: response.usage?.cacheReported ?? false,
+      answer: result.answer,
+      capability: 'real',
+      provider: result.provider,
+      model: result.model,
+      cachedTokens: result.usage.cachedTokens,
+      cacheReported: result.usage.cacheReported,
       costBasis: 'usage',
+      graph: {
+        verdict: result.verdict,
+        iterations: result.iterations,
+        retrieved: result.retrieved.length,
+        nodes: result.nodesVisited,
+      },
     });
   } catch (error) {
     increment('nexus_bible_ask_total', { outcome: 'error' });

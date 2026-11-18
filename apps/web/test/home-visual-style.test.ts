@@ -143,10 +143,15 @@ function maskLiterals(expr: string): string {
 }
 
 /**
- * **剥 className 后全文逐字节哈希**（本片最强零行为门）。
- * 基线（全裸 + FE-3 半成品门面）与改造后（全 `.hp-`）必须整份恒等；v811 全量门面双语化后重钉。
+ * **剥 className 后全文哈希**（本片最强零行为门）。
+ * 基线（全裸 + FE-3 半成品门面）与改造后（全 `.hp-`）必须整体恒等；v811 全量门面双语化后重钉。
+ * 2026-11-17 §HP-HELP-1（v908）：首页增「教学说明条」（第一次来？+ /onboarding 漫游 + /guide 说明书
+ *  + Ctrl+K/⌘K 命令面板提示）与五个导航各一句副文案（§五/§七），哈希整体重钉——属显式变更，非绕门。
+ * 2026-11-18 v925 · §I18N-FIX：把 9 个组件的 `locale={locale}` 透传补齐
+ * ——英文首页不再出现中文泄漏文案。刻意不改动任何 className / 业务逻辑；SHA256 是对 JSX 片段 redactClassNames 之后的全文哈希。
+ * 2026-11-18 合并 origin/main（潮汐典籍室 · 快速上手条 · 导航 title 双语）：双快捷入口与教学说明条同merge（hp-navItem 包住外加 nav*Title），SHA 整体重钉。
  */
-const STRIP_CLASS_SHA256 = '04f88f352ddeefd42d0527126af41118b145ae5a1ce6d2f2b9f96a6a9d727a93';
+const STRIP_CLASS_SHA256 = 'e9c294b2ca2150a00c1a88fe7c1713de6c80cf6baac754a3e586ed2faf8cfe31';
 function stripClassNames(src: string): string {
   const s = src.replace(/\r\n/g, '\n');
   let out = '';

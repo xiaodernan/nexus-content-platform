@@ -27,6 +27,7 @@ const segment = BIBLE_START >= 0 ? globals.slice(BIBLE_START) : '';
 
 function redactClasses(source: string): string {
   return source
+    .replace(/^\uFEFF/, '') // BOM 不进哈希——钉的是内容，不是编码噪声
     .replace(/\r\n/g, '\n')
     .replace(/className="[^"]*"/g, 'className="@"')
     .replace(/className=\{`[^`]*`\}/g, 'className={@}')
@@ -88,12 +89,12 @@ describe('§BIBLE-4 /bible/ask 问典', () => {
     for (const token of usedTokens) expect(tokens, `tokens.css 没有声明 ${token}`).toContain(token);
   });
 
-  it('SHA256 钉死（EOL 归一 + className→@）', () => {
+  it('SHA256 钉死（BOM/EOL 归一 + className→@）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      'a0c53de63e2c74caa1b1c1f77b88d36dabbe714400d61fbb7b63f9cdfc59531d',
+      '017d3b55d40cb1b46670a72b3b9a947729f53c6a17e388978bd504eba8d62479',
     );
     expect(createHash('sha256').update(redactClasses(component)).digest('hex')).toBe(
-      '085251944f49b4a7d451ad0aecb3d642fcb1211d5fd5faea7becd2e9cb0df884',
+      '9956fa91674279874d8330f3eb97d1be7acfeff41a4df62a6cddc29127f9bc99',
     );
   });
 });

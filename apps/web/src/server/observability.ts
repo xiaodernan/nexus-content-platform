@@ -146,23 +146,23 @@ export const METRICS = {
   nexus_bible_ask_total: {
     kind: 'counter',
     help: '问典（POST /api/bible/q）走到终态的次数——provider 不可用也要记，别只在成功路径上埋点',
-    labels: { outcome: ['answer', 'provider-unavailable', 'error'] },
+    labels: { outcome: ['answer', 'answer-unverified', 'provider-unavailable', 'error'] },
   },
   nexus_bible_ask_latency_ms: {
     kind: 'histogram',
     help: '问典从进入路由到回流的毫秒数（含 provider 往返；回放不单独算——时延里有没有 provider 调用看 tokens 就够）',
-    labels: { outcome: ['answer'] },
+    labels: { outcome: ['answer', 'answer-unverified'] },
     buckets: DURATION_BUCKETS,
   },
   nexus_insight_analyze_total: {
     kind: 'counter',
     help: '/api/insight/analyze 走到终态的次数（含 provider 不可用也要记，不许静默失败）',
-    labels: { outcome: ['answer', 'provider-unavailable'] },
+    labels: { outcome: ['answer', 'answer-unverified', 'provider-unavailable'] },
   },
   nexus_insight_analyze_latency_ms: {
     kind: 'histogram',
     help: '/api/insight/analyze 从进路由到回流的毫秒数（含 provider 往返；快、慢都看）',
-    labels: { outcome: ['answer'] },
+    labels: { outcome: ['answer', 'answer-unverified'] },
     buckets: DURATION_BUCKETS,
   },
   nexus_moderation_assist_total: {
@@ -190,23 +190,34 @@ export const METRICS = {
   nexus_analytics_narrate_total: {
     kind: 'counter',
     help: '/api/analytics/agent-narrate 走到终态的次数（含 provider 不可用——绝不静默）',
-    labels: { outcome: ['answer', 'provider-unavailable'] },
+    labels: { outcome: ['answer', 'answer-unverified', 'provider-unavailable'] },
   },
   nexus_analytics_narrate_latency_ms: {
     kind: 'histogram',
     help: '/api/analytics/agent-narrate 从进路由到回流的毫秒数（含 provider 往返）',
-    labels: { outcome: ['answer'] },
+    labels: { outcome: ['answer', 'answer-unverified'] },
+    buckets: DURATION_BUCKETS,
+  },
+  nexus_character_chat_total: {
+    kind: 'counter',
+    help: 'POST /api/.../characters/[id]/chat 走到终态的次数（含 provider 不可用——绝不静默）',
+    labels: { outcome: ['answer', 'answer-unverified', 'provider-unavailable'] },
+  },
+  nexus_character_chat_latency_ms: {
+    kind: 'histogram',
+    help: 'POST /api/.../characters/[id]/chat 从进路由到回流的毫秒数（含 provider 往返）',
+    labels: { outcome: ['answer', 'answer-unverified'] },
     buckets: DURATION_BUCKETS,
   },
   nexus_agent_explain_total: {
     kind: 'counter',
-    help: '审批卡「让模型读一眼」调用结果计数（回答 / 不可用 / 计量成功的路由计在 answer）',
-    labels: { outcome: ['answer', 'provider-unavailable'] },
+    help: '审批卡「让模型读一遍」调用结果计数（verified=pass 记为 answer，机检未过记为 answer-unverified，不可用记为 provider-unavailable）',
+    labels: { outcome: ['answer', 'answer-unverified', 'provider-unavailable'] },
   },
   nexus_agent_explain_latency_ms: {
     kind: 'histogram',
     help: 'approval-explain 从进路由到回流的毫秒数（含 provider 往返）',
-    labels: { outcome: ['answer'] },
+    labels: { outcome: ['answer', 'answer-unverified'] },
     buckets: DURATION_BUCKETS,
   },
   nexus_http_errors_total: {
