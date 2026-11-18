@@ -7639,3 +7639,10 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 6 锚句 bilingual · gen-bible-snapshot 增 echo-138 · BibleAsk lede → 138 · /bible/ask meta → 一百三十八篇 · CACHE-IDENTITY × 138 · canon-answer-graph → 151 段 · bible-ask-behavior → 840 · pin 重钉 page→7afb0b7a / comp→260efa8e。
 - §INSIGHT-CACHE-COPY：观察坞⑧ 正典深问 hint "≈4.3 万 / ≈43k" → "≈15 万 / ≈150k"；rate note 也同步真实 digest 尺寸与 §PROOF-V992 实测数字。中英两处都改。
 - fe-gates **1370/1370** ✓ · verify:world-bible 845/845 ✓ · 集成/行契约测试全绿。
+
+## cont. 379 (2026-11-19) — v997 · §FIX-AGENT-RUNTIME-DEV · 并行线 cont.360 的 web tsconfig alias 搞坏 Turbopack，已回退
+
+- 现象：dev 起来后 `/api/bible/q` 全 500，Turbopack 报 40+ 处 `Can't resolve './x.js'`（`@nexus/agent-runtime` 源码路径直译无法做 `.js→.ts` 映射）。
+- 修复：`apps/web/tsconfig.json` 移除 `@nexus/agent-runtime` path alias（web 走 package exports 的 dist/index.d.ts，已确认 dist 180 文件 + 45 d.ts + node_modules junction 正确）；`tsconfig.tools.json` 的源码直译 alias 保留（cont.360 的 CI 目标不动）。
+- 验证：web `typecheck` ✓ · `tsconfig.tools.json` typecheck ✓ · web dev 重启后 HTTP 200 · `/api/bible/q` 200 · 浏览器活答 `gpt-6.1-terra · 缓存复用 7213 tokens`（见 §VERIFY-TIDE-ORACLE-E2E 示例对话与 cont.374 同 lane）。
+- 纪律入 ADR-0287（`docs/adr/0287-web-tsconfig-paths-vs-agent-runtime-dev.md`）：Next dev 不认 tsconfig paths 指到 TS 源码。
