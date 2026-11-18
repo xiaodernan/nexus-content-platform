@@ -22,12 +22,14 @@ export default async function TideOraclePage() {
     ? [
         { href: '/bible', label: '← 先去典籍室读两章' },
         { href: '/bible/quiz', label: '潮汐挑战（正典问答）' },
+        { href: '/tide-wire', label: '今日潮声 · 公开 aggregates' },
         { href: '/insight', label: '观察坞 · 解锁（口令 123）' },
         { href: '/guide', label: '使用指南' },
       ]
     : [
         { href: '/bible', label: '← Read two chapters first' },
         { href: '/bible/quiz', label: 'Tide quiz (canon questions)' },
+        { href: '/tide-wire', label: 'Today’s tide wire · public aggregates' },
         { href: '/insight', label: 'Insight dock · unlock (passphrase 123)' },
         { href: '/guide', label: 'User guide' },
       ];

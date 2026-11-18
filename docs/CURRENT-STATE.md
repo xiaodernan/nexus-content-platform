@@ -6169,3 +6169,12 @@ docs(readme): Spring Cloud 五服务清单对齐 ADR-0237（java-* 退役说清�
 README 根「Layout of the merged tree」里 services/ 一节原文还说 java-registry / java-gateway /
 java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD 删除，历史永存）。
 现在如实写成：nexus-api + java-domain-service + nexus-gateway + nexus-registry + nexus-config。
+
+> **2026-11-19 cont. 237/238 · 并行会话真合并（分布式 single-flight 开）+ 今日潮声 `/tide-wire` 上线**
+> - 根本矛盾纠正：ai-service 本来就有进程内 SingleFlight（默认开）+ v697 跨进程 lease（默认关）+ Redis 完成缓存 v686——只是开关没开；
+>   `NEXUS_LLM_DISTRIBUTED_SINGLE_FLIGHT=1` 开启后，3 并发同键 → 同 wall 4.51s，**一条 lease 实锤**（`nexus:llmc:flight:1d80…` + `:done:096c…`）
+>   全新问题 5.94s → 同键再问 **0.36s（16× 快，Redis replay、cached=44,146/44,146≈100%）**。evidence `live-tide-wire-2026-11-19.md` 写清楚了。
+> - `/tide-wire`（RSC · `unstable_cache(3600s)` 只缓存成功）：公开聚合 → 潮说两句（真模型真数字）
+>   线上验证：`近7日有52次打开，近30日有97次，潮势向近处聚集。近30日平均完成率为71.23%，完成共19次。` → 第二次请求逐字节一致。
+> - 诚实失败不进缓存；empty/demo 诚实留白；**零个人信息**；token 节流 = 每小时最多 1 次/locale。
+> - fe-gates 147/147 · 1353/1353 · census 2956 · build 绿
