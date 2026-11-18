@@ -434,6 +434,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《门开了一整夜》里，离开时誊册房的人把门关成了什么样？', choices: ['关了一指宽（留了一指宽的门缝）', '完全关上了', '大开着没有关', '关了一掌宽'], answer: 0, ref: '回响（其一百三十一） · 五' },
     en: { prompt: 'In “The Door Stood Open All Night”, how did the copyist finally leave the door?', choices: ['closed except a finger’s width', 'fully closed', 'swinging open and not closed at all', 'closed except a palm’s width'], answer: 0, ref: 'Echo No. 131 · V' },
   },
+  {
+    zh: { prompt: '《潮候院雨书》里，雨书记录的是什么？', choices: ['只记下雨的夜晚——名字在第二行', '借宿名单', '送柴的记账', '第四十一届会议的结论'], answer: 0, ref: '回响（其一百四十三） · 一' },
+    en: { prompt: 'In “The Rain-Book”, what does the book record?', choices: ['only the nights of rain — people come second', 'the guest list of people seeking shelter', 'the firewood accounts', 'the conclusions of the forty-first Convocation'], answer: 0, ref: 'Echo No. 143 · I' },
+  },
+  {
+    zh: { prompt: '《潮候院雨书》里，潮落时海送上来了什么？', choices: ['一把棚骨完好的伞', '一封没有署名的潮纸签', '半张潮汐时刻表', '一盏熄灭的灯'], answer: 0, ref: '回响（其一百四十三） · 三' },
+    en: { prompt: 'In “The Rain-Book”, what did the tide bring up when it receded?', choices: ['an umbrella, intact', 'an unsigned tide-slip', 'half a timetable', 'an extinguished lamp'], answer: 0, ref: 'Echo No. 143 · III' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

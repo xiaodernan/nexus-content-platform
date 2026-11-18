@@ -7647,6 +7647,11 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 验证：web `typecheck` ✓ · `tsconfig.tools.json` typecheck ✓ · web dev 重启后 HTTP 200 · `/api/bible/q` 200 · 浏览器活答 `gpt-6.1-terra · 缓存复用 7213 tokens`（见 §VERIFY-TIDE-ORACLE-E2E 示例对话与 cont.374 同 lane）。
 - 纪律入 ADR-0287（`docs/adr/0287-web-tsconfig-paths-vs-agent-runtime-dev.md`）：Next dev 不认 tsconfig paths 指到 TS 源码。
 
+> **2026-11-19 cont. 377 · Tide-Oracle 缓存稳定性 · 25-question probe 实测**
+> - 潮候院 echo-140《潮候院雨书》上线（（此 entry 先于并线，E140 digest 234,719 chars 后将被并线重生） · 850 zh/en 锚句 · verify:world-bible 850/850）· quiz pins 需在并线后重钉（见合并后提交）
+> - 25 问 warmup 实测：cold=7212/151,456 (4.8%) · 之后 8 个短问 + 3 次 retry：**2 个 full-hit · 10 个 ~93.8% hit（142,197/151,456 恒定）** · **从未低于 93.8%** · 179/12 tokensIn 稳定到 ±几十
+> - citation=cited 出现在真正有正典锚句的回答里；其他回答如实 declined/not-cited
+> - evidence: `docs/evidence/cache-stability-2026-11-19.md`
 ## cont. 380 (2026-11-19) — v999 · §BIBLE-139 · Echo #139《只望雾港的望远镜》(作者手写 · verify 851/851)
 
 - 新篇：「望远镜 · 雾港灯船 · 散会夜 · 镜筒里的银灰盐 · 值更册最后一页」—— digest 现 **234,795 chars**（13 章正典 · **139 回响** · 4 annex · 锚句 851 zh / 851 en ✓）。
@@ -7687,6 +7692,13 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 新篇：「门岗访客籍 · 没有一个人进来过 · 小孩头上不见影子 · 散会后它不再记」—— digest 现 **235,610 chars**（13 章正典 · **141 回响** · 4 annex · 锚句 863 zh / 863 en ✓）。
 - 6 锚句双语 · gen-bible-snapshot 增 echo-141 · BibleAsk lede → 141 · /bible/ask meta → 一百四十一篇 · CACHE-IDENTITY × 141 · canon-answer-graph → 154 段 · bible-ask-behavior → 858 · pin 重钉 page→feb2ff26 / comp→f2e5148b · InsightCanonChat hint 同步 141。
 - fe-gates **1370/1370** ✓ · verify:world-bible 863/863 ✓。
+## cont. 382+383 (2026-11-19) · 双线双生二次合流 — Echo #139/#140/#141 并入 lineage · 本线 Echo #140重排 → **Echo #142《潮候院雨书》**
+
+- 第一次合流（cont.378-381）：本线 Echo #140《潮候院雨书》重排为 E140，并行线《只望雾港的望远镜》先落 E139。
+- 第二次合流：并行线又落 E140《抄本室那盏从不熄灭的灯》· E141《门岗那本只记未入的访客籍》。
+- 本线《潮候院雨书》重排为 **Echo #142**，文件重命名 E142-潮候院雨书.{md,en.md} · gen-bible-snapshot 重登 · BibleQuiz ref 同步 ·digest **235,932 chars · 142 回响 · 4 附录**
+- verify:world-bible **868/868** · snapshot OK · anchors OK 626 · bible-ask-behavior pin **863** · BibleQuiz pin f2282a10
+- fe-gates 150/150 · 1370/1370 · census 2987 · 合线后 lint gate exit 0
 
 ## cont. 386 (2026-11-19) — v1003 · §ASK-CITE · /api/bible/q 接返引文机检 + 问典答复 chip
 
@@ -7714,3 +7726,12 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
     zh/en 双语 summary `${n} 条锚句（点开查看）`。
   - route 契约测试新增断言：citationAnchors 必为数组；chip 增加 `data-bible-ask-cite-expand` hook；.bbq-citeExpand 进 GLOBALS（both pin 重算）。
 - fe-gates **1370/1370** ✓ · verify:world-bible 875/875 ✓ · 浏览器 live 验证：chip「自由作答 · 未逐字引用锚句」真实显示（§159 诚实机检）。
+
+## cont. 389 (2026-11-19) — v1030 · §CANON-MERGE · 与并行线《潮候院雨书》对齐 + Echo #144 入 digest
+
+- 并行线（agent B）提前落了 Echo #142《潮候院雨书》（sha0d2f）+ Echo #141 for #141; 本线 echo 编号 → #144 to avoid collision
+- 合并 origin/main 11 commits（包含 their echo renumber E142→E143, digest restoration 875/875 锚句；E142 SHA 5636ceff…）
+- Digest now=236,713 chars（13 章 + **144 回响** + 4 annex · 880 zh/en 锚句 ✓）
+- lede/span 143→144 处（BibleAsk/guideCopy/CACHE-IDENTITY/canon-answer-graph/InsightCanonChat hint 同步 · page pins 重钉 page→9508b19a / comp→3afe8308；bible-quiz 测试自行过）
+- fe-gates **1370/1370** ✓ · verify:world-bible 880/880 ✓ · verify:bible-snapshot 一致 ✅ · digest 与文档一致 ✅
+- 注意《潮候院雨书》来自并行线原创，本回合没有作者声明冲突——仅吸收摘要内容将号码归位为 143；另 evidence/cache-stability-2026-11-19.md 原样并入，未重写。
