@@ -62,6 +62,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     // §TIDE-ORACLE-VERIFY（ cont.359 延伸）· 潮语/问典同一条：确定性地逐字检测回答有没有出自典籍的锚句
     const citation = verifyAnchorCitation(result.answer);
     const anchorsCited = citation.clause === 'cited' ? citation.anchors.length : 0;
+    increment('nexus_oracle_citation_total', { state: citation.clause });
     return NextResponse.json({
       answer: result.answer,
       capability: 'real',

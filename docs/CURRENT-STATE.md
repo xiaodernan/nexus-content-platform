@@ -7696,3 +7696,10 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 路由契约 test（bible-ask-route-behavior）新增断言：`citation` 必为三态字符串 · `anchorsCited` 必为 number；`bible-ask-visual-style` pin 重钉 page→feb2ff26 / comp→d8df1966 · `.bbq-cite` 进 GLOBALS · data hook `data-bible-ask-cite`。
 - 浏览器 live 验证：问典「《收件人》里谁收到了那张签收单？」→ cached 7252 tokens · chip 显示**自由作答 · 未逐字引用锚句**（模型没逐字引正典时如实说没有 — §159 诚实边界生效）。
 - fe-gates **1370/1370** ✓。
+
+## cont. 387 (2026-11-19) — v1004 · §BIBLE-142 · Echo #142《空房间》(作者手写 · verify 869/869) + §ASK-CITE-TALLY
+
+- 新篇：「祠殿最底层那间房间 · 没开过的门 · 灯从没亮过 · 值更册没记它」—— digest 现 **235,995 chars**（13 章正典 · **142 回响** · 4 annex · 锚句 869 zh / 869 en ✓）。
+- 6 锚句双语 · gen-bible-snapshot 增 echo-142 · BibleAsk lede → 142 · /bible/ask meta → 一百四十二篇 · CACHE-IDENTITY × 142 · canon-answer-graph → 155 段 · bible-ask-behavior → 864 · pin 重钉 page→60f16fde / comp→c089ba6c · InsightCanonChat hint 同步 142。
+- §ASK-CITE-TALLY（顺带）：问典 route 现也 `increment('nexus_oracle_citation_total', { state })`——与 /tide-oracle 同一归一桶（tide+ask 汇总）；`nexus_oracle_citation_total` help 文案同步「潮语+问典两车道汇总」。
+- fe-gates **1370/1370** ✓ · verify:world-bible 869/869 ✓。
