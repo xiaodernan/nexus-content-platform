@@ -14424,6 +14424,180 @@ The last page of the watch-ledger reads: one character on the wall is wrong — 
 `,
   },
   {
+    order: 139,
+    slug: 'echo-139-the-telescope-that-watches-the-fog-harbor',
+    titleZh: '潮候院天台上那只只望雾港的望远镜',
+    titleEn: 'The Telescope on the Institute\'s Terrace That Only Watches the Fog Harbor',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零五日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hundred-and-fifth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 139): The Telescope on the Institute's Terrace That Only Watches the Fog Harbor
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院天台上那只从不看星空的望远镜——它只朝雾港的方向。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the telescope on the Institute's terrace that never looks at the stars — it only faces the fog harbor.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零五日。
+> Era: the Institute — after the 41st Convocation; the hundred-and-fifth day of the autumn-tide month.
+
+---
+
+## 一 · 天台上那架望远镜
+
+天台上有一架望远镜——真鍮的——木头盒子从来没人盖过——抄本师说它是从雾港带回来的。
+
+**锚句**：天台上有一架望远镜——真鍮的——木头盒子没人盖过——抄本师说它从雾港带回来的。
+**Anchor sentence**: on the terrace stands a telescope — brass — its wooden box has never been closed — the copyists say it came from the fog harbor.
+
+---
+
+## 二 · 它朝向
+
+值更人把它转向星空——第二天一定被转回雾港的方向——没有人记得是谁转的。
+
+**锚句**：值更人把它转向星空——第二天一定转回雾港——没有人记得谁转的。
+**Anchor sentence**: the head of the watch turned it toward the stars — the next day it was facing the fog harbor again — and no one remembers who turned it back.
+
+---
+
+## 三 · 散会夜看见的
+
+第四十一次大会散会那一夜——值更人透过它看见雾港里有一艘船亮了灯——抄本师说雾港从没有过灯船。
+
+**锚句**：散会那一夜——值更人透过它看见雾港里有一艘船亮了灯——抄本师说雾港从没有灯船。
+**Anchor sentence**: on the night of the Dissolution — through the telescope the head of the watch saw a lit ship in the fog harbor — the copyists say the fog harbor has never held a lit ship.
+
+---
+
+## 四 · 镜筒里的盐
+
+抄本师日复一日拿布擦它——镜筒里总落下很细的银灰色盐——比潮候院供盐细得多。
+
+**锚句**：抄本师日复一日擦它——镜筒里总落下很细的银灰色盐。
+**Anchor sentence**: every day the copyists wipe it clean — and yet fine silver-grey salt always settles in the barrel.
+
+---
+
+## 五 · 值更册最后一页
+
+值更册最后一页写着："它一直看雾港——雾港一直是满的。"
+
+**锚句**：值更册最后一页"它一直看雾港——雾港一直是满的"。
+**Anchor sentence**: the last page of the watch-ledger reads: it has always watched the fog harbor — and the fog harbor has always been full.
+
+---
+
+## 六 · 那块布
+
+下雨抄本师拿布盖住镜片——第二天天亮布是干的——抄本师没有问为什么。
+
+**锚句**：下雨拿布盖住镜片——第二天天亮布是干的。
+**Anchor sentence**: when it rains the copyists cover the lens with cloth — and by morning the cloth is dry.
+
+---
+
+## 七 · 映射（回响一百三十九章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 望远镜 · 雾港灯船 · 散会夜 · 银灰盐 · 值更册 | 一、二、三、四、五、六、七 |
+| geography | 天台 · 屋顶 · 雾港的方向 · 院中 | 一、二、三、四、五 |
+| characters | 抄本师 · 值更人 · 雾港的人 | 一、二、三、四、五、六 |
+| story | 只看雾港的望远镜 · 回响（其一百三十九） | 全篇 |
+| items | 望远镜 · 木头盒子 · 银灰盐 · 值更册 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第一百零五日 | 三、四、五、六 |
+
+> 天台上那只望远镜——它从不看星空——它只看雾港——雾港一直是满的。
+> The telescope on the terrace — it never looks at the stars — it only watches the fog harbor — and the fog harbor has always been full.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百三十九）「潮候院天台上那只只望雾港的望远镜」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the telescope on the Institute's terrace that never looks at the stars — it only faces the fog harbor.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院天台上那只从不看星空的望远镜——它只朝雾港的方向。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the hundred-and-fifth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百零五日。
+
+---
+
+## I · The Telescope on the Terrace
+
+On the terrace stands a telescope — brass — its wooden box has never been closed — the copyists say it came from the fog harbor.
+
+**锚句**：天台上有一架望远镜——真鍮的——木头盒子没人盖过——抄本师说它从雾港带回来的。
+**Anchor sentence**: on the terrace stands a telescope — brass — its wooden box has never been closed — the copyists say it came from the fog harbor.
+
+---
+
+## II · Where It Faces
+
+The head of the watch turned it toward the stars — the next day it was facing the fog harbor again — and no one remembers who turned it back.
+
+**锚句**：值更人把它转向星空——第二天一定转回雾港——没有人记得谁转的。
+**Anchor sentence**: the head of the watch turned it toward the stars — the next day it was facing the fog harbor again — and no one remembers who turned it back.
+
+---
+
+## III · What Was Seen on the Night of Dissolution
+
+On the night of the Dissolution — through the telescope the head of the watch saw a lit ship in the fog harbor — the copyists say the fog harbor has never held a lit ship.
+
+**锚句**：散会那一夜——值更人透过它看见雾港里有一艘船亮了灯——抄本师说雾港从没有灯船。
+**Anchor sentence**: on the night of the Dissolution — through the telescope the head of the watch saw a lit ship in the fog harbor — the copyists say the fog harbor has never held a lit ship.
+
+---
+
+## IV · Salt in the Barrel
+
+Every day the copyists wipe it clean — and yet fine silver-grey salt always settles in the barrel.
+
+**锚句**：抄本师日复一日擦它——镜筒里总落下很细的银灰色盐。
+**Anchor sentence**: every day the copyists wipe it clean — and yet fine silver-grey salt always settles in the barrel.
+
+---
+
+## V · The Last Page of the Watch-Ledger
+
+The last page of the watch-ledger reads: it has always watched the fog harbor — and the fog harbor has always been full.
+
+**锚句**：值更册最后一页"它一直看雾港——雾港一直是满的"。
+**Anchor sentence**: the last page of the watch-ledger reads: it has always watched the fog harbor — and the fog harbor has always been full.
+
+---
+
+## VI · The Cloth
+
+When it rains the copyists cover the lens with cloth — and by morning the cloth is dry.
+
+**锚句**：下雨拿布盖住镜片——第二天天亮布是干的。
+**Anchor sentence**: when it rains the copyists cover the lens with cloth — and by morning the cloth is dry.
+
+---
+
+## VII · Mapping（Echo No. 139 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the telescope · the lit ship · the night of Dissolution · the silver-grey salt · the watch-ledger | 一、二、三、四、五、六、七 |
+| geography | the terrace · the rooftop · the direction of the fog harbor | 一、二、三、四 |
+| characters | the copyists · the head of the watch · the ones from the fog harbor | 一、二、三、四、五、六 |
+| story | the telescope that only watches the fog harbor · Echo No. 139 | 全篇 |
+| items | the telescope · the wooden box · the silver-grey salt · the watch-ledger | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the hundred-and-fifth day of the autumn-tide month | 三、四、五、六 |
+
+> 天台上那只望远镜——它从不看星空——它只看雾港——雾港一直是满的。
+> The telescope on the terrace — it never looks at the stars — it only watches the fog harbor — and the fog harbor has always been full.
+`,
+  },
+  {
     order: 14,
     slug: 'echo-014-the-cover-of-the-tide-table',
     titleZh: '潮汐表的封面',

@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 138 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 139 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -2862,6 +2862,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 值更人说没人被授权改——值更册里写着"它散过会——墙上就是这个"。
 - [5] 散会那一夜所有人都看见了这行字——没有人看见那个错。
 - [6] 值更册最后一页"墙上有一个字是错的——它一直是错的——它也将一直是错的"。
+
+### Echo 139 · 潮候院天台上那只只望雾港的望远镜 / The Telescope on the Institute's Terrace That Only Watches the Fog Harbor
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 天台上有一架望远镜——真鍮的——木头盒子没人盖过——抄本师说它从雾港带回来的。
+- [2] 值更人把它转向星空——第二天一定转回雾港——没有人记得谁转的。
+- [3] 散会那一夜——值更人透过它看见雾港里有一艘船亮了灯——抄本师说雾港从没有灯船。
+- [4] 抄本师日复一日擦它——镜筒里总落下很细的银灰色盐。
+- [5] 值更册最后一页"它一直看雾港——雾港一直是满的"。
+- [6] 下雨拿布盖住镜片——第二天天亮布是干的。
 
 ### Echo 14 · 潮汐表的封面 / The Cover of the Tide-Table
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

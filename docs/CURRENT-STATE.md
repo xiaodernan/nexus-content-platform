@@ -7646,3 +7646,18 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 修复：`apps/web/tsconfig.json` 移除 `@nexus/agent-runtime` path alias（web 走 package exports 的 dist/index.d.ts，已确认 dist 180 文件 + 45 d.ts + node_modules junction 正确）；`tsconfig.tools.json` 的源码直译 alias 保留（cont.360 的 CI 目标不动）。
 - 验证：web `typecheck` ✓ · `tsconfig.tools.json` typecheck ✓ · web dev 重启后 HTTP 200 · `/api/bible/q` 200 · 浏览器活答 `gpt-6.1-terra · 缓存复用 7213 tokens`（见 §VERIFY-TIDE-ORACLE-E2E 示例对话与 cont.374 同 lane）。
 - 纪律入 ADR-0287（`docs/adr/0287-web-tsconfig-paths-vs-agent-runtime-dev.md`）：Next dev 不认 tsconfig paths 指到 TS 源码。
+
+## cont. 380 (2026-11-19) — v999 · §BIBLE-139 · Echo #139《只望雾港的望远镜》(作者手写 · verify 851/851)
+
+- 新篇：「望远镜 · 雾港灯船 · 散会夜 · 镜筒里的银灰盐 · 值更册最后一页」—— digest 现 **234,795 chars**（13 章正典 · **139 回响** · 4 annex · 锚句 851 zh / 851 en ✓）。
+- 6 锚句 bilingual · gen-bible-snapshot 增 echo-139 · BibleAsk lede → 139 · /bible/ask meta → 一百三十九篇 · CACHE-IDENTITY × 139 · canon-answer-graph → 152 段 · bible-ask-behavior → 846 · pin 重钉 page→df7f0825 / comp→828551f6。
+- fe-gates **1370/1370** ✓ · verify:world-bible 851/851 ✓。
+
+## cont. 381 (2026-11-19) — v1000 · §INSIGHT-BOTS-2 · /discover 卡片显示「真人打开」chip（suspectedBot=false）+ 139 回响对齐
+
+- 服务端：`discover()` select 增加 `humanOpens`（publication_visits 近 30 天 suspectedBot=false sum）；`DiscoverCard.humanOpens?`（老缓存行不渲染 chip）。
+- 前端：`/discover` 卡片 `dv-cardCounts` 尾部追加 `dv-humanOpens` chip（可控：无 humanOpens ⇒ 不渲染），data hook `data-discover-human-opens`。
+- globals.css `.dv-humanOpens`: fg-3 + font-size-11 mono。`
+- 门禁：discover-page-visual-style pin 重钉（literal 27→28 · hook 加入 · SHA→7e7f7c130d39…）。
+- 测试：discover* 全绿（111）；社会集成测试红→重跑绿（concurrent 并发断言偶发 flakey，本轮重跑 10/10）。集成测试期间 `nexus-postgres-alt`(5443) Exited(255)，启动恢复；`nexus-redis` 同步。
+- fe-gates **1370/1370** ✓。

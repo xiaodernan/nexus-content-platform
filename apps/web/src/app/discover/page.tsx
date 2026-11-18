@@ -45,6 +45,7 @@ const COPY = {
     coverMissing: '暂无封面',
     methodPrefix: '这个榜的排法：',
     views: '次浏览',
+    humanOpens: '真人',
     likes: '赞',
     comments: '评论',
     remixes: '改编',
@@ -64,6 +65,7 @@ const COPY = {
     coverMissing: 'No cover',
     methodPrefix: 'How this is ranked:',
     views: 'views',
+    humanOpens: 'human opens',
     likes: 'likes',
     comments: 'comments',
     remixes: 'remixes',
@@ -159,6 +161,9 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
                 </span>
                 <span className="dv-cardCounts" data-discover-counts>
                   {card.views} {copy.views} · {card.likes} {copy.likes} · {card.comments} {copy.comments} · {card.remixes} {copy.remixes}
+                  {card.humanOpens !== undefined ? (
+                    <> {' · '}<span className="dv-humanOpens" data-discover-human-opens={card.humanOpens}>{card.humanOpens} {copy.humanOpens}</span></>
+                  ) : null}
                 </span>
                 {/* 分数只在"最近最热"这一栏有：它是算法输出，不是事实，所以连同排法一起显示 */}
                 {card.score !== undefined ? (
