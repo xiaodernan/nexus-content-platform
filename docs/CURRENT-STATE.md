@@ -7472,3 +7472,15 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 新篇：「木牌 · 扬起来的手影 · 轮迹 · 自行选择 · 最后一页」— digest 现 **230,779 chars**（13 章正典 · **129 回响** · 4 annex · 792 zh / 792 en 锚句）；`verify:world-bible 792/792` ✓。
 - gen-bible-snapshot 增补 echo-129 slug；BibleAsk lede → 129 · /bible/ask meta → 一百二十九篇 · CACHE-IDENTITY × 129 · canon-answer-graph → 13 章 + 129 回响 = 142 段 · bible-ask-behavior.test → 787 · pin 重钉 page→4477783a / comp→cb2faec2。
 - fe-gates **1370/1370** ✓。
+
+## cont. 363 (2026-11-18) — v983 · §PROOF-BIG-CONTEXT-V982 · 当前 digest 直打 12 发：100% 稳态（零波动 · 12/12 200）
+
+**背景**：Echo #128/#129 入库后 digest 更新到 230,779 chars（148,677 tokensIn/问；13 章 + 129 回响 · 792 锚句），之前直接测是 v973 的 229K chars；本片重新跑在最新 digest 上。
+
+**直打 12 发 probe（`docs/evidence/big-context-v982-2026-11-19.md`）**：
+- call 1 (cold A)：cache=7,079（冷启动 · 10.9s）
+- call 2 (cold B)：cache=7,079（冷启动 · 7.1s）
+- call 3 → call 12（**10 发全额 100%** · cached=148,677 · 10–20 ms 首包）
+- meanCached=125,074；`cacheReported=true`；`ai_service/log:POST /v1/ai/chat 200 × 12/12` · 0 5xx。
+
+**意义**：用户长期关注的「几个并行会话同时打乱缓存」这个问题在最新 digest 上——完全没再出现；与 §INSIGHT-LANE-RETEST v973 双印：冷是冷一次，后面 10 发全额复用，零波动。
