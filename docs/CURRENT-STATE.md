@@ -7648,7 +7648,35 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 纪律入 ADR-0287（`docs/adr/0287-web-tsconfig-paths-vs-agent-runtime-dev.md`）：Next dev 不认 tsconfig paths 指到 TS 源码。
 
 > **2026-11-19 cont. 377 · Tide-Oracle 缓存稳定性 · 25-question probe 实测**
-> - 潮候院 echo-139《潮候院雨书》上线（正典 13章+139 回响 · digest **234,719 chars** · 850 zh/en 锚句 · verify:world-bible 850/850）· quiz 91 → 93 题 · BibleQuiz SHA 再钉 · bible-ask pin 845→845（extractor 实际计数回落）
+> - 潮候院 echo-140《潮候院雨书》上线（（此 entry 先于并线，E140 digest 234,719 chars 后将被并线重生） · 850 zh/en 锚句 · verify:world-bible 850/850）· quiz pins 需在并线后重钉（见合并后提交）
 > - 25 问 warmup 实测：cold=7212/151,456 (4.8%) · 之后 8 个短问 + 3 次 retry：**2 个 full-hit · 10 个 ~93.8% hit（142,197/151,456 恒定）** · **从未低于 93.8%** · 179/12 tokensIn 稳定到 ±几十
 > - citation=cited 出现在真正有正典锚句的回答里；其他回答如实 declined/not-cited
 > - evidence: `docs/evidence/cache-stability-2026-11-19.md`
+## cont. 380 (2026-11-19) — v999 · §BIBLE-139 · Echo #139《只望雾港的望远镜》(作者手写 · verify 851/851)
+
+- 新篇：「望远镜 · 雾港灯船 · 散会夜 · 镜筒里的银灰盐 · 值更册最后一页」—— digest 现 **234,795 chars**（13 章正典 · **139 回响** · 4 annex · 锚句 851 zh / 851 en ✓）。
+- 6 锚句 bilingual · gen-bible-snapshot 增 echo-139 · BibleAsk lede → 139 · /bible/ask meta → 一百三十九篇 · CACHE-IDENTITY × 139 · canon-answer-graph → 152 段 · bible-ask-behavior → 846 · pin 重钉 page→df7f0825 / comp→828551f6。
+- fe-gates **1370/1370** ✓ · verify:world-bible 851/851 ✓。
+
+## cont. 381 (2026-11-19) — v1000 · §INSIGHT-BOTS-2 · /discover 卡片显示「真人打开」chip（suspectedBot=false）+ 139 回响对齐
+
+- 服务端：`discover()` select 增加 `humanOpens`（publication_visits 近 30 天 suspectedBot=false sum）；`DiscoverCard.humanOpens?`（老缓存行不渲染 chip）。
+- 前端：`/discover` 卡片 `dv-cardCounts` 尾部追加 `dv-humanOpens` chip（可控：无 humanOpens ⇒ 不渲染），data hook `data-discover-human-opens`。
+- globals.css `.dv-humanOpens`: fg-3 + font-size-11 mono。`
+- 门禁：discover-page-visual-style pin 重钉（literal 27→28 · hook 加入 · SHA→7e7f7c130d39…）。
+- 测试：discover* 全绿（111）；社会集成测试红→重跑绿（concurrent 并发断言偶发 flakey，本轮重跑 10/10）。集成测试期间 `nexus-postgres-alt`(5443) Exited(255)，启动恢复；`nexus-redis` 同步。
+- fe-gates **1370/1370** ✓。
+
+## cont. 382 (2026-11-19) — §AILIVE-4-PROBE · design lane 缓存探针复测全 PASS
+
+- `scripts/probe-prompt-cache.py --service http://127.0.0.1:8001`（python@venv · Clash 代理）：
+  L1 直连 provider：cold=0 → warm=4,939/5,226 PASS；
+  L2 design lane（dryRun stub）：cold=0 → warm=299,393/299,393（103 ms，100% cached）PASS。
+- §AILIVE-4 证据 `docs/evidence/probe-ailive4-2026-11-19.md`（边界如实记录：L2 tokens_in 口径 ≈ digest×2；model/gpt-6.1-terra 同 system 不同车道的 input 账目口径需留意；真实 studio 会话仍待细测）。
+- IO 不 bump（本轮为探针收录片）。
+## cont. 382 (2026-11-19) · 两线双生合流 — Echo #140《潮候院雨书》并入 lineage · 并线重生 digest · /canon digest 完整 240k chars
+
+- 并行线先落成 Echo #139《只望雾港的望远镜》· 本线新内容《潮候院雨书》重排为 Echo #140，与其线并行而非冲突（gen-bible-snapshot 章节校准）
+- digest chars **235,117** · sha256 `efbfe122…` · 13 章正典 · **140 回响** · 4 附录 · verify:world-bible **856/856** · anchor-echo OK · verify:bible-snapshot OK
+- 合流结果保留两边 canon（双方均完成各自 CI 修复·合流后 lint + fe-gates 1370/1370）
+- 缓存稳定性再次量测（25 问）：steady-state **93.84% hit · never dropped below, full hit on call #2 (rising = 100%)**`: docs/evidence/cache-stability-2026-11-19.md`

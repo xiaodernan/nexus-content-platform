@@ -383,6 +383,8 @@ export interface DiscoverCard {
   comments: number;
   remixes: number;
   kind: string;
+  /** §INSIGHT-BOTS：近 30 天真人打开（suspectedBot=false）；老缓存行里不存在 ⇒ 前端据此不渲染 chip */
+  humanOpens?: number;
   /** 只有 trending 那一栏会填：折了时间衰减的互动分，页面上要能把数说出来 */
   score?: number;
   /** §927 封面图：快照文档里第一个被页面引用的图片资产 ID；没有就是 null */
@@ -463,6 +465,8 @@ export async function discover(input: { sort: DiscoverSort; viewerId?: string | 
       likes: sql<number>`(select count(*)::int from likes where likes.project_id = ${publishedProjects.projectId})`,
       comments: sql<number>`(select count(*)::int from comments where comments.project_id = ${publishedProjects.projectId})`,
       remixes: sql<number>`(select count(*)::int from remixes where remixes.source_project_id = ${publishedProjects.projectId})`,
+      /** §INSIGHT-BOTS：近 30 天真人打开（suspectedBot=false），供 /discover 卡片 chip 与 popular 口径一致 */
+      humanOpens: sql<number>`coalesce((select sum(opens)::bigint from publication_visits where publication_visits.publication_id = ${publishedProjects.id} and publication_visits.suspected_bot = false and publication_visits.day >= (current_date - interval '30 days')::date), 0)`,
       /** §927 封面图：快照文档里的第一个图片资产（被页面引用的） */
       snapshotDocument: snapshots.document,
     })
@@ -528,6 +532,7 @@ export async function discover(input: { sort: DiscoverSort; viewerId?: string | 
       kind: r.kind,
       coverAssetId,
       ownerHandle: r.handle,
+      humanOpens: Number(r.humanOpens ?? 0),
     };
   });
 

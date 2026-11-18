@@ -8,7 +8,8 @@ import { describe, expect, it } from 'vitest';
  * §61：Trending 按天互动序列真的能排，但算法参数与候选集上限必须连同 `result.method` 显示——不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `1279e6e6b86f947235042faffee4bb0f3e8a15b117c59e5e74a47c2e5bcb04e6` 与 HEAD 字节一致。
+ * `3a9eded1cb680daa5996b149b9940db9cd490465adc4d03b55282938c741a828`（旧值 · 观察坞⑧ 真人打开数 chip 按钮后 z8 移除；
+ * `7e7f7c130d39a20407c0a32cae19b2400a64f4728c35f13092a3f1f0489c0c3b` 为 §INSIGHT-BOTS 新值）。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/app/discover/page.tsx');
@@ -56,14 +57,14 @@ describe('§FE-77 /discover 发现页原子清零', () => {
   });
 
   it('数据钩子守恒：data-discover-* 全套', () => {
-    for (const hook of ['data-discover-root', 'data-discover-title', 'data-discover-tabs', 'data-discover-tab=', 'data-search-link', 'data-discover-empty', 'data-discover-grid', 'data-discover-card=', 'data-discover-name', 'data-discover-counts', 'data-discover-score=', 'data-discover-hidden=', 'data-discover-gap=']) {
+    for (const hook of ['data-discover-root', 'data-discover-title', 'data-discover-tabs', 'data-discover-tab=', 'data-search-link', 'data-discover-empty', 'data-discover-grid', 'data-discover-card=', 'data-discover-name', 'data-discover-counts', 'data-discover-score=', 'data-discover-human-opens=', 'data-discover-hidden=', 'data-discover-gap=']) {
       expect(code).toContain(hook);
     }
   });
 
   it('字面 className 只认 .dv-*', () => {
     const literals = [...code.matchAll(/className="([^"]*)"/g)].map((m) => m[1]!);
-    expect(literals.length).toBe(27);
+    expect(literals.length).toBe(28);
     for (const cls of literals) {
       for (const tok of cls.split(/\s+/).filter(Boolean)) {
         expect(tok).toMatch(/^dv-[A-Za-z0-9-]+$/);
@@ -103,7 +104,7 @@ describe('§FE-77 /discover 发现页原子清零', () => {
 
   it('剥 className 后全文 SHA256 守恒（零行为：92d8e28ecb311ddc4a7ecff7a7014f3215f2832273ac776ead3c0b43ea7530ae）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '3a9eded1cb680daa5996b149b9940db9cd490465adc4d03b55282938c741a828',
+      '7e7f7c130d39a20407c0a32cae19b2400a64f4728c35f13092a3f1f0489c0c3b',
     );
   });
 });
