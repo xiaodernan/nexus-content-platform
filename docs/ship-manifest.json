@@ -1,18 +1,13 @@
 {
-  "generatedAt": "2026-11-18T13:36:18.446Z",
+  "generatedAt": "2026-11-18T13:51:43.276Z",
   "window": {
-    "commitsScanned": 3462,
-    "kept": 2736
+    "commitsScanned": 3465,
+    "kept": 2737
   },
   "days": [
     {
       "date": "2026-11-18",
       "entries": [
-        {
-          "hash": "400103bd88",
-          "date": "2026-11-18",
-          "subject": "docs(§showcase): v950 后指针快照 (head=a4a9a0de)"
-        },
         {
           "hash": "200c647328",
           "date": "2026-11-18",
@@ -457,6 +452,11 @@
           "hash": "dfc3fdd7b7",
           "date": "2026-11-18",
           "subject": "sync(ship-manifest): 指向 f8f059cd（两线合流后 v984 / search-StateGraph）"
+        },
+        {
+          "hash": "c850d56baa",
+          "date": "2026-11-18",
+          "subject": "feat(canon): 回响（其一百三十一）《门开了一整夜》上线 · 其一百三十一把收声"
         }
       ]
     }

@@ -1,15 +1,10 @@
-/** 由 scripts/gen-ship-manifest.mts 机械生成——勿手改。生成于 2026-11-18T13:36:18.446Z (d44cbd18) */
+/** 由 scripts/gen-ship-manifest.mts 机械生成——勿手改。生成于 2026-11-18T13:51:43.276Z (1280ab4e) */
 export interface ShipEntry { hash: string; date: string; subject: string }
 export interface ShipDay { date: string; entries: ShipEntry[] }
 export const SHIP_DAYS: ShipDay[] = [
   {
     "date": "2026-11-18",
     "entries": [
-      {
-        "hash": "400103bd88",
-        "date": "2026-11-18",
-        "subject": "docs(§showcase): v950 后指针快照 (head=a4a9a0de)"
-      },
       {
         "hash": "200c647328",
         "date": "2026-11-18",
@@ -454,6 +449,11 @@ export const SHIP_DAYS: ShipDay[] = [
         "hash": "dfc3fdd7b7",
         "date": "2026-11-18",
         "subject": "sync(ship-manifest): 指向 f8f059cd（两线合流后 v984 / search-StateGraph）"
+      },
+      {
+        "hash": "c850d56baa",
+        "date": "2026-11-18",
+        "subject": "feat(canon): 回响（其一百三十一）《门开了一整夜》上线 · 其一百三十一把收声"
       }
     ]
   }
