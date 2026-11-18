@@ -95,7 +95,7 @@ describe('§BIBLE-4 /bible/ask 问典', () => {
       '8ea34b7926d536b0e8ae8eebbf60c131d18eff5d0198f127469996ecae18bd53',
     );
     expect(createHash('sha256').update(redactClasses(component)).digest('hex')).toBe(
-      'b6a40c353bb3b628894868d8049f9bb9d82cfef07343069760fbc9e331cd60c8',
+      '79dc3cd96feacc44ba122e8a4441826c585fd5f6c0e390865889d55d0d18aabd',
     );
   });
 });

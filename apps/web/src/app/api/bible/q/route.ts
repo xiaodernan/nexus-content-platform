@@ -80,6 +80,9 @@ export async function POST(req: Request): Promise<NextResponse> {
       citation: citation.clause,
       anchorsCited,
       citationAnchors: citation.clause === 'cited' ? citation.anchors.slice(0, 3) : [],
+      // §RAG-LINEAGE：真实的 top-3 检索依据（canonicalize 的 retrieve 节点产物，≤3 段 · ≤1.6KB 总量）
+      // ——让读者看见模型被哪些锚句定住了，不用再相信「模型一定读了典籍」这句空话
+      retrieval: result.retrieved,
     });
   } catch (_error) {
     increment('nexus_bible_ask_total', { outcome: 'error' });

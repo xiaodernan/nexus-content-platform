@@ -6187,6 +6187,15 @@
 .bbq-citeExpand summary { cursor: pointer; user-select: none; }
 .bbq-citeExpand ul { margin: 0.35rem 0 0.25rem 1.25rem; padding: 0; }
 .bbq-citeExpand li { margin: 0.15rem 0; }
+.bbq-retrieval { margin: 0.35rem 0 0; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); border-left: 2px solid color-mix(in srgb, var(--nexus-color-accent-mix) 60%, transparent); padding-left: var(--nexus-space-2); }
+.bbq-retrieval summary { cursor: pointer; user-select: none; font-family: var(--nexus-font-mono); }
+.bbq-retrieval summary:focus-visible { outline: 2px solid var(--nexus-color-accent-2); outline-offset: 1px; }
+.bbq-retrievalHint { margin: 0.25rem 0; color: var(--nexus-color-fg-3); line-height: 1.6; }
+.bbq-retrieval ol { margin: 0.25rem 0 0 1.25rem; padding: 0; }
+.bbq-retrieval li { margin: 0.2rem 0; white-space: pre-wrap; line-height: 1.6; color: var(--nexus-color-fg-2); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); }
+@media (forced-colors: active) {
+  .bbq-retrieval, .bbq-retrieval summary, .bbq-retrievalHint, .bbq-retrieval li { color: CanvasText; -webkit-text-fill-color: CanvasText; border-color: CanvasText; }
+}
 .bbq-answer { font-size: var(--nexus-font-size-14); line-height: 1.9; color: var(--nexus-color-fg-1); white-space: pre-wrap; letter-spacing: 0.01em; margin: 0; }
 .bbq-honest { border-left: 2px solid color-mix(in srgb, var(--nexus-color-accent-mix) 70%, transparent); border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-2) var(--nexus-space-4); background: var(--nexus-color-bg-1); }
 .bbq-honestTitle { font-size: var(--nexus-font-size-13); font-weight: 700; color: var(--nexus-color-fg-1); margin: 0; }
