@@ -7790,5 +7790,12 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - E144 未尽事册 → E145（并行线占线）· E145 闭馆台水钟 → E146 · E146 盐盘 → E147（分线）· E147 木门 → E148 · E148 鞋 → E149
 - digest regenerated 合并后：**238,167 chars** · 13 章 · 148 回响 · 4 annex · verify:world-bible **903/903** · snapshot ✅ · anchors ✅
 - bible-ask-behavior pin **898** · BibleQuiz pin `f8915d7d…` · quiz 93 题 · answers pin 186/186 · census 2989
-- fe-gates 150/150 · 1370/1370 · 本线不再与并行线抢 echo 编号——后续改走 back log（/guide 扩展 · /admin 预测面板 · RAG 深化），canon 让位
+- fe-gates **1370/1370** · 本线不再与并行线抢 echo 编号——后续改走 back log（/guide 扩展 · /admin 预测面板 · RAG 深化），canon 让位
 
+## cont. 395 (2026-11-19) · §PROVIDER-NEW-KEY ✓ §REDIS-HARDEN ✓ · 新 key 端到端验证 + Redis 黑洞硬化
+
+- 用户 2026-11-19 口述新 provider key（本线**从不落盘/不入库/不打印**）：已切到 `apps/ai-service/.env`（gitignored）；Base URL `https://api.aizzz.xyz/v1` 不变 · gpt-6.1-terra 不变 · Clash 7897 不变
+- 实测：healthz `llmLive.state=ok` · `/v1/ai/chat` 200 `READY.`（capability=real · tokensIn=4407）· `/v1/ai/chat-graph` 200 `GRAPH-OK` · `cachedTokens=0`（Redis 死，见 evidence）
+- **Redis 黑洞**：`localhost:56379` TCP 可连、永不回包；Docker engine API 500；未动 Docker（其它项目的容器在里头）
+- 硬化：`jobs.py` RedisJobStore connect/read 3s 有界 · `registry.py` cache 客户端 connect/read 2s 有界；test_jobs 实连 PING 门控 skip（11 skipped，141 passed，0 failed）
+- evidence：`docs/evidence/provider-new-key-2026-11-19.md`

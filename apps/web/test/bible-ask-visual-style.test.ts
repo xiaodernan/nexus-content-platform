@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+﻿import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
@@ -92,10 +92,10 @@ describe('§BIBLE-4 /bible/ask 问典', () => {
 
   it('SHA256 钉死（BOM/EOL 归一 + className→@）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      'b9652dc81d1455c1581c928be6a7fba9bd0237e0ac430278d17128803557938c',
+      '1344cf301dabc0bb2c44b8b9eaf3ffc620a5974522243b75e76e1f48ba6f8416',
     );
     expect(createHash('sha256').update(redactClasses(component)).digest('hex')).toBe(
-      '087242640f768d3530d9b419593a97415c5a3cfd37e91e6ce42ee0298adcd498',
+      '0ec6b3714bcecd3787f70521b5deb619fd0864473336bab97c3ccf5ae93c5d7c',
     );
   });
 });

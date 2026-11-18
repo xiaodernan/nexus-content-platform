@@ -128,7 +128,12 @@ class Registry:
             from ..completion_cache import CachedLlm
             from ..redis_completion_cache import RedisLlmCompletionCache
 
-            client = _redis.from_url(url, decode_responses=True)
+            client = _redis.from_url(
+                url,
+                decode_responses=True,
+                socket_connect_timeout=2,
+                socket_timeout=2,
+            )
             cache = RedisLlmCompletionCache(
                 client,
                 namespace=settings.llm_cache_namespace,

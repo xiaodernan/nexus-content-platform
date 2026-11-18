@@ -243,7 +243,15 @@ class RedisJobStore:
     async def connect(cls, url: str, *, prefix: str = "nexus:ai", ttl_s: int = 3600, max_attempts: int = 1, max_dead_letters: int = DEFAULT_MAX_DEAD_LETTERS) -> "RedisJobStore":
         import redis.asyncio as aioredis  # 惰性导入：没配 Redis 时不需要这个依赖
 
-        client = aioredis.from_url(url, decode_responses=True)
+        # ADR 0274 / ADR 0119：黑洞 Redis（TCP 可连、永不回包，例如 WSL/Docker 引擎挂掉后遗留的 relay）
+        # 必须有界——没有超时就会拖死整条 provider 路径。3s 连不上就抛（本地启动按 ADR-0274
+        # 走 DEGRADED-BOOT 或启动失败），3s 读不到就抛（缓存 fail-open）。
+        client = aioredis.from_url(
+            url,
+            decode_responses=True,
+            socket_connect_timeout=3,
+            socket_timeout=3,
+        )
         await client.ping()
         return cls(client, prefix=prefix, ttl_s=ttl_s, max_attempts=max_attempts, max_dead_letters=max_dead_letters)
 

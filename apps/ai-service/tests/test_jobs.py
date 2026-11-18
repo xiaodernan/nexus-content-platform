@@ -373,6 +373,24 @@ class TestDeadLetterAndRetry:
             _judge_default_no_dead_letter({"dead_count": 1, "final_status": "failed"})
 
 
+
+
+def _redis_alive(url: str, timeout_s: float = 2.0) -> bool:
+    """门控实连：不是"配了 url 就当它活着"，而是真 TCP + PING 通了才算（2s 有界）。"""
+    import socket
+
+    try:
+        rest = url.split('://', 1)[-1].split('/')[0]
+        host, _, port = rest.partition(':')
+        port_i = int(port or '6379')
+        with socket.create_connection((host, port_i), timeout=timeout_s) as sock:
+            sock.settimeout(timeout_s)
+            sock.sendall(b'*1\r\n$4\r\nPING\r\n')
+            data = sock.recv(64)
+            return data.upper().startswith(b'+PONG')
+    except Exception:
+        return False
+
 class TestRedisBackend:
     """Redis 后端要连真服务测：假客户端只会测到我给自己写的那套假行为。
 
@@ -381,7 +399,7 @@ class TestRedisBackend:
     测试用的是 `nexus:ai:test:<随机>` 前缀 + 60 秒 TTL，跑完靠过期清掉，不碰别人的 key。
     """
 
-    @pytest.mark.skipif(not os.environ.get("NEXUS_REDIS_URL"), reason="未设置 NEXUS_REDIS_URL：Redis 后端这一轮没跑")
+    @pytest.mark.skipif((not os.environ.get("NEXUS_REDIS_URL")) or (not _redis_alive(os.environ["NEXUS_REDIS_URL"])), reason="未设置 NEXUS_REDIS_URL：Redis 后端这一轮没跑")
     def test_jobs_survive_a_second_reader(self) -> None:
         import asyncio
 
@@ -424,7 +442,7 @@ class TestRedisBackend:
 
         asyncio.run(scenario())
 
-    @pytest.mark.skipif(not os.environ.get("NEXUS_REDIS_URL"), reason="未设置 NEXUS_REDIS_URL：Redis 后端这一轮没跑")
+    @pytest.mark.skipif((not os.environ.get("NEXUS_REDIS_URL")) or (not _redis_alive(os.environ["NEXUS_REDIS_URL"])), reason="未设置 NEXUS_REDIS_URL：Redis 后端这一轮没跑")
     def test_redis_dead_letter_and_requeue_real_server(self) -> None:
         """真 Redis 字节往返：重新入队的 RPUSH + 死信的 LPUSH/LRANGE 在真服务器上真的发生。
 
