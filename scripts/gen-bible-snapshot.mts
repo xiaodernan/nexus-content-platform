@@ -195,6 +195,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E142-祠殿最底层那间从没有人记得开过的空房间': 'echo-142-the-room-that-no-one-remembers-opening',
   'E143-潮候院雨书': 'echo-143-the-rain-book-of-the-chapel-of-the-tide',
   'E144-潮候院未尽事册里那些没记完的事件': 'echo-144-the-book-of-unfinished-business',
+  'E145-潮候院闭馆台上那只只朝门口看的水钟': 'echo-145-the-water-clock-that-faces-the-door',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

@@ -7735,3 +7735,9 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - lede/span 143→144 处（BibleAsk/guideCopy/CACHE-IDENTITY/canon-answer-graph/InsightCanonChat hint 同步 · page pins 重钉 page→9508b19a / comp→3afe8308；bible-quiz 测试自行过）
 - fe-gates **1370/1370** ✓ · verify:world-bible 880/880 ✓ · verify:bible-snapshot 一致 ✅ · digest 与文档一致 ✅
 - 注意《潮候院雨书》来自并行线原创，本回合没有作者声明冲突——仅吸收摘要内容将号码归位为 143；另 evidence/cache-stability-2026-11-19.md 原样并入，未重写。
+
+## cont. 390 (2026-11-19) — v1031 · §BIBLE-145 · Echo #145《闭馆台水钟》(作者手写 · verify 886/886)
+
+- 新篇：「闭馆台朝门的水钟 · 它只剩两个字"还剩" · 散会夜停在第十三圈 · 它只要有人经过门，它就只看见门」—— digest 现 **237,070 chars**（13 章正典 · **145 回响** · 4 annex · 锚句 886 zh / 886 en ✓ · verify pin 同同步 881 anchors）。
+- 6 锚句双语 · gen-bible-snapshot 增 echo-145 · BibleAsk lede → 145 · /bible/ask meta → 一百四十五篇 · CACHE-IDENTITY × 145 · canon-answer-graph → 158 段 · bible-ask-behavior → 881 · pin 重钉 page→b6f41377 / comp→fd329a22 · InsightCanonChat hint 同步至 145 · verify:world-bible 886/886 ✓。
+- fe-gates **1370/1370** ✓ · 入后 digest 继续 15 万 tokensIn 区间（验证 813K-150K 稳定 band：已 12 轮 digest 扩容后缓存稳定）。
