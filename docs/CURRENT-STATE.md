@@ -7520,3 +7520,9 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - quiz ref 同步（其一百三十 · 一/四，89 题，SHA 再钉 6cb2a2ba…· System prefix 无变）· bible-ask-behavior 钉 787→**792**
 - digest 重生成：**231,020 chars · sha256=f686198c…** · verify:world-bible **797/797** · verify:anchor-echo OK（626 对）· gen:bible-snapshot（130 回响 · 4 附录 · 13 章）
 - 第一次合流的并轨说明并入本条（E35→E126→E130 终片）；证据与 ADR-0283 两线合并案保持一致
+
+> **2026-11-19 cont. 357 · 撞库 robustness 演练 + 配置漂移三件套修复（env var + Hyper-V 保留端口 + 库迁移）**
+> - 洞察台登录 `/api/insight/login` 撞库实测：29×401（如实回 wrong-password，不泄露接近程度）→ 之后 429 rate-limited（30/5min/IP 滑动窗口生效 · `retryAfterMs≈297,905`）· valid 123 同样被锁（防爆破语义一致，如实记录）· 未认证 admin 写 API → **403 forbidden**（不是 500）· observe 页 200
+> - 连带发现三处配置漂移（已对齐）：① `apps/web/.env.local` 的 `NEXUS_AI_SERVICE_URL` 指向一个没跑 ai-service 的 3212（页面安静退回 DEMO）→ **:3200**；② `NEXUS_DATABASE_URL` 缺失 → 55433（Windows Hyper-V 保留端口 55379–55478，`netsh` 可见；`nexus-postgres` 退出、数据已迁 `nexus-postgres-alt` 同一 `nexus-pgdata` volume · **5443**）→ 显式配置 `postgres://nexus:nexus_dev_only@localhost:5443/nexus`；③ collation 2.36→2.41 错配 → `ALTER DATABASE nexus REFRESH COLLATION VERSION` ✓
+> - 修复验证：moderation assist unauth 500→**403** · /admin/observe 500→**200** · evidence: `docs/evidence/login-bruteforce-2026-11-19.md`
+> - 备忘：`nexus-postgres`（55433）与保留端口段冲突不要再拉起；本机现行 NEXUS dev DB = `nexus-postgres-alt`（**5443**）
