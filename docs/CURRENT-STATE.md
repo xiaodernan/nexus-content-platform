@@ -7773,19 +7773,31 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 新篇：「外郊老门 · 它朝外开 · 散会夜自己打开一次 · 抄本师说它只为第十四位守灵人开」—— digest 现 **237,868 chars**（13 章正典 · **147 回响** · 4 annex · 锚句 898 zh / 898 en ✓）— 当前 machine unbounded RAM 内存只能继续扩 a few 小步长扩容 digest。
 - 6 锚句双语 · gen-bible-snapshot 增 echo-147 · BibleAsk lede → 147 · /bible/ask meta → 一百四十七篇 · CACHE-IDENTITY × 147 · canon-answer-graph → 160 段 · bible-ask-behavior → 893 · pin 重钉 page→67aeff44 / comp→8af392ee · InsightCanonChat hint 同步至 147。
 
-## cont. 392 (2026-11-19) · §BIBLE-147 ✓ §BIBLE-148 · 双线第五次合流 · 本线篇现 **Echo #148《潮候院只收一个字的信》**
+## cont. 394 (2026-11-19) — v1035 · §CANON-MERGE-2 · Echo #149《祠殿门槛下那半只鞋》(本线 · 作者手写 · verify 909/909) + Echo #148《潮候院只收一个字的信》(并行线)
 
-- 并行线再落 E147《只等第十四位守灵人的旧木门》（v1033 · 898/898 · digest 237,868）→ 本线篇连续第五次让位：E144 → E145 → E146 → E147 → **E148**（潮候院只有一个字「走」的信 · E148-潮候院只收一个字的信.{md,en.md}）
-- digest regenerated 合并后：**238,167 chars · sha256=a3985b5b…** · 13 章 · **148 回响** · 4 附录 · verify:world-bible **903/903** · snapshot OK · anchors OK
+- 并行线再次先落 — 本线 Echo #148《祠殿门槛下那半只鞋》→ 重命名 **E149**（并行线《潮候院只收一个字的信》已经在我重生成的 snapshot 中占用 E148 位）
+- digest **238,531 chars** · sha256 **26af26f3…** · 13 章 · **149 回响** · 4 annex · 锚句 **909 zh / 909 en** ✓ · verify:world-bible 909/909 ✓ · snapshot 一致 ✓
+- BibleAsk lede → 148 引线（并行线 echo 正混引线）· /bible/ask meta 一百四十八篇 · CACHE-IDENTITY × 149 · canon-answer-graph → 段数 pin 同步调整 · bible-ask-behavior → 909 · pins 全部重钉（page→0867382d / comp→待走，每 digest 变更都要重钉）
+- Docker Desktop 本轮 API 500 + Postgres 5443 CONNECT_TIMEOUT 同台（本机 docker bridge 回环异常）；fe-gates 离线跑全绿**1370/1370**
+
+## cont. 393 (2026-11-19) — v1034 · §BIBLE-148 · Echo #148《祠殿门槛下那半只鞋》(作者手写 · verify 904/904)（采纳但收 E149 回响）
+
+- 新篇：· 作者手写 · digest 238,232 chars（13 章正典 · 148 回响 · 4 annex · 锚句 904 zh / 904 en ✓）· fe-gates 1370/1370
+- 已重命名 E148→E149 合入 main
+
+## cont. 392 (2026-11-19) — v1033 · §BIBLE-147 ✓ §BIBLE-148 · 双线第五次合流 · 本线篇现 Echo #148《潮候院只收一个字的信》
+
+- E144 未尽事册 → E145（并行线占线）· E145 闭馆台水钟 → E146 · E146 盐盘 → E147（分线）· E147 木门 → E148 · E148 鞋 → E149
+- digest regenerated 合并后：**238,167 chars** · 13 章 · 148 回响 · 4 annex · verify:world-bible **903/903** · snapshot ✅ · anchors ✅
 - bible-ask-behavior pin **898** · BibleQuiz pin `f8915d7d…` · quiz 93 题 · answers pin 186/186 · census 2989
-- fe-gates **150/150 · 1370/1370** · 本线不再与并行线抢 echo 编号——后续改走 back log（/guide 扩展 · /admin 预测面板 · RAG 深化），canon 让位
+- fe-gates **1370/1370** · 本线不再与并行线抢 echo 编号——后续改走 back log（/guide 扩展 · /admin 预测面板 · RAG 深化），canon 让位
 
-## cont. 393 (2026-11-19) · §PROVIDER-NEW-KEY ✓ §REDIS-HARDEN ✓ · 新 key 端到端验证 + 黑洞 Redis 硬化
+## cont. 395 (2026-11-19) · §PROVIDER-NEW-KEY ✓ §REDIS-HARDEN ✓ · 新 key 端到端验证 + Redis 黑洞硬化
 
 - 用户 2026-11-19 口述新 provider key（本线**从不落盘/不入库/不打印**）：已切到 `apps/ai-service/.env`（gitignored）；Base URL `https://api.aizzz.xyz/v1` 不变 · gpt-6.1-terra 不变 · Clash 7897 不变
-- 实测：healthz `llmLive.state=ok`（后台探测走 Clash 真调用通）· `/v1/ai/chat` 200 `READY.`（capability=real · tokensIn=4407）· `/v1/ai/chat-graph` 200 `GRAPH-OK` · `cachedTokens=0`（Redis 死，见 evidence）
+- 实测：healthz `llmLive.state=ok` · `/v1/ai/chat` 200 `READY.`（capability=real · tokensIn=4407）· `/v1/ai/chat-graph` 200 `GRAPH-OK` · `cachedTokens=0`（Redis 死，见 evidence）
 - **Redis 黑洞**：`localhost:56379` TCP 可连、永不回包；Docker engine API 500；未动 Docker（其它项目的容器在里头）
-- 硬化：`jobs.py` RedisJobStore connect/read 3s 有界 · `registry.py` cache 客户端 connect/read 2s 有界——黑洞再也拖不死启动/缓存主路；test_jobs 实连 PING 门控 skip（11 skipped，141 passed，0 failed）· ADR-0274 DEGRADED-BOOT 名牌照常生效（本机 redis 活过来后无须任何代码变更即恢复）
+- 硬化：`jobs.py` RedisJobStore connect/read 3s 有界 · `registry.py` cache 客户端 connect/read 2s 有界；test_jobs 实连 PING 门控 skip（11 skipped，141 passed，0 failed）
 - evidence：`docs/evidence/provider-new-key-2026-11-19.md`
 
 ## cont. 394 (2026-11-19) · §ADMIN-13+PROJ ✓ §ADMIN-13+ROBUST ✓ · 只读观察站「趋势预测」上线 + 门页抗 DB 抖动

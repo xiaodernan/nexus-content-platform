@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 148 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 149 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -2958,6 +2958,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 「走」字那个信谁都没认——大家只用沙把它压住，没有盖住。
 - [4] 「走」字那封信在门槛之前放了一夜，潮都起来了——字还在原处。
 - [5] 没有人打开那封信——大家只是说——有些话不是用来被读的。
+
+### Echo 149 · 祠殿门槛下那半只只认脚步的鞋 / The Half-Shoe Beneath the Chapel Threshold That Only Knows Footsteps
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 门槛下面有半只鞋——只有右半只——皮的颜色像老皮。
+- [2] 没人记得鞋什么时候落门槛下面——值更册没写。
+- [3] 它只认过门的脚步——它只认门槛。
+- [4] 散会那一夜——门槛上方有人停了一下——鞋从门槛下冒出半只——然后又进了回去。
+- [5] 被替它等的是还没进过这扇门的人——值更册不知道。
+- [6] 值更册最后一页："门槛下面有一只鞋——它在等一只脚。"
 
 ### Echo 15 · 巷子深处那盏没人记得的灯 / The Lamp the Wine Shop Never Remembers
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

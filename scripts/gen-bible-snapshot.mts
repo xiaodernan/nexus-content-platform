@@ -199,6 +199,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E146-潮候院祠殿后墙外那一排从未被动过的盐盘': 'echo-146-the-salt-trays-that-wait',
   'E147-潮候院外郊那道只等第十四位守灵人的旧木门': 'echo-147-the-old-gate-that-waits-for-the-fourteenth-vigil-keeper',
   'E148-潮候院只收一个字的信': 'echo-148-the-letter-that-holds-one-character',
+  'E149-祠殿门槛下那半只只认脚步的鞋': 'echo-149-the-half-shoe-that-knows-footsteps',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
