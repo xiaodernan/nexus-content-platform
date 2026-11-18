@@ -8,6 +8,7 @@ import { readJson, badRequest, jsonError, notFound } from '@/server/http';
 import { z } from 'zod';
 import { getAiCapabilities } from '@/lib/env';
 import { chatWithCharacter } from '@/server/ai/client';
+import { resolveOrchestrationLane } from '@/server/ai/orchestrationLane';
 import { getEmbeddingProvider, hasEmbeddingProvider } from '@/server/ai/embedding';
 import { VectorStore } from '@/server/ai/vector-store';
 import { buildContext, buildPersonaPrompt } from '@/server/domain/character-chat';
@@ -118,12 +119,14 @@ export async function POST(
 
     // 构建完整上下文并调用模型
     const context = buildContext(persona, characterMemories, knowledgeContext);
+    // cont.254 · 编排车道：角色对话走对话状态图（默认 stategraph；NEXUS_AI_CHAT_ORCHESTRATION=lane-a 可退回顺序通道）
+    const lane = resolveOrchestrationLane(req.headers.get('x-nexus-orchestration'), process.env.NEXUS_AI_CHAT_ORCHESTRATION ?? process.env.NEXUS_AI_ORCHESTRATION);
     const chat = await chatWithCharacter({
       requestId: `chat_${Date.now().toString(36)}`,
       system: context,
       user: message,
       modelClass: 'balanced',
-    });
+    }, fetch, { orchestration: lane });
     if (!chat.ok) {
       return await jsonError(chat.status ?? 503, chat.error.code, { message: chat.error.message });
     }
@@ -131,14 +134,17 @@ export async function POST(
     // 只有真实回复才落记忆：用户原话 + 模型原话，一行只记一次对话
     await saveChatMemory(projectId, characterId, user.id, character.name, message, chat.response.text);
 
-    return NextResponse.json({
-      reply: chat.response.text,
-      character: {
-        id: character.id,
-        name: character.name,
+    return NextResponse.json(
+      {
+        reply: chat.response.text,
+        character: {
+          id: character.id,
+          name: character.name,
+        },
+        sessionId: sessionId ?? `chat_${Date.now()}`,
       },
-      sessionId: sessionId ?? `chat_${Date.now()}`,
-    });
+      { headers: { 'x-nexus-orchestration': chat.orchestration ?? lane } },
+    );
   } catch (_error) {
     return await jsonError(500, 'internal', { message: '对话失败' });
   }

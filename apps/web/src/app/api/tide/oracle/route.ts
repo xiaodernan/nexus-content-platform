@@ -5,6 +5,7 @@ import { csrfOk } from '@/server/security/csrf';
 import { ipWriteGate } from '@/server/security/rateLimit';
 import { badRequest, jsonError, readJson } from '@/server/http';
 import { chatWithCharacter } from '@/server/ai/client';
+import { resolveOrchestrationLane } from '@/server/ai/orchestrationLane';
 import { getAiCapabilities } from '@/lib/env';
 import { buildDigest } from '@/lib/bibleAsk';
 import { BIBLE_CHAPTERS, BIBLE_ECHOES } from '@/world-bible/generated';
@@ -46,6 +47,8 @@ export async function POST(req: Request): Promise<NextResponse> {
   if (!parsed.success) return badRequest(parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`));
 
   const { question, locale } = parsed.data;
+  // cont.254 · 编排车道：潮汐预言走对话状态图（默认 stategraph；header 或 NEXUS_AI_CHAT_ORCHESTRATION=lane-a 可退回顺序通道）
+  const lane = resolveOrchestrationLane(req.headers.get('x-nexus-orchestration'), process.env.NEXUS_AI_CHAT_ORCHESTRATION ?? process.env.NEXUS_AI_ORCHESTRATION);
   const caps = await getAiCapabilities();
   if (caps.text !== 'real') {
     return jsonError(409, 'demo_mode', { message: '潮 oracle 需要接上真 provider — 当前是 DEMO MODE，不冒充潮的话。' });
@@ -63,12 +66,13 @@ export async function POST(req: Request): Promise<NextResponse> {
   ].join('\n');
 
   try {
+    increment('nexus_chat_lane_total', { lane });
     const result = await chatWithCharacter({
       requestId: `tide-oracle-${Date.now()}`,
       system: prompt,
       user: `locale: ${locale}\n问：${question}\n潮语：`,
       modelClass: 'fast',
-    });
+    }, fetch, { orchestration: lane });
     const durationMs = Date.now() - startedAt;
     if (!result.ok) {
       increment('nexus_bible_ask_total', { outcome: 'provider-unavailable' });
@@ -79,13 +83,16 @@ export async function POST(req: Request): Promise<NextResponse> {
     observe('nexus_bible_ask_latency_ms', durationMs, { outcome: 'answer' });
     increment('nexus_bible_ask_total', { outcome: 'answer' });
     const { response } = result;
-    return NextResponse.json({
-      answer: (response.text ?? '').trim(),
-      model: response.model,
-      cachedTokens: response.usage?.cachedTokens ?? 0,
-      tokensIn: response.usage?.tokensIn ?? 0,
-      cacheReported: response.usage?.cacheReported ?? false,
-    });
+    return NextResponse.json(
+      {
+        answer: (response.text ?? '').trim(),
+        model: response.model,
+        cachedTokens: response.usage?.cachedTokens ?? 0,
+        tokensIn: response.usage?.tokensIn ?? 0,
+        cacheReported: response.usage?.cacheReported ?? false,
+      },
+      { headers: { 'x-nexus-orchestration': result.orchestration ?? lane } },
+    );
   } catch {
     increment('nexus_bible_ask_total', { outcome: 'error' });
     return jsonError(500, 'internal', {

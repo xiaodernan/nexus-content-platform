@@ -1,4 +1,5 @@
 import { AiChatResponseSchema, AiErrorSchema, AiJobAcceptedSchema, AiJobStatusResponseSchema, AiResponseSchema, HealthResponseSchema } from '@nexus/schemas';
+import { resolveOrchestrationLane, type OrchestrationLane } from './orchestrationLane';
 import type { AiChatRequest, AiChatResponse, AiError, AiJobAccepted, AiJobStatusResponse, AiRequest, AiResponse, HealthResponse } from '@nexus/schemas';
 
 /**
@@ -247,16 +248,27 @@ async function jobRequest<T>(
  * §47 角色对话的传输。与 `runAiService` 同一形状：HTTP + 双端契约复核，
  * 拿不到真实结果时明确报不可用，绝不在这里回落到模板（§159）。
  * 超时给足 60 秒：对话是一次完整生成，不是入队/读状态那种轻查询。
+ *
+ * cont.254 · 编排车道：与 /api/ai/run 同一口径——默认走 ai-service `/v1/ai/chat-graph`
+ * （LangGraph StateGraph：validate → check_provider → build_prefix → call_llm →
+ * cache_read → parse_and_release → assemble；与线性通道逐字节同构的 AiChatResponse）。
+ * 逃生门：`NEXUS_AI_CHAT_ORCHESTRATION=lane-a`（或请求方传 `options.orchestration: 'lane-a'`）
+ * 退回 `/v1/ai/chat`。ai-service 回的 `x-nexus-orchestration` 响应头原样透出在
+ * `result.orchestration` 里——页面可以如实展示这一趟走的是哪条车道，不猜。
  */
-export type AiChatResult = { ok: true; response: AiChatResponse } | { ok: false; status: number | null; error: AiError };
+export type AiChatResult = { ok: true; response: AiChatResponse; orchestration: string | null } | { ok: false; status: number | null; error: AiError; orchestration: string | null };
 
 export async function chatWithCharacter(
   request: AiChatRequest,
   fetchImpl: typeof fetch = fetch,
+  options?: { orchestration?: OrchestrationLane | null },
 ): Promise<AiChatResult> {
+  const lane = options?.orchestration ?? resolveOrchestrationLane(null, process.env.NEXUS_AI_CHAT_ORCHESTRATION ?? process.env.NEXUS_AI_ORCHESTRATION);
+  const path = lane === 'stategraph' ? '/v1/ai/chat-graph' : '/v1/ai/chat';
   const base = aiServiceUrl();
   if (!base) {
     return {
+      orchestration: lane,
       ok: false,
       status: null,
       error: localError(
@@ -269,7 +281,7 @@ export async function chatWithCharacter(
 
   let raw: Response;
   try {
-    raw = await fetchImpl(`${base}/v1/ai/chat`, {
+    raw = await fetchImpl(`${base}${path}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(request),
@@ -279,25 +291,29 @@ export async function chatWithCharacter(
   } catch (error) {
     const reason = error instanceof Error ? error.name : 'unknown';
     return {
+      orchestration: lane,
       ok: false,
       status: null,
       error: localError('provider-unavailable', `ai-service 不可达（${reason}）`, `确认 ${base} 是否在运行。`, true),
     };
   }
 
+  const orchestration = raw.headers.get('x-nexus-orchestration') ?? lane;
+
   if (!raw.ok) {
-    return { ok: false, status: raw.status, error: await readAiError(raw, raw.status === 503 ? 'provider-unavailable' : 'provider-failed') };
+    return { orchestration, ok: false, status: raw.status, error: await readAiError(raw, raw.status === 503 ? 'provider-unavailable' : 'provider-failed') };
   }
 
   let body: unknown;
   try {
     body = await raw.json();
   } catch {
-    return { ok: false, status: raw.status, error: localError('internal', 'ai-service 返回了非 JSON 响应') };
+    return { orchestration, ok: false, status: raw.status, error: localError('internal', 'ai-service 返回了非 JSON 响应') };
   }
   const parsed = AiChatResponseSchema.safeParse(body);
   if (!parsed.success) {
     return {
+      orchestration,
       ok: false,
       status: raw.status,
       error: localError(
@@ -306,7 +322,7 @@ export async function chatWithCharacter(
       ),
     };
   }
-  return { ok: true, response: parsed.data };
+  return { orchestration, ok: true, response: parsed.data };
 }
 
 export type AiJobAcceptedResult = { ok: true; accepted: AiJobAccepted } | { ok: false; status: number | null; error: AiError };

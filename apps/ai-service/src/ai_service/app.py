@@ -38,6 +38,7 @@ from .contract import issues as contract_issues
 from .execution import error as make_error
 from .execution import execute_ai_request, execute_chat_request, parse_request_body
 from .stategraph import run_design_stategraph
+from .chat_stategraph import run_chat_stategraph
 from .latency_meter import LLM_LATENCY
 from .metrics import render_llm_metrics
 from .jobs import JobStore, Worker, build_store, job_capacity
@@ -236,6 +237,23 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
             return JSONResponse(body, status_code=status)
         assert payload is not None
         status, body = await run_design_stategraph(payload, registry=registry)
+        return JSONResponse(body, status_code=status, headers={"x-nexus-orchestration": "stategraph"})
+
+    @app.post("/v1/ai/chat-graph")
+    async def chat_graph(request: Request) -> JSONResponse:
+        """§LangGraph (cont.254) · 角色对话的状态图编排：与 /v1/ai/chat 同一输入同一输出。
+
+        七节点镜像 design graph（validate → check_provider → build_prefix → call_llm →
+        cache_read → parse_and_release → assemble）；任一节点失败沿条件边直接 END。
+        响应体不携带编排标记（契约 additionalProperties=false）——唯一公开标记是响应头
+        `x-nexus-orchestration: stategraph`。
+        """
+        payload, rejected = parse_request_body(await request.body(), settings.max_body_bytes)
+        if rejected is not None:
+            status, body = rejected
+            return JSONResponse(body, status_code=status)
+        assert payload is not None
+        status, body = await run_chat_stategraph(payload, registry=registry)
         return JSONResponse(body, status_code=status, headers={"x-nexus-orchestration": "stategraph"})
 
     @app.post("/v1/ai/chat")

@@ -6292,3 +6292,11 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 > - 16 call: `cachedTokens = 112,620/119,884 ≈ 93.9%` · 16 call: 100%
 > - tokensIn 恒星味 119,884 → Codex-type 120k context OK · 用户反复抱怨「远少于 5–9 万」彻底关闭
 > - evidence: `docs/evidence/storm-32-2026-11-19.md`
+
+> **2026-11-19 cont. 254 · 对话车道上图（deep StateGraph）：Tide-Oracle / 人物对话 / 25 处 LLM 调用默认走 `/v1/ai/chat-graph` — 真 provider 实锤 `x-nexus-orchestration: stategraph` · KV cache 100% warm**
+> - 新文件 `apps/ai-service/src/ai_service/chat_stategraph.py`：七节点镜像 design graph（validate → check_provider → build_prefix → call_llm → cache_read → parse_and_release → assemble）——json_mode=False（对话不是 JSON 任务）、digest=sha256(system)[:16]、空回复 502、与 `/v1/ai/chat` 逐字节同构（AiChatResponse）
+> - ai-service `tests/test_chat_stategraph.py`：6 臂全绿 · web `ai-client-chat.test.ts`：7/7（默认车道断言改 chat-graph + lane-a 回退臂 + orchestration 头透出臂）
+> - `chatWithCharacter` 默认走图（`NEXUS_AI_CHAT_ORCHESTRATION` ?? `NEXUS_AI_ORCHESTRATION`，缺省 stategraph）；25 个调用方零改动上图；两条入口回声 `x-nexus-orchestration` 响应头；新增 `nexus_chat_lane_total{lane}` counter
+> - prod live probe：POST `:3200/v1/ai/chat-graph` → 200 · stategraph · gpt-6.1-terra；POST `/api/tide/oracle` → 200 · **x-nexus-orchestration: stategraph · tokensIn=119,884 · cachedTokens=119,884 (100.0%) · cacheReported=true**
+> - `next build` green（Turbopack compile + TS clean · 修 2 errors：metric 登记、test 下标非空断言）· fe-gates 重跑 147/147 / census 2967 · stategraph-visual-style SHA 再钉（7 用例绿）
+> - evidence: `docs/evidence/chat-lane-stategraph-2026-11-19.md` · ADR-0275
