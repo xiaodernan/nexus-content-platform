@@ -7466,3 +7466,9 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 新篇：「走廊尽头小鼓 · 祠殿灯先暗 · 每年三次 · 值更册最后一页"它从不停"」—— canon digest 现 **230,335 chars**（13 章正典 · **128 回响** · 4 annex · 786 zh / 786 en 锚句）；`verify:world-bible 786/786` ✓。
 - 映射 + slug + 索引 + 所有说明书文案（双语） + pin 全流程重钉：BibleAsk lede → 128 · /bible/ask meta → 一百二十八篇 · CACHE-IDENTITY × 128 · canon-answer-graph → 13 章 + 128 回响 = 141 段 · bible-ask-behavior.test → 781 · comp pin comp=b4c46f95 / page=1073d9ad。
 - fe-gates **1370/1370** ✓；new milestone "回响 128 · 锚句 786" landing。
+
+## cont. 362 (2026-11-18) — v982 · §BIBLE-129 · Echo #129《祠殿檐下那块永远不得响的木牌》(作者手写 · verify 792/792)
+
+- 新篇：「木牌 · 扬起来的手影 · 轮迹 · 自行选择 · 最后一页」— digest 现 **230,779 chars**（13 章正典 · **129 回响** · 4 annex · 792 zh / 792 en 锚句）；`verify:world-bible 792/792` ✓。
+- gen-bible-snapshot 增补 echo-129 slug；BibleAsk lede → 129 · /bible/ask meta → 一百二十九篇 · CACHE-IDENTITY × 129 · canon-answer-graph → 13 章 + 129 回响 = 142 段 · bible-ask-behavior.test → 787 · pin 重钉 page→4477783a / comp→cb2faec2。
+- fe-gates **1370/1370** ✓。

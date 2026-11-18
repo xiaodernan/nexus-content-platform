@@ -12430,6 +12430,190 @@ A copyist once pressed her ear to the drum skin — she said: it is not a rhythm
 `,
   },
   {
+    order: 129,
+    slug: 'echo-129-the-wooden-plaque-that-decides',
+    titleZh: '潮候院祠殿檐下那根永远不得响的木牌',
+    titleEn: 'The Wooden Plaque Under the Chapel\'s Eaves That Was Never Allowed to Sound',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第九十六日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the ninety-sixth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 129): The Wooden Plaque Under the Chapels Eve That Was Never Allowed to Sound
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿檐下那根被风重锤也不响的木牌。没人能讲清它原本为何在那里。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the wooden plaque beneath the chapel's eaves that never sounded — even under the hardest wind.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第九十六日。
+> Era: the Institute — after the 41st Convocation; the ninety-sixth day of the autumn-tide month.
+
+---
+
+## 一 · 檐下那块木牌
+
+潮候院祠殿檐下有一块木牌——牌上没有字——被钉死在那根横梁上。
+
+值更人说：风再大——它从不响——从不晃。
+
+**锚句**：祠殿檐下有一块木牌——牌上没有字——值更人说风再大它从不响不晃。
+**Anchor sentence**: under the chapel's eaves hangs a wooden plaque — no writing on it — the head of the watch says: whatever wind, it never sounds, never swings.
+
+---
+
+## 二 · 抄本师不写它
+
+抄本师从来不在院里提起它——也不在她们的手册里写——连草稿都不留。
+
+有一年年轻抄本师想抄它——那页纸上湿得很——后来那页被放在档案室最深处——没有描述。
+
+**锚句**：抄本师从来不在院里提起那块木牌——连草稿都不留——年轻抄本师尝试抄它——那页纸后来深藏档案室最深处。
+**Anchor sentence**: the copyists never speak of the plaque inside the Institute — not even drafts are kept — once a young copyist tried to copy it, but that page is now sealed deep in the archive.
+
+---
+
+## 三 · 夜里灯光
+
+某夜值更人提灯经过——木牌的影子在墙上——不是人影——是像一只扬起来的手。
+
+**锚句**：某夜值更人提灯经过——木牌的影子在墙上——不是人影——是像一只扬起来的手。
+**Anchor sentence**: one night the head of the watch passed with a lantern — the plaque's shadow on the wall was no human figure — it was like a raised hand.
+
+---
+
+## 四 · 第九十六日
+
+秋潮月第九十六日——候更人说他听见它第一次发出了一声——木牌的声音——不是有人敲——是木牌自己选择的。
+
+**锚句**：秋潮月第九十六日——候更人听见它第一次发出了一声——是木牌自己选择的。
+**Anchor sentence**: on the ninety-sixth day of the autumn-tide month — the head of the watch heard it sound for the first time — the plaque chose to sound itself.
+
+---
+
+## 五 · 第二天
+
+第二天——祠殿门前的尘土里——有一串行走的痕迹——不是脚印，是轮迹——没有车——抄本师不讨论它。
+
+**锚句**：第二天——祠殿门前尘土里有一串行走的轮迹——没有车——抄本师不讨论它。
+**Anchor sentence**: the next day — the dust in front of the chapel held a track — no wheel had ever made such tracks here — the copyists do not discuss it.
+
+---
+
+## 六 · 手册最末页
+
+值更册最后一页上有一句话："等它自己决定——它会说。"
+
+抄本师没有人解释——也没有人问。
+
+**锚句**：值更册最后一页"等它自己决定——它会说"——抄本师没人解释也没人问。
+**Anchor sentence**: the last page of the watch-ledger reads: when it decides — it will speak — the copyists do not explain it and do not ask.
+
+---
+
+## 七 · 映射（回响一百二十九章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 木牌 · 影子像扬起来的手 · 轮迹 · 自行决定 · 最后一页 | 一、二、三、四、五、六、七 |
+| geography | 祠殿檐 · 祠殿门前尘土 · 档案室最深处 | 一、二、五、六 |
+| characters | 抄本师 · 值更人 · 年轻抄本师 | 一、二、三、四、五、六 |
+| story | 木牌自己选择的那一夜 · 回响（其一百二十九） | 全篇 |
+| items | 木牌 · 值更册 · 祠殿门 · 灯 | 一、二、三、四、五 |
+| history | 第四十一次大会散会之后 · 秋潮月第九十六日 | 四、五、六 |
+
+> 祠殿檐下那块永远不得响的木牌，终于在某一天决定了什么。
+> The wooden plaque under the chapel's eaves that was never allowed to sound — one day, it decided.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百二十九）「潮候院祠殿檐下那根永远不得响的木牌」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the wooden plaque beneath the chapel's eaves that never sounded — even under the hardest wind.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院祠殿檐下那根被风重锤也不响的木牌。没人能讲清它原本为何在那里。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the ninety-sixth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第九十六日。
+
+---
+
+## I · The Plaque Under the Eaves
+
+Under the chapel's eaves hangs a wooden plaque — no writing on it — nailed to the beam.
+
+The head of the watch says: whatever wind, it never sounds, never swings.
+
+**锚句**：祠殿檐下有一块木牌——牌上没有字——值更人说风再大它从不响不晃。
+**Anchor sentence**: under the chapel's eaves hangs a wooden plaque — no writing on it — the head of the watch says: whatever wind, it never sounds, never swings.
+
+---
+
+## II · The Copyists Do Not Write It
+
+The copyists never speak of the plaque inside the Institute — not even drafts are kept.
+
+Once a young copyist tried to copy it — but the page was damp with something — later that page was placed deep in the archive — and never described.
+
+**锚句**：抄本师从来不在院里提起那块木牌——连草稿都不留——年轻抄本师尝试抄它——那页纸后来深藏档案室最深处。
+**Anchor sentence**: the copyists never speak of the plaque inside the Institute — not even drafts are kept — once a young copyist tried to copy it, but that page is now sealed deep in the archive.
+
+---
+
+## III · The Night Light
+
+One night the head of the watch passed with a lantern — the plaque's shadow on the wall was no human figure — it was like a raised hand.
+
+**锚句**：某夜值更人提灯经过——木牌的影子在墙上——不是人影——是像一只扬起来的手。
+**Anchor sentence**: one night the head of the watch passed with a lantern — the plaque's shadow on the wall was no human figure — it was like a raised hand.
+
+---
+
+## IV · The Ninety-Sixth Day
+
+On the ninety-sixth day of the autumn-tide month — the head of the watch heard it sound for the first time — the plaque chose to sound itself.
+
+**锚句**：秋潮月第九十六日——候更人听见它第一次发出了一声——是木牌自己选择的。
+**Anchor sentence**: on the ninety-sixth day of the autumn-tide month — the head of the watch heard it sound for the first time — the plaque chose to sound itself.
+
+---
+
+## V · The Next Day
+
+The next day — the dust in front of the chapel held a track — no wheel had ever made such tracks here — the copyists do not discuss it.
+
+**锚句**：第二天——祠殿门前尘土里有一串行走的轮迹——没有车——抄本师不讨论它。
+**Anchor sentence**: the next day — the dust in front of the chapel held a track — no wheel had ever made such tracks here — the copyists do not discuss it.
+
+---
+
+## VI · The Last Page
+
+The last page of the watch-ledger reads: when it decides — it will speak — the copyists do not explain it and do not ask.
+
+**锚句**：值更册最后一页"等它自己决定——它会说"——抄本师没人解释也没人问。
+**Anchor sentence**: the last page of the watch-ledger reads: when it decides — it will speak — the copyists do not explain it and do not ask.
+
+---
+
+## VII · Mapping（Echo No. 129 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the wooden plaque · the raised-hand shadow · the track · the self-choice · the last page | 一、二、三、四、五、六、七 |
+| geography | the chapel's eaves · the dust in front of the chapel · the archive's deepest corner | 一、二、五、六 |
+| characters | the copyists · the head of the watch · the young copyist | 一、二、三、四、五、六 |
+| story | the night the plaque chose to sound · Echo No. 129 | 全篇 |
+| items | the plaque · the watch-ledger · the chapel's door · the lantern | 一、二、三、四、五 |
+| history | After the 41st Convocation · the ninety-sixth day of the autumn-tide month | 四、五、六 |
+
+> 祠殿檐下那块永远不得响的木牌，终于在某一天决定了什么。
+> The wooden plaque under the chapel's eaves that was never allowed to sound — one day, it decided.
+`,
+  },
+  {
     order: 13,
     slug: 'echo-013-the-convocation-nobody-called',
     titleZh: '潮候院没有叫过的那一声会',
