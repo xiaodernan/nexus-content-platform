@@ -6038,6 +6038,22 @@
   .tide-wireHonest { border-color: CanvasText; background: Canvas; }
 }
 
+/* ── §OBSERVE-PROJ · 只读观察站的趋势预测（最小二乘 · 非 AI）── */
+.obs-projGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: var(--nexus-space-3); }
+.obs-projCell { display: grid; gap: 2px; padding: var(--nexus-space-3) var(--nexus-space-4); background: var(--nexus-color-bg-1); border: 1px solid var(--nexus-color-border-subtle); border-radius: 8px; }
+.obs-projNum { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-24); font-weight: 650; letter-spacing: -0.02em; color: var(--nexus-color-fg-1); font-variant-numeric: tabular-nums; }
+.obs-projLabel { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+.obs-projMeta { display: flex; flex-wrap: wrap; gap: var(--nexus-space-2) var(--nexus-space-4); align-items: center; }
+.obs-projChip { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.06em; padding: 0.15rem 0.7rem; border-radius: 999px; border: 1px solid var(--nexus-color-border); color: var(--nexus-color-fg-2); font-variant-numeric: tabular-nums; }
+.obs-projChip[data-trend='up'] { border-color: var(--nexus-color-success); color: var(--nexus-color-success); }
+.obs-projChip[data-trend='down'] { border-color: var(--nexus-color-danger); color: var(--nexus-color-danger); }
+.obs-projStat { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); font-variant-numeric: tabular-nums; }
+.obs-projStat b { color: var(--nexus-color-fg-1); font-family: var(--nexus-font-mono); }
+@media (forced-colors: active) {
+  .obs-projCell, .obs-projChip { border-color: CanvasText; background: Canvas; }
+  .obs-projNum, .obs-projLabel, .obs-projChip, .obs-projStat, .obs-projStat b { color: CanvasText; -webkit-text-fill-color: CanvasText; }
+}
+
 /* ── §MODERATION-ASSIST · 复核助理（AI 帮我读一眼，只读只参考）── */
 .moderation-aidr { display: flex; flex-direction: column; gap: var(--nexus-space-1); border: 1px dashed color-mix(in srgb, var(--nexus-color-accent-mix) 45%, transparent); border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-2) var(--nexus-space-3); background: var(--nexus-color-bg-1); margin: var(--nexus-space-2) 0; }
 .moderation-aidrKicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.18em; text-transform: uppercase; color: var(--nexus-color-accent-2-ink); margin: 0; }

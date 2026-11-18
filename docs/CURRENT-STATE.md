@@ -7802,7 +7802,17 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 
 ## cont. 396 (2026-11-19) — v1036 · §BIBLE-150 · Echo #150《只能让潮认的线》(作者手写 · verify 915/915)
 
-- 新篇：「祠殿墙上那条线 · 抄本师碰过之后再也只会用"colpect"发音 · 残卷里写着如果你想看这条线——你自己就是潮」—— digest 现 **238,926 chars**（13 章正典 · **150 回响** · 4 annex · 锚句 915 zh / 915 en ✓）。
+- 新篇：「祠殿墙上那条线 · 抄本师碰过之后再也只会用"collect"发音 · 残卷里写着如果你想看这条线——你自己就是潮」—— digest 现 **238,926 chars**（13 章正典 · **150 回响** · 4 annex · 锚句 915 zh / 915 en ✓）。
 - 6 锚句双语 · gen-bible-snapshot 增 echo-150 · BibleAsk lede → 150 · /bible/ask meta → 一百五十篇 · CACHE-IDENTITY × 150 · canon-answer-graph → 163 段 · bible-ask-behavior → 910 · pin 重钉 page→aa6a92d2 / comp→b73a44cd · InsightCanonChat hint 同步至 150。
 - fe-gates **1370/1370** ✓ · verify:world-bible 915/915 ✓。
 - 本机 Docker daemon / Clash 7897 节点本轮 EOF/refusal，Provider 调用全部超时；Clash 代理测试 /v1/models 返回 403，POST /v1/chat/completions 同样 EOF — 本片未冒充 live 实测（如确需再做 probe，跨日再跑）。
+
+## cont. 394 (2026-11-19) · §ADMIN-13+PROJ ✓ §ADMIN-13+ROBUST ✓ · 只读观察站「趋势预测」上线 + 门页抗 DB 抖动
+
+- `buildObserverProjection(daily)`（最小二乘线性外推 · 非 AI · 确定性）：斜率/截项/R²/残差 SD/第 n+1 天点预测/未来 3 天与 7 天平均预测 · 趋势死区 ±0.5 opens/day · 样本 < 4 不拟合（reason 双语如实）· 完全平线 R²=null · slope<0.5→flat
+- /admin/observe 新增「趋势预测」带（projGrid/projMeta/projChip[data-trend]）· 公式明文在底部 · zh/en 双语全套
+- `isObserverAllowed` 硬化：cookie 本地先查、admin 会话 DB 失败 → gate 页照常渲染（此前 DB 挂掉会整页 500 — 本机 2026-11-19 亲历：Docker Desktop engine 500 → Postgres 5443 CONNECT_TIMEOUT）
+- `observer-projection-behavior.test.ts` 7/7：完美线（y=2x+10）· 全零平线 · 下降线 · 噪声（R²∈(0,1)）· 死区 flat · n<4 拒拟合 · 输出契约
+- fe-gates **151/151 · 1377/1377 · census 2996** · tsc web EXIT=0 · gate 页 HTTP 200 + 浏览器无障碍快照零 error（带内数字区：实库全零数据时平线预测，R²=null）
+- 未能浏览器实证投影带本身：本机 Docker 挂掉致 Postgres 不可达（env 限制，非代码缺陷）；proj 带在 Docker 恢复后首次进库即显
+
