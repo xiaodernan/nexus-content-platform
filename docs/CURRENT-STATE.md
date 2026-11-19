@@ -7986,3 +7986,13 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
   - 实测 transport.stream=true；KV share 没有到瓶颈；这是一个预算护栏抬升（不是回归），不需要 digest 内容变动。
 - **ECHO_BODY_CHAR_BUDGET=125,000 不动**：最近回响全 body，旧回响题名+锚句 —— 这是入龛现有配额策略，按 SHA pin 展开，没有人改。
 - fe-gates **1377/1377** ✓ · digest 字节保持 `357e4ed3…`（本片改的是天花板不是内容）。
+
+## cont. 413 (2026-11-19) — §RENDER-ADMIN · /admin/savings 渲染账块上线（video.render 行聚合 上线）
+
+- **新域函数** `readRenderCountTotals()`（llm-savings-admin.ts）：`agent_tasks.agent_key='video.render'` 行按 5 个字段求和（renders / shots / cardCount / sourceReferenceCount / characterPortraitCount）。
+  - **非法/缺键行不炸整表**：`jsonb_typeof(input->'k')='number'` 才进 SUM，否则折 0 —— 老行（characterPortraitCount 缺）不伪造，'banana'/字符串/数组等坏形状按 0；`input` 退化为整串 JSON string 也不炸。
+- **/admin/savings 新分块「渲染账（video.render 累计）」**：`data-savings-render` 与 9 个子钩子（renders/shots/cards/whole/portraits/note/unavailable/empty）；双语文案；与 SavingsLedger 同一 am-statGrid 视觉语言；role=admin 闸门照旧。
+  - read fail → `data-savings-render-unavailable`（照实说读不到）；0 行 → `data-savings-render-empty`（"渲一次分镜 DEMO 就有数了"）。
+- **真库集成 4/4 绿**（`render-count-admin.integration.test.ts`，前后 Δ 断言，绝不假定初始库空）：完整两行+一条老行（缺 characterPortraitCount → portrait 按 0、其余全计）· design-edit 行不污染 · 坏形状按 0 不炸 · 整串 JSON string input 不炸。
+- **§FE-23 admin-savings-visual-style pin 重钉 `35cde635…`** · 钩子守恒门扩到 22 钩子 · fe-gates **1377/1377** ✓ · tsc zero 错 · integration 真库（5443）全绿。
+- ADR-0086 v2「面板还没读这两格」的账 → 原本 cont.403 已闭（/tasks 行内显示），本片关闭 admin 视角的聚合一格（/savings 总账）。

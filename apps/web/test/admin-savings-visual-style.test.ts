@@ -102,15 +102,15 @@ describe('§FE-AS /admin/savings AI 节省总账（v702 接手）', () => {
     for (const token of usedTokens) expect(tokens, `tokens.css 没有声明 ${token}`).toContain(token);
   });
 
-  it('钩子守恒（root/scope/summary/total-projects/total-real/total-cached/total-weighted/table-heading/row/rate/name/unavailable/empty）', () => {
-    for (const hook of ['data-savings-root', 'data-savings-scope', 'data-savings-summary', 'data-savings-total-projects', 'data-savings-total-real', 'data-savings-total-cached', 'data-savings-total-weighted', 'data-savings-table-heading', 'data-savings-row=', 'data-savings-rate=', 'data-savings-name', 'data-savings-unavailable', 'data-savings-empty']) {
+  it('钩子守恒（root/scope/summary/total-projects/total-real/total-cached/total-weighted/table-heading/row/rate/name/unavailable/empty/renders/shots/cards/whole/portraits/note/unavail/empty-render）', () => {
+    for (const hook of ['data-savings-root', 'data-savings-scope', 'data-savings-summary', 'data-savings-total-projects', 'data-savings-total-real', 'data-savings-total-cached', 'data-savings-total-weighted', 'data-savings-table-heading', 'data-savings-row=', 'data-savings-rate=', 'data-savings-name', 'data-savings-unavailable', 'data-savings-empty', 'data-savings-render', 'data-savings-render-renders', 'data-savings-render-shots', 'data-savings-render-cards', 'data-savings-render-whole', 'data-savings-render-portraits', 'data-savings-render-note', 'data-savings-render-unavailable', 'data-savings-render-empty']) {
       expect(code, `savings 丢了钩子 ${hook}`).toContain(hook);
     }
   });
 
-  it('SHA256 钉死（本线字节，v768 i18n 重钉）', () => {
+  it('SHA256 钉死（本线字节 · §SB-RENDER-ADMIN 渲染账块 · 2026-11-19）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'af20a91a1190340b9f01a4252e6db3a3fb61d01c8b3a1d3d0aabf587c3307035',
+      '35cde6351764b5be1bc7de8442edbbe85ed7223b684a1c0f8a2dea632ce8e796',
     );
   });
 });

@@ -3,7 +3,7 @@ import type { ReactElement } from 'react';
 import { currentUserOrNull } from '@/server/domain/session';
 import { AdminNav } from '@/components/AdminNav';
 import { BrandTitle } from '@/components/BrandTitle';
-import { readTopSavingsProjects, readTopSavingsUsers, type SavingsAdminRow, type SavingsAdminUserRow } from '@/server/domain/llm-savings-admin';
+import { readTopSavingsProjects, readTopSavingsUsers, readRenderCountTotals, type SavingsAdminRow, type SavingsAdminUserRow, type RenderCountTotals } from '@/server/domain/llm-savings-admin';
 import { formatRate, formatTokensCompact, formatTokensCompactEn, hitRate, weightedHitRate } from '@/lib/llmSavingsAdmin';
 import { getLocale, type Locale } from '@/lib/i18n';
 
@@ -38,6 +38,15 @@ const COPY: Record<Locale, {
   userTableAria: string;
   colUser: string;
   userBarAria: (rate: string) => string;
+  renderTitle: string;
+  renderNote: string;
+  renderRenders: string;
+  renderShots: string;
+  renderCards: string;
+  renderWholePiece: string;
+  renderPortraits: string;
+  renderUnavailable: string;
+  renderEmpty: string;
 }> = {
   zh: {
     deniedAnonymous: '需要先登录才能看。',
@@ -68,6 +77,15 @@ const COPY: Record<Locale, {
     userTableAria: '按用户聚合的 AI 节省表（可横向滚动）',
     colUser: '用户',
     userBarAria: (rate) => `该用户缓存复用占输入 token 的 ${rate}`,
+    renderTitle: '渲染账（video.render 累计）',
+    renderNote: '口径：agent_tasks 里 agentKey = video.render 的行求和；角色肖像进像素是 2026-11 起记的 characterPortraitCount，更早的行按 0 不伪造；失败一律抛错——admin 照实说读不到。',
+    renderRenders: '渲染次数',
+    renderShots: '镜头数合计',
+    renderCards: '色卡占位合计',
+    renderWholePiece: '整片那张图补了几镜',
+    renderPortraits: '肖像进像素了几镜',
+    renderUnavailable: '读不到渲染账（聚合失败）。这台实例可能刚重启——数字不瞎，刷新再看。',
+    renderEmpty: '库里还没有任何 video.render 行——渲一次分镜 DEMO，这一格就有数了。',
   },
   en: {
     deniedAnonymous: 'You must sign in first.',
@@ -98,6 +116,15 @@ const COPY: Record<Locale, {
     userTableAria: 'Per-user AI savings table (horizontally scrollable)',
     colUser: 'User',
     userBarAria: (rate) => `This user’s cache reuse as share of input tokens: ${rate}`,
+    renderTitle: 'Render ledger (video.render, all time)',
+    renderNote: 'Definition: agent_tasks rows where agentKey = video.render, summed; characterPortraitCount entered the books in Nov 2026, older rows count as 0 (no fabrication); failures throw — the page says the read is unavailable.',
+    renderRenders: 'Renders',
+    renderShots: 'Shots, total',
+    renderCards: 'Card placeholders, total',
+    renderWholePiece: 'Shots fed by the whole-piece image',
+    renderPortraits: 'Shots fed by character portraits',
+    renderUnavailable: 'The render ledger cannot be read (aggregation failed). This instance may have just restarted — the numbers do not lie, refresh and retry.',
+    renderEmpty: 'No video.render rows exist yet — render one storyboard DEMO and this section will have numbers.',
   },
 };
 
@@ -149,6 +176,12 @@ export default async function AdminSavingsPage(): Promise<ReactElement> {
     userRows = await readTopSavingsUsers(25);
   } catch {
     userRows = null;
+  }
+  let renderCounts: RenderCountTotals | null;
+  try {
+    renderCounts = await readRenderCountTotals();
+  } catch {
+    renderCounts = null;
   }
 
   const aggregate =
@@ -205,6 +238,45 @@ export default async function AdminSavingsPage(): Promise<ReactElement> {
               </div>
             </div>
           </section>
+
+          {renderCounts === null ? (
+            <p className="adm-capNote" data-savings-render-unavailable>
+              {c.renderUnavailable}
+            </p>
+          ) : renderCounts.renders === 0 ? (
+            <p className="adm-capNote" data-savings-render-empty>
+              {c.renderEmpty}
+            </p>
+          ) : (
+            <section className="am-audit" data-savings-render>
+              <h2 className="am-sectionHeadSm">{c.renderTitle}</h2>
+              <p className="adm-capNote" data-savings-render-note>
+                {c.renderNote}
+              </p>
+              <div className="am-statGrid">
+                <div className="am-statCell">
+                  <p className="am-statValue" data-savings-render-renders>{renderCounts.renders}</p>
+                  <p className="am-statLabel">{c.renderRenders}</p>
+                </div>
+                <div className="am-statCell">
+                  <p className="am-statValue" data-savings-render-shots>{renderCounts.shots}</p>
+                  <p className="am-statLabel">{c.renderShots}</p>
+                </div>
+                <div className="am-statCell">
+                  <p className="am-statValue" data-savings-render-cards>{renderCounts.cardCount}</p>
+                  <p className="am-statLabel">{c.renderCards}</p>
+                </div>
+                <div className="am-statCell">
+                  <p className="am-statValue" data-savings-render-whole>{renderCounts.sourceReferenceCount}</p>
+                  <p className="am-statLabel">{c.renderWholePiece}</p>
+                </div>
+                <div className="am-statCell">
+                  <p className="am-statValue" data-savings-render-portraits>{renderCounts.characterPortraitCount}</p>
+                  <p className="am-statLabel">{c.renderPortraits}</p>
+                </div>
+              </div>
+            </section>
+          )}
 
           <section className="am-audit">
             <h2 className="am-sectionHeadSm" data-savings-table-heading>{c.tableHeading}</h2>
