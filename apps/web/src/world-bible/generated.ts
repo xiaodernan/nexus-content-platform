@@ -23007,6 +23007,180 @@ The Institute's record is by the copyists — the copyists write no reason — t
 `,
   },
   {
+    order: 183,
+    slug: 'echo-183-the-cellar-beneath-the-third-hut',
+    titleZh: '潮候院北雪线下三间值更屋下面的地窖——抄本师走进去——门开往北海',
+    titleEn: 'The Cellar Beneath the Third Watch Hut Under the Snow Line North of the Institute — the Copyists Stepped In — the Door Opens Toward the North Sea',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第七十一日。',
+    eraLineEn: 'Era: the Institute — after the 44th Convocation; the seventy-first day of the winter-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 183): The Cellar Beneath the Third Watch Hut Under the Snow Line North of the Institute — the Copyists Stepped In — the Door Opens Toward the North Sea
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给北雪线下第三间值更屋下面——抄本师走进地窖——一扇开往北海的门——潮候院从未以为潮会从这里来。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the cellar beneath the third watch hut beneath the snow line north of the Institute — the copyists stepped in — a door opening toward the north sea — the Institute never thought the tide would come from there.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第七十一日。
+> Era: the Institute — after the 44th Convocation; the seventy-first day of the winter-tide month.
+
+---
+
+## 一 · 地窖
+
+北雪线下第三间值更屋下面——麻石拱顶——一个不高的入口——雪要知道谁在门外——它给来的人半盏亮蓝——值更人没有人记得这个地窖——抄本师进去了一次——出来后没有人问话。
+
+**锚句**：北雪线下第三间值更屋下面——麻石拱顶——门给来的人半盏亮蓝——抄本师进去了——出来后没人问话。
+**Anchor sentence**: beneath the third watch hut under the snow line — a coarse shell-rock vault — the door gives half a blue light to those who come — the copyists went in — no one spoke when they came out.
+
+---
+
+## 二 · 里面
+
+地窖里不是手柄——它没有地面——它有一层细沙——沙子是温的——抄本师没有鞋——不是怕脚——是因为——冷要它们在上——它是盐——一直在动——
+
+**锚句**：地窖里没有地面——是一层细沙——沙子是温的——抄本师没有鞋——冷要在上——它是盐。
+**Anchor sentence**: there is no floor — it is sand — warm sand — no shoes — cold wants to be on top — it is salt.
+
+---
+
+## 三 · 门
+
+沙子深处有一扇门——它不是木门——它是一块很长的麻石——门上刻了一个字——是"潮"——抄本师以为这就是北海的门——抄本师没人碰它——他们没有打扰它——它自己动了一下——它不是风——
+
+**锚句**：沙子深处有一扇门——麻石——刻了一个字——是"潮"——抄本师没人碰它——它自己动了一下——它不是风。
+**Anchor sentence**: deep in the sand a door — coarse shell-rock — one carved word — "tide" — no one touched it — it moved by itself — not by wind.
+
+---
+
+## 四 · 它面朝北海
+
+门打开后——抄本师看见的不是外面——是潮涌——它是雾港方向——是雪线——是雾——是黑——它的光自己有——北海不在外面——北海在门里——
+
+**锚句**：门打开后——抄本师看见的不是外面——是潮涌——北海不在外面——北海在门里。
+**Anchor sentence**: when the door opened — the copyists saw not the outside — it is the surge — the north sea is not beyond the door — the north sea is inside.
+
+---
+
+## 五 · 它叫他们进
+
+抄本师说门没有威胁——它没有叫——它只是在那里——它只是把潮端到他们脚边——它出在地面的一秒——抄本师跪了三秒——第一个人踏进去——没有任何人再跪——就像雾港第四十三次——没有人回来再告诉人——
+
+**锚句**：门没有威胁——它只是把潮端到脚边——第一个人踏进去——就像雾港第四十三次——没有人回来。
+**Anchor sentence**: the door did not threaten — it only brought the tide to their feet — the first one stepped in — like the 43rd — no one came back.
+
+---
+
+## 六 · 抄本师说
+
+抄本师说第三间值更屋下面的地窖是潮候院不愿意看到的北海——抄本师说它一直想进——潮在里面等——抄本师说它曾经在那里说一次"等"——今天它没有说——它只是看——它一直在看——它没有动——它就是北海——它没有名字——它是北海——
+
+**锚句**：第三间值更屋下面的地窖是不愿意看的北海——潮在里面等——它只是看——它就是北海——它没有名字。
+**Anchor sentence**: the cellar beneath the third hut holds the north sea no one will admit — the tide waits inside — it only watches — it is the north sea — it has no name.
+
+---
+
+## 七 · Mapping（Echo No. 183 → world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the cellar that is north sea · the tide inside the door · the door that moved itself | 一、三、四、五、六 |
+| geography | the underground of the third watch hut · the snow line north of the Institute · north sea | 一、二、四、六 |
+| characters | the copyists · the keeper (implied) · the unnamed walking tide (unnamed) | 一、二、三、四、五、六 |
+| story | the cellar beneath the third hut · Echo No. 183 | 全篇 |
+| items | the coarse vault · the walking salt sand · the carved word "tide" | 一、二、三、四 |
+| history | After the 44th Convocation · the seventy-first day of the winter-tide month | 一、五、六、七 |
+
+> 潮候院北雪线下三间值更屋下面——地窖有一扇门——开往北海。
+> The cellar beneath the third watch hut — a door — it opens toward the north sea.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百八十三）「潮候院北雪线下三间值更屋下面的地窖——抄本师走进去——门开往北海」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the cellar beneath the third watch hut beneath the snow line north of the Institute — the copyists stepped in — a door opening toward the north sea — the Institute never thought the tide would come from there.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给北雪线下第三间值更屋下面——抄本师走进地窖——一扇开往北海的门——潮候院从未以为潮会从这里来。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 44th Convocation; the seventy-first day of the winter-tide month.
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第七十一日。
+
+---
+
+## I · The Cellar
+
+Beneath the third watch hut beneath the snow line — a coarse shell-rock vault with a low entry — the snow knows who is outside the door — it gives half a blue light to those who come — the rounds have no memory of this cellar — the copyists entered once — when they came out no one asked.
+
+**锚句**：北雪线下第三间值更屋下面——麻石拱顶——门给来的人半盏亮蓝——抄本师进去了——出来后没人问话。
+**Anchor sentence**: beneath the third watch hut under the snow line — a coarse shell-rock vault — the door gives half a blue light to those who come — the copyists went in — no one spoke when they came out.
+
+---
+
+## II · Inside
+
+There is no handle inside the cellar — it has no floor — it has warm sand — they took off their shoes — not because they feared the floor — because cold wants to stay above — it is salt — it has been moving the whole time.
+
+**锚句**：地窖里没有地面——是一层细沙——沙子是温的——抄本师没有鞋——冷要在上——它是盐。
+**Anchor sentence**: there is no floor — it is sand — warm sand — no shoes — cold wants to be on top — it is salt.
+
+---
+
+## III · The Door
+
+Deep in the sand there is a door — it is not made of wood — it is one long coarse shell-rock slab — carved with one word on the face of it — "tide" — the copyists believed this is the door to the north sea — none of them touched it — they did not disturb it — it moved by itself — it was not the wind.
+
+**锚句**：沙子深处有一扇门——麻石——刻了一个字——是"潮"——抄本师没人碰它——它自己动了一下——它不是风。
+**Anchor sentence**: deep in the sand a door — coarse shell-rock — one carved word — "tide" — no one touched it — it moved by itself — not by wind.
+
+---
+
+## IV · It Faces the North Sea
+
+When the door opened — the copyists did not see the outside — they saw the surge — it is the direction of Fog Harbor — it is the snow line — it is the fog — it is the black — its light has always been its own — the north sea is not outside — the north sea is inside.
+
+**锚句**：门打开后——抄本师看见的不是外面——是潮涌——北海不在外面——北海在门里。
+**Anchor sentence**: when the door opened — the copyists saw not the outside — it is the surge — the north sea is not beyond the door — the north sea is inside.
+
+---
+
+## V · It Calls Them In
+
+The copyists said the door did not threaten — it did not call — it just stood there — it only brought the tide to their feet — at the one second it reached out above the sand — the copyists knelt for three seconds — the first one stepped in — no one knelt a second time — like the 43rd at Fog Harbor — no one came back to tell.
+
+**锚句**：门没有威胁——它只是把潮端到脚边——第一个人踏进去——就像雾港第四十三次——没有人回来。
+**Anchor sentence**: the door did not threaten — it only brought the tide to their feet — the first one stepped in — like the 43rd — no one came back.
+
+---
+
+## VI · What the Copyists Said
+
+The copyists said the cellar beneath the third watch hut is the "north sea" the Institute does not want to see — the copyists said it has always wanted to come in — the tide is waiting inside — the copyists said it said "wait" once — today it did not say — it only watched — it watches — it has not moved — it is the north sea — it has no name — it is the north sea.
+
+**锚句**：第三间值更屋下面的地窖是不愿意看的北海——潮在里面等——它只是看——它就是北海——它没有名字。
+**Anchor sentence**: the cellar beneath the third hut holds the north sea no one will admit — the tide waits inside — it only watches — it is the north sea — it has no name.
+
+---
+
+## VII · Mapping（Echo No. 183 → world model）
+
+| Dimension | Value | Mapping |
+| --- | --- | --- |
+| lore | the cellar that is north sea · the tide inside the door · the door that moved itself | I, III, IV, V, VI |
+| geography | the underground of the third watch hut · the snow line north of the Institute · north sea | I, II, IV, VI |
+| characters | the copyists · the keeper (implied) · the unnamed walking tide (unnamed) | I, II, III, IV, V, VI |
+| story | the cellar beneath the third hut · Echo No. 183 | Full |
+| items | the coarse vault · the walking salt sand · the carved word "tide" | I, II, III, IV |
+| history | After the 44th Convocation · the seventy-first day of the winter-tide month | I, V, VI, VII |
+
+> 潮候院北雪线下三间值更屋下面——地窖有一扇门——开往北海。
+> The cellar beneath the third watch hut — a door — it opens toward the north sea.
+`,
+  },
+  {
     order: 19,
     slug: 'echo-019-the-copyists-of-the-back-alley',
     titleZh: '里巷子的抄本员',

@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 182 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 183 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3294,6 +3294,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 第三间值更屋有盏灯——它从来都亮着——没人说过它的位置——抄本师走近到三尺——灯照不清影。
 - [5] 抄本师没进去——抄本师说第三间自己会有人照顾——潮数到哪时候他们停——它叫"第三间"。
 - [6] 抄本师写——第三间还在；灯还亮着；它的门不是开的——它是活的——潮候院从未进去——也永远不会。
+
+### Echo 183 · 潮候院北雪线下三间值更屋下面的地窖——抄本师走进去——门开往北海 / The Cellar Beneath the Third Watch Hut Under the Snow Line North of the Institute — the Copyists Stepped In — the Door Opens Toward the North Sea
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 北雪线下第三间值更屋下面——麻石拱顶——门给来的人半盏亮蓝——抄本师进去了——出来后没人问话。
+- [2] 地窖里没有地面——是一层细沙——沙子是温的——抄本师没有鞋——冷要在上——它是盐。
+- [3] 沙子深处有一扇门——麻石——刻了一个字——是"潮"——抄本师没人碰它——它自己动了一下——它不是风。
+- [4] 门打开后——抄本师看见的不是外面——是潮涌——北海不在外面——北海在门里。
+- [5] 门没有威胁——它只是把潮端到脚边——第一个人踏进去——就像雾港第四十三次——没有人回来。
+- [6] 第三间值更屋下面的地窖是不愿意看的北海——潮在里面等——它只是看——它就是北海——它没有名字。
 
 ### Echo 19 · 里巷子的抄本员 / The Copyists of the Back Alley
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
