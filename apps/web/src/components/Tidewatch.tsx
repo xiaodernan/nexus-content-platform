@@ -46,6 +46,11 @@ const COPY: Record<Locale, {
   tipSubmit: string;
   tipVigor: string;
   tipDepth: string;
+  tipDiary: string;
+  diaryButton: string;
+  diaryLoading: string;
+  diaryKicker: string;
+  diaryHonest: string;
   badgeCache: (cached: number, total: number, ms: number) => string;
   honestTitle: string;
   honestBody: string;
@@ -81,6 +86,11 @@ const COPY: Record<Locale, {
     tipSubmit: '落账：真大模型 × 2（读局 + 潮回 ≈ 20–30s）；本地逐字核验后才落盘 delta',
     tipVigor: '体力：每步 ±1–3，夹紧 0–9；太累灯就先替你坐一会儿',
     tipDepth: '潮位：越深，越像是岸上没人说话了——深未必坏事，只代表你离正典更安静一些',
+    tipDiary: '记下这一程——让潮用两句话写下这段路发生过的事（同 /insight 口令 123）',
+    diaryButton: '记述此程',
+    diaryLoading: '潮在为这一程落笔…',
+    diaryKicker: '这一程 ·',
+    diaryHonest: '潮没接上这一程——等潮再退时手记一下',
     badgeCache: (cached, total, ms) => cached > 0 ? `cached ${cached}/${total} · ${ms}ms` : `${total} tok · ${ms}ms · 缓存未命中（如实）`,
     honestTitle: '潮停了',
     honestBody: '这一步没有被记下——provider 没答上来。潮不会编一份像样的回执糊弄你；等潮回来，再落一次账。',
@@ -116,6 +126,11 @@ const COPY: Record<Locale, {
     tipSubmit: 'Record the step: 2 real LLM calls (analyze + narrate ≈ 20–30s); verbatim-guarded before the delta lands',
     tipVigor: 'Vigor: ±1–3 per step, clamped 0–9; rest is also a move',
     tipDepth: 'Depth: the deeper, the quieter the shore — not worse, only nearer to the canon’s silence',
+    tipDiary: 'Record this journey — let the tide write two sentences about what the ledger holds (same /insight passphrase 123)',
+    diaryButton: 'Record this journey',
+    diaryLoading: 'The tide is weighing this journey…',
+    diaryKicker: 'THIS STEP ·',
+    diaryHonest: 'The tide did not pick it up — note it again when the water returns',
     badgeCache: (cached, total, ms) => cached > 0 ? `cached ${cached}/${total} · ${ms}ms` : `${total} tok · ${ms}ms · cache miss (as reported)`,
     honestTitle: 'The tide paused',
     honestBody: 'This step was not recorded — the provider did not answer. The tide will not fabricate a tidy receipt; come back when the water returns.',
@@ -150,6 +165,8 @@ export function Tidewatch({ locale = 'zh', nowIso }: { locale?: Locale; nowIso?:
   const [delta, setDelta] = useState<WorldStepDelta | null>(null);
   const [citations, setCitations] = useState<Citation[]>([]);
   const [badge, setBadge] = useState<string | null>(null);
+  const [diary, setDiary] = useState<string | null>(null);
+  const [diaryPhase, setDiaryPhase] = useState<'idle' | 'loading' | 'honest'>('idle');
 
   useEffect(() => {
     setPersisted(readPersisted(typeof window !== 'undefined' ? window.localStorage.getItem(TIDEWATCH_STORAGE_KEY) : null));
@@ -181,6 +198,8 @@ export function Tidewatch({ locale = 'zh', nowIso }: { locale?: Locale; nowIso?:
     setDelta(null);
     setCitations([]);
     setBadge(null);
+    setDiary(null);
+    setDiaryPhase('idle');
     try {
       const resp = await fetch('/api/ai/world-step', {
         method: 'POST',
@@ -216,6 +235,25 @@ export function Tidewatch({ locale = 'zh', nowIso }: { locale?: Locale; nowIso?:
       setPhase('honest');
     }
   }, [move, phase, locale, persisted, clock, c]);
+
+  const writeDiary = useCallback(async () => {
+    setDiaryPhase('loading');
+    setDiary(null);
+    try {
+      const resp = await fetch('/api/tidewatch/diary', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...csrfHeaders() },
+        body: JSON.stringify({ locale, state: toRequestState(persisted, clock) }),
+      });
+      if (!resp.ok) { setDiaryPhase('honest'); return; }
+      const data = (await resp.json()) as { summary?: string };
+      if (typeof data.summary !== 'string' || !data.summary.trim()) { setDiaryPhase('honest'); return; }
+      setDiary(data.summary.trim());
+      setDiaryPhase('idle');
+    } catch {
+      setDiaryPhase('honest');
+    }
+  }, [locale, persisted, clock]);
 
   return (
     <section className="tw-root" aria-label={c.kicker} data-tidewatch>
@@ -330,6 +368,20 @@ export function Tidewatch({ locale = 'zh', nowIso }: { locale?: Locale; nowIso?:
                   </ul>
                 </>
               ) : null}
+              {diaryPhase === 'honest' ? (
+                <div className="tw-honest" role="alert"><p className="tw-honestTitle">{c.diaryHonest}</p></div>
+              ) : null}
+              <div className="tw-diaryRow">
+                <button type="button" className="tw-diaryBtn" onClick={() => { void writeDiary(); }} disabled={diaryPhase === 'loading'} title={c.tipDiary} data-tidewatch-diary>
+                  {diaryPhase === 'loading' ? c.diaryLoading : c.diaryButton}
+                </button>
+                {diary ? (
+                  <p className="tw-diary" data-tidewatch-diary-summary>
+                    <span className="tw-diaryKicker">{c.diaryKicker}</span>{' '}
+                    {diary}
+                  </p>
+                ) : null}
+              </div>
               {badge ? <span className="tw-badge">{badge}</span> : null}
             </>
           ) : null}
