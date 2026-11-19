@@ -7954,3 +7954,10 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 全 system digest（`155,380 tokens · 138,221 cached · 88.95%`）4× 同一数 — sticky prefix 真实复用（transport.stream=true）
 - Docker 未恢复（engine API 500）→ App Redis 完成缓存 DEGRADED（fail-open）：`hits=0 · misses=5 · stores_failed=5`，不假装命中
 - 详见：`docs/evidence/provider-cache-stable-2026-11-19.md` · 两层缓存分开说明
+
+## cont. 404 (2026-11-19 · 晚) · §IO-LAND ✓ §LINKS ✓ · 个人主页状态固化
+
+- IO 错别字修复持久在位：`卷典籍（去混用的「部」）` · `minicc 提交总数` · 38 外链全 2xx · 4 死链已修（io 公开演示链 · README 私有归档）
+- Pages 指向 `de892dd3`（最新 pointer）· 身份=PASS（赵欣曈 13× · 隐图 0 · 雅思 6.5 ×4 · CET6 546 ×5 · 南科大 / 港中大 / 计科 / 铜牌 / 一等奖二等奖 / 法狗狗全）
+- AI 深读 + 投影推屏（cont.403 以来）继续有效 · fe-gates 1377/1377 绿 · census 2998 · snapshot 1
+- 遗留：Docker down · Redis 黑洞 → app cache DEGRADED；provider live（88.95% KV hit · gpt-6.1-sol）；AI 深读模型输出需要 Docker/Postgres 回来才能走完整路径
