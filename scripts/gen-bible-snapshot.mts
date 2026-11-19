@@ -207,8 +207,9 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E154-祠殿西门门岗上那只只认工位号的账房先生': 'echo-154-the-accountant-who-knows-only-numbers',
   'E155-潮候院钟楼上那只只数完就忘的沙漏': 'echo-155-the-hourglass-that-counts-only-to-ninety-nine',
   'E156-潮候院海岸岩礁上那只只在退潮时睁眼的石魟': 'echo-156-the-stone-ray-that-opens-its-eyes-at-low-tide',
-  'E157-祠殿南廊尽头那只只欠最后一格的盐账': 'echo-157-the-salt-account-at-the-end-of-the-south-cloister',
-  'E158-潮候院那盏从不写名的灯': 'echo-158-the-lamp-that-never-writes-a-name',
+  'E157-祠殿南廊尽头那只只欠最后一格的盐账': 'echo-157-the-salt-ledger-that-always-owes-the-last-entry',
+  'E158-祠殿屋脊上那只只替雷记账的抄本师': 'echo-158-the-copyist-who-keeps-the-accounts-for-thunder',
+  'E159-潮候院那盏从不写名的灯': 'echo-159-the-lamp-that-never-writes-a-name',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
@@ -290,7 +291,8 @@ const chapters: ChapterOut[] = zhFiles.map((zh, i) => {
     eraLineEn: parseEraEn(enLines),
     markdownZh: body(zhLines),
     markdownEn: body(enLines),
-  };
+    'E158-潮候院那盏从不写名的灯': 'echo-158-the-lamp-that-never-writes-a-name',
+};
 });
 
 /** 回响 title 从 EN 首行取": "之后的部分；回响中文章首行有"回响（其N）「title」"，抓最后一个「」 */

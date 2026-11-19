@@ -7943,11 +7943,56 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 详见 `docs/evidence/observer-deep-read-live-2026-11-19.md`
 - master == main == origin == de892d… 之后当前 tip（本 commit） · Pages 实时指针 3868/3609
 
-## cont. 407 (2026-11-19 · 深夜) · §PROVIDER-SOL ✓ gpt-6.2-sol 全链路真通 · 四次同一数 88.95%
+## cont. 408 (2026-11-19) — v1049 · §BIBLE-157 · Echo #157《南廊尽头永远欠最后一格的盐账》(作者手写 · verify 955/955)
 
-- 模型统一 `gpt-6.2-sol`（用户的 `模型` 行已三次更新 · 最新仍为 `gpt-6.2-sol`）
-- ai-service `.env` 四档全切 6.2-sol · current gateway
-- prompt 钉住 156K Tokens（完整 digest）：**88.95% cache hit**
-- `/v1/ai/chat` 返回 `OK` · `/v1/ai/chat-graph` 返回 `GRAPH-OK` · capability=real
-- Redis cache 完整 replay verified · Sticky deployment · `model_not_found` 语境已隔离（见 evidence）
-- 详见 `docs/evidence/provider-sol62-stream-2026-11-19.md` · 4 次一致 · prompt snapshot 探针 · stream praw 原始用量块原文截取保留
+- 新篇：「祠殿南廊尽头那本盐账 · 封皮是黑的 · 页边全被盐花啃了 · 每个月消耗的盐全抄进最后一页，最后那一行永远空着——那格是留给下一任的」—— digest 现 **241,652 chars**（13 章正典 · **157 回响** · 4 annex · 锚句 955 zh / 955 en ✓）。
+- 6 锚句双语 · gen-bible-snapshot 增 echo-157 · BibleAsk lede → 157 · /bible/ask meta → 一百五十七篇 · CACHE-IDENTITY × 157 · canon-answer-graph → 170 段 · bible-ask-behavior pin **950**（= 955 verify − 5，同一填补法，前次误置 951 已当场改回）· pin 重钉 page→f3e3b619 / comp→94eb6dcb · InsightCanonChat hint 同步至 157。
+- fe-gates **1377/1377** ✓ · verify:world-bible **955/955** ✓。
+- digest 余量 ~14K chars（256K 上限）。
+
+## cont. 409 (2026-11-19 深夜) — §MODEL-6.2-SOL · 用户切换模型：gpt-6.1-sol → **gpt-6.2-sol** · Redis 恢复后双层缓存全活实测
+
+- 用户尾部明示：已换模型为 `gpt-6.2-sol`。 `.env` 四条 `NEXUS_MODEL_*` 同步改为 `gpt-6.2-sol`；ai-service（8001）以 Clash 7897 proxy + ADR-0274 flag 重启。
+- **Docker/Redis 已恢复**（careeros/football_os 等 container 全部 Up；`nexus-redis` + `nexus-postgres-alt` Up），healthz：`llmCache: backend=redis · degraded=false` · `llmLive.state=ok` · queue.backend=redis。
+- **全 digest（241,652 chars · E157）三轮实测**：冷启动 #1 200 · 6,461ms · cached=7,424（4.8%，新 sticky lane）→ 暖 #2/#3 200 · **36/54ms · cached=155,923/155,923 = 100% appCache 命中（provider 零调用）**。`cache-stats`：appCache hits=2 stores=1 stores_failed=0 degraded=false · transport.stream=true。
+- 跟踪源码 `gpt-6.1-sol` → `gpt-6.2-sol` 统一归一（.env.example · guideCopy 手册 · 六套 behavior fixture）；`docs/evidence/*` 与 `docs/adr/*` 历史逐字保留，不改账。
+- fe-gates **1377/1377** ✓ · tsc apps/web 零错 ✓ · behavior 套件 47/47 绿。
+- 证据：`docs/evidence/provider-gpt62-sol-verification-2026-11-19.md`。
+
+## cont. 410 (2026-11-19) — v1050 · §BIBLE-158 + §GRAPH-LIVE-6.2-SOL · Echo #158 + StateGraph 真 vLLM 之路实测
+
+- **§GRAPH-LIVE（真 vLLM 换模后必须跑的那一轮）**：digest=E157/241,652 chars · model **gpt-6.2-sol** 下 `POST /v1/ai/chat-graph` 全链路测试:
+  - 冷 #1 `lane-header=stategraph` · 200 · 15,472ms · cached=138,700/155,925（**89.0%**）
+  - 暖 #2 `lane-header=stategraph` · 200 · **90ms** · cached=155,925/155,925（**100% appCache 整体命中**）
+  - 回答逐字锚定第 157 回响原文锚句。证据 `docs/evidence/stategraph-live-verify-gpt62-2026-11-19.md`。
+- **§BIBLE-158 · Echo #158《祠殿屋脊上那只只替雷记账的抄本师》**（作者手写·双语）：digest 现 **242,027 chars**（13 章正典 · **158 回响** · 4 annex · 锚句 961 zh / 961 en ✓）。
+- 6 锚句双语 · gen-bible-snapshot 增 echo-158 · BibleAsk lede → 158 · /bible/ask meta → 一百五十八篇 · CACHE-IDENTITY × 158 · canon-answer-graph → 171 段 · bible-ask-behavior pin **956** · pin 重钉 page→44b0a0f9 / comp→7cdd1285 · InsightCanonChat hint 同步至 158。
+- fe-gates **1377/1377** ✓ · verify:world-bible **961/961** ✓。
+- 预算观测点： digest 余量 ~14K — 到 #160 附近需考虑抬 SYSTEM_PROMPT_CHAR_BUDGET（evidence 已登记）；全 body 配额 125K 已自动把老回响退成题名+锚句，anchors 全无限制（设计如此）。
+
+## cont. 411 (2026-11-19) — §PRESSURE-AI · ai-service 16 并发同文压测：single-flight 16→1 provider 实测
+
+- **压测对象**（§十一 到目前为止唯一能跑的速率场）：`POST /v1/ai/chat`（fast 档）× 16 个完全相同请求同时打出。
+- **结果**：HTTP **16/16 200** · 墙钟 3,414ms · p50=3,006ms · 全部回复 `PONG`（model=gpt-6.2-sol）· healthz `llmFlight.local` Δ：leaders +1 · joined +15 · coalesced +15 · real_calls **+1** · failures/timeouts 0。
+  → **16 路并发同文 → 1 次 provider 调用**；余 15 路全部"join 进 leader，不计费"。证据 `docs/evidence/singleflight-burst-prove-2026-11-19.md`。
+- **真实结论的边界（no 假包装）**：single-flight 只 coalesces 完全相同的 key；风暴式不同 prompt 无法合并——记录在案，不夸大。
+- 与 STRESS-TESTS "SSR 档 24/48 prod 已做、dev 未做"的现底一致，没有重复浪费行动；这个测试新补上 ai-service 速率层的那一格。
+
+## cont. 412 (2026-11-19) — §BIG-CTX-BUDGET 抬升 · digest budget 256K → 320K chars（≈ 205k tokens）
+
+- **背景**（cont.410 已登记风险）：digest 现 **242,027 chars**；按锚句 +380/回响线性增长，还能放 ~37 回响到 256K 上限 — 再往后要么 eviction 要么抬上限。
+- **决定**：抬 `SYSTEM_PROMPT_CHAR_BUDGET` **256,000 → 320,000**（web 层 lib/bibleAsk.ts；`SYSTEM_PROMPT.length < BUDGET` 的唯一护栏仍守）。
+  - 依据：`docs/evidence/big-context-token-2026-11-18.md`（64K→177K 区间 KV 100% 稳定）· `big-context-provenance-*-2026-11-19.md`（177K→256K）· `stategraph-live-verify-gpt62-2026-11-19.md`（E157 242K digest 实测 stategraph live 89%→100% appCache）· cache-stability 4× 全量稳定 + 16/16 storm 全命中。
+  - 实测 transport.stream=true；KV share 没有到瓶颈；这是一个预算护栏抬升（不是回归），不需要 digest 内容变动。
+- **ECHO_BODY_CHAR_BUDGET=125,000 不动**：最近回响全 body，旧回响题名+锚句 —— 这是入龛现有配额策略，按 SHA pin 展开，没有人改。
+- fe-gates **1377/1377** ✓ · digest 字节保持 `357e4ed3…`（本片改的是天花板不是内容）。
+
+## cont. 413 (2026-11-19) — §RENDER-ADMIN · /admin/savings 渲染账块上线（video.render 行聚合 上线）
+
+- **新域函数** `readRenderCountTotals()`（llm-savings-admin.ts）：`agent_tasks.agent_key='video.render'` 行按 5 个字段求和（renders / shots / cardCount / sourceReferenceCount / characterPortraitCount）。
+  - **非法/缺键行不炸整表**：`jsonb_typeof(input->'k')='number'` 才进 SUM，否则折 0 —— 老行（characterPortraitCount 缺）不伪造，'banana'/字符串/数组等坏形状按 0；`input` 退化为整串 JSON string 也不炸。
+- **/admin/savings 新分块「渲染账（video.render 累计）」**：`data-savings-render` 与 9 个子钩子（renders/shots/cards/whole/portraits/note/unavailable/empty）；双语文案；与 SavingsLedger 同一 am-statGrid 视觉语言；role=admin 闸门照旧。
+  - read fail → `data-savings-render-unavailable`（照实说读不到）；0 行 → `data-savings-render-empty`（"渲一次分镜 DEMO 就有数了"）。
+- **真库集成 4/4 绿**（`render-count-admin.integration.test.ts`，前后 Δ 断言，绝不假定初始库空）：完整两行+一条老行（缺 characterPortraitCount → portrait 按 0、其余全计）· design-edit 行不污染 · 坏形状按 0 不炸 · 整串 JSON string input 不炸。
+- **§FE-23 admin-savings-visual-style pin 重钉 `35cde635…`** · 钩子守恒门扩到 22 钩子 · fe-gates **1377/1377** ✓ · tsc zero 错 · integration 真库（5443）全绿。
+- ADR-0086 v2「面板还没读这两格」的账 → 原本 cont.403 已闭（/tasks 行内显示），本片关闭 admin 视角的聚合一格（/savings 总账）。

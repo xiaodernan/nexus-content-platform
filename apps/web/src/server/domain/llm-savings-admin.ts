@@ -102,3 +102,41 @@ function num0(value: string | null | undefined): number {
   const n = Number(value ?? '0');
   return Number.isFinite(n) ? Math.max(0, n) : 0;
 }
+
+/**
+ * video.render 行的渲染账（§40/ADR-0086）：
+ *  shots = 镜头数合计 · cardCount = 色卡占位占比（没有可看的来源）· sourceReferenceCount = 整片那张图补进了多少镜 ·
+ *  characterPortraitCount = character-to-scene 进像素多少镜（2026-11 起记）。
+ *
+ * 老行（cont.401 前）没有 characterPortraitCount：`(input->>'characterPortraitCount')::float8` 是 NULL，
+ * `sum(NULL)` 折进 0——用 "没有" 表达"没记账"，绝不伪造（§3/§159）。失败一律抛错，admin 页面照实说"读不到"。
+ */
+export interface RenderCountTotals {
+  /** video.render 任务行数（每一行 = 一次渲染） */
+  renders: number;
+  shots: number;
+  cardCount: number;
+  sourceReferenceCount: number;
+  characterPortraitCount: number;
+}
+
+export async function readRenderCountTotals(): Promise<RenderCountTotals> {
+  const db = getDb();
+  const [row] = await db
+    .select({
+      renders: sql<string>`count(*)::text`,
+      shots: sql<string>`coalesce(sum(case when jsonb_typeof(${agentTasks.input}->'shots') = 'number' then (${agentTasks.input}->>'shots')::float8 else 0 end), 0)::text`,
+      cardCount: sql<string>`coalesce(sum(case when jsonb_typeof(${agentTasks.input}->'cardCount') = 'number' then (${agentTasks.input}->>'cardCount')::float8 else 0 end), 0)::text`,
+      sourceReferenceCount: sql<string>`coalesce(sum(case when jsonb_typeof(${agentTasks.input}->'sourceReferenceCount') = 'number' then (${agentTasks.input}->>'sourceReferenceCount')::float8 else 0 end), 0)::text`,
+      characterPortraitCount: sql<string>`coalesce(sum(case when jsonb_typeof(${agentTasks.input}->'characterPortraitCount') = 'number' then (${agentTasks.input}->>'characterPortraitCount')::float8 else 0 end), 0)::text`,
+    })
+    .from(agentTasks)
+    .where(eq(agentTasks.agentKey, 'video.render'));
+  return {
+    renders: num0(row?.renders),
+    shots: num0(row?.shots),
+    cardCount: num0(row?.cardCount),
+    sourceReferenceCount: num0(row?.sourceReferenceCount),
+    characterPortraitCount: num0(row?.characterPortraitCount),
+  };
+}

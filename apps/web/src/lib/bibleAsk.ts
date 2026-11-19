@@ -68,7 +68,7 @@ function appendixDigest(app: BibleChapter): string {
 }
 
 // Echoes: 全量正文配额制（newest-first）。zh 正文合计 ≤ 160k chars；装不下的旧篇只留题名 + 中英锚句。
-// 预算常数见 SYSTEM_PROMPT_CHAR_BUDGET（256k chars contract 上限）。
+// 预算常数见 SYSTEM_PROMPT_CHAR_BUDGET（320k chars contract 上限）。
 // 为什么配额制：全部 125 篇正文 ≈ 490k chars（≈330K tokens，已实测装不进 256k 字符契约，也超 provider 窗口）；
 // 最近的《典籍》篇（最近 45–50 篇）是出问答最直接的现场证源，旧篇由锚句覆盖定位即可。
 const ECHO_BODY_CHAR_BUDGET = 125_000;
@@ -135,8 +135,8 @@ export const SYSTEM_PROMPT = [
   CANON_DIGEST,
 ].join('\n');
 
-/** 预算守卫（assert 在测试里跑）：全量正文 + 锚句，总 digest 仍需装进 256k chars（≈ 100-120k tokens）。 */
-export const SYSTEM_PROMPT_CHAR_BUDGET = 256_000;
+/** 预算守卫（assert 在测试里跑）：全量正文 + 锚句，总 digest ≈ 195k-205k tokens，provider KV 全 lane 实测承得下（见 docs/evidence/big-context-provenance* · big-context-token-2026-11-18）。2026-11-19 抬 256→320K（cont.412）。 */
+export const SYSTEM_PROMPT_CHAR_BUDGET = 320_000;
 
 /** 问答用量结构（mock-friendly — 校验跑到测试里）。 */
 export interface BibleAskResult {
