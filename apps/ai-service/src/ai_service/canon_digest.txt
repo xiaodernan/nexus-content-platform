@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 151 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 152 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -2993,6 +2993,14 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 抄本师数过这张桌坐过零个人——但是椅子总有一把会偏——好像刚刚有人坐过。
 - [5] 抄本师发现第六把椅子是新加的——风方门老爷子不知道它从哪里来。
 - [6] 值更册最后一页："它坐了六个人——也才留了一把椅子给你。"
+
+### Echo 152 · 潮候院沉香巷里那只只认自己脸的桥 / The Bridge in the Sandalwood Lane That Only Knows Its Own Face
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 沉香巷里有一只石桥——桥下面是一条静水——桥不跨任何巷子。
+- [2] 抄本师说桥底是它自己的脸——水里照着它——它每天只看水里的它。
+- [3] 过桥的人都在过桥——但是桥不去任何地方。
+- [4] 散会那一夜——桥下倒影变了——它看见一个不是它自己的脸。
+- [5] 值更册最后一页："它只认自己的脸——也只认那天它看过的那张。"
 
 ### Echo 16 · 潮沙盘上那四只小贝壳 / The Four Small Shells on the Tide-Sand Table
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

@@ -7826,3 +7826,10 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - §RAG-LINEAGE：`/api/bible/q` 回真实 top-3 检索依据 + BibleAsk 可折叠检索面板（此前只回 retrieved 计数） · 论坛/admin 不打印用户隐私
 - 路由文案上的 ai-service 端口 3212 → 3200（cont.357 漂移的遗留，pin 重钉）
 - 并行线的 cont.395/396.7 已收入 `661f1be1 / 502fd3e9 / 49eebceb / 1d42a3cf`（/api/bible/q 真 top-3 + stategraph 文案 pin + latest.json 指针）
+
+## cont. 398 (2026-11-19) — v1039 · §BIBLE-152 · Echo #152《只认自己脸的桥》(作者手写 · verify 926/926)
+
+- 新篇：「沉香巷里一座桥 · 它每天只看水里的它 · 散会夜它看见一张不是它自己的脸」—— digest 现 **239,665 chars**（13 章正典 · **152 回响** · 4 annex · 锚句 926 zh / 926 en ✓）。
+- 5 锚句双语 · gen-bible-snapshot 增 echo-152 · BibleAsk lede → 152 · /bible/ask meta → 一百五十二篇 · CACHE-IDENTITY × 152 · canon-answer-graph → 165 段 · bible-ask-behavior pin 921 · pin 重钉 page→3387d20b / comp→d9cbf869 · InsightCanonChat hint 同步至 152。
+- §PROOF-V1037 同期一字不差实测：Clash 代理直打 · tokensIn=154,408 · 首发后 date 144,977 cached tokens (93.9%) · 连续 3 次稳定住同值 · provider 真通 True gap of §CACHE-4；详细见 `docs/evidence/probe-v1037-2026-11-19.md`。
+- fe-gates **1377/1377** ✓ · verify:world-bible 926/926 ✓。
