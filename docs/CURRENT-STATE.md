@@ -7961,3 +7961,15 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - Pages 指向 `de892dd3`（最新 pointer）· 身份=PASS（赵欣曈 13× · 隐图 0 · 雅思 6.5 ×4 · CET6 546 ×5 · 南科大 / 港中大 / 计科 / 铜牌 / 一等奖二等奖 / 法狗狗全）
 - AI 深读 + 投影推屏（cont.403 以来）继续有效 · fe-gates 1377/1377 绿 · census 2998 · snapshot 1
 - 遗留：Docker down · Redis 黑洞 → app cache DEGRADED；provider live（88.95% KV hit · gpt-6.1-sol）；AI 深读模型输出需要 Docker/Postgres 回来才能走完整路径
+## cont. 405 (2026-11-19 · 深夜/凌晨) · §CACHE-STABLE ✓✓✓ Docker 恢复 → 两层缓存全活
+
+- **Docker Desktop 恢复**（engine 29.9.3）：`nexus-redis` Up · `nexus-postgres-alt` Up :5443
+- `redis-cli PING → PONG · pg_isready → accepting`
+- ai-service 重启（pid 15024 · 无 `AI_SERVICE_ALLOW_DEGRADED_STORE` · 无 `AI_SERVICE_REQUEST_TIMEOUT_S` 改动除原有默认60s）：
+  - `queue.backend=redis` ✅
+  - `llmCache: backend=redis · hits=4 · stores=4 · stores_failed=0 · degraded=false` ✅
+  - `llmLive: state=ok` ✅
+- 4× 顺序 digest 请求实测：**#1–4 冷 88.95% → #5–8 热 100.00%**
+- 两层缓存分别：provider prompt KV `reportedHitRate=0.9448` (8 报全覆盖)；app Redis completion cache 第一次完整命中（`hits=4`，命中 `(model, system, user)` 完整键，命中 4/8 累计）
+
+**缓存命中率问题彻底闭环**：你贴的 25-question prompts probe / 16 路并发 storm 那次的证据 (`docs/evidence/cache-stability-2026-11-19.md`) **没作废**——数据稳定，report 没有伪造；Docker 宕机时只是把 appCache 写死成 fail-open。
