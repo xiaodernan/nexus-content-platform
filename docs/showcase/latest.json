@@ -1,9 +1,9 @@
 {
   "schema_version": "nexus-content.latest.v1",
-  "generated_at": "2026-11-19T14:55:18.345Z",
+  "generated_at": "2026-11-19T15:17:42.338Z",
   "branch": "main",
-  "head": "fdedeed",
-  "total_commits": 3790,
+  "head": "ae5a693",
+  "total_commits": 3802,
   "first_commit_at": "2026-09-22",
   "adrs": 354,
   "contracts": 16,
