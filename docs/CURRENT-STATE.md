@@ -8182,3 +8182,25 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 语言区双语 v1；无 readme-stats 外链；i18n EN twin 自带 refresh 叙事
 - 同一份 stash-merge 自动融合后 push，master `0af3d8b`
 - Pages dispatch 204（3 秒后自托管 windows runner 跑 identity-guard → deploy 成功）
+
+## cont. 429 (2026-11-19) — §IO-VERIFIED-LIVE ✓ 完成:公网 v1056 实印直达 · E164 live
+
+- 公网 `xiaodernan.github.io` 直连读取（burst-tested 3 次）确认：
+  - **oracle-strip now v1056**（anchor `崖顶的风碑——只记风——不问风来处——零字不敢动`）· quote + cite
+    - 引用字体 Noto Serif SC、translate-word en
+    - meta-cert cite updates to 244,945 digest / 164 回响 / 996 anchors
+    - 164 回响 folio on GOLD chip (satchel)
+    - Tide Witness meta chip 整页 life
+  - **GitHub 真实数据 panel**（公开）quantified：
+    - `TypeScript 31.95 · Python 24.85 · JS 19.44 · HTML 12.41 · Java 8.93 · CSS 1.52` → 138.21 MB · 18 languages · 14 orig + 2 fork repo set
+    - no GitHub-readme-stats images
+    - no NaN anywhere (longbars values all real)
+  - **头像 415×492** natural，无压缩/裁剪——在 profile-frame 渲染 ~281×333 px
+  - 20 "账号仓库" label note continues (16 公开 + 4 私有 confusion)：hero howto EN-mode 译"4 private"，index-stats caption exact"
+- **"most used languages" 在英文 twin 里也显示同样的 numbers**：100% match both sides（identity-guarded）
+- **dispatch**：Pages `0af3d8b` after push now live (75 earlier dispatch picked up new master)
+- **Dev server 25488** 稳、/insight 200 · /tidewatch 200 · /bible/ask 200 · /onboarding 200 · /guide 78K · /search 25K
+- **Digest sha** = `932c53b1a2de...` (E164 live line 3111)
+
+Reported upstream to `docs/evidence/liveness-sweep-2026-11-19.md`（cont.429 对应项）。
+回去继续。
