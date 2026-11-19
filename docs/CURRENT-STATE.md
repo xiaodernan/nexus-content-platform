@@ -7914,3 +7914,9 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - **界面** `TasksLedgerLive.tsx`：video.render 行的意图列下方显示 `镜数 N · 时长 · 色卡 x · 整片那张 y · 角色肖像 z`（中英双语同源；`data-task-render` 钩子 +15 系 · SHA pin 重钉 **2524d27c…**；§FE-23 门全绿，12 门→13 门重钉）。
 - **验证（如实）**：tasks-ledger 新增 5 用例（完整收下 / 老行可选 / 缺格判不合 / 负小数判不合 / 多余键不回流）· tasks-visual-style 全绿（含 SHA pin 重钉）· realtime-reconnect 绿 · `tsc --noEmit` 零错 · fe-gates（`*-visual-style|*-behavior`）**1377/1377** 不变（此门不数 tasks-ledger，已用直跑 vitest 验证 48/48 绿）。
 - ADR-0086 补记 v2 里「面板还没读这两格」的账 → 本片关闭。
+## cont. 401 (2026-11-19 / 深夜) · §ENV-DOWN ⚑ docker + provider 仍未恢复 · 记录现状非修复宣称
+
+- **provider**（api.aizzz.xyz / GPT特价 · gpt-6.1-terra）：07:30 实测真通，~10:00 起 503 model_not_found「无可用渠道（distributor）」，直连与代理同失败；后续传输层即 HTTP 000。任何 LLM 路径按 §159 fail-closed，绝不编答案
+- **Docker Desktop**（engine API 一路 500）：nexus-redis-blackhole + Nexus postgres (127.0.0.1:5443) 皆可连端口、永不回包
+  - `mvn test`（&.jar--java-domain-service）：**Tests run: 175, Failures: 0, Errors: 0, Skipped: 2 · BUILD SUCCESS**（skips = DB/Redis 真服务 gated：`AiHealthBreakerOpenTest` + `WirePublisherRoundTripTest`）
+- 本轮无可交付的真测——只能用有库/有服务的机器补齐；不在本机假装全绿
