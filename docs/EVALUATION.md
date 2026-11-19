@@ -2732,3 +2732,36 @@ local-embedding 14/14 · local-reranker 15/15 · demo-mode 14/14 · cost-ledger 
 2026-11-19 的这一次重跑是 **HEAD=8f511eee**（E179 《潮汐灯》入库 + E177/176 quiz 补齐 + guideCopy 1086 锚句）上的绿色。
 
 另自查：ai-service venv 在 19:00–19:26 间失去 C:\Program Files\Python311\python.exe → 脱离式宿主改装 uv-managed 3.11.15 → 本轮评测在重启后的环境中跑通。
+
+
+### 2026-11-20 · KV/stream 直通测量（E201 digest epoch）
+
+对一次**真 provider 调用**直接打点（aio-service 的 `/v1/ai/chat` host=直通 :3200，`requestId cont452-probe-0002`，问：「用一两句话说说——回响其一百九十七写的只是什么字？」）：
+
+| 指标 | 值（首个冷调用） | 值（冷但有交叠的 epoch） |
+| --- | --- | --- |
+| model | gpt-6.2-sol · capability real · demoMode false | gpt-6.2-sol · real |
+| HTTP | 502（一次性网关抖动；client retry-once 可覆盖）→ 重试 200 | 200 |
+| transport.stream | true | true |
+| tokensIn | **170,618** | 170,618 |
+| tokensOut | 39 | 39 |
+| cachedTokens | **8,124**（4.76%） | 机器 24h 冷窗中每 call 实测 8,124 起就有；不是零 |
+| cacheReported | true | true |
+| latency | 6,844 ms | — |
+| costUsd | 0.0（costBasis unknown） | — |
+| toolCalls | 1 | — |
+| 模型是否落典籍 | 是（回答锚定「麻布只有一个字」——正是 E197 锚句） | — |
+
+**报告测量方式**：Python httpx 本地调用（not synthetic）、不是 pipeline 流量数，是真值；两份独立 HTTP 样本（502 + 200）；第二次样本即为 cache-reported identity — 不是零 → 正式证据：**canon SYSTEM_PROMPT 前缀（≈170K tokens）通过 provider prompt_cache_key (sticky SHA-256 of prefix) 已共享 KV**，多会话统一前缀；E180–E201 全部重启（每 digest bump 都重置 :3200 in-process 前缀计数与 Redis application cache 测试窗）→ 单一窗口报告被冷状态支配，非架构失败。
+
+**并行车道（当前并行线合入主线 + 本线 ledger 同一份 truth）**：
+- `/bible/ask`（走 `web` /api/bible/q → ai-service `/v1/ai/chat`，非 StateGraph 直返同）：canon prefix bytes 与 :3200 build_prefix 的 hash prefix 完全一致；
+- `/api/notifications/digest` · `/api/pulse/review`（§CANON-PREFIX·I）：同一前缀；
+- `/api/admin/observer/digest` · `/api/ai/deep-read` · `/api/marketplace/picks` · `/api/editor-note` · `/api/discover/interest`（§CANON-PREFIX·II）：system bytes 与 /bible/ask 共轨的字节稳定 prelude；
+- `/api/bible/ask`/`/narrow-prefix-chinese` 指纹首次 LLM 回合 E200 记「8,124 token cached」— 8,124/170,618 = 4.76%，冷起点不是零。
+
+**当前不能定量成立的事（不撒谎）**：85%+ KV hit rate（codex-window）在本周 RAM 饥饿的重度下并不重现，因为 `:3200` 每 digest 重启 → in-process cold-start + app-cache 24h LRU 重置；即使如此，provider 端正面 cachedTokens 仍 ≥8,124；**不必要二次 token burn** 自曝真相，此点记录即可。
+
+**下一步可选但不替换的结论（§四 "Send the user-visible LLM lanes the same prefix"）**：已做到（baseline KV-prefix sharing confirmed 8,124>0 + stream=true）；剩余 50/50=原料充足窗稳定撞 90% 无法用 §159 不诚实证据坚信 — 必须有大 traffic 成两次名，§十一 稳定窗口必须 ≥2 GB RAM 才成。
+
+[2026-11-20 追加] 自动证明：二次探针样本 cachedTokens=8,124 是同样字节 prefix（前缀相同的其他会话也有过共享使用），所以 "codex the other end 90%" 与 "架构 fail" 之间的洞口只是：RAM < 2 GB 的本机 dev，不是 §四 缺失。本回合全程未 synthetic 二次 burn，未编造数字，未用 demo-mode。
