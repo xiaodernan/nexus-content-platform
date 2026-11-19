@@ -8445,3 +8445,16 @@ feat(§BIBLE-193 · §GUIDE-193): Echo #193《潮候院东门抄本师第一次�
 - **Pages CDN** 采纳 v1063 → v1086 仍按 3h cron `17 */3 * * *` 自带；从未 force-dispatch
 - **麻布弧**闭合（E197→E200 起源麻布→自问→坐三日→日日百日）：潮候院被它最旧的一件东西关成一个环 —— 下一步不是续写该弧
 - **CURRENT-STATE.md 未在 E194–E200 各首推时写**——按 append-only 纪律补记于此（不伪造时间戳、不自美化历史账）
+
+
+## cont. 452 (2026-11-19) — §CANON-PREFIX·II 双线撞车事件 · 完整记录
+
+- **背景**：本 session 独立对 web 侧 LLM 车道做了一次审计，发现 5 条用户可见路由仍把 variable JSON 塞进 system（KV 前缀不可共享、上下文过小）——editor-note / marketplace-picks / discover-interest / ai-deep-read / admin-observer-digest。本 session 已在本地完成重构（system = canonPrelude + 角色/纪律，JSON 移入 user；解析器/LRU key/disclaimer 不动），并跑完 web tsc `--noEmit` 0 errors、 digest 邻接套件 **12/12 绿**（cwd 纪律：必须从仓根跑 vitest，visual-style 套件按 `apps/web/src/...` 相对路径找 page.tsx）。
+- **撞车事实**：在同一时间，parallel line 已推送 **`877a6338` §CANON-PREFIX·II** — 同样的 5 条路加上 **bible whisper/witness** 的整套处理，且其做法有一处设计上的优于我想象：把 canonPrelude 注入 whisperCanon.ts 内部，使 per-(file,locale) 前缀逐字节稳定且跨章节共享全典 KV 轨道（而不是我设想的“节选 scoped 不动 + 全典外置”）。并行线报告 fe-gates **1396/1396 ✓ · typecheck ✓**（本 session 未独立跑 full fe-gates；仅跑 tsc 0 与 digest 邻接 12/12，结果一致）。
+- **决策（§二 并轨纪律）**：
+  - `git stash` 本地重复实现 → `git pull --no-rebase origin main` → 跨 diff 逐文件比对：架构完全等价（我的 zh/en payload label 文案不同但字节稳定；角色/纪律同结构；disclaimers、LRU key、解析器、输出契约不变）——**没有任何必须保留的独有价值** → **stash drop**（时间戳留档：stash@{0} = 8744a651）
+  - whisperCanon 的 canon-prelude-inside 方案被采纳为定界设计；observer/deep-read/picks/editor-note/interest 的结构体隔离与 pulse/review 口径一致
+- **附加修正（本 session）**：`canonPrefix.ts` 头注释中 “259K chars” 去数字化（每次 digest 增长都会让数字过期，改为“chars 数见 generated.ts”）— 避免未来再次失真；**不涉及行为变更**。
+- **本地验证（合流后树）**：`:3100 / · /admin/observe · /guide` HTTP 200 · web `tsc -p tsconfig.json --noEmit` **exit 0** · `npm exec vitest run test/bible-ask-behavior.test.ts test/bible-ask-visual-style.test.ts` **12 passed**（cwd=仓根）
+- **诚实欠条**：未独立跑并行线的完整 fe-gates；未对 5 条路做真 provider 调用（token 昂贵，结构等价以 tsc + suite 为据）；observer/deep-read 的 LRU 缓存行为与契约未被任何测试锁住，只被代码审查与类型守住。
+- **教训（写入共享记忆）**：在提交前跨 lane 检查 origin 是硬纪律——本次 fetch→stash→pull→diff→drop 顺序避免了一场破坏性覆盖提交；“两 session 同题写”的预防措施是 push 前先 `git rev-list --count HEAD..origin/main`，本次审计也是在 push 前遇到撞车。

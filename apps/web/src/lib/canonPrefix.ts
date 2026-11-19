@@ -3,7 +3,7 @@
  *
  * 为什么需要它：
  *   模型不需要记住 git log——它需要知道**自己是什么平台、在讲什么样的世界**。
- *   字节稳定的 259K chars canon 前缀（与 /bible/ask 同源）同时兼任：
+ *   字节稳定的 canon SYSTEM_PROMPT（与 /bible/ask 同源，chars 数见 generated.ts）同时兼任：
  *   1. 世界身份：模型知道 NEXUS 是个"潮汐教团 + 潮候院"世界观的平台，
  *      它生成的每一句——观察建议、收件箱摘要、分析叙事——都自带平台语气；
  *   2. 缓存前缀：同一段前缀打进 provider，prompt-cache KV 命中率与
