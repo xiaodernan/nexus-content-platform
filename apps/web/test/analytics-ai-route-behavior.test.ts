@@ -48,9 +48,9 @@ vi.mock('../src/server/ai/client', () => ({
         requestId: 'analytics-ai-test',
         capability: 'real' as const,
         provider: 'openai-compatible',
-        model: 'gpt-6.1-terra',
+        model: 'gpt-6.1-sol',
         text: '① 事实：这一版访客 780，38% 来自 bot。② 数字说：这一版的标题嵌了"夹具"不具体。③ 单个动作：先把标题改短。',
-        usage: { tokensIn: 3000, cachedTokens: 1800, cacheReported: true, tokensOut: 80, provider: 'openai-compatible', model: 'gpt-6.1-terra', modelClass: 'fast', latencyMs: 2500, demoMode: false, costBasis: 'unknown', toolCalls: 0, costUsd: 0, reasoningTokens: 0 },
+        usage: { tokensIn: 3000, cachedTokens: 1800, cacheReported: true, tokensOut: 80, provider: 'openai-compatible', model: 'gpt-6.1-sol', modelClass: 'fast', latencyMs: 2500, demoMode: false, costBasis: 'unknown', toolCalls: 0, costUsd: 0, reasoningTokens: 0 },
       },
     };
   },
