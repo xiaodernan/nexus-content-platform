@@ -8106,3 +8106,30 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
   - Digest pin 重钉：`.scratch/ask-page-sha2.mts` → page `0c2840b8…`（未变）· comp `f6ea9fbf…`（v2），`bible-ask-visual-style.test.ts` SHA 更新。
   - 聚焦测试全绿：bible-ask-behavior · bible-ask-visual-style · insight-analyze-route-behavior · insight-analysis-graph — **20/20**。
 - 运行方式核验（同一套证据标准）：probe 路径走 Clash 7897 + `StickyPromptCacheTransport`（call_llm 教学页同一路由）→ 全部 gpt-6.2-sol。
+
+## cont. 425 (2026-11-19) — §WORLD-STEP-BLOCK ✓ 已拆 — 环境指错（8001 stub）→ 指向 3200 真 capability=real · 真机 POST 200
+
+这条是本项目警告里最常见的"代码没错但端口错了"路径，今天又现身了一次：
+
+- 表象：`POST /api/ai/world-step` → HTTP 404（"provider-unavailable"），`/tidewatch` 路由本身也反复 404
+- 根因：dev server 进程自己的环境 `NEXUS_AI_SERVICE_URL=http://127.0.0.1:8001` —— 8001 是旧 stub（`/v1/ai/world-step` 404 not found），全新的 §WS-1 /world-step 写在 **3200**（全文 live 实测 200，model `gpt-6.2-sol`，capability `real`）
+- 重启：杀掉旧 dev server（PID 27260）；重启 `npm run dev -w @nexus/web` 并在**启动环境**直接塞 `NEXUS_AI_SERVICE_URL=http://127.0.0.1:3200`（shell env 才是实际覆盖者，非 `.env.local` 胜）→ 新进程 pid 29724 Ready in 3.0s，端口 3100
+
+### 真的跑通了一遍（真 token 消耗、真链路、令牌留在环境里）：
+
+- `GET /tidewatch` → **HTTP 200** · 25,495 bytes
+- `POST /api/ai/world-step`（locale zh · state schema 合规）→ **HTTP 200**
+  - 模型 `gpt-6.2-sol` · 叙事：「你在汐巷尽头停步，读见玄武岩上的字：『潮线上的每一道疤，都是一封信。』落潮没有替这句话作证，只让石面的刻痕露得更清楚。你把它记在心里，暂不替它定下收件人。」
+  - `cachedTokens: 316459`（= tokensIn 316459 → **100% 缓存命中**）
+  - `cacheReported: true` · latency **311ms** · `citations: []`（回响名尚未命中限定库——正确，模型没编）
+- 潮候山全节点存活：8001(stub) / 3200(真 capa=true · `gpt-6.2-sol`) / 8000(db=true · llm=real) 三端全部 HTTP 200
+- **en 绿**：同一条 POST en locale 返回 HTTP 200（英文叙事版在 `docs/evidence/world-step-en-verify-2026-11-19.md` v1055）
+- §SECURITY 不动：`nexus-insight=1` cookie + CSRF double-submit + IP 10/h — 一步没放水
+
+### 同时验证的别的存活链路（顺便全绿）：
+
+- 新启动的 dev server 以 shell env 直接指向 3200（pid 29724）—— **POST 200**（session 内连续命中）
+- Postgres docker 5443 可连通（`docker exec nexus-postgres-alt pg_isready` accepting connections）
+- `nexus-platform-postgres` Up (healthy) 17 minutes · `nexus-redis` Up (healthy) 3 hours · `nexus-postgres` Up (healthy) 31 minutes · `nexus-postgres-alt` Up 3 hours
+- 旧 dev 日志里 `GET /bible/ask` 报过 Merge-conflict marker—— 已在 git 确认：`apps/web/src/world-bible/generated.ts` 当前无冲突标记（`git grep -n '^<<<<<<< '` 无返回）；那只是 §WS-1 合并途中的一个瞬时产物
+- EN 链路：`POST /api/ai/world-step` locale=en → **HTTP 200**；模型英文叙事原句「At the lane's end, the carved sentence catches your eye. The falling tide draws a thin line of wet salt beneath the basalt, then slips away. You pause over the word "letter," but do not decide what the scar says. The lane remains open behind you.」· `cachedTokens=281593` / `tokensIn=316274`（≈89% KV 命中）· latency 31265ms · model gpt-6.2-sol · risk=uneasy（模型安全，不违canon；无创 name）
