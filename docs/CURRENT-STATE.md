@@ -7906,3 +7906,10 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 与并行线 cont.399 记述一致（07:30 曾真通 · 10:00 起全灭）；本会话更早的探针（tokensIn=154,891 · cached=145,483 · 93.9%）是在渠道被撤之前测得的，两者都如实留档。
 - 用户侧动作：登录服务商后台检查「分组 GPT特价」→ gpt-6.1-terra 的渠道 / 配额 / key 状态；渠道恢复后 ai-service 重启复位即可继续 LLM 车道。
 - 该事件不影响本片落地的能力面：character-to-scene 进像素是纯本地确定性推演（DEMO 标识不变）。
+
+## cont. 401 (2026-11-19 / 深夜) · §ENV-DOWN ⚑ docker + provider 仍未恢复 · 记录现状非修复宣称
+
+- **provider**（api.aizzz.xyz / GPT特价 · gpt-6.1-terra）：07:30 实测真通，~10:00 起 503 model_not_found「无可用渠道（distributor）」，直连与代理同失败；后续传输层即 HTTP 000。任何 LLM 路径按 §159 fail-closed，绝不编答案
+- **Docker Desktop**（engine API 一路 500）：nexus-redis-blackhole + Nexus postgres (127.0.0.1:5443) 皆可连端口、永不回包
+  - `mvn test`（&.jar--java-domain-service）：**Tests run: 175, Failures: 0, Errors: 0, Skipped: 2 · BUILD SUCCESS**（skips = DB/Redis 真服务 gated：`AiHealthBreakerOpenTest` + `WirePublisherRoundTripTest`）
+- 本轮无可交付的真测——只能用有库/有服务的机器补齐；不在本机假装全绿
