@@ -27575,6 +27575,180 @@ At last the copyists memorized all forty-two tide-marks in their hearts — the 
 `,
   },
   {
+    order: 207,
+    slug: 'echo-207-three-of-one-hands',
+    titleZh: '潮候院抄本院荒年冬天抄本师们读出四十二道潮印里有三道是一个人写的',
+    titleEn: 'Forty-Two Tide Marks — Three Are the Hand of One Person',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第一百四十年。',
+    eraLineEn: 'Era: the Institute — after the 44th Convocation; the one hundred and fortieth year after the 44th Convocation.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 207): Forty-Two Tide Marks — Three Are the Hand of One Person
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院抄本院荒年冬天五个抄本师共读四十二道潮印时——第8道、第17道、第29道都是同一个笔迹——潮候院抄本院潮候院潮候院抄本院抄本师都没有说话——
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel — it is another layer of grain the salt grew on the same stone —
+> Written for the week in the barren winter when all five copyists suddenly noticed — the eighth mark, the seventeenth mark, the twenty-ninth mark — all three are the same hand — no one said anything —
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第一百四十年。
+> Era: the Institute — after the 44th Convocation; the one hundred and fortieth year after the 44th Convocation.
+
+---
+
+## 一 · 第三周
+
+潮候院抄本院荒年冬天第三周——抄本院潮候院抄本院——潮候院抄本师都不说话——
+
+**锚句**：潮候院抄本院荒年冬天第三周——抄本院潮候院抄本院——潮候院抄本师都不说话——
+**Anchor sentence**: the third week of the barren winter — the Institute of the Institute — the copyists said nothing —
+
+---
+
+## 二 · 第八道
+
+潮候院抄本师他们停在第八道上——潮候院那是一道圆——笔力深——
+
+**锚句**：潮候院抄本师他们停在第八道上——潮候院那是一道圆——笔力深——
+**Anchor sentence**: the copyists stopped at the eighth mark — a deep circle — a heavy stroke —
+
+---
+
+## 三 · 第十七道
+
+抄本院抄本师他们发现第十七道也是同一个——抄本院潮候院潮候院——
+
+**锚句**：抄本院抄本师他们发现第十七道也是同一个——抄本院潮候院潮候院——
+**Anchor sentence**: the copyists found the seventeenth mark is the same — the Institute — the Institute —
+
+---
+
+## 四 · 第二十九道
+
+潮候院抄本师他们发现第二十九道也是同一个——潮候院抄本师没有人发出声——
+
+**锚句**：潮候院抄本师他们发现第二十九道也是同一个——潮候院抄本师没有人发出声——
+**Anchor sentence**: the copyists found the twenty-ninth mark is the same — no copyist uttered a sound —
+
+---
+
+## 五 · 猜
+
+抄本院抄本师他们坐在那里猜——潮候院抄本院抄本师他们——潮候院——
+
+**锚句**：抄本院抄本师他们坐在那里猜——潮候院抄本院抄本师他们——
+**Anchor sentence**: the copyists sat there guessing — the Institute's copyists guessing —
+
+---
+
+## 六 · 没有第二个手
+
+潮候院抄本院抄本师——潮候院——潮候院抄本师——潮候院——
+
+**锚句**：潮候院抄本院抄本师——潮候院——潮候院抄本师——
+**Anchor sentence**: the Institute's copyists — the Institute — the Institute's copyists —
+
+---
+
+## 七 · Mapping（Echo No. 207 → world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the third week · the same hand on marks 8, 17, 29 · the silence | 一、二、三、四、五、六 |
+| geography | the Institute's deepest tier · the copyists' hall | 一、五 |
+| characters | the five copyists · the same hand (unnamed) · the Institute (unnamed) | 一、二、三、四、五、六 |
+| story | the discovery of the single hand · Echo No. 207 | 全篇 |
+| items | the pillar · the tally-book · the three marks | 二、三、四 |
+| history | the 140th year after the 44th Convocation | 一、五、六、七 |
+
+> 潮候院抄本院荒年冬天抄本师们读出四十二道潮印里有三道是一个人写的——潮候院潮候院——潮候院抄本院潮候院——
+> In the barren winter they heard one hand on marks eight, seventeen, twenty-nine — the Institute — the Institute —
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其二百零七）「潮候院抄本院荒年冬天抄本师们读出四十二道潮印里有三道是一个人写的」
+
+> An echo is not a sequel — it is another layer of grain the salt grew on the same stone —
+> Written for the week in the barren winter when all five copyists suddenly noticed — the eighth mark, the seventeenth mark, the twenty-ninth mark — all three are the same hand — no one said anything —
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院抄本院抄本师荒年冬天第三周——第八道、第十七道、第二十九道都是一个人写的——潮候院抄本院潮候院潮候院抄本师都没有说话——
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 44th Convocation; the one hundred and fortieth year after the 44th Convocation.
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第一百四十年。
+
+---
+
+## I · The Third Week
+
+The third week of the barren winter — the Institute of the Institute — the copyists said nothing —
+
+**锚句**：潮候院抄本院荒年冬天第三周——抄本院潮候院抄本院——潮候院抄本师都不说话——
+**Anchor sentence**: the third week of the barren winter — the Institute of the Institute — the copyists said nothing —
+
+---
+
+## II · The Eighth Mark
+
+The copyists stopped at the eighth mark — a deep circle — a heavy stroke —
+
+**锚句**：潮候院抄本师他们停在第八道上——潮候院那是一道圆——笔力深——
+**Anchor sentence**: the copyists stopped at the eighth mark — a deep circle — a heavy stroke —
+
+---
+
+## III · The Seventeenth Mark
+
+The copyists found the seventeenth mark is the same — the Institute — the Institute —
+
+**锚句**：抄本院抄本师他们发现第十七道也是同一个——抄本院潮候院潮候院——
+**Anchor sentence**: the copyists found the seventeenth mark is the same — the Institute — the Institute —
+
+---
+
+## IV · The Twenty-Ninth Mark
+
+The copyists found the twenty-ninth mark is the same — no copyist uttered a sound —
+
+**锚句**：潮候院抄本师他们发现第二十九道也是同一个——潮候院抄本师没有人发出声——
+**Anchor sentence**: the copyists found the twenty-ninth mark is the same — no copyist uttered a sound —
+
+---
+
+## V · They Sat and Guessed
+
+The copyists sat there guessing — the Institute's copyists guessing —
+
+**锚句**：抄本院抄本师他们坐在那里猜——潮候院抄本院抄本师他们——
+**Anchor sentence**: the copyists sat there guessing — the Institute's copyists guessing —
+
+---
+
+## VI · No Second Hand
+
+The Institute's copyists — the Institute — the Institute's copyists —
+
+**锚句**：潮候院抄本院抄本师——潮候院——潮候院抄本师——
+**Anchor sentence**: the Institute's copyists — the Institute — the Institute's copyists —
+
+---
+
+## VII · Mapping（Echo No. 207 → world model）
+
+| Dimension | Value | Mapping |
+| --- | --- | --- |
+| lore | the third week · the same hand on marks 8, 17, 29 · the silence | I, II, III, IV, V, VI |
+| geography | the Institute's deepest tier · the copyists' hall | I, V |
+| characters | the five copyists · the same hand (unnamed) · the Institute (unnamed) | I, II, III, IV, V, VI |
+| story | the discovery of the single hand · Echo No. 207 | Full |
+| items | the pillar · the tally-book · the three marks | II, III, IV |
+| history | the 140th year after the 44th Convocation | I, V, VI, VII |
+
+> 潮候院抄本院荒年冬天抄本师们读出四十二道潮印里有三道是一个人写的——潮候院潮候院——潮候院抄本院潮候院——
+> In the barren winter they heard one hand on marks eight, seventeen, twenty-nine — the Institute — the Institute —
+`,
+  },
+  {
     order: 21,
     slug: 'echo-021-the-seven-lamps-of-the-back-alley-pier',
     titleZh: '里巷子码头的七盏号灯',

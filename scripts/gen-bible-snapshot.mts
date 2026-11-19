@@ -257,6 +257,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E204-潮候院抄本院抄本师第一次数那一条带子它不是抄本院的': 'echo-204-the-ribbon-not-the-copyists',
   'E205-潮候院抄本院抄本师第一次看懂那一条带子上写着什么': 'echo-205-the-ribbon-read-by-water-shine',
   'E206-潮候院抄本院荒年冬天抄本师们终于把四十二道潮印都读完了': 'echo-206-hollow-winter-five-copyists',
+  'E207-潮候院抄本院荒年冬天抄本师们读出四十二道潮印里有三道是一个人写的': 'echo-207-three-of-one-hands',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
