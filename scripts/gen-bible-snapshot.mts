@@ -213,6 +213,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E160-值更室墙上那张只印半个潮的挂历': 'echo-160-the-wall-calendar-that-prints-only-half-the-tide',
   'E161-潮候院前院那棵只收落叶的信树': 'echo-161-the-letter-tree-that-sends-leaves-to-the-night',
   'E162-潮候院那盏从不写名的灯': 'echo-162-the-lamp-that-never-writes-a-name',
+  'E163-值更室里那面只看雨不看人的旧铜镜': 'echo-163-the-brass-mirror-that-only-watches-rain',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

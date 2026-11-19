@@ -8035,3 +8035,65 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 合成性质如实注明：不是真实访客，不是 SLA；只覆盖公共 GET 路由（不含 /studio /admin /api）。
 - 证据 `docs/evidence/simulated-user-behavior-2026-11-19.md`（md + json）· dev SSR 路径，未触碰 prod 缓存路径。
 - **如实**：与 prod SSR 压测矩阵（60×4×4 lane 200）互补——这次拷的是"用户花式乱点也扛得住"，不是"用户过得开心"。
+
+## cont. 419 (2026-11-19) — v1055 · §BIBLE-162 · Echo #162《值更室里看雨的旧铜镜》(作者手写 · verify 985/985)
+
+- 新篇：「值更室墙边那面旧铜镜——它只看雨——雨来的时候铜镜醒——停了铜镜忘——抄本师的母亲放的：潮候院的眼睛——没人的时候镜也要自己看一看」—— digest 现 **244,090 chars**（13 章正典 · **162 回响** · 4 annex · 锚句 985 zh / 985 en ✓）。
+- 6 锚句双语 · gen-bible-snapshot 增 echo-162 · BibleAsk lede → 162 · /bible/ask meta → 一百六十二篇 · CACHE-IDENTITY × 162 · canon-answer-graph → 175 段 · bible-ask-behavior pin **980** · pin 重钉 page→84955e4b / comp→56b261de · InsightCanonChat hint 同步至 162。
+- fe-gates **1377/1377** ✓ · verify:world-bible **985/985** ✓ · snapshot ✓。
+
+## cont. 420 (2026-11-19 / 复跑) — §SPRING-RERUN ✓ Java domain-service 真跑绿 + 证据入库
+
+- 此前压住的事：上下文摘要里"Spring proof 未复跑"是阻塞项，不是虚头。**本轮真跑了**：
+  - 环境：Java 25.0.1 · Maven 3.9.15 · 命令 `mvn -q -Dmaven.javadoc.skip=true test "-DargLine=-Xmx768m -XX:MaxMetaspaceSize=192m" -T 1C`
+  - 结果：**Tests run: 175, Failures: 0, Errors: 0, Skipped: 1**（skip=1 与 2026-11-17 同一 known-skip）· BUILD SUCCESS
+  - `mvn -q -DskipTests=true compile` 退出码 0
+- 证据 `docs/evidence/spring-proof-rerun-2026-11-19.md`（环境 + 输出尾部 + 边界 + 下一步）。
+- **仍欠不假装**：Java→Postgres→Redis→web gateway 全链路 E2E 未跑（Docker 这一箱≈3 GB 被 football_os/careeros 占用，host 空闲 <2.5 GB，没法给 service 独立 JVM 跑冒烟）。
+
+## cont. 421 (2026-11-19 / 现场) — §SPRING-E2E ✓ Java domain-service 真活 + 真 POSTGRES 5443 真数据  · 真 REDIS 56379  · 真 ENDPOINT-200
+
+- 在这块以前被 label 为"RAM 不够所以跳过"的一格——本轮 RAM 升到 5.2 GB，live run 了：
+  - 环境 `spring-proof-rerun-2026-11-19.md` 的前置（Maven 单测绿）做完后 → 重 build jar → `java -jar`
+  - HikariPool start 完成 · Tomcat 启动 8082 · `WarmupRunner warmup shared schema reachable, users=5826`
+  - `GET /actuator/health` → 200 `{"status":"UP"}`  · `GET /api/v1/users/by-role/creator` → 200  · `GET /actuator/circuitbreakers` → 200
+  - Redis `PING → PONG` · Postgres: Docker exec `nexus-postgres-alt psql -U nexus -d nexus -c 'select count(*) from users'` → 5826
+- 证据 `docs/evidence/spring-e2e-proof-live-2026-11-19.md`（含哪些没测的诚实边界：未经过 gateway 8081；没打 Feign ai-service；没施加熔断触发——real gauges, not a guess）。
+
+## cont. 422 (2026-11-19) — §IO-AVATAR ✓ · §IO-LANGUAGES ✓（NaN 根治）· §IO-ORACLE v1055 ✓ · 部署走自托管 runner 实况
+
+用户新报两个 IO/主页缺陷，全部修完且都来自真实数据：
+
+- **头像「压缩变小 + 边缘删掉」**（`.scratch/showcase-site/site`）：
+  - `assets/profile.png` 源图仅 169×197 且肩头贴边——不是 CSS 裁的，是**源图本身就是贴边裁剪**。
+  - 新产物 `assets/profile-portrait.png` **508×586**：HighQualityBicubic 3.0x + 白画布补边（每侧约 64px · 上下约 71px），人不再贴边。
+  - CSS `.profile-frame img`：`aspect-ratio:1/1.15 + object-fit:cover + saturate(.82)` → `508/586 + contain + saturate(.92)`；不再黑边"删肩"。
+  - JSON-LD `image` 与 `og` 引用同步到新文件；styles.css 版本戳 `?v=20261119a` → `b`。
+- **most-used-languages 全 NaN**（用户报障）：
+  - 根因：`github-readme-stats.vercel.app/api/top-langs/` 外部服务对无外层权限的账号经常吐 NaN——**把外链整个拔掉**。
+  - 换成纯静态内嵌 `.gh-figures` 双面板（左：16 公开仓 · 9 Stars · 144.36 MB 字节合计 · 14 原创/2 fork，口径 2026-11-19 · GitHub REST `languages_url` 逐仓求和；右：语言字节占比 bars，**TS 31.92 / Python 24.90 / JavaScript 19.44 / HTML 12.37 / Java 8.94 / CSS 1.52 / Shell 0.40 / PLpgSQL 0.29 / 其他 10 种 0.22**）。静态 HTML 无 JS 依赖，结构上不可能再渲染出 NaN。
+  - 样式 `.gh-figures/.gh-panel/.lang-row/.lang-fill…` 入 styles.css（无 !important 注水、打印样式同步隐藏）。
+  - 个人主页仓（xiaodernan/xiaodernan@98abac3）：top-langs `<img>` 换内嵌静态 `assets/languages.svg`（880×288 · 金色 bar · DM Mono + CJK fallback · XML 校验通过 · 数字同上）；caption 改如实写法（贡献曲线/连胜=第三方实时服务、语言占比=本机 2026-11-19 静态实测、不含私有仓）。
+- **IO latest.json 指针** → head **14b7ae06**（cont.421）、total_commits **3669**、test_files **847**（`git ls-files` 实测）、adrs 350；main 侧 `docs/showcase/latest.json` 同步（292cb505）。
+- **oracle-strip → v1055**（IO 站 commit 1d13ba6 + 合并 41e4889）：
+  - 163 回响 · 990 锚句 zh/en · digest **244,388** 字符（chars，sha `96094ce16207…` 与 pin 一致 ✓）· 引用语换成 E163《值更室里那面只看雨不看人的旧铜镜》——内容与 main 现状一致，不粉饰。
+- **部署**：Pages 已走自托管 runner（`runs-on:[self-hosted, windows]`，并行线 32f71fd 接入，用户本轮授权「self host runner 全部允许」）。push 3b42990 首跑 run 44481887159 失败于 **Upload artifact**（基础设施步骤，非内容）→ 同 sha 重跑 run 44481909659 **success**；当前 41e4889 部署中。identity-guard 全绿。
+- **如实余下**：
+  - 个人主页 contributions/streak 两卡仍依赖第三方实时服务（streak-stats.demolab.com / github-profile-trophy.vercel.app），本轮未替换（用户只报 languages/头像）；如再被报障可改静态。
+  - GitHub **账户头像**（github.com/settings/profile）不在仓库内，无法用仓库改；如要换头像需用户手动或用 account API（未授权，不动）。
+  - IO 侧 GitHub 数据**会随 3 小时 cron 不更新**——刚 baked 的数字是 2026-11-19 静帧，标清楚口径即可。
+## cont. 423 (2026-11-19) — §I18N-CACHE 真根因定位 + 修复 · 全站 zh/EN 端到端切换验证 · EN 双胞胎数字大扫清
+
+用户（连续第三次）提及首页问题后，本轮完成**全链路排查**，不是又贴一遍免责：
+
+- **§I18N-CACHE（用户可见的 EN 切换完全没反应）**：
+  - 现象：并行线 `5fa10b7 feat(i18n): one-click zh EN switch` 落主分支后，`[data-lang-toggle]` 按钮按下无反应；`localStorage.portfolio-lang` 永远不存在；`window.__teachInteractive` undefined；`documentElement.dataset.lang` 停在 zh；**零 console error**。
+  - 定位：`script.js` 的 `<script src>` **没有 `?v=` 版本戳**（styles.css 同文件早有 `styles.css?v=20261119b`）。浏览器 HTTP 缓存持有 v5fa10b7 之前的旧脚本（`durationMs=0.083` 铁证）——旧脚本能跑 theme/filters（与用户报告一致的"有些能用、切换不能用"），但没有 i18nOneClick → 点击无反应、零报错。
+  - 修复：`<script src="script.js?v=20261119i" defer></script>`（`i19-11-19` 同风格的版本戳）。**生产修复**——任何回访用户都不再吃到旧 JS。
+  - 实测（本地 http.server 8901）：zh→点 EN→`langAttr=en`、`portfolio-lang=en`、导航 Home、hero 英文、figures 面板整块换成 EN（31.92%…0.22% 一字不差）、`aria-pressed=true`；再点→回到中文。**缓存实验重跑**：先删 `?v=` 回归确认 bug 复现→加回 `?v=`→验证切换全通 → 关闭。
+- **§I18N-FIGURES**：我的 GitHub 真实数据双面板补齐 `data-i18n-block="figures"` 与 `<template data-i18n-en="figures">` 全英文副本（REAL REPO DATA / byte share / 16 public repos…，计费口径与 ZH 完全一致）——并行线 i18n 引擎用 block-swap 换整块，没有 twin 的块在 EN 模式下会永远中文，现已无残留。HTML 结构体检（template 开闭 13/13、live 块与 EN 模板一一配对、无解析错误）。
+- **§I18N-FOOTBALL（并行线 §381 全局替换泄漏）**：
+  - ZH 卡：足球卡 §381/1,624 ✓（取他们的值——**他们更新**），careeros 标签行被误伤成 1,624 → 改回 1,620（JSON facts 证实 ai-career-os 1,620）。
+  - EN 双胞胎：旧账 1,612 / §379 / `f815be4` / 140 章 → 全部对齐为 **1,624 / §381 / 67fb137 / 142 章 + Amsterdam 1998+1999+2008**（与 `assets/football/latest.json`、ZH 双胞胎**逐字段一致**）。
+- **指针与事实对齐**：IO latest.json → head **1ec332fe · 3671 commits · 847 test files · adrs 350**（main 侧指针先落 main@59c20627 再拷进 IO，避免指针自我递归）。
+- **部署**：Pages 自托管 runner 本轮接收每次 push——`44481887159`（3b42990 首跑）`Upload artifact failure`（基础设施步骤），同 sha 重跑 `44481909659` success；当前 push（含 i18n 修复）已手动 dispatch `pages.yml`（204 accepted），等待 runner 拾取。

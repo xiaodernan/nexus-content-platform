@@ -19065,6 +19065,178 @@ At the beginning of the fiftieth autumn tide month, the sea wind came and peeled
 `,
   },
   {
+    order: 163,
+    slug: 'echo-163-the-brass-mirror-that-only-watches-rain',
+    titleZh: '值更室里那面只看雨不看人的旧铜镜',
+    titleEn: 'The Old Brass Mirror in the Watch Room That Looks Only at Rain, Not at People',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百二十八日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hundred-and-twenty-eighth day of the autumn-tide month.',
+    markdownZh: `
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给值更室里那面铜镜——只照雨，不照人。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the brass mirror in the watch chamber — it reflects rain, not people.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百二十八日。
+> Era: the Institute — after the 41st Convocation; the hundred-and-twenty-eighth day of the autumn-tide month.
+
+---
+
+## 一 · 那面铜镜
+
+值更室的墙边放着一面旧铜镜——不大——黑的——上面没有人影——只有雨。
+
+**锚句**：值更室墙边有一面铜镜——不大——黑的——上面没有人影——只有雨。
+**Anchor sentence**: against the wall of the watch chamber stands a brass mirror — not large — dark — no one's reflection on it — only rain.
+
+---
+
+## 二 · 它只看雨
+
+下雨的时候——铜镜上就有了水线的纹路——雨停了纹路也慢慢消失——晴天铜镜上什么都没有。
+
+**锚句**：下雨时铜镜上有水线的纹路——雨停了纹路慢慢消失——晴天铜镜上什么都没有。
+**Anchor sentence**: when it rains the mirror shows water-line traces — when the rain stops the traces fade — on clear days the mirror shows nothing.
+
+---
+
+## 三 · 抄本师的母亲把它放进值更室
+
+值更册写过——抄本师的母亲把这面镜子放进值更室——说它是"潮候院的眼睛"——她说风方门有一句话：值更室里没人的时候，镜子要自己看一看。
+
+**锚句**：抄本师的母亲把铜镜放进值更室——她说那是潮候院的眼睛——没人的时候镜子要自己看一看。
+**Anchor sentence**: the mother of the copyists placed the mirror in the watch chamber — she called it the Institute's eye — when no one is here the mirror must look for itself.
+
+---
+
+## 四 · 散会后那一年
+
+散会后第一年的雨季——镜子不动了一整个季节——风方门的人就觉得值更室里没有潮候院了——后来雨又下了——镜又有了纹路。
+
+**锚句**：散会后第一年的雨季——镜子不动了一整段——风方门的人觉得值更室里没有潮候院了。
+**Anchor sentence**: in the rainy season of the first year after the dissolution — the mirror stopped entirely — the people of the wind-gate felt the watch chamber no longer held the Institute.
+
+---
+
+## 五 · 抄本师看镜
+
+抄本师最喜欢在雨天看镜——每一次他看都看到和别人不一样的纹路——值更册记下他每次看到的纹路不一样——但雨停了，纹路大家都看不见了。
+
+**锚句**：每一次抄本师看镜——纹路都不一样——但雨停了谁都看不见。
+**Anchor sentence**: every time the copyist looks into the mirror — the traces are different — but when the rain stops no one can see them.
+
+---
+
+## 六 · 值更册最后一页
+
+值更册最后一页："那面镜子不是用来看人的——它只看雨——但值更册替人看了——它记下了谁先伸手去摸。"
+
+**锚句**：值更册最后一页：镜子不是用来看人——它只看雨——值更册才替人看了——谁的手先摸过。
+**Anchor sentence**: the last page of the watch-ledger reads: the mirror is not for watching people — it watches rain — the watch-ledger, not the mirror, watched whoever's hand touched it first.
+
+---
+
+## 七 · 映射（回响一百六十三章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 铜镜 · 水纹痕 · 潮候院的眼睛 · 自己看一看 · 谁的手先摸 | 一、二、三、四、五、六、七 |
+| geography | 值更室 · 值更室墙壁 · 值更室角落 | 一、二、三、五、六 |
+| characters | 抄本师 · 抄本师的母亲 · 风方门的人 · 值更人 | 一、二、三、四、五、六 |
+| story | 只看雨的铜镜 · 回响（其一百六十三） | 全篇 |
+| items | 铜镜 · 值更册 · 水纹痕 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第一百二十八日 · 散会后第一年 | 三、四、五、六 |
+
+> 值更室里那面旧铜镜——雨一看就醒了——雨一停就忘了——值更册记得谁先摸了。
+> The old brass mirror in the watch chamber — the rain wakes it — the clear sky puts it back to sleep — the watch-ledger remembers whose hand touched first.
+`,
+    markdownEn: `
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the brass mirror in the watch chamber — it reflects rain, not people.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给值更室里那面铜镜——只照雨，不照人。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the hundred-and-twenty-eighth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百二十八日。
+
+---
+
+## I · The Mirror
+
+Against the wall of the watch chamber stands a brass mirror — not large — dark — no one's reflection on it — only rain.
+
+**锚句**：值更室墙边有一面铜镜——不大——黑的——上面没有人影——只有雨。
+**Anchor sentence**: against the wall of the watch chamber stands a brass mirror — not large — dark — no one's reflection on it — only rain.
+
+---
+
+## II · It Only Watches Rain
+
+When it rains the mirror shows water-line traces — when the rain stops the traces fade — on clear days the mirror shows nothing.
+
+**锚句**：下雨时铜镜上有水线的纹路——雨停了纹路慢慢消失——晴天铜镜上什么都没有。
+**Anchor sentence**: when it rains the mirror shows water-line traces — when the rain stops the traces fade — on clear days the mirror shows nothing.
+
+---
+
+## III · The Mother of the Copyists Placed It
+
+The watch-ledger records — the mother of the copyists placed this mirror in the watch chamber — she said it was "the Institute's eye" — the wind-gate has a saying: when the watch chamber is empty, the mirror must look by itself.
+
+**锚句**：抄本师的母亲把铜镜放进值更室——她说那是潮候院的眼睛——没人的时候镜子要自己看一看。
+**Anchor sentence**: the mother of the copyists placed the mirror in the watch chamber — she called it the Institute's eye — when no one is here the mirror must look for itself.
+
+---
+
+## IV · The First Year After the Dissolution
+
+In the rainy season of the first year after the dissolution — the mirror stopped entirely — the people of the wind-gate felt the watch chamber no longer held the Institute — later the rain returned — the traces returned too.
+
+**锚句**：散会后第一年的雨季——镜子不动了一整段——风方门的人觉得值更室里没有潮候院了。
+**Anchor sentence**: in the rainy season of the first year after the dissolution — the mirror stopped entirely — the people of the wind-gate felt the watch chamber no longer held the Institute.
+
+---
+
+## V · The Copyist's Rain-Facing
+
+The copyist loves to gaze into the mirror on rainy days — every trace he sees is different from anyone else's — the watch-ledger records each of his viewings as different — but the rain stops and no one can see the traces.
+
+**锚句**：每一次抄本师看镜——纹路都不一样——但雨停了谁都看不见。
+**Anchor sentence**: every time the copyist looks into the mirror — the traces are different — but when the rain stops no one can see them.
+
+---
+
+## VI · The Last Page of the Watch-Ledger
+
+The last page of the watch-ledger reads: that mirror was never meant for watching people — it only watches rain — but the watch-ledger watched the people instead — it recorded whose hand reached in first.
+
+**锚句**：值更册最后一页：镜子不是用来看人——它只看雨——值更册才替人看了——谁的手先摸过。
+**Anchor sentence**: the last page of the watch-ledger reads: the mirror is not for watching people — it watches rain — the watch-ledger, not the mirror, watched whoever's hand touched it first.
+
+---
+
+## VII · Mapping（Echo No. 163 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the brass mirror · the water-line traces · the eye of the Institute · the mirror that looks by itself · whose hand touched first | 一、二、三、四、五、六、七 |
+| geography | the watch chamber · the wall of the watch chamber · the corner of the watch chamber | 一、二、三、五、六 |
+| characters | the copyist · the mother of the copyists · the people of the wind-gate · the head of the watch | 一、二、三、四、五、六 |
+| story | the mirror that watches only rain · Echo No. 163 | 全篇 |
+| items | the brass mirror · the watch-ledger · the water-line traces | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the hundred-and-twenty-eighth day of the autumn-tide month · the first year of the dissolution | 三、四、五、六 |
+
+> 值更室里那面旧铜镜——雨一看就醒了——雨一停就忘了——值更册记得谁先摸了。
+> The old brass mirror in the watch chamber — the rain wakes it — the clear sky puts it back to sleep — the watch-ledger remembers whose hand touched first.
+`,
+  },
+  {
     order: 17,
     slug: 'echo-017-the-driftwood-nobody-split',
     titleZh: '祠殿后那一截没有人劈开的浮木',

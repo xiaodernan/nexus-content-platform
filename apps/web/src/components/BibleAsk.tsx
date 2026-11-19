@@ -37,7 +37,7 @@ const COPY: Record<Locale, {
   zh: {
     kicker: '问典 · The Tidal Inquiry',
     title: '问潮问问 · 向《低语诸王》提问',
-    lede: '正典（13 章）+ 回响（161 篇）都在桌上——用中文或英文问，任何问题；问典只答潮候院范围内的事。',
+    lede: '正典（13 章）+ 回响（163 篇）都在桌上——用中文或英文问，任何问题；问典只答潮候院范围内的事。',
     label: '你的问题',
     placeholder: '例如：第四十一次大会散会后谁执笔……',
     ask: '问一问',
@@ -57,7 +57,7 @@ const COPY: Record<Locale, {
   en: {
     kicker: 'The Tidal Inquiry',
     title: 'Ask the Canon · Ask the Tides',
-    lede: 'The canon (13 chapters) and every echo (161 pieces) sit on the same table — question away, in Chinese or in English. The Inquiry stays inside the Institute.',
+    lede: 'The canon (13 chapters) and every echo (162 pieces) sit on the same table — question away, in Chinese or in English. The Inquiry stays inside the Institute.',
     label: 'Your question',
     placeholder: 'e.g. Who wrote the forty-first page after the forty-first Convocation?…',
     ask: 'Ask the canon',
