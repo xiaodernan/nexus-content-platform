@@ -21081,6 +21081,180 @@ The copyists say the old relic room is only one box — the tide-seal, the night
 `,
   },
   {
+    order: 173,
+    slug: 'echo-173-the-tide-almanac-stopped-at-page-seventy-one',
+    titleZh: '雾港旧信物库里那本永久停在第七十一页的旧潮汐历',
+    titleEn: 'The Old Tide Almanac in the Old Relic Room at Fog Harbor — Permanently Stopped at Page Seventy-One',
+    eraLineZh: '纪元：雾港 · 第四十三次大会之后 —— 冬潮月第四十三日。',
+    eraLineEn: 'Era: Fog Harbor — after the 43rd Convocation; the forty-third day of the winter-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 173): The Old Tide Almanac in the Old Relic Room at Fog Harbor — Permanently Stopped at Page Seventy-One
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给雾港旧信物库转借室最里一页停住的旧潮汐历——每一年的潮位都用同一只墨碗描过——它永远停在第七十一页。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the old tide almanac — every year drawn with the same ink bowl — and it is forever stopped at page seventy-one.
+> Same discipline: anchors verbatim.
+
+> 纪元：雾港 · 第四十三次大会之后 —— 冬潮月第四十三日。
+> Era: Fog Harbor — after the 43rd Convocation; the forty-third day of the winter-tide month.
+
+---
+
+## 一 · 潮汐历
+
+雾港旧信物库存有三本旧潮汐历——其中两本可以借——第三本被铜铃罩着——铃下压了一页——它开在第七十一页——抄本师说那一页是第七十一年潮的年历——"第七十一"是一个潮期——不是年份——但潮候院没人能分清。
+
+**锚句**：潮汐历开在第七十一页——铃下那页是潮期——不是年份——潮候院没人能分清。
+**Anchor sentence**: the tide almanac lies open at page seventy-one — the page is a tide period, not a year — no one at the Institute can tell them apart.
+
+---
+
+## 二 · 它长在哪一页
+
+它没有背面的空白——纸是雾港海岸特制的棉料——有一块半个指纹的浅棕痕迹——天知道那是谁的指纹——抄本师说它不是烫出来的——是写出来的——页七十一的潮位只画过七十一次——"今天"的潮位却一直在画。
+
+**锚句**：第七十一页只画过七十一次——"今天"的潮位却一直在画——页角盖着半枚指纹。
+**Anchor sentence**: page seventy-one was drawn only seventy-one times — yet "today's" tide is still being drawn — a half-fingerprint marks its corner.
+
+---
+
+## 三 · 它在等什么日期
+
+雾港的潮汐历只带十二节气——没有春分——没有冬至——没有别人收过它——抄本师说第七十一页的日期从来没有对上今天——他相信第七十一页是潮候院最后一个潮期的日——它在等一个已经过期的潮位。
+
+**锚句**：雾港潮汐历只有十二节气——第七十一页对不上今天——它在等一个过期的潮位。
+**Anchor sentence**: the tide almanac carries only twelve turn-points — page seventy-one never matches today — it waits for a tide that has already lapsed.
+
+---
+
+## 四 · 数潮人
+
+抄本师在第四十三次大会之后不再抄写章节——他们开始数潮——每人负责一格涨潮——他们用雾港的铜片打了七十二根钉——钉上墙——墙上是他们以前不敢看的——第七十二根钉子钉进了缝隙。
+
+**锚句**：抄本师不再抄写章节——他们开始数潮——他们钉了七十二根铜钉——第七十二根在缝隙上。
+**Anchor sentence**: the copyists stopped copying chapters — they started counting the tide — they struck seventy-two brass nails — the seventy-second one sits in the seam.
+
+---
+
+## 五 · 第四十三次大会散会那夜
+
+冬潮月第四十三日夜里——守库人临时拿铜钥匙开了信物库——他拿出潮汐历——把它往后翻——想翻到第七十二页——页七十二不见了——卷面只有第七十一页——铜钥匙又漏了一齿——只剩三颗——"钥匙落下一齿"是抄本师的新规定——从此值更人腰间只挂钥匙带——不给锁弓。
+
+**锚句**：守库人想翻到七十二页——七十二页不见了——钥匙落了一齿——抄本师定下新规。
+**Anchor sentence**: the keeper tried to turn past page seventy-one — page seventy-two is gone — the key lost one tooth — the copyists set a new rule.
+
+---
+
+## 六 · 七十一的静
+
+抄本师说潮汐历在七十一页里等一个"现在"——七十一的意思是今天——今天的意思是第七十一页今后只是从前——他们不再让任何人翻它——他们开始把当天的潮位一笔一笔追加到墙缝那颗铜钉上。
+
+**锚句**：抄本师不再让人翻潮汐历——他们把当天的潮位追加到墙缝铜钉上——一笔一钉。
+**Anchor sentence**: no one opens the tide almanac anymore — the copyists go on nailing each day's tide heights onto the seam — one line, one nail.
+
+---
+
+## 七 · Mapping（Echo No. 173 → world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the seventy-first page · the tide period as year · the unfinished drawing | 一、二、三、六 |
+| geography | the old relic room · the copyists' tide-counting wall · the fog harbor alley | 一、四、五、六 |
+| characters | the copyists · the keeper · the unnamed finger | 一、二、四、五、六 |
+| story | the almanac stopped at seventy-one · Echo No. 173 | 全篇 |
+| items | the old tide almanac · seventy-two brass nails · the brass key (one tooth gone) | 一、二、四、五、六 |
+| history | After the 43rd Convocation · the forty-third day of the winter-tide month | 四、五、六、七 |
+
+> 第七十一页——不是年——是潮期——潮候院的抄本师开始数潮。
+> Page seventy-one — not a year — a tide — the copyists have started counting the tide.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百七十三）「雾港旧信物库里那本永久停在第七十一页的旧潮汐历」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the old tide almanac — every year drawn with the same ink bowl — and it is forever stopped at page seventy-one.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给雾港旧信物库转借室最里一页停住的旧潮汐历——每一年的潮位都用同一只墨碗描过——它永远停在第七十一页。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: Fog Harbor — after the 43rd Convocation; the forty-third day of the winter-tide month.
+> 纪元：雾港 · 第四十三次大会之后 —— 冬潮月第四十三日。
+
+---
+
+## I · The Tide Almanac
+
+The old relic room at Fog Harbor holds three tide almanacs — two may be borrowed — the third is covered by a brass bell — a page is pressed beneath it — it lies open at page seventy-one — the copyists say it is the tide-year page for the seventy-first tide — "seventy-one" is a tide period — not a year — but no one at the Institute can tell them apart.
+
+**锚句**：潮汐历开在第七十一页——铃下那页是潮期——不是年份——潮候院没人能分清。
+**Anchor sentence**: the tide almanac lies open at page seventy-one — the page is a tide period, not a year — no one at the Institute can tell them apart.
+
+---
+
+## II · The Page It Lives On
+
+The page has no empty back — the paper is a cotton brew made on the Fog Harbor coast — a half-sized fingerprint in light brown — only heaven knows whose it is — the copyists say it was not embossed — it was drawn — page seventy-one has only ever been drawn seventy-one times — yet "today's" tide is still being drawn.
+
+**锚句**：第七十一页只画过七十一次——"今天"的潮位却一直在画——页角盖着半枚指纹。
+**Anchor sentence**: page seventy-one was drawn only seventy-one times — yet "today's" tide is still being drawn — a half-fingerprint marks its corner.
+
+---
+
+## III · What Date Is It Waiting For
+
+The tide almanac carries only twelve turn-points — no equinox — no solstice — no one has ever collected it — the copyists believe page seventy-one never matches today — they believe page seventy-one is the day of the Institute's final tide-window — it waits for an overdue tide.
+
+**锚句**：雾港潮汐历只有十二节气——第七十一页对不上今天——它在等一个过期的潮位。
+**Anchor sentence**: the tide almanac carries only twelve turn-points — page seventy-one never matches today — it waits for a tide that has already lapsed.
+
+---
+
+## IV · The Tide-Counters
+
+No copyist copies chapters after the 43rd Convocation — they began counting the tide — each one is responsible for one high-tide cell — they struck seventy-two brass nails from Fog Harbor brass — nailed to the wall — the wall they were afraid to look at — the seventy-second nail went into the seam.
+
+**锚句**：抄本师不再抄写章节——他们开始数潮——他们钉了七十二根铜钉——第七十二根在缝隙上。
+**Anchor sentence**: the copyists stopped copying chapters — they started counting the tide — they struck seventy-two brass nails — the seventy-second one sits in the seam.
+
+---
+
+## V · The Night the 43rd Convocation Ended
+
+On the night of the forty-third day of the winter-tide month — the keeper took the brass key and opened the relic room — he drew out the tide almanac — and turned past page seventy-one — page seventy-two was gone — the sheet holds only page seventy-one — the key lost one more tooth — three remain — "the key drops a tooth" is now the copyists' rule — the keeper wears only a cord — no bow.
+
+**锚句**：守库人想翻到七十二页——七十二页不见了——钥匙落了一齿——抄本师定下新规。
+**Anchor sentence**: the keeper tried to turn past page seventy-one — page seventy-two is gone — the key lost one tooth — the copyists set a new rule.
+
+---
+
+## VI · Seventy-One Is Silence
+
+The copyists say page seventy-one waits for a "now" — seventy-one means today — today means page seventy-one will be from the past — no one may turn it — they go on adding each day's tide heights onto the seam nail.
+
+**锚句**：抄本师不再让人翻潮汐历——他们把当天的潮位追加到墙缝铜钉上——一笔一钉。
+**Anchor sentence**: no one opens the tide almanac anymore — the copyists go on nailing each day's tide heights onto the seam — one line, one nail.
+
+---
+
+## VII · Mapping（Echo No. 173 → world model）
+
+| Dimension | Value | Mapping |
+| --- | --- | --- |
+| lore | the seventy-first page · the tide period as year · the unfinished drawing | I, II, III, VI |
+| geography | the old relic room · the tide-counting wall · the Fog Harbor alley | I, IV, V, VI |
+| characters | the copyists · the keeper · the unnamed finger | I, II, IV, V, VI |
+| story | the almanac stopped at seventy-one · Echo No. 173 | Full |
+| items | the old tide almanac · seventy-two brass nails · the brass key (three teeth now) | I, II, IV, V, VI |
+| history | After the 43rd Convocation · the forty-third day of the winter-tide month | IV, V, VI, VII |
+
+> 第七十一页——不是年——是潮期——潮候院的抄本师开始数潮。
+> Page seventy-one — not a year — a tide — the copyists have started counting the tide.
+`,
+  },
+  {
     order: 18,
     slug: 'echo-018-the-cat-in-the-institute-that-never-meowed',
     titleZh: '祠殿里从不叫的一只猫',

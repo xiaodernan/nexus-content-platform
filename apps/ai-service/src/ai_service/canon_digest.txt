@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 172 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 173 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3196,6 +3196,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 守库人曾记得它是五个齿——某次只剩四个——没人锯过、锉过它。
 - [5] 值更记录只写"铜钥匙仍在"——没有人发现库里除铜屉外还有别的门。
 - [6] 抄本师说信物库只是一只箱子——潮印、夜钥匙都是同一件事的分身——他们开始数潮。
+
+### Echo 173 · 雾港旧信物库里那本永久停在第七十一页的旧潮汐历 / The Old Tide Almanac in the Old Relic Room at Fog Harbor — Permanently Stopped at Page Seventy-One
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮汐历开在第七十一页——铃下那页是潮期——不是年份——潮候院没人能分清。
+- [2] 第七十一页只画过七十一次——"今天"的潮位却一直在画——页角盖着半枚指纹。
+- [3] 雾港潮汐历只有十二节气——第七十一页对不上今天——它在等一个过期的潮位。
+- [4] 抄本师不再抄写章节——他们开始数潮——他们钉了七十二根铜钉——第七十二根在缝隙上。
+- [5] 守库人想翻到七十二页——七十二页不见了——钥匙落了一齿——抄本师定下新规。
+- [6] 抄本师不再让人翻潮汐历——他们把当天的潮位追加到墙缝铜钉上——一笔一钉。
 
 ### Echo 18 · 祠殿里从不叫的一只猫 / The Cat in the Institute That Never Meowed
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

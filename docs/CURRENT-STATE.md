@@ -8299,3 +8299,15 @@ Reported upstream to `docs/evidence/liveness-sweep-2026-11-19.md`（cont.429 对
 - **本轮没再 dispatch**（无用且会白跑一趟）
 - 引擎维持 system prompt： digest 248,455 chars ≈ 6.2 万 tokens （含 EN/ZH 全量）· 距预算 320K 还有 ~72K · 前缀 cached 情境继续会 warm-by-crawl
 - Bible-ask pin UPDATE committed alongside echo registry（双债项）
+
+## cont. 440 (2026-11-19) — §BIBLE-173 · Echo #173 潮汐历落盘 · Pages CI 健康真实审计
+
+- **Echo #173《雾港旧信物库里那本永久停在第七十一页的旧潮汐历》** 双语手写（70-1 arc：潮汐历=潮候院/谜团级物件；抄本师停笔改数潮；铜钉第七十二根钉进墙缝；钥匙又漏一齿只剩三颗——与 E172 的密齿一路递进）→ digest **248,929 chars · sha af55800d…** · verify **1050 zh/en ✓** · test pin 1039→**1045**, 11/11 绿 · gen digest 全绿
+- :3200 kill `detached worker` → 重启（ing 模式：`Start-Process ... hidden`）→ 187 秒内 shim 54316 → worker 58396 → /healthz 200 · capability real
+- **Pages CI 真实运行史审计**（read-only, via git credential PAT 7897 proxy）：
+  - 44508700093 · push 691053c · **success** (ubuntu-latest, 10:46Z 第 3 次修复之后)
+  - 44508474035 / 44508279590 / 44508076398 / 44507897522 · 10:40–10:44Z · **failure**（过渡期：缺 `environment: github-pages` 的 Missing environment 与 tar/sed error）
+- Workflow 设计意旨：index.html 不触发 deploy（path 白名单仅 404/README/specproof-web/assets/scripts/workflow），fact pack 靠 3h cron `17 */3 * * *` 打包；—— 这也是 public CDN 滞后的真正来源之一。work-flow_dispatch 仍可用，但本版不烧用户秒数强刷
+- **本轮 Pages 同步策略未动**：不强派未上线的新增 echo（CDN 已落到 v1059）；推 E173 后 PUBLIC 仍停 v1059 是预期内
+- **Digest index**: E163→E173 十一篇回响在 digest 内部依序排列；主线 CHAPTER 数量不变（13）；chapter ↔ echo 字节对齐由 verify 保证
+- 当前健康：web :3100 200 · ai-service :3200 200 · DB/Redis :5543/:56379 OK · identity-guard exit 0
