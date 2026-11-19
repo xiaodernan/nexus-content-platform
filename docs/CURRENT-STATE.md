@@ -8379,3 +8379,21 @@ feat(§BIBLE-178 · §GUIDE-178): Echo #178《雾港潮退之后抄本师才发�
 - **§PRESSURE-WARM（微型）**：`:3100/guide` HTTP×20 并发 8 → **20/20 200** · body bytes identical (78,659B) · wall 8.32s · p50 **2.84s** / mean 2.93s / p95 3.81s / max 3.87s — 无崩、无断连； Next dev + proxy.ts 在此负载下稳定（不代表生产级证据，但确实跑通了一个真实负载形状）
 - guideCopy 同步 #178: 1074→**1080** 锚句文案（与 verify 计数对齐）
 - digest 现状 inventory: 13 main chapters / **178 echoes** / 4 annex / **1080 zh+en pairs** · chars 251,350 · verify-world-bible-anchors total pass
+
+## 2026-11-19（cont. 448）· §85 确定性套件全量重跑
+
+环境：uv-managed cpython-3.11.15 · `:3100` Next dev · `:3200` ai-service（uv 3.11.15 自包含）· 不设 NEXUS_DATABASE_URL → 只跑确定性套件
+
+命令：`npm run evals`
+
+```
+code-index 19/19 · model-roundtrip 13/13 · video-plan 30/30 · world-build 55/55 ·
+schemas-contract 17/17 · game-build 36/36 · design-build 46/46 · project-bundle 14/14 ·
+local-embedding 14/14 · local-reranker 15/15 · demo-mode 14/14 · cost-ledger 23/23
+→ 全部结构不变式 PASS（316 checks）
+```
+
+口径补注：本回合 §159/§160 的世界大典 digest 已扩至 E179 / 1086 zh+en / 1086 metrics 之日（same run tolerates E179）；
+2026-11-19 的这一次重跑是 **HEAD=8f511eee**（E179 《潮汐灯》入库 + E177/176 quiz 补齐 + guideCopy 1086 锚句）上的绿色。
+
+另自查：ai-service venv 在 19:00–19:26 间失去 C:\Program Files\Python311\python.exe → 脱离式宿主改装 uv-managed 3.11.15 → 本轮评测在重启后的环境中跑通。

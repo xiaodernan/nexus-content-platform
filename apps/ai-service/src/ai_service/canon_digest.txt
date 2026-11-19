@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 180 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 181 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3276,6 +3276,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 书只有十七页——每页一个"等"——压了张"落"字纸——抄本师说它是七十一页的壳。
 - [5] 抄本师站起来说——那本书放在屋脊下——它等到潮再来——会议没记这个插话。
 - [6] 大会开到第二日屋脊灯没熄——抄本师不决定再写——他们只有一句话要讲——完。
+
+### Echo 181 · 雾港旧信物库第二天清晨——屋脊之石把墙上的'潮'字照出了第二个字'汐' / The Second Morning After the Tide — the Ridge Stone Shone the Wall's Character "Tide" and Out Came a Second Character, "Ebbtide"
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 第二天清晨雾港的墙上是两个字——早晨的光落在上面是蓝的——守库人看见第一眼是"潮汐"。
+- [2] "汐"字不是人写的——是麻石自己说出来的——麻石里更深处的盐亮了它——没有人保证麻石会再生下一个字。
+- [3] 值更人记录——雾港墙上有两个字——我说我抄错——抄本师不要我记——"汐"字没人打扰。
+- [4] 抄本师说麻石教了他们——"潮"是潮——"汐"是潮退——他们停了十三分钟——像第七十一页。
+- [5] 屋脊之石这一夜没亮——它把全部光都放进"汐"字——值更人只记一个字——早晨别的字没再来。
+- [6] 抄本师说雾港潮退之后没有雾港了——抄本师不再抄——接受麻石的字——雾港的下一章是"汐"。
 
 ### Echo 19 · 里巷子的抄本员 / The Copyists of the Back Alley
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

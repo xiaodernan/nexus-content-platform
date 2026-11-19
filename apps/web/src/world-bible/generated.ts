@@ -22659,6 +22659,180 @@ The 44th Convocation runs into its second day — the ridge lamp has not gone ou
 `,
   },
   {
+    order: 181,
+    slug: 'echo-181-the-second-character',
+    titleZh: '雾港旧信物库第二天清晨——屋脊之石把墙上的\'潮\'字照出了第二个字\'汐\'',
+    titleEn: 'The Second Morning After the Tide — the Ridge Stone Shone the Wall\'s Character "Tide" and Out Came a Second Character, "Ebbtide"',
+    eraLineZh: '纪元：雾港 · 第四十四次大会之后 —— 冬潮月第六十日。',
+    eraLineEn: 'Era: Fog Harbor — after the 44th Convocation; the sixtieth day of the winter-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 181): The Second Morning After the Tide — the Ridge Stone Shone the Wall's Character "Tide" and Out Came a Second Character, "Ebbtide"
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮退后的第二天清晨——屋脊之石亮了一整夜——墙上的"潮"字旁多出了第二个字——"汐"——抄本师被叫醒。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the second morning after the tide — the ridge stone glowed all night — a second character flanked the "tide" on the wall — "ebbtide" — the copyists were woken.
+> Same discipline: anchors verbatim.
+
+> 纪元：雾港 · 第四十四次大会之后 —— 冬潮月第六十日。
+> Era: Fog Harbor — after the 44th Convocation; the sixtieth day of the winter-tide month.
+
+---
+
+## 一 · 第二天清晨
+
+雾港潮退后的第二天清晨——天还没亮——雾港旧信物库外墙上不是原来的麻石了——有一个字——早晨的光落到麻石上是蓝的——没有别的——没有人在场——守库人从库里出来——看见的第一眼是墙上两个字——"潮汐"。
+
+**锚句**：第二天清晨雾港的墙上是两个字——早晨的光落在上面是蓝的——守库人看见第一眼是"潮汐"。
+**Anchor sentence**: on the second morning — the wall bore two characters — the morning light on it was blue — the keeper's first sight was "tide and ebbtide".
+
+---
+
+## 二 · 这是哪时候写的
+
+抄本师从后院冲进墙角探过手——没有油墨痕迹——没有人的手——没有人的足印——麻石自己不是一块石——麻石里面更深处有自己的盐——"汐"字的'氵'是麻石自己说出来的——"夕"是盐的亮度——没有人保证麻石能再生下一个字——
+
+**锚句**："汐"字不是人写的——是麻石自己说出来的——麻石里更深处的盐亮了它——没有人保证麻石会再生下一个字。
+**Anchor sentence**: the character "ebbtide" was not written — the stone itself said it — the light of the deeper salt — no one can promise another character will come.
+
+---
+
+## 三 · 值更人
+
+值更人记录写：第六十日——天还没亮——雾港墙上有两个字——我不认识——我抄红——抄本师说我请你什么也不抄——它不是潮——它是潮退——抄本师不要我记——他们自愿来了——他们在后院坐到天亮——"汐"字一生——没有人打扰过——墙不叫人——"汐"——
+
+**锚句**：值更人记录——雾港墙上有两个字——我说我抄错——抄本师不要我记——"汐"字没人打扰。
+**Anchor sentence**: the rounds wrote — there are two characters on the wall — I said I copied wrong — the copyists don't want me to record — "ebbtide" is undisturbed.
+
+---
+
+## 四 · 它为谁留这两个字
+
+抄本师说"潮"是雾港的潮——"汐"是潮退——"潮汐"是雾港第一个知道的人——是麻石——不是抄本师——抄本师不会创造——他们只抄——这一次麻石教他们——麻石让抄本师停止抄——他们要学——他们停了十三分钟——就像第七十一页——麻石做了——他们在做——
+
+**锚句**：抄本师说麻石教了他们——"潮"是潮——"汐"是潮退——他们停了十三分钟——像第七十一页。
+**Anchor sentence**: the copyists say the stone taught them — "tide" is the tide — "ebbtide" is the withdrawal — they stopped thirteen minutes — like page seventy-one.
+
+---
+
+## 五 · 屋脊之石
+
+这一晚屋脊之石没有亮——抄本师以为它熄了——它没有熄——它把全部光都放进墙上的"汐"字——之后——值更记录：第六十日天微亮——墙上两个字——我记了一个字——晨微亮之后没有别的字——屋脊之石又自己亮了——
+
+**锚句**：屋脊之石这一夜没亮——它把全部光都放进"汐"字——值更人只记一个字——早晨别的字没再来。
+**Anchor sentence**: the ridge stone did not light that night — its light went into "ebbtide" — the rounds recorded one word — no more came after.
+
+---
+
+## 六 · 沉默的通知
+
+抄本师今天说——雾港潮退之后没有雾港了——雾港是潮退之后的雾港——他们走进后院——后院里是十七张"汐"字——抄本师说他们以后不写任何字——只接受——麻石说的——字——他们坐下来——第一次不抄——第一次接受——"汐"——雾港的下一章——"汐"——
+
+**锚句**：抄本师说雾港潮退之后没有雾港了——抄本师不再抄——接受麻石的字——雾港的下一章是"汐"。
+**Anchor sentence**: the copyists say Fog Harbor after the tide is not the same Fog Harbor — they stopped copying — they accept what the stone says — the next chapter is "ebbtide".
+
+---
+
+## 七 · Mapping（Echo No. 181 → world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | "ebbtide" self-written by the sun-stone · the twin characters · the unfinished epicycle | 二、三、四、五、六 |
+| geography | the outer wall · the backyard (mirror) · the ridge stone | 一、三、五、六 |
+| characters | the copyists · the keeper · the "ebbtide" character (unnamed) | 一、三、四、五、六 |
+| story | the second character wakes up · Echo No. 181 | 全篇 |
+| items | the wall with two characters · the ridge stone's light · the twin words "tide and ebbtide" | 二、三、五、六 |
+| history | After the 44th Convocation · the sixtieth day of the winter-tide month | 一、五、六、七 |
+
+> 雾港潮退后的第二个清晨——屋脊之石把"潮"字照出了第二个字——是"汐"。
+> The second morning after the tide — the ridge stone shone the character "tide" into two — "ebbtide".
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百八十一）「雾港旧信物库第二天清晨——屋脊之石把墙上的'潮'字照出了第二个字'汐'」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the second morning after the tide — the ridge stone glowed all night — a second character flanked the "tide" on the wall — "ebbtide" — the copyists were woken.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮退后的第二天清晨——屋脊之石亮了一整夜——墙上的"潮"字旁多出了第二个字——"汐"——抄本师被叫醒。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: Fog Harbor — after the 44th Convocation; the sixtieth day of the winter-tide month.
+> 纪元：雾港 · 第四十四次大会之后 —— 冬潮月第六十日。
+
+---
+
+## I · The Second Morning
+
+The morning after the tide withdrew — before the light — the outer wall of the old relic room was not the shell-rock from before — there is one word — the morning light falls blue on the shell-rock — nothing else — no one was there — the keeper came out from the relic room — the first thing he saw were two characters — "tide and ebbtide".
+
+**锚句**：第二天清晨雾港的墙上是两个字——早晨的光落在上面是蓝的——守库人看见第一眼是"潮汐"。
+**Anchor sentence**: on the second morning — the wall bore two characters — the morning light on it was blue — the keeper's first sight was "tide and ebbtide".
+
+---
+
+## II · When Was This Written
+
+The copyists rushed to the corner of the wall — no ink — no hand — no footprints — the shell-rock is not only shell-rock — deep inside the shell-rock there is its own salt — the "氵" of the character is the shell-rock speaking — the "夕" is the brightness of the salt — no one can promise the shell-rock will generate another character.
+
+**锚句**："汐"字不是人写的——是麻石自己说出来的——麻石里更深处的盐亮了它——没有人保证麻石会再生下一个字。
+**Anchor sentence**: the character "ebbtide" was not written — the stone itself said it — the light of the deeper salt — no one can promise another character will come.
+
+---
+
+## III · The Rounds
+
+The rounds wrote: the sixtieth day — before daylight — there were two characters on the wall of Fog Harbor — I do not know them — I fell down red — the copyists say don't record anything — it is not the tide — it is the withdrawal — the copyists don't want me to record it — they came of their own will — they sat in the backyard until dawn — "ebbtide" is the only life — no one is allowed to disturb it — the wall does not call — "ebbtide".
+
+**锚句**：值更人记录——雾港墙上有两个字——我说我抄错——抄本师不要我记——"汐"字没人打扰。
+**Anchor sentence**: the rounds wrote — there are two characters on the wall — I said I copied wrong — the copyists don't want me to record — "ebbtide" is undisturbed.
+
+---
+
+## IV · What It Left For
+
+The copyists say "tide" is the tide of Fog Harbor — "ebbtide" is the withdrawal — "tide and ebbtide" are the first in Fog Harbor to know — the shell-rock, not the copyists — the copyists do not create — they only copy — this time the shell-rock taught them — the shell-rock made the copyists stop copying — they must learn — they stopped for thirteen minutes — like page seventy-one — the shell-rock did the work — they are doing the work.
+
+**锚句**：抄本师说麻石教了他们——"潮"是潮——"汐"是潮退——他们停了十三分钟——像第七十一页。
+**Anchor sentence**: the copyists say the stone taught them — "tide" is the tide — "ebbtide" is the withdrawal — they stopped thirteen minutes — like page seventy-one.
+
+---
+
+## V · The Ridge Stone
+
+That night the ridge stone did not light — the copyists thought it had gone out — it had not — it gave all of its light into the "ebbtide" on the wall — after that — the rounds record: the sixtieth day — before daylight — two characters are on the wall — I recorded one word — after daybreak no more characters came — the ridge stone lit itself again.
+
+**锚句**：屋脊之石这一夜没亮——它把全部光都放进"汐"字——值更人只记一个字——早晨别的字没再来。
+**Anchor sentence**: the ridge stone did not light that night — its light went into "ebbtide" — the rounds recorded one word — no more came after.
+
+---
+
+## VI · The Silent Notice
+
+Today the copyists say — after the tide withdrew there was no more Fog Harbor — Fog Harbor is Fog Harbor after the tide withdrew — they went into the backyard — the backyard held seventeen "ebbtide"s — the copyists say they would not write any character from now on — only receive — what the shell-rock says — characters — they sat down — for the first time without copying — for the first time receiving — "ebbtide" — the next chapter of Fog Harbor — "ebbtide".
+
+**锚句**：抄本师说雾港潮退之后没有雾港了——抄本师不再抄——接受麻石的字——雾港的下一章是"汐"。
+**Anchor sentence**: the copyists say Fog Harbor after the tide is not the same Fog Harbor — they stopped copying — they accept what the stone says — the next chapter is "ebbtide".
+
+---
+
+## VII · Mapping（Echo No. 181 → world model）
+
+| Dimension | Value | Mapping |
+| --- | --- | --- |
+| lore | "ebbtide" self-written by the sun-stone · the twin characters · the unfinished epicycle | II, III, IV, V, VI |
+| geography | the outer wall · the backyard (mirror) · the ridge stone | I, III, V, VI |
+| characters | the copyists · the keeper · the "ebbtide" character (unnamed) | I, III, IV, V, VI |
+| story | the second character wakes up · Echo No. 181 | Full |
+| items | the wall with two characters · the ridge stone's light · the twin words "tide and ebbtide" | II, III, V, VI |
+| history | After the 44th Convocation · the sixtieth day of the winter-tide month | I, V, VI, VII |
+
+> 雾港潮退后的第二个清晨——屋脊之石把"潮"字照出了第二个字——是"汐"。
+> The second morning after the tide — the ridge stone shone the character "tide" into two — "ebbtide".
+`,
+  },
+  {
     order: 19,
     slug: 'echo-019-the-copyists-of-the-back-alley',
     titleZh: '里巷子的抄本员',
