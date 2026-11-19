@@ -7841,3 +7841,12 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 
 - /admin/observe「趋势预测」带、「AI 深读」现在吃得到服务端外推、/bible/ask「本轮检索依据」折叠面板——双语指南逐字描述（/guide 与帮助抽屉同一份字典）
 - guide 页 SHA pin 不变 · fe-gates 151/151 · 1377/1377 · census 2998 · tsc EXIT=0
+
+## cont. 398 (2026-11-19) · §IO-IDENTITY ✓ §IO-LINKS ✓ · 个人主页两处修正 + 38 条外链全量探测 + README 私有仓标注
+
+- **IO 页错字**：227 部典籍卷 → **227/229/…… 卷典籍 · 原典……源**（去混用的量词）；minicc **提交总数**（补「数」字）——真实推送到 xiaodernan/xiaodernan.github.io master（2e581c7 → b49c562 → 2e76f7d），**CDN raw 缓存滞后**，权威源（gh api contents）已验证全部四处修复在位
+- **外链审计 38 条**：fonts.googleapis.com/fonts.gstatic.com 根 404 是预期（非页面）；**github.com 4 个私有仓全部 404**——已用 gh api 认证查证：`fagougou-desensitize`（隐盾源码，**private**）、`teedyas`/`teedyassi`/`teedy-assign`（**private 归档**）。修复：仓库卡改为演示链接 yindun.fagougou.com + 三张归档卡撤链接和 stars 徽章、标注「私有仓，不对外」
+- **Identity envelope 实测**：赵欣曈 13× · 隐盾 14× · 隐图 0 · 雅思 6.5 出现于两处 · 六级 546 · CET6 546 · 物竞铜牌/江西省一二等奖/南科大本/港中大硕/计科/法狗狗实习 全部在位
+- **README.md**（xiaodernan/xiaodernan）：同一处私有仓四连修正，commit 7c62770；身份 envelope 复验（雅思 6.5 ×4 · CET6 546 ×4 · 隐图 0）
+- **i18n 混语机检**：87 个 locale-dict 文件 en-block 含 CJK+Latin 行 = **0**
+- 说明书又补了三处新能力（趋势预测带 / AI 深读外推 / 问典检索依据）· guide pin 不变 · fe-gates 151/151 · 1377/1377
