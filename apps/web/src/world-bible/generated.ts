@@ -18572,7 +18572,181 @@ The shells are part of the table; the Institute would rather the table go plain 
   },
   {
     order: 160,
-    slug: 'echo-160-the-lamp-that-never-writes-a-name',
+    slug: 'echo-160-the-wall-calendar-that-prints-only-half-the-tide',
+    titleZh: '值更室墙上那张只印半个潮的挂历',
+    titleEn: 'The Wall Calendar in the Watch Room That Prints Only Half the Tide',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百二十六日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hundred-and-twenty-sixth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 160): The Wall Calendar in the Watch Room That Prints Only Half the Tide
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给值更室墙上那张挂历——它只印半个潮汐，上弦月与下弦月各画半边。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the wall calendar in the watch chamber — it prints only half the tide; waxing and waning each show half.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百二十六日。
+> Era: the Institute — after the 41st Convocation; the hundred-and-twenty-sixth day of the autumn-tide month.
+
+---
+
+## 一 · 墙上那张挂历
+
+值更室的墙上挂着一张挂历——一年十二个月——每个月只印半张——半上弦、半下弦。
+
+**锚句**：值更室的墙上挂着一张挂历——一年十二个月——每月只印半张——半上弦半下弦。
+**Anchor sentence**: on the wall of the watch chamber hangs a calendar — twelve months to a year — each month prints only half — half waxing, half waning.
+
+---
+
+## 二 · 上弦月抄本师记
+
+上弦月的那半月——值更人就在那半个月的格子上抄一笔——抄盐账进出、抄潮汐到没到。
+
+**锚句**：上弦月的值更人在那半月的格子上抄一笔——抄盐账——抄潮汐。
+**Anchor sentence**: on the waxing half the head of the watch copies one stroke into the half-moon's cell — copying the salt account — copying the tide.
+
+---
+
+## 三 · 下弦月抄本师的母亲记
+
+下弦月的那半月——抄本师的母亲在同一格里另抄一笔——她写的字值更人看不懂——值更册上就那样原样抄下来。
+
+**锚句**：下弦月的抄本师的母亲在同一格里另写一笔——她写的值更人看不懂——原样抄下来。
+**Anchor sentence**: on the waning half the mother of the copyists writes another stroke in the same cell — the stroke the head of the watch cannot read — copied as-is into the ledger.
+
+---
+
+## 四 · 第一百二十六日那一格
+
+第一百二十六日那一格——上半年抄本师写着「潮」——下半年抄本师的母亲没有写字——那一格空着。
+
+**锚句**：第一百二十六日那一格——上半年写着「潮」——下半年空着——抄本师的母亲没有写。
+**Anchor sentence**: on the one hundred and twenty-sixth day — the waxing half reads "tide" — the waning half is empty — the mother of the copyists did not write.
+
+---
+
+## 五 · 挂历与盐账的关系
+
+抄本师说挂历上那空的一格就是盐账最后一页那一个空格——那一格是等下一个散会来填的。
+
+**锚句**：挂历上那空的一格就是盐账最后那一格——那格是等下一个散会来填的。
+**Anchor sentence**: the empty cell on the calendar is the same as the last empty entry in the salt ledger — that cell is waiting for the next dissolution to fill it.
+
+---
+
+## 六 · 值更册最后一页
+
+值更册最后一页："挂历只印半个潮——因为潮的另一半从来没有人看过——那一半留给山那边的潮候院。"
+
+**锚句**：值更册最后一页：挂历只印半个潮——因为潮的另一半从来没有人看过。
+**Anchor sentence**: the last page of the watch-ledger reads: the calendar prints only half the tide — because no one has ever seen the other half of the tide.
+
+---
+
+## 七 · 映射（回响一百六十章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 挂历 · 半上弦半下弦 · 母亲写的字值更人看不懂 · 等下个散会来填 | 一、二、三、四、五、六、七 |
+| geography | 值更室 · 值更室的墙 · 潮候院值更室 | 一、二 |
+| characters | 值更人 · 抄本师 · 抄本师的母亲 · 散会 | 一、二、三、四、五、六 |
+| story | 只印半个潮的挂历 · 回响（其一百六十） | 全篇 |
+| items | 挂历 · 值更册 · 盐账的最后一格 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第一百二十六日 | 三、四、五、六 |
+
+> 挂历只印半个潮——因为潮的另一半从来没人看过——留给山那边的潮候院。
+> The calendar prints only half the tide — no one has ever seen the other half — it is left for the Institute across the mountains.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百六十）「值更室墙上那张只印半个潮的挂历」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the wall calendar in the watch chamber — it prints only half the tide; waxing and waning each show half.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给值更室墙上那张挂历——它只印半个潮汐，上弦月与下弦月各画半边。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the hundred-and-twenty-sixth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百二十六日。
+
+---
+
+## I · The Calendar on the Wall
+
+On the wall of the watch chamber hangs a calendar — twelve months to a year — each month prints only half — half waxing, half waning.
+
+**锚句**：值更室的墙上挂着一张挂历——一年十二个月——每月只印半张——半上弦半下弦。
+**Anchor sentence**: on the wall of the watch chamber hangs a calendar — twelve months to a year — each month prints only half — half waxing, half waning.
+
+---
+
+## II · The Waxing Half — The Head of the Watch Copies
+
+On the waxing half the head of the watch copies one stroke into the half-moon's cell — copying the salt account — copying the tide.
+
+**锚句**：上弦月的值更人在那半月的格子上抄一笔——抄盐账——抄潮汐。
+**Anchor sentence**: on the waxing half the head of the watch copies one stroke into the half-moon's cell — copying the salt account — copying the tide.
+
+---
+
+## III · The Waning Half — The Mother of the Copyists Copies
+
+On the waning half the mother of the copyists writes another stroke in the same cell — the stroke the head of the watch cannot read — copied as-is into the ledger.
+
+**锚句**：下弦月的抄本师的母亲在同一格里另写一笔——她写的值更人看不懂——原样抄下来。
+**Anchor sentence**: on the waning half the mother of the copyists writes another stroke in the same cell — the stroke the head of the watch cannot read — copied as-is into the ledger.
+
+---
+
+## IV · The Cell of the One Hundred and Twenty-sixth Day
+
+On the one hundred and twenty-sixth day — the waxing half reads "tide" — the waning half is empty — the mother of the copyists did not write.
+
+**锚句**：第一百二十六日那一格——上半年写着「潮」——下半年空着——抄本师的母亲没有写。
+**Anchor sentence**: on the one hundred and twenty-sixth day — the waxing half reads "tide" — the waning half is empty — the mother of the copyists did not write.
+
+---
+
+## V · The Relationship Between the Calendar and the Salt Ledger
+
+The empty cell on the calendar is the same as the last empty entry in the salt ledger — that cell is waiting for the next dissolution to fill it.
+
+**锚句**：挂历上那空的一格就是盐账最后那一格——那格是等下一个散会来填的。
+**Anchor sentence**: the empty cell on the calendar is the same as the last empty entry in the salt ledger — that cell is waiting for the next dissolution to fill it.
+
+---
+
+## VI · The Last Page of the Watch-Ledger
+
+The last page of the watch-ledger reads: the calendar prints only half the tide — because no one has ever seen the other half of the tide.
+
+**锚句**：值更册最后一页：挂历只印半个潮——因为潮的另一半从来没有人看过。
+**Anchor sentence**: the last page of the watch-ledger reads: the calendar prints only half the tide — because no one has ever seen the other half of the tide.
+
+---
+
+## VII · Mapping（Echo No. 160 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the wall calendar · half waxing half waning · the unreadable stroke of the mother · waiting for the next dissolution | 一、二、三、四、五、六、七 |
+| geography | the watch chamber · the wall of the watch chamber | 一、二 |
+| characters | the head of the watch · the mother of the copyists · the dissolution | 一、二、三、四、五、六 |
+| story | the calendar that prints only half the tide · Echo No. 160 | 全篇 |
+| items | the wall calendar · the watch-ledger · the last empty entry in the salt ledger | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the hundred-and-twenty-sixth day of the autumn-tide month | 三、四、五、六 |
+
+> 挂历只印半个潮——因为潮的另一半从来没人看过——留给山那边的潮候院。
+> The calendar prints only half the tide — no one has ever seen the other half — it is left for the Institute across the mountains.
+`,
+  },
+  {
+    order: 161,
+    slug: 'echo-161-the-lamp-that-never-writes-a-name',
     titleZh: '潮候院那盏从不写名的灯',
     titleEn: 'The Lamp in the Chapel That Carries No Name',
     eraLineZh: '纪元：潮候院 · 第四十三次散会之后 · 秋潮月第一百零二日',
@@ -18632,14 +18806,14 @@ The shells are part of the table; the Institute would rather the table go plain 
 
 ---
 
-## 六 · 映射（回响其一百六十 · 对应关系）
+## 六 · 映射（回响其一百六十一 · 对应关系）
 
 | 类别 | 标题 | 对应章 |
 |---|---|---|
 | lore | 沉默的保存 · 第七次日蚀之后 · 海口 | 一、二、三 |
 | geography | 潮候院 · 抄本席 · 石阶檐影 | 一、三、四 |
 | characters | 抄本守礼 · 值更人 · 散会 | 一、二、四 |
-| story | 第四盏灯的沉默 · 回响（其一百六十） | 全篇 |
+| story | 第四盏灯的沉默 · 回响（其一百六十一） | 全篇 |
 | items | 沉默的灯 · 存档卷册 · 残盐厚灯座 | 一、三、五 |
 | history | 第四十三次散会之后 · 秋潮月第一百零二日 | 全文 |
 
