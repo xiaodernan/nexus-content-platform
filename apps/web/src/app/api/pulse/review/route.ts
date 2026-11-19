@@ -119,35 +119,42 @@ export async function POST(req: Request): Promise<Response> {
   // 字节稳定的 canon 前缀常驻 system——观察站审核官也知道这是个什么平台。
   const system = locale === 'zh'
     ? [
-        canonPrelude('zh', { zh: '--- /observatory 当前展板的全部输入（JSON；points=近若干天 opens 序列，其余为规则引擎自算值）---', en: '' }),
-        basisJson,
+        canonPrelude('zh', { zh: '--- 世界观前缀：NEXUS 的正典——潮汐教团、潮候院、回响、本尊。你是复核官，复核的不是潮候院，是平台的数据。---', en: '' }),
         '',
         '你是 NEXUS /observatory 的"独立复核官"。',
-        '纪律（不可违反）：',
-        '1. 你看到的只是上面这份 JSON 里的数字——不许引用任何外部知识或想象未给的指标；',
-        '2. 每条复核必须带具体数字（例如"斜率 slope=0.03"、"CV=1.94"、"botShare=0.46"）——禁止"看起来不错"这类空话；',
-        '3. 对 2-5 条规则引擎当前站得住/站不住的判断各写一条（agree/disagree + 一句依据 + 数字）；',
-        '4. 最后给一句"如果只改一件事，改哪件"，落在 JSON 的数字上；',
-        '5. 输出格式：严格 JSON，无 markdown、无前言：',
-        '   {"checks":[{"claim":"…","verdict":"agrees|disagrees","basis":"…"}, …],"bestNextMove":"…"}',
-        '6. 语言：跟随输入（此条为中文）。',
+        '你只能引用 user 消息里的那份 JSON 里的数字——不许引用任何外部知识、不许想象未给的指标；',
+        '每条复核必须带具体数字（例如 slope=0.03、CV=1.94、botShare=0.46）——禁止"看起来不错"这类空话。',
       ].join('\n')
     : [
-        canonPrelude('en', { zh: '', en: '--- EVERY input on the /observatory dashboard right now (JSON; points is the opens series; the rest are values the rule engine computed itself) ---' }),
-        basisJson,
+        canonPrelude('en', { zh: '', en: '--- World prefix: the NEXUS canon — the Tide Conclave, the Institute, the echoes. You are the reviewer; you review the platform’s numbers, not the Institute’s. ---' }),
         '',
         'You are the independent reviewer of the /observatory dashboard for NEXUS.',
-        'Rules (non-negotiable):',
-        '1. You only see what is in the JSON above — no outside knowledge, no imagined metrics;',
-        '2. Each check MUST cite concrete figures (e.g. “slope=0.03”, “CV=1.94”, “botShare=0.46”) — no “looks fine”;',
-        '3. Give 2-5 checks on whether the rule engine’s current stances hold up (agrees/disagrees + one-line basis with numbers);',
-        '4. End with one “if you could change only one thing…” grounded in the JSON figures;',
-        '5. Output format: strict JSON, no markdown, no preamble:',
-        '   {"checks":[{"claim":"…","verdict":"agrees|disagrees","basis":"…"}, …],"bestNextMove":"…"}',
-        '6. Language: follow the input (this one is English).',
+        'Judge ONLY from the JSON in the user message — no outside knowledge, no imagined metrics;',
+        'Each check MUST cite concrete figures (e.g. “slope=0.03”, “CV=1.94”, “botShare=0.46”) — no “looks fine”.',
       ].join('\n');
 
-  const user = locale === 'en' ? 'English review, please.' : '请用中文复核。';
+  // 数据与输出格式都放 user 末尾——模型对"它最后看见的指令"最敏感；system 的 canon 只作背景。
+  const user = locale === 'zh'
+    ? [
+        '【/observatory 当前展板的全部输入（JSON；points=近若干天 opens 序列，其余为规则引擎自算值）】',
+        basisJson,
+        '',
+        '请严格输出 JSON，无 markdown、无前言，格式：',
+        '{"checks":[{"claim":"…","verdict":"agrees|disagrees","basis":"…"}, …],"bestNextMove":"…"}',
+        '2-5 条规则引擎当前站得住/站不住的判断各写一条（agree/disagree + 一句依据 + 数字）；',
+        '最后给一句"如果只改一件事，改哪件"，落在上面 JSON 的数字上；',
+        '语言：中文。',
+      ].join('\n')
+    : [
+        '【ALL input on the /observatory board right now (JSON; points is the opens series; the rest are values the rule engine computed itself)】',
+        basisJson,
+        '',
+        'Respond with strict JSON only, no markdown, no preamble, exactly:',
+        '{"checks":[{"claim":"…","verdict":"agrees|disagrees","basis":"…"}, …],"bestNextMove":"…"}',
+        'Give 2-5 checks on whether the rule engine’s current stances hold up (agrees/disagrees + one-line basis with numbers);',
+        'End with one "if you could change only one thing…" grounded in the figures above;',
+        'Language: English.',
+      ].join('\n');
   const reqId = `pulse_review_${Date.now().toString(36)}`;
   const chat = await chatWithCharacter({ requestId: reqId, system, user, modelClass: 'balanced' });
   if (!chat.ok) {
