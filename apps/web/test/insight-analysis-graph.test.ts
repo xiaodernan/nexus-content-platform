@@ -38,7 +38,7 @@ const okReal = (text: string, cachedTokens = 2048): AiChatResult => ({
     requestId: 'graph-test',
     capability: 'real',
     provider: 'openai-compatible',
-    model: 'gpt-6.1-terra',
+    model: 'gpt-6.2-sol',
     text,
     usage: {
       tokensIn: 3000,
@@ -46,7 +46,7 @@ const okReal = (text: string, cachedTokens = 2048): AiChatResult => ({
       cachedTokens,
       cacheReported: true,
       provider: 'openai-compatible',
-      model: 'gpt-6.1-terra',
+      model: 'gpt-6.2-sol',
       modelClass: 'fast',
       latencyMs: 1000,
       demoMode: false,

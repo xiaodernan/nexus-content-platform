@@ -10,7 +10,7 @@ import { increment, observe } from '@/server/observability';
 
 /**
  * §INSIGHT-4 · POST /api/insight/chat —「正典深问」
- *   —口令 123 的「观察坞」公开问答，直接打真·大模型（`gpt-6.1-terra`）。
+ *   —口令 123 的「观察坞」公开问答，直接打真·大模型（`gpt-6.2-sol`）。
  *
  * 与 `/api/bible/q` 同一条大典管线（同一个 `SYSTEM_PROMPT` 字节前缀）：
  *   - system 前缀 = 低语诸王世界大典 digest（≈4.3 万 tokens，字节恒定）；

@@ -6,7 +6,7 @@ import type { Locale } from '@/lib/i18n';
 /**
  * ──OBSERVER-DEEPREAD · 只读观察站「AI 深读」按钮（cont. 209 slice）──────────
  *
- * 规则引擎建议已经是人的判断；这一颗按钮把**实测聚合**再喂给 gpt-6.1-terra，
+ * 规则引擎建议已经是人的判断；这一颗按钮把**实测聚合**再喂给 gpt-6.2-sol，
  * 让模型按数字说出「形势 · 展望（未来 7 天推断，明确标注推断不是实测）· 下一步 · 优先级」三段——每条判断必须带数字（服务器机械校验，
  * 不合格直接 502 不展示）。失败不掩盖：错误原样展示给人看。
  *
@@ -25,7 +25,7 @@ interface DigestOk {
 
 const COPY = {
   zh: {
-    kicker: 'AI 深读 · gpt-6.1-terra',
+    kicker: 'AI 深读 · gpt-6.2-sol',
     idle: '按实测聚合出「形势 · 展望（7 天推断）· 下一步」——GPT 写，数字保真（缺数字会原样拒绝展示）',
     generate: '生成 AI 深读',
     generating: '模型正在读这一串真实数字…',
@@ -35,7 +35,7 @@ const COPY = {
     retry: '重试',
   },
   en: {
-    kicker: 'AI deep-read · gpt-6.1-terra',
+    kicker: 'AI deep-read · gpt-6.2-sol',
     idle: '“Situation · Forecast (7-day inference) · Next steps” from measured aggregates — the model writes, figures stay true (no figure → server refuses to render)',
     generate: 'Generate AI deep-read',
     generating: 'The model is reading these real numbers…',

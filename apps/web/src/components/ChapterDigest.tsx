@@ -7,7 +7,7 @@ import type { Locale } from '@/lib/i18n';
  * ──CHAPTER-DIGEST · 典籍室的"让 AI 读给你听"（cont. 193）────────────────────
  *
  * 本组件只递一枚按钮和读一段输出——摘要与思考题全部来自服务端：
- * /api/bible/chapter-digest 让 gpt-6.1-terra 只读本章/回响的原文摘录，
+ * /api/bible/chapter-digest 让 gpt-6.2-sol 只读本章/回响的原文摘录，
  * 不编造、不超出，最后递一句"思考：/Ponder:"把读者留在门边。
  *
  * 纪律：
