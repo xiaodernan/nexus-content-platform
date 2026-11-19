@@ -8241,3 +8241,11 @@ Reported upstream to `docs/evidence/liveness-sweep-2026-11-19.md`（cont.429 对
 - test pin（extractAnchorTexts 计数口径，系统性 +5 慢于 verifier）：1015 → **1021**；两条 digest 测试 11/11 全绿
 - E169 锚句[1]：沙厅最里间的竖琴没人知道它的年份——沙尘厚得压住了它的声音。→ IO oracle-strip 换至 v1059
 - 下一只：继续滚 **Echo #170**
+
+## cont. 434 (2026-11-19) — §IO-v1059 推送+dispatch · 公网 CDN 滞后如实记录
+
+- E169 push（`5d5b380` 到 `xiaodernan.github.io master`）+ Pages dispatch 204 — 但 **公网 CDN 当前仍直出 v1056 / E164《崖顶风碑》oracle-strip**（cache-bust 头强测 `?_cb=e169-head` 命中 2026-11-19T10Z 部署快照）— 即整站的 zh 区完整、avatar/语言/身份三灯全绿、但只有 oracle 区停在三版之前
+- 结论：无代码错误 — Pages 边缘缓存和每次 deploy/dispatch 的冷启动延迟已连续 4 次发生；推送增量不再靠硬砸 dispatch → 交给 3h cron（已启用 `17 */3 * * *`）收敛，不再每回 dispatch
+- digest 证据链：本轮两条 Echo（#168 `4ecb5a17…` + #169 `598ded62…`）均在 nexus-content-platform master；生成快照 `apps/web/src/world-bible/generated.ts`（3 卷·169 回响·4 附录）+ ai-service 的 `canon_digest.txt`（247,029 chars）保持同步
+- bible-ask-behavior pin（test-local 计数口径）= **1021**；verifier 计数口径 = **1026**；两套数字都如实记在 CURRENT-STATE 与提交信息中，未改 verifier 本身以免噪声
+- 头像/languages/雅思/六级/隐盾：公网 live 再次确认全部正确（screenshot 前已核对 100% 页面文本）· identity-guard exit 0
