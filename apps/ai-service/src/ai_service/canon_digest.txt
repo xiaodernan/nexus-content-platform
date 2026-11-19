@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 178 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 179 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3250,6 +3250,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 守库人十五年前就看到了——他不指它——他只是点一个灯——他值更点灯——他是保守的。
 - [5] 抄本师念"潮"——墙发极低回响——它不是声——是判息——他们开始各自数。
 - [6] 抄本师今天只写——墙上有一个字——守库人十五年前就看到了——第七十一页是空的。
+
+### Echo 179 · 雾港旧信物库屋脊熄了几十年的旧灯在潮退后自己亮了 / The Old Lamp That Had Been Dark for Decades on the Relic Room's Roof — It Lit Itself the Night the Tide Withdrew
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 屋脊是麻石屋面——灯不能亮——抄本师一直不靠近它。
+- [2] 它熄了六十七年——里面没有油——守库人不添油——它是一块石——灯不是灯。
+- [3] 潮退第一夜屋脊的石自己发出淡蓝光——不像火——不像电——像潮水从上往下淌。
+- [4] 值更记录——屋脊之石已亮——我端了一杯水——抄本师抄了三字：「灯」「不」「水」。
+- [5] 屋脊之石不为人亮——它为从未来的潮候院之人亮——它要的是潮退。
+- [6] 抄本师写它点的几种可能——他们写下这些字——但没有谁写完。
 
 ### Echo 18 · 祠殿里从不叫的一只猫 / The Cat in the Institute That Never Meowed
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

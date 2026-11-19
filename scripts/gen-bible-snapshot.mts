@@ -229,6 +229,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E176-雾港旧信物库后院铜锚在大潮夜里第一次开口只说了一个字': 'echo-176-the-anchor-that-spoke-on-the-great-tide-night',
   'E177-雾港大潮退后的清晨铜锚确实落了一寸页七十一自己翻到了第七十二页': 'echo-177-the-page-seventy-one-turns',
   'E178-雾港潮退之后抄本师才发觉墙上一直映着一个潮字': 'echo-178-the-character-on-the-wall',
+  'E179-雾港旧信物库屋脊熄了几十年的旧灯在潮退后自己亮了': 'echo-179-the-ridge-stone-that-lit-itself',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
