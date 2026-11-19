@@ -201,6 +201,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E148-潮候院只收一个字的信': 'echo-148-the-letter-that-holds-one-character',
   'E149-祠殿门槛下那半只只认脚步的鞋': 'echo-149-the-half-shoe-that-knows-footsteps',
   'E150-祠殿风吹铃前那条只能由潮认的线': 'echo-150-the-line-that-only-the-tide-can-read',
+  'E151-祠殿风方门边那只只够围坐六个人的圆桌': 'echo-151-the-six-seat-table-by-the-chapel-door',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

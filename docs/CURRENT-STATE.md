@@ -7816,7 +7816,7 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - fe-gates **151/151 · 1377/1377 · census 2996** · tsc web EXIT=0 · gate 页 HTTP 200 + 浏览器无障碍快照零 error（带内数字区：实库全零数据时平线预测，R²=null）
 - 未能浏览器实证投影带本身：本机 Docker 挂掉致 Postgres 不可达（env 限制，非代码缺陷）；proj 带在 Docker 恢复后首次进库即显
 
-## cont. 395 (2026-11-19) · §RAG-LINEAGE ✓ · 问典把检索依据摊开给读者看
+## cont. 396 (2026-11-19) — v1037 · §BIBLE-151 ✓ §RAG-LINEAGE ✓ · Echo #151《只留一把椅子的圆桌》(作者手写 · verify 921/921) + /api/bible/q 检索依据真面板
 
 - `retrieve` 节点早就是真的（diggestion 字符二元组 Jaccard + top-3 snippet，≤1.6KB）——但路由只回 `retrieved: <计数>`，读者看不见
 - 现在 `/api/bible/q` 多回 `retrieval: string[]`（top-3 原文片段，逐字）；BibleAsk 前端新增可折叠「本轮检索依据」（`<details class="bbq-retrieval" data-bible-ask-retrieval>`，zh/en 双语 · 确定性二元组声明在底部），`setPhase('loading')` 重置 retrieval/cite——不残留上一轮的旧依据
@@ -7829,3 +7829,11 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - system 前缀**零改动**（KV 全命中纪律保持）· 卡片 SHA pin 不变（组件未动）· observer-deepread 门 7/7
 - observe 门页抗 DB 抖动（cont.394 硬化）+ 投影带（§OBSERVE-PROJ）= 观察站至此有：实测计数 → 规则建议 → 线性外推 → 大模型深读（全部同一实库口径）
 - fe-gates **151/151 · 1377/1377 · census 2998** · tsc EXIT=0
+- 新篇：「祠殿风方门边那只只够围坐六个人的圆桌 · 它还留了一把椅子给你——等一个还没到的人」—— digest 现 **239,325 chars**（13 章正典 · **151 回响** · 4 annex · 锚句 921 zh / 921 en ✓）。
+- 6 锚句双语 · gen-bible-snapshot 增 echo-151 · BibleAsk lede → 151 · /bible/ask meta → 一百五十一篇回响 · CACHE-IDENTITY × 151 · canon-answer-graph → 164 段 · bible-ask-behavior → 916 · pin 重钉 page→b6a40c35 / comp→79dc3cd9 · InsightCanonChat hint 同步至 151 · fe-gates **1377/1377** ✓ · verify:world-bible 921/921 ✓。
+
+## cont. 397 (2026-11-19) · §RAG-LINEAGE ✓ §stategraph/polish ✓ · 全列 SpaceGraph 路由文案端口漂移清零 + bible/q 检索依据面板 live
+
+- §RAG-LINEAGE：`/api/bible/q` 回真实 top-3 检索依据 + BibleAsk 可折叠检索面板（此前只回 retrieved 计数） · 论坛/admin 不打印用户隐私
+- 路由文案上的 ai-service 端口 3212 → 3200（cont.357 漂移的遗留，pin 重钉）
+- 并行线的 cont.395/396.7 已收入 `661f1be1 / 502fd3e9 / 49eebceb / 1d42a3cf`（/api/bible/q 真 top-3 + stategraph 文案 pin + latest.json 指针）
