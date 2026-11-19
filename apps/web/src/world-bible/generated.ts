@@ -19411,6 +19411,214 @@ The keeper died — the auditors broke the plaque — the auditor laughed — sa
 `,
   },
   {
+    order: 165,
+    slug: 'echo-165-the-keeper-of-the-tidal-tower-who-has-refused-to-leave-the-lamp',
+    titleZh: '汐塔下那一位守了二十年不肯下灯的守塔人',
+    titleEn: 'The Keeper of the Tidal Tower Who Has Refused to Leave the Lamp for Twenty Years',
+    eraLineZh: '纪元：潮候院 · 第四十三次大会散会前 · 秋潮月第三十六日。',
+    eraLineEn: 'Era: the Institute — before the 43rd Convocation; the thirty-sixth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 165): The Keeper of the Tidal Tower Who Has Refused to Leave the Lamp for Twenty Years
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> 本篇写给汐塔：潮候院外海湾尽头那一座白壳小塔——灯夜天亮之间，没有任何一个夜晚被人记做"熄"。
+> Written for the Tidal Tower: at the mouth of the harbor of the Institute, a small white one — no night has ever been written down as "dark".
+> 纪律同正典：锚句 zh/en 逐字对齐，任何引用本章的条目应保持锚句的逐字一致。
+> Same discipline: anchors verbatim on both sides; no text may cite this Echo if it rewords them.
+
+> 纪元：潮候院 · 第四十三次大会散会前 · 秋潮月第三十六日。
+> Era: the Institute — before the 43rd Convocation; the thirty-sixth day of the autumn-tide month.
+
+---
+
+## 一 · 守了二十年
+
+汐塔没有名字——乡人只叫它「汐灯」。八丈高，底细肚宽，顶一盏祖传的黄铜灯。灯里的油是潮候院每季送来的，**从盐不沾进去**——这是唯一一条不被打断的规矩。
+
+二十年前的一个秋潮月底，灯室里的守塔人没有在潮降的时候出来。这不合规矩——潮候院规定守塔人**每三个月**下塔一次，领一卷新油、一批新信。
+
+有人爬上塔底，递话给他。守塔人从窗里投下一张纸，上面只压着盐——「以后不出来」。
+
+**锚句**：汐塔白壳守了二十年，油从没沾过盐粒。
+**Anchor sentence**: the white shell of the Tidal Tower has held for twenty years; not a grain of salt has touched its oil.
+
+---
+
+## 二 · 不下塔的理由
+
+有人说他是在替另一个死人守。
+
+有人说他收到过一张只有一个字的信。
+
+有人说潮候院里有一个人是他的儿子，死在潮退之后的一场风里。
+
+没有人被命令替他——因为潮候院的折断步子是白壳的，替塔里的人是凡俗的——没人被命令。
+
+**锚句**：守塔人收到一封只有一个字的信——那字是"等"。
+**Anchor sentence**: the keeper received one letter containing one word — that word was "wait".
+
+---
+
+## 三 · 守塔人的回答
+
+一等就是二十年。
+
+灯罩擦拭如常，灯油满处勤添——没有人证明他写过任何字。
+
+有一次潮候院的档案里一个低阶抄本师偷偷写道：汐塔的灯油还可以撑二十四年。没有人在意——大家都选择不读那句话。
+
+第二十年的秋天，汐塔边长出了一根藤，沿着塔身往上爬，爬到三分之一处断了。藤蔓上挂着潮候院寄来的信。接信的是塔下的一个小孩。守塔人从窗口念了一句：
+
+守塔人问藤寄的信是不是意思他终于等到了。没有人回答他。没有人愿意替他回答。
+
+**锚句**：藤蔓在三分之一处断了——信被风吹到了塔脚——守塔人念了一遍又一遍。
+**Anchor sentence**: the vine broke at a third of its height — the letter blew against the tower's skirt — the keeper read it once, and then again.
+
+---
+
+## 四 · 藤上的信
+
+守塔人念完的那一刻，窗里传出一句很轻却极清楚的话：
+
+「灯油是院里的——灯罩是我自己擦亮的——油请给下一个。」
+
+守塔人投下一个小瓶，瓶里的油是满的。他在塔下留下一张信。信上只有四个字——「灯油放着。」
+
+潮候院抄本师捧起那瓶油时，面色忽然白了一截。没人把这件事写进当天的日志——可没有人删去，也没人承认，也没人想起来。
+
+**锚句**：守塔人投下一只小瓶——瓶里油是满的——他给下一任守塔人留了「灯油放着」。
+**Anchor sentence**: the keeper dropped a small bottle — it was full of oil — and left for the next keeper the four words "the oil is here".
+
+---
+
+## 五 · 汐塔的安魂
+
+潮退潮落叶未谢的夜里，潮候院没有人去汐塔。
+
+塔的灯还亮着，守塔人从塔里消失了——汐塔外轮廓还是旧形状，从二十年前到今天——只少了一个曾经的守塔人，多了一叠人没敢动的油瓶。
+
+潮候院大典记事里只有很短的一段。潮沙月这一天潮声特别长，时间回到了某个未知的早晨。
+
+守塔人的名字从来没有人记得过——他去了哪儿，可能只有海知道。潮声的回声不会载着人的名字离开岸——潮候院的人听见也不说——潮候院的人听见也没问。
+
+**锚句**：守塔人的名字从来没有人记得——他去了哪儿，可能只有海知道——沙月的潮声特别长。
+**Anchor sentence**: no one has ever remembered the keeper's name — where he went, perhaps only the sea knows — the tide of the sand-month rang for a very long time.
+
+---
+
+## 六 · 下一位守塔人
+
+汐塔还在——黄铜灯牌还是旧的那一个。灯油够下一位守塔人用一年——潮候院的信摊在窗口的那一边——桌上有一封信没人动。
+
+潮候院所有的人都不知道——灯油不是给汐塔下一位守塔人的——灯罩下的油是给汐塔所有人都看了好几遍的那一个。
+
+潮候院的信上，又多了一个字——「来」。
+
+**锚句**：灯罩下的油是给汐塔下一位守塔人的——潮候院的信摊在窗口——信上只有一个字——来。
+**Anchor sentence**: the oil beneath the lamp is for the next keeper of the Tidal Tower — the Institute's letter lies on the sill — it contains a single character — come.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百六十五）：「汐塔下那一位守了二十年不肯下灯的守塔人」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> Written for the Tidal Tower: at the mouth of the harbor of the Institute, a small white one — no night has ever been written down as "dark".
+> 本篇写给汐塔：潮候院外海湾尽头那一座白壳小塔——灯夜天亮之间，没有任何一个夜晚被人记做"熄"。
+> Same discipline: anchors verbatim on both sides; no text may cite this Echo if it rewords them.
+> 纪律同正典：锚句 zh/en 逐字对齐，任何引用本章的条目应保持锚句的逐字一致。
+
+> Era: the Institute — before the 43rd Convocation; the thirty-sixth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十三次大会散会前 · 秋潮月第三十六日。
+
+---
+
+## I · Twenty Years
+
+The Tidal Tower has no name — the villagers call it simply "the Tide-Lamp." Eight zhang tall; thin at its base and broad at its belly, capped by an heirloom brass lamp. The oil is brought by the Institute every season; **never** has a grain of salt fallen into it — this is the one rule no one in two decades has broken.
+
+Twenty years ago, at the very end of an autumn-tide month, the keeper of the lamproom failed to come out at the low-tide hour. This was not the rule — the Institute required the keeper to descend once every three months: to fetch a fresh bottle of oil, a fresh pair of letters.
+
+Someone climbed to the tower's base and relayed a message through the window. The keeper threw down a slip of paper on which only salt had been pressed — *"From here on, I will not descend."*
+
+**Anchor sentence**: the white shell of the Tidal Tower has held for twenty years; not a grain of salt has touched its oil.
+**锚句**：汐塔白壳守了二十年，油从没沾过盐粒。
+
+---
+
+## II · Why He Does Not Descend
+
+Some said he was staying for a dead man.
+
+Some said he had received a letter with only one character.
+
+Some said a son of his had died at the edge of the tide, in the wind that came after the water withdrew.
+
+No one volunteered to replace him — the Institute's break-the-step was for the white shell, and replacing a keeper was the world's work — no one was commanded.
+
+**Anchor sentence**: the keeper received one letter containing one word — that word was "wait".
+**锚句**：守塔人收到一封只有一个字的信——那字是"等"。
+
+---
+
+## III · The Keeper's Answer
+
+He has been waiting for twenty years.
+
+The lamp's cover is wiped on schedule; the oil is filled faithfully — no letters were said to have been written by him.
+
+Once a minor copyist in the Institute's archive slipped a note into the ledger: "the Tidal Tower's oil can last another twenty-four years." No one noticed — everyone chose not to read that line.
+
+In the autumn of the twentieth year, a vine grew up the side of the tower, climbed to a third of the way, and broke there. A letter from the Institute hung on the end of the vine. A child outside caught the letter when it fell. The keeper read it aloud once through the window:
+
+The keeper asked: was the letter from the vine, saying at last, "you may stop waiting now"? No one answered him. Nobody volunteered to answer.
+
+**Anchor sentence**: the vine broke at a third of its height — the letter blew against the tower's skirt — the keeper read it once, and then again.
+**锚句**：藤蔓在三分之一处断了——信被风吹到了塔脚——守塔人念了一遍又一遍。
+
+---
+
+## IV · The Letter on the Vine
+
+At the moment the keeper finished reading, a voice came from inside the tower, quiet but clear:
+
+"The oil is the Institute's — the lamp's cover is mine to polish — please give the oil to the next one."
+
+The keeper dropped a small bottle from the tower. The bottle was full of oil. On the sill below, he left a letter — four characters only — "the oil is here."
+
+An Institute copyist picked up the bottle of oil; his face turned pale. No one wrote it into the day's log; no one deleted it either; no one acknowledged it; no one even thought of it again.
+
+**Anchor sentence**: the keeper dropped a small bottle — it was full of oil — and left for the next keeper the four words "the oil is here".
+**锚句**：守塔人投下一只小瓶——瓶里油是满的——他给下一任守塔人留了「灯油放着」。
+
+---
+
+## V · The Tidal Tower's Requiem
+
+On a night of the autumn tide with the leaves still on the branches, no one at the Institute went to the Tidal Tower.
+
+The lamp is still burning; the keeper has disappeared from inside the tower — the silhouette of the Tidal Tower is unchanged; one keeper is gone, and one stack of oil bottles no one dared touch has been added.
+
+The Institute's chronicle records only a brief passage. The tide-sound of the sand-month rang with unusual length, and time seemed to step back into some unknown morning.
+
+No one has ever remembered the keeper's name — where he went, perhaps only the sea knows. The tide's echo cannot carry a person's name away from the shore — the Institute's people heard it and did not speak — the Institute's people heard it and did not ask.
+
+**Anchor sentence**: no one has ever remembered the keeper's name — where he went, perhaps only the sea knows — the tide of the sand-month rang for a very long time.
+**锚句**：守塔人的名字从来没有人记得——他去了哪儿，可能只有海知道——沙月的潮声特别长。
+
+---
+
+## VI · The Next Keeper
+
+The Tidal Tower still stands — the brass lamp plaque is the original. Oil enough remains for one more year's keeper — the Institute's letters lie on the sill, waiting on one side; one letter on the table is untouched.
+
+No one in the Institute knows the oil is not for the next keeper of the Tidal Tower — the oil beneath the lamp is for the one who has looked at it the longest.
+
+On the Institute's letter, one more character has been added — "come."
+
+**Anchor sentence**: the oil beneath the lamp is for the next keeper of the Tidal Tower — the Institute's letter lies on the sill — it contains a single character — come.
+**锚句**：灯罩下的油是给汐塔下一位守塔人的——潮候院的信摊在窗口——信上只有一个字——来。
+`,
+  },
+  {
     order: 17,
     slug: 'echo-017-the-driftwood-nobody-split',
     titleZh: '祠殿后那一截没有人劈开的浮木',

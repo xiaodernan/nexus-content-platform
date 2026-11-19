@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 164 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 165 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3116,6 +3116,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 登记簿里只有大潮风和大退潮风——守烽人悄悄记了第三种——他叫那一笔"不交账的风"。
 - [5] 抄本师想查自己说过的风——守烽人说"你说的风不归此处入册"——他只留"零"字——其他的什么都没留。
 - [6] 审查牌被拆下——核账的人笑了——说这旌上没有几笔——可那面"零"字潮候院至今不敢动——据说旧时对副国王说话，必须以"零"唤人——只听——只记。
+
+### Echo 165 · 汐塔下那一位守了二十年不肯下灯的守塔人 / The Keeper of the Tidal Tower Who Has Refused to Leave the Lamp for Twenty Years
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 汐塔白壳守了二十年，油从没沾过盐粒。
+- [2] 守塔人收到一封只有一个字的信——那字是"等"。
+- [3] 藤蔓在三分之一处断了——信被风吹到了塔脚——守塔人念了一遍又一遍。
+- [4] 守塔人投下一只小瓶——瓶里油是满的——他给下一任守塔人留了「灯油放着」。
+- [5] 守塔人的名字从来没有人记得——他去了哪儿，可能只有海知道——沙月的潮声特别长。
+- [6] 灯罩下的油是给汐塔下一位守塔人的——潮候院的信摊在窗口——信上只有一个字——来。
 
 ### Echo 17 · 祠殿后那一截没有人劈开的浮木 / The Driftwood Nobody Split for Firewood
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
