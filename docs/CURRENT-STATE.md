@@ -8277,3 +8277,14 @@ Reported upstream to `docs/evidence/liveness-sweep-2026-11-19.md`（cont.429 对
 - **公网**：CDN 仍停留 v1056/E164（本轮没有再 dispatch）——Pages 3h cron 负责自然收敛
 - **潮印主题的叙事挂点**：Seal 是 world step 里 traveler.seals 的语义词；本 chapter 把它落到「旧信物库最里的铜屉」——潮位刻痕(E164)与印章(E171)两个载体尺度现在对应上
 - **world-step 实测记录（上回合）**：world-step 200 unlocks=["E169"] · proven live-digest serves E169；Δ 走 canon_guard
+
+## cont. 438 (2026-11-19) — Pages runner 迁移事实 + IO v1060 push
+
+- parallel line just changed Pages CI twice today (merge in master at point 82c184e):
+  - `691053c ci(pages): declare environment: github-pages on the deploy job — deploy-pages@v4 refuses to create a Pages deployment without it ('Missing environment', HTTP 400)`
+  - `41555d0 ci(pages): archive step is now cross-platform — master runs on ubuntu-latest (419c465) after lenovo-pages proved no WSL /bin/bash; the pwsh archive step now uses system tar on Linux, Git GNU tar or Windows bsdtar on Windows; BOM and CRLF preserved`
+- 公网 3h cron 在 ubuntu-latest 上跑 — self-hosted windows（`lenovo-pages`）不再是主通道；this repository is deploy-only so far
+- **IO master 555c8da · v1060**: oracle-strip INSCRIBES Echo #171《雾港旧信物库里那枚没有沾过海水却自己泛了绿的潮印》 · quote anchor[1]「雾港旧信物库里没有灯——守库人进门都点蜡烛——库里每一格都有用。」 · meta-cert 1038 锚句 / digest 247,976 / 171 回响 · fact-num 171 — 已 push，**未 dispatch**（CDN 收敛交给 cron，强派发多次无果）
+- xiaodernan.github.io 当前 health：identity-guard OK (exit 0)。重点：Pages 部署流水线不再依赖本机 runner，即使本机无人开着也能自动更新（ubuntu-latest 模式）
+- digest verify count：verifier 1038 zh/en；test-local pin 1033（5 系统差），双 digest 测试 11/11 绿
+- note: E170 receipt skipped on public IO (v1059→v1060 moved past the E170 inscription) — 公网 v1060 直接锚定 E171，E170《北墙年月刻痕》digest 内有但 oracle-strip 没有单独 public quote（compromise chosen：不把 oracle-strip 锚文每回增一个 bullet 刷新曝光，宁可让每次 deploy 都有一条干净新锚句）
