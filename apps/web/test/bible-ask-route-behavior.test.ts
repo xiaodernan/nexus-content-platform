@@ -41,9 +41,9 @@ vi.mock('../src/server/ai/client', () => ({
         requestId: 'bible-ask-test',
         capability: 'real' as const,
         provider: 'openai-compatible',
-        model: 'gpt-6.1-terra',
+        model: 'gpt-6.1-sol',
         text: '典籍曰：潮候院的收件人不是人，是潮。',
-        usage: { cachedTokens: 4421, cacheReported: true, tokensIn: 4421, tokensOut: 13, provider: 'openai-compatible', model: 'gpt-6.1-terra', modelClass: 'fast', latencyMs: 46 },
+        usage: { cachedTokens: 4421, cacheReported: true, tokensIn: 4421, tokensOut: 13, provider: 'openai-compatible', model: 'gpt-6.1-sol', modelClass: 'fast', latencyMs: 46 },
       },
     };
   },

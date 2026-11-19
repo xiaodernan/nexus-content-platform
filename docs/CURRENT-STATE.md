@@ -7933,3 +7933,12 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - **真实 latent bug 修**：`safeProfile`（knowledge.ts）只查 `Array.isArray(profile.goals)`，老行少 identity/style/clothing/traits 这几个默认列 → `chunksFromCharacter` 在 `profile.traits.join(...)` 崩，**整个项目 knowledge 索引一起炸**。改为 `CharacterProfileSchema.safeParse`（与写入口同一契约，zod 给默认填回）；非此行者仍跳过、不炸整库。
 - **integration 全绿恢复纪录**：storyboard-render 18/18 · storyboards+import+video-asset 26/26 · storyboard-render-route+build-status 13/13 · social 10/10。
 - **如实**：在这次之前（cont.401）本链路只有模型层纯函数单测，真库真 ffmpeg 没见过——现在见证了。`NEXUS_DATABASE_URL` 本机默认是 55433 但本机容器映射 5443，所以跑测试临时注入 `postgres://nexus:nexus_dev_only@localhost:5443/nexus`。
+## cont. 406 (2026-11-19 · 深夜) · §AI-DEEPREAD-LIVE ✓ 真模型真为真主分析真数据
+
+- `POST /api/admin/observer/digest` (口令 123) 返回 200：`model=gpt-6.1-sol` · 中文三段全真实数字
+  - 形势：3438 用户 · 1266 七日新增 · 877 浏览 · 11 赞 · 0 过审公开作品
+  - 展望：投影 0.43/日 · 斜率 0 · 持平推断 · 7 天 0~12 次（明确标注非实测）
+  - 下一步：1) 114 待审批任务逐批审核；2) 清洗 91 疑似机器人流量后评估转化指标；3) 7 天每日打开数与 0.43 投影对照检查（明言此为检查持平推断是否还适用）
+- metrics 段全为真实凝结字段（projValid / projTrend / projSlope / projResidualSd / projNext1 等）
+- 详见 `docs/evidence/observer-deep-read-live-2026-11-19.md`
+- master == main == origin == de892d… 之后当前 tip（本 commit） · Pages 实时指针 3868/3609
