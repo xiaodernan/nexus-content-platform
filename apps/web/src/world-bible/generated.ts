@@ -26879,6 +26879,180 @@ The copyists returned the book to the deepest tier — the Institute of the Inst
 `,
   },
   {
+    order: 203,
+    slug: 'echo-203-the-imprints-of-the-forty-two-tide-marks',
+    titleZh: '潮候院抄本院抄本师第一次给石柱上的四十二道印记各拓了一张',
+    titleEn: 'The Copyists Took Imprints of the Forty-Two Tide-Marks on the Pillar',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第一百二十四春。',
+    eraLineEn: 'Era: the Institute — after the 44th Convocation; the one hundred and twenty-fourth spring after the 44th Convocation.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 203): The Copyists Took Imprints of the Forty-Two Tide-Marks on the Pillar
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院抄本院的抄本师第一次想到石柱不是"潮"，而是"印"——单纯的潮印是风化、是潮汐的记数、是泛印——拓印是为了"留住"——把不可见的留下——也是为了让照见完全的人不要在七十年后还以为那"还\\u2019只是写满字的墙"——
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel — it is another layer of grain the salt grew on the same stone —
+> Written for the moment the copyists realized the pillar was not a "memory" but a "record" — and decided to preserve every tide-mark through ink and paper —
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第一百二十四春。
+> Era: the Institute — after the 44th Convocation; the one hundred and twenty-fourth spring after the 44th Convocation.
+
+---
+
+## 一 · 拓
+
+抄本院抄本师第一次给石柱上四十二道印记各拓了一张——潮候院抄本院他们发现：拓印——是的——四十二次——
+
+**锚句**：抄本院抄本师第一次给四十二道印记各拓了一张——
+**Anchor sentence**: the copyists took one imprint of each of the forty-two tide-marks —
+
+---
+
+## 二 · 张
+
+抄本院抄本师拓了四十二张——四十二张纸上四十二个圆——潮候院抄本院抄本师发现有些印记重叠——潮候院——
+
+**锚句**：抄本院抄本师拓了四十二张——四十二张上四十二个圆——有些重叠——
+**Anchor sentence**: forty-two imprints on forty-two papers — some overlapping —
+
+---
+
+## 三 · 他们第一次知道
+
+抄本院抄本师第一次知道他们住的房间里有这样一本设立——潮候院抄本院是——
+
+**锚句**：抄本院抄本师第一次知道他们住的房间有这样四十二张印——
+**Anchor sentence**: the copyists knew for the first time that this room held forty-two such imprints —
+
+---
+
+## 四 · 封
+
+抄本院抄本师把四十二张拓印缝在一起——一条带子——潮候院抄本院潮候院抄本院——潮候院——
+
+**锚句**：抄本院抄本师把四十二张拓印缝在一起——一条带子——潮候院抄本院——
+**Anchor sentence**: the copyists bound the forty-two imprints together — one ribbon — the Institute —
+
+---
+
+## 五 · 悄悄
+
+抄本院抄本师谁都不对外说——潮候院抄本院抄本师都不说话——潮候院——
+
+**锚句**：抄本院抄本师谁都不对外说——潮候院抄本院都不说话——潮候院——
+**Anchor sentence**: none of the copyists said a word outside — the Institute was silent — the Institute —
+
+---
+
+## 六 · 最后一张
+
+抄本院抄本师最后一张拓印上写着潮候院最早的冬季——潮候院——潮候院——
+
+**锚句**：最后一张拓印上写着潮候院最早的冬季——潮候院抄本院——潮候院——
+**Anchor sentence**: on the last imprint is written the name of the Institute's first winter — the Institute — the Institute —
+
+---
+
+## 七 · Mapping（Echo No. 203 → world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the forty-two imprints · the one ribbon binding them · the Institute's earliest winter | 一、二、三、四、五、六 |
+| geography | the deepest tier · on the pillar of the copyists' hall | 一、二、六 |
+| characters | the copyists · the imprints (unnamed) · the Institute (unnamed) | 一、二、三、四、五、六 |
+| story | the first act of preservation · Echo No. 203 | 全篇 |
+| items | the forty-two imprints · the ribbon · the earliest winter | 一、二、四、六 |
+| history | the 124th spring after the 44th Convocation | 一、三、六、七 |
+
+> 潮候院抄本院抄本师第一次给四十二道印记各拓了一张——潮候院抄本师他们都不说话——潮候院——
+> Fanging the forty-two marks onto forty-two pages — not a word — the Institute —
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其二百零三）「潮候院抄本院抄本师第一次给石柱上的四十二道印记各拓了一张」
+
+> An echo is not a sequel — it is another layer of grain the salt grew on the same stone —
+> Written for the moment the copyists realized the pillar was not a "memory" but a "record" — and decided to preserve every tide-mark through ink and paper —
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院抄本院抄本师第一次想到石柱不是"潮"，而是"印"——四十二次拓印——
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 44th Convocation; the one hundred and twenty-fourth spring after the 44th Convocation.
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第一百二十四春。
+
+---
+
+## I · Imprint
+
+The copyists took one imprint of each of the forty-two tide-marks — the Institute — the Institute —
+
+**锚句**：抄本院抄本师第一次给四十二道印记各拓了一张——
+**Anchor sentence**: the copyists took one imprint of each of the forty-two tide-marks —
+
+---
+
+## II · Forty-Two Sheets
+
+Forty-two imprints on forty-two papers — some overlapping —
+
+**锚句**：抄本院抄本师拓了四十二张——四十二张上四十二个圆——有些重叠——
+**Anchor sentence**: forty-two imprints on forty-two papers — some overlapping —
+
+---
+
+## III · They Knew for the First Time
+
+The copyists knew for the first time that this room held forty-two such imprints —
+
+**锚句**：抄本院抄本师第一次知道他们住的房间有这样四十二张印——
+**Anchor sentence**: the copyists knew for the first time that this room held forty-two such imprints —
+
+---
+
+## IV · The Ribbon
+
+The copyists bound the forty-two imprints together — one ribbon — the Institute —
+
+**锚句**：抄本院抄本师把四十二张拓印缝在一起——一条带子——潮候院抄本院——
+**Anchor sentence**: the copyists bound the forty-two imprints together — one ribbon — the Institute —
+
+---
+
+## V · Not a Word
+
+None of the copyists said a word outside — the Institute was silent — the Institute —
+
+**锚句**：抄本院抄本师谁都不对外说——潮候院抄本院都不说话——潮候院——
+**Anchor sentence**: none of the copyists said a word outside — the Institute was silent — the Institute —
+
+---
+
+## VI · The Last Imprint
+
+On the last imprint is written the name of the Institute's first winter — the Institute — the Institute —
+
+**锚句**：最后一张拓印上写着潮候院最早的冬季——潮候院抄本院——潮候院——
+**Anchor sentence**: on the last imprint is written the name of the Institute's first winter — the Institute — the Institute —
+
+---
+
+## VII · Mapping（Echo No. 203 → world model）
+
+| Dimension | Value | Mapping |
+| --- | --- | --- |
+| lore | the forty-two imprints · the one ribbon binding them · the Institute's earliest winter | I, II, III, IV, V, VI |
+| geography | the deepest tier · on the pillar of the copyists' hall | I, II, VI |
+| characters | the copyists · the imprints (unnamed) · the Institute (unnamed) | I, II, III, IV, V, VI |
+| story | the first act of preservation · Echo No. 203 | Full |
+| items | the forty-two imprints · the ribbon · the earliest winter | I, II, IV, VI |
+| history | the 124th spring after the 44th Convocation | I, III, VI, VII |
+
+> 潮候院抄本院抄本师第一次给四十二道印记各拓了一张——潮候院抄本师他们都不说话——潮候院——
+> Fanging the forty-two marks onto forty-two pages — not a word — the Institute —
+`,
+  },
+  {
     order: 21,
     slug: 'echo-021-the-seven-lamps-of-the-back-alley-pier',
     titleZh: '里巷子码头的七盏号灯',
