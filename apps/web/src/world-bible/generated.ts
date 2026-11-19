@@ -21777,6 +21777,180 @@ It waits for the tide to withdraw — it waits for the tide to return — it wai
 `,
   },
   {
+    order: 177,
+    slug: 'echo-177-the-page-seventy-one-turns',
+    titleZh: '雾港大潮退后的清晨——铜锚确实落了一寸——页七十一自己翻到了第七十二页',
+    titleEn: 'The Morning After the Great Tide — the Anchor Really Dropped One Inch — Page Seventy-One Turned Itself Into Page Seventy-Two',
+    eraLineZh: '纪元：雾港 · 第四十三次大会之后 —— 冬潮月第五十四日（大潮退）。',
+    eraLineEn: 'Era: Fog Harbor — after the 43rd Convocation; the fifty-fourth day of the winter-tide month (the day the great tide withdrew).',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 177): The Morning After the Great Tide — the Anchor Really Dropped One Inch — Page Seventy-One Turned Itself Into Page Seventy-Two
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给大潮退去后的清晨——值更人量见铜锚沉了一寸——页七十一忽然多出一层灰——页码翻了。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the morning after the great tide — the keeper measured the anchor one inch lower — page seventy-one had lost its place — the page had turned.
+> Same discipline: anchors verbatim.
+
+> 纪元：雾港 · 第四十三次大会之后 —— 冬潮月第五十四日（大潮退）。
+> Era: Fog Harbor — after the 43rd Convocation; the fifty-fourth day of the winter-tide month (the day the great tide withdrew).
+
+---
+
+## 一 · 大潮退
+
+大潮在冬潮月第五十四日早晨退了——雾港港口第一艘船被潮带回原位——雾港旧信物库后院石板上的潮水痕全灭——抄本师们坐到石板上——没人讲话——守库人说："锚它落了。"
+
+**锚句**：大潮退去——石板上的潮痕灭了——守库人说："锚它落了。"
+**Anchor sentence**: the great tide withdrew — the tide-marks on the flagstone vanished — the keeper said: "the anchor has landed."
+
+---
+
+## 二 · 一寸
+
+守库人用潮候院刻痕的铜钎量了一遍——铜锚比前数高度低了一寸——从前谁都在谈它不落——没人量过它的高——抄本师第一次点名整整一寸下落——他们都屏着呼吸。
+
+**锚句**：铜锚落了一寸——用刻痕铜钎量的——抄本师屏着呼吸——没人点过这个词。
+**Anchor sentence**: the anchor dropped one inch — measured by the engraved brass rod — the copyists held their breath — no one had ever used that word before.
+
+---
+
+## 三 · 页七十一翻了
+
+守库人进了信物库——铜铃还罩着——灯自己亮起来——页七十一被潮翻到——它被翻成第七十二页——"第七十二页"上抄本师熟悉却从没见过的字样——抄本师说那不是字——那是"等"站了起来——字的背面是空的。
+
+**锚句**：页七十一被潮翻到——它是第七十二页——抄本师说那不是字——那是"等"站了起来。
+**Anchor sentence**: page seventy-one was turned by the tide — it is page seventy-two now — the copyists say it is not a character — the "wait" stood up.
+
+---
+
+## 四 · 潮脚线再直
+
+雾港旧信物库外墙的潮脚线这次直了——它停在守库人胸口那格——它不在涨——抄本师没人说出潮多久来一次——他们只标潮潮水收容——角落的麻石再没雾——没人查真相——抄本师在墙上第一笔平直——没有再写时间刻度。
+
+**锚句**：潮脚线再直——停在守库人胸口那格——抄本师第一笔平直——没有刻度。
+**Anchor sentence**: the tide-line is straight again — it stopped at the keeper's chest-height — the copyists drew their first straight line — no scale.
+
+---
+
+## 五 · 抄本师重新写字
+
+抄本师在麻纸上写下了"落"——一页写不完——他们写了二十七个——他们把纸压在杯盖下——他们把杯盖又移到书架上——"落"在杯盖下时就没有出现——在书架上它出现了——他们不写别的字。
+
+**锚句**：抄本师写下"落"字——二十七个——只有放在书架上时它才出现。
+**Anchor sentence**: the copyists wrote down the character "landed" — twenty-seven — it appears only when it rests on the shelf.
+
+---
+
+## 六 · 整个潮候院的清晨
+
+值更人记录写：大潮退去——锚落一寸——页七十一翻了——第七十二页抄本师看到的不是字——潮脚线再直——抄本师开始写字——抄本师是潮候院的眼——锚是潮候院的灯——钥匙今天又落了一齿——它现在只剩两颗——二者都等过——现在它们都没有等——它们都落了。
+
+**锚句**：大潮退去——锚落一寸——页七十一翻了——钥匙少了齿——潮候院醒了。
+**Anchor sentence**: the tide withdrew — the anchor dropped an inch — page seventy-one had turned — the key had lost its teeth — the Institute woke up.
+
+---
+
+## 七 · Mapping（Echo No. 177 → world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the inch-drop · the page seventy-two · the straightened tide-line · the word "landed" | 二、三、四、五、六 |
+| geography | the backyard of the relic room · the outer wall · the sea high tide (after) · the tide-line | 一、三、四、六 |
+| characters | the keeper · the copyists · the rounds (unnamed) | 一、二、三、四、五、六 |
+| story | page seventy-one turns · Echo No. 177 | 全篇 |
+| items | the old brass anchor · the linen "landed" strokes · the engraved brass rod | 二、三、五 |
+| history | After the 43rd Convocation · the fifty-fourth day of the winter-tide month (great-tide withdrawal) | 一、五、六、七 |
+
+> 雾港大潮退后的清晨——锚落一寸——页七十一翻了——潮脚线直了。
+> The morning after the great tide — the anchor dropped one inch — page seventy-one had turned — and the tide-line ran straight.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百七十七）「雾港大潮退后的清晨——铜锚确实落了一寸——页七十一自己翻到了第七十二页」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the morning after the great tide — the keeper measured the anchor one inch lower — page seventy-one had lost its place — the page had turned.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给大潮退去后的清晨——值更人量见铜锚沉了一寸——页七十一忽然多出一层灰——页码翻了。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: Fog Harbor — after the 43rd Convocation; the fifty-fourth day of the winter-tide month (the day the great tide withdrew).
+> 纪元：雾港 · 第四十三次大会之后 —— 冬潮月第五十四日（大潮退）。
+
+---
+
+## I · The Great Tide Withdrew
+
+The great tide withdrew on the morning of the fifty-fourth day of the winter-tide month — Fog Harbor's pier saw its first ship returned to its place — the tide-marks on the flagstone of the backyard were all gone — the copyists sat on the flagstone — no one spoke — the keeper said: "the anchor has landed."
+
+**锚句**：大潮退去——石板上的潮痕灭了——守库人说："锚它落了。"
+**Anchor sentence**: the great tide withdrew — the tide-marks on the flagstone vanished — the keeper said: "the anchor has landed."
+
+---
+
+## II · One Inch
+
+The keeper measured with the Institute's engraved brass rod — the anchor sat one inch lower than its previous height — no one had measured its height — the copyists pronounced for the first time: a whole inch — and all of them held their breath.
+
+**锚句**：铜锚落了一寸——用刻痕铜钎量的——抄本师屏着呼吸——没人点过这个词。
+**Anchor sentence**: the anchor dropped one inch — measured by the engraved brass rod — the copyists held their breath — no one had ever used that word before.
+
+---
+
+## III · Page Seventy-One Turned
+
+The keeper stepped into the relic room — the bell was still covering — the lantern lit itself — page seventy-one lay turned by the tide — it is page seventy-two now — what stands on page seventy-two is not a character — it is the "deng" standing up — the back of the word is blank.
+
+**锚句**：页七十一被潮翻到——它是第七十二页——抄本师说那不是字——那是"等"站了起来。
+**Anchor sentence**: page seventy-one was turned by the tide — it is page seventy-two now — the copyists say it is not a character — the "wait" stood up.
+
+---
+
+## IV · The Tide-Line Again Straight
+
+The tide-line on the outer wall of the old relic room ran straight again — it stopped at the keeper's chest-height — it no longer rises — the copyists never say how often the tide returns — they only record the tide's intake — the corner shell-rock holds no fog — no one investigated the truth — the copyists' first line was drawn straight — with no scale.
+
+**锚句**：潮脚线再直——停在守库人胸口那格——抄本师第一笔平直——没有刻度。
+**Anchor sentence**: the tide-line is straight again — it stopped at the keeper's chest-height — the copyists drew their first straight line — no scale.
+
+---
+
+## V · The Copyists Began to Write
+
+The copyists wrote the character "fall" on linen — twenty-seven of them — they kept it under the cup lid — they moved the lid to the shelf — the "fall" never appeared under the cup lid — it appeared only on the shelf — they wrote no other character.
+
+**锚句**：抄本师写下"落"字——二十七个——只有放在书架上时它才出现。
+**Anchor sentence**: the copyists wrote down the character "landed" — twenty-seven — it appears only when it rests on the shelf.
+
+---
+
+## VI · The Morning the Institute Woke
+
+The rounds wrote: the tide withdrew — the anchor dropped one inch — page seventy-one turned — the keeper said the key lost another tooth — the Institute's eye and the Institute's lamp — both had waited — both are finished waiting — they had both landed.
+
+**锚句**：大潮退去——锚落一寸——页七十一翻了——钥匙少了齿——潮候院醒了。
+**Anchor sentence**: the tide withdrew — the anchor dropped an inch — page seventy-one had turned — the key had lost its teeth — the Institute woke up.
+
+---
+
+## VII · Mapping（Echo No. 177 → world model）
+
+| Dimension | Value | Mapping |
+| --- | --- | --- |
+| lore | the inch-drop · the page seventy-two · the straightened tide-line · the word "landed" | II, III, IV, V, VI |
+| geography | the backyard of the relic room · the outer wall · the high tide (after) | I, IV, VI |
+| characters | the keeper · the copyists · the rounds (unnamed) | I, II, IV, V, VI |
+| story | page seventy-one turns · Echo No. 177 | Full |
+| items | the old brass anchor · the linen "landed" strokes · the engraved brass rod | II, III, V |
+| history | After the 43rd Convocation · the fifty-fourth day of the winter-tide month (great-tide withdrawal) | I, V, VI, VII |
+
+> 雾港大潮退后的清晨——锚落一寸——页七十一翻了——潮脚线直了。
+> The morning after the great tide — the anchor dropped one inch — page seventy-one had turned — and the tide-line ran straight.
+`,
+  },
+  {
     order: 18,
     slug: 'echo-018-the-cat-in-the-institute-that-never-meowed',
     titleZh: '祠殿里从不叫的一只猫',

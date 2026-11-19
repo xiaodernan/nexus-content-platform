@@ -8350,3 +8350,13 @@ Reported upstream to `docs/evidence/liveness-sweep-2026-11-19.md`（cont.429 对
 - **雾港 arc 弧**（E167→E176）：从物件到事件 — 纸船（E167）→ 铁门（E168 同夜）→ 竖琴（E169 同夜）→ **潮汐历停七十一页（E173）** → 潮脚线（E174）→ 铜锚肩着（E175）→ **铜锚在大潮夜开口说「等」（E176）** — 完整 arc 从「记录潮」到「潮记录自己、等待消失的岸」
 - **digest 口径 inventory**：13 主线 / 176 回响 / 4 附录 · 1068 zh+en anchor pairs · 249K-250K chars — 预算 320K 仍剩 ~70K （约 9 章回响容量）
 - Digest on `:3200` and `:3100` mirror identical bytes; IO oracle v1063 待 cron/推
+
+## cont. 445 (2026-11-19) — §BIBLE-177 · Echo #177 arc capstone landing · venv 修复重生
+
+- **Echo #177《雾港大潮退后的清晨铜锚确实落了一寸页七十一自己翻到了第七十二页》** 双语手写 → digest **250,854 chars · sha 30e1f524…** · verify **1074 zh/en ✓** · test pin 1063→**1069** · digest 双测试 11/11 绿 · registry `echo-177-the-page-seventy-one-turns`。雾港潮弧 arc 完整闭环（潮起→候→七十一页→等→落地一寸→七十二页→钥匙至此只剩两齿→潮候院醒）
+- **事故**：launcher 退出时发现 `C:\Program Files\Python311\python.exe` 消失（DLLs 等目录都在，但 python.exe 在 19:00~19:26 之间被某个未知进程删除——很可能是 parallel/careeros 更新它 — 不可知）→ venv 退回失败
+  - 旧 venv 备份 `.venv.bak-20261119-venv311` 已保留（不删）；新 venv 由 uv 官方下载 **cpython-3.11.15**（自包含）重建 → requirements.txt 全部安装成功（uvicorn 0.34, fastapi 0.115.6, httpx 0.28.1, langgraph 1.2.22, redis 5.2.1 …）
+  - pyvenv.cfg：home = uv-managed 3.11.15 · include-system-site-packages=false · 与 wheel 版本匹配（pydantic_core 2.27.2 cp311 原样可导入）
+- relaunch detached shim 54104 → worker 56968（uv 3.11.15）· `/healthz 200` · capability real · llm gpt-6.2-sol — **ai-service 恢复运行**
+- **纪律检查**：如果某个并行进程继续把 `C:\Program Files\Python311\python.exe` 删/恢复，不会再影响 ai-service；它现在不再依赖那个路径
+- **本轮 IO**: oracle-strip 已升至 v1063（E176 铜锚开口, fact-num 176），identity-guard exit 0 — digest E177 推入库后下一个 cron 将采纳 v1064 候选（E177 位），公共展示页自然会刷新
