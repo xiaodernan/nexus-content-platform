@@ -1,7 +1,7 @@
 import { and, desc, eq, isNotNull, isNull } from 'drizzle-orm';
 import { APPROVAL_TTL_MS, AiRequestSchema, type AiRequest, type RealtimeEvent } from '@nexus/schemas';
 import { ttlLabel } from '@/lib/notify-plan';
-import { TaskUsageSchema, type TaskUsage } from '@/lib/tasksLedger';
+import { TaskUsageSchema, RenderCountsSchema, type TaskUsage, type RenderCounts } from '@/lib/tasksLedger';
 import { channels, getRealtimeBus } from '../realtime/bus';
 import { recordAudit } from './audit';
 import { chargeGeneration } from './credit-ledger';
@@ -63,6 +63,11 @@ export interface TaskView {
   durationMs: number | null;
   /** §75：provider 报的用量；null = 这一行没记账（不是 0 token） */
   usage: TaskUsage | null;
+  /**
+   * §40/ADR-0086：video.render 这一行的渲染账（镜数/总时长/色卡/整片那张图/角色肖像）。
+   * 非 video.render 行、或 input 读不出/形状不对 → `null`（照实说"没记"，不画 0）。
+   */
+  render: RenderCounts | null;
   /** 这一行是不是看的人自己建的；列表里只有自己的行才挂"重试/取消"按钮（别人的行点了也只会 404） */
   mine?: boolean;
 }
@@ -806,6 +811,31 @@ export async function readApprovalTask(taskId: string, actorId: string): Promise
 }
 
 /**
+ * §40/ADR-0086：video.render 这一行的渲染账。
+ *
+ * 只认 agentKey === 'video.render'，形状不对 → null（"没记"与"渲了 0 镜"不是一回事）。
+ * 为什么要过 schema 再给出去：`input` 是 jsonb，库里没有约束——
+ * 半截对象画出来比"没记"更误导（它会让人相信"这次渲了 5 点里确实 0 镜用了色卡"）。
+ */
+function renderOf(agentKey: string, value: unknown): RenderCounts | null {
+  if (agentKey !== 'video.render') return null;
+  if (!value || typeof value !== 'object') return null;
+  const o = value as Record<string, unknown>;
+  // input 里别的键（storyboardId / warnings…）不进报文：账本只给这个数，别带出更多
+  const parsed = RenderCountsSchema.safeParse({
+    shots: o.shots,
+    totalMs: o.totalMs,
+    cardCount: o.cardCount,
+    sourceReferenceCount: o.sourceReferenceCount,
+    // 老行（2026-11-19 以前）没有这一格：按 0 读。
+    // 不是"这次没用肖像"——老行记不了这一格；但 0 与"没记"在这一列里分不出，
+    // 折进 0 是为了让三种数能加总，面板上会显示"肖像 0"而不是让整格作废。
+    characterPortraitCount: o.characterPortraitCount ?? 0,
+  });
+  return parsed.success ? parsed.data : null;
+}
+
+/**
  * §75：读的时候把 jsonb 过一遍契约。坏形状 → null（照实说"没记"），
  * 不把一个半截对象画成一份用量——那一格是要让人相信"这次真烧了多少"的数字。
  */
@@ -833,6 +863,7 @@ function view(row: typeof agentTasks.$inferSelect & { projectName: string | null
     approvedAt: row.approvedAt?.toISOString() ?? null,
     durationMs: started !== null && finished !== null ? Math.max(0, finished - started) : null,
     usage: usageOf(row.usage),
+    render: renderOf(row.agentKey, row.input),
     ...(actorId ? { mine: row.createdById === actorId } : {}),
   };
 }

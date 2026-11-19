@@ -7,6 +7,8 @@ import { REALTIME_TEXT } from '../src/lib/useRealtime';
  * 实时状态标签的文案单源在哪。这几句 reason 与标签会原样出现在界面上——措辞就是承诺（§73）。
  */
 
+const GOOD_RENDER = { shots: 12, totalMs: 36000, cardCount: 3, sourceReferenceCount: 5, characterPortraitCount: 4 };
+
 function taskRow(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     id: 'task-1',
@@ -194,6 +196,39 @@ describe('§75 用量那一格：0 与"没记"是两件事', () => {
     expect(parsed.success).toBe(true);
     if (!parsed.success) return;
     expect(parsed.data.tasks[0]!.usage!.modelClass).toBe('某天新增的一档');
+  });
+});
+
+describe('§40/ADR-0086 video.render 渲染账：契约咬不咬', () => {
+  it('完整五格收得下', () => {
+    const parsed = TasksLedgerSchema.safeParse(ledgerPayload([taskRow({ render: GOOD_RENDER })]));
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    expect(parsed.data.tasks[0]!.render).toEqual(GOOD_RENDER);
+  });
+
+  it('老行/非 video.render 行没有 render 这一格：收得下（可选 + nullable）', () => {
+    expect(TasksLedgerSchema.safeParse(ledgerPayload([taskRow()])).success).toBe(true);
+    expect(TasksLedgerSchema.safeParse(ledgerPayload([taskRow({ render: null })])).success).toBe(true);
+  });
+
+  it('半截 render（缺 characterPortraitCount）判不合：不把一个数的账画成另一个数的账', () => {
+    const partial = { shots: 12, totalMs: 36000, cardCount: 3, sourceReferenceCount: 5 };
+    expect(TasksLedgerSchema.safeParse(ledgerPayload([taskRow({ render: partial })])).success).toBe(false);
+  });
+
+  it('负数/小数判不合：镜数与毫秒永远是整数', () => {
+    expect(TasksLedgerSchema.safeParse(ledgerPayload([taskRow({ render: { ...GOOD_RENDER, shots: -1 } })])).success).toBe(false);
+    expect(TasksLedgerSchema.safeParse(ledgerPayload([taskRow({ render: { ...GOOD_RENDER, totalMs: 3.5 } })])).success).toBe(false);
+  });
+
+  it('多出的格不传送给浏览器：schema 出口不回流 input 里的别的键', () => {
+    const parsed = TasksLedgerSchema.safeParse(
+      ledgerPayload([taskRow({ render: { ...GOOD_RENDER, storyboardId: 'sb-1', warnings: ['x'] } })]),
+    );
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    expect(parsed.data.tasks[0]!.render).toEqual(GOOD_RENDER);
   });
 });
 

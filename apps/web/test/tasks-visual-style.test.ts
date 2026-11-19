@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
  * 本片只换 className；行为、文案、data 钩子、realtime 订阅/重读判据一字不改。
  *
  * **剥 className 后全文 SHA256 守恒**：三文件均逐字节恒等于改前（git HEAD）。
- * redact 三步序与钉死常量一致：live=`d5cb42c1…`（§AILIVE-9/CACHE-3 + §v699 SavingsCard 接线后的字节），retry=`b90012c2…`，page=`4e75c349…`。
+ * redact 三步序与钉死常量一致：live=`2524d27c…`（§SB-CHAR-SCENE 补钉：video.render 渲染账行 + `data-task-render` 钩子），retry=`b90012c2…`，page=`4e75c349…`。
  *
  * 判据不变式（14 门）：
  *  1. page.tsx server 组件 + force-dynamic + requireUser + listProjectTasks 钩子（零 className）；
@@ -22,7 +22,7 @@ import { describe, expect, it } from 'vitest';
  *  7. 零写死 hex；8. 视觉段 var(--nexus-*）全在 tokens.css 声明；9. 零新增颜色 token；
  * 10. 零 transition / animation / @keyframes / @media；11. focus-visible 覆盖 backlink/retryBtn；
  *     .tl-retryBtn:disabled 真禁用；横滚区 role="region" + tabIndex 守恒（axe scrollable-region-focusable）；
- * 12. SHA256 三文件守恒；13. 数据钩子守恒（13 个 data-tasks-/data-task- 系 + 2 个 data-task-retry 系）。§CACHE-3（2026-11-14）：live 随并行线补钉新 SHA（c5667ac0…）与 cache 三档钩子，13 门→14 门→15 门（并轨 v691–v698：live 补 reasoning 推理旁注，SHA 重钉）。
+ * 12. SHA256 三文件守恒；13. 数据钩子守恒（14 个 data-tasks-/data-task- 系 + 2 个 data-task-retry 系）。§CACHE-3（2026-11-14）：live 随并行线补钉新 SHA（c5667ac0…）与 cache 三档钩子，13 门→14 门→15 门（并轨 v691–v698：live 补 reasoning 推理旁注，SHA 重钉）。2026-11-19 §SB-CHAR-SCENE：live 补 video.render 渲染账行（镜数/总长/色卡/整片/肖像 · 5 格全报，非 video.render 行不显示）+ `data-task-render` 钩子，钩子门 14→15 系，SHA 重钉 2524d27c…。
  */
 const ROOT = process.cwd();
 const PAGE = join(ROOT, 'apps/web/src/app/tasks/[projectId]/page.tsx');
@@ -170,7 +170,7 @@ describe('§FE-23 /tasks/[projectId] 任务账本', () => {
     expect(liveCode).toContain('aria-label={c.tableScrollAria}');
   });
 
-  it('数据钩子守恒：live 14 个 + retry 2 个（data-task-retry/-note）', () => {
+  it('数据钩子守恒：live 15 个 + retry 2 个（data-task-retry/-note）', () => {
     for (const hook of [
       'data-tasks-root',
       'data-tasks-title',
@@ -187,6 +187,7 @@ describe('§FE-23 /tasks/[projectId] 任务账本', () => {
       'data-task-row',
       'data-task-status',
       'data-task-usage',
+      'data-task-render',
     ]) {
       expect(liveCode, `live 丢了钩子 ${hook}`).toContain(hook);
     }
@@ -210,10 +211,10 @@ describe('§FE-23 /tasks/[projectId] 任务账本', () => {
     expect(liveCode).toContain('data-tasks-cache-summary={String(cache.cached)}');
   });
 
-  it('剥 className 后全文 SHA256 钉死（live=d5cb42c1… 并轨 §AILIVE-9/CACHE-3 + §v699 SavingsCard 接线后的字节 · retry=b90012c2… · page=4e75c349…）', () => {
+  it('剥 className 后全文 SHA256 钉死（live=2524d27c… §SB-CHAR-SCENE 补钉 video.render 渲染账行 · retry=b90012c2… · page=4e75c349…）', () => {
     // 常量在改前（git HEAD）由真实产物 redact 算出并钉死；此门保证除 className 外一字节未动。
     expect(createHash('sha256').update(redactClasses(live)).digest('hex')).toBe(
-      '41de774399ea8c569c3e4cbdeae9d16776aab63ed7b85bb3129ed13cc1a4d35c',
+      '2524d27c56adebf23fdeb0a26e8d25d6efe8ebab446f756ec454cdde30016002',
     );
     expect(createHash('sha256').update(redactClasses(retry)).digest('hex')).toBe(
       '5d36a868d8c3c8afe2d26cf84174c78acc4398da36bc154c13043be5090356a6',
