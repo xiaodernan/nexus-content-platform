@@ -7920,3 +7920,13 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - **Docker Desktop**（engine API 一路 500）：nexus-redis-blackhole + Nexus postgres (127.0.0.1:5443) 皆可连端口、永不回包
   - `mvn test`（&.jar--java-domain-service）：**Tests run: 175, Failures: 0, Errors: 0, Skipped: 2 · BUILD SUCCESS**（skips = DB/Redis 真服务 gated：`AiHealthBreakerOpenTest` + `WirePublisherRoundTripTest`）
 - 本轮无可交付的真测——只能用有库/有服务的机器补齐；不在本机假装全绿
+## cont. 402 (2026-11-19) · §RUNBOOK ✓ · §PROVIDER-DOWN 记录从 evidence 升为 ADR 级 runbook
+
+- 上游 aizzz / gpt-6.1-terra 自 2026-11-19 ~10:00 起恒 503（request id 原文已落库）
+- `docs/evidence/provider-outage-runbook-2026-11-19.md` → 按 ADR 格式：症状原文 / 排除表 / 用户侧唯一行动 / 降级纪律
+- 本机不可动的两条：服务商 GPT特价 分组渠道（account 侧）· Docker Desktop engine 500 → 守住「fail-closed」立场（§159/§160）
+## cont. 402 (2026-11-19) · §RUNBOOK ✓ · §PROVIDER-DOWN 记录从 evidence 升为 ADR 级 runbook
+
+- 上游 aizzz / gpt-6.1-terra 自 2026-11-19 ~10:00 起恒 503（request id 原文已落库）
+- `docs/evidence/provider-outage-runbook-2026-11-19.md` → 按 ADR 格式：症状原文 / 排除表 / 用户侧唯一行动 / 降级纪律
+- 本机不可动的两条：服务商 GPT特价 分组渠道（account 侧）· Docker Desktop engine 500 → 守住「fail-closed」立场（§159/§160）
