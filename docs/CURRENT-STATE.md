@@ -7874,6 +7874,22 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - §PROOF-V1038 evidence：digest 跨 echo 增量后缓存稳定（详见 `docs/evidence/proof-v1038-cache-byte-stability-2026-11-19.md`）；E152/E153 各自 3 发实测 154,627/154,891 tokensIn, cold=7,xxxx → warm **145,483 (93.9%)**，3 发同值无飘移。
 - ADR-0290 记录 cache 代理路由的根本 truth："Node 原生 fetch 根本不走 HTTPS_PROXY"（不是 cache miss 问题）+ 两个真相源都需 `httpx` 显式 `proxy=` 路径才能命中 Clash 权益（直连 aizzz 必 403）。
 - fe-gates **1377/1377** ✓ · verify:world-bible 938/938 ✓。
+
+## cont. 401 (2026-11-19) — §SB-CHAR-SCENE · ADR-0086 仍欠 ① 已落地：character-to-scene 角色肖像进像素
+
+- **新机制**（web 层查库、模型只消费字典，IO 边界在签名上）：
+  - `packages/video-model` `planVideoRender(storyboard, options?)` —— `options.characterPortraits: Readonly<Record<characterId, assetId>>`，
+    只在 `source.arrow === 'character-to-scene'` 时读；与 image-to-video 的整片那张同一条纪律（只进 figure 进成像）。
+  - `RenderSource.reference.from` 由 `'shot' | 'source'` 扩成 `'shot' | 'source' | 'character'`；逐镜出处芯片第四种话（`character-portrait`）。
+  - 新计数 `characterPortraitCount` 与 `cardCount` / `sourceReferenceCount` **并排记账**；写进任务行 `input`。
+  - 四种 notes：肖像进像素了 / 哪几位角色没有肖像可递进来（点名）/ 箭头选了 character-to-scene 但镜头上没挂角色 / 传了肖像但箭头不是 character-to-scene 时的「肖像不进画面」。
+- **新纯函数 web 层**：`apps/web/src/server/domain/character-portraits.ts` —— `latestPortraitByCharacter`（同一角色取最新 `createdAt`；只认 `genMeta.characterPortrait === true`；行序无关、空输入不崩）+ `isPortraitRow`。零 IO。
+  `storyboard-render.ts` 里 `resolveCharacterPortraits`（真库）：分镜 shots 的 `characterId` ∪ `source.characterId` → 一次 `assets` 查询（`character_id IS NOT NULL AND created_at DESC`）→ 交给模型。
+- **界面**（StoryboardPanel，SHA pin 1564941a… 重钉）：`segments` 类型四种 frame；新 `frameSourceCharacter` 双语文案；逐镜出处芯片渲染第四支分支。
+- **验证（如实）**：video-model 107/107 · character-portraits 5/5 · storyboard-panel-visual-style 10/10（SHA pin 重钉）· fe-gates **1377/1377** · tsc（video-model/apps/web）零错。
+  - **未跑**：`storyboard-render.integration.test.ts`（真 PG+ffmpeg）——本会话 Docker Desktop 500、55433 拒连；不冒充。
+- **ADR**：本条以 `docs/adr/0086`「补记 v2」正式关闭仍欠 ①；仍欠改为 Video Studio 工作台 + 真视频 provider（本机缺件）+ `characterPortraitCount` 面板位未读。
+- ROADMAP「Video Studio（text/image/storyboard→video）」[~] 条内已加落地子句。
 ## cont. 399 (2026-11-19) · §PROVIDER-DOWN ⚑ 上游已死亡 · 2026-11-19 晚
 
 - **新 key 曾完全可用**：约 06:30 实测 `/v1/ai/chat` `READY.` · `/v1/ai/chat-graph` `GRAPH-OK` · `healthz llmLive=ok`（10 次真实调用， 0 错误，平均 7.87s）
@@ -7882,3 +7898,11 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 期间所有 LLM 相关路径（tide / ask / deep-read / stategraph probe）按纪律 fail-closed 成 DEMO/503，绝不编造（§159 如实拒绝）
 - 行动项（用户端）：登录服务商后台，检查 **分组 GPT特价**：gpt-6.1-terra 的渠道已被撤下 / 分组配额耗尽 / key 被冻。渠道恢复后**任何模型相关活立即可继续**（ai-service 重启复位即可）
 - 本轮证据：ai-service /metrics（calls=10， errors=0） · direct curl 复测 503 → 000 · Docker 仍坏（engine 500；Redis/Postgres 黑洞；ai-service 以 DEGRADED-BOOT 内存队列运行）
+
+## cont. 402 (2026-11-19 late) — §PROVIDER-DOWN 复核：我亲测 503
+
+- 本会话晚间（进合流后）`.scratch/probe-e151-clash.py` 经 Clash 7897 再测：
+  `status=503` body=`{"error":{"code":"model_not_found","message":"分组 GPT特价 下模型 gpt-6.1-terra 无可用渠道（distributor） (request id: 202611190353527738355968268d9d6PkzCvNyp)","type":"new_api_error"}}`。
+- 与并行线 cont.399 记述一致（07:30 曾真通 · 10:00 起全灭）；本会话更早的探针（tokensIn=154,891 · cached=145,483 · 93.9%）是在渠道被撤之前测得的，两者都如实留档。
+- 用户侧动作：登录服务商后台检查「分组 GPT特价」→ gpt-6.1-terra 的渠道 / 配额 / key 状态；渠道恢复后 ai-service 重启复位即可继续 LLM 车道。
+- 该事件不影响本片落地的能力面：character-to-scene 进像素是纯本地确定性推演（DEMO 标识不变）。

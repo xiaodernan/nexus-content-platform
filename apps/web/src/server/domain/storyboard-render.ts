@@ -4,12 +4,12 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AssetRef } from '@nexus/creative-model';
-import { buildFfmpegArgs, planVideoRender, type RenderInputFile, type VideoRenderPlan } from '@nexus/video-model';
+import { buildFfmpegArgs, planVideoRender, type RenderInputFile, type Storyboard, type VideoRenderPlan } from '@nexus/video-model';
 import { openAssetForOwner, uploadVideoAsset } from './assets';
 import { finishTask, startTask } from './agent-tasks';
 import { refusalForRun } from './credit-ledger';
 import { loadStoryboard } from './storyboards';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { assets } from '../db/schema';
 import { channels, getRealtimeBus } from '../realtime/bus';
@@ -122,11 +122,33 @@ export interface ShotProvenance {
   shotId: string;
   /**
    * 这一镜的画面由谁供给：
-   * - `own`        — 这一镜自己挂的参考帧（最具体的决定赢）；
-   * - `whole-piece` — 整片那张图（`image-to-video` 箭头带的，本镜自己没挂）；
-   * - `card`        — 色卡占位（这一镜没有可看的来源）。
+   * - `own`                — 这一镜自己挂的参考帧（最具体的决定赢）；
+   * - `whole-piece`        — 整片那张图（`image-to-video` 箭头带的，本镜自己没挂）；
+   * - `character-portrait` — 角色肖像（`character-to-scene` 箭头递进的，本镜自己没挂）；
+   * - `card`               — 色卡占位（这一镜没有可看的来源）。
    */
-  frame: 'own' | 'whole-piece' | 'card';
+  frame: 'own' | 'whole-piece' | 'character-portrait' | 'card';
+}
+
+import { latestPortraitByCharacter } from './character-portraits';
+
+/**
+ * 查这位项目里每位角色的肖像（最新一张），交给 planVideoRender 经 characterPortraits 递进来。
+ * 只有 character-to-scene 这条箭头走得到这一格——别的箭头的角色是残留，不是入口。
+ */
+async function resolveCharacterPortraits(projectId: string, document: Storyboard): Promise<Record<string, string>> {
+  const ids = new Set<string>();
+  for (const shot of document.shots) if (shot.characterId) ids.add(shot.characterId);
+  if (document.source.characterId) ids.add(document.source.characterId);
+  if (ids.size === 0) return {};
+  const rows = await getDb()
+    .select({ id: assets.id, characterId: assets.characterId, createdAt: assets.createdAt, genMeta: assets.genMeta })
+    .from(assets)
+    .where(and(eq(assets.projectId, projectId), isNotNull(assets.characterId), inArray(assets.characterId, [...ids])))
+    .orderBy(desc(assets.createdAt));
+  return latestPortraitByCharacter(
+    rows.map((row) => ({ characterId: row.characterId, assetId: row.id, createdAt: row.createdAt, genMeta: row.genMeta })),
+  );
 }
 
 /** 计划里每镜的 source → 这一格交给界面的话：explained by the plan, not by the panel. */
@@ -138,7 +160,7 @@ function shotProvenance(segments: VideoRenderPlan['segments']): ShotProvenance[]
       return {
         index: segment.index,
         shotId: segment.shotId,
-        frame: source.from === 'source' ? 'whole-piece' : 'own',
+        frame: source.from === 'source' ? 'whole-piece' : source.from === 'character' ? 'character-portrait' : 'own',
       };
     }
     return { index: segment.index, shotId: segment.shotId, frame: 'card' as const };
@@ -235,7 +257,12 @@ export async function renderStoryboardDemo(input: RenderStoryboardInput): Promis
     return { ok: false, code: 'unreadable_storyboard', message: `库里的分镜读不出来：${loaded.reason}` };
   }
 
-  const plan = planVideoRender(loaded.document);
+  const plan = planVideoRender(
+    loaded.document,
+    loaded.document.source.arrow === 'character-to-scene'
+      ? { characterPortraits: await resolveCharacterPortraits(input.projectId, loaded.document) }
+      : {},
+  );
   if (!plan.renderable) {
     return { ok: false, code: 'not_renderable', message: '这份分镜排不出一帧：先切出至少一镜有时长的分镜', issues: plan.notes };
   }
@@ -302,6 +329,8 @@ export async function renderStoryboardDemo(input: RenderStoryboardInput): Promis
         // 与 cardCount 并排记，不合成一个数：这一格说的是"多少镜的画面来自整片那张图"，
         // 任务行里只有前者时，"12 镜全渲成同一张图"与"12 镜里 8 镜是色卡"看不出区别
         sourceReferenceCount: plan.sourceReferenceCount,
+        // 同理："多少镜的画面来自角色肖像"单开一格——与整片那张不是同一个来源
+        characterPortraitCount: plan.characterPortraitCount,
       },
     });
     const startedAt = Date.now();

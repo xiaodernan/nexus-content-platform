@@ -164,3 +164,40 @@ A2 是这一片唯一"结果对不对"抓不到的臂：不去重照样渲出逐
    （例如做一版"同一张图从头看到尾"的样片），需要一个显式字段，而不是把镜头上的图挨个摘掉。
 5. **参考帧的读取没有并发上界**（限度 4）：12 镜 12 张不同的图 = 12 次顺序存储读 + 12 份临时文件，
    都在渲染起跑之前串行完成。镜头多的分镜要么并发取、要么加上限，两种都要先有读数才好选。
+## 补记 v2（2026-11-19 · cont. 401）—— "仍欠 ①" 已落地：character-to-scene 进像素
+
+**决定的形状**（按「仍欠 1」预留的那条干净路）：
+`planVideoRender(storyboard, options?)` 收 `options.characterPortraits` —— 一个
+`Readonly<Record<characterId, assetId>>` 字典，由 web 层查库后递进来；**模型仍然不查库**，
+同一份字典两次投影逐字段相同（§16）。web 层那一格是新纯函数
+`latestPortraitByCharacter`（`apps/web/src/server/domain/character-portraits.ts`）：
+同一位角色取 `createdAt` 最新那张、只认 `genMeta.characterPortrait === true`
+（场景截图/参考图冒充肖像绝不进像素）、行顺序与结果无关。
+
+**什么进了像素**：
+1. `RenderSource.reference.from` 由 `'shot' | 'source'` 扩到加入 `'character'`——
+   "这一镜照哪张图演"这一格没有第四种含混。
+2. 没挂图的镜头挂到对应角色的肖像上（自己挂的图优先，冲突时作者更具体的决定赢，与 image-to-video 同一条规则）。
+3. 新计数 `characterPortraitCount` 与 `cardCount` / `sourceReferenceCount` **并排记账，互不合成**；
+   进任务行的 `input`（与前两个数同等地位）。
+4. 各形状 notes 分开说话：肖像进像素了、哪几位角色没有肖像可递进来（
+   `assets.character_id` + `genMeta.characterPortrait` 解析不到，点名 + 下一步动作）、
+   箭头选了 character-to-scene 但镜头上没挂角色（不是"缺肖像"，是"没挂角色"）、
+   以及传了肖像字典但箭头不是 character-to-scene 时的"肖像不进画面"句。
+5. `shotProvenance()` 把计划里的出处带到面板：`frame` 四种 wording
+   （own / whole-piece / **character-portrait** / card），界面逐镜芯片第四种话。
+6. ADR-0086 说的"character-to-scene 仍然不进像素"从此作废，以本补记为准。
+
+**验证（如实）**：
+- 模型层 + 纯函数 web 层：`packages/video-model/test` 107/107（+7 新用例含重放一致性）·
+  `apps/web/test/character-portraits.test.ts` 5/5 全绿。
+- `storyboard-panel-visual-style` SHA pin 按真实产物重钉：1564941a…（12 门全绿，10/10）。
+- `verify:fe-gates` **1377/1377** 全绿；`tsc --noEmit` video-model 与 apps/web 均零错。
+- **没跑**：`storyboard-render.integration.test.ts`（真 PG + 真 ffmpeg）——本会话 Docker Desktop
+  Engine 一直 500，Postgres 55433 拒连；上次绿是 2026-11-17（28 passed）。这条补记不冒充集成层实测。
+
+**仍欠**（本片之后）：
+1. ~~character-to-scene 进像素~~（本补记关闭）。
+2. `Video Studio` 工作台（逐镜可指认出处之外的时间线可播）—— 仍属 UI 工程片。
+3. 真视频 provider——本机没有，像素仍是确定性推演（`demo: true` 不动）。
+4. 任务行的 `input` 里新增的 `characterPortraitCount`，**面板还没读它**——同 sourceReferenceCount，等任务/额度那一屏列出来。

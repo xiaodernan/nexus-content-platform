@@ -177,6 +177,7 @@ const COPY = {
     frameSourceLine: (i: number) => `第 ${i} 镜：`,
     frameSourceSelf: '画面来自这一镜自己挂的参考帧',
     frameSourceWhole: '画面来自整片那张图（image-to-video 箭头带的，本镜没自己挂）',
+    frameSourceCharacter: '画面来自 character-to-scene 箭头递进的角色肖像（web 层按角色 id 解析到的那张，本镜没自己挂）',
     frameSourcePlaceholder: '色卡占位（本镜没挂参考帧）',
     shotPromptAria: '这一镜要拍什么',
     resizeHint: (step: number, min: number, _coarseStep: number) =>
@@ -298,6 +299,7 @@ const COPY = {
     frameSourceLine: (i: number) => `Shot ${i}: `,
     frameSourceSelf: 'Frame from this shot’s own reference',
     frameSourceWhole: 'Frame from the whole-piece image (image-to-video arrow carries this shot; no own reference)',
+    frameSourceCharacter: 'Frame from the character portrait (character-to-scene arrow; resolved by character id, no own reference)',
     frameSourcePlaceholder: 'Color-card placeholder (no reference on this shot)',
     shotPromptAria: 'What to shoot in this shot',
     resizeHint: (step: number, min: number, _coarseStep: number) =>
@@ -480,7 +482,7 @@ export function StoryboardPanel({ locale = 'zh' }: { locale?: Locale }) {
     warnings: string[];
     notes: string[];
     renderMs: number;
-    segments: Array<{ index: number; shotId: string; frame: 'own' | 'whole-piece' | 'card' }>;
+    segments: Array<{ index: number; shotId: string; frame: 'own' | 'whole-piece' | 'character-portrait' | 'card' }>;
   } | null>(null);
   /** 这个项目渲染出过的成片，新的在前（§101 资产清单的"分镜产物"那一格） */
   const [renders, setRenders] = useState<RenderRecord[]>([]);
@@ -614,7 +616,7 @@ export function StoryboardPanel({ locale = 'zh' }: { locale?: Locale }) {
             notes?: string[];
             renderMs?: number;
             message?: string;
-            segments?: Array<{ index: number; shotId: string; frame: 'own' | 'whole-piece' | 'card' }>;
+            segments?: Array<{ index: number; shotId: string; frame: 'own' | 'whole-piece' | 'character-portrait' | 'card' }>;
           }
         | null;
       if (!res.ok || !body?.asset) throw new Error(body?.message ?? `HTTP ${res.status}`);
@@ -1471,7 +1473,9 @@ export function StoryboardPanel({ locale = 'zh' }: { locale?: Locale }) {
                           ? c.frameSourceSelf
                           : segment.frame === 'whole-piece'
                             ? c.frameSourceWhole
-                            : c.frameSourcePlaceholder
+                            : segment.frame === 'character-portrait'
+                              ? c.frameSourceCharacter
+                              : c.frameSourcePlaceholder
                       }`}
                     </li>
                   ))}

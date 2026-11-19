@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
  * data 钩子 / drag-reorder / shot 双击分镜 / 渲染请求路径 / `sb.shots.map` 派生——一字不动。
  *
  * **零行为恒等门**（redact = EOL//s 归一 + className 任意形态归一 @ + cn()整体归一 + `className=@` 归一）：
- * `f84c552da80e2e4f38f9fd5d0167b56c6a85fc9b846d07fef1d88f9bbf6f7a56` 与 HEAD 一致（v755 i18n 重钉）。
+ * `1564941ad872f4fc6371c25f875dc7170f9ff37c371a0d7a9f9b65187a4146a0` 与 HEAD 一致（ADR-0086 仍欠 ① 补记 v2：character-to-scene 肖像递进来 + 逐镜出处四种）。
  *
  * 判据不变式（12 门）：
  *  1. 'use client' 保留 + storyboardStore 依赖路径进门；2. 字面 className 全 `.sb-*`（含 cn 三元分支）；
@@ -162,9 +162,9 @@ describe('§FE-46 /studio StoryboardPanel 分镜面板', () => {
     expect(segment).toContain('.sb-resizeHandle:focus-visible {');
   });
 
-  it('剥 className/cn 后全文 SHA256 守恒（零行为：f84c552da80e2e4f38f9fd5d0167b56c6a85fc9b846d07fef1d88f9bbf6f7a56）', () => {
+  it('剥 className/cn 后全文 SHA256 守恒（零行为：1564941ad872f4fc6371c25f875dc7170f9ff37c371a0d7a9f9b65187a4146a0）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'f84c552da80e2e4f38f9fd5d0167b56c6a85fc9b846d07fef1d88f9bbf6f7a56',
+      '1564941ad872f4fc6371c25f875dc7170f9ff37c371a0d7a9f9b65187a4146a0',
     );
   });
 });
