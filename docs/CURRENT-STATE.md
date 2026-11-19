@@ -8249,3 +8249,11 @@ Reported upstream to `docs/evidence/liveness-sweep-2026-11-19.md`（cont.429 对
 - digest 证据链：本轮两条 Echo（#168 `4ecb5a17…` + #169 `598ded62…`）均在 nexus-content-platform master；生成快照 `apps/web/src/world-bible/generated.ts`（3 卷·169 回响·4 附录）+ ai-service 的 `canon_digest.txt`（247,029 chars）保持同步
 - bible-ask-behavior pin（test-local 计数口径）= **1021**；verifier 计数口径 = **1026**；两套数字都如实记在 CURRENT-STATE 与提交信息中，未改 verifier 本身以免噪声
 - 头像/languages/雅思/六级/隐盾：公网 live 再次确认全部正确（screenshot 前已核对 100% 页面文本）· identity-guard exit 0
+
+## cont. 435 (2026-11-19) — §BIBLE-170 落盘 · ai-service 重启吸附 digest
+
+- Echo #170《潮候院北墙上那道从潮线刻到潮线没人补过的年月刻痕》双语手写 → digest **247,512 chars · sha 5db47c5e** · verify **1032 zh/en** ✓ 。 test pin 1021→**1027**（test-local 口径），两条 digest 测试 11/11 绿
+- ai-service 重启纪律：design_prompt 的 `CANON_PREFIX` 在 import 时读 canon_digest.txt —— E168/E169/E170 digest 提交后不重启线上进程仍喂旧正典
+- 本轮修复：kill 旧 :3200 监听 PID 7200 → 用 `.venv\Scripts\python.exe -m uvicorn` + `$env:PYTHONPATH=D:\内容创作平台\apps\ai-service\src` 重启 → /healthz 200 · llm=gpt-6.2-sol real（call recipe 由 docs/RUNTIME.md 与 infra/dev-ai.sh 交叉确认：PYTHONPATH 指向 src 必不可少）
+- 启动配方记录：PID 7200 曾持有 3200（C:\Program Files\Python311 的 worker）· 26776 为 8001 的 stale supervisor（不动）· port 8000 是 careeros-ai Docker 转发（不属于本项目）· 3100=web dev server (PID 25488)
+- E170 anchor[1]：潮候院北墙上有一排排极浅的横刻线——没有人对着它说过话——它们是最古老的档案。→ IO v1060 候选；oracle-strip 暂不连推（CDN 容忍期）

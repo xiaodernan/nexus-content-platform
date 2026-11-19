@@ -220,6 +220,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E167-潮候院南面的运米埠头上那只载着旧潮历渡了六十三次的纸船': 'echo-167-the-paper-boat-at-the-rice-wharf',
   'E168-潮候院北巷尽头那扇抹了三十年仍无法生锈的铁门': 'echo-168-the-iron-door-that-will-not-rust',
   'E169-潮候院沙厅里那架被灰埋了却还在暗自调音的旧竖琴': 'echo-169-the-silent-whalebone-harp-in-the-sand-hall',
+  'E170-潮候院北墙上那道从潮线刻到潮线没人补过的年月刻痕': 'echo-170-the-chronicle-on-the-north-wall',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 169 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 170 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3169,6 +3169,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 潮候院从来没有人劈过这截浮木——里巷子只会放它在那里，不会烧它。
 - [4] 潮候院的浮木上慢慢长满了贝壳和碎片——它是一截会收东西的木头。
 - [5] 浮木至今还没有被任何一批潮候院的人拖走过——潮候院最终决定留下它。
+
+### Echo 170 · 潮候院北墙上那道从潮线刻到潮线的年月刻痕——盐把它们蚀得越来越浅 / The Chronicle Scratched on the Institute's North Wall, from High Tide to Low Tide — the Salt Is Eating It Away
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院北墙上有一排排极浅的横刻线——没有人对着它说过话——它们是最古老的档案。
+- [2] 刻痕是贝壳碎屑刻下来的——每格一个潮期——左右各一处日期——没有署名。
+- [3] 盐渗进墙缝——裂纹笔直得像刻痕本身——最上面几十格已经几乎看不见了。
+- [4] 最下面一格是冬潮月第十六日——纸船归航那天刻下的——盐还没来得及把它磨淡。
+- [5] 大会散会的夜里——有人用新贝壳碎补了一格——巡检只记"墙又添了一行"。
+- [6] 没人敢补上面的旧痕——它们不是记录是地层——不可以替地层补笔。
 
 ### Echo 18 · 祠殿里从不叫的一只猫 / The Cat in the Institute That Never Meowed
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
