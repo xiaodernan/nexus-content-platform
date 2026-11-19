@@ -16,7 +16,7 @@ import type { Locale } from '@/lib/i18n';
  * - 没有"看了重做"的奖励？——答错的提示会写出处（在哪一章、哪一节），
  *   错就是错，不伪装"接近正确"；
  * - 完全中英双语；不存在半中文半英文的题目；
- * - 103 题每题 1 分；结算只是礼物：不写进任何账本、不发 achievement、不持久化。
+ * - 104 题每题 1 分；结算只是礼物：不写进任何账本、不发 achievement、不持久化。
  */
 
 const COPY = {
@@ -38,11 +38,11 @@ const COPY = {
       { at: 10, text: '巡逻路的旅人', note: '盐味酸过了——记住的巡逻路比忘掉的多。' },
       { at: 13, text: '守夜人传人', note: '门在关上之前你没见过，但你记住了是什么。' },
       { at: 15, text: '潮汐大匠', note: '海还没说完的话，你已经知道是什么了。' },
-      { at: 103, text: '满分守夜人', note: '一百零三题全对——典籍不会忘记问倒过谁。' },
+      { at: 103, text: '满分守夜人', note: '一百零四题全对——典籍不会忘记问倒过谁。' },
     ],
     footer: '《世界大典》正典全文见典籍室（/bible）。答错的题里标了出处：错就是错，没有近似的正确。',
     scoreLine: (n: number, total: number) => `${n} / ${total}`,
-    empty: '还没答完。一百零三道题就是十三章正典与回响的全部问题。',
+    empty: '还没答完。一百零四道题就是十三章正典与回响的全部问题。',
   },
   en: {
     kicker: 'The Tidal Trial',
@@ -62,11 +62,11 @@ const COPY = {
       { at: 10, text: 'The Patrol-Road Traveller', note: 'You are more road remembered than forgotten.' },
       { at: 13, text: 'The Successor Watcher', note: 'You have never seen the door, but you know what was behind it.' },
       { at: 15, text: 'The Tide Master', note: 'The sea still has not finished — and you already know what it said.' },
-      { at: 103, text: 'The Full Tide', note: 'One hundred and three of one hundred and three — the canon will not forget who asked it best.' },
+      { at: 103, text: 'The Full Tide', note: 'One hundred and four of one hundred and four — the canon will not forget who asked it best.' },
     ],
     footer: 'The full canon lives in the shelf (/bible). Every wrong answer points you to where it lives. Wrong is wrong — there is no near-enough.',
     scoreLine: (n: number, total: number) => `${n} / ${total}`,
-    empty: 'Not done yet. One hundred and three questions — one per breath of the canon and the echoes.',
+    empty: 'Not done yet. One hundred and four questions — one per breath of the canon and the echoes.',
   },
 } as const;
 
@@ -485,6 +485,14 @@ const QUESTIONS: Question[] = [
   {
     zh: { prompt: '《铜锚开口的大潮夜》里，铜锚开口只说了一个字是什么？', choices: ['归', '来', '等', '走'], answer: 2, ref: '回响（其一百七十六） · 二' },
     en: { prompt: 'On the night before the great tide, the anchor spoke a single word — which?', choices: ['“return”', '“come”', '“wait”', '“leave”'], answer: 2, ref: 'Echo No. 176 · II' },
+  },
+  {
+    zh: { prompt: '潮退后的清晨，铜锚实际落了多少？', choices: ['一寸', '三寸', '半指', '一尺'], answer: 0, ref: '回响（其一百七十七） · 二' },
+    en: { prompt: 'On the morning after the great tide withdrew, by how much had the anchor truly fallen?', choices: ['one inch', 'three inches', 'half a finger', 'one foot'], answer: 0, ref: 'Echo No. 177 · II' },
+  },
+  {
+    zh: { prompt: '潮汐历第七十一页自己翻了——翻到了哪一页？', choices: ['第七十页', '第七十二页', '第七十三页', '停在原页'], answer: 1, ref: '回响（其一百七十七） · 三' },
+    en: { prompt: 'Page seventy-one of the tide almanac turned itself — to which page did it land?', choices: ['page seventy', 'page seventy-two', 'page seventy-three', 'it never moved'], answer: 1, ref: 'Echo No. 177 · III' },
   },
 ];
 
