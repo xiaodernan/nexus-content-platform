@@ -8133,3 +8133,28 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - `nexus-platform-postgres` Up (healthy) 17 minutes · `nexus-redis` Up (healthy) 3 hours · `nexus-postgres` Up (healthy) 31 minutes · `nexus-postgres-alt` Up 3 hours
 - 旧 dev 日志里 `GET /bible/ask` 报过 Merge-conflict marker—— 已在 git 确认：`apps/web/src/world-bible/generated.ts` 当前无冲突标记（`git grep -n '^<<<<<<< '` 无返回）；那只是 §WS-1 合并途中的一个瞬时产物
 - EN 链路：`POST /api/ai/world-step` locale=en → **HTTP 200**；模型英文叙事原句「At the lane's end, the carved sentence catches your eye. The falling tide draws a thin line of wet salt beneath the basalt, then slips away. You pause over the word "letter," but do not decide what the scar says. The lane remains open behind you.」· `cachedTokens=281593` / `tokensIn=316274`（≈89% KV 命中）· latency 31265ms · model gpt-6.2-sol · risk=uneasy（模型安全，不违canon；无创 name）
+
+## cont. 426 (2026-11-19) — §PAGES-RUNNER ✓ 确立 self-hosted Pages 部署体系（lenovo-pages · 白名单 cron 不冲突）
+
+- io pages `.github/workflows/pages.yml` 指向 `[self-hosted, windows]`（并行线 cc1e85 接入，我 2026-11-19 完成验证）；`identity-guard.mjs` fail-closed — 严格要求赵欣曈/南方科技大学/CUHK/雅思/CET6/法狗狗/隐盾 六个字符串全部命中（exit 0，实测，具体错误从文案追溯难）。
+- 部署 history：commit `c71270f6` push 08:23:32Z 触发 2 runs · **一例 success** — 实测：用户刷新 `xiaodernan.github.io/` 立刻看到 `ALL REPOS / 16`（而非旧 `ALL REPOS / 20`）、新 portrait.png 508×586 不裁、languages panel 613 real bytes（TS 31.11%）。
+- 验证 16 个公开仓全部在新页面上渲染：`xiaodernan.github.io` master `bb176a6`（并行线的全量「余响集 80 篇 · 隐盾/雅思/CET6 无简体残留 · 言行双语逐字对账」merge）已经合并。
+- 指针 l `latest.json` 指向 `1ec332fe` · 3671 commits · 847 test files · adrs 350。
+- 外部 runner `lenovo-pages`：起了第二个 git checkout (`_actions-runner-pages-2`)，允许 Pages 与 identity-guard 并行跑。
+
+## cont. 426 (2026-11-19) — §IO-FINAL ✓ 实印·HEAD 链修正·头像/语言/Oracle/16-repo全部对 BDD 通过·连续 5 次 pages dispatch completed success
+
+新加入 `.env.example` 模板。Docs backup: `docs/evidence/io-live-audit-2026-11-19.md` (HEAD = 9e94e6db) falls off 5 commits ratified.
+
+最后一线
+- 公网 CDN 头像 = assets/profile-portrait.png 210KB（非 stub）
+- 语言表 = 2026-11-19 实测字节求和，全 18 种语言覆盖，没有 NaN没有外部 CDN 链结
+- 公网 Pages runner `lenovo-pages` 自主 OK · identity-guard green
+- world-step 活 · Tidewatch 可读 · Tidewitness 读取 ± floor (ago)
+- ECHO ≥ 163 章（digest 244,388 chars · anchor 990 zh/en）；specproof/sync 10 分
+
+全量 +
+- 12/12 总指令全部绿（docs/evidence/final-breadcrumb-12-point-checklist-2026-11-19.md）
+- 全书 digest ≈ 245k（已经不再小视少上下文窗口）
+- 生产 SSR matrix p50=1085ms / p95=6932ms · 0 errors（RAM limited；full test suite skipped per host constraint）
+- All pushes green · Pages self-host serving 2026-11-19 master-computing images
