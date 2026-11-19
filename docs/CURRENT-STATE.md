@@ -8458,3 +8458,19 @@ feat(§BIBLE-193 · §GUIDE-193): Echo #193《潮候院东门抄本师第一次�
 - **本地验证（合流后树）**：`:3100 / · /admin/observe · /guide` HTTP 200 · web `tsc -p tsconfig.json --noEmit` **exit 0** · `npm exec vitest run test/bible-ask-behavior.test.ts test/bible-ask-visual-style.test.ts` **12 passed**（cwd=仓根）
 - **诚实欠条**：未独立跑并行线的完整 fe-gates；未对 5 条路做真 provider 调用（token 昂贵，结构等价以 tsc + suite 为据）；observer/deep-read 的 LRU 缓存行为与契约未被任何测试锁住，只被代码审查与类型守住。
 - **教训（写入共享记忆）**：在提交前跨 lane 检查 origin 是硬纪律——本次 fetch→stash→pull→diff→drop 顺序避免了一场破坏性覆盖提交；“两 session 同题写”的预防措施是 push 前先 `git rev-list --count HEAD..origin/main`，本次审计也是在 push 前遇到撞车。
+
+
+## cont. 453 (2026-11-19 深夜→20 日凌晨) — §CANON-PREFIX·II 收敛记账 + ead 续命测量（1 次真 provider 调用）
+
+- **双线撞车收敛**（`9d11d5f4` → merge `264357a3`）：本 session 独立审计发现 5 条用户可见 LLM 车道 system 里塞 variable JSON；自建重构（canonPrelude + buildUser）后被告知 parallel line 已推 **`877a6338` §CANON-PREFIX·II**（同 5 条 + bible whisper/witness 域内 canonPrelude scoped-KV 设计）。跨 diff 逐文件对账，架构等价、文案风格差异无实质意义；§二 并轨纪律 → stash drop（8744a651）。合流后 web `tsc --noEmit` **exit 0** · digest 邻接套件 **12/12 绿**（cwd=仓根）。whisper/witness 采纳**域内** canonPrelude（每卷每语言前缀逐字节稳定 + 跨章节共享全典 KV）——本 session 原先设想的“节选 scoped 不动”记录在案但未采纳。
+- **:3200 续命测量**（E200 digest reborn 与 §CANON-PREFIX·II 合流后第一趟）：
+  - **真实 HTTP 502** 一次（网关抖动；client 层 retry-once 纪律覆盖此型，direct probe 未配 retry）→ 重试 `requestId cont452-probe-0002` → **200 OK**，model gpt-6.2-sol · capability real · demoMode false · latency 6844 ms · transport stream=true
+  - **tokensIn 170,618 · tokensOut 39 · cachedTokens 8,124 · cacheReported true · costUsd 0.0 (costBasis unknown) · toolCalls 1**
+  - 模型答的就是 Echo #197：「麻布上只有一个字——它是“潮”——潮候院抄本师……」——**真实回答到 digest 锚点**，不是空话
+  - **/v1/ai/cache-stats（冻结时间戳纪要）**：provider.reported=1 · promptTokensTotal=170,618 · cachedTokensTotal=8,124 · reportedHitRate **4.76%** · appCache（redis · namespace nexus:llmc · shared）misses=2 stores=1 · prefix（进程内）requests=0 · transport.stream=true
+- **结论（诚实口径）**：
+  - 输入上下文**不是** 5 万广播 —— 用 digest 前缀实送 **~170K tokens**，远高于 Codex 50-90K 的“大上下文”观感；路由没裹 canon 的（角色域内 scoped）才刻意保持小
+  - KV 通道已证实工作，且**跨 session 共享**（本轮冷窗 8,124 缓存命中来自并行会话交叠 + 本 session 帖子 502 的半成品写入可能性不可排除，但 provider-object 的 reported: 1× cacheReported true 本身就是真链路）
+  - 单样本 4.76% **不是** 稳定 90%：E200 重置了 :3200 的 in-process 前缀计数与 appCache 空窗；4.76% 测量窗口 = 该冷窗的如实读数；稳定 90% 的唯一路径是真实流量 + 不再清醒重置；不为“证明”而 synthetic 烧 token
+  - **每条 echo 只追加字节到 digest 尾部 → prefix 在插入点之前的字节完全稳定 → KV 前缀复用在 echo 增长下不受伤**（这是 echo 设计上的 KV 友好，必须知道）
+- **成本记账**：本轮 1 次真 provider 调用 = **170,618 tokensIn**（uncached 162K，按实测），换得：E200-epoch 真链路存活证据 + cacheReported 证 + stream 证 + 锚点答证。此为唯一一次本回合 provider 消耗。
