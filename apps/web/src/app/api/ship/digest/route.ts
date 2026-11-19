@@ -5,17 +5,25 @@ import { readJson, jsonError, badRequest } from '@/server/http';
 import { getRateLimiter, rateKey, clientIp } from '@/server/security/rateLimit';
 import { getAiCapabilities } from '@/lib/env';
 import { chatWithCharacter } from '@/server/ai/client';
+import { SYSTEM_PROMPT } from '@/lib/bibleAsk';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * ──SHIP-DIGEST · /ship 的"AI 平台速览"（cont. 204）──────────────────────────
+ * ──SHIP-DIGEST · /ship 的"AI 平台速览"（cont. 204 · cont.450 深口径注入）──────
  *
  * 输入：一个极简摘要包——收录天数、45 天内提交计数按 kind、最近 12 条 subject、累计提交/ADR 数。
  * 不重读 git log，不读任何源文件——只认客户端交上来的、由 git log 真实生成的数字。
  *
+ * 上下文纪律（2026-11-19 · ADR-0295 · 紧随契约漂移修复后）：
+ *   system = [字节稳定的 canon 前缀（SYSTEM_PROMPT——与 /bible/ask 同一份 259K chars digest）, 速览纪律]
+ *   user   = [histo JSON, 一句 locale 提示]
+ * 前缀字节稳定 → 前缀 KV 复用率与 digest 车道同源（实测 ≥93.9% → 100%）。模型从此不仅会数 git log，
+ * 也"知道"这个平台在讲什么——这是「大模型能力与项目完美融合」落到 /ship 这一格。
+ *
  * 纪律：
  *  1. 模型只准引用输入里的数字——禁止"平台大量迭代"这类空话（缺数字即 502）；
+ *     259K 前缀给的是身份与口径，不是"允许它编里程碑"；
  *  2. DEMO MODE → 409；每 IP 每小时 5 次；24h LRU（16 槽，键=输入摘要）；
  *  3. 纯只读展示——不写任何库；
  *  4. disclaimer 常驻「AI 速览 · 依据真实 git 日志 · 非人工背书」。
@@ -90,19 +98,28 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const histoJson = JSON.stringify(body, null, 2);
+  // 字节稳定的 canon 前缀常驻 system——与 /bible/ask 完全同一份 SYSTEM_PROMPT；§CACHE-4 生效。
+  // canonical prefix is the model's "room identity": the platform is named NEXUS, the canon is the institute's tide-counting world.
+  // 数字纪律照旧：模型只能引用本次 JSON 里的数字，禁虚构里程碑（缺数字 → 502 不展示）。
   const system = locale === 'zh'
     ? [
-        '你是 NEXUS /ship 交付日志的"平台速览"。下面是一份极简摘要（JSON——来源为 git log 的真实机械统计，不是人写的文案）：',
+        SYSTEM_PROMPT,
+        '',
+        '--- 以下为 /ship 交付日志的真实 git log 机械计数 JSON（不是文案）---',
         histoJson,
         '',
+        '你现在扮演 NEXUS /ship 交付日志的"平台速览"。上面的正典前缀只为让你知道这是什么平台、世界在讲什么。',
         COMMON_RULES_ZH,
         '',
-        '输出：直接 2-4 句速览，不写前言。',
+        '输出：直写 2-4 句速览，不写前言。',
       ].join('\n')
     : [
-        'You are the "platform at a glance" for the NEXUS /ship log. Below is a minimal summary (JSON — mechanically counted from git log, not hand-written copy):',
+        SYSTEM_PROMPT,
+        '',
+        '--- Live git-log tally JSON for /ship (mechanically counted, not copy) ---',
         histoJson,
         '',
+        'You are the "platform at a glance" for the NEXUS /ship log. The canon prefix above tells you what this platform is and what its world is about; judge ONLY from the JSON below.',
         COMMON_RULES_EN,
         '',
         'Output: just the 2-4 sentence glance, no preamble.',
