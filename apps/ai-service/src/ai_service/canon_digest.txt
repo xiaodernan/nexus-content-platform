@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 160 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 161 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3081,6 +3081,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 第一百二十六日那一格——上半年写着「潮」——下半年空着——抄本师的母亲没有写。
 - [5] 挂历上那空的一格就是盐账最后那一格——那格是等下一个散会来填的。
 - [6] 值更册最后一页：挂历只印半个潮——因为潮的另一半从来没有人看过。
+
+### Echo 161 · 潮候院前院那棵只收落叶的信树与最后一片寄向散会夜的信 / The Letter-Tree in the Institute's Forecourt That Collects Fallen Leaves and the Last Letter Addressed to the Night of the Dissolution
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院前院的角落有一棵信树——不高——树皮刻满信封一样的刻痕。
+- [2] 每一片叶子落下来——值更人就把它收进信封——封皮上写好收信人的名字。
+- [3] 最后一封信是寄给散会夜的——寄信人一栏是空的——只有寄地址——"散会夜"。
+- [4] 抄本师的母亲说那棵树自己种自己——它自己是收件人——散会夜是它自己。
+- [5] 值更册最后一页：信树不读自己寄出的信——散会夜不开信——值更册记下了这一切。
+- [6] 散会那一夜——值更人把那封信放下去——信树枯叶全落了——第二天早晨只有一棵空的树。
 
 ### Echo 17 · 祠殿后那一截没有人劈开的浮木 / The Driftwood Nobody Split for Firewood
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
