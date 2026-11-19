@@ -86,6 +86,8 @@ interface Copy {
   capabilityDemo: string;
   capabilityUnknown: string;
   durationMs: (ms: number) => string;
+  /** §40/ADR-0086：video.render 行里那一格渲染账的一行人话——镜数/总长/色卡/整片/肖像 */
+  renderCounts: (r: { shots: number; totalMs: number; cardCount: number; sourceReferenceCount: number; characterPortraitCount: number }) => string;
 }
 
 const COPY_ZH: Copy = {
@@ -115,6 +117,7 @@ const COPY_ZH: Copy = {
   capabilityDemo: 'DEMO 模板',
   capabilityUnknown: '未知',
   durationMs: (ms) => `${Math.round(ms / 100) / 10} 秒`,
+  renderCounts: (r) => `镜数 ${r.shots} · ${Math.round(r.totalMs / 100) / 10} 秒 · 色卡 ${r.cardCount} · 整片那张 ${r.sourceReferenceCount} · 角色肖像 ${r.characterPortraitCount}`,
 };
 
 const COPY_EN: Copy = {
@@ -144,6 +147,7 @@ const COPY_EN: Copy = {
   capabilityDemo: 'DEMO mock',
   capabilityUnknown: 'Unknown',
   durationMs: (ms) => `${Math.round(ms / 100) / 10}s`,
+  renderCounts: (r) => `${r.shots} shots · ${Math.round(r.totalMs / 100) / 10}s · ${r.cardCount} cards · ${r.sourceReferenceCount} whole-piece · ${r.characterPortraitCount} portraits`,
 };
 
 const COPY: Record<Locale, Copy> = { zh: COPY_ZH, en: COPY_EN };
@@ -340,7 +344,14 @@ export function TasksLedgerLive({
                 >
                   {new Date(task.createdAt).toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US', { hour12: false })}
                 </td>
-                <td>{task.agentKey}</td>
+                <td>
+                  <span>{task.agentKey}</span>
+                  {task.render ? (
+                    <div className="tl-tdMuted" data-task-render="true">
+                      {c.renderCounts(task.render)}
+                    </div>
+                  ) : null}
+                </td>
                 <td data-task-attempt={task.attempt}>{c.attemptCount(task.attempt)}</td>
                 <td data-task-capability={task.capability ?? 'unknown'}>
                   {task.capability === 'real' ? c.capabilityReal : task.capability === 'demo' ? c.capabilityDemo : c.capabilityUnknown}

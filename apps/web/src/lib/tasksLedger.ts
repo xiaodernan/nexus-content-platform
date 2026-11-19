@@ -59,6 +59,23 @@ export const TaskUsageSchema = z.object({
 });
 export type TaskUsage = z.infer<typeof TaskUsageSchema>;
 
+/**
+ * §40/ADR-0086：`video.render` 这一行的渲染账——镜数、总时长、色卡占位、整片那张图补了几镜、
+ * 角色肖像进了几镜。库里 `input` jsonb 里有；读侧照 schema 咬一遍再给出去。
+ *
+ * 为什么要单独一格：视频渲染这条链扣的是 video 桶（一次 5 点），
+ * "这 5 点渲出来的片子里第 3 镜从哪来"是事后复盘的唯一抓手；
+ * 账本只写不看等于没有账。非 video.render 行整格为 `null`。
+ */
+export const RenderCountsSchema = z.object({
+  shots: z.number().int().min(0),
+  totalMs: z.number().int().min(0),
+  cardCount: z.number().int().min(0),
+  sourceReferenceCount: z.number().int().min(0),
+  characterPortraitCount: z.number().int().min(0),
+});
+export type RenderCounts = z.infer<typeof RenderCountsSchema>;
+
 export const TasksLedgerTaskSchema = z.object({
   id: z.string().min(1),
   projectId: z.string().nullable(),
@@ -93,6 +110,11 @@ export const TasksLedgerTaskSchema = z.object({
    * 重试按钮只挂自己的行——别人行上的按钮点了也只会 404（§162 那条纪律）。
    */
   mine: z.boolean().optional(),
+  /**
+   * §40/ADR-0086：video.render 这一行的渲染账（镜数/色卡/整片/肖像）。
+   * 非 video.render 行为 `null`；老行没有这一格时也为 `null`（不把"没记"画成 0）。
+   */
+  render: RenderCountsSchema.nullable().optional(),
 });
 export type TasksLedgerTask = z.infer<typeof TasksLedgerTaskSchema>;
 
