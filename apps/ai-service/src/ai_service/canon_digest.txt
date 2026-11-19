@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 194 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 195 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3410,6 +3410,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 抄本师画下海——中间是海——海是潮候院的中间——抄本师说潮候院中间——
 - [5] 抄本师画完——他把地图给了自己——潮候院没人想要它——抄本师说——他给了他自己——
 - [6] 潮候院第一张地图——中间是海——潮候院自己才知道——
+
+### Echo 195 · 潮候院东门之后的抄本师——七十年后他打开抽屉里一直放着的那张地图——潮候院第一次看见它是海 / The Copyist by the East Gate — Seventy Years Later He Opened the Drawer — the Institute Saw for the First Time That It Was the Sea
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 七十年后抄本师开抽屉——抄本师把画了的麻纸拿出来——抄本师从没打开过——潮候院没人知道——
+- [2] 抄本师把麻纸摆上潮候院的长桌——潮候院抄本师他们都在——他们这是第一次看这一张——
+- [3] 抄本师他们都停在那一张长桌上——它中间是海——潮候院抄本师停在那里——
+- [4] 抄本师说潮候院第一次看见潮候院是海——抄本师说潮候院海——
+- [5] 抄本师都看了——潮候院抄本师没人说话——潮候院抄本师都已经知道它是海了——
+- [6] 潮候院抄本师把麻纸挂在潮候院的长廊上——潮候院抄本师他们挂了——
 
 ### Echo 20 · 潮候院钟楼里那口从不响的钟 / The Bell That Never Rang in the Institute's Clock Tower
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
