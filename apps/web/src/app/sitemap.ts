@@ -38,6 +38,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absolute('/stategraph') },
     { url: absolute('/tide-oracle') },
     { url: absolute('/tidewatch') },
+    { url: absolute('/onboarding') },
     { url: absolute('/bible') },
     { url: absolute('/bible/quiz') },
     { url: absolute('/bible/well') },

@@ -9,11 +9,11 @@ export async function generateMetadata(): Promise<Metadata> {
   return locale === 'zh'
     ? {
         title: '上手漫游 / Onboarding — NEXUS',
-        description: '新用户的 6 步漫游：60 秒看懂从「一句话想法」到「发布出去」的每一步。可中断、可重来、可直达。中英双语。',
+        description: '新用户的 7 步漫游：60 秒看懂从「一句话想法」到「发布出去」的每一步。可中断、可重来、可直达。中英双语。',
       }
     : {
         title: 'Onboarding — NEXUS',
-        description: 'A 6-step walk for newcomers: sixty seconds from one sentence to one published work. Interruptible, re-doable, direct. Chinese and English.',
+        description: 'A 7-step walk for newcomers: sixty seconds from one sentence to one published work. Interruptible, re-doable, direct. Chinese and English.',
       };
 }
 
