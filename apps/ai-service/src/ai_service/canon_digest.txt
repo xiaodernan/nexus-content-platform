@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 167 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 168 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3143,6 +3143,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 它出过六十三次，没有一次提前，没有一次迟到——它不是船，它只是一张纸。
 - [5] 潮知道这只小纸船为什么六十三次都自己准时过河，没人记它为什么没沉。
 - [6] 潮知道，最后一叠纸会在灯里出现——没人去写最后一页。
+
+### Echo 168 · 潮候院北巷那扇抹了三十年仍无法生锈的铁门 / The Iron Door in the North Lane of the Institute That Cannot Rust After Thirty Years of Damp
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 北巷尽头的铁门窄而高——没有匾——盐潮痕跟三十年前一样没改过。
+- [2] 北巷铁门平时从不开也从不关——却常被那些准备离开的人摸一下。
+- [3] 抄本师看过北巷铁门的盐痕——三十年没褪过——门自己让它不生锈。
+- [4] 那抄本师离开时摁铁门——它发出一声极低的蜂鸣——没有人记起那是什么。
+- [5] 北巷铁门从不开——第四十三次大会连日——抄本师最后坐在它边——盐潮痕收下他的指纹。
+- [6] 抄本师走后没人再敢开北巷铁门——潮候院也没给出原因——至今它没开过。
 
 ### Echo 17 · 祠殿后那一截没有人劈开的浮木 / The Driftwood Nobody Split for Firewood
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
