@@ -14388,6 +14388,13 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - Salient finding：serial GET p50 6.8 ms 远高于本机回环预期（Docker Desktop NAT 时延）——
   意味着 **L2 回放的主要成本不在 Redis，而在 Windows→Docker 虚拟网段**；cache TTL 压缩或宿主机直连 redis-benchmark 才是下一步对照。
 
+## §STRESS-3 — 只读复测 2026-11-19（pgbench · Redis Lua 直连）
+
+- 指令第十一节当日证据：docs/evidence/stress-2026-11-19.md
+- §STRESS-1 复测（只读 · pgbench 16.15 · nexus-postgres · T=8s）：c=16/j4 → 44,657 事务 · 0 失败 · avg 2.810 ms · TPS 5,694；c=32/j8 → 71,458 事务 · 0 失败 · avg 3.513 ms · TPS 9,108（11-17 为 2,978 → 本日 ~3×）
+- §STRESS-3 网关撞库桶 Lua 直连真 Redis（scripts/gateway-rate-lua-live.mts · sha256:8db0f4043dd7）：6/6 PASS——共享桶计数正确（1/1/0）· 对照组同脚本同桶参数放行（1/1/1）· 3 连接同时并发 burst=3 精确放行 3 枚 · 补水由服务端时钟驱动 · 未来时间戳夹 0 · 调用方自决定 TTL 到期
+- 如实挡住：HTTP/SSR 突发仍未测——当日空闲内存 526 MB，且两个 NEXUS 实例在跑，next build/start 有 OOM 拖垮整机风险；前置条件写进了证据文档（build≥2GB · start≥1GB 空闲）
+- published_projects/projects 行数仍 0（dev 库），带数据量的写路径与 RLS 仍待真实数据入库后复测
 ## §BIBLE-36 — 回响 · 其二十四《里巷子石槽里那粒没化的盐》（2026-11-17 · v838）
 
 - 产出：`docs/world-bible/echoes/E24-里巷子石槽里那粒没化的盐.md`（中）/ `.en.md`（英）——里巷子石槽里的一粒不溶的盐：
