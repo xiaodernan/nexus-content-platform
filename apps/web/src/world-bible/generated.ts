@@ -24051,6 +24051,180 @@ The lanterns of the Institute all burn — the copyists moved about — they met
 `,
   },
   {
+    order: 189,
+    slug: 'echo-189-the-institute-heard-the-shell',
+    titleZh: '潮候院灯桌旁的抄本师——他们念了贝壳侧面的字——它动了一下——潮候院第一次听到贝壳的声音',
+    titleEn: 'By the Lamp-Bench — the Copyists Read the Word on the Shell\'s Flank Aloud — It Moved — the Institute Heard the Shell for the First Time',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第八十五日。',
+    eraLineEn: 'Era: the Institute — after the 44th Convocation; the eighty-fifth day of the winter-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 189): By the Lamp-Bench — the Copyists Read the Word on the Shell's Flank Aloud — It Moved — the Institute Heard the Shell for the First Time
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院抄本师第一次念出来的那声——贝壳动了一下——它发出声音。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the moment the copyists read the word on the shell's flank aloud — it moved — it made a sound.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第八十五日。
+> Era: the Institute — after the 44th Convocation; the eighty-fifth day of the winter-tide month.
+
+---
+
+## 一 · 抄本师第一次念
+
+潮候院抄本师四日没推门——抄本师推门——抄本师没人敢推门——抄本师终于说——贝壳每一日在动——它没有动——抄本师说——它自己知道——它自己动了——抄本师没人教抄本师念它侧面的字——抄本师说——他读出来——他念潮——贝壳动了。
+
+**锚句**：抄本师推门——抄本师说——他读出贝壳侧面的字——他念潮——贝壳动了。
+**Anchor sentence**: the copyists pushed the door — the copyists said — he read out the word on the shell's flank — he said tide — the shell moved.
+
+---
+
+## 二 · 它回应
+
+抄本师念潮——贝壳动了——贝壳动得很小——贝壳动了一下——抄本师没人相信——贝壳动了一下——灯自己亮了一下——贝壳它的侧面变成了朝抄本师——贝壳它是朝灯——抄本师没人碰它——
+
+**锚句**：抄本师念潮——贝壳动了——贝壳动得很小——贝壳的侧面变成了朝抄本师——抄本师没人碰它——灯自己亮了一下——
+**Anchor sentence**: the copyists said tide — the shell moved — very slightly — the flank turned toward the copyists — no one touched it — the lantern brightened for an instant —
+
+---
+
+## 三 · 抄本师听见
+
+抄本师听见了声音——贝壳从灯桌上发出一声——像盐自己在风里响——像海风从潮候院的屋顶过——它不尖——它是自己在发——抄本师说不出——抄本师听懂了这声音——它是北海——
+
+**锚句**：抄本师听见了声音——贝壳发出一声——像盐自己在风里响——它是北海——
+**Anchor sentence**: the copyists heard a sound — the shell uttered one note — as salt in wind — it is north sea —
+
+---
+
+## 四 · 灯桌上
+
+贝壳还在灯桌上——贝壳没有动了——它朝抄本师——抄本师没有碰它——抄本师说它回应——抄本师没人问——灯自己亮着——抄本师退出房间——灯还在亮——贝壳还在桌上——
+
+**锚句**：贝壳还在灯桌上——贝壳朝抄本师——灯自己亮着——抄本师退出房间——贝壳还在桌上——
+**Anchor sentence**: the shell is still on the bench — facing the copyists — the lantern is burning — they withdrew — the shell is still on the bench —
+
+---
+
+## 五 · 潮候院第一次听
+
+潮候院第一次听到贝壳的声音——潮候院的回应——潮候院没人敢出声——潮候院没人能回答——它是北海——潮候院里没有海——贝壳它不是潮——贝壳它就是——北海——潮候院里——贝壳就是——北海——
+
+**锚句**：潮候院第一次听到贝壳的声音——潮候院里没有海——潮候院没人能回答——它是北海——贝壳它就是——北海——
+**Anchor sentence**: the Institute heard the shell for the first time — the Institute holds no sea — no one could answer — it is north sea — the shell is north sea —
+
+---
+
+## 六 · 抄本师说
+
+抄本师说——北海是潮候院——它不是潮——它不是北——它就是北海——潮候院里有潮也没有潮——潮候院是它的灯桌——贝壳放在灯桌上——北海就在这儿——贝壳放在灯桌上——潮候院还有——潮候院没有——潮候院只知道——潮候院听——
+
+**锚句**：潮候院是它的灯桌——贝壳放在灯桌上——北海就在这儿——潮候院只知道——潮候院听——
+**Anchor sentence**: the Institute is its lamp-bench — the shell on the lamp-bench — north sea is here — the Institute only knows — the Institute listens —
+
+---
+
+## 七 · Mapping（Echo No. 189 → world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the shell's first sound · north sea · the Institute that listens | 一、二、三、四、五、六 |
+| geography | the lamp-bench · the vault · the undefined north sea | 一、二、四、五、六 |
+| characters | the copyists · the shell (unnamed) · the lantern (unnamed) | 一、二、三、四、五、六 |
+| story | the shell answered one note · Echo No. 189 | 全篇 |
+| items | the shell · the lamp-bench · north sea | 一、二、三、四、六 |
+| history | After the 44th Convocation · the eighty-fifth day of the winter-tide month | 一、三、五、六、七 |
+
+> 潮候院抄本师念了贝壳的字——它动了——它发出声音——潮候院第一次听见北海——
+> The copyists of the Institute said the shell's word — it moved — it made a sound — the Institute heard the north sea for the first time —
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百八十九）「潮候院灯桌旁的抄本师——他们念了贝壳侧面的字——它动了一下——潮候院第一次听到贝壳的声音」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the moment the copyists read the word on the shell's flank aloud — it moved — it made a sound.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院抄本师第一次念出来的那声——贝壳动了一下——它发出声音。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 44th Convocation; the eighty-fifth day of the winter-tide month.
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第八十五日。
+
+---
+
+## I · The Copyists Read Aloud
+
+The copyists of the Institute did not open the door for four days — the copyists pushed open the door — the copyists could not bring themselves to — the copyists said finally — the shell turned itself the day before — it did not turn — the copyists said — it knows — it turned — no one taught them to read the word on its flank — the copyists said — he reads them out — he said tide — the shell moved.
+
+**锚句**：抄本师推门——抄本师说——他读出贝壳侧面的字——他念潮——贝壳动了。
+**Anchor sentence**: the copyists pushed the door — the copyists said — he read out the word on the shell's flank — he said tide — the shell moved.
+
+---
+
+## II · It Answered
+
+The copyists said tide — the shell moved — very slightly — the shell turned a little — no one believed — the shell turned a little — the lantern brightened for an instant — the shell's flank turned toward the copyists — no copyist touched it.
+
+**锚句**：抄本师念潮——贝壳动了——贝壳动得很小——贝壳的侧面变成了朝抄本师——抄本师没人碰它——灯自己亮了一下——
+**Anchor sentence**: the copyists said tide — the shell moved — very slightly — the flank turned toward the copyists — no one touched it — the lantern brightened for an instant —
+
+---
+
+## III · The Copyists Heard
+
+The copyists heard a sound — the shell uttered one note from the lamp-bench — like salt in wind — like sea from the upper vault — it is not shrill — it is from itself — the copyists could not describe it — the copyists understood it — it is north sea —
+
+**锚句**：抄本师听见了声音——贝壳发出一声——像盐自己在风里响——它是北海——
+**Anchor sentence**: the copyists heard a sound — the shell uttered one note — as salt in wind — it is north sea —
+
+---
+
+## IV · On the Lamp-Bench
+
+The shell is still on the lamp-bench — the shell has stopped moving — it faces the copyists — no one touched it — they said it answered — no one asked — the lantern is burning — the copyists withdrew — the lantern is still burning — the shell is still on the bench.
+
+**锚句**：贝壳还在灯桌上——贝壳朝抄本师——灯自己亮着——抄本师退出房间——贝壳还在桌上——
+**Anchor sentence**: the shell is still on the bench — facing the copyists — the lantern is burning — they withdrew — the shell is still on the bench —
+
+---
+
+## V · For the First Time the Institute Hears
+
+The Institute heard the shell for the first time — the Institute's answer — no one in the Institute dares speak — no one in the Institute could answer — it is north sea — the Institute holds no sea — the shell is not tide — the shell is — north sea — the Institute — the shell is — north sea —
+
+**锚句**：潮候院第一次听到贝壳的声音——潮候院里没有海——潮候院没人能回答——它是北海——贝壳它就是——北海——
+**Anchor sentence**: the Institute heard the shell for the first time — the Institute holds no sea — no one could answer — it is north sea — the shell is north sea —
+
+---
+
+## VI · What the Copyists Say
+
+The copyists say — north sea is the Institute — it is not tide — it is not north — it is north sea — the Institute has or does not have tide — the Institute is its lamp-bench — the shell rests on the lamp-bench — north sea is here — the shell rests on the lamp-bench — the Institute still has — the Institute does not — the Institute only knows — the Institute listens —
+
+**锚句**：潮候院是它的灯桌——贝壳放在灯桌上——北海就在这儿——潮候院只知道——潮候院听——
+**Anchor sentence**: the Institute is its lamp-bench — the shell on the lamp-bench — north sea is here — the Institute only knows — the Institute listens —
+
+---
+
+## VII · Mapping（Echo No. 189 → world model）
+
+| Dimension | Value | Mapping |
+| --- | --- | --- |
+| lore | the shell's first sound · north sea · the Institute that listens | I, II, III, IV, V, VI |
+| geography | the lamp-bench · the vault · the undefined north sea | I, II, IV, V, VI |
+| characters | the copyists · the shell (unnamed) · the lantern (unnamed) | I, II, III, IV, V, VI |
+| story | the shell answered one note · Echo No. 189 | Full |
+| items | the shell · the lamp-bench · north sea | I, II, III, IV, VI |
+| history | After the 44th Convocation · the eighty-fifth day of the winter-tide month | I, III, V, VI, VII |
+
+> 潮候院抄本师念了贝壳的字——它动了——它发出声音——潮候院第一次听见北海——
+> The copyists of the Institute said the shell's word — it moved — it made a sound — the Institute heard the north sea for the first time —
+`,
+  },
+  {
     order: 19,
     slug: 'echo-019-the-copyists-of-the-back-alley',
     titleZh: '里巷子的抄本员',

@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 188 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 189 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3348,6 +3348,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 抄本师说贝壳记下了这一秒——抄本师不猜——抄本师想写——抄本师没写——它只是放在桌上——桌上是麻的——抄本师没有写——
 - [5] 抄本师说——它不是潮——它不是北——贝壳是从潮候院没人猜是哪一日——潮候院只是说——那是潮先一步到的那一天——
 - [6] 抄本师都过来过去——抄本师互相看了一眼——贝壳还在灯桌上——贝壳它是被放在那里的——潮候院的灯都亮着——贝壳也亮着——
+
+### Echo 189 · 潮候院灯桌旁的抄本师——他们念了贝壳侧面的字——它动了一下——潮候院第一次听到贝壳的声音 / By the Lamp-Bench — the Copyists Read the Word on the Shell's Flank Aloud — It Moved — the Institute Heard the Shell for the First Time
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 抄本师推门——抄本师说——他读出贝壳侧面的字——他念潮——贝壳动了。
+- [2] 抄本师念潮——贝壳动了——贝壳动得很小——贝壳的侧面变成了朝抄本师——抄本师没人碰它——灯自己亮了一下——
+- [3] 抄本师听见了声音——贝壳发出一声——像盐自己在风里响——它是北海——
+- [4] 贝壳还在灯桌上——贝壳朝抄本师——灯自己亮着——抄本师退出房间——贝壳还在桌上——
+- [5] 潮候院第一次听到贝壳的声音——潮候院里没有海——潮候院没人能回答——它是北海——贝壳它就是——北海——
+- [6] 潮候院是它的灯桌——贝壳放在灯桌上——北海就在这儿——潮候院只知道——潮候院听——
 
 ### Echo 19 · 里巷子的抄本员 / The Copyists of the Back Alley
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
