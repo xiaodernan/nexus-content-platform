@@ -8257,3 +8257,13 @@ Reported upstream to `docs/evidence/liveness-sweep-2026-11-19.md`（cont.429 对
 - 本轮修复：kill 旧 :3200 监听 PID 7200 → 用 `.venv\Scripts\python.exe -m uvicorn` + `$env:PYTHONPATH=D:\内容创作平台\apps\ai-service\src` 重启 → /healthz 200 · llm=gpt-6.2-sol real（call recipe 由 docs/RUNTIME.md 与 infra/dev-ai.sh 交叉确认：PYTHONPATH 指向 src 必不可少）
 - 启动配方记录：PID 7200 曾持有 3200（C:\Program Files\Python311 的 worker）· 26776 为 8001 的 stale supervisor（不动）· port 8000 是 careeros-ai Docker 转发（不属于本项目）· 3100=web dev server (PID 25488)
 - E170 anchor[1]：潮候院北墙上有一排排极浅的横刻线——没有人对着它说过话——它们是最古老的档案。→ IO v1060 候选；oracle-strip 暂不连推（CDN 容忍期）
+
+## cont. 436 (2026-11-19) — dev server 3600s SIGTERM 恢复 · digest probe 归档 · 线上能力快照
+
+- **事故与恢复**：`npm run dev -w @nexus/web` 的旧后台壳被 harness 3600s SIGTERM 强停（18:44 左右）→ :3100 关闭；18:50 起用 `Start-Process npm.cmd run dev -w @nexus/web -WindowStyle Hidden` 独立脱离式重启（PID 54940），env：`NEXUS_AI_SERVICE_URL=http://127.0.0.1:3200` + `NEXUS_DATABASE_URL=postgres://nexus:nexus_dev_only@127.0.0.1:5443/nexus` → HTTP 200 · 45,554 B
+- **live digest probe**（`docs/evidence/digest-probe-2026-11-19.md`）：E168+E169+E170 digest 被 restarted 的 :3200（`.venv\Scripts\python.exe` + `PYTHONPATH=src`，开机自检计算发现 design_prompt 的 CANON_PREFIX 在 import 时加载——digest 改了不重启等于没生效）→ `/v1/ai/world-step` 200 → `model: gpt-6.2-sol` · tokensIn 320,720 · tokensOut 569 · reasoningTokens 323 · **delta.unlocks=["E169"]**（潮回机器确认 E169 在 served digest 里，end-to-end 完成）· cachedTokens=0（expected cold first call；provider KV 前缀断在 digest E168 插入点）
+- **此轮重启纪律**：E170 也要吸入 digest → 再次 kill :3200 重启（当前新 worker 从 E170 字节启动）；根因是 dev 配置把 digest 当 import 常量 —— 以后世界增章应与 ai-service 重启
+- **KV 状态如实**：post-restart 首 call 0 KV；appCache counters 进程归零（Redis namespace 保留 store）；prefix 复用需二次同字节 call 会同频 warm → 靠 cron 型潮用 traffic 自然 re-warm
+- **身份护栏**：showcase-site `scripts/identity-guard.mjs` → **OK exit 0**
+- **公网**：CDN 仍停留在 v1056/E164；本轮没有再 dispatch（只剩法外容忍期，Pages 3h cron 由 push `5d5b380`/`93f109d6` 等 master 侧 deploy 采纳；不再强砸 dispatch）
+- **下一件事**：E171（未指定下一物件；继续交给并行线/续写，物件与潮候院库对齐）；digest 继续扩容；island-income 不作优先 → 关注 cron 三小时一周期的 CDN 验证 · fe-gates 全量回归需要 ≥3 GB 空闲内存才能安全跑
