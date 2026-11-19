@@ -8174,3 +8174,11 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
   - ✅ 隐盾（不是隐图）
   - Avatar 实际宽 `415 × 492`（并行线重裁到"内容盒"）—— 不是我原来 508，但仍正确展示头像（头部填满）
 - 所有宿主 AI 服务进程：axis-network 8001 / 3200 · 工作区 dev-server 3100 `/tidewatch 200`、`/insight 200`、`/api/ai/world-step` 可用
+
+## cont. 428 (2026-11-19) — §IO-v1056 · 公网 Echo #164̄
+
+- Echo #164 已进 main digest 且 verified（line 3111）；锚句 996 zh/en 全绿
+- IO 展示页（xiaodernanx.github.io）oracle-strip bump → **v1056** · 画布 reference 更新到 **《崖顶烽火台边那一面只替风记账的旧旌》 · 964 锚句 · 164 回响 · digest 244,945**
+- 语言区双语 v1；无 readme-stats 外链；i18n EN twin 自带 refresh 叙事
+- 同一份 stash-merge 自动融合后 push，master `0af3d8b`
+- Pages dispatch 204（3 秒后自托管 windows runner 跑 identity-guard → deploy 成功）
