@@ -1,6 +1,16 @@
 # NEXUS
 
-> **Turn ideas into executable digital worlds.**
+> 把想法做成可运行的数字世界。
+
+NEXUS 是一个 **AI 原生的创作操作系统**：人类给出意图，智能体负责执行——从 *想法 → 设计 → 代码 → 世界 → 软件 → 游戏 → 媒体*，这条边界一直在消融。项目里的每一样东西都是可编辑、可运行、可版本化、可复刻、可改造的「制品」；项目里的一切也都是结构化的「上下文」，智能体能精确取用。
+
+最近的实质增量：**潮候步进 Tidewatch**（`/tidewatch` · `apps/web/src/app/tidewatch`）——大模型直接充当世界状态转移机：`analyze → 检索典籍室 → narrate + 结构化 delta → canon_guard 逐字核验 → assemble`，实测 KV 缓存命中 **~89%**，逐字引用全程严核（任何一条对不上原文的证据都会被当场砍）。
+
+> Turn ideas into executable digital worlds.
+
+**English follows.**
+
+
 
 NEXUS is an **AI-native creative operating system**: humans provide intent, agents provide
 execution, and the boundary between *idea → design → code → world → software → game → media*
