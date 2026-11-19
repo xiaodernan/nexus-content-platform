@@ -7818,6 +7818,17 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 
 ## cont. 396 (2026-11-19) — v1037 · §BIBLE-151 ✓ §RAG-LINEAGE ✓ · Echo #151《只留一把椅子的圆桌》(作者手写 · verify 921/921) + /api/bible/q 检索依据真面板
 
+- `retrieve` 节点早就是真的（diggestion 字符二元组 Jaccard + top-3 snippet，≤1.6KB）——但路由只回 `retrieved: <计数>`，读者看不见
+- 现在 `/api/bible/q` 多回 `retrieval: string[]`（top-3 原文片段，逐字）；BibleAsk 前端新增可折叠「本轮检索依据」（`<details class="bbq-retrieval" data-bible-ask-retrieval>`，zh/en 双语 · 确定性二元组声明在底部），`setPhase('loading')` 重置 retrieval/cite——不残留上一轮的旧依据
+- system 前缀**零改动**——CANON_DIGEST KV 命中不受影响（cache 稳态无回退）
+- BibleAsk SHA pin → `7ac8438e…（与并行线 E150 合并后重钉）`（page pin 不变 · `1344cf30…`）· fe-gates **151/151 · 1377/1377 · census 2998** · tsc EXIT=0 · route 契约 12/12 · canon-answer-graph 13/13
+- 未能浏览器实证：本机 Docker engine 500 → Postgres CONNECT_TIMEOUT（env 限制；契约行为由 route/visual/fen gates 三重覆盖）
+## cont. 396 (2026-11-19) · §ADMIN-13+DEEPREAD-FORECAST ✓ · AI 深读现在看得见服务端外推
+
+- `/api/admin/observer/digest`：metrics JSON 增加 projValid/projTrend/projSlopePerDay/projR2/projResidualSd/projNext1（服务端最小二乘 · 非模型手算）；user message 增加投影字段注解（zh/en），模型按「展望 · 7 天推断」段直接引用；deep-read LRU sig 入 proj 维度
+- system 前缀**零改动**（KV 全命中纪律保持）· 卡片 SHA pin 不变（组件未动）· observer-deepread 门 7/7
+- observe 门页抗 DB 抖动（cont.394 硬化）+ 投影带（§OBSERVE-PROJ）= 观察站至此有：实测计数 → 规则建议 → 线性外推 → 大模型深读（全部同一实库口径）
+- fe-gates **151/151 · 1377/1377 · census 2998** · tsc EXIT=0
 - 新篇：「祠殿风方门边那只只够围坐六个人的圆桌 · 它还留了一把椅子给你——等一个还没到的人」—— digest 现 **239,325 chars**（13 章正典 · **151 回响** · 4 annex · 锚句 921 zh / 921 en ✓）。
 - 6 锚句双语 · gen-bible-snapshot 增 echo-151 · BibleAsk lede → 151 · /bible/ask meta → 一百五十一篇回响 · CACHE-IDENTITY × 151 · canon-answer-graph → 164 段 · bible-ask-behavior → 916 · pin 重钉 page→b6a40c35 / comp→79dc3cd9 · InsightCanonChat hint 同步至 151 · fe-gates **1377/1377** ✓ · verify:world-bible 921/921 ✓。
 
@@ -7833,3 +7844,4 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 5 锚句双语 · gen-bible-snapshot 增 echo-152 · BibleAsk lede → 152 · /bible/ask meta → 一百五十二篇 · CACHE-IDENTITY × 152 · canon-answer-graph → 165 段 · bible-ask-behavior pin 921 · pin 重钉 page→3387d20b / comp→d9cbf869 · InsightCanonChat hint 同步至 152。
 - §PROOF-V1037 同期一字不差实测：Clash 代理直打 · tokensIn=154,408 · 首发后 date 144,977 cached tokens (93.9%) · 连续 3 次稳定住同值 · provider 真通 True gap of §CACHE-4；详细见 `docs/evidence/probe-v1037-2026-11-19.md`。
 - fe-gates **1377/1377** ✓ · verify:world-bible 926/926 ✓。
+- 并行线的 cont.395/396.7 已收入 `661f1be1 / 502fd3e9 / 49eebceb / 1d42a3cf`（/api/bible/q 真 top-3 + stategraph 文案 pin + latest.json 指针）

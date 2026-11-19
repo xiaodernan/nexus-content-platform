@@ -7,7 +7,7 @@ import { getAiCapabilities } from '@/lib/env';
 import { chatWithCharacter } from '@/server/ai/client';
 import { currentUserOrNull } from '@/server/domain/session';
 import { OBSERVER_COOKIE, OBSERVER_COOKIE_VALUE } from '../route';
-import { readObserverMetrics, buildObserverAdvice } from '@/server/admin/observer';
+import { readObserverMetrics, buildObserverAdvice, buildObserverProjection } from '@/server/admin/observer';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,6 +49,13 @@ interface DigestPayload {
     tasksAwaitingApproval: number;
     tasksSucceeded: number;
     tasksFailed: number;
+    /** §OBSERVE-PROJ 服务端算好的最小二乘外推——喂给模型的是数字，不是"感觉" */
+    projValid: boolean;
+    projTrend: 'up' | 'flat' | 'down' | null;
+    projSlopePerDay: number | null;
+    projR2: number | null;
+    projResidualSd: number | null;
+    projNext1: number | null;
   };
 }
 
@@ -62,6 +69,10 @@ function sigKey(locale: 'zh' | 'en', m: DigestPayload['metrics']): string {
     m.likesTotal, m.opens7d, m.opens30d, m.completionPctAvg30d,
     m.completionsGame, m.completionsWork, m.suspectedBots7d,
     m.tasksAwaitingApproval, m.tasksSucceeded, m.tasksFailed,
+    m.projValid, m.projTrend ?? 'n',
+    m.projSlopePerDay === null ? 'n' : m.projSlopePerDay.toFixed(3),
+    m.projR2 === null ? 'n' : m.projR2.toFixed(3),
+    m.projNext1 === null ? 'n' : m.projNext1.toFixed(3),
   ].join('|');
   return crypto.createHash('sha256').update(`${locale}|${sig}`).digest('hex').slice(0, 16);
 }
@@ -154,11 +165,13 @@ export async function POST(req: Request): Promise<Response> {
   const user = locale === 'en'
     ? [
         `Metrics (JSON, all real): ${metricsJson}`,
+        'Projection keys are server-computed least-squares extrapolation of the daily opens series: projValid, projTrend (up|flat|down), projSlopePerDay, projR2, projResidualSd, projNext1. Prefer these over eyeballing opens7d/opens30d.',
         `Rule engine has already raised (JSON): ${adviceJson}`,
         'Output the three sections: “Situation” (figures), “Forecast · 7-day inference” (label it inference, give a range), “Next steps · in order” (figures + justification). In English.',
       ].join('\n')
     : [
         `数据（JSON，全部为真实计数）：${metricsJson}`,
+        `投影字段是服务端对每日打开数的最小二乘外推：projValid / projTrend（up|flat|down）/ projSlopePerDay / projR2 / projResidualSd / projNext1——优先引用这些，别只看 opens7d/opens30d 眨眼数。`,
         `规则引擎已经按阈值提出了（JSON）：${adviceJson}`,
         '按「形势（带数字）· 展望 · 7 天推断（标明推断、给区间）· 下一步 · 优先级（带数字）」三段输出，每段 2-3 句。用中文。',
       ].join('\n');
@@ -202,6 +215,7 @@ export async function POST(req: Request): Promise<Response> {
 }
 
 function compactMetrics(m: Awaited<ReturnType<typeof readObserverMetrics>>): DigestPayload['metrics'] {
+  const proj = buildObserverProjection(m.daily);
   return {
     usersTotal: m.usersTotal,
     usersNew7d: m.usersNew7d,
@@ -217,5 +231,11 @@ function compactMetrics(m: Awaited<ReturnType<typeof readObserverMetrics>>): Dig
     tasksAwaitingApproval: m.tasks.awaitingApproval,
     tasksSucceeded: m.tasks.succeeded,
     tasksFailed: m.tasks.failed,
+    projValid: proj.valid,
+    projTrend: proj.trend,
+    projSlopePerDay: proj.slopePerDay,
+    projR2: proj.r2,
+    projResidualSd: proj.residualStdDev,
+    projNext1: proj.next1,
   };
 }
