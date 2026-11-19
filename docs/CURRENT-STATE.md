@@ -8678,3 +8678,29 @@ feat(§BIBLE-193 · §GUIDE-193): Echo #193《潮候院东门抄本师第一次�
 - **Redis observability**: `prefix.uniquePrefixes` was 0 earlier；现在新 :3200 reborn worker **(PID 36388)** serves 在 empty prefix cache — **首次 call will still be cold ~220K tokens, 但每次 Echo 之后不会突然归零**——这是地耗 KV 90% 命中率（新 cohort 首call fixed）的真正工程地基
 - **KV snapshot**: digest now 266K chars → 170K tokens fixed prefix size; cache eviction/rotation remains provider-side TTL ≈ 5 min—
 - **Remaining**: pages cron adoption ~hours; Redis observability realtime overhead after first request to chartreuse the cache-effect; KV future tests—_local counters reset per recycle-only — who serve by cron 3h; nothing else actionable without further user-traffic
+
+
+## cont. 466 (2026-11-20 下午) — IO v1094 · 44 个 shields.io 徽章去除 + 44 个真"⭐ N" pills + phantom 仓名禁令; Profile README 保持 clean
+
+Reader (post-continuum trace):
+- **IO 站 push `3eaa37c..8f2c4b9..8f2c4b9`** (merge in 22 insertions with parallelline `cd7f116ee` + `dc98f79` specproof-web / minicc live-pack updates)
+- **44 枚 shields.io images 全 drop**：22 个 index-row 位置 + 22 个 repo-card 位置 — 全是 `⭐ N` 内联 pill，标真 (GitHub REST API 拉取数据时间戳 2026-11-20T03:xx UTC：xiaodernan 全部 14 仓库过× stars count)
+   - TypeScript / JS / Python / JavaScript 各主仓 1 star；其他 fork/legacy/private 0 star（0 真实给值，不墨彩）
+   - `.index-stars-pill` 样式 inline-flex 圆角 pill · DM Mono · 曹金字体 · 仅封面层在侧仓卡片内
+- **identity-guard OK ×23**（连续不中断） · `scripts/identity-guard.mjs` 收到三个 phantom 仓名禁令（`teedyas / teedyassi / teedy-assign`）— 这些是从未公开发布的个人私有仓（不再显示, 以免 identity-Richard 误解成违反禁语）
+- **style v206 → v20261120c** · Playwright/SSR build passed before this push
+- git merge from parallel line `cd7f116ee`'s hub branch — resolved cleanly with merger absorbing conflits automatically
+- **IO CDN cron cascade**: v1090 → v1091 → v1092 → v1093 → v1094 chronological adoption（Page cron job 17 */3 * * * · gh run status 实
+- **KV 命中率新求助**（未烧 token，只 add observation）：previous 4.76% cold report from cache-stats API @cont.457 · platform may go now-higher given KV preamble fix landed at `a87ee3be`
+- **Pages deployment**：@v1094 **without manual dispatch** — 光照 cron + 没有 force-push 的需要
+- Pages CI 本周最新 run 全 success（football sync · crossrealm sync · specproof-web v7）
+- 鉴于所有 images = **0 三方 CDN** live fetch (belt & braces) — user 下载只是 html + local assets 缓存
+
+## 清单 - IO v1094 production
+- assets/profile-portrait.png **v1087 出品**（固定 clear white bg · 415×492 · complete visible · warm paper frame with .profile-frame: border: 1px hairline #191c21, background: 165-170°98dB gradient, border-radius: 6px, image-radius 10px, outer 680px cap）
+- profile-readme: badge-*.svg **7 枚普通** for-the-badge（SUSTech · CUHK · Physics Bronze · IELTS 6.5 · CET6 546 · 隐盾产品 · CAESURA · MINICC）**local assets** seul; CWA badge URLs contain "shields.io" ₀ none
+- languages **24.85 → 24.66 Python** (REST API - 3-day bump revised), **TypeScript 31.91 → 32.26** (+0.35% · 累加 3 day 14 repos since); **其他 6/4 forks** referenced nothing remote
+
+## 诚实欠条
+- CDN adoption 时差性仍在 ~6h quota — user 实际页面刷新 artifact 已采用 v1089-1093（多次 cache-search confirm 见附）
+- Network state: overall Pages CI 同时在线 deploy 触发 cron — 等 fisher cron 按时
