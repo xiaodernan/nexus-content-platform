@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 189 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 190 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3365,6 +3365,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 里巷子的抄本员的字在代际之间变得越来越模糊——他们只是一间临摹别人的抄本。
 - [4] 里巷子的抄本员没人派过任务——他们只是抄潮候院给里巷子带来的每一件东西。
 - [5] 里巷子的抄本员没有名字也没有葬地——潮候院没有给人时间知道他们存在过。
+
+### Echo 190 · 潮候院第八十三日——潮候院第一次派抄本师朝贝壳的方向走——他在潮候院东门第一次看见海 / The Eighty-third Day — the Institute Sent a Copyist Toward the Shell's Direction — From the East Gate He Saw the Sea for the First Time
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院第八十三日——抄本师想出去——潮候院没有走出去看过它——潮候院也没有北——
+- [2] 潮候院抄本师走出了潮候院——他朝东门走——他走到门槛——潮候院抄本师站在门口——
+- [3] 潮候院抄本师站在门槛上——贝壳的"北"朝东——潮候院抄本师没回去看贝壳——潮候院里没有潮——也没有北——
+- [4] 潮候院抄本师站在东门上——他第一次看见潮候院外——他往东看——东边是从没见过的蓝光——潮候院没人见过这光——
+- [5] 潮候院抄本师看见海——潮候院外面是海——海就在潮候院东门外——抄本师只是看——抄本师不说话——抄本师看着——
+- [6] 潮候院抄本师回来了——他说潮候院东门外是海——潮候院以前没有海——潮候院今天有海——潮候院外是海——它在东门——
 
 ### Echo 20 · 潮候院钟楼里那口从不响的钟 / The Bell That Never Rang in the Institute's Clock Tower
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
