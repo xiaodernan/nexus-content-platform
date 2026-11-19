@@ -450,6 +450,13 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《潮候院只收一个字的信》里，谁认领了那封信？', choices: ['没有人', '驿卒按照日志认走', '值更人用沙压住并认走', '誊册房的主事人'], answer: 0, ref: '回响（其一百四十八） · 三' },
     en: { prompt: 'In “The Letter of One Word”, who claimed the letter?', choices: ['no one — nobody claimed it or opened it', 'the courier for the ledger', 'the night-watch, by weighing it down with sand', 'the chief of the chancellery'], answer: 0, ref: 'Echo No. 148 · III' },
   },
+prompt: '《潮候院那盏从不写名的灯》里，抄本房为什么拒绝给灯起名字？', choices: ['因为名字会被人误用写在禁书上', '因为灯不是人，不能被称作任何什么', '因为没人记得灯的来历', '因为给它起名会打破沉默'], answer: 1, ref: '回响（其一百五十八） · 四' },
+    en: { prompt: 'In “The Lamp That Never Wrote a Name”, why did the chancellery refuse to name the lamp?', choices: ['a name would end up written on the forbidden book', 'the lamp is not a person — it must not be called anything', 'no one remembers where the lamp came from', 'naming it would break the silence'], answer: 1, ref: 'Echo No. 158 · IV' },
+  },
+  {
+    zh: { prompt: '《潮候院那盏从不写名的灯》里，灯在什么情况下亮？', choices: ['每月初一傍晚必然亮起', '月圆夜前的子时', '没人专门照料——它晚上自己会亮', '灯油烧到最后一格的时候'], answer: 2, ref: '回响（其一百五十八） · 一' },
+    en: { prompt: 'In “The Lamp That Never Wrote a Name”, when does the lamp light?', choices: ['every first of the month, as dusk falls', 'at midnight before the full moon', 'nobody tends it — it lights itself each evening', 'when the last cell of oil is spent'], answer: 2, ref: 'Echo No. 158 · I' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {

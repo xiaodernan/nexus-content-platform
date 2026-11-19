@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 157 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 158 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3045,6 +3045,14 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 盐账的页数不够用了就再换一本——但每一本的最后一格都不写。
 - [4] 那一年只有一个人补了最后一格——抄本师的母亲——后来那页被盐吃掉了。
 - [5] 值更册最后一页：最后那一格不是漏写的——它是留给下一任的。
+
+### Echo 158 · 潮候院那盏从不写名的灯 / The Lamp in the Chapel That Carries No Name
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院那盏灯谁都没专门照料它——它晚上自己会亮。
+- [2] 那盏灯不写名也不签字，所以谁也不敢拿它去承诺。
+- [3] 卷册进龛，那盏灯就亮一晚——从来没有人翻开过它。
+- [4] 抄本房拒绝给它起名字：灯不是人，它不该被称作任何什么。
+- [5] 风吹熄了它，它自己又亮了——沉默不需要人维系。
 
 ### Echo 16 · 潮沙盘上那四只小贝壳 / The Four Small Shells on the Tide-Sand Table
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
