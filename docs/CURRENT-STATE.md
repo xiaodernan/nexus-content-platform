@@ -8500,3 +8500,14 @@ feat(§BIBLE-193 · §GUIDE-193): Echo #193《潮候院东门抄本师第一次�
 - **模型审计**：NEXUS_MODEL_FAST/BALANCED/REASONING/VISION 全 gpt-6.2-sol · STREAM=1 · EMBEDDING=none · 6.1-terra 仅留在历史 evidence/ADR（测量时刻如实记录，不重写）。
 - **本 lane fe-gates / tsc**：quiz SHA 重钉后 fe-gates 1396/1396 · web tsc 0。主线 `master == main == origin/main == 6fdd11b9`（并轨线中途推了 `412d8eb4` CONT-453，本线全部 rebase 吸收）。
 - **未关闭**：origin/master 腐朽 ref（`e9c4ba8f`，behind 1 / ahead 181）待用户拍板；backup/echo168-169-duplicate 留存待用户开口删除；HTTP 突发窗（≥2GB）待内存释放；memory 连续两轮 526→383 MB 下行，机器吃紧。
+
+
+## cont. 456 (2026-11-20) — GitHub 个人主页七枚 for-the-badge 本地化 · 零第三方图片依赖
+
+- **背景**：用户连发两轮同一问题——"my GitHub page badges／languages 看着像坏掉/NaN"。上轮 IO 侧已将两个 `assets/languages-*.svg` 证伪 NaN、头像改成暖纸立相、远端 README 两张语言卡确认真值（31.91/24.87/…/0.22）。本轮把 README 里所有 shields.io 外链徽章**替换为仓库内联静态 SVG**（`xiaodernan/xiaodernan` clone → push main `2f54559..7d6b406`）：
+  - `SUSTech`（#b88632 · 白）· `CUHK`（#c9a258 · 墨黑）· `物理竞赛·全国铜牌·江西省一等奖·江西省二等奖`（#1e9d96 · 白）· `IELTS 6.5 · 雅思 6.5 · 六级 546 · CET6 546`（#3c8bbd · 白）· `PRODUCT · 隐盾 · 法律文书智能脱敏`（#191c21 · 金）· `WORLD · CÆSURA · 止音纪元`（#191c21 · 金）· `AGENT · Minicc · Codex`（#191c21 · 金；字形 DM Mono / Noto Sans CJK 回退 · for-the-badge 直角 4px · letter-spacing 0.04em）
+  - 恒等事实与 showcase `identity-guard` 同口径：SUSTech 南科大本科 → CUHK 港中文硕士（计科本硕）· 全国物理竞赛铜牌 · 江西省一/二等奖 · IELTS 6.5 · CET6 546 · 隐盾（**非"隐图"**，零出现）· CÆSURA · 雅思 6.5（IELTS 6.5）↔ 六级 546（CET6 546）一屏对仗
+  - CI 徽章两个保留 github.com 直链（GitHub camo 服务对象 • 展示真实构建状态，不代刷）
+- **当前外链图片只剩**：CI badges 2 枚（github.com）+ banner.svg（本地）+ languages-2026-11-19.svg（本地）+ stats-contrib.svg（本地）+ badge-* 7 枚（本地）。`shields.io` 引用 = 0
+- **远程采纳状态**：push 后 camo 缓存约 5 分钟内过期即显新徽章（新文件名 badge-*.svg，首次展示即正确）；不需要 dispatch、不需要 CDN 烫刷
+- **诚实欠条**：未逐一像素核对（profile 页面在用户浏览器渲染；本会话纯文件与字节对账）；CI 两个徽章若用户网络拦 github.com 仍显示坏图（那是 GitHub camo 可达性问题，仅靠本仓库不能绕过）；语言卡数值未改（早已是真实字节派生）
