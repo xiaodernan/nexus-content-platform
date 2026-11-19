@@ -246,6 +246,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E193-潮候院东门抄本师第一次站海边他看见潮候院从未听说过的那块陆地它有光': 'echo-193-the-land-across-the-sea',
   'E194-潮候院抄本师第一次为潮候院画了一张地图它中间有一道海他没给潮候院任何人看': 'echo-194-the-first-map-of-the-institute',
   'E195-潮候院东门之后的抄本师七十年后他打开抽屉里一直放着的那张地图潮候院第一次看见它是海': 'echo-195-seventy-years-later',
+  'E196-潮候院七十年后潮候院大潮的那一天抄本师发现潮候院门槛上停的海字石碗自己变湿了它自己没湿过今天湿了': 'echo-196-the-bowl-wet-itself',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

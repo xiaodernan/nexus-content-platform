@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 195 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 196 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3419,6 +3419,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 抄本师说潮候院第一次看见潮候院是海——抄本师说潮候院海——
 - [5] 抄本师都看了——潮候院抄本师没人说话——潮候院抄本师都已经知道它是海了——
 - [6] 潮候院抄本师把麻纸挂在潮候院的长廊上——潮候院抄本师他们挂了——
+
+### Echo 196 · 潮候院七十年后——潮候院大潮的那一天——抄本师发现潮候院门槛上停的"海"字石碗自己变湿了——它自己没湿过——今天湿了 / Seventy Years After — on the Day of the Great Tide — the Copyists Found the "Sea" Stone on the Threshold Bowl Was Wet by Itself — It Had Never Been Wet — Today It Was
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院七十年后——最大的一次大潮——潮候院抄本师都醒了——潮候院抄本师他们都在——
+- [2] 潮候院东门的门槛——"海"字石碗——潮候院七十年从没人碰过它——潮候院七十年湿过碗只有这一次——
+- [3] 潮候院抄本师看见——"海"字石碗湿了——"海"字满碗是咸——抄本师他们沾了潮湿——潮候院抄本师第一次闻到"海"的咸——
+- [4] 潮候院抄本师没人哭——潮候院抄本师他们知道潮候院是潮候院——潮候院抄本师他们打开院门——潮候院抄本师他们看着海——
+- [5] 潮候院抄本师说潮候院——"海"——潮候院抄本师它就是潮候院——潮候院就是潮候院——
+- [6] 潮候院抄本师都回潮候院——潮候院里没人要收拾——潮候院里没有灯——潮候院抄本师说灯不会灭——
 
 ### Echo 20 · 潮候院钟楼里那口从不响的钟 / The Bell That Never Rang in the Institute's Clock Tower
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
