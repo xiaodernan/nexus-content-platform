@@ -2713,3 +2713,22 @@ demo-mode 14/14
 第十二套入矩阵后，`npm run evals` 报告 **290/290 PASS**（不含需真库的 export-roundtrip）。
 验证命令：`npm run evals -- --suite demo-mode`。
 
+
+
+## 2026-11-19（cont. 448）· §85 确定性套件全量重跑
+
+环境：uv-managed cpython-3.11.15 · `:3100` Next dev · `:3200` ai-service（uv 3.11.15 自包含）· 不设 NEXUS_DATABASE_URL → 只跑确定性套件
+
+命令：`npm run evals`
+
+```
+code-index 19/19 · model-roundtrip 13/13 · video-plan 30/30 · world-build 55/55 ·
+schemas-contract 17/17 · game-build 36/36 · design-build 46/46 · project-bundle 14/14 ·
+local-embedding 14/14 · local-reranker 15/15 · demo-mode 14/14 · cost-ledger 23/23
+→ 全部结构不变式 PASS（316 checks）
+```
+
+口径补注：本回合 §159/§160 的世界大典 digest 已扩至 E179 / 1086 zh+en / 1086 metrics 之日（same run tolerates E179）；
+2026-11-19 的这一次重跑是 **HEAD=8f511eee**（E179 《潮汐灯》入库 + E177/176 quiz 补齐 + guideCopy 1086 锚句）上的绿色。
+
+另自查：ai-service venv 在 19:00–19:26 间失去 C:\Program Files\Python311\python.exe → 脱离式宿主改装 uv-managed 3.11.15 → 本轮评测在重启后的环境中跑通。
