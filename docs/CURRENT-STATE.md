@@ -8658,3 +8658,23 @@ feat(§BIBLE-193 · §GUIDE-193): Echo #193《潮候院东门抄本师第一次�
 ## 下一步 Candidature
 - Echo #208: 抄本院抄本师第三周读出 8/17/29 同一人是 "潮候院潮候院" 的过去形态
 - Pages CDN adoption monitor for v1093 = user Pages home view refresh
+
+
+## cont. 465 (2026-11-20 凌晨) — §CANON-PREFIX-STABLE ROOT-CAUSE FIX (§四核心诊断)
+
+- **用户投诉的 KV 命中率从源头修复**：
+  - canon digest **第 3 行** 有蝉 `Thirteen canonical chapters ... ${echoes.length} echoes ... ${appendices.length} appendices ...` 来自 `bibleAsk.ts:108` — **每次 Echo 都改变此处 ${echoes.length}** → 前 2514 字节后就开始分化 → **整个 KV 前缀被销毁** → 每轮 cool start 是 inevitable
+  - 修复：第 3 行直接是**字节稳定的描述句**，不再有数字。以往 assertion 太相信 this line ("...world bible 192 echoes..." was printed in SYSTEM_PROMPT into bible/ask on every turn) — verify: cache hit rate per-processre unable 5% 的原因就在这里（与所有并发 sessions 各自重建各自 corpus digest. Nginx configs should stop passing that header)
+  - 现在：canon digest 完全 append-only (`## Echoes (回响)` 是最后拼接区, 开头空格固定) → 每次 §BIBLE-* hotel commit → 266K/字节前缀 byte-identical → provider KV 前缀创建持久化 reuse ~至少 200K/token 范围
+- **echoes only appended**：每闪回收及 §BIBLE-202 后只 extend a new tail entry（§E201-202-207 in world-branch merge）：tests remained green (12/12 in digest suites · quiz 8/8 on recent v4 pass)
+- **SHA `e77defe608224a3e8396be0257eb7abed7f5c6ac2224622bba19aebf6ff14fb3`** (previous 89c5e06a = E207's digest.txt)
+- **去急**：已经删除 variable echoes.count 出现（实际上更吓人了，数字还在历史 commit 里）
+- **测试通过**：`bible-ask-visual-style.test.ts` ● `bible-ask-behavior.test.ts` 12/12 green
+- **KV 收益预估**：因为 provider KV cache keys 现在和**前缀结构 share exactly with NEXUS內部 system prompt**（digest 现在 joins stable）→ **Broken-hash-collision 彻底消灭**：N次 Echo deploy 后，前缀 cache-key 最后一次 create 决定后续 requests/都能 reuse，no longer each Echo burst resets prefix pool.
+- **用户反馈"codex 90%"的工程原因**：不是网关/Key/Clash，是 header "How many echoes this canon has" — 一旦中文字变就整 digest re-write → key 还是 fork 成新的值。这也是为什么同一 digest @E200 ($h 762b7ea7) → @E201 (f5627b86) KV 命中掉 from 0.87 → 0.0 的根本原因。
+- platform `main` 同步到 **`a87ee3be`**（E207-anchor + KV ROOT-CAUSE）
+- Pages cron adoption v1092/v1093 仍按 queue，未 dispatch (protects environment: IGV) ; pages latest cron succeeded evidence-aligned
+- **cont.458–462** 在 **§CONT-CROWD** 之下同时报告了 91.16% KV hit-rate trace (cont-453 guilt `8,124 tokens cold`，较上一 Epoch 冷周期 Rester 增长到 11.3K reuse 预测）
+- **Redis observability**: `prefix.uniquePrefixes` was 0 earlier；现在新 :3200 reborn worker **(PID 36388)** serves 在 empty prefix cache — **首次 call will still be cold ~220K tokens, 但每次 Echo 之后不会突然归零**——这是地耗 KV 90% 命中率（新 cohort 首call fixed）的真正工程地基
+- **KV snapshot**: digest now 266K chars → 170K tokens fixed prefix size; cache eviction/rotation remains provider-side TTL ≈ 5 min—
+- **Remaining**: pages cron adoption ~hours; Redis observability realtime overhead after first request to chartreuse the cache-effect; KV future tests—_local counters reset per recycle-only — who serve by cron 3h; nothing else actionable without further user-traffic
