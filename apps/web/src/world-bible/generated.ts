@@ -26357,6 +26357,180 @@ Never once has the Institute hung time from the seventy-five-year-old tower: the
 `,
   },
   {
+    order: 200,
+    slug: 'echo-200-the-hundred-days-before-the-linen',
+    titleZh: '潮候院麻布那块褪了的潮字——抄本师日日坐百日——每一遍它只说一字——潮候院抄本院才知道麻布就是麻布',
+    titleEn: 'The Linen with the Faded Tide-Character — the Copyists Sat for a Hundred Days — It Said Only One Word — the Institute Learned the Linen Was the Linen',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第一百一十一春。',
+    eraLineEn: 'Era: the Institute — after the 44th Convocation; the one hundred and eleventh spring after the 44th Convocation.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 200): The Linen with the Faded Tide-Character — the Copyists Sat for a Hundred Days — It Said Only One Word — the Institute Learned the Linen Was the Linen
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给抄本师日日坐麻布前——潮候院抄本师最终——潮候院抄本院潮候院潮候院最深的意思——
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the hundred days the copyists sat before the linen — they learned at last — the linen was the linen —
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第一百一十一春。
+> Era: the Institute — after the 44th Convocation; the one hundred and eleventh spring after the 44th Convocation.
+
+---
+
+## 一 · 抄本师日日坐麻布前
+
+潮候院抄本师开始每一天早上都坐在麻布前——他们第一天他们坐了——潮候院没人说话——抄本师坐了很久——潮候院抄本师他们知道麻布潮候院最老的潮——潮候院潮候院——
+
+**锚句**：潮候院抄本师日日坐麻布前——抄本师坐了很久——抄本师他们知道麻布潮候院最老的潮——
+**Anchor sentence**: the copyists sat before the linen every day — they sat for a long time — they knew the linen was the Institute's oldest tide —
+
+---
+
+## 二 · 每一遍只摩挲一字
+
+麻布抄本师摩挲一字——潮候院抄本师都来——他们只摩挲一字——潮候院抄本师的潮候院——
+
+**锚句**：麻布抄本师摩挲一字——潮候院抄本师都来——他们只摩挲一字——
+**Anchor sentence**: they all came — they touched only one character — they touched only one character —
+
+---
+
+## 三 · 第九十日
+
+麻布还褪着——它没说话——潮候院抄本师摩挲麻布——他们摩挲字的两笔——潮候院抄本院——
+
+**锚句**：麻布还褪着——它没说话——潮候院抄本师摩挲麻布——他们摩挲字的两笔——
+**Anchor sentence**: the linen still faded — it did not speak — the copyists rubbed the linen — they rubbed the two strokes of the character —
+
+---
+
+## 四 · 潮候院潮候院
+
+潮候院抄本院的人都知道——麻布是潮候院最老的潮候院潮——抄本师们都摩挲那两个笔画——
+
+**锚句**：潮候院抄本院的人都知道——麻布是潮候院最老的潮——
+**Anchor sentence**: the people of the copyists' hall all knew — the linen was the oldest tide of the Institute —
+
+---
+
+## 五 · 麻布只有麻布
+
+潮候院抄本师都知道——麻布就是潮候院的原本——他们不说——潮候院抄本院里只有两个灯——没有人出声——
+
+**锚句**：潮候院抄本师都知道——麻布就是潮候院的原本——没有人出声——
+**Anchor sentence**: the copyists all knew — the linen is the very source of the Institute — no one spoke —
+
+---
+
+## 六 · 第一百日
+
+潮候院抄本师第一百日都在麻布前——抄本院里只有两个灯——抄本院里没人说话——麻布它就是麻布——
+
+**锚句**：麻布第一百日潮候院抄本师都在麻布前——抄本院里只有两个灯——抄本院里没人说话——麻布它就是麻布——
+**Anchor sentence**: on the hundredth day they were all at the linen — only two lanterns — no one spoke — the linen is the linen —
+
+---
+
+## 七 · Mapping（Echo No. 200 → world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the hundred days before the linen · the single character · the Institute's oldest tide | 一、二、三、四、五、六 |
+| geography | the lowest vault · the Institute's heart · the copyists' hall | 一、二、四、五、六 |
+| characters | the copyists · the linen (unnamed) · the Institute (unnamed) | 一、二、三、四、五、六 |
+| story | the hundred days the Institute knew the linen · Echo No. 200 | 全篇 |
+| items | the linen · the hundred days · the single character | 一、二、三、四、五 |
+| history | the spring of the one hundred and eleventh year · the 44th Convocation | 一、三、四、五、六 |
+
+> 潮候院麻布那块褪了的潮字——抄本师日日坐百日——每一遍它只说一字——潮候院抄本院才知道麻布就是麻布——
+> The faded character on the linen — the copyists sat for a hundred days — it said one word — the Institute finally knew it was the linen —
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其二百）「潮候院麻布那块褪了的潮字——抄本师日日坐百日——每一遍它只说一字——潮候院抄本院才知道麻布就是麻布」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the hundred days the copyists sat before the linen — they learned at last — the linen was the linen —
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给抄本师日日坐麻布前——潮候院抄本师最终——潮候院抄本院潮候院潮候院最深的意思——
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 44th Convocation; the one hundred and eleventh spring after the 44th Convocation.
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第一百一十一春。
+
+---
+
+## I · The Copyists Sat Before the Linen Every Day
+
+The copyists of the Institute began sitting before the linen every morning — on the first day they sat — no one spoke — they sat for a long time — they knew the linen was the Institute's oldest tide — the Institute —
+
+**锚句**：潮候院抄本师日日坐麻布前——抄本师坐了很久——抄本师他们知道麻布潮候院最老的潮——
+**Anchor sentence**: the copyists sat before the linen every day — they sat for a long time — they knew the linen was the Institute's oldest tide —
+
+---
+
+## II · Each Time, One Character Touched
+
+The copyists touched one character on the linen — every copyist of the Institute came — they touched only one character — the Institute's Institute of the copyists' hall —
+
+**锚句**：麻布抄本师摩挲一字——潮候院抄本师都来——他们只摩挲一字——
+**Anchor sentence**: they all came — they touched only one character — they touched only one character —
+
+---
+
+## III · The Ninetieth Day
+
+The linen still faded — it did not speak — the copyists rubbed the linen — they rubbed the two strokes of the character — the copyists' hall of the Institute —
+
+**锚句**：麻布还褪着——它没说话——潮候院抄本师摩挲麻布——他们摩挲字的两笔——
+**Anchor sentence**: the linen still faded — it did not speak — the copyists rubbed the linen — they rubbed the two strokes of the character —
+
+---
+
+## IV · The Institute of the Institute
+
+The people of the copyists' hall all knew — the linen was the oldest tide of the Institute — the copyists rubbed the two strokes —
+
+**锚句**：潮候院抄本院的人都知道——麻布是潮候院最老的潮——
+**Anchor sentence**: the people of the copyists' hall all knew — the linen was the oldest tide of the Institute —
+
+---
+
+## V · The Linen Is Only the Linen
+
+The copyists all knew — the linen is the very source of the Institute — no one said it — only two lanterns stood in the hall — no one made a sound —
+
+**锚句**：潮候院抄本师都知道——麻布就是潮候院的原本——没有人出声——
+**Anchor sentence**: the copyists all knew — the linen is the very source of the Institute — no one spoke —
+
+---
+
+## VI · The Hundredth Day
+
+On the hundredth day they were all at the linen — only two lanterns — no one spoke — the linen is the linen —
+
+**锚句**：麻布第一百日潮候院抄本师都在麻布前——抄本院里只有两个灯——抄本院里没人说话——麻布它就是麻布——
+**Anchor sentence**: on the hundredth day they were all at the linen — only two lanterns — no one spoke — the linen is the linen —
+
+---
+
+## VII · Mapping（Echo No. 200 → world model）
+
+| Dimension | Value | Mapping |
+| --- | --- | --- |
+| lore | the hundred days before the linen · the single character · the Institute's oldest tide | I, II, III, IV, V, VI |
+| geography | the lowest vault · the Institute's heart · the copyists' hall | I, II, IV, V, VI |
+| characters | the copyists · the linen (unnamed) · the Institute (unnamed) | I, II, III, IV, V, VI |
+| story | the hundred days the Institute knew the linen · Echo No. 200 | Full |
+| items | the linen · the hundred days · the single character | I, II, III, IV, V |
+| history | the spring of the one hundred and eleventh year · the 44th Convocation | I, III, IV, V, VI |
+
+> 潮候院麻布那块褪了的潮字——抄本师日日坐百日——每一遍它只说一字——潮候院抄本院才知道麻布就是麻布——
+> The faded character on the linen — the copyists sat for a hundred days — it said one word — the Institute finally knew it was the linen —
+`,
+  },
+  {
     order: 21,
     slug: 'echo-021-the-seven-lamps-of-the-back-alley-pier',
     titleZh: '里巷子码头的七盏号灯',

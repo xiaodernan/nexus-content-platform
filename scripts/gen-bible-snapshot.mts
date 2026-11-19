@@ -250,6 +250,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E197-潮候院抄本师见过潮候院建院以前的那块麻布它只有一个字它褪了它是潮': 'echo-197-the-linen-before-the-institute',
   'E198-潮候院抄本师把那块麻布挂了又取又挂潮候院潮问它回答出来': 'echo-198-the-institute-asked-itself',
   'E199-潮候院抄本师在麻布前坐了三天潮候院第一次会议麻布潮候院最老的潮': 'echo-199-the-gathering-before-the-linen',
+  'E200-潮候院麻布那块褪了的潮字抄本师日日坐百日每一遍它只说一字潮候院抄本院才知道麻布就是麻布': 'echo-200-the-hundred-days-before-the-linen',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
