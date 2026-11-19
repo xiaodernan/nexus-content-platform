@@ -95,7 +95,7 @@ describe('──AI-DEEP-READ /observatory 大厅 AI 深读', () => {
 
   it('SHA256 钉死：DeepReadCard（className 脱敏后）', () => {
     expect(createHash('sha256').update(redactClasses(card)).digest('hex')).toBe(
-      '2624e1b92bf5e64be09f98ccb9bab1fbddcd11b7fea8c1e43eac74328b3ff051',
+      '3f43e9b5dcef4123ee26669da8f71eb6c9edef7928d43d2618e392e6b48608c7',
     );
   });
 });

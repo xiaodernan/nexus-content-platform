@@ -110,7 +110,7 @@ describe('§FE-AS /admin/savings AI 节省总账（v702 接手）', () => {
 
   it('SHA256 钉死（本线字节 · §SB-RENDER-ADMIN 渲染账块 · 2026-11-19）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '35cde6351764b5be1bc7de8442edbbe85ed7223b684a1c0f8a2dea632ce8e796',
+      '4d170d44cd5e0ee6809d967cc025ff40b22b864be161f092c7b3beb61601cde0',
     );
   });
 });

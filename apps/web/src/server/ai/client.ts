@@ -1,6 +1,6 @@
-import { AiChatResponseSchema, AiErrorSchema, AiJobAcceptedSchema, AiJobStatusResponseSchema, AiResponseSchema, HealthResponseSchema } from '@nexus/schemas';
+import { AiChatResponseSchema, AiErrorSchema, AiJobAcceptedSchema, AiJobStatusResponseSchema, AiResponseSchema, AiWorldStepResponseSchema, HealthResponseSchema } from '@nexus/schemas';
 import { resolveOrchestrationLane, type OrchestrationLane } from './orchestrationLane';
-import type { AiChatRequest, AiChatResponse, AiError, AiJobAccepted, AiJobStatusResponse, AiRequest, AiResponse, HealthResponse } from '@nexus/schemas';
+import type { AiChatRequest, AiChatResponse, AiError, AiJobAccepted, AiJobStatusResponse, AiRequest, AiResponse, AiWorldStepRequest, AiWorldStepResponse, HealthResponse } from '@nexus/schemas';
 
 /**
  * web → ai-service 的客户端（docs/ARCHITECTURE.md 边界纪律 2：补丁由 web 应用，service 只产出结果）。
@@ -27,11 +27,11 @@ export function aiServiceUrl(): string | null {
   return `http://127.0.0.1:${port}`;
 }
 
-function localError(code: AiError['code'], message: string, hint?: string, retryable = false): AiError {
+export function localError(code: AiError['code'], message: string, hint?: string, retryable = false): AiError {
   return { code, message, ...(hint ? { hint } : {}), retryable };
 }
 
-async function readAiError(response: Response, fallbackCode: AiError['code']): Promise<AiError> {
+export async function readAiError(response: Response, fallbackCode: AiError['code']): Promise<AiError> {
   const text = (await response.text()).slice(0, 2_000);
   try {
     const parsed = AiErrorSchema.safeParse(JSON.parse(text) as unknown);

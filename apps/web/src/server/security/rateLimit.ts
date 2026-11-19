@@ -48,6 +48,8 @@ export const IP_RATE_RULES = {
   'account/api-tokens': { limit: 10, windowMs: 3_600_000 },
   'blocks': { limit: 60, windowMs: 3_600_000 },
 'bible/q': { limit: 60, windowMs: 3_600_000 },
+// §WS-1 潮候步进：一步 = 两次真 provider 调用（读局 + 潮回），10/h 足够玩得久、挡得住滥打
+'ai/world-step': { limit: 10, windowMs: 3_600_000 },
 'insight/analyze': { limit: 10, windowMs: 3_600_000 },
 'insight/chat': { limit: 10, windowMs: 3_600_000 },
 'analytics/agent-narrate': { limit: 10, windowMs: 3_600_000 },

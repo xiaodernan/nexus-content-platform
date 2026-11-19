@@ -39,6 +39,7 @@ from .execution import error as make_error
 from .execution import execute_ai_request, execute_chat_request, parse_request_body
 from .stategraph import run_design_stategraph
 from .chat_stategraph import run_chat_stategraph
+from .world_step_stategraph import run_world_step_stategraph
 from .latency_meter import LLM_LATENCY
 from .metrics import render_llm_metrics
 from .jobs import JobStore, Worker, build_store, job_capacity
@@ -254,6 +255,22 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
             return JSONResponse(body, status_code=status)
         assert payload is not None
         status, body = await run_chat_stategraph(payload, registry=registry)
+        return JSONResponse(body, status_code=status, headers={"x-nexus-orchestration": "stategraph"})
+
+    @app.post("/v1/ai/world-step")
+    async def world_step(request: Request) -> JSONResponse:
+        """§WS-1 潮候步进：LLM 作为世界状态流转的分析层（analyze → retrieve → narrate → canon_guard → assemble）。
+
+        两次真 provider 调用（analyze 微小前缀；narrate 带 canon digest 稳定前缀），
+        retrieve/canon_guard 纯本地硬校验；任何节点失败沿条件边直达 END，返回真实 4xx/5xx。
+        响应与 `x-nexus-orchestration: stategraph` 一起回声——这是状态图真实执行的公开标记。
+        """
+        payload, rejected = parse_request_body(await request.body(), settings.max_body_bytes)
+        if rejected is not None:
+            status, body = rejected
+            return JSONResponse(body, status_code=status)
+        assert payload is not None
+        status, body = await run_world_step_stategraph(payload, registry=registry)
         return JSONResponse(body, status_code=status, headers={"x-nexus-orchestration": "stategraph"})
 
     @app.post("/v1/ai/chat")

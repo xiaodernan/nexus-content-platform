@@ -640,6 +640,99 @@ export const AiChatResponseSchema = z.object({
 export type AiChatResponse = z.infer<typeof AiChatResponseSchema>;
 
 /**
+ * §WS-1 潮候步进（world-step）：LLM 真正参与「状态流转」的状态图端点。
+ *
+ * 设计动机（用户 2026-11-19 口径）：大模型不能只做"答一句"的接口——它要当
+ * 世界状态机的分析层：先读这一步的局面与旅人状态，再决定潮如何改写世界，
+ * 最后把改动写成结构化的 delta 交回给前端/世界引擎去落。
+ *
+ * 服务端是一张编译过的 LangGraph StateGraph（apps/ai-service/src/ai_service/
+ *   world_step_stategraph.py）：
+ *   analyze（真 LLM · 意图分类 · 微小前缀，不烧 digest）→ retrieve（纯本地 ·
+ *   锚句 BM25-lite，零 token）→ narrate（真 LLM · canon digest 稳定前缀，
+ *   KV 友好）→ canon_guard（本地硬校验：引用逐字核对、回响号核对、数字夹紧）
+ *   → assemble。任何一步失败都沿条件边直达 END，返回真实的 4xx/5xx。
+ *
+ * 状态为什么随请求送：web 侧持有世界态（localStorage / 世界引擎），ai-service
+ * 遵守"不写业务库"的边界纪律；持久化是 web 层的事。
+ */
+export const WorldStepStateSchema = z.object({
+  /** 潮纪元标签（如「霁历三十七年 · 仲秋 · 落潮」），web 侧按真实当年日期推导 */
+  clock: z.object({
+    label: z.string().min(1).max(60),
+    season: z.enum(['spring', 'summer', 'autumn', 'winter']),
+    tide: z.enum(['rising', 'high', 'falling', 'low']),
+  }),
+  traveler: z.object({
+    vigor: z.number().int().min(0).max(9).default(6),
+    depth: z.number().int().min(0).max(9).default(0),
+    /** 已持有的印记名（顺序稳定） */
+    seals: z.array(z.string().max(40)).max(12).default([]),
+  }),
+  /** 最近的世界事件，最新在后，最多 6 条（这是 LLM 能看到的"记忆"，随请求自证） */
+  memory: z
+    .array(
+      z.object({
+        /** oracle=潮问 · quiz=测验 · step=步进 · seal=印记 · echo=回响 */
+        kind: z.enum(['oracle', 'quiz', 'step', 'seal', 'echo']),
+        text: z.string().min(1).max(280),
+      }),
+    )
+    .max(6)
+    .default([]),
+});
+export type WorldStepState = z.infer<typeof WorldStepStateSchema>;
+
+export const AiWorldStepRequestSchema = z.object({
+  requestId: z.string().min(1).max(80),
+  /** 潮回的语言：中文用中文、英文用英文，不夹杂 */
+  locale: z.enum(['zh', 'en']).default('zh'),
+  state: WorldStepStateSchema,
+  /** 旅行者这一步的话（或行动、或问题） */
+  move: z.string().min(1).max(600),
+  modelClass: ModelClass.default('balanced'),
+});
+export type AiWorldStepRequest = z.infer<typeof AiWorldStepRequestSchema>;
+
+/** 潮对世界状态的结构化改动——LLM 提出，canon_guard 逐项硬校验后才放行 */
+export const WorldStepDeltaSchema = z.object({
+  /** 体力增减（-3..+3） */
+  vigor: z.number().int().min(-3).max(3).default(0),
+  /** 潮位深度增减（-3..+3） */
+  depth: z.number().int().min(-3).max(3).default(0),
+  /** 新获得的印记；空数组 = 没有 */
+  seals: z.array(z.string().max(40)).max(3).default([]),
+  /** 解锁的回响编号（如 E162）——只有 digest 里真实存在的回响才收 */
+  unlocks: z.array(z.string().regex(/^E[12][0-9]{2}$/)).max(2).default([]),
+  /** 这一步的风浪等级 */
+  risk: z.enum(['calm', 'uneasy', 'storm']),
+});
+export type WorldStepDelta = z.infer<typeof WorldStepDeltaSchema>;
+
+/** 锚句引用：quote 必须逐字出现在 canon_digest.txt（canon_guard 逐字核验） */
+export const WorldStepCitationSchema = z.object({
+  /** 锚句指纹：zh#<sha1(anchor文本)[:8]>，稳定可核验，不伪造编号 */
+  anchor: z.string().max(24),
+  quote: z.string().max(120),
+});
+export type WorldStepCitation = z.infer<typeof WorldStepCitationSchema>;
+
+export const AiWorldStepResponseSchema = z.object({
+  requestId: z.string(),
+  capability: CapabilityStatus,
+  provider: z.string(),
+  model: z.string(),
+  /** 潮回的叙事（≤1200 字） */
+  narration: z.string().max(1200),
+  delta: WorldStepDeltaSchema,
+  /** canon_guard 放行的锚句引用；任何一条对不上原文即剔除（宁缺毋滥） */
+  citations: z.array(WorldStepCitationSchema).max(4).default([]),
+  usage: UsageSchema,
+  error: AiErrorSchema.optional(),
+});
+export type AiWorldStepResponse = z.infer<typeof AiWorldStepResponseSchema>;
+
+/**
  * §131 机检结果。放在 schemas 而不是 web 内部类型：发布面板要把它原样画出来，
  * 客户端拿到的一份如果和服务端算的那份形状不同，"几项待人工复核"就变成一个猜出来的数。
  */

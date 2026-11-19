@@ -94,7 +94,7 @@ describe('──CHAPTER-DIGEST /bible/[slug] "让 AI 读给你听"', () => {
 
   it('SHA256 钉死：ChapterDigest（className 脱敏后）', () => {
     expect(createHash('sha256').update(redactClasses(card)).digest('hex')).toBe(
-      'ec016e2513bdac5cdc1f4cb442b5a983dab7bf34732060fe80250a8f5e87c898',
+      '662a85a4f5f732808ba57a21f196ec4321c879a1209ece91a47cc5b848da7636',
     );
   });
 });

@@ -181,6 +181,17 @@ export const METRICS = {
     labels: { outcome: ['answer'] },
     buckets: DURATION_BUCKETS,
   },
+  nexus_world_step_total: {
+    kind: 'counter',
+    help: '潮候步进（POST /api/ai/world-step）走到终态的次数（含 provider 不可用——绝不静默失败）',
+    labels: { outcome: ['step', 'provider-unavailable', 'error'] },
+  },
+  nexus_world_step_latency_ms: {
+    kind: 'histogram',
+    help: '潮候步进从进路由到回流的毫秒数（含两次 provider 往返）',
+    labels: { outcome: ['step'] },
+    buckets: DURATION_BUCKETS,
+  },
   nexus_insight_chat_total: {
     kind: 'counter',
     help: '/api/insight/chat 正典深问走到终态的次数（含 provider 不可用与意外错误，不许静默失败）',
