@@ -1,6 +1,6 @@
-import { AiChatResponseSchema, AiErrorSchema, AiJobAcceptedSchema, AiJobStatusResponseSchema, AiResponseSchema, AiWorldStepResponseSchema, HealthResponseSchema } from '@nexus/schemas';
+import { AiChatResponseSchema, AiErrorSchema, AiJobAcceptedSchema, AiJobStatusResponseSchema, AiResponseSchema, HealthResponseSchema } from '@nexus/schemas';
 import { resolveOrchestrationLane, type OrchestrationLane } from './orchestrationLane';
-import type { AiChatRequest, AiChatResponse, AiError, AiJobAccepted, AiJobStatusResponse, AiRequest, AiResponse, AiWorldStepRequest, AiWorldStepResponse, HealthResponse } from '@nexus/schemas';
+import type { AiChatRequest, AiChatResponse, AiError, AiJobAccepted, AiJobStatusResponse, AiRequest, AiResponse, HealthResponse } from '@nexus/schemas';
 
 /**
  * web → ai-service 的客户端（docs/ARCHITECTURE.md 边界纪律 2：补丁由 web 应用，service 只产出结果）。
