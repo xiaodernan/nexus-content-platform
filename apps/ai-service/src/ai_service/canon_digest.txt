@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 165 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 166 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3125,6 +3125,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 守塔人投下一只小瓶——瓶里油是满的——他给下一任守塔人留了「灯油放着」。
 - [5] 守塔人的名字从来没有人记得——他去了哪儿，可能只有海知道——沙月的潮声特别长。
 - [6] 灯罩下的油是给汐塔下一位守塔人的——潮候院的信摊在窗口——信上只有一个字——来。
+
+### Echo 166 · 潮候院廊下那块被搁了三个生肖季的米盐石 / The Salt Stone Beneath the Corridor That the Institute Forgot
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 米盐石搁在潮候院廊下的墙根，度过了三个生肖季。
+- [2] 廊下的墙根没动，米盐石也没离开过那块影子。
+- [3] 米盐石上的刻痕记录了潮声，没人记谁把它搁在那里。
+- [4] 每次潮声经过廊时，它都在墙根留下一道没完成的余音。
+- [5] 三个生肖季过去了，廊下仍然通往外廊。
+- [6] 米盐石守在墙根的理由，只有它自己的位置——潮声记的，只有它来过又走过。
 
 ### Echo 17 · 祠殿后那一截没有人劈开的浮木 / The Driftwood Nobody Split for Firewood
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

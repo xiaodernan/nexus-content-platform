@@ -216,6 +216,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E163-值更室里那面只看雨不看人的旧铜镜': 'echo-163-the-brass-mirror-that-only-watches-rain',
   'E164-崖顶烽火台边那一面只替风记账的旧旌': 'echo-164-the-wind-stele-that-ledgers-the-wind',
   'E165-汐塔下那一位守了二十年不肯下灯的守塔人': 'echo-165-the-keeper-of-the-tidal-tower-who-has-refused-to-leave-the-lamp',
+  'E166-潮候院廊下那块被搁了三个生肖季的米盐石': 'echo-166-the-salt-stone-beneath-the-corridor',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

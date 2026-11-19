@@ -19619,6 +19619,202 @@ On the Institute's letter, one more character has been added — "come."
 `,
   },
   {
+    order: 166,
+    slug: 'echo-166-the-salt-stone-beneath-the-corridor',
+    titleZh: '潮候院廊下那块被搁了三个生肖季的米盐石',
+    titleEn: 'The Salt Stone Beneath the Corridor That the Institute Forgot',
+    eraLineZh: '纪元：潮候院 · 第四十三次大会散会后 · 冬潮月第十五日。',
+    eraLineEn: 'Era: the Institute — after the 43rd Convocation; the fifteenth day of the winter-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 166): The Salt Stone Beneath the Corridor That the Institute Forgot
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> 本篇写给廊下那块米盐石：潮候院走廊拐角墙根的件米盐石，守过了三个生肖季，无人移它。
+> Written for the rice-and-salt stone: at the foot of the wall where the corridor turns, three signed seasons it has kept its place, and no hand has shifted it.
+> 纪律同正典：锚句 zh/en 逐字对齐，任何引用本章的条目应保持锚句的逐字一致。
+> Same discipline: anchors verbatim on both sides; no text may cite this Echo if it rewords them.
+
+> 纪元：潮候院 · 第四十三次大会散会后 · 冬潮月第十五日。
+> Era: the Institute — after the 43rd Convocation; the fifteenth day of the winter-tide month.
+
+---
+
+## 一 · 只有放下了，没有人说明
+
+米盐石不是谁出生的名——乡人叫它「米盐石」。底部一层细盐，正面留有米粒磨过的浅痕。它被放在廊下拐角，墙根，靠近外廊门槛的两个迈步之处——谁经过都只是从旁边踩过去，没人正视它。
+
+最初放下它的人没留名字，接手的人也没开过册。祖祖辈辈过廊的步伐带走一点尘，给它留下一点潮湿的印子。墙根的影子终日罩着它；汐塔的人绕过廊时，鞋印在它旁边收住。
+
+守塔人每次折返，已经比平常慢了一点。
+
+**锚句**：米盐石搁在潮候院廊下的墙根，度过了三个生肖季。
+**Anchor sentence**: the rice-and-salt stone has stood at the foot of the corridor wall in the Tidewatch Hall for three zodiac seasons.
+
+---
+
+## 二 · 位置确认了
+
+廊下走动的人多了，走得快一些，带走一点冷湿的地气——但墙角的影子不移动，石头也没有挪。
+
+打更的人换了几次手。两边人相见时，步子会在拐角那里放慢——谁也不打破规矩，谁也不刻意停下。
+
+一位扫廊的人拿竹帚绕着石头走了一圈，扫帚尖略略翘起，转向前方，又落回原来的弧线。时间过去了，那段扫痕也淡了一圈。只留下一道薄薄的尘痕沿着墙脚，像还没写完的一笔。
+
+**锚句**：廊下的墙根没动，米盐石也没离开过那块影子。
+**Anchor sentence**: the foot of the wall did not move, and the stone did not leave that patch of shade.
+
+---
+
+## 三 · 刻痕与潮声
+
+米盐石的纹路只有在侧面光照时才能看见——几行浅字，伴着几处标注潮声大小的小痕。
+
+有的字符挨得紧，有的中间隔着一小段空——那不是稿缺，是潮声太轻，没有合适的字来记。
+
+抄本师和潮候院里另一些古抄本里也见过类似的笔画，只用来记潮候院不同的潮声强度。
+
+他们没有解释它的来路，只把它们记在纸上。
+
+**锚句**：米盐石上的刻痕记录了潮声，没人记谁把它搁在那里。
+**Anchor sentence**: the inscription on the stone records the tide sound, but not who placed it there.
+
+---
+
+## 四 · 潮声真的过廊了
+
+每次潮声经过廊时，它会留下一道还没完整回响的余音，在墙根处断开。
+
+门开门关，声音被风带起，又被门槛压下去，折回来再越过廊口，像散在远处的水声。
+
+天亮时人潮盖过它；深夜里，墙的余音能多停住一会儿。
+
+**锚句**：每次潮声经过廊时，它都在墙根留下一道没完成的余音。
+**Anchor sentence**: each time the tide sound passes through the corridor, it leaves an incomplete echo at the foot of the wall.
+
+---
+
+## 五 · 没有人补它的字
+
+岁月过去，米盐石只是沉在墙角，没人加新字，也没人磨旧纹。
+
+抄本师路过，只把眼光停一停，把手收回来，又继续走。
+
+守塔人走过来，看一眼，又走过去。
+
+**锚句**：三个生肖季过去了，廊下仍然通往外廊。
+**Anchor sentence**: after the third zodiac season passed, the corridor still led, as before, to the outer passage.
+
+---
+
+## 六 · 守它的到底是谁
+
+米盐石的理由是它自己——它的位置就是它的理由，它的刻痕就是它的账——石不喊人过来，又不让人走开。
+
+所有过廊的潮声，都只是它听到的一些事。
+
+抄本师路过廊，可能会忍住，只说一句：「潮过了」。守塔人听见，会点头，不说话。
+
+米盐石沉在墙根——听着潮声走过、再走过、再走过——谁也不问它要答案，它也不给答案。
+
+**锚句**：米盐石守在墙根的理由，只有它自己的位置——潮声记的，只有它来过又走过。
+**Anchor sentence**: what keeps the stone at the wall's foot is only its place; what the tide sound records is only its coming and going.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百六十六）：「潮候院廊下那块被搁了三个生肖季的米盐石」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> Written for the rice-and-salt stone: at the foot of the wall where the corridor turns, three signed seasons it has kept its place, and no hand has shifted it.
+> 本篇写给廊下那块米盐石：潮候院走廊拐角墙根的件米盐石，守过了三个生肖季，无人移它。
+> Same discipline: anchors verbatim on both sides; no text may cite this Echo if it rewords them.
+> 纪律同正典：锚句 zh/en 逐字对齐，任何引用本章的条目应保持锚句的逐字一致。
+
+> Era: the Institute — after the 43rd Convocation; the fifteenth day of the winter-tide month.
+> 纪元：潮候院 · 第四十三次大会散会后 · 冬潮月第十五日。
+
+---
+
+## I· Nothing was said when it was set down
+
+The rice-and-salt stone has no birth-name — the villagers call it simply "the salt stone." Beneath it lies a thin coating of fine salt; on its face are shallow scratches from rice grains. It was placed at the corner of the corridor, at the foot of the wall, two steps from the outer threshold — anyone passing simply steps around it; no one ever looked at it squarely.
+
+The person who set it down left no name; the one who received it did not open a new column in the register. Generations of footsteps carried a little damp dust away from, and a little of it onto, the stone. The shadow of the wall always covers it; the passage to the tower bends around it.
+
+Each time the tower keeper passed, a small delay entered his step.
+
+**Anchor sentence**: the rice-and-salt stone has stood at the foot of the corridor wall in the Tidewatch Hall for three zodiac seasons.
+**锚句**：米盐石搁在潮候院廊下的墙根，度过了三个生肖季。
+
+---
+
+## II · The position was confirmed
+
+More people came through the corridor; they walked faster and took a little damp ground-cold with them — but the shade at the corner did not move, and neither did the stone.
+
+The night watch passed the corner twice a night. When their steps crossed those of the day watch, they slowed almost unconsciously at the corner. No one broke protocol; no one lingered either.
+
+A cleaner with a bamboo broom walked a full circle around the stone; the broom's tip rose slightly, traced the line of the wall, then came back down. In time, the brush-marks faded too, leaving only a thin line of dust against the wall, like a stroke never quite finished.
+
+**Anchor sentence**: the foot of the wall did not move, and the stone did not leave that patch of shade.
+**锚句**：廊下的墙根没动，米盐石也没离开过那块影子。
+
+---
+
+## III · The inscription and the tide sound
+
+The inscription on the rice-and-salt stone can only be read under a slanted light — several shallow lines, accompanied by small marks recording the strength of the tide.
+
+Some characters sit close; others are kept at a distance by small gaps — not missing pieces, but records of a tide too faint to be properly heard.
+
+Such carvings appear elsewhere in the Institute's old copybooks, used to record the exact degrees of tidal intensity in the cloister.
+
+The copyists did not explain where this one came from. They only wrote it down.
+
+**Anchor sentence**: the inscription on the stone records the tide sound, but not who placed it there.
+**锚句**：米盐石上的刻痕记录了潮声，没人记谁把它搁在那里。
+
+---
+
+## IV · The tide sound really does pass through
+
+Each time the tide sound goes through the corridor, it leaves an echo unfinished at the foot of the wall, broken off there.
+
+Doors opening and closing, wind catching the sound and throwing it into the threshold, then folding back toward the outer passage — like water scattered somewhere very far away.
+
+By day, the voice of the crowd covers it; at deep night, the wall holds the sound a little longer.
+
+**Anchor sentence**: each time the tide sound passes through the corridor, it leaves an incomplete echo at the foot of the wall.
+**锚句**：每次潮声经过廊时，它都在墙根留下一道没完成的余音。
+
+---
+
+## V · No one added a word to it
+
+Seasons passed, and the rice-and-salt stone simply aged at the foot of the wall — no fresh words were added; no old ones ground down.
+
+Copyists would pause on their rounds, then keep walking.
+
+The tower keeper would look, then pass.
+
+**Anchor sentence**: after the third zodiac season passed, the corridor still led, as before, to the outer passage.
+**锚句**：三个生肖季过去了，廊下仍然通往外廊。
+
+---
+
+## VI · Who watches it, really
+
+Its reason is itself — its place is its reason; its marks are its account — the stone does not call anyone to come, and it does not push anyone away.
+
+Every tide that passes is simply something it has heard.
+
+A copyist passing the corner may stop and say "the tide has passed". The tower keeper hears this, nods, and is silent.
+
+The rice-and-salt stone rests against the foot of the wall — listening to the tide come and go, and come and go again — and no one asks it for an answer, and it gives none.
+
+**Anchor sentence**: what keeps the stone at the wall's foot is only its place; what the tide sound records is only its coming and going.
+**锚句**：米盐石守在墙根的理由，只有它自己的位置——潮声记的，只有它来过又走过。
+`,
+  },
+  {
     order: 17,
     slug: 'echo-017-the-driftwood-nobody-split',
     titleZh: '祠殿后那一截没有人劈开的浮木',
