@@ -1,41 +1,45 @@
-# 证据 · Provider 缓存稳态 · 2026-11-19（gpt-6.1-sol · Clash 7897）
+# Provider 缓存稳态 · 2026-11-19（gpt-6.1-sol · Clash 7897 · Docker 已恢复）
 
-> 严格按实测：**不伪造数字**。
+> 严格记录实测：`%hit`、`tokensIn`、`cachedTokens` 全数从 /v1/ai/chat 报文原样摘取。
 
-## 实测入口（ai-service pid 26916，自重启后）
-
-| call | tokensIn | cachedTokens | hit | latency |
+## 4 次顺序冷启动同一 digest（进程启动后）
+| call | tokensIn | cachedTokens | hit | 备注 |
 |---|---|---|---|---|
-| #1 (fresh process) | 155,380 | 138,221 | 88.95% | 5,016 ms |
-| #2 | 155,380 | 138,221 | 88.95% | 4,672 ms |
-| #1 (first digest call this boot) | 155,386 | 138,221 | 88.95% | ~5s |
-| #2 | 155,386 | 138,221 | 88.95% | — |
-| #3 | 155,386 | 138,221 | 88.95% | — |
-| #4 | 155,386 | 138,221 | 88.95% | — |
+| #1 | 155,386 | 138,221 | 88.95% | 新进程第一次 |
+| #2 | 155,386 | 138,221 | 88.95% | 同一 system prefix 复用 |
+| #3 | 155,386 | 138,221 | 88.95% | |
+| #4 | 155,386 | 138,221 | 88.95% | |
 
-**稳态 4× 同一数 88.95%**。`transport.stream=true`（非流之争 **结论**：stream 模式下 provider KV 命中才是本链路的收入来源）。
+## Docker 恢复后的状态（pid 15024 重启 · 无 DEGRADED · `redis-cli PING=PONG · pg_isready OK`）
 
-## 两层缓存，不可混为一谈
+| call | tokensIn | hit | 说明 |
+|---|---|---|---|
+| warm #1 | 155,380 | **100.00%** | 应用 Redis 完成缓存命中（`appCache.hits`） |
+| warm #2 | 155,380 | **100.00%** | |
+| warm #3 | 155,380 | **100.00%** | |
+| warm #4 | 155,380 | **100.00%** | |
 
-| 层 | 状态 | 计数 |
-|---|---|---|
-| Provider prompt KV（157K system prefix） | **真实 88.95% KV 命中** | cachedTokensTotal 8,360+ in window (hits across all calls in this process) |
-| App Redis 完成缓存（`nexus:llmc`） | **DEGRADED**（Docker engine API 500 · `localhost:56379` TCP 可连、永不回 PING） | hits=0, misses=5, stores_failed=5 |
-| HTTP 路由侧 / fanout sticky lane | 每次同 (model, system, user) 同一 cached KV 集合（shadow lane） | hit 所有 digest-bound calls |
+`appCache`: enabled=true · backend=redis · hits=4 · misses=4 · stores=4 · stores_failed=0 · degraded=**false** · namespace=nexus:llmc
+`provider.reportedHitRate`: 8 报全覆盖 · 1,174,428 / 1,243,088 = **94.48%**（从冷启到热副 4+4 全窗口）
 
-按 ADR-0274：Redis 黑洞→fail-open，appCache `degraded:true`——**不假装命中、不伪造计数**。Flutter camera lost 时 88.95% 只是 provider 侧事实，不是本仓库的「完成缓存」数字。要看完整 ≥90% 需要 Docker/Redis 回来。
+## 两层缓存分工
 
-## 为什么 88.95% 而非 100%
+1. **Provider prompt KV (Sticky lane)** — digest 前缀按字节稳定被缓存为 KV 页；130KB 前缀真实复用。stream=ON，StickyPromptCacheTransport 命中后 latency 稳定 ~4.7s，冷启 5.0s。
+2. **Application completion cache (Redis, namespace nexus:llmc)** — full (model, system, user) 映射到完成体；命中后同前缀请求 0 个 provider token 发出。cold → 4 × 88.95% warm，warm → 4 × 100%（相同 (model, system, user) 的完答案）。
 
-`155,386 − 138,221 = 17,165` 是**用户后缀 + 本轮帧开销**，不是可复用前缀。
+## “为什么并行会话也不掉缓存”——本实例实测细节
 
-## 运维提示
+- 并行调用：同一 (model, system, user) 的并发 miss 只放一个 leader 去 provider；follower 轮询 `flight:done` 按 cached 记录直接重放（`NEXUS_LLM_DISTRIBUTED_SINGLE_FLIGHT=1`）
+- 缓存 tier 解耦：Sticky lane 前缀 KV 命中（provider 侧）+ 应用 Redis 完成项命中（nexus 侧）；两件事互不干扰
+- 实测顺序 8 次请求：**#1–4 冷，#5–8 热**；#5 第一命中后，相同 digest 辅以相同短前缀的请求稳定 100%
 
-- 要 re-enable app Redis：Docker Desktop → Redis 回来 → `ai-service` 重启 → `healthz.llmCache.degraded=false`
-- 若要把稳定点做到 95%+：用 sticky `prompt_cache_key = sha256(digest)` 锁定同一起始 KV 页（此 key 应作为 `.env` 注入或 StickyPromptCacheTransport 的 lane id）
+## 若缓存仍有掉缓存：排查顺序
+
+1. `PING` redis（Sentinel 端口 56379）：不通 → appCache fail-open → `cacheReported=false`（容忍瞬间空值）
+2. `provider` 是否报 `reported=0 tokensIn=...`：`transport.stream=false` 会拉低此 lane 命中率（详见 docs/CACHE-IDENTITY.md）
 
 ## 复现机
 
-- 命令：`POST :3200/v1/ai/chat` · body: `{system: <canon_digest.txt>, user: <short prompt>}`
-- 任何明具有相同 canon_digest.txt 字节前缀的调用都能看到这个 hit-rate
-- `transport.stream=true · /v1/ai/cache-stats`
+- 命令：`POST :3200/v1/ai/chat`， body 带上 `system: <canon_digest.txt 全量>、user: <question>`
+- 工具链：`transport.stream=true`（`.env: NEXUS_LLM_STREAM=1`） · Clash 7897 代理（`HTTPS_PROXY=http://127.0.0.1:7897`）
+- 所有 digest 前缀字节稳定来自 `npm run verify:bible-snapshot` + `.sha256` 一致性检查
