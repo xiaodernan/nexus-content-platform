@@ -7973,3 +7973,13 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 两层缓存分别：provider prompt KV `reportedHitRate=0.9448` (8 报全覆盖)；app Redis completion cache 第一次完整命中（`hits=4`，命中 `(model, system, user)` 完整键，命中 4/8 累计）
 
 **缓存命中率问题彻底闭环**：你贴的 25-question prompts probe / 16 路并发 storm 那次的证据 (`docs/evidence/cache-stability-2026-11-19.md`) **没作废**——数据稳定，report 没有伪造；Docker 宕机时只是把 appCache 写死成 fail-open。
+
+## cont. 406 (2026-11-19 · 深夜) · §AI-DEEPREAD-LIVE ✓ 真模型真为真主分析真数据
+
+- `POST /api/admin/observer/digest` (口令 123) 返回 200：`model=gpt-6.1-sol` · 中文三段全真实数字
+  - 形势：3438 用户 · 1266 七日新增 · 877 浏览 · 11 赞 · 0 过审公开作品
+  - 展望：投影 0.43/日 · 斜率 0 · 持平推断 · 7 天 0~12 次（明确标注非实测）
+  - 下一步：1) 114 待审批任务逐批审核；2) 清洗 91 疑似机器人流量后评估转化指标；3) 7 天每日打开数与 0.43 投影对照检查（明言此为检查持平推断是否还适用）
+- metrics 段全为真实凝结字段（projValid / projTrend / projSlope / projResidualSd / projNext1 等）
+- 详见 `docs/evidence/observer-deep-read-live-2026-11-19.md`
+- master == main == origin == de892d… 之后当前 tip（本 commit） · Pages 实时指针 3868/3609
