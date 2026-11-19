@@ -7874,3 +7874,11 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - §PROOF-V1038 evidence：digest 跨 echo 增量后缓存稳定（详见 `docs/evidence/proof-v1038-cache-byte-stability-2026-11-19.md`）；E152/E153 各自 3 发实测 154,627/154,891 tokensIn, cold=7,xxxx → warm **145,483 (93.9%)**，3 发同值无飘移。
 - ADR-0290 记录 cache 代理路由的根本 truth："Node 原生 fetch 根本不走 HTTPS_PROXY"（不是 cache miss 问题）+ 两个真相源都需 `httpx` 显式 `proxy=` 路径才能命中 Clash 权益（直连 aizzz 必 403）。
 - fe-gates **1377/1377** ✓ · verify:world-bible 938/938 ✓。
+## cont. 399 (2026-11-19) · §PROVIDER-DOWN ⚑ 上游已死亡 · 2026-11-19 晚
+
+- **新 key 曾完全可用**：约 06:30 实测 `/v1/ai/chat` `READY.` · `/v1/ai/chat-graph` `GRAPH-OK` · `healthz llmLive=ok`（10 次真实调用， 0 错误，平均 7.87s）
+- **约 10:00 起 provider 全灭**：直测 `POST https://api.aizzz.xyz/v1/chat/completions` 经 Clash 7897 恒返回 **HTTP 503 `model_not_found` «分组 GPT特价 下模型 gpt-6.1-terra 无可用渠道（distributor）»**（request id 202611190258… ）
+- **随后传输层也挂了**：HTTP 000 / curl 超时（30s）——网关整体不可达
+- 期间所有 LLM 相关路径（tide / ask / deep-read / stategraph probe）按纪律 fail-closed 成 DEMO/503，绝不编造（§159 如实拒绝）
+- 行动项（用户端）：登录服务商后台，检查 **分组 GPT特价**：gpt-6.1-terra 的渠道已被撤下 / 分组配额耗尽 / key 被冻。渠道恢复后**任何模型相关活立即可继续**（ai-service 重启复位即可）
+- 本轮证据：ai-service /metrics（calls=10， errors=0） · direct curl 复测 503 → 000 · Docker 仍坏（engine 500；Redis/Postgres 黑洞；ai-service 以 DEGRADED-BOOT 内存队列运行）
