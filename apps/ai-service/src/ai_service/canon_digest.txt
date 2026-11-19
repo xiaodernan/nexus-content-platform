@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 163 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 164 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3107,6 +3107,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 散会后第一年的雨季——镜子不动了一整段——风方门的人觉得值更室里没有潮候院了。
 - [5] 每一次抄本师看镜——纹路都不一样——但雨停了谁都看不见。
 - [6] 值更册最后一页：镜子不是用来看人——它只看雨——值更册才替人看了——谁的手先摸过。
+
+### Echo 164 · 崖顶烽火台边那一面只替风记账的旧旌 / The Old Plaque at the Beacon Tower on the Cliff That Only Keeps the Ledger for the Wind
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 烽火台边有一块旧旌——一米多一截——上面原本刻的什么——早看不见了——潮候院的人叫它风碑。
+- [2] 风来的时候——旌上会有一道极淡的痕——第二天早上——守烽人发现昨天的痕被风变成一笔账目——被盖上封印。
+- [3] 守烽人在每笔风痕下面——用潮候院的账法补一行——记谁让这风来过——他记得三种：船队南下的风、军队退潮的风、抄本师对钥匙说过的那句风。
+- [4] 登记簿里只有大潮风和大退潮风——守烽人悄悄记了第三种——他叫那一笔"不交账的风"。
+- [5] 抄本师想查自己说过的风——守烽人说"你说的风不归此处入册"——他只留"零"字——其他的什么都没留。
+- [6] 审查牌被拆下——核账的人笑了——说这旌上没有几笔——可那面"零"字潮候院至今不敢动——据说旧时对副国王说话，必须以"零"唤人——只听——只记。
 
 ### Echo 17 · 祠殿后那一截没有人劈开的浮木 / The Driftwood Nobody Split for Firewood
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
