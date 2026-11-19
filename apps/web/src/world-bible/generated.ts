@@ -17029,6 +17029,336 @@ The last page of the watch-ledger reads: it has held six souls — and it leaves
 `,
   },
   {
+    order: 152,
+    slug: 'echo-152-the-bridge-that-only-knows-its-own-face',
+    titleZh: '潮候院沉香巷里那只只认自己脸的桥',
+    titleEn: 'The Bridge in the Sandalwood Lane That Only Knows Its Own Face',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百一十八日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hundred-and-eighteenth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 152): The Bridge in the Sandalwood Lane That Only Knows Its Own Face
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给沉香巷里那只只认自己脸的桥——它只认自己的倒影，不认别人的影子。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the bridge in the Sandalwood Lane — it only knows its own reflection, not the shadows of others.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百一十八日。
+> Era: the Institute — after the 41st Convocation; the hundred-and-eighteenth day of the autumn-tide month.
+
+---
+
+## 一 · 沉香巷里那只桥
+
+沉香巷里有一只石桥——桥下面的小河是一条静水——桥不跨任何巷子——桥只是它自己的桥。
+
+**锚句**：沉香巷里有一只石桥——桥下面是一条静水——桥不跨任何巷子。
+**Anchor sentence**: in the Sandalwood Lane there is a stone bridge — beneath the bridge a still stream — the bridge does not span anything.
+
+---
+
+## 二 · 它只认自己的脸
+
+抄本师说桥底下面是它自己的脸——水里照着它——它每天早晨只看水里的它，不看过桥的人。
+
+**锚句**：抄本师说桥底是它自己的脸——水里照着它——它每天只看水里的它。
+**Anchor sentence**: the copyists say beneath the bridge is its own face — reflected in the water — every morning only the face in the water is seen.
+
+---
+
+## 三 · 过桥的人
+
+过桥的人都在过桥——但是桥没有接任何人去任何地方——抄本师说它是沉香巷里唯一不值钱的桥。
+
+**锚句**：过桥的人都在过桥——但是桥不去任何地方。
+**Anchor sentence**: every passer crosses the bridge — yet the bridge leads nowhere.
+
+---
+
+## 四 · 散会夜
+
+散会那一夜——桥下倒影变了——它看见一个不是它自己的脸——第二天它继续只看它自己。
+
+**锚句**：散会那一夜——桥下倒影变了——它看见一个不是它自己的脸。
+**Anchor sentence**: on the night the Convocation dissolved — the reflection beneath the bridge changed — and it saw a face that was not its own.
+
+---
+
+## 五 · 值更册最后一页
+
+值更册最后一页："它只认自己的脸——也只认那天它看过的那张。"
+
+**锚句**：值更册最后一页："它只认自己的脸——也只认那天它看过的那张。"
+**Anchor sentence**: the last page of the watch-ledger reads: it knows only its own face — and also the one it saw that night.
+
+---
+
+## 六 · 映射（回响一百五十二章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 沉香巷 · 桥 · 倒影 · 散会夜它看见不是自己的脸 | 一、二、三、四、五、六、七 |
+| geography | 沉香巷 · 沉香巷井 · 沉香巷口 · 沉香巷里小河 | 一、二、三 |
+| characters | 抄本师 · 值更人 · 散会夜之后的人 | 一、二、三、四、五、六 |
+| story | 只认自己脸的桥 · 回响（其一百五十二） | 全篇 |
+| items | 石桥 · 静水 · 倒影 · 值更册 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第一百一十八日 | 三、四、五、六 |
+
+> 沉香巷里那只桥——它只认自己的脸——散会夜它看见一个不是自己的脸。
+> The bridge in the Sandalwood Lane — it knows only its own face — and on the night of the Dissolution it saw a face that was not its own.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百五十二）「沉香巷里那只只认自己脸的桥」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the bridge in the Sandalwood Lane — it only knows its own reflection, not the shadows of others.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给沉香巷里那只只认自己脸的桥——它只认自己的倒影，不认别人的影子。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the hundred-and-eighteenth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百一十八日。
+
+---
+
+## I · The Bridge in the Sandalwood Lane
+
+In the Sandalwood Lane there is a stone bridge — beneath the bridge a still stream — the bridge does not span anything.
+
+**锚句**：沉香巷里有一只石桥——桥下面是一条静水——桥不跨任何巷子。
+**Anchor sentence**: in the Sandalwood Lane there is a stone bridge — beneath the bridge a still stream — the bridge does not span anything.
+
+---
+
+## II · It Knows Only Its Own Face
+
+The copyists say beneath the bridge is its own face — reflected in the water — every morning only the face in the water is seen.
+
+**锚句**：抄本师说桥底是它自己的脸——水里照着它——它每天只看水里的它。
+**Anchor sentence**: the copyists say beneath the bridge is its own face — reflected in the water — every morning only the face in the water is seen.
+
+---
+
+## III · Those Who Cross It
+
+Every passer crosses the bridge — yet the bridge leads nowhere.
+
+**锚句**：过桥的人都在过桥——但是桥不去任何地方。
+**Anchor sentence**: every passer crosses the bridge — yet the bridge leads nowhere.
+
+---
+
+## IV · The Night of the Dissolution
+
+On the night the Convocation dissolved — the reflection beneath the bridge changed — and it saw a face that was not its own.
+
+**锚句**：散会那一夜——桥下倒影变了——它看见一个不是它自己的脸。
+**Anchor sentence**: on the night the Convocation dissolved — the reflection beneath the bridge changed — and it saw a face that was not its own.
+
+---
+
+## V · The Last Page of the Watch-Ledger
+
+The last page of the watch-ledger reads: it knows only its own face — and also the one it saw that night.
+
+**锚句**：值更册最后一页："它只认自己的脸——也只认那天它看过的那张。"
+**Anchor sentence**: the last page of the watch-ledger reads: it knows only its own face — and also the one it saw that night.
+
+---
+
+## VI · Mapping（Echo No. 152 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the bridge · the reflection · the night it saw another face · Echo No. 152 | 一、二、三、四、五、六 |
+| geography | the Sandalwood Lane · the Sandalwood Lane's well · the Sandalwood Lane's mouth | 一、二、三 |
+| characters | the copyists · the head of the watch · those who pass | 一、二、三、四、五 |
+| story | the bridge that only knows its own face · Echo No. 152 | 全篇 |
+| items | the stone bridge · the still stream · the reflection | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the hundred-and-eighteenth day of the autumn-tide month | 四、五 |
+
+> 沉香巷里那只桥——它只认自己的脸——散会夜它看见一个不是自己的脸。
+> The bridge in the Sandalwood Lane — it knows only its own face — and on the night of the Dissolution it saw a face that was not its own.
+`,
+  },
+  {
+    order: 153,
+    slug: 'echo-153-the-riddle-box-that-no-one-solves',
+    titleZh: '潮候院回廊尽头那只永远等一个无人猜完的谜箱',
+    titleEn: 'The Riddle Box at the End of the Institute\'s Corridor That Always Waits for Someone to Solve It',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百一十九日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hundred-and-nineteenth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 153): The Riddle Box at the End of the Institute's Corridor That Always Waits for Someone to Solve It
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给祠殿外回廊尽头那只谜箱——只能猜，不能读谜底。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the riddle box at the far end of the corridor — only guesses, no answers.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百一十九日。
+> Era: the Institute — after the 41st Convocation; the hundred-and-nineteenth day of the autumn-tide month.
+
+---
+
+## 一 · 那只谜箱
+
+潮候院回廊尽头有一只谜箱——木头的——箱面上刻了一条谜面——箱体上没有打开过的痕迹。
+
+**锚句**：潮候院回廊尽头有一只谜箱——木头的——箱面上刻着谜面——从没有人见过它打开过。
+**Anchor sentence**: at the far end of the corridor stands a riddle-box — wood — on its face is carved a riddle — no one has ever seen it open.
+
+---
+
+## 二 · 谜面只有一个
+
+抄本师说箱面上那条谜面用的字都在正典里——但是没有任何一句话正是这个谜面。
+
+**锚句**：箱面上那条谜面用的字都在正典里——但是没有一句正是它。
+**Anchor sentence**: every character on the face of the riddle-box is in the canon — yet not one line of the canon is this riddle.
+
+---
+
+## 三 · 谁猜过
+
+值更人猜过——抄本师猜过——抄本师的母亲猜过——值更册从未记过任何一次猜中。
+
+**锚句**：值更人和抄本师都猜过——值更册从未记过任何一次猜中。
+**Anchor sentence**: the head of the watch and the copyists have both tried — and the watch-ledger has never recorded a single solved riddle.
+
+---
+
+## 四 · 箱子是你自己
+
+抄本师说那个谜面的答案其实就是「它是被谁猜中的」。
+
+**锚句**：抄本师说谜面的答案就是「它是被谁猜中的」。
+**Anchor sentence**: the copyists say the answer to the riddle is — whoever solves it.
+
+---
+
+## 五 · 散会夜
+
+散会那一夜——箱面上的谜面变了一条——第二天恢复到原样——值更册记「那只谜箱记得它被人读过一次」。
+
+**锚句**：散会那一夜——箱面上的谜面变了一条——第二天恢复到原样。
+**Anchor sentence**: on the night the Convocation dissolved — the riddle on the box changed by one line — and in the morning it was back as it had been.
+
+---
+
+## 六 · 值更册最后一页
+
+值更册最后一页："没有人猜中——也从来没有人能猜中。"
+
+**锚句**：值更册最后一页："没有人猜中——也从来没有人能猜中。"
+**Anchor sentence**: the last page of the watch-ledger reads: no one solves it — and no one ever will.
+
+---
+
+## 七 · 映射（回响一百五十三章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 谜箱 · 唯一个谜面 · 值更册 · 抄本师的母亲 | 一、二、三、四、五、六、七 |
+| geography | 回廊尽头 · 祠殿回廊 · 值更室 | 一、二、三 |
+| characters | 抄本师 · 值更人 · 抄本师的母亲 · 散会 | 一、二、三、四、五、六 |
+| story | 永远没人猜中的谜箱 · 回响（其一百五十三） | 全篇 |
+| items | 谜箱 · 值更册 · 一条刻在面上的谜面 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第一百一十九日 | 三、四、五、六 |
+
+> 回廊尽头那只谜箱——它只能猜——它不能被猜中。
+> The riddle-box at the end of the corridor — it can only be guessed, never solved.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百五十三）「潮候院回廊尽头那只永远等一个无人猜完的谜箱」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the riddle box at the far end of the corridor — only guesses, no answers.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给祠殿外回廊尽头那只谜箱——只能猜，不能读谜底。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the hundred-and-nineteenth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百一十九日。
+
+---
+
+## I · The Riddle Box
+
+At the far end of the corridor stands a riddle-box — wood — on its face is carved a riddle — no one has ever seen it open.
+
+**锚句**：潮候院回廊尽头有一只谜箱——木头的——箱面上刻着谜面——从没有人见过它打开过。
+**Anchor sentence**: at the far end of the corridor stands a riddle-box — wood — on its face is carved a riddle — no one has ever seen it open.
+
+---
+
+## II · There Is Only One Riddle
+
+Every character on the face of the riddle-box is in the canon — yet not one line of the canon is this riddle.
+
+**锚句**：箱面上那条谜面用的字都在正典里——但是没有一句正是它。
+**Anchor sentence**: every character on the face of the riddle-box is in the canon — yet not one line of the canon is this riddle.
+
+---
+
+## III · Who Has Tried
+
+The head of the watch and the copyists have both tried — and the watch-ledger has never recorded a single solved riddle.
+
+**锚句**：值更人和抄本师都猜过——值更册从未记过任何一次猜中。
+**Anchor sentence**: the head of the watch and the copyists have both tried — and the watch-ledger has never recorded a single solved riddle.
+
+---
+
+## IV · You Yourself Are the Riddle
+
+The copyists say the answer to the riddle is — whoever solves it.
+
+**锚句**：抄本师说谜面的答案就是「它是被谁猜中的」。
+**Anchor sentence**: the copyists say the answer to the riddle is — whoever solves it.
+
+---
+
+## V · The Night of the Dissolution
+
+On the night the Convocation dissolved — the riddle on the box changed by one line — and in the morning it was back as it had been.
+
+**锚句**：散会那一夜——箱面上的谜面变了一条——第二天恢复到原样。
+**Anchor sentence**: on the night the Convocation dissolved — the riddle on the box changed by one line — and in the morning it was back as it had been.
+
+---
+
+## VI · The Last Page of the Watch-Ledger
+
+The last page of the watch-ledger reads: no one solves it — and no one ever will.
+
+**锚句**：值更册最后一页："没有人猜中——也从来没有人能猜中。"
+**Anchor sentence**: the last page of the watch-ledger reads: no one solves it — and no one ever will.
+
+---
+
+## VII · Mapping（Echo No. 153 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the riddle-box · the one riddle · the watch-ledger · the mother of the copyists | 一、二、三、四、五、六、七 |
+| geography | the far end of the corridor · the chapel corridor · the watch chamber | 一、二、三 |
+| characters | the copyists · the head of the watch · the mother of the copyists · the ones who try and fail | 一、二、三、四、五、六 |
+| story | the riddle-box no one ever solves · Echo No. 153 | 全篇 |
+| items | the riddle-box · the watch-ledger · the riddle carved on the face | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the hundred-and-nineteenth day of the autumn-tide month | 三、四、五、六 |
+
+> 回廊尽头那只谜箱——它只能猜——它不能被猜中。
+> The riddle-box at the end of the corridor — it can only be guessed, never solved.
+`,
+  },
+  {
     order: 16,
     slug: 'echo-016-the-four-small-shells-on-the-tide-sand-table',
     titleZh: '潮沙盘上那四只小贝壳',

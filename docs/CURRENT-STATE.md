@@ -7837,6 +7837,14 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - §RAG-LINEAGE：`/api/bible/q` 回真实 top-3 检索依据 + BibleAsk 可折叠检索面板（此前只回 retrieved 计数） · 论坛/admin 不打印用户隐私
 - 路由文案上的 ai-service 端口 3212 → 3200（cont.357 漂移的遗留，pin 重钉）
 - 并行线的 cont.395/396.7 已收入 `661f1be1 / 502fd3e9 / 49eebceb / 1d42a3cf`（/api/bible/q 真 top-3 + stategraph 文案 pin + latest.json 指针）
+## cont. 398 (2026-11-19) — v1039 · §BIBLE-152 · Echo #152《只认自己脸的桥》(作者手写 · verify 926/926)
+
+- 新篇：「沉香巷里一座桥 · 它每天只看水里的它 · 散会夜它看见一张不是它自己的脸」—— digest 现 **239,665 chars**（13 章正典 · **152 回响** · 4 annex · 锚句 926 zh / 926 en ✓）。
+- 5 锚句双语 · gen-bible-snapshot 增 echo-152 · BibleAsk lede → 152 · /bible/ask meta → 一百五十二篇 · CACHE-IDENTITY × 152 · canon-answer-graph → 165 段 · bible-ask-behavior pin 921 · pin 重钉 page→3387d20b / comp→d9cbf869 · InsightCanonChat hint 同步至 152。
+- §PROOF-V1037 同期一字不差实测：Clash 代理直打 · tokensIn=154,408 · 首发后 date 144,977 cached tokens (93.9%) · 连续 3 次稳定住同值；详细见 `docs/evidence/probe-v1037-2026-11-19.md`。
+- fe-gates **1377/1377** ✓ · verify:world-bible 926/926 ✓。
+- 并行线的 cont.395/396.7 已收入 `661f1be1 / 502fd3e9 / 49eebceb / 1d42a3cf`（/api/bible/q 真 top-3 + stategraph 文案 pin + latest.json 指针）。
+
 ## cont. 397 (2026-11-19) · §GUIDE-SYNC ✓ · 说明书现在记着新面板（guideCopy zh/en）
 
 - /admin/observe「趋势预测」带、「AI 深读」现在吃得到服务端外推、/bible/ask「本轮检索依据」折叠面板——双语指南逐字描述（/guide 与帮助抽屉同一份字典）
@@ -7850,3 +7858,10 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - **README.md**（xiaodernan/xiaodernan）：同一处私有仓四连修正，commit 7c62770；身份 envelope 复验（雅思 6.5 ×4 · CET6 546 ×4 · 隐图 0）
 - **i18n 混语机检**：87 个 locale-dict 文件 en-block 含 CJK+Latin 行 = **0**
 - 说明书又补了三处新能力（趋势预测带 / AI 深读外推 / 问典检索依据）· guide pin 不变 · fe-gates 151/151 · 1377/1377
+
+## cont. 399 (2026-11-19) — v1040 · §BIBLE-153 · Echo #153《回廊尽头永远没人猜中的谜箱》(作者手写 · verify 932/932)
+
+- 新篇：「潮候院回廊尽头那只只能猜的谜箱 · 散会夜它的谜面变了一条 · 第二天恢复原样——值更册写着「没有人猜中——也从来没有人能猜中」」—— digest 现 **240,079 chars**（13 章正典 · **153 回响** · 4 annex · 锚句 932 zh / 932 en ✓）。
+- 6 锚句双语 · gen-bible-snapshot 增 echo-153 · BibleAsk lede → 153 · /bible/ask meta → 一百五十三篇 · CACHE-IDENTITY × 153 · canon-answer-graph → 166 段 · bible-ask-behavior pin 927 · pin 重钉 page→ba4c8618 / comp→f6f41b7c · InsightCanonChat hint 同步至 153。
+- fe-gates **1377/1377** ✓ · verify:world-bible 932/932 ✓。
+- §PROOF-V1037 复测（Clash 环境）：digest 239,665 · 端到端 tokensIn=154,627 · cached=145,231 (93.9%) — 连胜两发同值。

@@ -202,6 +202,8 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E149-祠殿门槛下那半只只认脚步的鞋': 'echo-149-the-half-shoe-that-knows-footsteps',
   'E150-祠殿风吹铃前那条只能由潮认的线': 'echo-150-the-line-that-only-the-tide-can-read',
   'E151-祠殿风方门边那只只够围坐六个人的圆桌': 'echo-151-the-six-seat-table-by-the-chapel-door',
+  'E152-沉香巷里那只只认自己脸的桥': 'echo-152-the-bridge-that-only-knows-its-own-face',
+  'E153-潮候院回廊尽头那只永远等一个无人猜完的谜箱': 'echo-153-the-riddle-box-that-no-one-solves',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
