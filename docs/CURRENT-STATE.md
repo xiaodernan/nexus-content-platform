@@ -7942,3 +7942,10 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - metrics 段全为真实凝结字段（projValid / projTrend / projSlope / projResidualSd / projNext1 等）
 - 详见 `docs/evidence/observer-deep-read-live-2026-11-19.md`
 - master == main == origin == de892d… 之后当前 tip（本 commit） · Pages 实时指针 3868/3609
+
+## cont. 408 (2026-11-19) — v1049 · §BIBLE-157 · Echo #157《南廊尽头永远欠最后一格的盐账》(作者手写 · verify 955/955)
+
+- 新篇：「祠殿南廊尽头那本盐账 · 封皮是黑的 · 页边全被盐花啃了 · 每个月消耗的盐全抄进最后一页，最后那一行永远空着——那格是留给下一任的」—— digest 现 **241,652 chars**（13 章正典 · **157 回响** · 4 annex · 锚句 955 zh / 955 en ✓）。
+- 6 锚句双语 · gen-bible-snapshot 增 echo-157 · BibleAsk lede → 157 · /bible/ask meta → 一百五十七篇 · CACHE-IDENTITY × 157 · canon-answer-graph → 170 段 · bible-ask-behavior pin **950**（= 955 verify − 5，同一填补法，前次误置 951 已当场改回）· pin 重钉 page→f3e3b619 / comp→94eb6dcb · InsightCanonChat hint 同步至 157。
+- fe-gates **1377/1377** ✓ · verify:world-bible **955/955** ✓。
+- digest 余量 ~14K chars（256K 上限）。

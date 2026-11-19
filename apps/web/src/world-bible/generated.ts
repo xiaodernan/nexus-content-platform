@@ -17881,6 +17881,162 @@ The last page of the watch-ledger reads: it opens its eyes only at low tide — 
 `,
   },
   {
+    order: 157,
+    slug: 'echo-157-the-salt-ledger-that-always-owes-the-last-entry',
+    titleZh: '祠殿南廊尽头那只只欠最后一格的盐账',
+    titleEn: 'The Salt Ledger at the End of the South Cloister That Always Owes the Last Entry',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百二十三日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hundred-and-twenty-third day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 157): The Salt Ledger at the End of the South Cloister That Always Owes the Last Entry
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给南廊尽头那只盐账——它永远欠最后一格。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the salt ledger at the end of the south cloister — it always owes the last entry.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百二十三日。
+> Era: the Institute — after the 41st Convocation; the hundred-and-twenty-third day of the autumn-tide month.
+
+---
+
+## 一 · 南廊尽头那只盐账
+
+祠殿南廊尽头有一张桌子——桌上有一本盐账——封皮是黑的——页边全被盐花啃了。
+
+**锚句**：祠殿南廊尽头有一本盐帐——封皮是黑的——页边全被盐花啃了。
+**Anchor sentence**: at the end of the south cloister there is a salt ledger — its cover is black — its page-edges are all gnawed by salt.
+
+---
+
+## 二 · 它永远欠最后一格
+
+每个月最后一天——抄本师把当月消耗的盐全抄进最后一页——最后那一行永远空着。
+
+**锚句**：每个月最后一天——抄本师把当月消耗的盐全抄进最后一页——最后那一行永远空着。
+**Anchor sentence**: on the last day of every month — the copyists copy all the salt consumed into the last page — the last line is always left blank.
+
+---
+
+## 三 · 那格是写给谁的
+
+抄本师说没有人问过——盐账的页数不够用了就再换一本——但每一本的最后一格都不写。
+
+**锚句**：盐账的页数不够用了就再换一本——但每一本的最后一格都不写。
+**Anchor sentence**: when a ledger runs out of pages it is replaced with another — but the last entry of every ledger is never written.
+
+---
+
+## 四 · 第四十一次大会散会那一年
+
+那一年只有一个人补了最后一格——抄本师的母亲——她写的字没有人看得懂——那页后来被盐吃掉了。
+
+**锚句**：那一年只有一个人补了最后一格——抄本师的母亲——后来那页被盐吃掉了。
+**Anchor sentence**: that year only one person filled in the last entry — the mother of the copyists — later that page was eaten by salt.
+
+---
+
+## 五 · 值更册最后一页
+
+值更册最后一页："最后那一格不是漏写的——它是留给下一任的。"
+
+**锚句**：值更册最后一页：最后那一格不是漏写的——它是留给下一任的。
+**Anchor sentence**: the last page of the watch-ledger reads: the last entry was not forgotten — it is left for the next one.
+
+---
+
+## 六 · 映射（回响一百五十七章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 盐账 · 最后一格 · 留给下一任 · 抄本师的母亲那页 · 盐花啃边 | 一、二、三、四、五、六 |
+| geography | 祠殿南廊尽头 · 潮候院南廊 · 南廊桌上 | 一、二 |
+| characters | 抄本师 · 抄本师的母亲 · 值更人 | 一、二、三、四、五、六 |
+| story | 永远欠最后一格的盐账 · 回响（其一百五十七） | 全篇 |
+| items | 盐账 · 值更册 · 那一页被盐吃掉的字 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会那一年 · 秋潮月第一百二十三日 | 三、四、五、六 |
+
+> 祠殿南廊尽头那本盐帐——它永远欠最后一格——留给下一任。
+> The salt ledger at the end of the south cloister — it always owes the last entry — it is left for the next one.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百五十七）「祠殿南廊尽头那只只欠最后一格的盐账」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the salt ledger at the end of the south cloister — it always owes the last entry.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给南廊尽头那本盐账——它永远欠最后一格。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the hundred-and-twenty-third day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百二十三日。
+
+---
+
+## I · The Salt Ledger at the End of the South Cloister
+
+At the end of the south cloister there is a salt ledger — its cover is black — its page-edges are all gnawed by salt.
+
+**锚句**：祠殿南廊尽头有一本盐帐——封皮是黑的——页边全被盐花啃了。
+**Anchor sentence**: at the end of the south cloister there is a salt ledger — its cover is black — its page-edges are all gnawed by salt.
+
+---
+
+## II · It Always Owes the Last Entry
+
+On the last day of every month — the copyists copy all the salt consumed into the last page — the last line is always left blank.
+
+**锚句**：每个月最后一天——抄本师把当月消耗的盐全抄进最后一页——最后那一行永远空着。
+**Anchor sentence**: on the last day of every month — the copyists copy all the salt consumed into the last page — the last line is always left blank.
+
+---
+
+## III · For Whom the Entry Is
+
+When a ledger runs out of pages it is replaced with another — but the last entry of every ledger is never written.
+
+**锚句**：盐账的页数不够用了就再换一本——但每一本的最后一格都不写。
+**Anchor sentence**: when a ledger runs out of pages it is replaced with another — but the last entry of every ledger is never written.
+
+---
+
+## IV · The Year of the 41st Dissolution
+
+That year only one person filled in the last entry — the mother of the copyists — later that page was eaten by salt.
+
+**锚句**：那一年只有一个人补了最后一格——抄本师的母亲——后来那页被盐吃掉了。
+**Anchor sentence**: that year only one person filled in the last entry — the mother of the copyists — later that page was eaten by salt.
+
+---
+
+## V · The Last Page of the Watch-Ledger
+
+The last page of the watch-ledger reads: the last entry was not forgotten — it is left for the next one.
+
+**锚句**：值更册最后一页：最后那一格不是漏写的——它是留给下一任的。
+**Anchor sentence**: the last page of the watch-ledger reads: the last entry was not forgotten — it is left for the next one.
+
+---
+
+## VI · Mapping（Echo No. 157 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the salt ledger · the last entry · left for the next one · the page eaten by salt · the salt-gnawed edges | 一、二、三、四、五、六 |
+| geography | the end of the south cloister · the south cloister of the chapel | 一、二 |
+| characters | the copyists · the mother of the copyists · the head of the watch | 一、二、三、四、五、六 |
+| story | the salt ledger that always owes the last entry · Echo No. 157 | 全篇 |
+| items | the salt ledger · the watch-ledger · the eaten page | 一、二、三、四、五、六 |
+| history | The year of the 41st Dissolution · the hundred-and-twenty-third day of the autumn-tide month | 三、四、五、六 |
+
+> 祠殿南廊尽头那本盐帐——它永远欠最后一格——留给下一任。
+> The salt ledger at the end of the south cloister — it always owes the last entry — it is left for the next one.
+`,
+  },
+  {
     order: 16,
     slug: 'echo-016-the-four-small-shells-on-the-tide-sand-table',
     titleZh: '潮沙盘上那四只小贝壳',

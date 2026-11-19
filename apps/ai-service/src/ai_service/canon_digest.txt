@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 156 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 157 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3037,6 +3037,14 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 值更册画了它三次——每次都比第一次大——它在长。
 - [5] 第十四位守灵人离开祠殿那一夜——石魟整夜睁着眼——潮退了又涨。
 - [6] 值更册最后一页：它只在退潮时睁眼——因为那是海正要拿走东西的时候。
+
+### Echo 157 · 祠殿南廊尽头那只只欠最后一格的盐账 / The Salt Ledger at the End of the South Cloister That Always Owes the Last Entry
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 祠殿南廊尽头有一本盐帐——封皮是黑的——页边全被盐花啃了。
+- [2] 每个月最后一天——抄本师把当月消耗的盐全抄进最后一页——最后那一行永远空着。
+- [3] 盐账的页数不够用了就再换一本——但每一本的最后一格都不写。
+- [4] 那一年只有一个人补了最后一格——抄本师的母亲——后来那页被盐吃掉了。
+- [5] 值更册最后一页：最后那一格不是漏写的——它是留给下一任的。
 
 ### Echo 16 · 潮沙盘上那四只小贝壳 / The Four Small Shells on the Tide-Sand Table
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
