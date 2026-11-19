@@ -6276,6 +6276,13 @@
 .tw-riskUneasy { color: var(--nexus-color-warn-ink); }
 .tw-riskStorm { color: var(--nexus-color-danger); }
 .tw-badge { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); align-self: flex-start; color: var(--nexus-color-accent-mix); border: 1px solid color-mix(in srgb, var(--nexus-color-accent-mix) 45%, transparent); border-radius: var(--nexus-radius-sm); padding: 0.1rem 0.6rem; font-variant-numeric: tabular-nums; }
+.tw-diaryRow { display: flex; flex-direction: column; gap: var(--nexus-space-2); border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-2); }
+.tw-diaryBtn { align-self: flex-start; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); font-weight: 600; letter-spacing: 0.02em; padding: 0.35rem 0.75rem; border-radius: var(--nexus-radius-sm); border: 1px dashed color-mix(in srgb, var(--nexus-color-accent-mix) 55%, transparent); background: color-mix(in srgb, var(--nexus-color-accent-mix) 10%, var(--nexus-color-bg-1)); color: var(--nexus-color-accent-mix); cursor: pointer; transition: border-color 160ms ease, background 160ms ease; }
+.tw-diaryBtn:hover:not(:disabled) { border-color: var(--nexus-color-brand); background: color-mix(in srgb, var(--nexus-color-accent-mix) 16%, var(--nexus-color-bg-1)); }
+.tw-diaryBtn:focus-visible { outline: 2px solid var(--nexus-color-accent-2); outline-offset: 1px; }
+.tw-diaryBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.tw-diary { font-size: var(--nexus-font-size-13); line-height: 1.85; color: var(--nexus-color-fg-2); font-style: italic; letter-spacing: 0.01em; margin: 0; display: flex; gap: var(--nexus-space-2); }
+.tw-diaryKicker { font-family: var(--nexus-font-mono); font-style: normal; color: var(--nexus-color-accent-mix); flex: none; letter-spacing: 0.2em; font-size: var(--nexus-font-size-11); text-transform: uppercase; }
 .tw-cite { display: flex; flex-direction: column; gap: var(--nexus-space-1); margin: 0; padding: 0; list-style: none; }
 .tw-citeItem { display: flex; gap: var(--nexus-space-2); align-items: baseline; font-size: var(--nexus-font-size-11); line-height: 1.7; color: var(--nexus-color-fg-2); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-1) var(--nexus-space-2); }
 .tw-citeAnchor { font-family: var(--nexus-font-mono); color: var(--nexus-color-accent-mix); flex: none; }
@@ -6290,8 +6297,9 @@
 @media (prefers-reduced-motion: reduce) { .tw-submit { transition: none; } }
 @media (forced-colors: active) {
   .tw-panel, .tw-citeItem, .tw-clock, .tw-stage, .tw-chip, .tw-chipEcho { border-color: CanvasText; background: Canvas; }
-  .tw-kicker, .tw-title, .tw-lede, .tw-narration, .tw-citeItem, .tw-citeAnchor { color: CanvasText; -webkit-text-fill-color: CanvasText; }
+  .tw-kicker, .tw-title, .tw-lede, .tw-narration, .tw-citeItem, .tw-citeAnchor, .tw-diary, .tw-diaryKicker { color: CanvasText; -webkit-text-fill-color: CanvasText; }
   .tw-input, .tw-submit { border-color: CanvasText; background: Canvas; color: CanvasText; }
+  .tw-diaryBtn { border-color: CanvasText; background: Canvas; color: CanvasText; }
   .tw-pip, .tw-pipOn { border-color: CanvasText; background: CanvasText; }
 }
 
