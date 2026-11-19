@@ -8311,3 +8311,16 @@ Reported upstream to `docs/evidence/liveness-sweep-2026-11-19.md`（cont.429 对
 - **本轮 Pages 同步策略未动**：不强派未上线的新增 echo（CDN 已落到 v1059）；推 E173 后 PUBLIC 仍停 v1059 是预期内
 - **Digest index**: E163→E173 十一篇回响在 digest 内部依序排列；主线 CHAPTER 数量不变（13）；chapter ↔ echo 字节对齐由 verify 保证
 - 当前健康：web :3100 200 · ai-service :3200 200 · DB/Redis :5543/:56379 OK · identity-guard exit 0
+
+## cont. 441 (2026-11-19) — §BIBLE-174 · Echo #174 潮脚线落盘 · Pages CDN 仍停 v1059（设计内）
+
+- **Echo #174《雾港旧信物库外墙那道谁也解释不清的潮脚线》** 双语手写（雾港 arc 尾音：潮脚线 = "page 71 的落款"石刻；十二格墙分格标了年份；今年线到他胸口；"潮脚线是潮的纪念碑——潮再来它会停，潮再也不退它就是最后一条"。E171-E172-E173-E174 同一 arc 收束）→ registry `echo-174-the-tide-line-on-the-outer-wall`
+- digest **249,405 chars · sha 0209fdb5…** · verify **1056 zh/en ✓** · test pin 1045→**1051** · 双 digest 测试 11/11 绿
+- :3200 worker kill → detached relaunch → worker 58396→53244 · /healthz 200 · llm=gpt-6.2-sol · capability real
+- **公网 CDN 仍停 v1059** — 回滚 fact pack 会在下一个 cron `17 */3 * * *` 自刷到 v1060-v1061（E171/E172/E173/E174 的 v1060+ 会采纳；当前 fact pack 没触发 Pages 是设计——`push` path 白名单不含 index.html）— Pages CI 最近历史全绿（44508700093 push 691053c success 之后没再 failure）
+- **digest 全结构**：13 主线章节 + 174 回响 + 4 附录；verify 1056 zh / 1056 en；主线 byte 不变（地 13 章自 2026-09 以来稳定）
+- **本轮 Pages CI 审计**:
+  - 44507897522 / 44508076398 / 44508279590 / 44508474035 · push（ubuntu-latest 迁移前 self-hosted 缺 environment → failure）
+  - 44508700093 · push 691053c (github-pages env + cross-platform pwsh tar) · **success**
+  - 顺序说明：这些 failure 是历史节点，当前工作流 = ubuntu-latest → 绿色
+- 经验：没必要每轮 dispatch 一次；按用户本 §十 意愿，走 cron 节奏必须

@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 173 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 174 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3205,6 +3205,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 抄本师不再抄写章节——他们开始数潮——他们钉了七十二根铜钉——第七十二根在缝隙上。
 - [5] 守库人想翻到七十二页——七十二页不见了——钥匙落了一齿——抄本师定下新规。
 - [6] 抄本师不再让人翻潮汐历——他们把当天的潮位追加到墙缝铜钉上——一笔一钉。
+
+### Echo 174 · 雾港旧信物库外墙那条谁也解释不清的潮脚线 / The Tide-Line on the Outer Wall of the Old Relic Room at Fog Harbor — Which No One Has Ever Explained
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 雾港旧信物库外墙是粗麻石——条痕一直在——抄本师第一次注意到它在大退潮之后。
+- [2] 盐痕结晶、湿了变浅——潮脚线从不结晶——直角缝上它也有。
+- [3] 潮脚线的宽度不一致——一指、半指、三指连成一条线——像被不准的尺量了很多次。
+- [4] 潮脚线每年往上爬半指到一指——守库人把墙分十二格标了年份——今年线到他站立的高度。
+- [5] 潮脚线在那一夜被人检查——没有人记录它——海岛上预定了潮汐石板——没人说它为什么。
+- [6] 抄本师说潮脚线是潮的纪念——如果潮再来它会停——如果潮再也不退它就是最后一条。
 
 ### Echo 18 · 祠殿里从不叫的一只猫 / The Cat in the Institute That Never Meowed
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
