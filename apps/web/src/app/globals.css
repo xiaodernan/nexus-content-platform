@@ -6311,11 +6311,11 @@
 .dle-title { margin: 0; font-size: var(--nexus-font-size-24); font-weight: 750; letter-spacing: -0.02em; line-height: 1.2; color: var(--nexus-color-fg-1); }
 .dle-lede { margin: 0; font-size: var(--nexus-font-size-13); line-height: 1.75; color: var(--nexus-color-fg-2); max-width: 40rem; }
 .dle-leafTitle { margin: var(--nexus-space-1) 0 0; font-size: var(--nexus-font-size-18); line-height: 1.4; color: var(--nexus-color-fg-1); font-weight: 700; }
-.dle-leafTag { display: inline-block; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-10); letter-spacing: 0.1em; color: var(--nexus-color-accent-2-ink); border: 1px solid var(--nexus-color-accent-2); border-radius: 999px; padding: 1px 0.5rem; margin-right: var(--nexus-space-2); vertical-align: 2px; }
+.dle-leafTag { display: inline-block; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-9); letter-spacing: 0.1em; color: var(--nexus-color-accent-2-ink); border: 1px solid var(--nexus-color-accent-2); border-radius: 999px; padding: 1px 0.5rem; margin-right: var(--nexus-space-2); vertical-align: 2px; }
 .dle-digest { display: flex; flex-direction: column; gap: var(--nexus-space-2); margin-top: var(--nexus-space-1); }
 .dle-line { margin: 0; font-size: var(--nexus-font-size-13); line-height: 1.75; color: var(--nexus-color-fg-1); }
 .dle-ponder { margin: var(--nexus-space-2) 0 0; padding: var(--nexus-space-3); background: var(--nexus-color-bg-1); border: 1px solid var(--nexus-color-border-subtle); border-radius: 8px; color: var(--nexus-color-fg-1); font-size: var(--nexus-font-size-13); line-height: 1.6; }
-.dle-ponderTag { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-10); letter-spacing: 0.14em; color: var(--nexus-color-accent-2-ink); display: block; margin-bottom: 0.25rem; }
+.dle-ponderTag { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-9); letter-spacing: 0.14em; color: var(--nexus-color-accent-2-ink); display: block; margin-bottom: 0.25rem; }
 .dle-ponderText { }
 .dle-footRow { display: flex; justify-content: space-between; align-items: center; gap: var(--nexus-space-3); flex-wrap: wrap; border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-2); }
 .dle-meta { margin: 0; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
