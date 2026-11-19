@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 197 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 198 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3437,6 +3437,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 潮候院麻布它褪了——它只褪了一半——它原来有的那半只剩一半了——潮候院没人敢碰——
 - [5] 麻布只有一个字——它是潮——麻布三个字潮——潮候院第一次知道麻布是什么——
 - [6] 抄本师不知道潮候院为什么——麻布潮——抄本师不敢碰——潮候院第一次——抄本师潮——
+
+### Echo 198 · 潮候院抄本师把那块麻布挂了又取了又挂——潮候院潮问——它回答的是什么 / The Copyists Hung and Unhung the Linen — the Institute Asked — What Did It Answer
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 抄本师第一次把麻布挂上——潮候院他们都看了——抄本师又把麻布取下来——
+- [2] 抄本师说北墙——北墙是潮候院的潮候院——抄本师说错了——
+- [3] 潮候院问了一百次——抄本师没人回答——潮候院只知道——
+- [4] 抄本师说潮候院它就是潮候院——麻布上只有一个字——抄本师都知道那是什么——
+- [5] 抄本师他们最终知道——潮候院是潮候院——抄本师他们最终都知道——
+- [6] 潮候院抄本师最后一次看麻布——潮候院抄本师没人说话——他们只看——潮候院里的灯光照进来——
 
 ### Echo 20 · 潮候院钟楼里那口从不响的钟 / The Bell That Never Rang in the Institute's Clock Tower
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
