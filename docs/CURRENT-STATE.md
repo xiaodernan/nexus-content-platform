@@ -7930,3 +7930,10 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 本机 ai-service（8001）按 ADR-0274 **明牌 DEGRADED-BOOT** 重启（Redis 56379 不可达 · Docker engine 500；HTTPS_PROXY 注入供 sticky 传输走 Clash）；`appCache` 计数 `stores_failed:2`——按纪律 fail-closed，未假装命中。
 - 证据：`docs/evidence/provider-gpt61-sol-migration-2026-11-19.md`。用户侧待办：服务商后台确认渠道/分组（terra 想继续用 gpt-5.6-terra，想回 gpt-6.1-terra 需渠道方重新上架）；Redis 恢复后 restart ai-service 即回 Redis 后端。
 - `.env` 为 gitignored，未入库；跟踪的源码里运行期没有 `gpt-6.1-terra` 硬编码（grep 全树仅测试 fixture 字符串）。
+
+## cont. 405 (2026-11-19) — v1047 · §BIBLE-155 · Echo #155《钟楼上只数到九十九的沙漏》(作者手写 · verify 944/944)
+
+- 新篇：「潮候院钟楼最高处那只沙漏 · 里面装的不是沙——是盐 · 每次只数到九十九便停下 · 值更册最后一页写着「第九十九不是一个数——它是一处门槛——站上去可以听见潮」」—— digest 现 **240,870 chars**（13 章正典 · **155 回响** · 4 annex · 锚句 944 zh / 944 en ✓）。
+- 6 锚句双语 · gen-bible-snapshot 增 echo-155 · BibleAsk lede → 155 · /bible/ask meta → 一百五十五篇 · CACHE-IDENTITY × 155 · canon-answer-graph → 168 段 · bible-ask-behavior pin 939 · pin 重钉 page→2bfaae82 / comp→f2eef155 · InsightCanonChat hint 同步至 155。
+- fe-gates **1377/1377** ✓ · verify:world-bible **944/944** ✓。
+- page pin 变更原因：/bible/ask 元描述文案 154→155 触发整文件 SHA 重钉（纯文案变更，样式零改动）。
