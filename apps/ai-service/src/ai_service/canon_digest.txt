@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 187 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 188 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3339,6 +3339,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 抄本师说灯桌变了——它不是潮——桌面自己有温——麻——它是潮先一步到了——抄本师不放下——贝壳只是放在桌上——
 - [5] 抄本师说——潮候院没有第七十三次大会——它像潮候院写的——它一遍又一遍地问——潮候院还有——贝壳还有——
 - [6] 北海是潮候院第一次想到的字——从贝壳那里——抄本师说北海——潮候院没有北海——贝壳朝向那——抄本师停下来——
+
+### Echo 188 · 潮候院所有的灯都同一刻灭了又亮——抄本师说贝壳记录了这一秒 / Every Lamp in the Institute Went Out and Back On Together — the Copyists Say the Shell Recorded It
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院所有的灯同时灭了又亮了一秒——抄本师没人吹它们——灯自己灭了——抄本师走到自己的桌前——灯又亮了。
+- [2] 抄本师先看了一眼——没有人问为什么——没有人跑——没有人想动——它是散会了吗——它是走了吗——它是什么意思——他们谁也没说——
+- [3] 灯桌上的那枚贝壳——它没有动——灯自己灭了又亮——它的"北"朝东——抄本师没人碰它——
+- [4] 抄本师说贝壳记下了这一秒——抄本师不猜——抄本师想写——抄本师没写——它只是放在桌上——桌上是麻的——抄本师没有写——
+- [5] 抄本师说——它不是潮——它不是北——贝壳是从潮候院没人猜是哪一日——潮候院只是说——那是潮先一步到的那一天——
+- [6] 抄本师都过来过去——抄本师互相看了一眼——贝壳还在灯桌上——贝壳它是被放在那里的——潮候院的灯都亮着——贝壳也亮着——
 
 ### Echo 19 · 里巷子的抄本员 / The Copyists of the Back Alley
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

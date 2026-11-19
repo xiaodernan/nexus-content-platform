@@ -238,6 +238,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E185-潮候院东门那天一个潮候院没人认得的人把一枚贝壳放在门槛他没有敲他走了': 'echo-185-the-stranger-at-the-east-gate',
   'E186-潮候院灯桌上那枚贝壳抄本师第七十二日第一次读它侧面的字潮候院抄本师看到不是潮是北': 'echo-186-the-shell-that-said-north',
   'E187-潮候院灯桌上那枚贝壳抄本师第七十二日之后第一次看见它自己微微动了一下潮候院第一次说北海': 'echo-187-the-first-time-the-institute-said-north-sea',
+  'E188-潮候院所有的灯都同一刻灭了又亮抄本师说贝壳记录了这一秒': 'echo-188-the-second-every-lamp-died',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

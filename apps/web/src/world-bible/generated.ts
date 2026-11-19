@@ -23877,6 +23877,180 @@ The Institute copyists say — north sea — the first word the Institute has im
 `,
   },
   {
+    order: 188,
+    slug: 'echo-188-the-second-every-lamp-died',
+    titleZh: '潮候院所有的灯都同一刻灭了又亮——抄本师说贝壳记录了这一秒',
+    titleEn: 'Every Lamp in the Institute Went Out and Back On Together — the Copyists Say the Shell Recorded It',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第八十三日。',
+    eraLineEn: 'Era: the Institute — after the 44th Convocation; the eighty-third day of the winter-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 188): Every Lamp in the Institute Went Out and Back On Together — the Copyists Say the Shell Recorded It
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院所有的灯都同一刻灭了又亮的那一刻——抄本师互相先看了一眼——贝壳只是放在灯桌上——抄本师说它记录了这一秒。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the moment every lantern in the Institute went out and back on — the copyists glanced at each other — the shell only rested on the lamp-bench — the copyists say it recorded the second.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第八十三日。
+> Era: the Institute — after the 44th Convocation; the eighty-third day of the winter-tide month.
+
+---
+
+## 一 · 所有的灯
+
+潮候院所有的灯同时灭了又亮了一秒——那一秒没有人报数——潮候院的灯都亮了七十多年——抄本师说他们甚至不知道第一个熄灭是哪边的——灯自己灭了——抄本师没人吹它们——抄本师走到自己的桌前——灯又亮了。
+
+**锚句**：潮候院所有的灯同时灭了又亮了一秒——抄本师没人吹它们——灯自己灭了——抄本师走到自己的桌前——灯又亮了。
+**Anchor sentence**: every lantern in the Institute went out and back on — for one second — no one blew them out — the lanterns went out by themselves — the copyists reached their desks — the lanterns came back.
+
+---
+
+## 二 · 抄本师先看了一眼
+
+潮候院灯都灭了一秒——抄本师先看了一眼——没有人问为什么——没有人跑——没有人想动——抄本师先看了一眼——抄本师想——它是不是已经散会了——它是不是已经走了——它是什么意思——他们谁也没说——
+
+**锚句**：抄本师先看了一眼——没有人问为什么——没有人跑——没有人想动——它是散会了吗——它是走了吗——它是什么意思——他们谁也没说——
+**Anchor sentence**: the copyists glanced — no one asked why — no one ran — no one moved — is the convocation over — is it gone — what does it mean — none of them said.
+
+---
+
+## 三 · 灯桌
+
+潮候院灯桌上的那枚贝壳——它没有动——灯自己灭了又亮——贝壳放在桌上——它没有动——抄本师走到灯桌前——贝壳放在桌上——它的"北"朝东——没人动——抄本师没人碰它——
+
+**锚句**：灯桌上的那枚贝壳——它没有动——灯自己灭了又亮——它的"北"朝东——抄本师没人碰它——
+**Anchor sentence**: the shell on the lamp-bench — it did not move — the lanterns went out and back by themselves — its "north" faces east — no one touched it —
+
+---
+
+## 四 · 抄本师说
+
+抄本师说它记下了这一秒——抄本师不说它是什么——抄本师不猜——抄本师说——它记下了这一秒——抄本师想要写下这一秒——抄本师没写下去——它只是放在桌上——桌上是麻的——抄本师没有写——
+
+**锚句**：抄本师说贝壳记下了这一秒——抄本师不猜——抄本师想写——抄本师没写——它只是放在桌上——桌上是麻的——抄本师没有写——
+**Anchor sentence**: the copyists said the shell recorded the second — the copyists did not guess — the copyists wanted to write — the copyists did not write — it rested on the bench — the bench is coarse — the copyists did not write —
+
+---
+
+## 五 · 贝壳
+
+抄本师说——它不是潮——它不是北——它是潮候院它们来过的东西——贝壳是从第七十八日——潮候院没人猜是第几日——潮候院只是说——那是潮先一步到的那一天——
+
+**锚句**：抄本师说——它不是潮——它不是北——贝壳是从潮候院没人猜是哪一日——潮候院只是说——那是潮先一步到的那一天——
+**Anchor sentence**: the copyists said — it is not tide — it is not north — the shell came from a day no one has named — the Institute only says — it is the day the tide arrived one step early —
+
+---
+
+## 六 · 它灯
+
+潮候院的灯都亮了——抄本师都过来过去——抄本师互相看了一眼——没有人说房间里剩下什么没动——贝壳还在灯桌上——它没有动——它自己动了一秒——贝壳它是被放在那里的——潮候院的灯都亮着——贝壳也亮着——
+
+**锚句**：抄本师都过来过去——抄本师互相看了一眼——贝壳还在灯桌上——贝壳它是被放在那里的——潮候院的灯都亮着——贝壳也亮着——
+**Anchor sentence**: the copyists moved about — they met each other's glances — the shell still on the lamp-bench — it has been placed there — the Institute's lanterns are lit — the shell is lit —
+
+---
+
+## 七 · Mapping（Echo No. 188 → world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the single-second darkening · the shell that recorded · the Institute's silent agreement | 一、二、三、四、五、六 |
+| geography | the lamp-bench · the vault · the institution-wide lamp line | 一、二、三、六 |
+| characters | the copyists · the shell (unnamed) · the lamp line | 一、二、三、四、五、六 |
+| story | the lamps went out and back · Echo No. 188 | 全篇 |
+| items | the shell · the lamp-bench · the row of lamps | 一、二、三、六 |
+| history | After the 44th Convocation · the eighty-third day of the winter-tide month | 一、五、六、七 |
+
+> 潮候院所有的灯都同一刻灭了又亮——抄本师说贝壳记录了这一秒——
+> Every lamp in the Institute went out and back on — the copyists say the shell recorded the second —
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百八十八）「潮候院所有的灯都同一刻灭了又亮——抄本师说贝壳记录了这一秒」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the moment every lantern in the Institute went out and back on — the copyists glanced at each other — the shell only rested on the lamp-bench — the copyists say it recorded the second.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院所有的灯都同一刻灭了又亮的那一刻——抄本师互相先看了一眼——贝壳只是放在灯桌上——抄本师说它记录了这一秒。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 44th Convocation; the eighty-third day of the winter-tide month.
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第八十三日。
+
+---
+
+## I · All the Lanterns
+
+Every lantern in the Institute went out and back on — for the span of a single second — no one counted it — the lanterns of the Institute had been burning for over sixty years — the copyists do not know which one went out first — the lanterns went out by themselves — no copyist blew them — the copyists returned to their desks — the lanterns came back.
+
+**锚句**：潮候院所有的灯同时灭了又亮了一秒——抄本师没人吹它们——灯自己灭了——抄本师走到自己的桌前——灯又亮了。
+**Anchor sentence**: every lantern in the Institute went out and back on — for one second — no one blew them out — the lanterns went out by themselves — the copyists reached their desks — the lanterns came back.
+
+---
+
+## II · They Glanced
+
+The lanterns of the Institute were dark for one second — the copyists glanced at each other — no one asked why — no one ran — no one wanted to move — the copyists thought — is the convocation over — is it gone — what does it mean — none of them said.
+
+**锚句**：抄本师先看了一眼——没有人问为什么——没有人跑——没有人想动——它是散会了吗——它是走了吗——它是什么意思——他们谁也没说——
+**Anchor sentence**: the copyists glanced — no one asked why — no one ran — no one moved — is the convocation over — is it gone — what does it mean — none of them said.
+
+---
+
+## III · The Lamp-Bench
+
+The shell on the lamp-bench — it did not move — the lanterns went out and back by themselves — the shell rested on the bench — it did not move — the copyists walked to the bench — the shell rested on the bench — its "north" faces east — no one touched it.
+
+**锚句**：灯桌上的那枚贝壳——它没有动——灯自己灭了又亮——它的"北"朝东——抄本师没人碰它——
+**Anchor sentence**: the shell on the lamp-bench — it did not move — the lanterns went out and back by themselves — its "north" faces east — no one touched it —
+
+---
+
+## IV · What the Copyists Said
+
+The copyists said it recorded the second — the copyists did not guess what it is — the copyists did not guess — they said — it recorded the second — the copyists wanted to write it down — they did not — it rested on the bench — the bench is coarse — the copyists did not write —
+
+**锚句**：抄本师说贝壳记下了这一秒——抄本师不猜——抄本师想写——抄本师没写——它只是放在桌上——桌上是麻的——抄本师没有写——
+**Anchor sentence**: the copyists said the shell recorded the second — the copyists did not guess — the copyists wanted to write — the copyists did not write — it rested on the bench — the bench is coarse — the copyists did not write —
+
+---
+
+## V · The Shell
+
+The copyists said — it is not tide — it is not north — it is something the Institute has never had — the shell arrived on a day no one has counted — the Institute only says — it is the day the tide arrived a step early —
+
+**锚句**：抄本师说——它不是潮——它不是北——贝壳是从潮候院没人猜是哪一日——潮候院只是说——那是潮先一步到的那一天——
+**Anchor sentence**: the copyists said — it is not tide — it is not north — the shell came from a day no one has named — the Institute only says — it is the day the tide arrived one step early —
+
+---
+
+## VI · It Lights
+
+The lanterns of the Institute all burn — the copyists moved about — they met each other's glances — no one said what was still missing in the room — the shell is still on the lamp-bench — it did not move — it moved for one second — the shell was placed there — the lanterns of the Institute are lit — the shell is lit —
+
+**锚句**：抄本师都过来过去——抄本师互相看了一眼——贝壳还在灯桌上——贝壳它是被放在那里的——潮候院的灯都亮着——贝壳也亮着——
+**Anchor sentence**: the copyists moved about — they met each other's glances — the shell still on the lamp-bench — it has been placed there — the Institute's lanterns are lit — the shell is lit —
+
+---
+
+## VII · Mapping（Echo No. 188 → world model）
+
+| Dimension | Value | Mapping |
+| --- | --- | --- |
+| lore | the single-second darkening · the shell that recorded · the Institute's silent agreement | I, II, III, IV, V, VI |
+| geography | the lamp-bench · the vault · the institution-wide lamp line | I, II, III, VI |
+| characters | the copyists · the shell (unnamed) · the lamp line | I, II, III, IV, V, VI |
+| story | the lamps went out and back · Echo No. 188 | Full |
+| items | the shell · the lamp-bench · the row of lamps | I, II, III, VI |
+| history | After the 44th Convocation · the eighty-third day of the winter-tide month | I, V, VI, VII |
+
+> 潮候院所有的灯都同一刻灭了又亮——抄本师说贝壳记录了这一秒——
+> Every lamp in the Institute went out and back on — the copyists say the shell recorded the second —
+`,
+  },
+  {
     order: 19,
     slug: 'echo-019-the-copyists-of-the-back-alley',
     titleZh: '里巷子的抄本员',
