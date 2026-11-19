@@ -7906,3 +7906,11 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 与并行线 cont.399 记述一致（07:30 曾真通 · 10:00 起全灭）；本会话更早的探针（tokensIn=154,891 · cached=145,483 · 93.9%）是在渠道被撤之前测得的，两者都如实留档。
 - 用户侧动作：登录服务商后台检查「分组 GPT特价」→ gpt-6.1-terra 的渠道 / 配额 / key 状态；渠道恢复后 ai-service 重启复位即可继续 LLM 车道。
 - 该事件不影响本片落地的能力面：character-to-scene 进像素是纯本地确定性推演（DEMO 标识不变）。
+
+## cont. 403 (2026-11-19) — §TASKS-RENDER-LEDGER · video.render 渲染账进账本读契约 + 界面（ADR-0086 补记 v2 遗留件关闭）
+
+- **schema** `lib/tasksLedger.ts` 新增 `RenderCountsSchema`（shots/totalMs/cardCount/sourceReferenceCount/characterPortraitCount，全非负整数，必填）；`TasksLedgerTaskSchema.render` = nullable + optional（老行没有这一格也收得下）。§FE 契约风格：不给默认值，坏形状整格作废。
+- **domain** `agent-tasks.ts` `renderOf()`：只认 `agentKey === 'video.render'`；过 schema 再给出去（jsonb 无约束，半截对象画出来比「没记」更误导）；非 video.render 行 / 形状不对 → `null`；`characterPortraitCount` 老行缺省 0（三数的语义要求可加总）。`TaskView.render` 新格（任务行 `input` 不被整体泄漏给浏览器——storyboardId/warnings 不进报文）。
+- **界面** `TasksLedgerLive.tsx`：video.render 行的意图列下方显示 `镜数 N · 时长 · 色卡 x · 整片那张 y · 角色肖像 z`（中英双语同源；`data-task-render` 钩子 +15 系 · SHA pin 重钉 **2524d27c…**；§FE-23 门全绿，12 门→13 门重钉）。
+- **验证（如实）**：tasks-ledger 新增 5 用例（完整收下 / 老行可选 / 缺格判不合 / 负小数判不合 / 多余键不回流）· tasks-visual-style 全绿（含 SHA pin 重钉）· realtime-reconnect 绿 · `tsc --noEmit` 零错 · fe-gates（`*-visual-style|*-behavior`）**1377/1377** 不变（此门不数 tasks-ledger，已用直跑 vitest 验证 48/48 绿）。
+- ADR-0086 补记 v2 里「面板还没读这两格」的账 → 本片关闭。
