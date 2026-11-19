@@ -33,9 +33,9 @@ vi.mock('../src/server/ai/client', () => ({
         requestId: 'insight-ai-test',
         capability: 'real' as const,
         provider: 'openai-compatible',
-        model: 'gpt-6.1-terra',
+        model: 'gpt-6.2-sol',
         text: '① 现象：用户太少，目录页打开后离开率高。② 证据：opens=0 是 30 天真数。③ 动作：今天把 /bible/ask 推到播音首位。',
-        usage: { tokensIn: 1500, cachedTokens: 1200, cacheReported: true, tokensOut: 60, provider: 'openai-compatible', model: 'gpt-6.1-terra', modelClass: 'fast', latencyMs: 2500, demoMode: false, costBasis: 'unknown', toolCalls: 0, costUsd: 0, reasoningTokens: 0 },
+        usage: { tokensIn: 1500, cachedTokens: 1200, cacheReported: true, tokensOut: 60, provider: 'openai-compatible', model: 'gpt-6.2-sol', modelClass: 'fast', latencyMs: 2500, demoMode: false, costBasis: 'unknown', toolCalls: 0, costUsd: 0, reasoningTokens: 0 },
       },
     };
   },

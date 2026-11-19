@@ -8097,3 +8097,12 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
   - EN 双胞胎：旧账 1,612 / §379 / `f815be4` / 140 章 → 全部对齐为 **1,624 / §381 / 67fb137 / 142 章 + Amsterdam 1998+1999+2008**（与 `assets/football/latest.json`、ZH 双胞胎**逐字段一致**）。
 - **指针与事实对齐**：IO latest.json → head **1ec332fe · 3671 commits · 847 test files · adrs 350**（main 侧指针先落 main@59c20627 再拷进 IO，避免指针自我递归）。
 - **部署**：Pages 自托管 runner 本轮接收每次 push——`44481887159`（3b42990 首跑）`Upload artifact failure`（基础设施步骤），同 sha 重跑 `44481909659` success；当前 push（含 i18n 修复）已手动 dispatch `pages.yml`（204 accepted），等待 runner 拾取。
+
+## cont. 424 (2026-11-19) — §MODEL-NAME 大清扫 · UI/注释 17 处 gpt-6.1-terra/sol 残留全部对齐 gpt-6.2-sol（provider env 实值核实）
+
+- 背景：用户多次更换模型名（6.1-terra → 6.1-sol → **6.2-sol**），但仓库里 UI badge / doc comment / stategraph 教学页 / 测试 fixture 残留旧模型名——页面上让用户误以为"还是 terra 在跑"。本轮按用户指令再次更名后**系统性清扫**：
+  - 17 处，11 个文件：ObserverDeepRead（含用户可见 kicker `AI 深读`）· ChapterDigest · InsightAiAnalysis · BibleAsk（2，含 badge fallback）· DeepReadCard · stategraph 教学页（2）· /api/insight/{chat,analyze} routes · /api/admin/observer/digest · 测试 fixture（insight-analyze-route-behavior 2, insight-analysis-graph 2）全部改为 `gpt-6.2-sol`。
+  - **运行时一直正确**：`apps/ai-service/.env`（gitignored，不进仓库）实际值 NEXUS_MODEL_FAST/BALANCED/REASONING/VISION=gpt-6.2-sol（embedding=none 哨兵只读不造），即 ai-service 的所有 LLM 调用本来就打 6.2-sol；残留的只是文案。
+  - Digest pin 重钉：`.scratch/ask-page-sha2.mts` → page `0c2840b8…`（未变）· comp `f6ea9fbf…`（v2），`bible-ask-visual-style.test.ts` SHA 更新。
+  - 聚焦测试全绿：bible-ask-behavior · bible-ask-visual-style · insight-analyze-route-behavior · insight-analysis-graph — **20/20**。
+- 运行方式核验（同一套证据标准）：probe 路径走 Clash 7897 + `StickyPromptCacheTransport`（call_llm 教学页同一路由）→ 全部 gpt-6.2-sol。
