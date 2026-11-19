@@ -63,3 +63,11 @@ C. **编译出的职责图 + 本地硬校验**（采用）：
 
 - ADR-0275（chat lane stategraph）、ADR-0286（BIG-CTX digest 配额）、ADR-0291（origin/master 陈旧引用，"两线收敛"纪律的收益与代价）
 - 并行线 cont.416–423（#159–#163 echo、IO 头像/github-stats/I18N 修复）——世界时钟方向的回响分配才是共享同一语序
+
+## Addendum（2026-11-19 · cont.425）
+
+真弹复测见 `docs/evidence/singleflight-concurrent-proof-2026-11-19.md`：
+
+- 8 路相同 HTTP POST → 8 路同为 HTTP 200 · 同窗口 ~32.3s
+- cache-stats：`provider.reportedHitRate = 0.8892` · `prefix.reuseRate = 0.875` · `transport.stream = true` · `upstream.drifted = 0`
+- 结论：single-flight + sticky lane + 流式 是当前范式下并发 KV 稳定的答案；在现阶段证据集下不再需要「奇偶 0/88.1」场景。
