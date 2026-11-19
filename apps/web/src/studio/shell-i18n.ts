@@ -22,6 +22,7 @@ export const SHELL_COPY = {
       agent: 'Agent',
       history: '历史',
       health: '健康',
+      'ai-health': 'AI 缓存',
     },
     views: {
       canvas: '画布',
@@ -45,6 +46,7 @@ export const SHELL_COPY = {
       agent: '指挥 AI 的面板：选 Agent、看计划、批准或拒绝它的改动',
       history: '本项目的时间线：每次保存、每次 AI 改动可回看',
       health: '项目的体检：渲染、存档、一致性问题清单',
+      'ai-health': 'LLM 缓存读数：前缀稳定度 / 网关命中率，按 30 秒刷新',
     },
     viewHints: {
       canvas: '无限画布：拖拽、框选、8 手柄缩放——最常用的工作台',
@@ -103,6 +105,7 @@ export const SHELL_COPY = {
       agent: 'Agent',
       history: 'History',
       health: 'Health',
+      'ai-health': 'AI Cache',
     },
     views: {
       canvas: 'Canvas',
@@ -126,6 +129,7 @@ export const SHELL_COPY = {
       agent: 'The AI command deck: pick an agent, review its plan, approve or reject',
       history: 'This project’s timeline — every save and AI edit, replayable',
       health: 'Project check-up: rendering, saving, consistency issues',
+      'ai-health': 'LLM cache readout: prefix stability / gateway hit rate, 30s refresh',
     },
     viewHints: {
       canvas: 'Infinite canvas: drag, marquee-select, 8-handle resize — the workbench',
