@@ -41,6 +41,11 @@ const COPY: Record<Locale, {
   narrationKicker: string;
   deltaKicker: string;
   citationsKicker: string;
+  tipMove: string;
+  tipReset: string;
+  tipSubmit: string;
+  tipVigor: string;
+  tipDepth: string;
   badgeCache: (cached: number, total: number, ms: number) => string;
   honestTitle: string;
   honestBody: string;
@@ -71,6 +76,11 @@ const COPY: Record<Locale, {
     narrationKicker: '潮回 · THE TIDE REPLIED',
     deltaKicker: '这一步改了什么',
     citationsKicker: '典籍室依据（逐字核验）',
+    tipMove: '说一步给潮听：至多 600 字。潮据此判断你的意图（读局），并永远遵守正典。',
+    tipReset: '重新上路：清空 localStorage（体力、潮位、印记、回响、记忆）——从一张白纸开始',
+    tipSubmit: '落账：真大模型 × 2（读局 + 潮回 ≈ 20–30s）；本地逐字核验后才落盘 delta',
+    tipVigor: '体力：每步 ±1–3，夹紧 0–9；太累灯就先替你坐一会儿',
+    tipDepth: '潮位：越深，越像是岸上没人说话了——深未必坏事，只代表你离正典更安静一些',
     badgeCache: (cached, total, ms) => cached > 0 ? `cached ${cached}/${total} · ${ms}ms` : `${total} tok · ${ms}ms · 缓存未命中（如实）`,
     honestTitle: '潮停了',
     honestBody: '这一步没有被记下——provider 没答上来。潮不会编一份像样的回执糊弄你；等潮回来，再落一次账。',
@@ -101,6 +111,11 @@ const COPY: Record<Locale, {
     narrationKicker: 'THE TIDE REPLIED',
     deltaKicker: 'What changed',
     citationsKicker: 'Canon grounds (verbatim-verified)',
+    tipMove: 'A move for the tide: ≤ 600 chars. The tide reads your intent (analyze) and stands on the canon — never beyond it.',
+    tipReset: 'Start over: wipe localStorage (vigor, depth, seals, echoes, memory) — a clean ledger',
+    tipSubmit: 'Record the step: 2 real LLM calls (analyze + narrate ≈ 20–30s); verbatim-guarded before the delta lands',
+    tipVigor: 'Vigor: ±1–3 per step, clamped 0–9; rest is also a move',
+    tipDepth: 'Depth: the deeper, the quieter the shore — not worse, only nearer to the canon’s silence',
     badgeCache: (cached, total, ms) => cached > 0 ? `cached ${cached}/${total} · ${ms}ms` : `${total} tok · ${ms}ms · cache miss (as reported)`,
     honestTitle: 'The tide paused',
     honestBody: 'This step was not recorded — the provider did not answer. The tide will not fabricate a tidy receipt; come back when the water returns.',
@@ -214,11 +229,11 @@ export function Tidewatch({ locale = 'zh', nowIso }: { locale?: Locale; nowIso?:
       <div className="tw-grid">
         <aside className="tw-panel" aria-label={c.stateKicker}>
           <h2 className="tw-panelTitle">{c.stateKicker}</h2>
-          <div className="tw-stateRow">
+          <div className="tw-stateRow" title={c.tipVigor}>
             <span className="tw-stateLabel">{c.vigorLabel}</span>
             {pips(persisted.vigor)}
           </div>
-          <div className="tw-stateRow">
+          <div className="tw-stateRow" title={c.tipDepth}>
             <span className="tw-stateLabel">{c.depthLabel}</span>
             {pips(persisted.depth)}
           </div>
@@ -242,7 +257,7 @@ export function Tidewatch({ locale = 'zh', nowIso }: { locale?: Locale; nowIso?:
               ))}
             </div>
           </div>
-          <button type="button" className="tw-submit" onClick={reset} data-tidewatch-reset>{c.reset}</button>
+          <button type="button" className="tw-submit" onClick={reset} title={c.tipReset} data-tidewatch-reset>{c.reset}</button>
         </aside>
 
         <section className="tw-panel" aria-label={c.moveKicker}>
@@ -262,12 +277,13 @@ export function Tidewatch({ locale = 'zh', nowIso }: { locale?: Locale; nowIso?:
               value={move}
               maxLength={MAX_MOVE}
               placeholder={c.placeholder}
+              title={c.tipMove}
               onChange={(event) => setMove(event.target.value)}
               disabled={phase === 'loading'}
               aria-label={c.moveKicker}
               data-tidewatch-input
             />
-            <button type="button" className="tw-submit" onClick={() => { void submit(); }} disabled={!canSubmit} data-tidewatch-submit>
+            <button type="button" className="tw-submit" onClick={() => { void submit(); }} disabled={!canSubmit} title={c.tipSubmit} data-tidewatch-submit>
               {phase === 'loading' ? c.busy : c.submit}
             </button>
           </div>

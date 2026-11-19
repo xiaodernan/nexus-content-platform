@@ -4,13 +4,13 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/i18n';
 
 /**
- * §OV-1 上手漫游「6 步走完从一句话到一个作品」——客户端状态机：
+ * §OV-1 上手漫游「7 步走完从一句话到一个作品」——客户端状态机：
  * - 步内不走网络、不打分、不计数（§159）；只做「你说你做完了」的记录；
  * - 进度存 localStorage（站看无痕 / 换浏览器 = 重走，这是诚实的新局，不是「丢进度」）；
  * - 每步「开始这一步 →」指向的是**真页面**；open 但不保证你的账号能做完所有步——出门看现网，好坏如实。
  */
 
-type StepKey = 'think' | 'create' | 'studio' | 'snap' | 'publish' | 'discover';
+type StepKey = 'think' | 'create' | 'studio' | 'snap' | 'publish' | 'discover' | 'tide';
 
 const STEPS: Record<Locale, { key: StepKey; title: string; body: string[]; cta: string; href: string }[]> = {
   zh: [
@@ -55,7 +55,18 @@ const STEPS: Record<Locale, { key: StepKey; title: string; body: string[]; cta: 
       body: ['在 /discover 里用自己的名字搜一遍，或者在「我发布的」筛选方向找回你的项目。', '下一步就是发布第二个——然后你会发现，从这一步开始你其实已经在路上了。'],
       cta: '去 /ship 看交付记录',
       href: '/ship',
+    },    {
+      key: 'tide',
+      title: '⑦ 换一条船：潮记你这一步',
+      body: [
+        '去 /tidewatch —— 潮候步进（Tidewatch）：你说一步，潮做三件事：读懂局面（真大模型）→ 从典籍室逐字检索 → 写下潮回（叙事 + 结构化 delta）。任何引不到原文的引用一律剔除，delta 全部夹紧到 -3..+3，回响解锁只接受大典里真实存在的编号。',
+        '世界状态（体力 / 潮位 / 印记 / 已解锁回响 / 记忆）跟你的浏览器 localStorage 走，不落库、不假装。',
+        '解锁同 /insight（口令 123）。',
+      ],
+      cta: '去 /tidewatch 走一步',
+      href: '/tidewatch',
     },
+  
   ],
   en: [
     {
@@ -99,7 +110,18 @@ const STEPS: Record<Locale, { key: StepKey; title: string; body: string[]; cta: 
       body: ['Search your handle on /discover or filter “published by me” to find the run.', 'Onward from here — your second publish is on the rails.'],
       cta: 'See the ship log at /ship',
       href: '/ship',
+    },    {
+      key: 'tide',
+      title: '7 · One more vessel: the tide ledger',
+      body: [
+        'Visit /tidewatch — Tidewatch: one move in, three things out — the tide reads your intent (real LLM), retrieves verified anchors from the World Bible, and writes a reply plus a structured delta (vigor / depth / seals / echo unlocks).',
+        'Citations that do not match the canon verbatim are stripped; delta numbers are clamped to -3..+3; echo unlocks only stick for numbers that exist in the canon.',
+        'World state (vigor / depth / seals / echoes / memory) rides on localStorage — nothing is ledgered server-side. Unlock with /insight (passphrase 123).',
+      ],
+      cta: 'Go say one step to the tide',
+      href: '/tidewatch',
     },
+  
   ],
 };
 
