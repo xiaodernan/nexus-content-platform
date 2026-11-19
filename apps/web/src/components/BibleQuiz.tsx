@@ -16,7 +16,7 @@ import type { Locale } from '@/lib/i18n';
  * - 没有"看了重做"的奖励？——答错的提示会写出处（在哪一章、哪一节），
  *   错就是错，不伪装"接近正确"；
  * - 完全中英双语；不存在半中文半英文的题目；
- * - 71 题每题 1 分；结算只是礼物：不写进任何账本、不发 achievement、不持久化。
+ * - 104 题每题 1 分；结算只是礼物：不写进任何账本、不发 achievement、不持久化。
  */
 
 const COPY = {
@@ -38,11 +38,11 @@ const COPY = {
       { at: 10, text: '巡逻路的旅人', note: '盐味酸过了——记住的巡逻路比忘掉的多。' },
       { at: 13, text: '守夜人传人', note: '门在关上之前你没见过，但你记住了是什么。' },
       { at: 15, text: '潮汐大匠', note: '海还没说完的话，你已经知道是什么了。' },
-      { at: 91, text: '满分守夜人', note: '九十一题全对——典籍不会忘记问倒过谁。' },
+      { at: 103, text: '满分守夜人', note: '一百零四题全对——典籍不会忘记问倒过谁。' },
     ],
     footer: '《世界大典》正典全文见典籍室（/bible）。答错的题里标了出处：错就是错，没有近似的正确。',
     scoreLine: (n: number, total: number) => `${n} / ${total}`,
-    empty: '还没答完。九十一道题就是十三章正典与回响的全部问题。',
+    empty: '还没答完。一百零四道题就是十三章正典与回响的全部问题。',
   },
   en: {
     kicker: 'The Tidal Trial',
@@ -62,11 +62,11 @@ const COPY = {
       { at: 10, text: 'The Patrol-Road Traveller', note: 'You are more road remembered than forgotten.' },
       { at: 13, text: 'The Successor Watcher', note: 'You have never seen the door, but you know what was behind it.' },
       { at: 15, text: 'The Tide Master', note: 'The sea still has not finished — and you already know what it said.' },
-      { at: 91, text: 'The Full Tide', note: 'Ninety-one of ninety-one — the canon will not forget who asked it best.' },
+      { at: 103, text: 'The Full Tide', note: 'One hundred and four of one hundred and four — the canon will not forget who asked it best.' },
     ],
     footer: 'The full canon lives in the shelf (/bible). Every wrong answer points you to where it lives. Wrong is wrong — there is no near-enough.',
     scoreLine: (n: number, total: number) => `${n} / ${total}`,
-    empty: 'Not done yet. Ninety-one questions — one per breath of the canon and the echoes.',
+    empty: 'Not done yet. One hundred and four questions — one per breath of the canon and the echoes.',
   },
 } as const;
 
@@ -457,6 +457,42 @@ const QUESTIONS: Question[] = [
   {
     zh: { prompt: '《潮候院那盏从不写名的灯》里，灯在什么情况下亮？', choices: ['每月初一傍晚必然亮起', '月圆夜前的子时', '没人专门照料——它晚上自己会亮', '灯油烧到最后一格的时候'], answer: 2, ref: '回响（其一百六十二） · 一' },
     en: { prompt: 'In “The Lamp That Never Wrote a Name”, when does the lamp light?', choices: ['every first of the month, as dusk falls', 'at midnight before the full moon', 'nobody tends it — it lights itself each evening', 'when the last cell of oil is spent'], answer: 2, ref: 'Echo No. 162 · I' },
+  },
+  {
+    zh: { prompt: '《潮候院北墙上那道年月刻痕》里，刻痕是用什么刻下来的？', choices: ['贝壳碎屑', '铁锥', '竹签', '指甲'], answer: 0, ref: '回响（其一百七十） · 二' },
+    en: { prompt: 'In the year-marks on the North Wall, what were the scratches made with?', choices: ['beach-shell shards', 'an iron awl', 'bamboo slivers', 'fingernails'], answer: 0, ref: 'Echo No. 170 · II' },
+  },
+  {
+    zh: { prompt: '《雾港旧信物库里那枚泛了绿的潮印》，潮印只刻着一个字，是什么？', choices: ['灯', '潮', '海', '收'], answer: 1, ref: '回响（其一百七十一） · 三' },
+    en: { prompt: 'The tide-seal that turned green on its own bears a single character — which?', choices: ['“lamp”', '“tide”', '“sea”', '“received”'], answer: 1, ref: 'Echo No. 171 · III' },
+  },
+  {
+    zh: { prompt: '《雾港旧信物库守库人的夜钥匙》里，两位铜匠复制夜钥匙，结果是什么？', choices: ['两个都复制成功', '第一个三次没响，第二个两次后断了齿', '第一个断了齿，第二个三次没响', '两把都成了'], answer: 1, ref: '回响（其一百七十二） · 三' },
+    en: { prompt: 'Two brass-makers tried to copy the night key — what happened?', choices: ['both copies worked', 'the first made no sound on the third try; the second snapped its teeth after two opens', 'the first snapped its teeth; the second failed on the third try', 'both broke on the third opening'], answer: 1, ref: 'Echo No. 172 · III' },
+  },
+  {
+    zh: { prompt: '《雾港旧信物库里那本停住的潮汐历》永远开在第几页？', choices: ['第七十页', '第七十一页', '第七十二页', '第十二页'], answer: 1, ref: '回响（其一百七十三） · 一' },
+    en: { prompt: 'The old tide almanac in the Fog Harbor relic room lies open at which page?', choices: ['seventy', 'seventy-one', 'seventy-two', 'twelve'], answer: 1, ref: 'Echo No. 173 · I' },
+  },
+  {
+    zh: { prompt: '《雾港旧信物库外墙的潮脚线》每年往上爬多少？', choices: ['一寸到两寸', '半指到一指', '半尺到一尺', '三指到四指'], answer: 1, ref: '回响（其一百七十四） · 四' },
+    en: { prompt: 'By how much does the tide-line on the relic room’s outer wall creep upward each year?', choices: ['an inch to two', 'half a finger to a finger', 'half a hand to a hand', 'three to four fingers'], answer: 1, ref: 'Echo No. 174 · IV' },
+  },
+  {
+    zh: { prompt: '《雾港旧信物库后院的旧铜锚》里，锚有什么矛盾的地方？', choices: ['齿是新的，锈却不新', '齿是旧的，锈却是新的', '锁是新的，链却断了', '锈是新的，锚却浮起来了'], answer: 0, ref: '回响（其一百七十五） · 二' },
+    en: { prompt: 'What contradiction does the old brass anchor in the backyard carry?', choices: ['its teeth are new, its rust is not', 'its teeth are old, the rust is fresh', 'its chain is new, the anchor floats', 'the rust is fresh, the anchor is light'], answer: 0, ref: 'Echo No. 175 · II' },
+  },
+  {
+    zh: { prompt: '《铜锚开口的大潮夜》里，铜锚开口只说了一个字是什么？', choices: ['归', '来', '等', '走'], answer: 2, ref: '回响（其一百七十六） · 二' },
+    en: { prompt: 'On the night before the great tide, the anchor spoke a single word — which?', choices: ['“return”', '“come”', '“wait”', '“leave”'], answer: 2, ref: 'Echo No. 176 · II' },
+  },
+  {
+    zh: { prompt: '潮退后的清晨，铜锚实际落了多少？', choices: ['一寸', '三寸', '半指', '一尺'], answer: 0, ref: '回响（其一百七十七） · 二' },
+    en: { prompt: 'On the morning after the great tide withdrew, by how much had the anchor truly fallen?', choices: ['one inch', 'three inches', 'half a finger', 'one foot'], answer: 0, ref: 'Echo No. 177 · II' },
+  },
+  {
+    zh: { prompt: '潮汐历第七十一页自己翻了——翻到了哪一页？', choices: ['第七十页', '第七十二页', '第七十三页', '停在原页'], answer: 1, ref: '回响（其一百七十七） · 三' },
+    en: { prompt: 'Page seventy-one of the tide almanac turned itself — to which page did it land?', choices: ['page seventy', 'page seventy-two', 'page seventy-three', 'it never moved'], answer: 1, ref: 'Echo No. 177 · III' },
   },
 ];
 
