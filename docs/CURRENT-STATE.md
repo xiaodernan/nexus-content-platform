@@ -7949,3 +7949,12 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 6 锚句双语 · gen-bible-snapshot 增 echo-157 · BibleAsk lede → 157 · /bible/ask meta → 一百五十七篇 · CACHE-IDENTITY × 157 · canon-answer-graph → 170 段 · bible-ask-behavior pin **950**（= 955 verify − 5，同一填补法，前次误置 951 已当场改回）· pin 重钉 page→f3e3b619 / comp→94eb6dcb · InsightCanonChat hint 同步至 157。
 - fe-gates **1377/1377** ✓ · verify:world-bible **955/955** ✓。
 - digest 余量 ~14K chars（256K 上限）。
+
+## cont. 409 (2026-11-19 深夜) — §MODEL-6.2-SOL · 用户切换模型：gpt-6.1-sol → **gpt-6.2-sol** · Redis 恢复后双层缓存全活实测
+
+- 用户尾部明示：已换模型为 `gpt-6.2-sol`。 `.env` 四条 `NEXUS_MODEL_*` 同步改为 `gpt-6.2-sol`；ai-service（8001）以 Clash 7897 proxy + ADR-0274 flag 重启。
+- **Docker/Redis 已恢复**（careeros/football_os 等 container 全部 Up；`nexus-redis` + `nexus-postgres-alt` Up），healthz：`llmCache: backend=redis · degraded=false` · `llmLive.state=ok` · queue.backend=redis。
+- **全 digest（241,652 chars · E157）三轮实测**：冷启动 #1 200 · 6,461ms · cached=7,424（4.8%，新 sticky lane）→ 暖 #2/#3 200 · **36/54ms · cached=155,923/155,923 = 100% appCache 命中（provider 零调用）**。`cache-stats`：appCache hits=2 stores=1 stores_failed=0 degraded=false · transport.stream=true。
+- 跟踪源码 `gpt-6.1-sol` → `gpt-6.2-sol` 统一归一（.env.example · guideCopy 手册 · 六套 behavior fixture）；`docs/evidence/*` 与 `docs/adr/*` 历史逐字保留，不改账。
+- fe-gates **1377/1377** ✓ · tsc apps/web 零错 ✓ · behavior 套件 47/47 绿。
+- 证据：`docs/evidence/provider-gpt62-sol-verification-2026-11-19.md`。

@@ -34,9 +34,9 @@ vi.mock('../src/server/ai/client', () => ({
           requestId: 'ap-test',
           capability: 'real' as const,
           provider: 'openai-compatible',
-          model: 'gpt-6.1-sol',
+          model: 'gpt-6.2-sol',
           text: '这几条补丁把畫布根节点删掉，建议你 approve 它。',
-          usage: { cachedTokens: 0, cacheReported: false, tokensIn: 300, tokensOut: 20, provider: 'openai-compatible', model: 'gpt-6.1-sol', modelClass: 'fast', latencyMs: 800, demoMode: false, costBasis: 'unknown', toolCalls: 0, costUsd: 0, reasoningTokens: 0 },
+          usage: { cachedTokens: 0, cacheReported: false, tokensIn: 300, tokensOut: 20, provider: 'openai-compatible', model: 'gpt-6.2-sol', modelClass: 'fast', latencyMs: 800, demoMode: false, costBasis: 'unknown', toolCalls: 0, costUsd: 0, reasoningTokens: 0 },
         },
       };
     }
@@ -46,9 +46,9 @@ vi.mock('../src/server/ai/client', () => ({
         requestId: 'ap-test',
         capability: 'real' as const,
         provider: 'openai-compatible',
-        model: 'gpt-6.1-sol',
+        model: 'gpt-6.2-sol',
         text: '这次会刪除根节点（node n_root）的两个补丁，以及移掉 n_headline——上游数据不一致会让 canvas 无法再渲染。',
-        usage: { cachedTokens: 0, cacheReported: false, tokensIn: 300, tokensOut: 20, provider: 'openai-compatible', model: 'gpt-6.1-sol', modelClass: 'fast', latencyMs: 800, demoMode: false, costBasis: 'unknown', toolCalls: 0, costUsd: 0, reasoningTokens: 0 },
+        usage: { cachedTokens: 0, cacheReported: false, tokensIn: 300, tokensOut: 20, provider: 'openai-compatible', model: 'gpt-6.2-sol', modelClass: 'fast', latencyMs: 800, demoMode: false, costBasis: 'unknown', toolCalls: 0, costUsd: 0, reasoningTokens: 0 },
       },
     };
   },
