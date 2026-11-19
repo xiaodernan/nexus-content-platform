@@ -14388,6 +14388,14 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - Salient finding：serial GET p50 6.8 ms 远高于本机回环预期（Docker Desktop NAT 时延）——
   意味着 **L2 回放的主要成本不在 Redis，而在 Windows→Docker 虚拟网段**；cache TTL 压缩或宿主机直连 redis-benchmark 才是下一步对照。
 
+## §LOAD-2 — 有界 HTTP 突发（2026-11-20 · v993 · 负结果证据）
+
+- 详细证据：docs/evidence/load-web-ssr-2026-11-20.md（含全部时延与 freeMB 轨迹）
+- 发现：本机空闲内存 526→383→（压测中 851→374）→ kill 后 1,021 MB —— dev 路径在 ~850 MB 空闲时即坍塌：GET /bible hot route，steady×40@16sock 仅 5/40 200；burst×30@64sock 0/30（30 全为 20s 客户端超时，非 5xx）；/bible/quiz ×20 11/20
+- :3100 并轨线实例不可达于本轮（发现于压测前）；本 lane 只报告，不动手
+- dev server（本 lane PID 39104）压测后已 kill，不留永久进程
+- 生产 CDN + `next start` + RAM ≥ 2 GB 前置条件**已被本次实测确认为必要**，非借口：同机器同 RAM 不能作为 capacity 门
+- 本轮 provider token 消耗：0
 ## §STRESS-3 — 只读复测 2026-11-19（pgbench · Redis Lua 直连）
 
 - 指令第十一节当日证据：docs/evidence/stress-2026-11-19.md
