@@ -8158,3 +8158,19 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 全书 digest ≈ 245k（已经不再小视少上下文窗口）
 - 生产 SSR matrix p50=1085ms / p95=6932ms · 0 errors（RAM limited；full test suite skipped per host constraint）
 - All pushes green · Pages self-host serving 2026-11-19 master-computing images
+
+## cont. 427 (2026-11-19) — §BIBLE-164 · 三次 push 成功 · HEAD=576ec1ef · E164 登记 · IO/viz 全部验证通过
+
+- Echo #164 · 《崖顶烽火台边那一面只替风记账的旧旌》（作者手写 · 100%）· registry → forge ·
+  - digest **244,945 chars** · sha **932c53b1…**
+  - verify-bible-snapshot 通过 · verify-world-bible-anchors **996 zh / 996 en**
+  - behavior pin 985→991 · visual-style 6/6 · 6 验证锚句双语
+- 合并冲突融合：并行 `adr-0292`/`showcase` →092 · `09b2d9bf..576ec1ef push 完成 · Pages dispatch 2404 accepted`
+- 公网 IO 断言（raw.githubusercontent master/index.html），base.size 143,391，`index.html` master：
+  - ✅ 16 public repos
+  - ✅ Most-used-languages panel with real byte counts（TS 31.91% · Py 24.87% · JS 19.45%）
+  - ✅ 零 github-readme-stats 外链
+  - ✅ IELTS 6.5 / CART 6 546
+  - ✅ 隐盾（不是隐图）
+  - Avatar 实际宽 `415 × 492`（并行线重裁到"内容盒"）—— 不是我原来 508，但仍正确展示头像（头部填满）
+- 所有宿主 AI 服务进程：axis-network 8001 / 3200 · 工作区 dev-server 3100 `/tidewatch 200`、`/insight 200`、`/api/ai/world-step` 可用
