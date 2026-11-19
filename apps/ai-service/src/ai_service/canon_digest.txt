@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 201 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 202 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3481,6 +3481,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 抄本院抄本师认出石柱上的弯是半月——潮候院——抄本院最深处抄本师他们第一次认出——
 - [5] 抄本师第一次数潮印——抄本院抄本师数了一遍——抄本院石柱上有四十二道——
 - [6] 潮候院抄本师他们没人碰石柱——抄本院抄本师他们理解它——潮候院抄本院最深处——潮候院——
+
+### Echo 202 · 潮候院抄本院最深处的查潮账本抄本师第一次连着翻了三天 / The Tally-Book at the Deepest Coil of the Copyists' Hall — the Copyists Turned It for Three Days
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 抄本院最深处还有一本账本——抄本师第一次翻开它——潮候院潮候院潮候院——
+- [2] 抄本师第一天翻开账本——潮候院抄本院里最早的笔迹是清水一笔——潮候院潮候院潮候院——
+- [3] 抄本师第二天翻开账本——抄本院里最旧的字只有最老的抄本师能认——
+- [4] 抄本师第三天翻开账本——抄本师他们读到最后一页——它写着"春"——
+- [5] 抄本师合上账本——抄本院里隔了三天没人说话——抄本师他们终于——
+- [6] 抄本师把账本放回最深处——潮候院抄本院潮候院抄本院——它不像麻布——
 
 ### Echo 21 · 里巷子码头的七盏号灯 / The Seven Lamps of the Back-Alley Pier
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
