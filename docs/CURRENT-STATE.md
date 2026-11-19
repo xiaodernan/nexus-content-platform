@@ -8082,3 +8082,18 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
   - 个人主页 contributions/streak 两卡仍依赖第三方实时服务（streak-stats.demolab.com / github-profile-trophy.vercel.app），本轮未替换（用户只报 languages/头像）；如再被报障可改静态。
   - GitHub **账户头像**（github.com/settings/profile）不在仓库内，无法用仓库改；如要换头像需用户手动或用 account API（未授权，不动）。
   - IO 侧 GitHub 数据**会随 3 小时 cron 不更新**——刚 baked 的数字是 2026-11-19 静帧，标清楚口径即可。
+## cont. 423 (2026-11-19) — §I18N-CACHE 真根因定位 + 修复 · 全站 zh/EN 端到端切换验证 · EN 双胞胎数字大扫清
+
+用户（连续第三次）提及首页问题后，本轮完成**全链路排查**，不是又贴一遍免责：
+
+- **§I18N-CACHE（用户可见的 EN 切换完全没反应）**：
+  - 现象：并行线 `5fa10b7 feat(i18n): one-click zh EN switch` 落主分支后，`[data-lang-toggle]` 按钮按下无反应；`localStorage.portfolio-lang` 永远不存在；`window.__teachInteractive` undefined；`documentElement.dataset.lang` 停在 zh；**零 console error**。
+  - 定位：`script.js` 的 `<script src>` **没有 `?v=` 版本戳**（styles.css 同文件早有 `styles.css?v=20261119b`）。浏览器 HTTP 缓存持有 v5fa10b7 之前的旧脚本（`durationMs=0.083` 铁证）——旧脚本能跑 theme/filters（与用户报告一致的"有些能用、切换不能用"），但没有 i18nOneClick → 点击无反应、零报错。
+  - 修复：`<script src="script.js?v=20261119i" defer></script>`（`i19-11-19` 同风格的版本戳）。**生产修复**——任何回访用户都不再吃到旧 JS。
+  - 实测（本地 http.server 8901）：zh→点 EN→`langAttr=en`、`portfolio-lang=en`、导航 Home、hero 英文、figures 面板整块换成 EN（31.92%…0.22% 一字不差）、`aria-pressed=true`；再点→回到中文。**缓存实验重跑**：先删 `?v=` 回归确认 bug 复现→加回 `?v=`→验证切换全通 → 关闭。
+- **§I18N-FIGURES**：我的 GitHub 真实数据双面板补齐 `data-i18n-block="figures"` 与 `<template data-i18n-en="figures">` 全英文副本（REAL REPO DATA / byte share / 16 public repos…，计费口径与 ZH 完全一致）——并行线 i18n 引擎用 block-swap 换整块，没有 twin 的块在 EN 模式下会永远中文，现已无残留。HTML 结构体检（template 开闭 13/13、live 块与 EN 模板一一配对、无解析错误）。
+- **§I18N-FOOTBALL（并行线 §381 全局替换泄漏）**：
+  - ZH 卡：足球卡 §381/1,624 ✓（取他们的值——**他们更新**），careeros 标签行被误伤成 1,624 → 改回 1,620（JSON facts 证实 ai-career-os 1,620）。
+  - EN 双胞胎：旧账 1,612 / §379 / `f815be4` / 140 章 → 全部对齐为 **1,624 / §381 / 67fb137 / 142 章 + Amsterdam 1998+1999+2008**（与 `assets/football/latest.json`、ZH 双胞胎**逐字段一致**）。
+- **指针与事实对齐**：IO latest.json → head **1ec332fe · 3671 commits · 847 test files · adrs 350**（main 侧指针先落 main@59c20627 再拷进 IO，避免指针自我递归）。
+- **部署**：Pages 自托管 runner 本轮接收每次 push——`44481887159`（3b42990 首跑）`Upload artifact failure`（基础设施步骤），同 sha 重跑 `44481909659` success；当前 push（含 i18n 修复）已手动 dispatch `pages.yml`（204 accepted），等待 runner 拾取。
