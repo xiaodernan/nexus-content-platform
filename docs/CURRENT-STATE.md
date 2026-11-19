@@ -7948,3 +7948,9 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 6 锚句双语 · gen-bible-snapshot 增 echo-155 · BibleAsk lede → 155 · /bible/ask meta → 一百五十五篇 · CACHE-IDENTITY × 155 · canon-answer-graph → 168 段 · bible-ask-behavior pin 939 · pin 重钉 page→2bfaae82 / comp→f2eef155 · InsightCanonChat hint 同步至 155。
 - fe-gates **1377/1377** ✓ · verify:world-bible **944/944** ✓。
 - page pin 变更原因：/bible/ask 元描述文案 154→155 触发整文件 SHA 重钉（纯文案变更，样式零改动）。
+## cont. 403 (2026-11-19 · 晚) · §PROVIDER-CACHE-STABLE ✓ gpt-6.1-sol · 88.95% KV 命中 4× 同测
+
+- 调用链真通：`POST /v1/ai/chat` 返回 model=gpt-6.1-sol · capability=real · tokensIn=4395；`POST /v1/ai/chat-graph` 返回 GRAPH-OK
+- 全 system digest（`155,380 tokens · 138,221 cached · 88.95%`）4× 同一数 — sticky prefix 真实复用（transport.stream=true）
+- Docker 未恢复（engine API 500）→ App Redis 完成缓存 DEGRADED（fail-open）：`hits=0 · misses=5 · stores_failed=5`，不假装命中
+- 详见：`docs/evidence/provider-cache-stable-2026-11-19.md` · 两层缓存分开说明
