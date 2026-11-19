@@ -183,21 +183,32 @@ describe('planVideoRender —— 箭头进像素（M5 第三十八片）', () =>
     expect(notes).toContain('characterId');
   });
 
-  it('character-to-scene 渲成色卡时把限度说出来；每镜都挂了图就不虚构这个缺口', () => {
+  it('character-to-scene 没递肖像时把限度说出来（点名缺哪一段）；每镜都挂了图就不虚构这个缺口', () => {
     const withCards = planVideoRender(
-      board([shot({ id: 'a' }), shot({ id: 'b', referenceAssetId: 'own-b' })], {
+      board([shot({ id: 'a', characterId: 'c-1' }), shot({ id: 'b', referenceAssetId: 'own-b' })], {
         arrow: 'character-to-scene',
         prompt: 'x',
         characterId: 'c-1',
       }),
     );
-    expect(withCards.notes.join('')).toContain('character-to-scene 这条箭头今天还不进像素');
+    expect(withCards.notes.join('')).toContain('没有肖像可递进来');
+    expect(withCards.notes.join('')).toContain('c-1');
     expect(withCards.sourceReferenceCount).toBe(0);
+    expect(withCards.characterPortraitCount).toBe(0);
 
     const allReferenced = planVideoRender(
       board([shot({ id: 'a', referenceAssetId: 'own-a' })], { arrow: 'character-to-scene', prompt: 'x', characterId: 'c-1' }),
     );
-    expect(allReferenced.notes.join('')).not.toContain('还不进像素');
+    expect(allReferenced.notes.join('')).not.toContain('没有肖像可递进来');
+    expect(allReferenced.characterPortraitCount).toBe(0);
+  });
+
+  it('character-to-scene 但镜头上没挂角色：不是"缺肖像"，是"没挂角色"，两句话不并成一句', () => {
+    const plan = planVideoRender(
+      board([shot({ id: 'a' })], { arrow: 'character-to-scene', prompt: 'x' }),
+    );
+    expect(plan.segments[0]!.source.kind).toBe('card');
+    expect(plan.notes.join('')).toContain('镜头上没有挂角色');
   });
 
   it('色卡与整片参考图是两个数：合成一个就分不清"全片同一张图"与"多数是色卡"', () => {
@@ -208,6 +219,81 @@ describe('planVideoRender —— 箭头进像素（M5 第三十八片）', () =>
       ),
     );
     expect([plan.cardCount, plan.sourceReferenceCount]).toEqual([2, 0]);
+  });
+});
+
+describe('planVideoRender —— character-to-scene：角色肖像递进来（ADR-0086 仍欠 ①）', () => {
+  it('肖像递进来：挂了角色、自己没挂图的镜子用肖像进像素，from: "character" 说清画面从哪来', () => {
+    const plan = planVideoRender(
+      board(
+        [shot({ id: 'a', characterId: 'c-1' }), shot({ id: 'b', characterId: 'c-2' })],
+        { arrow: 'character-to-scene', prompt: 'x', characterId: 'c-1' },
+      ),
+      { characterPortraits: { 'c-1': 'portrait-1', 'c-2': 'portrait-2' } },
+    );
+    expect(plan.segments.map((s) => s.source)).toEqual([
+      { kind: 'reference', assetId: 'portrait-1', from: 'character' },
+      { kind: 'reference', assetId: 'portrait-2', from: 'character' },
+    ]);
+    expect(plan.characterPortraitCount).toBe(2);
+    expect(plan.cardCount).toBe(0);
+    expect(plan.sourceReferenceCount).toBe(0);
+    expect(plan.notes.join('')).toContain('角色进像素了');
+    // 肖像也是画面：照样有机位推演，不然两镜就是两张静止色卡换了个来源
+    expect(plan.segments[0]!.motion).toBeDefined();
+  });
+
+  it('每镜自己的参考帧优先：角色的肖像补不进已经挂了图的镜', () => {
+    const plan = planVideoRender(
+      board(
+        [shot({ id: 'a', characterId: 'c-1', referenceAssetId: 'own-a' })],
+        { arrow: 'character-to-scene', prompt: 'x', characterId: 'c-1' },
+      ),
+      { characterPortraits: { 'c-1': 'portrait-1' } },
+    );
+    expect(plan.segments[0]!.source).toEqual({ kind: 'reference', assetId: 'own-a', from: 'shot' });
+    expect(plan.characterPortraitCount).toBe(0);
+    // 挂了图就没有"缺肖像"可虚构
+    expect(plan.notes.join('')).not.toContain('没有肖像可递进来');
+  });
+
+  it('有的角色没有肖像：有的进像素、没有的渲成色卡，缺肖像的那几位点名', () => {
+    const plan = planVideoRender(
+      board(
+        [shot({ id: 'a', characterId: 'c-1' }), shot({ id: 'b', characterId: 'c-9' })],
+        { arrow: 'character-to-scene', prompt: 'x', characterId: 'c-1' },
+      ),
+      { characterPortraits: { 'c-1': 'portrait-1' } },
+    );
+    expect(plan.segments[0]!.source).toEqual({ kind: 'reference', assetId: 'portrait-1', from: 'character' });
+    expect(plan.segments[1]!.source.kind).toBe('card');
+    expect(plan.characterPortraitCount).toBe(1);
+    expect(plan.cardCount).toBe(1);
+    const notes = plan.notes.join('');
+    expect(notes).toContain('角色进像素了');
+    expect(notes).toContain('c-9');
+  });
+
+  it('传进来了肖像但箭头不是 character-to-scene：肖像不进画面，并说清是哪一格', () => {
+    const plan = planVideoRender(
+      board([shot({ id: 'a', characterId: 'c-1' })], { arrow: 'text-to-video', prompt: 'x', characterId: 'c-1' }),
+      { characterPortraits: { 'c-1': 'portrait-1' } },
+    );
+    expect(plan.segments[0]!.source.kind).toBe('card');
+    expect(plan.characterPortraitCount).toBe(0);
+    expect(plan.notes.join('')).toContain('这条箭头不读它');
+  });
+
+  it('同一份分镜 + 同一份字典两次投影逐字段相同（§16 要能重放）', () => {
+    const make = () =>
+      planVideoRender(
+        board(
+          [shot({ id: 'a', characterId: 'c-1' })],
+          { arrow: 'character-to-scene', prompt: 'x', characterId: 'c-1' },
+        ),
+        { characterPortraits: { 'c-1': 'portrait-1' } },
+      );
+    expect(JSON.stringify(make())).toBe(JSON.stringify(make()));
   });
 });
 

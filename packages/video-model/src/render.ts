@@ -47,15 +47,18 @@ export const XFADE_NAMES: Record<Exclude<ShotTransition, 'cut'>, string> = {
 /**
  * 一镜的画面从哪来。
  * - `reference`：推演这一镜的参考帧（资产 id，不是字节）
- *   `from` 说这张图是**谁挂的**：`'shot'` 是这一镜自己的 `referenceAssetId`，
- *   `'source'` 是整片那条箭头带的那张（`source.referenceAssetId`，只 `image-to-video` 有）。
+ *   `from` 说这张图是**谁挂的**：
+ *   `'shot'`      — 这一镜自己的 `referenceAssetId`；
+ *   `'source'`    — 整片那条箭头带的那张（`source.referenceAssetId`，只有 `image-to-video` 有）；
+ *   `'character'` — 这位角色自己的肖像（`assets.character_id` + `genMeta.characterPortrait`，
+ *                   由 web 层解析好经 `characterPortraits` 传进来，只有 `character-to-scene` 有）。
  *   这一格不是装饰：渲染器读的是字节，而"这一镜照哪张图演"是界面上要能指认的事——
- *   没有 `from`，一份每镜都没挂图的分镜渲出来全是同一张图，与"每镜各挂了一张一样的图"
+ *   没有 `from`，一份每镜都没挂图的分镜渲出来全是同一张肖像，与"每镜各挂了一张一样的图"
  *   在计划里同形，而那是两句不同的话。
  * - `card`：没有参考帧时的确定性色卡。它**是**这一镜的画面，不是"加载失败"的占位图
  */
 export type RenderSource =
-  | { kind: 'reference'; assetId: string; from: 'shot' | 'source' }
+  | { kind: 'reference'; assetId: string; from: 'shot' | 'source' | 'character' }
   | { kind: 'card'; color: string; caption: string };
 
 /**
@@ -114,6 +117,14 @@ export interface VideoRenderPlan {
    * "12 镜全渲成了同一张图"与"12 镜里 8 镜是色卡"。
    */
   sourceReferenceCount: number;
+  /**
+   * 有多少镜的画面来自角色肖像（`character-to-scene` 箭头命中的那些镜）。
+   *
+   * 与 `sourceReferenceCount` 也分开数：整片带一张图是作者挑的"同一张"，
+   * 肖像是 web 层**按角色 id 解析出来的 N 张**（不同角色不同肖像）——
+   * 数色卡看不见它、数整片那张也不是它。
+   */
+  characterPortraitCount: number;
   /** 固定为 true：这一份计划产出的像素来自本地推演，不是 provider 生成 */
   demo: true;
   notes: string[];
@@ -192,29 +203,63 @@ export function hslToHex(h: number, s: number, l: number): string {
  * 现在规则是：`image-to-video` 带的那张图补进**自己没挂图**的那些镜（每镜自己的优先，
  * 那是作者更具体的决定），补了几镜写进 `notes`。
  *
- * `character-to-scene` 不在这里兑现：角色不是一张图，肖像是一件资产，
+ * `character-to-scene` 在模型里兑现：角色不是一张图，肖像是一件资产，
  * 而"查这位角色的肖像"是 IO——模型不许查库（这个包的三条纪律之一）。
- * 所以它今天仍然渲成色卡，但**这句限度从沉默变成一句 note**，下一片再由 web 层把肖像递进来。
+ * 所以肖像一律由 web 层解析好、经 `options.characterPortraits` 递进来：
+ * 模型只看字典，不连库——同一个字典投影两次逐字段相同（§16）。
+ * 没递进来 / 角色没有肖像 → 这些镜渲成色卡，但**这句限度不再沉默**：
+ * 说清是哪几位角色、为什么、作者现在能做什么。
  */
-export function planVideoRender(storyboard: Storyboard): VideoRenderPlan {
+export interface PlanVideoRenderOptions {
+  /**
+   * 角色 id → 肖像资产 id。web 层按 `assets.character_id` + `genMeta.characterPortrait`
+   * 解析（同一位角色取最新那张），只读字典；模型不读不写库。
+   * 只在 `source.arrow === 'character-to-scene'` 时被读取。
+   */
+  characterPortraits?: Readonly<Record<string, string>>;
+}
+
+export function planVideoRender(storyboard: Storyboard, options: PlanVideoRenderOptions = {}): VideoRenderPlan {
   const notes: string[] = [];
   const segments: RenderSegment[] = [];
   let cursor = 0;
   let cardCount = 0;
   let sourceReferenceCount = 0;
+  let characterPortraitCount = 0;
 
   // 整片那一张：只有 `image-to-video` 这条箭头要它，也只有那条箭头该用它
   const wholePiece =
     storyboard.source.arrow === 'image-to-video' ? storyboard.source.referenceAssetId : undefined;
+  // 角色肖像递进来的那一格：只有 `character-to-scene` 这条箭头读它（与整片那张同一条纪律）
+  const portraitsNeeded = storyboard.source.arrow === 'character-to-scene';
+  const missingPortraits = new Set<string>();
+  const portraitsIgnored = !portraitsNeeded && options.characterPortraits && Object.keys(options.characterPortraits).length > 0
+    ? Object.keys(options.characterPortraits).length
+    : 0;
 
   storyboard.shots.forEach((shot, index) => {
+    const portrait =
+      portraitsNeeded && shot.characterId && !shot.referenceAssetId
+        ? options.characterPortraits?.[shot.characterId]
+        : undefined;
+    if (
+      portraitsNeeded &&
+      !shot.referenceAssetId &&
+      shot.characterId &&
+      !portrait
+    ) {
+      missingPortraits.add(shot.characterId);
+    }
     const source: RenderSource = shot.referenceAssetId
       ? { kind: 'reference', assetId: shot.referenceAssetId, from: 'shot' }
       : wholePiece
         ? { kind: 'reference', assetId: wholePiece, from: 'source' }
-        : { kind: 'card', color: cardColor(shot.id), caption: shot.prompt.slice(0, CARD_CAPTION_MAX) };
+        : portrait
+          ? { kind: 'reference', assetId: portrait, from: 'character' }
+          : { kind: 'card', color: cardColor(shot.id), caption: shot.prompt.slice(0, CARD_CAPTION_MAX) };
     if (source.kind === 'card') cardCount += 1;
     if (source.kind === 'reference' && source.from === 'source') sourceReferenceCount += 1;
+    if (source.kind === 'reference' && source.from === 'character') characterPortraitCount += 1;
     const previous = storyboard.shots[index - 1];
     segments.push({
       shotId: shot.id,
@@ -254,10 +299,34 @@ export function planVideoRender(storyboard: Storyboard): VideoRenderPlan {
         'image-to-video 带的那张整片参考图这次没有进画面：每一镜都有自己的参考帧，更具体的那个决定赢。',
       );
     }
-    if (storyboard.source.arrow === 'character-to-scene' && cardCount > 0) {
+    // 箭头不认但留着的东西：界面上看得见"选了图/角色"，渲染里看不见"这张图没用上"——
+    // 那是两句不同的话，少一句就是假诚实（上一片发现的静默格子）。
+    if (portraitsIgnored > 0) {
       notes.push(
-        'character-to-scene 这条箭头今天还不进像素：渲染读的是每一镜自己的参考帧，而模型不查库、拿不到这位角色的肖像。先给角色生成肖像、把那张图挂到镜头上，否则这些镜渲出来是色卡。',
+        `${portraitsIgnored} 个角色的肖像被递进来了，但 ${storyboard.source.arrow} 这条箭头不读它——这些肖像这次渲染不进画面。换成 character-to-scene 才会进。`,
       );
+    }
+    // character-to-scene 进没进像素：肖像递进来了就进（from: 'character'），缺就说清哪几位、为什么、怎么办
+    if (storyboard.source.arrow === 'character-to-scene') {
+      if (characterPortraitCount > 0) {
+        notes.push(
+          `${characterPortraitCount}/${total} 镜自己没挂参考帧，画面来自 character-to-scene 箭头递进的角色肖像（web 层按 assets.character_id + genMeta.characterPortrait 解析到的那张）：角色进像素了。`,
+        );
+      }
+      if (missingPortraits.size > 0) {
+        const ids = [...missingPortraits];
+        const shown = ids.slice(0, 3).map((id) => `…${id.slice(-6)}`).join('、');
+        notes.push(
+          `${ids.length} 位角色没有肖像可递进来（web 层按 assets.character_id + genMeta.characterPortrait 解析不到：${shown}${ids.length > 3 ? ` 等 ${ids.length} 位` : ''}）——先给角色生成肖像（Studio 图片面板「生成角色肖像」）再回来渲染；挂了角色但没有肖像的镜头渲成色卡。`,
+        );
+      }
+      if (characterPortraitCount === 0 && missingPortraits.size === 0 && cardCount > 0) {
+        // 箭头选了 character-to-scene 但镜头上一个 characterId 都没挂（不可能有肖像可递）——
+        // 这不是"缺肖像"，是"没挂角色"，两句话不同，别并成一句
+        notes.push(
+          'character-to-scene 这条箭头要镜头挂角色才有人进像素：这份分镜的镜头上没有挂角色（也没有肖像可递进来），渲成色卡。先给镜头挂上 characterId，并为角色生成肖像。',
+        );
+      }
     }
     // 箭头不认但留着的东西：界面上看得见"选了图/角色"，渲染里看不见"这张图没用上"——
     // 那是两句不同的话，少一句就是假诚实（上一片发现的静默格子）。
@@ -300,6 +369,7 @@ export function planVideoRender(storyboard: Storyboard): VideoRenderPlan {
     renderable: segments.length > 0 && cursor > 0,
     cardCount,
     sourceReferenceCount,
+    characterPortraitCount,
     demo: true,
     notes,
   };
