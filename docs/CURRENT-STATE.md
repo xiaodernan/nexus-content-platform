@@ -7857,3 +7857,11 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 6 锚句双语 · gen-bible-snapshot 增 echo-153 · BibleAsk lede → 153 · /bible/ask meta → 一百五十三篇 · CACHE-IDENTITY × 153 · canon-answer-graph → 166 段 · bible-ask-behavior pin 927 · pin 重钉 page→ba4c8618 / comp→f6f41b7c · InsightCanonChat hint 同步至 153。
 - fe-gates **1377/1377** ✓ · verify:world-bible 932/932 ✓。
 - §PROOF-V1037 复测（Clash 环境）：digest 239,665 · 端到端 tokensIn=154,627 · cached=145,231 (93.9%) — 连胜两发同值。
+
+## cont. 400 (2026-11-19) — v1041 · §BIBLE-154 · Echo #154《只认工位号的账房先生》(作者手写 · verify 938/938) + §PROOF-V1038
+
+- 新篇：「祠殿西门门岗上那位账房先生——他不认姓——没有脸——只有工位号——他的账里没有日期——没有名字——只剩号」—— digest 现 **240,482 chars**（13 章正典 · **154 回响** · 4 annex · 锚句 938 zh / 938 en ✓）。
+- 6 锚句双语 · gen-bible-snapshot 增 echo-154 · BibleAsk lede → 154 · /bible/ask meta → 一百五十四篇 · CACHE-IDENTITY × 154 · canon-answer-graph → 167 段 · bible-ask-behavior pin 933 · pin 重钉 page→db593f52 / comp→9a3e5fe9 · InsightCanonChat hint 同步至 154。
+- §PROOF-V1038 evidence：digest 跨 echo 增量后缓存稳定（详见 `docs/evidence/proof-v1038-cache-byte-stability-2026-11-19.md`）；E152/E153 各自 3 发实测 154,627/154,891 tokensIn, cold=7,xxxx → warm **145,483 (93.9%)**，3 发同值无飘移。
+- ADR-0290 记录 cache 代理路由的根本 truth："Node 原生 fetch 根本不走 HTTPS_PROXY"（不是 cache miss 问题）+ 两个真相源都需 `httpx` 显式 `proxy=` 路径才能命中 Clash 权益（直连 aizzz 必 403）。
+- fe-gates **1377/1377** ✓ · verify:world-bible 938/938 ✓。

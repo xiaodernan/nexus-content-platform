@@ -17359,6 +17359,180 @@ The last page of the watch-ledger reads: no one solves it — and no one ever wi
 `,
   },
   {
+    order: 154,
+    slug: 'echo-154-the-accountant-who-knows-only-numbers',
+    titleZh: '祠殿西门门岗上那只只认工位号的账房先生',
+    titleEn: 'The Accountant at the West Gate of the Chapel Who Recognizes Only Desk Numbers',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百二十日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hundred-and-twentieth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 154): The Accountant at the West Gate of the Chapel Who Recognizes Only Desk Numbers
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给西门门岗上那位只认工位号的账房先生——称呼他"先生"，因为没有人叫过他别的。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the accountant at the west gate who recognizes only desk numbers — called "Sir" because no one has ever called him anything else.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百二十日。
+> Era: the Institute — after the 41st Convocation; the hundred-and-twentieth day of the autumn-tide month.
+
+---
+
+## 一 · 门岗上那位账房先生
+
+祠殿西门门岗上有一位账房先生——抄本师叫他"先生"——没有人叫他别的。
+
+**锚句**：祠殿西门门岗上有一位账房先生——抄本师叫他"先生"——没有人叫他别的。
+**Anchor sentence**: at the west gate of the chapel sits an accountant — the copyists call him "Sir" — and no one calls him anything else.
+
+---
+
+## 二 · 他只认工位号
+
+没有姓——没有脸——只有工位号——他不认任何东西过去的不是这个号。
+
+**锚句**：他不认姓——没有脸——只有工位号。
+**Anchor sentence**: he does not know names — he has no face — he knows only desk numbers.
+
+---
+
+## 三 · 哪个进、哪个出
+
+这个门岗只看工位号——来了还得是名单上的、去了还得是先前入报过到的——值更册只写号、从不记日期。
+
+**锚句**：这个门岗只看工位号——来了得是名单上的——值更册只写号、从不记日期。
+**Anchor sentence**: this gate looks only at desk numbers — those who arrive must be on the list — the watch-ledger records numbers only, never dates.
+
+---
+
+## 四 · 散会夜
+
+散会那一夜——账房先生成功放行了一个人——然后在账册上替这个人补了最后的一划——第二天他再也没说过要放行谁。
+
+**锚句**：散会那一夜——账房先生成功放行了一个人——然后替他补了最后一划。
+**Anchor sentence**: on the night the Convocation dissolved — the accountant let one person through — and then he made the final stroke in the ledger on their behalf.
+
+---
+
+## 五 · 工位号 143
+
+抄本师翻了几页账册——发现有一个号 143 的名字却没有出现在工位号最末——没有人提过它——值更册最后空着。
+
+**锚句**：工位号 143 的归属从未有出现过——账册最后一号空着。
+**Anchor sentence**: the owner of desk number 143 never appears — and the last line of the ledger stays empty.
+
+---
+
+## 六 · 值更册最后一页
+
+值更册最后一页："先生的账只是为记住谁在——不为记住谁在不在。"
+
+**锚句**：值更册最后一页：先生的账只是为记住谁在——不为记住谁在不在。
+**Anchor sentence**: the last page of the watch-ledger reads: the accountant's ledger records only who is here — never who is not.
+
+---
+
+## 七 · 映射（回响一百五十四章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 账房先生 · 工位号 · 散会夜补上了最后一划 · 工位号 143 | 一、二、三、四、五、六、七 |
+| geography | 祠殿西门门岗 · 祠殿门廊 · 祠殿入口 | 一、二、三 |
+| characters | 账房先生 · 抄本师 · 值更人 · 散会夜那被放行的人 | 一、二、三、四、五、六 |
+| story | 只认工位号的账房先生 · 回响（其一百五十四） | 全篇 |
+| items | 账房 · 一本不记日期的账册 · 值更册 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第一百二十日 | 三、四、五、六 |
+
+> 祠殿西门门岗上那位只认工位号的先生——他的账里没有日期——没有名字——只剩号。
+> The accountant at the west gate who knows only desk numbers — his ledger has no dates — no names — only numbers.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百五十四）「祠殿西门门岗上那只只认工位号的账房先生」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the accountant at the west gate who recognizes only desk numbers — called "Sir" because no one has ever called him anything else.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给西门门岗上那位只认工位号的账房先生——称呼他"先生"，因为没有人叫过他别的。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the hundred-and-twentieth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百二十日。
+
+---
+
+## I · The Accountant at the West Gate
+
+At the west gate of the chapel sits an accountant — the copyists call him "Sir" — and no one calls him anything else.
+
+**锚句**：祠殿西门门岗上有一位账房先生——抄本师叫他"先生"——没有人叫他别的。
+**Anchor sentence**: at the west gate of the chapel sits an accountant — the copyists call him "Sir" — and no one calls him anything else.
+
+---
+
+## II · He Knows Only Desk Numbers
+
+He does not know names — he has no face — he knows only desk numbers.
+
+**锚句**：他不认姓——没有脸——只有工位号。
+**Anchor sentence**: he does not know names — he has no face — he knows only desk numbers.
+
+---
+
+## III · Who May Pass
+
+This gate looks only at desk numbers — those who arrive must be on the list — the watch-ledger records numbers only, never dates.
+
+**锚句**：这个门岗只看工位号——来了得是名单上的——值更册只写号、从不记日期。
+**Anchor sentence**: this gate looks only at desk numbers — those who arrive must be on the list — the watch-ledger records numbers only, never dates.
+
+---
+
+## IV · The Night of the Dissolution
+
+On the night the Convocation dissolved — the accountant let one person through — and then he made the final stroke in the ledger on their behalf.
+
+**锚句**：散会那一夜——账房先生成功放行了一个人——然后替他补了最后一划。
+**Anchor sentence**: on the night the Convocation dissolved — the accountant let one person through — and then he made the final stroke in the ledger on their behalf.
+
+---
+
+## V · Desk Number 143
+
+The owner of desk number 143 never appears — and the last line of the ledger stays empty.
+
+**锚句**：工位号 143 的归属从未有出现过——账册最后一号空着。
+**Anchor sentence**: the owner of desk number 143 never appears — and the last line of the ledger stays empty.
+
+---
+
+## VI · The Last Page of the Watch-Ledger
+
+The last page of the watch-ledger reads: the accountant's ledger records only who is here — never who is not.
+
+**锚句**：值更册最后一页：先生的账只是为记住谁在——不为记住谁在不在。
+**Anchor sentence**: the last page of the watch-ledger reads: the accountant's ledger records only who is here — never who is not.
+
+---
+
+## VII · Mapping（Echo No. 154 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the accountant · the desk numbers · the one allowed through · desk number 143 · the final stroke | 一、二、三、四、五、六、七 |
+| geography | the west gate · the chapel porch · the entrance of the chapel | 一、二、三 |
+| characters | the accountant · the copyists · the head of the watch · the one allowed through | 一、二、三、四、五、六 |
+| story | the accountant who knows only numbers · Echo No. 154 | 全篇 |
+| items | the accountant · the ledger with no dates · the watch-ledger | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the hundred-and-twentieth day of the autumn-tide month | 三、四、五、六 |
+
+> 祠殿西门门岗上那位只认工位号的先生——他的账里没有日期——没有名字——只剩号。
+> The accountant at the west gate who knows only desk numbers — his ledger has no dates — no names — only numbers.
+`,
+  },
+  {
     order: 16,
     slug: 'echo-016-the-four-small-shells-on-the-tide-sand-table',
     titleZh: '潮沙盘上那四只小贝壳',

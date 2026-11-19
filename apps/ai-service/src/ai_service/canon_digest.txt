@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 153 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 154 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3010,6 +3010,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 抄本师说谜面的答案就是「它是被谁猜中的」。
 - [5] 散会那一夜——箱面上的谜面变了一条——第二天恢复到原样。
 - [6] 值更册最后一页："没有人猜中——也从来没有人能猜中。"
+
+### Echo 154 · 祠殿西门门岗上那只只认工位号的账房先生 / The Accountant at the West Gate of the Chapel Who Recognizes Only Desk Numbers
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 祠殿西门门岗上有一位账房先生——抄本师叫他"先生"——没有人叫他别的。
+- [2] 他不认姓——没有脸——只有工位号。
+- [3] 这个门岗只看工位号——来了得是名单上的——值更册只写号、从不记日期。
+- [4] 散会那一夜——账房先生成功放行了一个人——然后替他补了最后一划。
+- [5] 工位号 143 的归属从未有出现过——账册最后一号空着。
+- [6] 值更册最后一页：先生的账只是为记住谁在——不为记住谁在不在。
 
 ### Echo 16 · 潮沙盘上那四只小贝壳 / The Four Small Shells on the Tide-Sand Table
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

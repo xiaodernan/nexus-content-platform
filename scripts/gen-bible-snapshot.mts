@@ -204,6 +204,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E151-祠殿风方门边那只只够围坐六个人的圆桌': 'echo-151-the-six-seat-table-by-the-chapel-door',
   'E152-沉香巷里那只只认自己脸的桥': 'echo-152-the-bridge-that-only-knows-its-own-face',
   'E153-潮候院回廊尽头那只永远等一个无人猜完的谜箱': 'echo-153-the-riddle-box-that-no-one-solves',
+  'E154-祠殿西门门岗上那只只认工位号的账房先生': 'echo-154-the-accountant-who-knows-only-numbers',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
