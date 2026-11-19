@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 203 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 204 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3499,6 +3499,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 抄本院抄本师把四十二张拓印缝在一起——一条带子——潮候院抄本院——
 - [5] 抄本院抄本师谁都不对外说——潮候院抄本院都不说话——潮候院——
 - [6] 最后一张拓印上写着潮候院最早的冬季——潮候院抄本院——潮候院——
+
+### Echo 204 · 潮候院抄本院抄本师第一次数那一条带子它不是抄本院的 / The Copyists Counted the Ribbon for the First Time — It Is Not the Copyists'
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院抄本师第一次数那条带子——潮候院抄本院找遍所有地方没有——
+- [2] 潮候院抄本师仔细看那条带子——潮候院抄本院抄本师说找不到——
+- [3] 抄本院抄本师他们发现那条带子不是潮候院抄本院的——潮候院抄本师都低头——
+- [4] 潮候院抄本师没有人知道它是潮候院的——潮候院抄本师都没说过话——
+- [5] 潮候院抄本院抄本师他们把那条带子放回最深处——潮候院潮候院——
+- [6] 潮候院抄本师再没碰过那条带子——潮候院抄本院潮候院抄本师再也没有说过话——
 
 ### Echo 21 · 里巷子码头的七盏号灯 / The Seven Lamps of the Back-Alley Pier
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
