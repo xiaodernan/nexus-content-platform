@@ -16,7 +16,7 @@ import type { Locale } from '@/lib/i18n';
  * - 没有"看了重做"的奖励？——答错的提示会写出处（在哪一章、哪一节），
  *   错就是错，不伪装"接近正确"；
  * - 完全中英双语；不存在半中文半英文的题目；
- * - 126 题每题 1 分；结算只是礼物：不写进任何账本、不发 achievement、不持久化。
+ * - 127 题每题 1 分；结算只是礼物：不写进任何账本、不发 achievement、不持久化。
  */
 
 const COPY = {
@@ -38,11 +38,11 @@ const COPY = {
       { at: 10, text: '巡逻路的旅人', note: '盐味酸过了——记住的巡逻路比忘掉的多。' },
       { at: 13, text: '守夜人传人', note: '门在关上之前你没见过，但你记住了是什么。' },
       { at: 15, text: '潮汐大匠', note: '海还没说完的话，你已经知道是什么了。' },
-      { at: 109, text: '满分守夜人', note: '一百二十六题全对——典籍不会忘记问倒过谁。' },
+      { at: 110, text: '满分守夜人', note: '一百二十七题全对——典籍不会忘记问倒过谁。' },
     ],
     footer: '《世界大典》正典全文见典籍室（/bible）。答错的题里标了出处：错就是错，没有近似的正确。',
     scoreLine: (n: number, total: number) => `${n} / ${total}`,
-    empty: '还没答完。一百二十六道题就是十三章正典与二百回响的全部问题。',
+    empty: '还没答完。一百二十七道题就是十三章正典与二百零一个回响的全部问题。',
   },
   en: {
     kicker: 'The Tidal Trial',
@@ -62,11 +62,11 @@ const COPY = {
       { at: 10, text: 'The Patrol-Road Traveller', note: 'You are more road remembered than forgotten.' },
       { at: 13, text: 'The Successor Watcher', note: 'You have never seen the door, but you know what was behind it.' },
       { at: 15, text: 'The Tide Master', note: 'The sea still has not finished — and you already know what it said.' },
-      { at: 109, text: 'The Full Tide', note: 'One hundred and twenty-six of one hundred and twenty-six — the canon will not forget who asked it best.' },
+      { at: 110, text: 'The Full Tide', note: 'One hundred and twenty-seven of one hundred and twenty-seven — the canon will not forget who asked it best.' },
     ],
     footer: 'The full canon lives in the shelf (/bible). Every wrong answer points you to where it lives. Wrong is wrong — there is no near-enough.',
     scoreLine: (n: number, total: number) => `${n} / ${total}`,
-    empty: 'Not done yet. One hundred and twenty-six questions — one per breath of the canon and the echoes.',
+    empty: 'Not done yet. One hundred and twenty-seven questions — one per breath of the canon and the echoes.',
   },
 } as const;
 
@@ -581,6 +581,10 @@ const QUESTIONS: Question[] = [
   {
     zh: { prompt: '抄本师日日坐麻布前，每一遍摩挲的只有什么？', choices: ['麻布的毛边', '一个字——字的两笔；最后潮候院才知道麻布就是麻布', '三句一封信', '第四十一页上的两个字'], answer: 1, ref: '回响（其二百） · 二 · 每一遍只摩挲一字' },
     en: { prompt: 'What did the copyists rub, one character at a time, day after day?', choices: ['The frayed edges of the linen', 'One word — the two strokes of the character; the Institute finally learned the linen was the linen', 'Three phrases and a letter', 'The two characters on the forty-first page'], answer: 1, ref: 'Echo No. 200 · II' },
+  },
+  {
+    zh: { prompt: '潮候院抄本院最深处的石柱上，抄本师第一次数出了多少道潮印？', choices: ['四十二道', '七道', '三道', '一百四十二道'], answer: 0, ref: '回响（其二百零一） · 五 · 潮数' },
+    en: { prompt: 'How many tide marks did the copyists count on the pillar at the deepest part of the hall?', choices: ['Forty-two', 'Seven', 'Three', 'One hundred and forty-two'], answer: 0, ref: 'Echo No. 201 · V' },
   },
 ];
 
