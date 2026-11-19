@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 170 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 171 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3178,6 +3178,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 最下面一格是冬潮月第十六日——纸船归航那天刻下的——盐还没来得及把它磨淡。
 - [5] 大会散会的夜里——有人用新贝壳碎补了一格——巡检只记"墙又添了一行"。
 - [6] 没人敢补上面的旧痕——它们不是记录是地层——不可以替地层补笔。
+
+### Echo 171 · 雾港旧信物库里那枚没有沾过海水却自己泛了绿的潮印 / The Tide-Seal in the Old Relic Room of Fog Harbor, Verdigrised Though the Sea Has Never Touched It
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 雾港旧信物库里没有灯——守库人进门都点蜡烛——库里每一格都有用。
+- [2] 最里铜屉里潮气是湿的——没人敢开——抄本师说里面的潮印只到一半。
+- [3] 潮印是潮候院交予雾港旧信物库的印鉴——字样只有一个"潮"字——用于旧信的封口。
+- [4] 铜屉从没人开过——潮印没碰过海水——它自己选了绿——雾港的人不认为它违背约定。
+- [5] 第四十三次大会结束那夜守库人封存潮印——那枚没写名字——第二天他发现它又绿了一层。
+- [6] 抄本师说潮印是用来等的——守库人规定每只匣子都只打开一半。
 
 ### Echo 18 · 祠殿里从不叫的一只猫 / The Cat in the Institute That Never Meowed
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

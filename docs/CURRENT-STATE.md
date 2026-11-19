@@ -8267,3 +8267,13 @@ Reported upstream to `docs/evidence/liveness-sweep-2026-11-19.md`（cont.429 对
 - **身份护栏**：showcase-site `scripts/identity-guard.mjs` → **OK exit 0**
 - **公网**：CDN 仍停留在 v1056/E164；本轮没有再 dispatch（只剩法外容忍期，Pages 3h cron 由 push `5d5b380`/`93f109d6` 等 master 侧 deploy 采纳；不再强砸 dispatch）
 - **下一件事**：E171（未指定下一物件；继续交给并行线/续写，物件与潮候院库对齐）；digest 继续扩容；island-income 不作优先 → 关注 cron 三小时一周期的 CDN 验证 · fe-gates 全量回归需要 ≥3 GB 空闲内存才能安全跑
+
+## cont. 437 (2026-11-19) — §BIBLE-171 · Echo #171 潮印落盘 · :3200 吸附
+
+- **Echo #171《雾港旧信物库里那枚没有沾过海水却自己泛了绿的潮印》** 双语手写（Halo-fog Harbor arc；潮印 = 印鉴主题首次入库）→ `docs/world-bible/echoes/E171-….md/.en.md`；registry 增 `echo-171-the-tide-seal-that-greened-without-water`
+- gen-bible-snapshot → **171 回响 · 4 附录 · digest 247,976 chars · sha 06accb59**；verify-world-bible-anchors → **1038 zh/en ✓**；bible-ask pin 1027→**1033**（test-local），digest 双测试 11/11 绿
+- 纪律：E171 digest 提交后立刻 kill :3200 worker (PID 2992) → 用 `.venv\Scripts\python.exe` + `PYTHONPATH=src` relaunch（PID 53784）→ /healthz 期望 200 · llm=gpt-6.2-sol
+- **核查在本轮再次确认**：repo 全量 `gpt-6.1-terra`/`6.1-sol` 引用 0；滚轮方向按钮 `CanvasStage.tsx` 默认「网页惯例；数据兜底」带双语 teaching tooltip 已在库；NEXUS web admin §九 全栈活——`/app/admin/observe`（口令 123 只读 + 实库数字 + §OBSERVE-PROJ 最小二乘外推 + 7 天事件趋势）与 `/api/admin/observer/digest`（把同一份服务器算的实测聚合喂给 gpt-6.2-sol · DEMO MODE→409 · 每 IP+观众 5/小时 · 输出必须含数字否则 502）——深度优化措施链完整，不动它
+- **公网**：CDN 仍停留 v1056/E164（本轮没有再 dispatch）——Pages 3h cron 负责自然收敛
+- **潮印主题的叙事挂点**：Seal 是 world step 里 traveler.seals 的语义词；本 chapter 把它落到「旧信物库最里的铜屉」——潮位刻痕(E164)与印章(E171)两个载体尺度现在对应上
+- **world-step 实测记录（上回合）**：world-step 200 unlocks=["E169"] · proven live-digest serves E169；Δ 走 canon_guard
