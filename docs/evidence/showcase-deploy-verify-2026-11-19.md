@@ -41,10 +41,10 @@
 
 ## 3. fact pack / oracle 与 canon 对账
 
-- 记录时点：platform `master == main == origin/main`，HEAD=cdf5c49f。
-- `verify:world-bible`：**1080/1080** zh/en 锚句通过；`verify:bible-snapshot` 一致；digest 251,350 chars（sha 8025626e）。
-- `assets/nexus-content/latest.json`（Pages master）：`head: 69dce3f` · `total_commits: 3,747` · `generated_at: 2026-11-19T11:58:17Z`。
-- IO 页 baked oracle strip：`1080 锚句 · digest 251,350 · 178 回响`。
+- 记录时点：platform `master == main == origin/main`，HEAD=e9bf2280。
+- `verify:world-bible`：**1164/1164** zh/en 锚句通过；`verify:bible-snapshot` 一致；digest 259,309 chars（sha 8786d198）· 全典籍 192 回响（正典十三章 + 回响一百九十二篇）。
+- `assets/nexus-content/latest.json`（Pages master）：`head: e9bf228` · `total_commits: 3,776` · `test_files: 574` · `generated_at: 2026-11-19T13:29:43Z`。
+- IO 页 baked oracle strip：`1164 锚句 · digest 259,309 · 192 回响`（含 deploy 44535183199 落地的主导航 6 链接 + GitHub 链接双语教学提示 `data-tip-zh/en` + `title`）。
 - io 页 fact pack 读取链路：`script.js` 运行时 fetch `./assets/nexus-content/latest.json`，徽标随部署更新。
 
 ## 4. 平台侧回归（本次合并后）
