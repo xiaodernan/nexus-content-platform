@@ -25,7 +25,11 @@ process.env.NODE_NO_WARNINGS = '1';
 const PORT = Number(process.argv[process.argv.indexOf('--port') + 1] ?? 3199);
 const SESSIONS = Number(process.argv[process.argv.indexOf('--sessions') + 1] ?? 24);
 const BASE = `http://127.0.0.1:${PORT}`;
-const OUT_JSON = join(process.cwd(), 'docs', 'evidence', 'simulated-user-behavior-2026-11-16.json');
+const OUT_JSON = (() => {
+  const idx = process.argv.indexOf('--out');
+  const provided = idx >= 0 ? process.argv[idx + 1] : undefined;
+  return provided ? join(process.cwd(), provided) : join(process.cwd(), 'docs', 'evidence', 'simulated-user-behavior-2026-11-16.json');
+})();
 
 // ── deterministic LCG（so the evidence is rerun-identical）
 let seed = 0x2545F4914b6ecn;

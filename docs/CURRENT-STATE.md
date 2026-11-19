@@ -8027,3 +8027,11 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 新篇：「潮候院前院角落那棵信树 · 树皮刻满信封一样的刻痕 · 每落一片叶值更人收一封 · 值更册最后一页：最后一封信寄给『散会夜』——值更册记了一切。」—— digest 现 **243,649 chars**（13 章正典 · **161 回响** · 4 annex · 锚句 979 zh / 979 en ✓）。
 - 6 锚句双语 · gen-bible-snapshot 增 echo-161 · BibleAsk lede → 161 · /bible/ask meta → 一百六十一篇 · CACHE-IDENTITY × 161 · canon-answer-graph → 174 段 · bible-ask-behavior pin **974** · pin 重钉 page→ac1d320f / comp→7feea82b · InsightCanonChat hint 同步至 161。
 - fe-gates **1377/1377** ✓ · verify:world-bible **979/979** ✓ · snapshot ✓。
+
+## cont. 418 (2026-11-19) — §SIM-2 · 合成用户行为再跑 · 219/219 2xx + 画像全活
+
+- `scripts/simulate-user-behavior.mts` 加 `--out <path>`（不覆盖 2026-11-16 历史证据文件）——本轮直跑（不停服 dev）：
+  **60 会话 × 5 画像 = 219 hits · 0 errors**（impatient p50=1875ms / p95=4166ms · rage-clicker 63×2xx p50=652ms · lost-wanderer p50=1194ms · deep-reader p50=1384ms · bot-ish p50=1067ms p95=6932ms）· p50=1085ms · p95=3,568ms · p99=6,932ms。
+- 合成性质如实注明：不是真实访客，不是 SLA；只覆盖公共 GET 路由（不含 /studio /admin /api）。
+- 证据 `docs/evidence/simulated-user-behavior-2026-11-19.md`（md + json）· dev SSR 路径，未触碰 prod 缓存路径。
+- **如实**：与 prod SSR 压测矩阵（60×4×4 lane 200）互补——这次拷的是"用户花式乱点也扛得住"，不是"用户过得开心"。
