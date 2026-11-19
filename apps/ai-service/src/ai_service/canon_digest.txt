@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 204 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 205 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3508,6 +3508,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 潮候院抄本师没有人知道它是潮候院的——潮候院抄本师都没说过话——
 - [5] 潮候院抄本院抄本师他们把那条带子放回最深处——潮候院潮候院——
 - [6] 潮候院抄本师再没碰过那条带子——潮候院抄本院潮候院抄本师再也没有说过话——
+
+### Echo 205 · 潮候院抄本院抄本师第一次看懂那一条带子上写着什么 / The Copyists Read What the Ribbon Carries — It Is a Name
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 抄本院抄本师第一次用水湿法——抄本院抄本师他们终于看懂——
+- [2] 潮候院抄本院抄本师他们用潮候院最干净的那滴——潮候院——
+- [3] 潮候院抄本院抄本师他们用竹针蘸一滴——抄本师终于看见——
+- [4] 潮候院抄本院抄本师发现它不是汉字——潮候院抄本院——
+- [5] 潮候院抄本院潮候院抄本师意识到那是一个名字——潮候院抄本院是一个人——
+- [6] 潮候院抄本院抄本师他们没告诉任何人——潮候院潮候院——
 
 ### Echo 21 · 里巷子码头的七盏号灯 / The Seven Lamps of the Back-Alley Pier
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

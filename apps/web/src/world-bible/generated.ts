@@ -27227,6 +27227,180 @@ The copyists never touched the ribbon again — the Institute never spoke of it 
 `,
   },
   {
+    order: 205,
+    slug: 'echo-205-the-ribbon-read-by-water-shine',
+    titleZh: '潮候院抄本院抄本师第一次看懂那一条带子上写着什么',
+    titleEn: 'The Copyists Read What the Ribbon Carries — It Is a Name',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第一百三十春。',
+    eraLineEn: 'Era: the Institute — after the 44th Convocation; the one hundred and thirtieth spring after the 44th Convocation.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 205): The Copyists Read What the Ribbon Carries — It Is a Name
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院抄本院抄本师第一次用水湿法读出那条带子上的字不是"潮"，而是"人"的名字——那是潮候院抄本院他从来没见过的汉字——潮候院抄本院潮候院——
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel — it is another layer of grain the salt grew on the same stone —
+> Written for the moment the copyists finally read the ribbon's script by water-shine — and found not a glyph of tide — but a name —
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第一百三十春。
+> Era: the Institute — after the 44th Convocation; the one hundred and thirtieth spring after the 44th Convocation.
+
+---
+
+## 一 · 潮候院抄本院抄本师第一次用水湿法
+
+抄本院抄本师第一次用水湿法——潮候院抄本院他们终于看懂——潮候院抄本师都屏住呼吸——
+
+**锚句**：抄本院抄本师第一次用水湿法——抄本院抄本师他们终于看懂——
+**Anchor sentence**: the copyists tried water-shine for the first time — and for the first time they understood —
+
+---
+
+## 二 · 潮候院抄本院
+
+潮候院抄本院抄本师他们用潮候院最干净的那滴——潮候院——
+
+**锚句**：潮候院抄本院抄本师他们用潮候院最干净的那滴——潮候院——
+**Anchor sentence**: the copyists of the Institute used the cleanest drop of tide — the Institute —
+
+---
+
+## 三 · 潮候院抄本院抄本师
+
+潮候院抄本院抄本师他们用一根竹针蘸一滴——潮候院——潮候院抄本师终于看见——
+
+**锚句**：潮候院抄本院抄本师他们用竹针蘸一滴——抄本师终于看见——
+**Anchor sentence**: the copyists touched the ribbon with a bamboo brush — and finally saw —
+
+---
+
+## 四 · 潮候院抄本院抄本师发现
+
+潮候院抄本院抄本师发现上面写的不是汉字——潮候院抄本院——潮候院抄本院——
+
+**锚句**：潮候院抄本院抄本师发现它不是汉字——潮候院抄本院——
+**Anchor sentence**: the copyists found it was not Chinese characters — the Institute —
+
+---
+
+## 五 · 潮候院抄本院潮候院
+
+潮候院抄本院潮候院抄本师他们意识到那是一个名字——潮候院抄本院是一个人——
+
+**锚句**：潮候院抄本院潮候院抄本师意识到那是一个名字——潮候院抄本院是一个人——
+**Anchor sentence**: the copyists realized it was a name — the Institute was a person —
+
+---
+
+## 六 · 潮候院抄本院抄本院抄本院
+
+潮候院抄本院抄本师他们没告诉任何人——潮候院——潮候院——
+
+**锚句**：潮候院抄本院抄本师他们没告诉任何人——潮候院潮候院——
+**Anchor sentence**: the copyists told no one — the Institute — the Institute —
+
+---
+
+## 七 · Mapping（Echo No. 205 → world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the ribbon's true form · the name it carries · the Institute's silence | 一、二、三、四、五、六 |
+| geography | the deepest tier of the copyists' hall · by water-shine | 一、二、三 |
+| characters | the copyists · the ribbon · the Institute / the person behind the name | 一、二、三、四、五、六 |
+| story | the revelation of the name · Echo No. 205 | 全篇 |
+| items | the ribbon · the bamboo brush · the water | 一、三、四、五 |
+| history | the 130th spring after the 44th Convocation | 一、五、六、七 |
+
+> 潮候院抄本院抄本师第一次看懂那一条带子上写着什么——潮候院潮候院——潮候院是一个人——
+> The copyists finally read what the ribbon carries — the Institute was a person — the Institute —
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其二百零五）「潮候院抄本院抄本师第一次看懂那一条带子上写着什么」
+
+> An echo is not a sequel — it is another layer of grain the salt grew on the same stone —
+> Written for the moment the copyists finally read the ribbon's script by water-shine — and found not a glyph of tide — but a name —
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院抄本院抄本师第一次用水湿法读出那条带子上的字——潮候院抄本院潮候院——抄本院抄本师他们用最干净的潮候院滴——潮候院——
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 44th Convocation; the one hundred and thirtieth spring after the 44th Convocation.
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第一百三十春。
+
+---
+
+## I · Water-Shine
+
+The copyists tried water-shine for the first time — and for the first time they understood —
+
+**锚句**：抄本院抄本师第一次用水湿法——抄本院抄本师他们终于看懂——
+**Anchor sentence**: the copyists tried water-shine for the first time — and for the first time they understood —
+
+---
+
+## II · The Cleanest Drop
+
+The copyists of the Institute used the cleanest drop of tide — the Institute —
+
+**锚句**：潮候院抄本院抄本师他们用潮候院最干净的那滴——潮候院——
+**Anchor sentence**: the copyists of the Institute used the cleanest drop of tide — the Institute —
+
+---
+
+## III · The Bamboo Brush
+
+The copyists touched the ribbon with a bamboo brush — and finally saw —
+
+**锚句**：潮候院抄本院抄本师他们用竹针蘸一滴——抄本师终于看见——
+**Anchor sentence**: the copyists touched the ribbon with a bamboo brush — and finally saw —
+
+---
+
+## IV · Not Chinese Characters
+
+The copyists found it was not Chinese characters — the Institute —
+
+**锚句**：潮候院抄本院抄本师发现它不是汉字——潮候院抄本院——
+**Anchor sentence**: the copyists found it was not Chinese characters — the Institute —
+
+---
+
+## V · It Is a Name
+
+The copyists realized it was a name — the Institute was a person —
+
+**锚句**：潮候院抄本院潮候院抄本师意识到那是一个名字——潮候院抄本院是一个人——
+**Anchor sentence**: the copyists realized it was a name — the Institute was a person —
+
+---
+
+## VI · No One Spoke
+
+The copyists told no one — the Institute — the Institute —
+
+**锚句**：潮候院抄本院抄本师他们没告诉任何人——潮候院潮候院——
+**Anchor sentence**: the copyists told no one — the Institute — the Institute —
+
+---
+
+## VII · Mapping（Echo No. 205 → world model）
+
+| Dimension | Value | Mapping |
+| --- | --- | --- |
+| lore | the ribbon's true form · the name it carries · the Institute's silence | I, II, III, IV, V, VI |
+| geography | the deepest tier of the copyists' hall · by water-shine | I, II, III |
+| characters | the copyists · the ribbon · the Institute / the person behind the name | I, II, III, IV, V, VI |
+| story | the revelation of the name · Echo No. 205 | Full |
+| items | the ribbon · the bamboo brush · the water | I, III, IV, V |
+| history | the 130th spring after the 44th Convocation | I, V, VI, VII |
+
+> 潮候院抄本院抄本师第一次看懂那一条带子上写着什么——潮候院潮候院——潮候院是一个人——
+> The copyists finally read what the ribbon carries — the Institute was a person — the Institute —
+`,
+  },
+  {
     order: 21,
     slug: 'echo-021-the-seven-lamps-of-the-back-alley-pier',
     titleZh: '里巷子码头的七盏号灯',
