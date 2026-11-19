@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 192 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 193 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3392,6 +3392,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 潮候院抄本师不知道什么时候离开——他从海边往回走——潮候院东门在他面前——石板在门槛上——
 - [5] 潮候院抄本师走到门槛——那里潮候院的"海"字石板湿了——潮候院抄本师用手指碰了一下——他的手指湿了——
 - [6] 潮候院抄本师把门关上——潮候院知道它湿了——潮候院知道海——潮候院抄本师没人说——
+
+### Echo 193 · 潮候院东门抄本师第一次站海边——他朝海看——看见潮候院从未听说过的那块陆地——它有光 / At the Institute's East Gate a Copyist Stood by the Sea — He Saw a Land the Institute Had Never Heard Of — It Had Light
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 抄本师第一次站海边——他们朝东看见潮候院从未听说过的那块陆地——它有光——不是火——不是电——也不是潮候院的光——
+- [2] 潮候院抄本师没人去过那儿——他们只是看——他们看见光——他们不知道那边是什么——
+- [3] 抄本师问对岸是什么——潮候院没人能回答——抄本师问光是什么——潮候院没人能回答——对岸有光——潮候院里有光——
+- [4] 抄本师说对岸的形状——抄本师没人看清——他们说对岸很大——它也有斑——它有它的线——
+- [5] 潮候院里每一盏灯都没有它对岸的光——潮候院没人见过对岸的光——
+- [6] 抄本师回来了——他们没人写——潮候院抄本师都知道——那边有一块潮候院没人到过的陆地——它有光——
 
 ### Echo 20 · 潮候院钟楼里那口从不响的钟 / The Bell That Never Rang in the Institute's Clock Tower
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

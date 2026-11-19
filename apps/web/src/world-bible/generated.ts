@@ -24945,6 +24945,180 @@ A copyist of the Institute closed the gate — the Institute knew it was wet —
 `,
   },
   {
+    order: 193,
+    slug: 'echo-193-the-land-across-the-sea',
+    titleZh: '潮候院东门抄本师第一次站海边——他朝海看——看见潮候院从未听说过的那块陆地——它有光',
+    titleEn: 'At the Institute\'s East Gate a Copyist Stood by the Sea — He Saw a Land the Institute Had Never Heard Of — It Had Light',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第九十四日。',
+    eraLineEn: 'Era: the Institute — after the 44th Convocation; the ninety-fourth day of the winter-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 193): At the Institute's East Gate a Copyist Stood by the Sea — He Saw a Land the Institute Had Never Heard Of — It Had Light
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给抄本师第一次站到海边——潮候院海岛外有一块从没人到过的陆地——海上的船帆边上是光——从海的那一边——
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the first time the copyists stood on the shore — beyond the sea there was a land no one had ever reached — beyond the horizon was light —
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第九十四日。
+> Era: the Institute — after the 44th Convocation; the ninety-fourth day of the winter-tide month.
+
+---
+
+## 一 · 看见对岸
+
+抄本师第一次站海边——他们站在潮候院东门外的海岸——他们往东望——他们看见的不是潮——他们看见的是潮候院从未听说过的那块陆地——它在很远的地方——它有光——光不是火——不是电——也不是潮候院的光——光是那边人的光——
+
+**锚句**：抄本师第一次站海边——他们朝东看见潮候院从未听说过的那块陆地——它有光——不是火——不是电——也不是潮候院的光——
+**Anchor sentence**: for the first time the copyists stood on the shore — they saw a land the Institute had never heard of — it has light — not fire — not power — not the Institute's light —
+
+---
+
+## 二 · 潮候院没人到过
+
+潮候院抄本师没人到过对岸——潮候院没人去过那儿——抄本师只是看——他们不说话——他们看见光——抄本师说他们不知道那边是什么——
+
+**锚句**：潮候院抄本师没人去过那儿——他们只是看——他们看见光——他们不知道那边是什么——
+**Anchor sentence**: no copyist of the Institute had been there — they only looked — they saw the light — they did not know what it was —
+
+---
+
+## 三 · 它是什么
+
+抄本师问对岸是什么——潮候院没人能回答——抄本师问光是什么——潮候院没人能回答——抄本师问——那边是不是潮候院——光是潮候院——它自己——潮候院里有光——
+
+**锚句**：抄本师问对岸是什么——潮候院没人能回答——抄本师问光是什么——潮候院没人能回答——对岸有光——潮候院里有光——
+**Anchor sentence**: the copyists asked what the land across is — no one could answer — the copyists asked what the light is — no one could answer — the other shore has light — the Institute holds light —
+
+---
+
+## 四 · 它的形状
+
+抄本师说对岸的形状——抄本师没人看清楚——他们说它像潮候院附近的雾——它也不是——抄本师只是描述——对岸很大——它是潮候院从没见过的类型——它有斑——也有它的线——
+
+**锚句**：抄本师说对岸的形状——抄本师没人看清——他们说对岸很大——它也有斑——它有它的线——
+**Anchor sentence**: the copyists spoke of its shape — no one saw it clearly — they said it is large — it has spots — it has its lines —
+
+---
+
+## 五 · 光
+
+潮候院里每一盏灯都没有它对岸的光——抄本师说潮候院没人见过对岸的光——抄本师没人能看清它——也没有人能分辨——
+
+**锚句**：潮候院里每一盏灯都没有它对岸的光——潮候院没人见过对岸的光——
+**Anchor sentence**: no lantern of the Institute shines like the light across — no one in the Institute has seen it —
+
+---
+
+## 六 · 抄本师没人写
+
+抄本师他们回来了——抄本师他们没人写——抄本师没有记录对岸——潮候院抄本师都知道——那边有一块潮候院没人到过的陆地——它有光——潮候院没有北——潮候院没有海——
+
+**锚句**：抄本师回来了——他们没人写——潮候院抄本师都知道——那边有一块潮候院没人到过的陆地——它有光——
+**Anchor sentence**: the copyists came back — none of them wrote — they all know — there is a land across that the Institute never visited — it has light —
+
+---
+
+## 七 · Mapping（Echo No. 193 → world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the light across the sea · the unvisited land · the Institute's unknowable east | 一、三、五、六 |
+| geography | the east horizon · the ocean · the unvisited land | 一、二、三、四、六 |
+| characters | the copyists · the land (unnamed) · the sea (unnamed) | 一、二、三、四、五、六 |
+| story | the light that no one called by name · Echo No. 193 | 全篇 |
+| items | the unvisited land · the horizon · the unknown light | 一、二、三、四、五 |
+| history | After the 44th Convocation · the ninety-fourth day of the winter-tide month | 一、三、五、六、七 |
+
+> 潮候院东门抄本师第一次站海边——他朝海看——那块陆地有光——它是潮候院从未听说过的——
+> The copyists of the Institute first stood at the sea — saw the other shore — it has light — a land the Institute never knew —
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百九十三）「潮候院东门抄本师第一次站海边——他朝海看——看见潮候院从未听说过的那块陆地——它有光」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the first time the copyists stood on the shore — beyond the sea there was a land no one had ever reached — beyond the horizon was light —
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给抄本师第一次站到海边——潮候院海岛外有一块从没人到过的陆地——海上的船帆边上是光——从海的那一边——
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 44th Convocation; the ninety-fourth day of the winter-tide month.
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第九十四日。
+
+---
+
+## I · They Saw the Other Shore
+
+The copyists stood on the shore for the first time — standing at the East Gate's shore — they looked east — what they saw was no tide — they saw a land the Institute had never heard of — very far away — it has light — the light is not fire — not power — not the Institute's light — the light is their light —
+
+**锚句**：抄本师第一次站海边——他们朝东看见潮候院从未听说过的那块陆地——它有光——不是火——不是电——也不是潮候院的光——
+**Anchor sentence**: for the first time the copyists stood on the shore — they saw a land the Institute had never heard of — it has light — not fire — not power — not the Institute's light —
+
+---
+
+## II · No Copyist Has Been There
+
+No copyist of the Institute has ever been there — no one has ever gone — the copyists only looked — they did not speak — they saw the light — the copyists said they do not know what is there —
+
+**锚句**：潮候院抄本师没人去过那儿——他们只是看——他们看见光——他们不知道那边是什么——
+**Anchor sentence**: no copyist of the Institute had been there — they only looked — they saw the light — they did not know what it was —
+
+---
+
+## III · What Is It
+
+The copyists asked what the land across is — no one in the Institute could answer — the copyists asked what the light is — no one in the Institute could answer — the copyists asked — is the other shore the Institute — the light is the Institute — itself — the Institute holds light —
+
+**锚句**：抄本师问对岸是什么——潮候院没人能回答——抄本师问光是什么——潮候院没人能回答——对岸有光——潮候院里有光——
+**Anchor sentence**: the copyists asked what the land across is — no one could answer — the copyists asked what the light is — no one could answer — the other shore has light — the Institute holds light —
+
+---
+
+## IV · Its Shape
+
+The copyists spoke of its shape — none of them saw it clearly — they said it looks like the fog near the Institute — it is not — the copyists only described — the other shore is large — it is a shape the Institute has never seen — it has spots — it has its lines —
+
+**锚句**：抄本师说对岸的形状——抄本师没人看清——他们说对岸很大——它也有斑——它有它的线——
+**Anchor sentence**: the copyists spoke of its shape — no one saw it clearly — they said it is large — it has spots — it has its lines —
+
+---
+
+## V · The Light
+
+No lantern in the Institute shines like the light across — the Institute has never seen the light across — no one saw it clearly — no one could distinguish it —
+
+**锚句**：潮候院里每一盏灯都没有它对岸的光——潮候院没人见过对岸的光——
+**Anchor sentence**: no lantern of the Institute shines like the light across — no one in the Institute has seen it —
+
+---
+
+## VI · No Copyist Wrote
+
+The copyists came back — none of them wrote — they did not record the other shore — the copyists know — there is a land across — unvisited — it has light — the Institute has no north — the Institute has no sea —
+
+**锚句**：抄本师回来了——他们没人写——潮候院抄本师都知道——那边有一块潮候院没人到过的陆地——它有光——
+**Anchor sentence**: the copyists came back — none of them wrote — they all know — there is a land across that the Institute never visited — it has light —
+
+---
+
+## VII · Mapping（Echo No. 193 → world model）
+
+| Dimension | Value | Mapping |
+| --- | --- | --- |
+| lore | the light across the sea · the unvisited land · the Institute's unknowable east | I, III, V, VI |
+| geography | the east horizon · the ocean · the unvisited land | I, II, III, IV, VI |
+| characters | the copyists · the land (unnamed) · the sea (unnamed) | I, II, III, IV, V, VI |
+| story | the light that no one called by name · Echo No. 193 | Full |
+| items | the unvisited land · the horizon · the unknown light | I, II, III, IV, V |
+| history | After the 44th Convocation · the ninety-fourth day of the winter-tide month | I, III, V, VI, VII |
+
+> 潮候院东门抄本师第一次站海边——他朝海看——那块陆地有光——它是潮候院从未听说过的——
+> The copyists of the Institute first stood at the sea — saw the other shore — it has light — a land the Institute never knew —
+`,
+  },
+  {
     order: 20,
     slug: 'echo-020-the-bell-that-never-rang',
     titleZh: '潮候院钟楼里那口从不响的钟',
