@@ -7850,12 +7850,21 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - /admin/observe「趋势预测」带、「AI 深读」现在吃得到服务端外推、/bible/ask「本轮检索依据」折叠面板——双语指南逐字描述（/guide 与帮助抽屉同一份字典）
 - guide 页 SHA pin 不变 · fe-gates 151/151 · 1377/1377 · census 2998 · tsc EXIT=0
 
+## cont. 398 (2026-11-19) · §IO-IDENTITY ✓ §IO-LINKS ✓ · 个人主页两处修正 + 38 条外链全量探测 + README 私有仓标注
+
+- **IO 页错字**：227 部典籍卷 → **227/229/…… 卷典籍 · 原典……源**（去混用的量词）；minicc **提交总数**（补「数」字）——真实推送到 xiaodernan/xiaodernan.github.io master（2e581c7 → b49c562 → 2e76f7d），**CDN raw 缓存滞后**，权威源（gh api contents）已验证全部四处修复在位
+- **外链审计 38 条**：fonts.googleapis.com/fonts.gstatic.com 根 404 是预期（非页面）；**github.com 4 个私有仓全部 404**——已用 gh api 认证查证：`fagougou-desensitize`（隐盾源码，**private**）、`teedyas`/`teedyassi`/`teedy-assign`（**private 归档**）。修复：仓库卡改为演示链接 yindun.fagougou.com + 三张归档卡撤链接和 stars 徽章、标注「私有仓，不对外」
+- **Identity envelope 实测**：赵欣曈 13× · 隐盾 14× · 隐图 0 · 雅思 6.5 出现于两处 · 六级 546 · CET6 546 · 物竞铜牌/江西省一二等奖/南科大本/港中大硕/计科/法狗狗实习 全部在位
+- **README.md**（xiaodernan/xiaodernan）：同一处私有仓四连修正，commit 7c62770；身份 envelope 复验（雅思 6.5 ×4 · CET6 546 ×4 · 隐图 0）
+- **i18n 混语机检**：87 个 locale-dict 文件 en-block 含 CJK+Latin 行 = **0**
+- 说明书又补了三处新能力（趋势预测带 / AI 深读外推 / 问典检索依据）· guide pin 不变 · fe-gates 151/151 · 1377/1377
 
 ## cont. 399 (2026-11-19) — v1040 · §BIBLE-153 · Echo #153《回廊尽头永远没人猜中的谜箱》(作者手写 · verify 932/932)
 
 - 新篇：「潮候院回廊尽头那只只能猜的谜箱 · 散会夜它的谜面变了一条 · 第二天恢复原样——值更册写着「没有人猜中——也从来没有人能猜中」」—— digest 现 **240,079 chars**（13 章正典 · **153 回响** · 4 annex · 锚句 932 zh / 932 en ✓）。
 - 6 锚句双语 · gen-bible-snapshot 增 echo-153 · BibleAsk lede → 153 · /bible/ask meta → 一百五十三篇 · CACHE-IDENTITY × 153 · canon-answer-graph → 166 段 · bible-ask-behavior pin 927 · pin 重钉 page→ba4c8618 / comp→f6f41b7c · InsightCanonChat hint 同步至 153。
 - fe-gates **1377/1377** ✓ · verify:world-bible 932/932 ✓。
+- §PROOF-V1037 复测（Clash 环境）：digest 239,665 · 端到端 tokensIn=154,627 · cached=145,231 (93.9%) — 连胜两发同值。
 - §PROOF-V1037 复测（Clash 环境）：digest 239,665 · 端到端 tokensIn=154,627 · cached=145,231 (93.9%) — 连胜两发同值。
 
 ## cont. 400 (2026-11-19) — v1041 · §BIBLE-154 · Echo #154《只认工位号的账房先生》(作者手写 · verify 938/938) + §PROOF-V1038
@@ -7881,3 +7890,19 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
   - **未跑**：`storyboard-render.integration.test.ts`（真 PG+ffmpeg）——本会话 Docker Desktop 500、55433 拒连；不冒充。
 - **ADR**：本条以 `docs/adr/0086`「补记 v2」正式关闭仍欠 ①；仍欠改为 Video Studio 工作台 + 真视频 provider（本机缺件）+ `characterPortraitCount` 面板位未读。
 - ROADMAP「Video Studio（text/image/storyboard→video）」[~] 条内已加落地子句。
+## cont. 399 (2026-11-19) · §PROVIDER-DOWN ⚑ 上游已死亡 · 2026-11-19 晚
+
+- **新 key 曾完全可用**：约 06:30 实测 `/v1/ai/chat` `READY.` · `/v1/ai/chat-graph` `GRAPH-OK` · `healthz llmLive=ok`（10 次真实调用， 0 错误，平均 7.87s）
+- **约 10:00 起 provider 全灭**：直测 `POST https://api.aizzz.xyz/v1/chat/completions` 经 Clash 7897 恒返回 **HTTP 503 `model_not_found` «分组 GPT特价 下模型 gpt-6.1-terra 无可用渠道（distributor）»**（request id 202611190258… ）
+- **随后传输层也挂了**：HTTP 000 / curl 超时（30s）——网关整体不可达
+- 期间所有 LLM 相关路径（tide / ask / deep-read / stategraph probe）按纪律 fail-closed 成 DEMO/503，绝不编造（§159 如实拒绝）
+- 行动项（用户端）：登录服务商后台，检查 **分组 GPT特价**：gpt-6.1-terra 的渠道已被撤下 / 分组配额耗尽 / key 被冻。渠道恢复后**任何模型相关活立即可继续**（ai-service 重启复位即可）
+- 本轮证据：ai-service /metrics（calls=10， errors=0） · direct curl 复测 503 → 000 · Docker 仍坏（engine 500；Redis/Postgres 黑洞；ai-service 以 DEGRADED-BOOT 内存队列运行）
+
+## cont. 402 (2026-11-19 late) — §PROVIDER-DOWN 复核：我亲测 503
+
+- 本会话晚间（进合流后）`.scratch/probe-e151-clash.py` 经 Clash 7897 再测：
+  `status=503` body=`{"error":{"code":"model_not_found","message":"分组 GPT特价 下模型 gpt-6.1-terra 无可用渠道（distributor） (request id: 202611190353527738355968268d9d6PkzCvNyp)","type":"new_api_error"}}`。
+- 与并行线 cont.399 记述一致（07:30 曾真通 · 10:00 起全灭）；本会话更早的探针（tokensIn=154,891 · cached=145,483 · 93.9%）是在渠道被撤之前测得的，两者都如实留档。
+- 用户侧动作：登录服务商后台检查「分组 GPT特价」→ gpt-6.1-terra 的渠道 / 配额 / key 状态；渠道恢复后 ai-service 重启复位即可继续 LLM 车道。
+- 该事件不影响本片落地的能力面：character-to-scene 进像素是纯本地确定性推演（DEMO 标识不变）。
