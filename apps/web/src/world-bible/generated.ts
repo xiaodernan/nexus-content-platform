@@ -22485,6 +22485,180 @@ Every watcher in the chapel understands: the chapel's things have never once gon
 `,
   },
   {
+    order: 180,
+    slug: 'echo-180-the-book-of-seventeen-waits',
+    titleZh: '雾港潮候院第四十四次大会召开那天——抄本师把十七份\'等\'字装订成一本书——封面只写\'完\'',
+    titleEn: 'The Day of the 44th Convocation at Fog Harbor — the Copyists Stapled the Seventeen "wait"s Into a Book — Its Cover Reads Only "Finished"',
+    eraLineZh: '纪元：雾港 · 潮候院 · 第四十四次大会 —— 冬潮月第五十九日。',
+    eraLineEn: 'Era: Fog Harbor · the Institute · the 44th Convocation — the fifty-ninth day of the winter-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 180): The Day of the 44th Convocation at Fog Harbor — the Copyists Stapled the Seventeen "wait"s Into a Book — Its Cover Reads Only "Finished"
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院第四十四次大会召开那天——抄本师把"等"字仪式化——六十七份字——一本书——一个词——封面只写"完"。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the day of the 44th Convocation — the copyists made the character "wait" into a ritual — sixty-seven pages — one stitched book — one cover character: "finished".
+> Same discipline: anchors verbatim.
+
+> 纪元：雾港 · 潮候院 · 第四十四次大会 —— 冬潮月第五十九日。
+> Era: Fog Harbor · the Institute · the 44th Convocation — the fifty-ninth day of the winter-tide month.
+
+---
+
+## 一 · 大会召开
+
+第四十四次大会召开那天——雾港旧信物库门口第一次插满了十字港湾姓氏旗——抄本师迟到了——他们全都在抄字——他们迟到了却没被骂——守库人站在后院石板——屋脊那盏灯还亮着——它从潮退到现在还没熄——没有人问它熄不熄——
+
+**锚句**：第四十四次大会开了——十七旗插在门口——抄本师迟到——屋脊灯还亮着。
+**Anchor sentence**: the 44th Convocation opened — seventeen banners at the gate — the copyists were late — the ridge lamp never went out.
+
+---
+
+## 二 · 装订
+
+汇字的抄本师把十七张潮候院麻纸拢起来——每张上"等"字都是同一个抄本师写的——他没教别人——没有人知道是谁——他们用麻线用旧结——连成一本薄书——
+
+**锚句**：十七张写有"等"的麻纸拢成一本书——结是麻线结——连成一本薄书。
+**Anchor sentence**: seventeen linen sheets bound with one word — tied with old grass string — a single thin book.
+
+---
+
+## 三 · 封面
+
+抄本师拿到那书——想看封面——封面正中写着一个字——不是"等"——是"完"——它在潮候院从没出现过——抄本师以为那是翻过来的——正面没有——他翻——没有字——他再翻——正面是"完"——他确认他没拿错——
+
+**锚句**：封面写"完"——抄本师没见过——翻过来翻过去还是"完"——他确认他没拿错。
+**Anchor sentence**: the cover reads "finished" — the copyists had never seen it — turn it again — it is still "finished" — he checked he had it right.
+
+---
+
+## 四 · 七十一页
+
+抄本师说这本书只有十七页——每页有一个"等"——一个已经消失的岸——里面还压着一张"落"字纸——书只有一层覆皮纸——它像七十一页的一层壳——抄本师说它不是书——是壳——它的形状是七十一页的壳——
+
+**锚句**：书只有十七页——每页一个"等"——压了张"落"字纸——抄本师说它是七十一页的壳。
+**Anchor sentence**: the book has seventy-one pages — one "wait" per page — with one "landed" sheet pressed in — the copyists say it is the shell of page seventy-one.
+
+---
+
+## 五 · 抄本师的声音
+
+第四十四次大会没有给抄本师发言权——但抄本师起身——抄本师说："那本书放在屋脊下——它在那里等到潮再来。"——会议没有记录这个插话——记录员分不清字——辨不了它是不是潮——
+
+**锚句**：抄本师站起来说——那本书放在屋脊下——它等到潮再来——会议没记这个插话。
+**Anchor sentence**: the copyists stood — set the book near the ridge — it waits for the tide to come again — the convocation did not note it.
+
+---
+
+## 六 · 潮候院又没有合上
+
+抄本师说第四十四次大会开到第二日——屋脊灯没有熄——屋脊之灯落进墙上的"潮"字——在水倒满四十年后那 cup 也没满——今天抄本师决定给封面上的"完"写一页——他们没写——他们只有一句话要讲——完——
+
+**锚句**：大会开到第二日屋脊灯没熄——抄本师不决定再写——他们只有一句话要讲——完。
+**Anchor sentence**: by the second day the lamp was still lit — the copyists made no extra note — they had only one word to speak — finished.
+
+---
+
+## 七 · Mapping（Echo No. 180 → world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the book of seventeen waits · the ridge lamp's age · the word finished | 一、二、三、四、五、六 |
+| geography | the fog harbor institute · the backyard (mirror) · the ridge stone | 一、五、六 |
+| characters | the copyists · the keeper · the undefined voice | 一、二、四、五、六 |
+| story | the book that closes the wait · Echo No. 180 | 全篇 |
+| items | the book of 17 waits · the ridge stone glow · the grass-string knot | 二、三、四、六 |
+| history | the 44th Convocation · the fifty-ninth day of the winter-tide month | 一、五、六、七 |
+
+> 潮候院第四十四次大会——抄本师把十七份"等"装订成一本书——封面只写"完"。
+> The 44th Convocation — the copyists bound the seventeen "wait"s into a book — its cover reads only "finished."
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百八十）「雾港潮候院第四十四次大会召开那天——抄本师把十七份'等'字装订成一本书——封面只写'完'」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the day of the 44th Convocation — the copyists made the character "wait" into a ritual — seventeen pages — one stitched book — one cover character: "finished".
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院第四十四次大会召开那天——抄本师把"等"字仪式化——十七份字——一本书——一个词——封面只写"完"。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: Fog Harbor · the Institute · the 44th Convocation — the fifty-ninth day of the winter-tide month.
+> 纪元：雾港 · 潮候院 · 第四十四次大会 —— 冬潮月第五十九日。
+
+---
+
+## I · The Convocation Opens
+
+The day the 44th Convocation opened — the gates of the old relic room at Fog Harbor were pinned with seventeen tide-house pennants — the copyists were late — all of them were copying characters — they were not scolded — the keeper stood on the flagstone — the ridge lamp was still lit — it had not gone out since the tide withdrew — no one asked whether it would.
+
+**锚句**：第四十四次大会开了——十七旗插在门口——抄本师迟到——屋脊灯还亮着。
+**Anchor sentence**: the 44th Convocation opened — seventeen banners at the gate — the copyists were late — the ridge lamp never went out.
+
+---
+
+## II · The Stitching
+
+The copyist who gathered the characters brought seventeen linen sheets together — each sheet bore the single character "wait" — none of them taught the others — no one knows which hand it was — they tied it with grass string — a very simple knot — it was a thin book by the time they finished.
+
+**锚句**：十七张写有"等"的麻纸拢成一本书——结是麻线结——连成一本薄书。
+**Anchor sentence**: seventeen linen sheets bound with one word — tied with old grass string — a single thin book.
+
+---
+
+## III · The Cover
+
+When the copyist took the book he wanted to look at the cover — written in the center is one stroke — it is not "wait" — it is "finished" — the word has never appeared in the Institute — he thought it was upside down — the front held nothing — turn it over — still "finished" — he checked he had it right.
+
+**锚句**：封面写"完"——抄本师没见过——翻过来翻过去还是"完"——他确认他没拿错。
+**Anchor sentence**: the cover reads "finished" — the copyists had never seen it — turn it again — it is still "finished" — he checked he had it right.
+
+---
+
+## IV · Page Seventy-One
+
+The copyists say this book has only seventeen pages — one "wait" per page — the shore that no longer exists — beneath the binding lies one "landed" sheet — the whole book is but a single linen cover — it is a shell of page seventy-one — the copyists say it is not a book — it is a shell — its shape is the shell of page seventy-one.
+
+**锚句**：书只有十七页——每页一个"等"——压了张"落"字纸——抄本师说它是七十一页的壳。
+**Anchor sentence**: the book has seventeen pages — one "wait" per page — with one "landed" sheet pressed in — the copyists say it is the shell of page seventy-one.
+
+---
+
+## V · The Copyists Speak
+
+The 44th Convocation did not grant the copyists a voice — but one copyist stood — he said: "let the book rest under the ridge — let it wait for the tide to come again." — the convocation recorded nothing of it — the clerk cannot distinguish the characters — and does not know whether they are tide.
+
+**锚句**：抄本师站起来说——那本书放在屋脊下——它等到潮再来——会议没记这个插话。
+**Anchor sentence**: the copyists stood — set the book near the ridge — it waits for the tide to come again — the convocation did not note it.
+
+---
+
+## VI · The Institute Does Not Close
+
+The 44th Convocation runs into its second day — the ridge lamp has not gone out — its glow has sunk into the "tide" on the outer wall — the water cup still unfilled — the copyists weighed whether to append one page to the cover — they wrote none — there was only one word left to say — finished.
+
+**锚句**：大会开到第二日屋脊灯没熄——抄本师不决定再写——他们只有一句话要讲——完。
+**Anchor sentence**: by the second day the lamp was still lit — the copyists made no extra note — they had only one word to speak — finished.
+
+---
+
+## VII · Mapping（Echo No. 180 → world model）
+
+| Dimension | Value | Mapping |
+| --- | --- | --- |
+| lore | the book of seventeen waits · the ridge lamp's age · the word finished | I, II, III, IV, V, VI |
+| geography | the fog harbor institute · the backyard (mirror) · the ridge stone | I, V, VI |
+| characters | the copyists · the keeper · the undefined voice | I, II, IV, V, VI |
+| story | the book that closes the wait · Echo No. 180 | Full |
+| items | the book of 17 waits · the ridge stone glow · the grass-string knot | II, III, IV, VI |
+| history | the 44th Convocation · the fifty-ninth day of the winter-tide month | I, V, VI, VII |
+
+> 潮候院第四十四次大会——抄本师把十七份"等"装订成一本书——封面只写"完"。
+> The 44th Convocation — the copyists bound the seventeen "wait"s into a book — its cover reads only "finished."
+`,
+  },
+  {
     order: 19,
     slug: 'echo-019-the-copyists-of-the-back-alley',
     titleZh: '里巷子的抄本员',

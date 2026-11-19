@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 179 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 180 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3267,6 +3267,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 祠殿堂里没有哪一个人喂过这只猫——它吃的是潮候院留下的碎片。
 - [4] 潮候院从来没把这只猫定为标志——它的存在不是任何人解释潮汐的方法。
 - [5] 祠殿堂里的值守心里都知道——它不偷东西，它只是在。
+
+### Echo 180 · 雾港潮候院第四十四次大会召开那天——抄本师把十七份'等'字装订成一本书——封面只写'完' / The Day of the 44th Convocation at Fog Harbor — the Copyists Stapled the Seventeen "wait"s Into a Book — Its Cover Reads Only "Finished"
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 第四十四次大会开了——十七旗插在门口——抄本师迟到——屋脊灯还亮着。
+- [2] 十七张写有"等"的麻纸拢成一本书——结是麻线结——连成一本薄书。
+- [3] 封面写"完"——抄本师没见过——翻过来翻过去还是"完"——他确认他没拿错。
+- [4] 书只有十七页——每页一个"等"——压了张"落"字纸——抄本师说它是七十一页的壳。
+- [5] 抄本师站起来说——那本书放在屋脊下——它等到潮再来——会议没记这个插话。
+- [6] 大会开到第二日屋脊灯没熄——抄本师不决定再写——他们只有一句话要讲——完。
 
 ### Echo 19 · 里巷子的抄本员 / The Copyists of the Back Alley
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
