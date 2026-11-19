@@ -8360,3 +8360,13 @@ Reported upstream to `docs/evidence/liveness-sweep-2026-11-19.md`（cont.429 对
 - relaunch detached shim 54104 → worker 56968（uv 3.11.15）· `/healthz 200` · capability real · llm gpt-6.2-sol — **ai-service 恢复运行**
 - **纪律检查**：如果某个并行进程继续把 `C:\Program Files\Python311\python.exe` 删/恢复，不会再影响 ai-service；它现在不再依赖那个路径
 - **本轮 IO**: oracle-strip 已升至 v1063（E176 铜锚开口, fact-num 176），identity-guard exit 0 — digest E177 推入库后下一个 cron 将采纳 v1064 候选（E177 位），公共展示页自然会刷新
+
+## cont. 446 (2026-11-19) — venv 失效事故闭环；E177 并轨 merge 稳定
+
+- **:3200 ai-service 不再依赖 C:\Program Files\Python311\python.exe**（本轮发现该二进制曾消失一段时间——日志中 python.exe 被删除；venv shim 报 "No Python at '…Python311\python.exe'"）
+- 修复（全程不停服务）：uv 下载 cpython-3.11.15 → `uv venv apps/ai-service/.venv --python 3.11.15 --managed-python` → `uv pip install -r requirements.txt` 全部安装（uvicorn 0.34 / fastapi 0.115.6 / httpx 0.28.1 / langgraph 1.2.22 成功开）
+- 新 venv pyvenv.cfg home = `C:\Users\18414\AppData\Roaming\uv\python\cpython-3.11.15-windows-x86_64-none` · include-system-site-packages=false · pydantic_core cp311 win_amd64.pyd 原样可导入（版本吻合）
+- 上一轮陈旧 venv bak 留作 `.venv.bak-20261119-venv311` **gitignored**（`apps/ai-service/.gitignore` 加 `.venv.bak-*/`）
+- 并轨 guideCopy.ts（§guide 简明说明书）：parallel line 落地 #176（1068 句锚句文案）→ 本轮 E177 digest 已是 #177：`guideCopy.ts` 锚句 1068→1074；`Showcase latest.json` 并发行在 `4031b126/ba26c63d` 指针快照里与 digest #176 同步
+- **本轮并轨排障**：两次 non-fast-forward（parallel line 风声）一次合入（ORT, 无 conflict）= `d0c36f20 → 498ab5cd`
+- 简述 push 史：`8f60178c feat(§BIBLE-177)` · `58686f64 docs(§guide) 1068→1074` · `498ab5cd merge` — 全部已推到 `main -> main`； E177 digest `30e1f524…` 在 serving 进程内（uvicorn detached shim 54104 → worker 56968）
