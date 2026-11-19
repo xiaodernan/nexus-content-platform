@@ -6303,3 +6303,33 @@
   .tw-pip, .tw-pipOn { border-color: CanvasText; background: CanvasText; }
 }
 
+
+/* ── §DAILY-1 /daily 今日潮候 视觉层（镜像 §CDG-1 的形态：卡片 + 强调边） ── */
+.dle-page { min-height: 100dvh; padding: var(--nexus-space-6) clamp(var(--nexus-space-4), 5vw, var(--nexus-space-8)); background: var(--nexus-color-bg-0); color: var(--nexus-color-fg-1); display: flex; align-items: flex-start; justify-content: center; }
+.dle-root { display: flex; flex-direction: column; gap: var(--nexus-space-3); max-width: 46rem; width: 100%; margin-top: var(--nexus-space-5); padding: var(--nexus-space-5) var(--nexus-space-6); background: var(--nexus-color-bg-2); border: 1px solid var(--nexus-color-border); border-left: 3px solid var(--nexus-color-accent-2); border-radius: 12px; }
+.dle-kicker { margin: 0; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.24em; text-transform: uppercase; color: var(--nexus-color-accent-2-ink); display: flex; align-items: center; gap: var(--nexus-space-2); flex-wrap: wrap; }
+.dle-title { margin: 0; font-size: var(--nexus-font-size-24); font-weight: 750; letter-spacing: -0.02em; line-height: 1.2; color: var(--nexus-color-fg-1); }
+.dle-lede { margin: 0; font-size: var(--nexus-font-size-13); line-height: 1.75; color: var(--nexus-color-fg-2); max-width: 40rem; }
+.dle-leafTitle { margin: var(--nexus-space-1) 0 0; font-size: var(--nexus-font-size-18); line-height: 1.4; color: var(--nexus-color-fg-1); font-weight: 700; }
+.dle-leafTag { display: inline-block; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-10); letter-spacing: 0.1em; color: var(--nexus-color-accent-2-ink); border: 1px solid var(--nexus-color-accent-2); border-radius: 999px; padding: 1px 0.5rem; margin-right: var(--nexus-space-2); vertical-align: 2px; }
+.dle-digest { display: flex; flex-direction: column; gap: var(--nexus-space-2); margin-top: var(--nexus-space-1); }
+.dle-line { margin: 0; font-size: var(--nexus-font-size-13); line-height: 1.75; color: var(--nexus-color-fg-1); }
+.dle-ponder { margin: var(--nexus-space-2) 0 0; padding: var(--nexus-space-3); background: var(--nexus-color-bg-1); border: 1px solid var(--nexus-color-border-subtle); border-radius: 8px; color: var(--nexus-color-fg-1); font-size: var(--nexus-font-size-13); line-height: 1.6; }
+.dle-ponderTag { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-10); letter-spacing: 0.14em; color: var(--nexus-color-accent-2-ink); display: block; margin-bottom: 0.25rem; }
+.dle-ponderText { }
+.dle-footRow { display: flex; justify-content: space-between; align-items: center; gap: var(--nexus-space-3); flex-wrap: wrap; border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-2); }
+.dle-meta { margin: 0; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+.dle-row { display: flex; gap: var(--nexus-space-2); flex-wrap: wrap; }
+.dle-button { font: inherit; cursor: pointer; font-size: var(--nexus-font-size-12); padding: var(--nexus-space-2) var(--nexus-space-4); border-radius: 999px; border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-1); transition: border-color 140ms, color 140ms; }
+.dle-button:hover { border-color: var(--nexus-color-accent-2-ink); color: var(--nexus-color-accent-2-ink); }
+.dle-button:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+.dle-buttonPrimary { border-color: var(--nexus-color-accent-2-ink); color: var(--nexus-color-accent-2-ink); font-weight: 650; }
+.dle-loading { margin: 0; font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-2); }
+.dle-error { margin: 0; font-size: var(--nexus-font-size-13); color: var(--nexus-color-danger); border-left: 3px solid var(--nexus-color-danger); padding-left: var(--nexus-space-3); line-height: 1.6; }
+.dle-dismiss { font: inherit; cursor: pointer; font-size: var(--nexus-font-size-12); padding: var(--nexus-space-2) var(--nexus-space-3); background: transparent; border: none; color: var(--nexus-color-fg-3); text-decoration: underline; text-underline-offset: 3px; }
+.dle-dismiss:hover { color: var(--nexus-color-accent-2-ink); }
+@media (forced-colors: active) {
+  .dle-root, .dle-button, .dle-buttonPrimary { border: 1px solid CanvasText; background: Canvas; color: CanvasText; }
+  .dle-kicker, .dle-title, .dle-lede, .dle-leafTitle, .dle-line, .dle-ponder, .dle-ponderText, .dle-meta, .dle-leafTag { color: CanvasText; }
+  .dle-button:focus-visible, .dle-dismiss:focus-visible { outline: 2px solid Highlight; }
+}
