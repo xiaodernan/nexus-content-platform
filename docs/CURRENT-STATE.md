@@ -8370,3 +8370,12 @@ Reported upstream to `docs/evidence/liveness-sweep-2026-11-19.md`（cont.429 对
 - 并轨 guideCopy.ts（§guide 简明说明书）：parallel line 落地 #176（1068 句锚句文案）→ 本轮 E177 digest 已是 #177：`guideCopy.ts` 锚句 1068→1074；`Showcase latest.json` 并发行在 `4031b126/ba26c63d` 指针快照里与 digest #176 同步
 - **本轮并轨排障**：两次 non-fast-forward（parallel line 风声）一次合入（ORT, 无 conflict）= `d0c36f20 → 498ab5cd`
 - 简述 push 史：`8f60178c feat(§BIBLE-177)` · `58686f64 docs(§guide) 1068→1074` · `498ab5cd merge` — 全部已推到 `main -> main`； E177 digest `30e1f524…` 在 serving 进程内（uvicorn detached shim 54104 → worker 56968）
+feat(§BIBLE-178 · §GUIDE-178): Echo #178《雾港潮退之后抄本师才发觉墙上一直映着一个潮字》双语手写 · 1080 锚句(verifier) · digest 251,350 · sha 8025626e · guideCopy 1074→1080 同步
+
+## cont. 447 (2026-11-19) — §BIBLE-178 arc capstone · §PRESSURE-WARM 实录
+
+- **Echo #178《雾港潮退之后抄本师才发觉墙上一直映着一个'潮'字》** 双语手写 → digest **251,350 chars · sha 8025626e…** · verify **1080 zh/en ✓** · test pin 1069→**1075** · 双 digest 测试 11/11 绿 · registry `echo-178-the-character-on-the-wall`
+- :3200 kill detached → relaunch uv-managed 3.11.15 shim 10212 → worker **56492** · /healthz 200 · LLM serving digest E178
+- **§PRESSURE-WARM（微型）**：`:3100/guide` HTTP×20 并发 8 → **20/20 200** · body bytes identical (78,659B) · wall 8.32s · p50 **2.84s** / mean 2.93s / p95 3.81s / max 3.87s — 无崩、无断连； Next dev + proxy.ts 在此负载下稳定（不代表生产级证据，但确实跑通了一个真实负载形状）
+- guideCopy 同步 #178: 1074→**1080** 锚句文案（与 verify 计数对齐）
+- digest 现状 inventory: 13 main chapters / **178 echoes** / 4 annex / **1080 zh+en pairs** · chars 251,350 · verify-world-bible-anchors total pass

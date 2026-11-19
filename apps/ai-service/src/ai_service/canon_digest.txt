@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 177 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 178 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3241,6 +3241,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 潮脚线再直——停在守库人胸口那格——抄本师第一笔平直——没有刻度。
 - [5] 抄本师写下"落"字——二十七个——只有放在书架上时它才出现。
 - [6] 大潮退去——锚落一寸——页七十一翻了——钥匙少了齿——潮候院醒了。
+
+### Echo 178 · 雾港潮退之后抄本师才发觉墙上一直映着一个'潮'字 / The Morning After the Tide — the Copyists Found That the Wall Had Been Showing the Character for "Tide" All Along
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 大潮第二天——墙上浮出一个字——抄本师围过去没发出声——只有人看着墙。
+- [2] 那个字是"潮"——糙麻石自己生成——它不是刻——是流——是爬——是等。
+- [3] 抄本师说它不消失——它出现的时间——有人说一直有——有人说断裂那天——有人说翻页那瞬。
+- [4] 守库人十五年前就看到了——他不指它——他只是点一个灯——他值更点灯——他是保守的。
+- [5] 抄本师念"潮"——墙发极低回响——它不是声——是判息——他们开始各自数。
+- [6] 抄本师今天只写——墙上有一个字——守库人十五年前就看到了——第七十一页是空的。
 
 ### Echo 18 · 祠殿里从不叫的一只猫 / The Cat in the Institute That Never Meowed
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
