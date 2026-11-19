@@ -8511,3 +8511,17 @@ feat(§BIBLE-193 · §GUIDE-193): Echo #193《潮候院东门抄本师第一次�
 - **当前外链图片只剩**：CI badges 2 枚（github.com）+ banner.svg（本地）+ languages-2026-11-19.svg（本地）+ stats-contrib.svg（本地）+ badge-* 7 枚（本地）。`shields.io` 引用 = 0
 - **远程采纳状态**：push 后 camo 缓存约 5 分钟内过期即显新徽章（新文件名 badge-*.svg，首次展示即正确）；不需要 dispatch、不需要 CDN 烫刷
 - **诚实欠条**：未逐一像素核对（profile 页面在用户浏览器渲染；本会话纯文件与字节对账）；CI 两个徽章若用户网络拦 github.com 仍显示坏图（那是 GitHub camo 可达性问题，仅靠本仓库不能绕过）；语言卡数值未改（早已是真实字节派生）
+
+
+## cont. 457 (2026-11-20 凌晨) — E201《抄本院最深处的石柱 · 四十二道》 · 头像+徽章实测落地 · IO v1087
+
+- **Echo #201**《潮候院抄本院最深处的那根石柱抄本师第一次数它四十二道》双语 · 6 anchor byte-identical ✓ · digest **264,131 chars · sha e0439762** · verifier **1218 zh/en ✓** · test pin 1207→**1213** · 双 digest suites **12/12 绿** · :3200 detached relaunch · healthz 200 · **digest inventory: 13 主线 · 201 回响 · 1218 anchor pairs · 264,131 chars**
+- **commit `b3cf18d9` → main `b3cf18d9`** · guideCopy 1218/201（二百零一回响 · two hundred one echoes）· IO **v1087**（master `22370c0`：来源 index.html 与 football Item 同并轨） · identity-guard exit 0 ✓
+- **profile README 生产采纳验证**：七枚 for-the-badge 已换仓库内联静态 SVG（`xiaodernan/xiaodernan` main `7d6b406`，raw CDN 200 回验 7/7：`badge-*.svg` 473–637 bytes，`role=img`，`text-anchor=middle`）· camo 采纳间隔 ~5 分钟
+- **IO 页头像/语言修复**：profile-portrait.png 已做成暖纸立相框（`b07ad24`）；Languages 全是真值（31.91/24.87/19.45/12.42/8.93/1.52/0.40/0.29/0.22），NaN 从未存在于当前源码与任何部署 artifacts；报告的中文/英文 lang-bars 现在都渲染真值
+- **22 枚 img.shields.io repo 卡星标徽章**：global `error` handler → `display:none`，卡保留文字条目；Pages CI 最近 4 次 run 全部 success（specproof redeploy v7 自动并轨采纳）
+- **Wheel direction 五事实**：应用里仅 Studio 画布自定义滚轮 · 默认 `dir=-1` = 网页惯例（上滚看上面）· 机器级翻转可 localStorage 切换 · IO/页面原生 scroll · 无任何劫持
+- **并行线同期**：`§LOAD-2` 实测 5/200 OK steady → burst 全超时（16s freeMB≈374 → kill 回 1,021 MB），FE-C4-like traffic 的精确头发=客户端 20s 超时非 5xx。生产 CDN preview 必须 ≥2 GB RAM 前置被直接写进证据；`§STRESS-3` pgbench TPS 5,694–9,108 · 网关撞库 Lua 6/6
+- **Pages CDN 采纳仍按 3h cron 自采纳（v1086→v1087），未 dispatch**；用户的 PATs 与 6.2 Sol token 全数未落盘、未 commit、未进版本控制（全部经环境/即用即弃）
+- **世界大典 E190–E201 inventory**：海弧×12 + 麻布弧×4（E197–200）+ 石柱（E201）= 13 章 + 201 回响 = 214 出版物锚点链；潮候院 Arc 从「京御潮候院」→「麻布 → 百日摩挲 → 最深处石柱」— 抄本院自己终于数了它能数清的最老一笔
+- **诚实欠条**：HTTP 层压力证明在 feMBA 低位确只是 5/200 —— §十一 的"高并发撑住"**在当前 RAM 下没有**得证，需要 ≥2 GB 空闲窗口为前提；本 lane 仍未独跑 full fe-gates；KV cold miss 窗 4.76% 未补偿；profile README 桌面像素核对为用户浏览器端动作，纯字节与计数对账已关闭
