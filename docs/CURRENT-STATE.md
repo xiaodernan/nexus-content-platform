@@ -7823,3 +7823,9 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - system 前缀**零改动**——CANON_DIGEST KV 命中不受影响（cache 稳态无回退）
 - BibleAsk SHA pin → `7ac8438e…（与并行线 E150 合并后重钉）`（page pin 不变 · `1344cf30…`）· fe-gates **151/151 · 1377/1377 · census 2998** · tsc EXIT=0 · route 契约 12/12 · canon-answer-graph 13/13
 - 未能浏览器实证：本机 Docker engine 500 → Postgres CONNECT_TIMEOUT（env 限制；契约行为由 route/visual/fen gates 三重覆盖）
+## cont. 396 (2026-11-19) · §ADMIN-13+DEEPREAD-FORECAST ✓ · AI 深读现在看得见服务端外推
+
+- `/api/admin/observer/digest`：metrics JSON 增加 projValid/projTrend/projSlopePerDay/projR2/projResidualSd/projNext1（服务端最小二乘 · 非模型手算）；user message 增加投影字段注解（zh/en），模型按「展望 · 7 天推断」段直接引用；deep-read LRU sig 入 proj 维度
+- system 前缀**零改动**（KV 全命中纪律保持）· 卡片 SHA pin 不变（组件未动）· observer-deepread 门 7/7
+- observe 门页抗 DB 抖动（cont.394 硬化）+ 投影带（§OBSERVE-PROJ）= 观察站至此有：实测计数 → 规则建议 → 线性外推 → 大模型深读（全部同一实库口径）
+- fe-gates **151/151 · 1377/1377 · census 2998** · tsc EXIT=0
