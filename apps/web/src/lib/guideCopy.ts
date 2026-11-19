@@ -282,6 +282,16 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         ],
       },
       {
+        heading: '⑬ Canvas keyboard/mouse cheat sheet (2026-11-20 addition)',
+        body: [
+          'Wheel (page convention by default, 2026-11-20 correction): wheel up = look up, wheel down = look down. If your mouse/OS reports the delta flipped, the top «Wheel» button switches it to inverted — and back.',
+          'Right-button drag pans the canvas (middle button or Space also pan); Shift + wheel pans horizontally; Ctrl + wheel anchors-zoom, 0.1×–4×.',
+          'Top «Fit window» button (Shift+1): fits the whole document into the viewport.',
+          'Ctrl+G toggles the alignment grid; arrows nudge 1 px, Shift+arrows 8 px, Delete removes the selection.',
+          'Every panel has a title bar; the top bar has «+ New page»; the panels’ search boxes (Ctrl+F) search by name.',
+        ],
+      },
+      {
         heading: '⑫ Ask the Canon — how the answer is actually produced',
         body: [
           '“Ask the Canon” (/bible/ask) is not “throw the prompt at the model and hope”. It runs a StateGraph chain: a short prompt extracts retrieval terms (analyze — no 32k-token digest fired yet); pure-algorithm char-bigram Jaccard hits the digest blocks (retrieve — the model is not called for this step, 0 tokens); then the model answers with the full canon digest plus the matched passage as evidence (draft); then a mechanical verifier rejects empty answers / invented chapters or echoes / non-existent anchor refs (verify) — fail the gate, one revise round, and if it still fails the UI shows it failed honestly. After the answer arrives, the collapsible “Retrieval evidence” panel lays the matched top-3 passages out verbatim — which passages pinned the model, for the reader to see, not trust.',
@@ -289,6 +299,16 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           'StateGraph is a first-class orchestration primitive in this repo’s own agent runtime (@nexus/agent-runtime, ADR-0270/0275) — nodes, state, and conditional edges, the same “state + graph” model LangGraph popularized, driving the real chain you see.',
           'A passed quiz is that; an unanswered canon question is also “the canon does not hold this — the canon itself says so”. No model is allowed to bluff the canon.',
           'The draft system prompt is a byte-stable digest of the thirteen canonical chapters + the echo anchors — the whole prefix is reused, so cache hits stay around 90%+ (see /admin/ai-cache for the live read; the ledger-average reads lower precisely because short non-digest calls dominate the count).',
+        ],
+      },
+      {
+        heading: '⑬ Canvas keyboard/mouse cheat sheet (2026-11-20 addition)',
+        body: [
+          '滚轮（默认网页惯例，2026-11-20 修正）：往上滚往上看、往下滚往下看。如果自己手里的鼠标/系统方向反了，顶区「滚轮」按钮把它切到反转，之后再切回来。',
+          '右键拖拽移动视口（中键或空格拖拽）；Shift + 滚轮横向滚动；Ctrl + 滚轮按住边框为锚点缩放，最大 4× 最小 0.1×。',
+          '顶区「适应窗口」按钮（Shift+1）：把文档整个放进视口——缩放仍在 0.1–4 倍闸内，画布会居中。',
+          'Ctrl+G 显示/隐藏对齐网格；方向键微移 1px，Shift+方向键 8px，Delete 删选中。',
+          '每个面板上都有标题栏；顶栏「+ 新建页」快速加页；面板里的搜索框（Ctrl+F）搜组件名。',
         ],
       },
     ],
