@@ -7924,3 +7924,12 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 两层缓存分别：provider prompt KV `reportedHitRate=0.9448` (8 报全覆盖)；app Redis completion cache 第一次完整命中（`hits=4`，命中 `(model, system, user)` 完整键，命中 4/8 累计）
 
 **缓存命中率问题彻底闭环**：你贴的 25-question prompts probe / 16 路并发 storm 那次的证据 (`docs/evidence/cache-stability-2026-11-19.md`) **没作废**——数据稳定，report 没有伪造；Docker 宕机时只是把 appCache 写死成 fail-open。
+
+## cont. 407 (2026-11-19 / Docker 恢复后) — §SB-CHAR-SCENE-E2E · character-to-scene 肖像链真库真 ffmpeg 15/15 + 真实 latent bug 修
+
+- **Docker Desktop 恢复**（careeros/football_os 等已健康运行，`nexus-redis` Up + `nexus-postgres-alt` Up 于 5443）——本会话所有 integration 套件恢复绿。
+- **storyboard-render.integration.test.ts +3 新测**（真 PG + 真 ffmpeg + 真色读数）：
+  ① 有肖像 → 进像素（画面≈肖像 0x3050A0，出处 token=`character-portrait`，归属去重 refReads=[portrait]，任务行 input `characterPortraitCount=2`）；② 没肖像 → 不冒充，全渲色卡 + 缺肖像点名；③ gen_meta 无 `characterPortrait` 的"场景截图"不冒充肖像 → 仍渲色卡。测试按 `assets.character_id + genMeta.characterPortrait` 真值挑肖像（同一逻辑）。
+- **真实 latent bug 修**：`safeProfile`（knowledge.ts）只查 `Array.isArray(profile.goals)`，老行少 identity/style/clothing/traits 这几个默认列 → `chunksFromCharacter` 在 `profile.traits.join(...)` 崩，**整个项目 knowledge 索引一起炸**。改为 `CharacterProfileSchema.safeParse`（与写入口同一契约，zod 给默认填回）；非此行者仍跳过、不炸整库。
+- **integration 全绿恢复纪录**：storyboard-render 18/18 · storyboards+import+video-asset 26/26 · storyboard-render-route+build-status 13/13 · social 10/10。
+- **如实**：在这次之前（cont.401）本链路只有模型层纯函数单测，真库真 ffmpeg 没见过——现在见证了。`NEXUS_DATABASE_URL` 本机默认是 55433 但本机容器映射 5443，所以跑测试临时注入 `postgres://nexus:nexus_dev_only@localhost:5443/nexus`。

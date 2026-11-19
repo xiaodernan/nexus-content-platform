@@ -8,6 +8,7 @@ import { GAME_ENTITY_LABELS, GAME_KIND_LABELS, type GameDocument } from '@nexus/
 import { walk, type DesignDocument } from '@nexus/creative-model';
 import { getEmbeddingProvider } from '../ai/embedding';
 import { VectorStore } from '../ai/vector-store';
+import { CharacterProfileSchema } from '@nexus/schemas';
 
 /**
  * §49 RAG 的语料与检索。这一层只做**不需要模型**的那一半：
@@ -549,8 +550,11 @@ function safeWorld(value: unknown): WorldDocument | null {
 }
 
 function safeProfile(value: unknown): CharacterProfile | null {
-  const profile = value as CharacterProfile | null;
-  return profile && typeof profile === 'object' && Array.isArray(profile.goals) ? profile : null;
+  // 与写入口（createCharacter / 角色面板）过同一份 zod 契约：写时过、读时没过——
+  // 缺 identity/style/clothing/traits 这几栏默认列的老行在 zod 会被填回默认，不会崩；
+  // 读出来的就是写进去的，跳过条件仍然是"解析不过"。
+  const parsed = CharacterProfileSchema.safeParse(value);
+  return parsed.success ? (parsed.data as unknown as CharacterProfile) : null;
 }
 
 /** 读不出来的那一份不毁掉整个索引：与 safeWorld / safeProfile 同一口径，跳过并在统计里少一块 */

@@ -11,7 +11,7 @@ import { listProjectAssets, openAssetFile, uploadImageAsset } from '../src/serve
 import { adjustCredits, readCredits } from '../src/server/domain/credit-ledger';
 import { createProject } from '../src/server/domain/projects';
 import { getDb } from '../src/server/db/client';
-import { agentTasks, assets, creditLedger, projects, users } from '../src/server/db/schema';
+import { agentTasks, assets, characters, creditLedger, projects, users } from '../src/server/db/schema';
 import { listStoryboardRenders, renderStoryboardDemo } from '../src/server/domain/storyboard-render';
 import { loadStoryboard, saveStoryboard } from '../src/server/domain/storyboards';
 import { resetStorageForTests } from '../src/server/storage/config';
@@ -135,6 +135,63 @@ function boardFromSource(id: string, arrow: 'image-to-video' | 'text-to-video', 
     shots: [
       { id: 'shot-src-a', prompt: '猫走进画面', durationMs: 1200, camera: 'medium', transition: 'cut' },
       { id: 'shot-src-b', prompt: '猫抬头看灯', durationMs: 1200, camera: 'wide', transition: 'cut' },
+    ],
+    notes: [],
+  };
+}
+
+/**
+ * character-to-scene 肖像（三个条件全真）：web 层按 `assets.character_id` + `genMeta.characterPortrait`
+ * 解析肖像 → 递进 `planVideoRender` → 进像素，出处标 `character-portrait`。肖像纯色 0x3050A0：
+ * 色读数与整片那张 0x406080 不一样，照此归因「这一帧是肖像，不是别的来源」。
+ */
+async function uploadPortrait(projectId: string, characterId: string): Promise<string> {
+  const png = join(dir, `portrait-${Date.now()}.png`);
+  await run('ffmpeg', ['-y', '-f', 'lavfi', '-i', 'color=c=0x3050A0:s=64x36:d=1', '-frames:v', '1', png], {
+    timeout: 60_000,
+  });
+  const uploaded = await uploadImageAsset(projectId, {
+    data: new Uint8Array(await readFile(png)),
+    filename: 'portrait.png',
+    createdById: ownerId,
+    genMeta: { characterPortrait: true },
+    characterId,
+  });
+  if (!uploaded.ok) throw new Error(`肖像上传失败：${uploaded.reason}`);
+  return uploaded.asset.id;
+}
+
+/** 给本项目造一位角色（returns its id）：saveStoryboard 验归属，character 不真实就判不合；
+ *  而且 listCharacters 要 profile 合契约才把角色计入项目里，裸插 `name` 的行按"读不出"处理、等于没有这位角色 */
+async function newCharacter(projectId: string, name: string): Promise<string> {
+  const profile = {
+    name,
+    appearance: '灰的，外套上沾盐潮',
+    personality: '少说，海边长大',
+    backstory: '在潮候院那座岛边长大的抄本师',
+    goals: ['看潮退'],
+    fears: ['盐灯熄了'],
+    relationships: [],
+    voice: { register: '短句', pace: '慢', catchphrases: ['嗯。'], notes: '' },
+    visualIdentity: { palette: ['#3050A0'], silhouette: '方', motifs: ['潮'], referenceAssetId: null },
+  };
+  const [row] = await getDb()
+    .insert(characters)
+    .values({ projectId, ownerId, name, profile })
+    .returning({ id: characters.id });
+  if (!row) throw new Error('角色插入失败');
+  return row.id;
+}
+
+/** 角色箭头分镜：每镜都不挂图，肖像全靠 web 层按 characterId 找 */
+function boardFromCharacter(id: string, characterId: string): Storyboard {
+  return {
+    id,
+    title: '角色肖像进像素的分镜',
+    source: { arrow: 'character-to-scene', prompt: '角色肖像进画面', characterId },
+    shots: [
+      { id: 'shot-char-a', prompt: '角色走进画面', durationMs: 1200, camera: 'medium', transition: 'cut', characterId },
+      { id: 'shot-char-b', prompt: '角色抬头看灯', durationMs: 1200, camera: 'wide', transition: 'cut', characterId },
     ],
     notes: [],
   };
@@ -478,6 +535,96 @@ describe('renderStoryboardDemo —— §40 最后一格：分镜真的渲出来�
     expect(result.message).toContain(refAssetId);
     // 归属门第一次就没过，不该因为"后面还有 11 镜也指向它"就多撞几遍
     expect(refReads).toEqual([refAssetId]);
+  });
+
+  it('character-to-scene：有肖像 → 进像素（0x3050A0），出处 token 标 character-portrait，任务 input 记 characterPortraitCount=2', async () => {
+    const projectId = await newProject('Render Character Portrait');
+    const characterId = await newCharacter(projectId, `隐盾-测试-0`);
+    const portraitId = await uploadPortrait(projectId, characterId);
+    const saved = await saveStoryboard(projectId, ownerId, { document: boardFromCharacter('sb-char-src', characterId) });
+    if (!saved.ok) throw new Error(saved.reason);
+
+    await ensureVideoCredits(ownerId, 10);
+    refReads.length = 0;
+    const result = await renderStoryboardDemo({ projectId, userId: ownerId, fontFile: FONT });
+    expect(result.ok, result.ok ? '' : result.message).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.notes.join('')).toContain('角色进像素了');
+    // 肖像是 web 层解析出来的整片那一格：每镜自己没挂图，画面来自肖像（不是色卡）
+    expect(result.segments).toEqual([
+      { index: 0, shotId: 'shot-char-a', frame: 'character-portrait' },
+      { index: 1, shotId: 'shot-char-b', frame: 'character-portrait' },
+    ]);
+    // web 层只读这一张肖像（按 assetId 去重）：肖像是整片的，不是每镜各一张
+    expect(refReads).toEqual([portraitId]);
+
+    // 画面就是肖像（0x3050A0），不是色卡里的深色哈希——与整片那张的 0x406080 区分得开
+    for (const atSec of [0.6, 1.8]) {
+      const rgb = await sampleFrameColor(result.asset.id, atSec);
+      expect(closeTo(rgb, [48, 80, 160]), `第 ${atSec}s 帧应≈肖像的 0x3050A0，实读 rgb(${rgb.join(',')})`).toBe(true);
+    }
+
+    const [taskRow] = await getDb().select().from(agentTasks).where(eq(agentTasks.id, result.taskId));
+    expect((taskRow!.input as Record<string, unknown>).characterPortraitCount).toBe(2);
+  });
+
+  it('character-to-scene：没肖像 → 不冒充，全渲色卡并把缺肖像那位点名', async () => {
+    const projectId = await newProject('Render Character No Portrait');
+    const characterId = await newCharacter(projectId, `隐盾-测试-1`);
+    const saved = await saveStoryboard(projectId, ownerId, { document: boardFromCharacter('sb-char-no', characterId) });
+    if (!saved.ok) throw new Error(saved.reason);
+
+    await ensureVideoCredits(ownerId, 10);
+    const result = await renderStoryboardDemo({ projectId, userId: ownerId, fontFile: FONT });
+    expect(result.ok, result.ok ? '' : result.message).toBe(true);
+    if (!result.ok) return;
+
+    const notes = result.notes.join('');
+    expect(notes).toContain('没有肖像可递进来');
+    expect(result.segments).toEqual([
+      { index: 0, shotId: 'shot-char-a', frame: 'card' },
+      { index: 1, shotId: 'shot-char-b', frame: 'card' },
+    ]);
+
+    // 无肖像应渲色卡：读不出 0x3050A0（肖像的色）
+    for (const atSec of [0.6, 1.8]) {
+      const rgb = await sampleFrameColor(result.asset.id, atSec);
+      expect(closeTo(rgb, [48, 80, 160]), `无肖像应渲色卡，不该读到 0x3050A0，实读 rgb(${rgb.join(',')})`).toBe(false);
+    }
+
+    const [taskRow] = await getDb().select().from(agentTasks).where(eq(agentTasks.id, result.taskId));
+    expect((taskRow!.input as Record<string, unknown>).characterPortraitCount).toBe(0);
+  });
+
+  it('character-to-scene：gen_meta 无 characterPortrait 的场景截图不冒充肖像，仍渲色卡', async () => {
+    const projectId = await newProject('Render Character Scene Dump');
+    const characterId = await newCharacter(projectId, `隐盾-测试-2`);
+    // 故意：gen_meta 里只有 kind/scene（场景截图），不是 characterPortrait——不许冒充
+    const png = join(dir, `scene-${Date.now()}.png`);
+    await run('ffmpeg', ['-y', '-f', 'lavfi', '-i', 'color=c=0x3050A0:s=64x36:d=1', '-frames:v', '1', png], { timeout: 60_000 });
+    const uploaded = await uploadImageAsset(projectId, {
+      data: new Uint8Array(await readFile(png)),
+      filename: 'scene.png',
+      createdById: ownerId,
+      genMeta: { kind: 'scene' },
+      characterId,
+    });
+    if (!uploaded.ok) throw new Error(`场景截图上传失败：${uploaded.reason}`);
+
+    const saved = await saveStoryboard(projectId, ownerId, { document: boardFromCharacter('sb-char-scene', characterId) });
+    if (!saved.ok) throw new Error(saved.reason);
+
+    await ensureVideoCredits(ownerId, 10);
+    const result = await renderStoryboardDemo({ projectId, userId: ownerId, fontFile: FONT });
+    expect(result.ok, result.ok ? '' : result.message).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.notes.join('')).toContain('没有肖像可递进来');
+    expect(result.segments).toEqual([
+      { index: 0, shotId: 'shot-char-a', frame: 'card' },
+      { index: 1, shotId: 'shot-char-b', frame: 'card' },
+    ]);
   });
 });
 
