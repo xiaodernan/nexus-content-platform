@@ -49,13 +49,11 @@
 
 > **2026-11-13（本轮累计 §FE-37…§FE-66 三十三片门面化 + §AILIVE-3 并轨 + §SC-SC-134 Spring Cloud 微服务面审计；`b6f3c75d`、`0d0258b3`~`12bdbfdd` 及之后，main 领先 origin 242 commits、未 push）**：**Studio 命名空间 `apps/web/src/studio/**` 所有裸原子归零——CharacterPanel/StoryboardPanel/ExportPanel/CanvasStage/PublishPanel/AgentPanel/... 全部从裸 Tailwind 落回门面族；**apps/web/src/studio/ 剩余裸原子 = 0**（目录级判据：`apps/web/src/studio/` 中 `className=` 的裸 Tailwind 原子 0 条）。**§AILIVE-3 并轨**：并行会话的 `providers/liveness.py` + `registry.py` + `app.py` + `config.py` 交付（py/registry/config/app 都是它写的），本轮整理的是 "embedding real ≠ 配了 key" 语义（探一下真调 `/v1/embeddings` + 900s TTL）；**web `env.ts` 改走 `providers[]` 中 `kind=='llm'`**——汇总冒认闭合（embedding 就绪而 llm 缺位的场景不会把文本能力误判 real）。`npx vitest run apps/web/test/env.test.ts` → 7 passed；`python -m pytest tests/` → 114 passed。**Spring Cloud 面审计**（无 live JVM evidence）：13 门 OK——Config Server ✓ · Eureka ✓ · Gateway + Reactor Resilience4j 4 primitive ✓ · OpenFeign + breaker ✓ · caffeine LB ✓ · Actuators(via `show-details:never`) ✓ · Eureka-client 三个 ✓。**记账两件实话**：(1) Gateway 注册中心 zone 本开发机是空的、domain-service 默认 `register-with-eureka:false`——默认 "不存在" 两套环境；(2) 13/13 13 0 透 not wired + Bus/Sleuth/Stream **均刻意不补**——不装没跑通的 broker、不做观测不补标签、本项目并无 Zipkin/kafka-bus listener；详见 evidence 目录 + ADR-0219。**全部 2026-11-13 系列未在干净窗口跑起整栈**（Java 8 JVM 没听 8082 起来、Gateway 8091 没起、Realtime SSE 没有 browser 看），本系列未 push。**Browser still not connected**——任何"看到渲染结果"一律未做（e2e/screenshot 全部未跑）。**未 push**；origin/main 仍落后 242 commits。
 
-
 > **2026-11-13（§FE-37…§FE-101 门面化收官：Studio 面板 + 通知家族 + 公开/账号/市场/搜索/游戏/3D 全表面，`0d0258b3`~`0e843d63`；main 领先 origin 279 commits、未 push）**
 > **2026-11-13（§FE-68…§FE-101 第二波公开/账号/组件表面清零（39 片）；连同 FE-37…67 共 71 片，全树 className 字面零裸 Tailwind（census2/precise/4 三脚本复核，2026-11-13）**：**通知家族**（FE-68 铃铛 .nb- / FE-69 标已读 .nd- / FE-70 偏好 .ns-）· **根布局**（FE-71 .rx-）· **公开页**（FE-67 .np- / FE-72 InteractivSurface .is- / FE-73 PublicationActions .pu- / FE-74 ReportControl .rc- / FE-75 可玩页原子清零 .pp-* 追加 / FE-76 分镜页同上 .ss-* 追加 / FE-77 发现页 / FE-78 搜索页 se-pageRoot（`.se-root` 被 StudioShell 占用未动）/ FE-79 SearchBox / FE-80 主页 / FE-81 关注 .fw- / FE-82 自助治理 .bc- / FE-83 市场店面 / FE-84 上架表单 .mfc- / FE-85 主题 FAB .tt- / FE-86 头像 .ae- / FE-87 注销面板 .adp- / FE-88 账号面板 .ac-（`.ap-` 已归 AssetsPanel）/ FE-89 导入 .ip- / FE-90 新建项目 .npf- / FE-91 简介 .pe- / FE-92 删项目 复用 .adp- / FE-93 项目简介 复用 / FE-94 回收站恢复 复用（FE-92~94 家族复用↑、命名空间↓）/ FE-95 3D 画布 .g3- / FE-96 游戏 HUD .g2- / FE-97 RPG 分支 复用 .g2- / FE-98 PlayByKind .pk- / FE-99 StoryPlay .st- / FE-100 WorldWalk .ww- / FE-101 AgentPanel 漏网原子 .ag-monoOnly（FE-62 SHA 不变）。
 >
 
 > **2026-11-13（§ECON-1：apps/studio 经济域引擎提炼为 packages/economy——共 11 模块 + 9 套测试）**：credits/community/templateCatalog/monetization/economy/marketplace/refund/refundPolicy/walletView + planBar/pageShell 零依赖纯 TS；apps/studio 39 个 import 站点换成 `@nexus/economy/*` 转发 shim、零改动；278/278 绿；`packages/economy` 类型 + studio tsc + 根 typecheck:main 全挂；web 未 import（provider 未配置——§159）；apps/studio 的经济 demo 层（内存 store/ledgerStore/creditsDemo）**仍留在 studio**——边界见 ADR-0256。`apps/studio` 自身 vitest 未在本轮重跑（内存约束；278 绿 + tsc 双绿为链接正确性证明）。
-
 
 > **2026-11-13（§FE-103/§FE-104：verify:fe-gates + 判据守恒恢复 + published-page `pub` rename + SC-§SC-72 启动证据）**：
 > `tools/ci/fe-gates.mjs`（`npm run verify:fe-gates`）→ **94 visual-style suites / 969 tests 全绿**（本地 entityrebound）；`verify:no-raw-tailwind` 门保持零裸原子；新增 section-level `.pub-` facade（`published-style` 与 `published-page-visual-style` 双判据同步迁移至 `.pub-*`，§FE-67 实行 strict 零 `@media`，`--nexus-motion-*` 只在 `:hover`/`transform` 写一行、`prefers-reduced-motion` 独立为 `§FE-67-A` 段归零）；§188 CJK-markdown `**权威读数**` → `<strong>` 修法；`.ap-badgeWarn` 浅色 AA 从 ~1.91 修正到 AA 通过（warn-ink 文本+透明底+warn-ink 边框，与 `.hp-`/`.pw-` 其他门面一致的语言）；`docs/evidence/0170` §FE-17 appendix 同步；`docs/adr/0220-published-page-facade.md` 命名从 `.np-` 更正为 `.pub-`；**§SC-72**：`verify:actuator` 正式跑——5/5 services `/actuator/health` 200 UP（`show-details: never`）+ `build.component pinned` + `domain-service circuitbreakers ai-service=CLOSED`；`.scratch/realtime-java-to-web/*` 4 份 evidence 加入版本库（`.gitignore` 被 `git add -f` 覆盖）；测试的判据守恒恢复：四片 §FE-53/37/63/56 `cn` 雕刻门（`assets/character-chat/export-panel/retrieve-panel`）precondition 删除 `import { cn }` 已固化落盘——并保留 byte-equal SHA256；`notifications 和 not-found` segment 抽取改到 `/* ── §` 横幅以避免跨段截取 `#fff` 的 `.sk-paper` 灰；**main 领先 origin 287 commits、未 push**。
@@ -513,8 +511,6 @@ ADR：`docs/decisions/0054-spring-cloud-registry-and-edge.md`、`docs/decisions/
 
 即可得到当前文字所写的状态。
 
-
-
 ## 2026-11-09 addendum: the GBK records repair landed (amendments 569 / 570)
 
 - `6e5e3b9`: the two long-red records brought to zero chargeable damage.
@@ -538,7 +534,6 @@ ADR：`docs/decisions/0054-spring-cloud-registry-and-edge.md`、`docs/decisions/
   were encoding-damaged were retired from the repo; `docs/TESTING.md` now records the runs and exit
   codes in prose instead of pointing at retired paths.
 
-
 ## 2026-11-09 addendum (cont.): the import/export zip round-trip bug and the full e2e re-check
 
 - `9d350a4`: the export `.nexus/manifest.json` previously declared **every requested part** (design,
@@ -555,8 +550,6 @@ ADR：`docs/decisions/0054-spring-cloud-registry-and-edge.md`、`docs/decisions/
 - `npm run evals` (all nine suites incl. `export-roundtrip 17/17` on the real DB, port 55100) and the
   export/zip integration tests (77/77) pass on the merged tree.
 
-
-
 ## 2026-11-09 addendum (cont. 2): the local reranker landed
 
 - `b527422`: `LocalTokenBagRerankerProvider` joins the deterministic local retrieval stack, next to
@@ -566,8 +559,6 @@ ADR：`docs/decisions/0054-spring-cloud-registry-and-edge.md`、`docs/decisions/
   (embed -> hybrid -> rerank) with no credentials at all, once the operator opts in.
 - `evals` gained the eleventh suite `local-reranker 15/15`; the matrix now stands at **276/276**.
   `docs/EVALUATION.md` and `docs/TESTING.md` record the eleventh suite.
-
-
 
 ## 2026-11-09 addendum (cont. 3): CI health-board after the repair pass
 
@@ -582,7 +573,6 @@ ADR：`docs/decisions/0054-spring-cloud-registry-and-edge.md`、`docs/decisions/
 - `evidence-census`, `arms-freshness`, `doc-evidence`, `table-recount`, `package-counts` all green.
 - `main-line` CI (`tsc` for the main lane + `evals` over the 11-suite matrix, including reranker)
   is green for every pushed commit of this session.
-
 
 ## 2026-11-09 addendum (cont. 4): the local deterministic stack is proven end-to-end
 
@@ -654,7 +644,6 @@ Node 默认堆（4288 MB），根脚本现为 `node --max-old-space-size=10240 n
   red rows on the Studio lane (`liveness`, `health`) remain red and are still called out honestly
   rather than worked around.
 
-
 ## 2026-11-10 addendum (cont. 6): the Studio `quality` row reached the end of the proofs batch on the runner, and exactly one thing was red — the package table the exec-host recount caught
 
 - The merged tree's `CI` workflow (`quality`) did not get past `verify:lint-tree` before the v652 unit (two
@@ -681,7 +670,6 @@ Node 默认堆（4288 MB），根脚本现为 `node --max-old-space-size=10240 n
 - `main-line` CI stays green on every push this session, including the first hosted answer for the Java
   config-door leg (temurin 25 + the 4/4 config-server suite).
 
-
 ## 2026-11-10 addendum (cont. 7): the Studio `quality` row is GREEN on the hosted runner — 42758678472 (master) and 42758689082 (main), sha fc4b25f
 
 - After the §15/cache-key recount (5 of 5 poms), the v652 lint-debt closure (221→218 findings), the
@@ -696,7 +684,6 @@ Node 默认堆（4288 MB），根脚本现为 `node --max-old-space-size=10240 n
   cont. 4 stands unchanged, and CI green is a fact about THIS ref on THIS runner — nothing in this
   ledger cites it as a general promise about the future, and none of the excluded/runner-bound rows
   have been "fixed" in this tree.
-
 
 ## 2026-11-10 addendum (cont. 8): the six Java deployables entered `infra/docker-compose.yml` — config-validated, never executed here
 
@@ -724,7 +711,6 @@ Node 默认堆（4288 MB），根脚本现为 `node --max-old-space-size=10240 n
   marked**: the profile exists and parses; the hosted run (fresh container start on a healthy engine) is
   the next mechanical step. This ledger names the boundary instead of pretending a green.
 
-
 ## 2026-11-10 addendum (cont. 9): the spring-cloud row retired from the exclusion and passed GREEN on the hosted runner — 117/117, residue 0
 
 - `docs/evidence/java/spring-cloud-proof.mjs` was EXCLUDED for one reason since v645 (2026-11-10): no
@@ -749,7 +735,6 @@ Node 默认堆（4288 MB），根脚本现为 `node --max-old-space-size=10240 n
   topology on a stateless runner.
 - `verify:arms` re-stamped `arms-receipt.json` (the `runner` subject changed with proof-set.mjs; 64/64
   matched on the re-stamped bytes); census and table-recount re-derived clean (`rows 117+0`, HELPER 5).
-
 
 ## 2026-11-10 addendum (cont. 10): the scrape is published on all five deployables — v658, and the two wrong turns on the way (2026-11-11)
 
@@ -841,7 +826,6 @@ Node 默认堆（4288 MB），根脚本现为 `node --max-old-space-size=10240 n
   through three services by grep), not trace storage, per-span latency, or a service map. Those need a
   backend and a decision about operating it, which is a larger claim than this slice makes.
 
-
 ## 2026-11-11 addendum (cont. 11): the anonymous Discover feed answers from a shared cache across instances, and the public face stopped looking like scaffolding
 
 **Public surfaces upgraded (markup-level only; `data-*` hooks preserved):**
@@ -897,7 +881,6 @@ Node 默认堆（4288 MB），根脚本现为 `node --max-old-space-size=10240 n
 
 **`3e68a77` (the Redis-backed discover lane) has NOT been green-verified;** when the run completes its verdict will be appended in the next reading. If it reddens for a cache-contract drift, the repair is in `apps/web/src/server/cache/discoverRedis.ts`; record-the-repair in the next cont.
 
-
 ## 2026-11-11 addendum (cont. 12): the hosted door-kill proof flake re-recorded honestly
 
 - `verify:door-kill` (the exec-host breaker-test proof) reddened on Studio MASTER at 08:51 UTC
@@ -915,7 +898,6 @@ Node 默认堆（4288 MB），根脚本现为 `node --max-old-space-size=10240 n
 - Policy: the next Studio CI master run on this ref will re-render the same verdict. If it passes, this
   flake is the recorded mode (one red in N runs); if it reddens the same row, the gate remains honest
   about its own window — not by being made weaker, but by being read by the graph of CI runs.
-
 
 ## 2026-11-11 addendum (cont. 13): a frontend beauty wave, a real /u page, and honest accounting of what landed
 
@@ -960,7 +942,6 @@ globals.css. No claim about pixel art this round.
 - **Service-to-service messaging enhancements**: no in-tree broker user exists; adding one without a
   real call site would be decoration.
 
-
 ## 2026-11-11 addendum (cont. 14): the gateway's rate-limiter lands, and the era of per-process-limiters-on-the-edge is over
 
 The other lane's in-flight v657 reached green here — verified by two fresh `mvn -o -B test` runs of
@@ -984,7 +965,6 @@ The other lane's in-flight v657 reached green here — verified by two fresh `mv
 
 **No pixel-verified screenshots this round**. All frontend work is markup + tokens, cross-checked by
 `tsc --noEmit` exit 0 and the Jenkins landing branch `master≡main≡f805c78`.
-
 
 ## 2026-11-11 addendum (cont. 15): the bounded cache reports its own behaviour, and the Java lane is intact
 
@@ -1015,7 +995,6 @@ consequence directly: five inserts into a 4-cap cache produces exactly one evict
 
 Both branches at HEAD; the ledger promises only what landed and what is in flight, named as such.
 
-
 ## 2026-11-11 addendum (cont. 16): the hosted Postgres-startup flake — every readiness probe upgraded to drive the real query path, not a shortcut answer
 
 **Hosted CI's two most recent runs reddened on `verify:spring-cloud` and `verify:traffic` (this morning, at 10:50 UTC).** Both said the same sentence, in the same shape:
@@ -1032,7 +1011,6 @@ Both branches at HEAD; the ledger promises only what landed and what is in fligh
 The probe now runs `psql … -c 'SELECT 1' … ON_ERROR_STOP=1` and returns code 0 only when the **query path itself** is ready. `pg_isready` stayed out of the five files.
 
 **The rule for future readiness checks in this repo:** any readiness probe for a networked service must drive the actual operation the next step will consume, not carry a separate answer about "the binary replied". The flag this flake exposed — "is the server already accepting query" and "did the probe receive a port-accept" — is exactly what the proof cannot tell you from the outside.
-
 
 ## 2026-11-11 addendum (cont. 17): the hosted Studio CI at 117/117 again, and what actually broke to get back there
 
@@ -1068,7 +1046,6 @@ Two consecutive spring-cloud rows reddened on the hosted runner this morning (no
 **The honest lesson the runner taught:** when an outage is reported in one lane, ask which *metric* told a false
 truth — do not trust the row's red-color alone; read the row's last non-row output; the row's own text had a
 door; we could not see which until we made the door visible again.
-
 
 ## 2026-11-11 addendum (cont. 18): the door that was never mounted, and the deadline that was never chosen
 
@@ -1113,7 +1090,6 @@ runs back-to-back, plus the spring-cloud topology proof booted the rebuilt edge 
   (a second route consumer, or upstream fixing the WebFlux registration).
 - The 22/22 green under this host's memory pressure is not a CI guarantee; the Java suite is not yet a CI row.
 - Current branches: master == main, to be recorded at push time; CI verdicts pending for this ref.
-
 
 ## 2026-11-11 addendum (cont. 19): the hosted row that reddened by geometry — `verify:door-kill` at main @ b707989
 
@@ -1176,7 +1152,6 @@ when this entry was written; cont. 18 stands as the pending-verification record 
   fallback, not silent loss. And an enqueue-time Redis failure resolves to an empty id and logs — the
   notice is skipped, never allowed to fail the download (advisory under outage; at-least-once begins
   only once an entry is in the stream). Measured in `job-queue-degraded.test.ts`.
-
 
 ## 2026-11-12 addendum (cont. 21): the shared-tree night — a green gate fixed, a receipt owed, and a lane landed
 
@@ -1330,7 +1305,6 @@ by this lane except the suites that require a hosted runner.
   `Vary: Accept-Encoding` merge is not touched here: discover uses bare `NextResponse.json` and §188
   measured that next's compressor does not reach Route Handler writes — the day it does, `Vary` must
   APPEND `Accept-Encoding` beside `Cookie` (as `apiJson` already does at `http.ts:117`), not overwrite it.
-
 
 ## 2026-11-12 addendum (cont. 22): the one door closed, and the night the litter of one receipt reddened four refs
 
@@ -1498,7 +1472,6 @@ queue is 8-deep per branch and every ref that speaks red off one row is recorded
   `git status` + `git show --stat` + ff direction before committing; base for this commit is `96bd5cf`.
   No `git add -A`, no force. Queue decisions live in `docs/decisions/0064`/`0066`, while the numbered
   ADRs 0096–0099 live in `docs/adr/` — two numbering systems, now stated explicitly.
-
 
 ## 2026-11-12 addendum (cont. 23): the record-encoding door closed; the 5612-byte night the runner answered with a one-character fix
 
@@ -1690,7 +1663,6 @@ Open honest notes:
   untracked `.commit_msg_63.txt`. Those are NOT mine: left touched-but-unstaged, never `git add -A`.
   Only the three discover files + ADR 0102 / ROADMAP v670 / this cont.30 / memory are mine. base for
   this cont.30 = `9c31218`; re-fetch + ff check before commit; no force.
-
 
 ## 2026-11-12 addendum (cont. 24): the edge now exports its own time on the wire, fallback path included
 
@@ -4025,8 +3997,6 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 用户想打印正典收藏成册——现在真的能打印了。web 端零新增类（只用既有 bb-*）。
 - showcase 快照同步于提交后（npm run sync:showcase）。
 
-
-
 ## cont. 157 (2026-11-16) — v788: Studio 内置说明书（帮助抽屉）——「启动就看见」
 
 - 触发：用户要求「项目教会用户使用的说明书嵌入在项目启动一起就能看到，其中一个功能就是阅读教学说明书，不要写在项目文档里面，没有客户会去看项目文档的」。
@@ -4135,7 +4105,6 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   layout-mount 断言的锚点改为 locale 形式（两种折叠空白歧义堵掉）。
 - 诚实边界：studio 深层仍有未双语的小件（TasksLedgerLive 的 zh 散文、SavingsCard 等）——下一刀明确落在那里。
 
-
 ## cont. 130 (2026-11-15) - LLM 实机诊断（wkapi.pro gpt-6-sol，真调用）+ "非流" 传言的事实化处理
 
 - 复测：流式路径（probe-cache-stream, lane=nexus-cache-stream, 4 turns, --confirm-real）
@@ -4167,7 +4136,6 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   - `verify:fe-gates` 120/120 · 1181/1181 全绿；census 2399 OK；tsc 0；eslint 0。
 - §CACHE 2.5 遗留不变：arms-receipt 仍需宿主（本机 16GB 5 分钟 OOM，CI 的 proofs step 尚未带打印修复的那次运行完成）。
 
-
 ## cont. 131 (2026-11-15) - 公开阅读面 + Studio 深层双语（v2 波）
 
 - 落点一：Studio 深层（v2 刀）——`GameGraphView`（§54 实体引用图，StudioShell 此前漏传 locale 的唯一子页）与
@@ -4185,7 +4153,6 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 活验（dev server, port 3100 当天启停、用完即杀）：/n 页 zh 缺省正常渲染（200），NEXUS_LOCALE=en cookie 后
   Version/Public/Report this page/creative metrics 全英文、零 zh chrome 字节（Play this version 等条件入口按该刊无 game 正确不出现）——
   curl 实测 locales 各一份；e2e 断言不受影响（缺省 zh 字节不变）。
-
 
 ## cont. 132 (2026-11-15) - API 服务端错误文案双语（v3 波）
 
@@ -4216,7 +4183,6 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
 - 调用点 16 处（v1 端点 + 会话/通知）awaited；api-response.test.ts 26 绿；
   全量 test:main 8000 passed；失败 9 项与干净 HEAD 同集合，零回归；tsc 0；eslint 0。
 
-
 ## cont. 134 (2026-11-15) - 简明说明书 /guide 扩充（新手教程落新地图）
 
 - `/guide` 双语（zh/en）：新增 ⑪ 典籍室（/bible）怎么玩——正典精读 /bible、直达 /bible/search、
@@ -4224,7 +4190,6 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   /n/<handle>/<slug> 公开落点、/preview 同源镜头）；/tasks 账本口径（第几次·真/DEMO·用时）与 /credits SavingsCard
   口径（缓存替你省下的重复计算·命中率/输入 token 复用）进两条；④ 游戏怎么玩接典籍室两节；⑤ 真 provider 叙述校准到 wkapi.pro 上的 gpt-6-sol。
 - 判据：guide-visual-style SHA pin 重钉（f4f88ed2 → 7b4a306e）；7/7 绿；live 探针 :3100 用完即停，zh 与 en 各渲染 ⑪，零跨语混写；tsc 0；eslint 0。
-
 
 ## cont. 135 (2026-11-15) - AI 服务 Redis 作业队列实装（本地真验证）
 
@@ -4266,7 +4231,6 @@ Measured end to end on the real wkapi.pro backend (gpt-6-sol, distributor group 
   `gen-bible-snapshot.mts` 登记 E02 → echo-002-lamp-wick-notes；`verify:bible-snapshot` 字节一致通过；
   live 探针（:3100，用完即停）/bible 与 /bible/echo-002-lamp-wick-notes 双局 200、锚句皆命中；
   bible 判据五件 40/40 绿；指南同步「三章」→「四章 + 两回响」，guide-visual-style SHA pin 重钉（7b4a306e → 2cd97881），7/7 绿。
-
 
 ## cont. 139 (2026-11-15) - 公开面 i18n 二轮清尾 + api-messages 拼接整理
 
@@ -4583,7 +4547,6 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
   「响应头 → useState → 结果行条件渲染」三段式，已被 tsc + 11/11 command-bar 门 +
   route 级集成测试（响应头回声 lane-a）钉住；未做真浏览器断言。
 - 顺手清理：为手测插入的 sessions 行（Other User）已删除，不留活会话。
-
 
 ## cont. 172 (2026-11-17) - v802: 回响（其八）「第八盏灯」—— 第八盏灯是谁的
 
@@ -5251,8 +5214,6 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 - 双语字典 / 锚句集：E20 中文原生撰写并译，无新增英文原生内容
 - 门：verify:world-bible / verify:bible-snapshot / verify:anchor-echo ✓；BibleQuiz / guide / bible 视觉套重钉后全绿（25/25）；本片不动代码逻辑
 - 顺序约束：未推送 showcase（latest.json 随下一轮 sync）
-
-
 
 - 用户指令（第九条）：「联网深度搜索一下，模拟一些用户的真实数据，模拟真实的用户的行为：真实用户会怎么操作，真实用户可能会点开一个页面，没有耐心就立刻关闭了，或者可能会在页面上瞎点，因为不知道要去哪。」
 - 两手并轨：
@@ -6922,10 +6883,8 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 
 **缓存验证矩阵到此补全**：free-text digest lane（37/38.7k）✓ · transport lane（94.5% 不同问句）✓ · 12 交错 ✓ · 角色对话（persona）✓ · Studio JSON wire（L2 100%）✓ — 五个 lane 全部实测+"语义分档声明"。
 
-
 ---
 # 2026-11-18 合并 origin/main（另一条并行工作线：潮汐/tide 风格的公开 LLM 面 + 春 Cloud 主线）——其 cont.212..240 记录原样保留：
-
 
 > **2026-11-18 续（cont. 212 — 回响（其二十一）《没人誊的那一页》/ Echo No. 21: The Untranscribed Page）**：
 > 正典续于灰后·值夜之月——誊账人按他的手习惯数灯芯：第三根带盐味、第七根盐碟翻倒、第九根传奇的错数，
@@ -6945,7 +6904,6 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 > - /bible zh 实况 SSR 与 e2e 均待实测（开发服务器已起）
 > - 门：fe-gates 147/147 · 1353/1353 · census OK · tsc web 0 · game-model 363/363
 
-
 > **2026-11-18 续（cont. 213 — §十一 压测·闯库·实证 provider 三件证据档）**：
 > - 实证 provider 2026-11-18：aizzz.xyz 可走（Clash 7897 节点）；直接出访 403；2.58s 返回 "NEXUS LIVE PROBE OK"；
 >   完整输出到 `docs/evidence/live-provider-2026-11-18.md`（证据档不落秘钥明文，pre-commit 规律要求）
@@ -6956,7 +6914,6 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 > - 契约检验：POST /api/admin/observe 正确口令 → 200 + cookie；/admin/observe 门面 200 验证；/api/admin/observer/digest 无 cookie → 401
 > - 门：fe-gates 147/147 · 1353/1353 · verify:world-bible 367/367 · bible-snapshot/anchor-echo/census · tsc EXIT=0 · game-model 363/363
 
-
 > **2026-11-18 续（cont. 214 — §AILIVE-2 app chain 实测通过：web → ai-service → aizzz.xyz 真实 LLM）**：
 > - 本机起了 prod web (`next start :3100`，带 NEXUS_AI_SERVICE_URL=http://127.0.0.1:3200) 与 ai-service (uvicorn @3200)，
 >   跑 `scripts/live-ai-smoke.mts --confirm-real`：GET / CSRF cookie → register（creator 临时账号）→ create project → /api/ai/run
@@ -6966,7 +6923,6 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 > - 诚实记录：本次 cacheReported=false/cachedTokens=0（aizzz 未回传缓存字段）；live cache 身份证据见 `docs/CACHE-IDENTITY.md`
 >   + 2026-11-17 系列 evidence；本片只验 app chain 接通，没有再动缓存路径（用户指导「基本措施做好就行了」）
 > - 缺口：v1/ai/design-graph（StateGraph 全译）已在并轨线落过证据；本片没有再单跑一遍
-
 
 > **2026-11-18 续（cont. 215 — app chain 缓存探针实录 call-2/3 100% 命中；分发器按渠道分桶的实况）**：
 > - 本机从 apps/web 完整链路（GET / → csrf → register（creator 临时账号）→ create project → /api/ai/run 同一 prompt 连打 3 次）
@@ -6980,13 +6936,11 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 >   多 Session 撞桶 ⇒ 不同渠道冷启动（已证实 p90≈95.7% / p50 0% 左右） ② 日常探针的 prompt 小是有意为之——app 实际跑的是项目上下文+callables+名册，
 >   `/api/bible/q` 是且是唯一重上下文场景（ SYSTEM_PROMPT ≈ 5k 字典 + 26 回响 digest）
 
-
 > **2026-11-18 续（cont. 216 — 问典二次连发：cachedTokens=0 → 43,354）**：
 > 同一问题连发两次《收件人》谁收到了签收单？第一问冷（cachedTokens=0）、第二问命中（cachedTokens=**43,354**），
 > SYSTEM_PROMPT 61k 字节前缀被 distributor 在 7897/Clash 节点上认出——KV 复用按字节生效，不靠任何抽象层体验。
 > live-bible-ask-probe.mts 已入库（npm run live:bible-ask-probe -- --confirm-real）。
 > evidence：docs/evidence/bible-ask-cache-2026-11-18.md
-
 
 > **2026-11-18 续（cont. 217 — 问典四连发全 100% 命中）**：
 > prod：同一问题「《收件人》里谁收到了那张签收单？」连发四次，tokensIn=43,458，cachedTokens=43,458 ×4，命中率 100%。
@@ -6995,7 +6949,6 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 >
 > tokensIn/tokensOut 透到了 /api/bible/q response（apps/web/src/app/api/bible/q/route.ts），让客户端能直接看到真实 43k 总数。
 > 还需用户拍板：freeform 路由要不要也改成 digest-stable（每次改上下文内容 vs 一次性 freeze-prefix 两种 trade off，对不同任务吞吐量不同）。
-
 
 > **2026-11-18 续（cont. 218 — 全后端 LLM 出口前缀钉死完成）**：
 > - probes 本轮跑了：bible/ask 多调用连发 6 次 → tokensIn=43458，cached=43458 (call-2 onward, 100% hit, with tokensIn=call-1 cold-start)
@@ -7007,7 +6960,6 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 > - `docs/adr/README.md` 未改（虽然可以指向本 ADR）
 > - 但仍然注意这点：所有 30min 窗口内「上次 docker reboot 抹除所有计数」都是 distributor zero counter，并非代码 miss；用户不要对 observed stat zero"reading 恐慌——下次跑一次真实 LLM 调用再看 dump即可
 > - 所有这一切在 master == main == bbeb6d7a 之后，与 showcase 同步到 85923cc/b594e90e
-
 
 > **2026-11-18 续（cont. 219 — 展示页 + GitHub 个人主页补编 · 雅思 6.5 · CET6 546）**：
 > - io 页（github.io）新增三处：`honors-strip` 新增 ⟨雅思 6.5 | CET6 546⟩；`<meta name="description">` + `<meta property="og:description">` 同补；
@@ -7146,7 +7098,6 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 > - API 限流（REST 403 unauth → 走代理也不过）已绕过 — ls-remote 是权威判据；不声称 star 实时读数。
 > - evidence: `docs/evidence/io-profile-identity-audit-2026-11-19.md` — 零内容改动。
 docs(readme): Spring Cloud 五服务清单对齐 ADR-0237（java-* 退役说清楚）
-
 
 README 根「Layout of the merged tree」里 services/ 一节原文还说 java-registry / java-gateway /
 java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD 删除，历史永存）。
@@ -7865,7 +7816,6 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 6 锚句双语 · gen-bible-snapshot 增 echo-153 · BibleAsk lede → 153 · /bible/ask meta → 一百五十三篇 · CACHE-IDENTITY × 153 · canon-answer-graph → 166 段 · bible-ask-behavior pin 927 · pin 重钉 page→ba4c8618 / comp→f6f41b7c · InsightCanonChat hint 同步至 153。
 - fe-gates **1377/1377** ✓ · verify:world-bible 932/932 ✓。
 - §PROOF-V1037 复测（Clash 环境）：digest 239,665 · 端到端 tokensIn=154,627 · cached=145,231 (93.9%) — 连胜两发同值。
-- §PROOF-V1037 复测（Clash 环境）：digest 239,665 · 端到端 tokensIn=154,627 · cached=145,231 (93.9%) — 连胜两发同值。
 
 ## cont. 400 (2026-11-19) — v1041 · §BIBLE-154 · Echo #154《只认工位号的账房先生》(作者手写 · verify 938/938) + §PROOF-V1038
 
@@ -7920,6 +7870,11 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - **Docker Desktop**（engine API 一路 500）：nexus-redis-blackhole + Nexus postgres (127.0.0.1:5443) 皆可连端口、永不回包
   - `mvn test`（&.jar--java-domain-service）：**Tests run: 175, Failures: 0, Errors: 0, Skipped: 2 · BUILD SUCCESS**（skips = DB/Redis 真服务 gated：`AiHealthBreakerOpenTest` + `WirePublisherRoundTripTest`）
 - 本轮无可交付的真测——只能用有库/有服务的机器补齐；不在本机假装全绿
+## cont. 402 (2026-11-19) · §RUNBOOK ✓ · §PROVIDER-DOWN 记录从 evidence 升为 ADR 级 runbook
+
+- 上游 aizzz / gpt-6.1-terra 自 2026-11-19 ~10:00 起恒 503（request id 原文已落库）
+- `docs/evidence/provider-outage-runbook-2026-11-19.md` → 按 ADR 格式：症状原文 / 排除表 / 用户侧唯一行动 / 降级纪律
+- 本机不可动的两条：服务商 GPT特价 分组渠道（account 侧）· Docker Desktop engine 500 → 守住「fail-closed」立场（§159/§160）
 
 ## cont. 404 (2026-11-19 late) — §PROVIDER-MIGRATE · gpt-6.1-terra 渠道被撤 → gpt-6.1-sol 实测 91.0% cache
 
@@ -7944,3 +7899,16 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - **§BIBLE-156 · Echo #156《潮候院海岸岩礁上那只只在退潮时睁眼的石魟》**（作者手写·双语）：digest 现 **241,273 chars**（13 章正典 · **156 回响** · 4 annex · 锚句 950 zh / 950 en ✓）。
 - 6 锚句双语 · gen-bible-snapshot 增 echo-156 · BibleAsk lede → 156 · /bible/ask meta → 一百五十六篇 · CACHE-IDENTITY × 156 · canon-answer-graph → 169 段 · bible-ask-behavior pin 945 · pin 重钉 page→cff54e35 / comp→58914701 · InsightCanonChat hint 同步至 156。
 - fe-gates **1377/1377** ✓ · verify:world-bible **950/950** ✓。
+## cont. 403 (2026-11-19 · 晚) · §PROVIDER-CACHE-STABLE ✓ gpt-6.1-sol · 88.95% KV 命中 4× 同测
+
+- 调用链真通：`POST /v1/ai/chat` 返回 model=gpt-6.1-sol · capability=real · tokensIn=4395；`POST /v1/ai/chat-graph` 返回 GRAPH-OK
+- 全 system digest（`155,380 tokens · 138,221 cached · 88.95%`）4× 同一数 — sticky prefix 真实复用（transport.stream=true）
+- Docker 未恢复（engine API 500）→ App Redis 完成缓存 DEGRADED（fail-open）：`hits=0 · misses=5 · stores_failed=5`，不假装命中
+- 详见：`docs/evidence/provider-cache-stable-2026-11-19.md` · 两层缓存分开说明
+
+## cont. 404 (2026-11-19 · 晚) · §IO-LAND ✓ §LINKS ✓ · 个人主页状态固化
+
+- IO 错别字修复持久在位：`卷典籍（去混用的「部」）` · `minicc 提交总数` · 38 外链全 2xx · 4 死链已修（io 公开演示链 · README 私有归档）
+- Pages 指向 `de892dd3`（最新 pointer）· 身份=PASS（赵欣曈 13× · 隐图 0 · 雅思 6.5 ×4 · CET6 546 ×5 · 南科大 / 港中大 / 计科 / 铜牌 / 一等奖二等奖 / 法狗狗全）
+- AI 深读 + 投影推屏（cont.403 以来）继续有效 · fe-gates 1377/1377 绿 · census 2998 · snapshot 1
+- 遗留：Docker down · Redis 黑洞 → app cache DEGRADED；provider live（88.95% KV hit · gpt-6.1-sol）；AI 深读模型输出需要 Docker/Postgres 回来才能走完整路径
