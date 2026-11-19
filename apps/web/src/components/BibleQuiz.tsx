@@ -16,7 +16,7 @@ import type { Locale } from '@/lib/i18n';
  * - 没有"看了重做"的奖励？——答错的提示会写出处（在哪一章、哪一节），
  *   错就是错，不伪装"接近正确"；
  * - 完全中英双语；不存在半中文半英文的题目；
- * - 120 题每题 1 分；结算只是礼物：不写进任何账本、不发 achievement、不持久化。
+ * - 126 题每题 1 分；结算只是礼物：不写进任何账本、不发 achievement、不持久化。
  */
 
 const COPY = {
@@ -38,11 +38,11 @@ const COPY = {
       { at: 10, text: '巡逻路的旅人', note: '盐味酸过了——记住的巡逻路比忘掉的多。' },
       { at: 13, text: '守夜人传人', note: '门在关上之前你没见过，但你记住了是什么。' },
       { at: 15, text: '潮汐大匠', note: '海还没说完的话，你已经知道是什么了。' },
-      { at: 103, text: '满分守夜人', note: '一百二十题全对——典籍不会忘记问倒过谁。' },
+      { at: 109, text: '满分守夜人', note: '一百二十六题全对——典籍不会忘记问倒过谁。' },
     ],
     footer: '《世界大典》正典全文见典籍室（/bible）。答错的题里标了出处：错就是错，没有近似的正确。',
     scoreLine: (n: number, total: number) => `${n} / ${total}`,
-    empty: '还没答完。一百二十道题就是十三章正典与回响的全部问题。',
+    empty: '还没答完。一百二十六道题就是十三章正典与二百回响的全部问题。',
   },
   en: {
     kicker: 'The Tidal Trial',
@@ -62,11 +62,11 @@ const COPY = {
       { at: 10, text: 'The Patrol-Road Traveller', note: 'You are more road remembered than forgotten.' },
       { at: 13, text: 'The Successor Watcher', note: 'You have never seen the door, but you know what was behind it.' },
       { at: 15, text: 'The Tide Master', note: 'The sea still has not finished — and you already know what it said.' },
-      { at: 103, text: 'The Full Tide', note: 'One hundred and twenty of one hundred and twenty — the canon will not forget who asked it best.' },
+      { at: 109, text: 'The Full Tide', note: 'One hundred and twenty-six of one hundred and twenty-six — the canon will not forget who asked it best.' },
     ],
     footer: 'The full canon lives in the shelf (/bible). Every wrong answer points you to where it lives. Wrong is wrong — there is no near-enough.',
     scoreLine: (n: number, total: number) => `${n} / ${total}`,
-    empty: 'Not done yet. One hundred and twenty questions — one per breath of the canon and the echoes.',
+    empty: 'Not done yet. One hundred and twenty-six questions — one per breath of the canon and the echoes.',
   },
 } as const;
 
@@ -557,6 +557,30 @@ const QUESTIONS: Question[] = [
   {
     zh: { prompt: '抄本师第一次为潮候院画地图时，停在了哪里？', choices: ['海', '西门', '东门', '沙厅'], answer: 0, ref: '回响（其一百九十四） · 三' },
     en: { prompt: 'When a copyist first drew the Institute’s map, where did he stop?', choices: ['the sea', 'the west gate', 'the East Gate', 'the Sand Hall'], answer: 0, ref: 'Echo No. 194 · III' },
+  },
+  {
+    zh: { prompt: '七十年后，抄本师开抽屉取出的是什么？', choices: ['一张画了潮候院的麻纸，中间是海', '雾港旧灯的灯芯', '第四十一页', '七口井的铸铁锚'], answer: 0, ref: '回响（其一百九十五） · 一 · 抽屉' },
+    en: { prompt: 'Seventy years after, what did the copyist take from the drawer?', choices: ['A linen map of the Institute — the sea at its centre', 'The fog-harbour old-lamp wicks', 'The forty-first page', 'The iron anchor of the seventh well'], answer: 0, ref: 'Echo No. 195 · I' },
+  },
+  {
+    zh: { prompt: '大潮的那一天，东门门槛上的“海”字石碗发生了什么？', choices: ['它碎了', '它自己湿了——七十年第一次，碗里的水是咸的', '它被抄本师搬回了正厅', '它从门槛上消失了'], answer: 1, ref: '回响（其一百九十六） · 二 · 潮候院门槛' },
+    en: { prompt: 'On the day of the great tide, what happened to the “Sea” bowl on the threshold stone?', choices: ['It shattered', 'It wetted itself — for the first time in seventy years, and the water was salt', 'The copyists carried it back into the hall', 'It disappeared from the threshold'], answer: 1, ref: 'Echo No. 196 · II' },
+  },
+  {
+    zh: { prompt: '潮候院底层找到的麻布上面有几个字——是什么字？', choices: ['两个字——干、湿', '一个字——「潮」，褪了', '一个字——「海」，新的', '三个字——「潮候院」'], answer: 1, ref: '回响（其一百九十七） · 三 · 它只有一个字' },
+    en: { prompt: 'How many characters did the linen in the lowest vault bear — and which?', choices: ['Two — “dry” and “wet”', 'One — “Tide”, faded', 'One — “Sea”, fresh', 'Three — “Institute”'], answer: 1, ref: 'Echo No. 197 · III' },
+  },
+  {
+    zh: { prompt: '抄本师第一次把麻布挂在哪里？', choices: ['潮候院正厅的墙上', '雾港灯塔的入口', '七口井上', '铁月荒'], answer: 0, ref: '回响（其一百九十八） · 一 · 挂了又取' },
+    en: { prompt: 'Where did the copyist hang the linen the first time?', choices: ['On the wall of the Institute’s main hall', 'At the door of the fog-harbour lighthouse', 'Above the seventh well', 'In the Iron-Moon waste'], answer: 0, ref: 'Echo No. 198 · I' },
+  },
+  {
+    zh: { prompt: '麻布前坐了三天、没人说话的人是谁？', choices: ['守灯人', '全体抄本师——他们都知道：麻布是潮候院最老的潮', '第四十四次大会的记录官', '月亮桥'], answer: 1, ref: '回响（其一百九十九） · 一 · 麻布前坐了三天' },
+    en: { prompt: 'Who sat before the linen for three days, in silence?', choices: ['The lampkeeper', 'All the copyists — they knew it was the Institute’s oldest tide', 'The recorder of the forty-fourth convocation', 'The Moon Bridge'], answer: 1, ref: 'Echo No. 199 · I' },
+  },
+  {
+    zh: { prompt: '抄本师日日坐麻布前，每一遍摩挲的只有什么？', choices: ['麻布的毛边', '一个字——字的两笔；最后潮候院才知道麻布就是麻布', '三句一封信', '第四十一页上的两个字'], answer: 1, ref: '回响（其二百） · 二 · 每一遍只摩挲一字' },
+    en: { prompt: 'What did the copyists rub, one character at a time, day after day?', choices: ['The frayed edges of the linen', 'One word — the two strokes of the character; the Institute finally learned the linen was the linen', 'Three phrases and a letter', 'The two characters on the forty-first page'], answer: 1, ref: 'Echo No. 200 · II' },
   },
 ];
 
