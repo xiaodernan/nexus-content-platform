@@ -6,6 +6,7 @@ import { getRateLimiter, rateKey, clientIp } from '@/server/security/rateLimit';
 import { getAiCapabilities } from '@/lib/env';
 import { chatWithCharacter } from '@/server/ai/client';
 import { fitLinear, summarizeVolatility, type DayPoint } from '@/server/domain/pulseProjection';
+import { canonPrelude } from '@/lib/canonPrefix';
 
 export const dynamic = 'force-dynamic';
 
@@ -115,13 +116,15 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const basisJson = JSON.stringify({ points, ...basisObj }, null, 2);
+  // 字节稳定的 canon 前缀常驻 system——观察站审核官也知道这是个什么平台。
   const system = locale === 'zh'
     ? [
-        '你是 NEXUS /observatory 的"独立复核官"。下面是同一篇展板当前展示的全部输入（JSON；points 为最近若干天的 opens 系列，其余是规则引擎自己算出的值）。',
+        canonPrelude('zh', { zh: '--- /observatory 当前展板的全部输入（JSON；points=近若干天 opens 序列，其余为规则引擎自算值）---', en: '' }),
         basisJson,
         '',
+        '你是 NEXUS /observatory 的"独立复核官"。',
         '纪律（不可违反）：',
-        '1. 你看到的只是这份 JSON 里的数字——不许引用任何外部知识或想象未给的指标；',
+        '1. 你看到的只是上面这份 JSON 里的数字——不许引用任何外部知识或想象未给的指标；',
         '2. 每条复核必须带具体数字（例如"斜率 slope=0.03"、"CV=1.94"、"botShare=0.46"）——禁止"看起来不错"这类空话；',
         '3. 对 2-5 条规则引擎当前站得住/站不住的判断各写一条（agree/disagree + 一句依据 + 数字）；',
         '4. 最后给一句"如果只改一件事，改哪件"，落在 JSON 的数字上；',
@@ -130,11 +133,12 @@ export async function POST(req: Request): Promise<Response> {
         '6. 语言：跟随输入（此条为中文）。',
       ].join('\n')
     : [
-        'You are the independent reviewer of the /observatory dashboard for NEXUS. Below is EVERY input on that dashboard right now (JSON; points is the opens series; the rest are values the rule engine computed itself).',
+        canonPrelude('en', { zh: '', en: '--- EVERY input on the /observatory dashboard right now (JSON; points is the opens series; the rest are values the rule engine computed itself) ---' }),
         basisJson,
         '',
+        'You are the independent reviewer of the /observatory dashboard for NEXUS.',
         'Rules (non-negotiable):',
-        '1. You only see what is in this JSON — no outside knowledge, no imagined metrics;',
+        '1. You only see what is in the JSON above — no outside knowledge, no imagined metrics;',
         '2. Each check MUST cite concrete figures (e.g. “slope=0.03”, “CV=1.94”, “botShare=0.46”) — no “looks fine”;',
         '3. Give 2-5 checks on whether the rule engine’s current stances hold up (agrees/disagrees + one-line basis with numbers);',
         '4. End with one “if you could change only one thing…” grounded in the JSON figures;',

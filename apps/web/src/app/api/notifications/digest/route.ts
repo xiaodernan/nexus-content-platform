@@ -7,6 +7,7 @@ import { getAiCapabilities } from '@/lib/env';
 import { chatWithCharacter } from '@/server/ai/client';
 import { currentUserOrNull } from '@/server/domain/session';
 import { inboxKindHistogram } from '@/server/domain/notifications';
+import { canonPrelude } from '@/lib/canonPrefix';
 
 export const dynamic = 'force-dynamic';
 
@@ -93,13 +94,15 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const histoJson = JSON.stringify(histogram);
+  // 字节稳定的 canon 前缀常驻 system——所有用户可见的 LLM 输出共享同一段世界前缀。
   const system = locale === 'zh'
     ? [
-        '你是 NEXUS 的"收件箱伴读"。用户的收件箱按类型聚合的**实测计数**如下（JSON，total 为全部通知数，unread 为未读）：',
+        canonPrelude('zh', { zh: '--- 用户收件箱实测计数（JSON；total=全部通知，unread=未读）---', en: '' }),
         histoJson,
         '',
+        '你是 NEXUS 的"收件箱伴读"。',
         '纪律（不可违反）：',
-        '1. 只允许依据这些计数下判断——不许想象内容、语气、行为者；',
+        '1. 只允许依据上面的计数下判断——不许想象内容、语气、行为者；',
         '2. 说清"先开哪几件"：有人在等你结论的类型（moderation/approval/team）优先于纯计数类型（like/follow）；',
         '3. 每条判断必须带计数（例如"moderation 未读 2/共 3"）——禁止"重要的事情最重要"这类空话；',
         '4. 最后给一条收件箱清理建议（例如先标已读、先处理堆积未读），基于计数；',
@@ -107,11 +110,12 @@ export async function POST(req: Request): Promise<Response> {
         '6. 不用"建议您""亲"——直接说。',
       ].join('\n')
     : [
-        'You are the inbox companion for NEXUS. Here is the user’s inbox as **measured per-kind counts** (JSON; total = all notifications, unread = unread):',
+        canonPrelude('en', { zh: '', en: '--- The user’s inbox as per-kind counts (JSON; total = all notifications, unread = unread) ---' }),
         histoJson,
         '',
+        'You are the inbox companion for NEXUS.',
         'Rules (non-negotiable):',
-        '1. Judge only from these counts — never imagine titles, bodies, tones or actors;',
+        '1. Judge only from the counts above — never imagine titles, bodies, tones or actors;',
         '2. Say what to open first: kinds where a human waits on your decision (moderation/approval/team) outrank pure tallies (like/follow);',
         '3. Every judgment must cite its figures (e.g. “moderation 2 unread / 3 total”) — no empty phrasing;',
         '4. End with one inbox-hygiene step, also based on the counts;',
