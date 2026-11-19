@@ -7930,3 +7930,13 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 上游 aizzz / gpt-6.1-terra 自 2026-11-19 ~10:00 起恒 503（request id 原文已落库）
 - `docs/evidence/provider-outage-runbook-2026-11-19.md` → 按 ADR 格式：症状原文 / 排除表 / 用户侧唯一行动 / 降级纪律
 - 本机不可动的两条：服务商 GPT特价 分组渠道（account 侧）· Docker Desktop engine 500 → 守住「fail-closed」立场（§159/§160）
+
+## cont. 404 (2026-11-19 late) — §PROVIDER-MIGRATE · gpt-6.1-terra 渠道被撤 → gpt-6.1-sol 实测 91.0% cache
+
+- 用户重新下发总指令（含 API 已修改的提示）；复测确认 provider 真灭：`gpt-6.1-terra` → 503 `model_not_found`（「分组 GPT特价」下「无可用渠道（distributor）」）。
+- `/v1/models` 返回 200（key 落在 **sub2api** 组）：`gpt-5.6-sol / gpt-5.6-terra / gpt-6-astra / gpt-6-sol / gpt-6.1-sol / gpt-6.2-astra / gpt-6.2-sol`；**没有 gpt-6.1-terra**。
+- 实测：gpt-6.1-sol / gpt-6-sol / gpt-5.6-terra 均 200；gpt-6.2-sol 403。按 §一 自主拍板采用 **`gpt-6.1-sol`**（保 6.1 同代；terra 一代可用 `gpt-5.6-terra`，改 `.env` 四行即可）。
+- **端到端实测（Clash proxy + StickyPromptCacheTransport，transport.stream=true）**：全 digest（240,482 chars）冷启动 tokensIn=155,151 cached=7,388；**暖车 cached=141,082 → 91.0%**；全链路 `POST /v1/ai/chat` 200 · capability=real · cacheReported=true；回答含回响出处（《盐灯守灵日记》）。
+- 本机 ai-service（8001）按 ADR-0274 **明牌 DEGRADED-BOOT** 重启（Redis 56379 不可达 · Docker engine 500；HTTPS_PROXY 注入供 sticky 传输走 Clash）；`appCache` 计数 `stores_failed:2`——按纪律 fail-closed，未假装命中。
+- 证据：`docs/evidence/provider-gpt61-sol-migration-2026-11-19.md`。用户侧待办：服务商后台确认渠道/分组（terra 想继续用 gpt-5.6-terra，想回 gpt-6.1-terra 需渠道方重新上架）；Redis 恢复后 restart ai-service 即回 Redis 后端。
+- `.env` 为 gitignored，未入库；跟踪的源码里运行期没有 `gpt-6.1-terra` 硬编码（grep 全树仅测试 fixture 字符串）。
