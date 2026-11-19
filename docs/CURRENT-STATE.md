@@ -7969,3 +7969,11 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 6 锚句双语 · gen-bible-snapshot 增 echo-158 · BibleAsk lede → 158 · /bible/ask meta → 一百五十八篇 · CACHE-IDENTITY × 158 · canon-answer-graph → 171 段 · bible-ask-behavior pin **956** · pin 重钉 page→44b0a0f9 / comp→7cdd1285 · InsightCanonChat hint 同步至 158。
 - fe-gates **1377/1377** ✓ · verify:world-bible **961/961** ✓。
 - 预算观测点： digest 余量 ~14K — 到 #160 附近需考虑抬 SYSTEM_PROMPT_CHAR_BUDGET（evidence 已登记）；全 body 配额 125K 已自动把老回响退成题名+锚句，anchors 全无限制（设计如此）。
+
+## cont. 411 (2026-11-19) — §PRESSURE-AI · ai-service 16 并发同文压测：single-flight 16→1 provider 实测
+
+- **压测对象**（§十一 到目前为止唯一能跑的速率场）：`POST /v1/ai/chat`（fast 档）× 16 个完全相同请求同时打出。
+- **结果**：HTTP **16/16 200** · 墙钟 3,414ms · p50=3,006ms · 全部回复 `PONG`（model=gpt-6.2-sol）· healthz `llmFlight.local` Δ：leaders +1 · joined +15 · coalesced +15 · real_calls **+1** · failures/timeouts 0。
+  → **16 路并发同文 → 1 次 provider 调用**；余 15 路全部"join 进 leader，不计费"。证据 `docs/evidence/singleflight-burst-prove-2026-11-19.md`。
+- **真实结论的边界（no 假包装）**：single-flight 只 coalesces 完全相同的 key；风暴式不同 prompt 无法合并——记录在案，不夸大。
+- 与 STRESS-TESTS "SSR 档 24/48 prod 已做、dev 未做"的现底一致，没有重复浪费行动；这个测试新补上 ai-service 速率层的那一格。
