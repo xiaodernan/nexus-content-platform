@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useState } from 'react';
 import type { Locale } from '@/lib/i18n';
@@ -34,7 +34,7 @@ const COPY: Record<Locale, {
   },
   en: {
     kicker: 'CANON DEEP-ASK',
-    hint: 'The full Tide-Conclave canon ships as a byte-stable system prefix with every question (≈150k tokens: 13 chapters + 162 echoes + 4 appendices; many rounds and many readers share the same KV cache; 16/16 full hits under a 16-way burst). The model answers strictly from the ledger and says "not in the canon" when it is not there.',
+    hint: 'The full Tide-Conclave canon ships as a byte-stable system prefix with every question (≈150k tokens: 13 chapters + 163 echoes + 4 appendices; many rounds and many readers share the same KV cache; 16/16 full hits under a 16-way burst). The model answers strictly from the ledger and says "not in the canon" when it is not there.',
     placeholder: 'Ask something from the ledger — e.g. “Who signed the receipt in The Addressee?”',
     button: 'Ask the ledger',
     busy: 'The tide is reading…',

@@ -1,4 +1,4 @@
-// 用户说明书 / User guide —— 说明书与 Studio 内置帮助抽屉（InAppGuide）共用这同一份字典
+﻿// 用户说明书 / User guide —— 说明书与 Studio 内置帮助抽屉（InAppGuide）共用这同一份字典
 // （v788 起抽离为 shared module；改文案只改这里，不改页面里）
 import type { Locale } from '@/lib/i18n';
 const COPY: Record<Locale, { kicker: string; title: string; lede: string; sections: { heading: string; body: string[] }[] }> = {
@@ -189,7 +189,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         body: [
           '/discover feed (For You: AI ranks by your own measured reading trace — myOpens — and never ranks for people without one; the curator’s note: the top-3 trending cards get one “why open this” each, written by AI from three real metrics (views / likes / comments / remixes / heat), every line citing figures) · /marketplace components/templates/assets · /blocks library · /search global search',
           '/studio/<project> studio · /world/<id> walk this world (3D) · /world/<id>/digest world digest · /world/<id>/integrity world checkup · /world/<id>/tide world tide · /world/<id>/almanac world almanac · /world/<id>/constellation character graph · /world/<id>/codex paper tome · /world/<id>/chronicle timeline · /world/<id>/ephemeris 360-day page',
-          '/bible hall of canon → 《潮汐教团》 thirteen chapters + one hundred sixty-two echoes; /bible/search direct hits (local canon retrieval) · /bible/quiz Tide Challenge (canon quiz) · /bible/well Seven Wells (the second game)',
+          '/bible hall of canon → 《潮汐教团》 thirteen chapters + one hundred sixty-three echoes; /bible/search direct hits (local canon retrieval) · /bible/quiz Tide Challenge (canon quiz) · /bible/well Seven Wells (the second game)',
           '/bible gains a third game: /bible/anchors Anchor Echo — the 626 bilingual anchor sentences replayed verbatim; name the chapter or echo each line came from (streak and best kept locally)',
           '/n/<handle>/<slug> public page (what visitors see first) · /preview/<project> same-origin read-only lens (the same controls as visitors)',
           '/tasks task ledger (one AI request per row, with attempt count, real/DEMO badge, usage and latency) · /credits your quota (SavingsCard: duplicate computation the cache absorbed for you) · /api-tokens API tokens · /analytics your stats · /pulse the observatory hall (platform-wide aggregate, passphrase 123) · /notifications inbox · /ship ship log · /about-nexus about',
@@ -242,7 +242,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           '/world/<id>/chronicle — story and history entries arranged by era (Grey-Lamp Age / Ash Age / Iron-Moon Age — whatever YOUR project’s eras are), characters and chronicle light each other up; entries can carry “memory echoes” — pure sensory etchings, ≤ 240 chars, not plot summaries.',
           '/world/<id>/digest world digest · /world/<id>/integrity world checkup (reports real issues only: era drift, missing echoes, orphan entries — no fake scoring) · /world/<id>/tide world tide · /world/<id>/ephemeris world calendar projection · /world/<id>/codex the lore tome · /world/<id>/constellation the character graph.',
           'Every one of these pages is a projection of YOUR project — the world pages are not “the official story”; they are the structure of the world you drew, rendered.',
-          'Fancy the canon text of this universe? Go to /bible — thirteen chapters of the Tide Conclave plus one hundred sixty-two echoes, anchor sentences aligned word-for-word between Chinese and English.',
+          'Fancy the canon text of this universe? Go to /bible — thirteen chapters of the Tide Conclave plus one hundred sixty-three echoes, anchor sentences aligned word-for-word between Chinese and English.',
         ],
       },
       {
@@ -265,7 +265,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑪ How the Hall of Canon works (/bible)',
         body: [
-          '/bible — the canon proper: thirteen chapters of the Tide Conclave, plus one hundred sixty-two echoes; anchor sentences align word-for-word across zh and en.',
+          '/bible — the canon proper: thirteen chapters of the Tide Conclave, plus one hundred sixty-three echoes; anchor sentences align word-for-word across zh and en.',
           '/bible/search — type a keyword, fetch the exact canon passage (pure local retrieval; no AI generation, no outside sources).',
           '/bible/quiz — the Tide Challenge: canon-aligned quizzes; wrong answers point back to the chapter to re-read; lit beacons stay on your machine (no cloud save; refresh keeps nothing).',
           '/bible/well — Seven Wells: the Hall’s second game — follow seven clues back to seven lost wells; found wells open the way; unfound wells honestly say they are not found.',

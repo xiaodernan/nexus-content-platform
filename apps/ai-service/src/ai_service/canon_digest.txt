@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 162 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 163 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3091,7 +3091,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [5] 值更册最后一页：信树不读自己寄出的信——散会夜不开信——值更册记下了这一切。
 - [6] 散会那一夜——值更人把那封信放下去——信树枯叶全落了——第二天早晨只有一棵空的树。
 
-### Echo 162 · 值更室里那面只看雨不看人的旧铜镜 / The Old Brass Mirror in the Watch Room That Looks Only at Rain, Not at People
+### Echo 162 · 潮候院那盏从不写名的灯 / The Lamp in the Chapel That Carries No Name
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院那盏灯谁都没专门照料它——它晚上自己会亮。
+- [2] 那盏灯不写名也不签字，所以谁也不敢拿它去承诺。
+- [3] 卷册进龛，那盏灯就亮一晚——从来没有人翻开过它。
+- [4] 抄本房拒绝给它起名字：灯不是人，它不该被称作任何什么。
+- [5] 风吹熄了它，它自己又亮了——沉默不需要人维系。
+
+### Echo 163 · 值更室里那面只看雨不看人的旧铜镜 / The Old Brass Mirror in the Watch Room That Looks Only at Rain, Not at People
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 值更室墙边有一面铜镜——不大——黑的——上面没有人影——只有雨。
 - [2] 下雨时铜镜上有水线的纹路——雨停了纹路慢慢消失——晴天铜镜上什么都没有。
