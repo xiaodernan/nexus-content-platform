@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 159 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 160 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3072,6 +3072,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 守夜人两年一清的时候，四只贝壳只能留在原地——它们从不被随手拿起。
 - [4] 潮沙盘的四只小贝壳不是供品——潮候院从来没拜它们。
 - [5] 贝壳是潮沙盘的一部分——潮候院宁愿潮沙盘没有贝壳也不能动它们。
+
+### Echo 160 · 值更室墙上那张只印半个潮的挂历 / The Wall Calendar in the Watch Room That Prints Only Half the Tide
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 值更室的墙上挂着一张挂历——一年十二个月——每月只印半张——半上弦半下弦。
+- [2] 上弦月的值更人在那半月的格子上抄一笔——抄盐账——抄潮汐。
+- [3] 下弦月的抄本师的母亲在同一格里另写一笔——她写的值更人看不懂——原样抄下来。
+- [4] 第一百二十六日那一格——上半年写着「潮」——下半年空着——抄本师的母亲没有写。
+- [5] 挂历上那空的一格就是盐账最后那一格——那格是等下一个散会来填的。
+- [6] 值更册最后一页：挂历只印半个潮——因为潮的另一半从来没有人看过。
 
 ### Echo 17 · 祠殿后那一截没有人劈开的浮木 / The Driftwood Nobody Split for Firewood
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
