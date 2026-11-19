@@ -236,6 +236,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E183-潮候院北雪线下三间值更屋下面的地窖抄本师走进去门开往北海': 'echo-183-the-cellar-beneath-the-third-hut',
   'E184-潮候院第四十四次大会散会后抄本师沿北雪线走到潮候院北海之上的第零间值更屋': 'echo-184-the-zeroth-watch-hut',
   'E185-潮候院东门那天一个潮候院没人认得的人把一枚贝壳放在门槛他没有敲他走了': 'echo-185-the-stranger-at-the-east-gate',
+  'E186-潮候院灯桌上那枚贝壳抄本师第七十二日第一次读它侧面的字潮候院抄本师看到不是潮是北': 'echo-186-the-shell-that-said-north',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

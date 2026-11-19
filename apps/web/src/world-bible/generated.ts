@@ -23529,6 +23529,180 @@ The copyists said the shell is not the Institute's — the shell comes from a la
 `,
   },
   {
+    order: 186,
+    slug: 'echo-186-the-shell-that-said-north',
+    titleZh: '潮候院灯桌上那枚贝壳——抄本师第七十二日第一次读它侧面的字——潮候院抄本师看到不是潮——是北',
+    titleEn: 'The Shell on the Lamp-Bench of the Institute — on the Seventy-second Day — the Copyists Read the Word on Its Flank — They Saw Not Tide — but North',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第七十八日。',
+    eraLineEn: 'Era: the Institute — after the 44th Convocation; the seventy-eighth day of the winter-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 186): The Shell on the Lamp-Bench of the Institute — on the Seventy-second Day — the Copyists Read the Word on Its Flank — They Saw Not Tide — but North
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院灯桌上的那枚贝壳——抄本师第七十二日第一次认真看它——它的侧面有字——潮候院抄本师读出的第一个字——不是潮——是"北"。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the shell on the lamp-bench — on the seventy-second day — the copyists finally read its flank — they saw not tide — but "north".
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第七十八日。
+> Era: the Institute — after the 44th Convocation; the seventy-eighth day of the winter-tide month.
+
+---
+
+## 一 · 灯桌
+
+潮候院灯桌在拱顶南端——灯亮了六十七年——抄本师第一次没敢推门——贝壳被搁在灯桌上——它没有发声——没有人敢靠近——抄本师在门口站住——他们告诉自己——这不是潮候院的贝壳——是别人的——
+
+**锚句**：潮候院灯桌在拱顶南端——贝壳被搁在灯桌上——它没有发声——抄本师第一次没敢推门。
+**Anchor sentence**: the lamp-bench stands at the south end of the vault — the shell was placed there — it has not made a sound — the copyists stood at the threshold for the first time.
+
+---
+
+## 二 · 四日
+
+抄本师看了它四天——第一日——没人想碰它——第二日——抄本师轮看——第三日——抄本师说它有可能有人认领——第四日——抄本师说没人认领——抄本师开始数它的呼吸——抄本师不知道贝壳在哪儿——潮候院里没有贝壳曾停——
+
+**锚句**：抄本师看了它四天——第一日没人碰它——第二日轮看——第三日说它有可能有人认领——第四日说没人认领。
+**Anchor sentence**: they watched it for four days — the first no one touched it — the second they took turns — the third they said someone might claim it — the fourth no one did.
+
+---
+
+## 三 · 它侧面的字
+
+第四日抄本师走近三步——他们看见贝壳侧面有一个字——字不是潮候院的任何一行文稿——字的左边是"丬"——字的右边是"匕"——抄本师停了一辈子——他们读了三次——他们读错两次——他们最后读对了——它是"北"——
+
+**锚句**：第四日抄本师走近三步——他们看见贝壳侧面有一个字——字的左边是"丬"——字的右边是"匕"——它是"北"。
+**Anchor sentence**: on the fourth day the copyists came three spans close — there is one word on the flank — left "x"-stroke — right "dagger" — it is "north".
+
+---
+
+## 四 · 潮候院的反应
+
+潮候院没有人说话——贝壳是一只贝壳——它不是潮——它不是潮候院的潮——抄本师说它不属于潮候院——抄本师说它是从别处——来的——它是从他们没见过的地方——潮候院没有人会说"北"字——潮候院没有人去过北——潮候院里没有北——
+
+**锚句**：潮候院没有人说话——它不属于潮候院——它是从别处来的——潮候院没有人去过北——潮候院里没有北。
+**Anchor sentence**: no one spoke — it does not belong to the Institute — it came from elsewhere — no one here has ever been north — the Institute contains no north.
+
+---
+
+## 五 · 贝壳是不是潮
+
+潮候院抄本师说——贝壳在灯桌上两天以后——它微微有温——抄本师反复说它不是潮——它说的不是潮——它说的是潮候院从未看过北海——潮候院也没有北——潮候院第七十三次的清晨本来是没有北的——
+
+**锚句**：贝壳在灯桌上两天以后——它微微有温——抄本师反复说它不是潮——潮候院本来也没有北——
+**Anchor sentence**: two days after the shell sat on the bench — it faintly warmed — the copyists insisted again and again that it is not tide — the Institute had no north —
+
+---
+
+## 六 · 它问什么
+
+抄本师问——它问什么——抄本师说——它不接潮候院的潮——它只是问——潮候院里有没有力、流过的风、盐、北——潮候院没有北——潮候院也没有北——北是贝壳自己说的——贝壳还在——
+
+**锚句**：贝壳问了潮候院一个字——它不是问潮——它只是问潮候院里有没有力、风、盐、北——潮候院没有北——
+**Anchor sentence**: the shell asked the Institute a word — not tide — it only asks whether the Institute holds strength, wind, salt, north — the Institute does not have north —
+
+---
+
+## 七 · Mapping（Echo No. 186 → world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the shell on the lamp-bench · the word north · the Institute's missing north | 一、三、四、五、六 |
+| geography | the lamp-bench at the south end · the vault · the north (undefined) | 一、二、四、五、六 |
+| characters | the copyists · the stranger (unnamed) · the shell (unnamed) | 一、二、三、四、五、六 |
+| story | the shell that spoke one word · Echo No. 186 | 全篇 |
+| items | the shell · the lamp-bench · the word "north" | 一、二、三、四、六 |
+| history | After the 44th Convocation · the seventy-eighth day of the winter-tide month | 一、二、四、六、七 |
+
+> 潮候院灯桌上的那枚贝壳——抄本师看见它侧面有字——潮候院里没有北——
+> The shell on the lamp-bench of the Institute — the copyists saw the word on its flank — the Institute contains no north —
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百八十六）「潮候院灯桌上那枚贝壳——抄本师第七十二日第一次读它侧面的字——潮候院抄本师看到不是潮——是北」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the shell on the lamp-bench — on the seventy-second day — the copyists finally read its flank — they saw not tide — but "north".
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院灯桌上的那枚贝壳——抄本师第七十二日第一次认真看它——它的侧面有字——潮候院抄本师读出的第一个字——不是潮——是"北"。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 44th Convocation; the seventy-eighth day of the winter-tide month.
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第七十八日。
+
+---
+
+## I · The Lamp-Bench
+
+The lamp-bench of the Institute stands at the south end of the vault — the lantern has burned sixty-seven years — the copyists for the first time could not bring themselves to push the door open — the shell lay on the lamp-bench — it had not made a sound — no one dared approach — the copyists stood at the threshold — they told themselves — this is not the Institute's shell — it belongs to someone else.
+
+**锚句**：潮候院灯桌在拱顶南端——贝壳被搁在灯桌上——它没有发声——抄本师第一次没敢推门。
+**Anchor sentence**: the lamp-bench stands at the south end of the vault — the shell was placed there — it has not made a sound — the copyists stood at the threshold for the first time.
+
+---
+
+## II · The Fourth Day
+
+The copyists watched it for four days — the first day — no one touched it — the second — they took turns to watch — the third — they said maybe someone would claim it — the fourth — they said no one would — the copyists began to count its breaths — they did not know where the shell was — no one ever rested a shell inside the Institute.
+
+**锚句**：抄本师看了它四天——第一日没人碰它——第二日轮看——第三日说它有可能有人认领——第四日说没人认领。
+**Anchor sentence**: they watched it for four days — the first no one touched it — the second they took turns — the third they said someone might claim it — the fourth no one did.
+
+---
+
+## III · The Word on Its Flank
+
+On the fourth day the copyists came three spans close — they saw one word on the flank — it is not any of the Institute's lines — the left is "x"-stroke — the right is "dagger" — the copyists stopped a lifetime — they read it three times — they misread it twice — they finally read it correctly — it is "north".
+
+**锚句**：第四日抄本师走近三步——他们看见贝壳侧面有一个字——字的左边是"丬"——字的右边是"匕"——它是"北"。
+**Anchor sentence**: on the fourth day the copyists came three spans close — there is one word on the flank — left "x"-stroke — right "dagger" — it is "north".
+
+---
+
+## IV · The Institute's Reaction
+
+No one at the Institute spoke — the shell is a shell — it is not tide — it is not the tide of the Institute — the copyists said it does not belong to the Institute — the copyists said it came from elsewhere — it came from a place they have never seen — no one at the Institute says the word "north" — none of them has ever been north — the Institute contains no north.
+
+**锚句**：潮候院没有人说话——它不属于潮候院——它是从别处来的——潮候院没有人去过北——潮候院里没有北。
+**Anchor sentence**: no one spoke — it does not belong to the Institute — it came from elsewhere — no one here has ever been north — the Institute contains no north.
+
+---
+
+## V · Is the Shell Tide
+
+Two days after the shell sat on the bench — it faintly warmed — the copyists repeated to themselves — this is not tide — it does not speak of tide — it speaks of a sea the Institute has never seen — the Institute has no north — the Institute had no north — the morning of the seventy-third day had no north by default.
+
+**锚句**：贝壳在灯桌上两天以后——它微微有温——抄本师反复说它不是潮——潮候院本来也没有北——
+**Anchor sentence**: two days after the shell sat on the bench — it faintly warmed — the copyists insisted again and again that it is not tide — the Institute had no north —
+
+---
+
+## VI · What It Asks
+
+The copyists ask — what does it ask — the copyists say — it does not carry the Institute's tide — it only asks — whether the Institute holds strength, wind, salt, north — the Institute has no north — the Institute has no north — north is what the shell itself said — the shell is still here.
+
+**锚句**：贝壳问了潮候院一个字——它不是问潮——它只是问潮候院里有没有力、风、盐、北——潮候院没有北——
+**Anchor sentence**: the shell asked the Institute a word — not tide — it only asks whether the Institute holds strength, wind, salt, north — the Institute does not have north —
+
+---
+
+## VII · Mapping（Echo No. 186 → world model）
+
+| Dimension | Value | Mapping |
+| --- | --- | --- |
+| lore | the shell on the lamp-bench · the word north · the Institute's missing north | I, III, IV, V, VI |
+| geography | the lamp-bench at the south end · the vault · the north (undefined) | I, II, IV, V, VI |
+| characters | the copyists · the stranger (unnamed) · the shell (unnamed) | I, II, III, IV, V, VI |
+| story | the shell that spoke one word · Echo No. 186 | Full |
+| items | the shell · the lamp-bench · the word "north" | I, II, III, IV, VI |
+| history | After the 44th Convocation · the seventy-eighth day of the winter-tide month | I, II, IV, VI, VII |
+
+> 潮候院灯桌上的那枚贝壳——抄本师看见它侧面有字——潮候院里没有北——
+> The shell on the lamp-bench of the Institute — the copyists saw the word on its flank — the Institute contains no north —
+`,
+  },
+  {
     order: 19,
     slug: 'echo-019-the-copyists-of-the-back-alley',
     titleZh: '里巷子的抄本员',
