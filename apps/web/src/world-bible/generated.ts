@@ -22833,6 +22833,180 @@ Today the copyists say — after the tide withdrew there was no more Fog Harbor 
 `,
   },
   {
+    order: 182,
+    slug: 'echo-182-the-third-watch-hut-beneath-the-snow-line',
+    titleZh: '潮候院北雪线下那间没人来的第三间值更屋——抄本师去看它还在不在',
+    titleEn: 'The Third Night-Watch Hut Beneath the Snow Line North of the Institute — the Copyists Went to See Whether It Was Still There',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第六十四日。',
+    eraLineEn: 'Era: the Institute — after the 44th Convocation; the sixty-fourth day of the winter-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 182): The Third Night-Watch Hut Beneath the Snow Line North of the Institute — the Copyists Went to See Whether It Was Still There
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给雪线北边那间值更屋——它一直没人去看——抄本师走进雪地去看它还在不在。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the third night-watch hut beneath the snow line — no one had ever gone to look — the copyists walked into the snow to see whether it was still there.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第六十四日。
+> Era: the Institute — after the 44th Convocation; the sixty-fourth day of the winter-tide month.
+
+---
+
+## 一 · 第三间值更屋
+
+潮候院北雪线下有三间值更屋——前两间在院里——第三间在雪线下——它不通路——连抄本师都不看图册——它存在了多久没人能回答——前两间还有人值更——第三间没有——抄本师都默认它空了。
+
+**锚句**：北雪线下有三间值更屋——第三间不通路——没人去看——抄本师默认它空了。
+**Anchor sentence**: there are three watch huts beneath the snow line — the third has no path — no one goes to see — the copyists assumed it empty.
+
+---
+
+## 二 · 抄本师去
+
+抄本师没有通知——他们走出潮候院的后门——朝雪线方向走——抄本师手里端着空杯——他们说杯里装的是上次潮脚线折断那天抄本师记下的"灯"——雪线之上没有路——他们用刀切出一条路——
+
+**锚句**：抄本师走出后门——朝雪线走——手里端空杯——雪线之上没有路——用刀切路。
+**Anchor sentence**: the copyists left the back gate — walked toward the snow line — carrying an empty cup — no road beyond the snow line — they cut one with knives.
+
+---
+
+## 三 · 它还在
+
+第三间值更屋还在——它四周的雪没有飘——它比两间还干净——抄本师保持着距离站着——他们没有进——抄本师说——他们闻到了"潮气"——潮候院四十三次大会——在每间值更屋——没有人记得它留过灯——它的门是活的——
+
+**锚句**：第三间值更屋还在——四周的雪没飘——抄本师没进去——它闻到的是潮气——它的门是活的。
+**Anchor sentence**: the third watch hut still stands — the snow never drifts — the copyists did not enter — they smelled tide — its door is alive.
+
+---
+
+## 四 · 它的灯
+
+抄本师说——第三间值更屋里有一盏灯——灯亮着——它从来都亮着——它没有灭过——它的光是潮候院最暗滤的蓝——值更人记录里写过三次——值更记录不说它的位置——只说"第三间"——抄本师走近到九尺——他们再走近到三尺——灯亮到照不清它的影子——
+
+**锚句**：第三间值更屋有盏灯——它从来都亮着——没人说过它的位置——抄本师走近到三尺——灯照不清影。
+**Anchor sentence**: the third hut holds a lamp — it has never been out — no one has ever said where — the copyists stood three spans away — the light hid their shadows.
+
+---
+
+## 五 · 没有人回去
+
+抄本师没有走进第三间值更屋——抄本师说第三间自己会有人照顾的——他们没有写原因——他们默默退了一步——抄本师开始数潮——潮数到哪时候他们停——潮是值更人的呼吸——潮候院里有一间值更屋——它的名字没人叫——全院都叫它"第三间"——
+
+**锚句**：抄本师没进去——抄本师说第三间自己会有人照顾——潮数到哪时候他们停——它叫"第三间"。
+**Anchor sentence**: the copyists did not enter — the copyists say the third hut will take care of itself — they stopped counting at some point — it is called "third".
+
+---
+
+## 六 · 潮候院的记录
+
+潮候院的记录是抄本师写的——抄本师不写原因——抄本师不猜——抄本师写：第三间还在；灯还亮着——它的门不是开的——它是"活的"——它闻到的潮候院没有记住这个气味——潮候院从未进去——潮候院也永远不会——
+
+**锚句**：抄本师写——第三间还在；灯还亮着；它的门不是开的——它是活的——潮候院从未进去——也永远不会。
+**Anchor sentence**: they wrote — the third hut stands; the light burns; its door is not open; it lives — the Institute has never entered — it never will.
+
+---
+
+## 七 · Mapping（Echo No. 182 → world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the third watch hut beneath the snow line · the never-out lamp · the door that lives | 一、二、三、四、五、六 |
+| geography | the snow line north of the Institute · the salt-shell-rock · the cut footpath | 一、二、三、六 |
+| characters | the copyists · the keeper (implied) · the voice (unnamed) | 一、二、三、四、五、六 |
+| story | the third hut that no one enters · Echo No. 182 | 全篇 |
+| items | the empty cup · the live door · the lamp that outlived the Institute | 二、三、四、六 |
+| history | After the 44th Convocation · the sixty-fourth day of the winter-tide month | 一、五、六、七 |
+
+> 潮候院北雪线下的第三间值更屋——灯从未灭过——潮候院永远不会进去。
+> The third watch hut beneath the snow line — its lamp has never gone out — the Institute will never enter it.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百八十二）「潮候院北雪线下那间没人来的第三间值更屋——抄本师去看它还在不在」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the third night-watch hut beneath the snow line — no one had ever gone to look — the copyists walked into the snow to see whether it was still there.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给雪线北边那间值更屋——它一直没人去看——抄本师走进雪地去看它还在不在。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 44th Convocation; the sixty-fourth day of the winter-tide month.
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第六十四日。
+
+---
+
+## I · The Third Watch Hut
+
+Beneath the snow line on the north side of the Institute there are three watch huts — the first two stand inside the grounds — the third is beneath the snow line — it has no path — no copyist has ever seen it on a map — the first two have the rounds — the third has no one — the copyists assumed it empty.
+
+**锚句**：北雪线下有三间值更屋——第三间不通路——没人去看——抄本师默认它空了。
+**Anchor sentence**: there are three watch huts beneath the snow line — the third has no path — no one goes to see — the copyists assumed it empty.
+
+---
+
+## II · The Copyists Go
+
+The copyists did not notify anyone — they went out through the relic room's back gate — they walked toward the snow line — a single empty cup in their hands — they said the cup held the word "lamp" recorded the day the tide-line snapped — beyond the snow line there is no road — they cut one with knives.
+
+**锚句**：抄本师走出后门——朝雪线走——手里端空杯——雪线之上没有路——用刀切路。
+**Anchor sentence**: the copyists left the back gate — walked toward the snow line — carrying an empty cup — no road beyond the snow line — they cut one with knives.
+
+---
+
+## III · It Is Still There
+
+The third watch hut still stands — the snow around it has never drifted — it is cleaner than the first two huts — the copyists stayed at a distance — they did not enter — they said they smelled the "tide-humidity" — the 43rd Convocation of the Institute — in each watch hut — no one remembers it ever leaving its lamp — its door is alive.
+
+**锚句**：第三间值更屋还在——四周的雪没飘——抄本师没进去——它闻到的是潮气——它的门是活的。
+**Anchor sentence**: the third watch hut still stands — the snow never drifts — the copyists did not enter — they smelled tide — its door is alive.
+
+---
+
+## IV · Its Lamp
+
+The copyists said — the third hut holds a lamp — it has been lit the whole time — it has never been out — its light is the darkest blue the Institute makes — the rounds wrote about it three times — the rounds never said where it is — the rounds only said "the third" — the copyists approached to three spans — they approached to nine spans — the light did not let them see their own shadows.
+
+**锚句**：第三间值更屋有盏灯——它从来都亮着——没人说过它的位置——抄本师走近到三尺——灯照不清影。
+**Anchor sentence**: the third hut holds a lamp — it has never been out — no one has ever said where — the copyists stood three spans away — the light hid their shadows.
+
+---
+
+## V · No One Goes Back In
+
+The copyists did not enter the third hut — the copyists said the third hut will be looked after by itself — they did not write a reason — they slipped one step back — the copyists started counting the tide — at some point they stopped — the tide is the breath of the rounds — inside the Institute there is a hut — no one calls its name — the whole Institute calls it "the third".
+
+**锚句**：抄本师没进去——抄本师说第三间自己会有人照顾——潮数到哪时候他们停——它叫"第三间"。
+**Anchor sentence**: the copyists did not enter — the copyists say the third hut will take care of itself — they stopped counting at some point — it is called "third".
+
+---
+
+## VI · The Institute's Record
+
+The Institute's record is by the copyists — the copyists write no reason — the copyists cannot guess — the copyists write: the third hut stands; the lamp burns; its door is not open; it lives; the Institute has never entered; the Institute never will.
+
+**锚句**：抄本师写——第三间还在；灯还亮着；它的门不是开的——它是活的——潮候院从未进去——也永远不会。
+**Anchor sentence**: they wrote — the third hut stands; the light burns; its door is not open; it lives — the Institute has never entered — it never will.
+
+---
+
+## VII · Mapping（Echo No. 182 → world model）
+
+| Dimension | Value | Mapping |
+| --- | --- | --- |
+| lore | the third watch hut beneath the snow line · the never-out lamp · the door that lives | I, II, III, IV, V, VI |
+| geography | the snow line north of the Institute · the salt-shell-rock · the cut footpath | I, II, III, VI |
+| characters | the copyists · the keeper (implied) · the voice (unnamed) | I, II, III, IV, V, VI |
+| story | the third hut that no one enters · Echo No. 182 | Full |
+| items | the empty cup · the live door · the lamp that outlived the Institute | II, III, IV, VI |
+| history | After the 44th Convocation · the sixty-fourth day of the winter-tide month | I, V, VI, VII |
+
+> 潮候院北雪线下的第三间值更屋——灯从未灭过——潮候院永远不会进去。
+> The third watch hut beneath the snow line — its lamp has never gone out — the Institute will never enter it.
+`,
+  },
+  {
     order: 19,
     slug: 'echo-019-the-copyists-of-the-back-alley',
     titleZh: '里巷子的抄本员',
