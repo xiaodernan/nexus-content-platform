@@ -19411,6 +19411,610 @@ The keeper died — the auditors broke the plaque — the auditor laughed — sa
 `,
   },
   {
+    order: 165,
+    slug: 'echo-165-the-keeper-of-the-tidal-tower-who-has-refused-to-leave-the-lamp',
+    titleZh: '汐塔下那一位守了二十年不肯下灯的守塔人',
+    titleEn: 'The Keeper of the Tidal Tower Who Has Refused to Leave the Lamp for Twenty Years',
+    eraLineZh: '纪元：潮候院 · 第四十三次大会散会前 · 秋潮月第三十六日。',
+    eraLineEn: 'Era: the Institute — before the 43rd Convocation; the thirty-sixth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 165): The Keeper of the Tidal Tower Who Has Refused to Leave the Lamp for Twenty Years
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> 本篇写给汐塔：潮候院外海湾尽头那一座白壳小塔——灯夜天亮之间，没有任何一个夜晚被人记做"熄"。
+> Written for the Tidal Tower: at the mouth of the harbor of the Institute, a small white one — no night has ever been written down as "dark".
+> 纪律同正典：锚句 zh/en 逐字对齐，任何引用本章的条目应保持锚句的逐字一致。
+> Same discipline: anchors verbatim on both sides; no text may cite this Echo if it rewords them.
+
+> 纪元：潮候院 · 第四十三次大会散会前 · 秋潮月第三十六日。
+> Era: the Institute — before the 43rd Convocation; the thirty-sixth day of the autumn-tide month.
+
+---
+
+## 一 · 守了二十年
+
+汐塔没有名字——乡人只叫它「汐灯」。八丈高，底细肚宽，顶一盏祖传的黄铜灯。灯里的油是潮候院每季送来的，**从盐不沾进去**——这是唯一一条不被打断的规矩。
+
+二十年前的一个秋潮月底，灯室里的守塔人没有在潮降的时候出来。这不合规矩——潮候院规定守塔人**每三个月**下塔一次，领一卷新油、一批新信。
+
+有人爬上塔底，递话给他。守塔人从窗里投下一张纸，上面只压着盐——「以后不出来」。
+
+**锚句**：汐塔白壳守了二十年，油从没沾过盐粒。
+**Anchor sentence**: the white shell of the Tidal Tower has held for twenty years; not a grain of salt has touched its oil.
+
+---
+
+## 二 · 不下塔的理由
+
+有人说他是在替另一个死人守。
+
+有人说他收到过一张只有一个字的信。
+
+有人说潮候院里有一个人是他的儿子，死在潮退之后的一场风里。
+
+没有人被命令替他——因为潮候院的折断步子是白壳的，替塔里的人是凡俗的——没人被命令。
+
+**锚句**：守塔人收到一封只有一个字的信——那字是"等"。
+**Anchor sentence**: the keeper received one letter containing one word — that word was "wait".
+
+---
+
+## 三 · 守塔人的回答
+
+一等就是二十年。
+
+灯罩擦拭如常，灯油满处勤添——没有人证明他写过任何字。
+
+有一次潮候院的档案里一个低阶抄本师偷偷写道：汐塔的灯油还可以撑二十四年。没有人在意——大家都选择不读那句话。
+
+第二十年的秋天，汐塔边长出了一根藤，沿着塔身往上爬，爬到三分之一处断了。藤蔓上挂着潮候院寄来的信。接信的是塔下的一个小孩。守塔人从窗口念了一句：
+
+守塔人问藤寄的信是不是意思他终于等到了。没有人回答他。没有人愿意替他回答。
+
+**锚句**：藤蔓在三分之一处断了——信被风吹到了塔脚——守塔人念了一遍又一遍。
+**Anchor sentence**: the vine broke at a third of its height — the letter blew against the tower's skirt — the keeper read it once, and then again.
+
+---
+
+## 四 · 藤上的信
+
+守塔人念完的那一刻，窗里传出一句很轻却极清楚的话：
+
+「灯油是院里的——灯罩是我自己擦亮的——油请给下一个。」
+
+守塔人投下一个小瓶，瓶里的油是满的。他在塔下留下一张信。信上只有四个字——「灯油放着。」
+
+潮候院抄本师捧起那瓶油时，面色忽然白了一截。没人把这件事写进当天的日志——可没有人删去，也没人承认，也没人想起来。
+
+**锚句**：守塔人投下一只小瓶——瓶里油是满的——他给下一任守塔人留了「灯油放着」。
+**Anchor sentence**: the keeper dropped a small bottle — it was full of oil — and left for the next keeper the four words "the oil is here".
+
+---
+
+## 五 · 汐塔的安魂
+
+潮退潮落叶未谢的夜里，潮候院没有人去汐塔。
+
+塔的灯还亮着，守塔人从塔里消失了——汐塔外轮廓还是旧形状，从二十年前到今天——只少了一个曾经的守塔人，多了一叠人没敢动的油瓶。
+
+潮候院大典记事里只有很短的一段。潮沙月这一天潮声特别长，时间回到了某个未知的早晨。
+
+守塔人的名字从来没有人记得过——他去了哪儿，可能只有海知道。潮声的回声不会载着人的名字离开岸——潮候院的人听见也不说——潮候院的人听见也没问。
+
+**锚句**：守塔人的名字从来没有人记得——他去了哪儿，可能只有海知道——沙月的潮声特别长。
+**Anchor sentence**: no one has ever remembered the keeper's name — where he went, perhaps only the sea knows — the tide of the sand-month rang for a very long time.
+
+---
+
+## 六 · 下一位守塔人
+
+汐塔还在——黄铜灯牌还是旧的那一个。灯油够下一位守塔人用一年——潮候院的信摊在窗口的那一边——桌上有一封信没人动。
+
+潮候院所有的人都不知道——灯油不是给汐塔下一位守塔人的——灯罩下的油是给汐塔所有人都看了好几遍的那一个。
+
+潮候院的信上，又多了一个字——「来」。
+
+**锚句**：灯罩下的油是给汐塔下一位守塔人的——潮候院的信摊在窗口——信上只有一个字——来。
+**Anchor sentence**: the oil beneath the lamp is for the next keeper of the Tidal Tower — the Institute's letter lies on the sill — it contains a single character — come.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百六十五）：「汐塔下那一位守了二十年不肯下灯的守塔人」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> Written for the Tidal Tower: at the mouth of the harbor of the Institute, a small white one — no night has ever been written down as "dark".
+> 本篇写给汐塔：潮候院外海湾尽头那一座白壳小塔——灯夜天亮之间，没有任何一个夜晚被人记做"熄"。
+> Same discipline: anchors verbatim on both sides; no text may cite this Echo if it rewords them.
+> 纪律同正典：锚句 zh/en 逐字对齐，任何引用本章的条目应保持锚句的逐字一致。
+
+> Era: the Institute — before the 43rd Convocation; the thirty-sixth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十三次大会散会前 · 秋潮月第三十六日。
+
+---
+
+## I · Twenty Years
+
+The Tidal Tower has no name — the villagers call it simply "the Tide-Lamp." Eight zhang tall; thin at its base and broad at its belly, capped by an heirloom brass lamp. The oil is brought by the Institute every season; **never** has a grain of salt fallen into it — this is the one rule no one in two decades has broken.
+
+Twenty years ago, at the very end of an autumn-tide month, the keeper of the lamproom failed to come out at the low-tide hour. This was not the rule — the Institute required the keeper to descend once every three months: to fetch a fresh bottle of oil, a fresh pair of letters.
+
+Someone climbed to the tower's base and relayed a message through the window. The keeper threw down a slip of paper on which only salt had been pressed — *"From here on, I will not descend."*
+
+**Anchor sentence**: the white shell of the Tidal Tower has held for twenty years; not a grain of salt has touched its oil.
+**锚句**：汐塔白壳守了二十年，油从没沾过盐粒。
+
+---
+
+## II · Why He Does Not Descend
+
+Some said he was staying for a dead man.
+
+Some said he had received a letter with only one character.
+
+Some said a son of his had died at the edge of the tide, in the wind that came after the water withdrew.
+
+No one volunteered to replace him — the Institute's break-the-step was for the white shell, and replacing a keeper was the world's work — no one was commanded.
+
+**Anchor sentence**: the keeper received one letter containing one word — that word was "wait".
+**锚句**：守塔人收到一封只有一个字的信——那字是"等"。
+
+---
+
+## III · The Keeper's Answer
+
+He has been waiting for twenty years.
+
+The lamp's cover is wiped on schedule; the oil is filled faithfully — no letters were said to have been written by him.
+
+Once a minor copyist in the Institute's archive slipped a note into the ledger: "the Tidal Tower's oil can last another twenty-four years." No one noticed — everyone chose not to read that line.
+
+In the autumn of the twentieth year, a vine grew up the side of the tower, climbed to a third of the way, and broke there. A letter from the Institute hung on the end of the vine. A child outside caught the letter when it fell. The keeper read it aloud once through the window:
+
+The keeper asked: was the letter from the vine, saying at last, "you may stop waiting now"? No one answered him. Nobody volunteered to answer.
+
+**Anchor sentence**: the vine broke at a third of its height — the letter blew against the tower's skirt — the keeper read it once, and then again.
+**锚句**：藤蔓在三分之一处断了——信被风吹到了塔脚——守塔人念了一遍又一遍。
+
+---
+
+## IV · The Letter on the Vine
+
+At the moment the keeper finished reading, a voice came from inside the tower, quiet but clear:
+
+"The oil is the Institute's — the lamp's cover is mine to polish — please give the oil to the next one."
+
+The keeper dropped a small bottle from the tower. The bottle was full of oil. On the sill below, he left a letter — four characters only — "the oil is here."
+
+An Institute copyist picked up the bottle of oil; his face turned pale. No one wrote it into the day's log; no one deleted it either; no one acknowledged it; no one even thought of it again.
+
+**Anchor sentence**: the keeper dropped a small bottle — it was full of oil — and left for the next keeper the four words "the oil is here".
+**锚句**：守塔人投下一只小瓶——瓶里油是满的——他给下一任守塔人留了「灯油放着」。
+
+---
+
+## V · The Tidal Tower's Requiem
+
+On a night of the autumn tide with the leaves still on the branches, no one at the Institute went to the Tidal Tower.
+
+The lamp is still burning; the keeper has disappeared from inside the tower — the silhouette of the Tidal Tower is unchanged; one keeper is gone, and one stack of oil bottles no one dared touch has been added.
+
+The Institute's chronicle records only a brief passage. The tide-sound of the sand-month rang with unusual length, and time seemed to step back into some unknown morning.
+
+No one has ever remembered the keeper's name — where he went, perhaps only the sea knows. The tide's echo cannot carry a person's name away from the shore — the Institute's people heard it and did not speak — the Institute's people heard it and did not ask.
+
+**Anchor sentence**: no one has ever remembered the keeper's name — where he went, perhaps only the sea knows — the tide of the sand-month rang for a very long time.
+**锚句**：守塔人的名字从来没有人记得——他去了哪儿，可能只有海知道——沙月的潮声特别长。
+
+---
+
+## VI · The Next Keeper
+
+The Tidal Tower still stands — the brass lamp plaque is the original. Oil enough remains for one more year's keeper — the Institute's letters lie on the sill, waiting on one side; one letter on the table is untouched.
+
+No one in the Institute knows the oil is not for the next keeper of the Tidal Tower — the oil beneath the lamp is for the one who has looked at it the longest.
+
+On the Institute's letter, one more character has been added — "come."
+
+**Anchor sentence**: the oil beneath the lamp is for the next keeper of the Tidal Tower — the Institute's letter lies on the sill — it contains a single character — come.
+**锚句**：灯罩下的油是给汐塔下一位守塔人的——潮候院的信摊在窗口——信上只有一个字——来。
+`,
+  },
+  {
+    order: 166,
+    slug: 'echo-166-the-salt-stone-beneath-the-corridor',
+    titleZh: '潮候院廊下那块被搁了三个生肖季的米盐石',
+    titleEn: 'The Salt Stone Beneath the Corridor That the Institute Forgot',
+    eraLineZh: '纪元：潮候院 · 第四十三次大会散会后 · 冬潮月第十五日。',
+    eraLineEn: 'Era: the Institute — after the 43rd Convocation; the fifteenth day of the winter-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 166): The Salt Stone Beneath the Corridor That the Institute Forgot
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> 本篇写给廊下那块米盐石：潮候院走廊拐角墙根的件米盐石，守过了三个生肖季，无人移它。
+> Written for the rice-and-salt stone: at the foot of the wall where the corridor turns, three signed seasons it has kept its place, and no hand has shifted it.
+> 纪律同正典：锚句 zh/en 逐字对齐，任何引用本章的条目应保持锚句的逐字一致。
+> Same discipline: anchors verbatim on both sides; no text may cite this Echo if it rewords them.
+
+> 纪元：潮候院 · 第四十三次大会散会后 · 冬潮月第十五日。
+> Era: the Institute — after the 43rd Convocation; the fifteenth day of the winter-tide month.
+
+---
+
+## 一 · 只有放下了，没有人说明
+
+米盐石不是谁出生的名——乡人叫它「米盐石」。底部一层细盐，正面留有米粒磨过的浅痕。它被放在廊下拐角，墙根，靠近外廊门槛的两个迈步之处——谁经过都只是从旁边踩过去，没人正视它。
+
+最初放下它的人没留名字，接手的人也没开过册。祖祖辈辈过廊的步伐带走一点尘，给它留下一点潮湿的印子。墙根的影子终日罩着它；汐塔的人绕过廊时，鞋印在它旁边收住。
+
+守塔人每次折返，已经比平常慢了一点。
+
+**锚句**：米盐石搁在潮候院廊下的墙根，度过了三个生肖季。
+**Anchor sentence**: the rice-and-salt stone has stood at the foot of the corridor wall in the Tidewatch Hall for three zodiac seasons.
+
+---
+
+## 二 · 位置确认了
+
+廊下走动的人多了，走得快一些，带走一点冷湿的地气——但墙角的影子不移动，石头也没有挪。
+
+打更的人换了几次手。两边人相见时，步子会在拐角那里放慢——谁也不打破规矩，谁也不刻意停下。
+
+一位扫廊的人拿竹帚绕着石头走了一圈，扫帚尖略略翘起，转向前方，又落回原来的弧线。时间过去了，那段扫痕也淡了一圈。只留下一道薄薄的尘痕沿着墙脚，像还没写完的一笔。
+
+**锚句**：廊下的墙根没动，米盐石也没离开过那块影子。
+**Anchor sentence**: the foot of the wall did not move, and the stone did not leave that patch of shade.
+
+---
+
+## 三 · 刻痕与潮声
+
+米盐石的纹路只有在侧面光照时才能看见——几行浅字，伴着几处标注潮声大小的小痕。
+
+有的字符挨得紧，有的中间隔着一小段空——那不是稿缺，是潮声太轻，没有合适的字来记。
+
+抄本师和潮候院里另一些古抄本里也见过类似的笔画，只用来记潮候院不同的潮声强度。
+
+他们没有解释它的来路，只把它们记在纸上。
+
+**锚句**：米盐石上的刻痕记录了潮声，没人记谁把它搁在那里。
+**Anchor sentence**: the inscription on the stone records the tide sound, but not who placed it there.
+
+---
+
+## 四 · 潮声真的过廊了
+
+每次潮声经过廊时，它会留下一道还没完整回响的余音，在墙根处断开。
+
+门开门关，声音被风带起，又被门槛压下去，折回来再越过廊口，像散在远处的水声。
+
+天亮时人潮盖过它；深夜里，墙的余音能多停住一会儿。
+
+**锚句**：每次潮声经过廊时，它都在墙根留下一道没完成的余音。
+**Anchor sentence**: each time the tide sound passes through the corridor, it leaves an incomplete echo at the foot of the wall.
+
+---
+
+## 五 · 没有人补它的字
+
+岁月过去，米盐石只是沉在墙角，没人加新字，也没人磨旧纹。
+
+抄本师路过，只把眼光停一停，把手收回来，又继续走。
+
+守塔人走过来，看一眼，又走过去。
+
+**锚句**：三个生肖季过去了，廊下仍然通往外廊。
+**Anchor sentence**: after the third zodiac season passed, the corridor still led, as before, to the outer passage.
+
+---
+
+## 六 · 守它的到底是谁
+
+米盐石的理由是它自己——它的位置就是它的理由，它的刻痕就是它的账——石不喊人过来，又不让人走开。
+
+所有过廊的潮声，都只是它听到的一些事。
+
+抄本师路过廊，可能会忍住，只说一句：「潮过了」。守塔人听见，会点头，不说话。
+
+米盐石沉在墙根——听着潮声走过、再走过、再走过——谁也不问它要答案，它也不给答案。
+
+**锚句**：米盐石守在墙根的理由，只有它自己的位置——潮声记的，只有它来过又走过。
+**Anchor sentence**: what keeps the stone at the wall's foot is only its place; what the tide sound records is only its coming and going.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百六十六）：「潮候院廊下那块被搁了三个生肖季的米盐石」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> Written for the rice-and-salt stone: at the foot of the wall where the corridor turns, three signed seasons it has kept its place, and no hand has shifted it.
+> 本篇写给廊下那块米盐石：潮候院走廊拐角墙根的件米盐石，守过了三个生肖季，无人移它。
+> Same discipline: anchors verbatim on both sides; no text may cite this Echo if it rewords them.
+> 纪律同正典：锚句 zh/en 逐字对齐，任何引用本章的条目应保持锚句的逐字一致。
+
+> Era: the Institute — after the 43rd Convocation; the fifteenth day of the winter-tide month.
+> 纪元：潮候院 · 第四十三次大会散会后 · 冬潮月第十五日。
+
+---
+
+## I· Nothing was said when it was set down
+
+The rice-and-salt stone has no birth-name — the villagers call it simply "the salt stone." Beneath it lies a thin coating of fine salt; on its face are shallow scratches from rice grains. It was placed at the corner of the corridor, at the foot of the wall, two steps from the outer threshold — anyone passing simply steps around it; no one ever looked at it squarely.
+
+The person who set it down left no name; the one who received it did not open a new column in the register. Generations of footsteps carried a little damp dust away from, and a little of it onto, the stone. The shadow of the wall always covers it; the passage to the tower bends around it.
+
+Each time the tower keeper passed, a small delay entered his step.
+
+**Anchor sentence**: the rice-and-salt stone has stood at the foot of the corridor wall in the Tidewatch Hall for three zodiac seasons.
+**锚句**：米盐石搁在潮候院廊下的墙根，度过了三个生肖季。
+
+---
+
+## II · The position was confirmed
+
+More people came through the corridor; they walked faster and took a little damp ground-cold with them — but the shade at the corner did not move, and neither did the stone.
+
+The night watch passed the corner twice a night. When their steps crossed those of the day watch, they slowed almost unconsciously at the corner. No one broke protocol; no one lingered either.
+
+A cleaner with a bamboo broom walked a full circle around the stone; the broom's tip rose slightly, traced the line of the wall, then came back down. In time, the brush-marks faded too, leaving only a thin line of dust against the wall, like a stroke never quite finished.
+
+**Anchor sentence**: the foot of the wall did not move, and the stone did not leave that patch of shade.
+**锚句**：廊下的墙根没动，米盐石也没离开过那块影子。
+
+---
+
+## III · The inscription and the tide sound
+
+The inscription on the rice-and-salt stone can only be read under a slanted light — several shallow lines, accompanied by small marks recording the strength of the tide.
+
+Some characters sit close; others are kept at a distance by small gaps — not missing pieces, but records of a tide too faint to be properly heard.
+
+Such carvings appear elsewhere in the Institute's old copybooks, used to record the exact degrees of tidal intensity in the cloister.
+
+The copyists did not explain where this one came from. They only wrote it down.
+
+**Anchor sentence**: the inscription on the stone records the tide sound, but not who placed it there.
+**锚句**：米盐石上的刻痕记录了潮声，没人记谁把它搁在那里。
+
+---
+
+## IV · The tide sound really does pass through
+
+Each time the tide sound goes through the corridor, it leaves an echo unfinished at the foot of the wall, broken off there.
+
+Doors opening and closing, wind catching the sound and throwing it into the threshold, then folding back toward the outer passage — like water scattered somewhere very far away.
+
+By day, the voice of the crowd covers it; at deep night, the wall holds the sound a little longer.
+
+**Anchor sentence**: each time the tide sound passes through the corridor, it leaves an incomplete echo at the foot of the wall.
+**锚句**：每次潮声经过廊时，它都在墙根留下一道没完成的余音。
+
+---
+
+## V · No one added a word to it
+
+Seasons passed, and the rice-and-salt stone simply aged at the foot of the wall — no fresh words were added; no old ones ground down.
+
+Copyists would pause on their rounds, then keep walking.
+
+The tower keeper would look, then pass.
+
+**Anchor sentence**: after the third zodiac season passed, the corridor still led, as before, to the outer passage.
+**锚句**：三个生肖季过去了，廊下仍然通往外廊。
+
+---
+
+## VI · Who watches it, really
+
+Its reason is itself — its place is its reason; its marks are its account — the stone does not call anyone to come, and it does not push anyone away.
+
+Every tide that passes is simply something it has heard.
+
+A copyist passing the corner may stop and say "the tide has passed". The tower keeper hears this, nods, and is silent.
+
+The rice-and-salt stone rests against the foot of the wall — listening to the tide come and go, and come and go again — and no one asks it for an answer, and it gives none.
+
+**Anchor sentence**: what keeps the stone at the wall's foot is only its place; what the tide sound records is only its coming and going.
+**锚句**：米盐石守在墙根的理由，只有它自己的位置——潮声记的，只有它来过又走过。
+`,
+  },
+  {
+    order: 167,
+    slug: 'echo-167-the-paper-boat-at-the-rice-wharf',
+    titleZh: '潮候院南面的运米埠头上，那只载着旧潮历渡了六十三次的纸船',
+    titleEn: 'The Paper Boat at the Rice Wharf That Has Crossed Sixty-three Times with Old Tide Calendars',
+    eraLineZh: '纪元：潮候院 · 第四十三次大会散会后 · 冬潮月第十六日。',
+    eraLineEn: 'Era: the Institute — after the 43rd Convocation; the sixteenth day of the winter-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 167): The Paper Boat at the Rice Wharf That Has Crossed Sixty-three Times with Old Tide Calendars
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> 本篇写给运米埠头：米船来过又走过，它带的不只是米——也带着旧记录的潮流。
+> Written for the rice wharf south of the chapel: the grain ships have come and gone; what they carry is not only rice — it is the record of the tide's ebb, written in passing.
+> 纪律同正典：锚句 zh/en 逐字对齐，任何引用本章的条目应保持锚句的逐字一致。
+> Same discipline: anchors verbatim on both sides; no text may cite this Echo if it rewords them.
+
+> 纪元：潮候院 · 第四十三次大会散会后 · 冬潮月第十六日。
+> Era: the Institute — after the 43rd Convocation; the sixteenth day of the winter-tide month.
+
+---
+
+## 一 · 六十三次
+
+潮候院南面的运米埠头——没有守塔人，也没有钟。米船每年冬月过来，到开春才停。
+
+六十三年前，第一条纸船被放到了米埠上。没有人记得它是谁放的。
+
+纸船是潮候院的小抄本师许诺过的一个人下放的——每过一个秋天，纸船都渡到对岸一次，法纸传递旧历。
+
+米埠的人替他在码头立了一旗，下边写着："过了" —— 却从没人点过字样看起来是什么意思。
+
+**锚句**：潮候院过去了六十三个秋潮月，纸船过米埠也过了六十三次。
+**Anchor sentence**: sixty-three autumn-tide months long the Institute has weathered, sixty-three crossings the paper boat has made at the rice wharf.
+
+---
+
+## 二 · 潮历写在船上
+
+纸船里是叠好的旧潮历——潮候院每一份新潮历出刊之前，旧一份先送过对岸封存。封存的地点潮候院不说。
+
+船里没有大头军——没有"收"也没有"落"——只有一叠旧潮历，和两块盐，和一根从抄本师桌上没人拿过的旧毛笔。
+
+船载着去的载法，也有人看过——不当帆，不用桨——它只是潮来的时候自己往过一步。这一步看上去没什么，但准时——像潮汐一样准时。
+
+有一些纸页被潮水稍稍洇湿了一角。没人把它们捡出来——因为潮历本就是潮写的，遇上一点潮边没什么关系。
+
+**锚句**：纸船里是封过的旧潮历——河潮自己替它推过对岸，潮候院不说哪一叠最早。
+**Anchor sentence**: the paper boat carried the sealed tide records of former years — the river tide pushed it across for itself — the Institute will not say which of them is the oldest.
+
+---
+
+## 三 · 抄本师来过
+
+三位抄本师分别来过一次——他们各自离开时都不是空手来的。
+
+一个抄本师取出一卷纸，又压回石板上。他没用了。
+
+一个抄本师用手摸着了石板上划出来的一个小凹，说："不属于这个时代了。"
+
+第三个抄本师站了最久。他读完了船里最后一页字，他说："够了。潮候院会记这一回。"
+
+他走后，船被放回了原来的码头——油灯的灯油都没满，但船到了。
+
+**锚句**：三位抄本师都来过——没人说自己是哪一位——但是每一位都读过那叠旧潮历。
+**Anchor sentence**: three copyists have each come in turn — none announced himself as any particular one — but each has read through the sealed innermost stack.
+
+---
+
+## 四 · 船的准确性
+
+它出过六十三次——没有一次是提前到的。
+
+有一年米埠被暴雨淹过一次——船没被打沉，也没有延一日。抄本师还在田边看过一次，他没记小令，只写了一行："船自己知道该什么时候过"。
+
+它的准点潮声过来，但又不像船——它是纸，可它过去了一次又一次——从潮候院南面，过到河对岸，再从来没有一次向两边开过。
+
+**锚句**：它出过六十三次，没有一次提前，没有一次迟到——它不是船，它只是一张纸。
+**Anchor sentence**: it has crossed sixty-three times — not once early, not once late — it is not a boat; it is only a sheet of paper.
+
+---
+
+## 五 · 纸舟的意义
+
+潮候院的人不知道还能把这件事传多少代。六十三年不是一个世，是一个纪元——潮水换潮候的次数不会说比世纪更长。
+
+想到的一位纸舟心目中只有一句：潮。
+
+有些纸船会长期停泊——等它们太久，会慢慢压垮，没人捞捞。它只是一张纸——潮候院等他读完了所有的字。
+
+"它自己知道该丁什么时候过" —— 这句话抄本师没写进自己的抄本里——他只入了小卷的一页账。
+
+**锚句**：潮知道这只小纸船为什么六十三次都自己准时过河，没人记它为什么没沉。
+**Anchor sentence**: the tide knows why this little paper boat crossed on time sixty-three times without anyone recording why it did not sink.
+
+---
+
+## 六 · 潮历的未来
+
+六十三次之后——下一只船不排在灯塔帆影里，它会从灯油里走来，它会——
+
+**锚句**：潮知道，最后一叠纸会在灯里出现——没人去写最后一页。
+**Anchor sentence**: the tide knows the final stack will come out from the lamp — no one will write the last page.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百六十七）：「潮候院南面的运米埠头上，那只载着旧潮历渡了六十三次的纸船」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> Written for the rice wharf south of the chapel: the grain ships have come and gone; what they carry is not only rice — it is the record of the tide's ebb, written in passing.
+> 本篇写给运米埠头：米船来过又走过，它带的不只是米——也带着旧记录的潮流。
+> Same discipline: anchors verbatim on both sides; no text may cite this Echo if it rewords them.
+> 纪律同正典：锚句 zh/en 逐字对齐，任何引用本章的条目应保持锚句的逐字一致。
+
+> Era: the Institute — after the 43rd Convocation; the sixteenth day of the winter-tide month.
+> 纪元：潮候院 · 第四十三次大会散会后 · 冬潮月第十六日。
+
+---
+
+## I· Sixty-Three Crossings
+
+At the rice wharf south of the chapel there is no guard-post, no bell. The rice ships come each winter, and leave at the beginning of spring.
+
+Sixty-three years ago a small paper boat was set down on the wharf. No one remembers who set it.
+
+It was placed by a junior copyist from the Institute who had promised something to someone — one autumn, one crossing to the far side, an old ledger passed in silence.
+
+The wharfmaster planted a single red flag on the pier, beneath it written: "Passed" — no one ever learned what the mark meant.
+
+**Anchor sentence**: sixty-three autumn-tide months long the Institute has weathered, sixty-three crossings the paper boat has made at the rice wharf.
+**锚句**：潮候院过去了六十三个秋潮月，纸船过米埠也过了六十三次。
+
+---
+
+## II · The Tide Records Ride Inside
+
+Inside the paper boat are stacked the sealed tide records. Before each new tide calendar is printed, the previous copy is ferried across to be sealed in a vault — the location of which the Institute will not speak of.
+
+The boat holds no crew, no flag of receipt — only a stack of old calendars, two grains of salt, and a worn brush no one at the copy desk ever used.
+
+The way the boat is loaded has been observed by some — it carries no mast, no oar — only, when the tide comes, a single step across. A step may look trivial, yet it arrives with the regularity of the tides themselves.
+
+A few pages have been slightly dampened by the spray. No hand has retrieved them; the tide records were always written *for* water, and water touching paper is no contradiction.
+
+**Anchor sentence**: the paper boat carried the sealed tide records of former years — the river tide pushed it across for itself — the Institute will not say which of them is the oldest.
+**锚句**：纸船里是封过的旧潮历——河潮自己替它推过对岸，潮候院不说哪一叠最早。
+
+---
+
+## III · The Copyists Who Came
+
+Three copyists have come in turn for a single inspection — each departed with something taken back.
+
+One copyist removed a page, then pressed it back again. He stopped using it.
+
+One copyist ran his fingers across a small shallow notch carved in the stone bed and said: "This does not belong to this era."
+
+The third stood longest. He read through the very last page in the inner stack, and said: "Enough. The Institute will record this crossing."
+
+He left; the boat was set back on the same wharf — the lamp-oil was not yet full, yet the boat arrived.
+
+**Anchor sentence**: three copyists have each come in turn — none announced himself as any particular one — but each has read through the sealed innermost stack.
+**锚句**：三位抄本师都来过——没人说自己是哪一位——但是每一位都读过那叠旧潮历。
+
+---
+
+## IV · The Boat's Precision
+
+It has never once crossed ahead of its hour.
+
+One winter, the wharf was flooded by a storm. The boat was neither sunk nor delayed by a single day. The copyist on shore watched and wrote, without flourish: "The boat knows when to cross."
+
+It crosses with the tide — yet it is not a boat. It is a sheet of paper — and it has gone, and gone again, from the south pier of the Institute to the far bank, and it has never once gone the other way.
+
+**Anchor sentence**: it has crossed sixty-three times — not once early, not once late — it is not a boat; it is only a sheet of paper.
+**锚句**：它出过六十三次，没有一次提前，没有一次迟到——它不是船，它只是一张纸。
+
+---
+
+## V · What the Paper Boat Means
+
+No one at the Institute knows whether the boat will last sixty-three more years. Sixty-three years is not a century; it is an era — the Institute ages with each cycle, never to meet its own older self.
+
+One copyist was held by a single thought: tide.
+
+Some paper boats have been left for so long they have slowly been crushed, and no hand has ever rescued them. The boat is only a piece of paper — yet the Institute waits as long as the boat takes to finish every page.
+
+"The boat knows when to cross" — the copyist did not write this in his own notebook — he entered it only in a small auxiliary sheet.
+
+**Anchor sentence**: the tide knows why this little paper boat crossed on time sixty-three times without anyone recording why it did not sink.
+**锚句**：潮知道这只小纸船为什么六十三次都自己准时过河，没人记它为什么没沉。
+
+---
+
+## VI · The Future of the Tide Records
+
+After sixty-three crossings — the next boat will not come by the lighthouse; it will come from the lamp, and it will —
+
+**Anchor sentence**: the tide knows the final stack will come out from the lamp — no one will write the last page.
+**锚句**：潮知道，最后一叠纸会在灯里出现——没人去写最后一页。
+`,
+  },
+  {
     order: 17,
     slug: 'echo-017-the-driftwood-nobody-split',
     titleZh: '祠殿后那一截没有人劈开的浮木',
