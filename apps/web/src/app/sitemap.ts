@@ -36,6 +36,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absolute('/pulse') },
     { url: absolute('/observatory') },
     { url: absolute('/stategraph') },
+    { url: absolute('/tide-oracle') },
+    { url: absolute('/tidewatch') },
     { url: absolute('/bible') },
     { url: absolute('/bible/quiz') },
     { url: absolute('/bible/well') },

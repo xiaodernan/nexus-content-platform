@@ -1,0 +1,242 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "requestId": {
+      "type": "string"
+    },
+    "capability": {
+      "type": "string",
+      "enum": [
+        "real",
+        "demo",
+        "unavailable"
+      ]
+    },
+    "provider": {
+      "type": "string"
+    },
+    "model": {
+      "type": "string"
+    },
+    "narration": {
+      "type": "string",
+      "maxLength": 1200
+    },
+    "delta": {
+      "type": "object",
+      "properties": {
+        "vigor": {
+          "default": 0,
+          "type": "integer",
+          "minimum": -3,
+          "maximum": 3
+        },
+        "depth": {
+          "default": 0,
+          "type": "integer",
+          "minimum": -3,
+          "maximum": 3
+        },
+        "seals": {
+          "default": [],
+          "maxItems": 3,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 40
+          }
+        },
+        "unlocks": {
+          "default": [],
+          "maxItems": 2,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^E[12][0-9]{2}$"
+          }
+        },
+        "risk": {
+          "type": "string",
+          "enum": [
+            "calm",
+            "uneasy",
+            "storm"
+          ]
+        }
+      },
+      "required": [
+        "vigor",
+        "depth",
+        "seals",
+        "unlocks",
+        "risk"
+      ],
+      "additionalProperties": false
+    },
+    "citations": {
+      "default": [],
+      "maxItems": 4,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "anchor": {
+            "type": "string",
+            "maxLength": 24
+          },
+          "quote": {
+            "type": "string",
+            "maxLength": 120
+          }
+        },
+        "required": [
+          "anchor",
+          "quote"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "usage": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "modelClass": {
+          "type": "string",
+          "enum": [
+            "fast",
+            "balanced",
+            "reasoning",
+            "vision",
+            "image",
+            "video",
+            "embedding",
+            "reranker"
+          ]
+        },
+        "tokensIn": {
+          "default": 0,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "tokensOut": {
+          "default": 0,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "cachedTokens": {
+          "default": 0,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "cacheReported": {
+          "default": false,
+          "type": "boolean"
+        },
+        "latencyMs": {
+          "default": 0,
+          "type": "number",
+          "minimum": 0
+        },
+        "costUsd": {
+          "default": 0,
+          "type": "number",
+          "minimum": 0
+        },
+        "costBasis": {
+          "default": "unknown",
+          "type": "string",
+          "enum": [
+            "unknown",
+            "configured"
+          ]
+        },
+        "toolCalls": {
+          "default": 0,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "demoMode": {
+          "default": false,
+          "type": "boolean"
+        },
+        "reasoningTokens": {
+          "default": 0,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "provider",
+        "model",
+        "modelClass",
+        "tokensIn",
+        "tokensOut",
+        "cachedTokens",
+        "cacheReported",
+        "latencyMs",
+        "costUsd",
+        "costBasis",
+        "toolCalls",
+        "demoMode",
+        "reasoningTokens"
+      ],
+      "additionalProperties": false
+    },
+    "error": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "provider-unavailable",
+            "provider-failed",
+            "invalid-context",
+            "permission-denied",
+            "approval-required",
+            "budget-exceeded",
+            "validation-failed",
+            "internal"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "hint": {
+          "type": "string"
+        },
+        "retryable": {
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "retryable"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "requestId",
+    "capability",
+    "provider",
+    "model",
+    "narration",
+    "delta",
+    "citations",
+    "usage"
+  ],
+  "additionalProperties": false
+}

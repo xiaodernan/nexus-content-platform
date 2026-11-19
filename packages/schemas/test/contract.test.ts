@@ -14,6 +14,8 @@ describe('contracts/ 导出', () => {
       'ai-response.schema.json',
       'ai-chat-request.schema.json',
       'ai-chat-response.schema.json',
+      'ai-world-step-request.schema.json',
+      'ai-world-step-response.schema.json',
       'ai-error.schema.json',
       'ai-job-accepted.schema.json',
       'ai-job-status.schema.json',

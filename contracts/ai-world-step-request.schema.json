@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "requestId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "locale": {
+      "default": "zh",
+      "type": "string",
+      "enum": [
+        "zh",
+        "en"
+      ]
+    },
+    "state": {
+      "type": "object",
+      "properties": {
+        "clock": {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60
+            },
+            "season": {
+              "type": "string",
+              "enum": [
+                "spring",
+                "summer",
+                "autumn",
+                "winter"
+              ]
+            },
+            "tide": {
+              "type": "string",
+              "enum": [
+                "rising",
+                "high",
+                "falling",
+                "low"
+              ]
+            }
+          },
+          "required": [
+            "label",
+            "season",
+            "tide"
+          ]
+        },
+        "traveler": {
+          "type": "object",
+          "properties": {
+            "vigor": {
+              "default": 6,
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9
+            },
+            "depth": {
+              "default": 0,
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9
+            },
+            "seals": {
+              "default": [],
+              "maxItems": 12,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 40
+              }
+            }
+          }
+        },
+        "memory": {
+          "default": [],
+          "maxItems": 6,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "oracle",
+                  "quiz",
+                  "step",
+                  "seal",
+                  "echo"
+                ]
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 280
+              }
+            },
+            "required": [
+              "kind",
+              "text"
+            ]
+          }
+        }
+      },
+      "required": [
+        "clock",
+        "traveler"
+      ]
+    },
+    "move": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 600
+    },
+    "modelClass": {
+      "default": "balanced",
+      "type": "string",
+      "enum": [
+        "fast",
+        "balanced",
+        "reasoning",
+        "vision",
+        "image",
+        "video",
+        "embedding",
+        "reranker"
+      ]
+    }
+  },
+  "required": [
+    "requestId",
+    "state",
+    "move"
+  ]
+}

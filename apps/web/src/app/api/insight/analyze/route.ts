@@ -13,7 +13,7 @@ import { increment, observe } from '@/server/observability';
 
 /**
  * §INSIGHT-3 · POST /api/insight/analyze
- *   —— 让真模型（`gpt-6.1-terra`）解读「观察坞」的实时快照。
+ *   —— 让真模型（`gpt-6.2-sol`）解读「观察坞」的实时快照。
  * 通道纪律：nexus-insight cookie（密码 123，公开）+ CSRF + IP gate（10/h）+ csrf 双扣；
  * provider 不可用 → 503 原样回真（§159/§160），不演示伪造分析。
  * 聚合摘要是唯一送入模型的上下文：模型永远看不到任何个人字段。

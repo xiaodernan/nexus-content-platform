@@ -5,7 +5,7 @@ import { csrfHeaders } from '@/lib/csrf';
 import type { Locale } from '@/lib/i18n';
 
 /**
- * §INSIGHT-3 · 大模型解读——按下按钮，让 `gpt-6.1-terra` 读 aggregate 快照，
+ * §INSIGHT-3 · 大模型解读——按下按钮，让 `gpt-6.2-sol` 读 aggregate 快照，
  * 给出「现象 → 证据 → 动作」三段式诊断。模型永远看不到个人数据——
  * digest 聚合整数构建，见 @/server/domain/insightAi。
  * provider 不可用 → 诚实状态（不演示分析，§159/§160）。

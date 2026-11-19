@@ -11,7 +11,7 @@ import { EXAMPLE_QUESTIONS } from '@/lib/bibleAsk';
  *
  * - POST /api/bible/q（登录用户 · 5 次/5 分钟 · csrf + IP gate）；
  * - provider 不可用：如实说"潮汐现在不走"（honest 503 横幅，不演示 AI 答案，§159/§160）；
- * - capability/model badge 透传：这个回答是真的 gpt-6.1-terra 即兴给的、文本可引用；
+ * - capability/model badge 透传：这个回答是真的 gpt-6.2-sol 即兴给的、文本可引用；
  * - 例句点击即问：降低"不知道问什么"的失语成本（§用户体验防卡住）。
  */
 const COPY: Record<Locale, {
@@ -130,7 +130,7 @@ export function BibleAsk({ locale = 'zh', initialQuestion }: { locale?: Locale; 
         return;
       }
       setAnswer(body.answer.trim());
-      setBadge({ model: body.model ?? 'gpt-6.1-terra', cachedTokens: body.cachedTokens ?? 0 });
+      setBadge({ model: body.model ?? 'gpt-6.2-sol', cachedTokens: body.cachedTokens ?? 0 });
       setCite((body.citation === 'cited' || body.citation === 'declined' || body.citation === 'not-cited')
         ? { clause: body.citation, anchorsCited: body.anchorsCited, citationAnchors: body.citationAnchors }
         : null);
