@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 159 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 160 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3055,13 +3055,14 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [5] 散会那一夜——天上一声接一声的雷——他把最后一页的最后一格空着。
 - [6] 值更册最后一页：雷不收据——但雷会收走没被记账的字。
 
-### Echo 159 · 潮候院那盏从不写名的灯 / The Lamp in the Chapel That Carries No Name
+### Echo 159 · 潮候院北坡上那块只在落石时候滚动的河碑 / The River Stele on the North Slope That Rolls Only When Stones Fall
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
-- [1] 潮候院那盏灯谁都没专门照料它——它晚上自己会亮。
-- [2] 那盏灯不写名也不签字，所以谁也不敢拿它去承诺。
-- [3] 卷册进龛，那盏灯就亮一晚——从来没有人翻开过它。
-- [4] 抄本房拒绝给它起名字：灯不是人，它不该被称作任何什么。
-- [5] 风吹熄了它，它自己又亮了——沉默不需要人维系。
+- [1] 潮候院北坡的杂草里半埋着一块河碑——碑上的字全被苔藓盖了——只剩一处能读。
+- [2] 只有北坡上落石的时候它才滚动——往坡下滚——滚到坡脚停住。
+- [3] 河碑不入院——它停在门槛以外——不越过院墙一步。
+- [4] 苔藓下面那处字读作「先到」——值更册从来不写谁先到。
+- [5] 散会那一夜北坡落石——河碑一口气滚到坡脚——第二天苔藓全掉光。
+- [6] 值更册最后一页：下一个来的人——读完这一处字——就知道自己先到了——或者晚了。
 
 ### Echo 16 · 潮沙盘上那四只小贝壳 / The Four Small Shells on the Tide-Sand Table
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
@@ -3070,6 +3071,14 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 守夜人两年一清的时候，四只贝壳只能留在原地——它们从不被随手拿起。
 - [4] 潮沙盘的四只小贝壳不是供品——潮候院从来没拜它们。
 - [5] 贝壳是潮沙盘的一部分——潮候院宁愿潮沙盘没有贝壳也不能动它们。
+
+### Echo 160 · 潮候院那盏从不写名的灯 / The Lamp in the Chapel That Carries No Name
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院那盏灯谁都没专门照料它——它晚上自己会亮。
+- [2] 那盏灯不写名也不签字，所以谁也不敢拿它去承诺。
+- [3] 卷册进龛，那盏灯就亮一晚——从来没有人翻开过它。
+- [4] 抄本房拒绝给它起名字：灯不是人，它不该被称作任何什么。
+- [5] 风吹熄了它，它自己又亮了——沉默不需要人维系。
 
 ### Echo 17 · 祠殿后那一截没有人劈开的浮木 / The Driftwood Nobody Split for Firewood
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

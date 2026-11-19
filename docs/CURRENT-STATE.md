@@ -7996,3 +7996,9 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - **真库集成 4/4 绿**（`render-count-admin.integration.test.ts`，前后 Δ 断言，绝不假定初始库空）：完整两行+一条老行（缺 characterPortraitCount → portrait 按 0、其余全计）· design-edit 行不污染 · 坏形状按 0 不炸 · 整串 JSON string input 不炸。
 - **§FE-23 admin-savings-visual-style pin 重钉 `35cde635…`** · 钩子守恒门扩到 22 钩子 · fe-gates **1377/1377** ✓ · tsc zero 错 · integration 真库（5443）全绿。
 - ADR-0086 v2「面板还没读这两格」的账 → 原本 cont.403 已闭（/tasks 行内显示），本片关闭 admin 视角的聚合一格（/savings 总账）。
+
+## cont. 414 (2026-11-19) — v1052 · §BIBLE-159 · Echo #159《北坡上只在落石时候滚动的河碑》(作者手写 · verify 967/967)
+
+- 新篇：「潮候院北坡上那块河碑 · 落石时候滚动到坡脚 · 不越过门槛一步 · 苔藓下面能读的一处字是『先到』——值更册从来不写谁先到」—— digest 现 **242,429 chars**（13 章正典 · **159 回响** · 4 annex · 锚句 967 zh / 967 en ✓）。
+- 6 锚句双语 · gen-bible-snapshot 增 echo-159 · BibleAsk lede → 159 · /bible/ask meta → 一百五十九篇 · CACHE-IDENTITY × 159 · canon-answer-graph → 172 段 · bible-ask-behavior pin **962** · pin 重钉 page→58fd6494 / comp→f521cc5a · InsightCanonChat hint 同步至 159。
+- fe-gates **1377/1377** ✓ · verify:world-bible **967/967** ✓ · snapshot ✓。
