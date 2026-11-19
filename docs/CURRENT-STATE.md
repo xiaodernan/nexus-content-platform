@@ -6543,7 +6543,7 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 
 用户连续半年追问「为什么并行会话 simultaneously 往 API 打、KV 被『用乱』、cache 不命中」——本次 live 实测：
 
-**4 路 `Promise.all` 同时发出完全相同 digest+system 的 insight 调用**（ `.scratch/verify-parallel-warm.mts` ）：
+**同时发出四路 `Promise.all` 的 insight 调用，全部使用相同的 digest+system（见 `.scratch/verify-parallel-warm.mts`）：**
 
 | call | tokensIn | cachedTokens | cacheReported | verdict |
 |---|---|---|---|---|
@@ -6971,8 +6971,8 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 
 > **2026-11-19 续（cont. 220 · codex 式全局正典前缀落地：agent 设计通道从 1.5k 放大到 61k 字符可缓存前缀）**
 > - ADR-0235 采纳：scripts/gen-canon-digest.mts 把 bibleAsk.SYSTEM_PROMPT（=世界大典 digest）原样写出并入库
->   pps/ai-service/src/ai_service/canon_digest.txt + .sha256（缺文件即进程崩，不静默丢正典）；
->   ai-service 蒸馏 SYSTEM_PROMPT = CANON_PREFIX（≈61k 字符）+ 恒定规则；uild_prompt 不再把每轮可变 agentNote 拼进 system。
+>   apps/ai-service/src/ai_service/canon_digest.txt + .sha256（缺文件即进程崩，不静默丢正典）；
+>   ai-service 蒸馏 SYSTEM_PROMPT = CANON_PREFIX（≈61k 字符）+ 恒定规则；build_prompt 现在把每轮可变 agentNote 拼进 system。
 >   新增 /api/insight/chat（口令 123 + CSRF + IP 闸 10/h）与 /api/bible/q 共享同一 SYSTEM_PROMPT 字节常量（同桶同缓存）；
 >   /insight 新增「正典深问」面板（zh/en 双语，徽章实时 cached n/m tokens）；InsightAiAnalysis 补 x-csrf-token（修 403 暗病）。
 > - 实测（prod build + prod start + ai-service）：
@@ -7065,7 +7065,7 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 
 > **2026-11-19 cont. 231 · prod 高并发压测如实补档（tier-24/48 首测）+ insight 口令 123 撞库门**
 > - `scripts/load-web-ssr-nextstart.mts`（新）：单一持久 `next start` on :3461 · `/bible` tier-6/12/24/48 + root：
->   全 200 · 零 5xx · tier-48 rps 32.03 · p99 3.10s · tier-24 p99 3.70s。对照 dev 路（2026-11-18 tier-12 p50 19.6s/rps 2.93 → prod 3.1s/21.83）约 **9× 吞吐 / 6× p50 降**。
+>   全 200 · 零 5xx · tier-48 rps 32.03 · p99 3.10s · tier-24 p99 3.70s。对照开发路（2026-11-18，tier-12，p50 19.6s、rps 2.93），开发路改生产路后大约 **9× 吞吐 / 6× p50 降低**。
 > - root 单判据：tier-12-root 60/60 200 · rps 7.01 · p50 6.4s（首页大骨架 · 3D 纹理预算 — 如实标注 · 不与 /bible 混判）。
 > - `scripts/insight-login-hammer.mts`（新）：限流实锤 **INSIGHT-GATE PASSED**（30×401 → 5×429；同 IP 正确 123 也 429；跨 IP 隔离 OK · cookie 实到 nexus-insight=1）。
 > - 匿名探针：cookieless `POST /api/tide/oracle` → 403 `csrf_failed`（未到模型层 · 零 provider 配额）。
@@ -7916,7 +7916,7 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 
 - **Docker Desktop 恢复**（engine 29.9.3）：`nexus-redis` Up · `nexus-postgres-alt` Up :5443
 - `redis-cli PING → PONG · pg_isready → accepting`
-- ai-service 重启（pid 15024 · 无 `AI_SERVICE_ALLOW_DEGRADED_STORE` · 无 `AI_SERVICE_REQUEST_TIMEOUT_S` 改动除原有默认60s）：
+- ai-service 重启（pid 15024 · 无 `AI_SERVICE_ALLOW_DEGRADED_STORE` · 无 `AI_SERVICE_REQUEST_TIMEOUT_S` 变更，沿用原有默认值 60s）：
   - `queue.backend=redis` ✅
   - `llmCache: backend=redis · hits=4 · stores=4 · stores_failed=0 · degraded=false` ✅
   - `llmLive: state=ok` ✅
