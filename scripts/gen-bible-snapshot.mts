@@ -211,7 +211,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E158-祠殿屋脊上那只只替雷记账的抄本师': 'echo-158-the-copyist-who-keeps-the-accounts-for-thunder',
   'E159-潮候院北坡上那块只在落石时候滚动的河碑': 'echo-159-the-river-stele-that-rolls-when-stones-fall',
   'E160-值更室墙上那张只印半个潮的挂历': 'echo-160-the-wall-calendar-that-prints-only-half-the-tide',
-  'E161-潮候院那盏从不写名的灯': 'echo-161-the-lamp-that-never-writes-a-name',
+  'E162-潮候院那盏从不写名的灯': 'echo-162-the-lamp-that-never-writes-a-name',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
