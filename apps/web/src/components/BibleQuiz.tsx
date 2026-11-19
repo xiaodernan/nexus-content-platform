@@ -16,7 +16,7 @@ import type { Locale } from '@/lib/i18n';
  * - 没有"看了重做"的奖励？——答错的提示会写出处（在哪一章、哪一节），
  *   错就是错，不伪装"接近正确"；
  * - 完全中英双语；不存在半中文半英文的题目；
- * - 129 题每题 1 分；结算只是礼物：不写进任何账本、不发 achievement、不持久化。
+ * - 130 题每题 1 分；结算只是礼物：不写进任何账本、不发 achievement、不持久化。
  */
 
 const COPY = {
@@ -38,11 +38,11 @@ const COPY = {
       { at: 10, text: '巡逻路的旅人', note: '盐味酸过了——记住的巡逻路比忘掉的多。' },
       { at: 13, text: '守夜人传人', note: '门在关上之前你没见过，但你记住了是什么。' },
       { at: 15, text: '潮汐大匠', note: '海还没说完的话，你已经知道是什么了。' },
-      { at: 110, text: '满分守夜人', note: '一百二十九题全对——典籍不会忘记问倒过谁。' },
+      { at: 110, text: '满分守夜人', note: '一百三十题全对——典籍不会忘记问倒过谁。' },
     ],
     footer: '《世界大典》正典全文见典籍室（/bible）。答错的题里标了出处：错就是错，没有近似的正确。',
     scoreLine: (n: number, total: number) => `${n} / ${total}`,
-    empty: '还没答完。一百二十九道题就是十三章正典与二百零三个回响的全部问题。',
+    empty: '还没答完。一百三十道题就是十三章正典与二百零四个回响的全部问题。',
   },
   en: {
     kicker: 'The Tidal Trial',
@@ -62,11 +62,11 @@ const COPY = {
       { at: 10, text: 'The Patrol-Road Traveller', note: 'You are more road remembered than forgotten.' },
       { at: 13, text: 'The Successor Watcher', note: 'You have never seen the door, but you know what was behind it.' },
       { at: 15, text: 'The Tide Master', note: 'The sea still has not finished — and you already know what it said.' },
-      { at: 110, text: 'The Full Tide', note: 'One hundred and twenty-nine of one hundred and twenty-nine — the canon will not forget who asked it best.' },
+      { at: 110, text: 'The Full Tide', note: 'One hundred and thirty of one hundred and thirty — the canon will not forget who asked it best.' },
     ],
     footer: 'The full canon lives in the shelf (/bible). Every wrong answer points you to where it lives. Wrong is wrong — there is no near-enough.',
     scoreLine: (n: number, total: number) => `${n} / ${total}`,
-    empty: 'Not done yet. One hundred and twenty-nine questions — one per breath of the canon and the echoes.',
+    empty: 'Not done yet. One hundred and thirty questions — one per breath of the canon and the echoes.',
   },
 } as const;
 
@@ -593,6 +593,10 @@ const QUESTIONS: Question[] = [
   {
     zh: { prompt: '抄本师给石柱上的四十二道印记各做了什么？', choices: ['各拓了一张——四十二次拓印，石柱不是"潮"，它是"记"', '把每道印记都擦干净', '刻成了新字', '涂上了新漆'], answer: 0, ref: '回响（其二百零三） · 一 · 拓' },
     en: { prompt: 'What did the copyists do with each of the forty-two marks on the pillar?', choices: ['Took one imprint of each — forty-two rubbings; the pillar is not "memory", it is "record"', 'Whitewashed every mark away', 'Carved each into a new character', 'Painted fresh paint over them'], answer: 0, ref: 'Echo No. 203 · I' },
+  },
+  {
+    zh: { prompt: '抄本院最深处那条带子，抄本师断定它是哪里来的？', choices: ['没有人知道——它不是潮候院的；抄本师把它放回最深处，谁也再没说过', '江南的丝绸商人做的', '海贼王凯西亚送来的', '老守灯人自己缝的'], answer: 0, ref: '回响（其二百零四） · 三 · 它不是潮候院抄本院的' },
+    en: { prompt: 'Where did the ribbon the copyists found at the deepest tier come from?', choices: ['No one knows — it is not the Institute\'s; they set it back at the deepest tier and never spoke of it again', 'From the silk merchants of Jiangnan', 'A gift from the sea king', 'The old lampkeeper sewed it himself'], answer: 0, ref: 'Echo No. 204 · III' },
   },
 ];
 
