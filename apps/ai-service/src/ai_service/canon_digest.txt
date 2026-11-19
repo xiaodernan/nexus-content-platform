@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 191 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 192 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3383,6 +3383,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 潮候院没有反对——抄本师都过来看——抄本师没人碰——抄本师都知道——潮候院第一次——
 - [5] 海是潮候院第一个想出来的字——潮候院没有别的——潮候院没有海——抄本师说——潮候院第一次有海——潮候院说海——
 - [6] 潮候院抄本师说海——潮候院现在拥海——潮候院以前不拥——潮候院没人以为这是什么——
+
+### Echo 192 · 潮候院东门之后第三日——抄本师第一次站海边没说话——他往岸走到时门槛石板上'海'字湿了 / The Third Day After the East Gate — a Copyist Stood by the Sea in Silence — When He Reached the Shore He Found the Sea Stone at the Threshold Wet
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院东门之后第三日——抄本师没说他要去——潮候院抄本师把门再推开了——
+- [2] 潮候院抄本师走到潮候院东门外的海边——潮候院没人走到过那儿——抄本师不说话——他站在海边——
+- [3] 潮候院抄本师站在海边——他不说话——海就在那里——抄本师站了很久——海也没说话——
+- [4] 潮候院抄本师不知道什么时候离开——他从海边往回走——潮候院东门在他面前——石板在门槛上——
+- [5] 潮候院抄本师走到门槛——那里潮候院的"海"字石板湿了——潮候院抄本师用手指碰了一下——他的手指湿了——
+- [6] 潮候院抄本师把门关上——潮候院知道它湿了——潮候院知道海——潮候院抄本师没人说——
 
 ### Echo 20 · 潮候院钟楼里那口从不响的钟 / The Bell That Never Rang in the Institute's Clock Tower
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

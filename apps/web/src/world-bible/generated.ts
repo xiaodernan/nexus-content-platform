@@ -24771,6 +24771,180 @@ The copyists say — the Institute holds the sea now — the Institute did not h
 `,
   },
   {
+    order: 192,
+    slug: 'echo-192-the-wet-sea-slab',
+    titleZh: '潮候院东门之后第三日——抄本师第一次站海边没说话——他往岸走到时门槛石板上\'海\'字湿了',
+    titleEn: 'The Third Day After the East Gate — a Copyist Stood by the Sea in Silence — When He Reached the Shore He Found the Sea Stone at the Threshold Wet',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第九十一日。',
+    eraLineEn: 'Era: the Institute — after the 44th Convocation; the ninety-first day of the winter-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 192): The Third Day After the East Gate — a Copyist Stood by the Sea in Silence — When He Reached the Shore He Found the Sea Stone at the Threshold Wet
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院东门之后第三日——抄本师第一次站到海边——抄本师没说——门槛上的"海"字湿了。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the third day after the East Gate — a copyist stood by the sea in silence — when he turned back the "sea" on the threshold stone was wet.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第九十一日。
+> Era: the Institute — after the 44th Convocation; the ninety-first day of the winter-tide month.
+
+---
+
+## 一 · 第三日
+
+潮候院东门之后第三日——抄本师没说他要去——他没跟潮候院说——潮候院抄本师把门再推开了——抄本师走到东门——潮候院没有人拦——东门之后是潮候院没人走过的地方——第一次——
+
+**锚句**：潮候院东门之后第三日——抄本师没说他要去——潮候院抄本师把门再推开了——
+**Anchor sentence**: the third day after the East Gate — the copyists did not say where — a copyist pushed the gate again —
+
+---
+
+## 二 · 他走到了海边
+
+潮候院抄本师走到潮候院东门外的海边——潮候院从来没有人走到过那儿——抄本师不说话——他站在海边——他也不离开——
+
+**锚句**：潮候院抄本师走到潮候院东门外的海边——潮候院没人走到过那儿——抄本师不说话——他站在海边——
+**Anchor sentence**: a copyist walked out of the East Gate to the sea — no one in the Institute had ever stepped that far — the copyist did not speak — he stood on the shore —
+
+---
+
+## 三 · 没说话
+
+潮候院抄本师站在海边——他不说话——他没人问什么——海就在那里——潮候院抄本师没说话——他站了很久——很久——海也没说话——潮候院抄本师没说他多久——
+
+**锚句**：潮候院抄本师站在海边——他不说话——海就在那里——抄本师站了很久——海也没说话——
+**Anchor sentence**: a copyist of the Institute stood by the sea — he did not speak — the sea only lay there — he stood for a long time — the sea did not speak either —
+
+---
+
+## 四 · 他离开海边
+
+潮候院抄本师不知道什么时候离开——他从海边往回走——潮候院东门在他面前——石板在门槛上——石板上有潮候院抄本师写的"海"字——
+
+**锚句**：潮候院抄本师不知道什么时候离开——他从海边往回走——潮候院东门在他面前——石板在门槛上——
+**Anchor sentence**: a copyist of the Institute did not know when he left — he walked back from the sea — the East Gate stood in front of him — the slab lay on the threshold —
+
+---
+
+## 五 · 门槛石板上的"海"字湿了
+
+潮候院抄本师走到门槛——那里潮候院的"海"字石板湿了——潮候院抄本师看了一眼——"海"字是湿的——潮候院抄本师用手指碰了一下——他的手指湿了——
+
+**锚句**：潮候院抄本师走到门槛——那里潮候院的"海"字石板湿了——潮候院抄本师用手指碰了一下——他的手指湿了——
+**Anchor sentence**: the copyist reached the threshold — the Institute's "sea" slab was wet — he touched it with a finger — his finger came away wet —
+
+---
+
+## 六 · 潮候院的回应
+
+潮候院抄本师把门关上——潮候院抄本师知道它湿了——潮候院知道海——潮候院抄本师没人说——潮候院知道——海它在潮候院里——潮候院里没有海——门槛有潮也没有潮——
+
+**锚句**：潮候院抄本师把门关上——潮候院知道它湿了——潮候院知道海——潮候院抄本师没人说——
+**Anchor sentence**: the copyist closed the gate — the Institute knew it was wet — the Institute knew the sea — no one spoke —
+
+---
+
+## 七 · Mapping（Echo No. 192 → world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the sea wets the slab · the Institute's first wet sea-sign · the silent sea reply | 一、二、三、四、五、六 |
+| geography | the East Gate · the eastern shore · the threshold | 一、二、四、五、六 |
+| characters | the copyists · the sea (unnamed) · the slab (unnamed) | 一、二、三、四、五、六 |
+| story | the sea marked itself · Echo No. 192 | 全篇 |
+| items | the wet slab · the word "sea" · the eastern horizon | 二、三、四、五 |
+| history | After the 44th Convocation · the ninety-first day of the winter-tide month | 一、三、五、六、七 |
+
+> 潮候院东门之后第三日——抄本师站海边没说话——他往岸走时门槛石板上"海"字湿了——
+> The third day after the East Gate — a copyist stood by the sea in silence — when he reached the threshold the "sea" slab was wet —
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百九十二）「潮候院东门之后第三日——抄本师第一次站海边没说话——他往岸走到时门槛石板上'海'字湿了」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the third day after the East Gate — a copyist stood by the sea in silence — when he turned back the "sea" on the threshold stone was wet.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院东门之后第三日——抄本师第一次站到海边——抄本师没说——门槛上的"海"字湿了。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 44th Convocation; the ninety-first day of the winter-tide month.
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第九十一日。
+
+---
+
+## I · The Third Day
+
+The third day after the East Gate — the copyists said nothing about going — they said nothing at all — a copyist pushed the gate again — the Institute does not stop any of them — the East Gate stands where the Institute has never been — the first time —
+
+**锚句**：潮候院东门之后第三日——抄本师没说他要去——潮候院抄本师把门再推开了——
+**Anchor sentence**: the third day after the East Gate — the copyists did not say where — a copyist pushed the gate again —
+
+---
+
+## II · He Reached the Sea
+
+A copyist of the Institute reached the sea outside the East Gate — no one in the Institute had ever stepped that far — the copyist did not speak — he stood on the shore — he did not leave —
+
+**锚句**：潮候院抄本师走到潮候院东门外的海边——潮候院没人走到过那儿——抄本师不说话——他站在海边——
+**Anchor sentence**: a copyist walked out of the East Gate to the sea — no one in the Institute had ever stepped that far — the copyist did not speak — he stood on the shore —
+
+---
+
+## III · No Words
+
+A copyist of the Institute stood by the sea — he did not speak — no one asked anything — the sea only lay there — a copyist of the Institute stood by the sea — he stood for a long time — very long — the sea did not speak either — a copyist of the Institute did not say how long —
+
+**锚句**：潮候院抄本师站在海边——他不说话——海就在那里——抄本师站了很久——海也没说话——
+**Anchor sentence**: a copyist of the Institute stood by the sea — he did not speak — the sea only lay there — he stood for a long time — the sea did not speak either —
+
+---
+
+## IV · He Left the Shore
+
+A copyist of the Institute did not know when he left — he walked back from the sea — the East Gate stood in front of him — the slab lay on the threshold — on the slab is the character "sea" written by a copyist —
+
+**锚句**：潮候院抄本师不知道什么时候离开——他从海边往回走——潮候院东门在他面前——石板在门槛上——
+**Anchor sentence**: a copyist of the Institute did not know when he left — he walked back from the sea — the East Gate stood in front of him — the slab lay on the threshold —
+
+---
+
+## V · The Slab Was Wet
+
+The copyist reached the threshold — the Institute's "sea" slab was wet — a copyist of the Institute saw it — the "sea" was wet — he touched it with one finger — his finger was wet —
+
+**锚句**：潮候院抄本师走到门槛——那里潮候院的"海"字石板湿了——潮候院抄本师用手指碰了一下——他的手指湿了——
+**Anchor sentence**: the copyist reached the threshold — the Institute's "sea" slab was wet — he touched it with a finger — his finger came away wet —
+
+---
+
+## VI · What the Institute Said
+
+A copyist of the Institute closed the gate — the Institute knew it was wet — the Institute knew the sea — no copyist spoke — the Institute knows — the sea is in the Institute — the Institute holds no sea — the threshold has tide or no tide —
+
+**锚句**：潮候院抄本师把门关上——潮候院知道它湿了——潮候院知道海——潮候院抄本师没人说——
+**Anchor sentence**: the copyist closed the gate — the Institute knew it was wet — the Institute knew the sea — no one spoke —
+
+---
+
+## VII · Mapping（Echo No. 192 → world model）
+
+| Dimension | Value | Mapping |
+| --- | --- | --- |
+| lore | the sea wets the slab · the Institute's first wet sea-sign · the silent sea reply | I, II, III, IV, V, VI |
+| geography | the East Gate · the eastern shore · the threshold | I, II, IV, V, VI |
+| characters | the copyists · the sea (unnamed) · the slab (unnamed) | I, II, III, IV, V, VI |
+| story | the sea marked itself · Echo No. 192 | Full |
+| items | the wet slab · the word "sea" · the eastern horizon | II, III, IV, V |
+| history | After the 44th Convocation · the ninety-first day of the winter-tide month | I, III, V, VI, VII |
+
+> 潮候院东门之后第三日——抄本师站海边没说话——他往岸走时门槛石板上"海"字湿了——
+> The third day after the East Gate — a copyist stood by the sea in silence — when he reached the threshold the "sea" slab was wet —
+`,
+  },
+  {
     order: 20,
     slug: 'echo-020-the-bell-that-never-rang',
     titleZh: '潮候院钟楼里那口从不响的钟',
