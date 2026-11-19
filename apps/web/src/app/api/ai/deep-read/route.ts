@@ -5,6 +5,7 @@ import { readJson, jsonError, badRequest } from '@/server/http';
 import { getRateLimiter, rateKey, clientIp } from '@/server/security/rateLimit';
 import { getAiCapabilities } from '@/lib/env';
 import { chatWithCharacter } from '@/server/ai/client';
+import { canonPrelude } from '@/lib/canonPrefix';
 
 export const dynamic = 'force-dynamic';
 
@@ -89,6 +90,36 @@ function digest(body: unknown): string {
 
 function buildSystem(b: z.infer<typeof Body>): string {
   const isZh = b.locale === 'zh';
+  const zh = [
+    canonPrelude('zh', { zh: '--- 你正在复核的对象：NEXUS 平台（不是正典本身）在过去窗口的实测聚合数字 ---', en: '' }),
+    '',
+    '你是 NEXUS 平台的数据分析师。用户消息里有这段平台在过去窗口的**实测聚合数字**（含 bot 计数、日粒度趋势、热度 Top 与规则初判警告）。',
+    '纪律（不可违反）：',
+    '1. 你只能使用用户消息中给出的数字——不得编造任何新数字。若要写百分比/比率，必须由已有数字相除并写出算式。',
+    '2. 每条建议必须给出：标题（≤20字）、依据（引用哪一个输入数字及其口径）、预期收益（含算式或区间）、下一步动作（可执行、可验证）、confidence。',
+    '3. 不要输出"优化用户体验""提升留存"之类没有数字支撑的空话；依据不足时直说"数据不足，无法最近切片（需要更多日粒度）"。',
+    '4. 输出 4 条，按"可操作性 / 收益 / 置信度"降序排列。',
+    '5. 语言：跟随用户（此条为中文）。',
+    '6. 输出格式：严格 JSON 数组，无 markdown、无解释性前言：',
+    '   [{"title":"…","basis":"…","impact":"…","action":"…","confidence":"high|medium|low"}, …]',
+  ].join('\n');
+  const en = [
+    canonPrelude('en', { zh: '', en: '--- What you are reviewing: NEXUS’s own aggregated numbers over the current window — not the canon itself ---' }),
+    '',
+    'You are NEXUS platform analytics. The user message carries REAL aggregated numbers for this platform over the current window — measured in the database (bot counts, day-grained trend, hot-list, rule-based warnings).',
+    'Rules (non-negotiable):',
+    '1. Use ONLY the numbers in the user message — invent NOTHING. Any ratio must be derived from given numbers with the arithmetic written out.',
+    '2. Each of the 4 suggestions must carry: title (≤60 chars), basis (which input number, and its definition), expected impact (with arithmetic or a range), action (executable and verifiable), confidence.',
+    '3. No filler phrases like "improve UX" or "boost retention" without numeric grounding. When evidence is thin, say so explicitly ("insufficient data").',
+    '4. Output exactly 4 suggestions, ordered by actionability / impact / confidence.',
+    '5. Language: follow the user (this one is English).',
+    '6. Output format: a strict JSON array, no markdown, no preamble:',
+    '   [{"title":"…","basis":"…","impact":"…","action":"…","confidence":"high|medium|low"}, …]',
+  ].join('\n');
+  return isZh ? zh : en;
+}
+
+function buildUser(b: z.infer<typeof Body>): string {
   const compact = {
     users: b.users, admins: b.admins, publishedVersions: b.publishedVersions,
     opens: b.opens, opensBot: b.opensBot, opensToday: b.opensToday,
@@ -101,37 +132,14 @@ function buildSystem(b: z.infer<typeof Body>): string {
       points: b.trend.points.map((p) => [p.day, p.opens, p.visitorDays]),
     },
     hotTop: b.hot.map((h) => [h.projectName, h.opensCurr, h.opensPrev, h.velocityPct]),
-    ruleWarnings: b.warnings.map((w) => (isZh ? w.zh : w.en)),
+    ruleWarnings: b.warnings.map((w) => (b.locale === 'zh' ? w.zh : w.en)),
   };
-  const zh = [
-    '你是 NEXUS 平台的数据分析师。下面是你的平台在过去窗口的**实测聚合数字**（全部来自数据库真实统计，含 bot 计数、日粒度趋势、热度 Top 与规则初判警告）。',
-    '纪律（不可违反）：',
-    '1. 你只能使用下面给出的数字——不得编造任何新数字。若要写百分比/比率，必须由已有数字相除并写出算式。',
-    '2. 每条建议必须给出：标题（≤20字）、依据（引用哪一个输入数字及其口径）、预期收益（含算式或区间）、下一步动作（可执行、可验证）、confidence。',
-    '3. 不要输出"优化用户体验""提升留存"之类没有数字支撑的空话；依据不足时直说"数据不足，无法最近切片（需要更多日粒度）"。',
-    '4. 输出 4 条，按"可操作性 / 收益 / 置信度"降序排列。',
-    '5. 语言：跟随用户（此条为中文）。',
-    '6. 输出格式：严格 JSON 数组，无 markdown、无解释性前言：',
-    '   [{"title":"…","basis":"…","impact":"…","action":"…","confidence":"high|medium|low"}, …]',
-    '',
-    '--- 平台实测聚合数据（JSON）---',
-    JSON.stringify(compact, null, 2),
-  ].join('\n');
-  const en = [
-    'You are NEXUS platform analytics. Below are REAL aggregated numbers for this platform over the current window — measured in the database (bot counts, day-grained trend, hot-list, rule-based warnings).',
-    'Rules (non-negotiable):',
-    '1. Use ONLY the numbers below — invent NOTHING. Any ratio must be derived from given numbers with the arithmetic written out.',
-    '2. Each of the 4 suggestions must carry: title (≤60 chars), basis (which input number, and its definition), expected impact (with arithmetic or a range), action (executable and verifiable), confidence.',
-    '3. No filler phrases like "improve UX" or "boost retention" without numeric grounding. When evidence is thin, say so explicitly ("insufficient data").',
-    '4. Output exactly 4 suggestions, ordered by actionability / impact / confidence.',
-    '5. Language: follow the user (this one is English).',
-    '6. Output format: a strict JSON array, no markdown, no preamble:',
-    '   [{"title":"…","basis":"…","impact":"…","action":"…","confidence":"high|medium|low"}, …]',
-    '',
-    '--- Real platform aggregates (JSON) ---',
-    JSON.stringify(compact, null, 2),
-  ].join('\n');
-  return isZh ? zh : en;
+  const isZh = b.locale === 'zh';
+  const label = isZh ? '【NEXUS 平台实测聚合数据（JSON）】' : '【Real platform aggregates (JSON)】';
+  const tail = isZh
+    ? '请按「4 条 · 每条含 title/basis/impact/action/confidence · 落在上面的数字上」输出，严格 JSON 数组。'
+    : 'Output exactly 4 suggestions, each with title/basis/impact/action/confidence, grounded in the numbers above. Strict JSON array.';
+  return [label, JSON.stringify(compact, null, 2), '', tail].join('\n');
 }
 
 function parseSuggestions(text: string): z.infer<typeof Suggestion>[] {
@@ -177,7 +185,7 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const system = buildSystem(body);
-  const user = body.locale === 'en' ? 'English output, please.' : '请用中文输出。';
+  const user = buildUser(body);
   const reqId = `deep_read_${Date.now().toString(36)}`;
   const chat = await chatWithCharacter({ requestId: reqId, system, user, modelClass: 'balanced' });
   if (!chat.ok) {

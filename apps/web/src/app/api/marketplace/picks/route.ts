@@ -5,6 +5,7 @@ import { readJson, jsonError, badRequest } from '@/server/http';
 import { getRateLimiter, rateKey, clientIp } from '@/server/security/rateLimit';
 import { getAiCapabilities } from '@/lib/env';
 import { chatWithCharacter } from '@/server/ai/client';
+import { canonPrelude } from '@/lib/canonPrefix';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,30 +62,24 @@ function digest(body: unknown): string {
 
 function buildSystem(items: z.infer<typeof Card>[], locale: 'zh' | 'en'): string {
   const isZh = locale === 'zh';
-  const compact = items.map((i) => ({
-    id: i.itemId,
-    title: i.title,
-    type: i.type,
-    priceCredits: i.priceCredits,
-    downloads: i.downloads,
-  }));
   const zh = [
-    '你是 NEXUS 平台 /marketplace 的"选品员"。下面是货架上仍在售的前几件物品的**实测字段**（价格 credits / 下载量——全部来自数据库真实计数）。',
+    canonPrelude('zh', { zh: '--- 你正在复核的货架：NEXUS /marketplace 仍在售的几件物品的实测字段 ---', en: '' }),
+    '',
+    '你是 NEXUS 平台 /marketplace 的"选品员"。用户消息里有货架上仍在售的前几件物品的**实测字段**（价格 credits / 下载量——全部来自数据库真实计数）。',
     '请为每一件写一句"为什么值得看"的短荐语。',
     '',
     '纪律（不可违反）：',
-    '1. 每句必须引用输入中的数字（例如"下载 12 次"、"0 下载的新品"、"价格 30 credits"）——禁止只用"精美/必备/精品"；',
+    '1. 每句必须引用用户消息中的数字（例如"下载 12 次"、"0 下载的新品"、"价格 30 credits"）——禁止只用"精美/必备/精品"；',
     '2. 你没买过、没读过作品本体——不能对质量做任何事实断言；',
     '3. 一句话，不超过 80 字；不贬低同类、不营销套话（"错过等一年"）；',
     '4. 输出格式：严格 JSON 数组，无 markdown、无前言：',
     '   [{"itemId":"…","note":"…"}, …]',
     '5. 荐语语言：跟随输入语言（此条为中文）。',
-    '',
-    '--- 实测字段（JSON）---',
-    JSON.stringify(compact, null, 2),
   ].join('\n');
   const en = [
-    'You are the NEXUS /marketplace pick clerk. Below are the **measured fields** of a few items still on the shelf (price in credits and download counts — all real database counters).',
+    canonPrelude('en', { zh: '', en: '--- The shelf you are reviewing: NEXUS’s /marketplace items still on sale, with measured fields ---' }),
+    '',
+    'You are the NEXUS /marketplace pick clerk. The user message carries the **measured fields** of a few items still on the shelf (price in credits and download counts — all real database counters).',
     'Write ONE short pick-note per item — why it deserves a look.',
     '',
     'Rules (non-negotiable):',
@@ -94,11 +89,24 @@ function buildSystem(items: z.infer<typeof Card>[], locale: 'zh' | 'en'): string
     '4. Output format: a strict JSON array, no markdown, no preamble:',
     '   [{"itemId":"…","note":"…"}, …]',
     '5. Note language: follow the input (this one is English).',
-    '',
-    '--- Measured fields (JSON) ---',
-    JSON.stringify(compact, null, 2),
   ].join('\n');
   return isZh ? zh : en;
+}
+
+function buildUser(items: z.infer<typeof Card>[], locale: 'zh' | 'en'): string {
+  const isZh = locale === 'zh';
+  const compact = items.map((i) => ({
+    id: i.itemId,
+    title: i.title,
+    type: i.type,
+    priceCredits: i.priceCredits,
+    downloads: i.downloads,
+  }));
+  const label = isZh ? '【/marketplace 仍在售的货架（实测字段，JSON）】' : '【The shelf (/marketplace items still on sale, measured fields as JSON)】';
+  const tail = isZh
+    ? '请严格输出 JSON 数组：[{"itemId":"…","note":"…"}, …]——每个 itemId 对应一句话荐语。'
+    : 'Output strict JSON: [{"itemId":"…","note":"…"}, …] — one note per itemId.';
+  return [label, JSON.stringify(compact, null, 2), '', tail].join('\n');
 }
 
 function parsePicks(text: string, items: z.infer<typeof Card>[]): z.infer<typeof Pick>[] {
@@ -144,7 +152,7 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const system = buildSystem(items, locale);
-  const user = locale === 'en' ? 'English pick notes, please.' : '请用中文写荐语。';
+  const user = buildUser(items, locale);
   const reqId = `marketplace_picks_${Date.now().toString(36)}`;
   const chat = await chatWithCharacter({ requestId: reqId, system, user, modelClass: 'balanced' });
   if (!chat.ok) {

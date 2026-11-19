@@ -8,6 +8,7 @@ import { chatWithCharacter } from '@/server/ai/client';
 import { currentUserOrNull } from '@/server/domain/session';
 import { OBSERVER_COOKIE, OBSERVER_COOKIE_VALUE } from '../route';
 import { readObserverMetrics, buildObserverAdvice, buildObserverProjection } from '@/server/admin/observer';
+import { canonPrelude } from '@/lib/canonPrefix';
 
 export const dynamic = 'force-dynamic';
 
@@ -134,6 +135,8 @@ export async function POST(req: Request): Promise<Response> {
   // 这样任何同一 locale 的 deep-read 调用都共享同一 cache key 前缀，命中率 = 100%（第 2 次起）。
   const system = locale === 'zh'
     ? [
+        canonPrelude('zh', { zh: '--- 平台正在运行的真实聚合指标（JSON，全部为实测计数）——复核的对象就是它，不是正典本身 ---', en: '' }),
+        '',
         '你是 NEXUS 平台的首席产品顾问，正在给一位独立开发者看他自己产品的**实测**聚合数据。',
         '',
         '纪律（不可违反）：',
@@ -148,6 +151,8 @@ export async function POST(req: Request): Promise<Response> {
         '6. 「展望」段严禁写出确定语气的承诺（如「将突破」「一定实现」——只能是「推断：…… 区间 ……」）。',
       ].join('\n')
     : [
+        canonPrelude('en', { zh: '', en: '--- The platform’s own live aggregate metrics (JSON, all real) — this is what you are reviewing, not the canon itself ---' }),
+        '',
         'You are the lead product adviser for NEXUS, reviewing the founder\'s own platform from its **measured** aggregate numbers.',
         '',
         'Rules (non-negotiable):',

@@ -7,6 +7,7 @@ import { getAiCapabilities } from '@/lib/env';
 import { chatWithCharacter } from '@/server/ai/client';
 import { currentUserOrNull } from '@/server/domain/session';
 import { discoverInterestSignals, type InterestSignalCard } from '@/server/domain/social';
+import { canonPrelude } from '@/lib/canonPrefix';
 
 export const dynamic = 'force-dynamic';
 
@@ -128,10 +129,17 @@ export async function POST(req: Request): Promise<Response> {
     null,
     2,
   );
+
+  const label = locale === 'zh' ? '【用户自己打开过的作品（JSON，全部实测）】' : '【Works this user opened (JSON, measured)】';
+  const tail = locale === 'zh'
+    ? '请严格输出 JSON 数组：[{"publicationId":"…","note":"…"}, …]——每条引用 myOpens 或 views/likes。'
+    : 'Output strict JSON: [{"publicationId":"…","note":"…"}, …] — cite myOpens or views/likes.';
+  const user = [label, histoJson, '', tail].join('\n');
   const system = locale === 'zh'
     ? [
-        '你是 NEXUS /discover 的"推荐官"。用户自己打开过的作品记录如下（JSON，全部实测——myOpens 是这个用户自己打开的次数）：',
-        histoJson,
+        canonPrelude('zh', { zh: '--- 你正在复核的对象：这位用户真实打开过的作品记录 ---', en: '' }),
+        '',
+        '你是 NEXUS /discover 的"推荐官"。用户消息里有用户自己打开过的作品记录（JSON，全部实测——myOpens 是这个用户自己打开的次数）。',
         '',
         '纪律（不可违反）：',
         '1. 只允许依据这些实测数说"为什么可能想再打开"——禁止评价作品好坏、禁止情绪化形容词；',
@@ -142,8 +150,9 @@ export async function POST(req: Request): Promise<Response> {
         '5. 语言：跟随输入（此条为中文）。',
       ].join('\n')
     : [
-        'You are the /discover recommendation clerk for NEXUS. Below are the works this user opened themselves, with measured figures (JSON; myOpens = how many times this user opened it):',
-        histoJson,
+        canonPrelude('en', { zh: '', en: '--- What you are reviewing: the works this user actually opened ---' }),
+        '',
+        'You are the /discover recommendation clerk for NEXUS. The user message carries the works this user opened themselves, with measured figures (JSON; myOpens = how many times this user opened it).',
         '',
         'Rules (non-negotiable):',
         '1. Only judge from these measured figures — no verdicts on quality, no emotional adjectives;',
@@ -154,7 +163,6 @@ export async function POST(req: Request): Promise<Response> {
         '5. Language: follow the input (this one is English).',
       ].join('\n');
 
-  const user = locale === 'en' ? 'English notes, please.' : '请用中文写推荐语。';
   const reqId = `discover_interest_${Date.now().toString(36)}`;
   const chat = await chatWithCharacter({ requestId: reqId, system, user, modelClass: 'balanced' });
   if (!chat.ok) {

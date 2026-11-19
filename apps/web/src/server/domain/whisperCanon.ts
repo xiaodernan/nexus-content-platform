@@ -1,4 +1,5 @@
 import { BIBLE_CHAPTERS, BIBLE_ECHOES } from '@/world-bible/generated';
+import { canonPrelude } from '@/lib/canonPrefix';
 
 /**
  * §BIBLE-WHISPER · 把一章正典打包成 LLM 的「你只能回答的关于正典的问题」——
@@ -7,6 +8,9 @@ import { BIBLE_CHAPTERS, BIBLE_ECHOES } from '@/world-bible/generated';
  * 1. 不可编造——凡正典没写的，回答「典籍里没写」或"The canon does not say."；
  * 2. 语言命中——用户写 zh，模型用简体中文答；写 en，模型用英文答；
  * 3. 老老实实引用片段，不能不让人知道你从哪里读到的依据。
+ *
+ * 前缀字节稳定性：canonPrelude（全典）+ 下面同样的字节 → 同一（文件，语言）逐字节一致，
+ * 不同章节/见证共享同一段全典前缀 → provider KV 跨章复用（与 /bible/ask 同一条轨道）。
  */
 
 export type WhisperFile = {
@@ -36,6 +40,11 @@ const OPEN_CONTRACT = `你是《低语诸王》世界大典的答问者。只基
 export function buildPersonaSystemPrompt(file: WhisperFile, locale: 'zh' | 'en'): string {
   const display = locale === 'zh' ? file.titleZh : file.titleEn;
   const rules = [
+    canonPrelude(locale, {
+      zh: '--- 你正在复核的对象：下面摘要的「正典摘录」（不是全典，也不是别章）---',
+      en: '--- What you are reviewing: the single-chapter “canon excerpt” below — not the whole tome, not other chapters ---',
+    }),
+    '',
     OPEN_CONTRACT,
     `本次问答引用的是《${display}》（order=${file.order}，slug=${file.slug}）。`,
     '',
@@ -65,6 +74,11 @@ export function buildPersonaSystemPrompt(file: WhisperFile, locale: 'zh' | 'en')
 export function buildWitnessPrompt(file: WhisperFile, locale: 'zh' | 'en'): string {
   const display = locale === 'zh' ? file.titleZh : file.titleEn;
   const rules = [
+    canonPrelude(locale, {
+      zh: '--- 你正在复核的对象：本章「正典摘录」（不是全典，不越出本章）---',
+      en: '--- What you are reviewing: the “canon excerpt” below — this chapter alone, never beyond it ---',
+    }),
+    '',
     locale === 'zh'
       ? '你是「潮汐见证」——典籍室门口长袖的那位，袖子上沾过正典每一章的墨。你说的每一句都只能引自本章内容；典章没有写的，你一个字也不能说。'
       : 'You are the Tide-Eye witness — the figure at the door of the copying hall, sleeves blackened with the ink of every chapter. You may say only what this chapter already says; anything the canon did not write, you cannot speak.',

@@ -5,6 +5,7 @@ import { readJson, jsonError, badRequest } from '@/server/http';
 import { getRateLimiter, rateKey, clientIp } from '@/server/security/rateLimit';
 import { getAiCapabilities } from '@/lib/env';
 import { chatWithCharacter } from '@/server/ai/client';
+import { canonPrelude } from '@/lib/canonPrefix';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,18 +64,10 @@ function digest(body: unknown): string {
 
 function buildSystem(cards: z.infer<typeof Card>[], locale: 'zh' | 'en'): string {
   const isZh = locale === 'zh';
-  const compact = cards.map((c) => ({
-    id: c.publicationId,
-    name: c.name,
-    kind: c.kind,
-    views: c.views,
-    likes: c.likes,
-    comments: c.comments,
-    remixes: c.remixes,
-    ...(c.score !== undefined ? { heat: c.score } : {}),
-  }));
   const zh = [
-    '你是 NEXUS 平台的"馆长"（策展人）。下面是该平台 /discover 热度榜前几名的**实测指标**（浏览/赞/评论/转化/热度分，全部来自数据库真实计数）。',
+    canonPrelude('zh', { zh: '--- 你正在复核的对象：/discover 热度榜前几名的实测指标 ---', en: '' }),
+    '',
+    '你是 NEXUS 平台的"馆长"（策展人）。用户消息里有该平台 /discover 热度榜前几名的**实测指标**（浏览/赞/评论/转化/热度分，全部来自数据库真实计数）。',
     '请为每一项作品写一句"为什么值得打开"的短批注。',
     '',
     '纪律（不可违反）：',
@@ -84,11 +77,10 @@ function buildSystem(cards: z.infer<typeof Card>[], locale: 'zh' | 'en'): string
     '4. 输出格式：严格 JSON 数组，无 markdown、无前言：',
     '   [{"publicationId":"…","note":"…"}, …]',
     '5. 批注语言：跟随输入语言（此条为中文）。',
-    '',
-    '--- 实测指标（JSON）---',
-    JSON.stringify(compact, null, 2),
   ].join('\n');
   const en = [
+    canonPrelude('en', { zh: '', en: '--- What you are reviewing: NEXUS /discover’s top entries, measured ---' }),
+    '',
     'You are the NEXUS platform curator. Below are the **measured metrics** for the top entries of /discover (views/likes/comments/remixes/heat, all real database counts).',
     'Write ONE short editor\u2019s note per work — the reason it deserves opening.',
     '',
@@ -99,11 +91,27 @@ function buildSystem(cards: z.infer<typeof Card>[], locale: 'zh' | 'en'): string
     '4. Output format: a strict JSON array, no markdown, no preamble:',
     '   [{"publicationId":"…","note":"…"}, …]',
     '5. Note language: follow the input (this one is English).',
-    '',
-    '--- Measured metrics (JSON) ---',
-    JSON.stringify(compact, null, 2),
   ].join('\n');
   return isZh ? zh : en;
+}
+
+function buildUser(cards: z.infer<typeof Card>[], locale: 'zh' | 'en'): string {
+  const isZh = locale === 'zh';
+  const compact = cards.map((c) => ({
+    id: c.publicationId,
+    name: c.name,
+    kind: c.kind,
+    views: c.views,
+    likes: c.likes,
+    comments: c.comments,
+    remixes: c.remixes,
+    ...(c.score !== undefined ? { heat: c.score } : {}),
+  }));
+  const label = isZh ? '【/discover 热度榜前段的实测指标（JSON）】' : '【/discover top entries (measured metrics as JSON)】';
+  const tail = isZh
+    ? '请严格输出 JSON 数组：[{"publicationId":"…","note":"…"}, …]——每个 publicationId 对应一句话批注。'
+    : 'Output strict JSON: [{"publicationId":"…","note":"…"}, …] — one note per publicationId.';
+  return [label, JSON.stringify(compact, null, 2), '', tail].join('\n');
 }
 
 function parseNotes(text: string, cards: z.infer<typeof Card>[]): z.infer<typeof Note>[] {
@@ -149,7 +157,7 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const system = buildSystem(cards, locale);
-  const user = locale === 'en' ? 'English notes, please.' : '请用中文写批注。';
+  const user = buildUser(cards, locale);
   const reqId = `editor_note_${Date.now().toString(36)}`;
   const chat = await chatWithCharacter({ requestId: reqId, system, user, modelClass: 'balanced' });
   if (!chat.ok) {
