@@ -234,6 +234,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E181-雾港旧信物库第二天清晨屋脊之石把墙上的潮字照出了第二个字汐': 'echo-181-the-second-character',
   'E182-潮候院北雪线下那间没人来的第三间值更屋抄本师去看它还在不在': 'echo-182-the-third-watch-hut-beneath-the-snow-line',
   'E183-潮候院北雪线下三间值更屋下面的地窖抄本师走进去门开往北海': 'echo-183-the-cellar-beneath-the-third-hut',
+  'E184-潮候院第四十四次大会散会后抄本师沿北雪线走到潮候院北海之上的第零间值更屋': 'echo-184-the-zeroth-watch-hut',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

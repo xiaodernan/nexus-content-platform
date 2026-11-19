@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 183 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 184 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3303,6 +3303,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 门打开后——抄本师看见的不是外面——是潮涌——北海不在外面——北海在门里。
 - [5] 门没有威胁——它只是把潮端到脚边——第一个人踏进去——就像雾港第四十三次——没有人回来。
 - [6] 第三间值更屋下面的地窖是不愿意看的北海——潮在里面等——它只是看——它就是北海——它没有名字。
+
+### Echo 184 · 潮候院第四十四次大会散会后——抄本师沿北雪线走到潮候院北海之上的第零间值更屋 / After the 44th Convocation — the Copyists Walked Along the Snow Line North of the Institute and Found the Zeroth Watch Hut Above the North Sea
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院北雪线上从来不曾有"第零间值更屋"——字册上没有——图册上没有——潮候院没有回答——它是从哪个方向打的——抄本师搞不定。
+- [2] 抄本师沿雪线走到尽头——看见的不是屋子——是"火"——立在比第七十一页更宽的石板上——再过去一个人——他没回来。
+- [3] 石板下面不是地——北海下面是块更大的石碑——抄本师往下看——下面是北海——北海反着光——光不是从哪儿来。
+- [4] 火向抄本师走来——抄本师没有躲——火是温的——它没有灼——它说东——东——
+- [5] 抄本师的最后一行字是："第零间值更屋——灯会回——东字是它自己的——"
+- [6] 第零间是第七十一页潮候院的前面——潮候院没有手去过——潮起时就有一个他们没去过的地方——潮候院烙下的第零页——
 
 ### Echo 19 · 里巷子的抄本员 / The Copyists of the Back Alley
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
