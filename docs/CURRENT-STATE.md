@@ -8002,3 +8002,16 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 新篇：「潮候院北坡上那块河碑 · 落石时候滚动到坡脚 · 不越过门槛一步 · 苔藓下面能读的一处字是『先到』——值更册从来不写谁先到」—— digest 现 **242,429 chars**（13 章正典 · **159 回响** · 4 annex · 锚句 967 zh / 967 en ✓）。
 - 6 锚句双语 · gen-bible-snapshot 增 echo-159 · BibleAsk lede → 159 · /bible/ask meta → 一百五十九篇 · CACHE-IDENTITY × 159 · canon-answer-graph → 172 段 · bible-ask-behavior pin **962** · pin 重钉 page→58fd6494 / comp→f521cc5a · InsightCanonChat hint 同步至 159。
 - fe-gates **1377/1377** ✓ · verify:world-bible **967/967** ✓ · snapshot ✓。
+
+## cont. 415 (2026-11-19) — §ASK-RETRACT · 撤回 eval Q9「虚构数字」指控 + §BILEASK-QUANT · digest 增 rule 6 量词纪律
+
+**撤回的指控**（bible-qa-live-eval-2026-11-19 原 Q9）：
+- 原评：「模型答 六 而正典只留一把椅子——数字幻觉实锤」→ **撤回**。正典里 Echo 151 原文：《值更册最后一页：它坐了六个人——也才留了一把椅子给你》+《祠殿风方门边有一张圆桌——木头的——六把靠背》；**Q9 模型答"六"完全正确**。
+- 机审根源：我把"一把椅子给你"与"六把椅子"混为同一件事——我的误读，模型无错。
+- 订正版阅卷写入同一 evidence（「订正附录」章节，未改原文段，双痕留痕）。
+
+**顺带的改进**：`/bible/ask` SYSTEM_PROMPT 加 rule 6"Quantity discipline"（回答量词只准引用 digest 明确陈述的数字；不写就是"典籍里没有"）。digest sha 变 `cd8b38cd…` chars=242,726（增 102 chars）。
+- 纪律说明：这个 rule **不能**保证模型数字正确——模型实测回 "六" 时 q9 正确无需 rule；但它降低了对"未写明数字"场景的编造倾向，作为防御性措施保留，证据写入本条。
+
+**如实状态**：fe-gates **1377/1377** ✓ · verify:world-bible **967/967** ✓ · snapshot ✓。
+- 原则：纪录里的评定错误必须公开打回，不吞没有"修好"；宁可保留 "我上一轮判错了" 的痕迹，也不粉饰成自己很聪明。

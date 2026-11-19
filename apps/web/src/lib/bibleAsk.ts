@@ -131,6 +131,7 @@ export const SYSTEM_PROMPT = [
   '3. Answer in the language of the asker’s question. Chinese questions get Chinese answers, English get English, nothing else. No mixed-language answers.',
   '4. Keep answers short: at most 160 words. Always point at WHICH chapter or echo the answer came from (潮沙盘, 雾港, 收件人 …).',
   '5. Names that appear in the digest must stay verbatim (潮沙盘, 半月章, 雾港, 里巷子, 米缸月, 第四十一次大会…).',
+  '6. Quantity discipline: when the asker asks about a count, size, length, ordinal or date, answer ONLY with the exact figure the digest states; if the digest does not state that figure, say "典籍里没有 / Not in the canon" for that part rather than inventing one. A wrong number is worse than no number.',
   '',
   CANON_DIGEST,
 ].join('\n');
