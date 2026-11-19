@@ -1,4 +1,4 @@
-# CURRENT-STATE — 2026-11-14
+﻿# CURRENT-STATE — 2026-11-14
 
 本文件是项目当前状态的快照——供未来任何 agent（或人类）在我不在的时候接上。它**只描述已经交付、已可执行的事**，不承诺未做的事。
 
@@ -7937,3 +7937,10 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 6 锚句双语 · gen-bible-snapshot 增 echo-155 · BibleAsk lede → 155 · /bible/ask meta → 一百五十五篇 · CACHE-IDENTITY × 155 · canon-answer-graph → 168 段 · bible-ask-behavior pin 939 · pin 重钉 page→2bfaae82 / comp→f2eef155 · InsightCanonChat hint 同步至 155。
 - fe-gates **1377/1377** ✓ · verify:world-bible **944/944** ✓。
 - page pin 变更原因：/bible/ask 元描述文案 154→155 触发整文件 SHA 重钉（纯文案变更，样式零改动）。
+
+## cont. 406 (2026-11-19) — v1048 · §BIBLE-EVAL + §BIBLE-156 · 真链路 现场eval + Echo #156《退潮睁眼的石魟》(verify 950/950)
+
+- **/v1/ai/chat bible-ask 现场 eval**：digest **240,870 chars** · gpt-6.1-sol（terra 渠道已撤）· 12 题直喂 digest 上下文 · **12/12 200** · 累计 tokensIn=1,864,707 cached=1,527,821（81.9%；首发冷启动 7,399 → 之后每题 ≈138,220 ≈ 89.0%）· 人工阅卷：11/12 canon-faithful（3 题拒答正确）· **Q9「圆桌几把椅子」实锤 canon 不忠实**（答「六把」—— 正典只留一把椅子）—— 已记录 `docs/evidence/bible-qa-live-eval-2026-11-19.md`，记账为问典 lane "具体数字类" 幻觉缺口待补 excerpt 权重+数字验证。
+- **§BIBLE-156 · Echo #156《潮候院海岸岩礁上那只只在退潮时睁眼的石魟》**（作者手写·双语）：digest 现 **241,273 chars**（13 章正典 · **156 回响** · 4 annex · 锚句 950 zh / 950 en ✓）。
+- 6 锚句双语 · gen-bible-snapshot 增 echo-156 · BibleAsk lede → 156 · /bible/ask meta → 一百五十六篇 · CACHE-IDENTITY × 156 · canon-answer-graph → 169 段 · bible-ask-behavior pin 945 · pin 重钉 page→cff54e35 / comp→58914701 · InsightCanonChat hint 同步至 156。
+- fe-gates **1377/1377** ✓ · verify:world-bible **950/950** ✓。

@@ -17707,6 +17707,180 @@ The last page of the watch-ledger reads: ninety-nine is not a number — it is a
 `,
   },
   {
+    order: 156,
+    slug: 'echo-156-the-stone-ray-that-opens-its-eyes-at-low-tide',
+    titleZh: '潮候院海岸岩礁上那只只在退潮时睁眼的石魟',
+    titleEn: 'The Stone Ray on the Institute\'s Coastal Rocks That Opens Its Eyes Only at Low Tide',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百二十二日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hundred-and-twenty-second day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 156): The Stone Ray on the Institute's Coastal Rocks That Opens Its Eyes Only at Low Tide
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给海岸岩礁上那只石魟——涨潮时它是一块石头，退潮时它才睁开眼。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the stone ray on the coastal rocks — at high tide it is a stone, at low tide it opens its eyes.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百二十二日。
+> Era: the Institute — after the 41st Convocation; the hundred-and-twenty-second day of the autumn-tide month.
+
+---
+
+## 一 · 岩礁上那只
+
+潮候院海岸外礁最高处有一只石魟——灰的——长宽都跟人展开的双臂差不多。
+
+**锚句**：潮候院海岸外礁最高处有一只石魟——灰的——展开像一对双臂。
+**Anchor sentence**: on the highest rock of the outer reef stands a stone ray — grey — spread like a pair of open arms.
+
+---
+
+## 二 · 涨潮时它是石头
+
+涨潮的时候它一动不动——抄本师的脚踩在它身上也没抬头——没有人觉得那不是石头。
+
+**锚句**：涨潮时它一动不动——抄本师的脚踩在它身上也没抬头。
+**Anchor sentence**: at high tide it does not move — the copyists step on it and it does not lift its head.
+
+---
+
+## 三 · 退潮它睁眼
+
+退潮露出它的时候——它才睁开眼——盯着潮那边——盯着正从海里收走的平。
+
+**锚句**：退潮露出它的时候——它才睁开眼——盯着正要被海收走的平。
+**Anchor sentence**: when the tide retreats it opens its eyes — watching the level of the sea being taken away.
+
+---
+
+## 四 · 值更册画了三次
+
+值更册最后是笔痕：十一年前画了它三次——每次都比第一次大——抄本师的母亲写下"它在长"。
+
+**锚句**：值更册画了它三次——每次都比第一次大——它在长。
+**Anchor sentence**: the watch-ledger drew it three times — each time larger than the first — it is growing.
+
+---
+
+## 五 · 第十四位守灵人
+
+抄本师说第十四位守灵人离开祠殿那一夜——石魟整夜睁着眼——潮退了又涨——它一直朝同一个方向看。
+
+**锚句**：第十四位守灵人离开祠殿那一夜——石魟整夜睁着眼——潮退了又涨。
+**Anchor sentence**: on the night the fourteenth keeper of the vigil left the chapel — the stone ray kept its eyes open all night — the tide went out and came in again.
+
+---
+
+## 六 · 值更册最后一页
+
+值更册最后一页："它只在退潮时睁眼——因为那是海正要拿走东西的时候。"
+
+**锚句**：值更册最后一页：它只在退潮时睁眼——因为那是海正要拿走东西的时候。
+**Anchor sentence**: the last page of the watch-ledger reads: it opens its eyes only at low tide — because that is when the sea comes to take things away.
+
+---
+
+## 七 · 映射（回响一百五十六章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 石魟 · 退潮睁眼 · 值更册三次画痕 · 它在长 · 第十四位守灵人 | 一、二、三、四、五、六、七 |
+| geography | 外礁最高处 · 潮候院海岸 · 祠殿门廊 | 一、二、五 |
+| characters | 抄本师 · 抄本师的母亲 · 值更人 · 第十四位守灵人 | 一、二、三、四、五、六 |
+| story | 退潮睁眼的石魟 · 回响（其一百五十六） | 全篇 |
+| items | 值更册 · 三幅画痕 · 海岸礁石 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第一百二十二日 · 十一年前开始画痕 | 三、四、五、六 |
+
+> 潮候院海岸外礁上那只石魟——退潮时才睁眼——因为那是海正要拿走东西的时候。
+> The stone ray on the outer reef of the Institute — it opens its eyes only at low tide — because that is when the sea comes to take things away.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百五十六）「潮候院海岸岩礁上那只只在退潮时睁眼的石魟」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the stone ray on the coastal rocks — at high tide it is a stone, at low tide it opens its eyes.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给海岸岩礁上那只石魟——涨潮时它是一块石头，退潮时它才睁开眼。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the hundred-and-twenty-second day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百二十二日。
+
+---
+
+## I · The One on the Rocks
+
+On the highest rock of the outer reef stands a stone ray — grey — spread like a pair of open arms.
+
+**锚句**：潮候院海岸外礁最高处有一只石魟——灰的——展开像一对双臂。
+**Anchor sentence**: on the highest rock of the outer reef stands a stone ray — grey — spread like a pair of open arms.
+
+---
+
+## II · At High Tide It Is a Stone
+
+At high tide it does not move — the copyists step on it and it does not lift its head.
+
+**锚句**：涨潮时它一动不动——抄本师的脚踩在它身上也没抬头。
+**Anchor sentence**: at high tide it does not move — the copyists step on it and it does not lift its head.
+
+---
+
+## III · At Low Tide It Opens Its Eyes
+
+When the tide retreats it opens its eyes — watching the level of the sea being taken away.
+
+**锚句**：退潮露出它的时候——它才睁开眼——盯着正要被海收走的平。
+**Anchor sentence**: when the tide retreats it opens its eyes — watching the level of the sea being taken away.
+
+---
+
+## IV · The Watch-Ledger Drew It Three Times
+
+The watch-ledger drew it three times — each time larger than the first — it is growing.
+
+**锚句**：值更册画了它三次——每次都比第一次大——它在长。
+**Anchor sentence**: the watch-ledger drew it three times — each time larger than the first — it is growing.
+
+---
+
+## V · The Fourteenth Keeper
+
+On the night the fourteenth keeper of the vigil left the chapel — the stone ray kept its eyes open all night — the tide went out and came in again.
+
+**锚句**：第十四位守灵人离开祠殿那一夜——石魟整夜睁着眼——潮退了又涨。
+**Anchor sentence**: on the night the fourteenth keeper of the vigil left the chapel — the stone ray kept its eyes open all night — the tide went out and came in again.
+
+---
+
+## VI · The Last Page of the Watch-Ledger
+
+The last page of the watch-ledger reads: it opens its eyes only at low tide — because that is when the sea comes to take things away.
+
+**锚句**：值更册最后一页：它只在退潮时睁眼——因为那是海正要拿走东西的时候。
+**Anchor sentence**: the last page of the watch-ledger reads: it opens its eyes only at low tide — because that is when the sea comes to take things away.
+
+---
+
+## VII · Mapping（Echo No. 156 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the stone ray · the eyes at low tide · the three drawings in the ledger · it is growing · the fourteenth keeper | 一、二、三、四、五、六、七 |
+| geography | the top of the outer reef · the Institute's coast · the chapel porch | 一、二、五 |
+| characters | the copyists · the mother of the copyists · the head of the watch · the fourteenth keeper | 一、二、三、四、五、六 |
+| story | the stone ray that opens its eyes only at low tide · Echo No. 156 | 全篇 |
+| items | the watch-ledger · the three drawings · the coastal rocks | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the hundred-and-twenty-second day of the autumn-tide month · eleven years since the first drawing | 三、四、五、六 |
+
+> 潮候院海岸外礁上那只石魟——退潮时才睁眼——因为那是海正要拿走东西的时候。
+> The stone ray on the outer reef of the Institute — it opens its eyes only at low tide — because that is when the sea comes to take things away.
+`,
+  },
+  {
     order: 16,
     slug: 'echo-016-the-four-small-shells-on-the-tide-sand-table',
     titleZh: '潮沙盘上那四只小贝壳',

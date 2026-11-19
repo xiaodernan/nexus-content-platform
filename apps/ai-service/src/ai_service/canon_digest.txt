@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 155 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 156 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3028,6 +3028,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 那一夜钟敲了九十九下——敲到九十九下的时候它停了——没有人抬头。
 - [5] 沙漏不在数东西——沙漏在想念顶端。
 - [6] 值更册最后一页：第九十九不是一个数——它是一处门槛——站上去可以听见潮。
+
+### Echo 156 · 潮候院海岸岩礁上那只只在退潮时睁眼的石魟 / The Stone Ray on the Institute's Coastal Rocks That Opens Its Eyes Only at Low Tide
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院海岸外礁最高处有一只石魟——灰的——展开像一对双臂。
+- [2] 涨潮时它一动不动——抄本师的脚踩在它身上也没抬头。
+- [3] 退潮露出它的时候——它才睁开眼——盯着正要被海收走的平。
+- [4] 值更册画了它三次——每次都比第一次大——它在长。
+- [5] 第十四位守灵人离开祠殿那一夜——石魟整夜睁着眼——潮退了又涨。
+- [6] 值更册最后一页：它只在退潮时睁眼——因为那是海正要拿走东西的时候。
 
 ### Echo 16 · 潮沙盘上那四只小贝壳 / The Four Small Shells on the Tide-Sand Table
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
