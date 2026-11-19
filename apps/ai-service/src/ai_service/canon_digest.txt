@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 171 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 172 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3187,6 +3187,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 铜屉从没人开过——潮印没碰过海水——它自己选了绿——雾港的人不认为它违背约定。
 - [5] 第四十三次大会结束那夜守库人封存潮印——那枚没写名字——第二天他发现它又绿了一层。
 - [6] 抄本师说潮印是用来等的——守库人规定每只匣子都只打开一半。
+
+### Echo 172 · 雾港旧信物库守库人的夜钥匙——至今没有第二把铜匙坯能复制它 / The Night Key of the Keeper of the Old Relic Room at Fog Harbor — No Second Blank Has Ever Been Able to Replicate It
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 雾港旧信物库换更只用一把铜钥匙——没有备用——值更的人握着钥匙坐着。
+- [2] 铜钥匙是潮候院交予雾港的两样东西之一——它的齿是反的——谁看它都皱眉。
+- [3] 雾港两个铜匠试过复制夜钥匙——第一个三次没响——第二个两次后断了齿。
+- [4] 守库人曾记得它是五个齿——某次只剩四个——没人锯过、锉过它。
+- [5] 值更记录只写"铜钥匙仍在"——没有人发现库里除铜屉外还有别的门。
+- [6] 抄本师说信物库只是一只箱子——潮印、夜钥匙都是同一件事的分身——他们开始数潮。
 
 ### Echo 18 · 祠殿里从不叫的一只猫 / The Cat in the Institute That Never Meowed
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

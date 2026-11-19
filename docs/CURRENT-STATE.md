@@ -8288,3 +8288,14 @@ Reported upstream to `docs/evidence/liveness-sweep-2026-11-19.md`（cont.429 对
 - xiaodernan.github.io 当前 health：identity-guard OK (exit 0)。重点：Pages 部署流水线不再依赖本机 runner，即使本机无人开着也能自动更新（ubuntu-latest 模式）
 - digest verify count：verifier 1038 zh/en；test-local pin 1033（5 系统差），双 digest 测试 11/11 绿
 - note: E170 receipt skipped on public IO (v1059→v1060 moved past the E170 inscription) — 公网 v1060 直接锚定 E171，E170《北墙年月刻痕》digest 内有但 oracle-strip 没有单独 public quote（compromise chosen：不把 oracle-strip 锚文每回增一个 bullet 刷新曝光，宁可让每次 deploy 都有一条干净新锚句）
+
+## cont. 439 (2026-11-19) — §BIBLE-172 · Echo #172 夜钥匙落盘 · ai-service 脱离式宿主
+
+- **Echo #172《雾港旧信物库守库人的夜钥匙——至今没有第二把铜匙坯能复制它》** 双语手写（E171 同夜 arc 续篇；值更/铜匙坯/复制失败/齿从五到四/值更记录/抄本师数潮弧。镜像 `E171 铜屉`）→ registry `echo-172-the-uncopyable-night-key-of-fog-harbor`
+- gen-bible-snapshot → **172 回响**；digest **248,455 chars · sha e7844d13…**；verify-world-bible-anchors → **1044 zh/en ✓**；bible-ask pin 1033→**1039**；digest 双测试 11/11 绿
+- :3200 worker PID 53004 killed → relaunch **detached**（`Start-Process ... hidden`）：563/54728 风格不会被 harness 3600 s SIGTERM 杀掉；新进程加载 E172 digest · /healthz 200 · llm=gpt-6.2-sol
+- deps live: :3100 web (54940) · :3200 ai-service (detached) · :5543/:56379 Postgres/Redis via Docker（nexus-postgres / nexus-redis liveness 151/144 健康?）
+- **公网 Pages**：CDN 当下已采纳 **v1059**（E169《竖琴》166 锚句）——minicc 2,030 commits / Football OS 1,654 / 69 卷 Atlas 107 最新事实全在；v1060（E171）即将到来；建议不再抢 CDN，Pages 采纳节奏实测 1–2 个周期
+- **本轮没再 dispatch**（无用且会白跑一趟）
+- 引擎维持 system prompt： digest 248,455 chars ≈ 6.2 万 tokens （含 EN/ZH 全量）· 距预算 320K 还有 ~72K · 前缀 cached 情境继续会 warm-by-crawl
+- Bible-ask pin UPDATE committed alongside echo registry（双债项）
