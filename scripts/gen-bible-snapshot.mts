@@ -212,6 +212,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E159-潮候院北坡上那块只在落石时候滚动的河碑': 'echo-159-the-river-stele-that-rolls-when-stones-fall',
   'E160-值更室墙上那张只印半个潮的挂历': 'echo-160-the-wall-calendar-that-prints-only-half-the-tide',
   'E161-潮候院前院那棵只收落叶的信树': 'echo-161-the-letter-tree-that-sends-leaves-to-the-night',
+  'E162-值更室里那面只看雨不看人的旧铜镜': 'echo-162-the-brass-mirror-that-only-watches-rain',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
