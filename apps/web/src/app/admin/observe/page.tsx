@@ -6,6 +6,7 @@ import { OBSERVER_COOKIE, OBSERVER_COOKIE_VALUE } from '@/app/api/admin/observer
 import { AdminNav } from '@/components/AdminNav';
 import { PasswordForm } from './PasswordForm';
 import { ObserverDeepRead } from '@/components/ObserverDeepRead';
+import { ObserverAiAdvice } from './ObserverAiAdvice';
 import { readObserverMetrics, buildObserverAdvice, buildObserverProjection } from '@/server/admin/observer';
 
 export const dynamic = 'force-dynamic';
@@ -387,6 +388,7 @@ export default async function ObserverPage() {
         </ul>
         <p className="obs-subnote">{c.adviceFoot}</p>
         <ObserverDeepRead locale={locale} />
+        <ObserverAiAdvice locale={locale} metrics={m} />
       </section>
 
       <footer className="adm-foot">
