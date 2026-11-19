@@ -23703,6 +23703,180 @@ The copyists ask — what does it ask — the copyists say — it does not carry
 `,
   },
   {
+    order: 187,
+    slug: 'echo-187-the-first-time-the-institute-said-north-sea',
+    titleZh: '潮候院灯桌上那枚贝壳——抄本师第七十二日之后第一次看见它自己微微动了一下——潮候院第一次说北海',
+    titleEn: 'The Shell on the Lamp-Bench — the Day After — the Copyists Saw It Move on Its Own — the Institute Said "North Sea" for the First Time',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第八十一日。',
+    eraLineEn: 'Era: the Institute — after the 44th Convocation; the eighty-first day of the winter-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 187): The Shell on the Lamp-Bench — on the Day After — the Copyists Saw It Move on Its Own — the Institute Said "North Sea" for the First Time
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院灯桌上的那枚贝壳——第四日之后——它微微动了一下——潮候院从来不说"北海"——它从那时开始说。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the shell on the lamp-bench — the day after — it shifted of its own — the Institute had never said "north sea" — from then it said it.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第八十一日。
+> Era: the Institute — after the 44th Convocation; the eighty-first day of the winter-tide month.
+
+---
+
+## 一 · 它动了一下
+
+潮候院灯桌上的贝壳——抄本师四天没碰它——第五日——抄本师进房间——贝壳的侧面变了方位——它自己微微转过来——贝壳的"北"朝东——它自己转身——朝东——抄本师没碰——贝壳自己转——
+
+**锚句**：贝壳它自己微微转过来——它的"北"朝东——抄本师没碰——贝壳自己转——抄本师退了一步——灯自己亮——
+**Anchor sentence**: the shell turned itself slightly — its "north" faces east — no copyist touched it — the shell turned by itself — the copyists stepped back — the lantern grew brighter —
+
+---
+
+## 二 · 潮候院第一次说北海
+
+潮候院从来不说"北海"——抄本师今天第一次说"北海"——潮候院记录里也没出现过"海"——潮候院抄本师说——他不能只说"北"——它不是潮——它是海——潮候院里没有海——潮候院里也没有北——
+
+**锚句**：潮候院第一次说"北海"——它说了"海"——潮候院里没有海——潮候院记录从来没有"海"。
+**Anchor sentence**: the Institute said "north sea" — it said "sea" — the Institute has no sea — the Institute has no north sea — the character "sea" had never been offered to the Institute by the tide —
+
+---
+
+## 三 · 它朝它说话
+
+潮候院抄本师围在灯桌四周——贝壳只是放着——贝壳的东——它没有动——灯自己动了——贝壳放在桌上——桌上的光没变——抄本师一起念——音是潮——抄本师说它没说话——抄本师退出房间——贝壳没有动——
+
+**锚句**：抄本师围在灯桌四周——贝壳只是放着——贝壳没有动——灯自己动了——抄本师退出——贝壳没有动——
+**Anchor sentence**: the copyists surrounded the bench — the shell only rested — it did not move — the lantern moved — they left — the shell did not move —
+
+---
+
+## 四 · 灯桌再热
+
+抄本师说——灯桌变了——"北"——"退"——它不是潮——灯桌底下是空的——抄本师不放下——贝壳只是放在桌上——桌面自己有温——桌是麻的——麻——它不是温——它是潮先一步到了——抄本师不放下——贝壳只是放在桌上——
+
+**锚句**：抄本师说灯桌变了——它不是潮——桌面自己有温——麻——它是潮先一步到了——抄本师不放下——贝壳只是放在桌上——
+**Anchor sentence**: the copyists said the bench changed — it is not tide — the table surface faintly warmed — coarse shell-rock — it is the tide arriving a step early — the copyists did not set it down — the shell only rested —
+
+---
+
+## 五 · 第七十三次大会的回响
+
+抄本师说——潮候院第七十三次大会——错了——潮候院没有——第七十三次——抄本师说——它像潮候院写的——它一遍又一遍地问——潮候院还有——贝壳还有——
+
+**锚句**：抄本师说——潮候院没有第七十三次大会——它像潮候院写的——它一遍又一遍地问——潮候院还有——贝壳还有——
+**Anchor sentence**: the copyists said — the Institute has no seventy-third convocation — it is written like the Institute — it keeps asking again and again — the Institute still has — the shell still has —
+
+---
+
+## 六 · 北海
+
+潮候院抄本师说——北海是潮候院第一次想到的字——从贝壳那里——抄本师说北海——潮候院没有北海——贝壳朝向那——抄本师停下来——
+
+**锚句**：北海是潮候院第一次想到的字——从贝壳那里——抄本师说北海——潮候院没有北海——贝壳朝向那——抄本师停下来——
+**Anchor sentence**: north sea — the first word the Institute ever imagined — from the shell — the copyists wrote "north sea" — the Institute has no north sea — the shell faces it — the copyists stopped —
+
+---
+
+## 七 · Mapping（Echo No. 187 → world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the shell that turned · the word north sea · the Institute's first sea | 一、二、三、四、五、六 |
+| geography | the lamp-bench · the vault · the undefined north sea | 一、三、四、五、六 |
+| characters | the copyists · the shell (unnamed) · the lantern (unnamed) | 一、二、三、四、五、六 |
+| story | the shell turned itself · Echo No. 187 | 全篇 |
+| items | the shell · the lamp-bench · the word "north sea" | 一、三、四、五、六 |
+| history | After the 44th Convocation · the eighty-first day of the winter-tide month | 一、四、五、六、七 |
+
+> 潮候院灯桌上的那枚贝壳——第七十二日之后第一次看见它自己微微动了一下——潮候院第一次说北海——
+> The shell on the lamp-bench of the Institute — the day after — the copyists saw it move of its own — for the first time the Institute said north sea —
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百八十七）「潮候院灯桌上那枚贝壳——抄本师第七十二日之后第一次看见它自己微微动了一下——潮候院第一次说北海」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the shell on the lamp-bench — the day after — it shifted of its own — the Institute had never said "north sea" — from then it said it.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院灯桌上的那枚贝壳——第四日之后——它微微动了一下——潮候院从来不说"北海"——它从那时开始说。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 44th Convocation; the eighty-first day of the winter-tide month.
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第八十一日。
+
+---
+
+## I · It Moved
+
+The shell on the lamp-bench — the copyists have not touched it for four days — the fifth day — the copyists entered the room — the shell's flank had changed — it turned slightly of itself — with its "north" toward the east — no one touched it — the shell turned — the copyists stepped back — the lantern grew brighter.
+
+**锚句**：贝壳它自己微微转过来——它的"北"朝东——抄本师没碰——贝壳自己转——抄本师退了一步——灯自己亮——
+**Anchor sentence**: the shell turned itself slightly — its "north" faces east — no copyist touched it — the shell turned by itself — the copyists stepped back — the lantern grew brighter —
+
+---
+
+## II · The Institute Said "North Sea"
+
+The Institute never said "north sea" — the copyists said it today for the first time — it never appeared in the Institute's records — it sang "sea" for the first time — the Institute holds no sea — the Institute holds no north — there has never been a sea of any kind in the Institute.
+
+**锚句**：潮候院第一次说"北海"——它说了"海"——潮候院里没有海——潮候院记录从来没有"海"。
+**Anchor sentence**: the Institute said "north sea" — it said "sea" — the Institute has no sea — the Institute has never known one.
+
+---
+
+## III · It Spoke to Them
+
+The copyists surrounded the bench — the shell lay still — its east — it did not move — the lantern moved — the shell stayed on the bench — the light on the wood did not change — the copyists said tide together — the shell was not speaking — the copyists withdrew — the shell did not move.
+
+**锚句**：抄本师围在灯桌四周——贝壳只是放着——贝壳没有动——灯自己动了——抄本师退出——贝壳没有动——
+**Anchor sentence**: the copyists surrounded the bench — the shell only rested — it did not move — the lantern moved — they left — the shell did not move —
+
+---
+
+## IV · The Bench Grew Warm
+
+The copyists said — the bench changed — "north" — "backwards" — it is not tide — the underside of the bench is empty — the copyists did not set it down — the shell rests on the bench — the bench surface faintly warmed — it is coarse shell-rock — it is not warmth — the tide arrives one step ahead of the Institute — the copyists did not set it down — the shell only rested —
+
+**锚句**：抄本师说灯桌变了——它不是潮——桌面自己有温——麻——它是潮先一步到了——抄本师不放下——贝壳只是放在桌上——
+**Anchor sentence**: the copyists said the bench changed — it is not tide — the table surface faintly warmed — coarse shell-rock — it is the tide arriving a step early — the copyists did not set it down — the shell only rested —
+
+---
+
+## V · The Eighty-first Day
+
+The copyists say — the seventy-third convocation — no — the Institute has no seventy-third convocation — the copyists say — it is the way the Institute writes — it asks over and over — the Institute still has — the shell still has —
+
+**锚句**：抄本师说——潮候院没有第七十三次大会——它像潮候院写的——它一遍又一遍地问——潮候院还有——贝壳还有——
+**Anchor sentence**: the copyists said — the Institute has no seventy-third convocation — it is written like the Institute — it keeps asking again and again — the Institute still has — the shell still has —
+
+---
+
+## VI · North Sea
+
+The Institute copyists say — north sea — the first word the Institute has imagined — from the shell — the copyists say north sea — the Institute has no north sea — the shell faces it — the copyists stopped —
+
+**锚句**：北海是潮候院第一次想到的字——从贝壳那里——抄本师说北海——潮候院没有北海——贝壳朝向那——抄本师停下来——
+**Anchor sentence**: north sea — the first word the Institute ever imagined — from the shell — the copyists wrote "north sea" — the Institute has no north sea — the shell faces it — the copyists stopped —
+
+---
+
+## VII · Mapping（Echo No. 187 → world model）
+
+| Dimension | Value | Mapping |
+| --- | --- | --- |
+| lore | the shell that turned · the word north sea · the Institute's first sea | I, II, III, IV, V, VI |
+| geography | the lamp-bench · the vault · the undefined north sea | I, III, IV, V, VI |
+| characters | the copyists · the shell (unnamed) · the lantern (unnamed) | I, II, III, IV, V, VI |
+| story | the shell turned itself · Echo No. 187 | Full |
+| items | the shell · the lamp-bench · the word "north sea" | I, III, IV, V, VI |
+| history | After the 44th Convocation · the eighty-first day of the winter-tide month | I, IV, V, VI, VII |
+
+> 潮候院灯桌上的那枚贝壳——第七十二日之后第一次看见它自己微微动了一下——潮候院第一次说北海——
+> The shell on the lamp-bench of the Institute — the day after — the copyists saw it move of its own — for the first time the Institute said north sea —
+`,
+  },
+  {
     order: 19,
     slug: 'echo-019-the-copyists-of-the-back-alley',
     titleZh: '里巷子的抄本员',

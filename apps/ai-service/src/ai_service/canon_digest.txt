@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 186 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 187 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3330,6 +3330,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 潮候院没有人说话——它不属于潮候院——它是从别处来的——潮候院没有人去过北——潮候院里没有北。
 - [5] 贝壳在灯桌上两天以后——它微微有温——抄本师反复说它不是潮——潮候院本来也没有北——
 - [6] 贝壳问了潮候院一个字——它不是问潮——它只是问潮候院里有没有力、风、盐、北——潮候院没有北——
+
+### Echo 187 · 潮候院灯桌上那枚贝壳——抄本师第七十二日之后第一次看见它自己微微动了一下——潮候院第一次说北海 / The Shell on the Lamp-Bench — the Day After — the Copyists Saw It Move on Its Own — the Institute Said "North Sea" for the First Time
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 贝壳它自己微微转过来——它的"北"朝东——抄本师没碰——贝壳自己转——抄本师退了一步——灯自己亮——
+- [2] 潮候院第一次说"北海"——它说了"海"——潮候院里没有海——潮候院记录从来没有"海"。
+- [3] 抄本师围在灯桌四周——贝壳只是放着——贝壳没有动——灯自己动了——抄本师退出——贝壳没有动——
+- [4] 抄本师说灯桌变了——它不是潮——桌面自己有温——麻——它是潮先一步到了——抄本师不放下——贝壳只是放在桌上——
+- [5] 抄本师说——潮候院没有第七十三次大会——它像潮候院写的——它一遍又一遍地问——潮候院还有——贝壳还有——
+- [6] 北海是潮候院第一次想到的字——从贝壳那里——抄本师说北海——潮候院没有北海——贝壳朝向那——抄本师停下来——
 
 ### Echo 19 · 里巷子的抄本员 / The Copyists of the Back Alley
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
