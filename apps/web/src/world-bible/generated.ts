@@ -23355,6 +23355,180 @@ The copyists say the zeroth watch hut is the page they cannot read — page seve
 `,
   },
   {
+    order: 185,
+    slug: 'echo-185-the-stranger-at-the-east-gate',
+    titleZh: '潮候院东门那天——一个潮候院没人认得的人把一枚贝壳放在门槛——他没有敲——他走了',
+    titleEn: 'The Day at the Institute\'s East Gate — a Stranger the Institute Did Not Know Put a Shell on the Threshold — He Did Not Knock — He Left',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第七十六日。',
+    eraLineEn: 'Era: the Institute — after the 44th Convocation; the seventy-sixth day of the winter-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 185): The Day at the Institute's East Gate — a Stranger the Institute Did Not Know Put a Shell on the Threshold — He Did Not Knock — He Left
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院东门——一个陌生人站在门外——没有出声——没有敲——他把一枚贝壳放在门槛上——然后他走了。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the East Gate — a stranger stood at the gate — he did not speak — he did not knock — he set a shell down — and he left.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第七十六日。
+> Era: the Institute — after the 44th Convocation; the seventy-sixth day of the winter-tide month.
+
+---
+
+## 一 · 东门
+
+潮候院东门朝对岸开——它从潮候院建院起就被叫作"东门"——潮候院没人记得它被开过一次——门闩是潮候院的铜——它没有"谁"——今天早上——潮候院抄本师感到——那门开了一条缝——不是风——不是潮——抄本师看见对岸——对岸很远——
+
+**锚句**：潮候院东门朝对岸开——潮候院没人记得它被开过一次——今天早上门开了一条缝——不是风——不是潮。
+**Anchor sentence**: the East Gate of the Institute opens toward the far shore — no one at the Institute remembers it ever being opened — this morning the gate stood ajar — not wind — not tide.
+
+---
+
+## 二 · 他
+
+潮候院东门那天——一个潮候院没人认得的人——他不是抄本师——他不是任何潮候院人——他的脸潮候院从未见过——他的衣衫没有潮候院任何素色——他走到东门——他在门槛放下一枚贝壳——潮候院没人知道他的名字——
+
+**锚句**：潮候院东门那天——一个潮候院没人认得的人——他走到东门——他在门槛放下一枚贝壳——潮候院没人知道他的名字。
+**Anchor sentence**: the day at the East Gate — a person the Institute did not know — he walked to the gate — he set a shell on the threshold — no one at the Institute knew his name.
+
+---
+
+## 三 · 贝壳
+
+门槛上的贝壳——抄本师捡起来——贝壳不说话——贝壳里似乎有潮水——抄本师把贝壳放到熄灯桌上——灯还是安静的——抄本师没人想听贝壳里——贝壳在桌上——灯亮着——贝壳从不开口——贝壳只是放——他只是，把它放在那里——
+
+**锚句**：门槛上的贝壳——抄本师捡起——贝壳似乎有潮水——贝壳不说话——他只是，把它放在那里。
+**Anchor sentence**: the shell on the threshold — a copyist picked it up — the shell seemed to carry tide — the shell did not speak — he only put it there.
+
+---
+
+## 四 · 东门记录
+
+潮候院记录写：第七十六日，东门感应开了一条缝；一名潮候院没人认得的人出现在东门；他在门槛上放下一枚贝壳；他没有敲；潮候院没人问他为什么；他没有说；他走了——
+
+**锚句**：潮候院记录写——东门感应开了一条缝——有人把一枚贝壳放在门槛——他没有敲——潮候院没人问他为什么——他没有说——他走了。
+**Anchor sentence**: the Institute log wrote: on the seventy-sixth day — the gate felt a seam — someone laid a shell on the threshold — he did not knock — no one asked — he did not say — he left.
+
+---
+
+## 五 · 潮候院沉默
+
+潮候院没人走出去追——抄本师知道他往哪走——东门——不——潮候院知道他不——潮候院没有人跟着追——抄本师只是看他走——他走了一会儿——东门合上——潮候院没有再看见过他——潮候院再没收到任何外面来的消息——
+
+**锚句**：潮候院没人走出去追——抄本师只是看他走——他走了一会儿——东门合上——潮候院再没看见过他。
+**Anchor sentence**: no one followed — the copyists only watched him go — he walked a while — the gate closed — the Institute never saw him again.
+
+---
+
+## 六 · 抄本师说
+
+抄本师说贝壳不是潮候院的——贝壳是从某个他们从未见过的陆地来的——贝壳在光下才能看到——它的侧面有一个他们绝大多数人没见过的字——也不认识——贝壳里面有它的静默——也永远不会有声音——
+
+**锚句**：抄本师说贝壳不是潮候院的——它来自某个潮候院未见过的陆地——壳的侧面有字——潮候院没人认识。
+**Anchor sentence**: the copyists said the shell is not the Institute's — it came from a land the Institute has never seen — a character on its flank — none of them can read it.
+
+---
+
+## 七 · Mapping（Echo No. 185 → world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the stranger's unmarked shell · the gate's only seam · the word no copyist can read | 二、三、四、六 |
+| geography | the East Gate · the far shore · the dark from the north sea (mirror) | 一、二、五、六 |
+| characters | the stranger · the copyists · the keeper | 一、二、三、四、五、六 |
+| story | the stranger who left a shell · Echo No. 185 | 全篇 |
+| items | the threshold shell · the seam in the east gate · the unknown land | 一、二、三、四、六 |
+| history | After the 44th Convocation · the seventy-sixth day of the winter-tide month | 一、四、五、六、七 |
+
+> 潮候院东门那天——一个潮候院没人认得的人把一枚贝壳放在门槛——他没有敲——他走了。
+> The day at the East Gate of the Institute — a stranger the Institute did not know laid a shell on the threshold — he did not knock — he left.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百八十五）「潮候院东门那天——一个潮候院没人认得的人把一枚贝壳放在门槛——他没有敲——他走了」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the East Gate — a stranger stood at the gate — he did not speak — he did not knock — he set a shell down — and he left.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院东门——一个陌生人站在门外——没有出声——没有敲——他把一枚贝壳放在门槛上——然后他走了。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 44th Convocation; the seventy-sixth day of the winter-tide month.
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第七十六日。
+
+---
+
+## I · The East Gate
+
+The East Gate of the Institute opens toward the far shore — it has been called the East Gate since the founding — no one remembers it ever being opened — the bolts are the Institute's brass — it does not belong to any one of them — this morning — the copyists felt — the gate stood ajar — not wind — not tide — the copyists saw the far shore — which is very far.
+
+**锚句**：潮候院东门朝对岸开——潮候院没人记得它被开过一次——今天早上门开了一条缝——不是风——不是潮。
+**Anchor sentence**: the East Gate of the Institute opens toward the far shore — no one at the Institute remembers it ever being opened — this morning the gate stood ajar — not wind — not tide.
+
+---
+
+## II · He
+
+The day at the East Gate — a person the Institute did not know — he is not a copyist — he is not any of the Institute's people — his face the Institute had never seen — his clothes carried none of the Institute's dull colors — he walked to the gate — he set a shell on the threshold — no one at the Institute knew his name.
+
+**锚句**：潮候院东门那天——一个潮候院没人认得的人——他走到东门——他在门槛放下一枚贝壳——潮候院没人知道他的名字。
+**Anchor sentence**: the day at the East Gate — a person the Institute did not know — he walked to the gate — he set a shell on the threshold — no one at the Institute knew his name.
+
+---
+
+## III · The Shell
+
+The shell on the threshold — a copyist picked it up — the shell did not speak — inside it there seemed to be tide — the copyists set the shell on a still lantern bench — the lantern is still quiet — no one wants to listen inside — the shell sits on the bench — the lantern burns — the shell never speaks — the shell only lies where it lies — he only, put it there.
+
+**锚句**：门槛上的贝壳——抄本师捡起——贝壳似乎有潮水——贝壳不说话——他只是，把它放在那里。
+**Anchor sentence**: the shell on the threshold — a copyist picked it up — the shell seemed to carry tide — the shell did not speak — he only put it there.
+
+---
+
+## IV · The East Gate Record
+
+The Institute log wrote: on the seventy-sixth day — the gate felt a seam — a stranger whom the Institute did not know appeared at the gate — he set a shell on the threshold — he did not knock — no one asked him why — he did not say — he left.
+
+**锚句**：潮候院记录写——东门感应开了一条缝——有人把一枚贝壳放在门槛——他没有敲——潮候院没人问他为什么——他没有说——他走了。
+**Anchor sentence**: the Institute log wrote: on the seventy-sixth day — the gate felt a seam — someone laid a shell on the threshold — he did not knock — no one asked — he did not say — he left.
+
+---
+
+## V · The Institute Was Silent
+
+No one at the Institute went out to follow — the copyists knew where he would go — the eastern gate — not — the copyists did not follow — the copyists only stood and watched him go — he walked a while — the gate closed — the Institute has not seen him again — the Institute has received no word from outside ever since.
+
+**锚句**：潮候院没人走出去追——抄本师只是看他走——他走了一会儿——东门合上——潮候院再没看见过他。
+**Anchor sentence**: no one followed — the copyists only watched him go — he walked a while — the gate closed — the Institute never saw him again.
+
+---
+
+## VI · What the Copyists Said
+
+The copyists said the shell is not the Institute's — the shell comes from a land none of them have seen — the shell shows itself only in light — its flank bears a character none of them know — no one can say what it means — inside there is its silence — and it will never sound.
+
+**锚句**：抄本师说贝壳不是潮候院的——它来自某个潮候院未见过的陆地——壳的侧面有字——潮候院没人认识。
+**Anchor sentence**: the copyists said the shell is not the Institute's — it came from a land the Institute has never seen — a character on its flank — none of them can read it.
+
+---
+
+## VII · Mapping（Echo No. 185 → world model）
+
+| Dimension | Value | Mapping |
+| --- | --- | --- |
+| lore | the stranger's unmarked shell · the gate's only seam · the word no copyist can read | II, III, IV, VI |
+| geography | the East Gate · the far shore · the dark from the north sea (mirror) | I, II, V, VI |
+| characters | the stranger · the copyists · the keeper | I, II, III, IV, V, VI |
+| story | the stranger who left a shell · Echo No. 185 | Full |
+| items | the threshold shell · the seam in the east gate · the unknown land | I, II, III, IV, VI |
+| history | After the 44th Convocation · the seventy-sixth day of the winter-tide month | I, IV, V, VI, VII |
+
+> 潮候院东门那天——一个潮候院没人认得的人把一枚贝壳放在门槛——他没有敲——他走了。
+> The day at the East Gate of the Institute — a stranger the Institute did not know laid a shell on the threshold — he did not knock — he left.
+`,
+  },
+  {
     order: 19,
     slug: 'echo-019-the-copyists-of-the-back-alley',
     titleZh: '里巷子的抄本员',

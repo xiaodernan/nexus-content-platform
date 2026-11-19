@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 184 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 185 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3312,6 +3312,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 火向抄本师走来——抄本师没有躲——火是温的——它没有灼——它说东——东——
 - [5] 抄本师的最后一行字是："第零间值更屋——灯会回——东字是它自己的——"
 - [6] 第零间是第七十一页潮候院的前面——潮候院没有手去过——潮起时就有一个他们没去过的地方——潮候院烙下的第零页——
+
+### Echo 185 · 潮候院东门那天——一个潮候院没人认得的人把一枚贝壳放在门槛——他没有敲——他走了 / The Day at the Institute's East Gate — a Stranger the Institute Did Not Know Put a Shell on the Threshold — He Did Not Knock — He Left
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院东门朝对岸开——潮候院没人记得它被开过一次——今天早上门开了一条缝——不是风——不是潮。
+- [2] 潮候院东门那天——一个潮候院没人认得的人——他走到东门——他在门槛放下一枚贝壳——潮候院没人知道他的名字。
+- [3] 门槛上的贝壳——抄本师捡起——贝壳似乎有潮水——贝壳不说话——他只是，把它放在那里。
+- [4] 潮候院记录写——东门感应开了一条缝——有人把一枚贝壳放在门槛——他没有敲——潮候院没人问他为什么——他没有说——他走了。
+- [5] 潮候院没人走出去追——抄本师只是看他走——他走了一会儿——东门合上——潮候院再没看见过他。
+- [6] 抄本师说贝壳不是潮候院的——它来自某个潮候院未见过的陆地——壳的侧面有字——潮候院没人认识。
 
 ### Echo 19 · 里巷子的抄本员 / The Copyists of the Back Alley
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
