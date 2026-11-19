@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 190 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 191 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3374,6 +3374,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 潮候院抄本师站在东门上——他第一次看见潮候院外——他往东看——东边是从没见过的蓝光——潮候院没人见过这光——
 - [5] 潮候院抄本师看见海——潮候院外面是海——海就在潮候院东门外——抄本师只是看——抄本师不说话——抄本师看着——
 - [6] 潮候院抄本师回来了——他说潮候院东门外是海——潮候院以前没有海——潮候院今天有海——潮候院外是海——它在东门——
+
+### Echo 191 · 潮候院东门之后——潮候院第一次在门槛上立一块石板——石板上只有一个'海'字 / The Day After the East Gate — the Institute Stood a Slab on the Threshold for the First Time — the Slab Bears Only One Word — "Sea"
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院东门之后第二天——没有人问海——潮候院没有北——潮候院没有海——
+- [2] 潮候院第一次在门槛上立一块石板——石板从潮候院北边来——潮候院第一次立石板——抄本师没有被教——
+- [3] 抄本师自己写了——他只写了一个字——是"海"——潮候院第一次写了"海"——
+- [4] 潮候院没有反对——抄本师都过来看——抄本师没人碰——抄本师都知道——潮候院第一次——
+- [5] 海是潮候院第一个想出来的字——潮候院没有别的——潮候院没有海——抄本师说——潮候院第一次有海——潮候院说海——
+- [6] 潮候院抄本师说海——潮候院现在拥海——潮候院以前不拥——潮候院没人以为这是什么——
 
 ### Echo 20 · 潮候院钟楼里那口从不响的钟 / The Bell That Never Rang in the Institute's Clock Tower
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
