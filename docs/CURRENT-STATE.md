@@ -8474,3 +8474,14 @@ feat(§BIBLE-193 · §GUIDE-193): Echo #193《潮候院东门抄本师第一次�
   - 单样本 4.76% **不是** 稳定 90%：E200 重置了 :3200 的 in-process 前缀计数与 appCache 空窗；4.76% 测量窗口 = 该冷窗的如实读数；稳定 90% 的唯一路径是真实流量 + 不再清醒重置；不为“证明”而 synthetic 烧 token
   - **每条 echo 只追加字节到 digest 尾部 → prefix 在插入点之前的字节完全稳定 → KV 前缀复用在 echo 增长下不受伤**（这是 echo 设计上的 KV 友好，必须知道）
 - **成本记账**：本轮 1 次真 provider 调用 = **170,618 tokensIn**（uncached 162K，按实测），换得：E200-epoch 真链路存活证据 + cacheReported 证 + stream 证 + 锚点答证。此为唯一一次本回合 provider 消耗。
+
+## cont. 454 (2026-11-19 夜) — 潮汐挑战 126 题 + CANON-PREFIX·II 线上实锤 + §STRESS-3
+- **Tide Quiz 126 题（本 lane · `e5987acc`）**：补 E195（麻纸地图/海）·E196（海碗自湿/咸）·E197（底层一字之潮）·E198（挂了又取·正厅墙）·E199（三日坐席·最老的潮）·E200（百日摩挲两笔·麻布就是麻布）双语六题，判定线 109，BibleQuiz.tsx SHA pin 582793a2f84deddcdb14ba57f65f49e543dcd0306a7b2d7d94efb817ef75b87e（已重算钉死）· bible-quiz-visual-style 8/8 ✓ · fe-gates 全绿 ✓。dev server :3475 实扛 chunk `apps_web_0g_1zdmo12ysh._.js` 检出「七十年后」——126 题真在线。
+- **手册过期文案修正（本 lane）**：guideCopy.ts zh「十七题」→「一百二十六题」（en 侧无计数承诺，不用动）。
+- **§CANON-PREFIX·II 线上实锤（2026-11-19 深夜 · :3475 · curl.exe）**：POST /api/admin/observer/digest {locale:zh} + Cookie nx_observer=observer-123 → **HTTP 200 · model gpt-6.2-sol**。形势/展望/下一步三段全落实测数字（用户 3440 · 近7日新增 1405 · 30d 打开 97 · 斜率 0 · R²=0 · 残差 1.242 · 完成率 71.23% · 待审批 114 · 成功 351 · 失败 4）。「展望」段显式「推断：」前缀、写区间不写承诺。DEMO MODE 门与每小时 5 次限速原样生效。PowerShell Invoke-WebRequest 对同一 POST 表演了一次 401 巫术，curl.exe 一次 200——是 PowerShell 的 cookie 解析，不是服务问题。
+- **§STRESS-1 复测 + §STRESS-3（docs/evidence/stress-2026-11-19.md）**：pgbench -n T=8s — c16/j4 **44,657 tx · 0 失败 · avg 2.810 ms · TPS 5,694**；c32/j8 **71,458 tx · 0 失败 · avg 3.513 ms · TPS 9,108**（11-17 为 2,978 → ~3×）。网关撞库令牌桶 Lua 直连真 Redis（56379）：**6/6 PASS** — 共享桶 1/1/0 · 对照组 1/1/1 · 3 连接并发 burst=3 恰放行 3 枚（原子性）· 服务端时钟补水夹 0 · 未来时间戳拒绝 · 调用方自定 TTL。脚本 sha256:8db0f4043dd7。
+- **HTTP/SSR 突发仍如实挡住**：cont.454 时间点空闲内存 **383 MB**，两个 NEXUS 实例 + Docker 驻留；build ≥2 GB · start ≥1 GB 空闲前置写进证据文档。published_projects/projects 仍 0 行（dev 库），写路径/RLS 复测待真实数据入库。
+- **IO/fact pack**：live latest.json `head=e5987ac · 3,806 commits · 574 test files · generated 15:51:27Z`；deploy `44553354986` success；16/16 自有公开仓 live 对账无漏；隐盾 ✓ 隐图 = 0 · IELTS 6.5 ✓；Pages 保持 push-trigger + 3h cron（不再人工 dispatch）。
+- **模型审计**：NEXUS_MODEL_FAST/BALANCED/REASONING/VISION 全 gpt-6.2-sol · STREAM=1 · EMBEDDING=none · 6.1-terra 仅留在历史 evidence/ADR（测量时刻如实记录，不重写）。
+- **本 lane fe-gates / tsc**：quiz SHA 重钉后 fe-gates 1396/1396 · web tsc 0。主线 `master == main == origin/main == 6fdd11b9`（并轨线中途推了 `412d8eb4` CONT-453，本线全部 rebase 吸收）。
+- **未关闭**：origin/master 腐朽 ref（`e9c4ba8f`，behind 1 / ahead 181）待用户拍板；backup/echo168-169-duplicate 留存待用户开口删除；HTTP 突发窗（≥2GB）待内存释放；memory 连续两轮 526→383 MB 下行，机器吃紧。
