@@ -16,7 +16,7 @@ import type { Locale } from '@/lib/i18n';
  * - 没有"看了重做"的奖励？——答错的提示会写出处（在哪一章、哪一节），
  *   错就是错，不伪装"接近正确"；
  * - 完全中英双语；不存在半中文半英文的题目；
- * - 106 题每题 1 分；结算只是礼物：不写进任何账本、不发 achievement、不持久化。
+ * - 113 题每题 1 分；结算只是礼物：不写进任何账本、不发 achievement、不持久化。
  */
 
 const COPY = {
@@ -38,11 +38,11 @@ const COPY = {
       { at: 10, text: '巡逻路的旅人', note: '盐味酸过了——记住的巡逻路比忘掉的多。' },
       { at: 13, text: '守夜人传人', note: '门在关上之前你没见过，但你记住了是什么。' },
       { at: 15, text: '潮汐大匠', note: '海还没说完的话，你已经知道是什么了。' },
-      { at: 103, text: '满分守夜人', note: '一百零六题全对——典籍不会忘记问倒过谁。' },
+      { at: 103, text: '满分守夜人', note: '一百一十三题全对——典籍不会忘记问倒过谁。' },
     ],
     footer: '《世界大典》正典全文见典籍室（/bible）。答错的题里标了出处：错就是错，没有近似的正确。',
     scoreLine: (n: number, total: number) => `${n} / ${total}`,
-    empty: '还没答完。一百零六道题就是十三章正典与回响的全部问题。',
+    empty: '还没答完。一百一十三道题就是十三章正典与回响的全部问题。',
   },
   en: {
     kicker: 'The Tidal Trial',
@@ -62,11 +62,11 @@ const COPY = {
       { at: 10, text: 'The Patrol-Road Traveller', note: 'You are more road remembered than forgotten.' },
       { at: 13, text: 'The Successor Watcher', note: 'You have never seen the door, but you know what was behind it.' },
       { at: 15, text: 'The Tide Master', note: 'The sea still has not finished — and you already know what it said.' },
-      { at: 103, text: 'The Full Tide', note: 'One hundred and six of one hundred and six — the canon will not forget who asked it best.' },
+      { at: 103, text: 'The Full Tide', note: 'One hundred and thirteen of one hundred and thirteen — the canon will not forget who asked it best.' },
     ],
     footer: 'The full canon lives in the shelf (/bible). Every wrong answer points you to where it lives. Wrong is wrong — there is no near-enough.',
     scoreLine: (n: number, total: number) => `${n} / ${total}`,
-    empty: 'Not done yet. One hundred and six questions — one per breath of the canon and the echoes.',
+    empty: 'Not done yet. One hundred and thirteen questions — one per breath of the canon and the echoes.',
   },
 } as const;
 
@@ -501,6 +501,34 @@ const QUESTIONS: Question[] = [
   {
     zh: { prompt: '第四十四次大会召开那天，抄本师把十七份「等」装订成书——封面只写了一个字：', choices: ['等', '完', '落', '灯'], answer: 1, ref: '回响（其一百八十） · 三' },
     en: { prompt: 'On the morning the 44th Convocation opened, the copyists bound the seventeen “wait”s into one book — the cover bears a single character:', choices: ['“wait”', '“finished”', '“landed”', '“lamp”'], answer: 1, ref: 'Echo No. 180 · III' },
+  },
+  {
+    zh: { prompt: '屋脊之石把墙上的「潮」字照亮了——照出了第二个字，是什么？', choices: ['汐', '泄', '汲', '泊'], answer: 0, ref: '回响（其一百八十一） · 一' },
+    en: { prompt: 'The ridge stone lit the character “tide” on the wall — what was the second character it showed?', choices: ['“ebbtide” (汐)', '“leak”', '“draw”', '“moor”'], answer: 0, ref: 'Echo No. 181 · I' },
+  },
+  {
+    zh: { prompt: '北雪线下第三间值更屋里——有一盏灯——它怎么样？', choices: ['从没熄过', '三十年熄了', '只燃一天', '被铜匠带走了'], answer: 0, ref: '回响（其一百八十二） · 四' },
+    en: { prompt: 'The third watch hut beneath the snow line holds — what, and in what state?', choices: ['a lamp that has never gone out', 'a lamp dark for thirty years', 'an empty shelf', 'the north sea in a jar'], answer: 0, ref: 'Echo No. 182 · IV' },
+  },
+  {
+    zh: { prompt: '地窖最深处那扇地窖门上——刻着一个字，是什么？', choices: ['潮', '汐', '北', '完'], answer: 0, ref: '回响（其一百八十三） · 三' },
+    en: { prompt: 'Deep in the sand behind the vault’s innermost door, one carved word was found — which?', choices: ['“tide”', '“ebbtide”', '“north”', '“finished”'], answer: 0, ref: 'Echo No. 183 · III' },
+  },
+  {
+    zh: { prompt: '北雪线的尽头，抄本师迎面看见一团「火」——火说了两个字，是什么？', choices: ['汐汐', '东东', '潮潮', '完完'], answer: 1, ref: '回响（其一百八十四） · 四' },
+    en: { prompt: 'At the end of the snow line, the copyists met the fire — what two words did it speak?', choices: ['“east, east”', '“tide, tide”', '“wait, wait”', '“finished”'], answer: 0, ref: 'Echo No. 184 · IV' },
+  },
+  {
+    zh: { prompt: '东门那天，一个没人认得的人——做了什么？', choices: ['把一枚贝壳放在门槛上', '敲了三下门', '递上一卷字', '点燃了东门灯'], answer: 0, ref: '回响（其一百八十五） · 二' },
+    en: { prompt: 'On the day at the East Gate, the unknown man did what?', choices: ['left a shell on the threshold', 'knocked three times', 'handed over a scroll', 'lit the east gate lamp'], answer: 0, ref: 'Echo No. 185 · II' },
+  },
+  {
+    zh: { prompt: '灯桌上的贝壳，侧面有一个字，是什么？', choices: ['汐', '潮', '北', '完'], answer: 2, ref: '回响（其一百八十六） · 三' },
+    en: { prompt: 'On the fourth day, bedside the lamp-bench, the shell bore a single word on its flank — which?', choices: ['“ebbtide”', '“tide”', '“north”', '“finished”'], answer: 2, ref: 'Echo No. 186 · III' },
+  },
+  {
+    zh: { prompt: '贝壳自己微微动了一下——它的「北」字转向了哪边？', choices: ['西', '东', '南', '北'], answer: 1, ref: '回响（其一百八十七） · 一' },
+    en: { prompt: 'The shell turned itself — its “north” came to face which way?', choices: ['west', 'east', 'south', 'north'], answer: 1, ref: 'Echo No. 187 · I' },
   },
 ];
 
