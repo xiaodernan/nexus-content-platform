@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 168 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 169 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3152,6 +3152,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 那抄本师离开时摁铁门——它发出一声极低的蜂鸣——没有人记起那是什么。
 - [5] 北巷铁门从不开——第四十三次大会连日——抄本师最后坐在它边——盐潮痕收下他的指纹。
 - [6] 抄本师走后没人再敢开北巷铁门——潮候院也没给出原因——至今它没开过。
+
+### Echo 169 · 潮候院沙厅里那架被灰埋了却还在暗自调音的旧竖琴 / The Old Harp in the Sand Hall of the Institute, Buried in Dust, Still Tuning Itself in the Dark
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 沙厅最里间的竖琴没人知道它的年份——沙尘厚得压住了它的声音。
+- [2] 竖琴的琴弦是鲸骨丝——博物师说鲸牙磨过它们——声音像水底下的回。
+- [3] 调律人死在百年前的潮位错乱里——琴颈上的铜针锁了一生。
+- [4] 抄本师说琴箱里有潮水撞礁的声音——弦松一次——石弧便把它送回一遍。
+- [5] 第四十三次大会散会的夜里——琴断了一根弦——没人动过断弦。
+- [6] 竖琴前没写过"等"字——每日巡检的人经过它时都会放慢脚步。
 
 ### Echo 17 · 祠殿后那一截没有人劈开的浮木 / The Driftwood Nobody Split for Firewood
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

@@ -20189,6 +20189,180 @@ After the copyist walked out — no one dares open the door — the North-Lane p
 `,
   },
   {
+    order: 169,
+    slug: 'echo-169-the-silent-whalebone-harp-in-the-sand-hall',
+    titleZh: '潮候院沙厅里那架被灰埋了却还在暗自调音的旧竖琴',
+    titleEn: 'The Old Harp in the Sand Hall of the Institute, Buried in Dust, Still Tuning Itself in the Dark',
+    eraLineZh: '纪元：潮候院 · 第四十三次大会散会之后 —— 冬潮月第二十八日。',
+    eraLineEn: 'Era: the Institute — after the 43rd Convocation; the twenty-eighth day of the winter-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 169): The Old Harp in the Sand Hall of the Institute, Buried in Dust, Still Tuning Itself in the Dark
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院沙厅最里间的旧竖琴——琴弦是由鲸骨重弦绷成的——没有人记得最后一次为它调律的人是谁。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the old harp at the far end of the Sand Hall — its strings restrung with whalebone — no one remembers who last tuned it.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十三次大会散会之后 —— 冬潮月第二十八日。
+> Era: the Institute — after the 43rd Convocation; the twenty-eighth day of the winter-tide month.
+
+---
+
+## 一 · 沙厅最里间的琴
+
+潮候院沙厅宽而暗——地面铺着潮盐粉——厅子往北走到最后一段，有一架竖琴——没人知道它是什么年份被带到沙厅来的——沙尘的厚度量得出它已经静默了多久。
+
+**锚句**：沙厅最里间的竖琴没人知道它的年份——沙尘厚得压住了它的声音。
+**Anchor sentence**: the harp at the back of the Sand Hall has an unknown age — the dust is so thick it has pressed its voice silent.
+
+---
+
+## 二 · 鲸骨弦
+
+竖琴的琴弦是鲸骨丝重弦——不是金属——博物师说它们被海里的鲸牙磨过一遍——所以触感柔、回音钝——听上去不像别离的声——而像一池水底下的回。
+
+**锚句**：竖琴的琴弦是鲸骨丝——博物师说鲸牙磨过它们——声音像水底下的回。
+**Anchor sentence**: the harp's strings are whalebone silk — the curator says whale-teeth had ground them once — its voice is more like an echo under water.
+
+---
+
+## 三 · 没有人再调律
+
+调律人死于百年前一次潮位错乱——自那以后，没有人敢再动弦轴——琴颈上的铜针锁了一生——风从沙厅北窗进来时，弦偶尔会在风里微微偏高或偏低。
+
+**锚句**：调律人死在百年前的潮位错乱里——琴颈上的铜针锁了一生。
+**Anchor sentence**: the tuner died in a tide-phase collapse a hundred years ago — the copper pins along the neck have been locked ever since.
+
+---
+
+## 四 · 琴里有水声
+
+抄本师说过——竖琴的箱体里面有回声——不是风——更不太像墨——而是潮水远远地撞着礁——每一次弦松下来，箱鸣的声音都会被沙厅的石弧再送回来一遍。
+
+**锚句**：抄本师说琴箱里有潮水撞礁的声音——弦松一次——石弧便把它送回一遍。
+**Anchor sentence**: the copyist says the soundbox holds the sea beating the reef — every time a string loosened, the stone vault would hand it back.
+
+---
+
+## 五 · 大会那天弦断了一根
+
+第四十三次大会散会时——沙厅静了一半——夜里抄本师听见一声极轻的"叩"——第二天早上琴箱侧面多了一根断弦挂着——没人动过它——断弦被沙尘罩着——脚印不远处。
+
+**锚句**：第四十三次大会散会的夜里——琴断了一根弦——没人动过断弦。
+**Anchor sentence**: on the night the 43rd Convocation ended — one of the harp strings snapped — no one touched the broken string.
+
+---
+
+## 六 · 它等的人还没到
+
+抄本师没记过竖琴属于谁——也没人知道在等谁——琴前没写过"等"字——沙厅每日巡检的人经过它时，都会自动放慢脚步——没人问为什么。
+
+**锚句**：竖琴前没写过"等"字——每日巡检的人经过它时都会放慢脚步。
+**Anchor sentence**: no tablet before the harp says "awaiting" — yet the daily rounds always slow down when they pass it.
+
+---
+
+## 七 · Mapping（Echo No. 169 → world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the whalebone harp · the locked copper pins · the soundbox that carries the reef | 一、二、三、四 |
+| geography | the far end of the Sand Hall · the salt-dust floor · the north window | 一、二、五、六 |
+| characters | the dead tuner (unnamed) · the curator · the copyist · the daily rounds | 二、三、四、五、六 |
+| story | the harp that tunes itself in the dark · Echo No. 169 | 全篇 |
+| items | the whalebone harp · the whale-tooth strings · copper locking pins | 二、三、四、五 |
+| history | After the 43rd Convocation · the twenty-eighth day of the winter-tide month | 五、六、七 |
+
+> 沙厅最里间的竖琴——鲸骨弦——锁住的铜针——还没等到该等的人。
+> The harp at the back of the Sand Hall — whalebone strings — locked copper pins — still waiting for whoever it was waiting for.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百六十九）「潮候院沙厅里那架被灰埋了却还在暗自调音的旧竖琴」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the old harp at the far end of the Sand Hall — its strings restrung with whalebone — no one remembers who last tuned it.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院沙厅最里间的旧竖琴——琴弦由鲸骨重弦绷成——没有人记得最后一次为它调律的人是谁。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 43rd Convocation; the twenty-eighth day of the winter-tide month.
+> 纪元：潮候院 · 第四十三次大会散会之后 —— 冬潮月第二十八日。
+
+---
+
+## I · The Harp at the Back of the Sand Hall
+
+The Sand Hall is wide and dark — the floor strewn with tide-salt powder — walk north to its far aisle, and there stands a harp — no one knows which year it was carried into the Sand Hall — and the dust has thickened for so long that it has marked how long it has been silent.
+
+**锚句**：沙厅最里间的竖琴没人知道它的年份——沙尘厚得压住了它的声音。
+**Anchor sentence**: the harp at the back of the Sand Hall has an unknown age — the dust is so thick it has pressed its voice silent.
+
+---
+
+## II · The Whalebone Strings
+
+The strings of the harp are whalebone silk — not metal — the curator says they were ground down once by whale teeth — soft to touch, dull in response — the sound does not part like a farewell — it is an echo under water.
+
+**锚句**：竖琴的琴弦是鲸骨丝——博物师说鲸牙磨过它们——声音像水底下的回。
+**Anchor sentence**: the harp's strings are whalebone silk — the curator says whale-teeth had ground them once — its voice is more like an echo under water.
+
+---
+
+## III · No One Has Ever Tuned It Again
+
+The tuner died in a tide-phase collapse a hundred years ago — since then, no one has dared to touch the tuning pins — the copper needles along the neck locked for a lifetime — when the wind came through the north window, the strings sometimes drifted a hair high or low.
+
+**锚句**：调律人死在百年前的潮位错乱里——琴颈上的铜针锁了一生。
+**Anchor sentence**: the tuner died in a tide-phase collapse a hundred years ago — the copper pins along the neck have been locked ever since.
+
+---
+
+## IV · Water in the Soundbox
+
+The copyist said — inside the harp's box there is an echo — not wind — not ink — it is the sea striking the reef from far away — every time a string loosened, the box-song was handed back by the stone arc of the hall.
+
+**锚句**：抄本师说琴箱里有潮水撞礁的声音——弦松一次——石弧便把它送回一遍。
+**Anchor sentence**: the copyist says the soundbox holds the sea beating the reef — every time a string loosened, the stone vault would hand it back.
+
+---
+
+## V · A String Snapped the Night the Convocation Ended
+
+At the close of the 43rd Convocation — half the Sand Hall held its breath — the copyist heard a very soft "knock" in the night — the next morning one snapped string hung along the side of the soundbox — no one touched it — the broken end was covered in dust — it lay a few feet from no footprints.
+
+**锚句**：第四十三次大会散会的夜里——琴断了一根弦——没人动过断弦。
+**Anchor sentence**: on the night the 43rd Convocation ended — one of the harp strings snapped — no one touched the broken string.
+
+---
+
+## VI · The One It Waits For Has Not Arrived
+
+The copyist never wrote down whose the harp belonged to — or who it was awaiting — no tablet before the harp says "awaiting" — yet the daily rounds never pass it without slowing — no one has ever asked why.
+
+**锚句**：竖琴前没写过"等"字——每日巡检的人经过它时都会放慢脚步。
+**Anchor sentence**: no tablet before the harp says "awaiting" — yet the daily rounds always slow down when they pass it.
+
+---
+
+## VII · Mapping（Echo No. 169 → world model）
+
+| Dimension | Value | Mapping |
+| --- | --- | --- |
+| lore | the whalebone harp · the locked copper pins · the soundbox that carries the reef | I, II, III, IV |
+| geography | the far aisle of the Sand Hall · the salt-dust floor · the north window | I, II, V, VI |
+| characters | the dead tuner (unnamed) · the curator · the copyist · the daily rounds | II, III, IV, V, VI |
+| story | the harp that tunes itself in the dark · Echo No. 169 | Full |
+| items | the whalebone harp · the whale-tooth strings · copper locking pins | II, III, IV, V |
+| history | After the 43rd Convocation · the twenty-eighth day of the winter-tide month | V, VI, VII |
+
+> 沙厅最里间的竖琴——鲸骨弦——锁住的铜针——还没等到该等的人。
+> The harp at the back of the Sand Hall — whalebone strings — locked copper pins — still waiting for whoever it was waiting for.
+`,
+  },
+  {
     order: 17,
     slug: 'echo-017-the-driftwood-nobody-split',
     titleZh: '祠殿后那一截没有人劈开的浮木',

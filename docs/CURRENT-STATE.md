@@ -8221,3 +8221,23 @@ Reported upstream to `docs/evidence/liveness-sweep-2026-11-19.md`（cont.429 对
 - E168 锚句[1]：北巷尽头的铁门窄而高——没有匾——盐潮痕跟三十年前一样没改过。→ IO oracle-strip 引文换钢笔
 - **IO v1057 → v1058**：quote/cite/meta-cert/fact-num/sub-fact 全量更新，commit `360f866` push 到 `xiaodernan.github.io` master，Pages dispatch 204，self-hosted runner 部署中
 - 初始提交落盘 `93f109d6`（echo + digest + snapshot + test pin 一次提交）
+
+## cont. 432 (2026-11-19) — §CACHE-LIVE 监测 · :3200 真实账本快照（诚实记录）
+
+- 本轮 probe `http://127.0.0.1:3200/healthz` → 200，`nexus-ai-service`、providers: llm `gpt-6.2-sol` openai-compatible real；embedding = hash（provider 网关无 embedding 模型，§159 如实报 unavailable）
+- **/v1/ai/cache-stats 实时快照**（process-local + Redis shared）：
+  - prefix lanes: requests 23 · reused 20 · uniquePrefixes 3 · capacity 512 · evictions 0 · **reuseRate 0.870**
+  - appCache(Redis llmc): enabled · backend redis · hits 9 · misses 14 · stores 14 · stores_failed 0 · **hit_rate 0.391** · namespace nexus:llmc · degraded false
+  - provider KV 自报: reported 20 · missing 3 · cachedTokensTotal 2,541,249 · promptTokensTotal 3,621,279 · **reportedHitRate 0.702**
+  - upstream drift: comparable 3 · drifted 0 · maxDrift 0.0064 · band 0.1（通道与键一致性稳定）
+  - transport: stream=true（流式+sticky url encoding 【§CACHE-1/0123/0126】全部生效，lane 键 = sha256(system+STABLE_PROMPT_KEYS) 全速共享 digest 前缀）
+- 结论（不粉饰）：88-90% 稳定窗口出现在昨天 2-call world-step 的实测里；今日累计窗口含 14 次 cold stores，**0.70** 是如实值——并行会话风险已被 sticky lane 消化（uniquePrefixes 仅 3，drift 归零）；appCache 低命中是 exact-match 性质，预期如此。
+- /metrics 与 :8000 均为**另一个项目**（careeros-ai Docker 端口转发 / crossrealm 19883）：本机 3100=web、3200=nexus ai-service、8000=careeros-ai container —— 不要再混淆 8000 返回的 body 为 NEXUS 的。本包程 cont. 0927 liveness probe 中曾误把 :8000/health 当 NEXUS —— 如实更正。
+
+## cont. 433 (2026-11-19) — §BIBLE-169 · Echo #169 鲸骨竖琴落盘 · digest 247,029 · IO v1059
+
+- **Echo #169《潮候院沙厅里那架被灰埋了却还在暗自调音的旧竖琴》** 双语手写 (`docs/world-bible/echoes/E169-….md` / `.en.md`)；registry `ECHO_WEB_SLUGS` 增 `echo-169-the-silent-whalebone-harp-in-the-sand-hall`
+- `gen-bible-snapshot` 生成：3 卷 · **169 回响** · 4 附录 / canon-digest → **digest 247,029 chars · sha 598ded62…** / `verify-world-bible-anchors` → **1026 zh / 1026 en · 全部通过**
+- test pin（extractAnchorTexts 计数口径，系统性 +5 慢于 verifier）：1015 → **1021**；两条 digest 测试 11/11 全绿
+- E169 锚句[1]：沙厅最里间的竖琴没人知道它的年份——沙尘厚得压住了它的声音。→ IO oracle-strip 换至 v1059
+- 下一只：继续滚 **Echo #170**
