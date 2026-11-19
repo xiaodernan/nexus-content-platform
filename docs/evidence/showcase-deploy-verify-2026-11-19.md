@@ -61,3 +61,24 @@
 
 - `origin/master` ref 仍停在 `e9c4ba8f`（§CANON-156，behind 1 / ahead 120），需用户点头 `--force-with-lease` 或废弃该 ref。
 - `backup/echo168-169-duplicate`：我一度与并轨线同题手写了 E168/E169，已丢弃（canon 以并轨线为准），内容保留在此分支。
+
+
+## 6. 缓存与上下文的最新实测（2026-11-19 · cont.448 · 服务重启后实打实）
+
+- **Redis L2 精确回放，跨进程重启不掉**：`/v1/ai/chat`（相同 system/user 重放）→ `200 · latencyMs: 16 · cachedTokens: 4401 / tokensIn: 4401 · cacheReported: true · costUsd: 0.0`。ai-service 杀掉再拉起之后，同一幂等键仍命中 L2——**不是靠进程内记忆活着的**。
+- **同 system 不同 user 的变体调用**：`200 · tokensIn: 4400 · cachedTokens: 0 · latencyMs: 3360`——provider 侧 KV 对共享前缀仅做到约 20 tokens 的公共前缀（< provider KV 门槛 ~1K tokens），如实 0 命中，**不是 bug，是字节级事实**。
+- **digest 车道（bible-ask / tidewatch narrate / design-graph）**：system 前缀 = 字节稳定的 **259,309 chars**（全量 192 回响 + 13 章正典 + 附录），每次调用都带——实测 `tokensIn = 147,519（2026-11-18）→ 320,720 tokensIn（2026-11-19 gpt-6.2-sol）`；provider KV 复用率 4.8%（首发）→ **93.9% → 100%**（重复问 / 不同问），L2 命中 29 ms（= 免费）。
+- **小车道（diary / 观察站深读 / oracle / ship 日志）**：小 system + 稳定字节前缀——**不是 bug，是功能定位的刻意取舍**。
+
+## 7. 契约漂移事故（2026-11-19 · cont.449 · 本会话发现并已修复）
+
+**症状**：digest 持续增长（~246K @E167 → **259,309 @E192**），但 `AiChatRequestSchema.system.max` 与 `contracts/ai-chat-request.schema.json` 的 `maxLength` 一直停在 **256,000**（ADR-0286 时代遗留）。
+
+**实际后果**：ai-service 的 `/v1/ai/chat`（`execution.py:268`）与 `chat_stategraph`（`chat_stategraph.py:48`）都会拿 `ai-chat-request.schema.json` 校验入参；web 的 bibleAsk 把 259,309-char 的 SYSTEM_PROMPT 直塞进 `system`。一旦越过 256,000，**所有** bible-ask 请求在 Python 门就会 `400 validation-failed`，模型根本收不到。E176→E192 之间，这个漂移随 digest 增长静默跨过了临界点。
+
+**修复**：
+1. `packages/schemas/src/index.ts` `AiChatRequestSchema.system.max`：256,000 → **320,000**
+2. `contracts/ai-chat-request.schema.json`（`npm run contract:export` 自动重导）：`maxLength` → **320,000**
+3. 验证：`verify:world-bible` 1164/1164 ✓ · `contract-fixture.test.ts` 4/4 ✓ · 无遗留 256_000/256000 引用
+
+**纪律沉淀**：抬高 digest 上限时，**所有镜像同一上限的数值必须在同一次变更里一起抬**（TS 常量 / zod schema / 导出 JSON / Python 侧 contract_issues 无需改——读同一份 JSON）。`SYSTEM_PROMPT_CHAR_BUDGET` 与 zod max 必须保持相等；diff 前先 grep 两处。

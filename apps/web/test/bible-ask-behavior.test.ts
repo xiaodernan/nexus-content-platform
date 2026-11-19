@@ -1,6 +1,19 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { buildDigest, SYSTEM_PROMPT, SYSTEM_PROMPT_CHAR_BUDGET, extractAnchorTexts } from '../src/lib/bibleAsk';
 import { BIBLE_CHAPTERS, BIBLE_ECHOES } from '../src/world-bible/generated';
+
+/**
+ * 合同对账（2026-11-19 · cont.449 · ADR-0294）：
+ * web 的 `SYSTEM_PROMPT_CHAR_BUDGET`、TS zod `AiChatRequestSchema.system.max`、
+ * 以及 ai-service 真实读取的 `contracts/ai-chat-request.schema.json`
+ * （Python 侧运行期校验的事实源）——三处必须同一个字。
+ * 任何单边漂移到此为止：digest 长到顶，所有 bible-ask 在 Python 门 400。
+ */
+const wire = JSON.parse(
+  readFileSync(new URL('../../../contracts/ai-chat-request.schema.json', import.meta.url), 'utf8'),
+) as { properties: { system: { maxLength: number } } };
+const WIRE_SYSTEM_MAX = wire.properties.system.maxLength;
 
 /**
  * §BIBLE-4 · 问典 digest 契约门：
@@ -23,6 +36,12 @@ describe('§BIBLE-4 问典 digest 契约', () => {
 
   it('SYSTEM_PROMPT 长度 < 预算（≈30k chars）', () => {
     expect(SYSTEM_PROMPT.length).toBeLessThanOrEqual(SYSTEM_PROMPT_CHAR_BUDGET);
+  });
+
+  it('digest 预算与 wire 合同同一个字（ADR-0294 · 越顶则 /v1/ai/chat 全 400）', () => {
+    expect(SYSTEM_PROMPT_CHAR_BUDGET).toBe(320_000);
+    expect(WIRE_SYSTEM_MAX).toBe(320_000);
+    expect(SYSTEM_PROMPT.length).toBeLessThanOrEqual(WIRE_SYSTEM_MAX);
   });
 
   it('五章卷名都在摘要里（canon 基准点）', () => {
