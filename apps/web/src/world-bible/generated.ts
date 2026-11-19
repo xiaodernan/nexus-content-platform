@@ -25119,6 +25119,180 @@ The copyists came back — none of them wrote — they did not record the other 
 `,
   },
   {
+    order: 194,
+    slug: 'echo-194-the-first-map-of-the-institute',
+    titleZh: '潮候院抄本师第一次为潮候院画了一张地图——它中间有一道海——他没给潮候院任何人看',
+    titleEn: 'The Copyists of the Institute Drew the First Map of the Institute — a Sea Runs Through It — None of Them Showed It to Anyone',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第九十七日。',
+    eraLineEn: 'Era: the Institute — after the 44th Convocation; the ninety-seventh day of the winter-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 194): The Copyists of the Institute Drew the First Map of the Institute — a Sea Runs Through It — None of Them Showed It to Anyone
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院抄本师第一次画地图——潮候院第一次有地图——它中间有一道海——他没给任何人看。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the first map drawn of the Institute — the first map the Institute has ever had — a sea runs through it — he showed no one.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第九十七日。
+> Era: the Institute — after the 44th Convocation; the ninety-seventh day of the winter-tide month.
+
+---
+
+## 一 · 画地图
+
+潮候院抄本师第一次试着给潮候院画地图——抄本师以前从来没画过——潮候院没有地图——潮候院没有地名——抄本师不知道——抄本师自己去海边——潮候院从来没"走过"那样的路——
+
+**锚句**：潮候院抄本师第一次试着给潮候院画地图——抄本师以前从来没画过——潮候院没有地图——
+**Anchor sentence**: a copyist of the Institute tried to draw its map for the first time — he had never drawn before — the Institute had no map —
+
+---
+
+## 二 · 他画了什么
+
+潮候院抄本师拿了一张麻纸——他也不知道从哪画起——他们画潮候院的院落——画东门——画灯桌——画屋脊——他只画到这儿——他停——
+
+**锚句**：抄本师拿了一张麻纸——他画了院落——他画了东门——他画了屋脊——他只画到这儿——他停——
+**Anchor sentence**: he took a sheet of linen — he drew the courtyard — he drew the East Gate — he drew the ridge — he stopped here —
+
+---
+
+## 三 · 中间
+
+潮候院抄本师停"停"——他说潮候院中间——他们从以前没有想过——潮候院第一次知道它自己中间是什么——抄本师说——潮候院自己都不知道它是什么——"海"字那一块——抄本师停在那一块——
+
+**锚句**：抄本师停在"海"那一块——他说潮候院自己都不知道它是什么——他停在那一块——
+**Anchor sentence**: he stopped at the "sea" — he said the Institute itself did not know what it is — he stopped at that spot —
+
+---
+
+## 四 · 他画了海
+
+潮候院抄本师画下海——他停在海字那儿——他们停完从后面看——中间是海——抄本师说海字——把海字画进潮候院——海是潮候院的中间——抄本师说潮候院中间——
+
+**锚句**：抄本师画下海——中间是海——海是潮候院的中间——抄本师说潮候院中间——
+**Anchor sentence**: he drew the sea — the middle is the sea — the sea is the middle of the Institute — the copyists said — the middle —
+
+---
+
+## 五 · 他没给任何人看
+
+潮候院抄本师画完——他把地图给了 nobody——潮候院没人想要他看——抄本师说——海也不用给——潮候院里没有潮也没有北——他自己也没有走出过东门一次——抄本师说——他给了他自己——
+
+**锚句**：抄本师画完——他把地图给了自己——潮候院没人想要它——抄本师说——他给了他自己——
+**Anchor sentence**: he finished it — he gave the map to no one — no one asked to see it — the copyists said — he gave it to himself —
+
+---
+
+## 六 · 潮候院的第一张地图
+
+潮候院抄本师画了潮候院第一张地图——中间是海——海海潮潮都在潮候院中间——潮候院没人告诉他——他也没告诉——潮候院里有海——现在潮候院第一张地图在潮候院里——潮候院自己才知道——
+
+**锚句**：潮候院第一张地图——中间是海——潮候院自己才知道——
+**Anchor sentence**: the Institute's first map — the middle is the sea — the Institute itself knows now —
+
+---
+
+## 七 · Mapping（Echo No. 194 → world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the first map of the Institute · the sea in the middle · the map no one was shown | 一、二、三、四、五、六 |
+| geography | the courtyard · the East Gate · the sea in the middle | 一、二、四、六 |
+| characters | the copyists · the map (unnamed) · the sea (unnamed) | 一、二、三、四、五、六 |
+| story | the map no one was given · Echo No. 194 | 全篇 |
+| items | the first map · the linen sheet · the sea in the middle | 一、二、三、四、六 |
+| history | After the 44th Convocation · the ninety-seventh day of the winter-tide month | 一、三、五、六、七 |
+
+> 潮候院抄本师第一次为潮候院画地图——它中间有一道海——他没给潮候院任何人看——
+> The copyists drew the first map of the Institute — a sea runs through it — he showed no one —
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百九十四）「潮候院抄本师第一次为潮候院画了一张地图——它中间有一道海——他没给潮候院任何人看」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the first map drawn of the Institute — the first map the Institute has ever had — a sea runs through it — he showed no one.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院抄本师第一次画地图——潮候院第一次有地图——它中间有一道海——他没给任何人看。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 44th Convocation; the ninety-seventh day of the winter-tide month.
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第九十七日。
+
+---
+
+## I · The Map
+
+The copyist tried to draw his first map of the Institute — he had never drawn one before — the Institute had no map — no names for things — he did not know where to begin — he walked out to the shore — the Institute had never taken that kind of road —
+
+**锚句**：潮候院抄本师第一次试着给潮候院画地图——抄本师以前从来没画过——潮候院没有地图——
+**Anchor sentence**: a copyist of the Institute tried to draw its map for the first time — he had never drawn before — the Institute had no map —
+
+---
+
+## II · What He Drew
+
+The copyist took a sheet of linen — he did not know where to start — he drew the courtyard — he drew the East Gate — he drew the lamp-bench — he drew the ridge — he only got this far — he stopped —
+
+**锚句**：抄本师拿了一张麻纸——他画了院落——他画了东门——他画了屋脊——他只画到这儿——他停——
+**Anchor sentence**: he took a sheet of linen — he drew the courtyard — he drew the East Gate — he drew the ridge — he stopped here —
+
+---
+
+## III · The Middle
+
+The copyist stopped at the "stop" — he said the Institute's middle — the Institute had never thought of it — for the first time the Institute knew what is at its middle — he said — the Institute itself does not know what it is — at the spot of the character "sea" — the copyist stopped at that spot —
+
+**锚句**：抄本师停在"海"那一块——他说潮候院自己都不知道它是什么——他停在那一块——
+**Anchor sentence**: he stopped at the "sea" — he said the Institute itself did not know what it is — he stopped at that spot —
+
+---
+
+## IV · He Drew the Sea
+
+The copyist drew the sea — he stopped at the spot "sea" — they looked from behind — the middle is the sea — the copyist said the character "sea" — he drew the sea into the Institute — the sea is the middle of the Institute — the copyists said — the middle of the Institute —
+
+**锚句**：抄本师画下海——中间是海——海是潮候院的中间——抄本师说潮候院中间——
+**Anchor sentence**: he drew the sea — the middle is the sea — the sea is the middle of the Institute — the copyists said — the middle —
+
+---
+
+## V · He Showed It to No One
+
+The copyist finished it — he gave the map to no one — no one asked to see it — the copyist said — the sea does not need to be shown either — the Institute holds no tide and no north — he has never stepped beyond the East Gate once — the copyists said — he gave it to himself —
+
+**锚句**：抄本师画完——他把地图给了自己——潮候院没人想要它——抄本师说——他给了他自己——
+**Anchor sentence**: he finished it — he gave the map to himself — no one asked to see it — the copyists said — he gave it to himself —
+
+---
+
+## VI · The Institute's First Map
+
+The copyist drew the Institute's first map — the middle is the sea — the sea is the tide — the tide is the middle of the Institute — the Institute told him nothing — he told no one — the Institute holds a sea now — the Institute's first map is inside the Institute — the Institute itself knows now —
+
+**锚句**：潮候院第一张地图——中间是海——潮候院自己才知道——
+**Anchor sentence**: the Institute's first map — the middle is the sea — the Institute itself knows now —
+
+---
+
+## VII · Mapping（Echo No. 194 → world model）
+
+| Dimension | Value | Mapping |
+| --- | --- | --- |
+| lore | the first map of the Institute · the sea in the middle · the map no one was shown | I, II, III, IV, V, VI |
+| geography | the courtyard · the East Gate · the sea in the middle | I, II, IV, VI |
+| characters | the copyists · the map (unnamed) · the sea (unnamed) | I, II, III, IV, V, VI |
+| story | the map no one was given · Echo No. 194 | Full |
+| items | the first map · the linen sheet · the sea in the middle | I, II, III, IV, VI |
+| history | After the 44th Convocation · the ninety-seventh day of the winter-tide month | I, III, V, VI, VII |
+
+> 潮候院抄本师第一次为潮候院画地图——它中间有一道海——他没给潮候院任何人看——
+> The copyists drew the first map of the Institute — a sea runs through it — he showed no one —
+`,
+  },
+  {
     order: 20,
     slug: 'echo-020-the-bell-that-never-rang',
     titleZh: '潮候院钟楼里那口从不响的钟',

@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 193 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 194 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3401,6 +3401,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 抄本师说对岸的形状——抄本师没人看清——他们说对岸很大——它也有斑——它有它的线——
 - [5] 潮候院里每一盏灯都没有它对岸的光——潮候院没人见过对岸的光——
 - [6] 抄本师回来了——他们没人写——潮候院抄本师都知道——那边有一块潮候院没人到过的陆地——它有光——
+
+### Echo 194 · 潮候院抄本师第一次为潮候院画了一张地图——它中间有一道海——他没给潮候院任何人看 / The Copyists of the Institute Drew the First Map of the Institute — a Sea Runs Through It — None of Them Showed It to Anyone
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院抄本师第一次试着给潮候院画地图——抄本师以前从来没画过——潮候院没有地图——
+- [2] 抄本师拿了一张麻纸——他画了院落——他画了东门——他画了屋脊——他只画到这儿——他停——
+- [3] 抄本师停在"海"那一块——他说潮候院自己都不知道它是什么——他停在那一块——
+- [4] 抄本师画下海——中间是海——海是潮候院的中间——抄本师说潮候院中间——
+- [5] 抄本师画完——他把地图给了自己——潮候院没人想要它——抄本师说——他给了他自己——
+- [6] 潮候院第一张地图——中间是海——潮候院自己才知道——
 
 ### Echo 20 · 潮候院钟楼里那口从不响的钟 / The Bell That Never Rang in the Institute's Clock Tower
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
