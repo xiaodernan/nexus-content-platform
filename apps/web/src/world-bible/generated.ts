@@ -18746,7 +18746,181 @@ The last page of the watch-ledger reads: the calendar prints only half the tide 
   },
   {
     order: 161,
-    slug: 'echo-161-the-lamp-that-never-writes-a-name',
+    slug: 'echo-161-the-letter-tree-that-sends-leaves-to-the-night',
+    titleZh: '潮候院前院那棵只收落叶的信树与最后一片寄向散会夜的信',
+    titleEn: 'The Letter-Tree in the Institute\'s Forecourt That Collects Fallen Leaves and the Last Letter Addressed to the Night of the Dissolution',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百二十七日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hundred-and-twenty-seventh day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 161): The Letter-Tree in the Institute's Forecourt That Collects Fallen Leaves and the Last Letter Addressed to the Night of the Dissolution
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院前院那棵信树——落叶它都收入信封——最后一片是寄给散会夜的信。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the letter-tree in the Institute's forecourt — it gathers fallen leaves into envelopes — the last leaf is addressed to the night of the dissolution.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百二十七日。
+> Era: the Institute — after the 41st Convocation; the hundred-and-twenty-seventh day of the autumn-tide month.
+
+---
+
+## 一 · 信树
+
+潮候院前院的角落有一棵信树——不高——树皮是灰的——上下全是刻痕——像被人一笔一笔刻出来的信封。
+
+**锚句**：潮候院前院的角落有一棵信树——不高——树皮刻满信封一样的刻痕。
+**Anchor sentence**: in the corner of the forecourt of the Institute stands a letter-tree — not tall — its bark is carved all over with envelope-shaped marks.
+
+---
+
+## 二 · 落叶被收进信封
+
+每一片叶子落下来的时候——值更人就把它收进一个空信封——封皮上写好收信人的名字。
+
+**锚句**：每一片叶子落下来——值更人就把它收进信封——封皮上写好收信人的名字。
+**Anchor sentence**: whenever a leaf falls — the head of the watch puts it into an envelope — with the recipient's name written on the face.
+
+---
+
+## 三 · 最后一封寄给散会夜
+
+值更册最后一页写着：它数过一共多少片叶子——还剩一片——那片叶子是寄给散会夜的——寄地址是"散会夜"——没有寄信人。
+
+**锚句**：最后一封信是寄给散会夜的——寄信人一栏是空的——只有寄地址——"散会夜"。
+**Anchor sentence**: the last letter is addressed to the Night of the Dissolution — the sender's line is empty — only the address: the Night of the Dissolution.
+
+---
+
+## 四 · 谁寄的
+
+抄本师的母亲说那棵树就是一颗自己种自己的信——它写它——它自己是收件人——散会夜是它自己。
+
+**锚句**：抄本师的母亲说那棵树自己种自己——它自己是收件人——散会夜是它自己。
+**Anchor sentence**: the mother of the copyists says the tree plants itself — it is the recipient — the night of the dissolution is itself.
+
+---
+
+## 五 · 值更册最后一页
+
+值更册最后一页："信树不会读自己寄出去的信——散会夜不开信——但值更册记下了这一切。"
+
+**锚句**：值更册最后一页：信树不读自己寄出的信——散会夜不开信——值更册记下了这一切。
+**Anchor sentence**: the last page of the watch-ledger reads: the letter-tree does not read the letters it sends — the night of the dissolution does not open letters — but the watch-ledger has recorded all of this.
+
+---
+
+## 六 · 散会夜
+
+散会那一夜——值更人把那封没写收件人的信从过道放下去——信树的枯叶全落了——值更人第二天早晨没有看到信封——只有一棵空的树。
+
+**锚句**：散会那一夜——值更人把那封信放下去——信树枯叶全落了——第二天早晨只有一棵空的树。
+**Anchor sentence**: on the night of the dissolution — the head of the watch let that letter fall — the tree shed every leaf — in the morning there was only a bare tree.
+
+---
+
+## 七 · 映射（回响一百六十一章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 信树 · 刻痕像信封 · 最后一封寄给散会夜 · 树自己种自己 | 一、二、三、四、五、六、七 |
+| geography | 潮候院前院 · 前院角落 · 潮候院祠殿 | 一、二、三 |
+| characters | 值更人 · 抄本师的母亲 · 散会夜 · 一棵树 | 一、二、三、四、五、六 |
+| story | 只收落叶的信树与寄给散会夜的信 · 回响（其一百六十一） | 全篇 |
+| items | 信树 · 空信封 · 值更册 · 一封没收件人的信 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第一百二十七日 | 一、二、三、四、五、六 |
+
+> 前院那棵信树——落叶它收进信封——最后一封信是散会夜要收的——没人读过。
+> The letter-tree in the forecourt — it gathers fallen leaves into envelopes — the last letter is for the night of the dissolution that no one has read.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百六十一）「潮候院前院那棵只收落叶的信树与最后一片寄向散会夜的信」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the letter-tree in the Institute's forecourt — it gathers fallen leaves into envelopes — the last leaf is addressed to the night of the dissolution.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院前院那棵信树——落叶它都收入信封——最后一片是寄给散会夜的信。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the hundred-and-twenty-seventh day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百二十七日。
+
+---
+
+## I · The Letter Tree
+
+In the corner of the forecourt of the Institute stands a letter-tree — not tall — its bark is carved all over with envelope-shaped marks.
+
+**锚句**：潮候院前院的角落有一棵信树——不高——树皮刻满信封一样的刻痕。
+**Anchor sentence**: in the corner of the forecourt of the Institute stands a letter-tree — not tall — its bark is carved all over with envelope-shaped marks.
+
+---
+
+## II · Every Leaf Goes into an Envelope
+
+Whenever a leaf falls — the head of the watch puts it into an envelope — with the recipient's name written on the face.
+
+**锚句**：每一片叶子落下来——值更人就把它收进信封——封皮上写好收信人的名字。
+**Anchor sentence**: whenever a leaf falls — the head of the watch puts it into an envelope — with the recipient's name written on the face.
+
+---
+
+## III · The Last Letter Is Addressed to the Night of the Dissolution
+
+The last page of the watch-ledger reads: it has counted how many leaves there are — one remains — that leaf is addressed to the Night of the Dissolution — the address is "the Night of the Dissolution" — with no sender.
+
+**锚句**：最后一封信是寄给散会夜的——寄信人一栏是空的——只有寄地址——"散会夜"。
+**Anchor sentence**: the last letter is addressed to the Night of the Dissolution — the sender's line is empty — only the address: the Night of the Dissolution.
+
+---
+
+## IV · Who Sent It
+
+The mother of the copyists says the tree plants itself — it is the recipient — the Night of the Dissolution is itself.
+
+**锚句**：抄本师的母亲说那棵树自己种自己——它自己是收件人——散会夜是它自己。
+**Anchor sentence**: the mother of the copyists says the tree plants itself — it is the recipient — the night of the dissolution is itself.
+
+---
+
+## V · The Last Page of the Watch-Ledger
+
+The last page of the watch-ledger reads: the letter-tree does not read the letters it sends — the night of the dissolution does not open letters — but the watch-ledger has recorded all of this.
+
+**锚句**：值更册最后一页：信树不读自己寄出的信——散会夜不开信——值更册记下了这一切。
+**Anchor sentence**: the last page of the watch-ledger reads: the letter-tree does not read the letters it sends — the night of the dissolution does not open letters — but the watch-ledger has recorded all of this.
+
+---
+
+## VI · The Night of the Dissolution
+
+On the night of the dissolution — the head of the watch let that letter fall — the tree shed every leaf — in the morning there was only a bare tree.
+
+**锚句**：散会那一夜——值更人把那封信放下去——信树枯叶全落了——第二天早晨只有一棵空的树。
+**Anchor sentence**: on the night of the dissolution — the head of the watch let that letter fall — the tree shed every leaf — in the morning there was only a bare tree.
+
+---
+
+## VII · Mapping（Echo No. 161 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the letter-tree · the carved envelope marks · the last letter addressed to the Night of the Dissolution · the tree plants itself | 一、二、三、四、五、六、七 |
+| geography | the forecourt of the Institute · the corner of the forecourt · the chapel | 一、二、三 |
+| characters | the head of the watch · the mother of the copyists · the night of the dissolution · the tree | 一、二、三、四、五、六 |
+| story | the letter-tree that gathers fallen leaves into envelopes · Echo No. 161 | 全篇 |
+| items | the letter-tree · the empty envelope · the watch-ledger · the letter without a recipient's name | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the hundred-and-twenty-seventh day of the autumn-tide month | 一、二、三、四、五、六 |
+
+> 前院那棵信树——落叶它收进信封——最后一封信是散会夜要收的——没人读过。
+> The letter-tree in the forecourt — it gathers fallen leaves into envelopes — the last letter is for the night of the dissolution that no one has read.
+`,
+  },
+  {
+    order: 162,
+    slug: 'echo-162-the-lamp-that-never-writes-a-name',
     titleZh: '潮候院那盏从不写名的灯',
     titleEn: 'The Lamp in the Chapel That Carries No Name',
     eraLineZh: '纪元：潮候院 · 第四十三次散会之后 · 秋潮月第一百零二日',
@@ -18806,14 +18980,14 @@ The last page of the watch-ledger reads: the calendar prints only half the tide 
 
 ---
 
-## 六 · 映射（回响其一百六十一 · 对应关系）
+## 六 · 映射（回响其一百六十二 · 对应关系）
 
 | 类别 | 标题 | 对应章 |
 |---|---|---|
 | lore | 沉默的保存 · 第七次日蚀之后 · 海口 | 一、二、三 |
 | geography | 潮候院 · 抄本席 · 石阶檐影 | 一、三、四 |
 | characters | 抄本守礼 · 值更人 · 散会 | 一、二、四 |
-| story | 第四盏灯的沉默 · 回响（其一百六十一） | 全篇 |
+| story | 第四盏灯的沉默 · 回响（其一百六十二） | 全篇 |
 | items | 沉默的灯 · 存档卷册 · 残盐厚灯座 | 一、三、五 |
 | history | 第四十三次散会之后 · 秋潮月第一百零二日 | 全文 |
 

@@ -8021,3 +8021,9 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 新篇：「值更室的墙上挂着一张挂历——一年十二个月——每月只印半张——半上弦半下弦 · 上弦抄本师写『潮』，下弦抄本师的母亲写的字没人看得懂——第一百二十六日那一格只刻了『潮』——下弦留空——挂历等下个散会来填」—— digest 现 **243,144 chars**（13 章正典 · **160 回响** · 4 annex · 锚句 973 zh / 973 en ✓）。
 - 6 锚句双语 · gen-bible-snapshot 增 echo-160 · BibleAsk lede → 160 · /bible/ask meta → 一百六十篇 · CACHE-IDENTITY × 160 · canon-answer-graph → 173 段 · bible-ask-behavior pin **968** · pin 重钉 page→98f0f05e / comp→cca6b859 · InsightCanonChat hint 同步至 160。
 - fe-gates **1377/1377** ✓ · verify:world-bible **973/973** ✓ · snapshot ✓。
+
+## cont. 417 (2026-11-19) — v1054 · §BIBLE-161 · Echo #161《前院只收落叶的信树》(作者手写 · verify 979/979)
+
+- 新篇：「潮候院前院角落那棵信树 · 树皮刻满信封一样的刻痕 · 每落一片叶值更人收一封 · 值更册最后一页：最后一封信寄给『散会夜』——值更册记了一切。」—— digest 现 **243,649 chars**（13 章正典 · **161 回响** · 4 annex · 锚句 979 zh / 979 en ✓）。
+- 6 锚句双语 · gen-bible-snapshot 增 echo-161 · BibleAsk lede → 161 · /bible/ask meta → 一百六十一篇 · CACHE-IDENTITY × 161 · canon-answer-graph → 174 段 · bible-ask-behavior pin **974** · pin 重钉 page→ac1d320f / comp→7feea82b · InsightCanonChat hint 同步至 161。
+- fe-gates **1377/1377** ✓ · verify:world-bible **979/979** ✓ · snapshot ✓。
