@@ -8041,3 +8041,12 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 新篇：「值更室墙边那面旧铜镜——它只看雨——雨来的时候铜镜醒——停了铜镜忘——抄本师的母亲放的：潮候院的眼睛——没人的时候镜也要自己看一看」—— digest 现 **244,090 chars**（13 章正典 · **162 回响** · 4 annex · 锚句 985 zh / 985 en ✓）。
 - 6 锚句双语 · gen-bible-snapshot 增 echo-162 · BibleAsk lede → 162 · /bible/ask meta → 一百六十二篇 · CACHE-IDENTITY × 162 · canon-answer-graph → 175 段 · bible-ask-behavior pin **980** · pin 重钉 page→84955e4b / comp→56b261de · InsightCanonChat hint 同步至 162。
 - fe-gates **1377/1377** ✓ · verify:world-bible **985/985** ✓ · snapshot ✓。
+
+## cont. 420 (2026-11-19 / 复跑) — §SPRING-RERUN ✓ Java domain-service 真跑绿 + 证据入库
+
+- 此前压住的事：上下文摘要里"Spring proof 未复跑"是阻塞项，不是虚头。**本轮真跑了**：
+  - 环境：Java 25.0.1 · Maven 3.9.15 · 命令 `mvn -q -Dmaven.javadoc.skip=true test "-DargLine=-Xmx768m -XX:MaxMetaspaceSize=192m" -T 1C`
+  - 结果：**Tests run: 175, Failures: 0, Errors: 0, Skipped: 1**（skip=1 与 2026-11-17 同一 known-skip）· BUILD SUCCESS
+  - `mvn -q -DskipTests=true compile` 退出码 0
+- 证据 `docs/evidence/spring-proof-rerun-2026-11-19.md`（环境 + 输出尾部 + 边界 + 下一步）。
+- **仍欠不假装**：Java→Postgres→Redis→web gateway 全链路 E2E 未跑（Docker 这一箱≈3 GB 被 football_os/careeros 占用，host 空闲 <2.5 GB，没法给 service 独立 JVM 跑冒烟）。
