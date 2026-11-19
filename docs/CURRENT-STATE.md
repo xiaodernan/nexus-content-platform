@@ -7850,3 +7850,10 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - /admin/observe「趋势预测」带、「AI 深读」现在吃得到服务端外推、/bible/ask「本轮检索依据」折叠面板——双语指南逐字描述（/guide 与帮助抽屉同一份字典）
 - guide 页 SHA pin 不变 · fe-gates 151/151 · 1377/1377 · census 2998 · tsc EXIT=0
 
+
+## cont. 399 (2026-11-19) — v1040 · §BIBLE-153 · Echo #153《回廊尽头永远没人猜中的谜箱》(作者手写 · verify 932/932)
+
+- 新篇：「潮候院回廊尽头那只只能猜的谜箱 · 散会夜它的谜面变了一条 · 第二天恢复原样——值更册写着「没有人猜中——也从来没有人能猜中」」—— digest 现 **240,079 chars**（13 章正典 · **153 回响** · 4 annex · 锚句 932 zh / 932 en ✓）。
+- 6 锚句双语 · gen-bible-snapshot 增 echo-153 · BibleAsk lede → 153 · /bible/ask meta → 一百五十三篇 · CACHE-IDENTITY × 153 · canon-answer-graph → 166 段 · bible-ask-behavior pin 927 · pin 重钉 page→ba4c8618 / comp→f6f41b7c · InsightCanonChat hint 同步至 153。
+- fe-gates **1377/1377** ✓ · verify:world-bible 932/932 ✓。
+- §PROOF-V1037 复测（Clash 环境）：digest 239,665 · 端到端 tokensIn=154,627 · cached=145,231 (93.9%) — 连胜两发同值。

@@ -12,7 +12,7 @@
 
 ### a. digest 字节级稳定（SYSTEM_PROMPT v2）
 来源：`apps/web/src/lib/bibleAsk.ts` — `SYSTEM_PROMPT` 是常量、构建器输出可重复。
-- 五章正典全文 × 锚句 × 152 篇回响锚句；
+- 五章正典全文 × 锚句 × 153 篇回响锚句；
 - 每次重渲染都是字节一致；
 - 任何一章改一个字符 → 历次 cache miss（所以修 digest = 重新静候重灌）。
 
