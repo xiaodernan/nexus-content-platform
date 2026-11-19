@@ -8204,3 +8204,11 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 
 Reported upstream to `docs/evidence/liveness-sweep-2026-11-19.md`（cont.429 对应项）。
 回去继续。
+
+## cont. 430 (2026-11-19) — §IO-v1057 · 续演：公网再次直达 · E167 落盘
+
+- Echo #167 · 《潮候院南面的运米埠头上，那只载着旧潮历渡了六十三次的纸船》（财弥之船·物流志）已入 master head 23ba3780 — 据此 master 总 digest 已扩到 **246,158 chars · sha 086ec56c…** · anchors **1014 zh / 1014 en** · verify-world-bible-anchors ✓
+- IO 展示页 v1056 (E164) → **v1057 (E167)**：oracle-strip 的 quote 已经换为本桅之舟锚[1]「潮候院过去了六十三个秋潮月，纸船过米埠也过了六十三次」 · meta-cert `1014 锚句 · digest 246,158 · 167 回响` · fact-num 167 · sub-fact 246,158 字节 · sub anchor — **字形对齐不存偏误**
+- 这两轮 index.html push c71270f+e0ef104 · featherlight Pages deploys 4 × success（含一次 dispatch）— 公网 cache-bust 见证 v1057 live
+- EN `data-i18n-en="oracle"` 已经是Refresh-style ("counters refresh live… nothing here is re-typed by hand") 没被改写 → 整页只改中文 oracle 区 EN twin 继续自描述 "refresh live" · 不需手改
+- 公网实测 (ut=cache-bust fresh-v1057) 历史 build 100% OK identity-guard via all 6 runs (c71270f success) · 中文 Identity pass
