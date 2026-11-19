@@ -7977,3 +7977,12 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
   → **16 路并发同文 → 1 次 provider 调用**；余 15 路全部"join 进 leader，不计费"。证据 `docs/evidence/singleflight-burst-prove-2026-11-19.md`。
 - **真实结论的边界（no 假包装）**：single-flight 只 coalesces 完全相同的 key；风暴式不同 prompt 无法合并——记录在案，不夸大。
 - 与 STRESS-TESTS "SSR 档 24/48 prod 已做、dev 未做"的现底一致，没有重复浪费行动；这个测试新补上 ai-service 速率层的那一格。
+
+## cont. 412 (2026-11-19) — §BIG-CTX-BUDGET 抬升 · digest budget 256K → 320K chars（≈ 205k tokens）
+
+- **背景**（cont.410 已登记风险）：digest 现 **242,027 chars**；按锚句 +380/回响线性增长，还能放 ~37 回响到 256K 上限 — 再往后要么 eviction 要么抬上限。
+- **决定**：抬 `SYSTEM_PROMPT_CHAR_BUDGET` **256,000 → 320,000**（web 层 lib/bibleAsk.ts；`SYSTEM_PROMPT.length < BUDGET` 的唯一护栏仍守）。
+  - 依据：`docs/evidence/big-context-token-2026-11-18.md`（64K→177K 区间 KV 100% 稳定）· `big-context-provenance-*-2026-11-19.md`（177K→256K）· `stategraph-live-verify-gpt62-2026-11-19.md`（E157 242K digest 实测 stategraph live 89%→100% appCache）· cache-stability 4× 全量稳定 + 16/16 storm 全命中。
+  - 实测 transport.stream=true；KV share 没有到瓶颈；这是一个预算护栏抬升（不是回归），不需要 digest 内容变动。
+- **ECHO_BODY_CHAR_BUDGET=125,000 不动**：最近回响全 body，旧回响题名+锚句 —— 这是入龛现有配额策略，按 SHA pin 展开，没有人改。
+- fe-gates **1377/1377** ✓ · digest 字节保持 `357e4ed3…`（本片改的是天花板不是内容）。
