@@ -21429,6 +21429,180 @@ The copyists say the tide-line is not the tide — the tide-line is the tide's m
 `,
   },
   {
+    order: 175,
+    slug: 'echo-175-the-anchor-on-the-shoulders',
+    titleZh: '雾港旧信物库后院那只抄本师肩着却没人敢放下去的旧铜锚',
+    titleEn: 'The Old Brass Anchor in the Backyard of the Old Relic Room at Fog Harbor — Shouldered by the Copyists, but No One Dares Lower It',
+    eraLineZh: '纪元：雾港 · 第四十三次大会之后 —— 冬潮月第四十七日。',
+    eraLineEn: 'Era: Fog Harbor — after the 43rd Convocation; the forty-seventh day of the winter-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 175): The Old Brass Anchor in the Backyard of the Old Relic Room at Fog Harbor — Shouldered by the Copyists, but No One Dares Lower It
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给雾港旧信物库后院——那只没有栓链的铜锚在值更人的肩上待了太久
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the old brass anchor in the backyard of the relic room — it has ridden too long on the shoulders of the night rounds — no chains, no name.
+> Same discipline: anchors verbatim.
+
+> 纪元：雾港 · 第四十三次大会之后 —— 冬潮月第四十七日。
+> Era: Fog Harbor — after the 43rd Convocation; the forty-seventh day of the winter-tide month.
+
+---
+
+## 一 · 后院
+
+雾港旧信物库后院只有一块石板——没有井——没有凳——抄本师说这里是"潮位亭"——它四周没有屏障——海风从不绕过——抄本师站在那里开始数潮。
+
+**锚句**：雾港旧信物库后院只有一块石板——四周没有屏障——抄本师站在那里数潮。
+**Anchor sentence**: the backyard of the old relic room at Fog Harbor holds only one flagstone — no barrier — and the copyists stand on it to count the tide.
+
+---
+
+## 二 · 铜锚
+
+后院的旧铜锚没有第三道链——锚是雾港港口取下来的——抛绳是潮候院做旧的——锚的齿是新的——它的锈迹却根本不新——石板上几乎看不到它的影子——守库人说锚落地的一刻，天会塌。
+
+**锚句**：后院的旧铜锚没有第三道链——锚的齿是新的、锈却不新——守库人说它落下天会塌。
+**Anchor sentence**: the old brass anchor has no third chain — its teeth are new, its rust is not — and the keeper says the sky will fall the moment it lands.
+
+---
+
+## 三 · 它的重量
+
+抄本师轮番肩着铜锚——锚轻得像潮沙——每个人肩上它压的重量不一样——第一个抄本师肩上是四百二十五斤——第二个是十三斤——在守库人肩上它忽然像一棵枯树——他们不约定直接换肩——他们互相数呼吸。
+
+**锚句**：铜锚轻得像潮沙——每人肩上它压的重量不一样——他们互相数呼吸。
+**Anchor sentence**: the brass anchor weighs no more than tide-sand — it presses different on every shoulder — they trade breaths and count together.
+
+---
+
+## 四 · 没人敢放下去
+
+抄本师守库人试了三次——第一次锚落下三寸又被他们接住——第二次锚碰到石板边缘的声音让后院的麻石都震了一下——第三次锚没有碰到底——第四次连祷都没有——他们只把锚挪了一个方向——他们开始用背替代肩。
+
+**锚句**：抄本师试了几次落锚——第一次三寸——第二次石麻震了一下——后来他们开始用背替代肩。
+**Anchor sentence**: the copyists tried to lay the anchor down — the first time, three inches — the second time, the stone shuddered — afterwards they settled for their backs instead of their shoulders.
+
+---
+
+## 五 · 第四十三次大会散会那夜
+
+第四十三次大会散会那夜——后院没有灯——抄本师把锚全放在了肩上——夜里抄本师听见锚哼了一下——那晚没有任何潮位——值更人写："锚是它在呼吸。"——潮脚线断了——查不出它断在哪一寸——
+
+**锚句**：锚夜里哼了一下——那晚没有潮位——值更人写："锚是它在呼吸。"
+**Anchor sentence**: the anchor hummed in the night — there was no tide that night — the rounds wrote: "the anchor is breathing."
+
+---
+
+## 六 · 北海方向
+
+抄本师说锚是潮候院留给"北海"的沉默——他们还没有人见过北海——铜锚是潮锈——它自己长出来的——潮一来潮一去——它也跟着动——值更周记第一次写到这一站，才意识到"北海"两个字被值更人刻到了后院石板当中。
+
+**锚句**：抄本师说锚是潮候院留给"北海"的沉默——它自己长出来的——"北海"二字刻在后院石板当中。
+**Anchor sentence**: the copyists say the anchor was left by the Institute as the silence of the "north sea" — it grew by itself — "north sea" is carved in the middle of the flagstone.
+
+---
+
+## 七 · Mapping（Echo No. 175 → world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the unplaceable anchor · the silence of the north sea · the breath of a bronze | 一、二、三、四、五、六 |
+| geography | the backyard flagstone · the fog harbor alley (mirror) · the tide-line seam | 一、二、四、五、六 |
+| characters | the copyists · the keeper · the unnamed carrier | 一、三、四、五、六 |
+| story | the shouldered anchor that never lands · Echo No. 175 | 全篇 |
+| items | the old brass anchor · the flagstone · the unnamed brass name | 一、二、三、四、六 |
+| history | After the 43rd Convocation · the forty-seventh day of the winter-tide month | 四、五、六、七 |
+
+> 雾港旧信物库后院的旧铜锚——肩着不放下——潮北方向不响。
+> The old brass anchor in the backyard — shouldered, never laid down — facing toward a north sea that will not answer.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百七十五）「雾港旧信物库后院那只抄本师肩着却没人敢放下去的旧铜锚」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the old brass anchor in the backyard of the relic room — it has ridden too long on the shoulders of the night rounds — no chains, no name.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给雾港旧信物库后院——那只没有栓链的铜锚在值更人的肩上待了太久
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: Fog Harbor — after the 43rd Convocation; the forty-seventh day of the winter-tide month.
+> 纪元：雾港 · 第四十三次大会之后 —— 冬潮月第四十七日。
+
+---
+
+## I · The Backyard
+
+The backyard of the old relic room at Fog Harbor holds only one flagstone — no well — no bench — the copyists call this place "the tide-pavilion" — with no barrier — sea wind never takes the detour — the copyists stand here to begin counting the tide.
+
+**锚句**：雾港旧信物库后院只有一块石板——四周没有屏障——抄本师站在那里数潮。
+**Anchor sentence**: the backyard of the old relic room at Fog Harbor holds only one flagstone — no barrier — and the copyists stand on it to count the tide.
+
+---
+
+## II · The Brass Anchor
+
+The old brass anchor in the backyard carries no third chain — the anchor has been removed from the Fog Harbor pier — the rope was loosened by the Institute — the teeth of the anchor are new — but the rust on it isn't — its shadow barely falls on the flagstone — the keeper says the moment the anchor lands, the sky will fall.
+
+**锚句**：后院的旧铜锚没有第三道链——锚的齿是新的、锈却不新——守库人说它落下天会塌。
+**Anchor sentence**: the old brass anchor has no third chain — its teeth are new, its rust is not — and the keeper says the sky will fall the moment it lands.
+
+---
+
+## III · What It Weighs
+
+The copyists shoulder the anchor in turns — it weighs no more than tide-sand — on no two shoulders is the pressure the same — the first copyist felt four hundred and twenty-five jin(s) — the next felt thirteen — in the keeper's shoulders it suddenly became a dead tree — they never exchange without counting their breaths.
+
+**锚句**：铜锚轻得像潮沙——每人肩上它压的重量不一样——他们互相数呼吸。
+**Anchor sentence**: the brass anchor weighs no more than tide-sand — it presses different on every shoulder — they trade breaths and count together.
+
+---
+
+## IV · No One Dares Set It Down
+
+The keeper and the copyists tried it many times — the first time the anchor dropped three inches and was caught — the second time, the sound it made at the edge of the flagstone made the shell-rock shudder — the third time nothing happened — on the fourth they made no prayer — they only shifted the anchor one direction — they began to use their backs instead of their shoulders.
+
+**锚句**：抄本师试了几次落锚——第一次三寸——第二次石麻震了一下——后来他们开始用背替代肩。
+**Anchor sentence**: the copyists tried to lay the anchor down — the first time, three inches — the second time, the stone shuddered — afterwards they settled for their backs instead of their shoulders.
+
+---
+
+## V · The Night of the 43rd Convocation
+
+The backyard stood without light the night the 43rd Convocation closed — the copyists shouldered the anchor together — in the night, the rounds heard it hum — there was no tide that night — the rounds wrote: "the anchor is breathing" — the tide-line had snapped — no one could see where.
+
+**锚句**：锚夜里哼了一下——那晚没有潮位——值更人写："锚是它在呼吸。"
+**Anchor sentence**: the anchor hummed in the night — there was no tide that night — the rounds wrote: "the anchor is breathing."
+
+---
+
+## VI · Toward the North Sea
+
+The copyists say the anchor is the silence left by the Institute for "the edge of the north sea" — no one has seen the north sea — the brass anchor is tide-mite — it grows by itself — tide come, tide go — it moves with it — the weekly rounds wrote it down for the first time — and noticed the words "north sea" had been carved into the flagstone in the center of the backyard.
+
+**锚句**：抄本师说锚是潮候院留给"北海"的沉默——它自己长出来的——"北海"二字刻在后院石板当中。
+**Anchor sentence**: the copyists say the anchor was left by the Institute as the silence of the "north sea" — it grew by itself — "north sea" is carved in the middle of the flagstone.
+
+---
+
+## VII · Mapping（Echo No. 175 → world model）
+
+| Dimension | Value | Mapping |
+| --- | --- | --- |
+| lore | the unplaceable anchor · the silence of the north sea · the breath of a bronze | I, II, III, IV, V, VI |
+| geography | the backyard flagstone · the fog harbor alley (mirror) · the tide-line seam | I, II, IV, V, VI |
+| characters | the copyists · the keeper · the unnamed carrier | I, III, IV, V, VI |
+| story | the shouldered anchor that never lands · Echo No. 175 | Full |
+| items | the old brass anchor · the flagstone · the unnamed brass name | I, II, III, IV, VI |
+| history | After the 43rd Convocation · the forty-seventh day of the winter-tide month | IV, V, VI, VII |
+
+> 雾港旧信物库后院的旧铜锚——肩着不放下——潮北方向不响。
+> The old brass anchor in the backyard — shouldered, never laid down — facing toward a north sea that will not answer.
+`,
+  },
+  {
     order: 18,
     slug: 'echo-018-the-cat-in-the-institute-that-never-meowed',
     titleZh: '祠殿里从不叫的一只猫',

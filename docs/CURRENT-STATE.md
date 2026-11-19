@@ -8324,3 +8324,13 @@ Reported upstream to `docs/evidence/liveness-sweep-2026-11-19.md`（cont.429 对
   - 44508700093 · push 691053c (github-pages env + cross-platform pwsh tar) · **success**
   - 顺序说明：这些 failure 是历史节点，当前工作流 = ubuntu-latest → 绿色
 - 经验：没必要每轮 dispatch 一次；按用户本 §十 意愿，走 cron 节奏必须
+
+## cont. 442 (2026-11-19) — §BIBLE-175 · Echo #175 铜锚落盘 · digest 249,908
+
+- **Echo #175《雾港旧信物库后院那只抄本师肩着却没人敢放下去的旧铜锚》** 双语手写（E171-E174 arc 续：后院铜锚/脚步之下/怎么都不落下；落地就是天塌；潮脚线折断那晚；抄本师开始数潮数到第七十三次之后——这是锚，不放下去，将永远对不齐"北海 " 不响）
+  → registry `echo-175-the-anchor-on-the-shoulders`
+- gen-bible-snapshot → **175 回响 · digest 249,908 chars · sha 64442951…** · verify **1062 zh/en ✓** · test pin 1051→**1057** · 双 digest 测试 11/11 绿
+- :3200 kill → detached relaunch (shim 46876 → worker 53244→42100) · /healthz 200 · llm=gpt-6.2-sol
+- **公网状态直验**：CDN 已落 **v1060**（E171《潮印》· fact-num 171）— football OS 1,656 / 250 volumes 全部新鲜 — 下一个 3h cron 会采纳 v1061（E174《潮脚线》）— 本轮 E175 到 IO 上是 v1062，等 cron 自然采纳
+- **长期欠条**：没有启动 continuous-warm 池子去 keep KV（无 amortized benefit for此种 digest 大小用户；通路 fuse needed）
+- **digest 口径**：主线章节 13；echoes 175；appendices 4；verify total 1062 zh/en

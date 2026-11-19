@@ -225,6 +225,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E172-雾港旧信物库守库人的夜钥匙至今没有第二把铜匙坯能复制它': 'echo-172-the-uncopyable-night-key-of-fog-harbor',
   'E173-雾港旧信物库里那本永久停在第七十一页的旧潮汐历': 'echo-173-the-tide-almanac-stopped-at-page-seventy-one',
   'E174-雾港旧信物库外墙那道谁也解释不清的潮脚线': 'echo-174-the-tide-line-on-the-outer-wall',
+  'E175-雾港旧信物库后院那只抄本师肩着却没人敢放下去的旧铜锚': 'echo-175-the-anchor-on-the-shoulders',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 174 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 175 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3214,6 +3214,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 潮脚线每年往上爬半指到一指——守库人把墙分十二格标了年份——今年线到他站立的高度。
 - [5] 潮脚线在那一夜被人检查——没有人记录它——海岛上预定了潮汐石板——没人说它为什么。
 - [6] 抄本师说潮脚线是潮的纪念——如果潮再来它会停——如果潮再也不退它就是最后一条。
+
+### Echo 175 · 雾港旧信物库后院那只抄本师肩着却没人敢放下去的旧铜锚 / The Old Brass Anchor in the Backyard of the Old Relic Room at Fog Harbor — Shouldered by the Copyists, but No One Dares Lower It
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 雾港旧信物库后院只有一块石板——四周没有屏障——抄本师站在那里数潮。
+- [2] 后院的旧铜锚没有第三道链——锚的齿是新的、锈却不新——守库人说它落下天会塌。
+- [3] 铜锚轻得像潮沙——每人肩上它压的重量不一样——他们互相数呼吸。
+- [4] 抄本师试了几次落锚——第一次三寸——第二次石麻震了一下——后来他们开始用背替代肩。
+- [5] 锚夜里哼了一下——那晚没有潮位——值更人写："锚是它在呼吸。"
+- [6] 抄本师说锚是潮候院留给"北海"的沉默——它自己长出来的——"北海"二字刻在后院石板当中。
 
 ### Echo 18 · 祠殿里从不叫的一只猫 / The Cat in the Institute That Never Meowed
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
