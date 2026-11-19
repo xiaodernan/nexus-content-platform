@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 200 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 201 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3472,6 +3472,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 潮候院抄本院的人都知道——麻布是潮候院最老的潮——
 - [5] 潮候院抄本师都知道——麻布就是潮候院的原本——没有人出声——
 - [6] 麻布第一百日潮候院抄本师都在麻布前——抄本院里只有两个灯——抄本院里没人说话——麻布它就是麻布——
+
+### Echo 201 · 潮候院抄本院最深处的那根石柱抄本师第一次数它 / The Pillar at the Deepest Coil of the Copyists' Hall — the Copyists Counted It for the First Time
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院抄本院最深处有一根石柱——抄本院抄本师第一次发现——它在那里一直——
+- [2] 抄本院最深处没人翻新过——抄本院最深处墙上写着字——抄本师看不懂那是哪种字——
+- [3] 抄本师第一次碰石柱——抄本院抄本师发现它是凉的——抄本院最深处没人碰它——
+- [4] 抄本院抄本师认出石柱上的弯是半月——潮候院——抄本院最深处抄本师他们第一次认出——
+- [5] 抄本师第一次数潮印——抄本院抄本师数了一遍——抄本院石柱上有四十二道——
+- [6] 潮候院抄本师他们没人碰石柱——抄本院抄本师他们理解它——潮候院抄本院最深处——潮候院——
 
 ### Echo 21 · 里巷子码头的七盏号灯 / The Seven Lamps of the Back-Alley Pier
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
