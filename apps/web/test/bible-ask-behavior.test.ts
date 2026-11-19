@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { buildDigest, SYSTEM_PROMPT, SYSTEM_PROMPT_CHAR_BUDGET, extractAnchorTexts } from '../src/lib/bibleAsk';
 import { BIBLE_CHAPTERS, BIBLE_ECHOES } from '../src/world-bible/generated';
 
@@ -17,8 +17,8 @@ describe('§BIBLE-4 问典 digest 契约', () => {
       zh += extractAnchorTexts(chapter.markdownZh, 'zh').length;
       en += extractAnchorTexts(chapter.markdownEn, 'en').length;
     }
-    expect(zh).toBe(985);
-    expect(en).toBe(985);
+    expect(zh).toBe(991);
+    expect(en).toBe(991);
   });
 
   it('SYSTEM_PROMPT 长度 < 预算（≈30k chars）', () => {

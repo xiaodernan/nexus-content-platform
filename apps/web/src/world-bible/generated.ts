@@ -19237,6 +19237,180 @@ The last page of the watch-ledger reads: that mirror was never meant for watchin
 `,
   },
   {
+    order: 164,
+    slug: 'echo-164-the-wind-stele-that-ledgers-the-wind',
+    titleZh: '崖顶烽火台边那一面只替风记账的旧旌',
+    titleEn: 'The Old Plaque at the Beacon Tower on the Cliff That Only Keeps the Ledger for the Wind',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百三十三日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hundred-and-thirty-third day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 164): The Old Plaque at the Beacon Tower on the Cliff That Only Keeps the Ledger for the Wind
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给崖顶烽火台边那一面只替风记账的旧旌——它不问风往哪来，只问风来过谁几笔。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the old plaque at the beacon-tower on the cliff — it does not ask where the wind comes from, it asks who the wind kept count of.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百三十三日。
+> Era: the Institute — after the 41st Convocation; the hundred-and-thirty-third day of the autumn-tide month.
+
+---
+
+## 一 · 那面旧旌
+
+烽火台边有一块旧旌——一米多一截——铜包的木——上面原本刻了什么——早看不见了——潮候院的人叫它风碑。
+
+**锚句**：烽火台边有一块旧旌——一米多一截——上面原本刻的什么——早看不见了——潮候院的人叫它风碑。
+**Anchor sentence**: at the foot of the beacon stands an old plaque — a little over a meter — bronze-edged wood — what was originally engraved is illegible — the people of the Institute call it the wind-stele.
+
+---
+
+## 二 · 它只记账
+
+风来的时候——旌上会有一道极淡的痕——像是被手指轻轻划过——风停了——痕也慢慢淡了——但第二天早上——烽火台的守烽人会发现——昨天的痕已经被风变成了一笔账目——被盖上封印。
+
+**锚句**：风来的时候——旌上会有一道极淡的痕——第二天早上——守烽人发现昨天的痕被风变成一笔账目——被盖上封印。
+**Anchor sentence**: when the wind comes, a faint scratch appears on the plaque — the next morning the beacon-keeper finds the scratch has been turned by the wind into a ledger entry — sealed.
+
+---
+
+## 三 · 谁来过
+
+守烽人用潮候院的账法——每笔痕下面——还会补一行——记谁让这风来过——他记了三种——船队南下的风、军队退潮的风、抄本师对钥匙说过的那句风。
+
+**锚句**：守烽人在每笔风痕下面——用潮候院的账法补一行——记谁让这风来过——他记得三种：船队南下的风、军队退潮的风、抄本师对钥匙说过的那句风。
+**Anchor sentence**: beneath each wind-mark the keeper writes, in the Institute's ledger hand, one extra line — who called this wind — he records three kinds: the wind of the southern fleet, the wind of the withdrawing army, the wind the copyist whispered to the key.
+
+---
+
+## 四 · 登记与施普朗克
+
+潮候院的登记簿里只有两种官方风——大潮风、大退潮风——但守烽人记下了第三种——悄悄地记——没有名——他叫那一笔"不交账的风"。
+
+**锚句**：登记簿里只有大潮风和大退潮风——守烽人悄悄记了第三种——他叫那一笔"不交账的风"。
+**Anchor sentence**: the official register lists only the spring-tide wind and the neap-tide wind — the keeper wrote a third line quietly — he called it the wind that does not settle its accounts.
+
+---
+
+## 五 · 旧旌与旧账
+
+抄本师有一回来登记——他想抄一笔——但他找不到自己的痕迹——他说"这面旌没有登记过我"——守烽人笑曰"你说的风，不归此处入册"——他把那天的痕用封蜡抹掉——只留"零"字。
+
+**锚句**：抄本师想查自己说过的风——守烽人说"你说的风不归此处入册"——他只留"零"字——其他的什么都没留。
+**Anchor sentence**: the copyist came looking up the wind he had spoken — the keeper said "the wind you spoke does not register here" — he left only a single character for zero — nothing else.
+
+---
+
+## 六 · 零与一之间
+
+守烽人死了——审查牌被拆下——潮候院派人来核账——核账的人笑了——他说"这面旌上没有几笔、空空如也的账"——可那面"零"字——潮候院至今不敢动——据说旧时潮候院开口对副国王说话，必须以"零"唤人——不主——不发号施令——只听——只记。
+
+**锚句**：审查牌被拆下——核账的人笑了——说这旌上没有几笔——可那面"零"字潮候院至今不敢动——据说旧时对副国王说话，必须以"零"唤人——只听——只记。
+**Anchor sentence**: the checking committee broke the plaque — the auditor laughed — said there are barely any entries — but the single character for zero the Institute will not touch — it is said that to address the vice-king one must call him with "zero" — only listen — only record.
+
+---
+
+## 七 · Mapping（Echo No. 164 → world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the wind-stele · the ledger of the wind · "the wind that does not settle accounts" · the single zero | 一、二、三、四、五、六 |
+| geography | the cliff-top beacon · the beacons by the southern gate · the corner of the Institute | 一、三、五、六 |
+| characters | the beacon keeper · the copyist · the auditor of the Institute · the people of the wind-gate | 一、二、三、四、五、六 |
+| story | the plaque that keeps wind-accounts · Echo No. 164 | 全篇 |
+| items | the old plaque · the watch-ledger · the wind-ledger · the single zero | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the hundred-and-thirty-third day of the autumn-tide month · first sign of the watch-ledger breaking | 三、四、五、六 |
+
+> 崖顶的风碑——只记风——不问风来处——零字不敢动。
+> The wind-stele on the cliff — it remembers the wind — it does not ask where the wind came from — the zero cannot be moved.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百六十四）「崖顶烽火台边那一面只替风记账的旧旌」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the old plaque at the beacon-tower on the cliff — it does not ask where the wind comes from, it asks who the wind kept count of.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给崖顶烽火台边那一面只替风记账的旧旌——它不问风往哪来，只问风来过谁几笔。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the hundred-and-thirty-third day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百三十三日。
+
+---
+
+## I · The Old Plaque
+
+At the beacon's foot stands an old plaque — bronze-edged wood — what was originally engraved is long illegible — the people of the Institute call it the wind-stele.
+
+**锚句**：烽火台边有一块旧旌——一米多一截——上面原本刻的什么——早看不见了——潮候院的人叫它风碑。
+**Anchor sentence**: at the foot of the beacon stands an old plaque — a little over a meter — bronze-edged wood — what was originally engraved is illegible — the people of the Institute call it the wind-stele.
+
+---
+
+## II · It Only Ledgers
+
+When the wind comes a faint trace appears on the plaque — the next morning the watch-keeper discovers that the scratch has become a ledger entry — sealed.
+
+**锚句**：风来的时候——旌上会有一道极淡的痕——第二天早上——守烽人发现昨天的痕被风变成一笔账目——被盖上封印。
+**Anchor sentence**: when the wind comes, a faint scratch appears on the plaque — the next morning the beacon-keeper finds the scratch has been turned by the wind into a ledger entry — sealed.
+
+---
+
+## III · Who Came and Went
+
+Beneath each wind-trace the keeper lodges one line in the Institute's ledger hand — who called this wind — three entries he names: the wind the southern fleet chose, the wind the withdrawing army followed, the wind the copyist whispered to the key.
+
+**锚句**：守烽人在每笔风痕下面——用潮候院的账法补一行——记谁让这风来过——他记得三种：船队南下的风、军队退潮的风、抄本师对钥匙说过的那句风。
+**Anchor sentence**: beneath each wind-mark the keeper writes, in the Institute's ledger hand, one extra line — who called this wind — he records three kinds: the wind of the southern fleet, the wind of the withdrawing army, the wind the copyist whispered to the key.
+
+---
+
+## IV · What the Register Allows
+
+The official register lists only two winds — the spring-tide and the neap — the keeper entered a third quiet entry — he called it, in private, the wind that does not settle its accounts.
+
+**锚句**：登记簿里只有大潮风和大退潮风——守烽人悄悄记了第三种——他叫那一笔"不交账的风"。
+**Anchor sentence**: the official register lists only the spring-tide wind and the neap-tide wind — the keeper wrote a third line quietly — he called it the wind that does not settle its accounts.
+
+---
+
+## V · A Ledger Cannot Hear Its Own Name
+
+The copyist came once — to consult the plaque for the wind he himself had spoken — the keeper said what you spoke is not entered here — he scraped the whole line away and left only the single character for zero.
+
+**锚句**：抄本师想查自己说过的风——守烽人说"你说的风不归此处入册"——他只留"零"字——其他的什么都没留。
+**Anchor sentence**: the copyist came looking up the wind he had spoken — the keeper said "the wind you spoke does not register here" — he left only a single character for zero — nothing else.
+
+---
+
+## VI · Zero and One
+
+The keeper died — the auditors broke the plaque — the auditor laughed — said there are barely any entries — but the single character for zero the Institute will not move — it is said that to address the vice-king one must call him with "zero" — only listen — only record.
+
+**锚句**：审查牌被拆下——核账的人笑了——说这旌上没有几笔——可那面"零"字潮候院至今不敢动——据说旧时对副国王说话，必须以"零"唤人——只听——只记。
+**Anchor sentence**: the checking committee broke the plaque — the auditor laughed — said there are barely any entries — but the single character for zero the Institute will not touch — it is said that to address the vice-king one must call him with "zero" — only listen — only record.
+
+---
+
+## VII · Mapping（Echo No. 164 → world model）
+
+| Dimension | Value | Mapping |
+| --- | --- | --- |
+| lore | wind-stele · ledger of the wind · "the wind that does not settle accounts" · the single zero | I, II, III, IV, V, VI |
+| geography | the beacon tower on the cliff · the south gate beacon · a far corner of the Institute | I, II, III, IV, V, VI |
+| characters | the beacon-keeper · the copyist · the auditor of the Institute · the people of the wind-gate | I, II, III, IV, V, VI |
+| story | the plaque that keeps wind-accounts · Echo No. 164 | Full |
+| items | the old plaque · the watch-ledger · the wind-ledger · the single zero | I, II, III, IV, V, VI |
+| history | After the 41st Convocation · the hundred-and-thirty-third day of the autumn-tide month · the first sign the watch-ledger breaks | III, IV, V, VI |
+
+> 崖顶的风碑——只记风——不问风来处——零字不敢动。
+> The wind-stele on the cliff — it remembers the wind — it does not ask where the wind came from — the zero cannot be moved.
+`,
+  },
+  {
     order: 17,
     slug: 'echo-017-the-driftwood-nobody-split',
     titleZh: '祠殿后那一截没有人劈开的浮木',
