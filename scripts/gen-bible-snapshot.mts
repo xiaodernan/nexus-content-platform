@@ -206,6 +206,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E153-潮候院回廊尽头那只永远等一个无人猜完的谜箱': 'echo-153-the-riddle-box-that-no-one-solves',
   'E154-祠殿西门门岗上那只只认工位号的账房先生': 'echo-154-the-accountant-who-knows-only-numbers',
   'E155-潮候院钟楼上那只只数完就忘的沙漏': 'echo-155-the-hourglass-that-counts-only-to-ninety-nine',
+  'E156-潮候院那盏从不写名的灯': 'echo-156-the-lamp-that-never-writes-a-name',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

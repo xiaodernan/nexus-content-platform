@@ -17707,6 +17707,152 @@ The last page of the watch-ledger reads: ninety-nine is not a number — it is a
 `,
   },
   {
+    order: 156,
+    slug: 'echo-156-the-lamp-that-never-writes-a-name',
+    titleZh: '潮候院那盏从不写名的灯',
+    titleEn: 'The Lamp in the Chapel That Carries No Name',
+    eraLineZh: '纪元：潮候院 · 第四十三次散会之后 · 秋潮月第一百零二日',
+    eraLineEn: 'Era: the Chapel of the Tide · after the forty-third Convocation · the 102nd day of the autumn tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 156): The Lamp at the Chapel That Never Wrote a Name
+
+> 回响不续写正典——它只记下潮带来的另一层。
+> 那盏灯只在被人记得起「有人从没说过的话」时亮起来；它不为了答，不为了盖章，不为了被读到。
+> 它只是在那里。
+>
+> An echo does not continue the canon — it only keeps another layer of grain the salt grew on the same stone.
+> The lamp only kindles when someone suddenly remembers something never said. It does not answer, it does not seal, it does not ask to be read.
+> It is just there.
+
+> 纪元：潮候院 · 第四十三次散会之后 · 秋潮月第一百零二日
+> Era: the Chapel of the Tide · after the forty-third Convocation · the 102nd day of the autumn tide month.
+
+---
+
+## 一 · 没人写下它
+
+灯在石阶与抄本席之间的檐影里。灯座是残盐黄海的厚厚厚浇注，不刻字、不签章、不藏文；没有人记得是谁把它放在这里，只知道它在每一次暮色沉下去时，会从深到浅地亮起来。灯火在被人注意到之前就已经是有人的，但没有人承认自己是那个拨火的人。
+**锚句**：潮候院那盏灯谁都没专门照料它——它晚上自己会亮。
+**Anchor sentence**: nobody tends the lamp at the chapel — it lights itself each evening.
+
+---
+
+## 二 · 它不该有主人
+
+抄本守礼的老誊册房主事说它存在了四十多年，也就是在他快退休那天他知道它已经不再是出于照明目的，而是出于「留白」。因为任何「这里签一下……这里按一下……这里写个字……」的东西，都会被人用去做承诺；而这只灯从没有被任何人用来承诺什么，——它就只有沉默。
+**锚句**：那盏灯不写名也不签字，所以谁也不敢拿它去承诺。
+**Anchor sentence**: the lamp carries no name, no seal — and so no one dares use it as a guarantee.
+
+---
+
+## 三 · 法庭从不调用它
+
+每次第四十三次散会在月末的海声中开完，抄本房就把一份「保存但不出示」的卷册放进那只角落。卷册封口写明「存档待启」，而那盏灯也就在那个当夜亮了一回。从不被翻到，从不被抄出去，从不被誊写出来——只是在那里。
+**锚句**：卷册进龛，那盏灯就亮一晚——从来没有人翻开过它。
+**Anchor sentence**: when the book goes into the niche, the lamp glows for one night — and no one has opened it.
+
+---
+
+## 四 · 有人想给它取名字
+
+一个后来人试图把它叫作「无名主灯」，但抄本房拒绝写这个名字。他们说灯从来只是「那盏告诉我们还没到说出口的时间」的灯；每一次灯亮起让人沉默，就证明所有人还在认真听。
+**锚句**：抄本房拒绝给它起名字：灯不是人，它不该被称作任何什么。
+**Anchor sentence**: the chancellery refused to name it — a light is not a person, it must not be called anything.
+
+---
+
+## 五 · 冬到时它被风吹灭了
+
+第五十个秋潮月开始的时候，潮风起了，掀翻了檐瓦，那盏灯被风吹熄了一夜。但抄本守礼坐在石阶上，没有重新点，他也没有惊慌；灯又自己亮了，从深到浅。他说：真正的沉默不需要词，也不需要人来维持它。
+**锚句**：风吹熄了它，它自己又亮了——沉默不需要人维系。
+**Anchor sentence**: the wind put it out and it lit itself again — silence does not need a keeper.
+
+---
+
+## 六 · 映射（回响其一百五十六 · 对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 沉默的保存 · 第七次日蚀之后 · 海口 | 一、二、三 |
+| geography | 潮候院 · 抄本席 · 石阶檐影 | 一、三、四 |
+| characters | 抄本守礼 · 值更人 · 散会 | 一、二、四 |
+| story | 第四盏灯的沉默 · 回响（其一百五十六） | 全篇 |
+| items | 沉默的灯 · 存档卷册 · 残盐厚灯座 | 一、三、五 |
+| history | 第四十三次散会之后 · 秋潮月第一百零二日 | 全文 |
+
+> 名字只是识别，
+> 不是约束。
+> 不需要名字的东西，
+> 从来不需要被记住。
+> A name is recognition, not a vow.
+> What needs no name
+> was never supposed to be remembered.
+`,
+    markdownEn: `
+> An echo does not continue the canon — it only keeps another layer of grain the salt grew on the same stone.
+> The lamp kindles when it hears someone has not spoken. It does not answer, it does not seal, it does not ask to be read.
+> It is just there.
+
+> Era: the Chapel of the Tide · after the forty-third Convocation · the 102nd day of the autumn tide month.
+
+---
+
+## I · No one wrote it down
+
+The lamp rests in the eaves' shadow between the stone steps and the chancellery. Its base was cast of thick, yellow sea-salt — no marks, no seals, no words. Nobody remembers who set it there; only that it grows from dark to dim when dusk arrives. Each one who has lit it has been careful never to admit it.
+
+**Anchor sentence**: nobody tends the lamp at the chapel — it lights itself each evening.
+
+---
+
+## II · It was never meant to have a master
+
+The old keeper of the chancellery said the lamp has stood for forty years; that by the time he left, he understood it served preservation, not illumination. Anything that carries a name — a signature, an impression, a "I wrote this" — inevitably becomes a pledge. This lamp never pledged anything. It only held silence.
+
+**Anchor sentence**: the lamp carries no name, no seal — and so no one dares use it as a guarantee.
+
+---
+
+## III · The court never invokes it
+
+Every time the Convocation ended at the 103rd day of the autumn tide month, the chancellery would file what they called "kept but unshown" — a sealed codex with the note "to be opened". The lamp always lit for that night. The codex was never opened, never copied out, never read aloud — it simply stayed there.
+
+**Anchor sentence**: when the book goes into the niche, the lamp glows for one night — and no one has opened it.
+
+---
+
+## IV · Someone tried to name it
+
+A younger monk once proposed it be called "The Nameless Light", but the chancellery refused. They said the lamp was not a person; it was the sign that silence still holds its shape.
+
+**Anchor sentence**: the chancellery refused to name it — a light is not a person, it must not be called anything.
+
+---
+
+## V · The wind blew it out
+
+At the beginning of the fiftieth autumn tide month, the sea wind came and peeled off one tile, and the lamp was out for one night. The keeper did not relight it. He did not panic. By the next dark it had lit itself again, dark to dim. He said: real silence needs no word — and no one to hold it.
+
+**Anchor sentence**: the wind put it out and it lit itself again — silence does not need a keeper.
+
+---
+
+## VI · Mapping (Echo No. 156 · Echo correspondence)
+
+| Dimension | Title | Linked |
+|---|---|---|
+| lore | Silence kept · after the seventh eclipse · the harbor | I · II · III |
+| geography | the chapel · the chancellery · the shadow of the eaves | I · III · IV |
+| characters | the keeper · the night-watch · the convocation | I · II · IV |
+| story | the lamp that never wrote a name · Echo No. 156 | whole piece |
+| items | an unlit lamp · a codex · a thick sea-salt base | I · III · V |
+| history | after the forty-third Convocation · the 102nd day of the autumn tide month | whole piece |
+
+> A name is recognition, not a vow.
+> What needs no name
+> was never supposed to be remembered.
+`,
+  },
+  {
     order: 16,
     slug: 'echo-016-the-four-small-shells-on-the-tide-sand-table',
     titleZh: '潮沙盘上那四只小贝壳',

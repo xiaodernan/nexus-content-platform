@@ -450,6 +450,14 @@ const QUESTIONS: Question[] = [
     zh: { prompt: '《潮候院只收一个字的信》里，谁认领了那封信？', choices: ['没有人', '驿卒按照日志认走', '值更人用沙压住并认走', '誊册房的主事人'], answer: 0, ref: '回响（其一百四十八） · 三' },
     en: { prompt: 'In “The Letter of One Word”, who claimed the letter?', choices: ['no one — nobody claimed it or opened it', 'the courier for the ledger', 'the night-watch, by weighing it down with sand', 'the chief of the chancellery'], answer: 0, ref: 'Echo No. 148 · III' },
   },
+  {
+    zh: { prompt: '《潮候院那盏从不写名的灯》里，那盏灯为什么没有被任何人照顾却自己亮起来？', choices: ['它只照料被遗忘的人', '它晚上自己会亮——没人专门照料', '它只亮给写下遗愿的人', '它是灯灵，认得祭主'], answer: 1, ref: '回响（其一百五十六） · 一' },
+    en: { prompt: 'In “The Lamp That Never Wrote a Name”, why does the lamp light itself in the evening with no one tending it?', choices: ['it only tends those who are forgotten', 'it lights itself every evening — no one tends it', 'it only shines for those who left their wishes behind', 'it is a lamp-spirit that recognises its master'], answer: 1, ref: 'Echo No. 156 · I' },
+  },
+  {
+    zh: { prompt: '《潮候院那盏从不写名的灯》里，抄本房为什么拒绝给它起名字？', choices: ['因为名字会被人误用写在禁书上', '因为灯不是人，不能被称作任何什么', '因为没人记得灯的来历', '因为给它起名会打破沉默'], answer: 1, ref: '回响（其一百五十六） · 四' },
+    en: { prompt: 'In “The Lamp That Never Wrote a Name”, why did the chancellery refuse to give the lamp a name?', choices: ['a name would end up being written on the forbidden book', 'the lamp is not a person — it must not be called anything', 'no one remembers where the lamp came from', 'naming it would break the silence'], answer: 1, ref: 'Echo No. 156 · IV' },
+  },
 ];
 
 export function BibleQuiz({ locale = 'zh' }: { locale?: Locale }) {
