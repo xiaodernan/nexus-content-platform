@@ -8212,3 +8212,12 @@ Reported upstream to `docs/evidence/liveness-sweep-2026-11-19.md`（cont.429 对
 - 这两轮 index.html push c71270f+e0ef104 · featherlight Pages deploys 4 × success（含一次 dispatch）— 公网 cache-bust 见证 v1057 live
 - EN `data-i18n-en="oracle"` 已经是Refresh-style ("counters refresh live… nothing here is re-typed by hand") 没被改写 → 整页只改中文 oracle 区 EN twin 继续自描述 "refresh live" · 不需手改
 - 公网实测 (ut=cache-bust fresh-v1057) 历史 build 100% OK identity-guard via all 6 runs (c71270f success) · 中文 Identity pass
+
+## cont. 431 (2026-11-19) — §BIBLE-168 · Echo #168 铁门落盘 · IO v1058
+
+- **Echo #168《潮候院北巷尽头那扇抹了三十年仍无法生锈的铁门》** 双语手写入库 (`docs/world-bible/echoes/E168-….md` / `.en.md`)，registry `ECHO_WEB_SLUGS` 修正一次（文件名含“尽头”，registry 先漏字后对齐）
+- `gen-bible-snapshot` 生成：3 卷 · **168 回响** · 4 附录 / `gen:canon-digest` → **digest 246,601 chars · sha 4ecb5a17…** / `verify-world-bible-anchors` → **1020 zh / 1020 en · 全部通过**
+- **digest 测试 pin** 对齐后统计（bible-ask-behavior 的 `extractAnchorTexts` 计数口径 1015，与 verifier 口径 1020 系统性差 5——沿用此口径更新 pin，两条 digest 测试全绿 11/11）
+- E168 锚句[1]：北巷尽头的铁门窄而高——没有匾——盐潮痕跟三十年前一样没改过。→ IO oracle-strip 引文换钢笔
+- **IO v1057 → v1058**：quote/cite/meta-cert/fact-num/sub-fact 全量更新，commit `360f866` push 到 `xiaodernan.github.io` master，Pages dispatch 204，self-hosted runner 部署中
+- 初始提交落盘 `93f109d6`（echo + digest + snapshot + test pin 一次提交）
