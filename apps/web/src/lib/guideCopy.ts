@@ -50,7 +50,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           '/n/<handle>/<slug> 公开页（访客第一眼看到的是这一版）· /preview/<project> 同源只读镜头（发布前同一排断点与缩放）',
           '/tasks 任务账本（每次 AI 请求一行，含第几次、真/DEMO、用量、用时）· /credits 我的额度（SavingsCard：缓存替你省下的重复计算）· /api-tokens API 令牌 · /analytics 我作品的数据 · /pulse 观测大厅（平台聚合匿名统计，口令 123）· /notifications 收件箱 · /ship 交付日志 · /about-nexus 关于',
           '/admin/* 平台管理台（role=admin）：审核台、pricing、dead-letter、ai-cache、audit、observability、users、pricing、rate-limit 等',
-          '/admin/observe 只读观察站（口令 123 · 口令公开）：看平台所有用户的真实行为——注册、打开、点赞、评论、收藏、任务结局、套餐分布、7 天打开趋势图与下行规则建议；「AI 深读」按钮（gpt-6.1-terra，输出必含数字，否则服务器原样拒绝展示）/admin 里也摆着「观察站」入口与直通链',
+          '/admin/observe 只读观察站（口令 123 · 口令公开）：看平台所有用户的真实行为——注册、打开、点赞、评论、收藏、任务结局、套餐分布、7 天打开趋势图与下行规则建议；顶部新增「趋势预测」带（服务端最小二乘线性外推，明确标注非 AI；样本不足 4 天就不拟合）；「AI 深读」按钮（gpt-6.1-terra，输出必含数字，否则服务器原样拒绝展示；模型现在也能看到这组服务端外推数字）/admin 里也摆着「观察站」入口与直通链',
         ],
       },
       {
@@ -137,7 +137,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑫ 问典与大模型——「问典」两字的来路',
         body: [
-          '问典（/bible/ask）不是「把问题丢给模型瞎编」。它是一条 StateGraph 编排的链：先用一段短提示只抽检索词（analyze，不烧长上下文）；接着用纯算法字符二元组 Jaccard 直接命中典籍段落（retrieve，不调模型，0 token）；把正典全文和命中的证据段落一起丢给模型作答（draft）；最后用机检空答案/发明章回响/不存在的锚句引用三项（verify）——过了再说、过不了就 revise 一轮，依然过不了就如实标注「不合格」。',
+          '问典（/bible/ask）不是「把问题丢给模型瞎编」。它是一条 StateGraph 编排的链：先用一段短提示只抽检索词（analyze，不烧长上下文）；接着用纯算法字符二元组 Jaccard 直接命中典籍段落（retrieve，不调模型，0 token）；把正典全文和命中的证据段落一起丢给模型作答（draft）；最后用机检空答案/发明章回响/不存在的锚句引用三项（verify）——过了再说、过不了就 revise 一轮，依然过不了就如实标注「不合格」。回答完，「本轮检索依据」折叠面板会把被命中的 top-3 原文段落逐字摊开——模型被哪几段定住了，读者亲眼看见。',
           '每次答复下面还会挂两枚确定性徽章：①缓存复用 N tokens（问次数 × 同一 system 前缀的 KV 复用率——2.4 万 token 的正典摘要重用同一页就能看一次世~95%）；②引文判定——「引经据典 · 逐字对齐 ✓（N 条）」／「正典没写 · 如实说没有的答复」／「自由作答 · 未逐字引用锚句」。第二枚细看下去还能展开，把模型逐字引到的那几条锚句原文一行行点开。',
           'StateGraph 是 agents/runtime 里真正的编排原语——节点、状态、条件边，和 LangGraph 同源的「图 + 状态」模型；修订回路在图里真的走完、修订上限两轮硬封顶，不会陷入「一边改一边错」的死循环。',
           '潮汐挑战答对就是对；问典答不出时，潮汐也答不出——典籍管它叫「典籍里没有」。绝不替典籍撒谎，绝不替潮海投机。',
@@ -194,7 +194,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           '/n/<handle>/<slug> public page (what visitors see first) · /preview/<project> same-origin read-only lens (the same controls as visitors)',
           '/tasks task ledger (one AI request per row, with attempt count, real/DEMO badge, usage and latency) · /credits your quota (SavingsCard: duplicate computation the cache absorbed for you) · /api-tokens API tokens · /analytics your stats · /pulse the observatory hall (platform-wide aggregate, passphrase 123) · /notifications inbox · /ship ship log · /about-nexus about',
           '/admin/* admin console (role=admin): moderation, pricing, dead-letters, ai-cache, audit, observability, users, rate-limit, etc.',
-          '/admin/observe the read-only observer (password 123 — the password is public): every real user’s behavior on the platform — signups, opens, likes, comments, saves, task outcomes, plan distribution, the 7-day opens trend and rule-engine advice; the “AI deep-read” button (gpt-6.1-terra — output must carry figures or the server refuses to render it); a direct link on /admin too',
+          '/admin/observe the read-only observer (password 123 — the password is public): every real user’s behavior on the platform — signups, opens, likes, comments, saves, task outcomes, plan distribution, the 7-day opens trend and rule-engine advice; a new “Trend projection” band on top (server-side least-squares linear extrapolation — explicitly not AI; no fit under 4 days of samples); the “AI deep-read” button (gpt-6.1-terra — output must carry figures or the server refuses to render it — and the model now receives that server-computed projection as well); a direct link on /admin too',
         ],
       },
       {
@@ -280,7 +280,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑫ Ask the Canon — how the answer is actually produced',
         body: [
-          '“Ask the Canon” (/bible/ask) is not “throw the prompt at the model and hope”. It runs a StateGraph chain: a short prompt extracts retrieval terms (analyze — no 32k-token digest fired yet); pure-algorithm char-bigram Jaccard hits the digest blocks (retrieve — the model is not called for this step, 0 tokens); then the model answers with the full canon digest plus the matched passage as evidence (draft); then a mechanical verifier rejects empty answers / invented chapters or echoes / non-existent anchor refs (verify) — fail the gate, one revise round, and if it still fails the UI shows it failed honestly.',
+          '“Ask the Canon” (/bible/ask) is not “throw the prompt at the model and hope”. It runs a StateGraph chain: a short prompt extracts retrieval terms (analyze — no 32k-token digest fired yet); pure-algorithm char-bigram Jaccard hits the digest blocks (retrieve — the model is not called for this step, 0 tokens); then the model answers with the full canon digest plus the matched passage as evidence (draft); then a mechanical verifier rejects empty answers / invented chapters or echoes / non-existent anchor refs (verify) — fail the gate, one revise round, and if it still fails the UI shows it failed honestly. After the answer arrives, the collapsible “Retrieval evidence” panel lays the matched top-3 passages out verbatim — which passages pinned the model, for the reader to see, not trust.',
           'Every answer surfaces two deterministic badges: ① cache-reused N tokens (KV slot reuse on the byte-stable digest — ~95%+ on repeat calls); ② a citation verdict — “Quoting the canon verbatim ✓ (N lines)” / “Not in the canon — the Inquiry says so honestly” / “Free answer — no verbatim anchor from the canon”. Tap ② open to see exactly which anchor lines the model quoted, line by line, unedited.',
           'StateGraph is a first-class orchestration primitive in this repo’s own agent runtime (@nexus/agent-runtime, ADR-0270/0275) — nodes, state, and conditional edges, the same “state + graph” model LangGraph popularized, driving the real chain you see.',
           'A passed quiz is that; an unanswered canon question is also “the canon does not hold this — the canon itself says so”. No model is allowed to bluff the canon.',

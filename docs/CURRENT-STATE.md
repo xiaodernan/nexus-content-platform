@@ -7837,3 +7837,7 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - §RAG-LINEAGE：`/api/bible/q` 回真实 top-3 检索依据 + BibleAsk 可折叠检索面板（此前只回 retrieved 计数） · 论坛/admin 不打印用户隐私
 - 路由文案上的 ai-service 端口 3212 → 3200（cont.357 漂移的遗留，pin 重钉）
 - 并行线的 cont.395/396.7 已收入 `661f1be1 / 502fd3e9 / 49eebceb / 1d42a3cf`（/api/bible/q 真 top-3 + stategraph 文案 pin + latest.json 指针）
+## cont. 397 (2026-11-19) · §GUIDE-SYNC ✓ · 说明书现在记着新面板（guideCopy zh/en）
+
+- /admin/observe「趋势预测」带、「AI 深读」现在吃得到服务端外推、/bible/ask「本轮检索依据」折叠面板——双语指南逐字描述（/guide 与帮助抽屉同一份字典）
+- guide 页 SHA pin 不变 · fe-gates 151/151 · 1377/1377 · census 2998 · tsc EXIT=0
