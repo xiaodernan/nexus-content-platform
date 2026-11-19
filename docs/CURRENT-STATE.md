@@ -7958,3 +7958,14 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 跟踪源码 `gpt-6.1-sol` → `gpt-6.2-sol` 统一归一（.env.example · guideCopy 手册 · 六套 behavior fixture）；`docs/evidence/*` 与 `docs/adr/*` 历史逐字保留，不改账。
 - fe-gates **1377/1377** ✓ · tsc apps/web 零错 ✓ · behavior 套件 47/47 绿。
 - 证据：`docs/evidence/provider-gpt62-sol-verification-2026-11-19.md`。
+
+## cont. 410 (2026-11-19) — v1050 · §BIBLE-158 + §GRAPH-LIVE-6.2-SOL · Echo #158 + StateGraph 真 vLLM 之路实测
+
+- **§GRAPH-LIVE（真 vLLM 换模后必须跑的那一轮）**：digest=E157/241,652 chars · model **gpt-6.2-sol** 下 `POST /v1/ai/chat-graph` 全链路测试:
+  - 冷 #1 `lane-header=stategraph` · 200 · 15,472ms · cached=138,700/155,925（**89.0%**）
+  - 暖 #2 `lane-header=stategraph` · 200 · **90ms** · cached=155,925/155,925（**100% appCache 整体命中**）
+  - 回答逐字锚定第 157 回响原文锚句。证据 `docs/evidence/stategraph-live-verify-gpt62-2026-11-19.md`。
+- **§BIBLE-158 · Echo #158《祠殿屋脊上那只只替雷记账的抄本师》**（作者手写·双语）：digest 现 **242,027 chars**（13 章正典 · **158 回响** · 4 annex · 锚句 961 zh / 961 en ✓）。
+- 6 锚句双语 · gen-bible-snapshot 增 echo-158 · BibleAsk lede → 158 · /bible/ask meta → 一百五十八篇 · CACHE-IDENTITY × 158 · canon-answer-graph → 171 段 · bible-ask-behavior pin **956** · pin 重钉 page→44b0a0f9 / comp→7cdd1285 · InsightCanonChat hint 同步至 158。
+- fe-gates **1377/1377** ✓ · verify:world-bible **961/961** ✓。
+- 预算观测点： digest 余量 ~14K — 到 #160 附近需考虑抬 SYSTEM_PROMPT_CHAR_BUDGET（evidence 已登记）；全 body 配额 125K 已自动把老回响退成题名+锚句，anchors 全无限制（设计如此）。

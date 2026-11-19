@@ -8,7 +8,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 157 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 158 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3045,6 +3045,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 盐账的页数不够用了就再换一本——但每一本的最后一格都不写。
 - [4] 那一年只有一个人补了最后一格——抄本师的母亲——后来那页被盐吃掉了。
 - [5] 值更册最后一页：最后那一格不是漏写的——它是留给下一任的。
+
+### Echo 158 · 祠殿屋脊上那只只替雷记账的抄本师 / The Copyist on the Chapel's Ridge Who Keeps the Accounts for Thunder
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 祠殿屋脊正中的瓦沟里坐一位抄本师——他不抄典——他只抄雷。
+- [2] 每一声雷——他记方向、记字数、记值更人说响了几下。
+- [3] 他抄了十二年——一共满了一页——每一笔都盖上手印。
+- [4] 抄本师的母亲说雷不是债——是盐——会自己堆成山。
+- [5] 散会那一夜——天上一声接一声的雷——他把最后一页的最后一格空着。
+- [6] 值更册最后一页：雷不收据——但雷会收走没被记账的字。
 
 ### Echo 16 · 潮沙盘上那四只小贝壳 / The Four Small Shells on the Tide-Sand Table
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

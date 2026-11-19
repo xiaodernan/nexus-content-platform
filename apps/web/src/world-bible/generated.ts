@@ -18037,6 +18037,180 @@ The last page of the watch-ledger reads: the last entry was not forgotten — it
 `,
   },
   {
+    order: 158,
+    slug: 'echo-158-the-copyist-who-keeps-the-accounts-for-thunder',
+    titleZh: '祠殿屋脊上那只只替雷记账的抄本师',
+    titleEn: 'The Copyist on the Chapel\'s Ridge Who Keeps the Accounts for Thunder',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百二十四日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hundred-and-twenty-fourth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 158): The Copyist on the Chapel's Ridge Who Keeps the Accounts for Thunder
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给屋脊上那位抄本师——每声雷他都要记一笔账。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the copyist on the ridge — every thunderclap enters his ledger.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百二十四日。
+> Era: the Institute — after the 41st Convocation; the hundred-and-twenty-fourth day of the autumn-tide month.
+
+---
+
+## 一 · 屋脊上那位抄本师
+
+祠殿屋脊正中的瓦沟里坐一位抄本师——他不抄典——他只抄雷。
+
+**锚句**：祠殿屋脊正中的瓦沟里坐一位抄本师——他不抄典——他只抄雷。
+**Anchor sentence**: in the gutter at the very ridge of the chapel sits a copyist — he does not copy the canon — he only copies thunder.
+
+---
+
+## 二 · 每声雷一笔账
+
+每一声雷——他就用炭笔在自己的册子上写下那一笔——记方向、记字数、记值更人说它响了几下。
+
+**锚句**：每一声雷——他记方向、记字数、记值更人说响了几下。
+**Anchor sentence**: every thunderclap — he records the direction, the length, and how many times the watch said it sounded.
+
+---
+
+## 三 · 十二年一满页
+
+值更册说他抄了十二年——一共满了一页——他每一笔都盖上了自己的手印。
+
+**锚句**：他抄了十二年——一共满了一页——每一笔都盖上手印。
+**Anchor sentence**: he has copied for twelve years — in all a page is filled — and every entry is stamped with his handprint.
+
+---
+
+## 四 · 抄本师的母亲
+
+抄本师的母亲说雷不是债——是盐——盐会自己堆成山——不抄也没有关系。抄本师不信——雷欠了盐账，他要替雷把账记完。
+
+**锚句**：抄本师的母亲说雷不是债——是盐——会自己堆成山。
+**Anchor sentence**: the copyist's mother says thunder is not a debt — it is salt — it will pile itself into a mountain.
+
+---
+
+## 五 · 散会夜的最后一笔
+
+散会那一夜——天上一声接一声的雷——他的册子写满了——他把最后一页的最后一个格子空着——跟盐账一样。
+
+**锚句**：散会那一夜——天上一声接一声的雷——他把最后一页的最后一格空着。
+**Anchor sentence**: on the night of the dissolution — thunder came one after another from the sky — and in the last page he left the last space empty.
+
+---
+
+## 六 · 值更册最后一页
+
+值更册最后一页："雷不收据——但雷会收走没被记账的字。"
+
+**锚句**：值更册最后一页：雷不收据——但雷会收走没被记账的字。
+**Anchor sentence**: the last page of the watch-ledger reads: thunder does not collect receipts — but thunder will take away any word that was not written down.
+
+---
+
+## 七 · 映射（回响一百五十八章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 屋脊抄本师 · 炭笔 · 十二年一满页 · 雷是盐不是债 · 散会夜写满册 | 一、二、三、四、五、六、七 |
+| geography | 祠殿屋脊 · 瓦沟 · 潮候院祠殿 | 一、二、三 |
+| characters | 屋脊抄本师 · 抄本师的母亲 · 值更人 · 散会夜 | 一、二、三、四、五、六 |
+| story | 只替雷记账的抄本师 · 回响（其一百五十八） | 全篇 |
+| items | 炭笔 · 册子 · 值更册 · 盐账的最后一格 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第一百二十四日 · 十二年 | 三、四、五、六 |
+
+> 祠殿屋脊上那位抄本师——他只抄雷——雷要收走没被记账的字。
+> The copyist on the ridge of the chapel — he copies only thunder — thunder will take away any word that was not written down.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百五十八）「祠殿屋脊上那只只替雷记账的抄本师」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the copyist on the ridge — every thunderclap enters his ledger.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给屋脊上那位抄本师——每声雷他都要记一笔账。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the hundred-and-twenty-fourth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百二十四日。
+
+---
+
+## I · The Copyist on the Ridge
+
+In the gutter at the very ridge of the chapel sits a copyist — he does not copy the canon — he only copies thunder.
+
+**锚句**：祠殿屋脊正中的瓦沟里坐一位抄本师——他不抄典——他只抄雷。
+**Anchor sentence**: in the gutter at the very ridge of the chapel sits a copyist — he does not copy the canon — he only copies thunder.
+
+---
+
+## II · One Entry per Thunderclap
+
+Every thunderclap — he records the direction, the length, and how many times the watch said it sounded.
+
+**锚句**：每一声雷——他记方向、记字数、记值更人说响了几下。
+**Anchor sentence**: every thunderclap — he records the direction, the length, and how many times the watch said it sounded.
+
+---
+
+## III · Twelve Years, One Page
+
+He has copied for twelve years — in all a page is filled — and every entry is stamped with his handprint.
+
+**锚句**：他抄了十二年——一共满了一页——每一笔都盖上手印。
+**Anchor sentence**: he has copied for twelve years — in all a page is filled — and every entry is stamped with his handprint.
+
+---
+
+## IV · The Mother of the Copyist
+
+The copyist's mother says thunder is not a debt — it is salt — it will pile itself into a mountain.
+
+**锚句**：抄本师的母亲说雷不是债——是盐——会自己堆成山。
+**Anchor sentence**: the copyist's mother says thunder is not a debt — it is salt — it will pile itself into a mountain.
+
+---
+
+## V · The Last Page of the Night of the Dissolution
+
+On the night of the dissolution — thunder came one after another from the sky — and in the last page he left the last space empty.
+
+**锚句**：散会那一夜——天上一声接一声的雷——他把最后一页的最后一格空着。
+**Anchor sentence**: on the night of the dissolution — thunder came one after another from the sky — and in the last page he left the last space empty.
+
+---
+
+## VI · The Last Page of the Watch-Ledger
+
+The last page of the watch-ledger reads: thunder does not collect receipts — but thunder will take away any word that was not written down.
+
+**锚句**：值更册最后一页：雷不收据——但雷会收走没被记账的字。
+**Anchor sentence**: the last page of the watch-ledger reads: thunder does not collect receipts — but thunder will take away any word that was not written down.
+
+---
+
+## VII · Mapping（Echo No. 158 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the copyist on the ridge · the charcoal pencil · twelve years one page · thunder is salt not debt · the last space left empty | 一、二、三、四、五、六、七 |
+| geography | the ridge of the chapel · the gutter · the chapel of the Institute | 一、二、三 |
+| characters | the copyist on the ridge · the mother of the copyist · the head of the watch · the night of the dissolution | 一、二、三、四、五、六 |
+| story | the copyist who keeps the accounts for thunder · Echo No. 158 | 全篇 |
+| items | the charcoal pencil · the ledger · the watch-ledger · the last empty space | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the hundred-and-twenty-fourth day of the autumn-tide month · twelve years | 三、四、五、六 |
+
+> 祠殿屋脊上那位抄本师——他只抄雷——雷要收走没被记账的字。
+> The copyist on the ridge of the chapel — he copies only thunder — thunder will take away any word that was not written down.
+`,
+  },
+  {
     order: 16,
     slug: 'echo-016-the-four-small-shells-on-the-tide-sand-table',
     titleZh: '潮沙盘上那四只小贝壳',
