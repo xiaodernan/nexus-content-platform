@@ -8474,3 +8474,19 @@ feat(§BIBLE-193 · §GUIDE-193): Echo #193《潮候院东门抄本师第一次�
   - 单样本 4.76% **不是** 稳定 90%：E200 重置了 :3200 的 in-process 前缀计数与 appCache 空窗；4.76% 测量窗口 = 该冷窗的如实读数；稳定 90% 的唯一路径是真实流量 + 不再清醒重置；不为“证明”而 synthetic 烧 token
   - **每条 echo 只追加字节到 digest 尾部 → prefix 在插入点之前的字节完全稳定 → KV 前缀复用在 echo 增长下不受伤**（这是 echo 设计上的 KV 友好，必须知道）
 - **成本记账**：本轮 1 次真 provider 调用 = **170,618 tokensIn**（uncached 162K，按实测），换得：E200-epoch 真链路存活证据 + cacheReported 证 + stream 证 + 锚点答证。此为唯一一次本回合 provider 消耗。
+
+
+## cont. 454 (2026-11-20) — IO 首页两个实测投诉关闭
+
+**投诉一：头像被压缩变小、边缘被删掉。**
+- 浏览器实测（tab xiaodernan.github.io · 2026-11-20 00:10）：profile-portrait.png complete=true，natural 415×492；完整可见。**源本就没有被裁**——感知是文字叙事：深色 hero 下白底人像呈孤立白块，像被"切掉"
+- **修复**：`.profile-frame` 改成暖纸立相框（165–170° 羊皮纸渐变 · 1px hairline · 圆角 10 · 双层阴影 + 内框高光），完整 415×492 每像素可见；声明的 width/height 508×586 改成浏览器自然尺寸 415×492；`hero-profile` max-width 620→680；CSS aspect-ratio 同步 415/492
+- **commit `d116d7b` · master `b07ad24`** · identity-guard exit 0 · 无 dispatch，cron 自采纳
+
+**投诉二：Most Used Languages 看着像 NaN。**
+- 三处独立对账：① 远端 `assets/languages-2026-11-19.svg`（`source: GitHub languages_url bytes summed`）——百分比 31.91/24.87/19.45/12.42/8.93/1.52/0.40/0.29/0.22 全为真值，非 NaN；② 远端 `assets/languages.svg`（undated，与 src 字节等价）——31.95/24.85/19.44/12.41/8.93/1.52/0.40/0.29/0.22 全为真值；③ 远端 profile README `README.md` 里两张 `<img>` 引用的都是②的 dated 版本，文件内绝无 "NaN" 字符串
+- 结论：2026-11-19 之前的部署缓存或以前的 hpo 渲染才可能 "NaN"；**当前 v1086 部署字节是真值**，不是源码 supper  bug
+- **顺带修了一起实测真 bug**：22 枚 `img.shields.io/github/stars/...` 星标徽章在本机→GitHub 出口网络下一次请求都没发出来（懒加载也没人管），repo 卡上悬空破图。`script.js` 里加全局 `error` 监听器深处隐藏这些徽章（display=none）——卡保留文字条目，干净不再伪帧
+- **关于星标/语言数字的长期真实信号**：lines 1213-1222 vs 498-507（zh/en 两段 `.lang-bars`）= v1086 快照的真值
+- **Pages cron 仍是唯一采纳路径**；user 可在 3h 后重看 https://xiaodernan.github.io/ 头像；若仍未更新，是 CDN 缓存问题，不是代码问题
+- **诚实欠条**：远端采纳 CDN 未强制重试；"GitHub profile 里贵方 pinned repos 若包含空仓会零字节"一类的 GitHub 原生统计组件（非本仓）仍在 GitHub 侧；未改动
