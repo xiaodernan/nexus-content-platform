@@ -25641,6 +25641,180 @@ The copyists all returned to the Institute — no one wanted to tidy — no lant
 `,
   },
   {
+    order: 197,
+    slug: 'echo-197-the-linen-before-the-institute',
+    titleZh: '潮候院抄本师见过潮候院建院以前的那块麻布——它只有一个字——它褪了——它是潮',
+    titleEn: 'The Copyists Saw the Linen That Came Before the Institute — It Bears One Character — It Faded — It Is "Tide"',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第九十九个春天。',
+    eraLineEn: 'Era: the Institute — after the 44th Convocation; the ninety-ninth spring after the 44th Convocation.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 197): The Copyists Saw the Linen That Came Before the Institute — It Bears One Character — It Faded — It Is "Tide"
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院的底层麻布——它是所有潮候院东西的开始——它只有一个字——它是褪了——它是潮。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the linen at the bottom of the Institute — the beginning of everything the Institute is — it bears one character — it faded — it is "tide".
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第九十九个春天。
+> Era: the Institute — after the 44th Convocation; the ninety-ninth spring after the 44th Convocation.
+
+---
+
+## 一 · 底层麻布
+
+潮候院抄本师说——潮候院有一块麻布——潮候院抄本师没人知道——它在潮候院有潮候院以前——潮候院潮候院没有它就没有——潮候院抄本师都知道——潮候院抄本师没人动——
+
+**锚句**：潮候院有一块麻布——潮候院有潮候院以前——潮候院就有它——
+**Anchor sentence**: the Institute holds a piece of linen — it predates the Institute — the Institute exists because it does —
+
+---
+
+## 二 · 它在底层
+
+潮候院抄本师在潮候院底层找到那块麻布——潮候院抄本师他们没人知道它有——潮候院抄本师都呆住——麻布有多年没有人动——潮候院抄本师没人记得是谁——潮候院抄本师没人猜——
+
+**锚句**：潮候院抄本师底层找到那块麻布——潮候院抄本师他们没人知道它有——潮候院抄本师都呆住——
+**Anchor sentence**: the copyists found it in the lowest vault — none of them knew it was there — they stood speechless —
+
+---
+
+## 三 · 它只有一个字
+
+潮候院麻布上只有一个字——它是"潮"——潮候院抄本师都能读——潮候院抄本师读了什么也没说——潮候院抄本师没人想出——它只说一个字——潮候院第一次没说话——
+
+**锚句**：麻布上只有一个字——它是"潮"——潮候院抄本师都能读——潮候院抄本师读了没说什么——
+**Anchor sentence**: there is one character on the linen — "tide" — every copyist can read it — none of them said anything —
+
+---
+
+## 四 · 它褪了
+
+潮候院麻布它褪了——它褪得比潮候院纸都多——它褪了一半——它原来有的那半只剩一半了——潮候院抄本师没人敢碰——它褪的颜色潮候院没人看过——
+
+**锚句**：潮候院麻布它褪了——它只褪了一半——它原来有的那半只剩一半了——潮候院没人敢碰——
+**Anchor sentence**: the linen has faded — only half remains — the half it once was was once full — no one dares to touch it —
+
+---
+
+## 五 · 它是潮
+
+潮候院麻布只有一个字——它是潮——潮候院抄本师都知道它是什么——潮候院潮候院没有潮——麻布潮——它就是潮——潮候院第一次知道——潮候院底层——麻布三个字潮
+
+**锚句**：麻布只有一个字——它是潮——麻布三个字潮——潮候院第一次知道麻布是什么——
+**Anchor sentence**: one character — tide — the linen is tide — the Institute learned what the linen is for the first time —
+
+---
+
+## 六 · 抄本师不知道
+
+抄本师不知道潮候院为什么——抄本师都知道了——麻布潮候院没人想碰——只有一个字——潮——潮候院第一次——潮候院抄本院没有——潮候院潮——潮候院底层——
+
+**锚句**：抄本师不知道潮候院为什么——麻布潮——抄本师不敢碰——潮候院第一次——抄本师潮——
+**Anchor sentence**: the copyists do not know why — the linen is tide — no one dares touch — the first time — the copyists tide —
+
+---
+
+## 七 · Mapping（Echo No. 197 → world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the primordial linen · the single faded word "tide" · the founding act | 一、二、三、四、五、六 |
+| geography | the lowest vault · the Institute's birthplace · the ridge | 一、二、四、五、六 |
+| characters | the copyists · the linen (unnamed) · the founding tide (unnamed) | 一、二、三、四、五、六 |
+| story | the linen that predates the Institute · Echo No. 197 | 全篇 |
+| items | the primordial linen · the tide character · the lowest vault | 一、二、三、四 |
+| history | the ninety-ninth spring after the 44th Convocation | 一、五、六、七 |
+
+> 潮候院抄本师见过潮候院建院以前的那块麻布——它只有一个字——它褪了——它是潮——
+> The copyists saw the linen that predates the Institute — one character — faded — it is "tide" —
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百九十七）「潮候院抄本师见过潮候院建院以前的那块麻布——它只有一个字——它褪了——它是潮」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the linen at the bottom of the Institute — the beginning of everything the Institute is — it bears one character — it faded — it is "tide".
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给潮候院的底层麻布——它是所有潮候院东西的开始——它只有一个字——它是褪了——它是潮。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 44th Convocation; the ninety-ninth spring after the 44th Convocation.
+> 纪元：潮候院 · 第四十四次大会之后 —— 冬潮月第九十九个春天。
+
+---
+
+## I · The Primordial Linen
+
+A linen the copyists found — an old piece of linen — the Institute was built upon it — the Institute predates the Institute — the copyists do not move it —
+
+**锚句**：潮候院有一块麻布——潮候院有潮候院以前——潮候院就有它——
+**Anchor sentence**: the Institute holds a piece of linen — it predates the Institute — the Institute exists because it does —
+
+---
+
+## II · The Lowest Vault
+
+The copyists found the linen at the bottom of the Institute's foundations — they did not know it was there — they stood speechless — the one place no one had stepped in decades — no memory of who had woven it — no name survived —
+
+**锚句**：潮候院抄本师底层找到那块麻布——潮候院抄本师他们没人知道它有——潮候院抄本师都呆住——
+**Anchor sentence**: the copyists found it in the lowest vault — none of them knew it was there — they stood speechless —
+
+---
+
+## III · It Has One Character
+
+The linen holds one character — the character is "tide" — every copyist of the Institute can read it — they read it — none of them spoke — the first time the Institute fell silent —
+
+**锚句**：麻布上只有一个字——它是"潮"——潮候院抄本师都能读——潮候院抄本师读了没说什么——
+**Anchor sentence**: there is one character on the linen — "tide" — every copyist can read it — none of them said anything —
+
+---
+
+## IV · It Faded
+
+The linen has faded — even the Institute's pages have more than this — half has gone — the half that once was full is partly gone — no one dares touch it — the colour no copyist has ever seen —
+
+**锚句**：潮候院麻布它褪了——它只褪了一半——它原来有的那半只剩一半了——潮候院没人敢碰——
+**Anchor sentence**: the linen has faded — only half remains — the half it once was was once full — no one dares to touch it —
+
+---
+
+## V · It Is Tide
+
+The linen holds one character — tide — every copyist of the Institute knows what it is — the Institute holds no tide — the linen is tide — tide is the whole of it — the Institute knew for the first time — tide, the one word —
+
+**锚句**：麻布只有一个字——它是潮——麻布三个字潮——潮候院第一次知道麻布是什么——
+**Anchor sentence**: one character — tide — the linen is tide — the Institute learned what the linen is for the first time —
+
+---
+
+## VI · The Copyists Do Not Understand
+
+The copyists do not understand why — the copyists all know now — the linen, tide — they do not dare touch it — one character — tide — the first time — tide belongs to the Institute —
+
+**锚句**：抄本师不知道潮候院为什么——麻布潮——抄本师不敢碰——潮候院第一次——抄本师潮——
+**Anchor sentence**: the copyists do not know why — the linen is tide — no one dares touch — the first time — the copyists tide —
+
+---
+
+## VII · Mapping（Echo No. 197 → world model）
+
+| Dimension | Value | Mapping |
+| --- | --- | --- |
+| lore | the primordial linen · the single faded word "tide" · the founding act | I, II, III, IV, V, VI |
+| geography | the lowest vault · the Institute's birthplace · the ridge | I, II, IV, V, VI |
+| characters | the copyists · the linen (unnamed) · the founding tide (unnamed) | I, II, III, IV, V, VI |
+| story | the linen that predates the Institute · Echo No. 197 | Full |
+| items | the primordial linen · the tide character · the lowest vault | I, II, III, IV |
+| history | the ninety-ninth spring after the 44th Convocation | I, V, VI, VII |
+
+> 潮候院抄本师见过潮候院建院以前的那块麻布——它只有一个字——它褪了——它是潮——
+> The copyists saw the linen that predates the Institute — one character — faded — it is "tide" —
+`,
+  },
+  {
     order: 20,
     slug: 'echo-020-the-bell-that-never-rang',
     titleZh: '潮候院钟楼里那口从不响的钟',

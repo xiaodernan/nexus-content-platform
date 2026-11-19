@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 196 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 197 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3428,6 +3428,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 潮候院抄本师没人哭——潮候院抄本师他们知道潮候院是潮候院——潮候院抄本师他们打开院门——潮候院抄本师他们看着海——
 - [5] 潮候院抄本师说潮候院——"海"——潮候院抄本师它就是潮候院——潮候院就是潮候院——
 - [6] 潮候院抄本师都回潮候院——潮候院里没人要收拾——潮候院里没有灯——潮候院抄本师说灯不会灭——
+
+### Echo 197 · 潮候院抄本师见过潮候院建院以前的那块麻布——它只有一个字——它褪了——它是潮 / The Copyists Saw the Linen That Came Before the Institute — It Bears One Character — It Faded — It Is "Tide"
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院有一块麻布——潮候院有潮候院以前——潮候院就有它——
+- [2] 潮候院抄本师底层找到那块麻布——潮候院抄本师他们没人知道它有——潮候院抄本师都呆住——
+- [3] 麻布上只有一个字——它是"潮"——潮候院抄本师都能读——潮候院抄本师读了没说什么——
+- [4] 潮候院麻布它褪了——它只褪了一半——它原来有的那半只剩一半了——潮候院没人敢碰——
+- [5] 麻布只有一个字——它是潮——麻布三个字潮——潮候院第一次知道麻布是什么——
+- [6] 抄本师不知道潮候院为什么——麻布潮——抄本师不敢碰——潮候院第一次——抄本师潮——
 
 ### Echo 20 · 潮候院钟楼里那口从不响的钟 / The Bell That Never Rang in the Institute's Clock Tower
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
