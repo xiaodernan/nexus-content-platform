@@ -8050,3 +8050,12 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
   - `mvn -q -DskipTests=true compile` 退出码 0
 - 证据 `docs/evidence/spring-proof-rerun-2026-11-19.md`（环境 + 输出尾部 + 边界 + 下一步）。
 - **仍欠不假装**：Java→Postgres→Redis→web gateway 全链路 E2E 未跑（Docker 这一箱≈3 GB 被 football_os/careeros 占用，host 空闲 <2.5 GB，没法给 service 独立 JVM 跑冒烟）。
+
+## cont. 421 (2026-11-19 / 现场) — §SPRING-E2E ✓ Java domain-service 真活 + 真 POSTGRES 5443 真数据  · 真 REDIS 56379  · 真 ENDPOINT-200
+
+- 在这块以前被 label 为"RAM 不够所以跳过"的一格——本轮 RAM 升到 5.2 GB，live run 了：
+  - 环境 `spring-proof-rerun-2026-11-19.md` 的前置（Maven 单测绿）做完后 → 重 build jar → `java -jar`
+  - HikariPool start 完成 · Tomcat 启动 8082 · `WarmupRunner warmup shared schema reachable, users=5826`
+  - `GET /actuator/health` → 200 `{"status":"UP"}`  · `GET /api/v1/users/by-role/creator` → 200  · `GET /actuator/circuitbreakers` → 200
+  - Redis `PING → PONG` · Postgres: Docker exec `nexus-postgres-alt psql -U nexus -d nexus -c 'select count(*) from users'` → 5826
+- 证据 `docs/evidence/spring-e2e-proof-live-2026-11-19.md`（含哪些没测的诚实边界：未经过 gateway 8081；没打 Feign ai-service；没施加熔断触发——real gauges, not a guess）。
