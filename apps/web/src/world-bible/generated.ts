@@ -19815,6 +19815,206 @@ The rice-and-salt stone rests against the foot of the wall — listening to the 
 `,
   },
   {
+    order: 167,
+    slug: 'echo-167-the-paper-boat-at-the-rice-wharf',
+    titleZh: '潮候院南面的运米埠头上，那只载着旧潮历渡了六十三次的纸船',
+    titleEn: 'The Paper Boat at the Rice Wharf That Has Crossed Sixty-three Times with Old Tide Calendars',
+    eraLineZh: '纪元：潮候院 · 第四十三次大会散会后 · 冬潮月第十六日。',
+    eraLineEn: 'Era: the Institute — after the 43rd Convocation; the sixteenth day of the winter-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 167): The Paper Boat at the Rice Wharf That Has Crossed Sixty-three Times with Old Tide Calendars
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> 本篇写给运米埠头：米船来过又走过，它带的不只是米——也带着旧记录的潮流。
+> Written for the rice wharf south of the chapel: the grain ships have come and gone; what they carry is not only rice — it is the record of the tide's ebb, written in passing.
+> 纪律同正典：锚句 zh/en 逐字对齐，任何引用本章的条目应保持锚句的逐字一致。
+> Same discipline: anchors verbatim on both sides; no text may cite this Echo if it rewords them.
+
+> 纪元：潮候院 · 第四十三次大会散会后 · 冬潮月第十六日。
+> Era: the Institute — after the 43rd Convocation; the sixteenth day of the winter-tide month.
+
+---
+
+## 一 · 六十三次
+
+潮候院南面的运米埠头——没有守塔人，也没有钟。米船每年冬月过来，到开春才停。
+
+六十三年前，第一条纸船被放到了米埠上。没有人记得它是谁放的。
+
+纸船是潮候院的小抄本师许诺过的一个人下放的——每过一个秋天，纸船都渡到对岸一次，法纸传递旧历。
+
+米埠的人替他在码头立了一旗，下边写着："过了" —— 却从没人点过字样看起来是什么意思。
+
+**锚句**：潮候院过去了六十三个秋潮月，纸船过米埠也过了六十三次。
+**Anchor sentence**: sixty-three autumn-tide months long the Institute has weathered, sixty-three crossings the paper boat has made at the rice wharf.
+
+---
+
+## 二 · 潮历写在船上
+
+纸船里是叠好的旧潮历——潮候院每一份新潮历出刊之前，旧一份先送过对岸封存。封存的地点潮候院不说。
+
+船里没有大头军——没有"收"也没有"落"——只有一叠旧潮历，和两块盐，和一根从抄本师桌上没人拿过的旧毛笔。
+
+船载着去的载法，也有人看过——不当帆，不用桨——它只是潮来的时候自己往过一步。这一步看上去没什么，但准时——像潮汐一样准时。
+
+有一些纸页被潮水稍稍洇湿了一角。没人把它们捡出来——因为潮历本就是潮写的，遇上一点潮边没什么关系。
+
+**锚句**：纸船里是封过的旧潮历——河潮自己替它推过对岸，潮候院不说哪一叠最早。
+**Anchor sentence**: the paper boat carried the sealed tide records of former years — the river tide pushed it across for itself — the Institute will not say which of them is the oldest.
+
+---
+
+## 三 · 抄本师来过
+
+三位抄本师分别来过一次——他们各自离开时都不是空手来的。
+
+一个抄本师取出一卷纸，又压回石板上。他没用了。
+
+一个抄本师用手摸着了石板上划出来的一个小凹，说："不属于这个时代了。"
+
+第三个抄本师站了最久。他读完了船里最后一页字，他说："够了。潮候院会记这一回。"
+
+他走后，船被放回了原来的码头——油灯的灯油都没满，但船到了。
+
+**锚句**：三位抄本师都来过——没人说自己是哪一位——但是每一位都读过那叠旧潮历。
+**Anchor sentence**: three copyists have each come in turn — none announced himself as any particular one — but each has read through the sealed innermost stack.
+
+---
+
+## 四 · 船的准确性
+
+它出过六十三次——没有一次是提前到的。
+
+有一年米埠被暴雨淹过一次——船没被打沉，也没有延一日。抄本师还在田边看过一次，他没记小令，只写了一行："船自己知道该什么时候过"。
+
+它的准点潮声过来，但又不像船——它是纸，可它过去了一次又一次——从潮候院南面，过到河对岸，再从来没有一次向两边开过。
+
+**锚句**：它出过六十三次，没有一次提前，没有一次迟到——它不是船，它只是一张纸。
+**Anchor sentence**: it has crossed sixty-three times — not once early, not once late — it is not a boat; it is only a sheet of paper.
+
+---
+
+## 五 · 纸舟的意义
+
+潮候院的人不知道还能把这件事传多少代。六十三年不是一个世，是一个纪元——潮水换潮候的次数不会说比世纪更长。
+
+想到的一位纸舟心目中只有一句：潮。
+
+有些纸船会长期停泊——等它们太久，会慢慢压垮，没人捞捞。它只是一张纸——潮候院等他读完了所有的字。
+
+"它自己知道该丁什么时候过" —— 这句话抄本师没写进自己的抄本里——他只入了小卷的一页账。
+
+**锚句**：潮知道这只小纸船为什么六十三次都自己准时过河，没人记它为什么没沉。
+**Anchor sentence**: the tide knows why this little paper boat crossed on time sixty-three times without anyone recording why it did not sink.
+
+---
+
+## 六 · 潮历的未来
+
+六十三次之后——下一只船不排在灯塔帆影里，它会从灯油里走来，它会——
+
+**锚句**：潮知道，最后一叠纸会在灯里出现——没人去写最后一页。
+**Anchor sentence**: the tide knows the final stack will come out from the lamp — no one will write the last page.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百六十七）：「潮候院南面的运米埠头上，那只载着旧潮历渡了六十三次的纸船」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> Written for the rice wharf south of the chapel: the grain ships have come and gone; what they carry is not only rice — it is the record of the tide's ebb, written in passing.
+> 本篇写给运米埠头：米船来过又走过，它带的不只是米——也带着旧记录的潮流。
+> Same discipline: anchors verbatim on both sides; no text may cite this Echo if it rewords them.
+> 纪律同正典：锚句 zh/en 逐字对齐，任何引用本章的条目应保持锚句的逐字一致。
+
+> Era: the Institute — after the 43rd Convocation; the sixteenth day of the winter-tide month.
+> 纪元：潮候院 · 第四十三次大会散会后 · 冬潮月第十六日。
+
+---
+
+## I· Sixty-Three Crossings
+
+At the rice wharf south of the chapel there is no guard-post, no bell. The rice ships come each winter, and leave at the beginning of spring.
+
+Sixty-three years ago a small paper boat was set down on the wharf. No one remembers who set it.
+
+It was placed by a junior copyist from the Institute who had promised something to someone — one autumn, one crossing to the far side, an old ledger passed in silence.
+
+The wharfmaster planted a single red flag on the pier, beneath it written: "Passed" — no one ever learned what the mark meant.
+
+**Anchor sentence**: sixty-three autumn-tide months long the Institute has weathered, sixty-three crossings the paper boat has made at the rice wharf.
+**锚句**：潮候院过去了六十三个秋潮月，纸船过米埠也过了六十三次。
+
+---
+
+## II · The Tide Records Ride Inside
+
+Inside the paper boat are stacked the sealed tide records. Before each new tide calendar is printed, the previous copy is ferried across to be sealed in a vault — the location of which the Institute will not speak of.
+
+The boat holds no crew, no flag of receipt — only a stack of old calendars, two grains of salt, and a worn brush no one at the copy desk ever used.
+
+The way the boat is loaded has been observed by some — it carries no mast, no oar — only, when the tide comes, a single step across. A step may look trivial, yet it arrives with the regularity of the tides themselves.
+
+A few pages have been slightly dampened by the spray. No hand has retrieved them; the tide records were always written *for* water, and water touching paper is no contradiction.
+
+**Anchor sentence**: the paper boat carried the sealed tide records of former years — the river tide pushed it across for itself — the Institute will not say which of them is the oldest.
+**锚句**：纸船里是封过的旧潮历——河潮自己替它推过对岸，潮候院不说哪一叠最早。
+
+---
+
+## III · The Copyists Who Came
+
+Three copyists have come in turn for a single inspection — each departed with something taken back.
+
+One copyist removed a page, then pressed it back again. He stopped using it.
+
+One copyist ran his fingers across a small shallow notch carved in the stone bed and said: "This does not belong to this era."
+
+The third stood longest. He read through the very last page in the inner stack, and said: "Enough. The Institute will record this crossing."
+
+He left; the boat was set back on the same wharf — the lamp-oil was not yet full, yet the boat arrived.
+
+**Anchor sentence**: three copyists have each come in turn — none announced himself as any particular one — but each has read through the sealed innermost stack.
+**锚句**：三位抄本师都来过——没人说自己是哪一位——但是每一位都读过那叠旧潮历。
+
+---
+
+## IV · The Boat's Precision
+
+It has never once crossed ahead of its hour.
+
+One winter, the wharf was flooded by a storm. The boat was neither sunk nor delayed by a single day. The copyist on shore watched and wrote, without flourish: "The boat knows when to cross."
+
+It crosses with the tide — yet it is not a boat. It is a sheet of paper — and it has gone, and gone again, from the south pier of the Institute to the far bank, and it has never once gone the other way.
+
+**Anchor sentence**: it has crossed sixty-three times — not once early, not once late — it is not a boat; it is only a sheet of paper.
+**锚句**：它出过六十三次，没有一次提前，没有一次迟到——它不是船，它只是一张纸。
+
+---
+
+## V · What the Paper Boat Means
+
+No one at the Institute knows whether the boat will last sixty-three more years. Sixty-three years is not a century; it is an era — the Institute ages with each cycle, never to meet its own older self.
+
+One copyist was held by a single thought: tide.
+
+Some paper boats have been left for so long they have slowly been crushed, and no hand has ever rescued them. The boat is only a piece of paper — yet the Institute waits as long as the boat takes to finish every page.
+
+"The boat knows when to cross" — the copyist did not write this in his own notebook — he entered it only in a small auxiliary sheet.
+
+**Anchor sentence**: the tide knows why this little paper boat crossed on time sixty-three times without anyone recording why it did not sink.
+**锚句**：潮知道这只小纸船为什么六十三次都自己准时过河，没人记它为什么没沉。
+
+---
+
+## VI · The Future of the Tide Records
+
+After sixty-three crossings — the next boat will not come by the lighthouse; it will come from the lamp, and it will —
+
+**Anchor sentence**: the tide knows the final stack will come out from the lamp — no one will write the last page.
+**锚句**：潮知道，最后一叠纸会在灯里出现——没人去写最后一页。
+`,
+  },
+  {
     order: 17,
     slug: 'echo-017-the-driftwood-nobody-split',
     titleZh: '祠殿后那一截没有人劈开的浮木',

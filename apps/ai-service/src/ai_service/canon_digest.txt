@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 166 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 167 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3134,6 +3134,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 每次潮声经过廊时，它都在墙根留下一道没完成的余音。
 - [5] 三个生肖季过去了，廊下仍然通往外廊。
 - [6] 米盐石守在墙根的理由，只有它自己的位置——潮声记的，只有它来过又走过。
+
+### Echo 167 · 潮候院南面的运米埠头上，那只载着旧潮历渡了六十三次的纸船 / The Paper Boat at the Rice Wharf That Has Crossed Sixty-three Times with Old Tide Calendars
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院过去了六十三个秋潮月，纸船过米埠也过了六十三次。
+- [2] 纸船里是封过的旧潮历——河潮自己替它推过对岸，潮候院不说哪一叠最早。
+- [3] 三位抄本师都来过——没人说自己是哪一位——但是每一位都读过那叠旧潮历。
+- [4] 它出过六十三次，没有一次提前，没有一次迟到——它不是船，它只是一张纸。
+- [5] 潮知道这只小纸船为什么六十三次都自己准时过河，没人记它为什么没沉。
+- [6] 潮知道，最后一叠纸会在灯里出现——没人去写最后一页。
 
 ### Echo 17 · 祠殿后那一截没有人劈开的浮木 / The Driftwood Nobody Split for Firewood
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
