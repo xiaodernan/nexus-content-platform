@@ -18211,6 +18211,180 @@ The last page of the watch-ledger reads: thunder does not collect receipts — b
 `,
   },
   {
+    order: 159,
+    slug: 'echo-159-the-river-stele-that-rolls-when-stones-fall',
+    titleZh: '潮候院北坡上那块只在落石时候滚动的河碑',
+    titleEn: 'The River Stele on the North Slope That Rolls Only When Stones Fall',
+    eraLineZh: '纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百二十五日。',
+    eraLineEn: 'Era: the Institute — after the 41st Convocation; the hundred-and-twenty-fifth day of the autumn-tide month.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 159): The River Stele on the North Slope That Rolls Only When Stones Fall
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给北坡上那块河碑——落石它滚动，落雨它不动。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the stele on the north slope — it rolls when stones fall, not when rain falls.
+> Same discipline: anchors verbatim.
+
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百二十五日。
+> Era: the Institute — after the 41st Convocation; the hundred-and-twenty-fifth day of the autumn-tide month.
+
+---
+
+## 一 · 北坡上那块河碑
+
+潮候院北坡的杂草里半埋着一块河碑——灰的——碑面上的字全被苔藓盖住了——只剩一处能读。
+
+**锚句**：潮候院北坡的杂草里半埋着一块河碑——碑上的字全被苔藓盖了——只剩一处能读。
+**Anchor sentence**: half-buried in the weeds on the north slope of the Institute lies a river stele — the characters are all swallowed by moss — only one place remains legible.
+
+---
+
+## 二 · 落石时候滚动
+
+值更人说它不落雨不动——只有北坡上落石的时候它才滚动——往坡下滚——滚到坡脚停住。
+
+**锚句**：只有北坡上落石的时候它才滚动——往坡下滚——滚到坡脚停住。
+**Anchor sentence**: it rolls only when stones fall on the north slope — rolling downhill — it stops at the foot of the slope.
+
+---
+
+## 三 · 落了多少次
+
+抄本师的母亲在值更册里画过三道记号——第一道在北坡半腰——第二道在坡脚西侧——第三道在潮候院的门槛以外——河碑不入院。
+
+**锚句**：河碑不入院——它停在门槛以外——不越过院墙一步。
+**Anchor sentence**: the river stele does not enter the Institute — it stops beyond the threshold — it does not cross the wall by a single step.
+
+---
+
+## 四 · 苔藓里唯一能读的一处
+
+值更册最后一页写着：苔藓下面那处字读作「先到」——值更册从来不写谁先到。
+
+**锚句**：苔藓下面那处字读作「先到」——值更册从来不写谁先到。
+**Anchor sentence**: the one legible place beneath the moss reads: the one who arrives first — and the watch-ledger has never written who that is.
+
+---
+
+## 五 · 散会夜
+
+散会那一夜——北坡落石——河碑一下子滚到坡脚——没有人去看——第二天早上碑上的苔藓自己掉光了——那处字读得很清楚：「先到」。
+
+**锚句**：散会那一夜北坡落石——河碑一口气滚到坡脚——第二天苔藓全掉光。
+**Anchor sentence**: on the night of the dissolution stones fell on the north slope — the stele rolled to the foot in a single motion — by morning the moss had all fallen away.
+
+---
+
+## 六 · 值更册最后一页
+
+值更册最后一页："下一个来的人——读完这一处字——就知道自己先到了——或者晚了。"
+
+**锚句**：值更册最后一页：下一个来的人——读完这一处字——就知道自己先到了——或者晚了。
+**Anchor sentence**: the last page of the watch-ledger reads: the next to arrive — upon reading this line — will know whether they came first — or too late.
+
+---
+
+## 七 · 映射（回响一百五十九章对应关系）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | 河碑 · 落石滚动 · 门槛 · 苔藓里能读的一处字 · 先到 | 一、二、三、四、五、六、七 |
+| geography | 潮候院北坡 · 北坡半腰 · 坡脚西侧 · 潮候院门槛 | 一、二、三、四、五 |
+| characters | 值更人 · 抄本师的母亲 · 散会夜那个来的人 | 一、二、三、四、五、六 |
+| story | 只在落石时候滚动的河碑 · 回响（其一百五十九） | 全篇 |
+| items | 河碑 · 值更册三道记号 · 门槛 | 一、二、三、四、五、六 |
+| history | 第四十一次大会散会之后 · 秋潮月第一百二十五日 | 三、四、五、六 |
+
+> 北坡上那块河碑——它只在落石时候滚动——它不越过门槛一步。
+> The river stele on the north slope — it rolls only when stones fall — it does not cross the threshold by a single step.
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百五十九）「潮候院北坡上那块只在落石时候滚动的河碑」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the stele on the north slope — it rolls when stones fall, not when rain falls.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给北坡上那块河碑——落石它滚动，落雨它不动。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: the Institute — after the 41st Convocation; the hundred-and-twenty-fifth day of the autumn-tide month.
+> 纪元：潮候院 · 第四十一次大会散会之后 —— 秋潮月第一百二十五日。
+
+---
+
+## I · The River Stele on the North Slope
+
+Half-buried in the weeds on the north slope of the Institute lies a river stele — the characters are all swallowed by moss — only one place remains legible.
+
+**锚句**：潮候院北坡的杂草里半埋着一块河碑——碑上的字全被苔藓盖了——只剩一处能读。
+**Anchor sentence**: half-buried in the weeds on the north slope of the Institute lies a river stele — the characters are all swallowed by moss — only one place remains legible.
+
+---
+
+## II · It Rolls When Stones Fall
+
+It rolls only when stones fall on the north slope — rolling downhill — it stops at the foot of the slope.
+
+**锚句**：只有北坡上落石的时候它才滚动——往坡下滚——滚到坡脚停住。
+**Anchor sentence**: it rolls only when stones fall on the north slope — rolling downhill — it stops at the foot of the slope.
+
+---
+
+## III · How Many Times
+
+The mother of the copyists drew three marks in the watch-ledger — the first halfway up the north slope — the second on the west side of the foot — the third beyond the threshold of the Institute — the stele does not enter the Institute.
+
+**锚句**：河碑不入院——它停在门槛以外——不越过院墙一步。
+**Anchor sentence**: the river stele does not enter the Institute — it stops beyond the threshold — it does not cross the wall by a single step.
+
+---
+
+## IV · The One Legible Place Beneath the Moss
+
+The last page of the watch-ledger reads: the one legible place beneath the moss reads: the one who arrives first — and the watch-ledger has never written who that is.
+
+**锚句**：苔藓下面那处字读作「先到」——值更册从来不写谁先到。
+**Anchor sentence**: the one legible place beneath the moss reads: the one who arrives first — and the watch-ledger has never written who that is.
+
+---
+
+## V · The Night of the Dissolution
+
+On the night of the dissolution stones fell on the north slope — the stele rolled to the foot in a single motion — by morning the moss had all fallen away — and the line read clearly: the one who arrives first.
+
+**锚句**：散会那一夜北坡落石——河碑一口气滚到坡脚——第二天苔藓全掉光。
+**Anchor sentence**: on the night of the dissolution stones fell on the north slope — the stele rolled to the foot in a single motion — by morning the moss had all fallen away.
+
+---
+
+## VI · The Last Page of the Watch-Ledger
+
+The last page of the watch-ledger reads: the next to arrive — upon reading this line — will know whether they came first — or too late.
+
+**锚句**：值更册最后一页：下一个来的人——读完这一处字——就知道自己先到了——或者晚了。
+**Anchor sentence**: the last page of the watch-ledger reads: the next to arrive — upon reading this line — will know whether they came first — or too late.
+
+---
+
+## VII · Mapping（Echo No. 159 → world model）
+
+| 类别 | 标题 | 对应章 |
+|---|---|---|
+| lore | the river stele · rolling when stones fall · the threshold · the legible line beneath the moss · the first to arrive | 一、二、三、四、五、六、七 |
+| geography | the north slope of the Institute · halfway up the north slope · the west side of the foot · the threshold of the Institute | 一、二、三、四、五 |
+| characters | the head of the watch · the mother of the copyists · the one who arrives on the night of the dissolution | 一、二、三、四、五、六 |
+| story | the river stele that rolls only when stones fall · Echo No. 159 | 全篇 |
+| items | the river stele · the three marks in the watch-ledger · the threshold | 一、二、三、四、五、六 |
+| history | After the 41st Convocation · the hundred-and-twenty-fifth day of the autumn-tide month | 三、四、五、六 |
+
+> 北坡上那块河碑——它只在落石时候滚动——它不越过门槛一步。
+> The river stele on the north slope — it rolls only when stones fall — it does not cross the threshold by a single step.
+`,
+  },
+  {
     order: 16,
     slug: 'echo-016-the-four-small-shells-on-the-tide-sand-table',
     titleZh: '潮沙盘上那四只小贝壳',
