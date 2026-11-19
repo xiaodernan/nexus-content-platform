@@ -226,6 +226,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E173-雾港旧信物库里那本永久停在第七十一页的旧潮汐历': 'echo-173-the-tide-almanac-stopped-at-page-seventy-one',
   'E174-雾港旧信物库外墙那道谁也解释不清的潮脚线': 'echo-174-the-tide-line-on-the-outer-wall',
   'E175-雾港旧信物库后院那只抄本师肩着却没人敢放下去的旧铜锚': 'echo-175-the-anchor-on-the-shoulders',
+  'E176-雾港旧信物库后院铜锚在大潮夜里第一次开口只说了一个字': 'echo-176-the-anchor-that-spoke-on-the-great-tide-night',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 175 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). 176 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3223,6 +3223,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 抄本师试了几次落锚——第一次三寸——第二次石麻震了一下——后来他们开始用背替代肩。
 - [5] 锚夜里哼了一下——那晚没有潮位——值更人写："锚是它在呼吸。"
 - [6] 抄本师说锚是潮候院留给"北海"的沉默——它自己长出来的——"北海"二字刻在后院石板当中。
+
+### Echo 176 · 雾港旧信物库后院铜锚在大潮夜里第一次开口只说了一个字 / The Old Brass Anchor in the Backyard Spoke for the First Time on the Night of the Great Tide — Just One Word
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 大潮前夜雾港的海不退了——铜锚不重——灯自己熄了。
+- [2] 铜锚它开口——它说了一个字——"等"——雾涌进后院——没有人回答。
+- [3] 铜锚的"等"不是命令也不是请求——它记的是潮前那岸——早已不存在的岸。
+- [4] 抄本师今晚开始抄字——十七个"等"——字形都不一样——写给第七十一页。
+- [5] 值更记录写——铜锚开了口——一个字——潮脚线断了——抄本师开始抄字。
+- [6] 它等潮再退——它等潮再来——如果潮再也不退——"等"是锚最后的念头。
 
 ### Echo 18 · 祠殿里从不叫的一只猫 / The Cat in the Institute That Never Meowed
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

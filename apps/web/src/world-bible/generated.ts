@@ -21603,6 +21603,180 @@ The copyists say the anchor is the silence left by the Institute for "the edge o
 `,
   },
   {
+    order: 176,
+    slug: 'echo-176-the-anchor-that-spoke-on-the-great-tide-night',
+    titleZh: '雾港旧信物库后院铜锚在大潮夜里第一次开口只说了一个字',
+    titleEn: 'The Old Brass Anchor in the Backyard Spoke for the First Time on the Night of the Great Tide — Just One Word',
+    eraLineZh: '纪元：雾港 · 第四十三次大会之后 —— 冬潮月第五十三日（大潮前夜）。',
+    eraLineEn: 'Era: Fog Harbor — after the 43rd Convocation; the fifty-third day of the winter-tide month (the night before the great tide).',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 176): The Old Brass Anchor in the Backyard Spoke for the First Time on the Night of the Great Tide — Just One Word
+
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给大潮来的那一夜雾港旧信物库后院——铜锚第一次开口——一个字——"等"——它是朝北海方向说的。
+> 纪律同正典：锚句 zh/en 逐字对应。
+>
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the anchor of Echo No. 175 — on the night of the great tide Fog Harbor heard its name — one word — "wait" — and it was toward the north sea.
+> Same discipline: anchors verbatim.
+
+> 纪元：雾港 · 第四十三次大会之后 —— 冬潮月第五十三日（大潮前夜）。
+> Era: Fog Harbor — after the 43rd Convocation; the fifty-third day of the winter-tide month (the night before the great tide).
+
+---
+
+## 一 · 大潮前夜
+
+雾港的潮汐已有十天没退了——海面一直高——港口所有风向乱了方向——雾港旧信物库后院的石板被潮水映了整个夜——守库人说没见过这样的夜——灯在角落自己熄了——铜锚还在他们肩上——抄本师说锚今天不重。
+
+**锚句**：大潮前夜雾港的海不退了——铜锚不重——灯自己熄了。
+**Anchor sentence**: the night before the great tide, the sea did not withdraw — the anchor felt no weight — the lanterns went out by themselves.
+
+---
+
+## 二 · 它开口
+
+半夜——抄本师说锚沉了半寸——值更人说不是他推的——守库人说锚开口——它说了一个字——"等"——声音不大——从锚身里发出来的——大家站在后院——雾全涌进来了——没有人回答。
+
+**锚句**：铜锚它开口——它说了一个字——"等"——雾涌进后院——没有人回答。
+**Anchor sentence**: the anchor spoke — it said one word — "wait" — fog surged into the backyard — no one answered.
+
+---
+
+## 三 · 这个字的意思
+
+抄本师说"等"不是命令——也不是请求——它是锚的原意——它早在雾港靠锚泊之前就记得——它记得的不是字——它记得的不是信——它记得的是潮来之前的岸——它备忘的是一个已经消失的岸。
+
+**锚句**：铜锚的"等"不是命令也不是请求——它记的是潮前那岸——早已不存在的岸。
+**Anchor sentence**: the anchor's "wait" is not a command — it is not a request — it remembered the shore before the tide — a shore that no longer exists.
+
+---
+
+## 四 · 抄本师开始写
+
+第四十三次大会散会后抄本师从不抄文字——他们开始数潮——今晚他们开始抄字——十七个抄本师各自在麻纸上写下"等"字——他们没有约定——字形都不一样——守库人问他们写给谁——抄本师说写给"第七十一页"。
+
+**锚句**：抄本师今晚开始抄字——十七个"等"——字形都不一样——写给第七十一页。
+**Anchor sentence**: the copyists wrote tonight — seventeen "wait"s — none the same — they are for page seventy-one.
+
+---
+
+## 五 · 值更人的记录
+
+值更记录写：第四十三天晚上——大潮前夜——铜锚开了口——一个字——抄本师开始抄字——潮脚线断了——守库人说锚要落了——我把此事如实写下——没人知道如何理解。
+
+**锚句**：值更记录写——铜锚开了口——一个字——潮脚线断了——抄本师开始抄字。
+**Anchor sentence**: the rounds wrote — the anchor spoke — one word — the tide-line snapped — the copyists began to write again.
+
+---
+
+## 六 · 它等的
+
+它等潮退——它等潮再来——它等大潮落地——它等雾港旧信物库后院没有人能阻止它坐到那块石板上——"第七十一页"——抄本师说如果潮再也不退——"等"是锚对这个世界最后的一个念头。
+
+**锚句**：它等潮再退——它等潮再来——如果潮再也不退——"等"是锚最后的念头。
+**Anchor sentence**: it waits for the tide to withdraw — it waits for the tide to return — if the tide never withdraws — "wait" is the anchor's last thought in this world.
+
+---
+
+## 七 · Mapping（Echo No. 176 → world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the anchor's spoken word · the shore before the tide · the word page seventy-one | 二、三、四、六 |
+| geography | the backyard of the relic room · the great tide sea · page seventy-one (mirror) | 一、二、四、五、六 |
+| characters | the copyists · the keeper · the one who spoke through the anchor | 一、二、二、四、六 |
+| story | the anchor's first word · Echo No. 176 | 全篇 |
+| items | the old brass anchor · seventeen "wait"s on linen paper · the dismissed lamps | 一、二、四、五 |
+| history | After the 43rd Convocation · the fifty-third day of the winter-tide month (great-tide eve) | 一、四、五、六、七 |
+
+> 雾港旧信物库后院的铜锚——在大潮夜里开了口——"等"。
+> The brass anchor in the backyard — it spoke the night the tide rose — "wait."
+`,
+    markdownEn: `# 低语诸王 · 世界大典 · 回响（其一百七十六）「雾港旧信物库后院铜锚在大潮夜里第一次开口只说了一个字」
+
+> An echo is not a sequel, nor a fake, nor a contradiction — it is another layer of grain the salt grew on the same stone.
+> Written for the anchor of Echo No. 175 — on the night of the great tide Fog Harbor heard its name — one word — "wait" — and it was toward the north sea.
+> Same discipline: anchors verbatim.
+>
+> 回响是正典之外的侧写——不是错的、不是假的、不是续篇，是同一块石上被盐啃出来的另一层纹理。
+> 本篇写给大潮来的那一夜雾港旧信物库后院——铜锚第一次开口——一个字——"等"——它是朝北海方向说的。
+> 纪律同正典：锚句 zh/en 逐字对应。
+
+> Era: Fog Harbor — after the 43rd Convocation; the fifty-third day of the winter-tide month (the night before the great tide).
+> 纪元：雾港 · 第四十三次大会之后 —— 冬潮月第五十三日（大潮前夜）。
+
+---
+
+## I · The Night Before the Great Tide
+
+The tide has not withdrawn from Fog Harbor for ten days — the sea has stayed high — the winds at the pier turned themselves loose — the flagstone in the backyard was mirrored by the sea the whole night — the keeper has never seen such a night — the lanterns in the corner went out by themselves — the anchor is still on their shoulders — the copyists say the anchor felt no weight.
+
+**锚句**：大潮前夜雾港的海不退了——铜锚不重——灯自己熄了。
+**Anchor sentence**: the night before the great tide, the sea did not withdraw — the anchor felt no weight — the lanterns went out by themselves.
+
+---
+
+## II · It Spoke
+
+Halfway through the night — the copyists felt the anchor sink half an inch — the rounds said it was not his hand — the keeper said the anchor spoke — it said one word — "deng" — a very low sound — from inside the anchor — all of them stood in the backyard — fog surged in — no one answered.
+
+**锚句**：铜锚它开口——它说了一个字——"等"——雾涌进后院——没有人回答。
+**Anchor sentence**: the anchor spoke — it said one word — "wait" — fog surged into the backyard — no one answered.
+
+---
+
+## III · The Meaning of the Word
+
+The copyists say "deng" is not a command — it is not a request — it is the anchor's ancient intent — it remembers from before Fog Harbor moored to it — it remembers not a word — not a letter — it remembers the shore before the tide — it keeps a note of a shore that no longer exists.
+
+**锚句**：铜锚的"等"不是命令也不是请求——它记的是潮前那岸——早已不存在的岸。
+**Anchor sentence**: the anchor's "wait" is not a command — it is not a request — it remembered the shore before the tide — a shore that no longer exists.
+
+---
+
+## IV · The Copyists Began to Copy Again
+
+After the 43rd Convocation the copyists never copied words — they counted the tide — tonight they started copying characters — seventeen copyists wrote the character "deng" on linen — none by convention — not one stroke alike — the keeper asked who it was for — the copyists said it was for page seventy-one.
+
+**锚句**：抄本师今晚开始抄字——十七个"等"——字形都不一样——写给第七十一页。
+**Anchor sentence**: the copyists wrote tonight — seventeen "wait"s — none the same — they are for page seventy-one.
+
+---
+
+## V · The Rounds Record
+
+The rounds wrote: on the fifty-third night — the night before the great tide — the anchor spoke — one word — the copyists began to write again — the tide-line snapped — the keeper said the anchor would land soon — I wrote this down as it happened — no one knows how to read it.
+
+**锚句**：值更记录写——铜锚开了口——一个字——潮脚线断了——抄本师开始抄字。
+**Anchor sentence**: the rounds wrote — the anchor spoke — one word — the tide-line snapped — the copyists began to write again.
+
+---
+
+## VI · What It Waits For
+
+It waits for the tide to withdraw — it waits for the tide to return — it waits for the great tide to touch down — it waits for the backyard to be quiet enough that it can sit on the flagstone — "page seventy-one" — the copyists say if the tide never withdraws — "deng" is the anchor's last thought toward this world.
+
+**锚句**：它等潮再退——它等潮再来——如果潮再也不退——"等"是锚最后的念头。
+**Anchor sentence**: it waits for the tide to withdraw — it waits for the tide to return — if the tide never withdraws — "wait" is the anchor's last thought in this world.
+
+---
+
+## VII · Mapping（Echo No. 176 → world model）
+
+| Dimension | Value | Mapping |
+| --- | --- | --- |
+| lore | the anchor's spoken word · the shore before the tide · the word page seventy-one | II, III, IV, VI |
+| geography | the backyard of the relic room · the great-tide sea · page seventy-one (mirror) | I, II, IV, V, VI |
+| characters | the copyists · the keeper · the one who spoke through the anchor | I, II, III, IV, VI |
+| story | the anchor's first word · Echo No. 176 | Full |
+| items | the old brass anchor · seventeen "deng"s on linen paper · the dismissed lamps | I, II, IV, V |
+| history | After the 43rd Convocation · the fifty-third day of the winter-tide month (great-tide eve) | I, IV, V, VI, VII |
+
+> 雾港旧信物库后院的铜锚——在大潮夜里开了口——"等"。
+> The brass anchor in the backyard — it spoke the night the tide rose — "wait."
+`,
+  },
+  {
     order: 18,
     slug: 'echo-018-the-cat-in-the-institute-that-never-meowed',
     titleZh: '祠殿里从不叫的一只猫',
