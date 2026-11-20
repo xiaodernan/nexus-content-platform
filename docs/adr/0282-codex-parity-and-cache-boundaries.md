@@ -49,3 +49,29 @@ Codex 的 turn-state 亲和 + `previous_response_id` 续连**只在 OpenAI Manag
 - 问：「再加并发会掉吗？」——会，换通道就掉一次，下一次自然恢复；**不存在**「client 能让 distributor 不轮换」的办法。
 - 问：「为什么第一次冷？」——TTL 5–10 分钟，第一发必付完整价；次发起全暖。
 - 问：「换回 Codex 跑会不会更好？」——会。但 Codex 还需要 WS + `previous_response_id` + OpenAI-Instruct 侧 system prompt，任何一步断了都更贵；当前 relay 上**一次呼出 > 正常喂饱**即可。
+
+## 五、2026-11-20 换网关后的复验（新 key / `gpt-6.2-sol`）
+
+用户换用 `https://api.aizzz.xyz/v1` + `gpt-6.2-sol`（本机经 Clash Verge 7897）。
+`scripts/probe-cache-warm.py --confirm-real --turns 4` 在同一条 lane 连发同一份字节：
+
+```
+system=268912B  user=23349B  prompt=182032 tokens
+turn1: cached=8668   (4.8%)   ← 冷启动，网关自己的一小段
+turn2: cached=161915 (88.9%)
+turn3: cached=161915 (88.9%)
+turn4: cached=161915 (88.9%)   ← 三轮不动，中途没掉
+```
+
+**结论：新网关上稳定 88.9%，达到用户要求的「约 90% 且中途不掉」。**
+与 ADR 第二节旧网关的 91–100% / 偶发 0 相比，掉点消失了；
+这一版 relay 对同一 `prompt_cache_key` 的分片亲和更稳。
+
+顺手修掉探针里一处真 bug：判定分母原先取 `hits[0]`（首轮命中数），
+而新网关冷启动那轮就已命中 8668 token——于是合计被显示成
+「161915 / 8668」这种大于 1 的荒唐比值。分母改为 gateway 自报的 `prompt_tokens`
+（182032），门才能说出实话：**稳态 89%，还有约 11% 没进缓存**。
+检测器算错分母时，读数是编的——这与 §GATE-2 的教训同族。
+
+输入上下文也一并证伪了「太少」的担心：这份请求 **182032 tokens**，
+§GRAPH-3 真机一次设计请求更是 697149 tokens。瓶颈从来不是塞不进去。

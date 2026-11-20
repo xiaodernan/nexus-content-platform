@@ -8745,3 +8745,12 @@ Reader (post-continuum trace):
 - 新增：`design_review.py`、2 套判据（23 条）、ADR 0294；
   修掉并轨后过期断言 `test_world_step_stategraph.py`（E177 现已在 207 回响 digest 中）。
 - ai-service 全量 **492 passed / 18 skipped**。功能默认关闭（会主动多花调用）。
+
+## cont. 469 (2026-11-20) — 新网关缓存复验：88.9% 稳态不掉
+
+- `probe-cache-warm.py --confirm-real --turns 4`：`api.aizzz.xyz/v1` + `gpt-6.2-sol`
+  + Clash 7897，同一 lane 同一份字节，prompt=182032。
+  cached 序列 `[8668, 161915, 161915, 161915]` → 稳态 **88.9%，三轮不掉**。
+- 修探针判定分母 bug：原来拿首轮命中数当分母（冷启动已命中 8668），
+  会显示「161915/8668」这种 >1 的比值；改为 gateway 报的 `prompt_tokens`。
+- 详见 ADR 0282 §五。

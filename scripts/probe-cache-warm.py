@@ -87,13 +87,17 @@ def _usage(payload: dict[str, Any]) -> tuple[int, int, bool]:
     return int(u.get("prompt_tokens") or 0), int(cached or 0), reported
 
 
-def _verdict(hits: list[int]) -> tuple[str, str]:
+def _verdict(hits: list[int], prompt_tokens: int) -> tuple[str, str]:
     """把读数序列翻译成一个可证伪的结论。判据顺序就是假设的排他顺序。
 
     本实验每一轮发的**是同一份字节**，所以"可缓存的那一半"就是整份 prompt；
     `prompt_tokens` 既是分母也是理论上限，不需要再单独估稳定块长度。
+
+    分母必须传 gateway 报的 `prompt_tokens`，**不能拿 `hits[0]` 冒充**：
+    冷启动那一轮也可能已经命中一小段（新网关实测 8668 / 182032），
+    拿它当分母会把 88.9% 的稳定命中显示成"161915 / 8668"——一个大于 1 的荒唐比值。
     """
-    total = hits[0]
+    total = prompt_tokens
     warm = hits[1:]
     if not warm:
         return "inconclusive", "只有一轮，分不开任何假设"
@@ -173,7 +177,7 @@ def main() -> int:
             print(f"  turn{turn}: prompt={prompt_tokens} cached={cached} ({rate:.1%}){flag}")
 
     # 每一轮发的都是同一份字节：prompt 既是分母也是理论可缓存上限
-    kind, why = _verdict(hits)
+    kind, why = _verdict(hits, prompt_tokens)
     print()
     print(f"  判定 = {kind}：{why}")
     print(f"  逐轮 cached 序列 = {hits}")
