@@ -123,7 +123,11 @@ export async function POST(
     // §47-graph：persona 作为 system（字节级稳定 · KV 前缀可复用），记忆/语料/这一句全部进 user 侧。
     const turn = buildChatTurn(characterMemories, knowledgeContext, message, locale);
 
-    const chatResult = await runCharacterChatGraph({ persona, turn, locale });
+    // §CACHE-SESSION：车道 = 角色 + 会话。同会话跨轮同值（钉同一条 provider 前缀缓存），
+    // 不同会话/不同角色互不挤占（实测共享 lane 交错 → 命中从 94% 掉回 0%）。
+    // 没有 sessionId 时不造随机车道——那会让每轮都冷启；回落 ai-service 的 system sticky 键。
+    const cacheLane = sessionId ? `character:${characterId}:session:${sessionId}` : undefined;
+    const chatResult = await runCharacterChatGraph({ persona, turn, locale, cacheLane });
     const durationMs = Date.now() - startedAt;
 
     if (!chatResult.ok) {

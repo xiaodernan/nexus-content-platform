@@ -105,14 +105,25 @@ async def call_llm(state: ChatGraphState) -> dict[str, Any]:
     payload = state["payload"]
     system = str(payload.get("system") or "")
     user = str(payload.get("user") or "")
+    # §CACHE-SESSION：与线性管线同一会话车道规则（同一会话跨轮同 lane，不同会话隔离）。
+    from .sticky_prompt_cache import session_lane_key
+
+    lane = session_lane_key(payload.get("cacheLane"))
     try:
         # 对话不是 JSON 任务：response_format=json_object 会被 provider 400 掉
         # （协议要求内容里出现 'json' 字面），所以显式关掉 json_mode（与线性管线一致）
-        completion = await anyio.to_thread.run_sync(
-            lambda: registry.llm.complete(
-                model=state["model"], system=system, user=user, json_mode=False
+        def call() -> object:
+            # 没钉车道就字节级保留旧调用形状（老 provider/替身零回归）。
+            if lane is None:
+                return registry.llm.complete(
+                    model=state["model"], system=system, user=user, json_mode=False
+                )
+            return registry.llm.complete(
+                model=state["model"], system=system, user=user, json_mode=False,
+                prompt_cache_key=lane,
             )
-        )
+
+        completion = await anyio.to_thread.run_sync(call)
     except ProviderFailed as exc:
         return {
             "status": 502,

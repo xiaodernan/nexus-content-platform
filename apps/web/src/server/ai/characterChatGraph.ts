@@ -20,6 +20,8 @@ export interface CharacterChatGraphState extends Record<string, unknown> {
   persona: string;
   turn: string;
   locale: 'zh' | 'en';
+  /** §CACHE-SESSION 会话级 provider 前缀缓存车道；同会话跨轮同值，不同会话隔离。 */
+  cacheLane?: string;
   draft: string;
   issues: string[];
   iterations: number;
@@ -65,12 +67,13 @@ function usageOf(result: AiChatResult): { tokensIn: number; tokensOut: number; c
 }
 
 export async function runCharacterChatGraph(
-  input: { persona: string; turn: string; locale: 'zh' | 'en' },
+  input: { persona: string; turn: string; locale: 'zh' | 'en'; cacheLane?: string },
   chat: CharacterChatChatFn = chatWithCharacter,
 ): Promise<CharacterChatGraphResult> {
   const persona = input.persona.trim();
   const turn = input.turn.trim();
   const locale = input.locale;
+  const cacheLane = input.cacheLane?.trim() || undefined;
   if (!persona) return { ok: false, status: 400, error: 'validation-failed: persona must not be empty' };
   if (!turn) return { ok: false, status: 400, error: 'validation-failed: turn must not be empty' };
 
@@ -78,6 +81,7 @@ export async function runCharacterChatGraph(
     persona,
     turn,
     locale,
+    cacheLane,
     draft: '',
     issues: [],
     iterations: 0,
@@ -107,7 +111,7 @@ export async function runCharacterChatGraph(
   const graph = new StateGraph<CharacterChatGraphState>()
     .addNode('draft', async (s) => {
       const id = nextRequestId('character-draft');
-      const result = await chat({ requestId: id, system: s.persona, user: s.turn, modelClass: 'balanced' });
+      const result = await chat({ requestId: id, system: s.persona, user: s.turn, modelClass: 'balanced', ...(s.cacheLane ? { cacheLane: s.cacheLane } : {}) });
       const u = nextUsage(s, result);
       if (!result.ok) {
         return { draft: '', nodesVisited: [...s.nodesVisited, 'draft'], issues: ['provider-unavailable'], ...u };
@@ -143,7 +147,7 @@ export async function runCharacterChatGraph(
         'Previous reply:',
         s.draft,
       ].join('\n');
-      const result = await chat({ requestId: id, system: s.persona, user, modelClass: 'balanced' });
+      const result = await chat({ requestId: id, system: s.persona, user, modelClass: 'balanced', ...(s.cacheLane ? { cacheLane: s.cacheLane } : {}) });
       const u = nextUsage(s, result);
       if (!result.ok) {
         return { draft: s.draft, iterations: s.iterations + 1, nodesVisited: [...s.nodesVisited, 'revise'], ...u };

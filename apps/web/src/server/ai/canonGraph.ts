@@ -14,6 +14,7 @@
  * 所以整条管线打中的前缀缓存与 /bible/ask 走的是同一条 cache line（§CACHE-4）。
  * 边界纪律：ai-service 不写业务库，web 持有业务（本文件是 web 侧）;
  * 机检结论是「review/fail」不是「安全」——没有依据的问题，回答如实说不知道（§159）。
+ */
 import { StateGraph, START, END } from '@nexus/agent-runtime';
 import { SYSTEM_PROMPT, CANON_DIGEST } from '@/lib/bibleAsk';
 import { chatWithCharacter, type AiChatResult } from '@/server/ai/client';

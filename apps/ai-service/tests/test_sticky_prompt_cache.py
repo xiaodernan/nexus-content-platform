@@ -30,6 +30,7 @@ from ai_service.sticky_prompt_cache import (
     host_bypasses_proxy,
     ordered_payload,
     prompt_cache_key,
+    session_lane_key,
     sticky_body,
 )
 
@@ -190,6 +191,96 @@ def test_arm_sticky_key_includes_volatile_goes_red() -> None:
         _, user = build_prompt(_turn(sel=sel, ts="t", query="q", prompt=p, variants=1))
         keys.append(f"{KEY_PREFIX}{user}")  # 错的键：含易变正文
     assert not _judge_key_stable_across_turns(keys)
+
+
+# ── §CACHE-SESSION 会话级车道（并行会话不互相挤掉前缀缓存）────────────────────────────
+def _judge_session_lane(keys: list[str | None]) -> bool:
+    """判据：同会话恒定、不同会话相异、空车道不并到一条。真腿与变异臂共用。"""
+    a, a2, b, empty = keys
+    return (
+        isinstance(a, str)
+        and a.startswith(KEY_PREFIX)
+        and a == a2              # 同会话跨轮稳定
+        and a != b               # 不同会话隔离
+        and empty is None        # 空车道回落，不造公共车道
+    )
+
+
+def test_session_lane_stable_per_session_and_isolated() -> None:
+    lane_a = "character:c1:session:s1"
+    keys = [
+        session_lane_key(lane_a),
+        session_lane_key(lane_a),
+        session_lane_key("character:c1:session:s2"),
+        session_lane_key("   "),
+    ]
+    assert _judge_session_lane(keys), "会话车道必须同会话稳定、跨会话隔离、空值回落"
+    assert session_lane_key(None) is None
+    assert session_lane_key(42) is None  # type: ignore[arg-type]
+
+
+def test_arm_session_lane_collapses_goes_red() -> None:
+    """变异臂：所有会话同一条车道 → 会话隔离判据必须红（复现共享 lane 被挤出）。"""
+    constant = f"{KEY_PREFIX}{'0' * 32}"
+    assert not _judge_session_lane([constant, constant, constant, None])
+
+
+def test_provider_per_call_key_beats_instance_key_both_paths() -> None:
+    """会话级键优先于实例键，流式与非流两条 body 构造路都覆盖；都不给则回落实例键。"""
+    from ai_service.providers.openai_compatible import OpenAICompatibleProvider
+
+    seen: list[dict] = []
+
+    class Capture(httpx.BaseTransport):
+        def handle_request(self, request: httpx.Request) -> httpx.Response:
+            seen.append(json.loads(request.content))
+            payload = {
+                "id": "x", "object": "chat.completion", "created": 0, "model": "m",
+                "choices": [{"index": 0, "message": {"role": "assistant", "content": "{}"}, "finish_reason": "stop"}],
+                "usage": {"prompt_tokens": 10, "completion_tokens": 2},
+            }
+            return httpx.Response(200, json=payload, request=request)
+
+    for stream, instance_key, call_key, expected in [
+        (False, "nexus-instance", "nexus-session-A", "nexus-session-A"),
+        (True,  "nexus-instance", "nexus-session-B", "nexus-session-B"),
+        (False, "nexus-instance", None,              "nexus-instance"),
+        (True,  None,              None,              None),
+    ]:
+        seen.clear()
+        p = OpenAICompatibleProvider(
+            api_key="k", base_url="https://x/v1", models={"balanced": "m"},
+            prompt_cache_key=instance_key, transport=Capture(), stream=stream,
+        )
+        p.complete(model="m", system="s", user="u", json_mode=False, prompt_cache_key=call_key)
+        key = seen[0].get("prompt_cache_key")
+        assert key == expected, f"stream={stream} instance={instance_key} call={call_key} -> {key}"
+        if expected is None:
+            # 没给任何键时 transport 才会按 system 派生；这里只验 provider body 不写死常量。
+            assert "prompt_cache_key" not in seen[0]
+        p.close()
+
+
+def test_cached_llm_does_not_fold_session_key_into_cache_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    """会话车道只是路由提示：同一问句跨会话仍共享一次 L2 命中（不能进缓存键第四维）。"""
+    from ai_service.providers.base import Completion
+
+    calls: list[str | None] = []
+
+    class Inner:
+        name = "fake"
+        def models(self) -> list[str]: return ["m"]
+        def model_for(self, c: str) -> str: return "m"
+        def complete(self, **kw) -> Completion:
+            calls.append(kw.get("prompt_cache_key"))
+            return Completion(text="answer", provider="p", model="m", tokens_in=5, tokens_out=1, latency_ms=1.0)
+
+    cache = CachedLlm(inner=Inner(), cache=LlmCompletionCache(ttl_s=60.0, max_entries=16))  # type: ignore[arg-type]
+    c1 = cache.complete(model="m", system="s", user="u", json_mode=False, prompt_cache_key="nexus-lane-A")
+    c2 = cache.complete(model="m", system="s", user="u", json_mode=False, prompt_cache_key="nexus-lane-B")
+    assert c1.text == c2.text == "answer"
+    assert len(calls) == 1, "同一问句跨会话应命中 L2，只打一次真 provider"
+    assert calls[0] == "nexus-lane-A"
 
 
 def test_sticky_body_pure_and_does_not_override_caller() -> None:

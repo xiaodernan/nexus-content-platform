@@ -625,6 +625,11 @@ export const AiChatRequestSchema = z.object({
   system: z.string().min(1).max(320_000),
   user: z.string().min(1).max(4000),
   modelClass: ModelClass.default('balanced'),
+  // 会话级 provider 前缀缓存车道（§CACHE-SESSION）。同一会话跨轮恒定、不同会话互不相同：
+  // provider 的 prompt_cache_key 用它把每个会话钉在自己的 channel-local 前缀缓存上，
+  // 避免多个会话共用 system 时互相把对方的前缀挤出（实测共享 lane 交错 → 命中从 94% 掉回 0%）。
+  // 只是路由提示，不进 completion 缓存键、不改模型输出；省略时回落到按 system 派生的 sticky 键。
+  cacheLane: z.string().min(1).max(200).optional(),
 });
 export type AiChatRequest = z.infer<typeof AiChatRequestSchema>;
 

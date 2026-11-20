@@ -50,7 +50,20 @@ class LLMProvider(Protocol):
 
     def models(self) -> list[str]: ...
 
-    def complete(self, *, model: str, system: str, user: str, json_mode: bool | None = None) -> Completion: ...
+    def complete(
+        self,
+        *,
+        model: str,
+        system: str,
+        user: str,
+        json_mode: bool | None = None,
+        prompt_cache_key: str | None = None,
+    ) -> Completion: ...
+
+    # prompt_cache_key（vNEXT，ADR TBD）：调用方钉的**会话级路由车道**。传了就由 provider
+    # 写进出站 body；StickyPromptCacheTransport 尊重 caller-owned 键、不再按 system 覆盖。
+    # 缺省 None = 旧行为字节级不变（transport 仍按 system 派生 sticky 键）。它只是路由提示，
+    # 不进 completion cache 键（同一问句跨会话仍共享应用级缓存），也不改模型输出。
 
 
 class EmbeddingProvider(Protocol):
