@@ -14697,3 +14697,15 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   `toolCalls=4 / tokensIn=697149 / tokensOut=591 / latencyMs=27234`，
   `cacheReported=false`（不是每轮都报）、`costBasis=unknown`（未配价目表）。
   Studio 的 ActivityFeed 原样渲染四段轨迹。详见 ADR 0294。
+
+## §STRESS-1 ai-service 高并发压测（2026-11-20）
+
+- [x] `scripts/stress-ai-service.py`：health 风暴 / 畸形请求风暴 / 恢复探活三相位，
+  不触发 provider。实测 600/60 并发全 200、150 发畸形请求全 400、零 5xx、
+  恢复后 p95=29.4ms（证据 `docs/evidence/stress-ai-service-2026-11-20.md`）。
+- [x] **压测脚本自检**：第一版有一族"路径注入"其实是合法请求，误触发 12 次真模型调用。
+  修为每族必缺 `requestId`（契约必填），从结构上保证不可能走到 provider。
+  检测器自己会烧 token 时，它测的不是系统鲁棒性。
+- [~] 60 并发下 health p95 退化到 1531ms（单 worker + 同步 access log 的代价），
+  响应码全 200 且风暴后立即恢复。继续往上堆并发需多 worker + 关 access log，
+  不是路由代码的问题。

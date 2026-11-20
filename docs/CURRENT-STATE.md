@@ -8754,3 +8754,11 @@ Reader (post-continuum trace):
 - 修探针判定分母 bug：原来拿首轮命中数当分母（冷启动已命中 8668），
   会显示「161915/8668」这种 >1 的比值；改为 gateway 报的 `prompt_tokens`。
 - 详见 ADR 0282 §五。
+
+## cont. 470 (2026-11-20) — §STRESS-1 高并发压测 PASS
+
+- `scripts/stress-ai-service.py` 三相位实测：600 发 health（60 并发）全 200，
+  150 发畸形请求全 400 零 5xx，恢复探活 p95=29.4ms（风暴中 1530.6ms）。
+- 抓到并修掉压测脚本自身的错：一族"路径注入"其实是合法请求，误打了 12 次真模型；
+  现在每族强制缺 `requestId`，结构上杜绝误触发。
+- 证据见 `docs/evidence/stress-ai-service-2026-11-20.md`。
