@@ -29,6 +29,7 @@ import {
 import { cn } from '@/lib/cn';
 import { patchLore } from '@/lib/worldLore';
 import type { Locale } from '@/lib/i18n';
+import { chatWithCharacter } from '@/server/ai/client';
 import { useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';
 import { WORLD_KIND_LABELS_EN } from '@nexus/world-model';
@@ -48,6 +49,8 @@ const COPY = {
     nameAria: '世界名称',
     summaryPlaceholder: '一句话说明这是个什么样的世界',
     summaryAria: '世界概述',
+    aiGen: 'AI 生成概述',
+    aiGenBusy: '生成中…',
     tidalTerrainHeading: '地形（可走的圆台与坡）',
     mesaOption: '台面（硬边）',
     coneOption: '坡（线性降到 0）',
@@ -123,6 +126,8 @@ const COPY = {
     nameAria: 'World name',
     summaryPlaceholder: 'One line: what this world is',
     summaryAria: 'World summary',
+    aiGen: 'AI generate summary',
+    aiGenBusy: 'Generating…',
 eraPlaceholder: 'Grey Lantern Era',
     memoryEchoPlaceholder: 'Memory echo: the sensory trace of that moment (sound / taste / touch / light) — not plot, a scar',
 tidalTerrainHeading: 'Terrain (walkable plateaus and cones)',
@@ -234,6 +239,42 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
 
   const counts = useMemo(() => (world ? worldCounts(world) : null), [world]);
 
+  // AI 生成概述：草稿（summary，可为空）+ 计数投喂给真 provider，结果写回 summary（setLocal + commit，落库）。
+  // 任何失败原样展示，不吞；没有 provider 时 chatWithCharacter 抛/报错，也如实。
+  const [aiGen, setAiGen] = useState(false);
+  const [aiGenError, setAiGenError] = useState('');
+  const generateWorldSummary = async () => {
+    const doc = world;
+    if (!doc) return;
+    setAiGen(true);
+    setAiGenError('');
+    try {
+      const res = await chatWithCharacter({
+        requestId: `world-summary-${Date.now()}`,
+        system: locale === 'zh'
+          ? '你是世界编纂者。给一份给定世界的概述草稿做打磨：给出一段史诗感开篇（2–5 句话），描绘这个世界的整体基调与值得引以为傲的细节；读起来像真世界的介绍，不要模型语言，不要指代项目或人名，不要编造数字。'
+          : 'You are a world archivist. Polish a brief world introduction: an epic opening line or two (2–5 sentences), capturing the world’s overall tone and a standout feature — evocative, not meta, no invented names or numbers.',
+        user: `世界名称：${doc.name}\n概述字段（可为空）：${(doc.summary || '').trim() || '(empty)'}\n已有条目计数：${counts ? JSON.stringify(counts) : ''}`,
+        modelClass: 'balanced',
+      });
+      if (res.ok) {
+        const text = res.response.text.trim();
+        if (text) {
+          worldStore.setLocal({ ...doc, summary: text });
+          void worldStore.commit();
+        } else {
+          setAiGenError(locale === 'zh' ? 'AI 返回了空概述——请重试' : 'AI returned an empty summary — retry');
+        }
+      } else {
+        setAiGenError(locale === 'zh' ? `AI 调用未成功：${res.error?.message ?? 'provider 不可用'}` : `AI call failed: ${res.error?.message ?? 'provider unavailable'}`);
+      }
+    } catch (e) {
+      setAiGenError(String((e as Error)?.message ?? e).slice(0, 200));
+    } finally {
+      setAiGen(false);
+    }
+  };
+
   if (!world) {
     return (
       <div className="wd-scrollPad" data-world-panel>
@@ -301,6 +342,18 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
           rows={2}
           className="wd-areaResize"
         />
+        <div className="wd-row1">
+          <button
+            type="button"
+            data-world-summary-ai
+            onClick={() => void generateWorldSummary()}
+            disabled={aiGen}
+            className="wd-accentBtn"
+          >
+            {aiGen ? c.aiGenBusy : c.aiGen}
+          </button>
+          {aiGenError ? <p className="wd-danger11" data-world-ai-error>{aiGenError}</p> : null}
+        </div>
         {snapshot.error ? (
           <p className="wd-dangerMt2" data-world-error>
             {snapshot.error}
