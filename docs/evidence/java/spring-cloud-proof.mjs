@@ -726,8 +726,10 @@ const ready = spawnSync('docker', ['exec', SOURCE, 'psql', '-U', DB_USER, '-d', 
     // must learn the address from the registry. A hard-coded URL would make this section prove
     // nothing, so it is deliberately not used.
     '-DNEXUS_GATEWAY_NEXUS_API_URI=lb://nexus-api',
-    '-DNEXUS_EUREKA_ENABLED=true',
-    `-DNEXUS_EUREKA_URL=${registryBase}/eureka/`,
+    // The gateway's OWN yml reads `NEXUS_REGISTRY_ZONE` (as the load-balance harness does); the old
+    // `NEXUS_EUREKA_URL` name went dead in the java-* -> nexus-* rename (ADR-0237) and silently fell
+    // back to the 8771 default, so the gateway could never reach this proof's randomly-bound registry.
+    `-DNEXUS_REGISTRY_ZONE=${registryBase}/eureka/`,
   ]);
   const gatewayBase = `http://127.0.0.1:${gateway.port}`;
 
