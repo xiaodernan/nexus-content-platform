@@ -221,7 +221,8 @@
     "gen:ship": "tsx scripts/gen-ship-manifest.mts",
     "gen:showcase": "tsx scripts/gen-showcase-snapshot.mts",
     "gen:latest": "tsx scripts/gen-latest.mts",
-    "sync:showcase": "tsx scripts/sync-showcase.mts"
+    "sync:showcase": "tsx scripts/sync-showcase.mts",
+    "i18n:audit": "tsx --tsconfig apps/web/tsconfig.json scripts/i18n-audit.mts"
   },
   "devDependencies": {
     "turbo": "^2.3.3",

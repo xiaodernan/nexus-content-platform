@@ -68,7 +68,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑤ 额度 & DEMO MODE 是什么？',
         body: [
-          '每个免费账户每月有 AI 额度。真用 wkapi.pro 上的 gpt-6-sol 这类真 provider 会扣真额度；没配真 provider 时会显示 DEMO MODE 标识——系统仍然能走通流程，只是出的东西是确定性模拟出来的"看起来像 AI 做的东西"，不是真模型的作品。',
+          '每个免费账户每月有 AI 额度。真用 aizzz.xyz 上的 gpt-6.2-sol 这类真 provider 会扣真额度；没配真 provider 时会显示 DEMO MODE 标识——系统仍然能走通流程，只是出的东西是确定性模拟出来的"看起来像 AI 做的东西"，不是真模型的作品。',
           '/credits 页面可以实时看消费账单：每次 AI 调用都记 token in/out/model/latency/cost——任何一笔都是真的数字，不是演出来的；账本里的 SavingsCard 会把"缓存替你省下的重复计算"摊给你看（命中率、输入 token 复用、真模型/DEMO 轮次分得清）。',
           '看到"缓存命中率"这个词：它反映 provider 端的 prefix cache 复用率——同一个前缀的下一次调用如果命中了，就免费少数 token；不命中也不证明你做错了，只证明分布器把你的请求放到了一个新分片。',
         ],
