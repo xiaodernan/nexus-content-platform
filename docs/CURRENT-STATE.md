@@ -8500,6 +8500,7 @@ feat(§BIBLE-193 · §GUIDE-193): Echo #193《潮候院东门抄本师第一次�
 - **模型审计**：NEXUS_MODEL_FAST/BALANCED/REASONING/VISION 全 gpt-6.2-sol · STREAM=1 · EMBEDDING=none · 6.1-terra 仅留在历史 evidence/ADR（测量时刻如实记录，不重写）。
 - **本 lane fe-gates / tsc**：quiz SHA 重钉后 fe-gates 1396/1396 · web tsc 0。主线 `master == main == origin/main == 6fdd11b9`（并轨线中途推了 `412d8eb4` CONT-453，本线全部 rebase 吸收）。
 - **未关闭**：origin/master 腐朽 ref（`e9c4ba8f`，behind 1 / ahead 181）待用户拍板；backup/echo168-169-duplicate 留存待用户开口删除；HTTP 突发窗（≥2GB）待内存释放；memory 连续两轮 526→383 MB 下行，机器吃紧。
+  - **2026-11-20 收口更正**：origin/master 已由 `00668e43`（`-s ours` 合并保留旧提交作第二父）对齐并推送；本地/远端 `master` 均 `00668e43`，`ahead 0 / behind 0`。ADR-0291 的“保留不动”已被 ADR-0297 取代；复核 ai-service 473 passed / 18 skipped、schemas 407 passed。
 
 
 ## cont. 456 (2026-11-20) — GitHub 个人主页七枚 for-the-badge 本地化 · 零第三方图片依赖
