@@ -121,6 +121,8 @@ jobs:
         run: npm run verify:world-bible
       - name: Bible snapshot (generated.ts byte-equals docs/world-bible sources)
         run: npm run verify:bible-snapshot
+      - name: Anchor echo (generated.ts anchor echo byte-equals world-bible anchors)
+        run: npm run verify:anchor-echo
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
