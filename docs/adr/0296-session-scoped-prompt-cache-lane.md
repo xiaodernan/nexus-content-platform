@@ -70,3 +70,11 @@ provider 的 channel 轮转、TTL 淘汰、Clash 出口抖动仍在（ADR 0125 �
 
 `apps/web/src/server/ai/canonGraph.ts` 顶部块注释缺少 `*/`，导致 `tsc -p apps/web`
 把 import 当注释内容解析、报 5 个 TS1011/TS1128；补上闭合后 web 类型检查 0 错误。
+
+## 顺带修复 2（world-step 门历史红）
+
+`apps/ai-service/tests/test_world_step_stategraph.py` 的两条门把 `E177`/`E180` 硬编码成
+"未来回响"，但并行 lane 持续补录，正典已到 E205，这两个号如今真实存在 → 两条门假红
+（干净 HEAD 上同样复现）。夹具改为 `_future_echo()`：从 `ws._existing_echo_numbers()` 派生
+一个格式合法（`E[12][0-9]{2}`）但不在 digest 里的号，随正典增长自动前移，杜绝再次漂移。
+全量 ai-service 由 471 passed / 2 failed → **473 passed / 18 skipped / 0 failed**。
