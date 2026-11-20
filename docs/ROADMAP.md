@@ -14676,3 +14676,24 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   - sticky key 注入 POST 报文（stream/非流双覆盖，ADR-0271 pin）；
   - 同 digest+同 question 的二次请求必命中 100%；app 粒度可拆分为 LRU+Redis 两级。
 - 不再能做的：Distributor 自己的路由/channel cache 不可控，不在本项目可以改进的范围内。
+
+## §GRAPH-3 设计主流程的 LLM 自检修订环（2026-11-20）
+
+- [x] **draft → review → revise → 终审** 反馈环接进 `execute_ai_request`，
+  补齐此前只有 `/insight` 有、设计主流程没有的那一格（ADR 0294）。
+  - 审稿用**短且字节级稳定**的独立 system，不把 53 万字节正典再送一遍；
+  - 修订轮复用原 `SYSTEM_PROMPT`，原 user 逐字节在前、意见在后，前缀 KV 不重买；
+  - 修订上限默认 1（可配 0/2），「直到满意」没有终止条件，不是状态机。
+- [x] **增强不是门**：审稿调用失败或输出坏形状时原稿照常 200 交付，`activities`
+  留 `stage=review, status=failed`；绝不新增单点故障。
+- [x] **账本不撒谎**：多出来的调用如实进 `toolCalls / tokensIn / tokensOut /
+  cachedTokens / latencyMs`；只要一轮没报缓存就说 `cacheReported=false`；
+  只要一轮没价目就说 `costBasis=unknown`，不报偏低的总额。
+- [x] 判据：`test_design_review.py` 16 条 + `test_design_review_graph.py` 7 条；
+  顺手修掉并轨后过期的 `test_world_step_stategraph.py`（E177 现在已在 207 回响的
+  digest 里，换成远超编号的 E99999）。ai-service 全量 492 passed / 18 skipped。
+- [x] 真机验证：`NEXUS_LLM_DESIGN_REVIEW=1` + Clash 7897 + `gpt-6.2-sol` 实跑。
+  初稿漏了「把 CTA 文案改成立即开始」，审稿原话抓到，修订后终审通过；
+  `toolCalls=4 / tokensIn=697149 / tokensOut=591 / latencyMs=27234`，
+  `cacheReported=false`（不是每轮都报）、`costBasis=unknown`（未配价目表）。
+  Studio 的 ActivityFeed 原样渲染四段轨迹。详见 ADR 0294。

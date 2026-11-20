@@ -295,6 +295,19 @@ class Registry:
         """
         return self._settings.price_table
 
+    @property
+    def design_review_enabled(self) -> bool:
+        """§GRAPH-3：是否启用设计补丁的 LLM 自检修订环。
+
+        与 `price_table` 同一条纪律——只暴露这一个布尔，不把整个 `Settings`
+        （里面有 `openai_api_key`）递给调用方。
+        """
+        return self._settings.llm_design_review
+
+    @property
+    def design_review_max_revisions(self) -> int:
+        return self._settings.llm_design_review_max_revisions
+
     def llm_cache_state(self) -> dict[str, Any] | None:
         """应用级 LLM 完成缓存的报文状态（可观测性面板读用）。
 

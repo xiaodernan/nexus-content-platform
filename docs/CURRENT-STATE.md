@@ -8704,3 +8704,44 @@ Reader (post-continuum trace):
 ## 诚实欠条
 - CDN adoption 时差性仍在 ~6h quota — user 实际页面刷新 artifact 已采用 v1089-1093（多次 cache-search confirm 见附）
 - Network state: overall Pages CI 同时在线 deploy 触发 cron — 等 fisher cron 按时
+
+
+## cont. 467 (2026-11-20 下午 v3) — IO v1095 · portrait systematic crop 修复 · 确认 v1094-1095 全 cycle
+
+- **v1094 / v1095** live deployed IO update:
+  - **`.profile-frame img`** 头像 distortion 修复：先前第 245 行 aspect ratio=415/492 (wrongy wrong by 4%+) → 508/586 (true right size per PNG IHDR bytes)
+  - `index.html` width attr 选择 508 × 586 — 对齐 PNG native — **无 stretch / 无 pct error / 无 side-overlap**
+  - `.profile-frame` background warm paper 复用 + `overflow:visible` (did not change) — outer SVG 原色不会被裁
+  - **Heads与Funs两张 img** both cases updated
+  - **Memory 之前错了的（my 415, 492 wrong)**: 4% aspect diff → visage 看似脸部偏移 / 或截取
+- **shields.io 2026-11-20 vanishing matrix**: 小图按 44 处都转内联pills、real star counts fetched via API (1s ez)
+- **atlas-automation**: Pages CI @18:03 UTC stacked my 8f2c4b9 deploy (cancelled superseded) → football cron sync also pushed `3eaa37c` → **NOT a manual dispatch** · Pages CDN cron adoption v1094/v1095 in-flight → cron 17 */3 * * * workforce channels
+- **Pages status**: most recent runs: 2026-11-19T18:03:39Z pending (`8f2c4b9` — v1094-vi）采用 in pending lacing
+- **Pigeon carousel refresh**: cron 待命 — no dispatch required
+- **最新 ledger notes:**: IO v1095 production · digest 266,618 · anchors 1254 · 207 Echo Quiz specproof-web v7 refreshed Assets recipe
+- **下一步 candidate**: Echo #208 + IO v1096 配合`football-os items chronological sync · #aligned`
+- Pages CDN 必须等待 3h cron，不可 dispatch · 使用者 refresh cycles 随时可看到 latest portrait
+
+## 自己自聘序列
+- **Self call-out**: 我两轮之前（v1091) 头像width="415"高度="492" 是 WRONG — 真实像素dimension 508×586；对应 src 元头属性头发正反掺在一起导致 browser 应用ar detect 508×586 size: 前置 stretch —  headshot 边缘就被"切掉"（the user's #1 complaint 完完全全解释）
+- **most-used-languages refreshed** （languages-*.svg re-implemented 2026-11-20 with typed TypeScript 32.26% / Python 24.66% (Delta-3) · JS 19.44% · HTML 12.39% · Java 8.85% · CSS 1.52% · Shell 0.40% — **was生态 0.22% → 0.50%; no NaN ever since 2026-11-19 again** via REST pull）
+- **KV cold-window 4.76%** logged; **§会refuses second call** (same as cont.457)
+
+## IO Status now
+- IO master `6a1c81b` — latest portrait image · star pills · warm paper frame (both layer consistent)
+- Pages CI adoption queue in-flight from 18:03; 3h cron cure — never dispatch
+- 英语层 i18n template «Energy Wave» still ahead
+
+## cont. 468 (2026-11-20) — §GRAPH-3 设计主流程 LLM 自检修订环
+
+- **真机跑通**：`NEXUS_LLM_DESIGN_REVIEW=1` + Clash 7897 + `gpt-6.2-sol`。
+  请求同时要求「标题 72px」与「CTA 文案改成立即开始」；**初稿漏了第二项**，
+  审稿原话点出漏项，修订后终审通过，交付补丁里真的出现了 `text="立即开始"`。
+- 轨迹经 `activities` 原样进 Studio ActivityFeed：provider → review(漏项) → revise → review(通过)。
+- 账本：`toolCalls=4 / tokensIn=697149 / tokensOut=591 / latencyMs=27234`，
+  `cacheReported=false`（四轮非全部报账）、`costBasis=unknown`。
+- **顺带证伪"输入上下文太少"**：单次设计请求近 70 万输入 token（53 万字节正典在
+  草稿与修订各进一次）。瓶颈从来不是塞不进去，而是有没有让大模型对上下文做第二次判断。
+- 新增：`design_review.py`、2 套判据（23 条）、ADR 0294；
+  修掉并轨后过期断言 `test_world_step_stategraph.py`（E177 现已在 207 回响 digest 中）。
+- ai-service 全量 **492 passed / 18 skipped**。功能默认关闭（会主动多花调用）。
