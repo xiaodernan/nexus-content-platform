@@ -1,7 +1,7 @@
 {
   "tool": "docs/evidence/ci/ci-wiring-arms.mjs",
   "scope": "full",
-  "ranAt": "2026-11-20T03:27:10.696Z",
+  "ranAt": "2026-11-21T05:14:19.771Z",
   "arms": 64,
   "matched": 64,
   "armNames": [
@@ -72,11 +72,11 @@
   ],
   "subjects": {
     "workflow": "00ca8a201bd9dfb7eeff29d5bbcfca7f66c7d3990a4d27d5ba57f40922577fac",
-    "mainline": "89047031bc2342db707ad63b2a611bcfa73d0c3f5c8f24f1599ac0ecd564ca35",
+    "mainline": "6ddb12bbf143e99131467fa0d0fe50f59ef7738584aaf58fa9525b5f3f180724",
     "gate": "9120223bfe06379f2d48c9a1e8b2c2471086a19f35c05a1b3c2b9513bda81706",
     "arms": "2a96b56f7ebe00687cbb13c9f4357255ec8f4d2e79d249a9d5987af9d24f10ec",
     "runner": "f07ce3b290949c6886cb974e5d910fa4c776bf2892259926b34b35c473c0f718",
-    "sweep": "6ffebfca491d345c520dc820d8a15abfcbb9629ec0bf4fb9d271feafde6de453",
+    "sweep": "5a5d374da473dd8487e735dab88d44cdf7186c43e1b061a9299119bc2e1b2468",
     "scripts": "dd5e7733a2144907b03114e4230fc335aec52b8b0d6a4f56ac389e6adda35e5b",
     "rule": "39e38407b6310857b25c1ed3f0dcf3adc123b1fed36f0187abd8af3b54b0a068"
   },
@@ -590,6 +590,11 @@
       "name": "verify:streams",
       "file": "docs/evidence/agents/streams-proof.mjs",
       "marker": null
+    },
+    {
+      "name": "verify:stress-l2",
+      "file": "docs/evidence/stress/redis-l2-proof.mjs",
+      "marker": "// sweep-budget-ms: 120000"
     },
     {
       "name": "verify:table-recount",
