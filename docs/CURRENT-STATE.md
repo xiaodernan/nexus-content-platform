@@ -8718,3 +8718,9 @@ Reader (post-continuum trace):
 - **生成**：`gen:bible-snapshot` 自动重生 generated.ts / canon_digest.txt / .sha256；digest 266,618→267,037 chars，sha `27624b57…`；锚句 1254→1260；回响 207→208。
 - **计数对齐**：guideCopy「二百零七/two hundred seven」→「二百零八/two hundred eight」、1254→1260；bible-ask-behavior pin 1249→1255；canon-answer-graph 段落断言校正到真值 **13 章+208 回响=221 段**（原 163 早已落后于合并后的 207）。
 - **验证**：world-bible / bible-snapshot / anchor-echo / record-encoding / census 全 exit 0；相关 vitest 3 文件 32 passed。
+
+## cont. 465 (2026-11-21 夜) — Echo #209《那本册子翻过第七十二页之后》· 208→209 回响
+- **叙事弧推进（需求六）**：承接 E208「那只手还在写，只是从不署名」，新增双语 Echo #209——册子第一次翻到第 73 页（原本空白）、一个往外挑的从未见过的收笔、墨迹未干、最年长者说「它翻到这里，是要我们知道那只手还在」、次日收笔旁多了一道浅痕像在回答、仍无名字。让世界以「还在继续的痕迹」而非人名作答，把 E206–E209 收束成一条有因果的叙事弧。6 组锚句 zh/en 逐字对应、全典唯一。
+- **生成**：gen:bible-snapshot 重生 generated.ts / digest（267,366 chars, sha 18278061…）；锚句 1260→1266；回响 208→209。
+- **计数对齐**：guideCopy 208→209 / 1260→1266 / two hundred eight→nine；bible-ask-behavior pin 1255→1261；canon-answer-graph 段落断言 208→209（13+209=222）。
+- **验证**：world-bible / bible-snapshot / anchor-echo / record-encoding 全 exit 0；相关 vitest 3 文件 32 passed。
