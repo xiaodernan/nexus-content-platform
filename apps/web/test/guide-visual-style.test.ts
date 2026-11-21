@@ -62,6 +62,17 @@ describe('§FE-Guide /guide 使用指南', () => {
     expect(codeLib).toContain('const COPY');
   });
 
+  // 用户第五点：首页与各处错别字「有则改之」。这份是用户直接读的内嵌说明书，
+  // 钉住几个最常见的同音错字，防止以后改文案时回潮。「登陆港口」是正确动词用法，
+  // 故只查「不需要登陆 / 登陆平台」这种账户语境。
+  it('说明书中文正文无常见账户类错别字', () => {
+    const banned = [/不需要登陆/, /登陆平台/, /登陆账号/, /登陆后/, /请登陆/, /帐号/, /帐户/];
+    for (const re of banned) {
+      expect(dictSrc, `说明书中文出现错别字/异体：${re}`).not.toMatch(re);
+    }
+    expect(dictSrc).toContain('不需要登录');
+  });
+
   it('双语字典齐（zh + en keys）', () => {
     const zh = codeLib.indexOf('zh: {');
     const en = codeLib.indexOf('en: {');
