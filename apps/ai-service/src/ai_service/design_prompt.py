@@ -15,7 +15,29 @@ from .sticky_prompt_cache import ordered_payload
 
 MAX_TOKENS_IN_PROMPT = 120
 MAX_NODES_IN_PROMPT = 400
-MAX_TREE_CHARS = 60_000
+
+# §CTX-BUDGET · 上下文预算可配（用户长期反馈"输入上下文太少"，对照 Codex 5万~9万 token）。
+# 默认仍是历史值 60_000，老部署字节级不变；有能力的大模型（如 gpt-6.2-sol）可由运维
+# 用 NEXUS_DESIGN_TREE_CHARS 抬到更高（上限 400_000，约 10 万 token），无需改代码。
+# 上限是护栏不是目标：再大只会徒增 KV 前缀占用、把并行会话的缓存互相挤掉（ADR 0296）。
+DEFAULT_TREE_CHARS = 60_000
+MAX_TREE_CHARS_CEILING = 400_000
+
+
+def _tree_chars() -> int:
+    raw = os.environ.get("NEXUS_DESIGN_TREE_CHARS", "").strip()
+    if not raw:
+        return DEFAULT_TREE_CHARS
+    try:
+        value = int(raw)
+    except ValueError:
+        return DEFAULT_TREE_CHARS
+    if value < 1 or value > MAX_TREE_CHARS_CEILING:
+        return DEFAULT_TREE_CHARS
+    return value
+
+
+MAX_TREE_CHARS = _tree_chars()
 
 
 def _load_canon_prefix() -> str:
