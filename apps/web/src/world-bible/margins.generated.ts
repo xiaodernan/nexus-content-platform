@@ -46,5 +46,13 @@ export const BIBLE_MARGINS: readonly BibleMargin[] = [
     "titleEn": "Somebody Started Counting the Margin",
     "zh": "页边是唯一不数的地方；你数了，它就开始排队。",
     "en": "the margin is the one place nothing is counted; count it, and it starts to queue."
+  },
+  {
+    "echo": "E214-潮候院抄本院页边开始按长短排",
+    "slug": "/bible/echo-214-the-margin-sorts-itself",
+    "titleZh": "页边开始按长短排",
+    "titleEn": "The Margin Began to Sort Itself by Length",
+    "zh": "页边自己会长出次序——不是谁排的。",
+    "en": "the margin grows an order of its own — not arranged by anyone."
   }
 ] as const;

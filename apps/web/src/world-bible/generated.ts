@@ -29074,6 +29074,156 @@ Afterwards one more line appeared in the margin, and nobody called it the eighth
 > 不数的地方不是没有人想数——是每一次有人想数，都有人把纸条夹回页边。`,
   },
   {
+    order: 214,
+    slug: 'echo-214-the-margin-sorts-itself',
+    titleZh: '页边开始按长短排',
+    titleEn: 'The Margin Began to Sort Itself by Length',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E213）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E213).',
+    markdownZh: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E213: the youngest copyist counted the margin and tucked the seven back in; nobody called the new line the eighth. This echo is about the order the margin found on its own.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E213）。
+> 页边：页边自己会长出次序——不是谁排的。
+
+---
+
+## 一 · 谁排的
+
+没有人排过页边。可放得多的纸条压在底下，放得少的浮在上面。
+**锚句**：没有人排过页边。可放得多的纸条压在底下，放得少的浮在上面。
+**Anchor sentence**: nobody ever arranged the margin. Yet slips placed often sank to the bottom, slips placed rarely rose to the top.
+
+---
+
+## 二 · 想按时间分
+
+有人想按时间分，发现每张纸条都没有日期。
+**锚句**：有人想按时间分，发现每张纸条都没有日期。
+**Anchor sentence**: someone tried to sort by time and found no slip carried a date.
+
+---
+
+## 三 · 想按长短分
+
+有人想按长短分，发现后来的纸条几乎一样短。
+**锚句**：有人想按长短分，发现后来的纸条几乎一样短。
+**Anchor sentence**: someone tried to sort by length and found the later slips were nearly all the same shortness.
+
+---
+
+## 四 · 半句的位置
+
+写半句话的那张纸条总在中间。它既不是最短，也不是最长，像一行没有写完的记号。
+**锚句**：写半句话的那张纸条总在中间。它既不是最短，也不是最长，像一行没有写完的记号。
+**Anchor sentence**: the slip with half a sentence always sat in the middle — neither the shortest nor the longest, like a mark left half written.
+
+---
+
+## 五 · 最年长者不再看
+
+最年长的抄本师不再看那些纸条。他只是每次收工时，把封皮合上一半，让那道缝隙留着。
+**锚句**：最年长的抄本师不再看那些纸条。他只是每次收工时，把封皮合上一半，让那道缝隙留着。
+**Anchor sentence**: the eldest copyist no longer looked at the slips. He only ever, at the close of work, shut the cover half way so the gap stayed open.
+
+---
+
+## 六 · 两种人等
+
+灯下的人渐渐分成两种。一种人等账簿完整，一种人等页边更满。
+**锚句**：灯下的人渐渐分成两种。一种人等账簿完整，一种人等页边更满。
+**Anchor sentence**: the people under the lamp slowly divided into two kinds — those who waited for the ledger to be complete, and those who waited for the margin to be fuller.
+
+---
+
+## 七 · Mapping（Echo No. 214 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the margin's own order · no date, no length · two kinds of waiting | 一、二、三、六 |
+| geography | the Institute's copy hall · the winter-tide month | 一、五 |
+| characters | the five copyists · the eldest copyist · the child with half sentences | 四、五 |
+| story | the margin acquires an order nobody arranged | 全篇 |
+| items | the slips · the cover gap · the ledger | 一、五 |
+| history | the 140th year after the 44th Convocation (continues E206–E213) | 纪元 |
+
+> 页边自己会长出次序——不是谁排的，是放的人多了，轻的自然浮上来。
+> The margin grows an order of its own — not arranged by anyone, only that as more slips are placed, the light ones rise.`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E213: the youngest copyist counted the margin and tucked the seven back in; nobody called the new line the eighth. This echo is about the order the margin found on its own.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E213).
+> Margin: the margin grows an order of its own — not arranged by anyone.
+
+---
+
+## One · Who Arranged It
+
+Nobody ever arranged the margin. Yet slips placed often sank to the bottom, slips placed rarely rose to the top.
+**锚句**：没有人排过页边。可放得多的纸条压在底下，放得少的浮在上面。
+**Anchor sentence**: nobody ever arranged the margin. Yet slips placed often sank to the bottom, slips placed rarely rose to the top.
+
+---
+
+## Two · Sorting by Time
+
+Someone tried to sort by time and found no slip carried a date.
+**锚句**：有人想按时间分，发现每张纸条都没有日期。
+**Anchor sentence**: someone tried to sort by time and found no slip carried a date.
+
+---
+
+## Three · Sorting by Length
+
+Someone tried to sort by length and found the later slips were nearly all the same shortness.
+**锚句**：有人想按长短分，发现后来的纸条几乎一样短。
+**Anchor sentence**: someone tried to sort by length and found the later slips were nearly all the same shortness.
+
+---
+
+## Four · Where the Half Line Sits
+
+The slip with half a sentence always sat in the middle — neither the shortest nor the longest, like a mark left half written.
+**锚句**：写半句话的那张纸条总在中间。它既不是最短，也不是最长，像一行没有写完的记号。
+**Anchor sentence**: the slip with half a sentence always sat in the middle — neither the shortest nor the longest, like a mark left half written.
+
+---
+
+## Five · The Eldest Stopped Looking
+
+The eldest copyist no longer looked at the slips. He only ever, at the close of work, shut the cover half way so the gap stayed open.
+**锚句**：最年长的抄本师不再看那些纸条。他只是每次收工时，把封皮合上一半，让那道缝隙留着。
+**Anchor sentence**: the eldest copyist no longer looked at the slips. He only ever, at the close of work, shut the cover half way so the gap stayed open.
+
+---
+
+## Six · Two Kinds of Waiting
+
+The people under the lamp slowly divided into two kinds — those who waited for the ledger to be complete, and those who waited for the margin to be fuller.
+**锚句**：灯下的人渐渐分成两种。一种人等账簿完整，一种人等页边更满。
+**Anchor sentence**: the people under the lamp slowly divided into two kinds — those who waited for the ledger to be complete, and those who waited for the margin to be fuller.
+
+---
+
+## Seven · Mapping（Echo No. 214 · world model）
+
+| Dimension | Value | Sections |
+| --- | --- | --- |
+| lore | the margin's own order · no date, no length · two kinds of waiting | I, II, III, VI |
+| geography | the Institute's copy hall · the winter-tide month | I, V |
+| characters | the five copyists · the eldest copyist · the child with half sentences | IV, V |
+| story | the margin acquires an order nobody arranged | all |
+| items | the slips · the cover gap · the ledger | I, V |
+| history | the 140th year after the 44th Convocation (continues E206–E213) | era |
+
+> The margin grows an order of its own — not arranged by anyone, only that as more slips are placed, the light ones rise.
+> 页边自己会长出次序——不是谁排的，是放的人多了，轻的自然浮上来。`,
+  },
+  {
     order: 22,
     slug: 'echo-022-the-fish-that-never-dried',
     titleZh: '里巷子晾鱼架上那条永远晾不干的鱼',
