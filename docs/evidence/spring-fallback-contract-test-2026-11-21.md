@@ -37,6 +37,21 @@ Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 8.228 s
 2. 没有 breaker 异常属性时 `cause=not-reported`（§159 不编造异常类）；
 3. 有真实异常时 `cause` = 异常类的全限定名。
 
+## §6 PortAnnouncer 契约单测（同源补齐）
+
+`8025c4e4` 给 gateway 补了 `PortAnnouncer`（proof §6 等四个服务各自写 `nexus.port-file`
+报随机端口，gateway 之前只启动不写文件导致 180s 超时）。同样用离线单测钉死：
+`services/nexus-gateway/src/test/java/dev/nexus/gateway/PortAnnouncerTest.java`
+
+```
+cd services/nexus-gateway && MAVEN_OPTS="-Xmx768m" mvn -q -o \
+  -Dtest=PortAnnouncerTest -DfailIfNoTests=false \
+  -DargLine="-Xmx512m -XX:MaxMetaspaceSize=192m" test
+```
+
+Surefire：`Tests run: 3, Failures: 0, Errors: 0, Skipped: 0`（写的端口正确 / 空白默认 no-op /
+坏路径抛 `UncheckedIOException` 而不是静默超时）。
+
 ## 结论与边界
 
 - ✅ proof §14/§9 的断言修改经静态核验 + 服务端单测确认与真实契约一致，不是骗绿。

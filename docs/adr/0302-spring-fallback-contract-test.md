@@ -26,6 +26,9 @@ C. 加服务端契约单测 + 静态核验。采用。
    钉死 HTTP 503 + `error=service_unavailable` + `service` 回显 + 诚实的 `cause`（缺失报 not-reported，
    有异常报类名）。不启 Spring 上下文、不拉 Docker。
 3. 实测：`mvn -q -o -Dtest=FallbackContractTest test` → **Tests run: 3, Failures: 0, Errors: 0**（8.228s）。
+4. 同源补齐 §6：`8025c4e4` 给 gateway 加的 `PortAnnouncer`（写随机端口供 proof 等待）也用离线
+   单测钉死——`PortAnnouncerTest.java` 3/3（端口写入正确 / 空白默认 no-op / 坏路径抛异常）。
+   至此 §6/§9/§14 三处 proof 修复点，两处有服务端单测真值、一处有静态配置核验。
 
 ## 后果
 
