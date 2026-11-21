@@ -88,6 +88,7 @@ const COPY = {
     realtimeEvents: (n: number) => ` · 本次已收到 ${n} 条事件`,
     assignTo: '交给',
     noAgent: '不点名',
+    placeholderShort: '描述要改什么…（Enter 执行）',
     placeholder: '描述要改什么（/ 聚焦，Enter 执行，Shift+Enter 换行）。选中元素后只改该区域。',
     executing: '执行中…',
     submit: '执行',
@@ -168,6 +169,7 @@ const COPY = {
     realtimeEvents: (n: number) => ` · ${n} event(s) received`,
     assignTo: 'Assign',
     noAgent: 'Unnamed',
+    placeholderShort: 'Describe the change… (Enter to run)',
     placeholder: 'Describe the change (/ to focus, Enter to run, Shift+Enter for a newline). With an element selected, only that region changes.',
     executing: 'Running…',
     submit: 'Run',
@@ -802,7 +804,9 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
           ref={inputRef}
           rows={1}
           value={prompt}
-          placeholder={c.placeholder}
+          placeholder={c.placeholderShort}
+          /* 完整教学放进 title：占位符太长会在 270px 的输入框里折成三行，被 34px 的行高裁掉半行，看着像文字重叠 */
+          title={c.placeholder}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={(e) => {
             e.stopPropagation();

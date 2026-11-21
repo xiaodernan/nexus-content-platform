@@ -30,6 +30,10 @@ import { describe, expect, it } from 'vitest';
  * **2026-11-20 §GRAPH-3 再换一次**：`36df642d…` → `2d5c08ad…`。
  * 发送栏多了一枚「让 AI 自查一遍」开关（`data-ai-review`），勾上后 `body.review=true`，
  * 设计管线会跑 draft → review → revise → 终审。多花 token、有真实行为，门该破。
+  *
+  * **2026-11-21 视觉修复**：`2d5c08ad…` → `92aa97f3…`。占位符原本 46 字，在 270px 的
+  * 输入框里折成三行、被 34px 行高裁掉半行，截图看着像文字重叠。可见占位缩到一行，
+  * 完整教学移到 `title`（悬停仍读得到），不是删掉说明。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/studio/CommandBar.tsx');
@@ -163,7 +167,7 @@ describe('§FE-61 /studio CommandBar AI 命令栏', () => {
 
   it('剥 className/cn 后全文 SHA256 守恒（2026-11-20 §GRAPH-3 自查开关重钉：2d5c08ad69bcdc2c39060a60a42c302448f40536af3bca6ede5c8bc9404821c4）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '2d5c08ad69bcdc2c39060a60a42c302448f40536af3bca6ede5c8bc9404821c4', // §GRAPH-3：新增 reviewMode 状态、双语文案、data-ai-review 开关、body.review
+      '92aa97f3185613e237526630e4c374d8a9ec9316474ed15d243e15f382ed41dd', // §GRAPH-3：新增 reviewMode 状态、双语文案、data-ai-review 开关、body.review
     );
   });
 
