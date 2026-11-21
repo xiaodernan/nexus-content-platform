@@ -1,0 +1,201 @@
+{
+  "generatedAt": "2026-11-21T19:41:58.188Z",
+  "owner": "xiaodernan",
+  "publicRepos": 16,
+  "totalBytes": 152517763,
+  "top": [
+    {
+      "name": "TypeScript",
+      "bytes": 48099975,
+      "pct": 31.54
+    },
+    {
+      "name": "Python",
+      "bytes": 36696716,
+      "pct": 24.06
+    },
+    {
+      "name": "JavaScript",
+      "bytes": 30903565,
+      "pct": 20.26
+    },
+    {
+      "name": "HTML",
+      "bytes": 18445204,
+      "pct": 12.09
+    },
+    {
+      "name": "Java",
+      "bytes": 14397468,
+      "pct": 9.44
+    },
+    {
+      "name": "CSS",
+      "bytes": 2287459,
+      "pct": 1.5
+    },
+    {
+      "name": "Shell",
+      "bytes": 582791,
+      "pct": 0.38
+    },
+    {
+      "name": "PLpgSQL",
+      "bytes": 413290,
+      "pct": 0.27
+    }
+  ],
+  "restCount": 11,
+  "restBytes": 691295,
+  "restPct": 0.45,
+  "perRepo": {
+    "ai-career-os": {
+      "Python": 4959425,
+      "TypeScript": 3915195,
+      "Java": 3754453,
+      "PLpgSQL": 67583,
+      "JavaScript": 47271,
+      "Shell": 24740,
+      "CSS": 22257,
+      "PowerShell": 13462,
+      "HTML": 9122,
+      "Dockerfile": 6220
+    },
+    "caesura": {
+      "TypeScript": 10346730,
+      "JavaScript": 3677985,
+      "HTML": 3262002,
+      "CSS": 314491,
+      "Java": 101251,
+      "Python": 14471,
+      "Dockerfile": 3940
+    },
+    "crossrealm-chronicles": {
+      "JavaScript": 10644643,
+      "Java": 922317,
+      "HTML": 596249,
+      "CSS": 173664,
+      "PowerShell": 131108,
+      "Python": 5036,
+      "Shell": 1560,
+      "Dockerfile": 1280,
+      "Batchfile": 392
+    },
+    "docs": {
+      "JavaScript": 1797985,
+      "Java": 1368074,
+      "HTML": 178130,
+      "Less": 11500,
+      "CSS": 4825,
+      "Dockerfile": 2575,
+      "Shell": 1509,
+      "FreeMarker": 1490
+    },
+    "football-os": {
+      "Python": 6354003,
+      "TypeScript": 1768426,
+      "JavaScript": 1401975,
+      "Java": 245318,
+      "CSS": 153921,
+      "Shell": 55123,
+      "PowerShell": 9826,
+      "Dockerfile": 2510,
+      "Mako": 505
+    },
+    "football-os-web": {
+      "JavaScript": 3947209,
+      "TypeScript": 3461342,
+      "Java": 43764,
+      "CSS": 11578,
+      "Python": 5592,
+      "Dockerfile": 5531,
+      "HTML": 1001
+    },
+    "linuxdo-scripts": {
+      "Vue": 344227,
+      "CSS": 47496,
+      "JavaScript": 19276,
+      "Less": 8564,
+      "Python": 3868,
+      "TypeScript": 2725,
+      "HTML": 1098
+    },
+    "main": {},
+    "minicc-codex": {
+      "Python": 7552016,
+      "JavaScript": 3344620,
+      "Java": 343695,
+      "CSS": 340535,
+      "HTML": 86905,
+      "PowerShell": 4467,
+      "Dockerfile": 3431
+    },
+    "nexus-content-platform": {
+      "TypeScript": 21632797,
+      "Java": 2202109,
+      "Python": 798117,
+      "CSS": 707898,
+      "JavaScript": 345905,
+      "PLpgSQL": 17771,
+      "Dockerfile": 1747,
+      "Shell": 1404
+    },
+    "nexus-platform": {
+      "TypeScript": 4962212,
+      "Python": 4420942,
+      "Java": 2345426,
+      "JavaScript": 1902781,
+      "Shell": 472771,
+      "PLpgSQL": 327936,
+      "CSS": 19423,
+      "Makefile": 10092,
+      "Dockerfile": 1892,
+      "Batchfile": 76
+    },
+    "specproof": {
+      "Python": 12583246,
+      "TypeScript": 2010548,
+      "CSS": 348763,
+      "Java": 334913,
+      "PowerShell": 88878,
+      "Shell": 22666,
+      "JavaScript": 18038,
+      "HTML": 8227,
+      "Lua": 2665,
+      "Go": 2223,
+      "Dockerfile": 824
+    },
+    "ted": {
+      "HTML": 7084361,
+      "JavaScript": 1835675,
+      "Java": 1368074,
+      "CSS": 43419,
+      "Less": 11500,
+      "Dockerfile": 2575,
+      "Shell": 1509,
+      "FreeMarker": 1490,
+      "Roff": 552,
+      "Batchfile": 94
+    },
+    "teedyyyy": {
+      "HTML": 7066918,
+      "JavaScript": 1835675,
+      "Java": 1368074,
+      "CSS": 43419,
+      "Less": 11500,
+      "Dockerfile": 2575,
+      "Shell": 1509,
+      "FreeMarker": 1490,
+      "Batchfile": 94
+    },
+    "xiaodernan": {
+      "JavaScript": 2717
+    },
+    "xiaodernan.github.io": {
+      "HTML": 151191,
+      "JavaScript": 81810,
+      "CSS": 55770
+    }
+  },
+  "source": "GitHub REST API /users/{owner}/repos + /repos/{owner}/{repo}/languages"
+}
