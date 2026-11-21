@@ -260,6 +260,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E207-潮候院抄本院荒年冬天抄本师们读出四十二道潮印里有三道是一个人写的': 'echo-207-three-of-one-hands',
   'E208-潮候院抄本院那本自己翻到第七十二页的册子': 'echo-208-ledger-page-seventy-two',
   'E209-潮候院抄本院那本册子翻过第七十二页之后': 'echo-209-page-seventy-three',
+  'E210-潮候院抄本院抄本师们把那道浅痕抄成了第四十三道': 'echo-210-forty-third',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
