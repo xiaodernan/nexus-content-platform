@@ -4,7 +4,6 @@
   "prompt": "把 Hero 的主标题改成 72px",
   "modelClass": "balanced",
   "variants": 1,
-  "review": false,
   "context": {
     "projectId": "fx_project",
     "pageId": "fx009",

@@ -582,8 +582,13 @@ export const AiRequestSchema = z.object({
    * 默认 false——它会主动多打 1–3 次 provider 调用，是用户有意识选择的 token 预算。
    * 服务端还有个全局开关 `NEXUS_LLM_DESIGN_REVIEW`，两者是「或」关系：
    * 全局开=所有请求都审；单请求开=只在这一轮多花。默认关=零回归。
+   *
+   * 用 optional 而不是 .default(false)：`.default()` 会把 zod 的**输出**类型变成必填，
+   * 于是所有手写 AiRequest 字面量（路由、测试夹具）都得补一个 review:false，
+   * 明明是后加的开关却逼着十几个调用点改签名。服务端 `payload.get("review")` 读不到就是关闭，
+   * 语义与默认 false 完全一致。
    */
-  review: z.boolean().default(false),
+  review: z.boolean().optional(),
   context: DesignContextSchema,
   /** 参考图（§30）：data url 或资产 id */
   references: z.array(z.object({ assetId: z.string().optional(), dataUrl: z.string().optional(), kind: z.enum(['screenshot', 'photo', 'moodboard', 'url']).default('screenshot') })).default([]),

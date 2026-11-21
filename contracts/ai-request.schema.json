@@ -83,7 +83,6 @@
       "maximum": 4
     },
     "review": {
-      "default": false,
       "type": "boolean"
     },
     "context": {

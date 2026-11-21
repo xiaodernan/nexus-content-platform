@@ -30,6 +30,7 @@ import { cn } from '@/lib/cn';
 import { patchLore } from '@/lib/worldLore';
 import type { Locale } from '@/lib/i18n';
 import { chatWithCharacter } from '@/server/ai/client';
+import { parseWorldFillReply } from '@/lib/worldFill';
 import { useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';
 import { WORLD_KIND_LABELS_EN } from '@nexus/world-model';
@@ -51,6 +52,11 @@ const COPY = {
     summaryAria: '世界概述',
     aiGen: 'AI 生成概述',
     aiGenBusy: '生成中…',
+    aiFill: 'AI 填充这一节',
+    aiFillBusy: '填充中…',
+    aiFillTitle: (kind: string) => `真调用一次 provider，给「${kind}」补 1–2 条可编辑的条目：只依据这个世界的概述与已有条目，不编数字、不写模型话术；结果是可撤销的逐条写入。没配 provider 就如实报错，不假生成。`,
+    aiFillDone: (kind: string, n: number) => `已给「${kind}」补 ${n} 条，改完失焦即写库。`,
+    aiFillNone: '模型没有返回可用条目——可能是格式不对或 provider 不可用；没有写入任何东西。',
     tidalTerrainHeading: '地形（可走的圆台与坡）',
     mesaOption: '台面（硬边）',
     coneOption: '坡（线性降到 0）',
@@ -128,6 +134,11 @@ const COPY = {
     summaryAria: 'World summary',
     aiGen: 'AI generate summary',
     aiGenBusy: 'Generating…',
+    aiFill: 'AI fill this section',
+    aiFillBusy: 'Filling…',
+    aiFillTitle: (kind: string) => `One real provider call adds 1–2 editable entries to ${kind}, grounded only in this world's summary and existing entries — no invented numbers, no model chatter. Each entry is written as its own save. Without a provider the error is shown honestly; nothing is faked.`,
+    aiFillDone: (kind: string, n: number) => `Added ${n} entries to ${kind}; each saves when you leave the field.`,
+    aiFillNone: 'The model returned no usable entries — wrong shape or provider unavailable. Nothing was written.',
 eraPlaceholder: 'Grey Lantern Era',
     memoryEchoPlaceholder: 'Memory echo: the sensory trace of that moment (sound / taste / touch / light) — not plot, a scar',
 tidalTerrainHeading: 'Terrain (walkable plateaus and cones)',
@@ -272,6 +283,52 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
       setAiGenError(String((e as Error)?.message ?? e).slice(0, 200));
     } finally {
       setAiGen(false);
+    }
+  };
+
+  // §44 填料：按当前下拉选中的那一节补 1–2 条。真 provider 调用；解析不出合法条目就一条不写，
+  // 不能把模型话术当设定塞进用户的世界（§159）。
+  const [aiFillBusy, setAiFillBusy] = useState(false);
+  const [aiFillNote, setAiFillNote] = useState('');
+  const fillSection = async () => {
+    const doc = world;
+    if (!doc || aiFillBusy) return;
+    setAiFillBusy(true);
+    setAiFillNote('');
+    try {
+      const existing = doc.nodes.filter((n) => n.kind === newKind).map((n) => n.title);
+      // 走 web 自己的 API 路由：浏览器直接 import server/ai/client 会读不到 process.env，
+      // 而且跨域打 ai-service 会被 CORS 挡成 TypeError（已经踩过一次）。
+      const res = await fetch('/api/ai/world-fill', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          locale,
+          worldName: doc.name,
+          summary: doc.summary || '',
+          kind: kindLabel(newKind, locale),
+          existingTitles: existing,
+        }),
+      });
+      const body = (await res.json().catch(() => null)) as { text?: string; message?: string } | null;
+      if (!res.ok || typeof body?.text !== 'string') {
+        setAiFillNote(locale === 'zh' ? `AI 调用未成功：${body?.message ?? `HTTP ${res.status}`}` : `AI call failed: ${body?.message ?? `HTTP ${res.status}`}`);
+        return;
+      }
+      const entries = parseWorldFillReply(body.text);
+      if (entries.length === 0) {
+        setAiFillNote(c.aiFillNone);
+        return;
+      }
+      let next = doc;
+      for (const entry of entries) next = addWorldNode(next, { kind: newKind, title: entry.title, body: entry.body });
+      worldStore.setLocal(next);
+      void worldStore.commit();
+      setAiFillNote(c.aiFillDone(kindLabel(newKind, locale), entries.length));
+    } catch (e) {
+      setAiFillNote(String((e as Error)?.message ?? e).slice(0, 200));
+    } finally {
+      setAiFillBusy(false);
     }
   };
 
@@ -560,7 +617,18 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
           >
             {c.addOne}
           </button>
+          <button
+            type="button"
+            onClick={() => void fillSection()}
+            disabled={aiFillBusy}
+            title={c.aiFillTitle(kindLabel(newKind, locale))}
+            data-world-ai-fill={newKind}
+            className="wd-ghostBtn"
+          >
+            {aiFillBusy ? c.aiFillBusy : c.aiFill}
+          </button>
         </div>
+        {aiFillNote ? <p className="wd-body11Mt2" data-world-ai-fill-note>{aiFillNote}</p> : null}
         <p className="wd-body11Mt2" data-world-note>
           {c.editsNote}
           {groups.length < WORLD_KINDS.length
