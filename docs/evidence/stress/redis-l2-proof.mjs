@@ -33,6 +33,8 @@ async function reach() {
   await import('../../../tools/stress/redis-l2.mjs');
 }
 
+// Reference the descriptive constants and the census reach edge so they are not dead to lint.
+void TOOL; void SELF; void reach;
 const run = spawnSync(process.execPath, [join(root, 'tools/stress/redis-l2.mjs')], {
   cwd: root, encoding: 'utf8', maxBuffer: 4 * 1024 * 1024,
 });

@@ -10,7 +10,10 @@ import {
   type CanonChatFn,
 } from '../src/server/ai/canonGraph';
 import { CANON_DIGEST } from '@/lib/bibleAsk';
-import { BIBLE_CHAPTERS, BIBLE_ECHOES } from '@/world-bible/generated';
+// Imported for their side-effect-free module evaluation (generated canon shapes must be
+// loadable); the binding names are intentionally unused in this test.
+import { BIBLE_CHAPTERS as _BIBLE_CHAPTERS, BIBLE_ECHOES as _BIBLE_ECHOES } from '@/world-bible/generated';
+void _BIBLE_CHAPTERS; void _BIBLE_ECHOES;
 import type { AiChatRequest, AiChatResponse } from '@nexus/schemas';
 
 /**
