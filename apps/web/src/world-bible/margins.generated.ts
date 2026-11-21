@@ -6,6 +6,9 @@ export interface BibleMargin {
   readonly echo: string;
   /** 回响在典籍室里的地址 */
   readonly slug: string;
+  /** 该回响的题名（中英各一，逐字来自文件首行） */
+  readonly titleZh: string;
+  readonly titleEn: string;
   readonly zh: string;
   readonly en: string;
 }
@@ -15,18 +18,24 @@ export const BIBLE_MARGINS: readonly BibleMargin[] = [
   {
     "echo": "E210-潮候院抄本院抄本师们把那道浅痕抄成了第四十三道",
     "slug": "/bible/echo-210-forty-third",
+    "titleZh": "潮候院抄本院抄本师们把那道浅痕抄成了第四十三道",
+    "titleEn": "The Copyists Entered the Faint Mark as the Forty-Third",
     "zh": "这一道不是潮印，是回答。",
     "en": "this one is no tide mark, but an answer."
   },
   {
     "echo": "E211-潮候院抄本院抄本师们发现新痕不占第四十四道",
     "slug": "/bible/echo-211-not-the-forty-fourth",
+    "titleZh": "潮候院抄本院抄本师们发现新痕不占第四十四道",
+    "titleEn": "The Copyists Found the Fresh Mark Did Not Sit as the Forty-Fourth",
     "zh": "数字是用来数的，这一道不是用来数的。",
     "en": "a number is for counting; this one is not to be counted."
   },
   {
     "echo": "E212-潮候院抄本院抄本师们给那道新痕起了个不是名字的名字",
     "slug": "/bible/echo-212-not-a-name",
+    "titleZh": "抄本师们给那道新痕起了个不是名字的名字",
+    "titleEn": "The Copyists Gave the Fresh Mark a Word That Was Not a Name",
     "zh": "名字是给愿意被数的东西用的；它不愿意，那就不给。",
     "en": "a name is for a thing willing to be counted; it is not willing, so it gets none."
   }

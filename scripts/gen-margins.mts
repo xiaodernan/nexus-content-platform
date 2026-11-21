@@ -40,6 +40,17 @@ function marginsOf(file: string, re: RegExp): string[] {
     .filter((value): value is string => Boolean(value));
 }
 
+/** 回响首行标题（「」内是中文题，英文译本取冒号后那段）——与 gen-bible-snapshot 同一条解析规则。 */
+function titlesOf(zhFile: string, enFile: string): { titleZh: string; titleEn: string } {
+  const zhLines = readFileSync(zhFile, 'utf8').split(/\r?\n/);
+  const enLines = readFileSync(enFile, 'utf8').split(/\r?\n/);
+  const zhMatch = /「(.+?)」/.exec(zhLines[0] ?? '');
+  const enLine = enLines[0] ?? '';
+  const cut = enLine.lastIndexOf(': ');
+  if (!zhMatch || cut < 0) throw new Error(`无法解析回响标题：${zhFile}`);
+  return { titleZh: zhMatch[1]!, titleEn: enLine.slice(cut + 2).trim() };
+}
+
 const echoFiles = readdirSync(ECHOES_DIR)
   .filter((f) => /^E\d{2,3}-.+\.md$/.test(f) && !f.endsWith('.en.md'))
   .sort();
@@ -58,8 +69,16 @@ for (const zhName of echoFiles) {
     throw new Error(`${zhName} 有页边但没有登记网页 slug（先在 gen-bible-snapshot.mts 的 ECHO_WEB_SLUGS 里补一行）`);
   }
   const slug = `/bible/${webSlug}`;
+  const titles = titlesOf(join(ECHOES_DIR, zhName), join(ECHOES_DIR, enName));
   for (let i = 0; i < zh.length; i += 1) {
-    rows.push({ echo: zhName.replace(/\.md$/, ''), slug, zh: zh[i]!, en: en[i]! });
+    rows.push({
+      echo: zhName.replace(/\.md$/, ''),
+      slug,
+      titleZh: titles.titleZh,
+      titleEn: titles.titleEn,
+      zh: zh[i]!,
+      en: en[i]!,
+    });
   }
 }
 
@@ -71,6 +90,9 @@ export interface BibleMargin {
   readonly echo: string;
   /** 回响在典籍室里的地址 */
   readonly slug: string;
+  /** 该回响的题名（中英各一，逐字来自文件首行） */
+  readonly titleZh: string;
+  readonly titleEn: string;
   readonly zh: string;
   readonly en: string;
 }

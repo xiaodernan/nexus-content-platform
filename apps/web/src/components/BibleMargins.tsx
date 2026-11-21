@@ -90,7 +90,7 @@ export function BibleMargins({ locale }: { locale: Locale }) {
                 {shown && (
                   <p className="bm-from" data-bible-margins-from>
                     <Link href={row.slug} className="bb-footLink" data-bible-margins-echo-link>
-                      {locale === 'en' ? row.echo.replace(/^E(\d+)-/, 'Echo No. $1 · ') : `回响 ${row.echo.replace(/^E(\d+)-/, '其$一')}`}
+                      {locale === 'en' ? row.titleEn : row.titleZh}
                     </Link>
                   </p>
                 )}
