@@ -54,6 +54,10 @@ const COPY = {
     blockedBy: '这次按你的屏蔽名单过滤掉了',
     blockedSuffix: '个人的作品 ·',
     unavailableHead: '这些排序我们做不出来，不是忘了：',
+    unavailableReason: {
+      '要的是模型推荐，没有可用的推荐 provider': '要的是模型推荐，没有可用的推荐 provider',
+      '没有登录，看不到关注关系': '没有登录，看不到关注关系',
+    } as Record<string, string>,
     localeToggleHint: 'Switch to English',
   },
   en: {
@@ -74,6 +78,10 @@ const COPY = {
     blockedBy: 'Filtered out',
     blockedSuffix: 'creators you blocked ·',
     unavailableHead: 'These sorts aren’t possible yet — not by omission:',
+    unavailableReason: {
+      '要的是模型推荐，没有可用的推荐 provider': 'You asked for model picks, but no recommendation provider is configured',
+      '没有登录，看不到关注关系': 'You are not signed in, so there are no following relations to show',
+    } as Record<string, string>,
     localeToggleHint: '切换到中文',
   },
 } as const;
@@ -191,7 +199,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
         <ul className="dv-gapList">
           {result.unavailable.map((item) => (
             <li className="dv-hint11" data-discover-gap={item.key} key={item.key}>
-              · {item.key}：{item.reason}
+              · {item.key}：{copy.unavailableReason[item.reason] ?? item.reason}
             </li>
           ))}
         </ul>

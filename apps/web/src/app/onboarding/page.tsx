@@ -26,7 +26,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; footer
     guideHint: '还想看更细的？',
   },
   en: {
-    kicker: 'ONBOARDING · 上手漫游',
+    kicker: 'ONBOARDING',
     title: 'Sixty seconds, from one word to one work',
     lede: 'This is not an exam. Each step shows you the move and jumps you straight to the page — finish it and you know this land. Leave anytime, return anytime; progress stays in your browser.',
     footer: 'Missed a step? Hit “Start over” at the bottom-left. Nothing here is irreversible.',

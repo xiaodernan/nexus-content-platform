@@ -106,7 +106,7 @@ const HOME_TXT = {
     navAnalyticsTitle: 'Creative data: views, clears, follows and forecasts for your works',
     navBlocksTitle: 'Blocked & muted: manage your block list in one place',
     quickStartAria: 'Quick tour of this home screen',
-    quickStartKicker: 'QUICK START · 快速上手',
+    quickStartKicker: 'QUICK START',
     quickStartSteps: [
       { title: 'Start a project', body: 'Describe it in words or with an image in “New project” — the server assembles the context and Studio opens the canvas' },
       { title: 'Ship it', body: '@the agent or ask the model to look, edit, publish; approvals, attribution and saved versions all land in the ledger' },
