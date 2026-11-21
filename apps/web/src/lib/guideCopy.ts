@@ -45,6 +45,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         body: [
           '/discover 广场（热门/最新/ trending / 我关注的；为你推荐：AI 照你自己的实测阅读 myOpens 排；馆长批注：trending 榜前三由 AI 照三条真实指标（浏览/赞/评/转/热度分）各写一句为什么值得打开，每条必含数字）· /marketplace 组件/模板/资产市场 · /blocks 积木库 · /search 全站搜索',
           '/studio/<project> 项目主场：画布/图层/设计系统/3D · /world/<id> 走进这个世界（3D 步行）· /world/<id>/digest 世界速览 · /world/<id>/integrity 世界体检 · /world/<id>/tide 世界潮汐 · /world/<id>/almanac 世界年鉴 · /world/<id>/constellation 人物关系星图 · /world/<id>/codex 设定集（纸面投影）· /world/<id>/chronicle 编年 · /world/<id>/ephemeris 世界切片',
+          'Studio 世界面板的「AI 续写编年」会真打一次模型，只在你已经写过的纪元下面补一条故事（自造的纪元名会被丢掉，不替你发明历史分期）；新条目带纪元标签，/world/<id>/chronicle 编年页立刻能看到。',
           '/bible 典籍室：正典精读 → 《潮汐教团》十三章 + 二百零七回响；/bible/search 直达（正典本地检索）· /bible/quiz 潮汐挑战（正典问答）· /bible/well 七口井（典籍室第二个玩法）',
           '/bible 收录第三种玩法：/bible/anchors 锚句回放——1254 句中英锚句逐字回放，抢答它出自哪一章（连对 / 历史最佳本地记）',
           '/n/<handle>/<slug> 公开页（访客第一眼看到的是这一版）· /preview/<project> 同源只读镜头（发布前同一排断点与缩放）',
@@ -253,6 +254,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           '/world/<id> is the 3D walk view: WASD or arrow keys move; hold the left mouse button and drag to look around (drag up = look up); get close to an NPC and use the “Talk to the character” option that appears beside them to talk.',
           '/world/<id>/chronicle — story and history entries arranged by era (Grey-Lamp Age / Ash Age / Iron-Moon Age — whatever YOUR project’s eras are), characters and chronicle light each other up; entries can carry “memory echoes” — pure sensory etchings, ≤ 240 chars, not plot summaries.',
           '/world/<id>/digest world digest · /world/<id>/integrity world checkup (reports real issues only: era drift, missing echoes, orphan entries — no fake scoring) · /world/<id>/tide world tide · /world/<id>/ephemeris world calendar projection · /world/<id>/codex the lore tome · /world/<id>/constellation the character graph.',
+          'The Studio world panel’s “AI write chronicle” makes one real model call and adds one story under an era you have already written — invented era names are dropped, so the model never invents a period for you. The new entry carries its era tag and shows up at /world/<id>/chronicle right away.',
           'Every one of these pages is a projection of YOUR project — the world pages are not “the official story”; they are the structure of the world you drew, rendered.',
           'Fancy the canon text of this universe? Go to /bible — thirteen chapters of the Tide Conclave plus two hundred seven echoes, anchor sentences aligned word-for-word between Chinese and English.',
         ],
