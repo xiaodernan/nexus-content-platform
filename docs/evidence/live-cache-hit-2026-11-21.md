@@ -59,7 +59,26 @@ origin/main（含 §CANON-PREFIX-STABLE 修复）后的 master。
 + 叙事 + 逐字引用，而不是浅层问答；一次打进 35.8 万 token（远超用户提到的 Codex 5–9 万）
 并稳定命中 provider 前缀缓存。这同时回应"上下文太少"与"大模型能力没深入用"两项反馈。
 
-- **边界（§60 诚实）**：上述是两会话各两轮的受控读数 + 单条 world-step，不声称所有会话/所有
-  echo 增量的恒定 90%——那只由 canon prefix 字节稳定性（§CANON-PREFIX-STABLE，本合并带入：
-  头部不再含 echo 计数，新增 Echo 不 invalidate 前缀）与会话车道共同保证。更多真机多会话
-  读数见 `docs/evidence/stategraph-live-session-lane-2026-11-20.md`。
+## design-graph 真机实测（AI 改设计链路）
+
+`POST /v1/ai/design-graph`（真 StateGraph，`x-nexus-orchestration: stategraph`），用仓库
+契约 fixture `ai-request-with-index.json`（真实设计目录）+ dryRun：
+
+| 读数 | 值 |
+|---|---|
+| capability / model / demoMode | real / gpt-6.2-sol / false |
+| tokensIn | **343,146**（34.3 万 token 设计目录一次读入） |
+| reasoningTokens / toolCalls | 246 / 1 |
+| 请求 | "把选中的标题文字改成「潮候院」，其余不动" |
+| LLM 回复（逐字） | "（仅预览，未写入任何东西）当前允许的操作中没有修改文本的选项，因此无法将选中标题改为「潮候院」；未改动其他内容。" |
+| patches | `[]`（诚实拒绝，不编造补丁） |
+
+**结论**：LLM 完整读入 34.3 万 token 目录后，理解当前允许的 op 集合不含文本修改，**诚实说明
+无法执行而不是伪造一个补丁**——这正是 §159"不编造"纪律在真模型上的体现。空补丁不是 provider
+故障，而是契约边界被模型正确理解；这也说明大模型确实在深度参与设计决策，而非浅层套壳。
+
+- **边界（§60 诚实）**：上述是两会话各两轮的受控读数 + 单条 world-step + 单条 design-graph，
+  不声称所有会话/所有 echo 增量的恒定 90%——那只由 canon prefix 字节稳定性
+  （§CANON-PREFIX-STABLE，本合并带入：头部不再含 echo 计数，新增 Echo 不 invalidate 前缀）
+  与会话车道共同保证。更多真机多会话读数见
+  `docs/evidence/stategraph-live-session-lane-2026-11-20.md`。
