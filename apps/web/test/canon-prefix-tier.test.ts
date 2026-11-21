@@ -36,10 +36,10 @@ describe('§CTX-TIER 轻量身份前缀', () => {
   it('两种语言各自成篇：不中英夹杂', () => {
     const zh = canonIdentityPrelude('zh', LABEL);
     const en = canonIdentityPrelude('en', LABEL);
-    expect(zh).toContain('纪律：');
+    expect(zh).toContain('语气克制、平实');
     expect(zh).not.toContain('Rules:');
     expect(en).toContain('Rules:');
-    expect(en).not.toContain('纪律：');
+    expect(en).not.toContain('语气克制、平实');
   });
 
   it('数字纪律与「数据不足」 guard 都在', () => {
@@ -58,7 +58,7 @@ describe('§CTX-TIER 轻量身份前缀', () => {
   });
 });
 
-describe('§CTX-TIER 路由分流', () => {
+describe('§CTX-TIER 数据复核去向', () => {
   const DATA_REVIEW_ROUTES = [
     'app/api/admin/observer/digest/route.ts',
     'app/api/ai/deep-read/route.ts',
