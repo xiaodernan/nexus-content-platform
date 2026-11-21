@@ -28,8 +28,16 @@
  * **清理**：`dispose()` 用 `disconnect()`（不是 `quit()`，对从没连上过的死连接 quit 会吊住进程退出），
  * 幂等；两条连接的 `error` 事件都在构造时挂常驻监听（否则 Node 里 uncaught exception 带崩进程）。
  */
-/** 频道名带版本段：将来换帧格式，旧实例的帧因版本不符被丢，而不是被误读。 */
-export const DISCOVER_INVALIDATE_CHANNEL = 'nexus:discover-invalidate:v1';
+/**
+ * 频道名带版本段：将来换帧格式，旧实例的帧因版本不符被丢，而不是被误读。
+ *
+ * 2026-11-21 分频道：本总线发的是 `{v:1,origin,viewerIds,global?}`（§SC-44），
+ * `server/cache/discoverInvalidation.ts` 发的是 `{v,origin,at,nonce}`（ADR-0102）。
+ * 两者原先共用 `nexus:discover-invalidate:v1`，生产日志里互相把对方的帧记成
+ * 「失效帧不合契」丢弃——互相不污染状态，但每笔发布都刷警告、白烧两次 JSON.parse。
+ * 这里给 viewer 定向帧独立频道；ADR-0102 那条缓存总线频道保持不变（老部署仍认它）。
+ */
+export const DISCOVER_INVALIDATE_CHANNEL = 'nexus:discover-invalidate:viewers:v1';
 
 /** 单帧最多带多少个 viewerId，防一条恶意大帧让所有实例的 generation 表抖动。 */
 export const MAX_VIEWERS_PER_FRAME = 128;
