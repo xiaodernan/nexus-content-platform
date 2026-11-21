@@ -40,7 +40,26 @@ origin/main（含 §CANON-PREFIX-STABLE 修复）后的 master。
 **结论**：两条并行会话交错打不同问题，各自第二轮都 100% 命中、没有因夹入另一会话而掉回 0%。
 这正是用户描述的"中途突然掉缓存"场景的修复验证——session cacheLane（ADR 0296）在真机生效。
 
-- **边界（§60 诚实）**：上述是两会话各两轮的受控读数，不声称所有会话/所有 echo 增量的恒定
-  90%——那只由 canon prefix 字节稳定性（§CANON-PREFIX-STABLE，本合并带入：头部不再含
-  echo 计数，新增 Echo 不 invalidate 前缀）与会话车道共同保证。更多真机多会话读数见
-  `docs/evidence/stategraph-live-session-lane-2026-11-20.md`。
+## world-step 状态流转真机实测（用户"大模型能力深度嵌入 + 上下文太少"）
+
+`POST /v1/ai/world-step`，真实状态图编排（`x-nexus-orchestration: stategraph`），locale=zh，
+一次潮候步进（门口站一夜看那盏从不写名的灯）：
+
+| 读数 | 值 |
+|---|---|
+| capability / model / demoMode | real / gpt-6.2-sol / false |
+| x-nexus-orchestration | stategraph |
+| tokensIn | **358,555**（≈35.8 万 token 单次上下文） |
+| toolCalls / reasoningTokens | 2 / 474 |
+| LLM 结构化 delta | `{vigor:-1, depth:1, seals:[], unlocks:["E162"], risk:"uneasy"}` |
+| canon guard | unlocks 指向真实 Echo #162（那盏灯），非编造 |
+| 同请求缓存复测 | 358,555 / 358,555 = **100%**，latency 31ms → 0ms |
+
+**结论**：大模型真正作为世界状态流转分析层工作——输出结构化 delta（体力/深度/印记/解锁/风险）
++ 叙事 + 逐字引用，而不是浅层问答；一次打进 35.8 万 token（远超用户提到的 Codex 5–9 万）
+并稳定命中 provider 前缀缓存。这同时回应"上下文太少"与"大模型能力没深入用"两项反馈。
+
+- **边界（§60 诚实）**：上述是两会话各两轮的受控读数 + 单条 world-step，不声称所有会话/所有
+  echo 增量的恒定 90%——那只由 canon prefix 字节稳定性（§CANON-PREFIX-STABLE，本合并带入：
+  头部不再含 echo 计数，新增 Echo 不 invalidate 前缀）与会话车道共同保证。更多真机多会话
+  读数见 `docs/evidence/stategraph-live-session-lane-2026-11-20.md`。
