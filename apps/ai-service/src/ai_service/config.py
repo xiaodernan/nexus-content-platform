@@ -23,11 +23,15 @@ MODEL_CLASS_ENV = {
 LLM_MODEL_CLASSES = ("fast", "balanced", "reasoning", "vision")
 EMBEDDING_MODEL_CLASSES = ("embedding",)
 
+# 默认模型一律 gpt-6.2-sol（用户 2026-11-20/21 明示：模型名一律用这个）。
+# 运行期由 .env 的 NEXUS_MODEL_* 覆盖；这里的默认值是「没配 env 时也会打对模型」的兜底，
+# 不能再用已不可达的 gpt-4o 家族——否则新部署或干净环境会静默打一个不存在的模型。
+# embedding 保留 provider 默认：该网关无 embedding 模型时用 NEXUS_MODEL_EMBEDDING=none 显式 opt-out。
 DEFAULT_MODELS = {
-    "fast": "gpt-4o-mini",
-    "balanced": "gpt-4o",
-    "reasoning": "gpt-4o",
-    "vision": "gpt-4o",
+    "fast": "gpt-6.2-sol",
+    "balanced": "gpt-6.2-sol",
+    "reasoning": "gpt-6.2-sol",
+    "vision": "gpt-6.2-sol",
     "embedding": "text-embedding-3-small",
 }
 

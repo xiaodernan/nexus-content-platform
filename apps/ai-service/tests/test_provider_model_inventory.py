@@ -147,3 +147,27 @@ def test_arm_legitimate_rename_stays_green() -> None:
         "NEXUS_MODEL_EMBEDDING": "none",
     })
     _judge_llm_scope(["a-brand-new-chat-model"], settings)  # 不红 = 门不惩罚正当改名
+
+
+# ── 默认模型名门（2026-11-21）：没配 env 时也必须打当前模型，不能回落到已下线的旧家族 ──
+
+CURRENT_TEXT_MODEL = "gpt-6.2-sol"
+
+
+def test_default_text_models_are_the_current_provider_model() -> None:
+    """运行期 .env 覆盖之前，DEFAULT_MODELS 的四个文本档必须都是用户指定的当前模型。
+
+    历史 bug：四档默认是 gpt-4o/gpt-4o-mini，只有 .env 在场时才对；干净环境或
+    新部署会静默打一个网关上不存在的模型。此门把「模型名一律 gpt-6.2-sol」钉在真值上。
+    """
+    for cls in TEXT_CLASSES:
+        assert DEFAULT_MODELS[cls] == CURRENT_TEXT_MODEL, (
+            f"文本档 {cls} 默认模型 {DEFAULT_MODELS[cls]!r} 不是当前模型 {CURRENT_TEXT_MODEL!r}"
+        )
+
+
+def test_default_text_model_names_contain_no_stale_gpt4o_family() -> None:
+    """任何 gpt-4o 家族残留都不该再出现在文本档默认值里。"""
+    stale = [f"{cls}={DEFAULT_MODELS[cls]}" for cls in TEXT_CLASSES
+             if "gpt-4o" in str(DEFAULT_MODELS[cls])]
+    assert not stale, f"文本档默认值残留旧模型家族：{stale}"
