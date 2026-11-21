@@ -151,7 +151,10 @@ function maskLiterals(expr: string): string {
  * ——英文首页不再出现中文泄漏文案。刻意不改动任何 className / 业务逻辑；SHA256 是对 JSX 片段 redactClassNames 之后的全文哈希。
  * 2026-11-18 合并 origin/main（潮汐典籍室 · 快速上手条 · 导航 title 双语）：双快捷入口与教学说明条同merge（hp-navItem 包住外加 nav*Title），SHA 整体重钉。
  */
-const STRIP_CLASS_SHA256 = 'e9c294b2ca2150a00c1a88fe7c1713de6c80cf6baac754a3e586ed2faf8cfe31';
+// 2026-11-21 §I18N-NO-MIX：有意改了两处 quickStartKicker 文案（去掉「中文 · ENGLISH」
+// 并列夹杂，见 test/i18n-no-mix.test.ts），因此剥类后的字节基准随之更新。除此之外
+// 三态 / 四个 map / data 钩子 / 业务调用一个字节没动——这是登记过的文案变更，不是行为溢出。
+const STRIP_CLASS_SHA256 = 'b7ef669bda369378055c0c475c9835f383043752d76c34f83b1b5a663118771d';
 function stripClassNames(src: string): string {
   const s = src.replace(/\r\n/g, '\n');
   let out = '';
