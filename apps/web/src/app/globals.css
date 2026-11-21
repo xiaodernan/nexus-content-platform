@@ -2002,6 +2002,9 @@
   .wd-row1 { display: flex; align-items: center; gap: var(--nexus-space-1); }
   .wd-row2 { display: flex; align-items: center; gap: var(--nexus-space-2); }
   .wd-rowMt1 { margin-top: var(--nexus-space-1); display: flex; align-items: center; gap: var(--nexus-space-1); }
+  /* 底部 AI 按钮多，窄面板里一行放不下就换行；按钮本身不许被 flex 压缩成单字竖条 */
+  .wd-aiRow { margin-top: var(--nexus-space-1); display: flex; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-1); }
+  .wd-aiRow > button { flex: 0 0 auto; white-space: nowrap; }
   .wd-wrapCenter1 { margin-top: var(--nexus-space-1); display: flex; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-1); }
   .wd-end { margin-left: auto; }
   .wd-label { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); text-transform: uppercase; letter-spacing: 0.05em; color: var(--nexus-color-fg-3); }

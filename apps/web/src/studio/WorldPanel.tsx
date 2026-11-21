@@ -859,7 +859,7 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
         <TerrainSection world={world} edit={edit} c={c} />
         <TideSection world={world} edit={edit} c={c} />
 
-        <div className="wd-rowMt1">
+        <div className="wd-aiRow" data-world-ai-row>
           <select
             value={newKind}
             onChange={(e) => setNewKind(e.target.value as WorldKind)}
