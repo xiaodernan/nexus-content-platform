@@ -111,6 +111,20 @@ export function fillableKinds(
   return kinds.filter((k) => !nodes.some((n) => n.kind === k && (n.body || '').trim().length > 0));
 }
 
+/** 限流回执的可读化：服务端已给 retryAfterMs，就必须把还要等多久说出来，不能只写"稍后"。 */
+export function formatWorldFillError(
+  message: string,
+  retryAfterMs: number | undefined,
+  locale: 'zh' | 'en',
+): string {
+  const wait = typeof retryAfterMs === 'number' && retryAfterMs > 0
+    ? locale === 'zh'
+      ? `（还需约 ${Math.ceil(retryAfterMs / 60_000)} 分钟）`
+      : ` (about ${Math.ceil(retryAfterMs / 60_000)} min left)`
+    : '';
+  return `${message}${wait}`;
+}
+
 export function parseLinkReply(text: string, candidateIds: readonly string[]): { toId: string; label: string } | null {
   const cleaned = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
   let obj: unknown;

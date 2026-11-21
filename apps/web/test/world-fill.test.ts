@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { fillableKinds, parseChronicleReply, parseEchoReply, parseLinkReply, parseWorldFillReply, retrieveWorldContext } from '../src/lib/worldFill';
+import { fillableKinds, formatWorldFillError, parseChronicleReply, parseEchoReply, parseLinkReply, parseWorldFillReply, retrieveWorldContext } from '../src/lib/worldFill';
 
 /**
  * §44 世界填料的入口门。宁可少收一条，也不把模型话术当设定写进用户的世界文档：
@@ -91,6 +91,7 @@ describe('WorldPanel 四种填料按钮接线（web 侧限流期间的静态保�
       ['data-world-ai-fill-all', 'fillAllEmpty', 'WORLD_KINDS.filter'],
       ['data-world-ai-fill', 'retrieveWorldContext(doc.nodes', 'retrieveWorldContext'],
       ['data-world-fate-keep', 'keepFateCard', '非模型生成'],
+      ['data-world-ai-fill', 'failReason(body', 'formatWorldFillError'],
     ] as const) {
       expect(panel, hook).toContain(hook);
       expect(panel, flag).toContain(flag);
@@ -141,5 +142,16 @@ describe('worldFill · RAG-lite 世界证据检索', () => {
   });
   it('空查询返回空证据', () => {
     expect(retrieveWorldContext(nodes, '   ', 3)).toEqual([]);
+  });
+});
+
+describe('worldFill · 限流等待时间可读化', () => {
+  it('中文回执带还需几分钟', () => {
+    expect(formatWorldFillError('填料太频繁了', 1_260_000, 'zh')).toBe('填料太频繁了（还需约 21 分钟）');
+  });
+  it('英文回执带 min left；缺 retryAfterMs 不编等待时间', () => {
+    expect(formatWorldFillError('Rate limited', 60_000, 'en')).toBe('Rate limited (about 1 min left)');
+    expect(formatWorldFillError('Rate limited', undefined, 'en')).toBe('Rate limited');
+    expect(formatWorldFillError('Rate limited', 0, 'zh')).toBe('Rate limited');
   });
 });

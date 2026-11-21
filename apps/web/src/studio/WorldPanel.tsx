@@ -31,7 +31,7 @@ import { cn } from '@/lib/cn';
 import { patchLore } from '@/lib/worldLore';
 import type { Locale } from '@/lib/i18n';
 import { chatWithCharacter } from '@/server/ai/client';
-import { fillableKinds, parseChronicleReply, parseEchoReply, parseLinkReply, parseWorldFillReply, retrieveWorldContext } from '@/lib/worldFill';
+import { fillableKinds, formatWorldFillError, parseChronicleReply, parseEchoReply, parseLinkReply, parseWorldFillReply, retrieveWorldContext } from '@/lib/worldFill';
 import { rollFate, type FateCard } from '@/lib/worldFate';
 import { useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';
@@ -294,6 +294,11 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
 
   const counts = useMemo(() => (world ? worldCounts(world) : null), [world]);
 
+  /** 限流回执里服务端已给 retryAfterMs，界面要说清还要等多久，别只说"稍后"。 */
+  const failReason = (body: { message?: string; retryAfterMs?: number } | null, status: number, zh: string, en: string): string => {
+    return formatWorldFillError(`${locale === 'zh' ? zh : en}${body?.message ?? `HTTP ${status}`}`, body?.retryAfterMs, locale);
+  };
+
   // AI 生成概述：草稿（summary，可为空）+ 计数投喂给真 provider，结果写回 summary（setLocal + commit，落库）。
   // 任何失败原样展示，不吞；没有 provider 时 chatWithCharacter 抛/报错，也如实。
   const [aiGen, setAiGen] = useState(false);
@@ -359,9 +364,9 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
           context: retrieveWorldContext(doc.nodes, `${doc.summary || ''} ${kindLabel(kind, locale)}`, 3),
         }),
       });
-      const body = (await res.json().catch(() => null)) as { text?: string; message?: string } | null;
+      const body = (await res.json().catch(() => null)) as { text?: string; message?: string; retryAfterMs?: number } | null;
       if (!res.ok || typeof body?.text !== 'string') {
-        setAiFillNote(locale === 'zh' ? `AI 调用未成功：${body?.message ?? `HTTP ${res.status}`}` : `AI call failed: ${body?.message ?? `HTTP ${res.status}`}`);
+        setAiFillNote(failReason(body, res.status, 'AI 调用未成功：', 'AI call failed: '));
         return false;
       }
       const entries = parseWorldFillReply(body.text);
@@ -459,9 +464,9 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
           chronicle: true,
         }),
       });
-      const body = (await res.json().catch(() => null)) as { text?: string; message?: string } | null;
+      const body = (await res.json().catch(() => null)) as { text?: string; message?: string; retryAfterMs?: number } | null;
       if (!res.ok || typeof body?.text !== 'string') {
-        setChronicleNote(locale === 'zh' ? `续写未成功：${body?.message ?? `HTTP ${res.status}`}` : `Write failed: ${body?.message ?? `HTTP ${res.status}`}`);
+        setChronicleNote(failReason(body, res.status, '续写未成功：', 'Write failed: '));
         return;
       }
       const entry = parseChronicleReply(body.text, eras);
@@ -500,9 +505,9 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
           kind: kindLabel('lore', locale), focusTitle: node.title, focusBody: node.body, echo: true,
         }),
       });
-      const body = (await res.json().catch(() => null)) as { text?: string; message?: string } | null;
+      const body = (await res.json().catch(() => null)) as { text?: string; message?: string; retryAfterMs?: number } | null;
       if (!res.ok || typeof body?.text !== 'string') {
-        setEchoNote(locale === 'zh' ? `写回声未成功：${body?.message ?? `HTTP ${res.status}`}` : `Echo failed: ${body?.message ?? `HTTP ${res.status}`}`);
+        setEchoNote(failReason(body, res.status, '写回声未成功：', 'Echo failed: '));
         return;
       }
       const memory = parseEchoReply(body.text);
@@ -552,9 +557,9 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
           link: true, candidates,
         }),
       });
-      const body = (await res.json().catch(() => null)) as { text?: string; message?: string } | null;
+      const body = (await res.json().catch(() => null)) as { text?: string; message?: string; retryAfterMs?: number } | null;
       if (!res.ok || typeof body?.text !== 'string') {
-        setLinkNote(locale === 'zh' ? `牵线未成功：${body?.message ?? `HTTP ${res.status}`}` : `Link failed: ${body?.message ?? `HTTP ${res.status}`}`);
+        setLinkNote(failReason(body, res.status, '牵线未成功：', 'Link failed: '));
         return;
       }
       const picked = parseLinkReply(body.text, candidates.map((c) => c.id));
