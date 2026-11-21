@@ -130,7 +130,16 @@ export async function POST(
     //  kill-switch：NEXUS_CHARACTER_CHAT_CANON_PREFIX=0 关掉（成本开关，不是行为开关）。
     const withCanonPrefix = (process.env.NEXUS_CHARACTER_CHAT_CANON_PREFIX ?? '1') !== '0';
 
-    const chatResult = await runCharacterChatGraph({ persona, turn, locale, withCanonPrefix });
+    // §CACHE-SESSION：车道用这次请求带来的 sessionId（前端每挂载换一个，跨轮不变）。
+    // 不传就回落到按 system 派生的 sticky 键——但那正是多会话共用一条前缀、互相挤出
+    // 命中（实测从 94% 掉回 0%）的那条老路。
+    const chatResult = await runCharacterChatGraph({
+      persona,
+      turn,
+      locale,
+      withCanonPrefix,
+      cacheLane: sessionId?.trim() || undefined,
+    });
     const durationMs = Date.now() - startedAt;
 
     if (!chatResult.ok) {

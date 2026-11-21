@@ -16,6 +16,14 @@
 - 每次重渲染都是字节一致；
 - 任何一章改一个字符 → 历次 cache miss（所以修 digest = 重新静候重灌）。
 
+### b2. 会话级车道（2026-11-20，ADR 0296）
+来源：`session_lane_key()` + chat 契约的可选 `cacheLane`。自由文本对话过去只按 `system`
+派生一条车道，同一人设的所有会话共用；真机（gpt-6.2-sol）实测一条车道上交替 A/A/B/B/A
+会把 A 从 94% 挤回 0%。角色对话现在传 `character:<id>:session:<sessionId>`，每会话一条
+稳定车道，互不相挤；不进 L2 缓存键（同一问句跨会话仍共享命中）。
+**有界**：provider 的 channel 轮转/TTL/Clash 出口抖动不受此修复控制，真机交错末次仍见过
+0%，故不宣称稳定 90%（见 ADR 0296「实测与边界」）。
+
 ### b. Sticky `prompt_cache_key`
 来源：`apps/ai-service/src/ai_service/sticky_prompt_cache.py` — `stable_material`
 - `user`（free text）= `(system, system-only)`

@@ -192,7 +192,17 @@ class CachedLlm:
     def model_for(self, model_class: str) -> str:
         return self._inner.model_for(model_class)
 
-    def complete(self, *, model: str, system: str, user: str, json_mode: bool | None = None) -> Completion:
+    def complete(
+        self,
+        *,
+        model: str,
+        system: str,
+        user: str,
+        json_mode: bool | None = None,
+        prompt_cache_key: str | None = None,
+    ) -> Completion:
+        # 会话级路由车道**不进** L2 缓存键：同一问句跨会话仍共享一次应用级命中（ADR TBD）。
+        # 它只决定 miss 时真调用钉到哪条 provider 车道，不改变"这题的答案"。
         key = LlmCompletionCache.key(model=model, system=system, user=user, json_mode=json_mode)
         started = time.monotonic()
         cached = self._cache.get(key)
@@ -209,7 +219,17 @@ class CachedLlm:
 
         def work() -> Completion:
             # 失败（ProviderFailed）从这里原样抛出，绝不 store 毒条目。
-            completion = self._inner.complete(model=model, system=system, user=user, json_mode=json_mode)
+            # 只有调用方真的钉了会话车道才转发这个 kwarg：没钉时字节级保留旧调用形状，
+            # 老 provider/测试替身（只认 model/system/user/json_mode）不受影响（零回归）。
+            if prompt_cache_key is not None:
+                completion = self._inner.complete(
+                    model=model, system=system, user=user, json_mode=json_mode,
+                    prompt_cache_key=prompt_cache_key,
+                )
+            else:
+                completion = self._inner.complete(
+                    model=model, system=system, user=user, json_mode=json_mode
+                )
             self._cache.store(key, completion)
             return completion
 

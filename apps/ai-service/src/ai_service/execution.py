@@ -404,11 +404,24 @@ async def execute_chat_request(payload: dict[str, Any], *, registry: Registry) -
     canon_prefixed = bool(payload.get("withCanonPrefix"))
     if canon_prefixed:
         system = f"{CANON_PREFIX}\n{system}"
+    # §CACHE-SESSION：会话级路由车道，让同一会话跨轮钉在同一条 provider 前缀缓存上，
+    # 不同会话互不挤占（实测共享 lane 交错 → 命中从 94% 掉回 0%）。省略则回落自动 sticky 键。
+    from .sticky_prompt_cache import session_lane_key
+
+    lane = session_lane_key(payload.get("cacheLane"))
     try:
         # 客服对话不是 JSON 任务：response_format=json_object 会被 provider 拒
         #（协议要求内容里出现 'json' 字面），所以 chat 显式关 json_mode（v690）。
+        def call() -> object:
+            # 没钉车道就字节级保留旧调用形状（老 provider/替身零回归）。
+            if lane is None:
+                return registry.llm.complete(model=model, system=system, user=user, json_mode=False)
+            return registry.llm.complete(
+                model=model, system=system, user=user, json_mode=False, prompt_cache_key=lane
+            )
+
         completion = await anyio.to_thread.run_sync(
-            lambda: registry.llm.complete(model=model, system=system, user=user, json_mode=False)
+            call
         )
     except ProviderFailed as exc:
         return (502, error("provider-failed", str(exc), retryable=True))

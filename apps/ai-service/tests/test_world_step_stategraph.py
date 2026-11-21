@@ -20,6 +20,23 @@ import anyio
 
 from ai_service import world_step_stategraph as ws
 
+
+def _future_echo() -> str:
+    """一个格式合法但典籍里不存在的回响号——随正典增长自动前移，不再写死 E177/E180。
+
+    测试最初把 E177/E180 当"未来回响"，但它们随并行 lane 补录（现已到 E205）变成了真实回响，
+    两条门因此假红。判据是"digest 里是否存在"，所以夹具也必须从同一 digest 派生，而不是
+    硬编码一个迟早会被补录的号码（ADR 0110 同源纪律）。
+    """
+    existing = ws._existing_echo_numbers()
+    for n in range(100, 300):  # _UNLOCK_RE 接受 E[12][0-9]{2}
+        if n not in existing:
+            return f"E{n}"
+    raise AssertionError("正典已占满 E100–E299；请扩展 _UNLOCK_RE 的量级")
+
+
+_FUTURE = _future_echo()
+
 ANALYZE_OK = json.dumps(
     {"intent": "action", "stakes": "high", "hooks": ["灯", "潮候院"]},
     ensure_ascii=False,
@@ -32,9 +49,9 @@ REPLY_OK = json.dumps(
             "vigor": 9,          # 越界 → 必须夹到 3
             "depth": -7,         # 越界 → 必须夹到 -3
             "seals": ["潮候印"],
-            # E162 存在；E99999 远超现有回响编号（canon 已扩到 #207，不能再硬编码 E177 当"不存在"）；
-            # E999 格式非法。三个形状各测一条剔除分支。
-            "unlocks": ["E162", "E99999", "E999"],
+
+            "unlocks": ["E162", _FUTURE, "E999"],  # E162 存在；_FUTURE 随正典派生、必不存在；E999 格式非法
+
             "risk": "STORM",
         },
         "citations": [
@@ -205,7 +222,9 @@ def test_world_step_canon_guard_drops_unlocks_not_in_digest():
     reply = json.dumps(
         {
             "narration": "潮候院只许翻到真实存在的那一页。",
-            "delta": {"vigor": 1, "depth": 0, "seals": ["盐印"], "unlocks": ["E99999"], "risk": "uneasy"},
+
+            "delta": {"vigor": 1, "depth": 0, "seals": ["盐印"], "unlocks": [_FUTURE], "risk": "uneasy"},
+
             "citations": [],
         },
         ensure_ascii=False,
@@ -213,4 +232,6 @@ def test_world_step_canon_guard_drops_unlocks_not_in_digest():
     registry = FakeRegistry(FakeLLM([ANALYZE_OK, reply]))
     status, body = run(registry, valid_payload())
     assert status == 200
-    assert body["delta"]["unlocks"] == [], "E99999 不在 canon digest 里（未来回响），必须剔除"
+
+    assert body["delta"]["unlocks"] == [], f"{_FUTURE} 不在正典 digest 里，必须剔除"
+

@@ -7,7 +7,7 @@ import { getAiCapabilities } from '@/lib/env';
 import { chatWithCharacter } from '@/server/ai/client';
 import { currentUserOrNull } from '@/server/domain/session';
 import { inboxKindHistogram } from '@/server/domain/notifications';
-import { canonPrelude } from '@/lib/canonPrefix';
+import { canonIdentityPrelude } from '@/lib/canonPrefix';
 
 export const dynamic = 'force-dynamic';
 
@@ -97,7 +97,7 @@ export async function POST(req: Request): Promise<Response> {
   // 字节稳定的 canon 前缀常驻 system——所有用户可见的 LLM 输出共享同一段世界前缀。
   const system = locale === 'zh'
     ? [
-        canonPrelude('zh', { zh: '--- 用户收件箱实测计数（JSON；total=全部通知，unread=未读）---', en: '' }),
+        canonIdentityPrelude('zh', { zh: '--- 用户收件箱实测计数（JSON；total=全部通知，unread=未读）---', en: '' }),
         histoJson,
         '',
         '你是 NEXUS 的"收件箱伴读"。',
@@ -110,7 +110,7 @@ export async function POST(req: Request): Promise<Response> {
         '6. 不用"建议您""亲"——直接说。',
       ].join('\n')
     : [
-        canonPrelude('en', { zh: '', en: '--- The user’s inbox as per-kind counts (JSON; total = all notifications, unread = unread) ---' }),
+        canonIdentityPrelude('en', { zh: '', en: '--- The user’s inbox as per-kind counts (JSON; total = all notifications, unread = unread) ---' }),
         histoJson,
         '',
         'You are the inbox companion for NEXUS.',

@@ -12,7 +12,29 @@ from __future__ import annotations
 import json
 
 from conftest import CONTRACTS, FakeProvider, ai_request
-from ai_service.design_prompt import MAX_TOKENS_IN_PROMPT, SYSTEM_PROMPT, build_prompt
+from ai_service.design_prompt import (
+    DEFAULT_TREE_CHARS,
+    MAX_TOKENS_IN_PROMPT,
+    MAX_TREE_CHARS_CEILING,
+    SYSTEM_PROMPT,
+    _tree_chars,
+    build_prompt,
+)
+
+
+def test_tree_chars_env_budget(monkeypatch) -> None:
+    """§CTX-BUDGET: env override is bounded and falls back to the historical default."""
+    monkeypatch.delenv("NEXUS_DESIGN_TREE_CHARS", raising=False)
+    assert _tree_chars() == DEFAULT_TREE_CHARS
+    monkeypatch.setenv("NEXUS_DESIGN_TREE_CHARS", "120000")
+    assert _tree_chars() == 120000
+    monkeypatch.setenv("NEXUS_DESIGN_TREE_CHARS", "not-a-number")
+    assert _tree_chars() == DEFAULT_TREE_CHARS
+    monkeypatch.setenv("NEXUS_DESIGN_TREE_CHARS", "999999999")
+    assert _tree_chars() == DEFAULT_TREE_CHARS  # above ceiling -> default
+    monkeypatch.setenv("NEXUS_DESIGN_TREE_CHARS", "-5")
+    assert _tree_chars() == DEFAULT_TREE_CHARS
+    assert MAX_TREE_CHARS_CEILING > DEFAULT_TREE_CHARS
 
 FIXTURE = CONTRACTS / "fixtures" / "ai-request-with-index.json"
 

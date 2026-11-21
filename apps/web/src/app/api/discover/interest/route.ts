@@ -7,7 +7,7 @@ import { getAiCapabilities } from '@/lib/env';
 import { chatWithCharacter } from '@/server/ai/client';
 import { currentUserOrNull } from '@/server/domain/session';
 import { discoverInterestSignals, type InterestSignalCard } from '@/server/domain/social';
-import { canonPrelude } from '@/lib/canonPrefix';
+import { canonIdentityPrelude } from '@/lib/canonPrefix';
 
 export const dynamic = 'force-dynamic';
 
@@ -137,7 +137,7 @@ export async function POST(req: Request): Promise<Response> {
   const user = [label, histoJson, '', tail].join('\n');
   const system = locale === 'zh'
     ? [
-        canonPrelude('zh', { zh: '--- 你正在复核的对象：这位用户真实打开过的作品记录 ---', en: '' }),
+        canonIdentityPrelude('zh', { zh: '--- 你正在复核的对象：这位用户真实打开过的作品记录 ---', en: '' }),
         '',
         '你是 NEXUS /discover 的"推荐官"。用户消息里有用户自己打开过的作品记录（JSON，全部实测——myOpens 是这个用户自己打开的次数）。',
         '',
@@ -150,7 +150,7 @@ export async function POST(req: Request): Promise<Response> {
         '5. 语言：跟随输入（此条为中文）。',
       ].join('\n')
     : [
-        canonPrelude('en', { zh: '', en: '--- What you are reviewing: the works this user actually opened ---' }),
+        canonIdentityPrelude('en', { zh: '', en: '--- What you are reviewing: the works this user actually opened ---' }),
         '',
         'You are the /discover recommendation clerk for NEXUS. The user message carries the works this user opened themselves, with measured figures (JSON; myOpens = how many times this user opened it).',
         '',

@@ -71,3 +71,29 @@ node tools/stress/redis-l2.mjs
 3. 下一次对照：transport 参数收窄（`wrk -t4 -c100` 打宿主机 `:56379`）而不是调引擎——排队归队列、吞吐归吞吐，两本账不混记。
 
 核验口径：二者针对同一 nexus-redis 容器、同一时间窗采集；benchmark 不会留下任何影响现有 `nexus:llmc` 语义的键（它写 `mykey`，但不在 `nexus:llmc` 命名空间内，且仅测试期存在）。
+
+## 复测（2026-11-21，高负载窗口）
+
+同工具在 hosted CI 多份 proof + ai-service 并发运行时复测，原文：
+
+```json
+{
+  "setMs": 3802,
+  "setKeys": 2000,
+  "setOpsPerSec": 526,
+  "serialGets": 500,
+  "serialP50ms": 26.179,
+  "serialP95ms": 77.47,
+  "serialP99ms": 148.521,
+  "pipelinedOps": 20000,
+  "pipelinedMs": 13510,
+  "pipelinedOpsPerSec": 1480,
+  "keysDeleted": 0,
+  "keysLeft": 0
+}
+```
+
+对比历史基线（3036 ops/s）：CPU 竞争激烈时 pipeline 吞吐降到 1480（约一半），
+串行 GET p99 从 38ms 升到 148ms——但**20,000 次操作全部完成、0 残留**（`keysLeft=0`，
+本轮 TTL 先到期故 `keysDeleted=0`，SCAN 二次确认仍为 0）。这就是高并发/资源竞争下
+的鲁棒性读数：性能随负载下降，正确性与清理边界不变。

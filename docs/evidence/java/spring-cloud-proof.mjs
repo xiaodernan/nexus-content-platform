@@ -726,8 +726,10 @@ const ready = spawnSync('docker', ['exec', SOURCE, 'psql', '-U', DB_USER, '-d', 
     // must learn the address from the registry. A hard-coded URL would make this section prove
     // nothing, so it is deliberately not used.
     '-DNEXUS_GATEWAY_NEXUS_API_URI=lb://nexus-api',
-    '-DNEXUS_EUREKA_ENABLED=true',
-    `-DNEXUS_EUREKA_URL=${registryBase}/eureka/`,
+    // The gateway's OWN yml reads `NEXUS_REGISTRY_ZONE` (as the load-balance harness does); the old
+    // `NEXUS_EUREKA_URL` name went dead in the java-* -> nexus-* rename (ADR-0237) and silently fell
+    // back to the 8771 default, so the gateway could never reach this proof's randomly-bound registry.
+    `-DNEXUS_REGISTRY_ZONE=${registryBase}/eureka/`,
   ]);
   const gatewayBase = `http://127.0.0.1:${gateway.port}`;
 
@@ -830,14 +832,17 @@ const ready = spawnSync('docker', ['exec', SOURCE, 'psql', '-U', DB_USER, '-d', 
 
   const edgeBreakerNames = await readBreakerMetric(
     `${gatewayBase}`, 'resilience4j.circuitbreaker.state', null);
+  // ADR-0237 one-family rename: the gateway's resilience4j breaker instances are keyed by SERVICE name
+  // (`nexus-api`, `nexus-domain-service`) in application.yml and set via GatewayConfig.setName(service).
+  // The old `nexusApiCircuitBreaker` label belonged to the pre-rename java-gateway and is gone.
   assert.ok(
-    edgeBreakerNames.names.includes('nexusApiCircuitBreaker'),
+    edgeBreakerNames.names.includes('nexus-api'),
     `the edge's running breaker must be the one its route table names; the running names were: ${JSON.stringify(edgeBreakerNames.names)}`,
   );
   console.log(
     `[§9] both breakers are visible and are named what the configuration says: nexus-api's `
     + `\`nexus-domain-service\` (closed gauge ${apiBreakerState.value}, ${apiNotPermitted.value} calls refused) and the edge's `
-    + `\`nexusApiCircuitBreaker\``,
+    + `\`nexus-api\``,
   );
 
   // ── §10 every service reports its OWN health ─────────────────────────────────────────────
@@ -1123,8 +1128,11 @@ const ready = spawnSync('docker', ['exec', SOURCE, 'psql', '-U', DB_USER, '-d', 
     60_000,
     'the gateway to answer 503 once the service behind it is gone',
   );
+  // FallbackController emits error="service_unavailable" plus the service name and cause class.
+  // The old literal "upstream-unavailable" belonged to a pre-rename fallback and no longer exists;
+  // assert the honest contract (a 503 saying "unavailable" AND naming the upstream service).
   assert.ok(
-    refused.text.includes('upstream-unavailable') && refused.text.includes('nexus-api'),
+    refused.text.includes('unavailable') && refused.text.includes('nexus-api'),
     `the edge's failure answer must NAME the upstream; it was: ${refused.text}`,
   );
   console.log(`[§14] with nexus-api gone the edge answered 503 and named it: ${refused.text.slice(0, 200)}`);

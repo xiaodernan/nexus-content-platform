@@ -101,6 +101,21 @@ def prompt_cache_key(system: str, user: str) -> str:
     return f"{KEY_PREFIX}{digest[:32]}"
 
 
+def session_lane_key(cache_lane: str | None) -> str | None:
+    """把调用方给的会话车道名（契约的 `cacheLane`）变成稳定的 provider 路由键（纯函数）。
+
+    <p>为什么不能直接把会话名当 key：provider 的 `prompt_cache_key` 是路由提示，值本身
+    可能含不规则字符，且我们希望不同会话的键看起来同源、长度有界。哈希后钉一个 `nexus-`
+    前缀，和 `prompt_cache_key()` 自动派生的键形状一致（§§CACHE-SESSION）。
+
+    <p>空/非字符串 → None（回落自动 sticky 键），不会造出一个"空车道"把所有会话并到一条。
+    """
+    if not isinstance(cache_lane, str) or not cache_lane.strip():
+        return None
+    digest = hashlib.sha256(cache_lane.strip().encode("utf-8")).hexdigest()
+    return f"{KEY_PREFIX}{digest[:32]}"
+
+
 def _messages(body: Mapping[str, Any]) -> tuple[str, str]:
     msgs = body.get("messages")
     if not isinstance(msgs, list):

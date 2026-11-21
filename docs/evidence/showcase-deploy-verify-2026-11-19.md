@@ -60,6 +60,7 @@
 ## 5. 已知欠账（如实）
 
 - `origin/master` ref 仍停在 `e9c4ba8f`（§CANON-156，behind 1 / ahead 120），需用户点头 `--force-with-lease` 或废弃该 ref。
+  - **2026-11-20 更正**：该欠账已关闭。`00668e43` 以 `-s ours` 非破坏合并收口并推送；未使用 `--force-with-lease`，`e9c4ba8f` 作为 merge parent 永久可达，远端/本地 `master` 对齐。见 ADR-0297。
 - `backup/echo168-169-duplicate`：我一度与并轨线同题手写了 E168/E169，已丢弃（canon 以并轨线为准），内容保留在此分支。
 
 

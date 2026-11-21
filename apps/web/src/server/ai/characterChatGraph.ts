@@ -69,7 +69,7 @@ function usageOf(result: AiChatResult): { tokensIn: number; tokensOut: number; c
 }
 
 export async function runCharacterChatGraph(
-  input: { persona: string; turn: string; locale: 'zh' | 'en'; withCanonPrefix?: boolean },
+  input: { persona: string; turn: string; locale: 'zh' | 'en'; withCanonPrefix?: boolean; cacheLane?: string },
   chat: CharacterChatChatFn = chatWithCharacter,
 ): Promise<CharacterChatGraphResult> {
   const persona = input.persona.trim();
@@ -78,6 +78,8 @@ export async function runCharacterChatGraph(
   // §LLMCTX-1：默认不带大典前缀（字节级零回归）；显式要求才让 ai-service 把
   // canon digest 垫在 persona 之前——那 15.8 万 token 是真实成本，要调用方点头。
   const withCanonPrefix = input.withCanonPrefix === true;
+  // §CACHE-SESSION：会话级前缀缓存车道（跨轮恒定、不同会话互不挤占）。
+  const cacheLane = input.cacheLane?.trim() || undefined;
   if (!persona) return { ok: false, status: 400, error: 'validation-failed: persona must not be empty' };
   if (!turn) return { ok: false, status: 400, error: 'validation-failed: turn must not be empty' };
 
@@ -85,6 +87,7 @@ export async function runCharacterChatGraph(
     persona,
     turn,
     locale,
+    cacheLane,
     draft: '',
     issues: [],
     iterations: 0,
@@ -125,6 +128,9 @@ export async function runCharacterChatGraph(
         user: s.turn,
         modelClass: 'balanced',
         ...(withCanonPrefix ? { withCanonPrefix: true } : {}),
+        // state 是 Record<string, unknown>，这里显式收成 string——直接把 unknown 铺进
+        // 契约形状，TS 会把整条调用判成类型不符（合并两个分支时踩到过）。
+        ...(s.cacheLane ? { cacheLane: String(s.cacheLane) } : {}),
       });
       const u = nextUsage(s, result);
       if (!result.ok) {
@@ -169,6 +175,7 @@ export async function runCharacterChatGraph(
         user,
         modelClass: 'balanced',
         ...(withCanonPrefix ? { withCanonPrefix: true } : {}),
+        ...(s.cacheLane ? { cacheLane: String(s.cacheLane) } : {}),
       });
       const u = nextUsage(s, result);
       if (!result.ok) {

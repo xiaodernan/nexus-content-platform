@@ -5,7 +5,7 @@ import { readJson, jsonError, badRequest } from '@/server/http';
 import { getRateLimiter, rateKey, clientIp } from '@/server/security/rateLimit';
 import { getAiCapabilities } from '@/lib/env';
 import { chatWithCharacter } from '@/server/ai/client';
-import { canonPrelude } from '@/lib/canonPrefix';
+import { canonIdentityPrelude } from '@/lib/canonPrefix';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,7 +63,7 @@ function digest(body: unknown): string {
 function buildSystem(items: z.infer<typeof Card>[], locale: 'zh' | 'en'): string {
   const isZh = locale === 'zh';
   const zh = [
-    canonPrelude('zh', { zh: '--- 你正在复核的货架：NEXUS /marketplace 仍在售的几件物品的实测字段 ---', en: '' }),
+    canonIdentityPrelude('zh', { zh: '--- 你正在复核的货架：NEXUS /marketplace 仍在售的几件物品的实测字段 ---', en: '' }),
     '',
     '你是 NEXUS 平台 /marketplace 的"选品员"。用户消息里有货架上仍在售的前几件物品的**实测字段**（价格 credits / 下载量——全部来自数据库真实计数）。',
     '请为每一件写一句"为什么值得看"的短荐语。',
@@ -77,7 +77,7 @@ function buildSystem(items: z.infer<typeof Card>[], locale: 'zh' | 'en'): string
     '5. 荐语语言：跟随输入语言（此条为中文）。',
   ].join('\n');
   const en = [
-    canonPrelude('en', { zh: '', en: '--- The shelf you are reviewing: NEXUS’s /marketplace items still on sale, with measured fields ---' }),
+    canonIdentityPrelude('en', { zh: '', en: '--- The shelf you are reviewing: NEXUS’s /marketplace items still on sale, with measured fields ---' }),
     '',
     'You are the NEXUS /marketplace pick clerk. The user message carries the **measured fields** of a few items still on the shelf (price in credits and download counts — all real database counters).',
     'Write ONE short pick-note per item — why it deserves a look.',

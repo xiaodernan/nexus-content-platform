@@ -70,7 +70,7 @@ const HOME_RUNTIME_DIST = join(root, 'agents', 'runtime', 'dist', 'index.js');
 
 // An independent reader of git, so a claim about HEAD's bytes is not taken from the function under test.
 function gitOut(args) {
-  const r = spawnSync('git', args, { cwd: root, windowsHide: true, maxBuffer: 1 << 28, encoding: 'utf8' });
+  const r = spawnSync('git', ['-c', 'core.quotePath=false', ...args], { cwd: root, windowsHide: true, maxBuffer: 1 << 28, encoding: 'utf8' });
   if (r.status !== 0) throw new Error(`git ${args.join(' ')} → ${r.status}: ${(r.stderr || '').trim().slice(0, 200)}`);
   return r.stdout;
 }

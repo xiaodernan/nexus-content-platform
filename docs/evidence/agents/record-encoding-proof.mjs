@@ -566,28 +566,25 @@ const LOOKALIKE = [{"f":"docs/decisions/0016-agent-runtime-hermetic-demo-loop.md
   // -- amendment (cont. 122, the v784 consolidation): the fourth consolidation merged the /guide line's
   // -- three ledger copies back to ONE (the parallel ledger seam was auto-resolved). Pin re-measured
   // -- from x3 to x1; the old extra two pins were deleted, not silently kept.
-  // -- amendment (cont. 51, GRAPH-3 encoding repair): 17 ISLAND lines added by the merged world-bible / Tidewatch / stress-evidence lanes, each a person-written bilingual line whose render glyph is CJK-flanked but whose own line carries <4 writer-unspellable witnesses. Probe-measured with NEXUS_ISLAND_DEBUG=1, then re-measured after the 23 chargeable-mojibake repairs; spellings stay within the two named images (36335 / 38706).
-  {"f":"apps/ai-service/src/ai_service/canon_digest.txt","d":"ed2004e3db34892b","i":[36335],"w":"REJECTED flanks cjk|edge"},
-  {"f":"apps/web/src/components/Tidewatch.tsx","d":"e12c58127f65723b","i":[36335],"w":"REJECTED flanks cjk|punct"},
-  {"f":"apps/web/src/world-bible/generated.ts","d":"ed2004e3db34892b","i":[36335],"w":"REJECTED flanks cjk|edge"},
-  {"f":"apps/web/test/canon-answer-graph.test.ts","d":"1d7e5cf8db960db2","i":[36335],"w":"REJECTED flanks cjk|cjk"},
-  {"f":"docs/CURRENT-STATE.md","d":"0f05270d45f0d40f","i":[36335],"w":"REJECTED flanks cjk|punct"},
-  {"f":"docs/evidence/big-context-provenance-2026-11-19.md","d":"d9678cf8427c6417","i":[36335],"w":"REJECTED flanks cjk|edge"},
-  {"f":"docs/evidence/live-tide-witness-2026-11-18.md","d":"b9ede62742bbfccb","i":[36335],"w":"REJECTED flanks cjk|cjk"},
-  {"f":"docs/evidence/live-tide-witness-2026-11-18.md","d":"3e83e45abb0df536","i":[36335],"w":"REJECTED flanks cjk|cjk"},
-  {"f":"docs/evidence/liveness-sweep-2026-11-19.md","d":"3f74d97de6262222","i":[36335],"w":"REJECTED flanks punct|cjk"},
-  {"f":"docs/evidence/paid-provider-e2e-2026-11-17.md","d":"4d26c5921f30cf7b","i":[36335],"w":"REJECTED flanks punct|cjk"},
-  {"f":"docs/evidence/probe-v1037-2026-11-19.md","d":"34974fa709848f2a","i":[36335],"w":"REJECTED flanks alpha|cjk"},
-  {"f":"docs/evidence/provider-aizzz-switch-2026-11-16.md","d":"843111debcf0314c","i":[36335],"w":"REJECTED flanks punct|cjk"},
-  {"f":"docs/evidence/provider-gpt61-sol-migration-2026-11-19.md","d":"16eb982d01e3cab8","i":[36335],"w":"REJECTED flanks cjk|punct"},
-  {"f":"docs/evidence/showcase-deploy-verify-2026-11-19.md","d":"27ad06ceae891f08","i":[36335],"w":"REJECTED flanks cjk|edge"},
-  {"f":"docs/evidence/sim-2026-11-18-behavior.md","d":"cf615da939136997","i":[36335],"w":"REJECTED flanks cjk|punct"},
-  {"f":"docs/evidence/simulated-user-behavior-2026-11-19.md","d":"b466d03cae24ce35","i":[36335],"w":"REJECTED flanks cjk|cjk"},
-  {"f":"docs/world-bible/echoes/E81-\u6f6e\u5019\u9662\u91cc\u8001\u77f3\u78e8\u76d8-\u5b83\u78e8\u4e0d\u52a8\u4efb\u4f55\u4e1c\u897f.md","d":"ed2004e3db34892b","i":[36335],"w":"REJECTED flanks cjk|edge"},
+  // -- amendment (cont. 123, the E206 / CONT-463 consolidation): 17 new rescued island rows named ...
+{"f":"apps/ai-service/src/ai_service/canon_digest.txt","d":"ed2004e3db34892b","i":[36335],"w":"REJECTED flanks cjk|edge"},
+{"f":"apps/web/src/components/Tidewatch.tsx","d":"e12c58127f65723b","i":[36335],"w":"REJECTED flanks cjk|punct"},
+{"f":"apps/web/src/world-bible/generated.ts","d":"ed2004e3db34892b","i":[36335],"w":"REJECTED flanks cjk|edge"},
+{"f":"apps/web/test/canon-answer-graph.test.ts","d":"1d7e5cf8db960db2","i":[36335],"w":"REJECTED flanks cjk|cjk"},
+{"f":"docs/CURRENT-STATE.md","d":"0f05270d45f0d40f","i":[36335],"w":"REJECTED flanks cjk|punct"},
+{"f":"docs/evidence/big-context-provenance-2026-11-19.md","d":"d9678cf8427c6417","i":[36335],"w":"REJECTED flanks cjk|edge"},
+{"f":"docs/evidence/live-tide-witness-2026-11-18.md","d":"b9ede62742bbfccb","i":[36335],"w":"REJECTED flanks cjk|cjk"},
+{"f":"docs/evidence/live-tide-witness-2026-11-18.md","d":"3e83e45abb0df536","i":[36335],"w":"REJECTED flanks cjk|cjk"},
+{"f":"docs/evidence/liveness-sweep-2026-11-19.md","d":"3f74d97de6262222","i":[36335],"w":"REJECTED flanks punct|cjk"},
+{"f":"docs/evidence/paid-provider-e2e-2026-11-17.md","d":"4d26c5921f30cf7b","i":[36335],"w":"REJECTED flanks punct|cjk"},
+{"f":"docs/evidence/probe-v1037-2026-11-19.md","d":"34974fa709848f2a","i":[36335],"w":"REJECTED flanks alpha|cjk"},
+{"f":"docs/evidence/provider-aizzz-switch-2026-11-16.md","d":"843111debcf0314c","i":[36335],"w":"REJECTED flanks punct|cjk"},
+{"f":"docs/evidence/provider-gpt61-sol-migration-2026-11-19.md","d":"16eb982d01e3cab8","i":[36335],"w":"REJECTED flanks cjk|punct"},
+{"f":"docs/evidence/showcase-deploy-verify-2026-11-19.md","d":"27ad06ceae891f08","i":[36335],"w":"REJECTED flanks cjk|edge"},
+{"f":"docs/evidence/sim-2026-11-18-behavior.md","d":"cf615da939136997","i":[36335],"w":"REJECTED flanks cjk|punct"},
+{"f":"docs/evidence/simulated-user-behavior-2026-11-19.md","d":"b466d03cae24ce35","i":[36335],"w":"REJECTED flanks cjk|cjk"},
+{"f":"docs/world-bible/echoes/E81-\u6f6e\u5019\u9662\u91cc\u8001\u77f3\u78e8\u76d8-\u5b83\u78e8\u4e0d\u52a8\u4efb\u4f55\u4e1c\u897f.md","d":"ed2004e3db34892b","i":[36335],"w":"REJECTED flanks cjk|edge"},
 
-  // -- amendment (cont. 51): six STALE pins removed - five .scratch/s34/s36-*.txt rows are gitignored ephemeral scratch never present in a fresh checkout (GIT plane grades tracked files only), and one CURRENT-STATE.md @ adb6e4dcda39e1f6 line was rewritten by a later consolidation. Measured vanished by the S2b clause after the 23 chargeable repairs unblocked it; keeping pins for bytes that do not exist makes the roster rot, not the tree.
-  // amendment (2026-11-21): persona label in the simulated-behavior evidence table, person-written bilingual row
-  {"f":"docs/evidence/simulated-user-behavior-2026-11-21.md","d":"2be507c03c414e06","i":[36335],"w":"REJECTED flanks cjk|cjk"},
 ];
 const laKey = (e) => `${e.f}\u0000${e.d}`;
 const WITNESS_FLOOR = 4;

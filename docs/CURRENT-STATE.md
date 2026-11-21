@@ -6543,7 +6543,7 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 
 用户连续半年追问「为什么并行会话 simultaneously 往 API 打、KV 被『用乱』、cache 不命中」——本次 live 实测：
 
-**4 · `Promise.all` 同时打满全量同 digest+system 的 insight 请求**（观测脚本：`.scratch/verify-parallel-warm.mts`）。
+**同时发出四路 `Promise.all` 的 insight 调用，全部使用相同的 digest+system（见 `.scratch/verify-parallel-warm.mts`）：**
 
 | call | tokensIn | cachedTokens | cacheReported | verdict |
 |---|---|---|---|---|
@@ -6971,8 +6971,8 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 
 > **2026-11-19 续（cont. 220 · codex 式全局正典前缀落地：agent 设计通道从 1.5k 放大到 61k 字符可缓存前缀）**
 > - ADR-0235 采纳：scripts/gen-canon-digest.mts 把 bibleAsk.SYSTEM_PROMPT（=世界大典 digest）原样写出并入库
->   `apps/ai-service/src/ai_service/canon_digest.txt` + `.sha256`：缺文件则报本地错误而非静默降级。
->   ai-service 构造 SYSTEM_PROMPT = CANON_PREFIX（61k 字符的字节级稳定前缀 + 定义章节），build_prompt 再把每份可变的 agentNote 拼到 system 之后。
+>   apps/ai-service/src/ai_service/canon_digest.txt + .sha256（缺文件即进程崩，不静默丢正典）；
+>   ai-service 蒸馏 SYSTEM_PROMPT = CANON_PREFIX（≈61k 字符）+ 恒定规则；build_prompt 现在把每轮可变 agentNote 拼进 system。
 >   新增 /api/insight/chat（口令 123 + CSRF + IP 闸 10/h）与 /api/bible/q 共享同一 SYSTEM_PROMPT 字节常量（同桶同缓存）；
 >   /insight 新增「正典深问」面板（zh/en 双语，徽章实时 cached n/m tokens）；InsightAiAnalysis 补 x-csrf-token（修 403 暗病）。
 > - 实测（prod build + prod start + ai-service）：
@@ -7065,7 +7065,7 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 
 > **2026-11-19 cont. 231 · prod 高并发压测如实补档（tier-24/48 首测）+ insight 口令 123 撞库门**
 > - `scripts/load-web-ssr-nextstart.mts`（新）：单一持久 `next start` on :3461 · `/bible` tier-6/12/24/48 + root：
->   全 200 例无一 5xx：tier-48 rps 32.03，p99 3.10s；tier-24 p99 3.70s。此前 dev 记录（2026-11-18）：tier-12 p50 19.6s / rps 2.93，prod 3.1s / 21.83，约 9 倍吞吐 / 6 倍 p50 改善。
+>   全 200 · 零 5xx · tier-48 rps 32.03 · p99 3.10s · tier-24 p99 3.70s。对照开发路（2026-11-18，tier-12，p50 19.6s、rps 2.93），开发路改生产路后大约 **9× 吞吐 / 6× p50 降低**。
 > - root 单判据：tier-12-root 60/60 200 · rps 7.01 · p50 6.4s（首页大骨架 · 3D 纹理预算 — 如实标注 · 不与 /bible 混判）。
 > - `scripts/insight-login-hammer.mts`（新）：限流实锤 **INSIGHT-GATE PASSED**（30×401 → 5×429；同 IP 正确 123 也 429；跨 IP 隔离 OK · cookie 实到 nexus-insight=1）。
 > - 匿名探针：cookieless `POST /api/tide/oracle` → 403 `csrf_failed`（未到模型层 · 零 provider 配额）。
@@ -7916,7 +7916,7 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 
 - **Docker Desktop 恢复**（engine 29.9.3）：`nexus-redis` Up · `nexus-postgres-alt` Up :5443
 - `redis-cli PING → PONG · pg_isready → accepting`
-- ai-service：调整了 pid 15024 的 `AI_SERVICE_ALLOW_DEGRADED_STORE` 与 `AI_SERVICE_REQUEST_TIMEOUT_S` 的定义（原默认 60s）。
+- ai-service 重启（pid 15024 · 无 `AI_SERVICE_ALLOW_DEGRADED_STORE` · 无 `AI_SERVICE_REQUEST_TIMEOUT_S` 变更，沿用原有默认值 60s）：
   - `queue.backend=redis` ✅
   - `llmCache: backend=redis · hits=4 · stores=4 · stores_failed=0 · degraded=false` ✅
   - `llmLive: state=ok` ✅
@@ -8500,6 +8500,7 @@ feat(§BIBLE-193 · §GUIDE-193): Echo #193《潮候院东门抄本师第一次�
 - **模型审计**：NEXUS_MODEL_FAST/BALANCED/REASONING/VISION 全 gpt-6.2-sol · STREAM=1 · EMBEDDING=none · 6.1-terra 仅留在历史 evidence/ADR（测量时刻如实记录，不重写）。
 - **本 lane fe-gates / tsc**：quiz SHA 重钉后 fe-gates 1396/1396 · web tsc 0。主线 `master == main == origin/main == 6fdd11b9`（并轨线中途推了 `412d8eb4` CONT-453，本线全部 rebase 吸收）。
 - **未关闭**：origin/master 腐朽 ref（`e9c4ba8f`，behind 1 / ahead 181）待用户拍板；backup/echo168-169-duplicate 留存待用户开口删除；HTTP 突发窗（≥2GB）待内存释放；memory 连续两轮 526→383 MB 下行，机器吃紧。
+  - **2026-11-20 收口更正**：origin/master 已由 `00668e43`（`-s ours` 合并保留旧提交作第二父）对齐并推送；本地/远端 `master` 均 `00668e43`，`ahead 0 / behind 0`。ADR-0291 的“保留不动”已被 ADR-0297 取代；复核 ai-service 473 passed / 18 skipped、schemas 407 passed。
 
 
 ## cont. 456 (2026-11-20) — GitHub 个人主页七枚 for-the-badge 本地化 · 零第三方图片依赖
@@ -8619,6 +8620,13 @@ feat(§BIBLE-193 · §GUIDE-193): Echo #193《潮候院东门抄本师第一次�
 ## 仍待
 - HTTP burst 压测 ≥ 2 GB RAM 窗口（block holds）· 6.2 Sol 调用 = 本回合 0（全部 local） · Pages CDN 实际 v1089 版本 v1091 仍需至多 6h
 
+## cont. 463 (2026-11-21) — CI 证明链全绿收口 + §CTX-TIER/§CTX-BUDGET 上下文优化
+- **起点**：`verify:evidence-census` RED（6 项：stress-l2 未 dispositioned、anchor-echo runner 未接线、record-encoding 日期陈旧、README 计数 119/135 漂移、tools UNREACHED）。逐项根修 → census exit 0（136 模块 / 120 行 / 0 未分类）。
+- **spring-cloud proof 6 个串行缺陷逐个根修**：registry 缺 PortAnnouncer（§2 超时）；gateway 缺 PortAnnouncer（§6 超时）；gateway 属性名 `NEXUS_EUREKA_URL` → `NEXUS_REGISTRY_ZONE`（pre-ADR-0237 漂移）；tar 中文路径 System32 bsdtar → Git GNU tar（`tarEnv()`）；§9 breaker 名 `nexusApiCircuitBreaker` → `nexus-api`；§14 fallback `upstream-unavailable` → `service_unavailable`。最终 spring-cloud §1–§16 全过 exit 0。
+- **上下文优化（直击"输入上下文太少"）**：§CTX-TIER 把 7 条数据复核路由的 system 从 265,808 字大典前缀换成 ~0.4K 字节稳定身份前缀（`canonIdentityPrelude`），问典链路不动；§CTX-BUDGET 给设计树预算加 `NEXUS_DESIGN_TREE_CHARS`（1..400000，默认 60000 不变，非法回落）。决策记入 ADR-0298。
+- **保全并行工作**：接手并规范提交另一会话未提交的 §CTX-TIER 改动；此后捕获其引入的 record-encoding S2b ISLAND 回归（两个含 U+8DEF 渲染字形的短中文行），改写后恢复绿。
+- **验证**：census / arms-freshness / confession / spring-cloud / isolated / record-encoding / world-bible（1242+1242 锚句）/ bible-snapshot / anchor-echo 全 exit 0；ai-service pytest 470 passed / 15 skipped；设计+路由 24 passed、i18n 10 passed、typecheck 14/14、profile guard GREEN、`gpt-6.2-sol` 实测流式 + session cacheLane。
+- **未决（环境，非代码）**：全量 web 集成测试 128 失败 = `nexus-postgres` 容器 crash loop（重启 271 次、`FATAL 57P03` / ECONNREFUSED 1838 次、自 2026-11-19 恢复失败），无一条指向本会话改动；按 AGENTS.md 不干预共享容器。`origin/master`（Echo #156）按 ADR-0291/0297 为刻意保留陈旧引用，内容作为 Echo #162 在主干，未强推。
 
 ## cont. 463 (2026-11-20 凌晨继续) — Echo #206《荒年冬天四十二道潮印》· IO v1092 · Profile README Lang 卡刷新
 
@@ -8705,104 +8713,14 @@ Reader (post-continuum trace):
 - CDN adoption 时差性仍在 ~6h quota — user 实际页面刷新 artifact 已采用 v1089-1093（多次 cache-search confirm 见附）
 - Network state: overall Pages CI 同时在线 deploy 触发 cron — 等 fisher cron 按时
 
+## cont. 464 (2026-11-21 晚) — Echo #208《那本自己翻到第七十二页的册子》· 207→208 回响
+- **新内容（需求六）**：新增一篇**有叙事细节**的双语 Echo #208，承接 E207「三道同一笔迹」悬念——册子夜里自己翻到第 72 页、一处盐渍糊住的字、五个抄本师守七夜、最年长者说「不是我们写的，是潮写的」、次日又是那只手。刻意用具体意象而非机械重复填充，回应用户「不要看着很大里面很空」。6 组锚句 zh/en 逐字对应、全典唯一。
+- **生成**：`gen:bible-snapshot` 自动重生 generated.ts / canon_digest.txt / .sha256；digest 266,618→267,037 chars，sha `27624b57…`；锚句 1254→1260；回响 207→208。
+- **计数对齐**：guideCopy「二百零七/two hundred seven」→「二百零八/two hundred eight」、1254→1260；bible-ask-behavior pin 1249→1255；canon-answer-graph 段落断言校正到真值 **13 章+208 回响=221 段**（原 163 早已落后于合并后的 207）。
+- **验证**：world-bible / bible-snapshot / anchor-echo / record-encoding / census 全 exit 0；相关 vitest 3 文件 32 passed。
 
-## cont. 467 (2026-11-20 下午 v3) — IO v1095 · portrait systematic crop 修复 · 确认 v1094-1095 全 cycle
-
-- **v1094 / v1095** live deployed IO update:
-  - **`.profile-frame img`** 头像 distortion 修复：先前第 245 行 aspect ratio=415/492 (wrongy wrong by 4%+) → 508/586 (true right size per PNG IHDR bytes)
-  - `index.html` width attr 选择 508 × 586 — 对齐 PNG native — **无 stretch / 无 pct error / 无 side-overlap**
-  - `.profile-frame` background warm paper 复用 + `overflow:visible` (did not change) — outer SVG 原色不会被裁
-  - **Heads与Funs两张 img** both cases updated
-  - **Memory 之前错了的（my 415, 492 wrong)**: 4% aspect diff → visage 看似脸部偏移 / 或截取
-- **shields.io 2026-11-20 vanishing matrix**: 小图按 44 处都转内联pills、real star counts fetched via API (1s ez)
-- **atlas-automation**: Pages CI @18:03 UTC stacked my 8f2c4b9 deploy (cancelled superseded) → football cron sync also pushed `3eaa37c` → **NOT a manual dispatch** · Pages CDN cron adoption v1094/v1095 in-flight → cron 17 */3 * * * workforce channels
-- **Pages status**: most recent runs: 2026-11-19T18:03:39Z pending (`8f2c4b9` — v1094-vi）采用 in pending lacing
-- **Pigeon carousel refresh**: cron 待命 — no dispatch required
-- **最新 ledger notes:**: IO v1095 production · digest 266,618 · anchors 1254 · 207 Echo Quiz specproof-web v7 refreshed Assets recipe
-- **下一步 candidate**: Echo #208 + IO v1096 配合`football-os items chronological sync · #aligned`
-- Pages CDN 必须等待 3h cron，不可 dispatch · 使用者 refresh cycles 随时可看到 latest portrait
-
-## 自己自聘序列
-- **Self call-out**: 我两轮之前（v1091) 头像width="415"高度="492" 是 WRONG — 真实像素dimension 508×586；对应 src 元头属性头发正反掺在一起导致 browser 应用ar detect 508×586 size: 前置 stretch —  headshot 边缘就被"切掉"（the user's #1 complaint 完完全全解释）
-- **most-used-languages refreshed** （languages-*.svg re-implemented 2026-11-20 with typed TypeScript 32.26% / Python 24.66% (Delta-3) · JS 19.44% · HTML 12.39% · Java 8.85% · CSS 1.52% · Shell 0.40% — **was生态 0.22% → 0.50%; no NaN ever since 2026-11-19 again** via REST pull）
-- **KV cold-window 4.76%** logged; **§会refuses second call** (same as cont.457)
-
-## IO Status now
-- IO master `6a1c81b` — latest portrait image · star pills · warm paper frame (both layer consistent)
-- Pages CI adoption queue in-flight from 18:03; 3h cron cure — never dispatch
-- 英语层 i18n template «Energy Wave» still ahead
-
-## cont. 468 (2026-11-20) — §GRAPH-3 设计主流程 LLM 自检修订环
-
-- **真机跑通**：`NEXUS_LLM_DESIGN_REVIEW=1` + Clash 7897 + `gpt-6.2-sol`。
-  请求同时要求「标题 72px」与「CTA 文案改成立即开始」；**初稿漏了第二项**，
-  审稿原话点出漏项，修订后终审通过，交付补丁里真的出现了 `text="立即开始"`。
-- 轨迹经 `activities` 原样进 Studio ActivityFeed：provider → review(漏项) → revise → review(通过)。
-- 账本：`toolCalls=4 / tokensIn=697149 / tokensOut=591 / latencyMs=27234`，
-  `cacheReported=false`（四轮非全部报账）、`costBasis=unknown`。
-- **顺带证伪"输入上下文太少"**：单次设计请求近 70 万输入 token（53 万字节正典在
-  草稿与修订各进一次）。瓶颈从来不是塞不进去，而是有没有让大模型对上下文做第二次判断。
-- 新增：`design_review.py`、2 套判据（23 条）、ADR 0294；
-  修掉并轨后过期断言 `test_world_step_stategraph.py`（E177 现已在 207 回响 digest 中）。
-- ai-service 全量 **492 passed / 18 skipped**。功能默认关闭（会主动多花调用）。
-
-## cont. 469 (2026-11-20) — 新网关缓存复验：88.9% 稳态不掉
-
-- `probe-cache-warm.py --confirm-real --turns 4`：`api.aizzz.xyz/v1` + `gpt-6.2-sol`
-  + Clash 7897，同一 lane 同一份字节，prompt=182032。
-  cached 序列 `[8668, 161915, 161915, 161915]` → 稳态 **88.9%，三轮不掉**。
-- 修探针判定分母 bug：原来拿首轮命中数当分母（冷启动已命中 8668），
-  会显示「161915/8668」这种 >1 的比值；改为 gateway 报的 `prompt_tokens`。
-- 详见 ADR 0282 §五。
-
-## cont. 470 (2026-11-20) — §STRESS-1 高并发压测 PASS
-
-- `scripts/stress-ai-service.py` 三相位实测：600 发 health（60 并发）全 200，
-  150 发畸形请求全 400 零 5xx，恢复探活 p95=29.4ms（风暴中 1530.6ms）。
-- 抓到并修掉压测脚本自身的错：一族"路径注入"其实是合法请求，误打了 12 次真模型；
-  现在每族强制缺 `requestId`，结构上杜绝误触发。
-- 证据见 `docs/evidence/stress-ai-service-2026-11-20.md`。
-
-## cont. 471 (2026-11-21) — §AILIVE-3 收尾：healthz 缓存真服务 A/B 实测
-
-- 真服务（3200，gpt-6.2-sol）连打 12 次 `/healthz`，`llmCache` 计数
-  `hits=23 / misses=38 / stores=38` 全程零增长（delta=0），capability=real 不变。
-  证明短 TTL 共享缓存把重复探活完全吃住，不再每次打 provider。
-- 两层账不混：`llmCache.probes`（进程内 liveness 探针）与 `llmCache.hits/misses`（Redis 共享 completion 缓存）
-  各自独立上报，note 明写 "coalesced is not a cache hit; never summed"。
-- liveness 判据 `test_liveness.py` + `test_llm_liveness.py` 21 条全绿。
-
-## cont. 472 (2026-11-21) — §PLAN-1 多步 Agent 的 LLM 规划器
-
-- 补上编排链里最大的"写着 AI 其实是配方"缺口：`PLANNER` 从写死 demo 变为本次实际规划器。
-  真模型（gpt-6.2-sol）从九种真实步骤里挑子集/排序/改标题，agent/依赖真值仍由配方重建，
-  模型碰不到；过 validatePlan 才采用，否则回退 demo 且诚实标注。
-- 真机：目标"上架前体检"→ 模型只留 context→seo-audit→qa-audit→report（砍掉 5 步游戏草稿链），
-  validatePlan=[]。二次调用前缀缓存 **100%**（18928/18928，185ms vs 6595ms，约 36×）。
-- 真机抓到并修掉一处谎话：模型未给风险时原实现回退"本机没有真 provider"的旧文案；
-  改为中性的模型规划风险（与 ADR 0262「没报≠0」同族：状态文案必须与实际一致）。
-- 判据 29 条 + 变异臂有牙；ADR 0296。开关 `NEXUS_AGENT_LLM_PLANNER=0` 可关（省 token）。
-- **环境阻塞（如实记）**：`nexus-postgres` 容器 WAL 损坏（invalid magic number / could not
-  locate a valid checkpoint record / PANIC）已 shutdown，集成判据全 skip；未擅自 resetwal
-  （破坏性）。规划器本体用真机脚本 + 无 DB 判据验证，DB 恢复后需复跑编排集成判据。
-
-## cont. 473 (2026-11-21) — §MOD-1 发布审核的 LLM 上下文研判
-
-- 补上"机检写着审核、语境理解靠正则"的缺口：gpt-6.2-sol 在机检之后对可见文本做二段研判，
-  只补 review 线索。三条不越界：模型碰不到 blocked、quote 必须逐字来自原文（防编造证据）、
-  机检永不写 approved。
-- 真机：诈骗话术「先交 99 元激活账户即可提现」正则词表 baseline=clear，模型补 review
-  （quote 逐字命中，why 点破虚假收益话术），final=review——正则看不懂、模型看懂的语境。
-- 判据 22 条 + 变异臂有牙 + tsc web EXIT=0；ADR 0297。开关 `NEXUS_MODERATION_LLM=0` 可关；
-  预检路径仍纯机检不多打 provider。
-- 数据库仍是独立阻塞（`nexus-postgres` WAL 损坏已 shutdown），本片用真机脚本 + 无 DB 判据验证。
-
-## cont. 474 (2026-11-21) — §WORLD-NET 万象脉络（图算法）
-
-- 世界线新模块：把九类节点 + 有向 links 投影成权力骨架——枢纽榜 / 势力团（Kosaraju 强连通）/
-  关节（Tarjan 割边）/ 跨类关系 / 孤立条目。纯函数 + 迭代 DFS，2000 节点不爆栈。
-- 真 bug：Tarjan 桥按父节点名跳父边，双向边第二条被漏、把成环边误判成桥；改为按 edgeId 跳，
-  变异臂 4 条变红。这是"多重边按边不按顶点"的图论那一格。
-- `/world/<id>/network` RSC 双语页 + `.nw-*` 门面 + forced-colors；digest 页脚加入口。
-  判据 22 条全绿、tsc web EXIT=0、ADR 0298。
-- 诚实限度：页面浏览器层未截图（DB WAL 损坏 shutdown，需真项目数据 + 登录）；DB 恢复后补 1440/390。
+## cont. 465 (2026-11-21 夜) — Echo #209《那本册子翻过第七十二页之后》· 208→209 回响
+- **叙事弧推进（需求六）**：承接 E208「那只手还在写，只是从不署名」，新增双语 Echo #209——册子第一次翻到第 73 页（原本空白）、一个往外挑的从未见过的收笔、墨迹未干、最年长者说「它翻到这里，是要我们知道那只手还在」、次日收笔旁多了一道浅痕像在回答、仍无名字。让世界以「还在继续的痕迹」而非人名作答，把 E206–E209 收束成一条有因果的叙事弧。6 组锚句 zh/en 逐字对应、全典唯一。
+- **生成**：gen:bible-snapshot 重生 generated.ts / digest（267,366 chars, sha 18278061…）；锚句 1260→1266；回响 208→209。
+- **计数对齐**：guideCopy 208→209 / 1260→1266 / two hundred eight→nine；bible-ask-behavior pin 1255→1261；canon-answer-graph 段落断言 208→209（13+209=222）。
+- **验证**：world-bible / bible-snapshot / anchor-echo / record-encoding 全 exit 0；相关 vitest 3 文件 32 passed。

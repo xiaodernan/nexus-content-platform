@@ -169,7 +169,10 @@ class OpenAICompatibleProvider:
     def _complete_via_sse(self, *, model: str, system: str, user: str, json_mode: bool, body_options: dict) -> Completion:
         """流式路径（SSE）：用 `stream_options.include_usage=true` 把 provider 自己报的
         prompt-cached/reasoning token 数也拿出来。一次逻辑请求一次流，不做重试（流已开始
-        就不能重放），失败如实抛；整段流程包在断路器门卫内（同一伤口、同一 breaker）。"""
+        就不能重放），失败如实抛；整段流程包在断路器门卫内（同一伤口、同一 breaker）。
+
+        `body_options` 由 `_complete_impl` 组好，含这一调用的最终 `prompt_cache_key`
+        （会话级优先、实例级兜底），所以此处不再单独写实例键——那会盖掉会话键。"""
         started = self._clock()
         body = {
             "model": model,
@@ -184,9 +187,7 @@ class OpenAICompatibleProvider:
         if json_mode:
             body["response_format"] = {"type": "json_object"}
         body.update(body_options)
-        if self._prompt_cache_key:
-            # 流式同样钉在同一 cache lane（wkapi.pro 对 stream 只砍掉 usage 帧，cache 本身照常生效）
-            body["prompt_cache_key"] = self._prompt_cache_key
+        # prompt_cache_key 已在 body_options 里（会话级优先，实例级兜底），transport 尊重 caller-owned。
 
         if self._breaker is not None:
             self._breaker.before_call()
@@ -257,22 +258,52 @@ class OpenAICompatibleProvider:
             cache_reported=cache_reported,
         )
 
-    def complete(self, *, model: str, system: str, user: str, json_mode: bool | None = None) -> Completion:
-        """ADR 0126：只统计真实 provider 往返（cache（CachedLlm）在本层之上，replay 不计入）。"""
+    def complete(
+        self,
+        *,
+        model: str,
+        system: str,
+        user: str,
+        json_mode: bool | None = None,
+        prompt_cache_key: str | None = None,
+    ) -> Completion:
+        """ADR 0126：只统计真实 provider 往返（cache（CachedLlm）在本层之上，replay 不计入）。
+
+        `prompt_cache_key`（会话级路由车道）优先于实例键；都不给时 body 无此字段，
+        StickyPromptCacheTransport 会按 system 派生 sticky 键——旧行为字节级不变。
+        """
         started = self._clock()
         try:
-            result = self._complete_impl(model=model, system=system, user=user, json_mode=json_mode)
+            result = self._complete_impl(
+                model=model, system=system, user=user, json_mode=json_mode,
+                prompt_cache_key=prompt_cache_key,
+            )
         except Exception:  # noqa: BLE001 - 熔断/重试之后的最终失败，含 httpx 与契约解析
             LLM_LATENCY.record(self._clock() - started, failed=True)
             raise
         LLM_LATENCY.record(self._clock() - started, failed=False)
         return result
 
-    def _complete_impl(self, *, model: str, system: str, user: str, json_mode: bool | None = None) -> Completion:
+    def _complete_impl(
+        self,
+        *,
+        model: str,
+        system: str,
+        user: str,
+        json_mode: bool | None = None,
+        prompt_cache_key: str | None = None,
+    ) -> Completion:
         self._last_sleep = None  # 一次逻辑请求：decorrelated 的 prev 从 base 重新起步
         use_json = self._json_mode if json_mode is None else json_mode
+        # 会话级键优先；没给才退回实例级；两者都无则 body 不写该字段，transport 自行派生。
+        effective_key = prompt_cache_key if prompt_cache_key is not None else self._prompt_cache_key
+        body_options: dict = {}
+        if effective_key:
+            body_options["prompt_cache_key"] = effective_key
         if self._stream:
-            return self._complete_via_sse(model=model, system=system, user=user, json_mode=use_json, body_options={})
+            return self._complete_via_sse(
+                model=model, system=system, user=user, json_mode=use_json, body_options=body_options,
+            )
         body: dict = {
             "model": model,
             "messages": [
@@ -283,10 +314,9 @@ class OpenAICompatibleProvider:
         }
         if use_json:
             body["response_format"] = {"type": "json_object"}
-        if self._prompt_cache_key:
-            # OpenAI 官方 prompt_cache_key：把同一 workload 的补丁式请求钉到同一分片，命中自动提示缓存
-            # （wkapi.pro 实测：不给 key 时 cached_tokens 恒为 0；给了后一次调用 5376/5603 tokens 命中）
-            body["prompt_cache_key"] = self._prompt_cache_key
+        if effective_key:
+            # 钉到调用方指定的车道（会话级）或实例车道；transport 尊重 caller-owned 键。
+            body["prompt_cache_key"] = effective_key
 
         # v682 断路器门卫（坑①：真接进调用链）：OPEN 时抛 CircuitOpen，一次 HTTP 都不发。
         # 默认 breaker=None 时整段跳过，与 v681 字节级一致（零回归）。

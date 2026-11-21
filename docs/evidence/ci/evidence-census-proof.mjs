@@ -632,6 +632,12 @@ export const MANIFEST = [
     run: 'npm run verify:cost-ledger',
     why: 'the main-line door runs it read-only against the service Postgres: a SELECT over agent_tasks.usage that answers "how much of the ledger is configured vs unknown vs legacy". Never writes, never bills, exits 0 on an empty store; the deferral was dispositioned at v651 and the door added on top of it in the same increment — a runner means CI really executes the name',
   },
+  {
+    name: 'verify:anchor-echo',
+    class: 'runner',
+    run: 'npm run verify:anchor-echo',
+    why: 'the gates job of main-line.yml runs it next to the bible-snapshot step: `tsx --check scripts/gen-anchor-echo.mts` re-derives the generated anchor echo from the world-bible sources with the --check flag placed BEFORE the positional script (the sweep RUN_RE admits flags only ahead of the target, and tsx runs it that way), so an anchor added on one side without its echo reddens the build at generation time rather than drifting silently',
+  },
 ];
 
 /**

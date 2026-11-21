@@ -54,7 +54,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, parse, relative, resolve, sep } from 'node:path';
+import { delimiter, dirname, join, parse, relative, resolve, sep } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 
 export const PROOF_DIR = 'docs/evidence/agents';
@@ -107,6 +107,29 @@ export function rowBudget(text, fallback = DEFAULT_PROOF_TIMEOUT_MS) {
 }
 
 const sha256 = (data) => createHash('sha256').update(data).digest('hex');
+
+/**
+ * The environment for the `tar` that unpacks a `git archive` fallback plane.
+ *
+ * On Windows the `tar.exe` in System32 is bsdtar 3.x, which mis-decodes the UTF-8 PAX `path=` headers git
+ * writes for CJK filenames (`docs/world-bible/001-潮汐教团…`) and dies with "Invalid empty pathname", while
+ * git for Windows ships GNU tar 1.35 under `usr/bin` that reads those names correctly (measured 2026-11-20:
+ * bsdtar exit 1 on the same ref.tar that GNU tar unpacks exit 0 with intact names). Prepending Git's usr/bin
+ * to PATH makes the literal `run('tar', …)` resolve to the capable one without changing the command word the
+ * git-command vocabulary and the confession arms read off this file. On POSIX the system tar is already GNU,
+ * so PATH is left alone; if the derived path does not exist, the original PATH is left alone too.
+ */
+export function tarEnv(baseEnv = process.env) {
+  if (process.platform !== 'win32') return baseEnv;
+  const gitExec = spawnSync('git', ['--exec-path'], { encoding: 'utf8', windowsHide: true });
+  if (gitExec.status !== 0 || !gitExec.stdout) return baseEnv;
+  // git --exec-path = <git root>/mingw64/libexec/git-core ; two parents up is <git root>, then usr/bin.
+  const gitRoot = dirname(dirname(dirname(gitExec.stdout.trim().replace(/\\/g, '/'))));
+  const gnuBin = join(gitRoot, 'usr', 'bin');
+  if (!existsSync(join(gnuBin, 'tar.exe'))) return baseEnv;
+  const pathKey = Object.keys(baseEnv).find((k) => k.toLowerCase() === 'path') ?? 'PATH';
+  return { ...baseEnv, [pathKey]: `${gnuBin}${delimiter}${baseEnv[pathKey] ?? ''}` };
+}
 
 /** One child process, output collected, never a throw on non-zero: a refusal is DATA here. */
 function run(cmd, argv, opts = {}) {
@@ -1593,7 +1616,7 @@ export async function isolatedCheckout({ ref = 'HEAD', cwd = process.cwd(), dest
     if (tar.code !== 0) throw new Error(`git archive ${ref} → exit ${tar.code}: ${tar.stderr.toString().trim().slice(0, 200)}`);
     const tarFile = join(where.dir, 'ref.tar');
     writeFileSync(tarFile, tar.stdout);
-    const untar = await run('tar', ['-xf', 'ref.tar', '-C', 'repo'], { cwd: where.dir, timeoutMs: 180_000 });
+    const untar = await run('tar', ['-xf', 'ref.tar', '-C', 'repo'], { cwd: where.dir, timeoutMs: 180_000, env: tarEnv() });
     if (untar.code !== 0) throw new Error(`tar -xf ref.tar → exit ${untar.code}: ${untar.stderr.toString().trim().slice(0, 200)}`);
     archiveByteCount = tar.stdout.length;
   }

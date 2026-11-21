@@ -27749,6 +27749,318 @@ The Institute's copyists — the Institute — the Institute's copyists —
 `,
   },
   {
+    order: 208,
+    slug: 'echo-208-ledger-page-seventy-two',
+    titleZh: '潮候院抄本院那本自己翻到第七十二页的册子',
+    titleEn: 'The Ledger in the Institute\'s Copy Hall That Turned Itself to Page Seventy-Two',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206/E207）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206/E207).',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 208): The Ledger in the Institute's Copy Hall That Turned Itself to Page Seventy-Two
+
+> 回响是正典之外的侧写——不是续篇，是同一块石上被盐啃出的另一层纹理。
+> 本篇写给 E207 之后的那一周：五个抄本师共读四十二道潮印、认出第8、17、29道是同一只手之后，那本记着潮印的册子开始夜里自己翻动。
+> 纪律同正典：锚句 zh/en 逐字对应；本篇不新增正典专名，只写已有设定的细节。
+>
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written for the week after E207: once the five copyists saw that marks 8, 17 and 29 were the same hand, the ledger of tide marks began to turn itself at night.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206/E207）。
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206/E207).
+
+---
+
+## 一 · 第七十二页
+
+那本册子每天夜里都翻到第七十二页——不是被风吹的，屋里没有风。
+**锚句**：那本册子每天夜里都翻到第七十二页——屋里没有风。
+**Anchor sentence**: the ledger turned to page seventy-two every night — there was no wind in the room.
+
+---
+
+## 二 · 空页
+
+第七十二页是空的，只留着一处被盐渍糊住的字——看不出写的谁。
+**锚句**：第七十二页是空的，只留着一处被盐渍糊住的字。
+**Anchor sentence**: page seventy-two was blank, save one word blurred by salt.
+
+---
+
+## 三 · 守夜
+
+五个抄本师轮流守了七夜——谁也没有承认自己翻过那本册子。
+**锚句**：五个抄本师守了七夜——谁也没有承认翻过那本册子。
+**Anchor sentence**: five copyists kept watch seven nights — not one admitted turning the ledger.
+
+---
+
+## 四 · 第七夜
+
+第七夜最年长的抄本师把手指按在盐渍上——他说，这不是我们写的，是潮写的。
+**锚句**：最年长的抄本师把手指按在盐渍上——他说这不是我们写的，是潮写的。
+**Anchor sentence**: the eldest copyist laid a finger on the salt stain — he said this was not written by us, but by the tide.
+
+---
+
+## 五 · 第二日
+
+第二日清早那一页有了字——还是第8、第17、第29道里认出的那只手。
+**锚句**：第二日清早那一页有了字——还是那只手写的。
+**Anchor sentence**: by morning the page had words — in the same hand.
+
+---
+
+## 六 · 没有名字
+
+抄本师们仍然没有说话——那页上始终没有写下一个名字。
+**锚句**：那页上始终没有写下一个名字——抄本师们仍然没有说话。
+**Anchor sentence**: no name was ever written on that page — the copyists still said nothing.
+
+---
+
+## 七 · Mapping（Echo No. 208 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the self-turning ledger · page seventy-two · the salt-blurred word | 一、二、五 |
+| geography | the Institute's copy hall · the winter-tide month | 一、三 |
+| characters | the five copyists · the eldest copyist · the unnamed hand | 三、四、六 |
+| story | the ledger turns itself · seven nights of watch · "not by us, by the tide" | 全篇 |
+| items | the ledger · the salt stain · page seventy-two | 一、二、四 |
+| history | the 140th year after the 44th Convocation (continues E206/E207) | 纪元 |
+
+> 那本册子翻到第七十二页，是为了让抄本师们看见：那只手还在写，只是从不署名。
+> The ledger turned to page seventy-two so the copyists would see: the hand still writes, and never signs.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written for the week after E207: once the five copyists saw that marks 8, 17 and 29 were the same hand, the ledger of tide marks began to turn itself at night.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206/E207).
+
+---
+
+## One · Page Seventy-Two
+
+The ledger turned to page seventy-two every night — there was no wind in the room.
+**锚句**：那本册子每天夜里都翻到第七十二页——屋里没有风。
+**Anchor sentence**: the ledger turned to page seventy-two every night — there was no wind in the room.
+
+---
+
+## Two · The Blank Page
+
+Page seventy-two was blank, save one word blurred by salt.
+**锚句**：第七十二页是空的，只留着一处被盐渍糊住的字。
+**Anchor sentence**: page seventy-two was blank, save one word blurred by salt.
+
+---
+
+## Three · The Watch
+
+Five copyists kept watch seven nights — not one admitted turning the ledger.
+**锚句**：五个抄本师守了七夜——谁也没有承认翻过那本册子。
+**Anchor sentence**: five copyists kept watch seven nights — not one admitted turning the ledger.
+
+---
+
+## Four · The Seventh Night
+
+The eldest copyist laid a finger on the salt stain — he said this was not written by us, but by the tide.
+**锚句**：最年长的抄本师把手指按在盐渍上——他说这不是我们写的，是潮写的。
+**Anchor sentence**: the eldest copyist laid a finger on the salt stain — he said this was not written by us, but by the tide.
+
+---
+
+## Five · The Morning
+
+By morning the page had words — in the same hand.
+**锚句**：第二日清早那一页有了字——还是那只手写的。
+**Anchor sentence**: by morning the page had words — in the same hand.
+
+---
+
+## Six · No Name
+
+No name was ever written on that page — the copyists still said nothing.
+**锚句**：那页上始终没有写下一个名字——抄本师们仍然没有说话。
+**Anchor sentence**: no name was ever written on that page — the copyists still said nothing.
+
+---
+
+## Seven · Mapping (Echo No. 208 · world model)
+
+| Dimension | Value | Chapters |
+| --- | --- | --- |
+| lore | the self-turning ledger · page seventy-two · the salt-blurred word | 一、二、五 |
+| geography | the Institute's copy hall · the winter-tide month | 一、三 |
+| characters | the five copyists · the eldest copyist · the unnamed hand | 三、四、六 |
+| story | the ledger turns itself · seven nights of watch · "not by us, by the tide" | 全篇 |
+| items | the ledger · the salt stain · page seventy-two | 一、二、四 |
+| history | the 140th year after the 44th Convocation (continues E206/E207) | 纪元 |
+
+> The ledger turned to page seventy-two so the copyists would see: the hand still writes, and never signs.
+> 那本册子翻到第七十二页，是为了让抄本师们看见：那只手还在写，只是从不署名。
+`,
+  },
+  {
+    order: 209,
+    slug: 'echo-209-page-seventy-three',
+    titleZh: '潮候院抄本院那本册子翻过第七十二页之后',
+    titleEn: 'After the Ledger Turned Past Page Seventy-Two',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206/E207/E208）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206/E207/E208).',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 209): After the Ledger Turned Past Page Seventy-Two
+
+> 回响是正典之外的侧写——不是续篇，是同一块石上被盐啃出的另一层纹理。
+> 本篇写给 E208 之后：册子翻过第七十二页之后，第一次自己翻到了第七十三页——上面没有名字，只有一个从未见过的收笔。
+> 纪律同正典：锚句 zh/en 逐字对应；本篇不新增正典专名，只写已有设定的细节。
+>
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E208: once the ledger turned past page seventy-two, it turned to page seventy-three for the first time — no name on it, only a stroke-ending never seen before.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206/E207/E208）。
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206/E207/E208).
+
+---
+
+## 一 · 第七十三页
+
+册子翻过第七十二页之后，第一次自己翻到了第七十三页——那一页原本是空白的。
+**锚句**：册子第一次自己翻到了第七十三页——那一页原本是空白的。
+**Anchor sentence**: the ledger turned to page seventy-three for the first time — that page had been blank.
+
+---
+
+## 二 · 收笔
+
+第七十三页上没有名字，只有一个收笔——那收笔往外挑，和四十二道潮印里的任何一道都不同。
+**锚句**：第七十三页上没有名字，只有一个往外挑的收笔。
+**Anchor sentence**: page seventy-three held no name, only a stroke-ending that turned outward.
+
+---
+
+## 三 · 未干
+
+抄本师们摸那收笔——墨迹还是湿的，像是刚刚才写下去。
+**锚句**：抄本师们摸那收笔——墨迹还是湿的。
+**Anchor sentence**: the copyists touched the stroke-ending — the ink was still wet.
+
+---
+
+## 四 · 第五夜
+
+第五夜，最年长的抄本师说——它翻到这里，是要我们知道那只手还在。
+**锚句**：最年长的抄本师说——它翻到这里，是要我们知道那只手还在。
+**Anchor sentence**: the eldest copyist said — it turned to this page to let us know the hand is still here.
+
+---
+
+## 五 · 回应
+
+第二天清晨，第七十三页的收笔旁边多了一道浅痕——像是在回答他们。
+**锚句**：收笔旁边多了一道浅痕——像是在回答他们。
+**Anchor sentence**: beside the stroke-ending a faint mark appeared — as if in answer to them.
+
+---
+
+## 六 · 仍无名字
+
+抄本师们还是没有说话——那道浅痕也不是名字，他们就让它留着。
+**锚句**：那道浅痕也不是名字——抄本师们就让它留着。
+**Anchor sentence**: the faint mark was no name either — the copyists let it remain.
+
+---
+
+## 七 · Mapping（Echo No. 209 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | page seventy-three · the outward stroke-ending · the faint answering mark | 一、二、五 |
+| geography | the Institute's copy hall · the winter-tide month | 一、三 |
+| characters | the five copyists · the eldest copyist · the unnamed hand | 三、四、六 |
+| story | the ledger turns past seventy-two · the hand answers in a mark, not a name | 全篇 |
+| items | the ledger · the wet ink · page seventy-three | 一、二、三 |
+| history | the 140th year after the 44th Convocation (continues E206–E208) | 纪元 |
+
+> 第七十三页没有名字，只有一道回答的浅痕——世界不把答案写成人名，只写成还在继续的痕迹。
+> Page seventy-three bore no name, only a faint mark in answer — the world writes its answer not as a name but as a trace that continues.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E208: once the ledger turned past page seventy-two, it turned to page seventy-three for the first time — no name on it, only a stroke-ending never seen before.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206/E207/E208).
+
+---
+
+## One · Page Seventy-Three
+
+The ledger turned to page seventy-three for the first time — that page had been blank.
+**锚句**：册子第一次自己翻到了第七十三页——那一页原本是空白的。
+**Anchor sentence**: the ledger turned to page seventy-three for the first time — that page had been blank.
+
+---
+
+## Two · The Stroke-Ending
+
+Page seventy-three held no name, only a stroke-ending that turned outward.
+**锚句**：第七十三页上没有名字，只有一个往外挑的收笔。
+**Anchor sentence**: page seventy-three held no name, only a stroke-ending that turned outward.
+
+---
+
+## Three · Still Wet
+
+The copyists touched the stroke-ending — the ink was still wet.
+**锚句**：抄本师们摸那收笔——墨迹还是湿的。
+**Anchor sentence**: the copyists touched the stroke-ending — the ink was still wet.
+
+---
+
+## Four · The Fifth Night
+
+The eldest copyist said — it turned to this page to let us know the hand is still here.
+**锚句**：最年长的抄本师说——它翻到这里，是要我们知道那只手还在。
+**Anchor sentence**: the eldest copyist said — it turned to this page to let us know the hand is still here.
+
+---
+
+## Five · The Answer
+
+Beside the stroke-ending a faint mark appeared — as if in answer to them.
+**锚句**：收笔旁边多了一道浅痕——像是在回答他们。
+**Anchor sentence**: beside the stroke-ending a faint mark appeared — as if in answer to them.
+
+---
+
+## Six · Still No Name
+
+The faint mark was no name either — the copyists let it remain.
+**锚句**：那道浅痕也不是名字——抄本师们就让它留着。
+**Anchor sentence**: the faint mark was no name either — the copyists let it remain.
+
+---
+
+## Seven · Mapping (Echo No. 209 · world model)
+
+| Dimension | Value | Chapters |
+| --- | --- | --- |
+| lore | page seventy-three · the outward stroke-ending · the faint answering mark | 一、二、五 |
+| geography | the Institute's copy hall · the winter-tide month | 一、三 |
+| characters | the five copyists · the eldest copyist · the unnamed hand | 三、四、六 |
+| story | the ledger turns past seventy-two · the hand answers in a mark, not a name | 全篇 |
+| items | the ledger · the wet ink · page seventy-three | 一、二、三 |
+| history | the 140th year after the 44th Convocation (continues E206–E208) | 纪元 |
+
+> Page seventy-three bore no name, only a faint mark in answer — the world writes its answer not as a name but as a trace that continues.
+> 第七十三页没有名字，只有一道回答的浅痕——世界不把答案写成人名，只写成还在继续的痕迹。
+`,
+  },
+  {
     order: 21,
     slug: 'echo-021-the-seven-lamps-of-the-back-alley-pier',
     titleZh: '里巷子码头的七盏号灯',
