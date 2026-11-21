@@ -26,7 +26,21 @@ origin/main（含 §CANON-PREFIX-STABLE 修复）后的 master。
 - **非流担忧已消除**：capability=real、demoMode=false，两次都走真 provider。
 - **缓存命中**：第二次 18498/18498 token 全部命中（100%），latency 从 2828ms 降到 31ms（约 91×）。
 - **上下文利用**：单次请求携带 18498 token 上下文（system 前缀），证明长上下文真实打进 provider。
-- **边界（§60 诚实）**：这是同一 (system,user) 的应用级 + provider 级命中；不声称跨会话/跨
-  echo 增量的 90% 稳定率——那由 session cacheLane（ADR 0296）与 canon prefix 字节稳定性
-  （§CANON-PREFIX-STABLE，本合并带入）分别保证，真机多会话读数见
+## 并行会话隔离实测（用户核心担忧："并行会话互挤缓存"）
+
+`POST /v1/ai/chat-graph`，同一 system、两条不同 `cacheLane`、两条**不同 user 问题**交错 A1 B1 A2 B2：
+
+| 调用 | cacheLane | 问题 | cachedTokens/tokensIn | 命中率 | latencyMs |
+|---|---|---|---|---|---|
+| A#1 | iso-A | 铁门生锈？ | 0 / 18498 | 0% | 2484 |
+| B#1 | iso-B | 竖琴调音？ | 0 / 18498 | 0% | 3046 |
+| A#2 | iso-A | 铁门生锈？ | 18498 / 18498 | **100%** | 15 |
+| B#2 | iso-B | 竖琴调音？ | 18498 / 18498 | **100%** | 0 |
+
+**结论**：两条并行会话交错打不同问题，各自第二轮都 100% 命中、没有因夹入另一会话而掉回 0%。
+这正是用户描述的"中途突然掉缓存"场景的修复验证——session cacheLane（ADR 0296）在真机生效。
+
+- **边界（§60 诚实）**：上述是两会话各两轮的受控读数，不声称所有会话/所有 echo 增量的恒定
+  90%——那只由 canon prefix 字节稳定性（§CANON-PREFIX-STABLE，本合并带入：头部不再含
+  echo 计数，新增 Echo 不 invalidate 前缀）与会话车道共同保证。更多真机多会话读数见
   `docs/evidence/stategraph-live-session-lane-2026-11-20.md`。
