@@ -67,6 +67,7 @@ const COPY: Record<Locale, {
   discipline: string;
   backGuide: string;
   backDiscover: string;
+  threadsLink: string;
 }> = {
   zh: {
     kicker: '低语诸王 · 典籍室',
@@ -88,6 +89,7 @@ const COPY: Record<Locale, {
     discipline: '正典由 docs/world-bible/ 维护，任何一句都不经过机器改写；正文原文如下，英译本只是同一故事的另一副嘴。',
     backGuide: '← 用户指南',
     backDiscover: '去广场 →',
+    threadsLink: '回响线索索引 →',
   },
   en: {
     kicker: 'The Whispers’ Kings · Canon',
@@ -109,6 +111,7 @@ const COPY: Record<Locale, {
     discipline: 'The canon is maintained in docs/world-bible/; not a single sentence passes through a machine unasked. The English is the same story with the same anchors — no other rephrasing.',
     backGuide: '← User guide',
     backDiscover: 'Go to the plaza →',
+    threadsLink: 'Echo threads →',
   },
 };
 
@@ -197,6 +200,7 @@ export default async function BiblePage() {
         <div className="bb-footLinks">
           <Link href="/guide" className="bb-footLink" data-bible-back-guide>{c.backGuide}</Link>
           <Link href="/discover" className="bb-footLink" data-bible-back-discover>{c.backDiscover}</Link>
+          <Link href="/bible/threads" className="bb-footLink" data-bible-threads>{c.threadsLink}</Link>
         </div>
       </footer>
     </main>

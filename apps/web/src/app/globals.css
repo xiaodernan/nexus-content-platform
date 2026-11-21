@@ -6384,3 +6384,46 @@
   .nw-kicker, .nw-title, .nw-lede, .nw-footnote, .nw-stats, .nw-panelTitle, .nw-hint, .nw-empty, .nw-hubTitle, .nw-hubKind, .nw-rank, .nw-in, .nw-out, .nw-cliqueCount, .nw-cliqueMembers, .nw-bridgeEnds, .nw-bridgeLabel, .nw-crossLabel, .nw-crossCount, .nw-crossPairs, .nw-isoNames, .nw-link { color: CanvasText; }
   .nw-link:focus-visible { outline: 2px solid Highlight; }
 }
+
+/* ── §ECHO-THREAD · 回响线索索引（/bible/threads）──
+ * 与典籍室同一套色板与节奏：卡片、锚句、页脚三件，不多加第三种视觉语言。 */
+.et-root { max-width: 60rem; margin: 0 auto; padding: var(--nexus-space-8) var(--nexus-space-6) var(--nexus-space-10); display: flex; flex-direction: column; gap: var(--nexus-space-8); }
+.et-kicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+.et-title { font-size: var(--nexus-font-size-21); font-weight: 600; color: var(--nexus-color-fg-1); margin-top: var(--nexus-space-2); }
+.et-lede { margin-top: var(--nexus-space-3); font-size: var(--nexus-font-size-13); line-height: 1.7; color: var(--nexus-color-fg-2); }
+.et-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--nexus-space-5); }
+.et-card { border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md); background: var(--nexus-color-bg-1); padding: var(--nexus-space-4); display: flex; flex-direction: column; gap: var(--nexus-space-3); }
+.et-cardHead { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--nexus-space-3); }
+.et-cardTitle { font-size: var(--nexus-font-size-16); font-weight: 600; color: var(--nexus-color-fg-1); }
+.et-cardMeta { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); display: flex; gap: var(--nexus-space-2); }
+.et-echoes { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--nexus-space-2); }
+.et-echoChip { display: contents; }
+.et-echoLink { display: inline-flex; align-items: baseline; gap: var(--nexus-space-2); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-2); text-decoration: none; }
+.et-echoLink:hover { background: var(--nexus-color-bg-2); color: var(--nexus-color-fg-1); }
+.et-echoNum { font-family: var(--nexus-font-mono); color: var(--nexus-color-fg-3); }
+.et-echoName { color: var(--nexus-color-fg-1); }
+.et-anchors { border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-3); display: flex; flex-direction: column; gap: var(--nexus-space-2); }
+.et-anchorsTitle { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+.et-anchorList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--nexus-space-2); }
+.et-anchor { display: flex; flex-wrap: wrap; gap: var(--nexus-space-2); font-size: var(--nexus-font-size-12); }
+.et-anchorEcho { font-family: var(--nexus-font-mono); color: var(--nexus-color-fg-3); min-width: 5.5rem; }
+.et-anchorQuote { color: var(--nexus-color-fg-2); quotes: "「" "」"; }
+.et-anchorsMore { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+.et-section { display: flex; flex-direction: column; gap: var(--nexus-space-3); }
+.et-sectionTitle { font-size: var(--nexus-font-size-13); font-weight: 600; color: var(--nexus-color-fg-1); }
+.et-linkList { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--nexus-space-2); }
+.et-link { display: inline-flex; align-items: center; gap: var(--nexus-space-2); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+.et-linkEcho { color: var(--nexus-color-accent-2-ink); text-decoration: underline; }
+.et-linkJoin { color: var(--nexus-color-fg-3); }
+.et-linkMotifs { border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); padding: 0 var(--nexus-space-1); color: var(--nexus-color-fg-3); }
+.et-empty, .et-note { font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); line-height: 1.7; }
+.et-foot { border-top: 1px solid var(--nexus-color-border-subtle); padding-top: var(--nexus-space-4); display: flex; flex-direction: column; gap: var(--nexus-space-3); }
+.et-discipline { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+.et-footLinks { display: flex; gap: var(--nexus-space-4); }
+.et-footLink { font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-2-ink); text-decoration: underline; }
+
+.et-arcList { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--nexus-space-2); }
+.et-arc { display: inline-flex; align-items: center; gap: var(--nexus-space-2); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-11); }
+.et-arcLabel { color: var(--nexus-color-fg-1); }
+.et-arcRange { font-family: var(--nexus-font-mono); color: var(--nexus-color-fg-3); }
+.et-arcSize { font-family: var(--nexus-font-mono); color: var(--nexus-color-accent-2-ink); }
