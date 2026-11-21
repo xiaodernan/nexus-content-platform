@@ -29224,6 +29224,154 @@ The people under the lamp slowly divided into two kinds — those who waited for
 > 页边自己会长出次序——不是谁排的，是放的人多了，轻的自然浮上来。`,
   },
   {
+    order: 215,
+    slug: 'echo-215-taking-one-out',
+    titleZh: '有人从页边取走了一张',
+    titleEn: 'Somebody Took One Out of the Margin',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E214）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E214).',
+    markdownZh: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E214: the margin acquired an order nobody arranged — slips placed often sank, slips placed rarely rose. This echo is about the first slip anybody took back out.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E214）。
+
+---
+
+## 一 · 取走的人
+
+取走纸条的是那个写半句话的孩子。他把它从缝隙里抽出来，抽得很慢。
+**锚句**：取走纸条的是那个写半句话的孩子。他把它从缝隙里抽出来，抽得很慢。
+**Anchor sentence**: the one who took a slip out was the child who wrote half sentences. He drew it out of the gap, slowly.
+
+---
+
+## 二 · 补全
+
+他把那半句补完了。补完以后，他把纸条放回原处，位置一点没动。
+**锚句**：他把那半句补完了。补完以后，他把纸条放回原处，位置一点没动。
+**Anchor sentence**: he finished the half sentence. When it was finished he put the slip back where it had been, and its place had not moved at all.
+
+---
+
+## 三 · 看见了
+
+第二天有人看见了那张纸条，问是谁补的。没有人回答。
+**锚句**：第二天有人看见了那张纸条，问是谁补的。没有人回答。
+**Anchor sentence**: the next day somebody saw that slip and asked who had finished it. Nobody answered.
+
+---
+
+## 四 · 最年长者的话
+
+最年长的抄本师说——取出来可以，放回去要轻；页边不记谁动过它。
+**锚句**：最年长的抄本师说——取出来可以，放回去要轻；页边不记谁动过它。
+**Anchor sentence**: the eldest copyist said — you may take one out; put it back lightly. The margin does not record who touched it.
+
+---
+
+## 五 · 第二张
+
+后来又有人取走过一张。那一张没有补全，也没有放回原处——它被留在了木面上。
+**锚句**：后来又有人取走过一张。那一张没有补全，也没有放回原处——它被留在了木面上。
+**Anchor sentence**: afterwards somebody took out another slip. That one was not finished, nor put back where it had been — it was left lying on the wood.
+
+---
+
+## 六 · 木面上的那张
+
+木面上的那张没有人收。它在那儿放了一夜，第二天早上还在那儿，位置偏了一线。
+**锚句**：木面上的那张没有人收。它在那儿放了一夜，第二天早上还在那儿，位置偏了一线。
+**Anchor sentence**: nobody picked up the slip on the wood. It lay there all night, and in the morning it was still there, its place shifted by a hair.
+
+---
+
+## 七 · Mapping（Echo No. 215 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | take one out, put it back lightly · the margin records no toucher · the slip left on the wood | 一、四、五 |
+| geography | the Institute's copy hall · the winter-tide month | 一、六 |
+| characters | the child with half sentences · the five copyists · the eldest copyist | 一、三、四 |
+| story | the first slip leaves the margin and returns; the second does not | 全篇 |
+| items | the slips · the cover gap · the wood surface | 二、五、六 |
+| history | the 140th year after the 44th Convocation (continues E206–E214) | 纪元 |
+
+> 页边不记谁动过它——所以取出来再放回去，才算真的没动过。
+> The margin does not record who touched it — so only taking one out and putting it back counts as not having touched it at all.`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E214: the margin acquired an order nobody arranged — slips placed often sank, slips placed rarely rose. This echo is about the first slip anybody took back out.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E214).
+
+---
+
+## One · Who Took It
+
+The one who took a slip out was the child who wrote half sentences. He drew it out of the gap, slowly.
+**锚句**：取走纸条的是那个写半句话的孩子。他把它从缝隙里抽出来，抽得很慢。
+**Anchor sentence**: the one who took a slip out was the child who wrote half sentences. He drew it out of the gap, slowly.
+
+---
+
+## Two · Finishing It
+
+He finished the half sentence. When it was finished he put the slip back where it had been, and its place had not moved at all.
+**锚句**：他把那半句补完了。补完以后，他把纸条放回原处，位置一点没动。
+**Anchor sentence**: he finished the half sentence. When it was finished he put the slip back where it had been, and its place had not moved at all.
+
+---
+
+## Three · Seen
+
+The next day somebody saw that slip and asked who had finished it. Nobody answered.
+**锚句**：第二天有人看见了那张纸条，问是谁补的。没有人回答。
+**Anchor sentence**: the next day somebody saw that slip and asked who had finished it. Nobody answered.
+
+---
+
+## Four · The Eldest's Words
+
+The eldest copyist said — you may take one out; put it back lightly. The margin does not record who touched it.
+**锚句**：最年长的抄本师说——取出来可以，放回去要轻；页边不记谁动过它。
+**Anchor sentence**: the eldest copyist said — you may take one out; put it back lightly. The margin does not record who touched it.
+
+---
+
+## Five · The Second Slip
+
+Afterwards somebody took out another slip. That one was not finished, nor put back where it had been — it was left lying on the wood.
+**锚句**：后来又有人取走过一张。那一张没有补全，也没有放回原处——它被留在了木面上。
+**Anchor sentence**: afterwards somebody took out another slip. That one was not finished, nor put back where it had been — it was left lying on the wood.
+
+---
+
+## Six · The Slip on the Wood
+
+Nobody picked up the slip on the wood. It lay there all night, and in the morning it was still there, its place shifted by a hair.
+**锚句**：木面上的那张没有人收。它在那儿放了一夜，第二天早上还在那儿，位置偏了一线。
+**Anchor sentence**: nobody picked up the slip on the wood. It lay there all night, and in the morning it was still there, its place shifted by a hair.
+
+---
+
+## Seven · Mapping（Echo No. 215 · world model）
+
+| Dimension | Value | Sections |
+| --- | --- | --- |
+| lore | take one out, put it back lightly · the margin records no toucher · the slip left on the wood | I, IV, V |
+| geography | the Institute's copy hall · the winter-tide month | I, VI |
+| characters | the child with half sentences · the five copyists · the eldest copyist | I, III, IV |
+| story | the first slip leaves the margin and returns; the second does not | all |
+| items | the slips · the cover gap · the wood surface | II, V, VI |
+| history | the 140th year after the 44th Convocation (continues E206–E214) | era |
+
+> The margin does not record who touched it — so only taking one out and putting it back counts as not having touched it at all.
+> 页边不记谁动过它——所以取出来再放回去，才算真的没动过。`,
+  },
+  {
     order: 22,
     slug: 'echo-022-the-fish-that-never-dried',
     titleZh: '里巷子晾鱼架上那条永远晾不干的鱼',

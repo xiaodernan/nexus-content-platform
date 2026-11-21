@@ -266,6 +266,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E212-潮候院抄本院抄本师们给那道新痕起了个不是名字的名字': 'echo-212-not-a-name',
   'E213-潮候院抄本院有人开始数页边': 'echo-213-counting-the-margin',
   'E214-潮候院抄本院页边开始按长短排': 'echo-214-the-margin-sorts-itself',
+  'E215-潮候院抄本院有人从页边取走了一张': 'echo-215-taking-one-out',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
