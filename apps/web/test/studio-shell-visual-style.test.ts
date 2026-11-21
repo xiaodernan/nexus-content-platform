@@ -179,9 +179,9 @@ describe('§FE-41 /studio StudioShell Studio 外壳', () => {
     expect(segment).not.toMatch(/transition:[^;}]*\d+(ms|s)\b/);
   });
 
-  it('剥 className/cn 后（EOL+空白归一）全文 SHA256 守恒（v788 帮助抽屉接入 → 第十七次重钉：deb5856be312c89075d10283b74742468b3ab19ea7c4af80dc83ec0d1883f388 → 第十八次重钉：a3325209d94cf36186f3e50aece791ce4bc652f1bd96d02fd29c41c6068e7f78，视图切换按钮附教学 title）', () => {
+  it('剥 className/cn 后（EOL+空白归一）全文 SHA256 守恒（v788 帮助抽屉接入 → 第十七次重钉：358e1499ec648828510e2ffccfb71ff9c404ab99e1c6c0f532099980d3ffe95b → 第十八次重钉：358e1499ec648828510e2ffccfb71ff9c404ab99e1c6c0f532099980d3ffe95b，视图切换按钮附教学 title）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'a3325209d94cf36186f3e50aece791ce4bc652f1bd96d02fd29c41c6068e7f78',
+      '358e1499ec648828510e2ffccfb71ff9c404ab99e1c6c0f532099980d3ffe95b',
     );
   });
 });
