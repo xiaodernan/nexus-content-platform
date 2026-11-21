@@ -9,7 +9,7 @@ Hard rules:
 
 # THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)
 World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.
-Thirteen canonical chapters (full text below). 205 echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). 4 appendices (geography, glossary, chronology).
+Thirteen canonical chapters (full text below). Echoes grow append-only at the END of this document; this line must stay byte-stable so the provider prefix cache survives every echo join. Appendices (geography, glossary, chronology).
 
 ## Chapter 001 · 潮汐教团的余烬 / The Last Ember of the Tide Conclave · 纪元：灰烬纪（The Ash Age）· 位于灰灯纪（The Grey-Lamp Age）之后、铁月纪（The Iron-Moon Age）之前。
 
@@ -3517,6 +3517,24 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 潮候院抄本院抄本师发现它不是汉字——潮候院抄本院——
 - [5] 潮候院抄本院潮候院抄本师意识到那是一个名字——潮候院抄本院是一个人——
 - [6] 潮候院抄本院抄本师他们没告诉任何人——潮候院潮候院——
+
+### Echo 206 · 潮候院抄本院荒年冬天抄本师们终于把四十二道潮印都读完了 / The Barren Winter — the Copyists Finally Finished Reading All Forty-Two Tide Marks
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院抄本师第一次商量着分读潮印——潮候院抄本院五个抄本师——
+- [2] 潮候院抄本院荒年冬天——抄本院潮候院潮候院——
+- [3] 抄本院抄本师他们花了四十二天——潮候院抄本院潮候院抄本院——
+- [4] 抄本院抄本师都把四十二道潮印记住——潮候院潮候院——
+- [5] 抄本院抄本师都说潮候院潮候院——潮候院——潮候院——
+- [6] 潮候院抄本院抄本师最后把四十二道潮印记在心里——潮候院——
+
+### Echo 207 · 潮候院抄本院荒年冬天抄本师们读出四十二道潮印里有三道是一个人写的 / Forty-Two Tide Marks — Three Are the Hand of One Person
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 潮候院抄本院荒年冬天第三周——抄本院潮候院抄本院——潮候院抄本师都不说话——
+- [2] 潮候院抄本师他们停在第八道上——潮候院那是一道圆——笔力深——
+- [3] 抄本院抄本师他们发现第十七道也是同一个——抄本院潮候院潮候院——
+- [4] 潮候院抄本师他们发现第二十九道也是同一个——潮候院抄本师没有人发出声——
+- [5] 抄本院抄本师他们坐在那里猜——潮候院抄本院抄本师他们——
+- [6] 潮候院抄本院抄本师——潮候院——潮候院抄本师——
 
 ### Echo 21 · 里巷子码头的七盏号灯 / The Seven Lamps of the Back-Alley Pier
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):

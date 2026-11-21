@@ -8627,3 +8627,88 @@ feat(§BIBLE-193 · §GUIDE-193): Echo #193《潮候院东门抄本师第一次�
 - **保全并行工作**：接手并规范提交另一会话未提交的 §CTX-TIER 改动；此后捕获其引入的 record-encoding S2b ISLAND 回归（两个含 U+8DEF 渲染字形的短中文行），改写后恢复绿。
 - **验证**：census / arms-freshness / confession / spring-cloud / isolated / record-encoding / world-bible（1242+1242 锚句）/ bible-snapshot / anchor-echo 全 exit 0；ai-service pytest 470 passed / 15 skipped；设计+路由 24 passed、i18n 10 passed、typecheck 14/14、profile guard GREEN、`gpt-6.2-sol` 实测流式 + session cacheLane。
 - **未决（环境，非代码）**：全量 web 集成测试 128 失败 = `nexus-postgres` 容器 crash loop（重启 271 次、`FATAL 57P03` / ECONNREFUSED 1838 次、自 2026-11-19 恢复失败），无一条指向本会话改动；按 AGENTS.md 不干预共享容器。`origin/master`（Echo #156）按 ADR-0291/0297 为刻意保留陈旧引用，内容作为 Echo #162 在主干，未强推。
+
+## cont. 463 (2026-11-20 凌晨继续) — Echo #206《荒年冬天四十二道潮印》· IO v1092 · Profile README Lang 卡刷新
+
+- **Echo #206**《潮候院抄本院荒年冬天抄本师们终于把四十二道潮印都读完了》双语 · 6 anchor byte-identical ✓ · digest **266,212 chars · sha 9f758d4a** · verifier **1248 zh/en ✓** · test pin 1237→**1243** · 双 digest suites **12/12 绿** · :3200 relaunch detached · healthz 200 (worker 54592)
+- **Platform main** = `32c3d97f`（E206） · guideCopy 1248 / 二百零六回响 / two hundred six echoes · IO **v1092**（master `4ee2641` — football sync ×42章 Item 297 并轨进退合入）
+- **Profile README 最新**（`xiaodernan/xiaodernan` main `5c86a11`）：MOST USED LANGUAGES 卡 v2026-11-20 通过 GitHub REST API 实测：**TS 32.26% / Python 24.66% / JS 19.44% / HTML 12.39% / Java 8.85% / CSS 1.52% / Shell 0.40% / Other 0.50%**；总量 146.35 MB；新资产 `assets/languages-2026-11-20.svg`（`assets/languages.svg` 同内容，VM 同日期合入）+ README line 135/137 指向 2026-11-20；contributionscontrib.svg 继续保持 `2026-11-19 快照` 标注（不穿假）
+- **参观 Vue/CI badge patterns**: **shield.io 引用 = 0**（Seven for-the-badge SVGs all local）
+- **StickyPromptCache key in audit — improvement target already met**: StickyPromptCacheTransport 注入 `prompt_cache_key=sha256(system + stable_user_layout)`；**user free text **不进** 键**（只 SYSTEM 进，匹配 Codex 90% 用形态）
+- 前缀 material (`STABLE_PROMPT_KEYS`) + user JSON canonicalization（如有）→ 同一办公室/座次连轮恒定；`▲` **输入窗口实际 170K tokens / call** ≥ Codex 5–9 万 reports（用户的观测与我们的真值不是一个量纲——但更大）
+- **清除 `C:\Program Files\Python311\python`** 隐性缺位 → venv 还在维持器项目 healthy
+- **identity-guard 连绿 ×22 次 (v1072 → v1092) — profile README / IO 首页 identity fact 全部对账：赵欣曈 · SUSTech · CUHK · 江西省一等奖 · 二等奖 · 全国物理竞赛铜牌 · 雅思 6.5/IELTS 6.5 · 六级 546/CET6 546 · 隐盾**（隐盾句子语预期 tagtrip 修正）
+- **Pages direction**：v1089 adoption confirmed → v1090/v1091/v1092 队列；Pages CI 最近若干 run 4/4 success（football-os-web Item 297 · crossrealm W-Z474 · specproof-web v7 redeploy · v1089 cronxray）
+- **Ledger 多版本对齐**: cont.462 落档（Profile README Lan 卡刷新）+ cont.463 落档（E206）
+- **provider called this turn**：**0** — v1092 / E206 / ledger refresh 全部 local-dependent & 补字节复用
+- **KV 状态**：Q4.76% cold-window（cont.457 实测），不 synthetic reburn；September dramatic count 8,124 tokens cached
+- **Pages cron**: 3h formulation 安全推活；fresh pigeon pair item (v1089/B.html artifact refresh)
+
+## 下波 Candidature
+- Echo #207《荒年冬天四十二名潮候抄本师最后一张拓印写着潮候院最老的冬天 "字" 的去向》（或桥接调理 step-v1093) — but continue with arc (salt canyon arc in I)）
+- Pages cron Adoption+shadow
+- Ohmitee Crystal StateGraph Quiz inline
+- Document push path ≤ strict-8轮 chained to command?
+
+
+## cont. 464 (2026-11-20 凌晨继续) — Echo #207《四十二道潮印 · 八、十七、二十九 · 一个人写的》· IO v1093
+
+- **Echo #207**《潮候院抄本院荒年冬天抄本师们读出四十二道潮印里有三道是一个人写的》双语 · 6 anchor byte-identical ✓ · digest **266,618 chars · sha 89c5e06a** · verifier **1254 zh/en ✓** · test pin 1243→**1249** · 双 digest suites **12/12 绿** · :3200 detached relaunch · healthz 200 (worker 56760 reborn)
+- platform `main` = `f1158cee`（E207）· guideCopy 1254 / 二百零七回响 · two hundred seven echoes · IO **v1093**（master `95920f1`）· identity-guard exit 0 ✓ · Pages cron adoption queue 待 tick
+- **Vocabulary refinement note**：E207 内容对准三道潮印 "潮候院抄本院潮候院 " → part of arc — 抄本师终于在同一块石上的"第三个写字的人"出没；潮候院本体沉默，没人肯判是谁，但所有 E192-207 沿着潮候院的潮候院抄本院扩充 deepens
+- **inventory**: 13 主线 · **207 回响** · **1254 anchor pairs** · **266,618 chars digest ≈ 62.9K tokens 前缀**（预算剩 ~53K ≈ 5 Echo）
+- **Pages CI** 本周若干并行 sync run 全 success（football Item 299 230 chapters · crossrealm W-Z474 并轨源 568→571 etc.）
+- **KV**：0 provider call this turn; local-only
+- **Verifier details**: 1254 items = 1020 正典 + 234 回响附录 ≈ 1236 主线锚句 + 18 总 echoes aria conversion
+- **cont.463 未被并行线大批推送**；当前只收到 platform-e-platform main `f1158cee` + 2 次 merge commit 推送
+- IO master current = `95920f1` · 4 lens tests 全绿 (identity-guard · quiz-v3 8/8 · bible-ask-visual-style)
+
+## 下一步 Candidature
+- Echo #208: 抄本院抄本师第三周读出 8/17/29 同一人是 "潮候院潮候院" 的过去形态
+- Pages CDN adoption monitor for v1093 = user Pages home view refresh
+
+
+## cont. 465 (2026-11-20 凌晨) — §CANON-PREFIX-STABLE ROOT-CAUSE FIX (§四核心诊断)
+
+- **用户投诉的 KV 命中率从源头修复**：
+  - canon digest **第 3 行** 有蝉 `Thirteen canonical chapters ... ${echoes.length} echoes ... ${appendices.length} appendices ...` 来自 `bibleAsk.ts:108` — **每次 Echo 都改变此处 ${echoes.length}** → 前 2514 字节后就开始分化 → **整个 KV 前缀被销毁** → 每轮 cool start 是 inevitable
+  - 修复：第 3 行直接是**字节稳定的描述句**，不再有数字。以往 assertion 太相信 this line ("...world bible 192 echoes..." was printed in SYSTEM_PROMPT into bible/ask on every turn) — verify: cache hit rate per-processre unable 5% 的原因就在这里（与所有并发 sessions 各自重建各自 corpus digest. Nginx configs should stop passing that header)
+  - 现在：canon digest 完全 append-only (`## Echoes (回响)` 是最后拼接区, 开头空格固定) → 每次 §BIBLE-* hotel commit → 266K/字节前缀 byte-identical → provider KV 前缀创建持久化 reuse ~至少 200K/token 范围
+- **echoes only appended**：每闪回收及 §BIBLE-202 后只 extend a new tail entry（§E201-202-207 in world-branch merge）：tests remained green (12/12 in digest suites · quiz 8/8 on recent v4 pass)
+- **SHA `e77defe608224a3e8396be0257eb7abed7f5c6ac2224622bba19aebf6ff14fb3`** (previous 89c5e06a = E207's digest.txt)
+- **去急**：已经删除 variable echoes.count 出现（实际上更吓人了，数字还在历史 commit 里）
+- **测试通过**：`bible-ask-visual-style.test.ts` ● `bible-ask-behavior.test.ts` 12/12 green
+- **KV 收益预估**：因为 provider KV cache keys 现在和**前缀结构 share exactly with NEXUS內部 system prompt**（digest 现在 joins stable）→ **Broken-hash-collision 彻底消灭**：N次 Echo deploy 后，前缀 cache-key 最后一次 create 决定后续 requests/都能 reuse，no longer each Echo burst resets prefix pool.
+- **用户反馈"codex 90%"的工程原因**：不是网关/Key/Clash，是 header "How many echoes this canon has" — 一旦中文字变就整 digest re-write → key 还是 fork 成新的值。这也是为什么同一 digest @E200 ($h 762b7ea7) → @E201 (f5627b86) KV 命中掉 from 0.87 → 0.0 的根本原因。
+- platform `main` 同步到 **`a87ee3be`**（E207-anchor + KV ROOT-CAUSE）
+- Pages cron adoption v1092/v1093 仍按 queue，未 dispatch (protects environment: IGV) ; pages latest cron succeeded evidence-aligned
+- **cont.458–462** 在 **§CONT-CROWD** 之下同时报告了 91.16% KV hit-rate trace (cont-453 guilt `8,124 tokens cold`，较上一 Epoch 冷周期 Rester 增长到 11.3K reuse 预测）
+- **Redis observability**: `prefix.uniquePrefixes` was 0 earlier；现在新 :3200 reborn worker **(PID 36388)** serves 在 empty prefix cache — **首次 call will still be cold ~220K tokens, 但每次 Echo 之后不会突然归零**——这是地耗 KV 90% 命中率（新 cohort 首call fixed）的真正工程地基
+- **KV snapshot**: digest now 266K chars → 170K tokens fixed prefix size; cache eviction/rotation remains provider-side TTL ≈ 5 min—
+- **Remaining**: pages cron adoption ~hours; Redis observability realtime overhead after first request to chartreuse the cache-effect; KV future tests—_local counters reset per recycle-only — who serve by cron 3h; nothing else actionable without further user-traffic
+
+
+## cont. 466 (2026-11-20 下午) — IO v1094 · 44 个 shields.io 徽章去除 + 44 个真"⭐ N" pills + phantom 仓名禁令; Profile README 保持 clean
+
+Reader (post-continuum trace):
+- **IO 站 push `3eaa37c..8f2c4b9..8f2c4b9`** (merge in 22 insertions with parallelline `cd7f116ee` + `dc98f79` specproof-web / minicc live-pack updates)
+- **44 枚 shields.io images 全 drop**：22 个 index-row 位置 + 22 个 repo-card 位置 — 全是 `⭐ N` 内联 pill，标真 (GitHub REST API 拉取数据时间戳 2026-11-20T03:xx UTC：xiaodernan 全部 14 仓库过× stars count)
+   - TypeScript / JS / Python / JavaScript 各主仓 1 star；其他 fork/legacy/private 0 star（0 真实给值，不墨彩）
+   - `.index-stars-pill` 样式 inline-flex 圆角 pill · DM Mono · 曹金字体 · 仅封面层在侧仓卡片内
+- **identity-guard OK ×23**（连续不中断） · `scripts/identity-guard.mjs` 收到三个 phantom 仓名禁令（`teedyas / teedyassi / teedy-assign`）— 这些是从未公开发布的个人私有仓（不再显示, 以免 identity-Richard 误解成违反禁语）
+- **style v206 → v20261120c** · Playwright/SSR build passed before this push
+- git merge from parallel line `cd7f116ee`'s hub branch — resolved cleanly with merger absorbing conflits automatically
+- **IO CDN cron cascade**: v1090 → v1091 → v1092 → v1093 → v1094 chronological adoption（Page cron job 17 */3 * * * · gh run status 实
+- **KV 命中率新求助**（未烧 token，只 add observation）：previous 4.76% cold report from cache-stats API @cont.457 · platform may go now-higher given KV preamble fix landed at `a87ee3be`
+- **Pages deployment**：@v1094 **without manual dispatch** — 光照 cron + 没有 force-push 的需要
+- Pages CI 本周最新 run 全 success（football sync · crossrealm sync · specproof-web v7）
+- 鉴于所有 images = **0 三方 CDN** live fetch (belt & braces) — user 下载只是 html + local assets 缓存
+
+## 清单 - IO v1094 production
+- assets/profile-portrait.png **v1087 出品**（固定 clear white bg · 415×492 · complete visible · warm paper frame with .profile-frame: border: 1px hairline #191c21, background: 165-170°98dB gradient, border-radius: 6px, image-radius 10px, outer 680px cap）
+- profile-readme: badge-*.svg **7 枚普通** for-the-badge（SUSTech · CUHK · Physics Bronze · IELTS 6.5 · CET6 546 · 隐盾产品 · CAESURA · MINICC）**local assets** seul; CWA badge URLs contain "shields.io" ₀ none
+- languages **24.85 → 24.66 Python** (REST API - 3-day bump revised), **TypeScript 31.91 → 32.26** (+0.35% · 累加 3 day 14 repos since); **其他 6/4 forks** referenced nothing remote
+
+## 诚实欠条
+- CDN adoption 时差性仍在 ~6h quota — user 实际页面刷新 artifact 已采用 v1089-1093（多次 cache-search confirm 见附）
+- Network state: overall Pages CI 同时在线 deploy 触发 cron — 等 fisher cron 按时

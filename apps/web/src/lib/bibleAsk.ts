@@ -105,7 +105,7 @@ export function buildDigest(
   return [
     '# THE WORLD BIBLE — CANON DIGEST (低语诸王 · 世界大典)',
     'World: «The Whispers’ Kings / 低语诸王». Era: the Institute Age (潮候院), after the 41st Convocation.',
-    `Thirteen canonical chapters (full text below). ${echoes.length} echoes (recent full bodies under a 160k-zh-char quota + zh/en anchor lines for every echo). ${appendices.length} appendices (geography, glossary, chronology).`,
+    'Thirteen canonical chapters (full text below). Echoes grow append-only at the END of this document; this line must stay byte-stable so the provider prefix cache survives every echo join. Appendices (geography, glossary, chronology).',
     '',
     chapters.map(chapterDigestV2).join('\n\n'),
     '',
