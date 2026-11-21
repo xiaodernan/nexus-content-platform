@@ -82,6 +82,10 @@
       "minimum": 1,
       "maximum": 4
     },
+    "review": {
+      "default": false,
+      "type": "boolean"
+    },
     "context": {
       "type": "object",
       "properties": {

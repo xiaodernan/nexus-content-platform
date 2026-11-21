@@ -577,6 +577,13 @@ export const AiRequestSchema = z.object({
   modelClass: ModelClass.default('balanced'),
   /** 多方案生成数量（§29/§117），1-4 */
   variants: z.number().int().min(1).max(4).default(1),
+  /**
+   * §GRAPH-3：这一轮要不要让第二个模型视角自查补丁（draft → review → revise）。
+   * 默认 false——它会主动多打 1–3 次 provider 调用，是用户有意识选择的 token 预算。
+   * 服务端还有个全局开关 `NEXUS_LLM_DESIGN_REVIEW`，两者是「或」关系：
+   * 全局开=所有请求都审；单请求开=只在这一轮多花。默认关=零回归。
+   */
+  review: z.boolean().default(false),
   context: DesignContextSchema,
   /** 参考图（§30）：data url 或资产 id */
   references: z.array(z.object({ assetId: z.string().optional(), dataUrl: z.string().optional(), kind: z.enum(['screenshot', 'photo', 'moodboard', 'url']).default('screenshot') })).default([]),

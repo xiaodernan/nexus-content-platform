@@ -178,7 +178,9 @@ async def execute_ai_request(payload: dict[str, Any], *, registry: Registry) -> 
     # 所有调用累计进账本——多打了 token 却只报第一次的数，是比不审稿更糟的谎。
     review_activities: list[dict[str, Any]] = []
     all_completions: list[Any] = [completion]
-    if registry.design_review_enabled:
+    # 全局 env 开关与单请求开关是「或」：前者给部署默认值，后者给用户在界面上按需多花 token。
+    # 两者都关才是零回归；只读 `review` 会让 env 开关形同虚设，只读 env 则用户永远点不动。
+    if registry.design_review_enabled or bool(payload.get("review")):
         from .design_review import (
             REVIEW_SYSTEM,
             build_review_user,
