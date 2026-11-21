@@ -10867,6 +10867,38 @@ verify:actuator     PASS 5/5  —— 五个服务 health 200 UP（details 隐藏
 `ai-health via gateway (degraded)` 是诚实读数——本机 3200 由另一个项目持有，domain-service 的 Feign
 指向不到，降级并说明原因而不是假装 UP。
 
+## §I18N-LIVE 中英合规审计第一次配上真 LLM——35 项差异逐条修到 26，7/14 段全净（2026-11-22）
+
+`npm run i18n:audit` 从 2026-11-20 起就在跑，但**从来没有一次真的调用过模型**：
+每一段都报 `AI 调用未成功：未配置 NEXUS_AI_SERVICE_URL`，报告里 28 条"差异"全是同一句环境问题。
+本轮用真服务（`NEXUS_AI_SERVICE_URL` 指向本仓 ai-service）重跑，第一次拿到真实判词。
+
+**首轮真实读数：35 项**。逐条修掉**客观类**（漏译、增译、截断、错译主体、大小写）：
+
+- §1 `What is this thing?` → `What is this platform?`（"平台"被泛化成"东西"）；
+- §2 漏了"点"这个动作词；`A 2-minute first run-through` 里"2-minute" 是 zh 没有的时长；
+- §3 `StateGraph in one minute` → `in brief`（"小课"≠一分钟）；
+- §7 zh 那句以"那些页就"**硬截断**（"就"后缺成分），en 反而补全了"亮了"——两边不对齐；
+  Q / A 之后的首字母大写；
+- §10 `components bazaar` → `component marketplace`（"组件市场"被窄化成"组件集市"）；
+- §11 漏译"重做是 ⌘⇧Z / Ctrl Y"；
+- §5 `live enemies` / `discoveries` → 计数表达（zh 是"场上敌人数 / 发现量"）。
+
+**第二轮修掉两个自己引入的错**（这正是"不要中英夹杂"要防的）：
+
+- 上一轮把"馆长批注：trending 榜前三由 **AI** 照三条真实指标各写一句"写成了
+  "the curator writes…"——**主体被换掉了**，zh 里写批注的是 AI 不是馆长；顺带丢了
+  "三条真实指标（浏览/赞/评/转/热度分）"与"每条必含数字"。
+- 给 `build_prefix` 补的"this is what makes a 170k-token canon digest cost 88% less"
+  是 **zh 里没有的信息**——单边增内容就是夹杂。搬去 §LLMCTX-1 自己那段（zh/en 同步）。
+
+**读数**：35 → 26；**7/14 段全净**（①③⑥⑧⑨⑩⑪⑫）。`guide-visual-style` 8 passed。
+剩余 26 项是模型的主观风格偏好（"central canvas vs canvas in the center" 一类），
+且该审计本身非确定性——同一份文案两轮判词不同。**把它当诊断不当门**：
+客观类（漏译/增译/截断/错主体）必修，风格类不追零。
+
+报告 `docs/i18n-audit-2026-11-21.md`（脚本按当日日期落盘）。
+
 ## §SEC 第三十二片：限流闸的窗口挪进 Redis——「每台各数各的」那句限额重新是真的（2026-11-02）
 
 起点是 `rateLimit.ts` 顶部从 §64 那天起就写着的一句承诺："生产多实例时换成 Redis 驱动（ZRANGEBYSCORE + ZADD

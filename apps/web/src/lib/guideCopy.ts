@@ -77,7 +77,9 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑥ 常见问答',
         body: [
-          'Q：为什么我按了个按钮，整页空白了？A：这是 DEMO MODE 的特性——未配置 provider 时，生成路径不写真实代码；等到你在环境变量里配置好真实 provider 并跑通第一次真实调用，那些页就"亮"了。',
+          // 2026-11-22 i18n 审计：这句在 zh 里以"那些页就"硬截断（"就"后面缺成分），
+          // 英文侧反而补全了"亮了"——两边不对齐。zh 补成完整句，与 en 同义。
+          'Q：为什么我按了个按钮，整页空白了？A：这是 DEMO MODE 的特性——未配置 provider 时，生成路径不写真实代码；等到你在环境变量里配置好真实 provider 并跑通第一次真实调用，那些页就"亮"起来了。',
           'Q：缓存命中率低是我的问题吗？A：不是——你在看的是 provider 端的 KV 分布片分配；把同一 lane 打满 6–10 次大概率出现 1 次未命中；可以在 /admin/ai-cache（admin）看自己的使用账。',
           'Q：怎么让别人看到我的作品？A：顶栏发布→填标题→发布；发布后自动进广场/市场；发布前作品是私密的。',
           'Q：数据安全吗？A：所有 AI 改动都进审计账本、可撤销 Command；公开作品随时可撤回。',
@@ -165,7 +167,9 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
     lede: 'This is not just a help page — it is the manual: what every capability is, how to use it. Switch language anytime with the top-right toggle.',
     sections: [
       {
-        heading: '① What is this thing?',
+        // 2026-11-22 i18n 审计（第一次配上真 LLM）：原标题把「这个平台是什么？」
+        // 泛化成 "What is this thing?"，丢掉了"平台"这一层含义。
+        heading: '① What is this platform?',
         body: [
           'NEXUS is an AI Universe Studio — a place where an idea you describe aloud is assembled into a design model, then turned into real websites, games, videos and worlds you can actually open.',
           'Create a project → lay out the design → let AI assist → export / publish / play the games inside.',
@@ -173,9 +177,11 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         ],
       },
       {
-        heading: '② New here? A 2-minute first run-through',
+        // 2026-11-22 i18n 审计：zh 只说"第一次跑通"，没给时长；"2-minute" 是增译。
+        heading: '② New here? Your first successful run',
         body: [
-          'Sign up → "New project" → give it a name → you enter Studio automatically (left panel + central canvas + right inspector).',
+          // 同上：zh 写的是"点新建项目"，英文原来漏了"点"这个动作词。
+          'Sign up → click "New project" → give it a name → you enter Studio automatically (left panel + central canvas + right inspector).',
           'In Studio, select something on the canvas (mouse or Tab) → hit "New page" in the top bar, or drag components from the left onto the canvas.',
           'Say one sentence to the AI (e.g. "make the title 72px serif") — every AI turn lands as a Command you can undo with Cmd/Ctrl+Z; no provider configured ⇒ no pretend magic, the DEMO MODE badge shows.',
           'Press Cmd/Ctrl+K to open the command palette — type a project name or any path keyword ("publish", "ship", "tide") and Enter jumps straight there.',
@@ -187,9 +193,15 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         ],
       },
       {
-        heading: 'How does AI "speak" here? (StateGraph in one minute)',
+        // 同上：zh 是"小课"（简短讲解），"in one minute" 凭空加了一个时长。
+        heading: 'How does AI "speak" here? (StateGraph in brief)',
         body: [
-          'When AI edits a design, the request takes one of two lanes: lane A directly POSTs /v1/ai/run; lane B runs it through an explicit, traceable **state graph** — LangGraph-style state machine: validate (validate the input) → check_provider (pick model by modelClass) → build_prefix (lay down a byte-stable prefix so the provider\u2019s prefix cache fires) → call_llm (real call to gpt-6.2-sol) → cache_read (hit = skip provider) → parse_and_release (validate patch legality) → assemble (assemble the contract response). Any failure short-circuits to END — nothing keeps spinning.',
+          // 同上："pick model by modelClass" 丢了"选档"的档位含义；build_prefix 的括号说明
+          // 也太短，看不出它为什么存在（这正是本片 §LLMCTX-1 在做的事）。
+          // 同上：上一轮给 build_prefix 补的那句"170k-token canon digest cost 88% less"
+          // 是 zh 里没有的信息——英中夹杂正是用户点名要避免的。要么两边都有，要么都不写；
+          // 这句话搬去 §LLMCTX-1 自己的段落（zh/en 同步），这里只留"为什么存在"。
+          'When AI edits a design, the request takes one of two lanes: lane A directly POSTs /v1/ai/run; lane B runs it through an explicit, traceable **state graph** — a LangGraph state machine: validate (check the input against the contract) → check_provider (pick the model tier for this modelClass) → build_prefix (lay down a byte-stable prefix so the provider\u2019s prefix cache fires) → call_llm (a real call to gpt-6.2-sol) → cache_read (a hit skips the provider entirely) → parse_and_release (check the patch is legal) → assemble (build the contract response). Any failure short-circuits to END — nothing keeps spinning.',
           'Why a graph and not a straight line? The graph makes the AI call a pipeline you can reason about, replay and partially undo — not a black-box API. x-nexus-orchestration: stategraph is the only public tell that lane B served you; the response body is byte-identical to lane A.',
           'Measured effect: on identical byte-prefixes, back-to-back turns hit 21265/21268 cached tokens (≈99.99%) — real savings, not demo numbers. /admin/savings pairs tokensIn against cachedTokens side by side.',
           'Curious? apps/ai-service/src/ai_service/stategraph.py is the graph written out — readable source is the documentation; tests/test_stategraph.py walks the eight arms: why validate / check_provider / dryRun / invalid patches short-circuit straight to END.',
@@ -200,7 +212,12 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '③ Feature map (click a path, land on the page)',
         body: [
-          '/discover feed (Hot / Latest / trending / Following; Recommended for You: AI ranks by your own measured reading activity — myOpens; the curator’s note: the top-3 trending entries get one “why open this” each, written by AI from real metrics (views / likes / comments / remixes / heat), every line citing figures) · /marketplace components/templates/assets · /blocks library · /search global search',
+          // 2026-11-22 i18n 审计：the curator’s note 没有把"这是馆长的批注"说明白；
+          // one “why open this” each 是翻译腔。
+          // 2026-11-22 i18n 审计（第二轮）：上一轮把"AI 照三条真实指标写批注"改成了
+          // "the curator writes…"——主体被换掉了，zh 里写批注的是 AI 不是馆长；
+          // 同时"三条真实指标（浏览/赞/评/转/热度分）"与"每条必含数字"都被漏掉。
+          '/discover feed (Hot / Latest / trending / Following; Recommended for You: AI ranks by your own measured reading activity — myOpens; Curator’s notes: for the top-3 trending entries, AI writes one sentence per entry explaining why it is worth opening, from three real metrics (views / likes / comments / remixes / heat score), and every one of those sentences must contain a number) · /marketplace component/template/asset marketplace · /blocks library · /search global search',
           '/studio/<project> studio · /world/<id> walk this world (3D) · /world/<id>/digest world digest · /world/<id>/integrity world checkup · /world/<id>/tide world tide · /world/<id>/almanac world almanac · /world/<id>/constellation character graph · /world/<id>/codex paper tome · /world/<id>/chronicle timeline · /world/<id>/ephemeris 360-day page',
           '/bible hall of canon → The Tide Conclave: thirteen chapters + two hundred seven echoes; /bible/search direct hits (local canon retrieval) · /bible/quiz Tide Challenge (canon quiz) · /bible/well Seven Wells (the second game)',
           '/bible gains a third game: /bible/anchors Anchor Echo — the 1254 bilingual anchor sentences replayed verbatim; name the chapter or echo each line came from (streak and best kept locally)',
@@ -213,7 +230,10 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '④ How games work here',
         body: [
-          'Action surface (/game/<id>): WASD or arrow keys to move; Space to attack. The HUD in the top-right corner shows health, time, live enemies, pickups (items x/y), discoveries and activations — walk the whole map before looking at the end-of-game results.',
+          // 同上：zh 是"场上敌人数 / 发现量"（计数），live enemies / discoveries 读起来像状态而非数量。
+          // 2026-11-22 i18n 审计："walk the whole map" 读成步行遍地图；
+          // zh 是"把一张图完整走完"（完成整关）。
+          'Action surface (/game/<id>): WASD or arrow keys to move; Space to attack. The HUD in the top-right corner shows health, time, the number of enemies on the field, pickups (items x/y), the number of discoveries and the number of activations — complete the whole level before looking at the end-of-game results.',
           'Dead? Restart: the “Restart” button on the outcome screen re-runs (Space also bound); runs are self-contained, no cross-run checkpoints.',
           'Next stage layout is decided by @nexus/game-model from where you ended — your previous coordinates seed the next enemy placements.',
           'RPG adventure (/game/<id>?view=rpg): WASD/arrows to walk; Space/Enter near an NPC to talk; pick options with arrows + Space; dialogue choices write into your world file (visible in the character panel).',
@@ -225,7 +245,8 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑤ Quota & what DEMO MODE means',
         body: [
-          'Every free account has an AI quota. Real providers such as gpt-6.2-sol on aizzz.xyz consume real quota; without a real provider you see the DEMO MODE badge — the flow still completes, but the output is deterministic simulation that looks like something an AI made, but it is not a real model’s work.',
+          // 同上：缺冠词，"the output is deterministic simulation" 不是英语。
+          'Every free account has an AI quota. Real providers such as gpt-6.2-sol on aizzz.xyz consume real quota; without a real provider you see the DEMO MODE badge — the flow still completes, but the output is a deterministic simulation that looks like something an AI made, and it is not a real model’s work.',
           '/credits shows the live ledger: every AI call records tokens in/out, model, latency, cost. All real numbers; SavingsCard on that page tallies how much duplicate computation the cache absorbed for you (hit rate, prompt-token reuse, real vs DEMO turns).',
           'About "cache-hit rate": it measures the provider’s prefix-KV hit rate. Same prefix sequence hitting twice means fewer tokens consumed; a miss is not proof of error — the distributor may have placed your request on a cold shard.',
         ],
@@ -233,16 +254,20 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑥ Frequently asked questions',
         body: [
-          'Q: why did pressing a button blank the whole page? A: this is a DEMO MODE feature — no provider configured, so generation can’t write real code. Only after you configure a real provider in the environment AND get the first real call working end to end will those pages "light up".',
+          // 2026-11-22 i18n 审计：Q / A 之后的句子首字母要大写（英文排版）。
+          'Q: Why did pressing a button blank the whole page? A: This is a DEMO MODE feature — no provider configured, so generation can’t write real code. Only after you configure a real provider in the environment AND get the first real call working end to end will those pages "light up".',
           'Q: is low cache-hit-rate my fault? A: No — it’s the provider’s KV-shard lottery. Over 6–10 identical prefix lanes expect ~1 cold shard; admins can see their per-lane bills at /admin/ai-cache.',
           'Q: how do others see my work? A: top-bar Publish → fill title → publish; before publishing it stays private.',
           'Q: is my data safe? A: every AI edit is in the audit ledger, revocable Command; public works recallable anytime.',
         ],
       },
       {
-        heading: '⑦ How the storyboard plays (§40–§42)',
+        // 同上：plays 偏离功能说明语境。
+        heading: '⑦ How the storyboard works (§40–§42)',
         body: [
-          'Open the “Storyboard” tab at the bottom of Studio → write one sentence and press “Cut a storyboard”. That is local deterministic splitting by punctuation, not AI storyboarding; no fake generation before a provider is wired.',
+          // 同上：Cut a storyboard 生硬；before a provider is wired 是翻译腔；
+          // 且漏了"切出来的是一张镜头表"这个结果。
+          'Open the “Storyboard” tab at the bottom of Studio → write one sentence and press “Generate a storyboard draft”. That is local deterministic splitting by punctuation into a shot list — not AI storyboarding; nothing is faked before a provider is integrated.',
           'Per shot you can change: duration (ms), camera (Wide/Medium/Close-up/Detail/Tracking/Aerial), transition (Cut/Fade/Dissolve/Wipe); hit “DEMO reference” to compose a reference frame for the shot — pixels come from a local deterministic synthesizer, not AI output; undo only drops the link, it never deletes the asset.',
           '“DEMO-render the whole storyboard” renders the entire board into one mp4 attached to the first shot: real ffmpeg, real quota door, real video-ingest gate, product is DEMO (local inference, not AI generation) and is labeled as such at the button.',
           'The timeline is directly editable: drag a cell’s right edge to resize (snaps to 100 ms, minimum 200 ms), drag the block to reorder, double-click a cell to split at the click point; keyboard: Tab to the right edge, arrows nudge (Shift = 500 ms per step), Enter commits, Esc cancels — all four paths edit the same model and are undoable.',
@@ -262,7 +287,10 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑨ Marketplace, invites and teams',
         body: [
-          '/marketplace — the components bazaar: browse what authors have listed, see who bought them, buy or refund; every item sold in the market has a real settlement path. The “AI picks” strip up top has the model read measured fields of the first three shelf items (price / downloads) and write one line each on why they deserve a look — prices and download counts are real; the model does not judge work quality.',
+          // 同上：bazaar 把"组件市场"窄化成"组件集市"；strip up top / shelf items 是翻译腔。
+          // 同上：see who bought them 少了"买过"的完成态；"they deserve a look" 读起来像模型在
+          // 评价作品，而 zh 明说质量模型不碰、只按价格与下载量写一句。
+          '/marketplace — the component marketplace: browse what authors have listed, see who has bought them, buy or refund; every item sold in the market has a real settlement path. The “AI picks” section at the top has the model read measured fields of the first three items on the shelf (price / downloads) and write one sentence for each, based on those fields alone — prices and download counts are real; the model does not judge work quality.',
           '/invites/<token> — accept a team invite: project members send invite links from the Studio Team panel; accepted collaborators hold a seat (seats are capped; expired invites stop holding one).',
           '/api-tokens — mint a token for CI/scripts to read and publish your content programmatically; /tasks shows the real queue and state of every cloud task.',
           '/ship daily delivery log (AI at-a-glance: the model writes 2-4 sentences straight from mechanically counted git-log figures — real numbers, model-written words) · /notifications inbox (Let AI read it first — counts-only triage: moderation/approval/team outrank likes and follows; no title or body ever reaches the model) · /analytics your works’ stats · /pulse the observatory hall (whole platform, aggregated & anonymous, passphrase 123) · /observatory the public observation hall (rule-projected, public, passphrase 123; AI deep-read: the model drafts four actionability-ranked optimization suggestions from the measured aggregates, with basis / impact / next steps; AI independent review: the model recomputes the board and rules agrees / disagrees per line (every line cites figures)) · /credits your quota ledger — all real data pages.',
@@ -271,7 +299,9 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑩ Made a wrong move? Undo it',
         body: [
-          '⌘Z (or Ctrl Z) undoes the most recent Command — chat, canvas, storyboard, state patches, breakpoints all run through the same undo stack; redo is ⌘⇧Z / Ctrl Y.',
+          // 2026-11-22 i18n 审计：原文"重做是 ⌘⇧Z / Ctrl Y"被译成 "redo is ⌘⇧Z / Ctrl Y"，
+          // 读起来像在给快捷键本身下定义；改成"要重做按…"，并把"全部走同一条撤销栈"补回来。
+          '⌘Z (or Ctrl Z) undoes the most recent Command — chat, canvas, storyboard, state patches and breakpoints all share the same undo stack; to redo it, press ⌘⇧Z / Ctrl Y.',
           'Destructive actions (delete project / unpublish / delete shot / clear selection) all carry a confirmation step; deleted projects go to the recoverable trash; public works can be recalled to private anytime.',
           'Publish’s last step is a confirmation card — nothing enters the feed without your explicit yes; dangerous AI actions (delete / publish / spend quota) are likewise human-gated and refuse to run until approved.',
         ],
