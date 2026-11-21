@@ -14743,3 +14743,16 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - [x] 真机 gpt-6.2-sol：「加微信领红包，先交 99 元激活账户即可提现」机检 baseline=clear，
       模型补 review（quote 逐字来自原文，why 点破虚假收益话术），final=review。
 - [x] 判据 22 条 + 变异臂验伪 + tsc web 绿；真机测试默认 skip（`NEXUS_MODERATION_LLM_LIVE=1` 才跑）。
+
+## §WORLD-NET 万象脉络图谱（2026-11-21）
+
+- [x] `lib/worldNetwork.ts` 纯函数：入/出度枢纽榜、Kosaraju 强连通分量（势力团）、
+      Tarjan 割边（关节）、跨类关系聚合、孤立条目；迭代 DFS/并查集避免爆栈，
+      同输入同输出（ADR 0298）。
+- [x] 路上抓到并修掉真 bug：Tarjan 桥按父节点名跳父边，双向边 a→b/b→a 的第二条被漏，
+      误把成环边判成桥。改为按边 id 跳；变异臂 4 条变红反证判据有牙。
+- [x] `/world/[projectId]/network` RSC 页（双语、`.nw-*` 门面、强制色彩回退）+
+      `network-visual-style` 8 门；digest 页脚加「万象脉络 →」入口（SHA 重钉 1cfae46a→cfb5e1af）。
+- [x] 判据 22 条全绿；tsc web 绿。
+- [~] 浏览器像素层未验证：`nexus-postgres` WAL 损坏 shutdown，页面需真项目数据 + 登录，
+      本机起不来；DB 恢复后需真机截图核对 1440/390 无重叠。

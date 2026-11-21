@@ -84,6 +84,7 @@ describe('§FE-DG /world/<project>/digest 世界速览', () => {
       'data-digest-quad-constellation', 'data-digest-quad-chronicle', 'data-digest-quad-codex', 'data-digest-quad-ephemeris',
       'data-digest-eras', 'data-digest-era=', 'data-digest-lore', 'data-digest-lore-item=',
       'data-digest-open-chronicle', 'data-digest-open-codex', 'data-digest-open-constellation', 'data-digest-open-tide',
+      'data-digest-open-network',
       'data-digest-back-graph', 'data-digest-foot',
     ]) {
       expect(code, `digest 丢了钩子 ${hook}`).toContain(hook);
@@ -120,8 +121,10 @@ describe('§FE-DG /world/<project>/digest 世界速览', () => {
   });
 
   it('SHA256 钉死（本线字节）', () => {
+    // 2026-11-21 §WORLD-NET：页脚加「万象脉络 →」入口（data-digest-open-network + 双语文案）。
+    // 是真实的新导航元素，不是换皮，所以门该破——旧值 1cfae46a…。
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '1cfae46a9c006a6209d4f683c7b6ea27abcfdf8c9ba2cb950e8a5b4af9349682',
+      'cfb5e1af86bbf66f97c0df01636e8baac3f9205f2818d7b2b5adfcec6b224559',
     );
   });
 });

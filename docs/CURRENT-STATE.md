@@ -8796,3 +8796,13 @@ Reader (post-continuum trace):
 - 判据 22 条 + 变异臂有牙 + tsc web EXIT=0；ADR 0297。开关 `NEXUS_MODERATION_LLM=0` 可关；
   预检路径仍纯机检不多打 provider。
 - 数据库仍是独立阻塞（`nexus-postgres` WAL 损坏已 shutdown），本片用真机脚本 + 无 DB 判据验证。
+
+## cont. 474 (2026-11-21) — §WORLD-NET 万象脉络（图算法）
+
+- 世界线新模块：把九类节点 + 有向 links 投影成权力骨架——枢纽榜 / 势力团（Kosaraju 强连通）/
+  关节（Tarjan 割边）/ 跨类关系 / 孤立条目。纯函数 + 迭代 DFS，2000 节点不爆栈。
+- 真 bug：Tarjan 桥按父节点名跳父边，双向边第二条被漏、把成环边误判成桥；改为按 edgeId 跳，
+  变异臂 4 条变红。这是"多重边按边不按顶点"的图论那一格。
+- `/world/<id>/network` RSC 双语页 + `.nw-*` 门面 + forced-colors；digest 页脚加入口。
+  判据 22 条全绿、tsc web EXIT=0、ADR 0298。
+- 诚实限度：页面浏览器层未截图（DB WAL 损坏 shutdown，需真项目数据 + 登录）；DB 恢复后补 1440/390。
