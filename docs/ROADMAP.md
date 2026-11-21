@@ -10957,6 +10957,25 @@ HTML 12.09% / Java 9.44% / CSS 1.50% …），由 `assets/nexus-content/github-l
 让列表本身承载信息，烘焙值再也不会有过期的那一天。
 （`pages.yml` 的 push 触发不含 `index.html`，按设计只走 3 小时 cron——一次部署胜过三十次取消。）
 
+## §LLMCTX-1 合并后复测：大典前缀与会话缓存车道共存，双车道各自 4.8% → 89.0%（2026-11-22 追记）
+
+`origin/main` 的 31 个提交并回 `main`（`c5636a31`）之后真机复跑：`withCanonPrefix`
+（§LLMCTX-1）与 `cacheLane`（§CACHE-SESSION）在同一个请求里同时打开。
+
+```
+lane-A/1: 8.3s tokensIn=173273 cached=8251  ( 4.8%) canonChars=267366   冷
+lane-B/1: 6.6s tokensIn=173269 cached=8250  ( 4.8%) canonChars=267366   另一条车道，同样冷
+lane-A/2: 5.3s tokensIn=173268 cached=154137 (89.0%) canonChars=267366
+lane-B/2: 6.0s tokensIn=173272 cached=154137 (89.0%) canonChars=267366
+nolane/1: 5.6s tokensIn=173268 cached=154137 (89.0%) canonChars=267366   不传车道，回落 sticky
+```
+
+- 两条互不相干的车道各自从 4.8% 暖到 **89.0%**，没有互相挤出——§CACHE-SESSION 要的就是这件事，
+  而 canon 前缀是两段对话共用的第一段字节；
+- `canonChars=267366`（canon 已长到 209 回响）每发都报，界面「本句带着整部世界大典」有数可依；
+- 回复逐条带出处：「守了二十年。见回响一百六十五章」「出处：回响172《夜钥匙》」
+  「见回响164《崖顶烽火台…」——不是"模型说没有"，是"典籍里写的是 X，见第 N 回响"。
+
 ## §SEC 第三十二片：限流闸的窗口挪进 Redis——「每台各数各的」那句限额重新是真的（2026-11-02）
 
 起点是 `rateLimit.ts` 顶部从 §64 那天起就写着的一句承诺："生产多实例时换成 Redis 驱动（ZRANGEBYSCORE + ZADD
