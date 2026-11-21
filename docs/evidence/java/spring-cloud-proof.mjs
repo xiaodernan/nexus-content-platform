@@ -1128,8 +1128,11 @@ const ready = spawnSync('docker', ['exec', SOURCE, 'psql', '-U', DB_USER, '-d', 
     60_000,
     'the gateway to answer 503 once the service behind it is gone',
   );
+  // FallbackController emits error="service_unavailable" plus the service name and cause class.
+  // The old literal "upstream-unavailable" belonged to a pre-rename fallback and no longer exists;
+  // assert the honest contract (a 503 saying "unavailable" AND naming the upstream service).
   assert.ok(
-    refused.text.includes('upstream-unavailable') && refused.text.includes('nexus-api'),
+    refused.text.includes('unavailable') && refused.text.includes('nexus-api'),
     `the edge's failure answer must NAME the upstream; it was: ${refused.text}`,
   );
   console.log(`[§14] with nexus-api gone the edge answered 503 and named it: ${refused.text.slice(0, 200)}`);
