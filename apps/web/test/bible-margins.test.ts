@@ -62,3 +62,9 @@ describe('§BIBLE-MARGINS 猜长短小玩', () => {
     expect(component).toContain("picked[i] === 1");
   });
 });
+  it('本机最好成绩按同一支 localStorage 纪律记，拿不到就放弃', () => {
+    const component = readFileSync(join(ROOT, 'apps/web/src/components/BibleMargins.tsx'), 'utf8');
+    expect(component).toContain('nexus.marginOrder.best');
+    expect(component).toContain('data-bible-margins-game-best');
+    expect(component).toContain('/* 记忆不可用时放弃——游戏不强制 */');
+  });

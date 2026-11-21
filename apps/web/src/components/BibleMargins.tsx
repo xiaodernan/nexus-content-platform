@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useEffect } from 'react';
 import Link from 'next/link';
 import type { Locale } from '@/lib/i18n';
 import { BIBLE_MARGINS } from '@/world-bible/margins.generated';
@@ -68,6 +69,7 @@ const COPY = {
     gameRight: '对了。页边自己就是这么排的。',
     gameWrong: '错了。页边自己会排；人排的不算。',
     gameScore: (n: number, total: number) => `猜对 ${n} / ${total}`,
+    gameBest: '本机最好成绩',
     crumb: '低语诸王 · 典籍室',
   },
   en: {
@@ -92,6 +94,7 @@ const COPY = {
     gameRight: 'Right. That is how the margin arranges itself.',
     gameWrong: 'Wrong. The margin arranges itself; what people arrange does not count.',
     gameScore: (n: number, total: number) => `${n} of ${total} right`,
+    gameBest: 'Best on this device',
     crumb: 'The Whispers’ Kings · The shelf',
   },
 } as const;
@@ -118,6 +121,29 @@ export function BibleMargins({ locale }: { locale: Locale }) {
     });
   };
   const rightCount = round.filter((_, i) => picked[i] === 1).length;
+  // 本机最好成绩：与锚句回放同一支 localStorage 家族的纪律（拿不到就放弃记忆，不伪造）。
+  const [best, setBest] = useState<number | null>(null);
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem('nexus.marginOrder.best');
+      setBest(raw ? Number(raw) : null);
+    } catch {
+      setBest(null);
+    }
+  }, []);
+  const settled = picked.filter((p) => p !== undefined && p !== null).length === round.length && round.length > 0;
+  useEffect(() => {
+    if (!settled) return;
+    setBest((b) => {
+      const next = b === null || rightCount > b ? rightCount : b;
+      try {
+        window.localStorage.setItem('nexus.marginOrder.best', String(next));
+      } catch {
+        /* 记忆不可用时放弃——游戏不强制 */
+      }
+      return next;
+    });
+  }, [settled, rightCount]);
   const toggle = (index: number): void => {
     setOpen((prev) => {
       const next = new Set(prev);
@@ -224,6 +250,7 @@ export function BibleMargins({ locale }: { locale: Locale }) {
               })}
             </ol>
             <p className="bm-tally" data-bible-margins-game-score>{c.gameScore(rightCount, round.length)}</p>
+            <p className="bm-tally" data-bible-margins-game-best>{c.gameBest}: {best ?? rightCount} / {round.length}</p>
             <button type="button" className="bm-reveal" onClick={start} data-bible-margins-game-again>
               {c.gameAgain}
             </button>
