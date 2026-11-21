@@ -322,7 +322,9 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
   const [aiFillBusy, setAiFillBusy] = useState(false);
   const [aiFillNote, setAiFillNote] = useState('');
   const fillSection = async (kindOverride?: WorldKind): Promise<boolean> => {
-    const doc = world;
+    // 批量循环里闭包捕获的 `world` 是点击那一刻的旧文档，三次写入会互相覆盖；
+    // 每次都从 store 取最新快照，前一轮补的条目才留得下来。
+    const doc = worldStore.getSnapshot().world;
     if (!doc || aiFillBusy) return false;
     const kind = kindOverride ?? newKind;
     setAiFillBusy(true);

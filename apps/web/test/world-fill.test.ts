@@ -100,6 +100,8 @@ describe('WorldPanel 四种填料按钮接线（web 侧限流期间的静态保�
     expect(panel).toContain('worldStore.commit()');
     // 牵线必须经过 linkWorldNodes 的自环/重复边门
     expect(panel).toContain('linkWorldNodes(doc');
+    // 批量循环必须从 store 快照取最新文档，否则前几轮的写入被覆盖（E2E 抓到过）
+    expect(panel).toContain('worldStore.getSnapshot().world');
   });
 });
 
