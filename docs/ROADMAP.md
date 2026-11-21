@@ -14715,3 +14715,19 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - [x] healthz 短 TTL 缓存真服务 A/B：连打 12 次 `/healthz`，`llmCache` 计数零增长
       （delta=0），capability 保持 real。liveness 两层账（probes vs hits/misses）独立上报不求和。
       判据 21 条全绿。收尾 tasks 171–173。
+
+## §PLAN-1 多步 Agent 的 LLM 规划器（2026-11-21）
+
+- [x] `lib/llm-planner.ts` 纯函数层：模型只从九种真实步骤里挑子集、排序、改标题、补风险；
+      agent/artifact/dependsOn/requires 全部从 `READINESS_STEPS` 重建，模型碰不到真值；
+      整份过 `validatePlan`，失败返回 null 回退确定性配方（ADR 0296）。
+- [x] `runtime.ts` 接线：`tryLlmPlan` 可注入 chat、失败不阻塞；`planner` 按本次实际规划器
+      落进任务行 capability / input.planner / 通知标题（real=模型规划, demo=DEMO 规划）。
+      开关 `NEXUS_AGENT_LLM_PLANNER`：`1`/`0` 显式，未设置时生产开、测试关（隔离现有 demo 判据）。
+- [x] 真机 gpt-6.2-sol：目标"上架前体检"→ 模型自己砍掉 5 步游戏草稿链，只留
+      context→seo-audit→qa-audit→report，validatePlan=[]；二次调用前缀缓存 100%
+      （18928/18928，185ms vs 首次 6595ms）。真机抓到并修掉"风险文案说没有真 provider"的谎。
+- [x] 判据 29 条 + 变异臂验伪；tsc web 绿。
+- [~] 编排端到端集成判据本轮受 `nexus-postgres` WAL 损坏阻塞（容器已 shutdown，57P03/
+      could not locate a valid checkpoint record）；规划器本体用真机脚本 + 无 DB 接线判据验证。
+      数据库恢复后需复跑 `agent-orchestration.integration.test.ts`。

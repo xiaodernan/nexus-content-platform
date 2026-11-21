@@ -49,6 +49,8 @@ import {
   type ReadinessReport,
   type StepReport,
 } from '@/lib/agent-runtime';
+import { buildPlannerUserPrompt, planFromPlannerText, PLANNER_SYSTEM } from '@/lib/llm-planner';
+import { chatWithCharacter } from '../ai/client';
 import { channels, getRealtimeBus } from '../realtime/bus';
 import { getDb } from '../db/client';
 import { projects } from '../db/schema';
@@ -95,8 +97,54 @@ import { loadDocument } from '../domain/projects';
 /** 编排作业挂在 Product Agent 名下：它的职责就是"把一句话需求整理成目标 / 约束 / 任务 / 验收"（§24） */
 export const ORCHESTRATOR_AGENT_KEY = 'product';
 
-/** 计划从哪来：今天只有确定性配方，所以是 demo；接上模型规划后这里才可能变 real */
-export const PLANNER: 'real' | 'demo' = 'demo';
+/**
+ * §PLAN-1：planner 标签由**这一份作业实际用的规划器**决定，不再是写死的常量。
+ *
+ * - 真模型规划成功（从九种真实步骤里挑子集、排序、改写标题，且整份过校验）→ `real`；
+ * - 模型不可用 / 回执坏形状 / 计划不合格 / 开关关闭 → 回退确定性配方 → `demo`（诚实标注，§160）。
+ *
+ * `PLANNER_FALLBACK` 保留为导出常量，供只看"确定性配方"的旧语境引用；
+ * 本次作业真实的 planner 在 runReadinessCheck 内部算出，随任务行与通知一起落账。
+ */
+export const PLANNER_FALLBACK: 'real' | 'demo' = 'demo';
+
+/**
+ * 规划器开关：`NEXUS_AGENT_LLM_PLANNER=0` 关闭模型规划（省钱、离线、测试隔离）。
+ * 缺省开启——用户明确要求把大模型能力深度用起来，规划是状态流转的入口。
+ * 关闭时每次作业少一次 provider 调用，planner 如实记 demo。
+ */
+export function llmPlannerEnabled(env: { NEXUS_AGENT_LLM_PLANNER?: string; NODE_ENV?: string } = process.env): boolean {
+  const flag = (env.NEXUS_AGENT_LLM_PLANNER ?? '').trim();
+  if (flag === '1') return true; // 显式开启（测试里要验证 real 分支时用）
+  if (flag === '0') return false; // 显式关闭（省钱/离线）
+  // 未显式设置：生产默认开，测试默认关。
+  // 测试默认关是有意的——现有编排集成判据断言 capability='demo'，
+  // 而测试机恰好可能连着真 ai-service；不这样隔离，一次真模型规划就把它们打红。
+  return env.NODE_ENV !== 'test';
+}
+
+/**
+ * 尝试用真模型规划。任何一步失败都返回 null，调用方据此回退确定性配方并标 demo。
+ * 抽成独立函数是为了让"模型规划"这一跳能被单独注入/测试，不把 I/O 埋在编排主体里。
+ */
+export async function tryLlmPlan(
+  goal: string,
+  gameKind: string,
+  chat: typeof chatWithCharacter = chatWithCharacter,
+): Promise<AgentPlan | null> {
+  try {
+    const result = await chat({
+      requestId: `agent-plan-${Date.now().toString(36)}`,
+      system: PLANNER_SYSTEM,
+      user: buildPlannerUserPrompt(goal, gameKind),
+      modelClass: 'balanced',
+    });
+    if (!result.ok) return null;
+    return planFromPlannerText(result.response.text, goal, gameKind);
+  } catch {
+    return null; // 网络/超时/任何异常都当作"模型规划这次没成"，回退而不是让整条作业失败
+  }
+}
 
 export type OrchestrationRefusalCode =
   | 'no-document'
@@ -928,7 +976,14 @@ export async function runReadinessCheck(input: {
     };
   }
 
-  const parsed = AgentPlanSchema.safeParse(buildReadinessPlan(goal, gameKind));
+  // §PLAN-1：先试真模型规划（从九种真实步骤里挑子集、排序、改写标题），
+  // 失败/坏形状/关开关就回退确定性配方。两条路产出的计划形状相同，后面校验与执行完全一致。
+  let drafted: AgentPlan | null = null;
+  if (llmPlannerEnabled()) drafted = await tryLlmPlan(goal, gameKind);
+  const planner: 'real' | 'demo' = drafted ? 'real' : PLANNER_FALLBACK;
+  const draft = drafted ?? buildReadinessPlan(goal, gameKind);
+
+  const parsed = AgentPlanSchema.safeParse(draft);
   if (!parsed.success) {
     return {
       ok: false,
@@ -980,8 +1035,8 @@ export async function runReadinessCheck(input: {
     projectId: input.projectId,
     agentKey: ORCHESTRATOR_AGENT_KEY,
     createdById: input.actorId,
-    capability: PLANNER,
-    input: { goal, orchestrated: true, planner: PLANNER, steps: plan.tasks.map((task) => task.id) },
+    capability: planner,
+    input: { goal, orchestrated: true, planner, steps: plan.tasks.map((task) => task.id) },
   });
   const taskId = started.id;
   const startedAtMs = Date.now();
@@ -995,7 +1050,7 @@ export async function runReadinessCheck(input: {
     activity: activity(
       'plan',
       'info',
-      `计划已就绪：${plan.tasks.length} 步（${PLANNER === 'demo' ? 'DEMO 规划' : '模型规划'}）`,
+      `计划已就绪：${plan.tasks.length} 步（${planner === 'demo' ? 'DEMO 规划' : '模型规划'}）`,
       { steps: plan.tasks.length },
     ),
   });
@@ -1147,7 +1202,7 @@ export async function runReadinessCheck(input: {
   await finishTask(
     taskId,
     verdict.ok
-      ? { ok: true, result: { goal, planner: PLANNER, steps: reports, report: lastReport, progress } }
+      ? { ok: true, result: { goal, planner, steps: reports, report: lastReport, progress } }
       : { ok: false, error: error ?? '编排失败' },
   );
 
@@ -1157,7 +1212,7 @@ export async function runReadinessCheck(input: {
     projectId: input.projectId,
     projectName: facts.projectName,
     taskId,
-    planner: PLANNER,
+    planner,
     ok: verdict.ok,
     durationMs,
     steps: { total: progress.total, done: progress.done, failed: progress.failed, skipped: progress.skipped },

@@ -8771,3 +8771,17 @@ Reader (post-continuum trace):
 - 两层账不混：`llmCache.probes`（进程内 liveness 探针）与 `llmCache.hits/misses`（Redis 共享 completion 缓存）
   各自独立上报，note 明写 "coalesced is not a cache hit; never summed"。
 - liveness 判据 `test_liveness.py` + `test_llm_liveness.py` 21 条全绿。
+
+## cont. 472 (2026-11-21) — §PLAN-1 多步 Agent 的 LLM 规划器
+
+- 补上编排链里最大的"写着 AI 其实是配方"缺口：`PLANNER` 从写死 demo 变为本次实际规划器。
+  真模型（gpt-6.2-sol）从九种真实步骤里挑子集/排序/改标题，agent/依赖真值仍由配方重建，
+  模型碰不到；过 validatePlan 才采用，否则回退 demo 且诚实标注。
+- 真机：目标"上架前体检"→ 模型只留 context→seo-audit→qa-audit→report（砍掉 5 步游戏草稿链），
+  validatePlan=[]。二次调用前缀缓存 **100%**（18928/18928，185ms vs 6595ms，约 36×）。
+- 真机抓到并修掉一处谎话：模型未给风险时原实现回退"本机没有真 provider"的旧文案；
+  改为中性的模型规划风险（与 ADR 0262「没报≠0」同族：状态文案必须与实际一致）。
+- 判据 29 条 + 变异臂有牙；ADR 0296。开关 `NEXUS_AGENT_LLM_PLANNER=0` 可关（省 token）。
+- **环境阻塞（如实记）**：`nexus-postgres` 容器 WAL 损坏（invalid magic number / could not
+  locate a valid checkpoint record / PANIC）已 shutdown，集成判据全 skip；未擅自 resetwal
+  （破坏性）。规划器本体用真机脚本 + 无 DB 判据验证，DB 恢复后需复跑编排集成判据。
