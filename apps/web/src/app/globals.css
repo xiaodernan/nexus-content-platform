@@ -5763,7 +5763,7 @@
   .shd-kicker { color: Highlight; }
 }
 
-/* 鈹€鈹€ 搂ADMIN-13锛?026-11-17锛壜?`/admin/observe` 鍙瑙傚療绔?+ /admin 鍗佷笁寮犲崱 鈹€鈹€
+/* ── §ADMIN-13（2026-11-17）：/admin/observe 只读观察 + /admin 十三张卡 ──
  * 椤靛紡锛氬畧闂ㄦ€侊紙.obs-gate*锛変笌浠〃鎬侊紙.obs-grid/.obs-band/.obs-bars/.obs-table/.obs-advice*锛変袱缁勶紝
  * 鍏ㄩ儴澶嶇敤 .adm-* 绔欏３锛埪E-26锛夛紝鍙ˉ瑙傚療绔欒嚜韬殑閭ｄ竴鐐广€傚己鍒堕厤鑹茬敱鏂囦欢鏈
  * @media (forced-colors: active) 缁熶竴鏀跺彛锛屼护鐗屽叏璧?var(--nexus-*)銆? */
@@ -6237,7 +6237,7 @@
 }
 
 /* ====================================================================
-   搂WS-1 娼€欐杩涳紙Tidewatch锛夆€斺€擫LM 浣滀负涓栫晫鐘舵€佹祦杞殑鍒嗘瀽灞傦紙.tw-* 鍓嶇紑鍖猴級
+   §WS-1 潮候步进（Tidewatch）——LLM 作为世界状态流转的分析层（.tw-* 前缀区）
    =================================================================== */
 .tw-root { display: flex; flex-direction: column; gap: var(--nexus-space-4); max-width: 72rem; }
 .tw-hero { display: flex; flex-direction: column; gap: var(--nexus-space-2); }

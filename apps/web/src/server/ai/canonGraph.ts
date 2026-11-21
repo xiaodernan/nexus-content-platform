@@ -1,14 +1,18 @@
 /**
- * §GRAPH-1 · 正典问答�?StateGraph 编排（LangGraph 语义的本�?StateGraph，ADR-0270/0275）�? *
- * 为什么不是一�?chatWithCharacter：单次调用里模型同时要「理解问�?+ 选择典籍�?+ 组织答案 +
+ * §GRAPH-1 · 正典问答的 StateGraph 编排（LangGraph 语义的本地 StateGraph，ADR-0270/0275）。
+ * 为什么不是一次 chatWithCharacter：单次调用里模型同时要「理解问题 + 选择典籍 + 组织答案 +
  * 自检不编造」，失败时没有反馈环，也没法知道它错在哪里。这里把流程显式画出来：
  *
- *   analyze（LLM，短提示，不�?digest�? *     �?retrieve（确定性算法：字符二元�?Jaccard + 锚句覆盖打分，top-3 段落�? *     �?draft（LLM，system = CANON_DIGEST 字节级稳定前缀，KV 命中�?/bible/ask 同源�? *     �?verify（确定性机检：空答案 / 发明章回�?/ 不存在的 [n] 锚句引用�? *          ├─ 通过 �?finalize
- *          └─ 有问�?�?未超修订上限 �?revise（LLM，system 不变，user 带机检意见）→ verify
+ *   analyze（LLM，短提示，不含 digest）
+ *     → retrieve（确定性算法：字符二元组 Jaccard + 锚句覆盖打分，top-3 段落）
+ *     → draft（LLM，system = CANON_DIGEST 字节级稳定前缀，与 /bible/ask 同源的 KV 命中）
+ *     → verify（确定性机检：空答案 / 发明章回 / 不存在的 [n] 锚句引用）
+ *          ├─ 通过 → finalize
+ *          └─ 有问题且未超修订上限 → revise（LLM，system 不变，user 带机检意见）→ verify
  *
- * 两个 LLM 节点共用同一�?system（CANON_DIGEST，字节级稳定），
- * 所以整条管线打中的前缀缓存�?/bible/ask 走的是同一�?cache line（§CACHE-4）�? *
- * 边界纪律：ai-service 不写业务库，web 持有业务（本文件�?web 侧）�? * 机检结论是「review/fail」不是「安全」—�?典籍里没有依据的问题，回答如实说不知道（§159）�? */
+ * 两个 LLM 节点共用同一个 system（CANON_DIGEST，字节级稳定），
+ * 所以整条管线打中的前缀缓存与 /bible/ask 走的是同一条 cache line（§CACHE-4）。
+ * 边界纪律：ai-service 不写业务库，web 持有业务（本文件是 web 侧）。机检结论是「review/fail」不是「安全」——典籍里没有依据的问题，回答如实说不知道（§159）。 */
 import { StateGraph, START, END } from '@nexus/agent-runtime';
 import { SYSTEM_PROMPT, CANON_DIGEST } from '@/lib/bibleAsk';
 import { chatWithCharacter, type AiChatResult } from '@/server/ai/client';
@@ -19,15 +23,15 @@ export type CanonChatFn = (request: AiChatRequest) => Promise<AiChatResult>;
 export interface CanonGraphState extends Record<string, unknown> {
   question: string;
   locale: 'zh' | 'en';
-  /** analyze 节点抽取的检索词（LLM 失败时退回问题本身的二元组，绝不空手而回�?*/
+  /** analyze 节点抽取的检索词（LLM 失败时退回问题本身的二元组，绝不空手而回）。 */
   terms: string[];
-  /** retrieve 节点产出的引用段落（top-3，供 draft 聚焦�?*/
+  /** retrieve 节点产出的引用段落（top-3，供 draft 聚焦）。 */
   brief: string[];
-  /** 最近一�?draft/revise 的答案原�?*/
+  /** 最近一次 draft/revise 的答案原文。 */
   draft: string;
-  /** verify 节点本轮发现的问题（空数�?= 通过�?*/
+  /** verify 节点本轮发现的问题（空数组 = 通过）。 */
   issues: string[];
-  /** revise 已执行次数（上限 1�?*/
+  /** revise 已执行次数（上限 1） */
   iterations: number;
   answer: string;
   verdict: 'pending' | 'revise' | 'pass' | 'fail';
@@ -60,7 +64,7 @@ const ANALYZE_TIMEOUT_TERMS = 6;
 const BRIEF_MAX_CHARS = 1_600;
 const SNIPPET_MAX_CHARS = 480;
 
-/** �?digest 同源的段落切分：`## Chapter` / `### Echo` 起头的行是边界（不会被正文里的任�?"#" 切散）�?*/
+/** 与 digest 同源的段落切分：`## Chapter` / `### Echo` 起头的行是边界（不会被正文里的任何 "#" 切散）。 */
 const SEGMENT_BOUNDARY = /\n(?=## Chapter |### Echo )/;
 const HEADER_LINE = /^(## Chapter \d{3}|### Echo \d{2})/;
 const ANCHOR_LINE = /^- \[(\d{1,3})\]/;
@@ -73,7 +77,7 @@ export function splitDigestSegments(digest: string): string[] {
     .filter((s) => HEADER_LINE.test(s));
 }
 
-/** 字符二元组集合（中文/英文通吃；bigram 比分词更稳，不引入分词器依赖）�?*/
+/** 字符二元组集合（中文/英文通吃；bigram 比分词更稳，不引入分词器依赖）。 */
 export function charBigrams(text: string): Set<string> {
   const grams = new Set<string>();
   const flat = text.replace(/\s+/g, ' ').trim().toLowerCase();
@@ -89,7 +93,7 @@ function jaccard(a: Set<string>, b: Set<string>): number {
 }
 
 /**
- * 确定性检索：question+terms 对每段打分，�?top-3�? * 不调 LLM（检索不许把钱花在「找段落」上），失败模式全部显式返回空�? */
+ * 确定性检索：question+terms 对每段打分，取 top-3。不调 LLM（检索不许把钱花在「找段落」上），失败模式全部显式返回空。 */
 export function rankSegments(digest: string, question: string, terms: readonly string[], topK = 3): string[] {
   const needle = charBigrams([question, ...terms].join(' '));
   const scored = splitDigestSegments(digest).map((segment) => {
@@ -119,7 +123,7 @@ export function digestAnchorNumbers(digest: string): Set<number> {
   return found;
 }
 
-/** 机检（确定性）：空答案 / 发明不存在的章回�?/ 引用不存在的锚句编号。返回问题清单（�?= 通过）�?*/
+/** 机检（确定性）：空答案 / 发明不存在的章回 / 引用不存在的锚句编号。返回问题清单（空 = 通过）。 */
 export function verifyCanonDraft(draft: string, digest: string): string[] {
   const issues: string[] = [];
   const text = draft.trim();
@@ -145,7 +149,7 @@ const nextRequestId = (prefix: string): string => {
 };
 
 const ANALYZE_SYSTEM = [
-  'You triage questions about the world «低语诸王 / The Whispers�?Kings».',
+  "You triage questions about the world 低语诸王 / The Whispers' Kings.",
   'Reply with exactly one line: TERMS: t1, t2, t3 (at most 6, concrete nouns from the question, no punctuation except commas).',
   'Do not answer the question. Do not explain.',
 ].join('\n');
@@ -155,15 +159,15 @@ function parseTerms(reply: string): string[] {
   if (!line) return [];
   return line
     .replace(/^TERMS:/i, '')
-    .split(/[�?、]/)
+    .split(/[,，、]/)
     .map((t) => t.trim())
     .filter(Boolean)
     .slice(0, ANALYZE_TIMEOUT_TERMS);
 }
 
-/** terms 解析失败/不可用时的确定性兜底：问题本身的高频二元组�?*/
+/** terms 解析失败/不可用时的确定性兜底：问题本身的高频二元组。 */
 export function fallbackTerms(question: string): string[] {
-  const words = question.split(/[\s�?、。！�??.:�?；]+/).filter((w) => w.length >= 2);
+  const words = question.split(/[\s，。！？、；：.,!?;:]+/).filter((w) => w.length >= 2);
   return [...new Set(words)].slice(0, ANALYZE_TIMEOUT_TERMS);
 }
 
@@ -201,7 +205,9 @@ export async function runCanonAnswerGraph(
   };
 
   /**
-   * 用量累计：tokensIn/Out 全部计入；cachedTokens / cacheReported 只统计绑�?digest 前缀�?   * 调用（draft/revise）—�?analyze 是短提示，不�?KV 前缀复用；把它的 0 计进来会�?   * 「这一次问典命中了多少缓存」的读数谎报成两倍或零（§CACHE-3/§CACHE-4 同一纪律）�?   */
+   * 用量累计：tokensIn/Out 全部计入；cachedTokens / cacheReported 只统计绑定 digest 前缀的调用
+   * （draft/revise）——analyze 是短提示，不参与 KV 前缀复用；把它的 0 计进来会把
+   * 「这一次问典命中了多少缓存」的读数谎报成两倍或零（§CACHE-3/§CACHE-4 同一纪律）。 */
   // StateGraph 传入的 state 是冻结的 —— 不能原地 mutate，只能返回新累加值（ADR-0270）。
   const nextUsage = (s: CanonGraphState, result: AiChatResult, digestBound: boolean) => {
     const u = usageOf(result);
