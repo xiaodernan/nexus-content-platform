@@ -30,7 +30,7 @@ import { cn } from '@/lib/cn';
 import { patchLore } from '@/lib/worldLore';
 import type { Locale } from '@/lib/i18n';
 import { chatWithCharacter } from '@/server/ai/client';
-import { parseWorldFillReply } from '@/lib/worldFill';
+import { parseChronicleReply, parseWorldFillReply } from '@/lib/worldFill';
 import { useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';
 import { WORLD_KIND_LABELS_EN } from '@nexus/world-model';
@@ -57,6 +57,10 @@ const COPY = {
     aiFillTitle: (kind: string) => `真调用一次 provider，给「${kind}」补 1–2 条可编辑的条目：只依据这个世界的概述与已有条目，不编数字、不写模型话术；结果是可撤销的逐条写入。没配 provider 就如实报错，不假生成。`,
     aiFillDone: (kind: string, n: number) => `已给「${kind}」补 ${n} 条，改完失焦即写库。`,
     aiFillNone: '模型没有返回可用条目——可能是格式不对或 provider 不可用；没有写入任何东西。',
+    aiChronicle: 'AI 续写编年',
+    aiChronicleBusy: '续写中…',
+    aiChronicleTitle: '真调用一次 provider，给编年册补一条故事：只从这个世界已有的纪元里挑一个，写一件具体发生过的事与它留下的痕迹。模型不许自造纪元或数字；新条目直接带纪元标签进编年页。',
+    aiChronicleDone: (era: string, title: string) => `已续写「${era || '未标纪元'}」·《${title}》，编年页可看。`,
     tidalTerrainHeading: '地形（可走的圆台与坡）',
     mesaOption: '台面（硬边）',
     coneOption: '坡（线性降到 0）',
@@ -139,6 +143,10 @@ const COPY = {
     aiFillTitle: (kind: string) => `One real provider call adds 1–2 editable entries to ${kind}, grounded only in this world's summary and existing entries — no invented numbers, no model chatter. Each entry is written as its own save. Without a provider the error is shown honestly; nothing is faked.`,
     aiFillDone: (kind: string, n: number) => `Added ${n} entries to ${kind}; each saves when you leave the field.`,
     aiFillNone: 'The model returned no usable entries — wrong shape or provider unavailable. Nothing was written.',
+    aiChronicle: 'AI write chronicle',
+    aiChronicleBusy: 'Writing…',
+    aiChronicleTitle: 'One real provider call adds one story to the chronicle: it must pick an era that already exists in this world and write something that happened, what it cost, and what remains. No invented eras or figures; the new entry carries its era tag straight into the chronicle page.',
+    aiChronicleDone: (era: string, title: string) => `Wrote ${era || 'untagged'} · ${title} — visible on the chronicle page.`,
 eraPlaceholder: 'Grey Lantern Era',
     memoryEchoPlaceholder: 'Memory echo: the sensory trace of that moment (sound / taste / touch / light) — not plot, a scar',
 tidalTerrainHeading: 'Terrain (walkable plateaus and cones)',
@@ -329,6 +337,54 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
       setAiFillNote(String((e as Error)?.message ?? e).slice(0, 200));
     } finally {
       setAiFillBusy(false);
+    }
+  };
+
+  // §44 编年续写：模型只在作者已有的纪元字面下补一条 story，不替作者发明历史分期。
+  const [chronicleBusy, setChronicleBusy] = useState(false);
+  const [chronicleNote, setChronicleNote] = useState('');
+  const writeChronicle = async () => {
+    const doc = world;
+    if (!doc || chronicleBusy) return;
+    setChronicleBusy(true);
+    setChronicleNote('');
+    try {
+      const eras = [...new Set(doc.nodes.map((n) => n.lore?.era?.trim()).filter((e): e is string => Boolean(e)))];
+      const storyNodes = doc.nodes.filter((n) => n.kind === 'story' || n.kind === 'history');
+      const res = await fetch('/api/ai/world-fill', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          locale,
+          worldName: doc.name,
+          summary: doc.summary || '',
+          kind: kindLabel('story', locale),
+          existingTitles: storyNodes.slice(-30).map((n) => n.title),
+          eras,
+          chronicle: true,
+        }),
+      });
+      const body = (await res.json().catch(() => null)) as { text?: string; message?: string } | null;
+      if (!res.ok || typeof body?.text !== 'string') {
+        setChronicleNote(locale === 'zh' ? `续写未成功：${body?.message ?? `HTTP ${res.status}`}` : `Write failed: ${body?.message ?? `HTTP ${res.status}`}`);
+        return;
+      }
+      const entry = parseChronicleReply(body.text, eras);
+      if (!entry) {
+        setChronicleNote(c.aiFillNone);
+        return;
+      }
+      let next = addWorldNode(doc, { kind: 'story', title: entry.title, body: entry.body });
+      const added = next.nodes[next.nodes.length - 1]!;
+      const order = storyNodes.filter((n) => n.lore?.era === entry.era).reduce((m, n) => Math.max(m, n.lore?.order ?? 0), -1) + 1;
+      next = updateWorldNode(next, added.id, { lore: entry.era ? { era: entry.era, order } : { order } });
+      worldStore.setLocal(next);
+      void worldStore.commit();
+      setChronicleNote(c.aiChronicleDone(entry.era, entry.title));
+    } catch (e) {
+      setChronicleNote(String((e as Error)?.message ?? e).slice(0, 200));
+    } finally {
+      setChronicleBusy(false);
     }
   };
 
@@ -627,8 +683,19 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
           >
             {aiFillBusy ? c.aiFillBusy : c.aiFill}
           </button>
+          <button
+            type="button"
+            onClick={() => void writeChronicle()}
+            disabled={chronicleBusy}
+            title={c.aiChronicleTitle}
+            data-world-ai-chronicle
+            className="wd-ghostBtn"
+          >
+            {chronicleBusy ? c.aiChronicleBusy : c.aiChronicle}
+          </button>
         </div>
         {aiFillNote ? <p className="wd-body11Mt2" data-world-ai-fill-note>{aiFillNote}</p> : null}
+        {chronicleNote ? <p className="wd-body11Mt2" data-world-ai-chronicle-note>{chronicleNote}</p> : null}
         <p className="wd-body11Mt2" data-world-note>
           {c.editsNote}
           {groups.length < WORLD_KINDS.length

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseWorldFillReply } from '../src/lib/worldFill';
+import { parseChronicleReply, parseWorldFillReply } from '../src/lib/worldFill';
 
 /**
  * §44 世界填料的入口门。宁可少收一条，也不把模型话术当设定写进用户的世界文档：
@@ -32,5 +32,21 @@ describe('worldFill · 填料回话解析', () => {
   it('超长字段拒绝，不把一整本书塞进一个节点', () => {
     const long = JSON.stringify([{ title: 't'.repeat(121), body: 'b' }]);
     expect(parseWorldFillReply(long)).toEqual([]);
+  });
+});
+
+describe('worldFill · 编年续写只认已有纪元', () => {
+  const eras = ['灰灯纪', '灰烬纪'];
+  it('挑中已有纪元原样返回，标题正文照常', () => {
+    const text = '[{"title":"盐道封路","body":"潮退那夜石磨停了三圈，守夜人把盐道封了。","era":"灰灯纪"}]';
+    expect(parseChronicleReply(text, eras)).toEqual({ title: '盐道封路', body: '潮退那夜石磨停了三圈，守夜人把盐道封了。', era: '灰灯纪' });
+  });
+  it('模型自造纪元时降级为未标纪元，不让编年页多出一个假分期', () => {
+    const text = '[{"title":"盐道封路","body":"潮退那夜石磨停了三圈。","era":"新纪元"}]';
+    expect(parseChronicleReply(text, eras)?.era).toBe('');
+  });
+  it('空纪元列表接受空串；没拿到合法条目返回 null', () => {
+    expect(parseChronicleReply('[{"title":"a","body":"b","era":""}]', [])?.era).toBe('');
+    expect(parseChronicleReply('模型话术', eras)).toBeNull();
   });
 });

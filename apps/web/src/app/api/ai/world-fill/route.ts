@@ -20,6 +20,9 @@ const Body = z
     summary: z.string().trim().max(4000).default(''),
     kind: z.string().trim().min(1).max(40),
     existingTitles: z.array(z.string().trim().max(120)).max(200).default([]),
+    /** 编年续写：模型只能挑这里已有的纪元字面，不许自造历史分期 */
+    eras: z.array(z.string().trim().min(1).max(80)).max(30).default([]),
+    chronicle: z.boolean().default(false),
   })
   .strict();
 
@@ -32,14 +35,19 @@ export async function POST(req: Request): Promise<NextResponse> {
   if (!parsed.success) return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
   const b = parsed.data;
 
-  const system = b.locale === 'zh'
-    ? '你是这个世界的结构编纂者。为指定类别补 1–2 条可放进世界档案的条目。只输出 JSON 数组：[{"title":"...","body":"..."}]，不要围栏、不要解释。每条 title ≤ 40 字、body 60–240 字，写具体的感官细节与可追问的线索；只依据给定的世界概述与已有标题，不编造数字，不写"作为 AI"之类的话，不重复已有标题。没有依据就返回 []。'
-    : 'You are the structural archivist of this world. Add 1–2 archive entries for the requested section. Output ONLY a JSON array: [{"title":"...","body":"..."}] — no fences, no prose. Each title ≤ 40 chars, body 60–240 chars, concrete sensory detail and a follow-up thread. Use only the given summary and existing titles; invent no figures, no "as an AI" chatter, no duplicate titles. If there is no basis, return [].';
+  const system = b.chronicle
+    ? (b.locale === 'zh'
+      ? '你是这个世界的史官。为编年册续写一条新故事。只输出 JSON 数组：[{"title":"...","body":"...","era":"..."}]，不要围栏、不要解释。era 必须从给定的纪元列表里原样挑一个，不许自造；如果列表为空就输出空串。title ≤ 40 字、body 100–300 字，写一件具体发生过的事：谁做了什么、代价是什么、留下什么可追问的痕迹。只依据给定的世界概述与已有条目，不编造数字，不写"作为 AI"之类的话。只要概述里有一句可用的前提，就必须写出一条；连概述都是空的才返回 []。'
+      : 'You are the chronicler of this world. Write ONE new story entry for the chronicle. Output ONLY a JSON array: [{"title":"...","body":"...","era":"..."}] — no fences, no prose. The era must be copied verbatim from the supplied era list; never invent one, and use an empty string when the list is empty. Title ≤ 40 chars, body 100–300 chars: something that actually happened — who did what, what it cost, what trace remains. Use only the given summary and existing entries; invent no figures and no "as an AI" chatter. If the summary has even one usable premise, write an entry; return [] only when the summary is empty.')
+    : (b.locale === 'zh'
+      ? '你是这个世界的结构编纂者。为指定类别补 1–2 条可放进世界档案的条目。只输出 JSON 数组：[{"title":"...","body":"..."}]，不要围栏、不要解释。每条 title ≤ 40 字、body 60–240 字，写具体的感官细节与可追问的线索；只依据给定的世界概述与已有标题，不编造数字，不写"作为 AI"之类的话，不重复已有标题。没有依据就返回 []。'
+      : 'You are the structural archivist of this world. Add 1–2 archive entries for the requested section. Output ONLY a JSON array: [{"title":"...","body":"..."}] — no fences, no prose. Each title ≤ 40 chars, body 60–240 chars, concrete sensory detail and a follow-up thread. Use only the given summary and existing titles; invent no figures, no "as an AI" chatter, no duplicate titles. If there is no basis, return [].');
   const user = [
     `World: ${b.worldName}`,
     `Summary: ${b.summary || '(empty)'}`,
     `Section: ${b.kind}`,
     `Existing titles in this section: ${b.existingTitles.length ? b.existingTitles.join(' | ') : '(none)'}`,
+    ...(b.chronicle ? [`Existing eras (copy one verbatim): ${b.eras.length ? b.eras.join(' | ') : '(none — use empty string)'}`] : []),
   ].join('\n');
 
   const result = await chatWithCharacter({ requestId: `world-fill-${Date.now()}`, system, user, modelClass: 'balanced' });
