@@ -637,6 +637,14 @@ export const AiChatRequestSchema = z.object({
   system: z.string().min(1).max(320_000),
   user: z.string().min(1).max(4000),
   modelClass: ModelClass.default('balanced'),
+  /**
+   * §LLMCTX-1：让 ai-service 在 `system` 之前垫上 canon digest（≈15.8 万 tokens）。
+   * 角色对话原来只带 persona 几百字——模型回答"这个世界里发生了什么"时没有依据。
+   * 大前缀放在**服务端**而不是让 web 拼好发过来：web 的报文保持小，
+   * 而"哪一份字节是稳定前缀"只有 ai-service 那一处说了算（design 路径同源）。
+   * 默认 false = 字节级零回归；显式 true 才带上，调用方要为这段上下文付账。
+   */
+  withCanonPrefix: z.boolean().optional(),
 });
 export type AiChatRequest = z.infer<typeof AiChatRequestSchema>;
 
@@ -648,6 +656,13 @@ export const AiChatResponseSchema = z.object({
   text: z.string().max(4000),
   usage: UsageSchema,
   error: AiErrorSchema.optional(),
+  /**
+   * §LLMCTX-1：这一发**真的**垫了多少字节的 canon digest 在 system 之前。
+   * 只在调用方显式 `withCanonPrefix` 时出现（缺省不带这个字段 = 没垫）。
+   * 为什么进契约而不是塞在 usage 里：它是「这次调用的形状」，不是「provider 报了多少钱」；
+   * 而界面要能回答"我多打的那 15.8 万 token 到底用上了没有"——不报就等于没人能证明（§159）。
+   */
+  canonPrefixChars: z.number().int().min(0).optional(),
 });
 export type AiChatResponse = z.infer<typeof AiChatResponseSchema>;
 

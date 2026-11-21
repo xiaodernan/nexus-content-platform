@@ -1579,6 +1579,7 @@
   .ch-verify { display: block; margin-top: var(--nexus-space-1); font-family: var(--nexus-font-mono); font-size: 0.625rem; color: var(--nexus-color-warn-ink); border: 1px solid color-mix(in srgb, var(--nexus-color-warn) 45%, transparent); border-radius: var(--nexus-radius-sm); padding: 0.05rem 0.4rem; background: color-mix(in srgb, var(--nexus-color-warn) 8%, transparent); }
   /* §47-cache · 缓存复用徽章（provider 声明缓存时才显示）：mono、fg-3、无边框——只当脚注不当警报 */
   .ch-cache { display: block; margin-top: var(--nexus-space-1); font-family: var(--nexus-font-mono); font-size: 0.625rem; color: var(--nexus-color-fg-3); }
+  .ch-canon { display: block; margin-top: var(--nexus-space-1); font-family: var(--nexus-font-mono); font-size: 0.625rem; color: var(--nexus-color-fg-3); }
   .ch-row { display: flex; align-items: center; gap: var(--nexus-space-1); }
   .ch-input { min-width: 0; flex: 1 1 0%; border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1) var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); outline: none; }
   .ch-input:focus { background: var(--nexus-color-bg-3); }

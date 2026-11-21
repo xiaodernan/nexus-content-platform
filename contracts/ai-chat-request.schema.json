@@ -28,6 +28,9 @@
         "embedding",
         "reranker"
       ]
+    },
+    "withCanonPrefix": {
+      "type": "boolean"
     }
   },
   "required": [

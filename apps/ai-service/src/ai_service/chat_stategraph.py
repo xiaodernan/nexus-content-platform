@@ -23,6 +23,7 @@ import anyio
 
 from .contract import issues as contract_issues
 from .execution import LLM_MODEL_CLASSES, _cost_of
+from .design_prompt import CANON_PREFIX
 from .providers.base import ProviderFailed
 from .stategraph import _stage, _error
 
@@ -92,6 +93,10 @@ async def check_provider(state: ChatGraphState) -> dict[str, Any]:
 async def build_prefix(state: ChatGraphState) -> dict[str, Any]:
     registry = state["registry"]
     system = str(state["payload"].get("system") or "")
+    # §LLMCTX-1：与线性管线同一条口径——digest 必须是第一个字节，persona 跟在后面。
+    # 反过来的话每个角色的第一问都要重新买一次 15.8 万 token 的前缀。
+    if bool(state["payload"].get("withCanonPrefix")):
+        system = f"{CANON_PREFIX}\n{system}"
     digest = hashlib.sha256(system.encode("utf-8")).hexdigest()[:16]
     registry.cache_telemetry().prefix.observe(digest)
     return {
@@ -104,6 +109,8 @@ async def call_llm(state: ChatGraphState) -> dict[str, Any]:
     registry = state["registry"]
     payload = state["payload"]
     system = str(payload.get("system") or "")
+    if bool(payload.get("withCanonPrefix")):
+        system = f"{CANON_PREFIX}\n{system}"
     user = str(payload.get("user") or "")
     try:
         # 对话不是 JSON 任务：response_format=json_object 会被 provider 400 掉
@@ -181,6 +188,12 @@ async def assemble(state: ChatGraphState) -> dict[str, Any]:
             "demoMode": False,
             "reasoningTokens": getattr(completion, "reasoning_tokens", 0),
         },
+        # §LLMCTX-1：与线性管线同一字段同一口径——带了才报，没带就不出现。
+        **(
+            {"canonPrefixChars": len(CANON_PREFIX)}
+            if bool(payload.get("withCanonPrefix"))
+            else {}
+        ),
     }
     # 正直标注：这条链是状态图（langgraph.StateGraph）编排的，与 /v1/ai/chat 同一输入同一输出；
     # ai-chat-response.schema.json additionalProperties=false，编排标记只走响应头（见 app.py）。

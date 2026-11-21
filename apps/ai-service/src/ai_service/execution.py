@@ -15,7 +15,7 @@ from typing import Any
 import anyio
 
 from .contract import issues as contract_issues
-from .design_prompt import build_prompt, parse_reply, stable_block_digest
+from .design_prompt import CANON_PREFIX, build_prompt, parse_reply, stable_block_digest
 from .providers.base import ProviderFailed
 from .providers.registry import Registry
 
@@ -397,6 +397,13 @@ async def execute_chat_request(payload: dict[str, Any], *, registry: Registry) -
 
     system = str(payload.get("system") or "")
     user = str(payload.get("user") or "")
+    # §LLMCTX-1：调用方显式要求时，把 canon digest 垫在 persona 之前。
+    # 顺序不能反——digest 必须是**第一个**字节，persona 跟在后面，这样同一角色
+    # （persona 不变）与同一世界（digest 不变）共用同一段 KV 前缀；反过来的话
+    # 每个角色的第一问都要重新买一次 15.8 万 token 的前缀。
+    canon_prefixed = bool(payload.get("withCanonPrefix"))
+    if canon_prefixed:
+        system = f"{CANON_PREFIX}\n{system}"
     try:
         # 客服对话不是 JSON 任务：response_format=json_object 会被 provider 拒
         #（协议要求内容里出现 'json' 字面），所以 chat 显式关 json_mode（v690）。
@@ -439,6 +446,9 @@ async def execute_chat_request(payload: dict[str, Any], *, registry: Registry) -
             "cachedTokens": getattr(completion, "cached_tokens", 0),
             "reasoningTokens": getattr(completion, "reasoning_tokens", 0),
         },
+        # 这一维不进响应契约（additionalProperties=false），但它让「这次到底带没带大典」
+        # 在日志与遥测里可核对——不报就等于没人能证明多打的那 15.8 万 token 真的用上了（§159）。
+        **({"canonPrefixChars": len(CANON_PREFIX)} if canon_prefixed else {}),
     }
     response_issues = contract_issues("ai-chat-response.schema.json", response)
     if response_issues:

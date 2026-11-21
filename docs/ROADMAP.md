@@ -10795,6 +10795,45 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
   历史只取最近 5 条记忆、语料只取 3 条。这是下一片 §LLMCTX-1 的题目。
 - 证据 `docs/evidence/cache-parallel-live-2026-11-22.md`。
 
+## §LLMCTX-1 角色对话接上整部世界大典——4,439 → 172,806 tokens，回答开始逐条引用正典（2026-11-22）
+
+用户点名「我这边输入上下文总是太少，要充分利用上下文容量」。上一片查明：设计主链路与世界步进
+带的本来就是 158,112 tokens 的 canon digest，真正偏薄的是**角色对话**——persona 只有几百字，
+模型被问到"这个世界里发生了什么"时没有依据。本片把那部大典接上。
+
+- 契约：`AiChatRequest` 增 `withCanonPrefix?: boolean`（默认 false = 零回归），
+  `AiChatResponse` 增 `canonPrefixChars?: number`（带了才报）。两字段由 `npm run contract:export`
+  从 zod 生成，Python 运行期校验同一份 JSON Schema。
+- ai-service：`execute_chat_request` 与 `chat_stategraph`（`/v1/ai/chat-graph`）同一位点把
+  `CANON_PREFIX` 垫在 `system` 之前——**digest 必须是第一个字节**，persona 跟在后面；
+  反过来的话每个角色的第一问都要重买一次 15.8 万 token 前缀。
+- web：`runCharacterChatGraph` 透传；角色对话路由默认开，kill-switch
+  `NEXUS_CHARACTER_CHAT_CANON_PREFIX=0`；`CharacterChat` 每条回复下多一行
+  「本句带着整部世界大典（N 字符）一起发给模型」——上下文不是隐形花钱。
+
+**真机读数**（`docs/evidence/llmctx-canon-prefix-2026-11-22.md`）
+
+```
+不带大典 base/1: tokensIn=4439  cached=0     ( 0.0%)
+不带大典 base/2: tokensIn=4436  cached=4179  (94.2%)
+带大典 canon/1: tokensIn=172806 cached=8228  ( 4.8%)   ← 冷
+带大典 canon/2: tokensIn=172810 cached=153654 (88.9%)
+带大典 canon/3: tokensIn=172806 cached=153654 (88.9%)
+带大典 canon/4: tokensIn=172815 cached=153654 (88.9%)
+```
+
+上下文 **39×**（172,806 tokens，超过 Codex 五～九万一档的近 2～3.4 倍）；一次冷启动后稳定
+**88.9%**，与设计链路的读数同源（同一条前缀、同一个车道）；延迟没变差（5.3–7.1s vs 4.5–5.0s）。
+
+**质量的差别不是 token 数的事**：同一个问题「夜钥匙为什么复制不出来？」——不带大典时模型答的是
+"钥匙带有防复制结构、配钥匙店可能需要授权卡"这类**通用常识**；带上之后答的是"旧旌替风记的是
+让风来过的缘由，包括船队南下、军队退潮"——逐条来自正典。「潮印上那个字」那问甚至给了
+"Echo 171 只记载……但说的是旧信物库中的潮印"这种**带出处且说明边界**的答复。
+模型从"会聊天的外壳"变成"读过整部世界大典的叙述者"。
+
+**判据**：Python 16 passed（顺序 / 零回归 / 修订轮同样带）；TS 11 passed（新增 3 条）；
+ai-service 全量 497 passed / 18 skipped；契约三件套同步。
+
 ## §SEC 第三十二片：限流闸的窗口挪进 Redis——「每台各数各的」那句限额重新是真的（2026-11-02）
 
 起点是 `rateLimit.ts` 顶部从 §64 那天起就写着的一句承诺："生产多实例时换成 Redis 驱动（ZRANGEBYSCORE + ZADD

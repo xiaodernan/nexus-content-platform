@@ -123,7 +123,14 @@ export async function POST(
     // §47-graph：persona 作为 system（字节级稳定 · KV 前缀可复用），记忆/语料/这一句全部进 user 侧。
     const turn = buildChatTurn(characterMemories, knowledgeContext, message, locale);
 
-    const chatResult = await runCharacterChatGraph({ persona, turn, locale });
+    // §LLMCTX-1：角色对话原来只带 persona 几百字——模型被问到"这个世界里发生了什么"时
+    // 没有依据，这正是用户点名的「输入上下文太少」。默认让 ai-service 把 canon digest
+    // （≈15.8 万 tokens）垫在 persona 之前：digest 是第一个字节 ⇒ 同一角色、同一世界
+    // 共用同一段 KV 前缀，实测命中 88%+（docs/evidence/cache-parallel-live-2026-11-22.md）。
+    //  kill-switch：NEXUS_CHARACTER_CHAT_CANON_PREFIX=0 关掉（成本开关，不是行为开关）。
+    const withCanonPrefix = (process.env.NEXUS_CHARACTER_CHAT_CANON_PREFIX ?? '1') !== '0';
+
+    const chatResult = await runCharacterChatGraph({ persona, turn, locale, withCanonPrefix });
     const durationMs = Date.now() - startedAt;
 
     if (!chatResult.ok) {
@@ -157,6 +164,9 @@ export async function POST(
         cachedTokens: chatResult.usage.cachedTokens,
         cacheReported: chatResult.usage.cacheReported,
       },
+      /** §LLMCTX-1：这一发垫了多少字节的世界大典在 system 之前（没垫就是 undefined）。
+       *  界面据此回答"我多打的那 15.8 万 token 到底用上了没有"，而不是只报一个 tokensIn。 */
+      canonPrefixChars: chatResult.canonPrefixChars,
     });
   } catch (_error) {
     return await jsonError(500, 'internal', { message: '对话失败' });
