@@ -56,7 +56,7 @@ const COPY = {
     aiGenBusy: '生成中…',
     aiFill: 'AI 填充这一节',
     aiFillBusy: '填充中…',
-    aiFillTitle: (kind: string) => `真调用一次 provider，给「${kind}」补 1–2 条可编辑的条目：只依据这个世界的概述与已有条目，不编数字、不写模型话术；结果是可撤销的逐条写入。没配 provider 就如实报错，不假生成。（这四个 AI 按钮共用每小时 10 次额度，超了会告诉你要等多久。）`,
+    aiFillTitle: (kind: string) => `真调用一次 provider，给「${kind}」补 1–2 条可编辑的条目：只依据这个世界的概述与已有条目，不编数字、不写模型话术；结果逐条写库（世界编辑不进画布的撤销栈，Ctrl+Z 只管设计文档）。没配 provider 就如实报错，不假生成。（这四个 AI 按钮共用每小时 10 次额度，超了会告诉你要等多久。）`,
     aiFillDone: (kind: string, n: number) => `已给「${kind}」补 ${n} 条，改完失焦即写库。`,
     aiFillNone: '模型没有返回可用条目——可能是格式不对或 provider 不可用；没有写入任何东西。',
     aiFillAll: 'AI 补全空节',
