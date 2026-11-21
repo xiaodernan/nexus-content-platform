@@ -65,3 +65,21 @@ export function parseEchoReply(text: string): string | null {
   if (!entry || entry.body.length > 240) return null;
   return entry.body;
 }
+
+/**
+ * 星图牵线：模型只能从给定的候选 id 里挑一个目标，label ≤ 40 字。
+ * 自造 id / 空标签 / 多写一堆解释，一律当作没拿到——`linkWorldNodes` 自己会挡重复与自环，
+ * 这里挡的是"模型凭空造出一个不存在的端点"。
+ */
+export function parseLinkReply(text: string, candidateIds: readonly string[]): { toId: string; label: string } | null {
+  const cleaned = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  let obj: unknown;
+  try { obj = JSON.parse(cleaned); } catch { return null; }
+  if (!obj || typeof obj !== 'object') return null;
+  const o = obj as Record<string, unknown>;
+  if (typeof o.toId !== 'string' || !candidateIds.includes(o.toId)) return null;
+  if (typeof o.label !== 'string') return null;
+  const label = o.label.trim();
+  if (!label || label.length > 40) return null;
+  return { toId: o.toId, label };
+}

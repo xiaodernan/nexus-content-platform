@@ -11,6 +11,7 @@ import {
   WORLD_TERRAIN_HEIGHT_MAX,
   addWorldNode,
   countLinksFor,
+  linkWorldNodes,
   removeWorldNode,
   setWorldNodeElevation,
   setWorldNodeModelAsset,
@@ -30,7 +31,7 @@ import { cn } from '@/lib/cn';
 import { patchLore } from '@/lib/worldLore';
 import type { Locale } from '@/lib/i18n';
 import { chatWithCharacter } from '@/server/ai/client';
-import { parseChronicleReply, parseEchoReply, parseWorldFillReply } from '@/lib/worldFill';
+import { parseChronicleReply, parseEchoReply, parseLinkReply, parseWorldFillReply } from '@/lib/worldFill';
 import { useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';
 import { WORLD_KIND_LABELS_EN } from '@nexus/world-model';
@@ -65,6 +66,10 @@ const COPY = {
     aiEchoBusy: '写回声中…',
     aiEchoTitle: (t: string) => `真调用一次模型，给「${t}」写一段 ≤240 字的记忆回声：声音、味道、触感、光线里的一瞬，不是梗概、不评价。只依据这条条目已有的正文；没有可写的东西就照实说。`,
     aiEchoDone: (t: string) => `已给「${t}」写下一段记忆回声。`,
+    aiLink: 'AI 牵线',
+    aiLinkBusy: '牵线中…',
+    aiLinkTitle: (t: string) => `真调用一次模型，从这个世界已有的条目里给「${t}」找一条真有关系的目标并写出关系名；自造的条目 id 会被丢掉，重复的边不会连两次。`,
+    aiLinkDone: (t: string, label: string) => `已从「${t}」牵出一条「${label}」关系，星图可见。`,
     tidalTerrainHeading: '地形（可走的圆台与坡）',
     mesaOption: '台面（硬边）',
     coneOption: '坡（线性降到 0）',
@@ -155,6 +160,10 @@ const COPY = {
     aiEchoBusy: 'Writing echo…',
     aiEchoTitle: (t: string) => `One real model call writes a ≤240-char memory echo for ${t}: one instant of sound, taste, touch or light — never a plot summary or a verdict. Grounded only in this entry's own body; if there is nothing to draw from, the UI says so.`,
     aiEchoDone: (t: string) => `Wrote a memory echo for ${t}.`,
+    aiLink: 'AI link',
+    aiLinkBusy: 'Linking…',
+    aiLinkTitle: (t: string) => `One real model call finds one genuinely related entry for ${t} among this world's own entries and names the relation; invented ids are dropped and duplicate edges are never written twice.`,
+    aiLinkDone: (t: string, label: string) => `Linked ${t} with "${label}" — visible on the star graph.`,
 eraPlaceholder: 'Grey Lantern Era',
     memoryEchoPlaceholder: 'Memory echo: the sensory trace of that moment (sound / taste / touch / light) — not plot, a scar',
 tidalTerrainHeading: 'Terrain (walkable plateaus and cones)',
@@ -434,6 +443,58 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
     }
   };
 
+  // §45 星图牵线：从已有条目里挑目标，模型不许自造端点；重复边由 linkWorldNodes 挡掉。
+  const [linkBusyFor, setLinkBusyFor] = useState('');
+  const [linkNote, setLinkNote] = useState('');
+  const linkFrom = async (node: { id: string; title: string; body: string }) => {
+    const doc = world;
+    if (!doc || linkBusyFor) return;
+    setLinkBusyFor(node.id);
+    setLinkNote('');
+    try {
+      const candidates = doc.nodes
+        .filter((n) => n.id !== node.id)
+        .slice(0, 24)
+        .map((n) => ({ id: n.id, title: n.title, body: (n.body || '').slice(0, 400) }));
+      if (candidates.length === 0) {
+        setLinkNote(locale === 'zh' ? '这个世界还没有别的条目可以连——先加一条再来。' : 'No other entries to link yet — add one first.');
+        return;
+      }
+      const res = await fetch('/api/ai/world-fill', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          locale, worldName: doc.name, summary: doc.summary || '',
+          kind: kindLabel('lore', locale), focusTitle: node.title, focusBody: node.body,
+          link: true, candidates,
+        }),
+      });
+      const body = (await res.json().catch(() => null)) as { text?: string; message?: string } | null;
+      if (!res.ok || typeof body?.text !== 'string') {
+        setLinkNote(locale === 'zh' ? `牵线未成功：${body?.message ?? `HTTP ${res.status}`}` : `Link failed: ${body?.message ?? `HTTP ${res.status}`}`);
+        return;
+      }
+      const picked = parseLinkReply(body.text, candidates.map((c) => c.id));
+      if (!picked) {
+        setLinkNote(c.aiFillNone);
+        return;
+      }
+      const result = linkWorldNodes(doc, node.id, picked.toId, picked.label);
+      if (result.reason) {
+        setLinkNote(result.reason);
+        return;
+      }
+      worldStore.setLocal(result.document);
+      void worldStore.commit();
+      const target = candidates.find((c) => c.id === picked.toId)?.title ?? picked.toId;
+      setLinkNote(c.aiLinkDone(target, picked.label));
+    } catch (e) {
+      setLinkNote(String((e as Error)?.message ?? e).slice(0, 200));
+    } finally {
+      setLinkBusyFor('');
+    }
+  };
+
   if (!world) {
     return (
       <div className="wd-scrollPad" data-world-panel>
@@ -575,6 +636,16 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
                         className="wd-ghostBtn"
                       >
                         {echoBusyFor === node.id ? c.aiEchoBusy : c.aiEcho}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void linkFrom(node)}
+                        disabled={linkBusyFor === node.id}
+                        title={c.aiLinkTitle(node.title)}
+                        data-world-ai-link={node.id}
+                        className="wd-ghostBtn"
+                      >
+                        {linkBusyFor === node.id ? c.aiLinkBusy : c.aiLink}
                       </button>
                     {node.kind === 'story' || node.kind === 'history' ? (
                       <>
@@ -753,6 +824,7 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
         {aiFillNote ? <p className="wd-body11Mt2" data-world-ai-fill-note>{aiFillNote}</p> : null}
         {chronicleNote ? <p className="wd-body11Mt2" data-world-ai-chronicle-note>{chronicleNote}</p> : null}
         {echoNote ? <p className="wd-body11Mt2" data-world-ai-echo-note>{echoNote}</p> : null}
+        {linkNote ? <p className="wd-body11Mt2" data-world-ai-link-note>{linkNote}</p> : null}
         <p className="wd-body11Mt2" data-world-note>
           {c.editsNote}
           {groups.length < WORLD_KINDS.length

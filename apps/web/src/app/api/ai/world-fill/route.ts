@@ -27,6 +27,13 @@ const Body = z
     echo: z.boolean().default(false),
     focusTitle: z.string().trim().max(120).default(''),
     focusBody: z.string().trim().max(4000).default(''),
+    /** 牵线模式：模型只能从这些候选 id 里挑一个目标 */
+    link: z.boolean().default(false),
+    candidates: z.array(z.object({
+      id: z.string().min(1).max(80),
+      title: z.string().max(120),
+      body: z.string().max(600),
+    })).max(24).default([]),
   })
   .strict();
 
@@ -39,7 +46,11 @@ export async function POST(req: Request): Promise<NextResponse> {
   if (!parsed.success) return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
   const b = parsed.data;
 
-  const system = b.echo
+  const system = b.link
+    ? (b.locale === 'zh'
+      ? '你是这个世界的星图编纂者。给一条条目找一条**真的**有关系的目标。只输出一个 JSON 对象：{"toId":"候选id","label":"关系名"}，不要围栏、不要解释。toId 必须原样来自给定的候选列表，绝不自造；label ≤ 40 字，写具体关系（如「效忠」「磨盘记时的交接」「盐的来源」），不写空话。关系必须能从两条正文里读出来，否则输出 {"toId":"","label":""}。'
+      : 'You map the relations of this world. Find ONE genuinely connected target for an entry. Output ONLY a JSON object: {"toId":"candidate id","label":"relation"} — no fences, no prose. toId must be copied verbatim from the candidate list; never invent one. Label ≤ 40 chars, concrete (e.g. "sworn to", "kept the mill-time", "source of the salt"), never vague. If no relation is supported by the two bodies, output {"toId":"","label":""}.')
+    : b.echo
     ? (b.locale === 'zh'
       ? '你是这个世界的记忆保管者。给一条世界条目写「记忆回声」：只输出 JSON 数组 [{"title":"...","body":"..."}]，不要围栏、不要解释。title 原样抄回条目名；body 是一段 ≤240 字的纯感官刻痕——声音、味道、触感、光线里的一瞬，不是剧情梗概、不是评价、不写"作为 AI"之类的话。只依据给定条目的正文，没有任何可写的细节就返回 []。'
       : 'You keep this world’s memories. Write a "memory echo" for one world entry. Output ONLY a JSON array [{"title":"...","body":"..."}] — no fences, no prose. Copy the entry name into title; body must be a sensory trace of one instant (sound, taste, touch, light), ≤ 240 chars — never a plot summary, verdict, or "as an AI" chatter. Use only the supplied entry body; return [] if there is nothing to draw from.')
@@ -57,6 +68,11 @@ export async function POST(req: Request): Promise<NextResponse> {
     `Existing titles in this section: ${b.existingTitles.length ? b.existingTitles.join(' | ') : '(none)'}`,
     ...(b.chronicle ? [`Existing eras (copy one verbatim): ${b.eras.length ? b.eras.join(' | ') : '(none — use empty string)'}`] : []),
     ...(b.echo ? [`Focus entry: ${b.focusTitle}`, `Entry body: ${b.focusBody || '(empty)'}`] : []),
+    ...(b.link ? [
+      `From entry: ${b.focusTitle}`,
+      `From body: ${b.focusBody || '(empty)'}`,
+      `Candidates (id | title | body):\n${b.candidates.map((x) => `${x.id} | ${x.title} | ${x.body}`).join('\n')}`,
+    ] : []),
   ].join('\n');
 
   const result = await chatWithCharacter({ requestId: `world-fill-${Date.now()}`, system, user, modelClass: 'balanced' });

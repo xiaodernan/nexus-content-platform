@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseChronicleReply, parseEchoReply, parseWorldFillReply } from '../src/lib/worldFill';
+import { parseChronicleReply, parseEchoReply, parseLinkReply, parseWorldFillReply } from '../src/lib/worldFill';
 
 /**
  * §44 世界填料的入口门。宁可少收一条，也不把模型话术当设定写进用户的世界文档：
@@ -60,5 +60,20 @@ describe('worldFill · 记忆回声只收短刻痕', () => {
   });
   it('空回话返回 null', () => {
     expect(parseEchoReply('没有可写的')).toBeNull();
+  });
+});
+
+describe('worldFill · 星图牵线只认候选 id', () => {
+  const ids = ['wn_a', 'wn_b'];
+  it('合法目标与具体关系名原样取回', () => {
+    expect(parseLinkReply('{"toId":"wn_b","label":"效忠"}', ids)).toEqual({ toId: 'wn_b', label: '效忠' });
+  });
+  it('模型自造 id 直接拒绝，不让图上出现不存在的端点', () => {
+    expect(parseLinkReply('{"toId":"wn_ghost","label":"无关"}', ids)).toBeNull();
+  });
+  it('空标签/超长标签/围栏外的话术都拒绝', () => {
+    expect(parseLinkReply('{"toId":"wn_b","label":""}', ids)).toBeNull();
+    expect(parseLinkReply('{"toId":"wn_b","label":"' + '长'.repeat(41) + '"}', ids)).toBeNull();
+    expect(parseLinkReply('好的，我找到一条关系', ids)).toBeNull();
   });
 });
