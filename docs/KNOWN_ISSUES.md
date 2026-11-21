@@ -290,3 +290,14 @@ Live list. Nothing here is hidden behind marketing copy.
   `SAFE_DELETE_BULK_GUARD_ERROR`. Start it as `NODE_OPTIONS= ../../node_modules/.bin/next dev -p <port>`
   (also: `npx next dev` can hang resolving through the local proxy — call the binary directly).
 - **World surface "save to disk" confirmation — WORKS (corrected 2026-10-22).** An earlier single harness run timed out at the save-note step and this entry wrongly called it a product gap. Re-run against a *warm* dev server passes **34/34**, with the note reading `saved … bytes to disk as "world-saved"` and `PERSISTED (… B on disk)`. The first failure was a **cold-route-compile timeout**: the `world-saves` POST route is compiled on first hit, and the harness's 15s wait lost to that slow first compile. Fixed by bumping `waitSaveNote` to 60s in `tools/harness/studio-world.mjs` (2026-10-22). Lesson: a one-shot browser-harness failure on a freshly started dev server is often a cold-compile race, not a regression — re-run against the warm server before filing a product gap.
+
+## Toolchain
+- **ai-service venv rebuilt on 2026-11-22.** The old .venv was built on
+  C:\Program Files\Python311\python.exe, which no longer exists on this machine; every
+  
+pm run test:ai-service call died with No Python at ...Python311\python.exe.
+  The venv was recreated on the system Python 3.14 and pip install -r
+  apps/ai-service/requirements.txt re-run. pytest apps/ai-service/tests -q →
+  **478 passed, 18 skipped** (same as before the rebuild). The stale
+  .venv-broken-py311 was removed; .venv is gitignored, so the fix is
+  environmental, not a code change.
