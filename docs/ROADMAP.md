@@ -10775,6 +10775,26 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
 **仍欠**：审计表在 1280 是"刚好装满"，数据里出现更长的 detail 时会回到横滚（有上限兜底，但没有读数）；
 三张表都没有"右边还有列"的视觉提示；390 的滚动手感没有真机读数。
 
+## §CACHE-PARALLEL — 并行会话不再互相干扰：生产路径四路并发全部 88.2%（2026-11-22）
+
+用户本轮第二次点名「并行会话同时打 API 导致缓存互相干扰、命中混乱」。
+2026-11-19 的 `docs/evidence/cache-ab-parallel-2026-11-19.md` 量到过「4 路同毫秒齐发 ⇒ 全部 0 KV」，
+但那条探针走的是 `stream=false + 常量 lane`，**不是生产形状**。本片补生产路径的可复检判据。
+
+- 新探针 `scripts/probe-parallel-cache.py`（`npm run probe:cache-parallel`）：POST `/v1/ai/chat`，
+  system = 24k 字符设定文本；salt 随机 ⇒ 应用缓存与 provider KV **双冷**，量到的每一发都是真调用
+  （判据：`appCache delta hits=0 misses=6`）。
+- 读数（全新 lane）：cold 0% → warm 88.2% → **四路并发异文全部 88.2%**（21964/24906），
+  没有一发掉 0；同文并发两发 0.07s / 0.10s（真回放，不是各打一次）。
+- 不互相干扰的三件根据：`NEXUS_LLM_STREAM=1`（流式通道前缀稳定）、
+  sticky per-lane `prompt_cache_key=nexus-<sha256(system)[:16]>`（ADR-0284）、
+  进程内 single-flight（ADR 0128）。`NEXUS_LLM_DISTRIBUTED_SINGLE_FLIGHT` 仍未开：
+  本机单实例已证明并发 lane 稳定，不引入 Redis 租约复杂度（ADR 0129 的前提仍在）。
+- **顺带回答「输入上下文太少」**：设计主链路与世界步进带的是 **158,112 tokens** 的 canon digest
+  （Codex 五～九万的 1.8～3 倍）；真正上下文偏薄的是**角色对话**——persona 只有几百字、
+  历史只取最近 5 条记忆、语料只取 3 条。这是下一片 §LLMCTX-1 的题目。
+- 证据 `docs/evidence/cache-parallel-live-2026-11-22.md`。
+
 ## §SEC 第三十二片：限流闸的窗口挪进 Redis——「每台各数各的」那句限额重新是真的（2026-11-02）
 
 起点是 `rateLimit.ts` 顶部从 §64 那天起就写着的一句承诺："生产多实例时换成 Redis 驱动（ZRANGEBYSCORE + ZADD
