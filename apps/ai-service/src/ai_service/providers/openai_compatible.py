@@ -43,6 +43,21 @@ def _retry_after_seconds(value: str | None) -> float | None:
     return seconds if seconds >= 0 else None
 
 
+def authorization_header(api_key: str, scheme: str = "raw") -> str:
+    """网关认证头：`raw` 直接送 key，`bearer` 送 ``Bearer <key>``。
+
+    2026-11-22 实测：本项目的 wkapi/new-api 风格网关只认**裸 key**——带 ``Bearer ``
+    前缀会被拒为 `401 无效的令牌`，而同一个 key 去掉前缀立刻 200（同请求 4180/4387
+    token 命中 provider 前缀缓存）。OpenAI 官方端点要 ``Bearer``，所以这是**按端点
+    选**的一件事，不是永远的对错：默认 `raw`（本仓库的网关），官方端点用 ``bearer``。
+    """
+    if scheme == "bearer":
+        return f"Bearer {api_key}"
+    if scheme != "raw":
+        raise ValueError(f"未知的认证方案 {scheme!r}（raw / bearer）")
+    return api_key
+
+
 class OpenAICompatibleProvider:
     kind = "llm"
     name = "openai-compatible"
@@ -66,6 +81,7 @@ class OpenAICompatibleProvider:
         jitter_strategy: str = "none",
         rng: Callable[[float, float], float] | None = None,
         stream: bool = False,
+        auth_scheme: str = "raw",
     ) -> None:
         """`max_attempts=1`（默认）= pass-through，与 v681 前字节级一致（零回归）。
         >1 时启用有界指数退避：`base_s·2^i` 封顶 `cap_s`，429 的 `Retry-After` 优先。
@@ -99,7 +115,7 @@ class OpenAICompatibleProvider:
             base_url=base_url,
             timeout=timeout_s,
             transport=transport,
-            headers={"authorization": f"Bearer {api_key}"},
+            headers={"authorization": authorization_header(api_key, auth_scheme)},
         )
 
     def models(self) -> list[str]:
@@ -411,13 +427,14 @@ class OpenAICompatibleEmbeddingProvider:
         models: Mapping[str, str],
         timeout_s: float = 60.0,
         transport: httpx.BaseTransport | None = None,
+        auth_scheme: str = "raw",
     ) -> None:
         self._models = dict(models)
         self._client = httpx.Client(
             base_url=base_url,
             timeout=timeout_s,
             transport=transport,
-            headers={"authorization": f"Bearer {api_key}"},
+            headers={"authorization": authorization_header(api_key, auth_scheme)},
         )
 
     def models(self) -> list[str]:

@@ -73,6 +73,7 @@ class Registry:
                     base_url=settings.openai_base_url,
                     models=settings.embedding_models,
                     timeout_s=settings.request_timeout_s,
+                    auth_scheme=settings.openai_auth_scheme,
                 )
                 if settings.has_llm and settings.embedding_enabled
                 else None
@@ -115,6 +116,7 @@ class Registry:
             jitter_strategy=settings.llm_jitter_strategy,
             breaker=breaker,
             stream=settings.llm_stream,
+            auth_scheme=settings.openai_auth_scheme,
         )
         url = settings.llm_cache_url.strip()
         if not url:

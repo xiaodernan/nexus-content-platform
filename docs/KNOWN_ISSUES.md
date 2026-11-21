@@ -5,7 +5,13 @@ Live list. Nothing here is hidden behind marketing copy.
 ## AI / providers
 - **Live model provider is wired and measured.** `apps/ai-service/.env` points all four
   text lanes at `gpt-6.2-sol` (`https://api.aizzz.xyz/v1`, via Clash Verge 127.0.0.1:7897),
-  with `NEXUS_LLM_STREAM=1`. Real-machine proof (2026-11-21,
+  with `NEXUS_LLM_STREAM=1`. **2026-11-22 必修一次**：该网关只认**裸 key** 认证头——
+  带 `Bearer ` 前缀稳定 401「无效的令牌」，去掉前缀同请求 200（同机同代理实测，
+  `docs/evidence/llm-auth-raw-key-2026-11-22.md`）。修法是一处真值
+  `authorization_header(api_key, scheme)` + `NEXUS_OPENAI_AUTH_SCHEME`（默认 `raw`，
+  官方端点要 `bearer` 时一个 env 切换）。修后真机：347,534-token 前缀第 2/3 次 100% 命中，
+  world-step 348,688 token 100% 命中、6.7ms、stategraph 编排的 delta 与中文叙事。
+  Real-machine proof (2026-11-21,
   `docs/evidence/live-cache-hit-2026-11-21.md`): capability=real, demoMode=false,
   18498/18498 cached tokens on a replay (31ms vs 2828ms cold), two parallel session lanes
   each 100% on their 2nd turn, and world-step at 358,555-token context with a structured
