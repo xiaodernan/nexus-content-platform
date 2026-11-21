@@ -146,6 +146,16 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           'draft 的 system 是字节级稳定的正典摘要（十三章正典全文 + 锚句中英对照），前缀复用因而 KV 命中率在 /admin/ai-cache 里看得见。',
         ],
       },
+      {
+        heading: '⑬ 画布键鼠速查（2026-11-20 新增）',
+        body: [
+          '滚轮（默认网页惯例，2026-11-20 修正）：往上滚往上看、往下滚往下看。如果自己手里的鼠标/系统方向反了，顶区「滚轮」按钮把它切到反转，之后再切回来。',
+          '右键拖拽移动视口（中键或空格拖拽）；Shift + 滚轮横向滚动；Ctrl + 滚轮按住边框为锚点缩放，最大 4× 最小 0.1×。',
+          '顶区「适应窗口」按钮（Shift+1）：把文档整个放进视口——缩放仍在 0.1–4 倍闸内，画布会居中。',
+          'Ctrl+G 显示/隐藏对齐网格；方向键微移 1px，Shift+方向键 8px，Delete 删选中。',
+          '每个面板上都有标题栏；顶栏「+ 新建页」快速加页；面板里的搜索框（Ctrl+F）搜组件名。',
+        ],
+      },
     ],
   },
   en: {
@@ -156,7 +166,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '① What is this thing?',
         body: [
-          'NEXUS is an AI Universe Studio — a place where your spoken intent becomes a design model, then real websites, games, videos and worlds that actually open.',
+          'NEXUS is an AI Universe Studio — a place where an idea you describe aloud is assembled into a design model, then turned into real websites, games, videos and worlds you can actually open.',
           'Create a project → lay out the design → let AI assist → export / publish / play the games inside.',
           'Not an "AI toy": every AI change goes through a revocable Command stack; every asset is yours; DEMO MODE is a standing badge — unconfigured providers are never faked as live.',
         ],
@@ -164,7 +174,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '② New here? A 2-minute first run-through',
         body: [
-          'Sign up → "New project" → give it a name → you land in Studio (left panel + canvas + right inspector).',
+          'Sign up → "New project" → give it a name → you enter Studio automatically (left panel + central canvas + right inspector).',
           'In Studio, select something on the canvas (mouse or Tab) → hit "New page" in the top bar, or drag components from the left onto the canvas.',
           'Say one sentence to the AI (e.g. "make the title 72px serif") — every AI turn lands as a Command you can undo with Cmd/Ctrl+Z; no provider configured ⇒ no pretend magic, the DEMO MODE badge shows.',
           'Press Cmd/Ctrl+K to open the command palette — type a project name or any path keyword ("publish", "ship", "tide") and Enter jumps straight there.',
@@ -178,7 +188,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: 'How does AI "speak" here? (StateGraph in one minute)',
         body: [
-          'When AI edits a design, the request takes one of two lanes: lane A directly POSTs /v1/ai/run; lane B runs it through an explicit **stateful graph** — LangGraph-style state machine: validate (input contract) → check_provider (pick model by modelClass) → build_prefix (lay down a byte-stable prefix so the provider\u2019s prefix cache fires) → call_llm (real call to gpt-6.2-sol) → cache_read (hit = skip provider) → parse_and_release (validate patch legality) → assemble (contract-checked response). Any failure short-circuits to END — nothing keeps spinning.',
+          'When AI edits a design, the request takes one of two lanes: lane A directly POSTs /v1/ai/run; lane B runs it through an explicit, traceable **state graph** — LangGraph-style state machine: validate (validate the input) → check_provider (pick model by modelClass) → build_prefix (lay down a byte-stable prefix so the provider\u2019s prefix cache fires) → call_llm (real call to gpt-6.2-sol) → cache_read (hit = skip provider) → parse_and_release (validate patch legality) → assemble (assemble the contract response). Any failure short-circuits to END — nothing keeps spinning.',
           'Why a graph and not a straight line? The graph makes the AI call a pipeline you can reason about, replay and partially undo — not a black-box API. x-nexus-orchestration: stategraph is the only public tell that lane B served you; the response body is byte-identical to lane A.',
           'Measured effect: on identical byte-prefixes, back-to-back turns hit 21265/21268 cached tokens (≈99.99%) — real savings, not demo numbers. /admin/savings pairs tokensIn against cachedTokens side by side.',
           'Curious? apps/ai-service/src/ai_service/stategraph.py is the graph written out — readable source is the documentation; tests/test_stategraph.py walks the eight arms: why validate / check_provider / dryRun / invalid patches short-circuit straight to END.',
@@ -189,7 +199,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '③ Feature map (click a path, land on the page)',
         body: [
-          '/discover feed (For You: AI ranks by your own measured reading trace — myOpens — and never ranks for people without one; the curator’s note: the top-3 trending cards get one “why open this” each, written by AI from three real metrics (views / likes / comments / remixes / heat), every line citing figures) · /marketplace components/templates/assets · /blocks library · /search global search',
+          '/discover feed (Hot / Latest / trending / Following; Recommended for You: AI ranks by your own measured reading activity — myOpens; the curator’s note: the top-3 trending entries get one “why open this” each, written by AI from real metrics (views / likes / comments / remixes / heat), every line citing figures) · /marketplace components/templates/assets · /blocks library · /search global search',
           '/studio/<project> studio · /world/<id> walk this world (3D) · /world/<id>/digest world digest · /world/<id>/integrity world checkup · /world/<id>/tide world tide · /world/<id>/almanac world almanac · /world/<id>/constellation character graph · /world/<id>/codex paper tome · /world/<id>/chronicle timeline · /world/<id>/ephemeris 360-day page',
           '/bible hall of canon → 《潮汐教团》 thirteen chapters + two hundred seven echoes; /bible/search direct hits (local canon retrieval) · /bible/quiz Tide Challenge (canon quiz) · /bible/well Seven Wells (the second game)',
           '/bible gains a third game: /bible/anchors Anchor Echo — the 1254 bilingual anchor sentences replayed verbatim; name the chapter or echo each line came from (streak and best kept locally)',
@@ -202,7 +212,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '④ How games work here',
         body: [
-          'Action surface (/game/<id>): WASD or arrow keys to move; Space to attack. The HUD shows health, time, live enemies, pickups (items x/y), discoveries and activations — finish the map before judging, not by health alone.',
+          'Action surface (/game/<id>): WASD or arrow keys to move; Space to attack. The HUD in the top-right corner shows health, time, live enemies, pickups (items x/y), discoveries and activations — walk the whole map before looking at the end-of-game results.',
           'Dead? Restart: the “Restart” button on the outcome screen re-runs (Space also bound); runs are self-contained, no cross-run checkpoints.',
           'Next stage layout is decided by @nexus/game-model from where you ended — your previous coordinates seed the next enemy placements.',
           'RPG adventure (/game/<id>?view=rpg): WASD/arrows to walk; Space/Enter near an NPC to talk; pick options with arrows + Space; dialogue choices write into your world file (visible in the character panel).',
@@ -214,7 +224,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑤ Quota & what DEMO MODE means',
         body: [
-          'Every free account has an AI quota. Real providers consume real quota; without one you see the DEMO MODE badge — the flow still completes, but the output is deterministic simulation, not a real model’s work.',
+          'Every free account has an AI quota. Real providers such as gpt-6.2-sol on aizzz.xyz consume real quota; without a real provider you see the DEMO MODE badge — the flow still completes, but the output is deterministic simulation that looks like something an AI made, but it is not a real model’s work.',
           '/credits shows the live ledger: every AI call records tokens in/out, model, latency, cost. All real numbers; SavingsCard on that page tallies how much duplicate computation the cache absorbed for you (hit rate, prompt-token reuse, real vs DEMO turns).',
           'About "cache-hit rate": it measures the provider’s prefix-KV hit rate. Same prefix sequence hitting twice means fewer tokens consumed; a miss is not proof of error — the distributor may have placed your request on a cold shard.',
         ],
@@ -222,7 +232,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑥ Frequently asked questions',
         body: [
-          'Q: why did the page go blank? A: DEMO MODE short-circuit — no provider configured, so generation can’t write real code. Configure the real provider endpoint in the environment to make those pages "light up".',
+          'Q: why did pressing a button blank the whole page? A: this is a DEMO MODE feature — no provider configured, so generation can’t write real code. Only after you configure a real provider in the environment AND get the first real call working end to end will those pages "light up".',
           'Q: is low cache-hit-rate my fault? A: No — it’s the provider’s KV-shard lottery. Over 6–10 identical prefix lanes expect ~1 cold shard; admins can see their per-lane bills at /admin/ai-cache.',
           'Q: how do others see my work? A: top-bar Publish → fill title → publish; before publishing it stays private.',
           'Q: is my data safe? A: every AI edit is in the audit ledger, revocable Command; public works recallable anytime.',
@@ -238,9 +248,9 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         ],
       },
       {
-        heading: '⑧ Step into a world',
+        heading: '⑧ Step into a world and play',
         body: [
-          '/world/<id> is the 3D walk view: WASD or arrow keys move; hold the left mouse button and drag to look around (drag up = look up); stand near an NPC and use the “Talk to the character” entry to converse.',
+          '/world/<id> is the 3D walk view: WASD or arrow keys move; hold the left mouse button and drag to look around (drag up = look up); get close to an NPC and use the “Talk to the character” option that appears beside them to talk.',
           '/world/<id>/chronicle — story and history entries arranged by era (Grey-Lamp Age / Ash Age / Iron-Moon Age — whatever YOUR project’s eras are), characters and chronicle light each other up; entries can carry “memory echoes” — pure sensory etchings, ≤ 240 chars, not plot summaries.',
           '/world/<id>/digest world digest · /world/<id>/integrity world checkup (reports real issues only: era drift, missing echoes, orphan entries — no fake scoring) · /world/<id>/tide world tide · /world/<id>/ephemeris world calendar projection · /world/<id>/codex the lore tome · /world/<id>/constellation the character graph.',
           'Every one of these pages is a projection of YOUR project — the world pages are not “the official story”; they are the structure of the world you drew, rendered.',
@@ -250,16 +260,16 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑨ Marketplace, invites and teams',
         body: [
-          '/marketplace — the components bazaar: browse what authors have listed, see who bought what, buy or refund; everything listed has a real settlement path. The “AI picks” strip up top has the model read measured fields of the first three shelf items (price / downloads) and write one line each on why they deserve a look — prices and download counts are real; the model never claims quality.',
+          '/marketplace — the components bazaar: browse what authors have listed, see who bought them, buy or refund; every item sold in the market has a real settlement path. The “AI picks” strip up top has the model read measured fields of the first three shelf items (price / downloads) and write one line each on why they deserve a look — prices and download counts are real; the model does not judge work quality.',
           '/invites/<token> — accept a team invite: project members send invite links from the Studio Team panel; accepted collaborators hold a seat (seats are capped; expired invites stop holding one).',
           '/api-tokens — mint a token for CI/scripts to read and publish your content programmatically; /tasks shows the real queue and state of every cloud task.',
           '/ship daily delivery log (AI at-a-glance: the model writes 2-4 sentences straight from mechanically counted git-log figures — real numbers, model-written words) · /notifications inbox (Let AI read it first — counts-only triage: moderation/approval/team outrank likes and follows; no title or body ever reaches the model) · /analytics your works’ stats · /pulse the observatory hall (whole platform, aggregated & anonymous, passphrase 123) · /observatory the public observation hall (rule-projected, public, passphrase 123; AI deep-read: the model drafts four actionability-ranked optimization suggestions from the measured aggregates, with basis / impact / next steps; AI independent review: the model recomputes the board and rules agrees / disagrees per line (every line cites figures)) · /credits your quota ledger — all real data pages.',
         ],
       },
       {
-        heading: '⑩ Wrong turn? Walk back',
+        heading: '⑩ Made a wrong move? Undo it',
         body: [
-          '⌘Z (or Ctrl+Z) undoes the most recent Command — chat edits, canvas, storyboard, state patches, breakpoints all run through the same undo stack; redo is ⌘⇧Z / Ctrl+Y.',
+          '⌘Z (or Ctrl Z) undoes the most recent Command — chat, canvas, storyboard, state patches, breakpoints all run through the same undo stack; redo is ⌘⇧Z / Ctrl Y.',
           'Destructive actions (delete project / unpublish / delete shot / clear selection) all carry a confirmation step; deleted projects go to the recoverable trash; public works can be recalled to private anytime.',
           'Publish’s last step is a confirmation card — nothing enters the feed without your explicit yes; dangerous AI actions (delete / publish / spend quota) are likewise human-gated and refuse to run until approved.',
         ],
@@ -267,7 +277,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑪ How the Hall of Canon works (/bible)',
         body: [
-          '/bible — the canon proper: thirteen chapters of the Tide Conclave, plus two hundred seven echoes; anchor sentences align word-for-word across zh and en.',
+          '/bible — the canon proper: thirteen chapters of the Tide Conclave, plus two hundred seven echoes — every chapter opens to read; anchors align character-for-character between zh and en (zh source bytes / en counterpart, never mixed).',
           '/bible/search — type a keyword, fetch the exact canon passage (pure local retrieval; no AI generation, no outside sources).',
           '/bible/quiz — the Tide Challenge: canon-aligned quizzes; wrong answers point back to the chapter to re-read; lit beacons stay on your machine (no cloud save; refresh keeps nothing).',
           '/bible/well — Seven Wells: the Hall’s second game — follow seven clues back to seven lost wells; found wells open the way; unfound wells honestly say they are not found.',
@@ -282,19 +292,9 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         ],
       },
       {
-        heading: '⑬ Canvas keyboard/mouse cheat sheet (2026-11-20 addition)',
-        body: [
-          'Wheel (page convention by default, 2026-11-20 correction): wheel up = look up, wheel down = look down. If your mouse/OS reports the delta flipped, the top «Wheel» button switches it to inverted — and back.',
-          'Right-button drag pans the canvas (middle button or Space also pan); Shift + wheel pans horizontally; Ctrl + wheel anchors-zoom, 0.1×–4×.',
-          'Top «Fit window» button (Shift+1): fits the whole document into the viewport.',
-          'Ctrl+G toggles the alignment grid; arrows nudge 1 px, Shift+arrows 8 px, Delete removes the selection.',
-          'Every panel has a title bar; the top bar has «+ New page»; the panels’ search boxes (Ctrl+F) search by name.',
-        ],
-      },
-      {
         heading: '⑫ Ask the Canon — how the answer is actually produced',
         body: [
-          '“Ask the Canon” (/bible/ask) is not “throw the prompt at the model and hope”. It runs a StateGraph chain: a short prompt extracts retrieval terms (analyze — no 32k-token digest fired yet); pure-algorithm char-bigram Jaccard hits the digest blocks (retrieve — the model is not called for this step, 0 tokens); then the model answers with the full canon digest plus the matched passage as evidence (draft); then a mechanical verifier rejects empty answers / invented chapters or echoes / non-existent anchor refs (verify) — fail the gate, one revise round, and if it still fails the UI shows it failed honestly. After the answer arrives, the collapsible “Retrieval evidence” panel lays the matched top-3 passages out verbatim — which passages pinned the model, for the reader to see, not trust.',
+          '“Ask the Canon” (/bible/ask) is not “throw the prompt at the model and hope”. It runs a StateGraph chain: a short prompt extracts only retrieval terms (analyze — without burning a long context); pure-algorithm character-bigram Jaccard matches canon passages directly (retrieve — the model is not called for this step, 0 tokens); then the model answers with the full canon text plus the matched passages as evidence (draft); then a mechanical verifier checks three things — empty answers, invented chapters or echo numbers, and references to anchors that do not exist (verify). It answers only if the gate passes; otherwise one revise round runs, and if that still fails the UI says so honestly. After the answer arrives, the collapsible “Retrieval evidence” panel shows the matched top-3 passages verbatim — which passages constrained the answer, so the reader can see rather than trust.',
           'Every answer surfaces two deterministic badges: ① cache-reused N tokens (KV slot reuse on the byte-stable digest — ~95%+ on repeat calls); ② a citation verdict — “Quoting the canon verbatim ✓ (N lines)” / “Not in the canon — the Inquiry says so honestly” / “Free answer — no verbatim anchor from the canon”. Tap ② open to see exactly which anchor lines the model quoted, line by line, unedited.',
           'StateGraph is a first-class orchestration primitive in this repo’s own agent runtime (@nexus/agent-runtime, ADR-0270/0275) — nodes, state, and conditional edges, the same “state + graph” model LangGraph popularized, driving the real chain you see.',
           'A passed quiz is that; an unanswered canon question is also “the canon does not hold this — the canon itself says so”. No model is allowed to bluff the canon.',
@@ -304,11 +304,11 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑬ Canvas keyboard/mouse cheat sheet (2026-11-20 addition)',
         body: [
-          '滚轮（默认网页惯例，2026-11-20 修正）：往上滚往上看、往下滚往下看。如果自己手里的鼠标/系统方向反了，顶区「滚轮」按钮把它切到反转，之后再切回来。',
-          '右键拖拽移动视口（中键或空格拖拽）；Shift + 滚轮横向滚动；Ctrl + 滚轮按住边框为锚点缩放，最大 4× 最小 0.1×。',
-          '顶区「适应窗口」按钮（Shift+1）：把文档整个放进视口——缩放仍在 0.1–4 倍闸内，画布会居中。',
-          'Ctrl+G 显示/隐藏对齐网格；方向键微移 1px，Shift+方向键 8px，Delete 删选中。',
-          '每个面板上都有标题栏；顶栏「+ 新建页」快速加页；面板里的搜索框（Ctrl+F）搜组件名。',
+          'Wheel (page convention by default, 2026-11-20 correction): wheel up = look up, wheel down = look down. If your mouse/OS reports the delta flipped, the top «Wheel» button switches it to inverted — and back.',
+          'Right-button drag pans the canvas (middle button or Space also pan); Shift + wheel pans horizontally; Ctrl + wheel anchors-zoom, 0.1×–4×.',
+          'Top «Fit window» button (Shift+1): fits the whole document into the viewport.',
+          'Ctrl+G toggles the alignment grid; arrows nudge 1 px, Shift+arrows 8 px, Delete removes the selection.',
+          'Every panel has a title bar; the top bar has «+ New page»; the panels’ search boxes (Ctrl+F) search by name.',
         ],
       },
     ],

@@ -65,9 +65,12 @@ async function main(): Promise<void> {
     lines.push('');
   }
 
-  const report = ['# 中英文合规审计报告（2026-11-20）', '', `总差异：${issuesTotal} 项`, '', ...lines];
-  writeFileSync('docs/i18n-audit-2026-11-20.md', report.join('\n'));
-  console.log(`报告已写 docs/i18n-audit-2026-11-20.md · 总差异：${issuesTotal} 项`);
+  // 报告按运行当天落档：重跑一次不该把上一次的审计记录覆盖掉（2026-11-21）
+  const stamp = new Date().toISOString().slice(0, 10);
+  const outPath = `docs/i18n-audit-${stamp}.md`;
+  const report = [`# 中英文合规审计报告（${stamp}）`, '', `总差异：${issuesTotal} 项`, '', ...lines];
+  writeFileSync(outPath, report.join('\n'));
+  console.log(`报告已写 ${outPath} · 总差异：${issuesTotal} 项`);
 }
 
 void main().catch((e) => {
