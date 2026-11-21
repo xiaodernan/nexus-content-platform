@@ -46,6 +46,7 @@ const WEB_SLUGS: Record<string, string> = {
   '011-灯下的账': '011-the-ledger-under-the-lamp',
   '012-潮来的时候': '012-when-the-tide-comes',
   '013-誊写': '013-the-fair-copy',
+ '014-数页边的人': '014-the-ones-who-count-the-margin',
   '005-收件人': '005-the-addressee',
 };
 

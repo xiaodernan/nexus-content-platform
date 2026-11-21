@@ -490,6 +490,42 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "refEn": "Chapter 13 · VII"
   },
   {
+    "zh": "页边放得下纸条，放不下名册。",
+    "en": "the margin holds a slip; it cannot hold a register.",
+    "refZh": "第14章 · 一",
+    "refEn": "Chapter 14 · I"
+  },
+  {
+    "zh": "放的人不数，数的人不放。",
+    "en": "those who place do not count; those who count do not place.",
+    "refZh": "第14章 · 二",
+    "refEn": "Chapter 14 · II"
+  },
+  {
+    "zh": "纸条越写越短，没有人让它更长。",
+    "en": "the slips grew shorter, and nobody asked them to be longer.",
+    "refZh": "第14章 · 三",
+    "refEn": "Chapter 14 · III"
+  },
+  {
+    "zh": "有一页不数，因为它本来就没有字。",
+    "en": "one page is not counted, because it never had characters.",
+    "refZh": "第14章 · 四",
+    "refEn": "Chapter 14 · IV"
+  },
+  {
+    "zh": "账簿要誊完，页边不要。",
+    "en": "the ledger must be finished copying; the margin must not.",
+    "refZh": "第14章 · 五",
+    "refEn": "Chapter 14 · V"
+  },
+  {
+    "zh": "灰幕落下时，页边是满的。",
+    "en": "when the grey cover fell, the margin was full.",
+    "refZh": "第14章 · 六",
+    "refEn": "Chapter 14 · VI"
+  },
+  {
     "zh": "巡逻路没有路标——它每三个月自己洗刷一次去年留下的痕。",
     "en": "the patrol road has no signs — every three months it scrubs the past year's marks away by itself.",
     "refZh": "回响（其一） · 一",

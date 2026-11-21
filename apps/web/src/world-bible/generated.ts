@@ -3919,6 +3919,213 @@ The lamp was not moved. The page was not put away either. The salt on the flagst
 > When the tide came, no one spoke; when it withdrew, everyone began to copy.
 > 潮来无一人说话，潮退人开始誊账。`,
   },
+  {
+    order: 14,
+    slug: '014-the-ones-who-count-the-margin',
+    titleZh: '数页边的人',
+    titleEn: 'The Ones Who Count the Margin',
+    eraLineZh: '纪元：誊写之后 · 灰幕落下之前。',
+    eraLineEn: 'Era: after the copying · before the grey cover was laid.',
+    markdownZh: `
+# The Whispers' Kings · World Bible · Chapter XIV: The Ones Who Count the Margin
+
+> 誊完以后，人们开始数页边。
+> 页边不属正文，也不属名册；有人数，就有人把纸条夹回去。
+> 本章锚句中英字对齐，不改写、不复述。
+>
+> Once the copying was done, people began to count the margin.
+> The margin belongs neither to the body nor to the register; when one counts, another tucks the slip back.
+> Canon discipline is unchanged — anchor sentences match word-for-word; no rephrasing.
+
+> 纪元：誊写之后 · 灰幕落下之前。
+
+---
+
+## 一 · 第七张纸条
+
+誊好的账簿放在木面上，边角压平。账簿的守护者没有翻开它。他先把一张空白的纸折成四折，放进账簿与封面之间的缝隙。那地方不属正文，也不属名册。
+
+灯下的人看着那道缝隙。它很窄，纸放进去以后看不出多出什么。有人伸手去摸，只摸到封皮的边缘。账簿的守护者没有解释这张纸是做什么用的。他只是把它放进去，然后坐回灯下。
+
+第二张纸条是守夜人放的。他写了一个数字，没有写名字。第三张来自能背诵潮汐教团往事的孩子，他写下半句话，没有写完。另一个人写了自己记得的页码。每一张都被折成同样的大小，放进同一道缝隙。
+
+没有人说那些纸条算不算账簿的一部分。也没有人把它们按顺序排好。它们挤在封面与第一页之间，像门槛外退不尽的潮线。
+
+**锚句**：页边放得下纸条，放不下名册。
+**Anchor sentence**: the margin holds a slip; it cannot hold a register.
+
+## 二 · 谁数过
+
+最年轻的抄本师数过。他数到第七张就不数了。可他回到座位上，还是在另一张纸上写了一个七。那张纸第二天被最年长的抄本师看见。他看了很久，没有说不可以。
+
+年长的抄本师说，页边是唯一不数的地方。你数了，它就开始排队。排队的地方就不再是页边。年轻的抄本师没有反驳。他把写着七的那张纸夹回那道缝隙，放在所有纸条的中间。
+
+那天以后，仍然有人往页边放纸条。放的人不数，数的人不放。两拨人在同一盏灯下，做相反的事，谁也不劝谁。
+
+**锚句**：放的人不数，数的人不放。
+**Anchor sentence**: those who place do not count; those who count do not place.
+
+## 三 · 纸条上的字
+
+纸条上的字越来越短。第一张什么也没有写。第二张只有一个数。第三张是半句没有结尾的话。后来的纸条上，有人只写了一个地名，有人只写了"仍在"两个字。
+
+能背诵潮汐教团往事的孩子写得最多。他把记得的句子写在纸条上，不连成完整的故事。某句话缺了半行，他便让半行留着。写完以后他把纸条折好，放进缝隙，退半步站着，看它被压住一半。
+
+账簿的守护者从不写纸条。他只是每次经过木面时，用手背轻轻挡一下封皮，像替那道缝隙留出地方。他的手从不伸进去。他没有说过那些纸条该在什么时候被取走。
+
+**锚句**：纸条越写越短，没有人让它更长。
+**Anchor sentence**: the slips grew shorter, and nobody asked them to be longer.
+
+## 四 · 一页不数
+
+有一页始终没有被数过。那是七口井对应的一页。整页受了水，字迹没有留下可以确认的部分。纸还在，页码也在。灯下没有一行能照抄的字。
+
+抄账人把那页转过来，又转回去。他没有从旁边的页找词句填进去。他也没有把它夹进页边。那一页留在账簿里，空白朝着灯，像在等一个不会来的数字。
+
+守夜人站在门槛旁看那一页。他什么也没有说。孩子也没有念往事。灯照着空白的纸面，咸壳笔放在原处，没人拿它。
+
+**锚句**：有一页不数，因为它本来就没有字。
+**Anchor sentence**: one page is not counted, because it never had characters.
+
+## 五 · 数与不数之间
+
+日子久了，页边有了自己的次序。不是谁排的——放得多的纸条压在底下，放得少的浮在上面。有人想按时间分，发现每张纸条都没有日期。有人想按长短分，发现后来的纸条几乎一样短。
+
+年长的抄本师不再看那些纸条。他只是每次收工时，把封皮合上一半，让那道缝隙留着。他说，数得清的地方是账，数不清的地方是页边。账簿要誊完，页边不要。
+
+灯下的人渐渐分成两种。一种人等账簿完整，一种人等页边更满。两种人等的是不同的东西，却都在同一盏灯下坐着。
+
+**锚句**：账簿要誊完，页边不要。
+**Anchor sentence**: the ledger must be finished copying; the margin must not.
+
+## 六 · 灰幕落下之前
+
+灰幕落下的前一天，页边已经很满了。账簿的守护者把最后一张纸条放进去，没有折。那是他第一次放纸条，也是唯一一次。纸条上写着账簿最后一页的页码。
+
+他没有写那一页上有什么。他只写了页码，然后把纸条压在所有的纸条底下。做完以后他坐回灯下，像过去的每一天一样。
+
+第二天灰幕落下。灯没有挪开。账簿留在木面上，页边留在封面与第一页之间。没有人来数过那些纸条，也没有人把它们取走。
+
+**锚句**：灰幕落下时，页边是满的。
+**Anchor sentence**: when the grey cover fell, the margin was full.
+
+---
+
+## 锚点对照（lore match）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 誊写之后的页边 · 数与不数的分工 | 《誊写》《潮来的时候》 |
+| geography | 汐台 · 七口井（《誊写》同场） | 本章 |
+| factions | 潮汐教团 | 往事 |
+| characters | 守夜人 · 账簿的守护者 · 抄账人 · 能背诵潮汐教团往事的孩子 · 最年轻与最年长的抄本师 | 本章 |
+| items | 账簿 · 咸壳笔 · 纸条 · 封面缝隙 · 页码 | 本章 |
+| story | 页边的形成 · 第十四章 | 全篇 |
+| history | 纪元切割线 · 灰幕之前 | 本章 |
+
+> 潮来无一人说话，潮退人开始誊账；誊完以后，人才开始往页边放纸条。
+> When the tide came, no one spoke; when it withdrew, everyone began to copy; only once the copying was done did anyone start placing slips in the margin.
+`,
+    markdownEn: `
+# 低语诸王 · 世界大典 · 第十四章「数页边的人」
+
+> Once the copying was done, people began to count the margin.
+> The margin belongs neither to the body nor to the register; when one counts, another tucks the slip back.
+> Canon discipline is unchanged — anchor sentences match word-for-word; no rephrasing.
+>
+> 誊完以后，人们开始数页边。
+> 页边不属正文，也不属名册；有人数，就有人把纸条夹回去。
+> 本章锚句中英字对齐，不改写、不复述。
+
+> Era: after the copying · before the grey cover was laid.
+
+---
+
+## One · The Seventh Slip
+
+The copied ledger lay flat on the wood. Its keeper did not open it. He first folded a blank sheet into quarters and slipped it into the gap between the ledger and its cover — a place that belonged neither to the body nor to the register.
+
+Those under the lamp watched the gap. It was narrow; once the sheet was inside, nothing looked added. Someone reached to feel it and found only the edge of the cover. The keeper did not explain what the sheet was for. He only put it in, then sat back down under the lamp.
+
+The second slip was placed by the night keeper. He wrote a number and no name. The third came from the child who could recite the history of the Tide Institute: half a sentence, left unfinished. Another wrote down a page number he remembered. Each slip was folded to the same size and placed into the same gap.
+
+Nobody said whether the slips counted as part of the ledger. Nobody put them in order either. They crowded between the cover and the first page, like the tide line outside the threshold that would not fully withdraw.
+
+**锚句**：页边放得下纸条，放不下名册。
+**Anchor sentence**: the margin holds a slip; it cannot hold a register.
+
+## Two · Who Ever Counted
+
+The youngest copyist had counted. He stopped at the seventh. Yet back at his desk he wrote a seven on another sheet. The next day the eldest copyist saw that paper. He looked at it a long while and did not say it was forbidden.
+
+The elder said the margin was the one place nothing was counted; count it, and it starts to queue. A place that queues is no longer a margin. The youngest did not argue. He tucked the sheet with the seven back into the gap, in among all the other slips.
+
+After that day people still placed slips in the margin. Those who placed did not count; those who counted did not place. The two kinds worked under the same lamp at opposite tasks, and neither persuaded the other.
+
+**锚句**：放的人不数，数的人不放。
+**Anchor sentence**: those who place do not count; those who count do not place.
+
+## Three · The Characters on the Slips
+
+The characters on the slips grew shorter. The first carried nothing. The second carried only a number. The third was half a sentence with no ending. Later slips held no more than a place name, or the two characters for "still here".
+
+The child who could recite the history wrote the most. He put the sentences he remembered on slips, never joining them into a whole story. Where a line was missing its second half, he left the half missing. When he finished he folded the slip, placed it in the gap, stepped back half a pace, and watched it be pressed half out of sight.
+
+The keeper of the ledger never wrote a slip. He only ever passed the wood and, with the back of his hand, held the cover slightly aside — as if making room for the gap. His hand never went in. He never said when the slips should be taken away.
+
+**锚句**：纸条越写越短，没有人让它更长。
+**Anchor sentence**: the slips grew shorter, and nobody asked them to be longer.
+
+## Four · The Page Not Counted
+
+One page was never counted. It was the page for the seventh well. The whole page had taken water; nothing of the characters could be confirmed. The paper remained, and so did the page number. Under the lamp there was not one line that could be copied.
+
+The copyist turned that page over and back. He did not pull phrases from the neighbouring pages to fill it. Nor did he tuck it into the margin. That page stayed in the ledger, its blank face toward the lamp, as though waiting for a number that would never come.
+
+The night keeper stood by the threshold and looked at it. He said nothing. The child did not recite the history either. The lamp lit the empty paper; the salt-shell pen lay where it had been, and nobody picked it up.
+
+**锚句**：有一页不数，因为它本来就没有字。
+**Anchor sentence**: one page is not counted, because it never had characters.
+
+## Five · Between Counting and Not
+
+As the days passed the margin acquired an order of its own. Nobody arranged it — slips placed often sank to the bottom, slips placed rarely rose to the top. Someone tried to sort by time and found no slip carried a date. Someone tried to sort by length and found the later slips were nearly all the same shortness.
+
+The elder copyist no longer looked at the slips. He only ever, at the close of work, shut the cover half way so the gap stayed open. What can be counted is the ledger, he said; what cannot be counted is the margin. The ledger must be finished copying; the margin must not.
+
+The people under the lamp slowly divided into two kinds: those who waited for the ledger to be complete, and those who waited for the margin to be fuller. They waited for different things, and they sat under the same lamp.
+
+**锚句**：账簿要誊完，页边不要。
+**Anchor sentence**: the ledger must be finished copying; the margin must not.
+
+## Six · Before the Grey Cover Fell
+
+The day before the grey cover fell, the margin was already full. The keeper of the ledger placed the last slip and did not fold it. It was the first slip he had ever placed, and the only one. On it was written the page number of the ledger's final page.
+
+He did not write what was on that page. He wrote only the number, then pressed the slip beneath all the others. When he had done it he sat back under the lamp as on every day before.
+
+The next day the grey cover fell. The lamp was not moved. The ledger stayed on the wood; the margin stayed between the cover and the first page. Nobody came to count the slips, and nobody took them away.
+
+**锚句**：灰幕落下时，页边是满的。
+**Anchor sentence**: when the grey cover fell, the margin was full.
+
+---
+
+## 锚点对照（lore match）
+
+| Dimension | Anchoring | Related chapter |
+|---|---|---|
+| lore | the margin after the copying · the division between counting and not | 《誊写》 / The Copying, 《潮来的时候》 / When the Tide Comes |
+| geography | 汐台 · the seven wells (same scene as 《誊写》) | this chapter |
+| factions | 潮汐教团 / the Tide Institute | the history |
+| characters | the night keeper · the keeper of the ledger · the copyist · the child who could recite the history · the youngest and the eldest copyists | this chapter |
+| items | the ledger · the salt-shell pen · the slips · the gap under the cover · the page number | this chapter |
+| story | the forming of the margin · Chapter XIV | throughout |
+| history | the era line · before the grey cover was laid | this chapter |
+
+> When the tide came, no one spoke; when it withdrew, everyone began to copy; only once the copying was done did anyone start placing slips in the margin.
+> 潮来无一人说话，潮退人开始誊账；誊完以后，人才开始往页边放纸条。`,
+  },
 ] as const;
 
 export const BIBLE_ECHOES: readonly BibleChapter[] = [

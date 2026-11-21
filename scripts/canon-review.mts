@@ -1,17 +1,19 @@
 #!/usr/bin/env node
 /**
- * echo-canon-review.mts — 用真模型给新回响做一次正典合规评审（2026-11-22）
+ * canon-review.mts — 用真模型给新正典文本做一次合规评审（2026-11-22）
  *
- * 写回响的纪律是「无新正典专名、只写既有设定内的细节、锚句逐字可考」。
- * 这三条以前只靠作者自觉；这个脚本把候选回响连同一份**紧凑正典索引**（章名/回响名/纪元，
- * 不带正文）喂给 gpt-6.2-sol，让它逐条挑：
+ * 写正典的纪律是「无新正典专名、只写既有设定内的细节、锚句逐字可考」。
+ * 这三条以前只靠作者自觉；这个脚本把候选文本（回响或**正典章节**）连同一份**紧凑正典索引**
+ * （章名/回响名，不带正文）与**全部既有锚句**喂给 gpt-6.2-sol，让它逐条挑：
  *   A. 疑似新专名（人名/地名/组织名，正典索引里没有的）
  *   B. 与既有设定冲突的陈述（纪元、潮印数、已发生的事）
  *   C. 锚句是否像"抄来的"（与既有锚句撞句）
  * 输出是**评审意见**，不是判决：采纳与否在人，模型不认识正典全文，它只认识这份索引。
  *
- * 用法：GH 无关；需要 AI_SERVICE_KEY（.env 里的 NEXUS_OPENAI_API_KEY）
- *   npx tsx scripts/echo-canon-review.mts docs/world-bible/echoes/E212-xxx.md
+ * 用法：需要 .env 里的 NEXUS_OPENAI_API_KEY
+ *   npx tsx --tsconfig apps/web/tsconfig.json scripts/canon-review.mts <正典.md 或 回响.md>
+ *   NODE_USE_ENV_PROXY=1 + HTTPS_PROXY=… 让 Node 内置 fetch 走代理（否则网关按地域 403）
+ * 章节比回响多两问：纪元线是否接上、是否与既有章节重复叙事（同一件事写两遍）。
  * 环境：NEXUS_AI_SERVICE_URL（默认 http://127.0.0.1:3200，走 ai-service 的 stategraph/chat）
  *     或 NEXUS_LLM_DIRECT=1 直连网关（默认 http 代理读 .env）。
  */
@@ -32,6 +34,10 @@ if (!existsSync(echoPath)) {
   console.error(`找不到 ${echoPath}`);
   process.exit(2);
 }
+
+/** 候选是回响还是正典章节——决定评审多问哪两问。 */
+const kind: 'echo' | 'chapter' = target.replace(/\\/g, '/').includes('/echoes/') ? 'echo' : 'chapter';
+const isChapter = kind === 'chapter';
 
 /** 紧凑索引：章名 + 全部回响的编号与题名（不带正文，控制 token）。 */
 function canonIndex(): string {
@@ -59,11 +65,11 @@ const anchorCount = BIBLE_ANCHORS.length;
 const allAnchors = BIBLE_ANCHORS.map((a, i) => `${i + 1}. ${a.zh}`).join('\n');
 const anchors = [...zhBody.matchAll(/^\*\*锚句\*\*[:：]\s*(.+)$/gm)].map((m) => m[1]!.trim());
 
-const SYSTEM = `你是《低语诸王》世界大典的合规评审。纪律：回响不得引入正典索引之外的新专名（人名/地名/组织名），
+const SYSTEM = `你是《低语诸王》世界大典的合规评审。纪律：正典文本不得引入索引之外的新专名（人名/地名/组织名），
 只能写既有设定内的细节；不得与既有设定冲突；锚句必须逐字可考且不与既有锚句撞句。
 你只收到一份紧凑索引（章名与回响题名），收不到正文——所以"疑似新专名"是疑似，不是定罪。`;
 
-const USER = `待评审回响（中文原文）：
+const USER = `待评审${isChapter ? '正典章节' : '回响'}（中文原文）：
 
 ${zhBody}
 
@@ -85,7 +91,9 @@ ${allAnchors}
 A. 疑似新专名：列出索引里找不到的人名/地名/组织名，各一句理由。
 B. 与既有设定冲突的陈述：列出与纪元/潮印数/已发生事件矛盾的句子，各一句理由。
 C. 锚句风险：${anchors.length} 条锚句里，哪几条看起来像在改写既有锚句（撞句）？
-D. 一句话总结：这份回响能不能按现状进正典。`;
+D. 一句话总结：这份${isChapter ? '章节' : '回响'}能不能按现状进正典。${isChapter ? `
+E. 纪元线：这一章的纪元接在哪一章之后？索引里接得上吗？
+F. 重复叙事：有没有哪一章已经在写同一件事（同一场景/同一转折写两遍）？` : ''}`;
 
 const key = process.env.NEXUS_OPENAI_API_KEY ?? process.env.AI_SERVICE_KEY ?? '';
 const base = process.env.NEXUS_OPENAI_BASE_URL ?? 'https://api.aizzz.xyz/v1';
