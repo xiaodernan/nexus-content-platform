@@ -10930,6 +10930,33 @@ verify:actuator     PASS 5/5  —— 五个服务 health 200 UP（details 隐藏
 **仍欠**：撞库的**分布式**形状（多 IP 打同一邮箱）本机单机测不了；登录成功的会话保持 /
 令牌轮转压力未做；provider 侧真实并发见 `probe:cache-parallel`（已单独量过车道稳定性）。
 
+## §SHOWCASE-SYNC io 入口同步 + 个人主页信息核对（2026-11-22）
+
+用户要求「把本项目最新成果实时同步到 https://xiaodernan.github.io/ ，用户每次点进去看到的都是
+最新成果」以及「个人基本信息务必准确，项目名称叫"隐盾"不是"隐图"」。
+
+**同步已生效**：`npm run sync:showcase` 重生成 `docs/showcase/latest.json` 并推到
+`xiaodernan.github.io` 的 `master`。线上实测（raw.githubusercontent.com）：
+`head=70fbb92 · total_commits=3916 · adrs=358 · contracts=16 · services=6 · test_files=602`，
+`#nexus-content-latest` 区块由 `refreshNc()` 读 `assets/nexus-content/latest.json` 自动刷新，
+烘焙值只是不可达时的兜底。
+
+**个人信息逐条核对（用户点名"之前出现过严重幻觉"）**：姓名赵欣曈、本科南方科技大学（计科）、
+硕士香港中文大学（计科）、全国中学生物理竞赛铜牌 + 江西省一等奖/二等奖、法狗狗公司实习、
+IELTS 6.5、CET6 546——io 页面与 `xiaodernan/xiaodernan` 资料 README **两边都已是这些值**，
+项目名写的是「隐盾 · 法律文书智能脱敏」，没有出现"隐图"。
+
+**Most Used Languages NaN**：线上 `https://xiaodernan.github.io/` 抓回 135,008 字节，
+**NaN 出现 0 次**；语言面板是真百分比（TypeScript 31.54% / Python 24.06% / JavaScript 20.26% /
+HTML 12.09% / Java 9.44% / CSS 1.50% …），由 `assets/nexus-content/github-languages.json`
+（04f3f5b 起的 live GitHub API 快照）驱动。
+
+**抓到并修掉的一处**：语言面板的 `aria-label` 里烘焙着一组旧数字（TypeScript 32.28% …），
+而可见行是实时值（31.54%）——**读屏用户听到的不是看到的**。已改成不带数字的
+「Languages by source bytes, largest first — read the rows for each share」，
+让列表本身承载信息，烘焙值再也不会有过期的那一天。
+（`pages.yml` 的 push 触发不含 `index.html`，按设计只走 3 小时 cron——一次部署胜过三十次取消。）
+
 ## §SEC 第三十二片：限流闸的窗口挪进 Redis——「每台各数各的」那句限额重新是真的（2026-11-02）
 
 起点是 `rateLimit.ts` 顶部从 §64 那天起就写着的一句承诺："生产多实例时换成 Redis 驱动（ZRANGEBYSCORE + ZADD
