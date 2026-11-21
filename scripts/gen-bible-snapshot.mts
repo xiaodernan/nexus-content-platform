@@ -262,6 +262,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E209-潮候院抄本院那本册子翻过第七十二页之后': 'echo-209-page-seventy-three',
   'E210-潮候院抄本院抄本师们把那道浅痕抄成了第四十三道': 'echo-210-forty-third',
   'E211-潮候院抄本院抄本师们发现新痕不占第四十四道': 'echo-211-not-the-forty-fourth',
+  'E212-潮候院抄本院抄本师们给那道新痕起了个不是名字的名字': 'echo-212-not-a-name',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

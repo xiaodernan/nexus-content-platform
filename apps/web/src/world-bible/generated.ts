@@ -28561,6 +28561,154 @@ The winter-tide month passed, and the fresh mark stayed where it was, unmoved; t
 `,
   },
   {
+    order: 212,
+    slug: 'echo-212-not-a-name',
+    titleZh: '抄本师们给那道新痕起了个不是名字的名字',
+    titleEn: 'The Copyists Gave the Fresh Mark a Word That Was Not a Name',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E211）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E211).',
+    markdownZh: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E211: the fresh mark would not take the forty-fourth place, so the eldest wrote in the margin that a number is for counting and this one is not to be counted. This echo asks what they called it instead.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E211）。
+
+---
+
+## 一 · 不起名字
+
+他们决定不给它起名字——起名字就要按名册排，而名册是数出来的。
+**锚句**：他们决定不给它起名字——起名字就要按名册排，而名册是数出来的。
+**Anchor sentence**: they decided not to give it a name — to name a thing is to file it in the register, and the register is a count.
+
+---
+
+## 二 · 三个字
+
+他们在页边写了三个字：不数者。写完谁都没念出声。
+**锚句**：他们在页边写了三个字：不数者。写完谁都没念出声。
+**Anchor sentence**: in the margin they wrote three characters: the uncounted. Nobody read them aloud.
+
+---
+
+## 三 · 谁先看见
+
+第一个看见那三个字的抄本师没有问是谁写的——册子里的字从来不问出处。
+**锚句**：第一个看见那三个字的抄本师没有问是谁写的——册子里的字从来不问出处。
+**Anchor sentence**: the first copyist to see those three characters did not ask who wrote them — words in the ledger never ask where they came from.
+
+---
+
+## 四 · 传下去
+
+后来每个抄本师路过那一页，都会停下来看一眼那三个字，然后什么也不做。
+**锚句**：后来每个抄本师路过那一页，都会停下来看一眼那三个字，然后什么也不做。
+**Anchor sentence**: afterwards every copyist passing that page stopped to look at the three characters, and then did nothing at all.
+
+---
+
+## 五 · 最年长者的话
+
+最年长的抄本师说——名字是给愿意被数的东西用的；它不愿意，那就不给。
+**锚句**：最年长的抄本师说——名字是给愿意被数的东西用的；它不愿意，那就不给。
+**Anchor sentence**: the eldest copyist said — a name is for a thing willing to be counted; it is not willing, so it gets none.
+
+---
+
+## 六 · 还在那里
+
+冬潮月过完，那三个字还在页边，新痕还在原处，一行四十三道还在那一行里。
+**锚句**：冬潮月过完，那三个字还在页边，新痕还在原处，一行四十三道还在那一行里。
+**Anchor sentence**: when the winter-tide month ended, the three characters were still in the margin, the fresh mark still where it was, the forty-three still in their row.
+
+---
+
+## 七 · Mapping（Echo No. 212 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the uncounted · a name is for a thing willing to be counted · the margin as the only place it lives | 一、二、五 |
+| geography | the Institute's copy hall · the winter-tide month ending | 三、六 |
+| characters | the five copyists · the first to see the characters · the eldest copyist | 三、四、五 |
+| story | the mark gets a word that is not a name, and nothing is filed | 全篇 |
+| items | the ledger · the margin · the three characters · the forty-three | 二、六 |
+| history | the 140th year after the 44th Convocation (continues E206–E211) | 纪元 |
+
+> 名字之外还有位置——页边那一角从不数，所以它装得下任何不肯被数的东西。
+> There is room outside a name — the margin is never counted, so it holds anything that refuses to be.`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E211: the fresh mark would not take the forty-fourth place, so the eldest wrote in the margin that a number is for counting and this one is not to be counted. This echo asks what they called it instead.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E211).
+
+---
+
+## One · No Name
+
+They decided not to give it a name — to name a thing is to file it in the register, and the register is a count.
+**锚句**：他们决定不给它起名字——起名字就要按名册排，而名册是数出来的。
+**Anchor sentence**: they decided not to give it a name — to name a thing is to file it in the register, and the register is a count.
+
+---
+
+## Two · Three Characters
+
+In the margin they wrote three characters: the uncounted. Nobody read them aloud.
+**锚句**：他们在页边写了三个字：不数者。写完谁都没念出声。
+**Anchor sentence**: in the margin they wrote three characters: the uncounted. Nobody read them aloud.
+
+---
+
+## Three · The First to See
+
+The first copyist to see those three characters did not ask who wrote them — words in the ledger never ask where they came from.
+**锚句**：第一个看见那三个字的抄本师没有问是谁写的——册子里的字从来不问出处。
+**Anchor sentence**: the first copyist to see those three characters did not ask who wrote them — words in the ledger never ask where they came from.
+
+---
+
+## Four · Passed On
+
+Afterwards every copyist passing that page stopped to look at the three characters, and then did nothing at all.
+**锚句**：后来每个抄本师路过那一页，都会停下来看一眼那三个字，然后什么也不做。
+**Anchor sentence**: afterwards every copyist passing that page stopped to look at the three characters, and then did nothing at all.
+
+---
+
+## Five · The Eldest's Words
+
+The eldest copyist said — a name is for a thing willing to be counted; it is not willing, so it gets none.
+**锚句**：最年长的抄本师说——名字是给愿意被数的东西用的；它不愿意，那就不给。
+**Anchor sentence**: the eldest copyist said — a name is for a thing willing to be counted; it is not willing, so it gets none.
+
+---
+
+## Six · Still There
+
+When the winter-tide month ended, the three characters were still in the margin, the fresh mark still where it was, the forty-three still in their row.
+**锚句**：冬潮月过完，那三个字还在页边，新痕还在原处，一行四十三道还在那一行里。
+**Anchor sentence**: when the winter-tide month ended, the three characters were still in the margin, the fresh mark still where it was, the forty-three still in their row.
+
+---
+
+## Seven · Mapping（Echo No. 212 · world model）
+
+| Dimension | Value | Sections |
+| --- | --- | --- |
+| lore | the uncounted · a name is for a thing willing to be counted · the margin as the only place it lives | I, II, V |
+| geography | the Institute's copy hall · the winter-tide month ending | III, VI |
+| characters | the five copyists · the first to see the characters · the eldest copyist | III, IV, V |
+| story | the mark gets a word that is not a name, and nothing is filed | all |
+| items | the ledger · the margin · the three characters · the forty-three | II, VI |
+| history | the 140th year after the 44th Convocation (continues E206–E211) | era |
+
+> There is room outside a name — the margin is never counted, so it holds anything that refuses to be.
+> 名字之外还有位置——页边那一角从不数，所以它装得下任何不肯被数的东西。`,
+  },
+  {
     order: 22,
     slug: 'echo-022-the-fish-that-never-dried',
     titleZh: '里巷子晾鱼架上那条永远晾不干的鱼',
