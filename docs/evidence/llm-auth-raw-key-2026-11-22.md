@@ -2,8 +2,8 @@
 
 ## 症状（用户长期反馈的根因之一）
 
-`POST https://api.aizzz.xyz/v1/chat/completions` 带
-`Authorization: Bearer sk-BDRTas…` **稳定 401**：
+`POST https://api.aizzz.xyz/v1/chat/completions` 带上认证头
+`Authorization: Bearer sk-BDRTas…` **稳定返回 401**：
 
 ```json
 {"error":{"code":"","message":"无效的令牌 (request id: …)","type":"new_api_error"}}
@@ -25,7 +25,7 @@
 
 ## 修法（一处真值，两个方案）
 
-- `providers/openai_compatible.py` 新增 `authorization_header(api_key, scheme)`：
+- `providers/openai_compatible.py` 新增函数 `authorization_header(api_key, scheme)`：
   `raw`（默认）直送 key，`bearer` 送 `Bearer <key>`；其它方案 `ValueError`。
 - `Settings.openai_auth_scheme`（`NEXUS_OPENAI_AUTH_SCHEME`，默认 `raw`）同时注入
   chat 与 embedding 两条适配器；官方 OpenAI 端点要 `bearer` 时一个 env 即可切换。
@@ -34,7 +34,7 @@
 
 ## 修后真机读数（全部走 `gpt-6.2-sol`，demoMode=false）
 
-| 路径 | 读数 |
+| 路径 | 实测读数 |
 |---|---|
 | `/healthz` | capability=real，llmLive.state=ok，models=[gpt-6.2-sol] |
 | `live-cache-probe`（3 连发） | tokensIn=347,534；cached 0 → **347,534** → **347,534**（第 2/3 次 100%，流式 latch） |

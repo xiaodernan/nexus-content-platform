@@ -28270,6 +28270,7 @@ Sailors entering the harbor today first look to the direction of the sand table,
 
 > 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E209）。
 > Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E209).
+> 页边：这一道不是潮印，是回答。
 
 ---
 
@@ -28341,6 +28342,7 @@ Sailors entering the harbor today first look to the direction of the sand table,
 > Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
 
 > Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E209).
+> Margin: this one is no tide mark, but an answer.
 
 ---
 
@@ -28422,6 +28424,7 @@ The ledger no longer turned itself at night — yet that blank line held a fresh
 
 > 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E210）。
 > Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E210).
+> 页边：数字是用来数的，这一道不是用来数的。
 
 ---
 
@@ -28494,6 +28497,7 @@ The ledger no longer turned itself at night — yet that blank line held a fresh
 > Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
 
 > Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E210).
+> Margin: a number is for counting; this one is not to be counted.
 
 ---
 
@@ -28573,6 +28577,7 @@ The winter-tide month passed, and the fresh mark stayed where it was, unmoved; t
 > Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
 
 > 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E211）。
+> 页边：名字是给愿意被数的东西用的；它不愿意，那就不给。
 
 ---
 
@@ -28636,13 +28641,15 @@ The winter-tide month passed, and the fresh mark stayed where it was, unmoved; t
 | history | the 140th year after the 44th Convocation (continues E206–E211) | 纪元 |
 
 > 名字之外还有位置——页边那一角从不数，所以它装得下任何不肯被数的东西。
-> There is room outside a name — the margin is never counted, so it holds anything that refuses to be.`,
+> There is room outside a name — the margin is never counted, so it holds anything that refuses to be.
+`,
     markdownEn: `
 > An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
 > Written after E211: the fresh mark would not take the forty-fourth place, so the eldest wrote in the margin that a number is for counting and this one is not to be counted. This echo asks what they called it instead.
 > Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
 
 > Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E211).
+> Margin: a name is for a thing willing to be counted; it is not willing, so it gets none.
 
 ---
 
@@ -28706,7 +28713,8 @@ When the winter-tide month ended, the three characters were still in the margin,
 | history | the 140th year after the 44th Convocation (continues E206–E211) | era |
 
 > There is room outside a name — the margin is never counted, so it holds anything that refuses to be.
-> 名字之外还有位置——页边那一角从不数，所以它装得下任何不肯被数的东西。`,
+> 名字之外还有位置——页边那一角从不数，所以它装得下任何不肯被数的东西。
+`,
   },
   {
     order: 22,
