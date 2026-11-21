@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parseChronicleReply, parseEchoReply, parseLinkReply, parseWorldFillReply } from '../src/lib/worldFill';
 
@@ -75,5 +77,27 @@ describe('worldFill · 星图牵线只认候选 id', () => {
     expect(parseLinkReply('{"toId":"wn_b","label":""}', ids)).toBeNull();
     expect(parseLinkReply('{"toId":"wn_b","label":"' + '长'.repeat(41) + '"}', ids)).toBeNull();
     expect(parseLinkReply('好的，我找到一条关系', ids)).toBeNull();
+  });
+});
+
+describe('WorldPanel 四种填料按钮接线（web 侧限流期间的静态保底）', () => {
+  const panel = readFileSync(join(process.cwd(), 'apps/web/src/studio/WorldPanel.tsx'), 'utf8');
+  it('每个按钮都有钩子、有教学 title、且真的把 mode 发到服务端', () => {
+    for (const [hook, flag, parser] of [
+      ['data-world-ai-fill', 'newKind', 'parseWorldFillReply'],
+      ['data-world-ai-chronicle', 'chronicle: true', 'parseChronicleReply'],
+      ['data-world-ai-echo', 'echo: true', 'parseEchoReply'],
+      ['data-world-ai-link', 'link: true', 'parseLinkReply'],
+    ] as const) {
+      expect(panel, hook).toContain(hook);
+      expect(panel, flag).toContain(flag);
+      expect(panel, parser).toContain(parser);
+    }
+  });
+  it('三种写回都走 setLocal + commit，不绕过契约直写库', () => {
+    expect(panel).toContain('worldStore.setLocal');
+    expect(panel).toContain('worldStore.commit()');
+    // 牵线必须经过 linkWorldNodes 的自环/重复边门
+    expect(panel).toContain('linkWorldNodes(doc');
   });
 });
