@@ -8619,3 +8619,11 @@ feat(§BIBLE-193 · §GUIDE-193): Echo #193《潮候院东门抄本师第一次�
 
 ## 仍待
 - HTTP burst 压测 ≥ 2 GB RAM 窗口（block holds）· 6.2 Sol 调用 = 本回合 0（全部 local） · Pages CDN 实际 v1089 版本 v1091 仍需至多 6h
+
+## cont. 463 (2026-11-21) — CI 证明链全绿收口 + §CTX-TIER/§CTX-BUDGET 上下文优化
+- **起点**：`verify:evidence-census` RED（6 项：stress-l2 未 dispositioned、anchor-echo runner 未接线、record-encoding 日期陈旧、README 计数 119/135 漂移、tools UNREACHED）。逐项根修 → census exit 0（136 模块 / 120 行 / 0 未分类）。
+- **spring-cloud proof 6 个串行缺陷逐个根修**：registry 缺 PortAnnouncer（§2 超时）；gateway 缺 PortAnnouncer（§6 超时）；gateway 属性名 `NEXUS_EUREKA_URL` → `NEXUS_REGISTRY_ZONE`（pre-ADR-0237 漂移）；tar 中文路径 System32 bsdtar → Git GNU tar（`tarEnv()`）；§9 breaker 名 `nexusApiCircuitBreaker` → `nexus-api`；§14 fallback `upstream-unavailable` → `service_unavailable`。最终 spring-cloud §1–§16 全过 exit 0。
+- **上下文优化（直击"输入上下文太少"）**：§CTX-TIER 把 7 条数据复核路由的 system 从 265,808 字大典前缀换成 ~0.4K 字节稳定身份前缀（`canonIdentityPrelude`），问典链路不动；§CTX-BUDGET 给设计树预算加 `NEXUS_DESIGN_TREE_CHARS`（1..400000，默认 60000 不变，非法回落）。决策记入 ADR-0298。
+- **保全并行工作**：接手并规范提交另一会话未提交的 §CTX-TIER 改动；此后捕获其引入的 record-encoding S2b ISLAND 回归（两个含 U+8DEF 渲染字形的短中文行），改写后恢复绿。
+- **验证**：census / arms-freshness / confession / spring-cloud / isolated / record-encoding / world-bible（1242+1242 锚句）/ bible-snapshot / anchor-echo 全 exit 0；ai-service pytest 470 passed / 15 skipped；设计+路由 24 passed、i18n 10 passed、typecheck 14/14、profile guard GREEN、`gpt-6.2-sol` 实测流式 + session cacheLane。
+- **未决（环境，非代码）**：全量 web 集成测试 128 失败 = `nexus-postgres` 容器 crash loop（重启 271 次、`FATAL 57P03` / ECONNREFUSED 1838 次、自 2026-11-19 恢复失败），无一条指向本会话改动；按 AGENTS.md 不干预共享容器。`origin/master`（Echo #156）按 ADR-0291/0297 为刻意保留陈旧引用，内容作为 Echo #162 在主干，未强推。
