@@ -832,14 +832,17 @@ const ready = spawnSync('docker', ['exec', SOURCE, 'psql', '-U', DB_USER, '-d', 
 
   const edgeBreakerNames = await readBreakerMetric(
     `${gatewayBase}`, 'resilience4j.circuitbreaker.state', null);
+  // ADR-0237 one-family rename: the gateway's resilience4j breaker instances are keyed by SERVICE name
+  // (`nexus-api`, `nexus-domain-service`) in application.yml and set via GatewayConfig.setName(service).
+  // The old `nexusApiCircuitBreaker` label belonged to the pre-rename java-gateway and is gone.
   assert.ok(
-    edgeBreakerNames.names.includes('nexusApiCircuitBreaker'),
+    edgeBreakerNames.names.includes('nexus-api'),
     `the edge's running breaker must be the one its route table names; the running names were: ${JSON.stringify(edgeBreakerNames.names)}`,
   );
   console.log(
     `[§9] both breakers are visible and are named what the configuration says: nexus-api's `
     + `\`nexus-domain-service\` (closed gauge ${apiBreakerState.value}, ${apiNotPermitted.value} calls refused) and the edge's `
-    + `\`nexusApiCircuitBreaker\``,
+    + `\`nexus-api\``,
   );
 
   // ── §10 every service reports its OWN health ─────────────────────────────────────────────
