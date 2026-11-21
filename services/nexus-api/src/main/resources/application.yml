@@ -43,9 +43,9 @@ spring:
         # `DomainCircuitBreakerConfigTest` reads this file and refuses to let the instance name and
         # the name in front of the call drift apart again.
   datasource:
-    url: ${NEXUS_DB_URL:jdbc:postgresql://127.0.0.1:55433/nexus}
-    username: ${NEXUS_DB_USER:nexus}
-    password: ${NEXUS_DB_PASSWORD:nexus_dev_only}
+    url: ${NEXUS_DB_URL:jdbc:postgresql://127.0.0.1:5433/nexus_dev}
+    username: ${NEXUS_DB_USER:nexus_app}
+    password: ${NEXUS_DB_PASSWORD:nexus_dev_app_only}
   jpa:
     hibernate:
       # `update` for the first slice: the schema is one table and the service is the only writer. A

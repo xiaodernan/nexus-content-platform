@@ -19,7 +19,9 @@ class DbReachableCondition implements ExecutionCondition {
     private static boolean jdbcReachable() {
         String url = System.getenv().getOrDefault(
                 "NEXUS_DOMAIN_DB_URL",
-                "jdbc:postgresql://127.0.0.1:55433/nexus?prepareThreshold=5");
+                // 2026-11-22：与 application.yml 同一次更正——55433 的库 WAL 损坏后常驻重启循环，
+                // 5433/nexus_dev 才是本机活着、web 侧也在用的那一个。
+                "jdbc:postgresql://127.0.0.1:5433/nexus?prepareThreshold=5");
         String user = System.getenv().getOrDefault("DB_USERNAME", "nexus");
         String password = System.getenv().getOrDefault("DB_PASSWORD", "nexus_dev_only");
         try (var conn = DriverManager.getConnection(url, user, password)) {

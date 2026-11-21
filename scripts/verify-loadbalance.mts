@@ -34,9 +34,14 @@ const REGISTRY_PORT = Number(process.env.NEXUS_REGISTRY_PORT ?? 8773);
 const DOMAIN_A = Number(process.env.NEXUS_DOMAIN_A_PORT ?? 8085);
 const DOMAIN_B = Number(process.env.NEXUS_DOMAIN_B_PORT ?? 8086);
 const GATEWAY_PORT = Number(process.env.NEXUS_GATEWAY_PORT ?? 8092);
-const DB_URL = process.env.NEXUS_DOMAIN_DB_URL ?? 'jdbc:postgresql://127.0.0.1:55433/nexus';
-const DB_USERNAME = process.env.DB_USERNAME ?? 'nexus';
-const DB_PASSWORD = process.env.DB_PASSWORD ?? 'nexus_dev_only';
+// 与 verify-topology 同一次更正（2026-11-22）：55433 的库 WAL 损坏后常驻重启循环，
+// 5433/nexus_dev 才是本机活着、web 侧也在用的那一个。5433 上还有一个只有 5 个用户、
+// schema 旧的 `nexus` 库——连它只会拿到 "column u1_0.bio does not exist"。
+const DB_URL =
+  process.env.NEXUS_DOMAIN_DB_URL ??
+  'jdbc:postgresql://127.0.0.1:5433/nexus_dev?prepareThreshold=5&preparedStatementCacheQueries=256&preparedStatementCacheSizeMiB=5&defaultRowFetchSize=100';
+const DB_USERNAME = process.env.DB_USERNAME ?? 'nexus_app';
+const DB_PASSWORD = process.env.DB_PASSWORD ?? 'nexus_dev_app_only';
 
 let failures = 0;
 const ok = (name: string) => console.log(`  ✓ ${name}`);

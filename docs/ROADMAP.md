@@ -10834,6 +10834,35 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
 **判据**：Python 16 passed（顺序 / 零回归 / 修订轮同样带）；TS 11 passed（新增 3 条）；
 ai-service 全量 497 passed / 18 skipped；契约三件套同步。
 
+## §SC-VERIFY Spring Cloud 三个证明在本机复绿——一句 Hibernate 错话背后的三层根因（2026-11-22）
+
+`verify:topology` / `verify:loadbalance` / `verify:actuator` 此前连续失败，报的都是
+`Unable to determine Dialect without JDBC metadata`——这句话把三个不同的原因说成了同一件事：
+
+1. **库死了**：`nexus-postgres`（55433）WAL 段 `…056` 整段清零，checkpoint 丢失，容器常驻重启循环；
+   web 侧 `apps/web/.env.local` 早已切到 5433/`nexus_dev`，Java 侧三个 proof 还指着 55433；
+2. **库连错了**：5433 上还有一个 `nexus` 库（5 个用户、schema 旧、没有 `users.bio`）——
+   连它拿到 `column u1_0.bio does not exist`，一句把"连错库"说成"实体映射错了"的错话；
+3. **库没建**：`nexus_api_smoke` 在 5433 上不存在，`nexus_app` 又没有 CREATEDB。
+
+**修法**：三个 proof 与两个 `application.yml` 的 datasource 默认值统一改指
+`5433/nexus_dev` + `nexus_app`/`nexus_dev_app_only`（与 web 侧同一组）；
+`ensureApiDatabase()` 幂等补建 throwaway 库。yml 里原本写着"指向别人/已死服务的默认值不是默认值，
+是陷阱"——这次就是那条纪律自己兑现。
+
+**读数**（`docs/evidence/spring-cloud-topology-live-2026-11-22.md`）
+
+```
+verify:topology     PASS 19/19 —— 发现/配置中心/双服务注册/网关限流/计费/权限/Feign 断路器/实时总线
+verify:loadbalance  PASS      —— 一个 service id 两个实例，10/10 顺序请求全 200
+verify:actuator     PASS 5/5  —— 五个服务 health 200 UP（details 隐藏）、info build.component 钉住
+```
+
+**仍欠**：`nexus-postgres`（55433）已 `restart=no` 停用，未做 `pg_resetwal` 修复（内容已被 5433 取代）；
+`verify:topology` 顶部那行「5433 did not answer HTTP」是脚本用 HTTP 探 DB 端口，自己标了 not fatal；
+`ai-health via gateway (degraded)` 是诚实读数——本机 3200 由另一个项目持有，domain-service 的 Feign
+指向不到，降级并说明原因而不是假装 UP。
+
 ## §SEC 第三十二片：限流闸的窗口挪进 Redis——「每台各数各的」那句限额重新是真的（2026-11-02）
 
 起点是 `rateLimit.ts` 顶部从 §64 那天起就写着的一句承诺："生产多实例时换成 Redis 驱动（ZRANGEBYSCORE + ZADD
