@@ -10899,6 +10899,37 @@ verify:actuator     PASS 5/5  —— 五个服务 health 200 UP（details 隐藏
 
 报告 `docs/i18n-audit-2026-11-21.md`（脚本按当日日期落盘）。
 
+## §STRESS-4 撞库风暴 + ai-service 三相位复测——压测自己抓到两个真问题（2026-11-22）
+
+用户点名「模拟海量用户、高并发、瞬间大数据量冲击系统（比如撞库之类的场景）」。
+§STRESS-1/2/3 量的是只读侧；本片补**写路径与认证闸**。
+
+**A. ai-service 三相位**（`npm run stress:ai`，不烧 provider token）：
+600 发健康 + 150 发畸形请求（空对象/缺必填/类型错/200KB 超大串/路径样注入）全部按预期收口
+——200 与 400，**0 个 500、0 次误触 provider**；恢复后 p95=67.9ms（风暴中 2311.7ms）。
+
+**B. 撞库风暴**（新脚本 `scripts/stress-auth-bruteforce.mts`，`npm run stress:auth`）：
+
+```
+300 发错误口令 / 并发 30 / 21.2s · 状态 {401:15, 429:285}
+✓ 0 次误放行 · ✓ 300/300 全被挡 · ✓ 285 发 429（retryAfterMs 879–899s）
+✓ 0 个 5xx · ✓ 风暴后 10/10 首页正常（p50=257ms < 风暴中 1585ms）
+```
+
+**C. 压测自己抓到的两个真问题**：
+
+1. 第一版脚本量到的是 **CSRF 门而不是限流闸**——没带 `nexus_csrf` 就打登录，400 发全 403。
+   这不是测错，是发现两道门叠在一起。改法按真实攻击者形状：每个 worker 先 GET 首页拿
+   cookie + token，再带 `x-csrf-token` 打登录。
+2. **登录闸的 429 只回 HTTP `retry-after` 头，body 里没有 `retryAfterMs`**。同仓其它限流点
+   （角色对话 / AI 按钮 / 建项目）都在 body 里给这个数，界面据此说"还要等 N 分钟"；
+   登录这一处不给，等于把"还要等多久"只写给会读响应头的人。已修，头与 body 都留。
+
+证据 `docs/evidence/stress-auth-and-ai-2026-11-22.md`。
+
+**仍欠**：撞库的**分布式**形状（多 IP 打同一邮箱）本机单机测不了；登录成功的会话保持 /
+令牌轮转压力未做；provider 侧真实并发见 `probe:cache-parallel`（已单独量过车道稳定性）。
+
 ## §SEC 第三十二片：限流闸的窗口挪进 Redis——「每台各数各的」那句限额重新是真的（2026-11-02）
 
 起点是 `rateLimit.ts` 顶部从 §64 那天起就写着的一句承诺："生产多实例时换成 Redis 驱动（ZRANGEBYSCORE + ZADD

@@ -30,7 +30,14 @@ export async function POST(req: Request): Promise<NextResponse> {
   // 登录按 IP + 邮箱限流：挡住对单个账号的口令爆破。
   const rl = await getRateLimiter().hit(rateKey('auth/login', ip, parsed.data.email.toLowerCase()), 10, 15 * 60 * 1000);
   if (!rl.allowed) {
-    const res = await jsonError(429, 'rate_limited', { message: '尝试次数过多，请稍后再试' });
+    // §STRESS-4：撞库压测量到这道闸只回 HTTP `retry-after` 头，报文里没有 retryAfterMs。
+    // 同仓其它限流点（角色对话 / AI 按钮 / 建项目）都在 body 里给这个数，界面据此说"还要等 N 分钟"；
+    // 登录这一处不给，等于把"还要等多久"只写给会读响应头的人——客户端与本仓的判据都读不到。
+    // 两个都留：头给标准客户端，body 给本仓自己的界面与判据。
+    const res = await jsonError(429, 'rate_limited', {
+      message: '尝试次数过多，请稍后再试',
+      retryAfterMs: rl.retryAfterMs,
+    });
     res.headers.set('retry-after', String(Math.ceil(rl.retryAfterMs / 1000)));
     return res;
   }
