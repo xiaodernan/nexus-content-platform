@@ -3536,6 +3536,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [5] 抄本院抄本师他们坐在那里猜——潮候院抄本院抄本师他们——
 - [6] 潮候院抄本院抄本师——潮候院——潮候院抄本师——
 
+### Echo 208 · 潮候院抄本院那本自己翻到第七十二页的册子 / The Ledger in the Institute's Copy Hall That Turned Itself to Page Seventy-Two
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 那本册子每天夜里都翻到第七十二页——屋里没有风。
+- [2] 第七十二页是空的，只留着一处被盐渍糊住的字。
+- [3] 五个抄本师守了七夜——谁也没有承认翻过那本册子。
+- [4] 最年长的抄本师把手指按在盐渍上——他说这不是我们写的，是潮写的。
+- [5] 第二日清早那一页有了字——还是那只手写的。
+- [6] 那页上始终没有写下一个名字——抄本师们仍然没有说话。
+
 ### Echo 21 · 里巷子码头的七盏号灯 / The Seven Lamps of the Back-Alley Pier
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 七盏号灯没有哪一张施工图上画过它们——最早的图纸只有六盏的划痕。

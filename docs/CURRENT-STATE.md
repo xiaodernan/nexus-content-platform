@@ -8712,3 +8712,9 @@ Reader (post-continuum trace):
 ## 诚实欠条
 - CDN adoption 时差性仍在 ~6h quota — user 实际页面刷新 artifact 已采用 v1089-1093（多次 cache-search confirm 见附）
 - Network state: overall Pages CI 同时在线 deploy 触发 cron — 等 fisher cron 按时
+
+## cont. 464 (2026-11-21 晚) — Echo #208《那本自己翻到第七十二页的册子》· 207→208 回响
+- **新内容（需求六）**：新增一篇**有叙事细节**的双语 Echo #208，承接 E207「三道同一笔迹」悬念——册子夜里自己翻到第 72 页、一处盐渍糊住的字、五个抄本师守七夜、最年长者说「不是我们写的，是潮写的」、次日又是那只手。刻意用具体意象而非机械重复填充，回应用户「不要看着很大里面很空」。6 组锚句 zh/en 逐字对应、全典唯一。
+- **生成**：`gen:bible-snapshot` 自动重生 generated.ts / canon_digest.txt / .sha256；digest 266,618→267,037 chars，sha `27624b57…`；锚句 1254→1260；回响 207→208。
+- **计数对齐**：guideCopy「二百零七/two hundred seven」→「二百零八/two hundred eight」、1254→1260；bible-ask-behavior pin 1249→1255；canon-answer-graph 段落断言校正到真值 **13 章+208 回响=221 段**（原 163 早已落后于合并后的 207）。
+- **验证**：world-bible / bible-snapshot / anchor-echo / record-encoding / census 全 exit 0；相关 vitest 3 文件 32 passed。
