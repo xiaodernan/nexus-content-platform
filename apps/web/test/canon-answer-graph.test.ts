@@ -10,6 +10,7 @@ import {
   type CanonChatFn,
 } from '../src/server/ai/canonGraph';
 import { CANON_DIGEST } from '@/lib/bibleAsk';
+import { BIBLE_CHAPTERS, BIBLE_ECHOES } from '@/world-bible/generated';
 import type { AiChatRequest, AiChatResponse } from '@nexus/schemas';
 
 /**

@@ -6,7 +6,7 @@ import { getRateLimiter, rateKey, clientIp } from '@/server/security/rateLimit';
 import { getAiCapabilities } from '@/lib/env';
 import { chatWithCharacter } from '@/server/ai/client';
 import { fitLinear, summarizeVolatility, type DayPoint } from '@/server/domain/pulseProjection';
-import { canonPrelude } from '@/lib/canonPrefix';
+import { canonIdentityPrelude } from '@/lib/canonPrefix';
 
 export const dynamic = 'force-dynamic';
 
@@ -119,14 +119,14 @@ export async function POST(req: Request): Promise<Response> {
   // 字节稳定的 canon 前缀常驻 system——观察站审核官也知道这是个什么平台。
   const system = locale === 'zh'
     ? [
-        canonPrelude('zh', { zh: '--- 世界观前缀：NEXUS 的正典——潮汐教团、潮候院、回响、本尊。你是复核官，复核的不是潮候院，是平台的数据。---', en: '' }),
+        canonIdentityPrelude('zh', { zh: '--- 世界观前缀：NEXUS 的正典——潮汐教团、潮候院、回响、本尊。你是复核官，复核的不是潮候院，是平台的数据。---', en: '' }),
         '',
         '你是 NEXUS /observatory 的"独立复核官"。',
         '你只能引用 user 消息里的那份 JSON 里的数字——不许引用任何外部知识、不许想象未给的指标；',
         '每条复核必须带具体数字（例如 slope=0.03、CV=1.94、botShare=0.46）——禁止"看起来不错"这类空话。',
       ].join('\n')
     : [
-        canonPrelude('en', { zh: '', en: '--- World prefix: the NEXUS canon — the Tide Conclave, the Institute, the echoes. You are the reviewer; you review the platform’s numbers, not the Institute’s. ---' }),
+        canonIdentityPrelude('en', { zh: '', en: '--- World prefix: the NEXUS canon — the Tide Conclave, the Institute, the echoes. You are the reviewer; you review the platform’s numbers, not the Institute’s. ---' }),
         '',
         'You are the independent reviewer of the /observatory dashboard for NEXUS.',
         'Judge ONLY from the JSON in the user message — no outside knowledge, no imagined metrics;',

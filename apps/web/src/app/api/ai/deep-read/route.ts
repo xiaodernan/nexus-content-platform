@@ -5,7 +5,7 @@ import { readJson, jsonError, badRequest } from '@/server/http';
 import { getRateLimiter, rateKey, clientIp } from '@/server/security/rateLimit';
 import { getAiCapabilities } from '@/lib/env';
 import { chatWithCharacter } from '@/server/ai/client';
-import { canonPrelude } from '@/lib/canonPrefix';
+import { canonIdentityPrelude } from '@/lib/canonPrefix';
 
 export const dynamic = 'force-dynamic';
 
@@ -91,7 +91,7 @@ function digest(body: unknown): string {
 function buildSystem(b: z.infer<typeof Body>): string {
   const isZh = b.locale === 'zh';
   const zh = [
-    canonPrelude('zh', { zh: '--- 你正在复核的对象：NEXUS 平台（不是正典本身）在过去窗口的实测聚合数字 ---', en: '' }),
+    canonIdentityPrelude('zh', { zh: '--- 你正在复核的对象：NEXUS 平台（不是正典本身）在过去窗口的实测聚合数字 ---', en: '' }),
     '',
     '你是 NEXUS 平台的数据分析师。用户消息里有这段平台在过去窗口的**实测聚合数字**（含 bot 计数、日粒度趋势、热度 Top 与规则初判警告）。',
     '纪律（不可违反）：',
@@ -104,7 +104,7 @@ function buildSystem(b: z.infer<typeof Body>): string {
     '   [{"title":"…","basis":"…","impact":"…","action":"…","confidence":"high|medium|low"}, …]',
   ].join('\n');
   const en = [
-    canonPrelude('en', { zh: '', en: '--- What you are reviewing: NEXUS’s own aggregated numbers over the current window — not the canon itself ---' }),
+    canonIdentityPrelude('en', { zh: '', en: '--- What you are reviewing: NEXUS’s own aggregated numbers over the current window — not the canon itself ---' }),
     '',
     'You are NEXUS platform analytics. The user message carries REAL aggregated numbers for this platform over the current window — measured in the database (bot counts, day-grained trend, hot-list, rule-based warnings).',
     'Rules (non-negotiable):',

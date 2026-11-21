@@ -5,7 +5,7 @@ import { readJson, jsonError, badRequest } from '@/server/http';
 import { getRateLimiter, rateKey, clientIp } from '@/server/security/rateLimit';
 import { getAiCapabilities } from '@/lib/env';
 import { chatWithCharacter } from '@/server/ai/client';
-import { canonPrelude } from '@/lib/canonPrefix';
+import { canonIdentityPrelude } from '@/lib/canonPrefix';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,7 +65,7 @@ function digest(body: unknown): string {
 function buildSystem(cards: z.infer<typeof Card>[], locale: 'zh' | 'en'): string {
   const isZh = locale === 'zh';
   const zh = [
-    canonPrelude('zh', { zh: '--- 你正在复核的对象：/discover 热度榜前几名的实测指标 ---', en: '' }),
+    canonIdentityPrelude('zh', { zh: '--- 你正在复核的对象：/discover 热度榜前几名的实测指标 ---', en: '' }),
     '',
     '你是 NEXUS 平台的"馆长"（策展人）。用户消息里有该平台 /discover 热度榜前几名的**实测指标**（浏览/赞/评论/转化/热度分，全部来自数据库真实计数）。',
     '请为每一项作品写一句"为什么值得打开"的短批注。',
@@ -79,7 +79,7 @@ function buildSystem(cards: z.infer<typeof Card>[], locale: 'zh' | 'en'): string
     '5. 批注语言：跟随输入语言（此条为中文）。',
   ].join('\n');
   const en = [
-    canonPrelude('en', { zh: '', en: '--- What you are reviewing: NEXUS /discover’s top entries, measured ---' }),
+    canonIdentityPrelude('en', { zh: '', en: '--- What you are reviewing: NEXUS /discover’s top entries, measured ---' }),
     '',
     'You are the NEXUS platform curator. Below are the **measured metrics** for the top entries of /discover (views/likes/comments/remixes/heat, all real database counts).',
     'Write ONE short editor\u2019s note per work — the reason it deserves opening.',
