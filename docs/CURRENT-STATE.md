@@ -1,4 +1,6 @@
-﻿# CURRENT-STATE — 2026-11-14
+> **2026-11-22 续（§v625-Echo211「新痕不占第四十四道」——E206–E210 弧线的下一层，`<commit>`）**：`docs/world-bible/echoes/E211-潮候院抄本院抄本师们发现新痕不占第四十四道.md`（+ `.en.md`）落地——E210 结尾那行空白里第二天早晨又有一道浅痕；本回响写抄本师们数了一遍又一遍：四十三道仍旧排成一行，新痕却坐在那一行**旁边**，不占位置、数字伸到那里就断了。第二名抄本师在页边写下"在旁边"三个字（手一直在抖）；最年长的抄本师批注"数字是用来数的，这一道不是用来数的"；冬潮月过去，新痕不挪不动。**纪律照旧**：6 条中英成对锚句逐字来自正典文件、全库唯一；无新正典专名；纪元续 E206–E210（第四十四次大会之后 · 冬潮月第一百四十年）。**生成与登记**：`ECHO_WEB_SLUGS` 补 `echo-211-not-the-forty-fourth`；`gen:bible-snapshot` 重生成 `generated.ts` 与 canon digest（268,153 chars / sha `a7088d09…`，上轮 267,741 / `73a35425`）；`guideCopy` 209→211 回响、1272→1278 锚句（zh/en 两段同改）；`bible-ask-behavior` pin 1267→1273。**验证**：world-bible 锚句 1278 zh / 1278 en 全过 · bible-snapshot 一致 · anchor-echo · record-encoding 0 chargeable（3891 graded / 7178 flank-rejected）· vitest：bible-ask-behavior 6/6、canon-answer-graph 13/13（首跑 worker fetch 超时属内存锯齿 flake，单跑复绿）、guide-visual-style 8/8。**诚实限度**：fe-gates 整线未跑（AGENTS.md：不必每次全量）；/bible 页像素未验收。
+
+# CURRENT-STATE — 2026-11-14
 
 本文件是项目当前状态的快照——供未来任何 agent（或人类）在我不在的时候接上。它**只描述已经交付、已可执行的事**，不承诺未做的事。
 
