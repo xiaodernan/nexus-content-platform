@@ -71,6 +71,14 @@ export function parseEchoReply(text: string): string | null {
  * 自造 id / 空标签 / 多写一堆解释，一律当作没拿到——`linkWorldNodes` 自己会挡重复与自环，
  * 这里挡的是"模型凭空造出一个不存在的端点"。
  */
+/** 骨架九类各有一条空壳节点，光看节点数会误判成"都已有内容"；按正文是否为空判空节。 */
+export function fillableKinds(
+  nodes: readonly { kind: string; body?: string }[],
+  kinds: readonly string[],
+): string[] {
+  return kinds.filter((k) => !nodes.some((n) => n.kind === k && (n.body || '').trim().length > 0));
+}
+
 export function parseLinkReply(text: string, candidateIds: readonly string[]): { toId: string; label: string } | null {
   const cleaned = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
   let obj: unknown;

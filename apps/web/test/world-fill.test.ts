@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { parseChronicleReply, parseEchoReply, parseLinkReply, parseWorldFillReply } from '../src/lib/worldFill';
+import { fillableKinds, parseChronicleReply, parseEchoReply, parseLinkReply, parseWorldFillReply } from '../src/lib/worldFill';
 
 /**
  * §44 世界填料的入口门。宁可少收一条，也不把模型话术当设定写进用户的世界文档：
@@ -88,6 +88,7 @@ describe('WorldPanel 四种填料按钮接线（web 侧限流期间的静态保�
       ['data-world-ai-chronicle', 'chronicle: true', 'parseChronicleReply'],
       ['data-world-ai-echo', 'echo: true', 'parseEchoReply'],
       ['data-world-ai-link', 'link: true', 'parseLinkReply'],
+      ['data-world-ai-fill-all', 'fillAllEmpty', 'WORLD_KINDS.filter'],
     ] as const) {
       expect(panel, hook).toContain(hook);
       expect(panel, flag).toContain(flag);
@@ -99,5 +100,21 @@ describe('WorldPanel 四种填料按钮接线（web 侧限流期间的静态保�
     expect(panel).toContain('worldStore.commit()');
     // 牵线必须经过 linkWorldNodes 的自环/重复边门
     expect(panel).toContain('linkWorldNodes(doc');
+  });
+});
+
+describe('worldFill · 一键补全的空节判定', () => {
+  const kinds = ['lore', 'history', 'geography', 'factions'];
+  it('空壳节点不算有内容（E2E 抓到的真 bug：骨架九类各一条空壳）', () => {
+    const nodes = kinds.map(k => ({ kind: k, body: '' }));
+    expect(fillableKinds(nodes, kinds)).toEqual(kinds);
+  });
+  it('有正文的节跳过，空白节保留', () => {
+    const nodes = [
+      { kind: 'lore', body: ' 有内容 ' },
+      { kind: 'history', body: '   ' },
+      { kind: 'geography', body: '' },
+    ];
+    expect(fillableKinds(nodes, kinds)).toEqual(['history', 'geography', 'factions']);
   });
 });

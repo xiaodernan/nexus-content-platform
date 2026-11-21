@@ -31,7 +31,7 @@ import { cn } from '@/lib/cn';
 import { patchLore } from '@/lib/worldLore';
 import type { Locale } from '@/lib/i18n';
 import { chatWithCharacter } from '@/server/ai/client';
-import { parseChronicleReply, parseEchoReply, parseLinkReply, parseWorldFillReply } from '@/lib/worldFill';
+import { fillableKinds, parseChronicleReply, parseEchoReply, parseLinkReply, parseWorldFillReply } from '@/lib/worldFill';
 import { useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';
 import { WORLD_KIND_LABELS_EN } from '@nexus/world-model';
@@ -58,6 +58,9 @@ const COPY = {
     aiFillTitle: (kind: string) => `真调用一次 provider，给「${kind}」补 1–2 条可编辑的条目：只依据这个世界的概述与已有条目，不编数字、不写模型话术；结果是可撤销的逐条写入。没配 provider 就如实报错，不假生成。`,
     aiFillDone: (kind: string, n: number) => `已给「${kind}」补 ${n} 条，改完失焦即写库。`,
     aiFillNone: '模型没有返回可用条目——可能是格式不对或 provider 不可用；没有写入任何东西。',
+    aiFillAll: 'AI 补全空节',
+    aiFillAllBusy: '补全中…',
+    aiFillAllTitle: '一次点击最多补 3 个还没有条目的节（九类里选），每节都是真调用；已有内容的节不动。想补完就再点一次。token 按实际调用计，不偷偷多打。',
     aiChronicle: 'AI 续写编年',
     aiChronicleBusy: '续写中…',
     aiChronicleTitle: '真调用一次 provider，给编年册补一条故事：只从这个世界已有的纪元里挑一个，写一件具体发生过的事与它留下的痕迹。模型不许自造纪元或数字；新条目直接带纪元标签进编年页。',
@@ -152,6 +155,9 @@ const COPY = {
     aiFillTitle: (kind: string) => `One real provider call adds 1–2 editable entries to ${kind}, grounded only in this world's summary and existing entries — no invented numbers, no model chatter. Each entry is written as its own save. Without a provider the error is shown honestly; nothing is faked.`,
     aiFillDone: (kind: string, n: number) => `Added ${n} entries to ${kind}; each saves when you leave the field.`,
     aiFillNone: 'The model returned no usable entries — wrong shape or provider unavailable. Nothing was written.',
+    aiFillAll: 'AI fill empties',
+    aiFillAllBusy: 'Filling…',
+    aiFillAllTitle: 'One click fills at most 3 of the sections that still have no entries (out of nine); each is a real provider call. Sections with content are untouched. Click again for the rest — token cost is what is actually called, never silently more.',
     aiChronicle: 'AI write chronicle',
     aiChronicleBusy: 'Writing…',
     aiChronicleTitle: 'One real provider call adds one story to the chronicle: it must pick an era that already exists in this world and write something that happened, what it cost, and what remains. No invented eras or figures; the new entry carries its era tag straight into the chronicle page.',
@@ -315,13 +321,14 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
   // 不能把模型话术当设定塞进用户的世界（§159）。
   const [aiFillBusy, setAiFillBusy] = useState(false);
   const [aiFillNote, setAiFillNote] = useState('');
-  const fillSection = async () => {
+  const fillSection = async (kindOverride?: WorldKind): Promise<boolean> => {
     const doc = world;
-    if (!doc || aiFillBusy) return;
+    if (!doc || aiFillBusy) return false;
+    const kind = kindOverride ?? newKind;
     setAiFillBusy(true);
     setAiFillNote('');
     try {
-      const existing = doc.nodes.filter((n) => n.kind === newKind).map((n) => n.title);
+      const existing = doc.nodes.filter((n) => n.kind === kind).map((n) => n.title);
       // 走 web 自己的 API 路由：浏览器直接 import server/ai/client 会读不到 process.env，
       // 而且跨域打 ai-service 会被 CORS 挡成 TypeError（已经踩过一次）。
       const res = await fetch('/api/ai/world-fill', {
@@ -331,30 +338,57 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
           locale,
           worldName: doc.name,
           summary: doc.summary || '',
-          kind: kindLabel(newKind, locale),
+          kind: kindLabel(kind, locale),
           existingTitles: existing,
         }),
       });
       const body = (await res.json().catch(() => null)) as { text?: string; message?: string } | null;
       if (!res.ok || typeof body?.text !== 'string') {
         setAiFillNote(locale === 'zh' ? `AI 调用未成功：${body?.message ?? `HTTP ${res.status}`}` : `AI call failed: ${body?.message ?? `HTTP ${res.status}`}`);
-        return;
+        return false;
       }
       const entries = parseWorldFillReply(body.text);
       if (entries.length === 0) {
         setAiFillNote(c.aiFillNone);
-        return;
+        return false;
       }
       let next = doc;
-      for (const entry of entries) next = addWorldNode(next, { kind: newKind, title: entry.title, body: entry.body });
+      for (const entry of entries) next = addWorldNode(next, { kind, title: entry.title, body: entry.body });
       worldStore.setLocal(next);
       void worldStore.commit();
-      setAiFillNote(c.aiFillDone(kindLabel(newKind, locale), entries.length));
+      setAiFillNote(c.aiFillDone(kindLabel(kind, locale), entries.length));
     } catch (e) {
       setAiFillNote(String((e as Error)?.message ?? e).slice(0, 200));
+      return false;
     } finally {
       setAiFillBusy(false);
     }
+    return true;
+  };
+
+  // §44 一键补全空节：九类里还空着的节，每次最多补 3 节——一次点击=最多 3 次真调用，
+  // 界面上把 token 代价说清楚；不静默打满九次，也不替作者写已有节。
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkNote, setBulkNote] = useState('');
+  const fillAllEmpty = async () => {
+    // 骨架九类各有一条空壳节点，光看 counts 会误判成"都已有内容"；按正文是否为空来判空节。
+    const nodes = world?.nodes ?? [];
+    const empty = WORLD_KINDS.filter((k) => !nodes.some((n) => n.kind === k && (n.body || '').trim().length > 0));
+    if (empty.length === 0) {
+      setBulkNote(locale === 'zh' ? '九类都已经有正文了，没有空节要补。' : 'All nine sections already have content — nothing to fill.');
+      return;
+    }
+    setBulkBusy(true);
+    setBulkNote('');
+    const todo = empty.slice(0, 3);
+    let done = 0;
+    for (const k of todo) {
+      if (await fillSection(k)) done += 1;
+    }
+    setBulkNote(locale === 'zh'
+      ? `已补 ${done}/${empty.length} 个空节（一次最多 3 节，省 token；还可再点继续）。`
+      : `Filled ${done}/${empty.length} empty sections (max 3 per click to save tokens; click again for the rest).`);
+    setBulkBusy(false);
   };
 
   // §44 编年续写：模型只在作者已有的纪元字面下补一条 story，不替作者发明历史分期。
@@ -825,11 +859,22 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
           >
             {chronicleBusy ? c.aiChronicleBusy : c.aiChronicle}
           </button>
+          <button
+            type="button"
+            onClick={() => void fillAllEmpty()}
+            disabled={bulkBusy || aiFillBusy}
+            title={c.aiFillAllTitle}
+            data-world-ai-fill-all
+            className="wd-ghostBtn"
+          >
+            {bulkBusy ? c.aiFillAllBusy : c.aiFillAll}
+          </button>
         </div>
         {aiFillNote ? <p className="wd-body11Mt2" data-world-ai-fill-note>{aiFillNote}</p> : null}
         {chronicleNote ? <p className="wd-body11Mt2" data-world-ai-chronicle-note>{chronicleNote}</p> : null}
         {echoNote ? <p className="wd-body11Mt2" data-world-ai-echo-note>{echoNote}</p> : null}
         {linkNote ? <p className="wd-body11Mt2" data-world-ai-link-note>{linkNote}</p> : null}
+        {bulkNote ? <p className="wd-body11Mt2" data-world-ai-fill-all-note>{bulkNote}</p> : null}
         <p className="wd-body11Mt2" data-world-note>
           {c.editsNote}
           {groups.length < WORLD_KINDS.length
