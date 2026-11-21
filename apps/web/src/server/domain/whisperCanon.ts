@@ -35,6 +35,25 @@ export function getFile(slug: string): WhisperFile | null {
   return files.find((f) => f.slug === slug) ?? null;
 }
 
+/**
+ * §BIBLE-WHISPER 会话级缓存车道（承 ADR 0296 的 cacheLane 契约）。
+ *
+ * 答问者是「零记忆」玩法：不落库、不记住任何一个人。所以车道**不能**按用户/IP 派生
+ * （那会制造它承诺不存在的用户态）；改成按 (卷, 语言) 派生——
+ *   - 同一卷同一种语言：所有读者共用一条稳定车道，system 逐字节相同 → provider 前缀缓存复用；
+ *   - 不同卷 / 不同语言：各自一条车道，互不把对方的前缀挤出（用户反馈的「并行会话互冲」）。
+ * 稳定哈希只做路由提示，语义上等价于「这一卷的答问现场」，不写入任何存储。
+ */
+export function whisperCacheLane(slug: string, locale: 'zh' | 'en'): string {
+  let h = 2166136261; // FNV-1a 32-bit，确定性、无依赖
+  const key = `whisper:${locale}:${slug}`;
+  for (let i = 0; i < key.length; i += 1) {
+    h ^= key.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return `whisper-${locale}-${(h >>> 0).toString(16).padStart(8, '0')}`;
+}
+
 const OPEN_CONTRACT = `你是《低语诸王》世界大典的答问者。只基于下面给出的正典摘录（中英任一）回答——`;
 
 export function buildPersonaSystemPrompt(file: WhisperFile, locale: 'zh' | 'en'): string {
