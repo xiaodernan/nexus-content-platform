@@ -32,6 +32,7 @@ import { patchLore } from '@/lib/worldLore';
 import type { Locale } from '@/lib/i18n';
 import { chatWithCharacter } from '@/server/ai/client';
 import { fillableKinds, parseChronicleReply, parseEchoReply, parseLinkReply, parseWorldFillReply, retrieveWorldContext } from '@/lib/worldFill';
+import { rollFate } from '@/lib/worldFate';
 import { useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';
 import { WORLD_KIND_LABELS_EN } from '@nexus/world-model';
@@ -61,6 +62,10 @@ const COPY = {
     aiFillAll: 'AI 补全空节',
     aiFillAllBusy: '补全中…',
     aiFillAllTitle: '一次点击最多补 3 个还没有条目的节（九类里选），每节都是真调用；已有内容的节不动。想补完就再点一次。token 按实际调用计，不偷偷多打。',
+    fate: '掷命运骰',
+    fateTitle: '不调模型、不写库：从这个世界已写的条目里抽两条，按确定性的句式重组成一张事件卡。同一个数字出现同一张卡，换一个数字就换一张——无穷来自你写下的细节组合，不是凭空编造。',
+    fateEmpty: '至少要有两条写了正文的条目才能掷骰——先用填充或续写补一点内容。',
+    fateDone: (card: { title: string; body: string }) => `命运骰 · ${card.title}：${card.body}`,
     aiChronicle: 'AI 续写编年',
     aiChronicleBusy: '续写中…',
     aiChronicleTitle: '真调用一次 provider，给编年册补一条故事：只从这个世界已有的纪元里挑一个，写一件具体发生过的事与它留下的痕迹。模型不许自造纪元或数字；新条目直接带纪元标签进编年页。',
@@ -158,6 +163,10 @@ const COPY = {
     aiFillAll: 'AI fill empties',
     aiFillAllBusy: 'Filling…',
     aiFillAllTitle: 'One click fills at most 3 of the sections that still have no entries (out of nine); each is a real provider call. Sections with content are untouched. Click again for the rest — token cost is what is actually called, never silently more.',
+    fate: 'Roll fate',
+    fateTitle: 'No model call, no database write: pick two entries you already wrote and recombine them into an event card with a deterministic frame. Same number, same card; a different number gives another — the endlessness comes from your own details, not invented ones.',
+    fateEmpty: 'Roll needs at least two entries with body text — fill or continue the chronicle first.',
+    fateDone: (card: { title: string; body: string }) => `Fate · ${card.title}: ${card.body}`,
     aiChronicle: 'AI write chronicle',
     aiChronicleBusy: 'Writing…',
     aiChronicleTitle: 'One real provider call adds one story to the chronicle: it must pick an era that already exists in this world and write something that happened, what it cost, and what remains. No invented eras or figures; the new entry carries its era tag straight into the chronicle page.',
@@ -393,6 +402,20 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
       ? `已补 ${done}/${empty.length} 个空节（一次最多 3 节，省 token；还可再点继续）。`
       : `Filled ${done}/${empty.length} empty sections (max 3 per click to save tokens; click again for the rest).`);
     setBulkBusy(false);
+  };
+
+  // §44 衍生玩法「命运骰」：纯确定性重组已有条目，零 provider、零写库；seed 递增保证每次换新卡。
+  const [fateSeed, setFateSeed] = useState(1);
+  const [fateNote, setFateNote] = useState('');
+  const rollFateCard = () => {
+    const doc = worldStore.getSnapshot().world;
+    const card = doc ? rollFate(doc.nodes, fateSeed) : null;
+    if (!card) {
+      setFateNote(c.fateEmpty);
+      return;
+    }
+    setFateSeed((s) => s + 1);
+    setFateNote(c.fateDone(card));
   };
 
   // §44 编年续写：模型只在作者已有的纪元字面下补一条 story，不替作者发明历史分期。
@@ -873,12 +896,22 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
           >
             {bulkBusy ? c.aiFillAllBusy : c.aiFillAll}
           </button>
+          <button
+            type="button"
+            onClick={rollFateCard}
+            title={c.fateTitle}
+            data-world-fate
+            className="wd-ghostBtn"
+          >
+            {c.fate}
+          </button>
         </div>
         {aiFillNote ? <p className="wd-body11Mt2" data-world-ai-fill-note>{aiFillNote}</p> : null}
         {chronicleNote ? <p className="wd-body11Mt2" data-world-ai-chronicle-note>{chronicleNote}</p> : null}
         {echoNote ? <p className="wd-body11Mt2" data-world-ai-echo-note>{echoNote}</p> : null}
         {linkNote ? <p className="wd-body11Mt2" data-world-ai-link-note>{linkNote}</p> : null}
         {bulkNote ? <p className="wd-body11Mt2" data-world-ai-fill-all-note>{bulkNote}</p> : null}
+        {fateNote ? <p className="wd-body11Mt2" data-world-fate-note>{fateNote}</p> : null}
         <p className="wd-body11Mt2" data-world-note>
           {c.editsNote}
           {groups.length < WORLD_KINDS.length
