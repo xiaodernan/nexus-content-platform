@@ -460,6 +460,11 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
         setLinkNote(locale === 'zh' ? '这个世界还没有别的条目可以连——先加一条再来。' : 'No other entries to link yet — add one first.');
         return;
       }
+      // 空壳条目之间没有任何可依据的正文，让模型猜就是编关系；先明确挡住并说清下一步。
+      if (candidates.filter((x) => x.body).length < 1) {
+        setLinkNote(locale === 'zh' ? '候选条目还没有正文——先写点内容再牵线，免得模型凭标题编关系。' : 'Candidate entries have no bodies yet — write some content first so the model is not guessing from titles.');
+        return;
+      }
       const res = await fetch('/api/ai/world-fill', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
