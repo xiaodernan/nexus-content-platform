@@ -11010,6 +11010,9 @@ nolane/1: 5.6s tokensIn=173268 cached=154137 (89.0%) canonChars=267366   不传�
 **真机**：`/bible/threads` HTTP 200（383 KB）；DOM 实测 `motifs=14 arcs=63 anchors=56`，
 与纯函数读数逐项对齐（14 条线索 / 63 簇 / 56 条锚句）。1440 与 390 双档截图
 （`screenshots/echo-threads-1440.png` / `-390.png`）人工看过：390 下页面级横向溢出 **0**。
+**英文模式**：`NEXUS_LOCALE=en` 下同一页 HTTP 200，locale=en，**正文 CJK 字符 0 个**
+（`screenshots/echo-threads-en-1440.png`）——标题、篇名、锚句全部走 `titleEn`/`en` 字段，
+没有一处中英夹杂。这正是用户「英文模式下全部统一英文」那条要求的可复检读数。
 **判据**：`apps/web/test/echo-threads.test.ts` 9 条全绿——确定性（两次调用逐字节相等）、
 单词线索不收、锚句逐字来自 markdown、slug 真实存在、各簇篇数之和 = 线索总篇数、
 段间差 >3、物件全部排在地方之前。测试当场抓到一个真 bug：`size` 我原先按"序号跨度"算，
