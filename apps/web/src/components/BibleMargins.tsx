@@ -5,6 +5,32 @@ import Link from 'next/link';
 import type { Locale } from '@/lib/i18n';
 import { BIBLE_MARGINS } from '@/world-bible/margins.generated';
 
+/** 一局猜几对。页边存量还小（5 条），一局 3 对就够，不硬凑。 */
+const ROUND_PAIRS = 3;
+
+type Pair = { top: number; bottom: number };
+
+/** 从现存页边里挑一对出来猜（确定性：同一天同一份数据，先后两局的题一样）。 */
+function pickPairs(count: number, total: number): Pair[] {
+  if (total < 2) return [];
+  const pairs: Pair[] = [];
+  let seed = 0x2f6e2b1;
+  const next = (): number => {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    return seed;
+  };
+  const used = new Set<number>();
+  while (pairs.length < Math.min(count, Math.floor(total / 2)) && used.size < total) {
+    const a = next() % total;
+    const b = next() % total;
+    if (a === b || used.has(a) || used.has(b)) continue;
+    used.add(a);
+    used.add(b);
+    pairs.push({ top: a, bottom: b });
+  }
+  return pairs;
+}
+
 /**
  * ──BIBLE-MARGINS · 正典「页边批注」（2026-11-22 新模块）──────────────────
  *
@@ -12,7 +38,10 @@ import { BIBLE_MARGINS } from '@/world-bible/margins.generated';
  * `docs/world-bible/echoes/` 里以「> 页边：」开头的行，由 scripts/gen-margins.mts
  * 生成（slug 与 gen-bible-snapshot.mts 的 ECHO_WEB_SLUGS 同源，指向真实存在的回响页）。
  *
- * 玩法只有一件事：先读这句话，再决定要不要知道它出自哪一回响。
+ * 玩法有两件：① 先读这句话，再决定要不要知道它出自哪一回响；
+ * ② 「猜长短」——按 E214 写的那条次序（放得多的沉底、放得少的浮起；没有日期，
+ * 后来的几乎一样短）猜哪张纸条压在哪张上面。猜的是**故事里的次序**，不是真的在量
+ * 字符串字节——界面上把这一点写明，不装作在测字节。
  * 纪律：不需要 provider、不需要网络；没有任何计数器冒充"读过的人数"。
  */
 
@@ -28,6 +57,17 @@ const COPY = {
     empty: '还没有人往页边写过什么——等下一道回响。',
     back: '← 回典籍室',
     anchorsLink: '去锚句回放',
+    gameKicker: '页边小玩 · 猜长短',
+    gameTitle: '哪张纸条压在哪张上面',
+    gameLede: 'E214 说：放得多的沉底，放得少的浮起；没有日期，后来的几乎一样短。按故事里的次序猜——不是真的在量字节。',
+    gameStart: '开始猜',
+    gameAgain: '再来一局',
+    gamePick: '哪一张在下面？',
+    gameUnder: '在下面（被压住）',
+    gameOver: '在上面（浮着）',
+    gameRight: '对了。页边自己就是这么排的。',
+    gameWrong: '错了。页边自己会排；人排的不算。',
+    gameScore: (n: number, total: number) => `猜对 ${n} / ${total}`,
     crumb: '低语诸王 · 典籍室',
   },
   en: {
@@ -41,6 +81,17 @@ const COPY = {
     empty: 'Nobody has written in a margin yet — the next echo may.',
     back: '← The shelf',
     anchorsLink: 'To Anchor Echo',
+    gameKicker: 'A small game · guess the order',
+    gameTitle: 'Which slip lies under which',
+    gameLede: 'E214 says: slips placed often sink, slips placed rarely rise; no dates, and the later slips are nearly all the same shortness. Guess the order the story describes — this is not a byte measurement.',
+    gameStart: 'Start guessing',
+    gameAgain: 'Play again',
+    gamePick: 'Which one lies beneath?',
+    gameUnder: 'Beneath (pressed down)',
+    gameOver: 'Above (floating)',
+    gameRight: 'Right. That is how the margin arranges itself.',
+    gameWrong: 'Wrong. The margin arranges itself; what people arrange does not count.',
+    gameScore: (n: number, total: number) => `${n} of ${total} right`,
     crumb: 'The Whispers’ Kings · The shelf',
   },
 } as const;
@@ -49,6 +100,24 @@ export function BibleMargins({ locale }: { locale: Locale }) {
   const c = COPY[locale];
   const [open, setOpen] = useState<ReadonlySet<number>>(new Set());
   const rows = BIBLE_MARGINS;
+  // 猜长短：一轮三对；对错只在本机 state 里，不写任何库、不烧任何 token。
+  const [round, setRound] = useState<Pair[]>([]);
+  const [picked, setPicked] = useState<ReadonlyArray<number | null>>([]);
+  const [started, setStarted] = useState(false);
+  const start = (): void => {
+    setRound(pickPairs(ROUND_PAIRS, rows.length));
+    setPicked([]);
+    setStarted(true);
+  };
+  const choose = (index: number, which: 'top' | 'bottom'): void => {
+    if (picked[index] !== undefined && picked[index] !== null) return;
+    setPicked((prev) => {
+      const next = [...prev];
+      next[index] = which === 'bottom' ? 1 : 0;
+      return next;
+    });
+  };
+  const rightCount = round.filter((_, i) => picked[i] === 1).length;
   const toggle = (index: number): void => {
     setOpen((prev) => {
       const next = new Set(prev);
@@ -103,6 +172,64 @@ export function BibleMargins({ locale }: { locale: Locale }) {
         <p className="bm-tally" data-bible-margins-tally>{c.revealed(open.size, rows.length)}</p>
         <Link href="/bible/anchors" className="bb-footLink" data-bible-margins-anchors-link>{c.anchorsLink}</Link>
       </footer>
+
+      <section className="bm-game" data-bible-margins-game>
+        <p className="bm-gameKicker">{c.gameKicker}</p>
+        <h2 className="bm-gameTitle">{c.gameTitle}</h2>
+        <p className="bm-gameLede">{c.gameLede}</p>
+        {!started || round.length === 0 ? (
+          <button
+            type="button"
+            className="bm-reveal"
+            onClick={start}
+            disabled={rows.length < 2}
+            data-bible-margins-game-start
+          >
+            {c.gameStart}
+          </button>
+        ) : (
+          <>
+            <ol className="bm-gameList" data-bible-margins-game-round>
+              {round.map((pair, index) => {
+                const answer = picked[index];
+                return (
+                  <li key={`${pair.top}-${pair.bottom}`} className="bm-gamePair" data-bible-margins-game-pair>
+                    <p className="bm-gamePick">{c.gamePick}</p>
+                    <button
+                      type="button"
+                      className="bm-reveal"
+                      onClick={() => choose(index, 'bottom')}
+                      aria-pressed={answer === 1}
+                      data-bible-margins-game-choose="bottom"
+                    >
+                      {rows[pair.bottom] ? (locale === 'en' ? rows[pair.bottom]!.en : rows[pair.bottom]!.zh) : ''}
+                    </button>
+                    <span className="bm-gameVs" aria-hidden="true">/</span>
+                    <button
+                      type="button"
+                      className="bm-reveal"
+                      onClick={() => choose(index, 'top')}
+                      aria-pressed={answer === 0}
+                      data-bible-margins-game-choose="top"
+                    >
+                      {rows[pair.top] ? (locale === 'en' ? rows[pair.top]!.en : rows[pair.top]!.zh) : ''}
+                    </button>
+                    {answer !== undefined && answer !== null ? (
+                      <p className="bm-gameVerdict" data-bible-margins-game-verdict>
+                        {answer === 1 ? c.gameRight : c.gameWrong}
+                      </p>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ol>
+            <p className="bm-tally" data-bible-margins-game-score>{c.gameScore(rightCount, round.length)}</p>
+            <button type="button" className="bm-reveal" onClick={start} data-bible-margins-game-again>
+              {c.gameAgain}
+            </button>
+          </>
+        )}
+      </section>
     </section>
   );
 }

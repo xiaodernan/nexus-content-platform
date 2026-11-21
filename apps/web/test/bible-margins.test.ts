@@ -42,3 +42,23 @@ describe('§BIBLE-MARGINS 页边批注', () => {
     expect(generated).toContain(JSON.stringify(BIBLE_MARGINS, null, 2));
   });
 });
+
+describe('§BIBLE-MARGINS 猜长短小玩', () => {
+  it('页面带上小玩的入口与双语文案', () => {
+    const page = readFileSync(join(ROOT, 'apps/web/src/app/bible/margins/page.tsx'), 'utf8');
+    expect(page).toContain('data-bible-margins-page');
+    const component = readFileSync(join(ROOT, 'apps/web/src/components/BibleMargins.tsx'), 'utf8');
+    expect(component).toContain('data-bible-margins-game');
+    expect(component).toContain('data-bible-margins-game-start');
+    expect(component).toContain('gameLede');
+    // 纪律：猜的是故事里的次序，不是字节——这句话必须在界面上
+    expect(component).toContain('不是真的在量字节');
+    expect(component).toContain('not a byte measurement');
+  });
+
+  it('一局最多三对，且答案只有"在下面"才算猜对', () => {
+    const component = readFileSync(join(ROOT, 'apps/web/src/components/BibleMargins.tsx'), 'utf8');
+    expect(component).toContain('ROUND_PAIRS = 3');
+    expect(component).toContain("picked[i] === 1");
+  });
+});

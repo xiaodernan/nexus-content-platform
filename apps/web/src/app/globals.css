@@ -5099,6 +5099,15 @@
 .bm-empty { font-size: var(--nexus-font-size-14); color: var(--nexus-color-fg-3); }
 .bm-foot { display: flex; gap: var(--nexus-space-4); align-items: baseline; }
 .bm-tally { margin: 0; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+.bm-game { display: flex; flex-direction: column; gap: var(--nexus-space-2); margin-top: var(--nexus-space-5); padding-top: var(--nexus-space-4); border-top: 1px solid var(--nexus-color-line, color-mix(in srgb, var(--nexus-color-fg-3) 28%, transparent)); }
+.bm-gameKicker { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.24em; text-transform: uppercase; color: var(--nexus-color-accent-mix); }
+.bm-gameTitle { font-size: var(--nexus-font-size-18); font-weight: 700; color: var(--nexus-color-fg-1); }
+.bm-gameLede { max-width: 68ch; font-size: var(--nexus-font-size-13); line-height: 1.6; color: var(--nexus-color-fg-2); }
+.bm-gameList { display: flex; flex-direction: column; gap: var(--nexus-space-3); margin: 0; padding: 0; list-style: none; }
+.bm-gamePair { display: flex; flex-wrap: wrap; gap: var(--nexus-space-2); align-items: baseline; padding: var(--nexus-space-3); border: 1px dashed var(--nexus-color-line, color-mix(in srgb, var(--nexus-color-fg-3) 28%, transparent)); border-radius: var(--nexus-radius-3, 12px); }
+.bm-gamePick { width: 100%; margin: 0; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
+.bm-gameVs { font-family: var(--nexus-font-mono); color: var(--nexus-color-fg-3); }
+.bm-gameVerdict { width: 100%; margin: 0; font-size: var(--nexus-font-size-13); color: var(--nexus-color-accent-2-ink); }
 .bb-prevNext { display: flex; gap: var(--nexus-space-3); }
 .bb-prevNextLink { font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-2-ink); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--nexus-color-brand) 55%, transparent); padding-bottom: 0.08rem; }
 .bb-prevNextLink:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
