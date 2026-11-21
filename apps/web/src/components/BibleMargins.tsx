@@ -39,11 +39,15 @@ function pickPairs(count: number, total: number): Pair[] {
  * `docs/world-bible/echoes/` 里以「> 页边：」开头的行，由 scripts/gen-margins.mts
  * 生成（slug 与 gen-bible-snapshot.mts 的 ECHO_WEB_SLUGS 同源，指向真实存在的回响页）。
  *
- * 玩法有两件：① 先读这句话，再决定要不要知道它出自哪一回响；
+ * 玩法有三件：① 先读这句话，再决定要不要知道它出自哪一回响；
  * ② 「猜长短」——按 E214 写的那条次序（放得多的沉底、放得少的浮起；没有日期，
  * 后来的几乎一样短）猜哪张纸条压在哪张上面。猜的是**故事里的次序**，不是真的在量
- * 字符串字节——界面上把这一点写明，不装作在测字节。
- * 纪律：不需要 provider、不需要网络；没有任何计数器冒充"读过的人数"。
+ * 字符串字节——界面上把这一点写明，不装作在测字节；
+ * ③ 「取一张出来」——E215 说：取出来可以，放回去要轻；页边不记谁动过它。
+ * 所以界面允许把一条页边抽出来看（它从队列里淡出，位置留给空），
+ * 也允许原样放回（回到**原来的位置**，不是队列末尾——那正是 E215 第一条纸条做的事）。
+ * 纪律：不需要 provider、不需要网络；没有任何计数器冒充"读过的人数"；
+ * 抽出来的纸条不删除、不进数据库，刷新页面即归位。
  */
 
 const COPY = {
@@ -70,6 +74,10 @@ const COPY = {
     gameWrong: '错了。页边自己会排；人排的不算。',
     gameScore: (n: number, total: number) => `猜对 ${n} / ${total}`,
     gameBest: '本机最好成绩',
+    takeOut: '取一张出来',
+    putBack: '放回原处',
+    takenOut: (n: number) => `取出 ${n} 张`,
+    takeOutNote: 'E215：取出来可以，放回去要轻；页边不记谁动过它。放回时它回到原来的位置，不是末尾。',
     crumb: '低语诸王 · 典籍室',
   },
   en: {
@@ -95,6 +103,10 @@ const COPY = {
     gameWrong: 'Wrong. The margin arranges itself; what people arrange does not count.',
     gameScore: (n: number, total: number) => `${n} of ${total} right`,
     gameBest: 'Best on this device',
+    takeOut: 'Take one out',
+    putBack: 'Put it back',
+    takenOut: (n: number) => `${n} taken out`,
+    takeOutNote: 'E215: you may take one out; put it back lightly. The margin does not record who touched it — and it returns to its own place, not to the end.',
     crumb: 'The Whispers’ Kings · The shelf',
   },
 } as const;
@@ -107,6 +119,23 @@ export function BibleMargins({ locale }: { locale: Locale }) {
   const [round, setRound] = useState<Pair[]>([]);
   const [picked, setPicked] = useState<ReadonlyArray<number | null>>([]);
   const [started, setStarted] = useState(false);
+  // 取一张出来：抽走的条目不删除，只是不在队列里；放回时按原索引插回（E215 的"位置一点没动"）。
+  const [taken, setTaken] = useState<ReadonlySet<number>>(new Set());
+  const takeOut = (index: number): void => {
+    setTaken((prev) => {
+      const next = new Set(prev);
+      next.add(index);
+      return next;
+    });
+  };
+  const putBack = (index: number): void => {
+    setTaken((prev) => {
+      const next = new Set(prev);
+      next.delete(index);
+      return next;
+    });
+  };
+  const kept = rows.map((row, index) => ({ row, index })).filter((entry) => !taken.has(entry.index));
   const start = (): void => {
     setRound(pickPairs(ROUND_PAIRS, rows.length));
     setPicked([]);
@@ -168,11 +197,19 @@ export function BibleMargins({ locale }: { locale: Locale }) {
         <p className="bm-empty" data-bible-margins-empty>{c.empty}</p>
       ) : (
         <ol className="bm-list" data-bible-margins-list>
-          {rows.map((row, index) => {
+          {kept.map(({ row, index }) => {
             const shown = open.has(index);
             return (
               <li key={`${row.echo}-${index}`} className="bm-card" data-bible-margins-item>
                 <p className="bm-note">{locale === 'en' ? row.en : row.zh}</p>
+                <button
+                  type="button"
+                  className="bm-reveal"
+                  onClick={() => takeOut(index)}
+                  data-bible-margins-take-out={index}
+                >
+                  {c.takeOut}
+                </button>
                 <button
                   type="button"
                   className="bm-reveal"
@@ -198,6 +235,30 @@ export function BibleMargins({ locale }: { locale: Locale }) {
         <p className="bm-tally" data-bible-margins-tally>{c.revealed(open.size, rows.length)}</p>
         <Link href="/bible/anchors" className="bb-footLink" data-bible-margins-anchors-link>{c.anchorsLink}</Link>
       </footer>
+
+      {taken.size > 0 ? (
+        <section className="bm-taken" data-bible-margins-taken>
+          <p className="bm-takenCount" data-bible-margins-taken-count>{c.takenOut(taken.size)}</p>
+          <p className="bm-gameLede">{c.takeOutNote}</p>
+          <ul className="bm-list">
+            {rows.map((row, index) => (
+              taken.has(index) ? (
+                <li key={`taken-${row.echo}-${index}`} className="bm-card" data-bible-margins-taken-item={index}>
+                  <p className="bm-note">{locale === 'en' ? row.en : row.zh}</p>
+                  <button
+                    type="button"
+                    className="bm-reveal"
+                    onClick={() => putBack(index)}
+                    data-bible-margins-put-back={index}
+                  >
+                    {c.putBack}
+                  </button>
+                </li>
+              ) : null
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="bm-game" data-bible-margins-game>
         <p className="bm-gameKicker">{c.gameKicker}</p>

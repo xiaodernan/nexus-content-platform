@@ -5108,6 +5108,8 @@
 .bm-gamePick { width: 100%; margin: 0; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
 .bm-gameVs { font-family: var(--nexus-font-mono); color: var(--nexus-color-fg-3); }
 .bm-gameVerdict { width: 100%; margin: 0; font-size: var(--nexus-font-size-13); color: var(--nexus-color-accent-2-ink); }
+.bm-taken { display: flex; flex-direction: column; gap: var(--nexus-space-2); margin-top: var(--nexus-space-4); }
+.bm-takenCount { margin: 0; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); }
 .bb-prevNext { display: flex; gap: var(--nexus-space-3); }
 .bb-prevNextLink { font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-2-ink); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--nexus-color-brand) 55%, transparent); padding-bottom: 0.08rem; }
 .bb-prevNextLink:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
