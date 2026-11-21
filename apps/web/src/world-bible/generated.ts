@@ -28717,6 +28717,156 @@ When the winter-tide month ended, the three characters were still in the margin,
 `,
   },
   {
+    order: 213,
+    slug: 'echo-213-counting-the-margin',
+    titleZh: '有人开始数页边',
+    titleEn: 'Somebody Started Counting the Margin',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E212）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E212).',
+    markdownZh: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E212: the copyists refused to name the mark and wrote three characters in the margin instead. This echo is about the first person to count the margin.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E212）。
+> 页边：页边是唯一不数的地方；你数了，它就开始排队。
+
+---
+
+## 一 · 年轻的抄本师
+
+最年轻的那个抄本师数了页边——一、二、三，数到第七就不数了。
+**锚句**：最年轻的那个抄本师数了页边——一、二、三，数到第七就不数了。
+**Anchor sentence**: the youngest copyist counted the margin — one, two, three, and stopped at seven.
+
+---
+
+## 二 · 写下来
+
+可他回到座位上，还是在纸上写了一个七。
+**锚句**：可他回到座位上，还是在纸上写了一个七。
+**Anchor sentence**: yet back at his desk he wrote down a seven.
+
+---
+
+## 三 · 被看见
+
+那张纸第二天被最年长的抄本师看见，他看了很久。
+**锚句**：那张纸第二天被最年长的抄本师看见，他看了很久。
+**Anchor sentence**: the next day the eldest copyist saw that paper, and looked at it for a long while.
+
+---
+
+## 四 · 最年长者的话
+
+最年长的抄本师说——页边是唯一不数的地方；你数了，它就开始排队。
+**锚句**：最年长的抄本师说——页边是唯一不数的地方；你数了，它就开始排队。
+**Anchor sentence**: the eldest copyist said — the margin is the one place nothing is counted; count it, and it starts to queue.
+
+---
+
+## 五 · 纸条的去处
+
+那张纸条没有烧掉，也没有抄进册子——被夹进了那一页的页边。
+**锚句**：那张纸条没有烧掉，也没有抄进册子——被夹进了那一页的页边。
+**Anchor sentence**: the slip was neither burned nor copied into the ledger — it was tucked into that page's margin.
+
+---
+
+## 六 · 第八条
+
+后来页边又多了一条，没有人说那是第八条。
+**锚句**：后来页边又多了一条，没有人说那是第八条。
+**Anchor sentence**: afterwards one more line appeared in the margin, and nobody called it the eighth.
+
+---
+
+## 七 · Mapping（Echo No. 213 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | counting the margin makes it queue · the seventh nobody finished counting · the slip kept in the margin | 一、二、四 |
+| geography | the Institute's copy hall · the winter-tide month | 一、三 |
+| characters | the youngest copyist · the eldest copyist · the five copyists | 一、三、四 |
+| story | the one uncounted place gets counted, and quietly refuses the count | 全篇 |
+| items | the margin · the slip with a seven · the ledger | 二、五 |
+| history | the 140th year after the 44th Convocation (continues E206–E212) | 纪元 |
+
+> 不数的地方不是没有人想数——是每一次有人想数，都有人把纸条夹回页边。
+> The uncounted place is not one nobody wants to count — it is one where every time somebody tries, the slip goes back into the margin.`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E212: the copyists refused to name the mark and wrote three characters in the margin instead. This echo is about the first person to count the margin.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E212).
+> Margin: the margin is the one place nothing is counted; count it, and it starts to queue.
+
+---
+
+## One · The Youngest Copyist
+
+The youngest copyist counted the margin — one, two, three, and stopped at seven.
+**锚句**：最年轻的那个抄本师数了页边——一、二、三，数到第七就不数了。
+**Anchor sentence**: the youngest copyist counted the margin — one, two, three, and stopped at seven.
+
+---
+
+## Two · Written Down
+
+Yet back at his desk he wrote down a seven.
+**锚句**：可他回到座位上，还是在纸上写了一个七。
+**Anchor sentence**: yet back at his desk he wrote down a seven.
+
+---
+
+## Three · Seen
+
+The next day the eldest copyist saw that paper, and looked at it for a long while.
+**锚句**：那张纸第二天被最年长的抄本师看见，他看了很久。
+**Anchor sentence**: the next day the eldest copyist saw that paper, and looked at it for a long while.
+
+---
+
+## Four · The Eldest's Words
+
+The eldest copyist said — the margin is the one place nothing is counted; count it, and it starts to queue.
+**锚句**：最年长的抄本师说——页边是唯一不数的地方；你数了，它就开始排队。
+**Anchor sentence**: the eldest copyist said — the margin is the one place nothing is counted; count it, and it starts to queue.
+
+---
+
+## Five · Where the Slip Went
+
+The slip was neither burned nor copied into the ledger — it was tucked into that page's margin.
+**锚句**：那张纸条没有烧掉，也没有抄进册子——被夹进了那一页的页边。
+**Anchor sentence**: the slip was neither burned nor copied into the ledger — it was tucked into that page's margin.
+
+---
+
+## Six · The Eighth
+
+Afterwards one more line appeared in the margin, and nobody called it the eighth.
+**锚句**：后来页边又多了一条，没有人说那是第八条。
+**Anchor sentence**: afterwards one more line appeared in the margin, and nobody called it the eighth.
+
+---
+
+## Seven · Mapping（Echo No. 213 · world model）
+
+| Dimension | Value | Sections |
+| --- | --- | --- |
+| lore | counting the margin makes it queue · the seventh nobody finished counting · the slip kept in the margin | I, II, IV |
+| geography | the Institute's copy hall · the winter-tide month | I, III |
+| characters | the youngest copyist · the eldest copyist · the five copyists | I, III, IV |
+| story | the one uncounted place gets counted, and quietly refuses the count | all |
+| items | the margin · the slip with a seven · the ledger | II, V |
+| history | the 140th year after the 44th Convocation (continues E206–E212) | era |
+
+> The uncounted place is not one nobody wants to count — it is one where every time somebody tries, the slip goes back into the margin.
+> 不数的地方不是没有人想数——是每一次有人想数，都有人把纸条夹回页边。`,
+  },
+  {
     order: 22,
     slug: 'echo-022-the-fish-that-never-dried',
     titleZh: '里巷子晾鱼架上那条永远晾不干的鱼',

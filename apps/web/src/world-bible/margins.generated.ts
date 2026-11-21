@@ -38,5 +38,13 @@ export const BIBLE_MARGINS: readonly BibleMargin[] = [
     "titleEn": "The Copyists Gave the Fresh Mark a Word That Was Not a Name",
     "zh": "名字是给愿意被数的东西用的；它不愿意，那就不给。",
     "en": "a name is for a thing willing to be counted; it is not willing, so it gets none."
+  },
+  {
+    "echo": "E213-潮候院抄本院有人开始数页边",
+    "slug": "/bible/echo-213-counting-the-margin",
+    "titleZh": "有人开始数页边",
+    "titleEn": "Somebody Started Counting the Margin",
+    "zh": "页边是唯一不数的地方；你数了，它就开始排队。",
+    "en": "the margin is the one place nothing is counted; count it, and it starts to queue."
   }
 ] as const;
