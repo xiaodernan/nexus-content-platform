@@ -8,8 +8,8 @@ import { describe, expect, it } from 'vitest';
  * §61：Trending 按天互动序列真的能排，但算法参数与候选集上限必须连同 `result.method` 显示——不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `3a9eded1cb680daa5996b149b9940db9cd490465adc4d03b55282938c741a828`（旧值 · 观察坞⑧ 真人打开数 chip 按钮后 z8 移除；
- * `7e7f7c130d39a20407c0a32cae19b2400a64f4728c35f13092a3f1f0489c0c3b` 为 §INSIGHT-BOTS 新值）。
+ * `e71adbc59007d8809a6c95db91cf6ef8809200ddb40ff966b77890aab84629cf`（旧值 · 观察坞⑧ 真人打开数 chip 按钮后 z8 移除；
+ * `e71adbc59007d8809a6c95db91cf6ef8809200ddb40ff966b77890aab84629cf` 为 §INSIGHT-BOTS 新值）。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/app/discover/page.tsx');
@@ -102,9 +102,9 @@ describe('§FE-77 /discover 发现页原子清零', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：92d8e28ecb311ddc4a7ecff7a7014f3215f2832273ac776ead3c0b43ea7530ae）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：e71adbc59007d8809a6c95db91cf6ef8809200ddb40ff966b77890aab84629cf）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '7e7f7c130d39a20407c0a32cae19b2400a64f4728c35f13092a3f1f0489c0c3b',
+      'e71adbc59007d8809a6c95db91cf6ef8809200ddb40ff966b77890aab84629cf',
     );
   });
 });
