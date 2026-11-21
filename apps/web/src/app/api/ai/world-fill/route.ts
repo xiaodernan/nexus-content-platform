@@ -23,6 +23,10 @@ const Body = z
     /** 编年续写：模型只能挑这里已有的纪元字面，不许自造历史分期 */
     eras: z.array(z.string().trim().min(1).max(80)).max(30).default([]),
     chronicle: z.boolean().default(false),
+    /** 记忆回声模式：只给这一条节点写感官刻痕 */
+    echo: z.boolean().default(false),
+    focusTitle: z.string().trim().max(120).default(''),
+    focusBody: z.string().trim().max(4000).default(''),
   })
   .strict();
 
@@ -35,7 +39,11 @@ export async function POST(req: Request): Promise<NextResponse> {
   if (!parsed.success) return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
   const b = parsed.data;
 
-  const system = b.chronicle
+  const system = b.echo
+    ? (b.locale === 'zh'
+      ? '你是这个世界的记忆保管者。给一条世界条目写「记忆回声」：只输出 JSON 数组 [{"title":"...","body":"..."}]，不要围栏、不要解释。title 原样抄回条目名；body 是一段 ≤240 字的纯感官刻痕——声音、味道、触感、光线里的一瞬，不是剧情梗概、不是评价、不写"作为 AI"之类的话。只依据给定条目的正文，没有任何可写的细节就返回 []。'
+      : 'You keep this world’s memories. Write a "memory echo" for one world entry. Output ONLY a JSON array [{"title":"...","body":"..."}] — no fences, no prose. Copy the entry name into title; body must be a sensory trace of one instant (sound, taste, touch, light), ≤ 240 chars — never a plot summary, verdict, or "as an AI" chatter. Use only the supplied entry body; return [] if there is nothing to draw from.')
+    : b.chronicle
     ? (b.locale === 'zh'
       ? '你是这个世界的史官。为编年册续写一条新故事。只输出 JSON 数组：[{"title":"...","body":"...","era":"..."}]，不要围栏、不要解释。era 必须从给定的纪元列表里原样挑一个，不许自造；如果列表为空就输出空串。title ≤ 40 字、body 100–300 字，写一件具体发生过的事：谁做了什么、代价是什么、留下什么可追问的痕迹。只依据给定的世界概述与已有条目，不编造数字，不写"作为 AI"之类的话。只要概述里有一句可用的前提，就必须写出一条；连概述都是空的才返回 []。'
       : 'You are the chronicler of this world. Write ONE new story entry for the chronicle. Output ONLY a JSON array: [{"title":"...","body":"...","era":"..."}] — no fences, no prose. The era must be copied verbatim from the supplied era list; never invent one, and use an empty string when the list is empty. Title ≤ 40 chars, body 100–300 chars: something that actually happened — who did what, what it cost, what trace remains. Use only the given summary and existing entries; invent no figures and no "as an AI" chatter. If the summary has even one usable premise, write an entry; return [] only when the summary is empty.')
@@ -48,6 +56,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     `Section: ${b.kind}`,
     `Existing titles in this section: ${b.existingTitles.length ? b.existingTitles.join(' | ') : '(none)'}`,
     ...(b.chronicle ? [`Existing eras (copy one verbatim): ${b.eras.length ? b.eras.join(' | ') : '(none — use empty string)'}`] : []),
+    ...(b.echo ? [`Focus entry: ${b.focusTitle}`, `Entry body: ${b.focusBody || '(empty)'}`] : []),
   ].join('\n');
 
   const result = await chatWithCharacter({ requestId: `world-fill-${Date.now()}`, system, user, modelClass: 'balanced' });

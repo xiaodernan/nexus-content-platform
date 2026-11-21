@@ -30,7 +30,7 @@ import { cn } from '@/lib/cn';
 import { patchLore } from '@/lib/worldLore';
 import type { Locale } from '@/lib/i18n';
 import { chatWithCharacter } from '@/server/ai/client';
-import { parseChronicleReply, parseWorldFillReply } from '@/lib/worldFill';
+import { parseChronicleReply, parseEchoReply, parseWorldFillReply } from '@/lib/worldFill';
 import { useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';
 import { WORLD_KIND_LABELS_EN } from '@nexus/world-model';
@@ -61,6 +61,10 @@ const COPY = {
     aiChronicleBusy: '续写中…',
     aiChronicleTitle: '真调用一次 provider，给编年册补一条故事：只从这个世界已有的纪元里挑一个，写一件具体发生过的事与它留下的痕迹。模型不许自造纪元或数字；新条目直接带纪元标签进编年页。',
     aiChronicleDone: (era: string, title: string) => `已续写「${era || '未标纪元'}」·《${title}》，编年页可看。`,
+    aiEcho: 'AI 写回声',
+    aiEchoBusy: '写回声中…',
+    aiEchoTitle: (t: string) => `真调用一次模型，给「${t}」写一段 ≤240 字的记忆回声：声音、味道、触感、光线里的一瞬，不是梗概、不评价。只依据这条条目已有的正文；没有可写的东西就照实说。`,
+    aiEchoDone: (t: string) => `已给「${t}」写下一段记忆回声。`,
     tidalTerrainHeading: '地形（可走的圆台与坡）',
     mesaOption: '台面（硬边）',
     coneOption: '坡（线性降到 0）',
@@ -147,6 +151,10 @@ const COPY = {
     aiChronicleBusy: 'Writing…',
     aiChronicleTitle: 'One real provider call adds one story to the chronicle: it must pick an era that already exists in this world and write something that happened, what it cost, and what remains. No invented eras or figures; the new entry carries its era tag straight into the chronicle page.',
     aiChronicleDone: (era: string, title: string) => `Wrote ${era || 'untagged'} · ${title} — visible on the chronicle page.`,
+    aiEcho: 'AI write echo',
+    aiEchoBusy: 'Writing echo…',
+    aiEchoTitle: (t: string) => `One real model call writes a ≤240-char memory echo for ${t}: one instant of sound, taste, touch or light — never a plot summary or a verdict. Grounded only in this entry's own body; if there is nothing to draw from, the UI says so.`,
+    aiEchoDone: (t: string) => `Wrote a memory echo for ${t}.`,
 eraPlaceholder: 'Grey Lantern Era',
     memoryEchoPlaceholder: 'Memory echo: the sensory trace of that moment (sound / taste / touch / light) — not plot, a scar',
 tidalTerrainHeading: 'Terrain (walkable plateaus and cones)',
@@ -388,6 +396,44 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
     }
   };
 
+  // §44 记忆回声：逐条写 ≤240 字的感官刻痕，只依据该条目正文；lore 其余字段原样保留。
+  const [echoBusyFor, setEchoBusyFor] = useState('');
+  const [echoNote, setEchoNote] = useState('');
+  const writeEcho = async (node: { id: string; title: string; body: string }) => {
+    const doc = world;
+    if (!doc || echoBusyFor) return;
+    setEchoBusyFor(node.id);
+    setEchoNote('');
+    try {
+      const res = await fetch('/api/ai/world-fill', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          locale, worldName: doc.name, summary: doc.summary || '',
+          kind: kindLabel('lore', locale), focusTitle: node.title, focusBody: node.body, echo: true,
+        }),
+      });
+      const body = (await res.json().catch(() => null)) as { text?: string; message?: string } | null;
+      if (!res.ok || typeof body?.text !== 'string') {
+        setEchoNote(locale === 'zh' ? `写回声未成功：${body?.message ?? `HTTP ${res.status}`}` : `Echo failed: ${body?.message ?? `HTTP ${res.status}`}`);
+        return;
+      }
+      const memory = parseEchoReply(body.text);
+      if (!memory) {
+        setEchoNote(c.aiFillNone);
+        return;
+      }
+      const current = doc.nodes.find((n) => n.id === node.id)!;
+      worldStore.setLocal(updateWorldNode(doc, node.id, { lore: { ...(current.lore ?? {}), memory } }));
+      void worldStore.commit();
+      setEchoNote(c.aiEchoDone(node.title));
+    } catch (e) {
+      setEchoNote(String((e as Error)?.message ?? e).slice(0, 200));
+    } finally {
+      setEchoBusyFor('');
+    }
+  };
+
   if (!world) {
     return (
       <div className="wd-scrollPad" data-world-panel>
@@ -520,6 +566,16 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
                       rows={3}
                       className="wd-areaResizeMt"
                     />
+                      <button
+                        type="button"
+                        onClick={() => void writeEcho(node)}
+                        disabled={echoBusyFor === node.id}
+                        title={c.aiEchoTitle(node.title)}
+                        data-world-ai-echo={node.id}
+                        className="wd-ghostBtn"
+                      >
+                        {echoBusyFor === node.id ? c.aiEchoBusy : c.aiEcho}
+                      </button>
                     {node.kind === 'story' || node.kind === 'history' ? (
                       <>
                       <div className="wd-rowMt1" data-world-lore-row={node.id}>
@@ -696,6 +752,7 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
         </div>
         {aiFillNote ? <p className="wd-body11Mt2" data-world-ai-fill-note>{aiFillNote}</p> : null}
         {chronicleNote ? <p className="wd-body11Mt2" data-world-ai-chronicle-note>{chronicleNote}</p> : null}
+        {echoNote ? <p className="wd-body11Mt2" data-world-ai-echo-note>{echoNote}</p> : null}
         <p className="wd-body11Mt2" data-world-note>
           {c.editsNote}
           {groups.length < WORLD_KINDS.length

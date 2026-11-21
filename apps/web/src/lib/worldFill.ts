@@ -55,3 +55,13 @@ export function parseChronicleReply(text: string, eras: readonly string[]): (Wor
   const era = entry.era && eras.includes(entry.era) ? entry.era : '';
   return { title: entry.title, body: entry.body, era };
 }
+
+/**
+ * 记忆回声（§44）：≤240 字的感官刻痕，不是剧情梗概。模型给的正文超长直接拒绝，
+ * 不截断——截断出来的半句话比没有更糟。
+ */
+export function parseEchoReply(text: string): string | null {
+  const entry = parseWorldFillReply(text)[0];
+  if (!entry || entry.body.length > 240) return null;
+  return entry.body;
+}

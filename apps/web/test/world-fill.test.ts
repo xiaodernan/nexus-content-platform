@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseChronicleReply, parseWorldFillReply } from '../src/lib/worldFill';
+import { parseChronicleReply, parseEchoReply, parseWorldFillReply } from '../src/lib/worldFill';
 
 /**
  * §44 世界填料的入口门。宁可少收一条，也不把模型话术当设定写进用户的世界文档：
@@ -48,5 +48,17 @@ describe('worldFill · 编年续写只认已有纪元', () => {
   it('空纪元列表接受空串；没拿到合法条目返回 null', () => {
     expect(parseChronicleReply('[{"title":"a","body":"b","era":""}]', [])?.era).toBe('');
     expect(parseChronicleReply('模型话术', eras)).toBeNull();
+  });
+});
+
+describe('worldFill · 记忆回声只收短刻痕', () => {
+  it('合法回声原样取回正文', () => {
+    expect(parseEchoReply('[{"title":"盐道","body":"石缝里那点咸味，退潮后才浮出来。"}]')).toBe('石缝里那点咸味，退潮后才浮出来。');
+  });
+  it('超长正文拒绝，不截断成半句', () => {
+    expect(parseEchoReply(JSON.stringify([{ title: 'x', body: '长'.repeat(241) }]))).toBeNull();
+  });
+  it('空回话返回 null', () => {
+    expect(parseEchoReply('没有可写的')).toBeNull();
   });
 });
