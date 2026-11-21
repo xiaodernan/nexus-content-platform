@@ -1183,10 +1183,28 @@ public class ToolService {
     @Transactional(readOnly = true)
     public List<ToolDeprecation> deprecationPage(
             String ownerId, String replacementStatus, String before, int limit, int offset) {
+        return deprecationPage(ownerId, replacementStatus, null, before, limit, offset);
+    }
+
+    /**
+     * M10 v624 - the same list narrowed to warnings whose stored HINT is exactly one name.
+     *
+     * <p>The question this answers is "who is being told to move to X?" - the successor side of the warning
+     * list, which no other read can ask. The hint is a VALUE, not a name to resolve: a name that holds no
+     * declaration still selects the warnings that point at it, and a value nobody stored selects nothing. It
+     * composes with the owner, the state selection and the pair cursor, narrowing both the window and the
+     * count, and it is the fourth filter in the same statement rather than a separate read.
+     *
+     * @param hint the exact stored replacement name, or null/blank for every hint
+     */
+    @Transactional(readOnly = true)
+    public List<ToolDeprecation> deprecationPage(
+            String ownerId, String replacementStatus, String hint, String before, int limit, int offset) {
         int effective = Math.min(Math.max(limit, 1), MAX_LIST_LIMIT);
         int from = Math.max(offset, 0);
         String owner = normalizeOwner(ownerId);
         String status = normalizeReplacementStatuses(replacementStatus);
+        String wantedHint = normalizeHint(hint);
         DeprecationCursor cursor = DeprecationCursor.parse(before);
         if (cursor != null && from > 0) {
             throw new InvalidTool("a keyset read carries before=, not offset= — mixing the two is how a page"
@@ -1194,16 +1212,17 @@ public class ToolService {
         }
         if (cursor != null) {
             PageRequest page = PageRequest.of(0, effective);
-            if (status != null) {
-                return deprecations.pageAfterFiltered(owner, status, cursor.at(), cursor.toolId(), page);
+            if (status != null || wantedHint != null) {
+                return deprecations.pageAfterFiltered(
+                        owner, status, wantedHint, cursor.at(), cursor.toolId(), page);
             }
             return owner == null
                     ? deprecations.pageAfter(cursor.at(), cursor.toolId(), page)
                     : deprecations.pageAfterByOwner(owner, cursor.at(), cursor.toolId(), page);
         }
         PageRequest page = PageRequest.of(from / effective, effective);
-        if (status != null) {
-            return deprecations.firstPageFiltered(owner, status, page);
+        if (status != null || wantedHint != null) {
+            return deprecations.firstPageFiltered(owner, status, wantedHint, page);
         }
         return owner == null ? deprecations.firstPage(page) : deprecations.firstPageByOwner(owner, page);
     }
@@ -1223,10 +1242,17 @@ public class ToolService {
     /** The WHOLE number of deprecations the owner and replacement-state filters select. */
     @Transactional(readOnly = true)
     public long deprecationCount(String ownerId, String replacementStatus) {
+        return deprecationCount(ownerId, replacementStatus, null);
+    }
+
+    /** The WHOLE number of deprecations the owner, state and hint filters select. */
+    @Transactional(readOnly = true)
+    public long deprecationCount(String ownerId, String replacementStatus, String hint) {
         String owner = normalizeOwner(ownerId);
         String status = normalizeReplacementStatuses(replacementStatus);
-        if (status != null) {
-            return deprecations.countFiltered(owner, status);
+        String wantedHint = normalizeHint(hint);
+        if (status != null || wantedHint != null) {
+            return deprecations.countFiltered(owner, status, wantedHint);
         }
         return owner == null ? deprecations.count() : deprecations.countByOwner(owner);
     }
@@ -1576,6 +1602,14 @@ public class ToolService {
             return null;
         }
         return raw.trim();
+    }
+
+    /**
+     * The optional replacement-HINT filter: trimmed, null when absent or blank. A VALUE filter, not a name to
+     * resolve - an illegal name simply matches no stored hint, the same rule the keyset cursor follows.
+     */
+    static String normalizeHint(String raw) {
+        return raw == null || raw.isBlank() ? null : raw.trim();
     }
 
     /**

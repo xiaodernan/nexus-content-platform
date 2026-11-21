@@ -494,15 +494,17 @@ public class ToolController {
             @RequestParam(name = "offset", required = false) Integer offset,
             @RequestParam(name = "before", required = false) String before,
             @RequestParam(name = "owner", required = false) String ownerId,
-            @RequestParam(name = "replacementStatus", required = false) String replacementStatus) {
+            @RequestParam(name = "replacementStatus", required = false) String replacementStatus,
+            @RequestParam(name = "hint", required = false) String hint) {
         int asked = limit == null ? ToolService.DEFAULT_LIST_LIMIT : limit;
         int effective = Math.min(Math.max(asked, 1), ToolService.MAX_LIST_LIMIT);
         int from = offset == null ? 0 : Math.max(offset, 0);
         String owner = ToolService.normalizeOwner(ownerId);
         String status = ToolService.normalizeReplacementStatuses(replacementStatus);
+        String wantedHint = ToolService.normalizeHint(hint);
         DeprecationCursor cursor = DeprecationCursor.parse(before);
         String key = cursor == null ? null : cursor.text();
-        List<ToolDeprecation> rows = service.deprecationPage(owner, status, key, asked, from);
+        List<ToolDeprecation> rows = service.deprecationPage(owner, status, wantedHint, key, asked, from);
         Map<String, ToolEntry> tools = service.byIds(rows.stream().map(ToolDeprecation::getToolId).toList());
         Map<String, ToolService.ReplacementResolution> replacements = service.resolveReplacements(
                 rows.stream().map(ToolDeprecation::getReplacementName).filter(name -> name != null).toList());
@@ -522,7 +524,8 @@ public class ToolController {
                 .toList();
         return ResponseEntity.ok(
                 new DeprecationList(
-                        owner, status, wire, service.deprecationCount(owner, status), effective, from, key));
+                owner, status, wantedHint, wire, service.deprecationCount(owner, status, wantedHint),
+                effective, from, key));
     }
 
     /**

@@ -61,11 +61,13 @@ public interface ToolDeprecationRepository extends JpaRepository<ToolDeprecation
     @Query(value = "select d.* from tool_deprecation d"
             + " join tool_entry e on e.tool_id = d.tool_id"
             + " where (cast(:owner as varchar) is null or e.owner_account_id = cast(:owner as varchar))"
+            + " and (cast(:hint as varchar) is null or d.replacement_name = cast(:hint as varchar))"
             + " and " + STATUS_PREDICATE
             + " order by date_trunc('milliseconds', d.deprecated_at) desc, d.tool_id asc",
             nativeQuery = true)
     List<ToolDeprecation> firstPageFiltered(
-            @Param("owner") String owner, @Param("status") String status, Pageable page);
+            @Param("owner") String owner, @Param("status") String status,
+            @Param("hint") String hint, Pageable page);
 
     /**
      * M10 v617 - the list AFTER a cursor that names its whole sort key, so a tie on the instant cannot be
@@ -96,14 +98,15 @@ public interface ToolDeprecationRepository extends JpaRepository<ToolDeprecation
     @Query(value = "select d.* from tool_deprecation d"
             + " join tool_entry e on e.tool_id = d.tool_id"
             + " where (cast(:owner as varchar) is null or e.owner_account_id = cast(:owner as varchar))"
+            + " and (cast(:hint as varchar) is null or d.replacement_name = cast(:hint as varchar))"
             + " and " + STATUS_PREDICATE
             + " and (date_trunc('milliseconds', d.deprecated_at) < :at"
             + " or (date_trunc('milliseconds', d.deprecated_at) = :at and d.tool_id > :id))"
             + " order by date_trunc('milliseconds', d.deprecated_at) desc, d.tool_id asc",
             nativeQuery = true)
     List<ToolDeprecation> pageAfterFiltered(
-            @Param("owner") String owner, @Param("status") String status, @Param("at") Instant at,
-            @Param("id") String id, Pageable page);
+            @Param("owner") String owner, @Param("status") String status, @Param("hint") String hint,
+            @Param("at") Instant at, @Param("id") String id, Pageable page);
 
     /** The WHOLE number of deprecations one account's declarations carry. */
     @Query(value = "select count(*) from tool_deprecation d"
@@ -116,9 +119,11 @@ public interface ToolDeprecationRepository extends JpaRepository<ToolDeprecation
     @Query(value = "select count(*) from tool_deprecation d"
             + " join tool_entry e on e.tool_id = d.tool_id"
             + " where (cast(:owner as varchar) is null or e.owner_account_id = cast(:owner as varchar))"
+            + " and (cast(:hint as varchar) is null or d.replacement_name = cast(:hint as varchar))"
             + " and " + STATUS_PREDICATE,
             nativeQuery = true)
-    long countFiltered(@Param("owner") String owner, @Param("status") String status);
+    long countFiltered(@Param("owner") String owner, @Param("status") String status,
+            @Param("hint") String hint);
 
     /** Remove a declaration's deprecation with the declaration itself. */
     void deleteByToolId(String toolId);

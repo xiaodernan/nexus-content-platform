@@ -350,12 +350,14 @@ public final class ToolDtos {
      * The deprecation window, newest first, and the WHOLE number of declarations the same filters select.
      * {@code owner} is the narrowed account (or null), {@code replacementStatus} the derived-state SELECTION
      * as a canonical comma-separated list (or null) - one word when one state was asked, in first-seen order
-     * when several - and {@code before} the pair cursor the window starts after (or null). All are echoed so a
-     * page never has to be mistaken for the whole list.
+     * when several - {@code hint} the exact stored replacement name selected (or null), and {@code before} the
+     * pair cursor the window starts after (or null). All are echoed so a page never has to be mistaken for the
+     * whole list.
      */
     public record DeprecationList(
             String owner,
             String replacementStatus,
+            String hint,
             List<DeprecatedTool> deprecations,
             long total,
             int limit,

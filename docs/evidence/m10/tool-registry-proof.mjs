@@ -189,7 +189,7 @@ const SCHEMA_DIFF_FIELDS = ['added', 'changed', 'removed'].sort();
 const PIN_MATCHES_FIELDS = ['pin', 'tools', 'total'].sort();
 const PIN_MATCH_FIELDS = ['contractSha256', 'current', 'name', 'owner', 'recordedAt', 'revision', 'summary', 'toolId'].sort();
 const PIN_BATCH_FIELDS = ['found', 'missing', 'requested', 'tools'].sort();
-const DEPRECATION_LIST_FIELDS = ['before', 'deprecations', 'limit', 'offset', 'owner', 'replacementStatus', 'total'].sort();
+const DEPRECATION_LIST_FIELDS = ['before', 'deprecations', 'hint', 'limit', 'offset', 'owner', 'replacementStatus', 'total'].sort();
 const DEPRECATION_FIELDS = ['deprecatedAt', 'message', 'replacement', 'replacementStatus', 'replacementToolId', 'toolId'].sort();
 const DEPRECATION_ROW_FIELDS = ['deprecatedAt', 'message', 'name', 'replacement', 'replacementStatus', 'replacementToolId', 'toolId'].sort();
 
@@ -2315,6 +2315,63 @@ try {
   assert.equal(afterSelection.body.total, 1, 'the selection fixtures were withdrawn');
   assert.equal(await sql('select count(*) from tool_deprecation'), '1');
   console.log(`[§5u] the warning list could be SELECTED BY MORE THAN ONE STATE: replacementStatus=none,unresolved answered BOTH temporary warnings with total=2, echoed in first-seen order and trimmed, while a repeated state collapsed to one and named all four was the whole list · a trailing comma was punctuation and a selection of blanks was the absent filter · owner and the selection narrowed together (2 and 0), and the pair cursor walked the two selected rows one at a time with total=2 and no repeat · an unknown word inside the selection was 400 invalid-tool naming "gone" and the vocabulary, and the fixtures were withdrawn so §6 still counts one`);
+
+  // ── §5v the warning list can be asked WHO POINTS AT A NAME ─────────────────────────────────────
+  // The successor side of the list. A second warning names m.tool so the fixture has two rows pointing at
+  // one name; the filter is an exact VALUE, so a prefix and a name nobody stored both select nothing.
+  const hintTool = await postJson('/tools', {
+    owner, name: 'hint.a', summary: 'A warning pointing at m.tool.', inputSchema: { type: 'object' },
+  });
+  assert.equal(hintTool.status, 201, `hint.a must be declared, got ${hintTool.status}: ${hintTool.text}`);
+  const hintWarned = await postJson(`/tools/${q(hintTool.body.id)}/deprecation?owner=${q(owner)}`,
+      { message: 'Also moving to m.tool.', replacement: 'm.tool' });
+  assert.equal(hintWarned.status, 200, `the hint.a warning must be 200, got ${hintWarned.status}: ${hintWarned.text}`);
+
+  const pointingAtM = await call('/tools/deprecations?hint=m.tool');
+  assert.equal(pointingAtM.status, 200, `hint= must be 200, got ${pointingAtM.status}: ${pointingAtM.text}`);
+  assert.equal(pointingAtM.body.hint, 'm.tool', 'the hint filter is echoed trimmed');
+  assert.equal(pointingAtM.body.total, 2, 'two warnings point at m.tool');
+  assert.deepEqual(pointingAtM.body.deprecations.map((d) => d.toolId).sort(),
+      [reclaimed.body.id, hintTool.body.id].sort());
+  assert.deepEqual(Object.keys(pointingAtM.body).sort(),
+      ['before', 'deprecations', 'hint', 'limit', 'offset', 'owner', 'replacementStatus', 'total']);
+
+  const pointingLive = await call('/tools/deprecations?hint=m.tool&replacementStatus=live');
+  assert.equal(pointingLive.body.total, 2, 'the hint and the state compose');
+  const pointingOwner = await call(`/tools/deprecations?hint=m.tool&owner=${q(other)}`);
+  assert.equal(pointingOwner.body.total, 1, 'the hint and the owner compose');
+  assert.equal(pointingOwner.body.deprecations[0].toolId, reclaimed.body.id);
+  const pointingNone = await call('/tools/deprecations?hint=m.tool&replacementStatus=none');
+  assert.equal(pointingNone.body.total, 0, 'a hint no warning in that state names selects nothing');
+  const pointingGhost = await call('/tools/deprecations?hint=ghost.tool');
+  assert.equal(pointingGhost.body.total, 0, 'a name nobody is pointed at selects nothing');
+  assert.equal(pointingGhost.body.hint, 'ghost.tool', 'and the value is still echoed');
+  const pointingPrefix = await call('/tools/deprecations?hint=m');
+  assert.equal(pointingPrefix.body.total, 0, 'the filter is EXACT, not a prefix');
+  const pointingBlank = await call('/tools/deprecations?hint=%20%20');
+  assert.equal(pointingBlank.body.hint, null, 'a blank hint is the absent filter');
+  assert.equal(pointingBlank.body.total, 2, 'and the absent filter is every warning');
+
+  const firstPointing = await call('/tools/deprecations?hint=m.tool&limit=1');
+  assert.equal(firstPointing.body.total, 2);
+  assert.equal(firstPointing.body.deprecations.length, 1);
+  const firstPointingRow = firstPointing.body.deprecations[0];
+  const secondPointing = await call(
+      `/tools/deprecations?hint=m.tool&limit=1&before=${q(firstPointingRow.deprecatedAt + ':' + firstPointingRow.toolId)}`);
+  assert.equal(secondPointing.body.total, 2, 'the pair cursor keeps the hint-narrowed count');
+  assert.equal(secondPointing.body.deprecations.length, 1);
+  assert.notEqual(secondPointing.body.deprecations[0].toolId, firstPointingRow.toolId,
+      'the pair cursor walks the hinted set without repeating a row');
+  assert.equal(secondPointing.body.hint, 'm.tool', 'and the hint is echoed on the cursor page');
+
+  const hintWithdrawn = await call(`/tools/${q(hintTool.body.id)}/deprecation?owner=${q(owner)}`,
+      { method: 'DELETE' });
+  assert.equal(hintWithdrawn.status, 200);
+  const hintRemoved = await call(`/tools/${q(hintTool.body.id)}?owner=${q(owner)}`, { method: 'DELETE' });
+  assert.equal(hintRemoved.status, 200);
+  assert.equal((await call('/tools/deprecations')).body.total, 1, 'the hint fixture was withdrawn');
+  assert.equal(await sql('select count(*) from tool_deprecation'), '1');
+  console.log(`[§5v] the warning list could be asked WHO POINTS AT A NAME: hint=m.tool answered BOTH warnings that name it with total=2 and echoed trimmed, while the same value composed with replacementStatus=live (2) and with owner (1 each), and a hint in a state no row carries selected nothing · ghost.tool selected nothing but was echoed, m was 0 because the match is EXACT, and a blank hint was the absent filter returning both · the pair cursor walked the hinted set with total=2 and no repeat, the envelope carried the eighth field, and the fixture was withdrawn so §6 still counts one`);
 
   // ── §6 — the declarations and their canonical schemas survive a RESTART ────────────────────────
   const beforeRestart = await call('/tools');
