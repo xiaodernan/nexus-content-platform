@@ -14709,3 +14709,9 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - [~] 60 并发下 health p95 退化到 1531ms（单 worker + 同步 access log 的代价），
   响应码全 200 且风暴后立即恢复。继续往上堆并发需多 worker + 关 access log，
   不是路由代码的问题。
+
+## §AILIVE-3 收尾（2026-11-21）
+
+- [x] healthz 短 TTL 缓存真服务 A/B：连打 12 次 `/healthz`，`llmCache` 计数零增长
+      （delta=0），capability 保持 real。liveness 两层账（probes vs hits/misses）独立上报不求和。
+      判据 21 条全绿。收尾 tasks 171–173。

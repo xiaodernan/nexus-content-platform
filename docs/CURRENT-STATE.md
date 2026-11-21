@@ -8762,3 +8762,12 @@ Reader (post-continuum trace):
 - 抓到并修掉压测脚本自身的错：一族"路径注入"其实是合法请求，误打了 12 次真模型；
   现在每族强制缺 `requestId`，结构上杜绝误触发。
 - 证据见 `docs/evidence/stress-ai-service-2026-11-20.md`。
+
+## cont. 471 (2026-11-21) — §AILIVE-3 收尾：healthz 缓存真服务 A/B 实测
+
+- 真服务（3200，gpt-6.2-sol）连打 12 次 `/healthz`，`llmCache` 计数
+  `hits=23 / misses=38 / stores=38` 全程零增长（delta=0），capability=real 不变。
+  证明短 TTL 共享缓存把重复探活完全吃住，不再每次打 provider。
+- 两层账不混：`llmCache.probes`（进程内 liveness 探针）与 `llmCache.hits/misses`（Redis 共享 completion 缓存）
+  各自独立上报，note 明写 "coalesced is not a cache hit; never summed"。
+- liveness 判据 `test_liveness.py` + `test_llm_liveness.py` 21 条全绿。
