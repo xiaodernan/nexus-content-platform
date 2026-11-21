@@ -28599,8 +28599,8 @@ The winter-tide month passed, and the fresh mark stayed where it was, unmoved; t
 
 ## 三 · 谁先看见
 
-第一个看见那三个字的抄本师没有问是谁写的——册子里的字从来不问出处。
-**锚句**：第一个看见那三个字的抄本师没有问是谁写的——册子里的字从来不问出处。
+抄本院里一共五个抄本师。第一个看见那三个字的没有问是谁写的——册子里的字从来不问出处。
+**锚句**：抄本院里一共五个抄本师。第一个看见那三个字的没有问是谁写的——册子里的字从来不问出处。
 **Anchor sentence**: the first copyist to see those three characters did not ask who wrote them — words in the ledger never ask where they came from.
 
 ---
@@ -28671,9 +28671,9 @@ In the margin they wrote three characters: the uncounted. Nobody read them aloud
 
 ## Three · The First to See
 
-The first copyist to see those three characters did not ask who wrote them — words in the ledger never ask where they came from.
+There were five copyists in the hall. The first to see those three characters did not ask who wrote them — words in the ledger never ask where they came from.
 **锚句**：第一个看见那三个字的抄本师没有问是谁写的——册子里的字从来不问出处。
-**Anchor sentence**: the first copyist to see those three characters did not ask who wrote them — words in the ledger never ask where they came from.
+**Anchor sentence**: there were five copyists in the hall. the first to see those three characters did not ask who wrote them — words in the ledger never ask where they came from.
 
 ---
 
