@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: '世界体检 · NEXUS',
-  description: '世界文档的全部真值指标——落笔/骨架/薄节点/未标纶元/未解析关系……不编造、不打分，只如实盘点。',
+  description: '世界文档的全部真值指标——落笔/骨架/薄节点/未标纪元/未解析关系……不编造、不打分，只如实盘点。',
 };
 
 /**
@@ -33,10 +33,10 @@ const COPY = {
     authored: '已落笔',
     skeleton: '仍是模板',
     thin: '薄节点',
-    untagged: '未标纶元',
+    untagged: '未标纪元',
     orderClash: 'order 撞号',
     unresolved: '未解析关系',
-    namedEras: '纸面纶元',
+    namedEras: '纸面纪元',
     worldAnchors: '世界锚点',
     characters: '星图人物',
     emptyPalette: '缺色板',
@@ -44,9 +44,9 @@ const COPY = {
     skeletonSub: '还没有一个字',
     thinSub: `< 120 字的落笔条目`,
     untaggedSub: 'story/history 条目未写 era',
-    orderClashSub: '同一纶元里 order 相同的 story/history',
+    orderClashSub: '同一纪元里 order 相同的 story/history',
     unresolvedSub: '指向不存在的名字',
-    namedErasSub: '作者取名的纶元',
+    namedErasSub: '作者取名的纪元',
     anchorsSub: '关系锚定在 world 条目上',
     charactersSub: (withRel: number) => `${withRel} 位有关系`,
     emptyPaletteSub: 'visualIdentity.palette 为空（星心回退品牌色）',
@@ -133,7 +133,7 @@ export default async function IntegrityPage({ params }: { params: Promise<{ proj
   const thin = authored.filter((node) => node.body.trim().length < EROSION_BODY_LIMIT);
   const eras = buildChronicle(nodes);
   const namedEras = eras.filter((era) => era.era !== UNLABELED_ERA).length;
-  // 纶元顺序撞号：story/history 且 order 相同（非空 era 才算）
+  // 纪元顺序撞号：story/history 且 order 相同（非空 era 才算）
   const orderBucket = new Map<string, number>();
   for (const node of nodes) {
     if (node.kind !== 'story' && node.kind !== 'history') continue;

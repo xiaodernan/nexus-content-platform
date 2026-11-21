@@ -586,6 +586,8 @@ const LOOKALIKE = [{"f":"docs/decisions/0016-agent-runtime-hermetic-demo-loop.md
   {"f":"docs/world-bible/echoes/E81-\u6f6e\u5019\u9662\u91cc\u8001\u77f3\u78e8\u76d8-\u5b83\u78e8\u4e0d\u52a8\u4efb\u4f55\u4e1c\u897f.md","d":"ed2004e3db34892b","i":[36335],"w":"REJECTED flanks cjk|edge"},
 
   // -- amendment (cont. 51): six STALE pins removed - five .scratch/s34/s36-*.txt rows are gitignored ephemeral scratch never present in a fresh checkout (GIT plane grades tracked files only), and one CURRENT-STATE.md @ adb6e4dcda39e1f6 line was rewritten by a later consolidation. Measured vanished by the S2b clause after the 23 chargeable repairs unblocked it; keeping pins for bytes that do not exist makes the roster rot, not the tree.
+  // amendment (2026-11-21): persona label in the simulated-behavior evidence table, person-written bilingual row
+  {"f":"docs/evidence/simulated-user-behavior-2026-11-21.md","d":"2be507c03c414e06","i":[36335],"w":"REJECTED flanks cjk|cjk"},
 ];
 const laKey = (e) => `${e.f}\u0000${e.d}`;
 const WITNESS_FLOOR = 4;

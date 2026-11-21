@@ -51,7 +51,7 @@ const COPY = {
     chronicleNo: '纪',
     chronicleChapterNo: (i: number) => `第${ZH_NUM[i]}章`,
     chronicleAria: '世界编年',
-    chronicleEmpty: '编年还是空白——去世界面板的「纶元」栏写一行，这里就会长出第一块纶元。',
+    chronicleEmpty: '编年还是空白——去世界面板的「纪元」栏写一行，这里就会长出第一块纪元。',
     castAria: '人物关系谱',
     castTitle: '人物关系谱',
     castNo: '星',
