@@ -14731,3 +14731,15 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - [~] 编排端到端集成判据本轮受 `nexus-postgres` WAL 损坏阻塞（容器已 shutdown，57P03/
       could not locate a valid checkpoint record）；规划器本体用真机脚本 + 无 DB 接线判据验证。
       数据库恢复后需复跑 `agent-orchestration.integration.test.ts`。
+
+## §MOD-1 发布审核的 LLM 上下文二段研判（2026-11-21）
+
+- [x] `lib/llm-moderation.ts` 纯函数层 + `server/domain/moderationLlm.ts` 接线：机检照常跑，
+      模型只对已扫过的可见文本补"词表漏掉的语境"线索（ADR 0297）。三条不越界：
+      ① 模型碰不到 blocked（硬红线仍是正则）；② quote 必须是可见文本逐字子串（防编造证据）；
+      ③ 机检永不写 approved，线索最多把 clear 升 review（挂人工）。
+- [x] `publish.ts` 主链路改调增强版，`rulesVersion` 真用了模型才加 `+llm`；
+      `publishPreflight.ts` 保持纯机检。开关 `NEXUS_MODERATION_LLM`，生产开测试关。
+- [x] 真机 gpt-6.2-sol：「加微信领红包，先交 99 元激活账户即可提现」机检 baseline=clear，
+      模型补 review（quote 逐字来自原文，why 点破虚假收益话术），final=review。
+- [x] 判据 22 条 + 变异臂验伪 + tsc web 绿；真机测试默认 skip（`NEXUS_MODERATION_LLM_LIVE=1` 才跑）。

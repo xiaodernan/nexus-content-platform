@@ -8785,3 +8785,14 @@ Reader (post-continuum trace):
 - **环境阻塞（如实记）**：`nexus-postgres` 容器 WAL 损坏（invalid magic number / could not
   locate a valid checkpoint record / PANIC）已 shutdown，集成判据全 skip；未擅自 resetwal
   （破坏性）。规划器本体用真机脚本 + 无 DB 判据验证，DB 恢复后需复跑编排集成判据。
+
+## cont. 473 (2026-11-21) — §MOD-1 发布审核的 LLM 上下文研判
+
+- 补上"机检写着审核、语境理解靠正则"的缺口：gpt-6.2-sol 在机检之后对可见文本做二段研判，
+  只补 review 线索。三条不越界：模型碰不到 blocked、quote 必须逐字来自原文（防编造证据）、
+  机检永不写 approved。
+- 真机：诈骗话术「先交 99 元激活账户即可提现」正则词表 baseline=clear，模型补 review
+  （quote 逐字命中，why 点破虚假收益话术），final=review——正则看不懂、模型看懂的语境。
+- 判据 22 条 + 变异臂有牙 + tsc web EXIT=0；ADR 0297。开关 `NEXUS_MODERATION_LLM=0` 可关；
+  预检路径仍纯机检不多打 provider。
+- 数据库仍是独立阻塞（`nexus-postgres` WAL 损坏已 shutdown），本片用真机脚本 + 无 DB 判据验证。
