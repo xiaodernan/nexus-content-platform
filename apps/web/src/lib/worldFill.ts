@@ -71,6 +71,38 @@ export function parseEchoReply(text: string): string | null {
  * 自造 id / 空标签 / 多写一堆解释，一律当作没拿到——`linkWorldNodes` 自己会挡重复与自环，
  * 这里挡的是"模型凭空造出一个不存在的端点"。
  */
+/**
+ * RAG-lite：从世界已有条目里取与当前诉求最相关的几段正文作证据。
+ * 字符二元组 Jaccard 与正典问答同一套路，零依赖、可测；只取正文非空的条目，
+ * 每段截到 300 字——填料要的是"长在既有细节上"，不是把整个世界文档塞进提示词。
+ */
+export function retrieveWorldContext(
+  nodes: readonly { title: string; body?: string }[],
+  query: string,
+  topK = 3,
+): { title: string; body: string }[] {
+  const bigrams = (s: string): Set<string> => {
+    const flat = s.replace(/\s+/g, ' ').trim().toLowerCase();
+    const out = new Set<string>();
+    for (let i = 0; i < flat.length - 1; i++) out.add(flat.slice(i, i + 2));
+    return out;
+  };
+  const needle = bigrams(query);
+  if (needle.size === 0) return [];
+  return nodes
+    .filter((n) => (n.body || '').trim().length > 0)
+    .map((n) => {
+      const grams = bigrams(`${n.title} ${n.body || ''}`);
+      let shared = 0;
+      for (const g of grams) if (needle.has(g)) shared++;
+      return { title: n.title, body: (n.body || '').trim().slice(0, 300), score: shared / (grams.size + needle.size - shared || 1) };
+    })
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, topK)
+    .map(({ title, body }) => ({ title, body }));
+}
+
 /** 骨架九类各有一条空壳节点，光看节点数会误判成"都已有内容"；按正文是否为空判空节。 */
 export function fillableKinds(
   nodes: readonly { kind: string; body?: string }[],

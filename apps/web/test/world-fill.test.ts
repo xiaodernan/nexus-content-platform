@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { fillableKinds, parseChronicleReply, parseEchoReply, parseLinkReply, parseWorldFillReply } from '../src/lib/worldFill';
+import { fillableKinds, parseChronicleReply, parseEchoReply, parseLinkReply, parseWorldFillReply, retrieveWorldContext } from '../src/lib/worldFill';
 
 /**
  * §44 世界填料的入口门。宁可少收一条，也不把模型话术当设定写进用户的世界文档：
@@ -89,6 +89,7 @@ describe('WorldPanel 四种填料按钮接线（web 侧限流期间的静态保�
       ['data-world-ai-echo', 'echo: true', 'parseEchoReply'],
       ['data-world-ai-link', 'link: true', 'parseLinkReply'],
       ['data-world-ai-fill-all', 'fillAllEmpty', 'WORLD_KINDS.filter'],
+      ['data-world-ai-fill', 'retrieveWorldContext(doc.nodes', 'retrieveWorldContext'],
     ] as const) {
       expect(panel, hook).toContain(hook);
       expect(panel, flag).toContain(flag);
@@ -118,5 +119,26 @@ describe('worldFill · 一键补全的空节判定', () => {
       { kind: 'geography', body: '' },
     ];
     expect(fillableKinds(nodes, kinds)).toEqual(['history', 'geography', 'factions']);
+  });
+});
+
+describe('worldFill · RAG-lite 世界证据检索', () => {
+  const nodes = [
+    { title: '老石磨', body: '院中一口老石磨，潮退时磨出盐，盐粒带着陌生刻痕。' },
+    { title: '守夜人', body: '守夜人交接时数磨盘转数，记下潮时。' },
+    { title: '空壳', body: '   ' },
+  ];
+  it('按正文相关性取 top-K，跳过空壳', () => {
+    const got = retrieveWorldContext(nodes, '潮退 盐 磨盘', 2);
+    expect(got.length).toBe(2);
+    expect([...got.map(x => x.title)].sort()).toEqual(['守夜人', '老石磨'].sort());
+    for (const x of got) expect(x.body.length).toBeGreaterThan(0);
+  });
+  it('正文截断到 300 字，不把整篇塞进提示词', () => {
+    const long = { title: '长文', body: '盐'.repeat(500) };
+    expect(retrieveWorldContext([long], '盐盐', 1)[0]!.body.length).toBe(300);
+  });
+  it('空查询返回空证据', () => {
+    expect(retrieveWorldContext(nodes, '   ', 3)).toEqual([]);
   });
 });

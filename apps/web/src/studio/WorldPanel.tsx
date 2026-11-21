@@ -31,7 +31,7 @@ import { cn } from '@/lib/cn';
 import { patchLore } from '@/lib/worldLore';
 import type { Locale } from '@/lib/i18n';
 import { chatWithCharacter } from '@/server/ai/client';
-import { fillableKinds, parseChronicleReply, parseEchoReply, parseLinkReply, parseWorldFillReply } from '@/lib/worldFill';
+import { fillableKinds, parseChronicleReply, parseEchoReply, parseLinkReply, parseWorldFillReply, retrieveWorldContext } from '@/lib/worldFill';
 import { useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';
 import { WORLD_KIND_LABELS_EN } from '@nexus/world-model';
@@ -342,6 +342,8 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
           summary: doc.summary || '',
           kind: kindLabel(kind, locale),
           existingTitles: existing,
+          // RAG-lite：从已有条目里取最相关的 3 段正文作证据，让新条目长在世界细节上
+          context: retrieveWorldContext(doc.nodes, `${doc.summary || ''} ${kindLabel(kind, locale)}`, 3),
         }),
       });
       const body = (await res.json().catch(() => null)) as { text?: string; message?: string } | null;
