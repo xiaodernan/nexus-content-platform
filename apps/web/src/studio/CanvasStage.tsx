@@ -172,10 +172,12 @@ export function CanvasStage({ locale = 'zh' }: { locale?: Locale }) {
   const [editing, setEditing] = useState<{ nodeId: string; value: string } | null>(null);
   // §147：视口大小要参与渲染决策，所以它得是 state（ResizeObserver 报一次，缩放/平移时也用它算）
   const [surfaceSize, setSurfaceSize] = useState({ width: 0, height: 0 });
-  // 滚轮方向（2026-11-20 点名修正）：默认 = 往上滚往上看、往下滚往下看——
-  // `dir = +1`：wheel 上（deltaY<0）→ panBy(deltaY<0)，pan.y 减小 → 视口向上移；wheel 下（deltaY>0）→ panBy(deltaY>0)，视口向下移。
-  // 某些鼠标/系统把 deltaY 的号翻转（wheel 上时 deltaY>0、此时会往下看），这类机器点一次「滚轮」按钮切到反转，
-  // 选择会记住（localStorage，无遥测）。
+  // 滚轮方向（2026-11-21 实测修正）：浏览器 deltaY<0 = 往上滚。画布内容是 `translate(pan)`，
+  // 要看上面就得让内容**往下**走（pan.y 增大）。所以默认 `dir = -1`：
+  // wheel 上（deltaY<0）→ panBy(+|deltaY|) → pan.y 增大 → 内容下移 → 往上看；往下滚反之。
+  // 2026-11-20 那版写成 dir=+1，注释还把"pan.y 减小"说成"视口向上移"——实测 pan 40→-200，
+  // 内容是往上跑的，也就是用户点名的"往上滑看下面"。这次翻号，按钮文案才第一次和真行为一致。
+  // 某些鼠标/系统自己把 deltaY 报反了，这类机器点一次「滚轮」按钮切到 dir=+1，选择会记住（localStorage）。
   const [wheelInverted, setWheelInverted] = useState(false);
   const wheelInvertRef = useRef(false);
 
@@ -289,7 +291,7 @@ export function CanvasStage({ locale = 'zh' }: { locale?: Locale }) {
       event.preventDefault();
       const rect = surface.getBoundingClientRect();
       const anchor = { x: event.clientX - rect.left, y: event.clientY - rect.top };
-      const dir = wheelInvertRef.current ? -1 : 1;
+      const dir = wheelInvertRef.current ? 1 : -1;
       if (event.ctrlKey || event.metaKey) studio.zoomBy(Math.exp(-event.deltaY * 0.0015), anchor);
       else if (event.shiftKey) studio.panBy(dir * event.deltaY, 0);
       else studio.panBy(dir * event.deltaX, dir * event.deltaY);

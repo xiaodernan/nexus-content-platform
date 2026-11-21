@@ -139,9 +139,9 @@ describe('§FE-66 /studio CanvasStage 画布外壳', () => {
     expect(segment).toContain('border: 1px dashed');
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：0708bc716751f200f3eee3985ff93186ea100c69af34fbfaf0ba85bc25d6f2c5 → 滚轮方向开关重钉：38a6e525bf5d0e504c06f1c196fa3b579b18e8c104c98c50f06892a26a147dd3）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：0708bc716751f200f3eee3985ff93186ea100c69af34fbfaf0ba85bc25d6f2c5 → 滚轮方向开关重钉：c6dfa2c287206c3b972d04903c43dc0bdd1a937a53a1b6a4761f22f54da969cd）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '38a6e525bf5d0e504c06f1c196fa3b579b18e8c104c98c50f06892a26a147dd3',
+      'c6dfa2c287206c3b972d04903c43dc0bdd1a937a53a1b6a4761f22f54da969cd',
     );
   });
 });
