@@ -3,10 +3,20 @@
 Live list. Nothing here is hidden behind marketing copy.
 
 ## AI / providers
-- **No live model provider is wired.** All AI output is **DEMO MODE** — deterministic
-  heuristic composition + procedural placeholder imagery + hash embeddings. It is genuinely
-  functional (produces real Design Model ops) but is **not** model-quality. The Studio shows
-  a persistent "DEMO MODE" badge.
+- **Live model provider is wired and measured.** `apps/ai-service/.env` points all four
+  text lanes at `gpt-6.2-sol` (`https://api.aizzz.xyz/v1`, via Clash Verge 127.0.0.1:7897),
+  with `NEXUS_LLM_STREAM=1`. Real-machine proof (2026-11-21,
+  `docs/evidence/live-cache-hit-2026-11-21.md`): capability=real, demoMode=false,
+  18498/18498 cached tokens on a replay (31ms vs 2828ms cold), two parallel session lanes
+  each 100% on their 2nd turn, and world-step at 358,555-token context with a structured
+  state delta + verbatim citations. The chat/design/world-step/canon paths run as LangGraph
+  StateGraphs (`x-nexus-orchestration: stategraph`).
+- **DEMO MODE is conditional, not permanent.** It appears only when no real provider is
+  configured (§159/§160); with the shipped `.env` the badge is absent and every AI answer
+  comes from the real provider. Deterministic composition / hash embeddings remain the
+  offline fallback, never presented as model output.
+- **Image/video/speech/embedding providers are unavailable** by design (`NEXUS_MODEL_EMBEDDING=none`):
+  those lanes honestly report `unavailable` rather than faking readiness (§159).
 
 ## Studio (Milestone 1 — polished slice, see docs/evidence/studio)
 - The Design Model, infinite Canvas (2D scene-graph renderer), layers tree, properties
