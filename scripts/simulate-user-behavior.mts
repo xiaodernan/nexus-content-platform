@@ -78,6 +78,13 @@ function publicHrefs(html: string): string[] {
   return [...out];
 }
 
+/** `/n/<handle>/<slug>`：公开作品页。访问 beacon 只挂在这一种路由上，
+ *  所以"没耐心就关掉"最该量的其实就是它——脚本此前一个都不打，
+ *  `publication_visits` 因此一行都不多，仪表盘上看不到这类行为。 */
+function publishedHrefs(html: string): string[] {
+  return publicHrefs(html).filter((h) => /^\/n\/[^/]+\/[^/]+/.test(h));
+}
+
 type Persona = 'impatient' | 'rage-clicker' | 'lost-wanderer' | 'deep-reader' | 'bot-ish';
 const PERSONAS: readonly Persona[] = ['impatient', 'rage-clicker', 'lost-wanderer', 'deep-reader', 'bot-ish'];
 
@@ -90,9 +97,25 @@ async function runPersona(persona: Persona, id: number): Promise<{ persona: Pers
   const home = await note('/');
   const links = publicHrefs(home.html);
 
+  /**
+   * 找一篇公开作品来"打开就关"。`takeWork(html)` 从**已经打过的**那一页里捞，
+   * 捞到就不再捞——所以只有 `impatient` 可能为此多打一次 /discover，
+   * `lost-wanderer` 反正要打 /discover，直接复用它的结果，不重复请求。
+   * 合成流量多打一页就多一份服务端负载，而这台机器上还跑着别的东西。
+   */
+  let work: string | null = null;
+  const takeWork = (html: string): void => {
+    if (work) return;
+    const from = publishedHrefs(html);
+    if (from.length > 0) work = pick(from);
+  };
+
   if (persona === 'impatient') {
-    // 没耐心就关掉：/ → 一个链接 → 关
-    if (links.length > 0) await note(pick(links));
+    // 没耐心就关掉：/ → 一篇公开作品 → 关。作品页是"打开就关"最真实的落点
+    takeWork(home.html);
+    if (!work) takeWork((await note('/discover')).html);
+    if (work) await note(work);
+    else if (links.length > 0) await note(pick(links));
     return { persona, id, hits, wandered: 0, converted: false };
   }
   if (persona === 'rage-clicker') {
@@ -106,8 +129,10 @@ async function runPersona(persona: Persona, id: number): Promise<{ persona: Pers
   }
   if (persona === 'lost-wanderer') {
     // 漫游迷路：/ → /discover → 一个链接 → 回到 / → 关
-    await note('/discover');
-    if (links.length > 0 && rand() < 0.8) await note(pick(links));
+    const disc = await note('/discover');
+    takeWork(disc.html);
+    if (work && rand() < 0.8) await note(work);
+    else if (links.length > 0 && rand() < 0.8) await note(pick(links));
     await note('/');
     return { persona, id, hits, wandered: 2, converted: false };
   }
@@ -175,6 +200,10 @@ async function main() {
     ms: { p50: Math.round(q(0.5)), p95: Math.round(q(0.95)), p99: Math.round(q(0.99)), max: Math.round(sortedMs[sortedMs.length - 1] ?? 0) },
     byPersona,
     errorHits: errorHits.sort((a, b) => b.ms - a.ms),
+    // 命中路径全量留下：否则"确实打了公开作品页"这件事只能从总数差推断，
+    // 而推断不是证据（§159）。
+    paths: allHits.map((h) => h.path),
+    workPageHits: allHits.filter((h) => /^\/n\/[^/]+\/[^/]+/.test(h.path)).length,
     note: 'synthetic traffic from scripts/simulate-user-behavior.mts; seeded deterministically; not real users; dev path, not SLA',
   };
   writeFileSync(OUT_JSON, JSON.stringify(payload, null, 2), 'utf8');

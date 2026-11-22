@@ -1,51 +1,51 @@
 {
-  "generated_at": "2026-11-21T19:08:41.079Z",
-  "sessions_planned": 24,
+  "generated_at": "2026-11-22T02:18:42.154Z",
+  "sessions_planned": 20,
   "sessions_done": 20,
-  "hits_total": 75,
-  "ok": 75,
+  "hits_total": 73,
+  "ok": 73,
   "errors": 0,
   "ms": {
-    "p50": 972,
-    "p95": 5846,
-    "p99": 6062,
-    "max": 6062
+    "p50": 565,
+    "p95": 2089,
+    "p99": 2572,
+    "max": 2572
   },
   "byPersona": {
     "impatient": {
       "sessions": 4,
       "hits": 8,
       "errors": 0,
-      "p50": 5846,
-      "p95": 6062
+      "p50": 701,
+      "p95": 976
     },
     "rage-clicker": {
       "sessions": 4,
-      "hits": 23,
+      "hits": 22,
       "errors": 0,
-      "p50": 801,
-      "p95": 2088
+      "p50": 500,
+      "p95": 1208
     },
     "lost-wanderer": {
       "sessions": 4,
-      "hits": 16,
+      "hits": 15,
       "errors": 0,
-      "p50": 1286,
-      "p95": 1886
+      "p50": 577,
+      "p95": 807
     },
     "deep-reader": {
       "sessions": 4,
       "hits": 12,
       "errors": 0,
-      "p50": 758,
-      "p95": 1379
+      "p50": 311,
+      "p95": 2149
     },
     "bot-ish": {
       "sessions": 4,
       "hits": 16,
       "errors": 0,
-      "p50": 763,
-      "p95": 3160
+      "p50": 778,
+      "p95": 2572
     }
   },
   "errorHits": [],

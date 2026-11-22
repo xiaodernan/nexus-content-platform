@@ -146,3 +146,31 @@ def test_stategraph_prefix_digest_is_stable_and_distinct():
     run(registry_b, valid_payload(system="completely different system"))
     status, body = run(FakeRegistry(FakeLLM(REPLY_OK)), valid_payload())
     assert status == 200
+
+
+def test_stategraph_canon_prefix_is_first_byte_and_reported():
+    """§LLMCTX-1：状态图路径与线性管线同一条口径。
+
+    digest 必须是第一个字节（否则每个角色都要重买一次 15.8 万 token 前缀），
+    且 `canonPrefixChars` 真的出现在响应里——报了才证明那段上下文用上了。
+    """
+    from ai_service.design_prompt import CANON_PREFIX
+
+    class RecordingLLM(FakeLLM):
+        def complete(self, **kwargs: Any) -> FakeCompletion:
+            self.system = kwargs.get("system")
+            return super().complete(**kwargs)
+
+    llm = RecordingLLM(REPLY_OK)
+    status, body = run(FakeRegistry(llm), valid_payload(withCanonPrefix=True))
+    assert status == 200
+    assert llm.system.startswith(CANON_PREFIX[:64])
+    assert llm.system.endswith(valid_payload()["system"])
+    assert body["canonPrefixChars"] == len(CANON_PREFIX)
+
+
+def test_stategraph_without_canon_prefix_reports_nothing():
+    """零回归：不带的时 `canonPrefixChars` 不出现——没垫就不能报一个数。"""
+    status, body = run(FakeRegistry(FakeLLM(REPLY_OK)), valid_payload())
+    assert status == 200
+    assert "canonPrefixChars" not in body

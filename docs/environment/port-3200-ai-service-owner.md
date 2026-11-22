@@ -12,9 +12,11 @@
 | 26664 | `D:\内容创作平台\apps\ai-service\.venv\Scripts\python.exe -m uvicorn ai_service.app:app --host 127.0.0.1 --port 3200` | 4 MB | 16:44:25 | 内容创作平台（父） |
 | **33080** | `C:\Program Files\Python311\python.exe -m uvicorn ai_service.app:app --host 127.0.0.1 --port 3200`（26664 的基底子进程，真正的 worker） | ~64 MB | 16:44:25 | 内容创作平台（子，**持有 3200**） |
 
-功能：`.env` 来自 `apps/ai-service/.env`——`NEXUS_OPENAI_BASE_URL=https://wkapi.pro/v1`，
+功能：`.env` 来自 `apps/ai-service/.env`——`NEXUS_OPENAI_BASE_URL=https://api.aizzz.xyz/v1`，
+`NEXUS_MODEL_*`（fast/balanced/reasoning/vision）四档均为 `gpt-6.2-sol`（2026-11-20 切好），
 `capability=real`（llm `real`、embedding 如实 `unavailable`、无嵌入模型），
 `prompt_cache_key=nexus-studio` 已接通（impl. in §AILIVE-4）；冷暖 token `cachedTokens=6272/6413` 是它的真实回执。
+2026-11-20 端到端验证：web 真实请求 `/api/ai/world-step` → 200，`model="gpt-6.2-sol"`、`latencyMs=545`（web → ai-service → aizzz/Clash 7897）。本机必须经 Clash Verge（`127.0.0.1:7897`）出网——直连 aizzz.xyz 会 403（§v791 / ADR-0270）。
 
 ## 邻居不是敌人（如实）
 

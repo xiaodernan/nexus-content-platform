@@ -29,6 +29,9 @@
         "reranker"
       ]
     },
+    "withCanonPrefix": {
+      "type": "boolean"
+    },
     "cacheLane": {
       "type": "string",
       "minLength": 1,

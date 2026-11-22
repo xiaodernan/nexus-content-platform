@@ -23,7 +23,7 @@ export const metadata = {
  *
  * 一个页面看四个世界投影：人物星图 / 世界编年 / 设定集 / 世界切片；每一个数字都是真值。
  * 「最近动过的设定」只是按 updatedAt 的排序投影，不是「重要度算法」。
- * 最近两条纶元：只认作者写了 era 的纶元，不把「未标纶元」算作最近发生——
+ * 最近两条纪元：只认作者写了 era 的纪元，不把「未标纪元」算作最近发生——
  * 那是作者没取名的合辑，不是新剧情。
  *
  * 只有项目作者能进（与 /world、/chronicle、/codex 同一道门）。
@@ -37,15 +37,15 @@ const COPY = {
     footnote: '仅作者可见 · 全部数据来自 worlds / characters 真表 · 零 provider · 本页零写库',
     ariaQuad: '世界四象限',
     totalAuthored: (n: number) => `${n} 篇落笔`,
-    authorCounts: (kinds: number, eras: number, chars: number) => `${kinds} 类 · ${eras} 个纶元 · ${chars} 位人物`,
+    authorCounts: (kinds: number, eras: number, chars: number) => `${kinds} 类 · ${eras} 个纪元 · ${chars} 位人物`,
     quad: {
       constellation: { kicker: '星图', title: '人物关系星图', count: (n: number) => `${n} 位人物`, hint: '关系线照你写的画，星辰不会多长出邻居', enter: '进入 →' },
-      chronicle: { kicker: '编年', title: '世界编年', count: (entries: number, eras: number) => `${entries} 条 · ${eras} 个纶元`, hint: (n: number) => `本卷活跃 ${n} 人次（一跳 · id 精确命中）`, enter: '进入 →' },
+      chronicle: { kicker: '编年', title: '世界编年', count: (entries: number, eras: number) => `${entries} 条 · ${eras} 个纪元`, hint: (n: number) => `本卷活跃 ${n} 人次（一跳 · id 精确命中）`, enter: '进入 →' },
       codex: { kicker: '设定集', title: '设定集', count: (n: number) => `${n} 篇设定`, hint: '设定的纸面投影——写了几章看几章', enter: '进入 →' },
       ephemeris: { kicker: '切片', title: '世界切片', count: (entries: number, days: number) => `${entries} 片 · ${days} 日`, hint: '同一文档 → 360 天，确定性取样，零随机', enter: '进入 →' },
     },
-    erasPanelKicker: '最近的纶元',
-    erasEmpty: '作者还没给任何纶元取名——去世界面板的「纶元」栏写一个，比如「灰灯纪」。',
+    erasPanelKicker: '最近的纪元',
+    erasEmpty: '作者还没给任何纪元取名——去世界面板的「纪元」栏写一个，比如「灰灯纪」。',
     eraMeta: (entries: number, active: number) => `${entries} 条编年 · 星图活跃 ${active} 人`,
     lorePanelKicker: '最近动过的设定',
     loreEmpty: '还没人写过 lore——设定集第一章是模板骨架，落下第一笔这里就亮。',
@@ -53,11 +53,12 @@ const COPY = {
     openCodex: '设定集 →',
     openConstellation: '人物星图 →',
     openTide: '世界潮汐 →',
+    openNetwork: '万象脉络 →',
     footBack: '← 回到世界图',
     emptyTitle: '速览打不开——世界读不出来',
     emptyCopy: (name: string) => `「${name}」的世界文档现在读不到，所以这里不画任何数字。先去 Studio 里检查世界面板，等世界确定能读，再回来。`,
     emptyLink: '回到 Studio 的世界面板 →',
-    ariaEras: '最近的纶元',
+    ariaEras: '最近的纪元',
     ariaLore: '最近动过的设定',
   },
   en: {
@@ -83,6 +84,7 @@ const COPY = {
     openCodex: 'Codex →',
     openConstellation: 'Constellation →',
     openTide: 'World Tide →',
+    openNetwork: 'World network →',
     footBack: '← Back to the world',
     emptyTitle: 'Digest can’t open — the world won’t load',
     emptyCopy: (name: string) => `「${name}」’s world document can’t be read right now, so no numbers here. Check the Studio world panel, confirm the world loads, then come back.`,
@@ -121,7 +123,7 @@ export default async function DigestPage({ params }: { params: Promise<{ project
   const eraEntries = eras.reduce((acc, era) => acc + era.entries.length, 0);
   const activeFigureVisits = ties.reduce((acc, tie) => acc + tie.linkedCharacters.length, 0);
 
-  // 「最近两条纶元」——只认作者取了名字的纶元；合著的未标纶元不算新编年
+  // 「最近两条纪元」——只认作者取了名字的纪元；合著的未标纪元不算新编年
   const namedEras = eras.filter((era) => era.era !== UNLABELED_ERA);
   const lastTwoEras = namedEras.slice(-2).reverse();
 
@@ -240,6 +242,7 @@ export default async function DigestPage({ params }: { params: Promise<{ project
         <Link className="am-linkImplicit" href={`/world/${projectId}`} data-digest-back-graph>{c.footBack}</Link>
         <Link className="dg-panelLink" href={`/world/${projectId}/constellation`} data-digest-open-constellation>{c.openConstellation}</Link>
         <Link className="dg-panelLink" href={`/world/${projectId}/tide`} data-digest-open-tide>{c.openTide}</Link>
+        <Link className="dg-panelLink" href={`/world/${projectId}/network`} data-digest-open-network>{c.openNetwork}</Link>
       </footer>
     </main>
   );

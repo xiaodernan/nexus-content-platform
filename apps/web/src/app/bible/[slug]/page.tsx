@@ -6,8 +6,12 @@ import { BIBLE_CHAPTERS, BIBLE_ECHOES } from '@/world-bible/generated';
 import { BibleMarkdown, extractAnchors } from '@/components/BibleMarkdown';
 import { ChapterDigest } from '@/components/ChapterDigest';
 import { TideWitness } from '@/components/TideWitness';
+import { buildEchoThreads, echoThreadNeighbours } from '@/lib/echoThreads';
 
 export const dynamic = 'force-dynamic';
+
+/** 每条线索在阅读页最多列几篇邻居。潮候院那种 189 篇的线索列全了会把正文挤到看不见。 */
+const MAX_THREAD_ECHOES = 12;
 
 /**
  * §BIBLE-1 低语诸王 · 典籍室（`/bible/[slug]` 阅读页）。
@@ -26,6 +30,11 @@ const COPY: Record<Locale, {
   prev: string;
   next: string;
   backIndexFoot: string;
+  threadsTitle: string;
+  threadsLede: (n: number) => string;
+  threadsEmpty: string;
+  othersLabel: (n: number) => string;
+  moreOthers: (n: number) => string;
 }> = {
   zh: {
     kicker: '低语诸王 · 世界大典',
@@ -39,6 +48,11 @@ const COPY: Record<Locale, {
     prev: '上一章',
     next: '下一章',
     backIndexFoot: '← 回目录',
+    threadsTitle: '顺藤摸瓜 · 同线索的回响',
+    threadsLede: (n) => `这一篇压在 ${n} 条线索上。每条线索上的其它回响都在下面——读完一篇不必回目录，顺着一条线就能走到没读过的地方。`,
+    threadsEmpty: '这一篇没有命中任何一条线索（不是无关，是线索表还没覆盖到它）。',
+    othersLabel: (n) => `另有 ${n} 篇`,
+    moreOthers: (n) => `还有 ${n} 篇没列全`,
   },
   en: {
     kicker: 'The Whispers’ Kings · World Bible',
@@ -52,6 +66,11 @@ const COPY: Record<Locale, {
     prev: 'Previous',
     next: 'Next',
     backIndexFoot: '← Back to shelf',
+    threadsTitle: 'Follow the thread · echoes on the same line',
+    threadsLede: (n) => `This echo sits on ${n} threads. The other echoes on each one are below — you do not have to go back to the shelf; a thread carries you somewhere unread.`,
+    threadsEmpty: 'This echo matches no thread (not unrelated — the motif table simply does not cover it yet).',
+    othersLabel: (n) => `${n} more`,
+    moreOthers: (n) => `${n} more not listed`,
   },
 };
 
@@ -89,6 +108,8 @@ export default async function BibleChapterPage({
   const markdown = locale === 'en' ? chapter.markdownEn : chapter.markdownZh;
   const anchors = extractAnchors(chapter.markdownZh, chapter.markdownEn);
   const label = isEcho ? c.echoLabel(chapter.order) : c.chapterLabel(chapter.order);
+  // 同线索邻居：全量表现算一次（纯函数，零 provider），只给回响页用
+  const neighbours = echoThreadNeighbours(buildEchoThreads(BIBLE_ECHOES), chapter.order, BIBLE_ECHOES);
 
   return (
     <main className="bb-root" data-bible-root data-bible-locale={locale}>
@@ -125,6 +146,42 @@ export default async function BibleChapterPage({
 
         <ChapterDigest slug={chapter.slug} locale={locale} />
       </article>
+
+      {isEcho ? (
+        <section className="bb-threads" aria-label={c.threadsTitle} data-bible-threads>
+          <h2 className="bb-threadsTitle">{c.threadsTitle}</h2>
+          {neighbours.threads.length === 0 ? (
+            <p className="bb-threadsEmpty">{c.threadsEmpty}</p>
+          ) : (
+            <>
+              <p className="bb-threadsLede">{c.threadsLede(neighbours.threads.length)}</p>
+              <ul className="bb-threadList">
+                {neighbours.threads.map((t) => (
+                  <li key={t.id} className="bb-thread" data-bible-thread={t.id}>
+                    <p className="bb-threadHead">
+                      <span className="bb-threadLabel">{locale === 'en' ? t.labelEn : t.labelZh}</span>
+                      <span className="bb-threadOthers">{c.othersLabel(t.others.length)}</span>
+                    </p>
+                    <ul className="bb-threadEchoes">
+                      {t.others.slice(0, MAX_THREAD_ECHOES).map((o) => (
+                        <li key={o.order} className="bb-threadEcho">
+                          <Link href={`/bible/${o.slug}`} className="bb-threadEchoLink" data-bible-thread-open={o.order}>
+                            <span className="bb-threadEchoNum">{c.echoLabel(o.order)}</span>
+                            <span className="bb-threadEchoName">{locale === 'en' ? o.titleEn : o.titleZh}</span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                    {t.others.length > MAX_THREAD_ECHOES ? (
+                      <p className="bb-threadMore">{c.moreOthers(t.others.length - MAX_THREAD_ECHOES)}</p>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </section>
+      ) : null}
 
       <footer className="bb-foot">
         <Link href="/bible" className="bb-footLink" data-bible-back-foot>{c.backIndexFoot}</Link>

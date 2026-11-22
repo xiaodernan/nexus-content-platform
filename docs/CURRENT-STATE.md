@@ -8738,3 +8738,54 @@ Reader (post-continuum trace):
 - **生成**：gen:bible-snapshot 重生 generated.ts / digest（267,741 chars, sha 73a35425…）；锚句 1266→1272；回响 209→210。
 - **计数对齐**：guideCopy 209→210 / 1266→1272 / two hundred nine→ten；bible-ask-behavior pin 1261→1267；canon-answer-graph 段落断言 209→210（13+210=223）。
 - **验证**：world-bible / bible-snapshot / anchor-echo / record-encoding 全 exit 0；相关 vitest 3 文件 32 passed。
+## cont. 475 (2026-11-22) — 两个 Postgres 的 WAL/统计目录损坏抢修
+
+- 11-21 起 `nexus-postgres` 因 WAL 段头坏（invalid magic number / no valid checkpoint）PANIC
+  退出，编排集成判据全 skip；今天进一步查明：`pg_statistic` 的 TOAST 缺块（XX001）会让
+  **任何读 pages 的规划查询**炸掉——修 WAL 不等于修好库。
+- 处置：先整卷备份（`D:\backups\nexus-pgdata-20261122.tar.gz`，98MB）→ `pg_resetwal` →
+  发现统计目录仍坏 → `pg_dump` 证明数据可读 → 重灌新库 + `ANALYZE` + 换名（旧库留名备查）。
+  5433 与 55433 两个库都做了；`pg_dump`/`ANALYZE` 全绿，无缺块。
+- 验证读数：`agent-orchestration.integration` **22/22**；`moderation.integration` +
+  `publish.integration` **27/27**。此前 §PLAN-1 的 `[~]` 由此关闭。
+- 诚实限度：55433 源库有 8 条孤儿 session 导致恢复时 sessions→users 外键未建；测试不依赖，
+  但下次 schema 对账要补。旧库暂不删，确认无回归后再清理。
+
+## cont. 476 (2026-11-22) — 观察站 AI 清单：把调用放回服务端，给数字标出处
+
+- 真 bug：`ObserverAiAdvice`（client）直接 import `chatWithCharacter`（server-only）。浏览器里
+  没有 `NEXUS_AI_SERVICE_URL` 与凭据，点击只会在客户端抛异常，组件 catch 后显示一行错——
+  看上去"有反应"，实际一次真调用都没发生。真机读数 `items=[]` / `pageerror=[]` 把这件事钉住了。
+- 新增 `/api/admin/observer/advice`：与 DeepRead 同门（口令 123 / admin / DEMO 409 /
+  5 次每 IP 每小时），指标服务端现算，客户端只发 locale；页面不再把计数当 props 传下去。
+- 补 `aiAdviceAudit.ts`：以**逐字喂给模型的 brief**为允许集核对 `basis+impact` 的数字；
+  不在快照里的不删只标「可能是模型推算」。真机 4 条建议、1 条 `0.08%` 被标注，0 报错。
+- 补 `.obs-aiAdvice*` 五个类名的门面样式——此前 globals.css 零定义，整块是裸按钮/裸字体。
+- 判据 13 条 + 观察站回归 27 条全绿；ADR 0299。
+
+## cont. 477 (2026-11-22) — 并行缓存 PASS + 手册补齐
+
+- `probe:cache-parallel`（4 路）真机 **PASS**：P0 冷 0% → 暖 100%；P1 四路同前缀不同 user
+  各 88.2%（差额就是各自不同的 user 段）；P2 同文并发 100% 且 0.12–0.38s（被合并）；
+  P3 并发后回到 100%。用户点名的"并行会话打散缓存"在生产路径上不成立。
+- 说明书补进 `/world/<id>/network` 万象脉络（此前 grep 零命中），并写清观察站结构化 AI
+  清单的"数字逐字核对、未出现只标不删"。guide 判据 8/8。
+- 证据：`docs/evidence/ai-cache-and-ui-2026-11-22.md` §4。
+
+## cont. 478 (2026-11-23) — 两条线并成一条：v1098 合并落树，冲突逐文件记账，三条并线红各回根因
+
+- `origin/main` 独有 94 个提交并回 `master`（分叉点 `3433207c`）：冲突解完时 **155 文件 / +9700 / −278**，
+  落地提交 **157 / +9875 / −288**，
+  解法与理由全在 ADR 0313（决定 1–12）。从此"这句话在不在另一条线上"不用再问。
+- 四处视觉钉**显式重钉**（`/search` 31 个 `se-*` 字面量、bible 目录页 `/bible/threads` 出口、
+  bible 阅读页回响段、角色对话 `canonPrefixChars` 徽章）；`/admin/savings` 对面带来的那份钉**拒收**——
+  它对不上任何 ref 任何提交的页面字节，收下就是装一个假绿。
+- 并线新造三条红：`observer/advice` 写路由缺 `csrfOk`（照同族 `digest` 补，客户端 `csrfHeaders()`，
+  审计测试加一条两头都接上的腿）；`globals.css` 里指向不存在 token 的死兜底删掉；
+  `npm run typecheck` 露出 v1097 自带 9 处类型红（那文件不在合并差异里——`verify:fe-gates` 不查类型）。
+- 读数：第一次整树 `2 failed | 669 passed | 3 skipped (674)` / `2 failed | 8600 passed | 6 skipped (8608)`；
+  修后 `verify:fe-gates` 154/1410、`verify:census` 3197 类全有引用方、`verify:evidence-census` exit 0、
+  `verify:bible-snapshot` ✓、`apps/web` `tsc` exit 0；修后整树见 ADR 0313 验证段。
+- 还有一条**活着的第三线**：`local-clone/main` = `6218077d`（`D:\内容创作平台`，占着 `:3100`），
+  相对并线前 master 独有 137 个提交、90 个在 `origin/main` 之外、133 条非补丁等价，
+  ADR 号与本线连撞 0307/0308。P1 的下一半就是它。本批**未 push**。

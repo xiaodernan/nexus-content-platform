@@ -28,6 +28,7 @@ const COPY = {
     verifyFail: '机检提醒：这段回复漏了系统边界或自述身份——戏份为主，别全信。',
     cacheLine: (u: { tokensIn: number; cachedTokens: number }) =>
       `缓存复用 ${u.cachedTokens.toLocaleString()} / ${u.tokensIn.toLocaleString()} tokens`,
+    canonLine: (chars: number) => `本句带着整部世界大典（${chars.toLocaleString()} 字符）一起发给模型`,
   },
   en: {
     heading: 'Talk to the character',
@@ -42,6 +43,7 @@ const COPY = {
     verifyFail: 'Machine check: this reply slipped its boundaries or own identity — improvisation, not scripture.',
     cacheLine: (u: { tokensIn: number; cachedTokens: number }) =>
       `cache reuse ${u.cachedTokens.toLocaleString()} / ${u.tokensIn.toLocaleString()} tokens`,
+    canonLine: (chars: number) => `this turn carried the whole World Bible (${chars.toLocaleString()} chars) into the model`,
   },
 } as const;
 
@@ -57,7 +59,7 @@ export function CharacterChat({
   locale?: Locale;
 }) {
   const c = COPY[locale];
-  const [log, setLog] = useState<{ role: 'user' | 'character'; text: string; verified?: boolean | null; usage?: { tokensIn: number; tokensOut: number; cachedTokens: number; cacheReported: boolean } }[]>([]);
+  const [log, setLog] = useState<{ role: 'user' | 'character'; text: string; verified?: boolean | null; usage?: { tokensIn: number; tokensOut: number; cachedTokens: number; cacheReported: boolean }; canonPrefixChars?: number }[]>([]);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -82,10 +84,20 @@ export function CharacterChat({
             message?: string;
             verified?: boolean;
             usage?: { tokensIn: number; tokensOut: number; cachedTokens: number; cacheReported: boolean };
+            canonPrefixChars?: number;
           }
         | null;
       if (!res.ok || !body?.reply) throw new Error(body?.message ?? `HTTP ${res.status}`);
-      setLog((prev) => [...prev, { role: 'character', text: body.reply!, verified: body.verified ?? null, usage: body.usage }]);
+      setLog((prev) => [
+        ...prev,
+        {
+          role: 'character',
+          text: body.reply!,
+          verified: body.verified ?? null,
+          usage: body.usage,
+          canonPrefixChars: body.canonPrefixChars,
+        },
+      ]);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -116,6 +128,9 @@ export function CharacterChat({
               ) : null}
               {entry.role === 'character' && entry.usage?.cacheReported ? (
                 <span className="ch-cache" data-character-chat-cache>{c.cacheLine(entry.usage)}</span>
+              ) : null}
+              {entry.role === 'character' && entry.canonPrefixChars ? (
+                <span className="ch-canon" data-character-chat-canon>{c.canonLine(entry.canonPrefixChars)}</span>
               ) : null}
             </li>
           ))}

@@ -142,11 +142,12 @@ describe('§BIBLE-1 /bible 典籍室', () => {
   });
 
   it('SHA256 钉死（EOL 归一 + className→@）：目录页 / 阅读页 / 渲染器', () => {
+    // 2026-11-23 并回 origin/main：目录页多了 /bible/threads 出口，阅读页多了「回响线索」段——两处显式重钉
     expect(createHash('sha256').update(redactClasses(index)).digest('hex')).toBe(
-      'e6ca3e2c1cafffeab65fcb612349cb6afccf6d94c64859b80eea734f9eac2542',
+      '93391f389f8f6af61d85d20f650fa42620da9aad681e5b7e8e65981610c0ba72',
     );
     expect(createHash('sha256').update(redactClasses(reader)).digest('hex')).toBe(
-      'b4952b62d4d1652749a1e5063f6ef3cffc1ffe53f88bb209da3fff7b2d4d0695',
+      'c76bec23b6a5a94a46d7b849459817b04a6633791f1de57bf7000202ad076df7',
     );
     expect(createHash('sha256').update(redactClasses(component)).digest('hex')).toBe(
       '5051a2bdbb11cca3f3e5369562edbcce97bbf5a53a568f8024da3fef9ac8ad82',

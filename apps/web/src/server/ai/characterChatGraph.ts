@@ -20,8 +20,6 @@ export interface CharacterChatGraphState extends Record<string, unknown> {
   persona: string;
   turn: string;
   locale: 'zh' | 'en';
-  /** §CACHE-SESSION 会话级 provider 前缀缓存车道；同会话跨轮同值，不同会话隔离。 */
-  cacheLane?: string;
   draft: string;
   issues: string[];
   iterations: number;
@@ -32,6 +30,8 @@ export interface CharacterChatGraphState extends Record<string, unknown> {
   tokensOut: number;
   cachedTokens: number;
   cacheReported: boolean;
+  /** §LLMCTX-1：ai-service 回执里声明的 canon digest 字节数（带了才有）。 */
+  canonPrefixChars: number | null;
   provider: string;
   model: string;
   capability: string;
@@ -41,6 +41,8 @@ export type CharacterChatGraphResult =
   | {
       ok: true;
       answer: string;
+      /** §LLMCTX-1：这一发垫了多少字节的 canon digest（没垫就是 undefined）。 */
+      canonPrefixChars?: number;
       /** pass = 机检通过；fail = 修订用尽仍不通过（答复如实返回并由调用方标注，不冒充「已核验」） */
       verdict: 'pass' | 'fail';
       iterations: number;
@@ -67,12 +69,16 @@ function usageOf(result: AiChatResult): { tokensIn: number; tokensOut: number; c
 }
 
 export async function runCharacterChatGraph(
-  input: { persona: string; turn: string; locale: 'zh' | 'en'; cacheLane?: string },
+  input: { persona: string; turn: string; locale: 'zh' | 'en'; withCanonPrefix?: boolean; cacheLane?: string },
   chat: CharacterChatChatFn = chatWithCharacter,
 ): Promise<CharacterChatGraphResult> {
   const persona = input.persona.trim();
   const turn = input.turn.trim();
   const locale = input.locale;
+  // §LLMCTX-1：默认不带大典前缀（字节级零回归）；显式要求才让 ai-service 把
+  // canon digest 垫在 persona 之前——那 15.8 万 token 是真实成本，要调用方点头。
+  const withCanonPrefix = input.withCanonPrefix === true;
+  // §CACHE-SESSION：会话级前缀缓存车道（跨轮恒定、不同会话互不挤占）。
   const cacheLane = input.cacheLane?.trim() || undefined;
   if (!persona) return { ok: false, status: 400, error: 'validation-failed: persona must not be empty' };
   if (!turn) return { ok: false, status: 400, error: 'validation-failed: turn must not be empty' };
@@ -92,6 +98,7 @@ export async function runCharacterChatGraph(
     tokensOut: 0,
     cachedTokens: 0,
     cacheReported: true,
+    canonPrefixChars: null,
     provider: '',
     model: '',
     capability: '',
@@ -100,18 +107,31 @@ export async function runCharacterChatGraph(
   // 冻结 state：节点不原地改写，只返回累加后的新值。
   const nextUsage = (s: CharacterChatGraphState, result: AiChatResult) => {
     const u = usageOf(result);
+    // 两轮都报同一个数（system 不变）；谁先到取谁，缺省 null = 这一发没垫大典。
+    const canon =
+      result.ok && typeof result.response.canonPrefixChars === 'number' ? result.response.canonPrefixChars : null;
     return {
       tokensIn: s.tokensIn + u.tokensIn,
       tokensOut: s.tokensOut + u.tokensOut,
       cachedTokens: s.cachedTokens + u.cachedTokens,
       cacheReported: s.cacheReported && u.cacheReported,
+      canonPrefixChars: s.canonPrefixChars ?? canon,
     };
   };
 
   const graph = new StateGraph<CharacterChatGraphState>()
     .addNode('draft', async (s) => {
       const id = nextRequestId('character-draft');
-      const result = await chat({ requestId: id, system: s.persona, user: s.turn, modelClass: 'balanced', ...(s.cacheLane ? { cacheLane: s.cacheLane } : {}) });
+      const result = await chat({
+        requestId: id,
+        system: s.persona,
+        user: s.turn,
+        modelClass: 'balanced',
+        ...(withCanonPrefix ? { withCanonPrefix: true } : {}),
+        // state 是 Record<string, unknown>，这里显式收成 string——直接把 unknown 铺进
+        // 契约形状，TS 会把整条调用判成类型不符（合并两个分支时踩到过）。
+        ...(s.cacheLane ? { cacheLane: String(s.cacheLane) } : {}),
+      });
       const u = nextUsage(s, result);
       if (!result.ok) {
         return { draft: '', nodesVisited: [...s.nodesVisited, 'draft'], issues: ['provider-unavailable'], ...u };
@@ -147,7 +167,16 @@ export async function runCharacterChatGraph(
         'Previous reply:',
         s.draft,
       ].join('\n');
-      const result = await chat({ requestId: id, system: s.persona, user, modelClass: 'balanced', ...(s.cacheLane ? { cacheLane: s.cacheLane } : {}) });
+      // 修订轮复用同一个 system（persona 不变）⇒ 大典前缀那一段 KV 不重买
+      //（design 路径 §GRAPH-3 同一条纪律）。
+      const result = await chat({
+        requestId: id,
+        system: s.persona,
+        user,
+        modelClass: 'balanced',
+        ...(withCanonPrefix ? { withCanonPrefix: true } : {}),
+        ...(s.cacheLane ? { cacheLane: String(s.cacheLane) } : {}),
+      });
       const u = nextUsage(s, result);
       if (!result.ok) {
         return { draft: s.draft, iterations: s.iterations + 1, nodesVisited: [...s.nodesVisited, 'revise'], ...u };
@@ -184,6 +213,7 @@ export async function runCharacterChatGraph(
   return {
     ok: true,
     answer: final.answer.trim(),
+    ...(final.canonPrefixChars === null ? {} : { canonPrefixChars: final.canonPrefixChars }),
     verdict,
     iterations: final.iterations,
     provider: final.provider,

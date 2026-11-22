@@ -49,7 +49,9 @@ REPLY_OK = json.dumps(
             "vigor": 9,          # 越界 → 必须夹到 3
             "depth": -7,         # 越界 → 必须夹到 -3
             "seals": ["潮候印"],
+
             "unlocks": ["E162", _FUTURE, "E999"],  # E162 存在；_FUTURE 随正典派生、必不存在；E999 格式非法
+
             "risk": "STORM",
         },
         "citations": [
@@ -147,7 +149,7 @@ def test_happy_path_200_and_delta_clamped():
     assert body["delta"]["vigor"] == 3, "vigor 9 必须夹到 +3"
     assert body["delta"]["depth"] == -3, "depth -7 必须夹到 -3"
     assert body["delta"]["seals"] == ["潮候印"]
-    assert body["delta"]["unlocks"] == ["E162"], "只有 digest 里真实存在的回响才被解锁"
+    assert body["delta"]["unlocks"] == ["E162"], "只有 digest 里真实存在的回响才被解锁（非法格式与未来编号都剔除）"
     assert body["delta"]["risk"] == "storm", "risk 必须折叠为小写且通过白名单"
     # 引用核验：原文真实存在的那条保留，虚构锚句被剔除
     quotes = [c["quote"] for c in body["citations"]]
@@ -220,7 +222,9 @@ def test_world_step_canon_guard_drops_unlocks_not_in_digest():
     reply = json.dumps(
         {
             "narration": "潮候院只许翻到真实存在的那一页。",
+
             "delta": {"vigor": 1, "depth": 0, "seals": ["盐印"], "unlocks": [_FUTURE], "risk": "uneasy"},
+
             "citations": [],
         },
         ensure_ascii=False,
@@ -228,4 +232,6 @@ def test_world_step_canon_guard_drops_unlocks_not_in_digest():
     registry = FakeRegistry(FakeLLM([ANALYZE_OK, reply]))
     status, body = run(registry, valid_payload())
     assert status == 200
+
     assert body["delta"]["unlocks"] == [], f"{_FUTURE} 不在正典 digest 里，必须剔除"
+

@@ -62,6 +62,8 @@
 
 wkapi.pro 线退役；新线（用户提供）：key 经 `apps/ai-service/.env`（gitignored）、`https://api.aizzz.xyz/v1`、模型 `gpt-6.1-terra`。**本机必须经 Clash Verge（`127.0.0.1:7897`）出网**，直连 aizzz.xyz 会被该服务拦（实测 HTTP 403，经代理 HTTP 200，`GET /v1/models` 列出 `gpt-6.1-terra`）。
 
+> **2026-11-21 模型更正（用户点名）**：模型已从 `gpt-6.1-terra` 换成 **`gpt-6.2-sol`**。当前 `apps/ai-service/.env` 四档 `NEXUS_MODEL_FAST/BALANCED/REASONING/VISION` 全是 `gpt-6.2-sol`，`NEXUS_MODEL_EMBEDDING=none`（网关没有 embedding 模型）；上文与下面 ADR/evidence 里的 `gpt-6.1-terra` 是当日当时的实测记录，保留原文不改写，但不代表当前配置。
+
 机器级决定（详见 `docs/adr/0269-provider-aizzz-switch-machine-decisions.md`）：
 
 - `NEXUS_LLM_STREAM=0` —— 流式经 Clash Verge 静态节点 **SSL EOF / 403**，wkapi 时代「流式胜出」实测不适用此线；非流式才是本机正确形状。

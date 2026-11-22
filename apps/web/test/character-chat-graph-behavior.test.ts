@@ -63,6 +63,12 @@ const down503: AiChatResult = {
 
 const passing = '潮声又起了。你怎么又来了？';
 
+const withCanon = (text: string, chars: number, cachedTokens = 2400): AiChatResult => {
+  const base = okReal(text, cachedTokens);
+  if (!base.ok) throw new Error('unreachable');
+  return { ...base, response: { ...base.response, canonPrefixChars: chars } };
+};
+
 describe('§47-graph · runCharacterChatGraph', () => {
   it('机检一次通过：nodesVisited=[draft,verify,finalize] · verdict=pass', async () => {
     const { chat, calls } = script([okReal(passing, 2000)]);
@@ -74,6 +80,50 @@ describe('§47-graph · runCharacterChatGraph', () => {
     expect(result.nodesVisited).toEqual(['draft', 'verify', 'finalize']);
     expect((calls[0] as AiChatRequest).system).toBe(PERSONA);
     expect((calls[0] as AiChatRequest).user).toBe(TURN);
+    // 零回归：不要求大典前缀时，回执里根本没有这个字段
+    expect(result.canonPrefixChars).toBeUndefined();
+    expect(calls[0]).not.toHaveProperty('withCanonPrefix');
+  });
+
+  it('§LLMCTX-1 默认不带：发给 provider 的请求里没有 withCanonPrefix', async () => {
+    const { chat, calls } = script([okReal(passing, 2000)]);
+    const result = await runCharacterChatGraph({ persona: PERSONA, turn: TURN, locale: 'zh' }, chat);
+    expect(result.ok).toBe(true);
+    expect(Object.keys(calls[0]!).sort()).toEqual(['modelClass', 'requestId', 'system', 'user']);
+  });
+
+  it('§LLMCTX-1 显式带上：请求带 withCanonPrefix，回执透传 canonPrefixChars', async () => {
+    const { chat, calls } = script([withCanon(passing, 266660, 210000)]);
+    const result = await runCharacterChatGraph(
+      { persona: PERSONA, turn: TURN, locale: 'zh', withCanonPrefix: true },
+      chat,
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(calls[0]!.withCanonPrefix).toBe(true);
+    expect(result.canonPrefixChars).toBe(266660);
+    // 带了大典之后命中数远超不带时——这不是"多用了几百 token"，是另一个量级
+    expect(result.usage.cachedTokens).toBe(210000);
+  });
+
+  it('§LLMCTX-1 修订轮同样带上：system 不变，前缀 KV 不重买', async () => {
+    // 让第一轮机检失败（自曝身份），走 revise → verify → finalize
+    // 命中 `self-identity-leak` 的写法：banned 词表里是「作为ai」这种无空格形式
+    const leaky = '作为AI语言模型，我不能回答这个问题。';
+    const { chat, calls } = script([okReal(leaky, 1000), withCanon(passing, 266660, 210000)]);
+    const result = await runCharacterChatGraph(
+      { persona: PERSONA, turn: TURN, locale: 'zh', withCanonPrefix: true },
+      chat,
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.nodesVisited).toContain('revise');
+    expect(calls).toHaveLength(2);
+    expect(calls[1]!.withCanonPrefix).toBe(true);
+    expect(result.canonPrefixChars).toBe(266660);
+    expect(result.verdict).toBe('pass');
+    // system 逐字节一致 ⇒ 大典前缀那一段 KV 在两轮之间不重买
+    expect((calls[0] as AiChatRequest).system).toBe((calls[1] as AiChatRequest).system);
   });
 
   it('persona 在 draft 与 revise 间逐字节一致（§缓存纪律：system 是 KV 前缀）', async () => {

@@ -577,6 +577,18 @@ export const AiRequestSchema = z.object({
   modelClass: ModelClass.default('balanced'),
   /** 多方案生成数量（§29/§117），1-4 */
   variants: z.number().int().min(1).max(4).default(1),
+  /**
+   * §GRAPH-3：这一轮要不要让第二个模型视角自查补丁（draft → review → revise）。
+   * 默认 false——它会主动多打 1–3 次 provider 调用，是用户有意识选择的 token 预算。
+   * 服务端还有个全局开关 `NEXUS_LLM_DESIGN_REVIEW`，两者是「或」关系：
+   * 全局开=所有请求都审；单请求开=只在这一轮多花。默认关=零回归。
+   *
+   * 用 optional 而不是 .default(false)：`.default()` 会把 zod 的**输出**类型变成必填，
+   * 于是所有手写 AiRequest 字面量（路由、测试夹具）都得补一个 review:false，
+   * 明明是后加的开关却逼着十几个调用点改签名。服务端 `payload.get("review")` 读不到就是关闭，
+   * 语义与默认 false 完全一致。
+   */
+  review: z.boolean().optional(),
   context: DesignContextSchema,
   /** 参考图（§30）：data url 或资产 id */
   references: z.array(z.object({ assetId: z.string().optional(), dataUrl: z.string().optional(), kind: z.enum(['screenshot', 'photo', 'moodboard', 'url']).default('screenshot') })).default([]),
@@ -625,10 +637,20 @@ export const AiChatRequestSchema = z.object({
   system: z.string().min(1).max(320_000),
   user: z.string().min(1).max(4000),
   modelClass: ModelClass.default('balanced'),
-  // 会话级 provider 前缀缓存车道（§CACHE-SESSION）。同一会话跨轮恒定、不同会话互不相同：
-  // provider 的 prompt_cache_key 用它把每个会话钉在自己的 channel-local 前缀缓存上，
-  // 避免多个会话共用 system 时互相把对方的前缀挤出（实测共享 lane 交错 → 命中从 94% 掉回 0%）。
-  // 只是路由提示，不进 completion 缓存键、不改模型输出；省略时回落到按 system 派生的 sticky 键。
+  /**
+   * §LLMCTX-1：让 ai-service 在 `system` 之前垫上 canon digest（≈15.8 万 tokens）。
+   * 角色对话原来只带 persona 几百字——模型回答"这个世界里发生了什么"时没有依据。
+   * 大前缀放在**服务端**而不是让 web 拼好发过来：web 的报文保持小，
+   * 而"哪一份字节是稳定前缀"只有 ai-service 那一处说了算（design 路径同源）。
+   * 默认 false = 字节级零回归；显式 true 才带上，调用方要为这段上下文付账。
+   */
+  withCanonPrefix: z.boolean().optional(),
+  /**
+   * 会话级 provider 前缀缓存车道（§CACHE-SESSION）。同一会话跨轮恒定、不同会话互不相同：
+   * provider 的 prompt_cache_key 用它把每个会话钉在自己的 channel-local 前缀缓存上，
+   * 避免多个会话共用 system 时互相把对方的前缀挤出（实测共享 lane 交错 → 命中从 94% 掉回 0%）。
+   * 只是路由提示，不进 completion 缓存键、不改模型输出；省略时回落到按 system 派生的 sticky 键。
+   */
   cacheLane: z.string().min(1).max(200).optional(),
 });
 export type AiChatRequest = z.infer<typeof AiChatRequestSchema>;
@@ -641,6 +663,13 @@ export const AiChatResponseSchema = z.object({
   text: z.string().max(4000),
   usage: UsageSchema,
   error: AiErrorSchema.optional(),
+  /**
+   * §LLMCTX-1：这一发**真的**垫了多少字节的 canon digest 在 system 之前。
+   * 只在调用方显式 `withCanonPrefix` 时出现（缺省不带这个字段 = 没垫）。
+   * 为什么进契约而不是塞在 usage 里：它是「这次调用的形状」，不是「provider 报了多少钱」；
+   * 而界面要能回答"我多打的那 15.8 万 token 到底用上了没有"——不报就等于没人能证明（§159）。
+   */
+  canonPrefixChars: z.number().int().min(0).optional(),
 });
 export type AiChatResponse = z.infer<typeof AiChatResponseSchema>;
 

@@ -17,7 +17,7 @@
  *   4. domain-service additionally answers `/actuator/circuitbreakers` with `ai-service` present
  *      (§SC-60/SC-62 family) — one breaker-visible service is enough to pin the contract.
  *
- * Postgres on 55433 is REQUIRED for the two JPA services — the smoke does not fake it: if it is down,
+ * Postgres on 5433/nexus_dev is REQUIRED for the two JPA services — the smoke does not fake it: if it is down,
  * their health honestly answers DOWN and this script fails with exactly that statement.
  * Each service is started, asserted and STOPPED before the next one boots (heap ceiling 512m/384m).
  * Everything can be overridden: NEXUS_*_PORT / NEXUS_DOMAIN_DB_URL / NEXUS_API_DB_URL / DB_USERNAME /
@@ -48,10 +48,30 @@ const PORTS = {
   gateway: Number(process.env.NEXUS_ACTUATOR_GATEWAY_PORT ?? 8095),
 };
 
-const DB_URL = process.env.NEXUS_DOMAIN_DB_URL ?? 'jdbc:postgresql://127.0.0.1:55433/nexus';
-const API_DB_URL = process.env.NEXUS_API_DB_URL ?? 'jdbc:postgresql://127.0.0.1:55433/nexus_api_smoke';
-const DB_USERNAME = process.env.DB_USERNAME ?? 'nexus';
-const DB_PASSWORD = process.env.DB_PASSWORD ?? 'nexus_dev_only';
+// 2026-11-22 与 verify-topology / verify-loadbalance 同一次更正：55433 的库 WAL 损坏后
+// 常驻重启循环；5433/nexus_dev 才是本机活着、web 侧也在用的那一个（5433 上还有一个
+// 只有 5 个用户、schema 旧的 `nexus` 库，连它只会拿到 bio 不存在的错）。
+const DB_URL =
+  process.env.NEXUS_DOMAIN_DB_URL ??
+  'jdbc:postgresql://127.0.0.1:5433/nexus_dev?prepareThreshold=5&preparedStatementCacheQueries=256&preparedStatementCacheSizeMiB=5&defaultRowFetchSize=100';
+const API_DB_URL = process.env.NEXUS_API_DB_URL ?? 'jdbc:postgresql://127.0.0.1:5433/nexus_api_smoke';
+const DB_USERNAME = process.env.DB_USERNAME ?? 'nexus_app';
+const DB_PASSWORD = process.env.DB_PASSWORD ?? 'nexus_dev_app_only';
+
+/** nexus-api 的 throwaway 库必须真的存在（幂等；建不了照实报错）。与 verify-topology 同一段理由。 */
+async function ensureApiDatabase(): Promise<void> {
+  const postgres = (await import('postgres')).default;
+  const sql = postgres(`postgres://${DB_USERNAME}:${encodeURIComponent(DB_PASSWORD)}@127.0.0.1:5433/postgres`, {
+    max: 1,
+  });
+  try {
+    await sql.unsafe('CREATE DATABASE nexus_api_smoke').catch((error: { code?: string }) => {
+      if (error.code !== '42P04') throw error; // duplicate_database
+    });
+  } finally {
+    await sql.end({ timeout: 5 });
+  }
+}
 
 /** Ports that must be free before we start anything — fail fast with a name, not a timeout. */
 async function assertFree(port: number) {
@@ -258,7 +278,8 @@ async function main() {
 
   for (const port of Object.values(PORTS)) await assertFree(port);
 
-  // domain-service — JPA against 55433 (DB required; honesty over a fake UP).
+  // domain-service — JPA against 5433/nexus_dev (DB required; honesty over a fake UP).
+  await ensureApiDatabase();
   await verifyService({
     name: 'domain-service', jar: domainJar, heap: '512m',
     env: { NEXUS_DOMAIN_PORT: String(PORTS.domain), NEXUS_DOMAIN_DB_URL: DB_URL, DB_USERNAME, DB_PASSWORD, _port: PORTS.domain },

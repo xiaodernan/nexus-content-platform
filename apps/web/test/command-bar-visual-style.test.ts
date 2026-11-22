@@ -26,6 +26,14 @@ import { describe, expect, it } from 'vitest';
  * 原因是生成结果行多了一枚缓存读数 chip（`data-ai-cache` 钩子 + `cacheText` 措辞）——
  * 那是**真实的新界面元素**，不是换皮，所以门该破。来由记在这里而不是只改断言：
  * 下一个人看到哈希变了，得能查到为什么。
+ *
+ * **2026-11-20 §GRAPH-3 再换一次**：`36df642d…` → `2d5c08ad…`。
+ * 发送栏多了一枚「让 AI 自查一遍」开关（`data-ai-review`），勾上后 `body.review=true`，
+ * 设计管线会跑 draft → review → revise → 终审。多花 token、有真实行为，门该破。
+  *
+  * **2026-11-21 视觉修复**：`2d5c08ad…` → `92aa97f3…`。占位符原本 46 字，在 270px 的
+  * 输入框里折成三行、被 34px 行高裁掉半行，截图看着像文字重叠。可见占位缩到一行，
+  * 完整教学移到 `title`（悬停仍读得到），不是删掉说明。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/studio/CommandBar.tsx');
@@ -157,10 +165,22 @@ describe('§FE-61 /studio CommandBar AI 命令栏', () => {
     }
   });
 
-  it('剥 className/cn 后全文 SHA256 守恒（2026-11-17 v845「§73-AI 审批解释追加」重钉：36df642d8cd90db78e12bd9103d0f1f4cf7cf5605c25be2157436e8d4b6cf100）', () => {
+  it('剥 className/cn 后全文 SHA256 守恒（2026-11-20 §GRAPH-3 自查开关重钉：2d5c08ad69bcdc2c39060a60a42c302448f40536af3bca6ede5c8bc9404821c4）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '36df642d8cd90db78e12bd9103d0f1f4cf7cf5605c25be2157436e8d4b6cf100', // v845 §73-AI 纯新增字面与 data-* 钩子
+      '92aa97f3185613e237526630e4c374d8a9ec9316474ed15d243e15f382ed41dd', // §GRAPH-3：新增 reviewMode 状态、双语文案、data-ai-review 开关、body.review
     );
+  });
+
+  it('§GRAPH-3 自查开关接线：勾选必须进 body.review，不能只是画了个勾', () => {
+    // 一个"看起来能点、点了没接线"的开关比没有更糟：用户会以为自己多花了 token 买到保险。
+    expect(main).toContain('data-ai-review');
+    expect(main).toContain('const [reviewMode, setReviewMode] = useState(false)');
+    expect(main).toMatch(/review:\s*reviewMode/);
+    // 默认关：这是主动多花钱的功能，不能被悄悄打开
+    expect(main).toContain('useState(false)');
+    // 中英文案都要说清代价，不能只在一个语种里提示
+    expect(main).toContain('让 AI 自查一遍');
+    expect(main).toContain('Double-check with AI');
   });
 
   it('§CACHE-3 缓存 chip 接线：三态走 data-ai-cache、措辞走 cacheText，组件不许自己再写一份', () => {

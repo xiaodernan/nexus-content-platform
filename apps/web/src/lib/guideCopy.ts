@@ -43,14 +43,15 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '③ 功能地图（点进去就是那个页面）',
         body: [
-          '/discover 广场（热门/最新/ trending / 我关注的；为你推荐：AI 照你自己的实测阅读 myOpens 排；馆长批注：trending 榜前三由 AI 照三条真实指标（浏览/赞/评/转/热度分）各写一句为什么值得打开，每条必含数字）· /marketplace 组件/模板/资产市场 · /blocks 积木库 · /search 全站搜索',
-          '/studio/<project> 项目主场：画布/图层/设计系统/3D · /world/<id> 走进这个世界（3D 步行）· /world/<id>/digest 世界速览 · /world/<id>/integrity 世界体检 · /world/<id>/tide 世界潮汐 · /world/<id>/almanac 世界年鉴 · /world/<id>/constellation 人物关系星图 · /world/<id>/codex 设定集（纸面投影）· /world/<id>/chronicle 编年 · /world/<id>/ephemeris 世界切片',
-          '/bible 典籍室：正典精读 → 《潮汐教团》十四章 + 二百余回响；/bible/search 直达（正典本地检索）· /bible/quiz 潮汐挑战（正典问答）· /bible/well 七口井（典籍室第二个玩法）',
+          '/discover 广场（热门/最新/ trending / 我关注的；为你推荐：AI 照你自己的实测阅读 myOpens 排；馆长批注：trending 榜前三由 AI 照三条真实指标（浏览/赞/评/转/热度分）各写一句为什么值得打开，每条必含数字）· /marketplace 组件/模板/资产市场 · /blocks 积木库 · /search 全站搜索（站内九类 + 站外「现实世界」维基百科那一块，两边分开排）',
+          '/studio/<project> 项目主场：画布/图层/设计系统/3D · /world/<id> 走进这个世界（3D 步行）· /world/<id>/digest 世界速览 · /world/<id>/integrity 世界体检 · /world/<id>/tide 世界潮汐 · /world/<id>/almanac 世界年鉴 · /world/<id>/constellation 人物关系星图 · /world/<id>/codex 设定集（纸面投影）· /world/<id>/chronicle 编年 · /world/<id>/ephemeris 世界切片 · /world/<id>/network 万象脉络（枢纽榜 / 势力团 / 割边关节 / 跨类关系）',
+          'Studio 世界面板的「AI 续写编年」会真打一次模型，只在你已经写过的纪元下面补一条故事（自造的纪元名会被丢掉，不替你发明历史分期）；新条目带纪元标签，/world/<id>/chronicle 编年页立刻能看到。面板底部的「AI 补全空节」可一次把最多 3 个还没写正文的类别补上（已有内容的不动，再点继续；补写时会检索你已有的条目作证据，让新细节长在旧细节上）。想随手看看这片土地还会长出什么，点「掷命运骰」——它从你已写的条目里重组成事件卡，不调模型也不写库；看中哪张还可以点「把这张卡写进世界」，它以故事条目落库并标明 seed 与来源，不冒充模型新写的史实。',
+          '/bible 典籍室：正典精读 → 《潮汐教团》十四章 + 二百余回响；/bible/search 直达（正典本地检索）· /bible/quiz 潮汐挑战（正典问答）· /bible/well 七口井（典籍室第二个玩法）· /bible/threads 回响线索索引（哪几篇在写同一件东西）',
           '/bible 收录第三种玩法：/bible/anchors 锚句回放——全部中英锚句逐字回放，抢答它出自哪一章（连对 / 历史最佳本地记）；以及第四个角落 /bible/margins 页边批注——抄本师写在页边、不进名册的话，先读再决定要不要知道出处',
           '/n/<handle>/<slug> 公开页（访客第一眼看到的是这一版）· /preview/<project> 同源只读镜头（发布前同一排断点与缩放）',
           '/tasks 任务账本（每次 AI 请求一行，含第几次、真/DEMO、用量、用时）· /credits 我的额度（SavingsCard：缓存替你省下的重复计算）· /api-tokens API 令牌 · /analytics 我作品的数据 · /pulse 观测大厅（平台聚合匿名统计，口令 123）· /notifications 收件箱 · /ship 交付日志 · /about-nexus 关于',
           '/admin/* 平台管理台（role=admin）：审核台、pricing、dead-letter、ai-cache、audit、observability、users、pricing、rate-limit 等',
-          '/admin/observe 只读观察站（口令 123 · 口令公开）：看平台所有用户的真实行为——注册、打开、点赞、评论、收藏、任务结局、套餐分布、7 天打开趋势图与下行规则建议；顶部新增「趋势预测」带（服务端最小二乘线性外推，明确标注非 AI；样本不足 4 天就不拟合）；「AI 深读」按钮（gpt-6.2-sol，输出必含数字，否则服务器原样拒绝展示；模型现在也能看到这组服务端外推数字）/admin 里也摆着「观察站」入口与直通链',
+          '/admin/observe 只读观察站（口令 123 · 口令公开）：看平台所有用户的真实行为——注册、打开、点赞、评论、收藏、任务结局、套餐分布、7 天打开趋势图与下行规则建议；顶部新增「趋势预测」带（服务端最小二乘线性外推，明确标注非 AI；样本不足 4 天就不拟合）；「AI 深读」按钮（gpt-6.2-sol，输出必含数字，否则服务器原样拒绝展示；模型现在也能看到这组服务端外推数字）；下面的结构化「AI 深读 · 建议」清单由服务端路由现算指标再调模型，每条依据/影响里的数字都会与喂给模型的快照逐字核对——不在快照里的标「可能是推算」，不删只标，判断权留给你；/admin 里也摆着「观察站」入口与直通链',
         ],
       },
       {
@@ -68,7 +69,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑤ 额度 & DEMO MODE 是什么？',
         body: [
-          '每个免费账户每月有 AI 额度。真用 wkapi.pro 上的 gpt-6-sol 这类真 provider 会扣真额度；没配真 provider 时会显示 DEMO MODE 标识——系统仍然能走通流程，只是出的东西是确定性模拟出来的"看起来像 AI 做的东西"，不是真模型的作品。',
+          '每个免费账户每月有 AI 额度。真用 aizzz.xyz 上的 gpt-6.2-sol 这类真 provider 会扣真额度；没配真 provider 时会显示 DEMO MODE 标识——系统仍然能走通流程，只是出的东西是确定性模拟出来的"看起来像 AI 做的东西"，不是真模型的作品。',
           '/credits 页面可以实时看消费账单：每次 AI 调用都记 token in/out/model/latency/cost——任何一笔都是真的数字，不是演出来的；账本里的 SavingsCard 会把"缓存替你省下的重复计算"摊给你看（命中率、输入 token 复用、真模型/DEMO 轮次分得清）。',
           '看到"缓存命中率"这个词：它反映 provider 端的 prefix cache 复用率——同一个前缀的下一次调用如果命中了，就免费少数 token；不命中也不证明你做错了，只证明分布器把你的请求放到了一个新分片。',
         ],
@@ -76,7 +77,9 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑥ 常见问答',
         body: [
-          'Q：为什么我按了个按钮，整页空白了？A：这是 DEMO MODE 的特性——未配置 provider 时，生成路径不写真实代码；等到你在环境变量里配置好真实 provider 并跑通第一次真实调用，那些页就"亮"了。',
+          // 2026-11-22 i18n 审计：这句在 zh 里以"那些页就"硬截断（"就"后面缺成分），
+          // 英文侧反而补全了"亮了"——两边不对齐。zh 补成完整句，与 en 同义。
+          'Q：为什么我按了个按钮，整页空白了？A：这是 DEMO MODE 的特性——未配置 provider 时，生成路径不写真实代码；等到你在环境变量里配置好真实 provider 并跑通第一次真实调用，那些页就"亮"起来了。',
           'Q：缓存命中率低是我的问题吗？A：不是——你在看的是 provider 端的 KV 分布片分配；把同一 lane 打满 6–10 次大概率出现 1 次未命中；可以在 /admin/ai-cache（admin）看自己的使用账。',
           'Q：怎么让别人看到我的作品？A：顶栏发布→填标题→发布；发布后自动进广场/市场；发布前作品是私密的。',
           'Q：数据安全吗？A：所有 AI 改动都进审计账本、可撤销 Command；公开作品随时可撤回。',
@@ -95,8 +98,8 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         heading: '⑧ 走进一个世界玩（World）',
         body: [
           '/world/<id> 进入 3D 走动视角：WASD 或方向键移动；按住鼠标左键拖拽可以环视四周（向上拖 = 往上看）；靠近 NPC 后按角色旁出现的「跟角色说话」入口对话。',
-          '/world/<id>/chronicle 编年史：故事/历史条目按纪元排开（灰灯纪/灰烬纪/铁月纪……你项目自己的纪元名），人物星图 ↔ 编年互相点亮；条目可挂「记忆回声」——纯感官刻痕，≤ 240 字，不是梗概。',
-          '/world/<id>/digest 世界速览 · /world/<id>/integrity 世界体检（只报真问题：纪元错位/回声缺失/孤儿条目，不打分不假绿）· /world/<id>/tide 世界潮汐 · /world/<id>/ephemeris 世界日历投影 · /world/<id>/codex 设定集 · /world/<id>/constellation 人物关系星图。',
+          '/world/<id>/chronicle 编年史：故事/历史条目按纪元排开（灰灯纪/灰烬纪/铁月纪……你项目自己的纪元名），人物星图 ↔ 编年互相点亮（世界面板的「AI 牵线」可真调模型从已有条目里挑一条写关系，自造 id 会被丢掉）；条目可挂「记忆回声」——纯感官刻痕，≤ 240 字，不是梗概；在世界面板点「AI 写回声」可真调模型写一段，只依据该条正文。',
+          '/world/<id>/digest 世界速览 · /world/<id>/integrity 世界体检（只报真问题：纪元错位/回声缺失/孤儿条目，不打分不假绿）· /world/<id>/tide 世界潮汐 · /world/<id>/ephemeris 世界日历投影 · /world/<id>/codex 设定集 · /world/<id>/constellation 人物关系星图 · /world/<id>/network 万象脉络（把九类条目与有向关系算成骨架：枢纽榜回答“谁被最多关系穿过”，势力团是互相纠缠的强连通分量，关节是“一断全散”的割边——都是对同一份世界文档的图算法投影，不改数据）。',
           '这些页面全部是你的项目数据的投影——世界页不是"官方故事"，是你画的世界自己的结构。',
           '想读这个宇宙的正典文字？去 /bible 翻《低语诸王》十四章正典——锚句中英字字对齐的正典、可以直接收藏的典籍室。另外还有两个按钮：「潮汐挑战」是正典小测（一百三十一题，答错带题目直通问典）；「问典」是把正典喂给真模型——问中文答中文、问英文答英文、典籍里没有的它直接说"典籍里没有"。',
           '想让 AI 读你的数据？/analytics 里的 Creator Agent 规则分析底下——也藏着一个「让大模型看看我的数据」按钮——它跑的是真 provider，不是模板。',
@@ -122,8 +125,8 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑪ 典籍室（/bible）怎么玩',
         body: [
-          '/bible 正典精读：《潮汐教团》十四章 + 二百余回响——每一章点开就能读，锚句在中英之间字对齐（zh 原字节 / en 对照，不混写）。',
-          '/bible/search 直达：在正典里按关键词做本地检索，直接读出命中的那一段（不出 AI、不出库外来源，慢一步但是真检索）。',
+          '/bible 正典精读：《潮汐教团》十四章 + 二百余回响——每一章点开就能读，锚句在中英之间字对齐（zh 原字节 / en 对照，不混写）。想知道哪几篇回响在写同一件东西？典籍室页脚进「回响线索索引」：潮印、盐账、夜钥匙这些有名字的东西，各自由哪几篇写成、每篇的锚句原文都列出来。',
+          '/bible/search 直达：在正典里按关键词做本地检索，直接读出命中的那一段（不出 AI、不出库外来源，慢一步但是真检索）。想知道现实世界里这个词指什么？/search 页面下方有「现实世界 · 站外资料」那一块，来自维基百科，和站内结果分开排、不混在一起。',
           '/bible/quiz 潮汐挑战：以正典出题——答错回哪一章重新对，点亮的路标留在本机（无云存档，刷新照旧）。',
           '/bible/well 七口井：典籍室的第二个玩法——顺着七条线索找回失落的七口井；找对了就开出一段地方，找不到的照实说找不到。',
           '/bible/whisper 答问者：挑一卷正典再问一句——典籍里有写的就照它写的答，没写的就直说没写。零持久化、零记忆，刷新就是忘了。',
@@ -146,6 +149,16 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           'draft 的 system 是字节级稳定的正典摘要（十四章正典全文 + 锚句中英对照），前缀复用因而 KV 命中率在 /admin/ai-cache 里看得见。',
         ],
       },
+      {
+        heading: '⑬ 画布键鼠速查（2026-11-20 新增）',
+        body: [
+          '滚轮（默认网页惯例，2026-11-20 修正）：往上滚往上看、往下滚往下看。如果自己手里的鼠标/系统方向反了，顶区「滚轮」按钮把它切到反转，之后再切回来。',
+          '右键拖拽移动视口（中键或空格拖拽）；Shift + 滚轮横向滚动；Ctrl + 滚轮按住边框为锚点缩放，最大 4× 最小 0.1×。',
+          '顶区「适应窗口」按钮（Shift+1）：把文档整个放进视口——缩放仍在 0.1–4 倍闸内，画布会居中。',
+          'Ctrl+G 显示/隐藏对齐网格；方向键微移 1px，Shift+方向键 8px，Delete 删选中。',
+          '每个面板上都有标题栏；顶栏「+ 新建页」快速加页；面板里的搜索框（Ctrl+F）搜组件名。',
+        ],
+      },
     ],
   },
   en: {
@@ -154,17 +167,21 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
     lede: 'This is not just a help page — it is the manual: what every capability is, how to use it. Switch language anytime with the top-right toggle.',
     sections: [
       {
-        heading: '① What is this thing?',
+        // 2026-11-22 i18n 审计（第一次配上真 LLM）：原标题把「这个平台是什么？」
+        // 泛化成 "What is this thing?"，丢掉了"平台"这一层含义。
+        heading: '① What is this platform?',
         body: [
-          'NEXUS is an AI Universe Studio — a place where your spoken intent becomes a design model, then real websites, games, videos and worlds that actually open.',
+          'NEXUS is an AI Universe Studio — a place where an idea you describe aloud is assembled into a design model, then turned into real websites, games, videos and worlds you can actually open.',
           'Create a project → lay out the design → let AI assist → export / publish / play the games inside.',
           'Not an "AI toy": every AI change goes through a revocable Command stack; every asset is yours; DEMO MODE is a standing badge — unconfigured providers are never faked as live.',
         ],
       },
       {
-        heading: '② New here? A 2-minute first run-through',
+        // 2026-11-22 i18n 审计：zh 只说"第一次跑通"，没给时长；"2-minute" 是增译。
+        heading: '② New here? Your first successful run',
         body: [
-          'Sign up → "New project" → give it a name → you land in Studio (left panel + canvas + right inspector).',
+          // 同上：zh 写的是"点新建项目"，英文原来漏了"点"这个动作词。
+          'Sign up → click "New project" → give it a name → you enter Studio automatically (left panel + central canvas + right inspector).',
           'In Studio, select something on the canvas (mouse or Tab) → hit "New page" in the top bar, or drag components from the left onto the canvas.',
           'Say one sentence to the AI (e.g. "make the title 72px serif") — every AI turn lands as a Command you can undo with Cmd/Ctrl+Z; no provider configured ⇒ no pretend magic, the DEMO MODE badge shows.',
           'Press Cmd/Ctrl+K to open the command palette — type a project name or any path keyword ("publish", "ship", "tide") and Enter jumps straight there.',
@@ -176,9 +193,15 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         ],
       },
       {
-        heading: 'How does AI "speak" here? (StateGraph in one minute)',
+        // 同上：zh 是"小课"（简短讲解），"in one minute" 凭空加了一个时长。
+        heading: 'How does AI "speak" here? (StateGraph in brief)',
         body: [
-          'When AI edits a design, the request takes one of two lanes: lane A directly POSTs /v1/ai/run; lane B runs it through an explicit **stateful graph** — LangGraph-style state machine: validate (input contract) → check_provider (pick model by modelClass) → build_prefix (lay down a byte-stable prefix so the provider\u2019s prefix cache fires) → call_llm (real call to gpt-6.2-sol) → cache_read (hit = skip provider) → parse_and_release (validate patch legality) → assemble (contract-checked response). Any failure short-circuits to END — nothing keeps spinning.',
+          // 同上："pick model by modelClass" 丢了"选档"的档位含义；build_prefix 的括号说明
+          // 也太短，看不出它为什么存在（这正是本片 §LLMCTX-1 在做的事）。
+          // 同上：上一轮给 build_prefix 补的那句"170k-token canon digest cost 88% less"
+          // 是 zh 里没有的信息——英中夹杂正是用户点名要避免的。要么两边都有，要么都不写；
+          // 这句话搬去 §LLMCTX-1 自己的段落（zh/en 同步），这里只留"为什么存在"。
+          'When AI edits a design, the request takes one of two lanes: lane A directly POSTs /v1/ai/run; lane B runs it through an explicit, traceable **state graph** — a LangGraph state machine: validate (check the input against the contract) → check_provider (pick the model tier for this modelClass) → build_prefix (lay down a byte-stable prefix so the provider\u2019s prefix cache fires) → call_llm (a real call to gpt-6.2-sol) → cache_read (a hit skips the provider entirely) → parse_and_release (check the patch is legal) → assemble (build the contract response). Any failure short-circuits to END — nothing keeps spinning.',
           'Why a graph and not a straight line? The graph makes the AI call a pipeline you can reason about, replay and partially undo — not a black-box API. x-nexus-orchestration: stategraph is the only public tell that lane B served you; the response body is byte-identical to lane A.',
           'Measured effect: on identical byte-prefixes, back-to-back turns hit 21265/21268 cached tokens (≈99.99%) — real savings, not demo numbers. /admin/savings pairs tokensIn against cachedTokens side by side.',
           'Curious? apps/ai-service/src/ai_service/stategraph.py is the graph written out — readable source is the documentation; tests/test_stategraph.py walks the eight arms: why validate / check_provider / dryRun / invalid patches short-circuit straight to END.',
@@ -189,20 +212,28 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '③ Feature map (click a path, land on the page)',
         body: [
-          '/discover feed (For You: AI ranks by your own measured reading trace — myOpens — and never ranks for people without one; the curator’s note: the top-3 trending cards get one “why open this” each, written by AI from three real metrics (views / likes / comments / remixes / heat), every line citing figures) · /marketplace components/templates/assets · /blocks library · /search global search',
-          '/studio/<project> studio · /world/<id> walk this world (3D) · /world/<id>/digest world digest · /world/<id>/integrity world checkup · /world/<id>/tide world tide · /world/<id>/almanac world almanac · /world/<id>/constellation character graph · /world/<id>/codex paper tome · /world/<id>/chronicle timeline · /world/<id>/ephemeris 360-day page',
-          '/bible hall of canon → 《潮汐教团》 fourteen chapters + two hundred–plus echoes; /bible/search direct hits (local canon retrieval) · /bible/quiz Tide Challenge (canon quiz) · /bible/well Seven Wells (the second game)',
+          // 2026-11-22 i18n 审计：the curator’s note 没有把"这是馆长的批注"说明白；
+          // one “why open this” each 是翻译腔。
+          // 2026-11-22 i18n 审计（第二轮）：上一轮把"AI 照三条真实指标写批注"改成了
+          // "the curator writes…"——主体被换掉了，zh 里写批注的是 AI 不是馆长；
+          // 同时"三条真实指标（浏览/赞/评/转/热度分）"与"每条必含数字"都被漏掉。
+          '/discover feed (Hot / Latest / trending / Following; Recommended for You: AI ranks by your own measured reading activity — myOpens; Curator’s notes: for the top-3 trending entries, AI writes one sentence per entry explaining why it is worth opening, from three real metrics (views / likes / comments / remixes / heat score), and every one of those sentences must contain a number) · /marketplace component/template/asset marketplace · /blocks library · /search global search (nine in-platform groups plus an outside-the-platform "real world" lane from Wikipedia, ranked separately)',
+          '/studio/<project> studio · /world/<id> walk this world (3D) · /world/<id>/digest world digest · /world/<id>/integrity world checkup · /world/<id>/tide world tide · /world/<id>/almanac world almanac · /world/<id>/constellation character graph · /world/<id>/codex paper tome · /world/<id>/chronicle timeline · /world/<id>/ephemeris 360-day page · /world/<id>/network the power skeleton (degree hubs, strong-component cliques, bridge joints, cross-kind edges)',
+          '/bible hall of canon → The Tide Conclave: fourteen chapters + two hundred–plus echoes; /bible/search direct hits (local canon retrieval) · /bible/quiz Tide Challenge (canon quiz) · /bible/well Seven Wells (the second game)',
           '/bible gains a third game: /bible/anchors Anchor Echo — every bilingual anchor sentence replayed verbatim; name the chapter or echo each line came from (streak and best kept locally) · plus a fourth corner, /bible/margins — what the copyists wrote in the margin: not the body, not the register, read it first and then decide whether to learn its echo',
           '/n/<handle>/<slug> public page (what visitors see first) · /preview/<project> same-origin read-only lens (the same controls as visitors)',
           '/tasks task ledger (one AI request per row, with attempt count, real/DEMO badge, usage and latency) · /credits your quota (SavingsCard: duplicate computation the cache absorbed for you) · /api-tokens API tokens · /analytics your stats · /pulse the observatory hall (platform-wide aggregate, passphrase 123) · /notifications inbox · /ship ship log · /about-nexus about',
           '/admin/* admin console (role=admin): moderation, pricing, dead-letters, ai-cache, audit, observability, users, rate-limit, etc.',
-          '/admin/observe the read-only observer (password 123 — the password is public): every real user’s behavior on the platform — signups, opens, likes, comments, saves, task outcomes, plan distribution, the 7-day opens trend and rule-engine advice; a new “Trend projection” band on top (server-side least-squares linear extrapolation — explicitly not AI; no fit under 4 days of samples); the “AI deep-read” button (gpt-6.2-sol — output must carry figures or the server refuses to render it — and the model now receives that server-computed projection as well); a direct link on /admin too',
+          '/admin/observe the read-only observer (password 123 — the password is public): every real user’s behavior on the platform — signups, opens, likes, comments, saves, task outcomes, plan distribution, the 7-day opens trend and rule-engine advice; a new “Trend projection” band on top (server-side least-squares linear extrapolation — explicitly not AI; no fit under 4 days of samples); the “AI deep-read” button (gpt-6.2-sol — output must carry figures or the server refuses to render it — and the model now receives that server-computed projection as well); the structured “AI deep-read · suggestions” list below it computes metrics on the server and then calls the model, and every figure in its basis/impact is matched verbatim against the brief sent to the model — unmatched ones are flagged “possibly inferred”, never deleted; a direct link on /admin too',
         ],
       },
       {
         heading: '④ How games work here',
         body: [
-          'Action surface (/game/<id>): WASD or arrow keys to move; Space to attack. The HUD shows health, time, live enemies, pickups (items x/y), discoveries and activations — finish the map before judging, not by health alone.',
+          // 同上：zh 是"场上敌人数 / 发现量"（计数），live enemies / discoveries 读起来像状态而非数量。
+          // 2026-11-22 i18n 审计："walk the whole map" 读成步行遍地图；
+          // zh 是"把一张图完整走完"（完成整关）。
+          'Action surface (/game/<id>): WASD or arrow keys to move; Space to attack. The HUD in the top-right corner shows health, time, the number of enemies on the field, pickups (items x/y), the number of discoveries and the number of activations — complete the whole level before looking at the end-of-game results.',
           'Dead? Restart: the “Restart” button on the outcome screen re-runs (Space also bound); runs are self-contained, no cross-run checkpoints.',
           'Next stage layout is decided by @nexus/game-model from where you ended — your previous coordinates seed the next enemy placements.',
           'RPG adventure (/game/<id>?view=rpg): WASD/arrows to walk; Space/Enter near an NPC to talk; pick options with arrows + Space; dialogue choices write into your world file (visible in the character panel).',
@@ -214,7 +245,8 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑤ Quota & what DEMO MODE means',
         body: [
-          'Every free account has an AI quota. Real providers consume real quota; without one you see the DEMO MODE badge — the flow still completes, but the output is deterministic simulation, not a real model’s work.',
+          // 同上：缺冠词，"the output is deterministic simulation" 不是英语。
+          'Every free account has an AI quota. Real providers such as gpt-6.2-sol on aizzz.xyz consume real quota; without a real provider you see the DEMO MODE badge — the flow still completes, but the output is a deterministic simulation that looks like something an AI made, and it is not a real model’s work.',
           '/credits shows the live ledger: every AI call records tokens in/out, model, latency, cost. All real numbers; SavingsCard on that page tallies how much duplicate computation the cache absorbed for you (hit rate, prompt-token reuse, real vs DEMO turns).',
           'About "cache-hit rate": it measures the provider’s prefix-KV hit rate. Same prefix sequence hitting twice means fewer tokens consumed; a miss is not proof of error — the distributor may have placed your request on a cold shard.',
         ],
@@ -222,27 +254,32 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑥ Frequently asked questions',
         body: [
-          'Q: why did the page go blank? A: DEMO MODE short-circuit — no provider configured, so generation can’t write real code. Configure the real provider endpoint in the environment to make those pages "light up".',
+          // 2026-11-22 i18n 审计：Q / A 之后的句子首字母要大写（英文排版）。
+          'Q: Why did pressing a button blank the whole page? A: This is a DEMO MODE feature — no provider configured, so generation can’t write real code. Only after you configure a real provider in the environment AND get the first real call working end to end will those pages "light up".',
           'Q: is low cache-hit-rate my fault? A: No — it’s the provider’s KV-shard lottery. Over 6–10 identical prefix lanes expect ~1 cold shard; admins can see their per-lane bills at /admin/ai-cache.',
           'Q: how do others see my work? A: top-bar Publish → fill title → publish; before publishing it stays private.',
           'Q: is my data safe? A: every AI edit is in the audit ledger, revocable Command; public works recallable anytime.',
         ],
       },
       {
-        heading: '⑦ How the storyboard plays (§40–§42)',
+        // 同上：plays 偏离功能说明语境。
+        heading: '⑦ How the storyboard works (§40–§42)',
         body: [
-          'Open the “Storyboard” tab at the bottom of Studio → write one sentence and press “Cut a storyboard”. That is local deterministic splitting by punctuation, not AI storyboarding; no fake generation before a provider is wired.',
+          // 同上：Cut a storyboard 生硬；before a provider is wired 是翻译腔；
+          // 且漏了"切出来的是一张镜头表"这个结果。
+          'Open the “Storyboard” tab at the bottom of Studio → write one sentence and press “Generate a storyboard draft”. That is local deterministic splitting by punctuation into a shot list — not AI storyboarding; nothing is faked before a provider is integrated.',
           'Per shot you can change: duration (ms), camera (Wide/Medium/Close-up/Detail/Tracking/Aerial), transition (Cut/Fade/Dissolve/Wipe); hit “DEMO reference” to compose a reference frame for the shot — pixels come from a local deterministic synthesizer, not AI output; undo only drops the link, it never deletes the asset.',
           '“DEMO-render the whole storyboard” renders the entire board into one mp4 attached to the first shot: real ffmpeg, real quota door, real video-ingest gate, product is DEMO (local inference, not AI generation) and is labeled as such at the button.',
           'The timeline is directly editable: drag a cell’s right edge to resize (snaps to 100 ms, minimum 200 ms), drag the block to reorder, double-click a cell to split at the click point; keyboard: Tab to the right edge, arrows nudge (Shift = 500 ms per step), Enter commits, Esc cancels — all four paths edit the same model and are undoable.',
         ],
       },
       {
-        heading: '⑧ Step into a world',
+        heading: '⑧ Step into a world and play',
         body: [
-          '/world/<id> is the 3D walk view: WASD or arrow keys move; hold the left mouse button and drag to look around (drag up = look up); stand near an NPC and use the “Talk to the character” entry to converse.',
-          '/world/<id>/chronicle — story and history entries arranged by era (Grey-Lamp Age / Ash Age / Iron-Moon Age — whatever YOUR project’s eras are), characters and chronicle light each other up; entries can carry “memory echoes” — pure sensory etchings, ≤ 240 chars, not plot summaries.',
-          '/world/<id>/digest world digest · /world/<id>/integrity world checkup (reports real issues only: era drift, missing echoes, orphan entries — no fake scoring) · /world/<id>/tide world tide · /world/<id>/ephemeris world calendar projection · /world/<id>/codex the lore tome · /world/<id>/constellation the character graph.',
+          '/world/<id> is the 3D walk view: WASD or arrow keys move; hold the left mouse button and drag to look around (drag up = look up); get close to an NPC and use the “Talk to the character” option that appears beside them to talk.',
+          '/world/<id>/chronicle — story and history entries arranged by era (Grey-Lamp Age / Ash Age / Iron-Moon Age — whatever YOUR project’s eras are), characters and chronicle light each other up (the world panel’s “AI link” makes one real model call to connect two existing entries — invented ids are dropped); entries can carry “memory echoes” — pure sensory etchings, ≤ 240 chars, not plot summaries; the world panel’s “AI write echo” makes one real model call grounded only in that entry’s own body.',
+          '/world/<id>/digest world digest · /world/<id>/integrity world checkup (reports real issues only: era drift, missing echoes, orphan entries — no fake scoring) · /world/<id>/tide world tide · /world/<id>/ephemeris world calendar projection · /world/<id>/codex the lore tome · /world/<id>/constellation the character graph · /world/<id>/network the power skeleton (hubs answer “who is crossed by the most relations”, cliques are mutually entangled strong components, joints are bridges that split the graph if cut — graph-algorithm projections over the same world document, never edits).',
+          'The Studio world panel’s “AI write chronicle” makes one real model call and adds one story under an era you have already written — invented era names are dropped, so the model never invents a period for you. The new entry carries its era tag and shows up at /world/<id>/chronicle right away. The bottom “AI fill empties” button fills up to 3 sections with no body text per click (existing content is untouched; click again for the rest; it retrieves your existing entries as evidence so new details grow out of old ones). For a quick taste of what this land might still hold, press “Roll fate” — it recombines your own entries into event cards, with no model call and no database write; press “Keep this card in the world” to save it as a Story entry that names its seed and sources rather than masquerading as fresh model-written lore.',
           'Every one of these pages is a projection of YOUR project — the world pages are not “the official story”; they are the structure of the world you drew, rendered.',
           'Fancy the canon text of this universe? Go to /bible — fourteen chapters of the Tide Conclave plus two hundred–plus echoes, anchor sentences aligned word-for-word between Chinese and English.',
         ],
@@ -250,16 +287,21 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑨ Marketplace, invites and teams',
         body: [
-          '/marketplace — the components bazaar: browse what authors have listed, see who bought what, buy or refund; everything listed has a real settlement path. The “AI picks” strip up top has the model read measured fields of the first three shelf items (price / downloads) and write one line each on why they deserve a look — prices and download counts are real; the model never claims quality.',
+          // 同上：bazaar 把"组件市场"窄化成"组件集市"；strip up top / shelf items 是翻译腔。
+          // 同上：see who bought them 少了"买过"的完成态；"they deserve a look" 读起来像模型在
+          // 评价作品，而 zh 明说质量模型不碰、只按价格与下载量写一句。
+          '/marketplace — the component marketplace: browse what authors have listed, see who has bought them, buy or refund; every item sold in the market has a real settlement path. The “AI picks” section at the top has the model read measured fields of the first three items on the shelf (price / downloads) and write one sentence for each, based on those fields alone — prices and download counts are real; the model does not judge work quality.',
           '/invites/<token> — accept a team invite: project members send invite links from the Studio Team panel; accepted collaborators hold a seat (seats are capped; expired invites stop holding one).',
           '/api-tokens — mint a token for CI/scripts to read and publish your content programmatically; /tasks shows the real queue and state of every cloud task.',
           '/ship daily delivery log (AI at-a-glance: the model writes 2-4 sentences straight from mechanically counted git-log figures — real numbers, model-written words) · /notifications inbox (Let AI read it first — counts-only triage: moderation/approval/team outrank likes and follows; no title or body ever reaches the model) · /analytics your works’ stats · /pulse the observatory hall (whole platform, aggregated & anonymous, passphrase 123) · /observatory the public observation hall (rule-projected, public, passphrase 123; AI deep-read: the model drafts four actionability-ranked optimization suggestions from the measured aggregates, with basis / impact / next steps; AI independent review: the model recomputes the board and rules agrees / disagrees per line (every line cites figures)) · /credits your quota ledger — all real data pages.',
         ],
       },
       {
-        heading: '⑩ Wrong turn? Walk back',
+        heading: '⑩ Made a wrong move? Undo it',
         body: [
-          '⌘Z (or Ctrl+Z) undoes the most recent Command — chat edits, canvas, storyboard, state patches, breakpoints all run through the same undo stack; redo is ⌘⇧Z / Ctrl+Y.',
+          // 2026-11-22 i18n 审计：原文"重做是 ⌘⇧Z / Ctrl Y"被译成 "redo is ⌘⇧Z / Ctrl Y"，
+          // 读起来像在给快捷键本身下定义；改成"要重做按…"，并把"全部走同一条撤销栈"补回来。
+          '⌘Z (or Ctrl Z) undoes the most recent Command — chat, canvas, storyboard, state patches and breakpoints all share the same undo stack; to redo it, press ⌘⇧Z / Ctrl Y.',
           'Destructive actions (delete project / unpublish / delete shot / clear selection) all carry a confirmation step; deleted projects go to the recoverable trash; public works can be recalled to private anytime.',
           'Publish’s last step is a confirmation card — nothing enters the feed without your explicit yes; dangerous AI actions (delete / publish / spend quota) are likewise human-gated and refuse to run until approved.',
         ],
@@ -267,8 +309,8 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑪ How the Hall of Canon works (/bible)',
         body: [
-          '/bible — the canon proper: fourteen chapters of the Tide Conclave, plus two hundred–plus echoes; anchor sentences align word-for-word across zh and en.',
-          '/bible/search — type a keyword, fetch the exact canon passage (pure local retrieval; no AI generation, no outside sources).',
+          '/bible — the canon proper: fourteen chapters of the Tide Conclave, plus two hundred–plus echoes — every chapter opens to read; anchors align character-for-character between zh and en (zh source bytes / en counterpart, never mixed). Want to know which echoes write about the same named thing? Open "Echo threads" from the Hall of Canon footer: the tide-seal, the salt ledger, the night key — each with the echoes that carry it and their verbatim anchors.',
+          '/bible/search — type a keyword, fetch the exact canon passage (pure local retrieval; no AI generation, no outside sources). Want to know what the term means in the real world? The "real world · outside the platform" lane at the bottom of /search comes from Wikipedia and is ranked separately from in-platform results.',
           '/bible/quiz — the Tide Challenge: canon-aligned quizzes; wrong answers point back to the chapter to re-read; lit beacons stay on your machine (no cloud save; refresh keeps nothing).',
           '/bible/well — Seven Wells: the Hall’s second game — follow seven clues back to seven lost wells; found wells open the way; unfound wells honestly say they are not found.',
           '/bible/whisper — the Answerer: pick any chapter (or echo), ask one line; if the canon answers it answers in the chosen language; if not, it says so plainly. No persistence — refresh is silence.',
@@ -284,11 +326,21 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '⑫ Ask the Canon — how the answer is actually produced',
         body: [
-          '“Ask the Canon” (/bible/ask) is not “throw the prompt at the model and hope”. It runs a StateGraph chain: a short prompt extracts retrieval terms (analyze — no 32k-token digest fired yet); pure-algorithm char-bigram Jaccard hits the digest blocks (retrieve — the model is not called for this step, 0 tokens); then the model answers with the full canon digest plus the matched passage as evidence (draft); then a mechanical verifier rejects empty answers / invented chapters or echoes / non-existent anchor refs (verify) — fail the gate, one revise round, and if it still fails the UI shows it failed honestly. After the answer arrives, the collapsible “Retrieval evidence” panel lays the matched top-3 passages out verbatim — which passages pinned the model, for the reader to see, not trust.',
+          '“Ask the Canon” (/bible/ask) is not “throw the prompt at the model and hope”. It runs a StateGraph chain: a short prompt extracts only retrieval terms (analyze — without burning a long context); pure-algorithm character-bigram Jaccard matches canon passages directly (retrieve — the model is not called for this step, 0 tokens); then the model answers with the full canon text plus the matched passages as evidence (draft); then a mechanical verifier checks three things — empty answers, invented chapters or echo numbers, and references to anchors that do not exist (verify). It answers only if the gate passes; otherwise one revise round runs, and if that still fails the UI says so honestly. After the answer arrives, the collapsible “Retrieval evidence” panel shows the matched top-3 passages verbatim — which passages constrained the answer, so the reader can see rather than trust.',
           'Every answer surfaces two deterministic badges: ① cache-reused N tokens (KV slot reuse on the byte-stable digest — ~95%+ on repeat calls); ② a citation verdict — “Quoting the canon verbatim ✓ (N lines)” / “Not in the canon — the Inquiry says so honestly” / “Free answer — no verbatim anchor from the canon”. Tap ② open to see exactly which anchor lines the model quoted, line by line, unedited.',
           'StateGraph is a first-class orchestration primitive in this repo’s own agent runtime (@nexus/agent-runtime, ADR-0270/0275) — nodes, state, and conditional edges, the same “state + graph” model LangGraph popularized, driving the real chain you see.',
           'A passed quiz is that; an unanswered canon question is also “the canon does not hold this — the canon itself says so”. No model is allowed to bluff the canon.',
           'The draft system prompt is a byte-stable digest of the fourteen canonical chapters + the echo anchors — the whole prefix is reused, so cache hits stay around 90%+ (see /admin/ai-cache for the live read; the ledger-average reads lower precisely because short non-digest calls dominate the count).',
+        ],
+      },
+      {
+        heading: '⑬ Canvas keyboard/mouse cheat sheet (2026-11-20 addition)',
+        body: [
+          'Wheel (page convention by default, 2026-11-20 correction): wheel up = look up, wheel down = look down. If your mouse/OS reports the delta flipped, the top «Wheel» button switches it to inverted — and back.',
+          'Right-button drag pans the canvas (middle button or Space also pan); Shift + wheel pans horizontally; Ctrl + wheel anchors-zoom, 0.1×–4×.',
+          'Top «Fit window» button (Shift+1): fits the whole document into the viewport.',
+          'Ctrl+G toggles the alignment grid; arrows nudge 1 px, Shift+arrows 8 px, Delete removes the selection.',
+          'Every panel has a title bar; the top bar has «+ New page»; the panels’ search boxes (Ctrl+F) search by name.',
         ],
       },
     ],

@@ -82,3 +82,50 @@ def test_chat_rejects_unknown_model_class() -> None:
     response = client.post("/v1/ai/chat", json=chat_request(modelClass="embedding"))
     assert response.status_code == 503
     assert response.json()["code"] == "provider-unavailable"
+
+
+# ── §LLMCTX-1：canon digest 前缀（默认关，显式开）──────────────────────────────
+
+def test_chat_without_canon_prefix_is_byte_identical() -> None:
+    """零回归：不带 withCanonPrefix 时，发给 provider 的 system 就是调用方那一串，一个字节都不多。"""
+    provider = FakeProvider("山口安静。")
+    app = create_app(Settings(), registry=Registry(Settings(), llm=provider))
+    client = TestClient(app)
+    persona = chat_request()["system"]
+    response = client.post("/v1/ai/chat", json=chat_request())
+    assert response.status_code == 200
+    assert provider.calls[0]["system"] == persona
+    assert "canonPrefixChars" not in response.json()
+
+
+def test_chat_with_canon_prefix_prepends_digest_before_persona() -> None:
+    """显式带上时：digest 必须是**第一个**字节，persona 原样跟在后面。
+
+    顺序反过来的话，每个角色的第一问都要重新买一次 15.8 万 token 的前缀——
+    那正是「缓存稳定命中约 90%」的对立面。
+    """
+    from ai_service.design_prompt import CANON_PREFIX
+
+    provider = FakeProvider("灯不写名。")
+    app = create_app(Settings(), registry=Registry(Settings(), llm=provider))
+    client = TestClient(app)
+    persona = chat_request()["system"]
+    response = client.post("/v1/ai/chat", json=chat_request(withCanonPrefix=True))
+    assert response.status_code == 200
+    sent = provider.calls[0]["system"]
+    assert sent.startswith(CANON_PREFIX[:64])
+    assert sent.endswith(persona)
+    assert sent == f"{CANON_PREFIX}\n{persona}"
+    # 这一维不进响应契约，但它让「这次到底带没带大典」可核对（§159）
+    assert response.json()["canonPrefixChars"] == len(CANON_PREFIX)
+
+
+def test_chat_with_canon_prefix_still_reports_usage() -> None:
+    provider = FakeProvider("盐账欠最后一格。")
+    app = create_app(Settings(), registry=Registry(Settings(), llm=provider))
+    client = TestClient(app)
+    response = client.post("/v1/ai/chat", json=chat_request(withCanonPrefix=True))
+    body = response.json()
+    _validate("ai-chat-response.schema.json", body)
+    assert body["usage"]["tokensIn"] == 11
+    assert body["capability"] == "real"

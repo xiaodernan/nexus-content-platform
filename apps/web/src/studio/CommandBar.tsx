@@ -88,11 +88,14 @@ const COPY = {
     realtimeEvents: (n: number) => ` · 本次已收到 ${n} 条事件`,
     assignTo: '交给',
     noAgent: '不点名',
+    placeholderShort: '描述要改什么…（Enter 执行）',
     placeholder: '描述要改什么（/ 聚焦，Enter 执行，Shift+Enter 换行）。选中元素后只改该区域。',
     executing: '执行中…',
     submit: '执行',
     asyncModeLabel: '异步作业',
     asyncModeTitle: '交给 AI Service 的队列执行：不挂住这次请求，状态与结果靠回来问',
+    reviewLabel: '让 AI 自查一遍',
+    reviewTitle: '多花 1–3 次调用：审稿 Agent 会核对每一项诉求有没有真的落到补丁里，漏了就自动重做一次。耗时与 token 都会变多。',
     assignTitle: '名册来自库里的 agents 表（§112）。没点名就按这次请求的意图走',
     deliveryFailed: '提交没有拿到作业号，因此没东西可以问',
     undoStored: '已批准并交回的 AI 结果',
@@ -166,11 +169,14 @@ const COPY = {
     realtimeEvents: (n: number) => ` · ${n} event(s) received`,
     assignTo: 'Assign',
     noAgent: 'Unnamed',
+    placeholderShort: 'Describe the change… (Enter to run)',
     placeholder: 'Describe the change (/ to focus, Enter to run, Shift+Enter for a newline). With an element selected, only that region changes.',
     executing: 'Running…',
     submit: 'Run',
     asyncModeLabel: 'Async job',
     asyncModeTitle: 'Run it through the AI Service queue: no blocking request; status and result are polled for',
+    reviewLabel: 'Double-check with AI',
+    reviewTitle: 'Costs 1–3 extra calls: a reviewer checks that every request actually landed in the patch, and makes the editor redo it if something was missed. Slower and uses more tokens.',
     assignTitle: 'The roster comes from the agents table in the library (§112). Unnamed runs follow the request’s intent',
     deliveryFailed: 'The submit came back without a job id; there is nothing to poll',
     undoStored: 'An approved and returned AI result',
@@ -200,6 +206,11 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
    * 差别只在谁等、等多久，所以勾上它不该改变"结果会不会被拦"（§74）。
    */
   const [asyncMode, setAsyncMode] = useState(false);
+  /**
+   * §GRAPH-3：这一轮要不要让审稿 Agent 复读一遍补丁。默认不勾——它会主动多打调用，
+   * 且修订轮会把正典前缀再买一次；勾选是用户自己做的 token 预算决定，不是后台默认值。
+   */
+  const [reviewMode, setReviewMode] = useState(false);
   const [asyncStatus, setAsyncStatus] = useState<string | null>(null);
   /** 这次提交的作业号：取消按钮要知道向谁取消（提交之后到终态之前一直挂着） */
   const [asyncJobId, setAsyncJobId] = useState<string | null>(null);
@@ -529,6 +540,7 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
       prompt: text,
       modelClass: mode,
       variants: 1,
+      review: reviewMode,
       context: {
         projectId: state.projectId,
         pageId: state.page.id,
@@ -792,7 +804,9 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
           ref={inputRef}
           rows={1}
           value={prompt}
-          placeholder={c.placeholder}
+          placeholder={c.placeholderShort}
+          /* 完整教学放进 title：占位符太长会在 270px 的输入框里折成三行，被 34px 的行高裁掉半行，看着像文字重叠 */
+          title={c.placeholder}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={(e) => {
             e.stopPropagation();
@@ -823,6 +837,18 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
             data-ai-async
           />
           {c.asyncModeLabel}
+        </label>
+        {/* §GRAPH-3：与异步开关并排，但管的是完全不同的东西——异步换"谁在等"，
+            自查换"花多少 token 换一道保险"。文案在 title 里说清代价，不藏在文档里 */}
+        <label className="cb-sendBar" title={c.reviewTitle}>
+          <input
+            type="checkbox"
+            checked={reviewMode}
+            onChange={(e) => setReviewMode(e.target.checked)}
+            className="cb-footBadge"
+            data-ai-review
+          />
+          {c.reviewLabel}
         </label>
       </div>
       <div className="cb-wrap2Mt1">

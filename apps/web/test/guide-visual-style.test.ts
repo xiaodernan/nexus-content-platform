@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { GUIDE_COPY } from '../src/lib/guideCopy';
 
 /**
  * §FE-Guide「使用指南 / User Guide」（`/guide`）§v712 —— 用户说明书。
@@ -86,6 +87,29 @@ describe('§FE-Guide /guide 使用指南', () => {
       expect(codeLib).toContain(key);
     }
     expect(codeLib).toContain('Record<Locale');
+  });
+
+  it('中英章节序列逐节对齐（2026-11-21：英文曾重复 ⑬、中文缺整节，审计把它读成内容错配）', () => {
+    // 这不是文风检查，是结构不变量：/guide 与 Studio 抽屉逐节按 index 配对做双语对照，
+    // 任一侧多一节/少一节，后面所有段落都会被错位比较，审计报出来的"漏译"全是假象。
+    const zh = GUIDE_COPY.zh.sections;
+    const en = GUIDE_COPY.en.sections;
+    expect(zh.length).toBe(en.length);
+    const ordinal = (h: string) => (h.match(/[\u2460-\u2473]/) ?? [''])[0];
+    expect(zh.map((x) => ordinal(x.heading))).toEqual(en.map((x) => ordinal(x.heading)));
+    // 序号可以缺（StateGraph 小课没有编号），但同一语种内不许出现两次同一个编号：
+    // 曾有一个版本把中文版画布速查塞进 en.sections 末尾，en 的 ⑬ 出现两次，
+    // 模型逐段对账时把「问典」段判成译文完全错配。
+    for (const [locale, sections] of [['zh', zh], ['en', en]] as const) {
+      const nums = sections.map((x) => ordinal(x.heading)).filter(Boolean);
+      expect(new Set(nums).size, `${locale} 有重复章节号`).toBe(nums.length);
+    }
+    // 每种语言都要有正文；空节会让对照退化成"heading 相同即通过"的空门
+    for (const [locale, sections] of [['zh', zh], ['en', en]] as const) {
+      for (const sec of sections) {
+        expect(sec.body.length, `${locale} / ${sec.heading} 正文为空`).toBeGreaterThan(0);
+      }
+    }
   });
 
   it('字面 className 只认 .gd-* 与 .am-linkImplicit', () => {

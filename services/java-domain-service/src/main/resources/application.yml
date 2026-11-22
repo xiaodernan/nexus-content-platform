@@ -56,16 +56,18 @@ spring:
     # The schema is owned by the WEB layer (apps/web/src/server/db/schema.ts + its Drizzle migrations).
     # This service reads and writes the tables that already exist; it never runs DDL and
     # carries no migration tool, because a second writer of DDL is how two systems disagree about a table.
-    # Default targets THIS project's Postgres (55433, docs/ENVIRONMENT.md). The previous default
-    # (5432) is this machine's careeros-postgres — connecting to somebody else's database by accident
-    # is not a convenience default, it is a trap; and on a machine where 5432 is simply not ours, the
-    # service could not boot at all. A stand-alone `java -jar` must reach the project's own database.
+    # Default targets THIS project's Postgres — **5433 `nexus_dev`** (nexus-platform-postgres),
+    # the same one `apps/web/.env.local` uses. 2026-11-22 更正：此前的默认值 55433
+    # （nexus-postgres）自 2026-11-19 起 WAL 损坏、常驻重启循环，Spring Cloud 五件套连它
+    # 只会拿到 Hibernate 的 "Unable to determine Dialect without JDBC metadata"——一个指向
+    # 已死服务的默认值不是默认值，是陷阱。5432 是 careeros-postgres，同样不是我们的。
+    # 与 web 侧同一个库，Java 读写的就是同一批表。
     # prepareThreshold=5 + the prepared-statement cache are measured tuning for THIS host
     # (16 GB RAM, ~2.5 GB free): throughput comes from the driver's plan cache, not connection count —
     # see docs/decisions/0065-*.md.
-    url: ${NEXUS_DOMAIN_DB_URL:jdbc:postgresql://127.0.0.1:55433/nexus?prepareThreshold=5&preparedStatementCacheQueries=256&preparedStatementCacheSizeMiB=5&defaultRowFetchSize=100}
-    username: ${DB_USERNAME:nexus}
-    password: ${DB_PASSWORD:nexus_dev_only}
+    url: ${NEXUS_DOMAIN_DB_URL:jdbc:postgresql://127.0.0.1:5433/nexus_dev?prepareThreshold=5&preparedStatementCacheQueries=256&preparedStatementCacheSizeMiB=5&defaultRowFetchSize=100}
+    username: ${DB_USERNAME:nexus_app}
+    password: ${DB_PASSWORD:nexus_dev_app_only}
     driver-class-name: org.postgresql.Driver
     hikari:
       # `stringtype=unspecified` lets PostgreSQL infer the type of a bound String instead of assuming

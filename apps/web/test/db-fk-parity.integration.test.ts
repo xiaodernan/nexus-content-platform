@@ -39,7 +39,7 @@ const conflicts: string[] = [];
 
 function onDeleteOf(tail: string): string {
   const m = /ON\s+DELETE\s+(SET\s+NULL|SET\s+DEFAULT|NO\s+ACTION|RESTRICT|CASCADE)/i.exec(tail);
-  return m ? m[1].toUpperCase().replace(/\s+/g, ' ') : 'NO ACTION';
+  return m ? m[1]!.toUpperCase().replace(/\s+/g, ' ') : 'NO ACTION';
 }
 
 /**
@@ -71,26 +71,26 @@ function declaredForeignKeys(): Map<string, Declared> {
     for (const m of raw.matchAll(
       /ALTER\s+TABLE\s+(?:ONLY\s+)?"?([a-zA-Z0-9_.]+)"?\s+ADD\s+CONSTRAINT\s+"?([a-zA-Z0-9_]+)"?\s+FOREIGN\s+KEY\s*\(\s*"?([a-zA-Z0-9_]+)"?\s*\)([^;]*)/gis,
     )) {
-      record(m[2], {
-        table: m[1].replace(/^public\./, ''),
-        column: m[3],
-        onDelete: onDeleteOf(m[4]),
+      record(m[2]!, {
+        table: m[1]!.replace(/^public\./, ''),
+        column: m[3]!,
+        onDelete: onDeleteOf(m[4]!),
         file,
       });
     }
     for (const t of raw.matchAll(
       /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?"?([a-zA-Z0-9_.]+)"?\s*\(([\s\S]*?)\n\)/gi,
     )) {
-      const table = t[1].replace(/^public\./, '');
-      for (const line of t[2].split('\n')) {
+      const table = t[1]!.replace(/^public\./, '');
+      for (const line of t[2]!.split('\n')) {
         const body = line.replace(/--.*$/, '');
         const c =
           /^\s*"?([a-zA-Z0-9_]+)"?\s+[\w"(),\s\d.]+?\s+REFERENCES\s+"?([a-zA-Z0-9_.]+)"?\s*\([^)]*\)(.*)$/i.exec(body);
         if (!c) continue;
         record(`${table}_${c[1]}_fkey`, {
           table,
-          column: c[1],
-          onDelete: onDeleteOf(c[3]),
+          column: c[1]!,
+          onDelete: onDeleteOf(c[3]!),
           file,
         });
       }
@@ -144,7 +144,7 @@ describe('迁移声明的外键 = 库里的外键（v1096）', () => {
   });
 
   it('迁移声明的每一条外键，库里都在（缺的就是漂移，点名列出）', async () => {
-    expect(await describeMissing(), []).toEqual([]);
+    expect(await describeMissing(), '库里缺了迁移声明的外键——逐条名字与出处在数组里').toEqual([]);
   });
 
   it('同一个约束名只有一种声明：修复它的迁移不许改动作，也不许换出处', () => {

@@ -6,7 +6,8 @@ import { getDb } from '../db/client';
 import { recordAudit } from './audit';
 import { publishSlotRefusalFor } from './credit-ledger';
 import { assets, games, projects, publishedProjects, storyboards, users } from '../db/schema';
-import { recordScan, scanPublication, type AssetProvenance, type ModerationScan } from './moderation';
+import { recordScan, type AssetProvenance, type ModerationScan } from './moderation';
+import { rulesVersionWithLlm, scanPublicationWithLlm } from './moderationLlm';
 import { loadDocument, lockProjectWrites } from './projects';
 import { currentBranchId } from './branches';
 import { emit } from './notifications';
@@ -170,7 +171,11 @@ export async function publishProject(
     .orderBy(desc(publishedProjects.version))
     .limit(1);
   const version = (existing?.version ?? 0) + 1;
-  const scan = scanPublication(document, await assetProvenance(projectId));
+  // §MOD-1：机检照常跑（确定性红线不受影响），再由模型补"词表挡不住的语境"线索。
+  // 增强失败原样回退机检结果；模型线索最多把 clear 升到 review（挂人工），永不写 approved。
+  const scanResult = await scanPublicationWithLlm(document, await assetProvenance(projectId));
+  const scan = scanResult.scan;
+  if (scanResult.llmFindings) scan.rulesVersion = rulesVersionWithLlm(true);
   // §133 publishing 那一格的拦截方（#199）：往外新开一个公开发布之前，数一数名下已经挂了几个。
   // 放在 gate / 机检旁边而不是更早：拒绝的回执要带上 gate 与 scan（PublishResult 的形状如此），
   // 且这条链上被拒的分支本来就都推一条 building → failed（与相邻分支一致，不自创第三种流法）。

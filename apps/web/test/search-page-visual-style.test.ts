@@ -8,7 +8,8 @@ import { describe, expect, it } from 'vitest';
  * §165：搜索范围与可见性全由 `domain/search.ts` 决定；界面不另立说法——不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `1c48d38a16837999c6035b4238ed6bd8b7c2cf6fa6ae9726e4d96a38030bf28c` 与 HEAD 字节一致。
+ * `29ebc88f18687ec2fe050491be3794a637fa759ed904f0844d6aebd11439dac2` 与 HEAD 字节一致。
+ * 前轴 `1c48d38a…`（§FE-78 落地时）；2026-11-23 并回 origin/main 的 §EXT-SEARCH 站外检索段后显式重钉。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/app/search/page.tsx');
@@ -63,7 +64,7 @@ describe('§FE-78 /search 全平台搜索原子清零', () => {
 
   it('字面 className 只认 .se-*（无裸原子）', () => {
     const literals = [...code.matchAll(/className="([^"]*)"/g)].map((m) => m[1]!);
-    expect(literals.length).toBe(20);
+    expect(literals.length).toBe(31);
     for (const cls of literals) {
       for (const tok of cls.split(/\s+/).filter(Boolean)) {
         expect(tok).toMatch(/^se-[A-Za-z0-9-]+$/);
@@ -102,9 +103,9 @@ describe('§FE-78 /search 全平台搜索原子清零', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：1c48d38a16837999c6035b4238ed6bd8b7c2cf6fa6ae9726e4d96a38030bf28c）', () => {
+  it('剥 className 后全文 SHA256 守恒（零行为：29ebc88f18687ec2fe050491be3794a637fa759ed904f0844d6aebd11439dac2）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '1c48d38a16837999c6035b4238ed6bd8b7c2cf6fa6ae9726e4d96a38030bf28c',
+      '29ebc88f18687ec2fe050491be3794a637fa759ed904f0844d6aebd11439dac2',
     );
   });
 });

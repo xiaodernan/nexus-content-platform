@@ -13,6 +13,7 @@ import { HistoryPanel } from './HistoryPanel';
 import { DesignSystemPanel } from './DesignSystemPanel';
 import { AssetsPanel } from './AssetsPanel';
 import { HealthRail } from './HealthPanel';
+import { AiCacheHealthRail } from './aiCacheHealth';
 import { WorldPanel } from './WorldPanel';
 import { GamePanel } from './GamePanel';
 import { StoryboardPanel } from './StoryboardPanel';
@@ -47,7 +48,8 @@ type PanelTab =
   | 'context'
   | 'agent'
   | 'history'
-  | 'health';
+  | 'health'
+  | 'ai-health';
 
 const TABS: { id: PanelTab }[] = [
   { id: 'layers' },
@@ -64,6 +66,7 @@ const TABS: { id: PanelTab }[] = [
   { id: 'agent' },
   { id: 'history' },
   { id: 'health' },
+  { id: 'ai-health' },
 ];
 
 /** 主区那几个视图：都是同一批真值的投影，切换不复制数据 */
@@ -287,6 +290,8 @@ function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zo
             <AgentPanel locale={locale} />
           ) : tab === 'health' ? (
             <HealthRail locale={locale} />
+          ) : tab === 'ai-health' ? (
+            <AiCacheHealthRail locale={locale} />
           ) : (
             <HistoryPanel locale={locale} />
           )}

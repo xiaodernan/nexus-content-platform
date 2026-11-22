@@ -3,6 +3,7 @@ import {
   charBigrams,
   digestAnchorNumbers,
   fallbackTerms,
+  parseChineseNumber,
   rankSegments,
   runCanonAnswerGraph,
   splitDigestSegments,
@@ -95,10 +96,62 @@ describe('§GRAPH-1 检索与机检（确定性，不烧 token）', () => {
     expect(anchors.has(1)).toBe(true);
   });
 
-  it('机检：发明「第六章」/「Echo 37」/「E37」一律命中', () => {
-    expect(verifyCanonDraft('第六章里写道……', CANON_DIGEST)).toContain('invented-chapter-or-echo');
-    expect(verifyCanonDraft('Echo 37 says ...', CANON_DIGEST)).toContain('invented-chapter-or-echo');
-    expect(verifyCanonDraft('E37 里说……', CANON_DIGEST)).toContain('invented-chapter-or-echo');
+  it('机检：真实存在的章回号一律放行（第六章/第七章/回响 37 都是真的）', () => {
+    // 2026-11-22 之前这里断言的是**相反**的行为：旧实现是一张硬编码错号黑名单，
+    // 写它的时候正典只有 5 章 / 36 回响，所以「第六章」「Echo 37」当时确实是发明。
+    // 正典长到 13 章 / 210 回响之后，那张表没跟着更新——它开始把**真**的引用判成发明，
+    // 逼着答对的模型走一轮无意义的 revise。真实引用必须放行。
+    expect(verifyCanonDraft('第六章里写道……', CANON_DIGEST)).toHaveLength(0);
+    expect(verifyCanonDraft('Echo 37 says ...', CANON_DIGEST)).toHaveLength(0);
+    expect(verifyCanonDraft('E37 里说……', CANON_DIGEST)).toHaveLength(0);
+    expect(verifyCanonDraft('据回响二百一十：……', CANON_DIGEST)).toHaveLength(0);
+  });
+
+  it('机检：发明章回号按种类各自命中（中文数字、阿拉伯、英文写法都认）', () => {
+    expect(verifyCanonDraft('第三百回里提到……', CANON_DIGEST)).toContain('invented-echo-300');
+    expect(verifyCanonDraft('Echo 999 says ...', CANON_DIGEST)).toContain('invented-echo-999');
+    expect(verifyCanonDraft('第两千零一章：……', CANON_DIGEST)).toContain('invented-chapter-2001');
+    expect(verifyCanonDraft('Chapter 99 ...', CANON_DIGEST)).toContain('invented-chapter-99');
+  });
+
+  it('机检：书名号引用的标题必须在 digest 里真实存在', () => {
+    // 2026-11-22 实测那一例：编号 21 是真的，但标题把 E209 的「潮候院」写成「值更院」，
+    // 整句短语在 digest 里根本不存在——内容答对了，出处是编的。
+    expect(verifyCanonDraft('浅痕变成了半枚潮印。依据回响二十一章《值更院抄本院那本册子翻过第七十二页之后》的锚句。', CANON_DIGEST)).toContain('invented-title');
+    // 真标题（不带书名号存在于 digest 头部）与正文里的书名号概念名都要放行
+    expect(verifyCanonDraft('据《里巷子码头的七盏号灯》：七盏号灯还亮着。', CANON_DIGEST)).toHaveLength(0);
+    expect(verifyCanonDraft('据典籍第五章《收件人》：收件人不是人，是潮。[1]', CANON_DIGEST)).toHaveLength(0);
+    expect(verifyCanonDraft('《潮沙盘》上写着潮位。', CANON_DIGEST)).toHaveLength(0);
+  });
+
+  it('机检：「第 N 次」不是章号引用（第四十一次大会是真事件）', () => {
+    // 后缀写死成 章/回响/回/篇：大会、会议、测验这些"第 N 次"绝不误报
+    expect(verifyCanonDraft('第四十一次大会之后，灯还亮着。', CANON_DIGEST)).toHaveLength(0);
+    expect(verifyCanonDraft('第四十四次大会散会之后——秋潮月第八十八日。', CANON_DIGEST)).toHaveLength(0);
+    expect(verifyCanonDraft('潮汐挑战答对一百三十一题。', CANON_DIGEST)).toHaveLength(0);
+  });
+
+  it('机检：逐位写法（二〇八 / 二一〇）按位读，不按位值加', () => {
+    // 逐位相加会把 208 读成 8、210 读成 0——后者会把正确引用误报成"发明了第 0 回"
+    expect(parseChineseNumber('二〇八')).toBe(208);
+    expect(parseChineseNumber('二一〇')).toBe(210);
+    expect(parseChineseNumber('二零一')).toBe(201);
+    // 带量级的仍按位值
+    expect(parseChineseNumber('二百一十')).toBe(210);
+    expect(parseChineseNumber('两千零一')).toBe(2001);
+    expect(parseChineseNumber('二十一')).toBe(21);
+    expect(parseChineseNumber('两')).toBe(2);
+    expect(parseChineseNumber('第')).toBeNull();
+    expect(parseChineseNumber('俩')).toBeNull();
+  });
+
+  it('机检：模型真写过的「（回响二〇八、二〇九）」放行', () => {
+    expect(verifyCanonDraft('最年长的抄本师说，字不是抄本师们写的。（回响二〇八、二〇九）', CANON_DIGEST)).toHaveLength(0);
+  });
+
+  it('机检：引用解析不出来的数不猜（宁漏不错）', () => {
+    // "第两章"这种非规范写法解析不出 ⇒ 不报 invented，也不当作通过
+    expect(verifyCanonDraft('第两章里写道……', CANON_DIGEST)).toHaveLength(0);
   });
 
   it('机检：引用 digest 里不存在的 [999] 命中；引用真实锚句通过', () => {
@@ -137,7 +190,7 @@ describe('§GRAPH-1 端到端（假 chat，节点顺序与分支）', () => {
   it('机检不通过 → revise 一轮 → 再机检通过，iterations=1', async () => {
     const { chat, calls } = scriptedChat([
       reply('TERMS: 收件人'),
-      reply('第六章里写道：收件人是潮。'), // 发明章节 → verify 拦截
+      reply('第三百回里写道：收件人是潮。'), // 发明回响 → verify 拦截
       reply('据典籍第五章《收件人》：收件人不是人，是潮。[1]'),
     ]);
     const result = await runCanonAnswerGraph({ question: '收件人是谁？', locale: 'zh' }, chat);
@@ -147,14 +200,14 @@ describe('§GRAPH-1 端到端（假 chat，节点顺序与分支）', () => {
     expect(result.iterations).toBe(1);
     expect(result.nodesVisited).toEqual(['analyze', 'retrieve', 'draft', 'verify', 'revise', 'verify', 'finalize']);
     expect(calls).toHaveLength(3);
-    expect(calls[2]!.user).toContain('invented-chapter-or-echo'); // 修订意见回喂给模型
+    expect(calls[2]!.user).toContain('invented-echo-300'); // 修订意见回喂给模型
   });
 
   it('修订用尽仍不合格：verdict=fail，如实标注而不是冒充已校验', async () => {
     const { chat } = scriptedChat([
       reply('TERMS: 收件人'),
-      reply('第六章里写道……'),
-      reply('Echo 37 里写道……'),
+      reply('第三百回里写道……'),
+      reply('Echo 999 里写道……'),
     ]);
     const result = await runCanonAnswerGraph({ question: '收件人是谁？', locale: 'zh' }, chat);
     expect(result.ok).toBe(true);

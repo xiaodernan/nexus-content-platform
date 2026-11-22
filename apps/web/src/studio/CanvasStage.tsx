@@ -18,7 +18,7 @@ const COPY = {
     emptyPage: '空页面：用左侧 Layers 面板的“+”添加元素。画布上的每次修改都会写回设计模型，再投影成渲染与代码。',
     wheelDirectionTitle: (inverted: boolean) =>
       inverted
-        ? '滚轮方向：已反转（往下滚看得更靠上）。若你的滚轮方向本身又反了，点一下切回网页惯例（往上滚看上面、往下滚看下面）'
+        ? '滚轮方向：已反转（往上滚看下面）。若你的机器本身正常，点一下切回网页惯例（往上滚看上面、往下滚看下面）'
         : '滚轮方向：网页惯例（往上滚看上面、往下滚看下面）。如果你的滚轮/系统本身方向是反的，点一下反转，之后会记住你的选择',
     wheelDirectionLabel: (inverted: boolean) => (inverted ? '滚轮：已反转' : '滚轮：网页惯例'),
   },
@@ -31,8 +31,8 @@ const COPY = {
     emptyPage: 'Empty page: add elements with the “+” in the Layers panel on the left. Every edit on canvas writes back to the design model, then projects to render and code.',
     wheelDirectionTitle: (inverted: boolean) =>
       inverted
-        ? 'Wheel direction: inverted (“wheel down reveals higher content”). If your device/system itself flips wheel direction, click to switch back to the page convention (wheel up = look up, wheel down = look down)'
-        : 'Wheel direction: page convention (wheel up = look up, wheel down = look down). If your OS/mouse itself reports reversed wheel deltas, click to invert — your choice is remembered',
+        ? 'Wheel direction: inverted (wheel up = look down). If your device/system itself reports reversed wheel deltas, click to switch back to the page convention (wheel up = look up, wheel down = look down)'
+        : 'Wheel direction: page convention (wheel up = look up, wheel down = look down). If your OS/mouse itself is flipped, click to invert — your choice is remembered',
     wheelDirectionLabel: (inverted: boolean) => (inverted ? 'Wheel: Inverted' : 'Wheel: Page'),
   },
 } as const;
@@ -172,8 +172,12 @@ export function CanvasStage({ locale = 'zh' }: { locale?: Locale }) {
   const [editing, setEditing] = useState<{ nodeId: string; value: string } | null>(null);
   // §147：视口大小要参与渲染决策，所以它得是 state（ResizeObserver 报一次，缩放/平移时也用它算）
   const [surfaceSize, setSurfaceSize] = useState({ width: 0, height: 0 });
-  // 滚轮方向：取值看设备/系统习惯（Windows 自然滚动开关、某些鼠标的反向滚轮都会翻转 deltaY 的号）；
-  // 默认 = 网页惯例方向（往上滚看上面、往下滚看下面）；若机器本身 deltaY 方向已翻转，点一次「滚轮」按钮即可，选择会记住（localStorage，无遥测）。
+  // 滚轮方向（2026-11-21 实测修正）：浏览器 deltaY<0 = 往上滚。画布内容是 `translate(pan)`，
+  // 要看上面就得让内容**往下**走（pan.y 增大）。所以默认 `dir = -1`：
+  // wheel 上（deltaY<0）→ panBy(+|deltaY|) → pan.y 增大 → 内容下移 → 往上看；往下滚反之。
+  // 2026-11-20 那版写成 dir=+1，注释还把"pan.y 减小"说成"视口向上移"——实测 pan 40→-200，
+  // 内容是往上跑的，也就是用户点名的"往上滑看下面"。这次翻号，按钮文案才第一次和真行为一致。
+  // 某些鼠标/系统自己把 deltaY 报反了，这类机器点一次「滚轮」按钮切到 dir=+1，选择会记住（localStorage）。
   const [wheelInverted, setWheelInverted] = useState(false);
   const wheelInvertRef = useRef(false);
 

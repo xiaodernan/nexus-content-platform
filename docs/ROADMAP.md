@@ -10775,6 +10775,553 @@ limits 5 条 · 结果块在（人工审核还没看过这一版） · 公开页
 **仍欠**：审计表在 1280 是"刚好装满"，数据里出现更长的 detail 时会回到横滚（有上限兜底，但没有读数）；
 三张表都没有"右边还有列"的视觉提示；390 的滚动手感没有真机读数。
 
+## §CACHE-PARALLEL — 并行会话不再互相干扰：生产路径四路并发全部 88.2%（2026-11-22）
+
+用户本轮第二次点名「并行会话同时打 API 导致缓存互相干扰、命中混乱」。
+2026-11-19 的 `docs/evidence/cache-ab-parallel-2026-11-19.md` 量到过「4 路同毫秒齐发 ⇒ 全部 0 KV」，
+但那条探针走的是 `stream=false + 常量 lane`，**不是生产形状**。本片补生产路径的可复检判据。
+
+- 新探针 `scripts/probe-parallel-cache.py`（`npm run probe:cache-parallel`）：POST `/v1/ai/chat`，
+  system = 24k 字符设定文本；salt 随机 ⇒ 应用缓存与 provider KV **双冷**，量到的每一发都是真调用
+  （判据：`appCache delta hits=0 misses=6`）。
+- 读数（全新 lane）：cold 0% → warm 88.2% → **四路并发异文全部 88.2%**（21964/24906），
+  没有一发掉 0；同文并发两发 0.07s / 0.10s（真回放，不是各打一次）。
+- 不互相干扰的三件根据：`NEXUS_LLM_STREAM=1`（流式通道前缀稳定）、
+  sticky per-lane `prompt_cache_key=nexus-<sha256(system)[:16]>`（ADR-0284）、
+  进程内 single-flight（ADR 0128）。`NEXUS_LLM_DISTRIBUTED_SINGLE_FLIGHT` 仍未开：
+  本机单实例已证明并发 lane 稳定，不引入 Redis 租约复杂度（ADR 0129 的前提仍在）。
+- **顺带回答「输入上下文太少」**：设计主链路与世界步进带的是 **158,112 tokens** 的 canon digest
+  （Codex 五～九万的 1.8～3 倍）；真正上下文偏薄的是**角色对话**——persona 只有几百字、
+  历史只取最近 5 条记忆、语料只取 3 条。这是下一片 §LLMCTX-1 的题目。
+- 证据 `docs/evidence/cache-parallel-live-2026-11-22.md`。
+
+## §LLMCTX-1 角色对话接上整部世界大典——4,439 → 172,806 tokens，回答开始逐条引用正典（2026-11-22）
+
+用户点名「我这边输入上下文总是太少，要充分利用上下文容量」。上一片查明：设计主链路与世界步进
+带的本来就是 158,112 tokens 的 canon digest，真正偏薄的是**角色对话**——persona 只有几百字，
+模型被问到"这个世界里发生了什么"时没有依据。本片把那部大典接上。
+
+- 契约：`AiChatRequest` 增 `withCanonPrefix?: boolean`（默认 false = 零回归），
+  `AiChatResponse` 增 `canonPrefixChars?: number`（带了才报）。两字段由 `npm run contract:export`
+  从 zod 生成，Python 运行期校验同一份 JSON Schema。
+- ai-service：`execute_chat_request` 与 `chat_stategraph`（`/v1/ai/chat-graph`）同一位点把
+  `CANON_PREFIX` 垫在 `system` 之前——**digest 必须是第一个字节**，persona 跟在后面；
+  反过来的话每个角色的第一问都要重买一次 15.8 万 token 前缀。
+- web：`runCharacterChatGraph` 透传；角色对话路由默认开，kill-switch
+  `NEXUS_CHARACTER_CHAT_CANON_PREFIX=0`；`CharacterChat` 每条回复下多一行
+  「本句带着整部世界大典（N 字符）一起发给模型」——上下文不是隐形花钱。
+
+**真机读数**（`docs/evidence/llmctx-canon-prefix-2026-11-22.md`）
+
+```
+不带大典 base/1: tokensIn=4439  cached=0     ( 0.0%)
+不带大典 base/2: tokensIn=4436  cached=4179  (94.2%)
+带大典 canon/1: tokensIn=172806 cached=8228  ( 4.8%)   ← 冷
+带大典 canon/2: tokensIn=172810 cached=153654 (88.9%)
+带大典 canon/3: tokensIn=172806 cached=153654 (88.9%)
+带大典 canon/4: tokensIn=172815 cached=153654 (88.9%)
+```
+
+上下文 **39×**（172,806 tokens，超过 Codex 五～九万一档的近 2～3.4 倍）；一次冷启动后稳定
+**88.9%**，与设计链路的读数同源（同一条前缀、同一个车道）；延迟没变差（5.3–7.1s vs 4.5–5.0s）。
+
+**质量的差别不是 token 数的事**：同一个问题「夜钥匙为什么复制不出来？」——不带大典时模型答的是
+"钥匙带有防复制结构、配钥匙店可能需要授权卡"这类**通用常识**；带上之后答的是"旧旌替风记的是
+让风来过的缘由，包括船队南下、军队退潮"——逐条来自正典。「潮印上那个字」那问甚至给了
+"Echo 171 只记载……但说的是旧信物库中的潮印"这种**带出处且说明边界**的答复。
+模型从"会聊天的外壳"变成"读过整部世界大典的叙述者"。
+
+**判据**：Python 16 passed（顺序 / 零回归 / 修订轮同样带）；TS 11 passed（新增 3 条）；
+ai-service 全量 497 passed / 18 skipped；契约三件套同步。
+**端到端**（真注册/真建项目/真建角色/真从 Studio 面板发问）：
+`CANON LINE: 本句带着整部世界大典（266,660 字符）一起发给模型` · `缓存复用 8,228 / 172,798 tokens`；
+回复「典籍里没有。回响二章《第九叩》提到烛台有第九格，但没有说明"盐账"最后一格记了什么」——
+先答没有、再给出翻过的地方。不带大典时它会拿通用常识编一个答案。
+
+## §SC-VERIFY Spring Cloud 三个证明在本机复绿——一句 Hibernate 错话背后的三层根因（2026-11-22）
+
+`verify:topology` / `verify:loadbalance` / `verify:actuator` 此前连续失败，报的都是
+`Unable to determine Dialect without JDBC metadata`——这句话把三个不同的原因说成了同一件事：
+
+1. **库死了**：`nexus-postgres`（55433）WAL 段 `…056` 整段清零，checkpoint 丢失，容器常驻重启循环；
+   web 侧 `apps/web/.env.local` 早已切到 5433/`nexus_dev`，Java 侧三个 proof 还指着 55433；
+2. **库连错了**：5433 上还有一个 `nexus` 库（5 个用户、schema 旧、没有 `users.bio`）——
+   连它拿到 `column u1_0.bio does not exist`，一句把"连错库"说成"实体映射错了"的错话；
+3. **库没建**：`nexus_api_smoke` 在 5433 上不存在，`nexus_app` 又没有 CREATEDB。
+
+**修法**：三个 proof 与两个 `application.yml` 的 datasource 默认值统一改指
+`5433/nexus_dev` + `nexus_app`/`nexus_dev_app_only`（与 web 侧同一组）；
+`ensureApiDatabase()` 幂等补建 throwaway 库。yml 里原本写着"指向别人/已死服务的默认值不是默认值，
+是陷阱"——这次就是那条纪律自己兑现。
+
+**读数**（`docs/evidence/spring-cloud-topology-live-2026-11-22.md`）
+
+```
+verify:topology     PASS 19/19 —— 发现/配置中心/双服务注册/网关限流/计费/权限/Feign 断路器/实时总线
+verify:loadbalance  PASS      —— 一个 service id 两个实例，10/10 顺序请求全 200
+verify:actuator     PASS 5/5  —— 五个服务 health 200 UP（details 隐藏）、info build.component 钉住
+```
+
+**仍欠**：`nexus-postgres`（55433）已 `restart=no` 停用，未做 `pg_resetwal` 修复（内容已被 5433 取代）；
+`verify:topology` 顶部那行「5433 did not answer HTTP」是脚本用 HTTP 探 DB 端口，自己标了 not fatal；
+`ai-health via gateway (degraded)` 是诚实读数——本机 3200 由另一个项目持有，domain-service 的 Feign
+指向不到，降级并说明原因而不是假装 UP。
+
+## §I18N-LIVE 中英合规审计第一次配上真 LLM——35 项差异逐条修到 26，7/14 段全净（2026-11-22）
+
+`npm run i18n:audit` 从 2026-11-20 起就在跑，但**从来没有一次真的调用过模型**：
+每一段都报 `AI 调用未成功：未配置 NEXUS_AI_SERVICE_URL`，报告里 28 条"差异"全是同一句环境问题。
+本轮用真服务（`NEXUS_AI_SERVICE_URL` 指向本仓 ai-service）重跑，第一次拿到真实判词。
+
+**首轮真实读数：35 项**。逐条修掉**客观类**（漏译、增译、截断、错译主体、大小写）：
+
+- §1 `What is this thing?` → `What is this platform?`（"平台"被泛化成"东西"）；
+- §2 漏了"点"这个动作词；`A 2-minute first run-through` 里"2-minute" 是 zh 没有的时长；
+- §3 `StateGraph in one minute` → `in brief`（"小课"≠一分钟）；
+- §7 zh 那句以"那些页就"**硬截断**（"就"后缺成分），en 反而补全了"亮了"——两边不对齐；
+  Q / A 之后的首字母大写；
+- §10 `components bazaar` → `component marketplace`（"组件市场"被窄化成"组件集市"）；
+- §11 漏译"重做是 ⌘⇧Z / Ctrl Y"；
+- §5 `live enemies` / `discoveries` → 计数表达（zh 是"场上敌人数 / 发现量"）。
+
+**第二轮修掉两个自己引入的错**（这正是"不要中英夹杂"要防的）：
+
+- 上一轮把"馆长批注：trending 榜前三由 **AI** 照三条真实指标各写一句"写成了
+  "the curator writes…"——**主体被换掉了**，zh 里写批注的是 AI 不是馆长；顺带丢了
+  "三条真实指标（浏览/赞/评/转/热度分）"与"每条必含数字"。
+- 给 `build_prefix` 补的"this is what makes a 170k-token canon digest cost 88% less"
+  是 **zh 里没有的信息**——单边增内容就是夹杂。搬去 §LLMCTX-1 自己那段（zh/en 同步）。
+
+**读数**：35 → 26；**7/14 段全净**（①③⑥⑧⑨⑩⑪⑫）。`guide-visual-style` 8 passed。
+剩余 26 项是模型的主观风格偏好（"central canvas vs canvas in the center" 一类），
+且该审计本身非确定性——同一份文案两轮判词不同。**把它当诊断不当门**：
+客观类（漏译/增译/截断/错主体）必修，风格类不追零。
+
+报告 `docs/i18n-audit-2026-11-21.md`（脚本按当日日期落盘）。
+
+## §STRESS-4 撞库风暴 + ai-service 三相位复测——压测自己抓到两个真问题（2026-11-22）
+
+用户点名「模拟海量用户、高并发、瞬间大数据量冲击系统（比如撞库之类的场景）」。
+§STRESS-1/2/3 量的是只读侧；本片补**写路径与认证闸**。
+
+**A. ai-service 三相位**（`npm run stress:ai`，不烧 provider token）：
+600 发健康 + 150 发畸形请求（空对象/缺必填/类型错/200KB 超大串/路径样注入）全部按预期收口
+——200 与 400，**0 个 500、0 次误触 provider**；恢复后 p95=67.9ms（风暴中 2311.7ms）。
+
+**B. 撞库风暴**（新脚本 `scripts/stress-auth-bruteforce.mts`，`npm run stress:auth`）：
+
+```
+300 发错误口令 / 并发 30 / 21.2s · 状态 {401:15, 429:285}
+✓ 0 次误放行 · ✓ 300/300 全被挡 · ✓ 285 发 429（retryAfterMs 879–899s）
+✓ 0 个 5xx · ✓ 风暴后 10/10 首页正常（p50=257ms < 风暴中 1585ms）
+```
+
+**C. 压测自己抓到的两个真问题**：
+
+1. 第一版脚本量到的是 **CSRF 门而不是限流闸**——没带 `nexus_csrf` 就打登录，400 发全 403。
+   这不是测错，是发现两道门叠在一起。改法按真实攻击者形状：每个 worker 先 GET 首页拿
+   cookie + token，再带 `x-csrf-token` 打登录。
+2. **登录闸的 429 只回 HTTP `retry-after` 头，body 里没有 `retryAfterMs`**。同仓其它限流点
+   （角色对话 / AI 按钮 / 建项目）都在 body 里给这个数，界面据此说"还要等 N 分钟"；
+   登录这一处不给，等于把"还要等多久"只写给会读响应头的人。已修，头与 body 都留。
+
+证据 `docs/evidence/stress-auth-and-ai-2026-11-22.md`。
+
+**仍欠**：撞库的**分布式**形状（多 IP 打同一邮箱）本机单机测不了；登录成功的会话保持 /
+令牌轮转压力未做；provider 侧真实并发见 `probe:cache-parallel`（已单独量过车道稳定性）。
+
+## §SHOWCASE-SYNC io 入口同步 + 个人主页信息核对（2026-11-22）
+
+用户要求「把本项目最新成果实时同步到 https://xiaodernan.github.io/ ，用户每次点进去看到的都是
+最新成果」以及「个人基本信息务必准确，项目名称叫"隐盾"不是"隐图"」。
+
+**同步已生效**：`npm run sync:showcase` 重生成 `docs/showcase/latest.json` 并推到
+`xiaodernan.github.io` 的 `master`。线上实测（raw.githubusercontent.com）：
+`head=70fbb92 · total_commits=3916 · adrs=358 · contracts=16 · services=6 · test_files=602`，
+`#nexus-content-latest` 区块由 `refreshNc()` 读 `assets/nexus-content/latest.json` 自动刷新，
+烘焙值只是不可达时的兜底。
+
+**个人信息逐条核对（用户点名"之前出现过严重幻觉"）**：姓名赵欣曈、本科南方科技大学（计科）、
+硕士香港中文大学（计科）、全国中学生物理竞赛铜牌 + 江西省一等奖/二等奖、法狗狗公司实习、
+IELTS 6.5、CET6 546——io 页面与 `xiaodernan/xiaodernan` 资料 README **两边都已是这些值**，
+项目名写的是「隐盾 · 法律文书智能脱敏」，没有出现"隐图"。
+
+**Most Used Languages NaN**：线上 `https://xiaodernan.github.io/` 抓回 135,008 字节，
+**NaN 出现 0 次**；语言面板是真百分比（TypeScript 31.54% / Python 24.06% / JavaScript 20.26% /
+HTML 12.09% / Java 9.44% / CSS 1.50% …），由 `assets/nexus-content/github-languages.json`
+（04f3f5b 起的 live GitHub API 快照）驱动。
+
+**抓到并修掉的一处**：语言面板的 `aria-label` 里烘焙着一组旧数字（TypeScript 32.28% …），
+而可见行是实时值（31.54%）——**读屏用户听到的不是看到的**。已改成不带数字的
+「Languages by source bytes, largest first — read the rows for each share」，
+让列表本身承载信息，烘焙值再也不会有过期的那一天。
+（`pages.yml` 的 push 触发不含 `index.html`，按设计只走 3 小时 cron——一次部署胜过三十次取消。）
+
+## §LLMCTX-1 合并后复测：大典前缀与会话缓存车道共存，双车道各自 4.8% → 89.0%（2026-11-22 追记）
+
+`origin/main` 的 31 个提交并回 `main`（`c5636a31`）之后真机复跑：`withCanonPrefix`
+（§LLMCTX-1）与 `cacheLane`（§CACHE-SESSION）在同一个请求里同时打开。
+
+```
+lane-A/1: 8.3s tokensIn=173273 cached=8251  ( 4.8%) canonChars=267366   冷
+lane-B/1: 6.6s tokensIn=173269 cached=8250  ( 4.8%) canonChars=267366   另一条车道，同样冷
+lane-A/2: 5.3s tokensIn=173268 cached=154137 (89.0%) canonChars=267366
+lane-B/2: 6.0s tokensIn=173272 cached=154137 (89.0%) canonChars=267366
+nolane/1: 5.6s tokensIn=173268 cached=154137 (89.0%) canonChars=267366   不传车道，回落 sticky
+```
+
+- 两条互不相干的车道各自从 4.8% 暖到 **89.0%**，没有互相挤出——§CACHE-SESSION 要的就是这件事，
+  而 canon 前缀是两段对话共用的第一段字节；
+- `canonChars=267366`（canon 已长到 209 回响）每发都报，界面「本句带着整部世界大典」有数可依；
+- 回复逐条带出处：「守了二十年。见回响一百六十五章」「出处：回响172《夜钥匙》」
+  「见回响164《崖顶烽火台…」——不是"模型说没有"，是"典籍里写的是 X，见第 N 回响"。
+
+## §ECHO-THREAD 回响线索索引——209 篇不是 209 个孤岛，14 条线索连出真叙事弧（2026-11-22）
+
+用户要求「最终产品给用户无尽开放世界的感觉：世界无穷大，怎么探索都探索不完……
+辽阔的土地上要有足够多细节可探索，不要"看着很大、里面很空"」。
+二百零九篇回响已经"大"了；这一片回答的是另一个问题——**它们之间是什么关系**。
+
+`apps/web/src/lib/echoThreads.ts`（纯函数、零 provider、零写库、同输入永远同输出）：
+把「同一件东西被多篇写到」的现象串成线索。词表是**手写的 24 条**，每条对应正典里一个
+有名字的东西；判据是"它在两篇以上回响里被写到"——只出现在一篇里的是篇目，不是线索。
+
+**真读数**（209 篇扫完，14 条线索：11 物件 + 3 地方，5 篇未入线索）：
+
+```
+潮印      10 篇 · 3 簇 → 11 | 171-172 | 201-209(7)
+守塔人     5 篇 · 3 簇 → 23 | 51 | 165-167(3)
+铜锚       4 篇 · 1 簇 → 175-178(4)
+盐账       3 篇 · 1 簇 → 157-160(3)
+纸船       2 篇 · 1 簇 → 167-170(2)
+不写名的灯 32 篇 · 17 簇 → 84-96(7) 162-168(4) 208-209
+雾港      44 篇 · 10 簇 → 171-183(12)   ← 雾港旧信物库那一整段
+抄本院    29 篇 · 5 簇 → 197-207(11)
+```
+
+**为什么是"簇"而不是"配对"**：一条出现在 189 篇里的线索（潮候院）会炸出 17,766 对同线索回响
+——那是对数不是信息。簇（序号差 ≤3 算同段）才回答"这条线索在正典里是哪几段时间里连续写的"。
+
+**三条诚实边界**：索引由 generated.ts 现算，页面不存快照；线索只列**逐字锚句**作证据
+（读者能翻回去核）；没命中任何线索的 5 篇如实计数为「未入线索」——不说成"无关"，
+只说这一轮手写词表还没覆盖到。
+
+**页面**：`/bible/threads`（双语，`.et-*` 门面），典籍室页脚与 /guide 都有入口。
+**真机**：`/bible/threads` HTTP 200（383 KB）；DOM 实测 `motifs=14 arcs=63 anchors=56`，
+与纯函数读数逐项对齐（14 条线索 / 63 簇 / 56 条锚句）。1440 与 390 双档截图
+（`screenshots/echo-threads-1440.png` / `-390.png`）人工看过：390 下页面级横向溢出 **0**。
+**英文模式**：`NEXUS_LOCALE=en` 下同一页 HTTP 200，locale=en，**正文 CJK 字符 0 个**
+（`screenshots/echo-threads-en-1440.png`）——标题、篇名、锚句全部走 `titleEn`/`en` 字段，
+没有一处中英夹杂。这正是用户「英文模式下全部统一英文」那条要求的可复检读数。
+**判据**：`apps/web/test/echo-threads.test.ts` 9 条全绿——确定性（两次调用逐字节相等）、
+单词线索不收、锚句逐字来自 markdown、slug 真实存在、各簇篇数之和 = 线索总篇数、
+段间差 >3、物件全部排在地方之前。测试当场抓到一个真 bug：`size` 我原先按"序号跨度"算，
+簇内有空洞时会虚报，改成篇数并把断言收紧成"size ≤ to-from+1 且各簇之和 = 总篇数"。
+
+## §ADMIN-13 只读观察站真机核对——口令 123 进门、实库指标、趋势预测明说什么时候不算（2026-11-22）
+
+用户要求「密码输入 123 就能进管理员页面，监控所有用户的统计数据、做分析和趋势预测」。
+这套功能（`/admin/observe`）本轮在真浏览器里端到端核对过。
+
+**口令门**：游客只看到守门表单，表单上明写「口令公开：123」并说明
+"它不是鉴权秘密——它是一扇只读的窗：你能看见每一个数字，你什么也改不了"。
+`POST /api/admin/observer` 输 123 → `200 {"ok":true}` + `Set-Cookie: nx_observer=observer-123`
+（Path=/ · HttpOnly · SameSite=lax · 30 天）；带 cookie 再打开，守门表单消失、观察站渲染。
+
+**实库读数**：32 注册用户（非游客）/ 1,157 游客 / 1,189 七天与三十天新注册 / 1 发布 /
+0 公开已过审 / 近 7 天有效打开 0 / 任务状态 排队 0·执行中 0·等批准 1·已完成 5·失败 0。
+
+**趋势预测（最小二乘线性外推 · 非 AI）**：给第 8 天预测、未来 3/7 天平均预测、斜率、
+R²、残差 SD；并明写**趋势死区 ±0.5 opens/day · 样本 < 4 天不判——先承认不知道**。
+当前读数斜率 0.00 · R² — · 残差 SD 8.00：没有数据时不编一个斜率出来。
+
+证据 `docs/evidence/admin-observer-live-2026-11-22.md`。
+
+**顺带记下的环境事实**（不是产品缺陷）：本轮两次量到 `/admin/observe` 500，根因都是
+Docker Desktop 的 Linux 引擎掉线——`nexus-platform-postgres`（5433）不可达，
+`readObserverMetrics` 第一条查询拿 `CONNECT_TIMEOUT`；引擎恢复后同一条查询立刻返回 32。
+页面有 `app-root-error` 兜底，没有把异常裸摔给用户。
+
+## §13 第三十八片：world/game 的 `duplicate-id` 也拆开了——边 id 重号此前一格都没查（2026-11-22）
+
+第三十七片把 design-model 的 `duplicate-id` 拆成页/节点两个 code，理由是"两种重号修法不同"，
+并在 notMeasured 里写下「`world-model` / `game-model` 各自的 `duplicate-id` 未统一」。本片兑现。
+
+**拆的时候发现真正的缺口不是命名，是边 id 一格都没查**：
+
+- `WorldLink.id` 被 `worldNetwork` 的 Tarjan 割边当作**跳父边的键**（仓库里记着"按父节点名跳父边
+  会把双向边 a→b/b→a 的第二条漏掉、误把成环边判成桥"，所以改成按边 id 跳）；
+- `GameRef.id` 被 `removeRef` 当作**删除键**（`entity.refs.filter(ref => ref.id !== refId)`），
+  也被 `buildGameGraph` 当作**边的身份**铺进 nodes/edges。
+
+两个模型都只校验了"节点/实体 id 唯一"，**边自己的 id 从不校验**。两个关系共用一个 id 的后果：
+删一个会删掉两条，桥的判定会跳错那条父边——这类错不报错，只会安静地给出错的骨架。
+
+**改法**（与 design-model 同一条理由：修法不同就必须分开报）：
+
+- world-model：`duplicate-id` → `duplicate-node-id`；新增 `duplicate-link-id`；
+- game-model：`duplicate-id` → `duplicate-entity-id`；新增 `duplicate-ref-id`；
+- 两条新 code 都带 `suggestion`（`WorldIssue` / `GameIssue` 原先是 `{code,message,nodeId/entityId}`，
+  补上可选 `suggestion`——重号类的问题只骂不给梯子，等于让人知道错了不知道怎么改）；
+- `sim.ts` 三处注释里的旧 code 名同步更正。
+
+**判据**：world-model **101 passed**（新增 2 条：同 id 不同端点 ⇒ `duplicate-link-id` 且
+**不**误报 `duplicate-link`；既有文档不被新门误伤）；game-model **365 passed**（新增 2 条同形状）。
+`economy` 的 `duplicate-id`（账目条目，单层平表）与 `agent-runtime` 的 `PlanProblemCode`
+（任务步骤 id，单层平表）**不拆**——它们没有"两种 id 空间"这个问题，拆了就是为拆而拆。
+
+**顺带记下**：`apps/web/test/game-code.integration.test.ts` 本轮两次红，都与本片无关——
+它默认连 55433（已停用的坏库）拿 `ECONNREFUSED`，改指 5433 后 `beforeAll` 30 秒钩子超时。
+已用 `git stash` 对照验证：**撤掉本片改动，同样超时**。
+
+## §ECHO-THREAD 阅读页「顺藤摸瓜」——209 篇回响每篇都有同线索邻居，不再读完一篇就被扔回目录（2026-11-22 追记）
+
+索引页（`/bible/threads`）解决的是"从目录看全局"；这一片解决另一半——**读完之后去哪**。
+用户要求「给用户足够充分的引导，防止迷失、失去耐心」。
+
+`echoThreads.ts` 新增 `echoThreadNeighbours(index, order, echoes)`：一篇回响压在哪些线索上、
+每条线索上还有谁。`/bible/[slug]` 只对回响渲染这一段（章没有序号可比，硬接会读出假邻居）。
+
+**真机读数**（`/bible/echo-171-…`，潮印那一篇）：
+
+```
+这一篇压在 3 条线索上
+潮候院 另有 188 篇（列 12，另 176 篇没列全）
+雾港   另有 43 篇（列 12，另 31 篇没列全）
+潮印   另有 9 篇（列 9，全列）
+DOM: threads=3 neighbourLinks=33 · 390 下页面级横向溢出 0
+```
+
+三条设计约束：
+
+1. **邻居多的线索排最前**——那条最可能把读者带到没读过的地方（测试钉住这条排序）；
+2. **每条线索最多列 12 篇**，剩下的如实说"还有 N 篇没列全"——潮候院那种 189 篇的线索
+    列全了会把正文挤到看不见，而"只列前 12 却不说"是另一种截断谎；
+3. **邻居里绝不含自己**，且每个 slug 都真实存在（点得开）——测试逐条核。
+
+**英文模式**：`NEXUS_LOCALE=en` 下同一段 **CJK 字符 0 个**（标题、线索名、篇名全走 en 字段）。
+
+**判据**：`apps/web/test/echo-thread-neighbours.test.ts` 4 条全绿——邻居与索引逐条对齐、
+排序单调、slug 真实、未入线索的回响 `threads` 为空（不谎称"无关"）。
+
+**过程中踩到的一件事**：改完之后页面 500，报 `echoThreadNeighbours is not a function`——
+Turbopack 的模块缓存没认新导出的函数，重启 dev server 即好。不是代码问题，但记下来：
+在这台机器上"加了导出却调不到"先怀疑 HMR，别先去改代码。
+
+## §A11Y-NAMES 按键教学说明全量巡检——13 张公开页 + Studio，0 个无可读名图标控件（2026-11-22）
+
+用户要求「主界面给各种按键和操作加上附带的教学说明，方便用户理解」。这一片把这句要求
+变成可复检的读数，而不是"看着应该有"。
+
+**两把尺子**（`docs/evidence/a11y-names-live-2026-11-22.md`）：
+
+1. **axe 规则层**：`button-name` / `link-name` / `aria-command-name` / `aria-tooltip-name`
+   —— 13 张公开页面（首页 / 指南 / 发现 / 市场 / 典籍室 / 回响线索 / 潮汐信 / 地图 /
+   StateGraph / 通知 / 额度 / 积木库 / 搜索）**各 0 违规**；
+2. **纯图标控件层**：没有可见文字、又没有 `title`/`aria-label` 的控件——同样 **0 个**。
+
+**Studio**（主工作台，真注册账号进的真项目）：全页面只有 **1 个**纯图标控件（主题切换），
+带 `title="切换到浅色主题"`；其余控件都有可见文字。
+`shell-i18n.ts` 的 `tabHints` 给 **15 个左栏页签**各写了一句人话（"画布上的每个节点都列在
+这里；点一层就选中它" / "这一轮 AI 到底看到了什么——完全透明" / "LLM 缓存读数：前缀稳定度 /
+网关命中率，按 30 秒刷新"…），`viewHints` 同理；`title` 与 `aria-label` **同时**挂
+（鼠标用户看到 tooltip，读屏用户听到同一句）。中英各一份，逐句对应。
+
+**结论**：这一条要求已经是满足状态，本轮补的是**可复检的读数**与记录。
+真正缺教学说明的地方不在"名字"，在"为什么"——那部分由 `/guide`（十四段双语说明书）、
+游戏内 `GameTutorial`（可折卡片）、发布弹层的 limits 三处分别承担，也都实测过。
+
+## §EXT-SEARCH 站外检索上线——「没有匹配」不再把"我们没有"说成"世界上没有"（2026-11-22）
+
+用户要求「尽可能接入联网搜索得到的真实数据、真实实验数据，不要全部是演示数据堆砌
+——用户会觉得虚假」。平台内那九类目标再全也只是**这个宇宙里**的东西；读者查一个现实
+概念时站内永远给不出答案，而一句"没有匹配"会把"我们没有"说成"世界上没有"。
+
+**做法**（`apps/web/src/server/domain/externalSearch.ts`）：
+
+- `ExternalSearchProvider` 接口 + `defaultExternalSearchProvider()`：业务代码只面向接口，
+  不 import 任何具体 endpoint（架构纪律 4）。默认实现是**维基百科**——无需 key、无需登录、
+  全球可达、每条都能点回原文。换源只改那一处函数。
+- 两步：搜索端点取候选（≤4），再逐条取摘要。摘要**并行**取——串行是 1+N 个来回，
+  实测串行版本把 `/search` 首屏从 ~1s 拖到 **30s+**（4 条摘要各一次往返）；改并行后 **2.9s**。
+- 摘要剥 HTML、截到 220 字符加省略号：不是把别人的正文搬进我们页面。
+- **站外不进站内的序**：单独一块、虚线描边区分来源、单独标注方法，不与九类站内目标混排。
+- `SEARCH_NOT_COVERED` 多一条，把读者指到这块。
+
+**真机读数**（`/search?q=电脑`，2.9s）：
+
+```
+现实世界 · 站外资料
+电子计算机  电子计算机，也称为电脑或计算机，是利用模拟或者数字电路…
+个人电脑    电脑，或称个人电脑…
+电子游戏    电子游戏，又称计算机游戏…
+电脑键盘    电脑键盘是一种打字机型態的設備…
+```
+
+而同一页的站内结果是「没有匹配「电脑」的内容」——两边都在，各说各的。
+英文模式（`NEXUS_LOCALE=en`，`?q=computer`）同样 4 条真命中，**该块 CJK 字符 0 个**。
+
+**诚实的失败**：连不上时说"站外检索这一会儿没连上：<原因>。上面站内的结果不受影响"，
+不写成"暂时没有外部资料"——那句话把"连不上"说成"没有"，正是用户点名要避免的那种谎。
+
+**判据**：`apps/web/test/external-search.test.ts` **13 passed**——两步调用形状、HTML 剥离、
+截断边界、4 种失败路径（端点非 2xx / 网络异常 / 单条摘要丢失 / 候选为空）、locale 决定语言站、
+空查询不白打网络、provider 可替换。测试当场抓到两件事：我给"短摘要不丢字符"写的断言
+把 `&尾` 放在截断边界之外（断言错，代码对）；串行取摘要拖慢首屏（代码错，已修）。
+
+**仍欠**：本机实测走的是维基百科直连（这台机器可达，无需代理）；换 Bing/Google 需要 key，
+  接口已留好，没有 key 不接。站外命中不过机检词表——它是外部内容，不参与本站发布链路。
+
+## §EXT-SEARCH 站外检索补进说明书——新功能不写进手册等于没上线（2026-11-22 追记）
+
+用户要求「开发一本"简明说明书"小册子，嵌入到项目里……里面简明描述用户如何充分体验、
+使用项目的所有完整功能」。上一片上了站外检索，但 `/guide` 里一个字都没提——
+功能上线了，手册没跟上，用户照旧只会用旧的那一半。
+
+补了四处（中英各两句，逐句对应）：
+
+1. ③ 功能地图里 `/search` 那一格：从"全站搜索"改成
+   "全站搜索（站内九类 + 站外「现实世界」维基百科那一块，两边分开排）"；
+2. ⑫ 问典那一段末尾：加一句"想知道现实世界里这个词指什么？/search 页面下方有
+   「现实世界 · 站外资料」那一块，来自维基百科，和站内结果分开排、不混在一起"；
+3. 英文侧同两句（`outside-the-platform "real world" lane from Wikipedia, ranked separately`）。
+
+**判据**：`guide-visual-style` 8 passed（token 纪律 + 双语段数对齐没被改坏）；
+`external-search` 13 passed、`echo-threads` 9 passed、`echo-thread-neighbours` 4 passed
+（四个相关文件一起跑，34 passed）；eslint / tsc web 绿。
+
+**纪律**：从此每上一个用户可见功能，同一片里必须改 `guideCopy.ts`——这一条写进本片，
+   不靠记性。
+
+## §CANON-VERIFY 问典引用机检从硬编码黑名单改成查表——旧表既误报真章、又只抓三个号（2026-11-22）
+
+上一轮实测抓到模型答对内容、编出处：「浅痕后来变成了半枚潮印。依据回响二十一章
+《值更院抄本院那本册子翻过第七十二页之后》」。查进去发现两件比漏检更严重的事。
+
+**旧实现是一张硬编码正则黑名单**（`第六章|第七章|第四十二|第四十三|echo 0?(37|38)|E ?-? ?3[789]`）。
+git 历史确认：写它的时候（2026-11-17）正典只有 5 章 / 36 回响，第六章、第七章、Echo 37
+当时确实是发明的——**这张表在当时是对的**。正典长到 13 章 / 210 回响后它没更新，于是：
+
+- **误报**：`第六章`/`第七章`/`Echo 37`/`E37` 全是真引用，旧机检给答对的模型打
+  `invented-chapter-or-echo`，逼它走一轮无意义 revise——而测试把**这个错误行为当规格钉住了**；
+- **漏检**：只认那三个号，`回响二十一章`/`第三百回`/`Echo 999`/`Chapter 99` 全部放行。
+
+**改法**（全部从 digest 现取，不硬编码）：`digestSectionNumbers` 取真实章号/回响号；
+`extractSectionCitations` 认七种引用写法（`第 N 章`/`第 N 回响`/`回响第 N 章`/`回响（其 N）`/
+`回响 N`/`Chapter N`/`Echo N`/`E N`），**后缀写死**所以`第 N 次`（第四十一次大会）不误报；
+`digestQuotedPhrases` + `extractQuotedTitles` 查书名号短语（同时收正文《…》与节标题——
+只收前者会把《里巷子码头的七盏号灯》判成发明，只收后者会漏掉《收件人》）；
+`parseChineseNumber` **逐位写法优先**（`二〇八`=208，按位值加会读成 8、`二一〇` 读成 0
+而误报"发明了第 0 回"）。
+
+**判据**：`canon-answer-graph.test.ts` **19 passed**（原 17 条中 3 条的断言从"应当命中"
+改成"应当放行"——那是把错误规格改对，不是放水）。
+
+**真机复跑**（`/api/bible/q`）：三问全 `verdict=pass`，其中一问正是逐位写法
+「（回响二〇八、二〇九）」；另两问按准确标题引到回响 210 / 207；缓存 88.9%。
+
+证据 `docs/evidence/canon-verify-citation-check-2026-11-22.md`。
+
+**仍欠**：书名号要求逐字一致，换个近义说法仍放行（模糊匹配误报率未量，宁漏不错）；
+`E N` 缩写可能与英文编号列表撞上，未实测。
+
+## §CANON-211 Echo #210 落地产能核对——模型按准确标题引到它，但第二问引错了编号（2026-11-22）
+
+新增一篇回响只是把字写进 `docs/world-bible/echoes/`。真正要证的是三件事：① 它进了快照与
+digest（生成物同源）；② 它在页面上读得到、连得上；③ **模型答得出它**。前两件脚本能保，
+第三件只有真调用能证。
+
+**生成链路**：`echoes/E210-….md` → `gen-bible-snapshot.mts` 登记 web slug →
+`generated.ts`（13 章 · **210 回响** · 4 附录）→ `canon_digest.txt`（**267,646 chars**）。
+`verify-world-bible-anchors` 1270/1270 全通过；`verify-bible-snapshot` 逐字节一致；
+`bible-ask-behavior` 钉数 1261 → 1265。
+
+**页面**：`/bible/echo-210-…` HTTP 200；「顺藤摸瓜」3 条线索（潮候院 189 / 雾港 / 潮印）；
+`/bible/threads` 的潮印线索里 **E210 在列**（201-209 那段弧延长到 210）。
+
+**模型真机**（`gpt-6.2-sol`，`tokensIn=173,473` 冷 4.8% → 暖 88.9%）：
+
+```
+Q: 第七十三页上后来出现了什么？抄本师们有没有把它补全？
+A: …抄本师们没有补全，而是让痕迹留着。依据：回响209《…》、回响210《潮候院抄本院那道浅痕第三日变成半枚潮印》。
+
+Q: 那道浅痕最后变成了什么？
+A: 浅痕后来变成了半枚潮印。依据回响二十一章《值更院抄本院那本册子翻过第七十二页之后》的锚句。
+```
+
+第一问**按准确标题引到了回响 210**，"没有补全"也答对了；第二问**内容对但编号与地名引错**
+（"二十一章 / 值更院"，实为回响 210 / 潮候院）——模型的引用错乱，不是内容缺失：它读到了
+正确的句子，把编号写错了。如实记下，不替它圆。
+
+顺带确认：新内容进 digest 之后深度接入没有退——tokensIn 仍 17.3 万，缓存仍"一发冷 → 88.9%"。
+
+证据 `docs/evidence/echo-210-live-2026-11-22.md`。
+
+## §SIM-1 行为模拟补上公开作品页——「没耐心就关掉」终于量在该量的落点上（2026-11-22）
+
+上一片核对时发现一个真缺口：五画像全打公共离线路由（`/` `/discover` `/map` `/guide`），
+一个 `/n/<handle>/<slug>` 都不打。于是"打开页面没耐心就立刻关掉"这件事，量的其实是首页，
+而**作品页才是访客真正"打开就关"的落点**，也是全站唯一挂访问 beacon 的路由。
+
+**改法**（`scripts/simulate-user-behavior.mts`）：
+
+- 新增 `publishedHrefs(html)`：从一页链接里滤出 `/n/<handle>/<slug>`；
+- `takeWork(html)` 从**已经打过的**页面里捞一篇，捞到就不再捞——只有 `impatient` 可能因此
+  多打一次 `/discover`，`lost-wanderer` 复用自己那次的结果；合成流量多打一页就多一份负载；
+- JSON 加 `paths`（全量命中路径）与 `workPageHits`：**"确实打了作品页"不能靠总数差推断**，
+  推断不是证据（§159）。上一轮只记 `errorHits`，跑了 83 命中也说不清那几页是不是真在 `/n/` 上。
+
+**读数**（20 会话 × 5 画像，`--port 3100`）：
+
+```
+hits=79 ok=79 errors=0 p50=1036ms p95=4153ms
+impatient 12 · rage-clicker 23 · lost-wanderer 16 · deep-reader 12 · bot-ish 16（错误均为 0）
+workPageHits = 6（全部落在 /n/u83627493/build-ok）
+```
+
+证据 `docs/evidence/simulated-user-behavior-2026-11-22.md`（含 2026-11-22 无作品页那一轮
+与 2026-11-16 的对照表）。
+
+**过程中记下的事**：这一轮 Docker 引擎掉线两次，中途一次复跑全红（48 错），**那份 JSON 已删**——
+把"引擎掉线"记成"产品缺陷"正是用户点名要避免的那种谎。引擎恢复后复跑即得绿读数。
+
+## §SIM-1 行为模拟核对——五画像齐全，今日复跑因 Docker 引擎掉线全红（2026-11-22）
+
+用户要求「联网深度搜索，模拟真实用户行为：打开页面没耐心就关掉、不知道去哪就瞎点等，
+把这些真实用户行为模拟出来」。`scripts/simulate-user-behavior.mts` 五画像全齐：
+
+| 画像 | 行为 |
+|---|---|
+ `impatient` | 打开发光就关（2 步开火） |
+| `rage-clicker` | 瞎点：/ → 3–6 个随机链接连发，不等 scroll、无目标 |
+| `lost-wanderer` | / → /discover → 再一站 → 回 / → 关 |
+| `deep-reader` | /guide 读 18s+ → /map |
+| `bot-ish` | /about-nexus 三连 |
+
+**已有证据**（`docs/evidence/simulated-user-behavior-2026-11-16.md`，20 会话 × 5 画像）：
+76/76 命中 **100% 2xx · 0 错误**；p50 **764ms**、p95 1380ms；五画像各自 p50 600–1229ms，
+错误均为 0。合成流量由 deterministic LCG 生成，页面上明写"synthetic, seeded, dev"，
+不与真实访客数据混为一谈（§159）。
+
+**今日复跑（引擎恢复后重跑，20 会话 × 5 画像）**：73/73 **100% 2xx · 0 错误**，
+p50 **565ms**、p95 2089ms；五画像各自错误均为 0。与 11-16 的 76/76 · p50 764ms 同量级
+（p95 高是因为这一轮机器上同时跑着 Docker 五件套 + 另一个 agent 的 dev server）。
+证据 `docs/evidence/simulated-user-behavior-2026-11-22.md`。
+
+**今日第一次复跑全红，根因是环境不是产品**：`--sessions 10 --port 3100` 打出 24/24 全红
+（status 0，p50=25011ms = 脚本自己的 25s 超时）。逐层查下来：Docker Desktop 的 Linux
+引擎掉线 ⇒ `nexus-platform-postgres`（5433）`CONNECT_TIMEOUT` ⇒ 所有库页面
+（`/` `/discover` `/search` `/marketplace`）返回 500，`/bible` 这种静态页 200。
+约 12 分钟后引擎恢复，同一批路由立刻复原，复跑即得绿读数。
+**那份红的 JSON 没有提交**——把"引擎掉线"记成"产品缺陷"正是用户点名要避免的那种谎。
+
+**一条边界写进证据**：这一份只打公共离线路由，`publication_visits` 不因此多一行
+（访问 beacon 只挂在 `/n/<handle>/<slug>` 上，脚本按设计不碰它）。要在仪表盘上看到
+合成人·天，走 `/admin/behavior-sim`（那一处明写 `suspectedBot=true`，不进"真人"计数）。
+
+**结论**：这一条要求由 2026-11-16 的证据满足；今日这一跑只是又一次记下
+"这台机器上 Docker 引擎掉线时，任何库页面都会 500"这件事（本轮第 N 次）。
+
 ## §SEC 第三十二片：限流闸的窗口挪进 Redis——「每台各数各的」那句限额重新是真的（2026-11-02）
 
 起点是 `rateLimit.ts` 顶部从 §64 那天起就写着的一句承诺："生产多实例时换成 Redis 驱动（ZRANGEBYSCORE + ZADD
@@ -14677,6 +15224,113 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   - 同 digest+同 question 的二次请求必命中 100%；app 粒度可拆分为 LRU+Redis 两级。
 - 不再能做的：Distributor 自己的路由/channel cache 不可控，不在本项目可以改进的范围内。
 
+## §GRAPH-3 设计主流程的 LLM 自检修订环（2026-11-20）
+
+- [x] **draft → review → revise → 终审** 反馈环接进 `execute_ai_request`，
+  补齐此前只有 `/insight` 有、设计主流程没有的那一格（ADR 0294）。
+  - 审稿用**短且字节级稳定**的独立 system，不把 53 万字节正典再送一遍；
+  - 修订轮复用原 `SYSTEM_PROMPT`，原 user 逐字节在前、意见在后，前缀 KV 不重买；
+  - 修订上限默认 1（可配 0/2），「直到满意」没有终止条件，不是状态机。
+- [x] **增强不是门**：审稿调用失败或输出坏形状时原稿照常 200 交付，`activities`
+  留 `stage=review, status=failed`；绝不新增单点故障。
+- [x] **账本不撒谎**：多出来的调用如实进 `toolCalls / tokensIn / tokensOut /
+  cachedTokens / latencyMs`；只要一轮没报缓存就说 `cacheReported=false`；
+  只要一轮没价目就说 `costBasis=unknown`，不报偏低的总额。
+- [x] 判据：`test_design_review.py` 16 条 + `test_design_review_graph.py` 7 条；
+  顺手修掉并轨后过期的 `test_world_step_stategraph.py`（E177 现在已在 207 回响的
+  digest 里，换成远超编号的 E99999）。ai-service 全量 492 passed / 18 skipped。
+- [x] 真机验证：`NEXUS_LLM_DESIGN_REVIEW=1` + Clash 7897 + `gpt-6.2-sol` 实跑。
+  初稿漏了「把 CTA 文案改成立即开始」，审稿原话抓到，修订后终审通过；
+  `toolCalls=4 / tokensIn=697149 / tokensOut=591 / latencyMs=27234`，
+  `cacheReported=false`（不是每轮都报）、`costBasis=unknown`（未配价目表）。
+  Studio 的 ActivityFeed 原样渲染四段轨迹。详见 ADR 0294。
+
+## §STRESS-1 ai-service 高并发压测（2026-11-20）
+
+- [x] `scripts/stress-ai-service.py`：health 风暴 / 畸形请求风暴 / 恢复探活三相位，
+  不触发 provider。实测 600/60 并发全 200、150 发畸形请求全 400、零 5xx、
+  恢复后 p95=29.4ms（证据 `docs/evidence/stress-ai-service-2026-11-20.md`）。
+- [x] **压测脚本自检**：第一版有一族"路径注入"其实是合法请求，误触发 12 次真模型调用。
+  修为每族必缺 `requestId`（契约必填），从结构上保证不可能走到 provider。
+  检测器自己会烧 token 时，它测的不是系统鲁棒性。
+- [~] 60 并发下 health p95 退化到 1531ms（单 worker + 同步 access log 的代价），
+  响应码全 200 且风暴后立即恢复。继续往上堆并发需多 worker + 关 access log，
+  不是路由代码的问题。
+
+## §AILIVE-3 收尾（2026-11-21）
+
+- [x] healthz 短 TTL 缓存真服务 A/B：连打 12 次 `/healthz`，`llmCache` 计数零增长
+      （delta=0），capability 保持 real。liveness 两层账（probes vs hits/misses）独立上报不求和。
+      判据 21 条全绿。收尾 tasks 171–173。
+
+## §PLAN-1 多步 Agent 的 LLM 规划器（2026-11-21）
+
+- [x] `lib/llm-planner.ts` 纯函数层：模型只从九种真实步骤里挑子集、排序、改标题、补风险；
+      agent/artifact/dependsOn/requires 全部从 `READINESS_STEPS` 重建，模型碰不到真值；
+      整份过 `validatePlan`，失败返回 null 回退确定性配方（ADR 0296）。
+- [x] `runtime.ts` 接线：`tryLlmPlan` 可注入 chat、失败不阻塞；`planner` 按本次实际规划器
+      落进任务行 capability / input.planner / 通知标题（real=模型规划, demo=DEMO 规划）。
+      开关 `NEXUS_AGENT_LLM_PLANNER`：`1`/`0` 显式，未设置时生产开、测试关（隔离现有 demo 判据）。
+- [x] 真机 gpt-6.2-sol：目标"上架前体检"→ 模型自己砍掉 5 步游戏草稿链，只留
+      context→seo-audit→qa-audit→report，validatePlan=[]；二次调用前缀缓存 100%
+      （18928/18928，185ms vs 首次 6595ms）。真机抓到并修掉"风险文案说没有真 provider"的谎。
+- [x] 判据 29 条 + 变异臂验伪；tsc web 绿。
+- [x] 编排端到端集成判据在数据库抢修后复跑 **22/22 全绿**；同批
+      `moderation.integration` + `publish.integration` **27/27 全绿**。数据库抢修见 §DB-REPAIR。
+
+## §MOD-1 发布审核的 LLM 上下文二段研判（2026-11-21）
+
+- [x] `lib/llm-moderation.ts` 纯函数层 + `server/domain/moderationLlm.ts` 接线：机检照常跑，
+      模型只对已扫过的可见文本补"词表漏掉的语境"线索（ADR 0297）。三条不越界：
+      ① 模型碰不到 blocked（硬红线仍是正则）；② quote 必须是可见文本逐字子串（防编造证据）；
+      ③ 机检永不写 approved，线索最多把 clear 升 review（挂人工）。
+- [x] `publish.ts` 主链路改调增强版，`rulesVersion` 真用了模型才加 `+llm`；
+      `publishPreflight.ts` 保持纯机检。开关 `NEXUS_MODERATION_LLM`，生产开测试关。
+- [x] 真机 gpt-6.2-sol：「加微信领红包，先交 99 元激活账户即可提现」机检 baseline=clear，
+      模型补 review（quote 逐字来自原文，why 点破虚假收益话术），final=review。
+- [x] 判据 22 条 + 变异臂验伪 + tsc web 绿；真机测试默认 skip（`NEXUS_MODERATION_LLM_LIVE=1` 才跑）。
+
+## §WORLD-NET 万象脉络图谱（2026-11-21）
+
+- [x] `lib/worldNetwork.ts` 纯函数：入/出度枢纽榜、Kosaraju 强连通分量（势力团）、
+      Tarjan 割边（关节）、跨类关系聚合、孤立条目；迭代 DFS/并查集避免爆栈，
+      同输入同输出（ADR 0298）。
+- [x] 路上抓到并修掉真 bug：Tarjan 桥按父节点名跳父边，双向边 a→b/b→a 的第二条被漏，
+      误把成环边判成桥。改为按边 id 跳；变异臂 4 条变红反证判据有牙。
+- [x] `/world/[projectId]/network` RSC 页（双语、`.nw-*` 门面、强制色彩回退）+
+      `network-visual-style` 8 门；digest 页脚加「万象脉络 →」入口（SHA 重钉 1cfae46a→cfb5e1af）。
+- [x] 判据 22 条全绿；tsc web 绿。
+- [~] 浏览器像素层未验证：`nexus-postgres` WAL 损坏 shutdown，页面需真项目数据 + 登录，
+      本机起不来；DB 恢复后需真机截图核对 1440/390 无重叠。
+
+## §DB-REPAIR 两库 WAL / 统计目录损坏抢修（2026-11-22）
+
+- [x] **症状**：`nexus-postgres`（55433，测试默认库）WAL 段头 `invalid magic number` +
+      `could not locate a valid checkpoint record`，容器 PANIC 退出；`nexus-platform-postgres`
+      （5433，web 开发库）能起但 `pg_statistic` 的 TOAST 缺块（`missing chunk number 0`），
+      顺序扫描 `pages` 就报 `XX001`，21/22 编排集成判据全红。
+- [x] **先备份再动**：`nexus-pgdata` 卷 98MB 打包到 `D:\backups\nexus-pgdata-20261122.tar.gz`。
+- [x] **55433**：`pg_resetwal -f` 拉起（checkpoint 之前数据保留）→ 仍有统计目录损坏 →
+      `pg_dump` 全库可读（6.9MB）→ 重灌新库、`ANALYZE`、换名，旧库留 `nexus_broken_20261122`。
+- [x] **5433**：同样 `pg_dump` 2.2MB → 重灌、授权、换名，旧库留 `nexus_broken_20261122`；
+      源库有 8 条历史孤儿 session，恢复时 FK 未建（测试不依赖，如实记）。
+- [x] **验证**：5433 重建后 57 项目 / 56 页面 / 1307 用户；55433 重建后 1358 项目 / 1217 页面；
+      全库 `pg_dump` 与 `ANALYZE` 均无缺块错误。
+- [x] `apps/web/.env.local` 指向 5433；vitest 不读 `.env.local`，走默认 `localhost:55433/nexus`
+      —— 两库都修才让「浏览器看到的」和「判据跑的」同时可信。
+
+## §ADMIN-LLM-2 观察站 AI 清单：服务端边界 + 数字出处核对（2026-11-22）
+
+- [x] 新增 `POST /api/admin/observer/advice`：口令 123 / role=admin、DEMO 409、每 IP 5 次/小时，
+      指标由服务器现算；请求体只有 locale（ADR 0299）。
+- [x] 修掉一个真 bug：`ObserverAiAdvice` 是 client 组件，却直接 import 了 server-only 的
+      `chatWithCharacter`——浏览器里没有 ai-service 地址与凭据，按钮点了等于没调。改为走路由后
+      真机点击返回 4 条建议、0 pageerror。
+- [x] 补数字出处核对 `aiAdviceAudit.ts`：以逐字喂给模型的 brief 为允许集，`basis+impact` 里
+      不在快照中的数字**不删只标**（千分位/百分号归一）。真机 1 条 `0.08%` 被正标注为"可能是推算"。
+- [x] 补 `.obs-aiAdvice*` 五个类名的门面样式（此前 globals.css 一个都没定义，整块裸渲染）。
+- [x] 判据 13 条（含源码级边界）+ `observer-deepread` / `observer-projection` 回归 27 条全绿；
+      tsc web 绿；ADR 0299。
 ## v868 — M9 链的第三个词：PR 是「请求复核」，不是「合并」（2026-11-22 · ADR 0067 · amendment 577）
 
 - **缺口**：链条已落前两词（incident v594 · patch v595）。操作者下一句是「请复核这个 patch」，
@@ -14911,3 +15565,52 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   根 `npx vitest run` 收到；无新脚本。
 - **它不是**：不是把 `db:push` 禁掉（禁不掉，别的 lane 要用）——门是它的对照物：推平一次，只要结果不等于
   迁移史，下一次测试就跑不掉。
+
+## v1098 — 并回 `origin/main`：94 个提交汇成一条主线，冲突逐文件解、生成物重导、四处显式重钉（2026-11-23 · ADR 0313 · amendment 584）
+
+- **缺口**：两条线从 `3433207c` 分叉之后，`master` 独有 56 个提交、`origin/main` 独有 94 个，
+  两边都在动同一批门面（`globals.css`、`/search`、`/bible`、角色对话、guideCopy、ROADMAP/CURRENT-STATE 台账）。
+  日常代价不是"合并有冲突"这一分钟，而是此后每一句都要先问"这话在不在另一条线上"——
+  并线就是把这个问题问掉。取 C 方案（一次 merge commit），不 rebase、不 cherry-pick 碎片：
+  两条线各自都被 CI 量过，改写它们的历史等于毁掉那些读数（ADR 0313 背景与选项段）。
+- **合并树**：相对 `22c0995b` 冲突解完时是 **155 个文件 / +9700 / −278**，落地提交是
+  **157 / +9875 / −288**（多的两处：`db-fk-parity` 的 tsc 修 + 台账 amendment 584）；
+  `merge-tree` 预报的冲突逐个解，
+  判据写在 ADR 0313 决定 1–12（`lineages-alt/**` 不进 canon 的先例、guideCopy 取并集、
+  `globals.css` 取并集并删掉 6 个零引用的 `.et-*` 死类、两边各自追加的记录都留）。
+- **生成物一律重导，不手工合并**：`npm run gen:bible-snapshot` 取两边并集之后重导并 `verify:bible-snapshot` ✓；
+  `docs/latest.json` 里那些"从 HEAD 数出来"的字段留到合并提交落地之后按新 HEAD 重跑 `npm run gen:latest`，
+  免得出一个描述不出自己的文件。
+- **四处显式重钉 + 一处拒钉**：`/search`（并回 §EXT-SEARCH 站外检索段，字面量 20 → 31 且逐条核过都是
+  已定义的 `se-*`）、bible 目录页（多了 `/bible/threads` 出口）、bible 阅读页（多了「回响线索」段）、
+  角色对话（并回 `canonPrefixChars` 徽章）。`/admin/savings` 对面那份钉**拒绝**——它在这台仓库的
+  任何 ref 的任何提交里都对不上那份页面字节，钉一个对不上历史的哈希等于把红伪装成绿（决定 5）。
+- **并线新造的三条红，各回各的根因**（决定 11）：① main 侧新加的 `api/admin/observer/advice` 写路由
+  用 cookie 身份却没有 `csrfOk`——本线的 CSRF 收口批（v1096）立了闸，对面按立闸前的世界写了代码；
+  照同族 `observer/digest` 补上门、客户端按钮展开 `csrfHeaders()`，并在 `observer-advice-audit` 加一条
+  "两头都接上"的源码级腿。② `globals.css` 里 `var(--nexus-color-border-subtle, var(--nexus-color-border))`
+  的兜底那半在本线 `tokens.css` 里从来不存在——删掉，字节变了渲染不变。③ `npm run typecheck` 红 9 处，
+  全在 v1097 那份 parity 测试里，而它**不在合并差异里**：那是本线自己躺了一次提交的 HEAD 红，
+  因为 `verify:fe-gates` 不含 typecheck、vitest 也不做全量类型检查。
+- **实测**：`verify:census` → **3197 个类全部有引用方**；`verify:fe-gates` → **154 files / 1410 tests passed**（修前修后各一次）；
+  `verify:evidence-census` → exit 0；`verify:bible-snapshot` → ✓；`doc-evidence` → 5 passed；
+  三条修的单独复跑 → **3 files / 48 tests passed**；`apps/web` `tsc --noEmit` → **exit 0**（修前 9 处）；
+  第一次整树 → `2 failed | 669 passed | 3 skipped (674)` / `2 failed | 8600 passed | 6 skipped (8608)`；
+  `verify:ci-wiring` → exit 0（人口 124 闭合为 124+0）、`verify:table-recount` → 1005 用例 / 57 文件逐行对上、
+  `verify:tree-guard` → 9/9 arms MATCHED、`verify:no-raw-tailwind` → 零裸原子；
+  **两道如实留下的红**：`verify:arms-freshness` → exit 1（合并带进派生人口的 4 条 M9 证明让收据过期，
+  要用 `npm run verify:arms` 重出，处置记 ADR 0313 决定 12）、`i18n:audit` → exit 0 但它报的
+  "总差异 28 项"逐条都是 `未配置 NEXUS_AI_SERVICE_URL` 的调用失败——**那是检查器自己没跑成，不是翻译差异**，
+  在 API 已关闭的今天必须先让它区分这两种出口，28 这个数字不作为 i18n 读数引用；
+  修后整树（第二次，`--maxWorkers=4`，2699.71s）→ exit 1：`2 failed | 669 passed | 3 skipped (674)` /
+  `2 failed | 8601 passed | 6 skipped (8609)`——上一轮那两条真红（CSRF 结构门、失效 token）已不在失败名单，
+  这一轮两条同为 `Test timed out in 30000ms`（`ai-approvals.integration` 的一条真库腿 +
+  `credits-why-guards` 的一条同步源码扫描），单独复跑 **2 files / 53 tests passed（24.39s）**，
+  连同一次 `Timeout calling "onTaskUpdate"` 的 worker RPC 超时一起归到同机争抢的测量面；
+  判据因此是"断言面全绿、超时另有单跑复证"，既不写成整树绿，也不写成门没牙（读数全文见 ADR 0313 验证格）。
+- **还有第三条线，P1 到那儿才算完**：`local-clone/main` = `6218077d`（第二份工作副本 `D:\内容创作平台`，
+  它的 `next dev -p 3100` 正占着本仓库的默认端口），相对并线前的 `master` 独有 **137 个提交**，
+  其中 **90 个**在 `origin/main` 之外，`git cherry` 判 **133 条非补丁等价**；ADR 号还与本线**连撞两处**
+  （它的 0307 是观察站 AI 清单、0308 是世界委托，本线的同号是证据名册与外键 parity）。
+  规矩写在决定 10：并它时把来客改到当时下一个空号并在文首留一句，本线文件不迁就。
+- **不 push**：远端 `origin` 仍是合并前的样子（业主没要求推）。

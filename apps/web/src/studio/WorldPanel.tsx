@@ -11,6 +11,7 @@ import {
   WORLD_TERRAIN_HEIGHT_MAX,
   addWorldNode,
   countLinksFor,
+  linkWorldNodes,
   removeWorldNode,
   setWorldNodeElevation,
   setWorldNodeModelAsset,
@@ -29,6 +30,9 @@ import {
 import { cn } from '@/lib/cn';
 import { patchLore } from '@/lib/worldLore';
 import type { Locale } from '@/lib/i18n';
+import { chatWithCharacter } from '@/server/ai/client';
+import { fillableKinds, formatWorldFillError, parseChronicleReply, parseEchoReply, parseLinkReply, parseWorldFillReply, retrieveWorldContext } from '@/lib/worldFill';
+import { rollFate, type FateCard } from '@/lib/worldFate';
 import { useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';
 import { WORLD_KIND_LABELS_EN } from '@nexus/world-model';
@@ -48,6 +52,34 @@ const COPY = {
     nameAria: '世界名称',
     summaryPlaceholder: '一句话说明这是个什么样的世界',
     summaryAria: '世界概述',
+    aiGen: 'AI 生成概述',
+    aiGenBusy: '生成中…',
+    aiFill: 'AI 填充这一节',
+    aiFillBusy: '填充中…',
+    aiFillTitle: (kind: string) => `真调用一次 provider，给「${kind}」补 1–2 条可编辑的条目：只依据这个世界的概述与已有条目，不编数字、不写模型话术；结果逐条写库（世界编辑不进画布的撤销栈，Ctrl+Z 只管设计文档）。没配 provider 就如实报错，不假生成。（这四个 AI 按钮共用每小时 10 次额度，超了会告诉你要等多久。）`,
+    aiFillDone: (kind: string, n: number) => `已给「${kind}」补 ${n} 条，改完失焦即写库。`,
+    aiFillNone: '模型没有返回可用条目——可能是格式不对或 provider 不可用；没有写入任何东西。',
+    aiFillAll: 'AI 补全空节',
+    aiFillAllBusy: '补全中…',
+    aiFillAllTitle: '一次点击最多补 3 个还没有条目的节（九类里选），每节都是真调用；已有内容的节不动。想补完就再点一次。token 按实际调用计，不偷偷多打。（四个 AI 按钮共用每小时 10 次的额度，超了界面会告诉你要等多久。）',
+    fate: '掷命运骰',
+    fateTitle: '不调模型、不写库：从这个世界已写的条目里抽两条，按确定性的句式重组成一张事件卡。同一个数字出现同一张卡，换一个数字就换一张——无穷来自你写下的细节组合，不是凭空编造。',
+    fateEmpty: '至少要有两条写了正文的条目才能掷骰——先用填充或续写补一点内容。',
+    fateKeep: '把这张卡写进世界',
+    fateDone: (card: { title: string; body: string }) => `命运骰 · ${card.title}：${card.body}`,
+    fateKept: '这张事件卡已写进世界的「故事」类；正文里标了 seed 与来源，不冒充模型新写的史实。',
+    aiChronicle: 'AI 续写编年',
+    aiChronicleBusy: '续写中…',
+    aiChronicleTitle: '真调用一次 provider，给编年册补一条故事：只从这个世界已有的纪元里挑一个，写一件具体发生过的事与它留下的痕迹。模型不许自造纪元或数字；新条目直接带纪元标签进编年页。（这四个 AI 按钮共用每小时 10 次额度，超了会告诉你要等多久。）',
+    aiChronicleDone: (era: string, title: string) => `已续写「${era || '未标纪元'}」·《${title}》，编年页可看。`,
+    aiEcho: 'AI 写回声',
+    aiEchoBusy: '写回声中…',
+    aiEchoTitle: (t: string) => `真调用一次模型，给「${t}」写一段 ≤240 字的记忆回声：声音、味道、触感、光线里的一瞬，不是梗概、不评价。只依据这条条目已有的正文；没有可写的东西就照实说。（这四个 AI 按钮共用每小时 10 次额度，超了会告诉你要等多久。）`,
+    aiEchoDone: (t: string) => `已给「${t}」写下一段记忆回声。`,
+    aiLink: 'AI 牵线',
+    aiLinkBusy: '牵线中…',
+    aiLinkTitle: (t: string) => `真调用一次模型，从这个世界已有的条目里给「${t}」找一条真有关系的目标并写出关系名；自造的条目 id 会被丢掉，重复的边不会连两次。（这四个 AI 按钮共用每小时 10 次额度，超了会告诉你要等多久。）`,
+    aiLinkDone: (t: string, label: string) => `已从「${t}」牵出一条「${label}」关系，星图可见。`,
     tidalTerrainHeading: '地形（可走的圆台与坡）',
     mesaOption: '台面（硬边）',
     coneOption: '坡（线性降到 0）',
@@ -123,6 +155,34 @@ const COPY = {
     nameAria: 'World name',
     summaryPlaceholder: 'One line: what this world is',
     summaryAria: 'World summary',
+    aiGen: 'AI generate summary',
+    aiGenBusy: 'Generating…',
+    aiFill: 'AI fill this section',
+    aiFillBusy: 'Filling…',
+    aiFillTitle: (kind: string) => `One real provider call adds 1–2 editable entries to ${kind}, grounded only in this world's summary and existing entries — no invented numbers, no model chatter. Each entry is written as its own save. Without a provider the error is shown honestly; nothing is faked. (These four AI buttons share a 10-per-hour quota; if you hit it the UI tells you how long to wait.)`,
+    aiFillDone: (kind: string, n: number) => `Added ${n} entries to ${kind}; each saves when you leave the field.`,
+    aiFillNone: 'The model returned no usable entries — wrong shape or provider unavailable. Nothing was written.',
+    aiFillAll: 'AI fill empties',
+    aiFillAllBusy: 'Filling…',
+    aiFillAllTitle: 'One click fills at most 3 of the sections that still have no entries (out of nine); each is a real provider call. Sections with content are untouched. Click again for the rest — token cost is what is actually called, never silently more. (All four AI buttons share a 10-per-hour quota; the UI tells you how long to wait if you hit it.)',
+    fate: 'Roll fate',
+    fateTitle: 'No model call, no database write: pick two entries you already wrote and recombine them into an event card with a deterministic frame. Same number, same card; a different number gives another — the endlessness comes from your own details, not invented ones.',
+    fateEmpty: 'Roll needs at least two entries with body text — fill or continue the chronicle first.',
+    fateKeep: 'Keep this card in the world',
+    fateDone: (card: { title: string; body: string }) => `Fate · ${card.title}: ${card.body}`,
+    fateKept: 'This event card is now a Story entry; its body names the seed and sources — it is not passed off as a freshly written fact.',
+    aiChronicle: 'AI write chronicle',
+    aiChronicleBusy: 'Writing…',
+    aiChronicleTitle: 'One real provider call adds one story to the chronicle: it must pick an era that already exists in this world and write something that happened, what it cost, and what remains. No invented eras or figures; the new entry carries its era tag straight into the chronicle page. (These four AI buttons share a 10-per-hour quota; if you hit it the UI tells you how long to wait.)',
+    aiChronicleDone: (era: string, title: string) => `Wrote ${era || 'untagged'} · ${title} — visible on the chronicle page.`,
+    aiEcho: 'AI write echo',
+    aiEchoBusy: 'Writing echo…',
+    aiEchoTitle: (t: string) => `One real model call writes a ≤240-char memory echo for ${t}: one instant of sound, taste, touch or light — never a plot summary or a verdict. Grounded only in this entry's own body; if there is nothing to draw from, the UI says so. (These four AI buttons share a 10-per-hour quota; if you hit it the UI tells you how long to wait.)`,
+    aiEchoDone: (t: string) => `Wrote a memory echo for ${t}.`,
+    aiLink: 'AI link',
+    aiLinkBusy: 'Linking…',
+    aiLinkTitle: (t: string) => `One real model call finds one genuinely related entry for ${t} among this world's own entries and names the relation; invented ids are dropped and duplicate edges are never written twice. (These four AI buttons share a 10-per-hour quota; if you hit it the UI tells you how long to wait.)`,
+    aiLinkDone: (t: string, label: string) => `Linked ${t} with "${label}" — visible on the star graph.`,
 eraPlaceholder: 'Grey Lantern Era',
     memoryEchoPlaceholder: 'Memory echo: the sensory trace of that moment (sound / taste / touch / light) — not plot, a scar',
 tidalTerrainHeading: 'Terrain (walkable plateaus and cones)',
@@ -234,6 +294,295 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
 
   const counts = useMemo(() => (world ? worldCounts(world) : null), [world]);
 
+  /** 限流回执里服务端已给 retryAfterMs，界面要说清还要等多久，别只说"稍后"。 */
+  const failReason = (body: { message?: string; retryAfterMs?: number } | null, status: number, zh: string, en: string): string => {
+    return formatWorldFillError(`${locale === 'zh' ? zh : en}${body?.message ?? `HTTP ${status}`}`, body?.retryAfterMs, locale);
+  };
+
+  // AI 生成概述：草稿（summary，可为空）+ 计数投喂给真 provider，结果写回 summary（setLocal + commit，落库）。
+  // 任何失败原样展示，不吞；没有 provider 时 chatWithCharacter 抛/报错，也如实。
+  const [aiGen, setAiGen] = useState(false);
+  const [aiGenError, setAiGenError] = useState('');
+  const generateWorldSummary = async () => {
+    const doc = world;
+    if (!doc) return;
+    setAiGen(true);
+    setAiGenError('');
+    try {
+      const res = await chatWithCharacter({
+        requestId: `world-summary-${Date.now()}`,
+        system: locale === 'zh'
+          ? '你是世界编纂者。给一份给定世界的概述草稿做打磨：给出一段史诗感开篇（2–5 句话），描绘这个世界的整体基调与值得引以为傲的细节；读起来像真世界的介绍，不要模型语言，不要指代项目或人名，不要编造数字。'
+          : 'You are a world archivist. Polish a brief world introduction: an epic opening line or two (2–5 sentences), capturing the world’s overall tone and a standout feature — evocative, not meta, no invented names or numbers.',
+        user: `世界名称：${doc.name}\n概述字段（可为空）：${(doc.summary || '').trim() || '(empty)'}\n已有条目计数：${counts ? JSON.stringify(counts) : ''}`,
+        modelClass: 'balanced',
+      });
+      if (res.ok) {
+        const text = res.response.text.trim();
+        if (text) {
+          worldStore.setLocal({ ...doc, summary: text });
+          void worldStore.commit();
+        } else {
+          setAiGenError(locale === 'zh' ? 'AI 返回了空概述——请重试' : 'AI returned an empty summary — retry');
+        }
+      } else {
+        setAiGenError(locale === 'zh' ? `AI 调用未成功：${res.error?.message ?? 'provider 不可用'}` : `AI call failed: ${res.error?.message ?? 'provider unavailable'}`);
+      }
+    } catch (e) {
+      setAiGenError(String((e as Error)?.message ?? e).slice(0, 200));
+    } finally {
+      setAiGen(false);
+    }
+  };
+
+  // §44 填料：按当前下拉选中的那一节补 1–2 条。真 provider 调用；解析不出合法条目就一条不写，
+  // 不能把模型话术当设定塞进用户的世界（§159）。
+  const [aiFillBusy, setAiFillBusy] = useState(false);
+  const [aiFillNote, setAiFillNote] = useState('');
+  const fillSection = async (kindOverride?: WorldKind): Promise<boolean> => {
+    // 批量循环里闭包捕获的 `world` 是点击那一刻的旧文档，三次写入会互相覆盖；
+    // 每次都从 store 取最新快照，前一轮补的条目才留得下来。
+    const doc = worldStore.getSnapshot().world;
+    if (!doc || aiFillBusy) return false;
+    const kind = kindOverride ?? newKind;
+    setAiFillBusy(true);
+    setAiFillNote('');
+    try {
+      const existing = doc.nodes.filter((n) => n.kind === kind).map((n) => n.title);
+      // 走 web 自己的 API 路由：浏览器直接 import server/ai/client 会读不到 process.env，
+      // 而且跨域打 ai-service 会被 CORS 挡成 TypeError（已经踩过一次）。
+      const res = await fetch('/api/ai/world-fill', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          locale,
+          worldName: doc.name,
+          summary: doc.summary || '',
+          kind: kindLabel(kind, locale),
+          existingTitles: existing,
+          // RAG-lite：从已有条目里取最相关的 3 段正文作证据，让新条目长在世界细节上
+          context: retrieveWorldContext(doc.nodes, `${doc.summary || ''} ${kindLabel(kind, locale)}`, 3),
+        }),
+      });
+      const body = (await res.json().catch(() => null)) as { text?: string; message?: string; retryAfterMs?: number } | null;
+      if (!res.ok || typeof body?.text !== 'string') {
+        setAiFillNote(failReason(body, res.status, 'AI 调用未成功：', 'AI call failed: '));
+        return false;
+      }
+      const entries = parseWorldFillReply(body.text);
+      if (entries.length === 0) {
+        setAiFillNote(c.aiFillNone);
+        return false;
+      }
+      let next = doc;
+      for (const entry of entries) next = addWorldNode(next, { kind, title: entry.title, body: entry.body });
+      worldStore.setLocal(next);
+      void worldStore.commit();
+      setAiFillNote(c.aiFillDone(kindLabel(kind, locale), entries.length));
+    } catch (e) {
+      setAiFillNote(String((e as Error)?.message ?? e).slice(0, 200));
+      return false;
+    } finally {
+      setAiFillBusy(false);
+    }
+    return true;
+  };
+
+  // §44 一键补全空节：九类里还空着的节，每次最多补 3 节——一次点击=最多 3 次真调用，
+  // 界面上把 token 代价说清楚；不静默打满九次，也不替作者写已有节。
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkNote, setBulkNote] = useState('');
+  const fillAllEmpty = async () => {
+    // 骨架九类各有一条空壳节点，光看 counts 会误判成"都已有内容"；按正文是否为空来判空节。
+    const nodes = world?.nodes ?? [];
+    const empty = WORLD_KINDS.filter((k) => !nodes.some((n) => n.kind === k && (n.body || '').trim().length > 0));
+    if (empty.length === 0) {
+      setBulkNote(locale === 'zh' ? '九类都已经有正文了，没有空节要补。' : 'All nine sections already have content — nothing to fill.');
+      return;
+    }
+    setBulkBusy(true);
+    setBulkNote('');
+    const todo = empty.slice(0, 3);
+    let done = 0;
+    for (const k of todo) {
+      if (await fillSection(k)) done += 1;
+    }
+    setBulkNote(locale === 'zh'
+      ? `已补 ${done}/${empty.length} 个空节（一次最多 3 节，省 token；还可再点继续）。`
+      : `Filled ${done}/${empty.length} empty sections (max 3 per click to save tokens; click again for the rest).`);
+    setBulkBusy(false);
+  };
+
+  // §44 衍生玩法「命运骰」：纯确定性重组已有条目，零 provider、零写库；seed 递增保证每次换新卡。
+  const [fateSeed, setFateSeed] = useState(1);
+  const [fateNote, setFateNote] = useState('');
+  const [fateCard, setFateCard] = useState<FateCard | null>(null);
+  const rollFateCard = () => {
+    const doc = worldStore.getSnapshot().world;
+    const card = doc ? rollFate(doc.nodes, fateSeed) : null;
+    if (!card) {
+      setFateNote(c.fateEmpty);
+      return;
+    }
+    setFateSeed((s) => s + 1);
+    setFateCard(card);
+    setFateNote(c.fateDone(card));
+  };
+  const keepFateCard = () => {
+    const doc = worldStore.getSnapshot().world;
+    if (!doc || !fateCard) return;
+    // 收进编年是确定性重组、不是模型生成：在卡片正文里点明来源与 seed，不冒充新史实。
+    const body = `${fateCard.body}\n（命运骰 seed ${fateCard.seed} · 由 ${fateCard.sourceIds.length} 条已有条目重组成，非模型生成）`;
+    const next = addWorldNode(doc, { kind: 'story', title: fateCard.title, body });
+    worldStore.setLocal(next);
+    void worldStore.commit();
+    setFateNote(c.fateKept);
+    setFateCard(null);
+  };
+
+  // §44 编年续写：模型只在作者已有的纪元字面下补一条 story，不替作者发明历史分期。
+  const [chronicleBusy, setChronicleBusy] = useState(false);
+  const [chronicleNote, setChronicleNote] = useState('');
+  const writeChronicle = async () => {
+    const doc = world;
+    if (!doc || chronicleBusy) return;
+    setChronicleBusy(true);
+    setChronicleNote('');
+    try {
+      const eras = [...new Set(doc.nodes.map((n) => n.lore?.era?.trim()).filter((e): e is string => Boolean(e)))];
+      const storyNodes = doc.nodes.filter((n) => n.kind === 'story' || n.kind === 'history');
+      const res = await fetch('/api/ai/world-fill', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          locale,
+          worldName: doc.name,
+          summary: doc.summary || '',
+          kind: kindLabel('story', locale),
+          existingTitles: storyNodes.slice(-30).map((n) => n.title),
+          eras,
+          chronicle: true,
+        }),
+      });
+      const body = (await res.json().catch(() => null)) as { text?: string; message?: string; retryAfterMs?: number } | null;
+      if (!res.ok || typeof body?.text !== 'string') {
+        setChronicleNote(failReason(body, res.status, '续写未成功：', 'Write failed: '));
+        return;
+      }
+      const entry = parseChronicleReply(body.text, eras);
+      if (!entry) {
+        setChronicleNote(c.aiFillNone);
+        return;
+      }
+      let next = addWorldNode(doc, { kind: 'story', title: entry.title, body: entry.body });
+      const added = next.nodes[next.nodes.length - 1]!;
+      const order = storyNodes.filter((n) => n.lore?.era === entry.era).reduce((m, n) => Math.max(m, n.lore?.order ?? 0), -1) + 1;
+      next = updateWorldNode(next, added.id, { lore: entry.era ? { era: entry.era, order } : { order } });
+      worldStore.setLocal(next);
+      void worldStore.commit();
+      setChronicleNote(c.aiChronicleDone(entry.era, entry.title));
+    } catch (e) {
+      setChronicleNote(String((e as Error)?.message ?? e).slice(0, 200));
+    } finally {
+      setChronicleBusy(false);
+    }
+  };
+
+  // §44 记忆回声：逐条写 ≤240 字的感官刻痕，只依据该条目正文；lore 其余字段原样保留。
+  const [echoBusyFor, setEchoBusyFor] = useState('');
+  const [echoNote, setEchoNote] = useState('');
+  const writeEcho = async (node: { id: string; title: string; body: string }) => {
+    const doc = world;
+    if (!doc || echoBusyFor) return;
+    setEchoBusyFor(node.id);
+    setEchoNote('');
+    try {
+      const res = await fetch('/api/ai/world-fill', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          locale, worldName: doc.name, summary: doc.summary || '',
+          kind: kindLabel('lore', locale), focusTitle: node.title, focusBody: node.body, echo: true,
+        }),
+      });
+      const body = (await res.json().catch(() => null)) as { text?: string; message?: string; retryAfterMs?: number } | null;
+      if (!res.ok || typeof body?.text !== 'string') {
+        setEchoNote(failReason(body, res.status, '写回声未成功：', 'Echo failed: '));
+        return;
+      }
+      const memory = parseEchoReply(body.text);
+      if (!memory) {
+        setEchoNote(c.aiFillNone);
+        return;
+      }
+      const current = doc.nodes.find((n) => n.id === node.id)!;
+      worldStore.setLocal(updateWorldNode(doc, node.id, { lore: { ...(current.lore ?? {}), memory } }));
+      void worldStore.commit();
+      setEchoNote(c.aiEchoDone(node.title));
+    } catch (e) {
+      setEchoNote(String((e as Error)?.message ?? e).slice(0, 200));
+    } finally {
+      setEchoBusyFor('');
+    }
+  };
+
+  // §45 星图牵线：从已有条目里挑目标，模型不许自造端点；重复边由 linkWorldNodes 挡掉。
+  const [linkBusyFor, setLinkBusyFor] = useState('');
+  const [linkNote, setLinkNote] = useState('');
+  const linkFrom = async (node: { id: string; title: string; body: string }) => {
+    const doc = world;
+    if (!doc || linkBusyFor) return;
+    setLinkBusyFor(node.id);
+    setLinkNote('');
+    try {
+      const candidates = doc.nodes
+        .filter((n) => n.id !== node.id)
+        .slice(0, 24)
+        .map((n) => ({ id: n.id, title: n.title, body: (n.body || '').slice(0, 400) }));
+      if (candidates.length === 0) {
+        setLinkNote(locale === 'zh' ? '这个世界还没有别的条目可以连——先加一条再来。' : 'No other entries to link yet — add one first.');
+        return;
+      }
+      // 空壳条目之间没有任何可依据的正文，让模型猜就是编关系；先明确挡住并说清下一步。
+      if (candidates.filter((x) => x.body).length < 1) {
+        setLinkNote(locale === 'zh' ? '候选条目还没有正文——先写点内容再牵线，免得模型凭标题编关系。' : 'Candidate entries have no bodies yet — write some content first so the model is not guessing from titles.');
+        return;
+      }
+      const res = await fetch('/api/ai/world-fill', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          locale, worldName: doc.name, summary: doc.summary || '',
+          kind: kindLabel('lore', locale), focusTitle: node.title, focusBody: node.body,
+          link: true, candidates,
+        }),
+      });
+      const body = (await res.json().catch(() => null)) as { text?: string; message?: string; retryAfterMs?: number } | null;
+      if (!res.ok || typeof body?.text !== 'string') {
+        setLinkNote(failReason(body, res.status, '牵线未成功：', 'Link failed: '));
+        return;
+      }
+      const picked = parseLinkReply(body.text, candidates.map((c) => c.id));
+      if (!picked) {
+        setLinkNote(c.aiFillNone);
+        return;
+      }
+      const result = linkWorldNodes(doc, node.id, picked.toId, picked.label);
+      if (result.reason) {
+        setLinkNote(result.reason);
+        return;
+      }
+      worldStore.setLocal(result.document);
+      void worldStore.commit();
+      const target = candidates.find((c) => c.id === picked.toId)?.title ?? picked.toId;
+      setLinkNote(c.aiLinkDone(target, picked.label));
+    } catch (e) {
+      setLinkNote(String((e as Error)?.message ?? e).slice(0, 200));
+    } finally {
+      setLinkBusyFor('');
+    }
+  };
+
   if (!world) {
     return (
       <div className="wd-scrollPad" data-world-panel>
@@ -301,6 +650,18 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
           rows={2}
           className="wd-areaResize"
         />
+        <div className="wd-row1">
+          <button
+            type="button"
+            data-world-summary-ai
+            onClick={() => void generateWorldSummary()}
+            disabled={aiGen}
+            className="wd-accentBtn"
+          >
+            {aiGen ? c.aiGenBusy : c.aiGen}
+          </button>
+          {aiGenError ? <p className="wd-danger11" data-world-ai-error>{aiGenError}</p> : null}
+        </div>
         {snapshot.error ? (
           <p className="wd-dangerMt2" data-world-error>
             {snapshot.error}
@@ -354,6 +715,26 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
                       rows={3}
                       className="wd-areaResizeMt"
                     />
+                      <button
+                        type="button"
+                        onClick={() => void writeEcho(node)}
+                        disabled={echoBusyFor === node.id}
+                        title={c.aiEchoTitle(node.title)}
+                        data-world-ai-echo={node.id}
+                        className="wd-ghostBtn"
+                      >
+                        {echoBusyFor === node.id ? c.aiEchoBusy : c.aiEcho}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void linkFrom(node)}
+                        disabled={linkBusyFor === node.id}
+                        title={c.aiLinkTitle(node.title)}
+                        data-world-ai-link={node.id}
+                        className="wd-ghostBtn"
+                      >
+                        {linkBusyFor === node.id ? c.aiLinkBusy : c.aiLink}
+                      </button>
                     {node.kind === 'story' || node.kind === 'history' ? (
                       <>
                       <div className="wd-rowMt1" data-world-lore-row={node.id}>
@@ -483,7 +864,7 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
         <TerrainSection world={world} edit={edit} c={c} />
         <TideSection world={world} edit={edit} c={c} />
 
-        <div className="wd-rowMt1">
+        <div className="wd-aiRow" data-world-ai-row>
           <select
             value={newKind}
             onChange={(e) => setNewKind(e.target.value as WorldKind)}
@@ -507,7 +888,63 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
           >
             {c.addOne}
           </button>
+          <button
+            type="button"
+            onClick={() => void fillSection()}
+            disabled={aiFillBusy}
+            title={c.aiFillTitle(kindLabel(newKind, locale))}
+            data-world-ai-fill={newKind}
+            className="wd-ghostBtn"
+          >
+            {aiFillBusy ? c.aiFillBusy : c.aiFill}
+          </button>
+          <button
+            type="button"
+            onClick={() => void writeChronicle()}
+            disabled={chronicleBusy}
+            title={c.aiChronicleTitle}
+            data-world-ai-chronicle
+            className="wd-ghostBtn"
+          >
+            {chronicleBusy ? c.aiChronicleBusy : c.aiChronicle}
+          </button>
+          <button
+            type="button"
+            onClick={() => void fillAllEmpty()}
+            disabled={bulkBusy || aiFillBusy}
+            title={c.aiFillAllTitle}
+            data-world-ai-fill-all
+            className="wd-ghostBtn"
+          >
+            {bulkBusy ? c.aiFillAllBusy : c.aiFillAll}
+          </button>
+          <button
+            type="button"
+            onClick={rollFateCard}
+            title={c.fateTitle}
+            data-world-fate
+            className="wd-ghostBtn"
+          >
+            {c.fate}
+          </button>
         </div>
+        {aiFillNote ? <p className="wd-body11Mt2" data-world-ai-fill-note>{aiFillNote}</p> : null}
+        {chronicleNote ? <p className="wd-body11Mt2" data-world-ai-chronicle-note>{chronicleNote}</p> : null}
+        {echoNote ? <p className="wd-body11Mt2" data-world-ai-echo-note>{echoNote}</p> : null}
+        {linkNote ? <p className="wd-body11Mt2" data-world-ai-link-note>{linkNote}</p> : null}
+        {bulkNote ? <p className="wd-body11Mt2" data-world-ai-fill-all-note>{bulkNote}</p> : null}
+        {fateNote ? <p className="wd-body11Mt2" data-world-fate-note>{fateNote}</p> : null}
+        {fateCard ? (
+          <button
+            type="button"
+            onClick={keepFateCard}
+            title={c.fateKept}
+            data-world-fate-keep
+            className="wd-ghostBtn"
+          >
+            {c.fateKeep}
+          </button>
+        ) : null}
         <p className="wd-body11Mt2" data-world-note>
           {c.editsNote}
           {groups.length < WORLD_KINDS.length

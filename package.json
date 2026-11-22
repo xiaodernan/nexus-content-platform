@@ -203,8 +203,11 @@
     "probe:413": "tsx scripts/import-413-probe.mts",
     "probe:cache": "apps\\ai-service\\.venv\\Scripts\\python.exe scripts/probe-prompt-cache.py",
     "simulate:behavior": "tsx scripts/simulate-user-behavior.mts",
+    "stress:ai": "apps\\ai-service\\.venv\\Scripts\\python.exe scripts/stress-ai-service.py",
+    "stress:auth": "tsx --tsconfig apps/web/tsconfig.json scripts/stress-auth-bruteforce.mts",
     "audit:prompt-prefix": "apps\\ai-service\\.venv\\Scripts\\python.exe scripts/prompt-prefix-audit.py",
     "probe:cache-turns": "apps\\ai-service\\.venv\\Scripts\\python.exe scripts/probe-cache-turns.py",
+    "probe:cache-parallel": "apps\\ai-service\\.venv\\Scripts\\python.exe scripts/probe-parallel-cache.py",
     "db:push": "drizzle-kit push",
     "db:seed": "tsx scripts/db-seed.mts",
     "db:studio": "drizzle-kit studio",
@@ -226,7 +229,8 @@
     "gen:ship": "tsx scripts/gen-ship-manifest.mts",
     "gen:showcase": "tsx scripts/gen-showcase-snapshot.mts",
     "gen:latest": "tsx scripts/gen-latest.mts",
-    "sync:showcase": "tsx scripts/sync-showcase.mts"
+    "sync:showcase": "tsx scripts/sync-showcase.mts",
+    "i18n:audit": "tsx --tsconfig apps/web/tsconfig.json scripts/i18n-audit.mts"
   },
   "devDependencies": {
     "turbo": "^2.3.3",

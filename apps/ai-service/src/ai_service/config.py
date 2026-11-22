@@ -77,6 +77,11 @@ class Settings:
     llm_cb_failure_rate_threshold: float = 50.0
     llm_cb_wait_s: float = 10.0
     llm_cb_half_open_calls: int = 2
+    # §GRAPH-3 设计补丁的 LLM 自检修订环：默认关闭。
+    # 开启后每次设计请求多一次短审稿调用；只有审稿明确指出漏项才再重生成一次。
+    # 这不是"质量门"而是增强——审稿失败绝不阻塞主链路（见 design_review.py）。
+    llm_design_review: bool = False
+    llm_design_review_max_revisions: int = 1
     # 流式响应（v690，ADR 0123）：**默认 True**（2026-11-13 实测门决定：本 provider 下 SSE 路径
     # 首发即 80%+ prompt 命中，plain 路径冷启 0 命中且按池轮转掉回 0）。
     # 需要 v681/v682/v685 时代的字节级非流行为（确定性、无 SSE 字节流、零回归 v681）：
@@ -249,6 +254,10 @@ def load_settings(environ: Mapping[str, str] | None = None) -> Settings:
         llm_retry_cap_s=float(get("NEXUS_LLM_RETRY_CAP_S", "8") or "8"),
         llm_jitter_strategy=(get("NEXUS_LLM_JITTER_STRATEGY", "none") or "none").strip().lower(),
         llm_circuit_breaker_enabled=(get("NEXUS_LLM_CIRCUIT_BREAKER_ENABLED", "0") or "0") == "1",
+        llm_design_review=(get("NEXUS_LLM_DESIGN_REVIEW", "0") or "0") == "1",
+        llm_design_review_max_revisions=max(
+            0, min(2, int(get("NEXUS_LLM_DESIGN_REVIEW_REVISIONS", "1") or "1"))
+        ),
         # opt-out 后：NEXUS_LLM_STREAM=0 还原字节级非流（v681/v682/v685 时代一致）
         llm_stream=(get("NEXUS_LLM_STREAM", "1") or "1") != "0",
         llm_cache_url=get("NEXUS_LLM_COMPLETION_CACHE_URL", "") or "",

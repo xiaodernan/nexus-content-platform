@@ -20,13 +20,13 @@ interface PresentCharacter {
 const COPY = {
   zh: {
     emptyTitle: '编年册还是空白',
-    emptyCopy: (name: string) => `「${name}」的世界文档里还没有 story / history 条目。去 Studio 的世界面板写一段历史——哪怕一行——编年册就会长出第一个纶元。`,
+    emptyCopy: (name: string) => `「${name}」的世界文档里还没有 story / history 条目。去 Studio 的世界面板写一段历史——哪怕一行——编年册就会长出第一个纪元。`,
     kicker: 'CHRONICLE',
     title: '世界编年',
-    eraUnit: '个纶元',
+    eraUnit: '个纪元',
     entryUnit: '条编年',
     ariaScroll: '世界编年（可横向滚动）',
-    ariaEra: (name: string) => `纶元：${name}`,
+    ariaEra: (name: string) => `纪元：${name}`,
     eraCount: (n: number) => `${n} 条编年`,
     tiesLabel: '本卷活跃的星图人物',
     tiesEmpty: '星图里还没有人物指向本卷的条目——在人物关系页给任意角色加一条「指向世界条目」的关系，这里就会亮起来。',
@@ -114,7 +114,7 @@ export function ChronicleView({
             data-chronicle-era={era.era}
             aria-label={c.ariaEra(era.era)}
           >
-            {/* 纶元背景光晕 */}
+            {/* 纪元背景光晕 */}
             <div
               aria-hidden="true"
               className="crn-eraGlow"

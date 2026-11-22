@@ -15,7 +15,7 @@ from typing import Any
 import anyio
 
 from .contract import issues as contract_issues
-from .design_prompt import build_prompt, parse_reply, stable_block_digest
+from .design_prompt import CANON_PREFIX, build_prompt, parse_reply, stable_block_digest
 from .providers.base import ProviderFailed
 from .providers.registry import Registry
 
@@ -173,6 +173,103 @@ async def execute_ai_request(payload: dict[str, Any], *, registry: Registry) -> 
     except ValueError as exc:
         return (502, error("provider-failed", str(exc), retryable=True))
 
+    # §GRAPH-3：draft → review → (revise → draft) 反馈环。
+    # 增强不是门：审稿这一路怎么炸都不能改掉主链路的成功/失败判定。
+    # 所有调用累计进账本——多打了 token 却只报第一次的数，是比不审稿更糟的谎。
+    review_activities: list[dict[str, Any]] = []
+    all_completions: list[Any] = [completion]
+    # 全局 env 开关与单请求开关是「或」：前者给部署默认值，后者给用户在界面上按需多花 token。
+    # 两者都关才是零回归；只读 `review` 会让 env 开关形同虚设，只读 env 则用户永远点不动。
+    if registry.design_review_enabled or bool(payload.get("review")):
+        from .design_review import (
+            REVIEW_SYSTEM,
+            build_review_user,
+            build_revision_user,
+            parse_review,
+            should_revise,
+        )
+        from .design_prompt import SYSTEM_PROMPT  # 修订轮复用同一 system → 正典前缀 KV 不重买
+
+        max_revisions = registry.design_review_max_revisions
+        for revision in range(max_revisions + 1):
+            # ── review：短 system，不重复送 53 万字节正典 ──
+            try:
+                review_c = await anyio.to_thread.run_sync(
+                    lambda: registry.llm.complete(
+                        model=model,
+                        system=REVIEW_SYSTEM,
+                        user=build_review_user(prompt=str(payload.get("prompt") or ""), reply=reply),
+                    )
+                )
+            except ProviderFailed as exc:
+                review_activities.append(
+                    {"stage": "review", "status": "failed", "summary": f"审稿调用失败：{exc}"[:400]}
+                )
+                break
+            all_completions.append(review_c)
+            registry.cache_telemetry().provider.record(review_c)
+            ok, issues = parse_review(review_c.text)
+            review_activities.append(
+                {
+                    "stage": "review",
+                    "status": "completed",
+                    "summary": (
+                        f"审稿通过（第 {revision + 1} 轮）"
+                        if ok
+                        else f"审稿发现 {len(issues)} 条漏项：{'；'.join(issues[:2])}"
+                        if issues
+                        else "审稿没有给出可执行的意见"
+                    )[:400],
+                    "counts": {"tokensIn": review_c.tokens_in, "tokensOut": review_c.tokens_out},
+                }
+            )
+            if not should_revise(ok=ok, issues=issues) or revision >= max_revisions:
+                break
+            # ── revise：原 user 逐字节在前，意见在后；system 不变 → 前缀缓存照常命中 ──
+            try:
+                revised_c = await anyio.to_thread.run_sync(
+                    lambda: registry.llm.complete(
+                        model=model,
+                        system=SYSTEM_PROMPT,
+                        user=build_revision_user(original_user=user, issues=issues),
+                    )
+                )
+                revised_reply = parse_reply(revised_c.text)
+            except ProviderFailed as exc:
+                review_activities.append(
+                    {"stage": "revise", "status": "failed", "summary": f"修订调用失败：{exc}"[:400]}
+                )
+                break
+            except ValueError as exc:
+                review_activities.append(
+                    {"stage": "revise", "status": "failed", "summary": f"修订输出不是合法 JSON：{exc}"[:400]}
+                )
+                break
+            reply = revised_reply
+            all_completions.append(revised_c)
+            completion = revised_c  # 最终交付的那一稿：usage / model 字段都以它为准
+            registry.cache_telemetry().provider.record(revised_c)
+            registry.cache_telemetry().upstream.observe(stable_digest, revised_c.tokens_in)
+            review_activities.append(
+                {
+                    "stage": "revise",
+                    "status": "completed",
+                    "summary": f"按审稿意见重做（第 {revision + 1} 轮）",
+                    "counts": {"tokensIn": revised_c.tokens_in, "tokensOut": revised_c.tokens_out},
+                }
+            )
+
+    # 多次调用的账必须合起来报：只报最后一稿会让成本与 token 凭空少一截。
+    tokens_in_total = sum(int(c.tokens_in) for c in all_completions)
+    tokens_out_total = sum(int(c.tokens_out) for c in all_completions)
+    cached_total = sum(int(getattr(c, "cached_tokens", 0)) for c in all_completions)
+    latency_total = round(sum(float(c.latency_ms) for c in all_completions), 1)
+    reported_total = sum(1 for c in all_completions if c.cache_reported)
+    costs = [_cost_of(registry, c) for c in all_completions]
+    # 只要有一轮没价目，总额就不成立——说「未计价」而不是报一个偏低的数
+    cost_usd = round(sum(c[0] for c in costs), 8) if all(c[1] == "configured" for c in costs) else 0.0
+    cost_basis = "configured" if all(c[1] == "configured" for c in costs) else "unknown"
+
     patches = reply.get("patches")
     patches = patches if isinstance(patches, list) else []
     for index, patch in enumerate(patches):
@@ -224,26 +321,27 @@ async def execute_ai_request(payload: dict[str, Any], *, registry: Registry) -> 
                 "status": "completed",
                 "summary": f"{completion.provider}/{completion.model} 返回 {len(patches)} 个补丁",
                 "counts": {"tokensIn": completion.tokens_in, "tokensOut": completion.tokens_out},
-            }
+            },
+            *review_activities,
         ],
         "explanation": explanation,
         "usage": {
             "provider": completion.provider,
             "model": completion.model,
             "modelClass": model_class,
-            "tokensIn": completion.tokens_in,
-            "tokensOut": completion.tokens_out,
-            "cachedTokens": completion.cached_tokens,
+            "tokensIn": tokens_in_total,
+            "tokensOut": tokens_out_total,
             # §CACHE-3：`cachedTokens=0` 与「网关没报」是两件事。不收这一维，
             # 前端只能把"一次都没命中"和"不知道"画成同一个 0——那是编了一个读数。
-            "cacheReported": completion.cache_reported,
-            "latencyMs": completion.latency_ms,
+            # §GRAPH-3：三轮调用里只要有一轮没报，就不能把其余轮次的报账当成全部。
+            "cachedTokens": cached_total,
+            "cacheReported": reported_total == len(all_completions),
+            "latencyMs": latency_total,
             "costUsd": cost_usd,
             "costBasis": cost_basis,
-            "toolCalls": 1,
+            "toolCalls": len(all_completions),
             "demoMode": False,
-            "cachedTokens": getattr(completion, "cached_tokens", 0),
-            "reasoningTokens": getattr(completion, "reasoning_tokens", 0),
+            "reasoningTokens": sum(int(getattr(c, "reasoning_tokens", 0)) for c in all_completions),
         },
         "approvals": approvals,
     }
@@ -299,6 +397,13 @@ async def execute_chat_request(payload: dict[str, Any], *, registry: Registry) -
 
     system = str(payload.get("system") or "")
     user = str(payload.get("user") or "")
+    # §LLMCTX-1：调用方显式要求时，把 canon digest 垫在 persona 之前。
+    # 顺序不能反——digest 必须是**第一个**字节，persona 跟在后面，这样同一角色
+    # （persona 不变）与同一世界（digest 不变）共用同一段 KV 前缀；反过来的话
+    # 每个角色的第一问都要重新买一次 15.8 万 token 的前缀。
+    canon_prefixed = bool(payload.get("withCanonPrefix"))
+    if canon_prefixed:
+        system = f"{CANON_PREFIX}\n{system}"
     # §CACHE-SESSION：会话级路由车道，让同一会话跨轮钉在同一条 provider 前缀缓存上，
     # 不同会话互不挤占（实测共享 lane 交错 → 命中从 94% 掉回 0%）。省略则回落自动 sticky 键。
     from .sticky_prompt_cache import session_lane_key
@@ -315,7 +420,9 @@ async def execute_chat_request(payload: dict[str, Any], *, registry: Registry) -
                 model=model, system=system, user=user, json_mode=False, prompt_cache_key=lane
             )
 
-        completion = await anyio.to_thread.run_sync(call)
+        completion = await anyio.to_thread.run_sync(
+            call
+        )
     except ProviderFailed as exc:
         return (502, error("provider-failed", str(exc), retryable=True))
 
@@ -352,6 +459,9 @@ async def execute_chat_request(payload: dict[str, Any], *, registry: Registry) -
             "cachedTokens": getattr(completion, "cached_tokens", 0),
             "reasoningTokens": getattr(completion, "reasoning_tokens", 0),
         },
+        # 这一维不进响应契约（additionalProperties=false），但它让「这次到底带没带大典」
+        # 在日志与遥测里可核对——不报就等于没人能证明多打的那 15.8 万 token 真的用上了（§159）。
+        **({"canonPrefixChars": len(CANON_PREFIX)} if canon_prefixed else {}),
     }
     response_issues = contract_issues("ai-chat-response.schema.json", response)
     if response_issues:

@@ -30,7 +30,7 @@
  * services it started — a smoke that leaves three JVMs behind is a smoke that exhausts the box.
  *
  * Run from the repo root. Ports default to the services themselves (8771 registry · 8888 config ·
- * 8082 domain · 8084 api · 8090 gateway, Postgres on 55433); everything can be
+ * 8082 domain · 8084 api · 8090 gateway, Postgres on 5433); everything can be
  * overridden — NEXUS_REGISTRY_PORT / NEXUS_DOMAIN_PORT / NEXUS_GATEWAY_PORT, NEXUS_DOMAIN_DB_URL,
  * DB_USERNAME, DB_PASSWORD, NEXUS_DOMAIN_PG_PORT — e.g. when an unrelated process already holds 8090 or a
  * CI runner exposes Postgres on another host port. If any needed port is in use the run fails fast with
@@ -54,17 +54,48 @@ const GATEWAY_PORT = Number(process.env.NEXUS_GATEWAY_PORT ?? 8090);
 // 20888 is this repo's dedicated smoke door (verified free; 18888 is also kept by neighbour Docker).
 const CONFIG_PORT = Number(process.env.NEXUS_CONFIG_PORT ?? 20888);
 const API_PORT = Number(process.env.NEXUS_API_PORT ?? 8084);
-const DB_URL = process.env.NEXUS_DOMAIN_DB_URL ?? 'jdbc:postgresql://127.0.0.1:55433/nexus';
-const DB_USERNAME = process.env.DB_USERNAME ?? 'nexus';
-const DB_PASSWORD = process.env.DB_PASSWORD ?? 'nexus_dev_only';
-const PG_PORT = Number(process.env.NEXUS_DOMAIN_PG_PORT ?? 55433);
-const API_DB_URL = process.env.NEXUS_API_DB_URL ?? `jdbc:postgresql://127.0.0.1:${PG_PORT}/nexus_api_smoke`;
+// 2026-11-22：默认值改指向**本机活着的那一个库**（nexus-platform-postgres · 5433 · nexus_dev）。
+// 55433（nexus-postgres）自 2026-11-19 起 WAL 损坏、一直在重启循环，而 web 侧
+// `apps/web/.env.local` 早已切到 5433——Java 侧还指向 55433，等于让 Spring Cloud 五件套
+// 去连一个连不上的库，Hibernate 报 "Unable to determine Dialect without JDBC metadata"。
+// 一个指向别人/已死服务的默认值不是默认值，是陷阱（application.yml 同一条纪律）。
+const DB_URL =
+  process.env.NEXUS_DOMAIN_DB_URL ??
+  // 库名必须是 **nexus_dev**（web 侧 apps/web/.env.local 用的那一个）。5433 这台服务器上
+  // 同时还有一个 `nexus` 库：只有 5 个用户、schema 旧（没有 users.bio），连上去
+  // Hibernate 报 "column u1_0.bio does not exist"——一句把"连错库"说成"映射错了"的错话。
+  'jdbc:postgresql://127.0.0.1:5433/nexus_dev?prepareThreshold=5&preparedStatementCacheQueries=256&preparedStatementCacheSizeMiB=5&defaultRowFetchSize=100';
+const DB_USERNAME = process.env.DB_USERNAME ?? 'nexus_app';
+const DB_PASSWORD = process.env.DB_PASSWORD ?? 'nexus_dev_app_only';
+const PG_PORT = Number(process.env.NEXUS_DOMAIN_PG_PORT ?? 5433);
+const API_DB_NAME = process.env.NEXUS_API_DB_NAME ?? 'nexus_api_smoke';
+const API_DB_URL =
+  process.env.NEXUS_API_DB_URL ?? `jdbc:postgresql://127.0.0.1:${PG_PORT}/${API_DB_NAME}`;
 let failures = 0;
 const ok = (name: string) => console.log(`  ✓ ${name}`);
 const bad = (name: string, detail: string) => {
   failures += 1;
   console.error(`  ✗ ${name} — ${detail}`);
 };
+
+/**
+ * nexus-api 的 throwaway 库必须真的存在。55433 时代这个库是预先建好的；切到 5433 之后
+ * `nexus_api_smoke` 并不存在，Hibernate 只会说 "Unable to determine Dialect"——
+ * 一句把"库没建"说成"驱动有问题"的错话。这里连 maintenance 库补一条 CREATE DATABASE，
+ * 已存在就跳过（幂等）；建不了就照实报错，不让 nexus-api 带着一句错话去启动。
+ */
+async function ensureApiDatabase(): Promise<void> {
+  const postgres = (await import('postgres')).default;
+  const url = `postgres://${DB_USERNAME}:${encodeURIComponent(DB_PASSWORD)}@127.0.0.1:${PG_PORT}/postgres`;
+  const sql = postgres(url, { max: 1 });
+  try {
+    await sql.unsafe(`CREATE DATABASE ${API_DB_NAME}`).catch((error: { code?: string }) => {
+      if (error.code !== '42P04') throw error; // 42P04 = duplicate_database，正是我们要的"已存在"
+    });
+  } finally {
+    await sql.end({ timeout: 5 });
+  }
+}
 
 /** Ports that must be free before we start anything — fail fast with a name, not a timeout. */
 async function assertFree(port: number) {
@@ -307,6 +338,7 @@ async function main() {
 
   // nexus-api joins the same registry before the gateway starts, so the gateway's first fetch sees
   // the full topology (not just the domain service). It owns its own throwaway database.
+  await ensureApiDatabase();
   const api = spawnJar('nexus-api', apiJar, {
     NEXUS_DB_URL: API_DB_URL,
     NEXUS_DB_USER: DB_USERNAME,
