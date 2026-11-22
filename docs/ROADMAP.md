@@ -15477,3 +15477,44 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
       如实落 notStarted，不冒充完成。ADR 0308 补记 1。
 - [~] **像素目验仍缺席**：截图已重新产出（`.scratch/world-quests-{desktop,mobile,en}.png`），
       但图像上传工具本次仍报 Backend error；只能以 Playwright 几何读数 + a11y 快照为准。
+
+## §I18N-DEMIX-2 中文模式去夹杂：kicker / 页脚 / 世界全图只留一种语言（2026-11-22）
+
+- [x] `/map` 28 条 zh 标签去掉「· English」并列后缀（典籍室、潮汐挑战、七口井……），
+      metadata 标题改单语；每格仍是真实路由，中英两份标签仍齐。
+- [x] `/guide` 页脚「世界全图 · The Atlas →」→「世界全图 →」；`/bible` 中文
+      `echoTitle`「回响 · Echoes」→「回响」；BibleSearch 按钮 `StateGraph` → `状态图`。
+- [x] kicker 收口：问典 / 答问者 / 大模型解读 / 正典深问 / 潮汐签 / AI 深读 / 公开试跑 /
+      潮汐见证 / 潮候步进（含「世界状态」「这一步」「潮回」）；shell-i18n 的
+      viewer/editor/owner 提示改中文角色名，说明书提示改「中文与英文」。
+- [x] 4 个视觉门按各自 redactClasses 重钉并写明原因（bible-ask component、bible index、
+      guide page、observer-deepread component）。
+- [x] 验证：12 文件 92/92；tsc web EXIT=0；eslint 18 文件 EXIT=0。
+- [~] 静态 metadata 仍是单语中文（英文模式标签页标题未本地化）；后续用
+      `generateMetadata + getLocale` 统一处理。world-bible appendix 的双语词条属 Ask 语料，
+      不在本轮范围。
+
+## §SHOWCASE-SYNC-TRUTH 事实包不再钉不存在的 master（2026-11-22）
+
+- [x] 事故：并轨后本地只剩 `main`，`master` 只在远端；旧 `sync-showcase` 仍钉
+      `NEXUS_FACT_REF=master`，解不开 → head 空串、total_commits null，15:49 那次
+      同步把空数字推上了个人主页。
+- [x] gen-latest 的「解不开就回退 HEAD 并警告」护栏已存在；本次把 sync-showcase 的调用
+      也改成默认 HEAD，注释写明真实事故与原因。
+- [x] 实跑：Clash Verge 未启动导致首次 fetch 失败；启动代理后重跑，事实包 →
+      main @ 83cf9f2 · 4043 commits · 372 ADR · 616 test files，
+      已 push 至 `xiaodernan/xiaodernan.github.io`（65d339f..0fa96c8）。
+- [x] 频控：本轮是坏数据纠正，不是例行刷新；日常仍按「有大提升再同步」。
+
+## §WORLD-BIBLE-E218 E218《页边空出来的那一格》· 锚句回放补回 E100–E218（2026-11-22）
+
+- [x] 新回响 E218（中英双语，6 节 6 对锚句）：接 E217 的页边纸条弧线——取走一张后
+      留下的空位本身成为页边的一部分；账上不记空格，抄本师在页数旁点一个点。
+- [x] 真缺口：`gen-anchor-echo.mts` 旧正则只认两位编号（`^E\d{2}-`），E100–E218 整段
+      没进 `/bible/anchors` 题库；修为 `^E(\d{2,3})-` 后 632 → 1317 句中英锚句。
+- [x] 重新生成 generated.ts（14 章 · 218 回响 · 4 附录）、anchors.generated.ts（1317）、
+      canon_digest.txt/sha256（274,028 chars · db9b995c…）；guideCopy 中英回响数
+      217→218、锚句数 1311→1317。
+- [x] 验证：verify:world-bible 1322/1322；verify:bible-snapshot 一致；
+      bible/canon 12 文件 107/107；canon_digest pytest 4/4；tsc web 0；eslint 0。
+- [~] 本轮未起浏览器；E218 阅读页与 anchors 题库的像素/几何读数留给下一轮 e2e。
