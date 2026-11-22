@@ -34,7 +34,9 @@ export function LocaleToggle() {
     window.location.reload();
   }
 
-  const label = locale === 'zh' ? 'Switch to English' : '切换到中文';
+  // 可见字只写目标语言的名字（EN / 中）；提示语跟随当前界面语言，
+  // 不在中文界面里放英文整句，也不在英文界面里放中文整句（§i18n 不夹杂）。
+  const label = locale === 'zh' ? '切换到英文' : 'Switch to Chinese';
   return (
     <button
       type="button"

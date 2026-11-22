@@ -102,9 +102,9 @@ describe('§FE-78 /search 全平台搜索原子清零', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：1c48d38a16837999c6035b4238ed6bd8b7c2cf6fa6ae9726e4d96a38030bf28c）', () => {
+  it('剥 className 后全文 SHA256 守恒（2026-11-22 §I18N-EN-PURITY 重钉：删未用的 localeToggleHint，零行为：30af8c011107cde32c1e0d294a64722a84869a2af8d8561363e19c257dae0cc8）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '29ebc88f18687ec2fe050491be3794a637fa759ed904f0844d6aebd11439dac2',
+      '30af8c011107cde32c1e0d294a64722a84869a2af8d8561363e19c257dae0cc8',
     );
   });
 });

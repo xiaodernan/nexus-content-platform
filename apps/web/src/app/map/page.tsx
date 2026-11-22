@@ -17,7 +17,7 @@ export const metadata: Metadata = {
  */
 const COPY: Record<Locale, { kicker: string; title: string; lede: string; sections: { heading: string; body: string; links: { path: string; labelKey: keyof typeof LABELS }[] }[] }> = {
   zh: {
-    kicker: '世界全图 · THE ATLAS',
+    kicker: '世界全图',
     title: '这片土地是什么，以及它通向哪里',
     lede: '世界很大——但你可以一眼看完它的全部入口。每一格都是真实存在的页面；迷路时回到这里，挑一个门进去。推荐先走一圈典籍室 → 潮汐挑战 → 七口井，再回 Studio。',
     sections: [
@@ -91,7 +91,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
     ],
   },
   en: {
-    kicker: 'THE ATLAS · 世界全图',
+    kicker: 'THE ATLAS · WORLD MAP',
     title: 'What this land is — and where every road goes',
     lede: 'The world is big — but you can read its whole map in one glance. Every tile here is a real route. If you are lost, come back and pick a door. A good first walk: /bible → /bible/quiz → /bible/well, then back to Studio.',
     sections: [

@@ -172,11 +172,11 @@ const COPY: Record<Locale, QuestCopyBlock> = {
     samplePrefix: 'e.g.',
     emptyTitle: 'This world has no lines yet',
     emptyCopy: (name: string) =>
-      `「${name}」’s world document is empty, so the board has nothing to hand out. Write the first entry in Studio — the world panel, the canvas, or the codex all work.`,
+      `“${name}”’s world document is empty, so the board has nothing to hand out. Write the first entry in Studio — the world panel, the canvas, or the codex all work.`,
     emptyLink: 'Open Studio and write the first entry →',
     emptyLoadTitle: 'The board can’t open — the world won’t load',
     emptyLoadCopy: (name: string) =>
-      `「${name}」’s world document can’t be read right now, so no commissions are drawn here. Check the Studio world panel, confirm the world loads, then come back.`,
+      `“${name}”’s world document can’t be read right now, so no commissions are drawn here. Check the Studio world panel, confirm the world loads, then come back.`,
     emptyLoadLink: 'Back to the Studio world panel →',
     backGraph: '← Back to the world map',
     openIntegrity: 'World checkup →',

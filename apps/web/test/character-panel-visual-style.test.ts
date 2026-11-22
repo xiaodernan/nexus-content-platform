@@ -158,9 +158,9 @@ describe('§FE-51 /studio CharacterPanel 角色面板', () => {
     }
   });
 
-  it('剥 className/cn/INPUT 共享常量后全文 SHA256 守恒（2026-11-16 v747「CharacterPanel 双语化」重钉：9b71d077e6423ac336c56b53a201c1bc254a3c40dd699318e9267dd8c3405939）', () => {
+  it('剥 className/cn/INPUT 共享常量后全文 SHA256 守恒（2026-11-22 §I18N-EN-PURITY 重钉：en 文案全角＋改半角 +：f29f083a764ce273c4146b8d593c752196ee643033b384ccbcf867a3373609b3）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '9b71d077e6423ac336c56b53a201c1bc254a3c40dd699318e9267dd8c3405939',
+      'f29f083a764ce273c4146b8d593c752196ee643033b384ccbcf867a3373609b3',
     );
   });
 });

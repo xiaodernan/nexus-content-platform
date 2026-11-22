@@ -89,7 +89,7 @@ const COPY = {
     openQuests: 'World commissions →',
     footBack: '← Back to the world',
     emptyTitle: 'Digest can’t open — the world won’t load',
-    emptyCopy: (name: string) => `「${name}」’s world document can’t be read right now, so no numbers here. Check the Studio world panel, confirm the world loads, then come back.`,
+    emptyCopy: (name: string) => `“${name}”’s world document can’t be read right now, so no numbers here. Check the Studio world panel, confirm the world loads, then come back.`,
     emptyLink: 'Back to the Studio world panel →',
     ariaEras: 'Recent eras',
     ariaLore: 'Recently touched notes',

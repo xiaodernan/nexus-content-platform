@@ -43,7 +43,7 @@ const COPY: Record<Locale, {
   bibleLink: string;
 }> = {
   zh: {
-    kicker: '今日潮声 · THE TIDE WIRE',
+    kicker: '今日潮声',
     title: '潮听见了整个平台',
     lede: '真实计数、真实模型、没有人名、没有项目名。潮只说两句——这一刻的潮。门槛是公开平台的聚合，不是任何人的日常。',
     statOpens7d: '近 7 天有效打开',
@@ -64,7 +64,7 @@ const COPY: Record<Locale, {
     bibleLink: '世界大典',
   },
   en: {
-    kicker: 'THE TIDE WIRE · 今日潮声',
+    kicker: 'THE TIDE WIRE · TODAY’S TIDE',
     title: 'The tide hears the whole platform',
     lede: 'Real counts, a real model, no names, no project titles. The tide says two sentences — of this very hour. The threshold is the public aggregate of the platform, not anyone’s private day.',
     statOpens7d: 'Effective opens, last 7d',

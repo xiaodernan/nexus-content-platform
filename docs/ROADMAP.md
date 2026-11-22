@@ -15442,3 +15442,21 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - 数字是本机 Playwright 仿真（`isMobile` + touch），不是真机。
 - 管理台读数依赖一个被提升为 admin 的 e2e 夹具账号；这是本地开发数据的动作，
   产品里的登录 + role + CSRF 一条都没少。
+
+## §I18N-EN-PURITY 英文模式零中文：全 src 静态门 + 7 处漏翻修掉（2026-11-22）
+
+- [x] 新门 `apps/web/test/i18n-en-purity.test.ts`：TypeScript AST 找全部 `en: { … }` 文案块，
+      只扫值（查表键不误判），CJK 字符与中文标点零容忍；`·` `—` `…` 放行；
+      BibleQuiz 的汉字题面明确豁免（理由写进门里）。扫描面 300+ 文件，变异臂实测能红。
+- [x] 修掉真实漏翻 7 处：world 的 quests / digest / integrity / network / tide 与
+      ChronicleView / ConstellationPanel 的 en 文案把中文书名号 `「名」` 改成英文引号 `“名”`。
+- [x] 修掉英文挂牌 3 处：`THE ATLAS · 世界全图` → `THE ATLAS · WORLD MAP`、
+      `THE TIDE WIRE · 今日潮声` → `THE TIDE WIRE · TODAY’S TIDE`、
+      `THE TIDE ORACLE · 潮语` → `THE TIDE ORACLE`；对应中文挂牌改成纯中文（`世界全图` / `今日潮声` / `潮语`）。
+- [x] CharacterPanel en 全角 `＋` 改半角 `+`；LocaleToggle 提示语跟随当前语言
+      （中文界面 `切换到英文`、英文界面 `Switch to Chinese`），删 discover / search 的
+      `localeToggleHint` 死键（中英各一，从未被引用）。
+- [x] 5 个视觉门 SHA 因真实文案变更重钉并注明原因：CharacterPanel / ChronicleView /
+      ConstellationPanel / discover / search。
+- [x] 验证：新门 3/3 + 受影响 11 文件 73/73 全绿；`tsc -p apps/web` EXIT=0；eslint 14 文件 EXIT=0。
+      ADR 0309。诚实边界：本轮是文案与判据，未起浏览器；像素/截图未做。

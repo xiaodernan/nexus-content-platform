@@ -74,7 +74,7 @@ const COPY = {
     lede: (n: number) => `How the declared pressures press on this world — five pressures, five standing rules; every number below is the real count from your ${n} authored nodes at this moment.`,
     footnote: 'Author-only · zero provider · severity (1 brief / 2 season / 3 era) never enters any count',
     emptyTitle: 'Tide can’t open — the world document won’t load',
-    emptyCopy: (name: string) => `「${name}」’s world document can’t be read right now, so nothing here pretends to a count. Head back to the Studio world panel, confirm the world loads, then come back.`,
+    emptyCopy: (name: string) => `“${name}”’s world document can’t be read right now, so nothing here pretends to a count. Head back to the Studio world panel, confirm the world loads, then come back.`,
     emptyLink: 'Back to the Studio world panel →',
     emptyDeclPrompt: 'This world document has no declared pressures yet — write one in the “World Tide” panel at the bottom of the Studio world panel, and this section lights up (severity 1 brief / 2 season / 3 era, never a counting input). The engine itself already builds and unit-test green — “If declared” below is the real preview against today’s document.',
     emptyDeclZero: 'The pressures array is empty — declare a single one and it lights up.',

@@ -96,7 +96,7 @@ const COPY = {
     openQuests: 'World commissions →',
     backGraph: '← Back to the world map',
     emptyTitle: 'Checkup can’t open — the world won’t load',
-    emptyCopy: (name: string) => `「${name}」’s world document can’t be read right now, so no metrics here. Check the Studio world panel, confirm the world loads, then come back.`,
+    emptyCopy: (name: string) => `“${name}”’s world document can’t be read right now, so no metrics here. Check the Studio world panel, confirm the world loads, then come back.`,
     emptyLink: 'Back to the Studio world panel →',
   },
 } as const;
