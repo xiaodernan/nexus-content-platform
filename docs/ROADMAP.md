@@ -15634,3 +15634,35 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   已在两条旧臂上改出；`ruff` 在 apps/ai-service 有两处 HEAD 既存的告警（registry E402、
   test_llm_liveness 两个 F401），不是本片引入、未顺手改。全量 `pytest` 515 passed / 18 skipped，
   `turbo lint --force` 7/7。
+
+## §COST-2 收尾：两条路由自造的 `costBasis: 'usage'` 改成透传 provider 真读数（2026-11-23）
+
+上一片结尾记的"`costUsd=0` 真计费读数未解"，这一片把**为什么解不了**读出来了：
+`/api/bible/q` 与 `/api/insight/chat` 在 `cachedTokens`、`cacheReported` 旁边写死
+`costBasis: 'usage'`——`UsageSchema` 的 enum 只有 `unknown | configured`，`'usage'` 是
+一个字典里根本没有的值。而 provider 算出的那一档就在同一条 usage 上，被这个字面量顶掉了。
+同族事故：ADR-0262「没报 ≠ 报了 0」、ADR-0310「两个读数各说各话」。
+
+- **先量（真线路，`gpt-6.2-sol`）**：`/v1/ai/chat` 一发真调用回来
+  `capability=real · costBasis="unknown" · costUsd=0 · tokensIn=4397 · cached=0 · reported=false`。
+  读数本身没错——**`.env` 没配 `NEXUS_LLM_PRICES`**，价目表是空表（`config.py:282` 只在 env 存在时建表）。
+  所以 173k token 的大典调用在成本账上是黑的；这不是 bug，是**没配置**，但界面必须说对是哪一种。
+- **改了什么**：
+  `canonGraph.ts` 把 `costUsd/costBasis` 穿过 `usageOf()` 与 `nextUsage()` 累加——金额**无条件相加**
+  （analyze 不复用 KV 前缀但照样花钱），`allRoundsPriced` 逐轮 AND：有一轮算不出价，总额就不成立，
+  与 ai-service `execution.py:271` 同一条规则；圆整到 1e-8 同 `_cost_of` 口径。
+  两条路由改为透传（`insight/chat` 无 usage 时回落 `unknown`，不自造字面量）。
+  `usageOf` 在收口处把"报 configured 但金额为 0"判回 `unknown`——那是"价目表其实没工作"的假绿
+  （ai-service 侧 `test_pricing.py:262` 早有一条同义回归钉）。
+- **门（`apps/web/test/cost-basis-domain.test.ts`，5 臂）**：判据用**契约自己**
+  （`UsageSchema.shape.costBasis.safeParse`），不在测试里再抄一份清单；扫描 `app/api/**/route.ts`
+  里所有赋字面量的 `costBasis`，逐个问契约答不答应。另有一条"空门自检"：同一 oracle 必须判
+  `'usage'` 为非法，否则扫描臂可能永远绿。
+- **变异验证**：装回 `costBasis: 'usage'` → **4/5 臂红**（扫描臂直接点名文件与字面量）；
+  换成合法但写死的 `'unknown'` → 扫描臂**如实放行**、直通臂 1 红（两者分工正确）；
+  两次都按 md5 还原（`5f96c829…` 匹配）后复跑全绿。
+- **诚实边界 / 未 push**：`'usage'` 从未进过库（两条路由都不写 usage 表），所以没有历史脏行要迁；
+  `costLedger.ts:94` 那个"不认识就归 unknown"的三元仍在——**若将来真加第四档**，它会产出两行同 key
+  并重复计数，届时要一起改；本片不加档（那是另一个决策）。真金白银的单价仍需用户决定
+  （我不知道这个转售网关的批发价，编一个数就是 §159 禁止的那种假账）。
+  `vitest` 相关 5 文件 40 passed、`tsc -p apps/web --noEmit` 与 eslint 4 文件全清。
