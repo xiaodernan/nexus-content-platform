@@ -14,6 +14,7 @@ Spring Boot 3.5 + Spring Cloud Gateway (reactive) + LoadBalancer + Resilience4j,
 | `/domain/**` | routed to the `nexus-domain-service` **service id**, prefix stripped (SC-6) |
 | `/platform/services` | what the registry holds right now, with a `note` saying it is not a health check |
 | `/platform/health` | one `GET /actuator/health` per discovered instance: `UP` / `DOWN` / `UNKNOWN`, plus `allUp` (SC-8) |
+| `/actuator/health` | this instance's own health. The optional Redis is NOT a contributor: Boot's auto-configured Redis probe is off (`management.health.redis.enabled=false`) and `GatewayRateLimitHealthIndicator` pings only when `backend=redis`, so a `memory` gateway stays UP with Redis absent |
 | anything the route cannot complete | `503` + `{error:"service_unavailable", service, cause, note}` |
 
 The route is built in `GatewayConfig` with the **compiled DSL**, not a YAML route table. The Gateway 4.2+
@@ -45,7 +46,7 @@ Both routes go through one `edgePolicy(...)` in `GatewayConfig`, so the two back
 | `setRequestSize` | `413` at the door; body never forwarded | a backend cannot be made to buffer an oversized upload |
 | `secureHeaders` | nosniff, frame `DENY`, referrer policy, HSTS | it applies to the 413/429/503 answers too, not just the happy path |
 | `retry`, GET only | one retry on connection failure / `502` / `503` | a proxy that repeats a write is how one click becomes two publications. `setSeries()` is deliberately emptied: left unset, the filter retries ANY 5xx, which would repeat a GET whose backend answered `500` — an answer, not a transient fault |
-| `circuitBreaker` | `503` naming the recorded cause | last, so it counts the final outcome of the retried call |
+| `circuitBreaker` | `503` naming the recorded cause | outside the retry: the fallback's own `503` is written once, after the retry has unwound, instead of being retried on an already-committed exchange. It records the retried call's final outcome, and its 5 s bound covers the whole call |
 
 In front of every route sits `RateLimitFilter`: a per-client token bucket keyed by the first
 `X-Forwarded-For` entry when present, else the peer address. Over the bucket: `429` +

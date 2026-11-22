@@ -318,6 +318,30 @@ HTTP/WS contracts only"。但仓库里
   行诚实留 null"修复（53c77e04）：实体去掉 `nullable = false`，不伪造历史行的 kind；真发布探针 201、
   审计新行带 `publication`，旧行保持 null。要把列重新收紧为 NOT NULL，仍需要一次真正的迁移回填。
 
+## SC-12b 两个"可选 Redis"留下的口子：503 被写两次、健康读数依赖可选进程
+
+- 起点（SC-12 之后的真实观测，2026-11-22）：注册表里没有实例时，`GET /api/projects?limit=1` 返回正确
+  的 `503`，但日志同时记一条
+  `ERROR ... Error [java.lang.UnsupportedOperationException] ... ServerHttpResponse already committed (503 SERVICE_UNAVAILABLE)`。
+  另一条：Docker 停掉后，`backend=memory` 的网关 `/actuator/health` 变成 `503`，三个既有健康用例红。
+- 根因一：`Retry` 在 `CircuitBreaker` 外层。无实例时 breaker 把请求 forward 到 `/fallback/{service}`，
+  `FallbackController` **自己写出了** 503；外层 Retry 把这个已提交的 503 当成可重试状态，在同一
+  exchange 上重试 → 第二次写响应抛 `UnsupportedOperationException`。状态码一直是对的，只有日志能看见
+  第二次写，所以旧的"503 + body"断言是绿的。
+- 根因二：SC-12 为可选共享限流引入了 `spring-boot-starter-data-redis-reactive`，Boot 随即自动注册
+  Redis 健康指示器；它不看 `nexus.gateway.rate-limit.backend`，`memory` 时也 ping。Redis 是可选进程，
+  健康读数却把它变成硬依赖——与 SC-12 的承诺相反。
+- 决定：
+  1. 过滤顺序改为 `CircuitBreaker` 包住 `Retry`。fallback 在 retry 解开之后才写出，只写一次；
+     breaker 仍只记录重试后的**最终结果**（一次逻辑调用），其 5 秒 TimeLimiter 变为整次调用的上界。
+  2. `management.health.redis.enabled=false`；共享后端的探测交给
+     `GatewayRateLimitHealthIndicator`——`memory` 时说 `not_applicable`，`redis` 时真 PING。
+- 见证：注册表指向死端口 8799、`rate-limit` 关闭的真机请求——`HTTP 503`，日志中响应体只编码一次，
+  不再出现 `UnsupportedOperationException` / `already committed`。网关测试 133 条全绿；Docker 停止
+  （56379 不可达）时三个健康用例全部恢复 200。
+- 边界：`GatewayUnknownServiceTest` 现在用 `CapturedOutput` 断言"没有第二次写"——状态断言抓不到这个
+  缺陷；这是日志级回归，不是响应级。整次调用的 5 秒上界意味着"两次尝试共享一个预算"，不是每次 5 秒。
+
 ## 仍欠
 
 1. ~~网关鉴权~~ **已还清（SC-13）**：`auth.enabled=true` 且 `auth.secret` 非空才开门，否则启动失败；

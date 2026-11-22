@@ -73,11 +73,12 @@ public class GatewayConfig {
      *       buffer it.
      *   <li><b>SecureHeaders</b> — the framework's response hardening (nosniff, frame DENY, referrer policy,
      *       HSTS). Cheap, and it applies to the 413/429 answers too.
+     *   <li><b>CircuitBreaker</b> — outside the retry, so the fallback's own 503 is written after the retry
+     *       has unwound and is never retried on an already-committed response. It records the retried call's
+     *       final outcome; its 5 s time limit bounds the whole call.
      *   <li><b>Retry, GET only</b> — a connection refused / 502 / 503 on a GET is retried ONCE. POST, PATCH
      *       and DELETE are deliberately excluded: a proxy that repeats a write is how one click becomes two
      *       publications. This is the reason the filter names methods instead of retrying everything.
-     *   <li><b>CircuitBreaker</b> — last, so it counts the retried call's final outcome and answers the
-     *       honest 503 when its window says the backend is down.
      * </ul>
      */
     private static org.springframework.cloud.gateway.route.builder.GatewayFilterSpec edgePolicy(
@@ -88,14 +89,23 @@ public class GatewayConfig {
         return f.stripPrefix(segments(prefix))
                 .setRequestSize(DataSize.ofBytes(maxRequestBytes))
                 .secureHeaders()
+                // The breaker sits OUTSIDE the retry (SC-12b). When no instance is known, the breaker forwards
+                // to /fallback/{service}, whose controller writes the 503 itself. With Retry outside, that
+                // already-written 503 matched the retry status list, so the filter retried on a committed
+                // exchange and the second write raised UnsupportedOperationException ("ServerHttpResponse
+                // already committed"). Here the fallback is produced after the retry has unwound, so there is
+                // nothing left to retry. The breaker still records the retried call's final outcome once.
+                //
+                // Consequence, stated: the 5 s TimeLimiter now bounds the WHOLE call (attempts + retry), not
+                // each attempt. That is the caller-visible bound, which is the one that should be bounded.
+                .circuitBreaker(c -> c.setName(service).setFallbackUri(fallback(service)))
                 .retry(c -> c.setRetries(1)
                         .setMethods(HttpMethod.GET)
                         // An empty series matters: left unset, the filter falls back to "any 5xx", which would
                         // repeat a GET whose backend answered 500 — a real answer, not a transient failure.
                         .setSeries()
                         .setStatuses(HttpStatus.BAD_GATEWAY, HttpStatus.SERVICE_UNAVAILABLE)
-                        .setExceptions(IOException.class, TimeoutException.class))
-                .circuitBreaker(c -> c.setName(service).setFallbackUri(fallback(service)));
+                        .setExceptions(IOException.class, TimeoutException.class));
     }
 
     /** How many path segments a prefix has — one for {@code /api}, two for {@code /platform/api}. */
