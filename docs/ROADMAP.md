@@ -14795,3 +14795,119 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   不是能力（不加 merge/apply/deploy）。截断可见但不可导航；要看余下部分走各表自己的窗口门。
 - **接线**：`package.json` 新增 `verify:chain`；census 随 index 重算。
 
+
+## v1095 — 文档点名的 scratch 证据：入册、分级，并给门加上第五腿（2026-11-23 · ADR 0307 · amendment 581）
+
+- **缺口**：v871 时 `doc-evidence` 三条腿是红的，而红的原因不在代码里。2026-11-16 的
+  `49dec689 chore(repo): untrack .scratch/ (already in .gitignore)` 把 128 个已在版本库里的证据文件
+  `git rm --cached`，却没同步改掉任何一句「见证」；此后本机 scratch 又被清过一轮。2026-11-22 实测：
+  docs 里 110 个点名 token，磁盘上只剩 2 个——整条证据链既不入册、也不在这台机器上了。
+- **恢复（逐字节，不重造）**：`git checkout 49dec689^ -- <127 paths>` 把历史里有的 127 个文件取回磁盘并入册，
+  合计约 1.38 MB；`gateway-rate-lua-live/readings.json` 磁盘上是**更新的**一份，保留本机字节并按
+  `docs/CURRENT-STATE.md:619` 自己早写明的修法 `git add -f`。入册人口回到 **128**，点名可解出率从 2/110 回到
+  87/110（110 = 86 个仍带点的点名 + 24 个改走名册声明；2026-11-23 复测：那 86 个全部解得出，且 glob/目录
+  展开出的每一个路径都在版本库里）。
+- **分级（声明失踪，不是豁免）**：剩下 23 个 token 从未入册，且全部依赖 2026-11-22 起**已关闭**的外部模型 API
+  或当时的实时栈，今天无法诚实重跑，也就无法诚实重造。它们登记进 ADR 0307 的名册，文档里 37 处声称改用
+  `scratch/<tok>` 拼写——少一个点就落在抓取器正则之外，语义是「这是当时的 scratch 工具，未入册，读数以正文为权威」。
+  另有一处点名指的压根不是证据：`showcase-site/site` 是 Pages 仓库的克隆工作副本（含 `.git`，展开 5051 个文件），
+  点名改指 `docs/evidence/io-avatar-languages-nan-root-cause-2026-11-19.md`，名册里 kind=`clone`。
+- **门新增第五腿**（派生，不手填）：docs 里每个 `scratch/<tok>` 声明必须在名册有一行；名册每行必须仍被
+  docs 声明（不许留尸体行）；kind=`lost` 的行必须仍然磁盘查无且 `git ls-files` 查无——所以「声明失踪」不能用来
+  藏一个其实存在、本该入册的文件；kind=`clone` 的行必须仍是含 `.git` 的目录且它内部一个文件都不入册；
+  名册与声明两侧人口都非空，否则这一腿会因为什么都不必比而假绿。
+- **实测**：`npx vitest run apps/web/test/doc-evidence.test.ts` → **5 passed**（起点是 3 红 2 绿）。
+  三个走查桩各自 refused / named / restored 齐过：A1 名册多一行而 docs 不再声明它 → 红「名册里有尸体行」；
+  A2 磁盘上造一个名册说失踪的 `ab-cache-key.mts` → 红「名册说失踪，磁盘上却有」；
+  A3 在 `docs/TESTING.md` 用失踪拼写点名一个没登记的 `arm-unrostered.mjs` → 红「声明没有名册行」。
+  每个桩跑完都把原字节写回，并复测确认回到 5 passed。
+- **label 的来源**：两个平面各自取最大——`git log --all --format=%s` 与 `git grep -nE "v[0-9]{3,4}" -- docs`，
+  并且只认**后面不接 `-`/`.`/数字**的命中（用 `-o` 会把 `v2026-11-20` 这种日期截成 `v2026`，前沿就假高到
+  2026 去了）。实测：subject 平面最大 **v1094**、docs 平面最大 v1085，前沿取 **v1094**。合并进来的那条线
+  早就用过 v872/v873/v874（`docs/CURRENT-STATE.md:5858` 是 v872、`:5873` 是 v874、
+  `docs/evidence/paid-provider-e2e-2026-11-17.md:387` 是 v873），所以本批不用 v872 而取两侧皆空的 **v1095**。
+- **它不是**：不是把 `.scratch/` 重新变成可提交的目录——只有被文档点名的才入册，其余照旧忽略；
+  也不是给门加豁免——第五腿让「声明失踪」比原来的「点名即须存在」更难被滥用。
+- **接线**：无新脚本；`doc-evidence` 仍在 `verify:fe-gates` 收的那族里，census 人口不变。
+
+## v1096 — 接手那条没人做的 apps/web 闸口批：CSRF 补完 + 四道 HEAD 红各自回到根因（2026-11-23 · amendment 582）
+
+- **缺口**：v871 的 HEAD 上把这族相关套件单独拎出来跑（10 个文件），红在 4 个套件 6 个用例
+  （`Test Files 4 failed | 6 passed`，原始读数存 `.nexus-tmp/v872-reds-root.txt`；整仓的读数在下面「实测」里）。同时工作副本里躺着一批**没人提交的 apps/web 改动**（CSRF 双提交、
+  a11y、两条 Java 门跟随 ADR-0237 改名）——按 §二「并轨过来的内容如果那边已经没人在做，直接接手把剩下的做完」，
+  这批一起收：先替它把门修到能验，再逐条留证。
+- **CSRF 补完（那批的主体）**：5 个写形接口 `/api/admin/canon/review`、`/api/admin/observer/digest`、
+  `/api/admin/visitor-sim`、`/api/discover/interest`、`/api/notifications/digest` 在鉴权之后、花钱之前加
+  `csrfOk(req)`；对应 5 个客户端组件在 fetch 上带 `csrfHeaders()`。口令进观察站的人**没有 session**，
+  所以 `/api/admin/observer` 的 POST 自己铸一枚 `nexus_csrf`（非 httpOnly，页面要读它）——否则门开了、
+  门后每个动作都 403。`canon-review-route.test.ts` 因此补一个 `next/headers` 的 cookie jar 桩并带上请求头。
+- **`rate-limit-rules`（红因：表是手抄的，抄漏了）**：`IP_RATE_RULES` 实际 18 条、门上的表只有 11 条。
+  新增一条**派生**腿：扫 `apps/web/src` 里的 `ipWriteGate('<key>'` 得调用点集合，与表做双向差集——
+  表里每条都得有调用点，调用点每条都得在表里；`auth/register` 是直读 `IP_RATE_RULES` 的那一个，
+  显式记账（`IpGateRoute` 类型把这一族标注出来）。7 条被追加成顶格缩进的规则重新缩进并补了档位理由。
+  实测 4 passed；桩 R1（表里删一条）/R2（造一个没登记的调用点）各自 refused+named+restored。
+- **`jsx-text`（红因：51 字符的英文漏进了可见文本）**：`CanonReviewPanel` 的标签把 `**锚句**：` 原样写进
+  label，星号遂印在页面上。页面侧改成「含以「锚句」开头的行」；同时这条腿的正则 `[^*\n/]{1,400}` 原先只到 40，
+  是门自己的盲区（一条 41 字的加粗漏得无声无息）——放开到 400 并在文件头写清为什么。`/admin/observe` 两条
+  lede 也去掉手写星号。实测 2 passed；桩 J1 让超长加粗重新红。
+- **`notify-producers`（红因：门读的是写法不是事实）**：收件箱那一列早就按 locale 在
+  `NOTIFICATION_TERMINAL_STATE{,_EN}` 之间选（`page.tsx:166` 选、`:249` 用），门却断言页面里出现某段字面量，
+  一重构就假红。改成结构断言：认出那条 const、确认它真被索引——「这一列又变回手写的」才红。
+  实测 4 passed；桩 N1（换成手写常量）红、N2（选了却不索引）红。
+- **`style-tokens`（红因：那批用了没发布的 token）**：`--nexus-color-line/-border/-accent/-fg-on-accent/
+  --nexus-radius-3` 在 `:root` 里一个都不存在，靠 `var(x, fallback)` 蒙过渲染。改指已发布的
+  `--nexus-color-border-subtle`、`--nexus-color-brand`、`--nexus-color-accent-fg`、`--nexus-radius-md`。
+  并且把那条**被这批改松的语法**收回去：`var(--nexus-…)` 带兜底值也不能豁免未定义的名字，正则恢复成只认
+  真 token 位置；`(?<![-\w])color:` 那条误报修正留着。实测 29 passed；桩 S1（新造一个假 token 带兜底）红，
+  S2 确认对比度腿仍抓住 `text-success` 压在 `bg-success` 上 = 1.00。
+- **两条 Java 门跟随 ADR-0237**：`infra/config/` 与 java-config-server/gateway/registry 一起删了，
+  共享默认值改由 `services/nexus-config/src/main/resources/nexus-config/application.yml` 出。
+  部署单元从 8 个改名成盘上真实的那 5 个（`ls services/` 对上），`TRAFFIC_HOPS` 里 java-gateway→nexus-gateway，
+  共享门从「与业务门同样四个端点」改成「刻意只 `health,info`」——窄一档，共享文件手滑就不可能一次放宽全部署。
+- **label 的来源**：与 v1095 同一把尺（两个平面都扫到 v1094），这一批取 **v1096**。
+- **接线**：无新脚本；这一族的套件由 `verify:fe-gates` 与根 `npx vitest run` 各自收到。
+
+## v1097 — 库不按迁移长：8 条被抹掉的外键补回来，并装一道 parity 门（2026-11-23 · ADR 0308 · amendment 583）
+
+- **缺口**：v871 全量跑（`Test Files 2 failed | 654 passed | 2 skipped (658)` / `Tests 1 failed | 8429 passed (8442)`）
+  剩的两条红，根因是同一个：**本机开发库丢了 8 条迁移声明过的外键**。
+  `credits` 那条「删任务 → 账本 `task_id` 置空」红成 `expected '7349d46e-…' to be null`，读起来像只追加触发器
+  把外键动作挡了；`visual-benchmark` 在 `beforeAll` 就撞 `sessions_token_hash_key`。实际是
+  `credit_ledger_task_id_agent_tasks_id_fk` 与 `sessions_user_id_users_id_fk` **根本不在**（表在、触发器在、
+  索引在，独独外键没了），另 6 条同批失踪（`branches` / `design_nodes` / `knowledge_chunks` / `pages` /
+  `sessions` / `credit_ledger.user_id`）。
+- **怎么丢的、为什么一直没人知道**：`npm run db:push` 按 `schema.ts` 把库**推平**、不看迁移史；
+  `scripts/db-migrate.mts` 只认 `nexus_meta.schema_migrations` 的版本号，0000/0016 早记成"已应用"，
+  永远不自愈。两边都没钉住"库 = 这些迁移的结果"这句话——同容器里从零建的 `nexus_regress` 99 条一条不差，
+  坏的只有日常在测的那一台。
+- **新增的门（派生，不手填）**：`apps/web/test/db-fk-parity.integration.test.ts` 从
+  `infra/migrations/*.sql` 解析外键名单——两种写法都读（`ALTER … ADD CONSTRAINT … FOREIGN KEY` 77 条 +
+  `CREATE TABLE` 列内 `REFERENCES` 自动命名的 `<表>_<列>_fkey` 22 条，合计 99，与 `nexus_regress` 实测
+  **两侧完全相等**），再比 `pg_constraint`：缺 / 多 / 删除动作不一致 / 同名挂错列，各一条腿，
+  外加一条人口下限腿（解析器瞎了就得红，不许"比了个空"假绿）。库不在整族跳过。
+- **修复的迁移**：`infra/migrations/0048_dropped_foreign_keys_restored.sql` 照 `0038` 已有的
+  `DO $$ IF NOT EXISTS (SELECT 1 FROM pg_constraint …) $$` 守卫把 8 条补回来。
+  **一律 `NOT VALID`**：这台库面积累了指向已删父行的旧行（实测 `branches` 4947/6197、`knowledge_chunks`
+  9253/12621、`pages` 4799/6045、`sessions` 365/3295、`credit_ledger` user 1314 / task 702 / project 695），
+  直接 ADD 会 23503，要清就得删别人的开发数据——那条决定不归这次修 bug。`NOT VALID` 仍旧管住之后的写入，
+  **也照旧执行删父行时的 SET NULL / CASCADE**，所以两条红确实是它治的。
+- **出处归第一次声明**（门自己的缺陷，被 P1 抓出来后修的）：让 0048 覆盖 0016，缺失清单就会把责任报给
+  "修复它的那条迁移"而不是"当初立它的那条"；同名两种声明于是也升格成一条腿。
+- **fixture 自己扫自己的尸体**：`visual-benchmark` 的 token 从写死的 `'vb-token'` 改成每次运行一枚
+  `vb-token-<uuid>`，`afterAll` 先删 session 再删用户——一条用例的清洁不该依赖另一条迁移有没有跑过。
+- **实测**：从零建 `nexus_fk048_proof`（49 条迁移全跑）→ 99 条外键、0 条未验证、门 **6 passed**，
+  这是"0048 在正确库上是 no-op"的证明；对 `nexus` 跑 `npm run db:migrate`（补 0047+0048）→
+  门 6 passed，`npx vitest run apps/web/test/{db-fk-parity,credits,visual-benchmark}…` →
+  **Test Files 3 passed / Tests 23 passed**（修复前分别是 1 failed / 1 failed / 1 failed）。
+  落库后的全树复跑：`npx vitest run --reporter=dot` → **`Test Files 657 passed | 2 skipped (659)` /
+  `Tests 8443 passed | 5 skipped (8448)`，exit 0**（719s）。文件数 658→659 与用例 8442→8448 都是这道新门
+  自己带来的；新受管的 8 条外键没有让别的套件变红。
+  复测的两台参照库仍是好的：`nexus_regress` 与 `nexus_two_instance_b` 各 99 条、0 条未验证，
+  `credit_ledger` 三条外键都在；`nexus` 修后 99 条、其中 8 条 `NOT VALID`。
+- **走查桩**：P1 少一条（并验点名指的是 `0000_init.sql` 这个出处）、P2 动作被换、P3 同名挂错列、
+  P4 库里多一条没声明的、P5 解析器改瞎、P6 同名声明动作不一致——6 条全部 refused / named / restored 齐过，
+  桩全打在一次性库上，`nexus` 没被拿来当靶子。
+- **接线**：`0048` 由 `scripts/db-migrate.mts`（`npm run db:migrate`）自然收；门在 `apps/web/test/` 族里，
+  根 `npx vitest run` 收到；无新脚本。
+- **它不是**：不是把 `db:push` 禁掉（禁不掉，别的 lane 要用）——门是它的对照物：推平一次，只要结果不等于
+  迁移史，下一次测试就跑不掉。

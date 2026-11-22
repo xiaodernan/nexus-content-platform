@@ -14363,3 +14363,139 @@ so the next reader's recount door has no orphan to catch.
   stated reason, so no orphan grant exists to catch.
 - **Version labels** v871 is the only label minted by this landing; v870 is its predecessor and stays
   untouched.
+
+### Amendment 581 (v1095, evidence) — a declared loss is a claim with a reader: roster, docs and disk must agree three ways
+
+- **The gap this sector names.** `apps/web/test/doc-evidence.test.ts` was red at HEAD (v871) on three of its
+  legs, and the fault was not in `apps/web`. On 2026-11-16 `49dec689 chore(repo): untrack .scratch/ (already
+  in .gitignore)` ran `git rm --cached` over 128 evidence files that were already tracked, and changed no
+  sentence that still cited them. A later local scratch wipe removed most of the survivors: measured
+  2026-11-22, of 110 tokens cited by name in `docs/**`, exactly 2 were still on disk. The citations had
+  become unfalsifiable prose, which is the failure this gate exists to prevent.
+- **Restored, not re-invented.** The 127 files that existed in `49dec689^` came back byte-for-byte with
+  `git checkout 49dec689^ -- <paths>` (~1.38 MB) and are tracked again. One file,
+  `gateway-rate-lua-live/readings.json`, is newer on disk than in history, so the disk bytes won and it is
+  `git add -f` — the repair `docs/CURRENT-STATE.md:619` had already prescribed in prose. Tracked population
+  returns to 128; the resolvable-citation rate goes from 2/110 to 87/110.
+- **The 23 that cannot come back are named, not hidden.** None of them was ever tracked, and every one of
+  them depended on the external model API (closed 2026-11-22) or on a live stack that is not running here,
+  so they cannot be honestly re-run and must not be honestly re-fabricated. They are listed in
+  `docs/adr/0307-scratch-evidence-retracked-and-loss-rostered.md`, and the 37 sentences that cited them now
+  spell `scratch/<token>` (no leading dot) — outside the collector's regex, and semantically "a scratch tool
+  of that day, untracked; the prose is the authority, not the artifact".
+- **One citation was not evidence at all.** `scratch/showcase-site/site` is a clone of the GitHub Pages
+  repository — it carries its own `.git` and expands to 5051 files. Pointing a `docs/**` sentence at it was
+  a pointer into another repository, so that citation now names
+  `docs/evidence/io-avatar-languages-nan-root-cause-2026-11-19.md`, and the roster carries it as
+  `kind=clone` rather than `kind=lost`.
+- **The new fifth leg is derived, so it cannot be padded by hand.** For every `scratch/<token>` declared in
+  `docs/**` there must be a roster row; for every roster row there must still be a declaration (no corpse
+  rows); a `kind=lost` row must be absent from BOTH disk and `git ls-files` — otherwise "declared lost"
+  becomes a way to hide a file that exists and should have been tracked; a `kind=clone` row must still be a
+  directory containing `.git` with none of its internals tracked; and both populations must be non-empty, or
+  the leg would pass by comparing nothing.
+- **Measured.** `npx vitest run apps/web/test/doc-evidence.test.ts` → 5 passed (from 3 red / 2 green at
+  HEAD). Three arms, each one checking that the new clause refuses, names its cause, and restores exactly:
+  A1 a roster row that no doc declares → red "名册里有尸体行"; A2 a file on disk that the roster calls lost
+  (`scratch/ab-cache-key.mts`) → red "名册说失踪，磁盘上却有"; A3 an unregistered `arm-unrostered.mjs`,
+  written into `docs/TESTING.md` with the lost-spelling → red "声明没有名册行". After every arm the original bytes were
+  written back and the suite re-measured at 5 passed.
+- **What this is not.** Not a re-opening of `.scratch/` as a place to commit — only files that prose names by
+  token are tracked, everything else stays ignored. Not an exemption either: before this landing the gate
+  said "a name must exist"; now it additionally says "a claimed non-existence must be true, registered, and
+  still be needed". The directory `docs/CURRENT-STATE.md` and 15 sibling docs files were rewritten only to
+  move 37 citations onto the honest spelling (measured: dotted citations in the touched docs fell 40 → 3).
+- **CITES** amendments 580 (the HEAD this repair lands on top of), 576–579 (the reason no orphan grant is
+  created here), plus ADR 0307 and `docs/evidence/io-avatar-languages-nan-root-cause-2026-11-19.md`;
+  **GRANTS nothing** — the next number is not promised ahead of its record.
+- **Version labels** v1095 is the only label minted by this landing. Both planes were scanned, and the scan
+  must keep the line context: `git grep -oE "v[0-9]{3,4}"` truncates a date such as `v2026-11-20` down to
+  `v2026` and reports a frontier about nine hundred labels too high. With `git grep -nE` plus a lookahead
+  that rejects a label followed by `-`, `.` or a digit, the highest label in any commit subject on any ref is
+  v1094 and the highest in `docs/**` is v1085, so the frontier is v1094 and v1095-v1097 are free in both
+  planes. The merged cache line already owns v872–v874 in prose
+  (`docs/CURRENT-STATE.md:5858` is v872, `:5873` is v874, and
+  `docs/evidence/paid-provider-e2e-2026-11-17.md:387` is v873), so reusing v872 here would have collided
+  with a record that is already on disk.
+
+### Amendment 582 (v1096, web) — a gate that reads the spelling instead of the fact is a false red; four HEAD-reds, each repaired at its own root
+
+- **The gap this sector names.** At v871 this family of gates was red 4-of-10 files when run on its own
+  (`Test Files 4 failed | 6 passed`, raw read kept in `.nexus-tmp/v872-reds-root.txt`), and the working tree
+  held an abandoned, uncommitted `apps/web` batch (CSRF double-submit on the AI endpoints, an a11y pairing,
+  two Java gates still naming the pre-ADR-0237 topology). Directive §二 says a merged-in line nobody is
+  working on gets finished, not waited for — so the batch lands, and the reds it exposes get repaired where
+  they are wrong rather than silenced.
+- **Two of the four reds were the gate's fault, not the code's.** `notify-producers` asserted that a literal
+  string appear in the inbox page, but the page had long since become correct in a different shape: it
+  selects between `NOTIFICATION_TERMINAL_STATE` and `NOTIFICATION_TERMINAL_STATE_EN` by locale
+  (`page.tsx:166`) and indexes the chosen table (`page.tsx:249`). The assertion now names the structure —
+  find that const, prove it is actually indexed — so a rewrite stays green and a hand-copied column goes red.
+  `jsx-text` was right to fire (a 51-character English label leaked `**…**` onto the page) but its own
+  grammar only matched bold spans up to 40 characters, i.e. the miss it caught was the first one it was ever
+  able to see; the cap is now `{1,400}` with the reason written at the top of the file.
+- **One red was a hand-copied roster.** `rate-limit-rules` listed 11 routes while `IP_RATE_RULES` carries 18,
+  because the table was typed by hand. A derived leg now walks `apps/web/src` for `ipWriteGate('<key>'` and
+  diffs both directions: every row needs a call site, every call site needs a row. `auth/register` is the one
+  route that reads the table directly, so it is accounted for explicitly rather than added to the needle
+  list — `IpGateRoute` names that family in types.
+- **One red was a token that does not exist.** `--nexus-color-line`, `--nexus-color-border`,
+  `--nexus-color-accent`, `--nexus-color-fg-on-accent` and `--nexus-radius-3` are nowhere in `:root`; the
+  batch made them render with `var(name, fallback)`, which is a way to ship an undefined name. The CSS now
+  uses the published `--nexus-color-border-subtle` / `-brand` / `-accent-fg` / `--nexus-radius-md`, and the
+  grammar the batch had loosened is tightened back: a fallback never excuses an undefined token, so the
+  matcher only accepts `var(--nexus-…)` in a real token position. Their `(?<![-\w])color:` false-positive fix
+  is kept.
+- **The CSRF completion, and why the observer needs a minted token.** Five write-shaped endpoints
+  (`/api/admin/canon/review`, `/api/admin/observer/digest`, `/api/admin/visitor-sim`,
+  `/api/discover/interest`, `/api/notifications/digest`) now check `csrfOk(req)` after authentication and
+  before any provider spend, and their five client components send `csrfHeaders()`. A passcode visitor of
+  the observation panel has no session at all, so the panel's own login POST mints the `nexus_csrf` cookie
+  (deliberately not httpOnly — the page has to read it back): without that, the door opens and everything
+  behind it answers 403, which is the failure mode this kind of hardening always creates.
+- **The Java gates now describe the tree.** `infra/config/` and the java-config-server / -gateway / -registry
+  trio were deleted by ADR-0237; the shared defaults are served from
+  `services/nexus-config/src/main/resources/nexus-config/application.yml`. The deployable roster is the five
+  that are actually on disk, `TRAFFIC_HOPS` names `nexus-gateway`, and the shared door is asserted
+  deliberately NARROWER (`health,info`) than any service's own door — so a slip in one file can no longer
+  widen metrics on every deployable at once.
+- **Measured.** Per suite, from red at HEAD to green here: `doc-evidence` 5 passed (its own story is
+  amendment 581), `rate-limit-rules` 4 passed, `jsx-text` 2 passed, `notify-producers` 4 passed,
+  `style-tokens` 29 passed. Arms, each proving its clause refuses, names its cause and restores the bytes:
+  R1 (a row deleted from the roster) and R2 (an unregistered call site) for the derived rate-limit leg;
+  J1 (a long bold span must redden `jsx-text`); N1 (a hand-written column) and N2 (a selected-but-never
+  indexed table); S1 (a fresh fictional token carrying a fallback) and S2 (the contrast leg still catches
+  `text-success` on `bg-success` = 1.00). Every arm was re-measured back to green after writing the original
+  bytes.
+- **CITES** amendments 581 (the evidence landing this shares a HEAD with), 0307's roster rule, ADR-0237 (the
+  topology the Java gates now match) and ADR 0016's registry-gate friction rule; **GRANTS nothing** — the next
+  number is not promised ahead of its record.
+- **Version labels** v1096 is the only label minted by this landing; v1095 is its sibling commit in the same
+  batch and the scan that fixed both is recorded in amendment 581.
+
+### Amendment 583 (v1097, db) — a database that stopped matching its migrations reports itself as a broken feature; the parity gate makes that a named red
+
+- **The gap this sector names.** The tree-wide sweep on v871 ended `Test Files 2 failed | 654 passed | 2 skipped (658)` / `Tests 1 failed | 8429 passed (8442)`, and both survivors had ONE cause: the everyday dev database `nexus` is missing 8 foreign keys that tracked migrations declare. `credits.integration`'s "delete the task row → the ledger's `task_id` gets SET NULL" read as `expected '7349d46e-…' to be null`, which in the surface view blames the append-only trigger; `visual-benchmark` died in `beforeAll` on `sessions_token_hash_key`. The trigger was fine. `credit_ledger_task_id_agent_tasks_id_fk` and `sessions_user_id_users_id_fk` simply did not exist (table there, trigger there, indexes there — only the FKs gone), together with 6 siblings across `branches` / `design_nodes` / `knowledge_chunks` / `pages` / `sessions` / `credit_ledger.user_id`.
+- **How it goes unnoticed.** `npm run db:push` flattens a database toward `schema.ts` and ignores migration history, so one push from a schema snapshot that lacks a reference deletes that constraint on the database. `scripts/db-migrate.mts` only trusts `nexus_meta.schema_migrations`: 0000 and 0016 were recorded applied long ago and will never re-add anything. Nothing anywhere pinned the sentence "this database is the result of these migrations" — while `nexus_regress`, built from the same files in the same container, carries all 99 constraints and 0 unvalidated. Only the database the tests actually connect to was wrong.
+- **The gate derives its own roster.** `apps/web/test/db-fk-parity.integration.test.ts` parses `infra/migrations/*.sql` for both declaration shapes — `ALTER … ADD CONSTRAINT … FOREIGN KEY` (77) and column-inline `REFERENCES` inside `CREATE TABLE`, which Postgres auto-names `<table>_<column>_fkey` (22) — and diffs the 99 against `pg_constraint`: declared-but-absent (drift), present-but-undeclared (someone edited the database by hand), delete-action mismatch, same-name-different-column, plus a population floor on BOTH sides so a parser that produces nothing cannot pass by comparing nothing. The parser's correctness is not asserted by trust: against `nexus_regress` the two sets are equal in both directions with zero mismatches.
+- **The repair is a guarded migration, not a hand-run DDL.** `infra/migrations/0048_dropped_foreign_keys_restored.sql` re-adds the 8 using the `DO $$ IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = …) $$` idiom that `0038_comment_resolved_at.sql` already established, so a correct database skips every block. Proved, not assumed: a throwaway built from all 49 migrations lands at 99 constraints, 0 unvalidated, gate 6 passed — 0048 is a no-op where nothing is missing.
+- **`NOT VALID` is the honest half of the repair.** This database accumulated rows pointing at parents that are long gone (measured: `branches` 4947/6197, `knowledge_chunks` 9253/12621, `pages` 4799/6045, `sessions` 365/3295, `credit_ledger` user 1314 / task 702 / project 695 of 2613 ledger rows). A plain `ADD CONSTRAINT` fails with 23503, and making it succeed means deleting other people's development data — a decision this bug fix does not get to take. `NOT VALID` leaves the old rows alone while constraining every later write, and it still performs SET NULL / CASCADE when a parent is deleted, which is exactly what the two reds needed. The gate therefore asserts presence, action and column — deliberately not `convalidated`, and the migration says why.
+- **Attribution belongs to the first declaration.** Found by the gate's own arm: letting 0048 overwrite 0016 made the missing-FK list blame "the migration that restores it" instead of "the one that established it", i.e. a true red with a false sentence attached. Records are now first-wins by file order, and two same-named declarations that disagree became a leg of their own.
+- **A fixture cleans up after itself.** `visual-benchmark` hashed a hard-coded `'vb-token'` and its `afterAll` deleted projects and users but never its own session row, so run two collided with run one forever (the missing `sessions_user_id_users_id_fk` is what let the row survive the user delete at all). The token is now minted per run and `afterAll` deletes the session first — a test's cleanliness must not depend on whether some migration was applied.
+- **Measured.** Before: `db-fk-parity` red naming all 8 with their origin file and action; `credits` 1 failed;
+  `visual-benchmark` 1 failed. After `npm run db:migrate` (0047 + 0048 applied to `nexus`):
+  `npx vitest run apps/web/test/db-fk-parity.integration.test.ts apps/web/test/credits.integration.test.ts
+  apps/web/test/visual-benchmark.integration.test.ts` reads `Test Files 3 passed / Tests 23 passed`. The
+  tree-wide re-run that lands this is `npx vitest run --reporter=dot` over the repaired database:
+  `Test Files 657 passed | 2 skipped (659)` / `Tests 8443 passed | 5 skipped (8448)`, exit 0, 719s. Against
+  the v871 baseline (658 files / 8442 tests, 2 files red) the delta is this gate's own six legs, and none of
+  the eight newly enforced constraints reddened another suite. Both migration-built reference databases were
+  re-measured: `nexus_regress` and `nexus_two_instance_b` each carry 99 constraints, 0 unvalidated and all
+  three `credit_ledger` FKs; `nexus` now carries 99 with the restored 8 marked `NOT VALID`.
+  Arms, each on a throwaway database and never on `nexus`: P1 a constraint dropped (also asserting the
+  message names `0000_init.sql`, the origin), P2 delete action swapped, P3 same name re-pointed at another
+  column, P4 an extra constraint no migration declares, P5 the parser sabotaged so the population floor must
+  fire, P6 two declarations of one name disagreeing - 6/6 refused / named / restored, re-measured green
+  after every restore.
+- **CITES** amendment 582 (the batch this closes out; its `credits`/`style`/`rate-limit` repairs share the same landing), ADR 0308 (this decision), `0016_credit_ledger.sql` and `0038_comment_resolved_at.sql` (the guard idiom copied); **GRANTS nothing** — the next number is not promised ahead of its record.
+- **Version labels** v1097 is the only label minted by this landing; v1095 and v1096 are its siblings in the same batch, and the label scan that fixed all three is recorded in amendment 581.
