@@ -5,10 +5,22 @@ import { AnchorEcho } from '@/components/AnchorEcho';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: '锚句回放 · 低语诸王',
-  description: '正典里唯一不翻译、不改写的句子，逐字回放——看见锚句，说出它出自哪一章、哪一回响。',
-};
+/**
+ * 2026-11-22：metadata 跟随 cookie 语言，英文模式标签页不再挂中文标题。
+ * 本页 force-dynamic，`cookies()` 可读；这是后续把其余静态 metadata 逐页本地化的样板。
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '锚句回放 · 低语诸王',
+        description: '正典里唯一不翻译、不改写的句子，逐字回放——看见锚句，说出它出自哪一章、哪一回响。',
+      }
+    : {
+        title: 'Anchor Echo · The Whispers’ Kings',
+        description: 'The one class of sentence the canon never rephrases, replayed word-for-word — see the line, name the chapter or echo it came from.',
+      };
+}
 
 const COPY: Record<Locale, { crumb: string; back: string; echoCrumb: string }> = {
   zh: { crumb: '低语诸王 · 典籍室', back: '← 回典籍室', echoCrumb: '锚句回放' },

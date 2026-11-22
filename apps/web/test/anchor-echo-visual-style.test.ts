@@ -54,7 +54,9 @@ describe('──BIBLE-ANCHOR-ECHO /bible/anchors 锚句回放', () => {
   it('RSC page 骨架 + game 是 client 组件 + 零 provider/fetch', () => {
     expect(code).not.toContain('use client');
     expect(code).toContain('export const dynamic');
-    expect(code).toContain('export const metadata');
+    // 2026-11-22：metadata 跟随 cookie 语言（英文标签页不再挂中文标题）。
+    expect(code).toContain('export async function generateMetadata');
+    expect(code).toContain('await getLocale()');
     expect(code).toContain('import { getLocale');
     expect(gameCode).toContain('use client');
     expect(gameCode).toContain("from '@/world-bible/anchors.generated'");
@@ -112,11 +114,11 @@ describe('──BIBLE-ANCHOR-ECHO /bible/anchors 锚句回放', () => {
     expect(code).toContain('data-anchor-echo-page');
   });
 
-  // 2026-11-22 重钉：metadata 去并列英文（中文模式不夹杂）；两处注释 111 → 1317
-  // （E100–E218 重新进入题库后的真实锚句数）。DOM/类名未动。
+  // 2026-11-22 重钉：metadata 改 generateMetadata 跟随语言（英文标签页不再挂中文），
+  // 两处注释 111 → 1317（E100–E218 重新进入题库后的真实锚句数）。DOM/类名未动。
   it('SHA256 钉死：page / game', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '6ad64d3bbef5dbf2904a45df246ff1a566b457623b03587965f1d84e13ac471b',
+      '38c2ef044f71511e8aff442a6063895d38693755c18e5c3b682cbb1dc9116575',
     );
     expect(createHash('sha256').update(redactClasses(game)).digest('hex')).toBe(
       '856716cea896a3341a956f0ae459a3f09bd8ec486f09ba6e7fe4a6294b9620ac',
