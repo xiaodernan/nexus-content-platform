@@ -36,20 +36,20 @@ jobs:
         with:
           fetch-depth: 0          # the pack reads real history (first_commit_at, total_commits)
 
-      - name: Regenerate docs/latest.json
-        run: node scripts/build-showcase.mjs
+      - name: Regenerate docs/showcase/latest.json
+        run: npx tsx scripts/gen-latest.mts
 
       - name: Commit if the fact pack moved
         id: commit_pack
         run: |
-          if git diff --quiet -- docs/latest.json; then
+          if git diff --quiet -- docs/showcase/latest.json; then
             echo "unchanged=true" >> "$GITHUB_OUTPUT"
             echo "fact pack unchanged; no commit, nothing to push"
           else
             git config user.name "nexus-content-sync"
             git config user.email "nexus-content-sync@users.noreply.github.com"
-            git add docs/latest.json
-            git commit -m "sync(showcase): refresh docs/latest.json (head, counts, milestone)"
+            git add docs/showcase/latest.json
+            git commit -m "sync(showcase): refresh docs/showcase/latest.json (head, counts, feature surface)"
             git push
             echo "unchanged=false" >> "$GITHUB_OUTPUT"
           fi
@@ -61,12 +61,12 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${NEXUS_PORTFOLIO_TOKEN}" ]; then
-            echo "::notice title=portfolio-push skipped::NEXUS_PORTFOLIO_TOKEN is not set; a maintainer must copy docs/latest.json to assets/nexus-content/latest.json in xiaodernan/xiaodernan.github.io. See docs/SHOWCASE.json."
+            echo "::notice title=portfolio-push skipped::NEXUS_PORTFOLIO_TOKEN is not set; a maintainer must copy docs/showcase/latest.json to assets/nexus-content/latest.json in xiaodernan/xiaodernan.github.io. See docs/SHOWCASE.json."
             exit 0
           fi
           git clone --depth 1 "https://x-access-token:${NEXUS_PORTFOLIO_TOKEN}@github.com/xiaodernan/xiaodernan.github.io.git" /tmp/portfolio-sync
           mkdir -p /tmp/portfolio-sync/assets/nexus-content
-          cp docs/latest.json /tmp/portfolio-sync/assets/nexus-content/latest.json
+          cp docs/showcase/latest.json /tmp/portfolio-sync/assets/nexus-content/latest.json
           cd /tmp/portfolio-sync
           if git diff --quiet -- assets/nexus-content/latest.json; then
             echo "portfolio already up to date"

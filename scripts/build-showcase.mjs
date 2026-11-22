@@ -1,4 +1,13 @@
 /**
+ * DEPRECATED (2026-11-22) — superseded by `scripts/gen-latest.mts`.
+ *
+ * This script emitted the OLD fact-pack shape (milestone fields, no `feature_surface`, and a
+ * stale `services` count). Two generators writing the same portfolio file meant two truths:
+ * `showcase-sync.yml` pushed THIS one weekly while `sync-showcase.mts` pushed gen-latest.mts,
+ * so whichever ran last decided what the io page showed. The workflow now calls
+ * `gen-latest.mts`; `docs/latest.json` was deleted. Kept only for reference — do not wire it
+ * back into a workflow without reconciling the schema with gen-latest.mts first.
+ *
  * Build docs/latest.json — the showcase fact pack the portfolio page fetches
  * (portfolio repo path: assets/nexus-content/latest.json).
  *
