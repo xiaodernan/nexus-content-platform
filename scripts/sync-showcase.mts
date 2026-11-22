@@ -29,11 +29,11 @@ const sh = (cmd: string, opts: { cwd?: string; env?: Record<string, string> } = 
 
 function run(): void {
   // 1. regenerate latest.json
-  // 事实包钉在 `master` 上——这曾经是必须的（那时 main 与 master 是两条互不相干的历史，
-  // main 那条停在 E211、还没有 margins 模块，页面会把旧分支当"最新"）。
-  // 2026-11-22 并轨后两条线合并成一条，钉 master 与钉 HEAD 等价；保留这行是为了
-  // 万一将来又分叉时，事实包仍从活跃那条线出（注释不许撒谎，所以这里如实说明现状）。
-  sh('npx tsx scripts/gen-latest.mts', { cwd: ROOT, env: { NEXUS_FACT_REF: 'master' } });
+  // 2026-11-22 并轨后本地只剩 `main` 一条线；`master` 只存在于远端。
+  // 此前这里钉 `NEXUS_FACT_REF=master`，本机解不开 → 事实包 head 空串、commits null，
+  // 个人主页那几个数字就成了空的（15:49 那次同步的真实事故）。
+  // 现在不再钉远端分支：默认 HEAD 就是当前 checkout 的活跃线，数字永远解得开。
+  sh('npx tsx scripts/gen-latest.mts', { cwd: ROOT });
 
   // 2. clone or reuse existing clone
   if (!existsSync(SHOWSPATIAL)) {
