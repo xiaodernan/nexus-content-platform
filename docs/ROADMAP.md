@@ -15390,3 +15390,11 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
       吞吐拐点在 ~100 worker（2,690 rps），200 worker 只增延迟（p99 90→161ms），不增失败。
 - [x] 诚实边界写进 `docs/STRESS-TESTS.md`：`publications` 空表（真查询、空结果集）、
       localhost 同机、单 JVM 512MB、Hikari 默认池、不在网关限流后、LLM 车道未压（供应商已关）。
+
+## §GATE-DEBT 门债清零（2026-11-22）
+
+- [x] census：删掉 6 个零引用 `.et-*` 门面类（`.et-note` 保留），
+      `verify:census` — globals.css 3240 个类全部有引用。
+- [x] 三处 SHA 重钉（今日功能提交未随钉，先核对无域外类/无裸 Tailwind 再钉）：
+      `/search` §EXT-SEARCH（字面量 20→31 + SHA）、`CharacterChat` §LLMCTX-1、`/admin` §ADMIN-13。
+- [x] `verify:fe-gates` 整线复绿：**155 文件 / 1419 条全过**（census + no-raw-tailwind + 全部视觉门）。

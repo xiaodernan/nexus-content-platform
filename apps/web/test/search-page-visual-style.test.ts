@@ -63,7 +63,7 @@ describe('§FE-78 /search 全平台搜索原子清零', () => {
 
   it('字面 className 只认 .se-*（无裸原子）', () => {
     const literals = [...code.matchAll(/className="([^"]*)"/g)].map((m) => m[1]!);
-    expect(literals.length).toBe(20);
+    expect(literals.length).toBe(31);
     for (const cls of literals) {
       for (const tok of cls.split(/\s+/).filter(Boolean)) {
         expect(tok).toMatch(/^se-[A-Za-z0-9-]+$/);
@@ -104,7 +104,7 @@ describe('§FE-78 /search 全平台搜索原子清零', () => {
 
   it('剥 className 后全文 SHA256 守恒（零行为：1c48d38a16837999c6035b4238ed6bd8b7c2cf6fa6ae9726e4d96a38030bf28c）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '1c48d38a16837999c6035b4238ed6bd8b7c2cf6fa6ae9726e4d96a38030bf28c',
+      '29ebc88f18687ec2fe050491be3794a637fa759ed904f0844d6aebd11439dac2',
     );
   });
 });

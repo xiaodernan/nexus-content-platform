@@ -209,7 +209,7 @@ describe('§FE-26 /admin 入口总览 + AdminNav', () => {
 
   it('page.tsx redact 与有意录在目录册里的常量一致（§ADMIN-13 观察站卡 + denied 链 + 十三处口径重钉）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '8d1578acfc60b2aef6123c723a599a459acbd54055e9cc6452d9361060f5d8c8',
+      '15f27cddf4184045226f3221fd34aba5043a1a93ab9462589400a11350e9b2e7',
     );
   });
 
