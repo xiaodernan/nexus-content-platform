@@ -15694,3 +15694,30 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   （0 cached——pre-commit 那一次是 FULL TURBO 回放，不算真跑，已强制复跑）。
   `tools/ci/lint-tree.mjs` 的 14 条 UNDECLARED/PARSE 全在并行会话的脏文件里，本片触碰的
   七个文件一条都没进名单。
+
+## §COST-2 后续二：`requirements.txt` 只准 ASCII——文档里那条重启路径在中文 Windows 上是断的（2026-11-23 / ADR-0312）
+
+读第五本账要 ai-service 起着，照 README「重启 = `bash infra/dev-ai.sh`」跑，直接死在
+`UnicodeDecodeError: 'gbk' codec can't decode byte 0x84 in position 109`；脚本 `set -euo pipefail`
+让它在 `exec uvicorn` **之前**退出，3200 空响。根因不在我们的代码：pip 的 `auto_decode`
+在没有 BOM、前两行也没有 coding 声明时，用 `locale.getpreferredencoding(False)` 解码
+`requirements.txt`——本机是 `cp936`，而文件里写的是 UTF-8 中文注释。同一份文件在英文机器上一直好，
+只在中文 locale 的主力开发机上坏。
+
+- **改了什么**：`requirements.txt` 注释改成纯 ASCII（pin 一个没动），并把这条约束钉进门
+  `tests/test_requirements_ascii.py`（4 臂：字节判据 / cp936 与 utf-8 解出同一份文本 /
+  拿中文注释重演一次逼它真抛 / 非注释行仍是 `name==version` 且等于本机 venv 实装版本）。
+  第 3 臂不读文件、永远绿，作用是「如果哪天非 ASCII 不再会炸，前两臂就成装饰」；
+  第 4 臂用 `importlib.metadata` 取真值，不抄清单，所以加依赖不需要改门。
+- **第一次修复没修干净，是门抓出来的**（本片最值得留的一条）：我按「ASCII only」改完并记下重启成功，
+  但注释里留着 `§162`。`§` 的 UTF-8 是 `0xC2 0xA7`，**恰好是合法的 GBK 双字节序列**——pip 不再报错，
+  只是解出另一个字符。那份文件当时是「靠运气不炸」而不是「按设计不炸」，再补一个三字节中文就回到原事故。
+  第 1 臂当场红两次：一次抓到 `§162`，一次抓到我为解释这个坑而写进注释的字面 `§`。
+- **验证走崩溃那一步本身**：`pip install -q -r requirements.txt` 在 `locale=cp936` 实测通过，
+  服务 `Application startup complete`，`/healthz` 回 `capability: real`；没有为了一个注释重启整个服务。
+  变异 + md5 还原：往文件尾追加一个 `§` → 4 臂里 3 臂红（第 3 臂按设计免疫），还原后字节
+  md5 `ece99f33…` 一致、复跑全绿。
+- **不做什么**：不设 `PYTHONUTF8=1`（改的是整个解释器的默认编码，爆炸半径不对，且手敲 pip 的人不经过脚本）；
+  不加 `# -*- coding: utf-8 -*-`（只护住 pip 这一条读径，把「内容随便写」的口子留着）；
+  不顺手做全仓 `open()` 不传 `encoding=` 的审计——那是另一份决策，已在 ADR-0312 记为已知 hazard。
+- **复跑**：`npm run test:ai-service` 526 passed / 18 skipped（原 522 + 本片 4 臂）。
