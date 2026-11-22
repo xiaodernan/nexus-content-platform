@@ -11,7 +11,7 @@ import { BIBLE_ANCHORS } from '@/world-bible/anchors.generated';
  * 正典里唯一不翻译、不改写的句子逐字回放。看见锚句，选它出自哪一章 / 哪一回响。
  *
  * 纪律：
- *  1. 1317 句锚句中英成对，全部逐字来自正典文件（docs/world-bible，含 E100–E218），
+ *  1. 1329 句锚句中英成对，全部逐字来自正典文件（docs/world-bible，含 E100–E220），
  *     由 scripts/gen-anchor-echo.mts 生成、npm run verify:anchor-echo 字节验证。
  *  2. 不需要 provider、不需要网络；进度只在本机 localStorage（best streak）。
  *  3. 选择题：正确 1 分，错了不计——锚句不差这一口气。

@@ -9,12 +9,12 @@ export async function generateMetadata(): Promise<Metadata> {
   return locale === 'zh'
     ? {
         title: '问典 · 低语诸王',
-        // 真实计数（2026-11-22）：十四章 · 二百一十八回响；旧文案还停在十三章/一百六十三。
-        description: '向《低语诸王》世界大典提问：十四章正典 + 二百一十八篇回响即时可答。',
+        // 真实计数口径改为不随每篇回响漂移的「全部回响」（2026-11-22 E220 落库时确认）。
+        description: '向《低语诸王》世界大典提问：十四章正典 + 全部回响即时可答。',
       }
     : {
         title: 'The Tidal Inquiry · The Whispers’ Kings',
-        description: 'Ask the Whispers’ Kings canon: fourteen chapters + two hundred eighteen echoes, answered live.',
+        description: 'Ask the Whispers’ Kings canon: fourteen chapters and all their echoes, answered live.',
       };
 }
 

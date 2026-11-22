@@ -10,12 +10,12 @@ export async function generateMetadata(): Promise<Metadata> {
   return locale === 'zh'
     ? {
         title: '正典检索 · 低语诸王',
-        // 旧文案停在「四章 + 四回响」；真实正典已是十四章 + 二百一十八回响。
-        description: '世界大典本地检索：在正典全文里按关键词直达原文（十四章 + 二百一十八回响）。',
+        // 旧文案停在「四章 + 四回响」；计数改为不随每篇回响漂移的「全部回响」。
+        description: '世界大典本地检索：在正典全文里按关键词直达原文（十四章 + 全部回响）。',
       }
     : {
         title: 'The Canon Search · The Whispers’ Kings',
-        description: 'The local canon search — keyword hits in the full text of the World Bible (fourteen chapters + two hundred eighteen echoes).',
+        description: 'The local canon search — keyword hits in the full text of the World Bible (fourteen chapters and all their echoes).',
       };
 }
 

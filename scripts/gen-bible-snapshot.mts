@@ -276,6 +276,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E217-潮候院抄本院有人从页边取走了一张': 'echo-217-taking-one-out',
   'E218-潮候院抄本院页边空出来的那一格': 'echo-218-the-gap-left-behind',
   'E219-潮候院抄本院点账': 'echo-219-the-ledger-of-dots',
+  'E220-潮候院抄本院照着点走一遍': 'echo-220-walking-the-line-of-dots',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

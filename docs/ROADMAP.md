@@ -15568,3 +15568,28 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - [x] 证据：`docs/evidence/stress/web-burst-2026-11-22.md`（第二节）、
       `docs/evidence/stress/auth-brute-force-2026-11-22.md`（第二节）、`docs/evidence/stress/web-burst-2026-11-22.json`、
       `docs/STRESS-TESTS.md`（§STRESS-WEB-2 段）。
+
+## §I18N-SSR-META-2 剩余十页 metadata 中英分家（2026-11-22）
+
+- [x] 按 `/bible/anchors` 样板迁移：`/daily`、`/tide-oracle`、`/tide-wire`、`/tidewatch`、
+      `/observatory`、`/world`、`/bible/threads`、`/analytics`、`/api-tokens`、`/stategraph`
+      全部改 `generateMetadata + getLocale`；中文标题不再夹英文（「潮语 · The Tide Oracle」→「潮语」），
+      英文标题不再夹中文（`Tidewatch — the tide records your step — NEXUS`）。
+- [x] 描述同步去夹杂：原「中文。/ English.」双写全部拆成两语言各一份；`robots` 守住原值。
+- [x] 门：`stategraph-visual-style` 的骨架断言从 `export const metadata` 改为
+      `export async function generateMetadata`，SHA 按新字节重钉；`analytics-visual-style`
+      的段 A / 剥类整文两个常量按新 metadata 重钉（段 B 取数链逐字节未动，仍绿）。
+- [x] 验证：`verify:fe-gates` 155 文件 / 1419 条全绿；`tsc -p apps/web` 0；eslint 0。
+- [~] 之后新增页面仍须用 `generateMetadata`；静态 `export const metadata` 只剩账号/工作台等未迁移页。
+
+## §WORLD-BIBLE-E220 E220《照着点走一遍》· 220 回响 · 1329 锚句（2026-11-22）
+
+- [x] 新回响 E220（中英双语，6 节 6 对锚句）：接 E219 的点账——孩子把七页点铺在地上用粉笔连成线，
+      沿点走十九步停在没有点的地方；抄本师也走一遍，把灯放在空白这一头；后来的人把线叫「走法」不叫「数法」。
+- [x] 登记 `echo-220-walking-the-line-of-dots`；重新生成 generated.ts（14 章 · 220 回响 · 4 附录）、
+      anchors.generated.ts（1329）、canon_digest（274,590 chars · d5e3a147…）。
+- [x] guideCopy 回响数 219→220、锚句数 1323→1329；问典/检索描述把会漂移的计数改成「全部回响」。
+- [x] 验证：verify:world-bible 1334/1334；verify:bible-snapshot 一致；canon_digest pytest 4/4；
+      fe-gates 155/1419 全绿；tsc 0；eslint 0。
+- [x] 浏览器复跑 `/bible/anchors`：客户端题组正常（第 1/8 句、四选项可点），无错误态；
+      E219 阅读页 HTTP 200 且标题/上一回响链接真实渲染。

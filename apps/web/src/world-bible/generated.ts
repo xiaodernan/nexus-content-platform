@@ -30103,6 +30103,156 @@ Watchers tell the new arrivals: racks are swapped; the hook is not — on windy 
 `,
   },
   {
+    order: 220,
+    slug: 'echo-220-walking-the-line-of-dots',
+    titleZh: '照着点走一遍',
+    titleEn: 'Walking the Line of Dots',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E219）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E219).',
+    markdownZh: `
+> 回响不替正典续写——它只是页边另一层长出来的盐。
+> 写在 E219 之后：点被抄成一行之后，孩子把那行点铺在了地上。这一篇写的是沿着点走一遍会发生什么。
+> 纪律同前：锚句逐字；不新增正典专名，只在既有的灰棚与抄本院里添细节。
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E219）。
+
+---
+
+## 一 · 起念
+
+孩子把七页点铺在地上，用粉笔把点与点连起来。线绕开书架，窄得只够一个人走。
+**锚句**：孩子把七页点铺在地上，用粉笔把点与点连起来。
+**Anchor sentence**: the child laid the seven pages of dots on the floor and joined dot to dot with chalk.
+
+---
+
+## 二 · 走
+
+他沿着线走，每一步落在一个点上。数到第十九步时他停下来——不是累了，是前面没有点了。
+**锚句**：他沿着线走，每一步落在一个点上。
+**Anchor sentence**: he walked along the line, each step landing on a dot.
+
+---
+
+## 三 · 空的一截
+
+最后一个点之后是一条更长的空白，正好通向那一格空位。孩子没有跨过去，只在空白前站住。
+**锚句**：最后一个点之后是一条更长的空白，正好通向那一格空位。
+**Anchor sentence**: after the last dot ran a longer blank, leading exactly to the empty square.
+
+---
+
+## 四 · 抄本师也走
+
+最年长的抄本师照着孩子的线走了一遍，走到空白前也停了。他把自己那盏灯放在空白的这一头，不是另一头。
+**锚句**：他把自己那盏灯放在空白的这一头，不是另一头。
+**Anchor sentence**: he set his lamp at this end of the blank, not the other.
+
+---
+
+## 五 · 走法
+
+后来的人把这条线叫作走法，不叫数法。有人走完就回去翻自己抄的那一页，发现自己的点也在这条线上。
+**锚句**：后来的人把这条线叫作走法，不叫数法。
+**Anchor sentence**: those who came later called the line a way to walk, not a way to count.
+
+---
+
+## 六 · 线还在
+
+粉笔线被鞋底磨淡了，点还在。空白还是空白，只是现在有人知道它在路的尽头。
+**锚句**：空白还是空白，只是现在有人知道它在路的尽头。
+**Anchor sentence**: the blank is still blank, only now someone knows it sits at the end of the road.
+
+---
+
+## 七 · Mapping（Echo No. 220 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | a line of dots is a route, not a tally · the blank is the road's end, not a missing entry | 二、三、五 |
+| geography | the Institute's copy hall · the floor between shelves · the empty square | 一、三 |
+| characters | the child with chalk · the eldest copyist · the later walkers | 一、二、四、五 |
+| story | after E219: the dots are walked; the lamp stays on this side of the blank | 全篇 |
+| items | the seven pages · the chalk line · the lamp · the erased line | 一、四、六 |
+| history | the 140th year after the 44th Convocation (continues E206–E219) | 纪元 |
+
+> 线不是答案——是有人把一个位置走成了可以去的地方。
+> The line is not an answer — it is a place someone walked until it could be gone to.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E219: once the dots were copied into a line, the child laid that line on the floor. This echo is about what happens when you walk it.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within the established grey cover and copy hall.
+
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E219).
+
+---
+
+## One · The Notion
+
+The child laid the seven pages of dots on the floor and joined dot to dot with chalk. The line bent around the shelves, narrow enough for one person.
+**锚句**：孩子把七页点铺在地上，用粉笔把点与点连起来。
+**Anchor sentence**: the child laid the seven pages of dots on the floor and joined dot to dot with chalk.
+
+---
+
+## Two · The Walk
+
+He walked along the line, each step landing on a dot. At the nineteenth step he stopped — not from tiredness, but because there were no dots ahead.
+**锚句**：他沿着线走，每一步落在一个点上。
+**Anchor sentence**: he walked along the line, each step landing on a dot.
+
+---
+
+## Three · The Long Blank
+
+After the last dot ran a longer blank, leading exactly to the empty square. The child did not cross it; he stood at the blank's edge.
+**锚句**：最后一个点之后是一条更长的空白，正好通向那一格空位。
+**Anchor sentence**: after the last dot ran a longer blank, leading exactly to the empty square.
+
+---
+
+## Four · The Copyist Walks Too
+
+The eldest copyist walked the child's line once, and stopped at the blank as well. He set his lamp at this end of the blank, not the other.
+**锚句**：他把自己那盏灯放在空白的这一头，不是另一头。
+**Anchor sentence**: he set his lamp at this end of the blank, not the other.
+
+---
+
+## Five · A Way to Walk
+
+Those who came later called the line a way to walk, not a way to count. Someone finished the walk, went back to the page he had copied, and found his own dot sitting on that line.
+**锚句**：后来的人把这条线叫作走法，不叫数法。
+**Anchor sentence**: those who came later called the line a way to walk, not a way to count.
+
+---
+
+## Six · The Line Remains
+
+The chalk line wore thin under heels, but the dots remained. The blank is still blank, only now someone knows it sits at the end of the road.
+**锚句**：空白还是空白，只是现在有人知道它在路的尽头。
+**Anchor sentence**: the blank is still blank, only now someone knows it sits at the end of the road.
+
+---
+
+## Seven · Mapping（Echo No. 220 · world model）
+
+| Dimension | Value | Sections |
+| --- | --- | --- |
+| lore | a line of dots is a route, not a tally · the blank is the road's end, not a missing entry | II, III, V |
+| geography | the Institute's copy hall · the floor between shelves · the empty square | I, III |
+| characters | the child with chalk · the eldest copyist · the later walkers | I, II, IV, V |
+| story | after E219: the dots are walked; the lamp stays on this side of the blank | whole |
+| items | the seven pages · the chalk line · the lamp · the erased line | I, IV, VI |
+| history | the 140th year after the 44th Convocation (continues E206–E219) | Era |
+
+> The line is not an answer — it is a place someone walked until it could be gone to.
+> 线不是答案——是有人把一个位置走成了可以去的地方。
+`,
+  },
+  {
     order: 23,
     slug: 'echo-023-the-ship-that-appears-only-at-dusk',
     titleZh: '雾港里那艘只在黄昏出现的船',

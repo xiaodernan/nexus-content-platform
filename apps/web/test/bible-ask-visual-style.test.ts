@@ -92,11 +92,10 @@ describe('§BIBLE-4 /bible/ask 问典', () => {
   });
 
   // 2026-11-22 重钉：component —— 中文 kicker 去掉并列英文（「问典 · The Tidal Inquiry」→「问典」）；
-  // page —— metadata 改 generateMetadata 跟随语言，并把过时的「十三章/一百六十三回响」
-  // 改成真实计数「十四章/二百一十八回响」。
+  // page —— metadata 改 generateMetadata 跟随语言，计数口径再改为不随每篇回响漂移的「全部回响」。
   it('SHA256 钉死（BOM/EOL 归一 + className→@）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      'fcb6758170bccc858b98b5f738166515c35727f4798a92bef96e628bbd21af59',
+      'a5581e98fdd0f77a131eff2bdf4f2532a62f93e4483a228c1e9c9530ce726092',
     );
     expect(createHash('sha256').update(redactClasses(component)).digest('hex')).toBe(
       'bbf12ee4f9b59d6c7aba9678c9e93cf1934d523e143bb4adca134e3deb5e651f',

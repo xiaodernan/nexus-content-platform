@@ -5272,6 +5272,42 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "refEn": "Echo No. 22 · V"
   },
   {
+    "zh": "孩子把七页点铺在地上，用粉笔把点与点连起来。",
+    "en": "the child laid the seven pages of dots on the floor and joined dot to dot with chalk.",
+    "refZh": "回响（其220） · 一",
+    "refEn": "Echo No. 220 · I"
+  },
+  {
+    "zh": "他沿着线走，每一步落在一个点上。",
+    "en": "he walked along the line, each step landing on a dot.",
+    "refZh": "回响（其220） · 二",
+    "refEn": "Echo No. 220 · II"
+  },
+  {
+    "zh": "最后一个点之后是一条更长的空白，正好通向那一格空位。",
+    "en": "after the last dot ran a longer blank, leading exactly to the empty square.",
+    "refZh": "回响（其220） · 三",
+    "refEn": "Echo No. 220 · III"
+  },
+  {
+    "zh": "他把自己那盏灯放在空白的这一头，不是另一头。",
+    "en": "he set his lamp at this end of the blank, not the other.",
+    "refZh": "回响（其220） · 四",
+    "refEn": "Echo No. 220 · IV"
+  },
+  {
+    "zh": "后来的人把这条线叫作走法，不叫数法。",
+    "en": "those who came later called the line a way to walk, not a way to count.",
+    "refZh": "回响（其220） · 五",
+    "refEn": "Echo No. 220 · V"
+  },
+  {
+    "zh": "空白还是空白，只是现在有人知道它在路的尽头。",
+    "en": "the blank is still blank, only now someone knows it sits at the end of the road.",
+    "refZh": "回响（其220） · 六",
+    "refEn": "Echo No. 220 · VI"
+  },
+  {
     "zh": "雾港黄昏起雾的时候，码头口总有一艘船不在值守的名册上。",
     "en": "when the fog rolls in at Fog Harbor at dusk, there is always a ship that is not on any watch register.",
     "refZh": "回响（其23） · 一",

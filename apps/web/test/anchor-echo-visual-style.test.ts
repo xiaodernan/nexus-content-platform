@@ -115,13 +115,13 @@ describe('──BIBLE-ANCHOR-ECHO /bible/anchors 锚句回放', () => {
   });
 
   // 2026-11-22 重钉：metadata 改 generateMetadata 跟随语言（英文标签页不再挂中文），
-  // 两处注释 111 → 1317（E100–E218 重新进入题库后的真实锚句数）。DOM/类名未动。
+  // 注释锚句数 111 → 1329（E220《照着点走一遍》落库后的真实数）。DOM/类名未动。
   it('SHA256 钉死：page / game', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '38c2ef044f71511e8aff442a6063895d38693755c18e5c3b682cbb1dc9116575',
+      '09594119cf446cf08d03bce0de48f2cec54e4b0890b5d14ea8ff387603fca25f',
     );
     expect(createHash('sha256').update(redactClasses(game)).digest('hex')).toBe(
-      '856716cea896a3341a956f0ae459a3f09bd8ec486f09ba6e7fe4a6294b9620ac',
+      '7520084cf012f0e216b0481d7be0db8a70d94b7ea67b262e70d9dae1fdaaab1e',
     );
   });
 });
