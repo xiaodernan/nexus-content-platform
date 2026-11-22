@@ -15371,5 +15371,9 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
       `/integrity` 与 `/digest` 页脚各加双语入口，`/guide` 世界地图两侧补行（SHA 重钉 2 处）。
 - [x] 判据：`world-quests.test.ts` 10/10 · `quests-visual-style.test.ts` 8/8 ·
       受影响五门 41/41 · `tsc -p apps/web` EXIT=0。
-- [~] **浏览器像素层未目验**（本机未起 3100）；样式靠 token 纪律与门面判据保证，
-      下一次带浏览器的窗口补 home/guide/quests 三页读数。ADR 0308。
+- [x] 浏览器实测（`e2e/world-quests.spec.ts`，Playwright + 系统 Chrome）：真夹具
+      （登录 → 建项目 → PUT 六节点世界）→ 今日正好 3 卡 · 每卡三步 · 样例全是夹具真标题 ·
+      1440/390 均无横向溢出且卡片 top 单调（不重叠）· 英文模式零中文界面文案 · 0 pageerror；
+      截图落 `.scratch/world-quests-{desktop,mobile,en}.png`。
+- [~] **像素目验缺席**：截图已产出但图像上传工具本次报 Backend error，只能以 Playwright
+      几何读数 + a11y 快照为准；下一次窗口补肉眼核对。ADR 0308。
