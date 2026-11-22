@@ -35,6 +35,15 @@ export interface Bridge {
   label: string;
 }
 
+/** 割点：去掉它，它所在的连通块会裂成 parts 块（parts>1 才算）。 */
+export interface CutVertex {
+  id: string;
+  /** 入度+出度（同一对端点的多条关系分别计数） */
+  degree: number;
+  /** 去掉它之后，它原所在连通块裂成的块数 */
+  parts: number;
+}
+
 export interface CrossKindEdge {
   label: string;
   count: number;
@@ -47,6 +56,8 @@ export interface WorldNetwork {
   hubs: HubRow[];
   cliques: Clique[];
   bridges: Bridge[];
+  /** 割点榜：parts 降序、degree 降序、id 字典序（确定性） */
+  cutVertices: CutVertex[];
   crossKind: CrossKindEdge[];
   /** 忽略方向后仍互不连通的块数（连通分量） */
   weakComponents: number;
@@ -162,6 +173,83 @@ function findBridges(nodeIds: string[], links: WorldLink[]): Bridge[] {
 }
 
 /**
+ * 割点（articulation points）——"谁一倒，这张网会裂开"。
+ *
+ * 与割边是两种不同的性质：割边是**一条关系**断了会分家；割点是**一个条目**没了会分家。
+ * 一个节点的所有边都可能是割边、它自己却不是割点（比如三角形的一个角）。
+ *
+ * 迭代 Tarjan（大世界不爆栈），父边按 **edge id** 跳过而不是按父节点——
+ * 双向 a→b / b→a 是两条边，按节点跳会把第二条当成回边漏掉（§WORLD-NET 第一版踩过的坑）。
+ * parts 由 DFS 直接算：非根节点 = 分离子树数 + 1（父侧）；根 = 子树数。
+ * 回边只更新 low，不改 disc——这是"无向图里 back edge 只往上连"的那一格。
+ */
+function findCutVertices(nodeIds: string[], links: WorldLink[]): CutVertex[] {
+  const adj = new Map<string, { to: string; id: string }[]>();
+  for (const id of nodeIds) adj.set(id, []);
+  links.forEach((l, i) => {
+    const id = l.id || `e${i}`;
+    adj.get(l.from)!.push({ to: l.to, id });
+    adj.get(l.to)!.push({ to: l.from, id });
+  });
+  for (const list of adj.values()) list.sort((a, b) => cmp(a.to, b.to) || cmp(a.id, b.id));
+
+  const disc = new Map<string, number>();
+  const low = new Map<string, number>();
+  const children = new Map<string, number>();
+  const separated = new Map<string, number>();
+  const roots = new Set<string>();
+  let time = 0;
+
+  for (const root of nodeIds) {
+    if (disc.has(root)) continue;
+    roots.add(root);
+    const stack: { v: string; i: number; parent: string | null; parentEdge: string | null }[] = [
+      { v: root, i: 0, parent: null, parentEdge: null },
+    ];
+    disc.set(root, time); low.set(root, time); time++;
+    while (stack.length) {
+      const frame = stack[stack.length - 1]!;
+      const arcs = adj.get(frame.v)!;
+      if (frame.i < arcs.length) {
+        const arc = arcs[frame.i++]!;
+        if (arc.id === frame.parentEdge) continue;
+        const w = arc.to;
+        if (!disc.has(w)) {
+          children.set(frame.v, (children.get(frame.v) ?? 0) + 1);
+          disc.set(w, time); low.set(w, time); time++;
+          stack.push({ v: w, i: 0, parent: frame.v, parentEdge: arc.id });
+        } else {
+          low.set(frame.v, Math.min(low.get(frame.v)!, disc.get(w)!));
+        }
+      } else {
+        stack.pop();
+        if (frame.parent !== null) {
+          const p = frame.parent;
+          low.set(p, Math.min(low.get(p)!, low.get(frame.v)!));
+          if (low.get(frame.v)! >= disc.get(p)!) separated.set(p, (separated.get(p) ?? 0) + 1);
+        }
+      }
+    }
+  }
+
+  const degree = new Map<string, number>();
+  for (const l of links) {
+    degree.set(l.from, (degree.get(l.from) ?? 0) + 1);
+    degree.set(l.to, (degree.get(l.to) ?? 0) + 1);
+  }
+
+  const out: CutVertex[] = [];
+  for (const id of nodeIds) {
+    // 根节点：子树 > 1 才是割点，parts = 子树数（根没有父侧）。
+    // 非根：分离子树数 + 1（父侧那一块）——注意根的每个子树都会让 separated 自增，
+    // 不能拿 separated 去套根，否则一条链的根会被误报成 parts=2。
+    const parts = roots.has(id) ? (children.get(id) ?? 0) : (separated.get(id) ?? 0) > 0 ? separated.get(id)! + 1 : 0;
+    if (parts > 1) out.push({ id, degree: degree.get(id) ?? 0, parts });
+  }
+  return out.sort((a, b) => b.parts - a.parts || b.degree - a.degree || cmp(a.id, b.id));
+}
+
+/**
  * Tarjan 强连通分量（迭代版 Kosaraju 更直白：两次 DFS，第二次按逆后序在反图上染色）。
  * 用 Kosaraju 而非 Tarjan——同样 O(V+E)，但迭代写法更短、更不容易写错。
  */
@@ -249,6 +337,7 @@ export function buildWorldNetwork(doc: WorldDocument): WorldNetwork {
     hubs,
     cliques: strongComponents(nodeIds, adj),
     bridges: findBridges(nodeIds, links),
+    cutVertices: findCutVertices(nodeIds, links),
     crossKind,
     weakComponents: weakComponentCount(nodeIds, links),
     isolated: hubs.filter((h) => h.in === 0 && h.out === 0).map((h) => h.id),

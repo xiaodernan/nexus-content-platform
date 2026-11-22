@@ -15332,3 +15332,13 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - [x] 补 `.obs-aiAdvice*` 五个类名的门面样式（此前 globals.css 一个都没定义，整块裸渲染）。
 - [x] 判据 13 条（含源码级边界）+ `observer-deepread` / `observer-projection` 回归 27 条全绿；
       tsc web 绿；ADR 0299。
+
+## §WORLD-NET-2 割点：谁一倒、整张网裂开（2026-11-22）
+
+- [x] `worldNetwork.ts` 新增 `cutVertices`（迭代 Tarjan，父边按 edgeId 跳过，parts 精确到块数）；
+      与割边互补：割边是"断一条线"，割点是"少一个条目"。
+- [x] 修掉写测试时抓到的根节点误判：根的每个子树都会让 separated 自增，照非根公式算会把
+      一条链的根报成 parts=2。改为 roots 集合单独判定（根 = 子树数）。
+- [x] 页面新增全宽「关节（割点）」面板（`.nw-cutPanel` + 自适应 240px 网格），真实世界
+      读数 6 个割点；SHA 重钉 e8f47991→e859c4e0（真实功能变更）。
+- [x] 判据 8 条 + 网络页 29 条全绿；tsc web 绿；ADR 0298 补记。
