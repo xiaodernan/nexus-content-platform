@@ -1692,7 +1692,7 @@
   .ly-search:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
   .ly-filter { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-bg-2); padding: var(--nexus-space-1); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-2); cursor: pointer; }
   .ly-filter:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
-  .ly-addBtn { border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-brand); padding: 2px var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-fg); cursor: pointer; }
+  .ly-addBtn { display: inline-flex; align-items: center; justify-content: center; min-width: var(--nexus-space-6); min-height: var(--nexus-space-6); border: 0; border-radius: var(--nexus-radius-sm); background: var(--nexus-color-brand); padding: 2px var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-accent-fg); cursor: pointer; }
   .ly-addBtn:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
   .ly-drop { position: absolute; right: 0; top: 1.75rem; z-index: 50; width: 140px; border-radius: var(--nexus-radius-md); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); padding: var(--nexus-space-1); box-shadow: var(--nexus-shadow-lg); }
   .ly-dropItem { display: block; width: 100%; border: 0; background: transparent; border-radius: var(--nexus-radius-sm); padding: var(--nexus-space-1) var(--nexus-space-2); text-align: left; font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-1); cursor: pointer; }
@@ -1702,7 +1702,7 @@
   .ly-pageBtn:hover { background: var(--nexus-color-bg-2); }
   .ly-pageBtn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
   .ly-pageBtnActive { background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-1); }
-  .ly-pageAdd { flex-shrink: 0; border: 0; background: transparent; border-radius: var(--nexus-radius-sm); padding: 2px var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .ly-pageAdd { display: inline-flex; align-items: center; justify-content: center; min-width: var(--nexus-space-6); min-height: var(--nexus-space-6); flex-shrink: 0; border: 0; background: transparent; border-radius: var(--nexus-radius-sm); padding: 2px var(--nexus-space-2); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); cursor: pointer; }
   .ly-pageAdd:hover { background: var(--nexus-color-bg-2); }
   .ly-scroller { min-height: 0; flex: 1 1 0%; overflow: auto; padding-block: var(--nexus-space-1); }
   .ly-spacer { position: relative; }
@@ -2816,7 +2816,7 @@
      真 provider 才启动；未接时显示离线面板——不假装 AI。 */
   .cb-mtHint { margin-top: 2px; font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
   .cb-sendBar { display: flex; height: 2.125rem; flex-shrink: 0; align-items: center; gap: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
-  .cb-suggestionChip { overflow: hidden; border-radius: 9999px; border: 1px solid var(--nexus-color-border-subtle); background: transparent; padding: 2px var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); text-overflow: ellipsis; white-space: nowrap; text-align: left; cursor: pointer; }
+  .cb-suggestionChip { display: inline-flex; align-items: center; min-height: var(--nexus-space-6); overflow: hidden; border-radius: 9999px; border: 1px solid var(--nexus-color-border-subtle); background: transparent; padding: 2px var(--nexus-space-2); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); text-overflow: ellipsis; white-space: nowrap; text-align: left; cursor: pointer; }
   .cb-suggestionChip:hover { color: var(--nexus-color-fg-1); }
   .cb-intentBox { margin-bottom: var(--nexus-space-2); border-radius: var(--nexus-radius-md); background: var(--nexus-color-bg-2); padding: var(--nexus-space-2); }
   .cb-wrap2Mt1 { margin-top: var(--nexus-space-1); display: flex; flex-wrap: wrap; gap: var(--nexus-space-2); }
@@ -3013,7 +3013,7 @@
   .se-workArea { display: flex; min-width: 0; flex: 1 1 0%; flex-direction: column; }
   .se-workCol { position: relative; min-height: 0; flex: 1 1 0%; display: flex; flex-direction: column; }
   .se-viewBar { display: flex; flex-shrink: 0; align-items: center; gap: var(--nexus-space-2); border-bottom: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); padding: var(--nexus-space-1) var(--nexus-space-2); }
-  .se-viewBtn { border: 0; background: transparent; border-radius: var(--nexus-radius-sm); padding: 2px var(--nexus-space-2); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); cursor: pointer; }
+  .se-viewBtn { display: inline-flex; align-items: center; min-height: var(--nexus-space-6); border: 0; background: transparent; border-radius: var(--nexus-radius-sm); padding: 2px var(--nexus-space-2); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-12); color: var(--nexus-color-fg-3); cursor: pointer; }
   .se-viewBtn:hover { background: var(--nexus-color-bg-2); }
   .se-viewBtn:focus-visible { outline: 2px solid var(--nexus-color-brand); outline-offset: 2px; }
   .se-viewBtnActive { background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-1); }
