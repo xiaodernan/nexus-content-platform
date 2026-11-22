@@ -14676,3 +14676,35 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   - sticky key 注入 POST 报文（stream/非流双覆盖，ADR-0271 pin）；
   - 同 digest+同 question 的二次请求必命中 100%；app 粒度可拆分为 LRU+Redis 两级。
 - 不再能做的：Distributor 自己的路由/channel cache 不可控，不在本项目可以改进的范围内。
+
+## v868 — M9 链的第三个词：PR 是「请求复核」，不是「合并」（2026-11-22 · ADR 0067 · amendment 577）
+
+- **缺口**：链条已落前两词（incident v594 · patch v595）。操作者下一句是「请复核这个 patch」，
+  而 patch 行只说改动是什么，不说谁在何时请谁看过。`IncidentPatch` 的注释早就写着「later words will
+  move it」——本片是第一个真的移动它的词。
+- **字段与门**：`POST /patches/{patchId}/pull-requests` → 201 七字段
+  （id patchId title summary status openedBy openedAt）；`GET /patches/{patchId}/pull-requests` →
+  该 patch 的最新窗口 + count/total/limit/offset；`GET /pull-requests/{pullRequestId}` → 单条。
+  没有 approve / reject / merge / close / deploy 门——后续词缺席是刻意的。
+- **字节不复制**：diff 只住在 `incident_patch`；PR 行只存 `patchId`。复制会让同一问题有两个答案
+  （先读对、后读漂移）。活证据钉死：PR 恰好七字段、无 diff，patch 读回仍 29 字符。
+- **父门先行**：patch 不存在 → 404 `unknown-patch`，且在字段校验之前；列表同样检查父，因为
+  「这个 patch 没被复核过」与「没有这个 patch」是两个答案，空窗口会抹掉差别。
+- **一个 patch 同时只允许一个 open 请求**：闸门读请求表自己的 `countByPatchIdAndStatus(patchId,"open")`，
+  不读 patch 的 status 字；冲突回 409 `already-open`（不是 400：请求本身可能完全合法，冲突在状态）。
+  活证据证明拒绝既没写行也没移动 patch。
+- **链的游标同事务移动**：`PullRequestService.open` 调 `PatchService.submit`（patch 状态迁移的唯一主人）
+  → 包内 `IncidentPatch.submit()`，一次事务写两行，所以「请求已存在但 patch 仍 proposed」不可观察。
+  新状态词 `submitted`；`submit()` 幂等，未来 close 释放计数后无需第二道门。
+- **未关闭的竞态，写明**：一键闸是 count-then-insert，两个并发提交可能都读到 0 都插入；部分唯一索引
+  （`unique (patch_id) where status='open'`）是诚实加固，本片刻意不写：Hibernate 无法可移植表达
+  部分索引，且加 close 的那片才知道重开时该不该保留该不变式。记为边界，不冒充保证。
+- **窗口规则是「调用」不是「抄写」**：服务静态导入 `IncidentService.effectiveLimit/appliedOffset`，
+  三张表共用一个 cap（默认 20 · 上限 100 · 下限 1 · offset 落到所在页边界）。活证据用
+  `limit=1000&offset=150` 读回 cap 100 / skip 100。
+- **不写第二份记录**：0 audit、0 webhook delivery（psql 实测）。请求表就是记录。
+- **实测**：25/25 单测（16 service + 9 controller）；活库 proof
+  `docs/evidence/m9/pull-request-proof.mjs`（临时 pgvector/pg16 + 构建 jar）§1–§7 全绿，
+  含 STOP/START 后请求与 `submitted` 状态仍在；末行 252 字节。
+- **接线**：`package.json` 新增 `verify:pull-requests`；census 计数随 index 重算。
+

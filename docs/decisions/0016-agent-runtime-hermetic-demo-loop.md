@@ -14158,3 +14158,62 @@ service-health-proof.mjs` (the two repaired rows) and `agents/exec-host/test/exe
 (v651c's case; the exec-host row was recounted in `3dfeb0b` for exactly this case); commit `9ab2371`
 (where the content landed); **GRANTS nothing** — no number is promised by this record, said plainly
 so the next reader's recount door has no orphan to catch.
+
+### Amendment 577 (v868, m9) — a pull request is a request for REVIEW, not a merge: one open per patch, and the patch's own cursor moves in the same transaction
+
+- **The gap this sector names.** Amendments 547 and 548 built the chain's first two words — an incident with
+  a life, and a patch that stores the bytes an author wrote and never runs them. The next sentence an
+  operator says is "review this", and it had no home: the patch row says what the change is, not that anyone
+  was asked to look at it, by whom, or when. `IncidentPatch`'s own doc promised "the later words will move
+  it"; this slice is the first word that does.
+- **The record, and the three doors.** `POST /patches/{patchId}/pull-requests` answers 201 with exactly seven
+  fields (`id`, `patchId`, `title`, `summary`, `status`, `openedBy`, `openedAt`); `GET
+  /patches/{patchId}/pull-requests?limit=&offset=` answers the patch's newest window with both counts; `GET
+  /pull-requests/{pullRequestId}` answers one request. No other door exists: nothing is approved, rejected,
+  merged, closed or deployed, and a request may never be closed in this build. A door that looked like those
+  and did nothing would be worse than an absent one.
+- **The bytes are NOT copied.** The diff lives in `incident_patch` and only there. A copy in the request row
+  would be two answers to one question — the first read right, the second drifting. The request names
+  `patchId`, and a reader follows it one hop. The live proof pins this: the record carries exactly seven
+  fields and the read-back patch still carries its 29 characters.
+- **The parent is a door, not a column.** The patch must exist before any field is validated — 404
+  `unknown-patch` — and the listing checks it too, because "this patch was never reviewed" and "there is no
+  such patch" are different answers and an empty window would erase the difference.
+- **One open request per patch, and the refusal is 409.** Two open requests would make "which one is being
+  reviewed" a question with no answer. The gate reads `countByPatchIdAndStatus(patchId, "open")` — the
+  request table's own count, not the patch's status word — so the invariant is local to its owner. The
+  refusal is `409 already-open`, not 400: the request may be perfectly well formed, and the caller's next
+  step is to read the request that is already open rather than hunt for a typo. The live proof shows the
+  refusal stored nothing and moved nothing.
+- **The chain's cursor moves in the same transaction.** `PullRequestService.open` calls
+  `PatchService.submit` (the patch's one owner of status transitions), which calls the entity's package-
+  private `submit()`; one transaction writes both rows, so "a request exists against a patch still marked
+  proposed" is not an observable state. The new status word is `PatchService.SUBMITTED = "submitted"`, and
+  `submit()` is idempotent so a future close can free the count without a second door.
+- **The race this slice does not close, stated.** The one-open gate is a `count` followed by an `insert`;
+  two concurrent submissions can both read zero and both insert. A partial unique index
+  (`unique (patch_id) where status = 'open'`) is the honest hardening and is deliberately NOT written here:
+  Hibernate cannot express a partial index portably, and the slice that adds closing will know whether the
+  invariant should survive a reopen. Recorded as a bound, not claimed as a guarantee.
+- **The window rule is CALLED, not copied.** `PullRequestService` imports `IncidentService.effectiveLimit`
+  and `appliedOffset`, so three tables share one cap (default 20, cap 100, floor 1, offset floored to the
+  page that contains it). The proof applied `limit=1000&offset=150` and read back cap 100 / skip 100.
+- **No second copy of the record.** No audit entry and no webhook delivery: the request table is the record,
+  like the two tables before it. The live proof reads ZERO and ZERO with psql.
+- **Measured.** 25/25 unit cases (16 service + 9 controller) and the live proof
+  `docs/evidence/m9/pull-request-proof.mjs` on a throwaway `pgvector/pgvector:pg16` with the built jar:
+  §1 one incident, two patches, one request 201 with seven fields and no diff, the patch read back
+  `submitted`; §2 a second request 409 `already-open` storing and moving nothing, the listing 1 of 1, the
+  applied cap/skip 100/100, the unreviewed patch 0 of 0 and still `proposed`; §3 the request read back
+  unchanged and an unknown id 404 `unknown-pull-request`; §4 an unknown patch 404 `unknown-patch`, a blank
+  title and a 2001-character summary 400 `invalid-pull-request` with the rule named, refusals writing nothing;
+  §5 a STOP/START left the request and the submitted status in place; §6 psql read one open request, the
+  submitted patch row, 0 audit entries and 0 deliveries; §7 teardown. Final line 252 bytes.
+- **CITES** amendments 547 (the incident record), 548 (the patch whose bytes stay in their only home) and
+  576 (the record that refused to mint this number ahead of its content) plus ADRs 0018, 0041, 0042 and
+  0067; **GRANTS nothing** — the next number is not promised ahead of its record, following 576's stated
+  reason, so no orphan grant exists to catch.
+- **Version labels** v868 is the only label minted by this landing. It is the next free label above every
+  label in the tree at landing time (highest read: v867); the M9 lane's earlier planned label v652 remains a
+  convergence-program row that this slice does not consume, and the mismatch is named rather than papered
+  over.

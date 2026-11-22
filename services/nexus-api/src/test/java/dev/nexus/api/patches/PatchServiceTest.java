@@ -240,4 +240,32 @@ class PatchServiceTest {
                 .hasMessageContaining("id is required");
         verifyNoInteractions(repository);
     }
+
+    // ── submitting ────────────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void submittingAPatchMovesItFromProposedToSubmitted() {
+        when(repository.findById("p-1")).thenReturn(Optional.of(row("p-1", "i-1", "+one")));
+
+        IncidentPatch submitted = service.submit("p-1");
+
+        assertThat(submitted.getStatus()).isEqualTo(PatchService.SUBMITTED);
+    }
+
+    @Test
+    void submittingAnIdThatNamesNothingIsNoSuchPatch() {
+        when(repository.findById("nope")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.submit("nope"))
+                .isInstanceOf(NoSuchPatch.class)
+                .hasMessageContaining("nope");
+    }
+
+    @Test
+    void submittingABlankIdIsRefusedBeforeTheTableIsAsked() {
+        assertThatThrownBy(() -> service.submit("   "))
+                .isInstanceOf(InvalidPatch.class)
+                .hasMessageContaining("id is required");
+        verifyNoInteractions(repository);
+    }
 }

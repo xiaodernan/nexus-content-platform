@@ -55,8 +55,11 @@ public class PatchService {
     /** The width of the author column. */
     public static final int MAX_ACTOR = 120;
 
-    /** The only status this slice writes. The later words of the chain move it; this one does not. */
+    /** The status this slice writes when a proposal is filed. The chain's third word moves it. */
     public static final String PROPOSED = "proposed";
+
+    /** The status a patch carries while a review request is open — written by {@link #submit}. */
+    public static final String SUBMITTED = "submitted";
 
     private final PatchRepository repository;
     private final IncidentService incidents;
@@ -117,6 +120,25 @@ public class PatchService {
     /** One patch by id, bytes included. An id that names nothing is {@link NoSuchPatch}. */
     @Transactional(readOnly = true)
     public IncidentPatch read(String patchId) {
+        return load(patchId);
+    }
+
+    /**
+     * The chain's third word, from this table's side: a review request is about to open for this patch, so
+     * the patch's own status moves {@code proposed → submitted} in the SAME transaction that writes the
+     * request. Idempotent: a patch already submitted stays submitted, so a second request after a future
+     * close does not need a different door.
+     *
+     * @return the row, so the caller can answer with the status it moved to
+     */
+    @Transactional
+    public IncidentPatch submit(String patchId) {
+        IncidentPatch row = load(patchId);
+        row.submit();
+        return row;
+    }
+
+    private IncidentPatch load(String patchId) {
         String id = requireId(patchId);
         return repository.findById(id)
                 .orElseThrow(() -> new NoSuchPatch("patch \"" + id + "\" does not exist"));

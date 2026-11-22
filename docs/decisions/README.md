@@ -78,4 +78,5 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0064  | Messaging in NEXUS, honestly inventoried: SSE-only delivery, Redis pub-sub as the cross-instance fanout, and the things it is NOT | Accepted |
 | 0065  | The routes actuator is a dead door on the WebFlux edge — verified three ways; NEXUS proves the live route table instead | Accepted |
 | 0066  | A durable side-effect lane, not a broker: Redis Streams for post-response work that must happen once | Accepted |
+| 0067  | A pull request is a request for review, not a merge: one open per patch, the patch moves to submitted beside it | Accepted |
 | 0059  | A trace id is evidence only where a hop WRITES IT DOWN                  | Accepted |
