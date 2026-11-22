@@ -14321,3 +14321,45 @@ so the next reader's recount door has no orphan to catch.
   reason, so no orphan grant exists to catch.
 - **Version labels** v870 is the only label minted by this landing; v869 is its predecessor and stays
   untouched.
+
+### Amendment 580 (v871, m9) — the chain reads back as ONE TREE, and the view is a lens over rows
+
+- **The gap this sector names.** Amendments 547, 548, 577, 578 and 579 built five write doors over five
+  tables. A reader who wanted the story had to walk five hops, and no single answer said whether a patch was
+  ever deployed. The chain was complete but not readable as one thing.
+- **The door.** `GET /incidents/{incidentId}/chain` answers the incident, its patches, each patch's review
+  requests, and each request's decisions and deployments. It is READ-ONLY: no new table, no cache, no
+  summary row. The live proof compares all five tables' row counts before and after two reads (1/2/2/2/1,
+  identical), and the audit / delivery tables stay at zero.
+- **The lens reads through the OWNERS.** `ChainService` calls `IncidentService`, `PatchService`,
+  `PullRequestService`, `DecisionService` and `DeploymentService` — never the repositories — so the view
+  cannot surface a row its own door would refuse, and it inherits the doors' ordering and window rules
+  instead of growing a second opinion.
+- **The nested records are the doors' own types.** `IncidentRecord` (11 fields), `PatchRecord` (8),
+  `PullRequestRecord` (7), `DecisionRecord` (6) and `DeploymentRecord` (10) are reused verbatim, so a rename
+  or addition on a door is a compile error here. The proof pins all five sizes in one read.
+- **Every level carries its total beside its window.** Each child list asks for
+  `ChainService.CHILD_LIMIT = 100` and the view reports `patchTotal` / `requestTotal` / `decisionTotal` /
+  `deploymentTotal`; `total > list.size()` is the reader's honest truncation signal. The proof pins the real
+  totals (2 patches, 1 request each, 1 decision each, 1 deployment).
+- **The whole story in one read.** Patch A read `deployed` / request `approved` / decision `approved` /
+  deployment `succeeded` while patch B read `proposed` / request `rejected` / decision `rejected` / no
+  deployment — in the same answer, after one GET. An unknown incident is the incident door's own 404
+  (`unknown-incident`), raised before any child is touched.
+- **A restart reads back the same tree byte-identical**, and the proof asserts deep equality: the view is a
+  lens over rows, not a cache that could go stale.
+- **Measured.** 10/10 unit cases (6 service + 4 controller) and the live proof
+  `docs/evidence/m9/chain-proof.mjs` on a throwaway `pgvector/pgvector:pg16` with the built jar: §1 the chain
+  ran twice (approved→deployed, rejected) and the tree answered 2 patches / 2 requests; §2 every nested
+  record kept its door's field count; §3 one read showed every status; §4 an unknown incident 404
+  `unknown-incident`; §5 two extra reads moved no row count and wrote nothing; §6 a STOP/START read back the
+  same tree byte-identical; §7 psql read the five tables (1/2/2/2/1) and 0 audit / 0 deliveries; §8 teardown.
+  Final line 188 bytes.
+- **What this view is not.** Not paginated beyond the 100-per-level cap, not permissioned (ADR 0018), not a
+  search index — a caller must know the incident id — and not a capability: it adds no merge, apply or
+  deploy. Truncation is visible but not navigable; a caller who needs the rest walks the per-table doors.
+- **CITES** amendments 579 (the deployment record at the bottom of the tree), 578, 577, 548 and 547, plus
+  ADR 0070; **GRANTS nothing** — the next number is not promised ahead of its record, following 576–579's
+  stated reason, so no orphan grant exists to catch.
+- **Version labels** v871 is the only label minted by this landing; v870 is its predecessor and stays
+  untouched.

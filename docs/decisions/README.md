@@ -81,4 +81,5 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0067  | A pull request is a request for review, not a merge: one open per patch, the patch moves to submitted beside it | Accepted |
 | 0068  | A decision is a verdict, not a merge: one atomic close per request, the patch moves beside it | Accepted |
 | 0069  | A deployment is a record, not an action: request, then a named report; success alone moves the patch | Accepted |
+| 0070  | The chain reads back as one tree: a read-time view over the owning services, capped and totalled per level | Accepted |
 | 0059  | A trace id is evidence only where a hop WRITES IT DOWN                  | Accepted |

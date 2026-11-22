@@ -14770,3 +14770,28 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   仍做不到的事——应用字节、跑测试、接触目标、认证调用者——写在 ADR 0067–0069 里，而非暗示掉。
 - **接线**：`package.json` 新增 `verify:deployments`；census 随 index 重算。
 
+
+## v871 — M9 链视图：整条链一次读回一棵树（2026-11-22 · ADR 0070 · amendment 580）
+
+- **缺口**：五个写门写五张表（incident / patch / 复核请求 / 判词 / 部署记录）。读者要看完整故事得跳五次，
+  且没有任何单一答案能说明某个 patch 到底部署过没有。链条完整了，但还不是「一件可读的东西」。
+- **门**：`GET /incidents/{incidentId}/chain` → 事件 + 其 patches + 每个 patch 的请求 + 每个请求的
+  判词与部署。**只读**：没有第六张表、没有缓存、没有汇总行。活证据对五张表在两次读前后做行数比对
+  （1/2/2/2/1 不变），audit / delivery 保持 0。
+- **镜头穿过「主人」**：`ChainService` 只调 `IncidentService` / `PatchService` / `PullRequestService` /
+  `DecisionService` / `DeploymentService`，不碰 repository——视图看不到自己的门会拒绝的行，
+  排序与窗口规则也继承而非另立。
+- **嵌套记录就是写门的类型**：`IncidentRecord`(11) / `PatchRecord`(8) / `PullRequestRecord`(7) /
+  `DecisionRecord`(6) / `DeploymentRecord`(10) 原样复用；任一门改字段，这里编译期报错。活证据一次读钉死五个尺寸。
+- **每一层都带总数**：每个子列表取 `CHILD_LIMIT = 100`，并报 `patchTotal` / `requestTotal` /
+  `decisionTotal` / `deploymentTotal`；`total > list.size()` 就是截断的诚实信号。
+- **一次读看全故事**：patch A `deployed` / request `approved` / decision `approved` / deployment
+  `succeeded`；patch B `proposed` / request `rejected` / decision `rejected` / 无部署——同一个答案里。
+  未知事件 → 事件门自己的 404 `unknown-incident`，在触碰任何子级之前抛出。
+- **重启后同一棵树逐字节相等**（深比较）：视图是行上的镜头，不是会过期的缓存。
+- **实测**：10/10 单测（6 service + 4 controller）；活库 proof `docs/evidence/m9/chain-proof.mjs`
+  §1–§8 全绿；末行 188 字节。
+- **它不是**：不是分页（每层上限 100）、不是权限（ADR 0018）、不是搜索索引（须知道 incident id）、
+  不是能力（不加 merge/apply/deploy）。截断可见但不可导航；要看余下部分走各表自己的窗口门。
+- **接线**：`package.json` 新增 `verify:chain`；census 随 index 重算。
+
