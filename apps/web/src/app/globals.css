@@ -1372,7 +1372,7 @@
   .tl-note { font-size: var(--nexus-font-size-11); color: var(--nexus-color-danger-ink); }
   .tl-scope { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
   .tl-empty { font-size: var(--nexus-font-size-13); color: var(--nexus-color-fg-2); }
-  .tl-tableScroll { overflow-x: auto; }
+  .tl-tableScroll { overflow-x: auto; min-width: 0; max-width: 100%; }
   .tl-table { width: 100%; min-width: 55rem; font-size: var(--nexus-font-size-11); }
   .tl-thRow { text-align: left; color: var(--nexus-color-fg-3); }
   .tl-tdMuted { color: var(--nexus-color-fg-2); }
@@ -1538,7 +1538,7 @@
   .am-titleLg { font-size: var(--nexus-font-size-24); font-weight: 600; color: var(--nexus-color-fg-1); letter-spacing: -0.025em; }
   .am-chipRow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-2); }
   .am-warnNote { font-size: var(--nexus-font-size-12); color: var(--nexus-color-warn-ink); }
-  .am-stack { display: flex; flex-direction: column; gap: var(--nexus-space-1); }
+  .am-stack { display: flex; flex-direction: column; gap: var(--nexus-space-1); min-width: 0; }
   .am-stackSm { display: flex; flex-direction: column; gap: var(--nexus-space-1); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
   .am-stackXl { display: flex; flex-direction: column; gap: var(--nexus-space-5); }
   .am-sectionHeadSm { font-size: var(--nexus-font-size-13); font-weight: 600; color: var(--nexus-color-fg-2); }
@@ -3729,7 +3729,7 @@
   /* ── §FE-35 / ADR-0187 `/admin/observability` `.am-ledgerGrid` 三列账本格 ──
    * LedgerTable 三列只有在 ≥48rem 才铺开（Tailwind md:grid-cols-3 逐字平移），
    * 窄视口单列直落；本段是 FE-28 共享段之外的唯一 @media 补丁。 */
-  .am-ledgerGrid { display: grid; gap: var(--nexus-space-4); grid-template-columns: 1fr; }
+  .am-ledgerGrid { display: grid; gap: var(--nexus-space-4); grid-template-columns: minmax(0, 1fr); }
   @media (min-width: 48rem) { .am-ledgerGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
   /* ── §A11Y-1 / ADR-0146 渐变墨字高对比度回退 ──────────────────────────────

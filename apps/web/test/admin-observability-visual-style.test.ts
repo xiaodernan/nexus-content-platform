@@ -168,9 +168,9 @@ describe('§FE-35 /admin/observability 观测', () => {
     expect(tokens).toContain('--nexus-color-fg-3');
   });
 
-  it('剥 className 后全文 SHA256 钉死（合并后的字节：0050f0fcfbb971dd8200be0ffedc20e086a2ff46457819c7e592f6ac1d3e0ede）', () => {
+  it('剥 className 后全文 SHA256 钉死（2026-11-22 窄视口修：AI 就绪表进横滚区）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '0050f0fcfbb971dd8200be0ffedc20e086a2ff46457819c7e592f6ac1d3e0ede',
+      '71d076fe9e286de7b3f40c523b19b0ff8b53dc3fd8b4a51f553bd610f07d803a',
     );
   });
 });
