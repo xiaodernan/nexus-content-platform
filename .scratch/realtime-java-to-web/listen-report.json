@@ -1,0 +1,11 @@
+{
+  "pid": 9688,
+  "origin": "9688:mwc5g5jq:1",
+  "driver": "RedisRealtimeBus",
+  "ready": true,
+  "received": [
+    "probe event"
+  ],
+  "subscriberOnChannel": 1,
+  "wireErrorCount": 0
+}

@@ -1,0 +1,51 @@
+BASE failed=0 passed=4 crash=false
+
+[E1-凭空加一条指向不存在文件的点名]
+  预测：只有「点名解得出」红：证明那条腿真的在逐个查磁盘
+  实测：failed=1 passed=3 crash=false
+    · 每一句点名的证据在磁盘上都查得到（缺一个就红，红话带 docs 行号）
+    · 每一句点名的证据在磁盘上都查得到（缺一个就红，红话带 docs 行号）
+
+[E2-抓回旧版按扩展名收尾的正则]
+  预测：3 红：「抓取器吃整段路径」（`.fixed` 又被截断）、「点名解得出」（截出的 submit.ts 磁盘上没有）、外加「扫描面不是空的」——旧正则只读到 22 次点名（<70 的人口下限），人口腿跟着红，这正是它该有的样子
+  实测：failed=3 passed=1 crash=false
+    · 扫描面不是空的：docs 扫到一份清单，点名数量与实测同档（门自己先证明它有牙齿）
+    · 抓取器吃整段路径：非标准后缀不被截断，中文标点与括号正常收尾
+    · 每一句点名的证据在磁盘上都查得到（缺一个就红，红话带 docs 行号）
+    · 扫描面不是空的：docs 扫到一份清单，点名数量与实测同档（门自己先证明它有牙齿）
+    · 抓取器吃整段路径：非标准后缀不被截断，中文标点与括号正常收尾
+    · 每一句点名的证据在磁盘上都查得到（缺一个就红，红话带 docs 行号）
+
+[E3-摘掉入册人口判据（tracked.size 那条）]
+  预测：0 红：这条腿本来就靠 untracked 列表判，今天列表为空是因为确实都入了册
+  实测：failed=0 passed=4 crash=false
+
+[E4-注入同一条坏点名，但把"解得出"过滤器摘成恒假]
+  预测：0 红：E1 那一红完全是这个过滤器给的——它今天不咬是因为确实没缺件，摘掉它就把唯一的咬合点拆了
+  实测：failed=0 passed=4 crash=false
+
+[E5-入册名单永远交空白（模拟"只比磁盘、不比版本库"）]
+  预测：「在版本库里」那条红，先踩人口判据 tracked.size>=100
+  实测：failed=1 passed=3 crash=false
+    · 点名到的证据全在版本库里：文件、glob 命中的每一个、目录下面的每一个（`.scratch/` 被忽略，不入册就只活在这一台机器上）
+    · 点名到的证据全在版本库里：文件、glob 命中的每一个、目录下面的每一个（`.scratch/` 被忽略，不入册就只活在这一台机器上）
+
+[E6-旧过滤器 kind===file + 目录里的文件从入册名单里抹掉]
+  预测：0 红：这一臂复现的是修之前的行为——同一个坏状态它一个字都不说，这就是那个洞本身
+  实测：failed=0 passed=4 crash=false
+
+[E7-新过滤器 kind!==none + 同样把那 10 个文件抹掉]
+  预测：1 红，且只有「点名到的证据全在版本库里」红，红话逐个点名那 10 个文件
+  实测：failed=1 passed=3 crash=false
+    · 点名到的证据全在版本库里：文件、glob 命中的每一个、目录下面的每一个（`.scratch/` 被忽略，不入册就只活在这一台机器上）
+    · 点名到的证据全在版本库里：文件、glob 命中的每一个、目录下面的每一个（`.scratch/` 被忽略，不入册就只活在这一台机器上）
+
+[E8-walkFiles 恒交空白目录（退化返回值）]
+  预测：「抓取器吃整段路径」红：那条新加的 paths.length>0 判据就是冲着这个退化来的；第 3、4 腿跟着空转不红
+  实测：failed=1 passed=3 crash=false
+    · 抓取器吃整段路径：非标准后缀不被截断，中文标点与括号正常收尾
+    · 抓取器吃整段路径：非标准后缀不被截断，中文标点与括号正常收尾
+
+RESTORE ff26435fe271 -> ff26435fe271  RESIDUE=false
+(node:34360) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)

@@ -43,14 +43,14 @@ def model_not_found_handler(request: httpx.Request) -> httpx.Response:
     )
 
 
-def registry_for(provider, liveness=None) -> Registry:
+def registry_for(provider, liveness=None, api_key="sk-test-value") -> Registry:
     settings = Settings(
         service="t",
         version="0",
         host="127.0.0.1",
         port=3200,
         request_timeout_s=5.0,
-        openai_api_key="sk-test-value",
+        openai_api_key=api_key,
         openai_base_url="https://gateway.example/v1",
         models=dict(MODELS),
         json_mode=False,
@@ -148,12 +148,19 @@ def test_no_embedding_adapter_reports_no_key_not_unverified() -> None:
 
 
 def test_text_capability_does_not_hinge_on_embedding() -> None:
-    """llm 没就绪而 embedding 就绪：文本仍是 unavailable，汇总才允许是 real。"""
+    """llm 没就绪而 embedding 就绪：文本仍是 unavailable，汇总才允许是 real。
+
+    注意 Registry(llm=None) 不等于"没有 llm"——构造器写的是 `llm or (按 settings 建一个)`，
+    传 None 会落回按配置新建。所以这一臂要靠"没有 key"来得到真正的空 llm，
+    而不是靠注入 None（这点踩一次就够了，写在这是给下一个读的人）。
+    """
     liveness = EmbeddingLiveness()
-    registry = registry_for(embedding_provider(ok_handler), liveness)
+    registry = registry_for(embedding_provider(ok_handler), liveness, api_key=None)
+    assert registry.llm is None
     liveness.record(True, "")
     assert registry.text_status() == "unavailable"
     assert registry.embedding_status() == "real"
+    # 汇总说 real 是对的（确实有一条真链路），但那一行不能读成"文本可用"——web 侧现在各读各的
     assert registry.capability() == "real"
 
 
@@ -204,40 +211,42 @@ def test_expired_liveness_probes_again() -> None:
 
 
 def test_two_concurrent_refreshes_share_one_probe() -> None:
-    """两个 /healthz 同时读到过期，也只该发一次请求——否则探测本身成了放大器。"""
-    started = threading.Barrier(2)
-    gate = threading.Event()
+    """两个 /healthz 前后脚读到过期，也只该发一次真请求——否则探测本身成了放大器。
+
+    做法：让第一次探测停在网关那一侧（handler 卡在一个 Event 上），第二次调用必然撞见
+    "正在探"。拿飞行状态当条件，不靠 sleep 猜时长，也不拿 barrier 数人头。
+    """
+    entered = threading.Event()
+    release = threading.Event()
     count = {"n": 0}
     lock = threading.Lock()
 
     def handler(request: httpx.Request) -> httpx.Response:
         with lock:
             count["n"] += 1
-        gate.wait(5.0)
+        entered.set()
+        assert release.wait(5.0), "探测线程未被放行，测试现场卡住了"
         return ok_handler(request)
 
     liveness = EmbeddingLiveness(ttl_s=0.0)
     registry = registry_for(embedding_provider(handler), liveness)
-    results: list[bool] = []
+    prober = EmbeddingProber(registry.embedding)
 
-    def call() -> None:
-        started.wait(5.0)
-        results.append(refresh_in_background(liveness, EmbeddingProber(registry.embedding)))
+    assert refresh_in_background(liveness, prober) is True
+    assert entered.wait(5.0), "第一次探测没进入请求"
+    with lock:
+        assert count["n"] == 1
+    # 第二个 caller：结论确实过期，但有人在探，于是一个字节都不发
+    assert refresh_in_background(liveness, prober) is False
+    with lock:
+        assert count["n"] == 1
 
-    threads = [threading.Thread(target=call) for _ in range(2)]
-    for t in threads:
-        t.start()
-    # barrier 只数两个 worker（主线程不等）：两个 worker 都到了点才一起出发，主线程靠 join 等罢工
-    for t in threads:
-        t.join(5.0)
-    gate.set()
-    # 只有一个线程拿到 claim；另一个直接返回 False，不发请求
-    for t in threads:
-        t.join(5.0)
-    gate.set()
+    release.set()
     deadline = time.monotonic() + 5.0
-    while count["n"] < 1 and time.monotonic() < deadline:
+    while liveness.state == "unknown" and time.monotonic() < deadline:
         time.sleep(0.01)
-    assert results.count(True) == 1
-    assert results.count(False) == 1
+    assert liveness.state == "ok"
     assert count["n"] == 1
+    # 令牌必须还得回去：一次并发之后就把这个进程永久锁死，是另一种"再也不探测"
+    assert liveness.claim_refresh() is True
+    liveness.release_refresh()

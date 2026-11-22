@@ -1,0 +1,14 @@
+    200|     expect(statuses.slice(0, 20)).toEqual(new Array(20).fill('201'));
+    201|     expect(statuses.slice(20)).toEqual(new Array(5).fill('429'));
+       |                                ^
+    202|   });
+    203| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  9 failed | 16 passed (25)
+   Start at  02:55:55
+   Duration  1.93s (transform 629ms, setup 0ms, collect 769ms, tests 86ms, environment 0ms, prepare 313ms)
+

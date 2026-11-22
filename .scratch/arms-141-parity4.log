@@ -1,0 +1,22 @@
+判决名清单（源码派生）：24 条
+BASELINE parity: 24/24 green, reds=[]
+SKIP A-page-spells-it-again vitest（这一轮只跑 parity）
+VERDICT A-page-spells-it-again parity: red=2/24 :: CHAIN_NOTE_ON_PAGE、RPG_CHAIN_NOTE_ON_PAGE
+PREDICT A-page-spells-it-again: 该红 4 条（这一轮跑了 1 层）→ 漏 无 | 这一层没跑 2 条 | 预测外的红 无
+SKIP B-step-spells-it-again vitest（这一轮只跑 parity）
+PREDICT B-step-spells-it-again: 该红 3 条（这一轮跑了 0 层）→ 漏 无 | 这一层没跑 3 条 | 预测外的红 无
+VERDICT C-growth-layer-decorative parity: red=5/24 :: RPG_STATE_TRACE_PARITY、RPG_SUMMARY_PARITY、RPG_LEVEL_UP_LIVE、RPG_LAYER_NOT_DECORATIVE、RPG_GATE_HELD
+PREDICT C-growth-layer-decorative: 该红 5 条（这一轮跑了 1 层）→ 漏 无 | 这一层没跑 0 条 | 预测外的红 无
+VERDICT G-engine-ignores-the-chain parity: red=7/24 :: RPG_PAGE_LOADS、未跑到 RPG_STATE_TRACE_PARITY、未跑到 RPG_SUMMARY_PARITY、未跑到 RPG_LEVEL_UP_LIVE、未跑到 RPG_LAYER_NOT_DECORATIVE、未跑到 RPG_GATE_HELD、未跑到 NO_EGRESS
+PREDICT G-engine-ignores-the-chain: 该红 2 条（这一轮跑了 1 层）→ 漏 无 | 这一层没跑 0 条 | 预测外的红 无
+VERDICT D-rpg-payload-is-just-2d parity: red=7/24 :: RPG_PLAN_CARRIES_GROWTH、未跑到 RPG_STATE_TRACE_PARITY、未跑到 RPG_SUMMARY_PARITY、未跑到 RPG_LEVEL_UP_LIVE、未跑到 RPG_LAYER_NOT_DECORATIVE、未跑到 RPG_GATE_HELD、未跑到 NO_EGRESS
+PREDICT D-rpg-payload-is-just-2d: 该红 2 条（这一轮跑了 1 层）→ 漏 无 | 这一层没跑 0 条 | 预测外的红 无
+SKIP E-rpg-chain-un-carried vitest（这一轮只跑 parity）
+VERDICT E-rpg-chain-un-carried parity: red=10/24 :: CHAIN_SELECTED_FROM_KIND、RPG_PAGE_LOADS、RPG_CHAIN_NOTE_ON_PAGE、RPG_PLAN_CARRIES_GROWTH、未跑到 RPG_STATE_TRACE_PARITY、未跑到 RPG_SUMMARY_PARITY、未跑到 RPG_LEVEL_UP_LIVE、未跑到 RPG_LAYER_NOT_DECORATIVE、未跑到 RPG_GATE_HELD、未跑到 NO_EGRESS
+PREDICT E-rpg-chain-un-carried: 该红 5 条（这一轮跑了 1 层）→ 漏 无 | 这一层没跑 3 条 | 预测外的红 RPG_PAGE_LOADS、RPG_CHAIN_NOTE_ON_PAGE、RPG_PLAN_CARRIES_GROWTH
+SKIP F-panel-attr-hardwired e2e（这一轮只跑 parity）
+PREDICT F-panel-attr-hardwired: 该红 1 条（这一轮跑了 0 层）→ 漏 无 | 这一层没跑 1 条 | 预测外的红 无
+RESTORED packages/game-model/src/codegen.ts: byte-identical
+RESTORED apps/web/src/server/agent/runtime.ts: byte-identical
+RESTORED apps/web/src/studio/GameCodeExport.tsx: byte-identical
+EXIT=0

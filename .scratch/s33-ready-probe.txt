@@ -1,0 +1,25 @@
+#0 ready=true took=48ms lastError=none
+#0 hit.allowed=true fallbackCount=0
+#1 ready=true took=35ms lastError=none
+#1 hit.allowed=true fallbackCount=0
+#2 ready=true took=48ms lastError=none
+#2 hit.allowed=true fallbackCount=0
+#3 ready=true took=14ms lastError=none
+#3 hit.allowed=true fallbackCount=0
+#4 ready=true took=17ms lastError=none
+#4 hit.allowed=true fallbackCount=0
+#5 ready=true took=23ms lastError=none
+#5 hit.allowed=true fallbackCount=0
+#6 ready=true took=129ms lastError=none
+#6 hit.allowed=true fallbackCount=0
+#7 ready=true took=33ms lastError=none
+#7 hit.allowed=true fallbackCount=0
+#8 ready=true took=12ms lastError=none
+#8 hit.allowed=true fallbackCount=0
+#9 ready=true took=25ms lastError=none
+#9 hit.allowed=true fallbackCount=0
+#10 ready=true took=39ms lastError=none
+#10 hit.allowed=true fallbackCount=0
+#11 ready=true took=16ms lastError=none
+#11 hit.allowed=true fallbackCount=0
+一次 new 八个: [{"i":0,"ready":true,"took":0},{"i":1,"ready":true,"took":0},{"i":2,"ready":true,"took":0},{"i":3,"ready":true,"took":0},{"i":4,"ready":true,"took":0},{"i":5,"ready":true,"took":0},{"i":6,"ready":true,"took":0},{"i":7,"ready":true,"took":0}]

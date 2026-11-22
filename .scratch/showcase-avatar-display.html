@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<title>展示页头像显示核对 · showcase avatar display probe</title>
+<!--
+  §192 证据 · showcase-avatar-display.html
+  2026-11-19 用户报障：「我的人脸被压缩变小了 / 边缘部分都被删掉了」。
+  这份探针把那句话说成**可当场复算的读数**，而不是口号。它盯的是**展示页**
+  （xiaodernan.github.io，即 NEXUS 项目个人主页）上的那张头像。
+
+  为什么需要这份探针（而不是在 docs 里指一个目录）：
+    展示页的源码住在**另一个仓库**（github.com/xiaodernan/xiaodernan.github.io），
+    本地克隆在 `.scratch/showcase-site/site`——它自带 `.git/`，是别人的仓库。
+    git 不会把一个内嵌仓库的内容纳进本仓库（只能变成 gitlink，克隆后拿不到文件），
+    所以「指过去」在 §192 这道门下永远过不了。
+    于是把证据搬回本仓库：源图按字节快照进 `.scratch/showcase-avatar-source/`，
+    并用 manifest 记下 sha256、上游 URL、上游提交——任何人都能当场核对是不是同一份东西。
+
+  这份探针量三组读数：
+    1. **源图**：自然尺寸、白边宽度、内容包围盒（证明 508×586 补边版，而不是回归期 415×492）；
+    2. **渲染盒**：按展示页 styles.css 的真实规则画一遍，量宽高比偏差 / object-fit / 显示宽度；
+    3. **真实站点**：runner 另开一个页面加载 `.scratch/showcase-site/site/index.html`，
+       直接量线上那张 `<img class>` 的 computed style 与盒子尺寸（不是复刻，是原件）。
+
+  判据（三条都要过）：
+    · 渲染盒与源图同比（偏差 < 1%）——没被压扁；
+    · object-fit: contain——整图完整呈现，没有裁边；
+    · 显示宽度 ≥ 原宽 99%——没有被缩小；
+    · 源图内容包围盒非空——内容还在画面里；
+    · 源图尺寸就是 508×586——直接钉住 2026-11-19 那次 face-fills-frame 回归不再复发。
+
+  跑法：
+    node .scratch/showcase-avatar-display.mjs
+  读数打在页面上，也会被 runner 收进 .scratch/showcase-avatar-display.json。
+-->
+<style>
+  body { margin: 0; padding: 24px; background: #101219; color: #eef1f6;
+         font: 14px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  h1 { font-size: 15px; margin: 0 0 14px; letter-spacing: .04em; }
+  .row { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+  /* 与展示页 styles.css 的 .profile-frame / .profile-frame img 逐条同参
+     （取自 xiaodernan/xiaodernan.github.io @ 6a747670 / styles.css:243,246,761,762） */
+  .profile-frame { position: relative; padding: 14px 14px 10px;
+    background: linear-gradient(170deg,#f7f5ee 0%,#ece8dd 100%);
+    border: 1px solid rgba(25,28,33,.28); border-radius: 10px;
+    box-shadow: 0 28px 64px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.6); }
+  .profile-frame img { display: block; width: 100%; height: auto; aspect-ratio: 508/586;
+    object-fit: contain; object-position: center 12%; background: transparent; border-radius: 2px; }
+  pre { margin: 0; padding: 14px; background: #171a24; border: 1px solid #262b3a; border-radius: 8px;
+        white-space: pre-wrap; }
+  .verdict-ok { color: #22c55e; } .verdict-bad { color: #f2555a; }
+  .muted { color: #8d97ad; font-size: 12px; }
+</style>
+</head>
+<body>
+  <h1>展示页头像显示核对 · 赵欣曈 portrait (508×586)</h1>
+  <div class="row">
+    <div class="profile-frame">
+      <img id="portrait" src="showcase-avatar-source/profile-portrait.png"
+           alt="赵欣曈" width="508" height="586" />
+    </div>
+    <pre id="out">读取中…</pre>
+  </div>
+  <p class="muted" id="hint"></p>
+<script>
+const out = document.getElementById('out');
+const hint = document.getElementById('hint');
+function fmt(n, d = 2) { return Number(n).toFixed(d); }
+
+function edgeScan(img) {
+  // 量四侧留白（像素）与照片内容包围盒。
+  // 展示页 2026-11-19 的修复是「加宽容白边」而不是「裁掉边缘」，
+  // 所以白边本身是设计；真正要证的是：
+  //   ① 内容包围盒非空（内容没被裁没）
+  //   ② 四个方向都量得出来（不是某一侧被切掉后补的）
+  const c = document.createElement('canvas');
+  c.width = img.naturalWidth; c.height = img.naturalHeight;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(img, 0, 0);
+  const data = ctx.getImageData(0, 0, c.width, c.height).data;
+  const isContent = (x, y) => {
+    const i = (y * c.width + x) * 4;
+    const lum = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+    return lum < 240;
+  };
+  let minX = c.width, maxX = -1, minY = c.height, maxY = -1;
+  for (let y = 0; y < c.height; y++) {
+    for (let x = 0; x < c.width; x++) {
+      if (!isContent(x, y)) continue;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+  }
+  if (maxX < 0) return { contentBox: null, margins: null, contentWidth: 0, midRowContentPx: 0 };
+  const mid = Math.floor(c.height / 2);
+  let midRowContentPx = 0;
+  for (let x = 0; x < c.width; x++) if (isContent(x, mid)) midRowContentPx++;
+  return {
+    contentBox: { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 },
+    margins: { left: minX, right: c.width - 1 - maxX, top: minY, bottom: c.height - 1 - maxY },
+    contentWidth: maxX - minX + 1,
+    midRowContentPx,
+  };
+}
+
+function verdict(ok, label, detail) {
+  return `${ok ? 'PASS' : 'FAIL'} · ${label}${detail ? ' — ' + detail : ''}`;
+}
+
+const img = document.getElementById('portrait');
+img.addEventListener('load', () => {
+  const cs = getComputedStyle(img);
+  const box = img.getBoundingClientRect();
+  const naturalRatio = img.naturalWidth / img.naturalHeight;
+  const boxRatio = box.height ? box.width / box.height : 0;
+  const ratioErr = naturalRatio ? Math.abs(boxRatio - naturalRatio) / naturalRatio : 1;
+
+  let scan;
+  try {
+    scan = edgeScan(img);
+  } catch (err) {
+    hint.textContent = '像素级读数需要同源（file:// 打开时 canvas 被跨源污染）：请运行 node .scratch/showcase-avatar-display.mjs';
+    out.textContent = 'FAIL · 无法读取像素：' + err.message;
+    out.className = 'verdict-bad';
+    window.__PROBE_RESULT__ = { ok: false, error: err.message };
+    return;
+  }
+
+  const m = scan.margins || { left: 0, right: 0, top: 0, bottom: 0 };
+  const lines = [];
+  lines.push(`源图自然尺寸   ${img.naturalWidth} × ${img.naturalHeight}`);
+  lines.push(`渲染盒尺寸     ${fmt(box.width, 1)} × ${fmt(box.height, 1)} px`);
+  lines.push(`盒子宽高比     ${fmt(boxRatio, 4)}   源图宽高比 ${fmt(naturalRatio, 4)}   偏差 ${fmt(ratioErr * 100, 3)}%`);
+  lines.push(`object-fit     ${cs.objectFit}   object-position ${cs.objectPosition}`);
+  lines.push(`源图留白       左 ${m.left} px · 右 ${m.right} px · 上 ${m.top} px · 下 ${m.bottom} px`);
+  lines.push(`内容包围盒     ${scan.contentBox ? `x=${scan.contentBox.x} y=${scan.contentBox.y} ${scan.contentBox.w}×${scan.contentBox.h}` : '空'}`);
+  lines.push(`中线一行非白像素 ${scan.midRowContentPx} 个`);
+  lines.push('');
+  lines.push(verdict(ratioErr < 0.01, '渲染盒与源图同比（没有被压扁）', `偏差 ${fmt(ratioErr * 100, 3)}% < 1%`));
+  lines.push(verdict(cs.objectFit === 'contain', '整图完整呈现（object-fit: contain，不裁边）', cs.objectFit));
+  lines.push(verdict(box.width >= img.naturalWidth * 0.99, '显示尺寸没有被缩小（按原宽呈现）',
+    `渲染宽 ${fmt(box.width, 1)} px ≥ 原宽 ${img.naturalWidth} px 的 99%`));
+  lines.push(verdict(scan.contentWidth > 0 && scan.midRowContentPx > 0, '照片内容仍在画面里（没有被裁没）',
+    `内容宽 ${scan.contentWidth} px · 中线 ${scan.midRowContentPx} px`));
+  lines.push(verdict(img.naturalWidth === 508 && img.naturalHeight === 586,
+    '源图就是 508×586 补边版（不是 2026-11-19 回归期的 415×492 face-fills-frame）',
+    `${img.naturalWidth}×${img.naturalHeight}`));
+
+  const ok = ratioErr < 0.01 && cs.objectFit === 'contain'
+    && box.width >= img.naturalWidth * 0.99
+    && scan.contentWidth > 0 && scan.midRowContentPx > 0
+    && img.naturalWidth === 508 && img.naturalHeight === 586;
+  lines.push('');
+  lines.push(ok ? '总判定：PASS' : '总判定：FAIL');
+  out.innerHTML = lines.join('\n');
+  out.className = ok ? 'verdict-ok' : 'verdict-bad';
+  window.__PROBE_RESULT__ = {
+    ok, ratioErr,
+    natural: [img.naturalWidth, img.naturalHeight],
+    box: [fmt(box.width, 1), fmt(box.height, 1)],
+    objectFit: cs.objectFit, objectPosition: cs.objectPosition,
+    aspectRatio: cs.aspectRatio,
+    scan,
+    lines,
+  };
+});
+img.addEventListener('error', () => {
+  out.textContent = 'FAIL · 源图加载失败（.scratch/showcase-avatar-source/profile-portrait.png 不在？先跑 git checkout 或重建快照）';
+  out.className = 'verdict-bad';
+  window.__PROBE_RESULT__ = { ok: false, error: 'source image load failed' };
+});
+</script>
+</body>
+</html>

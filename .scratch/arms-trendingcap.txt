@@ -1,0 +1,38 @@
+对照（源码未变异） total=12 failed=0 exit=0
+
+X1 变异=候选集上限手抄成 200（今天恰好相等，常数改了它不跟着改）
+    预测红：trending 那一支的 limit 参数按名字读 TRENDING_CANDIDATE_CAP
+    预测绿：social.ts 里能找到 discover 的函数体 / discover 里只有一处 .limit( / 方法句里那个数与 SQL 读的是同一个常数 / SQL 那一端读的就是句子这一端的同一个 binding / 页面上复述的方法句里
+    实测 total=12 failed=1 exit=1
+    红名单：
+      句子声称的那个数，就是 SQL 取候选集时用的那个数 trending 那一支的 limit 参数按名字读 TRENDING_CANDIDATE_CAP，不是手抄的数字、也不是页长
+    pred 全中 · not 全绿
+    还原校验：OK
+
+X2 变异=候选集跟着页长走（.limit(limit)）——句子还说 200
+    预测红：trending 那一支的 limit 参数按名字读 TRENDING_CANDIDATE_CAP
+    预测绿：social.ts 里能找到 discover 的函数体 / 方法句里那个数与 SQL 读的是同一个常数 / SQL 那一端读的就是句子这一端的同一个 binding
+    实测 total=12 failed=1 exit=1
+    红名单：
+      句子声称的那个数，就是 SQL 取候选集时用的那个数 trending 那一支的 limit 参数按名字读 TRENDING_CANDIDATE_CAP，不是手抄的数字、也不是页长
+    pred 全中 · not 全绿
+    还原校验：OK
+
+X3 变异=social.ts 自己另声明一份 TRENDING_CANDIDATE_CAP = 500（两份真值，SQL 读的是自己那份）
+    预测红：SQL 那一端读的就是句子这一端的同一个 binding
+    预测绿：trending 那一支的 limit 参数按名字读 TRENDING_CANDIDATE_CAP / 方法句里那个数与 SQL 读的是同一个常数 / social.ts 里能找到 discover 的函数体
+    实测 total=12 failed=1 exit=1
+    红名单：
+      句子声称的那个数，就是 SQL 取候选集时用的那个数 SQL 那一端读的就是句子这一端的同一个 binding（不是两个碰巧相等的常数）
+    pred 全中 · not 全绿
+    还原校验：OK
+
+X4 变异=反向对照：把常数本身从 200 改成 50（两端都派生，应当全绿——门不许惩罚正当改动）
+    预测红：（无——这条臂应当全绿）
+    预测绿：trending 那一支的 limit 参数按名字读 TRENDING_CANDIDATE_CAP / 方法句里那个数与 SQL 读的是同一个常数 / SQL 那一端读的就是句子这一端的同一个 binding / social.ts 里能找到 discover 的函数体 / discover 里只有一处 .limit( / 页面上复述的方法句里
+    实测 total=12 failed=0 exit=0
+    pred 全中 · not 全绿
+    还原校验：OK
+
+aborted=no
+收尾整树校验：social.ts=OK trending.ts=OK

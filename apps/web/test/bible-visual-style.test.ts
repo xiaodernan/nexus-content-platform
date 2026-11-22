@@ -150,9 +150,11 @@ describe('§BIBLE-1 /bible 典籍室', () => {
   // 门面类名、零 hex、钩子守恒等其余各条门在重钉前已全绿，改的是哪一格写在上面对得上。
   // 2026-11-22 再钉：index —— 中文 echoTitle 去掉并列英文（「回响 · Echoes」→「回响」），
   // 且 metadata 改 generateMetadata 跟随语言（英文标签页 World Bible）；reader / component 未动。
+  // 2026-11-22 三钉：index —— 玩法入口新增第五个角落 `/bible/dot-road`（E220 点路），
+  // 中英各一条 bb-playLink；reader / component 仍未动。
   it('SHA256 钉死（EOL 归一 + className→@）：目录页 / 阅读页 / 渲染器', () => {
     expect(createHash('sha256').update(redactClasses(index)).digest('hex')).toBe(
-      '3e65728f0d5f4013f9dfce7c9869a9b5bb61d8002e1883bbeed96b7e7b2fe2c8',
+      'b19c420421e05194fcccdbfbe5eccbf6fce766545fb9fee35fd2c7e04558ea64',
     );
     expect(createHash('sha256').update(redactClasses(reader)).digest('hex')).toBe(
       'c76bec23b6a5a94a46d7b849459817b04a6633791f1de57bf7000202ad076df7',

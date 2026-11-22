@@ -1,0 +1,33 @@
+{
+  "what": "展示页（xiaodernan.github.io）头像源图的字节级快照",
+  "why": "展示页源码住在另一个仓库，本地克隆 .scratch/showcase-site/site 自带 .git/，git 无法把内嵌仓库的内容纳进本仓库。证据必须搬回本仓库才跟仓库一起走（§192）。",
+  "source": {
+    "upstreamRepo": "https://github.com/xiaodernan/xiaodernan.github.io",
+    "upstreamPath": "assets/profile-portrait.png",
+    "clonePath": ".scratch/showcase-site/site/assets/profile-portrait.png",
+    "cloneHead": "0e19de045ab27375162c6ea6d1280daae0ce044e",
+    "commitThatIntroducedThisFile": {
+      "sha": "6a7476703547157c2a36377e197ebd5fc55e2dee",
+      "date": "2026-11-19 20:43:57 +0800",
+      "message": "fix(io): 个人照片恢复 508x586 补边不裁切原版 - 639510d 的 415x492 face-fills-frame 裁掉了边缘且缩小；现在完整显示、更大"
+    },
+    "regressionItReversed": {
+      "sha": "639510d239aa1cc6693ecb25f268d14c5805cc5d",
+      "date": "2026-11-19 17:06:12 +0800",
+      "whatBroke": "portrait re-cropped to content box (508x586 white-margined -> 415x492, face fills frame); styles.css .profile-frame img 的 aspect-ratio 同步改成 415/492 —— 这正是用户报的「压缩变小 + 边缘删掉」"
+    }
+  },
+  "bytes": {
+    "sha256": "1f7333e946d7fe889c5ae35ea35dd22755d9b6bc60e082786cb7f52ed758ffe6",
+    "width": 508,
+    "height": 586
+  },
+  "oldCroppedOriginal": {
+    "path": "assets/profile.png",
+    "sha256": "1bc5b1dc7e7d4ace8837d212df74c9952381a90616ceebb908363aabbe73b0c7",
+    "width": 169,
+    "height": 197,
+    "note": "169×197 源图肩头贴边——profile-portrait.png 是它按 HighQualityBicubic 3.0x 放大 + 白画布补边得到的"
+  },
+  "howToVerify": "sha256sum .scratch/showcase-avatar-source/profile-portrait.png  应等于 bytes.sha256"
+}
