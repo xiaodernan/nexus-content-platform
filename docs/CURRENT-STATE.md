@@ -8758,3 +8758,12 @@ Reader (post-continuum trace):
 - 说明书补进 `/world/<id>/network` 万象脉络（此前 grep 零命中），并写清观察站结构化 AI
   清单的"数字逐字核对、未出现只标不删"。guide 判据 8/8。
 - 证据：`docs/evidence/ai-cache-and-ui-2026-11-22.md` §4。
+
+## cont. 478 (2026-11-22) — 万象脉络的像素核对 + 年鉴第六卷
+
+- §WORLD-NET 的 `[~]` 关闭：用 12 节点 / 12 关系的临时世界登录真机，1440 与 390 两档截图，
+  `scrollWidth == clientWidth`、0 pageerror；桌面两栏、手机单栏，无重叠。手机截图里
+  右下角 FAB 看似压在卡片上，实测是 `position:fixed` 在 fullPage 拼接里的定位错觉，
+  视口内它固定在右下角（探针读数 y=696–832 / vh=844）。
+- `/world/<id>/almanac` 的卷门补「卷六 · 万象脉络」，计数用世界文档真实 links 数（本例 12），
+  中英各一条；六张门卡 2×3 排布，390 宽 0 溢出。

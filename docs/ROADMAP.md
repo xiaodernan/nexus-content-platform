@@ -15300,8 +15300,9 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - [x] `/world/[projectId]/network` RSC 页（双语、`.nw-*` 门面、强制色彩回退）+
       `network-visual-style` 8 门；digest 页脚加「万象脉络 →」入口（SHA 重钉 1cfae46a→cfb5e1af）。
 - [x] 判据 22 条全绿；tsc web 绿。
-- [~] 浏览器像素层未验证：`nexus-postgres` WAL 损坏 shutdown，页面需真项目数据 + 登录，
-      本机起不来；DB 恢复后需真机截图核对 1440/390 无重叠。
+- [x] 浏览器像素层已核对：数据库抢修后建了 12 节点/12 关系的临时世界，登录后 1440 与 390
+      两档截图，`scrollWidth == clientWidth`（1440/1440、390/390），0 pageerror；桌面两栏、
+      手机单栏，无重叠。世界年鉴的卷门补上「卷六 · 万象脉络」（12 条关系计数来自真文档）。
 
 ## §DB-REPAIR 两库 WAL / 统计目录损坏抢修（2026-11-22）
 
