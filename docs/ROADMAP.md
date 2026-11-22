@@ -15518,3 +15518,18 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - [x] 验证：verify:world-bible 1322/1322；verify:bible-snapshot 一致；
       bible/canon 12 文件 107/107；canon_digest pytest 4/4；tsc web 0；eslint 0。
 - [~] 本轮未起浏览器；E218 阅读页与 anchors 题库的像素/几何读数留给下一轮 e2e。
+
+## §I18N-SSR-META 语言按钮首帧 + metadata 跟随语言（2026-11-22）
+
+- [x] 真缺陷：`LocaleToggle` 的 `useState('zh') + useEffect 读 document.lang` 让英文模式首屏
+      先画「EN / 切换到英文」，水合后才翻成「中 / Switch to Chinese」——闪烁且英文首屏短暂夹中文 ARIA。
+      改为 layout 把服务端已读出的 `locale` 作为 prop 传入；SSR 与首帧同语言。
+- [x] metadata 本地化样板：`/bible/anchors`、`/map`、`/guide` 改 `generateMetadata + getLocale`；
+      英文标签页分别是 `Anchor Echo · The Whispers’ Kings` / `World atlas — NEXUS` / `User guide — NEXUS`。
+- [x] 实测（dev :3100 + curl 带 `NEXUS_LOCALE=en`）：
+      `/bible/anchors` 英文 HTML 去 script/style 后 CJK 字符 **1 个**（语言按钮的目标字「中」，有意保留）；
+      `/map`、`/guide` 中英 title 各归其位；E218 `/bible/echo-218-the-gap-left-behind` 中英均 200。
+- [x] 门：`anchor-echo` / `map` / `guide` / `root-layout` 四处钉按当前字节重钉并注明原因；
+      `verify:fe-gates` **155 文件 / 1419 条全绿**。
+- [~] 其余页面仍是静态 metadata（英文标签页会挂中文标题）；按同样样板逐页迁移。
+      world-bible appendix 的双语词条属 Ask 语料，不在渲染面。
