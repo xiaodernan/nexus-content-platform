@@ -3562,6 +3562,13 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [4] 第七盏灯不是第七盏，它是潮候院最早挂的那一盏——后面六盏是按它的间距补的。
 - [5] 潮沙盘七列的排法和灯的顺序一样——潮候院靠灯记潮，也靠潮记灯。
 
+### Echo 210 · 潮候院抄本院那道浅痕第三日变成半枚潮印 / On the Third Day the Faint Mark Became Half a Tide-Seal
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 第三日清晨，那道浅痕淡了，边上多出半圈印沿。
+- [2] 抄本师们数那道印沿——它只有四十二道潮印的一半。
+- [3] 没有人去补另外一半——缺着的那半，比补上的更像回答。
+- [4] 册子从此停在第七十三页，不再自己翻。
+
 ### Echo 22 · 里巷子晾鱼架上那条永远晾不干的鱼 / The Fish That Never Dried on the Back-Alley Rack
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 里巷子晾鱼架最里侧的一号钩上，挂着一条谁都不记得是什么时候挂上去的鱼。

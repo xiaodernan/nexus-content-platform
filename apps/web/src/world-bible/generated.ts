@@ -28252,6 +28252,128 @@ Sailors entering the harbor today first look to the direction of the sand table,
 `,
   },
   {
+    order: 210,
+    slug: 'echo-210-the-faint-mark-becomes-half-a-tide-seal',
+    titleZh: '潮候院抄本院那道浅痕第三日变成半枚潮印',
+    titleEn: 'On the Third Day the Faint Mark Became Half a Tide-Seal',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十三年（同 E206–E209）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 143rd year of the winter-tide month (as in E206–E209).',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 210): On the Third Day the Faint Mark Became Half a Tide-Seal
+
+> 回响是正典之外的侧写——不是续篇，是同一块石上被盐啃出的另一层纹理。
+> 本篇写给 E209 之后：第七十三页上那道回答的浅痕，第三日淡了，边上多出半圈印沿。
+> 纪律同正典：锚句 zh/en 逐字对应；本篇不新增正典专名，只写已有设定的细节。
+>
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E209: on page seventy-three the answering faint mark faded, and half a rim had grown beside it.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十三年（同 E206–E209）。
+> Era: the Institute · after the 44th Convocation; the 143rd year of the winter-tide month (as in E206–E209).
+
+---
+
+## 一 · 第三日
+
+第三日清晨，那道浅痕淡了，边上多出半圈印沿。
+**锚句**：第三日清晨，那道浅痕淡了，边上多出半圈印沿。
+**Anchor sentence**: on the third morning the faint mark had faded, and half a rim had grown beside it.
+
+---
+
+## 二 · 半枚
+
+抄本师们数那道印沿——它只有四十二道潮印的一半。
+**锚句**：抄本师们数那道印沿——它只有四十二道潮印的一半。
+**Anchor sentence**: the copyists counted the rim — it was half of one of the forty-two tide-seals.
+
+---
+
+## 三 · 不补
+
+没有人去补另外一半：缺着的那半，比补上的更像回答。
+**锚句**：没有人去补另外一半——缺着的那半，比补上的更像回答。
+**Anchor sentence**: no one filled in the other half — the missing half answered more than a completion would.
+
+---
+
+## 四 · 停在第七十三页
+
+册子从此停在第七十三页，不再自己翻。
+**锚句**：册子从此停在第七十三页，不再自己翻。
+**Anchor sentence**: from then on the ledger stayed on page seventy-three and never turned itself again.
+
+---
+
+## 五 · Mapping（Echo No. 210 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | half a tide-seal rim · the unfilled other half · the ledger stops turning | 一、二、三、四 |
+| geography | the Institute's copy hall · the winter-tide month | 一、四 |
+| characters | the five copyists · the unnamed hand (E207) | 二、三 |
+| story | the faint mark becomes half a seal · and no one completes it | 全篇 |
+| items | the ledger · page seventy-three · the tide-seal rim | 一、二、四 |
+| history | the 143rd year after the 44th Convocation (continues E206–E209) | 纪元 |
+
+> 第七十三页上没有名字，只有半枚潮印——世界把答案写成缺一半的印，而不是写满的名。
+> Page seventy-three bore no name, only half a tide-seal — the world writes its answer as a seal missing its half, not as a name written full.`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E209: on page seventy-three the answering faint mark faded, and half a rim had grown beside it.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> Era: the Institute · after the 44th Convocation; the 143rd year of the winter-tide month (as in E206–E209).
+
+---
+
+## 一 · The Third Day
+
+On the third morning the faint mark had faded, and half a rim had grown beside it.
+**锚句**：第三日清晨，那道浅痕淡了，边上多出半圈印沿。
+**Anchor sentence**: on the third morning the faint mark had faded, and half a rim had grown beside it.
+
+---
+
+## 二 · Half a Seal
+
+The copyists counted the rim — it was half of one of the forty-two tide-seals.
+**锚句**：抄本师们数那道印沿——它只有四十二道潮印的一半。
+**Anchor sentence**: the copyists counted the rim — it was half of one of the forty-two tide-seals.
+
+---
+
+## 三 · Unfilled
+
+No one filled in the other half — the missing half answered more than a completion would.
+**锚句**：没有人去补另外一半——缺着的那半，比补上的更像回答。
+**Anchor sentence**: no one filled in the other half — the missing half answered more than a completion would.
+
+---
+
+## 四 · Stuck on Page Seventy-Three
+
+From then on the ledger stayed on page seventy-three and never turned itself again.
+**锚句**：册子从此停在第七十三页，不再自己翻。
+**Anchor sentence**: from then on the ledger stayed on page seventy-three and never turned itself again.
+
+---
+
+## 五 · Mapping（Echo No. 210 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | half a tide-seal rim · the unfilled other half · the ledger stops turning | 一、二、三、四 |
+| geography | the Institute's copy hall · the winter-tide month | 一、四 |
+| characters | the five copyists · the unnamed hand (E207) | 二、三 |
+| story | the faint mark becomes half a seal · and no one completes it | 全篇 |
+| items | the ledger · page seventy-three · the tide-seal rim | 一、二、四 |
+| history | the 143rd year after the 44th Convocation (continues E206–E209) | 纪元 |
+
+> 第七十三页上没有名字，只有半枚潮印——世界把答案写成缺一半的印，而不是写满的名。
+> Page seventy-three bore no name, only half a tide-seal — the world writes its answer as a seal missing its half, not as a name written full.`,
+  },
+  {
     order: 22,
     slug: 'echo-022-the-fish-that-never-dried',
     titleZh: '里巷子晾鱼架上那条永远晾不干的鱼',
