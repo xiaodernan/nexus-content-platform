@@ -48,7 +48,7 @@ const HOME_TXT = {
     navAnalyticsTitle: '创作数据：你的作品浏览、通关、关注与趋势预测',
     navBlocksTitle: '已拉黑与已屏蔽：这里集中管理屏蔽名单',
     quickStartAria: '主界面操作速览',
-    quickStartKicker: '快速上手 · QUICK START',
+    quickStartKicker: '快速上手',
     quickStartSteps: [
       { title: '造项目', body: '在「新建作品」里一句话或一张图讲清楚想做什么，服务端会把上下文装配好，Studio 直接开画布' },
       { title: '推成品', body: '在画布里 @Agent 或点「让模型读一眼」，改完点发布；审批、版权记录、版本收藏都在账上' },

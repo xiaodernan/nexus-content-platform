@@ -260,8 +260,12 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E207-潮候院抄本院荒年冬天抄本师们读出四十二道潮印里有三道是一个人写的': 'echo-207-three-of-one-hands',
   'E208-潮候院抄本院那本自己翻到第七十二页的册子': 'echo-208-ledger-page-seventy-two',
   'E209-潮候院抄本院那本册子翻过第七十二页之后': 'echo-209-page-seventy-three',
+  // 2026-11-22 合并 origin/master：两边各写了一版 Echo 210。主分支保留「半枚潮印」这一版
+  // （E211 接着它写），master 的「第四十三道」并入正典、改号为 E212——它的首段写的是
+  // 「排在四十二道潮印之后」，正好接在 E211「合到第四十二道上」后面，编号与叙事都不撞车。
   'E210-潮候院抄本院那道浅痕第三日变成半枚潮印': 'echo-210-the-faint-mark-becomes-half-a-tide-seal',
   'E211-潮候院抄本院那半枚潮印合到了第四十二道上': 'echo-211-the-half-tide-seal-fits-the-forty-second',
+  'E212-潮候院抄本院抄本师们把那道浅痕抄成了第四十三道': 'echo-212-forty-third',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

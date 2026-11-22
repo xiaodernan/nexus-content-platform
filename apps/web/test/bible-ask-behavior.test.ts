@@ -30,9 +30,10 @@ describe('§BIBLE-4 问典 digest 契约', () => {
       zh += extractAnchorTexts(chapter.markdownZh, 'zh').length;
       en += extractAnchorTexts(chapter.markdownEn, 'en').length;
     }
-    // 2026-11-22 E210/E211 入正典：1261 → 1265 → 1269（每篇 4 条锚句 × zh/en）
-    expect(zh).toBe(1269);
-    expect(en).toBe(1269);
+    // 2026-11-22 E210/E211/E212 入正典：1261 → 1265 → 1269 → 1275。
+    // E210/E211 各 4 条锚句；E212 由 master 的平行稿并入正典改号而来，带 6 条锚句（zh/en 各 6，逐字对齐）。
+    expect(zh).toBe(1275);
+    expect(en).toBe(1275);
   });
 
   it('SYSTEM_PROMPT 长度 < 预算（≈30k chars）', () => {

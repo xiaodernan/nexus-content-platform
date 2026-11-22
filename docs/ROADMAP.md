@@ -15323,7 +15323,7 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 ## §ADMIN-LLM-2 观察站 AI 清单：服务端边界 + 数字出处核对（2026-11-22）
 
 - [x] 新增 `POST /api/admin/observer/advice`：口令 123 / role=admin、DEMO 409、每 IP 5 次/小时，
-      指标由服务器现算；请求体只有 locale（ADR 0299）。
+      指标由服务器现算；请求体只有 locale（ADR 0304）。
 - [x] 修掉一个真 bug：`ObserverAiAdvice` 是 client 组件，却直接 import 了 server-only 的
       `chatWithCharacter`——浏览器里没有 ai-service 地址与凭据，按钮点了等于没调。改为走路由后
       真机点击返回 4 条建议、0 pageerror。
@@ -15331,7 +15331,7 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
       不在快照中的数字**不删只标**（千分位/百分号归一）。真机 1 条 `0.08%` 被正标注为"可能是推算"。
 - [x] 补 `.obs-aiAdvice*` 五个类名的门面样式（此前 globals.css 一个都没定义，整块裸渲染）。
 - [x] 判据 13 条（含源码级边界）+ `observer-deepread` / `observer-projection` 回归 27 条全绿；
-      tsc web 绿；ADR 0299。
+      tsc web 绿；ADR 0304。
 
 ## §WORLD-NET-2 割点：谁一倒、整张网裂开（2026-11-22）
 

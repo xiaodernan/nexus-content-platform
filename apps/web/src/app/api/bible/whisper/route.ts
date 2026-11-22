@@ -4,7 +4,7 @@ import { readJson, badRequest, jsonError } from '@/server/http';
 import { getRateLimiter, rateKey, clientIp } from '@/server/security/rateLimit';
 import { getAiCapabilities } from '@/lib/env';
 import { chatWithCharacter } from '@/server/ai/client';
-import { files, getFile, buildPersonaSystemPrompt, type WhisperFile } from '@/server/domain/whisperCanon';
+import { files, getFile, buildPersonaSystemPrompt, whisperCacheLane, type WhisperFile } from '@/server/domain/whisperCanon';
 
 const Body = z.object({
   slug: z.string().min(1),
@@ -44,7 +44,8 @@ export async function POST(req: Request): Promise<Response> {
 
   const system = buildPersonaSystemPrompt(file, locale);
   const reqId = `whisper_${Date.now().toString(36)}`;
-  const chat = await chatWithCharacter({ requestId: reqId, system, user: question, modelClass: 'balanced' });
+  const cacheLane = whisperCacheLane(slug, locale);
+  const chat = await chatWithCharacter({ requestId: reqId, system, user: question, modelClass: 'balanced', cacheLane });
   if (!chat.ok) {
     const status = chat.status ?? 503;
     return await jsonError(status, chat.error.code, { message: chat.error.message });

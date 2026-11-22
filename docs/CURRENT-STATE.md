@@ -8725,6 +8725,17 @@ Reader (post-continuum trace):
 - **计数对齐**：guideCopy 208→209 / 1260→1266 / two hundred eight→nine；bible-ask-behavior pin 1255→1261；canon-answer-graph 段落断言 208→209（13+209=222）。
 - **验证**：world-bible / bible-snapshot / anchor-echo / record-encoding 全 exit 0；相关 vitest 3 文件 32 passed。
 
+## cont. 466 (2026-11-21 深夜 → 2026-11-22 并轨定稿) — Echo《抄本师们把那道浅痕抄成了第四十三道》· 并轨后定稿为 E212
+- **叙事弧收束又开放（需求六）**：承接 E209「那只手以浅痕作答却仍不署名」，新增双语 Echo——抄本师们把浅痕抄进册子排在四十二道之后，称第四十三道，却注明「不是潮印，是回答」；最年长者说「留着它就好，不必追一个名字，潮从不署名」；第四十三道后留一行空白给下一次回答，次日那行又浅浅有了一道。弧收束但世界未写完（无尽）。6 组锚句 zh/en 逐字对应、全典唯一。
+- **并轨定稿（2026-11-22）**：master 侧这篇原本占 E210 编号，与 main 侧的 E210《那道浅痕第三日变成半枚潮印》撞号（两边各写了一个 E210）。
+  按叙事顺序并轨，而不是删掉一篇：main 的 E210（第三日变成半枚潮印）→ E211（那半枚潮印合到了第四十二道上）
+  → 本篇改号 **E212**（第四十三道，正好接在第四十二道之后），slug `echo-212-forty-third`；
+  正文首段「本篇写给 E209 之后」同步改成「本篇接在 E211 之后」，英文同改。
+- **总账（真值）**：正典 **13 章 · 212 回响**；锚句 **1275 句**（zh/en 各 1275，逐字对齐）。
+- **生成**：gen:bible-snapshot 重生 generated.ts / digest（268,302 chars, sha e144f444…）。
+- **计数对齐**：guideCopy 207→212 / 1254→1275 / two hundred seven→twelve；bible-ask-behavior pin 1269→1275。
+- **验证**：world-bible / bible-snapshot / anchor-echo / record-encoding 全 exit 0；相关 vitest 全绿（并轨后复跑）。
+
 ## cont. 475 (2026-11-22) — 两个 Postgres 的 WAL/统计目录损坏抢修
 
 - 11-21 起 `nexus-postgres` 因 WAL 段头坏（invalid magic number / no valid checkpoint）PANIC
@@ -8748,7 +8759,7 @@ Reader (post-continuum trace):
 - 补 `aiAdviceAudit.ts`：以**逐字喂给模型的 brief**为允许集核对 `basis+impact` 的数字；
   不在快照里的不删只标「可能是模型推算」。真机 4 条建议、1 条 `0.08%` 被标注，0 报错。
 - 补 `.obs-aiAdvice*` 五个类名的门面样式——此前 globals.css 零定义，整块是裸按钮/裸字体。
-- 判据 13 条 + 观察站回归 27 条全绿；ADR 0299。
+- 判据 13 条 + 观察站回归 27 条全绿；ADR 0304。
 
 ## cont. 477 (2026-11-22) — 并行缓存 PASS + 手册补齐
 
