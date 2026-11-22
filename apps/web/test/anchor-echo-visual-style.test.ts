@@ -112,12 +112,14 @@ describe('──BIBLE-ANCHOR-ECHO /bible/anchors 锚句回放', () => {
     expect(code).toContain('data-anchor-echo-page');
   });
 
+  // 2026-11-22 重钉：metadata 去并列英文（中文模式不夹杂）；两处注释 111 → 1317
+  // （E100–E218 重新进入题库后的真实锚句数）。DOM/类名未动。
   it('SHA256 钉死：page / game', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '6ed74e997aeec7ee94c212ce62a25a9da7abbcec72943ce9b9c0a102653109e3',
+      '6ad64d3bbef5dbf2904a45df246ff1a566b457623b03587965f1d84e13ac471b',
     );
     expect(createHash('sha256').update(redactClasses(game)).digest('hex')).toBe(
-      '802c2848fb883413a289b6c6da153351c97bb783ce9a542108a2b3c9dca3571a',
+      '856716cea896a3341a956f0ae459a3f09bd8ec486f09ba6e7fe4a6294b9620ac',
     );
   });
 });
