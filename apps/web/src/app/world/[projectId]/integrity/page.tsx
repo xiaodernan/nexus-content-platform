@@ -56,6 +56,7 @@ const COPY = {
     goConstellation: '去星图 →',
     openDigest: '世界速览 →',
     openTide: '世界潮汐 →',
+    openQuests: '世界委托 →',
     backGraph: '← 回到世界图',
     emptyTitle: '体检打不开——世界读不出来',
     emptyCopy: (name: string) => `「${name}」的世界文档现在读不到，所以这里不画任何指标。先去 Studio 检查世界面板，世界确定能读再回来。`,
@@ -92,6 +93,7 @@ const COPY = {
     goConstellation: 'Open constellation →',
     openDigest: 'World digest →',
     openTide: 'World Tide →',
+    openQuests: 'World commissions →',
     backGraph: '← Back to the world map',
     emptyTitle: 'Checkup can’t open — the world won’t load',
     emptyCopy: (name: string) => `「${name}」’s world document can’t be read right now, so no metrics here. Check the Studio world panel, confirm the world loads, then come back.`,
@@ -187,6 +189,7 @@ export default async function IntegrityPage({ params }: { params: Promise<{ proj
         <Link className="am-linkImplicit" href={`/world/${projectId}`} data-integrity-back-graph>{c.backGraph}</Link>
         <Link className="ic-link" href={`/world/${projectId}/digest`} data-integrity-open-digest>{c.openDigest}</Link>
         <Link className="ic-link" href={`/world/${projectId}/tide`} data-integrity-open-tide>{c.openTide}</Link>
+        <Link className="ic-link" href={`/world/${projectId}/quests`} data-integrity-open-quests>{c.openQuests}</Link>
       </footer>
     </main>
   );

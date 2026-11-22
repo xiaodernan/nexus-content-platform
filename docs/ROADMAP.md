@@ -15354,3 +15354,22 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - [x] 失效引用清理：`E215 → E217` 六处；`gen-latest.mts` 分支说明改为「并轨后只有一条线」；
       ADR 0304/0305/0306 加并轨补记；main 的 ADR 0304 改号 0307。
 - [x] 验证：verify:world-bible ✓ · verify:bible-snapshot ✓ · 并轨相关判据 148 条全绿 · tsc web ✓。
+
+## §WORLD-QUEST 世界委托：真实缺口 → 今日三件（2026-11-22）
+
+- [x] `lib/worldQuests.ts` 纯函数：八类委托（空页 / 薄节点 / 未标纪元 / 序号撞号 /
+      未解析关系 / 孤岛 / 关节 / 缺色板），数字与 `/integrity` 同口径（`buildChronicle`
+      的纪元归一、`buildWorldNetwork` 的 Tarjan、`buildConstellation` 的未解析）——
+      两页不会互相矛盾；同输入同输出，零随机。
+- [x] 「今日三件」= `FNV-1a(projectId + UTC+8 日期) % open.length` 起点轮转，取前三；
+      同一天同一世界同一组，跨天换一批。没有 `Math.random`，没有假积分。
+- [x] 三态：`open`（有缺口）/ `closed`（曾适用、计数归零）/ `notStarted`（对象还不存在，
+      例如还没有人物）——没人物时「缺色板」不冒充已完成（ADR 0262 同形状）。
+- [x] `/world/[projectId]/quests` RSC：仅作者可见；每张卡三步怎么做 + 最多 3 条真实样例 +
+      直达最适操作面；空世界先教落第一条；世界读不出来如实空白（零数字）。
+- [x] 双语 + 门面：zh/en 八类委托齐全；`.wq-*` 全 token、forced-colors、720px 单列；
+      `/integrity` 与 `/digest` 页脚各加双语入口，`/guide` 世界地图两侧补行（SHA 重钉 2 处）。
+- [x] 判据：`world-quests.test.ts` 10/10 · `quests-visual-style.test.ts` 8/8 ·
+      受影响五门 41/41 · `tsc -p apps/web` EXIT=0。
+- [~] **浏览器像素层未目验**（本机未起 3100）；样式靠 token 纪律与门面判据保证，
+      下一次带浏览器的窗口补 home/guide/quests 三页读数。ADR 0308。
