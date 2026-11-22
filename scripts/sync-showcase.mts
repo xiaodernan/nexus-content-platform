@@ -13,7 +13,7 @@
  */
 
 import { execSync } from 'node:child_process';
-import { mkdirSync, cpSync, existsSync } from 'node:fs';
+import { mkdirSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ROOT = process.cwd();
@@ -38,7 +38,9 @@ function run(): void {
   // 3. ensure target dir
   const destDir = join(SHOWSPATIAL, 'assets', 'nexus-content');
   mkdirSync(destDir, { recursive: true });
-  cpSync(join(ROOT, 'docs', 'showcase', 'latest.json'), join(destDir, 'latest.json'));
+  // Windows 上 cpSync 覆盖已存在文件会走 unlink，本机偶发 errno 0（AV/索引器持句柄）。
+  // 直接截断写：不 unlink、不换 inode，目标文件被谁短暂打开都不影响。
+  writeFileSync(join(destDir, 'latest.json'), readFileSync(join(ROOT, 'docs', 'showcase', 'latest.json')));
 
   // 4. commit if changed
   const status = sh('git status --porcelain', { cwd: SHOWSPATIAL });
