@@ -4,12 +4,20 @@ import { PulsePublicView } from '@/components/PulsePublicView';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: '公共观测大厅 · The Public Observation Hall — NEXUS',
-  description:
-    '平台级聚合统计，公开围观：流量、通关、改编、关注——规则外推预测 + 下一步优化建议。口令 123（公开的）。Platform-wide aggregate, public viewing: opens, clears, remixes, follows — rule-based projection + next optimizations. Passphrase: 123.',
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '公共观测大厅 — NEXUS',
+        description: '平台级聚合统计，公开围观：流量、通关、改编、关注——规则外推预测 + 下一步优化建议。口令 123（公开的）。',
+        robots: { index: false, follow: false },
+      }
+    : {
+        title: 'The Public Observation Hall — NEXUS',
+        description: 'Platform-wide aggregates open to everyone: opens, clears, remixes, follows — rule-based projections and next-step optimization suggestions. Passphrase: 123 (public).',
+        robots: { index: false, follow: false },
+      };
+}
 
 /**
  * §PUB-1 `/observatory`——§九 公共观测大厅

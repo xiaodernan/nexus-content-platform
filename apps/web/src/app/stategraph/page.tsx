@@ -5,11 +5,18 @@ import { StategraphTry } from '@/components/StategraphTry';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'StateGraph · AI 调用的状态图 · NEXUS',
-  description:
-    'LangGraph StateGraph 在 NEXUS 的真实落点：validate → check_provider → build_prefix → call_llm → cache_read → parse_and_release → assemble，任一节点失败即直通 END；公开只读试跑按钮，真 provider、真 header（x-nexus-orchestration: stategraph）、真计量。The real StateGraph route in NEXUS, with a public read-only live probe — no wrapping, no theatre.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: 'StateGraph · AI 调用的状态图 — NEXUS',
+        description: 'LangGraph StateGraph 在 NEXUS 的真实落点：validate → check_provider → build_prefix → call_llm → cache_read → parse_and_release → assemble，任一节点失败即直通 END；公开只读试跑按钮，真 provider、真 header（x-nexus-orchestration: stategraph）、真计量。',
+      }
+    : {
+        title: 'StateGraph · the state graph behind the AI call — NEXUS',
+        description: 'Where LangGraph StateGraph really runs in NEXUS: validate → check_provider → build_prefix → call_llm → cache_read → parse_and_release → assemble, with any failed node going straight to END; a public read-only live probe with a real provider, a real header (x-nexus-orchestration: stategraph) and real metering.',
+      };
+}
 
 /**
  * cont. 169 · `/stategraph` —— StateGraph 不再只是说明书里的一段话。

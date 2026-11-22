@@ -5,11 +5,20 @@ import { getLocale, type Locale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: '世界 · Worlds — NEXUS',
-  description: '浏览其他人公开发布的世界：浏览器可直接读、进到游戏。Open worlds published by open-source creators — readable right in the browser.',
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '世界 — NEXUS',
+        description: '浏览其他创作者公开发布的世界：浏览器里可以直接读，也能直接进去走。',
+        robots: { index: false, follow: false },
+      }
+    : {
+        title: 'Worlds — NEXUS',
+        description: 'Browse open worlds published by other creators — readable in the browser, walkable straight away.',
+        robots: { index: false, follow: false },
+      };
+}
 
 const COPY: Record<Locale, {
   kicker: string;

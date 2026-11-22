@@ -162,7 +162,7 @@ const anReducedMotionBody = (() => {
 })();
 
 /** 双段 JS 逻辑哈希：段 A = 文件头到 `function Cell`；段 B = creatorAnalytics 到 publicationTrend 取数链（段 B 与 v782 之前逐字节一致）。 */
-const SEG_A_SHA256 = '0b46a9879acb88ec6b1eb5c89cb085552d6c62e79983f0c9ddc0fce53d2c8066'; // v842 §169-AI：仅增加 import
+const SEG_A_SHA256 = '38dd28a5234ca3eed6d4efef62c4dc5f550084531574d194ea3fe328d16168ab'; // 2026-11-22 metadata 本地化：段 A 头部的 metadata 改 generateMetadata（正文取数链零行为）
 const SEG_B_SHA256 = 'dd0dd3ea30bac4961283608be32bbd8f398b4dcb2ff318f32fe69f813c065f63';
 
 /**
@@ -173,7 +173,7 @@ const SEG_B_SHA256 = 'dd0dd3ea30bac4961283608be32bbd8f398b4dcb2ff318f32fe69f813c
  * 与改后（.an-）必须**逐字节恒等**，从而证明"除 className 字面值外一个字节都没动"。
  * 与双段哈希互补：双段锚原样字节（段 A/B 本就零 className），此门锚剥类后的**整份**文件。
  */
-const STRIP_CLASS_SHA256 = '2803e6b18cfb2d167dd316badce866c092ec16d041caf45317aa892e382e9560'; // v842 §169-AI：仅增 import + 注入 AnalyticsAiNarrator JSX（零 className 变更、零文案变更）
+const STRIP_CLASS_SHA256 = 'b10137871a1d374395e9e5e9ebe6f9fee1957cae8a1ae78bbdae949d0a06df6f'; // 2026-11-22 metadata 本地化：剥类后整文哈希按新 metadata 重钉（正文/className/文案/hooks 零变更）
 function stripClassNames(src: string): string {
   const s = src.replace(/\r\n/g, '\n');
   // 三元/表达式：保留条件与 ? :，只把引号字面量归一；再吞静态 className="…"

@@ -60,7 +60,7 @@ describe('──SGRAPH-1 /stategraph StateGraph 公开只读落点', () => {
   it('RSC + metadata + force-dynamic + locale-aware 骨架', () => {
     expect(code).not.toContain('use client');
     expect(code).toContain('export const dynamic');
-    expect(code).toContain('export const metadata');
+    expect(code).toContain('export async function generateMetadata');
     expect(code).toContain("import { getLocale");
     expect(code).toContain('const COPY');
   });
@@ -126,8 +126,10 @@ describe('──SGRAPH-1 /stategraph StateGraph 公开只读落点', () => {
   });
 
   it('SHA256 钉页（className 脱敏后）', () => {
+    // 2026-11-22 metadata 本地化：静态 metadata → generateMetadata + getLocale，
+    // 中文模式不再夹英文标签页标题；正文与 className 一个字节未动，按新字节重钉。
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      'd9841075388c61ba11d3e05546f73ff7695673c00e7f058f8e9832cc61738ac3',
+      'e95e21d2ac05dda3da5f8fd002633e828cbc183b7fb9e1cd47335e8882ad4e8f',
     );
   });
 });

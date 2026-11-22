@@ -5,11 +5,18 @@ import { TideOracle } from '@/components/TideOracle';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: '潮语 · The Tide Oracle — NEXUS',
-  description:
-    '向潮问一句话——《低语诸王》世界大典里的潮答你两句：真实模型、稳定前缀缓存、不预言、不编造。Ask the tide — two sentences from the World Bible: real model, stable prefix cache, no prophecy, no invention.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '潮语 — NEXUS',
+        description: '向潮问一句话——《低语诸王》世界大典里的潮答你两句：真实模型、稳定前缀缓存、不预言、不编造。',
+      }
+    : {
+        title: 'The Tide Oracle — NEXUS',
+        description: 'Ask the tide one question — the tide answers in two sentences from the World Bible: a real model, a stable prefix cache, no prophecy, no invention.',
+      };
+}
 
 /**
  * §TIDE-ORACLE `/tide-oracle`

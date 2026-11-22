@@ -4,12 +4,20 @@ import { DailyEdition } from '@/components/DailyEdition';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: '今日潮候 · The Daily Tide — NEXUS',
-  description:
-    '每天从正典里抽一叶，模型只读这一叶——三句话与一句思考题。正典永远以原文为准。One leaf a day, read honestly: three sentences and one ponder. The canon stays the authority.',
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '今日潮候 — NEXUS',
+        description: '每天从正典里抽一叶，模型只读这一叶——三句话与一句思考题。正典永远以原文为准。',
+        robots: { index: false, follow: false },
+      }
+    : {
+        title: 'The Daily Tide — NEXUS',
+        description: 'One leaf of the canon a day, read honestly by the model: three sentences and one question to ponder. The canon’s original text stays the authority.',
+        robots: { index: false, follow: false },
+      };
+}
 
 /**
  * §DAILY 今日潮候 — 每天一期潮候笺的入口页。

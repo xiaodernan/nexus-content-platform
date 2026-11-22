@@ -21,10 +21,18 @@ const DEFAULT_RANGE = 30;
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: '创作数据 · Creator Analytics — NEXUS',
-  description: '你的作品发布后的真实数据：打开、访客、通关、爬虫——每个数字都对自己负责。/ Real post-publish metrics: opens, visitors, completions and crawlers — every number answers for itself.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '创作数据 — NEXUS',
+        description: '你的作品发布后的真实数据：打开、访客、通关、爬虫——每个数字都对自己负责。',
+      }
+    : {
+        title: 'Creator Analytics — NEXUS',
+        description: 'Real post-publish metrics for your work: opens, visitors, completions and crawlers — every number answers for itself.',
+      };
+}
 
 /** 毫秒给人看的写法：不到一分钟给秒，超过给"分+秒" */
 function duration(ms: number, locale: Locale): string {

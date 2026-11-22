@@ -15,11 +15,18 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: '今日潮声 · The Tide Wire — NEXUS',
-  description:
-    '全平台 aggregate 的潮耳朵：真实计数、真实模型、两口潮的言语。真实数据 · 每天更新 · 零个人信息。 The tide listening to the whole platform: real counts, real model, two sentences. Real data, updated hourly, no personal information.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '今日潮声 — NEXUS',
+        description: '全平台的潮耳朵：真实计数、真实模型、两句潮的言语。真实数据 · 持续更新 · 零个人信息。',
+      }
+    : {
+        title: 'The Tide Wire — NEXUS',
+        description: 'The tide listening to the whole platform: real counts, a real model, two sentences. Real data, continuously updated, no personal information.',
+      };
+}
 
 const COPY: Record<Locale, {
   kicker: string;
