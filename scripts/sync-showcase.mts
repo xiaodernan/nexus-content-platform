@@ -19,12 +19,20 @@ import { join } from 'node:path';
 const ROOT = process.cwd();
 const SHOWSPATIAL = join(ROOT, '.scratch', 'showcase-site', 'site');
 
-const sh = (cmd: string, opts: { cwd?: string } = {}): string =>
-  execSync(cmd, { encoding: 'utf8', cwd: opts.cwd, stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+const sh = (cmd: string, opts: { cwd?: string; env?: Record<string, string> } = {}): string =>
+  execSync(cmd, {
+    encoding: 'utf8',
+    cwd: opts.cwd,
+    env: opts.env ? { ...process.env, ...opts.env } : process.env,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  }).trim();
 
 function run(): void {
   // 1. regenerate latest.json
-  sh('npx tsx scripts/gen-latest.mts', { cwd: ROOT });
+  // Pin the fact pack to `master`: this repo's `main` is an UNRELATED, STALE content line
+  // (E211, no margins). Running this script while checked out on `main` used to publish main's
+  // numbers to the portfolio as "latest" — the page then showed the old branch.
+  sh('npx tsx scripts/gen-latest.mts', { cwd: ROOT, env: { NEXUS_FACT_REF: 'master' } });
 
   // 2. clone or reuse existing clone
   if (!existsSync(SHOWSPATIAL)) {

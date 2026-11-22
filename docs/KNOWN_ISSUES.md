@@ -5,7 +5,13 @@ Live list. Nothing here is hidden behind marketing copy.
 ## AI / providers
 - **Live model provider is wired and measured.** `apps/ai-service/.env` points all four
   text lanes at `gpt-6.2-sol` (`https://api.aizzz.xyz/v1`, via Clash Verge 127.0.0.1:7897),
-  with `NEXUS_LLM_STREAM=1`. Real-machine proof (2026-11-21,
+  with `NEXUS_LLM_STREAM=1`. **2026-11-22 必修一次**：该网关只认**裸 key** 认证头——
+  带 `Bearer ` 前缀稳定 401「无效的令牌」，去掉前缀同请求 200（同机同代理实测，
+  `docs/evidence/llm-auth-raw-key-2026-11-22.md`）。修法是一处真值
+  `authorization_header(api_key, scheme)` + `NEXUS_OPENAI_AUTH_SCHEME`（默认 `raw`，
+  官方端点要 `bearer` 时一个 env 切换）。修后真机：347,534-token 前缀第 2/3 次 100% 命中，
+  world-step 348,688 token 100% 命中、6.7ms、stategraph 编排的 delta 与中文叙事。
+  Real-machine proof (2026-11-21,
   `docs/evidence/live-cache-hit-2026-11-21.md`): capability=real, demoMode=false,
   18498/18498 cached tokens on a replay (31ms vs 2828ms cold), two parallel session lanes
   each 100% on their 2nd turn, and world-step at 358,555-token context with a structured
@@ -284,3 +290,14 @@ Live list. Nothing here is hidden behind marketing copy.
   `SAFE_DELETE_BULK_GUARD_ERROR`. Start it as `NODE_OPTIONS= ../../node_modules/.bin/next dev -p <port>`
   (also: `npx next dev` can hang resolving through the local proxy — call the binary directly).
 - **World surface "save to disk" confirmation — WORKS (corrected 2026-10-22).** An earlier single harness run timed out at the save-note step and this entry wrongly called it a product gap. Re-run against a *warm* dev server passes **34/34**, with the note reading `saved … bytes to disk as "world-saved"` and `PERSISTED (… B on disk)`. The first failure was a **cold-route-compile timeout**: the `world-saves` POST route is compiled on first hit, and the harness's 15s wait lost to that slow first compile. Fixed by bumping `waitSaveNote` to 60s in `tools/harness/studio-world.mjs` (2026-10-22). Lesson: a one-shot browser-harness failure on a freshly started dev server is often a cold-compile race, not a regression — re-run against the warm server before filing a product gap.
+
+## Toolchain
+- **ai-service venv rebuilt on 2026-11-22.** The old .venv was built on
+  C:\Program Files\Python311\python.exe, which no longer exists on this machine; every
+  
+pm run test:ai-service call died with No Python at ...Python311\python.exe.
+  The venv was recreated on the system Python 3.14 and pip install -r
+  apps/ai-service/requirements.txt re-run. pytest apps/ai-service/tests -q →
+  **478 passed, 18 skipped** (same as before the rebuild). The stale
+  .venv-broken-py311 was removed; .venv is gitignored, so the fix is
+  environmental, not a code change.

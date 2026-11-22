@@ -44,6 +44,7 @@ const LINKS = [
   { key: 'dead-letters', href: '/admin/dead-letters', labelZh: '死信巡检', labelEn: 'Dead letters' },
   { key: 'pricing', href: '/admin/pricing', labelZh: 'AI 成本', labelEn: 'AI costs' },
   { key: 'health', href: '/admin/health', labelZh: '健康总览', labelEn: 'Health' },
+  { key: 'canon-review', href: '/admin/canon-review', labelZh: '正典评审', labelEn: 'Canon review' },
 ] as const;
 
 export type AdminSection = (typeof LINKS)[number]['key'];

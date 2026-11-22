@@ -43,11 +43,15 @@ class Settings:
     host: str = "127.0.0.1"
     port: int = 3200
     max_body_bytes: int = 6 * 1024 * 1024
-    # gpt-6-sol 推理模型调用 8-18k token 前缀 + 长推理链，实测 agent 路由可超 60s；默认 60s 常超时返 504
+    # gpt-6.2-sol 推理模型调用 8-18k token 前缀 + 长推理链，实测 agent 路由可超 60s；默认 60s 常超时返 504
     # bump 到 180s（可用 AI_SERVICE_TIMEOUT_S 覆盖）
     request_timeout_s: float = 180.0
     openai_api_key: str | None = None
     openai_base_url: str = "https://api.openai.com/v1"
+    # 网关认证头方案（2026-11-22 实测决定）：`raw` = 直接送 key，`bearer` = `Bearer <key>`。
+    # 本仓库的 wkapi/new-api 网关只认裸 key（带 Bearer 前缀 401 无效的令牌，去掉前缀 200，
+    # 同请求 4180/4387 token 命中前缀缓存）；OpenAI 官方端点要 Bearer。默认 raw。
+    openai_auth_scheme: str = "raw"
     json_mode: bool = True
     # prompt_cache_key 路由：unset 或显式空串 → sticky per-lane
     # （nexus-<sha256(system)>，见 sticky_prompt_cache.py / ADR-0284；按后端通道分片、同前缀同车道）；
@@ -237,6 +241,7 @@ def load_settings(environ: Mapping[str, str] | None = None) -> Settings:
         openai_api_key=get("NEXUS_OPENAI_API_KEY"),
         openai_base_url=get("NEXUS_OPENAI_BASE_URL", "https://api.openai.com/v1")
         or "https://api.openai.com/v1",
+        openai_auth_scheme=(get("NEXUS_OPENAI_AUTH_SCHEME", "raw") or "raw").strip().lower(),
         json_mode=(get("NEXUS_LLM_JSON_MODE", "1") or "1") != "0",
         # unset / 显式空串 = sticky per-lane 路由（provider 不填键 → StickyPromptCacheTransport 注入
         # nexus-<sha256(system)>，ADR-0284/2026-11-18 A/B 实测 12·12 同问句命中 100%、0 次 502）

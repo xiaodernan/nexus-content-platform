@@ -39,12 +39,38 @@ def test_complete_posts_chat_completions_and_maps_usage() -> None:
 
     completion = make(handler).complete(model="gpt-x", system="sys", user="usr")
     assert seen["url"] == "https://provider.example/v1/chat/completions"
-    assert seen["auth"] == "Bearer sk-test-value"
+    # 2026-11-22：本仓库的网关只认裸 key（带 Bearer 前缀 401 无效的令牌），默认 raw。
+    assert seen["auth"] == "sk-test-value"
     assert seen["body"]["response_format"] == {"type": "json_object"}
     assert [m["role"] for m in seen["body"]["messages"]] == ["system", "user"]
     assert completion.text == '{"patches":[]}'
     assert completion.model == "gpt-x-2026"
     assert (completion.tokens_in, completion.tokens_out) == (5, 6)
+
+
+def test_authorization_header_schemes() -> None:
+    """同一把 key，两种方案：raw 直送（本仓库网关），bearer 送 ``Bearer <key>``（官方端点）。"""
+    from ai_service.providers.openai_compatible import authorization_header
+
+    assert authorization_header("sk-x") == "sk-x"
+    assert authorization_header("sk-x", "raw") == "sk-x"
+    assert authorization_header("sk-x", "bearer") == "Bearer sk-x"
+    with pytest.raises(ValueError):
+        authorization_header("sk-x", "basic")
+
+
+def test_bearer_scheme_is_honoured_when_the_endpoint_asks_for_it() -> None:
+    seen: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["auth"] = request.headers.get("authorization")
+        return httpx.Response(
+            200,
+            json={"choices": [{"message": {"content": "{}"}}], "usage": {}},
+        )
+
+    make(handler, auth_scheme="bearer").complete(model="gpt-x", system="s", user="u")
+    assert seen["auth"] == "Bearer sk-test-value"
 
 
 def test_json_mode_can_be_disabled() -> None:

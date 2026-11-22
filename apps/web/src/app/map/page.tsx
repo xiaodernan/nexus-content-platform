@@ -29,6 +29,10 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           { path: '/bible/quiz', labelKey: 'quiz' },
           { path: '/bible/well', labelKey: 'well' },
           { path: '/bible/ask', labelKey: 'ask' },
+          { path: '/bible/anchors', labelKey: 'anchors' },
+          { path: '/bible/search', labelKey: 'bibleSearch' },
+          { path: '/bible/whisper', labelKey: 'whisper' },
+          { path: '/bible/margins', labelKey: 'margins' },
         ],
       },
       {
@@ -64,7 +68,19 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         ],
       },
       {
-        heading: '⑤ 管理与观察 · 掌控全站',
+        heading: '⑤ 潮汐与观星 · 每天的潮都在动',
+        body: '这一组是「每天回来都有新东西」的入口：潮汐预言、今日潮声、潮候步进、今日潮候、公共观测大厅，以及把状态图本身摊开给你看的那一页。',
+        links: [
+          { path: '/tide-oracle', labelKey: 'tideOracle' },
+          { path: '/tide-wire', labelKey: 'tideWire' },
+          { path: '/tidewatch', labelKey: 'tidewatch' },
+          { path: '/daily', labelKey: 'daily' },
+          { path: '/observatory', labelKey: 'observatory' },
+          { path: '/stategraph', labelKey: 'stategraph' },
+        ],
+      },
+      {
+        heading: '⑥ 管理与观察 · 掌控全站',
         body: '主页的后台账房；口令 123 即入，只看聚合，不看个人。',
         links: [
           { path: '/insight', labelKey: 'insight' },
@@ -87,6 +103,10 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           { path: '/bible/quiz', labelKey: 'quiz' },
           { path: '/bible/well', labelKey: 'well' },
           { path: '/bible/ask', labelKey: 'ask' },
+          { path: '/bible/anchors', labelKey: 'anchors' },
+          { path: '/bible/search', labelKey: 'bibleSearch' },
+          { path: '/bible/whisper', labelKey: 'whisper' },
+          { path: '/bible/margins', labelKey: 'margins' },
         ],
       },
       {
@@ -122,7 +142,19 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         ],
       },
       {
-        heading: '5 · Command & observatory · run the platform',
+        heading: '5 · Tide & skywatching · the water moves daily',
+        body: 'The doors that give you something new each day: the tide oracle, today’s tide-wire, the tidewatch walk, the daily tide, the public observatory — and the page that lays the state graph itself open.',
+        links: [
+          { path: '/tide-oracle', labelKey: 'tideOracle' },
+          { path: '/tide-wire', labelKey: 'tideWire' },
+          { path: '/tidewatch', labelKey: 'tidewatch' },
+          { path: '/daily', labelKey: 'daily' },
+          { path: '/observatory', labelKey: 'observatory' },
+          { path: '/stategraph', labelKey: 'stategraph' },
+        ],
+      },
+      {
+        heading: '6 · Command & observatory · run the platform',
         body: 'The back office. Passcode 123 enters; aggregates only, never personal rows.',
         links: [
           { path: '/insight', labelKey: 'insight' },
@@ -139,6 +171,10 @@ const LABELS = {
   quiz: { zh: '潮汐挑战 · The Tidal Trial', en: 'The Tidal Trial' },
   well: { zh: '七口井 · Seven Wells', en: 'The Seven Wells' },
   ask: { zh: '问典 · Ask the Canon', en: 'Ask the Canon' },
+  anchors: { zh: '锚句回放 · Anchor Echo', en: 'Anchor Echo' },
+  bibleSearch: { zh: '正典检索 · Canon Search', en: 'Canon Search' },
+  whisper: { zh: '答问者 · The Answerer', en: 'The Answerer' },
+  margins: { zh: '页边 · Margins of the Canon', en: 'Margins of the Canon' },
 
   about: { zh: '关于 NEXUS · About', en: 'About NEXUS' },
   home: { zh: '首页 · 创作大厅', en: 'Home / the making hall' },
@@ -157,6 +193,12 @@ const LABELS = {
   insight: { zh: '观察哨 · Insight（口令 123）', en: 'Insight (passcode 123)' },
   admin: { zh: '管理台 · Admin（role=admin）', en: 'Admin console (role=admin)' },
   savings: { zh: 'AI 节省总账 · Savings', en: 'LLM savings ledger' },
+  tideOracle: { zh: '潮汐预言 · Tide Oracle', en: 'Tide Oracle' },
+  tideWire: { zh: '今日潮声 · Tide Wire', en: 'Tide Wire' },
+  tidewatch: { zh: '潮候步进 · Tidewatch', en: 'Tidewatch' },
+  daily: { zh: '今日潮候 · The Daily Tide', en: 'The Daily Tide' },
+  observatory: { zh: '公共观测大厅 · Observatory', en: 'Public Observatory' },
+  stategraph: { zh: '状态图 · StateGraph', en: 'StateGraph' },
 } as const;
 
 export default async function AtlasPage() {

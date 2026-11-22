@@ -47,15 +47,27 @@ const countRecursive = (dir: string, match: (name: string) => boolean) => {
   } catch { return null; }
 };
 
-const commits = sh(['rev-list', '--count', 'HEAD']);
-const headFull = sh(['rev-parse', 'HEAD']) ?? '';
+// Which ref the fact pack describes. Defaults to HEAD (whatever the caller checked out), but
+// NEXUS_FACT_REF lets a caller pin it.
+// 2026-11-22 并轨后：main 与 master 已经是同一条历史（master 的全部成果已并入 main，
+// 并轨提交 00bde67 + 后续并轨），不再是「两条互不相干的历史」。当初那段「main 陈旧、
+// master 活跃」的说明只作历史记录保留——今天的默认仍是 HEAD。
+// A sync script that happened to run on `main` used to publish main's numbers as "latest".
+const FACT_REF = (process.env.NEXUS_FACT_REF ?? 'HEAD').trim() || 'HEAD';
+const commits = sh(['rev-list', '--count', FACT_REF]);
+const headFull = sh(['rev-parse', FACT_REF]) ?? '';
 const headShort = headFull.slice(0, 7);
-const firstCommitDate = sh(['log', '--max-parents=0', '--format=%cs', '-1']) ?? null;
+const firstCommitDate = sh(['log', '--max-parents=0', '--format=%cs', '-1', FACT_REF]) ?? null;
+// 分支名必须读真值：写死 'main' 会让个人主页把 master 的 head 标成 main。
+// 指定了 FACT_REF 时就用它（去掉 origin/ 前缀），否则问 HEAD 现在挂在哪个分支上。
+const branchName = FACT_REF === 'HEAD'
+  ? (sh(['rev-parse', '--abbrev-ref', 'HEAD']) ?? 'master')
+  : FACT_REF.replace(/^refs\/heads\//, '').replace(/^origin\//, '');
 
 const data = {
   schema_version: 'nexus-content.latest.v1',
   generated_at: new Date().toISOString(),
-  branch: 'main',
+  branch: branchName,
   head: headShort,
   total_commits: commits === null ? null : Number(commits),
   first_commit_at: firstCommitDate,

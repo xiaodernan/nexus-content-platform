@@ -46,6 +46,7 @@ const WEB_SLUGS: Record<string, string> = {
   '011-灯下的账': '011-the-ledger-under-the-lamp',
   '012-潮来的时候': '012-when-the-tide-comes',
   '013-誊写': '013-the-fair-copy',
+ '014-数页边的人': '014-the-ones-who-count-the-margin',
   '005-收件人': '005-the-addressee',
 };
 
@@ -260,12 +261,19 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E207-潮候院抄本院荒年冬天抄本师们读出四十二道潮印里有三道是一个人写的': 'echo-207-three-of-one-hands',
   'E208-潮候院抄本院那本自己翻到第七十二页的册子': 'echo-208-ledger-page-seventy-two',
   'E209-潮候院抄本院那本册子翻过第七十二页之后': 'echo-209-page-seventy-three',
-  // 2026-11-22 合并 origin/master：两边各写了一版 Echo 210。主分支保留「半枚潮印」这一版
-  // （E211 接着它写），master 的「第四十三道」并入正典、改号为 E212——它的首段写的是
-  // 「排在四十二道潮印之后」，正好接在 E211「合到第四十二道上」后面，编号与叙事都不撞车。
+  // 2026-11-22 合并 origin/master：两条线各写了同一批回响，编号撞车。按叙事顺序整条重排：
+  //   E210 半枚潮印 → E211 合到第四十二道上 → E212 浅痕抄成第四十三道（= master 原 E210）
+  //   → E213 新痕不占第四十四道（master 原 E211）→ E214 那个不是名字的名字（原 E212）
+  //   → E215 有人开始数页边（原 E213）→ E216 页边按长短排（原 E214）→ E217 取走了一张（原 E215）
+  // master 这五篇整体后移两位，正文里的「写给 E2xx 之后」「同 E206–E2xx」同步 +2。
   'E210-潮候院抄本院那道浅痕第三日变成半枚潮印': 'echo-210-the-faint-mark-becomes-half-a-tide-seal',
   'E211-潮候院抄本院那半枚潮印合到了第四十二道上': 'echo-211-the-half-tide-seal-fits-the-forty-second',
   'E212-潮候院抄本院抄本师们把那道浅痕抄成了第四十三道': 'echo-212-forty-third',
+  'E213-潮候院抄本院抄本师们发现新痕不占第四十四道': 'echo-213-not-the-forty-fourth',
+  'E214-潮候院抄本院抄本师们给那道新痕起了个不是名字的名字': 'echo-214-not-a-name',
+  'E215-潮候院抄本院有人开始数页边': 'echo-215-counting-the-margin',
+  'E216-潮候院抄本院页边开始按长短排': 'echo-216-the-margin-sorts-itself',
+  'E217-潮候院抄本院有人从页边取走了一张': 'echo-217-taking-one-out',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

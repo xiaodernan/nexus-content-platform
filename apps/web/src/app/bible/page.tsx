@@ -37,7 +37,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: '典籍室 · World Bible — NEXUS',
-  description: '《低语诸王》世界大典 · 全十三章正典，锚句中英字字对齐。/ The thirteen canonical chapters of The Whispers’ Kings, anchor sentences verbatim in both languages.',
+  description: '《低语诸王》世界大典 · 全十四章正典，锚句中英字字对齐。/ The fourteen canonical chapters of The Whispers’ Kings, anchor sentences verbatim in both languages.',
 };
 
 /**
@@ -71,16 +71,16 @@ const COPY: Record<Locale, {
 }> = {
   zh: {
     kicker: '低语诸王 · 典籍室',
-    title: '世界大典 · 十三扇门',
-    lede: '《低语诸王》自己的正典——十三章，十三扇门：第五章之后的信路，还留在第十三章里。',
-    threeDoors: '第一扇问：海叫什么？ · 第五扇问：谁替潮收下那口气？ · 第八扇问：谁在灰后？ · 第十一扇问：灯下的账？ · 第十三扇问：谁来誊写？',
+    title: '世界大典 · 十四扇门',
+    lede: '《低语诸王》自己的正典——十四章，十四扇门：第五章之后的信路，还留在第十三章里；第十三章之后，页边开始有人数。',
+    threeDoors: '第一扇问：海叫什么？ · 第五扇问：谁替潮收下那口气？ · 第八扇问：谁在灰后？ · 第十一扇问：灯下的账？ · 第十三扇问：谁来誊写？ · 第十四扇问：谁来数页边？',
     playLink: '接受潮汐挑战 →',
     askLink: '问典 →',
     wellLink: '七口井',
     whisperLink: '答问者 · 问点书里的事',
     oracleLink: '问潮 · 潮汐预言',
     anchorsLink: '锚句回放',
-    chapterLabel: (order) => `第${['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三'][order - 1] ?? order}章`,
+    chapterLabel: (order) => `第${['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四'][order - 1] ?? order}章`,
     echoLabel: (order) => `回响 · 其${_cn(order)}`,
     echoTitle: '回响 · Echoes',
     echoLede: '正典之外的侧写——不是续篇，不是错的，只是同一块盐加了另一层纹理。',
@@ -93,16 +93,16 @@ const COPY: Record<Locale, {
   },
   en: {
     kicker: 'The Whispers’ Kings · Canon',
-    title: 'The World Bible · thirteen doors',
-    lede: 'The Whispers’ Kings’ own canon. Thirteen doors — and at the thirteenth, someone is about to copy the whole thing out, word for word.',
-    threeDoors: 'First door: what is the sea called? · Fifth door: who keeps the breath the tide drew in? · Eighth: who walks through the grey? · Eleventh: what is the ledger under the lamp? · Thirteenth: who copies it all out?',
+    title: 'The World Bible · fourteen doors',
+    lede: 'The Whispers’ Kings’ own canon. Fourteen doors — and at the thirteenth, someone is about to copy the whole thing; at the fourteenth, someone starts counting the margin.',
+    threeDoors: 'First door: what is the sea called? · Fifth door: who keeps the breath the tide drew in? · Eighth: who stands after the ash? · Eleventh: the ledger under the lamp? · Thirteenth: who does the copying? · Fourteenth: who counts the margin?',
     playLink: 'I accept the Tidal Trial →',
     askLink: 'Ask the Canon →',
     wellLink: 'The Seven Wells',
     whisperLink: 'The Answerer · ask one question of the book',
     oracleLink: 'Ask the tide · The Tide Oracle',
     anchorsLink: 'Anchor Echo',
-    chapterLabel: (order) => `Chapter ${['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII'][order - 1] ?? order}`,
+    chapterLabel: (order) => `Chapter ${['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV'][order - 1] ?? order}`,
     echoLabel: (order) => `Echo ${_roman(order)}`,
     echoTitle: 'Echoes',
     echoLede: 'Side-lights beyond the canon — not a sequel, not an error, just another layer of grain on the same salt.',
@@ -146,7 +146,7 @@ export default async function BiblePage() {
           const anchors = extractAnchors(chapter.markdownZh, chapter.markdownEn).length;
           return (
             <li key={chapter.slug} className="bb-card" data-bible-card={chapter.slug}>
-              <span className="bb-cardNum" aria-hidden="true">{locale === 'en' ? ['I', 'II', 'III', 'IV', 'V'][chapter.order - 1] ?? chapter.order : ['壹', '贰', '叁', '肆', '伍'][chapter.order - 1] ?? chapter.order}</span>
+              <span className="bb-cardNum" aria-hidden="true">{locale === 'en' ? ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV'][chapter.order - 1] ?? chapter.order : ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖', '拾', '拾壹', '拾贰', '拾叁', '拾肆'][chapter.order - 1] ?? chapter.order}</span>
               <div className="bb-cardBody">
                 <p className="bb-cardChapter">{c.chapterLabel(chapter.order)}</p>
                 <h2 className="bb-cardTitle">{title}</h2>

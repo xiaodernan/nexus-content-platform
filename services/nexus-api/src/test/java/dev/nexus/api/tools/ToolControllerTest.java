@@ -353,14 +353,14 @@ class ToolControllerTest {
 
     @Test
     void theDeprecatedListCarriesEachToolsNameBesideItsDeprecation() throws Exception {
-        when(service.deprecationPage(null, null, null, 20, 0))
+        when(service.deprecationPage(null, null, null, null, 20, 0))
                 .thenReturn(List.of(new ToolDeprecation("tool-1", "Use b.tool instead.", "b.tool", AT)));
-        when(service.deprecationCount(null, null)).thenReturn(1L);
+        when(service.deprecationCount(null, null, null)).thenReturn(1L);
         when(service.byIds(List.of("tool-1"))).thenReturn(Map.of("tool-1", row("tool-1", OWNER, "a.tool")));
         when(service.resolveReplacements(List.of("b.tool")))
                 .thenReturn(Map.of("b.tool", new ToolService.ReplacementResolution("live", "tool-2")));
 
-        ResponseEntity<ToolDtos.DeprecationList> answer = controller().deprecations(null, null, null, null, null);
+        ResponseEntity<ToolDtos.DeprecationList> answer = controller().deprecations(null, null, null, null, null, null);
 
         ToolDtos.DeprecationList body = answer.getBody();
         assertThat(body).isNotNull();
@@ -373,32 +373,32 @@ class ToolControllerTest {
         assertThat(body.owner()).isNull();
         assertThat(mapper.valueToTree(body.deprecations().get(0)).size()).isEqualTo(7);
         JsonNode wire = mapper.valueToTree(body);
-        assertThat(wire.size()).isEqualTo(7);
+        assertThat(wire.size()).isEqualTo(8);
         assertThat(wire.toString()).doesNotContain("secret").doesNotContain(OWNER);
     }
 
     @Test
     void theDeprecationCursorIsEchoedTrimmedAndDoesNotNarrowTheTotal() throws Exception {
         String key = AT.toEpochMilli() + ":tool-1";
-        when(service.deprecationPage(null, null, key, 20, 0))
+        when(service.deprecationPage(null, null, null, key, 20, 0))
                 .thenReturn(List.of(new ToolDeprecation("tool-2", "Going away.", null, AT.minusSeconds(1))));
-        when(service.deprecationCount(null, null)).thenReturn(3L);
+        when(service.deprecationCount(null, null, null)).thenReturn(3L);
         when(service.byIds(List.of("tool-2"))).thenReturn(Map.of("tool-2", row("tool-2", OWNER, "b.tool")));
 
         ToolDtos.DeprecationList body =
-                controller().deprecations(null, null, "  " + AT.toEpochMilli() + ": tool-1  ", null, null).getBody();
+                controller().deprecations(null, null, "  " + AT.toEpochMilli() + ": tool-1  ", null, null, null).getBody();
 
         assertThat(body).isNotNull();
         assertThat(body.before()).as("the cursor is echoed in the canonical <epochMillis>:<toolId> shape")
                 .isEqualTo(key);
         assertThat(body.total()).as("a cursor is a position, not a filter").isEqualTo(3L);
         assertThat(body.deprecations()).extracting(ToolDtos.DeprecatedTool::name).containsExactly("b.tool");
-        assertThat(mapper.valueToTree(body).size()).isEqualTo(7);
+        assertThat(mapper.valueToTree(body).size()).isEqualTo(8);
     }
 
     @Test
     void aDeprecationCursorThatIsNotAPairIsRefusedBeforeTheServiceIsAsked() {
-        assertThatThrownBy(() -> controller().deprecations(null, null, "tool-1", null, null))
+        assertThatThrownBy(() -> controller().deprecations(null, null, "tool-1", null, null, null))
                 .isInstanceOf(InvalidTool.class)
                 .hasMessageContaining("<epochMillis>:<toolId>");
         verifyNoInteractions(service);
@@ -406,13 +406,13 @@ class ToolControllerTest {
 
     @Test
     void theOwnerFilterIsEchoedAndTheCountIsTheNarrowedWhole() throws Exception {
-        when(service.deprecationPage(OWNER, null, null, 20, 0))
+        when(service.deprecationPage(OWNER, null, null, null, 20, 0))
                 .thenReturn(List.of(new ToolDeprecation("tool-1", "Going away.", null, AT)));
-        when(service.deprecationCount(OWNER, null)).thenReturn(1L);
+        when(service.deprecationCount(OWNER, null, null)).thenReturn(1L);
         when(service.byIds(List.of("tool-1"))).thenReturn(Map.of("tool-1", row("tool-1", OWNER, "a.tool")));
 
         ToolDtos.DeprecationList body =
-                controller().deprecations(null, null, null, "  " + OWNER + "  ", null).getBody();
+                controller().deprecations(null, null, null, "  " + OWNER + "  ", null, null).getBody();
 
         assertThat(body).isNotNull();
         assertThat(body.owner()).as("the owner filter is echoed trimmed").isEqualTo(OWNER);
@@ -420,19 +420,19 @@ class ToolControllerTest {
         assertThat(body.before()).isNull();
         assertThat(body.deprecations().get(0).replacementStatus()).isEqualTo("none");
         assertThat(body.deprecations().get(0).replacementToolId()).isNull();
-        assertThat(mapper.valueToTree(body).size()).isEqualTo(7);
+        assertThat(mapper.valueToTree(body).size()).isEqualTo(8);
     }
 
     @Test
     void aListRowSaysWhenItsReplacementNamesNothingYet() {
-        when(service.deprecationPage(null, null, null, 20, 0))
+        when(service.deprecationPage(null, null, null, null, 20, 0))
                 .thenReturn(List.of(new ToolDeprecation("tool-1", "Use the successor.", "later.tool", AT)));
-        when(service.deprecationCount(null, null)).thenReturn(1L);
+        when(service.deprecationCount(null, null, null)).thenReturn(1L);
         when(service.byIds(List.of("tool-1"))).thenReturn(Map.of("tool-1", row("tool-1", OWNER, "a.tool")));
         when(service.resolveReplacements(List.of("later.tool")))
                 .thenReturn(Map.of("later.tool", new ToolService.ReplacementResolution("unresolved", null)));
 
-        ToolDtos.DeprecationList body = controller().deprecations(null, null, null, null, null).getBody();
+        ToolDtos.DeprecationList body = controller().deprecations(null, null, null, null, null, null).getBody();
 
         assertThat(body).isNotNull();
         assertThat(body.deprecations().get(0).replacement()).isEqualTo("later.tool");
@@ -442,27 +442,27 @@ class ToolControllerTest {
 
     @Test
     void theReplacementStatusFilterIsEchoedAndTheCountFollowsIt() throws Exception {
-        when(service.deprecationPage(OWNER, "unresolved", null, 20, 0))
+        when(service.deprecationPage(OWNER, "unresolved", null, null, 20, 0))
                 .thenReturn(List.of(new ToolDeprecation("tool-1", "Use the successor.", "later.tool", AT)));
-        when(service.deprecationCount(OWNER, "unresolved")).thenReturn(1L);
+        when(service.deprecationCount(OWNER, "unresolved", null)).thenReturn(1L);
         when(service.byIds(List.of("tool-1"))).thenReturn(Map.of("tool-1", row("tool-1", OWNER, "a.tool")));
         when(service.resolveReplacements(List.of("later.tool")))
                 .thenReturn(Map.of("later.tool", new ToolService.ReplacementResolution("unresolved", null)));
 
         ToolDtos.DeprecationList body =
-                controller().deprecations(null, null, null, "  " + OWNER + "  ", "  unresolved  ").getBody();
+                controller().deprecations(null, null, null, "  " + OWNER + "  ", "  unresolved  ", null).getBody();
 
         assertThat(body).isNotNull();
         assertThat(body.owner()).isEqualTo(OWNER);
         assertThat(body.replacementStatus()).as("the derived-state filter is echoed trimmed").isEqualTo("unresolved");
         assertThat(body.total()).isEqualTo(1);
         assertThat(body.deprecations().get(0).replacementStatus()).isEqualTo("unresolved");
-        assertThat(mapper.valueToTree(body).size()).isEqualTo(7);
+        assertThat(mapper.valueToTree(body).size()).isEqualTo(8);
     }
 
     @Test
     void aReplacementStatusOutsideTheClosedVocabularyIsRefusedBeforeTheServiceIsAsked() {
-        assertThatThrownBy(() -> controller().deprecations(null, null, null, null, "gone"))
+        assertThatThrownBy(() -> controller().deprecations(null, null, null, null, "gone", null))
                 .isInstanceOf(InvalidTool.class)
                 .hasMessageContaining("none")
                 .hasMessageContaining("deprecated");
@@ -471,24 +471,43 @@ class ToolControllerTest {
 
     @Test
     void aSelectionOfStatesIsEchoedAsACanonicalList() {
-        when(service.deprecationPage(null, "none,unresolved", null, 20, 0)).thenReturn(List.of());
-        when(service.deprecationCount(null, "none,unresolved")).thenReturn(0L);
+        when(service.deprecationPage(null, "none,unresolved", null, null, 20, 0)).thenReturn(List.of());
+        when(service.deprecationCount(null, "none,unresolved", null)).thenReturn(0L);
 
         ToolDtos.DeprecationList body = controller()
-                .deprecations(null, null, null, null, " none , unresolved,none ").getBody();
+                .deprecations(null, null, null, null, " none , unresolved,none ", null).getBody();
 
         assertThat(body).isNotNull();
         assertThat(body.replacementStatus()).isEqualTo("none,unresolved");
         assertThat(body.total()).isZero();
-        assertThat(mapper.valueToTree(body).size()).isEqualTo(7);
+        assertThat(mapper.valueToTree(body).size()).isEqualTo(8);
     }
 
     @Test
     void anUnknownWordInsideASelectionIsRefusedByName() {
-        assertThatThrownBy(() -> controller().deprecations(null, null, null, null, "none,Gone"))
+        assertThatThrownBy(() -> controller().deprecations(null, null, null, null, "none,Gone", null))
                 .isInstanceOf(InvalidTool.class)
                 .hasMessageContaining("Gone");
         verifyNoInteractions(service);
+    }
+
+    @Test
+    void aHintFilterIsEchoedAndNarrowsWithTheOtherFilters() {
+        when(service.deprecationPage(null, null, "m.tool", null, 20, 0))
+                .thenReturn(List.of(new ToolDeprecation("tool-1", "Use it.", "m.tool", AT)));
+        when(service.deprecationCount(null, null, "m.tool")).thenReturn(1L);
+        when(service.byIds(List.of("tool-1"))).thenReturn(Map.of("tool-1", row("tool-1", OWNER, "a.tool")));
+        when(service.resolveReplacements(List.of("m.tool")))
+                .thenReturn(Map.of("m.tool", new ToolService.ReplacementResolution("live", "tool-2")));
+
+        ToolDtos.DeprecationList body = controller()
+                .deprecations(null, null, null, null, null, "  m.tool  ").getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.hint()).isEqualTo("m.tool");
+        assertThat(body.total()).isEqualTo(1);
+        assertThat(body.deprecations().get(0).replacement()).isEqualTo("m.tool");
+        assertThat(mapper.valueToTree(body).size()).isEqualTo(8);
     }
 
     @Test

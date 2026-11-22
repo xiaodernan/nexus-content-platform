@@ -1,4 +1,12 @@
-﻿# CURRENT-STATE — 2026-11-14
+> **2026-11-22 续9（§SESSION-CLOSE-1——LLM 认证头根因修复 + 压力/行为实测 + 页边模块 + io 真实数据，`<commit>`）**：本段把用户总指令里"必须实测跑通"的一条**真 bug** 修掉了：该网关只认**裸 key**，`Authorization: Bearer sk-…` 稳定 401「无效的令牌」，同 key 去掉前缀立刻 200（usage 4387/4180 cached）；Node 侧不走代理还会被地域 403。修法是一处真值 `authorization_header(api_key, scheme)` + `NEXUS_OPENAI_AUTH_SCHEME`（默认 raw，官方端点一个 env 切回），`pytest apps/ai-service/tests` **478 passed / 18 skipped**。**修后真机**：`/healthz` capability=real · llmLive ok；`live-cache-probe` 347,534 token 前缀第 2/3 次 **100%** 命中；`live-bible-ask-probe` cached 8,245 → **173,162**；`/v1/ai/world-step` 200 · stategraph · 348,688 token **100%** 命中 · 6.7ms · delta `{vigor:0,depth:1,seals:[],unlocks:[],risk:"uneasy"}` + 中文叙事。**新增**：① `scripts/stress-web-burst.mts` + 证据（120 并发/240 burst：**0 个 5xx、0 个错码**，未应答全是客户端 30s 超时——这台开发机供养不起 120 并发 SSR，是容量上限不是产品崩溃，测的是并行线 3100 上那台，如实记录）；② `simulate-user-behavior` 复跑（20 会话 / 75 点击 / **0 错误**，五种画像）；③ **新模块 `/bible/margins` 页边批注**（`> 页边：`/`> Margin:` 行由 `scripts/gen-margins.mts` 收成 `margins.generated.ts`，slug 与 `ECHO_WEB_SLUGS` 同源；浏览器实测中英双语 + reveal + 链接跳回回响页）；④ `scripts/echo-canon-review.mts`——用真模型给新回响做正典合规评审（A 专名 / B 冲突 / C 撞句，带全部既有锚句），两次实跑各 24K token，**抓到的具体意见已回写 E212**（正文落实"五个抄本师"）。**io 页面**：`latest.json` 推送两次；「MOST USED LANGUAGES」换成 **GitHub API 实拉**（16 公开仓 / 152,517,763 bytes / 19 种语言，Java 8.83%→9.44%），线上 `.lang-pct` 已变为 31.54/24.06/20.26/12.09/9.44/1.50/0.38/0.27/0.45，identity-guard pin 同步。**世界内容**：E211「新痕不占第四十四道」、E212「不数者」（各 6 条中英锚句；锚句 1278→1284；canon digest 268,153 chars）。**诚实限度**：本机 `apps/ai-service/.venv` 的 base Python 3.11 已不存在，测试用系统 Python 3.14 跑（venv 待重建）；web 侧只跑了对相关文件分片的 vitest + tsc（未跑 fe-gates 整线，AGENTS.md：不必每次全量）；浏览器像素验收覆盖 home/guide/io/margins/echo-reader 五页。
+
+> **2026-11-22 续（§v626-Echo212「不数者」——页边那一角的下一层，`<commit>`）**：`docs/world-bible/echoes/E212-潮候院抄本院抄本师们给那道新痕起了个不是名字的名字.md`（+ `.en.md`）——E211 结尾"数字是用来数的，这一道不是用来数的"之后，抄本师们决定**不起名字**（起名字就要按名册排，而名册是数出来的），在页边写了三个字「不数者」，写完谁都没念出声；第一个看见的人没问是谁写的（册子里的字从来不问出处）；后来每个抄本师路过那一页都停下来看一眼，然后什么也不做；最年长者说"名字是给愿意被数的东西用的；它不愿意，那就不给"。冬潮月过完，三个字还在页边，新痕还在原处，四十三道还在那一行里。**纪律照旧**：6 条中英成对锚句逐字来自正典文件、全库唯一；无新正典专名；纪元续 E206–E211。**生成与登记**：`ECHO_WEB_SLUGS` 补 `echo-212-not-a-name`；`gen:bible-snapshot` 重生成 `generated.ts` 与 canon digest（268,553 chars / sha `93505801…`）；`guideCopy` 211→212 回响、1278→1284 锚句；`bible-ask-behavior` pin 1273→1279。**验证**：world-bible 锚句 1284 zh / 1284 en 全过 · bible-snapshot 一致 · vitest bible-ask-behavior 6/6 + guide-visual-style 8/8。**诚实限度**：fe-gates 整线未跑（AGENTS.md：不必每次全量）；record-encoding 本片未重跑。
+
+> **2026-11-22 续（§AUTH-RAW-KEY——网关只认裸 key，`Bearer` 前缀即 401，`<commit>`）**：用户指令「一定用上面的 API 实测、跑通」逐字节执行时撞见 401「无效的令牌」。排查：同 key 同代理同 body，只把 `Authorization` 从 `Bearer sk-…` 换成**裸 key** 立刻 200（`Pong.`，usage 4387/4180 cached）；去 `sk-` 前缀、直连不走代理均仍 401 ⇒ 结论是该 new-api 风格网关只认裸 key（2026-11-21 的 live 证据当时是通的，属网关侧收紧）。**修法**：`providers/openai_compatible.py` 新增单一真值 `authorization_header(api_key, scheme)`（`raw` 默认 / `bearer` 显式 / 其它 ValueError），`Settings.openai_auth_scheme`（`NEXUS_OPENAI_AUTH_SCHEME`）同时注入 chat 与 embedding 适配器，官方端点一个 env 即可切回。**测试**：`pytest apps/ai-service/tests` **478 passed / 18 skipped**（`test_provider.py` 默认断言改写 + 2 个新用例）。**修后真机**（`gpt-6.2-sol`，demoMode=false）：`/healthz` capability=real · llmLive ok；`live-cache-probe` 3 连发 347,534 token，第 2/3 次 **100%** 命中（流式 latch）；`live-bible-ask-probe` cached 8,245 → **173,162**；`/v1/ai/world-step` 200 · `x-nexus-orchestration: stategraph` · toolCalls=2 · 348,688 token **100%** 命中 · 6.7ms（冷启约 2s）· delta `{vigor:0,depth:1,seals:[],unlocks:[],risk:"uneasy"}` + 中文叙事。**诚实限度**：401 属网关侧行为，若再变，`NEXUS_OPENAI_AUTH_SCHEME=bearer` 一个 env 切回；本机 `apps/ai-service/.venv` 的 base Python 3.11 已不存在，本轮用系统 Python 3.14 跑测（venv 待重建，未在本片做）。
+
+> **2026-11-22 续（§v625-Echo211「新痕不占第四十四道」——E206–E210 弧线的下一层，`<commit>`）**：`docs/world-bible/echoes/E211-潮候院抄本院抄本师们发现新痕不占第四十四道.md`（+ `.en.md`）落地——E210 结尾那行空白里第二天早晨又有一道浅痕；本回响写抄本师们数了一遍又一遍：四十三道仍旧排成一行，新痕却坐在那一行**旁边**，不占位置、数字伸到那里就断了。第二名抄本师在页边写下"在旁边"三个字（手一直在抖）；最年长的抄本师批注"数字是用来数的，这一道不是用来数的"；冬潮月过去，新痕不挪不动。**纪律照旧**：6 条中英成对锚句逐字来自正典文件、全库唯一；无新正典专名；纪元续 E206–E210（第四十四次大会之后 · 冬潮月第一百四十年）。**生成与登记**：`ECHO_WEB_SLUGS` 补 `echo-211-not-the-forty-fourth`；`gen:bible-snapshot` 重生成 `generated.ts` 与 canon digest（268,153 chars / sha `a7088d09…`，上轮 267,741 / `73a35425`）；`guideCopy` 209→211 回响、1272→1278 锚句（zh/en 两段同改）；`bible-ask-behavior` pin 1267→1273。**验证**：world-bible 锚句 1278 zh / 1278 en 全过 · bible-snapshot 一致 · anchor-echo · record-encoding 0 chargeable（3891 graded / 7178 flank-rejected）· vitest：bible-ask-behavior 6/6、canon-answer-graph 13/13（首跑 worker fetch 超时属内存锯齿 flake，单跑复绿）、guide-visual-style 8/8。**诚实限度**：fe-gates 整线未跑（AGENTS.md：不必每次全量）；/bible 页像素未验收。
+
+# CURRENT-STATE — 2026-11-14
 
 本文件是项目当前状态的快照——供未来任何 agent（或人类）在我不在的时候接上。它**只描述已经交付、已可执行的事**，不承诺未做的事。
 
@@ -8759,7 +8767,7 @@ Reader (post-continuum trace):
 - 补 `aiAdviceAudit.ts`：以**逐字喂给模型的 brief**为允许集核对 `basis+impact` 的数字；
   不在快照里的不删只标「可能是模型推算」。真机 4 条建议、1 条 `0.08%` 被标注，0 报错。
 - 补 `.obs-aiAdvice*` 五个类名的门面样式——此前 globals.css 零定义，整块是裸按钮/裸字体。
-- 判据 13 条 + 观察站回归 27 条全绿；ADR 0304。
+- 判据 13 条 + 观察站回归 27 条全绿；ADR 0307。
 
 ## cont. 477 (2026-11-22) — 并行缓存 PASS + 手册补齐
 
@@ -8787,3 +8795,30 @@ Reader (post-continuum trace):
   改为 roots 集合单独判定。判据 8 条（链/三角形/星形/两团/重边/2000 节点/确定性）全绿。
 - 页面新增全宽割点面板（自适应 240px 网格），真实世界 6 个割点（潮候院、沈砚各裂 3 块），
   390 宽 0 溢出；网络页 29 条判据全绿。
+
+## cont. 480 (2026-11-22) — 并轨第二轮：master 的 E211–E215 + 第十四章 + 页边角落
+
+- `origin/master` 在上一轮并轨之后又推了 30 余个提交（E211–E215 回响、第十四章《数页边的人》、
+  `/bible/margins` 页边批注模块与猜长短小玩、`/admin/canon-review` 正典评审、canon-review 脚本、
+  撞库压测与 web 并发压测、a11y 键盘可达性切片、showcase 事实包生成器收敛）。
+- **撞号再处理**：main 线在 E211/E212 之前多出两篇（E210 半枚潮印、E211 合到第四十二道上），
+  master 的 E211–E215 与之相撞。按叙事顺序（浅痕 → 半枚潮印 → 第四十二道 → 第四十三道 →
+  新痕不占第四十四道 → 那个不是名字的名字 → 数页边 → 按长短排 → 取走了一张）整条重排：
+  master 这五篇整体后移两位 → **E213–E217**；正文里的「写给 E2xx 之后」「同 E206–E2xx」同步 +2；
+  slug 同步（echo-213…echo-217）。**没有删任何一篇**。
+- **真值重算**：正典 **14 章 · 217 回响 · 1311 锚句**（zh/en 各 1311 逐字对齐）。
+  说明书（章数 / 回响数 / 锚句数，中英）、bible-ask-behavior 计数 pin、canon-answer-graph
+  段落断言全部改成这个数；`docs/showcase/latest.json` 由 `gen-latest.mts` 重生。
+- **修掉三处并轨带来的回归**：
+  ① `canon-answer-graph.test.ts` 在上一轮并轨时误取了 master 的旧版断言（它断言的是已被
+     2026-11-22 重写掉的硬编码错号黑名单行为），取回 main 版；
+  ② `bible-margins` 的生成数据还指着改号前的回响文件名 → 重跑 `gen-margins.mts`；
+  ③ `bible-visual-style` 的 SHA 门：并轨前 main 线给阅读页加「顺藤摸瓜 · 同线索的回响」时
+     **忘了重钉**，这一格本来就是红的；并轨后连同 master 的十四扇门改动一起重钉
+     （index 93391f38… / reader c76bec23… / component 5051a2bd… 不变）。
+- **失效引用清理**：`BibleMargins.tsx` 与判据里「E215」的六处引用改成 E217；
+  `gen-latest.mts` 的「main 陈旧 / master 活跃」注释改成「并轨后只有一条线」；
+  ADR 0304/0305/0306 各加一段「补记（并轨之后）」，历史不改、现状如实说明。
+- **ADR 改号**：main 的 0304 与 master 的 0304 撞号 → 观察站那份改 **0307**（引用同步）。
+- 验证：gen:bible-snapshot → 14 章 · 217 回响 · 4 附录（digest 273,740 chars）；
+  verify:world-bible / verify:bible-snapshot ✓；并轨相关判据 17 文件 148 条全绿；tsc web exit 0。

@@ -613,9 +613,9 @@ class ToolServiceTest {
 
     @Test
     void aReplacementStatusNarrowsTheDeprecationWindowAndItsWholeCount() {
-        when(deprecations.firstPageFiltered(null, "none", PageRequest.of(0, 1)))
+        when(deprecations.firstPageFiltered(null, "none", null, PageRequest.of(0, 1)))
                 .thenReturn(List.of(new ToolDeprecation("tool-2", "No successor.", null, AT)));
-        when(deprecations.countFiltered(null, "none")).thenReturn(1L);
+        when(deprecations.countFiltered(null, "none", null)).thenReturn(1L);
 
         assertThat(service().deprecationPage(null, "none", null, 1, 0))
                 .extracting(ToolDeprecation::getToolId).containsExactly("tool-2");
@@ -627,15 +627,15 @@ class ToolServiceTest {
 
     @Test
     void aSelectionOfStatesIsCanonicalisedAndNarrowsBothWindowAndCount() {
-        when(deprecations.firstPageFiltered(null, "none,unresolved", PageRequest.of(0, 20)))
+        when(deprecations.firstPageFiltered(null, "none,unresolved", null, PageRequest.of(0, 20)))
                 .thenReturn(List.of());
-        when(deprecations.countFiltered(null, "none,unresolved")).thenReturn(0L);
+        when(deprecations.countFiltered(null, "none,unresolved", null)).thenReturn(0L);
 
         assertThat(service().deprecationPage(null, " none , unresolved,none ", null, 20, 0)).isEmpty();
         assertThat(service().deprecationCount(null, "none,unresolved,none")).isZero();
 
-        verify(deprecations).firstPageFiltered(null, "none,unresolved", PageRequest.of(0, 20));
-        verify(deprecations).countFiltered(null, "none,unresolved");
+        verify(deprecations).firstPageFiltered(null, "none,unresolved", null, PageRequest.of(0, 20));
+        verify(deprecations).countFiltered(null, "none,unresolved", null);
         verify(deprecations, never()).firstPage(any());
     }
 
@@ -645,13 +645,50 @@ class ToolServiceTest {
                 .isInstanceOf(InvalidTool.class)
                 .hasMessageContaining("\"Gone\"");
 
-        verify(deprecations, never()).firstPageFiltered(any(), any(), any());
+        verify(deprecations, never()).firstPageFiltered(any(), any(), any(), any());
+    }
+
+    // ── v624: the successor side of the warning list ─────────────────────────────────────────────
+    @Test
+    void aHintFilterNarrowsTheWindowAndTheWholeCount() {
+        when(deprecations.firstPageFiltered(null, null, "m.tool", PageRequest.of(0, 20)))
+                .thenReturn(List.of());
+        when(deprecations.countFiltered(null, null, "m.tool")).thenReturn(0L);
+
+        assertThat(service().deprecationPage(null, null, "  m.tool  ", null, 20, 0)).isEmpty();
+        assertThat(service().deprecationCount(null, null, " m.tool ")).isZero();
+
+        verify(deprecations).firstPageFiltered(null, null, "m.tool", PageRequest.of(0, 20));
+        verify(deprecations).countFiltered(null, null, "m.tool");
+    }
+
+    @Test
+    void aHintAndAStateComposeOnTheCursorPath() {
+        String key = AT.toEpochMilli() + ":tool-2";
+        when(deprecations.pageAfterFiltered(null, "live", "m.tool", AT, "tool-2", PageRequest.of(0, 20)))
+                .thenReturn(List.of());
+
+        assertThat(service().deprecationPage(null, "live", "m.tool", key, 20, 0)).isEmpty();
+
+        verify(deprecations, never()).pageAfter(any(), any(), any());
+    }
+
+    @Test
+    void aBlankHintIsTheAbsentFilter() {
+        when(deprecations.firstPage(PageRequest.of(0, 20))).thenReturn(List.of());
+        when(deprecations.count()).thenReturn(0L);
+
+        service().deprecationPage(null, null, "   ", null, 20, 0);
+        assertThat(service().deprecationCount(null, null, "  ")).isZero();
+
+        verify(deprecations, never()).firstPageFiltered(any(), any(), any(), any());
+        verify(deprecations, never()).countFiltered(any(), any(), any());
     }
 
     @Test
     void anOwnerAndAReplacementStatusComposeWithThePairCursor() {
         String key = AT.toEpochMilli() + ":tool-2";
-        when(deprecations.pageAfterFiltered(OWNER, "deprecated", AT, "tool-2", PageRequest.of(0, 20)))
+        when(deprecations.pageAfterFiltered(OWNER, "deprecated", null, AT, "tool-2", PageRequest.of(0, 20)))
                 .thenReturn(List.of(new ToolDeprecation("tool-3", "Its successor goes too.", "b.tool", AT.minusSeconds(1))));
 
         assertThat(service().deprecationPage(OWNER, "deprecated", key, 20, 0))
@@ -668,8 +705,8 @@ class ToolServiceTest {
         service().deprecationPage(null, "   ", null, 20, 0);
         assertThat(service().deprecationCount(null, "   ")).isZero();
 
-        verify(deprecations, never()).firstPageFiltered(any(), any(), any());
-        verify(deprecations, never()).countFiltered(any(), any());
+        verify(deprecations, never()).firstPageFiltered(any(), any(), any(), any());
+        verify(deprecations, never()).countFiltered(any(), any(), any());
     }
 
     @Test
@@ -680,7 +717,7 @@ class ToolServiceTest {
                 .hasMessageContaining("deprecated");
 
         verify(deprecations, never()).firstPage(any());
-        verify(deprecations, never()).firstPageFiltered(any(), any(), any());
+        verify(deprecations, never()).firstPageFiltered(any(), any(), any(), any());
     }
 
     @Test

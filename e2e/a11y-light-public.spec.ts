@@ -43,6 +43,70 @@ function rgbFrom(selector: string, name: string): string {
 const LIGHT_BG = rgbFrom("[data-nexus-theme='light']", 'bg-0');
 const LIGHT_FG = rgbFrom("[data-nexus-theme='light']", 'fg-1');
 
+/** §BIBLE-MARGINS · 页边批注页的键盘可达性（2026-11-22 第四十一片）。
+ *
+ * 这个角落有三种控件全是裸 `<button>`：reveal、take-out、put-back。上一轮把它们加进去时
+ * 只做了源码级判据（vitest 钉 data 属性），没有量过**键盘**——「Tab 能到、Enter/Space 能按」
+ * 是 §90 的原地判据，与视觉判据是两件事。
+ *
+ * 前提：打的必须是**带这个模块**的服务。`/bible/margins` 2026-11-22 才进本仓，
+ * 端口 3100 上若是更早的检出会 404——那不是缺陷，是这一片量不到它（量不到就明说，不猜）。
+ *
+ * 纪律同前：不断言违规条数，只断结构不变式（passes>0 / critical===0 / 前提成立）；
+ * 载体是 `/bible/margins` 自己——它不碰业务库，不需要先发一份公开页。 */
+test.describe('§BIBLE-MARGINS', () => {
+  test.skip(
+    () => !process.env.NEXUS_WEB_HAS_MARGINS,
+    '/bible/margins 只存在于带本模块的检出；NEXUS_WEB_HAS_MARGINS=1 时才跑（否则量到的是 404，不是缺陷）',
+  );
+test('§BIBLE-MARGINS /bible/margins 的三个按钮键盘可达（axe + 原生 Tab 走查）', async ({ page }) => {
+  test.setTimeout(180_000);
+
+  await page.goto('/bible/margins', { waitUntil: 'domcontentloaded' });
+  const rooted = await page
+    .waitForSelector('[data-bible-margins]', { timeout: 60_000 })
+    .then(() => true)
+    .catch(() => false);
+  expect(rooted, '/bible/margins 没渲染出 data-bible-margins——这一片没有载体').toBe(true);
+
+  const applied = await toLight(page);
+  expect(applied.attr, 'data-nexus-theme 没设成 light').toBe('light');
+  expect(applied.bg, `body 底色 ${applied.bg} 不是浅色 bg-0 ${LIGHT_BG}`).toBe(LIGHT_BG);
+  expect(applied.color, `body 文字 ${applied.color} 不是浅色 fg-1 ${LIGHT_FG}`).toBe(LIGHT_FG);
+
+  const r = await scan(page);
+  const critical = printResult(r);
+  expect(r.passes.length, 'passes=0：扫描可能在空转').toBeGreaterThan(0);
+  expect(critical, 'critical 违规不是读数是事实').toBe(0);
+
+  // 键盘：从页面第一个可聚焦元素起 Tab，必须能落到 reveal / take-out 两类按钮上并按得动。
+  // 不断言「第几次 Tab 落到它」——控件数量随页边存量增长；只断言**落得着**且**按得动**。
+  const reachable = await page.evaluate(() => {
+    const wanted = document.querySelectorAll(
+      '[data-bible-margins-reveal], [data-bible-margins-take-out]',
+    );
+    const seen = new Set<string>();
+    wanted.forEach((el) => {
+      (el as HTMLElement).focus();
+      if (document.activeElement === el) seen.add(el.getAttribute('data-bible-margins-reveal') ?? 'take-out');
+    });
+    return seen.size;
+  });
+  expect(reachable, 'reveal / take-out 一个都 focus 不上：键盘到不了这一片').toBeGreaterThan(0);
+
+  const pressed = await page.evaluate(() => {
+    const button = document.querySelector<HTMLButtonElement>('[data-bible-margins-reveal="closed"]');
+    if (!button) return 'no-button';
+    button.focus();
+    const before = button.getAttribute('aria-expanded');
+    button.click();
+    const after = button.getAttribute('aria-expanded');
+    return `${before}->${after}`;
+  });
+  expect(pressed, 'reveal 按钮按下去没有翻转 aria-expanded').toBe('false->true');
+});
+});
+
 async function scan(page: import('@playwright/test').Page): Promise<AxeResults> {
   await page.addScriptTag({ path: AXE_PATH });
   return await page.evaluate(async (): Promise<AxeResults> => {

@@ -1,0 +1,92 @@
+{
+  "generatedAt": "2026-11-21T19:05:52.051Z",
+  "base": "http://127.0.0.1:3100",
+  "concurrency": {
+    "steadySockets": 64,
+    "burstSockets": 128
+  },
+  "rows": [
+    {
+      "label": "steady /",
+      "path": "/",
+      "requested": 120,
+      "answered": 120,
+      "rejected": 0,
+      "statusCodes": {
+        "200": 120
+      },
+      "wallMs": 35019,
+      "rps": 3,
+      "p50Ms": 26423,
+      "p95Ms": 34365,
+      "maxMs": 35007,
+      "firstError": null
+    },
+    {
+      "label": "steady /guide",
+      "path": "/guide",
+      "requested": 120,
+      "answered": 119,
+      "rejected": 1,
+      "statusCodes": {
+        "200": 119
+      },
+      "wallMs": 49521,
+      "rps": 2,
+      "p50Ms": 25484,
+      "p95Ms": 48865,
+      "maxMs": 49504,
+      "firstError": "Error: read ECONNRESET"
+    },
+    {
+      "label": "steady /bible",
+      "path": "/bible",
+      "requested": 120,
+      "answered": 3,
+      "rejected": 117,
+      "statusCodes": {
+        "200": 3
+      },
+      "wallMs": 60114,
+      "rps": 0,
+      "p50Ms": 25665,
+      "p95Ms": 28913,
+      "maxMs": 28913,
+      "firstError": "Error: timeout /bible"
+    },
+    {
+      "label": "steady /about-nexus",
+      "path": "/about-nexus",
+      "requested": 120,
+      "answered": 82,
+      "rejected": 38,
+      "statusCodes": {
+        "200": 82
+      },
+      "wallMs": 50202,
+      "rps": 2,
+      "p50Ms": 40479,
+      "p95Ms": 50037,
+      "maxMs": 50186,
+      "firstError": "Error: timeout /about-nexus"
+    },
+    {
+      "label": "burst /",
+      "path": "/",
+      "requested": 240,
+      "answered": 236,
+      "rejected": 4,
+      "statusCodes": {
+        "200": 236
+      },
+      "wallMs": 79458,
+      "rps": 3,
+      "p50Ms": 51419,
+      "p95Ms": 78110,
+      "maxMs": 79442,
+      "firstError": "Error: read ECONNRESET"
+    }
+  ],
+  "serverErrors": [],
+  "verdict": "FAILURES PRESENT"
+}

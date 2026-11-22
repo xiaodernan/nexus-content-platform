@@ -32,6 +32,7 @@ const AREAS = [
   { slug: 'discover-cache', href: '/admin/discover-cache', titleZh: '发现页缓存', titleEn: 'Discover cache', noteZh: '/discover 缓存的命中/水位/失效总线心跳——读缓存，不动缓存。', noteEn: 'Hit/watermark/invalidation heartbeat of the /discover cache — read it, never touch it.' },
   { slug: 'behavior-sim', href: '/admin/behavior-sim', titleZh: '行为演练', titleEn: 'Behavior drill', noteZh: '真实用户行为模拟——没耐心就关掉、乱点、深读者…… 灌进疑似爬虫口径；用真实仪表盘接住。', noteEn: 'Simulate rushers and idle readers — into the bot-tally so real dashboards feel them.' },
   { slug: 'health', href: '/admin/health', titleZh: '健康总览', titleEn: 'Health', noteZh: 'ai/java/gateway/redis/postgres 五层一致性——拿不到就是“未测到”，不是down；每层独立超时。', noteEn: 'ai/java/gateway/redis/postgres five-layer consistency — unreachable means “unmeasured”, never down; each layer has its own timeout.' },
+  { slug: 'canon-review', href: '/admin/canon-review', titleZh: '正典评审', titleEn: 'Canon review', noteZh: '把一篇候选回响交给 gpt-6.2-sol，对照全部既有锚句逐条挑：疑似新专名、设定冲突、锚句撞句、能不能进正典。只读，不改写候选。', noteEn: 'Hand a candidate echo to gpt-6.2-sol: it checks every existing anchor for suspected new proper nouns, setting conflicts, anchor collisions, and whether it can enter the canon. Read-only.' },
 ] as const;
 
 const COPY: Record<Locale, {
@@ -51,8 +52,8 @@ const COPY: Record<Locale, {
     observerLine: '只读观察站：口令 123（公开）→ /admin/observe',
     kicker: 'admin console',
     title: '管理台',
-    lede: '控制面上你能做的每一件事，今安静地摆在十三张卡里；单击进入前，先读卡的一句话。先看读数（观测 / 审计 / 访问账），再动手（删 / 复核 / 拉黑 / 轮换凭据）——本页不为任何人决定该不该点，只说清那一格是干什么的。',
-    cardsAria: '管理台十三处入口',
+    lede: '控制面上你能做的每一件事，今安静地摆在十四张卡里；单击进入前，先读卡的一句话。先看读数（观测 / 审计 / 访问账），再动手（删 / 复核 / 拉黑 / 轮换凭据）——本页不为任何人决定该不该点，只说清那一格是干什么的。',
+    cardsAria: '管理台十四处入口',
     footLine1: '控制面只对 role=admin 可见；不给非 admin 任何读数——本页也不会。',
     footLine2: '想知道"刚才谁干了什么"：审计事件 ∣ 想知道"系统现在崩了吗"：观测 ∣ 想知道"谁在扫我这台"：访问账。',
   },

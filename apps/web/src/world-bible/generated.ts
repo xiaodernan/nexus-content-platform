@@ -3919,6 +3919,213 @@ The lamp was not moved. The page was not put away either. The salt on the flagst
 > When the tide came, no one spoke; when it withdrew, everyone began to copy.
 > 潮来无一人说话，潮退人开始誊账。`,
   },
+  {
+    order: 14,
+    slug: '014-the-ones-who-count-the-margin',
+    titleZh: '数页边的人',
+    titleEn: 'The Ones Who Count the Margin',
+    eraLineZh: '纪元：誊写之后 · 灰幕落下之前。',
+    eraLineEn: 'Era: after the copying · before the grey cover was laid.',
+    markdownZh: `
+# The Whispers' Kings · World Bible · Chapter XIV: The Ones Who Count the Margin
+
+> 誊完以后，人们开始数页边。
+> 页边不属正文，也不属名册；有人数，就有人把纸条夹回去。
+> 本章锚句中英字对齐，不改写、不复述。
+>
+> Once the copying was done, people began to count the margin.
+> The margin belongs neither to the body nor to the register; when one counts, another tucks the slip back.
+> Canon discipline is unchanged — anchor sentences match word-for-word; no rephrasing.
+
+> 纪元：誊写之后 · 灰幕落下之前。
+
+---
+
+## 一 · 第七张纸条
+
+誊好的账簿放在木面上，边角压平。账簿的守护者没有翻开它。他先把一张空白的纸折成四折，放进账簿与封面之间的缝隙。那地方不属正文，也不属名册。
+
+灯下的人看着那道缝隙。它很窄，纸放进去以后看不出多出什么。有人伸手去摸，只摸到封皮的边缘。账簿的守护者没有解释这张纸是做什么用的。他只是把它放进去，然后坐回灯下。
+
+第二张纸条是守夜人放的。他写了一个数字，没有写名字。第三张来自能背诵潮汐教团往事的孩子，他写下半句话，没有写完。另一个人写了自己记得的页码。每一张都被折成同样的大小，放进同一道缝隙。
+
+没有人说那些纸条算不算账簿的一部分。也没有人把它们按顺序排好。它们挤在封面与第一页之间，像门槛外退不尽的潮线。
+
+**锚句**：页边放得下纸条，放不下名册。
+**Anchor sentence**: the margin holds a slip; it cannot hold a register.
+
+## 二 · 谁数过
+
+最年轻的抄本师数过。他数到第七张就不数了。可他回到座位上，还是在另一张纸上写了一个七。那张纸第二天被最年长的抄本师看见。他看了很久，没有说不可以。
+
+年长的抄本师说，页边是唯一不数的地方。你数了，它就开始排队。排队的地方就不再是页边。年轻的抄本师没有反驳。他把写着七的那张纸夹回那道缝隙，放在所有纸条的中间。
+
+那天以后，仍然有人往页边放纸条。放的人不数，数的人不放。两拨人在同一盏灯下，做相反的事，谁也不劝谁。
+
+**锚句**：放的人不数，数的人不放。
+**Anchor sentence**: those who place do not count; those who count do not place.
+
+## 三 · 纸条上的字
+
+纸条上的字越来越短。第一张什么也没有写。第二张只有一个数。第三张是半句没有结尾的话。后来的纸条上，有人只写了一个地名，有人只写了"仍在"两个字。
+
+能背诵潮汐教团往事的孩子写得最多。他把记得的句子写在纸条上，不连成完整的故事。某句话缺了半行，他便让半行留着。写完以后他把纸条折好，放进缝隙，退半步站着，看它被压住一半。
+
+账簿的守护者从不写纸条。他只是每次经过木面时，用手背轻轻挡一下封皮，像替那道缝隙留出地方。他的手从不伸进去。他没有说过那些纸条该在什么时候被取走。
+
+**锚句**：纸条越写越短，没有人让它更长。
+**Anchor sentence**: the slips grew shorter, and nobody asked them to be longer.
+
+## 四 · 一页不数
+
+有一页始终没有被数过。那是七口井对应的一页。整页受了水，字迹没有留下可以确认的部分。纸还在，页码也在。灯下没有一行能照抄的字。
+
+抄账人把那页转过来，又转回去。他没有从旁边的页找词句填进去。他也没有把它夹进页边。那一页留在账簿里，空白朝着灯，像在等一个不会来的数字。
+
+守夜人站在门槛旁看那一页。他什么也没有说。孩子也没有念往事。灯照着空白的纸面，咸壳笔放在原处，没人拿它。
+
+**锚句**：有一页不数，因为它本来就没有字。
+**Anchor sentence**: one page is not counted, because it never had characters.
+
+## 五 · 数与不数之间
+
+日子久了，页边有了自己的次序。不是谁排的——放得多的纸条压在底下，放得少的浮在上面。有人想按时间分，发现每张纸条都没有日期。有人想按长短分，发现后来的纸条几乎一样短。
+
+年长的抄本师不再看那些纸条。他只是每次收工时，把封皮合上一半，让那道缝隙留着。他说，数得清的地方是账，数不清的地方是页边。账簿要誊完，页边不要。
+
+灯下的人渐渐分成两种。一种人等账簿完整，一种人等页边更满。两种人等的是不同的东西，却都在同一盏灯下坐着。
+
+**锚句**：账簿要誊完，页边不要。
+**Anchor sentence**: the ledger must be finished copying; the margin must not.
+
+## 六 · 灰幕落下之前
+
+灰幕落下的前一天，页边已经很满了。账簿的守护者把最后一张纸条放进去，没有折。那是他第一次放纸条，也是唯一一次。纸条上写着账簿最后一页的页码。
+
+他没有写那一页上有什么。他只写了页码，然后把纸条压在所有的纸条底下。做完以后他坐回灯下，像过去的每一天一样。
+
+第二天灰幕落下。灯没有挪开。账簿留在木面上，页边留在封面与第一页之间。没有人来数过那些纸条，也没有人把它们取走。
+
+**锚句**：灰幕落下时，页边是满的。
+**Anchor sentence**: when the grey cover fell, the margin was full.
+
+---
+
+## 锚点对照（lore match）
+
+| 维度 | 锚定 | 关联章 |
+|---|---|---|
+| lore | 誊写之后的页边 · 数与不数的分工 | 《誊写》《潮来的时候》 |
+| geography | 汐台 · 七口井（《誊写》同场） | 本章 |
+| factions | 潮汐教团 | 往事 |
+| characters | 守夜人 · 账簿的守护者 · 抄账人 · 能背诵潮汐教团往事的孩子 · 最年轻与最年长的抄本师 | 本章 |
+| items | 账簿 · 咸壳笔 · 纸条 · 封面缝隙 · 页码 | 本章 |
+| story | 页边的形成 · 第十四章 | 全篇 |
+| history | 纪元切割线 · 灰幕之前 | 本章 |
+
+> 潮来无一人说话，潮退人开始誊账；誊完以后，人才开始往页边放纸条。
+> When the tide came, no one spoke; when it withdrew, everyone began to copy; only once the copying was done did anyone start placing slips in the margin.
+`,
+    markdownEn: `
+# 低语诸王 · 世界大典 · 第十四章「数页边的人」
+
+> Once the copying was done, people began to count the margin.
+> The margin belongs neither to the body nor to the register; when one counts, another tucks the slip back.
+> Canon discipline is unchanged — anchor sentences match word-for-word; no rephrasing.
+>
+> 誊完以后，人们开始数页边。
+> 页边不属正文，也不属名册；有人数，就有人把纸条夹回去。
+> 本章锚句中英字对齐，不改写、不复述。
+
+> Era: after the copying · before the grey cover was laid.
+
+---
+
+## One · The Seventh Slip
+
+The copied ledger lay flat on the wood. Its keeper did not open it. He first folded a blank sheet into quarters and slipped it into the gap between the ledger and its cover — a place that belonged neither to the body nor to the register.
+
+Those under the lamp watched the gap. It was narrow; once the sheet was inside, nothing looked added. Someone reached to feel it and found only the edge of the cover. The keeper did not explain what the sheet was for. He only put it in, then sat back down under the lamp.
+
+The second slip was placed by the night keeper. He wrote a number and no name. The third came from the child who could recite the history of the Tide Institute: half a sentence, left unfinished. Another wrote down a page number he remembered. Each slip was folded to the same size and placed into the same gap.
+
+Nobody said whether the slips counted as part of the ledger. Nobody put them in order either. They crowded between the cover and the first page, like the tide line outside the threshold that would not fully withdraw.
+
+**锚句**：页边放得下纸条，放不下名册。
+**Anchor sentence**: the margin holds a slip; it cannot hold a register.
+
+## Two · Who Ever Counted
+
+The youngest copyist had counted. He stopped at the seventh. Yet back at his desk he wrote a seven on another sheet. The next day the eldest copyist saw that paper. He looked at it a long while and did not say it was forbidden.
+
+The elder said the margin was the one place nothing was counted; count it, and it starts to queue. A place that queues is no longer a margin. The youngest did not argue. He tucked the sheet with the seven back into the gap, in among all the other slips.
+
+After that day people still placed slips in the margin. Those who placed did not count; those who counted did not place. The two kinds worked under the same lamp at opposite tasks, and neither persuaded the other.
+
+**锚句**：放的人不数，数的人不放。
+**Anchor sentence**: those who place do not count; those who count do not place.
+
+## Three · The Characters on the Slips
+
+The characters on the slips grew shorter. The first carried nothing. The second carried only a number. The third was half a sentence with no ending. Later slips held no more than a place name, or the two characters for "still here".
+
+The child who could recite the history wrote the most. He put the sentences he remembered on slips, never joining them into a whole story. Where a line was missing its second half, he left the half missing. When he finished he folded the slip, placed it in the gap, stepped back half a pace, and watched it be pressed half out of sight.
+
+The keeper of the ledger never wrote a slip. He only ever passed the wood and, with the back of his hand, held the cover slightly aside — as if making room for the gap. His hand never went in. He never said when the slips should be taken away.
+
+**锚句**：纸条越写越短，没有人让它更长。
+**Anchor sentence**: the slips grew shorter, and nobody asked them to be longer.
+
+## Four · The Page Not Counted
+
+One page was never counted. It was the page for the seventh well. The whole page had taken water; nothing of the characters could be confirmed. The paper remained, and so did the page number. Under the lamp there was not one line that could be copied.
+
+The copyist turned that page over and back. He did not pull phrases from the neighbouring pages to fill it. Nor did he tuck it into the margin. That page stayed in the ledger, its blank face toward the lamp, as though waiting for a number that would never come.
+
+The night keeper stood by the threshold and looked at it. He said nothing. The child did not recite the history either. The lamp lit the empty paper; the salt-shell pen lay where it had been, and nobody picked it up.
+
+**锚句**：有一页不数，因为它本来就没有字。
+**Anchor sentence**: one page is not counted, because it never had characters.
+
+## Five · Between Counting and Not
+
+As the days passed the margin acquired an order of its own. Nobody arranged it — slips placed often sank to the bottom, slips placed rarely rose to the top. Someone tried to sort by time and found no slip carried a date. Someone tried to sort by length and found the later slips were nearly all the same shortness.
+
+The elder copyist no longer looked at the slips. He only ever, at the close of work, shut the cover half way so the gap stayed open. What can be counted is the ledger, he said; what cannot be counted is the margin. The ledger must be finished copying; the margin must not.
+
+The people under the lamp slowly divided into two kinds: those who waited for the ledger to be complete, and those who waited for the margin to be fuller. They waited for different things, and they sat under the same lamp.
+
+**锚句**：账簿要誊完，页边不要。
+**Anchor sentence**: the ledger must be finished copying; the margin must not.
+
+## Six · Before the Grey Cover Fell
+
+The day before the grey cover fell, the margin was already full. The keeper of the ledger placed the last slip and did not fold it. It was the first slip he had ever placed, and the only one. On it was written the page number of the ledger's final page.
+
+He did not write what was on that page. He wrote only the number, then pressed the slip beneath all the others. When he had done it he sat back under the lamp as on every day before.
+
+The next day the grey cover fell. The lamp was not moved. The ledger stayed on the wood; the margin stayed between the cover and the first page. Nobody came to count the slips, and nobody took them away.
+
+**锚句**：灰幕落下时，页边是满的。
+**Anchor sentence**: when the grey cover fell, the margin was full.
+
+---
+
+## 锚点对照（lore match）
+
+| Dimension | Anchoring | Related chapter |
+|---|---|---|
+| lore | the margin after the copying · the division between counting and not | 《誊写》 / The Copying, 《潮来的时候》 / When the Tide Comes |
+| geography | 汐台 · the seven wells (same scene as 《誊写》) | this chapter |
+| factions | 潮汐教团 / the Tide Institute | the history |
+| characters | the night keeper · the keeper of the ledger · the copyist · the child who could recite the history · the youngest and the eldest copyists | this chapter |
+| items | the ledger · the salt-shell pen · the slips · the gap under the cover · the page number | this chapter |
+| story | the forming of the margin · Chapter XIV | throughout |
+| history | the era line · before the grey cover was laid | this chapter |
+
+> When the tide came, no one spoke; when it withdrew, everyone began to copy; only once the copying was done did anyone start placing slips in the margin.
+> 潮来无一人说话，潮退人开始誊账；誊完以后，人才开始往页边放纸条。`,
+  },
 ] as const;
 
 export const BIBLE_ECHOES: readonly BibleChapter[] = [
@@ -28515,6 +28722,7 @@ The fitted forty-second still bore no name, and the copyists carved none.
 
 > 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E209）。
 > Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E209).
+> 页边：这一道不是潮印，是回答。
 
 ---
 
@@ -28586,6 +28794,7 @@ The fitted forty-second still bore no name, and the copyists carved none.
 > Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
 
 > Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E209).
+> Margin: this one is no tide mark, but an answer.
 
 ---
 
@@ -28651,6 +28860,761 @@ The ledger no longer turned itself at night — yet that blank line held a fresh
 > The forty-third is no ending — the blank line remains, so the world is not finished.
 > 第四十三道不是终点——那行空白还在，所以世界没有写完。
 `,
+  },
+  {
+    order: 213,
+    slug: 'echo-213-not-the-forty-fourth',
+    titleZh: '潮候院抄本院抄本师们发现新痕不占第四十四道',
+    titleEn: 'The Copyists Found the Fresh Mark Did Not Sit as the Forty-Fourth',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E212）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E212).',
+    markdownZh: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E212: the blank line under the forty-third held a fresh faint mark by morning — this morning the
+> copyists counted, and found the new mark would not take the forty-fourth place.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E212）。
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E212).
+> 页边：数字是用来数的，这一道不是用来数的。
+
+---
+
+## 一 · 数了一遍又一遍
+
+抄本师们把那道新痕数了一遍又一遍——四十三道仍旧排成一行，新痕却坐在那一行旁边。
+**锚句**：抄本师们把那道新痕数了一遍又一遍——四十三道仍旧排成一行，新痕却坐在那一行旁边。
+**Anchor sentence**: the copyists counted the fresh mark again and again — the forty-three still stood in their row, the fresh mark sat beside that row.
+
+---
+
+## 二 · 不占位置
+
+他们想给它一个位置，可它不占任何位置——数字伸到那里就断了。
+**锚句**：他们想给它一个位置，可它不占任何位置——数字伸到那里就断了。
+**Anchor sentence**: they wanted to give it a place, yet it occupied none — the numbers reached that far and broke off.
+
+---
+
+## 三 · 第二名抄本师的手
+
+第二名抄本师在页边写下"在旁边"三个字，他的手一直在抖。
+**锚句**：第二名抄本师在页边写下"在旁边"三个字，他的手一直在抖。
+**Anchor sentence**: the second copyist wrote "beside" in the margin, and his hand would not stop shaking.
+
+---
+
+## 四 · 册子自己的问题
+
+抄本师们说——册子问的是它自己的问题，回答便落在问题旁边，不是问题后面。
+**锚句**：抄本师们说——册子问的是它自己的问题，回答便落在问题旁边，不是问题后面。
+**Anchor sentence**: the copyists said — the ledger asked its own question, so the answer fell beside the question, not after it.
+
+---
+
+## 五 · 最年长者的批注
+
+最年长的抄本师在页边写——数字是用来数的，这一道不是用来数的。
+**锚句**：最年长的抄本师在页边写——数字是用来数的，这一道不是用来数的。
+**Anchor sentence**: the eldest copyist wrote in the margin — a number is for counting; this one is not to be counted.
+
+---
+
+## 六 · 冬天过去
+
+冬潮月过去了，新痕还在原处，不挪不动；四十三道也还在那一行里。
+**锚句**：冬潮月过去了，新痕还在原处，不挪不动；四十三道也还在那一行里。
+**Anchor sentence**: the winter-tide month passed, and the fresh mark stayed where it was, unmoved; the forty-three stayed in their row.
+
+---
+
+## 七 · Mapping（Echo No. 211 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the fresh mark beside the row · "a number is for counting; this one is not" · the margin note | 一、二、五 |
+| geography | the Institute's copy hall · the winter-tide month ending | 一、六 |
+| characters | the five copyists · the second copyist's shaking hand · the eldest copyist | 三、五 |
+| story | the mark refuses the forty-fourth place · the answer sits beside the question | 全篇 |
+| items | the ledger · the forty-three marks · the fresh mark · the margin | 一、三、五 |
+| history | the 140th year after the 44th Convocation (continues E206–E212) | 纪元 |
+
+> 第四十四道始终空着——不是留给下一道潮印，是留给一个不算数的位置。
+> The forty-fourth stays empty — not kept for the next tide mark, but for a place that is not counted.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E212: the blank line under the forty-third held a fresh faint mark by morning — this morning the
+> copyists counted, and found the new mark would not take the forty-fourth place.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E212).
+> Margin: a number is for counting; this one is not to be counted.
+
+---
+
+## One · Counted Again and Again
+
+The copyists counted the fresh mark again and again — the forty-three still stood in their row, the fresh mark sat beside that row.
+**锚句**：抄本师们把那道新痕数了一遍又一遍——四十三道仍旧排成一行，新痕却坐在那一行旁边。
+**Anchor sentence**: the copyists counted the fresh mark again and again — the forty-three still stood in their row, the fresh mark sat beside that row.
+
+---
+
+## Two · It Occupied No Place
+
+They wanted to give it a place, yet it occupied none — the numbers reached that far and broke off.
+**锚句**：他们想给它一个位置，可它不占任何位置——数字伸到那里就断了。
+**Anchor sentence**: they wanted to give it a place, yet it occupied none — the numbers reached that far and broke off.
+
+---
+
+## Three · The Second Copyist's Hand
+
+The second copyist wrote "beside" in the margin, and his hand would not stop shaking.
+**锚句**：第二名抄本师在页边写下"在旁边"三个字，他的手一直在抖。
+**Anchor sentence**: the second copyist wrote "beside" in the margin, and his hand would not stop shaking.
+
+---
+
+## Four · The Ledger's Own Question
+
+The copyists said — the ledger asked its own question, so the answer fell beside the question, not after it.
+**锚句**：抄本师们说——册子问的是它自己的问题，回答便落在问题旁边，不是问题后面。
+**Anchor sentence**: the copyists said — the ledger asked its own question, so the answer fell beside the question, not after it.
+
+---
+
+## Five · The Eldest's Marginal Note
+
+The eldest copyist wrote in the margin — a number is for counting; this one is not to be counted.
+**锚句**：最年长的抄本师在页边写——数字是用来数的，这一道不是用来数的。
+**Anchor sentence**: the eldest copyist wrote in the margin — a number is for counting; this one is not to be counted.
+
+---
+
+## Six · The Winter Passed
+
+The winter-tide month passed, and the fresh mark stayed where it was, unmoved; the forty-three stayed in their row.
+**锚句**：冬潮月过去了，新痕还在原处，不挪不动；四十三道也还在那一行里。
+**Anchor sentence**: the winter-tide month passed, and the fresh mark stayed where it was, unmoved; the forty-three stayed in their row.
+
+---
+
+## Seven · Mapping（Echo No. 211 · world model）
+
+| Dimension | Value | Sections |
+| --- | --- | --- |
+| lore | the fresh mark beside the row · "a number is for counting; this one is not" · the margin note | I, II, V |
+| geography | the Institute's copy hall · the winter-tide month ending | I, VI |
+| characters | the five copyists · the second copyist's shaking hand · the eldest copyist | III, V |
+| story | the mark refuses the forty-fourth place · the answer sits beside the question | all |
+| items | the ledger · the forty-three marks · the fresh mark · the margin | I, III, V |
+| history | the 140th year after the 44th Convocation (continues E206–E212) | era |
+
+> The forty-fourth stays empty — not kept for the next tide mark, but for a place that is not counted.
+> 第四十四道始终空着——不是留给下一道潮印，是留给一个不算数的位置。
+`,
+  },
+  {
+    order: 214,
+    slug: 'echo-214-not-a-name',
+    titleZh: '抄本师们给那道新痕起了个不是名字的名字',
+    titleEn: 'The Copyists Gave the Fresh Mark a Word That Was Not a Name',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E213）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E213).',
+    markdownZh: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E213: the fresh mark would not take the forty-fourth place, so the eldest wrote in the margin that a number is for counting and this one is not to be counted. This echo asks what they called it instead.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E213）。
+> 页边：名字是给愿意被数的东西用的；它不愿意，那就不给。
+
+---
+
+## 一 · 不起名字
+
+他们决定不给它起名字——起名字就要按名册排，而名册是数出来的。
+**锚句**：他们决定不给它起名字——起名字就要按名册排，而名册是数出来的。
+**Anchor sentence**: they decided not to give it a name — to name a thing is to file it in the register, and the register is a count.
+
+---
+
+## 二 · 三个字
+
+他们在页边写了三个字：不数者。写完谁都没念出声。
+**锚句**：他们在页边写了三个字：不数者。写完谁都没念出声。
+**Anchor sentence**: in the margin they wrote three characters: the uncounted. Nobody read them aloud.
+
+---
+
+## 三 · 谁先看见
+
+抄本院里一共五个抄本师。第一个看见那三个字的没有问是谁写的——册子里的字从来不问出处。
+**锚句**：抄本院里一共五个抄本师。第一个看见那三个字的没有问是谁写的——册子里的字从来不问出处。
+**Anchor sentence**: the first copyist to see those three characters did not ask who wrote them — words in the ledger never ask where they came from.
+
+---
+
+## 四 · 传下去
+
+后来每个抄本师路过那一页，都会停下来看一眼那三个字，然后什么也不做。
+**锚句**：后来每个抄本师路过那一页，都会停下来看一眼那三个字，然后什么也不做。
+**Anchor sentence**: afterwards every copyist passing that page stopped to look at the three characters, and then did nothing at all.
+
+---
+
+## 五 · 最年长者的话
+
+最年长的抄本师说——名字是给愿意被数的东西用的；它不愿意，那就不给。
+**锚句**：最年长的抄本师说——名字是给愿意被数的东西用的；它不愿意，那就不给。
+**Anchor sentence**: the eldest copyist said — a name is for a thing willing to be counted; it is not willing, so it gets none.
+
+---
+
+## 六 · 还在那里
+
+冬潮月过完，那三个字还在页边，新痕还在原处，一行四十三道还在那一行里。
+**锚句**：冬潮月过完，那三个字还在页边，新痕还在原处，一行四十三道还在那一行里。
+**Anchor sentence**: when the winter-tide month ended, the three characters were still in the margin, the fresh mark still where it was, the forty-three still in their row.
+
+---
+
+## 七 · Mapping（Echo No. 212 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the uncounted · a name is for a thing willing to be counted · the margin as the only place it lives | 一、二、五 |
+| geography | the Institute's copy hall · the winter-tide month ending | 三、六 |
+| characters | the five copyists · the first to see the characters · the eldest copyist | 三、四、五 |
+| story | the mark gets a word that is not a name, and nothing is filed | 全篇 |
+| items | the ledger · the margin · the three characters · the forty-three | 二、六 |
+| history | the 140th year after the 44th Convocation (continues E206–E213) | 纪元 |
+
+> 名字之外还有位置——页边那一角从不数，所以它装得下任何不肯被数的东西。
+> There is room outside a name — the margin is never counted, so it holds anything that refuses to be.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E213: the fresh mark would not take the forty-fourth place, so the eldest wrote in the margin that a number is for counting and this one is not to be counted. This echo asks what they called it instead.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E213).
+> Margin: a name is for a thing willing to be counted; it is not willing, so it gets none.
+
+---
+
+## One · No Name
+
+They decided not to give it a name — to name a thing is to file it in the register, and the register is a count.
+**锚句**：他们决定不给它起名字——起名字就要按名册排，而名册是数出来的。
+**Anchor sentence**: they decided not to give it a name — to name a thing is to file it in the register, and the register is a count.
+
+---
+
+## Two · Three Characters
+
+In the margin they wrote three characters: the uncounted. Nobody read them aloud.
+**锚句**：他们在页边写了三个字：不数者。写完谁都没念出声。
+**Anchor sentence**: in the margin they wrote three characters: the uncounted. Nobody read them aloud.
+
+---
+
+## Three · The First to See
+
+There were five copyists in the hall. The first to see those three characters did not ask who wrote them — words in the ledger never ask where they came from.
+**锚句**：第一个看见那三个字的抄本师没有问是谁写的——册子里的字从来不问出处。
+**Anchor sentence**: there were five copyists in the hall. the first to see those three characters did not ask who wrote them — words in the ledger never ask where they came from.
+
+---
+
+## Four · Passed On
+
+Afterwards every copyist passing that page stopped to look at the three characters, and then did nothing at all.
+**锚句**：后来每个抄本师路过那一页，都会停下来看一眼那三个字，然后什么也不做。
+**Anchor sentence**: afterwards every copyist passing that page stopped to look at the three characters, and then did nothing at all.
+
+---
+
+## Five · The Eldest's Words
+
+The eldest copyist said — a name is for a thing willing to be counted; it is not willing, so it gets none.
+**锚句**：最年长的抄本师说——名字是给愿意被数的东西用的；它不愿意，那就不给。
+**Anchor sentence**: the eldest copyist said — a name is for a thing willing to be counted; it is not willing, so it gets none.
+
+---
+
+## Six · Still There
+
+When the winter-tide month ended, the three characters were still in the margin, the fresh mark still where it was, the forty-three still in their row.
+**锚句**：冬潮月过完，那三个字还在页边，新痕还在原处，一行四十三道还在那一行里。
+**Anchor sentence**: when the winter-tide month ended, the three characters were still in the margin, the fresh mark still where it was, the forty-three still in their row.
+
+---
+
+## Seven · Mapping（Echo No. 212 · world model）
+
+| Dimension | Value | Sections |
+| --- | --- | --- |
+| lore | the uncounted · a name is for a thing willing to be counted · the margin as the only place it lives | I, II, V |
+| geography | the Institute's copy hall · the winter-tide month ending | III, VI |
+| characters | the five copyists · the first to see the characters · the eldest copyist | III, IV, V |
+| story | the mark gets a word that is not a name, and nothing is filed | all |
+| items | the ledger · the margin · the three characters · the forty-three | II, VI |
+| history | the 140th year after the 44th Convocation (continues E206–E213) | era |
+
+> There is room outside a name — the margin is never counted, so it holds anything that refuses to be.
+> 名字之外还有位置——页边那一角从不数，所以它装得下任何不肯被数的东西。
+`,
+  },
+  {
+    order: 215,
+    slug: 'echo-215-counting-the-margin',
+    titleZh: '有人开始数页边',
+    titleEn: 'Somebody Started Counting the Margin',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E214）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E214).',
+    markdownZh: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E214: the copyists refused to name the mark and wrote three characters in the margin instead. This echo is about the first person to count the margin.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E214）。
+> 页边：页边是唯一不数的地方；你数了，它就开始排队。
+
+---
+
+## 一 · 年轻的抄本师
+
+最年轻的那个抄本师数了页边——一、二、三，数到第七就不数了。
+**锚句**：最年轻的那个抄本师数了页边——一、二、三，数到第七就不数了。
+**Anchor sentence**: the youngest copyist counted the margin — one, two, three, and stopped at seven.
+
+---
+
+## 二 · 写下来
+
+可他回到座位上，还是在纸上写了一个七。
+**锚句**：可他回到座位上，还是在纸上写了一个七。
+**Anchor sentence**: yet back at his desk he wrote down a seven.
+
+---
+
+## 三 · 被看见
+
+那张纸第二天被最年长的抄本师看见，他看了很久。
+**锚句**：那张纸第二天被最年长的抄本师看见，他看了很久。
+**Anchor sentence**: the next day the eldest copyist saw that paper, and looked at it for a long while.
+
+---
+
+## 四 · 最年长者的话
+
+最年长的抄本师说——页边是唯一不数的地方；你数了，它就开始排队。
+**锚句**：最年长的抄本师说——页边是唯一不数的地方；你数了，它就开始排队。
+**Anchor sentence**: the eldest copyist said — the margin is the one place nothing is counted; count it, and it starts to queue.
+
+---
+
+## 五 · 纸条的去处
+
+那张纸条没有烧掉，也没有抄进册子——被夹进了那一页的页边。
+**锚句**：那张纸条没有烧掉，也没有抄进册子——被夹进了那一页的页边。
+**Anchor sentence**: the slip was neither burned nor copied into the ledger — it was tucked into that page's margin.
+
+---
+
+## 六 · 第八条
+
+后来页边又多了一条，没有人说那是第八条。
+**锚句**：后来页边又多了一条，没有人说那是第八条。
+**Anchor sentence**: afterwards one more line appeared in the margin, and nobody called it the eighth.
+
+---
+
+## 七 · Mapping（Echo No. 213 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | counting the margin makes it queue · the seventh nobody finished counting · the slip kept in the margin | 一、二、四 |
+| geography | the Institute's copy hall · the winter-tide month | 一、三 |
+| characters | the youngest copyist · the eldest copyist · the five copyists | 一、三、四 |
+| story | the one uncounted place gets counted, and quietly refuses the count | 全篇 |
+| items | the margin · the slip with a seven · the ledger | 二、五 |
+| history | the 140th year after the 44th Convocation (continues E206–E214) | 纪元 |
+
+> 不数的地方不是没有人想数——是每一次有人想数，都有人把纸条夹回页边。
+> The uncounted place is not one nobody wants to count — it is one where every time somebody tries, the slip goes back into the margin.`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E214: the copyists refused to name the mark and wrote three characters in the margin instead. This echo is about the first person to count the margin.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E214).
+> Margin: the margin is the one place nothing is counted; count it, and it starts to queue.
+
+---
+
+## One · The Youngest Copyist
+
+The youngest copyist counted the margin — one, two, three, and stopped at seven.
+**锚句**：最年轻的那个抄本师数了页边——一、二、三，数到第七就不数了。
+**Anchor sentence**: the youngest copyist counted the margin — one, two, three, and stopped at seven.
+
+---
+
+## Two · Written Down
+
+Yet back at his desk he wrote down a seven.
+**锚句**：可他回到座位上，还是在纸上写了一个七。
+**Anchor sentence**: yet back at his desk he wrote down a seven.
+
+---
+
+## Three · Seen
+
+The next day the eldest copyist saw that paper, and looked at it for a long while.
+**锚句**：那张纸第二天被最年长的抄本师看见，他看了很久。
+**Anchor sentence**: the next day the eldest copyist saw that paper, and looked at it for a long while.
+
+---
+
+## Four · The Eldest's Words
+
+The eldest copyist said — the margin is the one place nothing is counted; count it, and it starts to queue.
+**锚句**：最年长的抄本师说——页边是唯一不数的地方；你数了，它就开始排队。
+**Anchor sentence**: the eldest copyist said — the margin is the one place nothing is counted; count it, and it starts to queue.
+
+---
+
+## Five · Where the Slip Went
+
+The slip was neither burned nor copied into the ledger — it was tucked into that page's margin.
+**锚句**：那张纸条没有烧掉，也没有抄进册子——被夹进了那一页的页边。
+**Anchor sentence**: the slip was neither burned nor copied into the ledger — it was tucked into that page's margin.
+
+---
+
+## Six · The Eighth
+
+Afterwards one more line appeared in the margin, and nobody called it the eighth.
+**锚句**：后来页边又多了一条，没有人说那是第八条。
+**Anchor sentence**: afterwards one more line appeared in the margin, and nobody called it the eighth.
+
+---
+
+## Seven · Mapping（Echo No. 213 · world model）
+
+| Dimension | Value | Sections |
+| --- | --- | --- |
+| lore | counting the margin makes it queue · the seventh nobody finished counting · the slip kept in the margin | I, II, IV |
+| geography | the Institute's copy hall · the winter-tide month | I, III |
+| characters | the youngest copyist · the eldest copyist · the five copyists | I, III, IV |
+| story | the one uncounted place gets counted, and quietly refuses the count | all |
+| items | the margin · the slip with a seven · the ledger | II, V |
+| history | the 140th year after the 44th Convocation (continues E206–E214) | era |
+
+> The uncounted place is not one nobody wants to count — it is one where every time somebody tries, the slip goes back into the margin.
+> 不数的地方不是没有人想数——是每一次有人想数，都有人把纸条夹回页边。`,
+  },
+  {
+    order: 216,
+    slug: 'echo-216-the-margin-sorts-itself',
+    titleZh: '页边开始按长短排',
+    titleEn: 'The Margin Began to Sort Itself by Length',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E215）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E215).',
+    markdownZh: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E215: the youngest copyist counted the margin and tucked the seven back in; nobody called the new line the eighth. This echo is about the order the margin found on its own.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E215）。
+> 页边：页边自己会长出次序——不是谁排的。
+
+---
+
+## 一 · 谁排的
+
+没有人排过页边。可放得多的纸条压在底下，放得少的浮在上面。
+**锚句**：没有人排过页边。可放得多的纸条压在底下，放得少的浮在上面。
+**Anchor sentence**: nobody ever arranged the margin. Yet slips placed often sank to the bottom, slips placed rarely rose to the top.
+
+---
+
+## 二 · 想按时间分
+
+有人想按时间分，发现每张纸条都没有日期。
+**锚句**：有人想按时间分，发现每张纸条都没有日期。
+**Anchor sentence**: someone tried to sort by time and found no slip carried a date.
+
+---
+
+## 三 · 想按长短分
+
+有人想按长短分，发现后来的纸条几乎一样短。
+**锚句**：有人想按长短分，发现后来的纸条几乎一样短。
+**Anchor sentence**: someone tried to sort by length and found the later slips were nearly all the same shortness.
+
+---
+
+## 四 · 半句的位置
+
+写半句话的那张纸条总在中间。它既不是最短，也不是最长，像一行没有写完的记号。
+**锚句**：写半句话的那张纸条总在中间。它既不是最短，也不是最长，像一行没有写完的记号。
+**Anchor sentence**: the slip with half a sentence always sat in the middle — neither the shortest nor the longest, like a mark left half written.
+
+---
+
+## 五 · 最年长者不再看
+
+最年长的抄本师不再看那些纸条。他只是每次收工时，把封皮合上一半，让那道缝隙留着。
+**锚句**：最年长的抄本师不再看那些纸条。他只是每次收工时，把封皮合上一半，让那道缝隙留着。
+**Anchor sentence**: the eldest copyist no longer looked at the slips. He only ever, at the close of work, shut the cover half way so the gap stayed open.
+
+---
+
+## 六 · 两种人等
+
+灯下的人渐渐分成两种。一种人等账簿完整，一种人等页边更满。
+**锚句**：灯下的人渐渐分成两种。一种人等账簿完整，一种人等页边更满。
+**Anchor sentence**: the people under the lamp slowly divided into two kinds — those who waited for the ledger to be complete, and those who waited for the margin to be fuller.
+
+---
+
+## 七 · Mapping（Echo No. 214 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the margin's own order · no date, no length · two kinds of waiting | 一、二、三、六 |
+| geography | the Institute's copy hall · the winter-tide month | 一、五 |
+| characters | the five copyists · the eldest copyist · the child with half sentences | 四、五 |
+| story | the margin acquires an order nobody arranged | 全篇 |
+| items | the slips · the cover gap · the ledger | 一、五 |
+| history | the 140th year after the 44th Convocation (continues E206–E215) | 纪元 |
+
+> 页边自己会长出次序——不是谁排的，是放的人多了，轻的自然浮上来。
+> The margin grows an order of its own — not arranged by anyone, only that as more slips are placed, the light ones rise.`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E215: the youngest copyist counted the margin and tucked the seven back in; nobody called the new line the eighth. This echo is about the order the margin found on its own.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E215).
+> Margin: the margin grows an order of its own — not arranged by anyone.
+
+---
+
+## One · Who Arranged It
+
+Nobody ever arranged the margin. Yet slips placed often sank to the bottom, slips placed rarely rose to the top.
+**锚句**：没有人排过页边。可放得多的纸条压在底下，放得少的浮在上面。
+**Anchor sentence**: nobody ever arranged the margin. Yet slips placed often sank to the bottom, slips placed rarely rose to the top.
+
+---
+
+## Two · Sorting by Time
+
+Someone tried to sort by time and found no slip carried a date.
+**锚句**：有人想按时间分，发现每张纸条都没有日期。
+**Anchor sentence**: someone tried to sort by time and found no slip carried a date.
+
+---
+
+## Three · Sorting by Length
+
+Someone tried to sort by length and found the later slips were nearly all the same shortness.
+**锚句**：有人想按长短分，发现后来的纸条几乎一样短。
+**Anchor sentence**: someone tried to sort by length and found the later slips were nearly all the same shortness.
+
+---
+
+## Four · Where the Half Line Sits
+
+The slip with half a sentence always sat in the middle — neither the shortest nor the longest, like a mark left half written.
+**锚句**：写半句话的那张纸条总在中间。它既不是最短，也不是最长，像一行没有写完的记号。
+**Anchor sentence**: the slip with half a sentence always sat in the middle — neither the shortest nor the longest, like a mark left half written.
+
+---
+
+## Five · The Eldest Stopped Looking
+
+The eldest copyist no longer looked at the slips. He only ever, at the close of work, shut the cover half way so the gap stayed open.
+**锚句**：最年长的抄本师不再看那些纸条。他只是每次收工时，把封皮合上一半，让那道缝隙留着。
+**Anchor sentence**: the eldest copyist no longer looked at the slips. He only ever, at the close of work, shut the cover half way so the gap stayed open.
+
+---
+
+## Six · Two Kinds of Waiting
+
+The people under the lamp slowly divided into two kinds — those who waited for the ledger to be complete, and those who waited for the margin to be fuller.
+**锚句**：灯下的人渐渐分成两种。一种人等账簿完整，一种人等页边更满。
+**Anchor sentence**: the people under the lamp slowly divided into two kinds — those who waited for the ledger to be complete, and those who waited for the margin to be fuller.
+
+---
+
+## Seven · Mapping（Echo No. 214 · world model）
+
+| Dimension | Value | Sections |
+| --- | --- | --- |
+| lore | the margin's own order · no date, no length · two kinds of waiting | I, II, III, VI |
+| geography | the Institute's copy hall · the winter-tide month | I, V |
+| characters | the five copyists · the eldest copyist · the child with half sentences | IV, V |
+| story | the margin acquires an order nobody arranged | all |
+| items | the slips · the cover gap · the ledger | I, V |
+| history | the 140th year after the 44th Convocation (continues E206–E215) | era |
+
+> The margin grows an order of its own — not arranged by anyone, only that as more slips are placed, the light ones rise.
+> 页边自己会长出次序——不是谁排的，是放的人多了，轻的自然浮上来。`,
+  },
+  {
+    order: 217,
+    slug: 'echo-217-taking-one-out',
+    titleZh: '有人从页边取走了一张',
+    titleEn: 'Somebody Took One Out of the Margin',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E216）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E216).',
+    markdownZh: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E216: the margin acquired an order nobody arranged — slips placed often sank, slips placed rarely rose. This echo is about the first slip anybody took back out.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E216）。
+
+---
+
+## 一 · 取走的人
+
+取走纸条的是那个写半句话的孩子。他把它从缝隙里抽出来，抽得很慢。
+**锚句**：取走纸条的是那个写半句话的孩子。他把它从缝隙里抽出来，抽得很慢。
+**Anchor sentence**: the one who took a slip out was the child who wrote half sentences. He drew it out of the gap, slowly.
+
+---
+
+## 二 · 补全
+
+他把那半句补完了。补完以后，他把纸条放回原处，位置一点没动。
+**锚句**：他把那半句补完了。补完以后，他把纸条放回原处，位置一点没动。
+**Anchor sentence**: he finished the half sentence. When it was finished he put the slip back where it had been, and its place had not moved at all.
+
+---
+
+## 三 · 看见了
+
+第二天有人看见了那张纸条，问是谁补的。没有人回答。
+**锚句**：第二天有人看见了那张纸条，问是谁补的。没有人回答。
+**Anchor sentence**: the next day somebody saw that slip and asked who had finished it. Nobody answered.
+
+---
+
+## 四 · 最年长者的话
+
+最年长的抄本师说——取出来可以，放回去要轻；页边不记谁动过它。
+**锚句**：最年长的抄本师说——取出来可以，放回去要轻；页边不记谁动过它。
+**Anchor sentence**: the eldest copyist said — you may take one out; put it back lightly. The margin does not record who touched it.
+
+---
+
+## 五 · 第二张
+
+后来又有人取走过一张。那一张没有补全，也没有放回原处——它被留在了木面上。
+**锚句**：后来又有人取走过一张。那一张没有补全，也没有放回原处——它被留在了木面上。
+**Anchor sentence**: afterwards somebody took out another slip. That one was not finished, nor put back where it had been — it was left lying on the wood.
+
+---
+
+## 六 · 木面上的那张
+
+木面上的那张没有人收。它在那儿放了一夜，第二天早上还在那儿，位置偏了一线。
+**锚句**：木面上的那张没有人收。它在那儿放了一夜，第二天早上还在那儿，位置偏了一线。
+**Anchor sentence**: nobody picked up the slip on the wood. It lay there all night, and in the morning it was still there, its place shifted by a hair.
+
+---
+
+## 七 · Mapping（Echo No. 215 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | take one out, put it back lightly · the margin records no toucher · the slip left on the wood | 一、四、五 |
+| geography | the Institute's copy hall · the winter-tide month | 一、六 |
+| characters | the child with half sentences · the five copyists · the eldest copyist | 一、三、四 |
+| story | the first slip leaves the margin and returns; the second does not | 全篇 |
+| items | the slips · the cover gap · the wood surface | 二、五、六 |
+| history | the 140th year after the 44th Convocation (continues E206–E216) | 纪元 |
+
+> 页边不记谁动过它——所以取出来再放回去，才算真的没动过。
+> The margin does not record who touched it — so only taking one out and putting it back counts as not having touched it at all.`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E216: the margin acquired an order nobody arranged — slips placed often sank, slips placed rarely rose. This echo is about the first slip anybody took back out.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E216).
+
+---
+
+## One · Who Took It
+
+The one who took a slip out was the child who wrote half sentences. He drew it out of the gap, slowly.
+**锚句**：取走纸条的是那个写半句话的孩子。他把它从缝隙里抽出来，抽得很慢。
+**Anchor sentence**: the one who took a slip out was the child who wrote half sentences. He drew it out of the gap, slowly.
+
+---
+
+## Two · Finishing It
+
+He finished the half sentence. When it was finished he put the slip back where it had been, and its place had not moved at all.
+**锚句**：他把那半句补完了。补完以后，他把纸条放回原处，位置一点没动。
+**Anchor sentence**: he finished the half sentence. When it was finished he put the slip back where it had been, and its place had not moved at all.
+
+---
+
+## Three · Seen
+
+The next day somebody saw that slip and asked who had finished it. Nobody answered.
+**锚句**：第二天有人看见了那张纸条，问是谁补的。没有人回答。
+**Anchor sentence**: the next day somebody saw that slip and asked who had finished it. Nobody answered.
+
+---
+
+## Four · The Eldest's Words
+
+The eldest copyist said — you may take one out; put it back lightly. The margin does not record who touched it.
+**锚句**：最年长的抄本师说——取出来可以，放回去要轻；页边不记谁动过它。
+**Anchor sentence**: the eldest copyist said — you may take one out; put it back lightly. The margin does not record who touched it.
+
+---
+
+## Five · The Second Slip
+
+Afterwards somebody took out another slip. That one was not finished, nor put back where it had been — it was left lying on the wood.
+**锚句**：后来又有人取走过一张。那一张没有补全，也没有放回原处——它被留在了木面上。
+**Anchor sentence**: afterwards somebody took out another slip. That one was not finished, nor put back where it had been — it was left lying on the wood.
+
+---
+
+## Six · The Slip on the Wood
+
+Nobody picked up the slip on the wood. It lay there all night, and in the morning it was still there, its place shifted by a hair.
+**锚句**：木面上的那张没有人收。它在那儿放了一夜，第二天早上还在那儿，位置偏了一线。
+**Anchor sentence**: nobody picked up the slip on the wood. It lay there all night, and in the morning it was still there, its place shifted by a hair.
+
+---
+
+## Seven · Mapping（Echo No. 215 · world model）
+
+| Dimension | Value | Sections |
+| --- | --- | --- |
+| lore | take one out, put it back lightly · the margin records no toucher · the slip left on the wood | I, IV, V |
+| geography | the Institute's copy hall · the winter-tide month | I, VI |
+| characters | the child with half sentences · the five copyists · the eldest copyist | I, III, IV |
+| story | the first slip leaves the margin and returns; the second does not | all |
+| items | the slips · the cover gap · the wood surface | II, V, VI |
+| history | the 140th year after the 44th Convocation (continues E206–E216) | era |
+
+> The margin does not record who touched it — so only taking one out and putting it back counts as not having touched it at all.
+> 页边不记谁动过它——所以取出来再放回去，才算真的没动过。`,
   },
   {
     order: 22,

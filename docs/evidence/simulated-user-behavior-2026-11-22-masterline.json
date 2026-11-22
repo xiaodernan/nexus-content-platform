@@ -1,0 +1,53 @@
+{
+  "generated_at": "2026-11-21T19:08:41.079Z",
+  "sessions_planned": 24,
+  "sessions_done": 20,
+  "hits_total": 75,
+  "ok": 75,
+  "errors": 0,
+  "ms": {
+    "p50": 972,
+    "p95": 5846,
+    "p99": 6062,
+    "max": 6062
+  },
+  "byPersona": {
+    "impatient": {
+      "sessions": 4,
+      "hits": 8,
+      "errors": 0,
+      "p50": 5846,
+      "p95": 6062
+    },
+    "rage-clicker": {
+      "sessions": 4,
+      "hits": 23,
+      "errors": 0,
+      "p50": 801,
+      "p95": 2088
+    },
+    "lost-wanderer": {
+      "sessions": 4,
+      "hits": 16,
+      "errors": 0,
+      "p50": 1286,
+      "p95": 1886
+    },
+    "deep-reader": {
+      "sessions": 4,
+      "hits": 12,
+      "errors": 0,
+      "p50": 758,
+      "p95": 1379
+    },
+    "bot-ish": {
+      "sessions": 4,
+      "hits": 16,
+      "errors": 0,
+      "p50": 763,
+      "p95": 3160
+    }
+  },
+  "errorHits": [],
+  "note": "synthetic traffic from scripts/simulate-user-behavior.mts; seeded deterministically; not real users; dev path, not SLA"
+}
