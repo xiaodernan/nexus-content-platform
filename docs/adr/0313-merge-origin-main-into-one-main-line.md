@@ -90,10 +90,23 @@ C. **采用**：一次三方合并落地，冲突逐文件判侧或取并集，�
    处置：本次合并**只吃 `origin/main`**——`master..local-clone/main` 那 137 个提交要在这一版
    落地并全树复测之后，单独再来一次同样的流程（解冲突 → 重导生成物 → 重跑门），
    不与本批混成一个没人能复核的巨型提交。P1 在那次合并之后才算完。
-   那一次的冲突面已经用只读的 `git merge-tree --write-tree`（不动索引、不动工作树）量过：
-   **4 个文件**——`globals.css`、`observer-deepread-visual-style.test.ts`（两处内容冲突，同一套并集 + 显式重钉纪律）、
-   `docs/ROADMAP.md`（两边各自追加，都留）与 `.scratch/gateway-rate-lua-live/readings.json`（**add/add**）。
-   最后那一份要写清楚再动：两侧各是一轮**真跑**的读数（本线 2026-11-19 `runId=mwnqcmbn-57220`、
+   那一次的冲突面在**本合并落地之后重量**（`git merge-tree --write-tree`，只读、不动索引也不动工作树）：
+   **16 个文件**——`apps/ai-service/src/ai_service/canon_digest.{sha256,txt}`、
+   `apps/web/src/world-bible/generated.ts`、`scripts/gen-bible-snapshot.mts`、`docs/showcase/latest.json`
+   （这一族与本文决定 2 完全同形：生成物不手解，落地后重导）、
+   `apps/web/src/app/globals.css` 与 `apps/web/src/lib/guideCopy.ts`（取并集，同决定 3-4）、
+   五份字节钉/行为测试 `bible-visual-style` / `bible-ask-behavior` / `canon-answer-graph` /
+   `observer-deepread-visual-style` / `search-page-visual-style`（同一套显式重钉纪律，逐条判真假）、
+   `docs/ROADMAP.md` 与 `docs/CURRENT-STATE.md`（两边各自追加，按日期序都留）、
+   `docs/evidence/simulated-user-behavior-2026-11-22.md`（就是本文「后果」里那条 md/json 数字不一致）、
+   以及 `.scratch/gateway-rate-lua-live/readings.json`（**add/add**）。
+   本批落地前曾按并线前的 `master` 量到 **4 个文件**，那个数已经过期：`local-clone/main` 现在相对
+   新 `master` 只剩 **43 个独有提交、落后 10 个**（原本是 137 / 9），冲突面也因此从 4 长成 16——
+   派生计数随参照点移动，规划要用**当下重算**的那一份。更要紧的是**它是一条活的线**：
+   本文写完几分钟后再次 `git fetch local-clone`，它已从 `6218077d` 推进到 `11efbc1c`
+   （独有提交 43 → **45**，它自己的工作树还有 16 个未提交路径）。所以第二次并线的动手条件是
+   「fetch 之后当场重量 ahead/behind 与 merge-tree 冲突面」，任何写进文档的数都只是那一刻的快照。
+   那份 add/add 的 `readings.json` 要写清楚再动：两侧各是一轮**真跑**的读数（本线 2026-11-19 `runId=mwnqcmbn-57220`、
    它线 2026-11-09 `runId=mw9lz2cl-30360`，同一枚 `luaSha256=8db0f4043dd7`），
    而本线原名那个路径被 **9 份文档**点名（`CURRENT-STATE`、台账 0016、`ROADMAP`、ADR 0307、
    `evidence/stress-2026-11-19.md` 等），`doc-evidence` 逐字节比的就是这个名字——
