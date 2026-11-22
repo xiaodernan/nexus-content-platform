@@ -100,7 +100,11 @@ C. **采用**：一次三方合并落地，冲突逐文件判侧或取并集，�
    `docs/ROADMAP.md` 与 `docs/CURRENT-STATE.md`（两边各自追加，按日期序都留）、
    `docs/evidence/simulated-user-behavior-2026-11-22.md`（就是本文「后果」里那条 md/json 数字不一致）、
    以及 `.scratch/gateway-rate-lua-live/readings.json`（**add/add**）。
-   本批落地前曾按并线前的 `master` 量到 **4 个文件**，那个数已经过期：`local-clone/main` 现在相对
+   本批落地前曾记过「冲突面 = 4 个文件」，那个数是**两个错因叠出来的**：一是读法错——
+   当时把 `git merge-tree` 的输出接了 `tail -20`，被切掉的正是字母序在前的 `.scratch/**` 与
+   `apps/ai-service/**` 那几条（枚举本身就是发现时，必须写文件再 `grep -c`，不能 head/tail）；
+   二是参照点动了——按并线前的 `master` 量本来就和按 `d2ed638c` 量不是同一件事。
+   `local-clone/main` 现在相对
    新 `master` 只剩 **43 个独有提交、落后 10 个**（原本是 137 / 9），冲突面也因此从 4 长成 16——
    派生计数随参照点移动，规划要用**当下重算**的那一份。更要紧的是**它是一条活的线**：
    本文写完几分钟后再次 `git fetch local-clone`，它已从 `6218077d` 推进到 `11efbc1c`
