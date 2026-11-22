@@ -56,8 +56,10 @@ C. 抽成 domain 纯函数 + API 路由 + 管理台页面。采用。
   （脚本入口，domain 与产品共用），`gpt-6.2-sol` 返回结构化评审——A 无明确疑似新专名、
   B 未见可据索引判定的冲突、C 指出一条与既有锚句「纸条越写越短，没有人让它更长」主题相近
   但非逐字撞句、D「可按现状通过」；`tokensIn=24348 / tokensOut=361`。
-- **HTTP 路由层未做端到端**：鉴权（role=admin）、限流（10/10min）、JSON 契约只在单元/静态门里
-  验过；要真跑需要登录 role=admin 的会话 + 本地 ai-service，本轮未做，不冒充已测。
+- **HTTP 路由层有行为门**（`test/canon-review-route.test.ts`，进程内真 route + mock 三接缝
+  session/provider/rate-limiter）：未登录 401、非 admin 403、合法 200 且 system/user/modelClass/
+  cacheLane 正确透传、太短 400、超上限 400、kind 白名单 400、provider 不可用 503 如实回、
+  第 11 次 429。**仍未起真服务器 + 真 admin 会话做端到端**——不冒充已测。
 - 评审质量取决于模型；「疑似新专名」永远是疑似（索引不含正文），这是设计而非缺陷。
 - 每次评审约 24K tokens（全部既有锚句），故限流 10 次/10 分钟；管理员手动触发，不自动跑。
 
