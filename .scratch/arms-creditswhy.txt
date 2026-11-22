@@ -1,0 +1,72 @@
+对照（源码未变异） total=51 failed=0 exit=0
+
+W1 变异=generation 的 module 从 credit-ledger 改成 credits（地址写错模块）
+    预测红：每个 module + guard 都能真的解析出一个函数 / generation 点名的那道门，身体里就是按 GENERATION_COST
+    预测绿：名册与已生效那一列一格不多一格不少 / storage「放不下」
+    实测 total=51 failed=2 exit=1
+    红名单：
+      拦截方名册：表里点名的每一道门都真的存在 每个 module + guard 都能真的解析出一个函数（改名、删导出、说错模块都红）
+      拦截方名册：表里点名的每一道门都真的存在 generation 点名的那道门，身体里就是按 GENERATION_COST 问 refusalFor（换成别的门，点数那句话没人执行）
+    pred 全中 · not 全绿
+
+W2 变异=storage 的 guard 改成一个不存在的名字（门改名/删导出，句子还说它拦着）
+    预测红：每个 module + guard 都能真的解析出一个函数 / 被点名的门都真有调用点 / storage「放不下」
+    预测绿：aiUsage「余额不够这一次要用的点数」 / publishing「达到档位上限」
+    实测 total=51 failed=3 exit=1
+    红名单：
+      拦截方名册：表里点名的每一道门都真的存在 每个 module + guard 都能真的解析出一个函数（改名、删导出、说错模块都红）
+      拦截方名册：表里点名的每一道门都真的存在 被点名的门都真有调用点，不是只导出的死函数（定义所在那个文件不算调用方）
+      边界：句子声称"什么时候拒"，门就在同一条线上答 storage「放不下」：刚好填满放行，多 1 字节拒（上限从 PLAN_LIMITS 现算，不抄 MB）
+    pred 全中 · not 全绿
+
+W3 变异=refusalFor 的边界从 balance >= cost 收紧成 balance > cost（刚好够也不再放行）
+    预测红：aiUsage「余额不够这一次要用的点数」 / generation 那一格的点数与 aiUsage 同源
+    预测绿：storage「放不下」 / teamCollaboration「达到档位上限」
+    实测 total=51 failed=3 exit=1
+    红名单：
+      边界：句子声称"什么时候拒"，门就在同一条线上答 aiUsage「余额不够这一次要用的点数」：等于点数放行，少 1 点拒（每一类都过一遍，点数从单价表现读）
+      边界：句子声称"什么时候拒"，门就在同一条线上答 generation 那一格的点数与 aiUsage 同源：一次渲染要 GENERATION_COST.video 点，差 1 点就渲不成
+      §134 余额、发放与拒绝 点不够就不许跑，且拒绝的话里带着两个数字
+    pred 全中 · not 全绿
+    另红 1 条（不在预测里）：
+      §134 余额、发放与拒绝 点不够就不许跑，且拒绝的话里带着两个数字
+
+W4 变异=aiUsage 那句点数改回手抄，同时把 GENERATION_COST.image 从 2 改成 3（成本变了、句子不改口）
+    预测红：aiUsage 那句里的三个点数逐字等于 GENERATION_COST
+    预测绿：aiUsage「余额不够这一次要用的点数」 / generation 那一格的点数与 aiUsage 同源
+    实测 total=51 failed=1 exit=1
+    红名单：
+      句子里的数字不许有第二份 aiUsage 那句里的三个点数逐字等于 GENERATION_COST（写死一个"1 点"而成本改了，就是这句在说谎）
+    pred 全中 · not 全绿
+
+W5 变异=teamCollaboration 那句改回旧口径「pending 邀请也占名额」（#213 之后不成立）
+    预测红：页面端出去那句话里没有任一条旧措辞 / credits.ts 的散文里也没有 / teamCollaboration 那句改口成「过期不占名额」
+    预测绿：aiUsage「余额不够这一次要用的点数」 / publishing「达到档位上限」
+    实测 total=51 failed=4 exit=1
+    红名单：
+      页面不许把那句话再抄一遍（静态门） 今天这一页端出来的那句话，逐字与生成函数一致（不是"差不多"）
+      过期口径与旧措辞不许留在带出去的那份文本上 页面端出去那句话里没有任一条旧措辞
+      过期口径与旧措辞不许留在带出去的那份文本上 credits.ts 的散文里也没有（表改口了、注释还在讲旧口径，也是两份真相）
+      过期口径与旧措辞不许留在带出去的那份文本上 teamCollaboration 那句改口成「过期不占名额」，与真在数名额的那道 SQL 同一条口径
+    pred 全中 · not 全绿
+    另红 1 条（不在预测里）：
+      页面不许把那句话再抄一遍（静态门） 今天这一页端出来的那句话，逐字与生成函数一致（不是"差不多"）
+
+W6 变异=删掉 teamSlotRefusalFor 里那道 expiresAt 过滤（判据改了，句子的「过期不占」又成空话）
+    预测红：teamCollaboration 那句改口成「过期不占名额」
+    预测绿：页面端出去那句话里没有任一条旧措辞 / teamCollaboration「达到档位上限」
+    实测 total=51 failed=1 exit=1
+    红名单：
+      过期口径与旧措辞不许留在带出去的那份文本上 teamCollaboration 那句改口成「过期不占名额」，与真在数名额的那道 SQL 同一条口径
+    pred 全中 · not 全绿
+
+W7 变异=publishing 与 teamCollaboration 的 guard 名字对调（两道门都在、都有调用点，只是句子说错了对象）
+    预测红：publishing「达到档位上限」 / teamCollaboration「达到档位上限」
+    预测绿：每个 module + guard 都能真的解析出一个函数 / 被点名的门都真有调用点
+    实测 total=51 failed=2 exit=1
+    红名单：
+      边界：句子声称"什么时候拒"，门就在同一条线上答 publishing「达到档位上限」：到线上就拒，不是超过才拒（每一档都过一遍）
+      边界：句子声称"什么时候拒"，门就在同一条线上答 teamCollaboration「达到档位上限」：同一形状，owner 不算在内由那道门的入参口径保证
+    pred 全中 · not 全绿
+
+aborted=no

@@ -1,0 +1,61 @@
+
+> nexus@0.0.0 two:instance
+> tsx scripts/two-instance-roundtrip.mts
+
+[export] role export ok: 31215 字节，parts=design=1 code=3 assets=1 storyboard=1 character=1
+[verify] role verify ok
+[fresh B] 45 migration(s) applied
+[import] role b ok: 新项目 a1a0ef74，counts=design=1 assets=1 storyboard=1 character=1
+verdict B_EMPTY_BEFORE_IMPORT: PASS — projects=0 users=0 assets=0 characters=0 storyboards=0
+verdict B_IS_NEW_PROJECT: PASS — A=6e57ea48 B=a1a0ef74
+verdict B_OWNED_BY_B_USER: PASS — A 用户 3e142ae7，B 用户 e226cb2f
+verdict DOCUMENT_DIGEST_EQUAL: PASS — A 757 字 / B 757 字
+verdict B_ASSET_COUNT_ONE: PASS — 库里行数 1，counts.assets=1
+verdict ASSET_BYTES_EQUAL: PASS — A 9f05a9262dad B 9f05a9262dad
+verdict NO_ASSET_FAILURES: PASS — 一条也没有
+verdict BUNDLE_ASSET_MAP_VALID: PASS — 包里 assetRefs 1 条 ["ae85c0b6"]，A 侧资产行 ["ae85c0b6"]
+verdict DOC_REF_ASSET_OWNED: PASS — 画布上那张图：A 引用 ae85c0b6，B 引用 5b010206，B 自己的资产行 ["5b010206"]
+verdict B_STORAGE_IS_OWN_COPY: PASS — B 侧 ["projects/a1a0ef74-9880-4d8c-859d-a70384c43446/5b010206-180b-40cb-9362-b52910a07841.png"]，sha 9f05a9262dad；A 侧 12 张，路径无一重合
+verdict STORYBOARD_ROW_CREATED: PASS — counts.storyboard=1，B 侧读回 415 字摘要
+verdict STORYBOARD_TEXT_EQUAL: PASS — A 415 字 / B 415 字（标题、来源那句话、三镜的 id·文案·时长·机位·转场、notes）
+verdict STORYBOARD_REF_CONSERVED: PASS — 参考帧/成片引用 A 2 条、B 2 条；角色引用 A 2 条、B 2 条
+verdict STORYBOARD_IS_B_OWN_ROW: PASS — A 的分镜行 2cd64362，B 的分镜行 a083baff
+verdict STORYBOARD_NOTES_CLEAN: PASS — notes 1 条（干净的那一份只剩"已入库并且点名两侧行 id"那一条）
+verdict CHARACTER_COUNT_ONE: PASS — counts.character=1，B 侧角色行 1 位
+verdict CHARACTER_PROFILE_EQUAL: PASS — 档案文案摘要 A 381 字 / B 381 字（参考图那格不算，它走引用那条）
+verdict CHARACTER_REF_CONSERVED: PASS — 参考图：A ae85c0b6，B 5b010206
+verdict CHARACTER_NOTES_CLEAN: PASS — notes 0 条
+verdict A_UNCHANGED_AFTER_EXPORT: PASS — 导出后又读了一遍 A：文档 757 字，分镜 415 字，档案 381 字
+[probe-dirty-b] role b ok: 新项目 26943dba，counts=design=1 assets=1 storyboard=1 character=1
+verdict PROBE_DIRTY_B: PASS — 点名该红的 1 条全红；其余 19 条照旧绿；判据名册对得上（20 条）；B 不重建、再导一次（ADR-0024 明写不要的"同一个库再复制一份"）⇒ 导入前行数不为零，这一条量的是库里的行数，不是父进程的意图（成立）
+  [probe dirty-b] 这趟红的判据：B_EMPTY_BEFORE_IMPORT
+[probe-mutate-a] role probe ok: 删掉 A 项目 6e57ea48 的角色 57ab12af，deleteCharacter 返回 true
+[verify] role verify ok
+verdict PROBE_MUTATED_A: PASS — 点名该红的 1 条全红；其余 19 条照旧绿；判据名册对得上（20 条）；导出之后删掉 A 侧那位角色再读一遍 A ⇒ 只有"A 没被动过"这一条红，B 侧那 19 条不受牵连（a-verify.json 从此是改过的读数）（成立）
+  [probe mutated-a] 这趟红的判据：A_UNCHANGED_AFTER_EXPORT
+[fresh B] 45 migration(s) applied
+[probe-foreign-owner] role b 抛出：Failed query: insert into "projects" ("id", "owner_id", "slug", "name", "kind", "description", "visibility", "fork_of", "active_page_id", "c ← [23503] insert or update on table "projects" violates foreign key constraint "projects_owner_id_users_id_fk"
+verdict PROBE_FOREIGN_OWNER: PASS — 点名该红的 17 条全红；其余 3 条照旧绿；判据名册对得上（20 条）；把 A 侧那个用户 id 直接递给 B 的导入 ⇒ 归属这一条红；挡在前面的是 projects.owner_id 的外键（SQLSTATE 23503，读数里带着），判据是后面的第二道（成立）｜整包拒收：导入抛出：Failed query: insert into "projects" ("id", "owner_id", "slug", "name", "kind", "description", "visibility", "fork_of", "active_page_id", "c ← [23503] insert or update on table "projects" violates foreign key constraint "projects_owner_id_users_id_fk"
+  [probe foreign-owner] 这趟红的判据：B_IS_NEW_PROJECT, B_OWNED_BY_B_USER, DOCUMENT_DIGEST_EQUAL, B_ASSET_COUNT_ONE, ASSET_BYTES_EQUAL, NO_ASSET_FAILURES, DOC_REF_ASSET_OWNED, B_STORAGE_IS_OWN_COPY, STORYBOARD_ROW_CREATED, STORYBOARD_TEXT_EQUAL, STORYBOARD_REF_CONSERVED, STORYBOARD_IS_B_OWN_ROW, STORYBOARD_NOTES_CLEAN, CHARACTER_COUNT_ONE, CHARACTER_PROFILE_EQUAL, CHARACTER_REF_CONSERVED, CHARACTER_NOTES_CLEAN
+[fresh B] 45 migration(s) applied
+[arm no-design] role b ok (整包拒收): 这份包没导 design，导回来会是一个空项目
+verdict ARM_NO_DESIGN_REDS: PASS — 点名该红的 16 条全红；其余 4 条照旧绿；判据名册对得上（20 条）；清单没声明 design ⇒ 整包拒收，一个字节都不落库；红只红在"B 侧读回来什么"这一侧——B 原本空不空、归属、包内清单自洽、A 未动那四条不受牵连（成立）｜整包拒收：这份包没导 design，导回来会是一个空项目｜在导出时勾上 design，或者用 /api/projects/<id>/export?parts=design
+  [arm no-design] 这趟红的判据：B_IS_NEW_PROJECT, DOCUMENT_DIGEST_EQUAL, B_ASSET_COUNT_ONE, ASSET_BYTES_EQUAL, NO_ASSET_FAILURES, DOC_REF_ASSET_OWNED, B_STORAGE_IS_OWN_COPY, STORYBOARD_ROW_CREATED, STORYBOARD_TEXT_EQUAL, STORYBOARD_REF_CONSERVED, STORYBOARD_IS_B_OWN_ROW, STORYBOARD_NOTES_CLEAN, CHARACTER_COUNT_ONE, CHARACTER_PROFILE_EQUAL, CHARACTER_REF_CONSERVED, CHARACTER_NOTES_CLEAN
+[fresh B] 45 migration(s) applied
+[arm no-assets] role b ok: 新项目 29140e0c，counts=design=1 assets=0 storyboard=1 character=1
+verdict ARM_NO_ASSETS_REDS: PASS — 点名该红的 10 条全红；其余 10 条照旧绿；判据名册对得上（20 条）；包里没有 assets 那一份 ⇒ 文档/分镜/角色三层仍然进库，红的只有"字节是谁"那一串；失败只来自引用断链，不来自字节没收下（成立）
+  [arm no-assets] 这趟红的判据：B_ASSET_COUNT_ONE, ASSET_BYTES_EQUAL, NO_ASSET_FAILURES, BUNDLE_ASSET_MAP_VALID, DOC_REF_ASSET_OWNED, B_STORAGE_IS_OWN_COPY, STORYBOARD_REF_CONSERVED, STORYBOARD_NOTES_CLEAN, CHARACTER_REF_CONSERVED, CHARACTER_NOTES_CLEAN
+[fresh B] 45 migration(s) applied
+[arm skip-storyboard] role b ok: 新项目 5a82590a，counts=design=1 assets=1 storyboard=0 character=1
+verdict ARM_SKIP_STORYBOARD_REDS: PASS — 点名该红的 5 条全红；其余 15 条照旧绿；判据名册对得上（20 条）；清单没声明 storyboard ⇒ 分镜整层不进库，而文案与角色一层不受影响（成立）
+  [arm skip-storyboard] 这趟红的判据：STORYBOARD_ROW_CREATED, STORYBOARD_TEXT_EQUAL, STORYBOARD_REF_CONSERVED, STORYBOARD_IS_B_OWN_ROW, STORYBOARD_NOTES_CLEAN
+[fresh B] 45 migration(s) applied
+[arm skip-character] role b ok: 新项目 3e13d05e，counts=design=1 assets=1 storyboard=1 character=0
+verdict ARM_SKIP_CHARACTER_REDS: PASS — 点名该红的 5 条全红；其余 15 条照旧绿；判据名册对得上（20 条）；少导 character 这一 part ⇒ 挂在镜头上的角色引用被剥掉（分镜文案照旧在，notes 里点名剥了哪一镜）（成立）
+  [arm skip-character] 这趟红的判据：STORYBOARD_REF_CONSERVED, STORYBOARD_NOTES_CLEAN, CHARACTER_COUNT_ONE, CHARACTER_PROFILE_EQUAL, CHARACTER_REF_CONSERVED
+[fresh B] 45 migration(s) applied
+[arm foreign-asset-id] role b ok: 新项目 37ebaaf2，counts=design=1 assets=1 storyboard=1 character=1
+verdict ARM_FOREIGN_ASSET_ID_REDS: PASS — 点名该红的 7 条全红；其余 13 条照旧绿；判据名册对得上（20 条）；字节全在、CRC 全对，只有"字节是谁"那一条是假的 ⇒ 只有引用完整性那几条能红（成立）
+  [arm foreign-asset-id] 这趟红的判据：NO_ASSET_FAILURES, BUNDLE_ASSET_MAP_VALID, DOC_REF_ASSET_OWNED, STORYBOARD_REF_CONSERVED, STORYBOARD_NOTES_CLEAN, CHARACTER_REF_CONSERVED, CHARACTER_NOTES_CLEAN
+两实例往返通过。主跑 20 条判据全绿 + 5 趟臂 + 3 趟探针各自点名红（全过：true）；zip 31215 字节，B 的库与存储目录每趟重建。逐条读数：.scratch/two-instance/verdicts.txt
+drill exit=0

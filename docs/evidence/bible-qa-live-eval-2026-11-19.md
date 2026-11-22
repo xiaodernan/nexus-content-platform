@@ -6,7 +6,7 @@
 ## 环境
 - ai-service（本机 127.0.0.1:8001）DEGRADED-BOOT（Redis 不可达，ADR-0274 明牌）+ `HTTPS_PROXY=http://127.0.0.1:7897`；`transport.stream=true`（sticky `prompt_cache_key=nexus-<sha256(digest)>`）。
 - system = 真 digest（**240,870 chars** · 944 锚句 zh/en · sha256 `02c4fcbb…`），model = **gpt-6.1-sol**（gpt-6.1-terra 渠道已撤，见 `provider-gpt61-sol-migration-2026-11-19.md`）。
-- 协议：12 题问典式提问（逐字打印，未做截断）；`.scratch/bible-qa-live-eval.py` 现场驱动 + 逐字收集，`.scratch/bible-qa-live-eval-answers.json` 为权威存档。
+- 协议：12 题问典式提问（逐字打印，未做截断）；`scratch/bible-qa-live-eval.py` 现场驱动 + 逐字收集，`scratch/bible-qa-live-eval-answers.json` 为权威存档。
 
 ## 计数板
 

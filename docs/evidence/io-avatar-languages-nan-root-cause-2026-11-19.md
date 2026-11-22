@@ -10,7 +10,7 @@
   - 新 asset `assets/profile-portrait.png` 是 508×586 = 放大 3 倍的原图，左右两侧给了宽容自色（pure white）边距——**没有任何边缘在原图里被裁掉**；
   - 渲染参数：`object-fit: contain`（全图完整呈现）+ `background:#fff`（兜底纯白）+ `image-rendering:auto`；`.profile-frame` 无 `aspect-ratio` 硬卡（丢掉了原先 `aspect-ratio:1/1.15` 的强制等比，保证裁切不再发生）；
   - `og:image` / `JSON-LD image` 同步跳到同一路径。
-- **验证**：`.scratch/profile-portrait-display.html` 与线上现在任何一版都是同一条轨迹：满画高度 586 px 完整显示、没有 1px 边框"白线线"残存。
+- **验证**：`scratch/profile-portrait-display.html` 与线上现在任何一版都是同一条轨迹：满画高度 586 px 完整显示、没有 1px 边框"白线线"残存。
 - **公网路径**：`https://xiaodernan.github.io/assets/profile-portrait.png`（部署后 200，锐度已够）
 
 ## 问题 2 · 「most used languages 怎么里面的数值都是 nan 没有真实数字百分比啊」

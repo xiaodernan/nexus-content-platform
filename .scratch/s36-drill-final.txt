@@ -1,0 +1,49 @@
+
+> nexus@0.0.0 ratelimit:two-process
+> tsx scripts/rate-limit-two-process.mts
+
+[线路] redis://127.0.0.1:56379 在（PONG）
+[seq-1.json pid=37704 RedisRateLimiter] 放行
+[seq-2.json pid=8160 RedisRateLimiter] 放行
+[seq-3.json pid=18796 RedisRateLimiter] 放行
+[seq-4.json pid=17672 RedisRateLimiter] 挡
+[mem-1.json pid=33244 MemoryRateLimiter] 放行
+[mem-2.json pid=13896 MemoryRateLimiter] 放行
+[mem-3.json pid=35176 MemoryRateLimiter] 放行
+[mem-4.json pid=9668 MemoryRateLimiter] 放行
+[并发对] burst-a.json(pid=34160) + burst-b.json(pid=17928)
+[dead-1.json pid=28812 RedisRateLimiter] 放行 放行 放行 挡 挡
+[dead-2.json pid=4516 RedisRateLimiter] 放行
+[dead-3.json pid=2952 RedisRateLimiter] 放行
+[cap-1.json pid=21380 上界=2 名册=1 退回+0] 放行
+[cap-2.json pid=29840 上界=2 名册=2 退回+0] 放行
+[cap-3.json pid=18588 上界=2 名册=2 退回+3] 放行 放行 挡
+[cap-8.json pid=37348 上界=2 名册=2 退回+3] 放行 放行 挡
+[cap-7.json pid=22420 上界=2 名册=2 退回+3] 放行 放行 挡
+[满额对] cap-7.json(pid=22420) + cap-8.json(pid=37348) 同一只键 two-process-cap/d|ops-cap-d|192.0.2.23
+[cap-10.json pid=7564 上界=10 名册=3 退回+0] 放行 放行 挡
+[cap-9.json pid=27140 上界=10 名册=3 退回+0] 挡 挡 挡
+[满额对] cap-9.json(pid=27140) + cap-10.json(pid=7564) 同一只键 two-process-cap/d|ops-cap-d|192.0.2.23
+[cap-4.json pid=18128 上界=10 名册=1 退回+0] 放行
+[cap-5.json pid=9584 上界=10 名册=2 退回+0] 放行
+[cap-6.json pid=15240 上界=10 名册=3 退回+0] 放行
+verdict CHILDREN_USE_REDIS_DRIVER: PASS — redis 段 6 个进程：驱动 RedisRateLimiter，ready true
+verdict MEMORY_PHASE_SELECTS_MEMORY: PASS — 不设变量那四个进程：MemoryRateLimiter
+verdict SHARED_WINDOW_CAPPED: PASS — 四个进程各一次的判定：true / true / true / false
+verdict MEMORY_COUNTS_SEPARATELY: PASS — 同一串请求换成进程内驱动：true / true / true / true——全放行，所以上一句不是"这台机器没在限"
+verdict BLOCKED_DECISION_CARRIES_RETRY_AFTER: PASS — 第四次的 retryAfterMs=53330（路由那一边靠它写 Retry-After）
+verdict WINDOW_IN_REDIS_HAS_LIMIT_MEMBERS: PASS — Redis 里 3 条成员、来自 3 个不同进程：37704:mw2iolr6:7plxt5:1 | 8160:mw2ionuw:j3n9f5:1 | 18796:mw2iope0:fr5m1h:1
+verdict CROSS_PROCESS_ATOMIC_BURST: PASS — 两个进程同时各 5 条并发：合计放行 4 条，集合里 4 条
+verdict BURST_MEMBERS_DISTINCT_ACROSS_AND_WITHIN: PASS — 4 条成员名两两不同、只出自那两个进程，而其中一个进程在同毫秒里留下 ≥2 条（4 条）——跨进程与同进程两个维度都不同名
+verdict NO_FALLBACK_ON_REDIS_PHASE: PASS — redis 段各进程的退回计数：0/0/0/0/0/0——有数字涨就说明"共享窗口"那句话其实没生效
+verdict REDIS_DOWN_STILL_GATES: PASS — 连不上的那趟：ready=false、5 次退回、判定 放放放挡挡（进程退出码 0，没抛）
+verdict FALLBACK_SCOPE_IS_PER_PROCESS: PASS — 断线时两个进程各打一次、限额 1：放行 / 放行——退回期间额度是这台各算各的，这是代价，写进判据而不是藏在注释里
+verdict CEILING_IS_SHARED_ACROSS_PROCESSES: PASS — 三个进程各要一只新桶、上界 2：Redis 里实际 2 只桶键（two-process-cap/a|ops-cap-a|192.0.2.20 | two-process-cap/b|ops-cap-b|192.0.2.21）；前两只的退回增量 +0 / +0（非 0 就是它们没写在 Redis 上，那"只有两只"是线路坏了不是名额满了）
+verdict OVER_CAP_REFUSAL_IS_A_CEILING_NOT_A_BROKEN_LINE: PASS — 第三只键 3 次判定：ready=true、键没建=true、退回原因 {"over-cap":3}（只有 over-cap 才算数；出现 command-failed 就是线路问题，不是名额）
+verdict OVER_CAP_STILL_GATES: PASS — 被拒新建的那只键连打 3 次（限额 2）给出「放放挡」——放行数恰好是它自己的限额，说明本机窗口接住了判定；这句才是"拒绝新建"的取向（不是免检）
+verdict OVER_CAP_SCOPE_IS_PER_PROCESS: PASS — 两台同时各打同一只建不出来的键 3 次（限额 2）：22420→放放挡 / 37348→放放挡，合计放行 4（应为 2×限额=4）——退回期间那份额度是这台各算各的。与断线那组的 FALLBACK_SCOPE_IS_PER_PROCESS 同一条降级路径、不同的触发原因，这一格才是"跨进程"那句话的见证
+verdict OVER_CAP_PAIR_REFUSES_TO_BUILD: PASS — 同时满额那两台之后：D 这只键没建起来=true、前缀里仍只有 2 只桶键（上界 2：two-process-cap/a|ops-cap-a|192.0.2.20 | two-process-cap/b|ops-cap-b|192.0.2.21）、两台各自的退回原因 {"over-cap":3} / {"over-cap":3}（只有 over-cap 才算数；出现 command-failed 就是线路坏了，不是名额满了）
+verdict PAIR_WITH_ROOM_SHARES_ONE_WINDOW: PASS — 对照：同一对进程、同一只键、同样各打 3 次，只把名额换成 10 ⇒ 键建出来了=true（应为 true）、退回 +0/+0（应为 +0/+0）、合计放行 2（应为限额本身=2）。两句合起来才把上面那个"合计 2×限额"钉成"名额用完各数各的"，而不是"两个进程天生不共享"
+verdict CEILING_INDEX_MATCHES_BUCKET_KEYS: PASS — 名册 2 条、真实桶键 2 只、被拒那台自己读到的名册 2 条——三个数必须是一个数：名额数的是这条驱动真写下的键，不是账面上虚增的条目
+verdict CEILING_NOT_TRIGGERED_WITH_ROOMY: PASS — 对照：同一串请求换成上界 10 ⇒ Redis 里 3 只桶键、退回 +0/+0/+0、判定 放放放——少了这句，上面"第三只被拒"分不清是上界生效还是第三个进程天生被拒
+跨进程限流通过：22 个进程、线路 redis://127.0.0.1:56379。

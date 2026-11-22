@@ -6253,7 +6253,7 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 **§HP-HELP-1（`apps/web/src/app/page.tsx` + `globals.css`）**
 - 主页增教学说明条（`[data-help-strip]`）：「第一次来？」+ 文案（漫游 6 步 / 随手说明书 / Ctrl+K（Mac ⌘K）命令面板）+ 两个链接（`/onboarding` · `/guide`）；五个导航（搜索/发现/市场/创作数据/拉黑）各一句常驻副文案（`.hp-navHint`，DEMO 徽章同为常驻）；全部走 token，零写死 hex、零新增颜色 token。
 - 截图验收（1440 + 390 视口）：布局不挤压、不遮挡、换行正常；页面无 console error（390 视口一次 401 系注册前通知轮询，可忽略）。
-- FE-18 门禁的「剥 className 后全文 SHA256 零行为门」按显式变更流程整体重钉（`.scratch/home-page-sha.mts` 逐字节复算，STRIP_CLASS_SHA256 → `0fcb3c08…`），门禁注释记明 v908 §HP-HELP-1 重钉理由。
+- FE-18 门禁的「剥 className 后全文 SHA256 零行为门」按显式变更流程整体重钉（`scratch/home-page-sha.mts` 逐字节复算，STRIP_CLASS_SHA256 → `0fcb3c08…`），门禁注释记明 v908 §HP-HELP-1 重钉理由。
 - tsc --noEmit 干净 · fe-gates **1272/1272 全绿**（含新增 5 例 graph 测试）。
 
 **下一步**：Echo #55 增量 · /admin/ai-cache cache-hit 公众展示 · Spring Cloud verify（缺 RAM ≥6 GB 仍受阻）· `origin/main` push 仍 403（showcase 通道代持同步）。
@@ -6270,7 +6270,7 @@ feat(bible): 世界大典第五章「远信」+ StateGraph 指南卡（cont. 158
 **事故**：Docker Desktop 于本次会话中途第 3 次崩溃（docker.sock/npipe 拒绝连接），Postgres 55433/Redis 56379 随即不可用；`GET /`/`/api/notifications` 全部 ECONNREFUSED→500——全栈压测（A 读 / D 注册写库 / E 重复注册）**在此窗口无法运行，未伪造任何容量数字**。
 Docker Desktop 已由 agent 人工拉起（本轮恢复，server 29.9.3，nexus-postgres / nexus-redis 恢复 healthy），但 RAM 随即触底（0.46 GB），全量压测仍需安静窗口（≥3 GB free RAM）。
 
-**本轮真实测得**（`next dev` 路径；同批同环境；工具 `.scratch/stress-batteria.mjs` + `.scratch/stress-ip-window.mjs`）：
+**本轮真实测得**（`next dev` 路径；同批同环境；工具 `scratch/stress-batteria.mjs` + `scratch/stress-ip-window.mjs`）：
 
 | 场景 | 并发 | 请求 | 结果 | p50 | p95 |
 |---|---|---|---|---|---|
@@ -6284,7 +6284,7 @@ Docker Desktop 已由 agent 人工拉起（本轮恢复，server 29.9.3，nexus-
 3. 限流429 流：`statuses:{"401":30,"429":6}` ——首 30 次 401 后严格翻 429，与 IP_RATE_RULES 的 `insight/login:{cap:30, windowMs:300000}` 对账一致。
 4. 全栈部分：待安静窗口（Docker 稳定 + ≥3 GB free RAM）重跑 A/D/E 三档（含恢复宿主后的 500 攻击面记录）。
 
-**文件**：`.scratch/stress-batteria.mjs`（无新增依赖）· `.scratch/stress-ip-window.mjs`（限流精确命中探针）。
+**文件**：`scratch/stress-batteria.mjs`（无新增依赖）· `scratch/stress-ip-window.mjs`（限流精确命中探针）。
 **下一步**：Docker 稳定后（或 RAM ≥3 GB 的窗口）复现全量 batteria；把压测结论扩到 `/api/analytics/track` 等写库路由。
 
 ## cont. 287 (2026-11-18) — §169-AI-GRAPH · /analytics 创作者数据大模型解读 StateGraph 化（booted gates, live pending）
@@ -6314,7 +6314,7 @@ Docker Desktop 已由 agent 人工拉起（本轮恢复，server 29.9.3，nexus-
 
 ## cont. 289 (2026-11-18) — v913 · §169-AI-GRAPH · 创作者解读图 live provider 实打 + 硬格式契约修复
 
-**Live 验证（`.scratch/verify-creator-graph-live.mts` 直调 `runCreatorAnalysisGraph`，真实 provider gpt-6.1-terra via aizzz.xyz）**
+**Live 验证（`scratch/verify-creator-graph-live.mts` 直调 `runCreatorAnalysisGraph`，真实 provider gpt-6.1-terra via aizzz.xyz）**
 
 修复前第一次实打发现三个真实缺口（全都是 **unit mock 无法抓到、只有实打能抓到** 的语义问题）：
 1. digest 里没有任何「请用 EN 回答」指示 → locale=en 时模型仍用 digest 的语种（中文）回答；SYSTEM rule 5 说「Answer in the asked locale」但用户消息里根本没出现这个 asked locale。
@@ -6489,7 +6489,7 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 
 即同一路上下文进入第二次调用时**全部命中**，完整 33k-token prefix 复用——之前无法接近这个量级。世界章节信息上升至两路 product graph；模型在此路类型问题里现在可合法援引世界章节（verdict pass），仍然不允许编造数字。/canon world 只作为"世界类比"，不是数据源——纪律不变。
 
-**不涉创作者路径 live 验证**：本轮系统升级后两路提示词都加入了 digest，但只有 insight ⑧ 做了 harness 探活（`.scratch/verify-canon-inject-live.mts`）；creator ⑨ 路径代码完全相同、内容只是上文叙述词不同——① 共用 KV lane；② digest 为同一字节串——但暂无 live 采样记录，不冒充验证过。
+**不涉创作者路径 live 验证**：本轮系统升级后两路提示词都加入了 digest，但只有 insight ⑧ 做了 harness 探活（`scratch/verify-canon-inject-live.mts`）；creator ⑨ 路径代码完全相同、内容只是上文叙述词不同——① 共用 KV lane；② digest 为同一字节串——但暂无 live 采样记录，不冒充验证过。
 
 **门禁**：fe-gates **1285/1285** 绿 · tsc 干净 · 本轮未改 world bible digest · cache-identity/未动稳定前缀纪律。§BIBLE-N 例行章节淘汰一次不变。
 
@@ -6497,7 +6497,7 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 
 ## cont. 302 (2026-11-18) — §PROMPT-CONTENT live 验证完毕（创作者路径）
 
-同批次加入一节 `.scratch/verify-creator-canon-live.mts` 的 live probe 记录：
+同批次加入一节 `scratch/verify-creator-canon-live.mts` 的 live probe 记录：
 
 | call | tokensIn | cachedTokens | cacheReported | verdict |
 |---|---|---|---|---|
@@ -6551,7 +6551,7 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 
 用户连续半年追问「为什么并行会话 simultaneously 往 API 打、KV 被『用乱』、cache 不命中」——本次 live 实测：
 
-**同时发出四路 `Promise.all` 的 insight 调用，全部使用相同的 digest+system（见 `.scratch/verify-parallel-warm.mts`）：**
+**同时发出四路 `Promise.all` 的 insight 调用，全部使用相同的 digest+system（见 `scratch/verify-parallel-warm.mts`）：**
 
 | call | tokensIn | cachedTokens | cacheReported | verdict |
 |---|---|---|---|---|
@@ -6887,7 +6887,7 @@ live 验收后承诺的最小硬化——只补 verify 判据，不改 graph 语
 - capability=real；三次 data.capability=real；
 - 模型 explanation（不装不知道）：`目录只显式引用了 fr-01 ... 未提供曲线图层自身的节』ID，因此无法单独将它移入吸顶区 ...`——**patchCount=0 是「字典里没有就不答」的正确行为**，不是生成失败（§159 边界兑现）
 - Studio lane in-flight ≈ 9.5k tokens（刻意的预算，§68 纪律）——schema 上限 64k（ADR-0274），可直接收 30-60k 大目录
-- 证据 `docs/evidence/studio-lane-cache-2026-11-18.md`；探针脚本 `.scratch/proof-studio-lane.mts`（完整对合同 contracts/ai-request.schema.json 校验，此前八次修正后全通过）
+- 证据 `docs/evidence/studio-lane-cache-2026-11-18.md`；探针脚本 `scratch/proof-studio-lane.mts`（完整对合同 contracts/ai-request.schema.json 校验，此前八次修正后全通过）
 
 **缓存验证矩阵到此补全**：free-text digest lane（37/38.7k）✓ · transport lane（94.5% 不同问句）✓ · 12 交错 ✓ · 角色对话（persona）✓ · Studio JSON wire（L2 100%）✓ — 五个 lane 全部实测+"语义分档声明"。
 
@@ -7191,7 +7191,7 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 
 **环境**：本机 dev（Next dev :3100 · ai-service uvicorn :8001 · Postgres docker `nexus-postgres-alt` · Redis docker `nexus-redis`）· `NEXUS_DATABASE_URL = postgres://nexus:nexus_dev_only@127.0.0.1:5443/nexus`。
 **自检**：`GET /` 200 · 注册 200 · `/onboarding` renders · `/bible/ask` 表单可填 → 按钮 `问一问`（词首"潮沙盘翻看中……"）。
-**live ask**（curl/`tsx .scratch/probe-ask.mts`，非浏览器直测）：`/api/bible/q` 200 · `cachedTokens = 64,076 / 68,189` · `cacheReported=true` · `capability:"real"` · `verdict:"pass"` · `retrieved:3`。
+**live ask**（curl/`tsx scratch/probe-ask.mts`，非浏览器直测）：`/api/bible/q` 200 · `cachedTokens = 64,076 / 68,189` · `cacheReported=true` · `capability:"real"` · `verdict:"pass"` · `retrieved:3`。
 **诚实**：浏览器端点等待超时（>15s 停在 page-state "白思潮沙盘翻看中……"），"$?" 退回 CLI direct probe 返回 200。本轮未修该 UI-side BUG（不是 Bug 修复、而是 runtime 的暂存）明天再做。
 **502 观测**：ai-service 间歇性返回 502，但会自行恢复；healthz 全返回 200，capability=real。
 **证据归档**：`docs/evidence/post-merge-live-2026-11-18.md`。
@@ -7276,7 +7276,7 @@ java-config-server 是当前部署——与 ADR-0237 矛盾（java-* 已从 HEAD
 
 **测试**：pins 重钉（bible-ask ×2、bible-ask-visual ×2、bible-quiz ×2…），fe-gates **1370/1370** 绿；verify:fe-gates 最终一次跑通；world-bible **768/768**。
 
-**git**：本日 PAT 已生效（scopes: repo + workflow），合流完成后将 `git push origin HEAD:main` 快进推送；`.scratch/ab-cache-key.mts` 是本轮 `prompt_cache_key` A/B 依据（ADR-0284）。
+**git**：本日 PAT 已生效（scopes: repo + workflow），合流完成后将 `git push origin HEAD:main` 快进推送；`scratch/ab-cache-key.mts` 是本轮 `prompt_cache_key` A/B 依据（ADR-0284）。
 
 ## cont. 351 (2026-11-18) — v971 · §BIG-CONTEXT · 输入上下文 67K→147K tokens（digest 分层配额制 · 实测 100% cache）+ origin/main 三提交吸收
 
@@ -7859,7 +7859,7 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 
 ## cont. 402 (2026-11-19 late) — §PROVIDER-DOWN 复核：我亲测 503
 
-- 本会话晚间（进合流后）`.scratch/probe-e151-clash.py` 经 Clash 7897 再测：
+- 本会话晚间（进合流后）`scratch/probe-e151-clash.py` 经 Clash 7897 再测：
   `status=503` body=`{"error":{"code":"model_not_found","message":"分组 GPT特价 下模型 gpt-6.1-terra 无可用渠道（distributor） (request id: 202611190353527738355968268d9d6PkzCvNyp)","type":"new_api_error"}}`。
 - 与并行线 cont.399 记述一致（07:30 曾真通 · 10:00 起全灭）；本会话更早的探针（tokensIn=154,891 · cached=145,483 · 93.9%）是在渠道被撤之前测得的，两者都如实留档。
 - 用户侧动作：登录服务商后台检查「分组 GPT特价」→ gpt-6.1-terra 的渠道 / 配额 / key 状态；渠道恢复后 ai-service 重启复位即可继续 LLM 车道。
@@ -8072,7 +8072,7 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 
 用户新报两个 IO/主页缺陷，全部修完且都来自真实数据：
 
-- **头像「压缩变小 + 边缘删掉」**（`.scratch/showcase-site/site`）：
+- **头像「压缩变小 + 边缘删掉」**（见证 `docs/evidence/io-avatar-languages-nan-root-cause-2026-11-19.md`；下面那些产物是在克隆工作副本 `scratch/showcase-site/site` 里改的——那是 Pages 仓库本身，带 `.git`，按 ADR-0307 不入本册）：
   - `assets/profile.png` 源图仅 169×197 且肩头贴边——不是 CSS 裁的，是**源图本身就是贴边裁剪**。
   - 新产物 `assets/profile-portrait.png` **508×586**：HighQualityBicubic 3.0x + 白画布补边（每侧约 64px · 上下约 71px），人不再贴边。
   - CSS `.profile-frame img`：`aspect-ratio:1/1.15 + object-fit:cover + saturate(.82)` → `508/586 + contain + saturate(.92)`；不再黑边"删肩"。
@@ -8111,7 +8111,7 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 - 背景：用户多次更换模型名（6.1-terra → 6.1-sol → **6.2-sol**），但仓库里 UI badge / doc comment / stategraph 教学页 / 测试 fixture 残留旧模型名——页面上让用户误以为"还是 terra 在跑"。本轮按用户指令再次更名后**系统性清扫**：
   - 17 处，11 个文件：ObserverDeepRead（含用户可见 kicker `AI 深读`）· ChapterDigest · InsightAiAnalysis · BibleAsk（2，含 badge fallback）· DeepReadCard · stategraph 教学页（2）· /api/insight/{chat,analyze} routes · /api/admin/observer/digest · 测试 fixture（insight-analyze-route-behavior 2, insight-analysis-graph 2）全部改为 `gpt-6.2-sol`。
   - **运行时一直正确**：`apps/ai-service/.env`（gitignored，不进仓库）实际值 NEXUS_MODEL_FAST/BALANCED/REASONING/VISION=gpt-6.2-sol（embedding=none 哨兵只读不造），即 ai-service 的所有 LLM 调用本来就打 6.2-sol；残留的只是文案。
-  - Digest pin 重钉：`.scratch/ask-page-sha2.mts` → page `0c2840b8…`（未变）· comp `f6ea9fbf…`（v2），`bible-ask-visual-style.test.ts` SHA 更新。
+  - Digest pin 重钉：`scratch/ask-page-sha2.mts` → page `0c2840b8…`（未变）· comp `f6ea9fbf…`（v2），`bible-ask-visual-style.test.ts` SHA 更新。
   - 聚焦测试全绿：bible-ask-behavior · bible-ask-visual-style · insight-analyze-route-behavior · insight-analysis-graph — **20/20**。
 - 运行方式核验（同一套证据标准）：probe 路径走 Clash 7897 + `StickyPromptCacheTransport`（call_llm 教学页同一路由）→ 全部 gpt-6.2-sol。
 

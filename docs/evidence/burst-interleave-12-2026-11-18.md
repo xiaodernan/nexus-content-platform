@@ -2,7 +2,7 @@
 
 **范围**：连续 12 发交替（Q1/Q2/Q1/Q2…）直打 ai-service `/v1/ai/chat`，system = `SYSTEM_PROMPT`
 （55,448 字符，5 章正典 + 86 回响锚句），一个内容却恒定的前缀。`gpt-6.1-terra`，relay 走 Clash Verge 代理（ aizzz.xyz ）。
-探针脚本 `.scratch/proof-burst-12.mts`。对照 ADR-0282 的「Codex 能/不能对齐什么」。
+探针脚本 `scratch/proof-burst-12.mts`。对照 ADR-0282 的「Codex 能/不能对齐什么」。
 
 ## 12 发原始记录
 

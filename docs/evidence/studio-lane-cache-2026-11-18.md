@@ -2,7 +2,7 @@
 
 **范围**：Studio 的主生成请求（web `/api/ai/run` → ai-service `/v1/ai/run`），JSON wire，走 `STABLE_PROMPT_KEYS`（设计目录）那条分支——此前只测过 digest/自由文本 lane。
 **模型**：`gpt-6.1-terra` · capability=real · relay 走 Clash Verge 代理。
-**探针**：`.scratch/proof-studio-lane.mts`（payload 完全对上 `contracts/ai-request.schema.json`）
+**探针**：`scratch/proof-studio-lane.mts`（payload 完全对上 `contracts/ai-request.schema.json`）
 **wire 大小**：约 8.8 k 字符代码+目录载荷，`requestId` 每发唯一（ISO 时间戳 + 后缀），其余稳定。
 
 ## 实录（两轮）

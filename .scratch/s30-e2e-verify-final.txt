@@ -1,0 +1,39 @@
+
+Running 3 tests using 1 worker
+
+  ok 1 [chrome] › e2e\guest-reclaim.spec.ts:54:5 › 审核员看到的回收面板：三处数同源，且「重新数一遍」在网络上就是 dry run (6.9s)
+  x  2 [chrome] › e2e\guest-reclaim.spec.ts:107:5 › 点名只收勾着的行：收走的那个人从屏幕上消失，没被点名的那个还在 (13.4s)
+  ok 3 [chrome] › e2e\guest-reclaim.spec.ts:176:5 › 游客态对照：这块面板与那些数对非审核员一个字都不渲染 (1.6s)
+
+
+  1) [chrome] › e2e\guest-reclaim.spec.ts:107:5 › 点名只收勾着的行：收走的那个人从屏幕上消失，没被点名的那个还在 ──────────────────
+
+    Error: 回收端点回了 429，界面上那句话是「没做成：回收操作太频繁了，稍后再试」
+
+      47 |     // 界面上那句话一并读出来：撞了就要等窗口过去，不放宽那道闸
+      48 |     const shown = ((await page.locator('[data-reclaim-notice]').textContent().catch(() => '')) ?? '').trim();
+    > 49 |     throw new Error(`回收端点回了 ${res.status()}${shown ? `，界面上那句话是「${shown}」` : ''}`);
+         |           ^
+      50 |   }
+      51 |   return res.json();
+      52 | }
+        at reclaimResponse (D:\内容创作平台\e2e\guest-reclaim.spec.ts:49:11)
+        at D:\内容创作平台\e2e\guest-reclaim.spec.ts:137:18
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\guest-reclaim-点名只收勾着的行：收走的那个人从屏幕上消失，没被点名的那个还在-chrome\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\guest-reclaim-点名只收勾着的行：收走的那个人从屏幕上消失，没被点名的那个还在-chrome\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\guest-reclaim-点名只收勾着的行：收走的那个人从屏幕上消失，没被点名的那个还在-chrome\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\guest-reclaim-点名只收勾着的行：收走的那个人从屏幕上消失，没被点名的那个还在-chrome\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chrome] › e2e\guest-reclaim.spec.ts:107:5 › 点名只收勾着的行：收走的那个人从屏幕上消失，没被点名的那个还在 ───────────────────
+  2 passed (33.5s)

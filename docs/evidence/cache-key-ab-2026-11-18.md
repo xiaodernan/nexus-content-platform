@@ -8,7 +8,7 @@
 - **B（sticky per-lane · `nexus-<sha256(system)>`）**：`NEXUS_OPENAI_PROMPT_CACHE_KEY=`（显式空串 → provider 不填键 → `StickyPromptCacheTransport` 注入按 system 哈希的 per-lane 键）
 - **DEFAULT（本仓新缺省）**：env 未设置——`config.py`（本日）`get_or_default(..., None)`，走 sticky per-lane。
 
-**结果**（同问句：canon digest 全文 system + 两个交替 zh 问题；第三件不需要变体即可复现——见 `.scratch/ab-cache-key.mts`）：
+**结果**（同问句：canon digest 全文 system + 两个交替 zh 问题；第三件不需要变体即可复现——见 `scratch/ab-cache-key.mts`）：
 
 | 配置 | 12 发 结果 | cachedTokens | p50 |
 |---|---|---|---|

@@ -1,0 +1,47 @@
+
+Running 1 test using 1 worker
+
+  x  1 [chrome] › e2e\guest-reclaim.spec.ts:107:5 › 点名只收勾着的行：收走的那个人从屏幕上消失，没被点名的那个还在 (10.6s)
+
+
+  1) [chrome] › e2e\guest-reclaim.spec.ts:107:5 › 点名只收勾着的行：收走的那个人从屏幕上消失，没被点名的那个还在 ──────────────────
+
+    Error: expect(locator).toBeDisabled() failed
+
+    Locator:  locator('[data-reclaim-apply]')
+    Expected: disabled
+    Received: enabled
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeDisabled" locator('[data-reclaim-apply]') with timeout 5000ms
+      - waiting for locator('[data-reclaim-apply]')
+        14 × locator resolved to <button type="button" data-reclaim-apply="true" class="rounded-[var(--nexus-radius-sm)] bg-accent-2 px-3 py-1 text-12 text-accent-fg disabled:opacity-40">收走这 0 个</button>
+           - unexpected value "enabled"
+
+
+      123 |     await page.click('[data-reclaim-pick-all]');
+      124 |     await expect(page.locator('[data-reclaim-pick-all]')).not.toBeChecked();
+    > 125 |     await expect(page.locator('[data-reclaim-apply]')).toBeDisabled();
+          |                                                        ^
+      126 |     await expect(page.locator('[data-reclaim-apply]')).toHaveText('收走这 0 个');
+      127 |
+      128 |     await page.click(`[data-reclaim-pick="${doomed.id}"]`);
+        at D:\内容创作平台\e2e\guest-reclaim.spec.ts:125:56
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\guest-reclaim-点名只收勾着的行：收走的那个人从屏幕上消失，没被点名的那个还在-chrome\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\guest-reclaim-点名只收勾着的行：收走的那个人从屏幕上消失，没被点名的那个还在-chrome\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\guest-reclaim-点名只收勾着的行：收走的那个人从屏幕上消失，没被点名的那个还在-chrome\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\guest-reclaim-点名只收勾着的行：收走的那个人从屏幕上消失，没被点名的那个还在-chrome\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chrome] › e2e\guest-reclaim.spec.ts:107:5 › 点名只收勾着的行：收走的那个人从屏幕上消失，没被点名的那个还在 ───────────────────

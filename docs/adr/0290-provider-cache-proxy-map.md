@@ -34,7 +34,7 @@
 
 ```bash
 # Clash Verge 7897 必须处于开启状态；如果用 Windows + PowerShell
-python -X utf8 .scratch/probe-e151-clash.py
+python -X utf8 scratch/probe-e151-clash.py
 # 预期：
 #   call#1: tokensIn=154,891 cached=7,xxxx   (冷 · 新建 sticky lane)
 #   call#2: tokensIn=154,891 cached=145,483  (93.9% steady-state)

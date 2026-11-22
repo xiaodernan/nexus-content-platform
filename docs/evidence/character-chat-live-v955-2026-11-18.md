@@ -4,7 +4,7 @@
 「访客注册 → 建项目 → 建角色 → PATCH 档案 → 连续 3 问」全链路；
 本次同时落地「对话框显示缓存复用」的服务端透传与前端徽章（见下）。
 
-**环境**：本机 dev 路径（非生产 SLA）；探针脚本 `.scratch/proof-character-chat.mts`（cookie jar 手工实现，不落任何 key）。
+**环境**：本机 dev 路径（非生产 SLA）；探针脚本 `scratch/proof-character-chat.mts`（cookie jar 手工实现，不落任何 key）。
 
 ## 角色（铁板档案）
 

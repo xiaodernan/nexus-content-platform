@@ -1,0 +1,131 @@
+
+Running 4 tests using 1 worker
+
+  x  1 [chrome] › e2e\guest-reclaim.spec.ts:57:5 › 审核员看到的回收面板：三处数同源，「重新数一遍」换的不只是那句回执 (7.7s)
+  x  2 [chrome] › e2e\guest-reclaim.spec.ts:121:5 › 点名只收勾着的行：收走的那个人从屏幕上消失，没被点名的那个还在 (24.7s)
+  x  3 [chrome] › e2e\guest-reclaim.spec.ts:201:5 › 第二屏：屏号说清这是第几屏，翻过去之后点名只收站着的那一屏 (24.8s)
+  ok 4 [chrome] › e2e\guest-reclaim.spec.ts:266:5 › 游客态对照：这块面板与那些数对非审核员一个字都不渲染 (1.5s)
+
+
+  1) [chrome] › e2e\guest-reclaim.spec.ts:57:5 › 审核员看到的回收面板：三处数同源，「重新数一遍」换的不只是那句回执 ─────────────────
+
+    TypeError: Cannot read properties of undefined (reading 'candidates')
+
+      94 |     const body = await reclaimResponse(page, () => page.click('[data-recount-button]'));
+      95 |     expect(body.dryRun, '面板上那颗「重新数一遍」发出去的居然不是 dry run').toBe(true);
+    > 96 |     expect((body.scan.candidates as { id: string }[]).some((c) => c.id === late.id)).toBe(true);
+         |                       ^
+      97 |     await expect(page.locator('[data-reclaim-notice]')).toContainText('一条都没写');
+      98 |
+      99 |     const noticeNumber = Number(/够格的 (\d+) 个/.exec((await page.locator('[data-reclaim-notice]').textContent()) ?? '')?.[1]);
+        at D:\内容创作平台\e2e\guest-reclaim.spec.ts:96:23
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\guest-reclaim-审核员看到的回收面板：三处数同源，「重新数一遍」换的不只是那句回执-chrome\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\guest-reclaim-审核员看到的回收面板：三处数同源，「重新数一遍」换的不只是那句回执-chrome\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\guest-reclaim-审核员看到的回收面板：三处数同源，「重新数一遍」换的不只是那句回执-chrome\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\guest-reclaim-审核员看到的回收面板：三处数同源，「重新数一遍」换的不只是那句回执-chrome\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chrome] › e2e\guest-reclaim.spec.ts:121:5 › 点名只收勾着的行：收走的那个人从屏幕上消失，没被点名的那个还在 ──────────────────
+
+    Error: 注册没把会话变成 member（HTTP 409 · 界面上写：该邮箱已被注册）
+
+    expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  locator('[data-auth-identity]')
+    Expected: "member"
+    Received: "guest"
+    Timeout:  20000ms
+
+    Call log:
+      - 注册没把会话变成 member（HTTP 409 · 界面上写：该邮箱已被注册） locator('[data-auth-identity]') with timeout 20000ms
+      - waiting for locator('[data-auth-identity]')
+        43 × locator resolved to <div data-auth-identity="guest" class="flex items-center justify-between">…</div>
+           - unexpected value "guest"
+
+
+       at support\auth-session.ts:107
+
+      105 |     page.locator('[data-auth-identity]'),
+      106 |     authFailureMessage('register', attempt),
+    > 107 |   ).toHaveAttribute('data-auth-identity', 'member', { timeout: 20_000 });
+          |     ^
+      108 | }
+      109 |
+      110 | /** 登录成一个已存在的 member 会话（游客态调用；已登录时界面上没有这两个页签）。 */
+        at registerMember (D:\内容创作平台\e2e\support\auth-session.ts:107:5)
+        at asAdmin (D:\内容创作平台\e2e\guest-reclaim.spec.ts:29:60)
+        at D:\内容创作平台\e2e\guest-reclaim.spec.ts:129:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\guest-reclaim-点名只收勾着的行：收走的那个人从屏幕上消失，没被点名的那个还在-chrome\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\guest-reclaim-点名只收勾着的行：收走的那个人从屏幕上消失，没被点名的那个还在-chrome\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\guest-reclaim-点名只收勾着的行：收走的那个人从屏幕上消失，没被点名的那个还在-chrome\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\guest-reclaim-点名只收勾着的行：收走的那个人从屏幕上消失，没被点名的那个还在-chrome\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chrome] › e2e\guest-reclaim.spec.ts:201:5 › 第二屏：屏号说清这是第几屏，翻过去之后点名只收站着的那一屏 ────────────────────
+
+    Error: 注册没把会话变成 member（HTTP 409 · 界面上写：该邮箱已被注册）
+
+    expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  locator('[data-auth-identity]')
+    Expected: "member"
+    Received: "guest"
+    Timeout:  20000ms
+
+    Call log:
+      - 注册没把会话变成 member（HTTP 409 · 界面上写：该邮箱已被注册） locator('[data-auth-identity]') with timeout 20000ms
+      - waiting for locator('[data-auth-identity]')
+        43 × locator resolved to <div data-auth-identity="guest" class="flex items-center justify-between">…</div>
+           - unexpected value "guest"
+
+
+       at support\auth-session.ts:107
+
+      105 |     page.locator('[data-auth-identity]'),
+      106 |     authFailureMessage('register', attempt),
+    > 107 |   ).toHaveAttribute('data-auth-identity', 'member', { timeout: 20_000 });
+          |     ^
+      108 | }
+      109 |
+      110 | /** 登录成一个已存在的 member 会话（游客态调用；已登录时界面上没有这两个页签）。 */
+        at registerMember (D:\内容创作平台\e2e\support\auth-session.ts:107:5)
+        at asAdmin (D:\内容创作平台\e2e\guest-reclaim.spec.ts:29:60)
+        at D:\内容创作平台\e2e\guest-reclaim.spec.ts:209:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\guest-reclaim-第二屏：屏号说清这是第几屏，翻过去之后点名只收站着的那一屏-chrome\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\guest-reclaim-第二屏：屏号说清这是第几屏，翻过去之后点名只收站着的那一屏-chrome\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\guest-reclaim-第二屏：屏号说清这是第几屏，翻过去之后点名只收站着的那一屏-chrome\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\guest-reclaim-第二屏：屏号说清这是第几屏，翻过去之后点名只收站着的那一屏-chrome\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    [chrome] › e2e\guest-reclaim.spec.ts:57:5 › 审核员看到的回收面板：三处数同源，「重新数一遍」换的不只是那句回执 ──────────────────
+    [chrome] › e2e\guest-reclaim.spec.ts:121:5 › 点名只收勾着的行：收走的那个人从屏幕上消失，没被点名的那个还在 ───────────────────
+    [chrome] › e2e\guest-reclaim.spec.ts:201:5 › 第二屏：屏号说清这是第几屏，翻过去之后点名只收站着的那一屏 ─────────────────────
+  1 passed (1.3m)

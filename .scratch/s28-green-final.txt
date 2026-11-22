@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 D:/内容创作平台
+
+·······················································
+
+ Test Files  4 passed (4)
+      Tests  55 passed (55)
+   Start at  03:32:05
+   Duration  42.59s (transform 2.58s, setup 0ms, collect 7.82s, tests 32.50s, environment 1ms, prepare 754ms)
+

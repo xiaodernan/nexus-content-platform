@@ -1,0 +1,22 @@
+判决名清单（源码派生）：24 条
+BASELINE e2e: 1/1 green, reds=[]
+SKIP A-page-spells-it-again vitest（这一轮只跑 e2e）
+SKIP A-page-spells-it-again parity（这一轮只跑 e2e）
+PREDICT A-page-spells-it-again: 该红 4 条（这一轮跑了 0 层）→ 漏 无 | 这一层没跑 4 条 | 预测外的红 无
+SKIP B-step-spells-it-again vitest（这一轮只跑 e2e）
+PREDICT B-step-spells-it-again: 该红 3 条（这一轮跑了 0 层）→ 漏 无 | 这一层没跑 3 条 | 预测外的红 无
+SKIP C-growth-layer-decorative parity（这一轮只跑 e2e）
+PREDICT C-growth-layer-decorative: 该红 5 条（这一轮跑了 0 层）→ 漏 无 | 这一层没跑 5 条 | 预测外的红 无
+SKIP G-engine-ignores-the-chain parity（这一轮只跑 e2e）
+PREDICT G-engine-ignores-the-chain: 该红 2 条（这一轮跑了 0 层）→ 漏 无 | 这一层没跑 2 条 | 预测外的红 无
+SKIP D-rpg-payload-is-just-2d parity（这一轮只跑 e2e）
+PREDICT D-rpg-payload-is-just-2d: 该红 2 条（这一轮跑了 0 层）→ 漏 无 | 这一层没跑 2 条 | 预测外的红 无
+SKIP E-rpg-chain-un-carried vitest（这一轮只跑 e2e）
+SKIP E-rpg-chain-un-carried parity（这一轮只跑 e2e）
+PREDICT E-rpg-chain-un-carried: 该红 17 条（这一轮跑了 0 层）→ 漏 无 | 这一层没跑 17 条 | 预测外的红 无
+VERDICT F-panel-attr-hardwired e2e: red=1/1 :: E2E-FAILED :: expect(locator).toHaveAttribute(expected) failed
+PREDICT F-panel-attr-hardwired: 该红 1 条（这一轮跑了 1 层）→ 漏 无 | 这一层没跑 0 条 | 预测外的红 无
+RESTORED packages/game-model/src/codegen.ts: byte-identical
+RESTORED apps/web/src/server/agent/runtime.ts: byte-identical
+RESTORED apps/web/src/studio/GameCodeExport.tsx: byte-identical
+E2E_EXIT=0
