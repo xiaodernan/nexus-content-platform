@@ -18,6 +18,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import time
 import uuid
 from collections import deque
 from dataclasses import asdict, dataclass, field
@@ -74,12 +75,16 @@ class JobStore(Protocol):
     note: str
     max_attempts: int  # 每件作业允许的总尝试次数；<=1 表示不重试（默认，零回归）
     max_dead_letters: int  # 死信上限（ADR 0121）；0 = 不限（回到 ADR 0120 的旧行为）
+    # >0 表示这个后端的 running 是"带租约的账"，worker 必须按 lease_s/3 续租；
+    # 内存后端没有租约这回事（进程死了账本来就没了），是 0。
+    lease_s: float
 
     async def enqueue(self, payload: dict[str, Any]) -> Job: ...
     async def claim(self) -> Job | None: ...
     async def save(self, job: Job) -> None: ...
     async def get(self, job_id: str) -> Job | None: ...
     async def counts(self) -> tuple[int, int]: ...
+    async def renew_lease(self, job_id: str) -> None: ...
     async def request_cancel(self, job_id: str) -> Job | None: ...
     async def is_cancel_requested(self, job_id: str) -> bool: ...
     async def requeue(self, job: Job) -> None: ...
@@ -98,6 +103,7 @@ class MemoryJobStore:
 
     backend = "memory"
     note = "作业只存在当前 ai-service 进程里：重启即失，多副本部署时轮询可能打到另一台查不到。"
+    lease_s = 0.0  # 内存后端的 running 就是对象状态本身，没有"租约到期"这回事
 
     def __init__(self, *, max_jobs: int = 200, max_attempts: int = 1, max_dead_letters: int = DEFAULT_MAX_DEAD_LETTERS) -> None:
         self._jobs: dict[str, Job] = {}
@@ -214,6 +220,11 @@ class MemoryJobStore:
         running = sum(1 for j in self._jobs.values() if j.status == "running")
         return pending, running
 
+    async def renew_lease(self, job_id: str) -> None:
+        # 与 Redis 后端同一套调用（Worker 不看后端）：内存里"续租"没有对象可续，直接返回。
+        return None
+
+
     def _purge(self) -> None:
         if len(self._jobs) <= self._max_jobs:
             return
@@ -227,20 +238,35 @@ class MemoryJobStore:
 
 
 class RedisJobStore:
-    """Redis 队列：跨进程可见。作业本体是一个带 TTL 的 key，pending 是一个 list。"""
+    """Redis 队列：跨进程可见。作业本体是一个带 TTL 的 key，pending 是一个 list，
+    running 是一个**带租约的有序集合**（score=租约到期时刻）——见 `counts()`。"""
 
     backend = "redis"
     note = "作业存在 Redis 里（带 TTL）：重启不丢，多副本部署时轮询打到任何一台都能查到。"
 
-    def __init__(self, client: Any, *, prefix: str = "nexus:ai", ttl_s: int = 3600, max_attempts: int = 1, max_dead_letters: int = DEFAULT_MAX_DEAD_LETTERS) -> None:
+    def __init__(self, client: Any, *, prefix: str = "nexus:ai", ttl_s: int = 3600, max_attempts: int = 1, max_dead_letters: int = DEFAULT_MAX_DEAD_LETTERS, lease_s: float | None = None) -> None:
+        # 没点名就给 TTL 的四分之一、上限 180s：心跳让短租约变得便宜（续一条 id 一条命令），
+        # 于是"worker 崩了之后 running 虚高多久"这个上界能从 3600s（旧写法的 TTL）压到分钟级。
+        # 四分之一是硬约束——租约比本体活得久，就会留下谁也查不到的永久虚账；
+        # 跟着 TTL 走而不是夹一个下限，是因为短 TTL 的构造（测试里 1s 过期）也是合法部署。
+        lease_s = float(lease_s) if lease_s is not None else min(180.0, max(0.05, ttl_s / 4.0))
+        # 租约必须比作业本体的 TTL 短，否则会出现"本体已过期、索引里还挂着 id"的永久虚账：
+        # 那条 id 谁也查不到作业，却永远算进 running。判据与 ADR 0130 的 flight 租约同族
+        # （那边是 lease < wait_timeout，这边是 lease < ttl）。构造期就抛，不留到运行时数错。
+        if not 0 < lease_s < ttl_s:
+            raise ValueError(
+                f"lease_s={lease_s} 必须落在 (0, ttl_s={ttl_s}) 之间："
+                "租约比 TTL 长会让过期作业的 id 永久留在 running 索引里，租约为 0 则没人能算出 running"
+            )
         self._r = client
         self._prefix = prefix
         self._ttl = ttl_s
+        self.lease_s = float(lease_s)
         self.max_attempts = max(1, max_attempts)  # <=1 表示不重试（默认零回归）
         self.max_dead_letters = max(0, max_dead_letters)  # 0 = 不限（ADR 0121）
 
     @classmethod
-    async def connect(cls, url: str, *, prefix: str = "nexus:ai", ttl_s: int = 3600, max_attempts: int = 1, max_dead_letters: int = DEFAULT_MAX_DEAD_LETTERS) -> "RedisJobStore":
+    async def connect(cls, url: str, *, prefix: str = "nexus:ai", ttl_s: int = 3600, max_attempts: int = 1, max_dead_letters: int = DEFAULT_MAX_DEAD_LETTERS, lease_s: float | None = None) -> "RedisJobStore":
         import redis.asyncio as aioredis  # 惰性导入：没配 Redis 时不需要这个依赖
 
         # ADR 0274 / ADR 0119：黑洞 Redis（TCP 可连、永不回包，例如 WSL/Docker 引擎挂掉后遗留的 relay）
@@ -253,7 +279,7 @@ class RedisJobStore:
             socket_timeout=3,
         )
         await client.ping()
-        return cls(client, prefix=prefix, ttl_s=ttl_s, max_attempts=max_attempts, max_dead_letters=max_dead_letters)
+        return cls(client, prefix=prefix, ttl_s=ttl_s, max_attempts=max_attempts, max_dead_letters=max_dead_letters, lease_s=lease_s)
 
     def _key(self, job_id: str) -> str:
         return f"{self._prefix}:job:{job_id}"
@@ -294,8 +320,42 @@ class RedisJobStore:
             job_id = await self._r.lpop(self._pending_key)
         return None
 
+    @property
+    def _running_key(self) -> str:
+        # 前缀刻意不是 `job:`：它不是作业本体，不该被任何按 `job:*` 找本体的逻辑当成作业
+        # （`_cancel_key` 当年同一条理由，见下面注释）。
+        return f"{self._prefix}:jobs:running"
+
+    def _deadline(self) -> float:
+        return time.time() + self.lease_s
+
     async def save(self, job: Job) -> None:
+        """写作业本体，再把 running 索引跟着改到位（两条命令，本体在前）。
+
+        索引只在**这一处**收口：claim 落 running、终态落 completed/failed/cancelled、
+        重试回 queued 全走 save。绕过 save 直接 set 本体的路径必须自己负责——
+        原来有两条（`requeue`、`route_to_dead_letter`），现在都改成走 save。
+
+        不合并成一条 pipeline：多等一次往返发生在写侧（作业寿命由 provider 决定，几毫秒不算），
+        而 pipeline 要求每个测试替身都模拟批处理，那笔代价是真实的。
+        顺序是"先本体后索引"：中间断线的话，索引只是**落后**于真值（漏算一件在跑的），
+        而反过来会得到一件账上在跑、本体里根本没这回事的幽灵。前者下一次 save 就补上，
+        后者要等一个租约周期才出账——所以选前者。
+        """
         await self._r.set(self._key(job.id), json.dumps(asdict(job), ensure_ascii=False), ex=self._ttl)
+        if job.status == "running":
+            await self._r.zadd(self._running_key, {job.id: self._deadline()})
+        else:
+            await self._r.zrem(self._running_key, job.id)
+
+    async def renew_lease(self, job_id: str) -> None:
+        """给还在跑的作业续租。用 XX：**只更新已经在账上的 id**。
+
+        普通 ZADD 在这里是错的：心跳与 save 是两条独立的路，worker 落了终态之后还可能有
+        一次在飞的心跳回来，普通 ZADD 会把刚摘掉的 id 又挂回去，`/healthz` 从此凭空多一件在跑。
+        XX 让迟到的心跳变成一次空操作（返回 0，不报错）。
+        """
+        await self._r.zadd(self._running_key, {job_id: self._deadline()}, xx=True)
 
     async def get(self, job_id: str) -> Job | None:
         raw = await self._r.get(self._key(job_id))
@@ -339,8 +399,12 @@ class RedisJobStore:
         return bool(await self._r.exists(self._cancel_key(job_id)))
 
     async def requeue(self, job: Job) -> None:
-        """失败后可重试：重新挂回 pending（RPUSH 追加 = 先进先出，重试件排到队尾）。"""
-        await self._r.set(self._key(job.id), json.dumps(asdict(job), ensure_ascii=False), ex=self._ttl)
+        """失败后可重试：重新挂回 pending（RPUSH 追加 = 先进先出，重试件排到队尾）。
+
+        走 save 而不是裸 set：这一件的状态刚从 running 回到 queued，索引必须跟着摘掉，
+        否则重试中的作业会被算成"在跑"，pending 与 running 同时 +1（一件事记两次）。
+        """
+        await self.save(job)
         await self._r.rpush(self._pending_key, job.id)
 
     async def route_to_dead_letter(self, job: Job, *, reason: str) -> None:
@@ -350,7 +414,7 @@ class RedisJobStore:
         job.activities.append(
             {"stage": "queue", "status": "failed", "summary": f"已路由到死信：{reason}", "at": job.finishedAt}
         )
-        await self._r.set(self._key(job.id), json.dumps(asdict(job), ensure_ascii=False), ex=self._ttl)
+        await self.save(job)  # 也在这里摘 running 索引：终态就是终态，不管它是谁写的
         await self._r.lpush(
             self._dead_key,
             json.dumps({"job": job.public(), "attempts": job.attempts, "reason": reason}, ensure_ascii=False),
@@ -366,15 +430,33 @@ class RedisJobStore:
         return [json.loads(r) for r in raws]
 
     async def counts(self) -> tuple[int, int]:
-        # pending = list 长度（O(1)），running = SCAN 计数（与 memory 后端同口径 status==running）。
-        # LLEN 之所以够用：唯一会残留在 list 里却非 queued 的就是"已取消的排队作业"，
-        # 它在 request_cancel 里已被 LREM 摘掉（取消先于 claim 的封底路径还有 claim 的过滤）。
+        """三条命令：LLEN + ZREMRANGEBYSCORE + ZCARD，与键空间大小无关。
+
+        旧写法是 `SCAN(prefix:job:*) + 每个命中一次 GET`，实测（2026-11-23，本机 nexus-redis
+        的独立 db9，判据数的是**命令条数**而不是时间——时间在这台机器上有并行会话污染）：
+
+        | 键空间 | counts() 发出的命令 | 墙钟 |
+        |---|---|---|
+        | 100 个作业键 | 102 条 | 213ms |
+        | 1000 个作业键 | 1007 条 | 2.28s |
+        | 5000 个作业键 | 5026 条 | **21.3s** |
+        | 20000 个**别的前缀**的键 + 1 个作业 | 102 条 | 221ms |
+
+        两个结论：GET 那一段随"存活的作业数"线性涨，SCAN 那一段随**整个键空间**涨
+        （MATCH 是先遍历再过滤，不是按索引取）。而 `/healthz` 只给这次读数 0.35s 预算，
+        作业本体 TTL 又是 3600s——所以代价随**吞吐×TTL**积累，不随并发：跑过大约 80 件作业之后
+        队列读数就永久退化成 `counts-unavailable:TimeoutError` 并报 0/0，恰好在用户最多的时候。
+
+        租约取代了"逐个体检"：worker 崩了/被 kill 掉的 id 到了 `lease_s` 自己出账，
+        不需要谁去读本体确认——这也是为什么 overcount 的上界是 `lease_s`，
+        而不是旧写法那个"到 TTL 之前一直算在跑"的 3600s。
+
+        LLEN 仍然够用：唯一会残留在 list 里却非 queued 的就是"已取消的排队作业"，
+        它在 request_cancel 里已被 LREM 摘掉（取消先于 claim 的封底路径还有 claim 的过滤）。
+        """
         pending = int(await self._r.llen(self._pending_key) or 0)
-        running = 0
-        async for key in self._r.scan_iter(match=f"{self._prefix}:job:*", count=200):
-            raw = await self._r.get(key)
-            if raw and json.loads(raw).get("status") == "running":
-                running += 1
+        await self._r.zremrangebyscore(self._running_key, 0, time.time())
+        running = int(await self._r.zcard(self._running_key) or 0)
         return pending, running
 
     async def close(self) -> None:
@@ -391,12 +473,17 @@ class Worker:
         self._poll_s = poll_s
         self._tasks: list[asyncio.Task[None]] = []
         self._stopping = asyncio.Event()
+        # 这个进程**此刻正在跑**的作业 id：心跳只给它们续租，不给别人续，也不给历史续。
+        self._inflight: set[str] = set()
 
     async def start(self) -> None:
         if self._tasks:
             return
         self._stopping.clear()
         self._tasks = [asyncio.create_task(self._loop(i)) for i in range(self.capacity)]
+        if getattr(self.store, "lease_s", 0) > 0:
+            # 内存后端 lease_s==0：账就是对象状态，没有租约可续，起个空转的任务只是噪声。
+            self._tasks.append(asyncio.create_task(self._heartbeat()))
 
     async def stop(self) -> None:
         self._stopping.set()
@@ -419,7 +506,43 @@ class Worker:
                 except asyncio.TimeoutError:
                     pass
                 continue
-            await self.run_job(job)
+            self._inflight.add(job.id)
+            try:
+                await self.run_job(job)
+            finally:
+                # 摘牌放在 finally：run_job 自己已经把终态写回并 ZREM 了，这里只是别再给
+                # 一个已经终态的 id 续租（心跳会 ZADD XX，账上没这条就是空操作，不会复活）。
+                self._inflight.discard(job.id)
+
+    async def _heartbeat(self) -> None:
+        """按 `lease_s/3` 给在飞的作业续租。
+
+        为什么非要心跳：一件作业的寿命由 provider 决定（`request_timeout_s` 就是 180s），
+        不由租约决定。没有续租，租约只能取"最长可能作业时间"那种保守值，
+        于是 worker 崩了以后 `/healthz` 要在那么久之后才不虚报 running。
+        有了续租，租约可以短到分钟级，虚报上界跟着一起缩。
+
+        为什么除以 3：要留出**连续丢两拍**的余量——一拍可能被一次 CPU 密集的序列化挤掉，
+        两拍连着丢才说明进程真的有问题，那时让它出账正是想要的行为。
+
+        为什么下界是 50ms 而不是 1s（test_running_index.py 的第四臂抓出来的）：
+        原本写作 `max(1.0, lease_s / 3)`，于是**任何租约短于 3s 的配置都永远续不上**——
+        第一拍落在租约到期之后，还在跑的作业会被 `/healthz` 报成 0，而这恰好是"心跳没工作"
+        时最难发现的失败模式（数字看着正常，只是少了）。租约是运维点名的，不是我们能假设的。
+        """
+        beat = max(0.05, self.store.lease_s / 3.0)
+        while not self._stopping.is_set():
+            try:
+                await asyncio.wait_for(self._stopping.wait(), timeout=beat)
+            except TimeoutError:  # 正常的"到点了，该续租"
+                pass
+            for job_id in list(self._inflight):
+                try:
+                    await self.store.renew_lease(job_id)
+                except Exception:  # noqa: BLE001,S110 - 一拍失败只是这一拍没续上：
+                    # 租约到点自然出账，下一拍接着续。让心跳任务整体死掉更糟——那之后
+                    # 所有在飞的作业都会陆续掉账，/healthz 会把"正在跑"报成 0。
+                    pass
 
     async def run_job(self, job: Job) -> Job:
         """跑一件活并把结果写回。管线内部已经把所有失败变成 (状态码, 错误报文)，
@@ -545,10 +668,13 @@ async def build_store(env: Mapping[str, str] | None = None, *, prefix: str = "ne
     if not url:
         return MemoryJobStore(max_attempts=_max_attempts(source), max_dead_letters=parse_max_dead_letters(source))
     ttl = int(source.get("AI_SERVICE_JOB_TTL_S", "3600") or "3600")
+    # 租约上界由 RedisJobStore 构造函数把（lease < ttl 是要抛的，不是要悄悄夹的：
+    # 夹了之后"虚报多久"这个运维参数就不再是运维填的那个数）
+    lease = float(source.get("AI_SERVICE_JOB_LEASE_S", "0") or 0) or None
     if not _degraded_store_allowed(source):
-        return await RedisJobStore.connect(url, prefix=prefix, ttl_s=max(60, ttl), max_attempts=_max_attempts(source), max_dead_letters=parse_max_dead_letters(source))
+        return await RedisJobStore.connect(url, prefix=prefix, ttl_s=max(60, ttl), max_attempts=_max_attempts(source), max_dead_letters=parse_max_dead_letters(source), lease_s=lease)
     try:
-        return await RedisJobStore.connect(url, prefix=prefix, ttl_s=max(60, ttl), max_attempts=_max_attempts(source), max_dead_letters=parse_max_dead_letters(source))
+        return await RedisJobStore.connect(url, prefix=prefix, ttl_s=max(60, ttl), max_attempts=_max_attempts(source), max_dead_letters=parse_max_dead_letters(source), lease_s=lease)
     except Exception as exc:  # noqa: BLE001 — 明牌降级必须捕获一切连接期错误
         # 明牌打印给进程日志；healthz 侧 note 也会带【DEGRADED-BOOT】（_State.store.note 已实装）
         print(f"[ai-service][DEGRADED-BOOT] Redis unreachable ({type(exc).__name__}: {exc}); "

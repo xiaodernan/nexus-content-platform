@@ -186,6 +186,7 @@ def test_redis_store_records_ltrim_after_archive():
             super().__init__()
             self.kv: dict[str, str] = {}
             self.lists: dict[str, list[str]] = {}
+            self.zsets: dict[str, dict[str, float]] = {}
 
         async def _aenter(self):
             return self
@@ -204,8 +205,21 @@ def test_redis_store_records_ltrim_after_archive():
         async def lrange(self, key, start, end):
             return list(self.lists.get(key, []))
 
+        async def zadd(self, key, mapping, xx=False):
+            # xx=True 只更新已有成员——真实语义，生产代码靠它让迟到的心跳无法复活终态作业
+            present = self.zsets.setdefault(key, {})
+            added = 0
+            for member, score in mapping.items():
+                if member in present or not xx:
+                    present[member] = score
+                    added += 1
+            return added
+
+        async def zrem(self, key, *members):
+            present = self.zsets.setdefault(key, {})
+            return sum(1 for member in members if present.pop(member, None) is not None)
+
     async def scenario() -> None:
-        import json
         from ai_service.jobs import RedisJobStore
 
         client = _FakeDeadRedis()
