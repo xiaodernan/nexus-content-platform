@@ -15531,5 +15531,13 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
       `/map`、`/guide` 中英 title 各归其位；E218 `/bible/echo-218-the-gap-left-behind` 中英均 200。
 - [x] 门：`anchor-echo` / `map` / `guide` / `root-layout` 四处钉按当前字节重钉并注明原因；
       `verify:fe-gates` **155 文件 / 1419 条全绿**。
-- [~] 其余页面仍是静态 metadata（英文标签页会挂中文标题）；按同样样板逐页迁移。
+- [x] 第二批（典籍室全线）：`/bible`、`/bible/margins`、`/bible/ask`、`/bible/quiz`、
+      `/bible/search`、`/bible/well` 也改 `generateMetadata`；英文 title 分别为
+      World Bible / Margins of the Canon / The Tidal Inquiry / The Tidal Trial /
+      The Canon Search / The Seven Wells。
+- [x] 顺带修真数据：问典描述「十三章 + 一百六十三回响」→ 真实的「十四章 + 二百一十八回响」；
+      正典检索「四章 + 四回响」→「十四章 + 二百一十八回响」；潮汐挑战「five canonical chapters」→ 十四章。
+- [x] 门：ask（page）、quiz（page）、seven-wells（page）三处钉按当前字节重钉；`fe-gates` 1419 全绿。
+- [~] 其余页面（daily / tide-oracle / tide-wire / tidewatch / observatory / stategraph /
+      world / threads / analytics / api-tokens 等）仍是静态 metadata；按同样样板逐页迁移。
       world-bible appendix 的双语词条属 Ask 语料，不在渲染面。
