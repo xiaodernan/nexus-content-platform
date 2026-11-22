@@ -47,13 +47,20 @@ const countRecursive = (dir: string, match: (name: string) => boolean) => {
   } catch { return null; }
 };
 
-const commits = sh(['rev-list', '--count', 'HEAD']);
-const headFull = sh(['rev-parse', 'HEAD']) ?? '';
+// Which ref the fact pack describes. Defaults to HEAD (whatever the caller checked out), but
+// NEXUS_FACT_REF lets a caller pin it: this repo's `main` and `master` are UNRELATED histories,
+// and `main` is the STALE content line (E211, no margins) while `master` is the active one (E215).
+// A sync script that happened to run on `main` used to publish main's numbers as "latest".
+const FACT_REF = (process.env.NEXUS_FACT_REF ?? 'HEAD').trim() || 'HEAD';
+const commits = sh(['rev-list', '--count', FACT_REF]);
+const headFull = sh(['rev-parse', FACT_REF]) ?? '';
 const headShort = headFull.slice(0, 7);
-const firstCommitDate = sh(['log', '--max-parents=0', '--format=%cs', '-1']) ?? null;
-// 分支名必须读真值：本仓库 main 与 master 是两条无关历史，写死 'main' 会让个人主页
-// 把 master 的 head 标成 main（显示 "main @ <master sha>"），用户点进去看到的是错的分支。
-const branchName = sh(['rev-parse', '--abbrev-ref', 'HEAD']) ?? 'main';
+const firstCommitDate = sh(['log', '--max-parents=0', '--format=%cs', '-1', FACT_REF]) ?? null;
+// 分支名必须读真值：写死 'main' 会让个人主页把 master 的 head 标成 main。
+// 指定了 FACT_REF 时就用它（去掉 origin/ 前缀），否则问 HEAD 现在挂在哪个分支上。
+const branchName = FACT_REF === 'HEAD'
+  ? (sh(['rev-parse', '--abbrev-ref', 'HEAD']) ?? 'master')
+  : FACT_REF.replace(/^refs\/heads\//, '').replace(/^origin\//, '');
 
 const data = {
   schema_version: 'nexus-content.latest.v1',

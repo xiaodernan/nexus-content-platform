@@ -37,6 +37,8 @@ jobs:
           fetch-depth: 0          # the pack reads real history (first_commit_at, total_commits)
 
       - name: Regenerate docs/showcase/latest.json
+        env:
+          NEXUS_FACT_REF: master   # `main` is an unrelated, stale content line — never publish it as latest
         run: npx tsx scripts/gen-latest.mts
 
       # 2026-11-22: this step used to COMMIT the pack back into this repo. That is a
