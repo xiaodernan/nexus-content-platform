@@ -134,4 +134,9 @@ public class IncidentPatch {
     void revise() {
         this.status = PatchService.PROPOSED;
     }
+
+    /** The chain's last word: a deployment of this patch was reported successful. */
+    void deploy() {
+        this.status = PatchService.DEPLOYED;
+    }
 }

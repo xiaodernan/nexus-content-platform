@@ -56,6 +56,12 @@ public class PullRequestService {
     /** The only status this slice writes. The later words move it; this one does not. */
     public static final String OPEN = "open";
 
+    /** The status a decision leaves behind when the review said yes — the deployment gate's reading. */
+    public static final String APPROVED = "approved";
+
+    /** The status a decision leaves behind when the review said no. */
+    public static final String REJECTED = "rejected";
+
     private final PullRequestRepository repository;
     private final PatchService patches;
     private final Clock clock;

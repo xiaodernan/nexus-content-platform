@@ -14266,3 +14266,58 @@ so the next reader's recount door has no orphan to catch.
   576's and 577's stated reason, so no orphan grant exists to catch.
 - **Version labels** v869 is the only label minted by this landing; v868 is its predecessor and stays
   untouched.
+
+### Amendment 579 (v870, m9) — a deployment is a RECORD, not an action: request, then a named report; success alone moves the patch
+
+- **The gap this sector names.** After 577 (request) and 578 (verdict), the chain's last sentence —
+  "deploy it" — had no home. This service owns no cluster, registry, host or target; the one thing it must
+  never do is claim a deployment happened. The last word therefore splits into the only two honest acts:
+  a caller REQUESTS a deployment of an APPROVED review request, and later a deployer REPORTS what they
+  observed (`succeeded` / `failed`) under their own name.
+- **The record, and the four doors.** `POST /pull-requests/{pullRequestId}/deployments` answers 201 with
+  exactly ten fields (`id`, `pullRequestId`, `patchId`, `environment`, `status`, `requestedBy`,
+  `requestedAt`, `finishedAt`, `reportedBy`, `outcome`); `GET /pull-requests/{pullRequestId}/deployments`
+  answers the newest window with both counts; `GET /deployments/{deploymentId}` answers one record;
+  `POST /deployments/{deploymentId}/complete` answers 200 with the completed record. Three of the ten fields
+  are null while `requested` — the proof pins that no finish time, reporter or outcome is invented.
+- **Only an APPROVED request may be cut, and the refusal is 409.** An open request has no verdict yet; a
+  rejected one has a verdict that says no. `409 not-approved` names the state, after the fields are
+  validated: a malformed body is malformed regardless of state. The proof deploys an open and a rejected
+  request and shows both stored nothing.
+- **Completion is one conditional UPDATE.** `DeploymentRepository.completeIfRequested` carries
+  `status = 'requested'` inside the UPDATE and returns the moved-row count: 1 for the caller whose report
+  landed, 0 for everyone else → 409 `already-completed`. It clears the persistence context so the re-read
+  answers the database, not a stale copy. A retry is a NEW record; history is not overwritten.
+- **Only a reported success moves the patch.** On `succeeded`, `PatchService.deploy` moves the patch to
+  `deployed` in the SAME transaction; on `failed` the patch stays `approved`, because the approval is still
+  true and the failure is a fact about an attempt. The proof runs the chain to both endings and reads the
+  patch back as `deployed` and `approved` respectively.
+- **The environment vocabulary is closed and matched exactly** (`staging` / `production`, no case folding);
+  `Production` is 400 `invalid-deployment` with both words named. `patchId` is stored beside
+  `pullRequestId` at request time — both immutable — so completion does not depend on a join.
+- **The window rule is CALLED, not copied.** `DeploymentService` imports `IncidentService.effectiveLimit`
+  and `appliedOffset`; the proof applied `limit=1000&offset=150` and read back cap 100 / skip 100.
+- **No second copy of the record.** No audit entry and no webhook delivery: the deployment table is the
+  record, like the five tables before it. The live proof reads ZERO and ZERO with psql.
+- **Measured.** 38/38 unit cases (24 deployment service + 11 deployment controller + 3 patch deploy) and the
+  live proof `docs/evidence/m9/deployment-proof.mjs` on a throwaway `pgvector/pgvector:pg16` with the built
+  jar: §1 the chain ran to an approved request and two more requests were prepared (open, rejected); §2 a
+  deployment 201 with ten fields and three nulls; §3 open and rejected requests 409 `not-approved` storing
+  nothing; §4 a reported success 200 with finish time/reporter/outcome moving the patch to `deployed`, a
+  second report 409, the listing 1 of 1 with cap/skip 100/100; §5 a second chain approved, deployed to
+  production and reported `failed`, the patch staying `approved`; §6 an unknown request 404
+  `unknown-pull-request`, an unknown record 404 `unknown-deployment`, three malformed bodies 400
+  `invalid-deployment`; §7 a STOP/START left both records and every status in place; §8 psql read 2
+  deployments (1 succeeded / 1 failed, both finished), the patch statuses `deployed` / `approved`, 0 audit
+  entries and 0 deliveries; §9 teardown. Final line 221 bytes.
+- **The chain is now complete, and this record says what that means.** incident (547) → patch (548) →
+  review request (577) → verdict (578) → deployment record (579). Every word is a durable row; every
+  transition is one transaction; every gate is either a named 4xx or an atomic conditional UPDATE. What the
+  chain still cannot do — apply bytes, run tests, contact a target, authenticate a caller — is recorded in
+  ADRs 0067–0069 rather than implied away.
+- **CITES** amendments 578 (the verdict this record requires), 577 (the request it was cut from), 548 (the
+  patch whose cursor reaches its last word) and 547 (the incident at the head), plus ADRs 0018 and 0069;
+  **GRANTS nothing** — the next number is not promised ahead of its record, following 576–578's stated
+  reason, so no orphan grant exists to catch.
+- **Version labels** v870 is the only label minted by this landing; v869 is its predecessor and stays
+  untouched.

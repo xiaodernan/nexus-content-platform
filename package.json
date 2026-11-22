@@ -69,6 +69,7 @@
     "verify:patches": "node docs/evidence/m9/patch-proof.mjs",
     "verify:pull-requests": "node docs/evidence/m9/pull-request-proof.mjs",
     "verify:decisions": "node docs/evidence/m9/decision-proof.mjs",
+    "verify:deployments": "node docs/evidence/m9/deployment-proof.mjs",
     "verify:webhooks": "node docs/evidence/m10/webhook-proof.mjs",
     "verify:tools": "node docs/evidence/m10/tool-registry-proof.mjs",
     "verify:mcp": "node docs/evidence/m10/mcp-face-proof.mjs",

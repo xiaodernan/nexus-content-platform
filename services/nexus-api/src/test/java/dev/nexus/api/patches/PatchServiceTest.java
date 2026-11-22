@@ -297,4 +297,32 @@ class PatchServiceTest {
                 .isInstanceOf(NoSuchPatch.class)
                 .hasMessageContaining("nope");
     }
+
+    // ── deploying ────────────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void aSuccessfulDeploymentMovesThePatchToDeployed() {
+        when(repository.findById("p-1")).thenReturn(Optional.of(row("p-1", "i-1", "+one")));
+
+        IncidentPatch deployed = service.deploy("p-1");
+
+        assertThat(deployed.getStatus()).isEqualTo(PatchService.DEPLOYED);
+    }
+
+    @Test
+    void deployingAnIdThatNamesNothingIsNoSuchPatch() {
+        when(repository.findById("nope")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.deploy("nope"))
+                .isInstanceOf(NoSuchPatch.class)
+                .hasMessageContaining("nope");
+    }
+
+    @Test
+    void deployingABlankIdIsRefusedBeforeTheTableIsAsked() {
+        assertThatThrownBy(() -> service.deploy("   "))
+                .isInstanceOf(InvalidPatch.class)
+                .hasMessageContaining("id is required");
+        verifyNoInteractions(repository);
+    }
 }

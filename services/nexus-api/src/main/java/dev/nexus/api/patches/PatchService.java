@@ -64,6 +64,9 @@ public class PatchService {
     /** The status a patch carries after its review request was approved — written by {@link #approve}. */
     public static final String APPROVED = "approved";
 
+    /** The chain's last word: a deployment of this patch succeeded, written by {@link #deploy}. */
+    public static final String DEPLOYED = "deployed";
+
     private final PatchRepository repository;
     private final IncidentService incidents;
     private final Clock clock;
@@ -160,6 +163,18 @@ public class PatchService {
     public IncidentPatch revise(String patchId) {
         IncidentPatch row = load(patchId);
         row.revise();
+        return row;
+    }
+
+    /**
+     * The chain's last word, from this table's side: a deployment of this patch was REPORTED successful.
+     * Only a success moves the cursor — a failed deployment leaves the patch approved, because the approval
+     * is still true and the retry is a new deployment record.
+     */
+    @Transactional
+    public IncidentPatch deploy(String patchId) {
+        IncidentPatch row = load(patchId);
+        row.deploy();
         return row;
     }
 

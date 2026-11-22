@@ -14734,3 +14734,39 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   拒绝回 proposed 并可重提、三处拒绝、重启保持、psql 2 条裁决 + 状态迁移 + 0/0）；末行 231 字节。
 - **接线**：`package.json` 新增 `verify:decisions`；census 随 index 重算。
 
+
+## v870 — M9 链的第五个词（收官）：部署是「记录」，不是「动作」（2026-11-22 · ADR 0069 · amendment 579）
+
+- **缺口**：577（请求）与 578（裁决）之后，链条最后一句「部署它」无家可归。本服务没有集群、镜像库、
+  主机或目标环境；它唯一绝不能做的事，是宣称一次部署发生过。于是最后一个词拆成两个诚实的动作：
+  调用者为**已批准**的复核请求**请求**部署；之后由部署者以自己的名义**上报**观察到的结果
+  （`succeeded` / `failed`）。
+- **字段与四道门**：`POST /pull-requests/{pullRequestId}/deployments` → 201 十字段
+  （id pullRequestId patchId environment status requestedBy requestedAt finishedAt reportedBy outcome）；
+  `GET /pull-requests/{pullRequestId}/deployments` → 最新窗口 + 两计数；`GET /deployments/{deploymentId}`
+  → 单条；`POST /deployments/{deploymentId}/complete` → 200 完成后的记录。`requested` 时三字段为 null——
+  证据钉死：不发明完成时间、上报人或结果。
+- **只有 approved 可部署，拒绝是 409**：open 尚无判词，rejected 的判词是「不」。`409 not-approved`
+  点明状态，且在字段校验之后（畸形请求体无论状态都是 400）。活证据：对 open 与 rejected 各请求一次，
+  两次都 409 且一行未写。
+- **完成是一次条件 UPDATE**：`completeIfRequested` 把 `status='requested'` 放进 UPDATE，
+  返回移动行数——0 → 409 `already-completed`；`clearAutomatically` 让重读回答数据库而非陈旧副本。
+  重试是**新记录**，历史不被覆盖。
+- **只有成功上报移动 patch**：`succeeded` → 同事务 `PatchService.deploy` → `deployed`；
+  `failed` → patch 保持 `approved`（批准仍然为真，失败是关于一次尝试的事实）。活证据跑完整条链两次：
+  成功读回 `deployed`，失败读回 `approved`。
+- **环境词表封闭且精确匹配**（`staging` / `production`，不做大小写折叠）；`Production` → 400
+  `invalid-deployment` 并列出两词。`patchId` 在请求时与 `pullRequestId` 并列存储（二者不可变），
+  完成门不依赖可能走失的父连接。
+- **窗口规则仍是调用**：导入 `IncidentService.effectiveLimit/appliedOffset`；活证据
+  `limit=1000&offset=150` 读回 cap 100 / skip 100。
+- **不写第二份记录**：0 audit、0 webhook delivery（psql 实测）。部署表就是记录。
+- **实测**：38/38 单测（24 deployment service + 11 deployment controller + 3 patch deploy）；
+  活库 proof `docs/evidence/m9/deployment-proof.mjs` §1–§9 全绿（五词链跑两遍、十字段三 null、
+  409 not-approved、成功移动/二次上报 409、失败保持 approved、未知 parent/record、三处 400、
+  重启保持、psql 2 条记录 + deployed/approved + 0/0）；末行 221 字节。
+- **链条至此完整**：incident（547）→ patch（548）→ 复核请求（577）→ 判词（578）→ 部署记录（579）。
+  每个词都是持久行，每次迁移都是一个事务，每道闸要么带名的 4xx、要么原子条件 UPDATE。
+  仍做不到的事——应用字节、跑测试、接触目标、认证调用者——写在 ADR 0067–0069 里，而非暗示掉。
+- **接线**：`package.json` 新增 `verify:deployments`；census 随 index 重算。
+
