@@ -15377,3 +15377,7 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
       截图落 `.scratch/world-quests-{desktop,mobile,en}.png`。
 - [~] **像素目验缺席**：截图已产出但图像上传工具本次报 Backend error，只能以 Playwright
       几何读数 + a11y 快照为准；下一次窗口补肉眼核对。ADR 0308。
+- [x] §i18n 收口（同日）：`WorldGraphView` 的 12 个世界入口按钮（含新增「世界委托」）/
+      图上「N 条目 · M 关系」/「九类：…」/ 台地 aria 全部进 COPY zh/en 两套；
+      判据新增「COPY 之外零中文界面文案」（剥注释与 COPY 后正则扫描），全文 SHA 重钉
+      `eb6d7936…`。Studio 页浏览器复读未做，由静态判据 + tsc 覆盖。

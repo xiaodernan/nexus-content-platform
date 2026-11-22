@@ -145,9 +145,27 @@ describe('§FE-57 /studio WorldGraphView 世界图视图', () => {
     }
   });
 
-  it('剥 className/cn 后全文 SHA256 守恒（2026-11-16 v753「WorldGraphView 双语化」重钉）', () => {
+  it('剥 className/cn 后全文 SHA256 守恒（2026-11-22 §WORLD-QUEST 双语入口重钉）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'bdac6b8b17307ad7611477915e40972c6594218ba9b124586aeb1f770a3f415c',
+      'eb6d7936954f727462692486345280376a8795b40c625f4f0e5f83696ac171cf',
     );
+  });
+
+  it('入口与计数全部来自 COPY：界面文案在 COPY 之外零中文', () => {
+    // 双语字典里 12 个入口都要有（almanac/atlas/memories/quiz/chronicle/ephemeris/digest/
+    // integrity/quests/codex/constellation/world3d），且 JSX 里不许再出现中文硬编码。
+    const copy = main.match(/const COPY = \{[\s\S]*?\n\} as const;/)?.[0] ?? '';
+    expect(copy, '读不出 COPY 区块').not.toBe('');
+    for (const key of [
+      'almanac', 'atlas', 'memories', 'quiz', 'chronicle', 'ephemeris',
+      'digest', 'integrity', 'quests', 'codex', 'constellation', 'world3d',
+    ]) {
+      const hits = copy.split(`${key}: '`).length - 1;
+      expect(hits, `COPY 缺入口 ${key}（zh/en 各一次）`).toBeGreaterThanOrEqual(2);
+    }
+    const outsideCopy = strip(main.replace(copy, ''))
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/^\s*\/\/.*$/gm, '');
+    expect(outsideCopy, 'COPY 之外仍有中文界面文案').not.toMatch(/[\u4e00-\u9fff]/);
   });
 });

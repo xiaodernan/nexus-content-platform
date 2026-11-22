@@ -53,6 +53,26 @@ const COPY = {
     noEdges: '还没有关系：点两个节点（顺序就是箭头方向），再点「连一条」。',
     positionNote: '位置存在世界文档里，拖完松手即写库；没拖过的按类分列自动排布。',
     kindNoteJoiner: ' / ',
+    graphCounts: (nodes: number, edges: number) => `${nodes} 个条目 · ${edges} 条关系`,
+    kindPrefix: '九类：',
+    kindSuffix: '。',
+    entries: {
+      almanac: '世界藏经阁',
+      atlas: '寰宇图志',
+      memories: '记忆回廊',
+      quiz: '谜灯馆',
+      chronicle: '世界编年',
+      ephemeris: '世界切片',
+      digest: '世界速览',
+      integrity: '世界体检',
+      quests: '世界委托',
+      codex: '设定集',
+      constellation: '人物星图',
+      world3d: '走进这个世界（3D）',
+    },
+    plateauConeAria: (x: number, y: number, r: number, h: number) =>
+      `圆锥坡 (${x}, ${y}) r=${r} 顶 h=${h}——台心到边缘线性降到 0`,
+    plateauMesaAria: (x: number, y: number, r: number, h: number) => `圆台 (${x}, ${y}) r=${r} h=${h}`,
   },
   en: {
     loading: 'Reading world…',
@@ -85,6 +105,26 @@ const COPY = {
     noEdges: 'No relationships yet — click two nodes (the order is the arrow direction), then tap “Connect”.',
     positionNote: 'Positions live in the world document; drop to write to the store right away. Undragged nodes auto-layout by kind.',
     kindNoteJoiner: ' / ',
+    graphCounts: (nodes: number, edges: number) => `${nodes} entries · ${edges} relationships`,
+    kindPrefix: 'Nine kinds: ',
+    kindSuffix: '.',
+    entries: {
+      almanac: 'World almanac',
+      atlas: 'World atlas',
+      memories: 'Memory gallery',
+      quiz: 'Lantern hall',
+      chronicle: 'World chronicle',
+      ephemeris: 'World ephemeris',
+      digest: 'World digest',
+      integrity: 'World checkup',
+      quests: 'World commissions',
+      codex: 'Codex',
+      constellation: 'Character constellation',
+      world3d: 'Walk this world (3D)',
+    },
+    plateauConeAria: (x: number, y: number, r: number, h: number) =>
+      `Steep cone (${x}, ${y}) r=${r} summit h=${h} — linear falloff from center to rim`,
+    plateauMesaAria: (x: number, y: number, r: number, h: number) => `Mesa (${x}, ${y}) r=${r} h=${h}`,
   },
 } as const;
 
@@ -328,7 +368,7 @@ export function WorldGraphView({ locale = 'zh' }: { locale?: Locale }) {
       {/* 工具条与回执固定在滚动区之外：跟着画布一起横滚，"已保存"和「连一条」会在往右拖时消失 */}
       <div className="wg-head">
         <span className="ap-mono12faint" data-graph-count>
-          {nodes.length} 个条目 · {edges.length} 条关系
+          {c.graphCounts(nodes.length, edges.length)}
         </span>
         {/* §140：图上摆过的位置就是 3D 世界的地面布局，所以入口放在这里而不是另造一个页面 */}
         <a
@@ -336,77 +376,84 @@ export function WorldGraphView({ locale = 'zh' }: { locale?: Locale }) {
           className="sb-btn2"
           data-enter-almanac
         >
-          世界藏经阁
+          {c.entries.almanac}
         </a>
         <a
           href={`/world/${studio.projectId}/atlas`}
           className="sb-btn2"
           data-enter-atlas
         >
-          寰宇图志
+          {c.entries.atlas}
         </a>
         <a
           href={`/world/${studio.projectId}/memories`}
           className="sb-btn2"
           data-enter-memories
         >
-          记忆回廊
+          {c.entries.memories}
         </a>
         <a
           href={`/world/${studio.projectId}/quiz`}
           className="sb-btn2"
           data-enter-quiz
         >
-          谜灯馆
+          {c.entries.quiz}
         </a>
         <a
           href={`/world/${studio.projectId}/chronicle`}
           className="sb-btn2"
           data-enter-chronicle
         >
-          世界编年
+          {c.entries.chronicle}
         </a>
         <a
           href={`/world/${studio.projectId}/ephemeris`}
           className="sb-btn2"
           data-enter-ephemeris
         >
-          世界切片
+          {c.entries.ephemeris}
         </a>
         <a
           href={`/world/${studio.projectId}/digest`}
           className="sb-btn2"
           data-enter-digest
         >
-          世界速览
+          {c.entries.digest}
         </a>
         <a
           href={`/world/${studio.projectId}/integrity`}
           className="sb-btn2"
           data-enter-integrity
         >
-          世界体检
+          {c.entries.integrity}
+        </a>
+        <a
+          href={`/world/${studio.projectId}/quests`}
+          className="sb-btn2"
+          data-enter-quests
+        >
+          {c.entries.quests}
         </a>
         <a
           href={`/world/${studio.projectId}/codex`}
           className="sb-btn2"
           data-enter-codex
         >
-          设定集
+          {c.entries.codex}
         </a>
         <a
           href={`/world/${studio.projectId}/constellation`}
           className="sb-btn2"
           data-enter-constellation
         >
-          人物星图
+          {c.entries.constellation}
         </a>
         <a
           href={`/world/${studio.projectId}`}
           className="sb-btn2"
           data-enter-world3d
         >
-          走进这个世界（3D）
+          {c.entries.world3d}
         </a>
         <button
           type="button"
@@ -628,8 +675,8 @@ export function WorldGraphView({ locale = 'zh' }: { locale?: Locale }) {
             >
               <title>
                 {cone
-                  ? `圆锥坡 (${plateau.x}, ${plateau.y}) r=${plateau.radius} 顶 h=${plateau.height}——台心到边缘线性降到 0`
-                  : `圆台 (${plateau.x}, ${plateau.y}) r=${plateau.radius} h=${plateau.height}`}
+                  ? c.plateauConeAria(plateau.x, plateau.y, plateau.radius, plateau.height)
+                  : c.plateauMesaAria(plateau.x, plateau.y, plateau.radius, plateau.height)}
               </title>
             </circle>
           );
@@ -697,7 +744,7 @@ export function WorldGraphView({ locale = 'zh' }: { locale?: Locale }) {
       ) : null}
       <p className="wg-rowFaintPad" data-graph-note>
         {c.positionNote}
-        {(locale === 'en' ? 'Nine kinds: ' : '九类：') + WORLD_KINDS.map((k) => kindLabel(k, locale)).join(c.kindNoteJoiner)}{locale === 'en' ? '.' : '。'}
+        {c.kindPrefix + WORLD_KINDS.map((k) => kindLabel(k, locale)).join(c.kindNoteJoiner) + c.kindSuffix}
       </p>
     </div>
   );
