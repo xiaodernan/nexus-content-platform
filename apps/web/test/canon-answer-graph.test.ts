@@ -75,13 +75,13 @@ describe('§GRAPH-1 检索与机检（确定性，不烧 token）', () => {
     expect(charBigrams('').size).toBe(0);
   });
 
-  // 2026-11-22 E210 入正典：209 → 210 回响
-  it('digest 段落切分出 13 章 + 210 回响', () => {
+  // 2026-11-22 E211 入正典：210 → 211 回响
+  it('digest 段落切分出 13 章 + 211 回响', () => {
     const segments = splitDigestSegments(CANON_DIGEST);
     const chapters = segments.filter((s) => s.startsWith('## Chapter'));
     const echoes = segments.filter((s) => s.startsWith('### Echo'));
     expect(chapters).toHaveLength(13);
-    expect(echoes).toHaveLength(210);
+    expect(echoes).toHaveLength(211);
   });
 
   it('「米缸」问句命中米缸回响 Echo 36（而不是随机段落）', () => {

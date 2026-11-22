@@ -28374,6 +28374,129 @@ From then on the ledger stayed on page seventy-three and never turned itself aga
 > Page seventy-three bore no name, only half a tide-seal — the world writes its answer as a seal missing its half, not as a name written full.`,
   },
   {
+    order: 211,
+    slug: 'echo-211-the-half-tide-seal-fits-the-forty-second',
+    titleZh: '潮候院抄本院那半枚潮印合到了第四十二道上',
+    titleEn: 'The Half Tide-Seal Fits the Forty-Second',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十四年（同 E206–E210）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 144th year of the winter-tide month (as in E206–E210).',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 211): The Half Tide-Seal Fits the Forty-Second
+
+> 回响是正典之外的侧写——不是续篇，是同一块石上被盐啃出的另一层纹理。
+> 本篇写给 E210 之后：第七十三页上那半枚印沿不见了；抄本师们去看四十二道潮印，
+> 第四十二道原是缺一半的，如今合上了。
+> 纪律同正典：锚句 zh/en 逐字对应；本篇不新增正典专名，只写已有设定的细节。
+>
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E210: the half rim on page seventy-three was gone; the copyists went to the forty-two tide-seals — the forty-second had been missing its half, and now it was fitted.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十四年（同 E206–E210）。
+> Era: the Institute · after the 44th Convocation; the 144th year of the winter-tide month (as in E206–E210).
+
+---
+
+## 一 · 不见了
+
+次日清晨，第七十三页上那半枚印沿不见了，纸上只留一圈浅白的痕。
+**锚句**：次日清晨，第七十三页上那半枚印沿不见了，纸上只留一圈浅白的痕。
+**Anchor sentence**: the next morning the half rim was gone from page seventy-three, leaving only a faint white ring on the paper.
+
+---
+
+## 二 · 第四十二道
+
+抄本师们去看四十二道潮印——第四十二道原是缺一半的，如今合上了。
+**锚句**：抄本师们去看四十二道潮印——第四十二道原是缺一半的，如今合上了。
+**Anchor sentence**: the copyists went to look at the forty-two tide-seals — the forty-second had been missing its half, and now it was fitted.
+
+---
+
+## 三 · 合得上
+
+两半的齿痕对得上，缝里没有一丝错。
+**锚句**：两半的齿痕对得上，缝里没有一丝错。
+**Anchor sentence**: the teeth of the two halves matched, and the seam held not a hair's breadth of error.
+
+---
+
+## 四 · 仍无名字
+
+合上的第四十二道仍没有名字，抄本师们也不去刻一个。
+**锚句**：合上的第四十二道仍没有名字，抄本师们也不去刻一个。
+**Anchor sentence**: the fitted forty-second still bore no name, and the copyists carved none.
+
+---
+
+## 五 · Mapping（Echo No. 211 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the half rim leaves page 73 · it fits the forty-second seal · the seam is exact | 一、二、三 |
+| geography | the Institute's copy hall · the winter-tide month | 一、二 |
+| characters | the five copyists · the unnamed hand (E207) | 二、四 |
+| story | the answering half completes a real seal · and stays unnamed | 全篇 |
+| items | the ledger · page seventy-three · the forty-second tide-seal | 一、二、四 |
+| history | the 144th year after the 44th Convocation (closes E206–E210) | 纪元 |
+
+> 第四十二道合上了，仍没有名字——世界把答案补全，却不署名。
+> The forty-second was fitted, and still bore no name — the world completes its answer and signs nothing.`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E210: the half rim on page seventy-three was gone; the copyists went to the forty-two tide-seals — the forty-second had been missing its half, and now it was fitted.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> Era: the Institute · after the 44th Convocation; the 144th year of the winter-tide month (as in E206–E210).
+
+---
+
+## 一 · Gone
+
+The next morning the half rim was gone from page seventy-three, leaving only a faint white ring on the paper.
+**锚句**：次日清晨，第七十三页上那半枚印沿不见了，纸上只留一圈浅白的痕。
+**Anchor sentence**: the next morning the half rim was gone from page seventy-three, leaving only a faint white ring on the paper.
+
+---
+
+## 二 · The Forty-Second
+
+The copyists went to look at the forty-two tide-seals — the forty-second had been missing its half, and now it was fitted.
+**锚句**：抄本师们去看四十二道潮印——第四十二道原是缺一半的，如今合上了。
+**Anchor sentence**: the copyists went to look at the forty-two tide-seals — the forty-second had been missing its half, and now it was fitted.
+
+---
+
+## 三 · It Fits
+
+The teeth of the two halves matched, and the seam held not a hair's breadth of error.
+**锚句**：两半的齿痕对得上，缝里没有一丝错。
+**Anchor sentence**: the teeth of the two halves matched, and the seam held not a hair's breadth of error.
+
+---
+
+## 四 · Still Nameless
+
+The fitted forty-second still bore no name, and the copyists carved none.
+**锚句**：合上的第四十二道仍没有名字，抄本师们也不去刻一个。
+**Anchor sentence**: the fitted forty-second still bore no name, and the copyists carved none.
+
+---
+
+## 五 · Mapping（Echo No. 211 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the half rim leaves page 73 · it fits the forty-second seal · the seam is exact | 一、二、三 |
+| geography | the Institute's copy hall · the winter-tide month | 一、二 |
+| characters | the five copyists · the unnamed hand (E207) | 二、四 |
+| story | the answering half completes a real seal · and stays unnamed | 全篇 |
+| items | the ledger · page seventy-three · the forty-second tide-seal | 一、二、四 |
+| history | the 144th year after the 44th Convocation (closes E206–E210) | 纪元 |
+
+> 第四十二道合上了，仍没有名字——世界把答案补全，却不署名。
+> The forty-second was fitted, and still bore no name — the world completes its answer and signs nothing.`,
+  },
+  {
     order: 22,
     slug: 'echo-022-the-fish-that-never-dried',
     titleZh: '里巷子晾鱼架上那条永远晾不干的鱼',

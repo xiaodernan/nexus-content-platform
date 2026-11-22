@@ -261,6 +261,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E208-潮候院抄本院那本自己翻到第七十二页的册子': 'echo-208-ledger-page-seventy-two',
   'E209-潮候院抄本院那本册子翻过第七十二页之后': 'echo-209-page-seventy-three',
   'E210-潮候院抄本院那道浅痕第三日变成半枚潮印': 'echo-210-the-faint-mark-becomes-half-a-tide-seal',
+  'E211-潮候院抄本院那半枚潮印合到了第四十二道上': 'echo-211-the-half-tide-seal-fits-the-forty-second',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

@@ -3569,6 +3569,13 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [3] 没有人去补另外一半——缺着的那半，比补上的更像回答。
 - [4] 册子从此停在第七十三页，不再自己翻。
 
+### Echo 211 · 潮候院抄本院那半枚潮印合到了第四十二道上 / The Half Tide-Seal Fits the Forty-Second
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 次日清晨，第七十三页上那半枚印沿不见了，纸上只留一圈浅白的痕。
+- [2] 抄本师们去看四十二道潮印——第四十二道原是缺一半的，如今合上了。
+- [3] 两半的齿痕对得上，缝里没有一丝错。
+- [4] 合上的第四十二道仍没有名字，抄本师们也不去刻一个。
+
 ### Echo 22 · 里巷子晾鱼架上那条永远晾不干的鱼 / The Fish That Never Dried on the Back-Alley Rack
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 里巷子晾鱼架最里侧的一号钩上，挂着一条谁都不记得是什么时候挂上去的鱼。

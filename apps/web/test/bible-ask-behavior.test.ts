@@ -30,9 +30,9 @@ describe('§BIBLE-4 问典 digest 契约', () => {
       zh += extractAnchorTexts(chapter.markdownZh, 'zh').length;
       en += extractAnchorTexts(chapter.markdownEn, 'en').length;
     }
-    // 2026-11-22 E210 入正典：1261 → 1265（本篇 4 条锚句 × zh/en）
-    expect(zh).toBe(1265);
-    expect(en).toBe(1265);
+    // 2026-11-22 E210/E211 入正典：1261 → 1265 → 1269（每篇 4 条锚句 × zh/en）
+    expect(zh).toBe(1269);
+    expect(en).toBe(1269);
   });
 
   it('SYSTEM_PROMPT 长度 < 预算（≈30k chars）', () => {
