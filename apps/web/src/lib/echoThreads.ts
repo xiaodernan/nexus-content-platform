@@ -64,6 +64,49 @@ export interface EchoThreadIndex {
   places: number;
 }
 
+/** 一篇回响压在哪些线索上，以及每条线索上还有谁。给阅读页做「顺藤摸瓜」用。 */
+export interface EchoThreadNeighbours {
+  /** 这篇回响的序号 */
+  order: number;
+  /** 它命中的线索（按该线索总篇数降序） */
+  threads: {
+    id: string;
+    labelZh: string;
+    labelEn: string;
+    kind: EchoThreadKind;
+    /** 同一条线索上的其它回响（不含本篇） */
+    others: { order: number; slug: string; titleZh: string; titleEn: string }[];
+  }[];
+}
+
+/**
+ * 一篇回响的同线索邻居。`echoes` 是全量表，`slugs` 用来把序号翻成可点的链接——
+ * 两者是同一批 `BibleChapter`，只是调用方各取所需。
+ */
+export function echoThreadNeighbours(
+  index: EchoThreadIndex,
+  order: number,
+  echoes: readonly BibleChapter[],
+): EchoThreadNeighbours {
+  const byOrder = new Map(echoes.map((e) => [e.order, e] as const));
+  const threads = index.motifs
+    .filter((m) => m.echoes.includes(order))
+    .map((m) => ({
+      id: m.id,
+      labelZh: m.labelZh,
+      labelEn: m.labelEn,
+      kind: m.kind,
+      others: m.echoes
+        .filter((o) => o !== order)
+        .map((o) => byOrder.get(o))
+        .filter((e): e is BibleChapter => Boolean(e))
+        .map((e) => ({ order: e.order, slug: e.slug, titleZh: e.titleZh, titleEn: e.titleEn })),
+    }))
+    // 邻居多的线索排前面：那条最有可能带着读者走到没读过的地方
+    .sort((a, b) => b.others.length - a.others.length || a.id.localeCompare(b.id));
+  return { order, threads };
+}
+
 /** 每条线索最多列几条锚句。再多就成了复述正文，而正文一戳就能打开。 */
 const MAX_ANCHORS = 4;
 
