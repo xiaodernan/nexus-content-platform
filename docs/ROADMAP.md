@@ -15541,3 +15541,13 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - [~] 其余页面（daily / tide-oracle / tide-wire / tidewatch / observatory / stategraph /
       world / threads / analytics / api-tokens 等）仍是静态 metadata；按同样样板逐页迁移。
       world-bible appendix 的双语词条属 Ask 语料，不在渲染面。
+
+## §WORLD-BIBLE-E219 E219《点账》· 219 回响 · 1323 锚句（2026-11-22）
+
+- [x] 新回响 E219（中英双语，6 节 6 对锚句）：接 E218 的空格——页数旁的点被抄成一行，
+      点加起来不等于任何一张纸条；孩子说一个点是一个地方，不是数目；账上不多不少一行。
+- [x] 登记 `echo-219-the-ledger-of-dots`；重新生成 generated.ts（14 章 · 219 回响 · 4 附录）、
+      anchors.generated.ts（1323）、canon_digest.txt/sha256（274,304 chars · e396c4e1…）。
+- [x] guideCopy 回响数 218→219、锚句数 1317→1323；canon-answer-graph 219、bible-ask-behavior 1323。
+- [x] 验证：verify:world-bible 1328/1328；verify:bible-snapshot 一致；bible/canon 72/72；
+      canon_digest pytest 4/4；fe-gates 155/1419 全绿。
