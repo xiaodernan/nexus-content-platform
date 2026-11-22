@@ -29,9 +29,10 @@ const sh = (cmd: string, opts: { cwd?: string; env?: Record<string, string> } = 
 
 function run(): void {
   // 1. regenerate latest.json
-  // Pin the fact pack to `master`: this repo's `main` is an UNRELATED, STALE content line
-  // (E211, no margins). Running this script while checked out on `main` used to publish main's
-  // numbers to the portfolio as "latest" — the page then showed the old branch.
+  // 事实包钉在 `master` 上——这曾经是必须的（那时 main 与 master 是两条互不相干的历史，
+  // main 那条停在 E211、还没有 margins 模块，页面会把旧分支当"最新"）。
+  // 2026-11-22 并轨后两条线合并成一条，钉 master 与钉 HEAD 等价；保留这行是为了
+  // 万一将来又分叉时，事实包仍从活跃那条线出（注释不许撒谎，所以这里如实说明现状）。
   sh('npx tsx scripts/gen-latest.mts', { cwd: ROOT, env: { NEXUS_FACT_REF: 'master' } });
 
   // 2. clone or reuse existing clone
