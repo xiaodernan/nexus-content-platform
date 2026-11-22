@@ -14217,3 +14217,52 @@ so the next reader's recount door has no orphan to catch.
   label in the tree at landing time (highest read: v867); the M9 lane's earlier planned label v652 remains a
   convergence-program row that this slice does not consume, and the mismatch is named rather than papered
   over.
+
+### Amendment 578 (v869, m9) — a decision is a VERDICT, not a merge: one atomic close per request, and the patch moves beside it
+
+- **The gap this sector names.** Amendment 577 opened the chain's third word and recorded, plainly, that its
+  one-open gate is a count-then-insert whose race is a bound. A review request with no door to drain it is a
+  queue nobody can close, and the chain cannot reach deployment. The fourth sentence an operator says is
+  "approved" — or "no" — and it had no home.
+- **The record, and the three doors.** `POST /pull-requests/{pullRequestId}/decisions` answers 201 with
+  exactly six fields (`id`, `pullRequestId`, `verdict`, `reason`, `decidedBy`, `decidedAt`); `GET
+  /pull-requests/{pullRequestId}/decisions?limit=&offset=` answers the request's newest window with both
+  counts; `GET /decisions/{decisionId}` answers one verdict. No door merges, applies or deploys: the chain's
+  fifth word is absent on purpose.
+- **The gate is the UPDATE, not a count.** `PullRequestRepository.closeIfOpen` carries `status = 'open'`
+  inside the UPDATE and returns the moved-row count: 1 for the caller who closed the request, 0 for
+  everyone else, which is 409 `already-decided`. This is the answer v868's count-then-insert could not give,
+  and the live proof exercises it (a second verdict stored nothing and moved nothing). The request's status
+  becomes the verdict word itself (`approved` / `rejected`), so a listing can filter without a join.
+- **A rejection returns the patch to `proposed`.** A rejected patch is neither under review nor approved;
+  leaving it `submitted` would describe a review that is no longer happening and would keep the one-open
+  gate closed forever. The live proof shows the same doors accept a resubmission afterwards, and the patch
+  reads `submitted` again.
+- **Three records, one transaction.** The request's status, the patch's status (`approved`, or back to
+  `proposed`) and the decision row are written in ONE `@Transactional`: no reader observes a state where two
+  of the three disagree. Patch status transitions stay behind `PatchService.approve` / `revise`, the same
+  single owner that `submit` established in v868.
+- **The verdict vocabulary is closed and matched exactly.** `approved` / `rejected`, no case folding:
+  `Approved` is 400 `invalid-decision` with both words named, following the same discipline as every other
+  closed vocabulary in this service.
+- **The window rule is CALLED, not copied.** `DecisionService` imports `IncidentService.effectiveLimit` and
+  `appliedOffset`; the proof applied `limit=1000&offset=150` and read back cap 100 / skip 100.
+- **No second copy of the record.** No audit entry and no webhook delivery: the decision table is the record,
+  like the four tables before it. The live proof reads ZERO and ZERO with psql.
+- **Measured.** 30/30 unit cases (18 decision service + 9 decision controller + 3 patch approve/revise) and
+  the live proof `docs/evidence/m9/decision-proof.mjs` on a throwaway `pgvector/pgvector:pg16` with the
+  built jar: §1 one incident, two patches, two requests; §2 an approval 201 with six fields, the request and
+  the patch both read back `approved`; §3 a second verdict 409 `already-decided` storing and moving nothing,
+  the listing 1 of 1, cap/skip 100/100, the patch still `approved`; §4 a rejection 201, the request
+  `rejected`, the patch back to `proposed`, and a NEW request on that patch 201 with the patch `submitted`;
+  §5 an unknown request 404 `unknown-pull-request`, a blank / off-vocabulary / over-column verdict 400
+  `invalid-decision`, refusals writing nothing and leaving the request open; §6 the decision read back
+  unchanged and an unknown id 404 `unknown-decision`; §7 a STOP/START left both verdicts and every status in
+  place; §8 psql read 2 decisions, the moved request and patch statuses, 0 audit entries and 0 deliveries;
+  §9 teardown. Final line 231 bytes.
+- **CITES** amendments 577 (the request this verdict closes, whose recorded race this gate answers), 548
+  (the patch whose status the verdict moves) and 547 (the incident at the head of the chain), plus ADRs
+  0018, 0067 and 0068; **GRANTS nothing** — the next number is not promised ahead of its record, following
+  576's and 577's stated reason, so no orphan grant exists to catch.
+- **Version labels** v869 is the only label minted by this landing; v868 is its predecessor and stays
+  untouched.

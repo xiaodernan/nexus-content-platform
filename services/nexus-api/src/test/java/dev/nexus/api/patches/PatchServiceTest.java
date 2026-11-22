@@ -268,4 +268,33 @@ class PatchServiceTest {
                 .hasMessageContaining("id is required");
         verifyNoInteractions(repository);
     }
+
+    // ── approving and revising ───────────────────────────────────────────────────────────────────
+
+    @Test
+    void approvingAPatchMovesItToApproved() {
+        when(repository.findById("p-1")).thenReturn(Optional.of(row("p-1", "i-1", "+one")));
+
+        IncidentPatch approved = service.approve("p-1");
+
+        assertThat(approved.getStatus()).isEqualTo(PatchService.APPROVED);
+    }
+
+    @Test
+    void revisingAPatchPutsItBackToProposedSoItCanBeResubmitted() {
+        when(repository.findById("p-1")).thenReturn(Optional.of(row("p-1", "i-1", "+one")));
+
+        IncidentPatch revised = service.revise("p-1");
+
+        assertThat(revised.getStatus()).isEqualTo(PatchService.PROPOSED);
+    }
+
+    @Test
+    void approvingAnIdThatNamesNothingIsNoSuchPatch() {
+        when(repository.findById("nope")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.approve("nope"))
+                .isInstanceOf(NoSuchPatch.class)
+                .hasMessageContaining("nope");
+    }
 }

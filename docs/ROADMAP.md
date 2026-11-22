@@ -14708,3 +14708,29 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   含 STOP/START 后请求与 `submitted` 状态仍在；末行 252 字节。
 - **接线**：`package.json` 新增 `verify:pull-requests`；census 计数随 index 重算。
 
+
+## v869 — M9 链的第四个词：裁决是「判词」，不是「合并」（2026-11-22 · ADR 0068 · amendment 578）
+
+- **缺口**：v868 开了复核请求，但没有门把它排空——复核请求成了没人能关的队列，链条走不到部署。
+  操作者第四句话是「批准」或「不批」，此前无家可归。
+- **字段与门**：`POST /pull-requests/{pullRequestId}/decisions` → 201 六字段
+  （id pullRequestId verdict reason decidedBy decidedAt）；`GET /pull-requests/{pullRequestId}/decisions`
+  → 该请求的最新窗口 + 两计数；`GET /decisions/{decisionId}` → 单条。没有 merge / apply / deploy 门。
+- **闸门是 UPDATE 不是 count**：`closeIfOpen` 把 `status='open'` 放进 UPDATE 内部，返回移动行数——
+  1 = 本次调用关掉了它，0 = 别人先关了 → 409 `already-decided`。这正是 v868 记录为边界的竞态，
+  在裁决门上被单条条件 UPDATE 真正关掉；活证据证明第二次裁决既没写行也没移动任何状态。
+- **请求状态直接变成判词词**（`approved` / `rejected`），列表无需 join 即可筛。
+- **拒绝把 patch 放回 `proposed`**：被拒的 patch 既不在复核中也不被批准；留在 `submitted` 会描述一场
+  已经结束的复核，并把一键闸永久锁死。活证据：同一道门随后接受重新提交，patch 读回 `submitted`。
+- **三份记录一个事务**：请求状态、patch 状态（`approved` 或回 `proposed`）、裁决行同事务写入；
+  patch 状态迁移仍只经 `PatchService.approve/revise`（与 v868 的 `submit` 同一主人）。
+- **判词词表封闭且精确匹配**：`approved` / `rejected`，不做大小写折叠；`Approved` → 400
+  `invalid-decision` 并列出两个合法词。
+- **窗口规则仍是调用**：导入 `IncidentService.effectiveLimit/appliedOffset`；活证据
+  `limit=1000&offset=150` 读回 cap 100 / skip 100。
+- **不写第二份记录**：0 audit、0 webhook delivery（psql 实测）。裁决表就是记录。
+- **实测**：30/30 单测（18 decision service + 9 decision controller + 3 patch approve/revise）；
+  活库 proof `docs/evidence/m9/decision-proof.mjs` §1–§9 全绿（批准移动两表、二次裁决 409、
+  拒绝回 proposed 并可重提、三处拒绝、重启保持、psql 2 条裁决 + 状态迁移 + 0/0）；末行 231 字节。
+- **接线**：`package.json` 新增 `verify:decisions`；census 随 index 重算。
+

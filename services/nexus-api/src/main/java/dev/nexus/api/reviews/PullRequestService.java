@@ -123,6 +123,17 @@ public class PullRequestService {
                 .orElseThrow(() -> new NoSuchPullRequest("pull request \"" + id + "\" does not exist"));
     }
 
+    /**
+     * The chain's fourth word, from this table's side: close one OPEN request with a verdict. The predicate
+     * lives in the UPDATE ({@link PullRequestRepository#closeIfOpen}), so the answer is 1 for the caller who
+     * closed it and 0 for everyone else — a check-then-write gate cannot give that answer. Delegated so the
+     * request table keeps one owner of its own status word.
+     */
+    @Transactional
+    public int closeIfOpen(String pullRequestId, String status) {
+        return repository.closeIfOpen(pullRequestId, status);
+    }
+
     private static String requireTitle(String raw) {
         if (raw == null || raw.isBlank()) {
             throw new InvalidPullRequest("a review request needs a title — the one line that says what is being reviewed");

@@ -124,4 +124,14 @@ public class IncidentPatch {
     void submit() {
         this.status = PatchService.SUBMITTED;
     }
+
+    /** The review said yes: the patch is approved, and only a deployment word may move it further. */
+    void approve() {
+        this.status = PatchService.APPROVED;
+    }
+
+    /** The review said no: back to proposed, so the author may revise and resubmit. */
+    void revise() {
+        this.status = PatchService.PROPOSED;
+    }
 }

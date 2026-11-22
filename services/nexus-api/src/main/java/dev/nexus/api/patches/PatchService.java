@@ -61,6 +61,9 @@ public class PatchService {
     /** The status a patch carries while a review request is open — written by {@link #submit}. */
     public static final String SUBMITTED = "submitted";
 
+    /** The status a patch carries after its review request was approved — written by {@link #approve}. */
+    public static final String APPROVED = "approved";
+
     private final PatchRepository repository;
     private final IncidentService incidents;
     private final Clock clock;
@@ -135,6 +138,28 @@ public class PatchService {
     public IncidentPatch submit(String patchId) {
         IncidentPatch row = load(patchId);
         row.submit();
+        return row;
+    }
+
+    /**
+     * The chain's fourth word, from this table's side: the review request was approved. The patch's own
+     * status moves to {@code approved} in the same transaction that records the verdict.
+     */
+    @Transactional
+    public IncidentPatch approve(String patchId) {
+        IncidentPatch row = load(patchId);
+        row.approve();
+        return row;
+    }
+
+    /**
+     * The other verdict: the review said no, so the patch goes BACK to {@code proposed} and may be revised
+     * and resubmitted. Leaving it {@code submitted} would describe a review that is no longer happening.
+     */
+    @Transactional
+    public IncidentPatch revise(String patchId) {
+        IncidentPatch row = load(patchId);
+        row.revise();
         return row;
     }
 
