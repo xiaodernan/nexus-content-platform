@@ -11211,11 +11211,21 @@ Turbopack 的模块缓存没认新导出的函数，重启 dev server 即好。�
 错误均为 0。合成流量由 deterministic LCG 生成，页面上明写"synthetic, seeded, dev"，
 不与真实访客数据混为一谈（§159）。
 
-**今日复跑失败，根因是环境不是产品**：`--sessions 10 --port 3100` 打出 24/24 全红
+**今日复跑（引擎恢复后重跑，20 会话 × 5 画像）**：73/73 **100% 2xx · 0 错误**，
+p50 **565ms**、p95 2089ms；五画像各自错误均为 0。与 11-16 的 76/76 · p50 764ms 同量级
+（p95 高是因为这一轮机器上同时跑着 Docker 五件套 + 另一个 agent 的 dev server）。
+证据 `docs/evidence/simulated-user-behavior-2026-11-22.md`。
+
+**今日第一次复跑全红，根因是环境不是产品**：`--sessions 10 --port 3100` 打出 24/24 全红
 （status 0，p50=25011ms = 脚本自己的 25s 超时）。逐层查下来：Docker Desktop 的 Linux
 引擎掉线 ⇒ `nexus-platform-postgres`（5433）`CONNECT_TIMEOUT` ⇒ 所有库页面
 （`/` `/discover` `/search` `/marketplace`）返回 500，`/bible` 这种静态页 200。
-等引擎恢复后同一批路由立即复原。**没有把这份红读成证据提交**——已删掉当次的 JSON。
+约 12 分钟后引擎恢复，同一批路由立刻复原，复跑即得绿读数。
+**那份红的 JSON 没有提交**——把"引擎掉线"记成"产品缺陷"正是用户点名要避免的那种谎。
+
+**一条边界写进证据**：这一份只打公共离线路由，`publication_visits` 不因此多一行
+（访问 beacon 只挂在 `/n/<handle>/<slug>` 上，脚本按设计不碰它）。要在仪表盘上看到
+合成人·天，走 `/admin/behavior-sim`（那一处明写 `suspectedBot=true`，不进"真人"计数）。
 
 **结论**：这一条要求由 2026-11-16 的证据满足；今日这一跑只是又一次记下
 "这台机器上 Docker 引擎掉线时，任何库页面都会 500"这件事（本轮第 N 次）。
