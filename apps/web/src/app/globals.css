@@ -6445,3 +6445,9 @@
 .bb-threadEchoNum { font-family: var(--nexus-font-mono); color: var(--nexus-color-fg-3); }
 .bb-threadEchoName { color: var(--nexus-color-fg-1); }
 .bb-threadMore { font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+
+/* ── §EXT-SEARCH · 站外检索那一块 ── 与站内结果同一种卡片语言，但用描边区分来源：
+   站内是"平台里的东西"，站外是"现实世界的词条"，两者不该长得一模一样。 */
+.se-external { margin-top: var(--nexus-space-6); border-top: 1px dashed var(--nexus-color-border-strong); padding-top: var(--nexus-space-4); display: flex; flex-direction: column; gap: var(--nexus-space-2); }
+.se-external [data-search-external-hit] { border-style: dashed; }
+.se-external [data-search-external-hit]:hover { border-style: solid; }

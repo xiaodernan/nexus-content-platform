@@ -1,5 +1,6 @@
 import { searchPlatform, SEARCH_NOT_COVERED, SEARCH_ORDER_METHOD, normalizeQuery } from '@/server/domain/search';
 import { currentUserOrNull } from '@/server/domain/session';
+import { defaultExternalSearchProvider, externalUnavailableNote, EXTERNAL_LANE_LABEL } from '@/server/domain/externalSearch';
 import { SearchBox } from './SearchBox';
 import { getLocale } from '@/lib/i18n';
 
@@ -28,6 +29,7 @@ const COPY = {
     scopeTitle: '这份搜索没覆盖什么',
     localeToggleHint: 'Switch to English',
     cappedHint: '还有更多（每组最多 {n} 条）',
+    externalPending: '正在问一遍现实世界…',
   },
   en: {
     title: 'Search the platform',
@@ -41,6 +43,7 @@ const COPY = {
     scopeTitle: 'What this search does NOT cover',
     localeToggleHint: '切换到中文',
     cappedHint: 'More available (each group capped at {n})',
+    externalPending: 'Asking the real world…',
   },
 } as const;
 
@@ -52,6 +55,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const total = result.groups.reduce((n, g) => n + g.hits.length, 0);
   const locale = (await getLocale()) as Loc;
   const copy = COPY[locale];
+  // §EXT-SEARCH：站外那一块单独问一次。失败不致命——站内结果照常给。
+  // 放在 locale 之后：语言决定问哪个语言版本的维基百科。
+  const external = q && !result.tooShort ? await defaultExternalSearchProvider().search(q, locale) : null;
 
   return (
     <main className="se-pageRoot" data-search-root data-search-locale={locale}>
@@ -119,6 +125,48 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           ))}
         </ul>
       </section>
+
+      {/* §EXT-SEARCH：站外那一块。查询词合法时才问——太短的词问外面也是浪费；
+          失败照实说，不藏。 */}
+      {external ? (
+        <section className="se-external" data-search-external aria-label={EXTERNAL_LANE_LABEL[locale].title}>
+          <h2 className="se-groupHead">
+            <span className="se-groupLabel">{EXTERNAL_LANE_LABEL[locale].title}</span>
+          </h2>
+          <p className="se-suggestNote" data-search-external-note>
+            {EXTERNAL_LANE_LABEL[locale].note}
+          </p>
+          {external.ok ? (
+            external.hits.length === 0 ? (
+              <p className="se-empty" data-search-external-empty>
+                {EXTERNAL_LANE_LABEL[locale].empty.replace('{q}', q)}
+              </p>
+            ) : (
+              <>
+                <ul className="se-hitGrid" data-search-external-hits>
+                  {external.hits.map((hit) => (
+                    <li key={hit.url}>
+                      <a href={hit.url} className="se-hit" data-search-external-hit={hit.title} rel="noreferrer noopener" target="_blank">
+                        <span className="se-hitTitle" data-search-external-hit-title>
+                          {hit.title}
+                        </span>
+                        <span className="se-hitDetail">{hit.snippet}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+                <p className="se-suggestNote" data-search-external-method>
+                  {EXTERNAL_LANE_LABEL[locale].method}
+                </p>
+              </>
+            )
+          ) : (
+            <p className="se-empty" data-search-external-unavailable>
+              {externalUnavailableNote(external.reason, locale)}
+            </p>
+          )}
+        </section>
+      ) : null}
     </main>
   );
 }
