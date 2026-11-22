@@ -213,6 +213,18 @@ C. **采用**：一次三方合并落地，冲突逐文件判侧或取并集，�
   CPU/内存被同机别处的 proof 抽干，属测量面；单独复证 `npx vitest run apps/web/test/{ai-approvals.integration,credits-why-guards}.test.ts`
   → **Test Files 2 passed / Tests 53 passed（24.39s，打真实 Postgres 那条也过）**。
   于是本树在**断言面**全绿，唯一的红是并发争抢造成的超时——把它写成"整树绿"是假的，写成"门没牙"也是假的。
+- 决定 12 的收据重导已落地（合并之后独立一次提交）：`npm run verify:arms` 在并线后的字节上
+  **64/64 arms matched（41 条门 + 控制位，23 条 runner）**，临时平面 `D:\nexus-ci-arms-plane-38488` 自清；
+  新 `arms-receipt.json` 戳 **64 条臂 / 8 个主体哈希 / 124 条派生行**，
+  `npm run verify:arms-freshness` → **exit 0，9/9 fixture arms matched**。并线带进来的那 4 条 M9 证明
+  从此在收据里有名有姓，决定 12 登记的那条 outstanding 红关闭。
+- 决定 8 那张 ref 表在并完之后逐条复量（`git rev-list --count`，两个方向）：`origin/main` 独有 **0** ✓（表里
+  预言的"并后应为 0"成立）、`main` **0** ✓、`refs/heads/origin/master` **0** ✓、`refs/remotes/origin/master` **0** ✓、
+  `other/master13/14/15` 各 **0** ✓、`backup/echo168-169-duplicate` **1** ✓（与表一致）、
+  `backup/pre-merge-origin-main` **0**（它现在就是 master 的祖先，正是它作为回滚点的定义）、
+  `local-clone/main` **45**（活的第三条线）、`stash@{0}: On master: e157-uncommitted` 原样未动 ✓。
+  只有"master 独有"那一列整体变大（`refs/remotes/origin/master` 从 9 → 106），因为 94 个提交现在在 master 这一侧——
+  这不是新事实，是同一件事的反方向读数。
 - 版本标签前沿并线后重扫（扫 `--all`，含刚 fetch 进来的 `local-clone/main`）：提交标题轴到 **1097**，
   本批取 **v1098**（`v1098` / `v1099` 两个平面都实测未占用）；台账尾号 583 → 本批 584；
   ADR 号上界 0312 → 本文 0313。
