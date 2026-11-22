@@ -18,6 +18,10 @@ import { describe, expect, it } from 'vitest';
  * 再要求粗体内容里不含 `/`——否则 `'**\/*.ts'` 这种 glob 连着写两个就会被当成粗体
  * （`\*\*` + `内容` + `\*\*` 会跨过中间那一截匹配上）。不含 `/` 把 glob 挡在外面，
  * 而真正漏出来的粗体文案里出现斜杠的概率可以忽略。
+ *
+ * 长度上限从 40 抬到 400（v872）：`/admin/observe` 那句英文 lede 的粗体段有 51 个字符，
+ * 于是中文那半句被抓到了、英文那半句放过了——一条按字符数封顶的门，漏的正好是长文案，
+ * 而长文案才是会写进整段说明的地方。星号对与换行仍然封在类里，所以不会跨行乱配。
  */
 
 const SRC_DIR = join(import.meta.dirname, '..', 'src');
@@ -45,7 +49,7 @@ function tsxSources(): { path: string; lines: string[] }[] {
   return out;
 }
 
-const BOLD = /\*\*([^*\n/]{1,40})\*\*/;
+const BOLD = /\*\*([^*\n/]{1,400})\*\*/;
 
 describe('结构门：JSX 文案里不许漏出 markdown 粗体', () => {
   it('扫到的 .tsx 文件里确实有东西（空集不能绿成"干净"）', () => {

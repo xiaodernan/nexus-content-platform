@@ -1,5 +1,6 @@
 'use client';
 
+import { csrfHeaders } from '@/lib/csrf';
 import { useState } from 'react';
 import type { Locale } from '@/lib/i18n';
 
@@ -61,7 +62,7 @@ export function ObserverDeepRead({ locale }: { locale: Locale }) {
     try {
       const r = await fetch('/api/admin/observer/digest', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ locale }),
         cache: 'no-store',
       });

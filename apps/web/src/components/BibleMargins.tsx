@@ -215,12 +215,13 @@ export function BibleMargins({ locale }: { locale: Locale }) {
                   className="bm-reveal"
                   onClick={() => toggle(index)}
                   aria-expanded={shown}
+                  aria-controls={shown ? `bm-from-${index}` : undefined}
                   data-bible-margins-reveal={shown ? 'open' : 'closed'}
                 >
                   {shown ? c.hide : c.reveal}
                 </button>
                 {shown && (
-                  <p className="bm-from" data-bible-margins-from>
+                  <p className="bm-from" id={`bm-from-${index}`} data-bible-margins-from>
                     <Link href={row.slug} className="bb-footLink" data-bible-margins-echo-link>
                       {locale === 'en' ? row.titleEn : row.titleZh}
                     </Link>

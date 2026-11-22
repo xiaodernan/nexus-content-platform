@@ -47,15 +47,17 @@ export const IP_RATE_RULES = {
   'account/avatar': { limit: 60, windowMs: 3_600_000 },
   'account/api-tokens': { limit: 10, windowMs: 3_600_000 },
   'blocks': { limit: 60, windowMs: 3_600_000 },
-'bible/q': { limit: 60, windowMs: 3_600_000 },
-// §WS-1 潮候步进：一步 = 两次真 provider 调用（读局 + 潮回），10/h 足够玩得久、挡得住滥打
-'ai/world-step': { limit: 10, windowMs: 3_600_000 },
-// §TIDE-DIARY 潮候手记 · 从 Tidewatch 的内存写两句话（仅在 /insight 解锁后可见）
-'ai/tide-diary': { limit: 10, windowMs: 3_600_000 },
-'insight/analyze': { limit: 10, windowMs: 3_600_000 },
-'insight/chat': { limit: 10, windowMs: 3_600_000 },
-'analytics/agent-narrate': { limit: 10, windowMs: 3_600_000 },
-'ai/explain': { limit: 10, windowMs: 3_600_000 },
+  // 读典一问一问的是 provider 调用，与 ai/run 同档
+  'bible/q': { limit: 60, windowMs: 3_600_000 },
+  // §WS-1 潮候步进：一步 = 两次真 provider 调用（读局 + 潮回），10/h 足够玩得久、挡得住滥打
+  'ai/world-step': { limit: 10, windowMs: 3_600_000 },
+  // §TIDE-DIARY 潮候手记 · 从 Tidewatch 的内存写两句话（仅在 /insight 解锁后可见）
+  'ai/tide-diary': { limit: 10, windowMs: 3_600_000 },
+  // 以下四条都是「一次点下去打一发真模型」的观察/解说类面板，同按 10/h 起
+  'insight/analyze': { limit: 10, windowMs: 3_600_000 },
+  'insight/chat': { limit: 10, windowMs: 3_600_000 },
+  'analytics/agent-narrate': { limit: 10, windowMs: 3_600_000 },
+  'ai/explain': { limit: 10, windowMs: 3_600_000 },
   'follow': { limit: 60, windowMs: 3_600_000 },
   'auth/register': { limit: 10, windowMs: 3_600_000 },
 } as const;

@@ -6,6 +6,15 @@
  * 不启服务器、不连库、不打网络——mock 三个接缝（session / provider / rate limiter）。
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+const jar = vi.hoisted(() => new Map<string, string>([['nexus_csrf', 'test-csrf-token']]));
+vi.mock('next/headers', () => ({
+  cookies: async () => ({
+    get: (name: string) => (jar.has(name) ? { name, value: jar.get(name)! } : undefined),
+    set: (name: string, value: string) => { jar.set(name, value); },
+    delete: (name: string) => { jar.delete(name); },
+  }),
+}));
+
 import { MemoryRateLimiter } from '../src/server/security/rateLimitMemory';
 import { getRateLimiter, setRateLimiter } from '../src/server/security/rateLimit';
 
@@ -53,7 +62,11 @@ const CANDIDATE = '**锚句**：' + '潮'.repeat(60);
 function req(body: unknown, ip = '203.0.113.7'): Request {
   return new Request('http://localhost/api/admin/canon/review', {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-forwarded-for': ip },
+    headers: {
+      'content-type': 'application/json',
+      'x-csrf-token': 'test-csrf-token',
+      'x-forwarded-for': ip,
+    },
     body: JSON.stringify(body),
   });
 }

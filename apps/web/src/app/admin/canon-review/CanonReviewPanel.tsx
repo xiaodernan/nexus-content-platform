@@ -1,5 +1,6 @@
 'use client';
 
+import { csrfHeaders } from '@/lib/csrf';
 import { useState, type ReactElement } from 'react';
 import type { Locale } from '@/lib/i18n';
 
@@ -15,7 +16,7 @@ const COPY = {
     kindLabel: '候选类型',
     kindEcho: '回响（Echo）',
     kindChapter: '章节（Chapter）',
-    textLabel: '候选原文（Markdown，含 `**锚句**：` 行）',
+    textLabel: '候选原文（Markdown，含以“锚句”开头的行）',
     placeholder: '把新写的回响整篇贴进来——正文 + 锚句行。评审只读，不会改动它。',
     submit: '交给模型评审',
     submitting: '模型正在对照正典……',
@@ -35,7 +36,7 @@ const COPY = {
     kindLabel: 'Candidate kind',
     kindEcho: 'Echo',
     kindChapter: 'Chapter',
-    textLabel: 'Candidate text (Markdown, including `**锚句**：` lines)',
+    textLabel: 'Candidate text (Markdown, including a line that starts with the anchor marker)',
     placeholder: 'Paste the whole new echo — body plus its anchor line. Review is read-only; nothing here changes it.',
     submit: 'Send to the model',
     submitting: 'The model is reading it against the canon…',
@@ -90,7 +91,7 @@ export function CanonReviewPanel({
     try {
       const response = await fetch('/api/admin/canon/review', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ text: trimmed, kind }),
       });
       const body = (await response.json().catch(() => ({}))) as {
