@@ -210,6 +210,9 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
             # v706 §CACHE-4-AB：机器可读"本进程出站 LLM 走的是流式还是非流"——
             # /admin/ai-cache 面板一格直接显示，不再让运维靠猜 / 靠看代码。
             "transport": {"stream": bool(settings.llm_stream)},
+            # §COST-2：第五本账——成本账黑在哪一层。「表没配」与「表配了但模型名对不上」
+            # 完全两件事：后者是改了 NEXUS_MODEL_* 之后 costUsd 静默归零，调用照样 200。
+            "pricing": registry.pricing_state(),
         }
 
     @app.post("/v1/ai/run")

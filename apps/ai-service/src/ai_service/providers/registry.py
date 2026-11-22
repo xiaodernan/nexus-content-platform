@@ -324,6 +324,44 @@ class Registry:
         """
         return self._settings.price_table
 
+    def pricing_state(self) -> dict[str, Any]:
+        """成本账是不是黑的，以及**为什么**黑（§COST-2 / ADR-0311）。
+
+        两种黑法处置完全相反，混成一句「costUsd=0」就会开错药：
+
+        | `state` | 含义 | 该做什么 |
+        |---|---|---|
+        | `unconfigured` | `NEXUS_LLM_PRICES` 缺席，表是空的 | 配单价，或接受"账是黑的" |
+        | `model-drift` | 表配了 N 条，但**当前模型名一条都没匹配上** | 改模型名时漏改价目表——静默归零 |
+        | `ok` | 每个在用的模型名都算得出价 | 什么也别做 |
+
+        中间那档是这片要照亮的地方：`NEXUS_MODEL_*` 从 `gpt-6-sol` 换到 `gpt-6.2-sol`
+        这类改名，代码一行没坏、调用照常 200，只有成本账悄悄变成 0——而 0 会被读成"免费"。
+        这里只回答"匹配得上吗"，不预测金额，也不碰 provider。
+        """
+        table = self._settings.price_table
+        models = dict(self._settings.llm_models)
+        priced = [name for name, model in models.items() if model and table.price_for(str(model))]
+        unpriced = [name for name, model in models.items() if model and name not in priced]
+        if not len(table):
+            state = "unconfigured"
+        elif unpriced:
+            state = "model-drift"
+        else:
+            state = "ok"
+        return {
+            "state": state,
+            "configured": bool(len(table)),
+            "entries": len(table),
+            "models": models,
+            "priced": sorted(priced),
+            "unpriced": sorted(unpriced),
+            "note": (
+                "presence of a price entry for each configured model name; "
+                "costUsd=0 with state=unconfigured means not priced, not free"
+            ),
+        }
+
     @property
     def design_review_enabled(self) -> bool:
         """§GRAPH-3：是否启用设计补丁的 LLM 自检修订环。

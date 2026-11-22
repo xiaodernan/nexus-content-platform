@@ -15666,3 +15666,31 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   并重复计数，届时要一起改；本片不加档（那是另一个决策）。真金白银的单价仍需用户决定
   （我不知道这个转售网关的批发价，编一个数就是 §159 禁止的那种假账）。
   `vitest` 相关 5 文件 40 passed、`tsc -p apps/web --noEmit` 与 eslint 4 文件全清。
+
+## §COST-2 后续：`pricing` 第五本账——把"没配价目表"与"改模型名后静默归零"分开报（2026-11-23 / ADR-0311）
+
+上一片把 `costBasis: 'usage'` 修成透传，顺带量到本网关的真读数是
+`costBasis=unknown · costUsd=0 · tokensIn=4397`。这暴露出一件比"界面写错字符串"更大的事：
+**两种黑法在同一个数字上重合**——价目表压根没配，以及价目表配了但 `NEXUS_MODEL_*`
+改名后一条都对不上。后者调用照常 200、探测照常 `ok`，只有钱静默归零，而 0 会被读成免费。
+
+- **改了什么**：`Registry.pricing_state()` 只用已有的 `PriceTable.price_for()` 问一句
+  "每个在用的模型名匹配得上吗"，`state ∈ {unconfigured, model-drift, ok}`；
+  空表判 `unconfigured`（根因优先），表非空但有档对不上判 `model-drift` 并**点名那几档**。
+  `PriceTable.__len__` 只数键不露键名（表仍是只读的）。挂在 `/v1/ai/cache-stats`，
+  不进 `/healthz`——沿用既有四本账的运维面纪律（healthz 有 1.5s 预算、被 web 每次探测）。
+- **判据选型**：用 `price_for()` 而不是字典键相等，好让 `gpt-6*` 这种前缀兜法算作匹配
+  （专门有一臂钉这件事）；一个天天误报的门等于没有门。
+- **门（`tests/test_pricing_state.py`，7 臂）**：空表 / 全匹配 / 改名漂移 / 前缀算匹配 /
+  部分漂移只点名对不上的那一档 / 端点报文带这本账且键形固定 / 空模型清单不许说 ok。
+  变异验证：把 `elif unpriced` 改成 `elif False`（drift 塌成 ok）→ **3 臂红**，
+  按 md5 `790f0443…` 还原后复跑全绿。
+- **不做什么（刻意的）**：本片**不**填单价。这个转售网关的批发价我不知道，编一个数就是
+  §159 禁止的假账；`state=unconfigured` 会一直亮着，直到用户提供真实单价。
+  也没给 `costBasis` 加第四档——`costLedger.ts:94` 那个"不认识就归 unknown"的三元
+  会在加档那天产出两行同 key 并重复计数，那是另一个决策，已在 ADR-0311 记为已知未完成。
+- **复跑**：`npm run test:ai-service`（canonical venv）522 passed / 18 skipped；
+  `vitest` web 侧相关 5 文件 40 passed；`tsc -p apps/web --noEmit` 与 `turbo lint --force` 7/7
+  （0 cached——pre-commit 那一次是 FULL TURBO 回放，不算真跑，已强制复跑）。
+  `tools/ci/lint-tree.mjs` 的 14 条 UNDECLARED/PARSE 全在并行会话的脏文件里，本片触碰的
+  七个文件一条都没进名单。
