@@ -15551,3 +15551,20 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - [x] guideCopy 回响数 218→219、锚句数 1317→1323；canon-answer-graph 219、bible-ask-behavior 1323。
 - [x] 验证：verify:world-bible 1328/1328；verify:bible-snapshot 一致；bible/canon 72/72；
       canon_digest pytest 4/4；fe-gates 155/1419 全绿。
+
+## §STRESS-WEB-2 / §STRESS-AUTH-2 本仓 HEAD 生产构建压测复跑 + 撞库门实测（2026-11-22）
+
+- [x] 3100 换成本仓 HEAD `310e01a7` 的 `next build` 产物（上一份证据打的是并行线检出、DB 不可达）。
+- [x] web burst（`--n 100`）：四条路由各 100 全 200（p50 0.48–3.57s），`/` 200 并发瞬间 200/200；
+      **0 个 5xx、0 个掉连接**；比上一轮 DB 在线时快一个数量级，`/bible` 仍最重（p50 3.57s）。
+- [x] 撞库复压（`--n 14`）：注册 200；错误口令 1–10 回 401，第 11 次 429 且 `retry-after=900s`，
+      之后不放行；第二个邮箱同 IP 不连坐；p50 88ms。
+- [x] 修真缺陷：`stress-auth-brute-force.mts` 注册请求漏传 `x-csrf-token`（旁边的 `void token;`
+      掩盖了它），脚本恒报 "register FAILED"；现在注册/第二账号都带 token，失败打印状态与正文。
+- [x] 诚实登记非确定性崩溃：冷进程上两次 `0xC0000409` fail-fast（无 JS 堆栈/dump，RSS 500MB，
+      提交内存空闲 8.8GB → 非简单 OOM）；其后 160/200/240 并发均通过。归因未定，缓解走多副本 + 网关分流；
+      复现方法（阶梯 burst + 唯一访客 cookie + 内存采样）写在证据文档，未提交探针脚本。
+- [x] 纠正旧证据里"`/` 不碰业务库"的说法：`/` 走 `requireUser()`，首次访客会建 guest 用户 + 会话行。
+- [x] 证据：`docs/evidence/stress/web-burst-2026-11-22.md`（第二节）、
+      `docs/evidence/stress/auth-brute-force-2026-11-22.md`（第二节）、`docs/evidence/stress/web-burst-2026-11-22.json`、
+      `docs/STRESS-TESTS.md`（§STRESS-WEB-2 段）。

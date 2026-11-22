@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-21T19:05:52.051Z",
+  "generatedAt": "2026-11-22T14:17:39.099Z",
   "base": "http://127.0.0.1:3100",
   "concurrency": {
     "steadySockets": 64,
@@ -9,84 +9,84 @@
     {
       "label": "steady /",
       "path": "/",
-      "requested": 120,
-      "answered": 120,
+      "requested": 100,
+      "answered": 100,
       "rejected": 0,
       "statusCodes": {
-        "200": 120
+        "200": 100
       },
-      "wallMs": 35019,
-      "rps": 3,
-      "p50Ms": 26423,
-      "p95Ms": 34365,
-      "maxMs": 35007,
+      "wallMs": 1467,
+      "rps": 68,
+      "p50Ms": 1052,
+      "p95Ms": 1448,
+      "maxMs": 1463,
       "firstError": null
     },
     {
       "label": "steady /guide",
       "path": "/guide",
-      "requested": 120,
-      "answered": 119,
-      "rejected": 1,
+      "requested": 100,
+      "answered": 100,
+      "rejected": 0,
       "statusCodes": {
-        "200": 119
+        "200": 100
       },
-      "wallMs": 49521,
-      "rps": 2,
-      "p50Ms": 25484,
-      "p95Ms": 48865,
-      "maxMs": 49504,
-      "firstError": "Error: read ECONNRESET"
+      "wallMs": 852,
+      "rps": 117,
+      "p50Ms": 537,
+      "p95Ms": 846,
+      "maxMs": 850,
+      "firstError": null
     },
     {
       "label": "steady /bible",
       "path": "/bible",
-      "requested": 120,
-      "answered": 3,
-      "rejected": 117,
+      "requested": 100,
+      "answered": 100,
+      "rejected": 0,
       "statusCodes": {
-        "200": 3
+        "200": 100
       },
-      "wallMs": 60114,
-      "rps": 0,
-      "p50Ms": 25665,
-      "p95Ms": 28913,
-      "maxMs": 28913,
-      "firstError": "Error: timeout /bible"
+      "wallMs": 5485,
+      "rps": 18,
+      "p50Ms": 3570,
+      "p95Ms": 5476,
+      "maxMs": 5483,
+      "firstError": null
     },
     {
       "label": "steady /about-nexus",
       "path": "/about-nexus",
-      "requested": 120,
-      "answered": 82,
-      "rejected": 38,
+      "requested": 100,
+      "answered": 100,
+      "rejected": 0,
       "statusCodes": {
-        "200": 82
+        "200": 100
       },
-      "wallMs": 50202,
-      "rps": 2,
-      "p50Ms": 40479,
-      "p95Ms": 50037,
-      "maxMs": 50186,
-      "firstError": "Error: timeout /about-nexus"
+      "wallMs": 792,
+      "rps": 126,
+      "p50Ms": 478,
+      "p95Ms": 784,
+      "maxMs": 787,
+      "firstError": null
     },
     {
       "label": "burst /",
       "path": "/",
-      "requested": 240,
-      "answered": 236,
-      "rejected": 4,
+      "requested": 200,
+      "answered": 200,
+      "rejected": 0,
       "statusCodes": {
-        "200": 236
+        "200": 200
       },
-      "wallMs": 79458,
-      "rps": 3,
-      "p50Ms": 51419,
-      "p95Ms": 78110,
-      "maxMs": 79442,
-      "firstError": "Error: read ECONNRESET"
+      "wallMs": 3446,
+      "rps": 58,
+      "p50Ms": 2278,
+      "p95Ms": 3365,
+      "maxMs": 3435,
+      "firstError": null
     }
   ],
   "serverErrors": [],
-  "verdict": "FAILURES PRESENT"
+  "verdict": "no 5xx, no dropped socket"
 }

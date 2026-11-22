@@ -129,3 +129,18 @@ stub 通过 Eureka REST 以 `NEXUS-API` 身份注册（`durationInSecs=600`）�
 - AI/LLM 相关车道本轮未压（用户已说明供应商 API 关闭），不冒充已测。
 
 
+
+## web SSR burst 第二轮 · 本仓 HEAD 生产构建（2026-11-22 · §STRESS-WEB-2）
+
+- 构建：`next build`（HEAD `310e01a7`，含并行会话未提交文件）→ `next start -p 3100`；数据库在线。
+- 读数（`scripts/stress-web-burst.mts --n 100`，详见 `docs/evidence/stress/web-burst-2026-11-22.md` 第二节）：
+  steady `/` 100×200 p50 1.05s · `/guide` 100×200 p50 0.54s · `/bible` 100×200 p50 3.57s ·
+  `/about-nexus` 100×200 p50 0.48s · burst `/` 200×200 p50 2.28s；**0 个 5xx，0 个掉连接**。
+- 诚实登记：同一构建的冷进程上出现过**两次非确定性 native fail-fast**（`0xC0000409`，无 JS 堆栈、
+  无 dump，RSS 峰值仅 500MB），其后 160/200/240 并发（含唯一访客）与标准脚本均通过；
+  归因未定，缓解走多副本 + 网关分流，复现方法留在证据文档里。
+- 撞库复压（`scripts/stress-auth-brute-force.mts --n 14`）：注册 200；错误口令第 1–10 次均 401，
+  **第 11 次 429 + retry-after 900s**，之后不放行；第二个邮箱同 IP 不连坐（401）；p50 88ms。
+  顺带修掉脚本自己的 CSRF 缺陷（注册漏 `x-csrf-token`），见 `docs/evidence/stress/auth-brute-force-2026-11-22.md`。
+- 复跑前置：先 `npm run build` 于 `apps/web`，再 `npm run start`，空闲内存 ≥3GB；
+  跑完停服务释放内存。

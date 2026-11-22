@@ -27,7 +27,7 @@ const COPY: Record<Locale, { crumb: string; back: string; echoCrumb: string }> =
   en: { crumb: 'The Whispers’ Kings · The shelf', back: '← The shelf', echoCrumb: 'Anchor Echo' },
 };
 
-/** 《低语诸王》锚句回放 —— 十四章节与全部回响的 1317 句锚句（中英成对）出处竞猜。 */
+/** 《低语诸王》锚句回放 —— 十四章节与全部回响的锚句（中英成对）出处竞猜；句数由数据现算，不写死。 */
 export default async function AnchorEchoPage() {
   const locale = await getLocale();
   const c = COPY[locale];
