@@ -51,11 +51,14 @@ const commits = sh(['rev-list', '--count', 'HEAD']);
 const headFull = sh(['rev-parse', 'HEAD']) ?? '';
 const headShort = headFull.slice(0, 7);
 const firstCommitDate = sh(['log', '--max-parents=0', '--format=%cs', '-1']) ?? null;
+// 分支名必须读真值：本仓库 main 与 master 是两条无关历史，写死 'main' 会让个人主页
+// 把 master 的 head 标成 main（显示 "main @ <master sha>"），用户点进去看到的是错的分支。
+const branchName = sh(['rev-parse', '--abbrev-ref', 'HEAD']) ?? 'main';
 
 const data = {
   schema_version: 'nexus-content.latest.v1',
   generated_at: new Date().toISOString(),
-  branch: 'main',
+  branch: branchName,
   head: headShort,
   total_commits: commits === null ? null : Number(commits),
   first_commit_at: firstCommitDate,
