@@ -15472,4 +15472,8 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - [x] 判据：`world-quests` 新增独行三种边界（互为连线的两人不算 / 指向幽灵的算 / 无角色不算完成）；
       `quests-visual-style` 九类字典齐全；两处 SHA 重钉（quests 加卡、integrity 加卡）。
 - [x] 验证：5 文件 33/33 全绿；`tsc -p apps/web` EXIT=0；eslint 6 文件 EXIT=0。
-      诚实边界：本轮未起浏览器；像素/截图未做，几何与文案由静态判据 + 类型检查覆盖。
+- [x] 浏览器复跑（`e2e/world-quests.spec.ts`，系统 Chrome）：8.7s 通过——今日仍恰好 3 卡、
+      三步与真样例、1440/390 无横向溢出、英文模式零中文、0 pageerror；第九类在无人物夹具里
+      如实落 notStarted，不冒充完成。ADR 0308 补记 1。
+- [~] **像素目验仍缺席**：截图已重新产出（`.scratch/world-quests-{desktop,mobile,en}.png`），
+      但图像上传工具本次仍报 Backend error；只能以 Playwright 几何读数 + a11y 快照为准。
