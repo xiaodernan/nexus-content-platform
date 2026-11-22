@@ -35,10 +35,18 @@ function _roman(n: number): string {
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: '典籍室 · World Bible — NEXUS',
-  description: '《低语诸王》世界大典 · 全十四章正典，锚句中英字字对齐。/ The fourteen canonical chapters of The Whispers’ Kings, anchor sentences verbatim in both languages.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '典籍室 · 低语诸王 — NEXUS',
+        description: '《低语诸王》世界大典 · 全十四章正典，锚句中英字字对齐。',
+      }
+    : {
+        title: 'World Bible · The Whispers’ Kings — NEXUS',
+        description: 'The fourteen canonical chapters of The Whispers’ Kings, anchor sentences verbatim in both languages.',
+      };
+}
 
 /**
  * §BIBLE-1 低语诸王 · 典籍室（`/bible` 目录页）。

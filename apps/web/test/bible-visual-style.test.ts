@@ -51,7 +51,8 @@ describe('§BIBLE-1 /bible 典籍室', () => {
       expect(f).toContain('import { getLocale');
       expect(f).toContain('const COPY');
     }
-    expect(index).toContain('export const metadata');
+    // 2026-11-22：目录页 metadata 也跟随 cookie 语言（英文标签页不再挂中文标题）。
+    expect(index).toContain('export async function generateMetadata');
     expect(reader).toContain('generateMetadata');
   });
 
@@ -148,10 +149,10 @@ describe('§BIBLE-1 /bible 典籍室', () => {
   //   component —— BibleMarkdown 本轮未动，钉子不变。
   // 门面类名、零 hex、钩子守恒等其余各条门在重钉前已全绿，改的是哪一格写在上面对得上。
   // 2026-11-22 再钉：index —— 中文 echoTitle 去掉并列英文（「回响 · Echoes」→「回响」），
-  // 中文模式不再中英夹杂；reader / component 未动。
+  // 且 metadata 改 generateMetadata 跟随语言（英文标签页 World Bible）；reader / component 未动。
   it('SHA256 钉死（EOL 归一 + className→@）：目录页 / 阅读页 / 渲染器', () => {
     expect(createHash('sha256').update(redactClasses(index)).digest('hex')).toBe(
-      '19b1f7e8b5613f1e71488f31920d54953e1c98fafed243eea0294d46f7cde617',
+      '3e65728f0d5f4013f9dfce7c9869a9b5bb61d8002e1883bbeed96b7e7b2fe2c8',
     );
     expect(createHash('sha256').update(redactClasses(reader)).digest('hex')).toBe(
       'c76bec23b6a5a94a46d7b849459817b04a6633791f1de57bf7000202ad076df7',
