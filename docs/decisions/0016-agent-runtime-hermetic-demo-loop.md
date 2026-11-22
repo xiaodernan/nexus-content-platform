@@ -14409,8 +14409,8 @@ so the next reader's recount door has no orphan to catch.
   created here), plus ADR 0307 and `docs/evidence/io-avatar-languages-nan-root-cause-2026-11-19.md`;
   **GRANTS nothing** — the next number is not promised ahead of its record.
 - **Version labels** v1095 is the only label minted by this landing. Both planes were scanned, and the scan
-  must keep the line context: `git grep -oE "v[0-9]{3,4}"` truncates a date such as `v2026-11-20` down to
-  `v2026` and reports a frontier about nine hundred labels too high. With `git grep -nE` plus a lookahead
+  must keep the line context: `git grep -oE "v[0-9]{3,4}"` truncates a date such as `v2026-11-20` down to its leading four digits
+  and reports a frontier about nine hundred labels too high. With `git grep -nE` plus a lookahead
   that rejects a label followed by `-`, `.` or a digit, the highest label in any commit subject on any ref is
   v1094 and the highest in `docs/**` is v1085, so the frontier is v1094 and v1095-v1097 are free in both
   planes. The merged cache line already owns v872–v874 in prose
