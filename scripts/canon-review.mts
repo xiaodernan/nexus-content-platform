@@ -18,7 +18,9 @@
  *     或 NEXUS_LLM_DIRECT=1 直连网关（默认 http 代理读 .env）。
  */
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
-import { BIBLE_ANCHORS } from '@/world-bible/anchors.generated';
+// 相对路径而不是 `@/world-bible/...`：这个脚本从仓库根目录跑（它按 cwd 找 docs/world-bible），
+// 而根 tsconfig 没有 web 的 `@` 别名——用别名会 ERR_MODULE_NOT_FOUND，脚本直接跑不起来。
+import { BIBLE_ANCHORS } from '../apps/web/src/world-bible/anchors.generated';
 import { join } from 'node:path';
 
 const ROOT = process.cwd();
