@@ -24,7 +24,8 @@ describe('§FE-I18N 中英切换基础设施', () => {
     expect(LAYOUT).toContain('export default async function RootLayout');
     expect(LAYOUT).toContain('await getLocale()');
     expect(LAYOUT).toContain('<html lang={');
-    expect(LAYOUT).toContain('<LocaleToggle />');
+    // 2026-11-22：locale 从服务端传入，避免英文首屏先画中文提示（水合闪烁 + ARIA 夹杂）。
+    expect(LAYOUT).toContain('<LocaleToggle locale={locale} />');
     expect(LAYOUT).toContain('<CommandPalette locale={locale} />');
     expect(LAYOUT).toContain('<KeyboardCheatsheet locale={locale} />');
     expect(LAYOUT).toContain('<ThemeToggle locale={locale} />');
@@ -58,11 +59,13 @@ describe('§FE-I18N 中英切换基础设施', () => {
     expect(TOGGLE).toContain('data-locale-toggle=');
   });
 
+  // 2026-11-22 重钉：LocaleToggle 改 `<LocaleToggle locale={locale} />`（服务端传入语言，
+  // 英文首屏不再先画「EN / 切换到英文」）；其余挂载顺序未动。
   it('layout 字节级 SHA256（本线字节）', () => {
     const stripped = LAYOUT.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
     const redact = (s: string) => s
       .replace(/className="[^"]*"/g, 'className="@"')
       .replace(/\s+/g, ' ');
-    expect(createHash('sha256').update(redact(stripped)).digest('hex')).toBe('3a43110d6526c7c8d1c3fb645c52a068168cf35a3f5f7322feffd82ad29b193c');
+    expect(createHash('sha256').update(redact(stripped)).digest('hex')).toBe('91f3de529d744fe1e3ab2068d43b3fd66f3b6e0564306e6d359b346bca9ea6eb');
   });
 });

@@ -41,7 +41,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         {/* 全局命令面板 / 快捷键速览 / 主题 / 语言：layout 收口 */}
         <CommandPalette locale={locale} />
         <KeyboardCheatsheet locale={locale} />
-        <LocaleToggle />
+        <LocaleToggle locale={locale} />
         <ThemeToggle locale={locale} />
       </body>
     </html>
