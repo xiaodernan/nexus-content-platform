@@ -15721,3 +15721,39 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   不加 `# -*- coding: utf-8 -*-`（只护住 pip 这一条读径，把「内容随便写」的口子留着）；
   不顺手做全仓 `open()` 不传 `encoding=` 的审计——那是另一份决策，已在 ADR-0312 记为已知 hazard。
 - **复跑**：`npm run test:ai-service` 526 passed / 18 skipped（原 522 + 本片 4 臂）。
+
+## §SC 配置中心操作面：一个空源与一个抛错的源，都不许冒充"这一版就是没键"（2026-11-23 / ADR-0313）
+
+`nexus-config` 起了 `native` 模式之后一直只回答"打进 jar 的那份对不对"（§SC-71c 的探针），
+"现在供的是哪一版、动没动、动了什么"三件事没有任何地方能说。补了 `/nexus/config/ops`
+三个只读端点（`version` / `refresh` / `audit`），指纹取自构造 `GET /{app}/{profile}` 报文的
+**同一个** `EnvironmentRepository`，不是另算一份——否则面板与客户端各说一套，正是本片要避免的那类假。
+
+- **名字**：这一片最初在代码注释里叫 `SC-19`，落地前发现 `docs/ROADMAP.md:12575` 早就把 SC-19 用给了
+  2026-11-10 的拓扑实跑（`docs/evidence/sc19-topology-live-proof.md`），而 `SC-64` 又被并行会话占住
+  （`/actuator/circuitbreakers`）。两个编号空间都已经不够用，所以注释、测试、README 一律改挂 **ADR-0313**，
+  不再新造一个会撞的号。改名本身不值一节，值得记的是"编号不够用时挂 ADR，而不是接着排队"。
+- **`keyCount: 0` 是两件事**（本片的真发现，不是设计时想到的）：打包 jar 用 `file:///$TEMP/...` 起在 18889，
+  Windows JVM 把它落成一个不存在的目录，`/version` 回 **HTTP 200 + propertySources `[]` + keyCount 0**。
+  客户端那边只会退回自己打包的默认值，还以为中心答过。于是 `/version` 加 `servedEmpty`，`/refresh` 对空源
+  回 **503 `empty-source` 且不建基线**——把空版本当基线记下来，源修好之后第一次刷新就会把"每个键都是新增"
+  报成一次真实变更，一次拼写错误被洗成一串假变更，账本里还留着证据。
+- **源抛错也要指名**（同一次实跑里撞出来的第二种）：`file://C:\Users\…`（反斜杠没转 URL）和被重复键搞坏的
+  YAML，都是服务照常起、每次读都抛。默认那个 500 页只把 `path` 交给 caller，原因留在日志里；现在回
+  503 `source-error` + `cause=FailedToConstructEnvironmentException`（只有短类名，不带路径与堆栈，
+  与 §SC-71c 探针同一条规矩），并且**不写账、不动基线**：修好文件后第一次是 `established`。
+- **health 看不见空源**——这一条是为什么这面必须存在的硬理由：同一个进程 `/actuator/health` 回
+  `{"status":"UP"}`，而 `/version` 同时是 `keyCount: 0`。健康探针管"服务活着"，管不了"活着但什么都没供"。
+- **真机六步**（端口 18892，`search-locations` 指向真目录，`NEXUS_CONFIG_ADMIN_TOKEN` 已配）：
+  `keyCount 6 / servedEmpty false` → `established`(seq 1) → 把 YAML 弄坏 = **503 source-error 且不落账** →
+  还原 = `unchanged` → 改 `rate-per-second 50→999` = `changed`，`modified: [nexus.gateway.rate-limit.rate-per-second]`、
+  `from "50" to "999"`、digest `54ec9763…→d3a9a22e…` → `/audit` 两条、新的在前。全过程零写入配置。
+- **臂与变异**：模块 31 条全绿（新增 25 条：`ConfigOpsRefreshAuditTest` 9 + `ConfigOpsGateTest` 9 +
+  `ConfigChangeAuditTest` 7）。本片新增的三条判断各有一处定向变异，每处只红该红的那条臂：
+  `servedEmpty` 写死 `false` → 1 臂；空源守卫短路 → 1 臂（503 变 200）；`cause` 换成异常 message → 1 臂
+  （内部路径漏给 caller）；`/version` 的 try/catch 去掉 → 1 臂（异常直接逃出方法）。
+  第一次变异尝试用 `if(false)` 包住整块守卫，括号不配平直接编译失败——那次 BUILD FAILURE 不是证据，
+  重做成 `if (false && …)` 才算。
+- **刻意不做**：客户端侧 `@RefreshScope` 传播（服务端说"变了"，跑着的客户端仍要重启才吃到——已在 ADR-0313
+  写成已知未完成，而不是暗示成特性）；可写配置源（会把机密值请进数据库，撞 `docs/SECURITY.md`）；
+  持久审计（账本在进程内、有上界、重启清零，面板与文档都不许叫它"持久审计日志"）。
