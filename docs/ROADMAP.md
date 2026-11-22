@@ -11042,6 +11042,38 @@ Docker Desktop 的 Linux 引擎掉线——`nexus-platform-postgres`（5433）�
 `readObserverMetrics` 第一条查询拿 `CONNECT_TIMEOUT`；引擎恢复后同一条查询立刻返回 32。
 页面有 `app-root-error` 兜底，没有把异常裸摔给用户。
 
+## §13 第三十八片：world/game 的 `duplicate-id` 也拆开了——边 id 重号此前一格都没查（2026-11-22）
+
+第三十七片把 design-model 的 `duplicate-id` 拆成页/节点两个 code，理由是"两种重号修法不同"，
+并在 notMeasured 里写下「`world-model` / `game-model` 各自的 `duplicate-id` 未统一」。本片兑现。
+
+**拆的时候发现真正的缺口不是命名，是边 id 一格都没查**：
+
+- `WorldLink.id` 被 `worldNetwork` 的 Tarjan 割边当作**跳父边的键**（仓库里记着"按父节点名跳父边
+  会把双向边 a→b/b→a 的第二条漏掉、误把成环边判成桥"，所以改成按边 id 跳）；
+- `GameRef.id` 被 `removeRef` 当作**删除键**（`entity.refs.filter(ref => ref.id !== refId)`），
+  也被 `buildGameGraph` 当作**边的身份**铺进 nodes/edges。
+
+两个模型都只校验了"节点/实体 id 唯一"，**边自己的 id 从不校验**。两个关系共用一个 id 的后果：
+删一个会删掉两条，桥的判定会跳错那条父边——这类错不报错，只会安静地给出错的骨架。
+
+**改法**（与 design-model 同一条理由：修法不同就必须分开报）：
+
+- world-model：`duplicate-id` → `duplicate-node-id`；新增 `duplicate-link-id`；
+- game-model：`duplicate-id` → `duplicate-entity-id`；新增 `duplicate-ref-id`；
+- 两条新 code 都带 `suggestion`（`WorldIssue` / `GameIssue` 原先是 `{code,message,nodeId/entityId}`，
+  补上可选 `suggestion`——重号类的问题只骂不给梯子，等于让人知道错了不知道怎么改）；
+- `sim.ts` 三处注释里的旧 code 名同步更正。
+
+**判据**：world-model **101 passed**（新增 2 条：同 id 不同端点 ⇒ `duplicate-link-id` 且
+**不**误报 `duplicate-link`；既有文档不被新门误伤）；game-model **365 passed**（新增 2 条同形状）。
+`economy` 的 `duplicate-id`（账目条目，单层平表）与 `agent-runtime` 的 `PlanProblemCode`
+（任务步骤 id，单层平表）**不拆**——它们没有"两种 id 空间"这个问题，拆了就是为拆而拆。
+
+**顺带记下**：`apps/web/test/game-code.integration.test.ts` 本轮两次红，都与本片无关——
+它默认连 55433（已停用的坏库）拿 `ECONNREFUSED`，改指 5433 后 `beforeAll` 30 秒钩子超时。
+已用 `git stash` 对照验证：**撤掉本片改动，同样超时**。
+
 ## §SEC 第三十二片：限流闸的窗口挪进 Redis——「每台各数各的」那句限额重新是真的（2026-11-02）
 
 起点是 `rateLimit.ts` 顶部从 §64 那天起就写着的一句承诺："生产多实例时换成 Redis 驱动（ZRANGEBYSCORE + ZADD

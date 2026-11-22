@@ -274,7 +274,8 @@ export interface GameDocument {
 export type GameIssueCode =
   | "bad-kind"
   | "empty-name"
-  | "duplicate-id"
+  | "duplicate-entity-id"
+  | "duplicate-ref-id"
   | "missing-name"
   | "bad-timestamp"
   | "bad-stat"
@@ -285,6 +286,8 @@ export type GameIssueCode =
 export interface GameIssue {
   code: GameIssueCode;
   message: string;
+  /** 下一步怎么修。重号类的问题不写这一句，就等于只骂不给梯子（§159） */
+  suggestion?: string;
   entityId?: string;
 }
 
@@ -527,7 +530,15 @@ export function validateGame(document: GameDocument): GameIssue[] {
       });
     }
     if (seen.has(entity.id)) {
-      issues.push({ code: "duplicate-id", message: `实体 id 重复：${entity.id}`, entityId: entity.id });
+      // 与 design-model / world-model 的拆分同理：重号有两种，修法不同。
+      // 这一种是**实体**重号——两个实体共用一个 id，`byId` 那样的读路径只能任选一个当真值；
+      // 修法是给其中一个换 id。
+      issues.push({
+        code: "duplicate-entity-id",
+        message: `实体 id 重复：${entity.id}`,
+        entityId: entity.id,
+        suggestion: "给其中一个换 id：重号时按 id 找实体只能任选一个当真值",
+      });
     }
     seen.add(entity.id);
     if (typeof entity.updatedAt !== "string" || Number.isNaN(Date.parse(entity.updatedAt))) {
@@ -548,6 +559,7 @@ export function validateGame(document: GameDocument): GameIssue[] {
     }
   }
   const seenPair = new Set<string>();
+  const seenRefId = new Set<string>();
   for (const entity of document.entities) {
     const label = entity.name?.trim() || entity.id;
     for (const ref of entity.refs) {
@@ -574,6 +586,19 @@ export function validateGame(document: GameDocument): GameIssue[] {
         });
       }
       seenPair.add(pair);
+      // 引用自己的 id 也要**全文档**唯一。它不只是标签：`removeRef` 按 id 删
+      // （`entity.refs.filter(ref => ref.id !== refId)`），`buildGameGraph` 把
+      // `ref.id` 当边的身份铺进 nodes/edges。两个引用共用一个 id，删一个会删掉两条，
+      // 图上也会出现两条同 id 的边——这类错不报错，只会安静地给出错的骨架。
+      if (seenRefId.has(ref.id)) {
+        issues.push({
+          code: "duplicate-ref-id",
+          message: `引用 id 重复：${ref.id}（${label} → ${ref.to}）`,
+          entityId: entity.id,
+          suggestion: "给其中一条引用换 id：删引用与建图都按 ref.id 认边，重号会认错",
+        });
+      }
+      seenRefId.add(ref.id);
     }
   }
   return issues;

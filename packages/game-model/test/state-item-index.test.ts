@@ -30,7 +30,7 @@ import {
  * - `initialState`：`items: plan.items.map(actor)`，逐位置构造、`actor` 保留 `source.id`；
  * - `step`：`items: state.items.map(e => ({...e}))`，逐位置克隆，拾取循环只就地改 `active`，
  *   **从不重排、增删**；
- * - `validateGame` 对 `document.entities` 全局 `seen` 查 `duplicate-id`，items 的 id 全局唯一；
+ * - `validateGame` 对 `document.entities` 全局 `seen` 查 `duplicate-entity-id`，items 的 id 全局唯一；
  * - 消费侧 `itemById.get(sim.id)`（拾取循环）本就假定下标处 id 对应，与守护式 O(1) 同前提。
  *
  * 判据**不拿墙钟量毫秒**（抢资源机必 flaky），三层确定性证据（镜像 PERF-2）：

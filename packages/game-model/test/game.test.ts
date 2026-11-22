@@ -372,7 +372,7 @@ describe('validateGame', () => {
     } as GameDocument;
     const codes = validateGame(bad).map((i) => i.code);
     expect(codes).toContain('bad-kind');
-    expect(codes).toContain('duplicate-id');
+    expect(codes).toContain('duplicate-entity-id');
     expect(codes).toContain('bad-timestamp');
   });
 
@@ -413,6 +413,37 @@ describe('validateGame', () => {
     expect(codes).toContain('self-ref');
     expect(codes).toContain('missing-ref-target');
     expect(codes).toContain('duplicate-ref');
+  });
+
+  it('引用 id 全文档重号单独报一条：删引用与建图都按 ref.id 认边', () => {
+    const game = createGame('g');
+    const player = entityNamed(game, '玩家')!;
+    const enemy = entityNamed(game, '敌人')!;
+    const other = game.entities.find((e) => e.id !== player.id && e.id !== enemy.id)!;
+    const broken: GameDocument = {
+      ...game,
+      entities: game.entities.map((e) =>
+        e.id === player.id
+          ? { ...e, refs: [{ id: '共享-id', to: enemy.id, role: '敌对' }] }
+          : e.id === other.id
+            ? { ...other, refs: [{ id: '共享-id', to: player.id, role: '追随' }] }
+            : e,
+      ),
+    };
+    const codes = validateGame(broken).map((i) => i.code);
+    expect(codes).toContain('duplicate-ref-id');
+    // 端点与 role 都不同 ⇒ 不是 duplicate-ref；两种重号修法不同，必须分开报
+    expect(codes).not.toContain('duplicate-ref');
+    expect(codes).not.toContain('duplicate-entity-id');
+    const found = validateGame(broken).find((i) => i.code === 'duplicate-ref-id');
+    expect(found?.suggestion).toContain('ref.id');
+  });
+
+  it('引用 id 各不相同时不报（既有文档不能被新门误伤）', () => {
+    const game = createGame('g');
+    const ids = game.entities.flatMap((e) => e.refs.map((r) => r.id));
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(validateGame(game).map((i) => i.code)).not.toContain('duplicate-ref-id');
   });
 
   it('同一条引用在 role 不同时不算重复', () => {

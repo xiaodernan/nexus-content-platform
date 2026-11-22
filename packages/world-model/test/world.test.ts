@@ -109,7 +109,7 @@ describe("validateWorld", () => {
     });
     const codes = issues.map((i) => i.code);
     expect(codes).toContain("bad-kind");
-    expect(codes).toContain("duplicate-id");
+    expect(codes).toContain("duplicate-node-id");
     expect(codes).toContain("empty-title");
     expect(codes).toContain("bad-timestamp");
   });
@@ -212,5 +212,33 @@ describe("§45 关系与图投影", () => {
     };
     expect(worldGraph(dangling).edges).toEqual([]);
     expect(validateWorld(dangling).map((i) => i.code)).toContain("missing-endpoint");
+  });
+
+  it("关系 id 重号单独报一条：割边按边 id 跳父边，重号会跳错那条", () => {
+    const { world, character, faction } = withCast();
+    const linked = linkWorldNodes(world, character.id, faction.id, "效忠").document;
+    // 造一条**同 id 不同端点**的关系：端点不同所以不是 duplicate-link，但 id 撞了
+    const third = { ...world.nodes[2]!, id: "wn-第三人" };
+    const clash: WorldDocument = {
+      ...linked,
+      nodes: [...linked.nodes, third],
+      links: [
+        ...linked.links,
+        { id: linked.links[0]!.id, from: character.id, to: third.id, label: "仇怨" },
+      ],
+    };
+    const codes = validateWorld(clash).map((i) => i.code);
+    expect(codes).toContain("duplicate-link-id");
+    expect(codes).not.toContain("duplicate-link");
+    // 两种重号必须分开：条目重号换 id，关系重号也换 id，但报的不是同一条
+    expect(codes).not.toContain("duplicate-node-id");
+    const found = validateWorld(clash).find((i) => i.code === "duplicate-link-id");
+    expect(found?.suggestion).toContain("割边");
+  });
+
+  it("关系 id 各不相同时不报（既有文档不能被新门误伤）", () => {
+    const { world, character, faction } = withCast();
+    const linked = linkWorldNodes(world, character.id, faction.id, "效忠").document;
+    expect(validateWorld(linked).map((i) => i.code)).not.toContain("duplicate-link-id");
   });
 });

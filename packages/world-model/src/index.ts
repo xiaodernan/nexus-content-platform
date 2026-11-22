@@ -211,7 +211,8 @@ export interface WorldIssue {
   code:
     | "bad-kind"
     | "empty-title"
-    | "duplicate-id"
+    | "duplicate-node-id"
+    | "duplicate-link-id"
     | "missing-name"
     | "bad-timestamp"
     | "self-link"
@@ -221,6 +222,8 @@ export interface WorldIssue {
     | "bad-lore"
     | "bad-pressure";
   message: string;
+  /** 下一步怎么修。重号类的问题不写这一句，就等于只骂不给梯子（§159） */
+  suggestion?: string;
   nodeId?: string;
 }
 
@@ -751,9 +754,13 @@ export function validateWorld(document: WorldDocument): WorldIssue[] {
     }
     if (seen.has(node.id)) {
       issues.push({
-        code: "duplicate-id",
+        // 与 design-model 的拆分同理（§13 第三十七片）：重号有两种，修法不同。
+        // 这一种是**条目**重号——两条记录共用一个 id，`find(n => n.id === id)` 那样的
+        // 读路径只能任选一条当真值；修法是给其中一条换 id。
+        code: "duplicate-node-id",
         message: `条目 id 重复：${node.id}`,
         nodeId: node.id,
+        suggestion: "给其中一条换 id：重号时按 id 找条目只能任选一条当真值",
       });
     }
     seen.add(node.id);
@@ -808,6 +815,7 @@ export function validateWorld(document: WorldDocument): WorldIssue[] {
     }
   }
   const seenPair = new Set<string>();
+  const seenLinkId = new Set<string>();
   for (const link of document.links ?? []) {
     if (link.from === link.to) {
       issues.push({
@@ -832,6 +840,19 @@ export function validateWorld(document: WorldDocument): WorldIssue[] {
       });
     }
     seenPair.add(pair);
+    // 关系自己的 id 也要唯一。它不只是标签：`worldNetwork` 的 Tarjan 割边按**边 id**
+    // 跳过父边（仓库里记着"按父节点名跳父边会把双向边 a→b/b→a 的第二条漏掉、误把成环边
+    // 判成桥"），按 id 删关系的那条路也用它。两个关系共用一个 id，删一个会删掉两条，
+    // 桥的判定也会跳错那条父边——这类错不报错，只会安静地给出错的骨架。
+    if (seenLinkId.has(link.id)) {
+      issues.push({
+        code: "duplicate-link-id",
+        message: `关系 id 重复：${link.id}（${link.from} → ${link.to}）`,
+        nodeId: link.from,
+        suggestion: "给其中一条关系换 id：割边按边 id 跳父边，重号会跳错那条",
+      });
+    }
+    seenLinkId.add(link.id);
   }
   const terrain = document.terrain;
   if (terrain !== undefined) {
