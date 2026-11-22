@@ -29617,6 +29617,156 @@ Nobody picked up the slip on the wood. It lay there all night, and in the mornin
 > 页边不记谁动过它——所以取出来再放回去，才算真的没动过。`,
   },
   {
+    order: 218,
+    slug: 'echo-218-the-gap-left-behind',
+    titleZh: '空出来的那一格',
+    titleEn: 'The Gap Left Behind',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E217）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E217).',
+    markdownZh: `
+> 回响不替正典续写——它只是页边另一层长出来的盐。
+> 写在 E217 之后：有人取走了一张，又有人把一张留在木面上。这一篇写的是那一格空位本身。
+> 纪律同前：锚句逐字；不新增正典专名，只在既有的灰棚与抄本院里添细节。
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E217）。
+
+---
+
+## 一 · 空位
+
+第二天，缝隙里空出一格，窄得只够一张纸条。
+**锚句**：第二天，缝隙里空出一格，窄得只够一张纸条。
+**Anchor sentence**: the next day a gap opened in the seam, narrow enough for one slip and no more.
+
+---
+
+## 二 · 量
+
+孩子用指头量了那一格，和别的格一样宽。他把指头收回来，没有把那一格按窄。
+**锚句**：孩子用指头量了那一格，和别的格一样宽。
+**Anchor sentence**: the child measured the gap with a finger; it was as wide as any other. He took the finger back and did not press the gap narrower.
+
+---
+
+## 三 · 想填
+
+有人写了新的一句，想把它放进去。纸条进了一半，又抽了回来——那一句说的是别处的潮。
+**锚句**：有人写了新的一句，想把它放进去。纸条进了一半，又抽了回来。
+**Anchor sentence**: someone wrote a new line and tried to set it in. The slip went halfway and was drawn back out.
+
+---
+
+## 四 · 最年长者又说
+
+最年长的抄本师说，空格也是页边的一部分；页边不是一张挨一张，是留出来的。
+**锚句**：最年长的抄本师说，空格也是页边的一部分。
+**Anchor sentence**: the eldest copyist said the empty gap is part of the margin too.
+
+---
+
+## 五 · 一个点
+
+账上不记空格，但抄本师在页数旁边点了一个点。那个点很小，翻页时也不会被擦掉。
+**锚句**：账上不记空格，但抄本师在页数旁边点了一个点。
+**Anchor sentence**: the ledger does not record gaps, but the copyist set one dot beside the page number.
+
+---
+
+## 六 · 仍在
+
+那张留在木面上的纸条后来不见了，空格还在。没有人把它填上，也没有人把它算作少了一张。
+**锚句**：那张留在木面上的纸条后来不见了，空格还在。
+**Anchor sentence**: the slip left on the wood disappeared later; the gap remained.
+
+---
+
+## 七 · Mapping（Echo No. 218 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the gap is part of the margin · the margin is made of what is left out · a dot beside the page number | 一、四、五 |
+| geography | the Institute's copy hall · the winter-tide month | 一、六 |
+| characters | the child with half sentences · the five copyists · the eldest copyist | 二、三、四 |
+| story | after E217: the gap left by a taken slip stays empty | 全篇 |
+| items | the slips · the cover gap · the ledger · the page number | 一、五、六 |
+| history | the 140th year after the 44th Convocation (continues E206–E217) | 纪元 |
+
+> 页边不是纸挨着纸——是纸之间还肯留一格。
+> The margin is not slip against slip — it is the one gap the slips still agree to leave.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E217: one slip was taken out, another was left on the wood. This echo is about the empty gap itself.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within the established grey cover and copy hall.
+
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E217).
+
+---
+
+## One · The Gap
+
+The next day a gap opened in the seam, narrow enough for one slip and no more.
+**锚句**：第二天，缝隙里空出一格，窄得只够一张纸条。
+**Anchor sentence**: the next day a gap opened in the seam, narrow enough for one slip and no more.
+
+---
+
+## Two · Measured
+
+The child measured the gap with a finger; it was as wide as any other. He took the finger back and did not press the gap narrower.
+**锚句**：孩子用指头量了那一格，和别的格一样宽。
+**Anchor sentence**: the child measured the gap with a finger; it was as wide as any other. He took the finger back and did not press the gap narrower.
+
+---
+
+## Three · An Attempt to Fill It
+
+Someone wrote a new line and tried to set it in. The slip went halfway and was drawn back out — that line spoke of a tide somewhere else.
+**锚句**：有人写了新的一句，想把它放进去。纸条进了一半，又抽了回来。
+**Anchor sentence**: someone wrote a new line and tried to set it in. The slip went halfway and was drawn back out.
+
+---
+
+## Four · The Eldest Speaks Again
+
+The eldest copyist said the empty gap is part of the margin too; a margin is not slip against slip, but what is left between them.
+**锚句**：最年长的抄本师说，空格也是页边的一部分。
+**Anchor sentence**: the eldest copyist said the empty gap is part of the margin too.
+
+---
+
+## Five · One Dot
+
+The ledger does not record gaps, but the copyist set one dot beside the page number. The dot was small, and turning the page would not rub it away.
+**锚句**：账上不记空格，但抄本师在页数旁边点了一个点。
+**Anchor sentence**: the ledger does not record gaps, but the copyist set one dot beside the page number.
+
+---
+
+## Six · Still There
+
+The slip left on the wood disappeared later; the gap remained. Nobody filled it, and nobody counted it as one slip short.
+**锚句**：那张留在木面上的纸条后来不见了，空格还在。
+**Anchor sentence**: the slip left on the wood disappeared later; the gap remained.
+
+---
+
+## Seven · Mapping（Echo No. 218 · world model）
+
+| Dimension | Value | Sections |
+| --- | --- | --- |
+| lore | the gap is part of the margin · the margin is made of what is left out · a dot beside the page number | I, IV, V |
+| geography | the Institute's copy hall · the winter-tide month | I, VI |
+| characters | the child with half sentences · the five copyists · the eldest copyist | II, III, IV |
+| story | after E217: the gap left by a taken slip stays empty | whole |
+| items | the slips · the cover gap · the ledger · the page number | I, V, VI |
+| history | the 140th year after the 44th Convocation (continues E206–E217) | Era |
+
+> The margin is not slip against slip — it is the one gap the slips still agree to leave.
+> 页边不是纸挨着纸——是纸之间还肯留一格。
+`,
+  },
+  {
     order: 22,
     slug: 'echo-022-the-fish-that-never-dried',
     titleZh: '里巷子晾鱼架上那条永远晾不干的鱼',
