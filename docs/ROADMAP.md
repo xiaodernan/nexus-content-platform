@@ -15624,6 +15624,13 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   `test_healthz_reports_configured_provider_as_real` 改成"探过的才算"，另加
   `test_healthz_does_not_call_an_unprobed_llm_real` 钉冷启动窗口。变异验证：把 `text_status`
   退回 `if self._llm` → 2 臂红；把分类器退回塌成一句 → 9 臂红；两处均已还原并复跑全绿。
-- **诚实边界 / 未 push**：冷启动到首次探测落地之间 web 会走 mock（ADR-0310 记了这条代价，窗口有界：
-  `lifespan` 启动即探 + `/healthz` 遇过期补探）；`costUsd=0` 真计费读数未解；桩 provider 要 real
-  必须显式喂探测结论，已在两条旧臂上改出。全量 `pytest` 515 passed / 18 skipped，`turbo lint --force` 7/7。
+- **真线路复跑（`NEXUS_LIVE_LLM=1`，7 passed）**：`test_live_healthz_reports_embedding_honestly` 先红了一次
+  ——它对着冷进程断言 `llm=real`，而这正是本片改掉的行为。改成量这个窗口：冷读必须写"未验证"，
+  轮询到落地为止，**实测 3.84s**（`ping` 单次往返 2.5–3.3s）。窗口只在进程启动付一次：
+  TTL 到期时 `text_status()` 读的还是上一次 `ok`，不会每 15 分钟黑一次。
+  顺带量到本网关对 `ping/ping` 计 `prompt_tokens=4389`、第二次 `cached_tokens=4180`
+  ——一次探测约等于一次缓存读，TTL 900s 下可忽略（§〇"珍惜 token"）。
+- **诚实边界 / 未 push**：`costUsd=0` 真计费读数未解；桩 provider 要 real 必须显式喂探测结论，
+  已在两条旧臂上改出；`ruff` 在 apps/ai-service 有两处 HEAD 既存的告警（registry E402、
+  test_llm_liveness 两个 F401），不是本片引入、未顺手改。全量 `pytest` 515 passed / 18 skipped，
+  `turbo lint --force` 7/7。

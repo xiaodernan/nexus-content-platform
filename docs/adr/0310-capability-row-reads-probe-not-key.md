@@ -49,9 +49,13 @@
 
 - **正面**：key 被吊销的那一刻起，`/healthz` 说的是实话，web 显示 DEMO MODE 而不是把请求
   发给一条死链路吃 5xx；运维看一眼就知道该充值还是该换 key。
-- **代价（接受）**：冷启动窗口内 `text=unavailable`，web 走 mock 几秒。`lifespan` 启动即起
-  后台探测（不阻塞启动），且 `/healthz` 每次读到过期都会补一次，窗口有界。
-  判据在 `test_healthz_does_not_call_an_unprobed_llm_real`。
+- **代价（已量，接受）**：进程起来到第一次探测落地之间 `text=unavailable`，web 走 mock。
+  2026-11-22 真线路实测这个窗口 **3.84s**（`test_live_healthz_reports_embedding_honestly` 把
+  ping 的往返一起量进去：单次 2.5–3.3s）。窗口只在进程启动时付一次：TTL 到期后
+  `text_status()` 读到的仍是上一次 `ok`，新探测失败才落——不会每 15 分钟黑一次。
+  判据在 `test_healthz_does_not_call_an_unprobed_llm_real`（离线）与上面那条 live 臂（真网关）。
+  探测的 token 成本也实测过：本网关对 `ping/ping` 计 `prompt_tokens=4389`（网关侧自带前缀），
+  第二次起 `cached_tokens=4180`，即一次探测约等于一次缓存读，TTL 900s 下可忽略。
 - **测试口径变化**：桩 provider（`FakeProvider`）永远拿不到探测结论，凡是要 `llm=real` 的臂
   必须显式 `LlmLiveness().record(True, "")` 提供证据——这正是"要证据"的契约，
   两条旧臂（`test_healthz_reports_configured_provider_as_real`、embedding gate 那条）按此改名/补证据。
