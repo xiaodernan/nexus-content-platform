@@ -119,9 +119,10 @@ describe('§FE-TD /world/<project>/tide 世界潮汐', () => {
     for (const token of usedTokens) expect(tokens, `tokens.css 没有声明 ${token}`).toContain(token);
   });
 
+  // 2026-11-22 f5c5f02c 改了英文文案但漏钉本门（全量复跑才发现）；按当前字节补钉。
   it('SHA256 钉死（本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '6098d534e15ec8b831757e60e0c54b7f3061a8d986b1c77e8f795ebdd7962d6a',
+      '0434bbf8d1b83969cdf0c440927683c1cba5c19e3c0f76261c819725a0bb3903',
     );
   });
 });
