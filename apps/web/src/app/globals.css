@@ -5827,6 +5827,24 @@
 .obs-advice-bad { border-left-color: var(--nexus-color-danger); }
 .obs-advice-bad .obs-adviceDot { background: var(--nexus-color-danger); }
 
+/* §ADMIN-LLM-2 观察站「AI 深读 · 结构化清单」——.obs-aiAdvice* 门面。
+ * 这五个类名此前在 globals.css 里一个都没定义，组件是裸渲染的；此处补齐并把
+ * 「数字不在快照原文」的标注做成可见的 warn 行，不藏在 title 里。 */
+.obs-aiAdvice { margin-top: var(--nexus-space-4); display: grid; gap: var(--nexus-space-2); padding: var(--nexus-space-4); border: 1px solid var(--nexus-color-border-subtle, var(--nexus-color-border)); border-radius: 10px; background: var(--nexus-color-bg-1); }
+.obs-aiAdviceKicker { margin: 0; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); letter-spacing: 0.14em; text-transform: uppercase; color: var(--nexus-color-accent-2-ink); }
+.obs-aiAdviceModel { margin: 0; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
+.obs-aiAdvice .obs-subnote { margin: 0; }
+.obs-aiAdvice button { justify-self: start; min-height: 2rem; padding: var(--nexus-space-1) var(--nexus-space-3); border: 1px solid var(--nexus-color-accent-1); border-radius: var(--nexus-radius-sm); background: var(--nexus-color-accent-1); color: var(--nexus-color-accent-fg); font-size: var(--nexus-font-size-12); cursor: pointer; }
+.obs-aiAdvice button:hover { filter: brightness(1.06); }
+.obs-aiAdvice button:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+.obs-aiAdvice button:disabled { opacity: 0.55; cursor: progress; }
+.obs-aiAdviceItem { display: grid; gap: 2px; padding: var(--nexus-space-2) var(--nexus-space-3); border-left: 3px solid var(--nexus-color-accent-1); border-radius: 0 6px 6px 0; background: var(--nexus-color-bg-2); font-size: var(--nexus-font-size-12); line-height: 1.6; color: var(--nexus-color-fg-1); }
+.obs-aiAdvicePriority { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-2-ink); }
+.obs-aiAdviceItem strong { font-weight: 650; }
+.obs-aiAdviceItem em { font-style: normal; color: var(--nexus-color-fg-2); }
+.obs-aiAdviceItem > span { color: var(--nexus-color-fg-2); }
+.obs-aiAdviceAudit { font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); line-height: 1.5; color: var(--nexus-color-warn); }
+
 @media (max-width: 700px) {
   .obs-gateRow { flex-direction: column; }
   .obs-bars { height: 6rem; }

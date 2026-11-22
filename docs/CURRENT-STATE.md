@@ -8724,3 +8724,28 @@ Reader (post-continuum trace):
 - **生成**：gen:bible-snapshot 重生 generated.ts / digest（267,366 chars, sha 18278061…）；锚句 1260→1266；回响 208→209。
 - **计数对齐**：guideCopy 208→209 / 1260→1266 / two hundred eight→nine；bible-ask-behavior pin 1255→1261；canon-answer-graph 段落断言 208→209（13+209=222）。
 - **验证**：world-bible / bible-snapshot / anchor-echo / record-encoding 全 exit 0；相关 vitest 3 文件 32 passed。
+
+## cont. 475 (2026-11-22) — 两个 Postgres 的 WAL/统计目录损坏抢修
+
+- 11-21 起 `nexus-postgres` 因 WAL 段头坏（invalid magic number / no valid checkpoint）PANIC
+  退出，编排集成判据全 skip；今天进一步查明：`pg_statistic` 的 TOAST 缺块（XX001）会让
+  **任何读 pages 的规划查询**炸掉——修 WAL 不等于修好库。
+- 处置：先整卷备份（`D:\backups\nexus-pgdata-20261122.tar.gz`，98MB）→ `pg_resetwal` →
+  发现统计目录仍坏 → `pg_dump` 证明数据可读 → 重灌新库 + `ANALYZE` + 换名（旧库留名备查）。
+  5433 与 55433 两个库都做了；`pg_dump`/`ANALYZE` 全绿，无缺块。
+- 验证读数：`agent-orchestration.integration` **22/22**；`moderation.integration` +
+  `publish.integration` **27/27**。此前 §PLAN-1 的 `[~]` 由此关闭。
+- 诚实限度：55433 源库有 8 条孤儿 session 导致恢复时 sessions→users 外键未建；测试不依赖，
+  但下次 schema 对账要补。旧库暂不删，确认无回归后再清理。
+
+## cont. 476 (2026-11-22) — 观察站 AI 清单：把调用放回服务端，给数字标出处
+
+- 真 bug：`ObserverAiAdvice`（client）直接 import `chatWithCharacter`（server-only）。浏览器里
+  没有 `NEXUS_AI_SERVICE_URL` 与凭据，点击只会在客户端抛异常，组件 catch 后显示一行错——
+  看上去"有反应"，实际一次真调用都没发生。真机读数 `items=[]` / `pageerror=[]` 把这件事钉住了。
+- 新增 `/api/admin/observer/advice`：与 DeepRead 同门（口令 123 / admin / DEMO 409 /
+  5 次每 IP 每小时），指标服务端现算，客户端只发 locale；页面不再把计数当 props 传下去。
+- 补 `aiAdviceAudit.ts`：以**逐字喂给模型的 brief**为允许集核对 `basis+impact` 的数字；
+  不在快照里的不删只标「可能是模型推算」。真机 4 条建议、1 条 `0.08%` 被标注，0 报错。
+- 补 `.obs-aiAdvice*` 五个类名的门面样式——此前 globals.css 零定义，整块是裸按钮/裸字体。
+- 判据 13 条 + 观察站回归 27 条全绿；ADR 0299。

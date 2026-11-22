@@ -1,12 +1,15 @@
 import { chatWithCharacter } from '@/server/ai/client';
 import type { Locale } from '@/lib/i18n';
 import type { ObserverMetrics } from '@/server/admin/observer';
+import { auditNumbers } from './aiAdviceAudit';
 
 export interface AiAdviceItem {
   priority: string;
   basis: string;
   impact: string;
   action: string;
+  /** basis/impact 里不在快照原文中的数字（可能是模型推算）——不删，只当面标注 */
+  unverifiedNumbers: string[];
 }
 
 export interface AiAdvice {
@@ -18,7 +21,7 @@ export interface AiAdvice {
 export type ObserverMetricsInput = ObserverMetrics;
 
 // ── 从实库聚合数据出带数字的数据，喂给真模型。服务器按 locale 产出，模型语言跟随。
-function metricsText(m: ObserverMetricsInput, locale: Locale): string {
+export function observerMetricsBrief(m: ObserverMetricsInput, locale: Locale): string {
   const q = (a: string[]) => a.join(' / ') || '——';
   return locale === 'zh' ? `你是只读观察站（Observer）分析师。以下是本实例数据库的最新实测聚合（2026-11-20 采样）：
 - 注册用户（非游客）：${m.usersTotal}，游客：${m.usersGuests}，7 天新注册：${m.usersNew7d}，30 天新注册：${m.usersNew30d}
@@ -63,7 +66,7 @@ function parseSuggestions(text: string, cap = 5): AiAdviceItem[] {
     const action = pick(row.action);
     if (!basis || !impact || !action) continue;
     const priority = pick(row.priority) ?? 'MEDIUM';
-    items.push({ priority: priority.toUpperCase(), basis, impact, action });
+    items.push({ priority: priority.toUpperCase(), basis, impact, action, unverifiedNumbers: [] });
     if (items.length >= cap) break;
   }
   return items;
@@ -71,10 +74,11 @@ function parseSuggestions(text: string, cap = 5): AiAdviceItem[] {
 
 /** 服务器动作：真 provider 真调用。调用方负责决定何时触发（按钮/定时/缓存）。 */
 export async function generateAiAdvice(m: ObserverMetricsInput, locale: Locale): Promise<AiAdvice> {
+  const brief = observerMetricsBrief(m, locale);
   const result = await chatWithCharacter({
     requestId: `observer-advice-${Date.now().toString(36)}`,
     system: locale === 'zh' ? '你是只读观察站（Observer）分析师，按要求用中文回答。' : 'You are the read-only Observer analyst; answer with the requested JSON array only, in English.',
-    user: metricsText(m, locale),
+    user: brief,
     modelClass: 'balanced',
   });
   if (!result.ok) {
@@ -84,5 +88,9 @@ export async function generateAiAdvice(m: ObserverMetricsInput, locale: Locale):
   if (items.length === 0) {
     throw new Error('ai-service 返回建议为空——如实展示');
   }
-  return { model: result.response.model, items };
+  const audited = items.map((item) => ({
+    ...item,
+    unverifiedNumbers: auditNumbers(`${item.basis} ${item.impact}`, brief).unverified,
+  }));
+  return { model: result.response.model, items: audited };
 }

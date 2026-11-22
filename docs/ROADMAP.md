@@ -15275,9 +15275,8 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
       context→seo-audit→qa-audit→report，validatePlan=[]；二次调用前缀缓存 100%
       （18928/18928，185ms vs 首次 6595ms）。真机抓到并修掉"风险文案说没有真 provider"的谎。
 - [x] 判据 29 条 + 变异臂验伪；tsc web 绿。
-- [~] 编排端到端集成判据本轮受 `nexus-postgres` WAL 损坏阻塞（容器已 shutdown，57P03/
-      could not locate a valid checkpoint record）；规划器本体用真机脚本 + 无 DB 接线判据验证。
-      数据库恢复后需复跑 `agent-orchestration.integration.test.ts`。
+- [x] 编排端到端集成判据在数据库抢修后复跑 **22/22 全绿**；同批
+      `moderation.integration` + `publish.integration` **27/27 全绿**。数据库抢修见 §DB-REPAIR。
 
 ## §MOD-1 发布审核的 LLM 上下文二段研判（2026-11-21）
 
@@ -15303,3 +15302,32 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - [x] 判据 22 条全绿；tsc web 绿。
 - [~] 浏览器像素层未验证：`nexus-postgres` WAL 损坏 shutdown，页面需真项目数据 + 登录，
       本机起不来；DB 恢复后需真机截图核对 1440/390 无重叠。
+
+## §DB-REPAIR 两库 WAL / 统计目录损坏抢修（2026-11-22）
+
+- [x] **症状**：`nexus-postgres`（55433，测试默认库）WAL 段头 `invalid magic number` +
+      `could not locate a valid checkpoint record`，容器 PANIC 退出；`nexus-platform-postgres`
+      （5433，web 开发库）能起但 `pg_statistic` 的 TOAST 缺块（`missing chunk number 0`），
+      顺序扫描 `pages` 就报 `XX001`，21/22 编排集成判据全红。
+- [x] **先备份再动**：`nexus-pgdata` 卷 98MB 打包到 `D:\backups\nexus-pgdata-20261122.tar.gz`。
+- [x] **55433**：`pg_resetwal -f` 拉起（checkpoint 之前数据保留）→ 仍有统计目录损坏 →
+      `pg_dump` 全库可读（6.9MB）→ 重灌新库、`ANALYZE`、换名，旧库留 `nexus_broken_20261122`。
+- [x] **5433**：同样 `pg_dump` 2.2MB → 重灌、授权、换名，旧库留 `nexus_broken_20261122`；
+      源库有 8 条历史孤儿 session，恢复时 FK 未建（测试不依赖，如实记）。
+- [x] **验证**：5433 重建后 57 项目 / 56 页面 / 1307 用户；55433 重建后 1358 项目 / 1217 页面；
+      全库 `pg_dump` 与 `ANALYZE` 均无缺块错误。
+- [x] `apps/web/.env.local` 指向 5433；vitest 不读 `.env.local`，走默认 `localhost:55433/nexus`
+      —— 两库都修才让「浏览器看到的」和「判据跑的」同时可信。
+
+## §ADMIN-LLM-2 观察站 AI 清单：服务端边界 + 数字出处核对（2026-11-22）
+
+- [x] 新增 `POST /api/admin/observer/advice`：口令 123 / role=admin、DEMO 409、每 IP 5 次/小时，
+      指标由服务器现算；请求体只有 locale（ADR 0299）。
+- [x] 修掉一个真 bug：`ObserverAiAdvice` 是 client 组件，却直接 import 了 server-only 的
+      `chatWithCharacter`——浏览器里没有 ai-service 地址与凭据，按钮点了等于没调。改为走路由后
+      真机点击返回 4 条建议、0 pageerror。
+- [x] 补数字出处核对 `aiAdviceAudit.ts`：以逐字喂给模型的 brief 为允许集，`basis+impact` 里
+      不在快照中的数字**不删只标**（千分位/百分号归一）。真机 1 条 `0.08%` 被正标注为"可能是推算"。
+- [x] 补 `.obs-aiAdvice*` 五个类名的门面样式（此前 globals.css 一个都没定义，整块裸渲染）。
+- [x] 判据 13 条（含源码级边界）+ `observer-deepread` / `observer-projection` 回归 27 条全绿；
+      tsc web 绿；ADR 0299。

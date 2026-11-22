@@ -388,7 +388,7 @@ export default async function ObserverPage() {
         </ul>
         <p className="obs-subnote">{c.adviceFoot}</p>
         <ObserverDeepRead locale={locale} />
-        <ObserverAiAdvice locale={locale} metrics={m} />
+        <ObserverAiAdvice locale={locale} />
       </section>
 
       <footer className="adm-foot">

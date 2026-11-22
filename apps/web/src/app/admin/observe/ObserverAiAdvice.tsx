@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { generateAiAdvice, type AiAdviceItem, type ObserverMetricsInput } from './aiAdvice';
+import type { AiAdviceItem } from './aiAdvice';
 import type { Locale } from '@/lib/i18n';
 
 const COPY = {
@@ -15,6 +15,8 @@ const COPY = {
     errorBusy: '真模型调用失败——可能 provider 还没接好；规则建议在上方照旧。',
     retry: '重试',
     priority: { HIGH: '高', MEDIUM: '中', LOW: '低' },
+    auditPrefix: '未在快照原文出现（可能是模型推算）：',
+    auditHint: '这些数字逐字比对过喂给模型的聚合快照；没找到的不删，只当面标注，判断权留给你。',
   },
   en: {
     kicker: 'AI deep-read · gpt-6.2-sol',
@@ -26,6 +28,8 @@ const COPY = {
     errorBusy: 'The real provider call failed — the provider may not be wired yet; rule suggestions still stand.',
     retry: 'Retry',
     priority: { HIGH: 'HIGH', MEDIUM: 'MEDIUM', LOW: 'LOW' },
+    auditPrefix: 'Not verbatim in the snapshot (possibly inferred): ',
+    auditHint: 'Each number is matched against the exact aggregate brief sent to the model; unmatched ones are flagged, never deleted.',
   },
 } as const;
 
@@ -35,15 +39,24 @@ type State =
   | { phase: 'ok'; items: AiAdviceItem[]; model: string }
   | { phase: 'error'; message: string };
 
-export function ObserverAiAdvice({ locale, metrics }: { locale: Locale; metrics: ObserverMetricsInput }) {
+export function ObserverAiAdvice({ locale }: { locale: Locale }) {
   const c = COPY[locale];
   const [state, setState] = useState<State>({ phase: 'idle' });
 
   async function generate() {
     setState({ phase: 'busy' });
     try {
-      const r = await generateAiAdvice(metrics, locale);
-      setState({ phase: 'ok', items: r.items, model: r.model });
+      // 服务端调用必须留在服务端：这里只发 locale，指标由 route 现算。
+      const res = await fetch('/api/admin/observer/advice', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ locale }),
+      });
+      const body = (await res.json().catch(() => null)) as { items?: AiAdviceItem[]; model?: string; message?: string } | null;
+      if (!res.ok || !body?.items?.length) {
+        throw new Error(body?.message || `HTTP ${res.status}`);
+      }
+      setState({ phase: 'ok', items: body.items, model: body.model ?? 'unknown' });
     } catch (e) {
       const message = String((e as Error)?.message ?? e).slice(0, 400);
       setState({ phase: 'error', message });
@@ -64,6 +77,12 @@ export function ObserverAiAdvice({ locale, metrics }: { locale: Locale; metrics:
                 <strong>{item.basis}</strong>
                 <em>{item.impact}</em>
                 <span>{item.action}</span>
+                {item.unverifiedNumbers.length > 0 && (
+                  <span className="obs-aiAdviceAudit" title={c.auditHint}>
+                    {c.auditPrefix}
+                    {item.unverifiedNumbers.join(' · ')}
+                  </span>
+                )}
               </li>
             ))}
           </ul>
