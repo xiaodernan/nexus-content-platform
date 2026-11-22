@@ -29767,6 +29767,156 @@ The slip left on the wood disappeared later; the gap remained. Nobody filled it,
 `,
   },
   {
+    order: 219,
+    slug: 'echo-219-the-ledger-of-dots',
+    titleZh: '点账',
+    titleEn: 'The Ledger of Dots',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E218）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E218).',
+    markdownZh: `
+> 回响不替正典续写——它只是页边另一层长出来的盐。
+> 写在 E218 之后：空出来的那一格旁边，多了一个点。这一篇写的是那些点被抄成一行之后。
+> 纪律同前：锚句逐字；不新增正典专名，只在既有的灰棚与抄本院里添细节。
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E218）。
+
+---
+
+## 一 · 抄点
+
+有人把页数旁边的点抄成一行，抄了七页。他没有抄页数，只抄点与点之间的距离。
+**锚句**：有人把页数旁边的点抄成一行，抄了七页。
+**Anchor sentence**: someone copied the dots beside the page numbers into a single line, seven pages of them.
+
+---
+
+## 二 · 数不成
+
+那些点加起来不等于任何一张纸条，也不等于少了几张。它们只是一些位置，彼此隔着一小段空白。
+**锚句**：那些点加起来不等于任何一张纸条，也不等于少了几张。
+**Anchor sentence**: those dots did not add up to any slip, nor to any number of missing slips.
+
+---
+
+## 三 · 孩子说
+
+孩子说一个点就是一个地方，不是数目。他把手指按在第一个点上，又抬起来，指腹上什么也没有。
+**锚句**：孩子说一个点就是一个地方，不是数目。
+**Anchor sentence**: the child said one dot is one place, not a number.
+
+---
+
+## 四 · 笔挪远
+
+最年长的抄本师没有改他，只把自己的笔挪远了一寸。那一寸让两个人的手不再同时落在同一格上。
+**锚句**：最年长的抄本师没有改他，只把自己的笔挪远了一寸。
+**Anchor sentence**: the eldest copyist did not correct him; he only moved his own brush an inch farther away.
+
+---
+
+## 五 · 照着找
+
+后来的人照着点去找，找到的都是页边，不是纸条。有人在页边站了很久，最后把灯往那一格挪近了些。
+**锚句**：后来的人照着点去找，找到的都是页边，不是纸条。
+**Anchor sentence**: those who came later followed the dots and found margins, not slips.
+
+---
+
+## 六 · 还空着
+
+空出来的那一格还空着，点还在旁边。账上没有多一行，也没有少一行。
+**锚句**：空出来的那一格还空着，点还在旁边。
+**Anchor sentence**: the gap is still empty, and the dot is still beside it.
+
+---
+
+## 七 · Mapping（Echo No. 219 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | a dot marks a place, not a count · the dot ledger is not a second canon | 一、二、三 |
+| geography | the Institute's copy hall · the page margins · the lamp moved closer | 一、五 |
+| characters | the child with half sentences · the eldest copyist · the later readers | 三、四、五 |
+| story | after E218: the gap stays empty; the dot stays beside it | 全篇 |
+| items | the dots · the copied line · the ledger · the lamp | 一、二、五、六 |
+| history | the 140th year after the 44th Convocation (continues E206–E218) | 纪元 |
+
+> 点不是账目——是有人替一张不在的纸条留了个位置。
+> A dot is not an entry — it is a place someone kept for a slip that is not there.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E218: beside the empty gap, a dot remained. This echo is about what happened when the dots were copied into a line.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within the established grey cover and copy hall.
+
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E218).
+
+---
+
+## One · Copying Dots
+
+Someone copied the dots beside the page numbers into a single line, seven pages of them. He copied no page numbers, only the distances between one dot and the next.
+**锚句**：有人把页数旁边的点抄成一行，抄了七页。
+**Anchor sentence**: someone copied the dots beside the page numbers into a single line, seven pages of them.
+
+---
+
+## Two · No Sum
+
+Those dots did not add up to any slip, nor to any number of missing slips. They were only places, each separated from the next by a little blank.
+**锚句**：那些点加起来不等于任何一张纸条，也不等于少了几张。
+**Anchor sentence**: those dots did not add up to any slip, nor to any number of missing slips.
+
+---
+
+## Three · The Child Says
+
+The child said one dot is one place, not a number. He pressed a finger on the first dot, lifted it, and there was nothing on his fingertip.
+**锚句**：孩子说一个点就是一个地方，不是数目。
+**Anchor sentence**: the child said one dot is one place, not a number.
+
+---
+
+## Four · The Brush Moves Back
+
+The eldest copyist did not correct him; he only moved his own brush an inch farther away. That inch kept two hands from landing on the same square at once.
+**锚句**：最年长的抄本师没有改他，只把自己的笔挪远了一寸。
+**Anchor sentence**: the eldest copyist did not correct him; he only moved his own brush an inch farther away.
+
+---
+
+## Five · Following the Dots
+
+Those who came later followed the dots and found margins, not slips. Someone stood at the margin a long while, then moved the lamp a little closer to that square.
+**锚句**：后来的人照着点去找，找到的都是页边，不是纸条。
+**Anchor sentence**: those who came later followed the dots and found margins, not slips.
+
+---
+
+## Six · Still Empty
+
+The gap is still empty, and the dot is still beside it. The ledger has gained no line and lost none.
+**锚句**：空出来的那一格还空着，点还在旁边。
+**Anchor sentence**: the gap is still empty, and the dot is still beside it.
+
+---
+
+## Seven · Mapping（Echo No. 219 · world model）
+
+| Dimension | Value | Sections |
+| --- | --- | --- |
+| lore | a dot marks a place, not a count · the dot ledger is not a second canon | I, II, III |
+| geography | the Institute's copy hall · the page margins · the lamp moved closer | I, V |
+| characters | the child with half sentences · the eldest copyist · the later readers | III, IV, V |
+| story | after E218: the gap stays empty; the dot stays beside it | whole |
+| items | the dots · the copied line · the ledger · the lamp | I, II, V, VI |
+| history | the 140th year after the 44th Convocation (continues E206–E218) | Era |
+
+> A dot is not an entry — it is a place someone kept for a slip that is not there.
+> 点不是账目——是有人替一张不在的纸条留了个位置。
+`,
+  },
+  {
     order: 22,
     slug: 'echo-022-the-fish-that-never-dried',
     titleZh: '里巷子晾鱼架上那条永远晾不干的鱼',

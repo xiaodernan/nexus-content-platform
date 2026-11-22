@@ -76,13 +76,13 @@ describe('§GRAPH-1 检索与机检（确定性，不烧 token）', () => {
   });
 
   // 2026-11-22 并轨 origin/master：正典 13 章 → 14 章、212 回响 → 217 回响
-  // 2026-11-22 E218《页边空出来的那一格》落库：217 → 218。
-  it('digest 段落切分出 14 章 + 218 回响', () => {
+  // 2026-11-22 E218《页边空出来的那一格》落库：217 → 218；E219《点账》：218 → 219。
+  it('digest 段落切分出 14 章 + 219 回响', () => {
     const segments = splitDigestSegments(CANON_DIGEST);
     const chapters = segments.filter((s) => s.startsWith('## Chapter'));
     const echoes = segments.filter((s) => s.startsWith('### Echo'));
     expect(chapters).toHaveLength(14);
-    expect(echoes).toHaveLength(218);
+    expect(echoes).toHaveLength(219);
   });
 
   it('「米缸」问句命中米缸回响 Echo 36（而不是随机段落）', () => {

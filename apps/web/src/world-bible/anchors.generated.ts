@@ -5206,6 +5206,42 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "refEn": "Echo No. 218 · VI"
   },
   {
+    "zh": "有人把页数旁边的点抄成一行，抄了七页。",
+    "en": "someone copied the dots beside the page numbers into a single line, seven pages of them.",
+    "refZh": "回响（其219） · 一",
+    "refEn": "Echo No. 219 · I"
+  },
+  {
+    "zh": "那些点加起来不等于任何一张纸条，也不等于少了几张。",
+    "en": "those dots did not add up to any slip, nor to any number of missing slips.",
+    "refZh": "回响（其219） · 二",
+    "refEn": "Echo No. 219 · II"
+  },
+  {
+    "zh": "孩子说一个点就是一个地方，不是数目。",
+    "en": "the child said one dot is one place, not a number.",
+    "refZh": "回响（其219） · 三",
+    "refEn": "Echo No. 219 · III"
+  },
+  {
+    "zh": "最年长的抄本师没有改他，只把自己的笔挪远了一寸。",
+    "en": "the eldest copyist did not correct him; he only moved his own brush an inch farther away.",
+    "refZh": "回响（其219） · 四",
+    "refEn": "Echo No. 219 · IV"
+  },
+  {
+    "zh": "后来的人照着点去找，找到的都是页边，不是纸条。",
+    "en": "those who came later followed the dots and found margins, not slips.",
+    "refZh": "回响（其219） · 五",
+    "refEn": "Echo No. 219 · V"
+  },
+  {
+    "zh": "空出来的那一格还空着，点还在旁边。",
+    "en": "the gap is still empty, and the dot is still beside it.",
+    "refZh": "回响（其219） · 六",
+    "refEn": "Echo No. 219 · VI"
+  },
+  {
     "zh": "里巷子晾鱼架最里侧的一号钩上，挂着一条谁都不记得是什么时候挂上去的鱼。",
     "en": "the innermost hook of the drying racks, hook No. 1, carries a fish nobody remembers being hung there.",
     "refZh": "回响（其22） · 一",
