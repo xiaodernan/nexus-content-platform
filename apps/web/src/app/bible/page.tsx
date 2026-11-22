@@ -82,7 +82,7 @@ const COPY: Record<Locale, {
     anchorsLink: '锚句回放',
     chapterLabel: (order) => `第${['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四'][order - 1] ?? order}章`,
     echoLabel: (order) => `回响 · 其${_cn(order)}`,
-    echoTitle: '回响 · Echoes',
+    echoTitle: '回响',
     echoLede: '正典之外的侧写——不是续篇，不是错的，只是同一块盐加了另一层纹理。',
     anchorsLine: (count) => `${count} 句锚 · 中英字字对齐`,
     readLink: '开始阅读',

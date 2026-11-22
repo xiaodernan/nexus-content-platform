@@ -20,7 +20,7 @@ const COPY: Record<Locale, {
   badge: (m: string, cached: number, total: number) => string;
 }> = {
   zh: {
-    kicker: '潮汐签 · TIDE CAST',
+    kicker: '潮汐签',
     hint: '把整张观察坞的数交给真模型，再问它：「这片水面涨了还是退了？」——它会用潮的口吻说两句，不下判断、不给方案，只说看见什么。',
     button: '翻签 · 潮汐看见了什么',
     busy: '潮水在转……',

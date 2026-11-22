@@ -38,7 +38,7 @@ const COPY: Record<Locale, {
   echoLabel: (order: number) => string;
 }> = {
   zh: {
-    kicker: '§ECHO-THREAD · 线索',
+    kicker: '线索',
     title: '回响线索索引',
     lede: (objects, places, scanned) =>
       `二百零九篇回响不是二百零九个孤岛。这里把「同一件东西被多篇写到」的现象串成 ` +

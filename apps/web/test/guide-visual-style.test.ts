@@ -148,9 +148,11 @@ describe('§FE-Guide /guide 使用指南', () => {
     }
   });
 
+  // 2026-11-22 重钉：页脚「世界全图 · The Atlas →」→「世界全图 →」；metadata 去掉并列英文。
+  // 中文模式不再中英夹杂；正文仍在 lib/guideCopy（未动）。
   it('SHA256 钉死（瘦壳 · v788，正文已抽进 lib/guideCopy）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '1b907a3861762e238402ce0753adeaf5a52e416ebb9384474e697518005b54da',
+      '1e2caf9a2e3430fcb1cdb959f49133f998135dbb0345079af1aee586103c6219',
     );
   });
 });

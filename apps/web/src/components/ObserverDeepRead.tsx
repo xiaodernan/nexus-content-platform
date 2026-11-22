@@ -25,7 +25,7 @@ interface DigestOk {
 
 const COPY = {
   zh: {
-    kicker: 'AI 深读 · gpt-6.2-sol',
+    kicker: 'AI 深读',
     idle: '按实测聚合出「形势 · 展望（7 天推断）· 下一步」——GPT 写，数字保真（缺数字会原样拒绝展示）',
     generate: '生成 AI 深读',
     generating: '模型正在读这一串真实数字…',

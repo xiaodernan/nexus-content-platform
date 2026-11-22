@@ -42,7 +42,7 @@ const COPY: Record<Locale, {
   backHome: string;
 }> = {
   zh: {
-    kicker: '观察哨 · INSIGHT',
+    kicker: '观察哨',
     title: '管理员洞察台',
     lede: '这里摆的是全站用户的统计账实况：近 30 天日序列、线性外推、互动信号，以及一套按真实数字判定的行动建议。口令是公共口令（123）——所以这里没有任何个人信息。',
     lockedNote: '这道门挡路过的手，不挡蓄意的人；进来之后你只会看到聚合数据。',

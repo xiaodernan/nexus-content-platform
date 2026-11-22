@@ -20,7 +20,7 @@ type WhisperFileEntry = {
 
 const COPY = {
   zh: {
-    kicker: '§BIBLE-WHISPER · 答问者',
+    kicker: '答问者',
     title: '答问者 · 问点书里的事',
     lede: '挑一卷正典、问一句话。典籍里有写的就照它写；没写的就直说"典籍里没写"——AI 不替史官补刀。问完清空，没有什么对话记忆。',
     fileLabel: '选一卷正典',

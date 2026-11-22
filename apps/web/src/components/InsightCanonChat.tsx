@@ -22,7 +22,7 @@ const COPY: Record<Locale, {
   tapAgain: string;
 }> = {
   zh: {
-    kicker: '正典深问 · CANON DEEP-ASK',
+    kicker: '正典深问',
     hint: '整部《低语诸王》世界大典作为字节级稳定的系统前缀随每次提问发送（≈15 万 tokens · 13 章 + 162 回响 + 4 annex，多轮多人共享同一份 KV 缓存，不丢不换；16 路并发实测 16/16 全额命中）。模型只认典籍，典籍里没有的就直说，不编。',
     placeholder: '问一个典籍里的问题：比如「《收件人》里谁签收了那张单？」',
     button: '问典籍',

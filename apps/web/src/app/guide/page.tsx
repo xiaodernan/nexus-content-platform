@@ -6,8 +6,8 @@ import { GUIDE_COPY } from '@/lib/guideCopy';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: '使用指南 · User Guide — NEXUS',
-  description: 'NEXUS 平台的中文·English 双语说明书：5 分钟上手、功能地图、游戏玩法、常见问答。',
+  title: '使用指南 — NEXUS',
+  description: 'NEXUS 平台的中英双语说明书：5 分钟上手、功能地图、游戏玩法、常见问答。',
 };
 
 /**
@@ -40,7 +40,7 @@ export default async function GuidePage() {
       ))}
       <footer className="gd-foot">
         <Link className="am-linkImplicit" href="/about-nexus">← {locale === 'zh' ? '关于 NEXUS' : 'About NEXUS'}</Link>
-        <Link className="am-linkImplicit" href="/map">{locale === 'zh' ? '世界全图 · The Atlas →' : 'World atlas →'}</Link>
+        <Link className="am-linkImplicit" href="/map">{locale === 'zh' ? '世界全图 →' : 'World atlas →'}</Link>
         <Link className="am-linkImplicit" href="/discover">{locale === 'zh' ? '去广场 →' : 'Go to /discover →'}</Link>
       </footer>
     </main>

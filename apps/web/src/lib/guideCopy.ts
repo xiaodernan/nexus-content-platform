@@ -4,7 +4,7 @@ import type { Locale } from '@/lib/i18n';
 const COPY: Record<Locale, { kicker: string; title: string; lede: string; sections: { heading: string; body: string[] }[] }> = {
   zh: {
     kicker: '用户指南',
-    title: '三分钟看懂 NEXUS · 十五分钟玩起来',
+    title: '三分钟看懂 NEXUS——十五分钟玩起来',
     lede: '这不是一份帮助文档，是一册工具说明书——告诉你这里的每一项能力是什么、怎么用。中英都可，随你喜欢。',
     sections: [
       {

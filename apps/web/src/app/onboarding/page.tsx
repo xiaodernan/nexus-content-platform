@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const COPY: Record<Locale, { kicker: string; title: string; lede: string; footer: string; guideHint: string }> = {
   zh: {
-    kicker: '上手漫游 · ONBOARDING',
+    kicker: '上手漫游',
     title: '60 秒走完「从一个词到一个作品」',
     lede: '这不是考试。每步做给你看，每步都带你直达那个页面——做完，就知道这块土地到底怎么走。随时可以离开、随时可以回来；进度存在本地浏览器里。',
     footer: '任何一步没做完、想重来：点左下角「重来」。整个过程不产生任何不可撤销的操作。',

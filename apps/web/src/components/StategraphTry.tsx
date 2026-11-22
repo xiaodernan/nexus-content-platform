@@ -47,7 +47,7 @@ interface TryFailure {
 
 const COPY = {
   zh: {
-    kicker: '公开试跑 · live probe',
+    kicker: '公开试跑',
     button: '跑一遍真图',
     running: '图在跑……（validate → check_provider → build_prefix → call_llm → cache_read → parse_and_release → assemble）',
     hint: '每 IP 6 次 / 10 分钟；载荷固定为 critique + dryRun + fast，不带你的任何输入。',
