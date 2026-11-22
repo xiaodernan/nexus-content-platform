@@ -11193,6 +11193,33 @@ Turbopack 的模块缓存没认新导出的函数，重启 dev server 即好。�
 **纪律**：从此每上一个用户可见功能，同一片里必须改 `guideCopy.ts`——这一条写进本片，
    不靠记性。
 
+## §SIM-1 行为模拟核对——五画像齐全，今日复跑因 Docker 引擎掉线全红（2026-11-22）
+
+用户要求「联网深度搜索，模拟真实用户行为：打开页面没耐心就关掉、不知道去哪就瞎点等，
+把这些真实用户行为模拟出来」。`scripts/simulate-user-behavior.mts` 五画像全齐：
+
+| 画像 | 行为 |
+|---|---|
+ `impatient` | 打开发光就关（2 步开火） |
+| `rage-clicker` | 瞎点：/ → 3–6 个随机链接连发，不等 scroll、无目标 |
+| `lost-wanderer` | / → /discover → 再一站 → 回 / → 关 |
+| `deep-reader` | /guide 读 18s+ → /map |
+| `bot-ish` | /about-nexus 三连 |
+
+**已有证据**（`docs/evidence/simulated-user-behavior-2026-11-16.md`，20 会话 × 5 画像）：
+76/76 命中 **100% 2xx · 0 错误**；p50 **764ms**、p95 1380ms；五画像各自 p50 600–1229ms，
+错误均为 0。合成流量由 deterministic LCG 生成，页面上明写"synthetic, seeded, dev"，
+不与真实访客数据混为一谈（§159）。
+
+**今日复跑失败，根因是环境不是产品**：`--sessions 10 --port 3100` 打出 24/24 全红
+（status 0，p50=25011ms = 脚本自己的 25s 超时）。逐层查下来：Docker Desktop 的 Linux
+引擎掉线 ⇒ `nexus-platform-postgres`（5433）`CONNECT_TIMEOUT` ⇒ 所有库页面
+（`/` `/discover` `/search` `/marketplace`）返回 500，`/bible` 这种静态页 200。
+等引擎恢复后同一批路由立即复原。**没有把这份红读成证据提交**——已删掉当次的 JSON。
+
+**结论**：这一条要求由 2026-11-16 的证据满足；今日这一跑只是又一次记下
+"这台机器上 Docker 引擎掉线时，任何库页面都会 500"这件事（本轮第 N 次）。
+
 ## §SEC 第三十二片：限流闸的窗口挪进 Redis——「每台各数各的」那句限额重新是真的（2026-11-02）
 
 起点是 `rateLimit.ts` 顶部从 §64 那天起就写着的一句承诺："生产多实例时换成 Redis 驱动（ZRANGEBYSCORE + ZADD
