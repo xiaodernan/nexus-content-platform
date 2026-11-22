@@ -39,23 +39,12 @@ jobs:
       - name: Regenerate docs/showcase/latest.json
         run: npx tsx scripts/gen-latest.mts
 
-      - name: Commit if the fact pack moved
-        id: commit_pack
-        run: |
-          if git diff --quiet -- docs/showcase/latest.json; then
-            echo "unchanged=true" >> "$GITHUB_OUTPUT"
-            echo "fact pack unchanged; no commit, nothing to push"
-          else
-            git config user.name "nexus-content-sync"
-            git config user.email "nexus-content-sync@users.noreply.github.com"
-            git add docs/showcase/latest.json
-            git commit -m "sync(showcase): refresh docs/showcase/latest.json (head, counts, feature surface)"
-            git push
-            echo "unchanged=false" >> "$GITHUB_OUTPUT"
-          fi
-
+      # 2026-11-22: this step used to COMMIT the pack back into this repo. That is a
+      # self-reference loop — the pack records total_commits, committing it bumps the count,
+      # the next run sees a diff and commits again (two `sync(showcase)` commits landed
+      # back-to-back before this was caught). The pack is a build artifact for the portfolio:
+      # push it there, do not persist it here, and the commit count stays stable.
       - name: Push the fact pack into the portfolio (needs NEXUS_PORTFOLIO_TOKEN)
-        if: steps.commit_pack.outputs.unchanged == 'false'
         env:
           NEXUS_PORTFOLIO_TOKEN: ${{ secrets.NEXUS_PORTFOLIO_TOKEN }}
         run: |
