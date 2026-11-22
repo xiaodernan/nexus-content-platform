@@ -5,10 +5,18 @@ import { SevenWells } from '@/components/SevenWells';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: '七口井 · The Seven Wells — 低语诸王',
-  description: 'Salt sea’s edge · Seven wells. Six are only looking. The seventh looks back if you say the name. / 盐海边沿的七口井，六口只是看；第七口叫了名字它才肯看回来。',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '七口井 · 低语诸王',
+        description: '盐海边沿的七口井，六口只是看；第七口叫了名字它才肯看回来。',
+      }
+    : {
+        title: 'The Seven Wells · The Whispers’ Kings',
+        description: 'At the salt sea’s edge: seven wells. Six are only looking. The seventh looks back if you say the name.',
+      };
+}
 
 const COPY: Record<Locale, { crumb: string; back: string }> = {
   zh: { crumb: '世界大典 · 七口井', back: '← 典籍室' },

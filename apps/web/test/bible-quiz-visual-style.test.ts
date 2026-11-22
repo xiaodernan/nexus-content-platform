@@ -122,7 +122,8 @@ describe('§BIBLE-2 /bible/quiz 典籍室「潮汐挑战」', () => {
 
   it('SHA256 钉死（EOL 归一 + className→@）：shell / 组件', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '612a074adcfa22378f36197e23cebac0fbc08f1d3a99e5b96b6f862e4ed6eb92',
+      // 2026-11-22：metadata 跟随语言；顺带把「five canonical chapters」改成真实的十四章。
+      'd0f2ebd59dd059a1b021af4121efcd034b9f47007a33c269cde31195cfe4e88b',
     );
     expect(createHash('sha256').update(redactClasses(component)).digest('hex')).toBe(
       '5a6e936fbcd2623b6faed23ca6ae301ce77127a872593eed65252a3329c26a09',

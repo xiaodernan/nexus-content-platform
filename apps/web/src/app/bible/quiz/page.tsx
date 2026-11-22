@@ -5,10 +5,18 @@ import { BibleQuiz } from '@/components/BibleQuiz';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: '潮汐挑战 · The Tidal Trial — 低语诸王',
-  description: '世界大典正典问答 · Fourteen questions on the five canonical chapters of The Whispers’ Kings.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '潮汐挑战 · 低语诸王',
+        description: '《低语诸王》世界大典正典问答：十四章正典里的十四道题。',
+      }
+    : {
+        title: 'The Tidal Trial · The Whispers’ Kings',
+        description: 'Fourteen questions drawn from the fourteen canonical chapters of The Whispers’ Kings.',
+      };
+}
 
 const COPY: Record<Locale, { crumb: string; back: string }> = {
   zh: { crumb: '世界大典 · 潮汐挑战', back: '← 典籍室' },

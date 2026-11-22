@@ -5,10 +5,19 @@ import { BibleSearch } from '@/components/BibleSearch';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: '正典检索 · The Canon Search — 低语诸王',
-  description: '世界大典本地检索：在正典全文里按关键词直达原文（《潮汐教团》四章 + 四回响）。The local canon search — keyword hits in the full text of the World Bible (four chapters + four echoes).',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '正典检索 · 低语诸王',
+        // 旧文案停在「四章 + 四回响」；真实正典已是十四章 + 二百一十八回响。
+        description: '世界大典本地检索：在正典全文里按关键词直达原文（十四章 + 二百一十八回响）。',
+      }
+    : {
+        title: 'The Canon Search · The Whispers’ Kings',
+        description: 'The local canon search — keyword hits in the full text of the World Bible (fourteen chapters + two hundred eighteen echoes).',
+      };
+}
 
 const COPY: Record<Locale, { crumb: string; back: string }> = {
   zh: { crumb: '世界大典 · 正典检索', back: '← 典籍室' },
