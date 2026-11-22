@@ -11172,6 +11172,27 @@ Turbopack 的模块缓存没认新导出的函数，重启 dev server 即好。�
 **仍欠**：本机实测走的是维基百科直连（这台机器可达，无需代理）；换 Bing/Google 需要 key，
   接口已留好，没有 key 不接。站外命中不过机检词表——它是外部内容，不参与本站发布链路。
 
+## §EXT-SEARCH 站外检索补进说明书——新功能不写进手册等于没上线（2026-11-22 追记）
+
+用户要求「开发一本"简明说明书"小册子，嵌入到项目里……里面简明描述用户如何充分体验、
+使用项目的所有完整功能」。上一片上了站外检索，但 `/guide` 里一个字都没提——
+功能上线了，手册没跟上，用户照旧只会用旧的那一半。
+
+补了四处（中英各两句，逐句对应）：
+
+1. ③ 功能地图里 `/search` 那一格：从"全站搜索"改成
+   "全站搜索（站内九类 + 站外「现实世界」维基百科那一块，两边分开排）"；
+2. ⑫ 问典那一段末尾：加一句"想知道现实世界里这个词指什么？/search 页面下方有
+   「现实世界 · 站外资料」那一块，来自维基百科，和站内结果分开排、不混在一起"；
+3. 英文侧同两句（`outside-the-platform "real world" lane from Wikipedia, ranked separately`）。
+
+**判据**：`guide-visual-style` 8 passed（token 纪律 + 双语段数对齐没被改坏）；
+`external-search` 13 passed、`echo-threads` 9 passed、`echo-thread-neighbours` 4 passed
+（四个相关文件一起跑，34 passed）；eslint / tsc web 绿。
+
+**纪律**：从此每上一个用户可见功能，同一片里必须改 `guideCopy.ts`——这一条写进本片，
+   不靠记性。
+
 ## §SEC 第三十二片：限流闸的窗口挪进 Redis——「每台各数各的」那句限额重新是真的（2026-11-02）
 
 起点是 `rateLimit.ts` 顶部从 §64 那天起就写着的一句承诺："生产多实例时换成 Redis 驱动（ZRANGEBYSCORE + ZADD

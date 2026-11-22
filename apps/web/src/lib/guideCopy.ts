@@ -43,7 +43,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
       {
         heading: '③ 功能地图（点进去就是那个页面）',
         body: [
-          '/discover 广场（热门/最新/ trending / 我关注的；为你推荐：AI 照你自己的实测阅读 myOpens 排；馆长批注：trending 榜前三由 AI 照三条真实指标（浏览/赞/评/转/热度分）各写一句为什么值得打开，每条必含数字）· /marketplace 组件/模板/资产市场 · /blocks 积木库 · /search 全站搜索',
+          '/discover 广场（热门/最新/ trending / 我关注的；为你推荐：AI 照你自己的实测阅读 myOpens 排；馆长批注：trending 榜前三由 AI 照三条真实指标（浏览/赞/评/转/热度分）各写一句为什么值得打开，每条必含数字）· /marketplace 组件/模板/资产市场 · /blocks 积木库 · /search 全站搜索（站内九类 + 站外「现实世界」维基百科那一块，两边分开排）',
           '/studio/<project> 项目主场：画布/图层/设计系统/3D · /world/<id> 走进这个世界（3D 步行）· /world/<id>/digest 世界速览 · /world/<id>/integrity 世界体检 · /world/<id>/tide 世界潮汐 · /world/<id>/almanac 世界年鉴 · /world/<id>/constellation 人物关系星图 · /world/<id>/codex 设定集（纸面投影）· /world/<id>/chronicle 编年 · /world/<id>/ephemeris 世界切片',
           'Studio 世界面板的「AI 续写编年」会真打一次模型，只在你已经写过的纪元下面补一条故事（自造的纪元名会被丢掉，不替你发明历史分期）；新条目带纪元标签，/world/<id>/chronicle 编年页立刻能看到。面板底部的「AI 补全空节」可一次把最多 3 个还没写正文的类别补上（已有内容的不动，再点继续；补写时会检索你已有的条目作证据，让新细节长在旧细节上）。想随手看看这片土地还会长出什么，点「掷命运骰」——它从你已写的条目里重组成事件卡，不调模型也不写库；看中哪张还可以点「把这张卡写进世界」，它以故事条目落库并标明 seed 与来源，不冒充模型新写的史实。',
           '/bible 典籍室：正典精读 → 《潮汐教团》十三章 + 二百零七回响；/bible/search 直达（正典本地检索）· /bible/quiz 潮汐挑战（正典问答）· /bible/well 七口井（典籍室第二个玩法）· /bible/threads 回响线索索引（哪几篇在写同一件东西）',
@@ -126,7 +126,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         heading: '⑪ 典籍室（/bible）怎么玩',
         body: [
           '/bible 正典精读：《潮汐教团》十三章 + 二百零七回响——每一章点开就能读，锚句在中英之间字对齐（zh 原字节 / en 对照，不混写）。想知道哪几篇回响在写同一件东西？典籍室页脚进「回响线索索引」：潮印、盐账、夜钥匙这些有名字的东西，各自由哪几篇写成、每篇的锚句原文都列出来。',
-          '/bible/search 直达：在正典里按关键词做本地检索，直接读出命中的那一段（不出 AI、不出库外来源，慢一步但是真检索）。',
+          '/bible/search 直达：在正典里按关键词做本地检索，直接读出命中的那一段（不出 AI、不出库外来源，慢一步但是真检索）。想知道现实世界里这个词指什么？/search 页面下方有「现实世界 · 站外资料」那一块，来自维基百科，和站内结果分开排、不混在一起。',
           '/bible/quiz 潮汐挑战：以正典出题——答错回哪一章重新对，点亮的路标留在本机（无云存档，刷新照旧）。',
           '/bible/well 七口井：典籍室的第二个玩法——顺着七条线索找回失落的七口井；找对了就开出一段地方，找不到的照实说找不到。',
           '/bible/whisper 答问者：挑一卷正典再问一句——典籍里有写的就照它写的答，没写的就直说没写。零持久化、零记忆，刷新就是忘了。',
@@ -217,7 +217,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
           // 2026-11-22 i18n 审计（第二轮）：上一轮把"AI 照三条真实指标写批注"改成了
           // "the curator writes…"——主体被换掉了，zh 里写批注的是 AI 不是馆长；
           // 同时"三条真实指标（浏览/赞/评/转/热度分）"与"每条必含数字"都被漏掉。
-          '/discover feed (Hot / Latest / trending / Following; Recommended for You: AI ranks by your own measured reading activity — myOpens; Curator’s notes: for the top-3 trending entries, AI writes one sentence per entry explaining why it is worth opening, from three real metrics (views / likes / comments / remixes / heat score), and every one of those sentences must contain a number) · /marketplace component/template/asset marketplace · /blocks library · /search global search',
+          '/discover feed (Hot / Latest / trending / Following; Recommended for You: AI ranks by your own measured reading activity — myOpens; Curator’s notes: for the top-3 trending entries, AI writes one sentence per entry explaining why it is worth opening, from three real metrics (views / likes / comments / remixes / heat score), and every one of those sentences must contain a number) · /marketplace component/template/asset marketplace · /blocks library · /search global search (nine in-platform groups plus an outside-the-platform "real world" lane from Wikipedia, ranked separately)',
           '/studio/<project> studio · /world/<id> walk this world (3D) · /world/<id>/digest world digest · /world/<id>/integrity world checkup · /world/<id>/tide world tide · /world/<id>/almanac world almanac · /world/<id>/constellation character graph · /world/<id>/codex paper tome · /world/<id>/chronicle timeline · /world/<id>/ephemeris 360-day page',
           '/bible hall of canon → The Tide Conclave: thirteen chapters + two hundred seven echoes; /bible/search direct hits (local canon retrieval) · /bible/quiz Tide Challenge (canon quiz) · /bible/well Seven Wells (the second game)',
           '/bible gains a third game: /bible/anchors Anchor Echo — the 1254 bilingual anchor sentences replayed verbatim; name the chapter or echo each line came from (streak and best kept locally)',
@@ -310,7 +310,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
         heading: '⑪ How the Hall of Canon works (/bible)',
         body: [
           '/bible — the canon proper: thirteen chapters of the Tide Conclave, plus two hundred seven echoes — every chapter opens to read; anchors align character-for-character between zh and en (zh source bytes / en counterpart, never mixed). Want to know which echoes write about the same named thing? Open "Echo threads" from the Hall of Canon footer: the tide-seal, the salt ledger, the night key — each with the echoes that carry it and their verbatim anchors.',
-          '/bible/search — type a keyword, fetch the exact canon passage (pure local retrieval; no AI generation, no outside sources).',
+          '/bible/search — type a keyword, fetch the exact canon passage (pure local retrieval; no AI generation, no outside sources). Want to know what the term means in the real world? The "real world · outside the platform" lane at the bottom of /search comes from Wikipedia and is ranked separately from in-platform results.',
           '/bible/quiz — the Tide Challenge: canon-aligned quizzes; wrong answers point back to the chapter to re-read; lit beacons stay on your machine (no cloud save; refresh keeps nothing).',
           '/bible/well — Seven Wells: the Hall’s second game — follow seven clues back to seven lost wells; found wells open the way; unfound wells honestly say they are not found.',
           '/bible/whisper — the Answerer: pick any chapter (or echo), ask one line; if the canon answers it answers in the chosen language; if not, it says so plainly. No persistence — refresh is silence.',
