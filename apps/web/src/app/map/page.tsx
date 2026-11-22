@@ -4,10 +4,18 @@ import { getLocale, type Locale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: '世界全图 — NEXUS',
-  description: 'NEXUS 宇宙的完整航行图：大典与玩法、世界之门、创作岛屿、管理观察哨、说明书——每一个真实存在的入口，都在这里。中英双语。',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '世界全图 — NEXUS',
+        description: 'NEXUS 宇宙的完整航行图：大典与玩法、世界之门、创作岛屿、管理观察哨、说明书——每一个真实存在的入口，都在这里。',
+      }
+    : {
+        title: 'World atlas — NEXUS',
+        description: 'The full navigational chart of the NEXUS universe: the canon and its games, world gates, authoring islands, the admin watch, and the handbook — every real entrance in one place.',
+      };
+}
 
 /**
  * 世界全图 / The Atlas —— 防止新用户在大陆上迷路的那一册图纸。
