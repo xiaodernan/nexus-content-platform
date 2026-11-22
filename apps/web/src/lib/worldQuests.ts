@@ -27,6 +27,7 @@ export const WORLD_QUEST_KINDS = [
   'isolated',
   'cut-vertex',
   'empty-palette',
+  'lonely-character',
 ] as const;
 
 export type WorldQuestKind = (typeof WORLD_QUEST_KINDS)[number];
@@ -81,6 +82,28 @@ export function fnv1a32(input: string): number {
 /** 委托日：固定 UTC+8（用户所在时区），跨机器同一天得到同一个键。 */
 export function questDayKey(now: Date = new Date()): string {
   return new Date(now.getTime() + 8 * 3600 * 1000).toISOString().slice(0, 10);
+}
+
+/**
+ * 星图上一条可画的线都没有的角色 id 集合。`/integrity` 与委托板共用这份口径：
+ * 出边为空、也没有任何人的出边解析到他/它（角色或世界条目）才算孤身；
+ * 指向不存在名字的关系不画线，那笔账归 unresolved。
+ */
+export function charactersWithNoDrawnLink(
+  characters: readonly Character[],
+  nodes: readonly WorldNode[],
+): Set<string> {
+  const resolvable = new Set<string>([...characters.map((char) => char.id), ...nodes.map((node) => node.id)]);
+  const drawn = new Set<string>();
+  for (const char of characters) {
+    for (const rel of char.profile.relationships ?? []) {
+      const target = typeof rel?.target === 'string' ? rel.target.trim() : '';
+      if (!target || !resolvable.has(target)) continue;
+      drawn.add(char.id);
+      drawn.add(target);
+    }
+  }
+  return new Set(characters.map((char) => char.id).filter((id) => !drawn.has(id)));
 }
 
 function samplesOf(entries: readonly { id: string; label: string }[]): QuestSample[] {
@@ -151,6 +174,10 @@ export function buildQuestBoard(input: QuestBoardInput): QuestBoard {
 
   const emptyPalette = characters.filter((char) => (char.profile.visualIdentity.palette ?? []).length === 0);
 
+  // 星图上一条线都没有的人：与 /integrity 用同一个 helper，两页不会互相矛盾。
+  const lonelyIds = charactersWithNoDrawnLink(characters, nodes);
+  const lonelyCharacters = characters.filter((char) => lonelyIds.has(char.id));
+
   const slots: QuestSlot[] = [
     slot('skeleton', nodes.length - authored.length, nodes.length > 0,
       nodes.filter((node) => node.body.trim().length === 0).map((node) => ({ id: node.id, label: node.title || node.id }))),
@@ -167,6 +194,8 @@ export function buildQuestBoard(input: QuestBoardInput): QuestBoard {
       network.cutVertices.map((vertex) => ({ id: vertex.id, label: titleOf.get(vertex.id) ?? vertex.id }))),
     slot('empty-palette', emptyPalette.length, characters.length > 0,
       emptyPalette.map((char) => ({ id: char.id, label: char.profile.name || char.id }))),
+    slot('lonely-character', lonelyCharacters.length, characters.length > 0,
+      lonelyCharacters.map((char) => ({ id: char.id, label: char.profile.name || char.id }))),
   ];
 
   const kindOrder = new Map(WORLD_QUEST_KINDS.map((kind, i) => [kind, i] as const));

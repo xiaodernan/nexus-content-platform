@@ -110,19 +110,20 @@ describe('§FE-WQ /world/<project>/quests 世界委托', () => {
     for (const token of usedTokens) expect(tokens, `tokens.css 没有声明 ${token}`).toContain(token);
   });
 
-  it('中英字典各含全部八类委托（不靠一侧漏译）', () => {
+  it('中英字典各含全部九类委托（不靠一侧漏译）', () => {
     for (const key of [
       'skeleton: {', 'thin: {', 'untagged: {', "'order-clash': {",
       'unresolved: {', 'isolated: {', "'cut-vertex': {", "'empty-palette': {",
+      "'lonely-character': {",
     ]) {
       const hits = code.split(key).length - 1;
       expect(hits, `委托字典缺类：${key}`).toBeGreaterThanOrEqual(2);
     }
   });
 
-  it('SHA256 钉死（本线字节）', () => {
+  it('SHA256 钉死（本线字节；2026-11-22 第九类「独行人物」新增中英两张卡）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '6f06ca6eb453997a1adbc9fb6d2f4af6a701b7e1c8f5c52ed5adbe66906c6985',
+      'c60ba88de13c73f109c678d345c6c391a92d203742b5b3db2697fdd3973e1e2e',
     );
   });
 });

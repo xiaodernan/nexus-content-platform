@@ -32,6 +32,7 @@ const TARGET: Record<WorldQuestKind, (projectId: string) => string> = {
   isolated: (id) => `/world/${id}/network`,
   'cut-vertex': (id) => `/world/${id}/network`,
   'empty-palette': (id) => `/studio/${id}`,
+  'lonely-character': (id) => `/studio/${id}`,
 };
 
 interface QuestCopy {
@@ -150,6 +151,12 @@ const COPY: Record<Locale, QuestCopyBlock> = {
         steps: ['打开 Studio 的人物面板。', '给这个人物填一个视觉标识色。', '回到星图，他的星心会用自己的颜色亮起来。'],
         action: '去 Studio →',
       },
+      'lonely-character': {
+        title: '给独行的人一条线',
+        line: (n: number) => `还有 ${n} 位人物在星图上没有任何一条线——还没有和任何人或世界条目连上。`,
+        steps: ['打开 Studio 的人物面板，点开这个人。', '在关系里写一个指向：另一个角色，或一个世界条目。', '回到星图，他会亮起第一条连线。'],
+        action: '去人物面板 →',
+      },
     },
   },
   en: {
@@ -229,6 +236,12 @@ const COPY: Record<Locale, QuestCopyBlock> = {
         line: (n: number) => `${n} ${n === 1 ? 'character has' : 'characters have'} no palette, so the map can only lend them the world’s colour.`,
         steps: ['Open the character panel in Studio.', 'Give the character a visual identity colour.', 'Back on the map, their heart lights in their own colour.'],
         action: 'Open Studio →',
+      },
+      'lonely-character': {
+        title: 'Draw the lone traveller a line',
+        line: (n: number) => `${n} ${n === 1 ? 'character has' : 'characters have'} no line at all on the map — not tied to any person or world entry yet.`,
+        steps: ['Open the character panel in Studio and pick this character.', 'Add one relationship pointing at another character or a world entry.', 'Back on the map, their first line lights up.'],
+        action: 'Open the character panel →',
       },
     },
   },

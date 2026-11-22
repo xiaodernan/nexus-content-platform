@@ -15460,3 +15460,16 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
       ConstellationPanel / discover / search。
 - [x] 验证：新门 3/3 + 受影响 11 文件 73/73 全绿；`tsc -p apps/web` EXIT=0；eslint 14 文件 EXIT=0。
       ADR 0309。诚实边界：本轮是文案与判据，未起浏览器；像素/截图未做。
+
+## §WORLD-QUEST-2 第九类委托「星图独行」：星图上一条线都没有的人（2026-11-22）
+
+- [x] `worldQuests.ts` 新增 `charactersWithNoDrawnLink(characters, nodes)`：只把**画得出来**的线
+      算作连线（目标须解析到角色或世界条目）；指向不存在名字的关系不画线，那笔账仍归 unresolved。
+- [x] 第九类 `lonely-character` 进 `WORLD_QUEST_KINDS`：有角色但星图无线才计数；无角色落
+      notStarted（不冒充完成），人人有连线落 closed（真的了结）。样例是真实人物名。
+- [x] `/quests` 新增 zh/en 两张卡（三步怎么做 + 直达 Studio 人物面板）；`/integrity` 新增
+      第九项「星图独行 / Lone on the map」卡，与委托板共用同一 helper，两页数字不会互相矛盾。
+- [x] 判据：`world-quests` 新增独行三种边界（互为连线的两人不算 / 指向幽灵的算 / 无角色不算完成）；
+      `quests-visual-style` 九类字典齐全；两处 SHA 重钉（quests 加卡、integrity 加卡）。
+- [x] 验证：5 文件 33/33 全绿；`tsc -p apps/web` EXIT=0；eslint 6 文件 EXIT=0。
+      诚实边界：本轮未起浏览器；像素/截图未做，几何与文案由静态判据 + 类型检查覆盖。

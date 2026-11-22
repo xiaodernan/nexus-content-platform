@@ -8,6 +8,7 @@ import { requireUser } from '@/server/domain/session';
 import { getLocale } from '@/lib/i18n';
 import { buildChronicle, UNLABELED_ERA } from '@/lib/chronicle';
 import { buildConstellation } from '@/lib/constellation';
+import { charactersWithNoDrawnLink } from '@/lib/worldQuests';
 import { type WorldNode } from '@nexus/world-model';
 
 export const dynamic = 'force-dynamic';
@@ -40,6 +41,7 @@ const COPY = {
     worldAnchors: '世界锚点',
     characters: '星图人物',
     emptyPalette: '缺色板',
+    lonelyCharacter: '星图独行',
     authoredSub: (kinds: number) => `${kinds} 类落过笔`,
     skeletonSub: '还没有一个字',
     thinSub: `< 120 字的落笔条目`,
@@ -50,6 +52,7 @@ const COPY = {
     anchorsSub: '关系锚定在 world 条目上',
     charactersSub: (withRel: number) => `${withRel} 位有关系`,
     emptyPaletteSub: 'visualIdentity.palette 为空（星心回退品牌色）',
+    lonelyCharacterSub: '星图上没有任何一条连线的人物',
     goCodex: '去设定集 →',
     goStudio: '去 Studio →',
     goChronicle: '去编年 →',
@@ -77,6 +80,7 @@ const COPY = {
     worldAnchors: 'World anchors',
     characters: 'Cast on the map',
     emptyPalette: 'Empty palette',
+    lonelyCharacter: 'Lone on the map',
     authoredSub: (kinds: number) => `${kinds} kind(s) with writing`,
     skeletonSub: 'still a blank template',
     thinSub: 'authored nodes < 120 chars',
@@ -87,6 +91,7 @@ const COPY = {
     anchorsSub: 'anchored to world entries',
     charactersSub: (withRel: number) => `${withRel} with relationships`,
     emptyPaletteSub: 'visualIdentity.palette empty (brand fallback)',
+    lonelyCharacterSub: 'characters with no drawn line on the constellation',
     goCodex: 'Open codex →',
     goStudio: 'Open Studio →',
     goChronicle: 'Open chronicle →',
@@ -151,6 +156,8 @@ export default async function IntegrityPage({ params }: { params: Promise<{ proj
   const graph = buildConstellation(roster.items, worldNodeLinks);
   const withRel = graph.nodes.filter((node) => node.degree > 0).length;
   const emptyPalette = roster.items.filter((char) => (char.profile.visualIdentity.palette ?? []).length === 0).length;
+  // 与 /quests 的「独行人物」同一 helper：星图上没有一条可画的线。
+  const lonelyCharacters = charactersWithNoDrawnLink(roster.items, nodes).size;
 
   const cards = [
     { key: 'authored', value: authored.length, title: c.authored, sub: c.authoredSub(new Set(authored.map((n) => n.kind)).size), href: `/world/${projectId}/codex`, linkText: c.goCodex, hook: 'authored' },
@@ -163,6 +170,7 @@ export default async function IntegrityPage({ params }: { params: Promise<{ proj
     { key: 'world-anchors', value: graph.worldAnchors.length, title: c.worldAnchors, sub: c.anchorsSub, href: `/world/${projectId}/constellation`, linkText: c.goConstellation, hook: 'world-anchors' },
     { key: 'characters', value: roster.items.length, title: c.characters, sub: c.charactersSub(withRel), href: `/world/${projectId}/constellation`, linkText: c.goConstellation, hook: 'characters' },
     { key: 'empty-palette', value: emptyPalette, title: c.emptyPalette, sub: c.emptyPaletteSub, href: `/studio/${projectId}`, linkText: c.goStudio, hook: 'empty-palette' },
+    { key: 'lonely-character', value: lonelyCharacters, title: c.lonelyCharacter, sub: c.lonelyCharacterSub, href: `/studio/${projectId}`, linkText: c.goStudio, hook: 'lonely-character' },
   ];
 
   return (

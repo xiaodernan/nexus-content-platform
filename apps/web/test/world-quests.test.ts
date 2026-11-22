@@ -46,14 +46,14 @@ const character = (
 const at = (iso: string) => new Date(iso);
 
 describe('§WORLD-QUEST 世界委托（真值投影 + 日期轮转）', () => {
-  it('空世界：不报「8 项已完成」，全部落到 notStarted，emptyWorld 为真', () => {
+  it('空世界：不报「9 项已完成」，全部落到 notStarted，emptyWorld 为真', () => {
     const board = buildQuestBoard({ projectId: 'p1', document: world([]), characters: [], now: at('2026-11-22T10:00:00Z') });
     expect(board.emptyWorld).toBe(true);
     expect(board.open).toEqual([]);
     expect(board.focus).toEqual([]);
     expect(board.rest).toEqual([]);
     expect(board.closed).toEqual([]);
-    expect(board.notStarted.map((entry) => entry.kind)).toHaveLength(8);
+    expect(board.notStarted.map((entry) => entry.kind)).toHaveLength(9);
   });
 
   it('空页 / 薄节点 / 未标纪元：三个数字与 /integrity 同口径', () => {
@@ -151,6 +151,43 @@ describe('§WORLD-QUEST 世界委托（真值投影 + 日期轮转）', () => {
     });
     expect(noCast.notStarted.some((entry) => entry.kind === 'empty-palette')).toBe(true);
     expect(noCast.closed.some((entry) => entry.kind === 'empty-palette')).toBe(false);
+  });
+
+  it('独行人物：星图上一条可画的线都没有才算；连到世界条目或彼此相连都不算', () => {
+    const linked = buildQuestBoard({
+      projectId: 'p1',
+      document: world([node('a', 'lore', '灯塔', '正文')]),
+      characters: [
+        character('c1', '甲'),
+        character('c2', '乙', [], [{ target: 'c1', kind: '同伴', note: '' }]),
+        character('c3', '丙', [], [{ target: 'a', kind: '看守', note: '' }]),
+      ],
+      now: at('2026-11-22T10:00:00Z'),
+    });
+    expect(linked.open.some((entry) => entry.kind === 'lonely-character')).toBe(false);
+    expect(linked.closed.some((entry) => entry.kind === 'lonely-character')).toBe(true);
+
+    const stranded = buildQuestBoard({
+      projectId: 'p1',
+      document: world([node('a', 'lore', '灯塔', '正文')]),
+      characters: [
+        character('c1', '甲', [], [{ target: 'c2', kind: '同伴', note: '' }]),
+        character('c2', '乙'),
+        character('c3', '丙', [], [{ target: '幽灵', kind: '效忠', note: '' }]),
+      ],
+      now: at('2026-11-22T10:00:00Z'),
+    });
+    const lonely = stranded.open.find((entry) => entry.kind === 'lonely-character');
+    expect(lonely?.count).toBe(1);
+    expect(lonely?.samples[0]?.label).toBe('丙');
+
+    const noCast = buildQuestBoard({
+      projectId: 'p1',
+      document: world([node('a', 'lore', '灯塔', '正文')]),
+      characters: [],
+      now: at('2026-11-22T10:00:00Z'),
+    });
+    expect(noCast.notStarted.some((entry) => entry.kind === 'lonely-character')).toBe(true);
   });
 
   it('今日委托 = open 按日期轮转取前 3；focus + rest 恰好等于 open 的全集', () => {
