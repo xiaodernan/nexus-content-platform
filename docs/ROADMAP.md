@@ -15381,3 +15381,12 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
       图上「N 条目 · M 关系」/「九类：…」/ 台地 aria 全部进 COPY zh/en 两套；
       判据新增「COPY 之外零中文界面文案」（剥注释与 COPY 后正则扫描），全文 SHA 重钉
       `eb6d7936…`。Studio 页浏览器复读未做，由静态判据 + tsc 覆盖。
+
+## §STRESS-API 真 nexus-api + Postgres 端到端压测（2026-11-22）
+
+- [x] 上一轮欠的格子补上：Docker 恢复后，用 HEAD 重新 `mvn package` 的 fat jar 起真服务
+      （`-Xmx512m`，8091，Eureka 关），打 `GET /projects?limit=5` → JPA → Postgres。
+- [x] 三臂：32/100/200 workers × 10s = 15,929 / 26,990 / 26,672 请求，**全部 200、0 错误**；
+      吞吐拐点在 ~100 worker（2,690 rps），200 worker 只增延迟（p99 90→161ms），不增失败。
+- [x] 诚实边界写进 `docs/STRESS-TESTS.md`：`publications` 空表（真查询、空结果集）、
+      localhost 同机、单 JVM 512MB、Hikari 默认池、不在网关限流后、LLM 车道未压（供应商已关）。

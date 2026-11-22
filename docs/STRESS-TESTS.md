@@ -90,3 +90,42 @@ stub 通过 Eureka REST 以 `NEXUS-API` 身份注册（`durationInSecs=600`）�
 - A 臂所有请求共用一个限流 key（127.0.0.1），正是单桶争用的场景；多 key 分布未测。
 - 真实 `nexus-api` + Postgres 的端到端压测仍未做（本轮 Docker 不可用）；这一格继续欠着，不冒充已测。
 
+## nexus-api + Postgres 端到端压测（2026-11-22 · 真 JPA → 真库）
+
+> 上一节欠的那一格补上了：Docker Desktop 已恢复，`nexus-platform-postgres`（127.0.0.1:5433）
+> 可读——`projects` 60 行 / `worlds` 30 行。本轮用**当前 HEAD 重新构建**的 fat jar 起真服务，
+> 不再用 stub。
+
+**拓扑（真进程）**：
+
+- `mvn -q -f services/nexus-api/pom.xml -DskipTests package` → `nexus-api-0.1.0-SNAPSHOT.jar`
+- `java -Xmx512m -jar … --server.port=8091 --eureka.client.enabled=false`（JVM 512MB 上限）
+- 数据源默认值命中 `jdbc:postgresql://127.0.0.1:5433/nexus_dev`（`nexus_app`）
+- 目标：`GET /projects?limit=5` —— `PublishController` → JPA/Hibernate → Postgres，
+  冷探针 200 `{"publications":[],"count":0,"limit":5}`（39 bytes）
+- 工具：`node scripts/stress-gateway.mjs --url http://127.0.0.1:8091/projects?limit=5`
+
+| 臂 | 配置 | 请求 | 状态 | rps | p50 | p95 | p99 | max |
+|---|---|---|---:|---|---:|---:|---:|---:|
+| A | 32 workers · 10s | 15,929 | 200=15,929 | 1,592 | 15.16 ms | 45.55 ms | 84.62 ms | 401.6 ms |
+| B | 100 workers · 10s | 26,990 | 200=26,990 | 2,690 | 34.76 ms | 62.77 ms | 90.15 ms | 165.2 ms |
+| C | 200 workers · 10s | 26,672 | 200=26,672 | 2,650 | 71.19 ms | 129.55 ms | 161.1 ms | 292.2 ms |
+
+读法（只写数据能证明的）：
+
+- **69,591 个请求，0 个非 200、0 个错误**：真实 JVM + 真实 Postgres + 真实 JPA 查询在
+  本机 200 worker 并发下没有 5xx、没有连接拒绝、没有熔断。
+- **拐点在 ~100 worker**：B 臂吞吐 2,690 rps，C 臂再翻倍并发只换来 2,650 rps（持平），
+  但 p50 从 34.8 ms 涨到 71.2 ms、p99 从 90 ms 涨到 161 ms——多出来的并发在排队，
+  不是失败。A→B 的吞吐提升来自 Tomcat/连接池尚未饱和。
+- 三臂的最大值都在 400 ms 内，没有出现秒级长尾。
+
+诚实的边界：
+
+- `publications` 表在本机是空的（`projects`/`worlds` 有数据，但 nexus-api 读的是自己的表），
+  所以每请求是真查询但**结果集为空**；大结果集序列化成本未测。
+- 客户端与服务端同机、单 JVM、`-Xmx512m`、Hikari 默认池；这些是回归基线，不是容量承诺。
+- `/projects` 不在网关限流之后，测的是服务本身；边缘限流数字见上一节。
+- AI/LLM 相关车道本轮未压（用户已说明供应商 API 关闭），不冒充已测。
+
+
