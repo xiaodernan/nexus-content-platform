@@ -32,6 +32,35 @@ class TransientProviderFailed(ProviderFailed):
     """
 
 
+def describe_auth_failure(status: int, body: str, *, subject: str = "provider") -> str:
+    """把网关的 401/403 原话分成"要充值 / 没这条模型 / 地理封锁 / 密钥不对"。
+
+    为什么要分：这几件事的状态码都一样，处置却完全相反。只说"检查 NEXUS_OPENAI_API_KEY"，
+    运维就会去换一把同样没钱的 key。2026-11-22 实测 api.aizzz.xyz 对耗尽的账号回
+    `insufficient_user_quota`、对 wkapi 的失效令牌回 `Invalid token`、对大陆直连回
+    "本站不对您所在的国家及地区进行商业服务"——网关写得清清楚楚，是我们自己把它丢了。
+    只读网关自己的 code/message 文本，不猜状态码语义；读不出来就退回原话。
+    """
+    code = ""
+    message = ""
+    try:
+        error = (json.loads(body) or {}).get("error")
+        if isinstance(error, dict):
+            code = str(error.get("code") or "")
+            message = str(error.get("message") or "")
+    except ValueError:
+        pass
+    quote = (message or body[:200]).replace("\n", " ")
+    haystack = f"{code} {message}".lower()
+    if "quota" in haystack or "额度" in message or "insufficient balance" in haystack:
+        return f"{subject} 额度耗尽（{status} {code or 'quota'}）：{quote}——充值才治得好，换 key 没用"
+    if "model_not_found" in haystack or "no available channel" in haystack:
+        return f"网关没有这条模型的通道（{status} {code}）：{quote}"
+    if "国家" in message or "地区" in message:
+        return f"{subject} 不按本地域应答（{status}）：{quote}——需要走代理出站"
+    return f"{subject} 拒绝了凭据（{status} {code}），检查 NEXUS_OPENAI_API_KEY：{quote}"
+
+
 def _retry_after_seconds(value: str | None) -> float | None:
     """解析 Retry-After（秒）；无效/缺省返回 None，交给指数退避，不因坏头崩掉。"""
     if not value:
@@ -215,6 +244,12 @@ class OpenAICompatibleProvider:
             with self._client.stream("POST", "chat/completions", json=body) as response:
                 if response.status_code >= 400:
                     detail = response.read().decode("utf-8", errors="replace")[:400].replace("\n", " ")
+                    if response.status_code in (401, 403):
+                        # 与同步路径同一个说法：同一次 403 在两条路上给出两种诊断，
+                        # 探测走一条、真调用走另一条，读数就分叉了
+                        if self._breaker is not None:
+                            self._breaker.record_ignored()
+                        raise ProviderFailed(describe_auth_failure(response.status_code, detail))
                     if response.status_code in _RETRYABLE_STATUS:
                         if self._breaker is not None:
                             self._breaker.record_failure()
@@ -368,7 +403,7 @@ class OpenAICompatibleProvider:
         if response.status_code in (401, 403):
             if self._breaker is not None:
                 self._breaker.record_ignored()
-            raise ProviderFailed("provider 拒绝了凭据（401/403），检查 NEXUS_OPENAI_API_KEY")
+            raise ProviderFailed(describe_auth_failure(response.status_code, response.text))
         if response.status_code >= 400:
             detail = response.text[:400].replace("\n", " ")
             if response.status_code in _RETRYABLE_STATUS:
@@ -464,7 +499,7 @@ class OpenAICompatibleEmbeddingProvider:
         latency_ms = (time.perf_counter() - started) * 1000
 
         if response.status_code in (401, 403):
-            raise ProviderFailed("embedding provider 拒绝了凭据（401/403），检查 NEXUS_OPENAI_API_KEY")
+            raise ProviderFailed(describe_auth_failure(response.status_code, response.text, subject="embedding provider"))
         if response.status_code >= 400:
             detail = response.text[:400].replace("\n", " ")
             raise ProviderFailed(f"embedding provider 返回 {response.status_code}：{detail}")

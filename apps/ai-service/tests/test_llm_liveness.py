@@ -95,7 +95,9 @@ def test_probe_translates_geo_block_into_failed() -> None:
     prober = LlmProber(llm_provider(geo_blocked_handler))
     ok, reason = prober.probe()
     assert ok is False
-    assert "401/403" in reason
+    # 地理封锁不能混进"检查 NEXUS_OPENAI_API_KEY"：换 key 治不了它，走代理才治得了
+    assert "403" in reason
+    assert "代理" in reason
 
 
 def test_probe_reports_empty_assistant_content_as_failed() -> None:
@@ -163,7 +165,47 @@ def test_healthz_llmLive_exposes_failed_reason_after_geo_block() -> None:
     liveness.record(False, prober.probe()[1])
     body = _healthz(settings, Registry(settings, llm=llm_provider(geo_blocked_handler), llm_liveness=liveness))
     assert body["llmLive"]["state"] == "failed"
-    assert "401/403" in body["llmLive"]["reason"]
+    assert "403" in body["llmLive"]["reason"]
+    assert "代理" in body["llmLive"]["reason"]
+
+
+def quota_exhausted_handler(request: httpx.Request) -> httpx.Response:
+    # 2026-11-22 实测原话：key 关掉之后网关对 gpt-6.2-sol 的答复（当时 /healthz 仍报 llm=real）
+    return httpx.Response(
+        403,
+        json={
+            "error": {
+                "message": "用户额度不足, 剩余额度: $-0.001488",
+                "type": "new_api_error",
+                "code": "insufficient_user_quota",
+            }
+        },
+    )
+
+
+def test_a_dead_key_cannot_keep_the_llm_row_real() -> None:
+    """这一臂就是今天量到的现场：探测拿到额度耗尽，能力行必须跟着落。
+
+    修之前 providers 里 llm 那行由 `if self._llm` 推出来，永远写 real，而同一份 payload
+    的 llmLive.state 已经写 failed——web 读的是前者（env.ts 按 llm 那一行定 real/demo），
+    于是死链路照常被选中，用户拿到的是一句 5xx，而不是一句诚实的 DEMO MODE。
+    """
+    settings = Settings(openai_api_key="sk-test")
+    liveness = LlmLiveness()
+    registry = Registry(settings, llm=llm_provider(quota_exhausted_handler), llm_liveness=liveness)
+    ok, reason = registry.llm_prober().probe()
+    assert ok is False
+    assert "insufficient_user_quota" in reason
+    liveness.record(ok, reason)
+
+    body = _healthz(settings, registry)
+    llm = next(p for p in body["providers"] if p["kind"] == "llm")
+    assert llm["status"] == "unavailable"
+    assert "insufficient_user_quota" in llm["reason"]
+    assert llm["models"] == []
+    assert body["llmLive"]["state"] == "failed"
+    # 两份读数同源：能力行与探测结论一起落，汇总行不许还站在 real 那边
+    assert body["capability"] != "real"
 
 
 def test_healthz_contract_accepts_llmLive_key() -> None:

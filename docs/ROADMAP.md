@@ -15593,3 +15593,37 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
       fe-gates 155/1419 全绿；tsc 0；eslint 0。
 - [x] 浏览器复跑 `/bible/anchors`：客户端题组正常（第 1/8 句、四选项可点），无错误态；
       E219 阅读页 HTTP 200 且标题/上一回响链接真实渲染。
+
+## §DOT-ROAD 新玩法「点路」/bible/dot-road（2026-11-22）
+
+- [x] 把 E220《照着点走一遍》的十九步做成真的可以走一遍的页面：十九个点、六个站（第 2/5/8/11/14/17 步）、
+      第十九步面朝一格空白；六句锚句逐字来自 `generated.ts` 的 E220 原文（不手写、不占位）。
+- [x] 交互：点任意点跳步 / 向前 / 退回 / 重走；键盘 ← →、Home、End；`aria-current="step"`；
+      进度只写本机 `localStorage`（nexus.dotroad.v1），没有云端假计数。
+- [x] 双语：中文模式只出中文、英文模式只出英文（含站名、提示、结尾），不并排混写。
+- [x] 发现入口：/bible 玩法门新增「点路」链接（中英）、guideCopy 双语补第 5 个角落、sitemap 收录。
+- [x] 门：新 `dot-road-behavior`（19/6/空白三态、clamp、锚句逐字回读原文、结尾两句防漂移、组件不手写锚句）
+      + `dot-road-visual-style`（RSC/client 边界、dr- 类全定义、零 hex + token 实名、forced-colors / reduced-motion、SHA）。
+      样式段放在 §WORLD-NET 之前（那张门切片到文件尾），network 门未改一字。
+- [x] 验证：fe-gates 157 文件 / 1433 条全绿；tsc 0；eslint 0；verify:census 3270 类全有引用。
+
+## §AILIVE-4 收尾：llm 能力行改读探测结论 + 401/403 按网关原话分类（2026-11-22 / ADR-0310）
+
+- **先量**：`Registry(load_settings()).llm_prober().probe()` 打真网关，拿到
+  `403 insufficient_user_quota`（余额 `$-0.001488`），同一份 `providers()` 里 llm 行仍写
+  `status=real models=['gpt-6.2-sol']`，而 `llmLive.state` 已是 `failed`——一次 payload 两套话。
+  当天还先后撞到 `401 Invalid token`（wkapi 令牌失效）与 `403 本站不对您所在的国家及地区…`（地理封锁），
+  四种死法在界面上是同一句"检查 NEXUS_OPENAI_API_KEY"。
+- **改了什么**：① `text_status()`/`providers()` 的 llm 行只认 `LlmLiveness.state=="ok"`，
+  理由与状态成对（`text_reason()`），非 real 不列模型名——与 §AILIVE-3 embeddings 同一条判据；
+  ② 新增 `describe_auth_failure(status, body, subject=…)`，按网关自己的 code/message 分
+  额度耗尽 / 没有这条模型 / 地理封锁 / 其余四类，同步·流式·embeddings 三条出站路径共用；
+  ③ `capability()` 汇总跟着落，没有真链路时不许站 real。
+- **门**：新增 `test_auth_failure_classification.py`（7 条，含"同步与流式对同一次 403 说法必须逐字相等"）；
+  `test_llm_liveness.py` 补"死 key 不能保住 real"一臂；`test_health.py` 把
+  `test_healthz_reports_configured_provider_as_real` 改成"探过的才算"，另加
+  `test_healthz_does_not_call_an_unprobed_llm_real` 钉冷启动窗口。变异验证：把 `text_status`
+  退回 `if self._llm` → 2 臂红；把分类器退回塌成一句 → 9 臂红；两处均已还原并复跑全绿。
+- **诚实边界 / 未 push**：冷启动到首次探测落地之间 web 会走 mock（ADR-0310 记了这条代价，窗口有界：
+  `lifespan` 启动即探 + `/healthz` 遇过期补探）；`costUsd=0` 真计费读数未解；桩 provider 要 real
+  必须显式喂探测结论，已在两条旧臂上改出。全量 `pytest` 515 passed / 18 skipped，`turbo lint --force` 7/7。

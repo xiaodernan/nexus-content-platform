@@ -224,7 +224,25 @@ class Registry:
         }
 
     def text_status(self) -> str:
-        return "real" if self._llm else "unavailable"
+        """文本能力由探测结论决定，不由"配了 key"决定——与 `embedding_status()` 同一判据。
+
+        2026-11-22 实测的读数事故：key 被吊销（网关回 `insufficient_user_quota`）之后，
+        /healthz 还连着报 `llm=real`，而同一份 payload 里 `llmLive.state` 已经是 `failed`——
+        两个读数各说各话，web 照着 real 那一行把请求发给一条死链路。
+        `providers()` 与 `llmLive` 现在读同一个结论源，不再一个探、一个不探。
+        """
+        if not self._llm:
+            return "unavailable"
+        return "real" if self._llm_liveness.state == "ok" else "unavailable"
+
+    def text_reason(self) -> str:
+        if not self._llm:
+            return "缺少 NEXUS_OPENAI_API_KEY"
+        if self._llm_liveness.state == "unknown":
+            # 启动时确实起了后台探测，但第一次 /healthz 可能比它先落地：
+            # 这里说"没验证过"，而不是沿用"有 key 就算 real"——unknown 按不可用处理是 llm_liveness 定的口径
+            return "未验证：还没对真实 chat 补全探过一次"
+        return self._llm_liveness.reason
 
     def embedding_status(self) -> str:
         """
@@ -246,8 +264,17 @@ class Registry:
     def providers(self) -> list[ProviderInfo]:
         infos: list[ProviderInfo] = []
         if self._llm:
+            # 状态与理由成对来自探测结论；没验证过就不把模型名列出去——
+            # 列出来会被读成"这个模型在这条链路上"，而那正是刚才说谎的地方
+            status = self.text_status()
             infos.append(
-                ProviderInfo("llm", self._llm.name, "real", self._llm.models(), "")
+                ProviderInfo(
+                    "llm",
+                    self._llm.name,
+                    status,
+                    self._llm.models() if status == "real" else [],
+                    self.text_reason(),
+                )
             )
         else:
             infos.append(ProviderInfo("llm", "openai-compatible", "unavailable", [], "缺少 NEXUS_OPENAI_API_KEY"))

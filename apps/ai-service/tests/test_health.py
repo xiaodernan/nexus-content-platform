@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from ai_service.app import create_app
 from ai_service.config import Settings, load_settings
 from conftest import CONTRACTS, FakeProvider
+from ai_service.providers.llm_liveness import LlmLiveness
 from ai_service.providers.registry import Registry
 
 
@@ -72,12 +73,44 @@ def test_healthz_degrades_when_queue_counts_explode(monkeypatch: pytest.MonkeyPa
     assert "ConnectionError" in queue["note"]
 
 
-def test_healthz_reports_configured_provider_as_real() -> None:
+def test_healthz_reports_probed_ok_provider_as_real() -> None:
+    """llm 行是 real 的前提是"探测说网关答过"，不是"环境里有一串 key"（§AILIVE-4）。
+
+    这里的 llm 是 FakeProvider 桩，真探测永远不会落地（`llm_prober()` 只认
+    OpenAICompatibleProvider），所以把结论直接写进 liveness：
+    这一臂管的是"证据成立时那一行怎么渲染"，不管"证据从哪来"（那是 test_llm_liveness.py）。
+    """
     settings = Settings(openai_api_key="sk-test")
-    client = TestClient(create_app(settings, registry=Registry(settings, llm=FakeProvider("{}"))))
+    liveness = LlmLiveness()
+    liveness.record(True, "")
+    client = TestClient(
+        create_app(settings, registry=Registry(settings, llm=FakeProvider("{}"), llm_liveness=liveness))
+    )
     body = client.get("/healthz").json()
     _validate("health.schema.json", body)
     assert body["capability"] == "real"
+    llm = next(p for p in body["providers"] if p["kind"] == "llm")
+    assert llm["status"] == "real"
+    assert llm["reason"] == ""
+    assert llm["models"]  # 探过了才把模型名报出去
+
+
+def test_healthz_does_not_call_an_unprobed_llm_real() -> None:
+    """钉住 2026-11-22 的读数事故：key 在、链路已死，那一行却还写 real。
+
+    桩 provider 拿不到探测结论，所以它只能停在"未验证"——把未知写成可用，
+    就是同一份 payload 里 llm=real 与 llmLive.state=failed 各说各话的那种现场。
+    """
+    settings = Settings(openai_api_key="sk-test")
+    registry = Registry(settings, llm=FakeProvider("{}"))
+    body = TestClient(create_app(settings, registry=registry)).get("/healthz").json()
+    _validate("health.schema.json", body)
+    llm = next(p for p in body["providers"] if p["kind"] == "llm")
+    assert llm["status"] == "unavailable"
+    assert "未验证" in llm["reason"]
+    assert llm["models"] == []
+    assert registry.text_status() == "unavailable"
+    assert registry.capability() != "real"
 
 
 def test_healthz_marks_detected_but_unsupported_keys_unavailable() -> None:
