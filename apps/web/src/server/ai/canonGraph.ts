@@ -69,6 +69,137 @@ const SEGMENT_BOUNDARY = /\n(?=## Chapter |### Echo )/;
 const HEADER_LINE = /^(## Chapter \d{3}|### Echo \d{2})/;
 const ANCHOR_LINE = /^- \[(\d{1,3})\]/;
 
+/** digest 的节标题：章 `## Chapter NNN ·`、回响 `### Echo NN ·`。 */
+const CHAPTER_HEAD = /^## Chapter (\d{1,3})\b/;
+const ECHO_HEAD = /^### Echo (\d{1,3})\b/;
+
+/**
+ * 引用里可能出现的数字字符。**与 `CN_DIGITS` 必须是同一批**——曾经两处各写一份，
+ * 解析器认「两」而正则字符类不认，于是「第两千零一章」静默漏检。
+ */
+const CN_NUMERAL = '0-9一二三四五六七八九十百千零〇两';
+
+const CN_DIGITS: Record<string, number> = {
+  零: 0, 〇: 0, 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9,
+  // 「两」在正典里就是 2（"两盏号灯""两千零一年"）；只在带单位后缀的引用模式里出现，
+  // 所以不会把"两天"误读成章号。
+  两: 2,
+};
+
+/**
+ * 中文数字 → 阿拉伯数字。只处理正典里会用到的量级（十/百/千）。
+ * 「两」算 2：它在正典里就是数字（"两盏号灯""两千零一年"）。
+ */
+export function parseChineseNumber(raw: string): number | null {
+  const s = raw.replace(/\s/g, '');
+  if (!s) return null;
+  if (/^\d+$/.test(s)) return Number(s);
+  // **逐位写法优先**：「二〇八」「二一〇」是 208 / 210，不是"二+〇+八"相加（那会得 8 / 0）。
+  // 判据是串里有没有量级字（十/百/千）：没有就是逐位，有才按位值相加。
+  // 2026-11-22 实测：模型写「（回响二〇八、二〇九）」——按位值加会把 208 读成 8，
+  // 而「二一〇」会读成 0，于是正确的引用被误报成"发明了第 0 回"。
+  if (!/[十百千]/.test(s)) {
+    let out = '';
+    for (const ch of s) {
+      if (!(ch in CN_DIGITS)) return null;
+      out += String(CN_DIGITS[ch]!);
+    }
+    return out ? Number(out) : null;
+  }
+  let total = 0;
+  let section = 0;
+  let seenAny = false;
+  for (const ch of s) {
+    if (ch in CN_DIGITS) {
+      section = CN_DIGITS[ch]!;
+      seenAny = true;
+      continue;
+    }
+    if (ch === '十') { total += section === 0 ? 10 : section * 10; section = 0; seenAny = true; continue; }
+    if (ch === '百') { total += section === 0 ? 100 : section * 100; section = 0; seenAny = true; continue; }
+    if (ch === '千') { total += section === 0 ? 1000 : section * 1000; section = 0; seenAny = true; continue; }
+    return null; // 出现任何不认识的字符 ⇒ 放弃，不猜
+  }
+  if (!seenAny) return null;
+  return total + section;
+}
+
+/** digest 里真实存在的章号与回响号。机检"引用了不存在的章回"用——从 digest 现取，不硬编码。 */
+export function digestSectionNumbers(digest: string): { chapters: Set<number>; echoes: Set<number> } {
+  const chapters = new Set<number>();
+  const echoes = new Set<number>();
+  for (const line of digest.split('\n')) {
+    const t = line.trim();
+    const c = CHAPTER_HEAD.exec(t);
+    if (c) { chapters.add(Number(c[1])); continue; }
+    const e = ECHO_HEAD.exec(t);
+    if (e) echoes.add(Number(e[1]));
+  }
+  return { chapters, echoes };
+}
+
+/**
+ * 回答里出现的"章 / 回响"引用。三种写法都认：
+ *   - 中文：第 N 章 / 第 N 回响 / 第 N 回 / 第 N 篇 / 回响（其 N）/ 回响 N
+ *   - 英文：Chapter N / Echo N
+ *   - 缩写：E N / E-N / EN
+ * **不认"第 N 次"**（第四十一次大会是真事件，不是章号）——后缀写死，宁可漏不错。
+ */
+const CITATION_PATTERNS: { re: RegExp; kind: 'chapter' | 'echo' }[] = [
+  { re: new RegExp(`第\\s*([${CN_NUMERAL}]+)\\s*章`, 'gu'), kind: 'chapter' },
+  { re: new RegExp(`第\\s*([${CN_NUMERAL}]+)\\s*(?:回响|回|篇)`, 'gu'), kind: 'echo' },
+  // 「回响二十一章」这种：回响在前、序号与单位在后。**单位后缀是必需的**——
+  // 少了它，"回响三日"（Echo 03 的标题《退潮三日》）会被当成引用，误报。
+  { re: new RegExp(`回响\\s*([${CN_NUMERAL}]+)\\s*(?:章|回|篇)`, 'gu'), kind: 'echo' },
+  { re: new RegExp(`回响\\s*[（(]\\s*其\\s*([${CN_NUMERAL}]+)\\s*[）)]`, 'gu'), kind: 'echo' },
+  { re: /回响\s*([0-9]{1,3})\s*(?:[，。、）)]|$)/gu, kind: 'echo' },
+  { re: /\b(?:Chapter|chapter)\s*0*(\d{1,3})\b/gu, kind: 'chapter' },
+  { re: /\b(?:Echo|echo)\s*0*(\d{1,3})\b/gu, kind: 'echo' },
+  { re: /\bE\s*-?\s*(\d{1,3})\b/gu, kind: 'echo' },
+];
+
+/** 抽出一段回答里所有"章 / 回响"引用，附它写的那个数（解析不出就丢着，不猜）。 */
+export function extractSectionCitations(text: string): { kind: 'chapter' | 'echo'; n: number; raw: string }[] {
+  const out: { kind: 'chapter' | 'echo'; n: number; raw: string }[] = [];
+  for (const { re, kind } of CITATION_PATTERNS) {
+    for (const m of text.matchAll(re)) {
+      const n = parseChineseNumber(m[1]!);
+      if (n === null) continue;
+      out.push({ kind, n, raw: m[0].trim() });
+    }
+  }
+  return out;
+}
+
+/**
+ * digest 里**出现过**的「《…》」短语，外加所有节标题（中英）。
+ *
+ * 为什么两条都要：正典标题在 digest 里是 `### Echo 21 · 里巷子码头的七盏号灯 / …`——
+ * **不带书名号**。只收书名号短语会把正确引用《里巷子码头的七盏号灯》判成发明；
+ * 只收标题又会漏掉《收件人》《潮沙盘》这类在正文里被书名号引用的概念名。
+ */
+export function digestQuotedPhrases(digest: string): Set<string> {
+  const out = new Set<string>();
+  for (const m of digest.matchAll(/《([^》]{1,80})》/g)) out.add(m[1]!.trim());
+  for (const line of digest.split('\n')) {
+    const t = line.trim();
+    const head = /^(?:## Chapter|### Echo) \d+ · (.+)$/.exec(t);
+    if (!head) continue;
+    const body = head[1]!;
+    // 标题形如「中文名 / English Name · 纪元：…」；英文名可能含 " · " 之后的纪元行
+    const zh = body.split(' / ')[0]?.split(' · ')[0];
+    if (zh) out.add(zh.trim());
+    const afterSlash = body.split(' / ')[1];
+    if (afterSlash) out.add(afterSlash.split(' · ')[0]!.trim());
+  }
+  return out;
+}
+
+/** 回答里引用的书名号短语。 */
+export function extractQuotedTitles(text: string): string[] {
+  return [...text.matchAll(/《([^》]{1,80})》/g)].map((m) => m[1]!.trim());
+}
+
 export function splitDigestSegments(digest: string): string[] {
   const withHead = `\n${digest}`;
   return withHead
@@ -131,8 +262,20 @@ export function verifyCanonDraft(draft: string, digest: string): string[] {
     issues.push('empty-draft');
     return issues;
   }
-  if (/第六章|第七章|第四十二|第四十三|chapter\s*(6|7|42|43)\b|echo\s*0?(37|38)\b|E\s?-?\s?3[789]\b|第三十七回响/i.test(text)) {
-    issues.push('invented-chapter-or-echo');
+  // 章回引用逐个查表。旧实现是一张**硬编码的错号黑名单**（只认第四十二/四十三/第三十七那三个），
+  // 模型引"回响二十一章"或"第三百回"时它安静放行——2026-11-22 实测就是这样漏的
+  // （答对了内容，把编号写成"二十一章"）。现在从 digest 现取真实章号/回响号，逐条对。
+  const sections = digestSectionNumbers(digest);
+  for (const cite of extractSectionCitations(text)) {
+    const real = cite.kind === 'chapter' ? sections.chapters : sections.echoes;
+    if (!real.has(cite.n)) issues.push(`invented-${cite.kind}-${cite.n}`);
+  }
+  // 书名号引用的标题也查表。2026-11-22 实测：模型答"浅痕后来变成了半枚潮印"（内容对），
+  // 但写成"依据回响二十一章《值更院抄本院那本册子翻过第七十二页之后》"——编号 21 是真的，
+  // 标题却把 E209 的「潮候院」写成了「值更院」，整句书名号短语在 digest 里根本不存在。
+  const phrases = digestQuotedPhrases(digest);
+  for (const title of extractQuotedTitles(text)) {
+    if (!phrases.has(title)) issues.push('invented-title');
   }
   const anchors = digestAnchorNumbers(digest);
   for (const match of text.matchAll(/\[(\d{1,3})\]/g)) {
