@@ -61,17 +61,19 @@ describe('§A11Y-4 admin home', () => {
     expect(nav).toContain("export type AdminSection = (typeof LINKS)[number]['key']");
   });
 
-  it('十三张卡全在且唯一：href 与 slug 一一对齐，没有多出第十四张 phantom 入口', () => {
+  it('十四张卡全在且唯一：href 与 slug 一一对齐，没有多出第十五张 phantom 入口', () => {
     // 来源于 page.tsx 的 AREAS 常量；写下计数而不是"包含这些字串"，杜绝静默多加了一处
     const slugs = [...code.matchAll(/slug: '([a-z-]+)'/g)].map((m) => m[1]);
     expect(slugs).toEqual([
       'observe', 'users', 'moderation', 'marketplace', 'audit', 'realtime',
       'rate-limit', 'access', 'observability', 'gateway', 'discover-cache', 'behavior-sim', 'health',
+      'canon-review',
     ]);
     const hrefs = [...code.matchAll(/href: '(\/admin\/[a-z-]+)'/g)].map((m) => m[1]);
     expect(hrefs).toEqual([
       '/admin/observe', '/admin/users', '/admin/moderation', '/admin/marketplace', '/admin/audit', '/admin/realtime',
       '/admin/rate-limit', '/admin/access', '/admin/observability', '/admin/gateway', '/admin/discover-cache', '/admin/behavior-sim', '/admin/health',
+      '/admin/canon-review',
     ]);
     expect([...code.matchAll(/data-admin-home-card=/g)].length).toBeGreaterThanOrEqual(1);
   });

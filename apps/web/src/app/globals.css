@@ -6358,3 +6358,27 @@
   .dle-kicker, .dle-title, .dle-lede, .dle-leafTitle, .dle-line, .dle-ponder, .dle-ponderText, .dle-meta, .dle-leafTag { color: CanvasText; }
   .dle-button:focus-visible, .dle-dismiss:focus-visible { outline: 2px solid Highlight; }
 }
+
+/* §CANON-REVIEW 正典评审 /admin/canon-review（真模型对照既有锚句评审候选；只读，不改写、不落库） */
+.cr-panel { display: flex; flex-direction: column; gap: 0.9rem; background: var(--nexus-color-bg-2); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md, 0.75rem); padding: 1.25rem; }
+.cr-title { font-size: 1.1rem; margin: 0; }
+.cr-field { display: flex; flex-direction: column; gap: 0.4rem; min-width: 0; }
+.cr-label { font-size: 0.85rem; color: var(--nexus-color-fg-2); }
+.cr-select { font: inherit; font-size: 0.9rem; padding: 0.45rem 0.6rem; border-radius: var(--nexus-radius-sm, 0.5rem); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-1); max-width: 18rem; }
+.cr-textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85rem; line-height: 1.55; padding: 0.7rem 0.8rem; border-radius: var(--nexus-radius-sm, 0.5rem); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-3); color: var(--nexus-color-fg-1); resize: vertical; min-height: 12rem; }
+.cr-textarea::placeholder { color: var(--nexus-color-fg-2); opacity: 0.8; }
+.cr-select:focus-visible, .cr-textarea:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+.cr-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.cr-primaryBtn { font-size: 0.95rem; border-radius: var(--nexus-radius-md, 0.5rem); border: 1px solid var(--nexus-color-border-subtle); padding: 0.55rem 0.9rem; background: var(--nexus-color-brand); color: var(--nexus-color-accent-fg); font-weight: 600; cursor: pointer; }
+.cr-primaryBtn:hover { filter: brightness(1.1); }
+.cr-primaryBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.cr-primaryBtn:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+.cr-ghostBtn { font-size: 0.95rem; border-radius: var(--nexus-radius-md, 0.5rem); border: 1px solid var(--nexus-color-border-subtle); padding: 0.55rem 0.9rem; background: transparent; color: var(--nexus-color-fg-1); cursor: pointer; }
+.cr-ghostBtn:hover { background: var(--nexus-color-bg-3); }
+.cr-ghostBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.cr-ghostBtn:focus-visible { outline: 2px solid var(--nexus-color-accent-2-ink); outline-offset: 2px; }
+.cr-error { color: var(--nexus-color-danger-ink); margin: 0; overflow-wrap: anywhere; }
+.cr-muted { color: var(--nexus-color-fg-2); margin: 0; line-height: 1.6; }
+.cr-result { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.82rem; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--nexus-color-bg-3); border-radius: var(--nexus-radius-sm, 0.5rem); padding: 0.9rem 1rem; margin: 0; max-height: 34rem; overflow: auto; }
+@media (forced-colors: active) { .cr-primaryBtn, .cr-ghostBtn, .cr-select, .cr-textarea, .cr-result { border: 1px solid CanvasText; } }
+@media (prefers-reduced-motion: reduce) { .cr-primaryBtn { transition: none; } }
