@@ -34,6 +34,7 @@ import { chatWithCharacter } from '@/server/ai/client';
 import { fillableKinds, formatWorldFillError, parseChronicleReply, parseEchoReply, parseLinkReply, parseWorldFillReply, retrieveWorldContext } from '@/lib/worldFill';
 import { rollFate, type FateCard } from '@/lib/worldFate';
 import { worldFileName, worldToMarkdown } from '@/lib/worldExport';
+import { formatWorldStats, worldStats } from '@/lib/worldStats';
 import { saveBlob } from '@/lib/download';
 import { useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';
@@ -674,6 +675,7 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
           </button>
           {aiGenError ? <p className="wd-danger11" data-world-ai-error>{aiGenError}</p> : null}
         </div>
+        <p className="wd-body11Mt2" data-world-stats>{formatWorldStats(worldStats(world), locale)}</p>
         {snapshot.error ? (
           <p className="wd-dangerMt2" data-world-error>
             {snapshot.error}
