@@ -133,7 +133,7 @@ export const gameBuildSuite: EvalSuite = {
       const dup: GameDocument = { ...createGame('重复id') };
       const d0 = dup.entities[0]!;
       dup.entities = [d0, { ...d0, name: '副本' }];
-      rec.structural('validateGame：重复 id 报 duplicate-id', validateGame(dup).some((i) => i.code === 'duplicate-id'), validateGame(dup).map((i) => i.code).join(','));
+      rec.structural('validateGame：重复 id 报 duplicate-entity-id', validateGame(dup).some((i) => i.code === 'duplicate-entity-id'), validateGame(dup).map((i) => i.code).join(','));
 
       const selfRef: GameDocument = { ...createGame('自指') };
       const s0 = selfRef.entities[0]!;
