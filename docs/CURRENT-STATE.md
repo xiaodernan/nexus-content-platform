@@ -8072,11 +8072,27 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 
 用户新报两个 IO/主页缺陷，全部修完且都来自真实数据：
 
-- **头像「压缩变小 + 边缘删掉」**（`.scratch/showcase-site/site`）：
+- **头像「压缩变小 + 边缘删掉」**（证据：`.scratch/showcase-avatar-display.html` 探针 + 读数 `.scratch/showcase-avatar-display.json` · 源图字节快照 `.scratch/showcase-avatar-source/`；展示页本地克隆 `showcase-site/site`）：
   - `assets/profile.png` 源图仅 169×197 且肩头贴边——不是 CSS 裁的，是**源图本身就是贴边裁剪**。
   - 新产物 `assets/profile-portrait.png` **508×586**：HighQualityBicubic 3.0x + 白画布补边（每侧约 64px · 上下约 71px），人不再贴边。
   - CSS `.profile-frame img`：`aspect-ratio:1/1.15 + object-fit:cover + saturate(.82)` → `508/586 + contain + saturate(.92)`；不再黑边"删肩"。
   - JSON-LD `image` 与 `og` 引用同步到新文件；styles.css 版本戳 `?v=20261119a` → `b`。
+  - **补记（2026-11-22 · §192 证据链重整）**：这一段的指针原来指的是 `.scratch` 下那个本地克隆 `showcase-site/site`——那是**另一个仓库**
+    （`xiaodernan/xiaodernan.github.io`）的本地克隆，自带 `.git/`，git 拒绝把内嵌仓库的内容纳进本仓库（只会变成 gitlink），
+    所以「指过去」在 §192 那道门下永远修不好。修法不是把别人的克隆塞进版本库，而是**把证据搬回本仓库**：
+    源图按字节快照进 `.scratch/showcase-avatar-source/`（sha256 `1f7333e9…` = 上游 `6a74767` 的 blob `13178c78…`，
+    上游提交见 `MANIFEST.json`），并新建可当场复算的探针 `.scratch/showcase-avatar-display.html`。
+    **2026-11-22 实测读数**：源图 508×586 · 渲染盒 508.0×586.0 px · 宽高比偏差 **0.000%** · `object-fit: contain` ·
+    留白 左61/右49/上52/下59 px · 内容包围盒 398×475 · 中线 192 个非白像素 → **PASS**；
+    另在**真实展示页原件**（`file://` 加载克隆的 `index.html`）实测：`<img>` 命中 1/1 可见 · 源图 508×586 ·
+    渲染盒 540.58×623.58 px · `aspect-ratio: 508 / 586` · `object-fit: contain` · `object-position: 50% 12%` → **PASS**。
+    **顺手补上一段原文档没记的回归史**：这次修复对应上游 `3618ab7`（2026-11-19 15:43），
+    但 **78 分钟后的 `639510d`（17:06）把它改回 415×492 face-fills-frame**（`aspect-ratio: 415/492`，
+    「face fills frame」＝把边缘切掉再缩小，正是用户报的那两个症状），
+    再由 `6a74767`（20:43）改回 508×586 补边不裁切——源图 blob 与 `3618ab7` 完全一致（`13178c78…`）。
+    探针第 5 条判据就是**直接钉住这个尺寸**，回归一复发就红。
+    *本仓库的写法约定*：`.scratch/<路径>` = **证据**，必须 `git add -f` 入册、跟仓库一起走；
+    裸路径（如 `showcase-site/site`）= **本地克隆 / 工作区位置**，不随仓库走，也不该被当成证据。
 - **most-used-languages 全 NaN**（用户报障）：
   - 根因：`github-readme-stats.vercel.app/api/top-langs/` 外部服务对无外层权限的账号经常吐 NaN——**把外链整个拔掉**。
   - 换成纯静态内嵌 `.gh-figures` 双面板（左：16 公开仓 · 9 Stars · 144.36 MB 字节合计 · 14 原创/2 fork，口径 2026-11-19 · GitHub REST `languages_url` 逐仓求和；右：语言字节占比 bars，**TS 31.92 / Python 24.90 / JavaScript 19.44 / HTML 12.37 / Java 8.94 / CSS 1.52 / Shell 0.40 / PLpgSQL 0.29 / 其他 10 种 0.22**）。静态 HTML 无 JS 依赖，结构上不可能再渲染出 NaN。

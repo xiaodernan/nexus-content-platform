@@ -10,7 +10,9 @@
   - 新 asset `assets/profile-portrait.png` 是 508×586 = 放大 3 倍的原图，左右两侧给了宽容自色（pure white）边距——**没有任何边缘在原图里被裁掉**；
   - 渲染参数：`object-fit: contain`（全图完整呈现）+ `background:#fff`（兜底纯白）+ `image-rendering:auto`；`.profile-frame` 无 `aspect-ratio` 硬卡（丢掉了原先 `aspect-ratio:1/1.15` 的强制等比，保证裁切不再发生）；
   - `og:image` / `JSON-LD image` 同步跳到同一路径。
-- **验证**：`.scratch/profile-portrait-display.html` 与线上现在任何一版都是同一条轨迹：满画高度 586 px 完整显示、没有 1px 边框"白线线"残存。
+- **验证（2026-11-22 复测，探针已入册）**：`.scratch/profile-portrait-display.html` 是一份可当场复算的探针——它按线上 `.profile-frame` / `img` 的真实渲染参数画一遍（object-fit: contain、aspect-ratio 508/586、object-position center 12%、width:100%; height:auto），再量三件事并把像素画进 canvas 量左右白边。跑法：`node .scratch/profile-portrait-display.mjs`（读数落在 `.scratch/profile-portrait-display.json`）。
+  今天的真机读数：**渲染盒 508.0 × 586.0 px · 宽高比偏差 0.000% · object-fit contain · 显示宽 = 原宽 508 px（没有被缩小）· 左白边 61 px / 右白边 49 px · 照片内容宽 398 px、中线一行 192 个非白像素 → 总判定 PASS**。
+  结论：既没有被压扁，也没有被裁小；左右 12 px 的白边差是**源图自带的留白**，不是渲染裁切（当年那版正是用「加宽容白边」代替「裁掉边缘」）。
 - **公网路径**：`https://xiaodernan.github.io/assets/profile-portrait.png`（部署后 200，锐度已够）
 
 ## 问题 2 · 「most used languages 怎么里面的数值都是 nan 没有真实数字百分比啊」
