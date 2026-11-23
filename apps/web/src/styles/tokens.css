@@ -105,6 +105,7 @@
   --nexus-z-toolbar: 20;
   --nexus-z-overlay: 30;
   --nexus-z-toast: 40;
+  --nexus-z-tooltip: 100;
 
   /* 断点（仅供 JS 读取；CSS 媒体查询用同名常量约定） */
   --nexus-breakpoint-sm: 640px;

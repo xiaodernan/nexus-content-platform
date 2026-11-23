@@ -110,8 +110,8 @@ test('@smoke studio slice: select, edit a property, undo, autosave', async ({ pa
   await page.fill('[data-prop="typography.fontSize"]', '72');
   await expect(page.locator(`[data-node-id="${headlineId}"]`)).toHaveCSS('font-size', '72px');
 
-  const undo = page.getByTitle('撤销（Ctrl+Z）');
-  const redo = page.getByTitle('重做（Ctrl+Shift+Z）');
+  const undo = page.locator('[aria-keyshortcuts="Control+Z"]');
+  const redo = page.locator('[aria-keyshortcuts="Control+Shift+Z"]');
   await page.locator('[data-canvas-surface]').click({ position: { x: 6, y: 6 } });
   await undo.click();
   await page.click(`[data-node-id="${headlineId}"]`);
@@ -793,7 +793,7 @@ test('@smoke studio slice: AI command bar runs in DEMO MODE as one undoable tran
   await expect(diffList).toContainText('增');
 
   // 一次 AI 操作 = 一个事务：一次撤销回到 AI 动手之前
-  await page.getByTitle('撤销（Ctrl+Z）').click();
+  await page.locator('[aria-keyshortcuts="Control+Z"]').click();
   await expect
     .poll(() => page.evaluate(() => document.querySelectorAll('[data-node-id]').length))
     .toBe(before);
@@ -848,7 +848,7 @@ test('@smoke studio slice: code view is an editable projection of the same model
   await page.click(`[data-node-id="${headlineId}"]`);
   await expect(page.locator('[data-prop="typography.fontSize"]')).toHaveValue('40');
   // 一次应用 = 一个可撤销事务（§149）
-  await page.getByTitle('撤销（Ctrl+Z）').click();
+  await page.locator('[aria-keyshortcuts="Control+Z"]').click();
   await expect(page.locator('[data-prop="typography.fontSize"]')).toHaveValue('56');
 
   // 结构性改动不回写：如实报告，代码里保留用户写的那一段（§19/§159）
@@ -965,11 +965,11 @@ test('@smoke 上传图片：落画布、剥元数据回执、可撤销、预览�
   await node.screenshot({ path: 'screenshots/asset-on-canvas.png' });
 
   // 撤销：一次上传 = 一个事务，图片层与清单条目一起消失
-  await page.getByTitle('撤销（Ctrl+Z）').click();
+  await page.locator('[aria-keyshortcuts="Control+Z"]').click();
   await expect(node).not.toHaveCSS('background-image', /\/api\/assets\//, { timeout: 20_000 });
 
   // 重做后保存，走预览路由（另一条投影，同一份模型）
-  await page.getByTitle('重做（Ctrl+Shift+Z）').click();
+  await page.locator('[aria-keyshortcuts="Control+Shift+Z"]').click();
   await expect(page.locator('[data-save-state]')).toContainText('已保存', { timeout: 20_000 });
   await page.goto(`/preview/${projectId}`);
   await expect(page.locator(`[data-node-id="${targetId}"]`)).toHaveCSS('background-image', /\/api\/assets\/[^/]+\/file/, { timeout: 20_000 });
@@ -1018,13 +1018,13 @@ test('@smoke 资产库：上传后可见、删除跨画布生效、撤销恢复�
   await expect(page.locator('[data-assets-panel] [data-asset-notice]')).toContainText('不会回来');
 
   // 撤销：引用回来了，但文件已经不在存储里 —— 模型与存储的非对称要能被看见
-  await page.getByTitle('撤销（Ctrl+Z）').click();
+  await page.locator('[aria-keyshortcuts="Control+Z"]').click();
   await expect(page.locator(`[data-asset-card="${assetId}"]`)).toBeVisible();
   await expect(node).toHaveCSS('background-image', new RegExp(`/api/assets/${assetId}/file`), { timeout: 20_000 });
   const status = await page.request.get(`/api/assets/${assetId}/file`);
   expect(status.status()).toBe(404);
 
-  await page.getByTitle('重做（Ctrl+Shift+Z）').click();
+  await page.locator('[aria-keyshortcuts="Control+Shift+Z"]').click();
   await expect(node).not.toHaveCSS('background-image', /\/api\/assets\//, { timeout: 20_000 });
   await expect(page.locator('[data-save-state]')).toContainText('已保存', { timeout: 20_000 });
 });
@@ -1079,9 +1079,9 @@ test('@smoke 参考图 → Visual DNA：提取、展示、约束生成、可撤�
   await expect(backgroundValue()).resolves.toMatch(/#14b8a6/i);
 
   // 撤销两次：先撤生成，再撤提取 —— DNA 面板随之消失，不留半套约束
-  await page.getByTitle('撤销（Ctrl+Z）').click();
+  await page.locator('[aria-keyshortcuts="Control+Z"]').click();
   await expect(backgroundValue()).resolves.toBe(beforeColor);
-  await page.getByTitle('撤销（Ctrl+Z）').click();
+  await page.locator('[aria-keyshortcuts="Control+Z"]').click();
   await expect(page.locator('[data-visual-dna]')).toHaveCount(0);
 
   await expect(page.locator('[data-save-state]')).toContainText('已保存', { timeout: 20_000 });
@@ -3571,7 +3571,7 @@ test('@smoke §74 AI 的删除结果先过人工审批：扣住时画布不动�
   await page.screenshot({ path: 'screenshots/ai-approval-applied.png' });
 
   // 撤销与一次普通生成同形：一次 Ctrl+Z 回到 AI 动手之前（§149/§150）
-  await page.getByTitle('撤销（Ctrl+Z）').click();
+  await page.locator('[aria-keyshortcuts="Control+Z"]').click();
   await expect.poll(nodeCount, { timeout: 20_000 }).toBe(before);
   expect(afterDelete).toBeLessThan(before);
 });
@@ -4747,13 +4747,13 @@ test('@smoke §124 状态补丁复制/批量应用：贴到另一个元素、一
 
   // ③ 撤销一次：只回滚「贴到 Headline」这一贴，CTA 自己的补丁不动；重做把它贴回来
   await page.locator('[data-canvas-surface]').click({ position: { x: 6, y: 6 } });
-  await page.getByTitle('撤销（Ctrl+Z）').click();
+  await page.locator('[aria-keyshortcuts="Control+Z"]').click();
   await page.click(`[data-node-id="${headlineId}"]`);
   await expect(page.locator('[data-state-opacity="hover"]')).toHaveValue('1');
   await page.click(`[data-node-id="${ctaId}"]`);
   await expect(page.locator('[data-state-opacity="hover"]')).toHaveValue('0.5');
   await page.locator('[data-canvas-surface]').click({ position: { x: 6, y: 6 } });
-  await page.getByTitle('重做（Ctrl+Shift+Z）').click();
+  await page.locator('[aria-keyshortcuts="Control+Shift+Z"]').click();
 
   // ④ 预览页真指针兑现：两个元素悬停都变淡，移开都回到 1。
   //    落库屏障读的是服务端文档本身：`已保存` 标签可能是上一次保存留下的，
@@ -4814,7 +4814,7 @@ test('@smoke §124 状态补丁复制/批量应用：贴到另一个元素、一
 
   // 撤销只回滚这一贴：Headline 回到它自己上一次的 0.5，CTA 保留 0.4 那次编辑
   await page.locator('[data-canvas-surface]').click({ position: { x: 6, y: 6 } });
-  await page.getByTitle('撤销（Ctrl+Z）').click();
+  await page.locator('[aria-keyshortcuts="Control+Z"]').click();
   await page.click(`[data-node-id="${headlineId}"]`);
   await expect(page.locator('[data-state-opacity="hover"]')).toHaveValue('0.5');
   await page.click(`[data-node-id="${ctaId}"]`);

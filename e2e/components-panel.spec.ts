@@ -143,11 +143,11 @@ test('@smoke 组件面板：存为组件 → 删除 → 撤销把定义与实例
   await page.click(`[data-component-delete="${componentId}"]`);
   await expect(page.locator(`[data-component-card="${componentId}"]`)).toHaveCount(0, { timeout: 20_000 });
 
-  await page.getByTitle('撤销（Ctrl+Z）').click();
+  await page.locator('[aria-keyshortcuts="Control+Z"]').click();
   await expect(page.locator(`[data-component-card="${componentId}"]`)).toBeVisible({ timeout: 20_000 });
   await expect(page.locator(`[data-component-card="${componentId}"]`)).toContainText('引用 0');
 
-  await page.getByTitle('重做（Ctrl+Shift+Z）').click();
+  await page.locator('[aria-keyshortcuts="Control+Shift+Z"]').click();
   await expect(page.locator(`[data-component-card="${componentId}"]`)).toHaveCount(0, { timeout: 20_000 });
 });
 
@@ -209,12 +209,12 @@ test('@smoke 组件面板：放到当前页 → 引用与页面树一起变，�
   await page.screenshot({ path: 'screenshots/components-instantiate.png' });
 
   // 撤销：实例连同复制体整份收走，不是只把目录里那个数字改回去
-  await page.getByTitle('撤销（Ctrl+Z）').click();
+  await page.locator('[aria-keyshortcuts="Control+Z"]').click();
   await expect(card).toContainText('引用 0', { timeout: 20_000 });
   await expect.poll(layerTotal, { timeout: 20_000 }).toBe(start);
 
   // 重做：原样回来
-  await page.getByTitle('重做（Ctrl+Shift+Z）').click();
+  await page.locator('[aria-keyshortcuts="Control+Shift+Z"]').click();
   await expect(card).toContainText('引用 1', { timeout: 20_000 });
   await expect.poll(layerTotal, { timeout: 20_000 }).toBe(start + 2);
 
@@ -224,7 +224,7 @@ test('@smoke 组件面板：放到当前页 → 引用与页面树一起变，�
   await expect.poll(layerTotal, { timeout: 20_000 }).toBe(start + 2);
 
   // 撤销删除：定义回来，链接也接回画布上那颗实例
-  await page.getByTitle('撤销（Ctrl+Z）').click();
+  await page.locator('[aria-keyshortcuts="Control+Z"]').click();
   const back = page.locator(`[data-component-card="${componentId}"]`);
   await expect(back).toBeVisible({ timeout: 20_000 });
   await expect(back).toContainText('引用 1', { timeout: 20_000 });
@@ -336,10 +336,10 @@ test('@smoke 组件面板：改主组件 → 更新实例 → 复制体跟上，
   // 换掉而不是再加一份：节点总数与放实例那天一样
   expect(await layerTotal()).toBe(afterPlace);
 
-  await page.getByTitle('撤销（Ctrl+Z）').click();
+  await page.locator('[aria-keyshortcuts="Control+Z"]').click();
   await expect.poll(() => countWith(renamed), { timeout: 20_000 }).toBe(1);
   await expect.poll(() => countWith(original)).toBe(1);
-  await page.getByTitle('重做（Ctrl+Shift+Z）').click();
+  await page.locator('[aria-keyshortcuts="Control+Shift+Z"]').click();
   await expect.poll(() => countWith(renamed), { timeout: 20_000 }).toBe(2);
   await expect.poll(() => countWith(original)).toBe(0);
   await page.screenshot({ path: 'screenshots/components-sync.png' });

@@ -1,13 +1,15 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import type { ComponentPropsWithoutRef } from 'react';
 import { cn } from '@/lib/cn';
+import { hint } from '@/lib/hintCopy';
+import { TeachingHint } from '@/components/TeachingHint';
 import { studio, useStudioFields, type ViewportMode } from './store';
-import { BREAKPOINT_LABELS, VIEWPORT_OPTIONS } from './viewer-params';
+import { viewportOptions } from './viewer-params';
 import { PublishPanel } from './PublishPanel';
 import { ExportPanel } from './ExportPanel';
 import { shellCopy } from './shell-i18n';
-import { hint } from '@/lib/hintCopy';
 import type { Locale } from '@/lib/i18n';
 
 /**
@@ -17,13 +19,21 @@ import type { Locale } from '@/lib/i18n';
  */
 
 /** §4 顶栏：Project · File · Preview · Share · Publish + 撤销/重做 + 保存状态 + viewport 切换 */
+
+const CJK = /[\u3400-\u9fff]/;
+
+// 历史命令目前只有中文标签；英文气泡宁可省略细节，也不把汉字拼进英文说明。
+function historySuffix(label: string, locale: Locale): string {
+  return locale === 'en' && CJK.test(label) ? '' : ` ${label}`;
+}
+
 export function TopBar({ onOpenRail, credits = null, locale = 'zh', onOpenHelp }: { onOpenRail: () => void; credits?: { ai: number; grant: number; plan: string } | null; locale?: Locale; onOpenHelp?: () => void }) {
   const c = shellCopy(locale);
   const viewports: { id: ViewportMode; label: string; hint: string }[] = [
     { id: 'design', label: c.designViewLabel, hint: c.designViewHint },
-    ...VIEWPORT_OPTIONS.map((option) => ({
+    ...viewportOptions(locale).map((option) => ({
       id: option.id as ViewportMode,
-      label: `${BREAKPOINT_LABELS[option.id]} ${option.width}`,
+      label: option.label,
       hint: c.viewportHint(option.width),
     })),
   ];
@@ -72,18 +82,24 @@ export function TopBar({ onOpenRail, credits = null, locale = 'zh', onOpenHelp }
           : savedAt
             ? c.savedAt(new Date(savedAt).toLocaleTimeString(locale === 'en' ? 'en-GB' : 'zh-CN', { hour12: false }))
             : c.synced;
+  const undoButton = (
+    <TopButton label={c.undo} shortcut="Ctrl+Z" disabled={!canUndo} onClick={() => studio.undo()} />
+  );
+  const redoButton = (
+    <TopButton label={c.redo} shortcut="Ctrl+Shift+Z" disabled={!canRedo} onClick={() => studio.redo()} />
+  );
 
   return (
     <header className="sp-topbar">
-      <button
-        type="button"
-        onClick={onOpenRail}
-        className="sp-railToggle"
-        title={hint('studio.topbar.rail', locale)}
-        aria-label={hint('studio.topbar.rail', locale)}
-      >
-        {c.railToggle}
-      </button>
+      <TeachingHint hintId="studio.topbar.rail" locale={locale}>
+        <button
+          type="button"
+          onClick={onOpenRail}
+          className="sp-railToggle"
+        >
+          {c.railToggle}
+        </button>
+      </TeachingHint>
       <a href="/" className="sp-wordmark">
         NEXUS
       </a>
@@ -102,20 +118,29 @@ export function TopBar({ onOpenRail, credits = null, locale = 'zh', onOpenHelp }
           className="sp-nameInput"
         />
       ) : (
-        <button
-          type="button"
-          onClick={() => setEditingName(true)}
-          title={hint('studio.topbar.rename', locale)}
-          className="sp-nameBtn"
-          data-project-name
-        >
-          {documentName || c.defaultProjectName}
-        </button>
+        <TeachingHint hintId="studio.topbar.rename" locale={locale}>
+          <button
+            type="button"
+            onClick={() => setEditingName(true)}
+            className="sp-nameBtn"
+            data-project-name
+          >
+            {documentName || c.defaultProjectName}
+          </button>
+        </TeachingHint>
       )}
 
       <div className="sp-toolGroup">
-        <TopButton label={c.undo} shortcut="Ctrl+Z" disabled={!canUndo} title={undoLabel ?? undefined} onClick={() => studio.undo()} />
-        <TopButton label={c.redo} shortcut="Ctrl+Shift+Z" disabled={!canRedo} title={redoLabel ?? undefined} onClick={() => studio.redo()} />
+        {undoLabel ? (
+          <TeachingHint text={`${hint('studio.topbar.undo', locale)}${historySuffix(undoLabel, locale)}`} locale={locale}>
+            {undoButton}
+          </TeachingHint>
+        ) : undoButton}
+        {redoLabel ? (
+          <TeachingHint text={`${hint('studio.topbar.redo', locale)}${historySuffix(redoLabel, locale)}`} locale={locale}>
+            {redoButton}
+          </TeachingHint>
+        ) : redoButton}
       </div>
 
       <div className="sp-actions">
@@ -125,82 +150,87 @@ export function TopBar({ onOpenRail, credits = null, locale = 'zh', onOpenHelp }
         </span>
         <div className="sp-toolGroup">
           {viewports.map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              title={v.hint}
-              onClick={() => studio.setViewport(v.id)}
-              data-viewport={v.id}
-              className={cn(
-                'sp-viewportBtn',
-                viewport === v.id ? 'sp-viewportOn' : 'sp-viewportOff',
-              )}
-            >
-              {v.label}
-            </button>
+            <TeachingHint key={v.id} text={v.hint} locale={locale}>
+              <button
+                type="button"
+                onClick={() => studio.setViewport(v.id)}
+                data-viewport={v.id}
+                className={cn(
+                  'sp-viewportBtn',
+                  viewport === v.id ? 'sp-viewportOn' : 'sp-viewportOff',
+                )}
+              >
+                {v.label}
+              </button>
+            </TeachingHint>
           ))}
         </div>
-        <select
-          value={activeMode ?? 'default'}
-          onChange={(e) => studio.setMode(e.target.value === 'default' ? null : e.target.value)}
-          data-theme-mode
-          className="sp-modeSelect"
-          title={hint('studio.topbar.themeMode', locale)}
-        >
-          <option value="default">{c.defaultThemeLabel}</option>
-          {modes.map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
-        </select>
-        <TopButton
-          label={c.grid}
-          shortcut="Ctrl+G"
-          active={grid}
-          title={hint('studio.topbar.grid', locale)}
-          onClick={() => studio.toggleGrid()}
-        />
+        <TeachingHint hintId="studio.topbar.themeMode" locale={locale}>
+          <select
+            value={activeMode ?? 'default'}
+            onChange={(e) => studio.setMode(e.target.value === 'default' ? null : e.target.value)}
+            data-theme-mode
+            className="sp-modeSelect"
+          >
+            <option value="default">{c.defaultThemeLabel}</option>
+            {modes.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </TeachingHint>
+        <TeachingHint hintId="studio.topbar.grid" locale={locale}>
+          <TopButton
+            label={c.grid}
+            shortcut="Ctrl+G"
+            active={grid}
+            onClick={() => studio.toggleGrid()}
+          />
+        </TeachingHint>
         <ExportPanel locale={locale} />
         {onOpenHelp ? (
-          <button
-            type="button"
-            onClick={onOpenHelp}
-            title={hint('studio.topbar.help', locale)}
-            className="sp-helpToggle"
-            data-help-open
-          >
-            {c.helpToggle}
-          </button>
+          <TeachingHint hintId="studio.topbar.help" locale={locale}>
+            <button
+              type="button"
+              onClick={onOpenHelp}
+              className="sp-helpToggle"
+              data-help-open
+            >
+              {c.helpToggle}
+            </button>
+          </TeachingHint>
         ) : null}
         <PublishPanel locale={locale} />
-        <a
-          href={`/preview/${projectId}`}
-          className="sp-previewLink"
-          title={hint('studio.topbar.preview', locale)}
-        >
-          {c.preview}
-        </a>
+        <TeachingHint hintId="studio.topbar.preview" locale={locale}>
+          <a
+            href={`/preview/${projectId}`}
+            className="sp-previewLink"
+          >
+            {c.preview}
+          </a>
+        </TeachingHint>
       </div>
     </header>
   );
 }
 
-function TopButton(props: { label: string; shortcut?: string; disabled?: boolean; active?: boolean; title?: string; onClick: () => void }) {
+function TopButton(props: ComponentPropsWithoutRef<'button'> & { label: string; shortcut?: string; active?: boolean }) {
+  const { label, shortcut, active: _active, ...buttonProps } = props;
+  const keyshortcuts = shortcut === 'Ctrl+Z' ? 'Control+Z' : shortcut === 'Ctrl+Shift+Z' ? 'Control+Shift+Z' : shortcut === 'Ctrl+G' ? 'Control+G' : undefined;
   return (
     <button
+      {...buttonProps}
       type="button"
-      onClick={props.onClick}
-      disabled={props.disabled}
-      title={props.shortcut ? `${props.label} (${props.shortcut})` : props.label}
       aria-pressed={props.active}
+      aria-keyshortcuts={keyshortcuts}
       className={cn(
         'sp-topBtn',
         props.active ? 'sp-topBtnOn' : 'sp-topBtnOff',
         props.disabled && 'sp-topBtnDisabled',
       )}
     >
-      {props.label}
+      {label}
     </button>
   );
 }

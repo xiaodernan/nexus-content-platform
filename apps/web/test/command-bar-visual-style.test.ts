@@ -41,6 +41,10 @@ import { describe, expect, it } from 'vitest';
  * 并且把原先散在本文件 COPY 里的五句教学说明搬进唯一真值 `@/lib/hintCopy`。
  * 悬停能看到「按下去会发生什么」**就是**行为——所以这条「纯视觉零行为」的承诺
  * 在这一片被有意打破；来由记在这里，而不是只把断言里的哈希换掉。
+ * **2026-11-24 §HINT-2 再换一次**：`df3e44b5…` → `9b984855…`。
+ * 原生 `title` 升级为共享 `TeachingHint`：键盘聚焦、悬停与触屏都能打开气泡，
+ * Escape / 外部点击能收起，屏幕阅读器另有常驻描述。三个表单控件改用外置
+ * `label htmlFor`，避免隐藏 tooltip 被并进控件名称。这不是换皮，门该破。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/studio/CommandBar.tsx');
@@ -172,9 +176,9 @@ describe('§FE-61 /studio CommandBar AI 命令栏', () => {
     }
   });
 
-  it('剥 className/cn 后全文 SHA256 守恒（2026-11-23 §HINT-1 教学说明重钉：df3e44b57022015331cde8182e6effb91eb0e52b305297efce7bfc91e6adb528）', () => {
+  it('剥 className/cn 后全文 SHA256 守恒（2026-11-24 §HINT-2 可访问气泡重钉：9b9848554975b5c46c2645e1626954aad8dff4153a4fc99f5cc57dd0c4aff541）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'df3e44b57022015331cde8182e6effb91eb0e52b305297efce7bfc91e6adb528', // §HINT-1：十四个控件第一次带上教学说明，五句旧文案搬进唯一真值 @/lib/hintCopy（ActivityFeed 因此多收一个 locale）
+      '9b9848554975b5c46c2645e1626954aad8dff4153a4fc99f5cc57dd0c4aff541', // §HINT-2：原生 title 升级为键盘/悬停/触屏共享气泡，屏幕阅读器另有常驻描述
     );
   });
 

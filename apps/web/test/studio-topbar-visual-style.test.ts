@@ -158,8 +158,19 @@ function maskLiterals(expr: string): string {
  * `@/lib/hintCopy`，网格那颗钮第一次拿到说明（原先只退回按钮文字）。
  * 换句话说：用户现在悬停能看到「按下去会发生什么」，这**就是**行为，
  * 所以「纯视觉零行为」这条承诺在这一片被有意打破，来由记在这里而不是只改断言。
+ * §HINT-2（2026-11-24）：`261101e7…`。顶栏静态说明接入共享 `TeachingHint`，
+ * 原生 title 不再承担键盘/触屏教学；`TopButton` 也改为透传无障碍属性，
+ * 面板按钮去掉与描述重复的 aria-label。这是可访问性行为变更，不是换皮，
+ * 所以「纯视觉零行为」的旧承诺在此有意结束。
+ * 同日审查收口：`261101e7…` → `a87dc21a…`。撤销/重做去掉原生 title，
+ * 有历史时用共享气泡同时读出静态后果与 store 的实时操作名；无历史时保持禁用，
+ * 不挂空说明。气泡定位还改为跟随 visualViewport、按上下空间限高，Escape 只在
+ * 触发器自身有焦点时接管，避免截断画布清选择。这是可访问性与键盘行为变更。
+ * 同日双语收口：`a87dc21a…` → `f78d6618…`。断点按钮改按 locale 取
+ * `viewportOptions`，英文顶栏不再夹中文宽度标签；历史操作名若仍是中文命令标签，
+ * 英文气泡省略该细节而不破坏英文纯度的边界。
  */
-const STRIP_CLASS_SHA256 = '2f1ef1f98cc2c8595922618c26ebe80598f1e0e94748d488bb7447a8820b87c6';
+const STRIP_CLASS_SHA256 = 'f78d66181274a38032af07388bc5b937e288c4c36ddbe5609a1bf3f4e0856e47';
 function stripClassNames(src: string): string {
   const s = src.replace(/\r\n/g, '\n');
   let out = '';
@@ -284,9 +295,9 @@ describe('§FE-19 Studio 顶栏门面基建（静态不变式）', () => {
     expect(ink.length, 'FE-19 不该新增渐变墨字类（会扩 A11Y-1 forced-colors 面）').toBe(0);
   });
 
-  it('剥 className 后全文逐字节零行为：14 处类值之外（视口/撤销/改名/保存态/文案/data 钩子）一个字节没动', () => {
+  it('剥 className 后全文哈希：可访问性行为变更已显式重钉', () => {
     expect(createHash('sha256').update(stripClassNames(topbar).trimEnd()).digest('hex'),
-      '剥类后全文变了——改动溢出 className，纯视觉零行为承诺不成立').toBe(STRIP_CLASS_SHA256);
+      '剥类后全文变了——若不是已记录的可访问性行为变更，就是改动溢出了门面').toBe(STRIP_CLASS_SHA256);
   });
 
   it('4 个 data-* 钩子一个不丢（精确 token 集合，非子串 includes）', () => {
@@ -318,13 +329,13 @@ describe('§FE-19 Studio 顶栏门面基建（静态不变式）', () => {
     expect(code).toContain('c.projectNameAria');
     expect(code).toContain('aria-pressed={props.active}');
     // VIEWPORTS 映射来自 viewer-params 那一份表（§16 单一真值）
-    for (const s of ['viewports.map(', 'BREAKPOINT_LABELS[option.id]', 'VIEWPORT_OPTIONS.map(', 'studio.setViewport(v.id)']) {
+    for (const s of ['viewports.map(', 'viewportOptions(locale).map(', 'label: option.label', 'studio.setViewport(v.id)']) {
       expect(code, `视口真值链丢了：${s}`).toContain(s);
     }
     // 2 个 <a> href / title 诚实文案
     // §HINT-1：预览的说明已搬进唯一真值 hintCopy，所以这里钉的是「从字典取」这件事，
     // 而不是某一份 shellCopy 的 key —— 两处说法并存就是这一片要消灭的东西。
-    for (const s of ['<a href="/"', 'href={`/preview/${projectId}`}', "hint('studio.topbar.preview', locale)", 'c.defaultProjectName', "from '@/lib/hintCopy'"]) {
+    for (const s of ['<a href="/"', 'href={`/preview/${projectId}`}', 'hintId="studio.topbar.preview"', 'c.defaultProjectName', "from '@/components/TeachingHint'"]) {
       expect(topbar, `链接/文案丢了：${s}`).toContain(s);
     }
     // 顶栏按钮诚实文案

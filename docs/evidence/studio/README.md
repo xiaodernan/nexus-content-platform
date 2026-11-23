@@ -2195,3 +2195,7 @@ Measured: `png-baseline-proof.mjs` **5/5 ALL SECTIONS PASSED**; doc gate **exit 
 **Bounds, stated not implied.** The set still says exactly `['open']`; `reportStanding` returns the same value for every string; §11.11's service-side reconciliation is untouched. This batch does not claim the service will never add a standing status — it claims the CLIENT cannot invent one outside its own declaration without a compile error and a failing case. A word constructed at runtime still reaches `reportStanding` as a string; the type closes the declaration-time hole, not the wire.
 
 **Files.** `apps/studio/src/lib/ops.ts` (the type and the corrected comment), `apps/studio/src/lib/ops.test.ts` (the runtime carrier), and this section. No other file is touched; the suite count moves only by the one added case.
+
+## §HINT-2 — accessible teaching bubbles (2026-11-24)
+
+The six main surfaces now use one `TeachingHint` component instead of native `title`: keyboard focus, mouse hover and touch open the same bubble; `aria-describedby` keeps a hidden tooltip for assistive technology; Escape is scoped to focus inside the hint; placement follows `visualViewport` and clamps to the available space. Static copy remains the 25-entry bilingual `apps/web/src/lib/hintCopy.ts` dictionary. Full commands, browser readings, screenshots and honest bounds: [`teaching-hints-accessible-2026-11-24.md`](teaching-hints-accessible-2026-11-24.md).

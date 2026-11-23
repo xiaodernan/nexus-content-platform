@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { AgentActivity, AgentPlan, AgentRoster, AiResponse, ModelClass } from '@nexus/schemas';
 import { AiJobObservationSchema, AiResponseSchema, AgentRosterSchema, APPROVAL_TTL_MS, DesignPatchSchema } from '@nexus/schemas';
 import { ttlLabel, ttlLabelEn } from '@/lib/notify-plan';
@@ -9,7 +9,8 @@ import { csrfHeaders } from '@/lib/csrf';
 import type { Locale } from '@/lib/i18n';
 import { REALTIME_TEXT, REALTIME_TEXT_EN, useRealtime } from '@/lib/useRealtime';
 import { cacheState, cacheText } from '@/lib/usage-cache-text';
-import { hint, type HintId } from '@/lib/hintCopy';
+import { TeachingHint } from '@/components/TeachingHint';
+import type { HintId } from '@/lib/hintCopy';
 import { isEditableTarget } from '@/lib/keyboard';
 import { studio, toModelPatches, useStudioReady } from './store';
 
@@ -179,6 +180,10 @@ const COPY = {
 type CommandCopy = (typeof COPY)[Locale];
 
 export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
+  const commandBarId = useId();
+  const agentSelectId = `${commandBarId}-agent`;
+  const asyncInputId = `${commandBarId}-async`;
+  const reviewInputId = `${commandBarId}-review`;
   const c = COPY[locale];
   const realtimeText = locale === 'en' ? REALTIME_TEXT_EN : REALTIME_TEXT;
   const approvalTtlLabel = locale === 'en' ? ttlLabelEn(APPROVAL_TTL_MS) : ttlLabel(APPROVAL_TTL_MS);
@@ -606,16 +611,17 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
       {/* §162 取消：只在"有作业号 + 还在等 + 取消还没受理"时挂出来——终态后的取消按钮
           会去点一个已经落账的行，那只会得到一条 409 的坏消息 */}
       {asyncJobId && busy && !cancelRequested.current ? (
-        <button
-          type="button"
-          onClick={() => void cancelAsync()}
-          disabled={cancelBusy}
-          title={hint('studio.command.cancel', locale)}
-          data-async-cancel
-          className="cb-infoChip"
-        >
-          {cancelBusy ? c.cancelSending : c.cancelJob}
-        </button>
+        <TeachingHint hintId="studio.command.cancel" locale={locale}>
+          <button
+            type="button"
+            onClick={() => void cancelAsync()}
+            disabled={cancelBusy}
+            data-async-cancel
+            className="cb-infoChip"
+          >
+            {cancelBusy ? c.cancelSending : c.cancelJob}
+          </button>
+        </TeachingHint>
       ) : null}
       {taskId ? (
         <p className="sb-faint11" data-ai-task>
@@ -640,16 +646,17 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
           </ul>
           {/* §73-AI: 先把模型读一眼这条 approvals 的结果给你看——它只描述「这一次要改什么」，
               不指挥批谁：§74 的按钮永远决定你自己的 */}
-          <button
-            type="button"
-            className="cb-underLink"
-            onClick={() => void askExplain()}
-            disabled={approvalExplainBusy}
-            title={hint('studio.command.explain', locale)}
-            data-approval-explain
-          >
-            {approvalExplainBusy ? c.explainBusy : c.explainAsk}
-          </button>
+          <TeachingHint hintId="studio.command.explain" locale={locale}>
+            <button
+              type="button"
+              className="cb-underLink"
+              onClick={() => void askExplain()}
+              disabled={approvalExplainBusy}
+              data-approval-explain
+            >
+              {approvalExplainBusy ? c.explainBusy : c.explainAsk}
+            </button>
+          </TeachingHint>
           {approvalExplain && (
             <p className="sb-faint11" data-approval-explain-text>
               {approvalExplain}
@@ -665,26 +672,28 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
             )}
           </p>
           <div className="cb-wrapCenter2">
-            <button
-              type="button"
-              disabled={approvalBusy}
-              onClick={() => void decide('approve')}
-              title={hint('studio.command.approve', locale)}
-              data-approval-approve
-              className="cb-warnChip"
-            >
-              {c.approveAndReturn}
-            </button>
-            <button
-              type="button"
-              disabled={approvalBusy}
-              onClick={() => void decide('reject')}
-              title={hint('studio.command.reject', locale)}
-              data-approval-reject
-              className="cb-underLink"
-            >
-              {c.reject}
-            </button>
+            <TeachingHint hintId="studio.command.approve" locale={locale}>
+              <button
+                type="button"
+                disabled={approvalBusy}
+                onClick={() => void decide('approve')}
+                data-approval-approve
+                className="cb-warnChip"
+              >
+                {c.approveAndReturn}
+              </button>
+            </TeachingHint>
+            <TeachingHint hintId="studio.command.reject" locale={locale}>
+              <button
+                type="button"
+                disabled={approvalBusy}
+                onClick={() => void decide('reject')}
+                data-approval-reject
+                className="cb-underLink"
+              >
+                {c.reject}
+              </button>
+            </TeachingHint>
             <a href={`/tasks/${state.projectId}`} className="cb-accentInk2" data-approval-link>
               {c.approvalTaskLink}
             </a>
@@ -737,29 +746,33 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
             三态由 `cacheState` 给（hit / miss / unreported），措辞由 `cacheText` 给——
             两者分开管：措辞会变，语义不该跟着变。
           */}
-          <span
-            className="cb-cacheBadge"
-            data-ai-cache={cacheState(result.usage)}
-            title={hint('studio.cache.badge', locale)}
-          >
-            {cacheText(result.usage)}
-          </span>
-          {runLane ? (
-            <span className="cb-laneChip" data-ai-lane={runLane} title={hint('studio.lane.badge', locale)}>
-              {runLane === 'stategraph' ? 'STATEGRAPH' : 'LANE-A'}
+          <TeachingHint hintId="studio.cache.badge" locale={locale}>
+            <span
+              className="cb-cacheBadge"
+              data-ai-cache={cacheState(result.usage)}
+            >
+              {cacheText(result.usage)}
             </span>
+          </TeachingHint>
+          {runLane ? (
+            <TeachingHint hintId="studio.lane.badge" locale={locale}>
+              <span className="cb-laneChip" data-ai-lane={runLane}>
+                {runLane === 'stategraph' ? 'STATEGRAPH' : 'LANE-A'}
+              </span>
+            </TeachingHint>
           ) : null}
           {result.patches?.length ? (
             <span className="ap-faint">
               {`${result.patches.reduce((sum, p) => sum + p.ops.length, 0)} ops · `}
-              <button
-                type="button"
-                className="cb-under"
-                title={hint('studio.command.undo', locale)}
-                onClick={() => studio.undo()}
-              >
-                {c.undoButton}
-              </button>
+              <TeachingHint hintId="studio.command.undo" locale={locale}>
+                <button
+                  type="button"
+                  className="cb-under"
+                  onClick={() => studio.undo()}
+                >
+                  {c.undoButton}
+                </button>
+              </TeachingHint>
             </span>
           ) : null}
         </p>
@@ -771,99 +784,109 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
       <div className="cb-rowEnd2">
         <div className="cb-rowFrozen">
           {MODES.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => setMode(m.id)}
-              title={hint(m.hint, locale)}
-              data-model-class={m.id}
-              className={cn('cb-segPill', mode === m.id ? 'cb-segOn' : 'cb-segIdle')}
-            >
-              {m.label}
-            </button>
+            <TeachingHint key={m.id} hintId={m.hint} locale={locale}>
+              <button
+                type="button"
+                onClick={() => setMode(m.id)}
+                data-model-class={m.id}
+                className={cn('cb-segPill', mode === m.id ? 'cb-segOn' : 'cb-segIdle')}
+              >
+                {m.label}
+              </button>
+            </TeachingHint>
           ))}
         </div>
         {/* §112：提名这一轮交给谁。也可以直接在提示词里写 @design / @qa——两处都写时以名册里那一位为准，
             而"名册里有没有"由服务端判，不由这里列了什么判 */}
-        <label className="cb-sendBar" title={hint('studio.command.assign', locale)}>
-          {c.assignTo}
-          <select
-            value={agentKey}
-            onChange={(e) => setAgentKey(e.target.value)}
-            data-ai-agent
-            className="cb-w150Input"
+        <div className="cb-sendBar">
+          <label htmlFor={agentSelectId}>{c.assignTo}</label>
+          <TeachingHint hintId="studio.command.assign" locale={locale}>
+            <select
+              id={agentSelectId}
+              value={agentKey}
+              onChange={(e) => setAgentKey(e.target.value)}
+              data-ai-agent
+              className="cb-w150Input"
+            >
+              <option value="">{c.noAgent}</option>
+              {roster.map((agent) => (
+                <option key={agent.key} value={agent.key}>
+                  {agent.name}
+                </option>
+              ))}
+            </select>
+          </TeachingHint>
+        </div>
+        <TeachingHint text={c.placeholder} locale={locale}>
+          <textarea
+            ref={inputRef}
+            rows={1}
+            value={prompt}
+            placeholder={c.placeholderShort}
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                void submit();
+              }
+            }}
+            className="cb-textarea"
+            data-ai-input
+          />
+        </TeachingHint>
+        <TeachingHint hintId="studio.command.run" locale={locale}>
+          <button
+            type="button"
+            disabled={busy || !prompt.trim()}
+            onClick={() => void submit()}
+            className="cb-primary"
+            data-ai-submit
           >
-            <option value="">{c.noAgent}</option>
-            {roster.map((agent) => (
-              <option key={agent.key} value={agent.key}>
-                {agent.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <textarea
-          ref={inputRef}
-          rows={1}
-          value={prompt}
-          placeholder={c.placeholderShort}
-          /* 完整教学放进 title：占位符太长会在 270px 的输入框里折成三行，被 34px 的行高裁掉半行，看着像文字重叠 */
-          title={c.placeholder}
-          onChange={(e) => setPrompt(e.target.value)}
-          onKeyDown={(e) => {
-            e.stopPropagation();
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              void submit();
-            }
-          }}
-          className="cb-textarea"
-          data-ai-input
-        />
-        <button
-          type="button"
-          disabled={busy || !prompt.trim()}
-          onClick={() => void submit()}
-          title={hint('studio.command.run', locale)}
-          className="cb-primary"
-          data-ai-submit
-        >
-          {busy ? c.executing : c.submit}
-        </button>
+            {busy ? c.executing : c.submit}
+          </button>
+        </TeachingHint>
         {/* 勾上它只是换"谁在等"：等同步返回，还是交给队列然后一次一次问。拦不拦高危动作由服务端那道门说（§74） */}
-        <label className="cb-sendBar" title={hint('studio.command.async', locale)}>
-          <input
-            type="checkbox"
-            checked={asyncMode}
-            onChange={(e) => setAsyncMode(e.target.checked)}
-            className="cb-footBadge"
-            data-ai-async
-          />
-          {c.asyncModeLabel}
-        </label>
+        <div className="cb-sendBar">
+          <TeachingHint hintId="studio.command.async" locale={locale}>
+            <input
+              id={asyncInputId}
+              type="checkbox"
+              checked={asyncMode}
+              onChange={(e) => setAsyncMode(e.target.checked)}
+              className="cb-footBadge"
+              data-ai-async
+            />
+          </TeachingHint>
+          <label htmlFor={asyncInputId}>{c.asyncModeLabel}</label>
+        </div>
         {/* §GRAPH-3：与异步开关并排，但管的是完全不同的东西——异步换"谁在等"，
-            自查换"花多少 token 换一道保险"。文案在 title 里说清代价，不藏在文档里 */}
-        <label className="cb-sendBar" title={hint('studio.command.review', locale)}>
-          <input
-            type="checkbox"
-            checked={reviewMode}
-            onChange={(e) => setReviewMode(e.target.checked)}
-            className="cb-footBadge"
-            data-ai-review
-          />
-          {c.reviewLabel}
-        </label>
+            自查换"花多少 token 换一道保险"。文案在共享气泡里说清代价，不藏在文档里 */}
+        <div className="cb-sendBar">
+          <TeachingHint hintId="studio.command.review" locale={locale}>
+            <input
+              id={reviewInputId}
+              type="checkbox"
+              checked={reviewMode}
+              onChange={(e) => setReviewMode(e.target.checked)}
+              className="cb-footBadge"
+              data-ai-review
+            />
+          </TeachingHint>
+          <label htmlFor={reviewInputId}>{c.reviewLabel}</label>
+        </div>
       </div>
       <div className="cb-wrap2Mt1">
         {c.examples.map((example) => (
-          <button
-            key={example}
-            type="button"
-            onClick={() => setPrompt(example)}
-            title={hint('studio.command.examples', locale)}
-            className="cb-suggestionChip"
-          >
-            {example}
-          </button>
+          <TeachingHint key={example} hintId="studio.command.examples" locale={locale}>
+            <button
+              type="button"
+              onClick={() => setPrompt(example)}
+              className="cb-suggestionChip"
+            >
+              {example}
+            </button>
+          </TeachingHint>
         ))}
       </div>
     </div>
@@ -875,16 +898,17 @@ function ActivityFeed({ plan, activities, c, locale }: { plan?: AgentPlan; activ
   if (!plan && !activities?.length) return null;
   return (
     <div className="cb-intentBox">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        title={hint('studio.command.plan', locale)}
-        className="cb-rowFull"
-      >
-        <span className="ap-mono11faint">{open ? '▾' : '▸'}</span>
-        <span className="cb-trunc">{plan?.goal ?? c.executionPlan}</span>
-        {plan?.tasks?.length ? <span className="ap-faint">{c.taskCount(plan.tasks.length)}</span> : null}
-      </button>
+      <TeachingHint hintId="studio.command.plan" locale={locale}>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="cb-rowFull"
+        >
+          <span className="ap-mono11faint">{open ? '▾' : '▸'}</span>
+          <span className="cb-trunc">{plan?.goal ?? c.executionPlan}</span>
+          {plan?.tasks?.length ? <span className="ap-faint">{c.taskCount(plan.tasks.length)}</span> : null}
+        </button>
+      </TeachingHint>
       {open ? (
         <ul className="cb-stackPad">
           {plan?.tasks?.map((task) => (

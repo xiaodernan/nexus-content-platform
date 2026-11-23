@@ -4,31 +4,18 @@ import { describe, expect, it } from 'vitest';
 import { HINTS } from '@/lib/hintCopy';
 
 /**
- * §HINT-1 · 主界面的操作都带教学说明（门）。
+ * §HINT-2 · 主界面的操作都带可访问教学气泡（门）。
  *
- * 用户第五点：「主界面给各种按键和操作加上附带的教学说明，方便用户理解」。
- * 落地前的实测（`apps/web/src/studio/CommandBar.tsx` + `components/CommandPalette.tsx`）：
- * **14 个控件，0 个带说明**——「执行」「Fast」「Balanced」「让模型读一遍」
- * 「批准并交回编辑区」「展开计划」这些词，对第一次进 Studio 的人全是黑话，
- * 而它们恰好是最需要解释的那几个。
+ * 原生 title 对键盘与触屏用户并不可靠，且 TopButton 曾把调用方 title 覆盖掉，
+ * 旧门因此假绿。现在每个静态说明必须包在 `TeachingHint` 里，由组件克隆真实控件、
+ * 接上 `aria-describedby` 与 `role=tooltip`，并提供 focus / pointer / Escape 收口。
  *
- * 本门钉四件事：
- *  1. **覆盖**：主界面每个 `<button>` / `<select>` / `<input type="checkbox">`
- *     都必须带一句教学说明，且那句必须出自 `@/lib/hintCopy` 的同一份字典
- *     （`title={hint('<id>', locale)}`）——手写一句塞进 title 不算数，
- *     因为那样就会出现两套说法。
- *  2. **双语**：每条说明 zh 含汉字、en 零汉字零全角标点（§八 不中英夹杂），
- *     两边都够长（一个词不算说明），且没有两条说同一句话。
- *  3. **接线**：源码里用到的每个 id 都在字典里（拼错就红）；
- *     字典里的每个 id 都真被用到（死条目也红——它会让字典慢慢变成第二份文档）。
- *  4. **豁免是声明**：文字自明的链接与带占位符的输入框不要求说明，
- *     但豁免规则写在下面这条代码里，审阅者看得见谁被放过、为什么。
- *
- * 变异验伪（2026-11-23，每处只红该红的那条臂，已还原）：
- *  · 删掉 CommandBar 里「执行」那颗钮的 title → 「覆盖」臂红；
- *  · 把字典里 en 那句塞一个汉字 → 「双语」臂红；
- *  · 把字典里一个 id 改成不存在的名字 → 「接线」臂红；
- *  · 给字典加一条没人用的说明 → 「死条目」臂红。
+ * 本门钉五件事：
+ *  1. **覆盖**：按钮、下拉、开关必须被 `TeachingHint` 包住，或落在声明过的动态豁免里；
+ *  2. **单一真值**：静态 `hintId` 必须来自 `@/lib/hintCopy`，中英各一份且不夹杂；
+ *  3. **接线**：源码用到的 id 存在，字典里的 id 没有死条目；
+ *  4. **组件契约**：不是画一个气泡——`aria-describedby`、tooltip、焦点/触屏/Escape 都必须接上；
+ *  5. **迁移守恒**：六个主界面不再用 `title={hint(...)}` 冒充可访问说明。
  */
 const ROOT = process.cwd();
 
@@ -43,7 +30,10 @@ const SURFACES = [
 ] as const;
 
 /** 需要教学说明的控件：按钮、下拉、开关。 */
-const NEEDS_HINT = ['button', 'select'] as const;
+const NEEDS_HINT = ['button', 'select', 'input'] as const;
+const HINT_COMPONENT = 'apps/web/src/components/TeachingHint.tsx';
+const GLOBALS = 'apps/web/src/app/globals.css';
+const TOKENS = 'apps/web/src/styles/tokens.css';
 
 const CJK = /[\u3400-\u9fff]/;
 const CJK_PUNCT = /[\u3000-\u303f\uff00-\uffef]/;
@@ -85,16 +75,16 @@ function openingTag(source: string, name: string, from = 0): { attrs: string; in
   return { attrs: source.slice(m.index + m[0].length, i), index: m.index };
 }
 
-/** 一个 `<label …>` 包裹的范围（它上面的 title 会覆盖里面的控件）。 */
-function labelRanges(source: string): { start: number; end: number; title: string }[] {
-  const out: { start: number; end: number; title: string }[] = [];
-  const open = /<label\b/g;
+/** 一个 `<TeachingHint …>` 包裹的范围；静态 id 与动态 text 都必须声明其一。 */
+function teachingHintRanges(source: string): { start: number; end: number; attrs: string }[] {
+  const out: { start: number; end: number; attrs: string }[] = [];
+  const open = /<TeachingHint\b/g;
   for (let m = open.exec(source); m; m = open.exec(source)) {
-    const tag = openingTag(source, 'label', m.index);
+    const tag = openingTag(source, 'TeachingHint', m.index);
     if (!tag) continue;
-    const close = source.indexOf('</label>', tag.index);
+    const close = source.indexOf('</TeachingHint>', tag.index);
     const end = close === -1 ? source.length : close;
-    out.push({ start: tag.index, end, title: tag.attrs });
+    out.push({ start: tag.index, end, attrs: tag.attrs });
   }
   return out;
 }
@@ -108,27 +98,17 @@ function labelRanges(source: string): { start: number; end: number; title: strin
 const DYNAMIC_EXCEPTIONS: { file: string; match: string; why: string }[] = [
   {
     file: 'apps/web/src/studio/TopBar.tsx',
-    match: 'title={v.hint}',
+    match: 'text={v.hint}',
     why: '视口说明随断点宽度现场生成（按 375px 重新求解布局）——写死就与真实宽度对不上',
   },
   {
     file: 'apps/web/src/studio/TopBar.tsx',
-    match: 'title={undoLabel ?? undefined}',
-    why: '撤销说明由 store 现场给出（撤销：移动图层）——比任何静态句子都准',
-  },
-  {
-    file: 'apps/web/src/studio/TopBar.tsx',
-    match: 'title={redoLabel ?? undefined}',
-    why: '同上：重做说明现场给出',
-  },
-  {
-    file: 'apps/web/src/studio/TopBar.tsx',
-    match: 'title={props.shortcut ?',
-    why: 'TopButton 的 title 由调用方给：撤销/重做给现场标签，网格给字典里的说明',
+    match: '{...buttonProps}',
+    why: 'TopButton 把 TeachingHint 克隆注入的 aria-describedby 透传给真实 button；组件契约另有专门断言',
   },
 ];
 
-describe('§HINT-1 主界面的操作都带教学说明', () => {
+describe('§HINT-2 主界面的操作都带可访问教学气泡', () => {
   it('字典：每条说明中英各一份，zh 有汉字、en 零汉字零全角标点、两边都够长', () => {
     const ids = Object.keys(HINTS);
     expect(ids.length, '教学说明的规模太小，说明只加在了一两个地方').toBeGreaterThanOrEqual(17);
@@ -159,7 +139,7 @@ describe('§HINT-1 主界面的操作都带教学说明', () => {
       // 用法有两种写法：`hint('id', locale)` 直接给 id，和 MODES 那张表里
       // `hint: 'id'` 先存起来再传进去。两种都要算「用到了」，
       // 否则表里引用的三条档位说明会被误判成死条目。
-      for (const m of source.matchAll(/'(studio\.[A-Za-z0-9.]+)'/g)) used.add(m[1]!);
+      for (const m of source.matchAll(/['"](studio\.[A-Za-z0-9.]+)['"]/g)) used.add(m[1]!);
     }
     expect(used.size, '主界面几乎没有用到教学说明字典').toBeGreaterThanOrEqual(10);
     for (const id of used) {
@@ -170,36 +150,60 @@ describe('§HINT-1 主界面的操作都带教学说明', () => {
     }
   });
 
-  it('覆盖：主界面每个按钮/下拉都带说明（或被带 title 的 label 包着）', () => {
+  it('覆盖：主界面每个按钮/下拉/开关都被 TeachingHint 包住（或落在声明过的动态豁免里）', () => {
     const problems: string[] = [];
     let checked = 0;
 
     for (const file of SURFACES) {
       const source = strip(readFileSync(join(ROOT, file), 'utf8'));
-      const labels = labelRanges(source);
+      const hints = teachingHintRanges(source);
+      for (const wrapper of hints) {
+        if (!/\bhintId=/.test(wrapper.attrs) && !/\btext=/.test(wrapper.attrs)) {
+          problems.push(`${file}: TeachingHint 既没有 hintId 也没有 text`);
+        }
+        if (!/\blocale=/.test(wrapper.attrs)) {
+          problems.push(`${file}: TeachingHint 没有 locale`);
+        }
+      }
       for (const name of NEEDS_HINT) {
         const re = new RegExp(`<${name}\\b`, 'g');
         for (let m = re.exec(source); m; m = re.exec(source)) {
           const tag = openingTag(source, name, m.index);
           if (!tag) continue;
           const attrs = tag.attrs;
-          // 输入型控件（文本框）有自己的占位符说明；按钮与下拉没有。
-          if (/type="(?:text|search|number|email|url)"/.test(attrs)) continue;
+          const inputType = attrs.match(/\btype="([^"]+)"/)?.[1] ?? 'text';
+          if (name === 'input' && !['checkbox', 'radio'].includes(inputType)) continue;
           checked++;
-          const own = /\btitle=\{hint\(/.test(attrs);
-          const wrapped = labels.some((l) => tag.index > l.start && tag.index < l.end && /title=\{hint\(/.test(l.title));
+          const wrapped = hints.some((h) => tag.index > h.start && tag.index < h.end);
           const dynamic = DYNAMIC_EXCEPTIONS.some((e) => e.file === file && attrs.includes(e.match));
-          if (!own && !wrapped && !dynamic) {
-            problems.push(`${file}: <${name}> 没有教学说明`);
+          if (!wrapped && !dynamic) {
+            problems.push(`${file}: <${name}> 没有被 TeachingHint 包住`);
           }
         }
       }
     }
 
-    // 17 是实测值（六个主界面里的 button + select）。低于它说明扫描器坏了，
-    // 而不是「一切正常」——这两种情况必须分开。
     expect(checked, '没扫到任何控件——扫描器坏了，不是一切正常').toBeGreaterThanOrEqual(17);
     expect(problems, problems.join('\n')).toEqual([]);
+  });
+
+  it('标签不污染名称：三个表单控件的 tooltip 不嵌在原生 label 里', () => {
+    const commandBar = strip(readFileSync(join(ROOT, 'apps/web/src/studio/CommandBar.tsx'), 'utf8'));
+    expect((commandBar.match(/<label htmlFor=/g) ?? []).length).toBe(3);
+    for (const [labelId, marker] of [
+      ['agentSelectId', 'data-ai-agent'],
+      ['asyncInputId', 'data-ai-async'],
+      ['reviewInputId', 'data-ai-review'],
+    ]) {
+      expect(commandBar).toContain(`<label htmlFor={${labelId}}>`);
+      const tagName = marker === 'data-ai-agent' ? 'select' : 'input';
+      const markerPattern = new RegExp(`(?:^|\\s)${marker}(?:\\s|$)`);
+      const tag = [...commandBar.matchAll(new RegExp(`<${tagName}\\b`, 'g'))]
+        .map((m) => openingTag(commandBar, tagName, m.index))
+        .find((candidate) => candidate && markerPattern.test(candidate.attrs));
+      expect(tag?.attrs, `${marker} 没找到真实控件开标签`).toContain(`id={${labelId}}`);
+    }
+    expect(commandBar).not.toMatch(/<label[^>]*className="cb-sendBar"/);
   });
 
   it('豁免是声明：每条动态豁免都必须在它说的那个文件里真的出现', () => {
@@ -209,12 +213,75 @@ describe('§HINT-1 主界面的操作都带教学说明', () => {
     }
   });
 
-  it('说明不是写死的：控件上的说明必须调用 hint()，不许内联一句中文', () => {
+  it('迁移守恒：六个主界面不再用 title={hint(...)} 冒充可访问说明', () => {
     for (const file of SURFACES) {
       const source = strip(readFileSync(join(ROOT, file), 'utf8'));
-      for (const m of source.matchAll(/\btitle="([^"]*)"/g)) {
-        expect(m[1]!, `${file} 的 title 是写死的中文字面量，不是来自字典的说明`).not.toMatch(CJK);
-      }
+      expect(source, `${file} 还留着原生 title 说明——它不能被键盘和触屏可靠读到`).not.toMatch(/title=\{hint\(/);
     }
+    for (const file of SURFACES.slice(0, 3)) {
+      const source = strip(readFileSync(join(ROOT, file), 'utf8'));
+      expect(source, `${file} 没有接入共享气泡`).toContain("from '@/components/TeachingHint'");
+    }
+  });
+
+  it('撤销/重做：实时操作名也走共享气泡，无历史时不挂空说明', () => {
+    const topbar = strip(readFileSync(join(ROOT, 'apps/web/src/studio/TopBar.tsx'), 'utf8'));
+    expect(topbar).toContain("hint('studio.topbar.undo', locale)");
+    expect(topbar).toContain("hint('studio.topbar.redo', locale)");
+    expect(topbar).toContain("text={`${hint('studio.topbar.undo', locale)}${historySuffix(undoLabel, locale)}`}");
+    expect(topbar).toContain("text={`${hint('studio.topbar.redo', locale)}${historySuffix(redoLabel, locale)}`}");
+    expect(topbar).toContain("locale === 'en' && CJK.test(label) ? '' : ` ${label}`");
+    expect(topbar).toContain('viewportOptions(locale)');
+    expect(topbar).toMatch(/undoLabel\s*\?\s*\(/);
+    expect(topbar).toMatch(/redoLabel\s*\?\s*\(/);
+    expect(topbar).not.toContain('title={undoLabel');
+    expect(topbar).not.toContain('title={redoLabel');
+  });
+
+  it('组件契约：单一真值 + aria-describedby + tooltip + focus/pointer/Escape 收口', () => {
+    const component = strip(readFileSync(join(ROOT, HINT_COMPONENT), 'utf8'));
+    expect(component.slice(0, 40)).toContain("'use client'");
+    expect(component).toContain("from '@/lib/hintCopy'");
+    expect(component).toContain('hint(hintId, locale)');
+    expect(component).toContain("'aria-describedby': describedBy");
+    expect(component).toContain('role="tooltip"');
+    expect(component).toContain('title: undefined');
+    expect(component).toContain('createPortal(');
+    expect(component).toContain('onFocusCapture=');
+    expect(component).toContain('onPointerDownCapture=');
+    expect(component).toContain("event.key !== 'Escape'");
+    expect(component).toContain('const focusInside = !!root?.contains(document.activeElement)');
+    expect(component).toContain('if (!focusInside) return');
+    expect(component).toContain("addEventListener('pointerdown'");
+    expect(component).toContain('event.stopPropagation()');
+    expect(component).toContain('trigger?.focus({ preventScroll: true })');
+    expect(component).toContain('window.visualViewport');
+    expect(component).toContain("visualViewport?.addEventListener('resize', place)");
+    expect(component).toContain("visualViewport?.addEventListener('scroll', place)");
+    expect(component).toContain('const maxHeight = Math.min(naturalHeight, available)');
+  });
+
+  it('TopButton 不再吞掉说明：克隆注入的无障碍属性必须透传到真实 button', () => {
+    const topbar = strip(readFileSync(join(ROOT, 'apps/web/src/studio/TopBar.tsx'), 'utf8'));
+    expect(topbar).toContain('{...buttonProps}');
+    expect(topbar).toContain('hintId="studio.topbar.grid"');
+    expect(topbar).not.toContain('title={props.shortcut ?');
+  });
+
+  it('气泡视觉：不占布局、固定定位、token 色、forced-colors 回退、零写死 hex', () => {
+    const css = readFileSync(join(ROOT, GLOBALS), 'utf8');
+    const tokens = readFileSync(join(ROOT, TOKENS), 'utf8');
+    expect(css).toMatch(/\.hint-anchor\s*\{\s*display:\s*contents;/);
+    expect(css).toMatch(/\.hint-bubble\s*\{[^}]*position:\s*fixed;/);
+    expect(css).toMatch(/\.hint-bubble\s*\{[^}]*z-index:\s*var\(--nexus-z-tooltip\);/);
+    expect(css).toMatch(/\.hint-bubble\s*\{[^}]*max-width:/);
+    expect(css).toMatch(/@media \(forced-colors: active\)\s*\{\s*\.hint-bubble\s*\{[^}]*background:\s*Canvas;/);
+    const start = css.indexOf('.hint-anchor');
+    const end = css.indexOf('.gw-grid', start);
+    const segment = css.slice(start, end);
+    expect(segment).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+    const declared = new Set([...tokens.matchAll(/(--nexus-[a-z0-9-]+)\s*:/g)].map((m) => m[1]!));
+    const used = [...new Set([...segment.matchAll(/var\((--nexus-[a-z0-9-]+)\)/g)].map((m) => m[1]!))];
+    expect(used.filter((token) => !declared.has(token))).toEqual([]);
   });
 });

@@ -21,6 +21,17 @@
 
 本文件是项目当前状态的快照——供未来任何 agent（或人类）在我不在的时候接上。它**只描述已经交付、已可执行的事**，不承诺未做的事。
 
+> **2026-11-24（§HINT-2 教学说明升级为可访问共享气泡，ADR-0320）**：六个主界面的教学说明从原生 `title` 迁到共享 `TeachingHint`，静态真值仍是 `apps/web/src/lib/hintCopy.ts` 的 **25 条**中英说明。真实控件保留自己的布局与名称，组件注入 `aria-describedby`、清除原生 `title`，另有常驻隐藏 `role="tooltip"` 与 body portal 可见气泡；键盘聚焦、鼠标悬停、触屏 pointer-down 三条路径都通，Escape 只在提示根内有焦点时接管，外部点击与 blur 正常收起。定位读取 `visualViewport`，按上下空间选边并对宽高夹紧，390×300 窄视口不越界、不压住触发器。撤销/重做有历史时才挂动态气泡，英文省略仍是中文的实时操作名；断点标签按 locale 取，英文不夹汉字。
+>
+> **已验收**：系统 Chrome 真实浏览器桌面/移动端 **2 passed in 36.0s**，截图
+> `docs/evidence/studio/teaching-hints-desktop-zh.png`（1280×800）与
+> `docs/evidence/studio/teaching-hints-mobile-en.png`（CSS 390×844，物理 780×1688）均已目验，
+> `DEMO MODE` 常驻；生成接口拦截清单为空。选择器迁移回归 **3 passed in 1.0m**；相关 Vitest
+> **3 files / 35 tests**、web/e2e TypeScript 与目标文件 ESLint 全绿。证据：
+> `docs/evidence/studio/teaching-hints-accessible-2026-11-24.md`。
+>
+> **边界**：只覆盖六个主界面，面板内部各自的教学 `title` 尚未全站收编；ARIA/键盘/触屏有自动化与浏览器凭证，但没有真人屏幕阅读器走查。一次全串行复跑遇过首页 Next dev 瞬时语法错误，下一轮完整通过，未冒充已定位根因。外部模型 API 按用户要求关闭，本轮零调用。
+
 > **2026-11-14 续（§v717「EraTies」+ §v718「Digest」——世界线两条展望落地，main 领先 origin 620+，未 push）**：
 > - **§v717-EraTies**（`290f2604`）：`lib/era-ties.ts` 纯函数 `buildEraTies(eras, characters)`——星图人物 relationships[].target 一跳、id 精确命中的本卷 story/history 条目 ⇒ 该人物「活跃于此卷」；不做传递闭包；viaEntryIds 保编年原序去重；人物按展示名升序 + id 次级（空名回退 id）；UNLABELED/未标纶元照常计算；确定性双跑深相等。`chronicle/page.tsx` 与 codex 同款门（requireUser + projectVisibleTo），服务端把人物名册算成 ties；`ChronicleView.tsx` 每卷渲染 `.crn-ties` 条（label「本卷活跃的星图人物」+ 指向 /constellation 的 chips，如实空白「星图里还没有人物指向本卷的条目——…这里就会亮起来。」）。§FE-CRN 钩子扩至 13 个（data-chronicle-ties / tie= / ties-empty），SHA256 重钉。
 > - **§v718-Digest**（`be951179`）：`/world/<id>/digest` RSC「世界速览」——一屏四象限（星图/编年/设定集/切片，全部真实计数）；「最近两条纶元」只认作者取了名字的纶元（UNLABELED_ERA 剔除）；「最近动过的设定」按 updatedAt 倒序 + 平局 title/id 兜底（确定性，不做"重要度"算法）；世界读不出来 ⇒ `dg-empty` 页如实空白不画任何数字；空纶元 / 空 lore 各自如实空白。`WorldGraphView` 加「世界速览」入口（data-enter-digest）；`/guide` 双语功能地图各补 /world/<id>/digest 一行（§FE-Guide SHA 重钉 7/7）。§FE-DG 门面判据 `digest-visual-style.test.ts` 7/7（19 钩子守恒 · className 只认 .dg-* 族 · 零 hex · forced-colors · SHA256）。

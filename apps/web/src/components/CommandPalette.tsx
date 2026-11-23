@@ -17,7 +17,7 @@ import { clampActive, isPaletteHotkey, moveActive } from '@/lib/command-palette/
 import { shouldShowChip } from '@/lib/command-palette/placement';
 import { rank, type MatchRange, type Ranked } from '@/lib/command-palette/score';
 import { isTheme, THEME_STORAGE_KEY } from '@/lib/theme';
-import { hint } from '@/lib/hintCopy';
+import { TeachingHint } from '@/components/TeachingHint';
 
 /**
  * §CP-1 全站命令面板（⌘K / Ctrl+K）。
@@ -302,19 +302,20 @@ export function CommandPalette({ locale = 'zh' }: { locale?: Locale }) {
   return (
     <>
       {shouldShowChip(pathname) ? (
-        <button
-          type="button"
-          onClick={openPalette}
-          className="cp-chip"
-          data-command-palette-chip
-          title={hint('studio.palette.open', locale)}
-          aria-label={`${T.chip} ${modifier} K`}
-          aria-keyshortcuts={`${mac ? 'Meta' : 'Control'}+K`}
-        >
-          <Search size={13} aria-hidden />
-          <span className="cp-chipText">{T.chip}</span>
-          <kbd className="cp-kbd">{modifier} K</kbd>
-        </button>
+        <TeachingHint hintId="studio.palette.open" locale={locale}>
+          <button
+            type="button"
+            onClick={openPalette}
+            className="cp-chip"
+            data-command-palette-chip
+            aria-label={`${T.chip} ${modifier} K`}
+            aria-keyshortcuts={`${mac ? 'Meta' : 'Control'}+K`}
+          >
+            <Search size={13} aria-hidden />
+            <span className="cp-chipText">{T.chip}</span>
+            <kbd className="cp-kbd">{modifier} K</kbd>
+          </button>
+        </TeachingHint>
       ) : null}
 
       {open ? (

@@ -1,4 +1,4 @@
-import type { Locale } from '@/lib/i18n';
+import type { Locale } from './i18n';
 
 /**
  * §HINT-1 · 教学说明的真值（Teaching hints — the single source）。
@@ -15,7 +15,7 @@ import type { Locale } from '@/lib/i18n';
  *   但「这句说明是不是来自这一份字典、中英各有一份、够长、没夹语言」能判。
  *
  * 所以：**每一句教学说明都必须出自这张表**，并且中英各一份。
- * `apps/web/test/hint-coverage.test.ts` 是它的门——控件漏了说明会红，
+ * `apps/web/test/hint-coverage-behavior.test.ts` 是它的门——控件漏了说明会红，
  * 字典里出现死条目（谁都没用）也会红。
  *
  * 写法约定（门会查）：
@@ -122,6 +122,14 @@ export const HINTS = {
   'studio.topbar.grid': {
     zh: '对齐网格：打开后拖动元素会按 8px 网格吸附，Ctrl+G 可以随时收起。',
     en: 'Alignment grid: with it on, dragged elements snap to an 8px grid; Ctrl+G turns it off again.',
+  },
+  'studio.topbar.undo': {
+    zh: '撤销上一笔编辑：画布、图层、分镜与对话一起回退；Ctrl+Z 是同一条撤销栈。',
+    en: 'Undo the last edit: canvas, layers, storyboard and chat roll back together; Ctrl+Z uses the same undo stack.',
+  },
+  'studio.topbar.redo': {
+    zh: '重做刚撤销的那一笔编辑：画布、图层、分镜与对话一起恢复；Ctrl+Shift+Z 是同一条重做栈。',
+    en: 'Redo the edit you just undid: canvas, layers, storyboard and chat return together; Ctrl+Shift+Z uses the same redo stack.',
   },
 } as const;
 

@@ -15869,6 +15869,48 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
   ③ 悬停说明对触屏用户不可见（`title` 原生行为）——这一片只保证「有说明」，不保证「都读得到」；
   ④ 浏览器像素层未验收（本机无合适 Chrome）。
 
+## §HINT-2 教学说明升级为可访问共享气泡（2026-11-24 / ADR-0320）
+
+延续 §HINT-1，但不再让原生 `title` 承担教学：它对键盘与触屏用户都不可靠。六个主界面
+（首页 / 广场 / 观察站 / Studio 顶栏 / Studio 命令栏 / 命令面板）的教学说明统一接入共享
+`TeachingHint`；静态说明仍只有 `apps/web/src/lib/hintCopy.ts` 一份真值，当前 **25 条**，
+中英各一份，没有第二套组件内字典。
+
+- **一个组件，两种呈现**：克隆真实控件并注入 `aria-describedby`、`data-teaching-hint-trigger`，
+  清掉原生 `title`；常驻的视觉隐藏 `role="tooltip"` 给辅助技术，body portal 里的可见气泡
+  `aria-hidden="true"`，避免同一句被读两遍。`.hint-anchor { display: contents }` 不占原控件
+  的 flex/grid 位置。
+- **三条输入路径都成立**：键盘聚焦打开、鼠标悬停打开、非鼠标 pointer-down 打开并钉住；
+  外部 pointer-down 收起，blur 重置 dismissed 标记，离开再回来可以重新聚焦打开。
+  `span`/`div` 这类非交互子控件补 `tabIndex=0`，不是只有按钮才看得到说明。
+- **Escape 不抢画布的键**：只有焦点在提示根内才 `preventDefault`/`stopPropagation`，把焦点
+  留在触发器并收起气泡；焦点在外时只收起自己的浮层，不截断 Studio 清选择等既有行为。
+- **位置跟着可视视口走**：使用 `visualViewport` 的 offset/width/height，上下空间选边，
+  宽度与高度按可用空间夹紧，窄屏和 390×300 低高度窗口也不越界、不压住触发器；
+  窗口与 visualViewport 的 resize/scroll 都重新定位。
+- **动态说明不破真值**：撤销/重做有历史时才挂气泡，静态后果 + store 实时操作名一起读；
+  无历史不挂空说明。断点标签经 `viewportOptions(locale)`，英文不再夹中文宽度；历史标签
+  目前只有中文，英文气泡省略该细节而不机翻、不把汉字拼进英文。
+- **名称不被污染**：三个表单控件的隐藏 tooltip 移出原生 `<label>`，改用外置
+  `label htmlFor`，`aria-label` 与教学描述各司其职。
+- **门跟着行为改**：`hint-coverage-behavior.test.ts` 现在要求静态说明 lexical 落在
+  `<TeachingHint>` 内，不再接受残留 `title={hint(...)}`；组件契约钉 ARIA、焦点、pointer、
+  Escape 作用域、visualViewport 与限高；视觉 token/forced-colors 仍有门。CommandBar 与
+  TopBar 的 SHA 门按真实可访问性变更重钉，理由写在测试里。
+- **真实浏览器验收**：系统 Chrome、单 worker、隔离树 3101；桌面 1280×800 中文 Tab/悬停/
+  Escape/撤销重做，移动端 390×844 英文触屏/外部收起/撤销重做/英文零汉字，以及 390×300
+  窄视口几何，**2 passed in 36.0s**。桌面与移动端截图均已目验，`DEMO MODE` 常驻；
+  `**/api/ai/**` 生成调用拦截清单为空。选择器迁移回归（components / image-studio / studio）
+  **3 passed in 1.0m**，不是只改选择器不跑。
+- **验证**：相关 Vitest **3 files / 35 tests passed**，文档证据门 **1 file / 5 tests passed**；
+  `verify:record-encoding` 与 `verify:evidence-census` 均退出 0（后者 132/132 变异臂匹配）；
+  web/e2e `tsc --noEmit` 均退出 0；目标文件 ESLint 退出 0。证据与命令见
+  `docs/evidence/studio/teaching-hints-accessible-2026-11-24.md`。
+- **诚实限度**：覆盖范围仍是这六个主界面，面板内部各自的教学 `title` 没有全站收编；
+  自动化验证了 ARIA 关联、键盘/触屏与几何，但没有真人屏幕阅读器走查；一次全串行复跑
+  曾在首页撞到 Next dev 的瞬时 `Runtime SyntaxError`，当次 HTTP 仍 200，下一轮完整复跑通过，
+  未把它说成已定位的产品缺陷。外部模型 API 保持关闭，本轮零调用、零伪造。
+
 ## §INTEGRATE-2 主线再并轨：隔离工作树保住在途支线（2026-11-24 / ADR-0318）
 
 - **背景**：本地 `main` = `f531ad5d`（独有 15 提交），`origin/main` = `cb5407c5`（独有 22 提交）；

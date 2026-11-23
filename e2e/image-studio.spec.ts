@@ -77,12 +77,12 @@ test('@smoke 图像生成：DEMO 角标可见、一次点击一个事务、额�
   await page.screenshot({ path: 'screenshots/image-studio-generated.png' });
 
   // 撤销：填充与清单项一起消失（一次事务，不是两笔各撤销一半）
-  await page.getByTitle('撤销（Ctrl+Z）').click();
+  await page.locator('[aria-keyshortcuts="Control+Z"]').click();
   await expect(page.locator(`[data-asset-card="${assetId}"]`)).toHaveCount(0, { timeout: 20_000 });
   await expect(node).not.toHaveCSS('background-image', /\/api\/assets\//);
 
   // 重做：又回来了，仍然是那一张
-  await page.getByTitle('重做（Ctrl+Shift+Z）').click();
+  await page.locator('[aria-keyshortcuts="Control+Shift+Z"]').click();
   await expect(page.locator(`[data-asset-card="${assetId}"]`)).toBeVisible({ timeout: 20_000 });
   await expect(page.locator(`[data-asset-card="${assetId}"] [data-asset-demo-badge]`)).toHaveText('DEMO');
 
@@ -165,6 +165,6 @@ test('@smoke 草图生成：空白不可点、一次事务两张卡、DEMO 只�
   await page.screenshot({ path: 'screenshots/image-studio-sketch.png' });
 
   // 撤销：两张一起走——草图与生成图绑在同一事务里，撤销不该留下半截清单（§149）
-  await page.getByTitle('撤销（Ctrl+Z）').click();
+  await page.locator('[aria-keyshortcuts="Control+Z"]').click();
   await expect(page.locator('[data-asset-card]')).toHaveCount(cardsBefore, { timeout: 20_000 });
 });
