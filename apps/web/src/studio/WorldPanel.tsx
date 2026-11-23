@@ -39,6 +39,7 @@ import { filterWorldNodes } from '@/lib/worldFilter';
 import { sortWorldNodes, type WorldSortMode } from '@/lib/worldSort';
 import { auditSuggestion, auditWorld, formatWorldAudit } from '@/lib/worldAudit';
 import { formatSuggestion, suggestWorldLinks, type LinkSuggestion } from '@/lib/worldLinks';
+import { generateSeedChapter } from '@/lib/worldSeed';
 import { saveBlob } from '@/lib/download';
 import { useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';
@@ -86,6 +87,9 @@ const COPY = {
     linkHintsTitle: '只根据你已写的纪元与正文里的共同词，指出哪些条目可能有关；不会替你编造关系。点「连上」才真正写一条关系。已经连过的不重复建议。',
     linkHintEmpty: '目前没有可建议的串联——至少要两条有正文的条目，且它们同纪元或写到共同词。',
     linkMake: '连上',
+    seedWorld: '播下世界种子',
+    seedWorldTitle: '从当前世界名确定性地长出一个九类齐全的起始篇章：地名、势力、角色、生物、物品互相引用，读起来是一片连贯的土地。程序生成、只追加、不覆盖，不是作者写的史实；同一世界每次点会得到不同的种子。',
+    seedWorldDone: (titles: string[]) => `已播下 ${titles.length} 条起始条目：${titles.join('、')}。程序生成、可随意改写。`,
     fate: '掷命运骰',
     fateTitle: '不调模型、不写库：从这个世界已写的条目里抽两条，按确定性的句式重组成一张事件卡。同一个数字出现同一张卡，换一个数字就换一张——无穷来自你写下的细节组合，不是凭空编造。',
     fateEmpty: '至少要有两条写了正文的条目才能掷骰——先用填充或续写补一点内容。',
@@ -206,6 +210,9 @@ const COPY = {
     linkHintsTitle: 'Points out entries that may be related, using only the eras and shared words you actually wrote — it never invents a relation. Press “Connect” to really write the edge. Already-connected pairs are not suggested again.',
     linkHintEmpty: 'No hints yet — you need at least two entries with bodies that share an era or a word.',
     linkMake: 'Connect',
+    seedWorld: 'Sow a world seed',
+    seedWorldTitle: 'Grow a coherent nine-section starting chapter from the current world name — geography, factions, characters, creatures and items all reference each other. Procedural, append-only, never author-written lore; each press on the same world yields a different seed.',
+    seedWorldDone: (titles: string[]) => `Sowed ${titles.length} starting entries: ${titles.join(', ')}. Procedural — rewrite them freely.`,
     fate: 'Roll fate',
     fateTitle: 'No model call, no database write: pick two entries you already wrote and recombine them into an event card with a deterministic frame. Same number, same card; a different number gives another — the endlessness comes from your own details, not invented ones.',
     fateEmpty: 'Roll needs at least two entries with body text — fill or continue the chronicle first.',
@@ -504,6 +511,19 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
     }
     edit(result.document, true);
     setLinkHints((prev) => prev.filter((h) => h !== hint));
+  };
+
+  const [seedCount, setSeedCount] = useState(0);
+  const [seedNote, setSeedNote] = useState('');
+  const sowSeed = () => {
+    const doc = worldStore.getSnapshot().world;
+    if (!doc) return;
+    const generated = generateSeedChapter(`${doc.name}#${seedCount}`);
+    const { document: merged, added } = mergeImportedWorld(doc, generated);
+    if (!added) return;
+    edit(merged, true);
+    setSeedCount((n) => n + 1);
+    setSeedNote(c.seedWorldDone(generated.entries.map((e) => e.title)));
   };
 
   // §44 衍生玩法「命运骰」：纯确定性重组已有条目，零 provider、零写库；seed 递增保证每次换新卡。
@@ -1098,6 +1118,15 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
           >
             {c.linkHints}
           </button>
+          <button
+            type="button"
+            onClick={sowSeed}
+            title={c.seedWorldTitle}
+            data-world-seed
+            className="wd-ghostBtn"
+          >
+            {c.seedWorld}
+          </button>
         </div>
         {aiFillNote ? <p className="wd-body11Mt2" data-world-ai-fill-note>{aiFillNote}</p> : null}
         {chronicleNote ? <p className="wd-body11Mt2" data-world-ai-chronicle-note>{chronicleNote}</p> : null}
@@ -1108,6 +1137,7 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
         {importNote ? <p className="wd-body11Mt2" data-world-import-note>{importNote}</p> : null}
         {auditNote ? <p className="wd-body11Mt2" data-world-audit-note>{auditNote}</p> : null}
         {hintNote ? <p className="wd-body11Mt2" data-world-hint-note>{hintNote}</p> : null}
+        {seedNote ? <p className="wd-body11Mt2" data-world-seed-note>{seedNote}</p> : null}
         {linkHints.length ? (
           <ul className="wd-col2" data-world-link-hints-list>
             {linkHints.map((hint) => (
