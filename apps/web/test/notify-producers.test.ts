@@ -96,7 +96,20 @@ describe('结构门：§164 每一类通知都要有走得通的生产者', () =
     const pageSrc = readFileSync(join(SRC_DIR, 'app', 'notifications', 'page.tsx'), 'utf8');
     // 页面必须现算这张表：类数从注册表来，话从终态表来
     expect(pageSrc).toMatch(/Object\.keys\(NOTIFICATION_KINDS\)/);
-    expect(pageSrc).toMatch(/NOTIFICATION_TERMINAL_STATE\s*\[/);
+    // 2026-11-22：英文侧补了 NOTIFICATION_TERMINAL_STATE_EN 镜像，页面按 locale 选一份
+    // （const terminalState = locale === 'en' ? …_EN : …）再下标。两种形态都算「从这张表现算」：
+    //   ① 直接下标：NOTIFICATION_TERMINAL_STATE[_EN]?[
+    //   ② 先按语言选表、再下标那个变量
+    // 原来只认①，页面加了语言选择之后就被判成"手写名单"——那是门的字面太窄，不是页面在骗人。
+    const directIndex = /NOTIFICATION_TERMINAL_STATE(_EN)?\s*\[/.test(pageSrc);
+    const alias = /const\s+(\w+)\s*=\s*locale\s*===\s*'en'\s*\?\s*NOTIFICATION_TERMINAL_STATE_EN\s*:\s*NOTIFICATION_TERMINAL_STATE\s*;/.exec(
+      pageSrc,
+    );
+    const aliasIndex = alias ? new RegExp(`${alias[1]}\\s*\\[`).test(pageSrc) : false;
+    expect(
+      directIndex || aliasIndex,
+      '收件箱页必须从终态表现算（直接下标，或按 locale 选表后再下标）',
+    ).toBe(true);
     // 手写清单回来的两种样子：又写了一份 `const NOTIFIED = [...]`，或把类数写成字面量"四类"
     expect(pageSrc, '页面里又出现了一份手写的通知清单').not.toMatch(/const NOTIFIED\b/);
     expect(pageSrc, '页面把类数写成了字面量，下一类加进来它就又是谎').not.toMatch(/四类/);

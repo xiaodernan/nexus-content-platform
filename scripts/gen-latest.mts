@@ -53,7 +53,14 @@ const countRecursive = (dir: string, match: (name: string) => boolean) => {
 // 并轨提交 00bde67 + 后续并轨），不再是「两条互不相干的历史」。当初那段「main 陈旧、
 // master 活跃」的说明只作历史记录保留——今天的默认仍是 HEAD。
 // A sync script that happened to run on `main` used to publish main's numbers as "latest".
-const FACT_REF = (process.env.NEXUS_FACT_REF ?? 'HEAD').trim() || 'HEAD';
+const REQUESTED_REF = (process.env.NEXUS_FACT_REF ?? 'HEAD').trim() || 'HEAD';
+// 钉的 ref 必须真的解得开。2026-11-22 并轨后本地只剩 main 一条线（master 只存在于远端），
+// 钉 `master` 会让 git rev-parse 失败 → head 空串、commits null，个人主页那几个数字就成空的。
+// 静默降级是假数据的一种形态，所以这里：解不开就回退 HEAD，并如实打一行警告。
+const FACT_REF = sh(['rev-parse', '--verify', '--quiet', REQUESTED_REF]) === null ? 'HEAD' : REQUESTED_REF;
+if (FACT_REF !== REQUESTED_REF) {
+  console.warn(`[gen-latest] 钉的 ref「${REQUESTED_REF}」在本机解不开（本地没有这条线）→ 回退到 HEAD`);
+}
 const commits = sh(['rev-list', '--count', FACT_REF]);
 const headFull = sh(['rev-parse', FACT_REF]) ?? '';
 const headShort = headFull.slice(0, 7);
