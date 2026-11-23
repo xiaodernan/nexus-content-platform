@@ -33,6 +33,8 @@ import type { Locale } from '@/lib/i18n';
 import { chatWithCharacter } from '@/server/ai/client';
 import { fillableKinds, formatWorldFillError, parseChronicleReply, parseEchoReply, parseLinkReply, parseWorldFillReply, retrieveWorldContext } from '@/lib/worldFill';
 import { rollFate, type FateCard } from '@/lib/worldFate';
+import { worldFileName, worldToMarkdown } from '@/lib/worldExport';
+import { saveBlob } from '@/lib/download';
 import { useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';
 import { WORLD_KIND_LABELS_EN } from '@nexus/world-model';
@@ -62,6 +64,8 @@ const COPY = {
     aiFillAll: 'AI 补全空节',
     aiFillAllBusy: '补全中…',
     aiFillAllTitle: '一次点击最多补 3 个还没有条目的节（九类里选），每节都是真调用；已有内容的节不动。想补完就再点一次。token 按实际调用计，不偷偷多打。（四个 AI 按钮共用每小时 10 次的额度，超了界面会告诉你要等多久。）',
+    exportMd: '导出 Markdown',
+    exportMdTitle: '把这份世界按九类固定顺序导成 .md：节点正文、纪元/序号、记忆回声都在里面，空类也留标题。纯本地投影，不调模型、不联网。',
     fate: '掷命运骰',
     fateTitle: '不调模型、不写库：从这个世界已写的条目里抽两条，按确定性的句式重组成一张事件卡。同一个数字出现同一张卡，换一个数字就换一张——无穷来自你写下的细节组合，不是凭空编造。',
     fateEmpty: '至少要有两条写了正文的条目才能掷骰——先用填充或续写补一点内容。',
@@ -165,6 +169,8 @@ const COPY = {
     aiFillAll: 'AI fill empties',
     aiFillAllBusy: 'Filling…',
     aiFillAllTitle: 'One click fills at most 3 of the sections that still have no entries (out of nine); each is a real provider call. Sections with content are untouched. Click again for the rest — token cost is what is actually called, never silently more. (All four AI buttons share a 10-per-hour quota; the UI tells you how long to wait if you hit it.)',
+    exportMd: 'Export Markdown',
+    exportMdTitle: 'Export this world as a .md in the fixed nine-section order: bodies, era/order and memory echoes are all included, and empty sections keep their headings. Pure local projection — no model call, no network.',
     fate: 'Roll fate',
     fateTitle: 'No model call, no database write: pick two entries you already wrote and recombine them into an event card with a deterministic frame. Same number, same card; a different number gives another — the endlessness comes from your own details, not invented ones.',
     fateEmpty: 'Roll needs at least two entries with body text — fill or continue the chronicle first.',
@@ -411,6 +417,12 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
       ? `已补 ${done}/${empty.length} 个空节（一次最多 3 节，省 token；还可再点继续）。`
       : `Filled ${done}/${empty.length} empty sections (max 3 per click to save tokens; click again for the rest).`);
     setBulkBusy(false);
+  };
+
+  const exportMarkdown = () => {
+    const doc = worldStore.getSnapshot().world;
+    if (!doc) return;
+    saveBlob(worldFileName(doc), new Blob([worldToMarkdown(doc, locale)], { type: 'text/markdown;charset=utf-8' }));
   };
 
   // §44 衍生玩法「命运骰」：纯确定性重组已有条目，零 provider、零写库；seed 递增保证每次换新卡。
@@ -926,6 +938,15 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
             className="wd-ghostBtn"
           >
             {c.fate}
+          </button>
+          <button
+            type="button"
+            onClick={exportMarkdown}
+            title={c.exportMdTitle}
+            data-world-export-md
+            className="wd-ghostBtn"
+          >
+            {c.exportMd}
           </button>
         </div>
         {aiFillNote ? <p className="wd-body11Mt2" data-world-ai-fill-note>{aiFillNote}</p> : null}

@@ -93,6 +93,7 @@ describe('WorldPanel 四种填料按钮接线（web 侧限流期间的静态保�
       ['data-world-fate-keep', 'keepFateCard', '非模型生成'],
       ['data-world-ai-fill', 'failReason(body', 'formatWorldFillError'],
       ['data-world-ai-fill', 'worldStore.setLocal', '不进画布的撤销栈'],
+      ['data-world-export-md', 'worldToMarkdown(doc', 'saveBlob'],
     ] as const) {
       expect(panel, hook).toContain(hook);
       expect(panel, flag).toContain(flag);
