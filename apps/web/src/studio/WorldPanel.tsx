@@ -38,6 +38,7 @@ import { formatWorldStats, worldStats } from '@/lib/worldStats';
 import { filterWorldNodes } from '@/lib/worldFilter';
 import { sortWorldNodes, type WorldSortMode } from '@/lib/worldSort';
 import { auditSuggestion, auditWorld, formatWorldAudit } from '@/lib/worldAudit';
+import { formatSuggestion, suggestWorldLinks, type LinkSuggestion } from '@/lib/worldLinks';
 import { saveBlob } from '@/lib/download';
 import { useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';
@@ -81,6 +82,10 @@ const COPY = {
     importFail: '这个文件不是本模块导出的 Markdown（缺 # 世界名或没有任何有正文的条目）——什么都没写进去。',
     audit: '世界体检',
     auditTitle: '纯本地只读检查：量出空正文、重名、没有关系的孤儿条目、指向已删除条目的断链，并给一条可执行的下一步。不写库、不调模型。',
+    linkHints: '串联建议',
+    linkHintsTitle: '只根据你已写的纪元与正文里的共同词，指出哪些条目可能有关；不会替你编造关系。点「连上」才真正写一条关系。已经连过的不重复建议。',
+    linkHintEmpty: '目前没有可建议的串联——至少要两条有正文的条目，且它们同纪元或写到共同词。',
+    linkMake: '连上',
     fate: '掷命运骰',
     fateTitle: '不调模型、不写库：从这个世界已写的条目里抽两条，按确定性的句式重组成一张事件卡。同一个数字出现同一张卡，换一个数字就换一张——无穷来自你写下的细节组合，不是凭空编造。',
     fateEmpty: '至少要有两条写了正文的条目才能掷骰——先用填充或续写补一点内容。',
@@ -197,6 +202,10 @@ const COPY = {
     importFail: 'This file is not a Markdown exported by this module (no # world name, or no entry with a body) — nothing was written.',
     audit: 'World checkup',
     auditTitle: 'Read-only local check: counts empty bodies, duplicate titles, orphan nodes with no relations and links pointing at deleted entries, then gives one actionable next step. No database write, no model call.',
+    linkHints: 'Connection hints',
+    linkHintsTitle: 'Points out entries that may be related, using only the eras and shared words you actually wrote — it never invents a relation. Press “Connect” to really write the edge. Already-connected pairs are not suggested again.',
+    linkHintEmpty: 'No hints yet — you need at least two entries with bodies that share an era or a word.',
+    linkMake: 'Connect',
     fate: 'Roll fate',
     fateTitle: 'No model call, no database write: pick two entries you already wrote and recombine them into an event card with a deterministic frame. Same number, same card; a different number gives another — the endlessness comes from your own details, not invented ones.',
     fateEmpty: 'Roll needs at least two entries with body text — fill or continue the chronicle first.',
@@ -474,6 +483,27 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
     if (!doc) return;
     const a = auditWorld(doc);
     setAuditNote(`${formatWorldAudit(a, locale)}。${auditSuggestion(a, locale)}`);
+  };
+
+  const [linkHints, setLinkHints] = useState<LinkSuggestion[]>([]);
+  const [hintNote, setHintNote] = useState('');
+  const runLinkHints = () => {
+    const doc = worldStore.getSnapshot().world;
+    if (!doc) return;
+    const hints = suggestWorldLinks(doc);
+    setLinkHints(hints);
+    setHintNote(hints.length ? '' : c.linkHintEmpty);
+  };
+  const acceptHint = (hint: LinkSuggestion) => {
+    const doc = worldStore.getSnapshot().world;
+    if (!doc) return;
+    const result = linkWorldNodes(doc, hint.fromId, hint.toId, hint.evidence);
+    if (result.reason) {
+      worldStore.showNotice(result.reason);
+      return;
+    }
+    edit(result.document, true);
+    setLinkHints((prev) => prev.filter((h) => h !== hint));
   };
 
   // §44 衍生玩法「命运骰」：纯确定性重组已有条目，零 provider、零写库；seed 递增保证每次换新卡。
@@ -1059,6 +1089,15 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
           >
             {c.audit}
           </button>
+          <button
+            type="button"
+            onClick={runLinkHints}
+            title={c.linkHintsTitle}
+            data-world-link-hints
+            className="wd-ghostBtn"
+          >
+            {c.linkHints}
+          </button>
         </div>
         {aiFillNote ? <p className="wd-body11Mt2" data-world-ai-fill-note>{aiFillNote}</p> : null}
         {chronicleNote ? <p className="wd-body11Mt2" data-world-ai-chronicle-note>{chronicleNote}</p> : null}
@@ -1068,6 +1107,25 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
         {fateNote ? <p className="wd-body11Mt2" data-world-fate-note>{fateNote}</p> : null}
         {importNote ? <p className="wd-body11Mt2" data-world-import-note>{importNote}</p> : null}
         {auditNote ? <p className="wd-body11Mt2" data-world-audit-note>{auditNote}</p> : null}
+        {hintNote ? <p className="wd-body11Mt2" data-world-hint-note>{hintNote}</p> : null}
+        {linkHints.length ? (
+          <ul className="wd-col2" data-world-link-hints-list>
+            {linkHints.map((hint) => (
+              <li key={`${hint.fromId}-${hint.toId}`} className="wd-row1" data-world-link-hint>
+                <span className="wd-faint11">{formatSuggestion(hint, locale)}</span>
+                <button
+                  type="button"
+                  onClick={() => acceptHint(hint)}
+                  title={c.linkHintsTitle}
+                  data-world-link-accept
+                  className="wd-ghostBtn"
+                >
+                  {c.linkMake}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
         {fateCard ? (
           <button
             type="button"
