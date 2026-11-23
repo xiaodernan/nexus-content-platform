@@ -3780,6 +3780,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [5] 后来的人把这条线叫作走法，不叫数法。
 - [6] 空白还是空白，只是现在有人知道它在路的尽头。
 
+### Echo 221 · 空位里那页更小的点 / The Smaller Page of Dots Inside the Square
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 天亮时灯在空白的另一头——没有人走过那一截。
+- [2] 那一格空位里没有答案，只有更小的一页点。
+- [3] 最年长的抄本师把那页点收进袖子，没有铺开。
+- [4] 他说，等有人问起这一格，再铺。
+- [5] 那天没有人问——可第二天，袖子里那页点自己轻了。
+- [6] 空位不是尽头，是一扇朝里开的门。
+
 ### Echo 23 · 雾港里那艘只在黄昏出现的船 / The Ship That Appears Only at Dusk in Fog Harbor
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 雾港黄昏起雾的时候，码头口总有一艘船不在值守的名册上。

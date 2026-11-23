@@ -8822,3 +8822,10 @@ Reader (post-continuum trace):
 - **ADR 改号**：main 的 0304 与 master 的 0304 撞号 → 观察站那份改 **0307**（引用同步）。
 - 验证：gen:bible-snapshot → 14 章 · 217 回响 · 4 附录（digest 273,740 chars）；
   verify:world-bible / verify:bible-snapshot ✓；并轨相关判据 17 文件 148 条全绿；tsc web exit 0。
+
+## cont. 482 (2026-11-23) — Echo #221《空位里那页更小的点》· 220→221 回响
+- **无尽世界（需求六）**：承接 E220「空白在路的尽头、灯放在空白这一头」——天亮后灯在空白另一头（无人走过），空位里没有答案、只有更小的一页点；最年长的抄本师收进袖子说「等有人问起这一格再铺」，次日那页自己轻了；空位不是尽头，是一扇朝里开的门。每个答案开出下一条路，世界没有写完。6 组锚句 zh/en 逐字对应、全典唯一。
+- **并轨后第一条新回响**：编号在已收敛的唯一主线上顺延为 E221（slug `echo-221-smaller-page-inside-the-square`）。
+- **重导**：gen:bible-snapshot 重生 generated.ts / digest（274,889 chars, sha 75ca0d68…）；锚句 1334→1340；回响 220→221。
+- **计数对齐**：guideCopy 220→221 / 1329→1335 / two hundred twenty→twenty-one（中英各三处）；bible-ask-behavior pin 1329→1335；canon-answer-graph 段落断言 220→221（14+221=235）。
+- **验证**：world-bible / bible-snapshot / anchor-echo / record-encoding 全 exit 0；vitest 25 passed；typecheck 14/14；lint-tree 20 区 0 finding（并轨修复后的基线）。
