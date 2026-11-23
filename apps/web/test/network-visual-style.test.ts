@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { readStable } from './helpers/stable-text';
 
 /**
  * §WORLD-NET「万象脉络」`/world/<project>/network` 的静态判据（零浏览器/零库/零 provider）。
@@ -19,9 +20,9 @@ const PAGE = join(ROOT, 'apps/web/src/app/world/[projectId]/network/page.tsx');
 const GLOBALS = join(ROOT, 'apps/web/src/app/globals.css');
 const TOKENS = join(ROOT, 'apps/web/src/styles/tokens.css');
 
-const page = readFileSync(PAGE, 'utf8');
-const globals = readFileSync(GLOBALS, 'utf8');
-const tokens = readFileSync(TOKENS, 'utf8');
+const page = readStable(PAGE);
+const globals = readStable(GLOBALS);
+const tokens = readStable(TOKENS);
 const cssNoComments = (css: string): string => css.replace(/\/\*[\s\S]*?\*\//g, '');
 const code = page.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
@@ -35,7 +36,19 @@ function findOutsideComments(css: string, re: RegExp): number {
 }
 const NW_START = findOutsideComments(globals, /\.nw-page \{/);
 if (NW_START < 0) throw new Error('globals.css 里没有 .nw-* 段');
-const nwSegment = cssNoComments(globals.slice(NW_START));
+/**
+ * §GATE-3（2026-11-23）：这一段以前取到**文件尾**——
+ * 于是「不新增渐变墨字」那条判据实际在管「.nw- 段之后的每一个段」。
+ * 只要后面任何一个段用了渐变墨字（.dr- 那一段的标题就是），这条门就红，
+ * 而它红的原因与万象脉络这一页毫无关系。
+ *
+ * 现在段在下一个「/* ── §」段标记处收边（与 command-bar 门的 cbSegment 同一形状）。
+ * 另外补一条**更强**的全局判据：凡是 .nw- 这个族的选择器，无论它落在文件哪一段，
+ * 一律不许用 background-clip: text——这样「取段太贪」不会变成「漏检」。
+ */
+const NW_SEGMENT_RAW = globals.slice(NW_START);
+const NW_SEGMENT_END = NW_SEGMENT_RAW.search(/\/\* ── §/);
+const nwSegment = cssNoComments(NW_SEGMENT_END > 0 ? NW_SEGMENT_RAW.slice(0, NW_SEGMENT_END) : NW_SEGMENT_RAW);
 
 function redactClasses(source: string): string {
   return source
@@ -100,6 +113,15 @@ describe('§WORLD-NET /world/<project>/network 万象脉络', () => {
     expect(nwSegment).not.toMatch(/background-clip:\s*text/);
   });
 
+  it('全局判据：.nw- 族的选择器（无论落在文件哪一段）一律不许渐变墨字', () => {
+    // 比上一条更强：上一条只管「.nw- 段之内」，这一条管「.nw- 这个族」。
+    // 取段太贪会漏检，取段太窄也会漏检——按族查才两头都堵。
+    const offenders = [...globals.matchAll(/([^{}]*\.nw-[A-Za-z0-9_-][^{}]*)\{([^{}]*)\}/g)]
+      .filter((m) => /background-clip:\s*text/.test(m[2]!))
+      .map((m) => m[1]!.trim());
+    expect(offenders, `.nw- 族里出现了渐变墨字：${offenders.join(' | ')}`).toEqual([]);
+  });
+
   it('响应式单列断点存在（窄视口不挤压）', () => {
     expect(nwSegment).toMatch(/@media\s*\(max-width:\s*720px\)/);
   });
@@ -109,7 +131,7 @@ describe('§WORLD-NET /world/<project>/network 万象脉络', () => {
   // 同日 f5c5f02c 改英文文案（"World network →"）时漏钉本门；全量复跑后按当前字节补钉。
   it('SHA256 钉死（本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      'f059724660b9f2d2256bcfcd97faf1a5b79abcb3d1a44fd1e87488bfb56b3c0a',
+      '9c2c2d55a005af5348ba83794f6796480d5a80e6f65c572a8d1f756f4a734d26', // 2026-11-23 §GATE-3 重钉：并轨把「关节（割点）」面板带进来了（+29 行：五条文案 + 面板 + 钩子）
     );
   });
 });

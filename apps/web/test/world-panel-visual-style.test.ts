@@ -154,7 +154,7 @@ describe('§FE-48 /studio WorldPanel 世界构筑面板', () => {
 
   it('剥 className/cn 后全文 SHA256 守恒（2026-11-21 撤销栈口径修正重钉）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '0176c56e7d0226a27ca57d8d68662e1aa6e058eac77f35a3712b499687861bf6',
+      '2d5416394dd67260125133b2574a65937dd77147b2431ebf1da96e926baecb5e', // 2026-11-23 §GATE-3 重钉：并轨删掉了没用上的 fillableKinds import（世界编辑写库口径修正那一支带进来的）
     );
   });
 });

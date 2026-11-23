@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { readStable } from './helpers/stable-text';
 
 /**
  * ──SGRAPH-1 `/stategraph` 落点页 + `<StategraphTry>` 试跑面板（cont. 169）
@@ -21,10 +22,10 @@ const TRY_PANEL = join(ROOT, 'apps/web/src/components/StategraphTry.tsx');
 const GLOBALS = join(ROOT, 'apps/web/src/app/globals.css');
 const TOKENS = join(ROOT, 'apps/web/src/styles/tokens.css');
 
-const page = readFileSync(REAL, 'utf8');
-const tryPanel = readFileSync(TRY_PANEL, 'utf8');
-const globals = readFileSync(GLOBALS, 'utf8');
-const tokens = readFileSync(TOKENS, 'utf8');
+const page = readStable(REAL);
+const tryPanel = readStable(TRY_PANEL);
+const globals = readStable(GLOBALS);
+const tokens = readStable(TOKENS);
 const code = page.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 const tryCode = tryPanel.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
