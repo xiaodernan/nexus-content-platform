@@ -35,6 +35,7 @@ import { fillableKinds, formatWorldFillError, parseChronicleReply, parseEchoRepl
 import { rollFate, type FateCard } from '@/lib/worldFate';
 import { worldFileName, worldToMarkdown } from '@/lib/worldExport';
 import { formatWorldStats, worldStats } from '@/lib/worldStats';
+import { filterWorldNodes } from '@/lib/worldFilter';
 import { saveBlob } from '@/lib/download';
 import { useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';
@@ -65,6 +66,9 @@ const COPY = {
     aiFillAll: 'AI 补全空节',
     aiFillAllBusy: '补全中…',
     aiFillAllTitle: '一次点击最多补 3 个还没有条目的节（九类里选），每节都是真调用；已有内容的节不动。想补完就再点一次。token 按实际调用计，不偷偷多打。（四个 AI 按钮共用每小时 10 次的额度，超了界面会告诉你要等多久。）',
+    filterAria: '在世界条目里按标题或正文筛选',
+    filterPlaceholder: '筛选题名/正文/纪元/回声…',
+    filterEmpty: '没有条目匹配这个关键词——清空筛选框看全部。',
     exportMd: '导出 Markdown',
     exportMdTitle: '把这份世界按九类固定顺序导成 .md：节点正文、纪元/序号、记忆回声都在里面，空类也留标题。纯本地投影，不调模型、不联网。',
     fate: '掷命运骰',
@@ -170,6 +174,9 @@ const COPY = {
     aiFillAll: 'AI fill empties',
     aiFillAllBusy: 'Filling…',
     aiFillAllTitle: 'One click fills at most 3 of the sections that still have no entries (out of nine); each is a real provider call. Sections with content are untouched. Click again for the rest — token cost is what is actually called, never silently more. (All four AI buttons share a 10-per-hour quota; the UI tells you how long to wait if you hit it.)',
+    filterAria: 'Filter world entries by title or body',
+    filterPlaceholder: 'Filter titles / bodies / eras / echoes…',
+    filterEmpty: 'No entry matches that keyword — clear the filter to see everything.',
     exportMd: 'Export Markdown',
     exportMdTitle: 'Export this world as a .md in the fixed nine-section order: bodies, era/order and memory echoes are all included, and empty sections keep their headings. Pure local projection — no model call, no network.',
     fate: 'Roll fate',
@@ -630,7 +637,13 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
     if (save) void worldStore.commit();
   };
 
-  const groups = WORLD_KINDS.filter((kind) => counts?.[kind]);
+  const [nodeFilter, setNodeFilter] = useState('');
+  const visibleNodes = filterWorldNodes(world.nodes, nodeFilter);
+  const visibleCounts = visibleNodes.reduce<Record<string, number>>((acc, n) => {
+    acc[n.kind] = (acc[n.kind] ?? 0) + 1;
+    return acc;
+  }, {});
+  const groups = WORLD_KINDS.filter((kind) => visibleCounts[kind]);
 
   return (
     <div className="wd-rootCol" data-world-panel>
@@ -676,6 +689,18 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
           {aiGenError ? <p className="wd-danger11" data-world-ai-error>{aiGenError}</p> : null}
         </div>
         <p className="wd-body11Mt2" data-world-stats>{formatWorldStats(worldStats(world), locale)}</p>
+        <input
+          type="search"
+          value={nodeFilter}
+          onChange={(e) => setNodeFilter(e.target.value)}
+          placeholder={c.filterPlaceholder}
+          aria-label={c.filterAria}
+          data-world-filter
+          className="wd-growInput"
+        />
+        {nodeFilter.trim() && visibleNodes.length === 0 ? (
+          <p className="wd-body11Mt2" data-world-filter-empty>{c.filterEmpty}</p>
+        ) : null}
         {snapshot.error ? (
           <p className="wd-dangerMt2" data-world-error>
             {snapshot.error}
@@ -688,10 +713,10 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
           <section key={kind} className="wd-mb3" data-world-group={kind}>
             <h3 className="wd-labelMb1">
               {kindLabel(kind, locale)}
-              <span className="wd-end">{counts?.[kind] ?? 0}</span>
+              <span className="wd-end">{visibleCounts[kind] ?? 0}</span>
             </h3>
             <ul className="wd-col2">
-              {world.nodes
+              {visibleNodes
                 .filter((node) => node.kind === kind)
                 .map((node) => (
                   <li

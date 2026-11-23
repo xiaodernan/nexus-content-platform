@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
  * 本片只换皮：AI/store/ensure-project/edit 全部不动。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @ + cn()整体归一 + `className=@` 归一）：
- * `bba42cd332f84e62b7207d081a5d0672f5731a8565eb372f165329ceb5d6669c` 与 HEAD 字节一致。
+ * `1b99b46b9a26aeb9e8800aa5616b49f62ba23cfc8750117295443fcf847a26fd` 与 HEAD 字节一致。
  *
  * 判据不变式（12 门）：
  *  1. 'use client' 保留 + worldStore/ensure/edit 依赖链进门；2. 字面 className 全 `.wd-*`（含 cn 三元分支）；
@@ -152,9 +152,9 @@ describe('§FE-48 /studio WorldPanel 世界构筑面板', () => {
     expect(segment).toContain('.wd-dangerText {');
   });
 
-  it('剥 className/cn 后全文 SHA256 守恒（2026-11-21 规模读数重钉）', () => {
+  it('剥 className/cn 后全文 SHA256 守恒（2026-11-21 条目筛选重钉）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'bba42cd332f84e62b7207d081a5d0672f5731a8565eb372f165329ceb5d6669c',
+      '1b99b46b9a26aeb9e8800aa5616b49f62ba23cfc8750117295443fcf847a26fd',
     );
   });
 });
