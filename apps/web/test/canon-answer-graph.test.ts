@@ -76,13 +76,13 @@ describe('§GRAPH-1 检索与机检（确定性，不烧 token）', () => {
   });
 
   // 2026-11-22 并轨 origin/master：正典 13 章 → 14 章、212 回响 → 217 回响
-  // 2026-11-22 E218 → E219 → E220《照着点走一遍》：218 → 219 → 220。
-  it('digest 段落切分出 14 章 + 220 回响', () => {
+  // 2026-11-22 E218 → E219 → E220《照着点走一遍》→ E221《空位里那页更小的点》：218 → 219 → 220 → 221。
+  it('digest 段落切分出 14 章 + 221 回响', () => {
     const segments = splitDigestSegments(CANON_DIGEST);
     const chapters = segments.filter((s) => s.startsWith('## Chapter'));
     const echoes = segments.filter((s) => s.startsWith('### Echo'));
     expect(chapters).toHaveLength(14);
-    expect(echoes).toHaveLength(220);
+    expect(echoes).toHaveLength(221);
   });
 
   it('「米缸」问句命中米缸回响 Echo 36（而不是随机段落）', () => {

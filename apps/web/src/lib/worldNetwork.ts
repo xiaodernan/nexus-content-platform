@@ -1,4 +1,4 @@
-import type { WorldDocument, WorldLink, WorldNode } from '@nexus/world-model';
+import type { WorldDocument, WorldLink } from '@nexus/world-model';
 
 /**
  * §WORLD-NET · 万象脉络：把一个世界的节点与有向关系投影成"权力骨架"。

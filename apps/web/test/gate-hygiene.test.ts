@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -57,6 +57,50 @@ function visualStyleFiles(): string[] {
   return readdirSync(TEST_DIR)
     .filter((name) => /-visual-style\.test\.ts$/.test(name))
     .map((name) => join(TEST_DIR, name));
+}
+
+/** 全部判据文件（含子目录）——§GATE-3 的行尾那条要扫全族，不只是视觉门面。 */
+function allTestFiles(): string[] {
+  const out: string[] = [];
+  const walk = (dir: string): void => {
+    for (const name of readdirSync(dir)) {
+      const full = join(dir, name);
+      if (statSync(full).isDirectory()) walk(full);
+      else if (name.endsWith('.test.ts')) out.push(full);
+    }
+  };
+  walk(TEST_DIR);
+  return out;
+}
+
+/**
+ * §GATE-3：把**文件内容**喂进哈希的门，必须行尾安全。
+ *
+ * 一枚钉是对**内容**的承诺，而 `readFileSync` 读回来的是**工作区字节**——带行尾。
+ * `.gitattributes` 写的是 `* text=auto eol=lf`，所以正常检出（CI 的 Linux、本机新克隆的
+ * 工作树）拿到的都是 LF；但 Windows 上任何一个工具把某个 .tsx 写成 CRLF 之后，
+ * git 认为它与 blob 等价（`status` 干净、`diff` 干净），而**哈希已经变了**。
+ *
+ * 实测过一次（2026-11-23）：`apps/web/src/app/admin/page.tsx` 在那台机器上是 155 行 CRLF，
+ * 于是 admin-hub 那道门**本地红、CI 绿**。用 LF 检出的工作树复跑，它是绿的——
+ * 也就是说，那条红不是门在发现问题，是门在量检出方式。
+ *
+ * 所以判据是：**读文件走 `readStable`（读处归一），或在自己的 redact 里吃掉 CRLF**。
+ * 两样都没有、又确实在哈希文件内容的门 = 不安全。
+ */
+function lineEndingUnsafeHashGates(): string[] {
+  const out: string[] = [];
+  for (const file of allTestFiles()) {
+    // 这一条用**原文**而不是剥注释后的：判据是「代码里有没有归一」，
+    // 剥注释会把「注释里提到自己怎么归一」也算成没归一——那正是文档该做的事。
+    const src = readFileSync(file, 'utf8');
+    if (!/createHash\(/.test(src)) continue; // 哈希 token / 随机数的那种与此无关
+    if (/readStable\(/.test(src)) continue; // 读处已归一
+    if (/r\\n\/g/.test(src)) continue; // 自己的 redact 里已归一
+    if (!/readFileSync\([^)]*'utf-?8'/.test(src)) continue; // 不读文件的门与此无关
+    out.push(file.slice(ROOT.length + 1).replace(/\\/g, '/'));
+  }
+  return out;
 }
 
 /**
@@ -124,5 +168,45 @@ describe('§GATE-2 判据卫生门', () => {
     expect(body).toContain('commentSpans[mid]![0] <= at');
     // 事故形态不许复活（只看代码，不看注释里的引用）
     expect(SELF_RESETTING_EXEC.test(body)).toBe(false);
+  });
+
+  it('§GATE-3 扫描器自检：已知坏样本必须被判不安全，好样本不许误报', () => {
+    // 坏样本：哈希文件内容，却既不读处归一、也不在自己的 redact 里归一
+    const bad = `
+      import { readFileSync } from 'node:fs';
+      const page = readFileSync(PAGE, 'utf8');
+      expect(createHash('sha256').update(page).digest('hex')).toBe('x');
+    `;
+    // 好样本一：读处归一
+    const goodRead = `
+      import { readStable } from './helpers/stable-text';
+      const page = readStable(PAGE);
+      expect(createHash('sha256').update(page).digest('hex')).toBe('x');
+    `;
+    // 好样本二：自己 redact 里归一
+    const goodRedact = `
+      const page = readFileSync(PAGE, 'utf8');
+      const redact = (s) => s.replace(/\\r\\n/g, '\\n');
+      expect(createHash('sha256').update(redact(page)).digest('hex')).toBe('x');
+    `;
+    const judge = (src: string): boolean => {
+      if (/readStable\(/.test(src)) return false;
+      if (/r\\n\/g/.test(src)) return false;
+      return /readFileSync\([^)]*'utf-?8'/.test(src);
+    };
+    expect(judge(bad), '坏样本必须被判不安全').toBe(true);
+    expect(judge(goodRead), '读处归一的好样本不许误报').toBe(false);
+    expect(judge(goodRedact), 'redact 里归一的好样本不许误报').toBe(false);
+  });
+
+  it('§GATE-3 全仓零「哈希文件内容却不归一行尾」的门', () => {
+    const offenders = lineEndingUnsafeHashGates();
+    // 报出全部违规文件而不是第一个——一次修完，不用跑 N 轮。
+    expect(offenders, offenders.join('\n')).toEqual([]);
+  });
+
+  it('§GATE-3 样本量兜底：这道门至少看住了 100 个哈希门（防止 glob 写错后空跑变绿）', () => {
+    const hashGates = allTestFiles().filter((f) => /createHash\(/.test(readFileSync(f, 'utf8')));
+    expect(hashGates.length).toBeGreaterThanOrEqual(100);
   });
 });

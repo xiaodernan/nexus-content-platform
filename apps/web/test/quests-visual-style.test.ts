@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { readStable } from './helpers/stable-text';
 
 /**
  * §FE-WQ「世界委托」（`/world/<project>/quests`）—— §WORLD-QUEST 的落地判据。
@@ -19,9 +20,9 @@ const PAGE = join(ROOT, 'apps/web/src/app/world/[projectId]/quests/page.tsx');
 const GLOBALS = join(ROOT, 'apps/web/src/app/globals.css');
 const TOKENS = join(ROOT, 'apps/web/src/styles/tokens.css');
 
-const page = readFileSync(PAGE, 'utf8');
-const globals = readFileSync(GLOBALS, 'utf8');
-const tokens = readFileSync(TOKENS, 'utf8');
+const page = readStable(PAGE);
+const globals = readStable(GLOBALS);
+const tokens = readStable(TOKENS);
 const code = page.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 function findOutsideComments(css: string, re: RegExp): number {

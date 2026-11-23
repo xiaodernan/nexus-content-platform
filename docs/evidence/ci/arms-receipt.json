@@ -1,7 +1,7 @@
 {
   "tool": "docs/evidence/ci/ci-wiring-arms.mjs",
   "scope": "full",
-  "ranAt": "2026-11-21T05:14:19.771Z",
+  "ranAt": "2026-11-22T20:29:04.829Z",
   "arms": 64,
   "matched": 64,
   "armNames": [
@@ -142,6 +142,11 @@
       "marker": null
     },
     {
+      "name": "verify:chain",
+      "file": "docs/evidence/m9/chain-proof.mjs",
+      "marker": "// sweep-budget-ms: 900000"
+    },
+    {
       "name": "verify:changes",
       "file": "docs/evidence/agents/changes-proof.mjs",
       "marker": null
@@ -222,6 +227,11 @@
       "marker": null
     },
     {
+      "name": "verify:decisions",
+      "file": "docs/evidence/m9/decision-proof.mjs",
+      "marker": "// sweep-budget-ms: 900000"
+    },
+    {
       "name": "verify:deploy-arc",
       "file": "docs/evidence/agents/deploy-arc-proof.mjs",
       "marker": null
@@ -230,6 +240,11 @@
       "name": "verify:deploy-lane",
       "file": "docs/evidence/studio/deploy-lane-proof.mjs",
       "marker": null
+    },
+    {
+      "name": "verify:deployments",
+      "file": "docs/evidence/m9/deployment-proof.mjs",
+      "marker": "// sweep-budget-ms: 900000"
     },
     {
       "name": "verify:dom-ui",
@@ -465,6 +480,11 @@
       "name": "verify:publish-e2e",
       "file": "docs/evidence/m7/studio-publish.mjs",
       "marker": "// sweep-budget-ms: 1800000"
+    },
+    {
+      "name": "verify:pull-requests",
+      "file": "docs/evidence/m9/pull-request-proof.mjs",
+      "marker": "// sweep-budget-ms: 900000"
     },
     {
       "name": "verify:qa",

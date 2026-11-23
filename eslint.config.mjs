@@ -233,6 +233,7 @@ export default tseslint.config(
       'vitest.fe.config.ts',
       'e2e/forced-colors-probe.mjs',
       'scripts/build-showcase.mjs',
+      'scripts/stress-gateway.mjs',
       // 并行线留下的一次性 live-provider E2E 探针：与 root scripts/ 同一性质，也交给 tools 项目
       'apps/web/scripts/**/*.mts',
     ],

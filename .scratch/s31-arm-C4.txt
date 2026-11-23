@@ -1,0 +1,47 @@
+
+Running 1 test using 1 worker
+
+  x  1 [chrome] › e2e\guest-reclaim.spec.ts:214:5 › 第二屏：屏号说清这是第几屏，翻过去之后点名只收站着的那一屏 (15.9s)
+
+
+  1) [chrome] › e2e\guest-reclaim.spec.ts:214:5 › 第二屏：屏号说清这是第几屏，翻过去之后点名只收站着的那一屏 ────────────────────
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('[data-reclaim-row]')
+    Expected: 1
+    Received: 8
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" locator('[data-reclaim-row]') with timeout 5000ms
+      - waiting for locator('[data-reclaim-row]')
+        14 × locator resolved to 8 elements
+           - unexpected value "8"
+
+
+      245 |     await page.click('[data-reclaim-next]');
+      246 |     await expect(page.locator('[data-reclaim-page]')).toContainText('第 2/2 屏');
+    > 247 |     await expect(page.locator('[data-reclaim-row]')).toHaveCount(1);
+          |                                                      ^
+      248 |     await expect(page.locator(`[data-reclaim-row="${ninth.id}"]`)).toHaveCount(1);
+      249 |     await expect(page.locator('[data-reclaim-pick-all]')).toBeChecked();
+      250 |     await expect(page.locator('[data-reclaim-apply]')).toHaveText('收走这 1 个');
+        at D:\内容创作平台\e2e\guest-reclaim.spec.ts:247:54
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\guest-reclaim-第二屏：屏号说清这是第几屏，翻过去之后点名只收站着的那一屏-chrome\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\guest-reclaim-第二屏：屏号说清这是第几屏，翻过去之后点名只收站着的那一屏-chrome\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\guest-reclaim-第二屏：屏号说清这是第几屏，翻过去之后点名只收站着的那一屏-chrome\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\guest-reclaim-第二屏：屏号说清这是第几屏，翻过去之后点名只收站着的那一屏-chrome\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chrome] › e2e\guest-reclaim.spec.ts:214:5 › 第二屏：屏号说清这是第几屏，翻过去之后点名只收站着的那一屏 ─────────────────────

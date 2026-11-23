@@ -46,7 +46,7 @@ describe('worldAudit · 世界体检纯函数', () => {
   });
 
   it('建议与读数中英各自成句，给可执行的下一步', () => {
-    let w = base();
+    const w = base();
     const a = auditWorld(w);
     expect(auditSuggestion(a, 'zh')).toContain('空正文');
     expect(auditSuggestion(a, 'en')).toContain('empty bodies');

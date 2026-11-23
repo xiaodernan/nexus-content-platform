@@ -31,7 +31,11 @@ import { describe, expect, it } from 'vitest';
 /** The repository root: up from this file, never `process.cwd()` — tests run from more than one directory. */
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 const SERVICES_DIR = join(REPO_ROOT, 'services');
-const SHARED_DOOR = join(REPO_ROOT, 'infra', 'config', 'application.yml');
+// ADR-0237 deleted `infra/config/` together with the java-* family. The shared default is now
+// what nexus-config serves from its own classpath (`native` profile) — same role, different place.
+const SHARED_DOOR = join(
+  REPO_ROOT, 'services', 'nexus-config', 'src', 'main', 'resources', 'nexus-config', 'application.yml',
+);
 
 /**
  * The eight deployables that carry a registry, NAMED rather than derived-and-trusted.
@@ -40,15 +44,13 @@ const SHARED_DOOR = join(REPO_ROOT, 'infra', 'config', 'application.yml');
  * is renamed must not silently leave this list: the count is asserted, so either event is a red test
  * whose fix is one line here — the friction is the feature (ADR 0016's "registry gate" rule).
  *
- * The three nexus-* Spring Cloud modules were added 2026-11-15 after they landed in the tree: they
- * expose the same door shape (health,info,metrics,prometheus) and the same correlation pattern,
- * and the gateway keeps its read-only ops extras (circuitbreakers, bulkheads).
+ * ADR-0237 retired the java-config-server/java-gateway/java-registry trio and deleted infra/config:
+ * the family is now these five, each exposing the same door shape (health,info,metrics,prometheus)
+ * and the same correlation pattern; the gateway keeps its read-only ops extras (circuitbreakers,
+ * bulkheads) and java-domain-service keeps its circuitbreakers read-out.
  */
 const DEPLOYABLES = [
-  'java-config-server',
   'java-domain-service',
-  'java-gateway',
-  'java-registry',
   'nexus-api',
   'nexus-config',
   'nexus-gateway',
@@ -136,7 +138,7 @@ function deployablesOnDisk(): string[] {
 }
 
 describe('the operator door is a named allowlist on every deployable (v658)', () => {
-  it('finds exactly the eight deployables it is about — a ninth would have to be written down', () => {
+  it('finds exactly the five deployables it is about — a sixth would have to be written down', () => {
     expect(deployablesOnDisk()).toEqual([...DEPLOYABLES].sort());
   });
 
@@ -174,8 +176,12 @@ describe('the operator door is a named allowlist on every deployable (v658)', ()
     );
   });
 
-  it('the shared config door names the same four endpoints', () => {
-    expect(new Set(exposedEndpoints(SHARED_DOOR))).toEqual(new Set(REQUIRED_ENDPOINTS));
+  it('the shared config default stays minimal — health,info only, never metrics', () => {
+    // Deliberately NARROWER than a service's own door (health,info,metrics,prometheus): each
+    // service opts into metrics/prometheus in its own application.yml, so a slip in the shared
+    // file cannot widen every deployable at once. This replaced the pre-ADR-0237 assertion that
+    // the shared door named the same four endpoints as the services.
+    expect(new Set(exposedEndpoints(SHARED_DOOR))).toEqual(new Set(['health', 'info']));
   });
 
   it('no configuration plane in the repository exposes a wildcard or a dangerous endpoint', () => {

@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { readStable } from './helpers/stable-text';
 
 /**
  * §FE-AS `/admin/savings` AI 节省总账 —— **v702 接手的运维视角聚合**。
@@ -23,9 +24,9 @@ const MAIN = join(ROOT, 'apps/web/src/app/admin/savings/page.tsx');
 const GLOBALS = join(ROOT, 'apps/web/src/app/globals.css');
 const TOKENS = join(ROOT, 'apps/web/src/styles/tokens.css');
 
-const main = readFileSync(MAIN, 'utf8');
-const globals = readFileSync(GLOBALS, 'utf8');
-const tokens = readFileSync(TOKENS, 'utf8');
+const main = readStable(MAIN);
+const globals = readStable(GLOBALS);
+const tokens = readStable(TOKENS);
 
 const cssNoComments = (css: string): string => css.replace(/\/\*[\s\S]*?\*\//g, '');
 const code = main.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
@@ -110,7 +111,7 @@ describe('§FE-AS /admin/savings AI 节省总账（v702 接手）', () => {
 
   it('SHA256 钉死（本线字节 · §SB-RENDER-ADMIN 渲染账块 · 2026-11-19）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '35cde6351764b5be1bc7de8442edbbe85ed7223b684a1c0f8a2dea632ce8e796',
+      '4d170d44cd5e0ee6809d967cc025ff40b22b864be161f092c7b3beb61601cde0',
     );
   });
 });

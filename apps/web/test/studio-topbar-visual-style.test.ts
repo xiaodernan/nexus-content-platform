@@ -153,8 +153,13 @@ function maskLiterals(expr: string): string {
  * **剥 className 后全文逐字节哈希**（本片最强零行为门）。
  * 真值 `c1687319…`（v742-ExportPanel-localize 把 `<ExportPanel />` 改成带 locale 透传，按惯例重钉）。
  * v853（画布滚轮方向开关 + 顶栏「滚轮」「视图教学 title」）：`fabb39a2…`。
+ * §HINT-1（2026-11-23）：`2f1ef1f9…`。**这一次的改动不是换皮**——顶栏五处教学说明
+ * （面板开合 / 改名 / 主题模式 / 帮助 / 预览）从 `shellCopy` 搬进了唯一真值
+ * `@/lib/hintCopy`，网格那颗钮第一次拿到说明（原先只退回按钮文字）。
+ * 换句话说：用户现在悬停能看到「按下去会发生什么」，这**就是**行为，
+ * 所以「纯视觉零行为」这条承诺在这一片被有意打破，来由记在这里而不是只改断言。
  */
-const STRIP_CLASS_SHA256 = 'fabb39a2856c70e4fb4a5e22cbbaeeb2ba7bd1c597750076a1b6cd08cd35cd44';
+const STRIP_CLASS_SHA256 = '2f1ef1f98cc2c8595922618c26ebe80598f1e0e94748d488bb7447a8820b87c6';
 function stripClassNames(src: string): string {
   const s = src.replace(/\r\n/g, '\n');
   let out = '';
@@ -317,7 +322,9 @@ describe('§FE-19 Studio 顶栏门面基建（静态不变式）', () => {
       expect(code, `视口真值链丢了：${s}`).toContain(s);
     }
     // 2 个 <a> href / title 诚实文案
-    for (const s of ['<a href="/"', 'href={`/preview/${projectId}`}', 'c.previewTitle', 'c.defaultProjectName']) {
+    // §HINT-1：预览的说明已搬进唯一真值 hintCopy，所以这里钉的是「从字典取」这件事，
+    // 而不是某一份 shellCopy 的 key —— 两处说法并存就是这一片要消灭的东西。
+    for (const s of ['<a href="/"', 'href={`/preview/${projectId}`}', "hint('studio.topbar.preview', locale)", 'c.defaultProjectName', "from '@/lib/hintCopy'"]) {
       expect(topbar, `链接/文案丢了：${s}`).toContain(s);
     }
     // 顶栏按钮诚实文案

@@ -1,4 +1,4 @@
-# ADR 0316 · 供应商 API 关闭后：保留可替换 provider，能力由真调用判定，失败如实降级
+# ADR 0317 · 供应商 API 关闭后：保留可替换 provider，能力由真调用判定，失败如实降级
 
 日期：2026-11-23 · 状态：已采纳 · 关联：`docs/KNOWN_ISSUES.md` 顶部 2026-11-22 纪律、
 `apps/ai-service/src/ai_service/providers/registry.py`（`capability()` / `text_status()`）、

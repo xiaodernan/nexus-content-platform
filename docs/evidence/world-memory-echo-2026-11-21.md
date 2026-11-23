@@ -15,6 +15,6 @@
 **诚实边界**：web 侧 `/api/ai/world-fill` 的 10 次/小时/IP 限流已被本轮多次 E2E 打满，
 浏览器按钮的端到端点击这次拿到 429 而不是成功回执；没有伪造 `x-forwarded-for` 绕过这道门
 （那等于削弱产品安全）。可用部分是：模型提示词真调用成功、纯函数验收成功、按钮接线与
-类型检查通过。限流窗口恢复后可直接重跑 `.scratch/echo-e2e.mjs` 补最后一格。
+类型检查通过。限流窗口恢复后可直接重跑 `scratch/echo-e2e.mjs` 补最后一格。
 
 验证：`world-fill` + WorldPanel 门 20/20；`apps/web` tsc exit 0。

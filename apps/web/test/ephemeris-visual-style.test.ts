@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { readStable } from './helpers/stable-text';
 
 /**
  * §FE-EPH「世界切片」（`/world/<project>/ephemeris`）—— v709 门面判据。
@@ -20,10 +21,10 @@ const GLOBALS = join(ROOT, 'apps/web/src/app/globals.css');
 const TOKENS = join(ROOT, 'apps/web/src/styles/tokens.css');
 const LIB = join(ROOT, 'apps/web/src/lib/ephemeris.ts');
 
-const page = readFileSync(PAGE, 'utf8');
-const globals = readFileSync(GLOBALS, 'utf8');
-const tokens = readFileSync(TOKENS, 'utf8');
-const lib = readFileSync(LIB, 'utf8');
+const page = readStable(PAGE);
+const globals = readStable(GLOBALS);
+const tokens = readStable(TOKENS);
+const lib = readStable(LIB);
 const cssNoComments = (css: string): string => css.replace(/\/\*[\s\S]*?\*\//g, '');
 const code = page.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 

@@ -17,4 +17,4 @@
 同条件下重测拿到 `{title, body, era:""}`，落库成功。这不是放宽真实性——内容仍只来自给定概述。
 
 纯函数门：`parseChronicleReply` 3 条（挑中已有 era / 自造 era 降级 / 空列表与无条目）；
-WorldPanel 视觉门重钉 `8cae6bdc`；`apps/web` tsc exit 0。探针：`.scratch/chronicle-e2e.mjs`。
+WorldPanel 视觉门重钉 `8cae6bdc`；`apps/web` tsc exit 0。探针：`scratch/chronicle-e2e.mjs`。

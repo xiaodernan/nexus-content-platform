@@ -5,7 +5,6 @@ import {
   scanPublicationWithLlm,
   visibleTextsOf,
 } from '../src/server/domain/moderationLlm';
-import type { AiChatResult } from '../src/server/ai/client';
 import { createDocument, createNode, findPage, type DesignDocument } from '@nexus/creative-model';
 
 /** §MOD-1 接线判据（无 DB）：scanPublication 是纯函数，这里注入假 chat 钉 real/fallback。 */

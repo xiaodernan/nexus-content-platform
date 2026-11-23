@@ -89,6 +89,7 @@ const block = (x: number, y: number): Rgb => (x >= 8 && x < 40 && y >= 8 && y < 
 let ownerId: string;
 let strangerId: string;
 let token: string;
+let sessionTokenHash: string;
 let projectId: string;
 let otherProjectId: string;
 let refAssetId: string;
@@ -112,13 +113,16 @@ beforeAll(async () => {
   projectId = (await createProject(ownerId, { name: '视觉基准项目', kind: 'website' })).id;
   otherProjectId = (await createProject(strangerId, { name: '别人的项目', kind: 'website' })).id;
 
-  const token_hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('vb-token'));
+  // sessions.token_hash 是全表 UNIQUE 的：写死一枚 token 的话，第二次运行就撞死在第一次留下的那行上。
+  token = `vb-token-${crypto.randomUUID()}`;
+  sessionTokenHash = Buffer
+    .from(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token)))
+    .toString('hex');
   await db.insert(sessions).values({
     userId: ownerId,
-    tokenHash: Buffer.from(token_hash).toString('hex'),
+    tokenHash: sessionTokenHash,
     expiresAt: new Date(Date.now() + 86_400_000),
   });
-  token = 'vb-token';
 
   const ref = await uploadImageAsset(projectId, { data: png(128, 128, block), createdById: ownerId });
   if (!ref.ok) throw new Error(`参考图上传失败：${JSON.stringify(ref)}`);
@@ -130,6 +134,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   const db = getDb();
+  await db.delete(sessions).where(eq(sessions.tokenHash, sessionTokenHash));
   await db.delete(projects).where(eq(projects.ownerId, ownerId));
   await db.delete(projects).where(eq(projects.ownerId, strangerId));
   await db.delete(users).where(eq(users.id, ownerId));

@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { readStable } from './helpers/stable-text';
 
 /**
  * §FE-30 `/admin/users` 账号与角色 + 过期访客回收（§131 / ADR-0072）——**静态那一寸**。
@@ -26,7 +27,7 @@ import { describe, expect, it } from 'vitest';
  * 12. SHA256 四文件守恒 + 数据钩子守恒（page 五组 + reclaim 六组 + plan/role 各三）。
  */
 const ROOT = process.cwd();
-const READ = (rel: string): string => readFileSync(join(ROOT, rel), 'utf8');
+const READ = (rel: string): string => readStable(join(ROOT, rel));
 const PAGE = READ('apps/web/src/app/admin/users/page.tsx');
 const RECLAIM = READ('apps/web/src/app/admin/users/GuestReclaimPanel.tsx');
 const PLAN = READ('apps/web/src/app/admin/users/PlanSelect.tsx');

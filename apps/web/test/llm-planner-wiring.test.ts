@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { llmPlannerEnabled, tryLlmPlan, PLANNER_FALLBACK } from '../src/server/agent/runtime';
-import type { AiChatResult } from '../src/server/ai/client';
-import type { AgentPlan } from '@nexus/schemas';
 
 /**
  * §PLAN-1 接线层判据（无数据库）：`tryLlmPlan` 收一个可注入的 chat 函数，

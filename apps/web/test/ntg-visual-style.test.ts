@@ -107,7 +107,7 @@ describe('──NOTIF-TRIAGE /notifications "AI 先读一下"', () => {
 
   it('SHA256 钉死：NotifTriage（className 脱敏后）', () => {
     expect(createHash('sha256').update(redactClasses(card)).digest('hex')).toBe(
-      '63c9f7bc487e1fbee344ac93c2b88496ed754e5f6b3c741424d1253ef0f53df9',
+      '1c9ff8eafcb8743f431276b3567edb006cef384d9dd293bd47a79276f60921c0',
     );
   });
 });

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import crypto from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { readJson, jsonError, badRequest } from '@/server/http';
+import { csrfOk } from '@/server/security/csrf';
 import { getRateLimiter, rateKey, clientIp } from '@/server/security/rateLimit';
 import { getAiCapabilities } from '@/lib/env';
 import { chatWithCharacter } from '@/server/ai/client';
@@ -51,6 +52,7 @@ export async function POST(req: Request): Promise<Response> {
   if (!viewer) {
     return await jsonError(401, 'not_authenticated', { message: '收件箱属于你——先登录，再让模型替你读。' });
   }
+  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
 
   const caps = await getAiCapabilities();
   if (caps.text !== 'real') {

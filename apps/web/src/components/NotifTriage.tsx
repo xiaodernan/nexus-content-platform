@@ -1,5 +1,6 @@
 'use client';
 
+import { csrfHeaders } from '@/lib/csrf';
 import { useState } from 'react';
 import type { Locale } from '@/lib/i18n';
 
@@ -91,7 +92,7 @@ export function NotifTriage({ locale }: { locale: Locale }) {
     try {
       const response = await fetch('/api/notifications/digest', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ locale }),
         cache: 'no-store',
       });

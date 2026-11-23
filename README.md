@@ -101,12 +101,12 @@ npm run typecheck:main  # both models + every main-line TS project, --noEmit
 ```
 
 AI runs against a deterministic DEMO MODE without keys; it is badged in the UI and labeled in
-`provenance`, never disguised (§60). **Since 2026-11-12** the local dev default is a real provider
-(wkapi.pro `/v1/chat/completions`, model `gpt-6-sol`; key lives only in gitignored
-`apps/ai-service/.env`, the web process never holds it): `/healthz` reports `capability=real`,
-and §AGENTS DEMO-MODE semantics stay as fallback for keyless machines. **Since 2026-11-13** prompt
-caching is wired (`prompt_cache_key`, default lane `nexus-studio`, env override) — repeated
-identical calls see `cached_tokens≈97%` (docs/ENVIRONMENT.md, evidence/ailive-4-cache-2026-11-13.md).
+`provenance`, never disguised (§60). **The external model API is currently closed at the user's
+request** for cost and usage control, so offline DEMO is the normal current path. The replaceable
+provider abstraction, liveness probe and prompt-cache transport remain in place, but `capability=real`
+requires a successful real probe; `unknown`, `failed` and unconfigured providers stay unavailable/DEMO
+(ADR-0317). Prompt caching was wired on 2026-11-13; the historical `cached_tokens≈97%` readings in
+`docs/ENVIRONMENT.md` and `docs/evidence/` are dated snapshots, not a claim about today's availability.
 
 ## Consolidation history
 

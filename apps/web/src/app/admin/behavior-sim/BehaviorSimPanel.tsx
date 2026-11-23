@@ -1,5 +1,6 @@
 'use client';
 
+import { csrfHeaders } from '@/lib/csrf';
 import { useState, type ReactElement } from 'react';
 import type { Locale } from '@/lib/i18n';
 
@@ -79,7 +80,7 @@ export function BehaviorSimPanel({ locale, panelTitle, ariaLabel }: { locale: Lo
       const seed = Math.floor(Math.random() * 2 ** 31);
       const response = await fetch('/api/admin/visitor-sim', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ count, seed }),
       });
       const body = await response.json() as Partial<SimulationSummary> & { message?: string };

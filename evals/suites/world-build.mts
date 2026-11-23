@@ -189,7 +189,7 @@ export const worldBuildSuite: EvalSuite = {
       const dup: WorldDocument = { ...createWorld('重复id') };
       const d0 = dup.nodes[0]!;
       dup.nodes = [d0, { ...d0, title: '副本' }];
-      rec.structural('validateWorld：重复 id 报 duplicate-id', validateWorld(dup).some((i) => i.code === 'duplicate-id'), validateWorld(dup).map((i) => i.code).join(','));
+      rec.structural('validateWorld：重复 id 报 duplicate-node-id', validateWorld(dup).some((i) => i.code === 'duplicate-node-id'), validateWorld(dup).map((i) => i.code).join(','));
 
       const selfLink: WorldDocument = { ...createWorld('自连') };
       const s0 = selfLink.nodes[0]!;

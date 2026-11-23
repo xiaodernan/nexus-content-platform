@@ -36,25 +36,30 @@
 > **Playwright 约束**：本机网络无法下载 Playwright 自带的 Chromium/headless-shell（`npx playwright install` 失败）。
 > 截图与 e2e 一律用系统 Chrome：`chromium.launch({ channel: 'chrome' })`。已实测可渲染并截图成功。
 
-### 2026-11-12 真实 LLM provider 接入（§AILIVE-1）
+> **当前状态（2026-11-24）**：外部大模型 API 已按用户要求关闭，离线 DEMO 是当前正常路径。
+> provider 抽象与配置保留，但 `capability=real` 只表示最近一次真实 liveness 探测成功；
+> `unknown` / `failed` / 未配置一律不可用，web 必须显示 DEMO MODE。下面 2026-11-12 至
+> 2026-11-22 的接通、模型与缓存读数都是**历史快照**，不代表今天可用。详见 ADR-0317。
 
-本机开发从此日期起默认接入真实 LLM provider（wkapi.pro 的 `gpt-6-sol`）：`apps/ai-service/.env`
+### 历史快照：2026-11-12 真实 LLM provider 接入（§AILIVE-1）
+
+当日本机开发接入真实 LLM provider（wkapi.pro 的 `gpt-6-sol`）：`apps/ai-service/.env`
 含 key（gitignored，详见 `apps/ai-service/.env.example`），`NEXUS_OPENAI_BASE_URL`、`NEXUS_MODEL_*`、`NEXUS_LLM_JSON_MODE` 亦同。
-因此核心 AI 依赖不再是纯 mock（§160 §AGENTS）；
+当时核心 AI 依赖不再是纯 mock（§160 §AGENTS）；
 
-- `/healthz` capability 现为 `real`（providers: `llm`/`embedding` openai-compatible REAL；
+- 当日 `/healthz` capability 为 `real`（providers: `llm`/`embedding` openai-compatible REAL；
   `image`/`video`/`speech` 仍如实 `unavailable`）。
-- web 的 Provider 就绪页盖 `在线 · real` 布尔真，不再是 `未配置`。
+- 当日 web 的 Provider 就绪页盖 `在线 · real` 布尔真，不再是 `未配置`。
 - `scripts/probe-provider.py` 一次请求验证 endpoint（无需手动导环境变量，读 apps/ai-service/.env）。
-- 真实调用产生真实费用：每个真实 generation 请求都向 endpoint 计费；`demoMode=false`。
-  开发时不想产生费用就别触开发 AI 路径（或删 .env 里的 key）；healthz 会退回 mock，
-  `DEMO MODE` 标志真显示，§AGENTS 纪律仍有效。
+- 真实调用产生真实费用：每个真实 generation 请求都向 endpoint 计费；当日 `demoMode=false`。
+  开发时不想产生费用就别触开发 AI 路径（或删 .env 里的 key）；今天 API 已关闭，
+  探测失败时 healthz 报 `unavailable`、web 显示 `DEMO MODE`，§AGENTS 纪律仍有效。
 
 ### 2026-11-13 LLM 通路接入 prompt caching（§AILIVE-4）
 
 `wkapi.pro`（OpenAI 兼容网关）的 `usage` 对象默认**不带 prompt caching 字段**（只给 `prompt_tokens/completion_tokens/total_tokens`）；stream SSE 结尾直接 `[DONE]`、没有 usage 帧——stream 不是"坏"，充其量是"报不了数"。
 
-2026-11-13 修：OpenAICompatibleProvider 发 `prompt_cache_key`（缺省 `nexus-studio`，env `NEXUS_OPENAI_PROMPT_CACHE_KEY`，显式空串关闭）；`usage` 新增 `cachedTokens`（default 0），契约三件套同步。实测：同 payload 第二次起 `cached_tokens=6272/6449（97.2%）`；经 `POST /v1/ai/run` 完整 HTTP 路径 cold 0 → warm 6272（**97.8%**）。`/healthz` 依旧 `real`；成本仍只看网关的 truth（`costUsd=0`，不编）。**2026-11-18 更新（ADR-0284）**：缺省翻转为 sticky per-lane（`nexus-<sha256(system)>`）——这台网关上常量 lane 12 发交替 6 次 502，sticky per-lane 12/12 200 且 cached≈100%（`docs/evidence/cache-key-ab-2026-11-18.md`）。
+2026-11-13 修：OpenAICompatibleProvider 发 `prompt_cache_key`（缺省 `nexus-studio`，env `NEXUS_OPENAI_PROMPT_CACHE_KEY`，显式空串关闭）；`usage` 新增 `cachedTokens`（default 0），契约三件套同步。实测：同 payload 第二次起 `cached_tokens=6272/6449（97.2%）`；经 `POST /v1/ai/run` 完整 HTTP 路径 cold 0 → warm 6272（**97.8%**）。`/healthz` 当日依旧 `real`（历史快照）；成本仍只看网关的 truth（`costUsd=0`，不编）。**2026-11-18 更新（ADR-0284）**：缺省翻转为 sticky per-lane（`nexus-<sha256(system)>`）——这台网关上常量 lane 12 发交替 6 次 502，sticky per-lane 12/12 200 且 cached≈100%（`docs/evidence/cache-key-ab-2026-11-18.md`）。
 
 进程归属与停机纪律见 `docs/environment/port-3200-ai-service-owner.md`（3200 现由本仓 patched 实例持有）。
 
@@ -62,7 +67,7 @@
 
 wkapi.pro 线退役；新线（用户提供）：key 经 `apps/ai-service/.env`（gitignored）、`https://api.aizzz.xyz/v1`、模型 `gpt-6.1-terra`。**本机必须经 Clash Verge（`127.0.0.1:7897`）出网**，直连 aizzz.xyz 会被该服务拦（实测 HTTP 403，经代理 HTTP 200，`GET /v1/models` 列出 `gpt-6.1-terra`）。
 
-> **2026-11-21 模型更正（用户点名）**：模型已从 `gpt-6.1-terra` 换成 **`gpt-6.2-sol`**。当前 `apps/ai-service/.env` 四档 `NEXUS_MODEL_FAST/BALANCED/REASONING/VISION` 全是 `gpt-6.2-sol`，`NEXUS_MODEL_EMBEDDING=none`（网关没有 embedding 模型）；上文与下面 ADR/evidence 里的 `gpt-6.1-terra` 是当日当时的实测记录，保留原文不改写，但不代表当前配置。
+> **2026-11-21 模型更正（用户点名，历史快照）**：模型已从 `gpt-6.1-terra` 换成 **`gpt-6.2-sol`**。当日 `apps/ai-service/.env` 四档 `NEXUS_MODEL_FAST/BALANCED/REASONING/VISION` 全是 `gpt-6.2-sol`，`NEXUS_MODEL_EMBEDDING=none`（网关没有 embedding 模型）；上文与下面 ADR/evidence 里的 `gpt-6.1-terra` 是当日当时的实测记录，保留原文不改写。该 API 现已关闭，这些配置不再代表当前可用状态。
 
 机器级决定（详见 `docs/adr/0269-provider-aizzz-switch-machine-decisions.md`）：
 

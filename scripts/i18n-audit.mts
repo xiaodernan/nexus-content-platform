@@ -40,26 +40,26 @@ async function main(): Promise<void> {
   const en = GUIDE_COPY.en.sections as GuideSection[];
 
   for (let i = 0; i < zh.length; i++) {
-    const zhHead = head(zh[i]);
-    const enHead = head(en[i]);
+    const zhHead = head(zh[i]!);
+    const enHead = head(en[i]!);
     const text = `zh 第 ${i + 1} 段 "${zhHead}"\nen 第 ${i + 1} 段 "${enHead}"\n请检查这一对：zh 语义内容是否全部在 en 翻译中出现（en 没缺必须翻译内容）；en 译文是否忠实（无中文字符、无繁体、无明显翻译腔）。列出差异。`;
     const issues = await jattack(text);
     issuesTotal += issues.length;
-    lines.push(`## 第 ${i + 1} 段：${zh[i].heading} · ${en[i].heading}`);
+    lines.push(`## 第 ${i + 1} 段：${zh[i]!.heading} · ${en[i]!.heading}`);
     lines.push(`- zh: ${zhHead.slice(0, 90)}`);
     lines.push(`- en: ${enHead.slice(0, 90)}`);
     if (issues.length === 0) lines.push('- 诊断: AI 未报问题');
     else issues.forEach((x) => lines.push(`- ${x.side} issue: ${x.reason}`));
     lines.push('');
-    console.log(`第 ${i + 1} 段（${zh[i].heading}）：${issues.length} 项差异`);
+    console.log(`第 ${i + 1} 段（${zh[i]!.heading}）：${issues.length} 项差异`);
   }
 
   // 全局忠实度抽样：en→zh
   for (let i = 0; i < zh.length; i++) {
-    const text = `en 第 ${i + 1} 段 "${head(en[i])}"\nzh 第 ${i + 1} 段 "${head(zh[i])}"\n这一对是项目文案：检查 en 翻译回来的中文是否比 zh 原文摘除主要关键名/数字外内容一致。列出出现在 zh 原文里的关键名但缺失/翻译错误在 en 中的项。`;
+    const text = `en 第 ${i + 1} 段 "${head(en[i]!)}"\nzh 第 ${i + 1} 段 "${head(zh[i]!)}"\n这一对是项目文案：检查 en 翻译回来的中文是否比 zh 原文摘除主要关键名/数字外内容一致。列出出现在 zh 原文里的关键名但缺失/翻译错误在 en 中的项。`;
     const issues = await jattack(text);
     issuesTotal += issues.length;
-    lines.push(`## 第 ${i + 1} 段（en→zh）：${en[i].heading}`);
+    lines.push(`## 第 ${i + 1} 段（en→zh）：${en[i]!.heading}`);
     if (issues.length === 0) lines.push('- AI 未报问题');
     else issues.forEach((x) => lines.push(`- ${x.side} issue: ${x.reason}`));
     lines.push('');

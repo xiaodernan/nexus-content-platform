@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { readStable } from './helpers/stable-text';
 
 /**
  * §FE-27 `/admin/realtime` 实时总线诊断入口（§163）——**静态那一寸**（零浏览器、零真库、零时钟）。
@@ -29,10 +30,10 @@ const PANEL = join(ROOT, 'apps/web/src/app/admin/realtime/StatsPanel.tsx');
 const GLOBALS = join(ROOT, 'apps/web/src/app/globals.css');
 const TOKENS = join(ROOT, 'apps/web/src/styles/tokens.css');
 
-const page = readFileSync(PAGE, 'utf8');
-const panel = readFileSync(PANEL, 'utf8');
-const globals = readFileSync(GLOBALS, 'utf8');
-const tokens = readFileSync(TOKENS, 'utf8');
+const page = readStable(PAGE);
+const panel = readStable(PANEL);
+const globals = readStable(GLOBALS);
+const tokens = readStable(TOKENS);
 
 const cssNoComments = (css: string): string => css.replace(/\/\*[\s\S]*?\*\//g, '');
 const pageCode = page.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');

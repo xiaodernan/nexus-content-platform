@@ -5,7 +5,7 @@
 ## 证据
 
 **system prefix**：`SYSTEM_PROMPT + CANON_DIGEST`（^ canonical stable ~48,339 chars）；
-**probe script**：`.scratch/verify-canon-multiprobe.mts`
+**probe script**：`scratch/verify-canon-multiprobe.mts`
 
 | # | 提问 | answer 首句 | verdict | iterations | cachedTokens | totalTokens |
 |---|---|---|---|---|---|---|

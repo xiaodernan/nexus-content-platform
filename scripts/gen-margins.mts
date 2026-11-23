@@ -55,7 +55,7 @@ const echoFiles = readdirSync(ECHOES_DIR)
   .filter((f) => /^E\d{2,3}-.+\.md$/.test(f) && !f.endsWith('.en.md'))
   .sort();
 
-const rows: { echo: string; slug: string; zh: string; en: string }[] = [];
+const rows: { echo: string; slug: string; titleZh: string; titleEn: string; zh: string; en: string }[] = [];
 for (const zhName of echoFiles) {
   const enName = zhName.replace(/\.md$/, '.en.md');
   if (!existsSync(join(ECHOES_DIR, enName))) throw new Error(`缺英文译本 ${enName}`);

@@ -31,7 +31,7 @@ import { cn } from '@/lib/cn';
 import { patchLore } from '@/lib/worldLore';
 import type { Locale } from '@/lib/i18n';
 import { chatWithCharacter } from '@/server/ai/client';
-import { fillableKinds, formatWorldFillError, parseChronicleReply, parseEchoReply, parseLinkReply, parseWorldFillReply, retrieveWorldContext } from '@/lib/worldFill';
+import { formatWorldFillError, parseChronicleReply, parseEchoReply, parseLinkReply, parseWorldFillReply, retrieveWorldContext } from '@/lib/worldFill';
 import { rollFate, type FateCard } from '@/lib/worldFate';
 import { mergeImportedWorld, parseWorldMarkdown, worldFileName, worldToMarkdown } from '@/lib/worldExport';
 import { formatWorldStats, worldStats } from '@/lib/worldStats';
@@ -1084,6 +1084,7 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
             ref={importFileRef}
             type="file"
             accept=".md,.markdown,text/markdown,text/plain"
+            aria-label={c.importMd}
             data-world-import-file
             style={{ display: 'none' }}
             onChange={(e) => {

@@ -6480,6 +6480,14 @@
 @media (prefers-reduced-motion: reduce) {
   .nw-link { transition: none; }
 }
+/* §WORLD-NET 割点面板：跨两列，条目按最小 240px 自动排开（不挤成一条长竖线）。
+   它原来被追加在 §ECHO-THREAD 段之后——那是「按段取样式」的门看不见它的地方，
+   于是这段样式其实没被任何一道门看着。现在搬回 .nw- 段里。 */
+.nw-cutPanel { grid-column: 1 / -1; }
+.nw-cutList { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+@media (forced-colors: active) {
+  .nw-cutPanel { border: 1px solid CanvasText; background: Canvas; }
+}
 @media (forced-colors: active) {
   .nw-page, .nw-panel, .nw-stats, .nw-hub, .nw-clique, .nw-bridge, .nw-cross { border: 1px solid CanvasText; background: Canvas; color: CanvasText; }
   .nw-kicker, .nw-title, .nw-lede, .nw-footnote, .nw-stats, .nw-panelTitle, .nw-hint, .nw-empty, .nw-hubTitle, .nw-hubKind, .nw-rank, .nw-in, .nw-out, .nw-cliqueCount, .nw-cliqueMembers, .nw-bridgeEnds, .nw-bridgeLabel, .nw-crossLabel, .nw-crossCount, .nw-crossPairs, .nw-isoNames, .nw-link { color: CanvasText; }
@@ -6547,13 +6555,6 @@
 .se-external { margin-top: var(--nexus-space-6); border-top: 1px dashed var(--nexus-color-border-strong); padding-top: var(--nexus-space-4); display: flex; flex-direction: column; gap: var(--nexus-space-2); }
 .se-external [data-search-external-hit] { border-style: dashed; }
 .se-external [data-search-external-hit]:hover { border-style: solid; }
-
-/* §WORLD-NET 割点面板：跨两列，条目按最小 240px 自动排开（不挤成一条长竖线） */
-.nw-cutPanel { grid-column: 1 / -1; }
-.nw-cutList { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
-@media (forced-colors: active) {
-  .nw-cutPanel { border: 1px solid CanvasText; background: Canvas; }
-}
 
 /* §CANON-REVIEW 正典评审 /admin/canon-review（真模型对照既有锚句评审候选；只读，不改写、不落库） */
 .cr-panel { display: flex; flex-direction: column; gap: 0.9rem; background: var(--nexus-color-bg-2); border: 1px solid var(--nexus-color-border-subtle); border-radius: var(--nexus-radius-md, 0.75rem); padding: 1.25rem; }

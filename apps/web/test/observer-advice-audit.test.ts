@@ -100,4 +100,9 @@ describe('§ADMIN-LLM-2 接线纪律（源码级）', () => {
     expect(used.size).toBeGreaterThan(0);
     for (const cls of used) expect(globals).toContain(`.${cls}`);
   });
+
+  it('这条写路由与它的按钮两头都接上 CSRF 双提交（并回 origin/main 时补的）', () => {
+    expect(route).toContain('csrfOk(req)');
+    expect(card).toContain('...csrfHeaders()');
+  });
 });

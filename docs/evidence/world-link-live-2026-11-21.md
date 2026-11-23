@@ -22,5 +22,5 @@ E2E 补充（限流窗口恢复后的那一轮）：真浏览器先填两条有�
 **最后一格已补（下一个限流窗口）**：真浏览器建项目 → 建骨架 → 写概述 → 连续填「地理」「势力」两节
 （各 1 条）→ 点「AI 牵线」，回执「已从『潮候院』牵出一条『老石磨记时的院落』关系，星图可见」；
 `GET /api/projects/:id/world` 实读 `links[0] = { to: wn_…, label: 老石磨记时的院落 }`，零 pageerror。
-脚本：`.scratch/final-link2.mjs`。
+脚本：`scratch/final-link2.mjs`。
 

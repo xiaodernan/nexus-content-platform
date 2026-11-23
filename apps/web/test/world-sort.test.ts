@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { createWorld, addWorldNode, updateWorldNode, type WorldNode } from '@nexus/world-model';
+import { createWorld, addWorldNode, updateWorldNode } from '@nexus/world-model';
 import { sortWorldNodes } from '../src/lib/worldSort';
 
 let w = createWorld('测试', 'p1');
 w = addWorldNode(w, { kind: 'lore', title: '乙', body: '' });
 w = addWorldNode(w, { kind: 'lore', title: '甲', body: '' });
 w = addWorldNode(w, { kind: 'lore', title: '丙', body: '' });
-const [a, b, c] = w.nodes.slice(-3);
+const [a, b] = w.nodes.slice(-3);
 w = updateWorldNode(w, b!.id, { lore: { era: '灰灯纪', order: 1 } });
 w = updateWorldNode(w, a!.id, { lore: { era: '灰灯纪', order: 2 } });
 const nodes3 = w.nodes.slice(-3);

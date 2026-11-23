@@ -7,6 +7,7 @@ import { BREAKPOINT_LABELS, VIEWPORT_OPTIONS } from './viewer-params';
 import { PublishPanel } from './PublishPanel';
 import { ExportPanel } from './ExportPanel';
 import { shellCopy } from './shell-i18n';
+import { hint } from '@/lib/hintCopy';
 import type { Locale } from '@/lib/i18n';
 
 /**
@@ -78,8 +79,8 @@ export function TopBar({ onOpenRail, credits = null, locale = 'zh', onOpenHelp }
         type="button"
         onClick={onOpenRail}
         className="sp-railToggle"
-        title={c.railToggleTitle}
-        aria-label={c.railToggleTitle}
+        title={hint('studio.topbar.rail', locale)}
+        aria-label={hint('studio.topbar.rail', locale)}
       >
         {c.railToggle}
       </button>
@@ -104,7 +105,7 @@ export function TopBar({ onOpenRail, credits = null, locale = 'zh', onOpenHelp }
         <button
           type="button"
           onClick={() => setEditingName(true)}
-          title={c.renameProjectTitle}
+          title={hint('studio.topbar.rename', locale)}
           className="sp-nameBtn"
           data-project-name
         >
@@ -144,7 +145,7 @@ export function TopBar({ onOpenRail, credits = null, locale = 'zh', onOpenHelp }
           onChange={(e) => studio.setMode(e.target.value === 'default' ? null : e.target.value)}
           data-theme-mode
           className="sp-modeSelect"
-          title={c.tokenModeTitle}
+          title={hint('studio.topbar.themeMode', locale)}
         >
           <option value="default">{c.defaultThemeLabel}</option>
           {modes.map((m) => (
@@ -153,13 +154,19 @@ export function TopBar({ onOpenRail, credits = null, locale = 'zh', onOpenHelp }
             </option>
           ))}
         </select>
-        <TopButton label={c.grid} shortcut="Ctrl+G" active={grid} onClick={() => studio.toggleGrid()} />
+        <TopButton
+          label={c.grid}
+          shortcut="Ctrl+G"
+          active={grid}
+          title={hint('studio.topbar.grid', locale)}
+          onClick={() => studio.toggleGrid()}
+        />
         <ExportPanel locale={locale} />
         {onOpenHelp ? (
           <button
             type="button"
             onClick={onOpenHelp}
-            title={c.helpToggleTitle}
+            title={hint('studio.topbar.help', locale)}
             className="sp-helpToggle"
             data-help-open
           >
@@ -170,7 +177,7 @@ export function TopBar({ onOpenRail, credits = null, locale = 'zh', onOpenHelp }
         <a
           href={`/preview/${projectId}`}
           className="sp-previewLink"
-          title={c.previewTitle}
+          title={hint('studio.topbar.preview', locale)}
         >
           {c.preview}
         </a>

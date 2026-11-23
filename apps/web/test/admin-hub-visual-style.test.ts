@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { readStable } from './helpers/stable-text';
 
 /**
  * §FE-26 `/admin` 入口总览 + `AdminNav` 磨砂胶囊导航——**静态那一寸**（零浏览器、零真库、零时钟）。
@@ -45,10 +46,10 @@ const NAV = join(ROOT, 'apps/web/src/components/AdminNav.tsx');
 const GLOBALS = join(ROOT, 'apps/web/src/app/globals.css');
 const TOKENS = join(ROOT, 'apps/web/src/styles/tokens.css');
 
-const page = readFileSync(PAGE, 'utf8');
-const nav = readFileSync(NAV, 'utf8');
-const globals = readFileSync(GLOBALS, 'utf8');
-const tokens = readFileSync(TOKENS, 'utf8');
+const page = readStable(PAGE);
+const nav = readStable(NAV);
+const globals = readStable(GLOBALS);
+const tokens = readStable(TOKENS);
 
 const cssNoComments = (css: string): string => css.replace(/\/\*[\s\S]*?\*\//g, '');
 const pageCode = page.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
@@ -208,8 +209,9 @@ describe('§FE-26 /admin 入口总览 + AdminNav', () => {
   });
 
   it('page.tsx redact 与有意录在目录册里的常量一致（§ADMIN-13 观察站卡 + denied 链 + 十三处口径重钉）', () => {
+    // 2026-11-24 并轨保留中文 kicker，避免中文界面夹英文；以下为合并后字节的摘要。
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '15f27cddf4184045226f3221fd34aba5043a1a93ab9462589400a11350e9b2e7',
+      '829750cfbb0b531759ff426227e7210cc0119b556fd96a0753d61987a1e82898',
     );
   });
 

@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { readStable } from './helpers/stable-text';
 
 /**
  * §FE-23 `/tasks/[projectId]` 任务账本（§112）——**静态那一寸**（零浏览器、零真库、零时钟）。
@@ -31,11 +32,11 @@ const RETRY = join(ROOT, 'apps/web/src/components/TaskRetryButton.tsx');
 const GLOBALS = join(ROOT, 'apps/web/src/app/globals.css');
 const TOKENS = join(ROOT, 'apps/web/src/styles/tokens.css');
 
-const page = readFileSync(PAGE, 'utf8');
-const live = readFileSync(LIVE, 'utf8');
-const retry = readFileSync(RETRY, 'utf8');
-const globals = readFileSync(GLOBALS, 'utf8');
-const tokens = readFileSync(TOKENS, 'utf8');
+const page = readStable(PAGE);
+const live = readStable(LIVE);
+const retry = readStable(RETRY);
+const globals = readStable(GLOBALS);
+const tokens = readStable(TOKENS);
 
 const cssNoComments = (css: string): string => css.replace(/\/\*[\s\S]*?\*\//g, '');
 const strip = (s: string): string => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');

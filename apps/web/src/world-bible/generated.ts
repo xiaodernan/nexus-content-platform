@@ -30253,6 +30253,162 @@ The chalk line wore thin under heels, but the dots remained. The blank is still 
 `,
   },
   {
+    order: 221,
+    slug: 'echo-221-smaller-page-inside-the-square',
+    titleZh: '空位里那页更小的点',
+    titleEn: 'The Smaller Page of Dots Inside the Square',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E220）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E220).',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 221): The Smaller Page of Dots Inside the Square
+
+> 回响不替正典续写——它只是页边另一层长出来的盐。
+> 写在 E220 之后：灯留在空白这一头，孩子停在空白前面。这一篇写的是天亮以后那一格空位里有什么。
+> 纪律同前：锚句逐字；不新增正典专名，只在既有的抄本院与页边添细节。
+>
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E220: the lamp stayed at this end of the blank and the child stopped before it. This one writes what the empty square holds by morning.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within the copy hall and the margins.
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E220）。
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E220).
+
+---
+
+## 一 · 灯在另一头
+
+天亮时灯在空白的另一头——没有人走过那一截。
+**锚句**：天亮时灯在空白的另一头——没有人走过那一截。
+**Anchor sentence**: at dawn the lamp stood at the other end of the blank — no one had walked it.
+
+---
+
+## 二 · 空位里
+
+那一格空位里没有答案，只有更小的一页点。
+**锚句**：那一格空位里没有答案，只有更小的一页点。
+**Anchor sentence**: the empty square held no answer, only a smaller page of dots.
+
+---
+
+## 三 · 收进袖子
+
+最年长的抄本师把那页点收进袖子，没有铺开。
+**锚句**：最年长的抄本师把那页点收进袖子，没有铺开。
+**Anchor sentence**: the eldest copyist folded the page into his sleeve and did not spread it.
+
+---
+
+## 四 · 等有人问
+
+他说，等有人问起这一格，再铺。
+**锚句**：他说，等有人问起这一格，再铺。
+**Anchor sentence**: he said to spread it when someone asked about the square.
+
+---
+
+## 五 · 袖子轻了
+
+那天没有人问——可第二天，袖子里那页点自己轻了。
+**锚句**：那天没有人问——可第二天，袖子里那页点自己轻了。
+**Anchor sentence**: no one asked that day — but by morning the page in his sleeve had grown lighter.
+
+---
+
+## 六 · 朝里开的门
+
+空位不是尽头，是一扇朝里开的门。
+**锚句**：空位不是尽头，是一扇朝里开的门。
+**Anchor sentence**: the square is no end — it is a door that opens inward.
+
+---
+
+## 七 · Mapping（Echo No. 221 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the square holds a smaller page of dots · an inward door · no answer | 二、四、六 |
+| geography | the copy hall · the empty square · the far end of the blank | 一、二 |
+| characters | the eldest copyist · the child who stopped · those who will ask | 一、三、四 |
+| story | after E220: the lamp crosses itself; each answer opens another road | 全篇 |
+| items | the lamp · the smaller page · the sleeve | 一、二、三、五 |
+| history | the 140th year after the 44th Convocation (continues E206–E220) | 纪元 |
+
+> 世界没有写完——空位里还有一页点，等一个问句。
+> The world is not finished — the square holds another page of dots, waiting for a question.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E220: the lamp stayed at this end of the blank and the child stopped before it. This one writes what the empty square holds by morning.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within the copy hall and the margins.
+
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E220).
+
+---
+
+## One · The Lamp at the Other End
+
+At dawn the lamp stood at the other end of the blank — no one had walked it.
+**锚句**：天亮时灯在空白的另一头——没有人走过那一截。
+**Anchor sentence**: at dawn the lamp stood at the other end of the blank — no one had walked it.
+
+---
+
+## Two · Inside the Square
+
+The empty square held no answer, only a smaller page of dots.
+**锚句**：那一格空位里没有答案，只有更小的一页点。
+**Anchor sentence**: the empty square held no answer, only a smaller page of dots.
+
+---
+
+## Three · Into the Sleeve
+
+The eldest copyist folded the page into his sleeve and did not spread it.
+**锚句**：最年长的抄本师把那页点收进袖子，没有铺开。
+**Anchor sentence**: the eldest copyist folded the page into his sleeve and did not spread it.
+
+---
+
+## Four · Wait for the Question
+
+He said to spread it when someone asked about the square.
+**锚句**：他说，等有人问起这一格，再铺。
+**Anchor sentence**: he said to spread it when someone asked about the square.
+
+---
+
+## Five · The Sleeve Grows Lighter
+
+No one asked that day — but by morning the page in his sleeve had grown lighter.
+**锚句**：那天没有人问——可第二天，袖子里那页点自己轻了。
+**Anchor sentence**: no one asked that day — but by morning the page in his sleeve had grown lighter.
+
+---
+
+## Six · A Door Opening Inward
+
+The square is no end — it is a door that opens inward.
+**锚句**：空位不是尽头，是一扇朝里开的门。
+**Anchor sentence**: the square is no end — it is a door that opens inward.
+
+---
+
+## Seven · Mapping (Echo No. 221 · world model)
+
+| Dimension | Value | Chapters |
+| --- | --- | --- |
+| lore | the square holds a smaller page of dots · an inward door · no answer | 二、四、六 |
+| geography | the copy hall · the empty square · the far end of the blank | 一、二 |
+| characters | the eldest copyist · the child who stopped · those who will ask | 一、三、四 |
+| story | after E220: the lamp crosses itself; each answer opens another road | 全篇 |
+| items | the lamp · the smaller page · the sleeve | 一、二、三、五 |
+| history | the 140th year after the 44th Convocation (continues E206–E220) | 纪元 |
+
+> The world is not finished — the square holds another page of dots, waiting for a question.
+> 世界没有写完——空位里还有一页点，等一个问句。
+`,
+  },
+  {
     order: 23,
     slug: 'echo-023-the-ship-that-appears-only-at-dusk',
     titleZh: '雾港里那艘只在黄昏出现的船',

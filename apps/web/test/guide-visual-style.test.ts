@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { GUIDE_COPY } from '../src/lib/guideCopy';
+import { readStable } from './helpers/stable-text';
 
 /**
  * §FE-Guide「使用指南 / User Guide」（`/guide`）§v712 —— 用户说明书。
@@ -21,10 +22,10 @@ const LIB = join(ROOT, 'apps/web/src/lib/guideCopy.ts');
 const GLOBALS = join(ROOT, 'apps/web/src/app/globals.css');
 const TOKENS = join(ROOT, 'apps/web/src/styles/tokens.css');
 
-const page = readFileSync(REAL, 'utf8');
-const dictSrc = readFileSync(LIB, 'utf8');
-const globals = readFileSync(GLOBALS, 'utf8');
-const tokens = readFileSync(TOKENS, 'utf8');
+const page = readStable(REAL);
+const dictSrc = readStable(LIB);
+const globals = readStable(GLOBALS);
+const tokens = readStable(TOKENS);
 const code = page.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 const codeLib = dictSrc.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 

@@ -4,7 +4,7 @@
 
 ## 直接探针（用 Node/register 架子）——真模型，真 digest，真缓存
 
-脚本 `.scratch/probe-ask.mts`（会注册一个 throwaway guest，问一个问题）：
+脚本 `scratch/probe-ask.mts`（会注册一个 throwaway guest，问一个问题）：
 
 | 调用 | status | 关键字段 |
 |---|---|---|

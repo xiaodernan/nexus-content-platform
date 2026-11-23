@@ -1,3 +1,14 @@
+> **2026-11-24（§INTEGRATE-2 主线再并轨，ADR-0318）**：本地 `main`（`f531ad5d`，15 条独有提交）与 `origin/main`（`cb5407c5`，22 条独有提交）在隔离工作树 `D:\nexus-sync-20261124` 做真实三方合并，不 rebase、不 cherry-pick、不触碰主工作区另一会话的搜索支线。九处冲突逐文件判侧；ADR 撞号按来客后移（provider 0316→0317、旧并轨 0313→0319）；视觉 SHA 按合并后字节重钉；隐藏文件输入补可访问名称；展示同步 ref 改为唯一 `main`。Next 16.4.6 webpack 在 3101 真实启动，修复 Edge instrumentation 静态遍历 `ioredis` 的编译断链；`/about-nexus`、`/guide`、`/onboarding` 中英六页 HTTP 200、控制台无错误，六张截图全部目验。最终非集成 Vitest **561 files / 7485 tests 通过**（1 file / 4 tests skip），FE 门 **158 suites / 1439 tests 全绿**，整树 lint **20 areas / 0 finding**，`nexus-api` **1063/1063**。Docker/PostgreSQL/Redis 不可达，相关 integration/live 套件如实列为环境阻塞；provider API 按用户要求关闭，不调用、不伪造 live 结果。
+>
+> **2026-11-23（§HINT-1 主界面的按键都带教学说明，且说明只有一份真值，ADR-0316）**：用户第五点落地——先量后做：静态扫六个主界面，**Studio 命令栏 14 个控件 0 个带说明**（命令面板入口只有 aria-label，顶栏 10 个里 8 个有）。「执行」与「批准并交回编辑区」对第一次进 Studio 的人是两个看起来一样的按钮，而其中一个可能删掉东西。
+>
+> **真值只有一份**：新增 `apps/web/src/lib/hintCopy.ts`（22 条 · 中英各一份 · 一 id 一句）；原先散在**三份**字典里的教学说明全部搬进来（`CommandBar.COPY` 五句 + `shell-i18n.ts` 五句（确认只有 TopBar 用到，已删）+ 原来根本没有的十一句），控件统一 `title={hint('<id>', locale)}`；说明讲**后果**不讲术语（「重命名项目」→「改完按 Enter 生效，按 Esc 取消」）。
+>
+> **门**：`apps/web/test/hint-coverage-behavior.test.ts` 5 臂（覆盖 / 字典双语与长度 / 接线与死条目 / 豁免是真豁免 / 非内联字面量）。扫描器踩过一个坑：属性里的 `=>` 那个 `>` 不是标签结束符——按 `[^>]*` 截会把 9 个有 title 的按钮算成没有，量出来的 28.6% 覆盖是假的。
+>
+> **验证**：变异四道（删 title → 覆盖臂红；en 塞汉字 → 字典臂红；引用不存在的 id → 接线臂红；字典加死条目 → 接线臂红）全部只红该红的臂且已还原；`tsc -p apps/web` EXIT=0；相关六文件 56/56 绿；两处「剥 className 后全文零行为」SHA 门按惯例重钉并写明来由（`92aa97f3…`→`df3e44b5…`、`fabb39a2…`→`2f1ef1f9…`）——悬停能看到「按下去会发生什么」**就是**行为。
+>
+> **诚实限度**：面板里各写各的 `title` 尚未并入字典（门只对六个界面负责）；共享气泡组件（可聚焦 / aria-describedby / 触屏可点）本片**没有**做（视觉门禁禁新类名与 `@media`/`transition`/hex）；`title` 对触屏用户不可见——本片只保证「有说明」，不保证「都读得到」；浏览器像素层未验收（本机无合适 Chrome）。
 > **2026-11-22 续9（§SESSION-CLOSE-1——LLM 认证头根因修复 + 压力/行为实测 + 页边模块 + io 真实数据，`<commit>`）**：本段把用户总指令里"必须实测跑通"的一条**真 bug** 修掉了：该网关只认**裸 key**，`Authorization: Bearer sk-…` 稳定 401「无效的令牌」，同 key 去掉前缀立刻 200（usage 4387/4180 cached）；Node 侧不走代理还会被地域 403。修法是一处真值 `authorization_header(api_key, scheme)` + `NEXUS_OPENAI_AUTH_SCHEME`（默认 raw，官方端点一个 env 切回），`pytest apps/ai-service/tests` **478 passed / 18 skipped**。**修后真机**：`/healthz` capability=real · llmLive ok；`live-cache-probe` 347,534 token 前缀第 2/3 次 **100%** 命中；`live-bible-ask-probe` cached 8,245 → **173,162**；`/v1/ai/world-step` 200 · stategraph · 348,688 token **100%** 命中 · 6.7ms · delta `{vigor:0,depth:1,seals:[],unlocks:[],risk:"uneasy"}` + 中文叙事。**新增**：① `scripts/stress-web-burst.mts` + 证据（120 并发/240 burst：**0 个 5xx、0 个错码**，未应答全是客户端 30s 超时——这台开发机供养不起 120 并发 SSR，是容量上限不是产品崩溃，测的是并行线 3100 上那台，如实记录）；② `simulate-user-behavior` 复跑（20 会话 / 75 点击 / **0 错误**，五种画像）；③ **新模块 `/bible/margins` 页边批注**（`> 页边：`/`> Margin:` 行由 `scripts/gen-margins.mts` 收成 `margins.generated.ts`，slug 与 `ECHO_WEB_SLUGS` 同源；浏览器实测中英双语 + reveal + 链接跳回回响页）；④ `scripts/echo-canon-review.mts`——用真模型给新回响做正典合规评审（A 专名 / B 冲突 / C 撞句，带全部既有锚句），两次实跑各 24K token，**抓到的具体意见已回写 E212**（正文落实"五个抄本师"）。**io 页面**：`latest.json` 推送两次；「MOST USED LANGUAGES」换成 **GitHub API 实拉**（16 公开仓 / 152,517,763 bytes / 19 种语言，Java 8.83%→9.44%），线上 `.lang-pct` 已变为 31.54/24.06/20.26/12.09/9.44/1.50/0.38/0.27/0.45，identity-guard pin 同步。**世界内容**：E211「新痕不占第四十四道」、E212「不数者」（各 6 条中英锚句；锚句 1278→1284；canon digest 268,153 chars）。**诚实限度**：本机 `apps/ai-service/.venv` 的 base Python 3.11 已不存在，测试用系统 Python 3.14 跑（venv 待重建）；web 侧只跑了对相关文件分片的 vitest + tsc（未跑 fe-gates 整线，AGENTS.md：不必每次全量）；浏览器像素验收覆盖 home/guide/io/margins/echo-reader 五页。
 
 > **2026-11-22 续（§v626-Echo212「不数者」——页边那一角的下一层，`<commit>`）**：`docs/world-bible/echoes/E212-潮候院抄本院抄本师们给那道新痕起了个不是名字的名字.md`（+ `.en.md`）——E211 结尾"数字是用来数的，这一道不是用来数的"之后，抄本师们决定**不起名字**（起名字就要按名册排，而名册是数出来的），在页边写了三个字「不数者」，写完谁都没念出声；第一个看见的人没问是谁写的（册子里的字从来不问出处）；后来每个抄本师路过那一页都停下来看一眼，然后什么也不做；最年长者说"名字是给愿意被数的东西用的；它不愿意，那就不给"。冬潮月过完，三个字还在页边，新痕还在原处，四十三道还在那一行里。**纪律照旧**：6 条中英成对锚句逐字来自正典文件、全库唯一；无新正典专名；纪元续 E206–E211。**生成与登记**：`ECHO_WEB_SLUGS` 补 `echo-212-not-a-name`；`gen:bible-snapshot` 重生成 `generated.ts` 与 canon digest（268,553 chars / sha `93505801…`）；`guideCopy` 211→212 回响、1278→1284 锚句；`bible-ask-behavior` pin 1273→1279。**验证**：world-bible 锚句 1284 zh / 1284 en 全过 · bible-snapshot 一致 · vitest bible-ask-behavior 6/6 + guide-visual-style 8/8。**诚实限度**：fe-gates 整线未跑（AGENTS.md：不必每次全量）；record-encoding 本片未重跑。
@@ -8787,7 +8798,7 @@ Reader (post-continuum trace):
 
 ## cont. 477 (2026-11-22) — 并行缓存 PASS + 手册补齐
 
-- `probe:cache-parallel`（4 路）真机 **PASS**：P0 冷 0% → 暖 100%；P1 四路同前缀不同 user
+- `probe:cache-parallel`（四路）真机 **PASS**：P0 冷 0% → 暖 100%；P1 四路同前缀不同 user
   各 88.2%（差额就是各自不同的 user 段）；P2 同文并发 100% 且 0.12–0.38s（被合并）；
   P3 并发后回到 100%。用户点名的"并行会话打散缓存"在生产路径上不成立。
 - 说明书补进 `/world/<id>/network` 万象脉络（此前 grep 零命中），并写清观察站结构化 AI
@@ -8838,3 +8849,10 @@ Reader (post-continuum trace):
 - **ADR 改号**：main 的 0304 与 master 的 0304 撞号 → 观察站那份改 **0307**（引用同步）。
 - 验证：gen:bible-snapshot → 14 章 · 217 回响 · 4 附录（digest 273,740 chars）；
   verify:world-bible / verify:bible-snapshot ✓；并轨相关判据 17 文件 148 条全绿；tsc web exit 0。
+
+## cont. 482 (2026-11-23) — Echo #221《空位里那页更小的点》· 220→221 回响
+- **无尽世界（需求六）**：承接 E220「空白在路的尽头、灯放在空白这一头」——天亮后灯在空白另一头（无人走过），空位里没有答案、只有更小的一页点；最年长的抄本师收进袖子说「等有人问起这一格再铺」，次日那页自己轻了；空位不是尽头，是一扇朝里开的门。每个答案开出下一条路，世界没有写完。6 组锚句 zh/en 逐字对应、全典唯一。
+- **并轨后第一条新回响**：编号在已收敛的唯一主线上顺延为 E221（slug `echo-221-smaller-page-inside-the-square`）。
+- **重导**：gen:bible-snapshot 重生 generated.ts / digest（274,889 chars, sha 75ca0d68…）；锚句 1334→1340；回响 220→221。
+- **计数对齐**：guideCopy 220→221 / 1329→1335 / two hundred twenty→twenty-one（中英各三处）；bible-ask-behavior pin 1329→1335；canon-answer-graph 段落断言 220→221（14+221=235）。
+- **验证**：world-bible / bible-snapshot / anchor-echo / record-encoding 全 exit 0；vitest 25 passed；typecheck 14/14；lint-tree 20 区 0 finding（并轨修复后的基线）。

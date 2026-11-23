@@ -38,7 +38,7 @@ jobs:
 
       - name: Regenerate docs/showcase/latest.json
         env:
-          NEXUS_FACT_REF: master   # `main` is an unrelated, stale content line — never publish it as latest
+          NEXUS_FACT_REF: main   # 两条主线已收敛；事实包只从唯一 main 生成
         run: npx tsx scripts/gen-latest.mts
 
       # 2026-11-22: this step used to COMMIT the pack back into this repo. That is a

@@ -6,8 +6,8 @@
 **system prompt**：`INSIGHT_AI_SYSTEM_PROMPT` + system CANON_DIGEST + digest-prefix
 
 ## 探针脚本
-- `.scratch/verify-parallel-warm.mts` — 4 路并发后全部 warm 探到 `cachedTokens=34,646 == tokensIn=34,646 (reported: true)`
-- `.scratch/verify-parallel-mix.mts` — 4 路并发，同 2 + 不同 2，全部 PASS
+- `scratch/verify-parallel-warm.mts` — 4 路并发后全部 warm 探到 `cachedTokens=34,646 == tokensIn=34,646 (reported: true)`
+- `scratch/verify-parallel-mix.mts` — 4 路并发，同 2 + 不同 2，全部 PASS
 
 ## 证据表格
 
@@ -36,8 +36,8 @@
 cd apps/web  # 让 tsx 看见 tsconfig 里的 paths
 $env:NEXUS_AI_SERVICE_URL='http://127.0.0.1:8001'
 $env:TSX_TSCONFIG_PATH='tsconfig.json'
-npx tsx ../../.scratch/verify-parallel-warm.mts
-npx tsx ../../.scratch/verify-parallel-mix.mts
+npx tsx ../../scratch/verify-parallel-warm.mts
+npx tsx ../../scratch/verify-parallel-mix.mts
 ```
 
 ## 结论（诚实）
