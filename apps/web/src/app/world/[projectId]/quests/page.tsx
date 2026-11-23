@@ -83,13 +83,13 @@ interface QuestCopyBlock {
 
 const COPY: Record<Locale, QuestCopyBlock> = {
   zh: {
-    kicker: 'COMMISSIONS',
+    kicker: '委托看板',
     title: '世界委托',
     lede: '每天从你的世界真值里挑三件可以动手的事——没有编出来的任务，没有假进度；做完一件，它就真的从板上消失。',
-    footnote: '仅作者可见 · 数字来自 worlds / characters 真表 · 今日委托由世界 id 与日期决定 · 零 provider · 零写库',
+    footnote: '仅作者可见 · 数字取自作品表与人物表真值 · 今日委托由世界编号与日期共同决定 · 不调用外部模型 · 不写库',
     dayLabel: (day: string) => `委托日 ${day}`,
     todayKicker: '今日委托',
-    todayLede: '这三件由世界 id 与日期共同决定：同一天回来还是同一组，跨天自然换一批。',
+    todayLede: '这三件由世界编号与日期共同决定：同一天回来还是同一组，跨天自然换一批。',
     todayEmpty: '今天没有委托——这个世界现在没有可查的缺口。',
     restTitle: '其余可做的事',
     restLede: '轮转在今天三件之后的缺口。计数同样是真的。',

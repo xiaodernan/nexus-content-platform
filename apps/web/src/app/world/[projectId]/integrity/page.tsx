@@ -36,7 +36,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const COPY = {
   zh: {
-    kicker: 'CHECKUP',
+    kicker: '世界体检',
     title: '世界体检',
     lede: '把这个世界的全部真值指标摊开来看一眼——没 magic、没给你打个分。每一行都是真数，每一项都可以点过去消除。',
     footnote: '仅作者可见 · 数字来自 worlds / characters 真表 · 零 provider · 本页零写库',

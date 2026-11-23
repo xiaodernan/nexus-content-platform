@@ -125,7 +125,7 @@ describe('§FE-DG /world/<project>/digest 世界速览', () => {
     // 是真实的新导航元素，不是换皮，所以门该破——旧值 1cfae46a…。
     // 2026-11-22 f5c5f02c 改了英文文案但漏钉本门（全量复跑才发现）；按当前字节补钉。
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '585bf87ed4e385039133ab3cdac5cd43c65265b6ccc40672f85d21e871777d94',
+      'ecd28582a05c7165a882c4ba3413c7dafc7eaef4f3ebd9753c9c09daf1a7281e',
     );
   });
 });

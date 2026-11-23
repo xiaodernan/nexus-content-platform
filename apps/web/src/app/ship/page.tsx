@@ -50,7 +50,7 @@ const CONTRACTS = (() => {
 
 const COPY = {
   zh: {
-    kicker: 'SHIP LOG',
+    kicker: '航行日志',
     title: '交付日志',
     lede:
       '这个平台自己是怎么一砖一瓦搭起来的——不是里程碑也不是战绩，只是真实的 commit；哪一天、哪一类、谁干的。本页完全由 git 机械生成；数字不预先写死，每次请求现算。',

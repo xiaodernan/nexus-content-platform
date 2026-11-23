@@ -49,7 +49,7 @@ interface PulseBody {
 
 const COPY = {
   zh: {
-    kicker: 'public observatory',
+    kicker: '公开观察站',
     title: '观测大厅',
     lede: '这是全平台的聚合读数，公开放映、匿名统计——密码是 123，谁都可以进来围观；没有个人信息（没有邮箱、没有 ID，统计口径是「人 × 天」的行）。',
     gateTitle: '进门的纸条',

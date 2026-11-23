@@ -40,7 +40,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const COPY = {
   zh: {
-    kicker: 'DIGEST',
+    kicker: '世界大典',
     title: '世界速览',
     lede: '一个页面看完整个世界：人物星图、世界编年、设定集、世界切片——每一格都是真实计数，写了多少看多少。',
     footnote: '仅作者可见 · 全部数据来自 worlds / characters 真表 · 零 provider · 本页零写库',

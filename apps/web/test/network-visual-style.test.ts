@@ -109,7 +109,7 @@ describe('§WORLD-NET /world/<project>/network 万象脉络', () => {
   // 同日 f5c5f02c 改英文文案（"World network →"）时漏钉本门；全量复跑后按当前字节补钉。
   it('SHA256 钉死（本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '5731f8540894486e6879ced840f7090b81286ec85ecd7dd975881aa2d58d85fe',
+      '3317d5f97bfd9614ee36a8ab263799e9a56335ead47c626929eac1f9e154673a',
     );
   });
 });

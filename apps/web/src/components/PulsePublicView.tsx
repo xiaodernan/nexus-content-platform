@@ -52,7 +52,7 @@ interface PulseBody {
 
 const COPY = {
   zh: {
-    kicker: 'public observatory · 123',
+    kicker: '公开观察站 · 口令 123',
     title: '公共观测大厅',
     lede: '所有人(是的，所有人)都能进、都能围观平台的统一泳道：流量、改编、通关——口令 123 只是围观提示，不是安全边界；这个页面没有任何个人信息（无邮箱、无名称、无 per-event 粒度）。',
     gateTitle: '围观提示：口令 123',

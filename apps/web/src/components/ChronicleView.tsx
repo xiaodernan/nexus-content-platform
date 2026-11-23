@@ -21,7 +21,7 @@ const COPY = {
   zh: {
     emptyTitle: '编年册还是空白',
     emptyCopy: (name: string) => `「${name}」的世界文档里还没有 story / history 条目。去 Studio 的世界面板写一段历史——哪怕一行——编年册就会长出第一个纪元。`,
-    kicker: 'CHRONICLE',
+    kicker: '编年',
     title: '世界编年',
     eraUnit: '个纪元',
     entryUnit: '条编年',

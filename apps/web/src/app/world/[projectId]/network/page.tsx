@@ -32,7 +32,7 @@ export async function generateMetadata(): Promise<Metadata> {
  */
 const COPY = {
   zh: {
-    kicker: 'NETWORK',
+    kicker: '万象脉络',
     title: '万象脉络',
     lede: '谁是这个世界的中心、哪几条关系是关节、哪些条目互相纠缠成一团——从真实的关系边算出的骨架，不是编的叙事。',
     footnote: '仅作者可见 · 数据来自世界文档的节点与关系 · 零 provider · 本页不写任何东西',
