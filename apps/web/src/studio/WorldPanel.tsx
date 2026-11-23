@@ -36,6 +36,7 @@ import { rollFate, type FateCard } from '@/lib/worldFate';
 import { worldFileName, worldToMarkdown } from '@/lib/worldExport';
 import { formatWorldStats, worldStats } from '@/lib/worldStats';
 import { filterWorldNodes } from '@/lib/worldFilter';
+import { sortWorldNodes, type WorldSortMode } from '@/lib/worldSort';
 import { saveBlob } from '@/lib/download';
 import { useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';
@@ -69,6 +70,8 @@ const COPY = {
     filterAria: '在世界条目里按标题或正文筛选',
     filterPlaceholder: '筛选题名/正文/纪元/回声…',
     filterEmpty: '没有条目匹配这个关键词——清空筛选框看全部。',
+    sort: (m: WorldSortMode) => `排序：${m === 'insertion' ? '原序' : m === 'era' ? '纪元' : '标题'}（点一下切换）`,
+    sortTitle: '只改变这一栏的显示顺序，不改文档本体；原序=写入顺序，纪元=按作者写的纪元与序号，标题=按名称。',
     exportMd: '导出 Markdown',
     exportMdTitle: '把这份世界按九类固定顺序导成 .md：节点正文、纪元/序号、记忆回声都在里面，空类也留标题。纯本地投影，不调模型、不联网。',
     fate: '掷命运骰',
@@ -177,6 +180,8 @@ const COPY = {
     filterAria: 'Filter world entries by title or body',
     filterPlaceholder: 'Filter titles / bodies / eras / echoes…',
     filterEmpty: 'No entry matches that keyword — clear the filter to see everything.',
+    sort: (m: WorldSortMode) => `Sort: ${m === 'insertion' ? 'insertion' : m === 'era' ? 'era' : 'title'} (click to cycle)`,
+    sortTitle: 'Changes only this list view, never the document: insertion = write order, era = the author’s era and order fields, title = name.',
     exportMd: 'Export Markdown',
     exportMdTitle: 'Export this world as a .md in the fixed nine-section order: bodies, era/order and memory echoes are all included, and empty sections keep their headings. Pure local projection — no model call, no network.',
     fate: 'Roll fate',
@@ -638,7 +643,10 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
   };
 
   const [nodeFilter, setNodeFilter] = useState('');
-  const visibleNodes = filterWorldNodes(world.nodes, nodeFilter);
+  const [sortMode, setSortMode] = useState<WorldSortMode>('insertion');
+  const SORT_CYCLE: readonly WorldSortMode[] = ['insertion', 'era', 'title'];
+  const cycleSort = () => setSortMode((m) => SORT_CYCLE[(SORT_CYCLE.indexOf(m) + 1) % SORT_CYCLE.length]!);
+  const visibleNodes = sortWorldNodes(filterWorldNodes(world.nodes, nodeFilter), sortMode);
   const visibleCounts = visibleNodes.reduce<Record<string, number>>((acc, n) => {
     acc[n.kind] = (acc[n.kind] ?? 0) + 1;
     return acc;
@@ -698,6 +706,15 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
           data-world-filter
           className="wd-growInput"
         />
+        <button
+          type="button"
+          onClick={cycleSort}
+          title={c.sortTitle}
+          data-world-sort
+          className="wd-ghostBtn"
+        >
+          {c.sort(sortMode)}
+        </button>
         {nodeFilter.trim() && visibleNodes.length === 0 ? (
           <p className="wd-body11Mt2" data-world-filter-empty>{c.filterEmpty}</p>
         ) : null}

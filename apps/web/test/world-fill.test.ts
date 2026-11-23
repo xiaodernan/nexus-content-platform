@@ -96,6 +96,7 @@ describe('WorldPanel 四种填料按钮接线（web 侧限流期间的静态保�
       ['data-world-export-md', 'worldToMarkdown(doc', 'saveBlob'],
       ['data-world-stats', 'formatWorldStats(worldStats(world)', 'worldStats(world)'],
       ['data-world-filter', 'setNodeFilter', 'filterWorldNodes(world.nodes'],
+      ['data-world-sort', 'cycleSort', 'sortWorldNodes'],
     ] as const) {
       expect(panel, hook).toContain(hook);
       expect(panel, flag).toContain(flag);
