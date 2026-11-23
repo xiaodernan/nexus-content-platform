@@ -8,10 +8,18 @@ import { getLocale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'NEXUS · About',
-  description: 'A creative-modeling platform — prompts become design models, then real code, then enterable worlds. Open source, every number audited.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '关于 NEXUS — NEXUS',
+        description: '一个创意建模平台——提示词变成设计模型，再变成真实代码，最后成为可进入的世界。开源，每个数字都可核对。',
+      }
+    : {
+        title: 'About NEXUS — NEXUS',
+        description: 'A creative-modeling platform — prompts become design models, then real code, then enterable worlds. Open source, every number audited.',
+      };
+}
 
 /**
  * About NEXUS — the outward-facing page.

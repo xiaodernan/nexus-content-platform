@@ -9,10 +9,18 @@ import { ShipDigest } from '@/components/ShipDigest';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'NEXUS — Ship log',
-  description: 'How this platform was actually built — real git log, no gloss.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '交付日志 — NEXUS',
+        description: '这个平台到底是怎么建出来的——真实的 git 记录，没有粉饰。',
+      }
+    : {
+        title: 'Ship log — NEXUS',
+        description: 'How this platform was actually built — real git log, no gloss.',
+      };
+}
 
 /**
  * 交付日志–the platform's ship log, not gloss decor, not patches.
