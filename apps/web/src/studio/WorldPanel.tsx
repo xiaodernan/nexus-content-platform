@@ -37,6 +37,7 @@ import { mergeImportedWorld, parseWorldMarkdown, worldFileName, worldToMarkdown 
 import { formatWorldStats, worldStats } from '@/lib/worldStats';
 import { filterWorldNodes } from '@/lib/worldFilter';
 import { sortWorldNodes, type WorldSortMode } from '@/lib/worldSort';
+import { auditSuggestion, auditWorld, formatWorldAudit } from '@/lib/worldAudit';
 import { saveBlob } from '@/lib/download';
 import { useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';
@@ -78,6 +79,8 @@ const COPY = {
     importMdTitle: '读回本模块导出的 .md，把有正文的条目追加到当前世界（不覆盖、不去重）；纪元/序号/记忆回声一起带回来。格式不对或没有合法条目会明确报错，不会编内容。纯本地解析，不调模型、不联网。',
     importDone: (added: number, skipped: number) => `已导入 ${added} 条${skipped ? `，跳过 ${skipped} 条不认识的类别` : ''}。只追加、没动原有条目。`,
     importFail: '这个文件不是本模块导出的 Markdown（缺 # 世界名或没有任何有正文的条目）——什么都没写进去。',
+    audit: '世界体检',
+    auditTitle: '纯本地只读检查：量出空正文、重名、没有关系的孤儿条目、指向已删除条目的断链，并给一条可执行的下一步。不写库、不调模型。',
     fate: '掷命运骰',
     fateTitle: '不调模型、不写库：从这个世界已写的条目里抽两条，按确定性的句式重组成一张事件卡。同一个数字出现同一张卡，换一个数字就换一张——无穷来自你写下的细节组合，不是凭空编造。',
     fateEmpty: '至少要有两条写了正文的条目才能掷骰——先用填充或续写补一点内容。',
@@ -192,6 +195,8 @@ const COPY = {
     importMdTitle: 'Read back a .md exported by this module and append entries with bodies to the current world (no overwrite, no dedup); era/order/memory echoes come along. Wrong format or no valid entry reports an error and writes nothing. Pure local parse — no model call, no network.',
     importDone: (added: number, skipped: number) => `Imported ${added} entr${added === 1 ? 'y' : 'ies'}${skipped ? `, skipped ${skipped} unknown section${skipped === 1 ? '' : 's'}` : ''}. Append-only — nothing existing was touched.`,
     importFail: 'This file is not a Markdown exported by this module (no # world name, or no entry with a body) — nothing was written.',
+    audit: 'World checkup',
+    auditTitle: 'Read-only local check: counts empty bodies, duplicate titles, orphan nodes with no relations and links pointing at deleted entries, then gives one actionable next step. No database write, no model call.',
     fate: 'Roll fate',
     fateTitle: 'No model call, no database write: pick two entries you already wrote and recombine them into an event card with a deterministic frame. Same number, same card; a different number gives another — the endlessness comes from your own details, not invented ones.',
     fateEmpty: 'Roll needs at least two entries with body text — fill or continue the chronicle first.',
@@ -461,6 +466,14 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
     const { document: merged, added, skipped } = mergeImportedWorld(doc, parsed);
     edit(merged, true);
     setImportNote(c.importDone(added, skipped));
+  };
+
+  const [auditNote, setAuditNote] = useState('');
+  const runAudit = () => {
+    const doc = worldStore.getSnapshot().world;
+    if (!doc) return;
+    const a = auditWorld(doc);
+    setAuditNote(`${formatWorldAudit(a, locale)}。${auditSuggestion(a, locale)}`);
   };
 
   // §44 衍生玩法「命运骰」：纯确定性重组已有条目，零 provider、零写库；seed 递增保证每次换新卡。
@@ -1037,6 +1050,15 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
           >
             {c.importMd}
           </button>
+          <button
+            type="button"
+            onClick={runAudit}
+            title={c.auditTitle}
+            data-world-audit
+            className="wd-ghostBtn"
+          >
+            {c.audit}
+          </button>
         </div>
         {aiFillNote ? <p className="wd-body11Mt2" data-world-ai-fill-note>{aiFillNote}</p> : null}
         {chronicleNote ? <p className="wd-body11Mt2" data-world-ai-chronicle-note>{chronicleNote}</p> : null}
@@ -1045,6 +1067,7 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
         {bulkNote ? <p className="wd-body11Mt2" data-world-ai-fill-all-note>{bulkNote}</p> : null}
         {fateNote ? <p className="wd-body11Mt2" data-world-fate-note>{fateNote}</p> : null}
         {importNote ? <p className="wd-body11Mt2" data-world-import-note>{importNote}</p> : null}
+        {auditNote ? <p className="wd-body11Mt2" data-world-audit-note>{auditNote}</p> : null}
         {fateCard ? (
           <button
             type="button"
